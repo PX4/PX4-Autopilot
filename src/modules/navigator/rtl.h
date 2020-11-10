@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,54 +31,71 @@
  *
  ****************************************************************************/
 /**
- * @file navigator_rtl.h
+ * @file rtl.h
+ *
  * Helper class for RTL
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#ifndef NAVIGATOR_RTL_H
-#define NAVIGATOR_RTL_H
+#pragma once
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
-
-#include <navigator/navigation.h>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/vehicle_global_position.h>
+#include <px4_platform_common/module_params.h>
 
 #include "navigator_mode.h"
 #include "mission_block.h"
 
+#include <uORB/topics/home_position.h>
+
 class Navigator;
 
-class RTL : public MissionBlock
+class RTL : public MissionBlock, public ModuleParams
 {
 public:
-	RTL(Navigator *navigator, const char *name);
+	enum RTLType {
+		RTL_HOME = 0,
+		RTL_LAND,
+		RTL_MISSION,
+		RTL_CLOSEST,
+	};
+
+	enum RTLDestinationType {
+		RTL_DESTINATION_HOME = 0,
+		RTL_DESTINATION_MISSION_LANDING,
+		RTL_DESTINATION_SAFE_POINT,
+	};
+
+	RTL(Navigator *navigator);
+
 	~RTL() = default;
 
+	void on_inactivation() override;
 	void on_inactive() override;
 	void on_activation() override;
 	void on_active() override;
+
+	void find_RTL_destination();
+
+	void set_return_alt_min(bool min) { _rtl_alt_min = min; }
+
+	int rtl_type() const { return _param_rtl_type.get(); }
+
+	int rtl_destination();
 
 private:
 	/**
 	 * Set the RTL item
 	 */
-	void		set_rtl_item();
+	void set_rtl_item();
 
 	/**
 	 * Move to next RTL item
 	 */
-	void		advance_rtl();
+	void advance_rtl();
 
-	/**
-	 * Get RTL altitude
-	 */
-	float 		get_rtl_altitude();
 
+	float calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg);
 
 	enum RTLState {
 		RTL_STATE_NONE = 0,
@@ -91,11 +108,39 @@ private:
 		RTL_STATE_LANDED,
 	} _rtl_state{RTL_STATE_NONE};
 
-	control::BlockParamFloat _param_return_alt;
-	control::BlockParamFloat _param_min_loiter_alt;
-	control::BlockParamFloat _param_descend_alt;
-	control::BlockParamFloat _param_land_delay;
-	control::BlockParamFloat _param_rtl_min_dist;
-};
+	struct RTLPosition {
+		double lat;
+		double lon;
+		float alt;
+		float yaw;
+		uint8_t safe_point_index; ///< 0 = home position, 1 = mission landing, >1 = safe landing points (rally points)
+		RTLDestinationType type{RTL_DESTINATION_HOME};
 
-#endif
+		void set(const home_position_s &home_position)
+		{
+			lat = home_position.lat;
+			lon = home_position.lon;
+			alt = home_position.alt;
+			yaw = home_position.yaw;
+			safe_point_index = 0;
+			type = RTL_DESTINATION_HOME;
+		}
+	};
+
+	RTLPosition _destination{}; ///< the RTL position to fly to (typically the home position or a safe point)
+
+	hrt_abstime _destination_check_time{0};
+
+	float _rtl_alt{0.0f};	// AMSL altitude at which the vehicle should return to the home position
+	bool _rtl_alt_min{false};
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::RTL_RETURN_ALT>) _param_rtl_return_alt,
+		(ParamFloat<px4::params::RTL_DESCEND_ALT>) _param_rtl_descend_alt,
+		(ParamFloat<px4::params::RTL_LAND_DELAY>) _param_rtl_land_delay,
+		(ParamFloat<px4::params::RTL_MIN_DIST>) _param_rtl_min_dist,
+		(ParamInt<px4::params::RTL_TYPE>) _param_rtl_type,
+		(ParamInt<px4::params::RTL_CONE_ANG>) _param_rtl_cone_half_angle_deg,
+		(ParamInt<px4::params::RTL_PLD_MD>) _param_rtl_pld_md
+	)
+};

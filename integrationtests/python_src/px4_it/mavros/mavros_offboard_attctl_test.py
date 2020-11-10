@@ -37,23 +37,22 @@
 #
 # The shebang of this file is currently Python2 because some
 # dependencies such as pymavlink don't play well with Python3 yet.
+from __future__ import division
 
 PKG = 'px4'
 
-import unittest
 import rospy
-import rosbag
-import time
-
+from geometry_msgs.msg import Quaternion, Vector3
+from mavros_msgs.msg import AttitudeTarget
+from mavros_test_common import MavrosTestCommon
+from pymavlink import mavutil
+from six.moves import xrange
 from std_msgs.msg import Header
-from std_msgs.msg import Float64
-from geometry_msgs.msg import PoseStamped, Quaternion
+from threading import Thread
 from tf.transformations import quaternion_from_euler
-from mavros_msgs.srv import CommandLong
-from sensor_msgs.msg import NavSatFix
-#from px4_test_helper import PX4TestHelper
 
-class MavrosOffboardAttctlTest(unittest.TestCase):
+
+class MavrosOffboardAttctlTest(MavrosTestCommon):
     """
     Tests flying in offboard control by sending attitude and thrust setpoints
     via MAVROS.
@@ -62,90 +61,98 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
     """
 
     def setUp(self):
-        rospy.init_node('test_node', anonymous=True)
-        rospy.wait_for_service('mavros/cmd/arming', 30)
-        #self.helper = PX4TestHelper("mavros_offboard_attctl_test")
-        #self.helper.setUp()
+        super(MavrosOffboardAttctlTest, self).setUp()
 
-        rospy.Subscriber("mavros/local_position/pose", PoseStamped, self.position_callback)
-        rospy.Subscriber("mavros/global_position/global", NavSatFix, self.global_position_callback)
-        self.pub_att = rospy.Publisher('mavros/setpoint_attitude/attitude', PoseStamped, queue_size=10)
-        self.pub_thr = rospy.Publisher('mavros/setpoint_attitude/att_throttle', Float64, queue_size=10)
-        rospy.wait_for_service('mavros/cmd/command', 30)
-        self._srv_cmd_long = rospy.ServiceProxy('mavros/cmd/command', CommandLong, persistent=True)
-        self.rate = rospy.Rate(10) # 10hz
-        self.has_global_pos = False
-        self.local_position = PoseStamped()
+        self.att = AttitudeTarget()
+
+        self.att_setpoint_pub = rospy.Publisher(
+            'mavros/setpoint_raw/attitude', AttitudeTarget, queue_size=1)
+
+        # send setpoints in seperate thread to better prevent failsafe
+        self.att_thread = Thread(target=self.send_att, args=())
+        self.att_thread.daemon = True
+        self.att_thread.start()
 
     def tearDown(self):
-        #self.helper.tearDown()
-        pass
+        super(MavrosOffboardAttctlTest, self).tearDown()
 
     #
-    # General callback functions used in tests
+    # Helper methods
     #
-    def position_callback(self, data):
-        self.local_position = data
+    def send_att(self):
+        rate = rospy.Rate(10)  # Hz
+        self.att.body_rate = Vector3()
+        self.att.header = Header()
+        self.att.header.frame_id = "base_footprint"
+        self.att.orientation = Quaternion(*quaternion_from_euler(-0.25, 0.15,
+                                                                 0))
+        self.att.thrust = 0.7
+        self.att.type_mask = 7  # ignore body rate
 
-    def global_position_callback(self, data):
-        self.has_global_pos = True
+        while not rospy.is_shutdown():
+            self.att.header.stamp = rospy.Time.now()
+            self.att_setpoint_pub.publish(self.att)
+            try:  # prevent garbage in console output when thread is killed
+                rate.sleep()
+            except rospy.ROSInterruptException:
+                pass
 
+    #
+    # Test method
+    #
     def test_attctl(self):
         """Test offboard attitude control"""
+        # boundary to cross
+        boundary_x = 200
+        boundary_y = 100
+        boundary_z = 20
 
-        # FIXME: hack to wait for simulation to be ready
-        while not self.has_global_pos:
-            self.rate.sleep()
+        # make sure the simulation is ready to start the mission
+        self.wait_for_topics(60)
+        self.wait_for_landed_state(mavutil.mavlink.MAV_LANDED_STATE_ON_GROUND,
+                                   10, -1)
 
-        # set some attitude and thrust
-        att = PoseStamped()
-        att.header = Header()
-        att.header.frame_id = "base_footprint"
-        att.header.stamp = rospy.Time.now()
-        quaternion = quaternion_from_euler(0.25, 0.25, 0)
-        att.pose.orientation = Quaternion(*quaternion)
+        self.log_topic_vars()
+        self.set_mode("OFFBOARD", 5)
+        self.set_arm(True, 5)
 
-        throttle = Float64()
-        throttle.data = 0.7
-        armed = False
-
-        # does it cross expected boundaries in X seconds?
-        count = 0
-        timeout = 120
-        while count < timeout:
-            # update timestamp for each published SP
-            att.header.stamp = rospy.Time.now()
-
-            self.pub_att.publish(att)
-            #self.helper.bag_write('mavros/setpoint_attitude/attitude', att)
-            self.pub_thr.publish(throttle)
-            #self.helper.bag_write('mavros/setpoint_attitude/att_throttle', throttle)
-            self.rate.sleep()
-
-            # FIXME: arm and switch to offboard
-            # (need to wait the first few rounds until PX4 has the offboard stream)
-            if not armed and count > 5:
-                self._srv_cmd_long(False, 176, False,
-                                   1, 6, 0, 0, 0, 0, 0)
-                # make sure the first command doesn't get lost
-                time.sleep(1)
-
-                self._srv_cmd_long(False, 400, False,
-                                   # arm
-                                   1, 0, 0, 0, 0, 0, 0)
-
-                armed = True
-
-            if (self.local_position.pose.position.x > 5
-                    and self.local_position.pose.position.z > 5
-                    and self.local_position.pose.position.y < -5):
+        rospy.loginfo("run mission")
+        rospy.loginfo("attempting to cross boundary | x: {0}, y: {1}, z: {2}".
+                      format(boundary_x, boundary_y, boundary_z))
+        # does it cross expected boundaries in 'timeout' seconds?
+        timeout = 90  # (int) seconds
+        loop_freq = 2  # Hz
+        rate = rospy.Rate(loop_freq)
+        crossed = False
+        for i in xrange(timeout * loop_freq):
+            if (self.local_position.pose.position.x > boundary_x and
+                    self.local_position.pose.position.y > boundary_y and
+                    self.local_position.pose.position.z > boundary_z):
+                rospy.loginfo("boundary crossed | seconds: {0} of {1}".format(
+                    i / loop_freq, timeout))
+                crossed = True
                 break
-            count = count + 1
 
-        self.assertTrue(count < timeout, "took too long to cross boundaries")
+            try:
+                rate.sleep()
+            except rospy.ROSException as e:
+                self.fail(e)
+
+        self.assertTrue(crossed, (
+            "took too long to cross boundaries | current position x: {0:.2f}, y: {1:.2f}, z: {2:.2f} | timeout(seconds): {3}".
+            format(self.local_position.pose.position.x,
+                   self.local_position.pose.position.y,
+                   self.local_position.pose.position.z, timeout)))
+
+        self.set_mode("AUTO.LAND", 5)
+        self.wait_for_landed_state(mavutil.mavlink.MAV_LANDED_STATE_ON_GROUND,
+                                   90, 0)
+        self.set_arm(False, 5)
 
 
 if __name__ == '__main__':
     import rostest
-    rostest.rosrun(PKG, 'mavros_offboard_attctl_test', MavrosOffboardAttctlTest)
-    #unittest.main()
+    rospy.init_node('test_node', anonymous=True)
+
+    rostest.rosrun(PKG, 'mavros_offboard_attctl_test',
+                   MavrosOffboardAttctlTest)

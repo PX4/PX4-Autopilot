@@ -31,30 +31,44 @@
 #
 ############################################################################
 
-# this includes the generated topics directory
-include_directories(
-	${CMAKE_CURRENT_BINARY_DIR}
-	)
+if(NOT PX4_BOARD MATCHES "px4_io") # TODO: fix this hack (move uORB to platform layer)
 
-link_libraries(msg_gen)
+	# this includes the generated topics directory
+	include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-set(SRCS
-	uORBUtils.cpp
-	uORB.cpp
-	uORBMain.cpp
-	Publication.cpp
-	Subscription.cpp
-	uORBManager.cpp
-	uORBDevices.cpp
-	)
+	px4_add_module(
+		MODULE modules__uORB
+		MAIN uorb
+		COMPILE_FLAGS
+			${MAX_CUSTOM_OPT_LEVEL}
+		SRCS
+			ORBSet.hpp
+			Publication.hpp
+			PublicationMulti.hpp
+			Subscription.cpp
+			Subscription.hpp
+			SubscriptionCallback.hpp
+			SubscriptionInterval.hpp
+			SubscriptionMultiArray.hpp
+			uORB.cpp
+			uORB.h
+			uORBCommon.hpp
+			uORBCommunicator.hpp
+			uORBDeviceMaster.cpp
+			uORBDeviceMaster.hpp
+			uORBDeviceNode.cpp
+			uORBDeviceNode.hpp
+			uORBMain.cpp
+			uORBManager.cpp
+			uORBManager.hpp
+			uORBUtils.cpp
+			uORBUtils.hpp
+		DEPENDS
+			cdev
+			uorb_msgs
+		)
 
-px4_add_module(
-	MODULE modules__uORB
-	MAIN uorb
-	STACK_MAIN 2100
-	COMPILE_FLAGS
-	SRCS ${SRCS}
-	DEPENDS
-		platforms__common
-	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+	if(PX4_TESTING)
+		add_subdirectory(uORB_tests)
+	endif()
+endif()

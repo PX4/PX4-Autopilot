@@ -40,38 +40,23 @@
  */
 
 #include <drivers/drv_hrt.h>
+#include <matrix/math.hpp>
 
 #include "VtolLandDetector.h"
 
 namespace land_detector
 {
 
-VtolLandDetector::VtolLandDetector()
-{
-	_paramHandle.maxAirSpeed = param_find("LNDFW_AIRSPD_MAX");
-}
-
-void VtolLandDetector::_initialize_topics()
-{
-	MulticopterLandDetector::_initialize_topics();
-
-	_airspeedSub = orb_subscribe(ORB_ID(airspeed));
-	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-}
-
 void VtolLandDetector::_update_topics()
 {
 	MulticopterLandDetector::_update_topics();
-
-	_orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
-	_orb_update(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
 }
 
 bool VtolLandDetector::_get_maybe_landed_state()
 {
-	// Only trigger in RW mode
-	if (!_vehicle_status.is_rotary_wing) {
-		return false;
+	// If in Fixed-wing mode, only trigger if disarmed
+	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		return !_armed;
 	}
 
 	return MulticopterLandDetector::_get_maybe_landed_state();
@@ -79,17 +64,21 @@ bool VtolLandDetector::_get_maybe_landed_state()
 
 bool VtolLandDetector::_get_landed_state()
 {
-	// Only trigger in RW mode
-	if (!_vehicle_status.is_rotary_wing) {
-		return false;
+	// If in Fixed-wing mode, only trigger if disarmed
+	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		return !_armed;
 	}
 
 	// this is returned from the mutlicopter land detector
 	bool landed = MulticopterLandDetector::_get_landed_state();
 
 	// for vtol we additionally consider airspeed
-	if (hrt_elapsed_time(&_airspeed.timestamp) < 500 * 1000) {
-		_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * _airspeed.true_airspeed_m_s;
+	airspeed_validated_s airspeed_validated{};
+	_airspeed_validated_sub.copy(&airspeed_validated);
+
+	if (hrt_elapsed_time(&airspeed_validated.timestamp) < 1_s && PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)) {
+
+		_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * airspeed_validated.true_airspeed_m_s;
 
 	} else {
 		// if airspeed does not update, set it to zero and rely on multicopter land detector
@@ -98,7 +87,7 @@ bool VtolLandDetector::_get_landed_state()
 
 	// only consider airspeed if we have been in air before to avoid false
 	// detections in the case of wind on the ground
-	if (_was_in_air && _airspeed_filtered > _params.maxAirSpeed) {
+	if (_was_in_air && (_airspeed_filtered > _param_lndfw_airspd_max.get())) {
 		landed = false;
 	}
 
@@ -107,11 +96,13 @@ bool VtolLandDetector::_get_landed_state()
 	return landed;
 }
 
-void VtolLandDetector::_update_params()
+bool VtolLandDetector::_get_freefall_state()
 {
-	MulticopterLandDetector::_update_params();
+	// true if falling or in a parabolic flight (low gravity)
+	bool free_fall_detected = MulticopterLandDetector::_get_freefall_state();
 
-	param_get(_paramHandle.maxAirSpeed, &_params.maxAirSpeed);
+	// only return a positive free fall detected if not in fixed-wing mode
+	return _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING && free_fall_detected;
 }
 
 } // namespace land_detector

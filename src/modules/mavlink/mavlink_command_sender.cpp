@@ -39,7 +39,7 @@
  */
 
 #include "mavlink_command_sender.h"
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 #define CMD_DEBUG(FMT, ...) PX4_LOG_NAMED_COND("cmd sender", _debug_enabled, FMT, ##__VA_ARGS__)
 
@@ -57,13 +57,7 @@ void MavlinkCommandSender::initialize()
 
 MavlinkCommandSender &MavlinkCommandSender::instance()
 {
-
 	return *_instance;
-}
-
-MavlinkCommandSender::MavlinkCommandSender() :
-	_commands(3)
-{
 }
 
 MavlinkCommandSender::~MavlinkCommandSender()
@@ -118,7 +112,7 @@ int MavlinkCommandSender::handle_vehicle_command(const struct vehicle_command_s 
 }
 
 void MavlinkCommandSender::handle_mavlink_command_ack(const mavlink_command_ack_t &ack,
-		uint8_t from_sysid, uint8_t from_compid)
+		uint8_t from_sysid, uint8_t from_compid, uint8_t channel)
 {
 	CMD_DEBUG("handling result %d for command %d (from %d:%d)",
 		  ack.result, ack.command, from_sysid, from_compid);
@@ -129,11 +123,10 @@ void MavlinkCommandSender::handle_mavlink_command_ack(const mavlink_command_ack_
 	while (command_item_t *item = _commands.get_next()) {
 		// Check if the incoming ack matches any of the commands that we have sent.
 		if (item->command.command == ack.command &&
-		    from_sysid == item->command.target_system &&
-		    from_compid == item->command.target_component) {
-			// Drop it anyway because the command seems to have arrived at the destination, even if we
-			// receive IN_PROGRESS because we trust that it will be handled after that.
-			_commands.drop_current();
+		    (item->command.target_system == 0 || from_sysid == item->command.target_system) &&
+		    (item->command.target_component == 0 || from_compid == item->command.target_component) &&
+		    item->num_sent_per_channel[channel] != -1) {
+			item->num_sent_per_channel[channel] = -2;	// mark this as acknowledged
 			break;
 		}
 	}
@@ -150,6 +143,23 @@ void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 	while (command_item_t *item = _commands.get_next()) {
 		if (hrt_elapsed_time(&item->last_time_sent_us) <= TIMEOUT_US) {
 			// We keep waiting for the timeout.
+			continue;
+		}
+
+		// Loop through num_sent_per_channel and check if any channel has receives an ack for this command
+		// (indicated by the value -2). We avoid removing the command at the time of receiving the ack
+		// as some channels might be lagging behind and will end up putting the same command into the buffer.
+		bool dropped_command = false;
+
+		for (unsigned i = 0; i < MAX_MAVLINK_CHANNEL; ++i) {
+			if (item->num_sent_per_channel[i] == -2) {
+				_commands.drop_current();
+				dropped_command = true;
+				break;
+			}
+		}
+
+		if (dropped_command) {
 			continue;
 		}
 
@@ -177,10 +187,10 @@ void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 			}
 		}
 
-		if (item->num_sent_per_channel[channel] < max_sent) {
+		if (item->num_sent_per_channel[channel] < max_sent && item->num_sent_per_channel[channel] != -1) {
 			// We are behind and need to do a retransmission.
+			item->command.confirmation = ++item->num_sent_per_channel[channel];
 			mavlink_msg_command_long_send_struct(channel, &item->command);
-			item->num_sent_per_channel[channel]++;
 
 			CMD_DEBUG("command %d sent (not first, retries: %d/%d, channel: %d)",
 				  item->command.command,
@@ -200,8 +210,8 @@ void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 			}
 
 			// We are the first of a new retransmission series.
+			item->command.confirmation = ++item->num_sent_per_channel[channel];
 			mavlink_msg_command_long_send_struct(channel, &item->command);
-			item->num_sent_per_channel[channel]++;
 			// Therefore, we are the ones setting the timestamp of this retry round.
 			item->last_time_sent_us = hrt_absolute_time();
 

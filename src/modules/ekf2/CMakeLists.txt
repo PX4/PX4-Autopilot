@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,17 +30,24 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 #############################################################################
+
+add_subdirectory(Utility)
+
 px4_add_module(
 	MODULE modules__ekf2
 	MAIN ekf2
 	COMPILE_FLAGS
-		-Wno-sign-compare # TODO: fix all sign-compare
-	STACK_MAIN 2500
-	STACK_MAX 4000
+	STACK_MAX 2400
 	SRCS
-		ekf2_main.cpp
+		EKF2.cpp
+		EKF2.hpp
+		EKF2Selector.cpp
+		EKF2Selector.hpp
 	DEPENDS
-		platforms__common
 		git_ecl
+		ecl_EKF
+		ecl_geo
+		perf
+		EKF2Utility
+		px4_work_queue
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

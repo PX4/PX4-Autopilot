@@ -39,43 +39,83 @@
 
 #pragma once
 
-#include <platforms/px4_defines.h>
+#include "Limits.hpp"
+
+#include <matrix/matrix/math.hpp>
 
 namespace math
 {
 
-// Type-safe signum function
+// Type-safe signum function with zero treated as positive
 template<typename T>
-int sign(T val)
+int signNoZero(T val)
 {
-	return (T(0) < val) - (val < T(0));
+	return (T(0) <= val) - (val < T(0));
 }
 
 /*
  * So called exponential curve function implementation.
  * It is essentially a linear combination between a linear and a cubic function.
- * It's used in the range [-1,1]
+ * @param value [-1,1] input value to function
+ * @param e [0,1] function parameter to set ratio between linear and cubic shape
+ * 		0 - pure linear function
+ * 		1 - pure cubic function
+ * @return result of function output
  */
-template<typename _Tp>
-inline const _Tp expo(const _Tp &value, const _Tp &e)
+template<typename T>
+const T expo(const T &value, const T &e)
 {
-	_Tp x = constrain(value, (_Tp) - 1, (_Tp)1);
-	return (1 - e) * x + e * x * x * x;
+	T x = constrain(value, (T) - 1, (T) 1);
+	T ec = constrain(e, (T) 0, (T) 1);
+	return (1 - ec) * x + ec * x * x * x;
 }
 
-template<typename _Tp>
-inline const _Tp deadzone(const _Tp &value, const _Tp &dz)
+/*
+ * So called SuperExpo function implementation.
+ * It is a 1/(1-x) function to further shape the rc input curve intuitively.
+ * I enhanced it compared to other implementations to keep the scale between [-1,1].
+ * @param value [-1,1] input value to function
+ * @param e [0,1] function parameter to set ratio between linear and cubic shape (see expo)
+ * @param g [0,1) function parameter to set SuperExpo shape
+ * 		0 - pure expo function
+ * 		0.99 - very strong bent curve, stays zero until maximum stick input
+ * @return result of function output
+ */
+template<typename T>
+const T superexpo(const T &value, const T &e, const T &g)
 {
-	_Tp x = constrain(value, (_Tp) - 1, (_Tp)1);
-	_Tp dzc = constrain(dz, (_Tp) - 1, (_Tp)1);
+	T x = constrain(value, (T) - 1, (T) 1);
+	T gc = constrain(g, (T) 0, (T) 0.99);
+	return expo(x, e) * (1 - gc) / (1 - fabsf(x) * gc);
+}
+
+/*
+ * Deadzone function being linear and continuous outside of the deadzone
+ * 1                ------
+ *                /
+ *             --
+ *           /
+ * -1 ------
+ *        -1 -dz +dz 1
+ * @param value [-1,1] input value to function
+ * @param dz [0,1) ratio between deazone and complete span
+ * 		0 - no deadzone, linear -1 to 1
+ * 		0.5 - deadzone is half of the span [-0.5,0.5]
+ * 		0.99 - almost entire span is deadzone
+ */
+template<typename T>
+const T deadzone(const T &value, const T &dz)
+{
+	T x = constrain(value, (T) - 1, (T) 1);
+	T dzc = constrain(dz, (T) 0, (T) 0.99);
 	// Rescale the input such that we get a piecewise linear function that will be continuous with applied deadzone
-	_Tp out = (x - sign(x) * dzc) / (1 - dzc);
+	T out = (x - matrix::sign(x) * dzc) / (1 - dzc);
 	// apply the deadzone (values zero around the middle)
 	return out * (fabsf(x) > dzc);
 }
 
-template<typename _Tp>
-inline const _Tp expo_deadzone(const _Tp &value, const _Tp &e, const _Tp &dz)
+template<typename T>
+const T expo_deadzone(const T &value, const T &e, const T &dz)
 {
 	return expo(deadzone(value, dz), e);
 }
@@ -90,8 +130,8 @@ inline const _Tp expo_deadzone(const _Tp &value, const _Tp &e, const _Tp &dz)
  * y_low -------
  *         x_low   x_high
  */
-template<typename _Tp>
-inline const _Tp gradual(const _Tp &value, const _Tp &x_low, const _Tp &x_high, const _Tp &y_low, const _Tp &y_high)
+template<typename T>
+const T gradual(const T &value, const T &x_low, const T &x_high, const T &y_low, const T &y_high)
 {
 	if (value < x_low) {
 		return y_low;
@@ -101,10 +141,35 @@ inline const _Tp gradual(const _Tp &value, const _Tp &x_low, const _Tp &x_high, 
 
 	} else {
 		/* linear function between the two points */
-		float a = (y_high - y_low) / (x_high - x_low);
-		float b = y_low - a * x_low;
+		T a = (y_high - y_low) / (x_high - x_low);
+		T b = y_low - a * x_low;
 		return  a * value + b;
 	}
 }
 
+/*
+ * Constant, linear, linear, constant function with the three corner points as parameters
+ *  y_high               -------
+ *                      /
+ *                    /
+ *  y_middle        /
+ *                /
+ *               /
+ *              /
+ * y_low -------
+ *         x_low x_middle x_high
+ */
+template<typename T>
+const T gradual3(const T &value,
+		 const T &x_low, const T &x_middle, const T &x_high,
+		 const T &y_low, const T &y_middle, const T &y_high)
+{
+	if (value < x_middle) {
+		return gradual(value, x_low, x_middle, y_low, y_middle);
+
+	} else {
+		return gradual(value, x_middle, x_high, y_middle, y_high);
+	}
 }
+
+} /* namespace math */

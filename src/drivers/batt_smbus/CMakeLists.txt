@@ -36,7 +36,7 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		batt_smbus.cpp
+
 	DEPENDS
-		platforms__common
+		drivers__smbus
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

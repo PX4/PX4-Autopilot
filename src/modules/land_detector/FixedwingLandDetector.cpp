@@ -41,114 +41,63 @@
 
 #include "FixedwingLandDetector.h"
 
-#include <cmath>
-
-#include <px4_config.h>
-#include <px4_defines.h>
-
 namespace land_detector
 {
 
 FixedwingLandDetector::FixedwingLandDetector()
 {
-	_paramHandle.maxVelocity = param_find("LNDFW_VEL_XY_MAX");
-	_paramHandle.maxClimbRate = param_find("LNDFW_VEL_Z_MAX");
-	_paramHandle.maxAirSpeed = param_find("LNDFW_AIRSPD_MAX");
-	_paramHandle.maxIntVelocity = param_find("LNDFW_VELI_MAX");
-
 	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
-	_landed_hysteresis.set_hysteresis_time_from(false, LAND_DETECTOR_TRIGGER_TIME_US);
-}
-
-void FixedwingLandDetector::_initialize_topics()
-{
-	_armingSub = orb_subscribe(ORB_ID(actuator_armed));
-	_airspeedSub = orb_subscribe(ORB_ID(airspeed));
-	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	_sensor_bias_sub = orb_subscribe(ORB_ID(sensor_bias));
-}
-
-void FixedwingLandDetector::_update_topics()
-{
-	_orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
-	_orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
-	_orb_update(ORB_ID(sensor_bias), _sensor_bias_sub, &_sensors);
-	_orb_update(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
-}
-
-void FixedwingLandDetector::_update_params()
-{
-	param_get(_paramHandle.maxVelocity, &_params.maxVelocity);
-	param_get(_paramHandle.maxClimbRate, &_params.maxClimbRate);
-	param_get(_paramHandle.maxAirSpeed, &_params.maxAirSpeed);
-	param_get(_paramHandle.maxIntVelocity, &_params.maxIntVelocity);
-}
-
-float FixedwingLandDetector::_get_max_altitude()
-{
-	// TODO
-	// This means no altitude limit as the limit
-	// is always current position plus 1000 meters
-	return roundf(-_local_pos.z + 1000);
-}
-
-bool FixedwingLandDetector::_get_freefall_state()
-{
-	// TODO
-	return false;
-}
-
-bool FixedwingLandDetector::_get_ground_contact_state()
-{
-	// TODO
-	return false;
-}
-
-bool FixedwingLandDetector::_get_maybe_landed_state()
-{
-	// TODO
-	return false;
+	_landed_hysteresis.set_hysteresis_time_from(false, LANDED_TRIGGER_TIME_US);
+	_landed_hysteresis.set_hysteresis_time_from(true, FLYING_TRIGGER_TIME_US);
 }
 
 bool FixedwingLandDetector::_get_landed_state()
 {
-	// only trigger flight conditions if we are armed
-	if (!_arming.armed) {
+	// Only trigger flight conditions if we are armed.
+	if (!_armed) {
 		return true;
 	}
 
 	bool landDetected = false;
 
-	if (hrt_elapsed_time(&_local_pos.timestamp) < 500 * 1000) {
+	if (hrt_elapsed_time(&_vehicle_local_position.timestamp) < 1_s) {
 
-		// horizontal velocity
-		float val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy *
-				_local_pos.vy);
+		// Horizontal velocity complimentary filter.
+		float val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_vehicle_local_position.vx * _vehicle_local_position.vx +
+				_vehicle_local_position.vy * _vehicle_local_position.vy);
 
 		if (PX4_ISFINITE(val)) {
 			_velocity_xy_filtered = val;
 		}
 
-		// vertical velocity
-		val = 0.99f * _velocity_z_filtered + 0.01f * fabsf(_local_pos.vz);
+		// Vertical velocity complimentary filter.
+		val = 0.99f * _velocity_z_filtered + 0.01f * fabsf(_vehicle_local_position.vz);
 
 		if (PX4_ISFINITE(val)) {
 			_velocity_z_filtered = val;
 		}
 
-		_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * _airspeed.true_airspeed_m_s;
+		airspeed_validated_s airspeed_validated{};
+		_airspeed_validated_sub.copy(&airspeed_validated);
 
-		// a leaking lowpass prevents biases from building up, but
-		// gives a mostly correct response for short impulses
-		const float acc_hor = sqrtf(_sensors.accel_x * _sensors.accel_x +
-					    _sensors.accel_y * _sensors.accel_y);
-		_accel_horz_lp = _accel_horz_lp * 0.8f + acc_hor * 0.18f;
+		// set _airspeed_filtered to 0 if airspeed data is invalid
+		if (!PX4_ISFINITE(airspeed_validated.true_airspeed_m_s) || hrt_elapsed_time(&airspeed_validated.timestamp) > 1_s) {
+			_airspeed_filtered = 0.0f;
 
-		// crude land detector for fixedwing
-		landDetected = _velocity_xy_filtered < _params.maxVelocity
-			       && _velocity_z_filtered < _params.maxClimbRate
-			       && _airspeed_filtered < _params.maxAirSpeed
-			       && _accel_horz_lp < _params.maxIntVelocity;
+		} else {
+			_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * airspeed_validated.true_airspeed_m_s;
+		}
+
+		// A leaking lowpass prevents biases from building up, but
+		// gives a mostly correct response for short impulses.
+		const float acc_hor = matrix::Vector2f(_acceleration).norm();
+		_xy_accel_filtered = _xy_accel_filtered * 0.8f + acc_hor * 0.18f;
+
+		// Crude land detector for fixedwing.
+		landDetected = _airspeed_filtered       < _param_lndfw_airspd.get()
+			       && _velocity_xy_filtered < _param_lndfw_vel_xy_max.get()
+			       && _velocity_z_filtered  < _param_lndfw_vel_z_max.get()
+			       && _xy_accel_filtered    < _param_lndfw_xyaccel_max.get();
 
 	} else {
 		// Control state topic has timed out and we need to assume we're landed.

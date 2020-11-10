@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,251 +31,406 @@
  *
  ****************************************************************************/
 /**
- * @file navigator_rtl.cpp
+ * @file rtl.cpp
+ *
  * Helper class to access RTL
+ *
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include "rtl.h"
 #include "navigator.h"
+#include <dataman/dataman.h>
 
-#include <geo/geo.h>
-#include <mathlib/mathlib.h>
-#include <systemlib/err.h>
-#include <systemlib/mavlink_log.h>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/vtol_vehicle_status.h>
-#include <uORB/uORB.h>
 
 static constexpr float DELAY_SIGMA = 0.01f;
 
-RTL::RTL(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name),
-	_rtl_state(RTL_STATE_NONE),
-	_param_return_alt(this, "RTL_RETURN_ALT", false),
-	_param_min_loiter_alt(this, "MIS_LTRMIN_ALT", false),
-	_param_descend_alt(this, "RTL_DESCEND_ALT", false),
-	_param_land_delay(this, "RTL_LAND_DELAY", false),
-	_param_rtl_min_dist(this, "RTL_MIN_DIST", false)
-{
-	/* load initial params */
-	updateParams();
+using namespace time_literals;
 
-	/* initial reset */
-	on_inactive();
+RTL::RTL(Navigator *navigator) :
+	MissionBlock(navigator),
+	ModuleParams(navigator)
+{
 }
 
-void
-RTL::on_inactive()
+void RTL::on_inactivation()
 {
-	// reset RTL state
+	if (_navigator->get_precland()->is_activated()) {
+		_navigator->get_precland()->on_inactivation();
+	}
+}
+
+void RTL::on_inactive()
+{
+	// Reset RTL state.
 	_rtl_state = RTL_STATE_NONE;
+
+	find_RTL_destination();
 }
 
-float
-RTL::get_rtl_altitude()
+void RTL::find_RTL_destination()
 {
-	return math::min(_param_return_alt.get(), _navigator->get_land_detected()->alt_max);
+	// don't update RTL destination faster than 1 Hz
+	if (hrt_elapsed_time(&_destination_check_time) < 1_s) {
+		return;
+	}
+
+	if (!_navigator->home_position_valid()) {
+		return;
+	}
+
+	_destination_check_time = hrt_absolute_time();
+
+	// get home position:
+	home_position_s &home_landing_position = *_navigator->get_home_position();
+
+	// get global position
+	const vehicle_global_position_s &global_position = *_navigator->get_global_position();
+
+	// set destination to home per default, then check if other valid landing spot is closer
+	_destination.set(home_landing_position);
+
+	// get distance to home position
+	double dlat = home_landing_position.lat - global_position.lat;
+	double dlon = home_landing_position.lon - global_position.lon;
+
+	double lon_scale = cos(math::radians(global_position.lat));
+
+	auto coord_dist_sq = [lon_scale](double lat_diff, double lon_diff) -> double {
+		double lon_diff_scaled =  lon_scale * matrix::wrap(lon_diff, -180., 180.);
+		return lat_diff * lat_diff + lon_diff_scaled * lon_diff_scaled;
+	};
+
+	double min_dist_squared = coord_dist_sq(dlat, dlon);
+
+	_destination.type = RTL_DESTINATION_HOME;
+
+	// consider the mission landing if not RTL_HOME type set
+	if (rtl_type() != RTL_HOME && _navigator->get_mission_start_land_available()) {
+		double mission_landing_lat = _navigator->get_mission_landing_lat();
+		double mission_landing_lon = _navigator->get_mission_landing_lon();
+
+		// compare home position to landing position to decide which is closer
+		dlat = mission_landing_lat - global_position.lat;
+		dlon = mission_landing_lon - global_position.lon;
+		double dist_squared = coord_dist_sq(dlat, dlon);
+
+		// set destination to mission landing if closest or in RTL_LAND or RTL_MISSION (so not in RTL_CLOSEST)
+		if (dist_squared < min_dist_squared || rtl_type() != RTL_CLOSEST) {
+			min_dist_squared = dist_squared;
+			_destination.lat = _navigator->get_mission_landing_lat();
+			_destination.lon = _navigator->get_mission_landing_lon();
+			_destination.alt = _navigator->get_mission_landing_alt();
+			_destination.type = RTL_DESTINATION_MISSION_LANDING;
+
+		}
+	}
+
+	// do not consider rally point if RTL type is set to RTL_MISSION, so exit function and use either home or mission landing
+	if (rtl_type() == RTL_MISSION) {
+		return;
+	}
+
+	// compare to safe landing positions
+	mission_safe_point_s closest_safe_point {} ;
+	mission_stats_entry_s stats;
+	int ret = dm_read(DM_KEY_SAFE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
+	int num_safe_points = 0;
+
+	if (ret == sizeof(mission_stats_entry_s)) {
+		num_safe_points = stats.num_items;
+	}
+
+	// check if a safe point is closer than home or landing
+	int closest_index = 0;
+
+	for (int current_seq = 1; current_seq <= num_safe_points; ++current_seq) {
+		mission_safe_point_s mission_safe_point;
+
+		if (dm_read(DM_KEY_SAFE_POINTS, current_seq, &mission_safe_point, sizeof(mission_safe_point_s)) !=
+		    sizeof(mission_safe_point_s)) {
+			PX4_ERR("dm_read failed");
+			continue;
+		}
+
+		// TODO: take altitude into account for distance measurement
+		dlat = mission_safe_point.lat - global_position.lat;
+		dlon = mission_safe_point.lon - global_position.lon;
+		double dist_squared = coord_dist_sq(dlat, dlon);
+
+		if (dist_squared < min_dist_squared) {
+			closest_index = current_seq;
+			min_dist_squared = dist_squared;
+			closest_safe_point = mission_safe_point;
+		}
+	}
+
+	if (closest_index > 0) {
+		_destination.type = RTL_DESTINATION_SAFE_POINT;
+
+		// There is a safe point closer than home/mission landing
+		// TODO: handle all possible mission_safe_point.frame cases
+		switch (closest_safe_point.frame) {
+		case 0: // MAV_FRAME_GLOBAL
+			_destination.lat = closest_safe_point.lat;
+			_destination.lon = closest_safe_point.lon;
+			_destination.alt = closest_safe_point.alt;
+			_destination.yaw = home_landing_position.yaw;
+			break;
+
+		case 3: // MAV_FRAME_GLOBAL_RELATIVE_ALT
+			_destination.lat = closest_safe_point.lat;
+			_destination.lon = closest_safe_point.lon;
+			_destination.alt = closest_safe_point.alt + home_landing_position.alt; // alt of safe point is rel to home
+			_destination.yaw = home_landing_position.yaw;
+			break;
+
+		default:
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: unsupported MAV_FRAME");
+			break;
+		}
+	}
+
 }
 
-void
-RTL::on_activation()
+void RTL::on_activation()
 {
-	set_current_position_item(&_mission_item);
-	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-	pos_sp_triplet->previous.valid = false;
-	pos_sp_triplet->next.valid = false;
 
-	/* for safety reasons don't go into RTL if landed */
+	// output the correct message, depending on where the RTL destination is
+	switch (_destination.type) {
+	case RTL_DESTINATION_HOME:
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: landing at home position.");
+		break;
+
+	case RTL_DESTINATION_MISSION_LANDING:
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: landing at mission landing.");
+		break;
+
+	case RTL_DESTINATION_SAFE_POINT:
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: landing at safe landing point.");
+		break;
+	}
+
+	const vehicle_global_position_s &global_position = *_navigator->get_global_position();
+
+	if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		_rtl_alt = calculate_return_alt_from_cone_half_angle((float)_param_rtl_cone_half_angle_deg.get());
+
+	} else {
+		_rtl_alt = math::max(global_position.alt, _destination.alt + _param_rtl_return_alt.get());
+	}
+
 	if (_navigator->get_land_detected()->landed) {
+		// For safety reasons don't go into RTL if landed.
 		_rtl_state = RTL_STATE_LANDED;
 
-	} else if (_navigator->get_global_position()->alt < (_navigator->get_home_position()->alt + get_rtl_altitude())) {
+	} else if ((_destination.type == RTL_DESTINATION_MISSION_LANDING) && _navigator->on_mission_landing()) {
+		// RTL straight to RETURN state, but mission will takeover for landing.
 
-		/* if lower than return altitude, climb up first */
+	} else if ((global_position.alt < _destination.alt + _param_rtl_return_alt.get()) || _rtl_alt_min) {
+
+		// If lower than return altitude, climb up first.
+		// If rtl_alt_min is true then forcing altitude change even if above.
 		_rtl_state = RTL_STATE_CLIMB;
 
 	} else {
-		/* otherwise go straight to return */
+		// Otherwise go straight to return
 		_rtl_state = RTL_STATE_RETURN;
-
-		/* set altitude setpoint to current altitude */
-		_mission_item.altitude_is_relative = false;
-		_mission_item.altitude = _navigator->get_global_position()->alt;
 	}
 
 	set_rtl_item();
 }
 
-void
-RTL::on_active()
+void RTL::on_active()
 {
 	if (_rtl_state != RTL_STATE_LANDED && is_mission_item_reached()) {
 		advance_rtl();
 		set_rtl_item();
 	}
+
+	if (_rtl_state == RTL_STATE_LAND && _param_rtl_pld_md.get() > 0) {
+		_navigator->get_precland()->on_active();
+
+	} else if (_navigator->get_precland()->is_activated()) {
+		_navigator->get_precland()->on_inactivation();
+	}
 }
 
-void
-RTL::set_rtl_item()
+void RTL::set_rtl_item()
 {
-	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	// RTL_TYPE: mission landing.
+	// Landing using planned mission landing, fly to DO_LAND_START instead of returning _destination.
+	// After reaching DO_LAND_START, do nothing, let navigator takeover with mission landing.
+	if (_destination.type == RTL_DESTINATION_MISSION_LANDING) {
+		if (_rtl_state > RTL_STATE_CLIMB) {
+			if (_navigator->start_mission_landing()) {
+				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: using mission landing");
+				return;
+
+			} else {
+				// Otherwise use regular RTL.
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: unable to use mission landing");
+			}
+		}
+	}
 
 	_navigator->set_can_loiter_at_sp(false);
+
+	const vehicle_global_position_s &gpos = *_navigator->get_global_position();
+
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+	// Check if we are pretty close to the destination already.
+	const float destination_dist = get_distance_to_next_waypoint(_destination.lat, _destination.lon, gpos.lat, gpos.lon);
+
+	// Compute the loiter altitude.
+	const float loiter_altitude = math::min(_destination.alt + _param_rtl_descend_alt.get(), gpos.alt);
 
 	switch (_rtl_state) {
 	case RTL_STATE_CLIMB: {
 
-			// check if we are pretty close to home already
-			float home_dist = get_distance_to_next_waypoint(_navigator->get_home_position()->lat,
-					  _navigator->get_home_position()->lon,
-					  _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
-
-			// if we are close to home we do not climb as high, otherwise we climb to return alt
-			float climb_alt = _navigator->get_home_position()->alt + get_rtl_altitude();
-
-			// we are close to home, limit climb to min
-			if (home_dist < _param_rtl_min_dist.get()) {
-				climb_alt = _navigator->get_home_position()->alt + _param_descend_alt.get();
-			}
-
-			_mission_item.lat = _navigator->get_global_position()->lat;
-			_mission_item.lon = _navigator->get_global_position()->lon;
-			_mission_item.altitude_is_relative = false;
-			_mission_item.altitude = climb_alt;
-			_mission_item.yaw = NAN;
-			_mission_item.loiter_radius = _navigator->get_loiter_radius();
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			_mission_item.lat = gpos.lat;
+			_mission_item.lon = gpos.lon;
+			_mission_item.altitude = _rtl_alt;
+			_mission_item.altitude_is_relative = false;
+			_mission_item.yaw = _navigator->get_local_position()->heading;
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 			_mission_item.time_inside = 0.0f;
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
 
-			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: climb to %d m (%d m above home)",
-						     (int)(climb_alt),
-						     (int)(climb_alt - _navigator->get_home_position()->alt));
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: climb to %d m (%d m above destination)",
+					 (int)ceilf(_rtl_alt), (int)ceilf(_rtl_alt - _destination.alt));
 			break;
 		}
 
 	case RTL_STATE_RETURN: {
-			_mission_item.lat = _navigator->get_home_position()->lat;
-			_mission_item.lon = _navigator->get_home_position()->lon;
-			// don't change altitude
 
-			// use home yaw if close to home
-			/* check if we are pretty close to home already */
-			float home_dist = get_distance_to_next_waypoint(_navigator->get_home_position()->lat,
-					  _navigator->get_home_position()->lon,
-					  _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
+			// Don't change altitude.
+			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			_mission_item.lat = _destination.lat;
+			_mission_item.lon = _destination.lon;
+			_mission_item.altitude = _rtl_alt;
+			_mission_item.altitude_is_relative = false;
 
-			if (home_dist < _param_rtl_min_dist.get()) {
-				_mission_item.yaw = _navigator->get_home_position()->yaw;
+			// Use destination yaw if close to _destination.
+			// Check if we are pretty close to the destination already.
+			if (destination_dist < _param_rtl_min_dist.get()) {
+				_mission_item.yaw = _destination.yaw;
 
 			} else {
-				// use current heading to home
-				_mission_item.yaw = get_bearing_to_next_waypoint(
-							    _navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
-							    _navigator->get_home_position()->lat, _navigator->get_home_position()->lon);
+				// Use current heading to _destination.
+				_mission_item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, _destination.lat, _destination.lon);
 			}
 
-			_mission_item.loiter_radius = _navigator->get_loiter_radius();
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 			_mission_item.time_inside = 0.0f;
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
 
-			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: return at %d m (%d m above home)",
-						     (int)(_mission_item.altitude),
-						     (int)(_mission_item.altitude - _navigator->get_home_position()->alt));
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: return at %d m (%d m above destination)",
+					 (int)ceilf(_mission_item.altitude), (int)ceilf(_mission_item.altitude - _destination.alt));
+
 			break;
 		}
 
 	case RTL_STATE_TRANSITION_TO_MC: {
-			_mission_item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
-			_mission_item.params[0] = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+			set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
 			break;
 		}
 
 	case RTL_STATE_DESCEND: {
-			_mission_item.lat = _navigator->get_home_position()->lat;
-			_mission_item.lon = _navigator->get_home_position()->lon;
-			_mission_item.altitude_is_relative = false;
-			_mission_item.altitude = _navigator->get_home_position()->alt + _param_descend_alt.get();
-
-			// check if we are already lower - then we will just stay there
-			if (_mission_item.altitude > _navigator->get_global_position()->alt) {
-				_mission_item.altitude = _navigator->get_global_position()->alt;
-			}
-
-			_mission_item.yaw = _navigator->get_home_position()->yaw;
-
-			// except for vtol which might be still off here and should point towards this location
-			float d_current = get_distance_to_next_waypoint(
-						  _navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
-						  _mission_item.lat, _mission_item.lon);
-
-			if (_navigator->get_vstatus()->is_vtol && d_current > _navigator->get_acceptance_radius()) {
-				_mission_item.yaw = get_bearing_to_next_waypoint(
-							    _navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
-							    _mission_item.lat, _mission_item.lon);
-			}
-
-			_mission_item.loiter_radius = _navigator->get_loiter_radius();
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			_mission_item.lat = _destination.lat;
+			_mission_item.lon = _destination.lon;
+			_mission_item.altitude = loiter_altitude;
+			_mission_item.altitude_is_relative = false;
+
+			// Except for vtol which might be still off here and should point towards this location.
+			const float d_current = get_distance_to_next_waypoint(gpos.lat, gpos.lon, _mission_item.lat, _mission_item.lon);
+
+			if (_navigator->get_vstatus()->is_vtol && (d_current > _navigator->get_acceptance_radius())) {
+				_mission_item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, _mission_item.lat, _mission_item.lon);
+
+			} else {
+				_mission_item.yaw = _destination.yaw;
+			}
+
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 			_mission_item.time_inside = 0.0f;
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
 
-			/* disable previous setpoint to prevent drift */
+			// Disable previous setpoint to prevent drift.
 			pos_sp_triplet->previous.valid = false;
 
-			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: descend to %d m (%d m above home)",
-						     (int)(_mission_item.altitude),
-						     (int)(_mission_item.altitude - _navigator->get_home_position()->alt));
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: descend to %d m (%d m above destination)",
+					 (int)ceilf(_mission_item.altitude), (int)ceilf(_mission_item.altitude - _destination.alt));
 			break;
 		}
 
 	case RTL_STATE_LOITER: {
-			bool autoland = _param_land_delay.get() > -DELAY_SIGMA;
+			const bool autoland = (_param_rtl_land_delay.get() > FLT_EPSILON);
 
-			_mission_item.lat = _navigator->get_home_position()->lat;
-			_mission_item.lon = _navigator->get_home_position()->lon;
-			// don't change altitude
-			_mission_item.yaw = _navigator->get_home_position()->yaw;
+			// Don't change altitude.
+			_mission_item.lat = _destination.lat;
+			_mission_item.lon = _destination.lon;
+			_mission_item.altitude = loiter_altitude;
+			_mission_item.altitude_is_relative = false;
+			_mission_item.yaw = _destination.yaw;
 			_mission_item.loiter_radius = _navigator->get_loiter_radius();
-			_mission_item.nav_cmd = autoland ? NAV_CMD_LOITER_TIME_LIMIT : NAV_CMD_LOITER_UNLIMITED;
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.time_inside = _param_land_delay.get() < 0.0f ? 0.0f : _param_land_delay.get();
+			_mission_item.time_inside = math::max(_param_rtl_land_delay.get(), 0.0f);
 			_mission_item.autocontinue = autoland;
 			_mission_item.origin = ORIGIN_ONBOARD;
 
 			_navigator->set_can_loiter_at_sp(true);
 
 			if (autoland && (get_time_inside(_mission_item) > FLT_EPSILON)) {
-				mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: loiter %.1fs",
-							     (double)get_time_inside(_mission_item));
+				_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
+				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: loiter %.1fs",
+						 (double)get_time_inside(_mission_item));
 
 			} else {
-				mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, loiter");
+				_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, loitering");
 			}
 
 			break;
 		}
 
 	case RTL_STATE_LAND: {
-			set_land_item(&_mission_item, false);
-			_mission_item.yaw = _navigator->get_home_position()->yaw;
+			// Land at destination.
+			_mission_item.nav_cmd = NAV_CMD_LAND;
+			_mission_item.lat = _destination.lat;
+			_mission_item.lon = _destination.lon;
+			_mission_item.yaw = _destination.yaw;
+			_mission_item.altitude = _destination.alt;
+			_mission_item.altitude_is_relative = false;
+			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+			_mission_item.time_inside = 0.0f;
+			_mission_item.autocontinue = true;
+			_mission_item.origin = ORIGIN_ONBOARD;
+			_mission_item.land_precision = _param_rtl_pld_md.get();
 
-			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: land at home");
+			if (_mission_item.land_precision == 1) {
+				_navigator->get_precland()->set_mode(PrecLandMode::Opportunistic);
+				_navigator->get_precland()->on_activation();
+
+			} else if (_mission_item.land_precision == 2) {
+				_navigator->get_precland()->set_mode(PrecLandMode::Required);
+				_navigator->get_precland()->on_activation();
+			}
+
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: land at destination");
 			break;
 		}
 
 	case RTL_STATE_LANDED: {
 			set_idle_item(&_mission_item);
+			set_return_alt_min(false);
 			break;
 		}
 
@@ -285,20 +440,20 @@ RTL::set_rtl_item()
 
 	reset_mission_item_reached();
 
-	/* execute command if set. This is required for commands like VTOL transition */
-	if (!item_contains_position(&_mission_item)) {
-		issue_command(&_mission_item);
+	// Execute command if set. This is required for commands like VTOL transition.
+	if (!item_contains_position(_mission_item)) {
+		issue_command(_mission_item);
 	}
 
-	/* convert mission item to current position setpoint and make it valid */
-	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-	pos_sp_triplet->next.valid = false;
+	// Convert mission item to current position setpoint and make it valid.
+	mission_apply_limitation(_mission_item);
 
-	_navigator->set_position_setpoint_triplet_updated();
+	if (mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current)) {
+		_navigator->set_position_setpoint_triplet_updated();
+	}
 }
 
-void
-RTL::advance_rtl()
+void RTL::advance_rtl()
 {
 	switch (_rtl_state) {
 	case RTL_STATE_CLIMB:
@@ -306,9 +461,17 @@ RTL::advance_rtl()
 		break;
 
 	case RTL_STATE_RETURN:
-		_rtl_state = RTL_STATE_DESCEND;
 
-		if (_navigator->get_vstatus()->is_vtol && !_navigator->get_vstatus()->is_rotary_wing) {
+		// Descend to desired altitude if delay is set, directly land otherwise
+		if (_param_rtl_land_delay.get() < -DELAY_SIGMA || _param_rtl_land_delay.get() > DELAY_SIGMA) {
+			_rtl_state = RTL_STATE_DESCEND;
+
+		} else {
+			_rtl_state = RTL_STATE_LAND;
+		}
+
+		if (_navigator->get_vstatus()->is_vtol
+		    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 			_rtl_state = RTL_STATE_TRANSITION_TO_MC;
 		}
 
@@ -320,8 +483,8 @@ RTL::advance_rtl()
 
 	case RTL_STATE_DESCEND:
 
-		/* only go to land if autoland is enabled */
-		if (_param_land_delay.get() < -DELAY_SIGMA || _param_land_delay.get() > DELAY_SIGMA) {
+		// Only go to land if autoland is enabled.
+		if (_param_rtl_land_delay.get() < -DELAY_SIGMA || _param_rtl_land_delay.get() > DELAY_SIGMA) {
 			_rtl_state = RTL_STATE_LOITER;
 
 		} else {
@@ -341,4 +504,48 @@ RTL::advance_rtl()
 	default:
 		break;
 	}
+}
+
+float RTL::calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg)
+{
+	const vehicle_global_position_s &gpos = *_navigator->get_global_position();
+
+	// horizontal distance to destination
+	const float destination_dist = get_distance_to_next_waypoint(_destination.lat, _destination.lon, gpos.lat, gpos.lon);
+
+	float rtl_altitude;
+
+	if (destination_dist <= _param_rtl_min_dist.get()) {
+		rtl_altitude = _destination.alt + _param_rtl_descend_alt.get();
+
+	} else if (gpos.alt > _destination.alt + _param_rtl_return_alt.get() || cone_half_angle_deg >= 90.0f) {
+		rtl_altitude = gpos.alt;
+
+	} else if (cone_half_angle_deg <= 0) {
+		rtl_altitude = _destination.alt + _param_rtl_return_alt.get();
+
+	} else {
+
+		// constrain cone half angle to meaningful values. All other cases are already handled above.
+		const float cone_half_angle_rad = math::radians(math::constrain(cone_half_angle_deg, 1.0f, 89.0f));
+
+		// minimum height above destination required
+		float height_above_destination_min = destination_dist / tanf(cone_half_angle_rad);
+
+		// minimum altitude we need in order to be within the user defined cone
+		const float altitude_min = math::constrain(height_above_destination_min + _destination.alt, _destination.alt,
+					   _destination.alt + _param_rtl_return_alt.get());
+
+		if (gpos.alt < altitude_min) {
+			rtl_altitude = altitude_min;
+
+		} else {
+			rtl_altitude = gpos.alt;
+		}
+	}
+
+	// always demand altitude which is higher or equal the RTL descend altitude
+	rtl_altitude = math::max(rtl_altitude, _destination.alt + _param_rtl_descend_alt.get());
+
+	return rtl_altitude;
 }

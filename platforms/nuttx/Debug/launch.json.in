@@ -1,0 +1,45 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "jlink (@PX4_BOARD@)",
+            "device": "@DEBUG_DEVICE@",
+            "svdFile": "@DEBUG_SVD_FILE_PATH@",
+            "executable": "${command:cmake.launchTargetPath}",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "jlink",
+            "interface": "swd",
+            //"ipAddress": "server:19020",
+            "cwd": "${workspaceFolder}",
+            "internalConsoleOptions": "openOnSessionStart",
+            "preLaunchCommands": [
+                "source ${workspaceFolder}/platforms/nuttx/Debug/PX4",
+                "source ${workspaceFolder}/platforms/nuttx/Debug/NuttX",
+                "source ${workspaceFolder}/platforms/nuttx/Debug/ARMv7M",
+                "set mem inaccessible-by-default off",
+                "set print pretty",
+            ]
+        },
+        {
+            "name": "blackmagic (@PX4_BOARD@)",
+            "device": "@DEBUG_DEVICE@",
+            "svdFile": "@DEBUG_SVD_FILE_PATH@",
+            "executable": "${command:cmake.launchTargetPath}",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "bmp",
+            "BMPGDBSerialPort": "/dev/ttyACM0",
+            "interface": "swd",
+            "cwd": "${workspaceFolder}",
+            "internalConsoleOptions": "openOnSessionStart",
+            "preLaunchCommands": [
+                "source ${workspaceFolder}/platforms/nuttx/Debug/PX4",
+                "source ${workspaceFolder}/platforms/nuttx/Debug/NuttX",
+                "source ${workspaceFolder}/platforms/nuttx/Debug/ARMv7M",
+                "set mem inaccessible-by-default off",
+                "set print pretty",
+            ]
+        }
+    ]
+}

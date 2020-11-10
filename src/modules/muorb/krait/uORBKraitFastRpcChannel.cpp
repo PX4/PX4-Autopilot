@@ -32,11 +32,12 @@
  ****************************************************************************/
 
 #include "uORBKraitFastRpcChannel.hpp"
-#include "px4_log.h"
-#include "px4_tasks.h"
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/tasks.h>
 #include <drivers/drv_hrt.h>
 #include <cstdio>
 #include <pthread.h>
+#include <string.h>
 
 #define LOG_TAG "uORBKraitFastRpcChannel.cpp"
 

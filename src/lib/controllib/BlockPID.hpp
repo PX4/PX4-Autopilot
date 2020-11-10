@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <assert.h>
 #include <time.h>
 #include <stdlib.h>
@@ -71,7 +71,7 @@ public:
 		_kI(this, "I"),
 		_kD(this, "D")
 	{}
-	virtual ~BlockPID() {}
+	virtual ~BlockPID() = default;
 	float update(float input)
 	{
 		return getKP() * input +

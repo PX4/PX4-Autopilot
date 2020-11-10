@@ -1,335 +1,148 @@
-#!nsh
+#!/bin/sh
 #
-# Standard startup script for PX4FMU v2, v3, v4 onboard sensor drivers.
+# Standard startup script for sensor drivers.
+#
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
-if ver hwcmp AEROFC_V1
+if ! ver hwcmp AEROFC_V1 OMNIBUS_F4SD
 then
-	# Aero FC uses separate driver
-else
-	if ver hwcmp CRAZYFLIE
+	if ! ver hwcmp BITCRAZE_CRAZYFLIE
 	then
-		# Crazyflie uses separate driver
-	else
 		# Configure all I2C buses to 100 KHz as they
 		# are all external or slow
-		fmu i2c 1 100000
-		fmu i2c 2 100000
-	fi
-
-	if ver hwcmp PX4FMU_V4
-	then
-		# We know there are sketchy boards out there
-		# as chinese companies produce Pixracers without
-		# fully understanding the critical parts of the
-		# schematic and BOM, leading to sensor brownouts
-		# on boot. Original Pixracers following the
-		# open hardware design do not require this.
-		fmu sensor_reset 50
-	fi
-
-	# External SPI
-	ms5611 -S start
-
-	# Internal SPI
-	ms5611 -s start
-
-	# Blacksheep telemetry
-	bst start
-
-	adc start
-fi
-
-if ver hwcmp AUAV_X21
-then
-	# External I2C bus
-	hmc5883 -C -T -X start
-
-	# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
-	mpu6000 -R 2 -T 20608 start
-
-	# Internal SPI bus mpu9250 is rotated 90 deg yaw
-	mpu9250 -R 2 start
-fi
-
-if ver hwcmp PX4FMU_V2
-then
-	# External I2C bus
-	hmc5883 -C -T -X start
-
-	# External I2C bus
-	lis3mdl -X start
-
-	# Internal I2C bus
-	hmc5883 -C -T -I -R 4 start
-
-	# Internal SPI bus ICM-20608-G
-	mpu6000 -T 20608 start
-
-	# V2 build hwtypecmp is always false
-	set BOARD_FMUV3 0
-	# V3 build hwtypecmp supports V2|V2M|V30
-	if ver hwtypecmp V30
-	then
-		# Check for Pixhawk 2.0 cube
-		# external MPU6K is rotated 180 degrees yaw
-		if mpu6000 -S -R 4 start
-		then
-			set BOARD_FMUV3 20
-		else
-			# Check for Pixhawk 2.1 cube
-			# external MPU9250 is rotated 180 degrees yaw
-			if mpu9250 -S -R 4 start
-			then
-				set BOARD_FMUV3 21
-			fi
-		fi
-	fi
-
-	if [ $BOARD_FMUV3 != 0 ]
-	then
-		# sensor heating is available, but we disable it for now
-		param set SENS_EN_THERMAL 0
-
-		# external L3GD20H is rotated 180 degrees yaw
-		l3gd20 -X -R 4 start
-
-		# external LSM303D is rotated 270 degrees yaw
-		lsm303d -X -R 6 start
-
-		if [ $BOARD_FMUV3 == 20 ]
-		then
-			# v2.0 internal MPU6000 is rotated 180 deg roll, 270 deg yaw
-			mpu6000 -R 14 start
-			# v2.0 Has internal hmc5883 on SPI1
-			hmc5883 -C -T -S -R 8 start
-
-		fi
-		if [ $BOARD_FMUV3 == 21 ]
-		then
-			# v2.1 internal MPU9250 is rotated 180 deg roll, 270 deg yaw
-			mpu9250 -R 14 start
-		fi
-
-	else
-		# $BOARD_FMUV3 == 0 -> FMUv2
-
-		mpu6000 start
-
-		# As we will use the external mag and the ICM-20608-G
-		# V2 build hwtypecmp is always false
-		# V3 build hwtypecmp supports V2|V2M|V30
-		if ver hwtypecmp V2M
-		then
-		# On the PixhawkMini the mpu9250 has been disabled due to HW errata
-		else
-			mpu9250 start
-		fi
-
-		l3gd20 start
-		lsm303d start
+		# TODO: move this
+		pwm_out i2c 1 100000
+		pwm_out i2c 2 100000
 	fi
 fi
 
-if ver hwcmp PX4FMU_V4
+###############################################################################
+#                           Begin Optional drivers                            #
+###############################################################################
+
+if param compare -s SENS_EN_BATT 1
 then
-	# External I2C bus
-	hmc5883 -C -T -X start
-
-	lis3mdl -R 2 start
-
-	# Internal SPI bus is rotated 90 deg yaw
-	hmc5883 -C -T -S -R 2 start
-
-	# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
-	mpu6000 -R 2 -T 20608 start
-
-	# Internal SPI bus ICM-20602-G is rotated 90 deg yaw
-	mpu6000 -R 2 -T 20602 start
-
-	# Start either MPU9250 or BMI160. They are both connected to the same SPI bus and use the same
-	# chip select pin. There are different boards with either one of them and the WHO_AM_I register
-	# will prevent the incorrect driver from a successful initialization.
-
-	# Internal SPI bus mpu9250 is rotated 90 deg yaw
-	mpu9250 -R 2 start
-
-	# Internal SPI bus BMI160
-	bmi160 start
-
-	# Start either ICM2060X or BMI055. They are both connected to the same SPI bus and use the same
-	# chip select pin. There are different boards with either one of them and the WHO_AM_I register
-	# will prevent the incorrect driver from a successful initialization.
-
-	# Internal SPI bus BMI055_ACC
-	bmi055 -A start
-
-	# Internal SPI bus BMI055_GYR
-	bmi055 -G start
-
-	# expansion i2c used for BMM150 rotated by 90deg
-	bmm150 -R 2 start
-
-	# expansion i2c used for BMP280
-	bmp280 -I start
+	batt_smbus start -X
 fi
-
-if ver hwcmp MINDPX_V2
-then
-	# External I2C bus
-	hmc5883 -C -T -X start
-	# Internal I2C bus
-	hmc5883 -C -T -I -R 12 start
-	mpu6000 -s -R 8 start
-	mpu9250 -s -R 8 start
-	lsm303d -R 10 start
-	l3gd20 -R 14 start
-fi
-
-if ver hwcmp CRAZYFLIE
-then
-	# Onboard I2C
-	mpu9250 -R 12 start
-
-	# I2C bypass of mpu
-	lps25h start
-fi
-
-if ver hwcmp AEROFC_V1
-then
-	ms5611 -T 0 start
-
-	mpu9250 -s -R 14 start
-
-	# Possible external compasses
-	hmc5883 -X start
-
-	ist8310 -C -b 1 -R 4 start
-
-	aerofc_adc start
-
-	ll40ls start i2c
-fi
-
-if ver hwcmp PX4FMU_V4PRO
-then
-	# Internal SPI bus ICM-20608-G
-	mpu6000 -R 2 -T 20608 start
-
-	# Internal SPI bus ICM-20602
-	mpu6000 -R 2 -T 20602 start
-
-	# Internal SPI bus mpu9250
-	mpu9250 -R 2 start
-
-	# Internal SPI bus
-	lis3mdl -R 0 start
-
-	# Possible external compasses
-	hmc5883 -C -T -X start
-fi
-
-if ver hwcmp PX4FMU_V5
-then
-
-	# Internal SPI bus ICM-20602
-	mpu6000 -R 8 -s -T 20602 start
-
-	# Internal SPI bus ICM-20689
-	mpu6000 -R 8 -z -T 20689 start
-
-	# Internal SPI bus BMI055 accel
-	bmi055 -A -R 10 start
-
-	# Internal SPI bus BMI055 gyro
-	bmi055 -G -R 10 start
-
-	# Possible external compasses
-	hmc5883 -C -T -X start
-
-	# Possible external compasses
-
-	ist8310 -C -b 1 start
-	ist8310 -C -b 2 start
-
-	# Possible internal compass
-	ist8310 -C -b 3 start
-fi
-
-if ver hwcmp AEROCORE2
-then
-	l3gd20 -R 12 start
-	lsm303d start
-fi
-
-#
-# Optional drivers
-#
-
-sdp3x_airspeed start
-sdp3x_airspeed start -b 2
-
-# Pixhawk 2.1 has a MS5611 on I2C which gets wrongly
-# detected as MS5525 because the chip manufacturer was so
-# clever to assign the same I2C address and skip a WHO_AM_I
-# register.
-if [ $BOARD_FMUV3 == 21 ]
-then
-	ms5525_airspeed start -b 2
-else
-	ms5525_airspeed start
-fi
-
-ms4525_airspeed start
-ms4525_airspeed start -b 2
-
-ets_airspeed start
-ets_airspeed start -b 1
 
 # Sensors on the PWM interface bank
-if param compare SENS_EN_LL40LS 1
+if param compare -s SENS_EN_LL40LS 1
 then
 	if pwm_input start
 	then
-		ll40ls start pwm
+		ll40ls_pwm start
 	fi
 fi
 
+# External automatic trigger system
+if param compare FD_EXT_ATS_EN 1
+then
+	pwm_input start
+fi
+
 # Lidar-Lite on I2C
-if param compare SENS_EN_LL40LS 2
+if param compare -s SENS_EN_LL40LS 2
 then
-	ll40ls start i2c
+	ll40ls start -X
 fi
 
-# lightware serial lidar sensor
-if param compare SENS_EN_SF0X 0
+# mappydot lidar sensor
+if param compare -s SENS_EN_MPDT 1
 then
-else
-	sf0x start
-fi
-
-# lightware i2c lidar sensor
-if param compare SENS_EN_SF1XX 0
-then
-else
-	sf1xx start
+	mappydot start -X
 fi
 
 # mb12xx sonar sensor
-if param compare SENS_EN_MB12XX 1
+if param greater -s SENS_EN_MB12XX 0
 then
-	mb12xx start
+	mb12xx start -X
 fi
 
-# teraranger one tof sensor
-if param compare SENS_EN_TRANGER 0
+# pga460 sonar sensor
+if param greater -s SENS_EN_PGA460 0
 then
-else
-	teraranger start
+	pga460 start
 fi
 
-# Wait 20 ms for sensors (because we need to wait for the HRT and work queue callbacks to fire)
-usleep 20000
-if sensors start
+# Lightware i2c lidar sensor
+if param greater -s SENS_EN_SF1XX 0
 then
+	lightware_laser_i2c start -X
 fi
+
+# Sensor HY-SRF05 or HC-SR05 ultrasonic sensor
+if param compare -s SENS_EN_SR05 1
+then
+	srf05 start
+fi
+
+
+# Heater driver for temperature regulated IMUs.
+if param compare -s SENS_EN_THERMAL 1
+then
+	heater start
+fi
+
+# Teraranger one tof sensor
+if param greater -s SENS_EN_TRANGER 0
+then
+	teraranger start -X
+fi
+
+# Possible external pmw3901 optical flow sensor
+if param greater -s SENS_EN_PMW3901 0
+then
+	pmw3901 -S start
+fi
+
+# Possible external paw3902 optical flow sensor
+if param greater -s SENS_EN_PAW3902 0
+then
+	paw3902 -S start
+fi
+
+# probe for optional external I2C devices
+if param compare SENS_EXT_I2C_PRB 1
+then
+	# compasses
+	ak09916 -X -R 6 -q start # external AK09916 (Here2) is rotated 270 degrees yaw
+	hmc5883 -T -X -q start
+	ist8308 -X -q start
+	ist8310 -X -q start
+	lis2mdl -X -q start
+	lis3mdl -X -q start
+	qmc5883l -X -q start
+	rm3100 -X -q start
+
+	# differential pressure sensors
+	if [ ${VEHICLE_TYPE} = fw -o ${VEHICLE_TYPE} = vtol ]
+	then
+		if param compare CBRK_AIRSPD_CHK 0
+		then
+			sdp3x_airspeed start -X -q
+			sdp3x_airspeed start -X -a 0x22 -q
+
+			# Pixhawk 2.1 has a MS5611 on I2C which gets wrongly
+			# detected as MS5525 because the chip manufacturer was so
+			# clever to assign the same I2C address and skip a WHO_AM_I
+			# register.
+			if [ $BOARD_FMUV3 = 21 ]
+			then
+				ms5525_airspeed start -X -b 2 -q
+			else
+				ms5525_airspeed start -X -q
+			fi
+
+			ms4525_airspeed start -X -q
+
+			ets_airspeed start -X -q
+		fi
+	fi
+fi
+
+###############################################################################
+#                            End Optional drivers                             #
+###############################################################################
+
+sensors start

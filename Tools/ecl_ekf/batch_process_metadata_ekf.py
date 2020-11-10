@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 import argparse
 import os
@@ -167,8 +167,8 @@ if (len(result1) > 0 and len(result2) > 0):
     plt.xlabel("mag_test_mean")
     plt.ylabel("Frequency")
 
-pp.savefig()
-plt.close(1)
+    pp.savefig()
+    plt.close(1)
 
 # Velocity Sensor (GPS)
 temp = np.asarray([population_data[k].get('vel_test_max') for k in found_keys])

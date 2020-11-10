@@ -40,8 +40,8 @@
  * @author Marco Bauer <marco@wtns.de>
  */
 
-#include <px4_config.h>
-#include <systemlib/param/param.h>
+#include <px4_platform_common/px4_config.h>
+#include <parameters/param.h>
 
 /**
  * Test mode (Identify) of MKBLCTRL Driver

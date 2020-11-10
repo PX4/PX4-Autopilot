@@ -42,9 +42,6 @@
 
 #include <cstring>
 
-#include <uORB/Subscription.hpp>
-#include <uORB/Publication.hpp>
-
 namespace control
 {
 
@@ -96,42 +93,8 @@ void Block::updateParams()
 		param->update();
 		param = param->getSibling();
 	}
-}
 
-void Block::updateSubscriptions()
-{
-	uORB::SubscriptionNode *sub = getSubscriptions().getHead();
-	int count = 0;
-
-	while (sub != nullptr) {
-		if (count++ > maxSubscriptionsPerBlock) {
-			char name[blockNameLengthMax];
-			getName(name, blockNameLengthMax);
-			PX4_ERR("exceeded max subscriptions for block: %s", name);
-			break;
-		}
-
-		sub->update();
-		sub = sub->getSibling();
-	}
-}
-
-void Block::updatePublications()
-{
-	uORB::PublicationNode *pub = getPublications().getHead();
-	int count = 0;
-
-	while (pub != nullptr) {
-		if (count++ > maxPublicationsPerBlock) {
-			char name[blockNameLengthMax];
-			getName(name, blockNameLengthMax);
-			PX4_ERR("exceeded max publications for block: %s", name);
-			break;
-		}
-
-		pub->update();
-		pub = pub->getSibling();
-	}
+	updateParamsSubclass();
 }
 
 void SuperBlock::setDt(float dt)
@@ -171,44 +134,6 @@ void SuperBlock::updateChildParams()
 	}
 }
 
-void SuperBlock::updateChildSubscriptions()
-{
-	Block *child = getChildren().getHead();
-	int count = 0;
-
-	while (child != nullptr) {
-		if (count++ > maxChildrenPerBlock) {
-			char name[blockNameLengthMax];
-			getName(name, blockNameLengthMax);
-			PX4_ERR("exceeded max children for block: %s", name);
-			break;
-		}
-
-		child->updateSubscriptions();
-		child = child->getSibling();
-	}
-}
-
-void SuperBlock::updateChildPublications()
-{
-	Block *child = getChildren().getHead();
-	int count = 0;
-
-	while (child != nullptr) {
-		if (count++ > maxChildrenPerBlock) {
-			char name[blockNameLengthMax];
-			getName(name, blockNameLengthMax);
-			PX4_ERR("exceeded max children for block: %s", name);
-			break;
-		}
-
-		child->updatePublications();
-		child = child->getSibling();
-	}
-}
-
 } // namespace control
 
-template class List<uORB::SubscriptionNode *>;
-template class List<uORB::PublicationNode *>;
 template class List<control::BlockParamBase *>;

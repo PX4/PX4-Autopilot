@@ -38,20 +38,46 @@
  * @author Nicolas de Palezieux <ndepal@gmail.com>
  */
 
-#include "qshell.h"
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
 #include <string>
 #include <stdlib.h>
+#include <drivers/drv_hrt.h>
+#include <uORB/topics/qshell_retval.h>
+
+#include "qshell.h"
 
 px4::AppState QShell::appState;
 
 int QShell::main(std::vector<std::string> argList)
 {
-	appState.setRunning(true);
+	int ret = _send_cmd(argList);
 
+	if (ret != 0) {
+		PX4_ERR("Could not send command");
+		return -1;
+	}
+
+	ret = _wait_for_retval();
+
+	if (ret != 0) {
+		PX4_ERR("Could not get return value");
+		return -1;
+	}
+
+	return 0;
+}
+
+int QShell::_send_cmd(std::vector<std::string> &argList)
+{
+	// Let's use a sequence number to check if a return value belongs to the
+	// command that we just sent and not a previous one that we assumed that
+	// it had timed out.
+	++_current_sequence;
+
+	qshell_req_s qshell_req{};
 	std::string cmd;
 
 	for (size_t i = 0; i < argList.size(); i++) {
@@ -62,27 +88,46 @@ int QShell::main(std::vector<std::string> argList)
 		}
 	}
 
-	if (cmd.size() > m_qshell_req.MAX_STRLEN) {
-		PX4_ERR("The provided command exceeds the maximum length of characters: %d > %d", (int) cmd.size(),
-			(int) m_qshell_req.MAX_STRLEN);
+	if (cmd.size() >= qshell_req.MAX_STRLEN) {
+		PX4_ERR("Command too long: %d >= %d", (int) cmd.size(), (int) qshell_req.MAX_STRLEN);
 		return -1;
 	}
 
-	PX4_DEBUG("Requesting %s", cmd.c_str());
+	PX4_INFO("Send cmd: '%s'", cmd.c_str());
 
-	orb_advert_t pub_id_qshell_req = orb_advertise(ORB_ID(qshell_req), & m_qshell_req);
+	qshell_req.strlen = cmd.size();
+	strcpy((char *)qshell_req.cmd, cmd.c_str());
+	qshell_req.request_sequence = _current_sequence;
 
-	m_qshell_req.strlen = cmd.size();
+	qshell_req.timestamp = hrt_absolute_time();
+	_qshell_req_pub.publish(qshell_req);
 
-	for (size_t i = 0; i < cmd.size(); i++) {
-		m_qshell_req.string[i] = (int) cmd[i];
-	}
-
-	if (orb_publish(ORB_ID(qshell_req), pub_id_qshell_req, &m_qshell_req) == PX4_ERROR) {
-		PX4_ERR("Error publishing the qshell_req message");
-		return -1;
-	}
-
-	appState.setRunning(false);
 	return 0;
+}
+
+int QShell::_wait_for_retval()
+{
+	const hrt_abstime time_started_us = hrt_absolute_time();
+
+	while (hrt_elapsed_time(&time_started_us) < 3000000) {
+		qshell_retval_s retval;
+
+		if (_qshell_retval_sub.update(&retval)) {
+			if (retval.return_sequence != _current_sequence) {
+				PX4_WARN("Ignoring return value with wrong sequence");
+
+			} else {
+				if (retval.return_value) {
+					PX4_WARN("cmd returned with: %d", retval.return_value);
+				}
+
+				return 0;
+			}
+		}
+
+		px4_usleep(1000);
+	}
+
+	PX4_ERR("command timed out");
+	return -1;
 }

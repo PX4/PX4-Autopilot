@@ -44,132 +44,113 @@
 
 #include <drivers/drv_hrt.h>
 
+#include "Arming/PreFlightCheck/PreFlightCheck.hpp"
+
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/commander_state.h>
+#include <uORB/topics/vehicle_status_flags.h>
 
 typedef enum {
-    TRANSITION_DENIED = -1,
-    TRANSITION_NOT_CHANGED = 0,
-    TRANSITION_CHANGED
+	TRANSITION_DENIED = -1,
+	TRANSITION_NOT_CHANGED = 0,
+	TRANSITION_CHANGED
 } transition_result_t;
 
 enum class link_loss_actions_t {
-    DISABLED = 0,
-    AUTO_LOITER = 1,
-    AUTO_RTL = 2,
-    AUTO_LAND = 3,
-    AUTO_RECOVER = 4,
-    TERMINATE = 5,
-    LOCKDOWN = 6,
+	DISABLED = 0,
+	AUTO_LOITER = 1,	// Hold mode
+	AUTO_RTL = 2,		// Return mode
+	AUTO_LAND = 3,		// Land mode
+	TERMINATE = 5,		// Terminate flight (set actuator outputs to failsafe values, and stop controllers)
+	LOCKDOWN = 6,		// Lock actuators (set actuator outputs to disarmed values)
 };
 
-typedef enum {
-	ARM_REQ_NONE = 0,
-	ARM_REQ_MISSION_BIT = (1 << 0),
-	ARM_REQ_ARM_AUTH_BIT = (1 << 1),
-	ARM_REQ_GPS_BIT = (1 << 2),
-} arm_requirements_t;
-
-// This is a struct used by the commander internally.
-struct status_flags_s {
-    bool condition_calibration_enabled;
-    bool condition_system_sensors_initialized;
-    bool condition_system_prearm_error_reported;	// true if errors have already been reported
-    bool condition_system_hotplug_timeout;		// true if the hotplug sensor search is over
-    bool condition_system_returned_to_home;
-    bool condition_auto_mission_available;
-    bool condition_global_position_valid;		// set to true by the commander app if the quality of the global position estimate is good enough to use for navigation
-    bool condition_global_velocity_valid;		// set to true by the commander app if the quality of the global horizontal velocity data is good enough to use for navigation
-    bool condition_home_position_valid;			// indicates a valid home position (a valid home position is not always a valid launch)
-    bool condition_local_position_valid;		// set to true by the commander app if the quality of the local position estimate is good enough to use for navigation
-    bool condition_local_velocity_valid;		// set to true by the commander app if the quality of the local horizontal velocity data is good enough to use for navigation
-    bool condition_local_altitude_valid;
-    bool condition_airspeed_valid;                        // set to true by the commander app if there is a valid airspeed measurement available
-    bool condition_power_input_valid;                // set if input power is valid
-    bool usb_connected;                                // status of the USB power supply
-    bool circuit_breaker_engaged_power_check;
-    bool circuit_breaker_engaged_airspd_check;
-    bool circuit_breaker_engaged_enginefailure_check;
-    bool circuit_breaker_engaged_gpsfailure_check;
-    bool circuit_breaker_flight_termination_disabled;
-    bool circuit_breaker_engaged_usb_check;
-    bool circuit_breaker_engaged_posfailure_check;	// set to true when the position valid checks have been disabled
-    bool offboard_control_signal_found_once;
-    bool offboard_control_signal_lost;
-    bool offboard_control_set_by_command;                // true if the offboard mode was set by a mavlink command and should not be overridden by RC
-    bool offboard_control_loss_timeout;                // true if offboard is lost for a certain amount of time
-    bool rc_signal_found_once;
-    bool rc_signal_lost_cmd;                        // true if RC lost mode is commanded
-    bool rc_input_blocked;                                // set if RC input should be ignored temporarily
-    bool data_link_lost_cmd;                        // datalink to GCS lost mode commanded
-    bool vtol_transition_failure;                        // Set to true if vtol transition failed
-    bool vtol_transition_failure_cmd;                // Set to true if vtol transition failure mode is commanded
-    bool gps_failure;                                // Set to true if a gps failure is detected
-    bool gps_failure_cmd;                                // Set to true if a gps failure mode is commanded
-    bool barometer_failure;                                // Set to true if a barometer failure is detected
-    bool ever_had_barometer_data;                        // Set to true if ever had valid barometer data before
+enum class offboard_loss_actions_t {
+	DISABLED = -1,
+	AUTO_LAND = 0,		// Land mode
+	AUTO_LOITER = 1,	// Hold mode
+	AUTO_RTL = 2,		// Return mode
+	TERMINATE = 3,		// Terminate flight (set actuator outputs to failsafe values, and stop controllers)
+	LOCKDOWN = 4,		// Lock actuators (set actuator outputs to disarmed values)
 };
 
-bool is_safe(const struct safety_s *safety, const struct actuator_armed_s *armed);
+enum class offboard_loss_rc_actions_t {
+	DISABLED = -1, 		// Disabled
+	MANUAL_POSITION = 0, 	// Position mode
+	MANUAL_ALTITUDE = 1, 	// Altitude mode
+	MANUAL_ATTITUDE = 2, 	// Manual
+	AUTO_RTL = 3, 		// Return mode
+	AUTO_LAND = 4, 		// Land mode
+	AUTO_LOITER = 5, 	// Hold mode
+	TERMINATE = 6, 		// Terminate flight (set actuator outputs to failsafe values, and stop controllers)
+	LOCKDOWN = 7, 		// Lock actuators (set actuator outputs to disarmed values)
+};
 
-transition_result_t arming_state_transition(struct vehicle_status_s *status,
-					    struct battery_status_s *battery,
-					    const struct safety_s *safety,
-					    arming_state_t new_arming_state,
-					    struct actuator_armed_s *armed,
-					    bool fRunPreArmChecks,
-					    orb_advert_t *mavlink_log_pub,        ///< uORB handle for mavlink log
-					    status_flags_s *status_flags,
-					    float avionics_power_rail_voltage,
-					    uint8_t arm_requirements,
-					    hrt_abstime time_since_boot);
+enum class position_nav_loss_actions_t {
+	ALTITUDE_MANUAL = 0,	// Altitude/Manual. Assume use of remote control after fallback. Switch to Altitude mode if a height estimate is available, else switch to MANUAL.
+	LAND_TERMINATE = 1,	// Land/Terminate.  Assume no use of remote control after fallback. Switch to Land mode if a height estimate is available, else switch to TERMINATION.
+};
+
+extern const char *const arming_state_names[];
+
+enum class arm_disarm_reason_t {
+	TRANSITION_TO_STANDBY = 0,
+	RC_STICK = 1,
+	RC_SWITCH = 2,
+	COMMAND_INTERNAL = 3,
+	COMMAND_EXTERNAL = 4,
+	MISSION_START = 5,
+	SAFETY_BUTTON = 6,
+	AUTO_DISARM_LAND = 7,
+	AUTO_DISARM_PREFLIGHT = 8,
+	KILL_SWITCH = 9,
+	LOCKDOWN = 10,
+	FAILURE_DETECTOR = 11,
+	SHUTDOWN = 12,
+	UNIT_TEST = 13
+};
 
 transition_result_t
-main_state_transition(struct vehicle_status_s *status, main_state_t new_main_state, uint8_t &main_state_prev,
-		      status_flags_s *status_flags, struct commander_state_s *internal_state);
+arming_state_transition(vehicle_status_s *status, const safety_s &safety, const arming_state_t new_arming_state,
+			actuator_armed_s *armed, const bool fRunPreArmChecks, orb_advert_t *mavlink_log_pub,
+			vehicle_status_flags_s *status_flags, const PreFlightCheck::arm_requirements_t &arm_requirements,
+			const hrt_abstime &time_since_boot, arm_disarm_reason_t calling_reason);
 
-transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t status_pub, struct vehicle_status_s *current_status, orb_advert_t *mavlink_log_pub);
+transition_result_t
+main_state_transition(const vehicle_status_s &status, const main_state_t new_main_state,
+		      const vehicle_status_flags_s &status_flags, commander_state_s *internal_state);
 
-void enable_failsafe(struct vehicle_status_s *status, bool old_failsafe,
-		     orb_advert_t *mavlink_log_pub, const char *reason);
+void enable_failsafe(vehicle_status_s *status, bool old_failsafe, orb_advert_t *mavlink_log_pub, const char *reason);
 
-bool set_nav_state(struct vehicle_status_s *status,
-		   struct actuator_armed_s *armed,
-		   struct commander_state_s *internal_state,
-		   orb_advert_t *mavlink_log_pub,
-		   const link_loss_actions_t data_link_loss_act,
-		   const bool mission_finished,
-		   const bool stay_in_failsafe,
-		   status_flags_s *status_flags,
-		   bool landed,
-		   const link_loss_actions_t rc_loss_act,
-		   const int offb_loss_act,
-		   const int offb_loss_rc_act,
-		   const int posctl_nav_loss_act);
+bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_state_s *internal_state,
+		   orb_advert_t *mavlink_log_pub, const link_loss_actions_t data_link_loss_act, const bool mission_finished,
+		   const bool stay_in_failsafe, const vehicle_status_flags_s &status_flags, bool landed,
+		   const link_loss_actions_t rc_loss_act, const offboard_loss_actions_t offb_loss_act,
+		   const offboard_loss_rc_actions_t offb_loss_rc_act,
+		   const position_nav_loss_actions_t posctl_nav_loss_act);
 
 /*
- * Checks the validty of position data aaainst the requirements of the current navigation
+ * Checks the validty of position data against the requirements of the current navigation
  * mode and switches mode if position data required is not available.
  */
-bool check_invalid_pos_nav_state(struct vehicle_status_s *status,
-			       bool old_failsafe,
-			       orb_advert_t *mavlink_log_pub,
-			       status_flags_s *status_flags,
-			       const bool use_rc, // true if a mode using RC control can be used as a fallback
-			       const bool using_global_pos); // true when the current mode requires a global position estimate
+bool check_invalid_pos_nav_state(vehicle_status_s *status, bool old_failsafe, orb_advert_t *mavlink_log_pub,
+				 const vehicle_status_flags_s &status_flags, const bool use_rc, const bool using_global_pos);
 
-void set_rc_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed, status_flags_s *status_flags,
-						commander_state_s *internal_state, const link_loss_actions_t link_loss_act);
 
-void set_data_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed, status_flags_s *status_flags,
-						commander_state_s *internal_state, const link_loss_actions_t link_loss_act);
+// COM_LOW_BAT_ACT parameter values
+typedef enum LOW_BAT_ACTION {
+	WARNING = 0,		// Warning
+	RETURN = 1,			// Return mode
+	LAND = 2,			// Land mode
+	RETURN_OR_LAND = 3	// Return mode at critically low level, Land mode at current position if reaching dangerously low levels
+} low_battery_action_t;
 
-int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm,
-		    bool force_report, status_flags_s *status_flags, battery_status_s *battery,
-		    uint8_t arm_requirements, hrt_abstime time_since_boot);
+void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status,
+		      const vehicle_status_flags_s &status_flags, commander_state_s *internal_state, const uint8_t battery_warning,
+		      const low_battery_action_t low_bat_action);
 
 #endif /* STATE_MACHINE_HELPER_H_ */

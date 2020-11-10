@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 Open a shell over MAVLink.
@@ -11,16 +11,27 @@ from __future__ import print_function
 import sys, select
 import termios
 from timeit import default_timer as timer
+from argparse import ArgumentParser
 
 try:
     from pymavlink import mavutil
-    import serial
-except:
-    print("Failed to import pymavlink.")
-    print("You may need to install it with 'pip install pymavlink pyserial'")
+except ImportError as e:
+    print("Failed to import pymavlink: " + str(e))
     print("")
-    raise
-from argparse import ArgumentParser
+    print("You may need to install it with:")
+    print("    pip3 install --user pymavlink")
+    print("")
+    sys.exit(1)
+
+try:
+    import serial
+except ImportError as e:
+    print("Failed to import pyserial: " + str(e))
+    print("")
+    print("You may need to install it with:")
+    print("    pip3 install --user pyserial")
+    print("")
+    sys.exit(1)
 
 
 class MavlinkSerialPort():
@@ -102,7 +113,7 @@ def main():
 
     if args.port == None:
         if sys.platform == "darwin":
-            args.port = "/dev/tty.usbmodem1"
+            args.port = "/dev/tty.usbmodem01"
         else:
             serial_list = mavutil.auto_detect_serial(preferred_list=['*FTDI*',
                 "*Arduino_Mega_2560*", "*3D_Robotics*", "*USB_to_UART*", '*PX4*', '*FMU*', "*Gumstix*"])

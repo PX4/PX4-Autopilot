@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,11 @@ PARAM_DEFINE_INT32(TEST_1, 2);
  * @group Testing
  */
 PARAM_DEFINE_INT32(TEST_2, 4);
+
+/**
+ * @group Testing
+ */
+PARAM_DEFINE_FLOAT(TEST_3, 5.0f);
 
 /**
  * @group Testing

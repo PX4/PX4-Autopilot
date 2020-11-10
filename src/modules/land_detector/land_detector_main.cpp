@@ -40,22 +40,20 @@
  */
 
 #include <drivers/drv_hrt.h>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
-#include <systemlib/systemlib.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
 
 #include "FixedwingLandDetector.h"
 #include "MulticopterLandDetector.h"
 #include "RoverLandDetector.h"
 #include "VtolLandDetector.h"
+#include "AirshipLandDetector.h"
 
 
 namespace land_detector
 {
-
-extern "C" __EXPORT int land_detector_main(int argc, char *argv[]);
 
 static char _currentMode[12];
 
@@ -63,10 +61,10 @@ int LandDetector::task_spawn(int argc, char *argv[])
 {
 	if (argc < 2) {
 		print_usage();
-		return -1;
+		return PX4_ERROR;
 	}
 
-	LandDetector *obj;
+	LandDetector *obj = nullptr;
 
 	if (strcmp(argv[1], "fixedwing") == 0) {
 		obj = new FixedwingLandDetector();
@@ -77,61 +75,39 @@ int LandDetector::task_spawn(int argc, char *argv[])
 	} else if (strcmp(argv[1], "vtol") == 0) {
 		obj = new VtolLandDetector();
 
-	} else if (strcmp(argv[1], "ugv") == 0) {
+	} else if (strcmp(argv[1], "rover") == 0) {
 		obj = new RoverLandDetector();
+
+	} else if (strcmp(argv[1], "airship") == 0) {
+		obj = new AirshipLandDetector();
 
 	} else {
 		print_usage("unknown mode");
-		return -1;
+		return PX4_ERROR;
 	}
 
 	if (obj == nullptr) {
 		PX4_ERR("alloc failed");
-		return -1;
-	}
-
-	int ret = obj->start();
-
-	if (ret < 0) {
-		delete obj;
-		return ret;
+		return PX4_ERROR;
 	}
 
 	// Remember current active mode
 	strncpy(_currentMode, argv[1], sizeof(_currentMode) - 1);
 	_currentMode[sizeof(_currentMode) - 1] = '\0';
 
-	wait_until_running(); // this will wait until _object is set from the cycle method
+	_object.store(obj);
 	_task_id = task_id_is_work_queue;
-	return 0;
+
+	obj->start();
+
+	return PX4_OK;
 }
 
 int LandDetector::print_status()
 {
 	PX4_INFO("running (%s)", _currentMode);
-	LandDetector::LandDetectionState state = get_state();
-
-	switch (state) {
-	case LandDetector::LandDetectionState::FLYING:
-		PX4_INFO("State: Flying");
-		break;
-
-	case LandDetector::LandDetectionState::LANDED:
-		PX4_INFO("State: Landed");
-		break;
-
-	case LandDetector::LandDetectionState::FREEFALL:
-		PX4_INFO("State: Freefall");
-		break;
-
-	default:
-		PX4_ERR("State: unknown");
-		break;
-	}
-
 	return 0;
 }
-
 int LandDetector::print_usage(const char *reason)
 {
 	if (reason != nullptr) {
@@ -166,13 +142,12 @@ The module runs periodically on the HP work queue.
 
 	PRINT_MODULE_USAGE_NAME("land_detector", "system");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the background task");
-	PRINT_MODULE_USAGE_ARG("fixedwing|multicopter|vtol|ugv", "Select vehicle type", false);
+	PRINT_MODULE_USAGE_ARG("fixedwing|multicopter|vtol|rover|airship", "Select vehicle type", false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	return 0;
 }
 
-
-int land_detector_main(int argc, char *argv[])
+extern "C" __EXPORT int land_detector_main(int argc, char *argv[])
 {
 	return LandDetector::main(argc, argv);
 }

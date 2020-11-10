@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <assert.h>
 #include <time.h>
 #include <stdlib.h>
@@ -72,10 +72,10 @@ public:
 		// in main program for all calls to rand
 		// XXX currently in nuttx if you seed to 0, rand breaks
 	}
-	virtual ~BlockRandUniform() {}
+	virtual ~BlockRandUniform() = default;
 	float update()
 	{
-		static float rand_max = RAND_MAX;
+		static float rand_max = static_cast<float>(RAND_MAX);
 		float rand_val = rand();
 		float bounds = getMax() - getMin();
 		return getMin() + (rand_val * bounds) / rand_max;

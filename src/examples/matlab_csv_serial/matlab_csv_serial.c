@@ -40,7 +40,7 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -56,10 +56,7 @@
 #include <limits.h>
 #include <math.h>
 #include <uORB/uORB.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
-#include <systemlib/perf_counter.h>
-#include <systemlib/systemlib.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 #include <poll.h>
 
@@ -184,10 +181,10 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 	}
 
 	/* subscribe to vehicle status, attitude, sensors and flow*/
-	struct accel_report accel0;
-	struct accel_report accel1;
-	struct gyro_report gyro0;
-	struct gyro_report gyro1;
+	struct sensor_accel_s accel0;
+	struct sensor_accel_s accel1;
+	struct sensor_gyro_s gyro0;
+	struct sensor_gyro_s gyro1;
 
 	/* subscribe to parameter changes */
 	int accel0_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 0);

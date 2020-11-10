@@ -31,13 +31,9 @@
 #
 ############################################################################
 
-include_directories(${PX4_SOURCE_DIR}/mavlink/include/mavlink)
-
 px4_add_module(
 	MODULE modules__navigator
 	MAIN navigator
-	STACK_MAIN 1300
-	COMPILE_FLAGS
 	SRCS
 		navigator_main.cpp
 		navigator_mode.cpp
@@ -47,14 +43,14 @@ px4_add_module(
 		rtl.cpp
 		takeoff.cpp
 		land.cpp
+		precland.cpp
 		mission_feasibility_checker.cpp
 		geofence.cpp
-		datalinkloss.cpp
-		rcloss.cpp
 		enginefailure.cpp
 		gpsfailure.cpp
 		follow_target.cpp
 	DEPENDS
-		platforms__common
+		git_ecl
+		ecl_geo
+		landing_slope
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

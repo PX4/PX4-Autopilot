@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014, 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,9 +35,11 @@
  * @file registers.c
  *
  * Implementation of the PX4IO register space.
+ *
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -45,7 +47,6 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
-#include <systemlib/systemlib.h>
 #include <stm32_pwr.h>
 #include <rc/dsm.h>
 #include <rc/sbus.h>
@@ -57,6 +58,8 @@ static int	registers_set_one(uint8_t page, uint8_t offset, uint16_t value);
 static void	pwm_configure_rates(uint16_t map, uint16_t defaultrate, uint16_t altrate);
 
 bool update_mc_thrust_param;
+bool update_trims;
+
 /**
  * PAGE 0
  *
@@ -84,8 +87,6 @@ volatile uint16_t	r_page_status[] = {
 	[PX4IO_P_STATUS_CPULOAD]		= 0,
 	[PX4IO_P_STATUS_FLAGS]			= 0,
 	[PX4IO_P_STATUS_ALARMS]			= 0,
-	[PX4IO_P_STATUS_VBATT]			= 0,
-	[PX4IO_P_STATUS_IBATT]			= 0,
 	[PX4IO_P_STATUS_VSERVO]			= 0,
 	[PX4IO_P_STATUS_VRSSI]			= 0,
 	[PX4IO_P_STATUS_PRSSI]			= 0,
@@ -178,8 +179,10 @@ volatile uint16_t	r_page_setup[] = {
 	[PX4IO_P_SETUP_SCALE_PITCH] = 10000,
 	[PX4IO_P_SETUP_SCALE_YAW] = 10000,
 	[PX4IO_P_SETUP_MOTOR_SLEW_MAX] = 0,
+	[PX4IO_P_SETUP_AIRMODE] = 0,
 	[PX4IO_P_SETUP_THR_MDL_FAC] = 0,
-	[PX4IO_P_SETUP_THERMAL] = PX4IO_THERMAL_IGNORE
+	[PX4IO_P_SETUP_THERMAL] = PX4IO_THERMAL_IGNORE,
+	[PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION] = 0
 };
 
 #define PX4IO_P_SETUP_FEATURES_VALID	(PX4IO_P_SETUP_FEATURES_SBUS1_OUT | \
@@ -188,6 +191,7 @@ volatile uint16_t	r_page_setup[] = {
 		PX4IO_P_SETUP_FEATURES_PWM_RSSI)
 
 #define PX4IO_P_SETUP_ARMING_VALID	(PX4IO_P_SETUP_ARMING_FMU_ARMED | \
+		PX4IO_P_SETUP_ARMING_FMU_PREARMED | \
 		PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK | \
 		PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK | \
 		PX4IO_P_SETUP_ARMING_IO_ARM_OK | \
@@ -286,6 +290,8 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 			num_values--;
 			values++;
 		}
+
+		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_RAW_PWM;
 
 		system_state.fmu_data_received_time = hrt_absolute_time();
 
@@ -404,6 +410,8 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 			num_values--;
 			values++;
 		}
+
+		update_trims = true;
 
 		break;
 
@@ -635,10 +643,6 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			pwm_configure_rates(r_setup_pwm_rates, r_setup_pwm_defaultrate, value);
 			break;
 
-		case PX4IO_P_SETUP_VBATT_SCALE:
-			r_page_setup[PX4IO_P_SETUP_VBATT_SCALE] = value;
-			break;
-
 		case PX4IO_P_SETUP_SET_DEBUG:
 			r_page_setup[PX4IO_P_SETUP_SET_DEBUG] = value;
 			isr_debug(0, "set debug %u\n", (unsigned)r_page_setup[PX4IO_P_SETUP_SET_DEBUG]);
@@ -692,17 +696,6 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 			break;
 
-		case PX4IO_P_SETUP_PWM_REVERSE:
-			r_page_setup[PX4IO_P_SETUP_PWM_REVERSE] = value;
-			break;
-
-		case PX4IO_P_SETUP_TRIM_ROLL:
-		case PX4IO_P_SETUP_TRIM_PITCH:
-		case PX4IO_P_SETUP_TRIM_YAW:
-		case PX4IO_P_SETUP_SCALE_ROLL:
-		case PX4IO_P_SETUP_SCALE_PITCH:
-		case PX4IO_P_SETUP_SCALE_YAW:
-		case PX4IO_P_SETUP_MOTOR_SLEW_MAX:
 		case PX4IO_P_SETUP_SBUS_RATE:
 			r_page_setup[offset] = value;
 			sbus1_set_output_rate_hz(value);
@@ -713,8 +706,18 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			r_page_setup[offset] = value;
 			break;
 
+		case PX4IO_P_SETUP_PWM_REVERSE:
+		case PX4IO_P_SETUP_TRIM_ROLL:
+		case PX4IO_P_SETUP_TRIM_PITCH:
+		case PX4IO_P_SETUP_TRIM_YAW:
+		case PX4IO_P_SETUP_SCALE_ROLL:
+		case PX4IO_P_SETUP_SCALE_PITCH:
+		case PX4IO_P_SETUP_SCALE_YAW:
+		case PX4IO_P_SETUP_MOTOR_SLEW_MAX:
+		case PX4IO_P_SETUP_AIRMODE:
 		case PX4IO_P_SETUP_THERMAL:
-			r_page_setup[PX4IO_P_SETUP_THERMAL] = value;
+		case PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION:
+			r_page_setup[offset] = value;
 			break;
 
 		default:

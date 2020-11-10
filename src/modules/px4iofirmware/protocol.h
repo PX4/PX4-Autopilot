@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,8 @@
  *
  * PX4IO interface protocol.
  *
+ * @author Lorenz Meier <lorenz@px4.io>
+ *
  * Communication is performed via writes to and reads from 16-bit virtual
  * registers organised into pages of 255 registers each.
  *
@@ -75,6 +77,8 @@
 
 #define REG_TO_FLOAT(_reg)	((float)REG_TO_SIGNED(_reg) / 10000.0f)
 #define FLOAT_TO_REG(_float)	SIGNED_TO_REG((int16_t)floorf((_float + 0.00005f) * 10000.0f))
+
+#define REG_TO_BOOL(_reg) 	((bool)(_reg))
 
 #define PX4IO_PROTOCOL_VERSION		4
 
@@ -127,8 +131,6 @@
 #define PX4IO_P_STATUS_ALARMS_PWM_ERROR		(1 << 6) /* PWM configuration or output was bad */
 #define PX4IO_P_STATUS_ALARMS_VSERVO_FAULT	(1 << 7) /* [2] VServo was out of the valid range (2.5 - 5.5 V) */
 
-#define PX4IO_P_STATUS_VBATT			4	/* [1] battery voltage in mV */
-#define PX4IO_P_STATUS_IBATT			5	/* [1] battery current (raw ADC) */
 #define PX4IO_P_STATUS_VSERVO			6	/* [2] servo rail voltage in mV */
 #define PX4IO_P_STATUS_VRSSI			7	/* [2] RSSI voltage */
 #define PX4IO_P_STATUS_PRSSI			8	/* [2] RSSI PWM value */
@@ -180,22 +182,22 @@
 #define PX4IO_P_SETUP_ARMING			1	 /* arming controls */
 #define PX4IO_P_SETUP_ARMING_IO_ARM_OK		(1 << 0) /* OK to arm the IO side */
 #define PX4IO_P_SETUP_ARMING_FMU_ARMED		(1 << 1) /* FMU is already armed */
-#define PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK	(1 << 2) /* OK to switch to manual override via override RC channel */
-#define PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM	(1 << 3) /* use custom failsafe values, not 0 values of mixer */
-#define PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK	(1 << 4) /* OK to try in-air restart */
-#define PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE	(1 << 5) /* Output of PWM right after startup enabled to help ESCs initialize and prevent them from beeping */
-#define PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED	(1 << 6) /* Disable the IO-internal evaluation of the RC */
-#define PX4IO_P_SETUP_ARMING_LOCKDOWN		(1 << 7) /* If set, the system operates normally, but won't actuate any servos */
-#define PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE	(1 << 8) /* If set, the system will always output the failsafe values */
-#define PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE	(1 << 9) /* If set, the system will never return from a failsafe, but remain in failsafe once triggered. */
-#define PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE	(1 << 10) /* If set then on FMU failure override is immediate. Othewise it waits for the mode switch to go past the override thrshold */
+#define PX4IO_P_SETUP_ARMING_FMU_PREARMED	(1 << 2) /* FMU is already prearmed */
+#define PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK	(1 << 3) /* OK to switch to manual override via override RC channel */
+#define PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM	(1 << 4) /* use custom failsafe values, not 0 values of mixer */
+#define PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK	(1 << 5) /* OK to try in-air restart */
+#define PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE	(1 << 6) /* Output of PWM right after startup enabled to help ESCs initialize and prevent them from beeping */
+#define PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED	(1 << 7) /* Disable the IO-internal evaluation of the RC */
+#define PX4IO_P_SETUP_ARMING_LOCKDOWN		(1 << 8) /* If set, the system operates normally, but won't actuate any servos */
+#define PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE	(1 << 9) /* If set, the system will always output the failsafe values */
+#define PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE	(1 << 10) /* If set, the system will never return from a failsafe, but remain in failsafe once triggered. */
+#define PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE	(1 << 11) /* If set then on FMU failure override is immediate. Othewise it waits for the mode switch to go past the override thrshold */
 
 #define PX4IO_P_SETUP_PWM_RATES			2	/* bitmask, 0 = low rate, 1 = high rate */
 #define PX4IO_P_SETUP_PWM_DEFAULTRATE		3	/* 'low' PWM frame output rate in Hz */
 #define PX4IO_P_SETUP_PWM_ALTRATE		4	/* 'high' PWM frame output rate in Hz */
 #define PX4IO_P_SETUP_RELAYS_PAD		5
 
-#define PX4IO_P_SETUP_VBATT_SCALE		6	/* hardware rev [1] battery voltage correction factor (float) */
 #define PX4IO_P_SETUP_VSERVO_SCALE		6	/* hardware rev [2] servo voltage correction factor (float) */
 #define PX4IO_P_SETUP_DSM			7	/* DSM bind state */
 enum {							/* DSM bind states */
@@ -229,13 +231,18 @@ enum {							/* DSM bind states */
 #define PX4IO_P_SETUP_SCALE_PITCH		20	/**< Pitch scale, in actuator units */
 #define PX4IO_P_SETUP_SCALE_YAW			21	/**< Yaw scale, in actuator units */
 
-#define PX4IO_P_SETUP_SBUS_RATE			22	/* frame rate of SBUS1 output in Hz */
+#define PX4IO_P_SETUP_SBUS_RATE			22	/**< frame rate of SBUS1 output in Hz */
 
-#define PX4IO_P_SETUP_MOTOR_SLEW_MAX		24 	/* max motor slew rate */
+#define PX4IO_P_SETUP_MOTOR_SLEW_MAX		24 	/**< max motor slew rate */
 
-#define PX4IO_P_SETUP_THR_MDL_FAC 		25	/* factor for modelling static pwm output to thrust relationship */
+#define PX4IO_P_SETUP_THR_MDL_FAC 		25	/**< factor for modelling motor control signal output to static thrust relationship */
 
-#define PX4IO_P_SETUP_THERMAL			26	/* thermal management */
+#define PX4IO_P_SETUP_THERMAL			26	/**< thermal management */
+
+#define PX4IO_P_SETUP_AIRMODE 			27 	/**< air-mode */
+
+#define PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION	28	/**< flight termination; false if the circuit breaker (CBRK_FLIGHTTERM) is set */
+
 #define PX4IO_THERMAL_IGNORE			UINT16_MAX
 #define PX4IO_THERMAL_OFF			0
 #define PX4IO_THERMAL_FULL			10000

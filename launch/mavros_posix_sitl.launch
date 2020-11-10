@@ -1,33 +1,32 @@
+<?xml version="1.0"?>
 <launch>
-
     <!-- MAVROS posix SITL environment launch script -->
+    <!-- launches MAVROS, PX4 SITL, Gazebo environment, and spawns vehicle -->
+    <!-- vehicle pose -->
     <arg name="x" default="0"/>
     <arg name="y" default="0"/>
     <arg name="z" default="0"/>
     <arg name="R" default="0"/>
     <arg name="P" default="0"/>
     <arg name="Y" default="0"/>
-
-
-    <arg name="est" default="lpe"/>
+    <!-- vehicle model and world -->
+    <arg name="est" default="ekf2"/>
     <arg name="vehicle" default="iris"/>
     <arg name="world" default="$(find mavlink_sitl_gazebo)/worlds/empty.world"/>
     <arg name="sdf" default="$(find mavlink_sitl_gazebo)/models/$(arg vehicle)/$(arg vehicle).sdf"/>
 
-    <arg name="rcS" default="$(find px4)/posix-configs/SITL/init/$(arg est)/$(arg vehicle)"/>
-
-    <arg name="headless" default="false"/>
+    <!-- gazebo configs -->
     <arg name="gui" default="true"/>
-    <arg name="ns" default="/"/>
-    <arg name="fcu_url" default="udp://:14540@localhost:14557"/>
-
     <arg name="debug" default="false"/>
     <arg name="verbose" default="false"/>
     <arg name="paused" default="false"/>
-
-    <arg name="pluginlists_yaml" default="$(find mavros)/launch/px4_pluginlists.yaml" />
-    <arg name="config_yaml" default="$(find mavros)/launch/px4_config.yaml" />
-
+    <arg name="respawn_gazebo" default="false"/>
+    <!-- MAVROS configs -->
+    <arg name="fcu_url" default="udp://:14540@localhost:14557"/>
+    <arg name="respawn_mavros" default="false"/>
+    <!-- PX4 configs -->
+    <arg name="interactive" default="true"/>
+    <!-- PX4 SITL and Gazebo -->
     <include file="$(find px4)/launch/posix_sitl.launch">
         <arg name="x" value="$(arg x)"/>
         <arg name="y" value="$(arg y)"/>
@@ -38,22 +37,18 @@
         <arg name="world" value="$(arg world)"/>
         <arg name="vehicle" value="$(arg vehicle)"/>
         <arg name="sdf" value="$(arg sdf)"/>
-        <arg name="rcS" value="$(arg rcS)"/>
-        <arg name="headless" value="$(arg headless)"/>
         <arg name="gui" value="$(arg gui)"/>
-        <arg name="ns" value="$(arg ns)"/>
+        <arg name="interactive" value="$(arg interactive)"/>
         <arg name="debug" value="$(arg debug)"/>
         <arg name="verbose" value="$(arg verbose)"/>
         <arg name="paused" value="$(arg paused)"/>
+        <arg name="respawn_gazebo" value="$(arg respawn_gazebo)"/>
     </include>
-
-    <include file="$(find px4)/launch/mavros.launch">
-        <arg name="ns" value="$(arg ns)"/>
-        <arg name="gcs_url" value=""/> <!-- GCS link is provided by SITL -->
+    <!-- MAVROS -->
+    <include file="$(find mavros)/launch/px4.launch">
+        <!-- GCS link is provided by SITL -->
+        <arg name="gcs_url" value=""/>
         <arg name="fcu_url" value="$(arg fcu_url)"/>
-        <arg name="pluginlists_yaml" value="$(arg pluginlists_yaml)" />
-        <arg name="config_yaml" value="$(arg config_yaml)" />
+        <arg name="respawn_mavros" value="$(arg respawn_mavros)"/>
     </include>
 </launch>
-
-<!-- vim: set et ft=xml fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : -->

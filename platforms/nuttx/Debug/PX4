@@ -1,0 +1,53 @@
+#
+# Various PX4-specific macros
+#
+
+echo Loading PX4 GDB macros.  Use 'help px4' for more information.\n
+
+define px4
+	echo Use 'help px4' for more information.\n
+end
+
+document px4
+. Various macros for working with the PX4 firmware.
+.
+.    perf
+.        Prints the state of all performance counters.
+.
+. Use 'help <macro>' for more specific help.
+end
+
+
+define _perf_print
+	set $hdr = (struct perf_ctr_header *)$arg0
+	#printf "%p\n", $hdr
+	printf "%s: ", $hdr->name
+	# PC_COUNT
+	if $hdr->type == 0
+		set $count = (struct perf_ctr_count *)$hdr
+		printf "%llu events\n", $count->event_count
+	end
+	# PC_ELPASED
+	if $hdr->type == 1
+		set $elapsed = (struct perf_ctr_elapsed *)$hdr
+		printf "%llu events, %lluus elapsed, min %lluus, max %lluus\n", $elapsed->event_count, $elapsed->time_total, $elapsed->time_least, $elapsed->time_most
+	end
+	# PC_INTERVAL
+	if $hdr->type == 2
+		set $interval = (struct perf_ctr_interval *)$hdr
+		printf "%llu events, %llu avg, min %lluus max %lluus\n", $interval->event_count, ($interval->time_last - $interval->time_first) / $interval->event_count, $interval->time_least, $interval->time_most
+	end
+end
+
+define perf
+	set $ctr = (sq_entry_t *)(perf_counters.head)
+	while $ctr != 0
+		_perf_print $ctr
+		set $ctr = $ctr->flink
+	end
+end
+
+document perf
+.    perf
+.        Prints performance counters.
+end

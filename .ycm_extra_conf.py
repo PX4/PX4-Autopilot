@@ -51,8 +51,8 @@ flags = [
 # headers will be compiled as C headers. You don't want that so ALWAYS specify
 # a "-std=<something>".
 # For a C project, you would set this to something like 'c99' instead of
-# 'c++11'.
-'-std=c++11',
+# 'c++14'.
+'-std=c++14',
 # ...and the same thing goes for the magic -x option which specifies the
 # language that the files to be compiled are written in. This is mostly
 # relevant for c++ headers.
@@ -61,7 +61,7 @@ flags = [
 'c++',
 '-undef', # get rid of standard definitions to allow us to include arm math header
 '-I', os.path.join(os.path.expanduser("~"),'gcc-arm-none-eabi-4_7-2013q3/arm-none-eabi/include'),
-'-I', 'Build/px4io-v2_default.build/nuttx-export/include/',
+'-I', 'Build/px4_io-v2_default.build/nuttx-export/include/',
 '-I', './NuttX/nuttx/arch/arm/include',
 '-include', './src/include/visibility.h',
 '-I', './src',

@@ -1,0 +1,106 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * Driver for the PX4 audio .
+ *
+ * The tune_control supports a set of predefined "alarm" tunes and
+ * one user-supplied tune.
+ *
+ * Tunes follow the syntax of the Microsoft GWBasic/QBasic PLAY
+ * statement, with some exceptions and extensions.
+ *
+ * From Wikibooks:
+ *
+ * PLAY "[string expression]"
+ *
+ * Used to play notes and a score ... The tones are indicated by letters A through G.
+ * Accidentals are indicated with a "+" or "#" (for sharp) or "-" (for flat)
+ * immediately after the note letter. See this example:
+ *
+ *   PLAY "C C# C C#"
+ *
+ * Whitespaces are ignored inside the string expression. There are also codes that
+ * set the duration, octave and tempo. They are all case-insensitive. PLAY executes
+ * the commands or notes the order in which they appear in the string. Any indicators
+ * that change the properties are effective for the notes following that indicator.
+ *
+ * Ln     Sets the duration (length) of the notes. The variable n does not indicate an actual duration
+ *        amount but rather a note type; L1 - whole note, L2 - half note, L4 - quarter note, etc.
+ *        (L8, L16, L32, L64, ...). By default, n = 4.
+ *        For triplets and quintets, use L3, L6, L12, ... and L5, L10, L20, ... series respectively.
+ *        The shorthand notation of length is also provided for a note. For example, "L4 CDE L8 FG L4 AB"
+ *        can be shortened to "L4 CDE F8G8 AB". F and G play as eighth notes while others play as quarter notes.
+ * On     Sets the current octave. Valid values for n are 0 through 6. An octave begins with C and ends with B.
+ *        Remember that C- is equivalent to B.
+ * < >    Changes the current octave respectively down or up one level.
+ * Nn     Plays a specified note in the seven-octave range. Valid values are from 0 to 84. (0 is a pause.)
+ *        Cannot use with sharp and flat. Cannot use with the shorthand notation neither.
+ * MN     Stand for Music Normal. Note duration is 7/8ths of the length indicated by Ln. It is the default mode.
+ * ML     Stand for Music Legato. Note duration is full length of that indicated by Ln.
+ * MS     Stand for Music Staccato. Note duration is 3/4ths of the length indicated by Ln.
+ * Pn     Causes a silence (pause) for the length of note indicated (same as Ln).
+ * Tn     Sets the number of "L4"s per minute (tempo). Valid values are from 32 to 255. The default value is T120.
+ * .      When placed after a note, it causes the duration of the note to be 3/2 of the set duration.
+ *        This is how to get "dotted" notes. "L4 C#." would play C sharp as a dotted quarter note.
+ *        It can be used for a pause as well.
+ *
+ * Extensions/variations:
+ *
+ * MB MF  The MF command causes the tune to play once and then stop. The MB command causes the
+ *        tune to repeat when it ends.
+ *
+ */
+
+
+//           ordinal name                  tune                                        interruptable*     hint
+//  * Repeated tunes should always be defined as interruptable, if not an explict 'tone_control stop' is needed
+PX4_DEFINE_TUNE(0,  CUSTOM,                "",                                              true  /*  empty to align with the index */)
+PX4_DEFINE_TUNE(1,  STARTUP,               "MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc",  true  /*  startup tune */)
+PX4_DEFINE_TUNE(2,  ERROR_TUNE,            "MBT200a8a8a8PaaaP",                             true  /*  ERROR tone */)
+PX4_DEFINE_TUNE(3,  NOTIFY_POSITIVE,       "MFT200e8a8a",                                   true  /*  Notify Positive tone */)
+PX4_DEFINE_TUNE(4,  NOTIFY_NEUTRAL,        "MFT200e8e",                                     true  /*  Notify Neutral tone */)
+PX4_DEFINE_TUNE(5,  NOTIFY_NEGATIVE,       "MFT200e8c8e8c8e8c8",                            true  /*  Notify Negative tone */)
+PX4_DEFINE_TUNE(6,  ARMING_WARNING,        "MNT75L1O2G",                                    false /*  arming warning */)
+PX4_DEFINE_TUNE(7,  BATTERY_WARNING_SLOW,  "MBNT100a8",                                     true  /*  battery warning slow */)
+PX4_DEFINE_TUNE(8,  BATTERY_WARNING_FAST,  "MBNT255a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8",       true  /*  battery warning fast */)
+PX4_DEFINE_TUNE(9,  GPS_WARNING,           "MFT255L4AAAL1F#",                               false /*  gps warning slow */)
+PX4_DEFINE_TUNE(10, ARMING_FAILURE,        "MFT255L4<<<BAP",                                false /*  arming failure tune */)
+PX4_DEFINE_TUNE(11, PARACHUTE_RELEASE,     "MFT255L16agagagag",                             false /*  parachute release */)
+PX4_DEFINE_TUNE(12, SINGLE_BEEP,           "MFT100a8",                                      false /*  single beep */)
+PX4_DEFINE_TUNE(13, HOME_SET,              "MFT100L4>G#6A#6B#4",                            false /*  home set tune */)
+PX4_DEFINE_TUNE(14, SD_INIT,               "MFAGPAG",                                       false /*  Make FS */)
+PX4_DEFINE_TUNE(15, SD_ERROR,              "MNBG",                                          false /*  format failed */)
+PX4_DEFINE_TUNE(16, PROG_PX4IO,            "MLL32CP8MB",                                    false /*  Program PX4IO */)
+PX4_DEFINE_TUNE(17, PROG_PX4IO_OK,         "MLL8CDE",                                       false /*  Program PX4IO success */)
+PX4_DEFINE_TUNE(18, PROG_PX4IO_ERR,        "ML<<CP4CP4CP4CP4CP4",                           true  /*  Program PX4IO fail */)

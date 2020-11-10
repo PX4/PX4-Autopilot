@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,16 +37,20 @@
  *
  * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Lorenz Meier <lorenz@px4.io>
+ * @author Beat Kueng <beat@px4.io>
  */
 
 #pragma once
 
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 #include "mavlink_bridge_header.h"
-#include <uORB/uORB.h>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/rc_parameter_map.h>
 #include <uORB/topics/uavcan_parameter_request.h>
+#include <uORB/topics/uavcan_parameter_value.h>
+#include <uORB/topics/parameter_update.h>
 #include <drivers/drv_hrt.h>
 
 class Mavlink;
@@ -55,20 +59,20 @@ class MavlinkParametersManager
 {
 public:
 	explicit MavlinkParametersManager(Mavlink *mavlink);
-	~MavlinkParametersManager();
+	~MavlinkParametersManager() = default;
 
 	/**
 	 * Handle sending of messages. Call this regularly at a fixed frequency.
 	 * @param t current time
 	 */
-	void send(const hrt_abstime t);
+	void send();
 
 	unsigned get_size();
 
 	void handle_message(const mavlink_message_t *msg);
 
 private:
-	int		_send_all_index;
+	int		_send_all_index{-1};
 
 	/* do not allow top copying this class */
 	MavlinkParametersManager(MavlinkParametersManager &);
@@ -79,6 +83,21 @@ protected:
 	/// @return true if a parameter was sent
 	bool send_one();
 
+	/**
+	 * Handle any open param send transfer
+	 */
+	bool send_params();
+
+	/**
+	 * Send UAVCAN params
+	 */
+	bool send_uavcan();
+
+	/**
+	 * Send untransmitted params
+	 */
+	bool send_untransmitted();
+
 	int send_param(param_t param, int component_id = -1);
 
 	// Item of a single-linked list to store requested uavcan parameters
@@ -87,22 +106,50 @@ protected:
 		struct _uavcan_open_request_list_item *next;
 	};
 
-	// Request the next uavcan parameter
+	/**
+	 * Request the next uavcan parameter
+	 */
 	void request_next_uavcan_parameter();
-	// Enque one uavcan parameter reqest. We store 10 at max.
+
+	/**
+	 * Enqueue one uavcan parameter reqest. We store 10 at max.
+	 */
 	void enque_uavcan_request(uavcan_parameter_request_s *req);
-	// Drop the first reqest from the list
+
+	/**
+	 * Drop the first reqest from the list
+	 */
 	void dequeue_uavcan_request();
 
-	_uavcan_open_request_list_item *_uavcan_open_request_list; // Pointer to the first item in the linked list
-	bool _uavcan_waiting_for_request_response; // We have reqested a parameter and wait for the response
-	uint16_t _uavcan_queued_request_items;	// Number of stored parameter requests currently in the list
+	_uavcan_open_request_list_item *_uavcan_open_request_list{nullptr}; ///< Pointer to the first item in the linked list
+	bool _uavcan_waiting_for_request_response{false}; ///< We have reqested a parameter and wait for the response
+	uint16_t _uavcan_queued_request_items{0};	///< Number of stored parameter requests currently in the list
 
-	orb_advert_t _rc_param_map_pub;
-	struct rc_parameter_map_s _rc_param_map;
+	uORB::Publication<rc_parameter_map_s>	_rc_param_map_pub{ORB_ID(rc_parameter_map)};
+	rc_parameter_map_s _rc_param_map{};
 
-	orb_advert_t _uavcan_parameter_request_pub;
-	int _uavcan_parameter_value_sub;
+	uORB::Publication<uavcan_parameter_request_s> _uavcan_parameter_request_pub{ORB_ID(uavcan_parameter_request)};
+	// enforce ORB_ID(uavcan_parameter_request) constants that map to MAVLINK defines
+	static_assert(uavcan_parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_READ == MAVLINK_MSG_ID_PARAM_REQUEST_READ,
+		      "uavcan_parameter_request_s MAVLINK_MSG_ID_PARAM_REQUEST_READ constant mismatch");
+	static_assert(uavcan_parameter_request_s::MESSAGE_TYPE_PARAM_SET == MAVLINK_MSG_ID_PARAM_SET,
+		      "uavcan_parameter_request_s MAVLINK_MSG_ID_PARAM_SET constant mismatch");
+	static_assert(uavcan_parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_LIST == MAVLINK_MSG_ID_PARAM_REQUEST_LIST,
+		      "uavcan_parameter_request_s MAVLINK_MSG_ID_PARAM_REQUEST_LIST constant mismatch");
+	static_assert(uavcan_parameter_request_s::NODE_ID_ALL == MAV_COMP_ID_ALL,
+		      "uavcan_parameter_request_s MAV_COMP_ID_ALL constant mismatch");
+	static_assert(uavcan_parameter_request_s::PARAM_TYPE_UINT8 == MAV_PARAM_TYPE_UINT8,
+		      "uavcan_parameter_request_s MAV_PARAM_TYPE_UINT8 constant mismatch");
+	static_assert(uavcan_parameter_request_s::PARAM_TYPE_REAL32 == MAV_PARAM_TYPE_REAL32,
+		      "uavcan_parameter_request_s MAV_PARAM_TYPE_REAL32 constant mismatch");
+	static_assert(uavcan_parameter_request_s::PARAM_TYPE_INT64 == MAV_PARAM_TYPE_INT64,
+		      "uavcan_parameter_request_s MAV_PARAM_TYPE_INT64 constant mismatch");
+
+	uORB::Subscription _uavcan_parameter_value_sub{ORB_ID(uavcan_parameter_value)};
+
+	uORB::Subscription _mavlink_parameter_sub{ORB_ID(parameter_update)};
+	hrt_abstime _param_update_time{0};
+	int _param_update_index{0};
 
 	Mavlink *_mavlink;
 };

@@ -1,0 +1,190 @@
+#!/usr/bin/env groovy
+
+pipeline {
+  agent none
+  stages {
+
+    stage('Build') {
+      steps {
+        script {
+          def build_nodes = [:]
+          def docker_images = [
+            armhf: "px4io/px4-dev-armhf:2020-04-01",
+            arm64: "px4io/px4-dev-aarch64:latest",
+            base: "px4io/px4-dev-base-bionic:2020-04-01",
+            nuttx: "px4io/px4-dev-nuttx-focal:2020-09-14",
+            snapdragon: "lorenzmeier/px4-dev-snapdragon:2020-04-01"
+          ]
+
+          def armhf_builds = [
+            target: ["aerotenna_ocpoc_default", "beaglebone_blue_default", "emlid_navio2_default", "px4_raspberrypi_default", "scumaker_pilotpi_default"],
+            image: docker_images.armhf,
+            archive: false
+          ]
+
+          def arm64_builds = [
+            target: ["scumaker_pilotpi_arm64"],
+            image: docker_images.arm64,
+            archive: false
+          ]
+
+          def base_builds = [
+            target: ["px4_sitl_rtps"],
+            image: docker_images.base,
+            archive: false
+          ]
+
+          def nuttx_builds_archive = [
+            target: [
+                     "airmind_mindpx-v2_default",
+                     "av_x-v1_default",
+                     "bitcraze_crazyflie_default",
+                     "cuav_can-gps-v1_canbootloader",
+                     "cuav_can-gps-v1_default",
+                     "cuav_nora_default",
+                     "cuav_x7pro_default",
+                     "cubepilot_cubeorange_console",
+                     "cubepilot_cubeorange_default",
+                     "cubepilot_cubeyellow_console",
+                     "cubepilot_cubeyellow_default",
+                     "holybro_durandal-v1_default",
+                     "holybro_kakutef7_default",
+                     "holybro_pix32v5_default",
+                     "intel_aerofc-v1_default",
+                     "modalai_fc-v1_default",
+                     "mro_ctrl-zero-f7_default",
+                     "mro_x21-777_default",
+                     "mro_x21_default",
+                     "nxp_fmuk66-v3_default",
+                     "nxp_fmuk66-v3_socketcan",
+                     "nxp_fmuk66-v3_rtps",
+                     "nxp_fmurt1062-v1_default",
+                     "nxp_ucans32k146_default",
+                     "omnibus_f4sd_default",
+                     "px4_fmu-v2_default",
+                     "px4_fmu-v2_fixedwing",
+                     "px4_fmu-v2_lpe",
+                     "px4_fmu-v2_multicopter",
+                     "px4_fmu-v2_rover",
+                     "px4_fmu-v2_test",
+                     "px4_fmu-v3_default",
+                     "px4_fmu-v4_cannode",
+                     "px4_fmu-v4_default",
+                     "px4_fmu-v4_optimized",
+                     "px4_fmu-v4pro_default",
+                     "px4_fmu-v5_default",
+                     "px4_fmu-v5_debug",
+                     "px4_fmu-v5_fixedwing",
+                     "px4_fmu-v5_multicopter",
+                     "px4_fmu-v5_optimized",
+                     "px4_fmu-v5_rover",
+                     "px4_fmu-v5_rtps",
+                     "px4_fmu-v5_stackcheck",
+                     "px4_fmu-v5x_base_phy_DP83848C",
+                     "px4_fmu-v5x_default",
+                     "px4_fmu-v6x_default",
+                     "px4_io-v2_default",
+                     "spracing_h7extreme_default",
+                     "uvify_core_default"
+            ],
+            image: docker_images.nuttx,
+            archive: true
+          ]
+
+          def snapdragon_builds = [
+            target: ["atlflight_eagle_qurt", "atlflight_eagle_default"],
+            image: docker_images.snapdragon,
+            archive: false
+          ]
+
+          def docker_builds = [
+            armhf_builds, base_builds, nuttx_builds_archive//, snapdragon_builds
+          ]
+
+          for (def build_type = 0; build_type < docker_builds.size(); build_type++) {
+            for (def build_target = 0; build_target < docker_builds[build_type].target.size(); build_target++) {
+              build_nodes.put(docker_builds[build_type].target[build_target],
+                createBuildNode(docker_builds[build_type].archive, docker_builds[build_type].image, docker_builds[build_type].target[build_target])
+                )
+            }
+          }
+
+        parallel build_nodes
+
+        } // script
+      } // steps
+    } // stage Build
+
+    // TODO: actually upload artifacts to S3
+    // stage('S3 Upload') {
+    //   agent {
+    //     docker { image 'px4io/px4-dev-base-focal:2020-09-14' }
+    //   }
+    //   options {
+    //         skipDefaultCheckout()
+    //   }
+    //   when {
+    //     anyOf {
+    //       branch 'master'
+    //       branch 'beta'
+    //       branch 'stable'
+    //       branch 'pr-jenkins' // for testing
+    //     }
+    //   }
+    //   steps {
+    //     sh 'echo "uploading to S3"'
+    //   }
+    // }
+
+  } // stages
+  environment {
+    CCACHE_DIR = '/tmp/ccache'
+    CI = true
+  }
+  options {
+    buildDiscarder(logRotator(numToKeepStr: '5', artifactDaysToKeepStr: '14'))
+    timeout(time: 60, unit: 'MINUTES')
+  }
+}
+
+def createBuildNode(Boolean archive, String docker_image, String target) {
+  return {
+
+    // TODO: fix the snapdragon image
+    bypass_entrypoint = ''
+    if (docker_image == 'lorenzmeier/px4-dev-snapdragon:2020-04-01') {
+      bypass_entrypoint = ' --entrypoint=""'
+    }
+
+    node {
+      docker.withRegistry('https://registry.hub.docker.com', 'docker_hub_dagar') {
+        docker.image(docker_image).inside('-e CCACHE_BASEDIR=${WORKSPACE} -v ${CCACHE_DIR}:${CCACHE_DIR}:rw' + bypass_entrypoint) {
+          stage(target) {
+            try {
+              sh('export')
+              checkout(scm)
+              sh('make distclean')
+              sh('git fetch --tags')
+              sh('ccache -s')
+              sh('make ' + target)
+              sh('ccache -s')
+              sh('make sizes')
+              if (archive) {
+                archiveArtifacts(allowEmptyArchive: false, artifacts: 'build/*/*.px4, build/*/*.elf, build/*/*.bin', fingerprint: true, onlyIfSuccessful: true)
+              }
+              sh('make ' + target + ' package')
+              archiveArtifacts(allowEmptyArchive: true, artifacts: 'build/*/*.tar.bz2', fingerprint: true, onlyIfSuccessful: true)
+              archiveArtifacts(allowEmptyArchive: true, artifacts: 'build/*/*.deb', fingerprint: true, onlyIfSuccessful: true)
+            }
+            catch (exc) {
+              throw (exc)
+            }
+            finally {
+              sh('make distclean')
+            }
+          }
+        }
+      }
+    }
+  }
+}

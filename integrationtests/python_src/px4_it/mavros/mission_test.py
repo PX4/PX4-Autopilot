@@ -38,354 +38,280 @@
 
 # The shebang of this file is currently Python2 because some
 # dependencies such as pymavlink don't play well with Python3 yet.
+from __future__ import division
 
 PKG = 'px4'
 
-import unittest
 import rospy
-import math
-import rosbag
-import sys
-import os
-import time
 import glob
 import json
-
-import mavros
-from pymavlink import mavutil
+import math
+import os
+from px4tools import ulog
+import sys
 from mavros import mavlink
+from mavros_msgs.msg import Mavlink, Waypoint, WaypointReached
+from mavros_test_common import MavrosTestCommon
+from pymavlink import mavutil
+from six.moves import xrange
+from threading import Thread
 
-import px4tools
-
-from geometry_msgs.msg import PoseStamped
-from mavros_msgs.srv import CommandLong, WaypointPush
-from mavros_msgs.msg import Mavlink, Waypoint, ExtendedState
-from sensor_msgs.msg import NavSatFix
-from mavros.mission import QGroundControlWP
-#from px4_test_helper import PX4TestHelper
 
 def get_last_log():
     try:
         log_path = os.environ['PX4_LOG_DIR']
     except KeyError:
-        log_path = os.path.join(os.environ['HOME'], 'ros/rootfs/fs/microsd/log')
-    last_log_dir = sorted(
-        glob.glob(os.path.join(log_path, '*')))[-1]
+        try:
+            log_path = os.path.join(os.environ['ROS_HOME'], 'log')
+        except KeyError:
+            log_path = os.path.join(os.environ['HOME'], '.ros/log')
+    last_log_dir = sorted(glob.glob(os.path.join(log_path, '*')))[-1]
     last_log = sorted(glob.glob(os.path.join(last_log_dir, '*.ulg')))[-1]
     return last_log
 
-def read_new_mission(f):
-    d = json.load(f)
-    current = True
-    for wp in d['items']:
-        yield Waypoint(
-                is_current = current,
-                frame = int(wp['frame']),
-                command = int(wp['command']),
-                param1 = float(wp['param1']),
-                param2 = float(wp['param2']),
-                param3 = float(wp['param3']),
-                param4 = float(wp['param4']),
-                x_lat = float(wp['coordinate'][0]),
-                y_long = float(wp['coordinate'][1]),
-                z_alt = float(wp['coordinate'][2]),
-                autocontinue = bool(wp['autoContinue']))
-        if current:
-            current = False
 
-class MavrosMissionTest(unittest.TestCase):
+def read_mission(mission_filename):
+    wps = []
+    with open(mission_filename, 'r') as f:
+        for waypoint in read_plan_file(f):
+            wps.append(waypoint)
+            rospy.logdebug(waypoint)
+
+    # set first item to current
+    if wps:
+        wps[0].is_current = True
+
+    return wps
+
+
+def read_plan_file(f):
+    d = json.load(f)
+    if 'mission' in d:
+        d = d['mission']
+
+    if 'items' in d:
+        for wp in d['items']:
+            yield Waypoint(
+                is_current=False,
+                frame=int(wp['frame']),
+                command=int(wp['command']),
+                param1=float('nan'
+                             if wp['params'][0] is None else wp['params'][0]),
+                param2=float('nan'
+                             if wp['params'][1] is None else wp['params'][1]),
+                param3=float('nan'
+                             if wp['params'][2] is None else wp['params'][2]),
+                param4=float('nan'
+                             if wp['params'][3] is None else wp['params'][3]),
+                x_lat=float(wp['params'][4]),
+                y_long=float(wp['params'][5]),
+                z_alt=float(wp['params'][6]),
+                autocontinue=bool(wp['autoContinue']))
+    else:
+        raise IOError("no mission items")
+
+
+class MavrosMissionTest(MavrosTestCommon):
     """
     Run a mission
     """
 
     def setUp(self):
-        rospy.init_node('test_node', anonymous=True)
+        super(self.__class__, self).setUp()
 
-        self.rate = rospy.Rate(10) # 10hz
-        self.has_global_pos = False
-        self.local_position = PoseStamped()
-        self.global_position = NavSatFix()
-        self.extended_state = ExtendedState()
-        self.home_alt = 0
-        self.mc_rad = 5
-        self.fw_rad = 60
-        self.fw_alt_rad = 10
-        self.last_alt_d = 9999
-        self.last_pos_d = 9999
+        self.mission_item_reached = -1  # first mission item is 0
         self.mission_name = ""
 
-        # need to simulate heartbeat for datalink loss detection
-        rospy.Timer(rospy.Duration(0.5), self.send_heartbeat)
+        self.mavlink_pub = rospy.Publisher('mavlink/to', Mavlink, queue_size=1)
+        self.mission_item_reached_sub = rospy.Subscriber(
+            'mavros/mission/reached', WaypointReached,
+            self.mission_item_reached_callback)
 
-        rospy.wait_for_service('mavros/cmd/command', 30)
-        self.pub_mavlink = rospy.Publisher('mavlink/to', Mavlink, queue_size=1)
-        self._srv_cmd_long = rospy.ServiceProxy('mavros/cmd/command', CommandLong, persistent=True)
-        self._srv_wp_push = rospy.ServiceProxy('mavros/mission/push', WaypointPush, persistent=True)
-
-        rospy.Subscriber("mavros/local_position/pose", PoseStamped, self.position_callback)
-        rospy.Subscriber("mavros/global_position/global", NavSatFix, self.global_position_callback)
-        rospy.Subscriber("mavros/extended_state", ExtendedState, self.extended_state_callback)
+        # need to simulate heartbeat to prevent datalink loss detection
+        self.hb_mav_msg = mavutil.mavlink.MAVLink_heartbeat_message(
+            mavutil.mavlink.MAV_TYPE_GCS, 0, 0, 0, 0, 0)
+        self.hb_mav_msg.pack(mavutil.mavlink.MAVLink('', 2, 1))
+        self.hb_ros_msg = mavlink.convert_to_rosmsg(self.hb_mav_msg)
+        self.hb_thread = Thread(target=self.send_heartbeat, args=())
+        self.hb_thread.daemon = True
+        self.hb_thread.start()
 
     def tearDown(self):
-        #self.helper.tearDown()
-        pass
-
-    #
-    # General callback functions used in tests
-    #
-    def position_callback(self, data):
-        self.local_position = data
-
-    def global_position_callback(self, data):
-        self.global_position = data
-
-        if not self.has_global_pos:
-            if data.altitude != 0:
-                self.home_alt = data.altitude
-                self.has_global_pos = True
-
-    def extended_state_callback(self, data):
-
-        prev_state = self.extended_state.vtol_state;
-
-        self.extended_state = data
-        if (prev_state != self.extended_state.vtol_state):
-            print("VTOL state change: %d" % self.extended_state.vtol_state);
+        super(MavrosMissionTest, self).tearDown()
 
     #
     # Helper methods
     #
-    def is_at_position(self, lat, lon, alt, xy_offset, z_offset):
-        R = 6371000 # metres
+    def send_heartbeat(self):
+        rate = rospy.Rate(2)  # Hz
+        while not rospy.is_shutdown():
+            self.mavlink_pub.publish(self.hb_ros_msg)
+            try:  # prevent garbage in console output when thread is killed
+                rate.sleep()
+            except rospy.ROSInterruptException:
+                pass
+
+    def mission_item_reached_callback(self, data):
+        if self.mission_item_reached != data.wp_seq:
+            rospy.loginfo("mission item reached: {0}".format(data.wp_seq))
+            self.mission_item_reached = data.wp_seq
+
+    def distance_to_wp(self, lat, lon, alt):
+        """alt(amsl): meters"""
+        R = 6371000  # metres
         rlat1 = math.radians(lat)
         rlat2 = math.radians(self.global_position.latitude)
 
         rlat_d = math.radians(self.global_position.latitude - lat)
         rlon_d = math.radians(self.global_position.longitude - lon)
 
-        a = (math.sin(rlat_d / 2) * math.sin(rlat_d / 2) +
-             math.cos(rlat1) * math.cos(rlat2) *
-             math.sin(rlon_d / 2) * math.sin(rlon_d / 2))
-        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+        a = (math.sin(rlat_d / 2) * math.sin(rlat_d / 2) + math.cos(rlat1) *
+             math.cos(rlat2) * math.sin(rlon_d / 2) * math.sin(rlon_d / 2))
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
         d = R * c
-        alt_d = abs(alt - self.global_position.altitude)
+        alt_d = abs(alt - self.altitude.amsl)
 
-        #rospy.loginfo("d: %f, alt_d: %f", d, alt_d)
-
-        # remember best distances
-        if self.last_pos_d > d:
-            self.last_pos_d = d
-        if self.last_alt_d > alt_d:
-            self.last_alt_d = alt_d
-
-        return d < xy_offset and alt_d < z_offset
+        rospy.logdebug("d: {0}, alt_d: {1}".format(d, alt_d))
+        return d, alt_d
 
     def reach_position(self, lat, lon, alt, timeout, index):
-        # reset best distances
-        self.last_alt_d = 9999
-        self.last_pos_d = 9999
+        """alt(amsl): meters, timeout(int): seconds"""
+        rospy.loginfo(
+            "trying to reach waypoint | lat: {0:.9f}, lon: {1:.9f}, alt: {2:.2f}, index: {3}".
+            format(lat, lon, alt, index))
+        best_pos_xy_d = None
+        best_pos_z_d = None
+        reached = False
+        mission_length = len(self.mission_wp.waypoints)
 
-        rospy.loginfo("trying to reach waypoint " +
-            "lat: %13.9f, lon: %13.9f, alt: %6.2f, timeout: %d, index: %d" %
-            (lat, lon, alt, timeout, index))
+        # does it reach the position in 'timeout' seconds?
+        loop_freq = 2  # Hz
+        rate = rospy.Rate(loop_freq)
+        for i in xrange(timeout * loop_freq):
+            pos_xy_d, pos_z_d = self.distance_to_wp(lat, lon, alt)
 
-        # does it reach the position in X seconds?
-        count = 0
-        while count < timeout:
-            # use MC radius by default
-            # FIXME: also check MAV_TYPE from system status, otherwise pure fixed-wing won't work
-            xy_radius = self.mc_rad
-            z_radius = self.mc_rad
+            # remember best distances
+            if not best_pos_xy_d or best_pos_xy_d > pos_xy_d:
+                best_pos_xy_d = pos_xy_d
+            if not best_pos_z_d or best_pos_z_d > pos_z_d:
+                best_pos_z_d = pos_z_d
 
-            # use FW radius if in FW or in transition
-            if (self.extended_state.vtol_state == ExtendedState.VTOL_STATE_FW or
-                    self.extended_state.vtol_state == ExtendedState.VTOL_STATE_TRANSITION_TO_MC or
-                    self.extended_state.vtol_state == ExtendedState.VTOL_STATE_TRANSITION_TO_FW):
-                xy_radius = self.fw_rad
-                z_radius = self.fw_alt_rad
+            # FCU advanced to the next mission item, or finished mission
+            reached = (
+                # advanced to next wp
+                (index < self.mission_wp.current_seq)
+                # end of mission
+                or (index == (mission_length - 1) and
+                    self.mission_item_reached == index))
 
-            if self.is_at_position(lat, lon, alt, xy_radius, z_radius):
-                rospy.loginfo("position reached, index: %d, count: %d, pos_d: %f, alt_d: %f" %
-                    (index, count, self.last_pos_d, self.last_alt_d))
+            if reached:
+                rospy.loginfo(
+                    "position reached | pos_xy_d: {0:.2f}, pos_z_d: {1:.2f}, index: {2} | seconds: {3} of {4}".
+                    format(pos_xy_d, pos_z_d, index, i / loop_freq, timeout))
                 break
+            elif i == 0 or ((i / loop_freq) % 10) == 0:
+                # log distance first iteration and every 10 sec
+                rospy.loginfo(
+                    "current distance to waypoint | pos_xy_d: {0:.2f}, pos_z_d: {1:.2f}, index: {2}".
+                    format(pos_xy_d, pos_z_d, index))
 
-            count = count + 1
-            self.rate.sleep()
+            try:
+                rate.sleep()
+            except rospy.ROSException as e:
+                self.fail(e)
 
-        vtol_state_string = "VTOL undefined"
+        self.assertTrue(
+            reached,
+            "position not reached | lat: {0:.9f}, lon: {1:.9f}, alt: {2:.2f}, current pos_xy_d: {3:.2f}, current pos_z_d: {4:.2f}, best pos_xy_d: {5:.2f}, best pos_z_d: {6:.2f}, index: {7} | timeout(seconds): {8}".
+            format(lat, lon, alt, pos_xy_d, pos_z_d, best_pos_xy_d,
+                   best_pos_z_d, index, timeout))
 
-        if (self.extended_state.vtol_state == ExtendedState.VTOL_STATE_MC):
-            vtol_state_string = "VTOL MC"
-        if (self.extended_state.vtol_state == ExtendedState.VTOL_STATE_FW):
-            vtol_state_string = "VTOL FW"
-        if (self.extended_state.vtol_state == ExtendedState.VTOL_STATE_TRANSITION_TO_MC):
-            vtol_state_string = "VTOL FW->MC"
-        if (self.extended_state.vtol_state == ExtendedState.VTOL_STATE_TRANSITION_TO_FW):
-            vtol_state_string = "VTOL MC->FW"
-
-        self.assertTrue(count < timeout, (("(%s) took too long to get to position " +
-            "lat: %13.9f, lon: %13.9f, alt: %6.2f, xy off: %f, z off: %f, timeout: %d, index: %d, pos_d: %f, alt_d: %f, VTOL state: %s") %
-            (self.mission_name, lat, lon, alt, xy_radius, z_radius, timeout, index, self.last_pos_d, self.last_alt_d, vtol_state_string)))
-
-    def run_mission(self):
-	# Hack to wait until vehicle is ready
-	# TODO better integration with pre-flight status reporting
-	time.sleep(5)
-	"""switch mode: auto and arm"""
-        self._srv_cmd_long(False, 176, False,
-                           # custom, auto, mission
-                           1, 4, 4, 0, 0, 0, 0)
-        # make sure the first command doesn't get lost
-        time.sleep(1)
-
-        self._srv_cmd_long(False, 400, False,
-                           # arm
-                           1, 0, 0, 0, 0, 0, 0)
-
-    def wait_until_ready(self):
-        """FIXME: hack to wait for simulation to be ready"""
-        while not self.has_global_pos:
-            self.rate.sleep()
-
-    def wait_on_landing(self, timeout, index):
-        """Wait for landed state"""
-
-        rospy.loginfo("waiting for landing " +
-            "timeout: %d, index: %d" %
-            (timeout, index))
-
-        count = 0
-        while count < timeout:
-            if self.extended_state.landed_state == ExtendedState.LANDED_STATE_ON_GROUND:
-                break
-
-            count = count + 1
-            self.rate.sleep()
-
-        self.assertTrue(count < timeout, ("(%s) landing not detected after landing WP " +
-            "timeout: %d, index: %d") %
-            (self.mission_name, timeout, index))
-
-    def wait_on_transition(self, transition, timeout, index):
-        """Wait for VTOL transition"""
-
-        rospy.loginfo("waiting for VTOL transition " +
-            "transition: %d, timeout: %d, index: %d" %
-            (transition, timeout, index))
-
-        count = 0
-        while count < timeout:
-            # transition to MC
-            if (transition == ExtendedState.VTOL_STATE_MC and
-                    self.extended_state.vtol_state == ExtendedState.VTOL_STATE_MC):
-                break
-
-            # transition to FW
-            if (transition == ExtendedState.VTOL_STATE_FW and
-                    self.extended_state.vtol_state == ExtendedState.VTOL_STATE_FW):
-                break
-
-            count = count + 1
-            self.rate.sleep()
-
-        self.assertTrue(count < timeout, ("(%s) transition not detected " +
-            "timeout: %d, index: %d") %
-            (self.mission_name, timeout, index))
-
-    def send_heartbeat(self, event=None):
-        # mav type gcs
-        mavmsg = mavutil.mavlink.MAVLink_heartbeat_message(6, 0, 0, 0, 0, 0)
-        # XXX: hack: using header object to set mav properties
-        mavmsg.pack(mavutil.mavlink.MAVLink_header(0, 0, 0, 2, 1))
-        rosmsg = mavlink.convert_to_rosmsg(mavmsg)
-        self.pub_mavlink.publish(rosmsg)
-
+    #
+    # Test method
+    #
     def test_mission(self):
         """Test mission"""
-
         if len(sys.argv) < 2:
             self.fail("usage: mission_test.py mission_file")
             return
 
         self.mission_name = sys.argv[1]
-        mission_file = os.path.dirname(os.path.realpath(__file__)) + "/" + sys.argv[1]
+        mission_file = os.path.dirname(
+            os.path.realpath(__file__)) + "/missions/" + sys.argv[1]
 
-        rospy.loginfo("reading mission %s", mission_file)
-        wps = []
+        rospy.loginfo("reading mission {0}".format(mission_file))
+        try:
+            wps = read_mission(mission_file)
+        except IOError as e:
+            self.fail(e)
 
-        with open(mission_file, 'r') as f:
-            mission_ext = os.path.splitext(mission_file)[1]
-            if mission_ext == '.mission':
-                rospy.loginfo("new style mission file detected")
-                for waypoint in read_new_mission(f):
-                    wps.append(waypoint)
-                    rospy.logdebug(waypoint)
-            elif mission_ext == '.txt':
-                rospy.loginfo("old style mission file detected")
-                mission = QGroundControlWP()
-                for waypoint in mission.read(f):
-                    wps.append(waypoint)
-                    rospy.logdebug(waypoint)
-            else:
-                raise IOError('unknown mission file extension', mission_ext)
+        # make sure the simulation is ready to start the mission
+        self.wait_for_topics(60)
+        self.wait_for_landed_state(mavutil.mavlink.MAV_LANDED_STATE_ON_GROUND,
+                                   10, -1)
+        self.wait_for_mav_type(10)
 
-        rospy.loginfo("wait until ready")
-        self.wait_until_ready()
+        # push waypoints to FCU and start mission
+        self.send_wps(wps, 30)
+        self.log_topic_vars()
+        self.set_mode("AUTO.MISSION", 5)
+        self.set_arm(True, 5)
 
-        rospy.loginfo("send mission")
-        res = self._srv_wp_push(wps)
-        rospy.loginfo(res)
-        self.assertTrue(res.success, "(%s) mission could not be transfered" % self.mission_name)
-
-        rospy.loginfo("run mission")
-        self.run_mission()
-
-        index = 0
-        for waypoint in wps:
+        rospy.loginfo("run mission {0}".format(self.mission_name))
+        for index, waypoint in enumerate(wps):
             # only check position for waypoints where this makes sense
-            if waypoint.frame == Waypoint.FRAME_GLOBAL_REL_ALT or waypoint.frame == Waypoint.FRAME_GLOBAL:
+            if (waypoint.frame == Waypoint.FRAME_GLOBAL_REL_ALT or
+                    waypoint.frame == Waypoint.FRAME_GLOBAL):
                 alt = waypoint.z_alt
                 if waypoint.frame == Waypoint.FRAME_GLOBAL_REL_ALT:
-                    alt += self.home_alt
+                    alt += self.altitude.amsl - self.altitude.relative
 
-                self.reach_position(waypoint.x_lat, waypoint.y_long, alt, 600, index)
+                self.reach_position(waypoint.x_lat, waypoint.y_long, alt, 60,
+                                    index)
 
             # check if VTOL transition happens if applicable
-            if waypoint.command == 84 or waypoint.command == 85 or waypoint.command == 3000:
-                transition = waypoint.param1
+            if (waypoint.command == mavutil.mavlink.MAV_CMD_NAV_VTOL_TAKEOFF or
+                    waypoint.command == mavutil.mavlink.MAV_CMD_NAV_VTOL_LAND
+                    or waypoint.command ==
+                    mavutil.mavlink.MAV_CMD_DO_VTOL_TRANSITION):
+                transition = waypoint.param1  # used by MAV_CMD_DO_VTOL_TRANSITION
+                if waypoint.command == mavutil.mavlink.MAV_CMD_NAV_VTOL_TAKEOFF:  # VTOL takeoff implies transition to FW
+                    transition = mavutil.mavlink.MAV_VTOL_STATE_FW
+                if waypoint.command == mavutil.mavlink.MAV_CMD_NAV_VTOL_LAND:  # VTOL land implies transition to MC
+                    transition = mavutil.mavlink.MAV_VTOL_STATE_MC
 
-                if waypoint.command == 84: # VTOL takeoff implies transition to FW
-                    transition = ExtendedState.VTOL_STATE_FW
-
-                if waypoint.command == 85: # VTOL takeoff implies transition to MC
-                    transition = ExtendedState.VTOL_STATE_MC
-
-                self.wait_on_transition(transition, 600, index)
+                self.wait_for_vtol_state(transition, 60, index)
 
             # after reaching position, wait for landing detection if applicable
-            if waypoint.command == 85 or waypoint.command == 21:
-                self.wait_on_landing(600, index)
+            if (waypoint.command == mavutil.mavlink.MAV_CMD_NAV_VTOL_LAND or
+                    waypoint.command == mavutil.mavlink.MAV_CMD_NAV_LAND):
+                self.wait_for_landed_state(
+                    mavutil.mavlink.MAV_LANDED_STATE_ON_GROUND, 120, index)
 
-            index += 1
+        self.set_arm(False, 5)
+        self.clear_wps(5)
 
         rospy.loginfo("mission done, calculating performance metrics")
         last_log = get_last_log()
-        rospy.loginfo("log file %s", last_log)
-        data = px4tools.ulog.read_ulog(last_log).concat(dt=0.1)
-        data = px4tools.ulog.compute_data(data)
-        res = px4tools.estimator_analysis(data, False)
+        rospy.loginfo("log file {0}".format(last_log))
+        data = ulog.read_ulog(last_log).concat(dt=0.1)
+        data = ulog.compute_data(data)
+        res = ulog.estimator_analysis(data, False)
 
         # enforce performance
-        self.assertTrue(abs(res['roll_error_mean'])  < 5.0, str(res))
+        self.assertTrue(abs(res['roll_error_mean']) < 5.0, str(res))
         self.assertTrue(abs(res['pitch_error_mean']) < 5.0, str(res))
         self.assertTrue(abs(res['yaw_error_mean']) < 5.0, str(res))
         self.assertTrue(res['roll_error_std'] < 5.0, str(res))
         self.assertTrue(res['pitch_error_std'] < 5.0, str(res))
         self.assertTrue(res['yaw_error_std'] < 5.0, str(res))
 
+
 if __name__ == '__main__':
     import rostest
+    rospy.init_node('test_node', anonymous=True)
+
     name = "mavros_mission_test"
     if len(sys.argv) > 1:
         name += "-%s" % sys.argv[1]

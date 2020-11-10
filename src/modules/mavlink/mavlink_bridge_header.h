@@ -42,6 +42,8 @@
 #ifndef MAVLINK_BRIDGE_HEADER_H
 #define MAVLINK_BRIDGE_HEADER_H
 
+#define MAVLINK_NO_CONVERSION_HELPERS
+
 #define MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
 /* use efficient approach, see mavlink_helpers.h */

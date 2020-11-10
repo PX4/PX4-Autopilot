@@ -38,14 +38,15 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#ifndef NAVIGATOR_MISSION_BLOCK_H
-#define NAVIGATOR_MISSION_BLOCK_H
+#pragma once
 
 #include "navigator_mode.h"
+#include "navigation.h"
 
-#include <navigator/navigation.h>
+#include <drivers/drv_hrt.h>
+#include <systemlib/mavlink_log.h>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/follow_target.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_command.h>
@@ -60,13 +61,32 @@ public:
 	/**
 	 * Constructor
 	 */
-	MissionBlock(Navigator *navigator, const char *name);
-	~MissionBlock() = default;
+	MissionBlock(Navigator *navigator);
+	virtual ~MissionBlock() = default;
 
 	MissionBlock(const MissionBlock &) = delete;
 	MissionBlock &operator=(const MissionBlock &) = delete;
 
-	static bool item_contains_position(const struct mission_item_s *item);
+	/**
+	 * Check if the mission item contains a navigation position
+	 *
+	 * @return false if the mission item does not contain a valid position
+	 */
+	static bool item_contains_position(const mission_item_s &item);
+
+	/**
+	 * Check if the mission item contains a gate condition
+	 *
+	 * @return true if mission item is a gate
+	 */
+	static bool item_contains_gate(const mission_item_s &item);
+
+	/**
+	 * Check if the mission item contains a marker
+	 *
+	 * @return true if mission item is a marker
+	 */
+	static bool item_contains_marker(const mission_item_s &item);
 
 protected:
 	/**
@@ -86,12 +106,7 @@ protected:
 	 * @param the mission item to convert
 	 * @param the position setpoint that needs to be set
 	 */
-	bool mission_item_to_position_setpoint(const mission_item_s *item, position_setpoint_s *sp);
-
-	/**
-	 * Set previous position setpoint to current setpoint
-	 */
-	void set_previous_pos_setpoint();
+	bool mission_item_to_position_setpoint(const mission_item_s &item, position_setpoint_s *sp);
 
 	/**
 	 * Set a loiter mission item, if possible reuse the position setpoint, otherwise take the current position
@@ -108,48 +123,36 @@ protected:
 	 */
 	void set_land_item(struct mission_item_s *item, bool at_current_location);
 
-	void set_current_position_item(struct mission_item_s *item);
-
 	/**
 	 * Set idle mission item
 	 */
 	void set_idle_item(struct mission_item_s *item);
 
 	/**
-	 * Set follow_target item
+	 * Set vtol transition item
 	 */
-	void set_follow_target_item(struct mission_item_s *item, float min_clearance, follow_target_s &target, float yaw);
+	void set_vtol_transition_item(struct mission_item_s *item, const uint8_t new_mode);
 
 	/**
-	 * Convert a mission item to a command
+	 * General function used to adjust the mission item based on vehicle specific limitations
 	 */
-	void mission_item_to_vehicle_command(const struct mission_item_s *item, struct vehicle_command_s *cmd);
+	void mission_apply_limitation(mission_item_s &item);
 
-	void issue_command(const struct mission_item_s *item);
+	void issue_command(const mission_item_s &item);
 
-	float get_time_inside(const struct mission_item_s &item);
+	float get_time_inside(const mission_item_s &item) const ;
+
+	float get_absolute_altitude_for_item(const mission_item_s &mission_item) const;
 
 	mission_item_s _mission_item{};
 
 	bool _waypoint_position_reached{false};
 	bool _waypoint_yaw_reached{false};
+	bool _waypoint_position_reached_previously{false};
 
 	hrt_abstime _time_first_inside_orbit{0};
 	hrt_abstime _action_start{0};
 	hrt_abstime _time_wp_reached{0};
 
-	actuator_controls_s _actuators{};
-	orb_advert_t    _actuator_pub{nullptr};
-
-	control::BlockParamFloat _param_loiter_min_alt;
-	control::BlockParamFloat _param_yaw_timeout;
-	control::BlockParamFloat _param_yaw_err;
-	control::BlockParamInt _param_vtol_wv_land;
-	control::BlockParamInt _param_vtol_wv_takeoff;
-	control::BlockParamInt _param_vtol_wv_loiter;
-	control::BlockParamInt _param_force_vtol;
-	control::BlockParamFloat _param_back_trans_dec_mss;
-	control::BlockParamFloat _param_reverse_delay;
+	uORB::Publication<actuator_controls_s>	_actuator_pub{ORB_ID(actuator_controls_2)};
 };
-
-#endif

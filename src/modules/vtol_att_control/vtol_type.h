@@ -45,40 +45,81 @@
 
 #include <lib/mathlib/mathlib.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_output.h>
 
 struct Params {
-	int idle_pwm_mc;			// pwm value for idle in mc mode
-	int vtol_motor_count;		// number of motors
-	int vtol_fw_permanent_stab;	// in fw mode stabilize attitude also in manual mode
-	float mc_airspeed_min;		// min airspeed in multicoper mode (including prop-wash)
-	float mc_airspeed_trim;		// trim airspeed in multicopter mode
-	float mc_airspeed_max;		// max airpseed in multicopter mode
-	float fw_pitch_trim;		// trim for neutral elevon position in fw mode
-	float power_max;			// maximum power of one engine
-	float prop_eff;				// factor to calculate prop efficiency
-	float arsp_lp_gain;			// total airspeed estimate low pass gain
-	int vtol_type;
-	int elevons_mc_lock;		// lock elevons in multicopter mode
+	int32_t idle_pwm_mc;			// pwm value for idle in mc mode
+	int32_t vtol_motor_id;
+	int32_t vtol_type;
+	bool elevons_mc_lock;		// lock elevons in multicopter mode
 	float fw_min_alt;			// minimum relative altitude for FW mode (QuadChute)
+	float fw_alt_err;			// maximum negative altitude error for FW mode (Adaptive QuadChute)
 	float fw_qc_max_pitch;		// maximum pitch angle FW mode (QuadChute)
 	float fw_qc_max_roll;		// maximum roll angle FW mode (QuadChute)
 	float front_trans_time_openloop;
 	float front_trans_time_min;
+	float front_trans_duration;
+	float back_trans_duration;
+	float transition_airspeed;
+	float front_trans_throttle;
+	float back_trans_throttle;
+	float airspeed_blend;
+	bool airspeed_disabled;
+	float front_trans_timeout;
+	float mpc_xy_cruise;
+	int32_t fw_motors_off;			/**< bitmask of all motors that should be off in fixed wing mode */
+	int32_t diff_thrust;
+	float diff_thrust_scale;
+	float down_pitch_max;
+	float forward_thrust_scale;
+	float dec_to_pitch_ff;
+	float dec_to_pitch_i;
+	float back_trans_dec_sp;
+	bool vt_mc_on_fmu;
+	int vt_forward_thrust_enable_mode;
+	float mpc_land_alt1;
+	float mpc_land_alt2;
 };
 
 // Has to match 1:1 msg/vtol_vehicle_status.msg
-enum mode {
+enum class mode {
 	TRANSITION_TO_FW = 1,
 	TRANSITION_TO_MC = 2,
 	ROTARY_WING = 3,
-	FIXED_WING = 4,
-	EXTERNAL = 5
+	FIXED_WING = 4
 };
 
-enum vtol_type {
+enum class vtol_type {
 	TAILSITTER = 0,
 	TILTROTOR,
 	STANDARD
+};
+
+enum VtolForwardActuationMode {
+	DISABLE = 0,
+	ENABLE_WITHOUT_LAND,
+	ENABLE_ABOVE_MPC_LAND_ALT1,
+	ENABLE_ABOVE_MPC_LAND_ALT2,
+	ENABLE_ALL_MODES
+};
+
+// these are states that can be applied to a selection of multirotor motors.
+// e.g. if we need to shut off some motors after transitioning to fixed wing mode
+// we can individually disable them while others might still need to be enabled to produce thrust.
+// we can select the target motors via VT_FW_MOT_OFFID
+enum class motor_state {
+	ENABLED = 0,		// motor max pwm will be set to the standard max pwm value
+	DISABLED,			// motor max pwm will be set to a value that shuts the motor off
+	IDLE,				// motor max pwm will be set to VT_IDLE_PWM_MC
+	VALUE 				// motor max pwm will be set to a specific value provided, see set_motor_state()
+};
+
+/**
+ * @brief      Used to specify if min or max pwm values should be altered
+ */
+enum class pwm_limit_type {
+	TYPE_MINIMUM = 0,
+	TYPE_MAXIMUM
 };
 
 class VtolAttitudeControl;
@@ -91,7 +132,12 @@ public:
 	VtolType(const VtolType &) = delete;
 	VtolType &operator=(const VtolType &) = delete;
 
-	virtual ~VtolType();
+	virtual ~VtolType() = default;
+
+	/**
+	 * Initialise.
+	 */
+	bool init();
 
 	/**
 	 * Update vtol state.
@@ -114,11 +160,6 @@ public:
 	virtual void update_fw_state();
 
 	/**
-	 * Update external state.
-	 */
-	virtual void update_external_state() {}
-
-	/**
 	 * Write control values to actuator output topics.
 	 */
 	virtual void fill_actuator_outputs() = 0;
@@ -139,8 +180,11 @@ public:
 	 */
 	bool can_transition_on_ground();
 
-	void set_idle_mc();
-	void set_idle_fw();
+	/**
+	 * Pusher assist in hover (pusher/pull for standard VTOL, motor tilt for tiltrotor)
+	 */
+	float pusher_assist();
+
 
 	mode get_mode() {return _vtol_mode;}
 
@@ -150,43 +194,116 @@ protected:
 	VtolAttitudeControl *_attc;
 	mode _vtol_mode;
 
+	static constexpr const int num_outputs_max = 8;
+
 	struct vehicle_attitude_s		*_v_att;				//vehicle attitude
 	struct vehicle_attitude_setpoint_s	*_v_att_sp;			//vehicle attitude setpoint
 	struct vehicle_attitude_setpoint_s *_mc_virtual_att_sp;	// virtual mc attitude setpoint
 	struct vehicle_attitude_setpoint_s *_fw_virtual_att_sp;	// virtual fw attitude setpoint
-	struct vehicle_rates_setpoint_s 	*_v_rates_sp;		//vehicle rates setpoint
-	struct vehicle_rates_setpoint_s 	*_mc_virtual_v_rates_sp;		// virtual mc vehicle rates setpoint
-	struct vehicle_rates_setpoint_s 	*_fw_virtual_v_rates_sp;		// virtual fw vehicle rates setpoint
-	struct manual_control_setpoint_s	*_manual_control_sp; //manual control setpoint
 	struct vehicle_control_mode_s		*_v_control_mode;	//vehicle control mode
 	struct vtol_vehicle_status_s 		*_vtol_vehicle_status;
 	struct actuator_controls_s			*_actuators_out_0;			//actuator controls going to the mc mixer
 	struct actuator_controls_s			*_actuators_out_1;			//actuator controls going to the fw mixer (used for elevons)
-	struct actuator_controls_s			*_actuators_mc_in;			//actuator controls from mc_att_control
+	struct actuator_controls_s			*_actuators_mc_in;			//actuator controls from mc_rate_control
 	struct actuator_controls_s			*_actuators_fw_in;			//actuator controls from fw_att_control
-	struct actuator_armed_s				*_armed;					//actuator arming status
 	struct vehicle_local_position_s			*_local_pos;
-	struct airspeed_s 				*_airspeed;					// airspeed
-	struct battery_status_s 			*_batt_status; 				// battery status
+	struct vehicle_local_position_setpoint_s	*_local_pos_sp;
+	struct airspeed_validated_s 				*_airspeed_validated;					// airspeed
 	struct tecs_status_s				*_tecs_status;
 	struct vehicle_land_detected_s			*_land_detected;
 
 	struct Params 					*_params;
 
-	bool flag_idle_mc = true;		//false = "idle is set for fixed wing mode"; true = "idle is set for multicopter mode"
+	bool flag_idle_mc = false;		//false = "idle is set for fixed wing mode"; true = "idle is set for multicopter mode"
 
 	bool _pusher_active = false;
 	float _mc_roll_weight = 1.0f;	// weight for multicopter attitude controller roll output
 	float _mc_pitch_weight = 1.0f;	// weight for multicopter attitude controller pitch output
 	float _mc_yaw_weight = 1.0f;	// weight for multicopter attitude controller yaw output
 	float _mc_throttle_weight = 1.0f;	// weight for multicopter throttle command. Used to avoid
+
 	// motors spinning up or cutting too fast when doing transitions.
 	float _thrust_transition = 0.0f;	// thrust value applied during a front transition (tailsitter & tiltrotor only)
 
+	float _ra_hrate = 0.0f;			// rolling average on height rate for quadchute condition
+	float _ra_hrate_sp = 0.0f;		// rolling average on height rate setpoint for quadchute condition
+
 	bool _flag_was_in_trans_mode = false;	// true if mode has just switched to transition
+
 	hrt_abstime _trans_finished_ts = 0;
+
 	bool _tecs_running = false;
 	hrt_abstime _tecs_running_ts = 0;
+
+	motor_state _motor_state = motor_state::DISABLED;
+
+	hrt_abstime _last_loop_ts = 0;
+	float _transition_dt = 0;
+
+	float _accel_to_pitch_integ = 0;
+
+
+
+	/**
+	 * @brief      Sets mc motor minimum pwm to VT_IDLE_PWM_MC which ensures
+	 *             that they are spinning in mc mode.
+	 *
+	 * @return     true on success
+	 */
+	bool set_idle_mc();
+
+	/**
+	 * @brief      Sets mc motor minimum pwm to PWM_MIN which ensures that the
+	 *             motors stop spinning on zero throttle in fw mode.
+	 *
+	 * @return     true on success
+	 */
+	bool set_idle_fw();
+
+
+	/**
+	 * @brief      Sets state of a selection of motors, see struct motor_state
+	 *
+	 * @param[in]  current_state  The current motor state
+	 * @param[in]  next_state     The next state
+	 * @param[in]  value          Desired pwm value if next_state =
+	 *                            motor_state::VALUE
+	 *
+	 * @return     next_state if succesfull, otherwise current_state
+	 */
+	motor_state set_motor_state(const motor_state current_state, const motor_state next_state, const int value = 0);
+
+	float update_and_get_backtransition_pitch_sp();
+
+private:
+
+
+	/**
+	 * @brief      Stores the max pwm values given by the system.
+	 */
+	struct pwm_output_values _min_mc_pwm_values {};
+	struct pwm_output_values _max_mc_pwm_values {};
+	struct pwm_output_values _disarmed_pwm_values {};
+
+	/**
+	 * @brief      Adjust minimum/maximum pwm values for the output channels.
+	 *
+	 * @param      pwm_output_values  Struct containing the limit values for each channel
+	 * @param[in]  type               Specifies if min or max limits are adjusted.
+	 *
+	 * @return     True on success.
+	 */
+	bool apply_pwm_limits(struct pwm_output_values &pwm_values, pwm_limit_type type);
+
+	/**
+	 * @brief      Determines if channel is set in target.
+	 *
+	 * @param[in]  channel  The channel
+	 * @param[in]  target  	The target to check on.
+	 *
+	 * @return     True if motor off channel, False otherwise.
+	 */
+	bool is_channel_set(const int channel, const int target);
 
 };
 

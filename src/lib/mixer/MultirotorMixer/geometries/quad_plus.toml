@@ -1,0 +1,29 @@
+# Generic Quadcopter in + configuration
+
+[info]
+key = "4+"
+description = "Generic Quadcopter in + configuration"
+
+[rotor_default]
+direction = "CW"
+axis      = [0.0, 0.0, -1.0]
+Ct        = 1.0
+Cm        = 0.05
+
+[[rotors]]
+name      = "right"
+position  = [0.0, 1.0, 0.0]
+direction = "CCW"
+
+[[rotors]]
+name      = "left"
+position  = [0.0, -1.0, 0.0]
+direction = "CCW"
+
+[[rotors]]
+name     = "front"
+position = [1.0, 0.0, 0.0]
+
+[[rotors]]
+name     = "rear"
+position = [-1.0, 0.0, 0.0]

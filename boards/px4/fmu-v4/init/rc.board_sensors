@@ -1,0 +1,44 @@
+#!/bin/sh
+#
+# PX4 FMUv4 specific board sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+# We know there are sketchy boards out there
+# as chinese companies produce Pixracers without
+# fully understanding the critical parts of the
+# schematic and BOM, leading to sensor brownouts
+# on boot. Original Pixracers following the
+# open hardware design do not require this.
+pwm_out sensor_reset 50
+
+# Internal SPI
+ms5611 -s start
+
+# hmc5883 internal SPI bus is rotated 90 deg yaw
+if ! hmc5883 -T -s -R 2 start
+then
+	# lis3mdl internal SPI bus is rotated 90 deg yaw
+	lis3mdl -s start
+fi
+
+# Start either ICM2060X. They are both connected to the same SPI bus and use the same
+# chip select pin. There are different boards with either one of them and the WHO_AM_I register
+# will prevent the incorrect driver from a successful initialization.
+
+# ICM20602 internal SPI bus ICM-20608-G
+if ! icm20602 -s -R 8 start
+then
+	# ICM20608 internal SPI bus ICM-20602-G
+	icm20608g -s -R 8 start
+fi
+
+# For Teal One airframe
+if param compare SYS_AUTOSTART 4250
+then
+	mpu6500 -s -R 0 start
+else
+	# mpu9250 internal SPI bus mpu9250
+	mpu9250 -s -R 8 start
+fi

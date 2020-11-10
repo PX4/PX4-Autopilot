@@ -1,39 +1,39 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
 
 set -e
 
-echo args: $@
+if [ "$#" -lt 7 ]; then
+	echo usage: sitl_run.sh sitl_bin debugger program model world src_path build_path
+	exit 1
+fi
 
-sitl_bin=$1
-rcS_dir=$2
-debugger=$3
-program=$4
-model=$5
-src_path=$6
-build_path=$7
+if [[ -n "$DONT_RUN" ]]; then
+	echo "Not running simulation (DONT_RUN is set)."
+	exit 0
+fi
+
+sitl_bin="$1"
+debugger="$2"
+program="$3"
+model="$4"
+world="$5"
+src_path="$6"
+build_path="$7"
+# The rest of the arguments are files to copy into the working dir.
 
 echo SITL ARGS
 
 echo sitl_bin: $sitl_bin
-echo rcS_dir: $rcS_dir
 echo debugger: $debugger
 echo program: $program
 echo model: $model
+echo world: $world
 echo src_path: $src_path
 echo build_path: $build_path
 
-working_dir=`pwd`
-sitl_bin=$build_path/src/firmware/posix/px4
-rootfs=$build_path/tmp/rootfs
-
-if [ "$chroot" == "1" ]
-then
-	chroot_enabled=-c
-	sudo_enabled=sudo
-else
-	chroot_enabled=""
-	sudo_enabled=""
-fi
+rootfs="$build_path/tmp/rootfs" # this is the working directory
+mkdir -p "$rootfs"
 
 # To disable user input
 if [[ -n "$NO_PXH" ]]; then
@@ -42,64 +42,95 @@ else
 	no_pxh=""
 fi
 
-if [ "$model" == "" ] || [ "$model" == "none" ]
-then
-	echo "empty model, setting iris as default"
-	model="iris"
+# To disable user input
+if [[ -n "$VERBOSE_SIM" ]]; then
+	verbose="--verbose"
+else
+	verbose=""
 fi
 
-# check replay mode
-if [ "$replay_mode" == "ekf2" ]
-then
-	model="iris_replay"
-	# create the publisher rules
-	mkdir -p $rootfs
-	publisher_rules_file="$rootfs/orb_publisher.rules"
-	cat <<EOF > "$publisher_rules_file"
-restrict_topics: sensor_combined, vehicle_gps_position, vehicle_land_detected
-module: replay
-ignore_others: false
-EOF
+if [ "$program" == "jmavsim" ]; then
+	jmavsim_pid=`ps aux | grep java | grep "\-jar jmavsim_run.jar" | awk '{ print $2 }'`
+	if [ -n "$jmavsim_pid" ]; then
+		kill $jmavsim_pid
+	fi
 fi
 
-if [ "$#" -lt 7 ]
-then
-	echo usage: sitl_run.sh rc_script rcS_dir debugger program model src_path build_path
-	echo ""
-	exit 1
+if [ "$model" == "" ] || [ "$model" == "none" ]; then
+	if [ "$program" == "jsbsim" ]; then
+		echo "empty model, setting rascal as default for jsbsim"
+		model="rascal"
+	else
+		echo "empty model, setting iris as default"
+		model="iris"
+	fi
 fi
 
 # kill process names that might stil
 # be running from last time
 pkill -x gazebo || true
-pkill -x px4 || true
-pkill -x px4_$model || true
 
-jmavsim_pid=`ps aux | grep java | grep Simulator | cut -d" " -f1`
-if [ -n "$jmavsim_pid" ]
-then
-	kill $jmavsim_pid
+# Do NOT kill PX4 if debug in ide
+if [ "$debugger" != "ide" ]; then
+	pkill -x px4 || true
+	pkill -x px4_$model || true
 fi
 
-cp $src_path/Tools/posix_lldbinit $working_dir/.lldbinit
-cp $src_path/Tools/posix.gdbinit $working_dir/.gdbinit
+cp "$src_path/Tools/posix_lldbinit" "$rootfs/.lldbinit"
+cp "$src_path/Tools/posix.gdbinit" "$rootfs/.gdbinit"
+
+shift 7
+for file in "$@"; do
+	cp "$file" $rootfs/
+done
 
 SIM_PID=0
 
-if [ "$program" == "jmavsim" ] && [ ! -n "$no_sim" ]
-then
-	$src_path/Tools/jmavsim_run.sh -r 500 &
-	SIM_PID=`echo $!`
-	cd ../..
-elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]
-then
-	if [ -x "$(command -v gazebo)" ]
-	then
-		# Set the plugin path so Gazebo finds our model and sim
-		source $src_path/Tools/setup_gazebo.bash ${src_path} ${build_path}
+if [ "$program" == "jmavsim" ] && [ ! -n "$no_sim" ]; then
+	# Start Java simulator
+	"$src_path"/Tools/jmavsim_run.sh -r 250 -l &
+	SIM_PID=$!
+elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
+	if [ -x "$(command -v gazebo)" ]; then
+		# Get the model name
+		model_name="${model}"
+		# Check if a 'modelname-gen.sdf' file exist for the models using jinja and generating the SDF files
+		if [ -f "${src_path}/Tools/sitl_gazebo/models/${model}/${model}-gen.sdf" ]; then
+			model_name="${model}-gen"
+		fi
 
-		gzserver --verbose ${src_path}/Tools/sitl_gazebo/worlds/${model}.world &
-		SIM_PID=`echo $!`
+		# Set the plugin path so Gazebo finds our model and sim
+		source "$src_path/Tools/setup_gazebo.bash" "${src_path}" "${build_path}"
+		if [ -z $PX4_SITL_WORLD ]; then
+			#Spawn predefined world
+			if [ "$world" == "none" ]; then
+				if [ -f ${src_path}/Tools/sitl_gazebo/worlds/${model}.world ]; then
+					echo "empty world, default world ${model}.world for model found"
+					world_path="${src_path}/Tools/sitl_gazebo/worlds/${model}.world"
+				else
+					echo "empty world, setting empty.world as default"
+					world_path="${src_path}/Tools/sitl_gazebo/worlds/empty.world"
+				fi
+			else
+				#Spawn empty world if world with model name doesn't exist
+				world_path="${src_path}/Tools/sitl_gazebo/worlds/${world}.world"
+			fi
+		else
+			if [ -f ${src_path}/Tools/sitl_gazebo/worlds/${PX4_SITL_WORLD}.world ]; then
+				# Spawn world by name if exists in the worlds directory from environment variable
+				world_path="${src_path}/Tools/sitl_gazebo/worlds/${PX4_SITL_WORLD}.world"
+			else
+				# Spawn world from environment variable with absolute path
+				world_path="$PX4_SITL_WORLD"
+			fi
+		fi
+		gzserver $verbose $world_path &
+		SIM_PID=$!
+
+		while gz model --verbose --spawn-file="${src_path}/Tools/sitl_gazebo/models/${model}/${model_name}.sdf" --model-name=${model} -x 1.01 -y 0.98 -z 0.83 2>&1 | grep -q "An instance of Gazebo is not running."; do
+			echo "gzserver not ready yet, trying again!"
+			sleep 1
+		done
 
 		if [[ -n "$HEADLESS" ]]; then
 			echo "not running gazebo gui"
@@ -108,41 +139,62 @@ then
 			# is putting it into the background we need to avoid it by backing off
 			sleep 3
 			nice -n 20 gzclient --verbose &
-			GUI_PID=`echo $!`
+			GUI_PID=$!
 		fi
 	else
 		echo "You need to have gazebo simulator installed!"
 		exit 1
 	fi
+elif [ "$program" == "flightgear" ] && [ -z "$no_sim" ]; then
+	echo "FG setup"
+	cd "${src_path}/Tools/flightgear_bridge/"
+	"${src_path}/Tools/flightgear_bridge/FG_run.py" "models/"${model}".json" 0
+	"${build_path}/build_flightgear_bridge/flightgear_bridge" 0 `./get_FGbridge_params.py "models/"${model}".json"` &
+	FG_BRIDGE_PID=$!
+elif [ "$program" == "jsbsim" ] && [ -z "$no_sim" ]; then
+	source "$src_path/Tools/setup_jsbsim.bash" "${src_path}" "${build_path}" ${model}
+	if [[ -n "$HEADLESS" ]]; then
+		echo "not running flightgear gui"
+	else
+		fgfs --fdm=null \
+			--native-fdm=socket,in,60,,5550,udp \
+			--aircraft=$JSBSIM_AIRCRAFT_MODEL \
+			--airport=${world} \
+			--disable-hud \
+			--disable-ai-models &> /dev/null &
+		FGFS_PID=$!
+	fi
+	"${build_path}/build_jsbsim_bridge/jsbsim_bridge" ${model} -s "${src_path}/Tools/jsbsim_bridge/scene/${world}.xml" 2> /dev/null &
+	JSBSIM_PID=$!
 fi
 
-cd $working_dir
+pushd "$rootfs" >/dev/null
 
 # Do not exit on failure now from here on because we want the complete cleanup
 set +e
 
-sitl_command="$sudo_enabled $sitl_bin $no_pxh $chroot_enabled $src_path $src_path/${rcS_dir}/${model}"
+if [[ ${model} == test_* ]] || [[ ${model} == *_generated ]]; then
+	sitl_command="\"$sitl_bin\" $no_pxh \"$src_path\"/ROMFS/px4fmu_test -s \"${src_path}\"/posix-configs/SITL/init/test/${model} -t \"$src_path\"/test_data"
+else
+	sitl_command="\"$sitl_bin\" $no_pxh \"$build_path\"/etc -s etc/init.d-posix/rcS -t \"$src_path\"/test_data"
+fi
 
 echo SITL COMMAND: $sitl_command
 
-# Start Java simulator
-if [ "$debugger" == "lldb" ]
-then
-	lldb -- $sitl_command
-elif [ "$debugger" == "gdb" ]
-then
-	gdb --args $sitl_command
-elif [ "$debugger" == "ddd" ]
-then
-	ddd --debugger gdb --args $sitl_command
-elif [ "$debugger" == "valgrind" ]
-then
-	valgrind --track-origins=yes --leak-check=full -v $sitl_command
-elif [ "$debugger" == "callgrind" ]
-then
-	valgrind --tool=callgrind -v $sitl_command
-elif [ "$debugger" == "ide" ]
-then
+export PX4_SIM_MODEL=${model}
+
+
+if [ "$debugger" == "lldb" ]; then
+	eval lldb -- $sitl_command
+elif [ "$debugger" == "gdb" ]; then
+	eval gdb --args $sitl_command
+elif [ "$debugger" == "ddd" ]; then
+	eval ddd --debugger gdb --args $sitl_command
+elif [ "$debugger" == "valgrind" ]; then
+	eval valgrind --track-origins=yes --leak-check=full -v $sitl_command
+elif [ "$debugger" == "callgrind" ]; then
+	eval valgrind --tool=callgrind -v $sitl_command
+elif [ "$debugger" == "ide" ]; then
 	echo "######################################################################"
 	echo
 	echo "PX4 simulator not started, use your IDE to start PX4_${model} target."
@@ -151,17 +203,23 @@ then
 	echo "######################################################################"
 	read
 else
-	$sitl_command
+	eval $sitl_command
 fi
 
-if [ "$program" == "jmavsim" ]
-then
+popd >/dev/null
+
+if [ "$program" == "jmavsim" ]; then
 	pkill -9 -P $SIM_PID
 	kill -9 $SIM_PID
-elif [ "$program" == "gazebo" ]
-then
+elif [ "$program" == "gazebo" ]; then
 	kill -9 $SIM_PID
 	if [[ ! -n "$HEADLESS" ]]; then
 		kill -9 $GUI_PID
 	fi
+elif [ "$program" == "flightgear" ]; then
+	kill $FG_BRIDGE_PID
+	kill -9 `cat /tmp/px4fgfspid_0`
+elif [ "$program" == "jsbsim" ]; then
+	kill $JSBSIM_PID
+	kill $FGFS_PID
 fi

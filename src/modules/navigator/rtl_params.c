@@ -34,34 +34,35 @@
 /**
  * @file rtl_params.c
  *
- * Parameters for RTL
+ * Parameters for return mode
  *
  * @author Julian Oes <julian@oes.ch>
  */
 
 /*
- * RTL parameters, accessible via MAVLink
+ * Return mode parameters, accessible via MAVLink
  */
 
 /**
- * RTL altitude
+ * Return mode return altitude
  *
- * Altitude to fly back in RTL in meters
+ * Default minimum altitude above destination (e.g. home, safe point, landing pattern) for return flight.
+ * This is affected by RTL_MIN_DIST and RTL_CONE_ANG.
  *
  * @unit m
  * @min 0
  * @max 150
  * @decimal 1
  * @increment 0.5
- * @group Return To Land
+ * @group Return Mode
  */
 PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
 
 
 /**
- * RTL loiter altitude
+ * Return mode loiter altitude
  *
- * Stay at this altitude above home position after RTL descending.
+ * Descend to this altitude (above destination position) after return, and wait for time defined in RTL_LAND_DELAY.
  * Land (i.e. slowly descend) from this altitude if autolanding allowed.
  *
  * @unit m
@@ -69,14 +70,14 @@ PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
  * @max 100
  * @decimal 1
  * @increment 0.5
- * @group Return To Land
+ * @group Return Mode
  */
 PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
 
 /**
- * RTL delay
+ * Return mode delay
  *
- * Delay after descend before landing in RTL mode.
+ * Delay before landing (after initial descent) in Return mode.
  * If set to -1 the system will not land but loiter at RTL_DESCEND_ALT.
  *
  * @unit s
@@ -84,22 +85,65 @@ PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
  * @max 300
  * @decimal 1
  * @increment 0.5
- * @group Return To Land
+ * @group Return Mode
  */
 PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
 
 /**
- * Minimum distance to trigger rising to a safe altitude
+ * Maximum horizontal distance from return destination, below which RTL_DESCEND_ALT is used as return altitude
  *
- * If the system is horizontally closer than this distance to home
- * it will land straight on home instead of raising to the return
- * altitude first.
+ * If the vehicle is less than this horizontal distance from the return destination when return mode is activated it will ascend
+ * to RTL_DESCEND_ALT for the return journey (rather than the altitude set by RTL_RETURN_ALT and RTL_CONE_ANG).
  *
  * @unit m
  * @min 0.5
- * @max 20
+ * @max 100
  * @decimal 1
  * @increment 0.5
- * @group Return To Land
+ * @group Return Mode
  */
 PARAM_DEFINE_FLOAT(RTL_MIN_DIST, 5.0f);
+
+/**
+ * Return type
+ *
+ * Return mode destination and flight path (home location, rally point, mission landing pattern, reverse mission)
+ *
+ * @value 0 Return to closest safe point (home or rally point) via direct path.
+ * @value 1 Return to closest safe point other than home (mission landing pattern or rally point), via direct path. If no mission landing or rally points are defined return home via direct path.
+ * @value 2 Return to a planned mission landing, if available, using the mission path, else return to home via the reverse mission path. Do not consider rally points.
+ * @value 3 Return via direct path to closest destination: home, start of mission landing pattern or safe point. If the destination is a mission landing pattern, follow the pattern to land.
+ * @group Return Mode
+ */
+PARAM_DEFINE_INT32(RTL_TYPE, 0);
+
+/**
+ * Half-angle of the return mode altitude cone
+ *
+ * Defines the half-angle of a cone centered around the destination position that
+ * affects the altitude at which the vehicle returns.
+ *
+ * @unit deg
+ * @min 0
+ * @max 90
+ * @value 0 No cone, always climb to RTL_RETURN_ALT above destination.
+ * @value 25 25 degrees half cone angle.
+ * @value 45 45 degrees half cone angle.
+ * @value 65 65 degrees half cone angle.
+ * @value 80 80 degrees half cone angle.
+ * @value 90 Only climb to at least RTL_DESCEND_ALT above destination.
+ * @group Return Mode
+ */
+PARAM_DEFINE_INT32(RTL_CONE_ANG, 0);
+
+/**
+ * RTL precision land mode
+ *
+ * Use precision landing when doing an RTL landing phase.
+ *
+ * @value 0 No precision landing
+ * @value 1 Opportunistic precision landing
+ * @value 2 Required precision landing
+ * @group Return To Land
+ */
+PARAM_DEFINE_INT32(RTL_PLD_MD, 0);

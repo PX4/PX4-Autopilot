@@ -35,24 +35,18 @@
 #include "uORBFastRpcChannel.hpp"
 #include "uORBManager.hpp"
 
-#include <px4_middleware.h>
-#include <px4_tasks.h>
-#include <px4_posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/posix.h>
 #include <dspal_platform.h>
-#include "px4_log.h"
-#include "uORB/topics/sensor_combined.h"
 #include "uORB.h"
-#include "systemlib/param/param.h"
-#include <shmem.h>
+#include <parameters/param.h>
+#include <px4_platform_common/shmem.h>
+#include <px4_platform_common/log.h>
 
 __BEGIN_DECLS
 extern int dspal_main(int argc, char *argv[]);
-extern struct shmem_info *shmem_info_p;
-extern int get_shmem_lock(const char *caller_file_name, int caller_line_number);
-extern void release_shmem_lock(const char *caller_file_name,
-			       int caller_line_number);
-extern void init_shared_memory(void);
 __END_DECLS
+
 int px4muorb_orb_initialize()
 {
 	HAP_power_request(100, 100, 1000);

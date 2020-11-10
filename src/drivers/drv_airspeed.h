@@ -62,8 +62,6 @@
 #define __AIRSPEEDIOC(_n)		(_PX4_IOC(_AIRSPEEDIOCBASE, _n))
 
 #define AIRSPEEDIOCSSCALE		__AIRSPEEDIOC(0)
-#define AIRSPEEDIOCGSCALE		__AIRSPEEDIOC(1)
-
 
 /** airspeed scaling factors; out = (in * Vscale) + offset */
 struct airspeed_scale {

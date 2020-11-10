@@ -1,0 +1,25 @@
+Generic differential-drive rover
+===========================
+
+This mixer is suitable for controlling any differential-drive rover. That is,
+a rover where the left wheels and right wheels are driven independently,
+allowing turning in place. It outputs to channels 0 (left wheels) and
+1 (right wheels)
+
+Inputs to the mixer come from channel group 0 (vehicle attitude), channels 2 (yaw), and 3 (thrust).
+
+See the README for more information on the scaler format.
+
+
+Throttle of left wheels of rover on Output 0
+---------------------------------------
+M: 2
+S: 0 2    10000   10000      0  -10000  10000
+S: 0 3    10000   10000      0  -10000  10000
+
+
+Throttle of right wheels of rover on Output 1
+---------------------------------------
+M: 2
+S: 0 2   -10000  -10000      0  -10000  10000
+S: 0 3    10000   10000      0  -10000  10000

@@ -45,26 +45,18 @@
 
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <systemlib/mavlink_log.h>
-#include <v2.0/common/mavlink.h>
 
 #include "navigator.h"
 
 #define GEOFENCE_RANGE_WARNING_LIMIT 5000000
 
 Geofence::Geofence(Navigator *navigator) :
-	SuperBlock(navigator, "GF"),
+	ModuleParams(navigator),
 	_navigator(navigator),
-	_param_action(this, "GF_ACTION", false),
-	_param_altitude_mode(this, "GF_ALTMODE", false),
-	_param_source(this, "GF_SOURCE", false),
-	_param_counter_threshold(this, "GF_COUNT", false),
-	_param_max_hor_distance(this, "GF_MAX_HOR_DIST", false),
-	_param_max_ver_distance(this, "GF_MAX_VER_DIST", false)
+	_sub_airdata(ORB_ID(vehicle_air_data))
 {
-	updateParams();
-
 	// we assume there's no concurrent fence update on startup
 	_updateFence();
 }
@@ -119,18 +111,18 @@ void Geofence::_updateFence()
 		}
 
 		switch (mission_fence_point.nav_cmd) {
-		case MAV_CMD_NAV_FENCE_RETURN_POINT:
+		case NAV_CMD_FENCE_RETURN_POINT:
 			// TODO: do we need to store this?
 			++current_seq;
 			break;
 
-		case MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION:
-		case MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION:
+		case NAV_CMD_FENCE_CIRCLE_INCLUSION:
+		case NAV_CMD_FENCE_CIRCLE_EXCLUSION:
 			is_circle_area = true;
 
 		/* FALLTHROUGH */
-		case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION:
-		case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION:
+		case NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION:
+		case NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION:
 			if (!is_circle_area && mission_fence_point.vertex_count == 0) {
 				++current_seq; // avoid endless loop
 				PX4_ERR("Polygon with 0 vertices. Skipping");
@@ -190,15 +182,13 @@ bool Geofence::checkAll(const struct vehicle_global_position_s &global_position)
 	return checkAll(global_position.lat, global_position.lon, global_position.alt);
 }
 
-bool Geofence::checkAll(const struct vehicle_global_position_s &global_position, float baro_altitude_amsl)
+bool Geofence::checkAll(const struct vehicle_global_position_s &global_position, const float alt)
 {
-	return checkAll(global_position.lat, global_position.lon, baro_altitude_amsl);
+	return checkAll(global_position.lat, global_position.lon, alt);
 }
 
-
-bool Geofence::check(const struct vehicle_global_position_s &global_position,
-		     const struct vehicle_gps_position_s &gps_position, float baro_altitude_amsl,
-		     const struct home_position_s home_pos, bool home_position_set)
+bool Geofence::check(const vehicle_global_position_s &global_position, const vehicle_gps_position_s &gps_position,
+		     const home_position_s home_pos, bool home_position_set)
 {
 	if (getAltitudeMode() == Geofence::GF_ALT_MODE_WGS84) {
 		if (getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
@@ -210,12 +200,15 @@ bool Geofence::check(const struct vehicle_global_position_s &global_position,
 		}
 
 	} else {
+		// get baro altitude
+		_sub_airdata.update();
+		const float baro_altitude_amsl = _sub_airdata.get().baro_alt_meter;
+
 		if (getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
 			return checkAll(global_position, baro_altitude_amsl);
 
 		} else {
-			return checkAll((double)gps_position.lat * 1.0e-7, (double)gps_position.lon * 1.0e-7,
-					baro_altitude_amsl);
+			return checkAll((double)gps_position.lat * 1.0e-7, (double)gps_position.lon * 1.0e-7, baro_altitude_amsl);
 		}
 	}
 }
@@ -231,12 +224,12 @@ bool Geofence::checkAll(double lat, double lon, float altitude)
 
 	if (isHomeRequired() && _navigator->home_position_valid()) {
 
-		const float max_horizontal_distance = _param_max_hor_distance.get();
-		const float max_vertical_distance = _param_max_ver_distance.get();
+		const float max_horizontal_distance = _param_gf_max_hor_dist.get();
+		const float max_vertical_distance = _param_gf_max_ver_dist.get();
 
 		const double home_lat = _navigator->get_home_position()->lat;
 		const double home_lon = _navigator->get_home_position()->lon;
-		const double home_alt = _navigator->get_home_position()->alt;
+		const float home_alt = _navigator->get_home_position()->alt;
 
 		float dist_xy = -1.0f;
 		float dist_z = -1.0f;
@@ -275,7 +268,7 @@ bool Geofence::checkAll(double lat, double lon, float altitude)
 	} else {
 		_outside_counter++;
 
-		if (_outside_counter > _param_counter_threshold.get()) {
+		if (_outside_counter > _param_gf_count.get()) {
 			return inside_fence;
 
 		} else {
@@ -298,7 +291,6 @@ bool Geofence::checkPolygons(double lat, double lon, float altitude)
 	int ret = dm_read(DM_KEY_FENCE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
 
 	if (ret == sizeof(mission_stats_entry_s) && _update_counter != stats.update_counter) {
-		PX4_INFO("reloading geofence");
 		_updateFence();
 	}
 
@@ -323,7 +315,7 @@ bool Geofence::checkPolygons(double lat, double lon, float altitude)
 	bool had_inclusion_areas = false;
 
 	for (int polygon_idx = 0; polygon_idx < _num_polygons; ++polygon_idx) {
-		if (_polygons[polygon_idx].fence_type == MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION) {
+		if (_polygons[polygon_idx].fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION) {
 			bool inside = insideCircle(_polygons[polygon_idx], lat, lon, altitude);
 
 			if (inside) {
@@ -332,7 +324,7 @@ bool Geofence::checkPolygons(double lat, double lon, float altitude)
 
 			had_inclusion_areas = true;
 
-		} else if (_polygons[polygon_idx].fence_type == MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION) {
+		} else if (_polygons[polygon_idx].fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
 			bool inside = insideCircle(_polygons[polygon_idx], lat, lon, altitude);
 
 			if (inside) {
@@ -342,7 +334,7 @@ bool Geofence::checkPolygons(double lat, double lon, float altitude)
 		} else { // it's a polygon
 			bool inside = insidePolygon(_polygons[polygon_idx], lat, lon, altitude);
 
-			if (_polygons[polygon_idx].fence_type == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION) {
+			if (_polygons[polygon_idx].fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION) {
 				if (inside) {
 					inside_inclusion = true;
 				}
@@ -386,9 +378,9 @@ bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon,
 			break;
 		}
 
-		if (temp_vertex_i.frame != MAV_FRAME_GLOBAL && temp_vertex_i.frame != MAV_FRAME_GLOBAL_INT
-		    && temp_vertex_i.frame != MAV_FRAME_GLOBAL_RELATIVE_ALT
-		    && temp_vertex_i.frame != MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+		if (temp_vertex_i.frame != NAV_FRAME_GLOBAL && temp_vertex_i.frame != NAV_FRAME_GLOBAL_INT
+		    && temp_vertex_i.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT
+		    && temp_vertex_i.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
 			// TODO: handle different frames
 			PX4_ERR("Frame type %i not supported", (int)temp_vertex_i.frame);
 			break;
@@ -415,9 +407,9 @@ bool Geofence::insideCircle(const PolygonInfo &polygon, double lat, double lon, 
 		return false;
 	}
 
-	if (circle_point.frame != MAV_FRAME_GLOBAL && circle_point.frame != MAV_FRAME_GLOBAL_INT
-	    && circle_point.frame != MAV_FRAME_GLOBAL_RELATIVE_ALT
-	    && circle_point.frame != MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+	if (circle_point.frame != NAV_FRAME_GLOBAL && circle_point.frame != NAV_FRAME_GLOBAL_INT
+	    && circle_point.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT
+	    && circle_point.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
 		// TODO: handle different frames
 		PX4_ERR("Frame type %i not supported", (int)circle_point.frame);
 		return false;
@@ -485,8 +477,8 @@ Geofence::loadFromFile(const char *filename)
 		if (gotVertical) {
 			/* Parse the line as a geofence point */
 			mission_fence_point_s vertex;
-			vertex.frame = MAV_FRAME_GLOBAL;
-			vertex.nav_cmd = MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION;
+			vertex.frame = NAV_FRAME_GLOBAL;
+			vertex.nav_cmd = NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION;
 			vertex.vertex_count = 0; // this will be filled in a second pass
 			vertex.alt = 0; // alt is not used
 
@@ -576,8 +568,8 @@ int Geofence::clearDm()
 
 bool Geofence::isHomeRequired()
 {
-	bool max_horizontal_enabled = (_param_max_hor_distance.get() > FLT_EPSILON);
-	bool max_vertical_enabled = (_param_max_ver_distance.get() > FLT_EPSILON);
+	bool max_horizontal_enabled = (_param_gf_max_hor_dist.get() > FLT_EPSILON);
+	bool max_vertical_enabled = (_param_gf_max_ver_dist.get() > FLT_EPSILON);
 	bool geofence_action_rtl = (getGeofenceAction() == geofence_result_s::GF_ACTION_RTL);
 
 	return max_horizontal_enabled || max_vertical_enabled || geofence_action_rtl;
@@ -591,19 +583,19 @@ void Geofence::printStatus()
 	for (int i = 0; i < _num_polygons; ++i) {
 		total_num_vertices += _polygons[i].vertex_count;
 
-		if (_polygons[i].fence_type == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION) {
+		if (_polygons[i].fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION) {
 			++num_inclusion_polygons;
 		}
 
-		if (_polygons[i].fence_type == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION) {
+		if (_polygons[i].fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
 			++num_exclusion_polygons;
 		}
 
-		if (_polygons[i].fence_type == MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION) {
+		if (_polygons[i].fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION) {
 			++num_inclusion_circles;
 		}
 
-		if (_polygons[i].fence_type == MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION) {
+		if (_polygons[i].fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
 			++num_exclusion_circles;
 		}
 	}

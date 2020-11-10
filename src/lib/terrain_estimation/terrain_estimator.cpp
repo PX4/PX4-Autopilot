@@ -37,7 +37,8 @@
  */
 
 #include "terrain_estimator.h"
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
+#include <px4_platform_common/defines.h>
 
 #define DISTANCE_TIMEOUT 100000		// time in usec after which laser is considered dead
 
@@ -47,7 +48,7 @@ TerrainEstimator::TerrainEstimator() :
 	_time_last_distance(0),
 	_time_last_gps(0)
 {
-	memset(&_x._data[0], 0, sizeof(_x._data));
+	_x.zero();
 	_u_z = 0.0f;
 	_P.setIdentity();
 }
@@ -62,7 +63,7 @@ void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitu
 			       const struct distance_sensor_s *distance)
 {
 	matrix::Dcmf R_att = matrix::Quatf(attitude->q);
-	matrix::Vector<float, 3> a(&sensor->accelerometer_m_s2[0]);
+	matrix::Vector3f a{sensor->accelerometer_m_s2[0], sensor->accelerometer_m_s2[1], sensor->accelerometer_m_s2[2]};
 	matrix::Vector<float, 3> u;
 	u = R_att * a;
 	_u_z = u(2) + CONSTANTS_ONE_G; // compensate for gravity
@@ -185,7 +186,7 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicl
 	}
 
 	if (reinit) {
-		memset(&_x._data[0], 0, sizeof(_x._data));
+		_x.zero();
 		_P.setZero();
 		_P(0, 0) = _P(1, 1) = _P(2, 2) = 0.1f;
 	}

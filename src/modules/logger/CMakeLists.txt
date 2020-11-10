@@ -35,16 +35,16 @@ px4_add_module(
 	MODULE modules__logger
 	MAIN logger
 	PRIORITY "SCHED_PRIORITY_MAX-30"
-	STACK_MAIN 2200
 	COMPILE_FLAGS
-		-Wno-sign-compare # TODO: fix all sign-compare
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
+		logged_topics.cpp
 		logger.cpp
 		log_writer.cpp
 		log_writer_file.cpp
 		log_writer_mavlink.cpp
+		util.cpp
+		watchdog.cpp
 	DEPENDS
-		platforms__common
-		modules__uORB
+		version
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

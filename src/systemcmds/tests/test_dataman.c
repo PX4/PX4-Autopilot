@@ -1,7 +1,6 @@
 /****************************************************************************
- * px4/sensors/test_dataman.c
  *
- *  Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *  Copyright (C) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -13,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,12 +31,13 @@
  *
  ****************************************************************************/
 
-/****************************************************************************
- * Included Files
- ****************************************************************************/
+/**
+ * @file test_dataman.c
+ * Tests for the data manager.
+ */
 
-#include <px4_config.h>
-#include <px4_posix.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/posix.h>
 
 #include <sys/types.h>
 
@@ -47,10 +47,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include <arch/board/board.h>
-
 #include <drivers/drv_board_led.h>
-#include <systemlib/systemlib.h>
 #include <drivers/drv_hrt.h>
 #include <semaphore.h>
 
@@ -109,7 +106,7 @@ task_main(int argc, char *argv[])
 			PX4_INFO("task %d: %.0f%%", my_id, (double)i * 100.0f / NUM_MISSIONS_TEST);
 		}
 
-		usleep(rand() & ((64 * 1024) - 1));
+		px4_usleep(rand() & ((64 * 1024) - 1));
 	}
 
 	hrt_abstime rstart = hrt_absolute_time();
@@ -144,7 +141,7 @@ task_main(int argc, char *argv[])
 	}
 
 	hrt_abstime rend = hrt_absolute_time();
-	PX4_INFO("task %d pass, hit %d, miss %d, io time read %llums. write %llums.",
+	PX4_INFO("task %d pass, hit %d, miss %d, io time read %" PRIu64 "ms. write %" PRIu64 "ms.",
 		 my_id, hit, miss, (rend - rstart) / NUM_MISSIONS_TEST / 1000, (wend - wstart) / NUM_MISSIONS_TEST / 1000);
 	px4_sem_post(sems + my_id);
 	return 0;
@@ -184,7 +181,7 @@ int test_dataman(int argc, char *argv[])
 		px4_sem_setprotocol(sems, SEM_PRIO_NONE);
 
 		/* start the task */
-		if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 2048, task_main, av)) <= 0) {
+		if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT, 2048, task_main, av)) <= 0) {
 			PX4_ERR("task start failed");
 		}
 	}

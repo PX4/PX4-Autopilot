@@ -39,11 +39,12 @@
 
 #pragma once
 
+#include <sys/ioctl.h>
 #include <sys/types.h>
 #include <stdbool.h>
 #include <inttypes.h>
 
-#include <px4_time.h>
+#include <px4_platform_common/time.h>
 #include <queue.h>
 
 __BEGIN_DECLS
@@ -77,6 +78,12 @@ typedef struct hrt_call {
 	void			*arg;
 } *hrt_call_t;
 
+
+#define LATENCY_BUCKET_COUNT 8
+extern const uint16_t latency_bucket_count;
+extern const uint16_t latency_buckets[LATENCY_BUCKET_COUNT];
+extern uint32_t latency_counters[LATENCY_BUCKET_COUNT + 1];
+
 /**
  * Get absolute time in [us] (does not wrap).
  */
@@ -85,7 +92,7 @@ __EXPORT extern hrt_abstime hrt_absolute_time(void);
 /**
  * Convert a timespec to absolute time.
  */
-__EXPORT extern hrt_abstime ts_to_abstime(struct timespec *ts);
+__EXPORT extern hrt_abstime ts_to_abstime(const struct timespec *ts);
 
 /**
  * Convert absolute time to a timespec.
@@ -96,17 +103,28 @@ __EXPORT extern void	abstime_to_ts(struct timespec *ts, hrt_abstime abstime);
  * Compute the delta between a timestamp taken in the past
  * and now.
  *
+ * This function is not interrupt save.
+ */
+static inline hrt_abstime hrt_elapsed_time(const hrt_abstime *then)
+{
+	return hrt_absolute_time() - *then;
+}
+
+/**
+ * Compute the delta between a timestamp taken in the past
+ * and now.
+ *
  * This function is safe to use even if the timestamp is updated
  * by an interrupt during execution.
  */
-__EXPORT extern hrt_abstime hrt_elapsed_time(const volatile hrt_abstime *then);
+__EXPORT extern hrt_abstime hrt_elapsed_time_atomic(const volatile hrt_abstime *then);
 
 /**
  * Store the absolute time in an interrupt-safe fashion.
  *
  * This function ensures that the timestamp cannot be seen half-written by an interrupt handler.
  */
-__EXPORT extern hrt_abstime hrt_store_absolute_time(volatile hrt_abstime *now);
+__EXPORT extern void hrt_store_absolute_time(volatile hrt_abstime *time);
 
 #ifdef __PX4_QURT
 /**
@@ -173,24 +191,51 @@ __EXPORT extern void	hrt_init(void);
 
 #ifdef __PX4_POSIX
 
-/**
- * Start to delay the HRT return value.
- *
- * Until hrt_stop_delay() is called the HRT calls will return the timestamp
- * at the instance then hrt_start_delay() was called.
- */
-__EXPORT extern	void	hrt_start_delay(void);
-
-/**
- * Stop to delay the HRT.
- */
-__EXPORT extern void	hrt_stop_delay(void);
-
-/**
- * Stop to delay the HRT, but with an exact delta time.
- */
-__EXPORT extern void	hrt_stop_delay_delta(hrt_abstime delta);
+__EXPORT extern hrt_abstime hrt_absolute_time_offset(void);
 
 #endif
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+
+__EXPORT extern int px4_lockstep_register_component(void);
+__EXPORT extern void px4_lockstep_unregister_component(int component);
+__EXPORT extern void px4_lockstep_progress(int component);
+__EXPORT extern void px4_lockstep_wait_for_components(void);
+
+#else
+static inline int px4_lockstep_register_component(void) { return 0; }
+static inline void px4_lockstep_unregister_component(int component) { }
+static inline void px4_lockstep_progress(int component) { }
+static inline void px4_lockstep_wait_for_components(void) { }
+#endif /* defined(ENABLE_LOCKSTEP_SCHEDULER) */
 
 __END_DECLS
+
+
+
+#ifdef	__cplusplus
+
+namespace time_literals
+{
+
+// User-defined integer literals for different time units.
+// The base unit is hrt_abstime in microseconds
+
+constexpr hrt_abstime operator "" _s(unsigned long long seconds)
+{
+	return hrt_abstime(seconds * 1000000ULL);
+}
+
+constexpr hrt_abstime operator "" _ms(unsigned long long seconds)
+{
+	return hrt_abstime(seconds * 1000ULL);
+}
+
+constexpr hrt_abstime operator "" _us(unsigned long long seconds)
+{
+	return hrt_abstime(seconds);
+}
+
+} /* namespace time_literals */
+
+
+#endif /* __cplusplus */

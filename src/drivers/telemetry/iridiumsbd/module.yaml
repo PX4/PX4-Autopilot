@@ -1,0 +1,15 @@
+module_name: Iridium (with MAVLink)
+serial_config:
+    - command: |
+        # add a sleep here to make sure that the module is powered
+        usleep 200000
+        if iridiumsbd start -d ${SERIAL_DEV}
+        then
+            mavlink start -d /dev/iridium -m iridium -b 115200
+        else
+            tune_control play error
+        fi
+      port_config_param:
+        name: ISBD_CONFIG
+        group: Iridium SBD
+

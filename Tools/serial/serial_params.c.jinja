@@ -1,0 +1,70 @@
+{# jinja template to generate the serial parameters. #}
+
+
+{% for serial_device in serial_devices -%}
+
+/**
+ * Baudrate for the {{ serial_device.label }} Serial Port
+ *
+ * Configure the Baudrate for the {{ serial_device.label }} Serial Port.
+ *
+ * Note: certain drivers such as the GPS can determine the Baudrate automatically.
+ *
+ * @value 0 Auto
+ * @value 50 50 8N1
+ * @value 75 75 8N1
+ * @value 110 110 8N1
+ * @value 134 134 8N1
+ * @value 150 150 8N1
+ * @value 200 200 8N1
+ * @value 300 300 8N1
+ * @value 600 600 8N1
+ * @value 1200 1200 8N1
+ * @value 1800 1800 8N1
+ * @value 2400 2400 8N1
+ * @value 4800 4800 8N1
+ * @value 9600 9600 8N1
+ * @value 19200 19200 8N1
+ * @value 38400 38400 8N1
+ * @value 57600 57600 8N1
+ * @value 115200 115200 8N1
+ * @value 230400 230400 8N1
+ * @value 460800 460800 8N1
+ * @value 500000 500000 8N1
+ * @value 921600 921600 8N1
+ * @value 1000000 1000000 8N1
+ * @value 1500000 1500000 8N1
+ * @value 2000000 2000000 8N1
+ * @value 3000000 3000000 8N1
+ * @group Serial
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(SER_{{ serial_device.tag }}_BAUD, {{ serial_device.default_baudrate }});
+
+{% endfor %}
+
+
+{%- if serial_devices|length > 0 %}
+{% for command in commands -%}
+/**
+ * Serial Configuration for {{ command.label }}
+{%- if command.multi_instance %} (instance {{ command.instance }}){% endif %}
+ *
+ * Configure on which serial port to run {{ command.label }}.
+ *
+ * {{ command.description_extended | replace("\n", " ") }}
+ *
+ * @value 0 Disabled
+{%- for serial_device in serial_devices %}
+ * @value {{ serial_device.index }} {{ serial_device.label }}
+{%- endfor %}
+ * @group {{ command.param_group }}
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32({{ command.port_param_name }}, {{ command.default_port }});
+
+{% endfor -%}
+{% endif %}
+
+{{ additional_definitions }}
+

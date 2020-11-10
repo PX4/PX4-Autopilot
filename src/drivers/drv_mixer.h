@@ -53,7 +53,7 @@
 #ifndef _DRV_MIXER_H
 #define _DRV_MIXER_H
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <stdint.h>
 #include <sys/ioctl.h>
 
@@ -65,41 +65,10 @@
 #define _MIXERIOCBASE		(0x2500)
 #define _MIXERIOC(_n)		(_PX4_IOC(_MIXERIOCBASE, _n))
 
-/** get the number of mixable outputs */
-#define MIXERIOCGETOUTPUTCOUNT	_MIXERIOC(0)
+/* _MIXERIOC(0) was deprecated */
 
 /** reset (clear) the mixer configuration */
 #define MIXERIOCRESET		_MIXERIOC(1)
-
-/** simple channel scaler */
-struct mixer_scaler_s {
-	float			negative_scale;
-	float			positive_scale;
-	float			offset;
-	float			min_output;
-	float			max_output;
-};
-
-/** mixer input */
-struct mixer_control_s {
-	uint8_t			control_group;	/**< group from which the input reads */
-	uint8_t			control_index;	/**< index within the control group */
-	struct mixer_scaler_s 	scaler;		/**< scaling applied to the input before use */
-};
-
-/** simple mixer */
-struct mixer_simple_s {
-	uint8_t			control_count;	/**< number of inputs */
-	struct mixer_scaler_s	output_scaler;	/**< scaling for the output */
-	struct mixer_control_s	controls[0];	/**< actual size of the array is set by control_count */
-};
-
-#define MIXER_SIMPLE_SIZE(_icount)	(sizeof(struct mixer_simple_s) + (_icount) * sizeof(struct mixer_control_s))
-
-/**
- * add a simple mixer in (struct mixer_simple_s *)arg
- */
-#define MIXERIOCADDSIMPLE	_MIXERIOC(2)
 
 /* _MIXERIOC(3) was deprecated */
 /* _MIXERIOC(4) was deprecated */
@@ -116,4 +85,4 @@ struct mixer_simple_s {
  * - save/serialise for saving tuned mixers.
  */
 
-#endif /* _DRV_ACCEL_H */
+#endif /* _DRV_MIXER_H */

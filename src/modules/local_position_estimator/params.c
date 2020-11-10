@@ -1,4 +1,4 @@
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 // 16 is max name length
 
@@ -28,7 +28,7 @@ PARAM_DEFINE_FLOAT(LPE_FLW_SCALE, 1.3f);
  * Optical flow rotation (roll/pitch) noise gain
  *
  * @group Local Position Estimator
- * @unit m/s / (rad)
+ * @unit m/s/rad
  * @min 0.1
  * @max 10.0
  * @decimal 3
@@ -39,7 +39,7 @@ PARAM_DEFINE_FLOAT(LPE_FLW_R, 7.0f);
  * Optical flow angular velocity noise gain
  *
  * @group Local Position Estimator
- * @unit m/s / (rad/s)
+ * @unit m/rad
  * @min 0.0
  * @max 10.0
  * @decimal 3
@@ -143,7 +143,7 @@ PARAM_DEFINE_FLOAT(LPE_BAR_Z, 3.0f);
  * GPS delay compensaton
  *
  * @group Local Position Estimator
- * @unit sec
+ * @unit s
  * @min 0
  * @max 0.4
  * @decimal 2
@@ -224,7 +224,7 @@ PARAM_DEFINE_FLOAT(LPE_EPV_MAX, 5.0f);
  * Set to zero to enable automatic compensation from measurement timestamps
  *
  * @group Local Position Estimator
- * @unit sec
+ * @unit s
  * @min 0
  * @max 0.1
  * @decimal 2
@@ -285,7 +285,7 @@ PARAM_DEFINE_FLOAT(LPE_PN_P, 0.1f);
  * Decrease to trust model more.
  *
  * @group Local Position Estimator
- * @unit (m/s)/s/sqrt(Hz)
+ * @unit m/s^2/sqrt(Hz)
  * @min 0
  * @max 1
  * @decimal 8
@@ -296,7 +296,7 @@ PARAM_DEFINE_FLOAT(LPE_PN_V, 0.1f);
  * Accel bias propagation noise density
  *
  * @group Local Position Estimator
- * @unit (m/s^2)/s/sqrt(Hz)
+ * @unit m/s^3/sqrt(Hz)
  * @min 0
  * @max 1
  * @decimal 8
@@ -307,7 +307,7 @@ PARAM_DEFINE_FLOAT(LPE_PN_B, 1e-3f);
  * Terrain random walk noise density, hilly/outdoor (0.1), flat/Indoor (0.001)
  *
  * @group Local Position Estimator
- * @unit (m/s)/(sqrt(hz))
+ * @unit m/s/sqrt(Hz)
  * @min 0
  * @max 1
  * @decimal 3
@@ -425,30 +425,41 @@ PARAM_DEFINE_FLOAT(LPE_LAND_Z, 0.03f);
 PARAM_DEFINE_FLOAT(LPE_LAND_VXY, 0.05f);
 
 /**
+ * Minimum landing target standard covariance, uses reported covariance if greater.
+ *
+ * @group Local Position Estimator
+ * @unit m^2
+ * @min 0.0
+ * @max 10
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(LPE_LT_COV, 0.0001f);
+
+/**
  * Integer bitmask controlling data fusion
  *
  * Set bits in the following positions to enable:
  * 0 : Set to true to fuse GPS data if available, also requires GPS for altitude init
  * 1 : Set to true to fuse optical flow data if available
  * 2 : Set to true to fuse vision position
- * 3 : Set to true to fuse vision yaw
+ * 3 : Set to true to enable landing target
  * 4 : Set to true to fuse land detector
  * 5 : Set to true to publish AGL as local position down component
  * 6 : Set to true to enable flow gyro compensation
  * 7 : Set to true to enable baro fusion
  *
- * default (145 - GPS only)
+ * default (145 - GPS, baro, land detector)
  *
  * @group Local Position Estimator
  * @min 0
  * @max 255
- * @bit 0 fuse GPS, requires GPS for alt. init
- * @bit 1 fuse optical flow
- * @bit 2 fuse vision position
- * @bit 3 fuse vision yaw
- * @bit 4 fuse land detector
- * @bit 5 pub agl as lpos down
- * @bit 6 flow gyro compensation
- * @bit 7 fuse baro
+ * @bit 0  fuse GPS, requires GPS for alt. init
+ * @bit 1  fuse optical flow
+ * @bit 2  fuse vision position
+ * @bit 3  fuse landing target
+ * @bit 4  fuse land detector
+ * @bit 5  pub agl as lpos down
+ * @bit 6  flow gyro compensation
+ * @bit 7  fuse baro
  */
 PARAM_DEFINE_INT32(LPE_FUSION, 145);

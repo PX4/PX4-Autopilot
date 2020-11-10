@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# PX4 FMUv4pro specific board sensors init
+#------------------------------------------------------------------------------
+
+rgbled start -I
+rgbled_ncp5623c start -I
+
+board_adc start
+
+# Internal SPI bus ICM-20602 or ICM-20608-G
+if ! icm20602 -s -R 8 start
+then
+	icm20608g -s -R 8 start
+fi
+
+# Internal SPI bus mpu9250
+mpu9250 -s -R 8 start
+
+# Internal SPI bus
+lis3mdl -s -R 0 start
+
+# Internal SPI
+ms5611 -s start

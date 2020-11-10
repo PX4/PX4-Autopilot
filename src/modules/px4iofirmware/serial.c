@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012,2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,13 +48,15 @@
 
 /* XXX might be able to prune these */
 #include <chip.h>
-#include <up_internal.h>
-#include <up_arch.h>
+#include <arm_internal.h>
+#include <arm_arch.h>
 #include <stm32.h>
-#include <systemlib/perf_counter.h>
 
 //#define DEBUG
 #include "px4io.h"
+
+#if defined(PX4IO_PERF)
+# include <perf/perf_counter.h>
 
 static perf_counter_t	pc_txns;
 static perf_counter_t	pc_errors;
@@ -65,13 +67,14 @@ static perf_counter_t	pc_idle;
 static perf_counter_t	pc_badidle;
 static perf_counter_t	pc_regerr;
 static perf_counter_t	pc_crcerr;
+#endif
 
 static void		rx_handle_packet(void);
 static void		rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg);
 static DMA_HANDLE	tx_dma;
 static DMA_HANDLE	rx_dma;
 
-static int		serial_interrupt(int irq, void *context);
+static int		serial_interrupt(int irq, void *context, FAR void *arg);
 static void		dma_reset(void);
 
 static struct IOPacket	dma_packet;
@@ -89,6 +92,7 @@ static struct IOPacket	dma_packet;
 void
 interface_init(void)
 {
+#if defined(PX4IO_PERF)
 	pc_txns = perf_alloc(PC_ELAPSED, "txns");
 	pc_errors = perf_alloc(PC_COUNT, "errors");
 	pc_ore = perf_alloc(PC_COUNT, "overrun");
@@ -98,6 +102,7 @@ interface_init(void)
 	pc_badidle = perf_alloc(PC_COUNT, "badidle");
 	pc_regerr = perf_alloc(PC_COUNT, "regerr");
 	pc_crcerr = perf_alloc(PC_COUNT, "crcerr");
+#endif
 
 	/* allocate DMA */
 	tx_dma = stm32_dmachannel(PX4FMU_SERIAL_TX_DMA);
@@ -123,7 +128,7 @@ interface_init(void)
 	rBRR = (mantissa << USART_BRR_MANT_SHIFT) | (fraction << USART_BRR_FRAC_SHIFT);
 
 	/* connect our interrupt */
-	irq_attach(PX4FMU_SERIAL_VECTOR, serial_interrupt);
+	irq_attach(PX4FMU_SERIAL_VECTOR, serial_interrupt, NULL);
 	up_enable_irq(PX4FMU_SERIAL_VECTOR);
 
 	/* enable UART and error/idle interrupts */
@@ -160,7 +165,9 @@ rx_handle_packet(void)
 	dma_packet.crc = 0;
 
 	if (crc != crc_packet(&dma_packet)) {
+#if defined(PX4IO_PERF)
 		perf_count(pc_crcerr);
+#endif
 
 		/* send a CRC error reply */
 		dma_packet.count_code = PKT_CODE_CORRUPT;
@@ -174,7 +181,10 @@ rx_handle_packet(void)
 
 		/* it's a blind write - pass it on */
 		if (registers_set(dma_packet.page, dma_packet.offset, &dma_packet.regs[0], PKT_COUNT(dma_packet))) {
+#if defined(PX4IO_PERF)
 			perf_count(pc_regerr);
+#endif
+
 			dma_packet.count_code = PKT_CODE_ERROR;
 
 		} else {
@@ -191,7 +201,10 @@ rx_handle_packet(void)
 		uint16_t *registers;
 
 		if (registers_get(dma_packet.page, dma_packet.offset, &registers, &count) < 0) {
+#if defined(PX4IO_PERF)
 			perf_count(pc_regerr);
+#endif
+
 			dma_packet.count_code = PKT_CODE_ERROR;
 
 		} else {
@@ -225,7 +238,9 @@ rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	 * We are here because DMA completed, or UART reception stopped and
 	 * we think we have a packet in the buffer.
 	 */
+#if defined(PX4IO_PERF)
 	perf_begin(pc_txns);
+#endif
 
 	/* disable UART DMA */
 	rCR3 &= ~(USART_CR3_DMAT | USART_CR3_DMAR);
@@ -251,11 +266,13 @@ rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	stm32_dmastart(tx_dma, NULL, NULL, false);
 	rCR3 |= USART_CR3_DMAT;
 
+#if defined(PX4IO_PERF)
 	perf_end(pc_txns);
+#endif
 }
 
 static int
-serial_interrupt(int irq, void *context)
+serial_interrupt(int irq, void *context, FAR void *arg)
 {
 	static bool abort_on_idle = false;
 
@@ -266,6 +283,7 @@ serial_interrupt(int irq, void *context)
 		  USART_SR_NE |		/* noise error - we have lost a byte due to noise */
 		  USART_SR_FE)) {		/* framing error - start/stop bit lost or line break */
 
+#if defined(PX4IO_PERF)
 		perf_count(pc_errors);
 
 		if (sr & USART_SR_ORE) {
@@ -279,6 +297,8 @@ serial_interrupt(int irq, void *context)
 		if (sr & USART_SR_FE) {
 			perf_count(pc_fe);
 		}
+
+#endif
 
 		/* send a line break - this will abort transmission/reception on the other end */
 		rCR1 |= USART_CR1_SBK;
@@ -311,7 +331,9 @@ serial_interrupt(int irq, void *context)
 		if ((length < 1) || (length < PKT_SIZE(dma_packet))) {
 
 			/* it was too short - possibly truncated */
+#if defined(PX4IO_PERF)
 			perf_count(pc_badidle);
+#endif
 			dma_reset();
 			return 0;
 		}
@@ -320,7 +342,9 @@ serial_interrupt(int irq, void *context)
 		 * Looks like we received a packet. Stop the DMA and go process the
 		 * packet.
 		 */
+#if defined(PX4IO_PERF)
 		perf_count(pc_idle);
+#endif
 		stm32_dmastop(rx_dma);
 		rx_dma_callback(rx_dma, DMA_STATUS_TCIF, NULL);
 	}

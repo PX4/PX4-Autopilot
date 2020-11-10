@@ -1,0 +1,33 @@
+{# jinja template to generate the serial autostart script. #}
+
+# serial autostart script generated with generate_serial_config.py
+
+
+set PRT_F ${R}etc/init.d/rc.serial_port
+
+{% for command in commands -%}
+set PRT {{ command.port_param_name }}
+{% if command.multi_instance -%}
+set i {{ command.instance }}
+{% endif -%}
+# get the device & baudrate
+. $PRT_F
+if [ $SERIAL_DEV != none ]; then
+{% if not constrained_flash -%}
+	echo "Starting {{ command.label }} on $SERIAL_DEV"
+{% endif -%}
+	{{ command.command }}
+fi
+
+{% endfor %}
+
+{% for serial_device in serial_devices -%}
+unset PRT_{{ serial_device.tag }}_
+{% endfor %}
+unset i
+unset SERIAL_DEV
+unset PRT
+unset PRT_F
+unset BAUD_PARAM
+unset MAV_ARGS
+

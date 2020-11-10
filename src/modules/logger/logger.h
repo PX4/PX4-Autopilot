@@ -34,67 +34,63 @@
 #pragma once
 
 #include "log_writer.h"
-#include "array.h"
-#include <px4_defines.h>
+#include "messages.h"
+#include <containers/Array.hpp>
+#include "util.h"
+#include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
-#include <uORB/Subscription.hpp>
 #include <version/version.h>
-#include <systemlib/param/param.h>
-#include <systemlib/printload.h>
-#include <px4_module.h>
+#include <parameters/param.h>
+#include <px4_platform_common/printload.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/logger_status.h>
+#include <uORB/topics/log_message.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/parameter_update.h>
 
 extern "C" __EXPORT int logger_main(int argc, char *argv[]);
 
-#define TRY_SUBSCRIBE_INTERVAL 1000*1000	// interval in microseconds at which we try to subscribe to a topic
-// if we haven't succeeded before
+using namespace time_literals;
 
-#ifdef __PX4_NUTTX
-#define LOG_DIR_LEN 64
-#else
-#define LOG_DIR_LEN 256
-#endif
+static constexpr hrt_abstime TRY_SUBSCRIBE_INTERVAL{20_ms};	// interval in microseconds at which we try to subscribe to a topic
+// if we haven't succeeded before
 
 namespace px4
 {
 namespace logger
 {
 
-enum class SDLogProfile : int32_t {
-	DEFAULT = 0,
-	THERMAL_CALIBRATION,
-	SYSTEM_IDENTIFICATION,
-	N_PROFILES
+static constexpr uint8_t MSG_ID_INVALID = UINT8_MAX;
+
+struct LoggerSubscription : public uORB::SubscriptionInterval {
+	LoggerSubscription() = default;
+
+	LoggerSubscription(ORB_ID id, uint32_t interval_ms = 0, uint8_t instance = 0) :
+		uORB::SubscriptionInterval(id, interval_ms * 1000, instance)
+	{}
+
+	uint8_t msg_id{MSG_ID_INVALID};
 };
 
-struct LoggerSubscription {
-	int fd[ORB_MULTI_MAX_INSTANCES];
-	uint16_t msg_ids[ORB_MULTI_MAX_INSTANCES];
-	const orb_metadata *metadata = nullptr;
-
-	LoggerSubscription() {}
-
-	LoggerSubscription(int fd_, const orb_metadata *metadata_) :
-		metadata(metadata_)
-	{
-		fd[0] = fd_;
-
-		for (int i = 1; i < ORB_MULTI_MAX_INSTANCES; i++) {
-			fd[i] = -1;
-		}
-
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-			msg_ids[i] = (uint16_t) - 1;
-		}
-	}
-};
-
-class Logger : public ModuleBase<Logger>
+class Logger : public ModuleBase<Logger>, public ModuleParams
 {
 public:
+	enum class LogMode {
+		while_armed = 0,
+		boot_until_disarm,
+		boot_until_shutdown,
+		rc_aux1
+	};
+
 	Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, const char *poll_topic_name,
-	       bool log_on_start, bool log_until_shutdown, bool log_name_timestamp, unsigned int queue_size);
+	       LogMode log_mode, bool log_name_timestamp);
 
 	~Logger();
 
@@ -124,72 +120,84 @@ public:
 	void setReplayFile(const char *file_name);
 
 	/**
-	 * Add a topic to be logged. This must be called before start_log()
-	 * (because it does not write an ADD_LOGGED_MSG message).
-	 * @param name topic name
-	 * @param interval limit rate if >0, otherwise log as fast as the topic is updated.
-	 * @return -1 on error, file descriptor otherwise
-	 */
-	int add_topic(const char *name, unsigned interval);
-
-	/**
-	 * add a logged topic (called by add_topic() above)
-	 */
-	int add_topic(const orb_metadata *topic);
-
-	/**
 	 * request the logger thread to stop (this method does not block).
 	 * @return true if the logger is stopped, false if (still) running
 	 */
 	static bool request_stop_static();
 
-	void print_statistics();
+	void print_statistics(LogType type);
 
-	void set_arm_override(bool override) { _arm_override = override; }
+	void set_arm_override(bool override) { _manually_logging_override = override; }
 
 private:
+
+	enum class PrintLoadReason {
+		Preflight,
+		Postflight,
+		Watchdog
+	};
+
+	static constexpr int		MAX_MISSION_TOPICS_NUM = 5; /**< Maximum number of mission topics */
+	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
+	static constexpr const char	*LOG_ROOT[(int)LogType::Count] = {
+		PX4_STORAGEDIR "/log",
+		PX4_STORAGEDIR "/mission_log"
+	};
+
+	struct LogFileName {
+		char log_dir[12];           ///< e.g. "2018-01-01" or "sess001"
+		int sess_dir_index{1};      ///< search starting index for 'sess<i>' directory name
+		char log_file_name[31];     ///< e.g. "log001.ulg" or "12_09_00_replayed.ulg"
+		bool has_log_dir{false};
+	};
+
+	struct Statistics {
+		hrt_abstime start_time_file{0};				///< Time when logging started, file backend (not the logger thread)
+		hrt_abstime dropout_start{0};				///< start of current dropout (0 = no dropout)
+		float max_dropout_duration{0.0f};			///< max duration of dropout [s]
+		size_t write_dropouts{0};				///< failed buffer writes due to buffer overflow
+		size_t high_water{0};					///< maximum used write buffer
+	};
+
+	struct MissionSubscription {
+		unsigned min_delta_ms{0};        ///< minimum time between 2 topic writes [ms]
+		unsigned next_write_time{0};     ///< next time to write in 0.1 seconds
+	};
+
+	/**
+	 * @brief Updates and checks for updated uORB parameters.
+	 */
+	void update_params();
 
 	/**
 	 * Write an ADD_LOGGED_MSG to the log for a all current subscriptions and instances
 	 */
-	void write_all_add_logged_msg();
+	void write_all_add_logged_msg(LogType type);
 
 	/**
 	 * Write an ADD_LOGGED_MSG to the log for a given subscription and instance.
 	 * _writer.lock() must be held when calling this.
 	 */
-	void write_add_logged_msg(LoggerSubscription &subscription, int instance);
+	void write_add_logged_msg(LogType type, LoggerSubscription &subscription);
 
 	/**
 	 * Create logging directory
+	 * @param type
 	 * @param tt if not null, use it for the directory name
-	 * @return 0 on success
+	 * @param log_dir returned log directory path
+	 * @param log_dir_len log_dir buffer length
+	 * @return string length of log_dir (excluding terminating null-char), <0 on error
 	 */
-	int create_log_dir(tm *tt);
-
-	/** recursively remove a directory
-	 * @return 0 on success, <0 otherwise
-	 */
-	int remove_directory(const char *dir);
-
-	static bool file_exist(const char *filename);
+	int create_log_dir(LogType type, tm *tt, char *log_dir, int log_dir_len);
 
 	/**
 	 * Get log file name with directory (create it if necessary)
 	 */
-	int get_log_file_name(char *file_name, size_t file_name_size);
+	int get_log_file_name(LogType type, char *file_name, size_t file_name_size);
 
-	/**
-	 * Check if there is enough free space left on the SD Card.
-	 * It will remove old log files if there is not enough space,
-	 * and if that fails return 1
-	 * @return 0 on success, 1 if not enough space, <0 on error
-	 */
-	int check_free_space();
+	void start_log_file(LogType type);
 
-	void start_log_file();
-
-	void stop_log_file();
+	void stop_log_file(LogType type);
 
 	void start_log_mavlink();
 
@@ -198,7 +206,8 @@ private:
 	/** check if mavlink logging can be started */
 	bool can_start_mavlink_log() const
 	{
-		return !_writer.is_started(LogWriter::BackendMavlink) && (_writer.backend() & LogWriter::BackendMavlink) != 0;
+		return !_writer.is_started(LogType::Full, LogWriter::BackendMavlink)
+		       && (_writer.backend() & LogWriter::BackendMavlink) != 0;
 	}
 
 	/** get the configured backend as string */
@@ -207,15 +216,25 @@ private:
 	/**
 	 * write the file header with file magic and timestamp.
 	 */
-	void write_header();
+	void write_header(LogType type);
 
-	void write_formats();
+	/// Array to store written formats for nested definitions (only)
+	using WrittenFormats = Array < const orb_metadata *, 20 >;
+
+	void write_format(LogType type, const orb_metadata &meta, WrittenFormats &written_formats, ulog_message_format_s &msg,
+			  int subscription_index, int level = 1);
+	void write_formats(LogType type);
 
 	/**
 	 * write performance counters
 	 * @param preflight preflight if true, postflight otherwise
 	 */
 	void write_perf_data(bool preflight);
+
+	/**
+	 * write bootup console output
+	 */
+	void write_console_output();
 
 	/**
 	 * callback to write the performance counters
@@ -227,107 +246,124 @@ private:
 	 */
 	static void print_load_callback(void *user);
 
-	void write_version();
+	void write_version(LogType type);
 
-	void write_info(const char *name, const char *value);
-	void write_info_multiple(const char *name, const char *value, bool is_continued);
-	void write_info(const char *name, int32_t value);
-	void write_info(const char *name, uint32_t value);
+	void write_info(LogType type, const char *name, const char *value);
+	void write_info_multiple(LogType type, const char *name, const char *value, bool is_continued);
+	void write_info(LogType type, const char *name, int32_t value);
+	void write_info(LogType type, const char *name, uint32_t value);
 
 	/** generic common template method for write_info variants */
 	template<typename T>
-	void write_info_template(const char *name, T value, const char *type_str);
+	void write_info_template(LogType type, const char *name, T value, const char *type_str);
 
-	void write_parameters();
+	void write_parameters(LogType type);
 
-	void write_changed_parameters();
+	void write_changed_parameters(LogType type);
 
-	inline bool copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, void *buffer, bool try_to_subscribe);
+	inline bool copy_if_updated(int sub_idx, void *buffer, bool try_to_subscribe);
 
 	/**
 	 * Write exactly one ulog message to the logger and handle dropouts.
 	 * Must be called with _writer.lock() held.
 	 * @return true if data written, false otherwise (on overflow)
 	 */
-	bool write_message(void *ptr, size_t size);
+	bool write_message(LogType type, void *ptr, size_t size);
 
 	/**
-	 * Get the time for log file name
-	 * @param tt returned time
-	 * @param boot_time use time when booted instead of current time
-	 * @return true on success, false otherwise (eg. if no gps)
+	 * Add topic subscriptions from SD file if it exists, otherwise add topics based on the configured profile.
+	 * This must be called before start_log() (because it does not write an ADD_LOGGED_MSG message).
+	 * @return true on success
 	 */
-	bool get_log_time(struct tm *tt, bool boot_time = false);
+	bool initialize_topics();
 
 	/**
-	 * Parse a file containing a list of uORB topics to log, calling add_topic for each
-	 * @param fname name of file
-	 * @return number of topics added
+	 * Determines if log-from-boot should be disabled, based on the value of SDLOG_BOOT_BAT and the battery status.
+	 * @return true if log-from-boot should be disabled
 	 */
-	int add_topics_from_file(const char *fname);
+	bool get_disable_boot_logging();
 
-	void add_common_topics();
-	void add_estimator_replay_topics();
-	void add_thermal_calibration_topics();
-	void add_system_identification_topics();
+	/**
+	 * check current arming state or aux channel and start/stop logging if state changed and according to
+	 * configured params.
+	 * @return true if log started
+	 */
+	bool start_stop_logging();
 
-	void ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, vehicle_command_s *cmd, uint32_t result);
+	void handle_vehicle_command_update();
+	void ack_vehicle_command(vehicle_command_s *cmd, uint32_t result);
 
 	/**
 	 * initialize the output for the process load, so that ~1 second later it will be written to the log
 	 */
-	void initialize_load_output();
+	void initialize_load_output(PrintLoadReason reason);
 
 	/**
 	 * write the process load, which was previously initialized with initialize_load_output()
 	 */
-	void write_load_output(bool preflight);
+	void write_load_output();
 
+	/**
+	 * Regularly print the buffer fill state (only if DBGPRINT is set)
+	 * @param total_bytes total written bytes (to the full file), will be reset on each print
+	 * @param timer_start time since last print
+	 */
+	inline void debug_print_buffer(uint32_t &total_bytes, hrt_abstime &timer_start);
 
-	static constexpr size_t 	MAX_TOPICS_NUM = 64; /**< Maximum number of logged topics */
-	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
-#if defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR)
-	static constexpr const char	*LOG_ROOT = PX4_ROOTFSDIR"/log";
-#else
-	static constexpr const char 	*LOG_ROOT = PX4_ROOTFSDIR"/fs/microsd/log";
-#endif
+	void publish_logger_status();
 
 	uint8_t						*_msg_buffer{nullptr};
 	int						_msg_buffer_len{0};
-	char 						_log_dir[LOG_DIR_LEN] {};
-	int						_sess_dir_index{1}; ///< search starting index for 'sess<i>' directory name
-	char 						_log_file_name[32];
-	bool						_has_log_dir{false};
-	bool						_was_armed{false};
-	bool						_arm_override{false};
 
+	LogFileName					_file_name[(int)LogType::Count];
 
-	// statistics
-	hrt_abstime					_start_time_file{0}; ///< Time when logging started, file backend (not the logger thread)
-	hrt_abstime					_dropout_start{0}; ///< start of current dropout (0 = no dropout)
-	float						_max_dropout_duration{0.0f}; ///< max duration of dropout [s]
-	size_t						_write_dropouts{0}; ///< failed buffer writes due to buffer overflow
-	size_t						_high_water{0}; ///< maximum used write buffer
+	bool						_prev_state{false}; ///< previous state depending on logging mode (arming or aux1 state)
+	bool						_manually_logging_override{false};
 
-	const bool 					_log_on_start;
-	const bool 					_log_until_shutdown;
+	Statistics					_statistics[(int)LogType::Count];
+	hrt_abstime					_last_sync_time{0}; ///< last time a sync msg was sent
+
+	LogMode						_log_mode;
 	const bool					_log_name_timestamp;
-	Array<LoggerSubscription, MAX_TOPICS_NUM>	_subscriptions;
+
+	LoggerSubscription	 			*_subscriptions{nullptr}; ///< all subscriptions for full & mission log (in front)
+	int						_num_subscriptions{0};
+	MissionSubscription 				_mission_subscriptions[MAX_MISSION_TOPICS_NUM] {}; ///< additional data for mission subscriptions
+	int						_num_mission_subs{0};
+
 	LogWriter					_writer;
 	uint32_t					_log_interval{0};
 	const orb_metadata				*_polling_topic_meta{nullptr}; ///< if non-null, poll on this topic instead of sleeping
 	orb_advert_t					_mavlink_log_pub{nullptr};
-	uint16_t					_next_topic_id{0}; ///< id of next subscribed ulog topic
+	uint8_t						_next_topic_id{0}; ///< id of next subscribed ulog topic
 	char						*_replay_file_name{nullptr};
 	bool						_should_stop_file_log{false}; /**< if true _next_load_print is set and file logging
-											will be stopped after load printing */
+											will be stopped after load printing (for the full log) */
 	print_load_s					_load{}; ///< process load data
 	hrt_abstime					_next_load_print{0}; ///< timestamp when to print the process load
+	PrintLoadReason					_print_load_reason {PrintLoadReason::Preflight};
 
-	// control
-	param_t						_sdlog_profile_handle{PARAM_INVALID};
-	param_t						_log_utc_offset{PARAM_INVALID};
-	param_t						_log_dirs_max{PARAM_INVALID};
+	uORB::PublicationMulti<logger_status_s>		_logger_status_pub[(int)LogType::Count] { ORB_ID(logger_status), ORB_ID(logger_status) };
+
+	hrt_abstime					_logger_status_last {0};
+	int						_lockstep_component{-1};
+
+	uint32_t					_message_gaps{0};
+
+	uORB::Subscription				_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription				_vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription				_vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::SubscriptionInterval		_log_message_sub{ORB_ID(log_message), 20};
+	uORB::Subscription 				_parameter_update_sub{ORB_ID(parameter_update)};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::SDLOG_UTC_OFFSET>) _param_sdlog_utc_offset,
+		(ParamInt<px4::params::SDLOG_DIRS_MAX>) _param_sdlog_dirs_max,
+		(ParamInt<px4::params::SDLOG_PROFILE>) _param_sdlog_profile,
+		(ParamInt<px4::params::SDLOG_MISSION>) _param_sdlog_mission,
+		(ParamBool<px4::params::SDLOG_BOOT_BAT>) _param_sdlog_boot_bat,
+		(ParamBool<px4::params::SDLOG_UUID>) _param_sdlog_uuid
+	)
 };
 
 } //namespace logger

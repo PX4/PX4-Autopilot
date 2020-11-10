@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- Posix SITL MAVROS integration tests -->
+    <!-- Test all missions -->
+    <arg name="est" default="ekf2"/>
+    <arg name="gui" default="false"/>
+    <arg name="interactive" default="false"/>
+    <arg name="vehicle" default="standard_vtol"/>
+    <!-- MAVROS, PX4 SITL, Gazebo -->
+    <include file="$(find px4)/launch/mavros_posix_sitl.launch">
+        <arg name="est" value="$(arg est)"/>
+        <arg name="gui" value="$(arg gui)"/>
+        <arg name="interactive" value="$(arg interactive)"/>
+        <arg name="respawn_gazebo" value="true"/>
+        <arg name="respawn_mavros" value="true"/>
+        <arg name="vehicle" value="$(arg vehicle)"/>
+        <arg name="verbose" value="true"/>
+    </include>
+    <!-- ROStest -->
+    <test test-name="FW_mission_1" pkg="px4" type="mission_test.py" time-limit="300.0" args="FW_mission_1.plan" vehicle="plane"/>
+    <test test-name="FW_mission_1" pkg="px4" type="mission_test.py" time-limit="300.0" args="FW_mission_1.plan" vehicle="plane_catapult"/>
+    <test test-name="MC_mission_box" pkg="px4" type="mission_test.py" time-limit="300.0" args="MC_mission_box.plan" vehicle="iris"/>
+    <test test-name="VTOL_mission_1" pkg="px4" type="mission_test.py" time-limit="300.0" args="VTOL_mission_1.plan" vehicle="standard_vtol"/>
+    <test test-name="VTOL_mission_1" pkg="px4" type="mission_test.py" time-limit="300.0" args="VTOL_mission_1.plan" vehicle="tailsitter"/>
+    <test test-name="VTOL_mission_1" pkg="px4" type="mission_test.py" time-limit="300.0" args="VTOL_mission_1.plan" vehicle="tiltrotor"/>
+</launch>

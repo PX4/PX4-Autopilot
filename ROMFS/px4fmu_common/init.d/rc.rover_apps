@@ -1,0 +1,25 @@
+#!/bin/sh
+#
+# Standard apps for unmanned ground vehicles (UGV).
+#
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
+#
+
+#
+# Start the attitude and position estimator.
+#
+ekf2 start &
+#attitude_estimator_q start
+#local_position_estimator start
+
+
+#
+# Start attitude controllers.
+#
+rover_pos_control start
+
+
+#
+# Start Land Detector.
+#
+land_detector start rover

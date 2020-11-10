@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013, 2017 PX4 Development Team. All rights reserved.
+ *  Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,10 +34,10 @@
 /**
  * @file test_ppm_loopback.c
  * Tests the PWM outputs and PPM input
- *
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/px4_config.h>
 
 #include <sys/types.h>
 
@@ -47,7 +47,6 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include <arch/board/board.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_rc_input.h>
 #include <uORB/topics/rc_channels.h>
@@ -134,9 +133,9 @@ int test_ppm_loopback(int argc, char *argv[])
 	/* give driver 10 ms to propagate */
 
 	/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
-	struct rc_input_values	rc_input;
+	struct input_rc_s rc_input;
 	orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
-	usleep(100000);
+	px4_usleep(100000);
 
 	/* open PPM input and expect values close to the output values */
 
@@ -151,7 +150,7 @@ int test_ppm_loopback(int argc, char *argv[])
 
 
 
-		// struct rc_input_values rc;
+		// struct input_rc_s rc;
 		// result = read(ppm_fd, &rc, sizeof(rc));
 
 		// if (result != sizeof(rc)) {

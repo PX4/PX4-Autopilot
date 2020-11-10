@@ -37,11 +37,10 @@
  * Serial protocol decoder for the Futaba S.bus protocol.
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 
 #include <fcntl.h>
 #include <unistd.h>
-#include <termios.h>
 #include <string.h>
 
 #ifdef TIOCSSINGLEWIRE
@@ -52,11 +51,15 @@
 #include "common_rc.h"
 #include <drivers/drv_hrt.h>
 
+using namespace time_literals;
+
 #define SBUS_DEBUG_LEVEL 	0 /* Set debug output level */
 
-#if defined(__PX4_POSIX_OCPOC)
+#if defined(__PX4_LINUX)
 #include <sys/ioctl.h>
-#include <linux/serial_core.h>
+#include <asm-generic/termbits.h>
+#else
+#include <termios.h>
 #endif
 
 #define SBUS_START_SYMBOL	0x0f
@@ -75,12 +78,6 @@
 
 // this is the rate of the old code
 #define SBUS1_DEFAULT_RATE_HZ	72
-
-#define SBUS_SINGLE_CHAR_LEN_US		(1/((100000/10)) * 1000 * 1000)
-
-#define SBUS_FRAME_INTERVAL_US	2500
-#define SBUS_MIN_CALL_INTERVAL_US	(SBUS_FRAME_GAP_US / 3)
-#define SBUS_EPSILON_US	2500
 
 /*
   Measured values with Futaba FX-30/R6108SB:
@@ -105,7 +102,6 @@
 #define SBUS_SCALE_OFFSET (int)(SBUS_TARGET_MIN - (SBUS_SCALE_FACTOR * SBUS_RANGE_MIN + 0.5f))
 
 static hrt_abstime last_rx_time;
-static hrt_abstime last_frame_time;
 static hrt_abstime last_txframe_time = 0;
 
 #define SBUS2_FRAME_SIZE_RX_VOLTAGE	3
@@ -157,56 +153,40 @@ sbus_init(const char *device, bool singlewire)
 int
 sbus_config(int sbus_fd, bool singlewire)
 {
-#if defined(__PX4_POSIX_OCPOC)
-	struct termios options;
-
-	if (tcgetattr(sbus_fd, &options) != 0) {
-		return -1;
-	}
-
-	tcflush(sbus_fd, TCIFLUSH);
-	bzero(&options, sizeof(options));
-
-	options.c_cflag |= (CLOCAL | CREAD);
-	options.c_cflag &= ~CSIZE;
-	options.c_cflag |= CS8;
-	options.c_cflag |= PARENB;
-	options.c_cflag &= ~PARODD;
-	options.c_iflag |= INPCK;
-	options.c_cflag |= CSTOPB;
-
-	options.c_cc[VTIME] = 0;
-	options.c_cc[VMIN] = 0;
-
-	cfsetispeed(&options, B38400);
-	cfsetospeed(&options, B38400);
-
-	tcflush(sbus_fd, TCIFLUSH);
-
-	if ((tcsetattr(sbus_fd, TCSANOW, &options)) != 0) {
-		return -1;
-	}
-
-	int baud = 100000;
-	struct serial_struct serials;
-
-	if ((ioctl(sbus_fd, TIOCGSERIAL, &serials)) < 0) {
-		return -1;
-	}
-
-	serials.flags = ASYNC_SPD_CUST;
-	serials.custom_divisor = serials.baud_base / baud;
-
-	if ((ioctl(sbus_fd, TIOCSSERIAL, &serials)) < 0) {
-		return -1;
-	}
-
-	ioctl(sbus_fd, TIOCGSERIAL, &serials);
-
-	tcflush(sbus_fd, TCIFLUSH);
-	return 0;
-#else
 	int ret = -1;
+
+#if defined(__PX4_LINUX)
+
+	struct termios2 tio = {};
+
+	if (0 != ioctl(sbus_fd, TCGETS2, &tio)) {
+		return ret;
+	}
+
+	/**
+	 * Setting serial port,8E2, non-blocking.100Kbps
+	 */
+	tio.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL
+			 | IXON);
+	tio.c_iflag |= (INPCK | IGNPAR);
+	tio.c_oflag &= ~OPOST;
+	tio.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+	tio.c_cflag &= ~(CSIZE | CRTSCTS | PARODD | CBAUD);
+	/**
+	 * use BOTHER to specify speed directly in c_[io]speed member
+	 */
+	tio.c_cflag |= (CS8 | CSTOPB | CLOCAL | PARENB | BOTHER | CREAD);
+	tio.c_ispeed = 100000;
+	tio.c_ospeed = 100000;
+	tio.c_cc[VMIN] = 25;
+	tio.c_cc[VTIME] = 0;
+
+	if (0 != ioctl(sbus_fd, TCSETS2, &tio)) {
+		return ret;
+	}
+
+	ret = 0;
+#else
 
 	if (sbus_fd >= 0) {
 		struct termios t;
@@ -218,23 +198,24 @@ sbus_config(int sbus_fd, bool singlewire)
 		tcsetattr(sbus_fd, TCSANOW, &t);
 
 		if (singlewire) {
-			/* only defined in configs capable of IOCTL */
+			/* only defined in configs capable of IOCTL
+			 * Note It is never turned off
+			 */
 #ifdef TIOCSSINGLEWIRE
 			ioctl(sbus_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
 #endif
 		}
 
-		/* initialise the decoder */
-		partial_frame_count = 0;
-		last_rx_time = hrt_absolute_time();
-		last_frame_time = last_rx_time;
-		sbus_frame_drops = 0;
-
 		ret = 0;
 	}
 
-	return ret;
 #endif
+	/* initialise the decoder */
+	partial_frame_count = 0;
+	last_rx_time = hrt_absolute_time();
+	sbus_frame_drops = 0;
+
+	return ret;
 }
 
 void
@@ -286,15 +267,28 @@ bool
 sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop,
 	   uint16_t max_channels)
 {
-	int		ret = 1;
-	hrt_abstime	now;
+	/*
+	 * Fetch bytes, but no more than we would need to complete
+	 * a complete frame.
+	 */
+	uint8_t buf[SBUS_FRAME_SIZE * 2];
+
+	int ret = read(sbus_fd, &buf[0], SBUS_FRAME_SIZE);
+
+	/* if the read failed for any reason, just give up here */
+	if (ret < 1) {
+		return false;
+	}
+
+	const hrt_abstime now = hrt_absolute_time();
+#ifdef __PX4_NUTTX /* limit time-based hardening to RTOS's where we have reliable timing */
 
 	/*
 	 * The S.BUS protocol doesn't provide reliable framing,
 	 * so we detect frame boundaries by the inter-frame delay.
 	 *
 	 * The minimum frame spacing is 7ms; with 25 bytes at 100000bps
-	 * frame transmission time is ~2ms.
+	 * frame transmission time is 3ms.
 	 *
 	 * We expect to only be called when bytes arrive for processing,
 	 * and if an interval of more than 3ms passes between calls,
@@ -304,32 +298,30 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 	 * provides a degree of protection. Of course, it would be better
 	 * if we didn't drop bytes...
 	 */
-	now = hrt_absolute_time();
+	if (now - last_rx_time > 3_ms) {
+		if (partial_frame_count > 0) {
+			partial_frame_count = 0;
+			sbus_decode_state = SBUS2_DECODE_STATE_DESYNC;
+#if defined(SBUS_DEBUG_LEVEL) && SBUS_DEBUG_LEVEL > 0
+			printf("SBUS: RESET (TIME LIM)\n");
+#endif
+		}
+	}
 
-	/*
-	 * Fetch bytes, but no more than we would need to complete
-	 * a complete frame.
-	 */
-	uint8_t buf[SBUS_FRAME_SIZE * 2];
-	bool sbus_decoded = false;
-
-	ret = read(sbus_fd, &buf[0], SBUS_FRAME_SIZE);
-
-	/* if the read failed for any reason, just give up here */
-	if (ret < 1) {
+	if (partial_frame_count == 0 && buf[0] != SBUS_START_SYMBOL) {
+		/* don't bother going through the buffer if we don't get the
+		 * expected start symbol as a first byte */
+		sbus_decode_state = SBUS2_DECODE_STATE_DESYNC;
 		return false;
 	}
+
+#endif /* __PX4_NUTTX */
 
 	/*
 	 * Try to decode something with what we got
 	 */
-	if (sbus_parse(now, &buf[0], ret, values, num_values, sbus_failsafe,
-		       sbus_frame_drop, &sbus_frame_drops, max_channels)) {
-
-		sbus_decoded = true;
-	}
-
-	return sbus_decoded;
+	return sbus_parse(now, &buf[0], ret, values, num_values, sbus_failsafe,
+			  sbus_frame_drop, &sbus_frame_drops, max_channels);
 }
 
 bool
@@ -402,8 +394,7 @@ sbus_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 				}
 
 				/*
-				 * Great, it looks like we might have a frame.  Go ahead and
-				 * decode it.
+				 * Great, it looks like we might have a frame. Go ahead and decode it.
 				 */
 				decode_ret = sbus_decode(now, sbus_frame, values, num_values, sbus_failsafe, sbus_frame_drop, max_channels);
 
@@ -580,7 +571,7 @@ sbus_decode(uint64_t frame_time, uint8_t *frame, uint16_t *values, uint16_t *num
 {
 
 	/* check frame boundary markers to avoid out-of-sync cases */
-	if ((frame[0] != SBUS_START_SYMBOL)) {
+	if (frame[0] != SBUS_START_SYMBOL) {
 		sbus_frame_drops++;
 #if defined(SBUS_DEBUG_LEVEL) && SBUS_DEBUG_LEVEL > 0
 		printf("DECODE FAIL: ");
@@ -595,6 +586,7 @@ sbus_decode(uint64_t frame_time, uint8_t *frame, uint16_t *values, uint16_t *num
 		return false;
 	}
 
+	/* the last byte in the frame indicates what frame will follow after this one */
 	switch (frame[24]) {
 	case 0x00:
 		/* this is S.BUS 1 */
@@ -630,8 +622,6 @@ sbus_decode(uint64_t frame_time, uint8_t *frame, uint16_t *values, uint16_t *num
 	}
 
 	/* we have received something we think is a frame */
-	last_frame_time = frame_time;
-
 	unsigned chancount = (max_values > SBUS_INPUT_CHANNELS) ?
 			     SBUS_INPUT_CHANNELS : max_values;
 
@@ -662,9 +652,9 @@ sbus_decode(uint64_t frame_time, uint8_t *frame, uint16_t *values, uint16_t *num
 		chancount = 18;
 
 		/* channel 17 (index 16) */
-		values[16] = (((frame[SBUS_FLAGS_BYTE] & (1 << 0)) > 0) ? 1 : 0) * 1000 + 998;
+		values[16] = ((frame[SBUS_FLAGS_BYTE] & (1 << 0)) ? 1000 : 0) + 998;
 		/* channel 18 (index 17) */
-		values[17] = (((frame[SBUS_FLAGS_BYTE] & (1 << 1)) > 0) ? 1 : 0) * 1000 + 998;
+		values[17] = ((frame[SBUS_FLAGS_BYTE] & (1 << 1)) ? 1000 : 0) + 998;
 	}
 
 	/* note the number of channels decoded */

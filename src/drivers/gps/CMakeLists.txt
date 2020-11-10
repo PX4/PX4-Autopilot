@@ -30,18 +30,25 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+px4_add_git_submodule(TARGET git_gps_devices PATH "devices")
+
 px4_add_module(
 	MODULE drivers__gps
 	MAIN gps
-	STACK_MAIN 1200
 	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
+		-Wno-stringop-overflow # due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=91707
 	SRCS
 		gps.cpp
 		devices/src/gps_helper.cpp
 		devices/src/mtk.cpp
 		devices/src/ashtech.cpp
 		devices/src/ubx.cpp
+		devices/src/rtcm.cpp
+		devices/src/emlid_reach.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
-		platforms__common
+		git_gps_devices
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

@@ -49,6 +49,9 @@ __BEGIN_DECLS
 #define SBUS_FRAME_SIZE			25
 #define SBUS_BUFFER_SIZE		(SBUS_FRAME_SIZE + SBUS_FRAME_SIZE / 2)
 
+typedef   uint8_t sbus_frame_t[SBUS_FRAME_SIZE + (SBUS_FRAME_SIZE / 2)];
+
+
 __EXPORT int	sbus_init(const char *device, bool singlewire);
 
 /**
@@ -58,7 +61,7 @@ __EXPORT int	sbus_init(const char *device, bool singlewire);
  * so we detect frame boundaries by the inter-frame delay.
  *
  * The minimum frame spacing is 7ms; with 25 bytes at 100000bps
- * frame transmission time is ~2ms.
+ * frame transmission time is 3ms.
  *
  * If an interval of more than 4ms (7 ms frame spacing plus margin)
  * passes between calls, the first byte we read will be the first

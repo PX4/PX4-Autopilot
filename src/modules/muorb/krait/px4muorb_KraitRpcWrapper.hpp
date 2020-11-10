@@ -45,12 +45,12 @@ public:
 	/**
 	 * Constructor
 	 */
-	KraitRpcWrapper();
+	KraitRpcWrapper() = default;
 
 	/**
 	 * destructor
 	 */
-	~KraitRpcWrapper();
+	~KraitRpcWrapper() = default;
 
 	/**
 	 * Initiatizes the rpc channel px4 muorb

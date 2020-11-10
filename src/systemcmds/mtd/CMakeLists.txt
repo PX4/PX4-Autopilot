@@ -35,9 +35,8 @@ px4_add_module(
 	MAIN mtd
 	COMPILE_FLAGS
 	SRCS
-		mtd.c
+		mtd.cpp
 		24xxxx_mtd.c
 	DEPENDS
-		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+

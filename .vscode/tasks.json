@@ -1,0 +1,373 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "/bin/bash",
+            "args": [
+                "-c",
+                "${command:cmake.tasksBuildCommand}"
+            ],
+            "options": {
+                "cwd": "${command:cmake.buildDirectory}"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true,
+            },
+            "problemMatcher": {
+                "base": "$gcc",
+                "fileLocation": ["relative", "${command:cmake.buildDirectory}"]
+            },
+            "presentation":{
+                "echo": false,
+                "showReuseMessage": false,
+                "clear": true,
+                "panel": "shared",
+                "group": "build"
+            }
+        },
+        {
+            "label": "test",
+            "type": "shell",
+            "command": "make tests",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": true,
+            },
+            "presentation":{
+                "echo": true,
+                "showReuseMessage": false,
+                "clear": false,
+                "panel": "shared",
+                "group": "test"
+            }
+        },
+        {
+            "label": "jmavsim build",
+            "type": "shell",
+            "command": "ant create_run_jar copy_res",
+            "options": {
+                "cwd": "${workspaceFolder}/Tools/jMAVSim"
+            },
+            "problemMatcher": [],
+            "presentation":{
+                "echo": true,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false,
+            }
+        },
+        {
+            "label": "jmavsim",
+            "type": "shell",
+            "dependsOn": "jmavsim build",
+            "command": "java -Djava.ext.dirs= -jar jmavsim_run.jar -r 250 -lockstep -tcp localhost:4560 -qgc",
+            "options": {
+                "cwd": "${workspaceFolder}/Tools/jMAVSim/out/production",
+                "env": {
+                    "PX4_SIM_SPEED_FACTOR": "1"
+                }
+            },
+            "isBackground": true,
+            "presentation": {
+                "echo": true,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            "regexp": ".",
+                            "file": 1,
+                            "location": 2,
+                            "message": 3
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": ".",
+                        "endsPattern": ".",
+                    }
+                }
+            ]
+        },
+        {
+            "label": "jmavsim kill",
+            "type": "shell",
+            "command": "kill $(ps aux | grep jmavsim | grep -v 'grep' | awk '{print $2}')",
+            "presentation": {
+                "echo": false,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "gazebo build",
+            "type": "shell",
+            "command": "make px4_sitl_default sitl_gazebo",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "presentation":{
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false,
+            }
+        },
+        {
+            "label": "gazebo start",
+            "type": "shell",
+            "dependsOn": "gazebo build",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "GAZEBO_PLUGIN_PATH": "${workspaceFolder}/build/px4_sitl_default/build_gazebo",
+                    "GAZEBO_MODEL_PATH": "${workspaceFolder}/Tools/sitl_gazebo/models",
+                    "PX4_SIM_SPEED_FACTOR": "1"
+                }
+            },
+            "command": "gzserver --verbose ${workspaceFolder}/Tools/sitl_gazebo/worlds/${input:gazeboWorld}.world",
+            "isBackground": true,
+            "presentation": {
+                "echo": true,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            "regexp": ".",
+                            "file": 1,
+                            "location": 2,
+                            "message": 3
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": ".",
+                        "endsPattern": ".",
+                    }
+                }
+            ]
+        },
+        {
+            "label": "gazebo",
+            "type": "shell",
+            "dependsOn": "gazebo start",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "GAZEBO_PLUGIN_PATH": "${workspaceFolder}/build/px4_sitl_default/build_gazebo",
+                    "GAZEBO_MODEL_PATH": "${workspaceFolder}/Tools/sitl_gazebo/models",
+                    "PX4_SIM_SPEED_FACTOR": "1"
+                }
+            },
+            "command": "gz model --verbose --spawn-file=${workspaceFolder}/Tools/sitl_gazebo/models/${input:vehicleModel}/${input:vehicleModel}.sdf --model-name=${input:vehicleModel} -x 1.01 -y 0.98 -z 0.83",
+            "isBackground": false,
+            "presentation": {
+                "echo": true,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            "regexp": ".",
+                            "file": 1,
+                            "location": 2,
+                            "message": 3
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": ".",
+                        "endsPattern": ".",
+                    }
+                }
+            ]
+        },
+        {
+            "label": "gazebo client",
+            "type": "shell",
+            "dependsOn": "gazebo build",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "GAZEBO_PLUGIN_PATH": "${workspaceFolder}/build/px4_sitl_default/build_gazebo",
+                    "GAZEBO_MODEL_PATH": "${workspaceFolder}/Tools/sitl_gazebo/models",
+                    "PX4_SIM_SPEED_FACTOR": "1"
+                }
+            },
+            "command": "gzclient --verbose",
+            "isBackground": true,
+            "presentation": {
+                "echo": true,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            "regexp": ".",
+                            "file": 1,
+                            "location": 2,
+                            "message": 3
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": ".",
+                        "endsPattern": ".",
+                    }
+                }
+            ]
+        },
+        {
+            "label": "gazebo kill",
+            "type": "shell",
+            "command": "killall gzserver",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "problemMatcher": [],
+            "dependsOn":["px4_sitl_cleanup"]
+        },
+        {
+            "label": "px4_sitl_cleanup",
+            "type": "shell",
+            "command": "rm -rfv /tmp/px4*",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "problemMatcher": [],
+            "dependsOn":["px4_kill"]
+        },
+        {
+            "label": "px4_kill",
+            "type": "shell",
+            "command": "killall px4 || true",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "mavlink shell",
+            "type": "shell",
+            "command": "./Tools/mavlink_shell.py",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "new",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "miniterm.py",
+            "type": "shell",
+            "command": "miniterm.py --raw - 57600",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "new",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "type": "pickString",
+            "id": "vehicleModel",
+            "description": "gazebo model",
+            "options": [
+              "iris",
+              "typhoon_h480",
+              "plane",
+              "plane_catapult",
+              "plane_lidar",
+              "standard_vtol",
+              "tailsitter",
+              "tiltrotor",
+              "r1_rover",
+              "boat"
+            ],
+            "default": "iris"
+        },
+        {
+            "type": "pickString",
+            "id": "gazeboWorld",
+            "description": "gazebo world",
+            "options": [
+                "baylands",
+                "empty",
+                "ksql_airport",
+                "mcmillan_airfield",
+                "sonoma_raceway",
+                "warehouse",
+                "windy",
+                "yosemite"
+            ],
+            "default": "empty"
+        }
+    ]
+}

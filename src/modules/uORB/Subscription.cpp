@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,72 +37,77 @@
  */
 
 #include "Subscription.hpp"
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 
 namespace uORB
 {
 
-SubscriptionBase::SubscriptionBase(const struct orb_metadata *meta, unsigned interval, unsigned instance) :
-	_meta(meta),
-	_instance(instance)
+bool Subscription::subscribe()
 {
-	if (instance > 0) {
-		_handle = orb_subscribe_multi(_meta, instance);
-
-	} else {
-		_handle = orb_subscribe(_meta);
+	// check if already subscribed
+	if (_node != nullptr) {
+		return true;
 	}
 
-	if (_handle < 0) {
-		PX4_ERR("%s sub failed", _meta->o_name);
-	}
+	if (_orb_id != ORB_ID::INVALID) {
 
-	if (interval > 0) {
-		orb_set_interval(_handle, interval);
-	}
-}
+		DeviceMaster *device_master = uORB::Manager::get_instance()->get_device_master();
 
-bool SubscriptionBase::updated()
-{
-	bool isUpdated = false;
+		if (device_master != nullptr) {
 
-	if (orb_check(_handle, &isUpdated) != PX4_OK) {
-		PX4_ERR("%s check failed", _meta->o_name);
-	}
+			if (!device_master->deviceNodeExists(_orb_id, _instance)) {
+				return false;
+			}
 
-	return isUpdated;
-}
+			uORB::DeviceNode *node = device_master->getDeviceNode(get_topic(), _instance);
 
-bool SubscriptionBase::update(void *data)
-{
-	bool orb_updated = false;
+			if (node != nullptr) {
+				_node = node;
+				_node->add_internal_subscriber();
 
-	if (updated()) {
-		if (orb_copy(_meta, _handle, data) != PX4_OK) {
-			PX4_ERR("%s copy failed", _meta->o_name);
+				_last_generation = _node->get_initial_generation();
 
-		} else {
-			orb_updated = true;
+				return true;
+			}
 		}
 	}
 
-	return orb_updated;
+	return false;
 }
 
-SubscriptionBase::~SubscriptionBase()
+void Subscription::unsubscribe()
 {
-	if (orb_unsubscribe(_handle) != PX4_OK) {
-		PX4_ERR("%s unsubscribe failed", _meta->o_name);
+	if (_node != nullptr) {
+		_node->remove_internal_subscriber();
 	}
+
+	_node = nullptr;
+	_last_generation = 0;
 }
 
-SubscriptionNode::SubscriptionNode(const struct orb_metadata *meta, unsigned interval, unsigned instance,
-				   List<SubscriptionNode *> *list)
-	: SubscriptionBase(meta, interval, instance)
+bool Subscription::ChangeInstance(uint8_t instance)
 {
-	if (list != nullptr) {
-		list->add(this);
+	if (instance != _instance) {
+		DeviceMaster *device_master = uORB::Manager::get_instance()->get_device_master();
+
+		if (device_master != nullptr) {
+			if (!device_master->deviceNodeExists(_orb_id, _instance)) {
+				return false;
+			}
+
+			// if desired new instance exists, unsubscribe from current
+			unsubscribe();
+			_instance = instance;
+			subscribe();
+			return true;
+		}
+
+	} else {
+		// already on desired index
+		return true;
 	}
+
+	return false;
 }
 
 } // namespace uORB

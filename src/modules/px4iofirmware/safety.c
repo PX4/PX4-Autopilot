@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,9 +34,11 @@
 /**
  * @file safety.c
  * Safety button logic.
+ *
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 
 #include <stdbool.h>
 
@@ -56,11 +58,11 @@ static unsigned counter = 0;
 /*
  * Define the various LED flash sequences for each system state.
  */
-#define LED_PATTERN_FMU_OK_TO_ARM 		0x0003		/**< slow blinking			*/
-#define LED_PATTERN_FMU_REFUSE_TO_ARM 		0x5555		/**< fast blinking			*/
-#define LED_PATTERN_IO_ARMED 			0x5050		/**< long off, then double blink 	*/
-#define LED_PATTERN_FMU_ARMED 			0x5500		/**< long off, then quad blink 		*/
-#define LED_PATTERN_IO_FMU_ARMED 		0xffff		/**< constantly on			*/
+#define LED_PATTERN_FMU_OK_TO_ARM		0x0003			/**< slow blinking			*/
+#define LED_PATTERN_FMU_REFUSE_TO_ARM		0x5555		/**< fast blinking			*/
+#define LED_PATTERN_IO_ARMED			0x5050			/**< long off, then double blink 	*/
+#define LED_PATTERN_FMU_ARMED			0x5500			/**< long off, then quad blink 		*/
+#define LED_PATTERN_IO_FMU_ARMED		0xffff			/**< constantly on			*/
 
 static unsigned blink_counter = 0;
 
@@ -117,7 +119,7 @@ safety_check_button(void *arg)
 
 		} else if (counter == ARM_COUNTER_THRESHOLD) {
 			/* switch to armed state */
-			PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_SAFETY_OFF);
+			atomic_modify_or(&r_status_flags, PX4IO_P_STATUS_FLAGS_SAFETY_OFF);
 			counter++;
 		}
 
@@ -128,7 +130,7 @@ safety_check_button(void *arg)
 
 		} else if (counter == ARM_COUNTER_THRESHOLD) {
 			/* change to disarmed state and notify the FMU */
-			PX4_ATOMIC_MODIFY_CLEAR(r_status_flags, PX4IO_P_STATUS_FLAGS_SAFETY_OFF);
+			atomic_modify_clear(&r_status_flags, PX4IO_P_STATUS_FLAGS_SAFETY_OFF);
 			counter++;
 		}
 

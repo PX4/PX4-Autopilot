@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# NXP fmuk66-v3 specific board defaults
+#------------------------------------------------------------------------------
+
+board_adc start
+
+# Internal Mag I2C bus roll 180, yaw 90
+bmm150 -I -R 10 start
+
+# Onboard I2C baros
+bmp280 -I start
+mpl3115a2 -I start
+
+# Internal SPI (accel + mag)
+fxos8701cq -s start
+
+# Internal SPI (gyro)
+fxas21002c -s start

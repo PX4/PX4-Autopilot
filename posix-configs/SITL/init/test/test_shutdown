@@ -1,0 +1,91 @@
+#!/bin/sh
+# PX4 commands need the 'px4-' prefix in bash.
+# (px4-alias.sh is expected to be in the PATH)
+. px4-alias.sh
+
+uorb start
+
+param load
+
+param set BAT_N_CELLS 3
+param set CBRK_SUPPLY_CHK 894281
+param set MAV_TYPE 22
+param set VT_TYPE 2
+param set SYS_RESTART_TYPE 0
+
+dataman start
+
+battery_simulator start
+simulator start
+tone_alarm start
+pwm_out_sim start
+
+rc_update start
+sensors start
+commander start
+land_detector start vtol
+navigator start
+ekf2 start
+vtol_att_control start
+mc_hover_thrust_estimator start
+mc_pos_control start vtol
+mc_att_control start vtol
+mc_rate_control start vtol
+fw_pos_control_l1 start vtol
+fw_att_control start vtol
+airspeed_selector start
+
+#mixer load /dev/pwm_output0 ROMFS/sitl/mixers/standard_vtol_sitl.main.mix
+
+ver all
+
+logger start -e -t
+
+mavlink boot_complete
+
+sleep 1
+
+echo "Boot complete"
+
+# status of all running modules
+echo "Checking status of all modules"
+logger status
+pwm_out_sim status
+sensors status
+commander status
+rc_update stop
+land_detector status
+navigator status
+ekf2 status
+mc_pos_control status
+mc_att_control status
+mc_rate_control status
+fw_pos_control_l1 status
+fw_att_control status
+airspeed_selector status
+dataman status
+uorb status
+
+# stop all
+echo "Stopping all modules"
+logger stop
+pwm_out_sim stop
+mc_rate_control stop
+mc_att_control stop
+fw_att_control stop
+mc_pos_control stop
+fw_pos_control_l1 stop
+navigator stop
+commander stop
+land_detector stop
+ekf2 stop
+airspeed_selector stop
+sensors stop
+
+simulator stop
+tone_alarm stop
+
+dataman stop
+#uorb stop
+
+shutdown

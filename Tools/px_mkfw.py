@@ -57,7 +57,8 @@ def mkdesc():
 	proto['version']	= ""
 	proto['summary']	= ""
 	proto['description']	= ""
-	proto['git_identity']	= ""
+	proto['git_identity']	= "" # git tag
+	proto['git_hash']	= "" # git commit hash
 	proto['build_time']	= 0
 	proto['image']		= bytes()
 	proto['image_size']	= 0
@@ -98,9 +99,13 @@ if args.summary != None:
 if args.description != None:
 	desc['description']	= str(args.description)
 if args.git_identity != None:
-	cmd = " ".join(["git", "--git-dir", args.git_identity + "/.git", "describe", "--always", "--tags"])
+	cmd = "git --git-dir '{:}/.git' describe --always --tags".format(args.git_identity)
 	p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout
 	desc['git_identity']	= str(p.read().strip())
+	p.close()
+	cmd = "git --git-dir '{:}/.git' rev-parse --verify HEAD".format(args.git_identity)
+	p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout
+	desc['git_hash']	= str(p.read().strip())
 	p.close()
 if args.parameter_xml != None:
 	f = open(args.parameter_xml, "rb")

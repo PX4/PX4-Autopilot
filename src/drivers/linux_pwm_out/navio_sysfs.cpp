@@ -35,7 +35,8 @@
 
 #include <fcntl.h>
 #include <errno.h>
-#include <px4_log.h>
+#include <unistd.h>
+#include <px4_platform_common/log.h>
 
 using namespace linux_pwm_out;
 

@@ -33,10 +33,7 @@
 px4_add_module(
 	MODULE examples__uuv_example_app
 	MAIN uuv_example_app
-	STACK_MAIN 2000
 	SRCS
 		uuv_example_app.cpp
 	DEPENDS
-		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

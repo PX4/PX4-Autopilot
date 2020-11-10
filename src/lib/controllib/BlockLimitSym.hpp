@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <assert.h>
 #include <time.h>
 #include <stdlib.h>
@@ -68,7 +68,7 @@ public:
 		Block(parent, name),
 		_max(this, "MAX")
 	{}
-	virtual ~BlockLimitSym() {}
+	virtual ~BlockLimitSym() = default;
 	float update(float input);
 // accessors
 	float getMax() { return _max.get(); }

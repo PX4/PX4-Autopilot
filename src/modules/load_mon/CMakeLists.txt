@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -33,11 +33,10 @@
 px4_add_module(
 	MODULE modules__load_mon
 	MAIN load_mon
-	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
-		load_mon.cpp
+		LoadMon.cpp
+		LoadMon.hpp
 	DEPENDS
-		platforms__common
-	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+		px4_work_queue
+)

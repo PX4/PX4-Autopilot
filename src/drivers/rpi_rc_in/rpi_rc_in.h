@@ -46,24 +46,25 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <unistd.h>
 
-#include <px4_config.h>
-#include <px4_workqueue.h>
-#include <px4_defines.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/defines.h>
 
 #include <drivers/drv_hrt.h>
 
-#include <uORB/uORB.h>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/input_rc.h>
 
 #define RCINPUT_MEASURE_INTERVAL_US 20000
 
 namespace rpi_rc_in
 {
-class RcInput
+class RcInput : public px4::ScheduledWorkItem
 {
 public:
-	RcInput() = default;
+	RcInput() : ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default) {}
 
 	~RcInput();
 
@@ -73,26 +74,22 @@ public:
 	/** @return 0 on success, -errno on failure */
 	void stop();
 
-	/** Trampoline for the work queue. */
-	static void cycle_trampoline(void *arg);
-
 	bool is_running()
 	{
 		return _is_running;
 	}
 
 private:
-	void _cycle();
+	void Run() override;
 	void _measure();
 
 	int rpi_rc_init();
 
 	bool _should_exit = false;
 	bool _is_running = false;
-	struct work_s _work = {};
-	orb_advert_t _rcinput_pub = nullptr;
+	uORB::PublicationMulti<input_rc_s>	_rcinput_pub{ORB_ID(input_rc)};
 	int _channels = 8; //D8R-II plus
-	struct input_rc_s _data = {};
+	input_rc_s _data{};
 
 	int *_mem = nullptr;
 	key_t _key = 4096; ///< shared memory key (matches the ppmdecode program's key)

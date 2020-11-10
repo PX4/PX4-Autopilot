@@ -1,8 +1,3 @@
-*.d
-!ROMFS/*/*.d
-!ROMFS/*/*/*.d
-!ROMFS/*/*/*/*.d
-*.px4log
 *.dSYM
 *.o
 *.gch
@@ -13,19 +8,15 @@
 .cproject
 .DS_Store
 .gdbinit
+.gdb_history
 .project
 .settings
 .swp
 .~lock.*
-Archives/*
-Build/*
 Testing/
 Packages/*
-s3deploy-branch/
-s3deploy-archive/
 build/*
 build_*/
-core
 cscope.out
 cscope.in.out
 cscope.po.out
@@ -40,18 +31,11 @@ tags
 .pydevproject
 .ropeproject
 *.orig
-src/modules/uORB/topics/*
-src/platforms/nuttx/px4_messages/*
-src/platforms/ros/px4_messages/*
 Firmware.zip
 *.generated.h
 .vagrant
 *.pretty
 xcode
-src/platforms/posix/px4_messages/
-src/platforms/posix-arm/px4_messages/
-src/platforms/qurt/px4_messages/
-ROMFS/*/*/rc.autostart
 rootfs/
 *.autosave
 CMakeLists.txt.user
@@ -62,29 +46,70 @@ GTAGS
 *.creator.user
 *.files
 *.includes
-src/modules/micrortps_bridge/micrortps_agent/
-src/modules/micrortps_bridge/micrortps_listener/
-
-# uavcan firmware
-ROMFS/px4fmu_common/uavcan/
-vectorcontrol/
-
 
 # CLion ignores
 .idea
 cmake-build-*/
 
-.vscode
-
 posix-configs/SITL/init/test/*_generated
 
-parameters.md
-airframes.md
-airframes.xml
+/airframes.md
+/airframes.xml
+/parameters.md
+/parameters.xml
 /modules
+/msg/ros/*.msg
 
-cppcheck-result.xml
-cppcheck
+*.gcov
+.coverage
+.coverage.*
 
-scan-build
+# KDevelop ignores
+.kdev4/*
+*.kdev4
 
+# cmake in tree (ninja)
+.ninja_deps
+.ninja_log
+bin/
+build.ninja
+cmake_install.cmake
+CMakeCache.txt
+CMakeFiles
+compile_commands.json
+CPackConfig.cmake
+CPackSourceConfig.cmake
+CTestTestfile.cmake
+external/
+rules.ninja
+
+# in tree build
+**/*.a
+**/*.px4mod
+**/*.stamp
+/coverage*
+/functional-*
+/generated_params/
+/googletest-*/
+/logs
+/mavsdk_tests
+/test_mixer_multirotor
+/unit-*
+/uORB/
+DartConfiguration.tcl
+msg/tmp/
+msg/topics_sources/
+platforms/posix/apps.cpp
+platforms/posix/apps.h
+src/lib/flight_tasks/FlightTasks_generated.cpp
+src/lib/flight_tasks/FlightTasks_generated.hpp
+src/lib/parameters/px4_parameters.c
+src/lib/parameters/px4_parameters.h
+src/lib/parameters/px4_parameters_public.h
+src/lib/version/build_git_version.h
+src/modules/simulator/simulator_config.h
+src/systemcmds/topic_listener/listener_generated.cpp
+
+# SITL
+dataman
+eeprom/

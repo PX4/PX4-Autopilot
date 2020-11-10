@@ -40,26 +40,16 @@
  * Created on: Nov 12, 2014
  **/
 
-#include <fcntl.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 
-#include <board_config.h>
 #include <drivers/device/i2c.h>
-#include <drivers/device/ringbuffer.h>
-#include <drivers/drv_irlock.h>
-#include <drivers/drv_hrt.h>
-
-#include <nuttx/clock.h>
-#include <nuttx/wqueue.h>
-#include <systemlib/err.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/irlock_report.h>
 
 /** Configuration Constants **/
-#define IRLOCK_I2C_BUS			PX4_I2C_BUS_EXPANSION
 #define IRLOCK_I2C_ADDRESS		0x54 /** 7-bit address (non shifted) **/
 #define IRLOCK_CONVERSION_INTERVAL_US	20000U /** us = 20ms = 50Hz **/
 
@@ -82,36 +72,40 @@
 #define IRLOCK_TAN_ANG_PER_PIXEL_X	(2*IRLOCK_TAN_HALF_FOV_X/IRLOCK_RES_X)
 #define IRLOCK_TAN_ANG_PER_PIXEL_Y	(2*IRLOCK_TAN_HALF_FOV_Y/IRLOCK_RES_Y)
 
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
+#define IRLOCK_OBJECTS_MAX	5	/** up to 5 objects can be detected/reported **/
 
-class IRLOCK : public device::I2C
+struct irlock_target_s {
+	uint16_t signature;	/** target signature **/
+	float pos_x;	/** x-axis distance from center of image to center of target in units of tan(theta) **/
+	float pos_y;	/** y-axis distance from center of image to center of target in units of tan(theta) **/
+	float size_x;	/** size of target along x-axis in units of tan(theta) **/
+	float size_y;	/** size of target along y-axis in units of tan(theta) **/
+};
+
+/** irlock_s structure returned from read calls **/
+struct irlock_s {
+	hrt_abstime timestamp; /** microseconds since system start **/
+	uint8_t num_targets;
+	irlock_target_s targets[IRLOCK_OBJECTS_MAX];
+};
+
+class IRLOCK : public device::I2C, public I2CSPIDriver<IRLOCK>
 {
 public:
-	IRLOCK(int bus = IRLOCK_I2C_BUS, int address = IRLOCK_I2C_ADDRESS);
-	virtual ~IRLOCK();
+	IRLOCK(I2CSPIBusOption bus_option, const int bus, int bus_frequency, const int address);
+	~IRLOCK() override = default;
 
-	virtual int init();
-	virtual int probe();
-	virtual int info();
-	virtual int test();
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
 
-	virtual ssize_t read(struct file *filp, char *buffer, size_t buflen);
-
-private:
-
-	/** start periodic reads from sensor **/
-	void 		start();
-
-	/** stop periodic reads from sensor **/
-	void 		stop();
-
-	/** static function that is called by worker queue, arg will be pointer to instance of this class **/
-	static void	cycle_trampoline(void *arg);
+	int init() override;
+	int probe() override;
+	void print_status() override;
 
 	/** read from device and schedule next read **/
-	void		cycle();
+	void		RunImpl();
+private:
 
 	/** low level communication with sensor **/
 	int 		read_device();
@@ -120,44 +114,17 @@ private:
 	int 		read_device_block(struct irlock_target_s *block);
 
 	/** internal variables **/
-	ringbuffer::RingBuffer *_reports;
-	bool _sensor_ok;
-	work_s _work;
-	uint32_t _read_failures;
+	uint32_t _read_failures{0};
+
+	uORB::Publication<irlock_report_s> _irlock_report_topic{ORB_ID(irlock_report)};
 };
 
-/** global pointer for single IRLOCK sensor **/
-namespace
+IRLOCK::IRLOCK(I2CSPIBusOption bus_option, const int bus, int bus_frequency, const int address) :
+	I2C(DRV_SENS_DEVTYPE_IRLOCK, MODULE_NAME, bus, address, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
 {
-IRLOCK *g_irlock = nullptr;
 }
 
-void irlock_usage();
-
-extern "C" __EXPORT int irlock_main(int argc, char *argv[]);
-
-/** constructor **/
-IRLOCK::IRLOCK(int bus, int address) :
-	I2C("irlock", IRLOCK0_DEVICE_PATH, bus, address, 400000),
-	_reports(nullptr),
-	_sensor_ok(false),
-	_read_failures(0)
-{
-	memset(&_work, 0, sizeof(_work));
-}
-
-/** destructor **/
-IRLOCK::~IRLOCK()
-{
-	stop();
-
-	/** clear reports queue **/
-	if (_reports != nullptr) {
-		delete _reports;
-	}
-}
-
-/** initialise driver to communicate with sensor **/
 int IRLOCK::init()
 {
 	/** initialise I2C bus **/
@@ -167,21 +134,10 @@ int IRLOCK::init()
 		return ret;
 	}
 
-	/** allocate buffer storing values read from sensor **/
-	_reports = new ringbuffer::RingBuffer(2, sizeof(struct irlock_s));
-
-	if (_reports == nullptr) {
-		return ENOTTY;
-
-	} else {
-		_sensor_ok = true;
-		/** start work queue **/
-		start();
-		return OK;
-	}
+	ScheduleNow();
+	return OK;
 }
 
-/** probe the device is on the I2C bus **/
 int IRLOCK::probe()
 {
 	/*
@@ -198,124 +154,19 @@ int IRLOCK::probe()
 	return OK;
 }
 
-/** display driver info **/
-int IRLOCK::info()
+void IRLOCK::print_status()
 {
-	if (g_irlock == nullptr) {
-		errx(1, "irlock device driver is not running");
-	}
-
-	/** display reports in queue **/
-	if (_sensor_ok) {
-		_reports->print_info("report queue: ");
-		warnx("read errors:%lu", (unsigned long)_read_failures);
-
-	} else {
-		warnx("sensor is not healthy");
-	}
-
-	return OK;
+	PX4_INFO("read errors: %lu", (unsigned long)_read_failures);
 }
 
-/** test driver **/
-int IRLOCK::test()
-{
-	/** exit immediately if driver not running **/
-	if (g_irlock == nullptr) {
-		errx(1, "irlock device driver is not running");
-	}
-
-	/** exit immediately if sensor is not healty **/
-	if (!_sensor_ok) {
-		errx(1, "sensor is not healthy");
-	}
-
-	/** instructions to user **/
-	warnx("searching for object for 10 seconds");
-
-	/** read from sensor for 10 seconds **/
-	struct irlock_s report;
-	uint64_t start_time = hrt_absolute_time();
-
-	while ((hrt_absolute_time() - start_time) < 10000000) {
-		if (_reports->get(&report)) {
-			/** output all objects found **/
-			for (uint8_t i = 0; i < report.num_targets; i++) {
-				warnx("sig:%d x:%4.3f y:%4.3f width:%4.3f height:%4.3f",
-				      (int)report.targets[i].signature,
-				      (double)report.targets[i].pos_x,
-				      (double)report.targets[i].pos_y,
-				      (double)report.targets[i].size_x,
-				      (double)report.targets[i].size_y);
-			}
-		}
-
-		/** sleep for 0.05 seconds **/
-		usleep(50000);
-	}
-
-	return OK;
-}
-
-/** start periodic reads from sensor **/
-void IRLOCK::start()
-{
-	/** flush ring and reset state machine **/
-	_reports->flush();
-
-	/** start work queue cycle **/
-	work_queue(HPWORK, &_work, (worker_t)&IRLOCK::cycle_trampoline, this, 1);
-}
-
-/** stop periodic reads from sensor **/
-void IRLOCK::stop()
-{
-	work_cancel(HPWORK, &_work);
-}
-
-void IRLOCK::cycle_trampoline(void *arg)
-{
-	IRLOCK *device = (IRLOCK *)arg;
-
-	/** check global irlock reference and cycle **/
-	if (g_irlock != nullptr) {
-		device->cycle();
-	}
-}
-
-void IRLOCK::cycle()
+void IRLOCK::RunImpl()
 {
 	/** ignoring failure, if we do, we will be back again right away... **/
 	read_device();
 
-	/** schedule the next cycle **/
-	work_queue(HPWORK, &_work, (worker_t)&IRLOCK::cycle_trampoline, this, USEC2TICK(IRLOCK_CONVERSION_INTERVAL_US));
+	ScheduleDelayed(IRLOCK_CONVERSION_INTERVAL_US);
 }
 
-ssize_t IRLOCK::read(struct file *filp, char *buffer, size_t buflen)
-{
-	unsigned count = buflen / sizeof(struct irlock_s);
-	struct irlock_s *rbuf = reinterpret_cast<struct irlock_s *>(buffer);
-	int ret = 0;
-
-	if (count < 1) {
-		return -ENOSPC;
-	}
-
-	/** try to read **/
-	while (count--) {
-		if (_reports->get(rbuf)) {
-			ret += sizeof(*rbuf);
-			++rbuf;
-		}
-	}
-
-	return ret ? ret : -EAGAIN;
-
-	return ret;
-}
-
-/** sync device to ensure reading starts at new frame*/
 bool IRLOCK::sync_device()
 {
 	uint8_t sync_byte;
@@ -339,7 +190,6 @@ bool IRLOCK::sync_device()
 	return false;
 }
 
-/** read all available frames from sensor **/
 int IRLOCK::read_device()
 {
 	/** if we sync, then we are starting a new frame, else fail **/
@@ -347,10 +197,8 @@ int IRLOCK::read_device()
 		return -ENOTTY;
 	}
 
-	struct irlock_s report;
-
+	irlock_s report{};
 	report.timestamp = hrt_absolute_time();
-
 	report.num_targets = 0;
 
 	while (report.num_targets < IRLOCK_OBJECTS_MAX) {
@@ -361,16 +209,25 @@ int IRLOCK::read_device()
 		report.num_targets++;
 	}
 
-	_reports->force(&report);
+	// publish over uORB
+	if (report.num_targets > 0) {
+		irlock_report_s orb_report{};
+		orb_report.timestamp = report.timestamp;
+		orb_report.signature = report.targets[0].signature;
+		orb_report.pos_x     = report.targets[0].pos_x;
+		orb_report.pos_y     = report.targets[0].pos_y;
+		orb_report.size_x    = report.targets[0].size_x;
+		orb_report.size_y    = report.targets[0].size_y;
+
+		_irlock_report_topic.publish(orb_report);
+	}
 
 	return OK;
 }
 
-/** read a word (two bytes) from sensor **/
 int IRLOCK::read_device_word(uint16_t *word)
 {
-	uint8_t bytes[2];
-	memset(bytes, 0, sizeof bytes);
+	uint8_t bytes[2] {};
 
 	int status = transfer(nullptr, 0, &bytes[0], 2);
 	*word = bytes[1] << 8 | bytes[0];
@@ -378,8 +235,7 @@ int IRLOCK::read_device_word(uint16_t *word)
 	return status;
 }
 
-/** read a single block (a full frame) from sensor **/
-int IRLOCK::read_device_block(struct irlock_target_s *block)
+int IRLOCK::read_device_block(irlock_target_s *block)
 {
 	uint8_t bytes[12];
 	memset(bytes, 0, sizeof bytes);
@@ -407,82 +263,61 @@ int IRLOCK::read_device_block(struct irlock_target_s *block)
 	return status;
 }
 
-void irlock_usage()
+void IRLOCK::print_usage()
 {
-	warnx("missing command: try 'start', 'stop', 'info', 'test'");
-	warnx("options:");
-	warnx("    -b i2cbus (%d)", IRLOCK_I2C_BUS);
+	PRINT_MODULE_USAGE_NAME("irlock", "driver");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x54);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-int irlock_main(int argc, char *argv[])
+I2CSPIDriverBase *IRLOCK::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+				      int runtime_instance)
 {
-	int i2cdevice = IRLOCK_I2C_BUS;
+	IRLOCK *instance = new IRLOCK(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.i2c_address);
 
-	/** jump over start/off/etc and look at options first **/
-	if (getopt(argc, argv, "b:") != EOF) {
-		i2cdevice = (int)strtol(optarg, NULL, 0);
+	if (instance == nullptr) {
+		PX4_ERR("alloc failed");
+		return nullptr;
 	}
 
-	if (optind >= argc) {
-		irlock_usage();
-		exit(1);
+	if (instance->init() != PX4_OK) {
+		delete instance;
+		return nullptr;
 	}
 
-	const char *command = argv[optind];
+	return instance;
+}
 
-	/** start driver **/
-	if (!strcmp(command, "start")) {
-		if (g_irlock != nullptr) {
-			errx(1, "driver has already been started");
-		}
+extern "C" __EXPORT int irlock_main(int argc, char *argv[])
+{
+	using ThisDriver = IRLOCK;
+	BusCLIArguments cli{true, false};
+	cli.i2c_address = IRLOCK_I2C_ADDRESS;
+	cli.default_i2c_frequency = 400000;
 
-		/** instantiate global instance **/
-		g_irlock = new IRLOCK(i2cdevice, IRLOCK_I2C_ADDRESS);
+	const char *verb = cli.parseDefaultArguments(argc, argv);
 
-		if (g_irlock == nullptr) {
-			errx(1, "failed to allocated memory for driver");
-		}
-
-		/** initialise global instance **/
-		if (g_irlock->init() != OK) {
-			IRLOCK *tmp_irlock = g_irlock;
-			g_irlock = nullptr;
-			delete tmp_irlock;
-			errx(1, "failed to initialize device, stopping driver");
-		}
-
-		exit(0);
+	if (!verb) {
+		ThisDriver::print_usage();
+		return -1;
 	}
 
-	/** need the driver past this point **/
-	if (g_irlock == nullptr) {
-		warnx("not started");
-		irlock_usage();
-		exit(1);
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_SENS_DEVTYPE_IRLOCK);
+
+	if (!strcmp(verb, "start")) {
+		return ThisDriver::module_start(cli, iterator);
 	}
 
-	/** stop the driver **/
-	if (!strcmp(command, "stop")) {
-		IRLOCK *tmp_irlock = g_irlock;
-		g_irlock = nullptr;
-		delete tmp_irlock;
-		warnx("irlock stopped");
-		exit(OK);
+	if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
 	}
 
-	/** Print driver information **/
-	if (!strcmp(command, "info")) {
-		g_irlock->info();
-		exit(OK);
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
 	}
 
-	/** test driver **/
-	if (!strcmp(command, "test")) {
-		g_irlock->test();
-		exit(OK);
-	}
-
-	/** display usage info **/
-	irlock_usage();
-	exit(0);
+	ThisDriver::print_usage();
+	return -1;
 }

@@ -1,0 +1,210 @@
+#!/bin/sh
+#
+# Vehicle configuration setup script.
+#
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
+#
+
+#
+# Fixed wing setup.
+#
+if [ $VEHICLE_TYPE = fw ]
+then
+	if [ $MIXER = none ]
+	then
+		# Set default mixer for fixed wing if not defined.
+		set MIXER AERT
+	fi
+
+	if [ $MAV_TYPE = none ]
+	then
+		# Set a default MAV_TYPE = 1 if not defined.
+		set MAV_TYPE 1
+	fi
+
+	# Set the mav type parameter.
+	param set MAV_TYPE ${MAV_TYPE}
+
+	# Load mixer and configure outputs.
+	. ${R}etc/init.d/rc.interface
+
+	# Start standard fixedwing apps.
+	. ${R}etc/init.d/rc.fw_apps
+fi
+
+#
+# Multicopter setup.
+#
+if [ $VEHICLE_TYPE = mc ]
+then
+	if [ $MIXER = none ]
+	then
+		echo "MC mixer undefined"
+	fi
+
+	if [ $MAV_TYPE = none ]
+	then
+		# Set a default MAV_TYPE = 2 if not defined.
+		set MAV_TYPE 2
+
+		# Use mixer to detect vehicle type
+		if [ $MIXER = coax ]
+		then
+			set MAV_TYPE 3
+		fi
+		if [ $MIXER = hexa_x -o $MIXER = hexa_+ ]
+		then
+			set MAV_TYPE 13
+		fi
+		if [ $MIXER = hexa_cox ]
+		then
+			set MAV_TYPE 13
+		fi
+		if [ $MIXER = octo_x -o $MIXER = octo_+ ]
+		then
+			set MAV_TYPE 14
+		fi
+		if [ $MIXER = octo_cox -o $MIXER = octo_cox_w ]
+		then
+			set MAV_TYPE 14
+		fi
+		if [ $MIXER = tri_y_yaw- -o $MIXER = tri_y_yaw+ ]
+		then
+			set MAV_TYPE 15
+		fi
+	fi
+
+	# Set the mav type parameter.
+	param set MAV_TYPE ${MAV_TYPE}
+
+	# Load mixer and configure outputs.
+	. ${R}etc/init.d/rc.interface
+
+	# Start standard multicopter apps.
+	. ${R}etc/init.d/rc.mc_apps
+fi
+
+#
+# UGV setup.
+#
+if [ $VEHICLE_TYPE = rover ]
+then
+	if [ $MIXER = none ]
+	then
+		# Set default mixer for UGV if not defined.
+		set MIXER rover_generic
+	fi
+
+	if [ $MAV_TYPE = none ]
+	then
+		# Set a default MAV_TYPE = 10 if not defined.
+		set MAV_TYPE 10
+	fi
+
+	# Set the mav type parameter.
+	param set MAV_TYPE ${MAV_TYPE}
+
+	# Load mixer and configure outputs.
+	. ${R}etc/init.d/rc.interface
+
+	# Start standard UGV apps.
+	. ${R}etc/init.d/rc.rover_apps
+fi
+
+#
+# VTOL setup.
+#
+if [ $VEHICLE_TYPE = vtol ]
+then
+	if [ $MIXER = none ]
+	then
+		echo "VTOL mixer undefined"
+	fi
+
+	if [ $MAV_TYPE = none ]
+	then
+		# Set a default MAV_TYPE = 19 if not defined.
+		set MAV_TYPE 19
+
+		# Use mixer to detect vehicle type.
+		if [ $MIXER = firefly6 ]
+		then
+			set MAV_TYPE 21
+		fi
+		if [ $MIXER = quad_x_pusher_vtol ]
+		then
+			set MAV_TYPE 22
+		fi
+	fi
+
+	# Set the mav type parameter.
+	param set MAV_TYPE ${MAV_TYPE}
+
+	# Load mixer and configure outputs.
+	. ${R}etc/init.d/rc.interface
+
+	# Start standard vtol apps.
+	. ${R}etc/init.d/rc.vtol_apps
+fi
+
+#
+# Airship setup.
+#
+if [ $VEHICLE_TYPE = airship ]
+then
+	if [ $MIXER = none ]
+	then
+		echo "Airship mixer undefined"
+	fi
+
+	if [ $MAV_TYPE = none ]
+	then
+		# Set a default MAV_TYPE = 7 if not defined.
+		set MAV_TYPE 7
+	fi
+
+	# Set the mav type parameter.
+	param set MAV_TYPE ${MAV_TYPE}
+
+	# Load mixer and configure outputs.
+	. ${R}etc/init.d/rc.interface
+
+	# Start airship apps.
+	. ${R}etc/init.d/rc.airship_apps
+fi
+
+#
+# UUV setup
+#
+if [ $VEHICLE_TYPE = uuv ]
+then
+	if [ $MIXER = none ]
+	then
+		echo "UUV mixer undefined"
+	fi
+
+	if [ $MAV_TYPE = none ]
+	then
+		# Set default MAV_TYPE to submarine if not defined
+		set MAV_TYPE 12
+	fi
+
+	param set MAV_TYPE ${MAV_TYPE}
+	# Load mixer and configure outputs.
+	. ${R}etc/init.d/rc.interface
+
+	# Start standard vtol apps.
+	. ${R}etc/init.d/rc.uuv_apps
+
+fi
+
+
+
+#
+# Generic setup (autostart ID not found).
+#
+if [ $VEHICLE_TYPE = none ]
+then
+	echo "No autostart ID found"
+	ekf2 start &
+fi

@@ -33,25 +33,28 @@
 
 #include <stdint.h>
 
-#include <px4_tasks.h>
-#include <px4_getopt.h>
-#include <px4_posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/posix.h>
 #include <errno.h>
-#include <cmath>	// NAN
+#include <math.h>	// NAN
+#include <string.h>
 
-
-#include <uORB/uORB.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/parameter_update.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
-#include <systemlib/mixer/mixer.h>
-#include <systemlib/mixer/mixer_load.h>
-#include <systemlib/mixer/mixer_multirotor.generated.h>
-#include <systemlib/param/param.h>
-#include <systemlib/pwm_limit/pwm_limit.h>
+#include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
+#include <lib/mixer/MixerGroup.hpp>
+#include <lib/mixer/mixer_load.h>
+#include <lib/parameters/param.h>
+#include <lib/perf/perf_counter.h>
+#include <lib/output_limit/output_limit.h>
+
 #include <dev_fs_lib_pwm.h>
 
 /*
@@ -103,7 +106,7 @@ px4_pollfd_struct_t _poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 uint32_t	_groups_required = 0;
 
 // limit for pwm
-pwm_limit_t     _pwm_limit;
+output_limit_t     _pwm_limit;
 
 // esc parameters
 int32_t _pwm_disarmed;
@@ -112,28 +115,31 @@ int32_t _pwm_max;
 
 MultirotorMixer *_mixer = nullptr;
 
+perf_counter_t	_perf_control_latency = nullptr;
 
 /*
  * forward declaration
  */
 
-void usage();
+static void usage();
 
-void start();
+static void start();
 
-void stop();
+static void stop();
 
-int pwm_initialize(const char *device);
+static int pwm_initialize(const char *device);
 
-void pwm_deinitialize();
+static void pwm_deinitialize();
 
-void send_outputs_pwm(const uint16_t *pwm);
+static void send_outputs_pwm(const uint16_t *pwm);
 
-void task_main_trampoline(int argc, char *argv[]);
+static void task_main_trampoline(int argc, char *argv[]);
 
-void subscribe();
+static void subscribe();
 
-void task_main(int argc, char *argv[]);
+static void task_main(int argc, char *argv[]);
+
+static void update_params(Mixer::Airmode &airmode);
 
 int initialize_mixer(const char *mixer_filename);
 
@@ -157,58 +163,42 @@ int mixer_control_callback(uintptr_t handle,
 	return 0;
 }
 
+void update_params(Mixer::Airmode &airmode)
+{
+	// multicopter air-mode
+	param_t param_handle = param_find("MC_AIRMODE");
+
+	if (param_handle != PARAM_INVALID) {
+		param_get(param_handle, &airmode);
+	}
+}
 
 int initialize_mixer(const char *mixer_filename)
 {
-
 	char buf[2048];
 	size_t buflen = sizeof(buf);
 	PX4_INFO("Trying to initialize mixer from config file %s", mixer_filename);
 	int fd_load = ::open(mixer_filename, O_RDONLY);
 
-	if (fd_load != -1) {
-		int nRead = ::read(fd_load, buf, buflen);
-		close(fd_load);
+	int nRead = ::read(fd_load, buf, buflen);
+	close(fd_load);
 
-		if (nRead > 0) {
-			_mixer = MultirotorMixer::from_text(mixer_control_callback, (uintptr_t)&_controls, buf, buflen);
+	if (nRead > 0) {
+		_mixer = MultirotorMixer::from_text(mixer_control_callback, (uintptr_t)&_controls, buf, buflen);
 
-			if (_mixer != nullptr) {
-				PX4_INFO("Successfully initialized mixer from config file");
-				return 0;
-
-			} else {
-				PX4_ERR("Unable to parse from mixer config file");
-				return -1;
-			}
+		if (_mixer != nullptr) {
+			PX4_INFO("Successfully initialized mixer from config file");
+			return 0;
 
 		} else {
-			PX4_WARN("Unable to read from mixer config file");
-			return -2;
-		}
-
-	} else {
-		PX4_WARN("No mixer config file found, using default mixer.");
-
-		/* Mixer file loading failed, fall back to default mixer configuration for
-		* QUAD_X airframe. */
-		float roll_scale = 1;
-		float pitch_scale = 1;
-		float yaw_scale = 1;
-		float deadband = 0;
-
-		_mixer = new MultirotorMixer(mixer_control_callback, (uintptr_t)&_controls,
-					     MultirotorGeometry::QUAD_X,
-					     roll_scale, pitch_scale, yaw_scale, deadband);
-
-		if (_mixer == nullptr) {
+			PX4_ERR("Unable to parse from mixer config file");
 			return -1;
 		}
 
-		return 0;
-
+	} else {
+		PX4_WARN("Unable to read from mixer config file");
+		return -2;
 	}
-
 }
 
 void subscribe()
@@ -324,8 +314,6 @@ void send_outputs_pwm(const uint16_t *pwm)
 	}
 }
 
-
-
 void task_main(int argc, char *argv[])
 {
 	if (pwm_initialize(_device) < 0) {
@@ -343,17 +331,27 @@ void task_main(int argc, char *argv[])
 	// subscribe and set up polling
 	subscribe();
 
+	Mixer::Airmode airmode = Mixer::Airmode::disabled;
+	update_params(airmode);
+	uORB::Subscription parameter_update_sub{ORB_ID(parameter_update)};
+
 	// Start disarmed
 	_armed.armed = false;
 	_armed.prearmed = false;
 
 	// set max min pwm
-	pwm_limit_init(&_pwm_limit);
+	output_limit_init(&_pwm_limit);
+
+	_perf_control_latency = perf_alloc(PC_ELAPSED, "snapdragon_pwm_out control latency");
 
 	_is_running = true;
 
 	// Main loop
 	while (!_task_should_exit) {
+
+		if (_mixer) {
+			_mixer->set_airmode(airmode);
+		}
 
 		/* wait up to 10ms for data */
 		int pret = px4_poll(_poll_fds, _poll_fds_num, 10);
@@ -399,8 +397,6 @@ void task_main(int argc, char *argv[])
 			continue;
 		}
 
-		_outputs.timestamp = hrt_absolute_time();
-
 		/* do  mixing for virtual control group */
 		_outputs.noutputs = _mixer->mix(_outputs.output, _outputs.NUM_ACTUATOR_OUTPUTS);
 
@@ -419,9 +415,9 @@ void task_main(int argc, char *argv[])
 
 
 		// TODO FIXME: pre-armed seems broken -> copied and pasted from pwm_out_rc_in: needs to be tested
-		pwm_limit_calc(_armed.armed,
-			       false/*_armed.prearmed*/, _outputs.noutputs, reverse_mask, disarmed_pwm,
-			       min_pwm, max_pwm, _outputs.output, pwm, &_pwm_limit);
+		output_limit_calc(_armed.armed,
+				  false/*_armed.prearmed*/, _outputs.noutputs, reverse_mask, disarmed_pwm,
+				  min_pwm, max_pwm, _outputs.output, pwm, &_pwm_limit);
 
 		// send and publish outputs
 		if (_armed.lockdown || _armed.manual_lockdown || timeout) {
@@ -431,6 +427,8 @@ void task_main(int argc, char *argv[])
 			send_outputs_pwm(pwm);
 		}
 
+		_outputs.timestamp = hrt_absolute_time();
+
 		if (_outputs_pub != nullptr) {
 			orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
 
@@ -438,6 +436,26 @@ void task_main(int argc, char *argv[])
 			_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
 		}
 
+		// use first valid timestamp_sample for latency tracking
+		for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			const bool required = _groups_required & (1 << i);
+			const hrt_abstime &timestamp_sample = _controls[i].timestamp_sample;
+
+			if (required && (timestamp_sample > 0)) {
+				perf_set_elapsed(_perf_control_latency, _outputs.timestamp - timestamp_sample);
+				break;
+			}
+		}
+
+		// check for parameter updates
+		if (parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			parameter_update_sub.copy(&pupdate);
+
+			// update parameters from storage
+			update_params(airmode);
+		}
 	}
 
 	pwm_deinitialize();
@@ -449,8 +467,10 @@ void task_main(int argc, char *argv[])
 	}
 
 	orb_unsubscribe(_armed_sub);
-	_is_running = false;
 
+	perf_free(_perf_control_latency);
+
+	_is_running = false;
 }
 
 void task_main_trampoline(int argc, char *argv[])
@@ -460,8 +480,6 @@ void task_main_trampoline(int argc, char *argv[])
 
 void start()
 {
-	ASSERT(_task_handle == -1);
-
 	_task_should_exit = false;
 
 	/* start the task */
@@ -473,7 +491,7 @@ void start()
 					  nullptr);
 
 	if (_task_handle < 0) {
-		warn("task start failed");
+		PX4_ERR("task start failed");
 		return;
 	}
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,8 +39,8 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <px4_config.h>
-#include <systemlib/param/param.h>
+#include <px4_platform_common/px4_config.h>
+#include <parameters/param.h>
 
 /**
  * Set usage of IO board
@@ -54,190 +54,6 @@
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_USE_IO, 1);
-
-/**
- * Invert direction of main output channel 1
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_MAIN_REV1, 0);
-
-/**
- * Invert direction of main output channel 2
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_MAIN_REV2, 0);
-
-/**
- * Invert direction of main output channel 3
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_MAIN_REV3, 0);
-
-/**
- * Invert direction of main output channel 4
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_MAIN_REV4, 0);
-
-/**
- * Invert direction of main output channel 5
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_MAIN_REV5, 0);
-
-/**
- * Invert direction of main output channel 6
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_MAIN_REV6, 0);
-
-/**
- * Invert direction of main output channel 7
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_MAIN_REV7, 0);
-
-/**
- * Invert direction of main output channel 8
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_MAIN_REV8, 0);
-
-/**
- * Trim value for main output channel 1
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM1, 0);
-
-/**
- * Trim value for main output channel 2
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM2, 0);
-
-/**
- * Trim value for main output channel 3
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM3, 0);
-
-/**
- * Trim value for main output channel 4
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM4, 0);
-
-/**
- * Trim value for main output channel 5
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM5, 0);
-
-/**
- * Trim value for main output channel 6
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM6, 0);
-
-/**
- * Trim value for main output channel 7
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM7, 0);
-
-/**
- * Trim value for main output channel 8
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM8, 0);
 
 /**
  * S.BUS out

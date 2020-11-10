@@ -32,12 +32,13 @@
  ****************************************************************************/
 
 #include <string.h>
-#include "uORBDevices.hpp"
+
 #include "uORBManager.hpp"
 #include "uORB.h"
 #include "uORBCommon.hpp"
-#include <px4_log.h>
-#include <px4_module.h>
+
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
 
 extern "C" { __EXPORT int uorb_main(int argc, char *argv[]); }
 
@@ -76,7 +77,8 @@ $ uorb top
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print topic statistics");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("top", "Monitor topic publication rates");
-	PRINT_MODULE_USAGE_PARAM_FLAG('a', "print all instead of only currently publishing topics", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('a', "print all instead of only currently publishing topics with subscribers", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('1', "run only once, then exit", true);
 	PRINT_MODULE_USAGE_ARG("<filter1> [<filter2>]", "topic(s) to match (implies -a)", true);
 }
 
@@ -105,13 +107,13 @@ uorb_main(int argc, char *argv[])
 		}
 
 		/* create the driver */
-		g_dev = uORB::Manager::get_instance()->get_device_master(uORB::PUBSUB);
+		g_dev = uORB::Manager::get_instance()->get_device_master();
 
 		if (g_dev == nullptr) {
 			return -errno;
 		}
 
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_EXCELSIOR)
+#if !defined(__PX4_QURT)
 		/* FIXME: this fails on Snapdragon (see https://github.com/PX4/Firmware/issues/5406),
 		 * so we disable logging messages to the ulog for now. This needs further investigations.
 		 */
@@ -126,7 +128,7 @@ uorb_main(int argc, char *argv[])
 	 */
 	if (!strcmp(argv[1], "status")) {
 		if (g_dev != nullptr) {
-			g_dev->printStatistics(true);
+			g_dev->printStatistics();
 
 		} else {
 			PX4_INFO("uorb is not running");

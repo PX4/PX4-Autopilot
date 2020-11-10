@@ -34,10 +34,8 @@ px4_add_module(
 	MODULE drivers__qshell__qurt
 	MAIN qshell
 	SRCS
-	  qshell_main.cpp
+		qshell_main.cpp
 		qshell_start_qurt.cpp
 		qshell.cpp
 	DEPENDS
-		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

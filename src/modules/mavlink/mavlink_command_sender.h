@@ -40,8 +40,8 @@
 
 #pragma once
 
-#include <px4_tasks.h>
-#include <px4_sem.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/sem.h>
 #include <drivers/drv_hrt.h>
 
 #include <uORB/topics/vehicle_command.h>
@@ -81,10 +81,11 @@ public:
 	 * Handle mavlink command_ack.
 	 * thread-safe
 	 */
-	void handle_mavlink_command_ack(const mavlink_command_ack_t &ack, uint8_t from_sysid, uint8_t from_compid);
+	void handle_mavlink_command_ack(const mavlink_command_ack_t &ack, uint8_t from_sysid, uint8_t from_compid,
+					uint8_t channel);
 
 private:
-	MavlinkCommandSender();
+	MavlinkCommandSender() = default;
 
 	~MavlinkCommandSender();
 
@@ -108,14 +109,14 @@ private:
 		mavlink_command_long_t command = {};
 		hrt_abstime timestamp_us = 0;
 		hrt_abstime last_time_sent_us = 0;
-		int8_t num_sent_per_channel[MAX_MAVLINK_CHANNEL] = {-1, -1, -1, -1};
+		int8_t num_sent_per_channel[MAX_MAVLINK_CHANNEL] = {-1, -1, -1, -1}; // -1: channel did not request this command to be sent, -2: channel got an ack for this command
 	} command_item_t;
 
-	TimestampedList<command_item_t> _commands;
+	TimestampedList<command_item_t> _commands{3};
 
 	bool _debug_enabled = false;
-	static const uint8_t RETRIES = 3;
-	static const uint64_t TIMEOUT_US = 500000;
+	static constexpr uint8_t RETRIES = 3;
+	static constexpr uint64_t TIMEOUT_US = 500000;
 
 	/* do not allow copying or assigning this class */
 	MavlinkCommandSender(const MavlinkCommandSender &) = delete;

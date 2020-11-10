@@ -16,29 +16,22 @@ class CameraInterfaceGPIO : public CameraInterface
 {
 public:
 	CameraInterfaceGPIO();
-	virtual ~CameraInterfaceGPIO();
+	virtual ~CameraInterfaceGPIO() = default;
 
-	void trigger(bool enable);
+	void trigger(bool trigger_on_true);
 
 	void info();
 
 private:
+	static const int num_gpios = DIRECT_PWM_OUTPUT_CHANNELS > 6 ? 6 : DIRECT_PWM_OUTPUT_CHANNELS;
 
 	void setup();
 
 	param_t _p_polarity;
 
-	int _polarity;
+	bool _trigger_invert;
 
-	static constexpr uint32_t _gpios[6] = {
-		GPIO_GPIO0_OUTPUT,
-		GPIO_GPIO1_OUTPUT,
-		GPIO_GPIO2_OUTPUT,
-		GPIO_GPIO3_OUTPUT,
-		GPIO_GPIO4_OUTPUT,
-		GPIO_GPIO5_OUTPUT
-	};
-
+	uint32_t _triggers[num_gpios];
 };
 
 #endif /* ifdef __PX4_NUTTX */

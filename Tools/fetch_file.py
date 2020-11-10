@@ -41,6 +41,7 @@ Usage: python fetch_file.py [-l] [-f] [-d device] [-s speed] [-o out_path] path
 \t-s\tSerial baudrate
 \t-o\tOutput path
 \tpath\tPath to list/fetch, if ends with "/" then directory will be fetched recursively"""
+from __future__ import print_function
 
 __author__  = "Anton Babushkin"
 __version__ = "1.1"
@@ -82,7 +83,7 @@ def _ls_dir(ser, dir, timeout):
     return res
 
 def _get_file(ser, fn, fn_out, force, timeout):
-    print "Get %s:" % fn,
+    print("Get %s:" % fn, end=' ')
     if not force:
         # Check if file already exists with the same size
         try:
@@ -90,7 +91,7 @@ def _get_file(ser, fn, fn_out, force, timeout):
         except:
             pass
         else:
-            print "already fetched, skip"
+            print("already fetched, skip")
             return
 
     cmd = "dumpfile " + fn
@@ -112,7 +113,7 @@ def _get_file(ser, fn, fn_out, force, timeout):
             sys.stdout.write(".")
             sys.stdout.flush()
             fout.write(buf)
-        print " done"
+        print(" done")
         fout.close()
         os.rename(fn_out_part, fn_out)
     else:
@@ -133,13 +134,13 @@ def _get_files_in_dir(ser, path, path_out, force, timeout):
             _get_file(ser, path_fn, path_fn_out, force, timeout)
 
 def _usage():
-    print """Usage: python fetch_file.py [-l] [-f] [-d device] [-s speed] [-o out_path] path
+    print("""Usage: python fetch_file.py [-l] [-f] [-d device] [-s speed] [-o out_path] path
 \t-l\tList files
 \t-f\tOverwrite existing files
 \t-d\tSerial device
 \t-s\tSerial baudrate
 \t-o\tOutput path
-\tpath\tPath to list/fetch, if ends with "/" then directory will be fetched recursively"""
+\tpath\tPath to list/fetch, if ends with "/" then directory will be fetched recursively""")
 
 def _main():
     dev = "/dev/tty.usbmodem1"
@@ -185,7 +186,7 @@ def _main():
     try:
         if cmd == "ls":
             # List directory
-            print _ls_dir_raw(ser, path, timeout)
+            print(_ls_dir_raw(ser, path, timeout))
         elif cmd == "get":
             # Get file(s)
             if path.endswith("/"):
@@ -199,7 +200,7 @@ def _main():
                     path_out = os.path.split(path)[1]
                 _get_file(ser, path, os.path.split(path)[1], force, timeout)
     except Exception as e:
-        print e
+        print(e)
     
     ser.close()
 

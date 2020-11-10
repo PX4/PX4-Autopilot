@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <assert.h>
 #include <time.h>
 #include <stdlib.h>
@@ -66,14 +66,14 @@ public:
 		_state(),
 		_fCut(this, "") // only one parameter, no need to name
 	{
-		for (int i = 0; i < M; i++) {
+		for (size_t i = 0; i < M; i++) {
 			_state(i) = 0.0f / 0.0f;
 		}
 	}
-	virtual ~BlockLowPassVector() {}
+	virtual ~BlockLowPassVector() = default;
 	matrix::Vector<Type, M> update(const matrix::Matrix<Type, M, 1> &input)
 	{
-		for (int i = 0; i < M; i++) {
+		for (size_t i = 0; i < M; i++) {
 			if (!PX4_ISFINITE(getState()(i))) {
 				setState(input);
 			}

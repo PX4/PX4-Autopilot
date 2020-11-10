@@ -47,15 +47,18 @@
 class MavlinkRateLimiter
 {
 private:
-	hrt_abstime _last_sent;
-	hrt_abstime _interval;
+	hrt_abstime _last_sent{0};
+	hrt_abstime _interval{1000000};
 
 public:
-	MavlinkRateLimiter();
-	MavlinkRateLimiter(unsigned int interval);
-	~MavlinkRateLimiter();
-	void set_interval(unsigned int interval);
-	bool check(hrt_abstime t);
+	MavlinkRateLimiter() = default;
+	MavlinkRateLimiter(unsigned int interval) : _interval(interval) {};
+
+	~MavlinkRateLimiter() = default;
+
+	void set_interval(unsigned int interval) { _interval = interval; }
+
+	bool check(const hrt_abstime &t);
 };
 
 

@@ -1,0 +1,20 @@
+#! /usr/bin/env bash
+
+echo "DEBUG: kconfiglib kconfig-conf wrapper, arguments: ${@}"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+export APPSDIR="`pwd`/../apps"
+export CONFIG_ARCH_BOARD_CUSTOM=y
+
+if [ "command -v python3" ]; then
+	PYTHON_EXECUTABLE=python3
+else
+	PYTHON_EXECUTABLE=python
+fi
+
+if [ "${1}" = "--olddefconfig" ]; then
+	PYTHONPATH=${DIR} ${PYTHON_EXECUTABLE} ${DIR}/olddefconfig.py > /dev/null
+else
+	echo "ERROR: ${@} unsupported"
+	exit 1
+fi

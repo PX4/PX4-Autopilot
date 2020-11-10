@@ -51,14 +51,12 @@ typedef enum {
 	DM_KEY_SAFE_POINTS = 0,		/* Safe points coordinates, safe point 0 is home point */
 	DM_KEY_FENCE_POINTS,		/* Fence vertex coordinates */
 	DM_KEY_WAYPOINTS_OFFBOARD_0,	/* Mission way point coordinates sent over mavlink */
-	DM_KEY_WAYPOINTS_OFFBOARD_1,	/* (alernate between 0 and 1) */
+	DM_KEY_WAYPOINTS_OFFBOARD_1,	/* (alternate between 0 and 1) */
 	DM_KEY_WAYPOINTS_ONBOARD,	/* Mission way point coordinates generated onboard */
 	DM_KEY_MISSION_STATE,		/* Persistent mission state */
 	DM_KEY_COMPAT,
 	DM_KEY_NUM_KEYS			/* Total number of item types defined */
 } dm_item_t;
-
-#define DM_KEY_WAYPOINTS_OFFBOARD(_id) (_id == 0 ? DM_KEY_WAYPOINTS_OFFBOARD_0 : DM_KEY_WAYPOINTS_OFFBOARD_1)
 
 #if defined(MEMORY_CONSTRAINED_SYSTEM)
 enum {
@@ -101,11 +99,11 @@ struct dataman_compat_s {
 };
 
 /* increment this define whenever a binary incompatible change is performed */
-#define DM_COMPAT_VERSION	1ULL
+#define DM_COMPAT_VERSION	2ULL
 
 #define DM_COMPAT_KEY ((DM_COMPAT_VERSION << 32) + (sizeof(struct mission_item_s) << 24) + \
 		       (sizeof(struct mission_s) << 16) + (sizeof(struct mission_stats_entry_s) << 12) + \
-		       (sizeof(struct mission_fence_point_s) << 8) + (sizeof(struct mission_save_point_s) << 4) + \
+		       (sizeof(struct mission_fence_point_s) << 8) + (sizeof(struct mission_safe_point_s) << 4) + \
 		       sizeof(struct dataman_compat_s))
 
 /** Retrieve from the data manager store */

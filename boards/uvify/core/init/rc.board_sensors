@@ -1,0 +1,58 @@
+#!/bin/sh
+#
+# UVify UVF4 specific board sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+# Internal SPI
+if ! ms5611 -T 5607 -s start
+then
+	ms5611 -s start
+fi
+
+# Draco-R
+if param compare SYS_AUTOSTART 6002
+then
+	# GPS LED
+	rgbled_ncp5623c start -X -a 0x38
+
+	#icm20608g -s -R 10 start
+	mpu9250 start -s -R 10
+
+	# Default GNSS with LIS3MDL magnetometer with external i2c.
+	lis3mdl start -R 2 -X
+fi
+
+# Draco
+if param compare SYS_AUTOSTART 4072
+then
+	mpu9250 start -s -R 8
+fi
+
+# IFO
+if param compare SYS_AUTOSTART 4071
+then
+	# IFO GPS LED
+	rgbled_ncp5623c start -X -a 0x38
+
+	# IFO rgb LED
+	pca9685 -X start
+
+	mpu9250 start -s -R 8
+	lis3mdl start -R 2 -X
+fi
+
+# IFO-S
+if param compare SYS_AUTOSTART 4073
+then
+	# IFO GPS LED
+	rgbled_ncp5623c start -X -a 0x38
+
+	# IMU
+	mpu9250 start -s -R 8
+	lis3mdl start -R 2 -X
+
+	# FLOW on SPI2
+	pmw3901 start -s -b 2
+fi

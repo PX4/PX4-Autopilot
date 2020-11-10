@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# Board specific defaults
+#------------------------------------------------------------------------------
+
+
+if [ $AUTOCNF = yes ]
+then
+
+fi
+
+set LOGGER_BUF 64

@@ -36,11 +36,11 @@
  * @file esc_calib.c
  */
 
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_module.h>
-#include <px4_defines.h>
-#include <px4_log.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/log.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,9 +53,8 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 
-#include <arch/board/board.h>
 
-#include "systemlib/systemlib.h"
+
 #include "drivers/drv_pwm_output.h"
 
 #include <uORB/topics/actuator_controls.h>
@@ -74,7 +73,7 @@ usage(const char *reason)
 				 "\n"
 				 "Calibration procedure (running the command will guide you through it):\n"
 				 "- Remove props, power off the ESC's\n"
-				 "- Stop attitude controllers: mc_att_control stop, fw_att_control stop\n"
+				 "- Stop attitude and rate controllers: mc_rate_control stop, fw_att_control stop\n"
 				 "- Make sure safety is off\n"
 				 "- Run this command\n"
 				);
@@ -85,7 +84,7 @@ usage(const char *reason)
 	PRINT_MODULE_USAGE_PARAM_INT('h', 2000, 0, 3000, "High PWM value in us", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('c', NULL, NULL, "select channels in the form: 1234 (1 digit per channel, 1=first)",
 					true);
-	PRINT_MODULE_USAGE_PARAM_INT('m', 0, 0, 4096, "Select channels via bitmask (eg. 0xF, 3)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 4096, "Select channels via bitmask (eg. 0xF, 3)", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Select all channels", true);
 }
 
@@ -211,7 +210,7 @@ esc_calib_main(int argc, char *argv[])
 	orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, act_sub, &actuators);
 
 	/* wait 50 ms */
-	usleep(50000);
+	px4_usleep(50000);
 
 	/* now expect nothing changed on that topic */
 	bool orb_updated;
@@ -219,7 +218,7 @@ esc_calib_main(int argc, char *argv[])
 
 	if (orb_updated) {
 		PX4_ERR("ABORTING! Attitude control still active. Please ensure to shut down all controllers:\n"
-			"\tmc_att_control stop\n"
+			"\tmc_rate_control stop\n"
 			"\tfw_att_control stop\n");
 		return 1;
 	}
@@ -262,7 +261,7 @@ esc_calib_main(int argc, char *argv[])
 		}
 
 		/* rate limit to ~ 20 Hz */
-		usleep(50000);
+		px4_usleep(50000);
 	}
 
 	/* open for ioctl only */
@@ -278,7 +277,7 @@ esc_calib_main(int argc, char *argv[])
 
 	if (ret != OK) {
 		PX4_ERR("PWM_SERVO_GET_COUNT");
-		return 1;
+		goto cleanup;
 	}
 
 	/* tell IO/FMU that its ok to disable its safety with the switch */
@@ -286,7 +285,7 @@ esc_calib_main(int argc, char *argv[])
 
 	if (ret != OK) {
 		PX4_ERR("PWM_SERVO_SET_ARM_OK");
-		return 1;
+		goto cleanup;
 	}
 
 	/* tell IO/FMU that the system is armed (it will output values if safety is off) */
@@ -294,7 +293,7 @@ esc_calib_main(int argc, char *argv[])
 
 	if (ret != OK) {
 		PX4_ERR("PWM_SERVO_ARM");
-		return 1;
+		goto cleanup;
 	}
 
 	printf("Outputs armed");
@@ -339,7 +338,7 @@ esc_calib_main(int argc, char *argv[])
 		}
 
 		/* rate limit to ~ 20 Hz */
-		usleep(50000);
+		px4_usleep(50000);
 	}
 
 	printf("Low PWM set: %d\n"
@@ -379,7 +378,7 @@ esc_calib_main(int argc, char *argv[])
 		}
 
 		/* rate limit to ~ 20 Hz */
-		usleep(50000);
+		px4_usleep(50000);
 	}
 
 	/* disarm */

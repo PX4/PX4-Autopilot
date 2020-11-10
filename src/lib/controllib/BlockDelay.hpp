@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <assert.h>
 #include <time.h>
 #include <stdlib.h>
@@ -66,7 +66,7 @@ public:
 		_index(0),
 		_delay(-1)
 	{}
-	virtual ~BlockDelay() {}
+	virtual ~BlockDelay() = default;
 	matrix::Matrix<Type, M, N> update(const matrix::Matrix<Type, M, N> &u)
 	{
 		// store current value
