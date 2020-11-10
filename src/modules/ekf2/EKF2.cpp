@@ -684,15 +684,6 @@ void EKF2::Run()
 			filter_control_status_u control_status;
 			_ekf.get_control_mode(&control_status.value);
 
-			// publish estimator states
-			estimator_states_s states;
-			states.timestamp_sample = imu_sample_new.time_us;
-			states.n_states = 24;
-			_ekf.getStateAtFusionHorizonAsVector().copyTo(states.states);
-			_ekf.covariances_diagonal().copyTo(states.covariances);
-			states.timestamp = _replay_mode ? now : hrt_absolute_time();
-			_estimator_states_pub.publish(states);
-
 			// publish estimator status
 			estimator_status_s status{};
 			status.timestamp_sample = imu_sample_new.time_us;
@@ -765,9 +756,15 @@ void EKF2::Run()
 					// Declare all bias estimates invalid if any variances are out of range
 					bool all_estimates_invalid = false;
 
+					float states[24];
+					_ekf.getStateAtFusionHorizonAsVector().copyTo(states);
+
+					float covariances[24];
+					_ekf.covariances_diagonal().copyTo(covariances);
+
 					for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
-						if (states.covariances[axis_index + 19] < min_var_allowed
-						    || states.covariances[axis_index + 19] > max_var_allowed) {
+						if (covariances[axis_index + 19] < min_var_allowed
+						    || covariances[axis_index + 19] > max_var_allowed) {
 							all_estimates_invalid = true;
 						}
 					}
@@ -775,9 +772,9 @@ void EKF2::Run()
 					// Store valid estimates and their associated variances
 					if (!all_estimates_invalid) {
 						for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
-							_last_valid_mag_cal[axis_index] = states.states[axis_index + 19];
+							_last_valid_mag_cal[axis_index] = states[axis_index + 19];
 							_valid_cal_available[axis_index] = true;
-							_last_valid_variance[axis_index] = states.covariances[axis_index + 19];
+							_last_valid_variance[axis_index] = covariances[axis_index + 19];
 						}
 					}
 				}
@@ -802,6 +799,7 @@ void EKF2::Run()
 
 			// publish status/logging messages
 			PublishEkfDriftMetrics(now);
+			PublishStates(now);
 
 			if (!_mag_decl_saved && _standby) {
 				_mag_decl_saved = update_mag_decl(_param_ekf2_mag_decl);
@@ -1353,6 +1351,18 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 		bias.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 		_estimator_sensor_bias_pub.publish(bias);
 	}
+}
+
+void EKF2::PublishStates(const hrt_abstime &timestamp)
+{
+	// publish estimator states
+	estimator_states_s states;
+	states.timestamp_sample = timestamp;
+	states.n_states = 24;
+	_ekf.getStateAtFusionHorizonAsVector().copyTo(states.states);
+	_ekf.covariances_diagonal().copyTo(states.covariances);
+	states.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+	_estimator_states_pub.publish(states);
 }
 
 void EKF2::PublishYawEstimatorStatus(const hrt_abstime &timestamp)
