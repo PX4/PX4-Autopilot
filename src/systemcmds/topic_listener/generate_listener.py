@@ -12,9 +12,6 @@ import re
 
 raw_messages = sys.argv[2:]
 
-# large and not worth printing
-raw_messages = [x for x in raw_messages if not any(exception in x for exception in ['qshell_req', 'ulog_stream', 'gps_inject_data', 'gps_dump'])]
-
 messages = []
 topics = []
 message_elements = []
