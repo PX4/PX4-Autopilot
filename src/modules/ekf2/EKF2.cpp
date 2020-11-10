@@ -773,6 +773,7 @@ void EKF2::Run()
 			PublishEkfDriftMetrics(now);
 			PublishStates(now);
 			PublishStatus(now);
+			PublishInnovationTestRatios(now);
 			PublishInnovationVariances(now);
 
 			if (!_mag_decl_saved && _standby) {
@@ -801,28 +802,6 @@ void EKF2::Run()
 				innovations.fake_hpos[0] = innovations.fake_hpos[1] = innovations.fake_vpos = NAN;
 				innovations.fake_hvel[0] = innovations.fake_hvel[1] = innovations.fake_vvel = NAN;
 
-				// publish estimator innovation test ratio data
-				estimator_innovations_s test_ratios;
-				test_ratios.timestamp_sample = imu_sample_new.time_us;
-				_ekf.getGpsVelPosInnovRatio(test_ratios.gps_hvel[0], test_ratios.gps_vvel, test_ratios.gps_hpos[0],
-							    test_ratios.gps_vpos);
-				_ekf.getEvVelPosInnovRatio(test_ratios.ev_hvel[0], test_ratios.ev_vvel, test_ratios.ev_hpos[0],
-							   test_ratios.ev_vpos);
-				_ekf.getBaroHgtInnovRatio(test_ratios.baro_vpos);
-				_ekf.getRngHgtInnovRatio(test_ratios.rng_vpos);
-				_ekf.getAuxVelInnovRatio(test_ratios.aux_hvel[0]);
-				_ekf.getFlowInnovRatio(test_ratios.flow[0]);
-				_ekf.getHeadingInnovRatio(test_ratios.heading);
-				_ekf.getMagInnovRatio(test_ratios.mag_field[0]);
-				_ekf.getDragInnovRatio(&test_ratios.drag[0]);
-				_ekf.getAirspeedInnovRatio(test_ratios.airspeed);
-				_ekf.getBetaInnovRatio(test_ratios.beta);
-				_ekf.getHaglInnovRatio(test_ratios.hagl);
-				// Not yet supported
-				test_ratios.aux_vvel = NAN;
-				test_ratios.fake_hpos[0] = test_ratios.fake_hpos[1] = test_ratios.fake_vpos = NAN;
-				test_ratios.fake_hvel[0] = test_ratios.fake_hvel[1] = test_ratios.fake_vvel = NAN;
-
 				// calculate noise filtered velocity innovations which are used for pre-flight checking
 				if (_standby) {
 					float dt_seconds = imu_sample_new.delta_ang_dt;
@@ -834,9 +813,6 @@ void EKF2::Run()
 
 				innovations.timestamp = _replay_mode ? now : hrt_absolute_time();
 				_estimator_innovations_pub.publish(innovations);
-
-				test_ratios.timestamp = _replay_mode ? now : hrt_absolute_time();
-				_estimator_innovation_test_ratios_pub.publish(test_ratios);
 			}
 		}
 
@@ -1050,6 +1026,33 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 			}
 		}
 	}
+}
+
+void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
+{
+	// publish estimator innovation test ratio data
+	estimator_innovations_s test_ratios{};
+	test_ratios.timestamp_sample = timestamp;
+	_ekf.getGpsVelPosInnovRatio(test_ratios.gps_hvel[0], test_ratios.gps_vvel, test_ratios.gps_hpos[0],
+				    test_ratios.gps_vpos);
+	_ekf.getEvVelPosInnovRatio(test_ratios.ev_hvel[0], test_ratios.ev_vvel, test_ratios.ev_hpos[0], test_ratios.ev_vpos);
+	_ekf.getBaroHgtInnovRatio(test_ratios.baro_vpos);
+	_ekf.getRngHgtInnovRatio(test_ratios.rng_vpos);
+	_ekf.getAuxVelInnovRatio(test_ratios.aux_hvel[0]);
+	_ekf.getFlowInnovRatio(test_ratios.flow[0]);
+	_ekf.getHeadingInnovRatio(test_ratios.heading);
+	_ekf.getMagInnovRatio(test_ratios.mag_field[0]);
+	_ekf.getDragInnovRatio(&test_ratios.drag[0]);
+	_ekf.getAirspeedInnovRatio(test_ratios.airspeed);
+	_ekf.getBetaInnovRatio(test_ratios.beta);
+	_ekf.getHaglInnovRatio(test_ratios.hagl);
+	// Not yet supported
+	test_ratios.aux_vvel = NAN;
+	test_ratios.fake_hpos[0] = test_ratios.fake_hpos[1] = test_ratios.fake_vpos = NAN;
+	test_ratios.fake_hvel[0] = test_ratios.fake_hvel[1] = test_ratios.fake_vvel = NAN;
+
+	test_ratios.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+	_estimator_innovation_test_ratios_pub.publish(test_ratios);
 }
 
 void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
