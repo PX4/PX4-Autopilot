@@ -681,136 +681,8 @@ void EKF2::Run()
 
 		if (ekf_updated) {
 
-			vehicle_local_position_s lpos{};
-			_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv);
-
 			filter_control_status_u control_status;
 			_ekf.get_control_mode(&control_status.value);
-
-			// only publish position after successful alignment
-			if (control_status.flags.tilt_align) {
-				// generate vehicle local position data
-				lpos.timestamp_sample = imu_sample_new.time_us;
-
-				// Position of body origin in local NED frame
-				const Vector3f position = _ekf.getPosition();
-				lpos.x = position(0);
-				lpos.y = position(1);
-				lpos.z = position(2);
-
-				// Velocity of body origin in local NED frame (m/s)
-				const Vector3f velocity = _ekf.getVelocity();
-				lpos.vx = velocity(0);
-				lpos.vy = velocity(1);
-				lpos.vz = velocity(2);
-
-				// vertical position time derivative (m/s)
-				lpos.z_deriv = _ekf.getVerticalPositionDerivative();
-
-				// Acceleration of body origin in local frame
-				Vector3f vel_deriv = _ekf.getVelocityDerivative();
-				lpos.ax = vel_deriv(0);
-				lpos.ay = vel_deriv(1);
-				lpos.az = vel_deriv(2);
-
-				// TODO: better status reporting
-				lpos.xy_valid = _ekf.local_position_is_valid() && !_preflt_checker.hasHorizFailed();
-				lpos.z_valid = !_preflt_checker.hasVertFailed();
-				lpos.v_xy_valid = _ekf.local_position_is_valid() && !_preflt_checker.hasHorizFailed();
-				lpos.v_z_valid = !_preflt_checker.hasVertFailed();
-
-				// Position of local NED origin in GPS / WGS84 frame
-				map_projection_reference_s ekf_origin;
-				uint64_t origin_time;
-
-				// true if position (x,y,z) has a valid WGS-84 global reference (ref_lat, ref_lon, alt)
-				const bool ekf_origin_valid = _ekf.get_ekf_origin(&origin_time, &ekf_origin, &lpos.ref_alt);
-				lpos.xy_global = ekf_origin_valid;
-				lpos.z_global = ekf_origin_valid;
-
-				if (ekf_origin_valid && (origin_time > lpos.ref_timestamp)) {
-					lpos.ref_timestamp = origin_time;
-					lpos.ref_lat = ekf_origin.lat_rad * 180.0 / M_PI; // Reference point latitude in degrees
-					lpos.ref_lon = ekf_origin.lon_rad * 180.0 / M_PI; // Reference point longitude in degrees
-				}
-
-				// The rotation of the tangent plane vs. geographical north
-				const Quatf q = _ekf.getQuaternion();
-
-				Quatf delta_q_reset;
-				_ekf.get_quat_reset(&delta_q_reset(0), &lpos.heading_reset_counter);
-
-				lpos.heading = Eulerf(q).psi();
-				lpos.delta_heading = Eulerf(delta_q_reset).psi();
-
-				lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid();
-
-				float terrain_vpos = _ekf.getTerrainVertPos();
-				lpos.dist_bottom = terrain_vpos - lpos.z; // Distance to bottom surface (ground) in meters
-
-				// constrain the distance to ground to _rng_gnd_clearance
-				if (lpos.dist_bottom < _param_ekf2_min_rng.get()) {
-					lpos.dist_bottom = _param_ekf2_min_rng.get();
-				}
-
-				if (!_had_valid_terrain) {
-					_had_valid_terrain = lpos.dist_bottom_valid;
-				}
-
-				// only consider ground effect if compensation is configured and the vehicle is armed (props spinning)
-				if ((_param_ekf2_gnd_eff_dz.get() > 0.0f) && _armed) {
-					// set ground effect flag if vehicle is closer than a specified distance to the ground
-					if (lpos.dist_bottom_valid) {
-						_ekf.set_gnd_effect_flag(lpos.dist_bottom < _param_ekf2_gnd_max_hgt.get());
-
-						// if we have no valid terrain estimate and never had one then use ground effect flag from land detector
-						// _had_valid_terrain is used to make sure that we don't fall back to using this option
-						// if we temporarily lose terrain data due to the distance sensor getting out of range
-
-					} else if (!_had_valid_terrain) {
-						// update ground effect flag based on land detector state
-						_ekf.set_gnd_effect_flag(_in_ground_effect);
-					}
-
-				} else {
-					_ekf.set_gnd_effect_flag(false);
-				}
-
-				_ekf.get_ekf_vel_accuracy(&lpos.evh, &lpos.evv);
-
-				// get state reset information of position and velocity
-				_ekf.get_posD_reset(&lpos.delta_z, &lpos.z_reset_counter);
-				_ekf.get_velD_reset(&lpos.delta_vz, &lpos.vz_reset_counter);
-				_ekf.get_posNE_reset(&lpos.delta_xy[0], &lpos.xy_reset_counter);
-				_ekf.get_velNE_reset(&lpos.delta_vxy[0], &lpos.vxy_reset_counter);
-
-				// get control limit information
-				_ekf.get_ekf_ctrl_limits(&lpos.vxy_max, &lpos.vz_max, &lpos.hagl_min, &lpos.hagl_max);
-
-				// convert NaN to INFINITY
-				if (!PX4_ISFINITE(lpos.vxy_max)) {
-					lpos.vxy_max = INFINITY;
-				}
-
-				if (!PX4_ISFINITE(lpos.vz_max)) {
-					lpos.vz_max = INFINITY;
-				}
-
-				if (!PX4_ISFINITE(lpos.hagl_min)) {
-					lpos.hagl_min = INFINITY;
-				}
-
-				if (!PX4_ISFINITE(lpos.hagl_max)) {
-					lpos.hagl_max = INFINITY;
-				}
-
-				// publish vehicle local position data
-				lpos.timestamp = _replay_mode ? now : hrt_absolute_time();
-				_local_position_pub.publish(lpos);
-
-				// publish vehicle_odometry
-				PublishOdometry(now, imu_sample_new);
-			}
 
 			// publish estimator states
 			estimator_states_s states;
@@ -836,8 +708,7 @@ void EKF2::Run()
 							status.hgt_test_ratio, status.tas_test_ratio,
 							status.hagl_test_ratio, status.beta_test_ratio);
 
-			status.pos_horiz_accuracy = lpos.eph;
-			status.pos_vert_accuracy = lpos.epv;
+			_ekf.get_ekf_lpos_accuracy(&status.pos_horiz_accuracy, &status.pos_vert_accuracy);
 			_ekf.get_ekf_soln_status(&status.solution_status_flags);
 			_ekf.getImuVibrationMetrics().copyTo(status.vibe);
 			status.time_slip = _last_time_slip_us * 1e-6f;
@@ -922,6 +793,8 @@ void EKF2::Run()
 				}
 			}
 
+			PublishLocalPosition(now);
+			PublishOdometry(now, imu_sample_new);
 			PublishGlobalPosition(now);
 			PublishSensorBias(now);
 			PublishWindEstimate(now);
@@ -1233,6 +1106,121 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 	}
 }
 
+void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
+{
+	vehicle_local_position_s lpos;
+	// generate vehicle local position data
+	lpos.timestamp_sample = timestamp;
+
+	// Position of body origin in local NED frame
+	const Vector3f position = _ekf.getPosition();
+	lpos.x = position(0);
+	lpos.y = position(1);
+	lpos.z = position(2);
+
+	// Velocity of body origin in local NED frame (m/s)
+	const Vector3f velocity = _ekf.getVelocity();
+	lpos.vx = velocity(0);
+	lpos.vy = velocity(1);
+	lpos.vz = velocity(2);
+
+	// vertical position time derivative (m/s)
+	lpos.z_deriv = _ekf.getVerticalPositionDerivative();
+
+	// Acceleration of body origin in local frame
+	Vector3f vel_deriv = _ekf.getVelocityDerivative();
+	lpos.ax = vel_deriv(0);
+	lpos.ay = vel_deriv(1);
+	lpos.az = vel_deriv(2);
+
+	// TODO: better status reporting
+	lpos.xy_valid = _ekf.local_position_is_valid() && !_preflt_checker.hasHorizFailed();
+	lpos.z_valid = !_preflt_checker.hasVertFailed();
+	lpos.v_xy_valid = _ekf.local_position_is_valid() && !_preflt_checker.hasHorizFailed();
+	lpos.v_z_valid = !_preflt_checker.hasVertFailed();
+
+	// Position of local NED origin in GPS / WGS84 frame
+	uint64_t origin_time;
+	map_projection_reference_s ekf_origin_pos;
+	const bool ekf_origin_valid = _ekf.get_ekf_origin(&origin_time, &ekf_origin_pos, &lpos.ref_alt);
+	lpos.ref_timestamp = origin_time;
+	lpos.ref_lat = math::degrees(ekf_origin_pos.lat_rad); // Reference point latitude in degrees
+	lpos.ref_lon = math::degrees(ekf_origin_pos.lon_rad); // Reference point longitude in degrees
+
+	lpos.xy_global = ekf_origin_valid;
+	lpos.z_global = ekf_origin_valid;
+
+	Quatf delta_q_reset;
+	_ekf.get_quat_reset(&delta_q_reset(0), &lpos.heading_reset_counter);
+
+	lpos.heading = Eulerf(_ekf.getQuaternion()).psi();
+	lpos.delta_heading = Eulerf(delta_q_reset).psi();
+
+	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid();
+
+	float terrain_vpos = _ekf.getTerrainVertPos();
+
+	// Distance to bottom surface (ground) in meters
+	//  constrain the distance to ground to _rng_gnd_clearance
+	lpos.dist_bottom = math::min(terrain_vpos - lpos.z, _param_ekf2_min_rng.get());
+
+	if (!_had_valid_terrain) {
+		_had_valid_terrain = lpos.dist_bottom_valid;
+	}
+
+	// only consider ground effect if compensation is configured and the vehicle is armed (props spinning)
+	if ((_param_ekf2_gnd_eff_dz.get() > 0.0f) && _armed) {
+		// set ground effect flag if vehicle is closer than a specified distance to the ground
+		if (lpos.dist_bottom_valid) {
+			_ekf.set_gnd_effect_flag(lpos.dist_bottom < _param_ekf2_gnd_max_hgt.get());
+
+			// if we have no valid terrain estimate and never had one then use ground effect flag from land detector
+			// _had_valid_terrain is used to make sure that we don't fall back to using this option
+			// if we temporarily lose terrain data due to the distance sensor getting out of range
+
+		} else if (!_had_valid_terrain) {
+			// update ground effect flag based on land detector state
+			_ekf.set_gnd_effect_flag(_in_ground_effect);
+		}
+
+	} else {
+		_ekf.set_gnd_effect_flag(false);
+	}
+
+	_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv);
+	_ekf.get_ekf_vel_accuracy(&lpos.evh, &lpos.evv);
+
+	// get state reset information of position and velocity
+	_ekf.get_posD_reset(&lpos.delta_z, &lpos.z_reset_counter);
+	_ekf.get_velD_reset(&lpos.delta_vz, &lpos.vz_reset_counter);
+	_ekf.get_posNE_reset(&lpos.delta_xy[0], &lpos.xy_reset_counter);
+	_ekf.get_velNE_reset(&lpos.delta_vxy[0], &lpos.vxy_reset_counter);
+
+	// get control limit information
+	_ekf.get_ekf_ctrl_limits(&lpos.vxy_max, &lpos.vz_max, &lpos.hagl_min, &lpos.hagl_max);
+
+	// convert NaN to INFINITY
+	if (!PX4_ISFINITE(lpos.vxy_max)) {
+		lpos.vxy_max = INFINITY;
+	}
+
+	if (!PX4_ISFINITE(lpos.vz_max)) {
+		lpos.vz_max = INFINITY;
+	}
+
+	if (!PX4_ISFINITE(lpos.hagl_min)) {
+		lpos.hagl_min = INFINITY;
+	}
+
+	if (!PX4_ISFINITE(lpos.hagl_max)) {
+		lpos.hagl_max = INFINITY;
+	}
+
+	// publish vehicle local position data
+	lpos.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+	_local_position_pub.publish(lpos);
+}
+
 void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu)
 {
 	// generate vehicle odometry data
@@ -1265,8 +1253,8 @@ void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu)
 	odom.yawspeed = rates(2) - gyro_bias(2);
 
 	// get the covariance matrix size
-	const size_t POS_URT_SIZE = sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0]);
-	const size_t VEL_URT_SIZE = sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0]);
+	static constexpr size_t POS_URT_SIZE = sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0]);
+	static constexpr size_t VEL_URT_SIZE = sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0]);
 
 	// Get covariances to vehicle odometry
 	float covariances[24];
