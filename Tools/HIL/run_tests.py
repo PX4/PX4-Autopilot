@@ -16,7 +16,6 @@ def do_test(port, baudrate, test_name):
 
     ser.write('\n')
 
-    finished = 0
     success = False
 
     timeout = 10  # 10 seconds
@@ -59,12 +58,6 @@ def do_test(port, baudrate, test_name):
         elif test_name + " FAILED" in serial_line:
             success = False
             break
-        elif "nsh>" in serial_line:
-            success = False
-            break
-        elif "NuttShell (NSH)" in serial_line:
-            success = False
-            break
 
         if time.time() > timeout_start + timeout:
             print("Error, timeout")
@@ -81,12 +74,18 @@ def do_test(port, baudrate, test_name):
 
     return success
 
-class TestHadrwareMethods(unittest.TestCase):
+class TestHardwareMethods(unittest.TestCase):
     TEST_DEVICE = 0
     TEST_BAUDRATE = 0
 
+    def test_atomic_bitset(self):
+        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "atomic_bitset"))
+
     def test_bezier(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "bezier"))
+
+    def test_bitset(self):
+        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "bitset"))
 
     def test_bson(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "bson"))
@@ -97,8 +96,8 @@ class TestHadrwareMethods(unittest.TestCase):
     def test_controllib(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "controllib"))
 
-#    def test_dataman(self):
-#        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "dataman"))
+    # def test_dataman(self):
+    #     self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "dataman"))
 
     def floattest_float(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "float"))
@@ -108,6 +107,9 @@ class TestHadrwareMethods(unittest.TestCase):
 
     def test_IntrusiveQueue(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "IntrusiveQueue"))
+
+    def test_IntrusiveSortedList(self):
+        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "IntrusiveSortedList"))
 
     def test_List(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "List"))
@@ -133,8 +135,8 @@ class TestHadrwareMethods(unittest.TestCase):
     def test_microbench_uorb(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "microbench_uorb"))
 
-#    def test_mixer(self):
-#        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "mixer"))
+    # def test_mixer(self):
+    #     self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "mixer"))
 
     def test_param(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "param"))
@@ -145,7 +147,10 @@ class TestHadrwareMethods(unittest.TestCase):
     def test_perf(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "perf"))
 
-    def search_mintest_xxx(self):
+    # def test_rc(self):
+    #     self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "rc"))
+
+    def test_search_min(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "search_min"))
 
     def test_sleep(self):
@@ -157,8 +162,8 @@ class TestHadrwareMethods(unittest.TestCase):
     def test_time(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "time"))
 
-    #def test_uorb(self):
-    #    self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "uorb"))
+    def test_uorb(self):
+        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "uorb"))
 
     def test_versioning(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "versioning"))
@@ -169,8 +174,8 @@ def main():
     parser.add_argument("--baudrate", "-b", dest="baudrate", type=int, help="Mavlink port baud rate (default=57600)", default=57600)
     args = parser.parse_args()
 
-    TestHadrwareMethods.TEST_DEVICE = args.device
-    TestHadrwareMethods.TEST_BAUDRATE =  args.baudrate
+    TestHardwareMethods.TEST_DEVICE = args.device
+    TestHardwareMethods.TEST_BAUDRATE = args.baudrate
 
     unittest.main(__name__, argv=['main'])
 
