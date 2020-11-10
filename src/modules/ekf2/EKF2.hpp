@@ -142,6 +142,7 @@ private:
 	void PublishOpticalFlowVel(const hrt_abstime &timestamp, const optical_flow_s &optical_flow);
 	void PublishSensorBias(const hrt_abstime &timestamp);
 	void PublishStates(const hrt_abstime &timestamp);
+	void PublishStatus(const hrt_abstime &timestamp);
 	void PublishWindEstimate(const hrt_abstime &timestamp);
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 
