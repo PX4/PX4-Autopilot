@@ -37,10 +37,16 @@ else()
 	set(AUTOPILOT_HOST "raspberrypi")
 endif()
 
+if(DEFINED ENV{AUTOPILOT_USER})
+	set(AUTOPILOT_USER $ENV{AUTOPILOT_USER})
+else()
+	set(AUTOPILOT_USER "pi")
+endif()
+
 add_custom_target(upload
 	COMMAND rsync -arh --progress
-			${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${PX4_SOURCE_DIR}/posix-configs/rpi/airpi2*.config ${PX4_BINARY_DIR}/etc # source
-			pi@\$\{AUTOPILOT_HOST\}:/home/pi/px4 # destination
+			${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${PX4_SOURCE_DIR}/posix-configs/rpi/pilotpi*.config ${PX4_BINARY_DIR}/etc # source
+			\$\{AUTOPILOT_USER\}@\$\{AUTOPILOT_HOST\}:/home/\$\{AUTOPILOT_USER\}/px4 # destination
 	DEPENDS px4
 	COMMENT "uploading px4"
 	USES_TERMINAL

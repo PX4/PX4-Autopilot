@@ -4,7 +4,7 @@ add_definitions(
 
 px4_add_board(
 	VENDOR scumaker
-	MODEL airpi2
+	MODEL pilotpi
 	LABEL default
 	PLATFORM posix
 	ARCHITECTURE cortex-a53

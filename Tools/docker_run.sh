@@ -5,9 +5,12 @@ if [ -z ${PX4_DOCKER_REPO+x} ]; then
 	if [[ $@ =~ .*px4_fmu.* ]]; then
 		# nuttx-px4fmu-v{1,2,3,4,5}
 		PX4_DOCKER_REPO="px4io/px4-dev-nuttx-focal:2020-09-14"
-	elif [[ $@ =~ .*ocpoc.* ]] || [[ $@ =~ .*navio2.* ]] || [[ $@ =~ .*raspberry.* ]] || [[ $@ =~ .*beaglebone.* ]] || [[ $@ =~ .*airpi2.* ]]; then
-		# aerotenna_ocpoc_default, beaglebone_blue_default, emlid_navio2_default, px4_raspberrypi_default, scumaker_airpi2_default
+	elif [[ $@ =~ .*ocpoc.* ]] || [[ $@ =~ .*navio2.* ]] || [[ $@ =~ .*raspberry.* ]] || [[ $@ =~ .*beaglebone.* ]] || [[ $@ =~ .*pilotpi.default ]]; then
+		# aerotenna_ocpoc_default, beaglebone_blue_default, emlid_navio2_default, px4_raspberrypi_default, scumaker_pilotpi_default
 		PX4_DOCKER_REPO="px4io/px4-dev-armhf:2020-04-01"
+	elif [[ $@ =~ .*pilotpi.arm64 ]]; then
+		# scumaker_pilotpi_arm64
+		PX4_DOCKER_REPO="px4io/px4-dev-aarch64:latest"
 	elif [[ $@ =~ .*eagle.* ]] || [[ $@ =~ .*excelsior.* ]]; then
 		# eagle, excelsior
 		PX4_DOCKER_REPO="lorenzmeier/px4-dev-snapdragon:2020-04-01"
