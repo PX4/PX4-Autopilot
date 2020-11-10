@@ -135,6 +135,7 @@ private:
 	bool update_mag_decl(Param &mag_decl_param);
 
 	void PublishAttitude(const hrt_abstime &timestamp);
+	void PublishEkfDriftMetrics(const hrt_abstime &timestamp);
 	void PublishOpticalFlowVel(const hrt_abstime &timestamp, const optical_flow_s &optical_flow);
 	void PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu);
 	void PublishWindEstimate(const hrt_abstime &timestamp);
