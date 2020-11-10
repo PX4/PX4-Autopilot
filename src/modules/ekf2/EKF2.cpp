@@ -923,21 +923,6 @@ void EKF2::Run()
 				_estimator_sensor_bias_pub.publish(bias);
 			}
 
-			// publish GPS drift data only when updated to minimise overhead
-			float gps_drift[3];
-			bool blocked;
-
-			if (_ekf.get_gps_drift_metrics(gps_drift, &blocked)) {
-				ekf_gps_drift_s drift_data;
-				drift_data.hpos_drift_rate = gps_drift[0];
-				drift_data.vpos_drift_rate = gps_drift[1];
-				drift_data.hspd = gps_drift[2];
-				drift_data.blocked = blocked;
-				drift_data.timestamp = _replay_mode ? now : hrt_absolute_time();
-
-				_ekf_gps_drift_pub.publish(drift_data);
-			}
-
 			{
 				/* Check and save learned magnetometer bias estimates */
 
@@ -1009,6 +994,9 @@ void EKF2::Run()
 
 			PublishWindEstimate(now);
 			PublishYawEstimatorStatus(now);
+
+			// publish status/logging messages
+			PublishEkfDriftMetrics(now);
 
 			if (!_mag_decl_saved && _standby) {
 				_mag_decl_saved = update_mag_decl(_param_ekf2_mag_decl);
@@ -1236,6 +1224,24 @@ void EKF2::PublishAttitude(const hrt_abstime &timestamp)
 		// we do this by publishing an attitude with zero timestamp
 		vehicle_attitude_s att{};
 		_attitude_pub.publish(att);
+	}
+}
+
+void EKF2::PublishEkfDriftMetrics(const hrt_abstime &timestamp)
+{
+	// publish GPS drift data only when updated to minimise overhead
+	float gps_drift[3];
+	bool blocked;
+
+	if (_ekf.get_gps_drift_metrics(gps_drift, &blocked)) {
+		ekf_gps_drift_s drift_data;
+		drift_data.hpos_drift_rate = gps_drift[0];
+		drift_data.vpos_drift_rate = gps_drift[1];
+		drift_data.hspd = gps_drift[2];
+		drift_data.blocked = blocked;
+		drift_data.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+
+		_ekf_gps_drift_pub.publish(drift_data);
 	}
 }
 
