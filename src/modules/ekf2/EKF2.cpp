@@ -810,44 +810,6 @@ void EKF2::Run()
 
 				// publish vehicle_odometry
 				PublishOdometry(now, imu_sample_new);
-
-				// publish vehicle_global_position if valid
-				if (_ekf.global_position_is_valid() && !_preflt_checker.hasFailed()) {
-					// only publish if position has changed by at least 1 mm (map_projection_reproject is relatively expensive)
-					if ((_last_local_position_for_gpos - position).longerThan(0.001f)) {
-
-						// generate and publish global position data
-						vehicle_global_position_s global_pos{};
-						global_pos.timestamp_sample = imu_sample_new.time_us;
-
-						map_projection_reproject(&ekf_origin, lpos.x, lpos.y, &global_pos.lat, &global_pos.lon);
-
-						global_pos.lat_lon_reset_counter = lpos.xy_reset_counter;
-
-						global_pos.alt = -lpos.z + lpos.ref_alt; // Altitude AMSL in meters
-						global_pos.alt_ellipsoid = filter_altitude_ellipsoid(global_pos.alt);
-
-						// global altitude has opposite sign of local down position
-						global_pos.delta_alt = -lpos.delta_z;
-
-						_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
-
-						global_pos.terrain_alt_valid = lpos.dist_bottom_valid;
-
-						if (global_pos.terrain_alt_valid) {
-							global_pos.terrain_alt = lpos.ref_alt - terrain_vpos; // Terrain altitude in m, WGS84
-
-						} else {
-							global_pos.terrain_alt = 0.0f; // Terrain altitude in m, WGS84
-						}
-
-						global_pos.dead_reckoning = _ekf.inertial_dead_reckoning(); // True if this position is estimated through dead-reckoning
-						global_pos.timestamp = _replay_mode ? now : hrt_absolute_time();
-						_global_position_pub.publish(global_pos);
-
-						_last_local_position_for_gpos = position;
-					}
-				}
 			}
 
 			// publish estimator states
@@ -960,6 +922,7 @@ void EKF2::Run()
 				}
 			}
 
+			PublishGlobalPosition(now);
 			PublishSensorBias(now);
 			PublishWindEstimate(now);
 			PublishYawEstimatorStatus(now);
@@ -1211,6 +1174,62 @@ void EKF2::PublishEkfDriftMetrics(const hrt_abstime &timestamp)
 		drift_data.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 
 		_ekf_gps_drift_pub.publish(drift_data);
+	}
+}
+
+void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
+{
+	if (_ekf.global_position_is_valid() && !_preflt_checker.hasFailed()) {
+		// only publish if position has changed by at least 1 mm (map_projection_reproject is relatively expensive)
+		const Vector3f position = _ekf.getPosition();
+
+		if ((_last_local_position_for_gpos - position).longerThan(0.001f)) {
+
+			// generate and publish global position data
+			vehicle_global_position_s global_pos;
+			global_pos.timestamp_sample = timestamp;
+
+			// Position of local NED origin in GPS / WGS84 frame
+			uint64_t origin_time;
+			map_projection_reference_s ekf_origin;
+			float ref_alt;
+			// true if position (x,y,z) has a valid WGS-84 global reference (ref_lat, ref_lon, alt)
+			const bool ekf_origin_valid = _ekf.get_ekf_origin(&origin_time, &ekf_origin, &ref_alt);
+
+			if (ekf_origin_valid) {
+
+				map_projection_reproject(&ekf_origin, position(0), position(1), &global_pos.lat, &global_pos.lon);
+
+				float delta_xy[2];
+				_ekf.get_posNE_reset(delta_xy, &global_pos.lat_lon_reset_counter);
+
+				global_pos.alt = -position(2) + ref_alt; // Altitude AMSL in meters
+				global_pos.alt_ellipsoid = filter_altitude_ellipsoid(global_pos.alt);
+
+				// global altitude has opposite sign of local down position
+				float delta_z;
+				uint8_t z_reset_counter;
+				_ekf.get_posD_reset(&delta_z, &z_reset_counter);
+				global_pos.delta_alt = -delta_z;
+
+				_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
+
+				global_pos.terrain_alt_valid = _ekf.isTerrainEstimateValid();
+
+				if (global_pos.terrain_alt_valid) {
+					global_pos.terrain_alt = ref_alt -  _ekf.getTerrainVertPos(); // Terrain altitude in m, WGS84
+
+				} else {
+					global_pos.terrain_alt = 0.0f; // Terrain altitude in m, WGS84
+				}
+
+				global_pos.dead_reckoning = _ekf.inertial_dead_reckoning(); // True if this position is estimated through dead-reckoning
+				global_pos.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+				_global_position_pub.publish(global_pos);
+
+				_last_local_position_for_gpos = position;
+			}
+		}
 	}
 }
 
