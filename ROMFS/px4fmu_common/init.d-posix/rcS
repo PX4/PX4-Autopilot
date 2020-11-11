@@ -22,7 +22,6 @@ fi
 # initialize script variables
 set AUX_MODE                    none
 set IO_PRESENT                  no
-set LOG_FILE                    bootlog.txt
 set MAV_TYPE                    none
 set MIXER                       none
 set MIXER_AUX                   none
@@ -52,10 +51,6 @@ else
 		echo "Info: found model autostart file as SYS_AUTOSTART=$REQUESTED_AUTOSTART"
 	fi
 fi
-
-# clear bootlog
-[ -f $LOG_FILE ] && rm $LOG_FILE
-
 
 uorb start
 
