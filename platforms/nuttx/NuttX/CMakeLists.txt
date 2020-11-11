@@ -272,7 +272,7 @@ add_custom_target(nuttx_builtin_list_target DEPENDS ${nuttx_builtin_list})
 # APPS
 
 # libapps.a
-add_custom_command(OUTPUT ${APPS_DIR}/libapps.a ${APPS_DIR}/platform/.built
+add_custom_command(OUTPUT ${APPS_DIR}/libapps.a
 	COMMAND find ${APPS_DIR} -name \*.o -delete
 	COMMAND make ${nuttx_build_options} --no-print-directory TOPDIR="${NUTTX_DIR}" > nuttx_apps.log
 	DEPENDS
