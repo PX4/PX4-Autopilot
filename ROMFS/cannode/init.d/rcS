@@ -17,11 +17,6 @@ set +e
 set R /
 
 #
-# Start CDC/ACM serial driver.
-#
-sercon
-
-#
 # Print full system version.
 #
 ver all

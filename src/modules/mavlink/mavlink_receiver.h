@@ -130,6 +130,8 @@ public:
 	void enable_message_statistics() { _message_statistics_enabled = true; }
 	void print_detailed_rx_stats() const;
 
+	void request_stop() { _should_exit.store(true); }
+
 private:
 	static void *start_trampoline(void *context);
 	void run();
