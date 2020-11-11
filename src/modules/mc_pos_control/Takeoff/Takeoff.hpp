@@ -94,7 +94,7 @@ public:
 private:
 	TakeoffState _takeoff_state = TakeoffState::disarmed;
 
-	systemlib::Hysteresis _spoolup_time_hysteresis{false}; ///< becomes true MPC_SPOOLUP_TIME seconds after the vehicle was armed
+	systemlib::Hysteresis _spoolup_time_hysteresis{false}; ///< becomes true COM_SPOOLUP_TIME seconds after the vehicle was armed
 
 	float _takeoff_ramp_time{0.f};
 	float _takeoff_ramp_vz_init{0.f}; ///< verticval velocity resulting in zero thrust

@@ -2721,8 +2721,8 @@ Commander::run()
 
 			if (_arm_state_machine.isArmed()) {
 				if (fd_status_flags.arm_escs) {
-					// 500ms is the PWM spoolup time. Within this timeframe controllers are not affecting actuator_outputs
-					if (hrt_elapsed_time(&_vehicle_status.armed_time) < 500_ms) {
+					// Checks have to pass within the spool up time
+					if (hrt_elapsed_time(&_vehicle_status.armed_time) < _param_com_spoolup_time.get() * 1_s) {
 						disarm(arm_disarm_reason_t::failure_detector);
 						mavlink_log_critical(&_mavlink_log_pub, "ESCs did not respond to arm request\t");
 						events::send(events::ID("commander_fd_escs_not_arming"), events::Log::Critical, "ESCs did not respond to arm request");

@@ -234,7 +234,7 @@ void MulticopterPositionControl::parameters_update(bool force)
 		_param_mpc_tko_speed.set(math::min(_param_mpc_tko_speed.get(), _param_mpc_z_vel_max_up.get()));
 		_param_mpc_land_speed.set(math::min(_param_mpc_land_speed.get(), _param_mpc_z_vel_max_dn.get()));
 
-		_takeoff.setSpoolupTime(_param_mpc_spoolup_time.get());
+		_takeoff.setSpoolupTime(_param_com_spoolup_time.get());
 		_takeoff.setTakeoffRampTime(_param_mpc_tko_ramp_t.get());
 		_takeoff.generateInitialRampValue(_param_mpc_z_vel_p_acc.get());
 	}

@@ -258,7 +258,9 @@ private:
 		(ParamInt<px4::params::CBRK_VTOLARMING>) _param_cbrk_vtolarming,
 
 		(ParamInt<px4::params::COM_FLT_TIME_MAX>) _param_com_flt_time_max,
-		(ParamFloat<px4::params::COM_WIND_MAX>) _param_com_wind_max
+		(ParamFloat<px4::params::COM_WIND_MAX>) _param_com_wind_max,
+
+		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time
 	)
 
 	// optional parameters
