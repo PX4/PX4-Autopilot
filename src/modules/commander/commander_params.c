@@ -1024,6 +1024,22 @@ PARAM_DEFINE_INT32(COM_ARM_ARSP_EN, 1);
 PARAM_DEFINE_INT32(COM_ARM_SDCARD, 1);
 
 /**
+ * Enforced delay between arming and further navigation
+ *
+ * The minimal time from arming the motors until moving the vehicle is possible is COM_SPOOLUP_TIME seconds.
+ * Goal:
+ * - Motors and propellers spool up to idle speed before getting commanded to spin faster
+ * - Timeout for ESCs and smart batteries to successfulyy do failure checks
+ *   e.g. for stuck rotors before the vehicle is off the ground
+ *
+ * @group Commander
+ * @min 0
+ * @max 5
+ * @unit s
+ */
+PARAM_DEFINE_FLOAT(COM_SPOOLUP_TIME, 1.0f);
+
+/**
  * Wind speed warning threshold
  *
  * A warning is triggered if the currently estimated wind speed is above this value.
