@@ -72,7 +72,7 @@ rgbled start -X -q
 rgbled_ncp5623c start -X -q
 rgbled_pwm start
 
-if param greater LIGHT_EN_BLINKM 0
+if param greater -s LIGHT_EN_BLINKM 0
 then
 	if blinkm start -X
 	then

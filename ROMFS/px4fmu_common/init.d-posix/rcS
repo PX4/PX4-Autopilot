@@ -225,7 +225,7 @@ commander start
 navigator start
 
 
-if ! param compare -s MNT_MODE_IN -1
+if param greater -s MNT_MODE_IN -1
 then
 	vmount start
 fi

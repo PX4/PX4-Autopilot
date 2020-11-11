@@ -18,7 +18,7 @@ set OUTPUT_DEV none
 # If mount (gimbal) control is enabled and output mode is AUX, set the aux
 # mixer to mount (override the airframe-specific MIXER_AUX setting).
 #
-if ! param compare -s MNT_MODE_IN -1
+if param greater -s MNT_MODE_IN -1
 then
         if param compare -s MNT_MODE_OUT 0
         then
@@ -43,13 +43,13 @@ then
 		if [ $IO_PRESENT = yes ]
 		then
 			set OUTPUT_MODE io
-			if param greater DSHOT_CONFIG 0
+			if param greater -s DSHOT_CONFIG 0
 			then
 				set OUTPUT_CMD dshot
 			fi
 		fi
 	else
-		if param greater DSHOT_CONFIG 0
+		if param greater -s DSHOT_CONFIG 0
 		then
 			set OUTPUT_MODE dshot
 			set OUTPUT_CMD dshot

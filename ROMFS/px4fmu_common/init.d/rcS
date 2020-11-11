@@ -244,7 +244,7 @@ else
 	rgbled start -X -q
 	rgbled_ncp5623c start -X -q
 
-	if param greater LIGHT_EN_BLINKM 0
+	if param greater -s LIGHT_EN_BLINKM 0
 	then
 		if blinkm start -X
 		then
@@ -410,7 +410,7 @@ else
 		set AUX_MODE pwm4
 	fi
 
-	if param greater TRIG_MODE 0
+	if param greater -s TRIG_MODE 0
 	then
 		# We ONLY support trigger on pins 5+6 or 7+8 when simultanously using AUX for actuator output.
 		if param compare TRIG_PINS 56
@@ -509,24 +509,24 @@ else
 	#
 	# Start vmount to control mounts such as gimbals, disabled by default.
 	#
-	if ! param compare MNT_MODE_IN -1
+	if param greater -s MNT_MODE_IN -1
 	then
 		vmount start
 	fi
 
 	# Check for flow sensor
-	if param compare SENS_EN_PX4FLOW 1
+	if param compare -s SENS_EN_PX4FLOW 1
 	then
 		px4flow start -X
 	fi
 
 	# Blacksheep telemetry
-	if param greater TEL_BST_EN 0
+	if param compare -s TEL_BST_EN 1
 	then
 		bst start -X
 	fi
 
-	if param compare IMU_GYRO_FFT_EN 1
+	if param compare -s IMU_GYRO_FFT_EN 1
 	then
 		gyro_fft start
 	fi
