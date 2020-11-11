@@ -42,6 +42,15 @@
 
 bool param_modify_on_import(bson_node_t node)
 {
+	// migrate MPC_SPOOLUP_TIME -> COM_SPOOLUP_TIME (2020-12-03). This can be removed after the next release (current release=1.11)
+	if (node->type == BSON_DOUBLE) {
+		if (strcmp("MPC_SPOOLUP_TIME", node->name) == 0) {
+			strcpy(node->name, "COM_SPOOLUP_TIME");
+			PX4_INFO("param migrating MPC_SPOOLUP_TIME (removed) -> COM_SPOOLUP_TIME: value=%.3f", node->d);
+			return true;
+		}
+	}
+
 	// migrate COM_ARM_AUTH -> COM_ARM_AUTH_ID, COM_ARM_AUTH_MET and COM_ARM_AUTH_TO (2020-11-06). This can be removed after the next release (current release=1.11)
 	if (node->type == BSON_INT32) {
 		if (strcmp("COM_ARM_AUTH", node->name) == 0) {

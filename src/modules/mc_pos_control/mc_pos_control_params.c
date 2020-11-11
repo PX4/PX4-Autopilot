@@ -781,22 +781,6 @@ PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 3.0f);
 PARAM_DEFINE_INT32(MPC_POS_MODE, 4);
 
 /**
- * Enforced delay between arming and takeoff
- *
- * For altitude controlled modes the time from arming the motors until
- * a takeoff is possible gets forced to be at least MPC_SPOOLUP_TIME seconds
- * to ensure the motors and propellers can sppol up and reach idle speed before
- * getting commanded to spin faster. This delay is particularly useful for vehicles
- * with slow motor spin-up e.g. because of large propellers.
- *
- * @min 0
- * @max 10
- * @unit s
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_SPOOLUP_TIME, 1.0f);
-
-/**
  * Yaw mode.
  *
  * Specifies the heading in Auto.
