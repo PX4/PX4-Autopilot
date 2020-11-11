@@ -1682,6 +1682,7 @@ FixedwingPositionControl::Run()
 			_min_current_sp_distance_xy = FLT_MAX;
 		}
 
+		airspeed_poll();
 		manual_control_setpoint_poll();
 		vehicle_attitude_poll();
 		vehicle_command_poll();
