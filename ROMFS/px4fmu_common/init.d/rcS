@@ -32,7 +32,6 @@ set FMU_MODE pwm
 set FRC /fs/microsd/etc/rc.txt
 set IOFW "/etc/extras/px4_io-v2_default.bin"
 set IO_PRESENT no
-set LOG_FILE /fs/microsd/bootlog.txt
 set LOGGER_ARGS ""
 set LOGGER_BUF  14
 set MAV_TYPE none
@@ -140,10 +139,7 @@ else
 		else
 			set STARTUP_TUNE 15 # tune 15 = SD_ERROR
 			echo "ERROR [init] format failed"
-			set LOG_FILE /dev/null
 		fi
-	else
-		set LOG_FILE /dev/null
 	fi
 fi
 
@@ -313,7 +309,7 @@ else
 					tune_control stop
 					if px4io checkcrc ${IOFW}
 					then
-						echo "PX4IO CRC OK after updating" >> $LOG_FILE
+						echo "PX4IO CRC OK after updating"
 						tune_control play -t 17 # tune 17 = PROG_PX4IO_OK
 						set IO_PRESENT yes
 					fi
@@ -321,7 +317,7 @@ else
 
 				if [ $IO_PRESENT = no ]
 				then
-					echo "PX4IO update failed" >> $LOG_FILE
+					echo "PX4IO update failed"
 					tune_control play -t 18 # tune 18 = PROG_PX4IO_ERR
 				fi
 			fi
@@ -338,7 +334,7 @@ else
 
 	if [ $USE_IO = yes -a $IO_PRESENT = no ]
 	then
-		echo "PX4IO not found" >> $LOG_FILE
+		echo "PX4IO not found"
 		tune_control play error
 	fi
 
@@ -593,7 +589,6 @@ unset FMU_MODE
 unset FRC
 unset IO_PRESENT
 unset IOFW
-unset LOG_FILE
 unset LOGGER_ARGS
 unset LOGGER_BUF
 unset MAV_TYPE
