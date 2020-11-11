@@ -486,7 +486,7 @@ int uORBTest::UnitTest::test_multi2()
 	int pubsub_task = px4_task_spawn_cmd("uorb_test_multi",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_MAX - 5,
-					     3000,
+					     2000,
 					     (px4_main_t)&uORBTest::UnitTest::pub_test_multi2_entry,
 					     args);
 
@@ -1019,7 +1019,7 @@ int uORBTest::UnitTest::test_queue_poll_notify()
 	int pubsub_task = px4_task_spawn_cmd("uorb_test_queue",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_MIN + 5,
-					     3000,
+					     2000,
 					     (px4_main_t)&uORBTest::UnitTest::pub_test_queue_entry,
 					     args);
 
