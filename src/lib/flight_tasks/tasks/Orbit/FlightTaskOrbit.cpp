@@ -156,7 +156,7 @@ bool FlightTaskOrbit::checkAcceleration(float r, float v, float a)
 
 bool FlightTaskOrbit::activate(const vehicle_local_position_setpoint_s &last_setpoint)
 {
-	bool ret = FlightTaskManualAltitudeSmooth::activate(last_setpoint);
+	bool ret = FlightTaskManualAltitudeSmoothVel::activate(last_setpoint);
 	_r = _radius_min;
 	_v =  1.f;
 	_center = Vector2f(_position);
@@ -177,7 +177,7 @@ bool FlightTaskOrbit::activate(const vehicle_local_position_setpoint_s &last_set
 bool FlightTaskOrbit::update()
 {
 	// update altitude
-	bool ret = FlightTaskManualAltitudeSmooth::update();
+	bool ret = FlightTaskManualAltitudeSmoothVel::update();
 
 	// stick input adjusts parameters within a fixed time frame
 	const float r = _r - _sticks.getPositionExpo()(0) * _deltatime * (_radius_max / 8.f);
