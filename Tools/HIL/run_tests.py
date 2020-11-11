@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/env python3
 
 import serial, time
 import subprocess
@@ -7,52 +7,53 @@ from argparse import ArgumentParser
 import re
 import unittest
 import os
+import sys
 
 def do_test(port, baudrate, test_name):
     databits = serial.EIGHTBITS
     stopbits = serial.STOPBITS_ONE
     parity = serial.PARITY_NONE
-    ser = serial.Serial(port, baudrate, databits, parity, stopbits, timeout=10)
-
-    ser.write('\n')
+    ser = serial.Serial(port, baudrate, databits, parity, stopbits, timeout=1)
 
     success = False
 
-    timeout = 10  # 10 seconds
+    # run test cmd
+    print('\n|======================================================================')
+    cmd = 'tests ' + test_name
+    print("| Running:", cmd)
+    print('|======================================================================')
     timeout_start = time.time()
-
+    timeout = 10  # 10 seconds
     while True:
-        serial_line = ser.readline()
-        print(serial_line.replace('\n',''))
+        serial_cmd = '{0}\n'.format(cmd)
+        ser.write(serial_cmd.encode("utf-8"))
+        ser.flush()
 
-        if "nsh>" in serial_line:
+        serial_line = ser.readline().decode("utf-8", errors='ignore')
+
+        if cmd in serial_line:
             break
-        elif "NuttShell (NSH)" in serial_line:
-            break
+        else:
+            print(serial_line.replace('\n', ''))
 
         if time.time() > timeout_start + timeout:
-            print("Error, timeout")
-            break
+            print("Error, unable to write cmd")
+            return False
 
-        ser.write('\n')
-        time.sleep(0.01)
+        time.sleep(1)
 
 
-    # run test cmd
-    cmd = 'tests ' + test_name
-    ser.write(cmd + '\n')
-
+    # print results, wait for final result (PASSED or FAILED)
     timeout = 180  # 3 minutes
     timeout_start = time.time()
     timeout_newline = timeout_start
 
     while True:
-        serial_line = ser.readline()
-        print(serial_line.replace('\n',''))
+        serial_line = ser.readline().decode("utf-8", errors='ignore')
+        if (len(serial_line) > 0):
+            print(serial_line.replace('\n', ''))
 
-        if cmd in serial_line:
-            continue
-        elif test_name + " PASSED" in serial_line:
+        if test_name + " PASSED" in serial_line:
             success = True
             break
         elif test_name + " FAILED" in serial_line:
@@ -65,9 +66,9 @@ def do_test(port, baudrate, test_name):
             success = False
             break
 
-        # newline every 30 seconds if still running
-        if time.time() - timeout_newline > 30:
-            ser.write('\n')
+        # newline every 10 seconds if still running
+        if time.time() - timeout_newline > 10:
+            ser.write("\n".encode("utf-8"))
             timeout_newline = time.time()
 
     ser.close()
@@ -170,14 +171,14 @@ class TestHardwareMethods(unittest.TestCase):
 
 def main():
     parser = ArgumentParser(description=__doc__)
-    parser.add_argument('--device', "-d", nargs='?', default = None, help='')
+    parser.add_argument('--device', "-d", nargs='?', default=None, help='', required=True)
     parser.add_argument("--baudrate", "-b", dest="baudrate", type=int, help="Mavlink port baud rate (default=57600)", default=57600)
     args = parser.parse_args()
 
     TestHardwareMethods.TEST_DEVICE = args.device
     TestHardwareMethods.TEST_BAUDRATE = args.baudrate
 
-    unittest.main(__name__, argv=['main'])
+    unittest.main(__name__, failfast=True, verbosity=0, argv=['main'])
 
 if __name__ == "__main__":
    main()
