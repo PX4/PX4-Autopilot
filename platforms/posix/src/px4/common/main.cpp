@@ -62,6 +62,10 @@
 #include <sys/file.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(__PX4_LINUX)
+#include <sys/mman.h>
+#include <sys/capability.h>
+#endif
 
 #include <px4_platform_common/time.h>
 #include <px4_platform_common/log.h>
@@ -287,6 +291,44 @@ int main(int argc, char **argv)
 		if (ret != 0) {
 			return PX4_ERROR;
 		}
+
+#if defined(__PX4_LINUX)	// Linux specific
+		// check capabilities and try to mlockall
+		__user_cap_header_struct hdrp;
+		__user_cap_data_struct datap;
+		hdrp.version = 0x0;	// filled with invalid value
+
+		if (capget(&hdrp, &datap) == -1) {	// -1 is expected
+			if (hdrp.version == _LINUX_CAPABILITY_VERSION_3) {
+				hdrp.pid = getpid();
+
+				if (capget(&hdrp, &datap) == 0) {
+					if (datap.effective & CAP_TO_MASK(CAP_IPC_LOCK)) {
+						if (mlockall(MCL_CURRENT) + mlockall(MCL_FUTURE)) {
+							PX4_ERR("mlockall() failed! errno: %d", errno);
+							munlockall();
+
+						} else {
+							PX4_INFO("mlockall() enabled.");
+						}
+
+					} else {
+						PX4_WARN("mlockall() disabled. Take care of memory usage.");
+					}
+
+				} else {
+					PX4_ERR("failed to check current capabilities. errno: %d", errno);
+				}
+
+			} else {
+				PX4_ERR("kernel doesn't prefer _LINUX_CAPABILITY_VERSION_3");
+			}
+
+		} else {	// what's happened?
+			PX4_ERR("capget() cannot check supported CAPABILITY_VERSION from kernel!");
+		}
+
+#endif
 
 		// We now block here until we need to exit.
 		if (pxh_off) {
