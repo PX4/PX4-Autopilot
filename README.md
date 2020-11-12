@@ -1,4 +1,10 @@
-# PX4 Drone Autopilot
+# PX4 Autopilot Extended to Fully-Actuated Multirotors
+
+This is the repository for the PX4 autopilot with the enhanced ability to work with fully-actuated robots. It additionally provides implementations of attitude strategies for fully-actuated multorotors that allow the 6-DoF flight. It includes the definitions for a hexarotor with all rotors tilted sideways and has been tested on several UAVs. 
+
+For more information and to access the publications, please visit [the AirLab's website](http://theairlab.org/fully-actuated).
+
+## PX4 Drone Autopilot
 
 [![Releases](https://img.shields.io/github/release/PX4/Firmware.svg)](https://github.com/PX4/Firmware/releases) [![DOI](https://zenodo.org/badge/22634/PX4/Firmware.svg)](https://zenodo.org/badge/latestdoi/22634/PX4/Firmware)
 
