@@ -110,6 +110,7 @@ using matrix::wrap_2pi;
 
 #include "streams/ALTITUDE.hpp"
 #include "streams/AUTOPILOT_VERSION.hpp"
+#include "streams/DISTANCE_SENSOR.hpp"
 #include "streams/ESC_INFO.hpp"
 #include "streams/ESC_STATUS.hpp"
 #include "streams/EXTENDED_SYS_STATE.hpp"
@@ -4374,97 +4375,6 @@ protected:
 	}
 };
 
-class MavlinkStreamDistanceSensor : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamDistanceSensor::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "DISTANCE_SENSOR";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_DISTANCE_SENSOR;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamDistanceSensor(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return _distance_sensor_subs.advertised_count() * (MAVLINK_MSG_ID_DISTANCE_SENSOR_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES);
-	}
-
-private:
-	uORB::SubscriptionMultiArray<distance_sensor_s> _distance_sensor_subs{ORB_ID::distance_sensor};
-
-	/* do not allow top copying this class */
-	MavlinkStreamDistanceSensor(MavlinkStreamDistanceSensor &) = delete;
-	MavlinkStreamDistanceSensor &operator = (const MavlinkStreamDistanceSensor &) = delete;
-
-protected:
-	explicit MavlinkStreamDistanceSensor(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send() override
-	{
-		bool updated = false;
-
-		for (int i = 0; i < _distance_sensor_subs.size(); i++) {
-			distance_sensor_s dist_sensor;
-
-			if (_distance_sensor_subs[i].update(&dist_sensor)) {
-				mavlink_distance_sensor_t msg{};
-
-				msg.time_boot_ms = dist_sensor.timestamp / 1000; /* us to ms */
-
-				switch (dist_sensor.type) {
-				case MAV_DISTANCE_SENSOR_ULTRASOUND:
-					msg.type = MAV_DISTANCE_SENSOR_ULTRASOUND;
-					break;
-
-				case MAV_DISTANCE_SENSOR_LASER:
-					msg.type = MAV_DISTANCE_SENSOR_LASER;
-					break;
-
-				case MAV_DISTANCE_SENSOR_INFRARED:
-					msg.type = MAV_DISTANCE_SENSOR_INFRARED;
-					break;
-
-				default:
-					msg.type = MAV_DISTANCE_SENSOR_LASER;
-					break;
-				}
-
-				msg.current_distance = dist_sensor.current_distance * 1e2f; // m to cm
-				msg.id               = i;
-				msg.max_distance     = dist_sensor.max_distance * 1e2f;     // m to cm
-				msg.min_distance     = dist_sensor.min_distance * 1e2f;     // m to cm
-				msg.orientation      = dist_sensor.orientation;
-				msg.covariance       = dist_sensor.variance * 1e4f;         // m^2 to cm^2
-
-				mavlink_msg_distance_sensor_send_struct(_mavlink->get_channel(), &msg);
-
-				updated = true;
-			}
-		}
-
-		return updated;
-	}
-};
-
 static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamHeartbeat>(),
 	create_stream_list_item<MavlinkStreamStatustext>(),
@@ -4521,7 +4431,9 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamCameraCapture>(),
 	create_stream_list_item<MavlinkStreamCameraTrigger>(),
 	create_stream_list_item<MavlinkStreamCameraImageCaptured>(),
+#if defined(DISTANCE_SENSOR_HPP)
 	create_stream_list_item<MavlinkStreamDistanceSensor>(),
+#endif // DISTANCE_SENSOR_HPP
 #if defined(EXTENDED_SYS_STATE_HPP)
 	create_stream_list_item<MavlinkStreamExtendedSysState>(),
 #endif // EXTENDED_SYS_STATE_HPP
