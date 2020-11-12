@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <lib/conversion/rotation.h>
 #include <matrix/math.hpp>
 
 namespace calibration
@@ -91,10 +92,24 @@ bool SetCalibrationParamsVector3f(const char *sensor_type, const char *cal_type,
 				  matrix::Vector3f values);
 
 /**
- * @brief Get the overall board rotation, including level adjustment.
+ * @brief Get the board sensor level adjustment (SENS_BOARD_X_OFF, SENS_BOARD_Y_OFF, SENS_BOARD_Z_OFF).
+ *
+ * @return matrix::Eulerf
+ */
+matrix::Eulerf GetSensorLevelAdjustment();
+
+/**
+ * @brief Get the board rotation.
+ *
+ * @return enum Rotation
+ */
+Rotation GetBoardRotation();
+
+/**
+ * @brief Get the board rotation Dcm.
  *
  * @return matrix::Dcmf
  */
-matrix::Dcmf GetBoardRotation();
+matrix::Dcmf GetBoardRotationMatrix();
 
 } // namespace calibration

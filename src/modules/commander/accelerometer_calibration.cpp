@@ -228,7 +228,7 @@ static calibrate_return read_accelerometer_avg(float (&accel_avg)[MAX_ACCEL_SENS
 	}
 
 	// rotate sensor measurements from sensor to body frame using board rotation matrix
-	const Dcmf board_rotation = calibration::GetBoardRotation();
+	const Dcmf board_rotation = calibration::GetBoardRotationMatrix();
 
 	for (unsigned s = 0; s < MAX_ACCEL_SENS; s++) {
 		accel_sum[s] = board_rotation * accel_sum[s];
@@ -362,7 +362,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	if (calibrate_from_orientation(mavlink_log_pub, data_collected, accel_calibration_worker, &worker_data,
 				       false) == calibrate_return_ok) {
 
-		const Dcmf board_rotation = calibration::GetBoardRotation();
+		const Dcmf board_rotation = calibration::GetBoardRotationMatrix();
 		const Dcmf board_rotation_t = board_rotation.transpose();
 
 		bool param_save = false;

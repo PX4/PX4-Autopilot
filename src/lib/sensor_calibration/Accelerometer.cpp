@@ -126,7 +126,9 @@ void Accelerometer::SensorCorrectionsUpdate(bool force)
 void Accelerometer::set_rotation(Rotation rotation)
 {
 	_rotation_enum = rotation;
-	_rotation = get_rot_matrix(rotation);
+
+	// always apply board level adjustments
+	_rotation = Dcmf(GetSensorLevelAdjustment()) * get_rot_matrix(rotation);
 }
 
 void Accelerometer::ParametersUpdate()
@@ -151,8 +153,7 @@ void Accelerometer::ParametersUpdate()
 				SetCalibrationParam(SensorString(), "ROT", _calibration_index, rotation_value);
 			}
 
-			_rotation_enum = static_cast<Rotation>(rotation_value);
-			_rotation = get_rot_matrix(_rotation_enum);
+			set_rotation(static_cast<Rotation>(rotation_value));
 
 		} else {
 			// internal, CAL_ACCx_ROT -1
@@ -162,8 +163,8 @@ void Accelerometer::ParametersUpdate()
 				SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1);
 			}
 
-			_rotation = GetBoardRotation();
-			_rotation_enum = ROTATION_NONE;
+			// internal sensors follow board rotation
+			set_rotation(GetBoardRotation());
 		}
 
 		// CAL_ACCx_PRIO
