@@ -157,9 +157,6 @@ class TestHardwareMethods(unittest.TestCase):
     def test_sleep(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "sleep"))
 
-    def test_smoothz(self):
-        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "smoothz"))
-
     def test_time(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "time"))
 
