@@ -183,7 +183,6 @@ private:
 	float			_pseudo_oblique_roll_angle;
 	float			_pseudo_oblique_angle_interval;
 	float			_pseudo_oblique_pitch_angle;
-	float			_move_distance;
 	bool			_updated_roll_angle;
 	uint32_t		_target_system;
 	uint32_t		_target_component;
@@ -276,7 +275,6 @@ CameraTrigger::CameraTrigger() :
 	_pseudo_oblique_roll_angle(0.0f),
 	_pseudo_oblique_angle_interval(0.0f),
 	_pseudo_oblique_pitch_angle(-90),
-	_move_distance(0.0f),
 	_updated_roll_angle(false),
 	_target_system(0),
 	_target_component(0),
@@ -410,15 +408,15 @@ CameraTrigger::update_distance()
 			}
 		}
 
-		float current_distance = matrix::Vector2f(_last_shoot_position - current_position).length();
+		hrt_abstime now = hrt_absolute_time();
 
-		if (_pseudo_oblique_num_poses > 0 && current_distance > _move_distance && !_updated_roll_angle) {
+		if (!_updated_roll_angle && _pseudo_oblique_num_poses > 0 && (now - _last_trigger_timestamp > _min_interval * 1000)) {
 			adjust_roll();
 			_updated_roll_angle = true;
 		}
 
 		// Check that distance threshold is exceeded
-		if (current_distance >= _distance) {
+		if (matrix::Vector2f(_last_shoot_position - current_position).length() >= _distance) {
 			shoot_once();
 			_updated_roll_angle = false;
 			_last_shoot_position = current_position;
@@ -650,27 +648,6 @@ CameraTrigger::Run()
 				_one_shot = true;
 			}
 
-			// Camera Auto Mount Pseudo Oblique Solution (CAMPOS)
-			if (cmd.param4 >= 2.0f) {
-				_pseudo_oblique_num_poses = commandParamToInt(cmd.param4);
-
-				if (cmd.param5 > 0.0) {
-					_pseudo_oblique_roll_angle = cmd.param5;
-
-				} else {
-					_pseudo_oblique_roll_angle = 30.0f;
-				}
-
-				_pseudo_oblique_pitch_angle = cmd.param6;
-				_pseudo_oblique_angle_interval = _pseudo_oblique_roll_angle * 2 / (_pseudo_oblique_num_poses - 1);
-				_pseudo_oblique_pose_counter = 0;
-				_move_distance = _distance / 2;
-				_updated_roll_angle = false;
-
-			} else {
-				_pseudo_oblique_num_poses = 0;
-			}
-
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_INTERVAL) {
@@ -688,6 +665,62 @@ CameraTrigger::Run()
 					_activation_time = cmd.param2;
 					param_set_no_notification(_p_activation_time, &_activation_time);
 				}
+			}
+
+			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_OBLIQUE_SURVEY) {
+
+			// Camera Auto Mount Pivoting Oblique Survey (CAMPOS)
+
+			need_ack = true;
+
+			if (cmd.param1 > 0.0f) {
+				_distance = cmd.param1;
+				param_set_no_notification(_p_distance, &_distance);
+
+				_trigger_enabled = true;
+				_trigger_paused = false;
+				_valid_position = false;
+
+			} else if (commandParamToInt(cmd.param1) == 0) {
+				_trigger_paused = true;
+
+			} else if (commandParamToInt(cmd.param1) == -1) {
+				_trigger_enabled = false;
+			}
+
+			// We can only control the shutter integration time of the camera in GPIO mode (for now)
+			if (cmd.param2 > 0.0f) {
+				if (_camera_interface_mode == CAMERA_INTERFACE_MODE_GPIO) {
+					_activation_time = cmd.param2;
+					param_set_no_notification(_p_activation_time, &(_activation_time));
+				}
+			}
+
+			// Set Param for minimum camera trigger interval
+			if (cmd.param3 > 0.0f) {
+				_min_interval = cmd.param3;
+				param_set_no_notification(_p_min_interval, &(_min_interval));
+			}
+
+			if (cmd.param4 >= 2.0f) {
+				_pseudo_oblique_num_poses = commandParamToInt(cmd.param4);
+
+				if (cmd.param5 > 0.0) {
+					_pseudo_oblique_roll_angle = cmd.param5;
+
+				} else {
+					_pseudo_oblique_roll_angle = 30.0f;
+				}
+
+				_pseudo_oblique_pitch_angle = cmd.param6;
+				_pseudo_oblique_angle_interval = _pseudo_oblique_roll_angle * 2 / (_pseudo_oblique_num_poses - 1);
+				_pseudo_oblique_pose_counter = 0;
+				_updated_roll_angle = false;
+
+			} else {
+				_pseudo_oblique_num_poses = 0;
 			}
 
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
