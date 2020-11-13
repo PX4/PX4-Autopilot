@@ -1,5 +1,6 @@
 add_definitions(
 	-D__PX4_LINUX
+	-D__PX4_POSIX_MEMLOCK
 )
 
 px4_add_board(
