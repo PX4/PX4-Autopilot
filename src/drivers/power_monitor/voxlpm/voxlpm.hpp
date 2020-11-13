@@ -253,7 +253,7 @@ private:
 	perf_counter_t		_comms_errors;
 
 	uORB::PublicationMulti<power_monitor_s>		_pm_pub_topic{ORB_ID(power_monitor)};
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 500_ms};
 
 	power_monitor_s 	_pm_status{};
 

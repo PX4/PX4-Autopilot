@@ -208,7 +208,7 @@ private:
 
 	Mode		_mode{MODE_NONE};
 
-	uORB::Subscription _param_sub{ORB_ID(parameter_update)};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 500_ms};
 
 	Command _current_command;
 	px4::atomic<Command *> _new_command{nullptr};
@@ -780,7 +780,7 @@ DShotOutput::Run()
 		}
 	}
 
-	if (_param_sub.updated()) {
+	if (_parameter_update_sub.updated()) {
 		update_params();
 	}
 
@@ -809,7 +809,7 @@ DShotOutput::Run()
 void DShotOutput::update_params()
 {
 	parameter_update_s pupdate;
-	_param_sub.update(&pupdate);
+	_parameter_update_sub.update(&pupdate);
 
 	updateParams();
 
@@ -817,7 +817,6 @@ void DShotOutput::update_params()
 	_mixing_output.setAllMinValues(math::constrain((int)(_param_dshot_min.get() * (float)DSHOT_MAX_THROTTLE),
 				       DISARMED_VALUE + 1, DSHOT_MAX_THROTTLE));
 }
-
 
 int
 DShotOutput::ioctl(file *filp, int cmd, unsigned long arg)

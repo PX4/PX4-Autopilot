@@ -53,6 +53,8 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_odometry.h>
 
+using namespace time_literals;
+
 static constexpr uint8_t EKF2_MAX_INSTANCES{9};
 static_assert(EKF2_MAX_INSTANCES <= ORB_MULTI_MAX_INSTANCES, "EKF2_MAX_INSTANCES must be <= ORB_MULTI_MAX_INSTANCES");
 
@@ -175,7 +177,7 @@ private:
 
 	int _lockstep_component{-1};
 
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 500_ms};
 	uORB::Subscription _sensors_status_imu{ORB_ID(sensors_status_imu)};
 
 	// Publications

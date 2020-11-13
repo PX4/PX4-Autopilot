@@ -53,6 +53,7 @@
 #define PCA9685_DEFAULT_ADDRESS (0x40)
 
 using namespace drv_pca9685_pwm;
+using namespace time_literals;
 
 class PWMDriverWrapper : public cdev::CDev, public ModuleBase<PWMDriverWrapper>, public OutputModuleInterface
 {
@@ -98,7 +99,7 @@ protected:
 
 	PCA9685 *pca9685 = nullptr; // driver handle.
 
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)}; // param handle
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 500_ms};
 
 	MixingOutput _mixing_output{PCA9685_PWM_CHANNEL_COUNT, *this, MixingOutput::SchedulingPolicy::Disabled, true};
 };
