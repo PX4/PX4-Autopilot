@@ -19,7 +19,7 @@ def monitor_firmware_upload(port, baudrate):
     timeout_newline = time.time()
 
     while finished == 0:
-        serial_line = ser.readline().decode("utf-8", errors='ignore')
+        serial_line = ser.readline().decode("ascii", errors='ignore')
         if (len(serial_line) > 0):
             print(serial_line.replace('\n', ''))
 
@@ -40,7 +40,7 @@ def monitor_firmware_upload(port, baudrate):
         # newline every 10 seconds if still running
         if time.time() - timeout_newline > 10:
             timeout_newline = time.time()
-            ser.write('\n'.encode("utf-8"))
+            ser.write('\n'.encode("ascii"))
             ser.flush()
 
     ser.close()
