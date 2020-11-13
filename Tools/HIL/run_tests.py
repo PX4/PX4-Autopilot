@@ -24,23 +24,35 @@ def do_test(port, baudrate, test_name):
     print('|======================================================================')
     timeout_start = time.time()
     timeout = 10  # 10 seconds
-    while True:
-        serial_cmd = '{0}\n'.format(cmd)
-        ser.write(serial_cmd.encode("utf-8"))
-        ser.flush()
 
-        serial_line = ser.readline().decode("utf-8", errors='ignore')
+    # clear
+    ser.write("\n".encode("ascii"))
+    ser.flush()
+    ser.readline()
 
-        if cmd in serial_line:
-            break
-        else:
-            print(serial_line.replace('\n', ''))
+    serial_cmd = '{0}\n'.format(cmd)
+    ser.write(serial_cmd.encode("ascii"))
+    ser.flush()
+    ser.readline()
 
-        if time.time() > timeout_start + timeout:
-            print("Error, unable to write cmd")
-            return False
+    # TODO: retry command
+    # while True:
+    #     serial_cmd = '{0}\n'.format(cmd)
+    #     ser.write(serial_cmd.encode("ascii"))
+    #     ser.flush()
 
-        time.sleep(1)
+    #     serial_line = ser.readline().decode("ascii", errors='ignore')
+
+    #     if cmd in serial_line:
+    #         break
+    #     else:
+    #         print(serial_line.replace('\n', ''))
+
+    #     if time.time() > timeout_start + timeout:
+    #         print("Error, unable to write cmd")
+    #         return False
+
+    #     time.sleep(1)
 
 
     # print results, wait for final result (PASSED or FAILED)
@@ -49,9 +61,9 @@ def do_test(port, baudrate, test_name):
     timeout_newline = timeout_start
 
     while True:
-        serial_line = ser.readline().decode("utf-8", errors='ignore')
+        serial_line = ser.readline().decode("ascii", errors='ignore')
         if (len(serial_line) > 0):
-            print(serial_line.replace('\n', ''))
+            print(serial_line, end='')
 
         if test_name + " PASSED" in serial_line:
             success = True
@@ -68,7 +80,7 @@ def do_test(port, baudrate, test_name):
 
         # newline every 10 seconds if still running
         if time.time() - timeout_newline > 10:
-            ser.write("\n".encode("utf-8"))
+            ser.write("\n".encode("ascii"))
             timeout_newline = time.time()
 
     ser.close()
