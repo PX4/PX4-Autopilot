@@ -508,9 +508,9 @@ protected:
 
 	bool send() override
 	{
-		if (!_mavlink->get_logbuffer()->empty() && _mavlink->is_connected()) {
+		if (!_mavlink->get_logbuffer()->empty() && _mavlink->is_connected() && _mavlink->get_free_tx_buf() >= get_size()) {
 
-			mavlink_log_s mavlink_log{};
+			mavlink_log_s mavlink_log;
 
 			if (_mavlink->get_logbuffer()->get(&mavlink_log)) {
 
