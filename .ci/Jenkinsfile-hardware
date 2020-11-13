@@ -385,6 +385,9 @@ pipeline {
                   steps {
                     sh 'export'
                     sh 'find /dev/serial'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set SYS_AUTOSTART 4001"' // generic multicopter
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set IMU_GYRO_RATEMAX 250"'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param save"'
                     unstash 'px4_fmu-v5_debug'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_debug/px4_fmu-v5_debug.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
@@ -531,6 +534,9 @@ pipeline {
                   steps {
                     sh 'export'
                     sh 'find /dev/serial'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set SYS_AUTOSTART 4001"' // generic multicopter
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set IMU_GYRO_RATEMAX 250"'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param save"'
                     unstash 'px4_fmu-v5_stackcheck'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_stackcheck/px4_fmu-v5_stackcheck.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
