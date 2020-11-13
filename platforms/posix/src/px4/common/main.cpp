@@ -62,7 +62,7 @@
 #include <sys/file.h>
 #include <stdlib.h>
 #include <string.h>
-#if defined(__PX4_POSIX_MEMLOCK)
+#if defined(__PX4_LINUX)
 #include <sys/mman.h>
 #endif
 
@@ -177,21 +177,20 @@ int main(int argc, char **argv)
 		return client.process_args(argc, (const char **)argv);
 
 	} else {
-#if defined(__PX4_POSIX_MEMLOCK)
+#if defined(__PX4_LINUX)	// Linux specific
 
+		// TODO: Check CAP_IPC_LOCK instead of uid
 		// try to lock address space into RAM, to avoid page swap delay
-		// Any builds with __PX4_POSIX_MEMLOCK assumed to be run as root
-		// TODO: Check CAP_IPC_LOCK instead of euid
 		if (geteuid() != 0) {	// not the root user
 			PX4_WARN("mlockall() disabled. Take care of memory usage.");
 
 		} else {
-			if (mlockall(MCL_CURRENT) + mlockall(MCL_FUTURE)) {	// check if both works
+			if (mlockall(MCL_CURRENT) + mlockall(MCL_FUTURE)) {
 				PX4_ERR("mlockall() failed! errno: %d", errno);
-				munlockall();	// avoid mlock limitation caused alloc failure in future
+				munlockall();
 
 			} else {
-				PX4_INFO("mlockall() enabled. PX4's virtual address space is locked into RAM.");
+				PX4_INFO("mlockall() enabled.");
 			}
 		}
 
