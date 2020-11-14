@@ -185,10 +185,7 @@ int main(int argc, char **argv)
 
 		// try to lock address space into RAM, to avoid page swap delay
 		// TODO: Check CAP_IPC_LOCK instead of euid
-		if (geteuid() != 0) {	// not the root user
-			PX4_WARN("mlockall() disabled. Take care of memory usage.");
-
-		} else {
+		if (geteuid() == 0) {   // root user
 			if (mlockall(MCL_CURRENT) + mlockall(MCL_FUTURE)) {	// check if both works
 				PX4_ERR("mlockall() failed! errno: %d", errno);
 				munlockall();	// avoid mlock limitation caused alloc failure in future
