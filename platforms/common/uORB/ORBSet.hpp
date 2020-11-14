@@ -143,4 +143,3 @@ private:
 	Node *_top;
 	Node *_end;
 };
-

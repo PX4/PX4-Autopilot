@@ -74,13 +74,6 @@ sercon
 ver all
 
 #
-# Start the ORB (first app to start)
-# tone_alarm and tune_control
-# is dependent.
-#
-uorb start
-
-#
 # Try to mount the microSD card.
 #
 # REBOOTWORK this needs to start after the flight control loop.
