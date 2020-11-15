@@ -59,7 +59,6 @@
 #endif
 
 #include <containers/List.hpp>
-#include <drivers/device/ringbuffer.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/cli.h>
@@ -69,10 +68,8 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
-#include <systemlib/mavlink_log.h>
 #include <systemlib/uthash/utlist.h>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/radio_status.h>
 #include <uORB/topics/telemetry_status.h>
@@ -437,8 +434,6 @@ public:
 
 	void			update_radio_status(const radio_status_s &radio_status);
 
-	ringbuffer::RingBuffer	*get_logbuffer() { return &_logbuffer; }
-
 	unsigned		get_system_type() { return _param_mav_type.get(); }
 
 	Protocol 		get_protocol() const { return _protocol; }
@@ -564,8 +559,6 @@ private:
 	MAVLINK_MODE 		_mode{MAVLINK_MODE_NORMAL};
 
 	mavlink_channel_t	_channel{MAVLINK_COMM_0};
-
-	ringbuffer::RingBuffer	_logbuffer{5, sizeof(mavlink_log_s)};
 
 	pthread_t		_receive_thread {};
 

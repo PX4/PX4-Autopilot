@@ -50,6 +50,7 @@
 
 #include <lib/ecl/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
+#include <lib/systemlib/mavlink_log.h>
 #include <lib/version/version.h>
 #include <uORB/Publication.hpp>
 
@@ -2151,8 +2152,6 @@ Mavlink::task_main(int argc, char *argv[])
 	/* command ack */
 	uORB::Publication<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
 
-	uORB::Subscription mavlink_log_sub{ORB_ID(mavlink_log)};
-
 	vehicle_status_s status{};
 	status_sub.copy(&status);
 
@@ -2170,7 +2169,7 @@ Mavlink::task_main(int argc, char *argv[])
 		/* HEARTBEAT is constant rate stream, rate never adjusted */
 		configure_stream("HEARTBEAT", 1.0f);
 
-		/* STATUSTEXT stream is like normal stream but gets messages from logbuffer instead of uORB */
+		/* STATUSTEXT stream */
 		configure_stream("STATUSTEXT", 20.0f);
 
 		/* COMMAND_LONG stream: use unlimited rate to send all commands */
@@ -2360,12 +2359,6 @@ Mavlink::task_main(int argc, char *argv[])
 				mavlink_msg_command_ack_send_struct(get_channel(), &msg);
 				//_transmitting_enabled = _transmitting_enabled_temp;
 			}
-		}
-
-		mavlink_log_s mavlink_log;
-
-		if (mavlink_log_sub.update(&mavlink_log)) {
-			_logbuffer.put(&mavlink_log);
 		}
 
 		/* check for shell output */
