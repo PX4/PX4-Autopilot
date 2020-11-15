@@ -38,7 +38,7 @@
 #include <battery/battery.h>
 
 #include <drivers/device/device.h>
-#include <drivers/device/ringbuffer.h>
+#include "ringbuffer.h"
 
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/parameter_update.h>
