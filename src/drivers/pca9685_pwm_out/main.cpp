@@ -58,7 +58,7 @@ class PWMDriverWrapper : public cdev::CDev, public ModuleBase<PWMDriverWrapper>,
 {
 public:
 
-	PWMDriverWrapper();
+	PWMDriverWrapper(int schd_rate_limit = 400);
 	~PWMDriverWrapper() override ;
 
 	int init() override;
@@ -96,6 +96,8 @@ protected:
 
 	void updatePWMParamTrim();
 
+	int _schd_rate_limit;
+
 	PCA9685 *pca9685 = nullptr; // driver handle.
 
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)}; // param handle
@@ -103,10 +105,11 @@ protected:
 	MixingOutput _mixing_output{PCA9685_PWM_CHANNEL_COUNT, *this, MixingOutput::SchedulingPolicy::Disabled, true};
 };
 
-PWMDriverWrapper::PWMDriverWrapper() :
+PWMDriverWrapper::PWMDriverWrapper(int schd_rate_limit) :
 	CDev(nullptr),
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
-	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
+	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
+	_schd_rate_limit(schd_rate_limit)
 {
 	_mixing_output.setAllMinValues(PWM_DEFAULT_MIN);
 	_mixing_output.setAllMaxValues(PWM_DEFAULT_MAX);
@@ -468,7 +471,8 @@ The number X can be acquired by executing
     PRINT_MODULE_USAGE_NAME("pca9685_pwm_out", "driver");
     PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task");
     PRINT_MODULE_USAGE_PARAM_INT('a',64,0,255,"device address on this bus",true);
-    PRINT_MODULE_USAGE_PARAM_INT('b',1,0,255,"bus that pca9685 is connected to",true);
+	PRINT_MODULE_USAGE_PARAM_INT('b',1,0,255,"bus that pca9685 is connected to",true);
+	PRINT_MODULE_USAGE_PARAM_INT('r',400,50,400,"schedule rate limit",true);
     PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
     return 0;
@@ -491,36 +495,41 @@ int PWMDriverWrapper::custom_command(int argc, char **argv) { // only for test u
 
 int PWMDriverWrapper::task_spawn(int argc, char **argv) {
 
-    auto *instance = new PWMDriverWrapper();
+	int ch;
+	int address=PCA9685_DEFAULT_ADDRESS;
+	int iicbus=PCA9685_DEFAULT_IICBUS;
+	int schd_rate_limit=400;
+
+	int myoptind = 1;
+	const char *myoptarg = nullptr;
+	while ((ch = px4_getopt(argc, argv, "a:b:r:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+			case 'a':
+				address = atoi(myoptarg);
+				break;
+
+			case 'b':
+				iicbus = atoi(myoptarg);
+				break;
+
+			case 'r':
+				schd_rate_limit = atoi(myoptarg);
+				break;
+
+			case '?':
+				PX4_WARN("Unsupported args");
+				return PX4_ERROR;
+
+			default:
+				break;
+		}
+	}
+
+    auto *instance = new PWMDriverWrapper(schd_rate_limit);
 
     if (instance) {
         _object.store(instance);
         _task_id = task_id_is_work_queue;
-
-        int ch;
-        int address=PCA9685_DEFAULT_ADDRESS;
-        int iicbus=PCA9685_DEFAULT_IICBUS;
-
-        int myoptind = 1;
-        const char *myoptarg = nullptr;
-        while ((ch = px4_getopt(argc, argv, "a:b:", &myoptind, &myoptarg)) != EOF) {
-            switch (ch) {
-                case 'a':
-                    address = atoi(myoptarg);
-                    break;
-
-                case 'b':
-                    iicbus = atoi(myoptarg);
-                    break;
-
-                case '?':
-                    PX4_WARN("Unsupported args");
-                    goto driverInstanceAllocFailed;
-
-                default:
-                    break;
-            }
-        }
 
         instance->pca9685 = new PCA9685(iicbus, address);
         if(instance->pca9685==nullptr){
@@ -537,6 +546,7 @@ int PWMDriverWrapper::task_spawn(int argc, char **argv) {
         }
     } else {
         PX4_ERR("alloc failed");
+	    return PX4_ERROR;
     }
 
     driverInstanceAllocFailed:
