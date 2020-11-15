@@ -123,8 +123,12 @@ public:
 protected:
 	int probe() override;
 
-	static const uint8_t DEFAULT_MODE1_CFG = 0x20;
-	static const uint8_t DEFAULT_MODE2_CFG = 0x04;
+#ifdef PCA9685_CLOCL_EXT
+	static const uint8_t DEFAULT_MODE1_CFG = 0x70;  // Auto-Increment, Sleep, EXTCLK
+#else
+	static const uint8_t DEFAULT_MODE1_CFG = 0x30;  // Auto-Increment, Sleep
+#endif
+	static const uint8_t DEFAULT_MODE2_CFG = 0x04;  // totem pole
 
 	float _Freq = PWM_DEFAULT_FREQUENCY;
 
@@ -159,7 +163,7 @@ protected:
 	/*
 	 * restart output
 	 */
-	void restartOscillator();
+	void startOscillator();
 private:
 
 };
