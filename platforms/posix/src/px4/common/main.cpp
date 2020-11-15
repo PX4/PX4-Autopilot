@@ -63,10 +63,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#if (_POSIX_MEMLOCK > 0 )
-#define __PX4_POSIX_MEMLOCK
-#endif
-#if defined(__PX4_POSIX_MEMLOCK)
+#if (_POSIX_MEMLOCK > 0)
 #include <sys/mman.h>
 #endif
 
@@ -181,7 +178,7 @@ int main(int argc, char **argv)
 		return client.process_args(argc, (const char **)argv);
 
 	} else {
-#if defined(__PX4_POSIX_MEMLOCK)
+#if (_POSIX_MEMLOCK > 0)
 
 		// try to lock address space into RAM, to avoid page swap delay
 		// TODO: Check CAP_IPC_LOCK instead of euid
