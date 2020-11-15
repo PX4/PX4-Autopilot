@@ -149,8 +149,7 @@ private:
 
 	input_rc_s	_rc_in{};
 
-
-	uORB::PublicationMulti<input_rc_s>	_to_input_rc{ORB_ID(input_rc)};
+	uORB::PublicationMulti<input_rc_s>	_input_rc_pub{ORB_ID(input_rc)};
 
 	int		_rcs_fd{-1};
 	char		_device[20] {};					///< device / serial port path

@@ -552,7 +552,7 @@ Syslink::handle_raw(syslink_message_t *sys)
 		rc.values[3] = cmd->thrust * 1000 / USHRT_MAX + 1000;
 		rc.values[4] = 1000; // Dummy channel as px4 needs at least 5
 
-		_rc_pub.publish(rc);
+		_input_rc_pub.publish(rc);
 
 	} else if (c->port == CRTP_PORT_MAVLINK) {
 		_count_in++;

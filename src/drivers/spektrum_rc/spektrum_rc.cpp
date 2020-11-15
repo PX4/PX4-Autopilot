@@ -102,7 +102,7 @@ void task_main(int argc, char *argv[])
 		return;
 	}
 
-	orb_advert_t rc_pub = nullptr;
+	orb_advert_t input_rc_pub = nullptr;
 
 	// Use a buffer size of the double of the minimum, just to be safe.
 	uint8_t rx_buf[2 * DSM_BUFFER_SIZE];
@@ -143,11 +143,11 @@ void task_main(int argc, char *argv[])
 			fill_input_rc(raw_rc_count, raw_rc_values, now, false, false, frame_drops, dsm_rssi,
 				      input_rc);
 
-			if (rc_pub == nullptr) {
-				rc_pub = orb_advertise(ORB_ID(input_rc), &input_rc);
+			if (input_input_rc_pub == nullptr) {
+				input_rc_pub = orb_advertise(ORB_ID(input_rc), &input_rc);
 
 			} else {
-				orb_publish(ORB_ID(input_rc), rc_pub, &input_rc);
+				orb_publish(ORB_ID(input_rc), input_rc_pub, &input_rc);
 			}
 		}
 
@@ -156,7 +156,7 @@ void task_main(int argc, char *argv[])
 
 	}
 
-	orb_unadvertise(rc_pub);
+	orb_unadvertise(input_rc_pub);
 	dsm_deinit();
 
 	_is_running = false;

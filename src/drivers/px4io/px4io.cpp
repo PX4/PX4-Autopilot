@@ -251,7 +251,7 @@ private:
 	bool			_param_update_force;	///< force a parameter update
 
 	/* advertised topics */
-	uORB::PublicationMulti<input_rc_s>			_to_input_rc{ORB_ID(input_rc)};
+	uORB::PublicationMulti<input_rc_s>			_input_rc_pub{ORB_ID(input_rc)};
 	uORB::PublicationMulti<actuator_outputs_s>		_to_outputs{ORB_ID(actuator_outputs)};
 	uORB::PublicationMulti<multirotor_motor_limits_s>	_to_mixer_status{ORB_ID(multirotor_motor_limits)};
 	uORB::Publication<px4io_status_s>			_px4io_status_pub{ORB_ID(px4io_status)};
@@ -2143,7 +2143,7 @@ PX4IO::io_publish_raw_rc()
 		}
 	}
 
-	_to_input_rc.publish(rc_val);
+	_input_rc_pub.publish(rc_val);
 
 	return OK;
 }

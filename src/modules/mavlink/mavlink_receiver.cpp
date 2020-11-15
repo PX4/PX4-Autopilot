@@ -2048,7 +2048,7 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 	}
 
 	// publish uORB message
-	_rc_pub.publish(rc);
+	_input_rc_pub.publish(rc);
 }
 
 void
@@ -2097,7 +2097,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 
 		_mom_switch_state = man.buttons;
 
-		_rc_pub.publish(rc);
+		_input_rc_pub.publish(rc);
 
 	} else {
 		manual_control_setpoint_s manual{};

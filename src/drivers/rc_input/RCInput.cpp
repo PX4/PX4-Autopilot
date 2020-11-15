@@ -637,7 +637,7 @@ void RCInput::Run()
 		if (rc_updated) {
 			perf_count(_publish_interval_perf);
 
-			_to_input_rc.publish(_rc_in);
+			_input_rc_pub.publish(_rc_in);
 
 		} else if (!rc_updated && ((hrt_absolute_time() - _rc_in.timestamp_last_signal) > 1_s)) {
 			_rc_scan_locked = false;
