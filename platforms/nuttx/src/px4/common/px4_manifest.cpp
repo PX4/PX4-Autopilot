@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,25 +31,59 @@
  *
  ****************************************************************************/
 
-__BEGIN_DECLS
+/**
+ * @file px4_manifest.cpp
+ *
+ * manifest utilites
+ *
+ * @author David Sidrane <david.sidrane@nscdg.com>
+ */
 
-int px4_platform_init(void);
-int px4_platform_console_init(void);
-int px4_platform_configure(void);
+#ifndef MODULE_NAME
+#define MODULE_NAME "PX4_MANIFEST"
+#endif
 
-__END_DECLS
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/px4_manifest.h>
+#include <px4_platform_common/log.h>
 
-#ifdef __cplusplus
+#include <errno.h>
 
-namespace px4
+__EXPORT const px4_mft_s *board_get_manifest(void) weak_function;
+
+/* This is the default manifest when no MTD driver is installed */
+static const px4_mft_entry_s mtd_mft = {
+	.type = MTD,
+};
+
+static const px4_mft_s default_mft = {
+	.nmft = 1,
+	.mfts = &mtd_mft
+};
+
+
+const px4_mft_s *board_get_manifest(void)
+{
+	return &default_mft;
+}
+
+
+__EXPORT int px4_mft_configure(const px4_mft_s *mft)
 {
 
-/**
- * Startup init method. It has no specific functionality, just prints a welcome
- * message and sets the thread name
- */
-__EXPORT void init(int argc, char *argv[], const char *process_name);
+	if (mft != nullptr) {
+		for (uint32_t m = 0; m < mft->nmft; m++) {
+			switch (mft->mfts[m].type) {
+			case MTD:
+				px4_mtd_config(static_cast<const px4_mtd_manifest_t *>(mft->mfts[m].pmft));
+				break;
 
-} // namespace px4
+			case MFT:
+			default:
+				break;
+			}
+		}
+	}
 
-#endif /* __cplusplus */
+	return 0;
+}

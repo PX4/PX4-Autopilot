@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,26 +30,51 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#pragma once
+#include <stdint.h>
+
+typedef enum  {
+	MTD_PARAMETERS  = 1,
+	MTD_WAYPOINTS   = 2,
+	MTD_CALDATA     = 3,
+	MTD_MFT         = 4,
+	MTD_ID          = 5,
+	MTD_NET         = 6,
+} px4_mtd_types_t;
+
+typedef struct  {
+	const px4_mtd_types_t   type;
+	const char              *path;
+	const uint32_t          nblocks;
+} px4_mtd_part_t;
+
+typedef struct  {
+	const px4_mft_device_t  *device;
+	const uint32_t           npart;
+	const px4_mtd_part_t     partd[];
+} px4_mtd_entry_t;
+
+typedef struct  {
+	const uint32_t        nconfigs;
+	const px4_mtd_entry_t *entries[];
+} px4_mtd_manifest_t;
+
 
 __BEGIN_DECLS
+/************************************************************************************
+ * Name: px4_mtd_config
+ *
+ * Description:
+ *   A board will call this function, to set up the mtd partitions
+ *
+ * Input Parameters:
+ *  mtd_list    - px4_mtd_config list/count
+ *
+ * Returned Value:
+ *   non zero if error
+ *
+ ************************************************************************************/
 
-int px4_platform_init(void);
-int px4_platform_console_init(void);
-int px4_platform_configure(void);
+__EXPORT int px4_mtd_config(const px4_mtd_manifest_t *mft_mtd);
 
 __END_DECLS
-
-#ifdef __cplusplus
-
-namespace px4
-{
-
-/**
- * Startup init method. It has no specific functionality, just prints a welcome
- * message and sets the thread name
- */
-__EXPORT void init(int argc, char *argv[], const char *process_name);
-
-} // namespace px4
-
-#endif /* __cplusplus */
