@@ -42,7 +42,7 @@ TEST_CASE("Fly forward in position control", "[multicopter][vtol]")
 	tester.store_home();
 	tester.arm();
 	tester.fly_forward_in_posctl();
-	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(90);
+	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(180);
 	tester.wait_until_disarmed(until_disarmed_timeout);
 	tester.check_home_not_within(5.f);
 }
@@ -55,7 +55,7 @@ TEST_CASE("Fly forward in altitude control", "[multicopter][vtol]")
 	tester.store_home();
 	tester.arm();
 	tester.fly_forward_in_altctl();
-	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(90);
+	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(180);
 	tester.wait_until_disarmed(until_disarmed_timeout);
 	tester.check_home_not_within(5.f);
 }
