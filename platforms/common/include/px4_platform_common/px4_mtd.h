@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,26 +30,51 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#pragma once
+#include <stdint.h>
 
 __BEGIN_DECLS
 
-int px4_platform_init(void);
-int px4_platform_console_init(void);
-int px4_platform_configure(void);
+// The data needed to interface with mtd device's
+
+typedef struct {
+	struct mtd_dev_s *mtd_dev;
+	int              *partition_block_counts;
+	const char       **partition_names;
+	struct mtd_dev_s **part_dev;
+	uint32_t         devid;
+	unsigned         n_partitions_current;
+} mtd_instance_s;
+
+/*
+  mtd operations
+ */
+
+/*
+ * Get device an pinter to the array of mtd_instance_s of the system
+ *  count - receives the number of instances pointed to by the pointer
+ *  retunred.
+ *
+ *  returns: - A pointer to the mtd_instance_s of the system
+ *            This can be  Null if there are no mtd instances.
+ *
+ */
+__EXPORT mtd_instance_s *px4_mtd_get_instances(unsigned int *count);
+
+/*
+  Get device complete geometry or a device
+ */
+
+
+__EXPORT int  px4_mtd_get_geometry(const mtd_instance_s *instance, unsigned long *blocksize, unsigned long *erasesize,
+				   unsigned long *neraseblocks, unsigned *blkpererase, unsigned *nblocks,
+				   unsigned *partsize);
+/*
+  Get size of a parttion on an instance.
+ */
+__EXPORT ssize_t px4_mtd_get_partition_size(const mtd_instance_s *instance, const char *partname);
+
+FAR struct mtd_dev_s *px4_at24c_initialize(FAR struct i2c_master_s *dev,
+		uint8_t address);
 
 __END_DECLS
-
-#ifdef __cplusplus
-
-namespace px4
-{
-
-/**
- * Startup init method. It has no specific functionality, just prints a welcome
- * message and sets the thread name
- */
-__EXPORT void init(int argc, char *argv[], const char *process_name);
-
-} // namespace px4
-
-#endif /* __cplusplus */

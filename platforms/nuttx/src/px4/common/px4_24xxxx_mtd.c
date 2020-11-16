@@ -51,6 +51,7 @@
  ************************************************************************************/
 
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/px4_mtd.h>
 #include <px4_platform_common/time.h>
 
 #include <sys/types.h>
@@ -536,8 +537,9 @@ static int at24c_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
  *   other functions (such as a block or character driver front end).
  *
  ************************************************************************************/
+FAR struct mtd_dev_s *px4_at24c_initialize(FAR struct i2c_master_s *dev,
+		uint8_t address)
 
-FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_master_s *dev)
 {
 	FAR struct at24c_dev_s *priv;
 
@@ -554,8 +556,7 @@ FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_master_s *dev)
 
 	if (priv) {
 		/* Initialize the allocated structure */
-
-		priv->addr       = CONFIG_AT24XX_ADDR;
+		priv->addr       = address;
 		priv->pagesize   = AT24XX_PAGESIZE;
 		priv->npages     = AT24XX_NPAGES;
 

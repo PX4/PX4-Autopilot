@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,26 +30,73 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#pragma once
+#include <stdint.h>
+
+typedef enum  {
+	MFT = 0,
+	MTD = 1,
+} px4_manifest_types_e;
+
+
+typedef struct  {
+
+	enum px4_bus_type {
+		I2C = 0,
+		SPI = 1,
+	} bus_type;
+
+	uint32_t devid;
+} px4_mft_device_t;
+
+#define PX4_MK_I2C_DEVID(b,a) ((b) << 16 | ((a) & 0xffff))
+#define PX4_I2C_DEVID_BUS(d)  (((d) >> 16) & 0xffff)
+#define PX4_I2C_DEVID_ADDR(d) ((d) & 0xffff)
+
+typedef struct {
+	const px4_manifest_types_e type;
+	const void           *pmft;
+} px4_mft_entry_s;
+
+typedef struct {
+	const uint32_t        nmft;
+	const px4_mft_entry_s *mfts;
+} px4_mft_s;
+
+#include "px4_platform_common/mtd_manifest.h"
+
 
 __BEGIN_DECLS
+/************************************************************************************
+ * Name: board_get_manifest
+ *
+ * Description:
+ *   A board will provide this function to return the manifest
+ *
+ * Input Parameters:
+ *  mft    - a pointer to the receive the manifest
+ *
+ * Returned Value:
+ *   non zero if error
+ *
+ ************************************************************************************/
 
-int px4_platform_init(void);
-int px4_platform_console_init(void);
-int px4_platform_configure(void);
+__EXPORT const px4_mft_s *board_get_manifest(void);
 
+/************************************************************************************
+ * Name: px4_mft_configure
+ *
+ * Description:
+ *   The Px4 layer will provide this interface to start/configure the
+ *   hardware.
+ *
+ * Input Parameters:
+ *  mft    - a pointer to the manifest
+ *
+ * Returned Value:
+ *   non zero if error
+ *
+ ************************************************************************************/
+
+__EXPORT int px4_mft_configure(const px4_mft_s *mft);
 __END_DECLS
-
-#ifdef __cplusplus
-
-namespace px4
-{
-
-/**
- * Startup init method. It has no specific functionality, just prints a welcome
- * message and sets the thread name
- */
-__EXPORT void init(int argc, char *argv[], const char *process_name);
-
-} // namespace px4
-
-#endif /* __cplusplus */
