@@ -1229,6 +1229,8 @@ MavlinkReceiver::handle_message_set_gps_global_origin(mavlink_message_t *msg)
 					  (float)origin.altitude * 1.0e-3f, hrt_absolute_time());
 		_global_ref_timestamp = hrt_absolute_time();
 	}
+
+	handle_request_message_command(MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN);
 }
 
 void
