@@ -203,8 +203,9 @@ class GzserverRunner(Runner):
         self.env["GAZEBO_MODEL_PATH"] = \
             workspace_dir + "/Tools/sitl_gazebo/models"
         self.env["PX4_SIM_SPEED_FACTOR"] = str(speed_factor)
-        self.cmd = "gzserver"
-        self.args = ["--verbose",
+        self.cmd = "nice"
+        self.args = ["-n 1",
+                     "gzserver", "--verbose",
                      workspace_dir + "/Tools/sitl_gazebo/worlds/" +
                      "empty.world"]
 
