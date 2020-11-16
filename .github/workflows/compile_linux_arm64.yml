@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     container: px4io/px4-dev-aarch64:latest
     strategy:
       matrix:
@@ -18,10 +18,9 @@ jobs:
           scumaker_pilotpi_arm64,
           ]
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
       with:
-        token: ${{secrets.ACCESS_TOKEN}}
-
+        fetch-depth: 0
     - name: Prepare ccache timestamp
       id: ccache_cache_timestamp
       shell: cmake -P {0}

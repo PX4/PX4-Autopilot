@@ -11,13 +11,12 @@ on:
 jobs:
 
   airframe:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     container: px4io/px4-dev-base-focal:2020-09-14
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
       with:
-        token: ${{ secrets.ACCESS_TOKEN }}
-
+        fetch-depth: 0
     - name: airframe metadata
       run: |
         make airframe_metadata
@@ -26,13 +25,12 @@ jobs:
       # TODO: deploy to devguide gitbook and s3
 
   module:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     container: px4io/px4-dev-base-focal:2020-09-14
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
       with:
-        token: ${{ secrets.ACCESS_TOKEN }}
-
+        fetch-depth: 0
     - name: module documentation
       run: |
         make module_documentation
@@ -41,13 +39,12 @@ jobs:
       # TODO: deploy to devguide gitbook and s3
 
   parameter:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     container: px4io/px4-dev-base-focal:2020-09-14
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
       with:
-        token: ${{ secrets.ACCESS_TOKEN }}
-
+        fetch-depth: 0
     - name: parameter metadata
       run: |
         make parameters_metadata
@@ -56,13 +53,12 @@ jobs:
       # TODO: deploy 'parameters.md, parameters.xml to S3 px4-travis:Firmware/master/
 
   uorb_graph:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     container: px4io/px4-dev-nuttx-focal:2020-09-14
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
       with:
-        token: ${{ secrets.ACCESS_TOKEN }}
-
+        fetch-depth: 0
     - name: uORB graph
       run: |
         make uorb_graphs
@@ -71,13 +67,12 @@ jobs:
       # TODO: deploy graph_px4_sitl.json to S3 px4-travis:Firmware/master/
 
   micrortps_agent:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     container: px4io/px4-dev-base-focal:2020-09-14
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
       with:
-        token: ${{ secrets.ACCESS_TOKEN }}
-
+        fetch-depth: 0
     - name: microRTPS agent
       run: |
         make px4_sitl_rtps
@@ -85,26 +80,24 @@ jobs:
         cp -R build/px4_sitl_rtps/src/modules/micrortps_bridge/micrortps_agent/* micrortps_agent
 
   ROS_msgs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     container: px4io/px4-dev-base-focal:2020-09-14
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
       with:
-        token: ${{ secrets.ACCESS_TOKEN }}
-
+        fetch-depth: 0
     - name: PX4 ROS msgs
       run: |
         git clone https://github.com/PX4/px4_msgs.git
         python3 msg/tools/uorb_to_ros_msgs.py msg/ px4_msgs/msg/
 
   ROS2_bridge:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     container: px4io/px4-dev-base-focal:2020-09-14
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
       with:
-        token: ${{ secrets.ACCESS_TOKEN }}
-
+        fetch-depth: 0
     - name: PX4 ROS2 bridge
       run: |
         git clone https://github.com/PX4/px4_ros_com.git

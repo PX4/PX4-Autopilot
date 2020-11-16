@@ -19,10 +19,9 @@ jobs:
           #tests, # includes px4_sitl
           ]
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
       with:
-        token: ${{secrets.ACCESS_TOKEN}}
-
+        fetch-depth: 0
     - name: setup
       run: ./Tools/setup/macos.sh
 

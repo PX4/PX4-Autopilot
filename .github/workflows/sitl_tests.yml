@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
@@ -23,10 +23,9 @@ jobs:
       image: px4io/px4-dev-simulation-focal:2020-08-14
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
       with:
-        token: ${{ secrets.ACCESS_TOKEN }}
-
+        fetch-depth: 0
     - name: Download MAVSDK
       run: wget https://github.com/mavlink/MAVSDK/releases/download/v0.33.1/mavsdk_0.33.1_ubuntu20.04_amd64.deb
     - name: Install MAVSDK
