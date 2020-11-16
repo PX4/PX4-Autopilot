@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     container: px4io/px4-dev-base-focal:2020-09-14
     strategy:
       matrix:
@@ -19,7 +19,7 @@ jobs:
           #python_coverage,
           ]
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
       with:
         token: ${{secrets.ACCESS_TOKEN}}
 
