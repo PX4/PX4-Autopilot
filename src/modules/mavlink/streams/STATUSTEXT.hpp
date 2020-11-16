@@ -57,14 +57,21 @@ private:
 
 	uORB::Subscription _mavlink_log_sub{ORB_ID(mavlink_log)};
 	uint16_t _id{0};
+	uint16_t _missed_msg_count{0};
 
 	bool send() override
 	{
 		if (_mavlink->is_connected() && (_mavlink->get_free_tx_buf() >= get_size())) {
 
+			const unsigned last_generation = _mavlink_log_sub.get_last_generation();
+
 			mavlink_log_s mavlink_log;
 
 			if (_mavlink_log_sub.update(&mavlink_log)) {
+				if (_mavlink_log_sub.get_last_generation() != (last_generation + 1)) {
+					_missed_msg_count++;
+					PX4_ERR("channel %d has missed %d mavlink log messages", _mavlink->get_channel(), _missed_msg_count);
+				}
 
 				mavlink_statustext_t msg{};
 				const char *text = mavlink_log.text;
