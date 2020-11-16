@@ -113,6 +113,7 @@ using matrix::wrap_2pi;
 #include "streams/ESC_STATUS.hpp"
 #include "streams/EXTENDED_SYS_STATE.hpp"
 #include "streams/FLIGHT_INFORMATION.hpp"
+#include "streams/GPS_GLOBAL_ORIGIN.hpp"
 #include "streams/GPS_STATUS.hpp"
 #include "streams/HIGH_LATENCY2.hpp"
 #include "streams/HIL_STATE_QUATERNION.hpp"
@@ -4301,6 +4302,9 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamAttitude>(),
 	create_stream_list_item<MavlinkStreamAttitudeQuaternion>(),
 	create_stream_list_item<MavlinkStreamVFRHUD>(),
+#if defined(GPS_GLOBAL_ORIGIN_HPP)
+	create_stream_list_item<MavlinkStreamGpsGlobalOrigin>(),
+#endif // GPS_GLOBAL_ORIGIN_HPP
 	create_stream_list_item<MavlinkStreamGPSRawInt>(),
 	create_stream_list_item<MavlinkStreamGPS2Raw>(),
 	create_stream_list_item<MavlinkStreamSystemTime>(),
