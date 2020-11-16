@@ -11,6 +11,7 @@ pandas>=0.21
 pkgconfig
 psutil
 pygments
+pymavlink
 pyros-genmsg
 pyserial>=3.0
 pyulog>=0.5.0
