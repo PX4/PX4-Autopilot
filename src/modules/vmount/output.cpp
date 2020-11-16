@@ -198,13 +198,6 @@ void OutputBase::_handle_position_update(bool force_update)
 
 void OutputBase::_calculate_output_angles(const hrt_abstime &t)
 {
-	//take speed into account
-	float dt = (t - _last_update) / 1.e6f;
-
-	for (int i = 0; i < 3; ++i) {
-		_angle_setpoints[i] += dt * _angle_speeds[i];
-	}
-
 	//get the output angles and stabilize if necessary
 	vehicle_attitude_s vehicle_attitude{};
 	matrix::Eulerf euler;
@@ -224,12 +217,20 @@ void OutputBase::_calculate_output_angles(const hrt_abstime &t)
 		euler = matrix::Quatf(vehicle_attitude.q);
 	}
 
-	for (int i = 0; i < 3; ++i) {
-		if (compensate[i]) {
-			_angle_outputs[i] = _angle_setpoints[i] - euler(i);
+	float dt = (t - _last_update) / 1.e6f;
 
-		} else {
+	for (int i = 0; i < 3; ++i) {
+
+		if (PX4_ISFINITE(_angle_setpoints[i])) {
 			_angle_outputs[i] = _angle_setpoints[i];
+		}
+
+		if (PX4_ISFINITE(_angle_speeds[i])) {
+			_angle_outputs[i] += dt * _angle_speeds[i];
+		}
+
+		if (compensate[i]) {
+			_angle_outputs[i] -= euler(i);
 		}
 
 		//bring angles into proper range [-pi, pi]
