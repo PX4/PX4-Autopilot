@@ -43,12 +43,6 @@ PCA9685::PCA9685(int bus, int addr):
 
 }
 
-int PCA9685::Start()
-{
-	int ret = init();
-	return ret;
-}
-
 int PCA9685::Stop()
 {
 	disableAllOutput();
@@ -108,16 +102,25 @@ int PCA9685::setFreq(float freq)
 
 }
 
-int PCA9685::init()
+int PCA9685::initReg()
 {
-	int ret = I2C::init();
+	uint8_t buf[2] = {};
 
-	if (ret != PX4_OK) {
-		PX4_DEBUG("I2C init failed.");
+	buf[0] = PCA9685_REG_MODE1;
+	buf[1] = DEFAULT_MODE1_CFG;
+	int ret = transfer(buf, 2, nullptr, 0); // make sure oscillator is disabled
+
+	if (OK != ret) {
+		PX4_ERR("init: i2c::transfer returned %d", ret);
 		return ret;
 	}
 
-	uint8_t buf[2] = {};
+	ret = transfer(buf, 2, nullptr, 0); // enable EXTCLK if possible
+
+	if (OK != ret) {
+		PX4_ERR("init: i2c::transfer returned %d", ret);
+		return ret;
+	}
 
 	buf[0] = PCA9685_REG_MODE2;
 	buf[1] = DEFAULT_MODE2_CFG;
@@ -127,10 +130,6 @@ int PCA9685::init()
 		PX4_ERR("init: i2c::transfer returned %d", ret);
 		return ret;
 	}
-
-	startOscillator();
-
-	disableAllOutput();
 
 	return PX4_OK;
 }
@@ -204,8 +203,6 @@ void PCA9685::disableAllOutput()
 
 void PCA9685::setDivider(uint8_t value)
 {
-	disableAllOutput();
-	stopOscillator();
 	uint8_t buf[2] = {};
 	buf[0] = PCA9685_REG_PRE_SCALE;
 	buf[1] = value;
@@ -215,8 +212,6 @@ void PCA9685::setDivider(uint8_t value)
 		PX4_DEBUG("i2c::transfer returned %d", ret);
 		return;
 	}
-
-	startOscillator();
 }
 
 void PCA9685::stopOscillator()
@@ -245,14 +240,19 @@ void PCA9685::startOscillator()
 		PX4_ERR("startOscillator: i2c::transfer returned %d", ret);
 		return;
 	}
+}
 
-	usleep(500);
-	// trigger restart
+void PCA9685::triggerRestart()
+{
+	uint8_t buf[2] = {PCA9685_REG_MODE1};
+
+	// clear sleep bit, with restart bit = 0
+	buf[1] = DEFAULT_MODE1_CFG & (~PCA9685_MODE1_SLEEP_MASK);
 	buf[1] |= PCA9685_MODE1_RESTART_MASK;
-	ret = transfer(buf, 2, nullptr, 0);
+	int ret = transfer(buf, 2, nullptr, 0);
 
 	if (OK != ret) {
-		PX4_ERR("startOscillator: i2c::transfer returned %d", ret);
+		PX4_ERR("triggerRestart: i2c::transfer returned %d", ret);
 		return;
 	}
 }

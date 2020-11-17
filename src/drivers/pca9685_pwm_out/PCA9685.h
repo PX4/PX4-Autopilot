@@ -103,8 +103,6 @@ class PCA9685 : public device::I2C
 public:
 	PCA9685(int bus, int addr);
 
-	int Start();
-
 	int Stop();
 
 	/*
@@ -116,9 +114,29 @@ public:
 
 	~PCA9685() override = default;
 
-	int init() override;
+	int initReg();
 
 	inline float getFrequency() {return _Freq;}
+
+	/*
+	 * disable all of the output
+	 */
+	void disableAllOutput();
+
+	/*
+	* turn off oscillator
+	*/
+	void stopOscillator();
+
+	/*
+	 * turn on oscillator
+	 */
+	void startOscillator();
+
+	/*
+	 * turn on output
+	 */
+	void triggerRestart();
 
 protected:
 	int probe() override;
@@ -145,25 +163,10 @@ protected:
 	void setPWM(uint8_t channel_count, const uint16_t *value);
 
 	/*
-	 * disable all of the output
-	 */
-	void disableAllOutput();
-
-	/*
 	 * set clock divider
-	 * this func has Super Cow Powers
 	 */
 	void setDivider(uint8_t value);
 
-	/*
-	 * turn off oscillator
-	 */
-	void stopOscillator();
-
-	/*
-	 * restart output
-	 */
-	void startOscillator();
 private:
 
 };
