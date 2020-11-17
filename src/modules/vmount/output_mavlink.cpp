@@ -94,7 +94,7 @@ int OutputMavlinkV1::update(const ControlData *control_data)
 	_handle_position_update();
 
 	hrt_abstime t = hrt_absolute_time();
-	_calculate_output_angles(t);
+	_calculate_angle_output(t);
 
 	vehicle_command.timestamp = t;
 	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL;
@@ -136,17 +136,13 @@ int OutputMavlinkV2::update(const ControlData *control_data)
 		_last_gimbal_device_checked = t;
 
 	} else {
-		// Only start sending attitude setpoints once a device has been discovered.
-
 		if (control_data) {
 			//got new command
 			_set_angle_setpoints(control_data);
-			_publish_gimbal_device_set_attitude(control_data);
 		}
 
 		_handle_position_update();
-
-		_calculate_output_angles(t);
+		_publish_gimbal_device_set_attitude();
 		_last_update = t;
 	}
 
@@ -185,51 +181,31 @@ void OutputMavlinkV2::print_status()
 	PX4_INFO("Output: MAVLink gimbal protocol v2");
 }
 
-void OutputMavlinkV2::_publish_gimbal_device_set_attitude(const ControlData *control_data)
+void OutputMavlinkV2::_publish_gimbal_device_set_attitude()
 {
 	gimbal_device_set_attitude_s set_attitude{};
 	set_attitude.timestamp = hrt_absolute_time();
 	set_attitude.target_system = (uint8_t)_mav_sys_id;
 	set_attitude.target_component = _gimbal_device_compid;
 
-	switch (control_data->type) {
-	case ControlData::Type::Neutral:
-		set_attitude.flags |= gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_NEUTRAL;
-		set_attitude.angular_velocity_x = NAN;
-		set_attitude.angular_velocity_y = NAN;
-		set_attitude.angular_velocity_z = NAN;
-		set_attitude.q[0] = NAN;
-		set_attitude.q[1] = NAN;
-		set_attitude.q[2] = NAN;
-		set_attitude.q[3] = NAN;
-		break;
+	set_attitude.angular_velocity_x = _angle_velocity[0];
+	set_attitude.angular_velocity_y = _angle_velocity[1];
+	set_attitude.angular_velocity_z = _angle_velocity[2];
+	set_attitude.q[0] = _q_setpoint[0];
+	set_attitude.q[1] = _q_setpoint[1];
+	set_attitude.q[2] = _q_setpoint[2];
+	set_attitude.q[3] = _q_setpoint[3];
 
-	case ControlData::Type::Angle:
-		set_attitude.angular_velocity_x = control_data->type_data.angle.angular_velocity[0];
-		set_attitude.angular_velocity_y = control_data->type_data.angle.angular_velocity[1];
-		set_attitude.angular_velocity_z = control_data->type_data.angle.angular_velocity[2];
-		set_attitude.q[0] = control_data->type_data.angle.q[0];
-		set_attitude.q[1] = control_data->type_data.angle.q[1];
-		set_attitude.q[2] = control_data->type_data.angle.q[2];
-		set_attitude.q[3] = control_data->type_data.angle.q[3];
+	if (_absolute_angle[0]) {
+		set_attitude.flags |= gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_ROLL_LOCK;
+	}
 
-		if (control_data->type_data.angle.frames[0] == ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame) {
-			set_attitude.flags |= gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_ROLL_LOCK;
-		}
+	if (_absolute_angle[1]) {
+		set_attitude.flags |= gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_PITCH_LOCK;
+	}
 
-		if (control_data->type_data.angle.frames[1] == ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame) {
-			set_attitude.flags |= gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_PITCH_LOCK;
-		}
-
-		if (control_data->type_data.angle.frames[2] == ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame) {
-			set_attitude.flags |= gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_YAW_LOCK;
-		}
-
-		break;
-
-	case ControlData::Type::LonLat:
-		// FIXME: needs conversion to angle.
-		break;
+	if (_absolute_angle[2]) {
+		set_attitude.flags |= gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_YAW_LOCK;
 	}
 
 	_gimbal_device_set_attitude_pub.publish(set_attitude);

@@ -78,7 +78,7 @@ public:
 	virtual void print_status();
 
 private:
-	void _publish_gimbal_device_set_attitude(const ControlData *control_data);
+	void _publish_gimbal_device_set_attitude();
 	void _request_gimbal_device_information();
 	void _check_for_gimbal_device_information();
 

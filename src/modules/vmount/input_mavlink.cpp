@@ -54,8 +54,6 @@
 #include <math.h>
 #include <matrix/matrix/math.hpp>
 
-using matrix::wrap_pi;
-
 namespace vmount
 {
 
@@ -121,6 +119,7 @@ int InputMavlinkROI::update_impl(unsigned int timeout_ms, ControlData **control_
 
 				_control_data.type = ControlData::Type::Neutral;
 				*control_data = &_control_data;
+				_cur_roi_mode = vehicle_roi.mode;
 
 			} else if (vehicle_roi.mode == vehicle_roi_s::ROI_WPNEXT) {
 				_control_data.type = ControlData::Type::LonLat;
@@ -132,17 +131,17 @@ int InputMavlinkROI::update_impl(unsigned int timeout_ms, ControlData **control_
 				_control_data.type_data.lonlat.yaw_angle_offset = vehicle_roi.yaw_offset;
 
 				*control_data = &_control_data;
+				_cur_roi_mode = vehicle_roi.mode;
 
 			} else if (vehicle_roi.mode == vehicle_roi_s::ROI_LOCATION) {
 				control_data_set_lon_lat(vehicle_roi.lon, vehicle_roi.lat, vehicle_roi.alt);
 
 				*control_data = &_control_data;
+				_cur_roi_mode = vehicle_roi.mode;
 
 			} else if (vehicle_roi.mode == vehicle_roi_s::ROI_TARGET) {
 				//TODO is this even suported?
 			}
-
-			_cur_roi_mode = vehicle_roi.mode;
 		}
 
 		// check whether the position setpoint got updated
@@ -371,17 +370,14 @@ void InputMavlinkCmdMount::print_status()
 	PX4_INFO("Input: Mavlink (CMD_MOUNT)");
 }
 
-InputMavlinkGimbalV2::InputMavlinkGimbalV2(bool has_v2_gimbal_device, uint8_t mav_sys_id, uint8_t mav_comp_id,
+InputMavlinkGimbalV2::InputMavlinkGimbalV2(uint8_t mav_sys_id, uint8_t mav_comp_id,
 		float &mnt_rate_pitch, float &mnt_rate_yaw) :
 	_mav_sys_id(mav_sys_id),
 	_mav_comp_id(mav_comp_id),
 	_mnt_rate_pitch(mnt_rate_pitch),
 	_mnt_rate_yaw(mnt_rate_yaw)
 {
-	if (!has_v2_gimbal_device) {
-		/* dumb gimbal or MAVLink v1 protocol gimbal: fake GIMBAL_DEVICE_INFORMATION */
-		_stream_gimbal_manager_information();
-	}
+	_stream_gimbal_manager_information();
 }
 
 InputMavlinkGimbalV2::~InputMavlinkGimbalV2()
@@ -564,29 +560,24 @@ int InputMavlinkGimbalV2::update_impl(unsigned int timeout_ms, ControlData **con
 
 					_control_data.type = ControlData::Type::Neutral;
 					*control_data = &_control_data;
-					_is_roi_set = false;
 					_cur_roi_mode = vehicle_roi.mode;
 
 				} else if (vehicle_roi.mode == vehicle_roi_s::ROI_WPNEXT) {
-					double lat, lon, alt = 0.;
-					_read_lat_lon_alt_from_position_setpoint_sub(lon, lat, alt);
+					_control_data.type = ControlData::Type::LonLat;
+					_read_control_data_from_position_setpoint_sub();
 					_control_data.type_data.lonlat.pitch_fixed_angle = -10.f;
 
 					_control_data.type_data.lonlat.roll_angle = vehicle_roi.roll_offset;
 					_control_data.type_data.lonlat.pitch_angle_offset = vehicle_roi.pitch_offset;
 					_control_data.type_data.lonlat.yaw_angle_offset = vehicle_roi.yaw_offset;
 
-					_transform_lon_lat_to_angle(lon, lat, alt);
-
 					*control_data = &_control_data;
-					_is_roi_set = true;
 					_cur_roi_mode = vehicle_roi.mode;
 
 				} else if (vehicle_roi.mode == vehicle_roi_s::ROI_LOCATION) {
+					control_data_set_lon_lat(vehicle_roi.lon, vehicle_roi.lat, vehicle_roi.alt);
 
-					_transform_lon_lat_to_angle(vehicle_roi.lon, vehicle_roi.lat, (double)vehicle_roi.alt);
 					*control_data = &_control_data;
-					_is_roi_set = true;
 					_cur_roi_mode = vehicle_roi.mode;
 
 				} else if (vehicle_roi.mode == vehicle_roi_s::ROI_TARGET) {
@@ -601,9 +592,7 @@ int InputMavlinkGimbalV2::update_impl(unsigned int timeout_ms, ControlData **con
 			// check whether the position setpoint got updated
 			if (polls[2].revents & POLLIN) {
 				if (_cur_roi_mode == vehicle_roi_s::ROI_WPNEXT) {
-					double lat, lon, alt = 0.;
-					_read_lat_lon_alt_from_position_setpoint_sub(lon, lat, alt);
-					_transform_lon_lat_to_angle(lon, lat, alt);
+					_read_control_data_from_position_setpoint_sub();
 					*control_data = &_control_data;
 
 				} else { // must do an orb_copy() in *every* case
@@ -908,71 +897,6 @@ int InputMavlinkGimbalV2::update_impl(unsigned int timeout_ms, ControlData **con
 	return 0;
 }
 
-void InputMavlinkGimbalV2::_transform_lon_lat_to_angle(const double roi_lon, const double roi_lat,
-		const double roi_alt)
-{
-	vehicle_global_position_s vehicle_global_position;
-	_vehicle_global_position_sub.copy(&vehicle_global_position);
-	const double &vlat = vehicle_global_position.lat;
-	const double &vlon = vehicle_global_position.lon;
-
-	_control_data.type = ControlData::Type::Angle;
-	_control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
-	_control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
-	_control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
-
-	const float roll = 0.0f;
-	float pitch = 0.0f;
-	float yaw = 0.0f;
-
-	// interface: use fixed pitch value > -pi otherwise consider ROI altitude
-	if (_control_data.type_data.lonlat.pitch_fixed_angle >= -M_PI_F) {
-		pitch = _control_data.type_data.lonlat.pitch_fixed_angle;
-
-	} else {
-		pitch = _calculate_pitch(roi_lon, roi_lat, roi_alt, vehicle_global_position);
-	}
-
-	yaw = get_bearing_to_next_waypoint(vlat, vlon, roi_lat, roi_lon) - vehicle_local_position.yaw;
-
-	// add offsets from VEHICLE_CMD_DO_SET_ROI_WPNEXT_OFFSET
-	pitch += _control_data.type_data.lonlat.pitch_angle_offset;
-	yaw += _control_data.type_data.lonlat.yaw_angle_offset;
-
-	// make sure yaw is wrapped correctly for the output
-	yaw = wrap_pi(yaw);
-
-	matrix::Eulerf euler(roll, pitch, yaw);
-	matrix::Quatf q(euler);
-	q.copyTo(_control_data.type_data.angle.q);
-}
-
-float InputMavlinkGimbalV2::_calculate_pitch(double lon, double lat, float altitude,
-		const vehicle_global_position_s &global_position)
-{
-	if (!map_projection_initialized(&_projection_reference)) {
-		map_projection_init(&_projection_reference, global_position.lat, global_position.lon);
-	}
-
-	float x1, y1, x2, y2;
-	map_projection_project(&_projection_reference, lat, lon, &x1, &y1);
-	map_projection_project(&_projection_reference, global_position.lat, global_position.lon, &x2, &y2);
-	float dx = x1 - x2, dy = y1 - y2;
-	float target_distance = sqrtf(dx * dx + dy * dy);
-	float z = altitude - global_position.alt;
-
-	return atan2f(z, target_distance);
-}
-
-void InputMavlinkGimbalV2::_read_lat_lon_alt_from_position_setpoint_sub(double &lon_sp, double &lat_sp, double &alt_sp)
-{
-	position_setpoint_triplet_s position_setpoint_triplet;
-	orb_copy(ORB_ID(position_setpoint_triplet), _position_setpoint_triplet_sub, &position_setpoint_triplet);
-	lon_sp = position_setpoint_triplet.current.lon;
-	lat_sp = position_setpoint_triplet.current.lat;
-	alt_sp = (double)position_setpoint_triplet.current.alt;
-}
-
 void InputMavlinkGimbalV2::_set_control_data_from_set_attitude(const uint32_t flags, const matrix::Quatf &q,
 		const matrix::Vector3f &angular_velocity)
 {
@@ -1020,6 +944,15 @@ void InputMavlinkGimbalV2::_ack_vehicle_command(vehicle_command_s *cmd, uint8_t 
 
 	uORB::PublicationQueued<vehicle_command_ack_s> cmd_ack_pub{ORB_ID(vehicle_command_ack)};
 	cmd_ack_pub.publish(vehicle_command_ack);
+}
+
+void InputMavlinkGimbalV2::_read_control_data_from_position_setpoint_sub()
+{
+	position_setpoint_triplet_s position_setpoint_triplet;
+	orb_copy(ORB_ID(position_setpoint_triplet), _position_setpoint_triplet_sub, &position_setpoint_triplet);
+	_control_data.type_data.lonlat.lon = position_setpoint_triplet.current.lon;
+	_control_data.type_data.lonlat.lat = position_setpoint_triplet.current.lat;
+	_control_data.type_data.lonlat.altitude = position_setpoint_triplet.current.alt;
 }
 
 } /* namespace vmount */
