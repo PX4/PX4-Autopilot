@@ -88,7 +88,7 @@ namespace drv_pca9685_pwm
  * but it seems most chips have its oscillator working at a higher frequency
  * Reference: https://github.com/adafruit/Adafruit-PWM-Servo-Driver-Library/blob/6664ce936210eea53259b814062009d9569a4213/Adafruit_PWMServoDriver.h#L66 */
 #define PCA9685_CLOCK_INT 26075000.0 //25MHz internal clock
-#ifndef PCA9685_CLOCL_EXT
+#ifndef PCA9685_CLOCK_EXT
 #define PCA9685_CLOCK_FREQ PCA9685_CLOCK_INT   // use int clk
 #else
 #define PCA9685_CLOCK_FREQ PCA9685_CLOCK_EXT   // use ext clk
