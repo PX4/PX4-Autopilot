@@ -63,7 +63,7 @@ int OutputRC::update(const ControlData *control_data)
 	_handle_position_update();
 
 	hrt_abstime t = hrt_absolute_time();
-	_calculate_output_angles(t);
+	_calculate_angle_output(t);
 
 	actuator_controls_s actuator_controls{};
 	actuator_controls.timestamp = hrt_absolute_time();
