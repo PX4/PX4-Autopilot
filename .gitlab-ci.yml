@@ -11,9 +11,10 @@ build:
     - DATE=$(date +"%Y-%m-%d--%H-%M")
     - DEST_DIR=/tank/modalai/public/px4/firmware/
     - BUILD_DIR=$DATE-$BUILD
-    - mkdir -p $DEST_DIR/test/modalai-1.11-uart-esc/$BUILD_DIR/
-    - cp build/modalai_fc-v1_default/modalai_fc-v1.bin $DEST_DIR/test/modalai-1.11-uart-esc/$BUILD_DIR/
-    - cp build/modalai_fc-v1_default/modalai_fc-v1_default.elf $DEST_DIR/test/modalai-1.11-uart-esc/$BUILD_DIR/
-    - cp build/modalai_fc-v1_default/modalai_fc-v1_default.px4 $DEST_DIR/test/modalai-1.11-uart-esc/$BUILD_DIR/
+    - mkdir -p $DEST_DIR/v1.11/$BUILD_DIR/
+    - cp build/modalai_fc-v1_default/modalai_fc-v1.bin $DEST_DIR/v1.11/$BUILD_DIR/
+    - cp build/modalai_fc-v1_default/modalai_fc-v1_default.elf $DEST_DIR/v1.11/$BUILD_DIR/
+    - cp build/modalai_fc-v1_default/modalai_fc-v1_default.px4 $DEST_DIR/v1.11/$BUILD_DIR/
+    - chmod -R 777 $DEST_DIR/v1.11/$BUILD_DIR/
   only:
     - modalai-1.11
