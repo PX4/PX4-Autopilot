@@ -281,11 +281,11 @@ static int vmount_thread_main(int argc, char *argv[])
 					break;
 
 				case 4: //MAVLINK_V2
-					thread_data.input_objs[0] = new InputMavlinkGimbalV2(params.mnt_mode_out == 2,
-							params.mav_sys_id,
-							params.mav_comp_id,
-							params.mnt_rate_pitch,
-							params.mnt_rate_yaw);
+					thread_data.input_objs[0] = new InputMavlinkGimbalV2(
+						params.mav_sys_id,
+						params.mav_comp_id,
+						params.mnt_rate_pitch,
+						params.mnt_rate_yaw);
 					break;
 
 				default:
