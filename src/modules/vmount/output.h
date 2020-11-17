@@ -114,8 +114,8 @@ protected:
 	void _handle_position_update(bool force_update = false);
 
 	const ControlData *_cur_control_data = nullptr;
-	float _angle_setpoints[3] = { 0.f, 0.f, 0.f }; ///< [rad]
-	float _angle_speeds[3] = { 0.f, 0.f, 0.f };
+	float _angle_setpoints[3] = { 0.f, 0.f, 0.f }; ///< [rad], can be NAN if not specifically set
+	float _angle_speeds[3] = { 0.f, 0.f, 0.f }; ///< [rad/s], can be NAN if not specifically set
 	bool _stabilize[3] = { false, false, false };
 
 	// Pitch and role are by default aligned with the horizon.
