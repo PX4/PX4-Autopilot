@@ -40,7 +40,7 @@
 
 #include "input_mavlink.h"
 #include <uORB/Publication.hpp>
-#include <uORB/topics/gimbal_device_information.h>
+#include <uORB/topics/gimbal_manager_information.h>
 #include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/position_setpoint_triplet.h>
@@ -470,29 +470,26 @@ void InputMavlinkGimbalV2::_stream_gimbal_manager_status()
 
 void InputMavlinkGimbalV2::_stream_gimbal_manager_information()
 {
-	gimbal_device_information_s gimbal_device_info;
-	gimbal_device_info.timestamp = hrt_absolute_time();
-	const char vendor_name[] = "PX4";
-	const char model_name[] = "AUX gimbal";
+	// TODO: Take gimbal_device_information into account.
 
-	strncpy((char *)gimbal_device_info.vendor_name, vendor_name, sizeof(gimbal_device_info.vendor_name));
-	strncpy((char *)gimbal_device_info.model_name, model_name, sizeof(gimbal_device_info.model_name));
+	gimbal_manager_information_s gimbal_manager_info;
+	gimbal_manager_info.timestamp = hrt_absolute_time();
 
-	gimbal_device_info.firmware_version = 0;
-	gimbal_device_info.capability_flags = 0;
-	gimbal_device_info.capability_flags = gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_NEUTRAL |
-					      gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_LOCK |
-					      gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_AXIS |
-					      gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_LOCK |
-					      gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_AXIS |
-					      gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_LOCK;
+	gimbal_manager_info.cap_flags =
+		gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_HAS_NEUTRAL |
+		gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_HAS_ROLL_LOCK |
+		gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_HAS_PITCH_AXIS |
+		gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_HAS_PITCH_LOCK |
+		gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_HAS_YAW_AXIS |
+		gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_HAS_YAW_LOCK |
+		gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_CAN_POINT_LOCATION_GLOBAL;
 
-	gimbal_device_info.pitch_max = M_PI_F / 2;
-	gimbal_device_info.pitch_min = -M_PI_F / 2;
-	gimbal_device_info.yaw_max = M_PI_F;
-	gimbal_device_info.yaw_min = -M_PI_F;
+	gimbal_manager_info.pitch_max = M_PI_F / 2;
+	gimbal_manager_info.pitch_min = -M_PI_F / 2;
+	gimbal_manager_info.yaw_max = M_PI_F;
+	gimbal_manager_info.yaw_min = -M_PI_F;
 
-	_gimbal_device_info_pub.publish(gimbal_device_info);
+	_gimbal_manager_info_pub.publish(gimbal_manager_info);
 }
 
 int InputMavlinkGimbalV2::update_impl(unsigned int timeout_ms, ControlData **control_data, bool already_active)

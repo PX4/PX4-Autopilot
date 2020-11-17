@@ -70,8 +70,8 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/gimbal_device_attitude_status.h>
-#include <uORB/topics/gimbal_device_information.h>
 #include <uORB/topics/gimbal_device_set_attitude.h>
+#include <uORB/topics/gimbal_manager_information.h>
 #include <uORB/topics/gimbal_manager_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
@@ -2078,12 +2078,12 @@ public:
 
 	unsigned get_size() override
 	{
-		return _gimbal_device_information_sub.advertised() ? (MAVLINK_MSG_ID_GIMBAL_MANAGER_INFORMATION_LEN +
+		return _gimbal_manager_information_sub.advertised() ? (MAVLINK_MSG_ID_GIMBAL_MANAGER_INFORMATION_LEN +
 				MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
 private:
-	uORB::Subscription _gimbal_device_information_sub{ORB_ID(gimbal_device_information)};
+	uORB::Subscription _gimbal_manager_information_sub{ORB_ID(gimbal_manager_information)};
 
 	/* do not allow top copying this class */
 	MavlinkStreamGimbalManagerInformation(MavlinkStreamGimbalManagerInformation &) = delete;
@@ -2095,22 +2095,21 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		gimbal_device_information_s gimbal_device_information;
+		gimbal_manager_information_s gimbal_manager_information;
 
-		if (_gimbal_device_information_sub.advertised() && _gimbal_device_information_sub.copy(&gimbal_device_information)) {
+		if (_gimbal_manager_information_sub.advertised() && _gimbal_manager_information_sub.copy(&gimbal_device_information)) {
 			// send out gimbal_manager_info with info from gimbal_device_information
 			mavlink_gimbal_manager_information_t msg{};
 			msg.time_boot_ms = gimbal_device_information.timestamp / 1000;
 			msg.gimbal_device_id = 0;
-			msg.cap_flags = gimbal_device_information.capability_flags;
+			msg.cap_flags = gimbal_device_information.cap_flags;
 
-			msg.tilt_max = gimbal_device_information.tilt_max;
-			msg.tilt_min = gimbal_device_information.tilt_min;
-			msg.tilt_rate_max = gimbal_device_information.tilt_rate_max;
-
-			msg.pan_max = gimbal_device_information.pan_max;
-			msg.pan_min = gimbal_device_information.pan_min;
-			msg.pan_rate_max = gimbal_device_information.pan_rate_max;
+			msg.roll_min = gimbal_device_information.roll_min;
+			msg.roll_max = gimbal_device_information.roll_max;
+			msg.pitch_min = gimbal_device_information.pitch_min;
+			msg.pitch_max = gimbal_device_information.pitch_max;
+			msg.yaw_min = gimbal_device_information.yaw_min;
+			msg.yaw_max = gimbal_device_information.yaw_max;
 
 			mavlink_msg_gimbal_manager_information_send_struct(_mavlink->get_channel(), &msg);
 
@@ -2172,7 +2171,6 @@ protected:
 		gimbal_manager_status_s gimbal_manager_status;
 
 		if (_gimbal_manager_status_sub.advertised() && _gimbal_manager_status_sub.copy(&gimbal_manager_status)) {
-			// send out gimbal_manager_info with info from gimbal_device_information
 			mavlink_gimbal_manager_status_t msg{};
 			msg.time_boot_ms = gimbal_manager_status.timestamp / 1000;
 			msg.gimbal_device_id = gimbal_manager_status.gimbal_device_id;
@@ -2240,7 +2238,6 @@ protected:
 		gimbal_device_set_attitude_s gimbal_device_set_attitude;
 
 		if (_gimbal_device_set_attitude_sub.advertised() && _gimbal_device_set_attitude_sub.copy(&gimbal_device_set_attitude)) {
-			// send out gimbal_manager_info with info from gimbal_device_information
 			mavlink_gimbal_device_set_attitude_t msg{};
 			msg.flags = gimbal_device_set_attitude.flags;
 			msg.target_system = gimbal_device_set_attitude.target_system;
