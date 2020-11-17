@@ -481,7 +481,7 @@ MulticopterPositionControl::set_vehicle_states(const float &vel_sp_z)
 			_states.velocity(2) = _local_pos.z_deriv * weighting + _local_pos.vz * (1.0f - weighting);
 		}
 
-		_states.acceleration(2) = _vel_z_deriv.update(-_states.velocity(2));
+		_states.acceleration(2) = _vel_z_deriv.update(_states.velocity(2));
 
 	} else {
 		_states.velocity(2) = _states.acceleration(2) = NAN;

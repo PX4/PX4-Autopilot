@@ -46,10 +46,27 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 {
 	bool success = true; // start with a pass and change to a fail if any test fails
 	bool ahrs_present = true;
-	float test_limit = 1.0f; // pass limit re-used for each test
 
 	int32_t mag_strength_check_enabled = 1;
 	param_get(param_find("COM_ARM_MAG_STR"), &mag_strength_check_enabled);
+
+	float hgt_test_ratio_limit = 1.f;
+	param_get(param_find("COM_ARM_EKF_HGT"), &hgt_test_ratio_limit);
+
+	float vel_test_ratio_limit = 1.f;
+	param_get(param_find("COM_ARM_EKF_VEL"), &vel_test_ratio_limit);
+
+	float pos_test_ratio_limit = 1.f;
+	param_get(param_find("COM_ARM_EKF_POS"), &pos_test_ratio_limit);
+
+	float mag_test_ratio_limit = 1.f;
+	param_get(param_find("COM_ARM_EKF_YAW"), &mag_test_ratio_limit);
+
+	float ekf_ab_test_limit = 1.f;
+	param_get(param_find("COM_ARM_EKF_AB"), &ekf_ab_test_limit);
+
+	float ekf_gb_test_limit = 1.f;
+	param_get(param_find("COM_ARM_EKF_GB"), &ekf_gb_test_limit);
 
 	bool gps_success = true;
 	bool gps_present = true;
@@ -98,9 +115,7 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	}
 
 	// check vertical position innovation test ratio
-	param_get(param_find("COM_ARM_EKF_HGT"), &test_limit);
-
-	if (status.hgt_test_ratio > test_limit) {
+	if (status.hgt_test_ratio > hgt_test_ratio_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Height estimate error");
 		}
@@ -110,9 +125,7 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	}
 
 	// check velocity innovation test ratio
-	param_get(param_find("COM_ARM_EKF_VEL"), &test_limit);
-
-	if (status.vel_test_ratio > test_limit) {
+	if (status.vel_test_ratio > vel_test_ratio_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Velocity estimate error");
 		}
@@ -122,9 +135,7 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	}
 
 	// check horizontal position innovation test ratio
-	param_get(param_find("COM_ARM_EKF_POS"), &test_limit);
-
-	if (status.pos_test_ratio > test_limit) {
+	if (status.pos_test_ratio > pos_test_ratio_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Position estimate error");
 		}
@@ -134,9 +145,7 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	}
 
 	// check magnetometer innovation test ratio
-	param_get(param_find("COM_ARM_EKF_YAW"), &test_limit);
-
-	if (status.mag_test_ratio > test_limit) {
+	if (status.mag_test_ratio > mag_test_ratio_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Yaw estimate error");
 		}
@@ -146,17 +155,17 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	}
 
 	// check accelerometer delta velocity bias estimates
-	param_get(param_find("COM_ARM_EKF_AB"), &test_limit);
+	param_get(param_find("COM_ARM_EKF_AB"), &ekf_ab_test_limit);
 
 	for (uint8_t index = 13; index < 16; index++) {
 		// allow for higher uncertainty in estimates for axes that are less observable to prevent false positives
 		// adjust test threshold by 3-sigma
 		float test_uncertainty = 3.0f * sqrtf(fmaxf(status.covariances[index], 0.0f));
 
-		if (fabsf(status.states[index]) > test_limit + test_uncertainty) {
+		if (fabsf(status.states[index]) > ekf_ab_test_limit + test_uncertainty) {
 
 			if (report_fail) {
-				PX4_ERR("state %d: |%.8f| > %.8f + %.8f", index, (double)status.states[index], (double)test_limit,
+				PX4_ERR("state %d: |%.8f| > %.8f + %.8f", index, (double)status.states[index], (double)ekf_ab_test_limit,
 					(double)test_uncertainty);
 				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: High Accelerometer Bias");
 			}
@@ -167,10 +176,10 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	}
 
 	// check gyro delta angle bias estimates
-	param_get(param_find("COM_ARM_EKF_GB"), &test_limit);
+	param_get(param_find("COM_ARM_EKF_GB"), &ekf_gb_test_limit);
 
-	if (fabsf(status.states[10]) > test_limit || fabsf(status.states[11]) > test_limit
-	    || fabsf(status.states[12]) > test_limit) {
+	if (fabsf(status.states[10]) > ekf_gb_test_limit || fabsf(status.states[11]) > ekf_gb_test_limit
+	    || fabsf(status.states[12]) > ekf_gb_test_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: High Gyro Bias");
 		}

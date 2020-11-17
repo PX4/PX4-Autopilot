@@ -1667,7 +1667,15 @@ Commander::run()
 			}
 
 			// Auto disarm after 5 seconds if kill switch is engaged
-			_auto_disarm_killed.set_state_and_update(armed.manual_lockdown || armed.lockdown, hrt_absolute_time());
+			bool auto_disarm = armed.manual_lockdown;
+
+			// auto disarm if locked down to avoid user confusion
+			//  skipped in HITL where lockdown is enabled for safety
+			if (status.hil_state != vehicle_status_s::HIL_STATE_ON) {
+				auto_disarm |= armed.lockdown;
+			}
+
+			_auto_disarm_killed.set_state_and_update(auto_disarm, hrt_absolute_time());
 
 			if (_auto_disarm_killed.get_state()) {
 				if (armed.manual_lockdown) {
@@ -2164,7 +2172,7 @@ Commander::run()
 		 * as finished even though we only just started with the takeoff. Therefore, we also
 		 * check the timestamp of the mission_result topic. */
 		if (_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
-		    && (_mission_result_sub.get().timestamp > _internal_state.timestamp)
+		    && (_mission_result_sub.get().timestamp >= _internal_state.timestamp)
 		    && _mission_result_sub.get().finished) {
 
 			const bool mission_available = (_mission_result_sub.get().timestamp > _boot_timestamp)

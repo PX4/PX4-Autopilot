@@ -405,6 +405,11 @@ void VotedSensorsUpdate::magPoll(vehicle_magnetometer_s &magnetometer)
 
 		if (_mag.enabled[uorb_index] && _mag.subscription[uorb_index].update(&mag_report)) {
 
+			// force parameter update (loads calibration) if device id still isn't set
+			if (_mag_device_id[uorb_index] == 0) {
+				parametersUpdate();
+			}
+
 			// First publication with data
 			if (_mag.priority[uorb_index] == 0) {
 				_mag.priority[uorb_index] = _mag.subscription[uorb_index].get_priority();
