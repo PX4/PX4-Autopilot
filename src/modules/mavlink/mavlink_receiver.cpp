@@ -1894,13 +1894,6 @@ MavlinkReceiver::handle_message_trajectory_representation_waypoints(mavlink_mess
 	_trajectory_waypoint_pub.publish(trajectory_waypoint);
 }
 
-switch_pos_t
-MavlinkReceiver::decode_switch_pos(uint16_t buttons, unsigned sw)
-{
-	// This 2-bit method should be used in the future: (buttons >> (sw * 2)) & 3;
-	return (buttons & (1 << sw)) ? manual_control_setpoint_s::SWITCH_POS_ON : manual_control_setpoint_s::SWITCH_POS_OFF;
-}
-
 int
 MavlinkReceiver::decode_switch_pos_n(uint16_t buttons, unsigned sw)
 {

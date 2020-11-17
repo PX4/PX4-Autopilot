@@ -206,11 +206,6 @@ private:
 	void get_message_interval(int msgId);
 
 	/**
-	 * Decode a switch position from a bitfield.
-	 */
-	switch_pos_t decode_switch_pos(uint16_t buttons, unsigned sw);
-
-	/**
 	 * Decode a switch position from a bitfield and state.
 	 */
 	int decode_switch_pos_n(uint16_t buttons, unsigned sw);
