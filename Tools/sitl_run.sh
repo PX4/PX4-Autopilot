@@ -127,7 +127,19 @@ elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
 		gzserver $verbose $world_path &
 		SIM_PID=$!
 
-		while gz model --verbose --spawn-file="${src_path}/Tools/sitl_gazebo/models/${model}/${model_name}.sdf" --model-name=${model} -x 1.01 -y 0.98 -z 0.83 2>&1 | grep -q "An instance of Gazebo is not running."; do
+		# Check all paths in ${GAZEBO_MODEL_PATH} for specified model
+		readarray -d : -t paths <<< ${GAZEBO_MODEL_PATH}
+		for possibleModelPath in "${paths[@]}"; do
+			# trim \r from path
+			possibleModelPath = $(echo $possibleModelPath | tr -d '\r')
+			if test -f "${possibleModelPath}/${model}/${model}.sdf" ; then
+				modelpath=$possibleModelPath
+				break
+			fi
+		done
+		echo "Using: ${modelpath}/${model}/${model}.sdf"
+
+		while gz model --verbose --spawn-file="${modelpath}/${model}/${model_name}.sdf" --model-name=${model} -x 1.01 -y 0.98 -z 0.83 2>&1 | grep -q "An instance of Gazebo is not running."; do
 			echo "gzserver not ready yet, trying again!"
 			sleep 1
 		done
