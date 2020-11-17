@@ -87,9 +87,6 @@ private:
 
 	int		_class_instance{-1};
 
-	/*
-	 * INIT ->
-	 */
 	enum class STATE : uint8_t {
 		INIT,
 		WAIT_FOR_OSC,
