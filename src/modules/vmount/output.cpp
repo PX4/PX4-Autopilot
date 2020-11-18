@@ -72,13 +72,6 @@ void OutputBase::publish()
 	_mount_orientation_pub.publish(mount_orientation);
 }
 
-void OutputBase::set_stabilize(bool roll_stabilize, bool pitch_stabilize, bool yaw_stabilize)
-{
-	_stabilize[0] = roll_stabilize;
-	_stabilize[1] = pitch_stabilize;
-	_stabilize[2] = yaw_stabilize;
-}
-
 float OutputBase::_calculate_pitch(double lon, double lat, float altitude,
 				   const vehicle_global_position_s &global_position)
 {
@@ -141,6 +134,10 @@ void OutputBase::_set_angle_setpoints(const ControlData *control_data)
 		_angle_velocity[1] = NAN;
 		_angle_velocity[2] = NAN;
 		break;
+	}
+
+	for (int i = 0; i < 3; ++i) {
+		_stabilize[i] = control_data->stabilize_axis[i];
 	}
 }
 
