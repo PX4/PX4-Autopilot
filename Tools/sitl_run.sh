@@ -131,7 +131,7 @@ elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
 		readarray -d : -t paths <<< ${GAZEBO_MODEL_PATH}
 		for possibleModelPath in "${paths[@]}"; do
 			# trim \r from path
-			possibleModelPath = $(echo $possibleModelPath | tr -d '\r')
+			possibleModelPath=$(echo $possibleModelPath | tr -d '\r')
 			if test -f "${possibleModelPath}/${model}/${model}.sdf" ; then
 				modelpath=$possibleModelPath
 				break
