@@ -97,8 +97,6 @@ public:
 	/** Publish _angle_outputs as a mount_orientation message. */
 	void publish();
 
-	void set_stabilize(bool roll_stabilize, bool pitch_stabilize, bool yaw_stabilize);
-
 protected:
 	float _calculate_pitch(double lon, double lat, float altitude,
 			       const vehicle_global_position_s &global_position);
