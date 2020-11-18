@@ -108,7 +108,7 @@ protected:
 
 	void updatePWMParamTrim();
 
-	int _schd_rate_limit;
+	int _schd_rate_limit = 400;
 
 	PCA9685 *pca9685 = nullptr; // driver handle.
 
@@ -390,7 +390,7 @@ void PCA9685Wrapper::Run()
 
 		if (_targetFreq > 0.0f) {
 			if (pca9685->setFreq(_targetFreq) != PX4_OK) {
-				PX4_ERR("failed to set pwm frequency, fall back to 50Hz");
+				PX4_ERR("failed to set pwm frequency to %.2f, fall back to 50Hz", (double)_targetFreq);
 				pca9685->setFreq(50.0f);	// this should not fail
 			}
 

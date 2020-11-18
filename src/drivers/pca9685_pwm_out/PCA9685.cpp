@@ -54,7 +54,7 @@ int PCA9685::updatePWM(const uint16_t *outputs, unsigned num_outputs)
 {
 	if (num_outputs > PCA9685_PWM_CHANNEL_COUNT) {
 		num_outputs = PCA9685_PWM_CHANNEL_COUNT;
-		PX4_WARN("PCA9685 can only drive up to 16 channels");
+		PX4_DEBUG("PCA9685 can only drive up to 16 channels");
 	}
 
 	uint16_t out[PCA9685_PWM_CHANNEL_COUNT];
@@ -74,14 +74,14 @@ int PCA9685::setFreq(float freq)
 	uint16_t realResolution = floorl((float)PCA9685_CLOCK_FREQ / freq);
 
 	if (realResolution < PCA9685_PWM_RES) { // unable to provide enough resolution
-		PX4_ERR("frequency too high");
+		PX4_DEBUG("frequency too high");
 		return -EINVAL;
 	}
 
 	uint16_t divider = (uint16_t)round((float)PCA9685_CLOCK_FREQ / freq / PCA9685_PWM_RES) - 1;
 
 	if (divider > 0x00FF) { // out of divider
-		PX4_ERR("frequency too low");
+		PX4_DEBUG("frequency too low");
 		return -EINVAL;
 	}
 
@@ -156,7 +156,7 @@ void PCA9685::setPWM(uint8_t channel, const uint16_t &value)
 	int ret = transfer(buf, 5, nullptr, 0);
 
 	if (OK != ret) {
-		PX4_ERR("setPWM: i2c::transfer returned %d", ret);
+		PX4_DEBUG("setPWM: i2c::transfer returned %d", ret);
 	}
 }
 
@@ -181,7 +181,7 @@ void PCA9685::setPWM(uint8_t channel_count, const uint16_t *value)
 	int ret = transfer(buf, channel_count * PCA9685_REG_LED_INCREMENT + 1, nullptr, 0);
 
 	if (OK != ret) {
-		PX4_ERR("setPWM: i2c::transfer returned %d", ret);
+		PX4_DEBUG("setPWM: i2c::transfer returned %d", ret);
 	}
 }
 
@@ -237,7 +237,7 @@ void PCA9685::startOscillator()
 	int ret = transfer(buf, 2, nullptr, 0);
 
 	if (OK != ret) {
-		PX4_ERR("startOscillator: i2c::transfer returned %d", ret);
+		PX4_DEBUG("startOscillator: i2c::transfer returned %d", ret);
 		return;
 	}
 }
@@ -252,7 +252,7 @@ void PCA9685::triggerRestart()
 	int ret = transfer(buf, 2, nullptr, 0);
 
 	if (OK != ret) {
-		PX4_ERR("triggerRestart: i2c::transfer returned %d", ret);
+		PX4_DEBUG("triggerRestart: i2c::transfer returned %d", ret);
 		return;
 	}
 }
