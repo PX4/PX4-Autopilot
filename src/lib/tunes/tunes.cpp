@@ -290,7 +290,8 @@ Tunes::Status Tunes::get_next_note(unsigned &frequency, unsigned &duration, unsi
 		case 'P':	// Pause for a note length.
 			frequency = 0;
 			duration = 0;
-			silence = rest_duration(next_number(), next_dots());
+			note_length = next_number();
+			silence = rest_duration(note_length, next_dots());
 			return Tunes::Status::Continue;
 
 		case 'T': {	// Change tempo.
