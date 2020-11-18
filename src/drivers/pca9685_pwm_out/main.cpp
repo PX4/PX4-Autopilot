@@ -157,6 +157,8 @@ int PCA9685Wrapper::init()
 
 	this->ChangeWorkQeue(px4::device_bus_to_wq(pca9685->get_device_id()));
 
+	PX4_INFO("running on I2C bus %d address 0x%.2x", pca9685->get_device_bus(), pca9685->get_device_address());
+
 	ScheduleNow();
 
 	return PX4_OK;
