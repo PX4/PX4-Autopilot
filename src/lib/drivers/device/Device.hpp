@@ -147,6 +147,7 @@ public:
 		DeviceBusType_SPI     = 2,
 		DeviceBusType_UAVCAN  = 3,
 		DeviceBusType_SIMULATION = 4,
+		DeviceBusType_MAVLINK = 5,
 	};
 
 	/*
@@ -191,6 +192,9 @@ public:
 
 		case DeviceBusType_SIMULATION:
 			return "SIMULATION";
+
+		case DeviceBusType_MAVLINK:
+			return "MAVLINK";
 
 		case DeviceBusType_UNKNOWN:
 		default:

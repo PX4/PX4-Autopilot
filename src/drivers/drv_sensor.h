@@ -163,6 +163,10 @@
 #define DRV_ADC_DEVTYPE_ADS1115	0x90
 #define DRV_DIST_DEVTYPE_VL53L1X 0x91
 
+// Generic types for unknown MAVLINK sensors
+#define DRV_GPS_DEVTYPE_MAVLINK	0x92
+#define DRV_MAG_DEVTYPE_MAVLINK	0x93
+
 #define DRV_DEVTYPE_UNUSED		0xff
 
 #endif /* _DRV_SENSOR_H */
