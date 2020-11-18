@@ -64,3 +64,7 @@
 	path = src/lib/crypto/libtommath
 	url = https://github.com/PX4/libtommath.git
 	branch = px4
+[submodule "src/drivers/imu/bno055/BNO055_driver"]
+	path = src/drivers/imu/bno055/BNO055_driver
+	url = https://github.com/BoschSensortec/BNO055_driver
+	branch = changes-for-cpp-wrapper
