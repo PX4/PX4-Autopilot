@@ -75,6 +75,7 @@ px4_add_romfs_files(
 	3011_hexarotor_x
 
 	4001_x500
+	4400_ssrc_fog_x
 
 	17001_tf-g1
 	17002_tf-g2
