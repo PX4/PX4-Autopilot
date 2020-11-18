@@ -12,7 +12,7 @@
 	branch = master
 [submodule "Tools/sitl_gazebo"]
 	path = Tools/sitl_gazebo
-	url = https://github.com/PX4/PX4-SITL_gazebo.git
+	url = https://github.com/tiiuae/PX4-SITL_gazebo.git
 	branch = master
 [submodule "src/lib/matrix"]
 	path = src/lib/matrix
