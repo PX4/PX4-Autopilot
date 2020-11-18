@@ -47,6 +47,7 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 #include "rgbled.hpp"
+#include "safety_state.hpp"
 #include "uavcan_driver.hpp"
 #include "uavcan_servers.hpp"
 #include "allocator.hpp"
@@ -201,6 +202,7 @@ private:
 	UavcanEscController		_esc_controller;
 	UavcanMixingInterface 		_mixing_interface{_node_mutex, _esc_controller};
 	UavcanHardpointController	_hardpoint_controller;
+	UavcanSafetyState         	_safety_state_controller;
 	UavcanRGBController             _rgbled_controller;
 	uavcan::GlobalTimeSyncMaster	_time_sync_master;
 	uavcan::GlobalTimeSyncSlave	_time_sync_slave;
