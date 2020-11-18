@@ -345,16 +345,6 @@ static int vmount_thread_main(int argc, char *argv[])
 				thread_should_exit = true;
 				break;
 			}
-
-			if (params.mnt_do_stab == 1) {
-				thread_data.output_obj->set_stabilize(true, true, true);
-
-			} else if (params.mnt_do_stab == 2) {
-				thread_data.output_obj->set_stabilize(false, false, true);
-
-			} else {
-				thread_data.output_obj->set_stabilize(false, false, false);
-			}
 		}
 
 		if (thread_data.input_objs_len > 0) {
@@ -363,6 +353,17 @@ static int vmount_thread_main(int argc, char *argv[])
 			//periodically for stabilization and angle updates.
 
 			for (int i = 0; i < thread_data.input_objs_len; ++i) {
+
+				if (params.mnt_do_stab == 1) {
+					thread_data.input_objs[i]->set_stabilize(true, true, true);
+
+				} else if (params.mnt_do_stab == 2) {
+					thread_data.input_objs[i]->set_stabilize(false, false, true);
+
+				} else {
+					thread_data.input_objs[i]->set_stabilize(false, false, false);
+				}
+
 
 				bool already_active = (last_active == i);
 
