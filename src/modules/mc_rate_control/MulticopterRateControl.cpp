@@ -99,6 +99,12 @@ MulticopterRateControl::parameters_updated()
 float
 MulticopterRateControl::get_landing_gear_state()
 {
+	manual_control_switches_s manual_control_switches;
+
+	if (_manual_control_switches_sub.update(&manual_control_switches)) {
+		_landing_gear_switch = manual_control_switches.gear_switch;
+	}
+
 	// Only switch the landing gear up if we are not landed and if
 	// the user switched from gear down to gear up.
 	// If the user had the switch in the gear up position and took off ignore it
@@ -109,10 +115,10 @@ MulticopterRateControl::get_landing_gear_state()
 
 	float landing_gear = landing_gear_s::GEAR_DOWN; // default to down
 
-	if (_manual_control_setpoint.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON && _gear_state_initialized) {
+	if (_landing_gear_switch == manual_control_switches_s::SWITCH_POS_ON && _gear_state_initialized) {
 		landing_gear = landing_gear_s::GEAR_UP;
 
-	} else if (_manual_control_setpoint.gear_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
+	} else if (_landing_gear_switch == manual_control_switches_s::SWITCH_POS_OFF) {
 		// Switching the gear off does put it into a safe defined state
 		_gear_state_initialized = true;
 	}

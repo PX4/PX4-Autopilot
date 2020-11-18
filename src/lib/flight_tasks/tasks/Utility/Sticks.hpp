@@ -53,8 +53,7 @@ public:
 	Sticks(ModuleParams *parent);
 	~Sticks() = default;
 
-	bool checkAndSetStickInputs(hrt_abstime now);
-	void setGearAccordingToSwitch(landing_gear_s &gear);
+	bool checkAndSetStickInputs();
 	bool isAvailable() { return _input_available; };
 	const matrix::Vector<float, 4> &getPosition() { return _positions; };
 	const matrix::Vector<float, 4> &getPositionExpo() { return _positions_expo; };
@@ -75,18 +74,16 @@ public:
 	static void rotateIntoHeadingFrameXY(matrix::Vector2f &v, const float yaw, const float yaw_setpoint);
 
 private:
-	bool _input_available = false;
+	bool _input_available{false};
 	matrix::Vector<float, 4> _positions; ///< unmodified manual stick inputs
 	matrix::Vector<float, 4> _positions_expo; ///< modified manual sticks using expo function
-	int _gear_switch_old = manual_control_setpoint_s::SWITCH_POS_NONE; ///< old switch state
 
-	uORB::SubscriptionData<manual_control_setpoint_s> _sub_manual_control_setpoint{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_HOLD_DZ>) _param_mpc_hold_dz,
 		(ParamFloat<px4::params::MPC_XY_MAN_EXPO>) _param_mpc_xy_man_expo,
 		(ParamFloat<px4::params::MPC_Z_MAN_EXPO>) _param_mpc_z_man_expo,
-		(ParamFloat<px4::params::MPC_YAW_EXPO>) _param_mpc_yaw_expo,
-		(ParamFloat<px4::params::COM_RC_LOSS_T>) _param_com_rc_loss_t
+		(ParamFloat<px4::params::MPC_YAW_EXPO>) _param_mpc_yaw_expo
 	)
 };

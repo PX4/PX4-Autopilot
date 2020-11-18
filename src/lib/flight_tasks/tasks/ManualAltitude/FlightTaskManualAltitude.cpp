@@ -50,8 +50,32 @@ bool FlightTaskManualAltitude::updateInitialize()
 {
 	bool ret = FlightTask::updateInitialize();
 
-	_sticks.checkAndSetStickInputs(_time_stamp_current);
-	_sticks.setGearAccordingToSwitch(_gear);
+	manual_control_switches_s manual_control_switches;
+
+	if (_manual_control_switches_sub.copy(&manual_control_switches) && (manual_control_switches.timestamp > 0)) {
+
+		const int8_t gear_switch = manual_control_switches.gear_switch;
+
+		if (_gear_switch_old != gear_switch) {
+			if (gear_switch == manual_control_switches_s::SWITCH_POS_OFF) {
+				_gear.landing_gear = landing_gear_s::GEAR_DOWN;
+			}
+
+			if (gear_switch == manual_control_switches_s::SWITCH_POS_ON) {
+				_gear.landing_gear = landing_gear_s::GEAR_UP;
+			}
+		}
+
+		_gear_switch_old = gear_switch;
+
+	} else {
+		// Only switch the landing gear up if the user switched from gear down to gear up.
+		// If the user had the switch in the gear up position and took off ignore it
+		// until he toggles the switch to avoid retracting the gear immediately on takeoff.
+		_gear.landing_gear = landing_gear_s::GEAR_KEEP;
+	}
+
+	_sticks.checkAndSetStickInputs();
 
 	if (_sticks_data_required) {
 		ret = ret && _sticks.isAvailable();

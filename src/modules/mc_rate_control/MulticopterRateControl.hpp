@@ -50,6 +50,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/landing_gear.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rate_ctrl_status.h>
@@ -96,6 +97,7 @@ private:
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _landing_gear_sub{ORB_ID(landing_gear)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription _manual_control_switches_sub{ORB_ID(manual_control_switches)};
 	uORB::Subscription _motor_limits_sub{ORB_ID(multirotor_motor_limits)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _v_control_mode_sub{ORB_ID(vehicle_control_mode)};
@@ -131,6 +133,8 @@ private:
 	bool _gear_state_initialized{false};		/**< true if the gear state has been initialized */
 
 	hrt_abstime _last_run{0};
+
+	uint8_t _landing_gear_switch{manual_control_switches_s::SWITCH_POS_NONE};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MC_ROLLRATE_P>) _param_mc_rollrate_p,
