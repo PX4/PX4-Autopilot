@@ -396,6 +396,10 @@ Tunes::Status Tunes::tune_error()
 	}
 
 	// The tune appears to be bad (unexpected EOF, bad character, etc.).
+	if (_next_tune != nullptr) {
+		PX4_WARN("Tune error at: %s", _next_tune);
+	}
+
 	_repeat = false;	// Don't loop on error.
 	reset(_repeat);
 	return Tunes::Status::Error;
