@@ -979,7 +979,7 @@ PARAM_DEFINE_INT32(COM_ARM_ARSP_EN, 1);
  * @group Commander
  * @unit s
  * @min -1.0
- * @max 60.0
+ * @max 25.0
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(COM_LL_DELAY, 15.0f);
