@@ -219,7 +219,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	px4_platform_init();
 
-
 	if (OK == board_determine_hw_info()) {
 		syslog(LOG_INFO, "[boot] Rev 0x%1x : Ver 0x%1x %s\n", board_get_hw_revision(), board_get_hw_version(),
 		       board_get_hw_type_name());
@@ -231,6 +230,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* configure SPI interfaces (after we determined the HW version) */
 
 	stm32_spiinitialize();
+
 
 	/* Does this board have CAN 2 or CAN 3 if not decouple the RX
 	 * from IP block Leave TX connected
@@ -288,6 +288,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #endif /* CONFIG_MMCSD */
+
+	/* Configure the HW based on the manifest */
+
+	px4_platform_configure();
 
 	return OK;
 }
