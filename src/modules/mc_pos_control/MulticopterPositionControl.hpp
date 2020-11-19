@@ -203,6 +203,8 @@ private:
 
 	perf_counter_t _cycle_perf;
 
+	uint8_t _last_vehicle_nav_state{0};
+
 	/**
 	 * Update our local parameter cache.
 	 * Parameter update can be forced when argument is true.
