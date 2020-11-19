@@ -1016,6 +1016,6 @@ CameraTrigger::adjust_roll()
 
 	vcmd.param7 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
 
-	uORB::PublicationQueued<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
 	vcmd_pub.publish(vcmd);
 }
