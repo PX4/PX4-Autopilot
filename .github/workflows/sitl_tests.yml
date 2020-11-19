@@ -20,7 +20,7 @@ jobs:
           - {latitude:  "29.660316", longitude:  "-82.316658", altitude:  "30", build_type: "RelWithDebInfo", model: "tailsitter"    } # Florida
           - {latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "Coverage",       model: "standard_vtol" } # Zurich
     container:
-      image: px4io/px4-dev-simulation-focal:2020-08-14
+      image: px4io/px4-dev-simulation-focal:2020-11-18
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     steps:
     - uses: actions/checkout@v1
@@ -60,7 +60,9 @@ jobs:
         PX4_HOME_LON: ${{matrix.config.longitude}}
         PX4_HOME_ALT: ${{matrix.config.altitude}}
         PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
-      run: export
+      run: |
+          export
+          ulimit -a
     - name: Build PX4
       env:
         PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
