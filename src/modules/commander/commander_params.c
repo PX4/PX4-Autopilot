@@ -638,9 +638,10 @@ PARAM_DEFINE_INT32(COM_REARM_GRACE, 1);
  * Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
  *
  * @min 0
- * @max 3
+ * @max 7
  * @bit 0 Enable override during auto modes (except for in critical battery reaction)
  * @bit 1 Enable override during offboard mode
+ * @bit 2 Ignore throttle stick
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 1);
@@ -648,8 +649,8 @@ PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 1);
 /**
  * RC stick override threshold
  *
- * If COM_RC_OVERRIDE is enabled and the joystick input controlling the horizontally axis (right stick for RC in mode 2)
- * is moved more than this threshold from the center the autopilot switches to position mode and the pilot takes over control.
+ * If COM_RC_OVERRIDE is enabled and the joystick input is moved more than this threshold from the center
+ * the autopilot switches to position mode and the pilot takes over control.
  *
  * @group Commander
  * @unit %
