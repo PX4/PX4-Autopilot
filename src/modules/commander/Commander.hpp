@@ -287,9 +287,9 @@ private:
 	};
 
 	enum OverrideMode {
-		OVERRIDE_DISABLED = 0,
 		OVERRIDE_AUTO_MODE_BIT = (1 << 0),
-		OVERRIDE_OFFBOARD_MODE_BIT = (1 << 1)
+		OVERRIDE_OFFBOARD_MODE_BIT = (1 << 1),
+		OVERRIDE_IGNORE_THROTTLE_BIT = (1 << 2)
 	};
 
 	/* Decouple update interval and hysteresis counters, all depends on intervals */
