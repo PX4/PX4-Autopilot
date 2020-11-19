@@ -389,7 +389,11 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 void enable_failsafe(vehicle_status_s *status, bool old_failsafe, orb_advert_t *mavlink_log_pub, const char *reason)
 {
 	if (!old_failsafe && status->arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-		status->failsafe_timestamp = hrt_absolute_time();
+		// make sure intermittent failsafes don't lead to infinite delay by not constatnly reseting the timestamp
+		if (hrt_elapsed_time(&status->failsafe_timestamp) > 30_s) {
+			status->failsafe_timestamp = hrt_absolute_time();
+		}
+
 		mavlink_log_critical(mavlink_log_pub, "Failsafe enabled: %s", reason);
 	}
 
@@ -774,7 +778,8 @@ void set_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed,
 			     const vehicle_status_flags_s &status_flags, commander_state_s *internal_state, link_loss_actions_t link_loss_act,
 			     const float ll_delay)
 {
-	if (hrt_elapsed_time(&status->failsafe_timestamp) < (ll_delay * 1_s)) {
+	if (hrt_elapsed_time(&status->failsafe_timestamp) < (ll_delay * 1_s)
+	    && link_loss_act != link_loss_actions_t::DISABLED) {
 		// delay failsafe reaction by trying to hold position if configured
 		link_loss_act = link_loss_actions_t::AUTO_LOITER;
 	}
