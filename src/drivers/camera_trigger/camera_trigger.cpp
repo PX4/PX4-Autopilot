@@ -178,12 +178,12 @@ private:
 	bool 			_turning_on;
 	matrix::Vector2f	_last_shoot_position;
 	bool			_valid_position;
-	uint32_t		_pseudo_oblique_num_poses;
-	uint32_t		_pseudo_oblique_pose_counter;
-	float			_pseudo_oblique_roll_angle;
-	float			_pseudo_oblique_angle_interval;
-	float			_pseudo_oblique_pitch_angle;
-	bool			_updated_roll_angle;
+	uint32_t		_CAMPOS_num_poses;
+	uint32_t		_CAMPOS_pose_counter;
+	float			_CAMPOS_roll_angle;
+	float			_CAMPOS_angle_interval;
+	float			_CAMPOS_pitch_angle;
+	bool			_CAMPOS_updated_roll_angle;
 	uint32_t		_target_system;
 	uint32_t		_target_component;
 
@@ -270,12 +270,12 @@ CameraTrigger::CameraTrigger() :
 	_turning_on(false),
 	_last_shoot_position(0.0f, 0.0f),
 	_valid_position(false),
-	_pseudo_oblique_num_poses(0),
-	_pseudo_oblique_pose_counter(0),
-	_pseudo_oblique_roll_angle(0.0f),
-	_pseudo_oblique_angle_interval(0.0f),
-	_pseudo_oblique_pitch_angle(-90),
-	_updated_roll_angle(false),
+	_CAMPOS_num_poses(0),
+	_CAMPOS_pose_counter(0),
+	_CAMPOS_roll_angle(0.0f),
+	_CAMPOS_angle_interval(0.0f),
+	_CAMPOS_pitch_angle(-90),
+	_CAMPOS_updated_roll_angle(false),
 	_target_system(0),
 	_target_component(0),
 	_trigger_pub(nullptr),
@@ -410,15 +410,15 @@ CameraTrigger::update_distance()
 
 		hrt_abstime now = hrt_absolute_time();
 
-		if (!_updated_roll_angle && _pseudo_oblique_num_poses > 0 && (now - _last_trigger_timestamp > _min_interval * 1000)) {
+		if (!_CAMPOS_updated_roll_angle && _CAMPOS_num_poses > 0 && (now - _last_trigger_timestamp > _min_interval * 1000)) {
 			adjust_roll();
-			_updated_roll_angle = true;
+			_CAMPOS_updated_roll_angle = true;
 		}
 
 		// Check that distance threshold is exceeded
 		if (matrix::Vector2f(_last_shoot_position - current_position).length() >= _distance) {
 			shoot_once();
-			_updated_roll_angle = false;
+			_CAMPOS_updated_roll_angle = false;
 			_last_shoot_position = current_position;
 		}
 	}
@@ -705,22 +705,22 @@ CameraTrigger::Run()
 			}
 
 			if (cmd.param4 >= 2.0f) {
-				_pseudo_oblique_num_poses = commandParamToInt(cmd.param4);
+				_CAMPOS_num_poses = commandParamToInt(cmd.param4);
 
 				if (cmd.param5 > 0.0) {
-					_pseudo_oblique_roll_angle = cmd.param5;
+					_CAMPOS_roll_angle = cmd.param5;
 
 				} else {
-					_pseudo_oblique_roll_angle = 30.0f;
+					_CAMPOS_roll_angle = 30.0f;
 				}
 
-				_pseudo_oblique_pitch_angle = cmd.param6;
-				_pseudo_oblique_angle_interval = _pseudo_oblique_roll_angle * 2 / (_pseudo_oblique_num_poses - 1);
-				_pseudo_oblique_pose_counter = 0;
-				_updated_roll_angle = false;
+				_CAMPOS_pitch_angle = cmd.param6;
+				_CAMPOS_angle_interval = _CAMPOS_roll_angle * 2 / (_CAMPOS_num_poses - 1);
+				_CAMPOS_pose_counter = 0;
+				_CAMPOS_updated_roll_angle = false;
 
 			} else {
-				_pseudo_oblique_num_poses = 0;
+				_CAMPOS_num_poses = 0;
 			}
 
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
@@ -1005,14 +1005,14 @@ CameraTrigger::adjust_roll()
 	vcmd.target_component = _target_component;
 
 	//param1 of VEHICLE_CMD_DO_MOUNT_CONTROL in VEHICLE_MOUNT_MODE_MAVLINK_TARGETING mode is pitch
-	vcmd.param1 = _pseudo_oblique_pitch_angle;
+	vcmd.param1 = _CAMPOS_pitch_angle;
 
 	//param2 of VEHICLE_CMD_DO_MOUNT_CONTROL in VEHICLE_MOUNT_MODE_MAVLINK_TARGETING mode is roll
-	if (++_pseudo_oblique_pose_counter == _pseudo_oblique_num_poses) {
-		_pseudo_oblique_pose_counter = 0;
+	if (++_CAMPOS_pose_counter == _CAMPOS_num_poses) {
+		_CAMPOS_pose_counter = 0;
 	}
 
-	vcmd.param2 = _pseudo_oblique_angle_interval * _pseudo_oblique_pose_counter - _pseudo_oblique_roll_angle;
+	vcmd.param2 = _CAMPOS_angle_interval * _CAMPOS_pose_counter - _CAMPOS_roll_angle;
 
 	vcmd.param7 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
 
