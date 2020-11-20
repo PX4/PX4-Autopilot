@@ -36,8 +36,12 @@
 typedef enum  {
 	MFT = 0,
 	MTD = 1,
+	LAST_MFT_TYPE
 } px4_manifest_types_e;
 
+/* must match  px4_manifest_types_e */
+#define PX4_MFT_TYPES     {MFT, MTD}
+#define PX4_MFT_STR_TYPES {"MFT", "MTD"}
 
 typedef struct  {
 
@@ -99,4 +103,22 @@ __EXPORT const px4_mft_s *board_get_manifest(void);
  ************************************************************************************/
 
 __EXPORT int px4_mft_configure(const px4_mft_s *mft);
+
+/************************************************************************************
+ * Name: px4_mft_configure
+ *
+ * Description:
+ *   The Px4 layer will provide this interface to start/configure the
+ *   hardware.
+ *
+ * Input Parameters:
+ *  mft    - a pointer to the manifest
+ *
+ * Returned Value:
+ *   non zero if error
+ *
+ ************************************************************************************/
+
+__EXPORT int px4_mft_query(const px4_mft_s *mft, px4_manifest_types_e type,
+			   const char *sub, const char *val);
 __END_DECLS

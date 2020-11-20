@@ -51,6 +51,7 @@
 
 #include <errno.h>
 #include <stdbool.h>
+#include "systemlib/px4_macros.h"
 
 #include <nuttx/drivers/drivers.h>
 #include <nuttx/spi/spi.h>
@@ -312,6 +313,12 @@ memoryout:
 			goto memoryout;
 		}
 
+		instances[i].partition_types = new int[nparts];
+
+		if (instances[i].partition_types == nullptr) {
+			goto memoryout;
+		}
+
 		instances[i].partition_names = new const char *[nparts];
 
 		if (instances[i].partition_names == nullptr) {
@@ -321,6 +328,7 @@ memoryout:
 		for (uint32_t p = 0; p < nparts; p++) {
 			instances[i].partition_block_counts[p] =  mtd_list->entries[i]->partd[p].nblocks;
 			instances[i].partition_names[p] = mtd_list->entries[i]->partd[p].path;
+			instances[i].partition_types[p] = mtd_list->entries[i]->partd[p].type;
 		}
 
 		if (mtd_list->entries[i]->device->bus_type == px4_mft_device_t::I2C) {
@@ -401,6 +409,49 @@ errout:
 				PX4_I2C_DEVID_ADDR(instances[i].devid),
 				mtd_list->entries[i]->partd[instances[i].n_partitions_current].type);
 			break;
+		}
+	}
+
+	return rv;
+}
+
+__EXPORT int px4_mtd_query(const char *sub, const char *val, const char **get)
+{
+	int rv = -ENODEV;
+
+	if (instances != nullptr) {
+
+		static const char *keys[] = PX4_MFT_MTD_STR_TYPES;
+		static const px4_mtd_types_t types[] = PX4_MFT_MTD_TYPES;
+		int key = 0;
+
+		for (unsigned int k = 0; k < arraySize(keys); k++) {
+			if (!strcmp(keys[k], sub)) {
+				key = types[k];
+				break;
+			}
+		}
+
+
+		rv = -EINVAL;
+
+		if (key != 0) {
+			rv = -ENOENT;
+
+			for (int i = 0; i < num_instances; i++) {
+				for (unsigned n = 0; n < instances[i].n_partitions_current; n++) {
+					if (instances[i].partition_types[n] == key) {
+						if (get != nullptr && val == nullptr) {
+							*get =  instances[i].partition_names[n];
+							return 0;
+						}
+
+						if (val != nullptr && strcmp(instances[i].partition_names[n], val) == 0) {
+							return 0;
+						}
+					}
+				}
+			}
 		}
 	}
 

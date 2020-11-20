@@ -87,3 +87,27 @@ __EXPORT int px4_mft_configure(const px4_mft_s *mft)
 
 	return 0;
 }
+
+__EXPORT int px4_mft_query(const px4_mft_s *mft, px4_manifest_types_e type,
+			   const char *sub, const char *val)
+{
+	int rv = -EINVAL;
+
+	if (mft != nullptr) {
+		for (uint32_t m = 0; m < mft->nmft; m++) {
+			if (mft->mfts[m].type == type)
+				switch (type) {
+				case MTD:
+					return px4_mtd_query(sub, val);
+					break;
+
+				case MFT:
+				default:
+					rv = -ENODATA;
+					break;
+				}
+		}
+	}
+
+	return rv;
+}
