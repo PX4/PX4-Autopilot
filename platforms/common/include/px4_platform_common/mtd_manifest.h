@@ -41,6 +41,8 @@ typedef enum  {
 	MTD_ID          = 5,
 	MTD_NET         = 6,
 } px4_mtd_types_t;
+#define PX4_MFT_MTD_TYPES  {MTD_PARAMETERS, MTD_WAYPOINTS, MTD_CALDATA, MTD_MFT, MTD_ID, MTD_NET}
+#define PX4_MFT_MTD_STR_TYPES  {"MTD_PARAMETERS", "MTD_WAYPOINTS", "MTD_CALDATA", "MTD_MFT", "MTD_ID", "MTD_NET"}
 
 typedef struct  {
 	const px4_mtd_types_t   type;
@@ -76,5 +78,28 @@ __BEGIN_DECLS
  ************************************************************************************/
 
 __EXPORT int px4_mtd_config(const px4_mtd_manifest_t *mft_mtd);
+
+/************************************************************************************
+ * Name: px4_mtd_query
+ *
+ * Description:
+ *   A Query interface that will lookup a type and either a) verify it exists  by
+ *   value.
+ *
+ *   or it will return the path for a type.
+ *
+ *
+ * Input Parameters:
+ *  type  - a string-ized version of px4_mtd_types_t
+ *  value - string to verity is that type.
+ *  get   - a pointer to a string to optionally return the path for the type.
+ *
+ * Returned Value:
+ *   non zero if error
+ *   0 (get == null) item by type and value was found.
+ *   0 (get !=null) item by type's value is returned at get;
+ *
+ ************************************************************************************/
+__EXPORT int px4_mtd_query(const char *type, const char *val, const char **get = nullptr);
 
 __END_DECLS
