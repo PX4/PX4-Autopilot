@@ -153,9 +153,10 @@ then
 else
 
 	#
-	# Set the parameter file if mtd starts successfully.
+	# Set the parameter file the board supports params on
+	# MTD device.
 	#
-	if mtd start
+	if mft query -q -k MTD -s MTD_PARAMETERS -v /fs/mtd_params
 	then
 		set PARAM_FILE /fs/mtd_params
 	fi
@@ -163,13 +164,10 @@ else
 	#
 	# Load parameters.
 	#
-	# if MTD has a secondary storage it is used for (factory) calibration data
-	if mtd has-secondary
+	# if the board has a storage for (factory) calibration data
+	if mft query -q -k MTD -s MTD_CALDATA -v /fs/mtd_caldata
 	then
-		if mtd start -i 1 /fs/mtd_caldata
-		then
-			param load /fs/mtd_caldata
-		fi
+		param load /fs/mtd_caldata
 	fi
 
 	param select $PARAM_FILE
