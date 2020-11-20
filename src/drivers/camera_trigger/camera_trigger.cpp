@@ -708,14 +708,7 @@ CameraTrigger::Run()
 
 			if (cmd.param4 >= 2.0f) {
 				_CAMPOS_num_poses = commandParamToInt(cmd.param4);
-
-				if (cmd.param5 > 0.0) {
-					_CAMPOS_roll_angle = cmd.param5;
-
-				} else {
-					_CAMPOS_roll_angle = 30.0f;
-				}
-
+				_CAMPOS_roll_angle = cmd.param5;
 				_CAMPOS_pitch_angle = cmd.param6;
 				_CAMPOS_angle_interval = _CAMPOS_roll_angle * 2 / (_CAMPOS_num_poses - 1);
 				_CAMPOS_pose_counter = 0;
