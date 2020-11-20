@@ -31,48 +31,47 @@
  *
  ****************************************************************************/
 
-#ifndef RAW_RPM_HPP
-#define RAW_RPM_HPP
+/**
+ * @file safety_state.cpp
+ *
+ * @author CUAVcaijie <caijie@cuav.net>
+ */
 
-#include <uORB/topics/rpm.h>
+#include "safety_state.hpp"
 
-class MavlinkStreamRawRpm : public MavlinkStream
+UavcanSafetyState::UavcanSafetyState(uavcan::INode &node) :
+	_safety_state_pub(node),
+	_timer(node)
 {
-public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamRawRpm(mavlink); }
+}
 
-	static constexpr const char *get_name_static() { return "RAW_RPM"; }
-	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_RAW_RPM; }
-
-	const char *get_name() const override { return get_name_static(); }
-	uint16_t get_id() override { return get_id_static(); }
-
-	unsigned get_size() override
-	{
-		return _rpm_sub.advertised() ? (MAVLINK_MSG_ID_RAW_RPM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+int UavcanSafetyState::init()
+{
+	/*
+	 * Setup timer and call back function for periodic updates
+	 */
+	if (!_timer.isRunning()) {
+		_timer.setCallback(TimerCbBinder(this, &UavcanSafetyState::periodic_update));
+		_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / MAX_RATE_HZ));
 	}
 
-private:
-	explicit MavlinkStreamRawRpm(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	return 0;
+}
 
-	uORB::Subscription _rpm_sub{ORB_ID(rpm)};
+void UavcanSafetyState::periodic_update(const uavcan::TimerEvent &)
+{
+	actuator_armed_s actuator_armed;
 
-	bool send() override
-	{
-		rpm_s rpm;
+	if (_actuator_armed_sub.update(&actuator_armed)) {
+		ardupilot::indication::SafetyState cmd;
 
-		if (_rpm_sub.update(&rpm)) {
-			mavlink_raw_rpm_t msg{};
+		if (actuator_armed.armed || actuator_armed.prearmed) {
+			cmd.status = cmd.STATUS_SAFETY_OFF;
 
-			msg.frequency = rpm.indicated_frequency_rpm;
-
-			mavlink_msg_raw_rpm_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
+		} else {
+			cmd.status = cmd.STATUS_SAFETY_ON;
 		}
 
-		return false;
+		(void)_safety_state_pub.broadcast(cmd);
 	}
-};
-
-#endif // RAW_RPM_HPP
+}

@@ -150,7 +150,7 @@ private:
 	void handle_message_distance_sensor(mavlink_message_t *msg);
 	void handle_message_follow_target(mavlink_message_t *msg);
 	void handle_message_generator_status(mavlink_message_t *msg);
-	void handle_message_gps_global_origin(mavlink_message_t *msg);
+	void handle_message_set_gps_global_origin(mavlink_message_t *msg);
 	void handle_message_gps_rtcm_data(mavlink_message_t *msg);
 	void handle_message_heartbeat(mavlink_message_t *msg);
 	void handle_message_hil_gps(mavlink_message_t *msg);
@@ -204,11 +204,6 @@ private:
 	 */
 	int set_message_interval(int msgId, float interval, int data_rate = -1);
 	void get_message_interval(int msgId);
-
-	/**
-	 * Decode a switch position from a bitfield.
-	 */
-	switch_pos_t decode_switch_pos(uint16_t buttons, unsigned sw);
 
 	/**
 	 * Decode a switch position from a bitfield and state.

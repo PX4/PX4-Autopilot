@@ -162,8 +162,8 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_odometry(msg);
 		break;
 
-	case MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN:
-		handle_message_gps_global_origin(msg);
+	case MAVLINK_MSG_ID_SET_GPS_GLOBAL_ORIGIN:
+		handle_message_set_gps_global_origin(msg);
 		break;
 
 	case MAVLINK_MSG_ID_RADIO_STATUS:
@@ -1218,18 +1218,19 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 }
 
 void
-MavlinkReceiver::handle_message_gps_global_origin(mavlink_message_t *msg)
+MavlinkReceiver::handle_message_set_gps_global_origin(mavlink_message_t *msg)
 {
-	mavlink_gps_global_origin_t origin;
-	mavlink_msg_gps_global_origin_decode(msg, &origin);
+	mavlink_set_gps_global_origin_t origin;
+	mavlink_msg_set_gps_global_origin_decode(msg, &origin);
 
-	if (!globallocalconverter_initialized()) {
+	if (!globallocalconverter_initialized() && (origin.target_system == _mavlink->get_system_id())) {
 		/* Set reference point conversion of local coordiantes <--> global coordinates */
 		globallocalconverter_init((double)origin.latitude * 1.0e-7, (double)origin.longitude * 1.0e-7,
 					  (float)origin.altitude * 1.0e-3f, hrt_absolute_time());
 		_global_ref_timestamp = hrt_absolute_time();
-
 	}
+
+	handle_request_message_command(MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN);
 }
 
 void
@@ -1892,13 +1893,6 @@ MavlinkReceiver::handle_message_trajectory_representation_waypoints(mavlink_mess
 	}
 
 	_trajectory_waypoint_pub.publish(trajectory_waypoint);
-}
-
-switch_pos_t
-MavlinkReceiver::decode_switch_pos(uint16_t buttons, unsigned sw)
-{
-	// This 2-bit method should be used in the future: (buttons >> (sw * 2)) & 3;
-	return (buttons & (1 << sw)) ? manual_control_setpoint_s::SWITCH_POS_ON : manual_control_setpoint_s::SWITCH_POS_OFF;
 }
 
 int
