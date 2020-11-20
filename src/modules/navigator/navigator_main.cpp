@@ -1006,7 +1006,7 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 
 #endif /* BOARD_HAS_NO_UUID */
 
-	uORB::PublicationQueued<transponder_report_s> tr_pub{ORB_ID(transponder_report)};
+	uORB::Publication<transponder_report_s> tr_pub{ORB_ID(transponder_report)};
 	tr_pub.publish(tr);
 }
 

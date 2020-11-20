@@ -222,10 +222,6 @@ Mission::on_active()
 			set_mission_items();
 		}
 
-	} else if (_mission_type != MISSION_TYPE_NONE && _param_mis_altmode.get() == MISSION_ALTMODE_FOH) {
-
-		altitude_sp_foh_update();
-
 	} else {
 		/* if waypoint position reached allow loiter on the setpoint */
 		if (_waypoint_position_reached && _mission_item.nav_cmd != NAV_CMD_IDLE) {
@@ -327,6 +323,7 @@ Mission::set_execution_mode(const uint8_t mode)
 					position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 					pos_sp_triplet->previous = pos_sp_triplet->current;
 					generate_waypoint_from_heading(&pos_sp_triplet->current, _mission_item.yaw);
+					publish_navigator_mission_item(); // for logging
 					_navigator->set_position_setpoint_triplet_updated();
 					issue_command(_mission_item);
 				}
@@ -584,9 +581,6 @@ Mission::advance_mission()
 void
 Mission::set_mission_items()
 {
-	/* reset the altitude foh (first order hold) logic, if altitude foh is enabled (param) a new foh element starts now */
-	_min_current_sp_distance_xy = FLT_MAX;
-
 	/* the home dist check provides user feedback, so we initialize it to this */
 	bool user_feedback_done = false;
 
@@ -668,7 +662,9 @@ Mission::set_mission_items()
 			user_feedback_done = true;
 		}
 
+		publish_navigator_mission_item(); // for logging
 		_navigator->set_position_setpoint_triplet_updated();
+
 		return;
 	}
 
@@ -1152,14 +1148,7 @@ Mission::set_mission_items()
 		}
 	}
 
-	/* Save the distance between the current sp and the previous one */
-	if (pos_sp_triplet->current.valid && pos_sp_triplet->previous.valid) {
-
-		_distance_current_previous = get_distance_to_next_waypoint(
-						     pos_sp_triplet->current.lat, pos_sp_triplet->current.lon,
-						     pos_sp_triplet->previous.lat, pos_sp_triplet->previous.lon);
-	}
-
+	publish_navigator_mission_item(); // for logging
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
@@ -1350,83 +1339,9 @@ Mission::heading_sp_update()
 		}
 
 		// we set yaw directly so we can run this in parallel to the FOH update
+		publish_navigator_mission_item();
 		_navigator->set_position_setpoint_triplet_updated();
 	}
-}
-
-void
-Mission::altitude_sp_foh_update()
-{
-	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-
-	/* Don't change setpoint if last and current waypoint are not valid
-	 * or if the previous altitude isn't from a position or loiter setpoint or
-	 * if rotary wing since that is handled in the mc_pos_control
-	 */
-
-
-	if (!pos_sp_triplet->previous.valid || !pos_sp_triplet->current.valid || !PX4_ISFINITE(pos_sp_triplet->previous.alt)
-	    || !(pos_sp_triplet->previous.type == position_setpoint_s::SETPOINT_TYPE_POSITION ||
-		 pos_sp_triplet->previous.type == position_setpoint_s::SETPOINT_TYPE_LOITER) ||
-	    _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-
-		return;
-	}
-
-	// Calculate acceptance radius, i.e. the radius within which we do not perform a first order hold anymore
-	float acc_rad = _navigator->get_acceptance_radius(_mission_item.acceptance_radius);
-
-	if (pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
-		acc_rad = _navigator->get_acceptance_radius(fabsf(_mission_item.loiter_radius) * 1.2f);
-	}
-
-	/* Do not try to find a solution if the last waypoint is inside the acceptance radius of the current one */
-	if (_distance_current_previous - acc_rad < FLT_EPSILON) {
-		return;
-	}
-
-	/* Don't do FOH for non-missions, landing and takeoff waypoints, the ground may be near
-	 * and the FW controller has a custom landing logic
-	 *
-	 * NAV_CMD_LOITER_TO_ALT doesn't change altitude until reaching desired lat/lon
-	 * */
-	if (_mission_item.nav_cmd == NAV_CMD_LAND
-	    || _mission_item.nav_cmd == NAV_CMD_VTOL_LAND
-	    || _mission_item.nav_cmd == NAV_CMD_TAKEOFF
-	    || _mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT
-	    || !_navigator->is_planned_mission()) {
-
-		return;
-	}
-
-	/* Calculate distance to current waypoint */
-	float d_current = get_distance_to_next_waypoint(_mission_item.lat, _mission_item.lon,
-			  _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
-
-	/* Save distance to waypoint if it is the smallest ever achieved, however make sure that
-	 * _min_current_sp_distance_xy is never larger than the distance between the current and the previous wp */
-	_min_current_sp_distance_xy = math::min(math::min(d_current, _min_current_sp_distance_xy),
-						_distance_current_previous);
-
-	/* if the minimal distance is smaller then the acceptance radius, we should be at waypoint alt
-	 * navigator will soon switch to the next waypoint item (if there is one) as soon as we reach this altitude */
-	if (_min_current_sp_distance_xy < acc_rad) {
-		pos_sp_triplet->current.alt = get_absolute_altitude_for_item(_mission_item);
-
-	} else {
-		/* update the altitude sp of the 'current' item in the sp triplet, but do not update the altitude sp
-		 * of the mission item as it is used to check if the mission item is reached
-		 * The setpoint is set linearly and such that the system reaches the current altitude at the acceptance
-		 * radius around the current waypoint
-		 **/
-		float delta_alt = (get_absolute_altitude_for_item(_mission_item) - pos_sp_triplet->previous.alt);
-		float grad = -delta_alt / (_distance_current_previous - acc_rad);
-		float a = pos_sp_triplet->previous.alt - grad * _distance_current_previous;
-		pos_sp_triplet->current.alt = a + grad * _min_current_sp_distance_xy;
-	}
-
-	// we set altitude directly so we can run this in parallel to the heading update
-	_navigator->set_position_setpoint_triplet_updated();
 }
 
 void
@@ -1444,6 +1359,7 @@ Mission::cruising_speed_sp_update()
 
 	pos_sp_triplet->current.cruising_speed = cruising_speed;
 
+	publish_navigator_mission_item();
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
@@ -1474,6 +1390,7 @@ Mission::do_abort_landing()
 
 	mission_apply_limitation(_mission_item);
 	mission_item_to_position_setpoint(_mission_item, &_navigator->get_position_setpoint_triplet()->current);
+	publish_navigator_mission_item(); // for logging
 	_navigator->set_position_setpoint_triplet_updated();
 
 	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Holding at %d m above landing.",
@@ -1915,4 +1832,34 @@ bool Mission::position_setpoint_equal(const position_setpoint_s *p1, const posit
 		((fabsf(p1->cruising_throttle - p2->cruising_throttle) < FLT_EPSILON) || (!PX4_ISFINITE(p1->cruising_throttle)
 				&& !PX4_ISFINITE(p2->cruising_throttle))));
 
+}
+
+void Mission::publish_navigator_mission_item()
+{
+	navigator_mission_item_s navigator_mission_item{};
+
+	navigator_mission_item.instance_count = _navigator->mission_instance_count();
+	navigator_mission_item.sequence_current = _current_mission_index;
+	navigator_mission_item.nav_cmd = _mission_item.nav_cmd;
+	navigator_mission_item.latitude = _mission_item.lat;
+	navigator_mission_item.longitude = _mission_item.lon;
+	navigator_mission_item.altitude = _mission_item.altitude;
+
+	navigator_mission_item.time_inside = get_time_inside(_mission_item);
+	navigator_mission_item.acceptance_radius = _mission_item.acceptance_radius;
+	navigator_mission_item.loiter_radius = _mission_item.loiter_radius;
+	navigator_mission_item.yaw = _mission_item.yaw;
+
+	navigator_mission_item.frame = _mission_item.frame;
+	navigator_mission_item.frame = _mission_item.origin;
+
+	navigator_mission_item.loiter_exit_xtrack = _mission_item.loiter_exit_xtrack;
+	navigator_mission_item.force_heading = _mission_item.force_heading;
+	navigator_mission_item.altitude_is_relative = _mission_item.altitude_is_relative;
+	navigator_mission_item.autocontinue = _mission_item.autocontinue;
+	navigator_mission_item.vtol_back_transition = _mission_item.vtol_back_transition;
+
+	navigator_mission_item.timestamp = hrt_absolute_time();
+
+	_navigator_mission_item_pub.publish(navigator_mission_item);
 }

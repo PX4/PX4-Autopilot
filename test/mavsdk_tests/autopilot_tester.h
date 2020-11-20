@@ -100,7 +100,7 @@ public:
 	void fly_forward_in_altctl();
 	void request_ground_truth();
 	void check_mission_item_speed_above(int item_index, float min_speed_m_s);
-	void check_tracks_mission(float corridor_radius_m = 1.0f);
+	void check_tracks_mission(float corridor_radius_m = 1.5f);
 
 
 private:

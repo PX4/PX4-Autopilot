@@ -120,9 +120,6 @@ void board_on_reset(int status)
 		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_as_pwm_input(i)));
 	}
 
-	px4_arch_configgpio(io_timer_channel_get_gpio_output(6)); // Echo trigger pin
-	px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_as_pwm_input(7)));
-
 	if (status >= 0) {
 		up_mdelay(6);
 	}

@@ -77,11 +77,11 @@ public:
 	SubscriptionInterval &operator [](int i) { return _subscriptions[i]; }
 	const SubscriptionInterval &operator [](int i) const { return _subscriptions[i]; }
 
-	SubscriptionInterval *begin() { return &_subscriptions[0]; }
-	SubscriptionInterval *end() { return &_subscriptions[SIZE - 1]; }
+	SubscriptionInterval *begin() { return _subscriptions; }
+	SubscriptionInterval *end() { return _subscriptions + SIZE; }
 
-	const SubscriptionInterval *begin() const { return &_subscriptions[0]; }
-	const SubscriptionInterval *end() const { return &_subscriptions[SIZE - 1]; }
+	const SubscriptionInterval *begin() const { return _subscriptions; }
+	const SubscriptionInterval *end() const { return _subscriptions + SIZE; }
 
 	// true if any instance is advertised
 	bool advertised()

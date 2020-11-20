@@ -45,6 +45,7 @@ px4_add_module(
 		Commander.cpp
 		commander_helper.cpp
 		esc_calibration.cpp
+		factory_calibration_storage.cpp
 		gyro_calibration.cpp
 		level_calibration.cpp
 		mag_calibration.cpp

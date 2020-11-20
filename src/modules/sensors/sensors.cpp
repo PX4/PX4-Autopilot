@@ -73,6 +73,7 @@
 #include "vehicle_acceleration/VehicleAcceleration.hpp"
 #include "vehicle_angular_velocity/VehicleAngularVelocity.hpp"
 #include "vehicle_air_data/VehicleAirData.hpp"
+#include "vehicle_gps_position/VehicleGPSPosition.hpp"
 #include "vehicle_imu/VehicleIMU.hpp"
 #include "vehicle_magnetometer/VehicleMagnetometer.hpp"
 
@@ -116,10 +117,11 @@ private:
 
 	sensor_combined_s _sensor_combined{};
 
-	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub[3] {
+	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub[MAX_SENSOR_COUNT] {
 		{this, ORB_ID(vehicle_imu), 0},
 		{this, ORB_ID(vehicle_imu), 1},
-		{this, ORB_ID(vehicle_imu), 2}
+		{this, ORB_ID(vehicle_imu), 2},
+		{this, ORB_ID(vehicle_imu), 3}
 	};
 
 	uORB::Subscription _diff_pres_sub{ORB_ID(differential_pressure)};
@@ -172,10 +174,11 @@ private:
 	VehicleAngularVelocity	_vehicle_angular_velocity;
 	VehicleAirData          *_vehicle_air_data{nullptr};
 	VehicleMagnetometer     *_vehicle_magnetometer{nullptr};
+	VehicleGPSPosition	*_vehicle_gps_position{nullptr};
 
-	static constexpr int MAX_SENSOR_COUNT = 3;
 	VehicleIMU      *_vehicle_imu_list[MAX_SENSOR_COUNT] {};
 
+	int _lockstep_component{-1};
 
 	/**
 	 * Update our local parameter cache.
@@ -204,6 +207,7 @@ private:
 	void		adc_poll();
 
 	void		InitializeVehicleAirData();
+	void		InitializeVehicleGPSPosition();
 	void		InitializeVehicleIMU();
 	void		InitializeVehicleMagnetometer();
 
@@ -242,6 +246,7 @@ Sensors::Sensors(bool hil_enabled) :
 	param_find("SENS_BOARD_Y_OFF");
 	param_find("SENS_BOARD_Z_OFF");
 
+	param_find("SYS_FAC_CAL_MODE");
 	param_find("SYS_PARAM_VER");
 	param_find("SYS_AUTOSTART");
 	param_find("SYS_AUTOCONFIG");
@@ -275,6 +280,11 @@ Sensors::~Sensors()
 		delete _vehicle_air_data;
 	}
 
+	if (_vehicle_gps_position) {
+		_vehicle_gps_position->Stop();
+		delete _vehicle_gps_position;
+	}
+
 	if (_vehicle_magnetometer) {
 		_vehicle_magnetometer->Stop();
 		delete _vehicle_magnetometer;
@@ -288,6 +298,8 @@ Sensors::~Sensors()
 	}
 
 	perf_free(_loop_perf);
+
+	px4_lockstep_unregister_component(_lockstep_component);
 }
 
 bool Sensors::init()
@@ -327,8 +339,22 @@ void Sensors::diff_pres_poll()
 		vehicle_air_data_s air_data{};
 		_vehicle_air_data_sub.copy(&air_data);
 
-		float air_temperature_celsius = (diff_pres.temperature > -300.0f) ? diff_pres.temperature :
-						(air_data.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
+		float air_temperature_celsius = NAN;
+
+		// assume anything outside of a (generous) operating range of -40C to 125C is invalid
+		if (PX4_ISFINITE(diff_pres.temperature) && (diff_pres.temperature >= -40.f) && (diff_pres.temperature <= 125.f)) {
+
+			air_temperature_celsius = diff_pres.temperature;
+
+		} else {
+			// differential pressure temperature invalid, check barometer
+			if ((air_data.timestamp != 0) && PX4_ISFINITE(air_data.baro_temp_celcius)
+			    && (air_data.baro_temp_celcius >= -40.f) && (air_data.baro_temp_celcius <= 125.f)) {
+
+				// TODO: review PCB_TEMP_ESTIMATE_DEG, ignore for external baro
+				air_temperature_celsius = air_data.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG;
+			}
+		}
 
 		airspeed_s airspeed{};
 		airspeed.timestamp = diff_pres.timestamp;
@@ -366,8 +392,8 @@ void Sensors::diff_pres_poll()
 						  diff_pres.differential_pressure_filtered_pa, air_data.baro_pressure_pa,
 						  air_temperature_celsius);
 
-		airspeed.true_airspeed_m_s = calc_TAS_from_EAS(airspeed.indicated_airspeed_m_s, air_data.baro_pressure_pa,
-					     air_temperature_celsius); // assume that EAS = IAS as we don't have an EAS-scale here
+		airspeed.true_airspeed_m_s = calc_TAS_from_CAS(airspeed.indicated_airspeed_m_s, air_data.baro_pressure_pa,
+					     air_temperature_celsius); // assume that CAS = IAS as we don't have an CAS-scale here
 
 		airspeed.air_temperature_celsius = air_temperature_celsius;
 
@@ -483,6 +509,19 @@ void Sensors::InitializeVehicleAirData()
 	}
 }
 
+void Sensors::InitializeVehicleGPSPosition()
+{
+	if (_vehicle_gps_position == nullptr) {
+		if (orb_exists(ORB_ID(sensor_gps), 0) == PX4_OK) {
+			_vehicle_gps_position = new VehicleGPSPosition();
+
+			if (_vehicle_gps_position) {
+				_vehicle_gps_position->Start();
+			}
+		}
+	}
+}
+
 void Sensors::InitializeVehicleIMU()
 {
 	// create a VehicleIMU instance for each accel/gyro pair
@@ -500,7 +539,8 @@ void Sensors::InitializeVehicleIMU()
 			if (accel.device_id > 0 && gyro.device_id > 0) {
 				// if the sensors module is responsible for voting (SENS_IMU_MODE 1) then run every VehicleIMU in the same WQ
 				//   otherwise each VehicleIMU runs in a corresponding INSx WQ
-				const px4::wq_config_t &wq_config = px4::wq_configurations::nav_and_controllers;
+				const bool multi_mode = (_param_sens_imu_mode.get() == 0);
+				const px4::wq_config_t &wq_config = multi_mode ? px4::ins_instance_to_wq(i) : px4::wq_configurations::INS0;
 
 				VehicleIMU *imu = new VehicleIMU(i, i, i, wq_config);
 
@@ -553,6 +593,7 @@ void Sensors::Run()
 	if (_last_config_update == 0) {
 		InitializeVehicleAirData();
 		InitializeVehicleIMU();
+		InitializeVehicleGPSPosition();
 		InitializeVehicleMagnetometer();
 		_voted_sensors_update.init(_sensor_combined);
 		parameter_update_poll(true);
@@ -592,6 +633,7 @@ void Sensors::Run()
 		_voted_sensors_update.initializeSensors();
 		InitializeVehicleAirData();
 		InitializeVehicleIMU();
+		InitializeVehicleGPSPosition();
 		InitializeVehicleMagnetometer();
 		_last_config_update = hrt_absolute_time();
 
@@ -599,6 +641,12 @@ void Sensors::Run()
 		// check parameters for updates
 		parameter_update_poll();
 	}
+
+	if (_lockstep_component == -1) {
+		_lockstep_component = px4_lockstep_register_component();
+	}
+
+	px4_lockstep_progress(_lockstep_component);
 
 	perf_end(_loop_perf);
 }
@@ -677,6 +725,11 @@ int Sensors::print_status()
 
 	PX4_INFO_RAW("\n");
 	_vehicle_angular_velocity.PrintStatus();
+
+	if (_vehicle_gps_position) {
+		PX4_INFO_RAW("\n");
+		_vehicle_gps_position->PrintStatus();
+	}
 
 	PX4_INFO_RAW("\n");
 

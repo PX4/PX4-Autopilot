@@ -460,7 +460,7 @@ MavlinkMissionManager::send_mission_item_reached(uint16_t seq)
 }
 
 void
-MavlinkMissionManager::send(const hrt_abstime now)
+MavlinkMissionManager::send()
 {
 	// do not send anything over high latency communication
 	if (_mavlink->get_mode() == Mavlink::MAVLINK_MODE_IRIDIUM) {
@@ -501,7 +501,7 @@ MavlinkMissionManager::send(const hrt_abstime now)
 		}
 
 	} else {
-		if (_slow_rate_limiter.check(now)) {
+		if (_slow_rate_limiter.check(hrt_absolute_time())) {
 			send_mission_current(_current_seq);
 
 			// send the reached message another 10 times

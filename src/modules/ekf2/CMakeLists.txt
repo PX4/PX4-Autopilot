@@ -37,14 +37,17 @@ px4_add_module(
 	MODULE modules__ekf2
 	MAIN ekf2
 	COMPILE_FLAGS
-	STACK_MAX 2400
+		${MAX_CUSTOM_OPT_LEVEL}
 	SRCS
 		EKF2.cpp
 		EKF2.hpp
+		EKF2Selector.cpp
+		EKF2Selector.hpp
 	DEPENDS
 		git_ecl
 		ecl_EKF
 		ecl_geo
 		perf
 		EKF2Utility
+		px4_work_queue
 	)

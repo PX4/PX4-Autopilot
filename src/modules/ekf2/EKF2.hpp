@@ -39,8 +39,12 @@
  */
 
 #pragma once
+
+#include "EKF2Selector.hpp"
+
 #include <float.h>
 
+#include <containers/LockGuard.hpp>
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/EKF/ekf.h>
 #include <lib/mathlib/mathlib.h>
@@ -60,8 +64,8 @@
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/ekf_gps_drift.h>
-#include <uORB/topics/ekf_gps_position.h>
 #include <uORB/topics/estimator_innovations.h>
+#include <uORB/topics/estimator_optical_flow_vel.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/estimator_states.h>
 #include <uORB/topics/estimator_status.h>
@@ -85,19 +89,13 @@
 
 #include "Utility/PreFlightChecker.hpp"
 
-// defines used to specify the mask position for use of different accuracy metrics in the GPS blending algorithm
-#define BLEND_MASK_USE_SPD_ACC      1
-#define BLEND_MASK_USE_HPOS_ACC     2
-#define BLEND_MASK_USE_VPOS_ACC     4
+extern pthread_mutex_t ekf2_module_mutex;
 
-// define max number of GPS receivers supported and 0 base instance used to access virtual 'blended' GPS solution
-#define GPS_MAX_RECEIVERS 2
-#define GPS_BLENDED_INSTANCE 2
-
-class EKF2 final : public ModuleBase<EKF2>, public ModuleParams, public px4::ScheduledWorkItem
+class EKF2 final : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	explicit EKF2(bool replay_mode = false);
+	EKF2() = delete;
+	EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool replay_mode);
 	~EKF2() override;
 
 	/** @see ModuleBase */
@@ -109,79 +107,69 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	bool init();
+	int print_status();
 
-	int print_status() override;
+	bool should_exit() const { return _task_should_exit.load(); }
+
+	void request_stop() { _task_should_exit.store(true); }
+
+	static void lock_module() { pthread_mutex_lock(&ekf2_module_mutex); }
+	static bool trylock_module() { return (pthread_mutex_trylock(&ekf2_module_mutex) == 0); }
+	static void unlock_module() { pthread_mutex_unlock(&ekf2_module_mutex); }
 
 private:
 	void Run() override;
 
-	int getRangeSubIndex(); ///< get subscription index of first downward-facing range sensor
-	void fillGpsMsgWithVehicleGpsPosData(gps_message &msg, const vehicle_gps_position_s &data);
-
-	PreFlightChecker _preflt_checker;
-	void runPreFlightChecks(float dt, const filter_control_status_u &control_status,
-				const vehicle_status_s &vehicle_status,
-				const estimator_innovations_s &innov);
-	void resetPreFlightChecks();
-
 	template<typename Param>
 	void update_mag_bias(Param &mag_bias_param, int axis_index);
 
-	template<typename Param>
-	bool update_mag_decl(Param &mag_decl_param);
+	void PublishAttitude(const hrt_abstime &timestamp);
+	void PublishEkfDriftMetrics(const hrt_abstime &timestamp);
+	void PublishGlobalPosition(const hrt_abstime &timestamp);
+	void PublishInnovations(const hrt_abstime &timestamp, const imuSample &imu);
+	void PublishInnovationTestRatios(const hrt_abstime &timestamp);
+	void PublishInnovationVariances(const hrt_abstime &timestamp);
+	void PublishLocalPosition(const hrt_abstime &timestamp);
+	void PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu);
+	void PublishOdometryAligned(const hrt_abstime &timestamp, const vehicle_odometry_s &ev_odom);
+	void PublishOpticalFlowVel(const hrt_abstime &timestamp, const optical_flow_s &optical_flow);
+	void PublishSensorBias(const hrt_abstime &timestamp);
+	void PublishStates(const hrt_abstime &timestamp);
+	void PublishStatus(const hrt_abstime &timestamp);
+	void PublishWindEstimate(const hrt_abstime &timestamp);
+	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 
-	void publish_attitude(const hrt_abstime &timestamp);
-	void publish_wind_estimate(const hrt_abstime &timestamp);
-	void publish_yaw_estimator_status(const hrt_abstime &timestamp);
+	void UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps);
+	bool UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odometry_s &ev_odom);
+	bool UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps, optical_flow_s &optical_flow);
+	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps);
 
-	/*
-	 * Update the internal state estimate for a blended GPS solution that is a weighted average of the phsyical
-	 * receiver solutions. This internal state cannot be used directly by estimators because if physical receivers
-	 * have significant position differences, variation in receiver estimated accuracy will cause undesirable
-	 * variation in the position solution.
-	*/
-	bool blend_gps_data();
-
-	/*
-	 * Calculate internal states used to blend GPS data from multiple receivers using weightings calculated
-	 * by calc_blend_weights()
-	 * States are written to _gps_state and _gps_blended_state class variables
-	 */
-	void update_gps_blend_states();
-
-	/*
-	 * The location in _gps_blended_state will move around as the relative accuracy changes.
-	 * To mitigate this effect a low-pass filtered offset from each GPS location to the blended location is
-	 * calculated.
-	*/
-	void update_gps_offsets();
-
-	/*
-	 * Apply the steady state physical receiver offsets calculated by update_gps_offsets().
-	*/
-	void apply_gps_offsets();
-
-	/*
-	 Calculate GPS output that is a blend of the offset corrected physical receiver data
-	*/
-	void calc_gps_blend_output();
+	void UpdateMagCalibration(const hrt_abstime &timestamp);
 
 	/*
 	 * Calculate filtered WGS84 height from estimated AMSL height
 	 */
 	float filter_altitude_ellipsoid(float amsl_hgt);
 
-	inline float sq(float x) { return x * x; };
+	static constexpr float sq(float x) { return x * x; };
 
-	const bool 	_replay_mode;			///< true when we use replay data from a log
+	const bool _replay_mode{false};			///< true when we use replay data from a log
+	const bool _multi_mode;
+	const int _instance;
+
+	px4::atomic_bool _task_should_exit{false};
 
 	// time slip monitoring
 	uint64_t _integrated_time_us = 0;	///< integral of gyro delta time from start (uSec)
 	uint64_t _start_time_us = 0;		///< system time at EKF start (uSec)
 	int64_t _last_time_slip_us = 0;		///< Last time slip (uSec)
 
-	perf_counter_t _ekf_update_perf;
+	perf_counter_t _ecl_ekf_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL update")};
+	perf_counter_t _ecl_ekf_update_full_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL full update")};
 
 	// Initialise time stamps used to send sensor data to the EKF and for logging
 	uint8_t _invalid_mag_id_count = 0;	///< number of times an invalid magnetomer device ID has been detected
@@ -190,51 +178,36 @@ private:
 	hrt_abstime _last_magcal_us = 0;	///< last time the EKF was operating a mode that estimates magnetomer biases (uSec)
 	hrt_abstime _total_cal_time_us = 0;	///< accumulated calibration time since the last save
 
-	float _last_valid_mag_cal[3] = {};	///< last valid XYZ magnetometer bias estimates (mGauss)
-	bool _valid_cal_available[3] = {};	///< true when an unsaved valid calibration for the XYZ magnetometer bias is available
-	float _last_valid_variance[3] = {};	///< variances for the last valid magnetometer XYZ bias estimates (mGauss**2)
+	float _last_valid_mag_cal[3] = {};	///< last valid XYZ magnetometer bias estimates (Gauss)
+	float _last_valid_variance[3] = {};	///< variances for the last valid magnetometer XYZ bias estimates (Gauss**2)
+	bool _valid_cal_available{false};	///< true when an unsaved valid calibration for the XYZ magnetometer bias is available
 
 	// Used to control saving of mag declination to be used on next startup
 	bool _mag_decl_saved = false;	///< true when the magnetic declination has been saved
 
-	// set pose/velocity as invalid if standard deviation is bigger than max_std_dev
-	// TODO: the user should be allowed to set these values by a parameter
-	static constexpr float ep_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated position
-	static constexpr float eo_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated orientation
-	//static constexpr float ev_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated velocity
+	bool _had_valid_terrain{false};			///< true if at any time there was a valid terrain estimate
 
-	// GPS blending and switching
-	gps_message _gps_state[GPS_MAX_RECEIVERS] {}; ///< internal state data for the physical GPS
-	gps_message _gps_blended_state{};		///< internal state data for the blended GPS
-	gps_message _gps_output[GPS_MAX_RECEIVERS + 1] {}; ///< output state data for the physical and blended GPS
-	Vector2f _NE_pos_offset_m[GPS_MAX_RECEIVERS] = {}; ///< Filtered North,East position offset from GPS instance to blended solution in _output_state.location (m)
-	float _hgt_offset_mm[GPS_MAX_RECEIVERS] = {};	///< Filtered height offset from GPS instance relative to blended solution in _output_state.location (mm)
-	Vector3f _blended_antenna_offset = {};		///< blended antenna offset
-	float _blend_weights[GPS_MAX_RECEIVERS] = {};	///< blend weight for each GPS. The blend weights must sum to 1.0 across all instances.
-	uint64_t _time_prev_us[GPS_MAX_RECEIVERS] = {};	///< the previous value of time_us for that GPS instance - used to detect new data.
-	uint8_t _gps_best_index = 0;			///< index of the physical receiver with the lowest reported error
-	uint8_t _gps_select_index = 0;			///< 0 = GPS1, 1 = GPS2, 2 = blended
-	uint8_t _gps_time_ref_index =
-		0;		///< index of the receiver that is used as the timing reference for the blending update
-	uint8_t _gps_oldest_index = 0;			///< index of the physical receiver with the oldest data
-	uint8_t _gps_newest_index = 0;			///< index of the physical receiver with the newest data
-	uint8_t _gps_slowest_index = 0;			///< index of the physical receiver with the slowest update rate
-	float _gps_dt[GPS_MAX_RECEIVERS] = {};		///< average time step in seconds.
-	bool  _gps_new_output_data = false;		///< true if there is new output data for the EKF
-	bool _had_valid_terrain = false;		///< true if at any time there was a valid terrain estimate
-
-	int32_t _gps_alttitude_ellipsoid[GPS_MAX_RECEIVERS] {};	///< altitude in 1E-3 meters (millimeters) above ellipsoid
-	uint64_t _gps_alttitude_ellipsoid_previous_timestamp[GPS_MAX_RECEIVERS] {}; ///< storage for previous timestamp to compute dt
+	uint64_t _gps_time_usec{0};
+	int32_t _gps_alttitude_ellipsoid{0};			///< altitude in 1E-3 meters (millimeters) above ellipsoid
+	uint64_t _gps_alttitude_ellipsoid_previous_timestamp{0}; ///< storage for previous timestamp to compute dt
 	float   _wgs84_hgt_offset = 0;  ///< height offset between AMSL and WGS84
 
 	bool _imu_bias_reset_request{false};
 
-	// republished aligned external visual odometry
-	bool new_ev_data_received = false;
-	vehicle_odometry_s _ev_odom{};
+	uint32_t _device_id_accel{0};
+	uint32_t _device_id_baro{0};
+	uint32_t _device_id_gyro{0};
+	uint32_t _device_id_mag{0};
+
+	Vector3f _last_local_position_for_gpos{};
+
+	Vector3f _last_accel_bias{};
+	Vector3f _last_gyro_bias{};
+	Vector3f _last_mag_bias{};
 
 	uORB::Subscription _airdata_sub{ORB_ID(vehicle_air_data)};
 	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
+	uORB::Subscription _distance_sensor_sub{ORB_ID(distance_sensor)};
 	uORB::Subscription _ev_odom_sub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Subscription _landing_target_pose_sub{ORB_ID(landing_target_pose)};
 	uORB::Subscription _magnetometer_sub{ORB_ID(vehicle_magnetometer)};
@@ -242,42 +215,39 @@ private:
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
-	static constexpr int MAX_SENSOR_COUNT = 3;
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
-	int _imu_sub_index{-1};
+
 	bool _callback_registered{false};
 	int _lockstep_component{-1};
 
-	// because we can have several distance sensor instances with different orientations
-	uORB::SubscriptionMultiArray<distance_sensor_s> _distance_sensor_subs{ORB_ID::distance_sensor};
-	int _range_finder_sub_index = -1; // index for downward-facing range finder subscription
+	bool _distance_sensor_selected{false}; // because we can have several distance sensor instances with different orientations
+	bool _armed{false};
+	bool _standby{false}; // standby arming state
 
-	// because we can have multiple GPS instances
-	uORB::Subscription _gps_subs[GPS_MAX_RECEIVERS] {{ORB_ID(vehicle_gps_position), 0}, {ORB_ID(vehicle_gps_position), 1}};
+	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
+	uORB::PublicationMulti<ekf_gps_drift_s>              _ekf_gps_drift_pub{ORB_ID(ekf_gps_drift)};
+	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};
+	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_variances_pub{ORB_ID(estimator_innovation_variances)};
+	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovations_pub{ORB_ID(estimator_innovations)};
+	uORB::PublicationMulti<estimator_optical_flow_vel_s> _estimator_optical_flow_vel_pub{ORB_ID(estimator_optical_flow_vel)};
+	uORB::PublicationMulti<estimator_sensor_bias_s>      _estimator_sensor_bias_pub{ORB_ID(estimator_sensor_bias)};
+	uORB::PublicationMulti<estimator_states_s>           _estimator_states_pub{ORB_ID(estimator_states)};
+	uORB::PublicationMulti<estimator_status_s>           _estimator_status_pub{ORB_ID(estimator_status)};
+	uORB::PublicationMulti<vehicle_odometry_s>           _estimator_visual_odometry_aligned_pub{ORB_ID(estimator_visual_odometry_aligned)};
+	uORB::PublicationMulti<yaw_estimator_status_s>       _yaw_est_pub{ORB_ID(yaw_estimator_status)};
+	uORB::PublicationMulti<wind_estimate_s>              _wind_pub{ORB_ID(wind_estimate)};
 
-	sensor_selection_s		_sensor_selection{};
-	vehicle_land_detected_s		_vehicle_land_detected{};
-	vehicle_status_s		_vehicle_status{};
+	// publications with topic dependent on multi-mode
+	uORB::PublicationMulti<vehicle_attitude_s>           _attitude_pub;
+	uORB::PublicationMulti<vehicle_local_position_s>     _local_position_pub;
+	uORB::PublicationMulti<vehicle_global_position_s>    _global_position_pub;
+	uORB::PublicationMulti<vehicle_odometry_s>           _odometry_pub;
 
-	uORB::Publication<ekf2_timestamps_s>			_ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
-	uORB::Publication<ekf_gps_drift_s>			_ekf_gps_drift_pub{ORB_ID(ekf_gps_drift)};
-	uORB::Publication<ekf_gps_position_s>			_blended_gps_pub{ORB_ID(ekf_gps_position)};
-	uORB::Publication<estimator_innovations_s>		_estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};
-	uORB::Publication<estimator_innovations_s>		_estimator_innovation_variances_pub{ORB_ID(estimator_innovation_variances)};
-	uORB::Publication<estimator_innovations_s>		_estimator_innovations_pub{ORB_ID(estimator_innovations)};
-	uORB::Publication<estimator_sensor_bias_s>		_estimator_sensor_bias_pub{ORB_ID(estimator_sensor_bias)};
-	uORB::Publication<estimator_states_s>			_estimator_states_pub{ORB_ID(estimator_states)};
-	uORB::PublicationData<estimator_status_s>		_estimator_status_pub{ORB_ID(estimator_status)};
-	uORB::Publication<vehicle_attitude_s>			_att_pub{ORB_ID(vehicle_attitude)};
-	uORB::Publication<vehicle_odometry_s>			_vehicle_odometry_pub{ORB_ID(vehicle_odometry)};
-	uORB::Publication<yaw_estimator_status_s>		_yaw_est_pub{ORB_ID(yaw_estimator_status)};
-	uORB::PublicationData<vehicle_global_position_s>	_vehicle_global_position_pub{ORB_ID(vehicle_global_position)};
-	uORB::PublicationData<vehicle_local_position_s>		_vehicle_local_position_pub{ORB_ID(vehicle_local_position)};
-	uORB::PublicationData<vehicle_odometry_s>		_vehicle_visual_odometry_aligned_pub{ORB_ID(vehicle_visual_odometry_aligned)};
-	uORB::PublicationMulti<wind_estimate_s>			_wind_pub{ORB_ID(wind_estimate)};
+	PreFlightChecker _preflt_checker;
 
 	Ekf _ekf;
 
@@ -430,8 +400,6 @@ private:
 		(ParamExtFloat<px4::params::EKF2_OF_GATE>)
 		_param_ekf2_of_gate,	///< optical flow fusion innovation consistency gate size (STD)
 
-		(ParamInt<px4::params::EKF2_IMU_ID>) _param_ekf2_imu_id,
-
 		// sensor positions in body frame
 		(ParamExtFloat<px4::params::EKF2_IMU_POS_X>) _param_ekf2_imu_pos_x,		///< X position of IMU in body frame (m)
 		(ParamExtFloat<px4::params::EKF2_IMU_POS_Y>) _param_ekf2_imu_pos_y,		///< Y position of IMU in body frame (m)
@@ -476,13 +444,13 @@ private:
 		_param_ekf2_angerr_init,	///< 1-sigma tilt error after initial alignment using gravity vector (rad)
 
 		// EKF saved XYZ magnetometer bias values
-		(ParamFloat<px4::params::EKF2_MAGBIAS_X>) _param_ekf2_magbias_x,		///< X magnetometer bias (mGauss)
-		(ParamFloat<px4::params::EKF2_MAGBIAS_Y>) _param_ekf2_magbias_y,		///< Y magnetometer bias (mGauss)
-		(ParamFloat<px4::params::EKF2_MAGBIAS_Z>) _param_ekf2_magbias_z,		///< Z magnetometer bias (mGauss)
+		(ParamFloat<px4::params::EKF2_MAGBIAS_X>) _param_ekf2_magbias_x,		///< X magnetometer bias (Gauss)
+		(ParamFloat<px4::params::EKF2_MAGBIAS_Y>) _param_ekf2_magbias_y,		///< Y magnetometer bias (Gauss)
+		(ParamFloat<px4::params::EKF2_MAGBIAS_Z>) _param_ekf2_magbias_z,		///< Z magnetometer bias (Gauss)
 		(ParamInt<px4::params::EKF2_MAGBIAS_ID>)
 		_param_ekf2_magbias_id,		///< ID of the magnetometer sensor used to learn the bias values
 		(ParamFloat<px4::params::EKF2_MAGB_VREF>)
-		_param_ekf2_magb_vref, ///< Assumed error variance of previously saved magnetometer bias estimates (mGauss**2)
+		_param_ekf2_magb_vref, ///< Assumed error variance of previously saved magnetometer bias estimates (Gauss**2)
 		(ParamFloat<px4::params::EKF2_MAGB_K>)
 		_param_ekf2_magb_k,	///< maximum fraction of the learned magnetometer bias that is saved at each disarm
 
@@ -515,12 +483,6 @@ private:
 		_param_ekf2_pcoef_yn,	///< static pressure position error coefficient along the negative Y body axis
 		(ParamExtFloat<px4::params::EKF2_PCOEF_Z>)
 		_param_ekf2_pcoef_z,	///< static pressure position error coefficient along the Z body axis
-
-		// GPS blending
-		(ParamInt<px4::params::EKF2_GPS_MASK>)
-		_param_ekf2_gps_mask,	///< mask defining when GPS accuracy metrics are used to calculate the blend ratio
-		(ParamFloat<px4::params::EKF2_GPS_TAU>)
-		_param_ekf2_gps_tau,		///< time constant controlling how rapidly the offset used to bring GPS solutions together is allowed to change (sec)
 
 		// Test used to determine if the vehicle is static or moving
 		(ParamExtFloat<px4::params::EKF2_MOVE_TEST>)

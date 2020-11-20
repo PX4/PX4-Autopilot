@@ -9,7 +9,7 @@ px4_add_board(
 	ROMFSROOT px4fmu_common
 	LINKER_PREFIX ocram
 #	UAVCAN_INTERFACES 2
-
+	CONSTRAINED_FLASH
 	SERIAL_PORTS
 		GPS1:/dev/ttyS1
 		TEL1:/dev/ttyS3
@@ -93,6 +93,7 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
+		system_time
 		top
 		topic_listener
 		tune_control

@@ -147,7 +147,7 @@
                     "PX4_SIM_SPEED_FACTOR": "1"
                 }
             },
-            "command": "gzserver --verbose ${workspaceFolder}/Tools/sitl_gazebo/worlds/empty.world",
+            "command": "gzserver --verbose ${workspaceFolder}/Tools/sitl_gazebo/worlds/${input:gazeboWorld}.world",
             "isBackground": true,
             "presentation": {
                 "echo": true,
@@ -352,6 +352,22 @@
               "boat"
             ],
             "default": "iris"
-          }
+        },
+        {
+            "type": "pickString",
+            "id": "gazeboWorld",
+            "description": "gazebo world",
+            "options": [
+                "baylands",
+                "empty",
+                "ksql_airport",
+                "mcmillan_airfield",
+                "sonoma_raceway",
+                "warehouse",
+                "windy",
+                "yosemite"
+            ],
+            "default": "empty"
+        }
     ]
 }
