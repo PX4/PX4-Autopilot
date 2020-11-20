@@ -40,6 +40,7 @@ __BEGIN_DECLS
 typedef struct {
 	struct mtd_dev_s *mtd_dev;
 	int              *partition_block_counts;
+	int              *partition_types;
 	const char       **partition_names;
 	struct mtd_dev_s **part_dev;
 	uint32_t         devid;
