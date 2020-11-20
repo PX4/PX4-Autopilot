@@ -178,6 +178,8 @@ private:
 	bool 			_turning_on;
 	matrix::Vector2f	_last_shoot_position;
 	bool			_valid_position;
+
+	//Camera Auto Mount Pivoting Oblique Survey (CAMPOS)
 	uint32_t		_CAMPOS_num_poses;
 	uint32_t		_CAMPOS_pose_counter;
 	float			_CAMPOS_roll_angle;
