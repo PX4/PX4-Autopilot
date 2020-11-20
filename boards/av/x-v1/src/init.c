@@ -192,6 +192,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	configure_switch();
 
+	/* Configure the HW based on the manifest */
+
+	px4_platform_configure();
+
 	return OK;
 }
 
