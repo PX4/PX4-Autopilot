@@ -34,6 +34,7 @@
 #include "logged_topics.h"
 #include "messages.h"
 
+#include <parameters/param.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/px4_config.h>
 #include <uORB/topics/uORBTopics.hpp>
@@ -152,6 +153,13 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_global_position_groundtruth", 100);
 	add_topic("vehicle_local_position_groundtruth", 100);
 #endif /* CONFIG_ARCH_BOARD_PX4_SITL */
+
+	int32_t gps_dump_comm = 0;
+	param_get(param_find("GPS_DUMP_COMM"), &gps_dump_comm);
+
+	if (gps_dump_comm == 1) {
+		add_topic("gps_dump");
+	}
 }
 
 void LoggedTopics::add_high_rate_topics()
