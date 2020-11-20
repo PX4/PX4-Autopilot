@@ -956,7 +956,7 @@ MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, size_t length
 	return (length > 0) ? -1 : 0;
 }
 
-void MavlinkFTP::send(const hrt_abstime t)
+void MavlinkFTP::send()
 {
 
 	if (_work_buffer1 || _work_buffer2) {

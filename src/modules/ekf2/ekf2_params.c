@@ -98,7 +98,7 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_DELAY, 110);
  * @reboot_required true
  * @decimal 1
  */
-PARAM_DEFINE_FLOAT(EKF2_OF_DELAY, 5);
+PARAM_DEFINE_FLOAT(EKF2_OF_DELAY, 20);
 
 /**
  * Range finder measurement delay relative to IMU measurements
@@ -821,19 +821,6 @@ PARAM_DEFINE_FLOAT(EKF2_TERR_NOISE, 5.0f);
 PARAM_DEFINE_FLOAT(EKF2_TERR_GRAD, 0.5f);
 
 /**
- * Device id of IMU
- *
- * Set to 0 to use system selected (sensor_combined) IMU,
- * otherwise set to the device id of the desired IMU (vehicle_imu).
- *
- * @group EKF2
- * @value 0 System Primary
- * @category Developer
- *
- */
-PARAM_DEFINE_INT32(EKF2_IMU_ID, 0);
-
-/**
  * X position of IMU in body frame (forward axis with origin relative to vehicle centre of gravity)
  *
  * @group EKF2
@@ -1072,7 +1059,7 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_PITCH, 0.0f);
  * @reboot_required true
  * @volatile
  * @category system
- * @unit mgauss
+ * @unit gauss
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_X, 0.0f);
@@ -1087,7 +1074,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_X, 0.0f);
  * @reboot_required true
  * @volatile
  * @category system
- * @unit mgauss
+ * @unit gauss
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_Y, 0.0f);
@@ -1102,7 +1089,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_Y, 0.0f);
  * @reboot_required true
  * @volatile
  * @category system
- * @unit mgauss
+ * @unit gauss
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_Z, 0.0f);
@@ -1122,7 +1109,7 @@ PARAM_DEFINE_INT32(EKF2_MAGBIAS_ID, 0);
  *
  * @group EKF2
  * @reboot_required true
- * @unit mgauss^2
+ * @unit gauss^2
  * @decimal 8
  */
 PARAM_DEFINE_FLOAT(EKF2_MAGB_VREF, 2.5E-7f);
@@ -1374,37 +1361,6 @@ PARAM_DEFINE_FLOAT(EKF2_ABL_GYRLIM, 3.0f);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_ABL_TAU, 0.5f);
-
-/**
- * Multi GPS Blending Control Mask.
- *
- * Set bits in the following positions to set which GPS accuracy metrics will be used to calculate the blending weight. Set to zero to disable and always used first GPS instance.
- * 0 : Set to true to use speed accuracy
- * 1 : Set to true to use horizontal position accuracy
- * 2 : Set to true to use vertical position accuracy
- *
- * @group EKF2
- * @min 0
- * @max 7
- * @bit 0 use speed accuracy
- * @bit 1 use hpos accuracy
- * @bit 2 use vpos accuracy
- */
-PARAM_DEFINE_INT32(EKF2_GPS_MASK, 0);
-
-/**
- * Multi GPS Blending Time Constant
- *
- * Sets the longest time constant that will be applied to the calculation of GPS position and height offsets used to correct data from multiple GPS data for steady state position differences.
- *
- *
- * @group EKF2
- * @min 1.0
- * @max 100.0
- * @unit s
- * @decimal 1
- */
-PARAM_DEFINE_FLOAT(EKF2_GPS_TAU, 10.0f);
 
 /**
  * Vehicle movement test threshold

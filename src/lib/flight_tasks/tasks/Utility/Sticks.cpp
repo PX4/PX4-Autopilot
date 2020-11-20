@@ -38,6 +38,7 @@
 #include "Sticks.hpp"
 
 using namespace time_literals;
+using namespace matrix;
 
 Sticks::Sticks(ModuleParams *parent) :
 	ModuleParams(parent)
@@ -107,4 +108,20 @@ void Sticks::setGearAccordingToSwitch(landing_gear_s &gear)
 
 		_gear_switch_old = gear_switch;
 	}
+}
+
+void Sticks::limitStickUnitLengthXY(Vector2f &v)
+{
+	const float vl = v.length();
+
+	if (vl > 1.0f) {
+		v /= vl;
+	}
+}
+
+void Sticks::rotateIntoHeadingFrameXY(Vector2f &v, const float yaw, const float yaw_setpoint)
+{
+	Vector3f v3(v(0), v(1), 0.f);
+	const float yaw_rotate = PX4_ISFINITE(yaw_setpoint) ? yaw_setpoint : yaw;
+	v = Vector2f(Dcmf(Eulerf(0.0f, 0.0f, yaw_rotate)) * v3);
 }

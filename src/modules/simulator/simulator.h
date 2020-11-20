@@ -60,15 +60,14 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_status.h>
@@ -144,6 +143,8 @@ private:
 			delete _dist_pubs[i];
 		}
 
+		px4_lockstep_unregister_component(_lockstep_component);
+
 		_instance = nullptr;
 	}
 
@@ -157,17 +158,27 @@ private:
 	static Simulator *_instance;
 
 	// simulated sensor instances
-	PX4Accelerometer	_px4_accel_0{1311244, ROTATION_NONE}; // 1311244: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	PX4Accelerometer	_px4_accel_1{1311500, ROTATION_NONE}; // 1311500: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+	static constexpr uint8_t ACCEL_COUNT_MAX = 3;
+	PX4Accelerometer _px4_accel[ACCEL_COUNT_MAX] {
+		{1310988, ROTATION_NONE}, // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+		{1310996, ROTATION_NONE}, // 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+		{1311004, ROTATION_NONE}, // 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
+	};
 
-	PX4Gyroscope		_px4_gyro_0{1311244, ROTATION_NONE}; // 1311244: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	PX4Gyroscope		_px4_gyro_1{1311500, ROTATION_NONE}; // 1311500: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+	static constexpr uint8_t GYRO_COUNT_MAX = 3;
+	PX4Gyroscope _px4_gyro[GYRO_COUNT_MAX] {
+		{1310988, ROTATION_NONE}, // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+		{1310996, ROTATION_NONE}, // 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+		{1311004, ROTATION_NONE}, // 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
+	};
 
 	PX4Magnetometer		_px4_mag_0{197388, ROTATION_NONE}; // 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 	PX4Magnetometer		_px4_mag_1{197644, ROTATION_NONE}; // 197644: DRV_MAG_DEVTYPE_MAGSIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
 
 	PX4Barometer		_px4_baro_0{6620172}; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
 	PX4Barometer		_px4_baro_1{6620428}; // 6620428: DRV_BARO_DEVTYPE_BAROSIM, BUS: 2, ADDR: 4, TYPE: SIMULATION
+
+	float _sensors_temperature{0};
 
 	perf_counter_t _perf_sim_delay{perf_alloc(PC_ELAPSED, MODULE_NAME": network delay")};
 	perf_counter_t _perf_sim_interval{perf_alloc(PC_INTERVAL, MODULE_NAME": network interval")};
@@ -179,7 +190,7 @@ private:
 	uORB::Publication<vehicle_odometry_s>		_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Publication<vehicle_odometry_s>		_mocap_odometry_pub{ORB_ID(vehicle_mocap_odometry)};
 
-	uORB::PublicationQueued<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	uORB::PublicationMulti<distance_sensor_s>	*_dist_pubs[RANGE_FINDER_MAX_SENSORS] {};
 	uint8_t _dist_sensor_ids[RANGE_FINDER_MAX_SENSORS] {};
@@ -231,7 +242,7 @@ private:
 
 	// HIL GPS
 	static constexpr int MAX_GPS = 3;
-	uORB::PublicationMulti<vehicle_gps_position_s>	*_vehicle_gps_position_pubs[MAX_GPS] {};
+	uORB::PublicationMulti<sensor_gps_s>	*_sensor_gps_pubs[MAX_GPS] {};
 	uint8_t _gps_ids[MAX_GPS] {};
 	std::default_random_engine _gen{};
 
@@ -254,12 +265,20 @@ private:
 
 	vehicle_status_s _vehicle_status{};
 
-	bool _accel_blocked{false};
-	bool _gyro_blocked{false};
+	bool _accel_blocked[ACCEL_COUNT_MAX] {};
+	bool _accel_stuck[ACCEL_COUNT_MAX] {};
+	matrix::Vector3f _last_accel[GYRO_COUNT_MAX] {};
+
+	bool _gyro_blocked[GYRO_COUNT_MAX] {};
+	bool _gyro_stuck[GYRO_COUNT_MAX] {};
+	matrix::Vector3f _last_gyro[GYRO_COUNT_MAX] {};
+
 	bool _baro_blocked{false};
 	bool _baro_stuck{false};
+
 	bool _mag_blocked{false};
 	bool _mag_stuck{false};
+
 	bool _gps_blocked{false};
 	bool _airspeed_blocked{false};
 
@@ -270,6 +289,8 @@ private:
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	px4::atomic<bool> _has_initialized {false};
 #endif
+
+	int _lockstep_component{-1};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,

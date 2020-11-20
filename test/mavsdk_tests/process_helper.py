@@ -203,8 +203,9 @@ class GzserverRunner(Runner):
         self.env["GAZEBO_MODEL_PATH"] = \
             workspace_dir + "/Tools/sitl_gazebo/models"
         self.env["PX4_SIM_SPEED_FACTOR"] = str(speed_factor)
-        self.cmd = "gzserver"
-        self.args = ["--verbose",
+        self.cmd = "nice"
+        self.args = ["-n 1",
+                     "gzserver", "--verbose",
                      workspace_dir + "/Tools/sitl_gazebo/worlds/" +
                      "empty.world"]
 
@@ -224,9 +225,23 @@ class GzmodelspawnRunner(Runner):
         self.env["GAZEBO_MODEL_PATH"] = \
             workspace_dir + "/Tools/sitl_gazebo/models"
         self.cmd = "gz"
-        self.args = ["model", "--spawn-file", workspace_dir +
-                     "/Tools/sitl_gazebo/models/" +
-                     self.model + "/" + self.model + ".sdf",
+
+        if os.path.isfile(workspace_dir +
+                          "/Tools/sitl_gazebo/models/" +
+                          self.model + "/" + self.model + ".sdf"):
+            model_path = workspace_dir + \
+                "/Tools/sitl_gazebo/models/" + \
+                self.model + "/" + self.model + ".sdf"
+        elif os.path.isfile(workspace_dir +
+                            "/Tools/sitl_gazebo/models/" +
+                            self.model + "/" + self.model + "-gen.sdf"):
+            model_path = workspace_dir + \
+                "/Tools/sitl_gazebo/models/" + \
+                self.model + "/" + self.model + "-gen.sdf"
+        else:
+            raise Exception("Model not found")
+
+        self.args = ["model", "--spawn-file", model_path,
                      "--model-name", self.model,
                      "-x", "1.01", "-y", "0.98", "-z", "0.83"]
 

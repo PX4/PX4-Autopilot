@@ -83,12 +83,14 @@ enum class COMPARE_ERROR_LEVEL {
 static int 	do_save(const char *param_file_name);
 static int	do_save_default();
 static int 	do_load(const char *param_file_name);
-static int	do_import(const char *param_file_name);
+static int	do_import(const char *param_file_name = nullptr);
 static int	do_show(const char *search_string, bool only_changed);
+static int	do_show_for_airframe();
 static int	do_show_all();
 static int	do_show_quiet(const char *param_name);
 static int	do_show_index(const char *index, bool used_index);
 static void	do_show_print(void *arg, param_t param);
+static void	do_show_print_for_airframe(void *arg, param_t param);
 static int	do_set(const char *name, const char *val, bool fail_on_not_found);
 static int	do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OPERATOR cmd_op,
 			   enum COMPARE_ERROR_LEVEL err_level);
@@ -140,6 +142,8 @@ $ reboot
 	PRINT_MODULE_USAGE_PARAM_FLAG('c', "Show only changed params (unused too)", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('q', "quiet mode, print only param value (name needs to be exact)", true);
 	PRINT_MODULE_USAGE_ARG("<filter>", "Filter by param name (wildcard at end allowed, eg. sys_*)", true);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("show-for-airframe", "Show changed params for airframe config");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print status of parameter system");
 
@@ -209,7 +213,7 @@ param_main(int argc, char *argv[])
 				return do_import(argv[2]);
 
 			} else {
-				return do_import(param_get_default_file());
+				return do_import();
 			}
 		}
 
@@ -253,6 +257,10 @@ param_main(int argc, char *argv[])
 			} else {
 				return do_show(nullptr, false);
 			}
+		}
+
+		if (!strcmp(argv[1], "show-for-airframe")) {
+			return do_show_for_airframe();
 		}
 
 		if (!strcmp(argv[1], "status")) {
@@ -373,7 +381,7 @@ do_save(const char *param_file_name)
 		return 1;
 	}
 
-	int result = param_export(fd, false);
+	int result = param_export(fd, false, nullptr);
 	close(fd);
 
 	if (result < 0) {
@@ -420,6 +428,12 @@ do_load(const char *param_file_name)
 static int
 do_import(const char *param_file_name)
 {
+	bool mark_saved = false;
+	if (param_file_name == nullptr) {
+		param_file_name = param_get_default_file();
+		mark_saved = true; // if imported from default storage, mark as saved
+	}
+
 	int fd = -1;
 	if (param_file_name) { // passing NULL means to select the flash storage
 		fd = open(param_file_name, O_RDONLY);
@@ -430,7 +444,7 @@ do_import(const char *param_file_name)
 		}
 	}
 
-	int result = param_import(fd);
+	int result = param_import(fd, mark_saved);
 	if (fd >= 0) {
 		close(fd);
 	}
@@ -461,6 +475,16 @@ do_show(const char *search_string, bool only_changed)
 	param_foreach(do_show_print, (char *)search_string, only_changed, !only_changed);
 	PARAM_PRINT("\n %u/%u parameters used.\n", param_count_used(), param_count());
 
+	return 0;
+}
+
+static int
+do_show_for_airframe()
+{
+	PARAM_PRINT("if [ $AUTOCNF = yes ]\n");
+	PARAM_PRINT("then\n");
+	param_foreach(do_show_print_for_airframe, nullptr, true, true);
+	PARAM_PRINT("fi\n");
 	return 0;
 }
 
@@ -578,7 +602,7 @@ do_show_print(void *arg, param_t param)
 	const char *p_name = (const char *)param_name(param);
 
 	/* print nothing if search string is invalid and not matching */
-	if (!(arg == nullptr)) {
+	if (arg != nullptr) {
 
 		/* start search */
 		const char *ss = search_string;
@@ -640,6 +664,49 @@ do_show_print(void *arg, param_t param)
 
 	default:
 		PARAM_PRINT("<unknown type %d>\n", 0 + param_type(param));
+		return;
+	}
+
+	PARAM_PRINT("<error fetching parameter %lu>\n", (unsigned long)param);
+}
+
+static void
+do_show_print_for_airframe(void *arg, param_t param)
+{
+	// exceptions
+	const char* p_name = param_name(param);
+	if (!p_name || param_is_volatile(param)) {
+		return;
+	}
+	if (!strcmp(p_name, "SYS_AUTOSTART") || !strcmp(p_name, "SYS_AUTOCONFIG")) {
+		return;
+	}
+	if (!strncmp(p_name, "RC", 2) || !strncmp(p_name, "TC_", 3) || !strncmp(p_name, "CAL_", 4) ||
+			!strncmp(p_name, "SENS_BOARD_", 11) || !strcmp(p_name, "SENS_DPRES_OFF") ||
+			 !strcmp(p_name, "MAV_TYPE")) {
+		return;
+	}
+
+	int32_t i;
+	float f;
+	PARAM_PRINT("\tparam set %s ", p_name);
+
+	switch (param_type(param)) {
+	case PARAM_TYPE_INT32:
+		if (!param_get(param, &i)) {
+			PARAM_PRINT("%ld\n", (long)i);
+			return;
+		}
+		break;
+
+	case PARAM_TYPE_FLOAT:
+		if (!param_get(param, &f)) {
+			PARAM_PRINT("%4.4f\n", (double)f);
+			return;
+		}
+		break;
+
+	default:
 		return;
 	}
 

@@ -65,10 +65,7 @@ bool Subscription::subscribe()
 				_node = node;
 				_node->add_internal_subscriber();
 
-				const unsigned curr_gen = _node->published_message_count();
-
-				// If there were any previous publications allow the subscriber to read them
-				_last_generation = curr_gen - math::min((unsigned)_node->get_queue_size(), curr_gen);
+				_last_generation = _node->get_initial_generation();
 
 				return true;
 			}

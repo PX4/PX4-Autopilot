@@ -85,6 +85,7 @@ px4_add_romfs_files(
 	tri_y_yaw+.main.mix
 	tri_y_yaw-.main.mix
 	uuv_x.main.mix
+	vectored6dof.main.mix
 	Viper.main.mix
 	vtol_AAERT.aux.mix
 	vtol_AAVVT.aux.mix

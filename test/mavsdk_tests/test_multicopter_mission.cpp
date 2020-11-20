@@ -44,7 +44,7 @@ TEST_CASE("Takeoff and Land", "[multicopter][vtol]")
 	tester.takeoff();
 	tester.wait_until_hovering();
 	tester.land();
-	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(30);
+	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(180);
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
@@ -97,6 +97,6 @@ TEST_CASE("Fly straight Multicopter Mission", "[multicopter]")
 	tester.execute_mission();
 	tester.wait_until_hovering();
 	tester.execute_rtl();
-	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(120);
+	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(180);
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }

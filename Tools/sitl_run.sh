@@ -43,7 +43,7 @@ else
 fi
 
 # To disable user input
-if [[ -n "$VERBOSE" ]]; then
+if [[ -n "$VERBOSE_SIM" ]]; then
 	verbose="--verbose"
 else
 	verbose=""
@@ -57,8 +57,13 @@ if [ "$program" == "jmavsim" ]; then
 fi
 
 if [ "$model" == "" ] || [ "$model" == "none" ]; then
-	echo "empty model, setting iris as default"
-	model="iris"
+	if [ "$program" == "jsbsim" ]; then
+		echo "empty model, setting rascal as default for jsbsim"
+		model="rascal"
+	else
+		echo "empty model, setting iris as default"
+		model="iris"
+	fi
 fi
 
 # kill process names that might stil
@@ -108,7 +113,7 @@ elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
 				fi
 			else
 				#Spawn empty world if world with model name doesn't exist
-				world_path= $verbose "${src_path}/Tools/sitl_gazebo/worlds/${world}.world"
+				world_path="${src_path}/Tools/sitl_gazebo/worlds/${world}.world"
 			fi
 		else
 			if [ -f ${src_path}/Tools/sitl_gazebo/worlds/${PX4_SITL_WORLD}.world ]; then
@@ -122,7 +127,19 @@ elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
 		gzserver $verbose $world_path &
 		SIM_PID=$!
 
-		while gz model --verbose --spawn-file="${src_path}/Tools/sitl_gazebo/models/${model}/${model_name}.sdf" --model-name=${model} -x 1.01 -y 0.98 -z 0.83 2>&1 | grep -q "An instance of Gazebo is not running."; do
+		# Check all paths in ${GAZEBO_MODEL_PATH} for specified model
+		readarray -d : -t paths <<< ${GAZEBO_MODEL_PATH}
+		for possibleModelPath in "${paths[@]}"; do
+			# trim \r from path
+			possibleModelPath=$(echo $possibleModelPath | tr -d '\r')
+			if test -f "${possibleModelPath}/${model}/${model}.sdf" ; then
+				modelpath=$possibleModelPath
+				break
+			fi
+		done
+		echo "Using: ${modelpath}/${model}/${model}.sdf"
+
+		while gz model --verbose --spawn-file="${modelpath}/${model}/${model_name}.sdf" --model-name=${model} -x 1.01 -y 0.98 -z 0.83 2>&1 | grep -q "An instance of Gazebo is not running."; do
 			echo "gzserver not ready yet, trying again!"
 			sleep 1
 		done
@@ -146,6 +163,21 @@ elif [ "$program" == "flightgear" ] && [ -z "$no_sim" ]; then
 	"${src_path}/Tools/flightgear_bridge/FG_run.py" "models/"${model}".json" 0
 	"${build_path}/build_flightgear_bridge/flightgear_bridge" 0 `./get_FGbridge_params.py "models/"${model}".json"` &
 	FG_BRIDGE_PID=$!
+elif [ "$program" == "jsbsim" ] && [ -z "$no_sim" ]; then
+	source "$src_path/Tools/setup_jsbsim.bash" "${src_path}" "${build_path}" ${model}
+	if [[ -n "$HEADLESS" ]]; then
+		echo "not running flightgear gui"
+	else
+		fgfs --fdm=null \
+			--native-fdm=socket,in,60,,5550,udp \
+			--aircraft=$JSBSIM_AIRCRAFT_MODEL \
+			--airport=${world} \
+			--disable-hud \
+			--disable-ai-models &> /dev/null &
+		FGFS_PID=$!
+	fi
+	"${build_path}/build_jsbsim_bridge/jsbsim_bridge" ${model} -s "${src_path}/Tools/jsbsim_bridge/scene/${world}.xml" 2> /dev/null &
+	JSBSIM_PID=$!
 fi
 
 pushd "$rootfs" >/dev/null
@@ -199,4 +231,7 @@ elif [ "$program" == "gazebo" ]; then
 elif [ "$program" == "flightgear" ]; then
 	kill $FG_BRIDGE_PID
 	kill -9 `cat /tmp/px4fgfspid_0`
+elif [ "$program" == "jsbsim" ]; then
+	kill $JSBSIM_PID
+	kill $FGFS_PID
 fi

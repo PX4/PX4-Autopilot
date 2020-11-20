@@ -84,13 +84,17 @@ namespace drv_pca9685_pwm
 
 #define PCA9685_PWM_CHANNEL_COUNT 16
 #define PCA9685_PWM_RES 4096        //Resolution 4096=12bit
-#define PCA9685_CLOCK_INT 25000000.0 //25MHz internal clock
+/* This should be 25000000 ideally,
+ * but it seems most chips have its oscillator working at a higher frequency
+ * Reference: https://github.com/adafruit/Adafruit-PWM-Servo-Driver-Library/blob/6664ce936210eea53259b814062009d9569a4213/Adafruit_PWMServoDriver.h#L66 */
+#define PCA9685_CLOCK_INT 26075000.0 //25MHz internal clock
 #ifndef PCA9685_CLOCL_EXT
 #define PCA9685_CLOCK_FREQ PCA9685_CLOCK_INT   // use int clk
 #else
 #define PCA9685_CLOCK_FREQ PCA9685_CLOCK_EXT   // use ext clk
 #endif
 
+#define PCA9685_DEVICE_BASE_PATH	"/dev/pca9685"
 #define PWM_DEFAULT_FREQUENCY 50    // default pwm frequency
 
 //! Main class that exports features for PCA9685 chip
@@ -108,7 +112,7 @@ public:
 	 */
 	int updatePWM(const uint16_t *outputs, unsigned num_outputs);
 
-	int setFreq(int freq);
+	int setFreq(float freq);
 
 	~PCA9685() override = default;
 

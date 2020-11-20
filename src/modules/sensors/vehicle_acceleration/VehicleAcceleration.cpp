@@ -65,7 +65,8 @@ bool VehicleAcceleration::Start()
 	}
 
 	if (!SensorSelectionUpdate(true)) {
-		ScheduleDelayed(10_ms);
+		_selected_sensor_sub_index = 0;
+		_sensor_sub.registerCallback();
 	}
 
 	return true;
@@ -137,6 +138,15 @@ void VehicleAcceleration::CheckFilters()
 
 void VehicleAcceleration::SensorBiasUpdate(bool force)
 {
+	// find corresponding estimated sensor bias
+	if (_estimator_selector_status_sub.updated()) {
+		estimator_selector_status_s estimator_selector_status;
+
+		if (_estimator_selector_status_sub.copy(&estimator_selector_status)) {
+			_estimator_sensor_bias_sub.ChangeInstance(estimator_selector_status.primary_instance);
+		}
+	}
+
 	if (_estimator_sensor_bias_sub.updated() || force) {
 		estimator_sensor_bias_s bias;
 

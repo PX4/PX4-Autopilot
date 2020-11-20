@@ -59,6 +59,21 @@ public:
 	const matrix::Vector<float, 4> &getPosition() { return _positions; };
 	const matrix::Vector<float, 4> &getPositionExpo() { return _positions_expo; };
 
+
+	/**
+	 * Limit the the horizontal input from a square shaped joystick gimbal to a unit circle
+	 * @param v Vector containing x, y, z axis of the joystick gimbal. x, y get adjusted
+	 */
+	static void limitStickUnitLengthXY(matrix::Vector2f &v);
+
+	/**
+	 * Rotate horizontal component of joystick input into the vehicle body orientation
+	 * @param v Vector containing x, y, z axis of the joystick input.
+	 * @param yaw Current vehicle yaw heading
+	 * @param yaw_setpoint Current yaw setpoint if it's locked else NAN
+	 */
+	static void rotateIntoHeadingFrameXY(matrix::Vector2f &v, const float yaw, const float yaw_setpoint);
+
 private:
 	bool _input_available = false;
 	matrix::Vector<float, 4> _positions; ///< unmodified manual stick inputs

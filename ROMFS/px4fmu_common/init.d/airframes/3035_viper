@@ -17,6 +17,6 @@
 # @board bitcraze_crazyflie exclude
 #
 
-. /etc/init.d/rc.fw_defaults
+. ${R}etc/init.d/rc.fw_defaults
 
 set MIXER Viper

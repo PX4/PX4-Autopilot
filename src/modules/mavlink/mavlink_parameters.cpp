@@ -275,7 +275,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 }
 
 void
-MavlinkParametersManager::send(const hrt_abstime t)
+MavlinkParametersManager::send()
 {
 	int max_num_to_send;
 

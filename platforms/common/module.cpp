@@ -119,6 +119,11 @@ void PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(uint8_t default_address)
 	PRINT_MODULE_USAGE_PARAM_INT('a', default_address, 0, 0xff, "I2C address", true);
 }
 
+void PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG()
+{
+	PRINT_MODULE_USAGE_PARAM_FLAG('k', "if initialization (probing) fails, keep retrying periodically", true);
+}
+
 void PRINT_MODULE_USAGE_PARAM_INT(char option_char, int default_val, int min_val, int max_val,
 				  const char *description, bool is_optional)
 {

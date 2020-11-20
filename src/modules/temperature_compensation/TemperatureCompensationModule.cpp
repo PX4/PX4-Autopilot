@@ -113,7 +113,7 @@ void TemperatureCompensationModule::parameters_update()
 
 void TemperatureCompensationModule::accelPoll()
 {
-	float *offsets[] = {_corrections.accel_offset_0, _corrections.accel_offset_1, _corrections.accel_offset_2 };
+	float *offsets[] = {_corrections.accel_offset_0, _corrections.accel_offset_1, _corrections.accel_offset_2, _corrections.accel_offset_3 };
 
 	// For each accel instance
 	for (uint8_t uorb_index = 0; uorb_index < ACCEL_COUNT_MAX; uorb_index++) {
@@ -135,7 +135,7 @@ void TemperatureCompensationModule::accelPoll()
 
 void TemperatureCompensationModule::gyroPoll()
 {
-	float *offsets[] = {_corrections.gyro_offset_0, _corrections.gyro_offset_1, _corrections.gyro_offset_2 };
+	float *offsets[] = {_corrections.gyro_offset_0, _corrections.gyro_offset_1, _corrections.gyro_offset_2, _corrections.gyro_offset_3 };
 
 	// For each gyro instance
 	for (uint8_t uorb_index = 0; uorb_index < GYRO_COUNT_MAX; uorb_index++) {
@@ -157,7 +157,7 @@ void TemperatureCompensationModule::gyroPoll()
 
 void TemperatureCompensationModule::baroPoll()
 {
-	float *offsets[] = {&_corrections.baro_offset_0, &_corrections.baro_offset_1, &_corrections.baro_offset_2 };
+	float *offsets[] = {&_corrections.baro_offset_0, &_corrections.baro_offset_1, &_corrections.baro_offset_2, &_corrections.baro_offset_3 };
 
 	// For each baro instance
 	for (uint8_t uorb_index = 0; uorb_index < BARO_COUNT_MAX; uorb_index++) {
@@ -225,7 +225,7 @@ void TemperatureCompensationModule::Run()
 					command_ack.target_system = cmd.source_system;
 					command_ack.target_component = cmd.source_component;
 
-					uORB::PublicationQueued<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
+					uORB::Publication<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
 					command_ack_pub.publish(command_ack);
 				}
 			}
@@ -344,7 +344,7 @@ int TemperatureCompensationModule::custom_command(int argc, char *argv[])
 				       || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN);
 		vcmd.command = vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION;
 
-		uORB::PublicationQueued<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
+		uORB::Publication<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
 		vcmd_pub.publish(vcmd);
 
 		return PX4_OK;
@@ -373,7 +373,7 @@ int TemperatureCompensationModule::print_usage(const char *reason)
 		R"DESCR_STR(
 ### Description
 The temperature compensation module allows all of the gyro(s), accel(s), and baro(s) in the system to be temperature
-compensated. The module monitors the data coming from the sensors and updates the associated sensor_thermal_cal topic
+compensated. The module monitors the data coming from the sensors and updates the associated sensor_correction topic
 whenever a change in temperature is detected. The module can also be configured to perform the coeffecient calculation
 routine at next boot, which allows the thermal calibration coeffecients to be calculated while the vehicle undergoes
 a temperature cycle.
@@ -381,7 +381,7 @@ a temperature cycle.
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("temperature_compensation", "system");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the module, which monitors the sensors and updates the sensor_thermal_cal topic");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the module, which monitors the sensors and updates the sensor_correction topic");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("calibrate", "Run temperature calibration process");
 	PRINT_MODULE_USAGE_PARAM_FLAG('g', "calibrate the gyro", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('a', "calibrate the accel", true);

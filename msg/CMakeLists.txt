@@ -49,22 +49,20 @@ set(msg_files
 	collision_report.msg
 	commander_state.msg
 	cpuload.msg
-	debug_array.msg
-	debug_key_value.msg
-	debug_value.msg
-	debug_vect.msg
 	differential_pressure.msg
 	distance_sensor.msg
 	ekf2_timestamps.msg
 	ekf_gps_drift.msg
-	ekf_gps_position.msg
 	esc_report.msg
 	esc_status.msg
 	estimator_innovations.msg
+	estimator_optical_flow_vel.msg
+	estimator_selector_status.msg
 	estimator_sensor_bias.msg
 	estimator_states.msg
 	estimator_status.msg
 	follow_target.msg
+	generator_status.msg
 	geofence_result.msg
 	gps_dump.msg
 	gps_inject_data.msg
@@ -85,13 +83,11 @@ set(msg_files
 	mission_result.msg
 	mount_orientation.msg
 	multirotor_motor_limits.msg
+	navigator_mission_item.msg
 	obstacle_distance.msg
 	offboard_control_mode.msg
 	onboard_computer_status.msg
 	optical_flow.msg
-	orb_test.msg
-	orb_test_large.msg
-	orb_test_medium.msg
 	orbit_status.msg
 	parameter_update.msg
 	ping.msg
@@ -117,17 +113,17 @@ set(msg_files
 	sensor_baro.msg
 	sensor_combined.msg
 	sensor_correction.msg
+	sensor_gps.msg
 	sensor_gyro.msg
+	sensor_gyro_fft.msg
 	sensor_gyro_fifo.msg
 	sensor_mag.msg
 	sensor_preflight_mag.msg
 	sensor_selection.msg
 	sensors_status_imu.msg
-	subsystem_info.msg
 	system_power.msg
 	task_stack_info.msg
 	tecs_status.msg
-	telemetry_heartbeat.msg
 	telemetry_status.msg
 	test_motor.msg
 	timesync.msg
@@ -170,6 +166,25 @@ set(msg_files
 	wind_estimate.msg
 	yaw_estimator_status.msg
 )
+
+if(NOT px4_constrained_flash_build)
+	list(APPEND msg_files
+		debug_array.msg
+		debug_key_value.msg
+		debug_value.msg
+		debug_vect.msg
+	)
+endif()
+
+if(PX4_TESTING)
+	list(APPEND msg_files
+		orb_test.msg
+		orb_test_large.msg
+		orb_test_medium.msg
+	)
+endif()
+
+list(SORT msg_files)
 
 set(deprecated_msgs
 	ekf2_innovations.msg	# 2019-11-22, Updated estimator interface and logging; replaced by 'estimator_innovations'.
@@ -222,6 +237,9 @@ if (px4_constrained_flash_build)
 	set(added_arguments --constrained-flash)
 endif()
 
+# set parent scope msg_files for other modules to consume (eg topic_listener)
+set(msg_files ${msg_files} PARENT_SCOPE)
+
 # Generate uORB headers
 add_custom_command(OUTPUT ${uorb_headers}
 	COMMAND ${PYTHON_EXECUTABLE} tools/px_generate_uorb_topic_files.py
@@ -268,4 +286,5 @@ add_custom_command(OUTPUT ${uorb_sources}
 	)
 
 add_library(uorb_msgs ${uorb_sources})
+target_link_libraries(uorb_msgs PRIVATE m)
 add_dependencies(uorb_msgs prebuild_targets uorb_headers)

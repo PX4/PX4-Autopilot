@@ -34,7 +34,11 @@ if(MAVSDK_FOUND)
     )
 
     target_compile_options(mavsdk_tests
-        PRIVATE -Wall -Wextra -Werror
+        PRIVATE
+            -Wall
+            -Wextra
+            -Werror
+            -Wno-error=deprecated-declarations
     )
 else()
     message("MAVSDK C++ not found, skipping mavsdk_tests build..")

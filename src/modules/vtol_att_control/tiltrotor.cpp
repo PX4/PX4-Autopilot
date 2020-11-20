@@ -148,14 +148,14 @@ void Tiltrotor::update_vtol_state()
 
 				float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
 
-				const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->equivalent_airspeed_m_s)
+				const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
 						&& !_params->airspeed_disabled;
 
 				bool transition_to_p2 = false;
 
 				if (time_since_trans_start > _params->front_trans_time_min) {
 					if (airspeed_triggers_transition) {
-						transition_to_p2 = _airspeed_validated->equivalent_airspeed_m_s >= _params->transition_airspeed;
+						transition_to_p2 = _airspeed_validated->calibrated_airspeed_m_s >= _params->transition_airspeed;
 
 					} else {
 						transition_to_p2 = _tilt_control >= _params_tiltrotor.tilt_transition &&
@@ -300,19 +300,19 @@ void Tiltrotor::update_transition_state()
 		_mc_yaw_weight = 1.0f;
 
 		// reduce MC controls once the plane has picked up speed
-		if (!_params->airspeed_disabled && PX4_ISFINITE(_airspeed_validated->equivalent_airspeed_m_s) &&
-		    _airspeed_validated->equivalent_airspeed_m_s > ARSP_YAW_CTRL_DISABLE) {
+		if (!_params->airspeed_disabled && PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s) &&
+		    _airspeed_validated->calibrated_airspeed_m_s > ARSP_YAW_CTRL_DISABLE) {
 			_mc_yaw_weight = 0.0f;
 		}
 
-		if (!_params->airspeed_disabled && PX4_ISFINITE(_airspeed_validated->equivalent_airspeed_m_s) &&
-		    _airspeed_validated->equivalent_airspeed_m_s >= _params->airspeed_blend) {
-			_mc_roll_weight = 1.0f - (_airspeed_validated->equivalent_airspeed_m_s - _params->airspeed_blend) /
+		if (!_params->airspeed_disabled && PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s) &&
+		    _airspeed_validated->calibrated_airspeed_m_s >= _params->airspeed_blend) {
+			_mc_roll_weight = 1.0f - (_airspeed_validated->calibrated_airspeed_m_s - _params->airspeed_blend) /
 					  (_params->transition_airspeed - _params->airspeed_blend);
 		}
 
 		// without airspeed do timed weight changes
-		if ((_params->airspeed_disabled || !PX4_ISFINITE(_airspeed_validated->equivalent_airspeed_m_s)) &&
+		if ((_params->airspeed_disabled || !PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)) &&
 		    time_since_trans_start > _params->front_trans_time_min) {
 			_mc_roll_weight = 1.0f - (time_since_trans_start - _params->front_trans_time_min) /
 					  (_params->front_trans_time_openloop - _params->front_trans_time_min);

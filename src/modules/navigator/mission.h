@@ -57,6 +57,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/navigator_mission_item.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_status.h>
@@ -75,11 +76,6 @@ public:
 	void on_inactivation() override;
 	void on_activation() override;
 	void on_active() override;
-
-	enum mission_altitude_mode {
-		MISSION_ALTMODE_ZOH = 0,
-		MISSION_ALTMODE_FOH = 1
-	};
 
 	bool set_current_mission_index(uint16_t index);
 
@@ -154,11 +150,6 @@ private:
 	 * Updates the heading of the vehicle. Rotary wings only.
 	 */
 	void heading_sp_update();
-
-	/**
-	 * Updates the altitude sp to follow a foh
-	 */
-	void altitude_sp_foh_update();
 
 	/**
 	 * Update the cruising speed setpoint.
@@ -240,12 +231,15 @@ private:
 
 	bool position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const;
 
+	void publish_navigator_mission_item();
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_mis_dist_1wp,
 		(ParamFloat<px4::params::MIS_DIST_WPS>) _param_mis_dist_wps,
-		(ParamInt<px4::params::MIS_ALTMODE>) _param_mis_altmode,
 		(ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mis_mnt_yaw_ctl
 	)
+
+	uORB::Publication<navigator_mission_item_s> _navigator_mission_item_pub{ORB_ID::navigator_mission_item};
 
 	uORB::Subscription	_mission_sub{ORB_ID(mission)};		/**< mission subscription */
 	mission_s		_mission {};
@@ -271,11 +265,6 @@ private:
 	bool _need_mission_reset{false};
 	bool _mission_waypoints_changed{false};
 	bool _mission_changed{false}; /** < true if the mission changed since the mission mode was active */
-
-	float _min_current_sp_distance_xy{FLT_MAX}; /**< minimum distance which was achieved to the current waypoint  */
-
-	float _distance_current_previous{0.0f}; /**< distance from previous to current sp in pos_sp_triplet,
-					    only use if current and previous are valid */
 
 	enum work_item_type {
 		WORK_ITEM_TYPE_DEFAULT,		/**< default mission item */
