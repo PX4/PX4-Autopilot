@@ -1,109 +1,41 @@
 # PX4 Autopilot Extended to Fully-Actuated Multirotors
 
-This is the repository for the PX4 autopilot with the enhanced ability to work with fully-actuated robots. It additionally provides implementations of attitude strategies for fully-actuated multorotors that allow the 6-DoF flight. It includes the definitions for a hexarotor with all rotors tilted sideways and has been tested on several UAVs. 
+This is the repository for the PX4 autopilot with the enhanced ability to work with fully-actuated robots. It is based on the original PX4 firmware (current version branched from master on Jan 21, 2020) and supports all the functionality and airframes of the original PX4 in the same way. However, it additionally provides implementations of attitude strategies for fully-actuated multorotors that allow the 6-DoF flight. It includes the definitions for a hexarotor with all rotors tilted sideways and has been tested on several UAVs.
 
 For more information and to access the publications, please visit [the AirLab's website](http://theairlab.org/fully-actuated).
 
-## PX4 Drone Autopilot
+To access the original PX4 autopilot repository and website, please visit [here](https://github.com/PX4/PX4-Autopilot) and [here](https://px4.io/).
 
-[![Releases](https://img.shields.io/github/release/PX4/Firmware.svg)](https://github.com/PX4/Firmware/releases) [![DOI](https://zenodo.org/badge/22634/PX4/Firmware.svg)](https://zenodo.org/badge/latestdoi/22634/PX4/Firmware)
+### How to use the firmware
 
-[![Build Status](http://ci.px4.io:8080/buildStatus/icon?job=PX4/Firmware/master)](http://ci.px4.io:8080/blue/organizations/jenkins/PX4%2FFirmware/activity)
+For general PX4 functionality, please visit [PX4 User Guide](https://docs.px4.io/master/en/) and [PX4 Developer Guide](https://dev.px4.io/master/en/).
 
-[![Slack](https://px4-slack.herokuapp.com/badge.svg)](http://slack.px4.io)
+To be able to compile the firmware, you need to first [setup your system](https://dev.px4.io/master/en/setup/config_initial.html) and [install the toolchain](https://dev.px4.io/master/en/setup/dev_env.html). Then clone this repository and all its submodules:
 
-This repository holds the [PX4](http://px4.io) flight control solution for drones, with the main applications located in the [src/modules](https://github.com/PX4/Firmware/tree/master/src/modules) directory. It also contains the PX4 Drone Middleware Platform, which provides drivers and middleware to run drones.
+```
+git clone https://github.com/castacks/PX4-fully-actuated.git --recursive
+```
 
-* Official Website: http://px4.io (License: BSD 3-clause, [LICENSE](https://github.com/PX4/Firmware/blob/master/LICENSE))
-* [Supported airframes](https://docs.px4.io/en/airframes/airframe_reference.html) ([portfolio](http://px4.io/#airframes)):
-  * [Multicopters](https://docs.px4.io/en/airframes/airframe_reference.html#copter)
-  * [Fixed wing](https://docs.px4.io/en/airframes/airframe_reference.html#plane)
-  * [VTOL](https://docs.px4.io/en/airframes/airframe_reference.html#vtol)
-  * many more experimental types (Rovers, Blimps, Boats, Submarines, etc)
-* Releases: [Downloads](https://github.com/PX4/Firmware/releases)
+Test that everything works fine using the guide on [this page](https://dev.px4.io/master/en/setup/building_px4.html#first-build-using-the-jmavsim-simulator). 
 
+The current tilted-hex airframe is defined to have 30 degrees of side tilt, similar to what is described in our papers. To change the geometry for your airframe, you can modify the definition of the tilted hex or add your own definition. To add the new definition file, please consult the PX4 guides above. To modify our airframe, you can find it [here](https://github.com/castacks/PX4-fully-actuated/blob/v1.10-master/src/lib/mixer/MultirotorMixer/geometries/hex_tilt_x.toml).
 
-## PX4 Users
+After compiling the firmware and uploading it on your hardware (see [here](https://dev.px4.io/master/en/setup/building_px4.html)), choose `Hexarotor x with tilted arms` airframe. This firmware also adds a set of parameters all starting with `OMNI_`. To see the description of the parameters, please refer [here](https://github.com/castacks/PX4-fully-actuated/blob/v1.10-master/src/modules/mc_pos_control/mc_pos_control_params.c). The most important parameter is `OMNI_ATT_MODE` which supports the attitude strategies. 
 
-The [PX4 User Guide](https://docs.px4.io/en/) explains how to assemble [supported vehicles](https://docs.px4.io/en/airframes/airframe_reference.html) and fly drones with PX4.
-See the [forum and chat](https://docs.px4.io/en/#support) if you need help!
+We have tested the firmware only with Pixracer. If you have flash memory issues when compiling for your hardware, one solution is to comment the geometries that you don't need in [this CMakeLists file](https://github.com/castacks/PX4-fully-actuated/blob/v1.10-master/src/lib/mixer/MultirotorMixer/CMakeLists.txt).
 
+### Simulation and more
 
-## PX4 Developers
+More detailed guide will be incrementally added here. Please reach us directly or submit an issue on this repository if you have specific questions, concerns, feedback or bug reports.
 
-This [Developer Guide](https://dev.px4.io/) is for software developers who want to modify the flight stack and middleware (e.g. to add new flight modes), hardware integrators who want to support new flight controller boards and peripherals, and anyone who wants to get PX4 working on a new (unsupported) airframe/vehicle.
+The files for the Gazebo simulation model and detailed guide on compiling for SITL will be added here by the end of November 2020.
 
-Developers should read the [Guide for Contributions](https://dev.px4.io/en/contribute/).
-See the [forum and chat](https://dev.px4.io/en/#support) if you need help!
+### Disclaimer
 
+Note that changing any of the parameters (e.g., the attitude modes) will affect the flight behavior of the UAV mid-flight. 
 
-### Weekly Dev Call
+Finally, we are still in the testing/development phase and the code is in no way fully tested or complete. Use the code at your own risk and please report any bugs or issues to help us make the firmware more useful for the users.
 
-The PX4 Dev Team syncs up on a [weekly dev call](https://dev.px4.io/en/contribute/#dev_call).
+### Acknowledgment
 
-> **Note** The dev call is open to all interested developers (not just the core dev team). This is a great opportunity to meet the team and contribute to the ongoing development of the platform. It includes a QA session for newcomers. All regular calls are listed in the [Dronecode calendar](https://www.dronecode.org/calendar/).
-
-
-## Maintenance Team
-
-  * Project: Founder - [Lorenz Meier](https://github.com/LorenzMeier), Architecture: [Daniel Agar](https://github.com/dagar)
-    * [Dev Call](https://github.com/PX4/Firmware/labels/devcall) - [Ramon Roche](https://github.com/mrpollo)
-  * Communication Architecture
-    * [Beat Kueng](https://github.com/bkueng)
-    * [Julian Oes](https://github.com/JulianOes)
-  * UI in QGroundControl
-    * [Gus Grubba](https://github.com/dogmaphobic)
-  * [Multicopter Flight Control](https://github.com/PX4/Firmware/labels/multicopter)
-    * [Mathieu Bresciani](https://github.com/bresch)
-  * [Multicopter Software Architecture](https://github.com/PX4/Firmware/labels/multicopter)
-    * [Matthias Grob](https://github.com/MaEtUgR)
-  * [VTOL Flight Control](https://github.com/PX4/Firmware/labels/vtol)
-    * [Roman Bapst](https://github.com/RomanBapst)
-  * [Fixed Wing Flight Control](https://github.com/PX4/Firmware/labels/fixedwing)
-    * [Roman Bapst](https://github.com/RomanBapst)
-  * OS / NuttX [David Sidrane](https://github.com/davids5)
-  * Driver Architecture [Daniel Agar](https://github.com/dagar)
-  * Commander Architecture [Julian Oes](https://github.com/julianoes)
-  * [UAVCAN](https://github.com/PX4/Firmware/labels/uavcan) [Daniel Agar](https://github.com/dagar)
-  * [State Estimation](https://github.com/PX4/Firmware/issues?q=is%3Aopen+is%3Aissue+label%3A%22state+estimation%22) - [Paul Riseborough](https://github.com/priseborough)
-  * Vision based navigation
-    * [Julian Kent](https://github.com/jkflying)
-  * Obstacle Avoidance - [Martina Rivizzigno](https://github.com/mrivi)
-  * RTPS/ROS2 Interface - [Nuno Marques](https://github.com/TSC21)
-
-See also [About Us](http://px4.io/about-us/#development_team) (px4.io) and the [contributors list](https://github.com/PX4/Firmware/graphs/contributors) (Github).
-
-## Supported Hardware
-
-This repository contains code supporting these boards:
-  * [Snapdragon Flight](https://docs.px4.io/master/en/flight_controller/snapdragon_flight.html)
-  * [Intel Aero](https://docs.px4.io/master/en/flight_controller/intel_aero.html)
-  * [Raspberry PI with Navio 2](https://docs.px4.io/master/en/flight_controller/raspberry_pi_navio2.html)
-  * FMUv2
-    * [Pixhawk](https://docs.px4.io/master/en/flight_controller/pixhawk.html)
-    * [Pixfalcon](https://docs.px4.io/master/en/flight_controller/pixfalcon.html)
-  * FMUv3
-    * [Pixhawk 2](https://docs.px4.io/master/en/flight_controller/pixhawk-2.html)
-    * [Pixhawk Mini](https://docs.px4.io/master/en/flight_controller/pixhawk_mini.html)
-    * [CUAV Pixhack v3](https://docs.px4.io/master/en/flight_controller/pixhack_v3.html)
-  * FMUv4
-    * [Pixracer](https://docs.px4.io/master/en/flight_controller/pixracer.html)
-    * [Pixhawk 3 Pro](https://docs.px4.io/master/en/flight_controller/pixhawk3_pro.html)
-  * FMUv5 (ARM Cortex M7)
-    * [Pixhawk 4](https://docs.px4.io/master/en/flight_controller/pixhawk4.html)
-    * [Pixhawk 4 mini](https://docs.px4.io/master/en/flight_controller/pixhawk4_mini.html)
-    * [CUAV V5+](https://docs.px4.io/master/en/flight_controller/cuav_v5_plus.html)
-    * [CUAV V5 nano](https://docs.px4.io/master/en/flight_controller/cuav_v5_nano.html)
-  * [Airmind MindPX V2.8](http://www.mindpx.net/assets/accessories/UserGuide_MindPX.pdf)
-  * [Airmind MindRacer V1.2](http://mindpx.net/assets/accessories/mindracer_user_guide_v1.2.pdf)
-  * [Bitcraze Crazyflie 2.0](https://docs.px4.io/master/en/flight_controller/crazyflie2.html)
-  * [Omnibus F4 SD](https://docs.px4.io/master/en/flight_controller/omnibus_f4_sd.html)
-  * [BeagleBone Blue](https://docs.px4.io/master/en/flight_controller/beaglebone_blue.html)
-  * [Holybro Durandal](https://docs.px4.io/master/en/flight_controller/durandal.html)
-  * [Holybro Kakute F7](https://docs.px4.io/master/en/flight_controller/kakutef7.html)
-
-Additional information about supported hardware can be found in [PX4 user Guide > Autopilot Hardware](https://docs.px4.io/master/en/flight_controller/).
-
-## Project Roadmap
-
-A high level project roadmap is available [here](https://www.dronecode.org/roadmap/).
+In the initial commits, the idea of how to extend PX4 to support 3-D thrust and fully-actuated vehicles have been taken from [here](https://github.com/jlecoeur/Firmware/pull/1).
