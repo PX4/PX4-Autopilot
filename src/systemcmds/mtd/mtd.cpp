@@ -136,12 +136,15 @@ static int mtd_status(void)
 
 static void	print_usage(void)
 {
+#if !defined(CONSTRAINED_FLASH)
+
 	PRINT_MODULE_DESCRIPTION("Utility to mount and test partitions (based on FRAM/EEPROM storage as defined by the board)");
 
 	PRINT_MODULE_USAGE_NAME("mtd", "command");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print status information");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("readtest", "Perform read test");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("rwtest", "Perform read-write test");
+
 	PRINT_MODULE_USAGE_COMMAND_DESCR("erase", "Erase partition(s)");
 	PRINT_MODULE_USAGE_PARAM_COMMENT("The commands 'readtest' and 'rwtest' have an optional instance index:");
 	PRINT_MODULE_USAGE_PARAM_INT('i', 0, 0, 1, "storage index (if the board has multiple storages)", true);
@@ -149,6 +152,7 @@ static void	print_usage(void)
 	PRINT_MODULE_USAGE_PARAM_COMMENT("The commands 'readtest', 'rwtest' and 'erase' have an optional parameter:");
 	PRINT_MODULE_USAGE_ARG("<partition_name1> [<partition_name2> ...]",
 			       "Partition names (eg. /fs/mtd_params), use system default if not provided", true);
+#endif
 }
 
 int mtd_erase(mtd_instance_s &instance)
@@ -177,6 +181,8 @@ int mtd_erase(mtd_instance_s &instance)
 
 	return 0;
 }
+
+#if !defined(CONSTRAINED_FLASH)
 
 /*
   readtest is useful during startup to validate the device is
@@ -292,6 +298,7 @@ int mtd_rwtest(const mtd_instance_s &instance)
 	printf("rwtest OK\n");
 	return 0;
 }
+#endif
 
 int mtd_main(int argc, char *argv[])
 {
@@ -327,6 +334,8 @@ int mtd_main(int argc, char *argv[])
 			return -1;
 		}
 
+#if !defined(CONSTRAINED_FLASH)
+
 		if (!strcmp(argv[myoptind], "readtest")) {
 			return mtd_readtest(instances[instance]);
 		}
@@ -335,6 +344,7 @@ int mtd_main(int argc, char *argv[])
 			return mtd_rwtest(instances[instance]);
 		}
 
+#endif
 
 		if (!strcmp(argv[myoptind], "status")) {
 			return mtd_status();
