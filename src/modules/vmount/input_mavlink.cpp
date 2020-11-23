@@ -545,8 +545,8 @@ int InputMavlinkGimbalV2::update_impl(unsigned int timeout_ms, ControlData **con
 					*control_data = &_control_data;
 
 				} else {
-					PX4_WARN("Ignoring gimbal_manager_set_attitude from %d/%d",
-						 set_attitude.origin_sysid, set_attitude.origin_compid);
+					PX4_DEBUG("Ignoring gimbal_manager_set_attitude from %d/%d",
+						  set_attitude.origin_sysid, set_attitude.origin_compid);
 				}
 			}
 
@@ -887,8 +887,8 @@ int InputMavlinkGimbalV2::update_impl(unsigned int timeout_ms, ControlData **con
 					*control_data = &_control_data;
 
 				} else {
-					PX4_WARN("Ignoring gimbal_manager_set_manual_control from %d/%d",
-						 set_manual_control.origin_sysid, set_manual_control.origin_compid);
+					PX4_DEBUG("Ignoring gimbal_manager_set_manual_control from %d/%d",
+						  set_manual_control.origin_sysid, set_manual_control.origin_compid);
 				}
 			}
 		}
