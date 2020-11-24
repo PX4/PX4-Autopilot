@@ -1779,6 +1779,8 @@ Commander::run()
 			}
 		}
 
+		// store the previous manual control setpoint
+		memcpy(&_prev_manual_control_setpoint, _manual_control_setpoint, sizeof(_manual_control_setpoint));
 		// update manual_control_setpoint before geofence (which might check sticks or switches)
 		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 
@@ -2554,18 +2556,16 @@ void
 Commander::control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed, bool changed,
 			       const uint8_t battery_warning)
 {
-	static hrt_abstime overload_start = 0;
-
 	bool overload = (_cpuload.load > 0.95f) || (_cpuload.ram_usage > 0.98f);
 
-	if (overload_start == 0 && overload) {
-		overload_start = hrt_absolute_time();
+	if (_overload_start == 0 && overload) {
+		_overload_start = hrt_absolute_time();
 
 	} else if (!overload) {
-		overload_start = 0;
+		_overload_start = 0;
 	}
 
-	/* driving rgbled */
+	// driving the RGB led
 	if (changed || _last_overload != overload) {
 		uint8_t led_mode = led_control_s::MODE_OFF;
 		uint8_t led_color = led_control_s::COLOR_WHITE;
@@ -2574,7 +2574,7 @@ Commander::control_status_leds(vehicle_status_s *status_local, const actuator_ar
 		uint64_t overload_warn_delay = (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 1_ms : 250_ms;
 
 		/* set mode */
-		if (overload && (hrt_elapsed_time(&overload_start) > overload_warn_delay)) {
+		if (overload && (hrt_elapsed_time(&_overload_start) > overload_warn_delay)) {
 			led_mode = led_control_s::MODE_BLINK_FAST;
 			led_color = led_control_s::COLOR_PURPLE;
 
@@ -2717,6 +2717,9 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 	const bool gpos_got_valid = (!_last_condition_global_position_valid && status_flags.condition_global_position_valid);
 	const bool first_time_rc = (_last_manual_control_setpoint.timestamp == 0);
 	const bool rc_values_updated = (_last_manual_control_setpoint.timestamp != _manual_control_setpoint.timestamp);
+
+	// if any of the mode switches changed since the last manual control frame
+	// there might be a pilot request to change modes or simply a bouncing switch
 	const bool some_switch_changed =
 		(_last_manual_control_setpoint.offboard_switch != _manual_control_setpoint.offboard_switch)
 		|| (_last_manual_control_setpoint.return_switch != _manual_control_setpoint.return_switch)
@@ -2729,12 +2732,28 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 		|| (_last_manual_control_setpoint.stab_switch != _manual_control_setpoint.stab_switch)
 		|| (_last_manual_control_setpoint.man_switch != _manual_control_setpoint.man_switch);
 
+	// if the previous switch configuration was not the same, do not evaluate yet
+	// we want to see at least two consecutive radio frames to have the same
+	// switch configuration, as we otherwise might just be looking at bouncing
+	// switches or radio noise
+	const bool switches_bouncing =
+		(_prev_manual_control_setpoint.offboard_switch != _manual_control_setpoint.offboard_switch)
+		|| (_prev_manual_control_setpoint.return_switch != _manual_control_setpoint.return_switch)
+		|| (_prev_manual_control_setpoint.mode_switch != _manual_control_setpoint.mode_switch)
+		|| (_prev_manual_control_setpoint.acro_switch != _manual_control_setpoint.acro_switch)
+		|| (_prev_manual_control_setpoint.rattitude_switch != _manual_control_setpoint.rattitude_switch)
+		|| (_prev_manual_control_setpoint.posctl_switch != _manual_control_setpoint.posctl_switch)
+		|| (_prev_manual_control_setpoint.loiter_switch != _manual_control_setpoint.loiter_switch)
+		|| (_prev_manual_control_setpoint.mode_slot != _manual_control_setpoint.mode_slot)
+		|| (_prev_manual_control_setpoint.stab_switch != _manual_control_setpoint.stab_switch)
+		|| (_prev_manual_control_setpoint.man_switch != _manual_control_setpoint.man_switch);
+
 	// only switch mode based on RC switch if necessary to also allow mode switching via MAVLink
-	const bool should_evaluate_rc_mode_switch = first_time_rc
+	const bool should_evaluate_rc_mode_switch = !switches_bouncing && (first_time_rc
 			|| altitude_got_valid
 			|| lpos_got_valid
 			|| gpos_got_valid
-			|| (rc_values_updated && some_switch_changed);
+			|| (rc_values_updated && some_switch_changed));
 
 	if (!should_evaluate_rc_mode_switch) {
 

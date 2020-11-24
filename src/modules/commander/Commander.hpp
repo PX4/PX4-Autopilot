@@ -347,6 +347,7 @@ private:
 
 	unsigned int	_leds_counter{0};
 
+	manual_control_setpoint_s	_prev_manual_control_setpoint{};	///< the previous manual control setpoint
 	manual_control_setpoint_s	_manual_control_setpoint{};		///< the current manual control setpoint
 	manual_control_setpoint_s	_last_manual_control_setpoint{};	///< the manual control setpoint valid at the last mode switch
 	hrt_abstime	_rc_signal_lost_timestamp{0};		///< Time at which the RC reception was lost
@@ -357,7 +358,8 @@ private:
 
 	hrt_abstime	_boot_timestamp{0};
 	hrt_abstime	_last_disarmed_timestamp{0};
-	hrt_abstime	_timestamp_engine_healthy{0}; ///< absolute time when engine was healty
+	hrt_abstime	_timestamp_engine_healthy{0};	///< absolute time when engine was healthy
+	hrt_abstime	_overload_start{0};		///< time when CPU overload started
 
 	uint32_t	_counter{0};
 	uint8_t		_heading_reset_counter{0};
