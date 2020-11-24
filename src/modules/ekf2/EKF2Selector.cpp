@@ -281,7 +281,7 @@ bool EKF2Selector::UpdateErrorScores()
 				const float error_delta = _instance[i].combined_test_ratio - _instance[_selected_instance].combined_test_ratio;
 
 				// reduce error only if its better than the primary instance by at least EKF2_SEL_ERR_RED to prevent unnecessary selection changes
-				const float threshold = _gyro_fault_detected ? fmaxf(_param_ekf2_sel_err_red.get(), 0.05f) : 0.0f;
+				const float threshold = _gyro_fault_detected ? 0.0f : fmaxf(_param_ekf2_sel_err_red.get(), 0.05f);
 
 				if (error_delta > 0 || error_delta < -threshold) {
 					_instance[i].relative_test_ratio += error_delta;
