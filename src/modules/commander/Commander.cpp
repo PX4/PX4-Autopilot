@@ -2079,11 +2079,6 @@ Commander::run()
 			bool first_rc_eval = (_last_manual_control_setpoint.timestamp == 0) && (_manual_control_setpoint.timestamp > 0);
 			transition_result_t main_res = set_main_state(status, &_status_changed);
 
-			/* store last position lock state */
-			_last_condition_local_altitude_valid = status_flags.condition_local_altitude_valid;
-			_last_condition_local_position_valid = status_flags.condition_local_position_valid;
-			_last_condition_global_position_valid = status_flags.condition_global_position_valid;
-
 			/* play tune on mode change only if armed, blink LED always */
 			if (main_res == TRANSITION_CHANGED || first_rc_eval) {
 				tune_positive(armed.armed);
@@ -2493,6 +2488,11 @@ Commander::run()
 
 		_status_changed = false;
 
+		/* store last position lock state */
+		_last_condition_local_altitude_valid = status_flags.condition_local_altitude_valid;
+		_last_condition_local_position_valid = status_flags.condition_local_position_valid;
+		_last_condition_global_position_valid = status_flags.condition_global_position_valid;
+
 		arm_auth_update(now, params_updated || param_init_forced);
 
 		px4_indicate_external_reset_lockout(LockoutComponent::Commander, armed.armed);
@@ -2705,19 +2705,19 @@ Commander::set_main_state_override_on(const vehicle_status_s &status_local, bool
 transition_result_t
 Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed)
 {
-	/* set main state according to RC switches */
-	transition_result_t res = TRANSITION_DENIED;
+	if ((_manual_control_setpoint.timestamp == 0)
+	    || (_manual_control_setpoint.timestamp == _last_manual_control_setpoint.timestamp)) {
+
+		// no manual control or no update -> nothing changed
+		return TRANSITION_NOT_CHANGED;
+	}
 
 	// Note: even if status_flags.offboard_control_set_by_command is set
 	// we want to allow rc mode change to take precidence.  This is a safety
 	// feature, just in case offboard control goes crazy.
 
-	const bool altitude_got_valid = (!_last_condition_local_altitude_valid && status_flags.condition_local_altitude_valid);
-	const bool lpos_got_valid = (!_last_condition_local_position_valid && status_flags.condition_local_position_valid);
-	const bool gpos_got_valid = (!_last_condition_global_position_valid && status_flags.condition_global_position_valid);
-	const bool first_time_rc = (_last_manual_control_setpoint.timestamp == 0);
-	const bool rc_values_updated = (_last_manual_control_setpoint.timestamp != _manual_control_setpoint.timestamp);
-	const bool some_switch_changed =
+	// only switch mode based on RC switch if necessary to also allow mode switching via MAVLink
+	bool should_evaluate_rc_mode_switch =
 		(_last_manual_control_setpoint.offboard_switch != _manual_control_setpoint.offboard_switch)
 		|| (_last_manual_control_setpoint.return_switch != _manual_control_setpoint.return_switch)
 		|| (_last_manual_control_setpoint.mode_switch != _manual_control_setpoint.mode_switch)
@@ -2729,12 +2729,15 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 		|| (_last_manual_control_setpoint.stab_switch != _manual_control_setpoint.stab_switch)
 		|| (_last_manual_control_setpoint.man_switch != _manual_control_setpoint.man_switch);
 
-	// only switch mode based on RC switch if necessary to also allow mode switching via MAVLink
-	const bool should_evaluate_rc_mode_switch = first_time_rc
-			|| altitude_got_valid
-			|| lpos_got_valid
-			|| gpos_got_valid
-			|| (rc_values_updated && some_switch_changed);
+	if ((status_local.arming_state != vehicle_status_s::ARMING_STATE_ARMED) && !should_evaluate_rc_mode_switch) {
+		const bool altitude_got_valid = (!_last_condition_local_altitude_valid && status_flags.condition_local_altitude_valid);
+		const bool lpos_got_valid = (!_last_condition_local_position_valid && status_flags.condition_local_position_valid);
+		const bool gpos_got_valid = (!_last_condition_global_position_valid && status_flags.condition_global_position_valid);
+
+		if (altitude_got_valid || lpos_got_valid || gpos_got_valid) {
+			should_evaluate_rc_mode_switch = true;
+		}
+	}
 
 	if (!should_evaluate_rc_mode_switch) {
 
@@ -2766,6 +2769,9 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 	// reset the position and velocity validity calculation to give the best change of being able to select
 	// the desired mode
 	reset_posvel_validity(changed);
+
+	/* set main state according to RC switches */
+	transition_result_t res = TRANSITION_DENIED;
 
 	/* offboard switch overrides main switch */
 	if (_manual_control_setpoint.offboard_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
