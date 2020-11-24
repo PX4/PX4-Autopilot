@@ -1567,7 +1567,9 @@ Commander::run()
 		}
 
 		/* update safety topic */
-		if (_safety_sub.updated()) {
+		const bool safety_updated = _safety_sub.updated();
+
+		if (safety_updated) {
 			const bool previous_safety_off = _safety.safety_off;
 
 			if (_safety_sub.copy(&_safety)) {
@@ -1780,7 +1782,7 @@ Commander::run()
 		}
 
 		// update manual_control_setpoint before geofence (which might check sticks or switches)
-		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
+		const bool manual_control_setpoint_updated = _manual_control_setpoint_sub.update(&_manual_control_setpoint);
 
 
 		/* start geofence result check */
@@ -2075,18 +2077,13 @@ Commander::run()
 				tune_negative(true);
 			}
 
-			/* evaluate the main state machine according to mode switches */
-			bool first_rc_eval = (_last_manual_control_setpoint.timestamp == 0) && (_manual_control_setpoint.timestamp > 0);
-			transition_result_t main_res = set_main_state(status, &_status_changed);
-
-			/* play tune on mode change only if armed, blink LED always */
-			if (main_res == TRANSITION_CHANGED || first_rc_eval) {
-				tune_positive(armed.armed);
-				_status_changed = true;
-
-			} else if (main_res == TRANSITION_DENIED) {
-				/* DENIED here indicates bug in the commander */
-				mavlink_log_critical(&mavlink_log_pub, "Switching to this mode is currently not possible");
+			if (manual_control_setpoint_updated || safety_updated) {
+				// evaluate the main state machine according to mode switches
+				if (set_main_state(status, &_status_changed) == TRANSITION_CHANGED) {
+					// play tune on mode change only if armed, blink LED always
+					tune_positive(armed.armed);
+					_status_changed = true;
+				}
 			}
 
 			/* check throttle kill switch */
@@ -2729,13 +2726,24 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 		|| (_last_manual_control_setpoint.stab_switch != _manual_control_setpoint.stab_switch)
 		|| (_last_manual_control_setpoint.man_switch != _manual_control_setpoint.man_switch);
 
-	if ((status_local.arming_state != vehicle_status_s::ARMING_STATE_ARMED) && !should_evaluate_rc_mode_switch) {
-		const bool altitude_got_valid = (!_last_condition_local_altitude_valid && status_flags.condition_local_altitude_valid);
-		const bool lpos_got_valid = (!_last_condition_local_position_valid && status_flags.condition_local_position_valid);
-		const bool gpos_got_valid = (!_last_condition_global_position_valid && status_flags.condition_global_position_valid);
 
-		if (altitude_got_valid || lpos_got_valid || gpos_got_valid) {
-			should_evaluate_rc_mode_switch = true;
+	if (status_local.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+		// if already armed don't evaluate first time RC
+		if (_last_manual_control_setpoint.timestamp == 0) {
+			should_evaluate_rc_mode_switch = false;
+			_last_manual_control_setpoint = _manual_control_setpoint;
+		}
+
+	} else {
+		// not armed
+		if (!should_evaluate_rc_mode_switch) {
+			const bool altitude_got_valid = (!_last_condition_local_altitude_valid && status_flags.condition_local_altitude_valid);
+			const bool lpos_got_valid = (!_last_condition_local_position_valid && status_flags.condition_local_position_valid);
+			const bool gpos_got_valid = (!_last_condition_global_position_valid && status_flags.condition_global_position_valid);
+
+			if (altitude_got_valid || lpos_got_valid || gpos_got_valid) {
+				should_evaluate_rc_mode_switch = true;
+			}
 		}
 	}
 
@@ -2745,7 +2753,7 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 		// if the system now later enters an autonomous state the pilot can move
 		// the sticks to break out of the autonomous state
 
-		if (!_geofence_warning_action_on
+		if (!status.rc_signal_lost && !_geofence_warning_action_on
 		    && (_internal_state.main_state == commander_state_s::MAIN_STATE_MANUAL ||
 			_internal_state.main_state == commander_state_s::MAIN_STATE_ALTCTL ||
 			_internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL ||
