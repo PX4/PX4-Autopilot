@@ -2737,6 +2737,7 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 	} else {
 		// not armed
 		if (!should_evaluate_rc_mode_switch) {
+			// to respect initial switch position (eg POSCTL) force RC switch re-evaluation if estimates become valid
 			const bool altitude_got_valid = (!_last_condition_local_altitude_valid && status_flags.condition_local_altitude_valid);
 			const bool lpos_got_valid = (!_last_condition_local_position_valid && status_flags.condition_local_position_valid);
 			const bool gpos_got_valid = (!_last_condition_global_position_valid && status_flags.condition_global_position_valid);
