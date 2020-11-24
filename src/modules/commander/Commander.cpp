@@ -746,7 +746,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 					const bool cmd_from_io = (static_cast<int>(roundf(cmd.param3)) == 1234);
 
-					// Flick to inair restore first if this comes from an onboard system and from IO
+					// Flick to in-air restore first if this comes from an onboard system and from IO
 					if (cmd.source_system == status_local->system_id && cmd.source_component == status_local->component_id
 					    && cmd_from_io && cmd_arms) {
 						status.arming_state = vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE;
@@ -2011,7 +2011,7 @@ Commander::run()
 			const bool stick_in_lower_right = _manual_control_setpoint.r > STICK_ON_OFF_LIMIT && _manual_control_setpoint.z < 0.1f
 							  && !arm_switch_or_button_mapped;
 			/* allow a grace period for re-arming: preflight checks don't need to pass during that time,
-			 * for example for accidential in-air disarming */
+			 * for example for accidental in-air disarming */
 			const bool in_rearming_grace_period = _param_com_rearm_grace.get() && (_last_disarmed_timestamp != 0)
 							      && (hrt_elapsed_time(&_last_disarmed_timestamp) < 5_s);
 
@@ -2448,7 +2448,7 @@ Commander::run()
 		/* reset arm_tune_played when disarmed */
 		if (!armed.armed || (_safety.safety_switch_available && !_safety.safety_off)) {
 
-			//Notify the user that it is safe to approach the vehicle
+			// Notify the user that it is safe to approach the vehicle
 			if (_arm_tune_played) {
 				tune_neutral(true);
 			}
@@ -2710,7 +2710,7 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 	}
 
 	// Note: even if status_flags.offboard_control_set_by_command is set
-	// we want to allow rc mode change to take precidence.  This is a safety
+	// we want to allow rc mode change to take precedence.  This is a safety
 	// feature, just in case offboard control goes crazy.
 
 	// only switch mode based on RC switch if necessary to also allow mode switching via MAVLink
@@ -3010,7 +3010,7 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 		} else {
 			/* New mode:
 			 * - Acro is Acro
-			 * - Manual is not default anymore when the manaul switch is assigned
+			 * - Manual is not default anymore when the manual switch is assigned
 			 */
 			if (_manual_control_setpoint.man_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_MANUAL, status_flags, &_internal_state);
