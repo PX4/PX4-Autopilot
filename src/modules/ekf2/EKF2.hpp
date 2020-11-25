@@ -60,7 +60,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
-#include <uORB/topics/airspeed.h>
+#include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/ekf_gps_drift.h>
@@ -206,7 +206,7 @@ private:
 	Vector3f _last_mag_bias{};
 
 	uORB::Subscription _airdata_sub{ORB_ID(vehicle_air_data)};
-	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
+	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 	uORB::Subscription _distance_sensor_sub{ORB_ID(distance_sensor)};
 	uORB::Subscription _ev_odom_sub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Subscription _landing_target_pose_sub{ORB_ID(landing_target_pose)};

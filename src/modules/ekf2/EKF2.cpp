@@ -1072,21 +1072,21 @@ float EKF2::filter_altitude_ellipsoid(float amsl_hgt)
 void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 {
 	// EKF airspeed sample
-	airspeed_s airspeed;
+	airspeed_validated_s airspeed_validated;
 
-	if (_airspeed_sub.update(&airspeed)) {
+	if (_airspeed_validated_sub.update(&airspeed_validated)) {
 		// only set airspeed data if condition for airspeed fusion are met
-		if ((_param_ekf2_arsp_thr.get() > FLT_EPSILON) && (airspeed.true_airspeed_m_s > _param_ekf2_arsp_thr.get())) {
+		if ((_param_ekf2_arsp_thr.get() > FLT_EPSILON) && (airspeed_validated.true_airspeed_m_s > _param_ekf2_arsp_thr.get())) {
 
 			airspeedSample airspeed_sample {
-				.true_airspeed = airspeed.true_airspeed_m_s,
-				.eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s,
-				.time_us = airspeed.timestamp,
+				.true_airspeed = airspeed_validated.true_airspeed_m_s,
+				.eas2tas = airspeed_validated.true_airspeed_m_s / airspeed_validated.calibrated_airspeed_m_s,
+				.time_us = airspeed_validated.timestamp,
 			};
 			_ekf.setAirspeedData(airspeed_sample);
 		}
 
-		ekf2_timestamps.airspeed_timestamp_rel = (int16_t)((int64_t)airspeed.timestamp / 100 -
+		ekf2_timestamps.airspeed_timestamp_rel = (int16_t)((int64_t)airspeed_validated.timestamp / 100 -
 				(int64_t)ekf2_timestamps.timestamp / 100);
 	}
 }
