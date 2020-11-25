@@ -247,26 +247,13 @@ Navigator::run()
 
 				bool reposition_valid = true;
 
-				if (have_geofence_position_data &&
-				    ((_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
-				     (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_WARN))) {
+				vehicle_global_position_s position_setpoint{};
+				position_setpoint.lat = cmd.param5;
+				position_setpoint.lon = cmd.param6;
+				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
 
-					if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
-
-						vehicle_global_position_s test_reposition_validity {};
-						test_reposition_validity.lat = cmd.param5;
-						test_reposition_validity.lon = cmd.param6;
-
-						if (PX4_ISFINITE(cmd.param7)) {
-							test_reposition_validity.alt = cmd.param7;
-
-						} else {
-							test_reposition_validity.alt = get_global_position()->alt;
-						}
-
-						reposition_valid = _geofence.check(test_reposition_validity, _gps_pos, _home_pos,
-										   home_position_valid());
-					}
+				if (have_geofence_position_data) {
+					reposition_valid = geofence_allows_position(position_setpoint);
 				}
 
 				if (reposition_valid) {
@@ -279,9 +266,10 @@ Navigator::run()
 					rep->previous.lon = get_global_position()->lon;
 					rep->previous.alt = get_global_position()->alt;
 
-					rep->current.loiter_radius = get_loiter_radius();
-					rep->current.loiter_direction = 1;
+
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+
+					bool only_alt_change_requested = false;
 
 					// If no argument for ground speed, use default value.
 					if (cmd.param1 <= 0 || !PX4_ISFINITE(cmd.param1)) {
@@ -321,6 +309,7 @@ Navigator::run()
 						rep->current.lat = curr->current.lat;
 						rep->current.lon = curr->current.lon;
 						rep->current.alt = cmd.param7;
+						only_alt_change_requested = true;
 
 					} else {
 						// All three set to NaN - pause vehicle
@@ -354,6 +343,15 @@ Navigator::run()
 						}
 					}
 
+					if (only_alt_change_requested && PX4_ISFINITE(curr->current.loiter_radius) && curr->current.loiter_radius > 0) {
+						rep->current.loiter_radius = curr->current.loiter_radius;
+						rep->current.loiter_direction = curr->current.loiter_direction;
+
+					} else {
+						rep->current.loiter_radius = get_loiter_radius();
+						rep->current.loiter_direction = 1;
+					}
+
 					rep->previous.valid = true;
 					rep->previous.timestamp = hrt_absolute_time();
 
@@ -369,6 +367,45 @@ Navigator::run()
 				}
 
 				// CMD_DO_REPOSITION is acknowledged by commander
+
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_ORBIT &&
+				   get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+
+				// for multicopters the orbit command is directly executed by the orbit flighttask
+
+				bool orbit_location_valid = true;
+
+				vehicle_global_position_s position_setpoint{};
+				position_setpoint.lat = PX4_ISFINITE(cmd.param5) ? cmd.param5 : get_global_position()->lat;
+				position_setpoint.lon = PX4_ISFINITE(cmd.param6) ? cmd.param6 : get_global_position()->lon;
+				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
+
+				if (have_geofence_position_data) {
+					orbit_location_valid = geofence_allows_position(position_setpoint);
+				}
+
+				if (orbit_location_valid) {
+					position_setpoint_triplet_s *rep = get_reposition_triplet();
+					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+					rep->current.loiter_radius = get_loiter_radius();
+					rep->current.loiter_direction = 1;
+					rep->current.cruising_throttle = get_cruising_throttle();
+
+					if (PX4_ISFINITE(cmd.param1)) {
+						rep->current.loiter_radius = fabsf(cmd.param1);
+						rep->current.loiter_direction = math::signNoZero(cmd.param1);
+					}
+
+					rep->current.lat = position_setpoint.lat;
+					rep->current.lon = position_setpoint.lon;
+					rep->current.alt = position_setpoint.alt;
+
+					rep->current.valid = true;
+					rep->current.timestamp = hrt_absolute_time();
+
+				} else {
+					mavlink_log_critical(&_mavlink_log_pub, "Orbit is outside geofence");
+				}
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF) {
 				position_setpoint_triplet_s *rep = get_takeoff_triplet();
@@ -1510,6 +1547,20 @@ Navigator::release_gimbal_control()
 	vcmd.param3 = -1.0f; // Leave unchanged.
 	vcmd.param4 = -1.0f; // Leave unchanged.
 	publish_vehicle_cmd(&vcmd);
+}
+
+bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
+{
+	if ((_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
+	    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_WARN)) {
+
+		if (PX4_ISFINITE(pos.lat) && PX4_ISFINITE(pos.lon)) {
+			return _geofence.check(pos, _gps_pos, _home_pos,
+					       home_position_valid());
+		}
+	}
+
+	return true;
 }
 
 int Navigator::print_usage(const char *reason)
