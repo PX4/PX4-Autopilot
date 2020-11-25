@@ -120,10 +120,13 @@ SECTIONS
 		*(.text.*probe*)
 		*(.text.*thread_main*);
 		*(.text.*listener*)
+		*(.text.*BlockLocalPositionEstimator*)
 		*(.text.nsh_*)
 		*(.text.lib_vscanf)
+		*(.text.lib_vsprintf)
 		*(.text.*configure_streams_to_default*)
 		*(.text.*_main)
+		*(.text.*GPSDriverAshtech*)
 		*(.rodata .rodata.*)
 		KEEP(*(__param*))
 		*(.fixup)
