@@ -763,6 +763,10 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 	_att_sp.pitch_reset_integral = false;
 	_att_sp.yaw_reset_integral = false;
 
+	if (pos_sp_curr.valid && pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+		publishOrbitStatus(pos_sp_curr);
+	}
+
 	const uint8_t position_sp_type = handle_setpoint_type(pos_sp_curr.type, pos_sp_curr);
 
 	_type = position_sp_type; // for publication
@@ -2198,6 +2202,19 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 				    _param_climbrate_target.get(), _param_sinkrate_target.get(), hgt_rate_sp);
 
 	tecs_status_publish();
+}
+
+void FixedwingPositionControl::publishOrbitStatus(const position_setpoint_s pos_sp)
+{
+	orbit_status_s orbit_status{};
+	orbit_status.timestamp = hrt_absolute_time();
+	orbit_status.radius = static_cast<float>(pos_sp.loiter_direction) * pos_sp.loiter_radius;
+	orbit_status.frame = 0; // MAV_FRAME::MAV_FRAME_GLOBAL
+	orbit_status.x = static_cast<double>(pos_sp.lat);
+	orbit_status.y = static_cast<double>(pos_sp.lon);
+	orbit_status.z = pos_sp.alt;
+	orbit_status.yaw_behaviour = orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE;
+	_orbit_status_pub.publish(orbit_status);
 }
 
 int FixedwingPositionControl::task_spawn(int argc, char *argv[])
