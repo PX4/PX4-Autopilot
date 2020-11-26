@@ -127,6 +127,7 @@
 #include "factory_calibration_storage.h"
 
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/events.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/time.h>
 
@@ -148,6 +149,7 @@
 
 using namespace matrix;
 using namespace time_literals;
+using namespace events;
 
 static constexpr char sensor_name[] {"accel"};
 static constexpr unsigned MAX_ACCEL_SENS = 4;
@@ -247,8 +249,12 @@ static calibrate_return accel_calibration_worker(detect_orientation_return orien
 	static constexpr unsigned samples_num = 750;
 	accel_worker_data_t *worker_data = (accel_worker_data_t *)(data);
 
-	calibration_log_info(worker_data->mavlink_log_pub, "[cal] Hold still, measuring %s side",
-			     detect_orientation_str(orientation));
+//	calibration_log_info(worker_data->mavlink_log_pub, "[cal] Hold still, measuring %s side",
+//			     detect_orientation_str(orientation));
+	EventType event = common::create_cal_orientation_detected(Log::Info,
+			  (common::enums::calibration_sides_t)(1 << orientation),
+			  common::enums::calibration_action_t::hold_still);
+	send(event);
 
 	read_accelerometer_avg(worker_data->accel_ref, orientation, samples_num);
 
@@ -257,7 +263,13 @@ static calibrate_return accel_calibration_worker(detect_orientation_return orien
 		switch (orientation) {
 		case ORIENTATION_TAIL_DOWN:    // [ g, 0, 0 ]
 			if (worker_data->accel_ref[accel_index][ORIENTATION_TAIL_DOWN][0] < 0.f) {
-				calibration_log_emergency(worker_data->mavlink_log_pub, "[cal] accel %d invalid X-axis, check rotation", accel_index);
+//				calibration_log_emergency(worker_data->mavlink_log_pub, "[cal] accel %d invalid X-axis, check rotation", accel_index);
+				/* EVENT
+				 * @arg1: accel_index
+				 * @group calibration
+				 */
+				send<uint8_t>(events::ID("cal_accel_invalid_x_axis"), "Accel {1} invalid X-axis, check rotation",
+					      Log::Error, accel_index);
 				return calibrate_return_error;
 			}
 
@@ -265,7 +277,8 @@ static calibrate_return accel_calibration_worker(detect_orientation_return orien
 
 		case ORIENTATION_NOSE_DOWN:    // [ -g, 0, 0 ]
 			if (worker_data->accel_ref[accel_index][ORIENTATION_NOSE_DOWN][0] > 0.f) {
-				calibration_log_emergency(worker_data->mavlink_log_pub, "[cal] accel %d invalid X-axis, check rotation", accel_index);
+//				calibration_log_emergency(worker_data->mavlink_log_pub, "[cal] accel %d invalid X-axis, check rotation", accel_index);
+				// TODO...
 				return calibrate_return_error;
 			}
 
@@ -308,21 +321,39 @@ static calibrate_return accel_calibration_worker(detect_orientation_return orien
 		}
 	}
 
-	calibration_log_info(worker_data->mavlink_log_pub, "[cal] %s side result: [%.3f %.3f %.3f]",
-			     detect_orientation_str(orientation),
-			     (double)worker_data->accel_ref[0][orientation][0],
-			     (double)worker_data->accel_ref[0][orientation][1],
-			     (double)worker_data->accel_ref[0][orientation][2]);
+	/* EVENT
+	 * @arg1: x
+	 * @arg2: y
+	 * @arg3: z
+	 * @group calibration
+	 */
+	send<float, float, float>(events::ID("cal_accel_side_result"),
+				  "Accel 0 result for current side: [{1:.3} {2:.3} {3:.3}]", Log::Info,
+				  worker_data->accel_ref[0][orientation][0],
+				  worker_data->accel_ref[0][orientation][1],
+				  worker_data->accel_ref[0][orientation][2]);
+//	calibration_log_info(worker_data->mavlink_log_pub, "[cal] %s side result: [%.3f %.3f %.3f]",
+//			     detect_orientation_str(orientation),
+//			     (double)worker_data->accel_ref[0][orientation][0],
+//			     (double)worker_data->accel_ref[0][orientation][1],
+//			     (double)worker_data->accel_ref[0][orientation][2]);
 
 	worker_data->done_count++;
-	calibration_log_info(worker_data->mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 17 * worker_data->done_count);
+	//calibration_log_info(worker_data->mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 17 * worker_data->done_count);
+	// TODO: get the remaining sides...
+	event = common::create_cal_progress(Log::Protocol, 1, 17 * worker_data->done_count,
+					    common::enums::calibration_type_t::accel, (common::enums::calibration_sides_t) -1);
+	send(event);
 
 	return calibrate_return_ok;
 }
 
 int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 {
-	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, sensor_name);
+	//calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, sensor_name);
+	EventType event = common::create_cal_progress(Log::Protocol, 1, 0,
+			  common::enums::calibration_type_t::accel, (common::enums::calibration_sides_t)((1 << 6) - 1));
+	send(event);
 
 	calibration::Accelerometer calibrations[MAX_ACCEL_SENS] {};
 	unsigned active_sensors = 0;
@@ -343,14 +374,19 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	}
 
 	if (active_sensors == 0) {
-		calibration_log_critical(mavlink_log_pub, CAL_ERROR_SENSOR_MSG);
+		/* EVENT
+		 * @group calibration
+		 */
+		send(events::ID("cal_accel_result_no_sensor"), "Missing Accel sensor(s)", Log::Error);
+		event = common::create_cal_done(Log::Protocol, common::enums::calibration_result_t::failed);
+		send(event);
 		return PX4_ERROR;
 	}
 
 	FactoryCalibrationStorage factory_storage;
 
 	if (factory_storage.open() != PX4_OK) {
-		calibration_log_critical(mavlink_log_pub, "ERROR: cannot open calibration storage");
+		//calibration_log_critical(mavlink_log_pub, "ERROR: cannot open calibration storage");
 		return PX4_ERROR;
 	}
 
@@ -359,8 +395,10 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	worker_data.mavlink_log_pub = mavlink_log_pub;
 	bool data_collected[detect_orientation_side_count] {};
 
-	if (calibrate_from_orientation(mavlink_log_pub, data_collected, accel_calibration_worker, &worker_data,
-				       false) == calibrate_return_ok) {
+	calibrate_return calib_ret = calibrate_from_orientation(mavlink_log_pub, data_collected, accel_calibration_worker,
+				     &worker_data, false);
+
+	if (calib_ret == calibrate_return_ok) {
 
 		const Dcmf board_rotation = calibration::GetBoardRotation();
 		const Dcmf board_rotation_t = board_rotation.transpose();
@@ -441,12 +479,21 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 		}
 
 		if (!failed) {
-			calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
+//			calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
+			event = common::create_cal_done(Log::Protocol, common::enums::calibration_result_t::success);
+			send(event);
 			return PX4_OK;
 		}
+
+	} else if (calib_ret == calibrate_return_cancelled) {
+		event = common::create_cal_done(Log::Protocol, common::enums::calibration_result_t::aborted);
+		send(event);
+		return PX4_OK;
 	}
 
-	calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, sensor_name);
+//	calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, sensor_name);
+	event = common::create_cal_done(Log::Protocol, common::enums::calibration_result_t::failed);
+	send(event);
 	return PX4_ERROR;
 }
 
