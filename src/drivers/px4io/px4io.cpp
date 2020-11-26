@@ -242,6 +242,7 @@ private:
 	uORB::Subscription 	_t_vehicle_control_mode{ORB_ID(vehicle_control_mode)};	///< vehicle control mode topic
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};	///< parameter update topic
 	uORB::Subscription	_t_vehicle_command{ORB_ID(vehicle_command)};		///< vehicle command topic
+	uORB::Subscription	_safety_sub{ORB_ID(safety)};				///< safety switch topic
 
 	hrt_abstime             _last_status_publish{0};
 
@@ -260,6 +261,7 @@ private:
 	bool			_lockdown_override;	///< allow to override the safety lockdown
 	bool			_armed;			///< wether the system is armed
 	bool			_override_available;	///< true if manual reversion mode is enabled
+	bool 			safety_status;          ///< safety cache status
 
 	bool			_cb_flighttermination;	///< true if the flight termination circuit breaker is enabled
 	bool 			_in_esc_calibration_mode;	///< do not send control outputs to IO (used for esc calibration)
@@ -1639,6 +1641,27 @@ PX4IO::io_handle_status(uint16_t status)
 	const bool safety_off = status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
 	const bool override_enabled = status & PX4IO_P_STATUS_FLAGS_OVERRIDE;
 
+	safety_s safety{};
+
+	if (_safety_sub.copy(&safety)) {
+		if (safety_status != safety_off) {
+			safety_status = safety_off;
+
+			if (safety.safety_off) {
+				safety.safety_off = false;
+
+			} else {
+				safety.safety_off = true;
+			}
+
+		} else {
+			safety.safety_off = safety.safety_off;
+		}
+
+	} else {
+		safety.safety_off = safety_off;
+	}
+
 	// publish immediately on change, otherwise at 1 Hz
 	if ((hrt_elapsed_time(&_safety.timestamp) >= 1_s)
 	    || (_safety.safety_off != safety_off)
@@ -1646,7 +1669,7 @@ PX4IO::io_handle_status(uint16_t status)
 	    || (_safety.override_enabled != override_enabled)) {
 
 		_safety.safety_switch_available = true;
-		_safety.safety_off = safety_off;
+		_safety.safety_off = safety.safety_off;
 		_safety.override_available = _override_available;
 		_safety.override_enabled = override_enabled;
 		_safety.timestamp = hrt_absolute_time();
