@@ -78,9 +78,18 @@ add_custom_target(metadata_module_documentation
 	USES_TERMINAL
 )
 
+add_custom_target(metadata_extract_events
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_events.py
+		--src-path ${PX4_SOURCE_DIR}/src
+		--json ${PX4_BINARY_DIR}/events/px4_full.json #--verbose
+	COMMENT "Extracting events from full source"
+	USES_TERMINAL
+)
+
 add_custom_target(all_metadata
 	DEPENDS
 		metadata_airframes
 		metadata_parameters
 		metadata_module_documentation
+		metadata_extract_events
 )
