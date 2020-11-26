@@ -3613,6 +3613,11 @@ protected:
 				msg.lat_int = pos_sp_triplet.current.lat * 1e7;
 				msg.lon_int = pos_sp_triplet.current.lon * 1e7;
 				msg.alt = pos_sp_triplet.current.alt;
+				
+				home_position_s home{};
+				_home_sub.copy(&home);
+				msg.relative_alt = pos_sp_triplet.current.alt - (home.alt * 1000.0f);
+				
 
 				vehicle_local_position_setpoint_s lpos_sp;
 
