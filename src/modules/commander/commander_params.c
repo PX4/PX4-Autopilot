@@ -640,17 +640,14 @@ PARAM_DEFINE_INT32(COM_REARM_GRACE, 1);
 /**
  * Enable RC stick override of auto and/or offboard modes
  *
- * When RC stick override is enabled, moving the RC sticks according to COM_RC_STICK_OV
- * immediately gives control back to the pilot (switches to manual position mode):
- * bit 0: Enable for auto modes (except for in critical battery reaction),
- * bit 1: Enable for offboard mode.
- *
- * Only has an effect on multicopters, and VTOLS in multicopter mode.
+ * When RC stick override is enabled, moving the RC sticks more than COM_RC_STICK_OV from
+ * their center position immediately gives control back to the pilot by switching to Position mode.
+ * Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
  *
  * @min 0
  * @max 3
- * @bit 0 Enable override in auto modes
- * @bit 1 Enable override in offboard mode
+ * @bit 0 Enable override during auto modes (except for in critical battery reaction)
+ * @bit 1 Enable override during offboard mode
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 1);
