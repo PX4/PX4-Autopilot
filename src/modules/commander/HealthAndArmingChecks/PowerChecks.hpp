@@ -34,46 +34,20 @@
 #pragma once
 
 #include "Common.hpp"
-#include "Ekf2Checks.hpp"
-#include "PowerChecks.hpp"
+#include <uORB/topics/system_power.h>
+#include <uORB/Subscription.hpp>
 
-#include <px4_platform_common/module_params.h>
-
-/**
- * @class HealthAndArmingChecks
- *
- */
-class HealthAndArmingChecks : public ModuleParams
+class PowerChecks : public HealthAndArmingCheckBase
 {
 public:
-	HealthAndArmingChecks(ModuleParams *parent, const vehicle_status_flags_s &status_flags, vehicle_status_s &status);
-	~HealthAndArmingChecks() = default;
+	PowerChecks() = default;
+	~PowerChecks() = default;
 
-	/**
-	 * Run preflight checks and report if necessary.
-	 * This should be called regularly (e.g. 1Hz).
-	 * @param force_reporting if true, force reporting even if nothing changed
-	 */
-	void update(bool force_reporting = false);
-
-	/**
-	 * Whether arming is possible for the current navigation mode
-	 */
-	bool canArm() const { return _reporter.canArm(); }
-
-protected:
-	void updateParams() override;
+	void checkAndReport(const Context &context, Report &reporter) override;
 private:
-	Context _context;
-	Report _reporter;
-	vehicle_status_s &_status;
+	uORB::Subscription _system_power_sub{ORB_ID(system_power)};
 
-	// all checks
-	Ekf2Checks _ekf2_checks;
-	PowerChecks _power_checks;
-	HealthAndArmingCheckBase *_checks[10] = {
-		&_ekf2_checks,
-		&_power_checks,
-	};
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::COM_POWER_COUNT>) _param_com_power_count
+	)
 };
-

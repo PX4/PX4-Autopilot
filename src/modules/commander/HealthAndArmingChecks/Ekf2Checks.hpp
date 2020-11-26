@@ -34,46 +34,36 @@
 #pragma once
 
 #include "Common.hpp"
-#include "Ekf2Checks.hpp"
-#include "PowerChecks.hpp"
+#include <uORB/topics/estimator_status.h>
+#include <uORB/topics/estimator_states.h>
+#include <uORB/Subscription.hpp>
 
-#include <px4_platform_common/module_params.h>
-
-/**
- * @class HealthAndArmingChecks
- *
- */
-class HealthAndArmingChecks : public ModuleParams
+class Ekf2Checks : public HealthAndArmingCheckBase
 {
 public:
-	HealthAndArmingChecks(ModuleParams *parent, const vehicle_status_flags_s &status_flags, vehicle_status_s &status);
-	~HealthAndArmingChecks() = default;
+	Ekf2Checks() = default;
+	~Ekf2Checks() = default;
 
-	/**
-	 * Run preflight checks and report if necessary.
-	 * This should be called regularly (e.g. 1Hz).
-	 * @param force_reporting if true, force reporting even if nothing changed
-	 */
-	void update(bool force_reporting = false);
-
-	/**
-	 * Whether arming is possible for the current navigation mode
-	 */
-	bool canArm() const { return _reporter.canArm(); }
-
-protected:
-	void updateParams() override;
+	void checkAndReport(const Context &context, Report &reporter) override;
 private:
-	Context _context;
-	Report _reporter;
-	vehicle_status_s &_status;
+	bool ekf2Enabled(const Context &context) const;
 
-	// all checks
-	Ekf2Checks _ekf2_checks;
-	PowerChecks _power_checks;
-	HealthAndArmingCheckBase *_checks[10] = {
-		&_ekf2_checks,
-		&_power_checks,
-	};
+	void stateChecks(const Context &context, Report &reporter);
+
+	uORB::Subscription _status_sub{ORB_ID(estimator_status)};
+	uORB::Subscription _states_sub{ORB_ID(estimator_states)};
+
+	DEFINE_PARAMETERS(
+		(ParamBool<px4::params::COM_ARM_WO_GPS>) _param_arm_without_gps,
+		(ParamBool<px4::params::COM_ARM_MAG_STR>) _param_mag_strength_check_enabled,
+		(ParamInt<px4::params::SYS_MC_EST_GROUP>) _param_sys_mc_est_group,
+		(ParamFloat<px4::params::COM_ARM_EKF_HGT>) _param_hgt_test_ratio_limit,
+		(ParamFloat<px4::params::COM_ARM_EKF_VEL>) _param_vel_test_ratio_limit,
+		(ParamFloat<px4::params::COM_ARM_EKF_POS>) _param_pos_test_ratio_limit,
+		(ParamFloat<px4::params::COM_ARM_EKF_YAW>) _param_mag_test_ratio_limit,
+
+		(ParamFloat<px4::params::COM_ARM_EKF_AB>) _param_ekf_ab_test_limit,
+		(ParamFloat<px4::params::COM_ARM_EKF_GB>) _param_ekf_gb_test_limit
+	)
+
 };
-
