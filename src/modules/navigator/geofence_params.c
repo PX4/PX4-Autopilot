@@ -67,13 +67,12 @@ PARAM_DEFINE_INT32(GF_ACTION, 1);
 /**
  * Geofence altitude mode
  *
- * Select which altitude source should be used:
- * 0 = AMSL provided by GPS, 1 = Barometer AMSL altitude (assuming standard atmosphere pressure).
+ * Select which altitude (AMSL) source should be used for geofence calculations.
  *
  * @min 0
  * @max 1
- * @value 0 AMSL provided by GPS
- * @value 1 Barometer AMSL altitude
+ * @value 0 Autopilot estimator global position altitude (GPS)
+ * @value 1 Raw barometer altitude (assuming standard atmospheric pressure)
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_ALTMODE, 0);
