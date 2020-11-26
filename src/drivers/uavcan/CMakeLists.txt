@@ -151,6 +151,7 @@ px4_add_module(
 		sensors/gnss.cpp
 		sensors/mag.cpp
 		sensors/rangefinder.cpp
+		sensors/safetybutton.cpp
 
 	DEPENDS
 		px4_uavcan_dsdlc
