@@ -441,7 +441,7 @@ else
 			then
 				# Start UAVCAN firmware update server and dynamic node ID allocation server.
 				uavcan start fw
-
+				tune_control play -t 1
 				if param greater UAVCAN_ENABLE 2
 				then
 					set OUTPUT_MODE uavcan_esc
