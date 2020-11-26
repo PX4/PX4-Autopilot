@@ -32,4 +32,10 @@ then
 	param set MAV_0_CONFIG 0
 	param set RTPS_MAV_CONFIG 101
 	param set SER_TEL1_BAUD 460800
+
+	# Disable Multi-EKF
+	param set EKF2_MULTI_IMU 0
+	param set SENS_IMU_MODE 1
+	param set EKF2_MULTI_MAG 0
+	param set SENS_MAG_MODE 1
 fi
