@@ -31,8 +31,7 @@
  *
  ****************************************************************************/
 
-#ifndef COMMANDER_HPP_
-#define COMMANDER_HPP_
+#pragma once
 
 #include "Arming/PreFlightCheck/PreFlightCheck.hpp"
 #include "failure_detector/FailureDetector.hpp"
@@ -107,6 +106,9 @@ public:
 
 	/** @see ModuleBase::run() */
 	void run() override;
+
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
 
 	void enable_hil();
 
@@ -425,5 +427,3 @@ private:
 	uORB::Publication<vehicle_command_ack_s>		_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 };
-
-#endif /* COMMANDER_HPP_ */
