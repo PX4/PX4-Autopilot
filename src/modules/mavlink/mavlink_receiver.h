@@ -140,11 +140,6 @@ public:
 	 */
 	void set_offb_cruising_speed(float speed = -1.0f);
 
-	/**
-	 * Reset all offboard cruising speeds to default values
-	 */
-	void reset_offb_cruising_speed();
-
 private:
 
 	void acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result);
@@ -340,7 +335,6 @@ private:
 	hrt_abstime			_last_utm_global_pos_com{0};
 
 	vehicle_status_s		_vehicle_status{};
-	uint8_t				_last_nav_state{0};
 
 	float 				_offb_cruising_speed_mc{-1.0f};
 	float 				_offb_cruising_speed_fw{-1.0f};

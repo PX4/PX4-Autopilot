@@ -516,11 +516,12 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 		} else if (cmd_mavlink.command == MAV_CMD_LOGGING_STOP) {
 			_mavlink->request_stop_ulog_streaming();
-		}
 
-		if (cmd_mavlink.command == MAV_CMD_DO_CHANGE_SPEED) {
-			// Not differentiating between airspeed and groundspeed yet
-			set_offb_cruising_speed(cmd_mavlink.param2);
+		} else if (cmd_mavlink.command == MAV_CMD_DO_CHANGE_SPEED) {
+			if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
+				// Not differentiating between airspeed and groundspeed yet
+				set_offb_cruising_speed(cmd_mavlink.param2);
+			}
 		}
 
 		if (!send_ack) {
@@ -1539,7 +1540,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 						att_sp.yaw_sp_move_rate = 0.0f;
 					}
 
-					if (!offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
+					if (!offboard_control_mode.ignore_thrust) { // don't overwrite thrust if it's invalid
 						fill_thrust(att_sp.thrust_body, _vehicle_status.vehicle_type, set_attitude_target.thrust);
 					}
 
@@ -1577,7 +1578,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 						rates_sp.yaw = set_attitude_target.body_yaw_rate;
 					}
 
-					if (!offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
+					if (!offboard_control_mode.ignore_thrust) { // don't overwrite thrust if it's invalid
 						fill_thrust(rates_sp.thrust_body, _vehicle_status.vehicle_type, set_attitude_target.thrust);
 					}
 
@@ -2972,14 +2973,7 @@ MavlinkReceiver::Run()
 			updateParams();
 		}
 
-		// reset cruising speed on mode changes
-		if (_vehicle_status_sub.update(&_vehicle_status)) {
-			if (_last_nav_state != _vehicle_status.nav_state) {
-				reset_offb_cruising_speed();
-				_last_nav_state = _vehicle_status.nav_state;
-			}
-		}
-
+		_vehicle_status_sub.update(&_vehicle_status);
 
 		int ret = poll(&fds[0], 1, timeout);
 
@@ -3160,11 +3154,4 @@ MavlinkReceiver::set_offb_cruising_speed(float speed)
 	} else {
 		_offb_cruising_speed_fw = speed;
 	}
-}
-
-void
-MavlinkReceiver::reset_offb_cruising_speed()
-{
-	_offb_cruising_speed_mc = -1.0f;
-	_offb_cruising_speed_fw = -1.0f;
 }
