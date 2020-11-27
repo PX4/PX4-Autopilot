@@ -128,6 +128,7 @@ elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
 		SIM_PID=$!
 
 		# Check all paths in ${GAZEBO_MODEL_PATH} for specified model
+		IFS_bak=$IFS
 		IFS=":"
 		for possible_model_path in ${GAZEBO_MODEL_PATH}; do
 			if [ -z $possible_model_path ]; then
@@ -140,6 +141,7 @@ elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
 				break
 			fi
 		done
+		IFS=$IFS_bak
 
 		if [ -z $modelpath ]; then
 			echo "Model ${model} not found in model path: ${GAZEBO_MODEL_PATH}"
