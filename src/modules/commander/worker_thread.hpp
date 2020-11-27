@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,21 +31,70 @@
  *
  ****************************************************************************/
 
+#pragma once
+
+
+#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/posix.h>
+#include <systemlib/mavlink_log.h>
+#include <uORB/uORB.h>
+
 /**
- * @file esc_calibration.h
- *
- * Definition of esc calibration
- *
- * @author Roman Bapst <roman@px4.io>
+ * @class WorkerThread
+ * low priority background thread, started on demand, used for:
+ * - calibration
+ * - param saving
  */
+class WorkerThread
+{
+public:
+	enum class Request {
+		GyroCalibration,
+		MagCalibration,
+		RCTrimCalibration,
+		AccelCalibration,
+		LevelCalibration,
+		AccelCalibrationQuick,
+		AirspeedCalibration,
+		ESCCalibration,
+		MagCalibrationQuick,
 
-#ifndef ESC_CALIBRATION_H_
-#define ESC_CALIBRATION_H_
+		ParamLoadDefault,
+		ParamSaveDefault,
+		ParamResetAll,
+	};
 
-#include <uORB/topics/actuator_armed.h>
+	WorkerThread() = default;
+	~WorkerThread();
 
-int do_esc_calibration(orb_advert_t *mavlink_log_pub);
+	void setMagQuickData(float heading_rad, float lat, float lon);
 
-bool check_battery_disconnected(orb_advert_t *mavlink_log_pub);
+	void startTask(Request request);
 
-#endif
+	bool isBusy() const { return _state.load() != (int)State::Idle; }
+	bool hasResult() const { return _state.load() == (int)State::Finished; }
+	int getResultAndReset() { _state.store((int)State::Idle); return _ret_value; }
+
+private:
+	enum class State {
+		Idle,
+		Running,
+		Finished
+	};
+
+	static void *threadEntryTrampoline(void *arg);
+	void threadEntry();
+
+	px4::atomic_int _state{(int)State::Idle};
+	pthread_t _thread_handle{};
+	int _ret_value{};
+	Request _request;
+	orb_advert_t _mavlink_log_pub{nullptr};
+
+	// extra arguments
+	float _heading_radians;
+	float _latitude;
+	float _longitude;
+
+};
+
