@@ -111,6 +111,35 @@ AssistedRelease::AssistedRelease(int example_param, bool example_flag)
 	: ModuleParams(nullptr)
 {
 }
+void AssistedRelease::play_happy_tone()
+{
+  		tune_control_s tune_control{};
+  		tune_control.tune_id = tune_control_s::TUNE_ID_NOTIFY_NEUTRAL;
+  		tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
+  		tune_control.timestamp = hrt_absolute_time();
+  		_tune_control.publish(tune_control);
+}
+
+void AssistedRelease::play_sad_tone()
+{
+  		tune_control_s tune_control{};
+  		tune_control.tune_id = tune_control_s::TUNE_ID_NOTIFY_NEGATIVE;
+  		tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
+  		tune_control.timestamp = hrt_absolute_time();
+  		_tune_control.publish(tune_control);
+
+}
+
+void AssistedRelease::play_final_tone()
+{
+  		tune_control_s tune_control{};
+  		tune_control.tune_id = tune_control_s::TUNE_ID_NOTIFY_POSITIVE;
+  		tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
+  		tune_control.timestamp = hrt_absolute_time();
+  		_tune_control.publish(tune_control);
+
+}
+
 
 void AssistedRelease::run()
 {
@@ -179,7 +208,35 @@ void AssistedRelease::run()
         _throttle = _actuator_controls.control[actuator_controls_s::INDEX_THROTTLE];
         _pitch_setpoint = _manual_control_setpoint.x;
 
-		timestamp_us = hrt_absolute_time();
+        timestamp_us = hrt_absolute_time();
+
+        bool rpm_flag = (state_flags >> state_types::RPM_OK) & 1U;
+
+        if(_rpm.indicated_frequency_rpm > _param_min_rpm.get()){
+          if(!rpm_flag){
+              state_flags |= 1UL << state_types::RPM_OK;
+              play_happy_tone();
+          }
+        } else {
+          if(rpm_flag){
+              state_flags &= ~(1UL << state_types::RPM_OK);
+              play_sad_tone();
+          }
+        }
+
+        bool rc_flag = (state_flags >> state_types::RC_OK) & 1U;
+        if(_rc_channel > 0.5f){
+          if(!rc_flag){
+              state_flags |= 1UL << state_types::RC_OK;
+              play_happy_tone();
+          }
+        } else {
+          if(rc_flag){
+              state_flags &= ~(1UL << state_types::RC_OK);
+              play_sad_tone();
+          }
+        }
+
 
         if (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED){
     		if (_rpm.indicated_frequency_rpm > _param_min_rpm.get() && _airspeed.indicated_airspeed_m_s > _param_min_aspd.get() && _throttle >= 0.5f && _rc_channel >= 0.5f && _pitch_setpoint > 0){

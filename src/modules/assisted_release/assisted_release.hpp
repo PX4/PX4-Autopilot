@@ -35,6 +35,7 @@
 
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 
 #include <uORB/topics/rpm.h>
@@ -45,6 +46,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/tune_control.h>
 
 
 extern "C" __EXPORT int assisted_release_main(int argc, char *argv[]);
@@ -84,18 +86,30 @@ private:
 	 */
 	void parameters_update(bool force = false);
 
+  typedef enum {
+    RPM_OK = 0,
+    AIRSPEED_OK,
+    RC_OK,
+    THROTTLE_OK,
+    PITCH_OK,
+  } state_types;
+
+  int state_flags = 0b00000000;
+  int state_flags_old = 0b000000;
+  int state_ok = 0b11111000;
+
 	int _rpm_value = 0;
 	int _airspeed_value = 0;
 	float_t _rc_channel = 0;
 	float_t _throttle = 0;
-    float_t _pitch_setpoint = 0;
+  float_t _pitch_setpoint = 0;
 
 	int _rpm_sub{-1};
 	int _airspeed_sub{-1};
 	int _vehicle_status_sub{-1};
-    int _actuator_controls_0_sub{-1};
-    int _input_rc_sub{-1};
-    int _manual_control_setpoint_sub{-1};
+  int _actuator_controls_0_sub{-1};
+  int _input_rc_sub{-1};
+  int _manual_control_setpoint_sub{-1};
 
 	rpm_s _rpm{};
 	vehicle_status_s _vehicle_status{};
@@ -104,13 +118,17 @@ private:
     input_rc_s _input_rc{};
     manual_control_setpoint_s _manual_control_setpoint{};
 
+
 	void rpm_poll();
 	void airspeed_poll();
 	void vehicle_status_poll();
 	void actuator_controls_poll();
 	void input_rc_poll();
-    void manual_control_setpoint_poll();
+  void manual_control_setpoint_poll();
 
+  void play_happy_tone();
+  void play_sad_tone();
+  void play_final_tone();
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::ASREL_LATCH_TIME>) _param_latch_time,
@@ -122,5 +140,7 @@ private:
 
 	// Subscriptions
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
+
+  uORB::Publication<tune_control_s> _tune_control{ORB_ID(tune_control)};
 
 };
