@@ -88,7 +88,7 @@ namespace drv_pca9685_pwm
  * but it seems most chips have its oscillator working at a higher frequency
  * Reference: https://github.com/adafruit/Adafruit-PWM-Servo-Driver-Library/blob/6664ce936210eea53259b814062009d9569a4213/Adafruit_PWMServoDriver.h#L66 */
 #define PCA9685_CLOCK_INT 26075000.0 //25MHz internal clock
-#ifndef PCA9685_CLOCL_EXT
+#ifndef PCA9685_CLOCK_EXT
 #define PCA9685_CLOCK_FREQ PCA9685_CLOCK_INT   // use int clk
 #else
 #define PCA9685_CLOCK_FREQ PCA9685_CLOCK_EXT   // use ext clk
@@ -103,8 +103,6 @@ class PCA9685 : public device::I2C
 public:
 	PCA9685(int bus, int addr);
 
-	int Start();
-
 	int Stop();
 
 	/*
@@ -116,15 +114,39 @@ public:
 
 	~PCA9685() override = default;
 
-	int init() override;
+	int initReg();
 
 	inline float getFrequency() {return _Freq;}
+
+	/*
+	 * disable all of the output
+	 */
+	void disableAllOutput();
+
+	/*
+	* turn off oscillator
+	*/
+	void stopOscillator();
+
+	/*
+	 * turn on oscillator
+	 */
+	void startOscillator();
+
+	/*
+	 * turn on output
+	 */
+	void triggerRestart();
 
 protected:
 	int probe() override;
 
-	static const uint8_t DEFAULT_MODE1_CFG = 0x20;
-	static const uint8_t DEFAULT_MODE2_CFG = 0x04;
+#ifdef PCA9685_CLOCL_EXT
+	static const uint8_t DEFAULT_MODE1_CFG = 0x70;  // Auto-Increment, Sleep, EXTCLK
+#else
+	static const uint8_t DEFAULT_MODE1_CFG = 0x30;  // Auto-Increment, Sleep
+#endif
+	static const uint8_t DEFAULT_MODE2_CFG = 0x04;  // totem pole
 
 	float _Freq = PWM_DEFAULT_FREQUENCY;
 
@@ -141,25 +163,10 @@ protected:
 	void setPWM(uint8_t channel_count, const uint16_t *value);
 
 	/*
-	 * disable all of the output
-	 */
-	void disableAllOutput();
-
-	/*
 	 * set clock divider
-	 * this func has Super Cow Powers
 	 */
 	void setDivider(uint8_t value);
 
-	/*
-	 * turn off oscillator
-	 */
-	void stopOscillator();
-
-	/*
-	 * restart output
-	 */
-	void restartOscillator();
 private:
 
 };
