@@ -2146,6 +2146,9 @@ Mavlink::task_main(int argc, char *argv[])
 	uORB::Subscription parameter_update_sub{ORB_ID(parameter_update)};
 
 	uORB::Subscription cmd_sub{ORB_ID(vehicle_command)};
+	// ensure topic exists, otherwise we might lose first queued commands (leading to printf error's below)
+	orb_advertise_queue(ORB_ID(vehicle_command), nullptr, vehicle_command_s::ORB_QUEUE_LENGTH);
+	cmd_sub.subscribe();
 	uORB::Subscription status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription ack_sub{ORB_ID(vehicle_command_ack)};
 
