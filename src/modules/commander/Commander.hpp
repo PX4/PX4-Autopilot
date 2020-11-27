@@ -36,6 +36,7 @@
 #include "Arming/PreFlightCheck/PreFlightCheck.hpp"
 #include "failure_detector/FailureDetector.hpp"
 #include "state_machine_helper.h"
+#include "worker_thread.hpp"
 
 #include <lib/controllib/blocks.hpp>
 #include <lib/hysteresis/hysteresis.h>
@@ -381,6 +382,8 @@ private:
 	vehicle_land_detected_s	_land_detector{};
 	safety_s		_safety{};
 	vtol_vehicle_status_s	_vtol_status{};
+
+	WorkerThread _worker_thread;
 
 	// Subscriptions
 	uORB::Subscription					_actuator_controls_sub{ORB_ID_VEHICLE_ATTITUDE_CONTROLS};
