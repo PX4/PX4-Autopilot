@@ -121,6 +121,8 @@ px4_add_module(
 		${LIBUAVCAN_DIR}/libuavcan_drivers/posix/include
 		${LIBUAVCAN_DIR_DRIVERS}/${UAVCAN_DRIVER}/driver/include
 	SRCS
+		beep.cpp
+		beep.hpp
 		rgbled.cpp
 		rgbled.hpp
 		safety_state.cpp
