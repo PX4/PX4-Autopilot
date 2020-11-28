@@ -150,9 +150,7 @@ def get_children_fields(base_type, search_path):
     tmp_msg_context = genmsg.msg_loader.MsgContext.create_default()
     spec_temp = genmsg.msg_loader.load_msg_by_type(
         tmp_msg_context, '%s/%s' % (package, name), search_path)
-    sorted_fields = sorted(spec_temp.parsed_fields(),
-                           key=sizeof_field_type, reverse=True)
-    return sorted_fields
+    return spec_temp.parsed_fields()
 
 
 def add_padding_bytes(fields, search_path):
