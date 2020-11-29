@@ -121,7 +121,7 @@ using matrix::wrap_2pi;
 #include "streams/HIL_STATE_QUATERNION.hpp"
 #include "streams/MOUNT_ORIENTATION.hpp"
 #include "streams/OBSTACLE_DISTANCE.hpp"
-#include "streams/OPTICAL_FLOW.hpp"
+#include "streams/OPTICAL_FLOW_RAD.hpp"
 #include "streams/ORBIT_EXECUTION_STATUS.hpp"
 #include "streams/PING.hpp"
 #include "streams/PROTOCOL_VERSION.hpp"
@@ -3945,9 +3945,9 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamRCChannels>(),
 	create_stream_list_item<MavlinkStreamManualControl>(),
 	create_stream_list_item<MavlinkStreamTrajectoryRepresentationWaypoints>(),
-#if defined(OPTICAL_FLOW_HPP)
+#if defined(OPTICAL_FLOW_RAD_HPP)
 	create_stream_list_item<MavlinkStreamOpticalFlowRad>(),
-#endif // OPTICAL_FLOW_HPP
+#endif // OPTICAL_FLOW_RAD_HPP
 	create_stream_list_item<MavlinkStreamActuatorControlTarget<0> >(),
 	create_stream_list_item<MavlinkStreamActuatorControlTarget<1> >(),
 #if defined(NAMED_VALUE_FLOAT_HPP)
