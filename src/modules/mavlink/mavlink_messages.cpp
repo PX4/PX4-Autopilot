@@ -62,7 +62,6 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/camera_capture.h>
 #include <uORB/topics/camera_trigger.h>
-#include <uORB/topics/collision_report.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
@@ -110,6 +109,7 @@ using matrix::wrap_2pi;
 #include "streams/ATTITUDE_QUATERNION.hpp"
 #include "streams/ATTITUDE_TARGET.hpp"
 #include "streams/AUTOPILOT_VERSION.hpp"
+#include "streams/COLLISION.hpp"
 #include "streams/DISTANCE_SENSOR.hpp"
 #include "streams/ESC_INFO.hpp"
 #include "streams/ESC_STATUS.hpp"
@@ -2091,74 +2091,6 @@ protected:
 	}
 };
 
-class MavlinkStreamCollision : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamCollision::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "COLLISION";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_COLLISION;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamCollision(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return _collision_sub.advertised() ? MAVLINK_MSG_ID_COLLISION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
-	}
-
-private:
-	uORB::Subscription _collision_sub{ORB_ID(collision_report)};
-
-	/* do not allow top copying this class */
-	MavlinkStreamCollision(MavlinkStreamCollision &) = delete;
-	MavlinkStreamCollision &operator = (const MavlinkStreamCollision &) = delete;
-
-protected:
-	explicit MavlinkStreamCollision(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send() override
-	{
-		collision_report_s report;
-		bool sent = false;
-
-		while (_collision_sub.update(&report)) {
-			mavlink_collision_t msg = {};
-
-			msg.src = report.src;
-			msg.id = report.id;
-			msg.action = report.action;
-			msg.threat_level = report.threat_level;
-			msg.time_to_minimum_delta = report.time_to_minimum_delta;
-			msg.altitude_minimum_delta = report.altitude_minimum_delta;
-			msg.horizontal_minimum_delta = report.horizontal_minimum_delta;
-
-			mavlink_msg_collision_send_struct(_mavlink->get_channel(), &msg);
-			sent = true;
-		}
-
-		return sent;
-	}
-};
-
 class MavlinkStreamCameraTrigger : public MavlinkStream
 {
 public:
@@ -4045,7 +3977,9 @@ static const StreamListItem streams_list[] = {
 #endif // ALTITUDE_HPP
 	create_stream_list_item<MavlinkStreamADSBVehicle>(),
 	create_stream_list_item<MavlinkStreamUTMGlobalPosition>(),
+#if defined(COLLISION_HPP)
 	create_stream_list_item<MavlinkStreamCollision>(),
+#endif // COLLISION_HPP
 #if defined(WIND_COV_HPP)
 	create_stream_list_item<MavlinkStreamWindCov>(),
 #endif // WIND_COV_HPP
