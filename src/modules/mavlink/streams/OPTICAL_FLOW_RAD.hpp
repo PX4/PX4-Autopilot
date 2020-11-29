@@ -31,8 +31,8 @@
  *
  ****************************************************************************/
 
-#ifndef OPTICAL_FLOW_HPP
-#define OPTICAL_FLOW_HPP
+#ifndef OPTICAL_FLOW_RAD_HPP
+#define OPTICAL_FLOW_RAD_HPP
 
 #include <uORB/topics/optical_flow.h>
 
@@ -110,4 +110,4 @@ protected:
 	}
 };
 
-#endif // OPTICAL_FLOW_HPP
+#endif // OPTICAL_FLOW_RAD_HPP
