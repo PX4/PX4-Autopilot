@@ -99,76 +99,92 @@ void ToneAlarm::Run()
 
 		if (_tune_control_sub.copy(&tune_control)) {
 			if (tune_control.timestamp > 0) {
-				if (!_play_tone || (_play_tone && tune_control.tune_override)) {
+				Tunes::ControlResult tune_result = _tunes.set_control(tune_control);
+
+				switch (tune_result) {
+				case Tunes::ControlResult::Success:
 					PX4_DEBUG("new tune %d", tune_control.tune_id);
 
-					if (_tunes.set_control(tune_control) == PX4_OK) {
-						if (tune_control.tune_override) {
-							// clear existing
-							ToneAlarmInterface::stop_note();
-							_next_note_time = 0;
-							hrt_cancel(&_hrt_call);
-						}
+					if (tune_control.tune_override) {
+						// clear existing
+						ToneAlarmInterface::stop_note();
+						_next_note_time = 0;
+						hrt_cancel(&_hrt_call);
+					}
 
-						_play_tone = true;
+					_play_tone = true;
 
 #if (!defined(TONE_ALARM_TIMER) && !defined(GPIO_TONE_ALARM_GPIO)) || defined(DEBUG_BUILD)
 
-						switch (tune_control.tune_id) {
-						case tune_control_s::TUNE_ID_STARTUP:
-							PX4_INFO("startup tune");
-							break;
+					switch (tune_control.tune_id) {
+					case tune_control_s::TUNE_ID_STARTUP:
+						PX4_INFO("startup tune");
+						break;
 
-						case tune_control_s::TUNE_ID_ERROR:
-							PX4_ERR("error tune");
-							break;
+					case tune_control_s::TUNE_ID_ERROR:
+						PX4_ERR("error tune");
+						break;
 
-						case tune_control_s::TUNE_ID_NOTIFY_POSITIVE:
-							PX4_INFO("notify positive");
-							break;
+					case tune_control_s::TUNE_ID_NOTIFY_POSITIVE:
+						PX4_INFO("notify positive");
+						break;
 
-						case tune_control_s::TUNE_ID_NOTIFY_NEUTRAL:
-							PX4_INFO("notify neutral");
-							break;
+					case tune_control_s::TUNE_ID_NOTIFY_NEUTRAL:
+						PX4_INFO("notify neutral");
+						break;
 
-						case tune_control_s::TUNE_ID_NOTIFY_NEGATIVE:
-							PX4_ERR("notify negative");
-							break;
+					case tune_control_s::TUNE_ID_NOTIFY_NEGATIVE:
+						PX4_ERR("notify negative");
+						break;
 
-						case tune_control_s::TUNE_ID_ARMING_WARNING:
-							PX4_WARN("arming warning");
-							break;
+					case tune_control_s::TUNE_ID_ARMING_WARNING:
+						PX4_WARN("arming warning");
+						break;
 
-						case tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW:
-							PX4_WARN("battery warning (slow)");
-							break;
+					case tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW:
+						PX4_WARN("battery warning (slow)");
+						break;
 
-						case tune_control_s::TUNE_ID_BATTERY_WARNING_FAST:
-							PX4_WARN("battery warning (fast)");
-							break;
+					case tune_control_s::TUNE_ID_BATTERY_WARNING_FAST:
+						PX4_WARN("battery warning (fast)");
+						break;
 
-						case tune_control_s::TUNE_ID_ARMING_FAILURE:
-							PX4_ERR("arming failure");
-							break;
+					case tune_control_s::TUNE_ID_ARMING_FAILURE:
+						PX4_ERR("arming failure");
+						break;
 
-						case tune_control_s::TUNE_ID_SINGLE_BEEP:
-							PX4_WARN("beep");
-							break;
+					case tune_control_s::TUNE_ID_SINGLE_BEEP:
+						PX4_WARN("beep");
+						break;
 
-						case tune_control_s::TUNE_ID_HOME_SET:
-							PX4_INFO("home set");
-							break;
-						}
-
-#endif // (!TONE_ALARM_TIMER && !GPIO_TONE_ALARM_GPIO) || DEBUG_BUILD
+					case tune_control_s::TUNE_ID_HOME_SET:
+						PX4_INFO("home set");
+						break;
 					}
 
-				} else if (_play_tone && !tune_control.tune_override) {
+#endif // (!TONE_ALARM_TIMER && !GPIO_TONE_ALARM_GPIO) || DEBUG_BUILD
+
+					break;
+
+				case Tunes::ControlResult::WouldInterrupt:
 					// otherwise re-publish tune to process next
 					PX4_DEBUG("tune already playing, requeing tune: %d", tune_control.tune_id);
-					uORB::Publication<tune_control_s> tune_control_pub{ORB_ID(tune_control)};
-					tune_control.timestamp = hrt_absolute_time();
-					tune_control_pub.publish(tune_control);
+					{
+						uORB::Publication<tune_control_s> tune_control_pub{ORB_ID(tune_control)};
+						tune_control.timestamp = hrt_absolute_time();
+						tune_control_pub.publish(tune_control);
+					}
+
+					break;
+
+
+				case Tunes::ControlResult::InvalidTune:
+					PX4_WARN("Invalid tune: %d", tune_control.tune_id);
+					break;
+
+				case Tunes::ControlResult::AlreadyPlaying:
+					// Do nothing
+					break;
 				}
 			}
 		}
