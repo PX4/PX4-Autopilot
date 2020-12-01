@@ -118,8 +118,7 @@ public:
 private:
 	void answer_command(const vehicle_command_s &cmd, uint8_t result);
 
-	transition_result_t arm_disarm(bool arm, bool run_preflight_checks, orb_advert_t *mavlink_log_pub,
-				       arm_disarm_reason_t calling_reason);
+	transition_result_t arm_disarm(bool arm, bool run_preflight_checks, arm_disarm_reason_t calling_reason);
 
 	void battery_status_check();
 
@@ -430,4 +429,5 @@ private:
 
 	uORB::Publication<vehicle_command_ack_s>		_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
+	orb_advert_t _mavlink_log_pub{nullptr};
 };
