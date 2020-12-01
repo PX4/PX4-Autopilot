@@ -129,7 +129,7 @@ private:
 				   const hrt_abstime &data_timestamp_us, hrt_abstime *last_fail_time_us, hrt_abstime *probation_time_us, bool *valid_state,
 				   bool *validity_changed);
 
-	void control_status_leds(vehicle_status_s *status_local, bool changed, const uint8_t battery_warning);
+	void control_status_leds(bool changed, const uint8_t battery_warning);
 
 	/**
 	 * Checks the status of all available data links and handles switching between different system telemetry states.
@@ -142,7 +142,7 @@ private:
 
 	void estimator_check();
 
-	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd);
+	bool handle_command(const vehicle_command_s &cmd);
 
 	unsigned handle_command_motor_test(const vehicle_command_s &cmd);
 
@@ -162,13 +162,13 @@ private:
 	void update_control_mode();
 
 	// Set the main system state based on RC and override device inputs
-	transition_result_t set_main_state(const vehicle_status_s &status, bool *changed);
+	transition_result_t set_main_state(bool *changed);
 
 	// Enable override (manual reversion mode) on the system
-	transition_result_t set_main_state_override_on(const vehicle_status_s &status, bool *changed);
+	transition_result_t set_main_state_override_on(bool *changed);
 
 	// Set the system main state based on the current RC inputs
-	transition_result_t set_main_state_rc(const vehicle_status_s &status, bool *changed);
+	transition_result_t set_main_state_rc(bool *changed);
 
 	bool shutdown_if_allowed();
 
@@ -380,6 +380,7 @@ private:
 	geofence_result_s	_geofence_result{};
 	vehicle_land_detected_s	_land_detector{};
 	safety_s		_safety{};
+	vehicle_status_s	_status{};
 	vehicle_status_flags_s	_status_flags{};
 	vtol_vehicle_status_s	_vtol_status{};
 
