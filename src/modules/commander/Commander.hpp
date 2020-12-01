@@ -376,6 +376,7 @@ private:
 
 	main_state_t	_main_state_pre_offboard{commander_state_s::MAIN_STATE_MANUAL};
 
+	actuator_armed_s	_armed{};
 	commander_state_s	_internal_state{};
 	cpuload_s		_cpuload{};
 	geofence_result_s	_geofence_result{};
