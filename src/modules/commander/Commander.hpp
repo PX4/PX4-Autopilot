@@ -129,8 +129,7 @@ private:
 				   const hrt_abstime &data_timestamp_us, hrt_abstime *last_fail_time_us, hrt_abstime *probation_time_us, bool *valid_state,
 				   bool *validity_changed);
 
-	void control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed, bool changed,
-				 const uint8_t battery_warning);
+	void control_status_leds(vehicle_status_s *status_local, bool changed, const uint8_t battery_warning);
 
 	/**
 	 * Checks the status of all available data links and handles switching between different system telemetry states.

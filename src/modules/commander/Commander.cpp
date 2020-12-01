@@ -1411,7 +1411,7 @@ Commander::run()
 
 	bool param_init_forced = true;
 
-	control_status_leds(&status, &_armed, true, _battery_warning);
+	control_status_leds(&status, true, _battery_warning);
 
 	/* update vehicle status to find out vehicle type (required for preflight checks) */
 	status.system_type = _param_mav_type.get();
@@ -2563,12 +2563,12 @@ Commander::run()
 			/* blinking LED message, don't touch LEDs */
 			if (blink_state == 2) {
 				/* blinking LED message completed, restore normal state */
-				control_status_leds(&status, &_armed, true, _battery_warning);
+				control_status_leds(&status, true, _battery_warning);
 			}
 
 		} else {
 			/* normal state */
-			control_status_leds(&status, &_armed, _status_changed, _battery_warning);
+			control_status_leds(&status, _status_changed, _battery_warning);
 		}
 
 		// check if the worker has finished
@@ -2642,8 +2642,7 @@ Commander::check_valid(const hrt_abstime &timestamp, const hrt_abstime &timeout,
 }
 
 void
-Commander::control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed, bool changed,
-			       const uint8_t battery_warning)
+Commander::control_status_leds(vehicle_status_s *status_local, bool changed, const uint8_t battery_warning)
 {
 	static hrt_abstime overload_start = 0;
 
@@ -2725,7 +2724,7 @@ Commander::control_status_leds(vehicle_status_s *status_local, const actuator_ar
 #if !defined(CONFIG_ARCH_LEDS) && defined(BOARD_HAS_CONTROL_STATUS_LEDS)
 
 	/* this runs at around 20Hz, full cycle is 16 ticks = 10/16Hz */
-	if (actuator_armed->armed) {
+	if (_armed.armed) {
 		if (status.failsafe) {
 			BOARD_ARMED_LED_OFF();
 
@@ -2740,7 +2739,7 @@ Commander::control_status_leds(vehicle_status_s *status_local, const actuator_ar
 			BOARD_ARMED_LED_ON();
 		}
 
-	} else if (actuator_armed->ready_to_arm) {
+	} else if (_armed.ready_to_arm) {
 		BOARD_ARMED_LED_OFF();
 
 		/* ready to arm, blink at 1Hz */
