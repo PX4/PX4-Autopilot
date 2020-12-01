@@ -96,9 +96,6 @@ static struct vehicle_status_s status = {};
 
 static struct vehicle_status_flags_s status_flags = {};
 
-static void answer_command(const vehicle_command_s &cmd, unsigned result,
-			   uORB::Publication<vehicle_command_ack_s> &command_ack_pub);
-
 #if defined(BOARD_HAS_POWER_CONTROL)
 static orb_advert_t power_button_state_pub = nullptr;
 static int power_button_state_notification_cb(board_power_button_state_notification_e request)
@@ -474,8 +471,7 @@ Commander::Commander() :
 }
 
 bool
-Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_s &cmd, actuator_armed_s *armed_local,
-			  uORB::Publication<vehicle_command_ack_s> &command_ack_pub)
+Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_s &cmd, actuator_armed_s *armed_local)
 {
 	/* only handle commands that are meant to be handled by this system and component */
 	if (cmd.target_system != status_local->system_id || ((cmd.target_component != status_local->component_id)
@@ -988,13 +984,13 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 			if (param1 == 0) {
 				// 0: Do nothing for autopilot
-				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 #if defined(CONFIG_BOARDCTL_RESET)
 
 			} else if ((param1 == 1) && shutdown_if_allowed() && (px4_reboot_request(false, 400_ms) == 0)) {
 				// 1: Reboot autopilot
-				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 				while (1) { px4_usleep(1); }
 
@@ -1004,7 +1000,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 			} else if ((param1 == 2) && shutdown_if_allowed() && (px4_shutdown_request(400_ms) == 0)) {
 				// 2: Shutdown autopilot
-				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 				while (1) { px4_usleep(1); }
 
@@ -1014,14 +1010,14 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 			} else if ((param1 == 3) && shutdown_if_allowed() && (px4_reboot_request(true, 400_ms) == 0)) {
 				// 3: Reboot autopilot and keep it in the bootloader until upgraded.
-				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 				while (1) { px4_usleep(1); }
 
 #endif // CONFIG_BOARDCTL_RESET
 
 			} else {
-				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED);
 			}
 		}
 
@@ -1033,7 +1029,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 			    || status.arming_state == vehicle_status_s::ARMING_STATE_SHUTDOWN || _worker_thread.isBusy()) {
 
 				// reject if armed or shutting down
-				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED, command_ack_pub);
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
 
 			} else {
 
@@ -1045,14 +1041,14 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 						(cmd.from_external ? arm_disarm_reason_t::COMMAND_EXTERNAL : arm_disarm_reason_t::COMMAND_INTERNAL))
 				   ) {
 
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED);
 					break;
 
 				}
 
 				if ((int)(cmd.param1) == 1) {
 					/* gyro calibration */
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					status_flags.condition_calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::GyroCalibration);
 
@@ -1064,62 +1060,62 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 				} else if ((int)(cmd.param2) == 1) {
 					/* magnetometer calibration */
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					status_flags.condition_calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::MagCalibration);
 
 				} else if ((int)(cmd.param3) == 1) {
 					/* zero-altitude pressure calibration */
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED);
 
 				} else if ((int)(cmd.param4) == 1) {
 					/* RC calibration */
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					/* disable RC control input completely */
 					status_flags.rc_input_blocked = true;
 					mavlink_log_info(&mavlink_log_pub, "Calibration: Disabling RC input");
 
 				} else if ((int)(cmd.param4) == 2) {
 					/* RC trim calibration */
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					status_flags.condition_calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::RCTrimCalibration);
 
 				} else if ((int)(cmd.param5) == 1) {
 					/* accelerometer calibration */
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					status_flags.condition_calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::AccelCalibration);
 
 				} else if ((int)(cmd.param5) == 2) {
 					// board offset calibration
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					status_flags.condition_calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::LevelCalibration);
 
 				} else if ((int)(cmd.param5) == 4) {
 					// accelerometer quick calibration
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					status_flags.condition_calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::AccelCalibrationQuick);
 
 				} else if ((int)(cmd.param6) == 1 || (int)(cmd.param6) == 2) {
 					// TODO: param6 == 1 is deprecated, but we still accept it for a while (feb 2017)
 					/* airspeed calibration */
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					status_flags.condition_calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::AirspeedCalibration);
 
 				} else if ((int)(cmd.param7) == 1) {
 					/* do esc calibration */
 					if (check_battery_disconnected(&mavlink_log_pub)) {
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 						status_flags.condition_calibration_enabled = true;
 						_armed.in_esc_calibration_mode = true;
 						_worker_thread.startTask(WorkerThread::Request::ESCCalibration);
 
 					} else {
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
+						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED);
 					}
 
 				} else if ((int)(cmd.param4) == 0) {
@@ -1130,10 +1126,10 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 						mavlink_log_info(&mavlink_log_pub, "Calibration: Restoring RC input");
 					}
 
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 				} else {
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED, command_ack_pub);
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
 				}
 			}
 
@@ -1147,10 +1143,10 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 			    || _worker_thread.isBusy()) {
 
 				// reject if armed or shutting down
-				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED, command_ack_pub);
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
 
 			} else {
-				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 				// parameter 1: Yaw in degrees
 				// parameter 3: Latitude
 				// parameter 4: Longitude
@@ -1184,20 +1180,20 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 			    || _worker_thread.isBusy()) {
 
 				// reject if armed or shutting down
-				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED, command_ack_pub);
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
 
 			} else {
 
 				if (((int)(cmd.param1)) == 0) {
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					_worker_thread.startTask(WorkerThread::Request::ParamLoadDefault);
 
 				} else if (((int)(cmd.param1)) == 1) {
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					_worker_thread.startTask(WorkerThread::Request::ParamSaveDefault);
 
 				} else if (((int)(cmd.param1)) == 2) {
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					_worker_thread.startTask(WorkerThread::Request::ParamResetAll);
 				}
 			}
@@ -1207,7 +1203,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 	case vehicle_command_s::VEHICLE_CMD_START_RX_PAIR:
 		/* just ack, implementation handled in the IO driver */
-		answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+		answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
@@ -1245,13 +1241,13 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 	default:
 		/* Warn about unsupported commands, this makes sense because only commands
 		 * to this component ID (or all) are passed by mavlink. */
-		answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED, command_ack_pub);
+		answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
 		break;
 	}
 
 	if (cmd_result != vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED) {
 		/* already warned about unsupported commands in "default" case */
-		answer_command(cmd, cmd_result, command_ack_pub);
+		answer_command(cmd, cmd_result);
 	}
 
 	return true;
@@ -2316,7 +2312,7 @@ Commander::run()
 					PX4_ERR("vehicle_command lost, generation %d -> %d", last_generation, _cmd_sub.get_last_generation());
 				}
 
-				if (handle_command(&status, cmd, &_armed, _command_ack_pub)) {
+				if (handle_command(&status, cmd, &_armed)) {
 					_status_changed = true;
 				}
 			}
@@ -3495,8 +3491,7 @@ Commander::print_reject_arm(const char *msg)
 	}
 }
 
-void answer_command(const vehicle_command_s &cmd, unsigned result,
-		    uORB::Publication<vehicle_command_ack_s> &command_ack_pub)
+void Commander::answer_command(const vehicle_command_s &cmd, uint8_t result)
 {
 	switch (result) {
 	case vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED:
@@ -3524,15 +3519,12 @@ void answer_command(const vehicle_command_s &cmd, unsigned result,
 
 	/* publish ACK */
 	vehicle_command_ack_s command_ack{};
-
-	command_ack.timestamp = hrt_absolute_time();
 	command_ack.command = cmd.command;
-	command_ack.result = (uint8_t)result;
+	command_ack.result = result;
 	command_ack.target_system = cmd.source_system;
 	command_ack.target_component = cmd.source_component;
-
-
-	command_ack_pub.publish(command_ack);
+	command_ack.timestamp = hrt_absolute_time();
+	_command_ack_pub.publish(command_ack);
 }
 
 int Commander::task_spawn(int argc, char *argv[])
