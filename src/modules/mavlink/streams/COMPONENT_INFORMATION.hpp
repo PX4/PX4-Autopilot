@@ -112,8 +112,15 @@ private:
 			}
 
 		} else {
-			// TODO: use server uri
-			return false;
+			// TODO:
+			// - check for tagged version, use per-version files
+			// - generate & use board-specific file
+			if (snprintf(component_info.metadata_uri, sizeof(component_info.metadata_uri),
+				     "https://px4-travis.s3.amazonaws.com/Firmware/master/%s", file)
+			    >= (int)sizeof(component_info.metadata_uri)) {
+				PX4_ERR("url too long (%s)", file);
+				return false;
+			}
 		}
 
 		return true;
