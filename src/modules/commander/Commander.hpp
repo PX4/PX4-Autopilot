@@ -140,7 +140,7 @@ private:
 
 	void esc_status_check(const esc_status_s &esc_status);
 
-	void estimator_check(const vehicle_status_flags_s &status_flags);
+	void estimator_check();
 
 	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd);
 
@@ -380,6 +380,7 @@ private:
 	geofence_result_s	_geofence_result{};
 	vehicle_land_detected_s	_land_detector{};
 	safety_s		_safety{};
+	vehicle_status_flags_s	_status_flags{};
 	vtol_vehicle_status_s	_vtol_status{};
 
 	WorkerThread _worker_thread;
