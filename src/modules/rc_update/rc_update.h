@@ -167,6 +167,7 @@ private:
 	hrt_abstime _last_rc_to_param_map_time = 0;
 
 	uint8_t _channel_count_previous{0};
+	uint8_t _input_source_previous{input_rc_s::RC_INPUT_SOURCE_UNKNOWN};
 
 	perf_counter_t		_loop_perf;			/**< loop performance counter */
 
