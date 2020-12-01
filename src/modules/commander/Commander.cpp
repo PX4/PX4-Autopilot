@@ -465,7 +465,7 @@ Commander::Commander() :
 }
 
 bool
-Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_s &cmd, actuator_armed_s *armed_local)
+Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_s &cmd)
 {
 	/* only handle commands that are meant to be handled by this system and component */
 	if (cmd.target_system != status_local->system_id || ((cmd.target_component != status_local->component_id)
@@ -662,7 +662,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 				if (!enforce) {
 					if (!(_land_detector.landed || _land_detector.maybe_landed) && !is_ground_rover(&status)) {
 						if (cmd_arms) {
-							if (armed_local->armed) {
+							if (_armed.armed) {
 								mavlink_log_warning(&_mavlink_log_pub, "Arming denied! Already armed");
 
 							} else {
@@ -739,7 +739,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 	case vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION: {
 			if (cmd.param1 > 1.5f) {
 				if (!_lockdown_triggered) {
-					armed_local->lockdown = true;
+					_armed.lockdown = true;
 					_lockdown_triggered = true;
 					PX4_WARN("forcing lockdown (motors off)");
 				}
@@ -747,7 +747,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 			} else if (cmd.param1 > 0.5f) {
 				//XXX update state machine?
 				if (!_flight_termination_triggered) {
-					armed_local->force_failsafe = true;
+					_armed.force_failsafe = true;
 					_flight_termination_triggered = true;
 					PX4_WARN("forcing failsafe (termination)");
 				}
@@ -758,8 +758,8 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 				}
 
 			} else {
-				armed_local->force_failsafe = false;
-				armed_local->lockdown = false;
+				_armed.force_failsafe = false;
+				_armed.lockdown = false;
 
 				_lockdown_triggered = false;
 				_flight_termination_triggered = false;
@@ -2306,7 +2306,7 @@ Commander::run()
 					PX4_ERR("vehicle_command lost, generation %d -> %d", last_generation, _cmd_sub.get_last_generation());
 				}
 
-				if (handle_command(&status, cmd, &_armed)) {
+				if (handle_command(&status, cmd)) {
 					_status_changed = true;
 				}
 			}

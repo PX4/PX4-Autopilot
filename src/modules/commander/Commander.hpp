@@ -143,7 +143,7 @@ private:
 
 	void estimator_check(const vehicle_status_flags_s &status_flags);
 
-	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd, actuator_armed_s *armed);
+	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd);
 
 	unsigned handle_command_motor_test(const vehicle_command_s &cmd);
 
