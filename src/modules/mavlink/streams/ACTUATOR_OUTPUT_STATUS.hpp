@@ -91,7 +91,7 @@ protected:
 			static size_t actuator_outputs_size = act.noutputs;
 			static constexpr size_t mavlink_actuator_output_status_size = sizeof(msg.actuator) / sizeof(msg.actuator[0]);
 
-			for (unsigned i = 0; i < math::min(actuator_outputs_size, mavlink_actuator_output_status_size)); i++) {
+			for (unsigned i = 0; i < math::min(actuator_outputs_size, mavlink_actuator_output_status_size); i++) {
 				msg.actuator[i] = act.output[i];
 			}
 
