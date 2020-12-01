@@ -1838,16 +1838,9 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_interface_name = nullptr;
 
-#ifdef __PX4_NUTTX
-	/* the NuttX optarg handler does not
-	 * ignore argv[0] like the POSIX handler
-	 * does, nor does it deal with non-flag
-	 * verbs well. So we remove the application
-	 * name and the verb.
-	 */
+	// We don't care about the name and verb at this point.
 	argc -= 2;
 	argv += 2;
-#endif
 
 	/* don't exit from getopt loop to leave getopt global variables in consistent state,
 	 * set error flag instead */

@@ -1140,12 +1140,9 @@ int GPS::task_spawn(int argc, char *argv[], Instance instance)
 
 int GPS::run_trampoline_secondary(int argc, char *argv[])
 {
-
-#ifdef __PX4_NUTTX
-	// on NuttX task_create() adds the task name as first argument
+	// the task name is the first argument
 	argc -= 1;
 	argv += 1;
-#endif
 
 	GPS *gps = instantiate(argc, argv, Instance::Secondary);
 	if (gps) {
