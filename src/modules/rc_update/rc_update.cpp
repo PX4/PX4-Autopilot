@@ -316,39 +316,51 @@ RCUpdate::Run()
 	rc_parameter_map_poll();
 
 	/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
-	input_rc_s rc_input;
+	input_rc_s input_rc;
 
-	if (_input_rc_sub.copy(&rc_input)) {
+	if (_input_rc_sub.update(&input_rc)) {
 
 		// warn if the channel count is changing (possibly indication of error)
-		if (!rc_input.rc_lost && (_channel_count_previous != rc_input.channel_count) && (_channel_count_previous > 0)) {
-			PX4_DEBUG("RC channel count changed %d -> %d", _channel_count_previous, rc_input.channel_count);
+		if (!input_rc.rc_lost) {
+			if ((_channel_count_previous != input_rc.channel_count)
+			    && (_channel_count_previous > 0)) {
+				PX4_WARN("channel count changed %d -> %d", _channel_count_previous, input_rc.channel_count);
+			}
+
+			if ((_input_source_previous != input_rc.input_source)
+			    && (_input_source_previous != input_rc_s::RC_INPUT_SOURCE_UNKNOWN)) {
+				PX4_WARN("input source changed %d -> %d", _input_source_previous, input_rc.input_source);
+			}
 		}
 
-		_channel_count_previous = rc_input.channel_count;
+		const bool input_source_stable = (input_rc.input_source == _input_source_previous);
+		const bool channel_count_stable = (input_rc.channel_count == _channel_count_previous);
+
+		_input_source_previous = input_rc.input_source;
+		_channel_count_previous = input_rc.channel_count;
 
 		/* detect RC signal loss */
 		bool signal_lost = true;
 
 		/* check flags and require at least four channels to consider the signal valid */
-		if (rc_input.rc_lost || rc_input.rc_failsafe || rc_input.channel_count < 4) {
+		if (input_rc.rc_lost || input_rc.rc_failsafe || input_rc.channel_count < 4) {
 			/* signal is lost or no enough channels */
 			signal_lost = true;
 
 
-		} else if ((rc_input.input_source == input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM ||
-			    rc_input.input_source == input_rc_s::RC_INPUT_SOURCE_PX4IO_PPM)
-			   && rc_input.channel_count == 16) {
+		} else if ((input_rc.input_source == input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM ||
+			    input_rc.input_source == input_rc_s::RC_INPUT_SOURCE_PX4IO_PPM)
+			   && input_rc.channel_count == 16) {
 
 			// This is a specific RC lost check for RFD 868+/900 Modems on PPM.
 			// The observation was that when RC is lost, 16 channels are active and the first 12 are 1000
 			// and the remaining ones are 0.
 
 			for (unsigned int i = 0; i < 16; i++) {
-				if (i < 12 && rc_input.values[i] > 999 && rc_input.values[i] < 1005) {
+				if (i < 12 && input_rc.values[i] > 999 && input_rc.values[i] < 1005) {
 					signal_lost = true;
 
-				} else if (rc_input.values[i] == 0) {
+				} else if (input_rc.values[i] == 0) {
 					signal_lost = true;
 
 				} else {
@@ -370,15 +382,15 @@ RCUpdate::Run()
 
 			if (_param_rc_fails_thr.get() > 0 && fs_ch >= 0) {
 				/* failsafe configured */
-				if ((_param_rc_fails_thr.get() < _parameters.min[fs_ch] && rc_input.values[fs_ch] < _param_rc_fails_thr.get()) ||
-				    (_param_rc_fails_thr.get() > _parameters.max[fs_ch] && rc_input.values[fs_ch] > _param_rc_fails_thr.get())) {
+				if ((_param_rc_fails_thr.get() < _parameters.min[fs_ch] && input_rc.values[fs_ch] < _param_rc_fails_thr.get()) ||
+				    (_param_rc_fails_thr.get() > _parameters.max[fs_ch] && input_rc.values[fs_ch] > _param_rc_fails_thr.get())) {
 					/* failsafe triggered, signal is lost by receiver */
 					signal_lost = true;
 				}
 			}
 		}
 
-		unsigned channel_limit = rc_input.channel_count;
+		unsigned channel_limit = input_rc.channel_count;
 
 		if (channel_limit > RC_MAX_CHAN_COUNT) {
 			channel_limit = RC_MAX_CHAN_COUNT;
@@ -390,7 +402,7 @@ RCUpdate::Run()
 			/*
 			 * 1) Constrain to min/max values, as later processing depends on bounds.
 			 */
-			rc_input.values[i] = math::constrain(rc_input.values[i], _parameters.min[i], _parameters.max[i]);
+			input_rc.values[i] = math::constrain(input_rc.values[i], _parameters.min[i], _parameters.max[i]);
 
 			/*
 			 * 2) Scale around the mid point differently for lower and upper range.
@@ -408,12 +420,12 @@ RCUpdate::Run()
 			 *
 			 * DO NOT REMOVE OR ALTER STEP 1!
 			 */
-			if (rc_input.values[i] > (_parameters.trim[i] + _parameters.dz[i])) {
-				_rc.channels[i] = (rc_input.values[i] - _parameters.trim[i] - _parameters.dz[i]) / (float)(
+			if (input_rc.values[i] > (_parameters.trim[i] + _parameters.dz[i])) {
+				_rc.channels[i] = (input_rc.values[i] - _parameters.trim[i] - _parameters.dz[i]) / (float)(
 							  _parameters.max[i] - _parameters.trim[i] - _parameters.dz[i]);
 
-			} else if (rc_input.values[i] < (_parameters.trim[i] - _parameters.dz[i])) {
-				_rc.channels[i] = (rc_input.values[i] - _parameters.trim[i] + _parameters.dz[i]) / (float)(
+			} else if (input_rc.values[i] < (_parameters.trim[i] - _parameters.dz[i])) {
+				_rc.channels[i] = (input_rc.values[i] - _parameters.trim[i] + _parameters.dz[i]) / (float)(
 							  _parameters.trim[i] - _parameters.min[i] - _parameters.dz[i]);
 
 			} else {
@@ -432,24 +444,24 @@ RCUpdate::Run()
 			}
 		}
 
-		_rc.channel_count = rc_input.channel_count;
-		_rc.rssi = rc_input.rssi;
+		_rc.channel_count = input_rc.channel_count;
+		_rc.rssi = input_rc.rssi;
 		_rc.signal_lost = signal_lost;
-		_rc.timestamp = rc_input.timestamp_last_signal;
-		_rc.frame_drop_count = rc_input.rc_lost_frame_count;
+		_rc.timestamp = input_rc.timestamp_last_signal;
+		_rc.frame_drop_count = input_rc.rc_lost_frame_count;
 
 		/* publish rc_channels topic even if signal is invalid, for debug */
 		_rc_pub.publish(_rc);
 
 		/* only publish manual control if the signal is still present and was present once */
-		if (!signal_lost && rc_input.timestamp_last_signal > 0) {
+		if (input_source_stable && channel_count_stable && !signal_lost && (input_rc.timestamp_last_signal > 0)) {
 
 			/* initialize manual setpoint */
 			manual_control_setpoint_s manual_control_setpoint{};
 			/* set mode slot to unassigned */
 			manual_control_setpoint.mode_slot = manual_control_setpoint_s::MODE_SLOT_NONE;
 			/* set the timestamp to the last signal time */
-			manual_control_setpoint.timestamp = rc_input.timestamp_last_signal;
+			manual_control_setpoint.timestamp = input_rc.timestamp_last_signal;
 			manual_control_setpoint.data_source = manual_control_setpoint_s::SOURCE_RC;
 
 			/* limit controls */
@@ -528,7 +540,7 @@ RCUpdate::Run()
 			/* copy from mapped manual_control_setpoint control to control group 3 */
 			actuator_controls_s actuator_group_3{};
 
-			actuator_group_3.timestamp = rc_input.timestamp_last_signal;
+			actuator_group_3.timestamp = input_rc.timestamp_last_signal;
 
 			actuator_group_3.control[0] = manual_control_setpoint.y;
 			actuator_group_3.control[1] = manual_control_setpoint.x;
