@@ -1944,10 +1944,11 @@ Commander::run()
 		}
 
 		/* start mission result check */
-		const auto prev_mission_instance_count = _mission_result_sub.get().instance_count;
-
-		if (_mission_result_sub.update()) {
+		if (_mission_result_sub.updated()) {
 			const mission_result_s &mission_result = _mission_result_sub.get();
+
+			const auto prev_mission_instance_count = mission_result.instance_count;
+			_mission_result_sub.update();
 
 			// if mission_result is valid for the current mission
 			const bool mission_result_ok = (mission_result.timestamp > _boot_timestamp)
@@ -1956,7 +1957,6 @@ Commander::run()
 			_status_flags.condition_auto_mission_available = mission_result_ok && mission_result.valid;
 
 			if (mission_result_ok) {
-
 				if (_status.mission_failure != mission_result.failure) {
 					_status.mission_failure = mission_result.failure;
 					_status_changed = true;
@@ -1982,6 +1982,20 @@ Commander::run()
 						/* the mission is valid */
 						tune_mission_ok(true);
 					}
+				}
+			}
+
+			// Transition main state to loiter or auto-mission after takeoff is completed.
+			if (_armed.armed && !_land_detector.landed
+			    && (_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF)
+			    && (mission_result.timestamp >= _status.nav_state_timestamp)
+			    && mission_result.finished) {
+
+				if ((_param_takeoff_finished_action.get() == 1) && _status_flags.condition_auto_mission_available) {
+					main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_MISSION, _status_flags, &_internal_state);
+
+				} else {
+					main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _status_flags, &_internal_state);
 				}
 			}
 		}
@@ -2378,25 +2392,6 @@ Commander::run()
 					_status.engine_failure = false;
 					_status_changed = true;
 				}
-			}
-		}
-
-		/* Reset main state to loiter or auto-mission after takeoff is completed.
-		 * Sometimes, the mission result topic is outdated and the mission is still signaled
-		 * as finished even though we only just started with the takeoff. Therefore, we also
-		 * check the timestamp of the mission_result topic. */
-		if (_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
-		    && (_mission_result_sub.get().timestamp >= _internal_state.timestamp)
-		    && _mission_result_sub.get().finished) {
-
-			const bool mission_available = (_mission_result_sub.get().timestamp > _boot_timestamp)
-						       && (_mission_result_sub.get().instance_count > 0) && _mission_result_sub.get().valid;
-
-			if ((_param_takeoff_finished_action.get() == 1) && mission_available) {
-				main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_MISSION, _status_flags, &_internal_state);
-
-			} else {
-				main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _status_flags, &_internal_state);
 			}
 		}
 
