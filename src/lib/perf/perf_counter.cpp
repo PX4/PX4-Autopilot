@@ -66,27 +66,26 @@ struct perf_ctr_header {
  * PC_EVENT counter.
  */
 struct perf_ctr_count : public perf_ctr_header {
-	uint64_t		event_count{0};
+	uint32_t		event_count{0};
 };
 
 /**
  * PC_ELAPSED counter.
  */
 struct perf_ctr_elapsed : public perf_ctr_header {
-	uint64_t		event_count{0};
 	uint64_t		time_start{0};
 	uint64_t		time_total{0};
 	uint32_t		time_least{0};
 	uint32_t		time_most{0};
 	float			mean{0.0f};
 	float			M2{0.0f};
+	uint32_t		event_count{0};
 };
 
 /**
  * PC_INTERVAL counter.
  */
 struct perf_ctr_interval : public perf_ctr_header {
-	uint64_t		event_count{0};
 	uint64_t		time_event{0};
 	uint64_t		time_first{0};
 	uint64_t		time_last{0};
@@ -94,6 +93,7 @@ struct perf_ctr_interval : public perf_ctr_header {
 	uint32_t		time_most{0};
 	float			mean{0.0f};
 	float			M2{0.0f};
+	uint32_t		event_count{0};
 };
 
 /**
