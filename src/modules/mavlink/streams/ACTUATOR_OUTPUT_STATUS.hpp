@@ -44,7 +44,7 @@ public:
 
 	static constexpr const char *get_name_static()
 	{
-	  	return "ACTUATOR_OUTPUT_STATUS";
+		return "ACTUATOR_OUTPUT_STATUS";
 	}
 
 	static constexpr uint16_t get_id_static()
@@ -64,11 +64,11 @@ public:
 
 	unsigned get_size() override
 	{
-	        return (_act_output_sub.advertised()) ? (MAVLINK_MSG_ID_ACTUATOR_OUTPUT_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+		return (_act_output_sub.advertised()) ? (MAVLINK_MSG_ID_ACTUATOR_OUTPUT_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
 private:
-        uORB::Subscription _act_output_sub{ORB_ID(actuator_outputs)};
+	uORB::Subscription _act_output_sub{ORB_ID(actuator_outputs)};
 
 	/* do not allow top copying this class */
 	MavlinkStreamActuatorOutputStatus(MavlinkStreamActuatorOutputStatus &) = delete;
