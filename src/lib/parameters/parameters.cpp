@@ -684,42 +684,66 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 	}
 
 	if (handle_in_range(param)) {
+		// check if param being set to default value
+		bool set_to_default = false;
 
-		param_wbuf_s *s = param_find_changed(param);
-
-		if (s == nullptr) {
-
-			/* construct a new parameter */
-			param_wbuf_s buf = {};
-			buf.param = param;
-
-			params_changed = true;
-
-			/* add it to the array and sort */
-			utarray_push_back(param_values, &buf);
-			utarray_sort(param_values, param_compare_values);
-
-			/* find it after sorting */
-			s = param_find_changed(param);
-		}
-
-		/* update the changed value */
 		switch (param_type(param)) {
 		case PARAM_TYPE_INT32:
-			params_changed = params_changed || s->val.i != *(int32_t *)val;
-			s->val.i = *(int32_t *)val;
+			set_to_default = (param_info_base[param].val.i == *(int32_t *)val);
 			break;
 
 		case PARAM_TYPE_FLOAT:
-			params_changed = params_changed || fabsf(s->val.f - * (float *)val) > FLT_EPSILON;
-			s->val.f = *(float *)val;
+			set_to_default = (fabsf(param_info_base[param].val.f - * (float *)val) < FLT_EPSILON);
 			break;
-
-		default:
-			goto out;
 		}
 
-		s->unsaved = !mark_saved;
+		param_wbuf_s *s = param_find_changed(param);
+
+		if (set_to_default) {
+			if (s != nullptr) {
+				// param in memory and set to non-default value, clear
+				int pos = utarray_eltidx(param_values, s);
+				utarray_erase(param_values, pos, 1);
+				params_changed = true;
+			}
+
+			// do nothing if param not already set and being set to default
+
+		} else {
+			if (s == nullptr) {
+				/* construct a new parameter */
+				param_wbuf_s buf = {};
+				buf.param = param;
+
+				params_changed = true;
+
+				/* add it to the array and sort */
+				utarray_push_back(param_values, &buf);
+				utarray_sort(param_values, param_compare_values);
+
+				/* find it after sorting */
+				s = param_find_changed(param);
+			}
+
+			/* update the changed value */
+			switch (param_type(param)) {
+			case PARAM_TYPE_INT32:
+				params_changed = params_changed || s->val.i != *(int32_t *)val;
+				s->val.i = *(int32_t *)val;
+				break;
+
+			case PARAM_TYPE_FLOAT:
+				params_changed = params_changed || fabsf(s->val.f - * (float *)val) > FLT_EPSILON;
+				s->val.f = *(float *)val;
+				break;
+
+			default:
+				goto out;
+			}
+
+			s->unsaved = !mark_saved;
+		}
+
 		result = 0;
 
 		if (!mark_saved) { // this is false when importing parameters
