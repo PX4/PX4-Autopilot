@@ -196,7 +196,13 @@ public:
 	// and have not started using synthetic position observations to constrain drift
 	bool global_position_is_valid() const
 	{
-		return (_NED_origin_initialised && !_deadreckon_time_exceeded && !_using_synthetic_position);
+		return (_NED_origin_initialised && local_position_is_valid());
+	}
+
+	// return true if the local position estimate is valid
+	bool local_position_is_valid() const
+	{
+		return (!_deadreckon_time_exceeded && !_using_synthetic_position);
 	}
 
 	bool isTerrainEstimateValid() const { return _hagl_valid; };
