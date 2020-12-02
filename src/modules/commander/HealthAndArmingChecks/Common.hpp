@@ -50,6 +50,10 @@
 #define CONSOLE_PRINT_ARMING_CHECK_EVENT(log_level, id, str)
 #endif
 
+#ifndef FRIEND_TEST // for gtest
+#define FRIEND_TEST(a, b)
+#endif
+
 using namespace time_literals;
 
 class HealthAndArmingChecks;
@@ -185,7 +189,8 @@ public:
 		}
 	};
 
-	Report(vehicle_status_flags_s &status_flags) : _status_flags(status_flags) { }
+	Report(vehicle_status_flags_s &status_flags, hrt_abstime min_reporting_interval = 2_s)
+		: _min_reporting_interval(min_reporting_interval), _status_flags(status_flags) { }
 	~Report() = default;
 
 	vehicle_status_flags_s &failsafeFlags() { return _status_flags; }
@@ -292,6 +297,13 @@ private:
 	NavModes getModeGroup(uint8_t nav_state) const;
 
 	friend class HealthAndArmingChecks;
+	FRIEND_TEST(ReporterTest, basic_no_checks);
+	FRIEND_TEST(ReporterTest, basic_fail_all_modes);
+	FRIEND_TEST(ReporterTest, arming_checks_mode_category);
+	FRIEND_TEST(ReporterTest, arming_checks_mode_category2);
+	FRIEND_TEST(ReporterTest, reporting);
+	FRIEND_TEST(ReporterTest, reporting_multiple);
+
 	/**
 	 * Reset current results.
 	 * The calling order needs to be:
@@ -305,7 +317,7 @@ private:
 
 	bool report(bool is_armed, bool force);
 
-	static constexpr hrt_abstime min_reporting_interval{2_s};
+	const hrt_abstime _min_reporting_interval;
 
 	/// event buffer: stores current events + arguments.
 	/// Since the amount of extra arguments varies, 4 bytes is used here as estimate
