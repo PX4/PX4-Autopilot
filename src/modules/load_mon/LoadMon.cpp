@@ -162,7 +162,7 @@ void LoadMon::cpuload()
 	const float interval_idletime = 1.0f;
 #endif
 
-	cpuload_s cpuload{};
+	vehicle_cpuload_s cpuload{};
 #if defined(__PX4_LINUX)
 	/* following calculation is based on free(1)
 	 * https://gitlab.com/procps-ng/procps/-/blob/master/proc/sysinfo.c */
