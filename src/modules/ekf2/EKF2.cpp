@@ -1079,9 +1079,9 @@ void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 		if ((_param_ekf2_arsp_thr.get() > FLT_EPSILON) && (airspeed.true_airspeed_m_s > _param_ekf2_arsp_thr.get())) {
 
 			airspeedSample airspeed_sample {
+				.time_us = airspeed.timestamp,
 				.true_airspeed = airspeed.true_airspeed_m_s,
 				.eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s,
-				.time_us = airspeed.timestamp,
 			};
 			_ekf.setAirspeedData(airspeed_sample);
 		}
@@ -1102,9 +1102,9 @@ void EKF2::UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps)
 		if (landing_target_pose.is_static && landing_target_pose.rel_vel_valid) {
 			// velocity of vehicle relative to target has opposite sign to target relative to vehicle
 			auxVelSample auxvel_sample{
+				.time_us = landing_target_pose.timestamp,
 				.vel = Vector3f{-landing_target_pose.vx_rel, -landing_target_pose.vy_rel, 0.0f},
 				.velVar = Vector3f{landing_target_pose.cov_vx_rel, landing_target_pose.cov_vy_rel, 0.0f},
-				.time_us = landing_target_pose.timestamp,
 			};
 			_ekf.setAuxVelData(auxvel_sample);
 		}
@@ -1119,8 +1119,7 @@ void EKF2::UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps)
 	if (_airdata_sub.update(&airdata)) {
 		_ekf.set_air_density(airdata.rho);
 
-		const baroSample baro_sample {airdata.baro_alt_meter, airdata.timestamp_sample};
-		_ekf.setBaroData(baro_sample);
+		_ekf.setBaroData(baroSample{airdata.timestamp_sample, airdata.baro_alt_meter});
 
 		_device_id_baro = airdata.baro_device_id;
 
@@ -1148,10 +1147,10 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 				ev_data.vel(2) = ev_odom.vz;
 
 				if (ev_odom.velocity_frame == vehicle_odometry_s::BODY_FRAME_FRD) {
-					ev_data.vel_frame = estimator::BODY_FRAME_FRD;
+					ev_data.vel_frame = velocity_frame_t::BODY_FRAME_FRD;
 
 				} else {
-					ev_data.vel_frame = estimator::LOCAL_FRAME_FRD;
+					ev_data.vel_frame = velocity_frame_t::LOCAL_FRAME_FRD;
 				}
 
 				// velocity measurement error from ev_data or parameters
@@ -1231,13 +1230,13 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps, optical_flow_s &
 		if (_param_ekf2_aid_mask.get() & MASK_USE_OF) {
 
 			flowSample flow {
-				.quality = optical_flow.quality,
+				.time_us = optical_flow.timestamp,
 				// NOTE: the EKF uses the reverse sign convention to the flow sensor. EKF assumes positive LOS rate
 				// is produced by a RH rotation of the image about the sensor axis.
 				.flow_xy_rad = Vector2f{-optical_flow.pixel_flow_x_integral, -optical_flow.pixel_flow_y_integral},
 				.gyro_xyz = Vector3f{-optical_flow.gyro_x_rate_integral, -optical_flow.gyro_y_rate_integral, -optical_flow.gyro_z_rate_integral},
 				.dt = 1e-6f * (float)optical_flow.integration_timespan,
-				.time_us = optical_flow.timestamp,
+				.quality = optical_flow.quality,
 			};
 
 			if (PX4_ISFINITE(optical_flow.pixel_flow_y_integral) &&
@@ -1342,12 +1341,12 @@ void EKF2::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
 		}
 
 		magSample mag_sample {
+			.time_us = magnetometer.timestamp_sample,
 			.mag = Vector3f{
 				magnetometer.magnetometer_ga[0] - _param_ekf2_magbias_x.get(),
 				magnetometer.magnetometer_ga[1] - _param_ekf2_magbias_y.get(),
 				magnetometer.magnetometer_ga[2] - _param_ekf2_magbias_z.get()
 			},
-			.time_us = magnetometer.timestamp_sample,
 		};
 		_ekf.setMagData(mag_sample);
 
@@ -1383,8 +1382,8 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 	if (_distance_sensor_sub.update(&distance_sensor)) {
 		if (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING) {
 			rangeSample range_sample {
-				.rng = distance_sensor.current_distance,
 				.time_us = distance_sensor.timestamp,
+				.rng = distance_sensor.current_distance,
 				.quality = distance_sensor.signal_quality,
 			};
 			_ekf.setRangeData(range_sample);
