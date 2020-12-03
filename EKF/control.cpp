@@ -1161,8 +1161,8 @@ void Ekf::controlAirDataFusion()
 	// If both airspeed and sideslip fusion have timed out and we are not using a drag observation model then we no longer have valid wind estimates
 	const bool airspeed_timed_out = isTimedOut(_time_last_arsp_fuse, (uint64_t)10e6);
 	const bool sideslip_timed_out = isTimedOut(_time_last_beta_fuse, (uint64_t)10e6);
-
-	if (_control_status.flags.wind && airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & MASK_USE_DRAG)) {
+	if (_control_status.flags.wind &&
+	    (_using_synthetic_position || (airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & MASK_USE_DRAG)))) {
 		_control_status.flags.wind = false;
 	}
 
@@ -1171,19 +1171,13 @@ void Ekf::controlAirDataFusion()
 	}
 
 	// Always try to fuse airspeed data if available and we are in flight
-	if (_tas_data_ready && _control_status.flags.in_air) {
-		// always fuse airsped data if we are flying and data is present
-		if (!_control_status.flags.fuse_aspd) {
-			_control_status.flags.fuse_aspd = true;
-		}
-
+	if (!_using_synthetic_position && _tas_data_ready && _control_status.flags.in_air) {
 		// If starting wind state estimation, reset the wind states and covariances before fusing any data
 		if (!_control_status.flags.wind) {
 			// activate the wind states
 			_control_status.flags.wind = true;
 			// reset the timout timer to prevent repeated resets
 			_time_last_arsp_fuse = _time_last_imu;
-			_time_last_beta_fuse = _time_last_imu;
 			// reset the wind speed states and corresponding covariances
 			resetWindStates();
 			resetWindCovariance();
@@ -1195,29 +1189,21 @@ void Ekf::controlAirDataFusion()
 
 void Ekf::controlBetaFusion()
 {
-	// control activation and initialisation/reset of wind states required for synthetic sideslip fusion fusion
-
-	// If both airspeed and sideslip fusion have timed out and we are not using a drag observation model then we no longer have valid wind estimates
-	const bool sideslip_timed_out = isTimedOut(_time_last_beta_fuse, (uint64_t)10e6);
-	const bool airspeed_timed_out = isTimedOut(_time_last_arsp_fuse, (uint64_t)10e6);
-
-	if (_control_status.flags.wind && airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & MASK_USE_DRAG)) {
-		_control_status.flags.wind = false;
+	if (_using_synthetic_position) {
+		return;
 	}
 
-	// Perform synthetic sideslip fusion when in-air and sideslip fuson had been enabled externally in addition to the following criteria:
-
-	// Sufficient time has lapsed sice the last fusion
+	// Perform synthetic sideslip fusion at regular intervals when in-air and sideslip fuson had been enabled externally:
 	const bool beta_fusion_time_triggered = isTimedOut(_time_last_beta_fuse, _params.beta_avg_ft_us);
-
-	if (beta_fusion_time_triggered && _control_status.flags.fuse_beta && _control_status.flags.in_air) {
+	if (beta_fusion_time_triggered &&
+	    _control_status.flags.fuse_beta &&
+	    _control_status.flags.in_air) {
 		// If starting wind state estimation, reset the wind states and covariances before fusing any data
 		if (!_control_status.flags.wind) {
 			// activate the wind states
 			_control_status.flags.wind = true;
 			// reset the timeout timers to prevent repeated resets
 			_time_last_beta_fuse = _time_last_imu;
-			_time_last_arsp_fuse = _time_last_imu;
 			// reset the wind speed states and corresponding covariances
 			resetWindStates();
 			resetWindCovariance();
@@ -1229,9 +1215,10 @@ void Ekf::controlBetaFusion()
 
 void Ekf::controlDragFusion()
 {
-	if (_params.fusion_mode & MASK_USE_DRAG) {
-		if (_control_status.flags.in_air
-				&& !_mag_inhibit_yaw_reset_req) {
+	if (_params.fusion_mode & MASK_USE_DRAG &&
+	    !_using_synthetic_position &&
+	    _control_status.flags.in_air &&
+	    !_mag_inhibit_yaw_reset_req) {
 			if (!_control_status.flags.wind) {
 				// reset the wind states and covariances when starting drag accel fusion
 				_control_status.flags.wind = true;
@@ -1242,9 +1229,6 @@ void Ekf::controlDragFusion()
 				fuseDrag();
 			}
 
-		} else {
-			_control_status.flags.wind = false;
-		}
 	}
 }
 
