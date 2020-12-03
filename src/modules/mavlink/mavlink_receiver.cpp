@@ -1464,7 +1464,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 		offboard_control_mode_s offboard_control_mode{};
 
 		/* set correct ignore flags for thrust field: copy from mavlink message */
-		offboard_control_mode.ignore_thrust = (bool)(set_attitude_target.type_mask & (1 << 6));
+		offboard_control_mode.ignore_thrust = (bool)(set_attitude_target.type_mask & ATTITUDE_TARGET_TYPEMASK_THROTTLE_IGNORE);
 
 		/*
 		 * The tricky part in parsing this message is that the offboard sender *can* set attitude and thrust
@@ -1478,11 +1478,10 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 		 * throttle and has the ignore bits set for attitude and rates don't change the flags for attitude and
 		 * body rates to keep the controllers running
 		 */
-		bool ignore_bodyrate_msg_x = (bool)(set_attitude_target.type_mask & 0x1);
-		bool ignore_bodyrate_msg_y = (bool)(set_attitude_target.type_mask & 0x2);
-		bool ignore_bodyrate_msg_z = (bool)(set_attitude_target.type_mask & 0x4);
-		bool ignore_attitude_msg = (bool)(set_attitude_target.type_mask & (1 << 7));
-
+		bool ignore_bodyrate_msg_x = (bool)(set_attitude_target.type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_ROLL_RATE_IGNORE);
+		bool ignore_bodyrate_msg_y = (bool)(set_attitude_target.type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_PITCH_RATE_IGNORE);
+		bool ignore_bodyrate_msg_z = (bool)(set_attitude_target.type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_YAW_RATE_IGNORE);
+		bool ignore_attitude_msg = (bool)(set_attitude_target.type_mask & ATTITUDE_TARGET_TYPEMASK_ATTITUDE_IGNORE);
 
 		if ((ignore_bodyrate_msg_x || ignore_bodyrate_msg_y ||
 		     ignore_bodyrate_msg_z) &&
