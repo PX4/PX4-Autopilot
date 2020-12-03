@@ -314,6 +314,7 @@
 #define GPIO_PPM_IN             /* GPIO_B1_06 GPT1_CAPTURE2 */ (GPIO_GPT1_CAPTURE2_2 | GENERAL_INPUT_IOMUX)
 
 #define RC_SERIAL_PORT          "/dev/ttyS5"
+#define RC_SERIAL_SINGLEWIRE
 
 /* PWM input driver. Use FMU AUX5 pins attached to GPIO_EMC_33 GPIO3_IO19 FLEXPWM3_PWMA2 */
 
