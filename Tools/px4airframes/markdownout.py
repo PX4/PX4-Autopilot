@@ -89,7 +89,7 @@ class MarkdownTablesOutput():
                     maintainer = param.GetMaintainer()
                     maintainer_entry = ''
                     if maintainer != '':
-                        maintainer_entry = '<p>Maintainer: %s</p>' % (maintainer)
+                        maintainer_entry = '<p>Maintainer: %s</p>' % (maintainer.replace('<', '&lt;').replace('>', '&gt;'))
                     url = param.GetFieldValue('url')
                     name_anchor='id="%s_%s_%s"' % (group.GetClass(),group.GetName(),name)
                     name_anchor=name_anchor.replace(' ','_').lower()
