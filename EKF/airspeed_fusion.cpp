@@ -158,6 +158,7 @@ void Ekf::fuseAirspeed()
 
 	if (is_fused) {
 		_time_last_arsp_fuse = _time_last_imu;
+		_control_status.flags.fuse_aspd = true;
 	}
 }
 
