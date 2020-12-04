@@ -169,11 +169,9 @@ public:
 	{
 		int ret = 0;
 
-#ifdef __PX4_NUTTX
-		// On NuttX task_create() adds the task name as first argument.
+		// We don't need the task name at this point.
 		argc -= 1;
 		argv += 1;
-#endif
 
 		T *object = T::instantiate(argc, argv);
 		_object.store(object);
