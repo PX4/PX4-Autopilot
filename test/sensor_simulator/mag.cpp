@@ -15,8 +15,7 @@ Mag::~Mag()
 
 void Mag::send(uint64_t time)
 {
-	const magSample mag_sample {_mag_data, time};
-	_ekf->setMagData(mag_sample);
+	_ekf->setMagData(magSample{time, _mag_data});
 }
 
 void Mag::setData(const Vector3f& mag)

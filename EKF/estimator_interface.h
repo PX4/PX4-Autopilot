@@ -323,7 +323,10 @@ protected:
 	bool _gps_drift_updated{false};	// true when _gps_drift_metrics has been updated and is ready for retrieval
 
 	// data buffer instances
-	RingBuffer<imuSample> _imu_buffer;
+	RingBuffer<imuSample> _imu_buffer{12};           // buffer length 12 with default parameters
+	RingBuffer<outputSample> _output_buffer{12};
+	RingBuffer<outputVert> _output_vert_buffer{12};
+
 	RingBuffer<gpsSample> _gps_buffer;
 	RingBuffer<magSample> _mag_buffer;
 	RingBuffer<baroSample> _baro_buffer;
@@ -331,8 +334,6 @@ protected:
 	RingBuffer<airspeedSample> _airspeed_buffer;
 	RingBuffer<flowSample> 	_flow_buffer;
 	RingBuffer<extVisionSample> _ext_vision_buffer;
-	RingBuffer<outputSample> _output_buffer;
-	RingBuffer<outputVert> _output_vert_buffer;
 	RingBuffer<dragSample> _drag_buffer;
 	RingBuffer<auxVelSample> _auxvel_buffer;
 
@@ -374,9 +375,6 @@ private:
 	inline bool checkIfVehicleAtRest(float dt, const imuSample &imu);
 
 	void printBufferAllocationFailed(const char *buffer_name);
-
-	// free buffer memory
-	void unallocate_buffers();
 
 	ImuDownSampler _imu_down_sampler{FILTER_UPDATE_PERIOD_S};
 

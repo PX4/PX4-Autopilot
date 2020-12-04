@@ -59,7 +59,7 @@ public:
 
 protected:
 	SensorRangeFinder _range_finder{};
-	const rangeSample _good_sample{1.f, (uint64_t)2e6, 100}; // {range, time_us, quality}
+	const rangeSample _good_sample{(uint64_t)2e6, 1.f, 100}; // {time_us, range, quality}
 	const float _min_range{0.5f};
 	const float _max_range{10.f};
 

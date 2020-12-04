@@ -512,34 +512,46 @@ void EstimatorInterface::setDragData(const imuSample &imu)
 bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 {
 	// find the maximum time delay the buffers are required to handle
-	const uint16_t max_time_delay_ms = math::max(_params.mag_delay_ms,
-					     math::max(_params.range_delay_ms,
-					       math::max(_params.gps_delay_ms,
-						 math::max(_params.flow_delay_ms,
-						   math::max(_params.ev_delay_ms,
-						     math::max(_params.auxvel_delay_ms,
-						       math::max(_params.min_delay_ms,
-							 math::max(_params.airspeed_delay_ms,
-							 	     _params.baro_delay_ms))))))));
+	float max_time_delay_ms = math::max(_params.baro_delay_ms,
+					math::max(_params.auxvel_delay_ms,
+						_params.airspeed_delay_ms));
+
+	// mag mode
+	if (_params.mag_fusion_type != MAG_FUSE_TYPE_NONE) {
+		max_time_delay_ms = math::max(_params.mag_delay_ms, max_time_delay_ms);
+	}
+
+	// range aid or range height
+	if (_params.range_aid || (_params.vdist_sensor_type == VDIST_SENSOR_RANGE)) {
+		max_time_delay_ms = math::max(_params.range_delay_ms, max_time_delay_ms);
+	}
+
+	if (_params.fusion_mode & MASK_USE_GPS) {
+		max_time_delay_ms = math::max(_params.gps_delay_ms, max_time_delay_ms);
+	}
+
+	if (_params.fusion_mode & MASK_USE_OF) {
+		max_time_delay_ms = math::max(_params.flow_delay_ms, max_time_delay_ms);
+	}
+
+	if (_params.fusion_mode & (MASK_USE_EVPOS | MASK_USE_EVYAW | MASK_USE_EVVEL)) {
+		max_time_delay_ms = math::max(_params.ev_delay_ms, max_time_delay_ms);
+	}
 
 	// calculate the IMU buffer length required to accomodate the maximum delay with some allowance for jitter
-	_imu_buffer_length = (max_time_delay_ms / FILTER_UPDATE_PERIOD_MS) + 1;
+	_imu_buffer_length = ceilf(max_time_delay_ms / FILTER_UPDATE_PERIOD_MS) + 1;
 
 	// set the observation buffer length to handle the minimum time of arrival between observations in combination
 	// with the worst case delay from current time to ekf fusion time
 	// allow for worst case 50% extension of the ekf fusion time horizon delay due to timing jitter
-	const uint16_t ekf_delay_ms = max_time_delay_ms + (int)(ceilf((float)max_time_delay_ms * 0.5f));
-	_obs_buffer_length = (ekf_delay_ms / _params.sensor_interval_min_ms) + 1;
+	const float ekf_delay_ms = max_time_delay_ms * 1.5f;
+	_obs_buffer_length = ceilf(ekf_delay_ms / _params.sensor_interval_min_ms);
 
 	// limit to be no longer than the IMU buffer (we can't process data faster than the EKF prediction rate)
 	_obs_buffer_length = math::min(_obs_buffer_length, _imu_buffer_length);
 
-	if (!(_imu_buffer.allocate(_imu_buffer_length) &&
-	      _output_buffer.allocate(_imu_buffer_length) &&
-	      _output_vert_buffer.allocate(_imu_buffer_length))) {
-
-		printBufferAllocationFailed("");
-		unallocate_buffers();
+	if (!_imu_buffer.allocate(_imu_buffer_length) || !_output_buffer.allocate(_imu_buffer_length) || !_output_vert_buffer.allocate(_imu_buffer_length)) {
+		printBufferAllocationFailed("IMU and output");
 		return false;
 	}
 
@@ -551,22 +563,6 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	_fault_status.value = 0;
 
 	return true;
-}
-
-void EstimatorInterface::unallocate_buffers()
-{
-	_imu_buffer.unallocate();
-	_gps_buffer.unallocate();
-	_mag_buffer.unallocate();
-	_baro_buffer.unallocate();
-	_range_buffer.unallocate();
-	_airspeed_buffer.unallocate();
-	_flow_buffer.unallocate();
-	_ext_vision_buffer.unallocate();
-	_output_buffer.unallocate();
-	_output_vert_buffer.unallocate();
-	_drag_buffer.unallocate();
-	_auxvel_buffer.unallocate();
 }
 
 bool EstimatorInterface::isOnlyActiveSourceOfHorizontalAiding(const bool aiding_flag) const

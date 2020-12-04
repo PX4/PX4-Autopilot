@@ -61,14 +61,13 @@ void Vio::setOrientation(const Quatf& quat)
 
 void Vio::setVelocityFrameToBody()
 {
-	_vio_data.vel_frame = BODY_FRAME_FRD;
+	_vio_data.vel_frame = velocity_frame_t::BODY_FRAME_FRD;
 }
 
 void Vio::setVelocityFrameToLocal()
 {
-	_vio_data.vel_frame = LOCAL_FRAME_FRD;
+	_vio_data.vel_frame = velocity_frame_t::LOCAL_FRAME_FRD;
 }
-
 
 extVisionSample Vio::dataAtRest()
 {
@@ -79,7 +78,7 @@ extVisionSample Vio::dataAtRest()
 	vio_data.posVar = Vector3f{0.1f, 0.1f, 0.1f};
 	vio_data.velCov = matrix::eye<float ,3>() * 0.1f;
 	vio_data.angVar = 0.05f;
-	vio_data.vel_frame = LOCAL_FRAME_FRD;
+	vio_data.vel_frame = velocity_frame_t::LOCAL_FRAME_FRD;
 	return vio_data;
 }
 
