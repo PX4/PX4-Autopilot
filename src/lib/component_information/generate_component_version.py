@@ -2,7 +2,7 @@
 
 import argparse
 import json
-import gzip
+import lzma #to create .xz file
 
 parser = argparse.ArgumentParser(description="""Generate the COMPONENT_VERSION json file""")
 parser.add_argument('filename', metavar='component_version.json', help='JSON output file')
@@ -14,9 +14,9 @@ filename = args.filename
 compress = args.compress
 
 def save_compressed(filename):
-    #create gz compressed version
-    gz_filename=filename+'.gz'
-    with gzip.open(gz_filename, 'wt') as f:
+    #create lzma compressed version
+    xz_filename=filename+'.xz'
+    with lzma.open(xz_filename, 'wt', preset=9) as f:
         with open(filename, 'r') as content_file:
             f.write(content_file.read())
 

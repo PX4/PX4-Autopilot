@@ -69,12 +69,12 @@ public:
 		switch (type) {
 		case COMP_METADATA_TYPE_VERSION:
 			component_info.metadata_uid = component_information::component_version_hash;
-			handled = get_component_information("component_version.json.gz", component_info);
+			handled = get_component_information("component_version.json.xz", component_info);
 			break;
 
 		case COMP_METADATA_TYPE_PARAMETER:
 			component_info.metadata_uid = component_information::params_hash;
-			handled = get_component_information("params.json.gz", component_info);
+			handled = get_component_information("params.json.xz", component_info);
 			break;
 
 		case COMP_METADATA_TYPE_COMMANDS:
