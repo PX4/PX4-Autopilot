@@ -40,7 +40,7 @@ if (${index} EQUAL -1)
 endif()
 
 set(component_version_json ${PX4_BINARY_DIR}/component_version.json)
-add_custom_command(OUTPUT ${component_version_json} ${component_version_json}.gz
+add_custom_command(OUTPUT ${component_version_json} ${component_version_json}.xz
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_component_version.py
 		${component_version_json}
 		--compress
@@ -55,13 +55,13 @@ add_custom_target(component_version_json DEPENDS ${component_version_json})
 set(component_information_header ${CMAKE_CURRENT_BINARY_DIR}/hashes.h)
 add_custom_command(OUTPUT ${component_information_header}
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_hashes.py
-		${PX4_BINARY_DIR}/params.json.gz
+		${PX4_BINARY_DIR}/params.json.xz
 		${component_version_json}
 		--output ${component_information_header}
 	DEPENDS
 		generate_hashes.py
 		parameters_xml
-		${PX4_BINARY_DIR}/params.json.gz
+		${PX4_BINARY_DIR}/params.json.xz
 		${component_version_json}
 	COMMENT "Generating component_information/hashes.h"
 )
