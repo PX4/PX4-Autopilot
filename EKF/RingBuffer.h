@@ -45,14 +45,8 @@ template <typename data_type>
 class RingBuffer
 {
 public:
-	RingBuffer()
-	{
-		if (allocate(1)) {
-			// initialize with one empty sample
-			data_type d = {};
-			push(d);
-		}
-	}
+	explicit RingBuffer(size_t size) { allocate(size); }
+	RingBuffer() { allocate(1); }
 	~RingBuffer() { delete[] _buffer; }
 
 	// no copy, assignment, move, move assignment
@@ -63,12 +57,20 @@ public:
 
 	bool allocate(uint8_t size)
 	{
+		if (valid() && (size == _size)) {
+			// no change
+			return true;
+		}
+
+		if (size == 0) {
+			return false;
+		}
 
 		if (_buffer != nullptr) {
 			delete[] _buffer;
 		}
 
-		_buffer = new data_type[size];
+		_buffer = new data_type[size]{};
 
 		if (_buffer == nullptr) {
 			return false;
@@ -79,26 +81,15 @@ public:
 		_head = 0;
 		_tail = 0;
 
-		// set the time elements to zero so that bad data is not
-		// retrieved from the buffers
-		for (uint8_t index = 0; index < _size; index++) {
-			_buffer[index] = {};
-		}
-
 		_first_write = true;
 
 		return true;
 	}
 
-	void unallocate()
-	{
-		delete[] _buffer;
-		_buffer = nullptr;
-	}
+	bool valid() const { return (_buffer != nullptr) && (_size > 0); }
 
 	void push(const data_type &sample)
 	{
-
 		uint8_t head_new = _head;
 
 		if (!_first_write) {
@@ -121,8 +112,8 @@ public:
 
 	data_type &operator[](const uint8_t index) { return _buffer[index]; }
 
-	const data_type &get_newest() { return _buffer[_head]; }
-	const data_type &get_oldest() { return _buffer[_tail]; }
+	const data_type &get_newest() const { return _buffer[_head]; }
+	const data_type &get_oldest() const { return _buffer[_tail]; }
 
 	uint8_t get_oldest_index() const { return _tail; }
 
@@ -162,7 +153,7 @@ public:
 		return false;
 	}
 
-	int get_total_size() { return sizeof(*this) + sizeof(data_type) * _size; }
+	int get_total_size() const { return sizeof(*this) + sizeof(data_type) * _size; }
 
 private:
 	data_type *_buffer{nullptr};

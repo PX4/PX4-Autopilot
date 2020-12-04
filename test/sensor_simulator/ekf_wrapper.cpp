@@ -17,9 +17,7 @@ void EkfWrapper::setBaroHeight()
 
 bool EkfWrapper::isIntendingBaroHeightFusion() const
 {
-	filter_control_status_u control_status;
-	_ekf->get_control_mode(&control_status.value);
-	return control_status.flags.baro_hgt;
+	return _ekf->control_status_flags().baro_hgt;
 }
 
 void EkfWrapper::setGpsHeight()
@@ -29,9 +27,7 @@ void EkfWrapper::setGpsHeight()
 
 bool EkfWrapper::isIntendingGpsHeightFusion() const
 {
-	filter_control_status_u control_status;
-	_ekf->get_control_mode(&control_status.value);
-	return control_status.flags.gps_hgt;
+	return _ekf->control_status_flags().gps_hgt;
 }
 
 void EkfWrapper::setRangeHeight()
@@ -41,9 +37,7 @@ void EkfWrapper::setRangeHeight()
 
 bool EkfWrapper::isIntendingRangeHeightFusion() const
 {
-	filter_control_status_u control_status;
-	_ekf->get_control_mode(&control_status.value);
-	return control_status.flags.rng_hgt;
+	return _ekf->control_status_flags().rng_hgt;
 }
 
 void EkfWrapper::setVisionHeight()
@@ -53,9 +47,7 @@ void EkfWrapper::setVisionHeight()
 
 bool EkfWrapper::isIntendingVisionHeightFusion() const
 {
-	filter_control_status_u control_status;
-	_ekf->get_control_mode(&control_status.value);
-	return control_status.flags.ev_hgt;
+	return _ekf->control_status_flags().ev_hgt;
 }
 
 void EkfWrapper::enableGpsFusion()

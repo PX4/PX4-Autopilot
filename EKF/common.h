@@ -55,10 +55,13 @@ using matrix::Vector2f;
 using matrix::Vector3f;
 using matrix::wrap_pi;
 
-enum velocity_frame_t {LOCAL_FRAME_FRD, BODY_FRAME_FRD};
+enum class velocity_frame_t : uint8_t {
+	LOCAL_FRAME_FRD,
+	BODY_FRAME_FRD
+};
 
 struct gps_message {
-	uint64_t time_usec;
+	uint64_t time_usec{0};
 	int32_t lat;		///< Latitude in 1E-7 degrees
 	int32_t lon;		///< Longitude in 1E-7 degrees
 	int32_t alt;		///< Altitude in 1E-3 meters (millimeters) above MSL
@@ -76,29 +79,30 @@ struct gps_message {
 };
 
 struct outputSample {
+	uint64_t    time_us{0};	///< timestamp of the measurement (uSec)
 	Quatf  quat_nominal;	///< nominal quaternion describing vehicle attitude
 	Vector3f    vel;	///< NED velocity estimate in earth frame (m/sec)
 	Vector3f    pos;	///< NED position estimate in earth frame (m/sec)
-	uint64_t    time_us;	///< timestamp of the measurement (uSec)
 };
 
 struct outputVert {
+	uint64_t    time_us{0};		///< timestamp of the measurement (uSec)
 	float	    vert_vel;		///< Vertical velocity calculated using alternative algorithm (m/sec)
 	float	    vert_vel_integ;	///< Integral of vertical velocity (m)
 	float	    dt;			///< delta time (sec)
-	uint64_t    time_us;		///< timestamp of the measurement (uSec)
 };
 
 struct imuSample {
+	uint64_t    time_us{0};		///< timestamp of the measurement (uSec)
 	Vector3f    delta_ang;		///< delta angle in body frame (integrated gyro measurements) (rad)
 	Vector3f    delta_vel;		///< delta velocity in body frame (integrated accelerometer measurements) (m/sec)
 	float       delta_ang_dt;	///< delta angle integration period (sec)
 	float       delta_vel_dt;	///< delta velocity integration period (sec)
-	uint64_t    time_us;		///< timestamp of the measurement (uSec)
 	bool        delta_vel_clipping[3]{}; ///< true (per axis) if this sample contained any accelerometer clipping
 };
 
 struct gpsSample {
+	uint64_t    time_us{0};	///< timestamp of the measurement (uSec)
 	Vector2f    pos;	///< NE earth frame gps horizontal position measurement (m)
 	float       hgt;	///< gps height measurement (m)
 	Vector3f    vel;	///< NED earth frame gps velocity measurement (m/sec)
@@ -106,59 +110,58 @@ struct gpsSample {
 	float	    hacc;	///< 1-std horizontal position error (m)
 	float	    vacc;	///< 1-std vertical position error (m)
 	float       sacc;	///< 1-std speed error (m/sec)
-	uint64_t    time_us;	///< timestamp of the measurement (uSec)
 };
 
 struct magSample {
+	uint64_t    time_us{0};	///< timestamp of the measurement (uSec)
 	Vector3f    mag;	///< NED magnetometer body frame measurements (Gauss)
-	uint64_t    time_us;	///< timestamp of the measurement (uSec)
 };
 
 struct baroSample {
+	uint64_t    time_us{0};	///< timestamp of the measurement (uSec)
 	float       hgt;	///< pressure altitude above sea level (m)
-	uint64_t    time_us;	///< timestamp of the measurement (uSec)
 };
 
 struct rangeSample {
+	uint64_t    time_us{0};	///< timestamp of the measurement (uSec)
 	float       rng;	    ///< range (distance to ground) measurement (m)
-	uint64_t    time_us;	///< timestamp of the measurement (uSec)
 	int8_t	    quality;    ///< Signal quality in percent (0...100%), where 0 = invalid signal, 100 = perfect signal, and -1 = unknown signal quality.
 };
 
 struct airspeedSample {
+	uint64_t    time_us{0};		///< timestamp of the measurement (uSec)
 	float       true_airspeed;	///< true airspeed measurement (m/sec)
 	float       eas2tas;		///< equivalent to true airspeed factor
-	uint64_t    time_us;		///< timestamp of the measurement (uSec)
 };
 
 struct flowSample {
-	uint8_t  quality;	///< quality indicator between 0 and 255
+	uint64_t time_us{0};	///< timestamp of the integration period leading edge (uSec)
 	Vector2f flow_xy_rad;	///< measured delta angle of the image about the X and Y body axes (rad), RH rotation is positive
 	Vector3f gyro_xyz;	///< measured delta angle of the inertial frame about the body axes obtained from rate gyro measurements (rad), RH rotation is positive
 	float    dt;		///< amount of integration time (sec)
-	uint64_t time_us;	///< timestamp of the integration period leading edge (uSec)
+	uint8_t  quality;	///< quality indicator between 0 and 255
 };
 
 struct extVisionSample {
+	uint64_t time_us{0};	///< timestamp of the measurement (uSec)
 	Vector3f pos;	///< XYZ position in external vision's local reference frame (m) - Z must be aligned with down axis
 	Vector3f vel;	///< FRD velocity in reference frame defined in vel_frame variable (m/sec) - Z must be aligned with down axis
 	Quatf quat;		///< quaternion defining rotation from body to earth frame
 	Vector3f posVar;	///< XYZ position variances (m**2)
 	Matrix3f velCov;	///< XYZ velocity covariances ((m/sec)**2)
 	float angVar;		///< angular heading variance (rad**2)
-	velocity_frame_t vel_frame = BODY_FRAME_FRD;
-	uint64_t time_us;	///< timestamp of the measurement (uSec)
+	velocity_frame_t vel_frame = velocity_frame_t::BODY_FRAME_FRD;
 };
 
 struct dragSample {
+	uint64_t time_us{0};	///< timestamp of the measurement (uSec)
 	Vector2f accelXY;	///< measured specific force along the X and Y body axes (m/sec**2)
-	uint64_t time_us;	///< timestamp of the measurement (uSec)
 };
 
 struct auxVelSample {
+	uint64_t time_us{0};	///< timestamp of the measurement (uSec)
 	Vector3f vel;		///< measured NE velocity relative to the local origin (m/sec)
 	Vector3f velVar;	///< estimated error variance of the NE velocity (m/sec)**2
-	uint64_t time_us;	///< timestamp of the measurement (uSec)
 };
 
 // Integer definitions for vdist_sensor_type
@@ -218,15 +221,14 @@ struct parameters {
 	int32_t sensor_interval_min_ms{20};		///< minimum time of arrival difference between non IMU sensor updates. Sets the size of the observation buffers. (mSec)
 
 	// measurement time delays
-	float min_delay_ms{0.0f};		///< Maximum time delay of any sensor used to increase buffer length to handle large timing jitter (mSec)
 	float mag_delay_ms{0.0f};		///< magnetometer measurement delay relative to the IMU (mSec)
 	float baro_delay_ms{0.0f};		///< barometer height measurement delay relative to the IMU (mSec)
 	float gps_delay_ms{110.0f};		///< GPS measurement delay relative to the IMU (mSec)
 	float airspeed_delay_ms{100.0f};	///< airspeed measurement delay relative to the IMU (mSec)
 	float flow_delay_ms{5.0f};		///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
 	float range_delay_ms{5.0f};		///< range finder measurement delay relative to the IMU (mSec)
-	float ev_delay_ms{100.0f};		///< off-board vision measurement delay relative to the IMU (mSec)
-	float auxvel_delay_ms{0.0f};		///< auxiliary velocity measurement delay relative to the IMU (mSec)
+	float ev_delay_ms{175.0f};		///< off-board vision measurement delay relative to the IMU (mSec)
+	float auxvel_delay_ms{5.0f};		///< auxiliary velocity measurement delay relative to the IMU (mSec)
 
 	// input noise
 	float gyro_noise{1.5e-2f};		///< IMU angular rate noise used for covariance prediction (rad/sec)

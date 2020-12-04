@@ -62,7 +62,6 @@ class EkfRingBufferTest : public ::testing::Test {
 
 	void TearDown() override
 	{
-		_buffer->unallocate();
 		delete _buffer;
 	}
 };
