@@ -158,9 +158,6 @@ public:
 
 	int getNumberOfActiveHorizontalAidingSources() const;
 
-	// return true if the local position estimate is valid
-	bool local_position_is_valid() const { return local_position_is_valid(); }
-
 	// return true if the EKF is dead reckoning the position using inertial data only
 	bool inertial_dead_reckoning() const { return _is_dead_reckoning; }
 
