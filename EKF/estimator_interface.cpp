@@ -598,8 +598,6 @@ void EstimatorInterface::printBufferAllocationFailed(const char *buffer_name)
 
 void EstimatorInterface::print_status()
 {
-	ECL_INFO("local position valid: %s", local_position_is_valid() ? "yes" : "no");
-
 	ECL_INFO("imu buffer: %d (%d Bytes)", _imu_buffer.get_length(), _imu_buffer.get_total_size());
 	ECL_INFO("gps buffer: %d (%d Bytes)", _gps_buffer.get_length(), _gps_buffer.get_total_size());
 	ECL_INFO("mag buffer: %d (%d Bytes)", _mag_buffer.get_length(), _mag_buffer.get_total_size());
