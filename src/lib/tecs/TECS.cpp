@@ -116,9 +116,9 @@ void TECS::_update_speed_states(float equivalent_airspeed_setpoint, float equiva
 	_TAS_max   = _equivalent_airspeed_max * EAS2TAS;
 	_TAS_min   = _equivalent_airspeed_min * EAS2TAS;
 
-	// If airspeed measurements are not being used, fix the EAS estimate to halfway between min and max limits
+	// If airspeed measurements are not being used, fix the airspeed estimate to the nominal cruise airspeed
 	if (!PX4_ISFINITE(equivalent_airspeed) || !airspeed_sensor_enabled()) {
-		_EAS = 0.5f * (_equivalent_airspeed_min + _equivalent_airspeed_max);
+		_EAS = _equivalent_airspeed_cruise;
 
 	} else {
 		_EAS = equivalent_airspeed;
