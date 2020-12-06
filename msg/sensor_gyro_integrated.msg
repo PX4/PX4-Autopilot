@@ -5,7 +5,7 @@ uint32 device_id          # unique device ID for the sensor that does not change
 
 uint64 error_count
 
-float32[3] delta_angle    # delta angle in the NED board axis in rad/s over the integration time frame (dt)
+float32[3] delta_angle    # delta angle in the FRD body frame XYZ-axis in rad/s over the integration time frame (dt)
 uint16 dt                 # integration time (microseconds)
 uint8 samples             # number of samples integrated
 
