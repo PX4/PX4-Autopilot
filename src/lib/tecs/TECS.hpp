@@ -114,6 +114,7 @@ public:
 
 	void set_equivalent_airspeed_max(float airspeed) { _equivalent_airspeed_max = airspeed; }
 	void set_equivalent_airspeed_min(float airspeed) { _equivalent_airspeed_min = airspeed; }
+	void set_equivalent_airspeed_cruise(float airspeed) { _equivalent_airspeed_cruise = airspeed; }
 
 	void set_pitch_damping(float damping) { _pitch_damping_gain = damping; }
 	void set_vertical_accel_limit(float limit) { _vert_accel_limit = limit; }
@@ -223,6 +224,7 @@ private:
 	float _airspeed_error_gain{0.1f};				///< airspeed error inverse time constant [1/s]
 	float _equivalent_airspeed_min{3.0f};				///< equivalent airspeed demand lower limit (m/sec)
 	float _equivalent_airspeed_max{30.0f};				///< equivalent airspeed demand upper limit (m/sec)
+	float _equivalent_airspeed_cruise{15.0f};			///< equivalent cruise airspeed for airspeed less mode (m/sec)
 	float _throttle_slewrate{0.0f};					///< throttle demand slew rate limit (1/sec)
 	float _STE_rate_time_const{0.1f};				///< filter time constant for specific total energy rate (damping path) (s)
 	float _speed_derivative_time_const{0.01f};			///< speed derivative filter time constant (s)
