@@ -108,7 +108,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 			      char *const argv[])
 {
 	int argc = 0;
-	unsigned int len = 0;
+	unsigned int len = strlen(name) + 1;
 	struct sched_param param = {};
 	char *p = (char *)argv;
 
@@ -124,7 +124,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		len += strlen(p) + 1;
 	}
 
-	unsigned long structsize = sizeof(pthdata_t) + (argc + 1) * sizeof(char *);
+	unsigned long structsize = sizeof(pthdata_t) + (argc + 2) * sizeof(char *);
 
 	// not safe to pass stack data to the thread creation
 	pthdata_t *taskdata = (pthdata_t *)malloc(structsize + len);
@@ -134,22 +134,30 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	}
 
 	memset(taskdata, 0, structsize + len);
-	unsigned long offset = ((unsigned long)taskdata) + structsize;
 
 	strncpy(taskdata->name, name, 16);
-	taskdata->name[15] = 0;
+	taskdata->name[15] = '\0';
 	taskdata->entry = entry;
-	taskdata->argc = argc;
+	taskdata->argc = argc + 1;
+
+	char *offset = (char *)taskdata + structsize;
+
+	// We match the NuttX task_spawn implementation which copies
+	// the name into argv[0] in order to provide a consistent API
+	// to all tasks/modules.
+	taskdata->argv[0] = offset;
+	strcpy(offset, name);
+	offset += strlen(name) + 1;
 
 	for (int i = 0; i < argc; ++i) {
 		PX4_DEBUG("arg %d %s\n", i, argv[i]);
-		taskdata->argv[i] = (char *)offset;
-		strcpy((char *)offset, argv[i]);
+		taskdata->argv[i + 1] = offset;
+		strcpy(offset, argv[i]);
 		offset += strlen(argv[i]) + 1;
 	}
 
 	// Must add NULL at end of argv
-	taskdata->argv[argc] = (char *)nullptr;
+	taskdata->argv[argc + 1] = (char *)nullptr;
 
 	PX4_DEBUG("starting task %s", name);
 
