@@ -3,19 +3,11 @@ uint64 timestamp_sample
 
 uint32 device_id          # unique device ID for the sensor that does not change between power cycles
 
-<<<<<<< HEAD
-float32 x                 # magnetic field in the NED X board axis in Gauss
-float32 y                 # magnetic field in the NED Y board axis in Gauss
-float32 z                 # magnetic field in the NED Z board axis in Gauss
+float32 x                 # magnetic field in the FRD body frame X-axis in Gauss
+float32 y                 # magnetic field in the FRD body frame Y-axis in Gauss
+float32 z                 # magnetic field in the FRD body frame Z-axis in Gauss
 
 float32 temperature       # temperature in degrees celsius
-=======
-float32 x		# magnetic field in the FRD body frame X-axis in Gauss
-float32 y		# magnetic field in the FRD body frame Y-axis in Gauss
-float32 z		# magnetic field in the FRD body frame Z-axis in Gauss
-
-float32 temperature	# temperature in degrees Celsius
->>>>>>> ebdcde2ca02aa89933daecd7a1d0cbb87a33dc00
 
 uint32 error_count
 

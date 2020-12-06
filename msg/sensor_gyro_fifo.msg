@@ -8,14 +8,8 @@ float32 scale
 
 uint8 samples             # number of valid samples
 
-<<<<<<< HEAD
-int16[32] x               # angular velocity in the NED X board axis in rad/s
-int16[32] y               # angular velocity in the NED Y board axis in rad/s
-int16[32] z               # angular velocity in the NED Z board axis in rad/s
-
-uint8 rotation            # Direction the sensor faces (see Rotation enum)
-=======
 int16[32] x               # angular velocity in the FRD body frame X-axis in rad/s
 int16[32] y               # angular velocity in the FRD body frame Y-axis in rad/s
 int16[32] z               # angular velocity in the FRD body frame Z-axis in rad/s
->>>>>>> ebdcde2ca02aa89933daecd7a1d0cbb87a33dc00
+
+uint8 rotation            # Direction the sensor faces (see Rotation enum)
