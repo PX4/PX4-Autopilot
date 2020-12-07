@@ -73,7 +73,7 @@ private:
 	void PublishVehicleAttitude(bool reset = false);
 	void PublishVehicleLocalPosition(bool reset = false);
 	void PublishVehicleGlobalPosition(bool reset = false);
-	void SelectInstance(uint8_t instance);
+	bool SelectInstance(uint8_t instance);
 
 	// Update the error scores for all available instances
 	bool UpdateErrorScores();
@@ -100,8 +100,8 @@ private:
 
 		hrt_abstime time_last_selected{0};
 
-		float combined_test_ratio{0.f};
-		float relative_test_ratio{0.f};
+		float combined_test_ratio{NAN};
+		float relative_test_ratio{NAN};
 
 		bool healthy{false};
 
