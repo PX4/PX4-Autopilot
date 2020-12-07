@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# @name ThunderFly stratospheric balloon TF-B1
+# @name ThunderFly balloon TF-B1
 #
 # @type Balloon
 # @class Balloon
@@ -14,12 +14,12 @@
 # @board bitcraze_crazyflie exclude
 #
 
-. ${R}etc/init.d/rc.fw_defaults
+. ${R}etc/init.d/rc.balloon_defaults
 
 if [ $AUTOCNF = yes ]
 then
-	param set BAT_CAPACITY 2500
-	param set BAT_N_CELLS 2
+	param set COM_PREARM_MODE 2  # always in prearm state
+	param set CBRK_IO_SAFETY 22027
 
 	param set SENS_BOARD_ROT 8
   param set MAV_TYPE 8  # MAV_TYPE_FREE_BALLOON
@@ -27,5 +27,5 @@ then
 fi
 
 
-set MIXER TF-AutoG2
+set MIXER IO_pass
 set MIXER_AUX pass
