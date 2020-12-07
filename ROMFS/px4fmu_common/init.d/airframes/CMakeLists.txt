@@ -153,6 +153,9 @@ px4_add_romfs_files(
 	17002_TF-AutoG2
 	17003_TF-G2
 
+  # [18000, 18999] Air _global_position_sub
+  18001_TF-B1
+
 	24001_dodeca_cox
 
 	50000_generic_ground_vehicle

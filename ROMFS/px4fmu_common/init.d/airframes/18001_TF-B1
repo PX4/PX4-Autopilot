@@ -1,0 +1,31 @@
+#!/bin/sh
+#
+# @name ThunderFly stratospheric balloon TF-B1
+#
+# @type Balloon
+# @class Balloon
+#
+#
+# @url https://github.com/ThunderFly-aerospace/TF-B1/
+# @maintainer ThunderFly s.r.o.
+#
+# @board px4_fmu-v2 exclude
+# @board intel_aerofc-v1 exclude
+# @board bitcraze_crazyflie exclude
+#
+
+. ${R}etc/init.d/rc.fw_defaults
+
+if [ $AUTOCNF = yes ]
+then
+	param set BAT_CAPACITY 2500
+	param set BAT_N_CELLS 2
+
+	param set SENS_BOARD_ROT 8
+  param set MAV_TYPE 8  # MAV_TYPE_FREE_BALLOON
+
+fi
+
+
+set MIXER TF-AutoG2
+set MIXER_AUX pass
