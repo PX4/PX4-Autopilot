@@ -113,7 +113,7 @@ void Battery::reset()
 	// TODO: check if it is sane to reset warning to NONE
 	_battery_status.warning = battery_status_s::BATTERY_WARNING_NONE;
 	_battery_status.connected = false;
-	_battery_status.capacity = _params.capacity;
+	_battery_status.capacity = _params.capacity > 0.0f ? (uint16_t)_params.capacity : 0;
 	_battery_status.temperature = NAN;
 	_battery_status.id = (uint8_t) _index;
 }
