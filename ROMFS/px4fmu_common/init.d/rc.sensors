@@ -102,6 +102,12 @@ then
 	paw3902 -S start
 fi
 
+# vl53l1x i2c distance sensor
+if param greater -s SENS_EN_VL53L1X 0
+then
+	vl53l1x start -X
+fi
+
 # probe for optional external I2C devices
 if param compare SENS_EXT_I2C_PRB 1
 then
