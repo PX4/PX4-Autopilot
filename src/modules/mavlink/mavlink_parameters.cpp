@@ -44,6 +44,7 @@
 
 #include "mavlink_parameters.h"
 #include "mavlink_main.h"
+#include <lib/systemlib/mavlink_log.h>
 
 MavlinkParametersManager::MavlinkParametersManager(Mavlink *mavlink) :
 	_mavlink(mavlink)
@@ -245,6 +246,12 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 
 				/* Copy values from msg to uorb using the parameter_rc_channel_index as index */
 				size_t i = map_rc.parameter_rc_channel_index;
+
+				if (i >= sizeof(_rc_param_map.param_index) / sizeof(_rc_param_map.param_index[0])) {
+					mavlink_log_warning(_mavlink->get_mavlink_log_pub(), "parameter_rc_channel_index out of bounds");
+					break;
+				}
+
 				_rc_param_map.param_index[i] = map_rc.param_index;
 				strncpy(&(_rc_param_map.param_id[i * (rc_parameter_map_s::PARAM_ID_LEN + 1)]), map_rc.param_id,
 					MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
