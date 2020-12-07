@@ -28,7 +28,15 @@ We have tested the firmware only with Pixracer. If you have flash memory issues 
 
 More detailed guide will be incrementally added here. Please reach us directly or submit an issue on this repository if you have specific questions, concerns, feedback or bug reports.
 
-The files for the Gazebo simulation model and detailed guide on compiling for SITL will be added here by the end of November 2020.
+To simulate using gazebo, you need to add the model and the world of your fully-actuated UAV to the firmware. Optionally you can modify the model files for our hexarotor (with all arms tilted for 30 degrees). 
+
+To enable simulation for our multirotor, copy the contents of the `world` and `model` folders from `sitl_gazebo_fully_actuated` to the `world` and `model` folders in `Tools/sitl_gazebo`. Now you can run the SITL simulation of our UAV using the following command:
+
+```
+make px4_sitl gazebo_hexa_x_tilt
+```
+
+If you get `gazebo_opticalflow_plugin.h:43:18: error: ‘TRUE’ was not declared in this scope`, simply replace `TRUE` with `true` in `Tools/sitl_gazebo/include/gazebo_opticalflow_plugin.h` line 43.
 
 ### Disclaimer
 
