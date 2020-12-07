@@ -153,11 +153,11 @@ static constexpr char sensor_name[] {"accel"};
 static constexpr unsigned MAX_ACCEL_SENS = 4;
 
 /// Data passed to calibration worker routine
-typedef struct  {
+struct accel_worker_data_s {
 	orb_advert_t	*mavlink_log_pub{nullptr};
 	unsigned	done_count{0};
 	float		accel_ref[MAX_ACCEL_SENS][detect_orientation_side_count][3] {};
-} accel_worker_data_t;
+};
 
 // Read specified number of accelerometer samples, calculate average and dispersion.
 static calibrate_return read_accelerometer_avg(float (&accel_avg)[MAX_ACCEL_SENS][detect_orientation_side_count][3],
@@ -245,7 +245,7 @@ static calibrate_return read_accelerometer_avg(float (&accel_avg)[MAX_ACCEL_SENS
 static calibrate_return accel_calibration_worker(detect_orientation_return orientation, void *data)
 {
 	static constexpr unsigned samples_num = 750;
-	accel_worker_data_t *worker_data = (accel_worker_data_t *)(data);
+	accel_worker_data_s *worker_data = (accel_worker_data_s *)(data);
 
 	calibration_log_info(worker_data->mavlink_log_pub, "[cal] Hold still, measuring %s side",
 			     detect_orientation_str(orientation));
@@ -355,7 +355,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	}
 
 	/* measure and calculate offsets & scales */
-	accel_worker_data_t worker_data{};
+	accel_worker_data_s worker_data{};
 	worker_data.mavlink_log_pub = mavlink_log_pub;
 	bool data_collected[detect_orientation_side_count] {};
 
