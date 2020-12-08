@@ -215,12 +215,12 @@ void EKF2::update_mag_bias(Param &mag_bias_param, int axis_index)
 {
 	// calculate weighting using ratio of variances and update stored bias values
 	const float weighting = constrain(_param_ekf2_magb_vref.get() / (_param_ekf2_magb_vref.get() +
-					  _last_valid_variance[axis_index]), 0.0f, _param_ekf2_magb_k.get());
+					  _last_valid_variance(axis_index)), 0.0f, _param_ekf2_magb_k.get());
 	const float mag_bias_saved = mag_bias_param.get();
 
-	_last_valid_mag_cal[axis_index] = weighting * _last_valid_mag_cal[axis_index] + mag_bias_saved;
+	_last_valid_mag_cal(axis_index) = weighting * _last_valid_mag_cal(axis_index) + mag_bias_saved;
 
-	mag_bias_param.set(_last_valid_mag_cal[axis_index]);
+	mag_bias_param.set(_last_valid_mag_cal(axis_index));
 
 	// save new parameters unless in multi-instance mode
 	if (!_multi_mode) {
@@ -246,7 +246,7 @@ void EKF2::Run()
 		}
 
 		if (!_callback_registered) {
-			PX4_WARN("%d failed to register callback, retrying", _instance);
+			PX4_WARN("%d - failed to register callback, retrying", _instance);
 			ScheduleDelayed(1_s);
 			return;
 		}
@@ -285,8 +285,22 @@ void EKF2::Run()
 
 		imu_dt = imu.delta_angle_dt;
 
-		_device_id_accel = imu.accel_device_id;
-		_device_id_gyro = imu.gyro_device_id;
+		if ((_device_id_accel == 0) || (_device_id_gyro == 0)) {
+			_device_id_accel = imu.accel_device_id;
+			_device_id_gyro = imu.gyro_device_id;
+			_imu_calibration_count = imu.calibration_count;
+
+		} else if ((imu.calibration_count > _imu_calibration_count)
+			   || (imu.accel_device_id != _device_id_accel)
+			   || (imu.gyro_device_id != _device_id_gyro)) {
+
+			PX4_INFO("%d - resetting IMU bias", _instance);
+			_device_id_accel = imu.accel_device_id;
+			_device_id_gyro = imu.gyro_device_id;
+
+			_ekf.resetImuBias();
+			_imu_calibration_count = imu.calibration_count;
+		}
 
 	} else {
 		sensor_combined_s sensor_combined;
@@ -311,12 +325,12 @@ void EKF2::Run()
 
 			if (_sensor_selection_sub.copy(&sensor_selection)) {
 				if (_device_id_accel != sensor_selection.accel_device_id) {
-					_imu_bias_reset_request = true;
+					_ekf.resetAccelBias();
 					_device_id_accel = sensor_selection.accel_device_id;
 				}
 
 				if (_device_id_gyro != sensor_selection.gyro_device_id) {
-					_imu_bias_reset_request = true;
+					_ekf.resetGyroBias();
 					_device_id_gyro = sensor_selection.gyro_device_id;
 				}
 			}
@@ -325,11 +339,6 @@ void EKF2::Run()
 
 	if (imu_updated) {
 		const hrt_abstime now = imu_sample_new.time_us;
-
-		// attempt reset until successful
-		if (_imu_bias_reset_request) {
-			_imu_bias_reset_request = !_ekf.reset_imu_bias();
-		}
 
 		// push imu data into estimator
 		_ekf.setIMUData(imu_sample_new);
@@ -875,55 +884,36 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 	const Vector3f gyro_bias{_ekf.getGyroBias()};
 	const Vector3f accel_bias{_ekf.getAccelBias()};
 
-	float states[24];
-	_ekf.getStateAtFusionHorizonAsVector().copyTo(states);
-	const Vector3f mag_bias {
-		states[19] + _param_ekf2_magbias_x.get(),
-		states[20] + _param_ekf2_magbias_y.get(),
-		states[21] + _param_ekf2_magbias_z.get(),
-	};
+	// the saved mag bias EKF2_MAGBIAS_{X,Y,Z} is subtracted from sensor mag before going into ecl/EKF
+	const Vector3f mag_cal{_param_ekf2_magbias_x.get(), _param_ekf2_magbias_y.get(), _param_ekf2_magbias_z.get()};
+	const Vector3f mag_bias{_ekf.getMagBias() + mag_cal};
 
 	// only publish on change
 	if ((gyro_bias - _last_gyro_bias).longerThan(0.001f)
 	    || (accel_bias - _last_accel_bias).longerThan(0.001f)
 	    || (mag_bias - _last_mag_bias).longerThan(0.001f)) {
 
-		float covariances[24];
-		_ekf.covariances_diagonal().copyTo(covariances);
-
 		// take device ids from sensor_selection_s if not using specific vehicle_imu_s
 		if (_device_id_gyro != 0) {
 			bias.gyro_device_id = _device_id_gyro;
-
 			gyro_bias.copyTo(bias.gyro_bias);
-
-			bias.gyro_bias_variance[0] = covariances[10];
-			bias.gyro_bias_variance[1] = covariances[11];
-			bias.gyro_bias_variance[2] = covariances[12];
+			_ekf.getGyroBiasVariance().copyTo(bias.gyro_bias_variance);
 
 			_last_gyro_bias = gyro_bias;
 		}
 
 		if ((_device_id_accel != 0) && !(_param_ekf2_aid_mask.get() & MASK_INHIBIT_ACC_BIAS)) {
 			bias.accel_device_id = _device_id_accel;
-
 			accel_bias.copyTo(bias.accel_bias);
-
-			bias.accel_bias_variance[0] = covariances[13];
-			bias.accel_bias_variance[1] = covariances[14];
-			bias.accel_bias_variance[2] = covariances[15];
+			_ekf.getAccelBiasVariance().copyTo(bias.accel_bias_variance);
 
 			_last_accel_bias = accel_bias;
 		}
 
 		if (_device_id_mag != 0) {
 			bias.mag_device_id = _device_id_mag;
-
 			mag_bias.copyTo(bias.mag_bias);
-
-			bias.mag_bias_variance[0] = covariances[19];
-			bias.mag_bias_variance[1] = covariances[20];
-			bias.mag_bias_variance[2] = covariances[21];
+			_ekf.getMagBiasVariance().copyTo(bias.mag_bias_variance);
 
 			_last_mag_bias = mag_bias;
 		}
@@ -1335,21 +1325,15 @@ void EKF2::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
 				_param_ekf2_magbias_y.reset();
 				_param_ekf2_magbias_z.reset();
 				_param_ekf2_magbias_id.commit();
-				PX4_INFO("Mag sensor ID changed to %i", _param_ekf2_magbias_id.get());
+				PX4_INFO("%d - mag sensor ID changed to %i", _instance, _param_ekf2_magbias_id.get());
 			}
 
 			_invalid_mag_id_count = 0;
 		}
 
-		magSample mag_sample {
-			.time_us = magnetometer.timestamp_sample,
-			.mag = Vector3f{
-				magnetometer.magnetometer_ga[0] - _param_ekf2_magbias_x.get(),
-				magnetometer.magnetometer_ga[1] - _param_ekf2_magbias_y.get(),
-				magnetometer.magnetometer_ga[2] - _param_ekf2_magbias_z.get()
-			},
-		};
-		_ekf.setMagData(mag_sample);
+		const Vector3f mag_cal_bias{_param_ekf2_magbias_x.get(), _param_ekf2_magbias_y.get(), _param_ekf2_magbias_z.get()};
+
+		_ekf.setMagData(magSample{magnetometer.timestamp_sample, Vector3f{magnetometer.magnetometer_ga} - mag_cal_bias});
 
 		ekf2_timestamps.vehicle_magnetometer_timestamp_rel = (int16_t)((int64_t)magnetometer.timestamp / 100 -
 				(int64_t)ekf2_timestamps.timestamp / 100);
@@ -1369,7 +1353,7 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 				// only use the first instace which has the correct orientation
 				if ((distance_sensor.timestamp != 0) && (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING)) {
 					if (_distance_sensor_sub.ChangeInstance(i)) {
-						PX4_INFO("Found range finder with instance %d", i);
+						PX4_INFO("%d - found range finder with instance %d", _instance, i);
 						_distance_sensor_selected = true;
 					}
 				}
@@ -1400,17 +1384,12 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 
 void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 {
-	/* Check and save learned magnetometer bias estimates */
-	filter_control_status_u control_status;
-	_ekf.get_control_mode(&control_status.value);
-
 	fault_status_u fault_status;
 	_ekf.get_filter_fault_status(&fault_status.value);
 
 	// Check if conditions are OK for learning of magnetometer bias values
-	if (control_status.flags.in_air && _armed &&
-	    !fault_status.value && // there are no filter faults
-	    control_status.flags.mag_3D) { // the EKF is operating in the correct mode
+	// the EKF is operating in the correct mode and there are no filter faults
+	if (_ekf.control_status_flags().in_air && _ekf.control_status_flags().mag_3D && (fault_status.value == 0)) {
 
 		if (_last_magcal_us == 0) {
 			_last_magcal_us = timestamp;
@@ -1428,29 +1407,12 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 			const float min_var_allowed = 0.01f * _param_ekf2_magb_vref.get();
 
 			// Declare all bias estimates invalid if any variances are out of range
-			bool all_estimates_invalid = false;
-
-			float covariances[24];
-			_ekf.covariances_diagonal().copyTo(covariances);
-
-			for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
-				if (covariances[axis_index + 19] < min_var_allowed
-				    || covariances[axis_index + 19] > max_var_allowed) {
-					all_estimates_invalid = true;
-				}
-			}
+			const Vector3f mag_bias_variance{_ekf.getMagBiasVariance()};
 
 			// Store valid estimates and their associated variances
-			if (!all_estimates_invalid) {
-
-				float states[24];
-				_ekf.getStateAtFusionHorizonAsVector().copyTo(states);
-
-				for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
-					_last_valid_mag_cal[axis_index] = states[axis_index + 19];
-					_last_valid_variance[axis_index] = covariances[axis_index + 19];
-				}
-
+			if ((mag_bias_variance.min() >= min_var_allowed) && (mag_bias_variance.max() <= max_var_allowed)) {
+				_last_valid_mag_cal = _ekf.getMagBias();
+				_last_valid_variance = mag_bias_variance;
 				_valid_cal_available = true;
 			}
 		}
@@ -1608,7 +1570,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 								_ekf2_selector.load()->ScheduleNow();
 
 							} else {
-								PX4_ERR("instance %d alloc failed", instance);
+								PX4_ERR("%d - alloc failed", instance);
 								px4_usleep(1000000);
 								break;
 							}
@@ -1721,9 +1683,8 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 		if (argc > 2) {
 			int instance = atoi(argv[2]);
 
-			PX4_INFO("stopping %d", instance);
-
-			if (instance > 0 && instance < EKF2_MAX_INSTANCES) {
+			if (instance >= 0 && instance < EKF2_MAX_INSTANCES) {
+				PX4_INFO("stopping instance %d", instance);
 				EKF2 *inst = _objects[instance].load();
 
 				if (inst) {
@@ -1732,6 +1693,8 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 					delete inst;
 					_objects[instance].store(nullptr);
 				}
+			} else {
+				PX4_ERR("invalid instance %d", instance);
 			}
 
 		} else {
