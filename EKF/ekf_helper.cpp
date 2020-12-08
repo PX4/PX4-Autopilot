@@ -845,26 +845,49 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 	}
 }
 
-bool Ekf::reset_imu_bias()
+void Ekf::resetImuBias()
 {
-	if (_imu_sample_delayed.time_us - _last_imu_bias_cov_reset_us < (uint64_t)10e6) {
-		return false;
-	}
+	resetGyroBias();
+	resetAccelBias();
+}
 
+void Ekf::resetGyroBias()
+{
 	// Zero the delta angle and delta velocity bias states
 	_state.delta_ang_bias.zero();
-	_state.delta_vel_bias.zero();
 
 	// Zero the corresponding covariances and set
 	// variances to the values use for initial alignment
 	P.uncorrelateCovarianceSetVariance<3>(10, sq(_params.switch_on_gyro_bias * FILTER_UPDATE_PERIOD_S));
+}
+
+void Ekf::resetAccelBias()
+{
+	// Zero the delta angle and delta velocity bias states
+	_state.delta_vel_bias.zero();
+
+	// Zero the corresponding covariances and set
+	// variances to the values use for initial alignment
 	P.uncorrelateCovarianceSetVariance<3>(13, sq(_params.switch_on_accel_bias * FILTER_UPDATE_PERIOD_S));
-	_last_imu_bias_cov_reset_us = _imu_sample_delayed.time_us;
 
 	// Set previous frame values
 	_prev_dvel_bias_var = P.slice<3, 3>(13, 13).diag();
+}
 
-	return true;
+void Ekf::resetMagBias()
+{
+	// Zero the magnetometer bias states
+	_state.mag_B.zero();
+
+	// Zero the corresponding covariances and set
+	// variances to the values use for initial alignment
+	P.uncorrelateCovarianceSetVariance<3>(19, sq(_params.mag_noise));
+
+	// reset any saved covariance data for re-use when auto-switching between heading and 3-axis fusion
+	// _saved_mag_bf_variance[0] is the the D earth axis
+	_saved_mag_bf_variance[1] = 0;
+	_saved_mag_bf_variance[2] = 0;
+	_saved_mag_bf_variance[3] = 0;
 }
 
 // get EKF innovation consistency check status information comprising of:

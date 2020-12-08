@@ -165,12 +165,13 @@ public:
 	// get the vehicle control limits required by the estimator to keep within sensor limitations
 	void get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, float *hagl_max) const;
 
-	/*
-	Reset all IMU bias states and covariances to initial alignment values.
-	Use when the IMU sensor has changed.
-	Returns true if reset performed, false if rejected due to less than 10 seconds lapsed since last reset.
-	*/
-	bool reset_imu_bias();
+	// Reset all IMU bias states and covariances to initial alignment values.
+	void resetImuBias();
+	void resetGyroBias();
+	void resetAccelBias();
+
+	// Reset all magnetometer bias states and covariances to initial alignment values.
+	void resetMagBias();
 
 	Vector3f getVelocityVariance() const { return P.slice<3, 3>(4, 4).diag(); };
 
@@ -208,11 +209,13 @@ public:
 	// get the terrain variance
 	float get_terrain_var() const { return _terrain_var; }
 
-	// get the accelerometer bias in m/s**2
-	Vector3f getAccelBias() const { return _state.delta_vel_bias / _dt_ekf_avg; }
+	Vector3f getGyroBias() const { return _state.delta_ang_bias / _dt_ekf_avg; } // get the gyroscope bias in rad/s
+	Vector3f getAccelBias() const { return _state.delta_vel_bias / _dt_ekf_avg; } // get the accelerometer bias in m/s**2
+	const Vector3f& getMagBias() const { return _state.mag_B; }
 
-	// get the gyroscope bias in rad/s
-	Vector3f getGyroBias() const { return _state.delta_ang_bias / _dt_ekf_avg; }
+	Vector3f getGyroBiasVariance() const { return Vector3f{P(10, 10), P(11, 11), P(12, 12)} / _dt_ekf_avg; } // get the gyroscope bias variance in rad/s
+	Vector3f getAccelBiasVariance() const { return Vector3f{P(13, 13), P(14, 14), P(15, 15)} / _dt_ekf_avg; } // get the accelerometer bias variance in m/s**2
+	Vector3f getMagBiasVariance() const { return Vector3f{P(19, 19), P(20, 20), P(21, 21)}; }
 
 	// get GPS check status
 	void get_gps_check_status(uint16_t *val) const { *val = _gps_check_fail_status.value; }
@@ -353,8 +356,6 @@ private:
 
 	uint64_t _time_acc_bias_check{0};	///< last time the  accel bias check passed (uSec)
 	uint64_t _delta_time_baro_us{0};	///< delta time between two consecutive delayed baro samples from the buffer (uSec)
-
-	uint64_t _last_imu_bias_cov_reset_us{0};	///< time the last reset of IMU delta angle and velocity state covariances was performed (uSec)
 
 	Vector3f _earth_rate_NED;	///< earth rotation vector (NED) in rad/s
 
