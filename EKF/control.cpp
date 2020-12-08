@@ -1215,7 +1215,7 @@ void Ekf::controlBetaFusion()
 
 void Ekf::controlDragFusion()
 {
-	if (_params.fusion_mode & MASK_USE_DRAG &&
+	if ((_params.fusion_mode & MASK_USE_DRAG) &&
 	    !_using_synthetic_position &&
 	    _control_status.flags.in_air &&
 	    !_mag_inhibit_yaw_reset_req) {
