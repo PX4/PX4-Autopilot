@@ -92,9 +92,6 @@ void Ekf::initialiseCovariance()
 	_prev_dvel_bias_var(1) = P(14,14) = P(13,13);
 	_prev_dvel_bias_var(2) = P(15,15) = P(13,13);
 
-	// record IMU bias state covariance reset time - used to prevent resets being performed too often
-	_last_imu_bias_cov_reset_us = _imu_sample_delayed.time_us;
-
 	resetMagCov();
 
 	// wind
