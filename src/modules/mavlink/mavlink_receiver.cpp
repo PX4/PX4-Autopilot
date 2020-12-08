@@ -518,7 +518,10 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 			_mavlink->request_stop_ulog_streaming();
 
 		} else if (cmd_mavlink.command == MAV_CMD_DO_CHANGE_SPEED) {
-			if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
+			vehicle_control_mode_s control_mode{};
+			_control_mode_sub.copy(&control_mode);
+
+			if (control_mode.flag_control_offboard_enabled) {
 				// Not differentiating between airspeed and groundspeed yet
 				set_offb_cruising_speed(cmd_mavlink.param2);
 			}
@@ -1524,6 +1527,8 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 			_control_mode_sub.copy(&control_mode);
 
 			if (control_mode.flag_control_offboard_enabled) {
+				vehicle_status_s vehicle_status{};
+				_vehicle_status_sub.copy(&vehicle_status);
 
 				/* Publish attitude setpoint if attitude and thrust ignore bits are not set */
 				if (!(offboard_control_mode.ignore_attitude)) {
@@ -1542,14 +1547,14 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					}
 
 					if (!offboard_control_mode.ignore_thrust) { // don't overwrite thrust if it's invalid
-						fill_thrust(att_sp.thrust_body, _vehicle_status.vehicle_type, set_attitude_target.thrust);
+						fill_thrust(att_sp.thrust_body, vehicle_status.vehicle_type, set_attitude_target.thrust);
 					}
 
 					// Publish attitude setpoint
-					if (_vehicle_status.is_vtol && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)) {
+					if (vehicle_status.is_vtol && (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)) {
 						_mc_virtual_att_sp_pub.publish(att_sp);
 
-					} else if (_vehicle_status.is_vtol && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
+					} else if (vehicle_status.is_vtol && (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
 						_fw_virtual_att_sp_pub.publish(att_sp);
 
 					} else {
@@ -1580,7 +1585,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					}
 
 					if (!offboard_control_mode.ignore_thrust) { // don't overwrite thrust if it's invalid
-						fill_thrust(rates_sp.thrust_body, _vehicle_status.vehicle_type, set_attitude_target.thrust);
+						fill_thrust(rates_sp.thrust_body, vehicle_status.vehicle_type, set_attitude_target.thrust);
 					}
 
 					_rates_sp_pub.publish(rates_sp);
@@ -2974,8 +2979,6 @@ MavlinkReceiver::Run()
 			updateParams();
 		}
 
-		_vehicle_status_sub.update(&_vehicle_status);
-
 		int ret = poll(&fds[0], 1, timeout);
 
 		if (ret > 0) {
@@ -3128,7 +3131,10 @@ MavlinkReceiver::receive_start(pthread_t *thread, Mavlink *parent)
 float
 MavlinkReceiver::get_offb_cruising_speed()
 {
-	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+	vehicle_status_s vehicle_status{};
+	_vehicle_status_sub.copy(&vehicle_status);
+
+	if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		if (_offb_cruising_speed_mc > 0.0f) {
 			return _offb_cruising_speed_mc;
 
@@ -3149,7 +3155,10 @@ MavlinkReceiver::get_offb_cruising_speed()
 void
 MavlinkReceiver::set_offb_cruising_speed(float speed)
 {
-	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+	vehicle_status_s vehicle_status{};
+	_vehicle_status_sub.copy(&vehicle_status);
+
+	if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		_offb_cruising_speed_mc = speed;
 
 	} else {
