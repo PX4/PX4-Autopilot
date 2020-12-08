@@ -4048,7 +4048,7 @@ void Commander::estimator_check()
 	/* run global position accuracy checks */
 	// Check if quality checking of position accuracy and consistency is to be performed
 	if (run_quality_checks) {
-		if (_nav_test_failed) {
+		if (_nav_test_failed || !lpos.xy_valid) {
 			_status_flags.condition_global_position_valid = false;
 			_status_flags.condition_local_position_valid = false;
 			_status_flags.condition_local_velocity_valid = false;
