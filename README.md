@@ -1,7 +1,9 @@
 # THE PEACH
-![thepeach logo(http://thepeach.kr/)](http://gabom1.pagei.gethompy.com/data/editor/2005/ae065791211b1de95f89a5c5c9f796b7_1589185049_9675.png)
+[![thepeach logo](http://thepeach.kr/)](http://gabom1.pagei.gethompy.com/data/editor/2005/ae065791211b1de95f89a5c5c9f796b7_1589185049_9675.png)
 
-## THE PEACH K1 Firmware Build
+## THE PEACH K1
+![THEPEACH K1](./boards/thepeach/k1/THEPEACH_K1.png)
+ * How to bulid THE PEACH K1's firmware
 ```bash
 $ mkdir thepeach_drone
 
@@ -19,6 +21,8 @@ $ make thepeach_k1_default
 
 
 ## THE PEACH R1 Firmware Build
+![THEPEACH R1](./boards/thepeach/r1/THEPEACH_R1.png)
+ * How to bulid THE PEACH R1's firmware
 ```bash
 $ mkdir thepeach_drone
 
