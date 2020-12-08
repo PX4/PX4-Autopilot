@@ -129,11 +129,9 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v,
 		_throttle_filter.reset(throttle_normalized);
 	}
 
-	_voltage_filter_v.update(voltage_v);
-	_current_filter_a.update(current_a);
-	_throttle_filter.update(throttle_normalized);
-	sumDischarged(timestamp, current_a);
-	estimateRemaining(_voltage_filter_v.getState(), _current_filter_a.getState(), _throttle_filter.getState());
+	estimateRemaining(_voltage_filter_v.update(voltage_v),
+			  _current_filter_a.update(current_a),
+			  _throttle_filter.update(throttle_normalized));
 	computeScale();
 
 	if (_battery_initialized) {
