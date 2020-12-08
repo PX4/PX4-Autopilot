@@ -334,8 +334,6 @@ private:
 
 	hrt_abstime			_last_utm_global_pos_com{0};
 
-	vehicle_status_s		_vehicle_status{};
-
 	float 				_offb_cruising_speed_mc{-1.0f};
 	float 				_offb_cruising_speed_fw{-1.0f};
 
