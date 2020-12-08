@@ -86,6 +86,8 @@ ver all
 #
 uorb start
 
+sleep(1)
+
 #
 # Try to mount the microSD card.
 #
