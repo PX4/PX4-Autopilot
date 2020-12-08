@@ -103,7 +103,7 @@ then
 fi
 
 # vl53l1x i2c distance sensor
-if param greater -s SENS_EN_VL53L1X 0
+if param compare -s SENS_EN_VL53L1X 1
 then
 	vl53l1x start -X
 fi
