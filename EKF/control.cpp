@@ -97,6 +97,8 @@ void Ekf::controlFusionModes()
 	_mag_data_ready = _mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed);
 
 	if (_mag_data_ready) {
+		_mag_lpf.update(_mag_sample_delayed.mag);
+
 		// if enabled, use knowledge of theoretical magnetic field vector to calculate a synthetic magnetomter Z component value.
 		// this is useful if there is a lot of interference on the sensor measurement.
 		if (_params.synthesize_mag_z && (_params.mag_declination_source & MASK_USE_GEO_DECL) && (_NED_origin_initialised || ISFINITE(_mag_declination_gps))) {
