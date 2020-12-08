@@ -1557,10 +1557,10 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 			if (inst) {
 				_ekf2_selector.store(inst);
-				inst->Start();
 
 			} else {
-				PX4_ERR("Failed to start EKF2 selector");
+				PX4_ERR("Failed to create EKF2 selector");
+				return PX4_ERROR;
 			}
 		}
 
@@ -1604,6 +1604,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 								ekf2_inst->ScheduleNow();
 								success = true;
 								multi_instances_allocated++;
+								_ekf2_selector.load()->ScheduleNow();
 
 							} else {
 								PX4_ERR("instance %d alloc failed", instance);
