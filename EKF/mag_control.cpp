@@ -58,7 +58,6 @@ void Ekf::controlMagFusion()
 		return;
 	}
 
-	updateMagFilter();
 	checkMagFieldStrength();
 
 	// If we are on ground, reset the flight alignment flag so that the mag fields will be
@@ -109,13 +108,6 @@ void Ekf::controlMagFusion()
 		checkMagInhibition();
 
 		runMagAndMagDeclFusions();
-	}
-}
-
-void Ekf::updateMagFilter()
-{
-	if (_mag_data_ready) {
-		_mag_lpf.update(_mag_sample_delayed.mag);
 	}
 }
 
