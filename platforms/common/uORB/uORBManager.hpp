@@ -37,7 +37,8 @@
 #include "uORBDeviceNode.hpp"
 #include "uORBCommon.hpp"
 #include "uORBDeviceMaster.hpp"
-
+#include <uORB/topics/uORBTopics.hpp> // For ORB_ID enum
+#include <lib/cdev/CDev.hpp>
 #include <stdint.h>
 
 #ifdef __PX4_NUTTX
@@ -57,6 +58,100 @@ namespace uORB
 class Manager;
 class SubscriptionCallback;
 }
+
+
+/*
+ * IOCTLs for manager to access device nodes using
+ * a handle
+ *
+ * This is WIP; handle is just a pointer to kernel side object, so this is a
+ * security hole.
+ *
+ * The handle in the user side should just be a file descriptor, and IOCTL go
+ * directly to the device nodes.
+ * But for now, publisher doesn't even keep the descriptors open.
+ * This needs to be addressed later!
+ */
+
+#define ORBIOCDEVEXISTS	_ORBIOC(30)
+typedef struct orbiocdevexists {
+	const ORB_ID orb_id;
+	const uint8_t instance;
+	const bool check_advertised;
+	int ret;
+} orbiocdevexists_t;
+
+#define ORBIOCDEVADVERTISE	_ORBIOC(31)
+typedef struct orbiocadvertise {
+	const struct orb_metadata *meta;
+	bool is_advertiser;
+	int *instance;
+	int ret;
+} orbiocdevadvertise_t;
+
+#define ORBIOCDEVUNADVERTISE	_ORBIOC(32)
+typedef struct orbiocunadvertise {
+	void *handle;
+	int ret;
+} orbiocdevunadvertise_t;
+
+#define ORBIOCDEVPUBLISH	_ORBIOC(33)
+typedef struct orbiocpublish {
+	const struct orb_metadata *meta;
+	orb_advert_t handle;
+	const void *data;
+	int ret;
+} orbiocdevpublish_t;
+
+#define ORBIOCDEVADDSUBSCRIBER	_ORBIOC(34)
+typedef struct {
+	const ORB_ID orb_id;
+	const uint8_t instance;
+	unsigned *initial_generation;
+	void *handle;
+} orbiocdevaddsubscriber_t;
+
+#define ORBIOCDEVREMSUBSCRIBER	_ORBIOC(35)
+
+#define ORBIOCDEVQUEUESIZE	_ORBIOC(36)
+typedef struct {
+	const void *handle;
+	uint8_t size;
+} orbiocdevqueuesize_t;
+
+#define ORBIOCDEVDATACOPY	_ORBIOC(37)
+typedef struct {
+	void *handle;
+	void *dst;
+	unsigned generation;
+	bool ret;
+} orbiocdevdatacopy_t;
+
+#define ORBIOCDEVREGCALLBACK	_ORBIOC(38)
+typedef struct {
+	void *handle;
+	class uORB::SubscriptionCallback *callback_sub;
+	bool registered;
+} orbiocdevregcallback_t;
+
+#define ORBIOCDEVUNREGCALLBACK	_ORBIOC(39)
+typedef struct {
+	void *handle;
+	class uORB::SubscriptionCallback *callback_sub;
+} orbiocdevunregcallback_t;
+
+#define ORBIOCDEVGETINSTANCE	_ORBIOC(40)
+typedef struct {
+	const void *handle;
+	uint8_t instance;
+} orbiocdevgetinstance_t;
+
+typedef enum {
+	ORB_DEVMASTER_STATUS = 0,
+	ORB_DEVMASTER_TOP = 1
+} orbiocdevmastercmd_t;
+#define ORBIOCDEVMASTERCMD	_ORBIOC(45)
+
 
 /**
  * This is implemented as a singleton.  This class manages creating the
@@ -97,6 +192,10 @@ public:
 	 * @return nullptr if initialization failed (and errno will be set)
 	 */
 	uORB::DeviceMaster *get_device_master();
+
+#if defined (__PX4_NUTTX) && !defined (CONFIG_BUILD_FLAT) && defined(__KERNEL__)
+	static int orb_ioctl(unsigned int cmd, unsigned long arg);
+#endif
 
 	// ==== uORB interface methods ====
 	/**
