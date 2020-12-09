@@ -79,7 +79,7 @@ void Ekf::resetHorizontalVelocityToOpticalFlow()
 	// calculate absolute distance from focal point to centre of frame assuming a flat earth
 	const float range = heightAboveGndEst / _range_sensor.getCosTilt();
 
-	if ((range - _params.rng_gnd_clearance) > 0.3f && _flow_sample_delayed.dt > 0.05f) {
+	if ((range - _params.rng_gnd_clearance) > 0.3f) {
 		// we should have reliable OF measurements so
 		// calculate X and Y body relative velocities from OF measurements
 		Vector3f vel_optflow_body;

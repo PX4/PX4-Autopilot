@@ -354,47 +354,14 @@ void EstimatorInterface::setOpticalFlowData(const flowSample &flow)
 
 	// limit data rate to prevent data being lost
 	if ((flow.time_us - _time_last_optflow) > _min_obs_interval_us) {
-		// check if enough integration time and fail if integration time is less than 50%
-		// of min arrival interval because too much data is being lost
-		float delta_time = flow.dt; // in seconds
-		const float delta_time_min = 0.5e-6f * (float)_min_obs_interval_us;
-		const bool delta_time_good = delta_time >= delta_time_min;
+		_time_last_optflow = flow.time_us;
 
-		bool flow_magnitude_good = true;
+		flowSample optflow_sample_new = flow;
 
-		if (delta_time_good) {
-			// check magnitude is within sensor limits
-			// use this to prevent use of a saturated flow sensor
-			// when there are other aiding sources available
-			const float flow_rate_magnitude = flow.flow_xy_rad.norm() / delta_time;
-			flow_magnitude_good = (flow_rate_magnitude <= _flow_max_rate);
+		optflow_sample_new.time_us -= _params.flow_delay_ms * 1000;
+		optflow_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
 
-		} else {
-			// protect against overflow caused by division with very small delta_time
-			delta_time = delta_time_min;
-		}
-
-		const bool relying_on_flow = !isOtherSourceOfHorizontalAidingThan(_control_status.flags.opt_flow);
-
-		const bool flow_quality_good = (flow.quality >= _params.flow_qual_min);
-
-		// Check data validity and write to buffers
-		// Invalid flow data is allowed when on ground and is handled as a special case in controlOpticalFlowFusion()
-		bool use_flow_data_to_navigate = delta_time_good && flow_quality_good && (flow_magnitude_good || relying_on_flow);
-
-		if (use_flow_data_to_navigate || (!_control_status.flags.in_air && relying_on_flow)) {
-
-			_time_last_optflow = flow.time_us;
-
-			flowSample optflow_sample_new = flow;
-
-			optflow_sample_new.time_us -= _params.flow_delay_ms * 1000;
-			optflow_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
-
-			optflow_sample_new.dt = delta_time;
-
-			_flow_buffer.push(optflow_sample_new);
-		}
+		_flow_buffer.push(optflow_sample_new);
 	}
 }
 
