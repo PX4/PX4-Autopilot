@@ -271,7 +271,7 @@ void Ekf::resetHeight()
 			_state.pos(2) = _hgt_sensor_offset - gps_newest.hgt + _gps_alt_ref;
 
 			// the state variance is the same as the observation
-			P.uncorrelateCovarianceSetVariance<1>(9, sq(gps_newest.hacc));
+			P.uncorrelateCovarianceSetVariance<1>(9, sq(gps_newest.vacc));
 
 			vert_pos_reset = true;
 
