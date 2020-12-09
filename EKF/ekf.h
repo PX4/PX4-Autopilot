@@ -753,6 +753,8 @@ private:
 
 	// control fusion of optical flow observations
 	void controlOpticalFlowFusion();
+	void updateOnGroundMotionForOpticalFlowChecks();
+	void resetOnGroundMotionForOpticalFlowChecks();
 
 	// control fusion of GPS observations
 	void controlGpsFusion();

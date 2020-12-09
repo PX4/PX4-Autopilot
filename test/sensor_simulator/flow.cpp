@@ -15,7 +15,6 @@ Flow::~Flow()
 
 void Flow::send(uint64_t time)
 {
-	_flow_data.dt = static_cast<float>(time - _time_last_data_sent) * 1e-6f;
 	_flow_data.time_us = time;
 	_ekf->setOpticalFlowData(_flow_data);
 }
@@ -28,12 +27,12 @@ void Flow::setData(const flowSample& flow)
 
 flowSample Flow::dataAtRest()
 {
-	flowSample _flow_at_rest;
-	_flow_at_rest.dt = 0.02f;
-	_flow_at_rest.flow_xy_rad = Vector2f{0.0f, 0.0f};
-	_flow_at_rest.gyro_xyz = Vector3f{0.0f, 0.0f, 0.0f};
-	_flow_at_rest.quality = 255;
-	return _flow_at_rest;
+	flowSample flow_at_rest;
+	flow_at_rest.dt = static_cast<float>(_update_period) * 1e-6f;
+	flow_at_rest.flow_xy_rad = Vector2f{0.0f, 0.0f};
+	flow_at_rest.gyro_xyz = Vector3f{0.0f, 0.0f, 0.0f};
+	flow_at_rest.quality = 255;
+	return flow_at_rest;
 }
 
 } // namespace sensor

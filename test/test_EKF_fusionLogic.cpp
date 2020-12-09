@@ -164,6 +164,10 @@ TEST_F(EkfFusionLogicTest, doFlowFusion)
 	// GIVEN: a tilt and heading aligned filter
 	// WHEN: sending flow data without having the flow fusion enabled
 	//       flow measurement fusion should not be intended.
+	const float max_flow_rate = 5.f;
+	const float min_ground_distance = 0.f;
+	const float max_ground_distance = 50.f;
+	_ekf->set_optical_flow_limits(max_flow_rate, min_ground_distance, max_ground_distance);
 	_sensor_simulator.startFlow();
 	_sensor_simulator.runSeconds(4);
 
@@ -198,10 +202,10 @@ TEST_F(EkfFusionLogicTest, doFlowFusion)
 
 	// WHEN: Stop sending flow data
 	_sensor_simulator.stopFlow();
-	_sensor_simulator.runSeconds(10);
+	_sensor_simulator.runSeconds(11);
 
 	// THEN: EKF should not intend to fuse flow measurements
-	EXPECT_TRUE(_ekf_wrapper.isIntendingFlowFusion()); // TODO: change to false
+	EXPECT_FALSE(_ekf_wrapper.isIntendingFlowFusion());
 	// THEN: Local and global position should not be valid
 	EXPECT_FALSE(_ekf->local_position_is_valid());
 	EXPECT_FALSE(_ekf->global_position_is_valid());

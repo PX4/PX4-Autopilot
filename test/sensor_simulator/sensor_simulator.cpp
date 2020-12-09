@@ -12,8 +12,8 @@ _rng(ekf),
 _vio(ekf),
 _airspeed(ekf)
 {
-	setSensorDataToDefault();
 	setSensorRateToDefault();
+	setSensorDataToDefault();
 	startBasicSensor();
 }
 
