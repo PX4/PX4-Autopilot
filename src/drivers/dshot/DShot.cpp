@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,257 +31,47 @@
  *
  ****************************************************************************/
 
-#include <float.h>
-#include <math.h>
+#include "DShot.h"
 
-#include <board_config.h>
-#include <drivers/device/device.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_input_capture.h>
-#include <drivers/drv_mixer.h>
-#include <drivers/drv_pwm_output.h>
-#include <lib/cdev/CDev.hpp>
-#include <lib/mathlib/mathlib.h>
-#include <lib/mixer_module/mixer_module.hpp>
-#include <lib/parameters/param.h>
-#include <lib/perf/perf_counter.h>
-#include <px4_arch/dshot.h>
-#include <px4_platform_common/atomic.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/log.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/multirotor_motor_limits.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/esc_status.h>
+char DShot::_telemetry_device[] {};
+px4::atomic_bool DShot::_request_telemetry_init{false};
 
-#include "telemetry.h"
-
-
-using namespace time_literals;
-
-/** Mode given via CLI */
-enum PortMode {
-	PORT_MODE_UNSET = 0,
-	PORT_FULL_GPIO,
-	PORT_FULL_PWM,
-	PORT_PWM8,
-	PORT_PWM6,
-	PORT_PWM5,
-	PORT_PWM4,
-	PORT_PWM3,
-	PORT_PWM2,
-	PORT_PWM1,
-	PORT_PWM3CAP1,
-	PORT_PWM4CAP1,
-	PORT_PWM4CAP2,
-	PORT_PWM5CAP1,
-	PORT_PWM2CAP2,
-	PORT_CAPTURE,
-};
-
-#if !defined(BOARD_HAS_PWM)
-#  error "board_config.h needs to define BOARD_HAS_PWM"
-#endif
-
-
-class DShotOutput : public cdev::CDev, public ModuleBase<DShotOutput>, public OutputModuleInterface
-{
-public:
-	enum Mode {
-		MODE_NONE,
-		MODE_1PWM,
-		MODE_2PWM,
-		MODE_2PWM2CAP,
-		MODE_3PWM,
-		MODE_3PWM1CAP,
-		MODE_4PWM,
-		MODE_4PWM1CAP,
-		MODE_4PWM2CAP,
-		MODE_5PWM,
-		MODE_5PWM1CAP,
-		MODE_6PWM,
-		MODE_8PWM,
-		MODE_14PWM,
-		MODE_4CAP,
-		MODE_5CAP,
-		MODE_6CAP,
-	};
-	DShotOutput();
-	virtual ~DShotOutput();
-
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
-
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
-
-	/** change the mode of the running module */
-	static int module_new_mode(PortMode new_mode);
-
-	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
-
-	virtual int	init();
-
-	int		set_mode(Mode mode);
-	Mode		get_mode() { return _mode; }
-
-	static void	capture_trampoline(void *context, uint32_t chan_index,
-					   hrt_abstime edge_time, uint32_t edge_state,
-					   uint32_t overflow);
-
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-			   unsigned num_outputs, unsigned num_control_groups_updated) override;
-
-	void mixerChanged() override;
-
-	/**
-	 * Send a dshot command to one or all motors
-	 * This is expected to be called from another thread.
-	 * @param num_repetitions number of times to repeat, set at least to 1
-	 * @param motor_index index or -1 for all
-	 * @return 0 on success, <0 error otherwise
-	 */
-	int sendCommandThreadSafe(dshot_command_t command, int num_repetitions, int motor_index);
-
-	void retrieveAndPrintESCInfoThreadSafe(int motor_index);
-
-	bool telemetryEnabled() const { return _telemetry != nullptr; }
-
-private:
-
-	void Run() override;
-
-	static constexpr uint16_t DISARMED_VALUE = 0;
-
-	enum class DShotConfig {
-		Disabled = 0,
-		DShot150 = 150,
-		DShot300 = 300,
-		DShot600 = 600,
-		DShot1200 = 1200,
-	};
-
-	struct Command {
-		dshot_command_t command;
-		int num_repetitions{0};
-		uint8_t motor_mask{0xff};
-
-		bool valid() const { return num_repetitions > 0; }
-		void clear() { num_repetitions = 0; }
-	};
-
-	struct Telemetry {
-		DShotTelemetry handler;
-		uORB::PublicationData<esc_status_s> esc_status_pub{ORB_ID(esc_status)};
-		int last_motor_index{-1};
-	};
-
-	void updateTelemetryNumMotors();
-	void initTelemetry(const char *device);
-	void handleNewTelemetryData(int motor_index, const DShotTelemetry::EscData &data);
-
-	int requestESCInfo();
-
-	MixingOutput _mixing_output{DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
-
-	Telemetry *_telemetry{nullptr};
-	static char _telemetry_device[20];
-	static px4::atomic_bool _request_telemetry_init;
-
-	px4::atomic<DShotTelemetry::OutputBuffer *> _request_esc_info{nullptr};
-	bool _waiting_for_esc_info{false};
-
-	Mode		_mode{MODE_NONE};
-
-	uORB::Subscription _param_sub{ORB_ID(parameter_update)};
-
-	Command _current_command;
-	px4::atomic<Command *> _new_command{nullptr};
-
-	unsigned	_num_outputs{0};
-	int		_class_instance{-1};
-
-	bool		_outputs_on{false};
-	uint32_t	_output_mask{0};
-	bool		_outputs_initialized{false};
-
-	perf_counter_t	_cycle_perf;
-
-	void		capture_callback(uint32_t chan_index,
-					 hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
-	int			pwm_ioctl(file *filp, int cmd, unsigned long arg);
-	void		update_dshot_out_state(bool on);
-
-	void		update_params();
-
-	int		capture_ioctl(file *filp, int cmd, unsigned long arg);
-
-	DShotOutput(const DShotOutput &) = delete;
-	DShotOutput operator=(const DShotOutput &) = delete;
-
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::DSHOT_CONFIG>) _param_dshot_config,
-		(ParamFloat<px4::params::DSHOT_MIN>) _param_dshot_min,
-		(ParamInt<px4::params::MOT_POLE_COUNT>) _param_mot_pole_count
-	)
-};
-
-char DShotOutput::_telemetry_device[] {};
-px4::atomic_bool DShotOutput::_request_telemetry_init{false};
-
-DShotOutput::DShotOutput() :
+DShot::DShot() :
 	CDev("/dev/dshot"),
-	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
-	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
+	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
 {
-	_mixing_output.setAllDisarmedValues(DISARMED_VALUE);
-	_mixing_output.setAllMinValues(DISARMED_VALUE + 1);
+	_mixing_output.setAllDisarmedValues(DSHOT_DISARM_VALUE);
+	_mixing_output.setAllMinValues(DSHOT_MIN_THROTTLE);
 	_mixing_output.setAllMaxValues(DSHOT_MAX_THROTTLE);
 
 }
 
-DShotOutput::~DShotOutput()
+DShot::~DShot()
 {
-	/* make sure outputs are off */
+	// make sure outputs are off
 	up_dshot_arm(false);
 
-	/* clean up the alternate device node */
+	// clean up the alternate device node
 	unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
 
 	perf_free(_cycle_perf);
 	delete _telemetry;
 }
 
-int
-DShotOutput::init()
+int DShot::init()
 {
-	/* do regular cdev init */
+	// do regular cdev init
 	int ret = CDev::init();
 
 	if (ret != OK) {
 		return ret;
 	}
 
-	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
+	// try to claim the generic PWM output device node as well - it's OK if we fail at this
 	_class_instance = register_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH);
 
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
-		/* lets not be too verbose */
+		// lets not be too verbose
 	} else if (_class_instance < 0) {
 		PX4_ERR("FAILED registering class device");
 	}
@@ -293,11 +83,10 @@ DShotOutput::init()
 
 	ScheduleNow();
 
-	return 0;
+	return OK;
 }
 
-int
-DShotOutput::set_mode(Mode mode)
+int DShot::set_mode(const Mode mode)
 {
 	unsigned old_mask = _output_mask;
 
@@ -310,7 +99,7 @@ DShotOutput::set_mode(Mode mode)
 	 */
 	switch (mode) {
 	case MODE_1PWM:
-		/* default output rates */
+		// default output rates
 		_output_mask = 0x1;
 		_outputs_initialized = false;
 		_num_outputs = 1;
@@ -324,12 +113,12 @@ DShotOutput::set_mode(Mode mode)
 		PX4_DEBUG("MODE_2PWM2CAP");
 #endif
 
-	/* FALLTHROUGH */
+	// FALLTHROUGH
 
 	case MODE_2PWM:	// v1 multi-port with flow control lines as PWM
 		PX4_DEBUG("MODE_2PWM");
 
-		/* default output rates */
+		// default output rates
 		_output_mask = 0x3;
 		_outputs_initialized = false;
 		_num_outputs = 2;
@@ -343,12 +132,12 @@ DShotOutput::set_mode(Mode mode)
 		up_input_capture_set(3, Rising, 0, NULL, NULL);
 #endif
 
-	/* FALLTHROUGH */
+	// FALLTHROUGH
 
 	case MODE_3PWM:	// v1 multi-port with flow control lines as PWM
 		PX4_DEBUG("MODE_3PWM");
 
-		/* default output rates */
+		// default output rates
 		_output_mask = 0x7;
 		_outputs_initialized = false;
 		_num_outputs = 3;
@@ -362,12 +151,12 @@ DShotOutput::set_mode(Mode mode)
 		up_input_capture_set(4, Rising, 0, NULL, NULL);
 #endif
 
-	/* FALLTHROUGH */
+	// FALLTHROUGH
 
 	case MODE_4PWM: // v1 or v2 multi-port as 4 PWM outs
 		PX4_DEBUG("MODE_4PWM");
 
-		/* default output rates */
+		// default output rates
 		_output_mask = 0xf;
 		_outputs_initialized = false;
 		_num_outputs = 4;
@@ -380,7 +169,7 @@ DShotOutput::set_mode(Mode mode)
 		PX4_DEBUG("MODE_4PWM2CAP");
 		up_input_capture_set(5, Rising, 0, NULL, NULL);
 
-		/* default output rates */
+		// default output rates
 		_output_mask = 0x0f;
 		_outputs_initialized = false;
 		_num_outputs = 4;
@@ -395,12 +184,12 @@ DShotOutput::set_mode(Mode mode)
 		up_input_capture_set(5, Rising, 0, NULL, NULL);
 #endif
 
-	/* FALLTHROUGH */
+	// FALLTHROUGH
 
 	case MODE_5PWM: // v1 or v2 multi-port as 5 PWM outs
 		PX4_DEBUG("MODE_5PWM");
 
-		/* default output rates */
+		// default output rates
 		_output_mask = 0x1f;
 		_outputs_initialized = false;
 		_num_outputs = 5;
@@ -412,7 +201,7 @@ DShotOutput::set_mode(Mode mode)
 	case MODE_6PWM:
 		PX4_DEBUG("MODE_6PWM");
 
-		/* default output rates */
+		// default output rates
 		_output_mask = 0x3f;
 		_outputs_initialized = false;
 		_num_outputs = 6;
@@ -424,7 +213,7 @@ DShotOutput::set_mode(Mode mode)
 
 	case MODE_8PWM: // AeroCore PWMs as 8 PWM outs
 		PX4_DEBUG("MODE_8PWM");
-		/* default output rates */
+		// default output rates
 		_output_mask = 0xff;
 		_outputs_initialized = false;
 		_num_outputs = 8;
@@ -436,7 +225,7 @@ DShotOutput::set_mode(Mode mode)
 
 	case MODE_14PWM:
 		PX4_DEBUG("MODE_14PWM");
-		/* default output rates */
+		// default output rates
 		_output_mask = 0x3fff;
 		_outputs_initialized = false;
 		_num_outputs = 14;
@@ -451,8 +240,8 @@ DShotOutput::set_mode(Mode mode)
 		_num_outputs = 0;
 
 		if (old_mask != _output_mask) {
-			/* disable motor outputs */
-			update_dshot_out_state(false);
+			// disable motor outputs
+			enable_dshot_outputs(false);
 		}
 
 		break;
@@ -465,10 +254,9 @@ DShotOutput::set_mode(Mode mode)
 	return OK;
 }
 
-int
-DShotOutput::task_spawn(int argc, char *argv[])
+int DShot::task_spawn(int argc, char *argv[])
 {
-	DShotOutput *instance = new DShotOutput();
+	DShot *instance = new DShot();
 
 	if (instance) {
 		_object.store(instance);
@@ -489,27 +277,26 @@ DShotOutput::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-void
-DShotOutput::capture_trampoline(void *context, uint32_t chan_index,
-				hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
+void DShot::capture_trampoline(void *context, const uint32_t channel_index, const hrt_abstime edge_time,
+			       const uint32_t edge_state, const uint32_t overflow)
 {
-	DShotOutput *dev = static_cast<DShotOutput *>(context);
-	dev->capture_callback(chan_index, edge_time, edge_state, overflow);
+	DShot *dev = static_cast<DShot *>(context);
+	dev->capture_callback(channel_index, edge_time, edge_state, overflow);
 }
 
-void
-DShotOutput::capture_callback(uint32_t chan_index,
-			      hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
+void DShot::capture_callback(const uint32_t channel_index, const hrt_abstime edge_time,
+			     const uint32_t edge_state, const uint32_t overflow)
 {
-	fprintf(stdout, "DShot: Capture chan:%d time:%lld state:%d overflow:%d\n", chan_index, edge_time, edge_state, overflow);
+	fprintf(stdout, "DShot: Capture chan:%d time:%lld state:%d overflow:%d\n", channel_index, edge_time, edge_state,
+		overflow);
 }
 
-void
-DShotOutput::update_dshot_out_state(bool on)
+void DShot::enable_dshot_outputs(const bool enabled)
 {
-	if (on && !_outputs_initialized && _output_mask != 0) {
+	if (enabled && !_outputs_initialized && _output_mask != 0) {
 		DShotConfig config = (DShotConfig)_param_dshot_config.get();
-		unsigned dshot_frequency;
+
+		unsigned int dshot_frequency = DSHOT600;
 
 		switch (config) {
 		case DShotConfig::DShot150:
@@ -520,13 +307,15 @@ DShotOutput::update_dshot_out_state(bool on)
 			dshot_frequency = DSHOT300;
 			break;
 
+		case DShotConfig::DShot600:
+			dshot_frequency = DSHOT600;
+			break;
+
 		case DShotConfig::DShot1200:
 			dshot_frequency = DSHOT1200;
 			break;
 
-		case DShotConfig::DShot600:
 		default:
-			dshot_frequency = DSHOT600;
 			break;
 		}
 
@@ -541,12 +330,12 @@ DShotOutput::update_dshot_out_state(bool on)
 	}
 
 	if (_outputs_initialized) {
-		up_dshot_arm(on);
-		_outputs_on = on;
+		up_dshot_arm(enabled);
+		_outputs_on = enabled;
 	}
 }
 
-void DShotOutput::updateTelemetryNumMotors()
+void DShot::update_telemetry_num_motors()
 {
 	if (!_telemetry) {
 		return;
@@ -561,7 +350,7 @@ void DShotOutput::updateTelemetryNumMotors()
 	_telemetry->handler.setNumMotors(motor_count);
 }
 
-void DShotOutput::initTelemetry(const char *device)
+void DShot::init_telemetry(const char *device)
 {
 	if (!_telemetry) {
 		_telemetry = new Telemetry{};
@@ -578,20 +367,21 @@ void DShotOutput::initTelemetry(const char *device)
 		PX4_ERR("telemetry init failed (%i)", ret);
 	}
 
-	updateTelemetryNumMotors();
+	update_telemetry_num_motors();
 }
 
-void DShotOutput::handleNewTelemetryData(int motor_index, const DShotTelemetry::EscData &data)
+void DShot::handle_new_telemetry_data(const int motor_index, const DShotTelemetry::EscData &data)
 {
 	// fill in new motor data
 	esc_status_s &esc_status = _telemetry->esc_status_pub.get();
 
 	if (motor_index < esc_status_s::CONNECTED_ESC_MAX) {
 		esc_status.esc_online_flags |= 1 << motor_index;
-		esc_status.esc[motor_index].timestamp = data.time;
-		esc_status.esc[motor_index].esc_rpm = ((int)data.erpm * 100) / (_param_mot_pole_count.get() / 2);
-		esc_status.esc[motor_index].esc_voltage = (float)data.voltage * 0.01f;
-		esc_status.esc[motor_index].esc_current = (float)data.current * 0.01f;
+
+		esc_status.esc[motor_index].timestamp       = data.time;
+		esc_status.esc[motor_index].esc_rpm         = (static_cast<int>(data.erpm) * 100) / (_param_mot_pole_count.get() / 2);
+		esc_status.esc[motor_index].esc_voltage     = static_cast<float>(data.voltage) * 0.01f;
+		esc_status.esc[motor_index].esc_current     = static_cast<float>(data.current) * 0.01f;
 		esc_status.esc[motor_index].esc_temperature = data.temperature;
 		// TODO: accumulate consumption and use for battery estimation
 	}
@@ -616,9 +406,9 @@ void DShotOutput::handleNewTelemetryData(int motor_index, const DShotTelemetry::
 	_telemetry->last_motor_index = motor_index;
 }
 
-int DShotOutput::sendCommandThreadSafe(dshot_command_t command, int num_repetitions, int motor_index)
+int DShot::send_command_thread_safe(const dshot_command_t command, const int num_repetitions, const int motor_index)
 {
-	Command cmd;
+	Command cmd{};
 	cmd.command = command;
 
 	if (motor_index == -1) {
@@ -639,15 +429,16 @@ int DShotOutput::sendCommandThreadSafe(dshot_command_t command, int num_repetiti
 	return 0;
 }
 
-void DShotOutput::retrieveAndPrintESCInfoThreadSafe(int motor_index)
+void DShot::retrieve_and_print_esc_info_thread_safe(const int motor_index)
 {
 	if (_request_esc_info.load() != nullptr) {
 		// already in progress (not expected to ever happen)
 		return;
 	}
 
-	DShotTelemetry::OutputBuffer output_buffer;
+	DShotTelemetry::OutputBuffer output_buffer{};
 	output_buffer.motor_index = motor_index;
+
 	// start the request
 	_request_esc_info.store(&output_buffer);
 
@@ -668,25 +459,28 @@ void DShotOutput::retrieveAndPrintESCInfoThreadSafe(int motor_index)
 	DShotTelemetry::decodeAndPrintEscInfoPacket(output_buffer);
 }
 
-int DShotOutput::requestESCInfo()
+int DShot::request_esc_info()
 {
 	_telemetry->handler.redirectOutput(*_request_esc_info.load());
 	_waiting_for_esc_info = true;
+
 	int motor_index = _mixing_output.reorderedMotorIndex(_request_esc_info.load()->motor_index);
+
 	_current_command.motor_mask = 1 << motor_index;
 	_current_command.num_repetitions = 1;
 	_current_command.command = DShot_cmd_esc_info;
+
 	PX4_DEBUG("Requesting ESC info for motor %i", motor_index);
 	return motor_index;
 }
 
-void DShotOutput::mixerChanged()
+void DShot::mixerChanged()
 {
-	updateTelemetryNumMotors();
+	update_telemetry_num_motors();
 }
 
-bool DShotOutput::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-				unsigned num_outputs, unsigned num_control_groups_updated)
+bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+			  unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	if (!_outputs_on) {
 		return false;
@@ -698,7 +492,7 @@ bool DShotOutput::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS
 		// check for an ESC info request. We only process it when we're not expecting other telemetry data
 		if (_request_esc_info.load() != nullptr && !_waiting_for_esc_info && stop_motors
 		    && !_telemetry->handler.expectingData() && !_current_command.valid()) {
-			requested_telemetry_index = requestESCInfo();
+			requested_telemetry_index = request_esc_info();
 
 		} else {
 			requested_telemetry_index = _mixing_output.reorderedMotorIndex(_telemetry->handler.getRequestMotorIndex());
@@ -724,11 +518,12 @@ bool DShotOutput::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS
 
 	} else {
 		for (int i = 0; i < (int)num_outputs; i++) {
-			if (outputs[i] == DISARMED_VALUE) {
+			if (outputs[i] == DSHOT_DISARM_VALUE) {
 				up_dshot_motor_command(i, DShot_cmd_motor_stop, i == requested_telemetry_index);
 
 			} else {
-				up_dshot_motor_data_set(i, math::min(outputs[i], (uint16_t)DSHOT_MAX_THROTTLE), i == requested_telemetry_index);
+				up_dshot_motor_data_set(i, math::min(outputs[i], static_cast<uint16_t>(DSHOT_MAX_THROTTLE)),
+							i == requested_telemetry_index);
 			}
 		}
 
@@ -743,8 +538,7 @@ bool DShotOutput::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS
 	return true;
 }
 
-void
-DShotOutput::Run()
+void DShot::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
@@ -758,11 +552,11 @@ DShotOutput::Run()
 
 	_mixing_output.update();
 
-	/* update output status if armed or if mixer is loaded */
+	// update output status if armed or if mixer is loaded
 	bool outputs_on = _mixing_output.armed().armed || _mixing_output.mixers();
 
 	if (_outputs_on != outputs_on) {
-		update_dshot_out_state(outputs_on);
+		enable_dshot_outputs(outputs_on);
 	}
 
 	if (_telemetry) {
@@ -776,7 +570,7 @@ DShotOutput::Run()
 			}
 
 		} else if (telem_update >= 0) {
-			handleNewTelemetryData(telem_update, _telemetry->handler.latestESCData());
+			handle_new_telemetry_data(telem_update, _telemetry->handler.latestESCData());
 		}
 	}
 
@@ -786,7 +580,7 @@ DShotOutput::Run()
 
 	// telemetry device update request?
 	if (_request_telemetry_init.load()) {
-		initTelemetry(_telemetry_device);
+		init_telemetry(_telemetry_device);
 		_request_telemetry_init.store(false);
 	}
 
@@ -806,7 +600,7 @@ DShotOutput::Run()
 	perf_end(_cycle_perf);
 }
 
-void DShotOutput::update_params()
+void DShot::update_params()
 {
 	parameter_update_s pupdate;
 	_param_sub.update(&pupdate);
@@ -814,24 +608,23 @@ void DShotOutput::update_params()
 	updateParams();
 
 	// we use a minimum value of 1, since 0 is for disarmed
-	_mixing_output.setAllMinValues(math::constrain((int)(_param_dshot_min.get() * (float)DSHOT_MAX_THROTTLE),
-				       DISARMED_VALUE + 1, DSHOT_MAX_THROTTLE));
+	_mixing_output.setAllMinValues(math::constrain(static_cast<int>((_param_dshot_min.get() *
+				       static_cast<float>(DSHOT_MAX_THROTTLE))),
+				       DSHOT_MIN_THROTTLE, DSHOT_MAX_THROTTLE));
 }
 
-
-int
-DShotOutput::ioctl(file *filp, int cmd, unsigned long arg)
+int DShot::ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int ret;
 
-	/* try it as a Capture ioctl next */
+	// try it as a Capture ioctl next
 	ret = capture_ioctl(filp, cmd, arg);
 
 	if (ret != -ENOTTY) {
 		return ret;
 	}
 
-	/* if we are in valid PWM mode, try it as a PWM ioctl as well */
+	// if we are in valid PWM mode, try it as a PWM ioctl as well
 	switch (_mode) {
 	case MODE_1PWM:
 	case MODE_2PWM:
@@ -860,7 +653,7 @@ DShotOutput::ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 	}
 
-	/* if nobody wants it, let CDev have it */
+	// if nobody wants it, let CDev have it
 	if (ret == -ENOTTY) {
 		ret = CDev::ioctl(filp, cmd, arg);
 	}
@@ -868,8 +661,7 @@ DShotOutput::ioctl(file *filp, int cmd, unsigned long arg)
 	return ret;
 }
 
-int
-DShotOutput::pwm_ioctl(file *filp, int cmd, unsigned long arg)
+int DShot::pwm_ioctl(file *filp, const int cmd, const unsigned long arg)
 {
 	int ret = OK;
 
@@ -935,7 +727,8 @@ DShotOutput::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_SET_COUNT: {
-			/* change the number of outputs that are enabled for
+			/*
+			 * Change the number of outputs that are enabled for
 			 * PWM. This is used to change the split between GPIO
 			 * and PWM under control of the flight config
 			 * parameters.
@@ -1083,10 +876,9 @@ DShotOutput::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	return ret;
 }
 
-int
-DShotOutput::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
+int DShot::capture_ioctl(file *filp, const int cmd, const unsigned long arg)
 {
-	int	ret = -EINVAL;
+	int ret = -EINVAL;
 
 #if defined(BOARD_HAS_CAPTURE)
 
@@ -1235,16 +1027,15 @@ DShotOutput::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	return ret;
 }
 
-int
-DShotOutput::module_new_mode(PortMode new_mode)
+int DShot::module_new_mode(const PortMode new_mode)
 {
 	if (!is_running()) {
 		return -1;
 	}
 
-	DShotOutput::Mode mode;
+	DShot::Mode mode;
 
-	mode = DShotOutput::MODE_NONE;
+	mode = DShot::MODE_NONE;
 
 	switch (new_mode) {
 	case PORT_FULL_GPIO:
@@ -1254,56 +1045,56 @@ DShotOutput::module_new_mode(PortMode new_mode)
 	case PORT_FULL_PWM:
 
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 4
-		/* select 4-pin PWM mode */
-		mode = DShotOutput::MODE_4PWM;
+		// select 4-pin PWM mode
+		mode = DShot::MODE_4PWM;
 #endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 5
-		mode = DShotOutput::MODE_5PWM;
+		mode = DShot::MODE_5PWM;
 #endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 6
-		mode = DShotOutput::MODE_6PWM;
+		mode = DShot::MODE_6PWM;
 #endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 8
-		mode = DShotOutput::MODE_8PWM;
+		mode = DShot::MODE_8PWM;
 #endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 14
-		mode = DShotOutput::MODE_14PWM;
+		mode = DShot::MODE_14PWM;
 #endif
 		break;
 
 	case PORT_PWM1:
-		/* select 2-pin PWM mode */
-		mode = DShotOutput::MODE_1PWM;
+		// select 2-pin PWM mode
+		mode = DShot::MODE_1PWM;
 		break;
 
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
 	case PORT_PWM8:
-		/* select 8-pin PWM mode */
-		mode = DShotOutput::MODE_8PWM;
+		// select 8-pin PWM mode
+		mode = DShot::MODE_8PWM;
 		break;
 #endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
 
 	case PORT_PWM6:
-		/* select 6-pin PWM mode */
-		mode = DShotOutput::MODE_6PWM;
+		// select 6-pin PWM mode
+		mode = DShot::MODE_6PWM;
 		break;
 #endif
 
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 5
 
 	case PORT_PWM5:
-		/* select 5-pin PWM mode */
-		mode = DShotOutput::MODE_5PWM;
+		// select 5-pin PWM mode
+		mode = DShot::MODE_5PWM;
 		break;
 
 
 #  if defined(BOARD_HAS_CAPTURE)
 
 	case PORT_PWM5CAP1:
-		/* select 5-pin PWM mode 1 capture */
-		mode = DShotOutput::MODE_5PWM1CAP;
+		// select 5-pin PWM mode 1 capture
+		mode = DShot::MODE_5PWM1CAP;
 		break;
 
 #  endif
@@ -1312,48 +1103,48 @@ DShotOutput::module_new_mode(PortMode new_mode)
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 4
 
 	case PORT_PWM4:
-		/* select 4-pin PWM mode */
-		mode = DShotOutput::MODE_4PWM;
+		// select 4-pin PWM mode
+		mode = DShot::MODE_4PWM;
 		break;
 
 
 #  if defined(BOARD_HAS_CAPTURE)
 
 	case PORT_PWM4CAP1:
-		/* select 4-pin PWM mode 1 capture */
-		mode = DShotOutput::MODE_4PWM1CAP;
+		// select 4-pin PWM mode 1 capture
+		mode = DShot::MODE_4PWM1CAP;
 		break;
 
 	case PORT_PWM4CAP2:
-		/* select 4-pin PWM mode 2 capture */
-		mode = DShotOutput::MODE_4PWM2CAP;
+		// select 4-pin PWM mode 2 capture
+		mode = DShot::MODE_4PWM2CAP;
 		break;
 
 #  endif
 
 	case PORT_PWM3:
-		/* select 3-pin PWM mode */
-		mode = DShotOutput::MODE_3PWM;
+		// select 3-pin PWM mode
+		mode = DShot::MODE_3PWM;
 		break;
 
 #  if defined(BOARD_HAS_CAPTURE)
 
 	case PORT_PWM3CAP1:
-		/* select 3-pin PWM mode 1 capture */
-		mode = DShotOutput::MODE_3PWM1CAP;
+		// select 3-pin PWM mode 1 capture
+		mode = DShot::MODE_3PWM1CAP;
 		break;
 #  endif
 
 	case PORT_PWM2:
-		/* select 2-pin PWM mode */
-		mode = DShotOutput::MODE_2PWM;
+		// select 2-pin PWM mode
+		mode = DShot::MODE_2PWM;
 		break;
 
 #  if defined(BOARD_HAS_CAPTURE)
 
 	case PORT_PWM2CAP2:
-		/* select 2-pin PWM mode 2 capture */
-		mode = DShotOutput::MODE_2PWM2CAP;
+		// select 2-pin PWM mode 2 capture
+		mode = DShot::MODE_2PWM2CAP;
 		break;
 
 #  endif
@@ -1363,17 +1154,17 @@ DShotOutput::module_new_mode(PortMode new_mode)
 		return -1;
 	}
 
-	DShotOutput *object = get_instance();
+	DShot *object = get_instance();
 
 	if (mode != object->get_mode()) {
-		/* (re)set the output mode */
+		// (re)set the output mode
 		object->set_mode(mode);
 	}
 
 	return OK;
 }
 
-int DShotOutput::custom_command(int argc, char *argv[])
+int DShot::custom_command(int argc, char *argv[])
 {
 	PortMode new_mode = PORT_MODE_UNSET;
 	const char *verb = argv[0];
@@ -1431,7 +1222,7 @@ int DShotOutput::custom_command(int argc, char *argv[])
 				return -1;
 			}
 
-			return get_instance()->sendCommandThreadSafe(commands[i].command, commands[i].num_repetitions, motor_index);
+			return get_instance()->send_command_thread_safe(commands[i].command, commands[i].num_repetitions, motor_index);
 		}
 	}
 
@@ -1446,18 +1237,18 @@ int DShotOutput::custom_command(int argc, char *argv[])
 			return -1;
 		}
 
-		if (!get_instance()->telemetryEnabled()) {
+		if (!get_instance()->telemetry_enabled()) {
 			PX4_ERR("Telemetry is not enabled, but required to get ESC info");
 			return -1;
 		}
 
-		get_instance()->retrieveAndPrintESCInfoThreadSafe(motor_index);
+		get_instance()->retrieve_and_print_esc_info_thread_safe(motor_index);
 		return 0;
 	}
 
 
 	if (!is_running()) {
-		int ret = DShotOutput::task_spawn(argc, argv);
+		int ret = DShot::task_spawn(argc, argv);
 
 		if (ret) {
 			return ret;
@@ -1534,17 +1325,17 @@ int DShotOutput::custom_command(int argc, char *argv[])
 #endif
 	}
 
-	/* was a new mode set? */
+	// was a new mode set?
 	if (new_mode != PORT_MODE_UNSET) {
 
-		/* switch modes */
-		return DShotOutput::module_new_mode(new_mode);
+		// switch modes
+		return DShot::module_new_mode(new_mode);
 	}
 
 	return print_usage("unknown command");
 }
 
-int DShotOutput::print_status()
+int DShot::print_status()
 {
 	const char *mode_str = nullptr;
 
@@ -1603,7 +1394,7 @@ int DShotOutput::print_status()
 	return 0;
 }
 
-int DShotOutput::print_usage(const char *reason)
+int DShot::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -1688,5 +1479,5 @@ After saving, the reversed direction will be regarded as the normal one. So to r
 
 extern "C" __EXPORT int dshot_main(int argc, char *argv[])
 {
-	return DShotOutput::main(argc, argv);
+	return DShot::main(argc, argv);
 }
