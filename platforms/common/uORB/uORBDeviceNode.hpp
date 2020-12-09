@@ -233,6 +233,19 @@ public:
 	// remove item from list of work items
 	void unregister_callback(SubscriptionCallback *callback_sub);
 
+	// Allocate this always from user heap, also in NuttX
+	// protected build. This allows direct access to some member
+	// variables from the whole system; sort of a shared memmory
+	// TODO: For nuttx kernel build, in shared memory
+	void *operator new (size_t nbytes)
+	{
+		return malloc(nbytes);
+	}
+	void operator delete (void *p)
+	{
+		free(p);
+	}
+
 protected:
 
 	px4_pollevent_t poll_state(cdev::file_t *filp) override;
