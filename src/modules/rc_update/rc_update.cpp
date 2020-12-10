@@ -314,10 +314,10 @@ void RCUpdate::Run()
 		_input_source_previous = input_rc.input_source;
 		_channel_count_previous = input_rc.channel_count;
 
-		const uint8_t channel_limit = math::min(input_rc.channel_count, RC_MAX_CHAN_COUNT);
+		const uint8_t channel_count_limited = math::min(input_rc.channel_count, RC_MAX_CHAN_COUNT);
 
-		if (channel_limit > _channel_count_max) {
-			_channel_count_max = channel_limit;
+		if (channel_count_limited > _channel_count_max) {
+			_channel_count_max = channel_count_limited;
 		}
 
 		/* detect RC signal loss */
@@ -370,7 +370,7 @@ void RCUpdate::Run()
 		}
 
 		/* read out and scale values from raw message even if signal is invalid */
-		for (unsigned int i = 0; i < channel_limit; i++) {
+		for (unsigned int i = 0; i < channel_count_limited; i++) {
 
 			/*
 			 * 1) Constrain to min/max values, as later processing depends on bounds.
@@ -436,7 +436,7 @@ void RCUpdate::Run()
 			// check if channels actually updated
 			bool rc_updated = false;
 
-			for (unsigned i = 0; i < channel_limit; i++) {
+			for (unsigned i = 0; i < channel_count_limited; i++) {
 				if (_rc_values_previous[i] != input_rc.values[i]) {
 					rc_updated = true;
 					break;
