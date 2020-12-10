@@ -3981,23 +3981,6 @@ void Commander::estimator_check()
 			mavlink_log_critical(&_mavlink_log_pub, "Stopping compass use! Check calibration on landing");
 		}
 
-		// Set the allowable position uncertainty based on combination of flight and estimator state
-		// When we are in a operator demanded position control mode and are solely reliant on optical flow, do not check position error because it will gradually increase throughout flight and the operator will compensate for the drift
-		const bool reliant_on_opt_flow = ((estimator_status.control_mode_flags & (1 << estimator_status_s::CS_OPT_FLOW))
-						  && !(estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GPS))
-						  && !(estimator_status.control_mode_flags & (1 << estimator_status_s::CS_EV_POS)));
-
-		const bool operator_controlled_position = (_internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL);
-
-		_skip_pos_accuracy_check = reliant_on_opt_flow && operator_controlled_position;
-
-		if (_skip_pos_accuracy_check) {
-			_eph_threshold_adj = INFINITY;
-
-		} else {
-			_eph_threshold_adj = _param_com_pos_fs_eph.get();
-		}
-
 		/* Check estimator status for signs of bad yaw induced post takeoff navigation failure
 		 * for a short time interval after takeoff. Fixed wing vehicles can recover using GPS heading,
 		 * but rotary wing vehicles cannot so the position and velocity validity needs to be latched
@@ -4052,16 +4035,34 @@ void Commander::estimator_check()
 void Commander::UpdateEstimateValidity()
 {
 	const vehicle_local_position_s &lpos = _local_position_sub.get();
+	const vehicle_global_position_s &gpos = _global_position_sub.get();
+	const estimator_status_s &status = _estimator_status_sub.get();
 
-	if (!_skip_pos_accuracy_check) {
-		const vehicle_global_position_s &gpos = _global_position_sub.get();
-		check_posvel_validity(lpos.xy_valid && !_nav_test_failed, gpos.eph, _eph_threshold_adj, gpos.timestamp,
-				      &_last_gpos_fail_time_us, &_gpos_probation_time_us, &_status_flags.condition_global_position_valid);
+	float lpos_eph_threshold_adj = _param_com_pos_fs_eph.get();
+
+	// relax local position eph threshold in operator controlled position mode
+	// TODO: update to vehicle_control_mode (when available) - flag_control_manual_enabled && flag_control_position_enabled
+	if (_status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL) {
+		// Set the allowable position uncertainty based on combination of flight and estimator state
+		// When we are in a operator demanded position control mode and are solely reliant on optical flow, do not check position error because it will gradually increase throughout flight and the operator will compensate for the drift
+		const bool reliant_on_opt_flow = ((status.control_mode_flags & (1 << estimator_status_s::CS_OPT_FLOW))
+						  && !(status.control_mode_flags & (1 << estimator_status_s::CS_GPS))
+						  && !(status.control_mode_flags & (1 << estimator_status_s::CS_EV_POS)));
+
+		if (reliant_on_opt_flow) {
+			lpos_eph_threshold_adj = INFINITY;
+		}
 	}
 
-	check_posvel_validity(lpos.xy_valid && !_nav_test_failed, lpos.eph, _eph_threshold_adj, lpos.timestamp,
+	// condition_global_position_valid
+	check_posvel_validity(lpos.xy_valid && !_nav_test_failed, gpos.eph, _param_com_pos_fs_eph.get(), gpos.timestamp,
+			      &_last_gpos_fail_time_us, &_gpos_probation_time_us, &_status_flags.condition_global_position_valid);
+
+	// condition_local_position_valid
+	check_posvel_validity(lpos.xy_valid && !_nav_test_failed, lpos.eph, lpos_eph_threshold_adj, lpos.timestamp,
 			      &_last_lpos_fail_time_us, &_lpos_probation_time_us, &_status_flags.condition_local_position_valid);
 
+	// condition_local_velocity_valid
 	check_posvel_validity(lpos.v_xy_valid && !_nav_test_failed, lpos.evh, _param_com_vel_fs_evh.get(), lpos.timestamp,
 			      &_last_lvel_fail_time_us, &_lvel_probation_time_us, &_status_flags.condition_local_velocity_valid);
 }

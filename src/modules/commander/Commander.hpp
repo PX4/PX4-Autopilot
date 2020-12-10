@@ -347,8 +347,6 @@ private:
 
 	hrt_abstime	_last_print_mode_reject_time{0};	///< To remember when last notification was sent
 
-	float		_eph_threshold_adj{INFINITY};	///< maximum allowable horizontal position uncertainty after adjustment for flight condition
-	bool		_skip_pos_accuracy_check{false};
 	bool		_last_condition_local_altitude_valid{false};
 	bool		_last_condition_local_position_valid{false};
 	bool		_last_condition_global_position_valid{false};
