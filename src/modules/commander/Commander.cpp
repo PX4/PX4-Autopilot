@@ -2947,7 +2947,7 @@ Commander::set_main_state_rc(bool *changed)
 	reset_posvel_validity(changed);
 
 	/* set main state according to RC switches */
-	transition_result_t res = TRANSITION_DENIED;
+	transition_result_t res = TRANSITION_NOT_CHANGED;
 
 	/* offboard switch overrides main switch */
 	if (_manual_control_switches.offboard_switch == manual_control_switches_s::SWITCH_POS_ON) {
