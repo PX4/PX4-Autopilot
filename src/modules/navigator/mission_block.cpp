@@ -211,11 +211,33 @@ MissionBlock::is_mission_item_reached()
 				_time_first_inside_orbit = 0;
 			}
 
-		} else if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING &&
-			   (_mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT)) {
+		} else if (_mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT) {
 
-			if (dist >= 0.f && dist <= _navigator->get_acceptance_radius(fabsf(_mission_item.loiter_radius) * 1.2f)
-			    && dist_z <= _navigator->get_altitude_acceptance_radius()) {
+			// NAV_CMD_LOITER_TO_ALT only uses mission item altitude once it's in the loiter
+			//  first check if the altitude setpoint is the mission setpoint
+			position_setpoint_s *curr_sp = &_navigator->get_position_setpoint_triplet()->current;
+
+			if (fabsf(curr_sp->alt - altitude_amsl) >= FLT_EPSILON) {
+				// check if the initial loiter has been accepted
+				dist_xy = -1.0f;
+				dist_z = -1.0f;
+
+				dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, curr_sp->alt,
+						_navigator->get_global_position()->lat,
+						_navigator->get_global_position()->lon,
+						_navigator->get_global_position()->alt,
+						&dist_xy, &dist_z);
+
+				if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(fabsf(_mission_item.loiter_radius) * 1.2f)
+				    && dist_z <= _navigator->get_default_altitude_acceptance_radius()) {
+
+					// now set the loiter to the final altitude in the NAV_CMD_LOITER_TO_ALT mission item
+					curr_sp->alt = altitude_amsl;
+					_navigator->set_position_setpoint_triplet_updated();
+				}
+
+			} else if (dist >= 0.f && dist <= _navigator->get_acceptance_radius(fabsf(_mission_item.loiter_radius) * 1.2f)
+				   && dist_z <= _navigator->get_altitude_acceptance_radius()) {
 
 				_waypoint_position_reached = true;
 
@@ -563,13 +585,22 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 		sp->type = position_setpoint_s::SETPOINT_TYPE_LAND;
 		break;
 
+	case NAV_CMD_LOITER_TO_ALT:
+
+		// initially use current altitude, and switch to mission item altitude once in loiter position
+		if (_navigator->get_loiter_min_alt() > 0.f) { // ignore _param_loiter_min_alt if smaller than 0 (-1)
+			sp->alt = math::max(_navigator->get_global_position()->alt,
+					    _navigator->get_home_position()->alt + _navigator->get_loiter_min_alt());
+
+		} else {
+			sp->alt = _navigator->get_global_position()->alt;
+		}
+
+	// fall through
 	case NAV_CMD_LOITER_TIME_LIMIT:
 
 	// FALLTHROUGH
 	case NAV_CMD_LOITER_UNLIMITED:
-
-	// FALLTHROUGH
-	case NAV_CMD_LOITER_TO_ALT:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 		break;
 
