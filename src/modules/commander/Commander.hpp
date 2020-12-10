@@ -56,7 +56,6 @@
 
 // subscriptions
 #include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionBlocking.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed.h>
