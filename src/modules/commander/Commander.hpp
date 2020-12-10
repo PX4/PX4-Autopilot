@@ -124,12 +124,9 @@ private:
 
 	void battery_status_check();
 
-	void check_valid(const hrt_abstime &timestamp, const hrt_abstime &timeout, const bool valid_in, bool *valid_out,
-			 bool *changed);
-
 	bool check_posvel_validity(const bool data_valid, const float data_accuracy, const float required_accuracy,
-				   const hrt_abstime &data_timestamp_us, hrt_abstime *last_fail_time_us, hrt_abstime *probation_time_us, bool *valid_state,
-				   bool *validity_changed);
+				   const hrt_abstime &data_timestamp_us, hrt_abstime *last_fail_time_us, hrt_abstime *probation_time_us,
+				   bool *valid_state);
 
 	void control_status_leds(bool changed, const uint8_t battery_warning);
 
@@ -155,7 +152,7 @@ private:
 	void print_reject_arm(const char *msg);
 	void print_reject_mode(const char *msg);
 
-	void reset_posvel_validity(bool *changed);
+	void reset_posvel_validity();
 
 	bool set_home_position();
 	bool set_home_position_alt_only();
@@ -170,6 +167,8 @@ private:
 
 	void update_control_mode();
 
+	void UpdateEstimateValidity();
+
 	// Set the main system state based on RC and override device inputs
 	transition_result_t set_main_state(bool *changed);
 
@@ -177,7 +176,7 @@ private:
 	transition_result_t set_main_state_override_on(bool *changed);
 
 	// Set the system main state based on the current RC inputs
-	transition_result_t set_main_state_rc(bool *changed);
+	transition_result_t set_main_state_rc();
 
 	bool shutdown_if_allowed();
 

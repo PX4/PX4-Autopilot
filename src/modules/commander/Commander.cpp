@@ -539,13 +539,13 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_POSCTL) {
 					/* POSCTL */
-					reset_posvel_validity(&_status_changed);
+					reset_posvel_validity();
 					main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags, &_internal_state);
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
 					/* AUTO */
 					if (custom_sub_mode > 0) {
-						reset_posvel_validity(&_status_changed);
+						reset_posvel_validity();
 
 						switch (custom_sub_mode) {
 						case PX4_CUSTOM_SUB_MODE_AUTO_LOITER:
@@ -614,7 +614,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_STAB, _status_flags, &_internal_state);
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_OFFBOARD) {
-					reset_posvel_validity(&_status_changed);
+					reset_posvel_validity();
 
 					/* OFFBOARD */
 					main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_OFFBOARD, _status_flags,
@@ -2763,19 +2763,6 @@ Commander::get_circuit_breaker_params()
 }
 
 void
-Commander::check_valid(const hrt_abstime &timestamp, const hrt_abstime &timeout, const bool valid_in, bool *valid_out,
-		       bool *changed)
-{
-	hrt_abstime t = hrt_absolute_time();
-	bool valid_new = (t < timestamp + timeout && t > timeout && valid_in);
-
-	if (*valid_out != valid_new) {
-		*valid_out = valid_new;
-		*changed = true;
-	}
-}
-
-void
 Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 {
 	static hrt_abstime overload_start = 0;
@@ -2912,7 +2899,7 @@ Commander::set_main_state(bool *changed)
 		return set_main_state_override_on(changed);
 
 	} else {
-		return set_main_state_rc(changed);
+		return set_main_state_rc();
 	}
 }
 
@@ -2927,7 +2914,7 @@ Commander::set_main_state_override_on(bool *changed)
 }
 
 transition_result_t
-Commander::set_main_state_rc(bool *changed)
+Commander::set_main_state_rc()
 {
 	if ((_manual_control_switches.timestamp == 0)
 	    || (_manual_control_switches.timestamp == _last_manual_control_switches.timestamp)) {
@@ -2984,7 +2971,7 @@ Commander::set_main_state_rc(bool *changed)
 
 	// reset the position and velocity validity calculation to give the best change of being able to select
 	// the desired mode
-	reset_posvel_validity(changed);
+	reset_posvel_validity();
 
 	/* set main state according to RC switches */
 	transition_result_t res = TRANSITION_NOT_CHANGED;
@@ -3316,33 +3303,20 @@ Commander::set_main_state_rc(bool *changed)
 }
 
 void
-Commander::reset_posvel_validity(bool *changed)
+Commander::reset_posvel_validity()
 {
 	// reset all the check probation times back to the minimum value
 	_gpos_probation_time_us = POSVEL_PROBATION_MIN;
 	_lpos_probation_time_us = POSVEL_PROBATION_MIN;
 	_lvel_probation_time_us = POSVEL_PROBATION_MIN;
 
-	const vehicle_local_position_s &local_position = _local_position_sub.get();
-	const vehicle_global_position_s &global_position = _global_position_sub.get();
-
 	// recheck validity
-	if (!_skip_pos_accuracy_check) {
-		check_posvel_validity(true, global_position.eph, _eph_threshold_adj, global_position.timestamp,
-				      &_last_gpos_fail_time_us, &_gpos_probation_time_us, &_status_flags.condition_global_position_valid, changed);
-	}
-
-	check_posvel_validity(local_position.xy_valid, local_position.eph, _eph_threshold_adj, local_position.timestamp,
-			      &_last_lpos_fail_time_us, &_lpos_probation_time_us, &_status_flags.condition_local_position_valid, changed);
-	check_posvel_validity(local_position.v_xy_valid, local_position.evh, _param_com_vel_fs_evh.get(),
-			      local_position.timestamp,
-			      &_last_lvel_fail_time_us, &_lvel_probation_time_us, &_status_flags.condition_local_velocity_valid, changed);
+	UpdateEstimateValidity();
 }
 
 bool
 Commander::check_posvel_validity(const bool data_valid, const float data_accuracy, const float required_accuracy,
-				 const hrt_abstime &data_timestamp_us, hrt_abstime *last_fail_time_us, hrt_abstime *probation_time_us, bool *valid_state,
-				 bool *validity_changed)
+				 const hrt_abstime &data_timestamp_us, hrt_abstime *last_fail_time_us, hrt_abstime *probation_time_us, bool *valid_state)
 {
 	const bool was_valid = *valid_state;
 	bool valid = was_valid;
@@ -3389,7 +3363,7 @@ Commander::check_posvel_validity(const bool data_valid, const float data_accurac
 	}
 
 	if (was_valid != valid) {
-		*validity_changed = true;
+		_status_changed = true;
 		*valid_state = valid;
 	}
 
@@ -3975,7 +3949,6 @@ void Commander::estimator_check()
 	_global_position_sub.update();
 
 	const vehicle_local_position_s &lpos = _local_position_sub.get();
-	const vehicle_global_position_s &gpos = _global_position_sub.get();
 
 	if (lpos.heading_reset_counter != _heading_reset_counter) {
 		if (_status_flags.condition_home_position_valid) {
@@ -4066,32 +4039,31 @@ void Commander::estimator_check()
 		}
 	}
 
-	/* run global position accuracy checks */
+	// run position and velocity accuracy checks
 	// Check if quality checking of position accuracy and consistency is to be performed
 	if (run_quality_checks) {
-		if (_nav_test_failed) {
-			_status_flags.condition_global_position_valid = false;
-			_status_flags.condition_local_position_valid = false;
-			_status_flags.condition_local_velocity_valid = false;
-
-		} else {
-			if (!_skip_pos_accuracy_check) {
-				// use global position message to determine validity
-				check_posvel_validity(lpos.xy_valid, gpos.eph, _eph_threshold_adj, gpos.timestamp, &_last_gpos_fail_time_us,
-						      &_gpos_probation_time_us, &_status_flags.condition_global_position_valid, &_status_changed);
-			}
-
-			// use local position message to determine validity
-			check_posvel_validity(lpos.xy_valid, lpos.eph, _eph_threshold_adj, lpos.timestamp, &_last_lpos_fail_time_us,
-					      &_lpos_probation_time_us, &_status_flags.condition_local_position_valid, &_status_changed);
-
-			check_posvel_validity(lpos.v_xy_valid, lpos.evh, _param_com_vel_fs_evh.get(), lpos.timestamp, &_last_lvel_fail_time_us,
-					      &_lvel_probation_time_us, &_status_flags.condition_local_velocity_valid, &_status_changed);
-		}
+		UpdateEstimateValidity();
 	}
 
-	check_valid(lpos.timestamp, _param_com_pos_fs_delay.get() * 1_s, lpos.z_valid,
-		    &(_status_flags.condition_local_altitude_valid), &_status_changed);
+	_status_flags.condition_local_altitude_valid = lpos.z_valid
+			&& (hrt_elapsed_time(&lpos.timestamp) < (_param_com_pos_fs_delay.get() * 1_s));
+}
+
+void Commander::UpdateEstimateValidity()
+{
+	const vehicle_local_position_s &lpos = _local_position_sub.get();
+
+	if (!_skip_pos_accuracy_check) {
+		const vehicle_global_position_s &gpos = _global_position_sub.get();
+		check_posvel_validity(lpos.xy_valid && !_nav_test_failed, gpos.eph, _eph_threshold_adj, gpos.timestamp,
+				      &_last_gpos_fail_time_us, &_gpos_probation_time_us, &_status_flags.condition_global_position_valid);
+	}
+
+	check_posvel_validity(lpos.xy_valid && !_nav_test_failed, lpos.eph, _eph_threshold_adj, lpos.timestamp,
+			      &_last_lpos_fail_time_us, &_lpos_probation_time_us, &_status_flags.condition_local_position_valid);
+
+	check_posvel_validity(lpos.v_xy_valid && !_nav_test_failed, lpos.evh, _param_com_vel_fs_evh.get(), lpos.timestamp,
+			      &_last_lvel_fail_time_us, &_lvel_probation_time_us, &_status_flags.condition_local_velocity_valid);
 }
 
 void
