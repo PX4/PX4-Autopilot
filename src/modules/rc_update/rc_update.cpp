@@ -295,8 +295,6 @@ void RCUpdate::Run()
 
 	if (_input_rc_sub.update(&input_rc)) {
 
-		const uint8_t channel_limit = math::min(input_rc.channel_count, RC_MAX_CHAN_COUNT);
-
 		// warn if the channel count is changing (possibly indication of error)
 		if (!input_rc.rc_lost) {
 			if ((_channel_count_previous != input_rc.channel_count)
@@ -315,6 +313,8 @@ void RCUpdate::Run()
 
 		_input_source_previous = input_rc.input_source;
 		_channel_count_previous = input_rc.channel_count;
+
+		const uint8_t channel_limit = math::min(input_rc.channel_count, RC_MAX_CHAN_COUNT);
 
 		if (channel_limit > _channel_count_max) {
 			_channel_count_max = channel_limit;
