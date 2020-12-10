@@ -1103,11 +1103,7 @@ void Ekf::controlHeightFusion()
 			Vector3f gps_hgt_obs_var;
 			// vertical position innovation - gps measurement has opposite sign to earth z axis
 			_gps_pos_innov(2) = _state.pos(2) + _gps_sample_delayed.hgt - _gps_alt_ref - _hgt_sensor_offset;
-			// observation variance - receiver defined and parameter limited
-			// use scaled horizontal position accuracy assuming typical ratio of VDOP/HDOP
-			const float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
-			const float upper_limit = fmaxf(_params.pos_noaid_noise, lower_limit);
-			gps_hgt_obs_var(2) = sq(1.5f * math::constrain(_gps_sample_delayed.vacc, lower_limit, upper_limit));
+			gps_hgt_obs_var(2) = getGpsAltVar();
 			// innovation gate size
 			gps_hgt_innov_gate(1) = fmaxf(_params.baro_innov_gate, 1.0f);
 			// fuse height information

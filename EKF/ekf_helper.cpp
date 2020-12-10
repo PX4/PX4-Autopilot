@@ -1244,6 +1244,16 @@ void Ekf::updateBaroHgtOffset()
 	}
 }
 
+float Ekf::getGpsAltVar()
+{
+	// observation variance - receiver defined and parameter limited
+	// use scaled horizontal position accuracy assuming typical ratio of VDOP/HDOP
+	const float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
+	const float upper_limit = fmaxf(_params.pos_noaid_noise, lower_limit);
+	const float gps_alt_var = sq(1.5f * math::constrain(_gps_sample_delayed.vacc, lower_limit, upper_limit));
+	return gps_alt_var;
+}
+
 Vector3f Ekf::getVisionVelocityInEkfFrame() const
 {
 	Vector3f vel;
