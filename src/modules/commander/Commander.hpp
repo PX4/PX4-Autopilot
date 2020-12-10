@@ -362,7 +362,7 @@ private:
 	manual_control_switches_s _last_manual_control_switches{};
 	hrt_abstime	_rc_signal_lost_timestamp{0};		///< Time at which the RC reception was lost
 	int32_t		_flight_mode_slots[manual_control_switches_s::MODE_SLOT_NUM] {};
-	uint8_t		_last_manual_control_switches_arm_switch{0};
+	uint8_t		_last_manual_control_switches_arm_switch{manual_control_switches_s::SWITCH_POS_NONE};
 	uint32_t	_stick_off_counter{0};
 	uint32_t	_stick_on_counter{0};
 
