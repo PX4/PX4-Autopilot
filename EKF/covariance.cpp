@@ -74,9 +74,7 @@ void Ekf::initialiseCovariance()
 		P(9,9) = sq(fmaxf(_params.range_noise, 0.01f));
 
 	} else if (_control_status.flags.gps_hgt) {
-		float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
-		float upper_limit = fmaxf(_params.pos_noaid_noise, lower_limit);
-		P(9,9) = sq(1.5f * math::constrain(_gps_sample_delayed.vacc, lower_limit, upper_limit));
+		P(9,9) = getGpsAltVar();
 
 	} else {
 		P(9,9) = sq(fmaxf(_params.baro_noise, 0.01f));
