@@ -851,6 +851,9 @@ private:
 
 	void updateBaroHgtOffset();
 
+	// return an estimation of the GPS altitude variance
+	float getGpsAltVar();
+
 	// calculate the measurement variance for the optical flow sensor
 	float calcOptFlowMeasVar();
 
