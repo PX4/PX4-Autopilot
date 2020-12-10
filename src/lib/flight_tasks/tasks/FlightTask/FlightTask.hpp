@@ -257,7 +257,9 @@ protected:
 	 */
 	vehicle_constraints_s _constraints{};
 
-	landing_gear_s _gear{};
+	landing_gear_s _gear{
+		.landing_gear = landing_gear_s::GEAR_KEEP
+	};
 
 	/**
 	 * Desired waypoints.
