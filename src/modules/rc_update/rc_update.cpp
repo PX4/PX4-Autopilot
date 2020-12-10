@@ -426,7 +426,7 @@ void RCUpdate::Run()
 		/* publish rc_channels topic even if signal is invalid, for debug */
 		_rc_channels_pub.publish(_rc);
 
-		/* only publish manual control if the signal is still present and was present once */
+		/* only publish manual control if the signal is present */
 		if (input_source_stable && channel_count_stable && !signal_lost
 		    && (input_rc.timestamp_last_signal > _last_timestamp_signal)) {
 
