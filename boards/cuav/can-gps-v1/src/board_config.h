@@ -34,30 +34,30 @@
 /**
  * @file board_config.h
  *
- * PX4FMUv4 internal definitions
+ * board internal definitions
  */
 
 #pragma once
-
-/****************************************************************************************************
- * Included Files
- ****************************************************************************************************/
 
 #include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
+/* LEDs */
+#define GPIO_LED_BLUE  /* PB13  */ (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN13)
+#define GPIO_LED_RED   /* PB14  */ (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN14)
+#define GPIO_LED_GREEN /* PB15  */ (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN15)
+
 /* BUTTON *************************************************************************** */
 #define BUTTON_BOOT0n   (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTB|GPIO_PIN3|GPIO_EXTI)
 #define IRQBUTTON       BUTTON_BOOT0_BIT
 
-/* CAN Silence
- *
- * Silent mode control \ ESC Mux select
- */
+/* CAN Silence: Silent mode control \ ESC Mux select */
 #define GPIO_CAN1_SILENT_S0  /* PB5  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN5)
-#define GPIO_CAN_CTRL  /* PB5  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_PORTB|GPIO_PIN5|GPIO_OUTPUT_CLEAR)
+#define GPIO_CAN_CTRL        /* PB5  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_PORTB|GPIO_PIN5|GPIO_OUTPUT_CLEAR)
 
+#define GPIO_LED_SAFETY      /* PB1  */ (GPIO_OUTPUT|GPIO_PULLDOWN|GPIO_PORTB|GPIO_PIN1) // SAFE_LED
+#define GPIO_BTN_SAFETY      /* PB3  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTB|GPIO_PIN3)  // SAFETY
 
 /* Tone alarm output. */
 #define TONE_ALARM_TIMER             2    /* timer 2 */
@@ -72,18 +72,6 @@
 __BEGIN_DECLS
 
 #ifndef __ASSEMBLY__
-
-/****************************************************************************************************
- * Public Functions
- ****************************************************************************************************/
-
-/****************************************************************************************************
- * Name: stm32_spiinitialize
- *
- * Description:
- *   Called to configure SPI chip select GPIO pins for the PX4FMU board.
- *
- ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
 

@@ -8,3 +8,5 @@
 # Internal SPI
 ms5611 -s start
 rm3100 -s start
+
+ist8310 -I -a 0x0E start

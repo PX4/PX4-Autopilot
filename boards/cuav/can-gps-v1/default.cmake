@@ -31,41 +31,33 @@ px4_add_board(
 		GPS1:/dev/ttyS1
 	DRIVERS
 		#adc
+		barometer/bmp388
 		barometer/ms5611
 		bootloaders
 		gps
+		magnetometer/isentek/ist8310
 		magnetometer/rm3100
-		#safety_button
-		#tone_alarm
+		safety_button
+		tone_alarm
 		uavcannode
 	MODULES
 		#ekf2
-		#load_mon
+		load_mon
 		#sensors
 		#temperature_compensation
 	SYSTEMCMDS
-		#bl_update
-		#dmesg
+		bl_update
 		#dumpfile
-		#esc_calib
 		#hardfault_log
-		#i2cdetect
-		#led_control
+		i2cdetect
+		led_control
 		#mft
-		#mixer
-		#motor_ramp
-		#motor_test
-		#mtd
-		#nshterm
 		param
 		perf
 		reboot
-		#reflect
-		#sd_bench
-		#shutdown
 		top
 		topic_listener
-		#tune_control
+		tune_control
 		ver
 		work_queue
 )
