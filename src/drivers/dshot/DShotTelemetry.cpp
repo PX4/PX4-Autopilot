@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include "telemetry.h"
+#include "DShotTelemetry.h"
 
 #include <px4_platform_common/log.h>
 

@@ -1227,6 +1227,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL:
 	case vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_DIST:
+	case vehicle_command_s::VEHICLE_CMD_OBLIQUE_SURVEY:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_INTERVAL:
 	case vehicle_command_s::VEHICLE_CMD_SET_CAMERA_MODE:
 	case vehicle_command_s::VEHICLE_CMD_SET_CAMERA_ZOOM:
@@ -2382,7 +2383,7 @@ Commander::run()
 			 * we can as well just wait in a hold mode which enables tablet control.
 			 */
 			if (_status.rc_signal_lost && (_internal_state.main_state == commander_state_s::MAIN_STATE_MANUAL)
-			    && _status_flags.condition_home_position_valid) {
+			    && _status_flags.condition_global_position_valid) {
 
 				main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _status_flags, &_internal_state);
 			}
