@@ -4077,7 +4077,7 @@ void Commander::estimator_check()
 		} else {
 			if (!_skip_pos_accuracy_check) {
 				// use global position message to determine validity
-				check_posvel_validity(true, gpos.eph, _eph_threshold_adj, gpos.timestamp, &_last_gpos_fail_time_us,
+				check_posvel_validity(lpos.xy_valid, gpos.eph, _eph_threshold_adj, gpos.timestamp, &_last_gpos_fail_time_us,
 						      &_gpos_probation_time_us, &_status_flags.condition_global_position_valid, &_status_changed);
 			}
 
