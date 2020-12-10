@@ -341,7 +341,6 @@ private:
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
 		(ParamFloat<px4::params::BAT_EMERGEN_THR>)  _param_bat_emergen_thr,
 		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr,
-		(ParamInt<px4::params::COM_FLIGHT_UUID>)    _param_com_flight_uuid,
 		(ParamFloat<px4::params::SENS_FLOW_MAXHGT>) _param_sens_flow_maxhgt,
 		(ParamFloat<px4::params::SENS_FLOW_MAXR>)   _param_sens_flow_maxr,
 		(ParamFloat<px4::params::SENS_FLOW_MINHGT>) _param_sens_flow_minhgt,
