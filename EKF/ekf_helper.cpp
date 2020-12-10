@@ -1244,7 +1244,7 @@ void Ekf::updateBaroHgtOffset()
 	}
 }
 
-float Ekf::getGpsAltVar()
+float Ekf::getGpsHeightVariance()
 {
 	// observation variance - receiver defined and parameter limited
 	const float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
