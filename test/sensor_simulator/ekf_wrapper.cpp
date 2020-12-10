@@ -62,9 +62,7 @@ void EkfWrapper::disableGpsFusion()
 
 bool EkfWrapper::isIntendingGpsFusion() const
 {
-	filter_control_status_u control_status;
-	_ekf->get_control_mode(&control_status.value);
-	return control_status.flags.gps;
+	return _ekf->control_status_flags().gps;
 }
 
 void EkfWrapper::enableGpsHeadingFusion()
@@ -79,9 +77,7 @@ void EkfWrapper::disableGpsHeadingFusion()
 
 bool EkfWrapper::isIntendingGpsHeadingFusion() const
 {
-	filter_control_status_u control_status;
-	_ekf->get_control_mode(&control_status.value);
-	return control_status.flags.gps_yaw;
+	return _ekf->control_status_flags().gps_yaw;
 }
 
 void EkfWrapper::enableFlowFusion()
@@ -96,9 +92,7 @@ void EkfWrapper::disableFlowFusion()
 
 bool EkfWrapper::isIntendingFlowFusion() const
 {
-	filter_control_status_u control_status;
-	_ekf->get_control_mode(&control_status.value);
-	return control_status.flags.opt_flow;
+	return _ekf->control_status_flags().opt_flow;
 }
 
 void EkfWrapper::enableExternalVisionPositionFusion()
@@ -113,9 +107,7 @@ void EkfWrapper::disableExternalVisionPositionFusion()
 
 bool EkfWrapper::isIntendingExternalVisionPositionFusion() const
 {
-	filter_control_status_u control_status;
-	_ekf->get_control_mode(&control_status.value);
-	return control_status.flags.ev_pos;
+	return _ekf->control_status_flags().ev_pos;
 }
 
 void EkfWrapper::enableExternalVisionVelocityFusion()
@@ -130,9 +122,7 @@ void EkfWrapper::disableExternalVisionVelocityFusion()
 
 bool EkfWrapper::isIntendingExternalVisionVelocityFusion() const
 {
-	filter_control_status_u control_status;
-	_ekf->get_control_mode(&control_status.value);
-	return control_status.flags.ev_vel;
+	return _ekf->control_status_flags().ev_vel;
 }
 
 void EkfWrapper::enableExternalVisionHeadingFusion()
@@ -147,9 +137,7 @@ void EkfWrapper::disableExternalVisionHeadingFusion()
 
 bool EkfWrapper::isIntendingExternalVisionHeadingFusion() const
 {
-	filter_control_status_u control_status;
-	_ekf->get_control_mode(&control_status.value);
-	return control_status.flags.ev_yaw;
+	return _ekf->control_status_flags().ev_yaw;
 }
 
 void EkfWrapper::enableExternalVisionAlignment()
@@ -164,23 +152,17 @@ void EkfWrapper::disableExternalVisionAlignment()
 
 bool EkfWrapper::isIntendingMagHeadingFusion() const
 {
-	filter_control_status_u control_status;
-	_ekf->get_control_mode(&control_status.value);
-	return control_status.flags.mag_hdg;
+	return _ekf->control_status_flags().mag_hdg;
 }
 
 bool EkfWrapper::isIntendingMag3DFusion() const
 {
-	filter_control_status_u control_status;
-	_ekf->get_control_mode(&control_status.value);
-	return control_status.flags.mag_3D;
+	return _ekf->control_status_flags().mag_3D;
 }
 
 bool EkfWrapper::isWindVelocityEstimated() const
 {
-	filter_control_status_u control_status;
-	_ekf->get_control_mode(&control_status.value);
-	return control_status.flags.wind;
+	return _ekf->control_status_flags().wind;
 }
 
 void EkfWrapper::enableTerrainRngFusion()
