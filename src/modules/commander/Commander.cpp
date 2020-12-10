@@ -2901,8 +2901,18 @@ Commander::set_main_state_rc(bool *changed)
 	// feature, just in case offboard control goes crazy.
 
 	// only switch mode based on RC switch if necessary to also allow mode switching via MAVLink
-	bool should_evaluate_rc_mode_switch = (_manual_control_switches.switch_changes !=
-					       _last_manual_control_switches.switch_changes);
+	bool should_evaluate_rc_mode_switch =
+		(_last_manual_control_switches.offboard_switch != _manual_control_switches.offboard_switch)
+		|| (_last_manual_control_switches.return_switch != _manual_control_switches.return_switch)
+		|| (_last_manual_control_switches.mode_switch != _manual_control_switches.mode_switch)
+		|| (_last_manual_control_switches.acro_switch != _manual_control_switches.acro_switch)
+		|| (_last_manual_control_switches.rattitude_switch != _manual_control_switches.rattitude_switch)
+		|| (_last_manual_control_switches.posctl_switch != _manual_control_switches.posctl_switch)
+		|| (_last_manual_control_switches.loiter_switch != _manual_control_switches.loiter_switch)
+		|| (_last_manual_control_switches.mode_slot != _manual_control_switches.mode_slot)
+		|| (_last_manual_control_switches.stab_switch != _manual_control_switches.stab_switch)
+		|| (_last_manual_control_switches.man_switch != _manual_control_switches.man_switch);
+
 
 	if (_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 		// if already armed don't evaluate first time RC
