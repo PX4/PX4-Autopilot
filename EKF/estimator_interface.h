@@ -196,14 +196,17 @@ public:
 	}
 
 	// get EKF mode status
-	void get_control_mode(uint32_t *val) const { *val = _control_status.value; }
+	const filter_control_status_u &control_status() const { return _control_status; }
 	const decltype(filter_control_status_u::flags) &control_status_flags() const { return _control_status.flags; }
+
+	const filter_control_status_u &control_status_prev() const { return _control_status_prev; }
 	const decltype(filter_control_status_u::flags) &control_status_prev_flags() const { return _control_status_prev.flags; }
 
 	// get EKF internal fault status
-	void get_filter_fault_status(uint16_t *val) const { *val = _fault_status.value; }
+	const fault_status_u &fault_status() const { return _fault_status; }
 	const decltype(fault_status_u::flags) &fault_status_flags() const { return _fault_status.flags; }
 
+	const innovation_fault_status_u &innov_check_fail_status() const { return _innov_check_fail_status; }
 	const decltype(innovation_fault_status_u::flags) &innov_check_fail_status_flags() const { return _innov_check_fail_status.flags; }
 
 	bool isVehicleAtRest() const { return _control_status.flags.vehicle_at_rest; }
