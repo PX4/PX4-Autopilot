@@ -71,8 +71,6 @@ public:
 	{
 		_resetSetpoints();
 		_constraints = empty_constraints;
-
-		_gear.landing_gear = landing_gear_s::GEAR_KEEP;
 	}
 
 	virtual ~FlightTask() = default;
