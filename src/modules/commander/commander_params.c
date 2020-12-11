@@ -250,6 +250,7 @@ PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);
  * @group Commander
  * @min 100
  * @max 1500
+ * @unit ms
  */
 PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
 

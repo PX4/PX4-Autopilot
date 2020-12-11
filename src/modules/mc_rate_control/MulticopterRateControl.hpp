@@ -85,12 +85,6 @@ private:
 	 */
 	void		parameters_updated();
 
-	/**
-	 * Get the landing gear state based on the manual control switch position
-	 * @return vehicle_attitude_setpoint_s::LANDING_GEAR_UP or vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN
-	 */
-	float		get_landing_gear_state();
-
 	RateControl _rate_control; ///< class for rate control calculations
 
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
@@ -111,7 +105,6 @@ private:
 	uORB::Publication<landing_gear_s>		_landing_gear_pub{ORB_ID(landing_gear)};
 	uORB::Publication<vehicle_rates_setpoint_s>	_v_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};			/**< rate setpoint publication */
 
-	landing_gear_s 			_landing_gear{};
 	manual_control_setpoint_s	_manual_control_setpoint{};
 	vehicle_control_mode_s		_v_control_mode{};
 	vehicle_status_s		_vehicle_status{};
@@ -128,9 +121,9 @@ private:
 
 	float		_thrust_sp{0.0f};		/**< thrust setpoint */
 
-	bool _gear_state_initialized{false};		/**< true if the gear state has been initialized */
-
 	hrt_abstime _last_run{0};
+
+	int8_t _landing_gear{landing_gear_s::GEAR_DOWN};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MC_ROLLRATE_P>) _param_mc_rollrate_p,

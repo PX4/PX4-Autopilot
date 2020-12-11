@@ -48,6 +48,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/landing_gear.h>
 #include <uORB/topics/test_motor.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -68,6 +69,7 @@
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
@@ -356,11 +358,12 @@ private:
 
 	unsigned int	_leds_counter{0};
 
-	manual_control_setpoint_s	_manual_control_setpoint{};		///< the current manual control setpoint
-	manual_control_setpoint_s	_last_manual_control_setpoint{};	///< the manual control setpoint valid at the last mode switch
+	manual_control_setpoint_s _manual_control_setpoint{};		///< the current manual control setpoint
+	manual_control_switches_s _manual_control_switches{};
+	manual_control_switches_s _last_manual_control_switches{};
 	hrt_abstime	_rc_signal_lost_timestamp{0};		///< Time at which the RC reception was lost
-	int32_t		_flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_NUM] {};
-	uint8_t		_last_manual_control_setpoint_arm_switch{0};
+	int32_t		_flight_mode_slots[manual_control_switches_s::MODE_SLOT_NUM] {};
+	uint8_t		_last_manual_control_switches_arm_switch{manual_control_switches_s::SWITCH_POS_NONE};
 	uint32_t	_stick_off_counter{0};
 	uint32_t	_stick_on_counter{0};
 
@@ -406,6 +409,7 @@ private:
 	uORB::Subscription					_parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription					_safety_sub{ORB_ID(safety)};
 	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription					_manual_control_switches_sub{ORB_ID(manual_control_switches)};
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription					_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription					_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
@@ -433,6 +437,7 @@ private:
 	uORB::Publication<vehicle_status_flags_s>		_vehicle_status_flags_pub{ORB_ID(vehicle_status_flags)};
 	uORB::Publication<vehicle_status_s>			_status_pub{ORB_ID(vehicle_status)};
 	uORB::Publication<mission_s>				_mission_pub{ORB_ID(mission)};
+	uORB::Publication<landing_gear_s>			_landing_gear_pub{ORB_ID(landing_gear)};
 
 	uORB::PublicationData<home_position_s>			_home_pub{ORB_ID(home_position)};
 
