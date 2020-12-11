@@ -164,13 +164,14 @@ public:
 
 	float STE_rate_setpoint() { return _SPE_rate_setpoint + _SKE_rate_setpoint; }
 
-	float SEB();
+	float SEB() { return _SPE_estimate * _SPE_weighting - _SKE_estimate * _SKE_weighting; }
 
-	float SEB_setpoint();
+	float SEB_setpoint() { return _SPE_setpoint * _SPE_weighting - _SKE_setpoint * _SKE_weighting; }
 
-	float SEB_rate();
+	float SEB_rate() { return _SPE_rate * _SPE_weighting - _SKE_rate * _SKE_weighting; }
 
-	float SEB_rate_setpoint();
+	float SEB_rate_setpoint() { return _SPE_rate_setpoint * _SPE_weighting - _SKE_rate_setpoint * _SKE_weighting; }
+
 
 	/**
 	 * Handle the altitude reset
