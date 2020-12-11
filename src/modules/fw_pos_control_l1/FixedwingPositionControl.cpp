@@ -734,9 +734,6 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 				    && (dist_xy < 2.f * math::max(acc_rad, fabsf(pos_sp_curr.loiter_radius)))) {
 					// SETPOINT_TYPE_POSITION -> SETPOINT_TYPE_LOITER
 					position_sp_type = position_setpoint_s::SETPOINT_TYPE_LOITER;
-
-				} else if ((dist_xy < 2.f * math::max(acc_rad, fabsf(pos_sp_curr.loiter_radius))) && !pos_sp_next.valid) {
-					position_sp_type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 				}
 
 			} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
