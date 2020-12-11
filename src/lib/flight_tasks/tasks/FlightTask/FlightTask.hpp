@@ -71,6 +71,8 @@ public:
 	{
 		_resetSetpoints();
 		_constraints = empty_constraints;
+
+		_gear.landing_gear = landing_gear_s::GEAR_KEEP;
 	}
 
 	virtual ~FlightTask() = default;
@@ -257,9 +259,7 @@ protected:
 	 */
 	vehicle_constraints_s _constraints{};
 
-	landing_gear_s _gear{
-		.landing_gear = landing_gear_s::GEAR_KEEP
-	};
+	landing_gear_s _gear{};
 
 	/**
 	 * Desired waypoints.
