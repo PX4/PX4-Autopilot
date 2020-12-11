@@ -56,23 +56,7 @@ bool FlightTaskManualAltitude::updateInitialize()
 {
 	bool ret = FlightTask::updateInitialize();
 
-	manual_control_switches_s manual_control_switches;
-
-	if (_manual_control_switches_sub.update(&manual_control_switches)) {
-		// Only switch the landing gear up if the user switched from gear down to gear up.
-		// If the user had the switch in the gear up position and took off ignore it
-		// until he toggles the switch to avoid retracting the gear immediately on takeoff.
-		if (_gear_switch_old != manual_control_switches.gear_switch) {
-			if (manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-				_gear.landing_gear = landing_gear_s::GEAR_DOWN;
-
-			} else if (manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_ON) {
-				_gear.landing_gear = landing_gear_s::GEAR_UP;
-			}
-
-			_gear_switch_old = manual_control_switches.gear_switch;
-		}
-	}
+	setGearAccordingToSwitch();
 
 	_sticks.checkAndSetStickInputs();
 
@@ -395,6 +379,27 @@ bool FlightTaskManualAltitude::_checkTakeoff()
 {
 	// stick is deflected above 65% throttle (throttle stick is in the range [-1,1])
 	return _sticks.getPosition()(2) < -0.3f;
+}
+
+void FlightTaskManualAltitude::setGearAccordingToSwitch()
+{
+	manual_control_switches_s manual_control_switches;
+
+	if (_manual_control_switches_sub.update(&manual_control_switches)) {
+		// Only switch the landing gear up if the user switched from gear down to gear up.
+		// If the user had the switch in the gear up position and took off ignore it
+		// until he toggles the switch to avoid retracting the gear immediately on takeoff.
+		if (_gear_switch_old != manual_control_switches.gear_switch) {
+			if (manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_OFF) {
+				_gear.landing_gear = landing_gear_s::GEAR_DOWN;
+
+			} else if (manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_ON) {
+				_gear.landing_gear = landing_gear_s::GEAR_UP;
+			}
+
+			_gear_switch_old = manual_control_switches.gear_switch;
+		}
+	}
 }
 
 bool FlightTaskManualAltitude::update()
