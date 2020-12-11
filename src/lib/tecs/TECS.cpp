@@ -627,23 +627,3 @@ void TECS::_update_speed_height_weights()
 	_SPE_weighting = constrain(2.0f - _SKE_weighting, 0.f, 1.f);
 	_SKE_weighting = constrain(_SKE_weighting, 0.f, 1.f);
 }
-
-float TECS::SEB()
-{
-	return _SPE_estimate * _SPE_weighting - _SKE_estimate * _SKE_weighting;
-}
-
-float TECS::SEB_setpoint()
-{
-	return _SPE_setpoint * _SPE_weighting - _SKE_setpoint * _SKE_weighting;
-}
-
-float TECS::SEB_rate()
-{
-	return _SPE_rate * _SPE_weighting - _SKE_rate * _SKE_weighting;
-}
-
-float TECS::SEB_rate_setpoint()
-{
-	return _SPE_rate_setpoint * _SPE_weighting - _SKE_rate_setpoint * _SKE_weighting;
-}
