@@ -3134,7 +3134,13 @@ MavlinkReceiver::get_offb_cruising_speed()
 	vehicle_status_s vehicle_status{};
 	_vehicle_status_sub.copy(&vehicle_status);
 
-	if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+	if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && _offb_cruising_speed_mc > 0.0f) {
+	    return _offb_cruising_speed_mc;
+	} else if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING && _offb_cruising_speed_fw > 0.0f) {
+	    return _offb_cruising_speed_fw;
+	} else {
+	    return -1.0f;
+	}
 		if (_offb_cruising_speed_mc > 0.0f) {
 			return _offb_cruising_speed_mc;
 
