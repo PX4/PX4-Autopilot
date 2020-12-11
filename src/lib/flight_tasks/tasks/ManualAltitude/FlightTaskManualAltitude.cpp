@@ -44,7 +44,13 @@ using namespace matrix;
 
 FlightTaskManualAltitude::FlightTaskManualAltitude() :
 	_sticks(this)
-{};
+{
+	manual_control_switches_s manual_control_switches;
+
+	if (_manual_control_switches_sub.copy(&manual_control_switches)) {
+		_gear_switch_old = manual_control_switches.gear_switch;
+	}
+};
 
 bool FlightTaskManualAltitude::updateInitialize()
 {
@@ -52,27 +58,20 @@ bool FlightTaskManualAltitude::updateInitialize()
 
 	manual_control_switches_s manual_control_switches;
 
-	if (_manual_control_switches_sub.copy(&manual_control_switches) && (manual_control_switches.timestamp > 0)) {
-
-		const int8_t gear_switch = manual_control_switches.gear_switch;
-
-		if (_gear_switch_old != gear_switch) {
-			if (gear_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-				_gear.landing_gear = landing_gear_s::GEAR_DOWN;
-			}
-
-			if (gear_switch == manual_control_switches_s::SWITCH_POS_ON) {
-				_gear.landing_gear = landing_gear_s::GEAR_UP;
-			}
-		}
-
-		_gear_switch_old = gear_switch;
-
-	} else {
+	if (_manual_control_switches_sub.update(&manual_control_switches)) {
 		// Only switch the landing gear up if the user switched from gear down to gear up.
 		// If the user had the switch in the gear up position and took off ignore it
 		// until he toggles the switch to avoid retracting the gear immediately on takeoff.
-		_gear.landing_gear = landing_gear_s::GEAR_KEEP;
+		if (_gear_switch_old != manual_control_switches.gear_switch) {
+			if (manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_OFF) {
+				_gear.landing_gear = landing_gear_s::GEAR_DOWN;
+
+			} else if (manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_ON) {
+				_gear.landing_gear = landing_gear_s::GEAR_UP;
+			}
+
+			_gear_switch_old = manual_control_switches.gear_switch;
+		}
 	}
 
 	_sticks.checkAndSetStickInputs();

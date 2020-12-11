@@ -149,7 +149,5 @@ private:
 	AlphaFilter<matrix::Vector2f> _man_input_filter;
 
 	uORB::Subscription _manual_control_switches_sub{ORB_ID(manual_control_switches)};
-
 	int _gear_switch_old{manual_control_switches_s::SWITCH_POS_NONE}; ///< old switch state
-
 };
