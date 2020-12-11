@@ -516,7 +516,7 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 
 		// the half width of the range of a slot is the total range
 		// divided by the number of slots, again divided by two
-		static constexpr float slot_width_half = 2.f / num_slots / 2.f;
+		static constexpr float slot_width_half = 1.f / num_slots;
 
 		// min is -1, max is +1, range is 2. We offset below min and max
 		static constexpr float slot_min = -1.f - 0.05f;
