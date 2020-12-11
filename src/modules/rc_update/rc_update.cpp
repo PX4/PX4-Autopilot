@@ -528,7 +528,7 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 		// will take us to the correct final index.
 		const float value = _rc.channels[_param_rc_map_fltmode.get() - 1];
 		switches.mode_slot = (((((value - slot_min) * num_slots) + slot_width_half) / (slot_max - slot_min)) +
-				      (1.f / num_slots)) + 1;
+				      slot_width_half) + 1;
 
 		if (switches.mode_slot > num_slots) {
 			switches.mode_slot = num_slots;
