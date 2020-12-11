@@ -319,7 +319,7 @@ void RTL::set_rtl_item()
 	switch (_rtl_state) {
 	case RTL_STATE_CLIMB: {
 
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			_mission_item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
 			_mission_item.lat = gpos.lat;
 			_mission_item.lon = gpos.lon;
 			_mission_item.altitude = _rtl_alt;
