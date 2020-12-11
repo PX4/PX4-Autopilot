@@ -48,6 +48,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/landing_gear.h>
 #include <uORB/topics/test_motor.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -436,6 +437,7 @@ private:
 	uORB::Publication<vehicle_status_flags_s>		_vehicle_status_flags_pub{ORB_ID(vehicle_status_flags)};
 	uORB::Publication<vehicle_status_s>			_status_pub{ORB_ID(vehicle_status)};
 	uORB::Publication<mission_s>				_mission_pub{ORB_ID(mission)};
+	uORB::Publication<landing_gear_s>			_landing_gear_pub{ORB_ID(landing_gear)};
 
 	uORB::PublicationData<home_position_s>			_home_pub{ORB_ID(home_position)};
 

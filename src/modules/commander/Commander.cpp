@@ -2260,6 +2260,46 @@ Commander::run()
 			}
 
 			if (_manual_control_switches_sub.update(&_manual_control_switches) || safety_updated) {
+
+				// handle landing gear switch if configured and in a manual mode
+				if ((_manual_control_switches.gear_switch != manual_control_switches_s::SWITCH_POS_NONE) &&
+				    (_last_manual_control_switches.gear_switch != manual_control_switches_s::SWITCH_POS_NONE) &&
+				    (_manual_control_switches.gear_switch != _last_manual_control_switches.gear_switch)) {
+					// TODO: replace with vehicle_control_mode manual
+					if (_status.nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL ||
+					    _status.nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO    ||
+					    _status.nav_state == vehicle_status_s::NAVIGATION_STATE_RATTITUDE 	  ||
+					    _status.nav_state == vehicle_status_s::NAVIGATION_STATE_STAB ||
+					    _status.nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL ||
+					    _status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL ||
+					    _status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD ||
+					    _status.nav_state == vehicle_status_s::NAVIGATION_STATE_ORBIT) {
+
+						// Only switch the landing gear up if the user switched from gear down to gear up.
+						int8_t gear = landing_gear_s::GEAR_KEEP;
+
+						if (_manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_OFF) {
+							gear = landing_gear_s::GEAR_DOWN;
+
+						} else if (_manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_ON) {
+							// gear up ignored unless flying
+							if (!_land_detector.landed && !_land_detector.maybe_landed) {
+								gear = landing_gear_s::GEAR_UP;
+
+							} else {
+								mavlink_log_critical(&_mavlink_log_pub, "Landed, unable to retract landing gear")
+							}
+						}
+
+						if (gear != landing_gear_s::GEAR_KEEP) {
+							landing_gear_s landing_gear{};
+							landing_gear.landing_gear = gear;
+							landing_gear.timestamp = hrt_absolute_time();
+							_landing_gear_pub.publish(landing_gear);
+						}
+					}
+				}
+
 				// evaluate the main state machine according to mode switches
 				if (set_main_state(&_status_changed) == TRANSITION_CHANGED) {
 					// play tune on mode change only if armed, blink LED always
