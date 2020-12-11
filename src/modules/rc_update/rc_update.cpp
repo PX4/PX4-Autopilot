@@ -457,7 +457,7 @@ void RCUpdate::Run()
 			}
 		}
 
-		memcpy(_rc_values_previous, input_rc.values, sizeof(input_rc.values[0]) * input_rc.channel_count);
+		memcpy(_rc_values_previous, input_rc.values, sizeof(input_rc.values[0]) * channel_count_limited);
 		static_assert(sizeof(_rc_values_previous) == sizeof(input_rc.values), "check sizeof(_rc_values_previous)");
 	}
 
