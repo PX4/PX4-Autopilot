@@ -42,8 +42,7 @@ using namespace matrix;
 
 FlightTaskAutoMapper::FlightTaskAutoMapper() :
 	_sticks(this)
-{
-}
+{}
 
 bool FlightTaskAutoMapper::activate(const vehicle_local_position_setpoint_s &last_setpoint)
 {
