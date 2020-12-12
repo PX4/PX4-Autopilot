@@ -26,8 +26,8 @@
 . ${R}etc/init.d/rc.mc_defaults
 
 
-param set-default BAT_N_CELLS 6
-param set-default BAT_V_EMPTY 3.5
+param set-default BAT1_N_CELLS 6
+param set-default BAT1_V_EMPTY 3.5
 
 param set-default MC_ROLL_P 7
 param set-default MC_ROLLRATE_P 0.08
@@ -45,6 +45,7 @@ param set-default MC_YAWRATE_D 0
 param set-default MPC_XY_VEL_MAX 2
 
 param set-default PWM_MAIN_MIN 1080
+
 set MIXER quad_w
 
 set PWM_OUT 1234

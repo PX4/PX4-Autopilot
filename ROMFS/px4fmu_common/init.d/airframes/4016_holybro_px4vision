@@ -127,9 +127,9 @@ param set-default IMU_GYRO_CUTOFF 100
 param set-default SENS_EN_PMW3901 1
 
 # Power Parameters
-param set-default BAT_N_CELLS 4
-param set-default BAT_A_PER_V 36.364
-param set-default BAT_V_DIV 18.182
+param set-default BAT1_N_CELLS 4
+param set-default BAT1_A_PER_V 36.364
+param set-default BAT1_V_DIV 18.182
 
 # Circuit breakers
 param set-default CBRK_IO_SAFETY 22027

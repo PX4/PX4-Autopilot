@@ -73,7 +73,7 @@ param set-default PWM_MAIN_RATE 0
 
 param set-default SENS_BOARD_ROT 2
 
-param set-default BAT_SOURCE 0
+param set-default BAT1_SOURCE 0
 param set-default CBRK_IO_SAFETY 22027
 #param set COM_DISARM_LAND 3
 

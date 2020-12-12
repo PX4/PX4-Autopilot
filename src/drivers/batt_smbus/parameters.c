@@ -48,7 +48,7 @@ PARAM_DEFINE_INT32(SENS_EN_BATT, 0);
  * @decimal 1
  * @group Sensors
  */
-PARAM_DEFINE_FLOAT(BAT_C_MULT, 1.0f);
+PARAM_DEFINE_FLOAT(BAT1_C_MULT, 1.0f);
 
 /**
  * Battery device model
@@ -61,4 +61,4 @@ PARAM_DEFINE_FLOAT(BAT_C_MULT, 1.0f);
  * @value 1 BQ40Z50 based
  * @value 2 BQ40Z80 based
  */
-PARAM_DEFINE_INT32(BAT_SMBUS_MODEL, 0);
+PARAM_DEFINE_INT32(BAT1_SMBUS_MODEL, 0);
