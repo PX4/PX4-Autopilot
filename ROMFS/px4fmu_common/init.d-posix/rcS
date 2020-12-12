@@ -126,7 +126,7 @@ then
 	param set SYS_RESTART_TYPE 2
 fi
 
-param set-default BAT_N_CELLS 4
+param set-default BAT1_N_CELLS 4
 
 param set-default CBRK_AIRSPD_CHK 0
 param set-default CBRK_SUPPLY_CHK 894281

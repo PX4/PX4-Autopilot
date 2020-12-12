@@ -17,7 +17,7 @@ set MIXER quad_x
 set PWM_OUT 1234
 
 
-param set-default BAT_N_CELLS 4
+param set-default BAT1_N_CELLS 4
 
 param set-default GPS_1_CONFIG 0
 param set-default RC_PORT_CONFIG 201

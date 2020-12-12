@@ -55,8 +55,8 @@ BATT_SMBUS::BATT_SMBUS(I2CSPIBusOption bus_option, const int bus, SMBus *interfa
 	int32_t battsource = 1;
 	int32_t batt_device_type = static_cast<int32_t>(SMBUS_DEVICE_TYPE::UNDEFINED);
 
-	param_set(param_find("BAT_SOURCE"), &battsource);
-	param_get(param_find("BAT_SMBUS_MODEL"), &batt_device_type);
+	param_set(param_find("BAT1_SOURCE"), &battsource);
+	param_get(param_find("BAT1_SMBUS_MODEL"), &batt_device_type);
 
 
 	//TODO: probe the device and autodetect its type
@@ -85,7 +85,7 @@ BATT_SMBUS::~BATT_SMBUS()
 	}
 
 	int32_t battsource = 0;
-	param_set(param_find("BAT_SOURCE"), &battsource);
+	param_set(param_find("BAT1_SOURCE"), &battsource);
 }
 
 void BATT_SMBUS::RunImpl()
@@ -360,13 +360,14 @@ int BATT_SMBUS::get_startup_info()
 	int ret = PX4_OK;
 
 	// Read battery threshold params on startup.
+	// TODO: support instances
 	param_get(param_find("BAT_CRIT_THR"), &_crit_thr);
 	param_get(param_find("BAT_LOW_THR"), &_low_thr);
 	param_get(param_find("BAT_EMERGEN_THR"), &_emergency_thr);
-	param_get(param_find("BAT_C_MULT"), &_c_mult);
+	param_get(param_find("BAT1_C_MULT"), &_c_mult);
 
 	int32_t cell_count_param = 0;
-	param_get(param_find("BAT_N_CELLS"), &cell_count_param);
+	param_get(param_find("BAT1_N_CELLS"), &cell_count_param);
 	_cell_count = math::min((uint8_t)cell_count_param, MAX_NUM_OF_CELLS);
 
 	ret |= _interface->block_read(BATT_SMBUS_MANUFACTURER_NAME, _manufacturer_name, BATT_SMBUS_MANUFACTURER_NAME_SIZE,
