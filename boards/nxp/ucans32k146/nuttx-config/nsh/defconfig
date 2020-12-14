@@ -5,10 +5,10 @@
 # You can then do "make savedefconfig" to generate a new defconfig file that includes your
 # modifications.
 #
+# CONFIG_FS_PROCFS_EXCLUDE_ENVIRON is not set
 # CONFIG_NET_ETHERNET is not set
 # CONFIG_NET_IPv4 is not set
 # CONFIG_NSH_CMDOPT_HEXDUMP is not set
-# CONFIG_FS_PROCFS_EXCLUDE_ENVIRON is not set
 CONFIG_ARCH="arm"
 CONFIG_ARCH_BOARD_CUSTOM=y
 CONFIG_ARCH_BOARD_CUSTOM_DIR="../nuttx-config"
