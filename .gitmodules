@@ -32,10 +32,10 @@
 	branch = master
 [submodule "src/drivers/uavcan_v1/libcanard"]
 	path = src/drivers/uavcan_v1/libcanard
-	url = https://github.com/PX4/libcanard.git
+	url = https://github.com/UAVCAN/libcanard.git
 [submodule "src/drivers/uavcan_v1/public_regulated_data_types"]
 	path = src/drivers/uavcan_v1/public_regulated_data_types
-	url = https://github.com/PX4/public_regulated_data_types.git
+	url = https://github.com/UAVCAN/public_regulated_data_types.git
 [submodule "src/modules/micrortps_bridge/micro-CDR"]
 	path = src/modules/micrortps_bridge/micro-CDR
 	url = https://github.com/PX4/Micro-CDR.git
