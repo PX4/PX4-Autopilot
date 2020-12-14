@@ -226,7 +226,7 @@ void VehicleIMU::Run()
 			if (!_intervals_configured && UpdateIntervalAverage(_gyro_interval, gyro.timestamp_sample)) {
 				update_integrator_config = true;
 				publish_status = true;
-				_status.gyro_rate_hz = roundf(1e6f / _gyro_interval.update_interval);
+				_status.gyro_rate_hz = 1e6f / _gyro_interval.update_interval;
 			}
 		}
 
@@ -272,7 +272,7 @@ void VehicleIMU::Run()
 			if (!_intervals_configured && UpdateIntervalAverage(_accel_interval, accel.timestamp_sample)) {
 				update_integrator_config = true;
 				publish_status = true;
-				_status.accel_rate_hz = roundf(1e6f / _accel_interval.update_interval);
+				_status.accel_rate_hz = 1e6f / _accel_interval.update_interval;
 			}
 		}
 
