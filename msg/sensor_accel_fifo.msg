@@ -8,8 +8,8 @@ float32 scale
 
 uint8 samples             # number of valid samples
 
-int16[32] x               # acceleration in the FRD body frame X-axis in m/s^2
-int16[32] y               # acceleration in the FRD body frame Y-axis in m/s^2
-int16[32] z               # acceleration in the FRD body frame Z-axis in m/s^2
+int16[32] x               # acceleration in the FRD board frame X-axis in m/s^2
+int16[32] y               # acceleration in the FRD board frame Y-axis in m/s^2
+int16[32] z               # acceleration in the FRD board frame Z-axis in m/s^2
 
 uint8 rotation            # Direction the sensor faces (see Rotation enum)
