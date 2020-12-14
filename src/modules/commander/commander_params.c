@@ -620,10 +620,13 @@ PARAM_DEFINE_INT32(COM_ARM_MAG_ANG, 45);
 /**
  * Enable mag strength preflight check
  *
- * Deny arming if the estimator detects a strong magnetic
+ * Check if the estimator detects a strong magnetic
  * disturbance (check enabled by EKF2_MAG_CHECK)
  *
- * @boolean
+ * @value 0 Disabled
+ * @value 1 Deny arming
+ * @value 2 Warning only
+ *
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 1);
