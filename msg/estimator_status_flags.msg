@@ -60,7 +60,7 @@ uint32 innovation_fault_status_changes    # number of filter fault status change
 bool reject_hor_vel                       #  0 - true if horizontal velocity observations have been rejected
 bool reject_ver_vel                       #  1 - true if vertical velocity observations have been rejected
 bool reject_hor_pos                       #  2 - true if horizontal position observations have been rejected
-bool reject_ver_pos                       #  3 - true if true if vertical position observations have been rejected
+bool reject_ver_pos                       #  3 - true if vertical position observations have been rejected
 bool reject_mag_x                         #  4 - true if the X magnetometer observation has been rejected
 bool reject_mag_y                         #  5 - true if the Y magnetometer observation has been rejected
 bool reject_mag_z                         #  6 - true if the Z magnetometer observation has been rejected
