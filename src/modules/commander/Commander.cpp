@@ -382,57 +382,111 @@ bool Commander::shutdown_if_allowed()
 			hrt_elapsed_time(&_boot_timestamp), arm_disarm_reason_t::SHUTDOWN);
 }
 
-transition_result_t
-Commander::arm_disarm(bool arm, bool run_preflight_checks, arm_disarm_reason_t calling_reason)
+static constexpr const char *arm_disarm_reason_str(arm_disarm_reason_t calling_reason)
 {
-	transition_result_t arming_res = TRANSITION_NOT_CHANGED;
+	switch (calling_reason) {
+	case arm_disarm_reason_t::TRANSITION_TO_STANDBY: return "";
 
-	// Transition the armed state. By passing _mavlink_log_pub to arming_state_transition it will
-	// output appropriate error messages if the state cannot transition.
-	arming_res = arming_state_transition(&_status,
-					     _safety,
-					     arm ? vehicle_status_s::ARMING_STATE_ARMED : vehicle_status_s::ARMING_STATE_STANDBY,
-					     &_armed,
-					     run_preflight_checks,
-					     &_mavlink_log_pub,
-					     &_status_flags,
-					     _arm_requirements,
-					     hrt_elapsed_time(&_boot_timestamp), calling_reason);
+	case arm_disarm_reason_t::RC_STICK: return "RC";
 
-	if (arming_res == TRANSITION_CHANGED) {
-		const char *reason = "";
+	case arm_disarm_reason_t::RC_SWITCH: return "RC (switch)";
 
-		switch (calling_reason) {
-		case arm_disarm_reason_t::TRANSITION_TO_STANDBY: reason = ""; break;
+	case arm_disarm_reason_t::COMMAND_INTERNAL: return "internal command";
 
-		case arm_disarm_reason_t::RC_STICK: reason = "RC"; break;
+	case arm_disarm_reason_t::COMMAND_EXTERNAL: return "external command";
 
-		case arm_disarm_reason_t::RC_SWITCH: reason = "RC (switch)"; break;
+	case arm_disarm_reason_t::MISSION_START: return "mission start";
 
-		case arm_disarm_reason_t::COMMAND_INTERNAL: reason = "internal command"; break;
+	case arm_disarm_reason_t::SAFETY_BUTTON: return "safety button";
 
-		case arm_disarm_reason_t::COMMAND_EXTERNAL: reason = "external command"; break;
+	case arm_disarm_reason_t::AUTO_DISARM_LAND: return "landing";
 
-		case arm_disarm_reason_t::MISSION_START: reason = "mission start"; break;
+	case arm_disarm_reason_t::AUTO_DISARM_PREFLIGHT: return "auto preflight disarming";
 
-		case arm_disarm_reason_t::SAFETY_BUTTON: reason = "safety button"; break;
+	case arm_disarm_reason_t::KILL_SWITCH: return "kill-switch";
 
-		case arm_disarm_reason_t::AUTO_DISARM_LAND: reason = "landing"; break;
+	case arm_disarm_reason_t::LOCKDOWN: return "lockdown";
 
-		case arm_disarm_reason_t::AUTO_DISARM_PREFLIGHT: reason = "auto preflight disarming"; break;
+	case arm_disarm_reason_t::FAILURE_DETECTOR: return "failure detector";
 
-		case arm_disarm_reason_t::KILL_SWITCH: reason = "kill-switch"; break;
+	case arm_disarm_reason_t::SHUTDOWN: return "shutdown request";
 
-		case arm_disarm_reason_t::LOCKDOWN: reason = "lockdown"; break;
+	case arm_disarm_reason_t::UNIT_TEST: return "unit tests";
+	}
 
-		case arm_disarm_reason_t::FAILURE_DETECTOR: reason = "failure detector"; break;
+	return "";
+};
 
-		case arm_disarm_reason_t::SHUTDOWN: reason = "shutdown request"; break;
+transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_preflight_checks)
+{
+	// allow a grace period for re-arming: preflight checks don't need to pass during that time, for example for accidential in-air disarming
+	if (_param_com_rearm_grace.get() && (hrt_elapsed_time(&_last_disarmed_timestamp) < 5_s)) {
+		run_preflight_checks = false;
+	}
 
-		case arm_disarm_reason_t::UNIT_TEST: reason = "unit tests"; break;
+	if (run_preflight_checks) {
+		if (_vehicle_control_mode.flag_control_manual_enabled) {
+			const bool throttle_above_low = (_manual_control_setpoint.z > 0.1f);
+			const bool throttle_above_center = (_manual_control_setpoint.z > 0.6f);
+
+			if (_vehicle_control_mode.flag_control_climb_rate_enabled && throttle_above_center) {
+				mavlink_log_critical(&_mavlink_log_pub, "Arming denied! Throttle not centered");
+				tune_negative(true);
+				return TRANSITION_DENIED;
+
+			} else if (throttle_above_low) {
+				mavlink_log_critical(&_mavlink_log_pub, "Arming denied! Throttle not zero");
+				tune_negative(true);
+				return TRANSITION_DENIED;
+			}
 		}
 
-		mavlink_log_info(&_mavlink_log_pub, "%s by %s", arm ? "Armed" : "Disarmed", reason);
+		if ((_param_geofence_action.get() == geofence_result_s::GF_ACTION_RTL)
+		    && !_status_flags.condition_home_position_valid) {
+			mavlink_log_critical(&_mavlink_log_pub, "Arming denied! Geofence RTL requires valid home");
+			tune_negative(true);
+			return TRANSITION_DENIED;
+		}
+	}
+
+	transition_result_t arming_res = arming_state_transition(&_status,
+					 _safety,
+					 vehicle_status_s::ARMING_STATE_ARMED,
+					 &_armed,
+					 run_preflight_checks,
+					 &_mavlink_log_pub,
+					 &_status_flags,
+					 _arm_requirements,
+					 hrt_elapsed_time(&_boot_timestamp), calling_reason);
+
+	if (arming_res == TRANSITION_CHANGED) {
+		mavlink_log_info(&_mavlink_log_pub, "Armed by %s", arm_disarm_reason_str(calling_reason));
+
+		_status_changed = true;
+
+	} else if (arming_res == TRANSITION_DENIED) {
+		tune_negative(true);
+	}
+
+	return arming_res;
+}
+
+transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason)
+{
+	transition_result_t arming_res = arming_state_transition(&_status,
+					 _safety,
+					 vehicle_status_s::ARMING_STATE_STANDBY,
+					 &_armed,
+					 false,
+					 &_mavlink_log_pub,
+					 &_status_flags,
+					 _arm_requirements,
+					 hrt_elapsed_time(&_boot_timestamp), calling_reason);
+
+	if (arming_res == TRANSITION_CHANGED) {
+		mavlink_log_info(&_mavlink_log_pub, "Disarmed by %s", arm_disarm_reason_str(calling_reason));
+
+		_status_changed = true;
 
 	} else if (arming_res == TRANSITION_DENIED) {
 		tune_negative(true);
@@ -658,10 +712,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				bool cmd_arms = (static_cast<int>(cmd.param1 + 0.5f) == 1);
 
-				// Arm/disarm is enforced when param2 is set to a magic number.
-				const bool enforce = (static_cast<int>(roundf(cmd.param2)) == 21196);
+				// Arm is forced (checks skipped) when param2 is set to a magic number.
+				const bool forced = (static_cast<int>(roundf(cmd.param2)) == 21196);
 
-				if (!enforce) {
+				if (!forced) {
 					if (!(_land_detector.landed || _land_detector.maybe_landed) && !is_ground_rover(&_status)) {
 						if (cmd_arms) {
 							if (_armed.armed) {
@@ -685,41 +739,27 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					if (cmd.source_system == _status.system_id && cmd.source_component == _status.component_id
 					    && cmd_from_io && cmd_arms) {
 						_status.arming_state = vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE;
-
-					} else {
-						// Refuse to arm if preflight checks have failed
-						if (_status.hil_state != vehicle_status_s::HIL_STATE_ON
-						    && !_status_flags.condition_system_sensors_initialized) {
-							mavlink_log_critical(&_mavlink_log_pub, "Arming denied! Preflight checks have failed");
-							cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
-							break;
-						}
-
-						const bool throttle_above_low = (_manual_control_setpoint.z > 0.1f);
-						const bool throttle_above_center = (_manual_control_setpoint.z > 0.6f);
-
-						if (cmd_arms && throttle_above_center &&
-						    (_status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL ||
-						     _status.nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL)) {
-							mavlink_log_critical(&_mavlink_log_pub, "Arming denied! Throttle not centered");
-							cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
-							break;
-						}
-
-						if (cmd_arms && throttle_above_low &&
-						    (_status.nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL ||
-						     _status.nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO ||
-						     _status.nav_state == vehicle_status_s::NAVIGATION_STATE_STAB ||
-						     _status.nav_state == vehicle_status_s::NAVIGATION_STATE_RATTITUDE)) {
-							mavlink_log_critical(&_mavlink_log_pub, "Arming denied! Throttle not zero");
-							cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
-							break;
-						}
 					}
 				}
 
-				transition_result_t arming_res = arm_disarm(cmd_arms, !enforce,
-								 (cmd.from_external ? arm_disarm_reason_t::COMMAND_EXTERNAL : arm_disarm_reason_t::COMMAND_INTERNAL));
+				transition_result_t arming_res = TRANSITION_DENIED;
+
+				if (cmd_arms) {
+					if (cmd.from_external) {
+						arming_res = arm(arm_disarm_reason_t::COMMAND_EXTERNAL);
+
+					} else {
+						arming_res = arm(arm_disarm_reason_t::COMMAND_INTERNAL, !forced);
+					}
+
+				} else {
+					if (cmd.from_external) {
+						arming_res = disarm(arm_disarm_reason_t::COMMAND_EXTERNAL);
+
+					} else {
+						arming_res = disarm(arm_disarm_reason_t::COMMAND_INTERNAL);
+					}
+				}
 
 				if (arming_res == TRANSITION_DENIED) {
 					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
@@ -931,7 +971,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					// switch to AUTO_MISSION and ARM
 					if ((TRANSITION_DENIED != main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_MISSION, _status_flags,
 							&_internal_state))
-					    && (TRANSITION_DENIED != arm_disarm(true, true, arm_disarm_reason_t::MISSION_START))) {
+					    && (TRANSITION_DENIED != arm(arm_disarm_reason_t::MISSION_START))) {
 
 						cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
@@ -1528,10 +1568,8 @@ Commander::run()
 
 	while (!should_exit()) {
 
-		transition_result_t arming_ret = TRANSITION_NOT_CHANGED;
-
 		/* update parameters */
-		bool params_updated = _parameter_update_sub.updated();
+		const bool params_updated = _parameter_update_sub.updated();
 
 		if (params_updated || param_init_forced) {
 			// clear update
@@ -1754,9 +1792,7 @@ Commander::run()
 					}
 
 					if (safety_disarm_allowed) {
-						if (TRANSITION_CHANGED == arm_disarm(false, true, arm_disarm_reason_t::SAFETY_BUTTON)) {
-							_status_changed = true;
-						}
+						disarm(arm_disarm_reason_t::SAFETY_BUTTON);
 					}
 				}
 
@@ -1848,8 +1884,12 @@ Commander::run()
 				}
 
 				if (_auto_disarm_landed.get_state()) {
-					arm_disarm(false, true,
-						   (_have_taken_off_since_arming ? arm_disarm_reason_t::AUTO_DISARM_LAND : arm_disarm_reason_t::AUTO_DISARM_PREFLIGHT));
+					if (_have_taken_off_since_arming) {
+						disarm(arm_disarm_reason_t::AUTO_DISARM_LAND);
+
+					} else {
+						disarm(arm_disarm_reason_t::AUTO_DISARM_PREFLIGHT);
+					}
 				}
 			}
 
@@ -1866,12 +1906,11 @@ Commander::run()
 
 			if (_auto_disarm_killed.get_state()) {
 				if (_armed.manual_lockdown) {
-					arm_disarm(false, true, arm_disarm_reason_t::KILL_SWITCH);
+					disarm(arm_disarm_reason_t::KILL_SWITCH);
 
 				} else {
-					arm_disarm(false, true, arm_disarm_reason_t::LOCKDOWN);
+					disarm(arm_disarm_reason_t::LOCKDOWN);
 				}
-
 			}
 
 		} else {
@@ -1895,15 +1934,10 @@ Commander::run()
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!_status_flags.condition_calibration_enabled && _status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 
-			arming_ret = arming_state_transition(&_status, _safety, vehicle_status_s::ARMING_STATE_STANDBY, &_armed,
-							     true /* fRunPreArmChecks */, &_mavlink_log_pub, &_status_flags,
-							     _arm_requirements, hrt_elapsed_time(&_boot_timestamp),
-							     arm_disarm_reason_t::TRANSITION_TO_STANDBY);
-
-			if (arming_ret == TRANSITION_DENIED) {
-				/* do not complain if not allowed into standby */
-				arming_ret = TRANSITION_NOT_CHANGED;
-			}
+			arming_state_transition(&_status, _safety, vehicle_status_s::ARMING_STATE_STANDBY, &_armed,
+						true /* fRunPreArmChecks */, &_mavlink_log_pub, &_status_flags,
+						_arm_requirements, hrt_elapsed_time(&_boot_timestamp),
+						arm_disarm_reason_t::TRANSITION_TO_STANDBY);
 		}
 
 		/* start mission result check */
@@ -2152,13 +2186,19 @@ Commander::run()
 							     || arm_switch_to_disarm_transition;
 
 				if (rc_wants_disarm && (_land_detector.landed || manual_thrust_mode)) {
-					arming_ret = arming_state_transition(&_status, _safety, vehicle_status_s::ARMING_STATE_STANDBY, &_armed,
-									     true /* fRunPreArmChecks */,
-									     &_mavlink_log_pub, &_status_flags, _arm_requirements, hrt_elapsed_time(&_boot_timestamp),
-									     (arm_switch_to_disarm_transition ? arm_disarm_reason_t::RC_SWITCH : arm_disarm_reason_t::RC_STICK));
-				}
+					if (arm_switch_to_disarm_transition) {
+						disarm(arm_disarm_reason_t::RC_SWITCH);
 
-				_stick_off_counter++;
+					} else {
+						disarm(arm_disarm_reason_t::RC_STICK);
+					}
+
+					// reset counter
+					_stick_off_counter = 0;
+
+				} else {
+					_stick_off_counter++;
+				}
 
 			} else if (!(_param_arm_switch_is_button.get()
 				     && _manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON)) {
@@ -2193,27 +2233,24 @@ Commander::run()
 					 * the system can be armed in auto if armed via the GCS.
 					 */
 					if (!_vehicle_control_mode.flag_control_manual_enabled) {
-						print_reject_arm("Not arming: Switch to a manual mode first");
+						mavlink_log_critical(&_mavlink_log_pub, "Arming denied! Switch to a manual mode first");
+						tune_negative(true);
 
-					} else if (!_status_flags.condition_home_position_valid &&
-						   (_param_geofence_action.get() == geofence_result_s::GF_ACTION_RTL)) {
+					} else {
+						if (arm_switch_to_arm_transition) {
+							arm(arm_disarm_reason_t::RC_SWITCH);
 
-						print_reject_arm("Not arming: Geofence RTL requires valid home");
-
-					} else if (_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
-						arming_ret = arming_state_transition(&_status, _safety, vehicle_status_s::ARMING_STATE_ARMED, &_armed,
-										     !in_rearming_grace_period /* fRunPreArmChecks */,
-										     &_mavlink_log_pub, &_status_flags, _arm_requirements, hrt_elapsed_time(&_boot_timestamp),
-										     (arm_switch_to_arm_transition ? arm_disarm_reason_t::RC_SWITCH : arm_disarm_reason_t::RC_STICK));
-
-						if (arming_ret != TRANSITION_CHANGED) {
-							px4_usleep(100000);
-							print_reject_arm("Not arming: Preflight checks failed");
+						} else {
+							arm(arm_disarm_reason_t::RC_STICK);
 						}
 					}
-				}
 
-				_stick_on_counter++;
+					// reset counter
+					_stick_on_counter = 0;
+
+				} else {
+					_stick_on_counter++;
+				}
 
 			} else if (!(_param_arm_switch_is_button.get()
 				     && _manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON)) {
@@ -2222,16 +2259,6 @@ Commander::run()
 			}
 
 			_last_manual_control_switches_arm_switch = _manual_control_switches.arm_switch;
-
-			if (arming_ret == TRANSITION_DENIED) {
-				/*
-				 * the arming transition can be denied to a number of reasons:
-				 *  - pre-flight check failed (sensors not ok or not calibrated)
-				 *  - safety not disabled
-				 *  - system not in manual mode
-				 */
-				tune_negative(true);
-			}
 
 			if (_manual_control_switches_sub.update(&_manual_control_switches) || safety_updated) {
 
@@ -2419,7 +2446,7 @@ Commander::run()
 				if (_status.failure_detector_status & vehicle_status_s::FAILURE_ARM_ESC) {
 					// 500ms is the PWM spoolup time. Within this timeframe controllers are not affecting actuator_outputs
 					if (hrt_elapsed_time(&_status.armed_time) < 500_ms) {
-						arm_disarm(false, true, arm_disarm_reason_t::FAILURE_DETECTOR);
+						disarm(arm_disarm_reason_t::FAILURE_DETECTOR);
 						mavlink_log_critical(&_mavlink_log_pub, "ESCs did not respond to arm request");
 					}
 				}
@@ -2509,8 +2536,6 @@ Commander::run()
 			_have_taken_off_since_arming = false;
 		}
 
-		_was_armed = _armed.armed;
-
 		/* now set navigation state according to failsafe and main state */
 		bool nav_state_changed = set_nav_state(&_status,
 						       &_armed,
@@ -2590,9 +2615,6 @@ Commander::run()
 			_internal_state.timestamp = hrt_absolute_time();
 			_commander_state_pub.publish(_internal_state);
 
-			/* publish vehicle_status_flags */
-			_status_flags.timestamp = hrt_absolute_time();
-
 			// Evaluate current prearm status
 			if (!_armed.armed && !_status_flags.condition_calibration_enabled) {
 				bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, _status, _status_flags, false, true, 30_s);
@@ -2606,6 +2628,8 @@ Commander::run()
 						 && prearm_check_res), _status);
 			}
 
+			/* publish vehicle_status_flags */
+			_status_flags.timestamp = hrt_absolute_time();
 			_vehicle_status_flags_pub.publish(_status_flags);
 		}
 
@@ -2696,6 +2720,8 @@ Commander::run()
 		_last_condition_local_altitude_valid = _status_flags.condition_local_altitude_valid;
 		_last_condition_local_position_valid = _status_flags.condition_local_position_valid;
 		_last_condition_global_position_valid = _status_flags.condition_global_position_valid;
+
+		_was_armed = _armed.armed;
 
 		arm_auth_update(now, params_updated || param_init_forced);
 
@@ -3524,18 +3550,6 @@ Commander::print_reject_mode(const char *msg)
 		/* only buzz if armed, because else we're driving people nuts indoors
 		they really need to look at the leds as well. */
 		tune_negative(_armed.armed);
-	}
-}
-
-void
-Commander::print_reject_arm(const char *msg)
-{
-	const hrt_abstime t = hrt_absolute_time();
-
-	if (t - _last_print_mode_reject_time > PRINT_MODE_REJECT_INTERVAL) {
-		_last_print_mode_reject_time = t;
-		mavlink_log_critical(&_mavlink_log_pub, "%s", msg);
-		tune_negative(true);
 	}
 }
 

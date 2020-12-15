@@ -124,7 +124,8 @@ public:
 private:
 	void answer_command(const vehicle_command_s &cmd, uint8_t result);
 
-	transition_result_t arm_disarm(bool arm, bool run_preflight_checks, arm_disarm_reason_t calling_reason);
+	transition_result_t arm(arm_disarm_reason_t calling_reason, bool run_preflight_checks = true);
+	transition_result_t disarm(arm_disarm_reason_t calling_reason);
 
 	void battery_status_check();
 
@@ -153,7 +154,6 @@ private:
 
 	void offboard_control_update();
 
-	void print_reject_arm(const char *msg);
 	void print_reject_mode(const char *msg);
 
 	void reset_posvel_validity();
