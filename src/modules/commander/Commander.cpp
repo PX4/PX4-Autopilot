@@ -1718,10 +1718,11 @@ Commander::run()
 			if (_armed.armed) {
 				if (!was_landed && _land_detector.landed) {
 					mavlink_log_info(&_mavlink_log_pub, "Landing detected");
+					_status.takeoff_time = 0;
 
 				} else if (was_landed && !_land_detector.landed) {
 					mavlink_log_info(&_mavlink_log_pub, "Takeoff detected");
-					_time_at_takeoff = hrt_absolute_time();
+					_status.takeoff_time = hrt_absolute_time();
 					_have_taken_off_since_arming = true;
 
 					// Set all position and velocity test probation durations to takeoff value
@@ -2453,10 +2454,8 @@ Commander::run()
 
 			if (_armed.armed) {
 				if (_status.failure_detector_status & vehicle_status_s::FAILURE_ARM_ESC) {
-					const hrt_abstime time_at_arm = _armed.armed_time_ms * 1000;
-
 					// 500ms is the PWM spoolup time. Within this timeframe controllers are not affecting actuator_outputs
-					if (hrt_elapsed_time(&time_at_arm) < 500_ms) {
+					if (hrt_elapsed_time(&_status.armed_time) < 500_ms) {
 						arm_disarm(false, true, arm_disarm_reason_t::FAILURE_DETECTOR);
 						mavlink_log_critical(&_mavlink_log_pub, "ESCs did not respond to arm request");
 					}
@@ -2464,7 +2463,7 @@ Commander::run()
 
 				if (_status.failure_detector_status & (vehicle_status_s::FAILURE_ROLL | vehicle_status_s::FAILURE_PITCH |
 								       vehicle_status_s::FAILURE_ALT | vehicle_status_s::FAILURE_EXT)) {
-					const bool is_second_after_takeoff = hrt_elapsed_time(&_time_at_takeoff) < (1_s * _param_com_lkdown_tko.get());
+					const bool is_second_after_takeoff = hrt_elapsed_time(&_status.takeoff_time) < (1_s * _param_com_lkdown_tko.get());
 
 					if (is_second_after_takeoff && !_lockdown_triggered) {
 						// This handles the case where something fails during the early takeoff phase
@@ -3994,7 +3993,7 @@ void Commander::estimator_check()
 
 			} else {
 				// if nav status is unconfirmed, confirm yaw angle as passed after 30 seconds or achieving 5 m/s of speed
-				const bool sufficient_time = (hrt_elapsed_time(&_time_at_takeoff) > 30_s);
+				const bool sufficient_time = (_status.takeoff_time != 0) && (hrt_elapsed_time(&_status.takeoff_time) > 30_s);
 				const bool sufficient_speed = (lpos.vx * lpos.vx + lpos.vy * lpos.vy > 25.0f);
 
 				bool innovation_pass = estimator_status.vel_test_ratio < 1.0f && estimator_status.pos_test_ratio < 1.0f;
