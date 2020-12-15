@@ -2054,34 +2054,30 @@ Commander::run()
 		}
 
 		// abort auto mode or geofence reaction if sticks are moved significantly
-		// but only if not in a low battery handling action
-		const bool is_rotary_wing = _status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+		if ((_param_rc_override.get() != 0) && (_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)) {
 
-		const bool override_auto_mode =
-			(_param_rc_override.get() & OVERRIDE_AUTO_MODE_BIT) &&
-			(_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF ||
-			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND    ||
-			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL 	  ||
-			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION ||
-			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER ||
-			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET ||
-			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND);
+			const bool override_auto_mode = (_param_rc_override.get() & OVERRIDE_AUTO_MODE_BIT)
+							&& _vehicle_control_mode.flag_control_auto_enabled;
 
-		const bool override_offboard_mode =
-			(_param_rc_override.get() & OVERRIDE_OFFBOARD_MODE_BIT) &&
-			_internal_state.main_state == commander_state_s::MAIN_STATE_OFFBOARD;
+			const bool override_offboard_mode = (_param_rc_override.get() & OVERRIDE_OFFBOARD_MODE_BIT)
+							    && _vehicle_control_mode.flag_control_offboard_enabled;
 
-		if ((override_auto_mode || override_offboard_mode) && is_rotary_wing
-		    && !in_low_battery_failsafe && !_geofence_warning_action_on) {
-			const float minimum_stick_deflection = 0.01f * _param_com_rc_stick_ov.get();
+			if ((override_auto_mode || override_offboard_mode) && !in_low_battery_failsafe && !_geofence_warning_action_on) {
+				const float minimum_stick_deflection = 0.01f * _param_com_rc_stick_ov.get();
 
-			// transition to previous state if sticks are touched
-			if (!_status.rc_signal_lost &&
-			    ((fabsf(_manual_control_setpoint.x) > minimum_stick_deflection) ||
-			     (fabsf(_manual_control_setpoint.y) > minimum_stick_deflection))) {
-				// revert to position control in any case
-				main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags, &_internal_state);
-				mavlink_log_info(&_mavlink_log_pub, "Pilot took over control using sticks");
+				// transition to previous state if sticks are touched
+				if (!_status.rc_signal_lost &&
+				    ((fabsf(_manual_control_setpoint.x) > minimum_stick_deflection) ||
+				     (fabsf(_manual_control_setpoint.y) > minimum_stick_deflection))) {
+
+					// revert to position control in any case
+					if (main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags,
+								  &_internal_state) == TRANSITION_CHANGED) {
+						tune_positive(true);
+						mavlink_log_info(&_mavlink_log_pub, "Pilot took over control using sticks");
+						_status_changed = true;
+					}
+				}
 			}
 		}
 
@@ -2149,10 +2145,9 @@ Commander::run()
 			    (_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING || _land_detector.landed) &&
 			    (stick_in_lower_left || arm_button_pressed || arm_switch_to_disarm_transition)) {
 
-				const bool manual_thrust_mode = _internal_state.main_state == commander_state_s::MAIN_STATE_MANUAL
-								|| _internal_state.main_state == commander_state_s::MAIN_STATE_ACRO
-								|| _internal_state.main_state == commander_state_s::MAIN_STATE_STAB
-								|| _internal_state.main_state == commander_state_s::MAIN_STATE_RATTITUDE;
+				const bool manual_thrust_mode = _vehicle_control_mode.flag_control_manual_enabled
+								&& !_vehicle_control_mode.flag_control_climb_rate_enabled;
+
 				const bool rc_wants_disarm = (_stick_off_counter == rc_arm_hyst && _stick_on_counter < rc_arm_hyst)
 							     || arm_switch_to_disarm_transition;
 
@@ -2197,13 +2192,7 @@ Commander::run()
 					 * for being in manual mode only applies to manual arming actions.
 					 * the system can be armed in auto if armed via the GCS.
 					 */
-					if ((_internal_state.main_state != commander_state_s::MAIN_STATE_MANUAL)
-					    && (_internal_state.main_state != commander_state_s::MAIN_STATE_ACRO)
-					    && (_internal_state.main_state != commander_state_s::MAIN_STATE_STAB)
-					    && (_internal_state.main_state != commander_state_s::MAIN_STATE_ALTCTL)
-					    && (_internal_state.main_state != commander_state_s::MAIN_STATE_POSCTL)
-					    && (_internal_state.main_state != commander_state_s::MAIN_STATE_RATTITUDE)
-					   ) {
+					if (!_vehicle_control_mode.flag_control_manual_enabled) {
 						print_reject_arm("Not arming: Switch to a manual mode first");
 
 					} else if (!_status_flags.condition_home_position_valid &&
@@ -2247,41 +2236,31 @@ Commander::run()
 			if (_manual_control_switches_sub.update(&_manual_control_switches) || safety_updated) {
 
 				// handle landing gear switch if configured and in a manual mode
-				if ((_manual_control_switches.gear_switch != manual_control_switches_s::SWITCH_POS_NONE) &&
+				if ((_vehicle_control_mode.flag_control_manual_enabled) &&
+				    (_manual_control_switches.gear_switch != manual_control_switches_s::SWITCH_POS_NONE) &&
 				    (_last_manual_control_switches.gear_switch != manual_control_switches_s::SWITCH_POS_NONE) &&
 				    (_manual_control_switches.gear_switch != _last_manual_control_switches.gear_switch)) {
-					// TODO: replace with vehicle_control_mode manual
-					if (_status.nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL ||
-					    _status.nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO    ||
-					    _status.nav_state == vehicle_status_s::NAVIGATION_STATE_RATTITUDE 	  ||
-					    _status.nav_state == vehicle_status_s::NAVIGATION_STATE_STAB ||
-					    _status.nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL ||
-					    _status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL ||
-					    _status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD ||
-					    _status.nav_state == vehicle_status_s::NAVIGATION_STATE_ORBIT) {
+					// Only switch the landing gear up if the user switched from gear down to gear up.
+					int8_t gear = landing_gear_s::GEAR_KEEP;
 
-						// Only switch the landing gear up if the user switched from gear down to gear up.
-						int8_t gear = landing_gear_s::GEAR_KEEP;
+					if (_manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_OFF) {
+						gear = landing_gear_s::GEAR_DOWN;
 
-						if (_manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-							gear = landing_gear_s::GEAR_DOWN;
+					} else if (_manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_ON) {
+						// gear up ignored unless flying
+						if (!_land_detector.landed && !_land_detector.maybe_landed) {
+							gear = landing_gear_s::GEAR_UP;
 
-						} else if (_manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							// gear up ignored unless flying
-							if (!_land_detector.landed && !_land_detector.maybe_landed) {
-								gear = landing_gear_s::GEAR_UP;
-
-							} else {
-								mavlink_log_critical(&_mavlink_log_pub, "Landed, unable to retract landing gear")
-							}
+						} else {
+							mavlink_log_critical(&_mavlink_log_pub, "Landed, unable to retract landing gear")
 						}
+					}
 
-						if (gear != landing_gear_s::GEAR_KEEP) {
-							landing_gear_s landing_gear{};
-							landing_gear.landing_gear = gear;
-							landing_gear.timestamp = hrt_absolute_time();
-							_landing_gear_pub.publish(landing_gear);
-						}
+					if (gear != landing_gear_s::GEAR_KEEP) {
+						landing_gear_s landing_gear{};
+						landing_gear.landing_gear = gear;
+						landing_gear.timestamp = hrt_absolute_time();
+						_landing_gear_pub.publish(landing_gear);
 					}
 				}
 
@@ -3360,56 +3339,55 @@ Commander::check_posvel_validity(const bool data_valid, const float data_accurac
 void
 Commander::update_control_mode()
 {
-	vehicle_control_mode_s control_mode{};
-
-	control_mode.timestamp = hrt_absolute_time();
+	_vehicle_control_mode = {};
 
 	/* set vehicle_control_mode according to set_navigation_state */
-	control_mode.flag_armed = _armed.armed;
-	control_mode.flag_external_manual_override_ok = (_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
-			&& !_status.is_vtol);
+	_vehicle_control_mode.flag_armed = _armed.armed;
+
+	_vehicle_control_mode.flag_external_manual_override_ok =
+		(_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING && !_status.is_vtol);
 
 	switch (_status.nav_state) {
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
-		control_mode.flag_control_manual_enabled = true;
-		control_mode.flag_control_rates_enabled = stabilization_required();
-		control_mode.flag_control_attitude_enabled = stabilization_required();
+		_vehicle_control_mode.flag_control_manual_enabled = true;
+		_vehicle_control_mode.flag_control_rates_enabled = stabilization_required();
+		_vehicle_control_mode.flag_control_attitude_enabled = stabilization_required();
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_STAB:
-		control_mode.flag_control_manual_enabled = true;
-		control_mode.flag_control_rates_enabled = true;
-		control_mode.flag_control_attitude_enabled = true;
+		_vehicle_control_mode.flag_control_manual_enabled = true;
+		_vehicle_control_mode.flag_control_rates_enabled = true;
+		_vehicle_control_mode.flag_control_attitude_enabled = true;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_RATTITUDE:
-		control_mode.flag_control_manual_enabled = true;
-		control_mode.flag_control_rates_enabled = true;
-		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_rattitude_enabled = true;
+		_vehicle_control_mode.flag_control_manual_enabled = true;
+		_vehicle_control_mode.flag_control_rates_enabled = true;
+		_vehicle_control_mode.flag_control_attitude_enabled = true;
+		_vehicle_control_mode.flag_control_rattitude_enabled = true;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
-		control_mode.flag_control_manual_enabled = true;
-		control_mode.flag_control_rates_enabled = true;
-		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_altitude_enabled = true;
-		control_mode.flag_control_climb_rate_enabled = true;
+		_vehicle_control_mode.flag_control_manual_enabled = true;
+		_vehicle_control_mode.flag_control_rates_enabled = true;
+		_vehicle_control_mode.flag_control_attitude_enabled = true;
+		_vehicle_control_mode.flag_control_altitude_enabled = true;
+		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-		control_mode.flag_control_manual_enabled = true;
-		control_mode.flag_control_rates_enabled = true;
-		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_altitude_enabled = true;
-		control_mode.flag_control_climb_rate_enabled = true;
-		control_mode.flag_control_position_enabled = !_status.in_transition_mode;
-		control_mode.flag_control_velocity_enabled = !_status.in_transition_mode;
+		_vehicle_control_mode.flag_control_manual_enabled = true;
+		_vehicle_control_mode.flag_control_rates_enabled = true;
+		_vehicle_control_mode.flag_control_attitude_enabled = true;
+		_vehicle_control_mode.flag_control_altitude_enabled = true;
+		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
+		_vehicle_control_mode.flag_control_position_enabled = !_status.in_transition_mode;
+		_vehicle_control_mode.flag_control_velocity_enabled = !_status.in_transition_mode;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 		/* override is not ok for the RTL and recovery mode */
-		control_mode.flag_external_manual_override_ok = false;
+		_vehicle_control_mode.flag_external_manual_override_ok = false;
 
 	/* fallthrough */
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
@@ -3419,109 +3397,109 @@ Commander::update_control_mode()
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
-		control_mode.flag_control_auto_enabled = true;
-		control_mode.flag_control_rates_enabled = true;
-		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_altitude_enabled = true;
-		control_mode.flag_control_climb_rate_enabled = true;
-		control_mode.flag_control_position_enabled = !_status.in_transition_mode;
-		control_mode.flag_control_velocity_enabled = !_status.in_transition_mode;
+		_vehicle_control_mode.flag_control_auto_enabled = true;
+		_vehicle_control_mode.flag_control_rates_enabled = true;
+		_vehicle_control_mode.flag_control_attitude_enabled = true;
+		_vehicle_control_mode.flag_control_altitude_enabled = true;
+		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
+		_vehicle_control_mode.flag_control_position_enabled = !_status.in_transition_mode;
+		_vehicle_control_mode.flag_control_velocity_enabled = !_status.in_transition_mode;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL:
-		control_mode.flag_control_rates_enabled = true;
-		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_climb_rate_enabled = true;
+		_vehicle_control_mode.flag_control_rates_enabled = true;
+		_vehicle_control_mode.flag_control_attitude_enabled = true;
+		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:
-		control_mode.flag_control_manual_enabled = true;
-		control_mode.flag_control_rates_enabled = true;
+		_vehicle_control_mode.flag_control_manual_enabled = true;
+		_vehicle_control_mode.flag_control_rates_enabled = true;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_DESCEND:
-		control_mode.flag_control_auto_enabled = false;
-		control_mode.flag_control_rates_enabled = true;
-		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_climb_rate_enabled = true;
+		_vehicle_control_mode.flag_control_auto_enabled = false;
+		_vehicle_control_mode.flag_control_rates_enabled = true;
+		_vehicle_control_mode.flag_control_attitude_enabled = true;
+		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
 		/* disable all controllers on termination */
-		control_mode.flag_control_termination_enabled = true;
+		_vehicle_control_mode.flag_control_termination_enabled = true;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD: {
+			_vehicle_control_mode.flag_control_offboard_enabled = true;
 
-			const offboard_control_mode_s &offboard_control_mode = _offboard_control_mode_sub.get();
+			const offboard_control_mode_s &offboard = _offboard_control_mode_sub.get();
 
-			control_mode.flag_control_offboard_enabled = true;
+			if (!offboard.ignore_acceleration_force) {
+				// OFFBOARD acceleration
+				_vehicle_control_mode.flag_control_acceleration_enabled = true;
+				_vehicle_control_mode.flag_control_attitude_enabled = true;
+				_vehicle_control_mode.flag_control_rates_enabled = true;
 
-			/*
-			 * The control flags depend on what is ignored according to the offboard control mode topic
-			 * Inner loop flags (e.g. attitude) also depend on outer loop ignore flags (e.g. position)
-			 */
-			control_mode.flag_control_rates_enabled =
-				!offboard_control_mode.ignore_bodyrate_x ||
-				!offboard_control_mode.ignore_bodyrate_y ||
-				!offboard_control_mode.ignore_bodyrate_z ||
-				!offboard_control_mode.ignore_attitude ||
-				!offboard_control_mode.ignore_position ||
-				!offboard_control_mode.ignore_velocity ||
-				!offboard_control_mode.ignore_acceleration_force;
+			} else if (!offboard.ignore_position) {
+				// OFFBOARD position
+				_vehicle_control_mode.flag_control_position_enabled = true;
+				_vehicle_control_mode.flag_control_velocity_enabled = true;
+				_vehicle_control_mode.flag_control_altitude_enabled = true;
+				_vehicle_control_mode.flag_control_climb_rate_enabled = true;
+				_vehicle_control_mode.flag_control_attitude_enabled = true;
+				_vehicle_control_mode.flag_control_rates_enabled = true;
 
-			control_mode.flag_control_attitude_enabled = !offboard_control_mode.ignore_attitude ||
-					!offboard_control_mode.ignore_position ||
-					!offboard_control_mode.ignore_velocity ||
-					!offboard_control_mode.ignore_acceleration_force;
+			} else if (!offboard.ignore_velocity) {
+				// OFFBOARD velocity
+				_vehicle_control_mode.flag_control_velocity_enabled = true;
+				_vehicle_control_mode.flag_control_altitude_enabled = true;
+				_vehicle_control_mode.flag_control_climb_rate_enabled = true;
+				_vehicle_control_mode.flag_control_attitude_enabled = true;
+				_vehicle_control_mode.flag_control_rates_enabled = true;
+
+			} else if (!offboard.ignore_attitude) {
+				// OFFBOARD attitude
+				_vehicle_control_mode.flag_control_attitude_enabled = true;
+				_vehicle_control_mode.flag_control_rates_enabled = true;
+
+			} else if (!offboard.ignore_bodyrate_x || !offboard.ignore_bodyrate_y || !offboard.ignore_bodyrate_z) {
+				// OFFBOARD rate
+				_vehicle_control_mode.flag_control_rates_enabled = true;
+			}
 
 			// TO-DO: Add support for other modes than yawrate control
-			control_mode.flag_control_yawrate_override_enabled =
-				offboard_control_mode.ignore_bodyrate_x &&
-				offboard_control_mode.ignore_bodyrate_y &&
-				!offboard_control_mode.ignore_bodyrate_z &&
-				!offboard_control_mode.ignore_attitude;
+			_vehicle_control_mode.flag_control_yawrate_override_enabled = offboard.ignore_bodyrate_x && offboard.ignore_bodyrate_y
+					&& !offboard.ignore_bodyrate_z && !offboard.ignore_attitude;
 
-			control_mode.flag_control_rattitude_enabled = false;
-
-			control_mode.flag_control_acceleration_enabled = !offboard_control_mode.ignore_acceleration_force &&
-					!_status.in_transition_mode;
-
-			control_mode.flag_control_velocity_enabled = (!offboard_control_mode.ignore_velocity ||
-					!offboard_control_mode.ignore_position) && !_status.in_transition_mode &&
-					!control_mode.flag_control_acceleration_enabled;
-
-			control_mode.flag_control_climb_rate_enabled = (!offboard_control_mode.ignore_velocity ||
-					!offboard_control_mode.ignore_position);
-
-			control_mode.flag_control_position_enabled = !offboard_control_mode.ignore_position && !_status.in_transition_mode &&
-					!control_mode.flag_control_acceleration_enabled;
-
-			control_mode.flag_control_altitude_enabled = (!offboard_control_mode.ignore_velocity ||
-					!offboard_control_mode.ignore_position) && !control_mode.flag_control_acceleration_enabled;
-
+			// VTOL transition override
+			if (_status.in_transition_mode) {
+				_vehicle_control_mode.flag_control_acceleration_enabled = false;
+				_vehicle_control_mode.flag_control_velocity_enabled = false;
+				_vehicle_control_mode.flag_control_position_enabled = false;
+			}
 		}
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ORBIT:
-		control_mode.flag_control_manual_enabled = false;
-		control_mode.flag_control_auto_enabled = false;
-		control_mode.flag_control_rates_enabled = true;
-		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_rattitude_enabled = false;
-		control_mode.flag_control_altitude_enabled = true;
-		control_mode.flag_control_climb_rate_enabled = true;
-		control_mode.flag_control_position_enabled = !_status.in_transition_mode;
-		control_mode.flag_control_velocity_enabled = !_status.in_transition_mode;
-		control_mode.flag_control_acceleration_enabled = false;
-		control_mode.flag_control_termination_enabled = false;
+		_vehicle_control_mode.flag_control_manual_enabled = false;
+		_vehicle_control_mode.flag_control_auto_enabled = false;
+		_vehicle_control_mode.flag_control_rates_enabled = true;
+		_vehicle_control_mode.flag_control_attitude_enabled = true;
+		_vehicle_control_mode.flag_control_rattitude_enabled = false;
+		_vehicle_control_mode.flag_control_altitude_enabled = true;
+		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
+		_vehicle_control_mode.flag_control_position_enabled = !_status.in_transition_mode;
+		_vehicle_control_mode.flag_control_velocity_enabled = !_status.in_transition_mode;
+		_vehicle_control_mode.flag_control_acceleration_enabled = false;
+		_vehicle_control_mode.flag_control_termination_enabled = false;
 		break;
 
 	default:
 		break;
 	}
 
-	_control_mode_pub.publish(control_mode);
+	_vehicle_control_mode.timestamp = hrt_absolute_time();
+	_control_mode_pub.publish(_vehicle_control_mode);
 }
 
 bool
@@ -3815,13 +3793,9 @@ void Commander::avoidance_check()
 
 	const bool sensor_oa_present = cp_healthy || _status_flags.avoidance_system_required || cp_enabled;
 
-	const bool auto_mode = _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION
-			       || _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER
-			       || _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL
-			       || _internal_state.main_state == commander_state_s::MAIN_STATE_OFFBOARD
-			       || _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
-			       || _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND;
-	const bool pos_ctl_mode = _internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL;
+	const bool auto_mode = _vehicle_control_mode.flag_control_auto_enabled;
+	const bool pos_ctl_mode = (_vehicle_control_mode.flag_control_manual_enabled
+				   && _vehicle_control_mode.flag_control_position_enabled);
 
 	const bool sensor_oa_enabled = ((auto_mode && _status_flags.avoidance_system_required) || (pos_ctl_mode && cp_enabled));
 	const bool sensor_oa_healthy = ((auto_mode && _status_flags.avoidance_system_valid) || (pos_ctl_mode && cp_healthy));
