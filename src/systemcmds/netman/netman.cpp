@@ -66,7 +66,6 @@ constexpr char DEFAULT_NETMAN_CONFIG[] = "/fs/microsd/net.cfg";
 static void usage(const char *reason);
 __BEGIN_DECLS
 __EXPORT int  netman_main(int argc, char *argv[]);
-__EXPORT int board_get_netconf(struct boardioc_netconf_s *netconf);
 __END_DECLS
 
 class net_params
@@ -87,9 +86,8 @@ private:
 		};
 
 		const char *keyword() { return _keyword;}
-		ipl() {l = 0;}
-		ipl(const char *w) : ipl()
-		{ _keyword = w;}
+		ipl() = delete;
+		ipl(const char *w)	{ _keyword = w;}
 
 		const char *to_str()
 		{
@@ -98,7 +96,7 @@ private:
 
 		const char *name()
 		{
-			b[arraySize(b)] = '\0';
+			b[arraySize(b) - 1] = '\0';
 			return (const char *)b;
 		}
 
@@ -106,7 +104,7 @@ private:
 		{
 			unsigned int i;
 
-			for (i = 0; i < arraySize(b); i++) {
+			for (i = 0; i < arraySize(b) - 1; i++) {
 				b[i] = name[i];
 			}
 
@@ -183,11 +181,11 @@ public:
 	ipl dnsaddr{"DNS="};
 
 
-	net_params() {}
+	net_params() = default;
 
 	~net_params() {}
 
-	class net_params &operator = (struct ipv4cfg_s &ipcfg)
+	net_params &operator = (const ipv4cfg_s &ipcfg)
 	{
 		proto.e  =    ipcfg.proto;
 		ipaddr.u  =   ipcfg.ipaddr;
@@ -211,7 +209,7 @@ public:
 			ipcfg.router  = HTONL(DEFAULT_ROUTER);
 			ipcfg.dnsaddr = HTONL(DEFAULT_DNS);
 			ipcfg.proto   = DEFAULT_PROTO;
-			rv = ENOENT;
+			rv = -ENOENT;
 		}
 
 		device.set_name(netdev);
@@ -241,7 +239,11 @@ int save(const char *path, const char *netdev)
 
 	int rv = config.read(netdev);
 
-	int fd = open(path, O_CREAT | O_WRONLY | O_TRUNC, PX4_O_MODE_666);
+	int fd =  fileno(stdout);
+
+	if (path != nullptr) {
+		fd = open(path, O_CREAT | O_WRONLY | O_TRUNC, PX4_O_MODE_666);
+	}
 
 	if (fd < 0) {
 		PX4_ERR("Can not create file %s", path);
@@ -306,6 +308,7 @@ int update(const char *path, const char *netdev)
 	FAR char *lines = nullptr;
 	int fd = -1;
 	int rv = OK;
+	off_t fbuf_size;
 
 	// First do we have a binary config stored?
 
@@ -321,11 +324,18 @@ int update(const char *path, const char *netdev)
 		return 0;
 	}
 
-	lines = (char *) malloc(sb.st_size);
+	// Allocate file size plus a null.
+
+	fbuf_size = sb.st_size + 1;
+	lines = (char *) malloc(fbuf_size);
 
 	if (!lines) {
 		return -errno;
 	}
+
+	// Null Fill buffer
+
+	memset(lines, 0, fbuf_size);
 
 	fd = open(path, O_RDONLY);
 
@@ -375,7 +385,7 @@ errout:
 		free(lines);
 	}
 
-	if (fd > 0) {
+	if (fd >= 0) {
 		close(fd);
 	}
 
@@ -457,7 +467,7 @@ int netman_main(int argc, char *argv[])
       }
   else if (strcmp("show", argv[myoptind]) == 0)
       {
-      rv = save("/dev/console", netdev);
+      rv = save(nullptr, netdev);
       }
   return rv;
 }
