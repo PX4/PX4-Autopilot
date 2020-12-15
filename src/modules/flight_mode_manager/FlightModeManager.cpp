@@ -438,8 +438,6 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 		constraints = _flight_tasks.getConstraints();
 	}
 
-	landing_gear_s landing_gear = _flight_tasks.getGear();
-
 	// limit altitude according to land detector
 	limitAltitude(setpoint, vehicle_local_position);
 
@@ -494,8 +492,11 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 	}
 
 	// if there's any change in landing gear setpoint publish it
+	landing_gear_s landing_gear = _flight_tasks.getGear();
+
 	if (landing_gear.landing_gear != _old_landing_gear_position
 	    && landing_gear.landing_gear != landing_gear_s::GEAR_KEEP) {
+
 		landing_gear.timestamp = _time_stamp_last_loop;
 		_landing_gear_pub.publish(landing_gear);
 	}
