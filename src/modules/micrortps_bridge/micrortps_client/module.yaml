@@ -2,7 +2,7 @@ module_name: RTPS
 serial_config:
     - command: |
         protocol_splitter start ${SERIAL_DEV}
-        mavlink start -d /dev/mavlink -b p:${BAUD_PARAM} -m onboard -r 5000 -x
+        mavlink start -d /dev/mavlink -b p:${BAUD_PARAM} -x
         micrortps_client start -d /dev/rtps -b p:${BAUD_PARAM} -l -1
       port_config_param:
         name: RTPS_MAV_CONFIG
