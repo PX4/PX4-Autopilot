@@ -893,7 +893,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_NAV_LAND: {
-			if (TRANSITION_CHANGED == main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LAND, _status_flags,
+			if (TRANSITION_DENIED != main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LAND, _status_flags,
 					&_internal_state)) {
 				mavlink_log_info(&_mavlink_log_pub, "Landing at current position");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
@@ -906,8 +906,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_NAV_PRECLAND: {
-			if (TRANSITION_CHANGED == main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_PRECLAND,
-					_status_flags, &_internal_state)) {
+			if (TRANSITION_DENIED != main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_PRECLAND, _status_flags,
+					&_internal_state)) {
 				mavlink_log_info(&_mavlink_log_pub, "Precision landing");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
