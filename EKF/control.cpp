@@ -1263,6 +1263,7 @@ void Ekf::controlFakePosFusion()
 
 			// Reset position and velocity states if we re-commence this aiding method
 			if (isTimedOut(_time_last_fake_pos, (uint64_t)4e5)) {
+				_last_known_posNE = _state.pos.xy();
 				resetHorizontalPosition();
 				resetVelocity();
 				_fuse_hpos_as_odom = false;
