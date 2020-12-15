@@ -34,7 +34,7 @@
 #ifndef FLIGHT_INFORMATION_HPP
 #define FLIGHT_INFORMATION_HPP
 
-#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/vehicle_status.h>
 
 class MavlinkStreamFlightInformation : public MavlinkStream
 {
@@ -58,26 +58,31 @@ private:
 		_param_com_flight_uuid = param_find("COM_FLIGHT_UUID");
 	}
 
-	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
-	param_t _param_com_flight_uuid;
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	param_t _param_com_flight_uuid{PARAM_INVALID};
 
 	bool send() override
 	{
-		actuator_armed_s actuator_armed{};
-		bool ret = _armed_sub.copy(&actuator_armed);
+		vehicle_status_s vehicle_status{};
 
-		if (ret && actuator_armed.timestamp != 0) {
-			int32_t flight_uuid;
-			param_get(_param_com_flight_uuid, &flight_uuid);
-
+		if (_vehicle_status_sub.copy(&vehicle_status) && vehicle_status.timestamp != 0) {
 			mavlink_flight_information_t flight_info{};
-			flight_info.flight_uuid = static_cast<uint64_t>(flight_uuid);
-			flight_info.arming_time_utc = flight_info.takeoff_time_utc = actuator_armed.armed_time_ms;
 			flight_info.time_boot_ms = hrt_absolute_time() / 1000;
+			flight_info.arming_time_utc = vehicle_status.armed_time;
+			flight_info.takeoff_time_utc = vehicle_status.takeoff_time;
+
+			int32_t flight_uuid;
+
+			if (param_get(_param_com_flight_uuid, &flight_uuid) == PX4_OK) {
+				flight_info.flight_uuid = static_cast<uint64_t>(flight_uuid);
+			}
+
 			mavlink_msg_flight_information_send_struct(_mavlink->get_channel(), &flight_info);
+
+			return true;
 		}
 
-		return ret;
+		return false;
 	}
 };
 
