@@ -547,7 +547,10 @@ int EstimatorInterface::getNumberOfActiveHorizontalAidingSources() const
 	return int(_control_status.flags.gps)
 	       + int(_control_status.flags.opt_flow)
 	       + int(_control_status.flags.ev_pos)
-	       + int(_control_status.flags.ev_vel);
+	       + int(_control_status.flags.ev_vel)
+		   // Combined airspeed and sideslip fusion allows sustained wind relative dead reckoning
+		   // and so is treated as a single aiding source.
+		   + int(_control_status.flags.fuse_aspd && _control_status.flags.fuse_beta);
 }
 
 bool EstimatorInterface::isHorizontalAidingActive() const
