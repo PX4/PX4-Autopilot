@@ -45,6 +45,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/orbit_status.h>
 #include <StraightLine.hpp>
+#include <SlewRateYaw.hpp>
 
 class FlightTaskOrbit : public FlightTaskManualAltitudeSmoothVel
 {
@@ -111,10 +112,12 @@ private:
 	/** yaw behaviour during the orbit flight according to MAVLink's ORBIT_YAW_BEHAVIOUR enum */
 	int _yaw_behaviour = orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER;
 	float _initial_heading = 0.f; /**< the heading of the drone when the orbit command was issued */
+	SlewRateYaw<float> _slew_rate_yaw;
 
 	uORB::Publication<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise /**< cruise speed for circle approach */
+		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise, /**< cruise speed for circle approach */
+		(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max
 	)
 };
