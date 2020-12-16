@@ -34,11 +34,21 @@
 #include <gtest/gtest.h>
 #include "geofence_breach_avoidance.h"
 #include "fake_geofence.hpp"
+#include <parameters/param.h>
 
 using namespace matrix;
 using Vector2d = matrix::Vector2<double>;
 
-TEST(GeofenceBreachAvoidanceTest, waypointFromBearingAndDistance)
+class GeofenceBreachAvoidanceTest : public ::testing::Test
+{
+public:
+	void SetUp() override
+	{
+		param_control_autosave(false);
+	}
+};
+
+TEST_F(GeofenceBreachAvoidanceTest, waypointFromBearingAndDistance)
 {
 
 	GeofenceBreachAvoidance gf_avoidance;
@@ -74,7 +84,7 @@ TEST(GeofenceBreachAvoidanceTest, waypointFromBearingAndDistance)
 	EXPECT_EQ(home_global, same_as_home_global);
 }
 
-TEST(GeofenceBreachAvoidanceTest, generateLoiterPointForFixedWing)
+TEST_F(GeofenceBreachAvoidanceTest, generateLoiterPointForFixedWing)
 {
 	GeofenceBreachAvoidance gf_avoidance;
 	FakeGeofence geo;
@@ -122,7 +132,7 @@ TEST(GeofenceBreachAvoidanceTest, generateLoiterPointForFixedWing)
 	EXPECT_FLOAT_EQ(loiter_point_lat_lon(1), home_global(1));
 }
 
-TEST(GeofenceBreachAvoidanceTest, generateLoiterPointForMultirotor)
+TEST_F(GeofenceBreachAvoidanceTest, generateLoiterPointForMultirotor)
 {
 	GeofenceBreachAvoidance gf_avoidance;
 	FakeGeofence geo;
@@ -185,7 +195,7 @@ TEST(GeofenceBreachAvoidanceTest, generateLoiterPointForMultirotor)
 	EXPECT_EQ(loiter_point, home_global);
 }
 
-TEST(GeofenceBreachAvoidanceTest, generateLoiterAltitudeForFixedWing)
+TEST_F(GeofenceBreachAvoidanceTest, generateLoiterAltitudeForFixedWing)
 {
 	GeofenceBreachAvoidance gf_avoidance;
 	const float current_alt_amsl = 100.0f;
@@ -207,7 +217,7 @@ TEST(GeofenceBreachAvoidanceTest, generateLoiterAltitudeForFixedWing)
 	EXPECT_EQ(loiter_alt, current_alt_amsl);
 }
 
-TEST(GeofenceBreachAvoidanceTest, generateLoiterAltitudeForMulticopter)
+TEST_F(GeofenceBreachAvoidanceTest, generateLoiterAltitudeForMulticopter)
 {
 	GeofenceBreachAvoidance gf_avoidance;
 	const float climbrate = 10.0f;
@@ -231,7 +241,7 @@ TEST(GeofenceBreachAvoidanceTest, generateLoiterAltitudeForMulticopter)
 	EXPECT_EQ(loiter_alt_amsl, current_alt_amsl);
 }
 
-TEST(GeofenceBreachAvoidance, maxDistToHomeViolationMulticopter)
+TEST_F(GeofenceBreachAvoidanceTest, maxDistToHomeViolationMulticopter)
 {
 	GeofenceBreachAvoidance gf_avoidance;
 	FakeGeofence geo;
@@ -264,7 +274,7 @@ TEST(GeofenceBreachAvoidance, maxDistToHomeViolationMulticopter)
 	EXPECT_EQ(loiter_point_predicted, loiter_point_lat_lon);
 }
 
-TEST(GeofenceBreachAvoidance, maxDistToHomeViolationFixedWing)
+TEST_F(GeofenceBreachAvoidanceTest, maxDistToHomeViolationFixedWing)
 {
 	GeofenceBreachAvoidance gf_avoidance;
 	FakeGeofence geo;
