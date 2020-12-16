@@ -180,6 +180,7 @@ MB12XX::MB12XX(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int
 	ModuleParams(nullptr),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
 {
+	set_device_type(DRV_DIST_DEVTYPE_MB12XX);
 }
 
 MB12XX::~MB12XX()
@@ -222,7 +223,7 @@ MB12XX::collect()
 
 	distance_sensor_s report;
 	report.current_distance = distance_m;
-	report.id               = _sensor_addresses[_sensor_index];
+	report.device_id        = get_device_id();
 	report.max_distance     = MB12XX_MAX_DISTANCE;
 	report.min_distance     = MB12XX_MIN_DISTANCE;
 	report.orientation      = _sensor_rotations[_sensor_index];

@@ -41,7 +41,7 @@
 
 LightwareLaserSerial::LightwareLaserSerial(const char *port, uint8_t rotation) :
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
-	_px4_rangefinder(0 /* device id not yet used */, rotation),
+	_px4_rangefinder(0, rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
 {
@@ -50,6 +50,18 @@ LightwareLaserSerial::LightwareLaserSerial(const char *port, uint8_t rotation) :
 
 	/* enforce null termination */
 	_port[sizeof(_port) - 1] = '\0';
+
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType_SERIAL;
+
+	uint8_t bus_num = atoi(&_port[sizeof(_port) - 2]);
+
+	if (bus_num < 10) {
+		device_id.devid_s.bus = bus_num;
+	}
+
+	_px4_rangefinder.set_device_id(device_id.devid);
+	_px4_rangefinder.set_device_type(DRV_DIST_DEVTYPE_LIGHTWARE_LASER);
 }
 
 LightwareLaserSerial::~LightwareLaserSerial()
