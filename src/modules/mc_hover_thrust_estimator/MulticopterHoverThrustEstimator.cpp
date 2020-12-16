@@ -196,7 +196,7 @@ void MulticopterHoverThrustEstimator::Run()
 void MulticopterHoverThrustEstimator::publishStatus(const hrt_abstime &timestamp_sample,
 		const ZeroOrderHoverThrustEkf::status &status)
 {
-	hover_thrust_estimate_s status_msg;
+	hover_thrust_estimate_s status_msg{};
 
 	status_msg.timestamp_sample = timestamp_sample;
 
