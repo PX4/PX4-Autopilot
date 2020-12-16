@@ -16,6 +16,7 @@ TEST(Navigator_and_RTL, interact_correctly)
 
 	home_position_s home_pos{};
 	home_pos.valid_hpos = true;
+	home_pos.valid_lpos = true;
 	home_pos.valid_alt = true;
 	home_pos.timestamp = 1000;
 
