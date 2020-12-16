@@ -711,8 +711,8 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	float terrain_vpos = _ekf.getTerrainVertPos();
 
 	// Distance to bottom surface (ground) in meters
-	//  constrain the distance to ground to _rng_gnd_clearance
-	lpos.dist_bottom = math::min(terrain_vpos - lpos.z, _param_ekf2_min_rng.get());
+	// constrain the distance to ground to _rng_gnd_clearance
+	lpos.dist_bottom = math::max(terrain_vpos - lpos.z, _param_ekf2_min_rng.get());
 
 	if (!_had_valid_terrain) {
 		_had_valid_terrain = lpos.dist_bottom_valid;
