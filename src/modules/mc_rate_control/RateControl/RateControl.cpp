@@ -71,6 +71,12 @@ Vector3f RateControl::update(const Vector3f &rate, const Vector3f &rate_sp, cons
 		updateIntegral(rate_error, dt);
 	}
 
+	rate_error.copyTo(_rate_ctrl_status.error);
+
+	_rate_ctrl_status.error_integrated[0] += rate_error(0) * dt;
+	_rate_ctrl_status.error_integrated[1] += rate_error(1) * dt;
+	_rate_ctrl_status.error_integrated[2] += rate_error(2) * dt;
+
 	return torque;
 }
 
@@ -104,11 +110,8 @@ void RateControl::updateIntegral(Vector3f &rate_error, const float dt)
 			_rate_int(i) = math::constrain(rate_i, -_lim_int(i), _lim_int(i));
 		}
 	}
-}
 
-void RateControl::getRateControlStatus(rate_ctrl_status_s &rate_ctrl_status)
-{
-	rate_ctrl_status.rollspeed_integ = _rate_int(0);
-	rate_ctrl_status.pitchspeed_integ = _rate_int(1);
-	rate_ctrl_status.yawspeed_integ = _rate_int(2);
+	_rate_ctrl_status.rollspeed_integ = _rate_int(0);
+	_rate_ctrl_status.pitchspeed_integ = _rate_int(1);
+	_rate_ctrl_status.yawspeed_integ = _rate_int(2);
 }

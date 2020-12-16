@@ -98,7 +98,7 @@ public:
 	 * Get status message of controller for logging/debugging
 	 * @param rate_ctrl_status status message to fill with internal states
 	 */
-	void getRateControlStatus(rate_ctrl_status_s &rate_ctrl_status);
+	rate_ctrl_status_s &getRateControlStatus() { return _rate_ctrl_status; }
 
 private:
 	void updateIntegral(matrix::Vector3f &rate_error, const float dt);
@@ -115,4 +115,6 @@ private:
 
 	bool _mixer_saturation_positive[3] {};
 	bool _mixer_saturation_negative[3] {};
+
+	rate_ctrl_status_s _rate_ctrl_status{};
 };

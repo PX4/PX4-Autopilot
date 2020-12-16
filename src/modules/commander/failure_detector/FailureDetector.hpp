@@ -43,30 +43,28 @@
 
 #pragma once
 
-#include <matrix/matrix/math.hpp>
-#include <mathlib/mathlib.h>
+#include <lib/matrix/matrix/math.hpp>
+#include <lib/mathlib/mathlib.h>
+#include <lib/hysteresis/hysteresis.h>
 #include <px4_platform_common/module_params.h>
-#include <hysteresis/hysteresis.h>
-
 
 // subscriptions
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/pwm_input.h>
+#include <uORB/topics/rate_ctrl_status.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_status.h>
 
-typedef enum {
+enum failure_detector_bitmak {
 	FAILURE_NONE = vehicle_status_s::FAILURE_NONE,
 	FAILURE_ROLL = vehicle_status_s::FAILURE_ROLL,
 	FAILURE_PITCH = vehicle_status_s::FAILURE_PITCH,
 	FAILURE_ALT = vehicle_status_s::FAILURE_ALT,
 	FAILURE_EXT = vehicle_status_s::FAILURE_EXT,
-	FAILURE_ARM_ESCS = vehicle_status_s::FAILURE_ARM_ESC
-} failure_detector_bitmak;
-
-using uORB::SubscriptionData;
+	FAILURE_ARM_ESCS = vehicle_status_s::FAILURE_ARM_ESC,
+	FAILURE_RATE_CTRL = vehicle_status_s::FAILURE_RATE_CTRL,
+};
 
 class FailureDetector : public ModuleParams
 {
@@ -81,17 +79,20 @@ private:
 	void updateAttitudeStatus();
 	void updateExternalAtsStatus();
 	void updateEscsStatus(const vehicle_status_s &vehicle_status);
+	void updateRateControlStatus(const vehicle_status_s &vehicle_status);
 
 	uint8_t _status{FAILURE_NONE};
 
+	systemlib::Hysteresis _esc_failure_hysteresis{false};
+	systemlib::Hysteresis _ext_ats_failure_hysteresis{false};
+	systemlib::Hysteresis _rate_ctrl_failure_hysteresis{false};
 	systemlib::Hysteresis _roll_failure_hysteresis{false};
 	systemlib::Hysteresis _pitch_failure_hysteresis{false};
-	systemlib::Hysteresis _ext_ats_failure_hysteresis{false};
-	systemlib::Hysteresis _esc_failure_hysteresis{false};
 
-	uORB::Subscription _vehicule_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 	uORB::Subscription _pwm_input_sub{ORB_ID(pwm_input)};
+	uORB::Subscription _rate_ctrl_status_sub{ORB_ID(rate_ctrl_status)};
+	uORB::Subscription _vehicule_attitude_sub{ORB_ID(vehicle_attitude)};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::FD_FAIL_P>) _param_fd_fail_p,
@@ -100,6 +101,7 @@ private:
 		(ParamFloat<px4::params::FD_FAIL_P_TTRI>) _param_fd_fail_p_ttri,
 		(ParamBool<px4::params::FD_EXT_ATS_EN>) _param_fd_ext_ats_en,
 		(ParamInt<px4::params::FD_EXT_ATS_TRIG>) _param_fd_ext_ats_trig,
-		(ParamInt<px4::params::FD_ESCS_EN>) _param_escs_en
+		(ParamInt<px4::params::FD_ESCS_EN>) _param_escs_en,
+		(ParamBool<px4::params::FD_RATE_CTRL_EN>) _param_fd_rate_ctrl_en
 	)
 };

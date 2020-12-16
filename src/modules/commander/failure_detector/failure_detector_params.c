@@ -141,3 +141,13 @@ PARAM_DEFINE_INT32(FD_EXT_ATS_TRIG, 1900);
  * @group Failure Detector
  */
 PARAM_DEFINE_INT32(FD_ESCS_EN, 1);
+
+/**
+ * Enable rate controller checks at takeoff.
+ * If enabled the failure detector will monitor the rate controller at takeoff and immediately disarm if there's an error.
+ *
+ * @boolean
+ *
+ * @group Failure Detector
+ */
+PARAM_DEFINE_INT32(FD_RATE_CTRL_EN, 0);
