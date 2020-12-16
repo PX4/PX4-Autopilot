@@ -50,6 +50,11 @@ int main()
     Vector3f k_test(1,2,3);
     TEST(isEqual(k,k_test));
 
+    Vector3f m1(1, 2, 3);
+    Vector3f m2(3.1f, 4.1f, 5.1f);
+    TEST(isEqual(m2, m1 + 2.1f));
+    TEST(isEqual(m2 - 2.1f, m1));
+
     return 0;
 }
 
