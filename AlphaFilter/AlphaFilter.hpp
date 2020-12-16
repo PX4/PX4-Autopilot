@@ -45,9 +45,12 @@
 #include <float.h>
 
 template <typename T>
-class AlphaFilter {
+class AlphaFilter
+{
 public:
 	AlphaFilter() = default;
+	explicit AlphaFilter(float alpha) : _alpha(alpha) {}
+
 	~AlphaFilter() = default;
 
 	/**
@@ -58,7 +61,8 @@ public:
 	 * @param sample_interval interval between two samples
 	 * @param time_constant filter time constant determining convergence
 	 */
-	void setParameters(float sample_interval, float time_constant) {
+	void setParameters(float sample_interval, float time_constant)
+	{
 		const float denominator = time_constant + sample_interval;
 
 		if (denominator > FLT_EPSILON) {
@@ -85,7 +89,11 @@ public:
 	 *
 	 * @return retrieve the filtered result
 	 */
-	void update(const T &sample) { _filter_state = updateCalculation(sample); }
+	const T &update(const T &sample)
+	{
+		_filter_state = updateCalculation(sample);
+		return _filter_state;
+	}
 
 	const T &getState() const { return _filter_state; }
 
