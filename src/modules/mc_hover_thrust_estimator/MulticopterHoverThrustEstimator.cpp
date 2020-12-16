@@ -164,14 +164,14 @@ void MulticopterHoverThrustEstimator::Run()
 			if (PX4_ISFINITE(local_pos_sp.thrust[2])) {
 				// Inform the hover thrust estimator about the measured vertical
 				// acceleration (positive acceleration is up) and the current thrust (positive thrust is up)
-				ZeroOrderHoverThrustEkf::status status{};
-				_hover_thrust_ekf.fuseAccZ(-local_pos.az, -local_pos_sp.thrust[2], status);
+				_hover_thrust_ekf.fuseAccZ(-local_pos.az, -local_pos_sp.thrust[2]);
 
-				const bool valid = (status.hover_thrust_var < 0.001f) && (status.innov_test_ratio < 1.f);
+				const bool valid = (_hover_thrust_ekf.getHoverThrustEstimateVar() < 0.001f)
+						   && (_hover_thrust_ekf.getInnovationTestRatio() < 1.f);
 				_valid_hysteresis.set_state_and_update(valid, local_pos.timestamp);
 				_valid = _valid_hysteresis.get_state();
 
-				publishStatus(local_pos.timestamp, status);
+				publishStatus(local_pos.timestamp);
 			}
 		}
 
@@ -193,20 +193,19 @@ void MulticopterHoverThrustEstimator::Run()
 	perf_end(_cycle_perf);
 }
 
-void MulticopterHoverThrustEstimator::publishStatus(const hrt_abstime &timestamp_sample,
-		const ZeroOrderHoverThrustEkf::status &status)
+void MulticopterHoverThrustEstimator::publishStatus(const hrt_abstime &timestamp_sample)
 {
 	hover_thrust_estimate_s status_msg{};
 
 	status_msg.timestamp_sample = timestamp_sample;
 
-	status_msg.hover_thrust = status.hover_thrust;
-	status_msg.hover_thrust_var = status.hover_thrust_var;
+	status_msg.hover_thrust = _hover_thrust_ekf.getHoverThrustEstimate();
+	status_msg.hover_thrust_var = _hover_thrust_ekf.getHoverThrustEstimateVar();
 
-	status_msg.accel_innov = status.innov;
-	status_msg.accel_innov_var = status.innov_var;
-	status_msg.accel_innov_test_ratio = status.innov_test_ratio;
-	status_msg.accel_noise_var = status.accel_noise_var;
+	status_msg.accel_innov = _hover_thrust_ekf.getInnovation();
+	status_msg.accel_innov_var = _hover_thrust_ekf.getInnovationVar();
+	status_msg.accel_innov_test_ratio = _hover_thrust_ekf.getInnovationTestRatio();
+	status_msg.accel_noise_var = _hover_thrust_ekf.getAccelNoiseVar();
 
 	status_msg.valid = _valid;
 
