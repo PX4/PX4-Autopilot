@@ -250,7 +250,7 @@ void FlightTaskOrbit::generate_circle_yaw_setpoints(const Vector2f &center_to_po
 		break;
 
 	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE:
-		_yaw_setpoint = wrap_pi(atan2f(center_to_position(1), center_to_position(0)) + (sign(_v) * M_PI_F / 2.f));
+		_yaw_setpoint = atan2f(sign(_v) * center_to_position(0), -sign(_v) * center_to_position(1));
 		_yawspeed_setpoint = _v / _r;
 		break;
 
@@ -260,7 +260,7 @@ void FlightTaskOrbit::generate_circle_yaw_setpoints(const Vector2f &center_to_po
 
 	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER:
 	default:
-		_yaw_setpoint = wrap_pi(atan2f(center_to_position(1), center_to_position(0)) + M_PI_F);
+		_yaw_setpoint = atan2f(-center_to_position(1), -center_to_position(0));
 		// yawspeed feed-forward because we know the necessary angular rate
 		_yawspeed_setpoint = _v / _r;
 		break;
