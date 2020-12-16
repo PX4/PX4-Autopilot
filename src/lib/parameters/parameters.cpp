@@ -979,21 +979,11 @@ int param_save_default()
 		return res;
 	}
 
-	int shutdown_lock_ret = px4_shutdown_lock();
-
-	if (shutdown_lock_ret) {
-		PX4_ERR("px4_shutdown_lock() failed (%i)", shutdown_lock_ret);
-	}
-
 	/* write parameters to temp file */
 	int fd = PARAM_OPEN(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
 
 	if (fd < 0) {
 		PX4_ERR("failed to open param file: %s", filename);
-
-		if (shutdown_lock_ret == 0) {
-			px4_shutdown_unlock();
-		}
 
 		return PX4_ERROR;
 	}
@@ -1015,10 +1005,6 @@ int param_save_default()
 	}
 
 	PARAM_CLOSE(fd);
-
-	if (shutdown_lock_ret == 0) {
-		px4_shutdown_unlock();
-	}
 
 	return res;
 }
