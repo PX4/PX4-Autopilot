@@ -164,7 +164,10 @@ void MulticopterHoverThrustEstimator::Run()
 			if (PX4_ISFINITE(local_pos_sp.thrust[2])) {
 				// Inform the hover thrust estimator about the measured vertical
 				// acceleration (positive acceleration is up) and the current thrust (positive thrust is up)
-				_hover_thrust_ekf.fuseAccZ(-local_pos.az, -local_pos_sp.thrust[2]);
+				// Guard against fast up and down motions biasing the estimator due to large drag and prop wash effects
+				if (fabsf(local_pos.vz) < 2.f) {
+					_hover_thrust_ekf.fuseAccZ(-local_pos.az, -local_pos_sp.thrust[2]);
+				}
 
 				const bool valid = (_hover_thrust_ekf.getHoverThrustEstimateVar() < 0.001f)
 						   && (_hover_thrust_ekf.getInnovationTestRatio() < 1.f);
