@@ -132,7 +132,7 @@ PARAM_DEFINE_INT32(SYS_PARAM_VER, 1);
  *
  * 0 : Set to 0 to do nothing
  * 1 : Set to 1 to start a calibration at next boot
- * This parameter is reset to zero when the the temperature calibration starts.
+ * This parameter is reset to zero when the temperature calibration starts.
  *
  * default (0, no calibration)
  *
