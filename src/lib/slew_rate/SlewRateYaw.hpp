@@ -32,54 +32,33 @@
  ****************************************************************************/
 
 /**
- * @file SlewRate.hpp
+ * @file SlewRateYaw.hpp
  *
- * Library limit the rate of change of a value with a maximum slew rate.
+ * Library limit the rate of change of a [-pi,pi] range yaw value with a maximum slew rate.
  *
  * @author Matthias Grob <maetugr@gmail.com>
  */
 
 #pragma once
 
-#include <mathlib/mathlib.h>
-#include <matrix/math.hpp>
+#include "SlewRate.hpp"
 
 template<typename Type>
-class SlewRate
+class SlewRateYaw : public SlewRate<Type>
 {
 public:
-	SlewRate() = default;
-	~SlewRate() = default;
+	SlewRateYaw() = default;
+	~SlewRateYaw() = default;
 
 	/**
-	 * Set maximum rate of change for the value
-	 * @param slew_rate maximum rate of change
-	 */
-	void setSlewRate(const Type slew_rate) { _slew_rate = slew_rate; }
-
-	/**
-	 * Set value ignoring slew rate for initialization purpose
-	 * @param value new applied value
-	 */
-	void setForcedValue(const Type value) { _value = value; }
-
-	/**
-	 * Update slewrate
+	 * Update slewrate with yaw wrapping [-pi,pi]
 	 * @param new_value desired new value
 	 * @param deltatime time in seconds since last update
 	 * @return actual value that complies with the slew rate
 	 */
 	Type update(const Type new_value, const float deltatime)
 	{
-		// Limit the rate of change of the value
-		const Type dvalue_desired = new_value - _value;
-		const Type dvalue_max = _slew_rate * deltatime;
-		const Type dvalue = math::constrain(dvalue_desired, -dvalue_max, dvalue_max);
-		_value += dvalue;
-		return _value;
+		const Type d_wrapped = matrix::wrap_pi(new_value - this->_value);
+		return matrix::wrap_pi(SlewRate<Type>::update(this->_value + d_wrapped, deltatime));
 	}
-
-protected:
-	Type _slew_rate{}; ///< maximum rate of change for the value
-	Type _value{}; ///< state to keep last value of the slew rate
 };
