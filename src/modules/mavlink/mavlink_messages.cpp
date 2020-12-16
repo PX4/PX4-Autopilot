@@ -72,6 +72,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_baro.h>
@@ -3602,6 +3603,7 @@ public:
 
 private:
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription _manual_control_switches_sub{ORB_ID(manual_control_switches)};
 
 	/* do not allow top copying this class */
 	MavlinkStreamManualControl(MavlinkStreamManualControl &) = delete;
@@ -3623,15 +3625,20 @@ protected:
 			msg.y = manual_control_setpoint.y * 1000;
 			msg.z = manual_control_setpoint.z * 1000;
 			msg.r = manual_control_setpoint.r * 1000;
-			unsigned shift = 2;
-			msg.buttons = 0;
-			msg.buttons |= (manual_control_setpoint.mode_switch << (shift * 0));
-			msg.buttons |= (manual_control_setpoint.return_switch << (shift * 1));
-			msg.buttons |= (manual_control_setpoint.posctl_switch << (shift * 2));
-			msg.buttons |= (manual_control_setpoint.loiter_switch << (shift * 3));
-			msg.buttons |= (manual_control_setpoint.acro_switch << (shift * 4));
-			msg.buttons |= (manual_control_setpoint.offboard_switch << (shift * 5));
-			msg.buttons |= (manual_control_setpoint.kill_switch << (shift * 6));
+
+			manual_control_switches_s manual_control_switches{};
+
+			if (_manual_control_switches_sub.copy(&manual_control_switches)) {
+				unsigned shift = 2;
+				msg.buttons = 0;
+				msg.buttons |= (manual_control_switches.mode_switch << (shift * 0));
+				msg.buttons |= (manual_control_switches.return_switch << (shift * 1));
+				msg.buttons |= (manual_control_switches.posctl_switch << (shift * 2));
+				msg.buttons |= (manual_control_switches.loiter_switch << (shift * 3));
+				msg.buttons |= (manual_control_switches.acro_switch << (shift * 4));
+				msg.buttons |= (manual_control_switches.offboard_switch << (shift * 5));
+				msg.buttons |= (manual_control_switches.kill_switch << (shift * 6));
+			}
 
 			mavlink_msg_manual_control_send_struct(_mavlink->get_channel(), &msg);
 

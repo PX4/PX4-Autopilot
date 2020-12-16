@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,49 +31,12 @@
  *
  ****************************************************************************/
 
-#include "../PreFlightCheck.hpp"
-
-#include <systemlib/mavlink_log.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/manual_control_switches.h>
-
-using namespace time_literals;
-
-bool PreFlightCheck::manualControlCheck(orb_advert_t *mavlink_log_pub, const bool report_fail)
-{
-	bool success = true;
-
-	uORB::SubscriptionData<manual_control_switches_s> manual_control_switches_sub{ORB_ID(manual_control_switches)};
-	const manual_control_switches_s &manual_control_switches = manual_control_switches_sub.get();
-
-	if (manual_control_switches.timestamp != 0) {
-
-		// check action switches
-		if (manual_control_switches.return_switch == manual_control_switches_s::SWITCH_POS_ON) {
-			success = false;
-
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Failure: RTL switch engaged");
-			}
-		}
-
-		if (manual_control_switches.kill_switch == manual_control_switches_s::SWITCH_POS_ON) {
-			success = false;
-
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Failure: Kill switch engaged");
-			}
-		}
-
-		if (manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_ON) {
-			success = false;
-
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Failure: Landing gear switch set in UP position");
-			}
-		}
-
-	}
-
-	return success;
-}
+/**
+ * VL53L1X Distance Sensor
+ *
+ * @reboot_required true
+ *
+ * @boolean
+ * @group Sensors
+ */
+PARAM_DEFINE_INT32(SENS_EN_VL53L1X, 0);

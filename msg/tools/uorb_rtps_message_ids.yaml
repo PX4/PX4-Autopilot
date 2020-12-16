@@ -289,6 +289,8 @@ rtps:
     id: 138
   - msg: estimator_selector_status
     id: 139
+  - msg: manual_control_switches
+    id: 140
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150

@@ -999,6 +999,9 @@ Mission::set_mission_items()
 
 					new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 
+					/* re-enable weather vane again after alignment */
+					pos_sp_triplet->current.disable_weather_vane = false;
+
 					/* set position setpoint to target during the transition */
 					pos_sp_triplet->previous = pos_sp_triplet->current;
 					generate_waypoint_from_heading(&pos_sp_triplet->current, pos_sp_triplet->current.yaw);
