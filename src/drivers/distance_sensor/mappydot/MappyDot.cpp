@@ -225,7 +225,9 @@ MappyDot::MappyDot(I2CSPIBusOption bus_option, const int bus, int bus_frequency)
 	I2C(DRV_DIST_DEVTYPE_MAPPYDOT, MODULE_NAME, bus, MAPPYDOT_BASE_ADDR, bus_frequency),
 	ModuleParams(nullptr),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus)
-{}
+{
+	set_device_type(DRV_DIST_DEVTYPE_MAPPYDOT);
+}
 
 MappyDot::~MappyDot()
 {
@@ -266,7 +268,7 @@ MappyDot::collect()
 
 		distance_sensor_s report {};
 		report.current_distance = distance_m;
-		report.id               = _sensor_addresses[index];
+		report.device_id        = get_device_id();
 		report.max_distance     = MAPPYDOT_MAX_DISTANCE;
 		report.min_distance     = MAPPYDOT_MIN_DISTANCE;
 		report.orientation      = _sensor_rotations[index];

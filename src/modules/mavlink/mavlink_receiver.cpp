@@ -64,6 +64,8 @@
 #include "mavlink_main.h"
 #include "mavlink_receiver.h"
 
+#include <lib/drivers/device/Device.hpp> // For DeviceId union
+
 #ifdef CONFIG_NET
 #define MAVLINK_RECEIVER_NET_ADDED_STACK 1360
 #else
@@ -640,12 +642,17 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 
 		distance_sensor_s d{};
 
+		device::Device::DeviceId device_id;
+		device_id.devid_s.bus = device::Device::DeviceBusType::DeviceBusType_SERIAL;
+		device_id.devid_s.devtype = DRV_DIST_DEVTYPE_MAVLINK;
+		device_id.devid_s.address = msg->sysid;
+
 		d.timestamp = f.timestamp;
 		d.min_distance = 0.3f;
 		d.max_distance = 5.0f;
 		d.current_distance = flow.distance; /* both are in m */
-		d.type = 1;
-		d.id = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
+		d.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
+		d.device_id = device_id.devid;
 		d.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 		d.variance = 0.0;
 
@@ -680,12 +687,17 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 	/* Use distance value for distance sensor topic */
 	distance_sensor_s d{};
 
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus = device::Device::DeviceBusType::DeviceBusType_SERIAL;
+	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_MAVLINK;
+	device_id.devid_s.address = msg->sysid;
+
 	d.timestamp = hrt_absolute_time();
 	d.min_distance = 0.3f;
 	d.max_distance = 5.0f;
 	d.current_distance = flow.distance; /* both are in m */
 	d.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
-	d.id = 0;
+	d.device_id = device_id.devid;
 	d.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	d.variance = 0.0;
 
@@ -729,6 +741,11 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 
 	distance_sensor_s ds{};
 
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus = device::Device::DeviceBusType::DeviceBusType_SERIAL;
+	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_MAVLINK;
+	device_id.devid_s.address = dist_sensor.id;
+
 	ds.timestamp        = hrt_absolute_time(); /* Use system time for now, don't trust sender to attach correct timestamp */
 	ds.min_distance     = static_cast<float>(dist_sensor.min_distance) * 1e-2f;     /* cm to m */
 	ds.max_distance     = static_cast<float>(dist_sensor.max_distance) * 1e-2f;     /* cm to m */
@@ -741,7 +758,7 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 	ds.q[2]             = dist_sensor.quaternion[2];
 	ds.q[3]             = dist_sensor.quaternion[3];
 	ds.type             = dist_sensor.type;
-	ds.id               = dist_sensor.id;
+	ds.device_id        = device_id.devid;
 	ds.orientation      = dist_sensor.orientation;
 
 	// MAVLink DISTANCE_SENSOR signal_quality value of 0 means unset/unknown

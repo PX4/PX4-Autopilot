@@ -147,6 +147,7 @@ public:
 		DeviceBusType_SPI     = 2,
 		DeviceBusType_UAVCAN  = 3,
 		DeviceBusType_SIMULATION = 4,
+		DeviceBusType_SERIAL = 5,
 	};
 
 	/*
