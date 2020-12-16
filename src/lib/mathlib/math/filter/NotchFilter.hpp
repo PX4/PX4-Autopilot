@@ -153,10 +153,10 @@ protected:
 	float _b1{};
 	float _b2{};
 
-	T _delay_element_1;
-	T _delay_element_2;
-	T _delay_element_output_1;
-	T _delay_element_output_2;
+	T _delay_element_1{};
+	T _delay_element_2{};
+	T _delay_element_output_1{};
+	T _delay_element_output_2{};
 };
 
 /**

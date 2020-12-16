@@ -71,12 +71,12 @@ void KalmanFilter::predict(float dt, float acc, float acc_unc)
 	_x(0) += _x(1) * dt + dt * dt / 2 * acc;
 	_x(1) += acc * dt;
 
-	matrix::Matrix<float, 2, 2> A; // propagation matrix
+	matrix::Matrix<float, 2, 2> A{}; // propagation matrix
 	A(0, 0) = 1;
 	A(1, 1) = 1;
 	A(0, 1) = dt;
 
-	matrix::Matrix<float, 2, 1> G; // noise model
+	matrix::Matrix<float, 2, 1> G{}; // noise model
 	G(0, 0) = dt * dt / 2;
 	G(1, 0) = dt;
 
@@ -112,7 +112,7 @@ bool KalmanFilter::update(float meas, float measUnc)
 	matrix::Matrix<float, 2, 2> identity;
 	identity.identity();
 
-	matrix::Matrix<float, 2, 2> KH; // kalmanGain * H
+	matrix::Matrix<float, 2, 2> KH{}; // kalmanGain * H
 	KH(0, 0) = kalmanGain(0);
 	KH(1, 0) = kalmanGain(1);
 

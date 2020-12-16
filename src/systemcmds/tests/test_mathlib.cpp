@@ -88,11 +88,11 @@ using namespace math;
 bool MathlibTest::testVector2()
 {
 	{
-		matrix::Vector2f v;
+		matrix::Vector2f v{};
 		matrix::Vector2f v1(1.0f, 2.0f);
 		matrix::Vector2f v2(1.0f, -1.0f);
 		float data[2] = {1.0f, 2.0f};
-		TEST_OP("Constructor matrix::Vector2f()", matrix::Vector2f v3);
+		TEST_OP("Constructor matrix::Vector2f()", matrix::Vector2f v3{});
 		TEST_OP("Constructor matrix::Vector2f(matrix::Vector2f)", matrix::Vector2f v3(v1); ut_assert_true(v3 == v1); v3.zero());
 		TEST_OP("Constructor matrix::Vector2f(float[])", matrix::Vector2f v3(data));
 		TEST_OP("Constructor matrix::Vector2f(float, float)", matrix::Vector2f v3(1.0f, 2.0f));

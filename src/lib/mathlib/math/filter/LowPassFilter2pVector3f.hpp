@@ -79,17 +79,17 @@ public:
 
 private:
 
-	float _cutoff_freq{0.0f};
+	float _cutoff_freq{0.f};
 
-	float _a1{0.0f};
-	float _a2{0.0f};
+	float _a1{0.f};
+	float _a2{0.f};
 
-	float _b0{0.0f};
-	float _b1{0.0f};
-	float _b2{0.0f};
+	float _b0{0.f};
+	float _b1{0.f};
+	float _b2{0.f};
 
-	matrix::Vector3f _delay_element_1{0.0f, 0.0f, 0.0f};	// buffered sample -1
-	matrix::Vector3f _delay_element_2{0.0f, 0.0f, 0.0f};	// buffered sample -2
+	matrix::Vector3f _delay_element_1{};	// buffered sample -1
+	matrix::Vector3f _delay_element_2{};	// buffered sample -2
 };
 
 } // namespace math

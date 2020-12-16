@@ -119,13 +119,13 @@ bool MatrixTest::attitudeTests()
 
 
 	// euler default ctor
-	Eulerf e;
+	Eulerf e{};
 	Eulerf e_zero = zeros<float, 3, 1>();
 	ut_test(isEqual(e, e_zero));
 	ut_test(isEqual(e, e));
 
 	// euler vector ctor
-	Vector<float, 3> v;
+	Vector<float, 3> v{};
 	v(0) = 0.1f;
 	v(1) = 0.2f;
 	v(2) = 0.3f;
@@ -652,7 +652,7 @@ bool MatrixTest::vector2Tests()
 	Vector2f b(0, 1);
 	ut_test(fabs(a % b - 1.0f) < 1e-5);
 
-	Vector2f c;
+	Vector2f c{};
 	ut_test(fabs(c(0) - 0) < 1e-5);
 	ut_test(fabs(c(1) - 0) < 1e-5);
 

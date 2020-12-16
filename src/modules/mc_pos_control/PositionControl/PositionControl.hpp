@@ -187,10 +187,10 @@ private:
 	void _accelerationControl(); ///< Acceleration setpoint processing
 
 	// Gains
-	matrix::Vector3f _gain_pos_p; ///< Position control proportional gain
-	matrix::Vector3f _gain_vel_p; ///< Velocity control proportional gain
-	matrix::Vector3f _gain_vel_i; ///< Velocity control integral gain
-	matrix::Vector3f _gain_vel_d; ///< Velocity control derivative gain
+	matrix::Vector3f _gain_pos_p{}; ///< Position control proportional gain
+	matrix::Vector3f _gain_vel_p{}; ///< Velocity control proportional gain
+	matrix::Vector3f _gain_vel_i{}; ///< Velocity control integral gain
+	matrix::Vector3f _gain_vel_d{}; ///< Velocity control derivative gain
 
 	// Limits
 	float _lim_vel_horizontal{}; ///< Horizontal velocity limit with feed forward and position control
@@ -203,19 +203,19 @@ private:
 	float _hover_thrust{}; ///< Thrust [0,1] with which the vehicle hovers not accelerating down or up with level orientation
 
 	// States
-	matrix::Vector3f _pos; /**< current position */
-	matrix::Vector3f _vel; /**< current velocity */
-	matrix::Vector3f _vel_dot; /**< velocity derivative (replacement for acceleration estimate) */
-	matrix::Vector3f _vel_int; /**< integral term of the velocity controller */
+	matrix::Vector3f _pos{}; /**< current position */
+	matrix::Vector3f _vel{}; /**< current velocity */
+	matrix::Vector3f _vel_dot{}; /**< velocity derivative (replacement for acceleration estimate) */
+	matrix::Vector3f _vel_int{}; /**< integral term of the velocity controller */
 	float _yaw{}; /**< current heading */
 
 	vehicle_constraints_s _constraints{}; /**< variable constraints */
 
 	// Setpoints
-	matrix::Vector3f _pos_sp; /**< desired position */
-	matrix::Vector3f _vel_sp; /**< desired velocity */
-	matrix::Vector3f _acc_sp; /**< desired acceleration */
-	matrix::Vector3f _thr_sp; /**< desired thrust */
+	matrix::Vector3f _pos_sp{}; /**< desired position */
+	matrix::Vector3f _vel_sp{}; /**< desired velocity */
+	matrix::Vector3f _acc_sp{}; /**< desired acceleration */
+	matrix::Vector3f _thr_sp{}; /**< desired thrust */
 	float _yaw_sp{}; /**< desired heading */
 	float _yawspeed_sp{}; /** desired yaw-speed */
 };

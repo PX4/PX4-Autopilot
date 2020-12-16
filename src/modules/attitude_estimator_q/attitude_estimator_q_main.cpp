@@ -456,7 +456,7 @@ AttitudeEstimatorQ::update(float dt)
 	Quatf q_last = _q;
 
 	// Angular rate of correction
-	Vector3f corr;
+	Vector3f corr{};
 	float spinRate = _gyro.length();
 
 	if (_param_att_ext_hdg_m.get() > 0 && _ext_hdg_good) {

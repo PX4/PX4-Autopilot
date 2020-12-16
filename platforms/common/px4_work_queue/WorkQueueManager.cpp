@@ -248,14 +248,14 @@ WorkQueueManagerRun(int, char **)
 		if (wq != nullptr) {
 			// create new work queue
 
-			pthread_attr_t attr;
+			pthread_attr_t attr{};
 			int ret_attr_init = pthread_attr_init(&attr);
 
 			if (ret_attr_init != 0) {
 				PX4_ERR("attr init for %s failed (%i)", wq->name, ret_attr_init);
 			}
 
-			sched_param param;
+			sched_param param{};
 			int ret_getschedparam = pthread_attr_getschedparam(&attr, &param);
 
 			if (ret_getschedparam != 0) {
@@ -300,7 +300,7 @@ WorkQueueManagerRun(int, char **)
 			}
 
 			// create thread
-			pthread_t thread;
+			pthread_t thread{};
 			int ret_create = pthread_create(&thread, &attr, WorkQueueRunner, (void *)wq);
 
 			if (ret_create == 0) {

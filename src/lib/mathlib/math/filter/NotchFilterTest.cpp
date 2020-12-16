@@ -47,8 +47,8 @@ using matrix::Vector3f;
 class NotchFilterTest : public ::testing::Test
 {
 public:
-	NotchFilter<float> _notch_float;
-	NotchFilter<Vector3f> _notch_vector3f;
+	NotchFilter<float> _notch_float{};
+	NotchFilter<Vector3f> _notch_vector3f{};
 	const float _sample_freq = 1000.f;
 	const float _notch_freq = 50.f;
 	const float _bandwidth = 15.f;

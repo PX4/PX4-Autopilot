@@ -94,6 +94,7 @@ MultirotorMixer::MultirotorMixer(ControlCallback control_cb, uintptr_t cb_handle
 {
 	for (unsigned i = 0; i < _rotor_count; ++i) {
 		_outputs_prev[i] = -1.f;
+		_tmp_array[i] = 0.f;
 	}
 }
 

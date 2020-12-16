@@ -80,7 +80,7 @@ public:
 		EXPECT_GT(i, 0);
 	}
 
-	AttitudeControl _attitude_control;
+	AttitudeControl _attitude_control{};
 	Quatf _quat_state;
 	Quatf _quat_goal;
 };

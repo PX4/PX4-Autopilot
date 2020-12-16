@@ -118,9 +118,9 @@ private:
 	Vector2f _position_estimate{};
 
 	struct {
-		Vector2f j;
-		Vector2f a;
-		Vector2f v;
-		Vector2f x;
+		Vector2f j{};
+		Vector2f a{};
+		Vector2f v{};
+		Vector2f x{};
 	} _state{};
 };

@@ -70,10 +70,10 @@ TEST_F(ManualVelocitySmoothingXYTest, getCurrentState)
 	_smoothing.setCurrentVelocity(v0);
 
 	// WHEN: we get the current state
-	Vector3f j_end;
-	Vector3f a_end;
-	Vector3f v_end;
-	Vector3f x_end;
+	Vector3f j_end{};
+	Vector3f a_end{};
+	Vector3f v_end{};
+	Vector3f x_end{};
 	j_end.xy() = _smoothing.getCurrentJerk();
 	a_end.xy() = _smoothing.getCurrentAcceleration();
 	v_end.xy() = _smoothing.getCurrentVelocity();

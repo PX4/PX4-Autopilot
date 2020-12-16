@@ -67,7 +67,8 @@ TEST(BezierN_calculateBezier, work_1_point)
 {
 	// GIVEN: a single point bezier curve
 	matrix::Vector3f points[2] = {matrix::Vector3f(1, 2, 3), matrix::Vector3f(NAN, NAN, NAN)};
-	matrix::Vector3f pos, vel;
+	matrix::Vector3f pos{};
+	matrix::Vector3f vel{};
 	pos *= NAN;
 	vel *= NAN;
 
@@ -83,7 +84,8 @@ TEST(BezierN_calculateBezier, works_2_points)
 {
 	// GIVEN: a 2-point bezier curve
 	matrix::Vector3f points[3] = {matrix::Vector3f(1, 2, 3), matrix::Vector3f(5, 0, 1), matrix::Vector3f(NAN, NAN, NAN)};
-	matrix::Vector3f pos, vel;
+	matrix::Vector3f pos{};
+	matrix::Vector3f vel{};
 	pos *= NAN;
 	vel *= NAN;
 
@@ -113,7 +115,8 @@ TEST(BezierN_calculateBezier, works_3_points_zero_accel)
 {
 	// GIVEN: 3 points bezier, evenly spaced in a straight line
 	matrix::Vector3f points[4] = {matrix::Vector3f(1, 2, 3), matrix::Vector3f(5, 0, 1), matrix::Vector3f(9, -2, -1), matrix::Vector3f(NAN, NAN, NAN)};
-	matrix::Vector3f pos, vel;
+	matrix::Vector3f pos{};
+	matrix::Vector3f vel{};
 	pos *= NAN;
 	vel *= NAN;
 
@@ -161,16 +164,20 @@ TEST(BezierN_calculateBezier, works_3_points_accel)
 {
 	// GIVEN: 3 points bezier, in a curve
 	matrix::Vector3f points[4] = {matrix::Vector3f(1, 2, 3), matrix::Vector3f(5, 0, 1), matrix::Vector3f(19, -8, 1), matrix::Vector3f(NAN, NAN, NAN)};
-	matrix::Vector3f pos, vel;
+	matrix::Vector3f pos{};
+	matrix::Vector3f vel{};
 	pos *= NAN;
 	vel *= NAN;
 
-	matrix::Vector3f pos2;
+	matrix::Vector3f pos2{};
 	pos2 *= NAN;
 
-	matrix::Vector3f accel_start, accel_mid, accel_end;
-	matrix::Vector3f vel_start, vel_mid, vel_end;
-
+	matrix::Vector3f accel_start{};
+	matrix::Vector3f accel_mid{};
+	matrix::Vector3f accel_end{};
+	matrix::Vector3f vel_start{};
+	matrix::Vector3f vel_mid{};
+	matrix::Vector3f vel_end{};
 
 	// WHEN: we check at the beginning
 	EXPECT_TRUE(bezier::calculateBezierPosVel(points, 3, 0.f, pos, vel));
