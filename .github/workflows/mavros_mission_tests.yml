@@ -22,7 +22,7 @@ jobs:
           - {vehicle: "standard_vtol", mission: "VTOL_mission_1",  build_type: "Coverage"}
           - {vehicle: "standard_vtol", mission: "VTOL_mission_1",  build_type: "AddressSanitizer"}
           #- {vehicle: "tailsitter",    mission: "VTOL_mission_1",  build_type: "RelWithDebInfo"}
-          #- {vehicle: "tiltrotor",     mission: "VTOL_mission_1",  build_type: "RelWithDebInfo"}
+          - {vehicle: "tiltrotor",     mission: "VTOL_mission_1",  build_type: "RelWithDebInfo"}
 
     container:
       image: px4io/px4-dev-ros-melodic:2020-11-18
