@@ -120,9 +120,6 @@ public:
 private:
 	void Run() override;
 
-	template<typename Param>
-	void update_mag_bias(Param &mag_bias_param, int axis_index);
-
 	void PublishAttitude(const hrt_abstime &timestamp);
 	void PublishEkfDriftMetrics(const hrt_abstime &timestamp);
 	void PublishGlobalPosition(const hrt_abstime &timestamp);
@@ -148,7 +145,7 @@ private:
 	void UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps);
 
-	void UpdateMagCalibration(const hrt_abstime &timestamp);
+	void SaveMagDeclination();
 
 	/*
 	 * Calculate filtered WGS84 height from estimated AMSL height
@@ -171,17 +168,6 @@ private:
 	perf_counter_t _ecl_ekf_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL update")};
 	perf_counter_t _ecl_ekf_update_full_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL full update")};
 
-	// Initialise time stamps used to send sensor data to the EKF and for logging
-	uint8_t _invalid_mag_id_count = 0;	///< number of times an invalid magnetomer device ID has been detected
-
-	// Used to check, save and use learned magnetometer biases
-	hrt_abstime _last_magcal_us = 0;	///< last time the EKF was operating a mode that estimates magnetomer biases (uSec)
-	hrt_abstime _total_cal_time_us = 0;	///< accumulated calibration time since the last save
-
-	Vector3f _last_valid_mag_cal{};	///< last valid XYZ magnetometer bias estimates (Gauss)
-	Vector3f _last_valid_variance{};	///< variances for the last valid magnetometer XYZ bias estimates (Gauss**2)
-	bool _valid_cal_available{false};	///< true when an unsaved valid calibration for the XYZ magnetometer bias is available
-
 	// Used to control saving of mag declination to be used on next startup
 	bool _mag_decl_saved = false;	///< true when the magnetic declination has been saved
 
@@ -193,6 +179,7 @@ private:
 	float   _wgs84_hgt_offset = 0;  ///< height offset between AMSL and WGS84
 
 	uint8_t _imu_calibration_count{0};
+	uint8_t _mag_calibration_count{0};
 
 	uint32_t _device_id_accel{0};
 	uint32_t _device_id_baro{0};
@@ -442,17 +429,6 @@ private:
 		_param_ekf2_abias_init,	///< 1-sigma accelerometer bias uncertainty at switch on (m/sec**2)
 		(ParamExtFloat<px4::params::EKF2_ANGERR_INIT>)
 		_param_ekf2_angerr_init,	///< 1-sigma tilt error after initial alignment using gravity vector (rad)
-
-		// EKF saved XYZ magnetometer bias values
-		(ParamFloat<px4::params::EKF2_MAGBIAS_X>) _param_ekf2_magbias_x,		///< X magnetometer bias (Gauss)
-		(ParamFloat<px4::params::EKF2_MAGBIAS_Y>) _param_ekf2_magbias_y,		///< Y magnetometer bias (Gauss)
-		(ParamFloat<px4::params::EKF2_MAGBIAS_Z>) _param_ekf2_magbias_z,		///< Z magnetometer bias (Gauss)
-		(ParamInt<px4::params::EKF2_MAGBIAS_ID>)
-		_param_ekf2_magbias_id,		///< ID of the magnetometer sensor used to learn the bias values
-		(ParamFloat<px4::params::EKF2_MAGB_VREF>)
-		_param_ekf2_magb_vref, ///< Assumed error variance of previously saved magnetometer bias estimates (Gauss**2)
-		(ParamFloat<px4::params::EKF2_MAGB_K>)
-		_param_ekf2_magb_k,	///< maximum fraction of the learned magnetometer bias that is saved at each disarm
 
 		// EKF accel bias learning control
 		(ParamExtFloat<px4::params::EKF2_ABL_LIM>) _param_ekf2_abl_lim,	///< Accelerometer bias learning limit (m/s**2)

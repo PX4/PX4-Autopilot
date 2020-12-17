@@ -40,6 +40,7 @@
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
+#include <lib/hysteresis/hysteresis.h>
 #include <lib/systemlib/mavlink_log.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
@@ -48,13 +49,16 @@
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/sensor_preflight_mag.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 
 namespace sensors
@@ -82,6 +86,7 @@ private:
 	 * Calculates the magnitude in Gauss of the largest difference between the primary and any other magnetometers
 	 */
 	void calcMagInconsistency();
+	void MagCalibrationUpdate();
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
@@ -98,7 +103,15 @@ private:
 	uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status), 0};
 	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
-	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+
+	// Used to check, save and use learned magnetometer biases
+	uORB::SubscriptionMultiArray<estimator_sensor_bias_s> _estimator_sensor_bias_subs{ORB_ID::estimator_sensor_bias};
+	systemlib::Hysteresis _mag_cal_valid[ORB_MULTI_MAX_INSTANCES] {false, false, false, false, false, false, false, false, false, false};
+	matrix::Vector3f _mag_cal_offset[MAX_SENSOR_COUNT] {};
+	matrix::Vector3f _mag_cal_bias_variance[MAX_SENSOR_COUNT] {};
+	bool _mag_cal_available[MAX_SENSOR_COUNT] {};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_sub[MAX_SENSOR_COUNT] {
 		{this, ORB_ID(sensor_mag), 0},
@@ -140,7 +153,8 @@ private:
 
 	int8_t _selected_sensor_sub_index{-1};
 
-	bool _armed{false};				/**< arming status of the vehicle */
+	bool _armed{false};
+	bool _landed{true};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CAL_MAG_COMP_TYP>) _param_mag_comp_typ,
