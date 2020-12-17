@@ -387,6 +387,9 @@ else
 		commander start
 	fi
 
+	# TODO: param
+	mag_bias_estimator start
+
 	# Sensors on the PWM interface bank.
 	if param compare -s SENS_EN_LL40LS 1
 	then
