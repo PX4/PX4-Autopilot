@@ -44,8 +44,8 @@ TEST(MagnetometerBiasEstimatorTest, AllZeroCase)
 	const Vector3f virtual_bias(0.2f, -0.4f, 0.5f);
 	Vector3f virtual_mag = virtual_unbiased_mag + virtual_bias;
 
-	// field_sensor_bias_estimator.setField(virtual_mag);
-	// field_sensor_bias_estimator.setBias(virtual_bias);
+	// Initialize with the current measurement
+	field_sensor_bias_estimator.setField(virtual_mag);
 
 	for (int i = 0; i <= 1000; i++) {
 		float dt = .01f;
