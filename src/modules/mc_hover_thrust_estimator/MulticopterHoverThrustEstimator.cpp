@@ -117,10 +117,13 @@ void MulticopterHoverThrustEstimator::Run()
 	if (_vehicle_local_position_sub.copy(&local_pos)) {
 		// This is only necessary because the landed
 		// flag of the land detector does not guarantee that
-		// the vehicle does not touch the ground anymore
+		// the vehicle does not touch the ground anymore.
+		// There is no check for the dist_bottom validity as
+		// this value is always good enough after takeoff for
+		// this use case.
 		// TODO: improve the landed flag
-		if (local_pos.dist_bottom_valid) {
-			if (!_landed && (local_pos.dist_bottom > 1.f)) {
+		if (!_landed) {
+			if (local_pos.dist_bottom > 1.f) {
 				_in_air = true;
 			}
 		}
