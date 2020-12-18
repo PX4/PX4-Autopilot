@@ -125,6 +125,8 @@ px4_add_module(
 		indication_controller.cpp
 		UavcanNode.cpp
 		UavcanNode.hpp
+		UavcanNodeParamManager.hpp
+		UavcanNodeParamManager.cpp
 	DEPENDS
 		px4_uavcan_dsdlc
 
