@@ -54,7 +54,6 @@ then
 	param set FW_T_SINK_MAX 3
 	param set FW_T_SINK_MIN 1
 	param set FW_T_VERT_ACC 6
-	param set FW_T_HRATE_P 0.1
 	param set FW_THR_CRUISE 0.70
 	param set FW_THR_SLEW_MAX 1
 	param set FW_MAN_P_MAX 30
