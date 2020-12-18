@@ -124,6 +124,8 @@ px4_add_module(
 		uavcan_driver.hpp
 		UavcanNode.cpp
 		UavcanNode.hpp
+		UavcanNodeParamManager.hpp
+		UavcanNodeParamManager.cpp
 	DEPENDS
 		px4_uavcan_dsdlc
 

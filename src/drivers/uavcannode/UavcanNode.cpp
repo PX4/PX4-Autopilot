@@ -82,6 +82,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_raw_air_data_publisher(_node),
 	_range_sensor_measurement(_node),
 	_flow_measurement_publisher(_node),
+	_param_server(_node),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")),
 	_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")),
 	_reset_timer(_node)
@@ -289,6 +290,7 @@ void UavcanNode::Run()
 	if (!_initialized) {
 
 		get_node().setRestartRequestHandler(&restart_request_handler);
+		_param_server.start(&_param_manager);
 
 		// Set up the time synchronization
 		const int slave_init_res = _time_sync_slave.start();
