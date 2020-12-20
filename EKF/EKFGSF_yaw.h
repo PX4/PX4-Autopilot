@@ -45,11 +45,11 @@ public:
 			float yaw[N_MODELS_EKFGSF],
 			float innov_VN[N_MODELS_EKFGSF],
 			float innov_VE[N_MODELS_EKFGSF],
-			float weight[N_MODELS_EKFGSF]);
+			float weight[N_MODELS_EKFGSF]) const;
 
     	// get yaw estimate and the corresponding variance
     	// return false if no yaw estimate available
-    	bool getYawData(float *yaw, float *yaw_variance);
+    	bool getYawData(float *yaw, float *yaw_variance) const;
 
 private:
 
