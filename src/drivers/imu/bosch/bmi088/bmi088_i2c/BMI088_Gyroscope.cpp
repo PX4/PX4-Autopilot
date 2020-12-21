@@ -170,8 +170,8 @@ void BMI088_Gyroscope::RunImpl()
 		break;
 
 	case STATE::FIFO_READ: {
-			//FIFOReadTest(now);
-			NormalRead(now);
+			FIFOReadTest(now);
+			//NormalRead(now);
 		}
 		break;
 	}
@@ -467,7 +467,7 @@ bool BMI088_Gyroscope::FIFOReadTest(const hrt_abstime &timestamp_sample)
 
     	n_frames &= 0x7F;
 
-	int n_frames_to_read = 5;
+	int n_frames_to_read = 6;
 	// don't read more than 8 frames at a time
 	if (n_frames > n_frames_to_read) {
 		n_frames = n_frames_to_read;
