@@ -192,8 +192,8 @@ void BMI088_Accelerometer::RunImpl()
 		break;
 
 	case STATE::FIFO_READ: {
-			//FIFOReadTest(now);
-			NormalRead(now);
+			FIFOReadTest(now);
+			//NormalRead(now);
 		}
 		break;
 	}
@@ -875,7 +875,7 @@ bool BMI088_Accelerometer::FIFOReadTest(const hrt_abstime &timestamp_sample){
 		// empty
 		return false;
 	}
-	int n_frames_to_read = 5;
+	int n_frames_to_read = 6;
 	// don't read more than 8 frames at a time
 	if (fifo_fill_level > n_frames_to_read*7) {
 		fifo_fill_level = n_frames_to_read*7;
