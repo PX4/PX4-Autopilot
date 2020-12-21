@@ -516,6 +516,15 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 		} else if (cmd_mavlink.command == MAV_CMD_LOGGING_STOP) {
 			_mavlink->request_stop_ulog_streaming();
+
+		} else if (cmd_mavlink.command == MAV_CMD_DO_CHANGE_SPEED) {
+			vehicle_control_mode_s control_mode{};
+			_control_mode_sub.copy(&control_mode);
+
+			if (control_mode.flag_control_offboard_enabled) {
+				// Not differentiating between airspeed and groundspeed yet
+				set_offb_cruising_speed(cmd_mavlink.param2);
+			}
 		}
 
 		if (!send_ack) {
@@ -900,6 +909,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 						pos_sp_triplet.current.x = set_position_target_local_ned.x;
 						pos_sp_triplet.current.y = set_position_target_local_ned.y;
 						pos_sp_triplet.current.z = set_position_target_local_ned.z;
+						pos_sp_triplet.current.cruising_speed = get_offb_cruising_speed();
 
 					} else {
 						pos_sp_triplet.current.position_valid = false;
@@ -1078,6 +1088,7 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 							globallocalconverter_tolocal(set_position_target_global_int.lat_int / 1e7,
 										     set_position_target_global_int.lon_int / 1e7, set_position_target_global_int.alt,
 										     &pos_sp_triplet.current.x, &pos_sp_triplet.current.y, &pos_sp_triplet.current.z);
+							pos_sp_triplet.current.cruising_speed = get_offb_cruising_speed();
 							pos_sp_triplet.current.position_valid = true;
 						}
 
@@ -3115,4 +3126,35 @@ MavlinkReceiver::receive_start(pthread_t *thread, Mavlink *parent)
 	pthread_create(thread, &receiveloop_attr, MavlinkReceiver::start_helper, (void *)parent);
 
 	pthread_attr_destroy(&receiveloop_attr);
+}
+
+float
+MavlinkReceiver::get_offb_cruising_speed()
+{
+	vehicle_status_s vehicle_status{};
+	_vehicle_status_sub.copy(&vehicle_status);
+
+	if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && _offb_cruising_speed_mc > 0.0f) {
+		return _offb_cruising_speed_mc;
+
+	} else if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING && _offb_cruising_speed_fw > 0.0f) {
+		return _offb_cruising_speed_fw;
+
+	} else {
+		return -1.0f;
+	}
+}
+
+void
+MavlinkReceiver::set_offb_cruising_speed(float speed)
+{
+	vehicle_status_s vehicle_status{};
+	_vehicle_status_sub.copy(&vehicle_status);
+
+	if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		_offb_cruising_speed_mc = speed;
+
+	} else {
+		_offb_cruising_speed_fw = speed;
+	}
 }

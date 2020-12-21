@@ -231,10 +231,10 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 			}
 
 			if (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-				armed->armed_time_ms = hrt_absolute_time() / 1000;
+				status->armed_time = hrt_absolute_time();
 
 			} else {
-				armed->armed_time_ms = 0;
+				status->armed_time = 0;
 			}
 		}
 	}

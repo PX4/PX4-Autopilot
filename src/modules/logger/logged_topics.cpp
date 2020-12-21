@@ -62,6 +62,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("hover_thrust_estimate", 100);
 	add_topic("input_rc", 500);
 	add_topic("manual_control_setpoint", 200);
+	add_topic("manual_control_switches");
 	add_topic("mission");
 	add_topic("mission_result");
 	add_topic("navigator_mission_item");
@@ -83,6 +84,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("tecs_status", 200);
 	add_topic("test_motor", 500);
 	add_topic("trajectory_setpoint", 200);
+	add_topic("transponder_report");
 	add_topic("vehicle_acceleration", 50);
 	add_topic("vehicle_air_data", 200);
 	add_topic("vehicle_angular_velocity", 20);
@@ -183,6 +185,7 @@ void LoggedTopics::add_debug_topics()
 	add_topic("debug_key_value");
 	add_topic("debug_value");
 	add_topic("debug_vect");
+	add_topic_multi("satellite_info", 1000, 2);
 }
 
 void LoggedTopics::add_estimator_replay_topics()

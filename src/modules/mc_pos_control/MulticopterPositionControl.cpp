@@ -336,8 +336,6 @@ void MulticopterPositionControl::Run()
 			// publish trajectory setpoint
 			_traj_sp_pub.publish(setpoint);
 
-			landing_gear_s gear = _flight_tasks.getGear();
-
 			// check if all local states are valid and map accordingly
 			set_vehicle_states(setpoint.vz);
 
@@ -445,14 +443,16 @@ void MulticopterPositionControl::Run()
 			_wv_dcm_z_sp_prev = Quatf(attitude_setpoint.q_d).dcm_z();
 
 			// if there's any change in landing gear setpoint publish it
-			if (gear.landing_gear != _old_landing_gear_position
-			    && gear.landing_gear != landing_gear_s::GEAR_KEEP) {
-				_landing_gear.timestamp = time_stamp_now;
-				_landing_gear.landing_gear = gear.landing_gear;
-				_landing_gear_pub.publish(_landing_gear);
+			landing_gear_s landing_gear = _flight_tasks.getGear();
+
+			if (landing_gear.landing_gear != _old_landing_gear_position
+			    && landing_gear.landing_gear != landing_gear_s::GEAR_KEEP) {
+
+				landing_gear.timestamp = hrt_absolute_time();
+				_landing_gear_pub.publish(landing_gear);
 			}
 
-			_old_landing_gear_position = gear.landing_gear;
+			_old_landing_gear_position = landing_gear.landing_gear;
 
 		} else {
 			// reset the numerical derivatives to not generate d term spikes when coming from non-position controlled operation

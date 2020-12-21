@@ -48,6 +48,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/landing_gear.h>
 #include <uORB/topics/test_motor.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -68,6 +69,7 @@
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
@@ -122,12 +124,9 @@ private:
 
 	void battery_status_check();
 
-	void check_valid(const hrt_abstime &timestamp, const hrt_abstime &timeout, const bool valid_in, bool *valid_out,
-			 bool *changed);
-
 	bool check_posvel_validity(const bool data_valid, const float data_accuracy, const float required_accuracy,
-				   const hrt_abstime &data_timestamp_us, hrt_abstime *last_fail_time_us, hrt_abstime *probation_time_us, bool *valid_state,
-				   bool *validity_changed);
+				   const hrt_abstime &data_timestamp_us, hrt_abstime *last_fail_time_us, hrt_abstime *probation_time_us,
+				   bool *valid_state);
 
 	void control_status_leds(bool changed, const uint8_t battery_warning);
 
@@ -153,7 +152,7 @@ private:
 	void print_reject_arm(const char *msg);
 	void print_reject_mode(const char *msg);
 
-	void reset_posvel_validity(bool *changed);
+	void reset_posvel_validity();
 
 	bool set_home_position();
 	bool set_home_position_alt_only();
@@ -168,6 +167,8 @@ private:
 
 	void update_control_mode();
 
+	void UpdateEstimateValidity();
+
 	// Set the main system state based on RC and override device inputs
 	transition_result_t set_main_state(bool *changed);
 
@@ -175,7 +176,7 @@ private:
 	transition_result_t set_main_state_override_on(bool *changed);
 
 	// Set the system main state based on the current RC inputs
-	transition_result_t set_main_state_rc(bool *changed);
+	transition_result_t set_main_state_rc();
 
 	bool shutdown_if_allowed();
 
@@ -310,7 +311,6 @@ private:
 	hrt_abstime	_lvel_probation_time_us = POSVEL_PROBATION_MIN;
 
 	/* class variables used to check for navigation failure after takeoff */
-	hrt_abstime	_time_at_takeoff{0};		/**< last time we were on the ground */
 	hrt_abstime	_time_last_innov_pass{0};	/**< last time velocity or position innovations passed */
 	bool		_nav_test_passed{false};	/**< true if the post takeoff navigation test has passed */
 	bool		_nav_test_failed{false};	/**< true if the post takeoff navigation test has failed */
@@ -346,8 +346,6 @@ private:
 
 	hrt_abstime	_last_print_mode_reject_time{0};	///< To remember when last notification was sent
 
-	float		_eph_threshold_adj{INFINITY};	///< maximum allowable horizontal position uncertainty after adjustment for flight condition
-	bool		_skip_pos_accuracy_check{false};
 	bool		_last_condition_local_altitude_valid{false};
 	bool		_last_condition_local_position_valid{false};
 	bool		_last_condition_global_position_valid{false};
@@ -356,11 +354,12 @@ private:
 
 	unsigned int	_leds_counter{0};
 
-	manual_control_setpoint_s	_manual_control_setpoint{};		///< the current manual control setpoint
-	manual_control_setpoint_s	_last_manual_control_setpoint{};	///< the manual control setpoint valid at the last mode switch
+	manual_control_setpoint_s _manual_control_setpoint{};		///< the current manual control setpoint
+	manual_control_switches_s _manual_control_switches{};
+	manual_control_switches_s _last_manual_control_switches{};
 	hrt_abstime	_rc_signal_lost_timestamp{0};		///< Time at which the RC reception was lost
-	int32_t		_flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_NUM] {};
-	uint8_t		_last_manual_control_setpoint_arm_switch{0};
+	int32_t		_flight_mode_slots[manual_control_switches_s::MODE_SLOT_NUM] {};
+	uint8_t		_last_manual_control_switches_arm_switch{manual_control_switches_s::SWITCH_POS_NONE};
 	uint32_t	_stick_off_counter{0};
 	uint32_t	_stick_on_counter{0};
 
@@ -406,6 +405,7 @@ private:
 	uORB::Subscription					_parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription					_safety_sub{ORB_ID(safety)};
 	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription					_manual_control_switches_sub{ORB_ID(manual_control_switches)};
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription					_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription					_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
@@ -433,6 +433,7 @@ private:
 	uORB::Publication<vehicle_status_flags_s>		_vehicle_status_flags_pub{ORB_ID(vehicle_status_flags)};
 	uORB::Publication<vehicle_status_s>			_status_pub{ORB_ID(vehicle_status)};
 	uORB::Publication<mission_s>				_mission_pub{ORB_ID(mission)};
+	uORB::Publication<landing_gear_s>			_landing_gear_pub{ORB_ID(landing_gear)};
 
 	uORB::PublicationData<home_position_s>			_home_pub{ORB_ID(home_position)};
 
