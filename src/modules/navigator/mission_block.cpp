@@ -199,10 +199,11 @@ MissionBlock::is_mission_item_reached()
 			 * Therefore the item is marked as reached once the system reaches the loiter
 			 * radius (+ some margin). Time inside and turn count is handled elsewhere.
 			 */
-			float radius = (fabsf(_mission_item.loiter_radius) > NAV_EPSILON_POSITION) ? fabsf(_mission_item.loiter_radius) :
-				       _navigator->get_loiter_radius();
+			const float radius = (fabsf(_mission_item.loiter_radius) > NAV_EPSILON_POSITION) ? fabsf(_mission_item.loiter_radius) :
+					     _navigator->get_loiter_radius();
 
-			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(fabsf(radius) * 1.2f)
+			if (dist >= 0.0f && dist_xy <= _navigator->get_acceptance_radius(fabsf(radius) * 1.2f)
+
 			    && dist_z <= _navigator->get_altitude_acceptance_radius()) {
 
 				_waypoint_position_reached = true;
@@ -598,10 +599,8 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 			sp->alt = _navigator->get_global_position()->alt;
 		}
 
-	// fall through
-	case NAV_CMD_LOITER_TIME_LIMIT:
-
 	// FALLTHROUGH
+	case NAV_CMD_LOITER_TIME_LIMIT:
 	case NAV_CMD_LOITER_UNLIMITED:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 		break;
