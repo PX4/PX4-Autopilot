@@ -2,20 +2,19 @@
 px4_add_board(
 	PLATFORM nuttx
 	VENDOR px4
-	MODEL fmu-v4
-	LABEL default
+	MODEL fmu-v5
+	LABEL uavcanv1
 	TOOLCHAIN arm-none-eabi
-	ARCHITECTURE cortex-m4
-	CONSTRAINED_MEMORY
+	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
+	IO px4_io-v2_default
 	TESTING
-	UAVCAN_INTERFACES 1
+	UAVCAN_INTERFACES 2
 	SERIAL_PORTS
-		GPS1:/dev/ttyS3
+		GPS1:/dev/ttyS0
 		TEL1:/dev/ttyS1
 		TEL2:/dev/ttyS2
-		WIFI:/dev/ttyS0
-
+		TEL4:/dev/ttyS3
 	DRIVERS
 		adc/board_adc
 		adc/ads1115
@@ -27,38 +26,42 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		dshot
 		gps
-		heater
+		#heater
 		#imu # all available imu drivers
 		imu/adis16448
 		imu/adis16477
 		imu/adis16497
+		imu/bosch/bmi055
 		imu/invensense/icm20602
-		imu/invensense/icm20608g
-		imu/invensense/icm40609d
-		imu/invensense/mpu6500
-		imu/invensense/mpu9250
+		imu/invensense/icm20689
+		#imu/mpu6000 # legacy icm20602/icm20689 driver
 		irlock
 		lights/blinkm
 		lights/rgbled
 		lights/rgbled_ncp5623c
+		lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		mkblctrl
 		optical_flow # all available optical flow drivers
 		#osd
 		pca9685
 		pca9685_pwm_out
+		power_monitor/ina226
 		#protocol_splitter
 		pwm_input
 		pwm_out_sim
 		pwm_out
+		px4io
 		rc_input
 		roboclaw
+		rpm
 		safety_button
 		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm
 		tone_alarm
-		uavcan
+		#uavcan # legacy v0
+		uavcan_v1
 	MODULES
 		airspeed_selector
 		attitude_estimator_q
@@ -94,7 +97,7 @@ px4_add_board(
 		vtol_att_control
 	SYSTEMCMDS
 		bl_update
-		#dmesg
+		dmesg
 		dumpfile
 		esc_calib
 		gpio

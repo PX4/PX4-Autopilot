@@ -3,10 +3,9 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR px4
 	MODEL fmu-v4
-	LABEL default
+	LABEL uavcanv1
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
-	CONSTRAINED_MEMORY
 	ROMFSROOT px4fmu_common
 	TESTING
 	UAVCAN_INTERFACES 1
@@ -58,7 +57,8 @@ px4_add_board(
 		telemetry # all available telemetry drivers
 		test_ppm
 		tone_alarm
-		uavcan
+		#uavcan
+		uavcan_v1
 	MODULES
 		airspeed_selector
 		attitude_estimator_q

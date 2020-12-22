@@ -28,6 +28,8 @@ px4_add_board(
 	CONSTRAINED_MEMORY
 	ROMFSROOT cannode
 	UAVCAN_INTERFACES 2
+	SERIAL_PORTS
+		GPS1:/dev/ttyS1
 	DRIVERS
 		#adc/board_adc
 		#barometer # all available barometer drivers
@@ -45,7 +47,8 @@ px4_add_board(
 		#safety_button
 		#tone_alarm
 		#uavcannode # TODO: CAN driver needed
-		uavcan_v1
+		#uavcan_v1
+		uavcannode_gps_demo
 	MODULES
 		#ekf2
 		#load_mon

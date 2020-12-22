@@ -41,41 +41,38 @@ find_program(NNVG_PATH nnvg)
 if(NNVG_PATH)
 	execute_process(COMMAND ${NNVG_PATH} --outdir ${CMAKE_CURRENT_BINARY_DIR}/dsdlc_generated --target-language c -I ${DSDL_DIR}/uavcan ${DSDL_DIR}/reg)
 	execute_process(COMMAND ${NNVG_PATH} --outdir ${CMAKE_CURRENT_BINARY_DIR}/dsdlc_generated --target-language c ${DSDL_DIR}/uavcan)
+
 else()
 	message(FATAL_ERROR "UAVCAN Nunavut nnvg not found")
 endif()
 
-set(SRCS)
-if(${PX4_PLATFORM} MATCHES "nuttx")
-	if(CONFIG_NET_CAN)
-		list(APPEND SRCS
-			CanardSocketCAN.cpp
-			CanardSocketCAN.hpp
-		)
-	elseif(CONFIG_CAN_EXTID)
-		list(APPEND SRCS
-			CanardNuttXCDev.cpp
-			CanardNuttXCDev.hpp
-		)
-	endif()
-endif()
+add_definitions(
+	-DCONFIG_EXAMPLES_LIBCANARDV1_DEV="can0"
+	-DCONFIG_EXAMPLES_LIBCANARDV1_NODE_MEM_POOL_SIZE=8192
+	-DCONFIG_EXAMPLES_LIBCANARDV1_DAEMON_STACK_SIZE=5000
+	-DCONFIG_EXAMPLES_LIBCANARDV1_DAEMON_PRIORITY=100
+	-DCANARD_DSDL_CONFIG_LITTLE_ENDIAN=1
+)
 
 px4_add_module(
-	MODULE drivers__uavcan_v1
-	MAIN uavcan_v1
+	MODULE drivers__uavcannode-gps-demo
+	MAIN uavcannode_gps_demo
 	COMPILE_FLAGS
-		#-DCANARD_ASSERT
-		-DUINT32_C\(x\)=__UINT32_C\(x\)
-		-O0
+		-Wno-error
+	    -DUINT32_C\(x\)=__UINT32_C\(x\)
 	INCLUDES
 		${LIBCANARD_DIR}/libcanard/
 		${CMAKE_CURRENT_BINARY_DIR}/dsdlc_generated
 	SRCS
-		Uavcan.cpp
-		Uavcan.hpp
-		${SRCS}
-		o1heap/o1heap.c
-		o1heap/o1heap.h
+		canard_main.c
+		socketcan.c
+		socketcan.h
+		uorb_converter.c
+		uorb_converter.h
+		o1heap.c
+		o1heap.h
+		libcancl/pnp.c
+		libcancl/registerinterface.c
 		${LIBCANARD_DIR}/libcanard/canard.c
 		${LIBCANARD_DIR}/libcanard/canard.h
 	DEPENDS

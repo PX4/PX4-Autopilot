@@ -30,12 +30,6 @@
 	path = src/drivers/gps/devices
 	url = https://github.com/PX4/PX4-GPSDrivers.git
 	branch = master
-[submodule "src/drivers/uavcan_v1/libcanard"]
-	path = src/drivers/uavcan_v1/libcanard
-	url = https://github.com/UAVCAN/libcanard.git
-[submodule "src/drivers/uavcan_v1/public_regulated_data_types"]
-	path = src/drivers/uavcan_v1/public_regulated_data_types
-	url = https://github.com/UAVCAN/public_regulated_data_types.git
 [submodule "src/modules/micrortps_bridge/micro-CDR"]
 	path = src/modules/micrortps_bridge/micro-CDR
 	url = https://github.com/PX4/Micro-CDR.git
@@ -60,3 +54,15 @@
 [submodule "src/examples/gyro_fft/CMSIS_5"]
 	path = src/examples/gyro_fft/CMSIS_5
 	url = https://github.com/ARM-software/CMSIS_5.git
+[submodule "src/drivers/uavcan_v1/libcanard"]
+	path = src/drivers/uavcan_v1/libcanard
+	url = https://github.com/UAVCAN/libcanard.git
+[submodule "src/drivers/uavcan_v1/public_regulated_data_types"]
+	path = src/drivers/uavcan_v1/public_regulated_data_types
+	url = https://github.com/UAVCAN/public_regulated_data_types.git
+[submodule "src/drivers/uavcannode_gps_demo/public_regulated_data_types"]
+	path = src/drivers/uavcannode_gps_demo/public_regulated_data_types
+	url = https://github.com/UAVCAN/public_regulated_data_types
+[submodule "src/drivers/uavcannode_gps_demo/libcanard"]
+	path = src/drivers/uavcannode_gps_demo/libcanard
+	url = https://github.com/UAVCAN/libcanard
