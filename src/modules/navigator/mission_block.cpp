@@ -441,7 +441,9 @@ MissionBlock::is_mission_item_reached()
 					bearing += inner_angle;
 				}
 
-				// Replace current setpoint lat/lon with tangent coordinate
+				// set typ to position, will get set to loiter in the fw position controller once close
+				// and replace current setpoint lat/lon with tangent coordinate
+				curr_sp.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 				waypoint_from_heading_and_distance(curr_sp.lat, curr_sp.lon,
 								   bearing, fabsf(curr_sp.loiter_radius),
 								   &curr_sp.lat, &curr_sp.lon);
