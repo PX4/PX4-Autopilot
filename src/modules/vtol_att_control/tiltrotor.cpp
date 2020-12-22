@@ -351,8 +351,8 @@ void Tiltrotor::update_transition_state()
 
 
 		// set idle speed for rotary wing mode
-		if (!flag_idle_mc) {
-			flag_idle_mc = set_idle_mc();
+		if (!_flag_idle_mc) {
+			_flag_idle_mc = set_idle_mc();
 		}
 
 		// tilt rotors back
