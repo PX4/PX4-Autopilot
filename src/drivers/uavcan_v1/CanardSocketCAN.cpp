@@ -46,9 +46,9 @@ int CanardSocketCAN::init()
 	struct sockaddr_can addr;
 	struct ifreq ifr;
 
-    //FIXME HOTFIX to make this code compile
-    bool can_fd = 0;
-    
+	//FIXME HOTFIX to make this code compile
+	bool can_fd = 0;
+
 	_can_fd = can_fd;
 
 	/* open socket */
