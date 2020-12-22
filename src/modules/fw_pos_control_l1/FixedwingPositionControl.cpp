@@ -920,7 +920,6 @@ FixedwingPositionControl::handle_setpoint_type(const uint8_t setpoint_type, cons
 		} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 			// LOITER: use SETPOINT_TYPE_POSITION to get to SETPOINT_TYPE_LOITER
 			if ((dist >= 0.f)
-			    && (dist_z > 2.f * _param_fw_clmbout_diff.get())
 			    && (dist_xy > 2.f * math::max(acc_rad, fabsf(pos_sp_curr.loiter_radius)))) {
 				// SETPOINT_TYPE_LOITER -> SETPOINT_TYPE_POSITION
 				position_sp_type = position_setpoint_s::SETPOINT_TYPE_POSITION;
