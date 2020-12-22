@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-nuttx-focal:2020-11-18
+    container: px4io/px4-dev-nuttx-focal:2021-02-04
     strategy:
       matrix:
         config: [
@@ -59,6 +59,7 @@ jobs:
           px4_fmu-v4_ctrlalloc,
           px4_fmu-v4_default,
           px4_fmu-v4_optimized,
+          px4_fmu-v4_uavcanv1,
           px4_fmu-v4pro_default,
           px4_fmu-v5_ctrlalloc,
           px4_fmu-v5_default,
@@ -68,6 +69,7 @@ jobs:
           px4_fmu-v5_rover,
           px4_fmu-v5_rtps,
           px4_fmu-v5_stackcheck,
+          px4_fmu-v5_uavcanv1,
           px4_fmu-v5x_base_phy_DP83848C,
           px4_fmu-v5x_default,
           px4_fmu-v6x_default,
