@@ -146,6 +146,8 @@ private:
 
 	bool _scale_estimation_previously_on{false}; /**< scale_estimation was on in the last cycle */
 
+	hrt_abstime _time_last_airspeed_update[MAX_NUM_AIRSPEED_SENSORS] {};
+
 	perf_counter_t _perf_elapsed{};
 
 	DEFINE_PARAMETERS(
@@ -352,6 +354,13 @@ AirspeedModule::Run()
 
 				// push input data into airspeed validator
 				_airspeed_validator[i].update_airspeed_validator(input_data);
+
+				_time_last_airspeed_update[i] = _time_now_usec;
+
+			} else if (_time_last_airspeed_update[i] - _time_now_usec > 1_s) {
+				// declare airspeed invalid if more then 1s since last raw airspeed update
+				_airspeed_validator[i].reset_airspeed_to_invalid(_time_now_usec);
+
 			}
 		}
 	}
