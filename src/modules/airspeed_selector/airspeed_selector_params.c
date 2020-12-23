@@ -74,7 +74,7 @@ PARAM_DEFINE_INT32(ASPD_BETA_GATE, 1);
 /**
  * Automatic airspeed scale estimation on
  *
- * Turns the automatic airspeed scale (scale from IAS to CAS/EAS) on or off. It is recommended to fly level
+ * Turns the automatic airspeed scale (scale from IAS to CAS) on or off. It is recommended to fly level
  * altitude while performing the estimation. Set to 1 to start estimation (best when already flying).
  * Set to 0 to end scale estimation. The estimated scale is then saved using the ASPD_SCALE parameter.
  *
@@ -84,7 +84,7 @@ PARAM_DEFINE_INT32(ASPD_BETA_GATE, 1);
 PARAM_DEFINE_INT32(ASPD_SCALE_EST, 0);
 
 /**
- * Airspeed scale (scale from IAS to CAS/EAS)
+ * Airspeed scale (scale from IAS to CAS)
  *
  * Scale can either be entered manually, or estimated in-flight by setting ASPD_SCALE_EST to 1.
  *
@@ -137,7 +137,7 @@ PARAM_DEFINE_INT32(ASPD_FALLBACK_GW, 0);
  *
  * This specifies the minimum airspeed test ratio required to trigger a failsafe. Larger values make the check less sensitive,
  * smaller values make it more sensitive. Start with a value of 1.0 when tuning. When tas_test_ratio is > 1.0 it indicates the
- * inconsistency between predicted and measured airspeed is large enough to cause the navigation EKF to reject airspeed measurements.
+ * inconsistency between predicted and measured airspeed is large enough to cause the wind EKF to reject airspeed measurements.
  * The time required to detect a fault when the threshold is exceeded depends on the size of the exceedance and is controlled by the ASPD_FS_INTEG parameter.
 *
  * @min 0.5
@@ -170,19 +170,20 @@ PARAM_DEFINE_FLOAT(ASPD_FS_INTEG, -1.0f);
  * @min 1
  * @max 10
  */
-PARAM_DEFINE_INT32(ASPD_FS_T1, 3);
+PARAM_DEFINE_INT32(ASPD_FS_T_STOP, 2);
 
 /**
  * Airspeed failsafe start delay
  *
  * Delay before switching back to using airspeed sensor if checks indicate sensor is good.
+ * Set to a negative value to disable the re-enabling in flight.
  *
  * @unit s
  * @group Airspeed Validator
- * @min 10
+ * @min -1
  * @max 1000
  */
-PARAM_DEFINE_INT32(ASPD_FS_T2, 100);
+PARAM_DEFINE_INT32(ASPD_FS_T_START, -1);
 
 /**
  * Airspeed fault detection stall airspeed
