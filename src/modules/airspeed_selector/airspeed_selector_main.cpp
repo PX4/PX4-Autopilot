@@ -540,11 +540,24 @@ void AirspeedModule::select_airspeed_and_publish()
 		}
 	}
 
-	// suppress log message if still on the ground and no airspeed sensor connected
+	// print warning or info, depending of whether airspeed got declared invalid or healthy
 	if (_valid_airspeed_index != _prev_airspeed_index &&
-	    (_number_of_airspeed_sensors > 0 || !_vehicle_land_detected.landed)) {
-		mavlink_log_critical(&_mavlink_log_pub, "Airspeed: switched from sensor %i to %i", _prev_airspeed_index,
-				     _valid_airspeed_index);
+	    (_number_of_airspeed_sensors > 0 || !_vehicle_land_detected.landed) &&
+	    _valid_airspeed_index != _prev_airspeed_index) {
+		if (_prev_airspeed_index > 0) {
+			mavlink_log_critical(&_mavlink_log_pub, "Airspeed sensor failure deteced (%i, %i)", _prev_airspeed_index,
+					     _valid_airspeed_index);
+
+		} else if (_prev_airspeed_index == 0 && _valid_airspeed_index == -1) {
+			mavlink_log_info(&_mavlink_log_pub, "Airspeed estimation invald");
+
+		} else if (_prev_airspeed_index == -1 && _valid_airspeed_index == 0) {
+			mavlink_log_info(&_mavlink_log_pub, "Airspeed estimation valid");
+
+		} else {
+			mavlink_log_info(&_mavlink_log_pub, "Airspeed sensor healthy, start using again (%i, %i)", _prev_airspeed_index,
+					 _valid_airspeed_index);
+		}
 	}
 
 	_prev_airspeed_index = _valid_airspeed_index;
