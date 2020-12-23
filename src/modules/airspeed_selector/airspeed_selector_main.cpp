@@ -304,8 +304,8 @@ AirspeedModule::Run()
 
 	if (_number_of_airspeed_sensors > 0) {
 
-		bool fixed_wing = !_vtol_vehicle_status.vtol_in_rw_mode;
-		bool in_air = !_vehicle_land_detected.landed;
+		const bool fixed_wing = !_vtol_vehicle_status.vtol_in_rw_mode;
+		const bool in_air = !_vehicle_land_detected.landed;
 
 		// Prepare data for airspeed_validator
 		struct airspeed_validator_update_data input_data = {};
@@ -456,12 +456,10 @@ void AirspeedModule::poll_topics()
 
 void AirspeedModule::update_wind_estimator_sideslip()
 {
-	bool att_valid = true; // TODO: check if attitude is valid
-
 	// update wind and airspeed estimator
 	_wind_estimator_sideslip.update(_time_now_usec);
 
-	if (_vehicle_local_position_valid && att_valid && !_vtol_vehicle_status.vtol_in_rw_mode) {
+	if (_vehicle_local_position_valid && !_vtol_vehicle_status.vtol_in_rw_mode) {
 		Vector3f vI(_vehicle_local_position.vx, _vehicle_local_position.vy, _vehicle_local_position.vz);
 		Quatf q(_vehicle_attitude.q);
 
