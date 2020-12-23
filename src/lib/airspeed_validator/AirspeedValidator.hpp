@@ -78,6 +78,8 @@ public:
 
 	void update_airspeed_validator(const airspeed_validator_update_data &input_data);
 
+	void reset_airspeed_to_invalid(const uint64_t timestamp);
+
 	float get_IAS() { return _IAS; }
 	float get_CAS() { return _CAS; }
 	float get_TAS() { return _TAS; }
@@ -125,12 +127,6 @@ private:
 	float _TAS{0.0f}; ///< true airspeed in m/s
 	float _CAS_scale{1.0f}; ///< scale factor from IAS to CAS
 
-	uint64_t	_time_last_airspeed{0};		///< time last airspeed measurement was received (uSec)
-
-	// states of data stopped check
-	bool _data_stopped_failed{false}; ///< data_stopp check has detected failure
-	hrt_abstime _previous_airspeed_timestamp{0}; ///< timestamp from previous measurement input, to check validity of measurement
-
 	// states of innovation check
 	float _tas_gate{1.0f}; ///< gate size of airspeed innovation (to calculate tas_test_ratio)
 	bool _innovations_check_failed{false};  ///< true when airspeed innovations have failed consistency checks
@@ -149,7 +145,7 @@ private:
 	float	_load_factor_ratio{0.5f};	///< ratio of maximum load factor predicted by stall speed to measured load factor
 
 	// states of airspeed valid declaration
-	bool _airspeed_valid{false}; ///< airspeed valid (pitot or groundspeed-windspeed)
+	bool _airspeed_valid{true}; ///< airspeed valid (pitot or groundspeed-windspeed)
 	int _checks_fail_delay{3}; ///< delay for airspeed invalid declaration after single check failure (Sec)
 	int _checks_clear_delay{3}; ///< delay for airspeed valid declaration after all checks passed again (Sec)
 	uint64_t	_time_checks_passed{0};	///< time the checks have last passed (uSec)
@@ -167,5 +163,6 @@ private:
 				       float estimator_status_mag_test_ratio);
 	void check_load_factor(float accel_z);
 	void update_airspeed_valid_status(const uint64_t timestamp);
+	void reset();
 
 };
