@@ -165,8 +165,8 @@ private:
 
 		(ParamFloat<px4::params::ASPD_FS_INNOV>) _tas_innov_threshold, /**< innovation check threshold */
 		(ParamFloat<px4::params::ASPD_FS_INTEG>) _tas_innov_integ_threshold, /**< innovation check integrator threshold */
-		(ParamInt<px4::params::ASPD_FS_T1>) _checks_fail_delay, /**< delay to declare airspeed invalid */
-		(ParamInt<px4::params::ASPD_FS_T2>) _checks_clear_delay, /**<  delay to declare airspeed valid again */
+		(ParamInt<px4::params::ASPD_FS_T_STOP>) _checks_fail_delay, /**< delay to declare airspeed invalid */
+		(ParamInt<px4::params::ASPD_FS_T_START>) _checks_clear_delay, /**<  delay to declare airspeed valid again */
 		(ParamFloat<px4::params::ASPD_STALL>) _airspeed_stall /**<  stall speed*/
 	)
 
@@ -545,11 +545,11 @@ void AirspeedModule::select_airspeed_and_publish()
 	    (_number_of_airspeed_sensors > 0 || !_vehicle_land_detected.landed) &&
 	    _valid_airspeed_index != _prev_airspeed_index) {
 		if (_prev_airspeed_index > 0) {
-			mavlink_log_critical(&_mavlink_log_pub, "Airspeed sensor failure deteced (%i, %i)", _prev_airspeed_index,
+			mavlink_log_critical(&_mavlink_log_pub, "Airspeed sensor failure detected (%i, %i)", _prev_airspeed_index,
 					     _valid_airspeed_index);
 
 		} else if (_prev_airspeed_index == 0 && _valid_airspeed_index == -1) {
-			mavlink_log_info(&_mavlink_log_pub, "Airspeed estimation invald");
+			mavlink_log_info(&_mavlink_log_pub, "Airspeed estimation invalid");
 
 		} else if (_prev_airspeed_index == -1 && _valid_airspeed_index == 0) {
 			mavlink_log_info(&_mavlink_log_pub, "Airspeed estimation valid");

@@ -227,7 +227,8 @@ AirspeedValidator::update_airspeed_valid_status(const uint64_t timestamp)
 			_airspeed_valid = false;
 		}
 
-	} else if ((timestamp - _time_checks_failed) > _checks_clear_delay * 1_s) {
+	} else if (_checks_clear_delay > 0.f && (timestamp - _time_checks_failed) > _checks_clear_delay * 1_s) {
+		// disable the re-enabling if the clear delay is negative
 		_airspeed_valid = true;
 	}
 }
