@@ -121,17 +121,18 @@ PARAM_DEFINE_INT32(ASPD_PRIMARY, 1);
 PARAM_DEFINE_INT32(ASPD_DO_CHECKS, 0);
 
 /**
- * Enable fallback to secondary airspeed measurement.
+ * Enable fallback to sensor-less airspeed estimation
  *
- * If ASPD_DO_CHECKS is set to true, then airspeed estimation can fallback from what specified in ASPD_PRIMARY to secondary source (other airspeed sensors, groundspeed minus windspeed).
-
- * @value 0 To other airspeed sensor (if one valid), else disable airspeed
- * @value 1 To other airspeed sensor (if one valid), else to ground-windspeed
+ * If set to true and airspeed checks are enabled, it will use a sensor-less airspeed estimation based on groundspeed
+ * minus windspeed if no other airspeed sensor available to fall back to.
+ *
+ * @value 0 Disable fallback to sensor-less estimation
+ * @value 1 Enable fallback to sensor-less estimation
  * @boolean
  * @reboot_required true
  * @group Airspeed Validator
  */
-PARAM_DEFINE_INT32(ASPD_FALLBACK, 0);
+PARAM_DEFINE_INT32(ASPD_FALLBACK_GW, 0);
 
 /**
  * Airspeed failsafe consistency threshold (Experimental)
