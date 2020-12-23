@@ -144,46 +144,38 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 		_time_wind_estimator_initialized = time_now;
 	}
 
-	// reset states if we are not flying
-	if (!_in_fixed_wing_flight) {
+	// reset states if we are not flying or wind estimator was just initialized/reset
+	if (!_in_fixed_wing_flight || (time_now - _time_wind_estimator_initialized) < 10_s) {
 		_innovations_check_failed = false;
 		_time_last_tas_pass = time_now;
-		_time_last_tas_fail = 0;
 
 	} else {
-		const float dt_s = math::max((time_now - _time_last_aspd_innov_check) / 1e6f, 0.01f); // limit to 100Hz
+		const float dt_s = math::constrain((time_now - _time_last_aspd_innov_check) / 1e6f, 0.01f, 0.2f); // limit to [100,5] Hz
 
-		if (dt_s < 1.0f) {
+		if ((estimator_status_vel_test_ratio < 1.f) && (estimator_status_mag_test_ratio < 1.f)) {
+			// nav velocity data is likely good so airspeed innovations are able to be used
 			// compute the ratio of innovation to gate size
 			const float tas_test_ratio = _wind_estimator.get_tas_innov() * _wind_estimator.get_tas_innov()
-						     / (fmaxf(_tas_gate, 1.0f) * fmaxf(_tas_gate, 1.0f) * _wind_estimator.get_tas_innov_var());
+						     / (fmaxf(_tas_gate, 1.0f) * fmaxf(_tas_gate, 1.f) * _wind_estimator.get_tas_innov_var());
 
-			if (tas_test_ratio <= _tas_innov_threshold) {
-				// record pass and reset integrator used to trigger
-				_time_last_tas_pass = time_now;
-				_apsd_innov_integ_state = 0.0f;
+			if (tas_test_ratio > _tas_innov_threshold) {
+				_apsd_innov_integ_state += dt_s * (tas_test_ratio - _tas_innov_threshold); // integrate exceedance
 
 			} else {
-				// integrate exceedance
-				_apsd_innov_integ_state += dt_s * (tas_test_ratio - _tas_innov_threshold);
-			}
+				// reset integrator used to trigger and record pass if integrator check is disabled
+				_apsd_innov_integ_state = 0.f;
 
-			if ((estimator_status_vel_test_ratio < 1.0f) && (estimator_status_mag_test_ratio < 1.0f)) {
-				// nav velocity data is likely good so airspeed innovations are able to be used
-				if ((_tas_innov_integ_threshold > 0.0f) && (_apsd_innov_integ_state > _tas_innov_integ_threshold)) {
-					_time_last_tas_fail = time_now;
+				if (_tas_innov_integ_threshold <= 0.f) {
+					_time_last_tas_pass = time_now;
 				}
 			}
 
-			if (!_innovations_check_failed) {
-				_innovations_check_failed = (time_now - _time_last_tas_pass) > TAS_INNOV_FAIL_DELAY;
-
-			} else {
-				_innovations_check_failed = ((time_now - _time_last_tas_fail) < TAS_INNOV_FAIL_DELAY * 100)
-							    || (time_now - _time_wind_estimator_initialized) < TAS_INNOV_FAIL_DELAY * 100;
+			if (_tas_innov_integ_threshold > 0.f && _apsd_innov_integ_state < _tas_innov_integ_threshold) {
+				_time_last_tas_pass = time_now;
 			}
 		}
 
+		_innovations_check_failed = (time_now - _time_last_tas_pass) > TAS_INNOV_FAIL_DELAY;
 	}
 
 	_time_last_aspd_innov_check = time_now;
