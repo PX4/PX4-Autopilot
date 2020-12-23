@@ -212,18 +212,15 @@ AirspeedValidator::check_load_factor(float accel_z)
 void
 AirspeedValidator::update_airspeed_valid_status(const uint64_t timestamp)
 {
-	// Check if sensor data is missing - assume a minimum 5Hz data rate.
-	const bool data_missing = (timestamp - _time_last_airspeed) > 200_ms;
-
 	// Declare data stopped if not received for longer than 1 second
 	_data_stopped_failed = (timestamp - _time_last_airspeed) > 1_s;
 
-	if (_innovations_check_failed || _load_factor_check_failed || data_missing) {
-		// either innovation, load factor or data missing check failed, so declare airspeed failing and record timestamp
+	if (_innovations_check_failed || _load_factor_check_failed) {
+		// either innovation or load factor check failed, so record timestamp
 		_time_checks_failed = timestamp;
 
-	} else if (!_innovations_check_failed && !_load_factor_check_failed && !data_missing) {
-		// All checks must pass to declare airspeed good
+	} else if (!_innovations_check_failed && !_load_factor_check_failed) {
+		// both innovation or load factor checks must pass to declare airspeed good
 		_time_checks_passed = timestamp;
 	}
 
@@ -232,7 +229,7 @@ AirspeedValidator::update_airspeed_valid_status(const uint64_t timestamp)
 		// airspeed measurement fault has developed, so a fault should be declared immediately
 		const bool both_checks_failed = (_innovations_check_failed && _load_factor_check_failed);
 
-		// Because the innovation, load factor and data missing checks are subject to short duration false positives
+		// Because the innovation and load factor checks are subject to short duration false positives
 		// a timeout period is applied.
 		const bool single_check_fail_timeout = (timestamp - _time_checks_passed) > _checks_fail_delay * 1_s;
 
@@ -241,7 +238,7 @@ AirspeedValidator::update_airspeed_valid_status(const uint64_t timestamp)
 			_airspeed_valid = false;
 		}
 
-	} else if ((timestamp - _time_checks_failed) > _checks_clear_delay * 1_s) {
+	} else if (!_data_stopped_failed && (timestamp - _time_checks_failed) > _checks_clear_delay * 1_s) {
 		_airspeed_valid = true;
 	}
 }
