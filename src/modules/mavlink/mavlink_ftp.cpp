@@ -215,7 +215,7 @@ MavlinkFTP::_process_request(
 		break;
 
 	case kCmdCreateFile:
-		errorCode = _workOpen(payload, O_CREAT | O_EXCL | O_WRONLY);
+		errorCode = _workOpen(payload, O_CREAT | O_TRUNC | O_WRONLY);
 		break;
 
 	case kCmdOpenFileWO:
