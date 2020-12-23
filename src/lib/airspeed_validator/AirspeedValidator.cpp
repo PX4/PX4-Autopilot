@@ -221,12 +221,10 @@ AirspeedValidator::update_airspeed_valid_status(const uint64_t timestamp)
 	if (_innovations_check_failed || _load_factor_check_failed || data_missing) {
 		// either innovation, load factor or data missing check failed, so declare airspeed failing and record timestamp
 		_time_checks_failed = timestamp;
-		_airspeed_failing = true;
 
 	} else if (!_innovations_check_failed && !_load_factor_check_failed && !data_missing) {
 		// All checks must pass to declare airspeed good
 		_time_checks_passed = timestamp;
-		_airspeed_failing = false;
 	}
 
 	if (_airspeed_valid) {
