@@ -46,12 +46,6 @@ AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_dat
 	// get indicated airspeed from input data (raw airspeed)
 	_IAS = input_data.airspeed_indicated_raw;
 
-	// to be able to detect missing data, save timestamp (used in data_missing check)
-	if (input_data.airspeed_timestamp != _previous_airspeed_timestamp && input_data.airspeed_timestamp > 0) {
-		_time_last_airspeed = input_data.timestamp;
-		_previous_airspeed_timestamp = input_data.airspeed_timestamp;
-	}
-
 	update_CAS_scale();
 	update_CAS_TAS(input_data.air_pressure_pa, input_data.air_temperature_celsius);
 	update_wind_estimator(input_data.timestamp, input_data.airspeed_true_raw, input_data.lpos_valid, input_data.lpos_vx,
@@ -61,6 +55,13 @@ AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_dat
 	check_airspeed_innovation(input_data.timestamp, input_data.vel_test_ratio, input_data.mag_test_ratio);
 	check_load_factor(input_data.accel_z);
 	update_airspeed_valid_status(input_data.timestamp);
+}
+
+void
+AirspeedValidator::reset_airspeed_to_invalid(const uint64_t timestamp)
+{
+	_airspeed_valid = false;
+	_time_checks_failed = timestamp;
 }
 
 void
@@ -148,16 +149,14 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 		_innovations_check_failed = false;
 		_time_last_tas_pass = time_now;
 		_time_last_tas_fail = 0;
-		_airspeed_valid = true;
-		_time_last_aspd_innov_check = time_now;
 
 	} else {
 		const float dt_s = math::max((time_now - _time_last_aspd_innov_check) / 1e6f, 0.01f); // limit to 100Hz
 
 		if (dt_s < 1.0f) {
 			// compute the ratio of innovation to gate size
-			float tas_test_ratio = _wind_estimator.get_tas_innov() * _wind_estimator.get_tas_innov()
-					       / (fmaxf(_tas_gate, 1.0f) * fmaxf(_tas_gate, 1.0f) * _wind_estimator.get_tas_innov_var());
+			const float tas_test_ratio = _wind_estimator.get_tas_innov() * _wind_estimator.get_tas_innov()
+						     / (fmaxf(_tas_gate, 1.0f) * fmaxf(_tas_gate, 1.0f) * _wind_estimator.get_tas_innov_var());
 
 			if (tas_test_ratio <= _tas_innov_threshold) {
 				// record pass and reset integrator used to trigger
@@ -185,8 +184,9 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 			}
 		}
 
-		_time_last_aspd_innov_check = time_now;
 	}
+
+	_time_last_aspd_innov_check = time_now;
 }
 
 
@@ -212,9 +212,6 @@ AirspeedValidator::check_load_factor(float accel_z)
 void
 AirspeedValidator::update_airspeed_valid_status(const uint64_t timestamp)
 {
-	// Declare data stopped if not received for longer than 1 second
-	_data_stopped_failed = (timestamp - _time_last_airspeed) > 1_s;
-
 	if (_innovations_check_failed || _load_factor_check_failed) {
 		// either innovation or load factor check failed, so record timestamp
 		_time_checks_failed = timestamp;
@@ -233,12 +230,12 @@ AirspeedValidator::update_airspeed_valid_status(const uint64_t timestamp)
 		// a timeout period is applied.
 		const bool single_check_fail_timeout = (timestamp - _time_checks_passed) > _checks_fail_delay * 1_s;
 
-		if (_data_stopped_failed || both_checks_failed || single_check_fail_timeout) {
+		if (both_checks_failed || single_check_fail_timeout) {
 
 			_airspeed_valid = false;
 		}
 
-	} else if (!_data_stopped_failed && (timestamp - _time_checks_failed) > _checks_clear_delay * 1_s) {
+	} else if ((timestamp - _time_checks_failed) > _checks_clear_delay * 1_s) {
 		_airspeed_valid = true;
 	}
 }
