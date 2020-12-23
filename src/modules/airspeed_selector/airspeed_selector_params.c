@@ -114,7 +114,6 @@ PARAM_DEFINE_INT32(ASPD_PRIMARY, 1);
  *
  * If set to true then the data comming from the airspeed sensors is checked for validity. Only applied if ASPD_PRIMARY > 0.
  *
- * @reboot_required true
  * @boolean
  * @group Airspeed Validator
  */
@@ -129,13 +128,12 @@ PARAM_DEFINE_INT32(ASPD_DO_CHECKS, 0);
  * @value 0 Disable fallback to sensor-less estimation
  * @value 1 Enable fallback to sensor-less estimation
  * @boolean
- * @reboot_required true
  * @group Airspeed Validator
  */
 PARAM_DEFINE_INT32(ASPD_FALLBACK_GW, 0);
 
 /**
- * Airspeed failsafe consistency threshold (Experimental)
+ * Airspeed failsafe consistency threshold
  *
  * This specifies the minimum airspeed test ratio required to trigger a failsafe. Larger values make the check less sensitive,
  * smaller values make it more sensitive. Start with a value of 1.0 when tuning. When tas_test_ratio is > 1.0 it indicates the
@@ -149,7 +147,7 @@ PARAM_DEFINE_INT32(ASPD_FALLBACK_GW, 0);
 PARAM_DEFINE_FLOAT(ASPD_FS_INNOV, 1.0f);
 
 /**
- * Airspeed failsafe consistency delay (Experimental)
+ * Airspeed failsafe consistency delay
  *
  * This sets the time integral of airspeed test ratio exceedance above ASPD_FS_INNOV required to trigger a failsafe.
  * For example if ASPD_FS_INNOV is 1 and estimator_status.tas_test_ratio is 2.0, then the exceedance is 1.0 and the integral will
@@ -163,7 +161,7 @@ PARAM_DEFINE_FLOAT(ASPD_FS_INNOV, 1.0f);
 PARAM_DEFINE_FLOAT(ASPD_FS_INTEG, -1.0f);
 
 /**
- * Airspeed failsafe stop delay (Experimental)
+ * Airspeed failsafe stop delay
  *
  * Delay before stopping use of airspeed sensor if checks indicate sensor is bad.
  *
@@ -175,7 +173,7 @@ PARAM_DEFINE_FLOAT(ASPD_FS_INTEG, -1.0f);
 PARAM_DEFINE_INT32(ASPD_FS_T1, 3);
 
 /**
- * Airspeed failsafe start delay (Experimental)
+ * Airspeed failsafe start delay
  *
  * Delay before switching back to using airspeed sensor if checks indicate sensor is good.
  *
@@ -187,9 +185,11 @@ PARAM_DEFINE_INT32(ASPD_FS_T1, 3);
 PARAM_DEFINE_INT32(ASPD_FS_T2, 100);
 
 /**
- * Airspeed fault detection stall airspeed. (Experimental)
+ * Airspeed fault detection stall airspeed
  *
- * This is the minimum indicated airspeed at which the wing can produce 1g of lift. It is used by the airspeed sensor fault detection and failsafe calculation to detect a significant airspeed low measurement error condition and should be set based on flight test for reliable operation.
+ * This is the minimum indicated airspeed at which the wing can produce 1g of lift.
+ * It is used by the airspeed sensor fault detection and failsafe calculation to detect a
+ * significant airspeed low measurement error condition and should be set based on flight test for reliable operation.
  *
  * @group Airspeed Validator
  * @unit m/s
