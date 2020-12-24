@@ -63,6 +63,17 @@ typedef  struct dsm_decode_t {
 	dsm_buf_t buf;
 } dsm_decode_t;
 
+enum DSM_BIND_PULSE {
+	INTERNAL_DSM2_22MS = 3,
+	EXTERNAL_DSM2_22MS = 4,
+	INTERNAL_DSM2_11MS = 5,
+	EXTERNAL_DSM2_11MS = 6,
+	INTERNAL_DSMX_22MS = 7,
+	EXTERNAL_DSMX_22MS = 8,
+	INTERNAL_DSMX_11MS = 9,
+	EXTERNAL_DSMX_11MS = 10,
+};
+
 #pragma pack(pop)
 
 __EXPORT int	dsm_init(const char *device);

@@ -384,17 +384,22 @@ void dsm_bind(uint16_t cmd, int pulses)
 		SPEKTRUM_RX_AS_GPIO_OUTPUT();
 		break;
 
-	case DSM_CMD_BIND_SEND_PULSES:
-		// Pulse RX pin a number of times
+	case DSM_CMD_BIND_SEND_PULSES: {
+			// Pulse RX pin a number of times
 #if defined(DSM_DEBUG)
-		printf("DSM: DSM_CMD_BIND_SEND_PULSES\n");
+			printf("DSM: DSM_CMD_BIND_SEND_PULSES\n");
 #endif
 
-		for (int i = 0; i < pulses; i++) {
-			dsm_udelay(120);
-			SPEKTRUM_OUT(false);
-			dsm_udelay(120);
-			SPEKTRUM_OUT(true);
+			auto flags = px4_enter_critical_section();
+
+			for (int i = 0; i < DSM_BIND_PULSE::INTERNAL_DSMX_11MS; i++) {
+				dsm_udelay(120);
+				SPEKTRUM_OUT(false);
+				dsm_udelay(120);
+				SPEKTRUM_OUT(true);
+			}
+
+			px4_leave_critical_section(flags);
 		}
 
 		break;
