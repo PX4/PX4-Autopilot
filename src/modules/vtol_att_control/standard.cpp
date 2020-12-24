@@ -342,78 +342,77 @@ void Standard::update_fw_state()
  */
 void Standard::fill_actuator_outputs()
 {
-	// multirotor controls
-	_actuators_out_0->timestamp = hrt_absolute_time();
+	auto &mc_in = _actuators_mc_in->control;
+	auto &fw_in = _actuators_fw_in->control;
+
+	auto &mc_out = _actuators_out_0->control;
+	auto &fw_out = _actuators_out_1->control;
+
+	const bool elevon_lock = (_params->elevons_mc_lock == 1);
+
+	switch (_vtol_schedule.flight_mode) {
+	case vtol_mode::MC_MODE:
+
+		// MC out = MC in
+		mc_out[actuator_controls_s::INDEX_ROLL]         = mc_in[actuator_controls_s::INDEX_ROLL];
+		mc_out[actuator_controls_s::INDEX_PITCH]        = mc_in[actuator_controls_s::INDEX_PITCH];
+		mc_out[actuator_controls_s::INDEX_YAW]          = mc_in[actuator_controls_s::INDEX_YAW];
+		mc_out[actuator_controls_s::INDEX_THROTTLE]     = mc_in[actuator_controls_s::INDEX_THROTTLE];
+		mc_out[actuator_controls_s::INDEX_LANDING_GEAR] = mc_in[actuator_controls_s::INDEX_LANDING_GEAR];
+
+		// FW out = 0, other than roll and pitch depending on elevon lock
+		fw_out[actuator_controls_s::INDEX_ROLL]         = elevon_lock ? 0 : fw_in[actuator_controls_s::INDEX_ROLL];
+		fw_out[actuator_controls_s::INDEX_PITCH]        = elevon_lock ? 0 : fw_in[actuator_controls_s::INDEX_PITCH];
+		fw_out[actuator_controls_s::INDEX_YAW]          = 0;
+		fw_out[actuator_controls_s::INDEX_THROTTLE]     = _pusher_throttle;
+		fw_out[actuator_controls_s::INDEX_FLAPS]        = 0;
+		fw_out[actuator_controls_s::INDEX_AIRBRAKES]    = 0;
+
+		break;
+
+	case vtol_mode::TRANSITION_TO_FW:
+
+	// FALLTHROUGH
+	case vtol_mode::TRANSITION_TO_MC:
+		// MC out = MC in (weighted)
+		mc_out[actuator_controls_s::INDEX_ROLL]         = mc_in[actuator_controls_s::INDEX_ROLL]     * _mc_roll_weight;
+		mc_out[actuator_controls_s::INDEX_PITCH]        = mc_in[actuator_controls_s::INDEX_PITCH]    * _mc_pitch_weight;
+		mc_out[actuator_controls_s::INDEX_YAW]          = mc_in[actuator_controls_s::INDEX_YAW]      * _mc_yaw_weight;
+		mc_out[actuator_controls_s::INDEX_THROTTLE]     = mc_in[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;
+		mc_out[actuator_controls_s::INDEX_LANDING_GEAR] = 0;
+
+		// FW out = FW in, with VTOL transition controlling throttle and airbrakes
+		fw_out[actuator_controls_s::INDEX_ROLL]         = fw_in[actuator_controls_s::INDEX_ROLL];
+		fw_out[actuator_controls_s::INDEX_PITCH]        = fw_in[actuator_controls_s::INDEX_PITCH];
+		fw_out[actuator_controls_s::INDEX_YAW]          = fw_in[actuator_controls_s::INDEX_YAW];
+		fw_out[actuator_controls_s::INDEX_THROTTLE]     = _pusher_throttle;
+		fw_out[actuator_controls_s::INDEX_FLAPS]        = fw_in[actuator_controls_s::INDEX_FLAPS];
+		fw_out[actuator_controls_s::INDEX_AIRBRAKES]    = _reverse_output;
+
+		break;
+
+	case vtol_mode::FW_MODE:
+		// MC out = 0
+		mc_out[actuator_controls_s::INDEX_ROLL]         = 0;
+		mc_out[actuator_controls_s::INDEX_PITCH]        = 0;
+		mc_out[actuator_controls_s::INDEX_YAW]          = 0;
+		mc_out[actuator_controls_s::INDEX_THROTTLE]     = 0;
+		mc_out[actuator_controls_s::INDEX_LANDING_GEAR] = 0;
+
+		// FW out = FW in
+		fw_out[actuator_controls_s::INDEX_ROLL]         = fw_in[actuator_controls_s::INDEX_ROLL];
+		fw_out[actuator_controls_s::INDEX_PITCH]        = fw_in[actuator_controls_s::INDEX_PITCH];
+		fw_out[actuator_controls_s::INDEX_YAW]          = fw_in[actuator_controls_s::INDEX_YAW];
+		fw_out[actuator_controls_s::INDEX_THROTTLE]     = fw_in[actuator_controls_s::INDEX_THROTTLE];
+		fw_out[actuator_controls_s::INDEX_FLAPS]        = fw_in[actuator_controls_s::INDEX_FLAPS];
+		fw_out[actuator_controls_s::INDEX_AIRBRAKES]    = 0;
+		break;
+	}
+
 	_actuators_out_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
-
-	// roll
-	_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] =
-		_actuators_mc_in->control[actuator_controls_s::INDEX_ROLL] * _mc_roll_weight;
-	// pitch
-	_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
-		_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;
-	// yaw
-	_actuators_out_0->control[actuator_controls_s::INDEX_YAW] =
-		_actuators_mc_in->control[actuator_controls_s::INDEX_YAW] * _mc_yaw_weight;
-	// throttle
-	_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
-		_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;
-
-
-	// fixed wing controls
-	_actuators_out_1->timestamp = hrt_absolute_time();
 	_actuators_out_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
 
-	if (_vtol_schedule.flight_mode != vtol_mode::MC_MODE) {
-		// roll
-		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];
-
-		// pitch
-		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH];
-		// yaw
-		_actuators_out_1->control[actuator_controls_s::INDEX_YAW] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_YAW];
-
-		_actuators_out_1->control[actuator_controls_s::INDEX_AIRBRAKES] = _reverse_output;
-
-	} else {
-
-		if (_params->elevons_mc_lock) {
-			// zero outputs when inactive
-			_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = 0.0f;
-			_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = 0.0f;
-			_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = 0.0f;
-			_actuators_out_1->control[actuator_controls_s::INDEX_AIRBRAKES] = 0.0f;
-
-		} else {
-			// roll
-			_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
-				_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];
-
-			// pitch
-			_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
-				_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH];
-
-			_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = 0.0f;
-			_actuators_out_1->control[actuator_controls_s::INDEX_AIRBRAKES] = 0.0f;
-		}
-	}
-
-	// set the fixed wing throttle control
-	if (_vtol_schedule.flight_mode == vtol_mode::FW_MODE) {
-
-		// take the throttle value commanded by the fw controller
-		_actuators_out_1->control[actuator_controls_s::INDEX_THROTTLE] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];
-
-	} else {
-		// otherwise we may be ramping up the throttle during the transition to fw mode
-		_actuators_out_1->control[actuator_controls_s::INDEX_THROTTLE] = _pusher_throttle;
-	}
-
-
+	_actuators_out_0->timestamp = _actuators_out_1->timestamp = hrt_absolute_time();
 }
 
 void
