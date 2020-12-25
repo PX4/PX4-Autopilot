@@ -95,6 +95,11 @@ bool EkfWrapper::isIntendingFlowFusion() const
 	return _ekf->control_status_flags().opt_flow;
 }
 
+void EkfWrapper::setFlowOffset(const Vector3f &offset)
+{
+	_ekf_params->flow_pos_body = offset;
+}
+
 void EkfWrapper::enableExternalVisionPositionFusion()
 {
 	_ekf_params->fusion_mode |= MASK_USE_EVPOS;
