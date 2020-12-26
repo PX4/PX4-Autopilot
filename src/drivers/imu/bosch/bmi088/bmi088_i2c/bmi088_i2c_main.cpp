@@ -79,10 +79,12 @@ extern "C" int bmi088_i2c_main(int argc, char *argv[])
 	}
 
 	const char *verb = cli.optarg();
+
 	if (!verb) {
 		ThisDriver::print_usage();
 		return -1;
 	}
+
 	BusInstanceIterator iterator(MODULE_NAME, cli, cli.type);
 
 	if (!strcmp(verb, "start")) {
