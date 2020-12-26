@@ -79,6 +79,7 @@ int BMI088::init()
 		DEVICE_DEBUG("I2C::init failed (%i)", ret);
 		return ret;
 	}
+
 	int res = Reset() ? 0 : -1;
 	_state = STATE::SELFTEST;
 

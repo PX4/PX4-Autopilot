@@ -108,13 +108,12 @@ private:
 	void UpdateTemperature();
 	void UnpackSensorData(struct FIFO::bmi08x_sensor_data *sens_data, uint8_t *buffer);
 	bool SelfTest();
-	float* ReadAccelData();
-	float* ReadAccelDataFIFO();
-	float* SensorDataTomg(float* data);
+	float *ReadAccelData();
+	float *ReadAccelDataFIFO();
+	float *SensorDataTomg(float *data);
 	uint8_t CheckSensorErrReg();
 	bool SimpleFIFORead(const hrt_abstime &timestamp_sample);
 	bool NormalRead(const hrt_abstime &timestamp_sample);
-	bool FIFOReadTest(const hrt_abstime &timestamp_sample);
 
 	PX4Accelerometer _px4_accel;
 

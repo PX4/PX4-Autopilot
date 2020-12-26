@@ -136,6 +136,7 @@ void BMI088_Gyroscope::RunImpl()
 		}
 
 		break;
+
 	case STATE::CONFIGURE:
 		if (Configure()) {
 			// if configure succeeded then start reading from FIFO
@@ -170,8 +171,7 @@ void BMI088_Gyroscope::RunImpl()
 		break;
 
 	case STATE::FIFO_READ: {
-			FIFOReadTest(now);
-			//NormalRead(now);
+			SimpleFIFORead(now);
 		}
 		break;
 	}
@@ -342,6 +342,7 @@ bool BMI088_Gyroscope::FIFORead(const hrt_abstime &timestamp_sample, uint8_t sam
 {
 	FIFOTransferBuffer buffer{};
 	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 1, FIFO::SIZE);
+
 	//PX4_WARN("Estimated transfer size: %d", transfer_size);
 	if (transfer((uint8_t *)&buffer, 1, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
 		perf_count(_bad_transfer_perf);
@@ -397,7 +398,8 @@ void BMI088_Gyroscope::FIFOReset()
 	}
 }
 
-bool BMI088_Gyroscope::SelfTest() {
+bool BMI088_Gyroscope::SelfTest()
+{
 	//Datasheet page 17 self test
 
 	//Set bit0 to enable built in self test
@@ -405,15 +407,19 @@ bool BMI088_Gyroscope::SelfTest() {
 	usleep(10000);
 	uint8_t res = 0;
 	uint8_t test_res = false;
-	while(true){
+
+	while (true) {
 		res = RegisterRead(Register::SELF_TEST);
-		if((res & 0x02) == 0x02){
-			if((res & 0x04) == 0x00) {
+
+		if ((res & 0x02) == 0x02) {
+			if ((res & 0x04) == 0x00) {
 				PX4_WARN("Gyro Self-test success");
 				test_res = true;
+
 			} else {
 				PX4_WARN("Gyro Self-test error");
 			}
+
 			break;
 		}
 	}
@@ -422,7 +428,8 @@ bool BMI088_Gyroscope::SelfTest() {
 	return test_res;
 }
 
-bool BMI088_Gyroscope::NormalRead(const hrt_abstime &timestamp_sample) {
+bool BMI088_Gyroscope::NormalRead(const hrt_abstime &timestamp_sample)
+{
 	float x = 0;
 	float y = 0;
 	float z = 0;
@@ -453,7 +460,7 @@ bool BMI088_Gyroscope::NormalRead(const hrt_abstime &timestamp_sample) {
 	return true;
 }
 
-bool BMI088_Gyroscope::FIFOReadTest(const hrt_abstime &timestamp_sample)
+bool BMI088_Gyroscope::SimpleFIFORead(const hrt_abstime &timestamp_sample)
 {
 	uint8_t n_frames;
 	sensor_gyro_fifo_s gyro{};
@@ -465,9 +472,10 @@ bool BMI088_Gyroscope::FIFOReadTest(const hrt_abstime &timestamp_sample)
 
 	transfer(&data_i[0], 1, &n_frames, 1);
 
-    	n_frames &= 0x7F;
+	n_frames &= 0x7F;
 
 	int n_frames_to_read = 6;
+
 	// don't read more than 8 frames at a time
 	if (n_frames > n_frames_to_read) {
 		n_frames = n_frames_to_read;
@@ -477,32 +485,37 @@ bool BMI088_Gyroscope::FIFOReadTest(const hrt_abstime &timestamp_sample)
 		return false;
 	}
 
-    	uint8_t data[6*n_frames];
+	uint8_t data[6 * n_frames];
 	data[0] = static_cast<uint8_t>(Register::FIFO_DATA);
-	if(transfer(&data[0], 1, &data[0], 6*n_frames) != PX4_OK) {
+
+	if (transfer(&data[0], 1, &data[0], 6 * n_frames) != PX4_OK) {
 		//PX4_WARN("transfer(&data[0], 1, &data[0], fifo_fill_level) != PX4_OK");
 		return false;
 	}
+
 	for (uint8_t i = 0; i < n_frames; i++) {
-		const uint8_t *d = &data[i*6];
+		const uint8_t *d = &data[i * 6];
 		int16_t xyz[3] {
-			int16_t(uint16_t(d[0] | d[1]<<8)),
-			int16_t(uint16_t(d[2] | d[3]<<8)),
-			int16_t(uint16_t(d[4] | d[5]<<8)) };
+			int16_t(uint16_t(d[0] | d[1] << 8)),
+			int16_t(uint16_t(d[2] | d[3] << 8)),
+			int16_t(uint16_t(d[4] | d[5] << 8))
+		};
 
 		gyro.x[i] = xyz[0];
 		gyro.y[i] = (xyz[1] == INT16_MIN) ? INT16_MAX : -xyz[1];
 		gyro.z[i] = (xyz[2] == INT16_MIN) ? INT16_MAX : -xyz[2];
 		gyro.samples++;
-   	}
+	}
+
 	_px4_gyro.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
-					perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
+				  perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
 
 	if (gyro.samples > 0) {
 		//PX4_WARN("accel.samples: %d", accel.samples);
 		_px4_gyro.updateFIFO(gyro);
 		return true;
 	}
+
 	return true;
 
 }
