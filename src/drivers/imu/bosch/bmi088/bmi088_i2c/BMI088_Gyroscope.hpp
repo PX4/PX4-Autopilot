@@ -98,7 +98,7 @@ private:
 
 	bool SelfTest();
 	bool NormalRead(const hrt_abstime &timestamp_sample);
-	bool FIFOReadTest(const hrt_abstime &timestamp_sample);
+	bool SimpleFIFORead(const hrt_abstime &timestamp_sample);
 	PX4Gyroscope _px4_gyro;
 
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME"_gyro: bad register")};

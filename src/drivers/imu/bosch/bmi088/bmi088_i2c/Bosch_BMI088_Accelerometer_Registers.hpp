@@ -187,16 +187,15 @@ enum header : uint8_t {
 	FIFO_input_config_frame = 0b01001000,
 	sample_drop_frame       = 0b01010000,
 };
-struct bmi08x_sensor_data
-{
-    /*! X-axis sensor data */
-    int16_t x;
+struct bmi08x_sensor_data {
+	/*! X-axis sensor data */
+	int16_t x;
 
-    /*! Y-axis sensor data */
-    int16_t y;
+	/*! Y-axis sensor data */
+	int16_t y;
 
-    /*! Z-axis sensor data */
-    int16_t z;
+	/*! Z-axis sensor data */
+	int16_t z;
 };
 } // namespace FIFO
 } // namespace Bosch::BMI088::Accelerometer
