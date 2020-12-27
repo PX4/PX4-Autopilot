@@ -146,10 +146,9 @@ PARAM_DEFINE_FLOAT(SENS_DPRES_ANSC, 0);
  * @value 38 Roll 90°, Pitch 68°, Yaw 293°
  * @value 39 Pitch 315°
  * @value 40 Roll 90°, Pitch 315°
- * @value 41 Roll 270°, Yaw 180°
  *
  * @min -1
- * @max 41
+ * @max 40
  * @reboot_required true
  * @group Sensors
  */

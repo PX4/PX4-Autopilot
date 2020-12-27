@@ -222,9 +222,8 @@ static_assert(MAV_SENSOR_ROTATION_ROLL_90_PITCH_68_YAW_293 == static_cast<MAV_SE
 static_assert(MAV_SENSOR_ROTATION_PITCH_315 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_PITCH_315), "Pitch: 315");
 static_assert(MAV_SENSOR_ROTATION_ROLL_90_PITCH_315 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_90_PITCH_315),
 	      "Roll: 90, Pitch: 315");
-static_assert(MAV_SENSOR_ROTATION_ROLL_270_YAW_180 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_270_YAW_180),
-	      "Roll: 270, Yaw: 180");
-static_assert(42 == ROTATION_MAX, "Keep MAV_SENSOR_ROTATION and PX4 Rotation in sync");
+
+static_assert(41 == ROTATION_MAX, "Keep MAV_SENSOR_ROTATION and PX4 Rotation in sync");
 
 static uint16_t cm_uint16_from_m_float(float m)
 {
