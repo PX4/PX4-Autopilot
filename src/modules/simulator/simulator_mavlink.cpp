@@ -76,111 +76,95 @@ const unsigned mode_flag_custom = 1;
 
 using namespace time_literals;
 
-mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs()
+void Simulator::actuator_controls_from_outputs(mavlink_hil_actuator_controls_t *msg)
 {
-	mavlink_hil_actuator_controls_t msg{};
+	memset(msg, 0, sizeof(mavlink_hil_actuator_controls_t));
 
-	msg.time_usec = hrt_absolute_time() + hrt_absolute_time_offset();
+	msg->time_usec = hrt_absolute_time() + hrt_absolute_time_offset();
 
 	bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
-	const float pwm_center = (PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2;
-
 	int _system_type = _param_mav_type.get();
 
-	/* scale outputs depending on system type */
-	if (_system_type == MAV_TYPE_AIRSHIP ||
-	    _system_type == MAV_TYPE_QUADROTOR ||
-	    _system_type == MAV_TYPE_HEXAROTOR ||
-	    _system_type == MAV_TYPE_OCTOROTOR ||
-	    _system_type == MAV_TYPE_VTOL_DUOROTOR ||
-	    _system_type == MAV_TYPE_VTOL_QUADROTOR ||
-	    _system_type == MAV_TYPE_VTOL_TILTROTOR ||
-	    _system_type == MAV_TYPE_VTOL_RESERVED2 ||
-	    _system_type == MAV_TYPE_SUBMARINE) {
+	unsigned motors_count;
+	bool is_fixed_wing;
 
-		/* multirotors: set number of rotor outputs depending on type */
+	switch (_system_type) {
+	case MAV_TYPE_AIRSHIP:
+	case MAV_TYPE_VTOL_DUOROTOR:
+	case MAV_TYPE_COAXIAL:
+		motors_count = 2;
+		is_fixed_wing = false;
+		break;
 
-		unsigned n;
+	case MAV_TYPE_TRICOPTER:
+		motors_count = 3;
+		is_fixed_wing = false;
+		break;
 
-		switch (_system_type) {
-		case MAV_TYPE_SUBMARINE:
-			n = 0;
-			break;
+	case MAV_TYPE_QUADROTOR:
+	case MAV_TYPE_VTOL_QUADROTOR:
+	case MAV_TYPE_VTOL_TILTROTOR:
+		motors_count = 4;
+		is_fixed_wing = false;
+		break;
 
-		case MAV_TYPE_AIRSHIP:
+	case MAV_TYPE_VTOL_RESERVED2:
+		motors_count = 5;
+		is_fixed_wing = false;
+		break;
 
-		case MAV_TYPE_VTOL_DUOROTOR:
-			n = 2;
-			break;
+	case MAV_TYPE_HEXAROTOR:
+		motors_count = 6;
+		is_fixed_wing = false;
+		break;
 
-		case MAV_TYPE_QUADROTOR:
-		case MAV_TYPE_VTOL_QUADROTOR:
-		case MAV_TYPE_VTOL_TILTROTOR:
-			n = 4;
-			break;
+	case MAV_TYPE_OCTOROTOR:
+	case MAV_TYPE_SUBMARINE:
+		motors_count = 8;
+		is_fixed_wing = false;
+		break;
 
-		case MAV_TYPE_VTOL_RESERVED2:
-			// this is the standard VTOL / quad plane with 5 propellers
-			n = 5;
-			break;
+	case MAV_TYPE_FIXED_WING:
+		motors_count = 0;
+		is_fixed_wing = true;
+		break;
 
-		case MAV_TYPE_HEXAROTOR:
-			n = 6;
-			break;
-
-		default:
-			n = 8;
-			break;
-		}
-
-		for (unsigned i = 0; i < 16; i++) {
-			if (armed) {
-				if (i < n) {
-					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for rotors */
-					msg.controls[i] = (_actuator_outputs.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
-
-				} else {
-					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for other channels */
-					msg.controls[i] = (_actuator_outputs.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
-				}
-
-			} else {
-				/* send 0 when disarmed and for disabled channels */
-				msg.controls[i] = 0.0f;
-			}
-		}
-
-	} else {
-		/* fixed wing: scale throttle to 0..1 and other channels to -1..1 */
-
-		for (unsigned i = 0; i < 16; i++) {
-			if (armed) {
-				if (i != 4) {
-					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for normal channels */
-					msg.controls[i] = (_actuator_outputs.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
-
-				} else {
-					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for throttle */
-					msg.controls[i] = (_actuator_outputs.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
-				}
-
-			} else {
-				/* set 0 for disabled channels */
-				msg.controls[i] = 0.0f;
-			}
-		}
+	default:
+		motors_count = 0;
+		is_fixed_wing = false;
+		break;
 	}
 
-	msg.mode = mode_flag_custom;
-	msg.mode |= (armed) ? mode_flag_armed : 0;
-	msg.flags = 0;
+	for (unsigned i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; i++) {
+		if (!armed) {
+			/* send 0 when disarmed and for disabled channels */
+			msg->controls[i] = 0.0f;
+
+		} else if ((is_fixed_wing && i == 4) ||
+			   (!is_fixed_wing && i < motors_count)) {	//multirotor, rotor channel
+			/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for rotors */
+			msg->controls[i] = (_actuator_outputs.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+			msg->controls[i] = math::constrain(msg->controls[i], 0.f, 1.f);
+
+		} else {
+			const float pwm_center = (PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2;
+			const float pwm_delta = (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2;
+
+			/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for other channels */
+			msg->controls[i] = (_actuator_outputs.output[i] - pwm_center) / pwm_delta;
+			msg->controls[i] = math::constrain(msg->controls[i], -1.f, 1.f);
+		}
+
+	}
+
+	msg->mode = mode_flag_custom;
+	msg->mode |= (armed) ? mode_flag_armed : 0;
+	msg->flags = 0;
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
-	msg.flags |= 1;
+	msg->flags |= 1;
 #endif
-
-	return msg;
 }
 
 void Simulator::send_controls()
@@ -188,7 +172,8 @@ void Simulator::send_controls()
 	orb_copy(ORB_ID(actuator_outputs), _actuator_outputs_sub, &_actuator_outputs);
 
 	if (_actuator_outputs.timestamp > 0) {
-		mavlink_hil_actuator_controls_t hil_act_control = actuator_controls_from_outputs();
+		mavlink_hil_actuator_controls_t hil_act_control;
+		actuator_controls_from_outputs(&hil_act_control);
 
 		mavlink_message_t message{};
 		mavlink_msg_hil_actuator_controls_encode(_param_mav_sys_id.get(), _param_mav_comp_id.get(), &message, &hil_act_control);

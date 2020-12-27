@@ -185,14 +185,14 @@ static calibrate_return check_calibration_result(float offset_x, float offset_y,
 
 	for (unsigned i = 0; i < num_finite; ++i) {
 		if (!PX4_ISFINITE(must_be_finite[i])) {
-			calibration_log_emergency(mavlink_log_pub, "Retry calibration (sphere NaN, #%u)", cur_mag);
+			calibration_log_emergency(mavlink_log_pub, "Retry calibration (sphere NaN, %u)", cur_mag);
 			return calibrate_return_error;
 		}
 	}
 
 	// earth field between 0.25 and 0.65 Gauss
 	if (sphere_radius < 0.2f || sphere_radius >= 0.7f) {
-		calibration_log_emergency(mavlink_log_pub, "Retry calibration (mag #%u sphere radius invaid %.3f)", cur_mag,
+		calibration_log_emergency(mavlink_log_pub, "Retry calibration (mag %u sphere radius invaid %.3f)", cur_mag,
 					  (double)sphere_radius);
 		return calibrate_return_error;
 	}
@@ -202,7 +202,7 @@ static calibrate_return check_calibration_result(float offset_x, float offset_y,
 
 	for (unsigned i = 0; i < num_positive; ++i) {
 		if (should_be_positive[i] <= 0.0f) {
-			calibration_log_emergency(mavlink_log_pub, "Retry calibration (mag #%u with non-positive scale)", cur_mag);
+			calibration_log_emergency(mavlink_log_pub, "Retry calibration (mag %u with non-positive scale)", cur_mag);
 			return calibrate_return_error;
 		}
 	}
@@ -216,7 +216,7 @@ static calibrate_return check_calibration_result(float offset_x, float offset_y,
 		static constexpr float MAG_MAX_OFFSET_LEN = 1.3f;
 
 		if (fabsf(should_be_not_huge[i]) > MAG_MAX_OFFSET_LEN) {
-			calibration_log_critical(mavlink_log_pub, "Warning: mag (#%u) with large offsets", cur_mag);
+			calibration_log_critical(mavlink_log_pub, "Warning: mag %u with large offsets", cur_mag);
 			break;
 		}
 	}
@@ -599,7 +599,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 				}
 
 				if (!sphere_fit_success && !ellipsoid_fit_success) {
-					calibration_log_emergency(mavlink_log_pub, "Retry calibration (unable to fit mag #%u)", cur_mag);
+					calibration_log_emergency(mavlink_log_pub, "Retry calibration (unable to fit mag %u)", cur_mag);
 					result = calibrate_return_error;
 					break;
 				}
@@ -680,7 +680,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 			// only proceed if there's a valid internal
 			if (internal_index >= 0) {
 
-				const Dcmf board_rotation = calibration::GetBoardRotation();
+				const Dcmf board_rotation = calibration::GetBoardRotationMatrix();
 
 				// apply new calibrations to all raw sensor data before comparison
 				for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {

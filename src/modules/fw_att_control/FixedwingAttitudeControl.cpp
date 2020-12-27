@@ -380,9 +380,10 @@ void FixedwingAttitudeControl::Run()
 			wheel_control = true;
 		}
 
-		/* lock integrator until control is started or for long intervals (> 20 ms) */
+		// lock integrator if no rate control enabled, or in RW mode (but not transitioning VTOL or tailsitter), or for long intervals (> 20 ms)
 		bool lock_integrator = !_vcontrol_mode.flag_control_rates_enabled
-				       || (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && ! _vehicle_status.in_transition_mode)
+				       || (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
+					   !_vehicle_status.in_transition_mode && !_is_tailsitter)
 				       || (dt > 0.02f);
 
 		/* if we are in rotary wing mode, do nothing */
@@ -413,11 +414,11 @@ void FixedwingAttitudeControl::Run()
 			}
 
 			/* Reset integrators if the aircraft is on ground
-			 * or a multicopter (but not transitioning VTOL)
+			 * or a multicopter (but not transitioning VTOL or tailsitter)
 			 */
 			if (_landed
 			    || (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-				&& !_vehicle_status.in_transition_mode)) {
+				&& !_vehicle_status.in_transition_mode && !_is_tailsitter)) {
 
 				_roll_ctrl.reset_integrator();
 				_pitch_ctrl.reset_integrator();

@@ -123,8 +123,8 @@ bool VtolType::init()
 
 void VtolType::update_mc_state()
 {
-	if (!flag_idle_mc) {
-		flag_idle_mc = set_idle_mc();
+	if (!_flag_idle_mc) {
+		_flag_idle_mc = set_idle_mc();
 	}
 
 	if (_motor_state != motor_state::ENABLED) {
@@ -142,8 +142,8 @@ void VtolType::update_mc_state()
 
 void VtolType::update_fw_state()
 {
-	if (flag_idle_mc) {
-		flag_idle_mc = !set_idle_fw();
+	if (_flag_idle_mc) {
+		_flag_idle_mc = !set_idle_fw();
 	}
 
 	if (_motor_state != motor_state::DISABLED) {

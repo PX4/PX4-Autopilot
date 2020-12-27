@@ -80,7 +80,6 @@ extern int test_rc(int argc, char *argv[]);
 extern int test_search_min(int argc, char *argv[]);
 extern int test_servo(int argc, char *argv[]);
 extern int test_sleep(int argc, char *argv[]);
-extern int test_smooth_z(int argc, char *argv[]);
 extern int test_time(int argc, char *argv[]);
 extern int test_uart_baudchange(int argc, char *argv[]);
 extern int test_uart_break(int argc, char *argv[]);

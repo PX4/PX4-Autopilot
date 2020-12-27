@@ -152,4 +152,6 @@ protected:
 	int _param_update_index{0};
 
 	Mavlink *_mavlink;
+
+	bool _first_send{false};
 };

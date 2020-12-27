@@ -135,7 +135,7 @@ private:
 	vehicle_control_mode_s	_control_mode{};		/**< vehicle control mode */
 	vehicle_local_position_s _local_pos{};			/**< vehicle local position */
 	home_position_s	_home_pos{};			/**< home position */
-	landing_gear_s _landing_gear{};
+
 	int8_t _old_landing_gear_position{landing_gear_s::GEAR_KEEP};
 
 	DEFINE_PARAMETERS(
@@ -202,6 +202,8 @@ private:
 	Vector3f _wv_dcm_z_sp_prev{0, 0, 1};
 
 	perf_counter_t _cycle_perf;
+
+	uint8_t _last_vehicle_nav_state{0};
 
 	/**
 	 * Update our local parameter cache.

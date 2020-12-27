@@ -78,11 +78,11 @@ void Tunes::reset(bool repeat_flag)
 	_tempo       = _default_tempo;
 }
 
-int Tunes::set_control(const tune_control_s &tune_control)
+Tunes::ControlResult Tunes::set_control(const tune_control_s &tune_control)
 {
 	// Sanity check
 	if (tune_control.tune_id >= _default_tunes_size) {
-		return -EINVAL;
+		return ControlResult::InvalidTune;
 	}
 
 	// Accept new tune or a stop?
@@ -93,7 +93,7 @@ int Tunes::set_control(const tune_control_s &tune_control)
 		// Check if this exact tune is already being played back
 		if (tune_control.tune_id != static_cast<int>(TuneID::CUSTOM) &&
 		    _tune == _default_tunes[tune_control.tune_id]) {
-			return OK; // Nothing to do
+			return ControlResult::AlreadyPlaying; // Nothing to do
 		}
 
 		// Reset repeat flag. Can jump to true again while tune is being parsed later
@@ -126,9 +126,10 @@ int Tunes::set_control(const tune_control_s &tune_control)
 		}
 
 		_current_tune_id = tune_control.tune_id;
+		return ControlResult::Success;
 	}
 
-	return OK;
+	return ControlResult::WouldInterrupt;
 }
 
 void Tunes::set_string(const char *const string, uint8_t volume)

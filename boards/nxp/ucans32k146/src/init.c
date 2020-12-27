@@ -94,7 +94,13 @@ int board_app_initialize(uintptr_t arg)
 
 	/* Perform board-specific initialization */
 
-	return s32k1xx_bringup();
+	int rv = s32k1xx_bringup();
+
+	/* Configure the HW based on the manifest */
+
+	px4_platform_configure();
+
+	return rv;
 #endif
 }
 

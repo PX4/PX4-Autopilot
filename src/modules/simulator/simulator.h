@@ -230,7 +230,7 @@ private:
 
 	static void *sending_trampoline(void *);
 
-	mavlink_hil_actuator_controls_t actuator_controls_from_outputs();
+	void actuator_controls_from_outputs(mavlink_hil_actuator_controls_t *msg);
 
 
 	// uORB publisher handlers

@@ -62,6 +62,7 @@ px4_add_board(
 		esc_calib
 		failure
 		led_control
+		#mft
 		mixer
 		motor_ramp
 		motor_test

@@ -336,8 +336,6 @@ void MulticopterPositionControl::Run()
 			// publish trajectory setpoint
 			_traj_sp_pub.publish(setpoint);
 
-			landing_gear_s gear = _flight_tasks.getGear();
-
 			// check if all local states are valid and map accordingly
 			set_vehicle_states(setpoint.vz);
 
@@ -445,14 +443,16 @@ void MulticopterPositionControl::Run()
 			_wv_dcm_z_sp_prev = Quatf(attitude_setpoint.q_d).dcm_z();
 
 			// if there's any change in landing gear setpoint publish it
-			if (gear.landing_gear != _old_landing_gear_position
-			    && gear.landing_gear != landing_gear_s::GEAR_KEEP) {
-				_landing_gear.timestamp = time_stamp_now;
-				_landing_gear.landing_gear = gear.landing_gear;
-				_landing_gear_pub.publish(_landing_gear);
+			landing_gear_s landing_gear = _flight_tasks.getGear();
+
+			if (landing_gear.landing_gear != _old_landing_gear_position
+			    && landing_gear.landing_gear != landing_gear_s::GEAR_KEEP) {
+
+				landing_gear.timestamp = hrt_absolute_time();
+				_landing_gear_pub.publish(landing_gear);
 			}
 
-			_old_landing_gear_position = gear.landing_gear;
+			_old_landing_gear_position = landing_gear.landing_gear;
 
 		} else {
 			// reset the numerical derivatives to not generate d term spikes when coming from non-position controlled operation
@@ -475,6 +475,13 @@ void MulticopterPositionControl::start_flight_task()
 	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		_flight_tasks.switchTask(FlightTaskIndex::None);
 		return;
+	}
+
+	// Switch to clean new task when mode switches e.g. to reset state when switching between auto modes
+	// exclude Orbit mode since the task is initiated in FlightTasks through the vehicle_command and we should not switch out
+	if (_last_vehicle_nav_state != _vehicle_status.nav_state
+	    && _vehicle_status.nav_state != vehicle_status_s::NAVIGATION_STATE_ORBIT) {
+		_flight_tasks.switchTask(FlightTaskIndex::None);
 	}
 
 	if (_vehicle_status.in_transition_mode) {
@@ -589,16 +596,17 @@ void MulticopterPositionControl::start_flight_task()
 		FlightTaskError error = FlightTaskError::NoError;
 
 		switch (_param_mpc_pos_mode.get()) {
-		case 1:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPositionSmooth);
+		case 0:
+			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPosition);
 			break;
 
 		case 3:
 			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPositionSmoothVel);
 			break;
 
+		case 4:
 		default:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPosition);
+			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAcceleration);
 			break;
 		}
 
@@ -622,16 +630,13 @@ void MulticopterPositionControl::start_flight_task()
 		FlightTaskError error = FlightTaskError::NoError;
 
 		switch (_param_mpc_pos_mode.get()) {
-		case 1:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitudeSmooth);
+		case 0:
+			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitude);
 			break;
 
 		case 3:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitudeSmoothVel);
-			break;
-
 		default:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitude);
+			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitudeSmoothVel);
 			break;
 		}
 
@@ -668,6 +673,8 @@ void MulticopterPositionControl::start_flight_task()
 	} else if (should_disable_task) {
 		_flight_tasks.switchTask(FlightTaskIndex::None);
 	}
+
+	_last_vehicle_nav_state = _vehicle_status.nav_state;
 }
 
 void MulticopterPositionControl::failsafe(const hrt_abstime &now, vehicle_local_position_setpoint_s &setpoint,
