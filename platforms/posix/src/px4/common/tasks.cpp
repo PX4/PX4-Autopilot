@@ -252,7 +252,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 			rv = pthread_create(&taskmap[taskid].pid, nullptr, &entry_adapter, (void *) taskdata);
 
 			if (rv != 0) {
-				PX4_ERR("px4_task_spawn_cmd: failed to create thread %d %d\n", rv, errno);
+				PX4_ERR("px4_task_spawn_cmd: failed to create thread for %s (%i): %s", name, rv, strerror(rv));
 				taskmap[taskid].isused = false;
 				pthread_attr_destroy(&attr);
 				pthread_mutex_unlock(&task_mutex);
