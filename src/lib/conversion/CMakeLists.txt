@@ -33,7 +33,7 @@
 
 px4_add_library(conversion
 	rotation.cpp
-	rotation.cpp
+	rotation.h
 )
 
 target_compile_options(conversion PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
