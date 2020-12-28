@@ -1878,7 +1878,7 @@ protected:
 		transponder_report_s pos;
 		bool sent = false;
 
-		while (_pos_sub.update(&pos)) {
+		while ((_mavlink->get_free_tx_buf() >= get_size()) && _pos_sub.update(&pos)) {
 
 			if (!(pos.flags & transponder_report_s::PX4_ADSB_FLAGS_RETRANSLATE)) {
 				continue;
