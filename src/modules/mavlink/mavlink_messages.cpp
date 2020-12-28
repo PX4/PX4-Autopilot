@@ -452,19 +452,23 @@ protected:
 
 	bool send() override
 	{
-		// always send the heartbeat, independent of the update status of the topics
-		vehicle_status_s status{};
-		_status_sub.copy(&status);
+		if (_mavlink->get_free_tx_buf() >= get_size()) {
+			// always send the heartbeat, independent of the update status of the topics
+			vehicle_status_s status{};
+			_status_sub.copy(&status);
 
-		uint8_t base_mode = 0;
-		uint32_t custom_mode = 0;
-		uint8_t system_status = 0;
-		get_mavlink_mode_state(&status, &system_status, &base_mode, &custom_mode);
+			uint8_t base_mode = 0;
+			uint32_t custom_mode = 0;
+			uint8_t system_status = 0;
+			get_mavlink_mode_state(&status, &system_status, &base_mode, &custom_mode);
 
-		mavlink_msg_heartbeat_send(_mavlink->get_channel(), _mavlink->get_system_type(), MAV_AUTOPILOT_PX4,
-					   base_mode, custom_mode, system_status);
+			mavlink_msg_heartbeat_send(_mavlink->get_channel(), _mavlink->get_system_type(), MAV_AUTOPILOT_PX4,
+						   base_mode, custom_mode, system_status);
 
-		return true;
+			return true;
+		}
+
+		return false;
 	}
 };
 
