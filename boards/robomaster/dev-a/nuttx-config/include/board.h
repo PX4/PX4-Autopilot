@@ -222,8 +222,14 @@
 // #define GPIO_UART7_RX    GPIO_UART7_RX_1
 // #define GPIO_UART7_TX    GPIO_UART7_TX_1
 
-#define GPIO_USART1_RX GPIO_USART1_RX_2
-#define GPIO_USART1_TX GPIO_USART1_TX_1
+
+// For RoboMaster Dev C, the debug port is UART1
+// #define GPIO_USART1_RX GPIO_USART1_RX_2
+// #define GPIO_USART1_TX GPIO_USART1_TX_1
+
+// For RoboMaster Dev A, the debug port is UART6
+#define GPIO_USART6_RX GPIO_USART6_RX_2
+#define GPIO_USART6_TX GPIO_USART6_TX_2
 
 /* UART8 has no alternate pin config */
 

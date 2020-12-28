@@ -76,6 +76,8 @@
 #include <px4_platform_common/init.h>
 #include <px4_platform/board_dma_alloc.h>
 
+// #include "stm32_ccm.h"
+
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
@@ -297,22 +299,22 @@ stm32_boardinitialize(void)
 
 	/* configure ADC pins */
 
-	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
-	stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
-	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
-	stm32_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
-	stm32_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
-	stm32_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
+	// stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
+	// stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
+	// stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
+	// stm32_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
+	// stm32_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
+	// stm32_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
 
-	/* configure power supply control/sense pins */
-	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
-	board_control_spi_sensors_power_configgpio();
-	board_control_spi_sensors_power(true, 0xffff);
-	stm32_configgpio(GPIO_VDD_BRICK_VALID);
-	stm32_configgpio(GPIO_VDD_SERVO_VALID);
-	stm32_configgpio(GPIO_VDD_USB_VALID);
-	stm32_configgpio(GPIO_VDD_5V_HIPOWER_OC);
-	stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
+	// /* configure power supply control/sense pins */
+	// stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
+	// board_control_spi_sensors_power_configgpio();
+	// board_control_spi_sensors_power(true, 0xffff);
+	// stm32_configgpio(GPIO_VDD_BRICK_VALID);
+	// stm32_configgpio(GPIO_VDD_SERVO_VALID);
+	// stm32_configgpio(GPIO_VDD_USB_VALID);
+	// stm32_configgpio(GPIO_VDD_5V_HIPOWER_OC);
+	// stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
 
 	/*
 	 * CAN GPIO config.
@@ -320,10 +322,12 @@ stm32_boardinitialize(void)
 	 * If no transceiver is connected, the RX pin will float, occasionally causing CAN controller to
 	 * fail during initialization.
 	 */
-	stm32_configgpio(GPIO_CAN1_RX);
-	stm32_configgpio(GPIO_CAN1_TX);
-	stm32_configgpio(GPIO_CAN2_RX | GPIO_PULLUP);
-	stm32_configgpio(GPIO_CAN2_TX);
+	// stm32_configgpio(GPIO_CAN1_RX);
+	// stm32_configgpio(GPIO_CAN1_TX);
+	// stm32_configgpio(GPIO_CAN2_RX | GPIO_PULLUP);
+	// stm32_configgpio(GPIO_CAN2_TX);
+
+	// ccm_initialize();
 
 }
 
@@ -352,43 +356,44 @@ stm32_boardinitialize(void)
  *
  ****************************************************************************/
 
-static struct spi_dev_s *spi1;
-static struct spi_dev_s *spi2;
-static struct spi_dev_s *spi4;
+// static struct spi_dev_s *spi1;
+// static struct spi_dev_s *spi2;
+// static struct spi_dev_s *spi4;
 static struct sdio_dev_s *sdio;
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
+	syslog(LOG_INFO, "board_app_initialize\n");
 	/* Ensure the power is on 1 ms before we drive the GPIO pins */
 	usleep(1000);
 
 	/* configure SPI interfaces (after the hw is determined) */
-	stm32_spiinitialize();
+	// stm32_spiinitialize();
 
 	px4_platform_init();
 
 	/* configure the DMA allocator */
 
-	if (board_dma_alloc_init() < 0) {
-		syslog(LOG_ERR, "DMA alloc FAILED\n");
-	}
+	// if (board_dma_alloc_init() < 0) {
+	// 	syslog(LOG_ERR, "DMA alloc FAILED\n");
+	// }
 
 	/* set up the serial DMA polling */
-	static struct hrt_call serial_dma_call;
-	struct timespec ts;
+	// static struct hrt_call serial_dma_call;
+	// struct timespec ts;
 
-	/*
-	 * Poll at 1ms intervals for received bytes that have not triggered
-	 * a DMA event.
-	 */
-	ts.tv_sec = 0;
-	ts.tv_nsec = 1000000;
+	// /*
+	//  * Poll at 1ms intervals for received bytes that have not triggered
+	//  * a DMA event.
+	//  */
+	// ts.tv_sec = 0;
+	// ts.tv_nsec = 1000000;
 
-	hrt_call_every(&serial_dma_call,
-		       ts_to_abstime(&ts),
-		       ts_to_abstime(&ts),
-		       (hrt_callout)stm32_serial_dma_poll,
-		       NULL);
+	// hrt_call_every(&serial_dma_call,
+	// 	       ts_to_abstime(&ts),
+	// 	       ts_to_abstime(&ts),
+	// 	       (hrt_callout)stm32_serial_dma_poll,
+	// 	       NULL);
 
 	/* initial LED state */
 	drv_led_start();
@@ -400,50 +405,50 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* Configure SPI-based devices */
 
-	spi1 = stm32_spibus_initialize(1);
+	// spi1 = stm32_spibus_initialize(1);
 
-	if (!spi1) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", 1);
-		led_on(LED_AMBER);
-		return -ENODEV;
-	}
+	// if (!spi1) {
+	// 	syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", 1);
+	// 	led_on(LED_AMBER);
+	// 	return -ENODEV;
+	// }
 
-	/* Default SPI1 to 1MHz and de-assert the known chip selects. */
-	SPI_SETFREQUENCY(spi1, 10000000);
-	SPI_SETBITS(spi1, 8);
-	SPI_SETMODE(spi1, SPIDEV_MODE3);
-	up_udelay(20);
+	// /* Default SPI1 to 1MHz and de-assert the known chip selects. */
+	// SPI_SETFREQUENCY(spi1, 10000000);
+	// SPI_SETBITS(spi1, 8);
+	// SPI_SETMODE(spi1, SPIDEV_MODE3);
+	// up_udelay(20);
 
-	/* Get the SPI port for the FRAM */
+	// /* Get the SPI port for the FRAM */
 
-	spi2 = stm32_spibus_initialize(2);
+	// spi2 = stm32_spibus_initialize(2);
 
-	if (!spi2) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", 2);
-		led_on(LED_AMBER);
-		return -ENODEV;
-	}
+	// if (!spi2) {
+	// 	syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", 2);
+	// 	led_on(LED_AMBER);
+	// 	return -ENODEV;
+	// }
 
-	/* Default SPI2 to 37.5 MHz (40 MHz rounded to nearest valid divider, F4 max)
-	 * and de-assert the known chip selects. */
+	// /* Default SPI2 to 37.5 MHz (40 MHz rounded to nearest valid divider, F4 max)
+	//  * and de-assert the known chip selects. */
 
-	// XXX start with 10.4 MHz in FRAM usage and go up to 37.5 once validated
-	SPI_SETFREQUENCY(spi2, 12 * 1000 * 1000);
-	SPI_SETBITS(spi2, 8);
-	SPI_SETMODE(spi2, SPIDEV_MODE3);
+	// // XXX start with 10.4 MHz in FRAM usage and go up to 37.5 once validated
+	// SPI_SETFREQUENCY(spi2, 12 * 1000 * 1000);
+	// SPI_SETBITS(spi2, 8);
+	// SPI_SETMODE(spi2, SPIDEV_MODE3);
 
-	spi4 = stm32_spibus_initialize(4);
+	// spi4 = stm32_spibus_initialize(4);
 
-	if (!spi4) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", 4);
-		led_on(LED_AMBER);
-		return -ENODEV;
-	}
+	// if (!spi4) {
+	// 	syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", 4);
+	// 	led_on(LED_AMBER);
+	// 	return -ENODEV;
+	// }
 
-	/* Default SPI4 to 1MHz and de-assert the known chip selects. */
-	SPI_SETFREQUENCY(spi4, 10000000);
-	SPI_SETBITS(spi4, 8);
-	SPI_SETMODE(spi4, SPIDEV_MODE3);
+	// /* Default SPI4 to 1MHz and de-assert the known chip selects. */
+	// SPI_SETFREQUENCY(spi4, 10000000);
+	// SPI_SETBITS(spi4, 8);
+	// SPI_SETMODE(spi4, SPIDEV_MODE3);
 
 #ifdef CONFIG_MMCSD
 	/* First, get an instance of the SDIO interface */

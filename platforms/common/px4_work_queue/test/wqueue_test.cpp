@@ -47,10 +47,11 @@ AppState WQueueTest::appState;
 
 void WQueueTest::Run()
 {
-	//PX4_INFO("iter: %d elapsed: %" PRId64 " us", _iter, hrt_elapsed_time(&_qtime));
+	PX4_INFO("iter: %d", _iter);
 
-	if (_iter > 10000) {
-		appState.requestExit();
+	if (_iter > 1000) {
+		// appState.requestExit();
+		appState.setRunning(false);
 
 	} else {
 		ScheduleNow();
@@ -75,7 +76,7 @@ int WQueueTest::main()
 
 	PX4_INFO("WQueueTest finished");
 
-	//print_status();
+	// print_status();
 
 	px4_sleep(2);
 
