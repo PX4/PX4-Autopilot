@@ -2131,7 +2131,12 @@ public:
 
 	unsigned get_size() override
 	{
-		return _trigger_sub.advertised() ? MAVLINK_MSG_ID_CAMERA_TRIGGER_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		if (_trigger_sub.advertised()) {
+			return MAVLINK_MSG_ID_CAMERA_TRIGGER_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
+			       + MAVLINK_MSG_ID_COMMAND_LONG_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES; // TODO: MAV_CMD_DO_DIGICAM_CONTROL
+		}
+
+		return 0;
 	}
 
 private:
@@ -2149,7 +2154,7 @@ protected:
 	{
 		camera_trigger_s trigger;
 
-		if (_trigger_sub.update(&trigger)) {
+		if ((_mavlink->get_free_tx_buf() >= get_size()) && _trigger_sub.update(&trigger)) {
 			mavlink_camera_trigger_t msg{};
 
 			msg.time_usec = trigger.timestamp;
