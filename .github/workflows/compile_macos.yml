@@ -23,7 +23,7 @@ jobs:
         token: ${{secrets.ACCESS_TOKEN}}
 
     - name: setup
-      run: ./Tools/setup/macos.sh
+      run: ./Tools/setup/macos.sh; ./Tools/setup/macos.sh
 
     - name: Prepare ccache timestamp
       id: ccache_cache_timestamp
