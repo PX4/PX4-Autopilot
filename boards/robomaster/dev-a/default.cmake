@@ -109,7 +109,7 @@ px4_add_board(
 		# tune_control
 		# usb_connected
 		# ver
-		# work_queue
+		work_queue
 	EXAMPLES
 		# fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
