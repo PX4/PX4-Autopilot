@@ -41,6 +41,10 @@
 #include "uORBManager.hpp"
 #include "uORBCommon.hpp"
 
+#ifdef __PX4_NUTTX
+#include <sys/boardctl.h>
+#endif
+
 static uORB::DeviceMaster *g_dev = nullptr;
 
 int uorb_start(void)
@@ -56,6 +60,7 @@ int uorb_start(void)
 		return -ENOMEM;
 	}
 
+#if !defined(__PX4_NUTTX) || defined(CONFIG_BUILD_FLAT) || defined(__KERNEL__)
 	/* create the driver */
 	g_dev = uORB::Manager::get_instance()->get_device_master();
 
@@ -63,11 +68,15 @@ int uorb_start(void)
 		return -errno;
 	}
 
+#endif
+
 	return OK;
 }
 
 int uorb_status(void)
 {
+#if !defined(__PX4_NUTTX) || defined(CONFIG_BUILD_FLAT) || defined(__KERNEL__)
+
 	if (g_dev != nullptr) {
 		g_dev->printStatistics();
 
@@ -75,11 +84,16 @@ int uorb_status(void)
 		PX4_INFO("uorb is not running");
 	}
 
+#else
+	boardctl(ORBIOCDEVMASTERCMD, ORB_DEVMASTER_STATUS);
+#endif
 	return OK;
 }
 
 int uorb_top(char **topic_filter, int num_filters)
 {
+#if !defined(__PX4_NUTTX) || defined(CONFIG_BUILD_FLAT) || defined(__KERNEL__)
+
 	if (g_dev != nullptr) {
 		g_dev->showTop(topic_filter, num_filters);
 
@@ -87,9 +101,11 @@ int uorb_top(char **topic_filter, int num_filters)
 		PX4_INFO("uorb is not running");
 	}
 
+#else
+	boardctl(ORBIOCDEVMASTERCMD, ORB_DEVMASTER_TOP);
+#endif
 	return OK;
 }
-
 
 orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data)
 {
@@ -117,42 +133,42 @@ int orb_unadvertise(orb_advert_t handle)
 	return uORB::Manager::get_instance()->orb_unadvertise(handle);
 }
 
-int  orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data)
+int orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data)
 {
 	return uORB::Manager::get_instance()->orb_publish(meta, handle, data);
 }
 
-int  orb_subscribe(const struct orb_metadata *meta)
+int orb_subscribe(const struct orb_metadata *meta)
 {
 	return uORB::Manager::get_instance()->orb_subscribe(meta);
 }
 
-int  orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance)
+int orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance)
 {
 	return uORB::Manager::get_instance()->orb_subscribe_multi(meta, instance);
 }
 
-int  orb_unsubscribe(int handle)
+int orb_unsubscribe(int handle)
 {
 	return uORB::Manager::get_instance()->orb_unsubscribe(handle);
 }
 
-int  orb_copy(const struct orb_metadata *meta, int handle, void *buffer)
+int orb_copy(const struct orb_metadata *meta, int handle, void *buffer)
 {
 	return uORB::Manager::get_instance()->orb_copy(meta, handle, buffer);
 }
 
-int  orb_check(int handle, bool *updated)
+int orb_check(int handle, bool *updated)
 {
 	return uORB::Manager::get_instance()->orb_check(handle, updated);
 }
 
-int  orb_exists(const struct orb_metadata *meta, int instance)
+int orb_exists(const struct orb_metadata *meta, int instance)
 {
 	return uORB::Manager::get_instance()->orb_exists(meta, instance);
 }
 
-int  orb_group_count(const struct orb_metadata *meta)
+int orb_group_count(const struct orb_metadata *meta)
 {
 	unsigned instance = 0;
 
