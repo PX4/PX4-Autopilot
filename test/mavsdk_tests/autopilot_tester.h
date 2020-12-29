@@ -134,8 +134,10 @@ private:
 				// The reason not to include an absolute timeout here is that it can happen if the host is
 				// busy and PX4 doesn't run fast enough.
 				const int64_t elapsed_time_ms = _info->get_flight_information().second.time_boot_ms - start_time;
+
 				if (elapsed_time_ms > duration_ms.count()) {
-					std::cout << "Timeout, connected to vehicle but waiting for test for " << elapsed_time_ms / 1000.0 << " seconds" << std::endl;
+					std::cout << "Timeout, connected to vehicle but waiting for test for " << elapsed_time_ms / 1000.0 << " seconds" <<
+						  std::endl;
 					return false;
 				}
 			}
@@ -146,7 +148,9 @@ private:
 
 			while (!fun()) {
 				std::this_thread::sleep_for(duration_ms / 100);
-				const int64_t elapsed_time_us = std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - start_time).count();
+				const int64_t elapsed_time_us = std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() -
+								start_time).count();
+
 				if (elapsed_time_us > duration_ms.count() * 1000) {
 					std::cout << "Timeout, waiting for the vehicle for " << elapsed_time_us / 1000000.0 << " seconds" << std::endl;
 					return false;
