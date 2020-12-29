@@ -54,78 +54,62 @@ int uORBTest::UnitTest::pubsublatency_main()
 	float latency_integral = 0.0f;
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[3];
+	px4_pollfd_struct_t fds[1] {};
 
-	int test_multi_sub = orb_subscribe_multi(ORB_ID(orb_test), 0);
-	int test_multi_sub_medium = orb_subscribe_multi(ORB_ID(orb_test_medium), 0);
-	int test_multi_sub_large = orb_subscribe_multi(ORB_ID(orb_test_large), 0);
+	int test_multi_sub = orb_subscribe_multi(ORB_ID(orb_test_medium), 0);
 
-	orb_test_large_s t{};
+	orb_test_medium_s t{};
 
 	/* clear all ready flags */
-	orb_copy(ORB_ID(orb_test), test_multi_sub, &t);
-	orb_copy(ORB_ID(orb_test_medium), test_multi_sub_medium, &t);
-	orb_copy(ORB_ID(orb_test_large), test_multi_sub_large, &t);
+	orb_copy(ORB_ID(orb_test_medium), test_multi_sub, &t);
 
 	fds[0].fd = test_multi_sub;
 	fds[0].events = POLLIN;
-	fds[1].fd = test_multi_sub_medium;
-	fds[1].events = POLLIN;
-	fds[2].fd = test_multi_sub_large;
-	fds[2].events = POLLIN;
 
-	const unsigned maxruns = 1000;
+	static constexpr unsigned MAX_RUNS = 1000;
 	unsigned timingsgroup = 0;
 	int current_value = t.val;
 	int num_missed = 0;
 
 	// timings has to be on the heap to keep frame size below 2048 bytes
-	unsigned *timings = new unsigned[maxruns] {};
-	unsigned timing_min = 9999999, timing_max = 0;
+	unsigned *timings = new unsigned[MAX_RUNS] {};
+	unsigned timing_min = 9999999;
+	unsigned timing_max = 0;
 
-	for (unsigned i = 0; i < maxruns; i++) {
+	for (unsigned i = 0; i < MAX_RUNS; i++) {
 		/* wait for up to 500ms for data */
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 500);
 
 		if (fds[0].revents & POLLIN) {
-			orb_copy(ORB_ID(orb_test), test_multi_sub, &t);
+			orb_copy(ORB_ID(orb_test_medium), test_multi_sub, &t);
+
+			unsigned elt = (unsigned)hrt_elapsed_time_atomic(&t.timestamp);
+			latency_integral += elt;
+			timings[i] = elt;
+
+			if (elt > timing_max) {
+				timing_max = elt;
+			}
+
+			if (elt < timing_min) {
+				timing_min = elt;
+			}
+
 			timingsgroup = 0;
 
-		} else if (fds[1].revents & POLLIN) {
-			orb_copy(ORB_ID(orb_test_medium), test_multi_sub_medium, &t);
-			timingsgroup = 1;
-
-		} else if (fds[2].revents & POLLIN) {
-			orb_copy(ORB_ID(orb_test_large), test_multi_sub_large, &t);
-			timingsgroup = 2;
+			num_missed += t.val - current_value - 1;
+			current_value = t.val;
 		}
 
 		if (pret < 0) {
 			PX4_ERR("poll error %d, %d", pret, errno);
 			continue;
 		}
-
-		num_missed += t.val - current_value - 1;
-		current_value = t.val;
-
-		unsigned elt = (unsigned)hrt_elapsed_time_atomic(&t.timestamp);
-		latency_integral += elt;
-		timings[i] = elt;
-
-		if (elt > timing_max) {
-			timing_max = elt;
-		}
-
-		if (elt < timing_min) {
-			timing_min = elt;
-		}
 	}
 
 	orb_unsubscribe(test_multi_sub);
-	orb_unsubscribe(test_multi_sub_medium);
-	orb_unsubscribe(test_multi_sub_large);
 
-	if (pubsubtest_print) {
+	if (pubsubtest_print && timings) {
 		char fname[32] {};
 		sprintf(fname, PX4_STORAGEDIR"/uorb_timings%u.txt", timingsgroup);
 		FILE *f = fopen(fname, "w");
@@ -136,7 +120,7 @@ int uORBTest::UnitTest::pubsublatency_main()
 			return PX4_ERROR;
 		}
 
-		for (unsigned i = 0; i < maxruns; i++) {
+		for (unsigned i = 0; i < MAX_RUNS; i++) {
 			fprintf(f, "%u\n", timings[i]);
 		}
 
@@ -145,9 +129,9 @@ int uORBTest::UnitTest::pubsublatency_main()
 
 
 	float std_dev = 0.f;
-	float mean = latency_integral / maxruns;
+	float mean = latency_integral / MAX_RUNS;
 
-	for (unsigned i = 0; i < maxruns; i++) {
+	for (unsigned i = 0; i < MAX_RUNS; i++) {
 		float diff = (float)timings[i] - mean;
 		std_dev += diff * diff;
 	}
@@ -155,14 +139,14 @@ int uORBTest::UnitTest::pubsublatency_main()
 	delete[] timings;
 
 	PX4_INFO("mean:    %8.4f us", static_cast<double>(mean));
-	PX4_INFO("std dev: %8.4f us", static_cast<double>(sqrtf(std_dev / (maxruns - 1))));
+	PX4_INFO("std dev: %8.4f us", static_cast<double>(sqrtf(std_dev / (MAX_RUNS - 1))));
 	PX4_INFO("min:     %3i us", timing_min);
 	PX4_INFO("max:     %3i us", timing_max);
 	PX4_INFO("missed topic updates: %i", num_missed);
 
 	pubsubtest_passed = true;
 
-	if (static_cast<float>(latency_integral / maxruns) > 100.0f) {
+	if (static_cast<float>(latency_integral / MAX_RUNS) > 100.0f) {
 		pubsubtest_res = PX4_ERROR;
 
 	} else {
@@ -267,12 +251,10 @@ int uORBTest::UnitTest::test_single()
 {
 	test_note("try single-topic support");
 
-	orb_test_s t{};
-	orb_test_s u{};
-	int sfd = -1;
 	orb_advert_t ptopic{};
 	bool updated{false};
 
+	orb_test_s t{};
 	t.val = 0;
 	ptopic = orb_advertise(ORB_ID(orb_test), &t);
 
@@ -280,14 +262,13 @@ int uORBTest::UnitTest::test_single()
 		return test_fail("advertise failed: %d", errno);
 	}
 
-	test_note("publish handle %p", ptopic);
-	sfd = orb_subscribe(ORB_ID(orb_test));
+	int sfd = orb_subscribe(ORB_ID(orb_test));
 
 	if (sfd < 0) {
 		return test_fail("subscribe failed: %d", errno);
 	}
 
-	test_note("subscribe fd %d", sfd);
+	orb_test_s u{};
 	u.val = 1;
 
 	if (PX4_OK != orb_copy(ORB_ID(orb_test), sfd, &u)) {
@@ -307,7 +288,6 @@ int uORBTest::UnitTest::test_single()
 	}
 
 	t.val = 2;
-	test_note("try publish");
 
 	if (PX4_OK != orb_publish(ORB_ID(orb_test), ptopic, &t)) {
 		return test_fail("publish failed");
@@ -351,8 +331,6 @@ int uORBTest::UnitTest::test_multi()
 	int instance0;
 	_pfd[0] = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance0);
 
-	test_note("advertised");
-
 	int instance1;
 	_pfd[1] = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance1);
 
@@ -369,8 +347,6 @@ int uORBTest::UnitTest::test_multi()
 	if (PX4_OK != orb_publish(ORB_ID(orb_multitest), _pfd[0], &t)) {
 		return test_fail("mult. pub0 fail");
 	}
-
-	test_note("published");
 
 	t.val = 203;
 
@@ -399,7 +375,7 @@ int uORBTest::UnitTest::test_multi()
 		return test_fail("sub #1 val. mismatch: %d", u.val);
 	}
 
-	if (PX4_OK != latency_test<orb_test_s>(ORB_ID(orb_test), false)) {
+	if (PX4_OK != latency_test(false)) {
 		return test_fail("latency test failed");
 	}
 
@@ -542,15 +518,11 @@ int uORBTest::UnitTest::test_multi_reversed()
 	orb_test_s t{};
 	orb_test_s u{};
 
-	t.val = 0;
-
 	int instance2;
 	_pfd[2] = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance2);
 
 	int instance3;
 	_pfd[3] = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance3);
-
-	test_note("advertised");
 
 	if (instance2 != 2) {
 		return test_fail("mult. id2: %d", instance2);
@@ -566,14 +538,11 @@ int uORBTest::UnitTest::test_multi_reversed()
 		return test_fail("mult. pub0 fail");
 	}
 
-
 	t.val = 304;
 
 	if (PX4_OK != orb_publish(ORB_ID(orb_multitest), _pfd[3], &t)) {
 		return test_fail("mult. pub1 fail");
 	}
-
-	test_note("published");
 
 	if (PX4_OK != orb_copy(ORB_ID(orb_multitest), sfd2, &u)) {
 		return test_fail("sub #2 copy failed: %d", errno);
@@ -738,14 +707,12 @@ int uORBTest::UnitTest::test_wrap_around()
 	t.val = 943;
 	orb_publish(ORB_ID(orb_test_medium_wrap_around), ptopic, &t);
 	CHECK_UPDATED(-1);
-	test_note("before copy");
 	CHECK_COPY(u.val, t.val);
 
 #undef CHECK_COPY
 #undef CHECK_UPDATED
 #undef CHECK_NOT_UPDATED
 
-	test_note("before unadvertise");
 	orb_unadvertise(ptopic);
 	orb_unsubscribe(sfd);
 
@@ -850,7 +817,6 @@ int uORBTest::UnitTest::test_queue()
 {
 	test_note("Testing orb queuing");
 
-	orb_test_medium_s t{};
 	orb_test_medium_s u{};
 	orb_advert_t ptopic{nullptr};
 	bool updated{false};
@@ -862,7 +828,7 @@ int uORBTest::UnitTest::test_queue()
 	}
 
 	const int queue_size = 16;
-	t.val = 0;
+	orb_test_medium_s t{};
 	ptopic = orb_advertise_queue(ORB_ID(orb_test_medium_queue), &t, queue_size);
 
 	if (ptopic == nullptr) {
@@ -1066,6 +1032,57 @@ int uORBTest::UnitTest::test_queue_poll_notify()
 	return test_note("PASS orb queuing (poll & notify), got %i messages", next_expected_val);
 }
 
+int uORBTest::UnitTest::latency_test(bool print)
+{
+	test_note("---------------- LATENCY TEST ------------------");
+	orb_test_medium_s t{};
+	t.val = 308;
+	t.timestamp = hrt_absolute_time();
+
+	orb_advert_t pfd0 = orb_advertise(ORB_ID(orb_test_medium), &t);
+
+	if (pfd0 == nullptr) {
+		return test_fail("orb_advertise failed (%i)", errno);
+	}
+
+	char *const args[1] = { nullptr };
+
+	pubsubtest_print = print;
+	pubsubtest_passed = false;
+
+	/* test pub / sub latency */
+
+	// Can't pass a pointer in args, must be a null terminated
+	// array of strings because the strings are copied to
+	// prevent access if the caller data goes out of scope
+	int pubsub_task = px4_task_spawn_cmd("uorb_latency",
+					     SCHED_DEFAULT,
+					     SCHED_PRIORITY_MAX,
+					     2000,
+					     (px4_main_t)&uORBTest::UnitTest::pubsubtest_threadEntry,
+					     args);
+
+	/* give the test task some data */
+	while (!pubsubtest_passed) {
+		++t.val;
+		t.timestamp = hrt_absolute_time();
+
+		if (PX4_OK != orb_publish(ORB_ID(orb_test_medium), pfd0, &t)) {
+			return test_fail("mult. pub0 timing fail");
+		}
+
+		/* simulate >800 Hz system operation */
+		px4_usleep(1000);
+	}
+
+	if (pubsub_task < 0) {
+		return test_fail("failed launching task");
+	}
+
+	orb_unadvertise(pfd0);
+
+	return pubsubtest_res;
+}
 
 int uORBTest::UnitTest::test_fail(const char *fmt, ...)
 {

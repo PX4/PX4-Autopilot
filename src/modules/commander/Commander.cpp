@@ -2632,7 +2632,12 @@ Commander::run()
 			// Evaluate current prearm status
 			if (!_armed.armed && !_status_flags.condition_calibration_enabled) {
 				bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, _status, _status_flags, true, false, true, 30_s);
-				bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, _status_flags, _safety, _arm_requirements, _status, false);
+
+				// skip arm authorization check until actual arming attempt
+				PreFlightCheck::arm_requirements_t arm_req = _arm_requirements;
+				arm_req.arm_authorization = false;
+				bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, _status_flags, _safety, arm_req, _status, false);
+
 				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PREARM_CHECK, true, true, (preflight_check_res
 						 && prearm_check_res), _status);
 			}
@@ -2764,18 +2769,16 @@ Commander::get_circuit_breaker_params()
 void
 Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 {
-	static hrt_abstime overload_start = 0;
-
 	bool overload = (_cpuload.load > 0.95f) || (_cpuload.ram_usage > 0.98f);
 
-	if (overload_start == 0 && overload) {
-		overload_start = hrt_absolute_time();
+	if (_overload_start == 0 && overload) {
+		_overload_start = hrt_absolute_time();
 
 	} else if (!overload) {
-		overload_start = 0;
+		_overload_start = 0;
 	}
 
-	/* driving rgbled */
+	// driving the RGB led
 	if (changed || _last_overload != overload) {
 		uint8_t led_mode = led_control_s::MODE_OFF;
 		uint8_t led_color = led_control_s::COLOR_WHITE;
@@ -2784,7 +2787,7 @@ Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 		uint64_t overload_warn_delay = (_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 1_ms : 250_ms;
 
 		/* set mode */
-		if (overload && (hrt_elapsed_time(&overload_start) > overload_warn_delay)) {
+		if (overload && (hrt_elapsed_time(&_overload_start) > overload_warn_delay)) {
 			led_mode = led_control_s::MODE_BLINK_FAST;
 			led_color = led_control_s::COLOR_PURPLE;
 
