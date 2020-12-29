@@ -311,7 +311,6 @@ private:
 	hrt_abstime	_lvel_probation_time_us = POSVEL_PROBATION_MIN;
 
 	/* class variables used to check for navigation failure after takeoff */
-	hrt_abstime	_time_at_takeoff{0};		/**< last time we were on the ground */
 	hrt_abstime	_time_last_innov_pass{0};	/**< last time velocity or position innovations passed */
 	bool		_nav_test_passed{false};	/**< true if the post takeoff navigation test has passed */
 	bool		_nav_test_failed{false};	/**< true if the post takeoff navigation test has failed */
@@ -367,6 +366,7 @@ private:
 	hrt_abstime	_boot_timestamp{0};
 	hrt_abstime	_last_disarmed_timestamp{0};
 	hrt_abstime	_timestamp_engine_healthy{0}; ///< absolute time when engine was healty
+	hrt_abstime	_overload_start{0};		///< time when CPU overload started
 
 	uint32_t	_counter{0};
 	uint8_t		_heading_reset_counter{0};

@@ -8,8 +8,8 @@ uint32[3] accel_clipping        # total clipping per axis
 uint32 accel_error_count
 uint32 gyro_error_count
 
-uint16 accel_rate_hz
-uint16 gyro_rate_hz
+float32 accel_rate_hz
+float32 gyro_rate_hz
 
 float32 accel_vibration_metric  # high frequency vibration level in the IMU delta velocity data (m/s)
 float32 gyro_vibration_metric   # high frequency vibration level in the IMU delta velocity data (m/s)
