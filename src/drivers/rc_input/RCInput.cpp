@@ -64,6 +64,10 @@ RCInput::RCInput(const char *device) :
 
 RCInput::~RCInput()
 {
+#if defined(SPEKTRUM_POWER)
+	// Disable power controls for Spektrum receiver
+	SPEKTRUM_POWER_PASSIVE();
+#endif
 	dsm_deinit();
 
 	delete _crsf_telemetry;
@@ -81,6 +85,7 @@ RCInput::init()
 #endif // RF_RADIO_POWER_CONTROL
 
 	// dsm_init sets some file static variables and returns a file descriptor
+	// it also powers on the radio if needed
 	_rcs_fd = dsm_init(_device);
 
 	if (_rcs_fd < 0) {
@@ -356,7 +361,7 @@ void RCInput::Run()
 
 		if (_report_lock && _rc_scan_locked) {
 			_report_lock = false;
-			//PX4_WARN("RCscan: %s RC input locked", RC_SCAN_STRING[_rc_scan_state]);
+			PX4_INFO("RC scan: %s RC input locked", RC_SCAN_STRING[_rc_scan_state]);
 		}
 
 		int newBytes = 0;
@@ -368,6 +373,10 @@ void RCInput::Run()
 
 		// read all available data from the serial RC input UART
 		newBytes = ::read(_rcs_fd, &_rcs_buf[0], SBUS_BUFFER_SIZE);
+
+		if (newBytes > 0) {
+			_bytes_rx += newBytes;
+		}
 
 		switch (_rc_scan_state) {
 		case RC_SCAN_SBUS:
@@ -690,17 +699,44 @@ int RCInput::custom_command(int argc, char *argv[])
 
 int RCInput::print_status()
 {
-	PX4_INFO("Running");
-
 	PX4_INFO("Max update rate: %i Hz", 1000000 / _current_update_interval);
 
 	if (_device[0] != '\0') {
-		PX4_INFO("Serial device: %s", _device);
+		PX4_INFO("UART device: %s", _device);
+		PX4_INFO("UART RX bytes: %u", _bytes_rx);
 	}
 
-	PX4_INFO("RC scan state: %s, locked: %s", RC_SCAN_STRING[_rc_scan_state], _rc_scan_locked ? "yes" : "no");
-	PX4_INFO("CRSF Telemetry: %s", _crsf_telemetry ? "yes" : "no");
-	PX4_INFO("SBUS frame drops: %u", sbus_dropped_frames());
+	PX4_INFO("RC state: %s: %s", _rc_scan_locked ? "found" : "searching for signal", RC_SCAN_STRING[_rc_scan_state]);
+
+	if (_rc_scan_locked) {
+		switch (_rc_scan_state) {
+		case RC_SCAN_CRSF:
+			PX4_INFO("CRSF Telemetry: %s", _crsf_telemetry ? "yes" : "no");
+			break;
+
+		case RC_SCAN_SBUS:
+			PX4_INFO("SBUS frame drops: %u", sbus_dropped_frames());
+			break;
+#if defined(SPEKTRUM_POWER)
+
+		case RC_SCAN_DSM:
+			// DSM status output
+			break;
+#endif
+
+		case RC_SCAN_PPM:
+			// PPM status output
+			break;
+
+		case RC_SCAN_SUMD:
+			// SUMD status output
+			break;
+
+		case RC_SCAN_ST24:
+			// SUMD status output
+			break;
+		}
+	}
 
 #if ADC_RC_RSSI_CHANNEL
 	PX4_INFO("vrssi: %dmV", (int)(_analog_rc_rssi_volt * 1000.0f));
