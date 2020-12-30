@@ -1197,10 +1197,6 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		}
 
 	case vehicle_command_s::VEHICLE_CMD_START_RX_PAIR:
-		/* just ack, implementation handled in the IO driver */
-		answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
-		break;
-
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_1:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_2:
