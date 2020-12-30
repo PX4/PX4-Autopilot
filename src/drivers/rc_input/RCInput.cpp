@@ -717,12 +717,13 @@ int RCInput::print_status()
 		case RC_SCAN_SBUS:
 			PX4_INFO("SBUS frame drops: %u", sbus_dropped_frames());
 			break;
-#if defined(SPEKTRUM_POWER)
+
 
 		case RC_SCAN_DSM:
 			// DSM status output
-			break;
+#if defined(SPEKTRUM_POWER)
 #endif
+			break;
 
 		case RC_SCAN_PPM:
 			// PPM status output
