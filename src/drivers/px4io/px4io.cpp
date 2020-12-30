@@ -88,6 +88,7 @@
 #include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/px4io_status.h>
 #include <uORB/topics/parameter_update.h>
@@ -413,6 +414,14 @@ private:
 	 * @param dsmMode	DSM2_BIND_PULSES, DSMX_BIND_PULSES, DSMX8_BIND_PULSES
 	 */
 	int			dsm_bind_ioctl(int dsmMode);
+
+	/**
+	 * Respond to a vehicle command with an ACK message
+	 *
+	 * @param cmd		The command that was executed or denied (inbound)
+	 * @param result	The command result
+	 */
+	void			answer_command(const vehicle_command_s &cmd, uint8_t result);
 
 	/**
 	 * check and handle test_motor topic updates
@@ -976,7 +985,15 @@ PX4IO::task_main()
 						break;
 					}
 
-					(void)dsm_bind_ioctl(bind_arg);
+					int dsm_ret = dsm_bind_ioctl(bind_arg);
+
+					/* publish ACK */
+					if (dsm_ret == OK) {
+						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+					} else {
+						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
+					}
 				}
 			}
 
@@ -1293,6 +1310,20 @@ PX4IO::io_set_control_state(unsigned group)
 	} else {
 		return OK;
 	}
+}
+
+void
+PX4IO::answer_command(const vehicle_command_s &cmd, uint8_t result)
+{
+	/* publish ACK */
+	uORB::Publication<vehicle_command_ack_s> vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
+	vehicle_command_ack_s command_ack{};
+	command_ack.command = cmd.command;
+	command_ack.result = result;
+	command_ack.target_system = cmd.source_system;
+	command_ack.target_component = cmd.source_component;
+	command_ack.timestamp = hrt_absolute_time();
+	vehicle_command_ack_pub.publish(command_ack);
 }
 
 void
