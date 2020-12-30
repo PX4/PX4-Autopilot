@@ -33,6 +33,7 @@ private:
 	bool dsmTest(const char *filepath, unsigned expected_chancount, unsigned expected_dropcount, unsigned chan0);
 	bool dsmTest10Ch();
 	bool dsmTest12Ch();
+	bool dsmTestDSMX22ms();
 	bool sbus2Test();
 	bool st24Test();
 	bool sumdTest();
@@ -43,6 +44,7 @@ bool RCTest::run_tests()
 	ut_run_test(crsfTest);
 	ut_run_test(dsmTest10Ch);
 	ut_run_test(dsmTest12Ch);
+	ut_run_test(dsmTestDSMX22ms);
 	ut_run_test(sbus2Test);
 	ut_run_test(st24Test);
 	ut_run_test(sumdTest);
@@ -146,13 +148,19 @@ bool RCTest::dsmTest12Ch()
 	return dsmTest(TEST_DATA_PATH "dsm_x_dx9_data.txt", 12, 454, 1500);
 }
 
+bool RCTest::dsmTestDSMX22ms()
+{
+	return dsmTest(TEST_DATA_PATH "dsm_x_dx9_22ms.txt", 12, 454, 1500);
+}
+
+
 bool RCTest::dsmTest(const char *filepath, unsigned expected_chancount, unsigned expected_dropcount, unsigned chan0)
 {
 	FILE *fp;
 	fp = fopen(filepath, "rt");
 
 	ut_test(fp);
-	//PX4_INFO("loading data from: %s", filepath);
+	PX4_INFO("loading data from: %s", filepath);
 
 	float f;
 	unsigned x;

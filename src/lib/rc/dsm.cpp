@@ -60,7 +60,10 @@
 #define dsm_udelay(arg) px4_usleep(arg)
 #endif
 
-// #define DSM_DEBUG
+// Set in the CMakeLists.txt file in this directory
+#ifdef DEBUG_BUILD
+#define DSM_DEBUG
+#endif
 
 static enum DSM_DECODE_STATE {
 	DSM_DECODE_STATE_DESYNC = 0,
