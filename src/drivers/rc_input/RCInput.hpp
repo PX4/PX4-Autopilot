@@ -118,6 +118,14 @@ private:
 
 	void rc_io_invert(bool invert);
 
+	/**
+	 * Respond to a vehicle command with an ACK message
+	 *
+	 * @param cmd		The command that was executed or denied (inbound)
+	 * @param result	The command result
+	 */
+	void			answer_command(const vehicle_command_s &cmd, uint8_t result);
+
 	hrt_abstime _rc_scan_begin{0};
 
 	bool _initialized{false};
