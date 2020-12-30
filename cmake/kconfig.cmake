@@ -26,6 +26,8 @@ set(COMMON_KCONFIG_ENV_SETTINGS
 	ROMFSROOT=${config_romfs_root}
 )
 
+set(config_user_list)
+
 if(EXISTS ${BOARD_DEFCONFIG})
 
     # Depend on BOARD_DEFCONFIG so that we reconfigure on config change
@@ -77,6 +79,17 @@ if(EXISTS ${BOARD_DEFCONFIG})
                 set(${ConfigKey} ${Value})
                 message(STATUS "${ConfigKey} ${Value}")
             endif()
+        endif()
+
+        # Find variable name
+        string(REGEX MATCH "^CONFIG_USER[^=]+" Userspace ${NameAndValue})
+
+        if(Userspace)
+            # Find the value
+            string(REPLACE "${Name}=" "" Value ${NameAndValue})
+            string(REPLACE "CONFIG_USER_" "" module ${Name})
+            string(TOLOWER ${module} module)
+            list(APPEND config_user_list ${module})
         endif()
 
         # Find variable name
@@ -169,6 +182,16 @@ if(EXISTS ${BOARD_DEFCONFIG})
             list(APPEND config_module_list examples/${example})
         endif()
 
+    endforeach()
+
+    # Put every module not in userspace also to kernel list
+    foreach(modpath ${config_module_list})
+        get_filename_component(module ${modpath} NAME)
+        list(FIND config_user_list ${module} _index)
+
+        if (${_index} EQUAL -1)
+            list(APPEND config_kernel_list ${modpath})
+        endif()
     endforeach()
 
     if(PLATFORM)
@@ -338,6 +361,7 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	list(APPEND config_module_list ${board_support_src_rel}/src)
 
 	set(config_module_list ${config_module_list})
+	set(config_kernel_list ${config_kernel_list})
 
 endif()
 

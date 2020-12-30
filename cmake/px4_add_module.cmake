@@ -153,9 +153,26 @@ function(px4_add_module)
 	# all modules can potentially use parameters and uORB
 	add_dependencies(${MODULE} uorb_headers)
 
+	# Check if the modules source dir exists in config_kernel_list
+	# in this case, treat is as a kernel side component for
+	# protected build
+	get_target_property(MODULE_SOURCE_DIR ${MODULE} SOURCE_DIR)
+	file(RELATIVE_PATH module ${PROJECT_SOURCE_DIR}/src ${MODULE_SOURCE_DIR})
+
+	list (FIND config_kernel_list ${module} _index)
+	if (${_index} GREATER -1)
+		set (KERNEL TRUE)
+	endif()
+
 	if(NOT DYNAMIC)
-		target_link_libraries(${MODULE} PRIVATE prebuild_targets parameters_interface px4_layer px4_platform systemlib)
-		set_property(GLOBAL APPEND PROPERTY PX4_MODULE_LIBRARIES ${MODULE})
+		target_link_libraries(${MODULE} PRIVATE prebuild_targets parameters_interface px4_platform systemlib perf)
+		if (${PX4_PLATFORM} STREQUAL "nuttx" AND NOT CONFIG_BUILD_FLAT AND KERNEL)
+			target_link_libraries(${MODULE} PRIVATE px4_kernel_layer uORB_kernel)
+			set_property(GLOBAL APPEND PROPERTY PX4_KERNEL_MODULE_LIBRARIES ${MODULE})
+		else()
+			target_link_libraries(${MODULE} PRIVATE px4_layer uORB)
+			set_property(GLOBAL APPEND PROPERTY PX4_MODULE_LIBRARIES ${MODULE})
+		endif()
 		set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
 		px4_list_make_absolute(ABS_SRCS ${CMAKE_CURRENT_SOURCE_DIR} ${SRCS})
 		set_property(GLOBAL APPEND PROPERTY PX4_SRC_FILES ${ABS_SRCS})
@@ -193,6 +210,10 @@ function(px4_add_module)
 
 	if(COMPILE_FLAGS)
 		target_compile_options(${MODULE} PRIVATE ${COMPILE_FLAGS})
+	endif()
+
+	if (KERNEL)
+		target_compile_options(${MODULE} PRIVATE -D__KERNEL__)
 	endif()
 
 	if(INCLUDES)

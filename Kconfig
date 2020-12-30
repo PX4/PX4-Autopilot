@@ -126,6 +126,13 @@ config BOARD_KEYSTORE
     help
         Keystore implememntation selection
 
+config BOARD_PROTECTED
+    bool "Memory protection"
+    select SYSTEMCMDS_LAUNCH_KMOD
+    select SYSTEMCMDS_KPARAM
+    help
+        Enable memory protection via MPU/MMU
+
 menu "Serial ports"
 
     config BOARD_SERIAL_GPS1
