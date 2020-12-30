@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * PX4FMUv2 internal definitions
+ * RoboMaster Development Board A specific internal definitions
  */
 
 #pragma once
@@ -47,46 +47,19 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-/* Run time Hardware detection */
-// #define BOARD_HAS_SIMPLE_HW_VERSIONING 1
-// #define HW_VER_PA8             (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTA|GPIO_PIN8)
-// #define HW_VER_PB4             (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN4)
-// #define HW_VER_PB12            (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN12)
-// #define HW_VER_PA8_INIT        (GPIO_VDD_5V_PERIPH_EN)
-// #define HW_VER_PB4_INIT        (GPIO_SPI1_EXTI_DRDY_PB4)
-// #define HW_VER_PB12_INIT       (GPIO_CAN2_RX | GPIO_PULLUP) /* Assume V2 needing pull up */
-// #define HW_VER_FMUV2_STATE     0x8 /* PB12:PU:1 PB12:PD:0 PB4:PU:0 PB4PD:0 */
-// #define HW_VER_FMUV3_STATE     0xE /* PB12:PU:1 PB12:PD:1 PB4:PU:1 PB4PD:0 */
-// #define HW_VER_FMUV2MINI_STATE 0xA /* PB12:PU:1 PB12:PD:0 PB4:PU:1 PB4PD:0 */
-// #define HW_VER_FMUV2X_STATE    0xB /* PB12:PU:1 PB12:PD:0 PB4:PU:1 PB4PD:1 */
-// #define HW_VER_TYPE_INIT {'V','2',0, 0}
-// #define BOARD_NUM_SPI_CFG_HW_VERSIONS 1
-
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
-/* Configuration ************************************************************************************/
 
-/* PX4IO connection configuration */
-// #define BOARD_USES_PX4IO_VERSION       2
-// #define PX4IO_SERIAL_DEVICE	"/dev/ttyS4"
-// #define PX4IO_SERIAL_TX_GPIO	GPIO_USART6_TX
-// #define PX4IO_SERIAL_RX_GPIO	GPIO_USART6_RX
-// #define PX4IO_SERIAL_BASE	STM32_USART6_BASE	/* hardwired on the board */
-// #define PX4IO_SERIAL_VECTOR	STM32_IRQ_USART6
-// #define PX4IO_SERIAL_TX_DMAMAP	DMAMAP_USART6_TX
-// #define PX4IO_SERIAL_RX_DMAMAP	DMAMAP_USART6_RX
-// #define PX4IO_SERIAL_RCC_REG	STM32_RCC_APB2ENR
-// #define PX4IO_SERIAL_RCC_EN	RCC_APB2ENR_USART6EN
-// #define PX4IO_SERIAL_CLOCK	STM32_PCLK2_FREQUENCY
-// #define PX4IO_SERIAL_BITRATE	1500000			/* 1.5Mbps -> max rate for IO */
+/* High-resolution timer, initialised in px4_platform_init() */
+#define HRT_TIMER		8	/* use timer8 for the HRT */
+#define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
+
+/* Dev A GPIOs ***********************************************************************************/
 
 
-/* PX4FMU GPIOs ***********************************************************************************/
-/* LEDs */
-
-#define GPIO_LED1		(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN12)
-#define BOARD_OVERLOAD_LED LED_AMBER
+// The toggling LED to be used to indicate high CPU or memory usage
+#define BOARD_OVERLOAD_LED LED_RED
 
 #define GPIO_SPI1_EXTI_DRDY_PB4          (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTB|GPIO_PIN4)
 
@@ -115,12 +88,12 @@
 #define BOARD_BATTERY1_A_PER_V (15.391030303f)
 
 /* Power supply control and monitoring GPIOs */
-#define GPIO_VDD_5V_PERIPH_EN	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN8)
-#define GPIO_VDD_BRICK_VALID	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN5)
-#define GPIO_VDD_SERVO_VALID	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN7)
-#define GPIO_VDD_USB_VALID		(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN0)
-#define GPIO_VDD_5V_HIPOWER_OC	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN10)
-#define GPIO_VDD_5V_PERIPH_OC	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN15)
+// #define GPIO_VDD_5V_PERIPH_EN	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN8)
+// #define GPIO_VDD_BRICK_VALID	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN5)
+// #define GPIO_VDD_SERVO_VALID	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN7)
+// #define GPIO_VDD_USB_VALID		(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN0)
+// #define GPIO_VDD_5V_HIPOWER_OC	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN10)
+// #define GPIO_VDD_5V_PERIPH_OC	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN15)
 
 /* Tone alarm output */
 #define TONE_ALARM_TIMER	2	/* timer 2 */
@@ -137,34 +110,33 @@
  *
  * PA9  OTG_FS_VBUS VBUS sensing (also connected to the green LED)
  */
-#define GPIO_OTGFS_VBUS		(GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
+// #define GPIO_OTGFS_VBUS		(GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
 
-/* High-resolution timer */
-#define HRT_TIMER		8	/* use timer8 for the HRT */
-#define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
+
 
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
-#define PWMIN_TIMER		4
-#define PWMIN_TIMER_CHANNEL	2
-#define GPIO_PWM_IN		GPIO_TIM4_CH2IN_2
+// #define PWMIN_TIMER		4
+// #define PWMIN_TIMER_CHANNEL	2
+// #define GPIO_PWM_IN		GPIO_TIM4_CH2IN_2
 
 /* By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
  * this board support the ADC system_power interface, and therefore
  * provides the true logic GPIO BOARD_ADC_xxxx macros.
  */
-#define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
-#define BOARD_ADC_BRICK_VALID   (!px4_arch_gpioread(GPIO_VDD_BRICK_VALID))
-#define BOARD_ADC_SERVO_VALID   (!px4_arch_gpioread(GPIO_VDD_SERVO_VALID))
-#define BOARD_ADC_USB_VALID     (!px4_arch_gpioread(GPIO_VDD_USB_VALID))
-#define BOARD_ADC_PERIPH_5V_OC  (!px4_arch_gpioread(GPIO_VDD_5V_PERIPH_OC))
-#define BOARD_ADC_HIPOWER_5V_OC (!px4_arch_gpioread(GPIO_VDD_5V_HIPOWER_OC))
+// #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
+// #define BOARD_ADC_BRICK_VALID   (!px4_arch_gpioread(GPIO_VDD_BRICK_VALID))
+// #define BOARD_ADC_SERVO_VALID   (!px4_arch_gpioread(GPIO_VDD_SERVO_VALID))
+// #define BOARD_ADC_USB_VALID     (!px4_arch_gpioread(GPIO_VDD_USB_VALID))
+// #define BOARD_ADC_PERIPH_5V_OC  (!px4_arch_gpioread(GPIO_VDD_5V_PERIPH_OC))
+// #define BOARD_ADC_HIPOWER_5V_OC (!px4_arch_gpioread(GPIO_VDD_5V_HIPOWER_OC))
 
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
-#define BOARD_HAS_ON_RESET 1
+// enable board_on_reset() logics
+#define BOARD_HAS_ON_RESET
 
 #define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5};
 
@@ -188,7 +160,7 @@ __BEGIN_DECLS
  * Name: stm32_spiinitialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the PX4FMU board.
+ *   Called to configure SPI chip select GPIO pins for the RoboMaster Dev A board.
  *
  ****************************************************************************************************/
 
@@ -213,6 +185,8 @@ extern void board_peripheral_reset(int ms);
  ****************************************************************************************************/
 
 extern void stm32_usbinitialize(void);
+
+extern int userled_lower_initialize(FAR const char *devname);
 
 #include <px4_platform_common/board_common.h>
 

@@ -50,7 +50,7 @@ void WQueueTest::Run()
 	PX4_INFO("iter: %d", _iter);
 
 	if (_iter > 1000) {
-		// appState.requestExit();
+		appState.requestExit();
 		appState.setRunning(false);
 
 	} else {

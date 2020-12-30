@@ -40,6 +40,8 @@ add_library(drivers_board
 	timer_config.cpp
 	usb.c
 	# manifest.c
+	userled_lower.c
+	userleds.c
 )
 
 target_link_libraries(drivers_board

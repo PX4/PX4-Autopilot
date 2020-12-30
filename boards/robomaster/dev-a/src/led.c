@@ -46,6 +46,15 @@
 
 #include <arch/board/board.h>
 
+#include <drivers/drv_board_led.h>
+
+
+/* LEDs are active LOW */
+
+// Nuttx Status LEDs
+#define GPIO_LED_RED		(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN11)
+#define GPIO_LED_GREEN		(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTF|GPIO_PIN14)
+
 /*
  * Ideally we'd be able to get these from up_internal.h,
  * but since we want to be able to disable the NuttX use
@@ -64,33 +73,101 @@ __EXPORT void led_init()
 {
 	/* Configure LED1 GPIO for output */
 
-	stm32_configgpio(GPIO_LED1);
+	// Nuttx Status LED
+	stm32_configgpio(GPIO_LED_RED);
+	stm32_configgpio(GPIO_LED_GREEN);
 }
 
 __EXPORT void led_on(int led)
 {
-	if (led == 1) {
+	if (led == LED_RED) {
 		/* Pull down to switch on */
-		stm32_gpiowrite(GPIO_LED1, false);
+		stm32_gpiowrite(GPIO_LED_RED, false);
+	}else if (led == LED_GREEN) {
+		stm32_gpiowrite(GPIO_LED_GREEN, false);
 	}
 }
 
 __EXPORT void led_off(int led)
 {
-	if (led == 1) {
-		/* Pull up to switch off */
-		stm32_gpiowrite(GPIO_LED1, true);
+	if (led == LED_RED) {
+		/* Pull down to switch on */
+		stm32_gpiowrite(GPIO_LED_RED, true);
+	}else if (led == LED_GREEN) {
+		stm32_gpiowrite(GPIO_LED_GREEN, true);
 	}
 }
 
 __EXPORT void led_toggle(int led)
 {
-	if (led == 1) {
-		if (stm32_gpioread(GPIO_LED1)) {
-			stm32_gpiowrite(GPIO_LED1, false);
+	if (led == LED_RED) {
+		if (stm32_gpioread(GPIO_LED_RED)) {
+			stm32_gpiowrite(GPIO_LED_RED, false);
 
 		} else {
-			stm32_gpiowrite(GPIO_LED1, true);
+			stm32_gpiowrite(GPIO_LED_RED, true);
 		}
+	}else if (led == LED_GREEN) {
+		if (stm32_gpioread(GPIO_LED_GREEN)) {
+			stm32_gpiowrite(GPIO_LED_GREEN, false);
+
+		} else {
+			stm32_gpiowrite(GPIO_LED_GREEN, true);
+		}
+	}
+}
+
+
+////////// Nuttx Controlled LED ///////////////////
+
+/****************************************************************************
+ * Name: board_autoled_initialize
+ ****************************************************************************/
+
+void board_autoled_initialize(void)
+{
+	led_init();
+}
+
+
+/****************************************************************************
+ * Name: board_autoled_on
+ ****************************************************************************/
+
+void board_autoled_on(int led)
+{
+
+	switch (led) {
+	default:
+		break;
+
+	case LED_GREEN:
+		led_on(LED_GREEN);
+		break;
+
+	case LED_RED:
+		led_on(LED_RED);
+		break;
+	}
+}
+
+/****************************************************************************
+ * Name: board_autoled_off
+ ****************************************************************************/
+
+void board_autoled_off(int led)
+{
+
+	switch (led) {
+	default:
+		break;
+
+	case LED_RED:
+		led_off(LED_RED);
+		break;
+
+	case LED_GREEN :
+		led_off(LED_GREEN);
+		break;
 	}
 }

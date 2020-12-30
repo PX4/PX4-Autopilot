@@ -266,28 +266,44 @@
  * There are sensors on SPI1, and SPI2 is connected to the FRAM.
  */
 
-#define GPIO_SPI1_MISO   GPIO_SPI1_MISO_1
-#define GPIO_SPI1_MOSI   GPIO_SPI1_MOSI_1
-#define GPIO_SPI1_SCK    GPIO_SPI1_SCK_1
-
-#define GPIO_SPI2_MISO   GPIO_SPI2_MISO_1
-#define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_1
-#define GPIO_SPI2_SCK    GPIO_SPI2_SCK_2
-
+// For RoboMaster Dev Board A , SPI5 connects to MPU6500
 #define GPIO_SPI4_MISO	GPIO_SPI4_MISO_1
 #define GPIO_SPI4_MOSI	GPIO_SPI4_MOSI_1
 #define GPIO_SPI4_SCK	GPIO_SPI4_SCK_1
 
+
+#define GPIO_SPI5_MISO  GPIO_SPI5_MISO_1
+#define GPIO_SPI5_MOSI	GPIO_SPI5_MOSI_1
+#define GPIO_SPI5_SCK	GPIO_SPI5_SCK_1
+
 /* LED Definitions.  Needed if CONFIG_ARCH_LEDs is defined */
 
-#define LED_STARTED      0
-#define LED_HEAPALLOCATE 0
-#define LED_IRQSENABLED  0
-#define LED_STACKCREATED 1
-#define LED_INIRQ        1
-#define LED_SIGNAL       1
-#define LED_ASSERTION    1
-#define LED_PANIC        1
+
+#define LED_RED			1	/* some boards have red rather than amber */
+#define LED_GREEN		3
+
+#define LED_STARTED      LED_GREEN
+#define LED_HEAPALLOCATE LED_GREEN
+#define LED_IRQSENABLED  LED_GREEN
+#define LED_STACKCREATED LED_GREEN
+#define LED_INIRQ        LED_RED
+#define LED_SIGNAL       LED_RED
+#define LED_ASSERTION    LED_RED
+#define LED_PANIC        LED_RED
+#define LED_IDLE	 LED_GREEN
+
+
+/* User LEDs, corresponding to entries of static g_ledcfg */
+
+#define BOARD_LED_A       0
+#define BOARD_LED_B       1
+#define BOARD_LED_C       2
+#define BOARD_LED_D       3
+#define BOARD_LED_E       4
+#define BOARD_LED_F       5
+#define BOARD_LED_G       6
+#define BOARD_LED_H       7
+#define BOARD_NLEDS       8
 
 /* Board provides GPIO or other Hardware for signaling to timing analyzer */
 

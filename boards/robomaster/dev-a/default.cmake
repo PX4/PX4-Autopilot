@@ -88,7 +88,7 @@ px4_add_board(
 		#dmesg
 		# dumpfile
 		# esc_calib
-		# gpio
+		gpio
 		# hardfault_log
 		# i2cdetect
 		# led_control
@@ -104,7 +104,7 @@ px4_add_board(
 		# reflect
 		# sd_bench
 		# tests # tests and test runner
-		# top
+		top
 		# topic_listener
 		# tune_control
 		# usb_connected
@@ -116,7 +116,7 @@ px4_add_board(
 		# hwtest # Hardware test
 		# #matlab_csv_serial
 		# px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
-		# px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
+		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		# # rover_steering_control # Rover example app
 		# uuv_example_app
 		work_item

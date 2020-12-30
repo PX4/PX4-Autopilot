@@ -76,6 +76,8 @@
 #include <px4_platform_common/init.h>
 #include <px4_platform/board_dma_alloc.h>
 
+#include <nuttx/leds/userled.h>
+
 // #include "stm32_ccm.h"
 
 /****************************************************************************
@@ -107,9 +109,9 @@ __END_DECLS
  ************************************************************************************/
 __EXPORT void board_peripheral_reset(int ms)
 {
-	/* set the peripheral rails off */
-	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
-	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
+	// /* set the peripheral rails off */
+	// stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
+	// stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
 
 	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
@@ -117,8 +119,8 @@ __EXPORT void board_peripheral_reset(int ms)
 
 	/* re-enable power */
 
-	/* switch the peripheral rail back on */
-	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
+	// /* switch the peripheral rail back on */
+	// stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
 }
 
 /************************************************************************************
@@ -367,10 +369,25 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* Ensure the power is on 1 ms before we drive the GPIO pins */
 	usleep(1000);
 
+
+	px4_platform_init();
+
+
+	/* initial LED state */
+
+	// This will create a character device for LED, under /dev/ledx
+	// it will call led_init() in the constructor
+	drv_led_start();
+
+	int ret = userled_lower_initialize("/dev/userleds");
+	if (ret < 0)
+	{
+		syslog(LOG_ERR, "ERROR: userled_lower_initialize() failed: %d\n", ret);
+	}
+
 	/* configure SPI interfaces (after the hw is determined) */
 	// stm32_spiinitialize();
 
-	px4_platform_init();
 
 	/* configure the DMA allocator */
 
@@ -395,9 +412,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	// 	       (hrt_callout)stm32_serial_dma_poll,
 	// 	       NULL);
 
-	/* initial LED state */
-	drv_led_start();
-	led_off(LED_AMBER);
+
 
 	if (board_hardfault_init(2, true) != 0) {
 		led_on(LED_AMBER);
