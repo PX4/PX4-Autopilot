@@ -269,6 +269,10 @@ static bool dsm_guess_format(bool reset)
 
 int dsm_config(int fd)
 {
+#ifdef SPEKTRUM_POWER_CONFIG
+	// Enable power controls for Spektrum receiver
+	SPEKTRUM_POWER_CONFIG();
+#endif
 #ifdef SPEKTRUM_POWER
 	// enable power on DSM connector
 	SPEKTRUM_POWER(true);
@@ -338,6 +342,11 @@ int dsm_init(const char *device)
 
 void dsm_deinit()
 {
+#ifdef SPEKTRUM_POWER_PASSIVE
+	// Turn power controls to passive
+	SPEKTRUM_POWER_PASSIVE();
+#endif
+
 	if (dsm_fd >= 0) {
 		close(dsm_fd);
 	}
