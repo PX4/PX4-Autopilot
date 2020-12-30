@@ -386,7 +386,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 	/* configure SPI interfaces (after the hw is determined) */
-	// stm32_spiinitialize();
+	stm32_spiinitialize();
 
 
 	/* configure the DMA allocator */

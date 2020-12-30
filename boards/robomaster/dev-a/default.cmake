@@ -105,7 +105,7 @@ px4_add_board(
 		# sd_bench
 		# tests # tests and test runner
 		top
-		# topic_listener
+		topic_listener
 		# tune_control
 		# usb_connected
 		# ver
