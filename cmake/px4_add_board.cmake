@@ -147,6 +147,9 @@ function(px4_add_board)
 			CRYPTO
 			KEYSTORE
 		MULTI_VALUE
+			KERNEL_DRIVERS
+			KERNEL_MODULES
+			KERNEL_SYSTEMCMDS
 			DRIVERS
 			MODULES
 			SYSTEMCMDS
@@ -296,6 +299,28 @@ function(px4_add_board)
 	###########################################################################
 	# Modules (includes drivers, examples, modules, systemcmds)
 	set(config_module_list)
+        set(config_kernel_list)
+
+	if(KERNEL_DRIVERS)
+		foreach(driver ${KERNEL_DRIVERS})
+			list(APPEND config_module_list drivers/${driver})
+			list(APPEND config_kernel_list drivers/${driver})
+		endforeach()
+	endif()
+
+	if(KERNEL_MODULES)
+		foreach(module ${KERNEL_MODULES})
+			list(APPEND config_module_list modules/${module})
+			list(APPEND config_kernel_list modules/${module})
+		endforeach()
+	endif()
+
+	if(KERNEL_SYSTEMCMDS)
+		foreach(systemcmd ${KERNEL_SYSTEMCMDS})
+			list(APPEND config_module_list systemcmds/${systemcmd})
+			list(APPEND config_kernel_list systemcmds/${systemcmd})
+		endforeach()
+	endif()
 
 	if(DRIVERS)
 		foreach(driver ${DRIVERS})
@@ -326,5 +351,6 @@ function(px4_add_board)
 	list(APPEND config_module_list ${board_support_src_rel}/src)
 
 	set(config_module_list ${config_module_list} PARENT_SCOPE)
+	set(config_kernel_list ${config_kernel_list} PARENT_SCOPE)
 
 endfunction()
