@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,6 +34,7 @@
 #include "RCInput.hpp"
 
 #include "crsf_telemetry.h"
+#include <uORB/topics/vehicle_command_ack.h>
 
 using namespace time_literals;
 
@@ -242,6 +243,19 @@ void RCInput::rc_io_invert(bool invert)
 	}
 }
 
+void RCInput::answer_command(const vehicle_command_s &cmd, uint8_t result)
+{
+	/* publish ACK */
+	uORB::Publication<vehicle_command_ack_s> vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
+	vehicle_command_ack_s command_ack{};
+	command_ack.command = cmd.command;
+	command_ack.result = result;
+	command_ack.target_system = cmd.source_system;
+	command_ack.target_component = cmd.source_component;
+	command_ack.timestamp = hrt_absolute_time();
+	vehicle_command_ack_pub.publish(command_ack);
+}
+
 void RCInput::Run()
 {
 	if (should_exit()) {
@@ -264,13 +278,17 @@ void RCInput::Run()
 
 		const hrt_abstime cycle_timestamp = hrt_absolute_time();
 
-#if defined(SPEKTRUM_POWER)
+
 		/* vehicle command */
 		vehicle_command_s vcmd;
 
 		if (_vehicle_cmd_sub.update(&vcmd)) {
 			// Check for a pairing command
 			if ((unsigned int)vcmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) {
+
+				uint8_t cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+#if defined(SPEKTRUM_POWER)
+
 				if (!_rc_scan_locked /* !_armed.armed */) { // TODO: add armed check?
 					if ((int)vcmd.param1 == 0) {
 						// DSM binding command
@@ -289,15 +307,15 @@ void RCInput::Run()
 						}
 
 						bind_spektrum(dsm_bind_pulses);
-					}
 
-				} else {
-					PX4_WARN("system armed, bind request rejected");
+						cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+					}
 				}
-			}
-		}
 
 #endif /* SPEKTRUM_POWER */
+				answer_command(vcmd, cmd_ret);
+			}
+		}
 
 		/* update ADC sampling */
 #ifdef ADC_RC_RSSI_CHANNEL
