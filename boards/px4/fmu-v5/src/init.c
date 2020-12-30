@@ -215,12 +215,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	// Turn power controls to passive
 	SPEKTRUM_POWER_PASSIVE();
 #endif
-	// TODO Historically Spektrum power defaulted to on
-	// newer board configurations should support enabling
-	// power once the RC interface gets switched on instead
-	// the unconditional power-on in the line below is
-	// kept in place for consistency.
-	VDD_3V3_SPEKTRUM_POWER_EN(true);
 	VDD_5V_RC_EN(true);
 	VDD_5V_WIFI_EN(true);
 
