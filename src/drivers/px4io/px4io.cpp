@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -410,9 +410,9 @@ private:
 	/**
 	 * Handle issuing dsm bind ioctl to px4io.
 	 *
-	 * @param dsmMode	0:dsm2, 1:dsmx
+	 * @param dsmMode	DSM2_BIND_PULSES, DSMX_BIND_PULSES, DSMX8_BIND_PULSES
 	 */
-	void			dsm_bind_ioctl(int dsmMode);
+	int			dsm_bind_ioctl(int dsmMode);
 
 	/**
 	 * check and handle test_motor topic updates
@@ -959,7 +959,24 @@ PX4IO::task_main()
 
 				// Check for a DSM pairing command
 				if (((unsigned int)cmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
-					dsm_bind_ioctl((int)cmd.param2);
+					int bind_arg;
+
+					switch ((int)cmd.param2) {
+					case 0:
+						bind_arg = DSM2_BIND_PULSES;
+						break;
+
+					case 1:
+						bind_arg = DSMX_BIND_PULSES;
+						break;
+
+					case 2:
+					default:
+						bind_arg = DSMX8_BIND_PULSES;
+						break;
+					}
+
+					(void)dsm_bind_ioctl(bind_arg);
 				}
 			}
 
@@ -1657,21 +1674,62 @@ PX4IO::io_handle_status(uint16_t status)
 	return ret;
 }
 
-void
+int
 PX4IO::dsm_bind_ioctl(int dsmMode)
 {
-	if (!(_status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)) {
-		mavlink_log_info(&_mavlink_log_pub, "[IO] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
-		int ret = ioctl(nullptr, DSM_BIND_START,
-				(dsmMode == 0) ? DSM2_BIND_PULSES : ((dsmMode == 1) ? DSMX_BIND_PULSES : DSMX8_BIND_PULSES));
-
-		if (ret) {
-			mavlink_log_critical(&_mavlink_log_pub, "binding failed.");
-		}
-
-	} else {
-		mavlink_log_info(&_mavlink_log_pub, "[IO] safety off, bind request rejected");
+	// Do not bind if invalid pulses are provided
+	if (dsmMode != DSM2_BIND_PULSES &&
+	    dsmMode != DSMX_BIND_PULSES &&
+	    dsmMode != DSMX8_BIND_PULSES) {
+		PX4_ERR("Unknown DSM mode: %d", dsmMode);
+		return -EINVAL;
 	}
+
+	// Do not bind if armed
+	bool armed = (_status & PX4IO_P_SETUP_ARMING_FMU_ARMED);
+
+	if (armed) {
+		PX4_ERR("Not binding DSM, system is armed.");
+		return -EINVAL;
+	}
+
+	// Check if safety was off
+	bool safety_off = (_status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF);
+	int ret = -1;
+
+	// Put safety on
+	if (safety_off) {
+		// re-enable safety
+		ret = io_reg_modify(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, PX4IO_P_STATUS_FLAGS_SAFETY_OFF, 0);
+
+		// set new status
+		_status &= ~(PX4IO_P_STATUS_FLAGS_SAFETY_OFF);
+	}
+
+	PX4_INFO("Binding DSM%s RX", (dsmMode == DSM2_BIND_PULSES) ? "2" : ((dsmMode == DSMX_BIND_PULSES) ? "-X" : "-X8"));
+
+	io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down);
+	px4_usleep(500000);
+	io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_set_rx_out);
+	io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
+	px4_usleep(72000);
+	io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_send_pulses | (dsmMode << 4));
+	px4_usleep(50000);
+	io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_reinit_uart);
+	ret = OK;
+
+	// Put safety back off
+	if (safety_off) {
+		ret = io_reg_modify(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, 0,
+				    PX4IO_P_STATUS_FLAGS_SAFETY_OFF);
+		_status |= PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
+	}
+
+	if (ret != OK) {
+		PX4_INFO("Binding DSM failed");
+	}
+
+	return ret;
 }
 
 int
@@ -2655,26 +2713,8 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		break;
 
 	case DSM_BIND_START:
-
-		/* only allow DSM2, DSM-X and DSM-X with more than 7 channels */
-		if (arg == DSM2_BIND_PULSES ||
-		    arg == DSMX_BIND_PULSES ||
-		    arg == DSMX8_BIND_PULSES) {
-			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down);
-			px4_usleep(500000);
-			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_set_rx_out);
-			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
-			px4_usleep(72000);
-			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_send_pulses | (arg << 4));
-			px4_usleep(50000);
-			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_reinit_uart);
-
-			ret = OK;
-
-		} else {
-			ret = -EINVAL;
-		}
-
+		/* bind a DSM receiver */
+		ret = dsm_bind_ioctl(arg);
 		break;
 
 	case DSM_BIND_POWER_UP:
@@ -2774,8 +2814,16 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		break;
 
 	case PX4IO_REBOOT_BOOTLOADER:
-		if (system_status() & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) {
+		if (system_status() & PX4IO_P_SETUP_ARMING_FMU_ARMED) {
+			PX4_ERR("not upgrading IO firmware, system is armed");
 			return -EINVAL;
+
+		} else if (system_status() & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) {
+			// re-enable safety
+			ret = io_reg_modify(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, PX4IO_P_STATUS_FLAGS_SAFETY_OFF, 0);
+
+			// set new status
+			_status &= ~(PX4IO_P_STATUS_FLAGS_SAFETY_OFF);
 		}
 
 		/* reboot into bootloader - arg must be PX4IO_REBOOT_BL_MAGIC */
@@ -3066,10 +3114,6 @@ bind(int argc, char *argv[])
 	// Test for custom pulse parameter
 	if (argc > 3) {
 		pulses = atoi(argv[3]);
-	}
-
-	if (g_dev->system_status() & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) {
-		errx(1, "system must not be armed");
 	}
 
 	g_dev->ioctl(nullptr, DSM_BIND_START, pulses);
