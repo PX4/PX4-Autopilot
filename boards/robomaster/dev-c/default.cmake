@@ -89,7 +89,7 @@ px4_add_board(
 		# esc_calib
 		# gpio
 		# hardfault_log
-		# i2cdetect
+		i2cdetect
 		# led_control
 		# mixer
 		# motor_ramp
@@ -108,7 +108,7 @@ px4_add_board(
 		# tune_control
 		# usb_connected
 		# ver
-		# work_queue
+		work_queue
 	EXAMPLES
 		# fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello

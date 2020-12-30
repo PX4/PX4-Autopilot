@@ -34,8 +34,10 @@
  *
  ****************************************************************************/
 
-#ifndef __BOARD_ARM_STM32_ROBOMASTER_DEV_C_INCLUDE_BOARD_H
-#define __BOARD_ARM_STM32_ROBOMASTER_DEV_C_INCLUDE_BOARD_H
+// #ifndef __BOARD_ARM_STM32_ROBOMASTER_DEV_C_INCLUDE_BOARD_H
+// #define __BOARD_ARM_STM32_ROBOMASTER_DEV_C_INCLUDE_BOARD_H
+#ifndef __ARCH_BOARD_BOARD_H
+#define __ARCH_BOARD_BOARD_H
 
 /****************************************************************************
  * Included Files
@@ -285,6 +287,9 @@
 #define GPIO_USART1_RX GPIO_USART1_RX_2
 #define GPIO_USART1_TX GPIO_USART1_TX_1
 
+#define GPIO_USART6_RX GPIO_USART6_RX_2
+#define GPIO_USART6_TX GPIO_USART6_TX_2
+
 /* PWM
  *
  * The STM3240G-Eval has no real on-board PWM devices, but the board can be
@@ -389,7 +394,7 @@
 #define GPIO_CAN1_TX        GPIO_CAN1_TX_3
 
 #define GPIO_CAN2_RX        GPIO_CAN2_RX_2
-#define GPIO_CAN2_TX        GPIO_CAN2_TX_1
+#define GPIO_CAN2_TX        GPIO_CAN2_TX_2
 
 /* I2C.  Only I2C1 is available on the STM3240G-EVAL.  I2C1_SCL and I2C1_SDA are
  * available on the following pins:
@@ -398,12 +403,20 @@
  * - PB9  is I2C1_SDA
  */
 
-#define GPIO_I2C1_SCL       GPIO_I2C1_SCL_1
+#define GPIO_I2C1_SCL       GPIO_I2C1_SCL_2
 #define GPIO_I2C1_SDA       GPIO_I2C1_SDA_2
 
+#define GPIO_I2C2_SCL       GPIO_I2C2_SCL_2
+#define GPIO_I2C2_SDA       GPIO_I2C2_SDA_2
+
 // spi stuff
-#define GPIO_SPI1_SCK     GPIO_SPI1_SCK_1   /* PA5 */
-#define GPIO_SPI1_MISO    GPIO_SPI1_MISO_1
+#define GPIO_SPI2_SCK     GPIO_SPI2_SCK_2
+#define GPIO_SPI2_NSS    GPIO_SPI2_NSS_2
+#define GPIO_SPI2_MISO    GPIO_SPI2_MISO_1
+#define GPIO_SPI2_MOSI    GPIO_SPI2_MOSI_1
+
+#define GPIO_SPI1_SCK     GPIO_SPI1_SCK_2
+#define GPIO_SPI1_MISO    GPIO_SPI1_MISO_2
 #define GPIO_SPI1_MOSI    GPIO_SPI1_MOSI_1
 
 // dma stuff
