@@ -7,7 +7,7 @@ px4_add_board(
 	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
-	ROMFSROOT px4fmu_common
+	ROMFSROOT robomaster_common
 	# IO px4_io-v2_default
 	TESTING
 	# UAVCAN_INTERFACES 2

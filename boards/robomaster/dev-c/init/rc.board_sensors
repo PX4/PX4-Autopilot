@@ -1,0 +1,6 @@
+#!/bin/sh
+
+bmi088 -A -s -b 1 start
+bmi088 -G -s -b 1 start
+ist8310 -X -b 2 start
+sensors start
