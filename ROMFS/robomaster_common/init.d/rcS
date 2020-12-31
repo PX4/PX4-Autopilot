@@ -1,0 +1,32 @@
+#!/bin/sh
+
+
+#
+# Start the ORB (first app to start)
+#
+uorb start
+
+#
+# Start the tone_alarm driver.
+# Needs to be started after the parameters are loaded (for CBRK_BUZZER).
+# Note that this will still play the already published startup tone.
+#
+tone_alarm start
+
+
+#
+# board sensors: rc.sensors
+#
+set BOARD_RC_SENSORS /etc/init.d/rc.board_sensors
+if [ -f $BOARD_RC_SENSORS ]
+then
+	echo "Board sensors: ${BOARD_RC_SENSORS}"
+	sh $BOARD_RC_SENSORS
+fi
+unset BOARD_RC_SENSORS
+
+
+#
+# Play the startup tune (if not disabled or there is an error)
+#
+tune_control play -t 1

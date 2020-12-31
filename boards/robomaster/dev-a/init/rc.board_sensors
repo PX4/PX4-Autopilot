@@ -1,0 +1,3 @@
+#!/bin/sh
+
+mpu6500 -s -b 5 start
