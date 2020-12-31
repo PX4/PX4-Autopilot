@@ -33,7 +33,7 @@ px4_add_board(
 		# imu/lsm303d
 		# imu/invensense/icm20608g
 		# imu/invensense/icm20948
-		imu/invensense/mpu6000
+		imu/invensense/mpu6500
 		# imu/invensense/mpu9250
 		# irlock
 		# lights/blinkm

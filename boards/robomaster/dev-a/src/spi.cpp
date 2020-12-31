@@ -150,7 +150,7 @@ constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 		initSPIConfigExternal(SPI::CS{GPIO::PortE, GPIO::Pin4})
 	}),
 	initSPIBus(SPI::Bus::SPI5, {
-		initSPIDevice(DRV_IMU_DEVTYPE_MPU6000, SPI::CS{GPIO::PortF, GPIO::Pin6})
+		initSPIDevice(DRV_IMU_DEVTYPE_MPU6500, SPI::CS{GPIO::PortF, GPIO::Pin6},SPI::DRDY{GPIO::PortB, GPIO::Pin8})
 	})
 };
 

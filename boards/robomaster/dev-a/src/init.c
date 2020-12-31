@@ -360,7 +360,8 @@ stm32_boardinitialize(void)
 
 // static struct spi_dev_s *spi1;
 // static struct spi_dev_s *spi2;
-// static struct spi_dev_s *spi4;
+static struct spi_dev_s *spi4;
+static struct spi_dev_s *spi5;
 static struct sdio_dev_s *sdio;
 
 __EXPORT int board_app_initialize(uintptr_t arg)
@@ -452,18 +453,26 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	// SPI_SETBITS(spi2, 8);
 	// SPI_SETMODE(spi2, SPIDEV_MODE3);
 
-	// spi4 = stm32_spibus_initialize(4);
+	spi4 = stm32_spibus_initialize(4);
 
-	// if (!spi4) {
-	// 	syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", 4);
-	// 	led_on(LED_AMBER);
-	// 	return -ENODEV;
-	// }
+	if (!spi4) {
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", 4);
+		led_on(LED_AMBER);
+		return -ENODEV;
+	}
 
 	// /* Default SPI4 to 1MHz and de-assert the known chip selects. */
 	// SPI_SETFREQUENCY(spi4, 10000000);
 	// SPI_SETBITS(spi4, 8);
 	// SPI_SETMODE(spi4, SPIDEV_MODE3);
+
+	spi5 = stm32_spibus_initialize(5);
+
+	if (!spi5) {
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", 5);
+		led_on(LED_AMBER);
+		return -ENODEV;
+	}
 
 #ifdef CONFIG_MMCSD
 	/* First, get an instance of the SDIO interface */
