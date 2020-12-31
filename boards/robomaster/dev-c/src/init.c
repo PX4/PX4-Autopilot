@@ -91,6 +91,7 @@ __BEGIN_DECLS
 extern void led_init(void);
 extern void led_on(int led);
 extern void led_off(int led);
+extern void led_toggle(int led);
 __END_DECLS
 
 /****************************************************************************
@@ -292,7 +293,7 @@ stm32_boardinitialize(void)
 	board_on_reset(-1);
 
 	/* configure LEDs */
-	board_autoled_initialize();
+	// board_autoled_initialize();
 
 	/* configure ADC pins */
 
@@ -396,8 +397,12 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	// 	       NULL);
 
 	/* initial LED state */
+	/**
+	 * Amber: 1
+	 * Blue: 0
+	 * Green: 3
+	 */
 	drv_led_start();
-	led_off(LED_AMBER);
 
 	if (board_hardfault_init(2, true) != 0) {
 		led_on(LED_AMBER);
