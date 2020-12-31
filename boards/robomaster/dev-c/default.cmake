@@ -96,7 +96,7 @@ px4_add_board(
 		# tests # tests and test runner
 		# top
 		topic_listener
-		# tune_control
+		tune_control
 		# usb_connected
 		# ver
 		work_queue
