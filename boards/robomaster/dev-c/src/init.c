@@ -324,6 +324,12 @@ stm32_boardinitialize(void)
 	// stm32_configgpio(GPIO_CAN2_RX | GPIO_PULLUP);
 	// stm32_configgpio(GPIO_CAN2_TX);
 
+	// for magnetometer rstn
+	// stm32_configgpio(GPIO_FSMC_INT2 | GPIO_PULLUP);
+
+	// // buzzer
+	// stm32_configgpio(GPIO_TIM4_CH3OUT_2);
+
 }
 
 /****************************************************************************
@@ -363,7 +369,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	usleep(1000);
 
 	/* configure SPI interfaces (after the hw is determined) */
-	// stm32_spiinitialize();
+	stm32_spiinitialize();
 
 	px4_platform_init();
 

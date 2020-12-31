@@ -145,11 +145,27 @@
  *
  */
 
+
+/**
+ * Robomaster dev board c
+ *
+ * connect SPI1 bus to:
+ * 	CS1_Accel:	PA4
+ * 	CS1_Gyro: 	PB0
+ * for the IMU BMI088
+ */
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(SPI::Bus::SPI4, {
-		initSPIDevice(DRV_IMU_DEVTYPE_MPU6000, SPI::CS{GPIO::PortE, GPIO::Pin4})
+	initSPIBus(SPI::Bus::SPI1, {
+		initSPIDevice(DRV_GYR_DEVTYPE_BMI088, SPI::CS{GPIO::PortB, GPIO::Pin0}),
+		initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::PortA, GPIO::Pin4})
 	})
 };
+
+// constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
+// 	initSPIBus(SPI::Bus::SPI1, {
+// 		initSPIDevice(DRV_MAG_DEVTYPE_IST8310, SPI::CS{GPIO::PortB, GPIO::Pin0})
+// 	})
+// };
 
 // constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSIONS] = {
 // 	initSPIHWVersion(HW_VER_FMUV2, {

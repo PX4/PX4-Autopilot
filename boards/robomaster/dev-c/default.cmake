@@ -32,13 +32,14 @@ px4_add_board(
 		# imu/lsm303d
 		# imu/invensense/icm20608g
 		# imu/invensense/icm20948
-		imu/invensense/mpu6000
+		# imu/invensense/mpu6000
+		imu/bosch/bmi088
 		# imu/invensense/mpu9250
 		# irlock
 		# lights/blinkm
 		# lights/rgbled
 		# lights/rgbled_ncp5623c
-		# magnetometer # all available magnetometer drivers
+		magnetometer/ist8310 # for robomaster dev board c
 		# mkblctrl
 		# #optical_flow # all available optical flow drivers
 		# optical_flow/px4flow
@@ -104,7 +105,7 @@ px4_add_board(
 		# sd_bench
 		# tests # tests and test runner
 		# top
-		# topic_listener
+		topic_listener
 		# tune_control
 		# usb_connected
 		# ver

@@ -278,10 +278,15 @@
 
 /* Alternate function pin selections ************************************************/
 
-/* UART3:
+/**
+ * Robomaster dev board c USART pin map
  *
- * - PC11 is MicroSDCard_D3 & RS232/IrDA_RX (JP22 open)
- * - PC10 is MicroSDCard_D2 & RSS232/IrDA_TX
+ * USART1 RX: PB7
+ * USART1 TX: PA9
+ *
+ * USART6 RX: PG9
+ * USART6 TX: PG14
+ *
  */
 
 #define GPIO_USART1_RX GPIO_USART1_RX_2
@@ -390,6 +395,16 @@
  *   PB5   = ULPI_D7 & CAN2_RX
  */
 
+/**
+ * Robomaster dev board c can port map:
+ *
+ * CAN1 TX: PD1
+ * CAN1 RX: PD0
+ *
+ * CAN2 TX: PB6
+ * CAN2 RX: PB5
+ *
+ */
 #define GPIO_CAN1_RX        GPIO_CAN1_RX_3
 #define GPIO_CAN1_TX        GPIO_CAN1_TX_3
 
@@ -403,17 +418,50 @@
  * - PB9  is I2C1_SDA
  */
 
-#define GPIO_I2C1_SCL       GPIO_I2C1_SCL_2
-#define GPIO_I2C1_SDA       GPIO_I2C1_SDA_2
+/**
+ * Robomaster dev board c i2c port map:
+ *
+ * (for digital camera)
+ * I2C1 SCL: PB8
+ * I2C1 SDA: PB9
+ *
+ * (customizable io port)
+ * I2C2 SCL: PF1
+ * I2C2 SDA: PF0
+ *
+ * (for magnetometer)
+ * I2C3 SCL: PA8
+ * I2C3 SDA: PC9
+ *
+ */
+// #define GPIO_I2C1_SCL       GPIO_I2C1_SCL_2
+// #define GPIO_I2C1_SDA       GPIO_I2C1_SDA_2
 
-#define GPIO_I2C2_SCL       GPIO_I2C2_SCL_2
-#define GPIO_I2C2_SDA       GPIO_I2C2_SDA_2
+// #define GPIO_I2C2_SCL       GPIO_I2C2_SCL_2
+// #define GPIO_I2C2_SDA       GPIO_I2C2_SDA_2
 
-// spi stuff
-#define GPIO_SPI2_SCK     GPIO_SPI2_SCK_2
-#define GPIO_SPI2_NSS    GPIO_SPI2_NSS_2
-#define GPIO_SPI2_MISO    GPIO_SPI2_MISO_1
-#define GPIO_SPI2_MOSI    GPIO_SPI2_MOSI_1
+#define GPIO_I2C3_SCL       GPIO_I2C3_SCL_1
+#define GPIO_I2C3_SDA       GPIO_I2C3_SDA_1
+
+/**
+ * Robomaster dev board c spi port map:
+ *
+ * (for IMU)
+ * SPI1 SCK/CLK: PB3
+ * SPI1 MOSI: PA7
+ * SPI1 MISO: PB4
+ *
+ * (customizable io port)
+ * SPI2 CS: PB12
+ * SPI2 SCK/CLK: PB13
+ * SPI2 MOSI: PB15
+ * SPI2 MISO: PB14
+ *
+ */
+// #define GPIO_SPI2_SCK     GPIO_SPI2_SCK_2
+// #define GPIO_SPI2_NSS    GPIO_SPI2_NSS_2
+// #define GPIO_SPI2_MISO    GPIO_SPI2_MISO_1
+// #define GPIO_SPI2_MOSI    GPIO_SPI2_MOSI_1
 
 #define GPIO_SPI1_SCK     GPIO_SPI1_SCK_2
 #define GPIO_SPI1_MISO    GPIO_SPI1_MISO_2
