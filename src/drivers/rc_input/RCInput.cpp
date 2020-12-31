@@ -64,7 +64,7 @@ RCInput::RCInput(const char *device) :
 
 RCInput::~RCInput()
 {
-#if defined(SPEKTRUM_POWER)
+#if defined(SPEKTRUM_POWER_PASSIVE)
 	// Disable power controls for Spektrum receiver
 	SPEKTRUM_POWER_PASSIVE();
 #endif
