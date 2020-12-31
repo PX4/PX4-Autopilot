@@ -40,6 +40,7 @@ px4_add_board(
 		# lights/rgbled
 		# lights/rgbled_ncp5623c
 		# magnetometer # all available magnetometer drivers
+		# magnetometer/ist8310
 		# mkblctrl
 		# #optical_flow # all available optical flow drivers
 		# optical_flow/px4flow
@@ -106,7 +107,7 @@ px4_add_board(
 		# tests # tests and test runner
 		top
 		topic_listener
-		# tune_control
+		tune_control
 		# usb_connected
 		# ver
 		work_queue
