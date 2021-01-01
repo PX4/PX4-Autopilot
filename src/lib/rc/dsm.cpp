@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -705,10 +705,12 @@ bool dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, 
  * @param[out] n_butes number of bytes read
  * @param[out] bytes pointer to the buffer of read bytes
  * @param[out] rssi value in percent, if supported, or 127
+ * @param[out] frame_drops dropped frames (indication of an unstable link)
+ * @param[in] max_values maximum number of channels the receiver can process
  * @return true=decoded raw channel values updated, false=no update
  */
 bool dsm_input(int fd, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, uint8_t *n_bytes, uint8_t **bytes,
-	       int8_t *rssi, unsigned max_values)
+	       int8_t *rssi, unsigned *frame_drops, unsigned max_values)
 {
 	/*
 	 * The S.BUS protocol doesn't provide reliable framing,
@@ -848,8 +850,11 @@ bool dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uin
 		memcpy(&values[0], &dsm_chan_buf[0], dsm_chan_count * sizeof(dsm_chan_buf[0]));
 #ifdef DSM_DEBUG
 
+		printf("PACKET ---------\n");
+		printf("frame drops: %u, chan #: %u\n", dsm_frame_drops, dsm_chan_count);
+
 		for (unsigned i = 0; i < dsm_chan_count; i++) {
-			printf("dsm_decode: %u: %u\n", i, values[i]);
+			printf("dsm_decode: #CH %02u: %u\n", i + 1, values[i]);
 		}
 
 #endif
