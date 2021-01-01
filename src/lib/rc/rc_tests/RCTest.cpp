@@ -140,12 +140,12 @@ bool RCTest::crsfTest()
 
 bool RCTest::dsmTest10Ch()
 {
-	return dsmTest(TEST_DATA_PATH "dsm_x_data.txt", 10, 64, 1500);
+	return dsmTest(TEST_DATA_PATH "dsm_x_data.txt", 10, 6, 1500);
 }
 
 bool RCTest::dsmTest12Ch()
 {
-	return dsmTest(TEST_DATA_PATH "dsm_x_dx9_data.txt", 12, 454, 1500);
+	return dsmTest(TEST_DATA_PATH "dsm_x_dx9_data.txt", 12, 6, 1500);
 }
 
 bool RCTest::dsmTestDSMX22ms()
