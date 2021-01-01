@@ -344,8 +344,9 @@ class uploader(object):
         try:
             self.__getSync(False)
         except:
-            # if it fails we are on a real Serial Port
-            self.ackWindowedMode = True
+            # if it fails we are on a real serial port - only leave this enabled on Windows
+            if _platform.system() == 'Windows':
+                self.ackWindowedMode = True
 
         self.port.baudrate = self.baudrate_bootloader
 
