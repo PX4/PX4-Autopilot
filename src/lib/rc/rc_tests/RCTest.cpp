@@ -33,6 +33,7 @@ private:
 	bool dsmTest(const char *filepath, unsigned expected_chancount, unsigned expected_dropcount, unsigned chan0);
 	bool dsmTest10Ch();
 	bool dsmTest16Ch();
+	bool dsmTest22msDSMX16Ch();
 	bool sbus2Test();
 	bool st24Test();
 	bool sumdTest();
@@ -43,6 +44,7 @@ bool RCTest::run_tests()
 	ut_run_test(crsfTest);
 	ut_run_test(dsmTest10Ch);
 	ut_run_test(dsmTest16Ch);
+	ut_run_test(dsmTest22msDSMX16Ch);
 	ut_run_test(sbus2Test);
 	ut_run_test(st24Test);
 	ut_run_test(sumdTest);
@@ -144,6 +146,11 @@ bool RCTest::dsmTest10Ch()
 bool RCTest::dsmTest16Ch()
 {
 	return dsmTest(TEST_DATA_PATH "dsm_x_dx9_data.txt", 16, 3, 1500);
+}
+
+bool RCTest::dsmTest22msDSMX16Ch()
+{
+	return dsmTest(TEST_DATA_PATH "dsm_x_dx9_px4_binding_data.txt", 16, 6, 1499);
 }
 
 bool RCTest::dsmTest(const char *filepath, unsigned expected_chancount, unsigned expected_dropcount, unsigned chan0)
