@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -275,7 +275,8 @@ void Tiltrotor::update_transition_state()
 	// copy virtual attitude setpoint to real attitude setpoint (we use multicopter att sp)
 	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 
-	_v_att_sp->roll_body = _fw_virtual_att_sp->roll_body;
+	// keep the wings level during transition
+	_v_att_sp->roll_body = 0.0f;
 
 	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
 
