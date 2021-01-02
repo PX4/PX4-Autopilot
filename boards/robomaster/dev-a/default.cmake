@@ -14,6 +14,7 @@ px4_add_board(
 	# UAVCAN_INTERFACES 2
 	SERIAL_PORTS
 		URT6:/dev/ttyS0
+		TEL1:/dev/ttyS1
 	DRIVERS
 		# adc
 		# barometer # all available barometer drivers
@@ -62,12 +63,12 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
-		# events
+		events
 		# fw_att_control
 		# fw_pos_control_l1
 		land_detector
 		landing_target_estimator
-		# load_mon
+		load_mon
 		local_position_estimator
 		# logger
 		mavlink
