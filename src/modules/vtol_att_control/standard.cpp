@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -265,7 +265,8 @@ void Standard::update_transition_state()
 		// ramp up FW_PSP_OFF
 		_v_att_sp->pitch_body = _params_standard.pitch_setpoint_offset * (1.0f - mc_weight);
 
-		_v_att_sp->roll_body = _fw_virtual_att_sp->roll_body;
+		// keep the wings level during transition
+		_v_att_sp->roll_body = 0.0f;
 
 		const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
 		q_sp.copyTo(_v_att_sp->q_d);
@@ -280,7 +281,8 @@ void Standard::update_transition_state()
 
 	} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_MC) {
 
-		_v_att_sp->roll_body = _fw_virtual_att_sp->roll_body;
+		// keep the wings level during transition
+		_v_att_sp->roll_body = 0.0f;
 
 		if (_v_control_mode->flag_control_climb_rate_enabled) {
 			// control backtransition deceleration using pitch.
