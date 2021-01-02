@@ -61,6 +61,7 @@ px4_add_board(
 		# uavcan
 	MODULES
 		commander
+		attitude_estimator_q
 		dataman
 		ekf2
 		events
@@ -78,8 +79,8 @@ px4_add_board(
 		# mc_rate_control
 		# #micrortps_bridge
 		navigator
-		# rc_update
-		# rover_pos_control
+		rc_update
+		rover_pos_control
 		sensors
 		# sih
 		# temperature_compensation

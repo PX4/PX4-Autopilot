@@ -8,9 +8,12 @@
 #
 # Start the attitude and position estimator.
 #
-ekf2 start
-#attitude_estimator_q start
-#local_position_estimator start
+
+# ekf2 start
+
+# to run without a magnetometer hardware, put ATT_W_MAG to be zero to ensure initialisation
+attitude_estimator_q start
+local_position_estimator start
 
 
 #
