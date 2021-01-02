@@ -396,26 +396,26 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* configure the DMA allocator */
 
-	// if (board_dma_alloc_init() < 0) {
-	// 	syslog(LOG_ERR, "DMA alloc FAILED\n");
-	// }
+	if (board_dma_alloc_init() < 0) {
+		syslog(LOG_ERR, "DMA alloc FAILED\n");
+	}
 
 	/* set up the serial DMA polling */
-	// static struct hrt_call serial_dma_call;
-	// struct timespec ts;
+	static struct hrt_call serial_dma_call;
+	struct timespec ts;
 
-	// /*
-	//  * Poll at 1ms intervals for received bytes that have not triggered
-	//  * a DMA event.
-	//  */
-	// ts.tv_sec = 0;
-	// ts.tv_nsec = 1000000;
+	/*
+	 * Poll at 1ms intervals for received bytes that have not triggered
+	 * a DMA event.
+	 */
+	ts.tv_sec = 0;
+	ts.tv_nsec = 1000000;
 
-	// hrt_call_every(&serial_dma_call,
-	// 	       ts_to_abstime(&ts),
-	// 	       ts_to_abstime(&ts),
-	// 	       (hrt_callout)stm32_serial_dma_poll,
-	// 	       NULL);
+	hrt_call_every(&serial_dma_call,
+		       ts_to_abstime(&ts),
+		       ts_to_abstime(&ts),
+		       (hrt_callout)stm32_serial_dma_poll,
+		       NULL);
 
 
 

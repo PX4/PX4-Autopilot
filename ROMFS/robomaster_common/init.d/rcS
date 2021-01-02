@@ -9,7 +9,7 @@ set +e
 # Un comment the line below to help debug scripts by printing a trace of the script commands
 # set -x
 
-# set AUTOCNF no
+set AUTOCNF no
 # set AUX_MODE pwm
 # set DATAMAN_OPT ""
 # set FAILSAFE none
@@ -53,9 +53,31 @@ set VEHICLE_TYPE none
 mount -t procfs /proc
 
 #
+# Start CDC/ACM serial driver.
+#
+sercon
+
+#
 # Start the ORB (first app to start)
 #
 uorb start
+
+
+#
+# Set AUTOCNF flag to use it in AUTOSTART scripts.
+#
+# if param greater SYS_AUTOCONFIG 0
+# then
+# 	if param compare SYS_AUTOCONFIG 1
+# 	then
+# 		# Wipe out params except RC*, flight modes, total flight time, accel cal, gyro cal, next flight UUID
+# 		param reset_nostart RC* COM_FLTMODE* LND_FLIGHT_T_* TC_* CAL_ACC* CAL_GYRO* COM_FLIGHT_UUID
+# 	fi
+
+# 	set AUTOCNF yes
+# fi
+
+set AUTOCNF yes
 
 
 # Start the tone_alarm driver.
@@ -83,6 +105,9 @@ then
 fi
 unset BOARD_RC_DEFAULTS
 
+# Dataman requires hundreds of bytes of storage, which is not really possible on Dev A or C
+# dataman start
+
 #
 # Start the socket communication send_event handler.
 #
@@ -98,7 +123,13 @@ load_mon start
 echo "Starting Sensors"
 sensors start
 
-commander start
+#
+# RC update (map raw RC input to calibrate manual control)
+#  start before commander
+#
+rc_update start
+
+
 
 #
 # board sensors: rc.sensors
@@ -110,6 +141,8 @@ then
 	sh $BOARD_RC_SENSORS
 fi
 unset BOARD_RC_SENSORS
+
+commander start
 
 
 # #
@@ -123,6 +156,8 @@ then
 fi
 unset BOARD_RC_MAVLINK
 
+
+# rc_input start
 
 #
 # Configure vehicle type specific parameters.
@@ -144,7 +179,7 @@ echo "Booting Script Completes"
 #
 # Unset all script parameters to free RAM.
 #
-# unset AUTOCNF
+unset AUTOCNF
 # unset AUX_MODE
 # unset DATAMAN_OPT
 # unset FAILSAFE

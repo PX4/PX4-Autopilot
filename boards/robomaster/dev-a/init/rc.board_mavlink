@@ -4,6 +4,6 @@
 #------------------------------------------------------------------------------
 
 # Start MAVLink on the USB port
-mavlink start -d /dev/ttyS1
+mavlink start -d /dev/ttyACM0
 
-echo "Mavlink started on ttyS1"
+echo "Mavlink started on ttyACM0"
