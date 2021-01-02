@@ -1,1 +1,11 @@
 #!/bin/sh
+
+# currently setting param may crash the system
+
+# to minimize cpu usage on older boards limit inner loop to 400 Hz by default
+# if param compare IMU_GYRO_RATEMAX 0
+# then
+# 	param set IMU_GYRO_RATEMAX 400
+# fi
+
+echo "rc.board_defaults"

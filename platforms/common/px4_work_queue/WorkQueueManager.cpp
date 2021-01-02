@@ -48,6 +48,8 @@
 #include <limits.h>
 #include <string.h>
 
+#include <debug.h>
+
 using namespace time_literals;
 
 namespace px4
@@ -221,9 +223,11 @@ WorkQueueRunner(void *context)
 static int
 WorkQueueManagerRun(int, char **)
 {
+	syslog(LOG_INFO,"WorkQueueManagerRun begins\n");
 	_wq_manager_wqs_list = new BlockingList<WorkQueue *>();
 	_wq_manager_create_queue = new BlockingQueue<const wq_config_t *, 1>();
 
+	syslog(LOG_INFO,"while loop()\n");
 	while (!_wq_manager_should_exit.load()) {
 		// create new work queues as needed
 		const wq_config_t *wq = _wq_manager_create_queue->pop();
@@ -301,6 +305,7 @@ WorkQueueManagerRun(int, char **)
 			}
 		}
 	}
+	syslog(LOG_INFO,"WorkQueueManagerRun ends\n");
 
 	return 0;
 }
@@ -312,12 +317,14 @@ WorkQueueManagerStart()
 
 		_wq_manager_should_exit.store(false);
 
+		syslog(LOG_INFO, "Spawning wq:manager\n");
 		int task_id = px4_task_spawn_cmd("wq:manager",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_MAX,
 						 1280,
 						 (px4_main_t)&WorkQueueManagerRun,
 						 nullptr);
+		syslog(LOG_INFO, "Spawned\n");
 
 		if (task_id < 0) {
 			_wq_manager_should_exit.store(true);

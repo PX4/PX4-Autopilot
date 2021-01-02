@@ -140,9 +140,9 @@ __EXPORT void board_on_reset(int status)
 	UNUSED(status);
 
 	/* configure the GPIO pins to outputs and keep them low */
-	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
-		px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
-	}
+	// for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
+	// 	px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
+	// }
 
 	/* On resets invoked from system (not boot) insure we establish a low
 	 * output state (discharge the pins) on PWM pins before they become inputs.
@@ -371,7 +371,12 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	usleep(1000);
 
 
+
 	px4_platform_init();
+
+	/* configure SPI interfaces (after the hw is determined) */
+	syslog(LOG_INFO, "stm32_spiinitialize\n");
+	stm32_spiinitialize();
 
 
 	/* initial LED state */
@@ -380,14 +385,13 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	// it will call led_init() in the constructor
 	drv_led_start();
 
-	int ret = userled_lower_initialize("/dev/userleds");
-	if (ret < 0)
-	{
-		syslog(LOG_ERR, "ERROR: userled_lower_initialize() failed: %d\n", ret);
-	}
+	// int ret = userled_lower_initialize("/dev/userleds");
+	// if (ret < 0)
+	// {
+	// 	syslog(LOG_ERR, "ERROR: userled_lower_initialize() failed: %d\n", ret);
+	// }
 
-	/* configure SPI interfaces (after the hw is determined) */
-	stm32_spiinitialize();
+
 
 
 	/* configure the DMA allocator */
@@ -415,9 +419,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 
 
-	if (board_hardfault_init(2, true) != 0) {
-		led_on(LED_AMBER);
-	}
+	// if (board_hardfault_init(2, true) != 0) {
+	// 	led_on(LED_AMBER);
+	// }
 
 	/* Configure SPI-based devices */
 

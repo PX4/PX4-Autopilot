@@ -56,6 +56,8 @@
 
 int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, main_t entry, char *const argv[])
 {
+	syslog(LOG_INFO,"px4_task_spawn_cmd locking\n");
+	usleep(100000);
 	sched_lock();
 
 #if !defined(CONFIG_DISABLE_ENVIRON)
@@ -64,10 +66,12 @@ int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_
 	 * tasks.
 	 * This frees up a considerable amount of RAM.
 	 */
+	// syslog(LOG_INFO,"clearenv\n");
 	clearenv();
 #endif
 
 	/* create the task */
+	// syslog(LOG_INFO,"task_create\n");
 	int pid = task_create(name, priority, stack_size, entry, argv);
 
 	if (pid > 0) {
@@ -76,7 +80,9 @@ int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_
 		sched_setscheduler(pid, scheduler, &param);
 	}
 
+
 	sched_unlock();
+	syslog(LOG_INFO,"sched_unlocked\n");
 
 	return pid;
 }

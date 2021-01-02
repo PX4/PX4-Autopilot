@@ -231,6 +231,10 @@
 #define GPIO_USART6_RX GPIO_USART6_RX_2
 #define GPIO_USART6_TX GPIO_USART6_TX_2
 
+// Mavlink port is on UART7
+#define GPIO_UART7_RX GPIO_UART7_RX_1
+#define GPIO_UART7_TX GPIO_UART7_TX_1
+
 /* UART8 has no alternate pin config */
 
 /* CAN

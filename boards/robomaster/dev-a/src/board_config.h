@@ -61,7 +61,7 @@
 // The toggling LED to be used to indicate high CPU or memory usage
 #define BOARD_OVERLOAD_LED LED_RED
 
-#define GPIO_SPI1_EXTI_DRDY_PB4          (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTB|GPIO_PIN4)
+// #define GPIO_SPI1_EXTI_DRDY_PB4          (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTB|GPIO_PIN4)
 
 #define BOARD_SPI_BUS_MAX_BUS_ITEMS 2
 

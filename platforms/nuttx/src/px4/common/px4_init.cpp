@@ -112,16 +112,23 @@ int px4_platform_init(void)
 		close(fd_buf);
 	}
 
+	syslog(LOG_INFO, "hrt_init\n");
 	hrt_init();
 
+	syslog(LOG_INFO, "param_init\n");
 	param_init();
 
 	/* configure CPU load estimation */
 #ifdef CONFIG_SCHED_INSTRUMENTATION
+	syslog(LOG_INFO, "cpuload_initialize_once\n");
 	cpuload_initialize_once();
 #endif
-
+	usleep(10000);
+	syslog(LOG_INFO, "WorkQueueManagerStart\n");
+	usleep(10000);
 	px4::WorkQueueManagerStart();
+
+	syslog(LOG_INFO, "px4_platform_init done\n");
 
 	return PX4_OK;
 }
