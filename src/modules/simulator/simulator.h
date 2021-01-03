@@ -79,6 +79,10 @@
 #include <v2.0/common/mavlink.h>
 #include <v2.0/mavlink_types.h>
 
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <sys/socket.h>
+
 using namespace time_literals;
 
 //! Enumeration to use on the bitmask in HIL_SENSOR
@@ -197,6 +201,7 @@ private:
 
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 
+	struct sockaddr_in _myaddr {};
 	unsigned int _port{14560};
 
 	InternetProtocol _ip{InternetProtocol::UDP};

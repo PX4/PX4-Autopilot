@@ -45,11 +45,8 @@
 #include <mathlib/mathlib.h>
 
 #include <errno.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
 #include <poll.h>
 #include <pthread.h>
-#include <sys/socket.h>
 #include <termios.h>
 
 #include <limits>
@@ -562,21 +559,23 @@ void Simulator::handle_message_vision_position_estimate(const mavlink_message_t 
 void Simulator::send_mavlink_message(const mavlink_message_t &aMsg)
 {
 	uint8_t  buf[MAVLINK_MAX_PACKET_LEN];
-	uint16_t bufLen = 0;
+	uint16_t bufLen = mavlink_msg_to_send_buffer(buf, &aMsg);
 
-	bufLen = mavlink_msg_to_send_buffer(buf, &aMsg);
+	if (bufLen > 0) {
+		if (_ip == InternetProtocol::UDP) {
+			ssize_t len = ::sendto(_fd, buf, bufLen, 0, (struct sockaddr *)&_srcaddr, sizeof(_srcaddr));
 
-	ssize_t len;
+			if (len <= 0) {
+				PX4_ERR("Failed sending mavlink UDP message: %s", strerror(errno));
+			}
 
-	if (_ip == InternetProtocol::UDP) {
-		len = ::sendto(_fd, buf, bufLen, 0, (struct sockaddr *)&_srcaddr, sizeof(_srcaddr));
+		} else {
+			ssize_t len = ::send(_fd, buf, bufLen, 0);
 
-	} else {
-		len = ::send(_fd, buf, bufLen, 0);
-	}
-
-	if (len <= 0) {
-		PX4_WARN("Failed sending mavlink message: %s", strerror(errno));
+			if (len <= 0) {
+				PX4_ERR("Failed sending mavlink TCP message: %s", strerror(errno));
+			}
+		}
 	}
 }
 
@@ -604,26 +603,24 @@ void Simulator::send()
 	// Without this, we get stuck at px4_poll which waits for a time update.
 	send_heartbeat();
 
-	px4_pollfd_struct_t fds_actuator_outputs[1] = {};
-	fds_actuator_outputs[0].fd = _actuator_outputs_sub;
-	fds_actuator_outputs[0].events = POLLIN;
-
 	while (true) {
 
-		// Wait for up to 100ms for data.
-		int pret = px4_poll(&fds_actuator_outputs[0], 1, 100);
+		px4_pollfd_struct_t fds_actuator_outputs[1] {};
+		fds_actuator_outputs[0].fd = _actuator_outputs_sub;
+		fds_actuator_outputs[0].events = POLLIN;
+
+		// Wait for up to 1000ms for data.
+		int pret = px4_poll(&fds_actuator_outputs[0], 1, 1000);
 
 		if (pret == 0) {
 			// Timed out, try again.
 			continue;
-		}
 
-		if (pret < 0) {
+		} else if (pret < 0) {
 			PX4_ERR("poll error %s", strerror(errno));
 			continue;
-		}
 
-		if (fds_actuator_outputs[0].revents & POLLIN) {
+		} else if (fds_actuator_outputs[0].revents & POLLIN) {
 			// Got new data to read, update all topics.
 			parameters_update(false);
 			check_failure_injections();
@@ -668,7 +665,6 @@ void Simulator::run()
 	pthread_setname_np(pthread_self(), "sim_rcv");
 #endif
 
-	struct sockaddr_in _myaddr {};
 	_myaddr.sin_family = AF_INET;
 	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	_myaddr.sin_port = htons(_port);
@@ -713,15 +709,16 @@ void Simulator::run()
 				return;
 			}
 
-			int yes = 1;
-			int ret = setsockopt(_fd, IPPROTO_TCP, TCP_NODELAY, (char *) &yes, sizeof(int));
+			int optval = 1;
+			int optlen = sizeof(optval);
+
+			int ret = setsockopt(_fd, IPPROTO_TCP, TCP_NODELAY, &optval, optlen);
 
 			if (ret != 0) {
 				PX4_ERR("setsockopt failed: %s", strerror(errno));
 			}
 
-			socklen_t myaddr_len = sizeof(_myaddr);
-			ret = connect(_fd, (struct sockaddr *)&_myaddr, myaddr_len);
+			ret = connect(_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr));
 
 			if (ret == 0) {
 				break;
@@ -812,7 +809,13 @@ void Simulator::run()
 						handle_message(&msg);
 					}
 				}
+
+			} else {
+				PX4_ERR("recvfrom: %d %s", len, strerror(errno));
 			}
+
+		} else if (fds[0].revents) {
+			PX4_ERR("revents %d", fds[0].revents);
 		}
 
 #ifdef ENABLE_UART_RC_INPUT
