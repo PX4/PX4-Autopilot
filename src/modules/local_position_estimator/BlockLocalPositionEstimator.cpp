@@ -111,11 +111,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_ref_lon(0.0),
 	_ref_alt(0.0)
 {
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-	_lockstep_component = px4_lockstep_register_component();
-#else
 	_sensors_sub.set_interval_ms(10); // main prediction loop, 100 hz (lockstep requires to run at full rate)
-#endif
 
 	// assign distance subs to array
 	_dist_subs[0] = &_sub_dist0;
@@ -147,7 +143,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 
 BlockLocalPositionEstimator::~BlockLocalPositionEstimator()
 {
-	px4_lockstep_unregister_component(_lockstep_component);
 }
 
 bool
@@ -525,8 +520,6 @@ void BlockLocalPositionEstimator::Run()
 		_xDelay.update(_x);
 		_time_last_hist = _timeStamp;
 	}
-
-	px4_lockstep_progress(_lockstep_component);
 }
 
 void BlockLocalPositionEstimator::checkTimeouts()
