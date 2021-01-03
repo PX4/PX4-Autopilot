@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,54 +31,21 @@
  *
  ****************************************************************************/
 
-#include "wqueue_test.h"
+#include <px4_arch/io_timer_hw_description.h>
 
-#include <drivers/drv_hrt.h>
-#include <px4_platform_common/log.h>
-#include <px4_platform_common/time.h>
+constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
+	initIOTimer(Timer::Timer1, DMA{DMA::Index2, DMA::Stream5, DMA::Channel6}),
+	initIOTimer(Timer::Timer4, DMA{DMA::Index1, DMA::Stream6, DMA::Channel2}),
+};
 
-#include <unistd.h>
-#include <stdio.h>
-#include <inttypes.h>
+constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
+	initIOTimerChannelOutputClear(io_timers, {Timer::Timer1, Timer::Channel4}, {GPIO::PortE, GPIO::Pin14}),
+	initIOTimerChannelOutputClear(io_timers, {Timer::Timer1, Timer::Channel3}, {GPIO::PortE, GPIO::Pin13}),
+	initIOTimerChannelOutputClear(io_timers, {Timer::Timer1, Timer::Channel2}, {GPIO::PortE, GPIO::Pin11}),
+	initIOTimerChannelOutputClear(io_timers, {Timer::Timer1, Timer::Channel1}, {GPIO::PortE, GPIO::Pin9}),
+	initIOTimerChannelOutputClear(io_timers, {Timer::Timer4, Timer::Channel2}, {GPIO::PortD, GPIO::Pin13}),
+	initIOTimerChannelOutputClear(io_timers, {Timer::Timer4, Timer::Channel3}, {GPIO::PortD, GPIO::Pin14}),
+};
 
-using namespace px4;
-
-AppState WQueueTest::appState;
-
-void WQueueTest::Run()
-{
-	PX4_INFO("iter: %d", _iter);
-
-	if (_iter > 1000) {
-		appState.requestExit();
-		appState.setRunning(false);
-
-	} else {
-		ScheduleNow();
-	}
-
-	_iter++;
-}
-
-int WQueueTest::main()
-{
-	appState.setRunning(true);
-
-	_iter = 0;
-
-	// Put work in the work queue
-	ScheduleNow();
-
-	// Wait for work to finsh
-	while (!appState.exitRequested()) {
-		px4_usleep(5000);
-	}
-
-	PX4_INFO("WQueueTest finished");
-
-	// print_status();
-
-	px4_sleep(2);
-
-	return 0;
-}
+constexpr io_timers_channel_mapping_t io_timers_channel_mapping =
+	initIOTimerChannelMapping(io_timers, timer_io_channels);

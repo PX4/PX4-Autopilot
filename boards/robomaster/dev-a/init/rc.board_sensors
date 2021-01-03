@@ -1,0 +1,5 @@
+#!/bin/sh
+
+mpu6500 -s -b 5 start
+
+echo "MPU6500 started on SPI5"

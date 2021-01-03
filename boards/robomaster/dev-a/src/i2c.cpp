@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,54 +31,36 @@
  *
  ****************************************************************************/
 
-#include "wqueue_test.h"
+/**
+ * @file px4fmu_i2c.c
+ *
+ * Board-specific I2C functions.
+ */
 
-#include <drivers/drv_hrt.h>
-#include <px4_platform_common/log.h>
-#include <px4_platform_common/time.h>
+#include "board_config.h"
+#include <px4_platform_common/i2c.h>
+#include <px4_arch/i2c_hw_description.h>
 
-#include <unistd.h>
-#include <stdio.h>
-#include <inttypes.h>
+constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
+	// initI2CBusExternal(1),
+	initI2CBusInternal(2),
+};
 
-using namespace px4;
 
-AppState WQueueTest::appState;
-
-void WQueueTest::Run()
+bool px4_i2c_bus_external(const px4_i2c_bus_t &bus)
 {
-	PX4_INFO("iter: %d", _iter);
+	// if (HW_VER_FMUV3 == board_get_hw_version()) {
+	// 	/* All FMUV3 2.1 i2c buses are external */
+	// 	return true;
 
-	if (_iter > 1000) {
-		appState.requestExit();
-		appState.setRunning(false);
+	// } else {
+	// 	if (bus.bus != 2) {
+	// 		return true;
+	// 	}
+	// }
 
-	} else {
-		ScheduleNow();
-	}
+	// return false;
 
-	_iter++;
-}
-
-int WQueueTest::main()
-{
-	appState.setRunning(true);
-
-	_iter = 0;
-
-	// Put work in the work queue
-	ScheduleNow();
-
-	// Wait for work to finsh
-	while (!appState.exitRequested()) {
-		px4_usleep(5000);
-	}
-
-	PX4_INFO("WQueueTest finished");
-
-	// print_status();
-
-	px4_sleep(2);
-
-	return 0;
+	// TODO: for now, Dev A board all I2C should be external
+	return true;
 }
