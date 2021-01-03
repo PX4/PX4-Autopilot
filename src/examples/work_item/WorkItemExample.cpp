@@ -51,6 +51,7 @@ WorkItemExample::~WorkItemExample()
 
 bool WorkItemExample::init()
 {
+
 	ScheduleOnInterval(100_ms); // 10Hz rate
 
 	return true;
@@ -74,17 +75,30 @@ void WorkItemExample::Run()
 
 	// Example
 	// grab latest accelerometer data
+	// _sensor_accel_sub.update();
+	// const sensor_accel_s &accel = _sensor_accel_sub.get();
+
+
+	// Example
+	// publish some data
+	// orb_test_s data{};
+	// data.timestamp = hrt_absolute_time();
+	// data.val = accel.device_id;
+	// _orb_test_pub.publish(data);
+
 
 	uint64_t time_now = hrt_absolute_time();
 	PX4_INFO("%llu\n", time_now); // this should print out from syslog
+
 
 	perf_end(_loop_perf);
 }
 
 int WorkItemExample::task_spawn(int argc, char *argv[])
 {
+	PX4_INFO("work item example spawn task");
 	WorkItemExample *instance = new WorkItemExample();
-
+	PX4_INFO("work item example end of creating new work example");
 	if (instance) {
 		_object.store(instance);
 		_task_id = task_id_is_work_queue;
@@ -138,5 +152,6 @@ Example of a simple module running out of a work queue.
 
 extern "C" __EXPORT int work_item_example_main(int argc, char *argv[])
 {
+	PX4_INFO("work item example start");
 	return WorkItemExample::main(argc, argv);
 }

@@ -1,0 +1,8 @@
+#!/bin/sh
+#
+# Start mavlink
+#
+
+mavlink start -d /dev/ttyACM0
+
+echo "Mavlink started on ttyACM0"

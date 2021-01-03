@@ -49,6 +49,8 @@ int px4_platform_init(void)
 {
 	syslog(LOG_INFO, "px4_platform_init\n");
 
+syslog(LOG_INFO, "px4_platform_init\n");
+
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 	/* run C++ ctors before we go any further */
 	up_cxxinitialize();

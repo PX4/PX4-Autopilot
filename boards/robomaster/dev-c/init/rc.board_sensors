@@ -1,0 +1,10 @@
+#!/bin/sh
+
+bmi088 -A -s -b 1 start
+echo "Started bmi088 accel on SPI1"
+
+bmi088 -G -s -b 1 start
+echo "Started bmi088 gyro on SPI1"
+
+ist8310 -X -b 2 start
+echo "Started ist8310 on I2C3"
