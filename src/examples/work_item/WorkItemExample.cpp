@@ -51,8 +51,8 @@ WorkItemExample::~WorkItemExample()
 
 bool WorkItemExample::init()
 {
-	// ScheduleOnInterval(1000_us); // 1000 us interval, 1000 Hz rate
-	ScheduleOnInterval(100_ms); // 10 Hz rate
+
+	ScheduleOnInterval(100_ms); // 10Hz rate
 
 	return true;
 }
@@ -86,8 +86,10 @@ void WorkItemExample::Run()
 	// data.val = accel.device_id;
 	// _orb_test_pub.publish(data);
 
+
 	uint64_t time_now = hrt_absolute_time();
-	PX4_INFO("%llu\n", time_now);
+	PX4_INFO("%llu\n", time_now); // this should print out from syslog
+
 
 	perf_end(_loop_perf);
 }

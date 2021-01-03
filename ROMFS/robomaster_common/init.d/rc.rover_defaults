@@ -5,7 +5,6 @@
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
-echo "Board rover stuff :D"
 
 set VEHICLE_TYPE rover
 

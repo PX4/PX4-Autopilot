@@ -47,6 +47,7 @@
 
 int px4_platform_init(void)
 {
+	syslog(LOG_INFO, "px4_platform_init\n");
 
 syslog(LOG_INFO, "px4_platform_init\n");
 
