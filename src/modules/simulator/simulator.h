@@ -147,8 +147,6 @@ private:
 			delete _dist_pubs[i];
 		}
 
-		px4_lockstep_unregister_component(_lockstep_component);
-
 		_instance = nullptr;
 	}
 
@@ -211,6 +209,7 @@ private:
 	hrt_abstime _last_sim_timestamp{0};
 	hrt_abstime _last_sitl_timestamp{0};
 
+	bool setup();
 
 	void run();
 	void handle_message(const mavlink_message_t *msg);
@@ -228,14 +227,11 @@ private:
 	void poll_for_MAVLink_messages();
 	void request_hil_state_quaternion();
 	void send();
-	void send_controls();
 	void send_heartbeat();
-	void send_mavlink_message(const mavlink_message_t &aMsg);
+	bool send_mavlink_message(const mavlink_message_t &aMsg);
 	void update_sensors(const hrt_abstime &time, const mavlink_hil_sensor_t &sensors);
 
-	static void *sending_trampoline(void *);
-
-	void actuator_controls_from_outputs(mavlink_hil_actuator_controls_t *msg);
+	void actuator_controls_from_outputs(const actuator_outputs_s &actuator_outputs, mavlink_hil_actuator_controls_t *msg);
 
 
 	// uORB publisher handlers
@@ -251,10 +247,7 @@ private:
 	uint8_t _gps_ids[MAX_GPS] {};
 	std::default_random_engine _gen{};
 
-	// uORB subscription handlers
-	int _actuator_outputs_sub{-1};
-	actuator_outputs_s _actuator_outputs{};
-
+	uORB::Subscription _actuator_outputs_sub{ORB_ID(actuator_outputs), 0};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 
@@ -294,8 +287,6 @@ private:
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	px4::atomic<bool> _has_initialized {false};
 #endif
-
-	int _lockstep_component{-1};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,

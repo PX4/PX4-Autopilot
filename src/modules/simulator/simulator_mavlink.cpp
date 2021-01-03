@@ -63,9 +63,9 @@
 static int openUart(const char *uart_name, int baud);
 #endif
 
-static int _fd;
-static unsigned char _buf[2048];
-static sockaddr_in _srcaddr;
+static int _fd = -1;
+static unsigned char _buf[2048] {};
+static sockaddr_in _srcaddr{};
 static unsigned _addrlen = sizeof(_srcaddr);
 
 const unsigned mode_flag_armed = 128;
@@ -73,7 +73,8 @@ const unsigned mode_flag_custom = 1;
 
 using namespace time_literals;
 
-void Simulator::actuator_controls_from_outputs(mavlink_hil_actuator_controls_t *msg)
+void Simulator::actuator_controls_from_outputs(const actuator_outputs_s &actuator_outputs,
+		mavlink_hil_actuator_controls_t *msg)
 {
 	memset(msg, 0, sizeof(mavlink_hil_actuator_controls_t));
 
@@ -141,7 +142,7 @@ void Simulator::actuator_controls_from_outputs(mavlink_hil_actuator_controls_t *
 		} else if ((is_fixed_wing && i == 4) ||
 			   (!is_fixed_wing && i < motors_count)) {	//multirotor, rotor channel
 			/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for rotors */
-			msg->controls[i] = (_actuator_outputs.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+			msg->controls[i] = (actuator_outputs.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
 			msg->controls[i] = math::constrain(msg->controls[i], 0.f, 1.f);
 
 		} else {
@@ -149,7 +150,7 @@ void Simulator::actuator_controls_from_outputs(mavlink_hil_actuator_controls_t *
 			const float pwm_delta = (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2;
 
 			/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for other channels */
-			msg->controls[i] = (_actuator_outputs.output[i] - pwm_center) / pwm_delta;
+			msg->controls[i] = (actuator_outputs.output[i] - pwm_center) / pwm_delta;
 			msg->controls[i] = math::constrain(msg->controls[i], -1.f, 1.f);
 		}
 
@@ -164,23 +165,6 @@ void Simulator::actuator_controls_from_outputs(mavlink_hil_actuator_controls_t *
 #endif
 }
 
-void Simulator::send_controls()
-{
-	orb_copy(ORB_ID(actuator_outputs), _actuator_outputs_sub, &_actuator_outputs);
-
-	if (_actuator_outputs.timestamp > 0) {
-		mavlink_hil_actuator_controls_t hil_act_control;
-		actuator_controls_from_outputs(&hil_act_control);
-
-		mavlink_message_t message{};
-		mavlink_msg_hil_actuator_controls_encode(_param_mav_sys_id.get(), _param_mav_comp_id.get(), &message, &hil_act_control);
-
-		PX4_DEBUG("sending controls t=%ld (%ld)", _actuator_outputs.timestamp, hil_act_control.time_usec);
-
-		send_mavlink_message(message);
-	}
-}
-
 void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor_t &sensors)
 {
 	// temperature only updated with baro
@@ -190,34 +174,6 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 			_px4_mag_1.set_temperature(sensors.temperature);
 
 			_sensors_temperature = sensors.temperature;
-		}
-	}
-
-	// accel
-	if ((sensors.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL) {
-		for (int i = 0; i < ACCEL_COUNT_MAX; i++) {
-			if (_accel_stuck[i]) {
-				_px4_accel[i].update(time, _last_accel[i](0), _last_accel[i](1), _last_accel[i](2));
-
-			} else if (!_accel_blocked[i]) {
-				_px4_accel[i].set_temperature(_sensors_temperature);
-				_px4_accel[i].update(time, sensors.xacc, sensors.yacc, sensors.zacc);
-				_last_accel[i] = matrix::Vector3f{sensors.xacc, sensors.yacc, sensors.zacc};
-			}
-		}
-	}
-
-	// gyro
-	if ((sensors.fields_updated & SensorSource::GYRO) == SensorSource::GYRO) {
-		for (int i = 0; i < GYRO_COUNT_MAX; i++) {
-			if (_gyro_stuck[i]) {
-				_px4_gyro[i].update(time, _last_gyro[i](0), _last_gyro[i](1), _last_gyro[i](2));
-
-			} else if (!_gyro_blocked[i]) {
-				_px4_gyro[i].set_temperature(_sensors_temperature);
-				_px4_gyro[i].update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
-				_last_gyro[i] = matrix::Vector3f{sensors.xgyro, sensors.ygyro, sensors.zgyro};
-			}
 		}
 	}
 
@@ -261,6 +217,39 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 		report.differential_pressure_raw_pa = sensors.diff_pressure * 100.0f; // convert from millibar to bar;
 
 		_differential_pressure_pub.publish(report);
+	}
+
+	// accel
+	if ((sensors.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL) {
+		for (int i = 0; i < ACCEL_COUNT_MAX; i++) {
+			if (_accel_stuck[i]) {
+				_px4_accel[i].update(time, _last_accel[i](0), _last_accel[i](1), _last_accel[i](2));
+
+			} else if (!_accel_blocked[i]) {
+				_px4_accel[i].set_temperature(_sensors_temperature);
+				_px4_accel[i].update(time, sensors.xacc, sensors.yacc, sensors.zacc);
+				_last_accel[i] = matrix::Vector3f{sensors.xacc, sensors.yacc, sensors.zacc};
+			}
+		}
+	}
+
+	// gyro
+	if ((sensors.fields_updated & SensorSource::GYRO) == SensorSource::GYRO) {
+		for (int i = 0; i < GYRO_COUNT_MAX; i++) {
+			if (_gyro_stuck[i]) {
+				_px4_gyro[i].update(time, _last_gyro[i](0), _last_gyro[i](1), _last_gyro[i](2));
+
+			} else if (!_gyro_blocked[i]) {
+				_px4_gyro[i].set_temperature(_sensors_temperature);
+				_px4_gyro[i].update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
+				_last_gyro[i] = matrix::Vector3f{sensors.xgyro, sensors.ygyro, sensors.zgyro};
+			}
+		}
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+		// Wait for other modules, such as logger or ekf2
+		px4_lockstep_wait_for_components();
+#endif // ENABLE_LOCKSTEP_SCHEDULER
 	}
 }
 
@@ -356,10 +345,6 @@ void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
 
 void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 {
-	if (_lockstep_component == -1) {
-		_lockstep_component = px4_lockstep_register_component();
-	}
-
 	mavlink_hil_sensor_t imu;
 	mavlink_msg_hil_sensor_decode(msg, &imu);
 
@@ -391,8 +376,6 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 	}
 
 #endif
-
-	px4_lockstep_progress(_lockstep_component);
 }
 
 void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg)
@@ -556,7 +539,7 @@ void Simulator::handle_message_vision_position_estimate(const mavlink_message_t 
 	publish_odometry_topic(msg);
 }
 
-void Simulator::send_mavlink_message(const mavlink_message_t &aMsg)
+bool Simulator::send_mavlink_message(const mavlink_message_t &aMsg)
 {
 	uint8_t  buf[MAVLINK_MAX_PACKET_LEN];
 	uint16_t bufLen = mavlink_msg_to_send_buffer(buf, &aMsg);
@@ -567,6 +550,9 @@ void Simulator::send_mavlink_message(const mavlink_message_t &aMsg)
 
 			if (len <= 0) {
 				PX4_ERR("Failed sending mavlink UDP message: %s", strerror(errno));
+
+			} else {
+				return true;
 			}
 
 		} else {
@@ -574,66 +560,14 @@ void Simulator::send_mavlink_message(const mavlink_message_t &aMsg)
 
 			if (len <= 0) {
 				PX4_ERR("Failed sending mavlink TCP message: %s", strerror(errno));
+
+			} else {
+				return true;
 			}
 		}
 	}
-}
 
-void *Simulator::sending_trampoline(void * /*unused*/)
-{
-	_instance->send();
-	return nullptr;
-}
-
-void Simulator::send()
-{
-#ifdef __PX4_DARWIN
-	pthread_setname_np("sim_send");
-#else
-	pthread_setname_np(pthread_self(), "sim_send");
-#endif
-
-	// Subscribe to topics.
-	// Only subscribe to the first actuator_outputs to fill a single HIL_ACTUATOR_CONTROLS.
-	_actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs), 0);
-
-	// Before starting, we ought to send a heartbeat to initiate the SITL
-	// simulator to start sending sensor data which will set the time and
-	// get everything rolling.
-	// Without this, we get stuck at px4_poll which waits for a time update.
-	send_heartbeat();
-
-	while (true) {
-
-		px4_pollfd_struct_t fds_actuator_outputs[1] {};
-		fds_actuator_outputs[0].fd = _actuator_outputs_sub;
-		fds_actuator_outputs[0].events = POLLIN;
-
-		// Wait for up to 1000ms for data.
-		int pret = px4_poll(&fds_actuator_outputs[0], 1, 1000);
-
-		if (pret == 0) {
-			// Timed out, try again.
-			continue;
-
-		} else if (pret < 0) {
-			PX4_ERR("poll error %s", strerror(errno));
-			continue;
-
-		} else if (fds_actuator_outputs[0].revents & POLLIN) {
-			// Got new data to read, update all topics.
-			parameters_update(false);
-			check_failure_injections();
-			_vehicle_status_sub.update(&_vehicle_status);
-
-			// Wait for other modules, such as logger or ekf2
-			px4_lockstep_wait_for_components();
-
-			send_controls();
-		}
-	}
-
-	orb_unsubscribe(_actuator_outputs_sub);
+	return false;
 }
 
 void Simulator::request_hil_state_quaternion()
@@ -649,22 +583,17 @@ void Simulator::request_hil_state_quaternion()
 
 void Simulator::send_heartbeat()
 {
-	mavlink_heartbeat_t hb = {};
-	mavlink_message_t message = {};
+	mavlink_heartbeat_t hb{};
+	mavlink_message_t message{};
 	hb.autopilot = 12;
 	hb.base_mode |= (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 128 : 0;
 	mavlink_msg_heartbeat_encode(_param_mav_sys_id.get(), _param_mav_comp_id.get(), &message, &hb);
+
 	send_mavlink_message(message);
 }
 
 void Simulator::run()
 {
-#ifdef __PX4_DARWIN
-	pthread_setname_np("sim_rcv");
-#else
-	pthread_setname_np(pthread_self(), "sim_rcv");
-#endif
-
 	_myaddr.sin_family = AF_INET;
 	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	_myaddr.sin_port = htons(_port);
@@ -733,72 +662,29 @@ void Simulator::run()
 
 	}
 
-	// Create a thread for sending data to the simulator.
-	pthread_t sender_thread;
+	mavlink_status_t mavlink_status{};
 
-	pthread_attr_t sender_thread_attr;
-	pthread_attr_init(&sender_thread_attr);
-	pthread_attr_setstacksize(&sender_thread_attr, PX4_STACK_ADJUSTED(8000));
-
-	struct sched_param param;
-	(void)pthread_attr_getschedparam(&sender_thread_attr, &param);
-
-	// sender thread should run immediately after new outputs are available
-	//  to send the lockstep update to the simulation
-	param.sched_priority = SCHED_PRIORITY_ACTUATOR_OUTPUTS + 1;
-	(void)pthread_attr_setschedparam(&sender_thread_attr, &param);
-
-	struct pollfd fds[2] = {};
-	unsigned fd_count = 1;
-	fds[0].fd = _fd;
-	fds[0].events = POLLIN;
-
-#ifdef ENABLE_UART_RC_INPUT
-	// setup serial connection to autopilot (used to get manual controls)
-	int serial_fd = openUart(PIXHAWK_DEVICE, PIXHAWK_DEVICE_BAUD);
-
-	char serial_buf[1024];
-
-	if (serial_fd >= 0) {
-		fds[1].fd = serial_fd;
-		fds[1].events = POLLIN;
-		fd_count++;
-
-		PX4_INFO("Start using %s for radio control input.", PIXHAWK_DEVICE);
-
-	} else {
-		PX4_INFO("Not using %s for radio control input. Assuming joystick input via MAVLink.", PIXHAWK_DEVICE);
-	}
-
-#endif
-
-	// got data from simulator, now activate the sending thread
-	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, nullptr);
-	pthread_attr_destroy(&sender_thread_attr);
-
-	mavlink_status_t mavlink_status = {};
+	// Before starting, we ought to send a heartbeat to initiate the SITL
+	// simulator to start sending sensor data which will set the time and
+	// get everything rolling.
+	// Without this, we get stuck at px4_poll which waits for a time update.
+	send_heartbeat();
 
 	// Request HIL_STATE_QUATERNION for ground truth.
 	request_hil_state_quaternion();
 
 	while (true) {
+		parameters_update(false);
+		check_failure_injections();
+		_vehicle_status_sub.update(&_vehicle_status);
 
 		// wait for new mavlink messages to arrive
-		int pret = ::poll(&fds[0], fd_count, 1000);
-
-		if (pret == 0) {
-			// Timed out.
-			PX4_ERR("poll timeout %d, %d", pret, errno);
-			continue;
-		}
-
-		if (pret < 0) {
-			PX4_ERR("poll error %d, %d", pret, errno);
-			continue;
-		}
+		struct pollfd fds[1] {};
+		fds[0].fd = _fd;
+		fds[0].events = POLLIN;
+		::poll(&fds[0], 1, 10);
 
 		if (fds[0].revents & POLLIN) {
-
 			int len = ::recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, (socklen_t *)&_addrlen);
 
 			if (len > 0) {
@@ -809,35 +695,24 @@ void Simulator::run()
 						handle_message(&msg);
 					}
 				}
-
-			} else {
-				PX4_ERR("recvfrom: %d %s", len, strerror(errno));
-			}
-
-		} else if (fds[0].revents) {
-			PX4_ERR("revents %d", fds[0].revents);
-		}
-
-#ifdef ENABLE_UART_RC_INPUT
-
-		// got data from PIXHAWK
-		if (fd_count > 1 && fds[1].revents & POLLIN) {
-			int len = ::read(serial_fd, serial_buf, sizeof(serial_buf));
-
-			if (len > 0) {
-				mavlink_message_t msg;
-
-				mavlink_status_t serial_status = {};
-
-				for (int i = 0; i < len; ++i) {
-					if (mavlink_parse_char(MAVLINK_COMM_1, serial_buf[i], &msg, &serial_status)) {
-						handle_message(&msg);
-					}
-				}
 			}
 		}
 
-#endif
+		// send controls
+		if (_actuator_outputs_sub.updated()) {
+			actuator_outputs_s actuator_outputs{};
+			_actuator_outputs_sub.copy(&actuator_outputs);
+
+			mavlink_hil_actuator_controls_t hil_act_control{};
+			actuator_controls_from_outputs(actuator_outputs, &hil_act_control);
+
+			mavlink_message_t message{};
+			mavlink_msg_hil_actuator_controls_encode(_param_mav_sys_id.get(), _param_mav_comp_id.get(), &message, &hil_act_control);
+
+			PX4_DEBUG("sending controls t=%ld (%ld)", actuator_outputs.timestamp, hil_act_control.time_usec);
+
+			send_mavlink_message(message);
+		}
 	}
 }
 
