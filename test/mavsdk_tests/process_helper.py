@@ -138,16 +138,14 @@ class Px4Runner(Runner):
                  model: str, case: str, speed_factor: float,
                  debugger: str, verbose: bool):
         super().__init__(log_dir, model, case, verbose)
+        self.cwd = workspace_dir + "/build/px4_sitl_default/tmp_mavsdk_tests/rootfs"
         self.name = "px4"
-        self.cmd = workspace_dir + "/build/px4_sitl_default/bin/px4"
-        self.cwd = workspace_dir + \
-            "/build/px4_sitl_default/tmp_mavsdk_tests/rootfs"
-        self.args = [
+        self.cmd = "nice"
+        self.args = ["-n 1",
+                workspace_dir + "/build/px4_sitl_default/bin/px4",
                 workspace_dir + "/build/px4_sitl_default/etc",
-                "-s",
-                "etc/init.d-posix/rcS",
-                "-t",
-                workspace_dir + "/test_data",
+                "-s", "etc/init.d-posix/rcS",
+                "-t", workspace_dir + "/test_data",
                 "-d"
             ]
         self.env["PX4_SIM_MODEL"] = self.model
@@ -204,7 +202,7 @@ class GzserverRunner(Runner):
             workspace_dir + "/Tools/sitl_gazebo/models"
         self.env["PX4_SIM_SPEED_FACTOR"] = str(speed_factor)
         self.cmd = "nice"
-        self.args = ["-n 1",
+        self.args = ["-n 2",
                      "gzserver", "--verbose",
                      workspace_dir + "/Tools/sitl_gazebo/worlds/" +
                      "empty.world"]
