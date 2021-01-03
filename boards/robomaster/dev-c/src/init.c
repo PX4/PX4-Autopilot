@@ -76,6 +76,12 @@
 #include <px4_platform_common/init.h>
 #include <px4_platform/board_dma_alloc.h>
 
+#include <dataman/dataman.h>
+
+#if defined(FLASH_BASED_PARAMS)
+#	include <parameters/flashparams/flashfs.h>
+#endif
+
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
@@ -481,6 +487,46 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	(void)sdio;
 
 #endif
+
+	/*
+	 * Bootloader(sector 0):
+	 * start: 0x08000000, len: 16K, end: 0x08003E80
+	 *
+	 * FlashFS(sector 1 and 2):
+	 * start: 0x08004000, len: 32K, end: 0x0800BFFF
+	 *
+	 * Firmware(sector 3 to 11):
+	 * start: 0x0800C000, len: 976K, end: 0x080FFFFF
+	 *
+	 * Dataman(sector 23):
+	 * start: 0x081E0000, len: 128K, end: 0x08200000
+	 *
+	 * First 1MB memory bank complete assigned.
+	 * Second 1MB memory bank is mostly empty.
+	 */
+
+#if defined(FLASH_BASED_PARAMS)
+	static sector_descriptor_t params_sector_map[] = {
+		{1, 16 * 1024, 0x08004000},
+		{2, 16 * 1024, 0x08008000},
+		{0, 0, 0},
+	};
+
+	/* Initialize the flashfs layer to use heap allocated memory */
+	int result = parameter_flashfs_init(params_sector_map, NULL, 0);
+
+	if (result != OK) {
+		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
+		led_on(LED_AMBER);
+		return -ENODEV;
+	}
+
+#endif
+
+// #if defined(FLASH_BASED_DATAMAN)
+// 	static dm_sector_descriptor_t dm_sector_map = {23, 128 * 1024, 0x081E0000};
+// 	dm_flash_sector_description_set(&dm_sector_map);
+// #endif
 
 	return OK;
 }

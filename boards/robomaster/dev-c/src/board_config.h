@@ -81,6 +81,8 @@
 // #define PX4IO_SERIAL_CLOCK	STM32_PCLK2_FREQUENCY
 // #define PX4IO_SERIAL_BITRATE	1500000			/* 1.5Mbps -> max rate for IO */
 
+#define  FLASH_BASED_PARAMS
+// #define  FLASH_BASED_DATAMAN
 
 /* PX4FMU GPIOs ***********************************************************************************/
 
