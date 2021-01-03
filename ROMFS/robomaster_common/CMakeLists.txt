@@ -32,4 +32,4 @@
 ############################################################################
 
 add_subdirectory(init.d)
-# add_subdirectory(mixers)
+add_subdirectory(mixers)
