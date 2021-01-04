@@ -305,10 +305,7 @@ void Standard::update_transition_state()
 
 		}
 
-		// in back transition we need to start the MC motors again
-		if (_motor_state != motor_state::ENABLED) {
-			_motor_state = set_motor_state(_motor_state, motor_state::ENABLED);
-		}
+		set_all_motor_state(motor_state::ENABLED);
 
 		// set idle speed for MC actuators
 		if (!_flag_idle_mc) {

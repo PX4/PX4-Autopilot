@@ -58,6 +58,7 @@ px4_add_board(
 		dataman
 		ekf2
 		events
+		flight_mode_manager
 		land_detector
 		landing_target_estimator
 		load_mon

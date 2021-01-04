@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,6 +44,7 @@
 #include <px4_platform_common/defines.h>
 
 #include <fcntl.h>
+#include <math.h>
 #include <unistd.h>
 #include <termios.h>
 #include <string.h>
@@ -52,6 +53,8 @@
 #include "spektrum_rssi.h"
 #include "common_rc.h"
 #include <drivers/drv_hrt.h>
+
+#include <include/containers/Bitset.hpp>
 
 #if defined(__PX4_NUTTX)
 #include <nuttx/arch.h>
@@ -75,7 +78,7 @@ static dsm_buf_t &dsm_buf = rc_decode_buf.dsm.buf;	/**< DSM_BUFFER_SIZE DSM dsm 
 
 static uint16_t dsm_chan_buf[DSM_MAX_CHANNEL_COUNT];
 static unsigned dsm_partial_frame_count;	/**< Count of bytes received for current dsm frame */
-static unsigned dsm_channel_shift = 0;			/**< Channel resolution, 0=unknown, 1=10 bit, 2=11 bit */
+static unsigned dsm_channel_shift = 0;			/**< Channel resolution, 0=unknown, 10=10 bit (1024), 11=11 bit (2048) */
 static unsigned dsm_frame_drops = 0;			/**< Count of incomplete DSM frames */
 static uint16_t dsm_chan_count = 0;         /**< DSM channel count */
 
@@ -106,7 +109,7 @@ static uint16_t dsm_chan_count = 0;         /**< DSM channel count */
  */
 static bool dsm_decode_channel(uint16_t raw, unsigned shift, uint8_t &channel, uint16_t &value)
 {
-	if (raw == 0xffff) {
+	if (raw == 0 || raw == 0xffff) {
 		return false;
 	}
 
@@ -118,8 +121,26 @@ static bool dsm_decode_channel(uint16_t raw, unsigned shift, uint8_t &channel, u
 		static constexpr uint16_t MASK_1024_SXPOS = 0x03FF;
 
 		channel = (raw & MASK_1024_CHANID) >> 10; // 6 bits
-		uint16_t servo_position = (raw & MASK_1024_SXPOS); // 10 bits
-		value = servo_position * 2; // scale to be equivalent to 2048 mode
+
+		const uint16_t servo_position = (raw & MASK_1024_SXPOS); // 10 bits
+
+		if (channel > DSM_MAX_CHANNEL_COUNT) {
+			PX4_DEBUG("invalid channel: %d\n", channel);
+			return false;
+		}
+
+		// PWM_OUT = (ServoPosition x 1.166μs) + Offset
+		static constexpr uint16_t offset = 903; // microseconds
+		value = roundf(servo_position * 1.166f) + offset;
+
+		// Spektrum range is 903μs to 2097μs (Specification for Spektrum Remote Receiver Interfacing Rev G 9.1)
+		//  ±100% travel is 1102µs to 1898 µs
+		if (value < 990 || value > 2010) {
+			// if the value is unrealistic, fail the parsing entirely
+			PX4_DEBUG("channel %d invalid range %d", channel, value);
+			return false;
+		}
+
 		return true;
 
 	} else if (shift == 11) {
@@ -127,32 +148,54 @@ static bool dsm_decode_channel(uint16_t raw, unsigned shift, uint8_t &channel, u
 		//  Bits 15    Servo Phase
 		//  Bits 14-11 Channel ID
 		//  Bits 10-0  Servo Position
-		static constexpr uint16_t MASK_2048_CHANID = 0x7800;
-		static constexpr uint16_t MASK_2048_SXPOS = 0x07FF;
+
+		uint16_t servo_position = 0;
 
 		// from Spektrum Remote Receiver Interfacing Rev G Page 6
-		uint8_t chan = (raw & MASK_2048_CHANID) >> 11;
-		uint16_t servo_position = 0;
+		const bool phase = raw & (2 >> 15); // the phase is part of the X-Plus address (bit 15)
+		uint8_t chan = (raw >> 11) & 0x0F;
 
 		if (chan < 12) {
 			// Normal channels
+			static constexpr uint16_t MASK_2048_SXPOS = 0x07FF;
 			servo_position = (raw & MASK_2048_SXPOS);
 
 		} else if (chan == 12) {
 			// XPlus channels
 			chan += ((raw >> 9) & 0x03);
 
-			const bool phase = raw & (2 >> 15); // the phase is part of the X-Plus address (bit 15)
-
 			if (phase) {
 				chan += 4;
 			}
 
+			if (chan > DSM_MAX_CHANNEL_COUNT) {
+				PX4_DEBUG("invalid channel: %d\n", chan);
+				return false;
+			}
+
 			servo_position = (raw & 0x01FF) << 2;
+
+			channel = chan;
+
+		} else {
+			PX4_DEBUG("invalid channel: %d\n", chan);
+			return false;
 		}
 
 		channel = chan;
-		value = servo_position;
+
+		// PWM_OUT = (ServoPosition x 0.583μs) + Offset
+		static constexpr uint16_t offset = 903; // microseconds
+		value = roundf(servo_position * 0.583f) + offset;
+
+		// Spektrum range is 903μs to 2097μs (Specification for Spektrum Remote Receiver Interfacing Rev G 9.1)
+		//  ±100% travel is 1102µs to 1898 µs
+		if (value < 990 || value > 2010) {
+			// if the value is unrealistic, fail the parsing entirely
+			PX4_DEBUG("channel %d invalid range %d", channel, value);
+			return false;
+		}
+
 		return true;
 	}
 
@@ -179,6 +222,12 @@ static bool dsm_guess_format(bool reset)
 		return false;
 	}
 
+	px4::Bitset<DSM_MAX_CHANNEL_COUNT> channels_found_10;
+	px4::Bitset<DSM_MAX_CHANNEL_COUNT> channels_found_11;
+
+	bool cs10_frame_valid = true;
+	bool cs11_frame_valid = true;
+
 	/* scan the channels in the current dsm_frame in both 10- and 11-bit mode */
 	for (unsigned i = 0; i < DSM_FRAME_CHANNELS; i++) {
 
@@ -189,15 +238,43 @@ static bool dsm_guess_format(bool reset)
 		uint16_t value = 0;
 
 		/* if the channel decodes, remember the assigned number */
-		if (dsm_decode_channel(raw, 10, channel, value) && (channel < 31)) {
-			cs10 |= (1 << channel);
+		if (dsm_decode_channel(raw, 10, channel, value)) {
+			// invalidate entire frame (for 1024) if channel already found, no duplicate channels per DSM frame
+			if (channels_found_10[channel]) {
+				cs10_frame_valid = false;
+
+			} else {
+				channels_found_10.set(channel);
+			}
 		}
 
-		if (dsm_decode_channel(raw, 11, channel, value) && (channel < 31)) {
-			cs11 |= (1 << channel);
-		}
+		if (dsm_decode_channel(raw, 11, channel, value)) {
+			// invalidate entire frame (for 2048) if channel already found, no duplicate channels per DSM frame
+			if (channels_found_11[channel]) {
+				cs11_frame_valid = false;
 
-		/* XXX if we cared, we could look for the phase bit here to decide 1 vs. 2-dsm_frame format */
+			} else {
+				channels_found_11.set(channel);
+			}
+		}
+	}
+
+	// add valid cs10 channels
+	if (cs10_frame_valid) {
+		for (unsigned channel = 0; channel < DSM_FRAME_CHANNELS; channel++) {
+			if (channels_found_10[channel]) {
+				cs10 |= 1 << channel;
+			}
+		}
+	}
+
+	// add valid cs11 channels
+	if (cs11_frame_valid) {
+		for (unsigned channel = 0; channel < DSM_FRAME_CHANNELS; channel++) {
+			if (channels_found_11[channel]) {
+				cs11 |= 1 << channel;
+			}
+		}
 	}
 
 	samples++;
@@ -227,8 +304,10 @@ static bool dsm_guess_format(bool reset)
 		0x1ff,	/* 9 channels (DX9, etc.) */
 		0x3ff,	/* 10 channels (DX10) */
 		0x1fff,	/* 13 channels (DX10t) */
-		0x3fff	/* 18 channels (DX10) */
+		0xffff,	/* 16 channels */
+		0x3ffff,/* 18 channels (DX10) */
 	};
+
 	unsigned votes10 = 0;
 	unsigned votes11 = 0;
 
@@ -269,6 +348,10 @@ static bool dsm_guess_format(bool reset)
 
 int dsm_config(int fd)
 {
+#ifdef SPEKTRUM_POWER_CONFIG
+	// Enable power controls for Spektrum receiver
+	SPEKTRUM_POWER_CONFIG();
+#endif
 #ifdef SPEKTRUM_POWER
 	// enable power on DSM connector
 	SPEKTRUM_POWER(true);
@@ -338,6 +421,11 @@ int dsm_init(const char *device)
 
 void dsm_deinit()
 {
+#ifdef SPEKTRUM_POWER_PASSIVE
+	// Turn power controls to passive
+	SPEKTRUM_POWER_PASSIVE();
+#endif
+
 	if (dsm_fd >= 0) {
 		close(dsm_fd);
 	}
@@ -472,91 +560,6 @@ bool dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, 
 	}
 
 	/*
-	 * The second byte indicates the protocol and frame rate. We have a
-	 * guessing state machine, so we don't need to use this. At any rate,
-	 * these are the allowable values:
-	 *
-	 * 0x01 22MS 1024 DSM2
-	 * 0x12 11MS 2048 DSM2
-	 * 0xa2 22MS 2048 DSMX
-	 * 0xb2 11MS 2048 DSMX
-	 */
-	const uint8_t system = dsm_frame[1];
-
-	switch (system) {
-	case 0x00: // SURFACE DSM1
-		// unsupported
-		PX4_DEBUG("ERROR system: SURFACE DSM1 (%X) unsupported\n", system);
-		return false;
-
-	case 0x01: // DSM2 1024 22ms
-		if (dsm_channel_shift != 10) {
-			dsm_guess_format(true);
-			return false;
-		}
-
-		break;
-
-	case 0x02: // DSM2 1024 (MC24)
-		// unsupported
-		PX4_DEBUG("ERROR system: DSM2 1024 (MC24) (%X) unsupported\n", system);
-		return false;
-
-	case 0x12: // DSM2 2048 11ms
-		if (dsm_channel_shift != 11) {
-			dsm_guess_format(true);
-			return false;
-		}
-
-		break;
-
-	case 0x23: // SURFACE DSM2 16.5ms
-		// unsupported
-		PX4_DEBUG("ERROR system: DSM2 16.5ms (%X) unsupported\n", system);
-		return false;
-
-	case 0x50: // DSM MARINE
-		// unsupported
-		PX4_DEBUG("ERROR system: DSM MARINE (%X) unsupported\n", system);
-		return false;
-
-	case 0x92: // DSMJ
-		// unsupported
-		PX4_DEBUG("ERROR system: DSMJ (%X) unsupported\n", system);
-		return false;
-
-	case 0xA2: // DSMX 22ms OR DSMR 11ms or DSMR 22ms
-		if (dsm_channel_shift != 11) {
-			dsm_guess_format(true);
-			return false;
-		}
-
-		break;
-
-	case 0xA4: // DSMR 5.5ms
-		// unsupported
-		PX4_DEBUG("ERROR system: DSMR 5.5ms (%X) unsupported\n", system);
-		return false;
-
-	case 0xAE: // NOT_BOUND
-		PX4_DEBUG("ERROR system: NOT_BOUND (%X) unsupported\n", system);
-		return false;
-
-	case 0xB2: // DSMX 11ms
-		if (dsm_channel_shift != 11) {
-			dsm_guess_format(true);
-			return false;
-		}
-
-		break;
-
-	default:
-		// ERROR
-		PX4_DEBUG("ERROR system: %X unsupported\n", system);
-		return false;
-	}
-
-	/*
 	 * Each channel is a 16-bit unsigned value containing either a 10-
 	 * or 11-bit channel value and a 4-bit channel number, shifted
 	 * either 10 or 11 bits. The MSB may also be set to indicate the
@@ -564,16 +567,40 @@ bool dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, 
 	 * seven channels are being transmitted.
 	 */
 
+	px4::Bitset<DSM_MAX_CHANNEL_COUNT> channels_found;
+
+	unsigned channel_decode_failures = 0;
+
 	for (unsigned i = 0; i < DSM_FRAME_CHANNELS; i++) {
 
 		uint8_t *dp = &dsm_frame[2 + (2 * i)];
 		uint16_t raw = (dp[0] << 8) | dp[1];
 
+		// ignore
+		if (raw == 0 || raw == 0xffff) {
+			continue;
+		}
+
 		uint8_t channel = 0;
 		uint16_t value = 0;
 
 		if (!dsm_decode_channel(raw, dsm_channel_shift, channel, value)) {
+			channel_decode_failures++;
 			continue;
+		}
+
+		// discard entire frame if at least half of it (4 channels) failed to decode
+		if (channel_decode_failures >= 4) {
+			return false;
+		}
+
+		// abort if channel already found, no duplicate channels per DSM frame
+		if (channels_found[channel]) {
+			PX4_DEBUG("duplicate channel %d\n\n", channel);
+			return false;
+
+		} else {
+			channels_found.set(channel);
 		}
 
 		/* reset bit guessing state machine if the channel index is out of bounds */
@@ -615,11 +642,7 @@ bool dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, 
 			break;
 		}
 
-		// Scaling
-		//  See Specification for Spektrum Remote Receiver Interfacing Rev G 2019 January 22
-		//  2048 Mode Scaling: PWM_OUT = (ServoPosition x 0.583μs) + Offset (903μs)
-		//  scaled integer for decent accuracy while staying efficient (0.583us ~= 1194/2048)
-		values[channel] = (value * 1194) / 2048 + 903;
+		values[channel] = value;
 	}
 
 	/*
@@ -682,10 +705,12 @@ bool dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, 
  * @param[out] n_butes number of bytes read
  * @param[out] bytes pointer to the buffer of read bytes
  * @param[out] rssi value in percent, if supported, or 127
+ * @param[out] frame_drops dropped frames (indication of an unstable link)
+ * @param[in] max_values maximum number of channels the receiver can process
  * @return true=decoded raw channel values updated, false=no update
  */
 bool dsm_input(int fd, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, uint8_t *n_bytes, uint8_t **bytes,
-	       int8_t *rssi, unsigned max_values)
+	       int8_t *rssi, unsigned *frame_drops, unsigned max_values)
 {
 	/*
 	 * The S.BUS protocol doesn't provide reliable framing,
@@ -825,8 +850,11 @@ bool dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uin
 		memcpy(&values[0], &dsm_chan_buf[0], dsm_chan_count * sizeof(dsm_chan_buf[0]));
 #ifdef DSM_DEBUG
 
+		printf("PACKET ---------\n");
+		printf("frame drops: %u, chan #: %u\n", dsm_frame_drops, dsm_chan_count);
+
 		for (unsigned i = 0; i < dsm_chan_count; i++) {
-			printf("dsm_decode: %u: %u\n", i, values[i]);
+			printf("dsm_decode: #CH %02u: %u\n", i + 1, values[i]);
 		}
 
 #endif

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,55 +32,5 @@
  ****************************************************************************/
 
 /**
- *
- * Online and offline geotagging from camera feedback
- *
- * @author Mohammed Kabir <kabir@uasys.io>
+ * @file flight_mode_manager_params.c
  */
-
-#pragma once
-
-#include <lib/mathlib/mathlib.h>
-#include <lib/parameters/param.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/module_params.h>
-#include <px4_platform_common/posix.h>
-#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/camera_capture.h>
-#include <uORB/topics/camera_trigger.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_global_position.h>
-
-class CameraFeedback : public ModuleBase<CameraFeedback>, public ModuleParams, public px4::WorkItem
-{
-public:
-	CameraFeedback();
-	~CameraFeedback() override = default;
-
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
-
-	bool init();
-
-private:
-
-	void Run() override;
-
-	uORB::SubscriptionCallbackWorkItem _trigger_sub{this, ORB_ID(camera_trigger)};
-
-	uORB::Subscription	_gpos_sub{ORB_ID(vehicle_global_position)};
-	uORB::Subscription	_att_sub{ORB_ID(vehicle_attitude)};
-
-	uORB::Publication<camera_capture_s>	_capture_pub{ORB_ID(camera_capture)};
-};

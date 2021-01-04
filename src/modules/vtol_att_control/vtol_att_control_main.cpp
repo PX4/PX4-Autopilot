@@ -242,6 +242,7 @@ VtolAttitudeControl::parameters_update()
 
 	/* vtol motor count */
 	param_get(_params_handles.vtol_motor_id, &_params.vtol_motor_id);
+	param_get(_params_handles.fw_motors_off, &_params.fw_motors_off);
 
 	/* vtol fw permanent stabilization */
 	param_get(_params_handles.vtol_fw_permanent_stab, &l);
@@ -294,7 +295,6 @@ VtolAttitudeControl::parameters_update()
 	_params.airspeed_disabled = l != 0;
 	param_get(_params_handles.front_trans_timeout, &_params.front_trans_timeout);
 	param_get(_params_handles.mpc_xy_cruise, &_params.mpc_xy_cruise);
-	param_get(_params_handles.fw_motors_off, &_params.fw_motors_off);
 	param_get(_params_handles.diff_thrust, &_params.diff_thrust);
 
 	param_get(_params_handles.diff_thrust_scale, &v);

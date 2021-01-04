@@ -58,6 +58,9 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+#include <drivers/drv_hrt.h>
+
+using namespace time_literals;
 
 Mission::Mission(Navigator *navigator) :
 	MissionBlock(navigator),
@@ -72,6 +75,12 @@ Mission::on_inactive()
 	 * mission velocity which might have been set using mission items
 	 * is used for missions such as RTL. */
 	_navigator->set_cruising_speed();
+
+	// if we were executing an landing but have been inactive for 2 seconds, then make the landing invalid
+	// this prevents RTL to just continue at the current mission index
+	if (_navigator->getMissionLandingInProgress() && (hrt_absolute_time() - _time_mission_deactivated) > 2_s) {
+		_navigator->setMissionLandingInProgress(false);
+	}
 
 	/* Without home a mission can't be valid yet anyway, let's wait. */
 	if (!_navigator->home_position_valid()) {
@@ -147,6 +156,11 @@ Mission::on_inactivation()
 	if (_navigator->get_precland()->is_activated()) {
 		_navigator->get_precland()->on_inactivation();
 	}
+
+	_time_mission_deactivated = hrt_absolute_time();
+
+	/* reset so current mission item gets restarted if mission was paused */
+	_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 }
 
 void
@@ -377,6 +391,10 @@ Mission::find_mission_land_start()
 	struct mission_item_s missionitem = {};
 	struct mission_item_s missionitem_prev = {}; //to store mission item before currently checked on, needed to get pos of wp before NAV_CMD_DO_LAND_START
 
+	_land_start_available = false;
+
+	bool found_land_start_marker = false;
+
 	for (size_t i = 1; i < _mission.count; i++) {
 		const ssize_t len = sizeof(missionitem);
 		missionitem_prev = missionitem; // store the last mission item before reading a new one
@@ -387,33 +405,42 @@ Mission::find_mission_land_start()
 			break;
 		}
 
-		// first check for DO_LAND_START marker
-		if ((missionitem.nav_cmd == NAV_CMD_DO_LAND_START) && (missionitem_prev.nav_cmd == NAV_CMD_WAYPOINT)) {
-
-			_land_start_available = true;
+		if (missionitem.nav_cmd == NAV_CMD_DO_LAND_START) {
+			found_land_start_marker = true;
 			_land_start_index = i;
-			// the DO_LAND_START marker contains no position sp, so take them from the previous mission item
-			_landing_lat = missionitem_prev.lat;
-			_landing_lon = missionitem_prev.lon;
-			_landing_alt = missionitem_prev.altitude;
-			return true;
+		}
 
-			// if no DO_LAND_START marker available, also check for VTOL_LAND or normal LAND
-
-		} else if (((missionitem.nav_cmd == NAV_CMD_VTOL_LAND) && _navigator->get_vstatus()->is_vtol) ||
-			   (missionitem.nav_cmd == NAV_CMD_LAND)) {
-
+		if (found_land_start_marker && !_land_start_available && i > _land_start_index
+		    && item_contains_position(missionitem)) {
+			// use the position of any waypoint after the land start marker which specifies a position.
+			_landing_start_lat = missionitem.lat;
+			_landing_start_lon = missionitem.lon;
+			_landing_start_alt = missionitem.altitude_is_relative ?	missionitem.altitude +
+					     _navigator->get_home_position()->alt : missionitem.altitude;
 			_land_start_available = true;
-			_land_start_index = i;
+		}
+
+		if (((missionitem.nav_cmd == NAV_CMD_VTOL_LAND) && _navigator->get_vstatus()->is_vtol) ||
+		    (missionitem.nav_cmd == NAV_CMD_LAND)) {
+
 			_landing_lat = missionitem.lat;
 			_landing_lon = missionitem.lon;
-			_landing_alt = missionitem.altitude;
-			return true;
+			_landing_alt = missionitem.altitude_is_relative ?	missionitem.altitude + _navigator->get_home_position()->alt :
+				       missionitem.altitude;
+
+			// don't have a valid land start yet, use the landing item itself then
+			if (!_land_start_available) {
+				_land_start_index = i;
+				_landing_start_lat = _landing_lat;
+				_landing_start_lon = _landing_lon;
+				_landing_start_alt = _landing_alt;
+				_land_start_available = true;
+			}
+
 		}
 	}
 
-	_land_start_available = false;
-	return false;
+	return _land_start_available;
 }
 
 bool
@@ -421,12 +448,15 @@ Mission::land_start()
 {
 	// if not currently landing, jump to do_land_start
 	if (_land_start_available) {
-		if (landing()) {
+		if (_navigator->getMissionLandingInProgress()) {
 			return true;
 
 		} else {
 			set_current_mission_index(get_land_start_index());
-			return landing();
+
+			const bool can_land_now = landing();
+			_navigator->setMissionLandingInProgress(can_land_now);
+			return can_land_now;
 		}
 	}
 
@@ -798,17 +828,10 @@ Mission::set_mission_items()
 					}
 
 					set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+					_mission_item.yaw = _navigator->get_local_position()->heading;
 
-					if (has_next_position_item) {
-						/* got next mission item, update setpoint triplet */
-						mission_item_to_position_setpoint(mission_item_next_position, &pos_sp_triplet->current);
-
-					} else {
-						_mission_item.yaw = _navigator->get_local_position()->heading;
-
-						/* set position setpoint to target during the transition */
-						generate_waypoint_from_heading(&pos_sp_triplet->current, _mission_item.yaw);
-					}
+					/* set position setpoint to target during the transition */
+					generate_waypoint_from_heading(&pos_sp_triplet->current, _mission_item.yaw);
 				}
 
 				/* takeoff completed and transitioned, move to takeoff wp as fixed wing */
@@ -860,6 +883,10 @@ Mission::set_mission_items()
 					_mission_item.altitude_is_relative = false;
 
 					new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION;
+
+					// make previous setpoint invalid, such that there will be no prev-current line following
+					// if the vehicle drifted off the path during back-transition it should just go straight to the landing point
+					pos_sp_triplet->previous.valid = false;
 				}
 
 				/* move to landing waypoint before descent if necessary */
@@ -893,6 +920,10 @@ Mission::set_mission_items()
 					_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 					_mission_item.autocontinue = true;
 					_mission_item.time_inside = 0.0f;
+
+					// make previous setpoint invalid, such that there will be no prev-current line following.
+					// if the vehicle drifted off the path during back-transition it should just go straight to the landing point
+					pos_sp_triplet->previous.valid = false;
 
 				} else if (_mission_item.nav_cmd == NAV_CMD_LAND && _work_item_type == WORK_ITEM_TYPE_DEFAULT) {
 					if (_mission_item.land_precision > 0 && _mission_item.land_precision < 3) {
@@ -1632,6 +1663,11 @@ Mission::set_mission_item_reached()
 {
 	_navigator->get_mission_result()->seq_reached = _current_mission_index;
 	_navigator->set_mission_result_updated();
+
+	// let the navigator know that we are currently executing the mission landing.
+	// Using the method landing() itself is not accurate as it only give information about the mission index
+	// but the vehicle could still be very far from the actual landing items
+	_navigator->setMissionLandingInProgress(landing());
 
 	reset_mission_item_reached();
 }
