@@ -178,8 +178,6 @@ private:
 
 	VehicleIMU      *_vehicle_imu_list[MAX_SENSOR_COUNT] {};
 
-	int _lockstep_component{-1};
-
 	/**
 	 * Update our local parameter cache.
 	 */
@@ -282,8 +280,6 @@ Sensors::~Sensors()
 	}
 
 	perf_free(_loop_perf);
-
-	px4_lockstep_unregister_component(_lockstep_component);
 }
 
 bool Sensors::init()
@@ -625,12 +621,6 @@ void Sensors::Run()
 		// check parameters for updates
 		parameter_update_poll();
 	}
-
-	if (_lockstep_component == -1) {
-		_lockstep_component = px4_lockstep_register_component();
-	}
-
-	px4_lockstep_progress(_lockstep_component);
 
 	perf_end(_loop_perf);
 }
