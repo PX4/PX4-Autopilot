@@ -33,17 +33,21 @@
 
 #pragma once
 
+#include "FlightTask.hpp"
+#include "FlightTasks_generated.hpp"
+
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/flight_tasks/FlightTasks.hpp>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -52,10 +56,18 @@
 
 #include "Takeoff/Takeoff.hpp"
 
+#include <new>
+
+enum class FlightTaskError : int {
+	NoError = 0,
+	InvalidTask = -1,
+	ActivationFailed = -2
+};
+
 class FlightModeManager : public ModuleBase<FlightModeManager>, public ModuleParams, public px4::WorkItem
 {
 public:
-	FlightModeManager(bool vtol = false);
+	FlightModeManager();
 	~FlightModeManager() override;
 
 	/** @see ModuleBase */
@@ -82,31 +94,67 @@ private:
 	void limitAltitude(vehicle_local_position_setpoint_s &setpoint, const vehicle_local_position_s &vehicle_local_position);
 	void reset_setpoint_to_nan(vehicle_local_position_setpoint_s &setpoint);
 
+	/**
+	 * Switch to a specific task (for normal usage)
+	 * @param task index to switch to
+	 * @return 0 on success, <0 on error
+	 */
+	FlightTaskError switchTask(FlightTaskIndex new_task_index);
+	FlightTaskError switchTask(int new_task_index);
+
+	/**
+	 * Call this method to get the description of a task error.
+	 */
+	const char *errorToString(const FlightTaskError error);
+
+	/**
+	 * Check if any task is active
+	 * @return true if a task is active, false if not
+	 */
+	bool isAnyTaskActive() const { return _current_task.task; }
+
+	// generated
+	int _initTask(FlightTaskIndex task_index);
+	FlightTaskIndex switchVehicleCommand(const int command);
+
 	static constexpr int NUM_FAILURE_TRIES = 10; ///< number of tries before switching to a failsafe flight task
 
-	FlightTasks _flight_tasks; ///< class generating position control setpoints depending on vehicle task
+	/**
+	 * Union with all existing tasks: we use it to make sure that only the memory of the largest existing
+	 * task is needed, and to avoid using dynamic memory allocations.
+	 */
+	TaskUnion _task_union; /**< storage for the currently active task */
+
+	struct flight_task_t {
+		FlightTask *task{nullptr};
+		FlightTaskIndex index{FlightTaskIndex::None};
+	} _current_task{};
+
 	Takeoff _takeoff; ///< state machine and ramp to bring the vehicle off the ground without a jump
 	WeatherVane *_wv_controller{nullptr};
 	int8_t _old_landing_gear_position{landing_gear_s::GEAR_KEEP};
 	int _task_failure_count{0};
 	uint8_t _last_vehicle_nav_state{0};
 
-	perf_counter_t _loop_perf; ///< loop duration performance counter
+	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")}; ///< loop duration performance counter
 	hrt_abstime _time_stamp_last_loop{0}; ///< time stamp of last loop iteration
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::SubscriptionData<home_position_s> _home_position_sub{ORB_ID(home_position)};
 	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
+	uORB::SubscriptionData<home_position_s> _home_position_sub{ORB_ID(home_position)};
 	uORB::SubscriptionData<vehicle_control_mode_s> _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::SubscriptionData<vehicle_land_detected_s> _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
-	uORB::SubscriptionData<vehicle_local_position_setpoint_s> _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
+
 	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	uORB::Publication<landing_gear_s> _landing_gear_pub{ORB_ID(landing_gear)};
 	uORB::Publication<vehicle_local_position_setpoint_s> _trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
 	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 	uORB::Publication<vehicle_constraints_s> _vehicle_constraints_pub{ORB_ID(vehicle_constraints)};
 
 	DEFINE_PARAMETERS(

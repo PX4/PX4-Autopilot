@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
-#include <flight_tasks/tasks/AutoLineSmoothVel/TrajectoryConstraints.hpp>
+
+#include "TrajectoryConstraints.hpp"
 
 using namespace matrix;
 using namespace math::trajectory;
