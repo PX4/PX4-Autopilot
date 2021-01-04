@@ -305,7 +305,7 @@ SquareMatrix<Type, M> expm(const Matrix<Type, M, M> & A, size_t order=5)
  * inverse based on LU factorization with partial pivotting
  */
 template<typename Type, size_t M>
-bool inv(const SquareMatrix<Type, M> & A, SquareMatrix<Type, M> & inv)
+bool inv(const SquareMatrix<Type, M> & A, SquareMatrix<Type, M> & inv, size_t rank = M)
 {
     SquareMatrix<Type, M> L;
     L.setIdentity();
@@ -316,12 +316,12 @@ bool inv(const SquareMatrix<Type, M> & A, SquareMatrix<Type, M> & inv)
     //printf("A:\n"); A.print();
 
     // for all diagonal elements
-    for (size_t n = 0; n < M; n++) {
+    for (size_t n = 0; n < rank; n++) {
 
         // if diagonal is zero, swap with row below
         if (fabs(static_cast<float>(U(n, n))) < FLT_EPSILON) {
             //printf("trying pivot for row %d\n",n);
-            for (size_t i = n + 1; i < M; i++) {
+            for (size_t i = n + 1; i < rank; i++) {
 
                 //printf("\ttrying row %d\n",i);
                 if (fabs(static_cast<float>(U(i, n))) > 1e-8f) {
@@ -349,12 +349,12 @@ bool inv(const SquareMatrix<Type, M> & A, SquareMatrix<Type, M> & inv)
         }
 
         // for all rows below diagonal
-        for (size_t i = (n + 1); i < M; i++) {
+        for (size_t i = (n + 1); i < rank; i++) {
             L(i, n) = U(i, n) / U(n, n);
 
             // add i-th row and n-th row
             // multiplied by: -a(i,n)/a(n,n)
-            for (size_t k = n; k < M; k++) {
+            for (size_t k = n; k < rank; k++) {
                 U(i, k) -= L(i, n) * U(n, k);
             }
         }
@@ -367,9 +367,9 @@ bool inv(const SquareMatrix<Type, M> & A, SquareMatrix<Type, M> & inv)
     //SquareMatrix<Type, M> Y = P;
 
     // for all columns of Y
-    for (size_t c = 0; c < M; c++) {
+    for (size_t c = 0; c < rank; c++) {
         // for all rows of L
-        for (size_t i = 0; i < M; i++) {
+        for (size_t i = 0; i < rank; i++) {
             // for all columns of L
             for (size_t j = 0; j < i; j++) {
                 // for all existing y
@@ -392,14 +392,14 @@ bool inv(const SquareMatrix<Type, M> & A, SquareMatrix<Type, M> & inv)
     //SquareMatrix<Type, M> X = Y;
 
     // for all columns of X
-    for (size_t c = 0; c < M; c++) {
+    for (size_t c = 0; c < rank; c++) {
         // for all rows of U
-        for (size_t k = 0; k < M; k++) {
+        for (size_t k = 0; k < rank; k++) {
             // have to go in reverse order
-            size_t i = M - 1 - k;
+            size_t i = rank - 1 - k;
 
             // for all columns of U
-            for (size_t j = i + 1; j < M; j++) {
+            for (size_t j = i + 1; j < rank; j++) {
                 // for all existing x
                 // subtract the component they
                 // contribute to the solution
@@ -416,8 +416,8 @@ bool inv(const SquareMatrix<Type, M> & A, SquareMatrix<Type, M> & inv)
     }
 
     //check sanity of results
-    for (size_t i = 0; i < M; i++) {
-        for (size_t j = 0; j < M; j++) {
+    for (size_t i = 0; i < rank; i++) {
+        for (size_t j = 0; j < rank; j++) {
             if (!is_finite(P(i,j))) {
                 return false;
             }

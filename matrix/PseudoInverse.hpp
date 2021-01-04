@@ -4,6 +4,7 @@
  * Implementation of matrix pseudo inverse
  *
  * @author Julien Lecoeur <julien.lecoeur@gmail.com>
+ * @author Julian Kent <julian@auterion.com>
  */
 
 #pragma once
@@ -12,17 +13,6 @@
 
 namespace matrix
 {
-
-/**
- * Full rank Cholesky factorization of A
- */
-template<typename Type, size_t N>
-SquareMatrix<Type, N> fullRankCholesky(const SquareMatrix<Type, N> & A, size_t& rank);
-
-/**
- * Geninv implementation detail
- */
-template<typename Type, size_t M, size_t N, size_t R> class GeninvImpl;
 
 /**
  * Geninv
@@ -38,18 +28,84 @@ Matrix<Type, N, M> geninv(const Matrix<Type, M, N> & G)
         SquareMatrix<Type, M> A = G * G.transpose();
         SquareMatrix<Type, M> L = fullRankCholesky(A, rank);
 
-        return GeninvImpl<Type, M, N, M>::genInvUnderdetermined(G, L, rank);
+        SquareMatrix<Type, M> LtL = L.transpose() * L;
+        SquareMatrix<Type, M> X;
+        if (!inv(LtL, X, rank)) {
+            return Matrix<Type, N, M>(); // LCOV_EXCL_LINE -- this can only be hit from numerical issues
+        }
+        return G.transpose() * L * X * X * L.transpose();
 
     } else {
         SquareMatrix<Type, N> A = G.transpose() * G;
         SquareMatrix<Type, N> L = fullRankCholesky(A, rank);
 
-        return GeninvImpl<Type, M, N, N>::genInvOverdetermined(G, L, rank);
+        SquareMatrix<Type, N> LtL = L.transpose() * L;
+        SquareMatrix<Type, N> X;
+        if(!inv(LtL, X, rank)) {
+            return Matrix<Type, N, M>(); // LCOV_EXCL_LINE -- this can only be hit from numerical issues
+        }
+        return L * X * X * L.transpose() * G.transpose();
     }
 }
 
 
-#include "PseudoInverse.hxx"
+template<typename Type>
+Type typeEpsilon();
+
+template<> inline
+float typeEpsilon<float>()
+{
+    return FLT_EPSILON;
+}
+
+/**
+ * Full rank Cholesky factorization of A
+ */
+template<typename Type, size_t N>
+SquareMatrix<Type, N> fullRankCholesky(const SquareMatrix<Type, N> & A,
+                                       size_t& rank)
+{
+    // Loses one ulp accuracy per row of diag, relative to largest magnitude
+    const Type tol = N * typeEpsilon<Type>() * A.diag().max();
+
+    Matrix<Type, N, N> L;
+
+    size_t r = 0;
+    for (size_t k = 0; k < N; k++) {
+
+        if (r == 0) {
+            for (size_t i = k; i < N; i++) {
+                L(i, r) = A(i, k);
+            }
+
+        } else {
+            for (size_t i = k; i < N; i++) {
+                // Compute LL = L[k:n, :r] * L[k, :r].T
+                Type LL = Type();
+                for (size_t j = 0; j < r; j++) {
+                    LL += L(i, j) * L(k, j);
+                }
+                L(i, r) = A(i, k) - LL;
+            }
+        }
+        if (L(k, r) > tol) {
+            L(k, r) = sqrt(L(k, r));
+
+            if (k < N - 1) {
+                for (size_t i = k + 1; i < N; i++) {
+                    L(i, r) = L(i, r) / L(k, r);
+                }
+            }
+
+            r = r + 1;
+        }
+    }
+
+    // Return rank
+    rank = r;
+
+    return L;
+}
 
 } // namespace matrix
 
