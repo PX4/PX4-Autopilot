@@ -38,21 +38,28 @@
 
 using namespace time_literals;
 
-FlightModeManager::FlightModeManager(bool vtol) :
+FlightModeManager::FlightModeManager() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
-	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
+	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
-	if (vtol) {
-		// if vehicle is a VTOL we want to enable weathervane capabilities
-		_wv_controller = new WeatherVane();
+	updateParams();
+
+	// initialize all flight-tasks
+	// currently this is required to get all parameters read
+	for (int i = 0; i < static_cast<int>(FlightTaskIndex::Count); i++) {
+		_initTask(static_cast<FlightTaskIndex>(i));
 	}
 
-	updateParams();
+	// disable all tasks
+	_initTask(FlightTaskIndex::None);
 }
 
 FlightModeManager::~FlightModeManager()
 {
+	if (_current_task.task) {
+		_current_task.task->~FlightTask();
+	}
+
 	delete _wv_controller;
 	perf_free(_loop_perf);
 }
@@ -100,8 +107,13 @@ void FlightModeManager::Run()
 		_home_position_sub.update();
 		_vehicle_control_mode_sub.update();
 		_vehicle_land_detected_sub.update();
-		_vehicle_local_position_setpoint_sub.update();
-		_vehicle_status_sub.update();
+
+		if (_vehicle_status_sub.update()) {
+			if (_vehicle_status_sub.get().is_vtol && (_wv_controller == nullptr)) {
+				// if vehicle is a VTOL we want to enable weathervane capabilities
+				_wv_controller = new WeatherVane();
+			}
+		}
 
 		// an update is necessary here because otherwise the takeoff state doesn't get skiped with non-altitude-controlled modes
 		_takeoff.updateTakeoffState(_vehicle_control_mode_sub.get().flag_armed, _vehicle_land_detected_sub.get().landed, false,
@@ -129,7 +141,7 @@ void FlightModeManager::Run()
 
 		start_flight_task();
 
-		if (_flight_tasks.isAnyTaskActive()) {
+		if (isAnyTaskActive()) {
 			generateTrajectorySetpoint(dt, vehicle_local_position);
 		}
 
@@ -141,7 +153,10 @@ void FlightModeManager::Run()
 void FlightModeManager::updateParams()
 {
 	ModuleParams::updateParams();
-	_flight_tasks.handleParameterUpdate();
+
+	if (isAnyTaskActive()) {
+		_current_task.task->handleParameterUpdate();
+	}
 
 	_takeoff.setSpoolupTime(_param_mpc_spoolup_time.get());
 	_takeoff.setTakeoffRampTime(_param_mpc_tko_ramp_t.get());
@@ -160,7 +175,7 @@ void FlightModeManager::start_flight_task()
 
 	// Do not run any flight task for VTOLs in fixed-wing mode
 	if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-		_flight_tasks.switchTask(FlightTaskIndex::None);
+		switchTask(FlightTaskIndex::None);
 		return;
 	}
 
@@ -168,18 +183,18 @@ void FlightModeManager::start_flight_task()
 	// exclude Orbit mode since the task is initiated in FlightTasks through the vehicle_command and we should not switch out
 	if (_last_vehicle_nav_state != _vehicle_status_sub.get().nav_state
 	    && _vehicle_status_sub.get().nav_state != vehicle_status_s::NAVIGATION_STATE_ORBIT) {
-		_flight_tasks.switchTask(FlightTaskIndex::None);
+		switchTask(FlightTaskIndex::None);
 	}
 
 	// Only run transition flight task if altitude control is enabled (e.g. in Altitdue, Position, Auto flight mode)
 	if (_vehicle_status_sub.get().in_transition_mode && _vehicle_control_mode_sub.get().flag_control_altitude_enabled) {
 
 		should_disable_task = false;
-		FlightTaskError error = _flight_tasks.switchTask(FlightTaskIndex::Transition);
+		FlightTaskError error = switchTask(FlightTaskIndex::Transition);
 
 		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
-				PX4_WARN("Transition activation failed with error: %s", _flight_tasks.errorToString(error));
+				PX4_WARN("Transition activation failed with error: %s", errorToString(error));
 			}
 
 			task_failure = true;
@@ -202,11 +217,11 @@ void FlightModeManager::start_flight_task()
 		_vehicle_control_mode_sub.get().flag_control_acceleration_enabled)) {
 
 		should_disable_task = false;
-		FlightTaskError error = _flight_tasks.switchTask(FlightTaskIndex::Offboard);
+		FlightTaskError error = switchTask(FlightTaskIndex::Offboard);
 
 		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
-				PX4_WARN("Offboard activation failed with error: %s", _flight_tasks.errorToString(error));
+				PX4_WARN("Offboard activation failed with error: %s", errorToString(error));
 			}
 
 			task_failure = true;
@@ -221,11 +236,11 @@ void FlightModeManager::start_flight_task()
 	// Auto-follow me
 	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) {
 		should_disable_task = false;
-		FlightTaskError error = _flight_tasks.switchTask(FlightTaskIndex::AutoFollowMe);
+		FlightTaskError error = switchTask(FlightTaskIndex::AutoFollowMe);
 
 		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
-				PX4_WARN("Follow-Me activation failed with error: %s", _flight_tasks.errorToString(error));
+				PX4_WARN("Follow-Me activation failed with error: %s", errorToString(error));
 			}
 
 			task_failure = true;
@@ -241,11 +256,11 @@ void FlightModeManager::start_flight_task()
 		should_disable_task = false;
 		FlightTaskError error = FlightTaskError::NoError;
 
-		error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLineSmoothVel);
+		error = switchTask(FlightTaskIndex::AutoLineSmoothVel);
 
 		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
-				PX4_WARN("Auto activation failed with error: %s", _flight_tasks.errorToString(error));
+				PX4_WARN("Auto activation failed with error: %s", errorToString(error));
 			}
 
 			task_failure = true;
@@ -262,11 +277,11 @@ void FlightModeManager::start_flight_task()
 		should_disable_task = false;
 		FlightTaskError error = FlightTaskError::NoError;
 
-		error =  _flight_tasks.switchTask(FlightTaskIndex::Descend);
+		error = switchTask(FlightTaskIndex::Descend);
 
 		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
-				PX4_WARN("Descend activation failed with error: %s", _flight_tasks.errorToString(error));
+				PX4_WARN("Descend activation failed with error: %s", errorToString(error));
 			}
 
 			task_failure = true;
@@ -286,22 +301,22 @@ void FlightModeManager::start_flight_task()
 
 		switch (_param_mpc_pos_mode.get()) {
 		case 0:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPosition);
+			error = switchTask(FlightTaskIndex::ManualPosition);
 			break;
 
 		case 3:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPositionSmoothVel);
+			error = switchTask(FlightTaskIndex::ManualPositionSmoothVel);
 			break;
 
 		case 4:
 		default:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAcceleration);
+			error = switchTask(FlightTaskIndex::ManualAcceleration);
 			break;
 		}
 
 		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
-				PX4_WARN("Position-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
+				PX4_WARN("Position-Ctrl activation failed with error: %s", errorToString(error));
 			}
 
 			task_failure = true;
@@ -320,18 +335,18 @@ void FlightModeManager::start_flight_task()
 
 		switch (_param_mpc_pos_mode.get()) {
 		case 0:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitude);
+			error = switchTask(FlightTaskIndex::ManualAltitude);
 			break;
 
 		case 3:
 		default:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitudeSmoothVel);
+			error = switchTask(FlightTaskIndex::ManualAltitudeSmoothVel);
 			break;
 		}
 
 		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
-				PX4_WARN("Altitude-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
+				PX4_WARN("Altitude-Ctrl activation failed with error: %s", errorToString(error));
 			}
 
 			task_failure = true;
@@ -352,15 +367,15 @@ void FlightModeManager::start_flight_task()
 
 		// for some reason no flighttask was able to start.
 		// go into failsafe flighttask
-		FlightTaskError error = _flight_tasks.switchTask(FlightTaskIndex::Failsafe);
+		FlightTaskError error = switchTask(FlightTaskIndex::Failsafe);
 
 		if (error != FlightTaskError::NoError) {
 			// No task was activated.
-			_flight_tasks.switchTask(FlightTaskIndex::None);
+			switchTask(FlightTaskIndex::None);
 		}
 
 	} else if (should_disable_task) {
-		_flight_tasks.switchTask(FlightTaskIndex::None);
+		switchTask(FlightTaskIndex::None);
 	}
 
 	_last_vehicle_nav_state = _vehicle_status_sub.get().nav_state;
@@ -383,7 +398,6 @@ void FlightModeManager::check_failure(bool task_failure, uint8_t nav_state)
 void FlightModeManager::send_vehicle_cmd_do(uint8_t nav_state)
 {
 	vehicle_command_s command{};
-	command.timestamp = hrt_absolute_time();
 	command.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
 	command.param1 = (float)1; // base mode
 	command.param3 = (float)0; // sub mode
@@ -415,29 +429,78 @@ void FlightModeManager::send_vehicle_cmd_do(uint8_t nav_state)
 	}
 
 	// publish the vehicle command
+	command.timestamp = hrt_absolute_time();
 	_vehicle_command_pub.publish(command);
 }
 
 void FlightModeManager::generateTrajectorySetpoint(const float dt,
 		const vehicle_local_position_s &vehicle_local_position)
 {
+	// In case flight task was not able to update correctly we send the empty setpoint which makes the position controller failsafe.
+	if (_vehicle_command_sub.updated()) {
+		// get command
+		vehicle_command_s command{};
+		_vehicle_command_sub.copy(&command);
+
+		// check what command it is
+		FlightTaskIndex desired_task = switchVehicleCommand(command.command);
+
+		// ignore all unkown commands
+		if (desired_task != FlightTaskIndex::None) {
+			// switch to the commanded task
+			FlightTaskError switch_result = switchTask(desired_task);
+			uint8_t cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
+
+			// if we are in/switched to the desired task
+			if (switch_result >= FlightTaskError::NoError) {
+				cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+
+				// if the task is running apply parameters to it and see if it rejects
+				if (isAnyTaskActive() && !_current_task.task->applyCommandParameters(command)) {
+					cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
+
+					// if we just switched and parameters are not accepted, go to failsafe
+					if (switch_result >= FlightTaskError::NoError) {
+						switchTask(FlightTaskIndex::ManualPosition);
+						cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
+					}
+				}
+			}
+
+			// send back acknowledgment
+			vehicle_command_ack_s command_ack{};
+			command_ack.command = command.command;
+			command_ack.result = cmd_result;
+			command_ack.result_param1 = static_cast<int>(switch_result);
+			command_ack.target_system = command.source_system;
+			command_ack.target_component = command.source_component;
+			command_ack.timestamp = hrt_absolute_time();
+			_vehicle_command_ack_pub.publish(command_ack);
+		}
+	}
+
+
+	_current_task.task->setYawHandler(_wv_controller);
+
 	// Inform FlightTask about the input and output of the velocity controller
 	// This is used to properly initialize the velocity setpoint when onpening the position loop (position unlock)
-	_flight_tasks.updateVelocityControllerIO(Vector3f(_vehicle_local_position_setpoint_sub.get().vx,
-			_vehicle_local_position_setpoint_sub.get().vy, _vehicle_local_position_setpoint_sub.get().vz),
-			Vector3f(_vehicle_local_position_setpoint_sub.get().acceleration));
+	if (_vehicle_local_position_setpoint_sub.updated()) {
+		vehicle_local_position_setpoint_s vehicle_local_position_setpoint;
+
+		if (_vehicle_local_position_setpoint_sub.copy(&vehicle_local_position_setpoint)) {
+			const Vector3f vel_sp{vehicle_local_position_setpoint.vx, vehicle_local_position_setpoint.vy, vehicle_local_position_setpoint.vz};
+			const Vector3f thrust_sp{vehicle_local_position_setpoint.acceleration};
+			_current_task.task->updateVelocityControllerIO(vel_sp, thrust_sp);
+		}
+	}
+
+	if (_current_task.task->updateInitialize() && _current_task.task->update() && _current_task.task->updateFinalize()) {
+		// updated
+	}
 
 	// setpoints and constraints for the position controller from flighttask or failsafe
-	vehicle_local_position_setpoint_s setpoint = FlightTask::empty_setpoint;
-	vehicle_constraints_s constraints = FlightTask::empty_constraints;
-
-	_flight_tasks.setYawHandler(_wv_controller);
-
-	// In case flight task was not able to update correctly we send the empty setpoint which makes the position controller failsafe.
-	if (_flight_tasks.update()) {
-		setpoint = _flight_tasks.getPositionSetpoint();
-		constraints = _flight_tasks.getConstraints();
-	}
+	vehicle_local_position_setpoint_s setpoint = _current_task.task->getPositionSetpoint();
+	vehicle_constraints_s constraints = _current_task.task->getConstraints();
 
 	// limit altitude according to land detector
 	limitAltitude(setpoint, vehicle_local_position);
@@ -456,7 +519,15 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 		constraints.reset_integral = true;
 	}
 
+	if (not_taken_off) {
+		// reactivate the task which will reset the setpoint to current state
+		_current_task.task->reActivate();
+	}
+
+
+	setpoint.timestamp = hrt_absolute_time();
 	_trajectory_setpoint_pub.publish(setpoint);
+
 
 	// Allow ramping from zero thrust on takeoff
 	if (flying) {
@@ -484,21 +555,18 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 				    _time_stamp_last_loop);
 	constraints.speed_up = _takeoff.updateRamp(dt, constraints.speed_up);
 
-	constraints.flight_task = _flight_tasks.getActiveTask();
+	constraints.flight_task = static_cast<uint32_t>(_current_task.index);
+	constraints.timestamp = hrt_absolute_time();
 	_vehicle_constraints_pub.publish(constraints);
 
-	if (not_taken_off) {
-		// reactivate the task which will reset the setpoint to current state
-		_flight_tasks.reActivate();
-	}
 
 	// if there's any change in landing gear setpoint publish it
-	landing_gear_s landing_gear = _flight_tasks.getGear();
+	landing_gear_s landing_gear = _current_task.task->getGear();
 
 	if (landing_gear.landing_gear != _old_landing_gear_position
 	    && landing_gear.landing_gear != landing_gear_s::GEAR_KEEP) {
 
-		landing_gear.timestamp = _time_stamp_last_loop;
+		landing_gear.timestamp = hrt_absolute_time();
 		_landing_gear_pub.publish(landing_gear);
 	}
 
@@ -533,17 +601,73 @@ void FlightModeManager::reset_setpoint_to_nan(vehicle_local_position_setpoint_s 
 	setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = NAN;
 }
 
-int FlightModeManager::task_spawn(int argc, char *argv[])
+FlightTaskError FlightModeManager::switchTask(FlightTaskIndex new_task_index)
 {
-	bool vtol = false;
-
-	if (argc > 1) {
-		if (strcmp(argv[1], "vtol") == 0) {
-			vtol = true;
-		}
+	// switch to the running task, nothing to do
+	if (new_task_index == _current_task.index) {
+		return FlightTaskError::NoError;
 	}
 
-	FlightModeManager *instance = new FlightModeManager(vtol);
+	// Save current setpoints for the next FlightTask
+	vehicle_local_position_setpoint_s last_setpoint{};
+	ekf_reset_counters_s last_reset_counters = FlightTask::zero_reset_counters;
+
+	if (isAnyTaskActive()) {
+		last_setpoint = _current_task.task->getPositionSetpoint();
+		last_reset_counters = _current_task.task->getResetCounters();
+	}
+
+	if (_initTask(new_task_index)) {
+		// invalid task
+		return FlightTaskError::InvalidTask;
+	}
+
+	if (!isAnyTaskActive()) {
+		// no task running
+		return FlightTaskError::NoError;
+	}
+
+	// activation failed
+	if (!_current_task.task->updateInitialize() || !_current_task.task->activate(last_setpoint)) {
+		_current_task.task->~FlightTask();
+		_current_task.task = nullptr;
+		_current_task.index = FlightTaskIndex::None;
+		return FlightTaskError::ActivationFailed;
+	}
+
+	_current_task.task->setResetCounters(last_reset_counters);
+
+	return FlightTaskError::NoError;
+}
+
+FlightTaskError FlightModeManager::switchTask(int new_task_index)
+{
+	// make sure we are in range of the enumeration before casting
+	if (static_cast<int>(FlightTaskIndex::None) <= new_task_index &&
+	    static_cast<int>(FlightTaskIndex::Count) > new_task_index) {
+		return switchTask(FlightTaskIndex(new_task_index));
+	}
+
+	switchTask(FlightTaskIndex::None);
+	return FlightTaskError::InvalidTask;
+}
+
+const char *FlightModeManager::errorToString(const FlightTaskError error)
+{
+	switch (error) {
+	case FlightTaskError::NoError: return "No Error";
+
+	case FlightTaskError::InvalidTask: return "Invalid Task ";
+
+	case FlightTaskError::ActivationFailed: return "Activation Failed";
+	}
+
+	return "This error is not mapped to a string or is unknown.";
+}
+
+int FlightModeManager::task_spawn(int argc, char *argv[])
+{
+	FlightModeManager *instance = new FlightModeManager();
 
 	if (instance) {
 		_object.store(instance);
@@ -571,8 +695,8 @@ int FlightModeManager::custom_command(int argc, char *argv[])
 
 int FlightModeManager::print_status()
 {
-	if (_flight_tasks.isAnyTaskActive()) {
-		PX4_INFO("Running, active flight task: %i", _flight_tasks.getActiveTask());
+	if (isAnyTaskActive()) {
+		PX4_INFO("Running, active flight task: %i", static_cast<uint32_t>(_current_task.index));
 
 	} else {
 		PX4_INFO("Running, no flight task active");
@@ -598,7 +722,6 @@ and outputs setpoints for controllers.
 
 	PRINT_MODULE_USAGE_NAME("flight_mode_manager", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_ARG("vtol", "VTOL mode", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;

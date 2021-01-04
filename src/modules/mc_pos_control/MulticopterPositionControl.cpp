@@ -37,7 +37,6 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/matrix/matrix/math.hpp>
 
-using namespace time_literals;
 using namespace matrix;
 
 MulticopterPositionControl::MulticopterPositionControl(bool vtol) :
@@ -271,7 +270,7 @@ void MulticopterPositionControl::Run()
 
 				failsafe(time_stamp_now, setpoint, _states, !was_in_failsafe);
 				_control.setInputSetpoint(setpoint);
-				constraints = FlightTask::empty_constraints;
+				constraints = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, false, {}};
 				_control.update(dt);
 			}
 

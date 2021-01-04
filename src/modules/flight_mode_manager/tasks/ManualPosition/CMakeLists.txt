@@ -33,7 +33,14 @@
 
 px4_add_library(FlightTaskManualPosition
 	FlightTaskManualPosition.cpp
+	FlightTaskManualPosition.hpp
 )
 
-target_link_libraries(FlightTaskManualPosition PUBLIC FlightTaskManualAltitude)
+target_link_libraries(FlightTaskManualPosition
+	PRIVATE
+		CollisionPrevention
+	PUBLIC
+		FlightTaskManualAltitude
+)
+
 target_include_directories(FlightTaskManualPosition PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

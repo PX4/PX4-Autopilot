@@ -39,10 +39,10 @@
  * @@author Christoph Tobler <christoph@@px4.io>
  */
 
-#include "FlightTasks.hpp"
+#include "FlightModeManager.hpp"
 #include "FlightTasks_generated.hpp"
 
-int FlightTasks::_initTask(FlightTaskIndex task_index)
+int FlightModeManager::_initTask(FlightTaskIndex task_index)
 {
 
 	// disable the old task if there is any
@@ -79,7 +79,7 @@ firstLowercase = lambda s: s[:1].lower() + s[1:] if s else ''
 	return 0;
 }
 
-FlightTaskIndex FlightTasks::switchVehicleCommand(const int command)
+FlightTaskIndex FlightModeManager::switchVehicleCommand(const int command)
 {
     switch (command) {
 @# loop through all additional tasks
