@@ -261,11 +261,11 @@ protected:
 	 */
 	bool set_idle_fw();
 
-	void set_all_motor_state(const motor_state target_state, const int value = 0);
+	void set_all_motor_state(motor_state target_state, int value = 0);
 
-	void set_main_motor_state(const motor_state target_state, const int value = 0);
+	void set_main_motor_state(motor_state target_state, int value = 0);
 
-	void set_alternate_motor_state(const motor_state target_state, const int value = 0);
+	void set_alternate_motor_state(motor_state target_state, int value = 0);
 
 	float update_and_get_backtransition_pitch_sp();
 
