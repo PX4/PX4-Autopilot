@@ -194,10 +194,6 @@ EKF2::EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool 
 
 EKF2::~EKF2()
 {
-	if (!_multi_mode) {
-		px4_lockstep_unregister_component(_lockstep_component);
-	}
-
 	perf_free(_ecl_ekf_update_perf);
 	perf_free(_ecl_ekf_update_full_perf);
 }
@@ -468,14 +464,6 @@ void EKF2::Run()
 
 		// publish ekf2_timestamps
 		_ekf2_timestamps_pub.publish(ekf2_timestamps);
-
-		if (!_multi_mode) {
-			if (_lockstep_component == -1) {
-				_lockstep_component = px4_lockstep_register_component();
-			}
-
-			px4_lockstep_progress(_lockstep_component);
-		}
 	}
 }
 
