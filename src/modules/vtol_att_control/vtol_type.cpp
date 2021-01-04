@@ -309,7 +309,8 @@ bool VtolType::set_idle_fw()
 	struct pwm_output_values pwm_values {};
 
 	for (int i = 0; i < num_outputs_max; i++) {
-		if (is_channel_set(i, _params->vtol_motor_id)) {
+		if (is_channel_set(i, _params->vtol_motor_id) ||
+		    is_channel_set(i, _params->fw_motors_off)) {
 			pwm_values.values[i] = PWM_MOTOR_OFF;
 
 		} else {
