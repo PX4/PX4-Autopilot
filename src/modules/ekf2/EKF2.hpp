@@ -224,7 +224,6 @@ private:
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
 
 	bool _callback_registered{false};
-	int _lockstep_component{-1};
 
 	bool _distance_sensor_selected{false}; // because we can have several distance sensor instances with different orientations
 	bool _armed{false};

@@ -75,7 +75,7 @@ class AttitudeEstimatorQ : public ModuleBase<AttitudeEstimatorQ>, public ModuleP
 public:
 
 	AttitudeEstimatorQ();
-	~AttitudeEstimatorQ() override;
+	~AttitudeEstimatorQ() override = default;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -116,8 +116,6 @@ private:
 	uORB::Subscription		_magnetometer_sub{ORB_ID(vehicle_magnetometer)};
 
 	uORB::Publication<vehicle_attitude_s>	_att_pub{ORB_ID(vehicle_attitude)};
-
-	int		_lockstep_component{-1};
 
 	float		_mag_decl{0.0f};
 	float		_bias_max{0.0f};
@@ -177,13 +175,6 @@ AttitudeEstimatorQ::AttitudeEstimatorQ() :
 	_gyro_bias.zero();
 
 	update_parameters(true);
-
-	_lockstep_component = px4_lockstep_register_component();
-}
-
-AttitudeEstimatorQ::~AttitudeEstimatorQ()
-{
-	px4_lockstep_unregister_component(_lockstep_component);
 }
 
 bool
@@ -366,8 +357,6 @@ AttitudeEstimatorQ::Run()
 			_att_pub.publish(att);
 
 		}
-
-		px4_lockstep_progress(_lockstep_component);
 	}
 }
 
