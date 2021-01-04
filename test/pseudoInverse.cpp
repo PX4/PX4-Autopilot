@@ -111,22 +111,6 @@ int main()
     Matrix<float, 16, 6> A = geninv(B);
     TEST((A - A_check).abs().max() < 1e-5);
 
-    // Test error case with erroneous rank in internal impl functions
-    Matrix<float, 2, 2> L;
-    Matrix<float, 2, 3> GM;
-    Matrix<float, 3, 2> retM_check;
-    Matrix<float, 3, 2> retM0 = GeninvImpl<float, 2, 3, 0>::genInvUnderdetermined(GM, L, 5);
-    Matrix<float, 3, 2> GN;
-    Matrix<float, 2, 3> retN_check;
-    Matrix<float, 2, 3> retN0 = GeninvImpl<float, 3, 2, 0>::genInvOverdetermined(GN, L, 5);
-    TEST((retM0 - retM_check).abs().max() < 1e-5);
-    TEST((retN0 - retN_check).abs().max() < 1e-5);
-
-    Matrix<float, 3, 2> retM1 = GeninvImpl<float, 2, 3, 1>::genInvUnderdetermined(GM, L, 5);
-    Matrix<float, 2, 3> retN1 = GeninvImpl<float, 3, 2, 1>::genInvOverdetermined(GN, L, 5);
-    TEST((retM1 - retM_check).abs().max() < 1e-5);
-    TEST((retN1 - retN_check).abs().max() < 1e-5);
-
     // Real-world test case
     const float real_alloc[5][6] = {
         { 0.794079,  0.794079,  0.794079,  0.794079,  0.0000,  0.0000},
