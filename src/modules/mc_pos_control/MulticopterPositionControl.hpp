@@ -40,7 +40,6 @@
 #include <commander/px4_custom_mode.h>
 #include <drivers/drv_hrt.h>
 #include <lib/controllib/blocks.hpp>
-#include <lib/flight_tasks/FlightTasks.hpp>
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/systemlib/mavlink_log.h>
@@ -63,6 +62,8 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 
 #include "PositionControl/PositionControl.hpp"
+
+using namespace time_literals;
 
 class MulticopterPositionControl : public ModuleBase<MulticopterPositionControl>, public control::SuperBlock,
 	public ModuleParams, public px4::WorkItem
