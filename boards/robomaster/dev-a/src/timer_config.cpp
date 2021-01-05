@@ -34,17 +34,19 @@
 #include <px4_arch/io_timer_hw_description.h>
 
 constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
-	initIOTimer(Timer::Timer1, DMA{DMA::Index2, DMA::Stream5, DMA::Channel6}),
-	initIOTimer(Timer::Timer4, DMA{DMA::Index1, DMA::Stream6, DMA::Channel2}),
+	initIOTimer(Timer::Timer2, DMA{DMA::Index1, DMA::Stream7, DMA::Channel3}),
+	initIOTimer(Timer::Timer8, DMA{DMA::Index2, DMA::Stream1, DMA::Channel7}),
 };
 
 constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
-	initIOTimerChannelOutputClear(io_timers, {Timer::Timer1, Timer::Channel4}, {GPIO::PortE, GPIO::Pin14}),
-	initIOTimerChannelOutputClear(io_timers, {Timer::Timer1, Timer::Channel3}, {GPIO::PortE, GPIO::Pin13}),
-	initIOTimerChannelOutputClear(io_timers, {Timer::Timer1, Timer::Channel2}, {GPIO::PortE, GPIO::Pin11}),
-	initIOTimerChannelOutputClear(io_timers, {Timer::Timer1, Timer::Channel1}, {GPIO::PortE, GPIO::Pin9}),
-	initIOTimerChannelOutputClear(io_timers, {Timer::Timer4, Timer::Channel2}, {GPIO::PortD, GPIO::Pin13}),
-	initIOTimerChannelOutputClear(io_timers, {Timer::Timer4, Timer::Channel3}, {GPIO::PortD, GPIO::Pin14}),
+	initIOTimerChannelOutputClear(io_timers, {Timer::Timer2, Timer::Channel1}, {GPIO::PortA, GPIO::Pin0}),
+	initIOTimerChannelOutputClear(io_timers, {Timer::Timer2, Timer::Channel2}, {GPIO::PortA, GPIO::Pin1}),
+	initIOTimerChannelOutputClear(io_timers, {Timer::Timer2, Timer::Channel3}, {GPIO::PortA, GPIO::Pin2}),
+	initIOTimerChannelOutputClear(io_timers, {Timer::Timer2, Timer::Channel4}, {GPIO::PortA, GPIO::Pin3}),
+	initIOTimerChannelOutputClear(io_timers, {Timer::Timer8, Timer::Channel1}, {GPIO::PortI, GPIO::Pin5}),
+	initIOTimerChannelOutputClear(io_timers, {Timer::Timer8, Timer::Channel2}, {GPIO::PortI, GPIO::Pin6}),
+	initIOTimerChannelOutputClear(io_timers, {Timer::Timer8, Timer::Channel3}, {GPIO::PortI, GPIO::Pin7}),
+	initIOTimerChannelOutputClear(io_timers, {Timer::Timer8, Timer::Channel4}, {GPIO::PortI, GPIO::Pin2}),
 };
 
 constexpr io_timers_channel_mapping_t io_timers_channel_mapping =
