@@ -737,9 +737,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 							// FALLTHROUGH
 							case ROTATION_PITCH_180_YAW_270: // skip 27, same as 10 ROTATION_ROLL_180_YAW_90
-
-							// FALLTHROUGH
-							case ROTATION_ROLL_270_YAW_180:  // skip 41, same as 31 ROTATION_ROLL_90_PITCH_180
 								MSE[r] = FLT_MAX;
 								break;
 

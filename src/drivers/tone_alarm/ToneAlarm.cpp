@@ -134,19 +134,19 @@ void ToneAlarm::Run()
 						break;
 
 					case tune_control_s::TUNE_ID_NOTIFY_NEGATIVE:
-						PX4_ERR("notify negative");
+						PX4_INFO("notify negative");
 						break;
 
 					case tune_control_s::TUNE_ID_ARMING_WARNING:
-						PX4_WARN("arming warning");
+						PX4_INFO("arming warning");
 						break;
 
 					case tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW:
-						PX4_WARN("battery warning (slow)");
+						PX4_INFO("battery warning (slow)");
 						break;
 
 					case tune_control_s::TUNE_ID_BATTERY_WARNING_FAST:
-						PX4_WARN("battery warning (fast)");
+						PX4_INFO("battery warning (fast)");
 						break;
 
 					case tune_control_s::TUNE_ID_ARMING_FAILURE:
@@ -154,7 +154,7 @@ void ToneAlarm::Run()
 						break;
 
 					case tune_control_s::TUNE_ID_SINGLE_BEEP:
-						PX4_WARN("beep");
+						PX4_INFO("beep");
 						break;
 
 					case tune_control_s::TUNE_ID_HOME_SET:

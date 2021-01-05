@@ -34,6 +34,11 @@
 #ifndef EXTENDED_SYS_STATE_HPP
 #define EXTENDED_SYS_STATE_HPP
 
+#include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_land_detected.h>
+
 class MavlinkStreamExtendedSysState : public MavlinkStream
 {
 public:

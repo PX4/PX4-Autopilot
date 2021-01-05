@@ -112,7 +112,7 @@ class BlockLocalPositionEstimator : public ModuleBase<BlockLocalPositionEstimato
 public:
 
 	BlockLocalPositionEstimator();
-	~BlockLocalPositionEstimator() override;
+	~BlockLocalPositionEstimator() override = default;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -337,8 +337,6 @@ private:
 	uint64_t _time_last_mocap;
 	uint64_t _time_last_land;
 	uint64_t _time_last_target;
-
-	int _lockstep_component{-1};
 
 	// reference altitudes
 	float _altOrigin;

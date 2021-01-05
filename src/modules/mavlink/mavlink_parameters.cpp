@@ -284,6 +284,38 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 void
 MavlinkParametersManager::send()
 {
+	if (!_first_send) {
+		// parameters QGC can't tolerate not finding (2020-11-11)
+		param_find("BAT_A_PER_V");
+		param_find("BAT_CRIT_THR");
+		param_find("BAT_EMERGEN_THR");
+		param_find("BAT_LOW_THR");
+		param_find("BAT_N_CELLS");
+		param_find("BAT_V_CHARGED");
+		param_find("BAT_V_DIV");
+		param_find("BAT_V_EMPTY");
+		param_find("CAL_ACC0_ID");
+		param_find("CAL_GYRO0_ID");
+		param_find("CAL_MAG0_ID");
+		param_find("CAL_MAG0_ROT");
+		param_find("CAL_MAG1_ID");
+		param_find("CAL_MAG1_ROT");
+		param_find("CAL_MAG2_ID");
+		param_find("CAL_MAG2_ROT");
+		param_find("CAL_MAG3_ID");
+		param_find("CAL_MAG3_ROT");
+		param_find("SENS_BOARD_ROT");
+		param_find("SENS_BOARD_X_OFF");
+		param_find("SENS_BOARD_Y_OFF");
+		param_find("SENS_BOARD_Z_OFF");
+		param_find("SENS_DPRES_OFF");
+		param_find("SYS_PARAM_VER");
+		param_find("TRIG_MODE");
+		param_find("UAVCAN_ENABLE");
+
+		_first_send = true;
+	}
+
 	int max_num_to_send;
 
 	if (_mavlink->get_protocol() == Protocol::SERIAL && !_mavlink->is_usb_uart()) {
