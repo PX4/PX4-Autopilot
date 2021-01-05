@@ -164,9 +164,10 @@ EKF2::EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool 
 	updateParams();
 
 	// The airspeed scale factor correcton is only available via parameter as used by the airspeed module
-	param_t rot = param_find("ASPD_SCALE");
-	if (rot != PARAM_INVALID) {
-		param_get(rot, &_airspeed_scale_factor);
+	param_t param_aspd_scale = param_find("ASPD_SCALE");
+
+	if (param_aspd_scale != PARAM_INVALID) {
+		param_get(param_aspd_scale, &_airspeed_scale_factor);
 	}
 
 	_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);
@@ -1163,6 +1164,7 @@ void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 		// was used instead, however this would introduce a potential circular dependency
 		// via the wind estimator that uses EKF velocity estimates.
 		const float true_airspeed_m_s = airspeed.true_airspeed_m_s * _airspeed_scale_factor;
+
 		// only set airspeed data if condition for airspeed fusion are met
 		if ((_param_ekf2_arsp_thr.get() > FLT_EPSILON) && (true_airspeed_m_s > _param_ekf2_arsp_thr.get())) {
 
