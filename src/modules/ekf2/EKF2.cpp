@@ -160,18 +160,6 @@ EKF2::EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool 
 	_param_ekf2_mag_check(_params->check_mag_strength),
 	_param_ekf2_gsf_tas_default(_params->EKFGSF_tas_default)
 {
-	// initialise parameter cache
-	updateParams();
-
-	// The airspeed scale factor correcton is only available via parameter as used by the airspeed module
-	param_t param_aspd_scale = param_find("ASPD_SCALE");
-
-	if (param_aspd_scale != PARAM_INVALID) {
-		param_get(param_aspd_scale, &_airspeed_scale_factor);
-	}
-
-	_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);
-
 	if (_multi_mode) {
 		// advertise immediately to ensure consistent uORB instance numbering
 		_attitude_pub.advertise();
@@ -241,6 +229,25 @@ void EKF2::Run()
 		return;
 	}
 
+	// check for parameter updates
+	if (_parameter_update_sub.updated() || !_callback_registered) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+
+		// update parameters from storage
+		updateParams();
+
+		_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);
+
+		// The airspeed scale factor correcton is only available via parameter as used by the airspeed module
+		param_t param_aspd_scale = param_find("ASPD_SCALE");
+
+		if (param_aspd_scale != PARAM_INVALID) {
+			param_get(param_aspd_scale, &_airspeed_scale_factor);
+		}
+	}
+
 	if (!_callback_registered) {
 		if (_multi_mode) {
 			_callback_registered = _vehicle_imu_sub.registerCallback();
@@ -254,16 +261,6 @@ void EKF2::Run()
 			ScheduleDelayed(1_s);
 			return;
 		}
-	}
-
-	// check for parameter updates
-	if (_parameter_update_sub.updated()) {
-		// clear update
-		parameter_update_s pupdate;
-		_parameter_update_sub.copy(&pupdate);
-
-		// update parameters from storage
-		updateParams();
 	}
 
 	bool imu_updated = false;
