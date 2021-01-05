@@ -178,6 +178,47 @@ unset BOARD_RC_SENSORS
 commander start
 
 
+# Sensors on the PWM interface bank.
+if param compare -s SENS_EN_LL40LS 1
+then
+	# Clear pins 5 and 6.
+	set FMU_MODE pwm4
+	set AUX_MODE pwm4
+fi
+
+
+# Check if ATS is enabled
+if param compare FD_EXT_ATS_EN 1
+then
+	# Clear pins 5 and 6.
+	set FMU_MODE pwm4
+	set AUX_MODE pwm4
+fi
+
+if param greater TRIG_MODE 0
+then
+	# We ONLY support trigger on pins 5+6 or 7+8 when simultanously using AUX for actuator output.
+	if param compare TRIG_PINS 56
+	then
+		# clear pins 5 and 6
+		set FMU_MODE pwm4
+		set AUX_MODE pwm4
+	else
+		if param compare TRIG_PINS 78
+		then
+			# clear pins 7 and 8
+			set FMU_MODE pwm6
+			set AUX_MODE pwm6
+		else
+			set FMU_MODE none
+			set AUX_MODE none
+		fi
+	fi
+
+	camera_trigger start
+	camera_feedback start
+fi
+
 # #
 # # Optional board mavlink streams: rc.board_mavlink
 # #
