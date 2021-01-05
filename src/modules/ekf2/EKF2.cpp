@@ -1371,10 +1371,8 @@ void EKF2::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
 				}
 
 				_device_id_mag = magnetometer.device_id;
-			}
 
-			// reset mag bias if calibration changed
-			if (magnetometer.calibration_count > _mag_calibration_count) {
+			} else if (magnetometer.calibration_count > _mag_calibration_count) {
 				// existing calibration has changed, reset saved mag bias
 				PX4_INFO("%d - mag %d calibration updated, resetting bias", _instance, _device_id_mag);
 				reset = true;

@@ -133,7 +133,6 @@ void VehicleMagnetometer::MagCalibrationUpdate()
 {
 	// State variance assumed for magnetometer bias storage.
 	// This is a reference variance used to calculate the fraction of learned magnetometer bias that will be used to update the stored value.
-	// Smaller values will make the stored bias data adjust more slowly from flight to flight. Larger values will make it adjust faster.
 	static constexpr float magb_vref = 2.5e-7f;
 	static constexpr float min_var_allowed = magb_vref * 0.01f;
 	static constexpr float max_var_allowed = magb_vref * 100.f;
@@ -167,10 +166,10 @@ void VehicleMagnetometer::MagCalibrationUpdate()
 							_mag_cal_available = true;
 
 							if ((old_offset - _mag_cal[i].mag_offset).longerThan(0.001f)) {
-								PX4_INFO("Mag %d (%d) est. offset saved: [% 05.3f % 05.3f % 05.3f] (bias [% 05.3f % 05.3f % 05.3f])",
-									 mag_index, _mag_cal[i].device_id,
-									 (double)_mag_cal[i].mag_offset(0), (double)_mag_cal[i].mag_offset(1), (double)_mag_cal[i].mag_offset(2),
-									 (double)bias(0), (double)bias(1), (double)bias(2));
+								PX4_DEBUG("Mag %d (%d) est. offset saved: [% 05.3f % 05.3f % 05.3f] (bias [% 05.3f % 05.3f % 05.3f])",
+									  mag_index, _mag_cal[i].device_id,
+									  (double)_mag_cal[i].mag_offset(0), (double)_mag_cal[i].mag_offset(1), (double)_mag_cal[i].mag_offset(2),
+									  (double)bias(0), (double)bias(1), (double)bias(2));
 							}
 
 							break;
@@ -194,20 +193,18 @@ void VehicleMagnetometer::MagCalibrationUpdate()
 					Vector3f mag_cal_offset{_calibration[mag_index].offset()};
 
 					// calculate weighting using ratio of variances and update stored bias values
-					Vector3f weighting{};
+					const Vector3f &learned_offset = _mag_cal[i].mag_offset;
+					const Vector3f &variance = _mag_cal[i].mag_bias_variance;
 
 					for (int axis_index = 0; axis_index < 3; axis_index++) {
 						// Maximum fraction of learned mag bias saved at each disarm.
 						// Smaller values make the saved mag bias learn slower from flight to flight.
 						// Larger values make it learn faster. Must be > 0.0 and <= 1.0.
 						static constexpr float magb_k = 0.5f;
-						float weight = magb_vref / (magb_vref + _mag_cal[i].mag_bias_variance(axis_index));
-						weighting(axis_index) = math::constrain(weight, 0.f, magb_k);
+						const float weighting = math::constrain(magb_vref / (magb_vref + variance(axis_index)), 0.f, magb_k);
+						const float delta = learned_offset(axis_index) - mag_cal_offset(axis_index);
+						mag_cal_offset(axis_index) += weighting * delta;
 					}
-
-					// learned offset - old offset
-					const Vector3f delta = _mag_cal[i].mag_offset - mag_cal_offset;
-					mag_cal_offset += weighting * delta;
 
 					PX4_INFO("Mag %d (%d) est. offset %d committed: [% 05.3f % 05.3f % 05.3f] -> [% 05.3f % 05.3f % 05.3f] (full [% 05.3f % 05.3f % 05.3f])",
 						 mag_index, _calibration[mag_index].device_id(), i,
