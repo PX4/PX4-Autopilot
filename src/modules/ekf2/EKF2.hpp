@@ -147,7 +147,7 @@ private:
 	void UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps);
 
-	void SaveMagDeclination();
+	void UpdateMagCalibration(const hrt_abstime &timestamp);
 
 	/*
 	 * Calculate filtered WGS84 height from estimated AMSL height
@@ -170,6 +170,14 @@ private:
 	perf_counter_t _ecl_ekf_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL update")};
 	perf_counter_t _ecl_ekf_update_full_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL full update")};
 
+	// Used to check, save and use learned magnetometer biases
+	hrt_abstime _mag_cal_last_us{0};	///< last time the EKF was operating a mode that estimates magnetomer biases (uSec)
+	hrt_abstime _mag_cal_total_time_us{0};	///< accumulated calibration time since the last save
+
+	Vector3f _mag_cal_last_bias{};	///< last valid XYZ magnetometer bias estimates (Gauss)
+	Vector3f _mag_cal_last_bias_variance{};	///< variances for the last valid magnetometer XYZ bias estimates (Gauss**2)
+	bool _mag_cal_available{false};	///< true when an unsaved valid calibration for the XYZ magnetometer bias is available
+
 	// Used to control saving of mag declination to be used on next startup
 	bool _mag_decl_saved = false;	///< true when the magnetic declination has been saved
 
@@ -190,9 +198,9 @@ private:
 
 	Vector3f _last_local_position_for_gpos{};
 
-	Vector3f _last_accel_bias{};
-	Vector3f _last_gyro_bias{};
-	Vector3f _last_mag_bias{};
+	Vector3f _last_accel_bias_published{};
+	Vector3f _last_gyro_bias_published{};
+	Vector3f _last_mag_bias_published{};
 
 	uORB::Subscription _airdata_sub{ORB_ID(vehicle_air_data)};
 	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};

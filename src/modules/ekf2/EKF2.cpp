@@ -428,7 +428,7 @@ void EKF2::Run()
 			PublishInnovationVariances(now);
 			PublishYawEstimatorStatus(now);
 
-			SaveMagDeclination();
+			UpdateMagCalibration(now);
 
 		} else {
 			// ekf no update
@@ -852,12 +852,12 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 
 	const Vector3f gyro_bias{_ekf.getGyroBias()};
 	const Vector3f accel_bias{_ekf.getAccelBias()};
-	const Vector3f mag_bias{_ekf.getMagBias()};
+	const Vector3f mag_bias{_mag_cal_last_bias};
 
 	// only publish on change
-	if ((gyro_bias - _last_gyro_bias).longerThan(0.001f)
-	    || (accel_bias - _last_accel_bias).longerThan(0.001f)
-	    || (mag_bias - _last_mag_bias).longerThan(0.001f)) {
+	if ((gyro_bias - _last_gyro_bias_published).longerThan(0.001f)
+	    || (accel_bias - _last_accel_bias_published).longerThan(0.001f)
+	    || (mag_bias - _last_mag_bias_published).longerThan(0.001f)) {
 
 		// take device ids from sensor_selection_s if not using specific vehicle_imu_s
 		if (_device_id_gyro != 0) {
@@ -866,7 +866,7 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 			_ekf.getGyroBiasVariance().copyTo(bias.gyro_bias_variance);
 			bias.gyro_bias_valid = true;
 
-			_last_gyro_bias = gyro_bias;
+			_last_gyro_bias_published = gyro_bias;
 		}
 
 		if ((_device_id_accel != 0) && !(_param_ekf2_aid_mask.get() & MASK_INHIBIT_ACC_BIAS)) {
@@ -875,16 +875,16 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 			_ekf.getAccelBiasVariance().copyTo(bias.accel_bias_variance);
 			bias.accel_bias_valid = !_ekf.fault_status_flags().bad_acc_bias;
 
-			_last_accel_bias = accel_bias;
+			_last_accel_bias_published = accel_bias;
 		}
 
 		if (_device_id_mag != 0) {
 			bias.mag_device_id = _device_id_mag;
 			mag_bias.copyTo(bias.mag_bias);
-			_ekf.getMagBiasVariance().copyTo(bias.mag_bias_variance);
-			bias.mag_bias_valid = _ekf.control_status_flags().mag_3D && (_ekf.fault_status().value == 0);
+			_mag_cal_last_bias_variance.copyTo(bias.mag_bias_variance);
+			bias.mag_bias_valid = _mag_cal_available;
 
-			_last_mag_bias = mag_bias;
+			_last_mag_bias_published = mag_bias;
 		}
 
 		bias.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
@@ -1361,24 +1361,33 @@ void EKF2::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
 
 	if (_magnetometer_sub.update(&magnetometer)) {
 		if (magnetometer.device_id != 0) {
+			bool reset = false;
+
 			// check if magnetometer has changed
 			if (magnetometer.device_id != _device_id_mag) {
 				if (_device_id_mag != 0) {
 					PX4_WARN("%d - mag sensor ID changed %d -> %d", _instance, _device_id_mag, magnetometer.device_id);
-					_ekf.resetMagBias();
+					reset = true;
 				}
 
 				_device_id_mag = magnetometer.device_id;
-				_mag_calibration_count = magnetometer.calibration_count;
 			}
 
 			// reset mag bias if calibration changed
 			if (magnetometer.calibration_count > _mag_calibration_count) {
+				// existing calibration has changed, reset saved mag bias
+				PX4_INFO("%d - mag %d calibration updated, resetting bias", _instance, _device_id_mag);
+				reset = true;
+			}
+
+			if (reset) {
 				_ekf.resetMagBias();
 				_mag_calibration_count = magnetometer.calibration_count;
 
-				// existing calibration has changed, reset saved mag bias
-				PX4_INFO("%d - mag calibration updated, resetting bias", _instance);
+				// reset magnetometer bias learning
+				_mag_cal_total_time_us = 0;
+				_mag_cal_last_us = 0;
+				_mag_cal_available = false;
 			}
 		}
 
@@ -1431,8 +1440,37 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 	}
 }
 
-void EKF2::SaveMagDeclination()
+void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 {
+	// Check if conditions are OK for learning of magnetometer bias values
+	// the EKF is operating in the correct mode and there are no filter faults
+	if (_ekf.control_status_flags().in_air && _ekf.control_status_flags().mag_3D && (_ekf.fault_status().value == 0)) {
+
+		if (_mag_cal_last_us != 0) {
+			_mag_cal_total_time_us += timestamp - _mag_cal_last_us;
+
+			// Start checking mag bias estimates when we have accumulated sufficient calibration time
+			if (_mag_cal_total_time_us > 30_s) {
+				_mag_cal_last_bias = _ekf.getMagBias();
+				_mag_cal_last_bias_variance = _ekf.getMagBiasVariance();
+				_mag_cal_available = true;
+			}
+		}
+
+		_mag_cal_last_us = timestamp;
+
+	} else {
+		// conditions are NOT OK for learning magnetometer bias, reset timestamp
+		// but keep the accumulated calibration time
+		_mag_cal_last_us = 0;
+
+		if (_ekf.fault_status().value != 0) {
+			// if a filter fault has occurred, assume previous learning was invalid and do not
+			// count it towards total learning time.
+			_mag_cal_total_time_us = 0;
+		}
+	}
+
 	if (!_armed) {
 		// update stored declination value
 		if (!_mag_decl_saved) {

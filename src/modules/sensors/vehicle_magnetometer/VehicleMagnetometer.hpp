@@ -40,7 +40,6 @@
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
-#include <lib/hysteresis/hysteresis.h>
 #include <lib/systemlib/mavlink_log.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
@@ -58,7 +57,6 @@
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/sensor_preflight_mag.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 
 namespace sensors
@@ -104,7 +102,6 @@ private:
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status), 0};
 	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
-	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 
 	// Used to check, save and use learned magnetometer biases
 	uORB::SubscriptionMultiArray<estimator_sensor_bias_s> _estimator_sensor_bias_subs{ORB_ID::estimator_sensor_bias};
@@ -112,7 +109,6 @@ private:
 	bool _mag_cal_available{false};
 
 	struct MagCal {
-		systemlib::Hysteresis valid{false};
 		uint32_t device_id{0};
 		matrix::Vector3f mag_offset{};
 		matrix::Vector3f mag_bias_variance{};
@@ -159,7 +155,6 @@ private:
 	int8_t _selected_sensor_sub_index{-1};
 
 	bool _armed{false};
-	bool _landed{true};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CAL_MAG_COMP_TYP>) _param_mag_comp_typ,

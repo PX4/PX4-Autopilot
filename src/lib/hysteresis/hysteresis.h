@@ -49,7 +49,7 @@ namespace systemlib
 class Hysteresis
 {
 public:
-	Hysteresis(bool init_state) :
+	explicit Hysteresis(bool init_state) :
 		_state(init_state),
 		_requested_state(init_state)
 	{}
