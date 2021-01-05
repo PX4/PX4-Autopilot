@@ -41,10 +41,13 @@
 
 #include <mathlib/mathlib.h>
 
+using namespace time_literals;
+
 MulticopterHoverThrustEstimator::MulticopterHoverThrustEstimator() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
+	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
+	_valid_hysteresis.set_hysteresis_time_from(false, 2_s);
 	updateParams();
 	reset();
 }
@@ -56,7 +59,7 @@ MulticopterHoverThrustEstimator::~MulticopterHoverThrustEstimator()
 
 bool MulticopterHoverThrustEstimator::init()
 {
-	if (!_vehicle_local_position_setpoint_sub.registerCallback()) {
+	if (!_vehicle_local_position_sub.registerCallback()) {
 		PX4_ERR("vehicle_local_position_setpoint callback registration failed!");
 		return false;
 	}
@@ -88,8 +91,46 @@ void MulticopterHoverThrustEstimator::updateParams()
 void MulticopterHoverThrustEstimator::Run()
 {
 	if (should_exit()) {
-		_vehicle_local_position_setpoint_sub.unregisterCallback();
+		_vehicle_local_position_sub.unregisterCallback();
 		exit_and_cleanup();
+		return;
+	}
+
+	if (_vehicle_land_detected_sub.updated()) {
+		vehicle_land_detected_s vehicle_land_detected;
+
+		if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
+			_landed = vehicle_land_detected.landed;
+
+			if (_landed) {
+				_in_air = false;
+			}
+		}
+	}
+
+	if (!_vehicle_local_position_sub.updated()) {
+		return;
+	}
+
+	vehicle_local_position_s local_pos{};
+
+	if (_vehicle_local_position_sub.copy(&local_pos)) {
+		// This is only necessary because the landed
+		// flag of the land detector does not guarantee that
+		// the vehicle does not touch the ground anymore.
+		// There is no check for the dist_bottom validity as
+		// this value is always good enough after takeoff for
+		// this use case.
+		// TODO: improve the landed flag
+		if (!_landed) {
+			if (local_pos.dist_bottom > 1.f) {
+				_in_air = true;
+			}
+		}
+	}
+
+	// new local position setpoint needed every iteration
+	if (!_vehicle_local_position_setpoint_sub.updated()) {
 		return;
 	}
 
@@ -105,73 +146,93 @@ void MulticopterHoverThrustEstimator::Run()
 
 	perf_begin(_cycle_perf);
 
-	vehicle_land_detected_s vehicle_land_detected;
-	vehicle_status_s vehicle_status;
-	vehicle_local_position_s local_pos;
+	if (_vehicle_status_sub.updated()) {
+		vehicle_status_s vehicle_status;
 
-	if (_vehicle_land_detected_sub.update(&vehicle_land_detected)) {
-		_landed = vehicle_land_detected.landed;
+		if (_vehicle_status_sub.copy(&vehicle_status)) {
+			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+		}
 	}
 
-	if (_vehicle_status_sub.update(&vehicle_status)) {
-		_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-	}
+	const float dt = (local_pos.timestamp - _timestamp_last) * 1e-6f;
+	_timestamp_last = local_pos.timestamp;
 
-	if (_vehicle_local_pos_sub.update(&local_pos)) {
-		// This is only necessary because the landed
-		// flag of the land detector does not guarantee that
-		// the vehicle does not touch the ground anymore
-		// TODO: improve the landed flag
-		_in_air = local_pos.dist_bottom > 1.f;
-	}
+	if (_armed && _in_air && (dt > 0.001f) && (dt < 1.f) && PX4_ISFINITE(local_pos.az)) {
 
-	ZeroOrderHoverThrustEkf::status status{};
+		_hover_thrust_ekf.predict(dt);
 
-	if (_armed && !_landed && _in_air) {
 		vehicle_local_position_setpoint_s local_pos_sp;
 
-		if (_vehicle_local_position_setpoint_sub.update(&local_pos_sp)) {
-
-			const hrt_abstime now = hrt_absolute_time();
-			const float dt = math::constrain((now - _timestamp_last) / 1e6f, 0.002f, 0.2f);
-
-			_hover_thrust_ekf.predict(dt);
-
-			if (PX4_ISFINITE(local_pos.az) && PX4_ISFINITE(local_pos_sp.thrust[2])) {
+		if (_vehicle_local_position_setpoint_sub.copy(&local_pos_sp)) {
+			if (PX4_ISFINITE(local_pos_sp.thrust[2])) {
 				// Inform the hover thrust estimator about the measured vertical
 				// acceleration (positive acceleration is up) and the current thrust (positive thrust is up)
-				_hover_thrust_ekf.fuseAccZ(-local_pos.az, -local_pos_sp.thrust[2], status);
+				// Guard against fast up and down motions biasing the estimator due to large drag and prop wash effects
+				if (fabsf(local_pos.vz) < 2.f) {
+					_hover_thrust_ekf.fuseAccZ(-local_pos.az, -local_pos_sp.thrust[2]);
+				}
+
+				const bool valid = (_hover_thrust_ekf.getHoverThrustEstimateVar() < 0.001f)
+						   && (_hover_thrust_ekf.getInnovationTestRatio() < 1.f);
+				_valid_hysteresis.set_state_and_update(valid, local_pos.timestamp);
+				_valid = _valid_hysteresis.get_state();
+
+				publishStatus(local_pos.timestamp);
 			}
 		}
 
 	} else {
+		_valid_hysteresis.set_state_and_update(false, hrt_absolute_time());
+
 		if (!_armed) {
 			reset();
 		}
 
-		status.hover_thrust = _hover_thrust_ekf.getHoverThrustEstimate();
-		status.hover_thrust_var = _hover_thrust_ekf.getHoverThrustEstimateVar();
-		status.accel_noise_var = _hover_thrust_ekf.getAccelNoiseVar();
-		status.innov = NAN;
-		status.innov_var = NAN;
-		status.innov_test_ratio = NAN;
-	}
+		if (_valid) {
+			// only publish a single message to invalidate
+			publishInvalidStatus();
 
-	publishStatus(status);
+			_valid = false;
+		}
+	}
 
 	perf_end(_cycle_perf);
 }
 
-void MulticopterHoverThrustEstimator::publishStatus(ZeroOrderHoverThrustEkf::status &status)
+void MulticopterHoverThrustEstimator::publishStatus(const hrt_abstime &timestamp_sample)
 {
 	hover_thrust_estimate_s status_msg{};
-	status_msg.hover_thrust = status.hover_thrust;
-	status_msg.hover_thrust_var = status.hover_thrust_var;
-	status_msg.accel_innov = status.innov;
-	status_msg.accel_innov_var = status.innov_var;
-	status_msg.accel_innov_test_ratio = status.innov_test_ratio;
-	status_msg.accel_noise_var = status.accel_noise_var;
+
+	status_msg.timestamp_sample = timestamp_sample;
+
+	status_msg.hover_thrust = _hover_thrust_ekf.getHoverThrustEstimate();
+	status_msg.hover_thrust_var = _hover_thrust_ekf.getHoverThrustEstimateVar();
+
+	status_msg.accel_innov = _hover_thrust_ekf.getInnovation();
+	status_msg.accel_innov_var = _hover_thrust_ekf.getInnovationVar();
+	status_msg.accel_innov_test_ratio = _hover_thrust_ekf.getInnovationTestRatio();
+	status_msg.accel_noise_var = _hover_thrust_ekf.getAccelNoiseVar();
+
+	status_msg.valid = _valid;
+
 	status_msg.timestamp = hrt_absolute_time();
+
+	_hover_thrust_ekf_pub.publish(status_msg);
+}
+
+void MulticopterHoverThrustEstimator::publishInvalidStatus()
+{
+	hover_thrust_estimate_s status_msg{};
+
+	status_msg.hover_thrust = NAN;
+	status_msg.hover_thrust_var = NAN;
+	status_msg.accel_innov = NAN;
+	status_msg.accel_innov_var = NAN;
+	status_msg.accel_innov_test_ratio = NAN;
+	status_msg.accel_noise_var = NAN;
+
+	status_msg.timestamp = hrt_absolute_time();
+
 	_hover_thrust_ekf_pub.publish(status_msg);
 }
 

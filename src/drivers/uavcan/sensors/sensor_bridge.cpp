@@ -38,11 +38,14 @@
 #include "sensor_bridge.hpp"
 #include <cassert>
 
-#include "gnss.hpp"
-#include "mag.hpp"
+#include "differential_pressure.hpp"
 #include "baro.hpp"
-#include "flow.hpp"
 #include "battery.hpp"
+#include "airspeed.hpp"
+#include "gnss.hpp"
+#include "flow.hpp"
+#include "mag.hpp"
+#include "rangefinder.hpp"
 
 /*
  * IUavcanSensorBridge
@@ -54,6 +57,9 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	list.add(new UavcanGnssBridge(node));
 	list.add(new UavcanFlowBridge(node));
 	list.add(new UavcanBatteryBridge(node));
+	list.add(new UavcanAirspeedBridge(node));
+	list.add(new UavcanDifferentialPressureBridge(node));
+	list.add(new UavcanRangefinderBridge(node));
 }
 
 /*
@@ -126,7 +132,7 @@ UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 		channel->class_instance = class_instance;
 		DEVICE_LOG("channel %d class instance %d ok", channel->node_id, channel->class_instance);
 
-		channel->orb_advert = orb_advertise_multi(_orb_topic, report, &channel->orb_instance, ORB_PRIO_VERY_HIGH);
+		channel->orb_advert = orb_advertise_multi(_orb_topic, report, &channel->orb_instance);
 
 		if (channel->orb_advert == nullptr) {
 			DEVICE_LOG("uORB advertise failed. Out of instances?");
@@ -185,8 +191,13 @@ uavcan_bridge::Channel *UavcanCDevSensorBridgeBase::get_channel_for_node(int nod
 		int ret = init_driver(channel);
 
 		if (ret != PX4_OK) {
+			// Driver initialization failed - probably out of channels.  Return nullptr so
+			// the callback exits gracefully, and clear the assigned node_id for the channel
+			// so future callbacks exit immediately.
 			DEVICE_LOG("INIT ERROR node %d errno %d", channel->node_id, ret);
-			return channel;
+			channel->node_id = -1;
+			_out_of_channels = true;
+			return nullptr;
 		}
 
 		DEVICE_LOG("channel %d class instance %d ok", channel->node_id, channel->class_instance);

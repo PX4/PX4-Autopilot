@@ -47,6 +47,8 @@
 
 #include "Subscription.hpp"
 
+#include <mathlib/mathlib.h>
+
 namespace uORB
 {
 
@@ -84,6 +86,7 @@ public:
 	~SubscriptionInterval() = default;
 
 	bool subscribe() { return _subscription.subscribe(); }
+	void unsubscribe() { _subscription.unsubscribe(); }
 
 	bool advertised() { return _subscription.advertised(); }
 
@@ -121,7 +124,9 @@ public:
 	bool copy(void *dst)
 	{
 		if (_subscription.copy(dst)) {
-			_last_update = hrt_absolute_time();
+			const hrt_abstime now = hrt_absolute_time();
+			// shift last update time forward, but don't let it get further behind than the interval
+			_last_update = math::constrain(_last_update + _interval_us, now - _interval_us, now);
 			return true;
 		}
 
@@ -131,8 +136,9 @@ public:
 	bool		valid() const { return _subscription.valid(); }
 
 	uint8_t		get_instance() const { return _subscription.get_instance(); }
+	uint32_t        get_interval_us() const { return _interval_us; }
+	unsigned	get_last_generation() const { return _subscription.get_last_generation(); }
 	orb_id_t	get_topic() const { return _subscription.get_topic(); }
-	ORB_PRIO	get_priority() { return _subscription.get_priority(); }
 
 	/**
 	 * Set the interval in microseconds

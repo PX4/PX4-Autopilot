@@ -68,22 +68,24 @@ public:
 
 	bool registerCallback()
 	{
-		if (_subscription.get_node() && _subscription.get_node()->register_callback(this)) {
-			// registered
-			_registered = true;
+		if (!_registered) {
+			if (_subscription.get_node() && _subscription.get_node()->register_callback(this)) {
+				// registered
+				_registered = true;
 
-		} else {
-			// force topic creation by subscribing with old API
-			int fd = orb_subscribe_multi(_subscription.get_topic(), _subscription.get_instance());
+			} else {
+				// force topic creation by subscribing with old API
+				int fd = orb_subscribe_multi(_subscription.get_topic(), _subscription.get_instance());
 
-			// try to register callback again
-			if (_subscription.subscribe()) {
-				if (_subscription.get_node() && _subscription.get_node()->register_callback(this)) {
-					_registered = true;
+				// try to register callback again
+				if (_subscription.subscribe()) {
+					if (_subscription.get_node() && _subscription.get_node()->register_callback(this)) {
+						_registered = true;
+					}
 				}
-			}
 
-			orb_unsubscribe(fd);
+				orb_unsubscribe(fd);
+			}
 		}
 
 		return _registered;
@@ -98,7 +100,40 @@ public:
 		_registered = false;
 	}
 
+	/**
+	 * Change subscription instance
+	 * @param instance The new multi-Subscription instance
+	 */
+	bool ChangeInstance(uint8_t instance)
+	{
+		bool ret = false;
+
+		if (instance != get_instance()) {
+			const bool registered = _registered;
+
+			if (registered) {
+				unregisterCallback();
+			}
+
+			if (_subscription.ChangeInstance(instance)) {
+				ret = true;
+			}
+
+			if (registered) {
+				registerCallback();
+			}
+
+		} else {
+			// already on desired index
+			return true;
+		}
+
+		return ret;
+	}
+
 	virtual void call() = 0;
+
+	bool registered() const { return _registered; }
 
 protected:
 
@@ -127,14 +162,30 @@ public:
 
 	void call() override
 	{
-		// schedule immediately if no interval, otherwise check time elapsed
-		if ((_interval_us == 0) || (hrt_elapsed_time_atomic(&_last_update) >= _interval_us)) {
-			_work_item->ScheduleNow();
+		// schedule immediately if updated (queue depth or subscription interval)
+		if ((_required_updates == 0)
+		    || (_subscription.get_node()->updates_available(_subscription.get_last_generation()) >= _required_updates)) {
+			if (updated()) {
+				_work_item->ScheduleNow();
+			}
 		}
+	}
+
+	/**
+	 * Optionally limit callback until more samples are available.
+	 *
+	 * @param required_updates Number of queued updates required before a callback can be called.
+	 */
+	void set_required_updates(uint8_t required_updates)
+	{
+		// TODO: constrain to queue depth?
+		_required_updates = required_updates;
 	}
 
 private:
 	px4::WorkItem *_work_item;
+
+	uint8_t _required_updates{0};
 };
 
 } // namespace uORB

@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "Mixer/Mixer.hpp"
+#include "MixerBase/Mixer.hpp"
 
 /**
  * Group of mixers, built up from single mixers and processed
@@ -164,6 +164,8 @@ public:
 	void				set_airmode(Mixer::Airmode airmode);
 
 	unsigned			get_multirotor_count();
+
+	void 				set_dt_once(float dt);
 
 private:
 	List<Mixer *>			_mixers;	/**< linked list of mixers */

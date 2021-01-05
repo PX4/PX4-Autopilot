@@ -73,6 +73,8 @@ topic_fields = ["%s %s" % (convert_type(field.type), field.name) for field in so
 #include <uORB/topics/uORBTopics.hpp>
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/Device.hpp>
+#include <lib/matrix/matrix/math.hpp>
+#include <lib/mathlib/mathlib.h>
 
 @# join all msg files in one line e.g: "float[3] position;float[3] velocity;bool armed"
 @# This is used for the logger
@@ -89,6 +91,9 @@ void print_message(const @uorb_struct &message)
 	PX4_INFO_RAW("Not implemented on flash constrained hardware\n");
 @[else]
 	PX4_INFO_RAW(" @(uorb_struct)\n");
+
+	const hrt_abstime now = hrt_absolute_time();
+
 @[for field in sorted_fields]@
 	@( print_field(field) )@
 @[end for]@

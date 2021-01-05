@@ -20,7 +20,7 @@ px4_add_board(
 		TEL2:/dev/ttyS2
 		TEL4:/dev/ttyS3
 	DRIVERS
-		adc
+		adc/board_adc
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
@@ -30,20 +30,21 @@ px4_add_board(
 		dshot
 		gps
 		#imu # all available imu drivers
-		imu/bmi055
+		imu/bosch/bmi055
 		imu/invensense/icm20602
 		imu/invensense/icm20689
-		imu/mpu6000
+		#imu/mpu6000 # legacy icm20602/icm20689 driver
 		irlock
 		#lights/blinkm
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		#lights/rgbled_pwm
-		magnetometer # all available magnetometer drivers
+		#magnetometer # all available magnetometer drivers
+		magnetometer/isentek/ist8310
 		optical_flow # all available optical flow drivers
 		#pwm_input
 		pwm_out_sim
-		px4fmu
+		pwm_out
 		px4io
 		rc_input
 		#roboclaw
@@ -62,6 +63,7 @@ px4_add_board(
 		dataman
 		ekf2
 		events
+		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
 		land_detector
@@ -85,14 +87,14 @@ px4_add_board(
 		#vmount
 		vtol_att_control
 	SYSTEMCMDS
-		bl_update
-		config
+		#bl_update
 		dmesg
 		dumpfile
-		esc_calib
+		#esc_calib
 		hardfault_log
 		i2cdetect
 		led_control
+		mft
 		mixer
 		motor_ramp
 		motor_test
@@ -104,7 +106,7 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
-		shutdown
+		system_time
 		tests # tests and test runner
 		top
 		topic_listener

@@ -17,23 +17,25 @@ px4_add_board(
 		TEL2:/dev/ttyS2
 		TEL4:/dev/ttyS6
 	DRIVERS
-		adc
+		adc/board_adc
 		#barometer # all available barometer drivers
 		barometer/ms5611
 		#batt_smbus
 		camera_capture
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
-		distance_sensor # all available distance sensor drivers
+		#distance_sensor # all available distance sensor drivers
+		distance_sensor/ll40ls
+		distance_sensor/lightware_laser_serial
 		gps
 		imu/l3gd20
 		imu/lsm303d
-		imu/mpu6000
-		#imu/mpu9250
+		imu/invensense/mpu6000
+		#imu/invensense/mpu9250
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
-		px4fmu
+		pwm_out
 		px4io
 		#telemetry # all available telemetry drivers
 		telemetry/iridiumsbd
@@ -60,12 +62,12 @@ px4_add_board(
 		#vmount
 	SYSTEMCMDS
 		#bl_update
-		#config
 		#dumpfile
 		#esc_calib
 		hardfault_log
 		#i2cdetect
 		#led_control
+		mft
 		mixer
 		#motor_ramp
 		#motor_test

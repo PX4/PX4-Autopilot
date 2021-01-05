@@ -35,7 +35,7 @@
  * @file init.c
  *
  * PX4FMU-specific early startup code.  This file implements the
- * nsh_archinitialize() function that is called early by nsh during startup.
+ * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
  * subsystems and perform board-specific initialisation.
@@ -63,7 +63,7 @@
 #include <chip.h>
 #include <stm32_uart.h>
 #include <arch/board/board.h>
-#include "up_internal.h"
+#include "arm_internal.h"
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
@@ -81,7 +81,7 @@
 /* Configuration ************************************************************/
 
 /*
- * Ideally we'd be able to get these from up_internal.h,
+ * Ideally we'd be able to get these from arm_internal.h,
  * but since we want to be able to disable the NuttX use
  * of leds for system indication at will and there is no
  * separate switch, we need to build independent of the
@@ -207,7 +207,6 @@ stm32_boardinitialize(void)
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	/* Power on Interfaces */
-	VDD_3V3_SD_CARD_EN(true);
 	VDD_5V_PERIPH_EN(true);
 	VDD_5V_HIPOWER_EN(true);
 	board_control_spi_sensors_power(true, 0xffff);
@@ -266,6 +265,11 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_RED);
 	}
 
+	// Ensure Power is off for > 10 mS
+	usleep(15 * 1000);
+	VDD_3V3_SD_CARD_EN(true);
+	usleep(500 * 1000);
+
 #ifdef CONFIG_MMCSD
 	int ret = stm32_sdio_initialize();
 
@@ -275,6 +279,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #endif /* CONFIG_MMCSD */
+
+	/* Configure the HW based on the manifest */
+
+	px4_platform_configure();
 
 	return OK;
 }

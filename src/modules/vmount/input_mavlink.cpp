@@ -39,7 +39,7 @@
  */
 
 #include "input_mavlink.h"
-#include <uORB/PublicationQueued.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/position_setpoint_triplet.h>
@@ -369,7 +369,7 @@ void InputMavlinkCmdMount::_ack_vehicle_command(vehicle_command_s *cmd)
 	vehicle_command_ack.target_system = cmd->source_system;
 	vehicle_command_ack.target_component = cmd->source_component;
 
-	uORB::PublicationQueued<vehicle_command_ack_s> cmd_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_ack_s> cmd_ack_pub{ORB_ID(vehicle_command_ack)};
 	cmd_ack_pub.publish(vehicle_command_ack);
 }
 

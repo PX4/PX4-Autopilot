@@ -38,7 +38,6 @@
 #include <drivers/device/Device.hpp>
 #include <lib/perf/perf_counter.h>
 #include <uORB/Publication.hpp>
-#include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/uavcan_parameter_value.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
@@ -164,7 +163,7 @@ private:
 
 	// uORB topic handle for MAVLink parameter responses
 	uORB::Publication<uavcan_parameter_value_s> _param_response_pub{ORB_ID(uavcan_parameter_value)};
-	uORB::PublicationQueued<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	typedef uavcan::MethodBinder<UavcanServers *,
 		void (UavcanServers::*)(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &)> GetSetCallback;

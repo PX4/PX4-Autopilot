@@ -46,7 +46,7 @@ px4_add_board(
 	DRIVERS
 		barometer/bmp280
 		gps
-		imu/mpu9250
+		imu/invensense/mpu9250
 		#magnetometer/hmc5883
 		qshell/qurt
 		snapdragon_pwm_out
@@ -56,6 +56,7 @@ px4_add_board(
 		attitude_estimator_q
 		commander
 		ekf2
+		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
 		land_detector

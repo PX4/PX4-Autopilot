@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,28 +70,35 @@ public:
 
 	~RTL() = default;
 
+	void on_inactivation() override;
 	void on_inactive() override;
 	void on_activation() override;
 	void on_active() override;
 
 	void find_RTL_destination();
 
-	void set_return_alt_min(bool min);
+	void set_return_alt_min(bool min) { _rtl_alt_min = min; }
 
-	int rtl_type() const;
+	int rtl_type() const { return _param_rtl_type.get(); }
 
 	int rtl_destination();
+
+	void setClimbAndReturnDone(bool done) { _climb_and_return_done = done; }
+
+	bool getClimbAndReturnDone() { return _climb_and_return_done; }
+
+	bool denyMissionLanding() { return _deny_mission_landing; }
 
 private:
 	/**
 	 * Set the RTL item
 	 */
-	void		set_rtl_item();
+	void set_rtl_item();
 
 	/**
 	 * Move to next RTL item
 	 */
-	void		advance_rtl();
+	void advance_rtl();
 
 
 	float calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg);
@@ -103,6 +110,7 @@ private:
 		RTL_STATE_TRANSITION_TO_MC,
 		RTL_STATE_DESCEND,
 		RTL_STATE_LOITER,
+		RTL_MOVE_TO_LAND_HOVER_VTOL,
 		RTL_STATE_LAND,
 		RTL_STATE_LANDED,
 	} _rtl_state{RTL_STATE_NONE};
@@ -128,8 +136,12 @@ private:
 
 	RTLPosition _destination{}; ///< the RTL position to fly to (typically the home position or a safe point)
 
+	hrt_abstime _destination_check_time{0};
+
 	float _rtl_alt{0.0f};	// AMSL altitude at which the vehicle should return to the home position
 	bool _rtl_alt_min{false};
+	bool _climb_and_return_done{false};	// this flag is set to true if RTL is active and we are past the climb state and return state
+	bool _deny_mission_landing{false};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RTL_RETURN_ALT>) _param_rtl_return_alt,
@@ -137,6 +149,7 @@ private:
 		(ParamFloat<px4::params::RTL_LAND_DELAY>) _param_rtl_land_delay,
 		(ParamFloat<px4::params::RTL_MIN_DIST>) _param_rtl_min_dist,
 		(ParamInt<px4::params::RTL_TYPE>) _param_rtl_type,
-		(ParamInt<px4::params::RTL_CONE_ANG>) _param_rtl_cone_half_angle_deg
+		(ParamInt<px4::params::RTL_CONE_ANG>) _param_rtl_cone_half_angle_deg,
+		(ParamInt<px4::params::RTL_PLD_MD>) _param_rtl_pld_md
 	)
 };

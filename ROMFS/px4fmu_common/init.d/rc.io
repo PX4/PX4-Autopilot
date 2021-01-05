@@ -10,17 +10,14 @@ then
     set HIL_ARG $OUTPUT_MODE
 fi
 
-if [ $USE_IO = yes -a $IO_PRESENT = yes ]
+if [ $IO_PRESENT = yes ]
 then
 	if px4io start $HIL_ARG
 	then
 		# Allow PX4IO to recover from midair restarts.
 		px4io recovery
-	
-		# Adjust PX4IO update rate limit.
-		px4io limit 400
 	else
-		echo "PX4IO start failed" >> $LOG_FILE
-		tune_control play -t 20
+		echo "PX4IO start failed"
+		tune_control play -t 18 # PROG_PX4IO_ERR
 	fi
 fi

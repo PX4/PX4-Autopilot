@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2017 - 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -52,18 +52,16 @@ endif()
 # add core flight tasks to list
 list(APPEND flight_tasks_all
 	ManualAltitude
-	ManualAltitudeSmooth
 	ManualAltitudeSmoothVel
 	ManualPosition
-	ManualPositionSmooth
 	ManualPositionSmoothVel
-	Sport
 	AutoLineSmoothVel
 	AutoFollowMe
 	Offboard
 	Failsafe
 	Descend
 	Transition
+	ManualAcceleration
 	${flight_tasks_to_add}
 )
 

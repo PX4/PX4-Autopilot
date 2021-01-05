@@ -11,6 +11,7 @@
 @#  - ids (List) list of all RTPS msg ids
 @###############################################
 @{
+from packaging import version
 import genmsg.msgs
 
 from px_generate_uorb_topic_helper import * # this is in Tools/
@@ -68,7 +69,7 @@ except AttributeError:
 #include <fastrtps/fastrtps_fwd.h>
 #include <fastrtps/subscriber/SubscriberListener.h>
 #include <fastrtps/subscriber/SampleInfo.h>
-@[if fastrtps_version <= 1.7]@
+@[if version.parse(fastrtps_version) <= version.parse('1.7.2')]@
 #include "@(topic)_PubSubTypes.h"
 @[else]@
 #include "@(topic)PubSubTypes.h"
@@ -81,7 +82,7 @@ except AttributeError:
 using namespace eprosima::fastrtps;
 using namespace eprosima::fastrtps::rtps;
 
-@[if fastrtps_version <= 1.7]@
+@[if version.parse(fastrtps_version) <= version.parse('1.7.2')]@
 @[    if ros2_distro]@
 using @(topic)_msg_t = @(package)::msg::dds_::@(topic)_;
 using @(topic)_msg_datatype = @(package)::msg::dds_::@(topic)_PubSubType;
@@ -104,7 +105,7 @@ class @(topic)_Subscriber
 public:
     @(topic)_Subscriber();
     virtual ~@(topic)_Subscriber();
-    bool init(uint8_t topic_ID, std::condition_variable* t_send_queue_cv, std::mutex* t_send_queue_mutex, std::queue<uint8_t>* t_send_queue);
+    bool init(uint8_t topic_ID, std::condition_variable* t_send_queue_cv, std::mutex* t_send_queue_mutex, std::queue<uint8_t>* t_send_queue, const std::string& ns);
     void run();
     bool hasMsg();
     @(topic)_msg_t getMsg();

@@ -44,7 +44,7 @@
 #include "FlightTask.hpp"
 #include "FlightTasks_generated.hpp"
 #include <lib/weather_vane/WeatherVane.hpp>
-#include <uORB/PublicationQueued.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_command.h>
@@ -80,6 +80,12 @@ public:
 	 * @return output setpoint, to be executed by position control
 	 */
 	const vehicle_local_position_setpoint_s getPositionSetpoint();
+
+	/**
+	 * Get the local frame and attitude reset counters of the estimator from the current task
+	 * @return the reset counters
+	 */
+	const ekf_reset_counters_s getResetCounters();
 
 	/**
 	 * Get task dependent constraints
@@ -190,7 +196,7 @@ private:
 
 	uORB::Subscription _sub_vehicle_command{ORB_ID(vehicle_command)}; /**< topic handle on which commands are received */
 
-	uORB::PublicationQueued<vehicle_command_ack_s>	_pub_vehicle_command_ack{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_ack_s>	_pub_vehicle_command_ack{ORB_ID(vehicle_command_ack)};
 
 	int _initTask(FlightTaskIndex task_index);
 };

@@ -213,7 +213,7 @@ int IridiumSBD::ioctl(struct file *filp, int cmd, unsigned long arg)
 // private functions                                                 //
 ///////////////////////////////////////////////////////////////////////
 
-void IridiumSBD::main_loop_helper(int argc, char *argv[])
+int IridiumSBD::main_loop_helper(int argc, char *argv[])
 {
 	// start the main loop and stay in it
 	IridiumSBD::instance->main_loop(argc, argv);
@@ -225,6 +225,7 @@ void IridiumSBD::main_loop_helper(int argc, char *argv[])
 	IridiumSBD::instance = nullptr;
 
 	PX4_WARN("stopped");
+	return 0;
 }
 
 void IridiumSBD::main_loop(int argc, char *argv[])
@@ -357,8 +358,6 @@ void IridiumSBD::main_loop(int argc, char *argv[])
 			test_loop();
 			break;
 		}
-
-		publish_subsystem_status();
 
 		if (_new_state != _state) {
 			VERBOSE_INFO("SWITCHING STATE FROM %s TO %s", satcom_state_string[_state], satcom_state_string[_new_state]);
@@ -1115,31 +1114,13 @@ void IridiumSBD::publish_iridium_status()
 	}
 }
 
-void IridiumSBD::publish_subsystem_status()
-{
-	const bool present = true;
-	const bool enabled = true;
-	const bool ok = _status.last_heartbeat > 0; // maybe at some point here an additional check should be made
-
-	if ((_info.present != present) || (_info.enabled != enabled) || (_info.ok != ok)) {
-		_info.timestamp = hrt_absolute_time();
-		_info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_SATCOM;
-		_info.present = present;
-		_info.enabled = enabled;
-		_info.ok = ok;
-
-		_subsystem_pub.publish(_info);
-	}
-}
-
-
-int	IridiumSBD::open_first(struct file *filep)
+int IridiumSBD::open_first(struct file *filep)
 {
 	_cdev_used = true;
 	return CDev::open_first(filep);
 }
 
-int	IridiumSBD::close_last(struct file *filep)
+int IridiumSBD::close_last(struct file *filep)
 {
 	_cdev_used = false;
 	return CDev::close_last(filep);

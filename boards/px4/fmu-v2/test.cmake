@@ -17,7 +17,7 @@ px4_add_board(
 		TEL2:/dev/ttyS2
 		TEL4:/dev/ttyS6
 	DRIVERS
-		adc
+		adc/board_adc
 		#barometer # all available barometer drivers
 		barometer/ms5611
 		#batt_smbus
@@ -27,7 +27,7 @@ px4_add_board(
 		differential_pressure/ms4525
 		#distance_sensor # all available distance sensor drivers
 		distance_sensor/ll40ls
-		distance_sensor/sf0x
+		distance_sensor/lightware_laser_serial
 		#dshot
 		gps
 		#heater
@@ -37,8 +37,8 @@ px4_add_board(
 		#imu/adis16497
 		imu/l3gd20
 		imu/lsm303d
-		imu/mpu6000
-		#imu/mpu9250
+		imu/invensense/mpu6000
+		#imu/invensense/mpu9250
 		#iridiumsbd
 		#irlock
 		#lights/blinkm
@@ -53,7 +53,7 @@ px4_add_board(
 		#protocol_splitter
 		#pwm_input
 		#pwm_out_sim
-		px4fmu
+		pwm_out
 		px4io
 		#roboclaw
 		#tap_esc
@@ -70,6 +70,7 @@ px4_add_board(
 		dataman
 		#ekf2
 		#events
+		flight_mode_manager
 		#fw_att_control
 		#fw_pos_control_l1
 		land_detector
@@ -92,13 +93,13 @@ px4_add_board(
 		#vtol_att_control
 	SYSTEMCMDS
 		#bl_update
-		#config
 		#dmesg
 		#dumpfile
 		#esc_calib
 		hardfault_log
 		#i2cdetect
 		#led_control
+		mft
 		mixer
 		#motor_ramp
 		#motor_test
@@ -127,4 +128,5 @@ px4_add_board(
 		#px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		#rover_steering_control # Rover example app
 		#uuv_example_app
+		#work_item
 	)

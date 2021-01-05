@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *	Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *	Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,7 +70,7 @@ __EXPORT void	dsm_deinit(void);
 __EXPORT void	dsm_proto_init(void);
 __EXPORT int	dsm_config(int dsm_fd);
 __EXPORT bool	dsm_input(int dsm_fd, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, uint8_t *n_bytes,
-			  uint8_t **bytes, int8_t *rssi, unsigned max_values);
+			  uint8_t **bytes, int8_t *rssi, unsigned *frame_drops, unsigned max_values);
 
 __EXPORT bool	dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uint16_t *values,
 			  uint16_t *num_values, bool *dsm_11_bit, unsigned *frame_drops, int8_t *rssi_percent, uint16_t max_channels);
@@ -87,8 +87,8 @@ enum DSM_CMD {							/* DSM bind states */
 	DSM_CMD_BIND_REINIT_UART
 };
 
-#define DSM2_BIND_PULSES 3	/* DSM_BIND_START parameter, pulses required to start dsm2 pairing */
-#define DSMX_BIND_PULSES 7	/* DSM_BIND_START parameter, pulses required to start dsmx pairing */
-#define DSMX8_BIND_PULSES 9 /* DSM_BIND_START parameter, pulses required to start 8 or more channel dsmx pairing */
+#define DSM2_BIND_PULSES 3	/* DSM_BIND_START parameter, pulses required to start pairing DSM2 22ms */
+#define DSMX_BIND_PULSES 7	/* DSM_BIND_START parameter, pulses required to start pairing DSMx 22ms */
+#define DSMX8_BIND_PULSES 9     /* DSM_BIND_START parameter, pulses required to start pairing DSMx 11ms */
 
 __END_DECLS

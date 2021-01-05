@@ -32,27 +32,26 @@ px4_add_board(
 		TEL1:/dev/ttyS1
 		TEL2:/dev/ttyS2
 	DRIVERS
-		adc
+		adc/board_adc
 		#barometer # all available barometer drivers
 		barometer/ms5611
 		bootloaders
 		#differential_pressure # all available differential pressure drivers
-		#distance_sensor # all available distance sensor drivers
+		distance_sensor # all available distance sensor drivers
 		#dshot
 		gps
 		#imu # all available imu drivers
 		#imu/adis16448
 		#imu/adis16477
 		#imu/adis16497
-		#imu/invensense/icm20602
-		#imu/invensense/icm20608-g
-		imu/mpu6000
-		imu/mpu9250
+		imu/invensense/icm20602
+		imu/invensense/icm20608g
+		imu/invensense/mpu9250
 		#lights/rgbled
 		#lights/rgbled_ncp5623c
 		#magnetometer # all available magnetometer drivers
 		#optical_flow # all available optical flow drivers
-		#px4fmu
+		#pwm_out
 		#safety_button
 		#tone_alarm
 		uavcannode
@@ -68,6 +67,7 @@ px4_add_board(
 		#esc_calib
 		#hardfault_log
 		i2cdetect
+		mft
 		#led_control
 		#mixer
 		#motor_ramp
@@ -80,6 +80,7 @@ px4_add_board(
 		reboot
 		#reflect
 		#sd_bench
+		system_time
 		#shutdown
 		top
 		#topic_listener

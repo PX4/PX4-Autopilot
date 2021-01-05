@@ -9,15 +9,14 @@ px4_add_board(
 	ROMFSROOT px4fmu_common
 	LINKER_PREFIX ocram
 #	UAVCAN_INTERFACES 2
-
 	SERIAL_PORTS
 		GPS1:/dev/ttyS1
-		TEL1:/dev/ttyS3
-		TEL2:/dev/ttyS2
+		TEL1:/dev/ttyS2
+		TEL2:/dev/ttyS3
 		GPS2:/dev/ttyS4
 
 	DRIVERS
-		adc
+		adc/board_adc
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
@@ -25,12 +24,14 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 #		dshot not ported
 		gps
-		imu/adis16448
-		imu/adis16477
-		imu/adis16497
+		#imu/adis16448
+		#imu/adis16477
+		#imu/adis16497
 		#imu # all available imu drivers
-		imu/bmi055
-		imu/mpu6000
+		imu/bosch/bmi055
+		imu/invensense/icm20602
+		imu/invensense/icm20689
+		#imu/mpu6000 # legacy icm20602/icm20689 driver
 		irlock
 		lights/blinkm
 		lights/rgbled
@@ -40,7 +41,7 @@ px4_add_board(
 		optical_flow # all available optical flow drivers
 #		pwm_input - not ptorable
 		pwm_out_sim
-		px4fmu
+		pwm_out
 		rc_input
 		roboclaw
 		safety_button
@@ -56,6 +57,7 @@ px4_add_board(
 		dataman
 		ekf2
 		events
+		flight_mode_manager
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -74,7 +76,6 @@ px4_add_board(
 		vmount
 	SYSTEMCMDS
 #		bl_update
-		config
 		dmesg
 		dumpfile
 		esc_calib
@@ -84,6 +85,7 @@ px4_add_board(
 		mixer
 		motor_ramp
 		motor_test
+		mft
 		mtd
 		nshterm
 		param
@@ -92,7 +94,7 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
-		shutdown
+		system_time
 		top
 		topic_listener
 		tune_control

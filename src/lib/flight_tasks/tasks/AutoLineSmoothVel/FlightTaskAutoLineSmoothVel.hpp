@@ -49,12 +49,10 @@ public:
 	FlightTaskAutoLineSmoothVel() = default;
 	virtual ~FlightTaskAutoLineSmoothVel() = default;
 
-	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
+	bool activate(const vehicle_local_position_setpoint_s &last_setpoint) override;
 	void reActivate() override;
 
 protected:
-
-	void checkSetpoints(vehicle_local_position_setpoint_s &setpoints);
 
 	/** Reset position or velocity setpoints in case of EKF reset event */
 	void _ekfResetHandlerPositionXY() override;
@@ -65,6 +63,7 @@ protected:
 
 	void _generateSetpoints() override; /**< Generate setpoints along line. */
 	void _generateHeading();
+	void _updateTurningCheck();
 	bool _generateHeadingAlongTraj(); /**< Generates heading along trajectory. */
 
 	static float _constrainOneSide(float val, float constraint); /**< Constrain val between INF and constraint */
@@ -73,6 +72,13 @@ protected:
 
 	float _getMaxXYSpeed() const;
 	float _getMaxZSpeed() const;
+
+	matrix::Vector3f getCrossingPoint() const;
+	bool isTargetModified() const;
+	matrix::Vector2f getL1Point() const;
+
+	float _max_speed_prev{};
+	bool _is_turning{false};
 
 	void _prepareSetpoints(); /**< Generate velocity target points for the trajectory generator. */
 	void _updateTrajConstraints();

@@ -8,9 +8,11 @@ px4_add_board(
 	LABEL default
 	PLATFORM posix
 	ARCHITECTURE cortex-a53
+	ROMFSROOT px4fmu_common
 	TOOLCHAIN arm-linux-gnueabihf
 	TESTING
 	DRIVERS
+		adc/ads1115
 		#barometer # all available barometer drivers
 		barometer/ms5611
 		batt_smbus
@@ -20,7 +22,7 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		gps
 		#imu # all available imu drivers
-		imu/mpu9250
+		imu/invensense/mpu9250
 		linux_pwm_out
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
@@ -38,11 +40,12 @@ px4_add_board(
 		dataman
 		ekf2
 		events
+		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
 		land_detector
 		landing_target_estimator
-		#load_mon
+		load_mon
 		local_position_estimator
 		logger
 		mavlink
@@ -69,8 +72,8 @@ px4_add_board(
 		param
 		perf
 		pwm
-		reboot
 		sd_bench
+		system_time
 		shutdown
 		tests # tests and test runner
 		#top
@@ -88,4 +91,5 @@ px4_add_board(
 		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		rover_steering_control # Rover example app
 		uuv_example_app
+		work_item
 	)

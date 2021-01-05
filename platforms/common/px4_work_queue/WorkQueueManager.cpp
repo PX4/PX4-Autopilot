@@ -201,6 +201,23 @@ serial_port_to_wq(const char *serial)
 	return wq_configurations::UART_UNKNOWN;
 }
 
+const wq_config_t &ins_instance_to_wq(uint8_t instance)
+{
+	switch (instance) {
+	case 0: return wq_configurations::INS0;
+
+	case 1: return wq_configurations::INS1;
+
+	case 2: return wq_configurations::INS2;
+
+	case 3: return wq_configurations::INS3;
+	}
+
+	PX4_WARN("no INS%d wq configuration, using INS0", instance);
+
+	return wq_configurations::INS0;
+}
+
 static void *
 WorkQueueRunner(void *context)
 {
@@ -390,7 +407,7 @@ WorkQueueManagerStatus()
 	if (!_wq_manager_should_exit.load() && (_wq_manager_wqs_list != nullptr)) {
 
 		const size_t num_wqs = _wq_manager_wqs_list->size();
-		PX4_INFO_RAW("\nWork Queue: %-1zu threads                      RATE        INTERVAL\n", num_wqs);
+		PX4_INFO_RAW("\nWork Queue: %-1zu threads                        RATE        INTERVAL\n", num_wqs);
 
 		LockGuard lg{_wq_manager_wqs_list->mutex()};
 		size_t i = 0;
@@ -398,7 +415,7 @@ WorkQueueManagerStatus()
 		for (WorkQueue *wq : *_wq_manager_wqs_list) {
 			i++;
 
-			const bool last_wq = !(i < num_wqs);
+			const bool last_wq = (i >= num_wqs);
 
 			if (!last_wq) {
 				PX4_INFO_RAW("|__ %zu) ", i);

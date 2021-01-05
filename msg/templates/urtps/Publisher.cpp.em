@@ -11,6 +11,7 @@
 @#  - ids (List) list of all RTPS msg ids
 @###############################################
 @{
+from packaging import version
 import genmsg.msgs
 
 from px_generate_uorb_topic_helper import * # this is in Tools/
@@ -69,12 +70,7 @@ except AttributeError:
 
 #include <fastrtps/Domain.h>
 
-@[if fastrtps_version <= 1.7]@
-#include <fastrtps/utils/eClock.h>
-@[end if]@
-
 #include "@(topic)_Publisher.h"
-
 
 @(topic)_Publisher::@(topic)_Publisher()
     : mp_participant(nullptr),
@@ -86,27 +82,26 @@ except AttributeError:
     Domain::removeParticipant(mp_participant);
 }
 
-bool @(topic)_Publisher::init()
+bool @(topic)_Publisher::init(const std::string& ns)
 {
     // Create RTPSParticipant
     ParticipantAttributes PParam;
+@[if version.parse(fastrtps_version) < version.parse('2.0')]@
     PParam.rtps.builtin.domainId = 0;
-@[if fastrtps_version <= 1.8]@
+@[else]@
+    PParam.domainId = 0;
+@[end if]@
+@[if version.parse(fastrtps_version) <= version.parse('1.8.4')]@
     PParam.rtps.builtin.leaseDuration = c_TimeInfinite;
 @[else]@
     PParam.rtps.builtin.discovery_config.leaseDuration = c_TimeInfinite;
 @[end if]@
-    PParam.rtps.setName("@(topic)_publisher");  //You can put here the name you want
+    std::string nodeName = ns;
+    nodeName.append("@(topic)_publisher");
+    PParam.rtps.setName(nodeName.c_str());
     mp_participant = Domain::createParticipant(PParam);
     if(mp_participant == nullptr)
         return false;
-
-@[if ros2_distro and (ros2_distro == "dashing" or ros2_distro == "eloquent")]@
-    // Type name should match the expected type name on ROS2
-    // Note: the change is being done here since the 'fastrtpsgen' example
-    // generator does not allow to change the type naming on the template
-    @(topic)DataType.setName("@(package)::msg::dds_::@(topic)_");
-@[end if]@
 
     // Register the type
     Domain::registerType(mp_participant, static_cast<TopicDataType*>(&@(topic)DataType));
@@ -118,12 +113,19 @@ bool @(topic)_Publisher::init()
 @[if ros2_distro]@
 @[    if ros2_distro == "ardent"]@
     Wparam.qos.m_partition.push_back("rt");
-    Wparam.topic.topicName = "@(topic)_PubSubTopic";
+    std::string topicName = ns;
+    topicName.append("@(topic)_PubSubTopic");
+    Wparam.topic.topicName = topicName;
 @[    else]@
-    Wparam.topic.topicName = "rt/@(topic)_PubSubTopic";
+    std::string topicName = "rt/";
+    topicName.append(ns);
+    topicName.append("@(topic)_PubSubTopic");
+    Wparam.topic.topicName = topicName;
 @[    end if]@
 @[else]@
-    Wparam.topic.topicName = "@(topic)_PubSubTopic";
+    std::string topicName = ns;
+    topicName.append("@(topic)PubSubTopic");
+    Wparam.topic.topicName = topicName;
 @[end if]@
     mp_publisher = Domain::createPublisher(mp_participant, Wparam, static_cast<PublisherListener*>(&m_listener));
     if(mp_publisher == nullptr)
@@ -147,10 +149,10 @@ void @(topic)_Publisher::PubListener::onPublicationMatched(Publisher* pub, Match
     if (is_different_endpoint) {
         if (info.status == MATCHED_MATCHING) {
             n_matched++;
-            std::cout << " - @(topic) publisher matched" << std::endl;
+            std::cout << "\033[0;37m[   micrortps_agent   ]\t@(topic) publisher matched\033[0m" << std::endl;
         } else {
             n_matched--;
-            std::cout << " - @(topic) publisher unmatched" << std::endl;
+            std::cout << "\033[0;37m[   micrortps_agent   ]\t@(topic) publisher unmatched\033[0m" << std::endl;
         }
     }
 }

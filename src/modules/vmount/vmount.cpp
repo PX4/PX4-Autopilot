@@ -163,16 +163,9 @@ static int vmount_thread_main(int argc, char *argv[])
 
 	InputTest *test_input = nullptr;
 
-#ifdef __PX4_NUTTX
-	/* the NuttX optarg handler does not
-	 * ignore argv[0] like the POSIX handler
-	 * does, nor does it deal with non-flag
-	 * verbs well. So we Remove the application
-	 * name and the verb.
-	 */
+	// We don't need the task name.
 	argc -= 1;
 	argv += 1;
-#endif
 
 	if (argc > 0 && !strcmp(argv[0], "test")) {
 		PX4_INFO("Starting in test mode");
@@ -601,7 +594,7 @@ static void usage()
 Mount (Gimbal) control driver. It maps several different input methods (eg. RC or MAVLink) to a configured
 output (eg. AUX channels or MAVLink).
 
-Documentation how to use it is on the [gimbal_control](https://dev.px4.io/en/advanced/gimbal_control.html) page.
+Documentation how to use it is on the [gimbal_control](https://dev.px4.io/master/en/advanced/gimbal_control.html) page.
 
 ### Implementation
 Each method is implemented in its own class, and there is a common base class for inputs and outputs.

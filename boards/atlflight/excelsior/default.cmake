@@ -63,6 +63,7 @@ px4_add_board(
 		dataman
 		ekf2
 		events
+		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
 		land_detector
@@ -88,7 +89,6 @@ px4_add_board(
 		vtol_att_control
 	SYSTEMCMDS
 		#bl_update
-		#config
 		#dumpfile
 		esc_calib
 		#hardfault_log
@@ -101,9 +101,9 @@ px4_add_board(
 		param
 		perf
 		pwm
-		reboot
 		sd_bench
 		shutdown
+		system_time
 		#tests # tests and test runner
 		#top
 		topic_listener
@@ -119,4 +119,5 @@ px4_add_board(
 		#px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		#rover_steering_control # Rover example app
 		#uuv_example_app
+		#work_item
 	)

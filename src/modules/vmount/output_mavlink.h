@@ -41,7 +41,7 @@
 
 #include "output.h"
 
-#include <uORB/PublicationQueued.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/vehicle_command.h>
 
 namespace vmount
@@ -62,7 +62,7 @@ public:
 
 private:
 
-	uORB::PublicationQueued<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
 };
 
 

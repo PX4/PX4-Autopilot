@@ -48,7 +48,7 @@ public:
 	FlightTaskManualAltitudeSmoothVel() = default;
 	virtual ~FlightTaskManualAltitudeSmoothVel() = default;
 
-	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
+	bool activate(const vehicle_local_position_setpoint_s &last_setpoint) override;
 	void reActivate() override;
 
 protected:
@@ -58,15 +58,13 @@ protected:
 	void _ekfResetHandlerPositionZ() override;
 	void _ekfResetHandlerVelocityZ() override;
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max,
-		(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
-		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max
-	)
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualAltitude,
+					(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max,
+					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
+					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max
+				       )
 
 private:
-	void checkSetpoints(vehicle_local_position_setpoint_s &setpoints);
-
 	void _updateTrajConstraints();
 	void _setOutputState();
 

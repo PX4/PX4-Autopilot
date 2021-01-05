@@ -57,16 +57,12 @@ __BEGIN_DECLS
 /**
  * Parameter types.
  */
-#define PARAM_TYPE_INT32		0
-#define PARAM_TYPE_FLOAT		1
-#define PARAM_TYPE_STRUCT		100
-#define PARAM_TYPE_STRUCT_MAX	(16384 + PARAM_TYPE_STRUCT)
-#define PARAM_TYPE_UNKNOWN		(0xffff)
+#define PARAM_TYPE_UNKNOWN		0
+#define PARAM_TYPE_INT32		1
+#define PARAM_TYPE_FLOAT		2
 
-typedef uint16_t param_type_t;
+typedef uint8_t param_type_t;
 
-
-#ifdef __PX4_NUTTX // on NuttX use 16 bits to save RAM
 /**
  * Parameter handle.
  *
@@ -85,29 +81,6 @@ typedef uint16_t	param_t;
  * Magic handle for hash check param
  */
 #define PARAM_HASH      ((uint16_t)INT16_MAX)
-
-#else // on other platforms use 32 bits for better performance
-
-/**
- * Parameter handle.
- *
- * Parameters are represented by parameter handles, which can
- * be obtained by looking up parameters. They are an offset into a global
- * constant parameter array.
- */
-typedef uint32_t	param_t;
-
-/**
- * Handle returned when a parameter cannot be found.
- */
-#define PARAM_INVALID	((uint32_t)0xffffffff)
-
-/**
- * Magic handle for hash check param
- */
-#define PARAM_HASH      ((uint32_t)INT32_MAX)
-
-#endif /* __PX4_NUTTX */
 
 
 /**
@@ -288,6 +261,17 @@ __EXPORT void		param_notify_changes(void);
 __EXPORT int		param_reset(param_t param);
 
 /**
+ * Reset a parameter to its default value, but do not notify the system about the change.
+ *
+ * This function frees any storage used by struct parameters, and returns the parameter
+ * to its default value.
+ *
+ * @param param		A handle returned by param_find or passed by param_foreach.
+ * @return		Zero on success, nonzero on failure
+ */
+__EXPORT int		param_reset_no_notification(param_t param);
+
+/**
  * Reset all parameters to their default values.
  *
  * This function also releases the storage used by struct parameters.
@@ -305,15 +289,29 @@ __EXPORT void		param_reset_all(void);
  */
 __EXPORT void		param_reset_excludes(const char *excludes[], int num_excludes);
 
+typedef bool(*param_filter_func)(param_t handle);
+
+/**
+ * Reset only specific parameters to their default values.
+ *
+ * This function also releases the storage used by struct parameters.
+ *
+ * @param resets Array of param names to reset. Use a wildcard at the end to reset parameters with a certain prefix.
+ * @param num_resets The number of passed reset conditions in the resets array.
+ */
+__EXPORT void		param_reset_specific(const char *resets[], int num_resets);
+
 /**
  * Export changed parameters to a file.
  * Note: this method requires a large amount of stack size!
  *
  * @param fd		File descriptor to export to (-1 selects the FLASH storage).
  * @param only_unsaved	Only export changed parameters that have not yet been exported.
+ * @param filter	Filter parameters to be exported. The method should return true if
+ * 			the parameter should be exported. No filtering if nullptr is passed.
  * @return		Zero on success, nonzero on failure.
  */
-__EXPORT int		param_export(int fd, bool only_unsaved);
+__EXPORT int		param_export(int fd, bool only_unsaved, param_filter_func filter);
 
 /**
  * Import parameters from a file, discarding any unrecognized parameters.
@@ -321,10 +319,11 @@ __EXPORT int		param_export(int fd, bool only_unsaved);
  * This function merges the imported parameters with the current parameter set.
  *
  * @param fd		File descriptor to import from (-1 selects the FLASH storage).
+ * @param mark_saved	Whether to mark imported parameters as already saved
  * @return		Zero on success, nonzero if an error occurred during import.
  *			Note that in the failure case, parameters may be inconsistent.
  */
-__EXPORT int		param_import(int fd);
+__EXPORT int		param_import(int fd, bool mark_saved);
 
 /**
  * Load parameters from a file.

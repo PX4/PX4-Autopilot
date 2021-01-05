@@ -53,7 +53,6 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/i2c_spi_buses.h>
-#include <uORB/topics/system_power.h>
 
 #include <drivers/airspeed/airspeed.h>
 
@@ -94,14 +93,6 @@ protected:
 	int	collect() override;
 
 	math::LowPassFilter2p	_filter{MEAS_RATE, MEAS_DRIVER_FILTER_FREQ};
-
-	/**
-	 * Correct for 5V rail voltage variations
-	 */
-	void voltage_correction(float &diff_pres_pa, float &temperature);
-
-	int _t_system_power{-1};
-	system_power_s system_power{};
 };
 
 /*
@@ -199,9 +190,6 @@ MEASAirspeed::collect()
 	float diff_press_PSI = -((dp_raw - 0.1f * 16383) * (P_max - P_min) / (0.8f * 16383) + P_min);
 	float diff_press_pa_raw = diff_press_PSI * PSI_to_Pa;
 
-	// correct for 5V rail voltage if possible
-	voltage_correction(diff_press_pa_raw, temperature);
-
 	/*
 	  With the above calculation the MS4525 sensor will produce a
 	  positive number when the top port is used as a dynamic port
@@ -276,73 +264,6 @@ MEASAirspeed::RunImpl()
 	ScheduleDelayed(CONVERSION_INTERVAL);
 }
 
-/**
-   correct for 5V rail voltage if the system_power ORB topic is
-   available
-
-   See http://uav.tridgell.net/MS4525/MS4525-offset.png for a graph of
-   offset versus voltage for 3 sensors
- */
-void
-MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
-{
-#if defined(ADC_SCALED_V5_SENSE)
-
-	if (_t_system_power == -1) {
-		_t_system_power = orb_subscribe(ORB_ID(system_power));
-	}
-
-	if (_t_system_power == -1) {
-		// not available
-		return;
-	}
-
-	bool updated = false;
-	orb_check(_t_system_power, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(system_power), _t_system_power, &system_power);
-	}
-
-	if (system_power.voltage5v_v < 3.0f || system_power.voltage5v_v > 6.0f) {
-		// not valid, skip correction
-		return;
-	}
-
-	const float slope = 65.0f;
-	/*
-	  apply a piecewise linear correction, flattening at 0.5V from 5V
-	 */
-	float voltage_diff = system_power.voltage5v_v - 5.0f;
-
-	if (voltage_diff > 0.5f) {
-		voltage_diff = 0.5f;
-	}
-
-	if (voltage_diff < -0.5f) {
-		voltage_diff = -0.5f;
-	}
-
-	diff_press_pa -= voltage_diff * slope;
-
-	/*
-	  the temperature masurement varies as well
-	 */
-	const float temp_slope = 0.887f;
-	voltage_diff = system_power.voltage5v_v - 5.0f;
-
-	if (voltage_diff > 0.5f) {
-		voltage_diff = 0.5f;
-	}
-
-	if (voltage_diff < -1.0f) {
-		voltage_diff = -1.0f;
-	}
-
-	temperature -= voltage_diff * temp_slope;
-#endif // defined(ADC_SCALED_V5_SENSE)
-}
-
 I2CSPIDriverBase *MEASAirspeed::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 		int runtime_instance)
 {
@@ -368,6 +289,7 @@ void
 MEASAirspeed::print_usage()
 {
 	PRINT_MODULE_USAGE_NAME("ms4525_airspeed", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("airspeed_sensor");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
 	PRINT_MODULE_USAGE_PARAM_STRING('T', "4525", "4525|4515", "Device type", true);

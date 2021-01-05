@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,12 +45,17 @@
 #include <cstring>
 #include <px4_platform_common/defines.h>
 
-Battery::Battery(int index, ModuleParams *parent) :
+using namespace time_literals;
+
+Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us) :
 	ModuleParams(parent),
-	_index(index < 1 || index > 9 ? 1 : index),
-	_warning(battery_status_s::BATTERY_WARNING_NONE),
-	_last_timestamp(0)
+	_index(index < 1 || index > 9 ? 1 : index)
 {
+	const float expected_filter_dt = static_cast<float>(sample_interval_us) / 1_s;
+	_voltage_filter_v.setParameters(expected_filter_dt, 1.f);
+	_current_filter_a.setParameters(expected_filter_dt, .5f);
+	_throttle_filter.setParameters(expected_filter_dt, 1.f);
+
 	if (index > 9 || index < 1) {
 		PX4_ERR("Battery index must be between 1 and 9 (inclusive). Received %d. Defaulting to 1.", index);
 	}
@@ -98,13 +103,7 @@ Battery::Battery(int index, ModuleParams *parent) :
 	updateParams();
 }
 
-Battery::~Battery()
-{
-	orb_unadvertise(_orb_advert);
-}
-
-void
-Battery::reset()
+void Battery::reset()
 {
 	memset(&_battery_status, 0, sizeof(_battery_status));
 	_battery_status.current_a = -1.f;
@@ -114,102 +113,68 @@ Battery::reset()
 	// TODO: check if it is sane to reset warning to NONE
 	_battery_status.warning = battery_status_s::BATTERY_WARNING_NONE;
 	_battery_status.connected = false;
-	_battery_status.capacity = _params.capacity;
+	_battery_status.capacity = _params.capacity > 0.0f ? (uint16_t)_params.capacity : 0;
 	_battery_status.temperature = NAN;
 	_battery_status.id = (uint8_t) _index;
 }
 
-void
-Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a,
-			     bool connected, bool selected_source, int priority,
-			     float throttle_normalized, bool should_publish)
+void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v, float current_a, bool connected,
+				  int source, int priority, float throttle_normalized)
 {
 	reset();
-	_battery_status.timestamp = timestamp;
-	filterVoltage(voltage_v);
-	filterThrottle(throttle_normalized);
-	filterCurrent(current_a);
+
+	if (!_battery_initialized) {
+		_voltage_filter_v.reset(voltage_v);
+		_current_filter_a.reset(current_a);
+		_throttle_filter.reset(throttle_normalized);
+	}
+
+	_voltage_filter_v.update(voltage_v);
+	_current_filter_a.update(current_a);
+	_throttle_filter.update(throttle_normalized);
 	sumDischarged(timestamp, current_a);
-	estimateRemaining(_voltage_filtered_v, _current_filtered_a, _throttle_filtered);
+	estimateRemaining(_voltage_filter_v.getState(), _current_filter_a.getState(), _throttle_filter.getState());
 	computeScale();
 
 	if (_battery_initialized) {
 		determineWarning(connected);
 	}
 
-	if (_voltage_filtered_v > 2.1f) {
+	if (_voltage_filter_v.getState() > 2.1f) {
 		_battery_initialized = true;
 		_battery_status.voltage_v = voltage_v;
-		_battery_status.voltage_filtered_v = _voltage_filtered_v;
+		_battery_status.voltage_filtered_v = _voltage_filter_v.getState();
 		_battery_status.scale = _scale;
 		_battery_status.current_a = current_a;
-		_battery_status.current_filtered_a = _current_filtered_a;
+		_battery_status.current_filtered_a = _current_filter_a.getState();
 		_battery_status.discharged_mah = _discharged_mah;
 		_battery_status.warning = _warning;
 		_battery_status.remaining = _remaining;
 		_battery_status.connected = connected;
-		_battery_status.system_source = selected_source;
+		_battery_status.source = source;
 		_battery_status.priority = priority;
+
+		static constexpr int uorb_max_cells = sizeof(_battery_status.voltage_cell_v) / sizeof(
+				_battery_status.voltage_cell_v[0]);
+
+		// Fill cell voltages with average values to work around BATTERY_STATUS message not allowing to report just total voltage
+		for (int i = 0; (i < _battery_status.cell_count) && (i < uorb_max_cells); i++) {
+			_battery_status.voltage_cell_v[i] = _battery_status.voltage_filtered_v / _battery_status.cell_count;
+		}
 	}
 
-	_battery_status.timestamp = timestamp;
-
-	if (should_publish) {
+	if (source == _params.source) {
 		publish();
 	}
 }
 
-void
-Battery::publish()
+void Battery::publish()
 {
-	orb_publish_auto(ORB_ID(battery_status), &_orb_advert, &_battery_status, &_orb_instance, ORB_PRIO_DEFAULT);
+	_battery_status.timestamp = hrt_absolute_time();
+	_battery_status_pub.publish(_battery_status);
 }
 
-void
-Battery::filterVoltage(float voltage_v)
-{
-	if (!_battery_initialized) {
-		_voltage_filtered_v = voltage_v;
-	}
-
-	// TODO: inspect that filter performance
-	const float filtered_next = _voltage_filtered_v * 0.99f + voltage_v * 0.01f;
-
-	if (PX4_ISFINITE(filtered_next)) {
-		_voltage_filtered_v = filtered_next;
-	}
-}
-
-void
-Battery::filterCurrent(float current_a)
-{
-	if (!_battery_initialized) {
-		_current_filtered_a = current_a;
-	}
-
-	// ADC poll is at 100Hz, this will perform a low pass over approx 500ms
-	const float filtered_next = _current_filtered_a * 0.98f + current_a * 0.02f;
-
-	if (PX4_ISFINITE(filtered_next)) {
-		_current_filtered_a = filtered_next;
-	}
-}
-
-void Battery::filterThrottle(float throttle)
-{
-	if (!_battery_initialized) {
-		_throttle_filtered = throttle;
-	}
-
-	const float filtered_next = _throttle_filtered * 0.99f + throttle * 0.01f;
-
-	if (PX4_ISFINITE(filtered_next)) {
-		_throttle_filtered = filtered_next;
-	}
-}
-
-void
-Battery::sumDischarged(hrt_abstime timestamp, float current_a)
+void Battery::sumDischarged(const hrt_abstime &timestamp, float current_a)
 {
 	// Not a valid measurement
 	if (current_a < 0.f) {
@@ -230,8 +195,7 @@ Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 	_last_timestamp = timestamp;
 }
 
-void
-Battery::estimateRemaining(float voltage_v, float current_a, float throttle)
+void Battery::estimateRemaining(const float voltage_v, const float current_a, const float throttle)
 {
 	// remaining battery capacity based on voltage
 	float cell_voltage = voltage_v / _params.n_cells;
@@ -269,8 +233,7 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle)
 	}
 }
 
-void
-Battery::determineWarning(bool connected)
+void Battery::determineWarning(bool connected)
 {
 	if (connected) {
 		// propagate warning state only if the state is higher, otherwise remain in current warning state
@@ -289,8 +252,7 @@ Battery::determineWarning(bool connected)
 	}
 }
 
-void
-Battery::computeScale()
+void Battery::computeScale()
 {
 	const float voltage_range = (_params.v_charged - _params.v_empty);
 

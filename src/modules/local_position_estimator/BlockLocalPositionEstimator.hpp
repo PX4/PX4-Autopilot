@@ -33,9 +33,9 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/estimator_states.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/estimator_innovations.h>
-#include <uORB/topics/ekf2_timestamps.h>
 
 using namespace matrix;
 using namespace control;
@@ -286,8 +286,8 @@ private:
 	uORB::PublicationData<vehicle_local_position_s> _pub_lpos{ORB_ID(vehicle_local_position)};
 	uORB::PublicationData<vehicle_global_position_s> _pub_gpos{ORB_ID(vehicle_global_position)};
 	uORB::PublicationData<vehicle_odometry_s> _pub_odom{ORB_ID(vehicle_odometry)};
+	uORB::PublicationData<estimator_states_s> _pub_est_states{ORB_ID(estimator_states)};
 	uORB::PublicationData<estimator_status_s> _pub_est_status{ORB_ID(estimator_status)};
-	uORB::PublicationData<ekf2_timestamps_s> _pub_ekf2_timestamps{ORB_ID(ekf2_timestamps)};
 	uORB::PublicationData<estimator_innovations_s> _pub_innov{ORB_ID(estimator_innovations)};
 	uORB::PublicationData<estimator_innovations_s> _pub_innov_var{ORB_ID(estimator_innovation_variances)};
 

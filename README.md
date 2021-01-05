@@ -1,78 +1,86 @@
 # PX4 Drone Autopilot
 
-[![Releases](https://img.shields.io/github/release/PX4/Firmware.svg)](https://github.com/PX4/Firmware/releases) [![DOI](https://zenodo.org/badge/22634/PX4/Firmware.svg)](https://zenodo.org/badge/latestdoi/22634/PX4/Firmware)
+[![Releases](https://img.shields.io/github/release/PX4/PX4-Autopilot.svg)](https://github.com/PX4/PX4-Autopilot/releases) [![DOI](https://zenodo.org/badge/22634/PX4/PX4-Autopilot.svg)](https://zenodo.org/badge/latestdoi/22634/PX4/PX4-Autopilot)
 
-[![Build Status](http://ci.px4.io:8080/buildStatus/icon?job=PX4/Firmware/master)](http://ci.px4.io:8080/blue/organizations/jenkins/PX4%2FFirmware/activity)
+[![Nuttx Targets](https://github.com/PX4/PX4-Autopilot/workflows/Nuttx%20Targets/badge.svg)](https://github.com/PX4/PX4-Autopilot/actions?query=workflow%3A%22Nuttx+Targets%22?branch=master) [![SITL Tests](https://github.com/PX4/PX4-Autopilot/workflows/SITL%20Tests/badge.svg?branch=master)](https://github.com/PX4/PX4-Autopilot/actions?query=workflow%3A%22SITL+Tests%22)
 
 [![Slack](https://px4-slack.herokuapp.com/badge.svg)](http://slack.px4.io)
 
-This repository holds the [PX4](http://px4.io) flight control solution for drones, with the main applications located in the [src/modules](https://github.com/PX4/Firmware/tree/master/src/modules) directory. It also contains the PX4 Drone Middleware Platform, which provides drivers and middleware to run drones.
+This repository holds the [PX4](http://px4.io) flight control solution for drones, with the main applications located in the [src/modules](https://github.com/PX4/PX4-Autopilot/tree/master/src/modules) directory. It also contains the PX4 Drone Middleware Platform, which provides drivers and middleware to run drones.
 
-* Official Website: http://px4.io (License: BSD 3-clause, [LICENSE](https://github.com/PX4/Firmware/blob/master/LICENSE))
-* [Supported airframes](https://docs.px4.io/en/airframes/airframe_reference.html) ([portfolio](http://px4.io/#airframes)):
-  * [Multicopters](https://docs.px4.io/en/airframes/airframe_reference.html#copter)
-  * [Fixed wing](https://docs.px4.io/en/airframes/airframe_reference.html#plane)
-  * [VTOL](https://docs.px4.io/en/airframes/airframe_reference.html#vtol)
+* Official Website: http://px4.io (License: BSD 3-clause, [LICENSE](https://github.com/PX4/PX4-Autopilot/blob/master/LICENSE))
+* [Supported airframes](https://docs.px4.io/master/en/airframes/airframe_reference.html) ([portfolio](http://px4.io/#airframes)):
+  * [Multicopters](https://docs.px4.io/master/en/airframes/airframe_reference.html#copter)
+  * [Fixed wing](https://docs.px4.io/master/en/airframes/airframe_reference.html#plane)
+  * [VTOL](https://docs.px4.io/master/en/airframes/airframe_reference.html#vtol)
   * many more experimental types (Rovers, Blimps, Boats, Submarines, Autogyros, etc)
-* Releases: [Downloads](https://github.com/PX4/Firmware/releases)
+* Releases: [Downloads](https://github.com/PX4/PX4-Autopilot/releases)
 
 
 ## PX4 Users
 
-The [PX4 User Guide](https://docs.px4.io/en/) explains how to assemble [supported vehicles](https://docs.px4.io/en/airframes/airframe_reference.html) and fly drones with PX4.
-See the [forum and chat](https://docs.px4.io/en/#support) if you need help!
+The [PX4 User Guide](https://docs.px4.io/master/en/) explains how to assemble [supported vehicles](https://docs.px4.io/master/en/airframes/airframe_reference.html) and fly drones with PX4.
+See the [forum and chat](https://docs.px4.io/master/en/#support) if you need help!
 
 
 ## PX4 Developers
 
 This [Developer Guide](https://dev.px4.io/) is for software developers who want to modify the flight stack and middleware (e.g. to add new flight modes), hardware integrators who want to support new flight controller boards and peripherals, and anyone who wants to get PX4 working on a new (unsupported) airframe/vehicle.
 
-Developers should read the [Guide for Contributions](https://dev.px4.io/en/contribute/).
-See the [forum and chat](https://dev.px4.io/en/#support) if you need help!
+Developers should read the [Guide for Contributions](https://dev.px4.io/master/en/contribute/).
+See the [forum and chat](https://dev.px4.io/master/en/#support) if you need help!
 
 
 ### Weekly Dev Call
 
-The PX4 Dev Team syncs up on a [weekly dev call](https://dev.px4.io/en/contribute/#dev_call).
+The PX4 Dev Team syncs up on a [weekly dev call](https://dev.px4.io/master/en/contribute/#dev_call).
 
 > **Note** The dev call is open to all interested developers (not just the core dev team). This is a great opportunity to meet the team and contribute to the ongoing development of the platform. It includes a QA session for newcomers. All regular calls are listed in the [Dronecode calendar](https://www.dronecode.org/calendar/).
 
 
 ## Maintenance Team
 
-  * Project: Founder - [Lorenz Meier](https://github.com/LorenzMeier), Architecture: [Daniel Agar](https://github.com/dagar)
-    * [Dev Call](https://github.com/PX4/Firmware/labels/devcall) - [Ramon Roche](https://github.com/mrpollo)
+  * Project: Founder
+    * [Lorenz Meier](https://github.com/LorenzMeier)
+  * Architecture
+    * [Daniel Agar](https://github.com/dagar)
+  * [Dev Call](https://github.com/PX4/PX4-Autopilot/labels/devcall)
+    * [Ramon Roche](https://github.com/mrpollo)
   * Communication Architecture
     * [Beat Kueng](https://github.com/bkueng)
     * [Julian Oes](https://github.com/JulianOes)
   * UI in QGroundControl
     * [Gus Grubba](https://github.com/dogmaphobic)
-  * [Multicopter Flight Control](https://github.com/PX4/Firmware/labels/multicopter)
+  * [Multicopter Flight Control](https://github.com/PX4/PX4-Autopilot/labels/multicopter)
     * [Mathieu Bresciani](https://github.com/bresch)
-  * [Multicopter Software Architecture](https://github.com/PX4/Firmware/labels/multicopter)
+  * [Multicopter Software Architecture](https://github.com/PX4/PX4-Autopilot/labels/multicopter)
     * [Matthias Grob](https://github.com/MaEtUgR)
-  * [VTOL Flight Control](https://github.com/PX4/Firmware/labels/vtol)
+  * [VTOL Flight Control](https://github.com/PX4/PX4-Autopilot/labels/vtol)
     * [Roman Bapst](https://github.com/RomanBapst)
-  * [Fixed Wing Flight Control](https://github.com/PX4/Firmware/labels/fixedwing)
+  * [Fixed Wing Flight Control](https://github.com/PX4/PX4-Autopilot/labels/fixedwing)
     * [Roman Bapst](https://github.com/RomanBapst)
-  * OS / NuttX [David Sidrane](https://github.com/davids5)
-  * Driver Architecture [Daniel Agar](https://github.com/dagar)
-  * Commander Architecture [Julian Oes](https://github.com/julianoes)
-  * [UAVCAN](https://github.com/PX4/Firmware/labels/uavcan) [Daniel Agar](https://github.com/dagar)
-  * [State Estimation](https://github.com/PX4/Firmware/issues?q=is%3Aopen+is%3Aissue+label%3A%22state+estimation%22) - [Paul Riseborough](https://github.com/priseborough)
+  * OS / NuttX
+    * [David Sidrane](https://github.com/davids5)
+  * Driver Architecture
+    * [Daniel Agar](https://github.com/dagar)
+  * Commander Architecture
+    * [Julian Oes](https://github.com/julianoes)
+  * [UAVCAN](https://github.com/PX4/PX4-Autopilot/labels/uavcan)
+    * [Daniel Agar](https://github.com/dagar)
+  * [State Estimation](https://github.com/PX4/PX4-Autopilot/issues?q=is%3Aopen+is%3Aissue+label%3A%22state+estimation%22)
+    * [Paul Riseborough](https://github.com/priseborough)
   * Vision based navigation
     * [Julian Kent](https://github.com/jkflying)
-  * Obstacle Avoidance - [Martina Rivizzigno](https://github.com/mrivi)
-  * RTPS/ROS2 Interface - [Nuno Marques](https://github.com/TSC21)
+  * Obstacle Avoidance
+    * [Martina Rivizzigno](https://github.com/mrivi)
+  * RTPS/ROS2 Interface
+    * [Nuno Marques](https://github.com/TSC21)
 
-See also [About Us](http://px4.io/about-us/#development_team) (px4.io) and the [contributors list](https://github.com/PX4/Firmware/graphs/contributors) (Github).
+See also [maintainers list](https://px4.io/community/maintainers/) (px4.io) and the [contributors list](https://github.com/PX4/PX4-Autopilot/graphs/contributors) (Github).
 
 ## Supported Hardware
 
 This repository contains code supporting these boards:
-  * [Snapdragon Flight](https://docs.px4.io/master/en/flight_controller/snapdragon_flight.html)
-  * [Intel Aero](https://docs.px4.io/master/en/flight_controller/intel_aero.html)
-  * [Raspberry PI with Navio 2](https://docs.px4.io/master/en/flight_controller/raspberry_pi_navio2.html)
   * FMUv2
     * [Pixhawk](https://docs.px4.io/master/en/flight_controller/pixhawk.html)
     * [Pixfalcon](https://docs.px4.io/master/en/flight_controller/pixfalcon.html)
@@ -92,9 +100,9 @@ This repository contains code supporting these boards:
   * [Airmind MindRacer V1.2](http://mindpx.net/assets/accessories/mindracer_user_guide_v1.2.pdf)
   * [Bitcraze Crazyflie 2.0](https://docs.px4.io/master/en/flight_controller/crazyflie2.html)
   * [Omnibus F4 SD](https://docs.px4.io/master/en/flight_controller/omnibus_f4_sd.html)
-  * [BeagleBone Blue](https://docs.px4.io/master/en/flight_controller/beaglebone_blue.html)
   * [Holybro Durandal](https://docs.px4.io/master/en/flight_controller/durandal.html)
   * [Holybro Kakute F7](https://docs.px4.io/master/en/flight_controller/kakutef7.html)
+  * [Raspberry PI with Navio 2](https://docs.px4.io/master/en/flight_controller/raspberry_pi_navio2.html)
 
 Additional information about supported hardware can be found in [PX4 user Guide > Autopilot Hardware](https://docs.px4.io/master/en/flight_controller/).
 

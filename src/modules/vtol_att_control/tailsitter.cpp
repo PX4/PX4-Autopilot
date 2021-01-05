@@ -42,8 +42,6 @@
 #include "tailsitter.h"
 #include "vtol_att_control_main.h"
 
-#define ARSP_YAW_CTRL_DISABLE 4.0f	// airspeed at which we stop controlling yaw during a front transition
-#define THROTTLE_TRANSITION_MAX 0.25f	// maximum added thrust above last value in transition
 #define PITCH_TRANSITION_FRONT_P1 -1.1f	// pitch angle to switch to TRANSITION_P2
 #define PITCH_TRANSITION_BACK -0.25f	// pitch angle to switch to MC
 
@@ -60,8 +58,6 @@ Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
 	_mc_yaw_weight = 1.0f;
 
 	_flag_was_in_trans_mode = false;
-
-	_params_handles_tailsitter.front_trans_dur_p2 = param_find("VT_TRANS_P2_DUR");
 	_params_handles_tailsitter.fw_pitch_sp_offset = param_find("FW_PSP_OFF");
 }
 
@@ -69,10 +65,6 @@ void
 Tailsitter::parameters_update()
 {
 	float v;
-
-	/* vtol front transition phase 2 duration */
-	param_get(_params_handles_tailsitter.front_trans_dur_p2, &v);
-	_params_tailsitter.front_trans_dur_p2 = v;
 
 	param_get(_params_handles_tailsitter.fw_pitch_sp_offset, &v);
 	_params_tailsitter.fw_pitch_sp_offset = math::radians(v);
@@ -130,14 +122,14 @@ void Tailsitter::update_vtol_state()
 		case vtol_mode::TRANSITION_FRONT_P1: {
 
 
-				const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->equivalent_airspeed_m_s)
+				const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
 						&& !_params->airspeed_disabled;
 
 				bool transition_to_fw = false;
 
 				if (pitch <= PITCH_TRANSITION_FRONT_P1) {
 					if (airspeed_triggers_transition) {
-						transition_to_fw = _airspeed_validated->equivalent_airspeed_m_s >= _params->transition_airspeed;
+						transition_to_fw = _airspeed_validated->calibrated_airspeed_m_s >= _params->transition_airspeed;
 
 					} else {
 						transition_to_fw = true;
@@ -188,7 +180,7 @@ void Tailsitter::update_vtol_state()
 
 void Tailsitter::update_transition_state()
 {
-	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
+	const float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
 
 	if (!_flag_was_in_trans_mode) {
 		_flag_was_in_trans_mode = true;
@@ -220,9 +212,12 @@ void Tailsitter::update_transition_state()
 		_q_trans_sp = _q_trans_start;
 	}
 
+	// ensure input quaternions are exactly normalized because acosf(1.00001) == NaN
+	_q_trans_sp.normalize();
+
 	// tilt angle (zero if vehicle nose points up (hover))
-	float tilt = acosf(_q_trans_sp(0) * _q_trans_sp(0) - _q_trans_sp(1) * _q_trans_sp(1) - _q_trans_sp(2) * _q_trans_sp(
-				   2) + _q_trans_sp(3) * _q_trans_sp(3));
+	const float tilt = acosf(_q_trans_sp(0) * _q_trans_sp(0) - _q_trans_sp(1) * _q_trans_sp(1) - _q_trans_sp(2) *
+				 _q_trans_sp(2) + _q_trans_sp(3) * _q_trans_sp(3));
 
 	if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_FRONT_P1) {
 
@@ -237,8 +232,8 @@ void Tailsitter::update_transition_state()
 
 		const float trans_pitch_rate = M_PI_2_F / _params->back_trans_duration;
 
-		if (!flag_idle_mc) {
-			flag_idle_mc = set_idle_mc();
+		if (!_flag_idle_mc) {
+			_flag_idle_mc = set_idle_mc();
 		}
 
 		if (tilt > 0.01f) {
@@ -285,36 +280,34 @@ void Tailsitter::update_fw_state()
 */
 void Tailsitter::fill_actuator_outputs()
 {
-	_actuators_out_0->timestamp = hrt_absolute_time();
-	_actuators_out_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
+	auto &mc_in = _actuators_mc_in->control;
+	auto &fw_in = _actuators_fw_in->control;
 
-	_actuators_out_1->timestamp = hrt_absolute_time();
-	_actuators_out_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
+	auto &mc_out = _actuators_out_0->control;
+	auto &fw_out = _actuators_out_1->control;
 
-	_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL]
-			* _mc_roll_weight;
-	_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
-		_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;
-	_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW] *
-			_mc_yaw_weight;
+	mc_out[actuator_controls_s::INDEX_ROLL]  = mc_in[actuator_controls_s::INDEX_ROLL]  * _mc_roll_weight;
+	mc_out[actuator_controls_s::INDEX_PITCH] = mc_in[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;
+	mc_out[actuator_controls_s::INDEX_YAW]   = mc_in[actuator_controls_s::INDEX_YAW]   * _mc_yaw_weight;
 
 	if (_vtol_schedule.flight_mode == vtol_mode::FW_MODE) {
-		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];
+		mc_out[actuator_controls_s::INDEX_THROTTLE] = fw_in[actuator_controls_s::INDEX_THROTTLE];
 
 	} else {
-		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
-			_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
+		mc_out[actuator_controls_s::INDEX_THROTTLE] = mc_in[actuator_controls_s::INDEX_THROTTLE];
 	}
 
 	if (_params->elevons_mc_lock && _vtol_schedule.flight_mode == vtol_mode::MC_MODE) {
-		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = 0;
-		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = 0;
+		fw_out[actuator_controls_s::INDEX_ROLL]  = 0;
+		fw_out[actuator_controls_s::INDEX_PITCH] = 0;
 
 	} else {
-		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];
-		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH];
+		fw_out[actuator_controls_s::INDEX_ROLL]  = fw_in[actuator_controls_s::INDEX_ROLL];
+		fw_out[actuator_controls_s::INDEX_PITCH] = fw_in[actuator_controls_s::INDEX_PITCH];
 	}
+
+	_actuators_out_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
+	_actuators_out_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
+
+	_actuators_out_0->timestamp = _actuators_out_1->timestamp = hrt_absolute_time();
 }

@@ -117,7 +117,7 @@ int UavcanBarometerBridge::init_driver(uavcan_bridge::Channel *channel)
 	device_id.devid_s.devtype = DRV_BARO_DEVTYPE_UAVCAN;
 	device_id.devid_s.address = static_cast<uint8_t>(channel->node_id);
 
-	channel->h_driver = new PX4Barometer(device_id.devid, ORB_PRIO_HIGH);
+	channel->h_driver = new PX4Barometer(device_id.devid);
 
 	if (channel->h_driver == nullptr) {
 		return PX4_ERROR;

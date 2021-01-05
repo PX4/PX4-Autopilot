@@ -60,6 +60,17 @@ if("${PX4_BOARD_LABEL}" STREQUAL "bootloader")
 		bootloader_lib
 		drivers_board
 	)
+elseif("${PX4_BOARD_LABEL}" STREQUAL "canbootloader")
+	set(SCRIPT_PREFIX ${PX4_BOARD_LABEL}_)
+	add_subdirectory(src/canbootloader)
+	list(APPEND nuttx_libs
+		canbootloader
+		drivers_board
+	)
+
+	target_link_libraries(px4 PRIVATE
+		-Wl,-wrap,sched_process_timer -Wl,-wrap,nx_sem_post -Wl,-wrap,nx_sem_wait
+	)
 else()
 	if(NOT "${PX4_BOARD_LINKER_PREFIX}" STREQUAL "")
 		set(SCRIPT_PREFIX ${PX4_BOARD_LINKER_PREFIX}-)
@@ -113,7 +124,6 @@ target_link_libraries(px4 PRIVATE
 	-Wl,-Map=${PX4_CONFIG}.map
 	-Wl,--warn-common
 	-Wl,--gc-sections
-	-Wl,--print-memory-usage
 
 	-Wl,--start-group
 		${nuttx_libs}
@@ -122,6 +132,10 @@ target_link_libraries(px4 PRIVATE
 	m
 	gcc
 	)
+
+if(NOT USE_LD_GOLD)
+	target_link_libraries(px4 PRIVATE -Wl,--print-memory-usage)
+endif()
 
 target_link_libraries(px4 PRIVATE ${module_libraries})
 
@@ -224,8 +238,17 @@ if(NOT NUTTX_DIR MATCHES "external")
 	elseif(CONFIG_ARCH_CHIP_STM32F777NI)
 		set(DEBUG_DEVICE "STM32F777NI")
 		set(DEBUG_SVD_FILE "STM32F7x7.svd")
+	elseif(CONFIG_ARCH_CHIP_STM32H743II)
+		set(DEBUG_DEVICE "STM32H743II")
+		set(DEBUG_SVD_FILE "STM32H7x3.svd")
+	elseif(CONFIG_ARCH_CHIP_STM32H743XI)
+		set(DEBUG_DEVICE "STM32H743XI")
+		set(DEBUG_SVD_FILE "STM32H7x3.svd")
 	elseif(CONFIG_ARCH_CHIP_STM32H743ZI)
 		set(DEBUG_DEVICE "STM32H743ZI")
+		set(DEBUG_SVD_FILE "STM32H7x3.svd")
+	elseif(CONFIG_ARCH_CHIP_STM32H753II)
+		set(DEBUG_DEVICE "STM32H753II")
 		set(DEBUG_SVD_FILE "STM32H7x3.svd")
 	else()
 		set(DEBUG_DEVICE "")
@@ -236,7 +259,7 @@ if(NOT NUTTX_DIR MATCHES "external")
 		LIST_DIRECTORIES false
 		${CMAKE_SOURCE_DIR}/../cmsis-svd/data/*/${DEBUG_SVD_FILE}
 	)
-	if(NOT DEBUG_SVD_FILE MATCHES "unknown")
+	if(DEBUG_SVD_FILE_PATH)
 		message(STATUS "Found SVD: ${DEBUG_SVD_FILE_PATH}")
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/launch.json.in ${PX4_SOURCE_DIR}/.vscode/launch.json @ONLY)
 	endif()

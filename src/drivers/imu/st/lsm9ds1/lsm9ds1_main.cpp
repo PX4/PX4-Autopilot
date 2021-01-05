@@ -36,27 +36,7 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-I2CSPIDriverBase *LSM9DS1::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				       int runtime_instance)
-{
-	LSM9DS1 *instance = new LSM9DS1(iterator.configuredBusOption(), iterator.bus(), iterator.devid(), cli.rotation,
-					cli.bus_frequency, cli.spi_mode);
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (!instance->Init()) {
-		delete instance;
-		return nullptr;
-	}
-
-	return instance;
-}
-
-void
-LSM9DS1::print_usage()
+void LSM9DS1::print_usage()
 {
 	PRINT_MODULE_USAGE_NAME("lsm9ds1", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
@@ -66,12 +46,31 @@ LSM9DS1::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" __EXPORT int lsm9ds1_main(int argc, char *argv[])
+I2CSPIDriverBase *LSM9DS1::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+				       int runtime_instance)
+{
+	LSM9DS1 *instance = new LSM9DS1(iterator.configuredBusOption(), iterator.bus(), iterator.devid(), cli.rotation,
+					cli.bus_frequency, cli.spi_mode);
+
+	if (!instance) {
+		PX4_ERR("alloc failed");
+		return nullptr;
+	}
+
+	if (OK != instance->init()) {
+		delete instance;
+		return nullptr;
+	}
+
+	return instance;
+}
+
+extern "C" int lsm9ds1_main(int argc, char *argv[])
 {
 	int ch;
 	using ThisDriver = LSM9DS1;
 	BusCLIArguments cli{false, true};
-	cli.default_spi_frequency = ST_LSM9DS1::SPI_SPEED;
+	cli.default_spi_frequency = SPI_SPEED;
 
 	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
@@ -88,8 +87,7 @@ extern "C" __EXPORT int lsm9ds1_main(int argc, char *argv[])
 		return -1;
 	}
 
-	BusInstanceIterator iterator(MODULE_NAME, cli,
-				     DRV_IMU_DEVTYPE_ST_LSM9DS1_AG);
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_IMU_DEVTYPE_ST_LSM9DS1_AG);
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);

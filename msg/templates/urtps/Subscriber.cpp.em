@@ -11,6 +11,7 @@
 @#  - ids (List) list of all RTPS msg ids
 @###############################################
 @{
+from packaging import version
 import genmsg.msgs
 
 from px_generate_uorb_topic_helper import * # this is in Tools/
@@ -80,7 +81,7 @@ except AttributeError:
     Domain::removeParticipant(mp_participant);
 }
 
-bool @(topic)_Subscriber::init(uint8_t topic_ID, std::condition_variable* t_send_queue_cv, std::mutex* t_send_queue_mutex, std::queue<uint8_t>* t_send_queue)
+bool @(topic)_Subscriber::init(uint8_t topic_ID, std::condition_variable* t_send_queue_cv, std::mutex* t_send_queue_mutex, std::queue<uint8_t>* t_send_queue, const std::string& ns)
 {
     m_listener.topic_ID = topic_ID;
     m_listener.t_send_queue_cv = t_send_queue_cv;
@@ -89,24 +90,22 @@ bool @(topic)_Subscriber::init(uint8_t topic_ID, std::condition_variable* t_send
 
     // Create RTPSParticipant
     ParticipantAttributes PParam;
-    PParam.rtps.builtin.domainId = 0; // MUST BE THE SAME AS IN THE PUBLISHER
-@[if fastrtps_version <= 1.8]@
+@[if version.parse(fastrtps_version) < version.parse('2.0')]@
+    PParam.rtps.builtin.domainId = 0;
+@[else]@
+    PParam.domainId = 0;
+@[end if]@
+@[if version.parse(fastrtps_version) <= version.parse('1.8.4')]@
     PParam.rtps.builtin.leaseDuration = c_TimeInfinite;
 @[else]@
     PParam.rtps.builtin.discovery_config.leaseDuration = c_TimeInfinite;
 @[end if]@
-    PParam.rtps.setName("@(topic)_subscriber");
+    std::string nodeName = ns;
+    nodeName.append("@(topic)_subscriber");
+    PParam.rtps.setName(nodeName.c_str());
     mp_participant = Domain::createParticipant(PParam);
     if(mp_participant == nullptr)
             return false;
-
-@[if ros2_distro and (ros2_distro == "dashing" or ros2_distro == "eloquent")]@
-    // Type name should match the expected type name on ROS2
-    // Note: the change is being done here since the 'fastrtpsgen' example
-    // generator does not allow to change the type naming on the template of
-    // "*PubSubTypes.cpp" file
-    @(topic)DataType.setName("@(package)::msg::dds_::@(topic)_");
-@[end if]@
 
     //Register the type
     Domain::registerType(mp_participant, static_cast<TopicDataType*>(&@(topic)DataType));
@@ -118,12 +117,19 @@ bool @(topic)_Subscriber::init(uint8_t topic_ID, std::condition_variable* t_send
 @[if ros2_distro]@
 @[    if ros2_distro == "ardent"]@
     Rparam.qos.m_partition.push_back("rt");
-    Rparam.topic.topicName = "@(topic)_PubSubTopic";
+    std::string topicName = ns;
+    topicName.append("@(topic)_PubSubTopic");
+    Rparam.topic.topicName = topicName;
 @[    else]@
-    Rparam.topic.topicName = "rt/@(topic)_PubSubTopic";
+    std::string topicName = "rt/";
+    topicName.append(ns);
+    topicName.append("@(topic)_PubSubTopic");
+    Rparam.topic.topicName = topicName;
 @[    end if]@
 @[else]@
-    Rparam.topic.topicName = "@(topic)_PubSubTopic";
+    std::string topicName = ns;
+    topicName.append("@(topic)PubSubTopic");
+    Rparam.topic.topicName = topicName;
 @[end if]@
     mp_subscriber = Domain::createSubscriber(mp_participant, Rparam, static_cast<SubscriberListener*>(&m_listener));
     if(mp_subscriber == nullptr)
@@ -150,10 +156,10 @@ void @(topic)_Subscriber::SubListener::onSubscriptionMatched(Subscriber* sub, Ma
     if (is_different_endpoint) {
         if (info.status == MATCHED_MATCHING) {
             n_matched++;
-            std::cout << " - @(topic) subscriber matched" << std::endl;
+            std::cout << "\033[0;37m[   micrortps_agent   ]\t@(topic) subscriber matched\033[0m" << std::endl;
         } else {
             n_matched--;
-            std::cout << " - @(topic) subscriber unmatched" << std::endl;
+            std::cout << "\033[0;37m[   micrortps_agent   ]\t@(topic) subscriber unmatched\033[0m" << std::endl;
         }
     }
 @[else]@

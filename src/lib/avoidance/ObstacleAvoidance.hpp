@@ -47,7 +47,6 @@
 #include <drivers/drv_hrt.h>
 
 #include <uORB/Publication.hpp>
-#include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/vehicle_command.h>
@@ -125,7 +124,7 @@ protected:
 
 	uORB::Publication<vehicle_trajectory_waypoint_s> _pub_traj_wp_avoidance_desired{ORB_ID(vehicle_trajectory_waypoint_desired)};	/**< trajectory waypoint desired publication */
 	uORB::Publication<position_controller_status_s> _pub_pos_control_status{ORB_ID(position_controller_status)};	/**< position controller status publication */
-	uORB::PublicationQueued<vehicle_command_s> _pub_vehicle_command{ORB_ID(vehicle_command)};	/**< vehicle command do publication */
+	uORB::Publication<vehicle_command_s> _pub_vehicle_command{ORB_ID(vehicle_command)};	/**< vehicle command do publication */
 
 	matrix::Vector3f _curr_wp = {}; /**< current position triplet */
 	matrix::Vector3f _position = {}; /**< current vehicle position */

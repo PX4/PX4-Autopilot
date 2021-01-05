@@ -33,9 +33,11 @@
 
 #include "TFMINI.hpp"
 
+#include <fcntl.h>
+
 TFMINI::TFMINI(const char *port, uint8_t rotation) :
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
-	_px4_rangefinder(0 /* TODO: device id */, ORB_PRIO_DEFAULT, rotation)
+	_px4_rangefinder(0 /* TODO: device id */, rotation)
 {
 	// store port name
 	strncpy(_port, port, sizeof(_port) - 1);
@@ -60,7 +62,12 @@ TFMINI::init()
 
 	switch (hw_model) {
 	case 1: // TFMINI (12m, 100 Hz)
-		_px4_rangefinder.set_min_distance(0.3f);
+		// Note:
+		// Sensor specification shows 0.3m as minimum, but in practice
+		// 0.3 is too close to minimum so chattering of invalid sensor decision
+		// is happening sometimes. this cause EKF to believe inconsistent range readings.
+		// So we set 0.4 as valid minimum.
+		_px4_rangefinder.set_min_distance(0.4f);
 		_px4_rangefinder.set_max_distance(12.0f);
 		_px4_rangefinder.set_fov(math::radians(1.15f));
 
@@ -257,6 +264,4 @@ TFMINI::print_info()
 	printf("Using port '%s'\n", _port);
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-
-	_px4_rangefinder.print_status();
 }

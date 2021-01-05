@@ -82,7 +82,7 @@
  ****************************************************************************/
 
 /*
- * Ideally we'd be able to get these from up_internal.h,
+ * Ideally we'd be able to get these from arm_internal.h,
  * but since we want to be able to disable the NuttX use
  * of leds for system indication at will and there is no
  * separate switch, we need to build independent of the
@@ -328,11 +328,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETFREQUENCY(spi1, 10000000);
 	SPI_SETBITS(spi1, 8);
 	SPI_SETMODE(spi1, SPIDEV_MODE3);
-	SPI_SELECT(spi1, PX4_SPIDEV_ICM_20602, false);
-	SPI_SELECT(spi1, PX4_SPIDEV_BARO, false);
-	SPI_SELECT(spi1, PX4_SPIDEV_LIS, false);
-	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
-	SPI_SELECT(spi1, PX4_SPIDEV_EEPROM, false);
 	up_udelay(20);
 
 	/* Get the SPI port for the FRAM */
@@ -352,7 +347,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETFREQUENCY(spi2, 20 * 1000 * 1000);
 	SPI_SETBITS(spi2, 8);
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
-	SPI_SELECT(spi2, SPIDEV_FLASH(0), false);
 
 	/* Configure SPI 5-based devices */
 
@@ -368,7 +362,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETFREQUENCY(spi5, 10000000);
 	SPI_SETBITS(spi5, 8);
 	SPI_SETMODE(spi5, SPIDEV_MODE3);
-	SPI_SELECT(spi5, PX4_SPIDEV_EXT0, false);
 
 	/* Configure SPI 6-based devices */
 
@@ -384,7 +377,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETFREQUENCY(spi6, 10000000);
 	SPI_SETBITS(spi6, 8);
 	SPI_SETMODE(spi6, SPIDEV_MODE3);
-	SPI_SELECT(spi6, PX4_SPIDEV_EXT1, false);
 
 #ifdef CONFIG_MMCSD
 	/* First, get an instance of the SDIO interface */
@@ -411,6 +403,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	sdio_mediachange(sdio, true);
 
 #endif
+
+	/* Configure the HW based on the manifest */
+
+	px4_platform_configure();
 
 	return OK;
 }

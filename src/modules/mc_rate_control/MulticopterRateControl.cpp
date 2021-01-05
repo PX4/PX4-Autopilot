@@ -96,30 +96,6 @@ MulticopterRateControl::parameters_updated()
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled_by_val(_param_cbrk_rate_ctrl.get(), CBRK_RATE_CTRL_KEY);
 }
 
-float
-MulticopterRateControl::get_landing_gear_state()
-{
-	// Only switch the landing gear up if we are not landed and if
-	// the user switched from gear down to gear up.
-	// If the user had the switch in the gear up position and took off ignore it
-	// until he toggles the switch to avoid retracting the gear immediately on takeoff.
-	if (_landed) {
-		_gear_state_initialized = false;
-	}
-
-	float landing_gear = landing_gear_s::GEAR_DOWN; // default to down
-
-	if (_manual_control_sp.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON && _gear_state_initialized) {
-		landing_gear = landing_gear_s::GEAR_UP;
-
-	} else if (_manual_control_sp.gear_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
-		// Switching the gear off does put it into a safe defined state
-		_gear_state_initialized = true;
-	}
-
-	return landing_gear;
-}
-
 void
 MulticopterRateControl::Run()
 {
@@ -150,10 +126,10 @@ MulticopterRateControl::Run()
 		vehicle_angular_acceleration_s v_angular_acceleration{};
 		_vehicle_angular_acceleration_sub.copy(&v_angular_acceleration);
 
-		const hrt_abstime now = hrt_absolute_time();
+		const hrt_abstime now = angular_velocity.timestamp_sample;
 
-		// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
-		const float dt = math::constrain(((now - _last_run) / 1e6f), 0.0002f, 0.02f);
+		// Guard against too small (< 0.125ms) and too large (> 20ms) dt's.
+		const float dt = math::constrain(((now - _last_run) * 1e-6f), 0.000125f, 0.02f);
 		_last_run = now;
 
 		const Vector3f angular_accel{v_angular_acceleration.xyz};
@@ -173,7 +149,17 @@ MulticopterRateControl::Run()
 
 		_vehicle_status_sub.update(&_vehicle_status);
 
-		const bool manual_control_updated = _manual_control_sp_sub.update(&_manual_control_sp);
+		if (_landing_gear_sub.updated()) {
+			landing_gear_s landing_gear;
+
+			if (_landing_gear_sub.copy(&landing_gear)) {
+				if (landing_gear.landing_gear != landing_gear_s::GEAR_KEEP) {
+					_landing_gear = landing_gear.landing_gear;
+				}
+			}
+		}
+
+		const bool manual_control_updated = _manual_control_setpoint_sub.update(&_manual_control_setpoint);
 
 		// generate the rate setpoint from sticks?
 		bool manual_rate_sp = false;
@@ -183,14 +169,6 @@ MulticopterRateControl::Run()
 		    !_v_control_mode.flag_control_velocity_enabled &&
 		    !_v_control_mode.flag_control_position_enabled) {
 
-			// landing gear controlled from stick inputs if we are in Manual/Stabilized mode
-			//  limit landing gear update rate to 50 Hz
-			if (hrt_elapsed_time(&_landing_gear.timestamp) > 20_ms) {
-				_landing_gear.landing_gear = get_landing_gear_state();
-				_landing_gear.timestamp = hrt_absolute_time();
-				_landing_gear_pub.publish(_landing_gear);
-			}
-
 			if (!_v_control_mode.flag_control_attitude_enabled) {
 				manual_rate_sp = true;
 			}
@@ -199,12 +177,9 @@ MulticopterRateControl::Run()
 			//  if true then use published rate setpoint, otherwise generate from manual_control_setpoint (like acro)
 			if (_v_control_mode.flag_control_rattitude_enabled) {
 				manual_rate_sp =
-					(fabsf(_manual_control_sp.y) > _param_mc_ratt_th.get()) ||
-					(fabsf(_manual_control_sp.x) > _param_mc_ratt_th.get());
+					(fabsf(_manual_control_setpoint.y) > _param_mc_ratt_th.get()) ||
+					(fabsf(_manual_control_setpoint.x) > _param_mc_ratt_th.get());
 			}
-
-		} else {
-			_landing_gear_sub.update(&_landing_gear);
 		}
 
 		if (manual_rate_sp) {
@@ -212,12 +187,12 @@ MulticopterRateControl::Run()
 
 				// manual rates control - ACRO mode
 				const Vector3f man_rate_sp{
-					math::superexpo(_manual_control_sp.y, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
-					math::superexpo(-_manual_control_sp.x, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
-					math::superexpo(_manual_control_sp.r, _param_mc_acro_expo_y.get(), _param_mc_acro_supexpoy.get())};
+					math::superexpo(_manual_control_setpoint.y, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
+					math::superexpo(-_manual_control_setpoint.x, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
+					math::superexpo(_manual_control_setpoint.r, _param_mc_acro_expo_y.get(), _param_mc_acro_supexpoy.get())};
 
 				_rates_sp = man_rate_sp.emult(_acro_rate_max);
-				_thrust_sp = _manual_control_sp.z;
+				_thrust_sp = _manual_control_setpoint.z;
 
 				// publish rate setpoint
 				vehicle_rates_setpoint_s v_rates_sp{};
@@ -279,7 +254,7 @@ MulticopterRateControl::Run()
 			actuators.control[actuator_controls_s::INDEX_PITCH] = PX4_ISFINITE(att_control(1)) ? att_control(1) : 0.0f;
 			actuators.control[actuator_controls_s::INDEX_YAW] = PX4_ISFINITE(att_control(2)) ? att_control(2) : 0.0f;
 			actuators.control[actuator_controls_s::INDEX_THROTTLE] = PX4_ISFINITE(_thrust_sp) ? _thrust_sp : 0.0f;
-			actuators.control[actuator_controls_s::INDEX_LANDING_GEAR] = (float)_landing_gear.landing_gear;
+			actuators.control[actuator_controls_s::INDEX_LANDING_GEAR] = _landing_gear;
 			actuators.timestamp_sample = angular_velocity.timestamp_sample;
 
 			// scale effort by battery status if enabled

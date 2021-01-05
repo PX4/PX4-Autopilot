@@ -1,3 +1,37 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+#include <stdio.h>
 #include <lib/battery/battery.h>
 #include "analog_battery.h"
 
@@ -15,8 +49,8 @@ static constexpr int DEFAULT_V_CHANNEL[1] = {0};
 static constexpr int DEFAULT_I_CHANNEL[1] = {0};
 #endif
 
-AnalogBattery::AnalogBattery(int index, ModuleParams *parent) :
-	Battery(index, parent)
+AnalogBattery::AnalogBattery(int index, ModuleParams *parent, const int sample_interval_us) :
+	Battery(index, parent, sample_interval_us)
 {
 	char param_name[17];
 
@@ -41,7 +75,7 @@ AnalogBattery::AnalogBattery(int index, ModuleParams *parent) :
 
 void
 AnalogBattery::updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, float current_raw,
-				      bool selected_source, int priority, float throttle_normalized)
+				      int source, int priority, float throttle_normalized)
 {
 	float voltage_v = voltage_raw * _analog_params.v_div;
 	float current_a = (current_raw - _analog_params.v_offs_cur) * _analog_params.a_per_v;
@@ -51,7 +85,7 @@ AnalogBattery::updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, 
 
 
 	Battery::updateBatteryStatus(timestamp, voltage_v, current_a, connected,
-				     selected_source, priority, throttle_normalized, _params.source == 0);
+				     source, priority, throttle_normalized);
 }
 
 bool AnalogBattery::is_valid()
@@ -105,7 +139,7 @@ AnalogBattery::updateParams()
 	param_get(_analog_param_handles.i_channel, &_analog_params.i_channel);
 	param_get(_analog_param_handles.v_offs_cur, &_analog_params.v_offs_cur);
 
-	if (_analog_params.v_div <= 0.0f) {
+	if (_analog_params.v_div < 0.0f) {
 		/* apply scaling according to defaults if set to default */
 		_analog_params.v_div = BOARD_BATTERY1_V_DIV;
 		param_set_no_notification(_analog_param_handles.v_div, &_analog_params.v_div);
@@ -116,7 +150,7 @@ AnalogBattery::updateParams()
 		}
 	}
 
-	if (_analog_params.a_per_v <= 0.0f) {
+	if (_analog_params.a_per_v < 0.0f) {
 		/* apply scaling according to defaults if set to default */
 
 		_analog_params.a_per_v = BOARD_BATTERY1_A_PER_V;

@@ -49,7 +49,6 @@
 
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>
@@ -57,7 +56,7 @@
 #include <drivers/airspeed/airspeed.h>
 
 Airspeed::Airspeed(int bus, int bus_frequency, int address, unsigned conversion_interval) :
-	I2C("Airspeed", nullptr, bus, address, bus_frequency),
+	I2C(0, "Airspeed", bus, address, bus_frequency),
 	_sensor_ok(false),
 	_measure_interval(conversion_interval),
 	_collect_phase(false),

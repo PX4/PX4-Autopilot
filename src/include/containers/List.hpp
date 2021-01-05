@@ -95,6 +95,8 @@ public:
 				_head = _head->getSibling();
 			}
 
+			removeNode->setSibling(nullptr);
+
 			return true;
 		}
 
@@ -109,6 +111,8 @@ public:
 					node->setSibling(nullptr);
 				}
 
+				removeNode->setSibling(nullptr);
+
 				return true;
 			}
 		}
@@ -122,12 +126,12 @@ public:
 
 		operator T() const { return node; }
 		operator T &() { return node; }
-		T operator* () const { return node; }
+		const T &operator* () const { return node; }
 		Iterator &operator++ ()
 		{
 			if (node) {
 				node = node->getSibling();
-			};
+			}
 
 			return *this;
 		}
