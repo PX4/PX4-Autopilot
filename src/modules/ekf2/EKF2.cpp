@@ -163,6 +163,12 @@ EKF2::EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool 
 	// initialise parameter cache
 	updateParams();
 
+	// The airspeed scale factor correcton is only available via parameter as used by the airspeed module
+	param_t rot = param_find("ASPD_SCALE");
+	if (rot != PARAM_INVALID) {
+		param_get(rot, &_airspeed_scale_factor);
+	}
+
 	_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);
 
 	if (_multi_mode) {
@@ -1151,12 +1157,18 @@ void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 	airspeed_s airspeed;
 
 	if (_airspeed_sub.update(&airspeed)) {
+		// The airspeed measurement received via the airspeed.msg topic has not been corrected
+		// for scale favtor errors and requires the ASPD_SCALE correction to be applied.
+		// This could be avoided if true_airspeed_m_s from the airspeed-validated.msg topic
+		// was used instead, however this would introduce a potential circular dependency
+		// via the wind estimator that uses EKF velocity estimates.
+		const float true_airspeed_m_s = airspeed.true_airspeed_m_s * _airspeed_scale_factor;
 		// only set airspeed data if condition for airspeed fusion are met
-		if ((_param_ekf2_arsp_thr.get() > FLT_EPSILON) && (airspeed.true_airspeed_m_s > _param_ekf2_arsp_thr.get())) {
+		if ((_param_ekf2_arsp_thr.get() > FLT_EPSILON) && (true_airspeed_m_s > _param_ekf2_arsp_thr.get())) {
 
 			airspeedSample airspeed_sample {
 				.time_us = airspeed.timestamp,
-				.true_airspeed = airspeed.true_airspeed_m_s,
+				.true_airspeed = true_airspeed_m_s,
 				.eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s,
 			};
 			_ekf.setAirspeedData(airspeed_sample);
