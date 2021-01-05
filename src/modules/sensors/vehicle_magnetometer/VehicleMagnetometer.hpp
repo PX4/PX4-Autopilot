@@ -108,10 +108,15 @@ private:
 
 	// Used to check, save and use learned magnetometer biases
 	uORB::SubscriptionMultiArray<estimator_sensor_bias_s> _estimator_sensor_bias_subs{ORB_ID::estimator_sensor_bias};
-	systemlib::Hysteresis _mag_cal_valid[ORB_MULTI_MAX_INSTANCES] {false, false, false, false, false, false, false, false, false, false};
-	matrix::Vector3f _mag_cal_offset[MAX_SENSOR_COUNT] {};
-	matrix::Vector3f _mag_cal_bias_variance[MAX_SENSOR_COUNT] {};
-	bool _mag_cal_available[MAX_SENSOR_COUNT] {};
+
+	bool _mag_cal_available{false};
+
+	struct MagCal {
+		systemlib::Hysteresis valid{false};
+		uint32_t device_id{0};
+		matrix::Vector3f mag_offset{};
+		matrix::Vector3f mag_bias_variance{};
+	} _mag_cal[ORB_MULTI_MAX_INSTANCES] {};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_sub[MAX_SENSOR_COUNT] {
 		{this, ORB_ID(sensor_mag), 0},
