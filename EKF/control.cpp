@@ -722,7 +722,7 @@ void Ekf::controlGpsFusion()
 		// Handle the case where we are fusing another position source along GPS,
 		// stop waiting for GPS after 1 s of lost signal
 		stopGpsFusion();
-		ECL_WARN_TIMESTAMPED("GPS data stopped, using only EV or OF");
+		ECL_WARN_TIMESTAMPED("GPS data stopped, using only EV, OF or air data" );
 	}
 }
 
