@@ -1031,30 +1031,6 @@ Mission::set_mission_items()
 					generate_waypoint_from_heading(&pos_sp_triplet->current, pos_sp_triplet->current.yaw);
 				}
 
-				/* don't advance mission after FW to MC command */
-				if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
-				    && _work_item_type == WORK_ITEM_TYPE_DEFAULT
-				    && new_work_item_type == WORK_ITEM_TYPE_DEFAULT
-				    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
-				    && !_navigator->get_land_detected()->landed
-				    && pos_sp_triplet->current.valid) {
-
-					new_work_item_type = WORK_ITEM_TYPE_CMD_BEFORE_MOVE;
-				}
-
-				/* after FW to MC transition finish moving to the waypoint */
-				if (_work_item_type == WORK_ITEM_TYPE_CMD_BEFORE_MOVE &&
-				    new_work_item_type == WORK_ITEM_TYPE_DEFAULT
-				    && pos_sp_triplet->current.valid) {
-
-					new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
-
-					_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-					copy_position_if_valid(&_mission_item, &pos_sp_triplet->current);
-					_mission_item.autocontinue = true;
-					_mission_item.time_inside = 0.0f;
-				}
-
 				// ignore certain commands in mission fast forward
 				if ((_mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD) &&
 				    (_mission_item.nav_cmd == NAV_CMD_DELAY)) {
