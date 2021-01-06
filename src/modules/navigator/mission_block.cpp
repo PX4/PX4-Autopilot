@@ -112,18 +112,16 @@ MissionBlock::is_mission_item_reached()
 
 	case NAV_CMD_DO_VTOL_TRANSITION:
 
-		/*
-		 * We wait half a second to give the transition command time to propagate.
-		 * Then monitor the transition status for completion.
-		 */
-		// TODO: check desired transition state achieved and drop _action_start
-		if (hrt_absolute_time() - _action_start > 500000 &&
-		    !_navigator->get_vstatus()->in_transition_mode) {
+		if (int(_mission_item.params[0]) == 3) {
+			// transition to RW requested, only accept waypoint if vehicle state has changed accordingly
+			return _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
-			_action_start = 0;
-			return true;
+		} else if (int(_mission_item.params[0]) == 4) {
+			// transition to FW requested, only accept waypoint if vehicle state has changed accordingly
+			return _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 
 		} else {
+			// invalid vtol transition request
 			return false;
 		}
 
@@ -473,7 +471,6 @@ MissionBlock::issue_command(const mission_item_s &item)
 		_actuator_pub.publish(actuators);
 
 	} else {
-		_action_start = hrt_absolute_time();
 
 		// This is to support legacy DO_MOUNT_CONTROL as part of a mission.
 		if (item.nav_cmd == NAV_CMD_DO_MOUNT_CONTROL) {
