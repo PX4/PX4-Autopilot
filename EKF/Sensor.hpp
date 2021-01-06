@@ -70,6 +70,12 @@ public:
 	 * and can be fused in the estimator
 	 */
 	virtual bool isDataHealthy() const = 0;
+
+	/*
+	 * return true if the sensor data rate is
+	 * stable and high enough
+	 */
+	virtual bool isRegularlySendingData() const = 0;
 };
 
 } // namespace sensor

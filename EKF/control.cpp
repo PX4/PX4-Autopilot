@@ -989,8 +989,8 @@ void Ekf::controlHeightFusion()
 				}
 			}
 
-		} else if (_baro_data_ready && !_baro_hgt_faulty) {
-			startBaroHgtFusion();
+		} else if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
+			// fuse baro data if there was a reset to baro
 			fuse_height = true;
 		}
 
@@ -1055,16 +1055,17 @@ void Ekf::controlHeightFusion()
 
 	updateBaroHgtOffset();
 
-	if (isTimedOut(_time_last_hgt_fuse, 2 * RNG_MAX_INTERVAL) && _control_status.flags.rng_hgt
-	    && (!_range_sensor.isDataHealthy())) {
+	if (_control_status.flags.rng_hgt
+	    && isTimedOut(_time_last_hgt_fuse, 2 * RNG_MAX_INTERVAL)
+	    && !_range_sensor.isDataHealthy()
+	    && _range_sensor.isRegularlySendingData()
+	    && !_control_status.flags.in_air) {
 
 		// If we are supposed to be using range finder data as the primary height sensor, have missed or rejected measurements
 		// and are on the ground, then synthesise a measurement at the expected on ground value
-		if (!_control_status.flags.in_air) {
-			_range_sensor.setRange(_params.rng_gnd_clearance);
-			_range_sensor.setDataReadiness(true);
-			_range_sensor.setValidity(true); // bypass the checks
-		}
+		_range_sensor.setRange(_params.rng_gnd_clearance);
+		_range_sensor.setDataReadiness(true);
+		_range_sensor.setValidity(true); // bypass the checks
 
 		fuse_height = true;
 	}

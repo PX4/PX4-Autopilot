@@ -64,8 +64,11 @@ void SensorRangeFinder::updateValidity(uint64_t current_time_us)
 
 	if (isSampleOutOfDate(current_time_us) || !isDataContinuous()) {
 		_is_sample_valid = false;
+		_is_regularly_sending_data = false;
 		return;
 	}
+
+	_is_regularly_sending_data = true;
 
 	// Don't run the checks unless we have retrieved new data from the buffer
 	if (_is_sample_ready) {
