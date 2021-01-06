@@ -133,6 +133,7 @@ void VehicleMagnetometer::MagCalibrationUpdate()
 {
 	// State variance assumed for magnetometer bias storage.
 	// This is a reference variance used to calculate the fraction of learned magnetometer bias that will be used to update the stored value.
+	// Larger values cause a larger fraction of the learned biases to be used.
 	static constexpr float magb_vref = 2.5e-7f;
 	static constexpr float min_var_allowed = magb_vref * 0.01f;
 	static constexpr float max_var_allowed = magb_vref * 100.f;
@@ -182,6 +183,8 @@ void VehicleMagnetometer::MagCalibrationUpdate()
 	} else if (_mag_cal_available) {
 		// not armed and mag cal available
 		bool calibration_param_save_needed = false;
+		// iterate through available bias estimates and fuse them sequentially using a Kalman Filter scheme
+		Vector3f state_variance{magb_vref, magb_vref, magb_vref};
 
 		for (int mag_index = 0; mag_index < MAX_SENSOR_COUNT; mag_index++) {
 			// apply all valid saved offsets
@@ -193,17 +196,15 @@ void VehicleMagnetometer::MagCalibrationUpdate()
 					Vector3f mag_cal_offset{_calibration[mag_index].offset()};
 
 					// calculate weighting using ratio of variances and update stored bias values
-					const Vector3f &learned_offset = _mag_cal[i].mag_offset;
-					const Vector3f &variance = _mag_cal[i].mag_bias_variance;
+					const Vector3f &observation = _mag_cal[i].mag_offset;
+					const Vector3f &obs_variance = _mag_cal[i].mag_bias_variance;
 
 					for (int axis_index = 0; axis_index < 3; axis_index++) {
-						// Maximum fraction of learned mag bias saved at each disarm.
-						// Smaller values make the saved mag bias learn slower from flight to flight.
-						// Larger values make it learn faster. Must be > 0.0 and <= 1.0.
-						static constexpr float magb_k = 0.5f;
-						const float weighting = math::constrain(magb_vref / (magb_vref + variance(axis_index)), 0.f, magb_k);
-						const float delta = learned_offset(axis_index) - mag_cal_offset(axis_index);
-						mag_cal_offset(axis_index) += weighting * delta;
+						const float innovation_variance = state_variance(axis_index) + obs_variance(axis_index);
+						const float innovation = mag_cal_offset(axis_index) - observation(axis_index);
+						const float kalman_gain = state_variance(axis_index) / innovation_variance;
+						mag_cal_offset(axis_index) -= innovation * kalman_gain;
+						state_variance(axis_index) = fmaxf(state_variance(axis_index) * (1.f - kalman_gain), 0.f);
 					}
 
 					PX4_INFO("Mag %d (%d) est. offset %d committed: [% 05.3f % 05.3f % 05.3f] -> [% 05.3f % 05.3f % 05.3f] (full [% 05.3f % 05.3f % 05.3f])",
