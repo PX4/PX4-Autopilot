@@ -337,17 +337,26 @@ TEST_F(EkfFusionLogicTest, doRangeHeightFusion)
 	// WHEN: commanding range height and sending range data
 	_ekf_wrapper.setRangeHeight();
 	_sensor_simulator.startRangeFinder();
-	_sensor_simulator.runSeconds(2.5);
-
+	_sensor_simulator.runSeconds(2.5f);
 	// THEN: EKF should intend to fuse range height
 	EXPECT_TRUE(_ekf_wrapper.isIntendingRangeHeightFusion());
 
+	const float dt = 8e-3f;
+	for (int i = 0; i < 5; i++) {
+		_sensor_simulator.runSeconds(dt);
+		// THEN: EKF should intend to fuse range height, even if
+		// there is no new data at each EKF iteration (EKF rate > sensor rate)
+		EXPECT_TRUE(_ekf_wrapper.isIntendingRangeHeightFusion());
+	}
+
 	// WHEN: stop sending range data
 	_sensor_simulator.stopRangeFinder();
-	_sensor_simulator.runSeconds(2.5);
+	_sensor_simulator.runSeconds(5.1);
 
 	// THEN: EKF should stop to intend to use range height
+	// and fall back to baro height
 	EXPECT_FALSE(_ekf_wrapper.isIntendingRangeHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
 }
 
 TEST_F(EkfFusionLogicTest, doVisionHeightFusion)

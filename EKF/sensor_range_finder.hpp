@@ -57,6 +57,7 @@ public:
 	void runChecks(uint64_t current_time_us, const matrix::Dcmf &R_to_earth);
 	bool isHealthy() const override { return _is_sample_valid; }
 	bool isDataHealthy() const override { return _is_sample_ready && _is_sample_valid; }
+	bool isRegularlySendingData() const override { return _is_regularly_sending_data; }
 
 	void setSample(const rangeSample &sample) {
 		_sample = sample;
@@ -115,6 +116,7 @@ private:
 
 	bool _is_sample_ready{};	///< true when new range finder data has fallen behind the fusion time horizon and is available to be fused
 	bool _is_sample_valid{};	///< true if range finder sample retrieved from buffer is valid
+	bool _is_regularly_sending_data{false}; ///< true if the interval between two samples is less than the maximum expected interval
 	uint64_t _time_last_valid_us{};	///< time the last range finder measurement was ready (uSec)
 
 	/*
