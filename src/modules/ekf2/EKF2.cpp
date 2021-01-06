@@ -160,11 +160,6 @@ EKF2::EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool 
 	_param_ekf2_mag_check(_params->check_mag_strength),
 	_param_ekf2_gsf_tas_default(_params->EKFGSF_tas_default)
 {
-	// initialise parameter cache
-	updateParams();
-
-	_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);
-
 	if (_multi_mode) {
 		// advertise immediately to ensure consistent uORB instance numbering
 		_attitude_pub.advertise();
@@ -234,6 +229,25 @@ void EKF2::Run()
 		return;
 	}
 
+	// check for parameter updates
+	if (_parameter_update_sub.updated() || !_callback_registered) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+
+		// update parameters from storage
+		updateParams();
+
+		_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);
+
+		// The airspeed scale factor correcton is only available via parameter as used by the airspeed module
+		param_t param_aspd_scale = param_find("ASPD_SCALE");
+
+		if (param_aspd_scale != PARAM_INVALID) {
+			param_get(param_aspd_scale, &_airspeed_scale_factor);
+		}
+	}
+
 	if (!_callback_registered) {
 		if (_multi_mode) {
 			_callback_registered = _vehicle_imu_sub.registerCallback();
@@ -247,16 +261,6 @@ void EKF2::Run()
 			ScheduleDelayed(1_s);
 			return;
 		}
-	}
-
-	// check for parameter updates
-	if (_parameter_update_sub.updated()) {
-		// clear update
-		parameter_update_s pupdate;
-		_parameter_update_sub.copy(&pupdate);
-
-		// update parameters from storage
-		updateParams();
 	}
 
 	bool imu_updated = false;
@@ -1151,12 +1155,19 @@ void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 	airspeed_s airspeed;
 
 	if (_airspeed_sub.update(&airspeed)) {
+		// The airspeed measurement received via the airspeed.msg topic has not been corrected
+		// for scale favtor errors and requires the ASPD_SCALE correction to be applied.
+		// This could be avoided if true_airspeed_m_s from the airspeed-validated.msg topic
+		// was used instead, however this would introduce a potential circular dependency
+		// via the wind estimator that uses EKF velocity estimates.
+		const float true_airspeed_m_s = airspeed.true_airspeed_m_s * _airspeed_scale_factor;
+
 		// only set airspeed data if condition for airspeed fusion are met
-		if ((_param_ekf2_arsp_thr.get() > FLT_EPSILON) && (airspeed.true_airspeed_m_s > _param_ekf2_arsp_thr.get())) {
+		if ((_param_ekf2_arsp_thr.get() > FLT_EPSILON) && (true_airspeed_m_s > _param_ekf2_arsp_thr.get())) {
 
 			airspeedSample airspeed_sample {
 				.time_us = airspeed.timestamp,
-				.true_airspeed = airspeed.true_airspeed_m_s,
+				.true_airspeed = true_airspeed_m_s,
 				.eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s,
 			};
 			_ekf.setAirspeedData(airspeed_sample);
