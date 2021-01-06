@@ -117,7 +117,7 @@ PARAM_DEFINE_INT32(ASPD_PRIMARY, 1);
  * @boolean
  * @group Airspeed Validator
  */
-PARAM_DEFINE_INT32(ASPD_DO_CHECKS, 0);
+PARAM_DEFINE_INT32(ASPD_DO_CHECKS, 1);
 
 /**
  * Enable fallback to sensor-less airspeed estimation
@@ -158,7 +158,7 @@ PARAM_DEFINE_FLOAT(ASPD_FS_INNOV, 1.0f);
  * @max 30.0
  * @group Airspeed Validator
  */
-PARAM_DEFINE_FLOAT(ASPD_FS_INTEG, -1.0f);
+PARAM_DEFINE_FLOAT(ASPD_FS_INTEG, 5.0f);
 
 /**
  * Airspeed failsafe stop delay
