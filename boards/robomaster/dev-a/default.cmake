@@ -49,8 +49,8 @@ px4_add_board(
 		# pca9685
 		# #power_monitor/ina226
 		# #protocol_splitter
-		# pwm_input
-		# pwm_out_sim
+		pwm_input
+		pwm_out_sim
 		pwm_out
 		# px4io
 		# roboclaw
@@ -86,6 +86,7 @@ px4_add_board(
 		# temperature_compensation
 		# vmount
 		# vtol_att_control
+		move_motor
 	SYSTEMCMDS
 		# bl_update
 		#dmesg
@@ -102,7 +103,7 @@ px4_add_board(
 		# nshterm
 		param
 		# perf
-		# pwm
+		pwm
 		reboot
 		# reflect
 		# sd_bench
