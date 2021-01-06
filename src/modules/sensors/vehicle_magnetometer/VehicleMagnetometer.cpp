@@ -165,7 +165,7 @@ void VehicleMagnetometer::MagCalibrationUpdate()
 
 							_mag_cal_available = true;
 
-							if ((old_offset - _mag_cal[i].mag_offset).longerThan(0.001f)) {
+							if ((old_offset - _mag_cal[i].mag_offset).longerThan(0.01f)) {
 								PX4_DEBUG("Mag %d (%d) est. offset saved: [% 05.3f % 05.3f % 05.3f] (bias [% 05.3f % 05.3f % 05.3f])",
 									  mag_index, _mag_cal[i].device_id,
 									  (double)_mag_cal[i].mag_offset(0), (double)_mag_cal[i].mag_offset(1), (double)_mag_cal[i].mag_offset(2),
@@ -188,7 +188,7 @@ void VehicleMagnetometer::MagCalibrationUpdate()
 			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 				if ((_calibration[mag_index].device_id() != 0)
 				    && (_mag_cal[i].device_id == _calibration[mag_index].device_id())
-				    && _mag_cal[i].mag_offset.longerThan(0.001f)) {
+				    && _mag_cal[i].mag_offset.longerThan(0.01f)) {
 
 					Vector3f mag_cal_offset{_calibration[mag_index].offset()};
 
@@ -227,7 +227,6 @@ void VehicleMagnetometer::MagCalibrationUpdate()
 		if (calibration_param_save_needed) {
 			for (int mag_index = 0; mag_index < MAX_SENSOR_COUNT; mag_index++) {
 				if (_calibration[mag_index].device_id() != 0) {
-					_calibration[mag_index].set_calibration_index(mag_index);
 					_calibration[mag_index].ParametersSave();
 				}
 			}
