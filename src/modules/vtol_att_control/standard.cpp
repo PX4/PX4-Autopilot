@@ -106,7 +106,19 @@ void Standard::update_vtol_state()
 	float mc_weight = _mc_roll_weight;
 	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
 
-	if (!_attc->is_fixed_wing_requested()) {
+	if (_vtol_vehicle_status->vtol_transition_failsafe) {
+		// Failsafe event, engage mc motors immediately
+		_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
+		_pusher_throttle = 0.0f;
+		_reverse_output = 0.0f;
+
+		//reset failsafe when FW is no longer requested
+		if (!_attc->is_fixed_wing_requested()) {
+			_vtol_vehicle_status->vtol_transition_failsafe = false;
+		}
+
+
+	} else if (!_attc->is_fixed_wing_requested()) {
 
 		// the transition to fw mode switch is off
 		if (_vtol_schedule.flight_mode == vtol_mode::MC_MODE) {
@@ -117,21 +129,10 @@ void Standard::update_vtol_state()
 			_reverse_output = 0.0f;
 
 		} else if (_vtol_schedule.flight_mode == vtol_mode::FW_MODE) {
-			// transition to mc mode
-			if (_vtol_vehicle_status->vtol_transition_failsafe) {
-				// Failsafe event, engage mc motors immediately
-				_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
-				_pusher_throttle = 0.0f;
-				_reverse_output = 0.0f;
-
-
-			} else {
-				// Regular backtransition
-				_vtol_schedule.flight_mode = vtol_mode::TRANSITION_TO_MC;
-				_vtol_schedule.transition_start = hrt_absolute_time();
-				_reverse_output = _params_standard.reverse_output;
-
-			}
+			// Regular backtransition
+			_vtol_schedule.flight_mode = vtol_mode::TRANSITION_TO_MC;
+			_vtol_schedule.transition_start = hrt_absolute_time();
+			_reverse_output = _params_standard.reverse_output;
 
 		} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_FW) {
 			// failsafe back to mc mode
@@ -162,7 +163,7 @@ void Standard::update_vtol_state()
 		if (_vtol_schedule.flight_mode == vtol_mode::MC_MODE || _vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_MC) {
 			// start transition to fw mode
 			/* NOTE: The failsafe transition to fixed-wing was removed because it can result in an
-			 * unsafe flying state. */
+			* unsafe flying state. */
 			_vtol_schedule.flight_mode = vtol_mode::TRANSITION_TO_FW;
 			_vtol_schedule.transition_start = hrt_absolute_time();
 
