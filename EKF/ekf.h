@@ -700,8 +700,14 @@ private:
 	// measurement update with a single measurement
 	// returns true if fusion is performed
 	template <size_t ...Idxs>
-	bool measurementUpdate(const Vector24f &K, const SparseVector24f<Idxs...> &H, float innovation)
+	bool measurementUpdate(Vector24f &K, const SparseVector24f<Idxs...> &H, float innovation)
 	{
+		for (unsigned i = 0; i < 3; i++) {
+			if (_accel_bias_inhibit[i]) {
+				K(13 + i) = 0.0f;
+			}
+		}
+
 		// apply covariance correction via P_new = (I -K*H)*P
 		// first calculate expression for KHP
 		// then calculate P - KHP
