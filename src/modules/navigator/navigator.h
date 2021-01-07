@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,7 +51,9 @@
 #include "mission.h"
 #include "navigator_mode.h"
 #include "rtl.h"
+#include "smart_rtl.h"
 #include "takeoff.h"
+#include "tracker.h"
 
 #include "navigation.h"
 
@@ -81,7 +83,7 @@
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 9
+#define NAVIGATOR_MODE_ARRAY_SIZE 10
 
 
 class Navigator : public ModuleBase<Navigator>, public ModuleParams
@@ -168,6 +170,11 @@ public:
 
 	bool		get_can_loiter_at_sp() { return _can_loiter_at_sp; }
 	float		get_loiter_radius() { return _param_nav_loiter_rad.get(); }
+
+	Tracker		*get_tracker() { return &_tracker; }
+
+	// Quick and dirty, to do it cleanly, we may want to introduce a new navigator mode
+	void		set_rtl_variant(bool advanced) { _use_advanced_rtl = advanced; }
 
 	/**
 	 * Returns the default acceptance radius defined by the parameter
@@ -293,6 +300,12 @@ public:
 
 	bool		abort_landing();
 
+	// Advanced RTL
+	void		tracker_reset() { _tracker.reset_graph(); }
+	void		tracker_consolidate() { _tracker.consolidate_graph(); }
+	void		tracker_rewrite() { _tracker.rewrite_graph(); }
+
+
 	// Param access
 	float		get_loiter_min_alt() const { return _param_mis_ltrmin_alt.get(); }
 	float		get_takeoff_min_alt() const { return _param_mis_takeoff_alt.get(); }
@@ -376,21 +389,25 @@ private:
 	Geofence	_geofence;			/**< class that handles the geofence */
 	bool		_geofence_violation_warning_sent{false}; /**< prevents spaming to mavlink */
 
+	Tracker		_tracker;			/**< class that tracks the vehicle path for smart RTL **/
+
 	bool		_can_loiter_at_sp{false};			/**< flags if current position SP can be used to loiter */
 	bool		_pos_sp_triplet_updated{false};		/**< flags if position SP triplet needs to be published */
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};		/**< flags if mission result has seen an update */
+	bool		_use_advanced_rtl{true};		/**< use graph-based RTL instead of direct RTL **/
 
-	NavigatorMode	*_navigation_mode{nullptr};		/**< abstract pointer to current navigation mode class */
+	NavigatorMode	*_navigation_mode{nullptr};	/**< abstract pointer to current navigation mode class */
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */
 	Takeoff		_takeoff;			/**< class for handling takeoff commands */
-	Land		_land;			/**< class for handling land commands */
+	Land		_land;				/**< class for handling land commands */
 	PrecLand	_precland;			/**< class for handling precision land commands */
 	RTL 		_rtl;				/**< class that handles RTL */
 	EngineFailure	_engineFailure;			/**< class that handles the engine failure mode (FW only!) */
 	GpsFailure	_gpsFailure;			/**< class that handles the OBC gpsfailure loss mode */
 	FollowTarget	_follow_target;
+	SmartRTL	_smartRtl;			/**< class that handles return-to-land along recorded flight graph */
 
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 

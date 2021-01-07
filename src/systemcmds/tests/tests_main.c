@@ -121,6 +121,7 @@ const struct {
 
 	/* external tests */
 	{"commander",		commander_tests_main,	0},
+	{"navigator",		navigator_tests_main,	0},
 	{"controllib",		controllib_test_main,	0},
 	{"mavlink",		mavlink_tests_main,	0},
 #ifdef __PX4_NUTTX

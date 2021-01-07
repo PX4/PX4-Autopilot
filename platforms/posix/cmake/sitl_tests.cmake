@@ -27,6 +27,7 @@ set(tests
 	microbench_matrix
 	microbench_uorb
 	mixer
+	navigator
 	param
 	parameters
 	perf

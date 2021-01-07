@@ -86,7 +86,8 @@ Navigator::Navigator() :
 	_rtl(this),
 	_engineFailure(this),
 	_gpsFailure(this),
-	_follow_target(this)
+	_follow_target(this),
+	_smartRtl(this)
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
@@ -98,6 +99,7 @@ Navigator::Navigator() :
 	_navigation_mode_array[6] = &_land;
 	_navigation_mode_array[7] = &_precland;
 	_navigation_mode_array[8] = &_follow_target;
+	_navigation_mode_array[9] = &_smartRtl;
 
 	_handle_back_trans_dec_mss = param_find("VT_B_DEC_MSS");
 	_handle_reverse_delay = param_find("VT_B_REV_DEL");
@@ -176,7 +178,18 @@ Navigator::run()
 		} else {
 			if (fds[0].revents & POLLIN) {
 				/* success, local pos is available */
-				orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
+				if (orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos) == PX4_OK) {
+					if (!_land_detected.landed) {
+						if (_tracker.get_graph_fault()) {
+							_tracker.reset_graph();
+						}
+
+						_tracker.update(&_local_pos);
+
+					} else {
+						_use_advanced_rtl = true; // Try advanced RTL again for the next flight
+					}
+				}
 			}
 		}
 
@@ -212,9 +225,21 @@ Navigator::run()
 			params_update();
 		}
 
-		_land_detected_sub.update(&_land_detected);
+		if (_land_detected_sub.update(&_land_detected)) {
+			if (!_land_detected.landed) {
+				if (_tracker.get_graph_fault()) {
+					_tracker.reset_graph();
+				}
+
+				_tracker.update(&_local_pos);
+			}
+		}
+
 		_position_controller_status_sub.update();
-		_home_pos_sub.update(&_home_pos);
+
+		if (_home_pos_sub.update(&_home_pos)) {
+			_tracker.set_home(&_home_pos);
+		}
 
 		if (_vehicle_command_sub.updated()) {
 			const unsigned last_generation = _vehicle_command_sub.get_last_generation();
@@ -638,11 +663,17 @@ Navigator::run()
 					break;
 
 				default:
-					if (rtl_activated) {
-						mavlink_log_info(get_mavlink_log_pub(), "RTL HOME activated");
+					if (_use_advanced_rtl) {
+						navigation_mode_new = &_smartRtl;
+
+					} else {
+						if (rtl_activated) {
+							mavlink_log_info(get_mavlink_log_pub(), "RTL HOME activated");
+						}
+
+						navigation_mode_new = &_rtl;
 					}
 
-					navigation_mode_new = &_rtl;
 					break;
 
 				}
@@ -778,6 +809,11 @@ Navigator::print_status()
 	PX4_INFO("Running");
 
 	_geofence.printStatus();
+
+	_tracker.dump_recent_path();
+	_tracker.dump_graph();
+	//_tracker.dump_path_to_home();
+
 	return 0;
 }
 
@@ -1224,6 +1260,25 @@ int Navigator::custom_command(int argc, char *argv[])
 		get_instance()->fake_traffic("LX20", 15000, 1.0f, -1.0f, 280.0f, 90.0f, 0.001f,
 					     transponder_report_s::ADSB_EMITTER_TYPE_LARGE);
 		get_instance()->fake_traffic("UAV", 10, 1.0f, -2.0f, 10.0f, 10.0f, 0.01f, transponder_report_s::ADSB_EMITTER_TYPE_UAV);
+		return 0;
+
+	} else if (!strcmp(argv[0], "tracker") && argc >= 2) {
+		if (!strcmp(argv[1], "reset")) {
+			// Deletes the entire flight graph (but not the most recent path!).
+			// This may be neccessary if the environment changed heavily since system start.
+			get_instance()->tracker_reset();
+
+		} else if (!strcmp(argv[1], "consolidate")) {
+			// Consolidates the flight graph.
+			// This is not required for normal operation, as it happens automatically.
+			get_instance()->tracker_consolidate();
+
+		} else if (!strcmp(argv[1], "rewrite")) {
+			// Deletes everything from the flight graph, which does not lead home.
+			// This is not required for normal operation, as it happens automatically.
+			get_instance()->tracker_rewrite();
+		}
+
 		return 0;
 	}
 

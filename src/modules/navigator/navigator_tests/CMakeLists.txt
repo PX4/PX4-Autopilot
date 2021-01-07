@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,33 +32,13 @@
 ############################################################################
 
 px4_add_module(
-	MODULE modules__navigator
-	MAIN navigator
+	MODULE modules__navigator__navigator_tests
+	MAIN navigator_tests
 	COMPILE_FLAGS
 		-Wno-error=cast-align
 	SRCS
-		navigator_main.cpp
-		navigator_mode.cpp
-		mission_block.cpp
-		mission.cpp
-		loiter.cpp
-		rtl.cpp
-		takeoff.cpp
-		land.cpp
-		precland.cpp
-		mission_feasibility_checker.cpp
-		geofence.cpp
-		enginefailure.cpp
-		gpsfailure.cpp
-		follow_target.cpp
-		smart_rtl.cpp
-		tracker.cpp
+		navigator_tests.cpp
+		tracker_test.cpp
 	DEPENDS
-		git_ecl
-		ecl_geo
-		landing_slope
-	)
 
-if(PX4_TESTING)
-	add_subdirectory(navigator_tests)
-endif()
+)

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -148,3 +148,20 @@ PARAM_DEFINE_INT32(RTL_CONE_ANG, 45);
  * @group Return To Land
  */
 PARAM_DEFINE_INT32(RTL_PLD_MD, 0);
+
+/**
+ * RTL Advanced to RTL classic fallback delay
+ *
+ * If the vehicle makes no progress in advanced RTL for this timespan for whatever reason, the system falls back to basic RTL mode.
+ * Note that there may be long straight lines in the return path. This delay should be large enough to allow flying along such lines.
+ * If set to -1 the system will not switch to basic RTL but loiter.
+ *
+ * @unit s
+ * @min -1
+ * @max 300
+ * @decimal 1
+ * @increment 0.5
+ * @group Return To Land
+ */
+PARAM_DEFINE_FLOAT(RTL_FALLBCK_DLY, 120f);
+
