@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# Standard apps for vtol: Attitude/Position estimator, Attitude/Position control.
+#
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
+#
+
+###############################################################################
+#                       Begin Estimator group selection                       #
+###############################################################################
+
+ekf2 start &
+
+###############################################################################
+#                        End Estimator group selection                        #
+###############################################################################
+
+airspeed_selector start
+
+vtol_att_control start
+
+mc_rate_control start vtol
+mc_att_control start vtol
+flight_mode_manager start vtol
+mc_pos_control start vtol
+mc_hover_thrust_estimator start
+
+fw_att_control start vtol
+fw_pos_control_l1 start vtol
+
+# Start Land Detector
+# Multicopter for now until we have something for VTOL
+#
+land_detector start vtol

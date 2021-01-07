@@ -1,0 +1,271 @@
+#!/bin/sh
+
+# PX4 commands need the 'px4-' prefix in bash.
+# (px4-alias.sh is expected to be in the PATH)
+# shellcheck disable=SC1091
+. px4-alias.sh
+
+SCRIPT_DIR="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
+
+#
+# Main SITL startup script
+#
+
+# check for ekf2 replay
+# shellcheck disable=SC2154
+if [ "$replay_mode" = "ekf2" ]
+then
+	. ${R}etc/init.d-posix/rc.replay
+	exit 0
+fi
+
+# initialize script variables
+set AUX_MODE                    none
+set IO_PRESENT                  no
+set MAV_TYPE                    none
+set MIXER                       none
+set MIXER_AUX                   none
+set MIXER_FILE                  none
+set OUTPUT_MODE                 sim
+set PWM_OUT                     none
+set SDCARD_MIXERS_PATH          etc/mixers
+set USE_IO                      no
+set VEHICLE_TYPE                none
+set LOGGER_ARGS                 ""
+set LOGGER_BUF                  1000
+
+set RUN_MINIMAL_SHELL           no
+
+# Use the variable set by sitl_run.sh to choose the model settings.
+if [ "$PX4_SIM_MODEL" = "shell" ]; then
+	set RUN_MINIMAL_SHELL yes
+else
+	# Find the matching Autostart ID (file name has the form: [0-9]+_${PX4_SIM_MODEL})
+	# TODO: unify with rc.autostart generation
+	# shellcheck disable=SC2012
+	REQUESTED_AUTOSTART=$(ls "$SCRIPT_DIR/airframes" | sed -n 's/^\([0-9][0-9]*\)_'${PX4_SIM_MODEL}'$/\1/p')
+	if [ -z "$REQUESTED_AUTOSTART" ]; then
+		echo "Error: Unknown model $PX4_SIM_MODEL (not found by name on $SCRIPT_DIR/airframes)"
+		exit 1
+	else
+		echo "Info: found model autostart file as SYS_AUTOSTART=$REQUESTED_AUTOSTART"
+	fi
+fi
+
+uorb start
+
+# Load parameters
+set PARAM_FILE eeprom/parameters_"$REQUESTED_AUTOSTART"
+param select $PARAM_FILE
+
+if [ -f $PARAM_FILE ]
+then
+	if param load
+	then
+		echo "[param] Loaded: $PARAM_FILE"
+	else
+		echo "[param] FAILED loading $PARAM_FILE"
+	fi
+else
+	echo "[param] parameter file not found, creating $PARAM_FILE"
+fi
+
+# exit early when the minimal shell is requested
+[ $RUN_MINIMAL_SHELL = yes ] && exit 0
+
+
+# Use environment variable PX4_ESTIMATOR to choose estimator.
+if [ "$PX4_ESTIMATOR" = "q" ]; then
+	param set SYS_MC_EST_GROUP 3
+elif [ "$PX4_ESTIMATOR" = "ekf2" ]; then
+	param set SYS_MC_EST_GROUP 2
+elif [ "$PX4_ESTIMATOR" = "lpe" ]; then
+	param set SYS_MC_EST_GROUP 1
+elif [ "$PX4_ESTIMATOR" = "inav" ]; then
+	param set SYS_MC_EST_GROUP 0
+fi
+
+if param compare SYS_AUTOSTART $REQUESTED_AUTOSTART
+then
+	set AUTOCNF no
+else
+	set AUTOCNF yes
+	param set SYS_AUTOCONFIG 1
+fi
+
+if param compare SYS_AUTOCONFIG 1
+then
+	set AUTOCNF yes
+
+	# Wipe out params except RC*, flight modes, total flight time, accel cal, gyro cal, next flight UUID
+	param reset_all SYS_AUTOSTART SYS_AUTOCONFIG RC* COM_FLTMODE* LND_FLIGHT_T_* TC_* CAL_ACC* CAL_GYRO* COM_FLIGHT_UUID
+fi
+
+# multi-instance setup
+# shellcheck disable=SC2154
+param set MAV_SYS_ID $((px4_instance+1))
+simulator_tcp_port=$((4560+px4_instance))
+udp_offboard_port_local=$((14580+px4_instance))
+udp_offboard_port_remote=$((14540+px4_instance))
+[ $px4_instance -gt 9 ] && udp_offboard_port_remote=14549 # use the same ports for more than 10 instances to avoid port overlaps
+udp_onboard_payload_port_local=$((14280+px4_instance))
+udp_onboard_payload_port_remote=$((14030+px4_instance))
+udp_gcs_port_local=$((18570+px4_instance))
+
+if [ $AUTOCNF = yes ]
+then
+	param set SYS_AUTOSTART $REQUESTED_AUTOSTART
+
+	param set BAT_N_CELLS 4
+
+	param set CAL_ACC0_ID 1310988 # 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	param set CAL_ACC1_ID 1310996 # 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+	param set CAL_ACC2_ID 1311004 # 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
+	param set CAL_GYRO0_ID 1310988 # 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	param set CAL_GYRO1_ID 1310996 # 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+	param set CAL_GYRO2_ID 1311004 # 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
+	param set CAL_MAG0_ID 197388
+	param set CAL_MAG1_ID 197644
+
+	param set CBRK_AIRSPD_CHK 0
+	param set CBRK_SUPPLY_CHK 894281
+
+	# Don't require RC calibration and configuration
+	param set COM_RC_IN_MODE 1
+
+	# Speedup SITL startup
+	param set EKF2_REQ_GPS_H 0.5
+
+	# Multi-EKF
+	param set EKF2_MULTI_IMU 3
+	param set SENS_IMU_MODE 0
+	param set EKF2_MULTI_MAG 2
+	param set SENS_MAG_MODE 0
+
+	# By default log from boot until first disarm.
+	param set SDLOG_MODE 1
+	# enable default, estimator replay and vision/avoidance logging profiles
+	param set SDLOG_PROFILE 131
+	param set SDLOG_DIRS_MAX 7
+	param set SENS_BOARD_ROT 0
+	param set SENS_BOARD_X_OFF 0.000001
+	param set SENS_DPRES_OFF 0.001
+	param set SYS_RESTART_TYPE 2
+
+	param set TRIG_INTERFACE 3
+fi
+
+param set COM_CPU_MAX -1 # disable check, no CPU load reported on posix yet
+
+# Simulator IMU data provided at 250 Hz
+param set IMU_INTEG_RATE 250
+
+# Adapt timeout parameters if simulation runs faster or slower than realtime.
+if [ -n "$PX4_SIM_SPEED_FACTOR" ]; then
+	COM_DL_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 10" | bc)
+	echo "COM_DL_LOSS_T set to $COM_DL_LOSS_T_LONGER"
+	param set COM_DL_LOSS_T $COM_DL_LOSS_T_LONGER
+
+	COM_RC_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 0.5" | bc)
+	echo "COM_RC_LOSS_T set to $COM_RC_LOSS_T_LONGER"
+	param set COM_RC_LOSS_T $COM_RC_LOSS_T_LONGER
+
+	COM_OF_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 0.5" | bc)
+	echo "COM_OF_LOSS_T set to $COM_OF_LOSS_T_LONGER"
+	param set COM_OF_LOSS_T $COM_OF_LOSS_T_LONGER
+fi
+
+# Autostart ID
+autostart_file=''
+# shellcheck disable=SC2231
+for f in ${R}etc/init.d-posix/airframes/"$(param show -q SYS_AUTOSTART)"_*
+do
+	filename=$(basename "$f")
+	case "$filename" in
+		*\.*)
+			# ignore files that contain a dot (e.g. <vehicle>.post)
+			;;
+		*)
+			autostart_file="$f"
+			;;
+	esac
+done
+if [ ! -e "$autostart_file" ]; then
+	echo "Error: no autostart file found ($autostart_file)"
+	exit 1
+fi
+
+. "$autostart_file"
+
+#
+# If autoconfig parameter was set, reset it and save parameters.
+#
+if [ $AUTOCNF = yes ]
+then
+	param set SYS_AUTOCONFIG 0
+fi
+
+dataman start
+# only start the simulator if not in replay mode, as both control the lockstep time
+if ! replay tryapplyparams
+then
+	simulator start -c $simulator_tcp_port
+fi
+load_mon start
+battery_simulator start
+tone_alarm start
+rc_update start
+sensors start
+commander start
+navigator start
+
+
+if param greater -s MNT_MODE_IN -1
+then
+	vmount start
+fi
+
+if param greater -s TRIG_MODE 0
+then
+	camera_trigger start
+	camera_feedback start
+fi
+
+# Configure vehicle type specific parameters.
+# Note: rc.vehicle_setup is the entry point for rc.interface,
+#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
+#
+. ${R}etc/init.d/rc.vehicle_setup
+
+# GCS link
+mavlink start -x -u $udp_gcs_port_local -r 4000000
+mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u $udp_gcs_port_local
+mavlink stream -r 50 -s LOCAL_POSITION_NED -u $udp_gcs_port_local
+mavlink stream -r 50 -s GLOBAL_POSITION_INT -u $udp_gcs_port_local
+mavlink stream -r 50 -s ATTITUDE -u $udp_gcs_port_local
+mavlink stream -r 50 -s ATTITUDE_QUATERNION -u $udp_gcs_port_local
+mavlink stream -r 50 -s ATTITUDE_TARGET -u $udp_gcs_port_local
+mavlink stream -r 50 -s SERVO_OUTPUT_RAW_0 -u $udp_gcs_port_local
+mavlink stream -r 20 -s RC_CHANNELS -u $udp_gcs_port_local
+mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u $udp_gcs_port_local
+
+# API/Offboard link
+mavlink start -x -u $udp_offboard_port_local -r 4000000 -m onboard -o $udp_offboard_port_remote
+
+# Onboard link to camera
+mavlink start -x -u $udp_onboard_payload_port_local -r 4000 -f -m onboard -o $udp_onboard_payload_port_remote
+
+# execute autostart post script if any
+[ -e "$autostart_file".post ] && . "$autostart_file".post
+
+# Run script to start logging
+if param compare SYS_MC_EST_GROUP 2
+then
+	set LOGGER_ARGS "-p ekf2_timestamps"
+else
+	set LOGGER_ARGS "-p vehicle_attitude"
+fi
+. ${R}etc/init.d/rc.logging
+
+mavlink boot_complete
+replay trystart

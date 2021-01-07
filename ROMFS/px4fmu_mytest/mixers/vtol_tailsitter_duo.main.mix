@@ -1,0 +1,37 @@
+Tailsitter duo mixer
+============================
+
+This file defines a mixer for a generic duo tailsitter VTOL (eg TBS Caipirinha tailsitter edition). This vehicle
+has two motors in total, one attached to each wing. It also has two elevons which
+are located in the slipstream of the propellers. This mixer generates 4 PWM outputs
+on the main PWM ouput port, two at 400Hz for the motors, and two at 50Hz for the
+elevon servos. Channels 1-4 are configured to run at 400Hz, while channels 5-8 run
+at the default rate of 50Hz. Note that channels 3 and 4 are assigned but not used.
+
+Motor mixer
+------------
+Channel 1 connects to the right (starboard) motor.
+Channel 2 connects to the left (port) motor.
+
+R: 2-
+
+Zero mixer (2x)
+---------------
+Channels 3,4 are unused.
+
+Z:
+
+Z:
+
+Elevons mixer
+--------------
+Channel 5 connects to the right (starboard) elevon.
+Channel 6 connects to the left (port) elevon.
+
+M: 2
+S: 1 0   10000   10000    0 -10000  10000
+S: 1 1   10000   10000    0 -10000  10000
+
+M: 2
+S: 1 0   10000   10000    0 -10000  10000
+S: 1 1  -10000  -10000    0 -10000  10000

@@ -1,0 +1,17 @@
+Mixer for Tailsitter with x motor configuration and elevons
+===========================================================
+
+This file defines a single mixer for tailsitter with motors in X configuration.  All controls
+are mixed 100%.
+
+R: 4x
+
+# left elevon
+M: 2
+S: 1 0 -5000 -5000      0 -10000  10000
+S: 1 1  5000  5000      0 -10000  10000
+
+# right elevon
+M: 2
+S: 1 0  -5000  -5000    0 -10000  10000
+S: 1 1  -5000  -5000    0 -10000  10000

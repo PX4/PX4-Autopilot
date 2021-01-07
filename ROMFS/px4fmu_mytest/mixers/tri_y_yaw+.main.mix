@@ -1,0 +1,11 @@
+
+
+# Tricopter Y-Configuration Mixer
+# Yaw Servo +Output ==> +Yaw Vehicle Rotation
+
+# Motors
+R: 3y
+
+# Yaw Servo
+M: 1
+S: 0 2  10000  10000      0 -10000  10000

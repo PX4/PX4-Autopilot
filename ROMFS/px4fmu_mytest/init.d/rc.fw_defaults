@@ -1,0 +1,61 @@
+#!/bin/sh
+#
+# Fixed wing default parameters
+#
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
+#
+
+set VEHICLE_TYPE fw
+
+if [ $AUTOCNF = yes ]
+then
+	#
+	# Default parameters for fixed wing UAVs.
+	#
+	param set COM_POS_FS_DELAY 5
+	param set COM_POS_FS_EPH 15
+	param set COM_POS_FS_EPV 30
+	param set COM_POS_FS_GAIN 0
+	param set COM_POS_FS_PROB 1
+	param set COM_VEL_FS_EVH 5
+
+	param set EKF2_ARSP_THR 8
+	param set EKF2_FUSE_BETA 1
+	param set EKF2_GPS_CHECK 21
+	param set EKF2_MAG_ACCLIM 0
+	param set EKF2_MAG_YAWLIM 0
+	param set EKF2_REQ_EPH 10
+	param set EKF2_REQ_EPV 10
+	param set EKF2_REQ_HDRIFT 0.5
+	param set EKF2_REQ_SACC 1
+	param set EKF2_REQ_VDRIFT 1.0
+
+	param set RTL_TYPE 1
+	param set RTL_RETURN_ALT 100
+	param set RTL_DESCEND_ALT 100
+	param set RTL_LAND_DELAY -1
+
+	#
+	# FW uses L1 distance for acceptance radius.
+	# Set a smaller NAV_ACC_RAD for vertical acceptance distance.
+	#
+	param set NAV_ACC_RAD 10
+
+	param set MIS_LTRMIN_ALT 25
+	param set MIS_TAKEOFF_ALT 25
+
+	param set PWM_RATE 50
+
+	#
+	# FW takeoff acceleration can easily exceed ublox GPS 2G default.
+	#
+	param set GPS_UBX_DYNMODEL 8
+fi
+
+#
+# This is the gimbal pass mixer.
+#
+set MIXER_AUX pass
+
+set PWM_AUX_RATE 50
+set PWM_AUX_OUT 1234

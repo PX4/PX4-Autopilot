@@ -56,6 +56,7 @@ PWMOut::~PWMOut()
 	perf_free(_interval_perf);
 }
 
+//初始化
 int PWMOut::init()
 {
 	/* do regular cdev init */
@@ -502,6 +503,7 @@ void PWMOut::update_pwm_trims()
 	PX4_DEBUG("set %d trims", n_out);
 }
 
+// start 命令调用
 int PWMOut::task_spawn(int argc, char *argv[])
 {
 	PWMOut *instance = new PWMOut();
