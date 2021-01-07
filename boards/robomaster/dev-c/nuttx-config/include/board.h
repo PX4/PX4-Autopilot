@@ -408,8 +408,8 @@
 #define GPIO_CAN1_RX        GPIO_CAN1_RX_3
 #define GPIO_CAN1_TX        GPIO_CAN1_TX_3
 
-#define GPIO_CAN2_RX        GPIO_CAN2_RX_2
-#define GPIO_CAN2_TX        GPIO_CAN2_TX_2
+// #define GPIO_CAN2_RX        GPIO_CAN2_RX_2
+// #define GPIO_CAN2_TX        GPIO_CAN2_TX_2
 
 /* I2C.  Only I2C1 is available on the STM3240G-EVAL.  I2C1_SCL and I2C1_SDA are
  * available on the following pins:

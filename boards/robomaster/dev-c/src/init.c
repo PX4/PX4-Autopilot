@@ -76,6 +76,8 @@
 #include <px4_platform_common/init.h>
 #include <px4_platform/board_dma_alloc.h>
 
+#include "can.c"
+
 #include <dataman/dataman.h>
 
 #if defined(FLASH_BASED_PARAMS)
@@ -377,6 +379,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* configure SPI interfaces (after the hw is determined) */
 	stm32_spiinitialize();
+
+	can_devinit();
 
 	px4_platform_init();
 

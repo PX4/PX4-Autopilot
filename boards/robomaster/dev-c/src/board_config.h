@@ -76,13 +76,18 @@
 // #define PX4IO_SERIAL_VECTOR	STM32_IRQ_USART6
 // #define PX4IO_SERIAL_TX_DMAMAP	DMAMAP_USART6_TX
 // #define PX4IO_SERIAL_RX_DMAMAP	DMAMAP_USART6_RX
-// #define PX4IO_SERIAL_RCC_REG	STM32_RCC_APB2ENR
+// #define PX4IO_SERIAL_RCC_REG	STM32_RCC_APB1ENR
 // #define PX4IO_SERIAL_RCC_EN	RCC_APB2ENR_USART6EN
 // #define PX4IO_SERIAL_CLOCK	STM32_PCLK2_FREQUENCY
 // #define PX4IO_SERIAL_BITRATE	1500000			/* 1.5Mbps -> max rate for IO */
 
 #define  FLASH_BASED_PARAMS
 // #define  FLASH_BASED_DATAMAN
+
+// setting uavcan stuff
+// #define UAVCAN_STM32_NUTTX
+// #define RCC_APB1ENR_CAN1EN
+// #define UAVCAN_NUM_IFACES_RUNTIME 1
 
 /* PX4FMU GPIOs ***********************************************************************************/
 

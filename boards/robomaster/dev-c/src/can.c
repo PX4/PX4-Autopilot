@@ -94,6 +94,7 @@ int can_devinit(void);
 
 int can_devinit(void)
 {
+	syslog(LOG_INFO, "can dev init\n");
 	static bool initialized = false;
 	struct can_dev_s *can;
 	int ret;
@@ -113,6 +114,7 @@ int can_devinit(void)
 		/* Register the CAN driver at "/dev/can0" */
 
 		ret = can_register("/dev/can0", can);
+		syslog(LOG_INFO, "can dev registered at /dev/can0\n");
 
 		if (ret < 0) {
 			canerr("ERROR: can_register failed: %d\n", ret);
