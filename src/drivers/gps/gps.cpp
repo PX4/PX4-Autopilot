@@ -697,6 +697,17 @@ GPS::run()
 		}
 	}
 
+	int32_t gnssSystemsParam = static_cast<int32_t>(GPSHelper::GNSSSystemsMask::RECEIVER_DEFAULTS);
+
+	if (_instance == Instance::Main) {
+		handle = param_find("GPS_1_GNSS");
+		param_get(handle, &gnssSystemsParam);
+
+	} else if (_instance == Instance::Secondary) {
+		handle = param_find("GPS_2_GNSS");
+		param_get(handle, &gnssSystemsParam);
+	}
+
 	initializeCommunicationDump();
 
 	uint64_t last_rate_measurement = hrt_absolute_time();
@@ -769,8 +780,11 @@ GPS::run()
 			}
 
 			_baudrate = _configured_baudrate;
+			GPSHelper::GPSConfig gpsConfig{};
+			gpsConfig.output_mode = GPSHelper::OutputMode::GPS;
+			gpsConfig.gnss_systems = static_cast<GPSHelper::GNSSSystemsMask>(gnssSystemsParam);
 
-			if (_helper && _helper->configure(_baudrate, GPSHelper::OutputMode::GPS) == 0) {
+			if (_helper && _helper->configure(_baudrate, gpsConfig) == 0) {
 
 				/* reset report */
 				memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
