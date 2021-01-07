@@ -49,7 +49,7 @@ void ZeroOrderHoverThrustEkf::predict(const float dt)
 	_dt = dt;
 }
 
-void ZeroOrderHoverThrustEkf::fuseAccZ(const float acc_z, const float thrust, status &status_return)
+void ZeroOrderHoverThrustEkf::fuseAccZ(const float acc_z, const float thrust)
 {
 	const float H = computeH(thrust);
 	const float innov_var = computeInnovVar(H);
@@ -75,7 +75,10 @@ void ZeroOrderHoverThrustEkf::fuseAccZ(const float acc_z, const float thrust, st
 	updateLpf(residual, signed_innov_test_ratio);
 	updateMeasurementNoise(residual, H);
 
-	status_return = packStatus(innov, innov_var, innov_test_ratio);
+	// save for logging
+	_innov = innov;
+	_innov_var = innov_var;
+	_innov_test_ratio = innov_test_ratio;
 }
 
 inline float ZeroOrderHoverThrustEkf::computeH(const float thrust) const
@@ -150,19 +153,4 @@ inline void ZeroOrderHoverThrustEkf::updateMeasurementNoise(const float residual
 	const float res_no_bias = residual - _residual_lpf;
 	const float P = _state_var;
 	_acc_var = math::constrain((1.f - alpha) * _acc_var  + alpha * (res_no_bias * res_no_bias + H * P * H), 1.f, 400.f);
-}
-
-inline ZeroOrderHoverThrustEkf::status ZeroOrderHoverThrustEkf::packStatus(const float innov, const float innov_var,
-		const float innov_test_ratio) const
-{
-	// Send back status for logging
-	status ret{};
-	ret.hover_thrust = _hover_thr;
-	ret.hover_thrust_var = _state_var;
-	ret.innov = innov;
-	ret.innov_var = innov_var;
-	ret.innov_test_ratio = innov_test_ratio;
-	ret.accel_noise_var = _acc_var;
-
-	return ret;
 }

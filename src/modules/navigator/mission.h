@@ -87,6 +87,10 @@ public:
 	bool get_mission_finished() const { return _mission_type == MISSION_TYPE_NONE; }
 	bool get_mission_changed() const { return _mission_changed ; }
 	bool get_mission_waypoints_changed() const { return _mission_waypoints_changed ; }
+	double get_landing_start_lat() { return _landing_start_lat; }
+	double get_landing_start_lon() { return _landing_start_lon; }
+	float get_landing_start_alt() { return _landing_start_alt; }
+
 	double get_landing_lat() { return _landing_lat; }
 	double get_landing_lon() { return _landing_lon; }
 	float get_landing_alt() { return _landing_alt; }
@@ -249,11 +253,17 @@ private:
 	// track location of planned mission landing
 	bool	_land_start_available{false};
 	uint16_t _land_start_index{UINT16_MAX};		/**< index of DO_LAND_START, INVALID_DO_LAND_START if no planned landing */
+	double _landing_start_lat{0.0};
+	double _landing_start_lon{0.0};
+	float _landing_start_alt{0.0f};
+
 	double _landing_lat{0.0};
 	double _landing_lon{0.0};
 	float _landing_alt{0.0f};
 
 	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
+
+	hrt_abstime _time_mission_deactivated{0};
 
 	enum {
 		MISSION_TYPE_NONE,

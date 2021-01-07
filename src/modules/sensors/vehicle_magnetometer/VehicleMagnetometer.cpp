@@ -48,18 +48,6 @@ VehicleMagnetometer::VehicleMagnetometer() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
-	char str[20] {};
-
-	for (int mag_index = 0; mag_index < MAX_SENSOR_COUNT; mag_index++) {
-		// CAL_MAGx_ID
-		sprintf(str, "CAL_%s%u_ID", "MAG", mag_index);
-		param_find(str);
-
-		// CAL_MAGx_ROT
-		sprintf(str, "CAL_%s%u_ROT", "MAG", mag_index);
-		param_find(str);
-	}
-
 	param_find("CAL_MAG_SIDES");
 	param_find("CAL_MAG_ROT_AUTO");
 

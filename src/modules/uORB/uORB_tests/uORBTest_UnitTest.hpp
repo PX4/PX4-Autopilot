@@ -64,8 +64,9 @@ public:
 	// Singleton pattern
 	static uORBTest::UnitTest &instance();
 	~UnitTest() = default;
+
 	int test();
-	template<typename S> int latency_test(orb_id_t T, bool print);
+	int latency_test(bool print);
 	int info();
 
 	// Disallow copy
@@ -78,7 +79,7 @@ public:
 	}
 
 private:
-	UnitTest() : pubsubtest_passed(false), pubsubtest_print(false) {}
+	UnitTest() = default;
 
 	static int pubsubtest_threadEntry(int argc, char *argv[]);
 	int pubsublatency_main();
@@ -88,11 +89,11 @@ private:
 
 	volatile bool _thread_should_exit;
 
-	bool pubsubtest_passed;
-	bool pubsubtest_print;
+	bool pubsubtest_passed{false};
+	bool pubsubtest_print{false};
 	int pubsubtest_res = OK;
 
-	orb_advert_t _pfd[4]; ///< used for test_multi and test_multi_reversed
+	orb_advert_t _pfd[4] {}; ///< used for test_multi and test_multi_reversed
 
 	int test_single();
 
@@ -117,58 +118,5 @@ private:
 	int test_fail(const char *fmt, ...);
 	int test_note(const char *fmt, ...);
 };
-
-template<typename S>
-int uORBTest::UnitTest::latency_test(orb_id_t T, bool print)
-{
-	test_note("---------------- LATENCY TEST ------------------");
-	S t{};
-	t.val = 308;
-	t.timestamp = hrt_absolute_time();
-
-	orb_advert_t pfd0 = orb_advertise(T, &t);
-
-	if (pfd0 == nullptr) {
-		return test_fail("orb_advertise failed (%i)", errno);
-	}
-
-	char *const args[1] = { nullptr };
-
-	pubsubtest_print = print;
-	pubsubtest_passed = false;
-
-	/* test pub / sub latency */
-
-	// Can't pass a pointer in args, must be a null terminated
-	// array of strings because the strings are copied to
-	// prevent access if the caller data goes out of scope
-	int pubsub_task = px4_task_spawn_cmd("uorb_latency",
-					     SCHED_DEFAULT,
-					     SCHED_PRIORITY_MAX,
-					     2000,
-					     (px4_main_t)&uORBTest::UnitTest::pubsubtest_threadEntry,
-					     args);
-
-	/* give the test task some data */
-	while (!pubsubtest_passed) {
-		++t.val;
-		t.timestamp = hrt_absolute_time();
-
-		if (PX4_OK != orb_publish(T, pfd0, &t)) {
-			return test_fail("mult. pub0 timing fail");
-		}
-
-		/* simulate >800 Hz system operation */
-		px4_usleep(1000);
-	}
-
-	if (pubsub_task < 0) {
-		return test_fail("failed launching task");
-	}
-
-	orb_unadvertise(pfd0);
-
-	return pubsubtest_res;
-}
 
 #endif // _uORBTest_UnitTest_hpp_

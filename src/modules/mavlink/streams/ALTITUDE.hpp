@@ -84,7 +84,7 @@ private:
 
 		bool lpos_updated = false;
 
-		vehicle_local_position_s local_pos;
+		vehicle_local_position_s local_pos{};
 
 		if (_local_pos_sub.copy(&local_pos)) {
 

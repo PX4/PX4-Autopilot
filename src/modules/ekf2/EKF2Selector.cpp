@@ -49,8 +49,6 @@ EKF2Selector::EKF2Selector() :
 EKF2Selector::~EKF2Selector()
 {
 	Stop();
-
-	px4_lockstep_unregister_component(_lockstep_component);
 }
 
 bool EKF2Selector::Start()
@@ -326,11 +324,6 @@ void EKF2Selector::PublishVehicleAttitude(bool reset)
 
 		attitude.timestamp = hrt_absolute_time();
 		_vehicle_attitude_pub.publish(attitude);
-
-		// register lockstep component on first attitude publish
-		if (_lockstep_component == -1) {
-			_lockstep_component = px4_lockstep_register_component();
-		}
 	}
 }
 
@@ -618,8 +611,6 @@ void EKF2Selector::Run()
 			}
 		}
 	}
-
-	px4_lockstep_progress(_lockstep_component);
 }
 
 void EKF2Selector::PrintStatus()

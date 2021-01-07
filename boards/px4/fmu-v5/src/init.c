@@ -211,7 +211,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	VDD_5V_PERIPH_EN(true);
 	VDD_5V_HIPOWER_EN(true);
 	board_control_spi_sensors_power(true, 0xffff);
-	VDD_3V3_SPEKTRUM_POWER_EN(true);
+#ifdef SPEKTRUM_POWER_PASSIVE
+	// Turn power controls to passive
+	SPEKTRUM_POWER_PASSIVE();
+#endif
 	VDD_5V_RC_EN(true);
 	VDD_5V_WIFI_EN(true);
 
