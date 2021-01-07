@@ -576,7 +576,7 @@ void Ekf::predictCovariance()
 		nextP(13,13) = kahanSummation(nextP(13,13), process_noise(13), _delta_vel_bias_var_accum(0));
 
 	} else {
-		nextP.uncorrelateCovarianceSetVariance<1>(13, 0.f);
+		nextP.uncorrelateCovarianceSetVariance<1>(13, _prev_dvel_bias_var(0));
 		_delta_vel_bias_var_accum(0) = 0.f;
 
 	}
@@ -605,7 +605,7 @@ void Ekf::predictCovariance()
 		nextP(14,14) = kahanSummation(nextP(14,14), process_noise(14), _delta_vel_bias_var_accum(1));
 
 	} else {
-		nextP.uncorrelateCovarianceSetVariance<1>(14, 0.f);
+		nextP.uncorrelateCovarianceSetVariance<1>(14, _prev_dvel_bias_var(1));
 		_delta_vel_bias_var_accum(1) = 0.f;
 
 	}
@@ -635,7 +635,7 @@ void Ekf::predictCovariance()
 		nextP(15,15) = kahanSummation(nextP(15,15), process_noise(15), _delta_vel_bias_var_accum(2));
 
 	} else {
-		nextP.uncorrelateCovarianceSetVariance<1>(15, 0.f);
+		nextP.uncorrelateCovarianceSetVariance<1>(15, _prev_dvel_bias_var(2));
 		_delta_vel_bias_var_accum(2) = 0.f;
 
 	}
