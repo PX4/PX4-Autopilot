@@ -1371,33 +1371,32 @@ void EKF2::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
 	vehicle_magnetometer_s magnetometer;
 
 	if (_magnetometer_sub.update(&magnetometer)) {
-		if (magnetometer.device_id != 0) {
-			bool reset = false;
 
-			// check if magnetometer has changed
-			if (magnetometer.device_id != _device_id_mag) {
-				if (_device_id_mag != 0) {
-					PX4_WARN("%d - mag sensor ID changed %d -> %d", _instance, _device_id_mag, magnetometer.device_id);
-					reset = true;
-				}
+		bool reset = false;
 
-				_device_id_mag = magnetometer.device_id;
-
-			} else if (magnetometer.calibration_count > _mag_calibration_count) {
-				// existing calibration has changed, reset saved mag bias
-				PX4_INFO("%d - mag %d calibration updated, resetting bias", _instance, _device_id_mag);
-				reset = true;
+		// check if magnetometer has changed
+		if (magnetometer.device_id != _device_id_mag) {
+			if (_device_id_mag != 0) {
+				PX4_WARN("%d - mag sensor ID changed %d -> %d", _instance, _device_id_mag, magnetometer.device_id);
 			}
 
-			if (reset) {
-				_ekf.resetMagBias();
-				_mag_calibration_count = magnetometer.calibration_count;
+			reset = true;
 
-				// reset magnetometer bias learning
-				_mag_cal_total_time_us = 0;
-				_mag_cal_last_us = 0;
-				_mag_cal_available = false;
-			}
+		} else if (magnetometer.calibration_count > _mag_calibration_count) {
+			// existing calibration has changed, reset saved mag bias
+			PX4_DEBUG("%d - mag %d calibration updated, resetting bias", _instance, _device_id_mag);
+			reset = true;
+		}
+
+		if (reset) {
+			_ekf.resetMagBias();
+			_device_id_mag = magnetometer.device_id;
+			_mag_calibration_count = magnetometer.calibration_count;
+
+			// reset magnetometer bias learning
+			_mag_cal_total_time_us = 0;
+			_mag_cal_last_us = 0;
+			_mag_cal_available = false;
 		}
 
 		_ekf.setMagData(magSample{magnetometer.timestamp_sample, Vector3f{magnetometer.magnetometer_ga}});
