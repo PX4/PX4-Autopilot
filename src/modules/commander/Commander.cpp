@@ -3491,7 +3491,7 @@ Commander::update_control_mode()
 					!control_mode.flag_control_acceleration_enabled;
 
 			control_mode.flag_control_climb_rate_enabled = (!offboard_control_mode.ignore_velocity ||
-					!offboard_control_mode.ignore_position) && !control_mode.flag_control_acceleration_enabled;
+					!offboard_control_mode.ignore_position);
 
 			control_mode.flag_control_position_enabled = !offboard_control_mode.ignore_position && !_status.in_transition_mode &&
 					!control_mode.flag_control_acceleration_enabled;
