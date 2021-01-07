@@ -207,7 +207,7 @@ void VehicleMagnetometer::MagCalibrationUpdate()
 						state_variance(axis_index) = fmaxf(state_variance(axis_index) * (1.f - kalman_gain), 0.f);
 					}
 
-					PX4_INFO("Mag %d (%d) est. offset %d committed: [% 05.3f % 05.3f % 05.3f] -> [% 05.3f % 05.3f % 05.3f] (full [% 05.3f % 05.3f % 05.3f])",
+					PX4_INFO("%d (%d) est. offset %d committed: [%.3f %.3f %3f]->[%.3f %.3f %.3f] (full [%.3f %.3f %.3f])",
 						 mag_index, _calibration[mag_index].device_id(), i,
 						 (double)_calibration[mag_index].offset()(0), (double)_calibration[mag_index].offset()(1),
 						 (double)_calibration[mag_index].offset()(2),
