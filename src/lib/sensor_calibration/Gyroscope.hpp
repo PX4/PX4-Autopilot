@@ -62,13 +62,14 @@ public:
 	void set_calibration_index(uint8_t calibration_index) { _calibration_index = calibration_index; }
 	void set_device_id(uint32_t device_id, bool external = false);
 	void set_external(bool external = true);
-	void set_offset(const matrix::Vector3f &offset) { _offset = offset; }
+	bool set_offset(const matrix::Vector3f &offset);
 	void set_rotation(Rotation rotation);
 
 	uint8_t calibration_count() const { return _calibration_count; }
 	uint32_t device_id() const { return _device_id; }
 	bool enabled() const { return (_priority > 0); }
 	bool external() const { return _external; }
+	const matrix::Vector3f &offset() const { return _offset; }
 	const int32_t &priority() const { return _priority; }
 	const matrix::Dcmf &rotation() const { return _rotation; }
 	const Rotation &rotation_enum() const { return _rotation_enum; }
