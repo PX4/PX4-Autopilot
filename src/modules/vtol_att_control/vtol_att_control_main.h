@@ -222,7 +222,6 @@ private:
 	 * for fixed wings we want to have an idle speed of zero since we do not want
 	 * to waste energy when gliding. */
 	int		_transition_command{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC};
-	bool		_abort_front_transition{false};
 
 	VtolType	*_vtol_type{nullptr};	// base class for different vtol types
 
