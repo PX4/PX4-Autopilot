@@ -39,8 +39,10 @@
 #include <systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/estimator_selector_status.h>
-#include <uORB/topics/estimator_states.h>
+#include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/estimator_status.h>
+
+using namespace time_literals;
 
 bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_status, const bool optional,
 			       const bool report_fail, const bool enforce_gps_required)
@@ -69,7 +71,6 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	// Get estimator status data if available and exit with a fail recorded if not
 	uORB::SubscriptionData<estimator_selector_status_s> estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::SubscriptionData<estimator_status_s> status_sub{ORB_ID(estimator_status), estimator_selector_status_sub.get().primary_instance};
-	status_sub.update();
 	const estimator_status_s &status = status_sub.get();
 
 	if (status.timestamp == 0) {
@@ -231,52 +232,55 @@ out:
 	return success;
 }
 
-bool PreFlightCheck::ekf2CheckStates(orb_advert_t *mavlink_log_pub, const bool report_fail)
+bool PreFlightCheck::ekf2CheckSensorBias(orb_advert_t *mavlink_log_pub, const bool report_fail)
 {
-	float ekf_ab_test_limit = 1.0f; // pass limit re-used for each test
-	param_get(param_find("COM_ARM_EKF_AB"), &ekf_ab_test_limit);
-
-	float ekf_gb_test_limit = 1.0f; // pass limit re-used for each test
-	param_get(param_find("COM_ARM_EKF_GB"), &ekf_gb_test_limit);
-
 	// Get estimator states data if available and exit with a fail recorded if not
 	uORB::SubscriptionData<estimator_selector_status_s> estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
-	uORB::Subscription states_sub{ORB_ID(estimator_states), estimator_selector_status_sub.get().primary_instance};
+	uORB::SubscriptionData<estimator_sensor_bias_s> estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias), estimator_selector_status_sub.get().primary_instance};
+	const estimator_sensor_bias_s &bias = estimator_sensor_bias_sub.get();
 
-	estimator_states_s states;
+	if (hrt_elapsed_time(&bias.timestamp) < 30_s) {
 
-	if (states_sub.copy(&states)) {
+		// check accelerometer bias estimates
+		if (bias.accel_bias_valid) {
+			const float ekf_ab_test_limit = 0.5f * bias.accel_bias_limit;
 
-		// check accelerometer delta velocity bias estimates
-		for (uint8_t index = 13; index < 16; index++) {
-			// allow for higher uncertainty in estimates for axes that are less observable to prevent false positives
-			// adjust test threshold by 3-sigma
-			float test_uncertainty = 3.0f * sqrtf(fmaxf(states.covariances[index], 0.0f));
+			for (uint8_t axis_index = 0; axis_index < 3; axis_index++) {
+				// allow for higher uncertainty in estimates for axes that are less observable to prevent false positives
+				// adjust test threshold by 3-sigma
+				const float test_uncertainty = 3.0f * sqrtf(fmaxf(bias.accel_bias_variance[axis_index], 0.0f));
 
-			if (fabsf(states.states[index]) > ekf_ab_test_limit + test_uncertainty) {
+				if (fabsf(bias.accel_bias[axis_index]) > ekf_ab_test_limit + test_uncertainty) {
+					if (report_fail) {
+						PX4_ERR("accel bias (axis %d): |%.8f| > %.8f + %.8f", axis_index,
+							(double)bias.accel_bias[axis_index], (double)ekf_ab_test_limit, (double)test_uncertainty);
+						mavlink_log_critical(mavlink_log_pub, "Preflight Fail: High Accelerometer Bias");
+					}
 
-				if (report_fail) {
-					PX4_ERR("state %d: |%.8f| > %.8f + %.8f", index, (double)states.states[index], (double)ekf_ab_test_limit,
-						(double)test_uncertainty);
-					mavlink_log_critical(mavlink_log_pub, "Preflight Fail: High Accelerometer Bias");
+					return false;
 				}
-
-				return false;
 			}
 		}
 
-		// check gyro delta angle bias estimates
+		// check gyro bias estimates
+		if (bias.gyro_bias_valid) {
+			const float ekf_gb_test_limit = 0.5f * bias.gyro_bias_limit;
 
+			for (uint8_t axis_index = 0; axis_index < 3; axis_index++) {
+				// allow for higher uncertainty in estimates for axes that are less observable to prevent false positives
+				// adjust test threshold by 3-sigma
+				const float test_uncertainty = 3.0f * sqrtf(fmaxf(bias.gyro_bias_variance[axis_index], 0.0f));
 
-		if (fabsf(states.states[10]) > ekf_gb_test_limit
-		    || fabsf(states.states[11]) > ekf_gb_test_limit
-		    || fabsf(states.states[12]) > ekf_gb_test_limit) {
+				if (fabsf(bias.gyro_bias[axis_index]) > ekf_gb_test_limit + test_uncertainty) {
+					if (report_fail) {
+						PX4_ERR("gyro bias (axis %d): |%.8f| > %.8f + %.8f", axis_index,
+							(double)bias.gyro_bias[axis_index], (double)ekf_gb_test_limit, (double)test_uncertainty);
+						mavlink_log_critical(mavlink_log_pub, "Preflight Fail: High Gyro Bias");
+					}
 
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: High Gyro Bias");
+					return false;
+				}
 			}
-
-			return false;
 		}
 	}
 

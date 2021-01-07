@@ -884,6 +884,7 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 		if (_device_id_gyro != 0) {
 			bias.gyro_device_id = _device_id_gyro;
 			gyro_bias.copyTo(bias.gyro_bias);
+			bias.gyro_bias_limit = math::radians(20.f); // 20 degrees/s see Ekf::constrainStates()
 			_ekf.getGyroBiasVariance().copyTo(bias.gyro_bias_variance);
 			bias.gyro_bias_valid = true;
 
@@ -893,6 +894,7 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 		if ((_device_id_accel != 0) && !(_param_ekf2_aid_mask.get() & MASK_INHIBIT_ACC_BIAS)) {
 			bias.accel_device_id = _device_id_accel;
 			accel_bias.copyTo(bias.accel_bias);
+			bias.accel_bias_limit = _params->acc_bias_lim;
 			_ekf.getAccelBiasVariance().copyTo(bias.accel_bias_variance);
 			bias.accel_bias_valid = !_ekf.fault_status_flags().bad_acc_bias;
 
@@ -902,6 +904,7 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 		if (_device_id_mag != 0) {
 			bias.mag_device_id = _device_id_mag;
 			mag_bias.copyTo(bias.mag_bias);
+			bias.mag_bias_limit = 0.5f; // 0.5 Gauss see Ekf::constrainStates()
 			_mag_cal_last_bias_variance.copyTo(bias.mag_bias_variance);
 			bias.mag_bias_valid = _mag_cal_available;
 
