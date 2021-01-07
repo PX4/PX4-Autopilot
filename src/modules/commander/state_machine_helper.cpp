@@ -616,8 +616,8 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 			// is not possible and therefore the internal_state needs to be adjusted.
 			internal_state->main_state = commander_state_s::MAIN_STATE_POSCTL;
 
-		} else if (rc_lost && !data_link_loss_act_configured && is_armed) {
-			// failsafe: RC is lost, datalink loss is not set up and rc loss is not disabled
+		} else if (rc_lost && status->data_link_lost && !data_link_loss_act_configured && is_armed) {
+			// Orbit does not depend on RC but while armed & all links lost & when datalink loss is not set up, we failsafe
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
 			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);

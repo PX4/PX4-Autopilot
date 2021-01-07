@@ -125,7 +125,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("estimator_local_position", 500, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_sensor_bias", 0, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_states", 1000, MAX_ESTIMATOR_INSTANCES);
-	add_topic_multi("estimator_status", 500, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_status", 200, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_status_flags", 0, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_visual_odometry_aligned", 200, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("yaw_estimator_status", 1000, MAX_ESTIMATOR_INSTANCES);
@@ -143,6 +143,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("sensor_mag", 1000, 4);
 	add_topic_multi("vehicle_imu", 500, 4);
 	add_topic_multi("vehicle_imu_status", 1000, 4);
+	add_topic_multi("vehicle_magnetometer", 500, 4);
 
 #ifdef CONFIG_ARCH_BOARD_PX4_SITL
 	add_topic("actuator_controls_virtual_fw");
