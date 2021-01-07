@@ -117,7 +117,6 @@ void Standard::update_vtol_state()
 			_vtol_vehicle_status->vtol_transition_failsafe = false;
 		}
 
-
 	} else if (!_attc->is_fixed_wing_requested()) {
 
 		// the transition to fw mode switch is off
@@ -141,7 +140,6 @@ void Standard::update_vtol_state()
 			_pusher_throttle = 0.0f;
 			_reverse_output = 0.0f;
 
-
 		} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_MC) {
 			// transition to MC mode if transition time has passed or forward velocity drops below MPC cruise speed
 
@@ -155,7 +153,6 @@ void Standard::update_vtol_state()
 			    can_transition_on_ground()) {
 				_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
 			}
-
 		}
 
 	} else {
