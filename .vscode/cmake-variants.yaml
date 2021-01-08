@@ -6,6 +6,16 @@ CONFIG:
       buildType: RelWithDebInfo
       settings:
         CONFIG: px4_sitl_default
+    px4_sitl_asan:
+      short: px4_sitl (AddressSanitizer)
+      buildType: AddressSanitizer
+      settings:
+        CONFIG: px4_sitl_default
+    px4_sitl_ubsan:
+      short: px4_sitl (UndefinedBehaviorSanitizer)
+      buildType: UndefinedBehaviorSanitizer
+      settings:
+        CONFIG: px4_sitl_default
     px4_sitl_replay:
       short: px4_sitl_replay
       buildType: RelWithDebInfo
