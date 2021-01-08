@@ -874,12 +874,6 @@ Navigator::get_default_acceptance_radius()
 }
 
 float
-Navigator::get_acceptance_radius()
-{
-	return get_acceptance_radius(_param_nav_acc_rad.get());
-}
-
-float
 Navigator::get_default_altitude_acceptance_radius()
 {
 	if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
@@ -996,24 +990,17 @@ Navigator::get_cruising_throttle()
 }
 
 float
-Navigator::get_acceptance_radius(float mission_item_radius)
+Navigator::get_acceptance_radius()
 {
-	float radius = mission_item_radius;
+	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		// return the value specified in the parameter NAV_ACC_RAD
+		return get_default_acceptance_radius();
 
-	// XXX only use navigation capabilities for now
-	// when in fixed wing mode
-	// this might need locking against a commanded transition
-	// so that a stale _vstatus doesn't trigger an accepted mission item.
-
-	const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
-
-	if (_vstatus.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-	    && (pos_ctrl_status.timestamp > _pos_sp_triplet.timestamp)
-	    && pos_ctrl_status.acceptance_radius > radius) {
-		radius = pos_ctrl_status.acceptance_radius;
+	} else {
+		// return the max of NAV_ACC_RAD and the controller acceptance radius (e.g. L1 distance)
+		const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
+		return math::max(pos_ctrl_status.acceptance_radius, get_default_acceptance_radius());
 	}
-
-	return radius;
 }
 
 float
