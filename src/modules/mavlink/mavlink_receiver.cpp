@@ -1085,8 +1085,17 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 							pos_sp_triplet.current.position_valid = false;
 
 						} else {
+							float target_altitude;
+
+							if (set_position_target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+								target_altitude = set_position_target_global_int.alt + local_pos.ref_alt;
+
+							} else {
+								target_altitude = set_position_target_global_int.alt; //MAV_FRAME_GLOBAL_INT
+							}
+
 							globallocalconverter_tolocal(set_position_target_global_int.lat_int / 1e7,
-										     set_position_target_global_int.lon_int / 1e7, set_position_target_global_int.alt,
+										     set_position_target_global_int.lon_int / 1e7, target_altitude,
 										     &pos_sp_triplet.current.x, &pos_sp_triplet.current.y, &pos_sp_triplet.current.z);
 							pos_sp_triplet.current.cruising_speed = get_offb_cruising_speed();
 							pos_sp_triplet.current.position_valid = true;
