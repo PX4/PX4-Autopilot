@@ -48,10 +48,10 @@ else
 	# shellcheck disable=SC2012
 	REQUESTED_AUTOSTART=$(ls "${R}etc/init.d-posix/airframes" | sed -n 's/^\([0-9][0-9]*\)_'${PX4_SIM_MODEL}'$/\1/p')
 	if [ -z "$REQUESTED_AUTOSTART" ]; then
-		echo "Error: Unknown model $PX4_SIM_MODEL (not found by name on ${R}etc/init.d-posix/airframes)"
+		echo "ERROR  [init] Unknown model $PX4_SIM_MODEL (not found by name on ${R}etc/init.d-posix/airframes)"
 		exit 1
 	else
-		echo "Info: found model autostart file as SYS_AUTOSTART=$REQUESTED_AUTOSTART"
+		echo "INFO  [init] found model autostart file as SYS_AUTOSTART=$REQUESTED_AUTOSTART"
 	fi
 fi
 
