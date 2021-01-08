@@ -197,12 +197,13 @@ MissionBlock::is_mission_item_reached()
 			 * coordinates with a radius equal to the loiter_radius field. It is not flying
 			 * through the waypoint center.
 			 * Therefore the item is marked as reached once the system reaches the loiter
-			 * radius (+ some margin). Time inside and turn count is handled elsewhere.
+			 * radius + L1 distance. Time inside and turn count is handled elsewhere.
 			 */
 			float radius = (fabsf(_mission_item.loiter_radius) > NAV_EPSILON_POSITION) ? fabsf(_mission_item.loiter_radius) :
 				       _navigator->get_loiter_radius();
 
-			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(fabsf(radius) * 1.2f)
+			// check if within loiter radius around wp, if yes then set altitude sp to mission item
+			if (dist >= 0.0f && dist_xy <= (_navigator->get_acceptance_radius() + fabsf(_mission_item.loiter_radius))
 			    && dist_z <= _navigator->get_altitude_acceptance_radius()) {
 
 				_waypoint_position_reached = true;
@@ -228,7 +229,8 @@ MissionBlock::is_mission_item_reached()
 						_navigator->get_global_position()->alt,
 						&dist_xy, &dist_z);
 
-				if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(fabsf(_mission_item.loiter_radius) * 1.2f)
+				// check if within loiter radius around wp, if yes then set altitude sp to mission item
+				if (dist >= 0.0f && dist_xy <= (_navigator->get_acceptance_radius() + fabsf(_mission_item.loiter_radius))
 				    && dist_z <= _navigator->get_default_altitude_acceptance_radius()) {
 
 					// now set the loiter to the final altitude in the NAV_CMD_LOITER_TO_ALT mission item
@@ -236,7 +238,7 @@ MissionBlock::is_mission_item_reached()
 					_navigator->set_position_setpoint_triplet_updated();
 				}
 
-			} else if (dist >= 0.f && dist <= _navigator->get_acceptance_radius(fabsf(_mission_item.loiter_radius) * 1.2f)
+			} else if (dist >= 0.f && dist_xy <= (_navigator->get_acceptance_radius() + fabsf(_mission_item.loiter_radius))
 				   && dist_z <= _navigator->get_altitude_acceptance_radius()) {
 
 				_waypoint_position_reached = true;
@@ -298,13 +300,9 @@ MissionBlock::is_mission_item_reached()
 			_time_wp_reached = now;
 
 		} else {
-			/* for normal mission items used their acceptance radius */
-			float mission_acceptance_radius = _navigator->get_acceptance_radius(_mission_item.acceptance_radius);
+			/*normal mission items */
 
-			/* if set to zero use the default instead */
-			if (mission_acceptance_radius < NAV_EPSILON_POSITION) {
-				mission_acceptance_radius = _navigator->get_acceptance_radius();
-			}
+			float mission_acceptance_radius = _navigator->get_acceptance_radius();
 
 			/* for vtol back transition calculate acceptance radius based on time and ground speed */
 			if (_mission_item.vtol_back_transition
