@@ -51,16 +51,6 @@ using ecl_abstime = hrt_abstime;
 #define ECL_WARN PX4_WARN
 #define ECL_ERR	 PX4_ERR
 
-#if defined(__PX4_POSIX)
-#define ECL_INFO_TIMESTAMPED(X) PX4_INFO("%llu: " X, (unsigned long long)_imu_sample_delayed.time_us)
-#define ECL_WARN_TIMESTAMPED(X) PX4_WARN("%llu: " X, (unsigned long long)_imu_sample_delayed.time_us)
-#define ECL_ERR_TIMESTAMPED(X) PX4_ERR("%llu: " X, (unsigned long long)_imu_sample_delayed.time_us)
-#else
-#define ECL_INFO_TIMESTAMPED PX4_INFO
-#define ECL_WARN_TIMESTAMPED PX4_WARN
-#define ECL_ERR_TIMESTAMPED PX4_ERR
-#endif
-
 #elif defined(__PAPARAZZI)
 
 #include "std.h"
@@ -73,9 +63,6 @@ using ecl_abstime = uint64_t;
 #define ECL_INFO(...)
 #define ECL_WARN(...)
 #define ECL_ERR(...)
-#define ECL_INFO_TIMESTAMPED PX4_INFO
-#define ECL_WARN_TIMESTAMPED PX4_WARN
-#define ECL_ERR_TIMESTAMPED PX4_ERR
 
 #else
 
@@ -90,10 +77,6 @@ using ecl_abstime = uint64_t;
 #define ECL_INFO(X, ...) printf(X "\n", ##__VA_ARGS__)
 #define ECL_WARN(X, ...) fprintf(stderr, X "\n", ##__VA_ARGS__)
 #define ECL_ERR(X, ...) fprintf(stderr, X "\n", ##__VA_ARGS__)
-
-#define ECL_INFO_TIMESTAMPED(X) ECL_INFO("%llu: " X, (unsigned long long)_imu_sample_delayed.time_us)
-#define ECL_WARN_TIMESTAMPED(X) ECL_WARN("%llu: " X, (unsigned long long)_imu_sample_delayed.time_us)
-#define ECL_ERR_TIMESTAMPED(X) ECL_ERR("%llu: " X, (unsigned long long)_imu_sample_delayed.time_us)
 
 #endif /* PX4_POSIX || PX4_NUTTX */
 

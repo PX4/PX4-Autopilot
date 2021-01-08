@@ -607,7 +607,7 @@ void Ekf::updateQuaternion(const float innovation, const float variance, const f
 
 		// we reinitialise the covariance matrix and abort this fusion step
 		initialiseCovariance();
-		ECL_ERR_TIMESTAMPED("mag yaw fusion numerical error - covariance reset");
+		ECL_ERR("mag yaw fusion numerical error - covariance reset");
 		return;
 	}
 
