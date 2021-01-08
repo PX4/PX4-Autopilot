@@ -87,7 +87,7 @@ PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
  * @increment 0.5
  * @group Return Mode
  */
-PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
+PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, 0.0f);
 
 /**
  * Horizontal radius from return point within which special rules for return mode apply.

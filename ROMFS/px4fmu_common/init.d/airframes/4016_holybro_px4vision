@@ -112,7 +112,6 @@ then
 
 	# RTL Parameters
 	param set RTL_DESCEND_ALT 5
-	param set RTL_LAND_DELAY 0
 	param set RTL_RETURN_ALT 5
 	param set RTL_CONE_ANG 45
 
