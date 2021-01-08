@@ -508,7 +508,11 @@ void EKF2Selector::Run()
 
 		bool lower_error_available = false;
 		float alternative_error = 0.f; // looking for instances that have error lower than the current primary
-		uint8_t best_ekf_instance = _selected_instance;
+		float best_test_ratio = FLT_MAX;
+
+		uint8_t best_ekf = _selected_instance;
+		uint8_t best_ekf_alternate = INVALID_INSTANCE;
+		uint8_t best_ekf_different_imu = INVALID_INSTANCE;
 
 		// loop through all available instances to find if an alternative is available
 		for (int i = 0; i < _available_instances; i++) {
@@ -519,48 +523,42 @@ void EKF2Selector::Run()
 			// OR
 			// selected instance has stopped updating
 			if (_instance[i].healthy && (i != _selected_instance)) {
+				const float test_ratio = _instance[i].combined_test_ratio;
 				const float relative_error = _instance[i].relative_test_ratio;
 
 				if (relative_error < alternative_error) {
-
+					best_ekf_alternate = i;
 					alternative_error = relative_error;
-					best_ekf_instance = i;
 
 					// relative error less than selected instance and has not been the selected instance for at least 10 seconds
 					if ((relative_error <= -_rel_err_thresh) && hrt_elapsed_time(&_instance[i].time_last_selected) > 10_s) {
 						lower_error_available = true;
 					}
 				}
-			}
-		}
 
-		if (!_instance[_selected_instance].healthy && (best_ekf_instance == _selected_instance)) {
-			// force selection to best healthy instance
-			uint8_t best_instance = _selected_instance;
-			float best_test_ratio = FLT_MAX;
+				if ((test_ratio > 0) && (test_ratio < best_test_ratio)) {
+					best_ekf = i;
+					best_test_ratio = test_ratio;
 
-			for (int i = 0; i < _available_instances; i++) {
-				if (_instance[i].healthy) {
-					const float test_ratio = _instance[i].combined_test_ratio;
-
-					if ((test_ratio > 0) && (test_ratio < best_test_ratio)) {
-						best_instance = i;
-						best_test_ratio = test_ratio;
+					// also check next best available ekf using a different IMU
+					if (_instance[i].status.accel_device_id != _instance[_selected_instance].status.accel_device_id) {
+						best_ekf_different_imu = i;
 					}
 				}
 			}
+		}
 
-			SelectInstance(best_instance);
-
-		} else if (best_ekf_instance != _selected_instance) {
-			//  if this instance has a significantly lower relative error to the active primary, we consider it as a
-			// better instance and would like to switch to it even if the current primary is healthy
-			//  switch immediately if the current selected is no longer healthy
-			if ((lower_error_available && hrt_elapsed_time(&_last_instance_change) > 10_s)
-			    || !_instance[_selected_instance].healthy) {
-
-				SelectInstance(best_ekf_instance);
+		if (!_instance[_selected_instance].healthy) {
+			// prefer the best healthy instance using a different IMU
+			if (!SelectInstance(best_ekf_different_imu)) {
+				// otherwise switch to the healthy instance with best overall test ratio
+				SelectInstance(best_ekf);
 			}
+
+		} else if (lower_error_available && (hrt_elapsed_time(&_last_instance_change) > 10_s)) {
+			// if this instance has a significantly lower relative error to the active primary, we consider it as a
+			// better instance and would like to switch to it even if the current primary is healthy
+			SelectInstance(best_ekf_alternate);
 		}
 
 		// publish selector status at ~1 Hz or immediately on any change
