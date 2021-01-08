@@ -114,7 +114,7 @@ void LoggedTopics::add_default_topics()
 
 	// EKF multi topics (currently max 9 estimators)
 	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 4;
-	add_topic("estimator_selector_status", 200);
+	add_topic("estimator_selector_status");
 	add_topic_multi("ekf_gps_drift", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_attitude", 500, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_global_position", 1000, MAX_ESTIMATOR_INSTANCES);
