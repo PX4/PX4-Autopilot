@@ -45,6 +45,7 @@
 #include <px4_daemon/server_io.h>
 #endif
 
+#include <lib/mathlib/mathlib.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/log_message.h>
 #include <drivers/drv_hrt.h>
@@ -52,68 +53,119 @@
 static orb_advert_t orb_log_message_pub = nullptr;
 
 __EXPORT const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1] = { "DEBUG", "INFO", "WARN", "ERROR", "PANIC" };
-__EXPORT const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1] =
-{ PX4_ANSI_COLOR_GREEN, PX4_ANSI_COLOR_RESET, PX4_ANSI_COLOR_YELLOW, PX4_ANSI_COLOR_RED, PX4_ANSI_COLOR_RED };
 
+#define PX4_ANSI_COLOR_RED     "\x1b[31m"
+#define PX4_ANSI_COLOR_GREEN   "\x1b[32m"
+#define PX4_ANSI_COLOR_YELLOW  "\x1b[33m"
+#define PX4_ANSI_COLOR_BLUE    "\x1b[34m"
+#define PX4_ANSI_COLOR_MAGENTA "\x1b[35m"
+#define PX4_ANSI_COLOR_CYAN    "\x1b[36m"
+#define PX4_ANSI_COLOR_GRAY    "\x1B[37m"
+#define PX4_ANSI_COLOR_RESET   "\x1b[0m"
+
+static constexpr const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1] {
+	PX4_ANSI_COLOR_GREEN,  // DEBUG
+	PX4_ANSI_COLOR_RESET,  // INFO
+	PX4_ANSI_COLOR_YELLOW, // WARN
+	PX4_ANSI_COLOR_RED,    // ERROR
+	PX4_ANSI_COLOR_RED     // PANIC
+};
 
 void px4_log_initialize(void)
 {
-	assert(orb_log_message_pub == nullptr);
-
-	/* we need to advertise with a valid message */
-	struct log_message_s log_message;
-	log_message.timestamp = hrt_absolute_time();
-	log_message.severity = 6; //info
+	// we need to advertise with a valid message
+	log_message_s log_message{};
+	log_message.severity = 6; // info
 	strcpy((char *)log_message.text, "initialized uORB logging");
-
+	log_message.timestamp = hrt_absolute_time();
 	orb_log_message_pub = orb_advertise_queue(ORB_ID(log_message), &log_message, log_message_s::ORB_QUEUE_LENGTH);
-
-	if (!orb_log_message_pub) {
-		PX4_ERR("failed to advertise log_message");
-	}
 }
 
-
-__EXPORT void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...)
+__EXPORT void px4_log_modulename(int level, const char *module_name, const char *fmt, ...)
 {
+	static constexpr ssize_t max_length = sizeof(log_message_s::text);
+
 	FILE *out = stdout;
+
+#if defined(PX4_LOG_COLORIZED_OUTPUT)
 	bool use_color = true;
+#endif // PX4_LOG_COLORIZED_OUTPUT
 
-#ifdef __PX4_POSIX
-	out = get_stdout(&use_color);
-#endif
+#if defined(__PX4_POSIX)
+	bool isatty_ = false;
+	out = get_stdout(&isatty_);
 
-#ifndef PX4_LOG_COLORIZED_OUTPUT
-	use_color = false;
-#endif
+#if defined(PX4_LOG_COLORIZED_OUTPUT)
+	use_color = isatty_;
+#endif // PX4_LOG_COLORIZED_OUTPUT
+#endif // PX4_POSIX
 
 	if (level >= _PX4_LOG_LEVEL_INFO) {
-		if (use_color) { fputs(__px4_log_level_color[level], out); }
+		char buf[max_length + 1]; // same length as log_message_s::text, but add newline
+		ssize_t pos = 0;
 
-		fprintf(out, __px4__log_level_fmt __px4__log_level_arg(level));
+#if defined(PX4_LOG_COLORIZED_OUTPUT)
 
-		if (use_color) { fputs(PX4_ANSI_COLOR_GRAY, out); }
+		if (use_color) {
+			pos += sprintf(buf + pos, "%s", __px4_log_level_color[level]);
+		}
 
-		fprintf(out, __px4__log_modulename_pfmt, moduleName);
+#endif // PX4_LOG_COLORIZED_OUTPUT
 
-		if (use_color) { fputs(__px4_log_level_color[level], out); }
+		pos += snprintf(buf + pos, math::max(max_length - pos, (ssize_t)0), __px4__log_level_fmt, __px4_log_level_str[level]);
+
+#if defined(PX4_LOG_COLORIZED_OUTPUT)
+
+		if (use_color) {
+			pos += snprintf(buf + pos, math::max(max_length - pos, (ssize_t)0), PX4_ANSI_COLOR_GRAY);
+		}
+
+#endif // PX4_LOG_COLORIZED_OUTPUT
+
+		pos += snprintf(buf + pos, math::max(max_length - pos, (ssize_t)0), __px4__log_modulename_pfmt, module_name);
+
+#if defined(PX4_LOG_COLORIZED_OUTPUT)
+
+		if (use_color) {
+			pos += snprintf(buf + pos, math::max(max_length - pos, (ssize_t)0), "%s", __px4_log_level_color[level]);
+		}
+
+#endif // PX4_LOG_COLORIZED_OUTPUT
 
 		va_list argptr;
 		va_start(argptr, fmt);
-		vfprintf(out, fmt, argptr);
+		pos += vsnprintf(buf + pos, math::max(max_length - pos, (ssize_t)0), fmt, argptr);
 		va_end(argptr);
 
-		if (use_color) { fputs(PX4_ANSI_COLOR_RESET, out); }
+#if defined(PX4_LOG_COLORIZED_OUTPUT)
 
-		fputc('\n', out);
+		if (use_color) {
+			// alway reset color
+			const ssize_t sz = math::min(pos, max_length - (ssize_t)strlen(PX4_ANSI_COLOR_RESET) - (ssize_t)1);
+			pos += sprintf(buf + sz, "%s\n", PX4_ANSI_COLOR_RESET);
+
+		} else
+#endif // PX4_LOG_COLORIZED_OUTPUT
+		{
+			pos += sprintf(buf + math::min(pos, max_length - (ssize_t)1), "\n");
+		}
+
+		// ensure NULL termination (buffer is max_length + 1)
+		buf[max_length] = 0;
+
+		fputs(buf, out);
+
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
+		// Without flushing it's tricky to see stdout output when PX4 is started by
+		// a script like for the MAVSDK tests.
+		fflush(out);
+#endif // CONFIG_ARCH_BOARD_PX4_SITL
 	}
 
 	/* publish an orb log message */
 	if (level >= _PX4_LOG_LEVEL_INFO && orb_log_message_pub) { //publish all messages
 
-		struct log_message_s log_message;
-		const unsigned max_length_pub = sizeof(log_message.text);
-		log_message.timestamp = hrt_absolute_time();
+		log_message_s log_message;
 
 		const uint8_t log_level_table[] = {
 			7, /* _PX4_LOG_LEVEL_DEBUG */
@@ -124,47 +176,65 @@ __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *
 		};
 		log_message.severity = log_level_table[level];
 
-		unsigned pos = 0;
+		ssize_t pos = snprintf((char *)log_message.text, max_length, __px4__log_modulename_pfmt, module_name);
 
 		va_list argptr;
-
-		pos += snprintf((char *)log_message.text + pos, max_length_pub - pos, __px4__log_modulename_pfmt, moduleName);
 		va_start(argptr, fmt);
-		pos += vsnprintf((char *)log_message.text + pos, max_length_pub - pos, fmt, argptr);
+		pos += vsnprintf((char *)log_message.text + pos, math::max(max_length - pos, (ssize_t)0), fmt, argptr);
 		va_end(argptr);
-		log_message.text[max_length_pub - 1] = 0; //ensure 0-termination
-
+		log_message.text[max_length - 1] = 0; //ensure 0-termination
+		log_message.timestamp = hrt_absolute_time();
 		orb_publish(ORB_ID(log_message), orb_log_message_pub, &log_message);
 	}
-
-#ifdef CONFIG_ARCH_BOARD_PX4_SITL
-	// Without flushing it's tricky to see stdout output when PX4 is started by
-	// a script like for the MAVSDK tests.
-	fflush(out);
-#endif
 }
 
 __EXPORT void px4_log_raw(int level, const char *fmt, ...)
 {
 	FILE *out = stdout;
-	bool use_color = true;
 
 #ifdef __PX4_POSIX
+	bool use_color = true;
 	out = get_stdout(&use_color);
 #endif
 
-#ifndef PX4_LOG_COLORIZED_OUTPUT
-	use_color = false;
-#endif
-
 	if (level >= _PX4_LOG_LEVEL_INFO) {
-		if (use_color) { fputs(__px4_log_level_color[level], out); }
+		static constexpr ssize_t max_length = sizeof(log_message_s::text);
+		char buf[max_length + 1]; // same length as log_message_s::text, but add newline
+		ssize_t pos = 0;
+
+#if defined(PX4_LOG_COLORIZED_OUTPUT)
+
+		if (use_color) {
+			pos += sprintf(buf + pos, "%s", __px4_log_level_color[level]);
+		}
+
+#endif // PX4_LOG_COLORIZED_OUTPUT
 
 		va_list argptr;
 		va_start(argptr, fmt);
-		vfprintf(out, fmt, argptr);
+		pos += vsnprintf(buf + pos, math::max(max_length - pos, (ssize_t)0), fmt, argptr);
 		va_end(argptr);
 
-		if (use_color) { fputs(PX4_ANSI_COLOR_RESET, out); }
+#if defined(PX4_LOG_COLORIZED_OUTPUT)
+
+		if (use_color) {
+			// alway reset color
+			const ssize_t sz = math::min(pos, max_length - (ssize_t)strlen(PX4_ANSI_COLOR_RESET));
+			pos += sprintf(buf + sz, "%s", PX4_ANSI_COLOR_RESET);
+		}
+
+#endif // PX4_LOG_COLORIZED_OUTPUT
+
+		if (pos > max_length) {
+			// preserve newline if necessary
+			if (fmt[strlen(fmt) - 1] == '\n') {
+				buf[max_length - 1] = '\n';
+			}
+		}
+
+		// ensure NULL termination (buffer is max_length + 1)
+		buf[max_length] = 0;
+
+		fputs(buf, out);
 	}
 }
