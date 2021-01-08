@@ -189,9 +189,7 @@ void VehicleMagnetometer::MagCalibrationUpdate()
 		for (int mag_index = 0; mag_index < MAX_SENSOR_COUNT; mag_index++) {
 			// apply all valid saved offsets
 			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-				if ((_calibration[mag_index].device_id() != 0)
-				    && (_mag_cal[i].device_id == _calibration[mag_index].device_id())
-				    && _mag_cal[i].mag_offset.longerThan(0.01f)) {
+				if ((_calibration[mag_index].device_id() != 0) && (_mag_cal[i].device_id == _calibration[mag_index].device_id())) {
 
 					Vector3f mag_cal_offset{_calibration[mag_index].offset()};
 
@@ -207,15 +205,18 @@ void VehicleMagnetometer::MagCalibrationUpdate()
 						state_variance(axis_index) = fmaxf(state_variance(axis_index) * (1.f - kalman_gain), 0.f);
 					}
 
-					PX4_INFO("%d (%d) est. offset %d committed: [%.2f %.2f %.2f]->[%.2f %.2f %.2f] (full [%.2f %.2f %.2f])",
-						 mag_index, _calibration[mag_index].device_id(), i,
-						 (double)_calibration[mag_index].offset()(0), (double)_calibration[mag_index].offset()(1),
-						 (double)_calibration[mag_index].offset()(2),
-						 (double)mag_cal_offset(0), (double)mag_cal_offset(1), (double)mag_cal_offset(2),
-						 (double)_mag_cal[i].mag_offset(0), (double)_mag_cal[i].mag_offset(1), (double)_mag_cal[i].mag_offset(2));
+					if (_calibration[mag_index].set_offset(mag_cal_offset)) {
 
-					_calibration[mag_index].set_offset(mag_cal_offset);
-					calibration_param_save_needed = true;
+						PX4_INFO("%d (%d) EST:%d offset committed: [%.2f %.2f %.2f]->[%.2f %.2f %.2f] (full [%.2f %.2f %.2f])",
+							 mag_index, _calibration[mag_index].device_id(), i,
+							 (double)_calibration[mag_index].offset()(0),
+							 (double)_calibration[mag_index].offset()(1),
+							 (double)_calibration[mag_index].offset()(2),
+							 (double)mag_cal_offset(0), (double)mag_cal_offset(1), (double)mag_cal_offset(2),
+							 (double)_mag_cal[i].mag_offset(0), (double)_mag_cal[i].mag_offset(1), (double)_mag_cal[i].mag_offset(2));
+
+						calibration_param_save_needed = true;
+					}
 
 					// clear
 					_mag_cal[i].device_id = 0;
