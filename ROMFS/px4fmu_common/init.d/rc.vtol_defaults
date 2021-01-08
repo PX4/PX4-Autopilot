@@ -18,6 +18,8 @@ then
 	param set EKF2_ARSP_THR 10
 	param set EKF2_FUSE_BETA 1
 
+	param set MIS_DIST_WPS 5000
+
 	param set MPC_ACC_HOR_MAX 2
 	param set MPC_TKO_SPEED 1
 	param set MPC_VEL_MANUAL 3
