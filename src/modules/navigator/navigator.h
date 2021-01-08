@@ -162,7 +162,7 @@ public:
 	void reset_vroi() { _vroi = {}; }
 
 	bool home_alt_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt); }
-	bool home_position_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt && _home_pos.valid_hpos); }
+	bool home_position_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt && _home_pos.valid_hpos && _home_pos.valid_lpos); }
 
 	Geofence	&get_geofence() { return _geofence; }
 
@@ -269,12 +269,19 @@ public:
 
 	void 		set_mission_failure(const char *reason);
 
-	// MISSION
+	void 		setMissionLandingInProgress(bool in_progress) { _mission_landing_in_progress = in_progress; }
+
+	bool 		getMissionLandingInProgress() { return _mission_landing_in_progress; }
+
 	bool		is_planned_mission() const { return _navigation_mode == &_mission; }
 	bool		on_mission_landing() { return _mission.landing(); }
 	bool		start_mission_landing() { return _mission.land_start(); }
 	bool		get_mission_start_land_available() { return _mission.get_land_start_available(); }
 	int 		get_mission_landing_index() { return _mission.get_land_start_index(); }
+	double 	get_mission_landing_start_lat() { return _mission.get_landing_start_lat(); }
+	double 	get_mission_landing_start_lon() { return _mission.get_landing_start_lon(); }
+	float 	get_mission_landing_start_alt() { return _mission.get_landing_start_alt(); }
+
 	double 	get_mission_landing_lat() { return _mission.get_landing_lat(); }
 	double 	get_mission_landing_lon() { return _mission.get_landing_lon(); }
 	float 	get_mission_landing_alt() { return _mission.get_landing_alt(); }
@@ -395,6 +402,10 @@ private:
 	float _mission_cruising_speed_mc{-1.0f};
 	float _mission_cruising_speed_fw{-1.0f};
 	float _mission_throttle{NAN};
+
+
+	bool _mission_landing_in_progress{false};	// this flag gets set if the mission is currently executing on a landing pattern
+	// if mission mode is inactive, this flag will be cleared after 2 seconds
 
 	// update subscriptions
 	void		params_update();

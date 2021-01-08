@@ -63,9 +63,9 @@ public:
 	void set_calibration_index(uint8_t calibration_index) { _calibration_index = calibration_index; }
 	void set_device_id(uint32_t device_id, bool external = false);
 	void set_external(bool external = true);
-	void set_offset(const matrix::Vector3f &offset) { _offset = offset; }
-	void set_scale(const matrix::Vector3f &scale);
-	void set_offdiagonal(const matrix::Vector3f &offdiagonal);
+	bool set_offset(const matrix::Vector3f &offset);
+	bool set_scale(const matrix::Vector3f &scale);
+	bool set_offdiagonal(const matrix::Vector3f &offdiagonal);
 	void set_rotation(Rotation rotation);
 
 	uint8_t calibration_count() const { return _calibration_count; }
@@ -83,6 +83,12 @@ public:
 	inline matrix::Vector3f Correct(const matrix::Vector3f &data) const
 	{
 		return _rotation * (_scale * ((data + _power * _power_compensation) - _offset));
+	}
+
+	// Compute sensor offset from bias (board frame)
+	matrix::Vector3f BiasCorrectedSensorOffset(const matrix::Vector3f &bias) const
+	{
+		return _scale.I() * _rotation.I() * bias + _offset;
 	}
 
 	bool ParametersSave();

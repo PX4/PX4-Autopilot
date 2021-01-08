@@ -132,7 +132,7 @@ PARAM_DEFINE_INT32(SYS_PARAM_VER, 1);
  *
  * 0 : Set to 0 to do nothing
  * 1 : Set to 1 to start a calibration at next boot
- * This parameter is reset to zero when the the temperature calibration starts.
+ * This parameter is reset to zero when the temperature calibration starts.
  *
  * default (0, no calibration)
  *
@@ -147,7 +147,7 @@ PARAM_DEFINE_INT32(SYS_CAL_GYRO, 0);
  *
  * 0 : Set to 0 to do nothing
  * 1 : Set to 1 to start a calibration at next boot
- * This parameter is reset to zero when the the temperature calibration starts.
+ * This parameter is reset to zero when the temperature calibration starts.
  *
  * default (0, no calibration)
  *
@@ -162,7 +162,7 @@ PARAM_DEFINE_INT32(SYS_CAL_ACCEL, 0);
  *
  * 0 : Set to 0 to do nothing
  * 1 : Set to 1 to start a calibration at next boot
- * This parameter is reset to zero when the the temperature calibration starts.
+ * This parameter is reset to zero when the temperature calibration starts.
  *
  * default (0, no calibration)
  *
@@ -222,7 +222,7 @@ PARAM_DEFINE_INT32(SYS_HAS_MAG, 1);
 /**
  * Control if the vehicle has a barometer
  *
- * Disable this if the board has no barometer, such as some of the the Omnibus
+ * Disable this if the board has no barometer, such as some of the Omnibus
  * F4 SD variants.
  * If disabled, the preflight checks will not check for the presence of a
  * barometer.

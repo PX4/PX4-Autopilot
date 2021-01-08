@@ -579,10 +579,6 @@ void GPS::initializeCommunicationDump()
 		return; //dumping disabled
 	}
 
-	if (_instance != Instance::Main) {
-		return;
-	}
-
 	_dump_from_device = new gps_dump_s();
 	_dump_to_device = new gps_dump_s();
 
@@ -607,7 +603,8 @@ void GPS::dumpGpsData(uint8_t *data, size_t len, bool msg_to_gps_device)
 		return;
 	}
 
-	gps_dump_s *dump_data = msg_to_gps_device ? _dump_to_device : _dump_from_device;
+	gps_dump_s *dump_data  = msg_to_gps_device ? _dump_to_device : _dump_from_device;
+	dump_data->instance = (uint8_t) _instance;
 
 	while (len > 0) {
 		size_t write_len = len;
@@ -1140,12 +1137,9 @@ int GPS::task_spawn(int argc, char *argv[], Instance instance)
 
 int GPS::run_trampoline_secondary(int argc, char *argv[])
 {
-
-#ifdef __PX4_NUTTX
-	// on NuttX task_create() adds the task name as first argument
+	// the task name is the first argument
 	argc -= 1;
 	argv += 1;
-#endif
 
 	GPS *gps = instantiate(argc, argv, Instance::Secondary);
 	if (gps) {

@@ -284,10 +284,7 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 			return;
 		}
 
-	case ROTATION_ROLL_90_PITCH_180:
-
-	// FALLTHROUGH
-	case ROTATION_ROLL_270_YAW_180: {
+	case ROTATION_ROLL_90_PITCH_180: {
 			tmp = y;
 			x = -x;
 			y = -z;

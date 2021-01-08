@@ -73,7 +73,7 @@ private:
 	void PublishVehicleAttitude(bool reset = false);
 	void PublishVehicleLocalPosition(bool reset = false);
 	void PublishVehicleGlobalPosition(bool reset = false);
-	void SelectInstance(uint8_t instance);
+	bool SelectInstance(uint8_t instance);
 
 	// Update the error scores for all available instances
 	bool UpdateErrorScores();
@@ -100,8 +100,8 @@ private:
 
 		hrt_abstime time_last_selected{0};
 
-		float combined_test_ratio{0.f};
-		float relative_test_ratio{0.f};
+		float combined_test_ratio{NAN};
+		float relative_test_ratio{NAN};
 
 		bool healthy{false};
 
@@ -172,8 +172,6 @@ private:
 	float _delta_alt_reset{0.f};
 	uint8_t _lat_lon_reset_counter{0};
 	uint8_t _alt_reset_counter{0};
-
-	int _lockstep_component{-1};
 
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _sensors_status_imu{ORB_ID(sensors_status_imu)};

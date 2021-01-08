@@ -227,8 +227,8 @@ param_init()
 	px4_sem_init(&reader_lock_holders_lock, 0, 1);
 
 	param_export_perf = perf_alloc(PC_ELAPSED, "param_export");
-	param_find_perf = perf_alloc(PC_ELAPSED, "param_find");
-	param_get_perf = perf_alloc(PC_ELAPSED, "param_get");
+	param_find_perf = perf_alloc(PC_COUNT, "param_find");
+	param_get_perf = perf_alloc(PC_COUNT, "param_get");
 	param_set_perf = perf_alloc(PC_ELAPSED, "param_set");
 }
 
@@ -318,7 +318,7 @@ param_notify_changes()
 param_t
 param_find_internal(const char *name, bool notification)
 {
-	perf_begin(param_find_perf);
+	perf_count(param_find_perf);
 
 	param_t middle;
 	param_t front = 0;
@@ -349,8 +349,6 @@ param_find_internal(const char *name, bool notification)
 			front = middle;
 		}
 	}
-
-	perf_end(param_find_perf);
 
 	/* not found */
 	return PARAM_INVALID;
@@ -565,20 +563,20 @@ param_get_value_ptr(param_t param)
 int
 param_get(param_t param, void *val)
 {
+	perf_count(param_get_perf);
 	int result = -1;
 
-	param_lock_reader();
-	perf_begin(param_get_perf);
+	if (val) {
+		param_lock_reader();
+		const void *v = param_get_value_ptr(param);
 
-	const void *v = param_get_value_ptr(param);
+		if (v) {
+			memcpy(val, v, param_size(param));
+			result = 0;
+		}
 
-	if (val && v) {
-		memcpy(val, v, param_size(param));
-		result = 0;
+		param_unlock_reader();
 	}
-
-	perf_end(param_get_perf);
-	param_unlock_reader();
 
 	return result;
 }
@@ -684,42 +682,66 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 	}
 
 	if (handle_in_range(param)) {
+		// check if param being set to default value
+		bool set_to_default = false;
 
-		param_wbuf_s *s = param_find_changed(param);
-
-		if (s == nullptr) {
-
-			/* construct a new parameter */
-			param_wbuf_s buf = {};
-			buf.param = param;
-
-			params_changed = true;
-
-			/* add it to the array and sort */
-			utarray_push_back(param_values, &buf);
-			utarray_sort(param_values, param_compare_values);
-
-			/* find it after sorting */
-			s = param_find_changed(param);
-		}
-
-		/* update the changed value */
 		switch (param_type(param)) {
 		case PARAM_TYPE_INT32:
-			params_changed = params_changed || s->val.i != *(int32_t *)val;
-			s->val.i = *(int32_t *)val;
+			set_to_default = (param_info_base[param].val.i == *(int32_t *)val);
 			break;
 
 		case PARAM_TYPE_FLOAT:
-			params_changed = params_changed || fabsf(s->val.f - * (float *)val) > FLT_EPSILON;
-			s->val.f = *(float *)val;
+			set_to_default = (fabsf(param_info_base[param].val.f - * (float *)val) < FLT_EPSILON);
 			break;
-
-		default:
-			goto out;
 		}
 
-		s->unsaved = !mark_saved;
+		param_wbuf_s *s = param_find_changed(param);
+
+		if (set_to_default) {
+			if (s != nullptr) {
+				// param in memory and set to non-default value, clear
+				int pos = utarray_eltidx(param_values, s);
+				utarray_erase(param_values, pos, 1);
+				params_changed = true;
+			}
+
+			// do nothing if param not already set and being set to default
+
+		} else {
+			if (s == nullptr) {
+				/* construct a new parameter */
+				param_wbuf_s buf = {};
+				buf.param = param;
+
+				params_changed = true;
+
+				/* add it to the array and sort */
+				utarray_push_back(param_values, &buf);
+				utarray_sort(param_values, param_compare_values);
+
+				/* find it after sorting */
+				s = param_find_changed(param);
+			}
+
+			/* update the changed value */
+			switch (param_type(param)) {
+			case PARAM_TYPE_INT32:
+				params_changed = params_changed || s->val.i != *(int32_t *)val;
+				s->val.i = *(int32_t *)val;
+				break;
+
+			case PARAM_TYPE_FLOAT:
+				params_changed = params_changed || fabsf(s->val.f - * (float *)val) > FLT_EPSILON;
+				s->val.f = *(float *)val;
+				break;
+
+			default:
+				goto out;
+			}
+
+			s->unsaved = !mark_saved;
+		}
+
 		result = 0;
 
 		if (!mark_saved) { // this is false when importing parameters
@@ -949,18 +971,12 @@ int param_save_default()
 	const char *filename = param_get_default_file();
 
 	if (!filename) {
-		perf_begin(param_export_perf);
 		param_lock_writer();
+		perf_begin(param_export_perf);
 		res = flash_param_save(false, nullptr);
-		param_unlock_writer();
 		perf_end(param_export_perf);
+		param_unlock_writer();
 		return res;
-	}
-
-	int shutdown_lock_ret = px4_shutdown_lock();
-
-	if (shutdown_lock_ret) {
-		PX4_ERR("px4_shutdown_lock() failed (%i)", shutdown_lock_ret);
 	}
 
 	/* write parameters to temp file */
@@ -968,10 +984,6 @@ int param_save_default()
 
 	if (fd < 0) {
 		PX4_ERR("failed to open param file: %s", filename);
-
-		if (shutdown_lock_ret == 0) {
-			px4_shutdown_unlock();
-		}
 
 		return PX4_ERROR;
 	}
@@ -993,10 +1005,6 @@ int param_save_default()
 	}
 
 	PARAM_CLOSE(fd);
-
-	if (shutdown_lock_ret == 0) {
-		px4_shutdown_unlock();
-	}
 
 	return res;
 }

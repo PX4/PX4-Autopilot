@@ -79,7 +79,7 @@ public:
 		return _value;
 	}
 
-private:
+protected:
 	Type _slew_rate{}; ///< maximum rate of change for the value
 	Type _value{}; ///< state to keep last value of the slew rate
 };

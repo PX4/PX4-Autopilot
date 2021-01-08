@@ -61,6 +61,7 @@ set(msg_files
 	estimator_sensor_bias.msg
 	estimator_states.msg
 	estimator_status.msg
+	estimator_status_flags.msg
 	follow_target.msg
 	generator_status.msg
 	geofence_result.msg
@@ -78,6 +79,7 @@ set(msg_files
 	log_message.msg
 	logger_status.msg
 	manual_control_setpoint.msg
+	manual_control_switches.msg
 	mavlink_log.msg
 	mission.msg
 	mission_result.msg

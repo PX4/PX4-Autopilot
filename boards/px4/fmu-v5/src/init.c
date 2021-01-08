@@ -211,14 +211,16 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	VDD_5V_PERIPH_EN(true);
 	VDD_5V_HIPOWER_EN(true);
 	board_control_spi_sensors_power(true, 0xffff);
-	VDD_3V3_SPEKTRUM_POWER_EN(true);
+#ifdef SPEKTRUM_POWER_PASSIVE
+	// Turn power controls to passive
+	SPEKTRUM_POWER_PASSIVE();
+#endif
 	VDD_5V_RC_EN(true);
 	VDD_5V_WIFI_EN(true);
 
 	/* Need hrt running before using the ADC */
 
 	px4_platform_init();
-
 
 	if (OK == board_determine_hw_info()) {
 		syslog(LOG_INFO, "[boot] Rev 0x%1x : Ver 0x%1x %s\n", board_get_hw_revision(), board_get_hw_version(),
@@ -231,6 +233,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* configure SPI interfaces (after we determined the HW version) */
 
 	stm32_spiinitialize();
+
 
 	/* Does this board have CAN 2 or CAN 3 if not decouple the RX
 	 * from IP block Leave TX connected
@@ -288,6 +291,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #endif /* CONFIG_MMCSD */
+
+	/* Configure the HW based on the manifest */
+
+	px4_platform_configure();
 
 	return OK;
 }

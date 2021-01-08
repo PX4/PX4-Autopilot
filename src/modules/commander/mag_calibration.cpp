@@ -737,9 +737,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 							// FALLTHROUGH
 							case ROTATION_PITCH_180_YAW_270: // skip 27, same as 10 ROTATION_ROLL_180_YAW_90
-
-							// FALLTHROUGH
-							case ROTATION_ROLL_270_YAW_180:  // skip 41, same as 31 ROTATION_ROLL_90_PITCH_180
 								MSE[r] = FLT_MAX;
 								break;
 
@@ -906,16 +903,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		}
 
 		if (param_save) {
-			// reset the learned EKF mag in-flight bias offsets which have been learned for the previous
-			//  sensor calibration and will be invalidated by a new sensor calibration
-			for (int axis = 0; axis < 3; axis++) {
-				char axis_char = 'X' + axis;
-				char str[20] {};
-				sprintf(str, "EKF2_MAGBIAS_%c", axis_char);
-				float offset = 0.f;
-				param_set_no_notification(param_find(str), &offset);
-			}
-
 			param_notify_changes();
 		}
 

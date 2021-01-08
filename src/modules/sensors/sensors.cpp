@@ -178,8 +178,6 @@ private:
 
 	VehicleIMU      *_vehicle_imu_list[MAX_SENSOR_COUNT] {};
 
-	int _lockstep_component{-1};
-
 	/**
 	 * Update our local parameter cache.
 	 */
@@ -235,23 +233,7 @@ Sensors::Sensors(bool hil_enabled) :
 	_parameter_handles.air_tube_length = param_find("CAL_AIR_TUBELEN");
 	_parameter_handles.air_tube_diameter_mm = param_find("CAL_AIR_TUBED_MM");
 
-	param_find("BAT_V_DIV");
-	param_find("BAT_A_PER_V");
-
-	param_find("CAL_ACC0_ID");
-	param_find("CAL_GYRO0_ID");
-
-	param_find("SENS_BOARD_ROT");
-	param_find("SENS_BOARD_X_OFF");
-	param_find("SENS_BOARD_Y_OFF");
-	param_find("SENS_BOARD_Z_OFF");
-
 	param_find("SYS_FAC_CAL_MODE");
-	param_find("SYS_PARAM_VER");
-	param_find("SYS_AUTOSTART");
-	param_find("SYS_AUTOCONFIG");
-	param_find("TRIG_MODE");
-	param_find("UAVCAN_ENABLE");
 
 	// Parameters controlling the on-board sensor thermal calibrator
 	param_find("SYS_CAL_TDEL");
@@ -298,8 +280,6 @@ Sensors::~Sensors()
 	}
 
 	perf_free(_loop_perf);
-
-	px4_lockstep_unregister_component(_lockstep_component);
 }
 
 bool Sensors::init()
@@ -641,12 +621,6 @@ void Sensors::Run()
 		// check parameters for updates
 		parameter_update_poll();
 	}
-
-	if (_lockstep_component == -1) {
-		_lockstep_component = px4_lockstep_register_component();
-	}
-
-	px4_lockstep_progress(_lockstep_component);
 
 	perf_end(_loop_perf);
 }

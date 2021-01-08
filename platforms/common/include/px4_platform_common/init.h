@@ -35,6 +35,7 @@ __BEGIN_DECLS
 
 int px4_platform_init(void);
 int px4_platform_console_init(void);
+int px4_platform_configure(void);
 
 __END_DECLS
 

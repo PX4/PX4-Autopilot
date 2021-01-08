@@ -219,5 +219,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	dm_flash_sector_description_set(&dm_sector_map);
 #endif
 
+	/* Configure the HW based on the manifest */
+
+	px4_platform_configure();
+
 	return OK;
 }

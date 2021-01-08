@@ -320,6 +320,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		return ret;
 	}
 
+	/* Configure the HW based on the manifest */
+
+	px4_platform_configure();
 
 	return OK;
 }

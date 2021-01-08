@@ -83,23 +83,49 @@ void Magnetometer::set_external(bool external)
 	_external = external;
 }
 
-void Magnetometer::set_scale(const Vector3f &scale)
+bool Magnetometer::set_offset(const Vector3f &offset)
 {
-	_scale(0, 0) = scale(0);
-	_scale(1, 1) = scale(1);
-	_scale(2, 2) = scale(2);
+	if (Vector3f(_offset - offset).longerThan(0.001f)) {
+		_offset = offset;
+
+		_calibration_count++;
+		return true;
+	}
+
+	return false;
 }
 
-void Magnetometer::set_offdiagonal(const Vector3f &offdiagonal)
+bool Magnetometer::set_scale(const Vector3f &scale)
 {
-	_scale(0, 1) = offdiagonal(0);
-	_scale(1, 0) = offdiagonal(0);
+	if (Vector3f(_scale.diag() - scale).longerThan(0.001f)) {
+		_scale(0, 0) = scale(0);
+		_scale(1, 1) = scale(1);
+		_scale(2, 2) = scale(2);
 
-	_scale(0, 2) = offdiagonal(1);
-	_scale(2, 0) = offdiagonal(1);
+		_calibration_count++;
+		return true;
+	}
 
-	_scale(1, 2) = offdiagonal(2);
-	_scale(2, 1) = offdiagonal(2);
+	return false;
+}
+
+bool Magnetometer::set_offdiagonal(const Vector3f &offdiagonal)
+{
+	if (Vector3f(Vector3f{_scale(0, 1), _scale(0, 2), _scale(1, 2)} - offdiagonal).longerThan(0.001f)) {
+		_scale(0, 1) = offdiagonal(0);
+		_scale(1, 0) = offdiagonal(0);
+
+		_scale(0, 2) = offdiagonal(1);
+		_scale(2, 0) = offdiagonal(1);
+
+		_scale(1, 2) = offdiagonal(2);
+		_scale(2, 1) = offdiagonal(2);
+
+		_calibration_count++;
+		return true;
+	}
+
+	return false;
 }
 
 void Magnetometer::set_rotation(Rotation rotation)
@@ -162,42 +188,14 @@ void Magnetometer::ParametersUpdate()
 			_priority = new_priority;
 		}
 
-		bool calibration_changed = false;
-
 		// CAL_MAGx_OFF{X,Y,Z}
-		const Vector3f offset = GetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index);
-
-		if (Vector3f(_offset - offset).norm_squared() > 0.001f * 0.001f) {
-			calibration_changed = true;
-			_offset = offset;
-		}
+		set_offset(GetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index));
 
 		// CAL_MAGx_SCALE{X,Y,Z}
-		const Vector3f diag = GetCalibrationParamsVector3f(SensorString(), "SCALE", _calibration_index);
-
-		if (Vector3f(_scale.diag() - diag).norm_squared() > 0.001f * 0.001f) {
-			calibration_changed = true;
-		}
+		set_scale(GetCalibrationParamsVector3f(SensorString(), "SCALE", _calibration_index));
 
 		// CAL_MAGx_ODIAG{X,Y,Z}
-		const Vector3f offdiag = GetCalibrationParamsVector3f(SensorString(), "ODIAG", _calibration_index);
-
-		if (Vector3f(Vector3f{_scale(0, 1), _scale(0, 2), _scale(1, 2)} - offdiag).norm_squared() > 0.001f * 0.001f) {
-			calibration_changed = true;
-		}
-
-		if (calibration_changed) {
-
-			float scale[9] {
-				diag(0),    offdiag(0), offdiag(1),
-				offdiag(0),    diag(1), offdiag(2),
-				offdiag(1), offdiag(2),    diag(2)
-			};
-			_scale = Matrix3f{scale};
-
-			_calibration_count++;
-		}
-
+		set_offdiagonal(GetCalibrationParamsVector3f(SensorString(), "ODIAG", _calibration_index));
 
 		// CAL_MAGx_COMP{X,Y,Z}
 		_power_compensation = GetCalibrationParamsVector3f(SensorString(), "COMP", _calibration_index);
