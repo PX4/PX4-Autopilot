@@ -56,6 +56,8 @@
 static constexpr uint8_t EKF2_MAX_INSTANCES{9};
 static_assert(EKF2_MAX_INSTANCES <= ORB_MULTI_MAX_INSTANCES, "EKF2_MAX_INSTANCES must be <= ORB_MULTI_MAX_INSTANCES");
 
+using namespace time_literals;
+
 class EKF2Selector : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
@@ -68,7 +70,9 @@ public:
 	void PrintStatus();
 
 private:
-	static constexpr uint8_t INVALID_INSTANCE = UINT8_MAX;
+	static constexpr uint8_t INVALID_INSTANCE{UINT8_MAX};
+	static constexpr uint64_t FILTER_UPDATE_PERIOD{10_ms};
+
 	void Run() override;
 	void PublishVehicleAttitude(bool reset = false);
 	void PublishVehicleLocalPosition(bool reset = false);
@@ -96,7 +100,7 @@ private:
 		uORB::Subscription estimator_global_position_sub;
 		uORB::Subscription estimator_odometry_sub;
 
-		estimator_status_s estimator_status{};
+		estimator_status_s status{};
 
 		hrt_abstime time_last_selected{0};
 
@@ -104,6 +108,7 @@ private:
 		float relative_test_ratio{NAN};
 
 		bool healthy{false};
+		bool filter_fault{false};
 
 		const uint8_t instance;
 	};
@@ -146,6 +151,9 @@ private:
 
 	uint32_t _instance_changed_count{0};
 	hrt_abstime _last_instance_change{0};
+
+	hrt_abstime _last_status_publish{0};
+	bool _selector_status_publish{false};
 
 	// vehicle_attitude: reset counters
 	vehicle_attitude_s _attitude_last{};
