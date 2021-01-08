@@ -972,7 +972,7 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 			_time_acc_bias_check = _time_last_imu;
 			_fault_status.flags.bad_acc_bias = false;
 			_warning_events.flags.invalid_accel_bias_cov_reset = true;
-			ECL_WARN_TIMESTAMPED("invalid accel bias - covariance reset");
+			ECL_WARN("invalid accel bias - covariance reset");
 
 		} else if (force_symmetry) {
 			// ensure the covariance values are symmetrical

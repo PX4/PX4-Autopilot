@@ -337,7 +337,7 @@ void Ekf::controlExternalVisionFusion()
 		// Turn off EV fusion mode if no data has been received
 		stopEvFusion();
 		_warning_events.flags.vision_data_stopped = true;
-		ECL_WARN_TIMESTAMPED("vision data stopped");
+		ECL_WARN("vision data stopped");
 
 	}
 }
@@ -554,7 +554,7 @@ void Ekf::controlGpsFusion()
 				resetHorizontalPosition();
 			}
 			_warning_events.flags.gps_quality_poor = true;
-			ECL_WARN_TIMESTAMPED("GPS quality poor - stopping use");
+			ECL_WARN("GPS quality poor - stopping use");
 		}
 
 		// handle case where we are not currently using GPS, but need to align yaw angle using EKF-GSF before
@@ -662,7 +662,7 @@ void Ekf::controlGpsFusion()
 				resetHorizontalPosition();
 				_velpos_reset_request = false;
 				_warning_events.flags.gps_fusion_timout = true;
-				ECL_WARN_TIMESTAMPED("GPS fusion timeout - reset to GPS");
+				ECL_WARN("GPS fusion timeout - reset to GPS");
 
 				// Reset the timeout counters
 				_time_last_hor_pos_fuse = _time_last_imu;
@@ -723,13 +723,13 @@ void Ekf::controlGpsFusion()
 	} else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)10e6)) {
 		stopGpsFusion();
 		_warning_events.flags.gps_data_stopped = true;
-		ECL_WARN_TIMESTAMPED("GPS data stopped");
+		ECL_WARN("GPS data stopped");
 	}  else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)1e6) && isOtherSourceOfHorizontalAidingThan(_control_status.flags.gps)) {
 		// Handle the case where we are fusing another position source along GPS,
 		// stop waiting for GPS after 1 s of lost signal
 		stopGpsFusion();
 		_warning_events.flags.gps_data_stopped_using_alternate = true;
-		ECL_WARN_TIMESTAMPED("GPS data stopped, using only EV, OF or air data" );
+		ECL_WARN("GPS data stopped, using only EV, OF or air data" );
 	}
 }
 
@@ -1300,7 +1300,7 @@ void Ekf::controlFakePosFusion()
 
 				if (_time_last_fake_pos != 0) {
 					_warning_events.flags.stopping_navigation = true;
-					ECL_WARN_TIMESTAMPED("stopping navigation");
+					ECL_WARN("stopping navigation");
 				}
 
 			}
