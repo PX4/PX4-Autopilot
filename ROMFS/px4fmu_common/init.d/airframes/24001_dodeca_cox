@@ -42,7 +42,6 @@ then
 	param set PWM_RATE 400
 
 	param set RTL_DESCEND_ALT 10
-	param set RTL_LAND_DELAY 0
 	param set RTL_RETURN_ALT 30
 fi
 

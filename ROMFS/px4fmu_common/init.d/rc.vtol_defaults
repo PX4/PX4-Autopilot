@@ -33,7 +33,6 @@ then
 	param set PWM_AUX_RATE 50
 	param set PWM_RATE 400
 
-	param set RTL_LAND_DELAY 0
 	param set RTL_TYPE 1
 
 	param set WV_EN 1
