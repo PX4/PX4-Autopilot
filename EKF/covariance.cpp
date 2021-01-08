@@ -949,7 +949,8 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 		bool bad_acc_bias = (fabsf(down_dvel_bias) > dVel_bias_lim
 				     && ( (down_dvel_bias * _gps_vel_innov(2) < 0.0f && _control_status.flags.gps)
 				     ||   (down_dvel_bias * _ev_vel_innov(2) < 0.0f && _control_status.flags.ev_vel) )
-				     && down_dvel_bias * _gps_pos_innov(2) < 0.0f);
+				     && ( (down_dvel_bias * _gps_pos_innov(2) < 0.0f  && _control_status.flags.gps_hgt)
+				     ||   (down_dvel_bias * _baro_hgt_innov(2) < 0.0f  && _control_status.flags.baro_hgt) ) );
 
 		// record the pass/fail
 		if (!bad_acc_bias) {
