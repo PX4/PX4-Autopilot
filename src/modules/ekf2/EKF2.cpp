@@ -45,16 +45,16 @@ static px4::atomic<EKF2 *> _objects[EKF2_MAX_INSTANCES] {};
 static px4::atomic<EKF2Selector *> _ekf2_selector {nullptr};
 #endif // !CONSTRAINED_FLASH
 
-EKF2::EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool replay_mode):
+EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, config),
-	_replay_mode(replay_mode && instance < 0),
-	_multi_mode(instance >= 0),
-	_instance(math::constrain(instance, 0, EKF2_MAX_INSTANCES - 1)),
-	_attitude_pub(_multi_mode ? ORB_ID(estimator_attitude) : ORB_ID(vehicle_attitude)),
-	_local_position_pub(_multi_mode ? ORB_ID(estimator_local_position) : ORB_ID(vehicle_local_position)),
-	_global_position_pub(_multi_mode ? ORB_ID(estimator_global_position) : ORB_ID(vehicle_global_position)),
-	_odometry_pub(_multi_mode ? ORB_ID(estimator_odometry) : ORB_ID(vehicle_odometry)),
+	_replay_mode(replay_mode && !multi_mode),
+	_multi_mode(multi_mode),
+	_instance(multi_mode ? -1 : 0),
+	_attitude_pub(multi_mode ? ORB_ID(estimator_attitude) : ORB_ID(vehicle_attitude)),
+	_local_position_pub(multi_mode ? ORB_ID(estimator_local_position) : ORB_ID(vehicle_local_position)),
+	_global_position_pub(multi_mode ? ORB_ID(estimator_global_position) : ORB_ID(vehicle_global_position)),
+	_odometry_pub(multi_mode ? ORB_ID(estimator_odometry) : ORB_ID(vehicle_odometry)),
 	_params(_ekf.getParamHandle()),
 	_param_ekf2_min_obs_dt(_params->sensor_interval_min_ms),
 	_param_ekf2_mag_delay(_params->mag_delay_ms),
@@ -160,37 +160,54 @@ EKF2::EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool 
 	_param_ekf2_mag_check(_params->check_mag_strength),
 	_param_ekf2_gsf_tas_default(_params->EKFGSF_tas_default)
 {
-	if (_multi_mode) {
-		// advertise immediately to ensure consistent uORB instance numbering
-		_attitude_pub.advertise();
-		_local_position_pub.advertise();
-		_global_position_pub.advertise();
-		_odometry_pub.advertise();
-
-		_ekf2_timestamps_pub.advertise();
-		_ekf_gps_drift_pub.advertise();
-		_estimator_innovation_test_ratios_pub.advertise();
-		_estimator_innovation_variances_pub.advertise();
-		_estimator_innovations_pub.advertise();
-		_estimator_optical_flow_vel_pub.advertise();
-		_estimator_sensor_bias_pub.advertise();
-		_estimator_states_pub.advertise();
-		_estimator_status_pub.advertise();
-		_estimator_status_flags_pub.advertise();
-		_estimator_visual_odometry_aligned_pub.advertised();
-		_wind_pub.advertise();
-		_yaw_est_pub.advertise();
-
-
-		_vehicle_imu_sub.ChangeInstance(imu);
-		_magnetometer_sub.ChangeInstance(mag);
-	}
 }
 
 EKF2::~EKF2()
 {
 	perf_free(_ecl_ekf_update_perf);
 	perf_free(_ecl_ekf_update_full_perf);
+}
+
+bool EKF2::multi_init(int imu, int mag)
+{
+	// advertise immediately to ensure consistent uORB instance numbering
+	_attitude_pub.advertise();
+	_local_position_pub.advertise();
+	_global_position_pub.advertise();
+	_odometry_pub.advertise();
+
+	_ekf2_timestamps_pub.advertise();
+	_ekf_gps_drift_pub.advertise();
+	_estimator_innovation_test_ratios_pub.advertise();
+	_estimator_innovation_variances_pub.advertise();
+	_estimator_innovations_pub.advertise();
+	_estimator_optical_flow_vel_pub.advertise();
+	_estimator_sensor_bias_pub.advertise();
+	_estimator_states_pub.advertise();
+	_estimator_status_pub.advertise();
+	_estimator_status_flags_pub.advertise();
+	_estimator_visual_odometry_aligned_pub.advertised();
+	_wind_pub.advertise();
+	_yaw_est_pub.advertise();
+
+	_vehicle_imu_sub.ChangeInstance(imu);
+	_magnetometer_sub.ChangeInstance(mag);
+
+	const int status_instance = _estimator_states_pub.get_instance();
+
+	if ((status_instance >= 0)
+	    && (_attitude_pub.get_instance() == status_instance)
+	    && (_local_position_pub.get_instance() == status_instance)
+	    && (_global_position_pub.get_instance() == status_instance)) {
+
+		_instance = status_instance;
+		return true;
+	}
+
+	PX4_ERR("publication instance problem: %d att: %d lpos: %d gpos: %d", status_instance,
+		_attitude_pub.get_instance(), _local_position_pub.get_instance(), _global_position_pub.get_instance());
+
+	return false;
 }
 
 int EKF2::print_status()
@@ -1573,6 +1590,8 @@ int EKF2::task_spawn(int argc, char *argv[])
 		// allocate EKF2 instances until all found or arming
 		uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
 
+		bool ekf2_instance_created[4][4] {}; // IMUs * mags
+
 		while ((multi_instances_allocated < multi_instances)
 		       && (vehicle_status_sub.get().arming_state != vehicle_status_s::ARMING_STATE_ARMED)
 		       && (hrt_elapsed_time(&time_started) < 30_s)) {
@@ -1592,24 +1611,33 @@ int EKF2::task_spawn(int argc, char *argv[])
 					    && (vehicle_imu_sub.get().accel_device_id != 0)
 					    && (vehicle_imu_sub.get().gyro_device_id != 0)) {
 
-						const int instance = imu + mag * imu_instances;
+						if (!ekf2_instance_created[imu][mag]) {
+							EKF2 *ekf2_inst = new EKF2(true, px4::ins_instance_to_wq(imu), false);
 
-						if (_objects[instance].load() == nullptr) {
-							EKF2 *ekf2_inst = new EKF2(instance, px4::ins_instance_to_wq(imu), imu, mag, false);
+							if (ekf2_inst && ekf2_inst->multi_init(imu, mag)) {
+								int actual_instance = ekf2_inst->instance(); // match uORB instance numbering
 
-							if (ekf2_inst) {
-								PX4_INFO("starting instance %d, IMU:%d (%d), MAG:%d (%d)", instance,
-									 imu, vehicle_imu_sub.get().accel_device_id,
-									 mag, vehicle_mag_sub.get().device_id);
+								if ((actual_instance >= 0) && (_objects[actual_instance].load() == nullptr)) {
+									_objects[actual_instance].store(ekf2_inst);
+									ekf2_inst->ScheduleNow();
+									success = true;
+									multi_instances_allocated++;
+									ekf2_instance_created[imu][mag] = true;
 
-								_objects[instance].store(ekf2_inst);
-								ekf2_inst->ScheduleNow();
-								success = true;
-								multi_instances_allocated++;
-								_ekf2_selector.load()->ScheduleNow();
+									PX4_INFO("starting instance %d, IMU:%d (%d), MAG:%d (%d)", actual_instance,
+										 imu, vehicle_imu_sub.get().accel_device_id,
+										 mag, vehicle_mag_sub.get().device_id);
+
+									_ekf2_selector.load()->ScheduleNow();
+
+								} else {
+									PX4_ERR("instance numbering problem instance: %d", actual_instance);
+									delete ekf2_inst;
+									break;
+								}
 
 							} else {
-								PX4_ERR("%d - alloc failed", instance);
+								PX4_ERR("alloc and init failed imu: %d mag:%d", imu, mag);
 								px4_usleep(1000000);
 								break;
 							}
@@ -1633,10 +1661,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 	else {
 		// otherwise launch regular
-		int instance = -1;
-		int imu = 0;
-		int mag = 0;
-		EKF2 *ekf2_inst = new EKF2(instance, px4::wq_configurations::INS0, imu, mag, replay_mode);
+		EKF2 *ekf2_inst = new EKF2(false, px4::wq_configurations::INS0, replay_mode);
 
 		if (ekf2_inst) {
 			_objects[0].store(ekf2_inst);

@@ -96,7 +96,7 @@ class EKF2 final : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	EKF2() = delete;
-	EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool replay_mode);
+	EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode);
 	~EKF2() override;
 
 	/** @see ModuleBase */
@@ -117,6 +117,10 @@ public:
 	static void lock_module() { pthread_mutex_lock(&ekf2_module_mutex); }
 	static bool trylock_module() { return (pthread_mutex_trylock(&ekf2_module_mutex) == 0); }
 	static void unlock_module() { pthread_mutex_unlock(&ekf2_module_mutex); }
+
+	bool multi_init(int imu, int mag);
+
+	int instance() const { return _instance; }
 
 private:
 	void Run() override;
@@ -158,7 +162,7 @@ private:
 
 	const bool _replay_mode{false};			///< true when we use replay data from a log
 	const bool _multi_mode;
-	const int _instance;
+	int _instance{0};
 
 	px4::atomic_bool _task_should_exit{false};
 
