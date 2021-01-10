@@ -51,6 +51,7 @@
 #include <pthread.h>
 #include <sys/socket.h>
 #include <termios.h>
+#include <arpa/inet.h>
 
 #include <limits>
 
@@ -672,6 +673,10 @@ void Simulator::run()
 	_myaddr.sin_family = AF_INET;
 	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	_myaddr.sin_port = htons(_port);
+
+	if (_tcp_remote_ipaddr != nullptr) {
+		_myaddr.sin_addr.s_addr = inet_addr(_tcp_remote_ipaddr);
+	}
 
 	if (_ip == InternetProtocol::UDP) {
 
