@@ -111,7 +111,7 @@ private:
 	int		_vehicle_attitude_sub{-1};
 	int		_sensor_combined_sub{-1};
 
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 500_ms};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	manual_control_setpoint_s		_manual_control_setpoint{};			    /**< r/c channel data */
 	position_setpoint_triplet_s		_pos_sp_triplet{};		/**< triplet of mission items */

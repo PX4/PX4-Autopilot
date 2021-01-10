@@ -90,7 +90,7 @@ private:
 	volatile bool		_should_run{true};
 	bool			_leds_enabled{true};
 
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 500_ms};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	LedController		_led_controller;
 

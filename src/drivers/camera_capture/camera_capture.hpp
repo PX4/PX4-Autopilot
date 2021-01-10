@@ -38,7 +38,6 @@
 
 #pragma once
 
-#include <drivers/device/ringbuffer.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_input_capture.h>
 #include <drivers/drv_pwm_output.h>
@@ -114,8 +113,6 @@ private:
 		uint32_t edge_state;
 		uint32_t overflow;
 	} _trigger{};
-
-	ringbuffer::RingBuffer	*_trig_buffer{nullptr};
 
 	bool			_capture_enabled{false};
 	bool			_gpio_capture{false};

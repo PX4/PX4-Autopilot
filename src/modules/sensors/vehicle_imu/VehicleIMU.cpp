@@ -38,7 +38,6 @@
 #include <float.h>
 
 using namespace matrix;
-using namespace time_literals;
 
 using math::constrain;
 
@@ -111,10 +110,10 @@ void VehicleIMU::Stop()
 void VehicleIMU::ParametersUpdate(bool force)
 {
 	// Check if parameters have changed
-	if (_params_sub.updated() || force) {
+	if (_parameter_update_sub.updated() || force) {
 		// clear update
 		parameter_update_s param_update;
-		_params_sub.copy(&param_update);
+		_parameter_update_sub.copy(&param_update);
 
 		const auto imu_integ_rate_prev = _param_imu_integ_rate.get();
 
@@ -226,7 +225,7 @@ void VehicleIMU::Run()
 			if (!_intervals_configured && UpdateIntervalAverage(_gyro_interval, gyro.timestamp_sample)) {
 				update_integrator_config = true;
 				publish_status = true;
-				_status.gyro_rate_hz = roundf(1e6f / _gyro_interval.update_interval);
+				_status.gyro_rate_hz = 1e6f / _gyro_interval.update_interval;
 			}
 		}
 
@@ -272,7 +271,7 @@ void VehicleIMU::Run()
 			if (!_intervals_configured && UpdateIntervalAverage(_accel_interval, accel.timestamp_sample)) {
 				update_integrator_config = true;
 				publish_status = true;
-				_status.accel_rate_hz = roundf(1e6f / _accel_interval.update_interval);
+				_status.accel_rate_hz = 1e6f / _accel_interval.update_interval;
 			}
 		}
 

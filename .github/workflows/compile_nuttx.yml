@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-nuttx-focal:2020-09-14
+    container: px4io/px4-dev-nuttx-focal:2020-11-18
     strategy:
       matrix:
         config: [
@@ -32,6 +32,7 @@ jobs:
           intel_aerofc-v1_default,
           modalai_fc-v1_default,
           mro_ctrl-zero-f7_default,
+          mro_pixracerpro_default,
           mro_x21-777_default,
           mro_x21_default,
           nxp_fmuk66-v3_default,

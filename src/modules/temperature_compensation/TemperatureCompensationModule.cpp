@@ -41,7 +41,6 @@
 #include <systemlib/mavlink_log.h>
 
 using namespace temperature_compensation;
-using namespace time_literals;
 
 TemperatureCompensationModule::TemperatureCompensationModule() :
 	ModuleParams(nullptr),
@@ -233,10 +232,10 @@ void TemperatureCompensationModule::Run()
 	}
 
 	// Check if any parameter has changed
-	if (_params_sub.updated()) {
+	if (_parameter_update_sub.updated()) {
 		// Read from param to clear updated flag
 		parameter_update_s update;
-		_params_sub.copy(&update);
+		_parameter_update_sub.copy(&update);
 
 		parameters_update();
 	}
@@ -373,7 +372,7 @@ int TemperatureCompensationModule::print_usage(const char *reason)
 		R"DESCR_STR(
 ### Description
 The temperature compensation module allows all of the gyro(s), accel(s), and baro(s) in the system to be temperature
-compensated. The module monitors the data coming from the sensors and updates the associated sensor_thermal_cal topic
+compensated. The module monitors the data coming from the sensors and updates the associated sensor_correction topic
 whenever a change in temperature is detected. The module can also be configured to perform the coeffecient calculation
 routine at next boot, which allows the thermal calibration coeffecients to be calculated while the vehicle undergoes
 a temperature cycle.
@@ -381,7 +380,7 @@ a temperature cycle.
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("temperature_compensation", "system");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the module, which monitors the sensors and updates the sensor_thermal_cal topic");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the module, which monitors the sensors and updates the sensor_correction topic");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("calibrate", "Run temperature calibration process");
 	PRINT_MODULE_USAGE_PARAM_FLAG('g', "calibrate the gyro", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('a', "calibrate the accel", true);

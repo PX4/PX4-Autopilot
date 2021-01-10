@@ -15,6 +15,7 @@ px4_add_board(
 		GPS1:/dev/ttyS0
 		TEL1:/dev/ttyS1
 		TEL2:/dev/ttyS2
+		TEL3:/dev/ttyS4
 		TEL4:/dev/ttyS3
 	DRIVERS
 		adc/board_adc
@@ -64,6 +65,7 @@ px4_add_board(
 		dataman
 		ekf2
 		events
+		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
 		land_detector
@@ -92,6 +94,7 @@ px4_add_board(
 		hardfault_log
 		i2cdetect
 		led_control
+		mft
 		mixer
 		motor_ramp
 		motor_test

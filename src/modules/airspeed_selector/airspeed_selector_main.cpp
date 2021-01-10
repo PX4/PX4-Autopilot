@@ -106,9 +106,10 @@ private:
 	uORB::PublicationMulti<wind_estimate_s> _wind_est_pub[MAX_NUM_AIRSPEED_SENSORS + 1] {{ORB_ID(wind_estimate)}, {ORB_ID(wind_estimate)}, {ORB_ID(wind_estimate)}, {ORB_ID(wind_estimate)}}; /**< wind estimate topic (for each airspeed validator + purely sideslip fusion) */
 	orb_advert_t 	_mavlink_log_pub {nullptr}; 						/**< mavlink log topic*/
 
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};
-	uORB::Subscription _param_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
@@ -283,7 +284,7 @@ AirspeedModule::Run()
 
 	parameter_update_s update;
 
-	if (_param_sub.update(&update)) {
+	if (_parameter_update_sub.update(&update)) {
 		update_params();
 	}
 
@@ -463,7 +464,7 @@ void AirspeedModule::update_wind_estimator_sideslip()
 	/* update wind and airspeed estimator */
 	_wind_estimator_sideslip.update(_time_now_usec);
 
-	if (_vehicle_local_position_valid && att_valid) {
+	if (_vehicle_local_position_valid && att_valid && !_vtol_vehicle_status.vtol_in_rw_mode) {
 		Vector3f vI(_vehicle_local_position.vx, _vehicle_local_position.vy, _vehicle_local_position.vz);
 		Quatf q(_vehicle_attitude.q);
 
@@ -486,6 +487,7 @@ void AirspeedModule::update_wind_estimator_sideslip()
 	_wind_estimate_sideslip.beta_innov = _wind_estimator_sideslip.get_beta_innov();
 	_wind_estimate_sideslip.beta_innov_var = _wind_estimator_sideslip.get_beta_innov_var();
 	_wind_estimate_sideslip.tas_scale = _wind_estimator_sideslip.get_tas_scale();
+	_wind_estimate_sideslip.source = wind_estimate_s::SOURCE_AS_BETA_ONLY;
 }
 
 void AirspeedModule::update_ground_minus_wind_airspeed()
@@ -593,6 +595,17 @@ void AirspeedModule::select_airspeed_and_publish()
 	/* publish the wind estimator states from all airspeed validators */
 	for (int i = 0; i < _number_of_airspeed_sensors; i++) {
 		wind_estimate_s wind_est = _airspeed_validator[i].get_wind_estimator_states(_time_now_usec);
+
+		if (i == 0) {
+			wind_est.source = wind_estimate_s::SOURCE_AS_SENSOR_1;
+
+		} else if (i == 1) {
+			wind_est.source = wind_estimate_s::SOURCE_AS_SENSOR_2;
+
+		} else {
+			wind_est.source = wind_estimate_s::SOURCE_AS_SENSOR_3;
+		}
+
 		_wind_est_pub[i + 1].publish(wind_est);
 	}
 

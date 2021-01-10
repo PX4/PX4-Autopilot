@@ -87,10 +87,6 @@ public:
 	UUVAttitudeControl();
 	~UUVAttitudeControl();
 
-	UUVAttitudeControl(const UUVAttitudeControl &) = delete;
-	UUVAttitudeControl operator=(const UUVAttitudeControl &other) = delete;
-
-
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
 
@@ -104,7 +100,7 @@ public:
 private:
 	uORB::Publication<actuator_controls_s> _actuator_controls_pub{ORB_ID(actuator_controls_0)};
 
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 500_ms};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};	/**< vehicle attitude setpoint */
 	uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)}; /**< vehicle bodyrates setpoint subscriber */
@@ -131,6 +127,7 @@ private:
 		(ParamFloat<px4::params::UUV_YAW_D>) _param_yaw_d,
 		// control/input modes
 		(ParamInt<px4::params::UUV_INPUT_MODE>) _param_input_mode,
+		(ParamInt<px4::params::UUV_SKIP_CTRL>) _param_skip_ctrl,
 		// direct access to inputs
 		(ParamFloat<px4::params::UUV_DIRCT_ROLL>) _param_direct_roll,
 		(ParamFloat<px4::params::UUV_DIRCT_PITCH>) _param_direct_pitch,

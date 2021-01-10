@@ -53,6 +53,8 @@
 #include <uORB/topics/vehicle_angular_acceleration.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 
+using namespace time_literals;
+
 namespace sensors
 {
 
@@ -70,7 +72,7 @@ public:
 private:
 	void Run() override;
 
-	void CheckFilters();
+	void CheckAndUpdateFilters();
 	void ParametersUpdate(bool force = false);
 	void SensorBiasUpdate(bool force = false);
 	bool SensorSelectionUpdate(bool force = false);
@@ -82,40 +84,30 @@ private:
 
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};
-	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
+
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_selection_sub{this, ORB_ID(sensor_selection)};
 	uORB::SubscriptionCallbackWorkItem _sensor_sub{this, ORB_ID(sensor_gyro)};
 
 	calibration::Gyroscope _calibration{};
 
-	matrix::Vector3f _bias{0.f, 0.f, 0.f};
+	matrix::Vector3f _bias{};
 
-	matrix::Vector3f _angular_acceleration_prev{0.f, 0.f, 0.f};
-	matrix::Vector3f _angular_velocity_prev{0.f, 0.f, 0.f};
+	matrix::Vector3f _angular_acceleration_prev{};
+	matrix::Vector3f _angular_velocity_prev{};
 	hrt_abstime _timestamp_sample_prev{0};
 
 	hrt_abstime _last_publish{0};
-	static constexpr const float kInitialRateHz{1000.0f}; /**< sensor update rate used for initialization */
-	float _update_rate_hz{kInitialRateHz}; /**< current rate-controller loop update rate in [Hz] */
-
-	uint8_t _required_sample_updates{0}; /**< number or sensor publications required for configured rate */
+	static constexpr const float kInitialRateHz{1000.f}; /**< sensor update rate used for initialization */
+	float _filter_sample_rate{kInitialRateHz};
 
 	// angular velocity filters
-	math::LowPassFilter2pVector3f _lp_filter_velocity{kInitialRateHz, 30.0f};
+	math::LowPassFilter2pVector3f _lp_filter_velocity{kInitialRateHz, 30.f};
 	math::NotchFilter<matrix::Vector3f> _notch_filter_velocity{};
 
 	// angular acceleration filter
-	math::LowPassFilter2pVector3f _lp_filter_acceleration{kInitialRateHz, 30.0f};
-
-	float _filter_sample_rate{kInitialRateHz};
-
-	uint32_t _selected_sensor_device_id{0};
-	uint8_t _selected_sensor_sub_index{0};
-
-	hrt_abstime _timestamp_sample_last{0};
-	float _interval_sum{0.f};
-	float _interval_count{0.f};
+	math::LowPassFilter2pVector3f _lp_filter_acceleration{kInitialRateHz, 30.f};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,

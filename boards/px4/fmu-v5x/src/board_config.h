@@ -116,8 +116,6 @@
 #define GPIO_I2C4_DRDY1_BMP388      /* PG5  */  (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTG|GPIO_PIN5)
 #define GPIO_PG6                    /* PG6  */  (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN6)
 
-#define PX4_I2C_BUS_MTD 4
-
 /*
  * ADC channels
  *
@@ -431,6 +429,9 @@
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
 #define BOARD_NUM_IO_TIMERS 5
+
+
+#define PX4_I2C_BUS_MTD      4,5
 
 __BEGIN_DECLS
 

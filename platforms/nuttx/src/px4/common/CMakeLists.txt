@@ -45,6 +45,9 @@ if(NOT PX4_BOARD MATCHES "px4_io")
 		tasks.cpp
 		px4_nuttx_impl.cpp
 		px4_init.cpp
+		px4_manifest.cpp
+		px4_mtd.cpp
+		px4_24xxxx_mtd.c
 	)
 	target_link_libraries(px4_layer
 		PRIVATE

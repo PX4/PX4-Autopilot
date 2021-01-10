@@ -47,7 +47,7 @@ TEST_CASE("Land on GPS lost during mission (baro height mode)", "[multicopter][v
 	tester.prepare_square_mission(mission_options);
 	tester.arm();
 	tester.execute_mission_and_lose_gps();
-	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(90);
+	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(300);
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
@@ -64,7 +64,7 @@ TEST_CASE("Land on GPS lost during mission (GPS height mode)", "[multicopter][vt
 	tester.prepare_square_mission(mission_options);
 	tester.arm();
 	tester.execute_mission_and_lose_gps();
-	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(90);
+	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(180);
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 

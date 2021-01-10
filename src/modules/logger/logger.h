@@ -354,7 +354,7 @@ private:
 	uORB::Subscription				_vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription				_vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::SubscriptionInterval			_log_message_sub{ORB_ID(log_message), 20};
-	uORB::SubscriptionInterval 			_parameter_update_sub{ORB_ID(parameter_update), 500_ms};
+	uORB::SubscriptionInterval			_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SDLOG_UTC_OFFSET>) _param_sdlog_utc_offset,

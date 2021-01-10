@@ -53,10 +53,10 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_odometry.h>
 
-using namespace time_literals;
-
 static constexpr uint8_t EKF2_MAX_INSTANCES{9};
 static_assert(EKF2_MAX_INSTANCES <= ORB_MULTI_MAX_INSTANCES, "EKF2_MAX_INSTANCES must be <= ORB_MULTI_MAX_INSTANCES");
+
+using namespace time_literals;
 
 class EKF2Selector : public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -70,12 +70,14 @@ public:
 	void PrintStatus();
 
 private:
-	static constexpr uint8_t INVALID_INSTANCE = UINT8_MAX;
+	static constexpr uint8_t INVALID_INSTANCE{UINT8_MAX};
+	static constexpr uint64_t FILTER_UPDATE_PERIOD{10_ms};
+
 	void Run() override;
 	void PublishVehicleAttitude(bool reset = false);
 	void PublishVehicleLocalPosition(bool reset = false);
 	void PublishVehicleGlobalPosition(bool reset = false);
-	void SelectInstance(uint8_t instance);
+	bool SelectInstance(uint8_t instance);
 
 	// Update the error scores for all available instances
 	bool UpdateErrorScores();
@@ -98,14 +100,15 @@ private:
 		uORB::Subscription estimator_global_position_sub;
 		uORB::Subscription estimator_odometry_sub;
 
-		estimator_status_s estimator_status{};
+		estimator_status_s status{};
 
 		hrt_abstime time_last_selected{0};
 
-		float combined_test_ratio{0.f};
-		float relative_test_ratio{0.f};
+		float combined_test_ratio{NAN};
+		float relative_test_ratio{NAN};
 
 		bool healthy{false};
+		bool filter_fault{false};
 
 		const uint8_t instance;
 	};
@@ -149,6 +152,9 @@ private:
 	uint32_t _instance_changed_count{0};
 	hrt_abstime _last_instance_change{0};
 
+	hrt_abstime _last_status_publish{0};
+	bool _selector_status_publish{false};
+
 	// vehicle_attitude: reset counters
 	vehicle_attitude_s _attitude_last{};
 	matrix::Quatf _delta_q_reset{};
@@ -175,9 +181,7 @@ private:
 	uint8_t _lat_lon_reset_counter{0};
 	uint8_t _alt_reset_counter{0};
 
-	int _lockstep_component{-1};
-
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 500_ms};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _sensors_status_imu{ORB_ID(sensors_status_imu)};
 
 	// Publications

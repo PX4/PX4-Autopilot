@@ -34,6 +34,7 @@
 #include "logged_topics.h"
 #include "messages.h"
 
+#include <parameters/param.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/px4_config.h>
 #include <uORB/topics/uORBTopics.hpp>
@@ -61,6 +62,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("hover_thrust_estimate", 100);
 	add_topic("input_rc", 500);
 	add_topic("manual_control_setpoint", 200);
+	add_topic("manual_control_switches");
 	add_topic("mission");
 	add_topic("mission_result");
 	add_topic("navigator_mission_item");
@@ -82,6 +84,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("tecs_status", 200);
 	add_topic("test_motor", 500);
 	add_topic("trajectory_setpoint", 200);
+	add_topic("transponder_report");
 	add_topic("vehicle_acceleration", 50);
 	add_topic("vehicle_air_data", 200);
 	add_topic("vehicle_angular_velocity", 20);
@@ -111,7 +114,7 @@ void LoggedTopics::add_default_topics()
 
 	// EKF multi topics (currently max 9 estimators)
 	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 4;
-	add_topic("estimator_selector_status", 200);
+	add_topic("estimator_selector_status");
 	add_topic_multi("ekf_gps_drift", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_attitude", 500, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_global_position", 1000, MAX_ESTIMATOR_INSTANCES);
@@ -120,9 +123,10 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("estimator_innovations", 500, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_optical_flow_vel", 200, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_local_position", 500, MAX_ESTIMATOR_INSTANCES);
-	add_topic_multi("estimator_sensor_bias", 1000, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_sensor_bias", 0, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_states", 1000, MAX_ESTIMATOR_INSTANCES);
-	add_topic_multi("estimator_status", 500, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_status", 200, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_status_flags", 0, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_visual_odometry_aligned", 200, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("yaw_estimator_status", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("wind_estimate", 1000); // published by both ekf2 and airspeed_selector
@@ -139,6 +143,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("sensor_mag", 1000, 4);
 	add_topic_multi("vehicle_imu", 500, 4);
 	add_topic_multi("vehicle_imu_status", 1000, 4);
+	add_topic_multi("vehicle_magnetometer", 500, 4);
 
 #ifdef CONFIG_ARCH_BOARD_PX4_SITL
 	add_topic("actuator_controls_virtual_fw");
@@ -152,6 +157,13 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_global_position_groundtruth", 100);
 	add_topic("vehicle_local_position_groundtruth", 100);
 #endif /* CONFIG_ARCH_BOARD_PX4_SITL */
+
+	int32_t gps_dump_comm = 0;
+	param_get(param_find("GPS_DUMP_COMM"), &gps_dump_comm);
+
+	if (gps_dump_comm == 1) {
+		add_topic("gps_dump");
+	}
 }
 
 void LoggedTopics::add_high_rate_topics()
@@ -175,6 +187,7 @@ void LoggedTopics::add_debug_topics()
 	add_topic("debug_key_value");
 	add_topic("debug_value");
 	add_topic("debug_vect");
+	add_topic_multi("satellite_info", 1000, 2);
 }
 
 void LoggedTopics::add_estimator_replay_topics()

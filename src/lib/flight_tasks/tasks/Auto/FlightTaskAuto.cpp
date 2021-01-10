@@ -329,14 +329,14 @@ void FlightTaskAuto::_set_heading_from_mode()
 		break;
 
 	case 1: // Heading points towards home.
-		if (_sub_home_position.get().valid_hpos) {
+		if (_sub_home_position.get().valid_lpos) {
 			v = Vector2f(&_sub_home_position.get().x) - Vector2f(_position);
 		}
 
 		break;
 
 	case 2: // Heading point away from home.
-		if (_sub_home_position.get().valid_hpos) {
+		if (_sub_home_position.get().valid_lpos) {
 			v = Vector2f(_position) - Vector2f(&_sub_home_position.get().x);
 		}
 
@@ -451,11 +451,11 @@ State FlightTaskAuto::_getCurrentState()
 		// Target is behind.
 		return_state = State::target_behind;
 
-	} else if (u_prev_to_target * prev_to_pos < 0.0f && prev_to_pos.length() > _mc_cruise_speed) {
+	} else if (u_prev_to_target * prev_to_pos < 0.0f && prev_to_pos.length() > _target_acceptance_radius) {
 		// Current position is more than cruise speed in front of previous setpoint.
 		return_state = State::previous_infront;
 
-	} else if (Vector2f(Vector2f(_position) - _closest_pt).length() > _mc_cruise_speed) {
+	} else if (Vector2f(Vector2f(_position) - _closest_pt).length() > _target_acceptance_radius) {
 		// Vehicle is more than cruise speed off track.
 		return_state = State::offtrack;
 

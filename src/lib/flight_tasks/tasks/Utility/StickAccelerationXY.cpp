@@ -121,7 +121,9 @@ Vector2f StickAccelerationXY::calculateDrag(Vector2f drag_coefficient, const flo
 
 	drag_coefficient *= _brake_boost_filter.getState();
 
-	return drag_coefficient.emult(vel_sp);
+	// increase drag with sqareroot function when velocity is lower than 1m/s
+	const Vector2f velocity_with_sqrt_boost = vel_sp.unit_or_zero() * math::sqrt_linear(vel_sp.norm());
+	return drag_coefficient.emult(velocity_with_sqrt_boost);
 }
 
 void StickAccelerationXY::applyTiltLimit(Vector2f &acceleration)
@@ -141,8 +143,6 @@ void StickAccelerationXY::lockPosition(const Vector2f &vel_sp, const Vector3f &p
 		if (!PX4_ISFINITE(pos_sp(0))) {
 			pos_sp = Vector2f(pos);
 		}
-
-		pos_sp += vel_sp * dt;
 
 	} else {
 		pos_sp.setNaN();
