@@ -50,6 +50,7 @@
 
 #include <lib/ecl/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
+#include <lib/systemlib/mavlink_log.h>
 #include <lib/version/version.h>
 #include <uORB/Publication.hpp>
 
@@ -354,18 +355,6 @@ Mavlink::get_instance_for_network_port(unsigned long port)
 	return nullptr;
 }
 #endif // MAVLINK_UDP
-
-bool
-Mavlink::is_connected()
-{
-	for (auto &hb : _tstatus.heartbeats) {
-		if ((hb.type == telemetry_heartbeat_s::TYPE_GCS) && (hrt_elapsed_time(&hb.timestamp) < 3_s)) {
-			return true;
-		}
-	}
-
-	return false;
-}
 
 int
 Mavlink::destroy_all_instances()
@@ -722,10 +711,10 @@ Mavlink::set_hil_enabled(bool hil_enabled)
 		ret = configure_stream("HIL_ACTUATOR_CONTROLS", 200.0f);
 
 		if (_param_sys_hitl.get() == 2) {		// Simulation in Hardware enabled ?
-			configure_stream("GROUND_TRUTH", 25.0f); 	// HIL_STATE_QUATERNION to display the SIH
+			configure_stream("HIL_STATE_QUATERNION", 25.0f); // ground truth to display the SIH
 
 		} else {
-			configure_stream("GROUND_TRUTH", 0.0f);
+			configure_stream("HIL_STATE_QUATERNION", 0.0f);
 		}
 	}
 
@@ -734,7 +723,7 @@ Mavlink::set_hil_enabled(bool hil_enabled)
 		_hil_enabled = false;
 		ret = configure_stream("HIL_ACTUATOR_CONTROLS", 0.0f);
 
-		configure_stream("GROUND_TRUTH", 0.0f);
+		configure_stream("HIL_STATE_QUATERNION", 0.0f);
 	}
 
 	return ret;
@@ -1583,9 +1572,6 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("BATTERY_STATUS", 0.5f);
 		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
 		configure_stream_local("COLLISION", unlimited_rate);
-		configure_stream_local("DEBUG", 1.0f);
-		configure_stream_local("DEBUG_FLOAT_ARRAY", 1.0f);
-		configure_stream_local("DEBUG_VECT", 1.0f);
 		configure_stream_local("DISTANCE_SENSOR", 0.5f);
 		configure_stream_local("ESC_INFO", 1.0f);
 		configure_stream_local("ESC_STATUS", 1.0f);
@@ -1594,9 +1580,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("GLOBAL_POSITION_INT", 5.0f);
 		configure_stream_local("GPS2_RAW", 1.0f);
 		configure_stream_local("GPS_RAW_INT", 1.0f);
+		configure_stream_local("GPS_STATUS", 1.0f);
 		configure_stream_local("HOME_POSITION", 0.5f);
 		configure_stream_local("LOCAL_POSITION_NED", 1.0f);
-		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.0f);
 		configure_stream_local("OBSTACLE_DISTANCE", 1.0f);
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 2.0f);
@@ -1611,6 +1597,14 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("VFR_HUD", 4.0f);
 		configure_stream_local("VIBRATION", 0.1f);
 		configure_stream_local("WIND_COV", 0.5f);
+
+#if !defined(CONSTRAINED_FLASH)
+		configure_stream_local("DEBUG", 1.0f);
+		configure_stream_local("DEBUG_FLOAT_ARRAY", 1.0f);
+		configure_stream_local("DEBUG_VECT", 1.0f);
+		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
+#endif // !CONSTRAINED_FLASH
+
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
@@ -1636,16 +1630,13 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("CAMERA_CAPTURE", 2.0f);
 		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
 		configure_stream_local("COLLISION", unlimited_rate);
-		configure_stream_local("DEBUG", 10.0f);
-		configure_stream_local("DEBUG_FLOAT_ARRAY", 10.0f);
-		configure_stream_local("DEBUG_VECT", 10.0f);
 		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
 		configure_stream_local("EXTENDED_SYS_STATE", 5.0f);
 		configure_stream_local("GLOBAL_POSITION_INT", 50.0f);
 		configure_stream_local("GPS2_RAW", unlimited_rate);
 		configure_stream_local("GPS_RAW_INT", unlimited_rate);
+		configure_stream_local("GPS_STATUS", 1.0f);
 		configure_stream_local("HOME_POSITION", 0.5f);
-		configure_stream_local("NAMED_VALUE_FLOAT", 10.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 10.0f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 10.0f);
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
@@ -1662,6 +1653,14 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("VFR_HUD", 10.0f);
 		configure_stream_local("VIBRATION", 0.5f);
 		configure_stream_local("WIND_COV", 10.0f);
+
+#if !defined(CONSTRAINED_FLASH)
+		configure_stream_local("DEBUG", 10.0f);
+		configure_stream_local("DEBUG_FLOAT_ARRAY", 10.0f);
+		configure_stream_local("DEBUG_VECT", 10.0f);
+		configure_stream_local("NAMED_VALUE_FLOAT", 10.0f);
+#endif // !CONSTRAINED_FLASH
+
 		break;
 
 	case MAVLINK_MODE_EXTVISION:
@@ -1685,16 +1684,12 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("BATTERY_STATUS", 0.5f);
 		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
 		configure_stream_local("COLLISION", unlimited_rate);
-		configure_stream_local("DEBUG", 1.0f);
-		configure_stream_local("DEBUG_FLOAT_ARRAY", 1.0f);
-		configure_stream_local("DEBUG_VECT", 1.0f);
 		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
 		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
 		configure_stream_local("GLOBAL_POSITION_INT", 5.0f);
 		configure_stream_local("GPS2_RAW", 1.0f);
 		configure_stream_local("GPS_RAW_INT", 1.0f);
 		configure_stream_local("HOME_POSITION", 0.5f);
-		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.5f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 1.0f);
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
@@ -1709,8 +1704,15 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("VFR_HUD", 4.0f);
 		configure_stream_local("VIBRATION", 0.5f);
 		configure_stream_local("WIND_COV", 1.0f);
-		break;
 
+#if !defined(CONSTRAINED_FLASH)
+		configure_stream_local("DEBUG", 1.0f);
+		configure_stream_local("DEBUG_FLOAT_ARRAY", 1.0f);
+		configure_stream_local("DEBUG_VECT", 1.0f);
+		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
+#endif // !CONSTRAINED_FLASH
+
+		break;
 
 	case MAVLINK_MODE_OSD:
 		configure_stream_local("ALTITUDE", 10.0f);
@@ -1756,9 +1758,6 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("BATTERY_STATUS", 0.5f);
 		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
 		configure_stream_local("COLLISION", unlimited_rate);
-		configure_stream_local("DEBUG", 50.0f);
-		configure_stream_local("DEBUG_FLOAT_ARRAY", 50.0f);
-		configure_stream_local("DEBUG_VECT", 50.0f);
 		configure_stream_local("ESC_INFO", 10.0f);
 		configure_stream_local("ESC_STATUS", 10.0f);
 		configure_stream_local("ESTIMATOR_STATUS", 5.0f);
@@ -1766,10 +1765,10 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("GLOBAL_POSITION_INT", 10.0f);
 		configure_stream_local("GPS2_RAW", unlimited_rate);
 		configure_stream_local("GPS_RAW_INT", unlimited_rate);
+		configure_stream_local("GPS_STATUS", 1.0f);
 		configure_stream_local("HIGHRES_IMU", 50.0f);
 		configure_stream_local("HOME_POSITION", 0.5f);
 		configure_stream_local("MANUAL_CONTROL", 5.0f);
-		configure_stream_local("NAMED_VALUE_FLOAT", 50.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 10.0f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 10.0f);
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
@@ -1788,6 +1787,14 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("VFR_HUD", 20.0f);
 		configure_stream_local("VIBRATION", 2.5f);
 		configure_stream_local("WIND_COV", 10.0f);
+
+#if !defined(CONSTRAINED_FLASH)
+		configure_stream_local("DEBUG", 50.0f);
+		configure_stream_local("DEBUG_FLOAT_ARRAY", 50.0f);
+		configure_stream_local("DEBUG_VECT", 50.0f);
+		configure_stream_local("NAMED_VALUE_FLOAT", 50.0f);
+#endif // !CONSTRAINED_FLASH
+
 		break;
 
 	case MAVLINK_MODE_IRIDIUM:
@@ -1831,16 +1838,9 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_interface_name = nullptr;
 
-#ifdef __PX4_NUTTX
-	/* the NuttX optarg handler does not
-	 * ignore argv[0] like the POSIX handler
-	 * does, nor does it deal with non-flag
-	 * verbs well. So we remove the application
-	 * name and the verb.
-	 */
+	// We don't care about the name and verb at this point.
 	argc -= 2;
 	argv += 2;
-#endif
 
 	/* don't exit from getopt loop to leave getopt global variables in consistent state,
 	 * set error flag instead */
@@ -2120,7 +2120,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* initialize send mutex */
 	pthread_mutex_init(&_send_mutex, nullptr);
-	pthread_mutex_init(&_telemetry_status_mutex, nullptr);
 
 	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
 	if (_forwarding_on) {
@@ -2140,13 +2139,14 @@ Mavlink::task_main(int argc, char *argv[])
 	uORB::Subscription parameter_update_sub{ORB_ID(parameter_update)};
 
 	uORB::Subscription cmd_sub{ORB_ID(vehicle_command)};
+	// ensure topic exists, otherwise we might lose first queued commands (leading to printf error's below)
+	orb_advertise_queue(ORB_ID(vehicle_command), nullptr, vehicle_command_s::ORB_QUEUE_LENGTH);
+	cmd_sub.subscribe();
 	uORB::Subscription status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription ack_sub{ORB_ID(vehicle_command_ack)};
 
 	/* command ack */
-	uORB::PublicationQueued<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
-
-	uORB::Subscription mavlink_log_sub{ORB_ID(mavlink_log)};
+	uORB::Publication<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	vehicle_status_s status{};
 	status_sub.copy(&status);
@@ -2165,7 +2165,7 @@ Mavlink::task_main(int argc, char *argv[])
 		/* HEARTBEAT is constant rate stream, rate never adjusted */
 		configure_stream("HEARTBEAT", 1.0f);
 
-		/* STATUSTEXT stream is like normal stream but gets messages from logbuffer instead of uORB */
+		/* STATUSTEXT stream */
 		configure_stream("STATUSTEXT", 20.0f);
 
 		/* COMMAND_LONG stream: use unlimited rate to send all commands */
@@ -2336,31 +2336,28 @@ Mavlink::task_main(int argc, char *argv[])
 
 		/* send command ACK */
 		uint16_t current_command_ack = 0;
-		vehicle_command_ack_s command_ack;
 
-		if (ack_sub.update(&command_ack)) {
-			if (!command_ack.from_external) {
-				mavlink_command_ack_t msg;
-				msg.result = command_ack.result;
-				msg.command = command_ack.command;
-				msg.progress = command_ack.result_param1;
-				msg.result_param2 = command_ack.result_param2;
-				msg.target_system = command_ack.target_system;
-				msg.target_component = command_ack.target_component;
-				current_command_ack = command_ack.command;
+		if (ack_sub.updated() && (get_free_tx_buf() >= MAVLINK_MSG_ID_COMMAND_ACK_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)) {
+			vehicle_command_ack_s command_ack;
 
-				// TODO: always transmit the acknowledge once it is only sent over the instance the command is received
-				//bool _transmitting_enabled_temp = _transmitting_enabled;
-				//_transmitting_enabled = true;
-				mavlink_msg_command_ack_send_struct(get_channel(), &msg);
-				//_transmitting_enabled = _transmitting_enabled_temp;
+			if (ack_sub.update(&command_ack)) {
+				if (!command_ack.from_external) {
+					mavlink_command_ack_t msg;
+					msg.result = command_ack.result;
+					msg.command = command_ack.command;
+					msg.progress = command_ack.result_param1;
+					msg.result_param2 = command_ack.result_param2;
+					msg.target_system = command_ack.target_system;
+					msg.target_component = command_ack.target_component;
+					current_command_ack = command_ack.command;
+
+					// TODO: always transmit the acknowledge once it is only sent over the instance the command is received
+					//bool _transmitting_enabled_temp = _transmitting_enabled;
+					//_transmitting_enabled = true;
+					mavlink_msg_command_ack_send_struct(get_channel(), &msg);
+					//_transmitting_enabled = _transmitting_enabled_temp;
+				}
 			}
-		}
-
-		mavlink_log_s mavlink_log;
-
-		if (mavlink_log_sub.update(&mavlink_log)) {
-			_logbuffer.put(&mavlink_log);
 		}
 
 		/* check for shell output */
@@ -2524,7 +2521,6 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	pthread_mutex_destroy(&_send_mutex);
-	pthread_mutex_destroy(&_telemetry_status_mutex);
 
 	PX4_INFO("exiting channel %i", (int)_channel);
 
@@ -2618,11 +2614,9 @@ void Mavlink::publish_telemetry_status()
 	_tstatus.streams = _streams.size();
 
 	// telemetry_status is also updated from the receiver thread, but never the same fields
-	lock_telemetry_status();
 	_tstatus.timestamp = hrt_absolute_time();
 	_telem_status_pub.publish(_tstatus);
 	_tstatus_updated = false;
-	unlock_telemetry_status();
 }
 
 void Mavlink::configure_sik_radio()
@@ -2726,7 +2720,7 @@ Mavlink::start(int argc, char *argv[])
 	px4_task_spawn_cmd(buf,
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
-			   2650 + MAVLINK_NET_ADDED_STACK,
+			   2496 + MAVLINK_NET_ADDED_STACK,
 			   (px4_main_t)&Mavlink::start_helper,
 			   (char *const *)argv);
 
@@ -2761,10 +2755,8 @@ Mavlink::start(int argc, char *argv[])
 void
 Mavlink::display_status()
 {
-	for (const auto &hb : _tstatus.heartbeats) {
-		if ((hb.timestamp > 0) && (hb.type == telemetry_heartbeat_s::TYPE_GCS)) {
-			printf("\tGCS heartbeat:\t%llu us ago\n", (unsigned long long)hrt_elapsed_time(&hb.timestamp));
-		}
+	if (_tstatus.heartbeat_type_gcs) {
+		printf("\tGCS heartbeat valid\n");
 	}
 
 	printf("\tmavlink chan: #%u\n", _channel);

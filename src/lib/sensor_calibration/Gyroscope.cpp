@@ -110,6 +110,9 @@ void Gyroscope::SensorCorrectionsUpdate(bool force)
 					case 2:
 						_thermal_offset = Vector3f{corrections.gyro_offset_2};
 						return;
+					case 3:
+						_thermal_offset = Vector3f{corrections.gyro_offset_3};
+						return;
 					}
 				}
 			}
@@ -118,6 +121,26 @@ void Gyroscope::SensorCorrectionsUpdate(bool force)
 		// zero thermal offset if not found
 		_thermal_offset.zero();
 	}
+}
+
+bool Gyroscope::set_offset(const Vector3f &offset)
+{
+	if (Vector3f(_offset - offset).longerThan(0.001f)) {
+		_offset = offset;
+
+		_calibration_count++;
+		return true;
+	}
+
+	return false;
+}
+
+void Gyroscope::set_rotation(Rotation rotation)
+{
+	_rotation_enum = rotation;
+
+	// always apply board level adjustments
+	_rotation = Dcmf(GetSensorLevelAdjustment()) * get_rot_matrix(rotation);
 }
 
 void Gyroscope::ParametersUpdate()
@@ -131,26 +154,49 @@ void Gyroscope::ParametersUpdate()
 
 	if (_calibration_index >= 0) {
 
-		if (!_external) {
-			_rotation = GetBoardRotation();
+		// CAL_GYROx_ROT
+		int32_t rotation_value = GetCalibrationParam(SensorString(), "ROT", _calibration_index);
+
+		if (_external) {
+			if ((rotation_value >= ROTATION_MAX) || (rotation_value < 0)) {
+				PX4_ERR("External %s %d (%d) invalid rotation %d, resetting to rotation none",
+					SensorString(), _device_id, _calibration_index, rotation_value);
+				rotation_value = ROTATION_NONE;
+				SetCalibrationParam(SensorString(), "ROT", _calibration_index, rotation_value);
+			}
+
+			set_rotation(static_cast<Rotation>(rotation_value));
 
 		} else {
-			// TODO: per sensor external rotation
-			_rotation.setIdentity();
+			// internal, CAL_GYROx_ROT -1
+			if (rotation_value != -1) {
+				PX4_ERR("Internal %s %d (%d) invalid rotation %d, resetting",
+					SensorString(), _device_id, _calibration_index, rotation_value);
+				SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1);
+			}
+
+			// internal sensors follow board rotation
+			set_rotation(GetBoardRotation());
 		}
 
 		// CAL_GYROx_PRIO
 		_priority = GetCalibrationParam(SensorString(), "PRIO", _calibration_index);
 
-		if (_priority < 0 || _priority > 100) {
-			// reset to default
-			PX4_ERR("%s %d invalid priority %d, resetting to %d", SensorString(), _calibration_index, _priority, DEFAULT_PRIORITY);
-			SetCalibrationParam(SensorString(), "PRIO", _calibration_index, DEFAULT_PRIORITY);
-			_priority = DEFAULT_PRIORITY;
+		if ((_priority < 0) || (_priority > 100)) {
+			// reset to default, -1 is the uninitialized parameter value
+			int32_t new_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
+
+			if (_priority != -1) {
+				PX4_ERR("%s %d (%d) invalid priority %d, resetting to %d", SensorString(), _device_id, _calibration_index, _priority,
+					new_priority);
+			}
+
+			SetCalibrationParam(SensorString(), "PRIO", _calibration_index, new_priority);
+			_priority = new_priority;
 		}
 
 		// CAL_GYROx_OFF{X,Y,Z}
-		_offset = GetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index);
+		set_offset(GetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index));
 
 	} else {
 		Reset();
@@ -160,12 +206,15 @@ void Gyroscope::ParametersUpdate()
 void Gyroscope::Reset()
 {
 	_rotation.setIdentity();
+	_rotation_enum = ROTATION_NONE;
 	_offset.zero();
 	_thermal_offset.zero();
 
 	_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
 
 	_calibration_index = -1;
+
+	_calibration_count = 0;
 }
 
 bool Gyroscope::ParametersSave()
@@ -177,12 +226,12 @@ bool Gyroscope::ParametersSave()
 		success &= SetCalibrationParam(SensorString(), "PRIO", _calibration_index, _priority);
 		success &= SetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index, _offset);
 
-		// if (_external) {
-		// 	SetCalibrationParam(SensorString(), "ROT", _calibration_index, (int32_t)_rotation_enum);
+		if (_external) {
+			success &= SetCalibrationParam(SensorString(), "ROT", _calibration_index, (int32_t)_rotation_enum);
 
-		// } else {
-		// 	SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1);
-		// }
+		} else {
+			success &= SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1);
+		}
 
 		return success;
 	}

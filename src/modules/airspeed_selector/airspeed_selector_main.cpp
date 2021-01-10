@@ -47,6 +47,7 @@
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/airspeed_validated.h>
+#include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/parameter_update.h>
@@ -105,6 +106,7 @@ private:
 	uORB::PublicationMulti<wind_estimate_s> _wind_est_pub[MAX_NUM_AIRSPEED_SENSORS + 1] {{ORB_ID(wind_estimate)}, {ORB_ID(wind_estimate)}, {ORB_ID(wind_estimate)}, {ORB_ID(wind_estimate)}}; /**< wind estimate topic (for each airspeed validator + purely sideslip fusion) */
 	orb_advert_t 	_mavlink_log_pub {nullptr}; 						/**< mavlink log topic*/
 
+	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};
 	uORB::Subscription _param_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
@@ -139,7 +141,7 @@ private:
 	bool _vehicle_local_position_valid{false}; /**< local position (from GPS) valid */
 	bool _in_takeoff_situation{true}; /**< in takeoff situation (defined as not yet stall speed reached) */
 	float _ground_minus_wind_TAS{0.0f}; /**< true airspeed from groundspeed minus windspeed */
-	float _ground_minus_wind_EAS{0.0f}; /**< equivalent airspeed from groundspeed minus windspeed */
+	float _ground_minus_wind_CAS{0.0f}; /**< calibrated airspeed from groundspeed minus windspeed */
 
 	bool _scale_estimation_previously_on{false}; /**< scale_estimation was on in the last cycle */
 
@@ -335,8 +337,8 @@ AirspeedModule::Run()
 				input_data.air_temperature_celsius = airspeed_raw.air_temperature_celsius;
 
 				/* update in_fixed_wing_flight for the current airspeed sensor validator */
-				/* takeoff situation is active from start till one of the sensors' IAS or groundspeed_EAS is above stall speed */
-				if (airspeed_raw.indicated_airspeed_m_s > _airspeed_stall.get() || _ground_minus_wind_EAS > _airspeed_stall.get()) {
+				/* takeoff situation is active from start till one of the sensors' IAS or groundspeed_CAS is above stall speed */
+				if (airspeed_raw.indicated_airspeed_m_s > _airspeed_stall.get() || _ground_minus_wind_CAS > _airspeed_stall.get()) {
 					_in_takeoff_situation = false;
 				}
 
@@ -412,12 +414,12 @@ void AirspeedModule::update_params()
 	} else if (_scale_estimation_previously_on && !_param_west_scale_estimation_on.get()) {
 		if (_valid_airspeed_index > 0) {
 
-			_param_west_airspeed_scale.set(_airspeed_validator[_valid_airspeed_index - 1].get_EAS_scale());
+			_param_west_airspeed_scale.set(_airspeed_validator[_valid_airspeed_index - 1].get_CAS_scale());
 			_param_west_airspeed_scale.commit_no_notification();
 			_airspeed_validator[_valid_airspeed_index - 1].set_airspeed_scale_manual(_param_west_airspeed_scale.get());
 
 			mavlink_log_info(&_mavlink_log_pub, "Airspeed: estimated scale (ASPD_ASPD_SCALE): %0.2f",
-					 (double)_airspeed_validator[_valid_airspeed_index - 1].get_EAS_scale());
+					 (double)_airspeed_validator[_valid_airspeed_index - 1].get_CAS_scale());
 
 		} else {
 			mavlink_log_info(&_mavlink_log_pub, "Airspeed: can't estimate scale as no valid sensor.");
@@ -430,6 +432,17 @@ void AirspeedModule::update_params()
 
 void AirspeedModule::poll_topics()
 {
+	// use primary estimator_status
+	if (_estimator_selector_status_sub.updated()) {
+		estimator_selector_status_s estimator_selector_status;
+
+		if (_estimator_selector_status_sub.copy(&estimator_selector_status)) {
+			if (estimator_selector_status.primary_instance != _estimator_status_sub.get_instance()) {
+				_estimator_status_sub.ChangeInstance(estimator_selector_status.primary_instance);
+			}
+		}
+	}
+
 	_estimator_status_sub.update(&_estimator_status);
 	_vehicle_acceleration_sub.update(&_accel);
 	_vehicle_air_data_sub.update(&_vehicle_air_data);
@@ -450,7 +463,7 @@ void AirspeedModule::update_wind_estimator_sideslip()
 	/* update wind and airspeed estimator */
 	_wind_estimator_sideslip.update(_time_now_usec);
 
-	if (_vehicle_local_position_valid && att_valid) {
+	if (_vehicle_local_position_valid && att_valid && !_vtol_vehicle_status.vtol_in_rw_mode) {
 		Vector3f vI(_vehicle_local_position.vx, _vehicle_local_position.vy, _vehicle_local_position.vz);
 		Quatf q(_vehicle_attitude.q);
 
@@ -473,6 +486,7 @@ void AirspeedModule::update_wind_estimator_sideslip()
 	_wind_estimate_sideslip.beta_innov = _wind_estimator_sideslip.get_beta_innov();
 	_wind_estimate_sideslip.beta_innov_var = _wind_estimator_sideslip.get_beta_innov_var();
 	_wind_estimate_sideslip.tas_scale = _wind_estimator_sideslip.get_tas_scale();
+	_wind_estimate_sideslip.source = wind_estimate_s::SOURCE_AS_BETA_ONLY;
 }
 
 void AirspeedModule::update_ground_minus_wind_airspeed()
@@ -482,7 +496,7 @@ void AirspeedModule::update_ground_minus_wind_airspeed()
 	float TAS_east = _vehicle_local_position.vy - _wind_estimate_sideslip.windspeed_east;
 	float TAS_down = _vehicle_local_position.vz; // no wind estimate in z
 	_ground_minus_wind_TAS = sqrtf(TAS_north * TAS_north + TAS_east * TAS_east + TAS_down * TAS_down);
-	_ground_minus_wind_EAS = calc_EAS_from_TAS(_ground_minus_wind_TAS, _vehicle_air_data.baro_pressure_pa,
+	_ground_minus_wind_CAS = calc_CAS_from_TAS(_ground_minus_wind_TAS, _vehicle_air_data.baro_pressure_pa,
 				 _vehicle_air_data.baro_temp_celcius);
 }
 
@@ -540,9 +554,9 @@ void AirspeedModule::select_airspeed_and_publish()
 	airspeed_validated_s airspeed_validated = {};
 	airspeed_validated.timestamp = _time_now_usec;
 	airspeed_validated.true_ground_minus_wind_m_s = NAN;
-	airspeed_validated.equivalent_ground_minus_wind_m_s = NAN;
+	airspeed_validated.calibrated_ground_minus_wind_m_s = NAN;
 	airspeed_validated.indicated_airspeed_m_s = NAN;
-	airspeed_validated.equivalent_airspeed_m_s = NAN;
+	airspeed_validated.calibrated_airspeed_m_s = NAN;
 	airspeed_validated.true_airspeed_m_s = NAN;
 	airspeed_validated.airspeed_sensor_measurement_valid = false;
 	airspeed_validated.selected_airspeed_index = _valid_airspeed_index;
@@ -552,20 +566,20 @@ void AirspeedModule::select_airspeed_and_publish()
 		break;
 
 	case airspeed_index::GROUND_MINUS_WIND_INDEX:
-		/* Take IAS, EAS, TAS from groundspeed-windspeed */
-		airspeed_validated.indicated_airspeed_m_s = _ground_minus_wind_EAS;
-		airspeed_validated.equivalent_airspeed_m_s = _ground_minus_wind_EAS;
+		/* Take IAS, CAS, TAS from groundspeed-windspeed */
+		airspeed_validated.indicated_airspeed_m_s = _ground_minus_wind_CAS;
+		airspeed_validated.calibrated_airspeed_m_s = _ground_minus_wind_CAS;
 		airspeed_validated.true_airspeed_m_s = _ground_minus_wind_TAS;
-		airspeed_validated.equivalent_ground_minus_wind_m_s = _ground_minus_wind_EAS;
+		airspeed_validated.calibrated_ground_minus_wind_m_s = _ground_minus_wind_CAS;
 		airspeed_validated.true_ground_minus_wind_m_s = _ground_minus_wind_TAS;
 
 		break;
 
 	default:
 		airspeed_validated.indicated_airspeed_m_s = _airspeed_validator[_valid_airspeed_index - 1].get_IAS();
-		airspeed_validated.equivalent_airspeed_m_s = _airspeed_validator[_valid_airspeed_index - 1].get_EAS();
+		airspeed_validated.calibrated_airspeed_m_s = _airspeed_validator[_valid_airspeed_index - 1].get_CAS();
 		airspeed_validated.true_airspeed_m_s = _airspeed_validator[_valid_airspeed_index - 1].get_TAS();
-		airspeed_validated.equivalent_ground_minus_wind_m_s = _ground_minus_wind_EAS;
+		airspeed_validated.calibrated_ground_minus_wind_m_s = _ground_minus_wind_CAS;
 		airspeed_validated.true_ground_minus_wind_m_s = _ground_minus_wind_TAS;
 		airspeed_validated.airspeed_sensor_measurement_valid = true;
 		break;
@@ -580,6 +594,17 @@ void AirspeedModule::select_airspeed_and_publish()
 	/* publish the wind estimator states from all airspeed validators */
 	for (int i = 0; i < _number_of_airspeed_sensors; i++) {
 		wind_estimate_s wind_est = _airspeed_validator[i].get_wind_estimator_states(_time_now_usec);
+
+		if (i == 0) {
+			wind_est.source = wind_estimate_s::SOURCE_AS_SENSOR_1;
+
+		} else if (i == 1) {
+			wind_est.source = wind_estimate_s::SOURCE_AS_SENSOR_2;
+
+		} else {
+			wind_est.source = wind_estimate_s::SOURCE_AS_SENSOR_3;
+		}
+
 		_wind_est_pub[i + 1].publish(wind_est);
 	}
 
@@ -607,12 +632,12 @@ int AirspeedModule::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-This module provides a single airspeed_validated topic, containing an indicated (IAS),
-equivalent (EAS), true airspeed (TAS) and the information if the estimation currently
+This module provides a single airspeed_validated topic, containing indicated (IAS),
+calibrated (CAS), true airspeed (TAS) and the information if the estimation currently
 is invalid and if based sensor readings or on groundspeed minus windspeed.
 Supporting the input of multiple "raw" airspeed inputs, this module automatically switches
 to a valid sensor in case of failure detection. For failure detection as well as for
-the estimation of a scale factor from IAS to EAS, it runs several wind estimators
+the estimation of a scale factor from IAS to CAS, it runs several wind estimators
 and also publishes those.
 
 )DESCR_STR");

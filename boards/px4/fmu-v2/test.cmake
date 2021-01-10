@@ -27,7 +27,7 @@ px4_add_board(
 		differential_pressure/ms4525
 		#distance_sensor # all available distance sensor drivers
 		distance_sensor/ll40ls
-		distance_sensor/sf0x
+		distance_sensor/lightware_laser_serial
 		#dshot
 		gps
 		#heater
@@ -70,6 +70,7 @@ px4_add_board(
 		dataman
 		#ekf2
 		#events
+		flight_mode_manager
 		#fw_att_control
 		#fw_pos_control_l1
 		land_detector
@@ -98,6 +99,7 @@ px4_add_board(
 		hardfault_log
 		#i2cdetect
 		#led_control
+		mft
 		mixer
 		#motor_ramp
 		#motor_test

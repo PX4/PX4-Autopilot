@@ -41,6 +41,7 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
+		flight_mode_manager
 		#events
 		land_detector
 		landing_target_estimator
@@ -65,6 +66,7 @@ px4_add_board(
 		hardfault_log
 		#i2cdetect
 		#led_control
+		mft
 		mixer
 		#motor_ramp
 		#motor_test

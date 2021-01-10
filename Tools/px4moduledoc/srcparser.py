@@ -151,6 +151,12 @@ class ModuleDocumentation(object):
         self._handle_usage_param_int(['\'a\'', args[0], '0', '0xff', "\"I2C address\"", 'true'])
         self._paring_implicit_options = False
 
+    def _handle_usage_params_i2c_keep_running_flag(self, args):
+        assert(len(args) == 0)
+        self._paring_implicit_options = True
+        self._handle_usage_param_flag(['\'k\'', "\"if initialization (probing) fails, keep retrying periodically\"", 'true'])
+        self._paring_implicit_options = False
+
     def _handle_usage_param_flag(self, args):
         assert(len(args) == 3) # option_char, description, is_optional
         option_char = self._get_option_char(args[0])

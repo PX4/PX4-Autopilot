@@ -75,6 +75,8 @@ public:
 	 */
 	virtual void print_status() const = 0;
 
+	virtual void update() {};
+
 	/**
 	 * Sensor bridge factory.
 	 * Creates all known sensor bridges and puts them in the linked list.

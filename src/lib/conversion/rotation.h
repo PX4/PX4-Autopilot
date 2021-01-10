@@ -90,21 +90,17 @@ enum Rotation {
 	ROTATION_ROLL_90_PITCH_68_YAW_293 = 38,
 	ROTATION_PITCH_315           = 39,
 	ROTATION_ROLL_90_PITCH_315   = 40,
-	ROTATION_ROLL_270_YAW_180    = 41,
-	ROTATION_ROLL_270_YAW_270    = 42,
-	ROTATION_PITCH_90_YAW_180    = 43,
-	ROTATION_PITCH_9_YAW_180     = 44,
-	ROTATION_PITCH_45            = 45,
+
 	ROTATION_MAX
 };
 
-typedef struct {
+struct rot_lookup_t {
 	uint16_t roll;
 	uint16_t pitch;
 	uint16_t yaw;
-} rot_lookup_t;
+};
 
-const rot_lookup_t rot_lookup[] = {
+static constexpr rot_lookup_t rot_lookup[ROTATION_MAX] = {
 	{  0,   0,   0 },
 	{  0,   0,  45 },
 	{  0,   0,  90 },
@@ -146,11 +142,6 @@ const rot_lookup_t rot_lookup[] = {
 	{ 90,  68, 293 },
 	{  0, 315,   0 },
 	{ 90, 315,   0 },
-	{270,   0, 180 },
-	{270,   0, 270 },
-	{  0,  90, 180 },
-	{  0,   9, 180 },
-	{  0,  45,   0 },
 };
 
 /**

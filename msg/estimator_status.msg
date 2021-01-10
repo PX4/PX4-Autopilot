@@ -47,7 +47,7 @@ uint8 CS_RNG_STUCK = 21		# 21 - true when a stuck range finder sensor has been d
 uint8 CS_GPS_YAW = 22		# 22 - true when yaw (not ground course) data from a GPS receiver is being fused
 uint8 CS_MAG_ALIGNED = 23	# 23 - true when the in-flight mag field alignment has been completed
 
-uint16 filter_fault_flags	# Bitmask to indicate EKF internal faults
+uint32 filter_fault_flags	# Bitmask to indicate EKF internal faults
 # 0 - true if the fusion of the magnetometer X-axis has encountered a numerical error
 # 1 - true if the fusion of the magnetometer Y-axis has encountered a numerical error
 # 2 - true if the fusion of the magnetometer Z-axis has encountered a numerical error
@@ -64,6 +64,8 @@ uint16 filter_fault_flags	# Bitmask to indicate EKF internal faults
 # 13 - true if fusion of the East position has encountered a numerical error
 # 14 - true if fusion of the Down position has encountered a numerical error
 # 15 - true if bad delta velocity bias estimates have been detected
+# 16 - true if bad vertical accelerometer data has been detected
+# 17 - true if delta velocity data contains clipping (asymmetric railing)
 
 float32 pos_horiz_accuracy # 1-Sigma estimated horizontal position accuracy relative to the estimators origin (m)
 float32 pos_vert_accuracy # 1-Sigma estimated vertical position accuracy relative to the estimators origin (m)

@@ -169,11 +169,9 @@ public:
 	{
 		int ret = 0;
 
-#ifdef __PX4_NUTTX
-		// On NuttX task_create() adds the task name as first argument.
+		// We don't need the task name at this point.
 		argc -= 1;
 		argv += 1;
-#endif
 
 		T *object = T::instantiate(argc, argv);
 		_object.store(object);
@@ -512,6 +510,11 @@ __EXPORT void PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(bool i2c_support, bool sp
  * Configurable I2C address (via -a <address>)
  */
 __EXPORT void PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(uint8_t default_address);
+
+/**
+ * -k flag
+ */
+__EXPORT void PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG(void);
 
 /** @note Each of the PRINT_MODULE_USAGE_PARAM_* methods apply to the previous PRINT_MODULE_USAGE_COMMAND_DESCR(). */
 

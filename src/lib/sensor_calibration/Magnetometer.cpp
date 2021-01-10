@@ -83,29 +83,57 @@ void Magnetometer::set_external(bool external)
 	_external = external;
 }
 
-void Magnetometer::set_scale(const Vector3f &scale)
+bool Magnetometer::set_offset(const Vector3f &offset)
 {
-	_scale(0, 0) = scale(0);
-	_scale(1, 1) = scale(1);
-	_scale(2, 2) = scale(2);
+	if (Vector3f(_offset - offset).longerThan(0.001f)) {
+		_offset = offset;
+
+		_calibration_count++;
+		return true;
+	}
+
+	return false;
 }
 
-void Magnetometer::set_offdiagonal(const Vector3f &offdiagonal)
+bool Magnetometer::set_scale(const Vector3f &scale)
 {
-	_scale(0, 1) = offdiagonal(0);
-	_scale(1, 0) = offdiagonal(0);
+	if (Vector3f(_scale.diag() - scale).longerThan(0.001f)) {
+		_scale(0, 0) = scale(0);
+		_scale(1, 1) = scale(1);
+		_scale(2, 2) = scale(2);
 
-	_scale(0, 2) = offdiagonal(1);
-	_scale(2, 0) = offdiagonal(1);
+		_calibration_count++;
+		return true;
+	}
 
-	_scale(1, 2) = offdiagonal(2);
-	_scale(2, 1) = offdiagonal(2);
+	return false;
+}
+
+bool Magnetometer::set_offdiagonal(const Vector3f &offdiagonal)
+{
+	if (Vector3f(Vector3f{_scale(0, 1), _scale(0, 2), _scale(1, 2)} - offdiagonal).longerThan(0.001f)) {
+		_scale(0, 1) = offdiagonal(0);
+		_scale(1, 0) = offdiagonal(0);
+
+		_scale(0, 2) = offdiagonal(1);
+		_scale(2, 0) = offdiagonal(1);
+
+		_scale(1, 2) = offdiagonal(2);
+		_scale(2, 1) = offdiagonal(2);
+
+		_calibration_count++;
+		return true;
+	}
+
+	return false;
 }
 
 void Magnetometer::set_rotation(Rotation rotation)
 {
 	_rotation_enum = rotation;
-	_rotation = get_rot_matrix(rotation);
+
+	// always apply board level adjustments
+	_rotation = Dcmf(GetSensorLevelAdjustment()) * get_rot_matrix(rotation);
 }
 
 void Magnetometer::ParametersUpdate()
@@ -130,8 +158,7 @@ void Magnetometer::ParametersUpdate()
 				SetCalibrationParam(SensorString(), "ROT", _calibration_index, rotation_value);
 			}
 
-			_rotation_enum = static_cast<Rotation>(rotation_value);
-			_rotation = get_rot_matrix(_rotation_enum);
+			set_rotation(static_cast<Rotation>(rotation_value));
 
 		} else {
 			// internal mag, CAL_MAGx_ROT -1
@@ -141,37 +168,34 @@ void Magnetometer::ParametersUpdate()
 				SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1);
 			}
 
-			_rotation = GetBoardRotation();
-			_rotation_enum = ROTATION_NONE;
+			// internal sensors follow board rotation
+			set_rotation(GetBoardRotation());
 		}
 
 		// CAL_MAGx_PRIO
 		_priority = GetCalibrationParam(SensorString(), "PRIO", _calibration_index);
 
 		if ((_priority < 0) || (_priority > 100)) {
-			// reset to default
+			// reset to default, -1 is the uninitialized parameter value
 			int32_t new_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
-			PX4_ERR("%s %d (%d) invalid priority %d, resetting to %d",
-				SensorString(), _device_id, _calibration_index, _priority, new_priority);
+
+			if (_priority != -1) {
+				PX4_ERR("%s %d (%d) invalid priority %d, resetting to %d", SensorString(), _device_id, _calibration_index, _priority,
+					new_priority);
+			}
+
 			SetCalibrationParam(SensorString(), "PRIO", _calibration_index, new_priority);
 			_priority = new_priority;
 		}
 
 		// CAL_MAGx_OFF{X,Y,Z}
-		_offset = GetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index);
+		set_offset(GetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index));
 
 		// CAL_MAGx_SCALE{X,Y,Z}
-		const Vector3f diag = GetCalibrationParamsVector3f(SensorString(), "SCALE", _calibration_index);
+		set_scale(GetCalibrationParamsVector3f(SensorString(), "SCALE", _calibration_index));
 
 		// CAL_MAGx_ODIAG{X,Y,Z}
-		const Vector3f offdiag = GetCalibrationParamsVector3f(SensorString(), "ODIAG", _calibration_index);
-
-		float scale[9] {
-			diag(0),    offdiag(0), offdiag(1),
-			offdiag(0),    diag(1), offdiag(2),
-			offdiag(1), offdiag(2),    diag(2)
-		};
-		_scale = Matrix3f{scale};
+		set_offdiagonal(GetCalibrationParamsVector3f(SensorString(), "ODIAG", _calibration_index));
 
 		// CAL_MAGx_COMP{X,Y,Z}
 		_power_compensation = GetCalibrationParamsVector3f(SensorString(), "COMP", _calibration_index);
@@ -194,6 +218,8 @@ void Magnetometer::Reset()
 	_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
 
 	_calibration_index = -1;
+
+	_calibration_count = 0;
 }
 
 bool Magnetometer::ParametersSave()
