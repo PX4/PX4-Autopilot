@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,28 +31,22 @@
 #
 ############################################################################
 
-# required by other mixers
-add_subdirectory(MixerBase)
-
-add_subdirectory(AllocatedActuatorMixer)
-add_subdirectory(HelicopterMixer)
-add_subdirectory(MultirotorMixer)
-add_subdirectory(NullMixer)
-add_subdirectory(SimpleMixer)
-
-add_library(mixer
-	MixerGroup.cpp
-	MixerGroup.hpp
-	load_mixer_file.cpp
-	mixer_load.h
+px4_add_library(ActuatorEffectiveness
+	ActuatorEffectiveness.hpp
+	ActuatorEffectivenessMultirotor.cpp
+	ActuatorEffectivenessMultirotor.hpp
+	ActuatorEffectivenessStandardVTOL.cpp
+	ActuatorEffectivenessStandardVTOL.hpp
+	ActuatorEffectivenessTiltrotorVTOL.cpp
+	ActuatorEffectivenessTiltrotorVTOL.hpp
 )
 
-target_link_libraries(mixer
+target_compile_options(ActuatorEffectiveness PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_include_directories(ActuatorEffectiveness PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(ActuatorEffectiveness
 	PRIVATE
-		AllocatedActuatorMixer
-		HelicopterMixer
-		MultirotorMixer
-		NullMixer
-		SimpleMixer
-	)
-add_dependencies(mixer prebuild_targets)
+		mathlib
+		ControlAllocation
+)
+
+# px4_add_unit_gtest(SRC ActuatorEffectivenessMultirotorTest.cpp LINKLIBS ActuatorEffectiveness)

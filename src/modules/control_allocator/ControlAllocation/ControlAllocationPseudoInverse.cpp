@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,62 +31,46 @@
  *
  ****************************************************************************/
 
-#include "LowPassFilter2pVector3f.hpp"
+/**
+ * @file ControlAllocationPseudoInverse.hpp
+ *
+ * Simple Control Allocation Algorithm
+ *
+ * @author Julien Lecoeur <julien.lecoeur@gmail.com>
+ */
 
-#include <px4_platform_common/defines.h>
+#include "ControlAllocationPseudoInverse.hpp"
 
-#include <math.h>
-
-namespace math
+void
+ControlAllocationPseudoInverse::setEffectivenessMatrix(
+	const matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS> &effectiveness,
+	const matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> &actuator_trim)
 {
-
-void LowPassFilter2pVector3f::set_cutoff_frequency(float sample_freq, float cutoff_freq)
-{
-	_cutoff_freq = cutoff_freq;
-	_sample_freq = sample_freq;
-
-	// reset delay elements on filter change
-	_delay_element_1.zero();
-	_delay_element_2.zero();
-
-	if (_cutoff_freq <= 0.0f) {
-		// no filtering
-		_b0 = 1.0f;
-		_b1 = 0.0f;
-		_b2 = 0.0f;
-
-		_a1 = 0.0f;
-		_a2 = 0.0f;
-
-		return;
-	}
-
-	const float fr = sample_freq / _cutoff_freq;
-	const float ohm = tanf(M_PI_F / fr);
-	const float c = 1.0f + 2.0f * cosf(M_PI_F / 4.0f) * ohm + ohm * ohm;
-
-	_b0 = ohm * ohm / c;
-	_b1 = 2.0f * _b0;
-	_b2 = _b0;
-
-	_a1 = 2.0f * (ohm * ohm - 1.0f) / c;
-	_a2 = (1.0f - 2.0f * cosf(M_PI_F / 4.0f) * ohm + ohm * ohm) / c;
+	ControlAllocation::setEffectivenessMatrix(effectiveness, actuator_trim);
+	_mix_update_needed = true;
 }
 
-matrix::Vector3f LowPassFilter2pVector3f::reset(const matrix::Vector3f &sample)
+void
+ControlAllocationPseudoInverse::updatePseudoInverse()
 {
-	const matrix::Vector3f dval = sample / (_b0 + _b1 + _b2);
-
-	if (PX4_ISFINITE(dval(0)) && PX4_ISFINITE(dval(1)) && PX4_ISFINITE(dval(2))) {
-		_delay_element_1 = dval;
-		_delay_element_2 = dval;
-
-	} else {
-		_delay_element_1 = sample;
-		_delay_element_2 = sample;
+	if (_mix_update_needed) {
+		_mix = matrix::geninv(_effectiveness);
+		_mix_update_needed = false;
 	}
-
-	return apply(sample);
 }
 
-} // namespace math
+void
+ControlAllocationPseudoInverse::allocate()
+{
+	//Compute new gains if needed
+	updatePseudoInverse();
+
+	// Allocate
+	_actuator_sp = _actuator_trim + _mix * (_control_sp - _control_trim);
+
+	// Clip
+	_actuator_sp = clipActuatorSetpoint(_actuator_sp);
+
+	// Compute achieved control
+	_control_allocated = _effectiveness * _actuator_sp;
+}
