@@ -144,7 +144,8 @@ private:
 	uORB::Publication<actuator_controls_s>	_actuator_controls_4_pub{ORB_ID(actuator_controls_4)};	/**< actuator controls 4 publication */
 	uORB::Publication<actuator_controls_s>	_actuator_controls_5_pub{ORB_ID(actuator_controls_5)};	/**< actuator controls 5 publication */
 
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		/**< parameter updates subscription */
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};			/**< battery status subscription */
 	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};				/**< airspeed subscription */
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};

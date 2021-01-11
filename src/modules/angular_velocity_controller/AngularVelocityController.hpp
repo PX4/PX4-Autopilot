@@ -61,6 +61,7 @@
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
 
+using namespace time_literals;
 
 class AngularVelocityController : public ModuleBase<AngularVelocityController>, public ModuleParams,
 	public px4::WorkItem
@@ -102,8 +103,9 @@ private:
 
 	AngularVelocityControl _control; 	///< class for control calculations
 
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
 	uORB::Subscription _control_allocator_status_sub{ORB_ID(control_allocator_status)};				/**< motor limits subscription */
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};				/**< parameter updates subscription */
 	uORB::Subscription _vehicle_angular_acceleration_sub{ORB_ID(vehicle_angular_acceleration)}; 	/**< vehicle angular acceleration subscription */
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};			/**< vehicle control mode subscription */
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};			/**< vehicle land detected subscription */
