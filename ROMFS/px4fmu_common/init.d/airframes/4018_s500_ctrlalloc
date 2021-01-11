@@ -8,8 +8,8 @@
 # @maintainer Silvan Fuhrer
 #
 
-sh /etc/init.d/rc.mc_defaults
-sh /etc/init.d/rc.ctrlalloc
+. ${R}etcinit.d/rc.mc_defaults
+. ${R}etc/init.d/rc.ctrlalloc
 
 if [ $AUTOCNF = yes ]
 then
