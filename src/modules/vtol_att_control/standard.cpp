@@ -160,7 +160,7 @@ void Standard::update_vtol_state()
 		if (_vtol_schedule.flight_mode == vtol_mode::MC_MODE || _vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_MC) {
 			// start transition to fw mode
 			/* NOTE: The failsafe transition to fixed-wing was removed because it can result in an
-			* unsafe flying state. */
+			 * unsafe flying state. */
 			_vtol_schedule.flight_mode = vtol_mode::TRANSITION_TO_FW;
 			_vtol_schedule.transition_start = hrt_absolute_time();
 
