@@ -116,7 +116,7 @@ private:
 
 	uORB::Publication<vehicle_gps_position_s> _vehicle_gps_position_pub{ORB_ID(vehicle_gps_position)};
 
-	uORB::Subscription _params_sub{ORB_ID(parameter_update)}; /**< parameter updates subscription */
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_gps_sub[GPS_MAX_RECEIVERS] {	/**< sensor data subscription */
 		{this, ORB_ID(sensor_gps), 0},

@@ -48,12 +48,15 @@
 #include <perf/perf_counter.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_angular_velocity.h>   // to publish groundtruth
 #include <uORB/topics/vehicle_attitude.h>           // to publish groundtruth
 #include <uORB/topics/vehicle_global_position.h>    // to publish groundtruth
+
+using namespace time_literals;
 
 extern "C" __EXPORT int sih_main(int argc, char *argv[]);
 
@@ -119,7 +122,7 @@ private:
 	vehicle_global_position_s			_gpos_gt{};
 	uORB::Publication<vehicle_global_position_s>	_gpos_gt_pub{ORB_ID(vehicle_global_position_groundtruth)};
 
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _actuator_out_sub{ORB_ID(actuator_outputs)};
 
 	// hard constants

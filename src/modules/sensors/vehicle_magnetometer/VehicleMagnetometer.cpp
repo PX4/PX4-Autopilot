@@ -40,7 +40,6 @@ namespace sensors
 {
 
 using namespace matrix;
-using namespace time_literals;
 
 static constexpr uint32_t SENSOR_TIMEOUT{300_ms};
 
@@ -82,10 +81,10 @@ void VehicleMagnetometer::Stop()
 void VehicleMagnetometer::ParametersUpdate(bool force)
 {
 	// Check if parameters have changed
-	if (_params_sub.updated() || force) {
+	if (_parameter_update_sub.updated() || force) {
 		// clear update
 		parameter_update_s param_update;
-		_params_sub.copy(&param_update);
+		_parameter_update_sub.copy(&param_update);
 
 		updateParams();
 

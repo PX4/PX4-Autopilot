@@ -46,6 +46,7 @@
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
+#include <uORB/topics/mission_result.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/wind_estimate.h>

@@ -354,14 +354,14 @@ MavlinkParametersManager::send_untransmitted()
 {
 	bool sent_one = false;
 
-	if (_mavlink_parameter_sub.updated()) {
-		// Clear the ready flag
-		parameter_update_s value;
-		_mavlink_parameter_sub.update(&value);
+	if (_parameter_update_sub.updated()) {
+		// clear the update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
 
 		// Schedule an update if not already the case
 		if (_param_update_time == 0) {
-			_param_update_time = value.timestamp;
+			_param_update_time = pupdate.timestamp;
 			_param_update_index = 0;
 		}
 	}

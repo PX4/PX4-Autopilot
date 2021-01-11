@@ -43,6 +43,7 @@
 #include <px4_platform_common/posix.h>
 
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
@@ -62,6 +63,8 @@
 #include "PCA9685.h"
 #include "ocpoc_mmap.h"
 #include "bbblue_pwm_rc.h"
+
+using namespace time_literals;
 
 namespace linux_pwm_out
 {
@@ -260,7 +263,7 @@ void task_main(int argc, char *argv[])
 
 	Mixer::Airmode airmode = Mixer::Airmode::disabled;
 	update_params(airmode);
-	uORB::Subscription parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::SubscriptionInterval parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	int rc_channels_sub = -1;
 

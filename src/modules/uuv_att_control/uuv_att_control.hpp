@@ -43,8 +43,6 @@
  * @author Tim Hansen <t.hansen@tuhh.de>
  */
 
-
-
 #include <float.h>
 
 #include <drivers/drv_hrt.h>
@@ -81,6 +79,8 @@ using matrix::Dcmf;
 
 using uORB::SubscriptionData;
 
+using namespace time_literals;
+
 class UUVAttitudeControl: public ModuleBase<UUVAttitudeControl>, public ModuleParams, public px4::WorkItem
 {
 public:
@@ -100,7 +100,7 @@ public:
 private:
 	uORB::Publication<actuator_controls_s> _actuator_controls_pub{ORB_ID(actuator_controls_0)};
 
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};	/**< vehicle attitude setpoint */
 	uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)}; /**< vehicle bodyrates setpoint subscriber */

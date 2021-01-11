@@ -108,7 +108,7 @@ private:
 
 	uORB::SubscriptionCallbackWorkItem _sensors_sub{this, ORB_ID(sensor_combined)};
 
-	uORB::Subscription		_parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::SubscriptionInterval	_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription		_gps_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription		_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription		_vision_odom_sub{ORB_ID(vehicle_visual_odometry)};

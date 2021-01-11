@@ -59,6 +59,8 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 
+using namespace time_literals;
+
 namespace sensors
 {
 class VehicleMagnetometer : public ModuleParams, public px4::ScheduledWorkItem
@@ -98,9 +100,10 @@ private:
 		{ORB_ID(vehicle_magnetometer)},
 	};
 
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
 	uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status), 0};
-	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 
 	// Used to check, save and use learned magnetometer biases
