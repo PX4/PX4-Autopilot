@@ -5,8 +5,8 @@
 # @type Hexarotor x
 #
 
-sh /etc/init.d/rc.mc_defaults
-sh /etc/init.d/rc.ctrlalloc
+. ${R}etc/init.d/rc.mc_defaults
+. ${R}etc/init.d/rc.ctrlalloc
 
 if [ $AUTOCNF = yes ]
 then
