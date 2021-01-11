@@ -47,11 +47,14 @@
 #include "mavlink_bridge_header.h"
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/rc_parameter_map.h>
 #include <uORB/topics/uavcan_parameter_request.h>
 #include <uORB/topics/uavcan_parameter_value.h>
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_hrt.h>
+
+using namespace time_literals;
 
 class Mavlink;
 
@@ -147,7 +150,7 @@ protected:
 
 	uORB::Subscription _uavcan_parameter_value_sub{ORB_ID(uavcan_parameter_value)};
 
-	uORB::Subscription _mavlink_parameter_sub{ORB_ID(parameter_update)};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	hrt_abstime _param_update_time{0};
 	int _param_update_index{0};
 

@@ -55,6 +55,7 @@
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -106,6 +107,8 @@
 # include <uORB/topics/debug_value.h>
 # include <uORB/topics/debug_vect.h>
 #endif // !CONSTRAINED_FLASH
+
+using namespace time_literals;
 
 class Mavlink;
 
@@ -304,10 +307,11 @@ private:
 	// ORB subscriptions
 	uORB::Subscription	_actuator_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription	_control_mode_sub{ORB_ID(vehicle_control_mode)};
-	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription	_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription	_vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription	_vehicle_status_sub{ORB_ID(vehicle_status)};
+
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	// hil_sensor and hil_state_quaternion
 	enum SensorSource {

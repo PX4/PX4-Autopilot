@@ -574,7 +574,7 @@ void DShot::Run()
 		}
 	}
 
-	if (_param_sub.updated()) {
+	if (_parameter_update_sub.updated()) {
 		update_params();
 	}
 
@@ -603,7 +603,7 @@ void DShot::Run()
 void DShot::update_params()
 {
 	parameter_update_s pupdate;
-	_param_sub.update(&pupdate);
+	_parameter_update_sub.copy(&pupdate);
 
 	updateParams();
 

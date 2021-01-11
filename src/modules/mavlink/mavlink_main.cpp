@@ -52,7 +52,6 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/version/version.h>
-#include <uORB/Publication.hpp>
 
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
@@ -2136,8 +2135,6 @@ Mavlink::task_main(int argc, char *argv[])
 		pthread_mutex_init(&_message_buffer_mutex, nullptr);
 	}
 
-	uORB::Subscription parameter_update_sub{ORB_ID(parameter_update)};
-
 	uORB::Subscription cmd_sub{ORB_ID(vehicle_command)};
 	// ensure topic exists, otherwise we might lose first queued commands (leading to printf error's below)
 	orb_advertise_queue(ORB_ID(vehicle_command), nullptr, vehicle_command_s::ORB_QUEUE_LENGTH);
@@ -2247,10 +2244,10 @@ Mavlink::task_main(int argc, char *argv[])
 		update_rate_mult();
 
 		// check for parameter updates
-		if (parameter_update_sub.updated()) {
+		if (_parameter_update_sub.updated()) {
 			// clear update
 			parameter_update_s pupdate;
-			parameter_update_sub.copy(&pupdate);
+			_parameter_update_sub.copy(&pupdate);
 
 			// update parameters from storage
 			mavlink_update_parameters();

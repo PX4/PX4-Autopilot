@@ -181,7 +181,7 @@ private:
 	uint8_t _lat_lon_reset_counter{0};
 	uint8_t _alt_reset_counter{0};
 
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _sensors_status_imu{ORB_ID(sensors_status_imu)};
 
 	// Publications

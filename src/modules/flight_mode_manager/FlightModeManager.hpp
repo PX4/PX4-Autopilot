@@ -94,8 +94,9 @@ private:
 	perf_counter_t _loop_perf; ///< loop duration performance counter
 	hrt_abstime _time_stamp_last_loop{0}; ///< time stamp of last loop iteration
 
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
 	uORB::SubscriptionData<home_position_s> _home_position_sub{ORB_ID(home_position)};
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::SubscriptionData<vehicle_control_mode_s> _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::SubscriptionData<vehicle_land_detected_s> _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
