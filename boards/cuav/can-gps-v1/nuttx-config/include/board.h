@@ -58,8 +58,8 @@
  * LSE - not installed
  */
 
-#define STM32_BOARD_USEHSE		1
-#define STM32_BOARD_XTAL		8000000
+#define STM32_BOARD_USEHSE      1
+#define STM32_BOARD_XTAL        16000000
 #define STM32_HSE_FREQUENCY     STM32_BOARD_XTAL
 
 #define STM32_HSI_FREQUENCY     16000000ul
