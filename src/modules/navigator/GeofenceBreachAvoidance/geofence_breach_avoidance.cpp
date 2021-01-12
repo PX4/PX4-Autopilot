@@ -51,11 +51,6 @@ GeofenceBreachAvoidance::GeofenceBreachAvoidance() :
 	updateParameters();
 }
 
-GeofenceBreachAvoidance::~GeofenceBreachAvoidance()
-{
-
-}
-
 void GeofenceBreachAvoidance::updateParameters()
 {
 	param_get(_paramHandle.param_mpc_jerk_max, &_params.param_mpc_jerk_max);
