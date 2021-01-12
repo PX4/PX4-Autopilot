@@ -229,6 +229,9 @@ public:
 	// Getter for the baro sample on the delayed time horizon
 	const baroSample &get_baro_sample_delayed() const { return _baro_sample_delayed; }
 
+	const bool& global_origin_valid() const { return _NED_origin_initialised; }
+	const map_projection_reference_s& global_origin() const { return _pos_ref; }
+
 	void print_status();
 
 	static constexpr unsigned FILTER_UPDATE_PERIOD_MS{10};	// ekf prediction period in milliseconds - this should ideally be an integer multiple of the IMU time delta

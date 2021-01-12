@@ -151,7 +151,12 @@ public:
 
 	// get the ekf WGS-84 origin position and height and the system time it was last set
 	// return true if the origin is valid
-	bool get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt) const;
+	bool getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const;
+	bool setEkfGlobalOrigin(const double latitude, const double longitude, const float altitude);
+
+	float getEkfGlobalOriginAltitude() const { return _gps_alt_ref; }
+	bool setEkfGlobalOriginAltitude(const float altitude);
+
 
 	// get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
 	void get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv) const;
@@ -620,6 +625,8 @@ private:
 	inline void resetHorizontalPositionToVision();
 
 	inline void resetHorizontalPositionTo(const Vector2f &new_horz_pos);
+
+	inline void resetVerticalPositionTo(const float &new_vert_pos);
 
 	void resetHeight();
 

@@ -1131,7 +1131,7 @@ void Ekf::controlHeightFusion()
 			gps_hgt_innov_gate(1) = fmaxf(_params.baro_innov_gate, 1.0f);
 			// fuse height information
 			fuseVerticalPosition(_gps_pos_innov,gps_hgt_innov_gate,
-				gps_hgt_obs_var, _gps_pos_innov_var,_gps_pos_test_ratio);
+				gps_hgt_obs_var, _gps_pos_innov_var, _gps_pos_test_ratio);
 
 		} else if (_control_status.flags.rng_hgt) {
 			Vector2f rng_hgt_innov_gate;
