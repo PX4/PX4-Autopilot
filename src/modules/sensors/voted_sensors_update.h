@@ -58,6 +58,8 @@
 #include <uORB/topics/vehicle_imu.h>
 #include <uORB/topics/vehicle_imu_status.h>
 
+using namespace time_literals;
+
 namespace sensors
 {
 
@@ -75,7 +77,7 @@ public:
 	 * @param parameters parameter values. These do not have to be initialized when constructing this object.
 	 * Only when calling init(), they have to be initialized.
 	 */
-	VotedSensorsUpdate(bool hil_enabled, uORB::SubscriptionCallbackWorkItem(&vehicle_imu_sub)[MAX_SENSOR_COUNT]);
+	VotedSensorsUpdate(uORB::SubscriptionCallbackWorkItem(&vehicle_imu_sub)[MAX_SENSOR_COUNT]);
 
 	/**
 	 * initialize subscriptions etc.
@@ -106,6 +108,13 @@ public:
 	 * so that the data can be published.
 	 */
 	void setRelativeTimestamps(sensor_combined_s &raw);
+
+	void set_hil_enabled()
+	{
+		// HIL has less accurate timing so increase the timeouts a bit
+		_gyro.voter.set_timeout(1_s);
+		_accel.voter.set_timeout(1_s);
+	}
 
 private:
 
@@ -166,8 +175,6 @@ private:
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 
 	sensor_combined_s _last_sensor_data[MAX_SENSOR_COUNT] {};	/**< latest sensor data from all sensors instances */
-
-	const bool _hil_enabled{false};			/**< is hardware-in-the-loop mode enabled? */
 
 	bool _selection_changed{true};			/**< true when a sensor selection has changed and not been published */
 

@@ -42,7 +42,6 @@
  */
 
 #include <drivers/drv_adc.h>
-#include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
@@ -59,13 +58,12 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_differential_pressure.h>
 #include <uORB/topics/sensors_status_imu.h>
 #include <uORB/topics/vehicle_air_data.h>
-#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_imu.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include "voted_sensors_update.h"
 #include "airspeed/Airspeed.hpp"
@@ -82,7 +80,7 @@ using namespace time_literals;
 class Sensors : public ModuleBase<Sensors>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	explicit Sensors(bool hil_enabled);
+	explicit Sensors();
 	~Sensors() override;
 
 	/** @see ModuleBase */
@@ -103,8 +101,8 @@ public:
 	bool init();
 
 private:
-	const bool	_hil_enabled;			/**< if true, HIL is active */
-	bool		_armed{false};				/**< arming status of the vehicle */
+	bool _armed{false};				/**< arming status of the vehicle */
+	bool _hil_enabled{false};			/**< if true, HIL is active */
 
 	hrt_abstime     _last_config_update{0};
 	hrt_abstime     _sensor_combined_prev_timestamp{0};
@@ -120,37 +118,16 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	uORB::Publication<sensor_combined_s>      _sensor_pub{ORB_ID(sensor_combined)};
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-
-	hrt_abstime	_last_adc{0};			/**< last time we took input from the ADC */
-
-	uORB::Subscription	_adc_report_sub{ORB_ID(adc_report)};		/**< adc_report sub */
-	differential_pressure_s	_diff_pres {};
-	uORB::PublicationMulti<differential_pressure_s>	_diff_pres_pub{ORB_ID(differential_pressure)};		/**< differential_pressure */
+#if defined(ADC_AIRSPEED_VOLTAGE_CHANNEL)
+	uORB::Subscription _adc_report_sub {ORB_ID(adc_report)};
+	uORB::PublicationMulti<sensor_differential_pressure_s> _diff_pres_pub{ORB_ID(sensor_differential_pressure)};		/**< differential_pressure */
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
-
-
-	struct Parameters {
-		float diff_pres_offset_pa;
-#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-		float diff_pres_analog_scale;
-#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
-
-	} _parameters{}; /**< local copies of interesting parameters */
-
-	struct ParameterHandles {
-		param_t diff_pres_offset_pa;
-#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-		param_t diff_pres_analog_scale;
-#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
-
-	} _parameter_handles{};		/**< handles for interesting parameters */
 
 	VotedSensorsUpdate _voted_sensors_update;
 
@@ -163,11 +140,6 @@ private:
 	VehicleGPSPosition	*_vehicle_gps_position{nullptr};
 
 	VehicleIMU      *_vehicle_imu_list[MAX_SENSOR_COUNT] {};
-
-	/**
-	 * Update our local parameter cache.
-	 */
-	int		parameters_update();
 
 	/**
 	 * Check for changes in parameters.
@@ -189,25 +161,22 @@ private:
 	void		InitializeVehicleMagnetometer();
 
 	DEFINE_PARAMETERS(
+#if defined(ADC_AIRSPEED_VOLTAGE_CHANNEL)
+		(ParamFloat<px4::params::SENS_DPRES_ANSC>) _param_sens_dpres_ansc,
+#endif // ADC_AIRSPEED_VOLTAGE_CHANNEL
+
 		(ParamBool<px4::params::SYS_HAS_BARO>) _param_sys_has_baro,
 		(ParamBool<px4::params::SYS_HAS_MAG>) _param_sys_has_mag,
 		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
 	)
 };
 
-Sensors::Sensors(bool hil_enabled) :
+Sensors::Sensors() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
-	_hil_enabled(hil_enabled),
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
-	_voted_sensors_update(hil_enabled, _vehicle_imu_sub)
+	_voted_sensors_update(_vehicle_imu_sub)
 {
-	/* Differential pressure offset */
-	_parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
-#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-	_parameter_handles.diff_pres_analog_scale = param_find("SENS_DPRES_ANSC");
-#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
-
 	param_find("SYS_FAC_CAL_MODE");
 
 	// Parameters controlling the on-board sensor thermal calibrator
@@ -266,25 +235,7 @@ bool Sensors::init()
 	return true;
 }
 
-int Sensors::parameters_update()
-{
-	if (_armed) {
-		return 0;
-	}
-
-	/* Airspeed offset */
-	param_get(_parameter_handles.diff_pres_offset_pa, &(_parameters.diff_pres_offset_pa));
-#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-	param_get(_parameter_handles.diff_pres_analog_scale, &(_parameters.diff_pres_analog_scale));
-#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
-
-	_voted_sensors_update.parametersUpdate();
-
-	return PX4_OK;
-}
-
-void
-Sensors::parameter_update_poll(bool forced)
+void Sensors::parameter_update_poll(bool forced)
 {
 	// check for parameter updates
 	if (_parameter_update_sub.updated() || forced) {
@@ -293,8 +244,11 @@ Sensors::parameter_update_poll(bool forced)
 		_parameter_update_sub.copy(&pupdate);
 
 		// update parameters from storage
-		parameters_update();
 		updateParams();
+
+		if (!_armed) {
+			_voted_sensors_update.parametersUpdate();
+		}
 	}
 }
 
@@ -305,53 +259,36 @@ void Sensors::adc_poll()
 		return;
 	}
 
-#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
+#if defined(ADC_AIRSPEED_VOLTAGE_CHANNEL)
 
-	if (_parameters.diff_pres_analog_scale > 0.0f) {
+	if (_param_sens_dpres_ansc.get() > 0.0f) {
+		adc_report_s adc;
 
-		const hrt_abstime t = hrt_absolute_time();
+		if (_adc_report_sub.update(&adc)) {
+			/* Read add channels we got */
+			for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; i++) {
+				if (ADC_AIRSPEED_VOLTAGE_CHANNEL == adc.channel_id[i]) {
+					/* calculate airspeed, raw is the difference from */
+					const float voltage = (float)(adc.raw_data[i]) * adc.v_ref / adc.resolution * ADC_DP_V_DIV;
 
-		/* rate limit to 100 Hz */
-		if (t - _last_adc >= 10000) {
-			adc_report_s adc;
-
-			if (_adc_report_sub.update(&adc)) {
-				/* Read add channels we got */
-				for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; i++) {
-					if (adc.channel_id[i] == -1) {
-						continue;	// skip non-exist channels
-					}
-
-					if (ADC_AIRSPEED_VOLTAGE_CHANNEL == adc.channel_id[i]) {
-
-						/* calculate airspeed, raw is the difference from */
-						const float voltage = (float)(adc.raw_data[i]) * adc.v_ref / adc.resolution * ADC_DP_V_DIV;
-
-						/**
-						 * The voltage divider pulls the signal down, only act on
-						 * a valid voltage from a connected sensor. Also assume a non-
-						 * zero offset from the sensor if its connected.
-						 *
-						 * Notice: This won't work on devices which have PGA controlled
-						 * vref. Those devices require no divider at all.
-						 */
-						if (voltage > 0.4f) {
-							const float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
-
-							_diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
-							_diff_pres.differential_pressure_filtered_pa = (_diff_pres.differential_pressure_filtered_pa * 0.9f) +
-									(diff_pres_pa_raw * 0.1f);
-							_diff_pres.temperature = NAN;
-
-							_diff_pres.timestamp = hrt_absolute_time();
-
-							_diff_pres_pub.publish(_diff_pres);
-						}
+					/**
+					 * The voltage divider pulls the signal down, only act on
+					 * a valid voltage from a connected sensor. Also assume a non-
+					 * zero offset from the sensor if its connected.
+					 *
+					 * Notice: This won't work on devices which have PGA controlled
+					 * vref. Those devices require no divider at all.
+					 */
+					if (voltage > 0.4f) {
+						sensor_differential_pressure_s diff_pres{};
+						diff_pres.timestamp_sample = adc.timestamp;
+						diff_pres.differential_pressure_pa = voltage * _param_sens_dpres_ansc.get();
+						diff_pres.temperature = NAN;
+						diff_pres.timestamp = hrt_absolute_time();
+						_diff_pres_pub.publish(diff_pres);
 					}
 				}
 			}
-
-			_last_adc = t;
 		}
 	}
 
@@ -361,7 +298,7 @@ void Sensors::adc_poll()
 void Sensors::InitializeAirspeed()
 {
 	if (_airspeed == nullptr) {
-		if (orb_exists(ORB_ID(differential_pressure), 0) == PX4_OK) {
+		if (orb_exists(ORB_ID(sensor_differential_pressure), 0) == PX4_OK) {
 			_airspeed = new Airspeed();
 
 			if (_airspeed) {
@@ -483,11 +420,18 @@ void Sensors::Run()
 	ScheduleDelayed(10_ms);
 
 	// check vehicle status for changes to publication state
-	if (_vcontrol_mode_sub.updated()) {
-		vehicle_control_mode_s vcontrol_mode{};
+	if (_vehicle_status_sub.updated()) {
+		vehicle_status_s vehicle_status;
 
-		if (_vcontrol_mode_sub.copy(&vcontrol_mode)) {
-			_armed = vcontrol_mode.flag_armed;
+		if (_vehicle_status_sub.copy(&vehicle_status)) {
+			const bool hil_prev = _hil_enabled;
+
+			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			_hil_enabled = (vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON);
+
+			if (!hil_prev && _hil_enabled) {
+				_voted_sensors_update.set_hil_enabled();
+			}
 		}
 	}
 
@@ -524,35 +468,7 @@ void Sensors::Run()
 
 int Sensors::task_spawn(int argc, char *argv[])
 {
-	bool hil_enabled = false;
-	bool error_flag = false;
-
-	int myoptind = 1;
-	int ch;
-	const char *myoptarg = nullptr;
-
-	while ((ch = px4_getopt(argc, argv, "h", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		case 'h':
-			hil_enabled = true;
-			break;
-
-		case '?':
-			error_flag = true;
-			break;
-
-		default:
-			PX4_WARN("unrecognized flag");
-			error_flag = true;
-			break;
-		}
-	}
-
-	if (error_flag) {
-		return PX4_ERROR;
-	}
-
-	Sensors *instance = new Sensors(hil_enabled);
+	Sensors *instance = new Sensors();
 
 	if (instance) {
 		_object.store(instance);
@@ -649,7 +565,6 @@ It runs in its own thread and polls on the currently selected gyro topic.
 
 	PRINT_MODULE_USAGE_NAME("sensors", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAM_FLAG('h', "Start in HIL mode", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;

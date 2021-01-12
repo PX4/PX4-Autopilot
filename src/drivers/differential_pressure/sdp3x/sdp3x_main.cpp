@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,42 +31,68 @@
  *
  ****************************************************************************/
 
-/**
- * @file drv_airspeed.h
- *
- * Airspeed driver interface.
- *
- * @author Simon Wilks
- */
+#include "SDP3X.hpp"
 
-#ifndef _DRV_AIRSPEED_H
-#define _DRV_AIRSPEED_H
+I2CSPIDriverBase *SDP3X::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+				     int runtime_instance)
+{
+	SDP3X *instance = new SDP3X(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.i2c_address,
+				    cli.keep_running);
 
-#include <stdint.h>
-#include <sys/ioctl.h>
+	if (instance == nullptr) {
+		PX4_ERR("alloc failed");
+		return nullptr;
+	}
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
+	if (instance->init() != PX4_OK) {
+		delete instance;
+		return nullptr;
+	}
 
-#define AIRSPEED_BASE_DEVICE_PATH "/dev/airspeed"
-#define AIRSPEED0_DEVICE_PATH	"/dev/airspeed0"
+	instance->start();
+	return instance;
+}
 
-/*
- * ioctl() definitions
- *
- * Airspeed drivers also implement the generic sensor driver
- * interfaces from drv_sensor.h
- */
+void SDP3X::print_usage()
+{
+	PRINT_MODULE_USAGE_NAME("sdp3x", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("airspeed_sensor");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x21);
+	PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG();
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+}
 
-#define _AIRSPEEDIOCBASE		(0x7700)
-#define __AIRSPEEDIOC(_n)		(_PX4_IOC(_AIRSPEEDIOCBASE, _n))
+extern "C" __EXPORT int sdp3x_main(int argc, char *argv[])
+{
+	using ThisDriver = SDP3X;
+	BusCLIArguments cli{true, false};
+	cli.default_i2c_frequency = 100000;
+	cli.i2c_address = I2C_ADDRESS_1_SDP3X;
+	cli.support_keep_running = true;
 
-#define AIRSPEEDIOCSSCALE		__AIRSPEEDIOC(0)
+	const char *verb = cli.parseDefaultArguments(argc, argv);
 
-/** airspeed scaling factors; out = (in * Vscale) + offset */
-struct airspeed_scale {
-	float	offset_pa;
-	float	scale;
-};
+	if (!verb) {
+		ThisDriver::print_usage();
+		return -1;
+	}
 
-#endif /* _DRV_AIRSPEED_H */
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_DIFF_PRESS_DEVTYPE_SDP31);
+
+	if (!strcmp(verb, "start")) {
+		return ThisDriver::module_start(cli, iterator);
+	}
+
+	if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
+	}
+
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
+
+	ThisDriver::print_usage();
+	return -1;
+}

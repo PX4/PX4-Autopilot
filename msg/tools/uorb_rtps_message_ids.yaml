@@ -33,7 +33,7 @@ rtps:
   - msg: debug_vect
     id: 15
     receive: true
-  - msg: differential_pressure
+  - msg: sensor_differential_pressure
     id: 16
   - msg: distance_sensor
     id: 17

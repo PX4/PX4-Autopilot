@@ -31,11 +31,11 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__ets_airspeed
+	MODULE drivers__differential_pressure__ets_airspeed
 	MAIN ets_airspeed
 	COMPILE_FLAGS
 	SRCS
 		ets_airspeed.cpp
 	DEPENDS
-		drivers__airspeed
+		px4_work_queue
 	)

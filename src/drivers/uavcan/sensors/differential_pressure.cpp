@@ -37,7 +37,6 @@
 
 #include "differential_pressure.hpp"
 
-#include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
 #include <parameters/param.h>
@@ -46,16 +45,13 @@
 const char *const UavcanDifferentialPressureBridge::NAME = "differential_pressure";
 
 UavcanDifferentialPressureBridge::UavcanDifferentialPressureBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_differential_pressure", ORB_ID(differential_pressure)),
+	UavcanSensorBridgeBase("uavcan_differential_pressure", ORB_ID(sensor_differential_pressure)),
 	_sub_air(node)
 {
 }
 
 int UavcanDifferentialPressureBridge::init()
 {
-	// Initialize the calibration offset
-	param_get(param_find("SENS_DPRES_OFF"), &_diff_pres_offset);
-
 	int res = _sub_air.start(AirCbBinder(this, &UavcanDifferentialPressureBridge::air_sub_cb));
 
 	if (res < 0) {
@@ -72,17 +68,13 @@ void UavcanDifferentialPressureBridge::air_sub_cb(const
 	_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_UAVCAN;
 	_device_id.devid_s.address = msg.getSrcNodeID().get() & 0xFF;
 
-	float diff_press_pa = msg.differential_pressure;
-	float temperature_c = msg.static_air_temperature + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
-
-	differential_pressure_s report = {
-		.timestamp = hrt_absolute_time(),
-		.error_count = 0,
-		.differential_pressure_raw_pa = diff_press_pa - _diff_pres_offset,
-		.differential_pressure_filtered_pa = _filter.apply(diff_press_pa) - _diff_pres_offset, /// TODO: Create filter
-		.temperature = temperature_c,
-		.device_id = _device_id.devid
-	};
+	sensor_differential_pressure_s report{};
+	report.timestamp_sample = hrt_absolute_time();
+	report.device_id = get_device_id();
+	report.differential_pressure_pa = msg.differential_pressure;
+	report.temperature = msg.static_air_temperature + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+	report.error_count = 0;
+	report.timestamp = hrt_absolute_time();
 
 	publish(msg.getSrcNodeID().get(), &report);
 }

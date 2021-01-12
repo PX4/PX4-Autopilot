@@ -322,11 +322,14 @@ else
 	# Sensors System (start before Commander so Preflight checks are properly run).
 	# Commander needs to be this early for in-air-restarts.
 	#
+	sensors start
+
 	if param greater SYS_HITL 0
 	then
 		set OUTPUT_MODE hil
-		sensors start -h
+
 		commander start -h
+
 		# disable GPS
 		param set GPS_1_CONFIG 0
 
@@ -370,7 +373,6 @@ else
 		set FMU_MODE pwm4
 		set AUX_MODE pwm4
 	fi
-
 
 	# Check if ATS is enabled
 	if param compare FD_EXT_ATS_EN 1

@@ -37,6 +37,6 @@ px4_add_module(
 	SRCS
 		ms4525_airspeed.cpp
 	DEPENDS
-		drivers__airspeed
 		mathlib
+		px4_work_queue
 	)

@@ -48,7 +48,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed.h>
-#include <uORB/topics/differential_pressure.h>
+#include <uORB/topics/sensor_differential_pressure.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_air_data.h>
 
@@ -88,10 +88,10 @@ private:
 	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_sub[MAX_SENSOR_COUNT] {
-		{this, ORB_ID(differential_pressure), 0},
-		{this, ORB_ID(differential_pressure), 1},
-		{this, ORB_ID(differential_pressure), 2},
-		{this, ORB_ID(differential_pressure), 3},
+		{this, ORB_ID(sensor_differential_pressure), 0},
+		{this, ORB_ID(sensor_differential_pressure), 1},
+		{this, ORB_ID(sensor_differential_pressure), 2},
+		{this, ORB_ID(sensor_differential_pressure), 3},
 	};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
@@ -105,11 +105,11 @@ private:
 	uint32_t _device_id[MAX_SENSOR_COUNT] {};
 	uint64_t _timestamp_sample_sum[MAX_SENSOR_COUNT] {0};
 	hrt_abstime _last_publication_timestamp[MAX_SENSOR_COUNT] {};
-	float _differential_pressure_sum[MAX_SENSOR_COUNT] {};
+	float _sensor_differential_pressure_sum[MAX_SENSOR_COUNT] {};
 	float _temperature_sum[MAX_SENSOR_COUNT] {};
 	int _sum_count[MAX_SENSOR_COUNT] {};
 
-	differential_pressure_s _last_data[MAX_SENSOR_COUNT] {};
+	sensor_differential_pressure_s _last_data[MAX_SENSOR_COUNT] {};
 	bool _advertised[MAX_SENSOR_COUNT] {};
 
 	uint8_t _priority[MAX_SENSOR_COUNT] {100, 100, 100, 100};

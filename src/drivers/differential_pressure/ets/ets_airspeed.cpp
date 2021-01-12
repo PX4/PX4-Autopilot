@@ -37,13 +37,14 @@
  *
  * Driver for the Eagle Tree Airspeed V3 connected via I2C.
  */
-
-#include <float.h>
-
-#include <drivers/airspeed/airspeed.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <drivers/device/i2c.h>
+#include <uORB/topics/sensor_differential_pressure.h>
+#include <uORB/PublicationMulti.hpp>
+
+#include <float.h>
 
 /* I2C bus address */
 #define I2C_ADDRESS	0x75	/* 7-bit address. 8-bit address is 0xEA */
@@ -60,45 +61,63 @@
 /* Measurement rate is 100Hz */
 #define CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
 
-class ETSAirspeed : public Airspeed, public I2CSPIDriver<ETSAirspeed>
+class ETSAirspeed : public device::I2C, public I2CSPIDriver<ETSAirspeed>
 {
 public:
 	ETSAirspeed(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS);
 
-	virtual ~ETSAirspeed() = default;
+	virtual ~ETSAirspeed();
 
 	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 					     int runtime_instance);
 	static void print_usage();
 
 	void	RunImpl();
-protected:
-	int	measure() override;
-	int	collect() override;
+
+private:
+	int	probe() override;
+
+	int	measure();
+	int	collect();
+
+	bool _sensor_ok{false};
+	int _measure_interval{0};
+	bool _collect_phase{false};
+	unsigned _conversion_interval{0};
+
+	uORB::PublicationMulti<sensor_differential_pressure_s>	_differential_pressure_pub{ORB_ID(sensor_differential_pressure)};
+
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com err")};
 };
 
-/*
- * Driver 'main' command.
- */
-extern "C" __EXPORT int ets_airspeed_main(int argc, char *argv[]);
-
-ETSAirspeed::ETSAirspeed(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address)
-	: Airspeed(bus, bus_frequency, address, CONVERSION_INTERVAL),
-	  I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
+ETSAirspeed::ETSAirspeed(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address) :
+	I2C(DRV_DIFF_PRESS_DEVTYPE_ETS3, MODULE_NAME, bus, address, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
 {
-	_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_MS4525;
 }
 
-int
-ETSAirspeed::measure()
+ETSAirspeed::~ETSAirspeed()
 {
-	int ret;
+	perf_free(_sample_perf);
+	perf_free(_comms_errors);
+}
 
+int ETSAirspeed::probe()
+{
+	uint8_t cmd = READ_CMD;
+	int ret = transfer(&cmd, 1, nullptr, 0);
+
+	return ret;
+}
+
+int ETSAirspeed::measure()
+{
 	/*
 	 * Send the command to begin a measurement.
 	 */
 	uint8_t cmd = READ_CMD;
-	ret = transfer(&cmd, 1, nullptr, 0);
+	int ret = transfer(&cmd, 1, nullptr, 0);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -107,59 +126,46 @@ ETSAirspeed::measure()
 	return ret;
 }
 
-int
-ETSAirspeed::collect()
+int ETSAirspeed::collect()
 {
-	int	ret = -EIO;
-
 	/* read from the sensor */
-	uint8_t val[2] = {0, 0};
-
 	perf_begin(_sample_perf);
 
-	ret = transfer(nullptr, 0, &val[0], 2);
+	const hrt_abstime timestamp_sample = hrt_absolute_time();
+	uint8_t val[2] {};
+	int ret = transfer(nullptr, 0, &val[0], 2);
 
 	if (ret < 0) {
 		perf_count(_comms_errors);
 		return ret;
 	}
 
-	float diff_pres_pa_raw = (float)(val[1] << 8 | val[0]);
+	float diff_press_pa_raw = (float)(val[1] << 8 | val[0]);
 
-	differential_pressure_s report{};
-	report.timestamp = hrt_absolute_time();
-
-	if (diff_pres_pa_raw < FLT_EPSILON) {
+	if (diff_press_pa_raw < FLT_EPSILON) {
 		// a zero value indicates no measurement
 		// since the noise floor has been arbitrarily killed
 		// it defeats our stuck sensor detection - the best we
 		// can do is to output some numerical noise to show
 		// that we are still correctly sampling.
-		diff_pres_pa_raw = 0.001f * (report.timestamp & 0x01);
+		diff_press_pa_raw = 0.001f * (hrt_absolute_time() & 0x01);
 	}
 
-	// The raw value still should be compensated for the known offset
-	diff_pres_pa_raw -= _diff_pres_offset;
-
-	report.error_count = perf_event_count(_comms_errors);
-
-	// XXX we may want to smooth out the readings to remove noise.
-	report.differential_pressure_filtered_pa = diff_pres_pa_raw;
-	report.differential_pressure_raw_pa = diff_pres_pa_raw;
+	sensor_differential_pressure_s report{};
+	report.timestamp_sample = timestamp_sample;
+	report.device_id = get_device_id();
+	report.differential_pressure_pa = diff_press_pa_raw;
 	report.temperature = NAN;
-	report.device_id = _device_id.devid;
-
-	_airspeed_pub.publish(report);
-
-	ret = OK;
+	report.error_count = perf_event_count(_comms_errors);
+	report.timestamp = hrt_absolute_time();
+	_differential_pressure_pub.publish(report);
 
 	perf_end(_sample_perf);
 
-	return ret;
+	return PX4_OK;
 }
 
-void
-ETSAirspeed::RunImpl()
+void ETSAirspeed::RunImpl()
 {
 	int ret;
 
@@ -228,9 +234,7 @@ I2CSPIDriverBase *ETSAirspeed::instantiate(const BusCLIArguments &cli, const Bus
 	return instance;
 }
 
-
-void
-ETSAirspeed::print_usage()
+void ETSAirspeed::print_usage()
 {
 	PRINT_MODULE_USAGE_NAME("ets_airspeed", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("airspeed_sensor");
@@ -239,8 +243,7 @@ ETSAirspeed::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-int
-ets_airspeed_main(int argc, char *argv[])
+extern "C" __EXPORT int ets_airspeed_main(int argc, char *argv[])
 {
 	using ThisDriver = ETSAirspeed;
 	BusCLIArguments cli{true, false};
