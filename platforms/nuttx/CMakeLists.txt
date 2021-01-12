@@ -69,7 +69,12 @@ elseif("${PX4_BOARD_LABEL}" STREQUAL "canbootloader")
 	)
 
 	target_link_libraries(px4 PRIVATE
-		-Wl,-wrap,sched_process_timer -Wl,-wrap,nx_sem_post -Wl,-wrap,nx_sem_wait
+		-Wl,-wrap,nxsched_process_timer
+		-Wl,-wrap,nxsem_post
+		-Wl,-wrap,nxsem_wait
+		-Wl,-wrap,arm_svcall
+		-Wl,-wrap,nx_start
+		-Wl,-wrap,exit
 	)
 else()
 	if(NOT "${PX4_BOARD_LINKER_PREFIX}" STREQUAL "")
@@ -119,7 +124,6 @@ target_link_libraries(px4 PRIVATE
 
 	-fno-exceptions
 	-fno-rtti
-
 	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx-config/scripts/${SCRIPT_PREFIX}script.ld
 	-Wl,-Map=${PX4_CONFIG}.map
 	-Wl,--warn-common
