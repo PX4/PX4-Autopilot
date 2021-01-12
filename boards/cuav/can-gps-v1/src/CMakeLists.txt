@@ -32,6 +32,7 @@
 ############################################################################
 
 if("${PX4_BOARD_LABEL}" STREQUAL  "canbootloader")
+
 	add_library(drivers_board
 		boot_config.h
 		boot.c
