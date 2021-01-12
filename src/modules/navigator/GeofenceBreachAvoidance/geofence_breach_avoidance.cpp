@@ -53,6 +53,7 @@ GeofenceBreachAvoidance::GeofenceBreachAvoidance(ModuleParams *parent) :
 
 void GeofenceBreachAvoidance::updateParameters()
 {
+	ModuleParams::updateParams();
 	param_get(_paramHandle.param_mpc_jerk_max, &_params.param_mpc_jerk_max);
 	param_get(_paramHandle.param_mpc_acc_hor, &_params.param_mpc_acc_hor);
 	param_get(_paramHandle.param_mpc_acc_hor_max, &_params.param_mpc_acc_hor_max);
@@ -156,18 +157,18 @@ GeofenceBreachAvoidance::generateLoiterPointForMultirotor(geofence_violation_typ
 		float current_max = _test_point_distance;
 		Vector2d test_point;
 
-		// logarithmic search for the distance from the drone to the geofence in the given direction
+		// binary search for the distance from the drone to the geofence in the given direction
 		while (abs(current_max - current_min) > 0.5f) {
 			test_point = waypointFromBearingAndDistance(_current_pos_lat_lon, _test_point_bearing, current_distance);
 
 			if (!geofence->isInsidePolygonOrCircle(test_point(0), test_point(1), _current_alt_amsl)) {
 				current_max = current_distance;
-				current_distance = current_min + (current_max - current_min) * 0.5f;
 
 			} else {
 				current_min = current_distance;
-				current_distance = current_min + (current_max - current_min) * 0.5f;
 			}
+
+			current_distance = (current_max + current_min) * 0.5f;
 		}
 
 		test_point = waypointFromBearingAndDistance(_current_pos_lat_lon, _test_point_bearing, current_distance);
@@ -223,7 +224,8 @@ float GeofenceBreachAvoidance::computeBrakingDistanceMultirotor()
 	predictor.updateDurations(0.f);
 	predictor.updateTraj(predictor.getTotalTime());
 
-	_multirotor_braking_distance =  predictor.getCurrentPosition() + 0.2f * _velocity_hor_abs; // navigator runs at 5Hz
+	_multirotor_braking_distance =  predictor.getCurrentPosition() + (GEOFENCE_CHECK_INTERVAL_US / 1e6f) *
+					_velocity_hor_abs;
 
 	return _multirotor_braking_distance;
 }
@@ -241,8 +243,8 @@ float GeofenceBreachAvoidance::computeVerticalBrakingDistanceMultirotor()
 	predictor.updateDurations(0.f);
 	predictor.updateTraj(predictor.getTotalTime());
 
-	_multirotor_vertical_braking_distance =  predictor.getCurrentPosition() + 0.2f *
-			vertical_vel_abs; // navigator runs at 5Hz
+	_multirotor_vertical_braking_distance =  predictor.getCurrentPosition() + (GEOFENCE_CHECK_INTERVAL_US / 1e6f) *
+			vertical_vel_abs;
 
 	_multirotor_vertical_braking_distance = matrix::sign(_climbrate) * _multirotor_vertical_braking_distance;
 

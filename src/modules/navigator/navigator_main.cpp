@@ -64,9 +64,6 @@
  * @ingroup apps
  */
 extern "C" __EXPORT int navigator_main(int argc, char *argv[]);
-
-#define GEOFENCE_CHECK_INTERVAL 200000
-
 using namespace time_literals;
 
 namespace navigator
@@ -700,7 +697,7 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 
 	if (have_geofence_position_data &&
 	    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
-	    (hrt_elapsed_time(&_last_geofence_check) > GEOFENCE_CHECK_INTERVAL)) {
+	    (hrt_elapsed_time(&_last_geofence_check) > GEOFENCE_CHECK_INTERVAL_US)) {
 
 		const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
 
