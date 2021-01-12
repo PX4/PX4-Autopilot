@@ -39,6 +39,8 @@
 
 class Geofence;
 
+#define GEOFENCE_CHECK_INTERVAL_US 200000
+
 union geofence_violation_type_u {
 	struct {
 		bool dist_to_home_exceeded: 1;	///< 0 - distance to home exceeded
