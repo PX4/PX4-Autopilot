@@ -297,6 +297,8 @@ public:
 
 	bool		abort_landing();
 
+	void geofence_breach_check(bool &have_geofence_position_data);
+
 	// Param access
 	float		get_loiter_min_alt() const { return _param_mis_ltrmin_alt.get(); }
 	float		get_takeoff_min_alt() const { return _param_mis_takeoff_alt.get(); }
@@ -381,6 +383,7 @@ private:
 	Geofence	_geofence;			/**< class that handles the geofence */
 	bool		_geofence_violation_warning_sent{false}; /**< prevents spaming to mavlink */
 	GeofenceBreachAvoidance _gf_breach_avoidance;
+	hrt_abstime _last_geofence_check = 0;
 
 	bool		_can_loiter_at_sp{false};			/**< flags if current position SP can be used to loiter */
 	bool		_pos_sp_triplet_updated{false};		/**< flags if position SP triplet needs to be published */

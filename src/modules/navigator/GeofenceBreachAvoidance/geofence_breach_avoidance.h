@@ -53,7 +53,7 @@ class GeofenceBreachAvoidance : public ModuleParams
 public:
 	GeofenceBreachAvoidance();
 
-	~GeofenceBreachAvoidance();
+	~GeofenceBreachAvoidance() = default;
 
 	matrix::Vector2<double> getFenceViolationTestPoint();
 
