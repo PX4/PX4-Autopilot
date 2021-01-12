@@ -38,8 +38,8 @@
 using Vector2d = matrix::Vector2<double>;
 
 
-GeofenceBreachAvoidance::GeofenceBreachAvoidance() :
-	ModuleParams(nullptr)
+GeofenceBreachAvoidance::GeofenceBreachAvoidance(ModuleParams *parent) :
+	ModuleParams(parent)
 {
 	_paramHandle.param_mpc_jerk_max = param_find("MPC_JERK_MAX");
 	_paramHandle.param_mpc_acc_hor = param_find("MPC_ACC_HOR");
