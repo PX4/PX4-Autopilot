@@ -65,13 +65,17 @@ bool Ekf::collect_gps(const gps_message &gps)
 		// If we have good GPS data set the origin's WGS-84 position to the last gps fix
 		const double lat = gps.lat * 1.0e-7;
 		const double lon = gps.lon * 1.0e-7;
-		map_projection_init_timestamped(&_pos_ref, lat, lon, _time_last_imu);
 
-		// if we are already doing aiding, correct for the change in position since the EKF started navigationg
-		if (isHorizontalAidingActive()) {
-			double est_lat, est_lon;
-			map_projection_reproject(&_pos_ref, -_state.pos(0), -_state.pos(1), &est_lat, &est_lon);
-			map_projection_init_timestamped(&_pos_ref, est_lat, est_lon, _time_last_imu);
+		if (!map_projection_initialized(&_pos_ref)) {
+			map_projection_init_timestamped(&_pos_ref, lat, lon, _time_last_imu);
+
+			// if we are already doing aiding, correct for the change in position since the EKF started navigating
+			if (isHorizontalAidingActive()) {
+				double est_lat;
+				double est_lon;
+				map_projection_reproject(&_pos_ref, -_state.pos(0), -_state.pos(1), &est_lat, &est_lon);
+				map_projection_init_timestamped(&_pos_ref, est_lat, est_lon, _time_last_imu);
+			}
 		}
 
 		// Take the current GPS height and subtract the filter height above origin to estimate the GPS height of the origin
@@ -89,7 +93,7 @@ bool Ekf::collect_gps(const gps_message &gps)
 
 		// request a reset of the yaw using the new declination
 		if (_params.mag_fusion_type == MAG_FUSE_TYPE_NONE) {
-			// try to reset the yaw using the EKF-GSF yaw esitimator
+			// try to reset the yaw using the EKF-GSF yaw estimator
 			_do_ekfgsf_yaw_reset = true;
 			_ekfgsf_yaw_reset_time = 0;
 
@@ -104,7 +108,6 @@ bool Ekf::collect_gps(const gps_message &gps)
 		_gps_origin_epv = gps.epv;
 
 		// if the user has selected GPS as the primary height source, switch across to using it
-
 		if (_params.vdist_sensor_type == VDIST_SENSOR_GPS) {
 			startGpsHgtFusion();
 		}

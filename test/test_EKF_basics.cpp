@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 
+#include <chrono>
 #include <gtest/gtest.h>
 #include <math.h>
 #include <memory>
@@ -185,6 +186,58 @@ TEST_F(EkfBasicsTest, accelBiasEstimation)
 		<< "accel_bias = " << accel_bias(0) << ", " << accel_bias(1) << ", " << accel_bias(2);
 	EXPECT_TRUE(matrix::isEqual(gyro_bias, zero, 0.001f))
 		<< "gyro_bias = " << gyro_bias(0) << ", " << gyro_bias(1) << ", " << gyro_bias(2);
+}
+
+TEST_F(EkfBasicsTest, reset_ekf_global_origin)
+{
+	double latitude  {0.0};
+	double longitude {0.0};
+	float  altitude  {0.f};
+
+	double latitude_new  {0.0};
+	double longitude_new {0.0};
+	float  altitude_new  {0.f};
+
+	uint64_t origin_time = 0;
+
+	_ekf->getEkfGlobalOrigin(origin_time, latitude_new, longitude_new, altitude_new);
+
+	EXPECT_DOUBLE_EQ(latitude, latitude_new);
+	EXPECT_DOUBLE_EQ(longitude, longitude_new);
+	EXPECT_FLOAT_EQ(altitude, altitude_new);
+
+	_sensor_simulator.startGps();
+	_ekf->set_min_required_gps_health_time(1e6);
+	_sensor_simulator.runSeconds(1);
+	sleep(1);
+
+	latitude_new  = 45.0000005;
+	longitude_new = -111.0000005;
+	altitude_new  = 1500.0;
+
+	_ekf->setEkfGlobalOrigin(latitude_new, longitude_new, altitude_new);
+	_ekf->getEkfGlobalOrigin(origin_time, latitude, longitude, altitude);
+
+	// EKF origin MSL altitude cannot be reset without valid MSL origin.
+	EXPECT_DOUBLE_EQ(latitude, latitude_new);
+	EXPECT_DOUBLE_EQ(longitude, longitude_new);
+
+	// After the change of origin, the pos and vel innovations should stay small
+	_sensor_simulator.runSeconds(1);
+	sleep(1);
+
+	float hpos = 0.f;
+	float vpos = 0.f;
+	float hvel = 0.f;
+	float vvel = 0.f;
+
+	_ekf->getGpsVelPosInnovRatio(hvel, vvel, hpos, vpos);
+
+	EXPECT_NEAR(hvel, 0.f, 0.02f);
+	EXPECT_NEAR(vvel, 0.f, 0.02f);
+
+	EXPECT_NEAR(hpos, 0.f, 0.05f);
+	EXPECT_NEAR(vpos, 0.f, 0.05f);
 }
 
 // TODO: Add sampling tests

@@ -210,7 +210,7 @@ void Ekf::resetHorizontalPositionToVision()
 
 void Ekf::resetHorizontalPositionTo(const Vector2f &new_horz_pos)
 {
-	const Vector2f delta_horz_pos = new_horz_pos - Vector2f(_state.pos);
+	const Vector2f delta_horz_pos{new_horz_pos - Vector2f{_state.pos}};
 	_state.pos.xy() = new_horz_pos;
 
 	for (uint8_t index = 0; index < _output_buffer.get_length(); index++) {
@@ -223,27 +223,42 @@ void Ekf::resetHorizontalPositionTo(const Vector2f &new_horz_pos)
 	_state_reset_status.posNE_counter++;
 }
 
+void Ekf::resetVerticalPositionTo(const float &new_vert_pos)
+{
+	const float old_vert_pos = _state.pos(2);
+	_state.pos(2) = new_vert_pos;
+
+	// store the reset amount and time to be published
+	_state_reset_status.posD_change = new_vert_pos - old_vert_pos;
+	_state_reset_status.posD_counter++;
+
+	// apply the change in height / height rate to our newest height / height rate estimate
+	// which have already been taken out from the output buffer
+	_output_new.pos(2) += _state_reset_status.posD_change;
+
+	// add the reset amount to the output observer buffered data
+	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
+		_output_buffer[i].pos(2) += _state_reset_status.posD_change;
+		_output_vert_buffer[i].vert_vel_integ += _state_reset_status.posD_change;
+	}
+
+	// add the reset amount to the output observer vertical position state
+	_output_vert_new.vert_vel_integ = _state.pos(2);
+}
+
 // Reset height state using the last height measurement
 void Ekf::resetHeight()
 {
 	// Get the most recent GPS data
 	const gpsSample &gps_newest = _gps_buffer.get_newest();
 
-	// store the current vertical position and velocity for reference so we can calculate and publish the reset amount
-	const float old_vert_pos = _state.pos(2);
-	bool vert_pos_reset = false;
-
 	// reset the vertical position
 	if (_control_status.flags.rng_hgt) {
-		const float new_pos_down = _hgt_sensor_offset - _range_sensor.getDistBottom();
-
 		// update the state and associated variance
-		_state.pos(2) = new_pos_down;
+		resetVerticalPositionTo(_hgt_sensor_offset - _range_sensor.getDistBottom());
 
 		// the state variance is the same as the observation
 		P.uncorrelateCovarianceSetVariance<1>(9, sq(_params.range_noise));
-
-		vert_pos_reset = true;
 
 		// reset the baro offset which is subtracted from the baro reading if we need to use it as a backup
 		const baroSample &baro_newest = _baro_buffer.get_newest();
@@ -254,12 +269,10 @@ void Ekf::resetHeight()
 		const baroSample &baro_newest = _baro_buffer.get_newest();
 
 		if (!_baro_hgt_faulty) {
-			_state.pos(2) = -baro_newest.hgt + _baro_hgt_offset;
+			resetVerticalPositionTo(-baro_newest.hgt + _baro_hgt_offset);
 
 			// the state variance is the same as the observation
 			P.uncorrelateCovarianceSetVariance<1>(9, sq(_params.baro_noise));
-
-			vert_pos_reset = true;
 
 		} else {
 			// TODO: reset to last known baro based estimate
@@ -268,12 +281,10 @@ void Ekf::resetHeight()
 	} else if (_control_status.flags.gps_hgt) {
 		// initialize vertical position and velocity with newest gps measurement
 		if (!_gps_hgt_intermittent) {
-			_state.pos(2) = _hgt_sensor_offset - gps_newest.hgt + _gps_alt_ref;
+			resetVerticalPositionTo(_hgt_sensor_offset - gps_newest.hgt + _gps_alt_ref);
 
 			// the state variance is the same as the observation
 			P.uncorrelateCovarianceSetVariance<1>(9, sq(gps_newest.vacc));
-
-			vert_pos_reset = true;
 
 			// reset the baro offset which is subtracted from the baro reading if we need to use it as a backup
 			const baroSample &baro_newest = _baro_buffer.get_newest();
@@ -288,16 +299,11 @@ void Ekf::resetHeight()
 		const extVisionSample &ev_newest = _ext_vision_buffer.get_newest();
 
 		// use the most recent data if it's time offset from the fusion time horizon is smaller
-		const int32_t dt_newest = ev_newest.time_us - _imu_sample_delayed.time_us;
-		const int32_t dt_delayed = _ev_sample_delayed.time_us - _imu_sample_delayed.time_us;
-
-		vert_pos_reset = true;
-
-		if (std::abs(dt_newest) < std::abs(dt_delayed)) {
-			_state.pos(2) = ev_newest.pos(2);
+		if (ev_newest.time_us >= _ev_sample_delayed.time_us) {
+			resetVerticalPositionTo(ev_newest.pos(2));
 
 		} else {
-			_state.pos(2) = _ev_sample_delayed.pos(2);
+			resetVerticalPositionTo(_ev_sample_delayed.pos(2));
 		}
 	}
 
@@ -316,31 +322,6 @@ void Ekf::resetHeight()
 		// Set the variance to a value large enough to allow the state to converge quickly
 		// that does not destabilise the filter
 		P.uncorrelateCovarianceSetVariance<1>(6, 10.0f);
-	}
-
-	// store the reset amount and time to be published
-	if (vert_pos_reset) {
-		_state_reset_status.posD_change = _state.pos(2) - old_vert_pos;
-		_state_reset_status.posD_counter++;
-	}
-
-	// apply the change in height / height rate to our newest height / height rate estimate
-	// which have already been taken out from the output buffer
-	if (vert_pos_reset) {
-		_output_new.pos(2) += _state_reset_status.posD_change;
-	}
-
-	// add the reset amount to the output observer buffered data
-	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
-		if (vert_pos_reset) {
-			_output_buffer[i].pos(2) += _state_reset_status.posD_change;
-			_output_vert_buffer[i].vert_vel_integ += _state_reset_status.posD_change;
-		}
-	}
-
-	// add the reset amount to the output observer vertical position state
-	if (vert_pos_reset) {
-		_output_vert_new.vert_vel_integ = _state.pos(2);
 	}
 }
 
@@ -693,14 +674,47 @@ matrix::Vector<float, 24> Ekf::getStateAtFusionHorizonAsVector() const
 	return state;
 }
 
-// get the position and height of the ekf origin in WGS-84 coordinates and time the origin was set
-// return true if the origin is valid
-bool Ekf::get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt) const
+bool Ekf::getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const
 {
-	memcpy(origin_time, &_last_gps_origin_time_us, sizeof(uint64_t));
-	memcpy(origin_pos, &_pos_ref, sizeof(map_projection_reference_s));
-	memcpy(origin_alt, &_gps_alt_ref, sizeof(float));
+	origin_time = _last_gps_origin_time_us;
+	latitude    = math::degrees(_pos_ref.lat_rad);
+	longitude   = math::degrees(_pos_ref.lon_rad);
+	origin_alt  = _gps_alt_ref;
 	return _NED_origin_initialised;
+}
+
+bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, const float altitude)
+{
+	bool current_pos_available = false;
+	double current_lat = static_cast<double>(NAN);
+	double current_lon = static_cast<double>(NAN);
+	float current_alt  = NAN;
+
+	// if we are already doing aiding, correct for the change in position since the EKF started navigating
+	if (map_projection_initialized(&_pos_ref) && isHorizontalAidingActive()) {
+		map_projection_reproject(&_pos_ref, _state.pos(0), _state.pos(1), &current_lat, &current_lon);
+		current_alt = -_state.pos(2) + _gps_alt_ref;
+		current_pos_available = true;
+	}
+
+	// reinitialize map projection to latitude, longitude, altitude, and reset position
+	if (map_projection_init_timestamped(&_pos_ref, latitude, longitude, _time_last_imu) == 0) {
+
+		if (current_pos_available) {
+			// reset horizontal position
+			Vector2f position;
+			map_projection_project(&_pos_ref, current_lat, current_lon, &position(0), &position(1));
+			resetHorizontalPositionTo(position);
+
+			// reset altitude
+			_gps_alt_ref = altitude;
+			resetVerticalPositionTo(_gps_alt_ref - current_alt);
+		}
+
+		return true;
+	}
+
+	return false;
 }
 
 /*
