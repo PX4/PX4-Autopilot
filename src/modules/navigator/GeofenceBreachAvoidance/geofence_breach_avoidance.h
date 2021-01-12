@@ -51,7 +51,7 @@ union geofence_violation_type_u {
 class GeofenceBreachAvoidance : public ModuleParams
 {
 public:
-	GeofenceBreachAvoidance();
+	GeofenceBreachAvoidance(ModuleParams *parent);
 
 	~GeofenceBreachAvoidance() = default;
 

@@ -78,6 +78,7 @@ Navigator::Navigator() :
 	ModuleParams(nullptr),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 	_geofence(this),
+	_gf_breach_avoidance(this),
 	_mission(this),
 	_loiter(this),
 	_takeoff(this),
@@ -208,8 +209,6 @@ Navigator::run()
 
 			// update parameters from storage
 			params_update();
-
-			_gf_breach_avoidance.updateParameters();
 		}
 
 		_land_detected_sub.update(&_land_detected);

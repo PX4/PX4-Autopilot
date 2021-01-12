@@ -51,22 +51,22 @@ public:
 
 	virtual ~FakeGeofence() {};
 
-	virtual bool isInsidePolygonOrCircle(double lat, double lon, float altitude)
+	bool isInsidePolygonOrCircle(double lat, double lon, float altitude) override
 	{
 		switch (_probe_function_behavior) {
-		case ALL_POINTS_OUTSIDE: {
+		case ProbeFunction::ALL_POINTS_OUTSIDE: {
 				return _allPointsOutside(lat, lon, altitude);
 			}
 
-		case LEFT_INSIDE_RIGHT_OUTSIDE: {
+		case ProbeFunction::LEFT_INSIDE_RIGHT_OUTSIDE: {
 				return _left_inside_right_outside(lat, lon, altitude);
 			}
 
-		case RIGHT_INSIDE_LEFT_OUTSIDE: {
+		case ProbeFunction::RIGHT_INSIDE_LEFT_OUTSIDE: {
 				return _right_inside_left_outside(lat, lon, altitude);
 			}
 
-		case GF_BOUNDARY_20M_AHEAD: {
+		case ProbeFunction::GF_BOUNDARY_20M_AHEAD: {
 				return _gf_boundary_is_20m_ahead(lat, lon, altitude);
 			}
 
@@ -75,19 +75,19 @@ public:
 		}
 	}
 
-	enum PROBE_FUNC_ENUM {
+	enum class ProbeFunction {
 		ALL_POINTS_OUTSIDE = 0,
 		LEFT_INSIDE_RIGHT_OUTSIDE,
 		RIGHT_INSIDE_LEFT_OUTSIDE,
 		GF_BOUNDARY_20M_AHEAD
 	};
 
-	void setProbeFunctionBehavior(PROBE_FUNC_ENUM func) {_probe_function_behavior = func;}
+	void setProbeFunctionBehavior(ProbeFunction func) {_probe_function_behavior = func;}
 
 
 private:
 
-	PROBE_FUNC_ENUM _probe_function_behavior = ALL_POINTS_OUTSIDE;
+	ProbeFunction _probe_function_behavior = ProbeFunction::ALL_POINTS_OUTSIDE;
 
 	bool _allPointsOutside(double lat, double lon, float alt)
 	{
