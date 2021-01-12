@@ -65,7 +65,7 @@ __EXPORT void stm32_boardinitialize(void)
 	putreg32(getreg32(STM32_RCC_APB1ENR) | RCC_APB1ENR_CAN1EN, STM32_RCC_APB1ENR);
 	stm32_configgpio(GPIO_CAN1_RX);
 	stm32_configgpio(GPIO_CAN1_TX);
-	stm32_configgpio(GPIO_CAN_CTRL);
+	stm32_configgpio(GPIO_CAN1_SILENT_S0);
 	putreg32(getreg32(STM32_RCC_APB1RSTR) | RCC_APB1RSTR_CAN1RST, STM32_RCC_APB1RSTR);
 	putreg32(getreg32(STM32_RCC_APB1RSTR) & ~RCC_APB1RSTR_CAN1RST, STM32_RCC_APB1RSTR);
 
