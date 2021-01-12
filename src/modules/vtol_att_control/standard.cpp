@@ -277,7 +277,7 @@ void Standard::update_transition_state()
 		if (_params->front_trans_timeout > FLT_EPSILON) {
 			if (time_since_trans_start > _params->front_trans_timeout) {
 				// transition timeout occured, abort transition
-				_attc->abort_front_transition("Transition timeout");
+				_attc->quadchute("Transition timeout");
 			}
 		}
 
