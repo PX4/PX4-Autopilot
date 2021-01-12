@@ -107,7 +107,7 @@ public:
 	bool init();
 
 	bool is_fixed_wing_requested();
-	void abort_front_transition(const char *reason);
+	void quadchute(const char *reason);
 
 	struct actuator_controls_s 			*get_actuators_fw_in() {return &_actuators_fw_in;}
 	struct actuator_controls_s 			*get_actuators_mc_in() {return &_actuators_mc_in;}

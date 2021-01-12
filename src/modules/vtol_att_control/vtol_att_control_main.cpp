@@ -211,7 +211,7 @@ VtolAttitudeControl::is_fixed_wing_requested()
 }
 
 void
-VtolAttitudeControl::abort_front_transition(const char *reason)
+VtolAttitudeControl::quadchute(const char *reason)
 {
 	if (!_vtol_vehicle_status.vtol_transition_failsafe) {
 		mavlink_log_critical(&_mavlink_log_pub, "Abort: %s", reason);
