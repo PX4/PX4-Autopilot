@@ -2,7 +2,7 @@
 px4_add_board(
 	PLATFORM nuttx
 	VENDOR bitcraze
-	MODEL crazyflie 2.1
+	MODEL crazyflie21
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
