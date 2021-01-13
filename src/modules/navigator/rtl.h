@@ -49,6 +49,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/rtl_flight_time.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
 #include <matrix/math.hpp>
 #include <lib/ecl/geo/geo.h>
@@ -163,9 +164,9 @@ private:
 
 	// These need to point at different parameters depending on vehicle type.
 	// Can't hard-code them because we have non-MC/FW/Rover builds
-	uint8_t _rtl_vehicle_type{255};
-	param_t _rtl_xy_speed;
-	param_t _rtl_descent_speed;
+	uint8_t _rtl_vehicle_type{vehicle_status_s::VEHICLE_TYPE_UNKNOWN};
+	param_t _rtl_xy_speed{PARAM_INVALID};
+	param_t _rtl_descent_speed{PARAM_INVALID};
 
 	uORB::SubscriptionData<wind_estimate_s>		_wind_estimate_sub{ORB_ID(wind_estimate)};
 	uORB::Publication<rtl_flight_time_s>		_rtl_flight_time_pub{ORB_ID(rtl_flight_time)};
