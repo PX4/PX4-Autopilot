@@ -48,7 +48,7 @@ LeddarOne::LeddarOne(const char *serial_port, uint8_t device_orientation):
 	device::Device::DeviceId device_id;
 	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SERIAL;
 
-	uint8_t bus_num = atoi(&_serial_port[sizeof(_serial_port) - 2]);
+	uint8_t bus_num = atoi(&_serial_port[strlen(_serial_port) - 1]); // Assuming '/dev/ttySx'
 
 	if (bus_num < 10) {
 		device_id.devid_s.bus = bus_num;

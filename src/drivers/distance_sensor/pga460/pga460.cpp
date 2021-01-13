@@ -51,7 +51,7 @@ PGA460::PGA460(const char *port)
 	_device_id.devid_s.devtype = DRV_DIST_DEVTYPE_PGA460;
 	_device_id.devid_s.bus_type = device::Device::DeviceBusType_SERIAL;
 
-	uint8_t bus_num = atoi(&_port[sizeof(_port) - 2]);
+	uint8_t bus_num = atoi(&_port[strlen(_port) - 1]); // Assuming '/dev/ttySx'
 
 	if (bus_num < 10) {
 		_device_id.devid_s.bus = bus_num;
