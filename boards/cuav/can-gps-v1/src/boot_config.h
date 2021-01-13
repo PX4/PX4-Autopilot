@@ -132,9 +132,5 @@
 
 /* Bootloader Option*****************************************************************
  *
- *   GPIO      Function                                     MPU        Board
- *                                                          Pin #      Name
- * -- ----- --------------------------------             ----------------------------
- *  *  PC[09] PC9/TIM3_CH4                                     40       BOOT0
  */
-#define GPIO_GETNODEINFO_JUMPER (BUTTON_BOOT0n&~(GPIO_EXTI))
+#define GPIO_GETNODEINFO_JUMPER (BUTTON_SAFETY & ~GPIO_EXTI)

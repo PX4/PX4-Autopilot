@@ -48,8 +48,7 @@
 #include <stdint.h>
 
 /* BUTTON *************************************************************************** */
-#define BUTTON_BOOT0n   (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTB|GPIO_PIN3|GPIO_EXTI)
-#define IRQBUTTON       BUTTON_BOOT0_BIT
+#define BUTTON_SAFETY         /* PB3  */  (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTB|GPIO_PIN3|GPIO_EXTI)
 
 #define GPIO_RGB_S            /* PB0  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN0)
 /* CAN Silence
