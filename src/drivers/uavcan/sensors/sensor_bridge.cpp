@@ -91,7 +91,7 @@ UavcanSensorBridgeBase::publish(const int node_id, const void *report)
 			return;  // Give up immediately - saves some CPU time
 		}
 
-		DEVICE_LOG("adding channel %d...", node_id);
+		DEVICE_LOG("adding channel for topic %s node %d...", _orb_topic->o_name, node_id);
 
 		// Search for the first free channel
 		for (unsigned i = 0; i < _max_channels; i++) {
@@ -115,7 +115,7 @@ UavcanSensorBridgeBase::publish(const int node_id, const void *report)
 		channel->orb_advert = orb_advertise_multi(_orb_topic, report, &channel->instance);
 
 		channel->node_id = node_id;
-		DEVICE_LOG("channel %d instance %d ok", channel->node_id, channel->instance);
+		DEVICE_LOG("node %d instance %d ok", channel->node_id, channel->instance);
 
 		if (channel->orb_advert == nullptr) {
 			DEVICE_LOG("uORB advertise failed. Out of instances?");
@@ -124,7 +124,7 @@ UavcanSensorBridgeBase::publish(const int node_id, const void *report)
 			return;
 		}
 
-		DEVICE_LOG("channel %d instance %d ok", channel->node_id, channel->instance);
+		DEVICE_LOG("node %d topic %s instance %d ok", channel->node_id, _orb_topic->o_name, channel->instance);
 	}
 
 	assert(channel != nullptr);
@@ -151,7 +151,7 @@ uavcan_bridge::Channel *UavcanSensorBridgeBase::get_channel_for_node(int node_id
 			return channel;
 		}
 
-		DEVICE_LOG("adding channel %d...", node_id);
+		DEVICE_LOG("adding channel for topic %s node %d...", _orb_topic->o_name, node_id);
 
 		// Search for the first free channel
 		for (unsigned i = 0; i < _max_channels; i++) {
