@@ -11,7 +11,7 @@
 # @output MAIN5 throttle
 #
 #
-# @url https://github.com/ThunderFly-aerospace/Auto-G2/
+# @url https://github.com/ThunderFly-aerospace/TF-G2/
 # @maintainer ThunderFly s.r.o., Roman Dvorak <dvorakroman@thunderfly.cz>
 #
 # @board px4_fmu-v2 exclude
@@ -23,13 +23,13 @@
 
 if [ $AUTOCNF = yes ]
 then
-	param set BAT_CAPACITY 2500
+	param set BAT_CAPACITY 3200
 	param set BAT_N_CELLS 3
 
 	param set PWM_AUX_RATE 50
 	param set PWM_RATE 50
 
-	param set SENS_BOARD_ROT 8
+	param set SENS_BOARD_ROT 4
 
 	param set FW_AIRSPD_MAX 20
 	param set FW_AIRSPD_MIN 7
