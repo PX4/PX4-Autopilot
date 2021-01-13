@@ -24,7 +24,7 @@ if ms5525 start -X
 then
 fi
 
-if ms4525_airspeed start -X
+if ms4525 start -X
 then
 fi
 

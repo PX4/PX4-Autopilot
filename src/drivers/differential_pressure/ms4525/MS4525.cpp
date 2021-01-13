@@ -31,39 +31,7 @@
  *
  ****************************************************************************/
 
-/**
- * @file meas_airspeed.cpp
- * @author Lorenz Meier
- * @author Sarthak Kaingade
- * @author Simon Wilks
- * @author Thomas Gubler
- *
- * Driver for the MEAS Spec series connected via I2C.
- *
- * Supported sensors:
- *
- *    - MS4525DO (http://www.meas-spec.com/downloads/MS4525DO.pdf)
- *
- * Interface application notes:
- *
- *    - Interfacing to MEAS Digital Pressure Modules (http://www.meas-spec.com/downloads/Interfacing_to_MEAS_Digital_Pressure_Modules.pdf)
- */
-
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/i2c_spi_buses.h>
-#include <drivers/device/i2c.h>
-#include <uORB/topics/sensor_differential_pressure.h>
-#include <uORB/PublicationMulti.hpp>
-
-enum MS_DEVICE_TYPE {
-	DEVICE_TYPE_MS4515	= 4515,
-	DEVICE_TYPE_MS4525	= 4525
-};
-
-/* I2C bus address is 1010001x */
-#define I2C_ADDRESS_MS4515DO	0x46
-#define I2C_ADDRESS_MS4525DO	0x28	/**< 7-bit address. Depends on the order code (this is for code "I") */
+#include "MS4525.hpp"
 
 /* Register address */
 #define ADDR_READ_MR			0x00	/* write to this address to start conversion */
@@ -72,44 +40,27 @@ enum MS_DEVICE_TYPE {
 #define MEAS_RATE 100
 #define CONVERSION_INTERVAL	(1000000 / MEAS_RATE)	/* microseconds */
 
-class MEASAirspeed : public device::I2C, public I2CSPIDriver<MEASAirspeed>
-{
-public:
-	MEASAirspeed(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS_MS4525DO);
-
-	virtual ~MEASAirspeed() = default;
-
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
-	static void print_usage();
-
-	void	RunImpl();
-
-private:
-	int	measure();
-	int	collect();
-
-	bool _sensor_ok{false};
-	int _measure_interval{0};
-	bool _collect_phase{false};
-	unsigned _conversion_interval{0};
-
-	int16_t _dp_raw_prev{0};
-	int16_t _dT_raw_prev{0};
-
-	uORB::PublicationMulti<sensor_differential_pressure_s>	_differential_pressure_pub{ORB_ID(sensor_differential_pressure)};
-
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
-	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com err")};
-};
-
-MEASAirspeed::MEASAirspeed(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address) :
+MS4525::MS4525(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address) :
 	I2C(DRV_DIFF_PRESS_DEVTYPE_MS4525, MODULE_NAME, bus, address, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
 {
 }
 
-int MEASAirspeed::measure()
+MS4525::~MS4525()
+{
+	perf_free(_sample_perf);
+	perf_free(_comms_errors);
+}
+
+int MS4525::probe()
+{
+	uint8_t cmd = 0;
+	int ret = transfer(&cmd, 1, nullptr, 0);
+
+	return ret;
+}
+
+int MS4525::measure()
 {
 	// Send the command to begin a measurement.
 	uint8_t cmd = 0;
@@ -122,15 +73,14 @@ int MEASAirspeed::measure()
 	return ret;
 }
 
-int MEASAirspeed::collect()
+int MS4525::collect()
 {
 	/* read from the sensor */
-	uint8_t val[4] {};
-
 	perf_begin(_sample_perf);
 
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
+	uint8_t val[4] {};
 	int ret = transfer(nullptr, 0, &val[0], 4);
 
 	if (ret < 0) {
@@ -172,7 +122,7 @@ int MEASAirspeed::collect()
 	}
 
 	// only publish changes
-	if ((dp_raw != _dp_raw_prev) && (dT_raw != _dT_raw_prev)) {
+	if ((dp_raw != _dp_raw_prev) || (dT_raw != _dT_raw_prev)) {
 
 		_dp_raw_prev = dp_raw;
 		_dT_raw_prev = dT_raw;
@@ -215,7 +165,7 @@ int MEASAirspeed::collect()
 	return PX4_OK;
 }
 
-void MEASAirspeed::RunImpl()
+void MS4525::RunImpl()
 {
 	int ret;
 
@@ -264,11 +214,10 @@ void MEASAirspeed::RunImpl()
 	ScheduleDelayed(CONVERSION_INTERVAL);
 }
 
-I2CSPIDriverBase *MEASAirspeed::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-		int runtime_instance)
+I2CSPIDriverBase *MS4525::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+				      int runtime_instance)
 {
-	MEASAirspeed *instance = new MEASAirspeed(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency,
-			cli.i2c_address);
+	MS4525 *instance = new MS4525(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.i2c_address);
 
 	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
@@ -284,48 +233,30 @@ I2CSPIDriverBase *MEASAirspeed::instantiate(const BusCLIArguments &cli, const Bu
 	return instance;
 }
 
-void MEASAirspeed::print_usage()
+void MS4525::print_usage()
 {
-	PRINT_MODULE_USAGE_NAME("ms4525_airspeed", "driver");
+	PRINT_MODULE_USAGE_NAME("ms4525", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("airspeed_sensor");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
-	PRINT_MODULE_USAGE_PARAM_STRING('T', "4525", "4525|4515", "Device type", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" __EXPORT int ms4525_airspeed_main(int argc, char *argv[])
+extern "C" __EXPORT int ms4525_main(int argc, char *argv[])
 {
-	int ch;
-	using ThisDriver = MEASAirspeed;
+	using ThisDriver = MS4525;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 100000;
-	int device_type = DEVICE_TYPE_MS4525;
+	cli.i2c_address = I2C_ADDRESS_MS4525DO;
 
-	while ((ch = cli.getopt(argc, argv, "T:")) != EOF) {
-		switch (ch) {
-		case 'T':
-			device_type = atoi(cli.optarg());
-			break;
-		}
-	}
-
-	const char *verb = cli.optarg();
+	const char *verb = cli.parseDefaultArguments(argc, argv);
 
 	if (!verb) {
 		ThisDriver::print_usage();
 		return -1;
 	}
 
-	if (device_type == DEVICE_TYPE_MS4525) {
-		cli.i2c_address = I2C_ADDRESS_MS4525DO;
-
-	} else {
-		cli.i2c_address = I2C_ADDRESS_MS4515DO;
-	}
-
-	BusInstanceIterator iterator(MODULE_NAME, cli,
-				     DRV_DIFF_PRESS_DEVTYPE_MS4525);
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_DIFF_PRESS_DEVTYPE_MS4525);
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);
