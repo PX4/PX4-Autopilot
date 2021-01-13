@@ -80,7 +80,16 @@ void Tailsitter::update_vtol_state()
 
 	float pitch = Eulerf(Quatf(_v_att->q)).theta();
 
-	if (!_attc->is_fixed_wing_requested()) {
+	if (_vtol_vehicle_status->vtol_transition_failsafe) {
+		// Failsafe event, switch to MC mode immediately
+		_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
+
+		//reset failsafe when FW is no longer requested
+		if (!_attc->is_fixed_wing_requested()) {
+			_vtol_vehicle_status->vtol_transition_failsafe = false;
+		}
+
+	} else if (!_attc->is_fixed_wing_requested()) {
 
 		switch (_vtol_schedule.flight_mode) { // user switchig to MC mode
 		case vtol_mode::MC_MODE:
