@@ -51,4 +51,4 @@ set MAV_TYPE 19
 
 set MIXER vtol_tailsitter_duo
 
-set PWM_OUT 1234
+set PWM_OUT 123456
