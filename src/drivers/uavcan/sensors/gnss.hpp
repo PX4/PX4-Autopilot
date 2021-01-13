@@ -122,7 +122,6 @@ private:
 	uORB::Subscription			_orb_inject_data_sub{ORB_ID(gps_inject_data)};
 	uORB::PublicationMulti<sensor_gps_s>	_gps_pub{ORB_ID(sensor_gps)};
 
-	int	_receiver_node_id{-1};
 	bool	_old_fix_subscriber_active{true};
 
 	orb_advert_t _report_pub;                ///< uORB pub for gnss position
