@@ -193,6 +193,9 @@ public:
 		case DeviceBusType_SIMULATION:
 			return "SIMULATION";
 
+		case DeviceBusType_SERIAL:
+			return "SERIAL";
+
 		case DeviceBusType_UNKNOWN:
 		default:
 			return "UNKNOWN";
