@@ -605,7 +605,7 @@ Matrix<Type, M, N> operator*(Type scalar, const Matrix<Type, M, N> &other)
 
 template<typename Type, size_t  M, size_t N>
 bool isEqual(const Matrix<Type, M, N> &x,
-             const Matrix<Type, M, N> &y, const Type eps=1e-4f) {
+             const Matrix<Type, M, N> &y, const Type eps=Type(1e-4f)) {
     for (size_t i = 0; i < M; i++) {
         for (size_t j = 0; j < N; j++) {
             if (!isEqualF(x(i,j), y(i,j), eps)) {

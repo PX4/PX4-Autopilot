@@ -32,7 +32,7 @@ bool is_finite(Type x) {
  * @return true if the two values are considered equal, false otherwise
  */
 template<typename Type>
-bool isEqualF(const Type x, const Type y, const Type eps = 1e-4f)
+bool isEqualF(const Type x, const Type y, const Type eps = Type(1e-4f))
 {
     return (matrix::fabs(x - y) <= eps)
            || (isnan(x) && isnan(y))

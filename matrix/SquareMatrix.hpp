@@ -223,7 +223,7 @@ public:
 
     // checks if block diagonal is symmetric
     template <size_t Width>
-    bool isBlockSymmetric(size_t first, const Type eps = 1e-8f)
+    bool isBlockSymmetric(size_t first, const Type eps = Type(1e-8f))
     {
         static_assert(Width <= M, "Width bigger than matrix");
         assert(first + Width <= M);
@@ -243,7 +243,7 @@ public:
 
     // checks if rows and columns are symmetric
     template <size_t Width>
-    bool isRowColSymmetric(size_t first, const Type eps = 1e-8f)
+    bool isRowColSymmetric(size_t first, const Type eps = Type(1e-8f))
     {
         static_assert(Width <= M, "Width bigger than matrix");
         assert(first + Width <= M);
@@ -324,7 +324,7 @@ bool inv(const SquareMatrix<Type, M> & A, SquareMatrix<Type, M> & inv, size_t ra
             for (size_t i = n + 1; i < rank; i++) {
 
                 //printf("\ttrying row %d\n",i);
-                if (fabs(static_cast<float>(U(i, n))) > 1e-8f) {
+                if (fabs(static_cast<float>(U(i, n))) > Type(1e-8f)) {
                     //printf("swapped %d\n",i);
                     U.swapRows(i, n);
                     P.swapRows(i, n);
