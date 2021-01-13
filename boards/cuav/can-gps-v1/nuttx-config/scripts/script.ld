@@ -71,13 +71,15 @@ SECTIONS
 	.text : {
 		_stext = ABSOLUTE(.);
 		*(.vectors)
-		. = ALIGN(32);
-		/*
-		This signature provides the bootloader with a way to delay booting
-		*/
-		_bootdelay_signature = ABSOLUTE(.);
-		FILL(0xffecc2925d7d05c5)
-		. += 8;
+		. = ALIGN(8);
+      /*
+       * This section positions the app_descriptor_t used
+       * by the make_can_boot_descriptor.py tool to set
+       * the application image's descriptor so that the
+       * uavcan bootloader has the ability to validate the
+       * image crc, size etc
+      */
+    KEEP(*(.app_descriptor))
 		*(.text .text.*)
 		*(.fixup)
 		*(.gnu.warning)
