@@ -1852,15 +1852,17 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 	/* Using tecs library */
 	float pitch_for_tecs = _pitch - radians(_param_fw_psp_off.get());
 
-	/* filter speed and altitude for controller */
-	Vector3f accel_body(_vehicle_acceleration_sub.get().xyz);
+	// calculate speed derivative in forward direction, which is used by complimentary filter to calculate filtered airspeed
+	Vector3f speed_deriv_body = _R_nb.transpose() * Vector3f(_local_pos.ax, _local_pos.ay, _local_pos.az);
+	float speed_deriv_forward;
 
 	// tailsitters use the multicopter frame as reference, in fixed wing
 	// we need to use the fixed wing frame
 	if (_vtol_tailsitter) {
-		float tmp = accel_body(0);
-		accel_body(0) = -accel_body(2);
-		accel_body(2) = tmp;
+		speed_deriv_forward = -speed_deriv_body(2);
+
+	} else {
+		speed_deriv_forward = speed_deriv_body(0);
 	}
 
 	/* tell TECS to update its state, but let it know when it cannot actually control the plane */
@@ -1871,8 +1873,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 				    _control_mode.flag_control_altitude_enabled));
 
 	/* update TECS vehicle state estimates */
-	_tecs.update_vehicle_state_estimates(_airspeed, _R_nb,
-					     accel_body, (_local_pos.timestamp > 0), in_air_alt_control,
+	_tecs.update_vehicle_state_estimates(_airspeed, speed_deriv_forward, (_local_pos.timestamp > 0), in_air_alt_control,
 					     _current_altitude, _local_pos.vz);
 
 	/* scale throttle cruise by baro pressure */
