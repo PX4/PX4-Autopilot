@@ -146,7 +146,7 @@ px4_add_romfs_files(
 
 	16001_helicopter
 
-    # [1700, 17999] Autogyro
+	# [17000, 17999] Autogyro
 	17002_TF-AutoG2
 	17003_TF-G2
 
