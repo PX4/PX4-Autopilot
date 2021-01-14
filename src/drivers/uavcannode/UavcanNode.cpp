@@ -306,10 +306,10 @@ void UavcanNode::Run()
 			dist.registerCallback();
 		}
 
-		_sensor_baro_sub.registerCallback();
-		_sensor_mag_sub.registerCallback();
 		_optical_flow_sub.registerCallback();
-		_vehicle_gps_position_sub.registerCallback();
+		_sensor_baro_sub.registerCallback();
+		_sensor_gps_sub.registerCallback();
+		_sensor_mag_sub.registerCallback();
 
 		_initialized = true;
 	}
@@ -462,11 +462,11 @@ void UavcanNode::Run()
 		}
 	}
 
-	// vehicle_gps_position -> uavcan::equipment::gnss::Fix2
-	if (_vehicle_gps_position_sub.updated()) {
-		vehicle_gps_position_s gps;
+	// sensor_gps -> uavcan::equipment::gnss::Fix2
+	if (_sensor_gps_sub.updated()) {
+		sensor_gps_s gps;
 
-		if (_vehicle_gps_position_sub.copy(&gps)) {
+		if (_sensor_gps_sub.copy(&gps)) {
 			uavcan::equipment::gnss::Fix2 fix2{};
 
 			fix2.gnss_time_standard = fix2.GNSS_TIME_STANDARD_UTC;
