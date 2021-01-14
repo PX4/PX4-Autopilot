@@ -54,7 +54,9 @@
 #include <errno.h>
 
 #include <nuttx/config.h>
+extern "C" {
 #include <nuttx/board.h>
+}
 #include <nuttx/spi/spi.h>
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
@@ -73,6 +75,7 @@
 #include <px4_platform/gpio.h>
 #include <px4_platform/board_determine_hw_info.h>
 #include <px4_platform/board_dma_alloc.h>
+#include <px4_platform/gpio/mcp23009.hpp>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -158,7 +161,7 @@ __EXPORT void board_on_reset(int status)
  *
  ************************************************************************************/
 
-__EXPORT void
+extern "C" __EXPORT void
 stm32_boardinitialize(void)
 {
 	board_on_reset(-1); /* Reset PWM first thing */
@@ -174,7 +177,7 @@ stm32_boardinitialize(void)
 
 	/* configure SPI interfaces (we can do this here as long as we only have a single SPI hw config version -
 	 * otherwise we need to move this after board_determine_hw_info()) */
-	_Static_assert(BOARD_NUM_SPI_CFG_HW_VERSIONS == 1, "Need to move the SPI initialization for multi-version support");
+	static_assert(BOARD_NUM_SPI_CFG_HW_VERSIONS == 1, "Need to move the SPI initialization for multi-version support");
 
 	stm32_spiinitialize();
 
@@ -210,7 +213,6 @@ stm32_boardinitialize(void)
  *   any failure to indicate the nature of the failure.
  *
  ****************************************************************************/
-
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
