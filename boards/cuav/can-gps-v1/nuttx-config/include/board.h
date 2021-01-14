@@ -128,40 +128,22 @@
 
 /* Alternate function pin selections ************************************************/
 
-/*
- * UARTs.
- */
+/* UARTs */
 #define GPIO_USART1_RX	GPIO_USART1_RX_2
 #define GPIO_USART1_TX	GPIO_USART1_TX_2
 
 #define GPIO_USART2_RX	GPIO_USART2_RX_1
 #define GPIO_USART2_TX	GPIO_USART2_TX_1
 
-/*
- * CAN
- *
- * CAN1 is routed to the onboard transceiver.
- */
+/* CAN */
 #define GPIO_CAN1_RX	GPIO_CAN1_RX_2
 #define GPIO_CAN1_TX	GPIO_CAN1_TX_2
 
-/*
- * I2C
- *
- * The optional _GPIO configurations allow the I2C driver to manually
- * reset the bus to clear stuck slaves.  They match the pin configuration,
- * but are normally-high GPIOs.
- */
+/* I2C */
 #define GPIO_I2C3_SCL		GPIO_I2C3_SCL_2
 #define GPIO_I2C3_SDA		GPIO_I2C3_SDA_2
-#define GPIO_I2C3_SCL_GPIO	(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN8)
-#define GPIO_I2C3_SDA_GPIO	(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN4)
 
-/*
- * SPI
- *
- * There are sensors on SPI1, and SPI2 is connected to the FRAM.
- */
+/* SPI */
 #define GPIO_SPI1_MISO  (GPIO_SPI1_MISO_1|GPIO_SPEED_50MHz)
 #define GPIO_SPI1_MOSI  (GPIO_SPI1_MOSI_1|GPIO_SPEED_50MHz)
 #define GPIO_SPI1_SCK   (GPIO_SPI1_SCK_1|GPIO_SPEED_50MHz)

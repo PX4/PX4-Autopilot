@@ -30,13 +30,12 @@ px4_add_board(
 	SERIAL_PORTS
 		GPS1:/dev/ttyS1
 	DRIVERS
-		#adc
 		barometer/ms5611
 		bootloaders
 		gps
 		magnetometer/rm3100
-		#safety_button
-		#tone_alarm
+		safety_button
+		tone_alarm
 		uavcannode
 	MODULES
 		#ekf2
@@ -50,7 +49,7 @@ px4_add_board(
 		#esc_calib
 		#hardfault_log
 		#i2cdetect
-		#led_control
+		led_control
 		#mft
 		#mixer
 		#motor_ramp
@@ -65,7 +64,7 @@ px4_add_board(
 		#shutdown
 		top
 		topic_listener
-		#tune_control
+		tune_control
 		ver
 		work_queue
 )
