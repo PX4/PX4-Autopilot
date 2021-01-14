@@ -27,8 +27,6 @@ px4_add_board(
 	ARCHITECTURE cortex-m4
 	ROMFSROOT cannode
 	UAVCAN_INTERFACES 1
-	SERIAL_PORTS
-		GPS1:/dev/ttyS1
 	DRIVERS
 		barometer/ms5611
 		bootloaders
@@ -38,30 +36,13 @@ px4_add_board(
 		tone_alarm
 		uavcannode
 	MODULES
-		#ekf2
-		#load_mon
-		#sensors
-		#temperature_compensation
+		load_mon
 	SYSTEMCMDS
-		#bl_update
-		#dmesg
-		#dumpfile
-		#esc_calib
-		#hardfault_log
-		#i2cdetect
+		i2cdetect
 		led_control
-		#mft
-		#mixer
-		#motor_ramp
-		#motor_test
-		#mtd
-		#nshterm
 		param
 		perf
 		reboot
-		#reflect
-		#sd_bench
-		#shutdown
 		top
 		topic_listener
 		tune_control
