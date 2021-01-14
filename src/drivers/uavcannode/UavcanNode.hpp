@@ -79,7 +79,7 @@
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_mag.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/sensor_gps.h>
 
 using namespace time_literals;
 
@@ -198,7 +198,7 @@ private:
 	uORB::SubscriptionCallbackWorkItem _optical_flow_sub{this, ORB_ID(optical_flow)};
 	uORB::SubscriptionCallbackWorkItem _sensor_baro_sub{this, ORB_ID(sensor_baro)};
 	uORB::SubscriptionCallbackWorkItem _sensor_mag_sub{this, ORB_ID(sensor_mag)};
-	uORB::SubscriptionCallbackWorkItem _vehicle_gps_position_sub{this, ORB_ID(vehicle_gps_position)};
+	uORB::SubscriptionCallbackWorkItem _sensor_gps_sub{this, ORB_ID(sensor_gps)};
 
 	perf_counter_t _cycle_perf;
 	perf_counter_t _interval_perf;
