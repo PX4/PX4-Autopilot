@@ -91,6 +91,7 @@ rtps:
     id: 43
   - msg: offboard_control_mode
     id: 44
+    receive: true
   - msg: optical_flow
     id: 45
     receive: true
@@ -187,12 +188,14 @@ rtps:
     id: 88
   - msg: vehicle_command
     id: 89
+    receive: true
   - msg: vehicle_command_ack
     id: 90
   - msg: vehicle_constraints
     id: 91
   - msg: vehicle_control_mode
     id: 92
+    send: true
   - msg: vehicle_global_position
     id: 93
   - msg: vehicle_gps_position
