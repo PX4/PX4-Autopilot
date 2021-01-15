@@ -298,98 +298,98 @@ rtps:
     id: 141
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
-    id: 150
+    id: 170
     alias: actuator_controls
   - msg: actuator_controls_1
-    id: 151
+    id: 171
     alias: actuator_controls
   - msg: actuator_controls_2
-    id: 152
+    id: 172
     alias: actuator_controls
   - msg: actuator_controls_3
-    id: 153
+    id: 173
     alias: actuator_controls
   - msg: actuator_controls_virtual_fw
-    id: 154
+    id: 174
     alias: actuator_controls
   - msg: actuator_controls_virtual_mc
-    id: 155
+    id: 175
     alias: actuator_controls
   - msg: mc_virtual_attitude_setpoint
-    id: 156
+    id: 176
     alias: vehicle_attitude_setpoint
   - msg: fw_virtual_attitude_setpoint
-    id: 157
+    id: 177
     alias: vehicle_attitude_setpoint
   - msg: vehicle_attitude_groundtruth
-    id: 158
+    id: 178
     alias: vehicle_attitude
   - msg: vehicle_global_position_groundtruth
-    id: 159
+    id: 179
     alias: vehicle_global_position
   - msg: vehicle_local_position_groundtruth
-    id: 160
+    id: 180
     alias: vehicle_local_position
   - msg: vehicle_mocap_odometry
     alias: vehicle_odometry
-    id: 161
+    id: 181
     receive: true
   - msg: vehicle_visual_odometry
-    id: 162
+    id: 182
     alias: vehicle_odometry
     receive: true
   - msg: vehicle_trajectory_waypoint_desired
-    id: 163
+    id: 183
     alias: vehicle_trajectory_waypoint
   - msg: obstacle_distance_fused
-    id: 164
+    id: 184
     alias: obstacle_distance
   - msg: vehicle_vision_attitude
-    id: 165
+    id: 185
     alias: vehicle_attitude
   - msg: trajectory_setpoint
-    id: 166
+    id: 186
     alias: vehicle_local_position_setpoint
   - msg: camera_trigger_secondary
-    id: 167
+    id: 187
     alias: camera_trigger
   - msg: vehicle_angular_velocity_groundtruth
-    id: 168
+    id: 188
     alias: vehicle_angular_velocity
   - msg: estimator_visual_odometry_aligned
-    id: 169
+    id: 189
     alias: vehicle_odometry
   - msg: estimator_innovation_variances
-    id: 170
+    id: 190
     alias: estimator_innovations
   - msg: estimator_innovation_test_ratios
-    id: 171
+    id: 191
     alias: estimator_innovations
   - msg: orb_multitest
-    id: 172
+    id: 192
     alias: orb_test
   - msg: orb_test_medium_multi
-    id: 173
+    id: 193
     alias: orb_test_medium
   - msg: orb_test_medium_queue
-    id: 174
+    id: 194
     alias: orb_test_medium
   - msg: orb_test_medium_queue_poll
-    id: 175
+    id: 195
     alias: orb_test_medium
   - msg: orb_test_medium_wrap_around
-    id: 176
+    id: 196
     alias: orb_test_medium
   - msg: estimator_local_position
-    id: 177
+    id: 197
     alias: vehicle_local_position
   - msg: estimator_global_position
-    id: 178
+    id: 198
     alias: vehicle_global_position
   - msg: estimator_attitude
-    id: 179
+    id: 199
     alias: vehicle_attitude
   - msg: estimator_odometry
-    id: 180
+    id: 200
     alias: vehicle_odometry
   ########## multi topics: end ##########
