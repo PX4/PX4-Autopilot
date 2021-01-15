@@ -219,6 +219,19 @@ private:
 	uavcan::ServiceClient<uavcan::protocol::param::GetSet, GetSetCallback> _enumeration_getset_client;
 	uavcan::ServiceClient<uavcan::protocol::param::ExecuteOpcode, ExecuteOpcodeCallback> _enumeration_save_client;
 
+	enum tokens {
+		hwM = 0,
+		hwdot,
+		hwm,
+		dash,
+		swM,
+		swdot,
+		swm,
+		MAX_TOKENS
+	};
+
+	int verifyFWNameFormat(char *binfile, int *counts);
 	void unpackFwFromROMFS(const char *sd_path, const char *romfs_path);
+	void migrateFWFromRoot(const char *sd_path, const char *sd_root_path);
 	int copyFw(const char *dst, const char *src);
 };

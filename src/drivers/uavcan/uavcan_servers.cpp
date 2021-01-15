@@ -38,6 +38,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <cctype>
 #include <fcntl.h>
 #include <dirent.h>
 #include <pthread.h>
@@ -280,6 +281,12 @@ UavcanServers::run(pthread_addr_t)
 	prctl(PR_SET_NAME, "uavcan fw srv", 0);
 
 	Lock lock(_subnode_mutex);
+
+	/*
+	Check for firmware in the root directory, move it to appropriate location on
+	the SD card, as defined by the APDesc.
+	*/
+	migrateFWFromRoot(UAVCAN_FIRMWARE_PATH, UAVCAN_SD_ROOT_PATH);
 
 	/*
 	Copy any firmware bundled in the ROMFS to the appropriate location on the
@@ -1202,6 +1209,203 @@ UavcanServers::unpackFwFromROMFS(const char *sd_path, const char *romfs_path)
 	}
 
 	(void)closedir(romfs_dir);
+}
+
+int UavcanServers::verifyFWNameFormat(char *binfile, int *counts)
+{
+	const char *end =  binfile + strlen(binfile) - 1;
+
+	if (strstr(binfile, "uavcan.bin") == nullptr) { return -1; }
+
+	char *hyp = strrchr(binfile, '-');
+
+	if (!hyp) { return -1; }
+
+	counts[dash]++;
+	// <name>-hm.hm-sM.sm.<vcs?
+	char *p = hyp;
+	tokens state = swM;
+
+	while (++p < end && counts[swdot] < 2) {
+		if (isdigit(*p)) {
+			counts[state]++;
+			continue;
+		}
+
+		if (*p == '.') {
+			counts[swdot]++;
+			state = swm;
+			continue;
+		}
+	}
+
+	if (counts[swdot] != 2 ||
+	    counts[swM] == 0   ||
+	    counts[swm] == 0) {
+		return -1;
+	}
+
+	p = hyp;
+	state = hwm;
+
+	while (--p > binfile) {
+		if (isdigit(*p)) {
+			counts[state]++;
+			continue;
+		}
+
+		if (*p == '.') {
+			counts[hwdot]++;
+			state = hwM;
+			continue;
+		}
+
+		if (*p == '-') {
+			counts[dash]++;
+			break;
+		}
+	}
+
+	if (counts[hwdot] != 1 ||
+	    counts[hwM] == 0   ||
+	    counts[hwm] == 0   ||
+	    counts[dash] != 2) {
+		return -1;
+	}
+
+	return 0;
+}
+
+void
+UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_path)
+{
+	/*
+	Copy Any bin files with APDes into appropriate location on SD card
+	overriding any firmware the user has already loaded there.
+
+	The SD firmware directory structure is along the lines of:
+
+	  /fs/microsd/fw
+	  - /c
+	    - /nodename-v1-1.0.25d0137d.bin   cache file (copy of /fs/microsd/fw/org.pixhawk.nodename-v1/1.1/nodename-v1-1.0.25d0137d.bin)
+	    - /othernode-v3-1.6.25d0137d.bin    cache file (copy of /fs/microsd/fw/com.example.othernode-v3/1.6/othernode-v3-1.6.25d0137d.bin)
+	  - /org.pixhawk.nodename-v1        device directory for org.pixhawk.nodename-v1
+	  - - /1.0                version directory for hardware 1.0
+	  - - /1.1                version directory for hardware 1.1
+	  - - - /nodename-v1-1.0.25d0137d.bin firmware file for org.pixhawk.nodename-v1 nodes, hardware version 1.1
+	  - /com.example.othernode-v3       device directory for com.example.othernode-v3
+	  - - /1.0                version directory for hardawre 1.0
+	  - - - /othernode-v3-1.6.25d0137d.bin  firmware file for com.example.othernode-v3, hardware version 1.6
+	*/
+
+	const size_t maxlen = UAVCAN_MAX_PATH_LENGTH;
+	const size_t sd_root_path_len = strlen(sd_root_path);
+	struct stat sb;
+	int rv;
+	char dstpath[maxlen + 1];
+	char srcpath[maxlen + 1];
+	char buf[maxlen + 1];
+
+	DIR *const sd_root_dir = opendir(sd_root_path);
+
+	if (!sd_root_dir) {
+		return;
+	}
+
+	int counts[MAX_TOKENS];
+
+	// Iterate over all bin files in root directory
+	struct dirent *dev_dirent = NULL;
+
+	while ((dev_dirent = readdir(sd_root_dir)) != nullptr) {
+		if (DIRENT_ISFILE(dev_dirent->d_type)) {
+
+			// Looking for all uavcan.bin files.
+
+			memset(counts, 0, sizeof(counts));
+
+			if (verifyFWNameFormat(dev_dirent->d_name, counts) != 0) {
+				continue;
+			}
+
+			// Make sure the path fits
+
+			size_t filename_len = strlen(dev_dirent->d_name);
+			size_t srcpath_len = sd_root_path_len + 1 + filename_len;
+
+			if (srcpath_len > maxlen) {
+				PX4_WARN("file: srcpath '%s/%s' too long", sd_root_path, dev_dirent->d_name);
+				continue;
+			}
+
+			dstpath[0] = '\0';
+			strncat(dstpath, sd_path, maxlen);
+			strcat(dstpath, "/");
+
+			srcpath[0] = '\0';
+			strncat(srcpath, sd_root_path, maxlen);
+			strcat(srcpath, dev_dirent->d_name);
+
+			// Break up name
+			// org.cuav.can-gps-v1-1.0-0.1.1c0ed74d.uavcan.bin
+			// to      ^  name     ^hw  ^sw
+			buf[0] = '\0';
+			strncpy(buf, dev_dirent->d_name, sizeof(buf));
+			char *phyp = strrchr(buf, '-');
+			char *hw = phyp - (counts[hwM] + counts[hwdot] + counts[hwm]);
+			*(hw - 1) = *phyp =  '\0';
+			phyp += (counts[swM] + counts[swdot] + counts[swm]);
+			//    org.cuav.can-gps-v1 1.0 0.1.1c0ed74d.uavcan.bin
+			//buf-^                   ^      ^
+			// hw --------------------+      |
+			// phyp------- ------------------+
+
+			// Create the device name directory on the SD card if it doesn't already exist
+			strcat(dstpath, buf);
+
+			if (stat(dstpath, &sb) != 0 || !S_ISDIR(sb.st_mode)) {
+				rv = mkdir(dstpath, S_IRWXU | S_IRWXG | S_IRWXO);
+
+				if (rv != 0) {
+					PX4_ERR("dev: couldn't create '%s'", dstpath);
+					continue;
+				}
+			}
+
+			strcat(dstpath, "/");
+			strcat(dstpath, hw);
+
+			if (stat(dstpath, &sb) != 0 || !S_ISDIR(sb.st_mode)) {
+				rv = mkdir(dstpath, S_IRWXU | S_IRWXG | S_IRWXO);
+
+				if (rv != 0) {
+					PX4_ERR("dev: couldn't create '%s'", dstpath);
+					continue;
+				}
+			}
+
+			//    org.cuav.can-gps-v1 1.0 0.1.1c0ed74d.uavcan.bin
+			//buf-^        ^                 ^
+			// hw -------- +                 |
+			// phyp------- ------------------+
+			while (*--hw != '.');
+
+			hw++;
+
+			strcat(dstpath, "/");
+			strcat(dstpath, hw);
+			strcat(dstpath, phyp);
+			unlink(dstpath);
+
+			if (copyFw(dstpath, srcpath) >= 0) {
+				unlink(srcpath);
+			}
+		}
+	}
+
+	if (dev_dirent != nullptr) {
+		(void)closedir(dev_dirent);
+	}
 }
 
 int
