@@ -32,20 +32,6 @@
  ****************************************************************************/
 
 /**
- * Differential pressure sensor analog scaling
- *
- * Pick the appropriate scaling from the datasheet.
- * this number defines the (linear) conversion from voltage
- * to Pascal (pa). For the MPXV7002DP this is 1000.
- *
- * NOTE: If the sensor always registers zero, try switching
- * the static and dynamic tubes.
- *
- * @group Sensor Calibration
- */
-PARAM_DEFINE_FLOAT(SENS_DPRES_ANSC, 0);
-
-/**
  * Board rotation
  *
  * This parameter defines the rotation of the FMU board relative to the platform.

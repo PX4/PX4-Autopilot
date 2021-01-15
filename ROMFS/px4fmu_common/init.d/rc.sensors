@@ -133,6 +133,12 @@ then
 			ms5525 start -X -q
 
 			ets_airspeed start -X -q
+
+			# analog differential pressure
+			if param greater -s SENS_DPRES_ANSC 0
+			then
+				analog_diffpres_main start
+			fi
 		fi
 	fi
 fi

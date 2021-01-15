@@ -41,7 +41,6 @@
  * @author Beat Küng <beat-kueng@gmx.net>
  */
 
-#include <drivers/drv_adc.h>
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
@@ -59,7 +58,6 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_differential_pressure.h>
 #include <uORB/topics/sensors_status_imu.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_imu.h>
@@ -124,11 +122,6 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-#if defined(ADC_AIRSPEED_VOLTAGE_CHANNEL)
-	uORB::Subscription _adc_report_sub {ORB_ID(adc_report)};
-	uORB::PublicationMulti<sensor_differential_pressure_s> _diff_pres_pub{ORB_ID(sensor_differential_pressure)};		/**< differential_pressure */
-#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
-
 	VotedSensorsUpdate _voted_sensors_update;
 
 	VehicleAcceleration	_vehicle_acceleration;
@@ -146,14 +139,6 @@ private:
 	 */
 	void 		parameter_update_poll(bool forced = false);
 
-	/**
-	 * Poll the ADC and update readings to suit.
-	 *
-	 * @param raw			Combined sensor data structure into which
-	 *				data should be returned.
-	 */
-	void		adc_poll();
-
 	void		InitializeAirspeed();
 	void		InitializeVehicleAirData();
 	void		InitializeVehicleGPSPosition();
@@ -161,10 +146,6 @@ private:
 	void		InitializeVehicleMagnetometer();
 
 	DEFINE_PARAMETERS(
-#if defined(ADC_AIRSPEED_VOLTAGE_CHANNEL)
-		(ParamFloat<px4::params::SENS_DPRES_ANSC>) _param_sens_dpres_ansc,
-#endif // ADC_AIRSPEED_VOLTAGE_CHANNEL
-
 		(ParamBool<px4::params::SYS_HAS_BARO>) _param_sys_has_baro,
 		(ParamBool<px4::params::SYS_HAS_MAG>) _param_sys_has_mag,
 		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
@@ -250,49 +231,6 @@ void Sensors::parameter_update_poll(bool forced)
 			_voted_sensors_update.parametersUpdate();
 		}
 	}
-}
-
-void Sensors::adc_poll()
-{
-	/* only read if not in HIL mode */
-	if (_hil_enabled) {
-		return;
-	}
-
-#if defined(ADC_AIRSPEED_VOLTAGE_CHANNEL)
-
-	if (_param_sens_dpres_ansc.get() > 0.0f) {
-		adc_report_s adc;
-
-		if (_adc_report_sub.update(&adc)) {
-			/* Read add channels we got */
-			for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; i++) {
-				if (ADC_AIRSPEED_VOLTAGE_CHANNEL == adc.channel_id[i]) {
-					/* calculate airspeed, raw is the difference from */
-					const float voltage = (float)(adc.raw_data[i]) * adc.v_ref / adc.resolution * ADC_DP_V_DIV;
-
-					/**
-					 * The voltage divider pulls the signal down, only act on
-					 * a valid voltage from a connected sensor. Also assume a non-
-					 * zero offset from the sensor if its connected.
-					 *
-					 * Notice: This won't work on devices which have PGA controlled
-					 * vref. Those devices require no divider at all.
-					 */
-					if (voltage > 0.4f) {
-						sensor_differential_pressure_s diff_pres{};
-						diff_pres.timestamp_sample = adc.timestamp;
-						diff_pres.differential_pressure_pa = voltage * _param_sens_dpres_ansc.get();
-						diff_pres.temperature = NAN;
-						diff_pres.timestamp = hrt_absolute_time();
-						_diff_pres_pub.publish(diff_pres);
-					}
-				}
-			}
-		}
-	}
-
-#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 }
 
 void Sensors::InitializeAirspeed()
@@ -436,9 +374,6 @@ void Sensors::Run()
 	}
 
 	_voted_sensors_update.sensorsPoll(_sensor_combined);
-
-	// check analog airspeed
-	adc_poll();
 
 	if (_sensor_combined.timestamp != _sensor_combined_prev_timestamp) {
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,28 +32,19 @@
  ****************************************************************************/
 
 /**
- * @file board_config.h
+ * Differential pressure sensor analog scaling
  *
- * RPI internal definitions
+ * Pick the appropriate scaling from the datasheet.
+ * this number defines the (linear) conversion from voltage
+ * to Pascal (pa). For the MPXV7002DP this is 1000.
+ *
+ * NOTE: If the sensor always registers zero, try switching
+ * the static and dynamic tubes.
+ *
+ * @group Sensor Calibration
  */
+PARAM_DEFINE_FLOAT(SENS_DPRES_ANSC, 0);
 
-#pragma once
 
-#define BOARD_OVERRIDE_UUID "RPIID00000000000" // must be of length 16
-#define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_RPI
-
-/*
- * I2C busses
- */
-#define PX4_NUMBER_I2C_BUSES    2
-
-#define ADC_BATTERY_VOLTAGE_CHANNEL	0
-#define ADC_BATTERY_CURRENT_CHANNEL	-1
-#define ADC_AIRSPEED_VOLTAGE_CHANNEL 2
-
-#define BOARD_BATTERY1_V_DIV 5.7f	// 1K + 4.7K
-
-#define BOARD_ADC_OPEN_CIRCUIT_V 5.3f	// Powered from USB
-
-#include <system_config.h>
-#include <px4_platform_common/board_common.h>
+// SENS_DPRES_ANLG_EN
+// SENS_DPRES_ANLG_CHANNEL?

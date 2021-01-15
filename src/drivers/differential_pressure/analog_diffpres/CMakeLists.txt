@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2013-2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,9 +31,12 @@
 #
 ############################################################################
 
-add_subdirectory(analog_diffpres)
-add_subdirectory(ets)
-add_subdirectory(ms4515)
-add_subdirectory(ms4525)
-add_subdirectory(ms5525)
-add_subdirectory(sdp3x)
+px4_add_module(
+	MODULE drivers__differential_pressure__analog_diffpres
+	MAIN analog_diffpres
+	SRCS
+		AnalogDifferentialPressure.cpp
+		AnalogDifferentialPressure.hpp
+	DEPENDS
+		px4_work_queue
+	)
