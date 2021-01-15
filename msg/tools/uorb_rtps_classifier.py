@@ -49,7 +49,7 @@ class Classifier():
         self.msg_folder = msg_folder
         self.all_msgs_list = self.set_all_msgs()
         self.msg_id_map = self.parse_yaml_msg_id_file(yaml_file)
-        self.alias_space_init_id = 150
+        self.alias_space_init_id = 170
 
         # Checkers
         self.check_if_listed(yaml_file)
@@ -180,11 +180,11 @@ class Classifier():
 
         if len(incorrect_base_ids) > 0:
             raise AssertionError(
-                ('\n' + '\n'.join('\t- The message \'{} with ID \'{}\' is in the wrong ID space. Please use any of the available IDs from 0 to 149'.format(k, v) for k, v in list(incorrect_base_ids.items()))))
+                ('\n' + '\n'.join('\t- The message \'{} with ID \'{}\' is in the wrong ID space. Please use any of the available IDs from 0 to 169'.format(k, v) for k, v in list(incorrect_base_ids.items()))))
 
         if len(incorrect_alias_ids) > 0:
             raise AssertionError(
-                ('\n' + '\n'.join('\t- The alias message \'{}\' with ID \'{}\' is in the wrong ID space. Please use any of the available IDs from 149 to 255'.format(k, v) for k, v in list(incorrect_alias_ids.items()))))
+                ('\n' + '\n'.join('\t- The alias message \'{}\' with ID \'{}\' is in the wrong ID space. Please use any of the available IDs from 170 to 255'.format(k, v) for k, v in list(incorrect_alias_ids.items()))))
 
     @staticmethod
     def parse_yaml_msg_id_file(yaml_file):
