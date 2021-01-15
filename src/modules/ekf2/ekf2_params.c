@@ -1098,6 +1098,17 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_A_HMAX, 5.0f);
 PARAM_DEFINE_FLOAT(EKF2_RNG_A_IGATE, 1.0f);
 
 /**
+ * Minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (s)
+ *
+ *
+ * @group EKF2
+ * @unit s
+ * @min 0.1
+ * @max 5
+*/
+PARAM_DEFINE_FLOAT(EKF2_RNG_QLTY_T, 1.0f);
+
+/**
  * Gate size for vision velocity estimate fusion
  *
  * Sets the number of standard deviations used by the innovation consistency test.
