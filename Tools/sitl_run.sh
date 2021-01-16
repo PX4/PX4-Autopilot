@@ -84,6 +84,8 @@ for file in "$@"; do
 	cp "$file" $rootfs/
 done
 
+export PX4_SIM_MODEL=${model}
+
 SIM_PID=0
 
 if [ "$program" == "jmavsim" ] && [ ! -n "$no_sim" ]; then
@@ -161,7 +163,7 @@ elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
 			# gzserver needs to be running to avoid a race. Since the launch
 			# is putting it into the background we need to avoid it by backing off
 			sleep 3
-			nice -n 20 gzclient --verbose &
+			nice -n 20 gzclient --verbose --gui-client-plugin libgazebo_user_camera_plugin.so &
 			GUI_PID=$!
 		fi
 	else
@@ -203,9 +205,6 @@ else
 fi
 
 echo SITL COMMAND: $sitl_command
-
-export PX4_SIM_MODEL=${model}
-
 
 if [ "$debugger" == "lldb" ]; then
 	eval lldb -- $sitl_command
