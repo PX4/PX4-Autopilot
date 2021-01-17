@@ -150,11 +150,6 @@ public:
 	 */
 	static const vehicle_local_position_setpoint_s empty_setpoint;
 
-	/**.
-	 * All counters are set to 0.
-	 */
-	static const ekf_reset_counters_s zero_reset_counters;
-
 	/**
 	 * Empty constraints.
 	 * All constraints are set to NAN.
