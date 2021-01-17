@@ -2998,9 +2998,11 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamBatteryStatus>(),
 	create_stream_list_item<MavlinkStreamSmartBatteryInfo>(),
 	create_stream_list_item<MavlinkStreamHighresIMU>(),
+#if defined(SCALED_IMU_HPP)
 	create_stream_list_item<MavlinkStreamScaledIMU<0> >(),
 	create_stream_list_item<MavlinkStreamScaledIMU<1> >(),
 	create_stream_list_item<MavlinkStreamScaledIMU<2> >(),
+#endif // SCALED_IMU_HPP
 	create_stream_list_item<MavlinkStreamScaledPressure<0> >(),
 	// create_stream_list_item<MavlinkStreamScaledPressure<1> >(),
 	// create_stream_list_item<MavlinkStreamScaledPressure<2> >(),

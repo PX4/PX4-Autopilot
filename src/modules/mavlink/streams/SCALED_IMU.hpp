@@ -42,7 +42,7 @@
 
 using matrix::Vector3f;
 
-const char *MSG_NAMES_SCALED_IMU[] = {
+static constexpr const char *MSG_NAMES_SCALED_IMU[] = {
 	"SCALED_IMU",
 	"SCALED_IMU2",
 	"SCALED_IMU3"
