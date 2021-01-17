@@ -137,6 +137,7 @@ using matrix::wrap_2pi;
 # include "streams/DEBUG_FLOAT_ARRAY.hpp"
 # include "streams/DEBUG_VECT.hpp"
 # include "streams/NAMED_VALUE_FLOAT.hpp"
+# include "streams/LINK_NODE_STATUS.hpp"
 #endif // !CONSTRAINED_FLASH
 
 // ensure PX4 rotation enum and MAV_SENSOR_ROTATION align
@@ -3144,6 +3145,9 @@ static const StreamListItem streams_list[] = {
 #if defined(GPS_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamGPSStatus>(),
 #endif // GPS_STATUS_HPP
+#if defined(LINK_NODE_STATUS_HPP)
+	create_stream_list_item<MavlinkStreamLinkNodeStatus>(),
+#endif // LINK_NODE_STATUS_HPP
 #if defined(STORAGE_INFORMATION_HPP)
 	create_stream_list_item<MavlinkStreamStorageInformation>(),
 #endif // STORAGE_INFORMATION_HPP
