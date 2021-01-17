@@ -286,3 +286,76 @@ PARAM_DEFINE_FLOAT(GND_WHEEL_BASE, 2.0f);
  * @group Rover Position Control
  */
 PARAM_DEFINE_FLOAT(GND_MAX_ANG, 0.7854f);
+
+/**
+ * Rover Rate Proportional Gain
+ *
+ * @unit rad/s
+ * @min 0.0
+ * @max 10.0
+ * @decimal 3
+ * @increment 0.01
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_RATE_P, 5.0f);
+
+/**
+ * Rover Rate Integral Gain
+ *
+ * @unit rad/s
+ * @min 0.0
+ * @max 1.0
+ * @decimal 3
+ * @increment 0.005
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_RATE_I, 0.5f);
+
+/**
+ * Rover Rate Proportional Gain
+ *
+ * @unit rad/s
+ * @min 0.0
+ * @max 10.0
+ * @decimal 3
+ * @increment 0.01
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_RATE_FF, 1.6f);
+
+/**
+ * Rover Rate Maximum Integral Gain
+ *
+ * @unit rad/s
+ * @min 0.0
+ * @max 50.0
+ * @decimal 3
+ * @increment 0.005
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_RATE_IMAX, 1.0f);
+
+/**
+ * Rover Rate Maximum Rate
+ *
+ * @unit rad/s
+ * @min 0.0
+ * @max 50.0
+ * @decimal 3
+ * @increment 0.005
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_RATE_MAX, 5.0f);
+
+/**
+ * Rover Rate Integral Minimum speed
+ * Rate integral is locked below this speed
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 50.0
+ * @decimal 3
+ * @increment 0.005
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_RATE_IMINSPD, 0.3f);
