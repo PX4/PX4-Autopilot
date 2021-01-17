@@ -35,6 +35,7 @@ px4_add_module(
 	MODULE drivers__imu__bosch__bmi055
 	MAIN bmi055
 	COMPILE_FLAGS
+		${MAX_CUSTOM_OPT_LEVEL}
 	SRCS
 		Bosch_BMI055_Accelerometer_Registers.hpp
 		Bosch_BMI055_Gyroscope_Registers.hpp

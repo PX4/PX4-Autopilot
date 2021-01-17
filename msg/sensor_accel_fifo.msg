@@ -8,8 +8,12 @@ float32 scale
 
 uint8 samples             # number of valid samples
 
-int16[32] x               # acceleration in the FRD board frame X-axis in m/s^2
-int16[32] y               # acceleration in the FRD board frame Y-axis in m/s^2
-int16[32] z               # acceleration in the FRD board frame Z-axis in m/s^2
+int16[20] x               # acceleration in the sensor frame X-axis in m/s^2
+int16[20] y               # acceleration in the sensor frame Y-axis in m/s^2
+int16[20] z               # acceleration in the sensor frame Z-axis in m/s^2
 
-uint8 rotation            # Direction the sensor faces (see Rotation enum)
+float32 temperature       # temperature in degrees celsius
+
+uint32 error_count
+
+uint8 ORB_QUEUE_LENGTH = 8

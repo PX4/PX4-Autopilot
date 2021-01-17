@@ -37,22 +37,13 @@
 
 using matrix::Vector3f;
 
-bool Integrator::put(const hrt_abstime &timestamp, const Vector3f &val)
+bool Integrator::put(const Vector3f &val, const float dt)
 {
-	if ((_last_integration_time == 0) || (timestamp <= _last_integration_time)) {
-		/* this is the first item in the integrator */
-		_last_integration_time = timestamp;
-		_last_reset_time = timestamp;
-		_last_val = val;
-
-		return false;
-	}
+	_integral_dt += dt;
 
 	// Use trapezoidal integration to calculate the delta integral
-	const float dt = static_cast<float>(timestamp - _last_integration_time) * 1e-6f;
 	const matrix::Vector3f delta_alpha = (val + _last_val) * dt * 0.5f;
 	_last_val = val;
-	_last_integration_time = timestamp;
 	_integrated_samples++;
 
 	// Calculate coning corrections if required
@@ -79,8 +70,9 @@ bool Integrator::reset(Vector3f &integral, uint32_t &integral_dt)
 		integral = Vector3f{_alpha};
 		_alpha.zero();
 
-		integral_dt = (_last_integration_time - _last_reset_time);
-		_last_reset_time = _last_integration_time;
+		integral_dt = roundf(_integral_dt * 1e6f);
+		_integral_dt = 0;
+		//integral_dt = (_last_integration_time - _last_reset_time);
 		_integrated_samples = 0;
 
 		// apply coning corrections if required

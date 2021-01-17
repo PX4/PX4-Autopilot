@@ -198,4 +198,19 @@ const T sqrt_linear(const T &value)
 	}
 }
 
+template<typename T>
+constexpr T negate(T value)
+{
+	return -value;
+}
+
+template<>
+constexpr int16_t negate<int16_t>(int16_t value)
+{
+	return (value == INT16_MIN) ? INT16_MAX : -value;
+}
+
+//int16_t negate(int16_t value) { return (value == INT16_MIN) ? INT16_MAX : -value; }
+//float negate(float value) { return -1.f * value; }
+
 } /* namespace math */

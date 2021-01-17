@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,8 +48,8 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_accel.h>
-#include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/sensor_accel_fifo.h>
+#include <uORB/topics/sensor_gyro_fifo.h>
 #include <uORB/topics/vehicle_imu.h>
 #include <uORB/topics/vehicle_imu_status.h>
 
@@ -58,13 +58,13 @@ using namespace time_literals;
 namespace sensors
 {
 
-class VehicleIMU : public ModuleParams, public px4::ScheduledWorkItem
+class VehicleImuFifo : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	VehicleIMU() = delete;
-	VehicleIMU(uint8_t accel_index, uint8_t gyro_index, const px4::wq_config_t &config);
+	VehicleImuFifo() = delete;
+	VehicleImuFifo(uint8_t accel_index, uint8_t gyro_index, const px4::wq_config_t &config);
 
-	~VehicleIMU() override;
+	~VehicleImuFifo() override;
 
 	bool Start();
 	void Stop();
@@ -74,15 +74,18 @@ public:
 private:
 	void ParametersUpdate(bool force = false);
 	void Run() override;
+	void Publish();
 
 	struct IntervalAverage {
 		hrt_abstime timestamp_sample_last{0};
 		float interval_sum{0.f};
 		float interval_count{0.f};
+		int sample_count{0};
 		float update_interval{0.f};
+		float sample_interval{0.f};
 	};
 
-	bool UpdateIntervalAverage(IntervalAverage &intavg, const hrt_abstime &timestamp_sample);
+	bool UpdateIntervalAverage(IntervalAverage &intavg, const hrt_abstime &timestamp_sample, uint8_t samples);
 	void UpdateIntegratorConfiguration();
 	void UpdateGyroVibrationMetrics(const matrix::Vector3f &delta_angle);
 	void UpdateAccelVibrationMetrics(const matrix::Vector3f &delta_velocity);
@@ -117,8 +120,11 @@ private:
 	matrix::Vector3f _gyro_sum{};
 	int _accel_sum_count{0};
 	int _gyro_sum_count{0};
+
 	float _accel_temperature{0};
 	float _gyro_temperature{0};
+	int _accel_temperature_count{0};
+	int _gyro_temperature_count{0};
 
 	matrix::Vector3f _delta_angle_prev{0.f, 0.f, 0.f};	// delta angle from the previous IMU measurement
 	matrix::Vector3f _delta_velocity_prev{0.f, 0.f, 0.f};	// delta velocity from the previous IMU measurement
@@ -128,6 +134,8 @@ private:
 	uint8_t _delta_velocity_clipping{0};
 
 	bool _intervals_configured{false};
+
+	bool _publish_status{false};
 
 	perf_counter_t _accel_update_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": accel update interval")};
 	perf_counter_t _accel_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": accel data gap")};

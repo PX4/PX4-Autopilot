@@ -178,7 +178,7 @@ bool VehicleAcceleration::SensorSelectionUpdate(bool force)
 				}
 			}
 
-			PX4_ERR("unable to find or subscribe to selected sensor (%d)", sensor_selection.accel_device_id);
+			PX4_DEBUG("unable to find or subscribe to selected sensor (%d)", sensor_selection.accel_device_id);
 			_calibration.set_device_id(0);
 		}
 	}

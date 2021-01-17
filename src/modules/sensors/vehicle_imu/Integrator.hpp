@@ -58,29 +58,14 @@ public:
 	 * @param val		Item to put.
 	 * @return		true if data was accepted and integrated.
 	 */
-	bool put(const uint64_t &timestamp, const matrix::Vector3f &val);
-
-	/**
-	 * Put an item into the integral.
-	 *
-	 * @param timestamp	Timestamp of the current value.
-	 * @param val		Item to put.
-	 * @param integral	Current integral in case the integrator did reset, else the value will not be modified
-	 * @param integral_dt	Get the dt in us of the current integration (only if reset).
-	 * @return		true if putting the item triggered an integral reset and the integral should be
-	 *			published.
-	 */
-	bool put(const uint64_t &timestamp, const matrix::Vector3f &val, matrix::Vector3f &integral, uint32_t &integral_dt)
-	{
-		return put(timestamp, val) && reset(integral, integral_dt);
-	}
+	bool put(const matrix::Vector3f &val, const float dt);
 
 	/**
 	 * Set reset interval during runtime. This won't reset the integrator.
 	 *
 	 * @param reset_interval	    	New reset time interval for the integrator.
 	 */
-	void set_reset_interval(uint32_t reset_interval) { _reset_interval_min = reset_interval; }
+	void set_reset_interval(uint32_t reset_interval) { _reset_interval_min = reset_interval * 1e-6f; }
 
 	/**
 	 * Set required samples for reset. This won't reset the integrator.
@@ -95,7 +80,7 @@ public:
 	 *
 	 * @return		true if integrator has sufficient data (minimum interval & samples satisfied) to reset.
 	 */
-	bool integral_ready() const { return (_integrated_samples >= _reset_samples_min) || (_last_integration_time >= (_last_reset_time + _reset_interval_min)); }
+	bool integral_ready() const { return (_integrated_samples >= _reset_samples_min) || (_integral_dt >= _reset_interval_min); }
 
 	/* Reset integrator and return current integral & integration time
 	 *
@@ -105,19 +90,18 @@ public:
 	bool reset(matrix::Vector3f &integral, uint32_t &integral_dt);
 
 private:
-	uint64_t _last_integration_time{0}; /**< timestamp of the last integration step */
-	uint64_t _last_reset_time{0};       /**< last auto-announcement of integral value */
-
 	matrix::Vector3f _alpha{0.f, 0.f, 0.f};            /**< integrated value before coning corrections are applied */
 	matrix::Vector3f _last_alpha{0.f, 0.f, 0.f};       /**< previous value of _alpha */
 	matrix::Vector3f _beta{0.f, 0.f, 0.f};             /**< accumulated coning corrections */
 	matrix::Vector3f _last_val{0.f, 0.f, 0.f};         /**< previous input */
 	matrix::Vector3f _last_delta_alpha{0.f, 0.f, 0.f}; /**< integral from previous previous sampling interval */
 
-	uint32_t _reset_interval_min{1}; /**< the interval after which the content will be published and the integrator reset */
+	float _reset_interval_min{0.001}; /**< the interval after which the content will be published and the integrator reset */
 
 	uint8_t _integrated_samples{0};
 	uint8_t _reset_samples_min{1};
+
+	float _integral_dt{0};
 
 	const bool _coning_comp_on{false};                       /**< true to turn on coning corrections */
 };

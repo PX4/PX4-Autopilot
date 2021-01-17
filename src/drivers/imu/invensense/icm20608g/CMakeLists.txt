@@ -35,6 +35,7 @@ px4_add_module(
 	MODULE drivers__imu__invensense__icm20608g
 	MAIN icm20608g
 	COMPILE_FLAGS
+		${MAX_CUSTOM_OPT_LEVEL}
 	SRCS
 		ICM20608G.cpp
 		ICM20608G.hpp

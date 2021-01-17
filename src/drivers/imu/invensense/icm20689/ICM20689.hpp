@@ -43,13 +43,14 @@
 #include "InvenSense_ICM20689_registers.hpp"
 
 #include <drivers/drv_hrt.h>
-#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/device/spi.h>
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/ecl/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <uORB/topics/sensor_accel_fifo.h>
+#include <uORB/topics/sensor_gyro_fifo.h>
+#include <uORB/PublicationMulti.hpp>
 
 using namespace InvenSense_ICM20689;
 
@@ -100,8 +101,6 @@ private:
 	bool Reset();
 
 	bool Configure();
-	void ConfigureAccel();
-	void ConfigureGyro();
 	void ConfigureSampleRate(int sample_rate);
 
 	static int DataReadyInterruptCallback(int irq, void *context, void *arg);
@@ -125,8 +124,11 @@ private:
 
 	const spi_drdy_gpio_t _drdy_gpio;
 
-	PX4Accelerometer _px4_accel;
-	PX4Gyroscope _px4_gyro;
+	const enum Rotation _rotation {ROTATION_NONE};
+	float _temperature_last{NAN};
+
+	uORB::PublicationMulti<sensor_accel_fifo_s> _sensor_accel_fifo_pub{ORB_ID(sensor_accel_fifo)};
+	uORB::PublicationMulti<sensor_gyro_fifo_s>  _sensor_gyro_fifo_pub{ORB_ID(sensor_gyro_fifo)};
 
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};

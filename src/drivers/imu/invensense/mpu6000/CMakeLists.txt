@@ -35,6 +35,7 @@ px4_add_module(
 	MODULE drivers__imu__invensense__mpu6000
 	MAIN mpu6000
 	COMPILE_FLAGS
+		${MAX_CUSTOM_OPT_LEVEL}
 	SRCS
 		MPU6000.cpp
 		MPU6000.hpp

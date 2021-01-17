@@ -100,7 +100,7 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
 * @reboot_required true
 * @group Sensors
 */
-PARAM_DEFINE_INT32(IMU_GYRO_RATEMAX, 0);
+PARAM_DEFINE_INT32(IMU_GYRO_RATEMAX, 400);
 
 /**
 * Cutoff frequency for angular acceleration (D-Term filter)

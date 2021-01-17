@@ -45,6 +45,7 @@
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
 #include <lib/airspeed/airspeed.h>
+#include <lib/drivers/device/Device.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
@@ -75,6 +76,7 @@
 #include "vehicle_air_data/VehicleAirData.hpp"
 #include "vehicle_gps_position/VehicleGPSPosition.hpp"
 #include "vehicle_imu/VehicleIMU.hpp"
+#include "vehicle_imu/VehicleImuFifo.hpp"
 #include "vehicle_magnetometer/VehicleMagnetometer.hpp"
 
 using namespace sensors;
@@ -177,7 +179,8 @@ private:
 	VehicleMagnetometer     *_vehicle_magnetometer{nullptr};
 	VehicleGPSPosition	*_vehicle_gps_position{nullptr};
 
-	VehicleIMU      *_vehicle_imu_list[MAX_SENSOR_COUNT] {};
+	VehicleIMU *_vehicle_imu_list[MAX_SENSOR_COUNT] {};
+	VehicleImuFifo *_vehicle_imu_fifo_list[MAX_SENSOR_COUNT] {};
 
 	/**
 	 * Update our local parameter cache.
@@ -277,6 +280,13 @@ Sensors::~Sensors()
 		if (vehicle_imu) {
 			vehicle_imu->Stop();
 			delete vehicle_imu;
+		}
+	}
+
+	for (auto &vehicle_imu_fifo : _vehicle_imu_fifo_list) {
+		if (vehicle_imu_fifo) {
+			vehicle_imu_fifo->Stop();
+			delete vehicle_imu_fifo;
 		}
 	}
 
@@ -508,22 +518,16 @@ void Sensors::InitializeVehicleIMU()
 	// create a VehicleIMU instance for each accel/gyro pair
 	for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
 		if (_vehicle_imu_list[i] == nullptr) {
+			uORB::SubscriptionData<sensor_accel_s> accel_sub{ORB_ID(sensor_accel), i};
+			uORB::SubscriptionData<sensor_gyro_s> gyro_sub{ORB_ID(sensor_gyro), i};
 
-			uORB::Subscription accel_sub{ORB_ID(sensor_accel), i};
-			sensor_accel_s accel{};
-			accel_sub.copy(&accel);
-
-			uORB::Subscription gyro_sub{ORB_ID(sensor_gyro), i};
-			sensor_gyro_s gyro{};
-			gyro_sub.copy(&gyro);
-
-			if (accel.device_id > 0 && gyro.device_id > 0) {
+			if (accel_sub.get().device_id > 0 && gyro_sub.get().device_id > 0) {
 				// if the sensors module is responsible for voting (SENS_IMU_MODE 1) then run every VehicleIMU in the same WQ
 				//   otherwise each VehicleIMU runs in a corresponding INSx WQ
 				const bool multi_mode = (_param_sens_imu_mode.get() == 0);
 				const px4::wq_config_t &wq_config = multi_mode ? px4::ins_instance_to_wq(i) : px4::wq_configurations::INS0;
 
-				VehicleIMU *imu = new VehicleIMU(i, i, i, wq_config);
+				VehicleIMU *imu = new VehicleIMU(i, i, wq_config);
 
 				if (imu != nullptr) {
 					// Start VehicleIMU instance and store
@@ -537,7 +541,39 @@ void Sensors::InitializeVehicleIMU()
 
 			} else {
 				// abort on first failure, try again later
-				return;
+				break;
+			}
+		}
+	}
+
+	// create a VehicleImuFifo instance for each accel/gyro FIFO pair
+	for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
+		if (_vehicle_imu_fifo_list[i] == nullptr) {
+
+			uORB::SubscriptionData<sensor_accel_fifo_s> accel_sub{ORB_ID(sensor_accel_fifo), i};
+			uORB::SubscriptionData<sensor_gyro_fifo_s> gyro_sub{ORB_ID(sensor_gyro_fifo), i};
+
+			if (accel_sub.get().device_id > 0 && gyro_sub.get().device_id > 0) {
+				// if the sensors module is responsible for voting (SENS_IMU_MODE 1) then run every VehicleImuFifo in the same WQ
+				//   otherwise each VehicleImuFifo runs in a corresponding INSx WQ
+				const bool multi_mode = (_param_sens_imu_mode.get() == 0);
+				const px4::wq_config_t &wq_config = multi_mode ? px4::ins_instance_to_wq(i) : px4::wq_configurations::INS0;
+
+				VehicleImuFifo *imu_fifo = new VehicleImuFifo(i, i, wq_config);
+
+				if (imu_fifo != nullptr) {
+					// Start VehicleImuFifo instance and store
+					if (imu_fifo->Start()) {
+						_vehicle_imu_fifo_list[i] = imu_fifo;
+
+					} else {
+						delete imu_fifo;
+					}
+				}
+
+			} else {
+				// abort on first failure, try again later
+				break;
 			}
 		}
 	}
@@ -709,6 +745,13 @@ int Sensors::print_status()
 	PX4_INFO_RAW("\n");
 
 	for (auto &i : _vehicle_imu_list) {
+		if (i != nullptr) {
+			PX4_INFO_RAW("\n");
+			i->PrintStatus();
+		}
+	}
+
+	for (auto &i : _vehicle_imu_fifo_list) {
 		if (i != nullptr) {
 			PX4_INFO_RAW("\n");
 			i->PrintStatus();

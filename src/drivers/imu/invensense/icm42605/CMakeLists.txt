@@ -34,6 +34,7 @@ px4_add_module(
 	MODULE drivers__imu__invensense__icm42605
 	MAIN icm42605
 	COMPILE_FLAGS
+		${MAX_CUSTOM_OPT_LEVEL}
 	SRCS
 		icm42605_main.cpp
 		ICM42605.cpp

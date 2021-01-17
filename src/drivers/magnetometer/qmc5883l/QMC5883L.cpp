@@ -196,8 +196,8 @@ void QMC5883L::RunImpl()
 						//  Forward X := +X
 						//  Right   Y := -Y
 						//  Down    Z := -Z
-						y = (y == INT16_MIN) ? INT16_MAX : -y; // -y
-						z = (z == INT16_MIN) ? INT16_MAX : -z; // -z
+						y = math::negate(y); // -y
+						z = math::negate(z); // -z
 
 						_px4_mag.update(now, x, y, z);
 

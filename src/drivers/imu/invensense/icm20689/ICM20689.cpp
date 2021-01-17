@@ -33,6 +33,8 @@
 
 #include "ICM20689.hpp"
 
+#include <lib/parameters/param.h>
+
 using namespace time_literals;
 
 static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
@@ -45,14 +47,15 @@ ICM20689::ICM20689(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Ro
 	SPI(DRV_IMU_DEVTYPE_ICM20689, MODULE_NAME, bus, device, spi_mode, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_drdy_gpio(drdy_gpio),
-	_px4_accel(get_device_id(), rotation),
-	_px4_gyro(get_device_id(), rotation)
+	_rotation(rotation)
 {
 	if (drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
 	}
 
-	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
+	int32_t imu_gyro_rate_max = 800; // default to 800 Hz
+	param_get(param_find("IMU_GYRO_RATEMAX"), &imu_gyro_rate_max);
+	ConfigureSampleRate(imu_gyro_rate_max);
 }
 
 ICM20689::~ICM20689()
@@ -73,6 +76,10 @@ int ICM20689::init()
 		DEVICE_DEBUG("SPI::init failed (%i)", ret);
 		return ret;
 	}
+
+	// advertise immediately for consistent ordering
+	_sensor_accel_fifo_pub.advertise();
+	_sensor_gyro_fifo_pub.advertise();
 
 	return Reset() ? 0 : -1;
 }
@@ -274,67 +281,8 @@ void ICM20689::RunImpl()
 	}
 }
 
-void ICM20689::ConfigureAccel()
-{
-	const uint8_t ACCEL_FS_SEL = RegisterRead(Register::ACCEL_CONFIG) & (Bit4 | Bit3); // [4:3] ACCEL_FS_SEL[1:0]
-
-	switch (ACCEL_FS_SEL) {
-	case ACCEL_FS_SEL_2G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 16384.f);
-		_px4_accel.set_range(2.f * CONSTANTS_ONE_G);
-		break;
-
-	case ACCEL_FS_SEL_4G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 8192.f);
-		_px4_accel.set_range(4.f * CONSTANTS_ONE_G);
-		break;
-
-	case ACCEL_FS_SEL_8G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 4096.f);
-		_px4_accel.set_range(8.f * CONSTANTS_ONE_G);
-		break;
-
-	case ACCEL_FS_SEL_16G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 2048.f);
-		_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
-		break;
-	}
-}
-
-void ICM20689::ConfigureGyro()
-{
-	const uint8_t FS_SEL = RegisterRead(Register::GYRO_CONFIG) & (Bit4 | Bit3); // [4:3] FS_SEL[1:0]
-
-	float range_dps = 0.f;
-
-	switch (FS_SEL) {
-	case FS_SEL_250_DPS:
-		range_dps = 250.f;
-		break;
-
-	case FS_SEL_500_DPS:
-		range_dps = 500.f;
-		break;
-
-	case FS_SEL_1000_DPS:
-		range_dps = 1000.f;
-		break;
-
-	case FS_SEL_2000_DPS:
-		range_dps = 2000.f;
-		break;
-	}
-
-	_px4_gyro.set_scale(math::radians(range_dps / 32768.f));
-	_px4_gyro.set_range(math::radians(range_dps));
-}
-
 void ICM20689::ConfigureSampleRate(int sample_rate)
 {
-	if (sample_rate == 0) {
-		sample_rate = 800; // default to 800 Hz
-	}
-
 	// round down to nearest FIFO sample dt * SAMPLES_PER_TRANSFER
 	const float min_interval = FIFO_SAMPLE_DT * SAMPLES_PER_TRANSFER;
 	_fifo_empty_interval_us = math::max(roundf((1e6f / (float)sample_rate) / min_interval) * min_interval, min_interval);
@@ -360,9 +308,6 @@ bool ICM20689::Configure()
 			success = false;
 		}
 	}
-
-	ConfigureAccel();
-	ConfigureGyro();
 
 	return success;
 }
@@ -473,7 +418,6 @@ bool ICM20689::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 		return false;
 	}
 
-
 	ProcessGyro(timestamp_sample, buffer.f, samples);
 	return ProcessAccel(timestamp_sample, buffer.f, samples);
 }
@@ -509,9 +453,6 @@ static bool fifo_accel_equal(const FIFO::DATA &f0, const FIFO::DATA &f1)
 bool ICM20689::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
 {
 	sensor_accel_fifo_s accel{};
-	accel.timestamp_sample = timestamp_sample;
-	accel.samples = 0;
-	accel.dt = FIFO_SAMPLE_DT * SAMPLES_PER_TRANSFER;
 
 	bool bad_data = false;
 
@@ -544,16 +485,25 @@ bool ICM20689::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DAT
 		// sensor's frame is +x forward, +y left, +z up
 		//  flip y & z to publish right handed with z down (x forward, y right, z down)
 		accel.x[accel.samples] = accel_x;
-		accel.y[accel.samples] = (accel_y == INT16_MIN) ? INT16_MAX : -accel_y;
-		accel.z[accel.samples] = (accel_z == INT16_MIN) ? INT16_MAX : -accel_z;
+		accel.y[accel.samples] = math::negate(accel_y);
+		accel.z[accel.samples] = math::negate(accel_z);
+
+		rotate_3i(_rotation, accel.x[accel.samples], accel.y[accel.samples], accel.z[accel.samples]);
+
 		accel.samples++;
 	}
 
-	_px4_accel.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
-				   perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
-
+	// publish
 	if (accel.samples > 0) {
-		_px4_accel.updateFIFO(accel);
+		accel.timestamp_sample = timestamp_sample;
+		accel.dt = FIFO_SAMPLE_DT * SAMPLES_PER_TRANSFER;
+		accel.device_id = get_device_id();
+		accel.temperature = _temperature_last;
+		accel.error_count = perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) + perf_event_count(
+					    _fifo_empty_perf) + perf_event_count(_fifo_overflow_perf);
+		accel.scale = CONSTANTS_ONE_G / 2048.f;
+		accel.timestamp = hrt_absolute_time();
+		_sensor_accel_fifo_pub.publish(accel);
 	}
 
 	return !bad_data;
@@ -562,9 +512,6 @@ bool ICM20689::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DAT
 void ICM20689::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
 {
 	sensor_gyro_fifo_s gyro{};
-	gyro.timestamp_sample = timestamp_sample;
-	gyro.samples = samples;
-	gyro.dt = FIFO_SAMPLE_DT;
 
 	for (int i = 0; i < samples; i++) {
 		const int16_t gyro_x = combine(fifo[i].GYRO_XOUT_H, fifo[i].GYRO_XOUT_L);
@@ -574,14 +521,23 @@ void ICM20689::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA
 		// sensor's frame is +x forward, +y left, +z up
 		//  flip y & z to publish right handed with z down (x forward, y right, z down)
 		gyro.x[i] = gyro_x;
-		gyro.y[i] = (gyro_y == INT16_MIN) ? INT16_MAX : -gyro_y;
-		gyro.z[i] = (gyro_z == INT16_MIN) ? INT16_MAX : -gyro_z;
+		gyro.y[i] = math::negate(gyro_y);
+		gyro.z[i] = math::negate(gyro_z);
+
+		rotate_3i(_rotation, gyro.x[i], gyro.y[i], gyro.z[i]);
 	}
 
-	_px4_gyro.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
-				  perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
-
-	_px4_gyro.updateFIFO(gyro);
+	// publish
+	gyro.timestamp_sample = timestamp_sample;
+	gyro.samples = samples;
+	gyro.dt = FIFO_SAMPLE_DT;
+	gyro.device_id = get_device_id();
+	gyro.temperature = _temperature_last;
+	gyro.error_count = perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) + perf_event_count(
+				   _fifo_empty_perf) + perf_event_count(_fifo_overflow_perf);
+	gyro.scale = math::radians(2000.f / 32768.f);
+	gyro.timestamp = hrt_absolute_time();
+	_sensor_gyro_fifo_pub.publish(gyro);
 }
 
 void ICM20689::UpdateTemperature()
@@ -599,7 +555,6 @@ void ICM20689::UpdateTemperature()
 	const float TEMP_degC = (TEMP_OUT / TEMPERATURE_SENSITIVITY) + TEMPERATURE_OFFSET;
 
 	if (PX4_ISFINITE(TEMP_degC)) {
-		_px4_accel.set_temperature(TEMP_degC);
-		_px4_gyro.set_temperature(TEMP_degC);
+		_temperature_last = TEMP_degC;
 	}
 }

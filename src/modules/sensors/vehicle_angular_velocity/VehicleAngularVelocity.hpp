@@ -36,8 +36,9 @@
 #include <lib/sensor_calibration/Gyroscope.hpp>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
-#include <lib/mathlib/math/filter/LowPassFilter2pVector3f.hpp>
-#include <lib/mathlib/math/filter/NotchFilter.hpp>
+#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
+#include <lib/mathlib/math/filter/LowPassFilter2pArray.hpp>
+#include <lib/mathlib/math/filter/NotchFilterArray.hpp>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
@@ -49,6 +50,8 @@
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/sensor_gyro_fft.h>
+#include <uORB/topics/sensor_gyro_fifo.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_angular_acceleration.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -72,10 +75,17 @@ public:
 private:
 	void Run() override;
 
-	void CheckAndUpdateFilters();
+	void CheckFilters();
+	void ResetFilters(const matrix::Vector3f &angular_velocity, const matrix::Vector3f &angular_acceleration);
+
+	float GetSampleRateForGyro(uint32_t device_id);
+
 	void ParametersUpdate(bool force = false);
 	void SensorBiasUpdate(bool force = false);
 	bool SensorSelectionUpdate(bool force = false);
+
+	void Publish(const hrt_abstime &timestamp_sample, const matrix::Vector3f &angular_velocity,
+		     const matrix::Vector3f &angular_acceleration);
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
@@ -84,30 +94,54 @@ private:
 
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};
+	uORB::Subscription _sensor_gyro_fft_sub{ORB_ID(sensor_gyro_fft)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_selection_sub{this, ORB_ID(sensor_selection)};
 	uORB::SubscriptionCallbackWorkItem _sensor_sub{this, ORB_ID(sensor_gyro)};
+	uORB::SubscriptionCallbackWorkItem _sensor_fifo_sub{this, ORB_ID(sensor_gyro_fifo)};
+
+	matrix::Vector3f _fifo_data_filtered_prev{};
 
 	calibration::Gyroscope _calibration{};
 
 	matrix::Vector3f _bias{};
 
-	matrix::Vector3f _angular_acceleration_prev{};
-	matrix::Vector3f _angular_velocity_prev{};
-	hrt_abstime _timestamp_sample_prev{0};
+	matrix::Vector3f _angular_velocity_last{};
+	hrt_abstime _timestamp_sample_last{0};
 
+	hrt_abstime _publish_interval_min_us{0};
 	hrt_abstime _last_publish{0};
 	static constexpr const float kInitialRateHz{1000.f}; /**< sensor update rate used for initialization */
-	float _filter_sample_rate{kInitialRateHz};
+	float _update_rate_hz{kInitialRateHz}; /**< current rate-controller loop update rate in [Hz] */
+
+	uint8_t _required_sample_updates{0}; /**< number or sensor publications required for configured rate */
+
+	static constexpr int MAX_NUM_FFT_PEAKS = sizeof(sensor_gyro_fft_s::peak_frequencies_x) / sizeof(
+				sensor_gyro_fft_s::peak_frequencies_x[0]);
 
 	// angular velocity filters
-	math::LowPassFilter2pVector3f _lp_filter_velocity{kInitialRateHz, 30.f};
-	math::NotchFilter<matrix::Vector3f> _notch_filter_velocity{};
+	math::LowPassFilter2pArray _lp_filter_velocity[3] {{kInitialRateHz, 30.f}, {kInitialRateHz, 30.f}, {kInitialRateHz, 30.f}};
+	math::NotchFilterArray<float> _notch_filter_velocity[3] {};
+	math::NotchFilterArray<float> _dynamic_notch_filter[MAX_NUM_FFT_PEAKS][3] {};
 
 	// angular acceleration filter
-	math::LowPassFilter2pVector3f _lp_filter_acceleration{kInitialRateHz, 30.f};
+	math::LowPassFilter2p _lp_filter_acceleration[3] {{kInitialRateHz, 30.f}, {kInitialRateHz, 30.f}, {kInitialRateHz, 30.f}};
+
+	float _filter_sample_rate{kInitialRateHz};
+
+	float _sensor_sample_rate[MAX_SENSOR_COUNT] {NAN, NAN, NAN, NAN};
+
+	uint32_t _selected_sensor_device_id{0};
+	uint8_t _selected_sensor_sub_index{0};
+
+	hrt_abstime _timestamp_interval_last{0};
+
+	bool _sample_rate_determined{false};
+	bool _reset_filters{false};
+
+	bool _fifo_available{false};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,
