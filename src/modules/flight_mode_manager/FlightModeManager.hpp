@@ -90,6 +90,7 @@ private:
 	void start_flight_task();
 	void check_failure(bool task_failure, uint8_t nav_state);
 	void send_vehicle_cmd_do(uint8_t nav_state);
+	void handleCommand();
 	void generateTrajectorySetpoint(const float dt, const vehicle_local_position_s &vehicle_local_position);
 	void limitAltitude(vehicle_local_position_setpoint_s &setpoint, const vehicle_local_position_s &vehicle_local_position);
 	void reset_setpoint_to_nan(vehicle_local_position_setpoint_s &setpoint);
