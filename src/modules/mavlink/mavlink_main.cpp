@@ -1608,6 +1608,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("DEBUG_FLOAT_ARRAY", 1.0f);
 		configure_stream_local("DEBUG_VECT", 1.0f);
 		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
+		configure_stream_local("LINK_NODE_STATUS", 1.0f);
 #endif // !CONSTRAINED_FLASH
 
 		break;
@@ -1664,6 +1665,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("DEBUG_FLOAT_ARRAY", 10.0f);
 		configure_stream_local("DEBUG_VECT", 10.0f);
 		configure_stream_local("NAMED_VALUE_FLOAT", 10.0f);
+		configure_stream_local("LINK_NODE_STATUS", 1.0f);
 #endif // !CONSTRAINED_FLASH
 
 		break;
@@ -1715,6 +1717,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("DEBUG_FLOAT_ARRAY", 1.0f);
 		configure_stream_local("DEBUG_VECT", 1.0f);
 		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
+		configure_stream_local("LINK_NODE_STATUS", 1.0f);
 #endif // !CONSTRAINED_FLASH
 
 		break;
@@ -1798,6 +1801,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("DEBUG_FLOAT_ARRAY", 50.0f);
 		configure_stream_local("DEBUG_VECT", 50.0f);
 		configure_stream_local("NAMED_VALUE_FLOAT", 50.0f);
+		configure_stream_local("LINK_NODE_STATUS", 1.0f);
 #endif // !CONSTRAINED_FLASH
 
 		break;
@@ -1817,6 +1821,11 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("RC_CHANNELS", 0.5f);
 		configure_stream_local("SYS_STATUS", 0.1f);
 		configure_stream_local("VFR_HUD", 1.0f);
+
+#if !defined(CONSTRAINED_FLASH)
+		configure_stream_local("LINK_NODE_STATUS", 1.0f);
+#endif // !CONSTRAINED_FLASH
+
 		break;
 
 	default:
