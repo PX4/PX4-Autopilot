@@ -494,13 +494,15 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 		}
 	}
 
-	if (_current_task.task->updateInitialize() && _current_task.task->update() && _current_task.task->updateFinalize()) {
-		// updated
-	}
+	// initialize with empty NAN setpoints, if the task fails they get sent out and controller's emergency failsafe kicks in
+	vehicle_local_position_setpoint_s setpoint = FlightTask::empty_setpoint;
+	vehicle_constraints_s constraints = FlightTask::empty_constraints;
 
-	// setpoints and constraints for the position controller from flighttask or failsafe
-	vehicle_local_position_setpoint_s setpoint = _current_task.task->getPositionSetpoint();
-	vehicle_constraints_s constraints = _current_task.task->getConstraints();
+	if (_current_task.task->updateInitialize() && _current_task.task->update() && _current_task.task->updateFinalize()) {
+		// setpoints and constraints for the position controller from flighttask
+		setpoint = _current_task.task->getPositionSetpoint();
+		constraints = _current_task.task->getConstraints();
+	}
 
 	// limit altitude according to land detector
 	limitAltitude(setpoint, vehicle_local_position);
@@ -609,8 +611,8 @@ FlightTaskError FlightModeManager::switchTask(FlightTaskIndex new_task_index)
 	}
 
 	// Save current setpoints for the next FlightTask
-	vehicle_local_position_setpoint_s last_setpoint{};
-	ekf_reset_counters_s last_reset_counters = FlightTask::zero_reset_counters;
+	vehicle_local_position_setpoint_s last_setpoint = FlightTask::empty_setpoint;
+	ekf_reset_counters_s last_reset_counters{};
 
 	if (isAnyTaskActive()) {
 		last_setpoint = _current_task.task->getPositionSetpoint();
