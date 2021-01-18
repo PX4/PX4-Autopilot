@@ -392,23 +392,6 @@ void RTL::set_rtl_item()
 			break;
 		}
 
-	case RTL_STATE_TRANSITION_TO_MC: {
-			set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-			break;
-		}
-
-	case RTL_MOVE_TO_LAND_HOVER_VTOL: {
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			_mission_item.lat = _destination.lat;
-			_mission_item.lon = _destination.lon;
-			_mission_item.altitude = loiter_altitude;
-			_mission_item.altitude_is_relative = false;
-			_mission_item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, _mission_item.lat, _mission_item.lon);
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.origin = ORIGIN_ONBOARD;
-			break;
-		}
-
 	case RTL_STATE_DESCEND: {
 			_mission_item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
 
@@ -467,6 +450,23 @@ void RTL::set_rtl_item()
 				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, loitering");
 			}
 
+			break;
+		}
+
+	case RTL_STATE_TRANSITION_TO_MC: {
+			set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+			break;
+		}
+
+	case RTL_MOVE_TO_LAND_HOVER_VTOL: {
+			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			_mission_item.lat = _destination.lat;
+			_mission_item.lon = _destination.lon;
+			_mission_item.altitude = loiter_altitude;
+			_mission_item.altitude_is_relative = false;
+			_mission_item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, _mission_item.lat, _mission_item.lon);
+			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+			_mission_item.origin = ORIGIN_ONBOARD;
 			break;
 		}
 
@@ -531,7 +531,6 @@ void RTL::advance_rtl()
 	const bool vtol_in_fw_mode = _navigator->get_vstatus()->is_vtol
 				     && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 
-
 	switch (_rtl_state) {
 	case RTL_STATE_CLIMB:
 		_rtl_state = RTL_STATE_RETURN;
@@ -549,6 +548,30 @@ void RTL::advance_rtl()
 
 		break;
 
+	case RTL_STATE_DESCEND:
+
+		if (descend_and_loiter) {
+			_rtl_state = RTL_STATE_LOITER;
+
+		} else if (vtol_in_fw_mode) {
+			_rtl_state = RTL_STATE_TRANSITION_TO_MC;
+
+		} else {
+			_rtl_state = RTL_STATE_LAND;
+		}
+
+		break;
+
+	case RTL_STATE_LOITER:
+		if (vtol_in_fw_mode) {
+			_rtl_state = RTL_STATE_TRANSITION_TO_MC;
+
+		} else {
+			_rtl_state = RTL_STATE_LAND;
+		}
+
+		_rtl_state = RTL_STATE_LAND;
+		break;
 
 	case RTL_STATE_TRANSITION_TO_MC:
 
@@ -558,32 +581,8 @@ void RTL::advance_rtl()
 
 	case RTL_MOVE_TO_LAND_HOVER_VTOL:
 
-		if (descend_and_loiter) {
-			_rtl_state = RTL_STATE_LOITER;
-
-		} else {
-			_rtl_state = RTL_STATE_LAND;
-		}
-
-		break;
-
-	case RTL_STATE_DESCEND:
-
-		// If the vehicle is a vtol in fixed wing mode, then first transition to hover
-		if (vtol_in_fw_mode) {
-			_rtl_state = RTL_STATE_TRANSITION_TO_MC;
-
-		} else if (descend_and_loiter) {
-			_rtl_state = RTL_STATE_LOITER;
-
-		} else {
-			_rtl_state = RTL_STATE_LAND;
-		}
-
-		break;
-
-	case RTL_STATE_LOITER:
 		_rtl_state = RTL_STATE_LAND;
+
 		break;
 
 	case RTL_STATE_LAND:
