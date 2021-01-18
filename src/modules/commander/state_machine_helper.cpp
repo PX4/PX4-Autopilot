@@ -409,7 +409,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 		   const link_loss_actions_t rc_loss_act, const offboard_loss_actions_t offb_loss_act,
 		   const offboard_loss_rc_actions_t offb_loss_rc_act,
 		   const position_nav_loss_actions_t posctl_nav_loss_act,
-		   const float param_com_ll_delay)
+		   const float param_com_rcl_act_t)
 {
 	const navigation_state_t nav_state_old = status->nav_state;
 
@@ -438,7 +438,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 		if (rc_lost && is_armed) {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
-			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, param_com_ll_delay);
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, param_com_rcl_act_t);
 
 		} else {
 			switch (internal_state->main_state) {
@@ -474,7 +474,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 
 			if (rc_lost && is_armed) {
 				enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
-				set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, param_com_ll_delay);
+				set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, param_com_rcl_act_t);
 
 				/* As long as there is RC, we can fallback to ALTCTL, or STAB. */
 				/* A local position estimate is enough for POSCTL for multirotors,
