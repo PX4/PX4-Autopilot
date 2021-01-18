@@ -418,9 +418,9 @@ PARAM_DEFINE_FLOAT(FW_LND_THRTC_SC, 1.0f);
 
 
 /**
- * Minimum Airspeed
+ * Minimum Airspeed (CAS)
  *
- * If the airspeed falls below this value, the TECS controller will try to
+ * If the CAS (calibrated airspeed) falls below this value, the TECS controller will try to
  * increase airspeed more aggressively.
  *
  * @unit m/s
@@ -433,9 +433,9 @@ PARAM_DEFINE_FLOAT(FW_LND_THRTC_SC, 1.0f);
 PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
 
 /**
- * Maximum Airspeed
+ * Maximum Airspeed (CAS)
  *
- * If the airspeed is above this value, the TECS controller will try to decrease
+ * If the CAS (calibrated airspeed) is above this value, the TECS controller will try to decrease
  * airspeed more aggressively.
  *
  * @unit m/s
@@ -448,9 +448,11 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
 PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
 
 /**
- * Cruise Airspeed
+ * Cruise Airspeed (CAS)
  *
- * The fixed wing controller tries to fly at this airspeed.
+ * The trim CAS (calibrated airspeed) of the vehicle. If an airspeed controller is active,
+ * this is the default airspeed setpoint that the controller will try to achieve if
+ * no other airspeed setpoint sources are present (e.g. through non-centered RC sticks).
  *
  * @unit m/s
  * @min 0.0
