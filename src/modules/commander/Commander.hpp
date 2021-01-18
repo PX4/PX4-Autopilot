@@ -189,13 +189,13 @@ private:
 
 		(ParamInt<px4::params::NAV_DLL_ACT>) _param_nav_dll_act,
 		(ParamInt<px4::params::COM_DL_LOSS_T>) _param_com_dl_loss_t,
-		(ParamFloat<px4::params::COM_LL_DELAY>) _param_com_ll_delay,
 
 		(ParamInt<px4::params::COM_HLDL_LOSS_T>) _param_com_hldl_loss_t,
 		(ParamInt<px4::params::COM_HLDL_REG_T>) _param_com_hldl_reg_t,
 
 		(ParamInt<px4::params::NAV_RCL_ACT>) _param_nav_rcl_act,
 		(ParamFloat<px4::params::COM_RC_LOSS_T>) _param_com_rc_loss_t,
+		(ParamFloat<px4::params::COM_RCL_ACT_T>) _param_com_rcl_act_t,
 
 		(ParamFloat<px4::params::COM_HOME_H_T>) _param_com_home_h_t,
 		(ParamFloat<px4::params::COM_HOME_V_T>) _param_com_home_v_t,
