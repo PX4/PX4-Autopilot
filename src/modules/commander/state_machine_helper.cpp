@@ -389,8 +389,9 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 void enable_failsafe(vehicle_status_s *status, bool old_failsafe, orb_advert_t *mavlink_log_pub, const char *reason)
 {
 	if (!old_failsafe && status->arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-		// make sure intermittent failsafes don't lead to infinite delay by not constatnly reseting the timestamp
-		if (hrt_elapsed_time(&status->failsafe_timestamp) > 30_s) {
+		// make sure intermittent failsafes don't lead to infinite delay by not constantly reseting the timestamp
+		if (status->failsafe_timestamp == 0 ||
+		    hrt_elapsed_time(&status->failsafe_timestamp) > 30_s) {
 			status->failsafe_timestamp = hrt_absolute_time();
 		}
 
