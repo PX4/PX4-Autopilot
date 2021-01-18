@@ -61,9 +61,11 @@
 #include <uORB/topics/gps_inject_data.h>
 #include <uORB/topics/sensor_gps.h>
 
-#include "devices/src/ashtech.h"
-#include "devices/src/emlid_reach.h"
-#include "devices/src/mtk.h"
+#ifndef CONSTRAINED_FLASH
+# include "devices/src/ashtech.h"
+# include "devices/src/emlid_reach.h"
+# include "devices/src/mtk.h"
+#endif // CONSTRAINED_FLASH
 #include "devices/src/ubx.h"
 
 #ifdef __PX4_LINUX
@@ -288,12 +290,14 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 
 		switch (protocol) {
 		case 1: _mode = GPS_DRIVER_MODE_UBX; break;
+#ifndef CONSTRAINED_FLASH
 
 		case 2: _mode = GPS_DRIVER_MODE_MTK; break;
 
 		case 3: _mode = GPS_DRIVER_MODE_ASHTECH; break;
 
 		case 4: _mode = GPS_DRIVER_MODE_EMLIDREACH; break;
+#endif // CONSTRAINED_FLASH
 		}
 	}
 
@@ -762,6 +766,7 @@ GPS::run()
 				_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info,
 							   gps_ubx_dynmodel, heading_offset, ubx_mode);
 				break;
+#ifndef CONSTRAINED_FLASH
 
 			case GPS_DRIVER_MODE_MTK:
 				_helper = new GPSDriverMTK(&GPS::callback, this, &_report_gps_pos);
@@ -774,6 +779,7 @@ GPS::run()
 			case GPS_DRIVER_MODE_EMLIDREACH:
 				_helper = new GPSDriverEmlidReach(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
 				break;
+#endif // CONSTRAINED_FLASH
 
 			default:
 				break;
@@ -867,6 +873,7 @@ GPS::run()
 			if (_mode_auto) {
 				switch (_mode) {
 				case GPS_DRIVER_MODE_UBX:
+#ifndef CONSTRAINED_FLASH
 					_mode = GPS_DRIVER_MODE_MTK;
 					break;
 
@@ -879,6 +886,7 @@ GPS::run()
 					break;
 
 				case GPS_DRIVER_MODE_EMLIDREACH:
+#endif // CONSTRAINED_FLASH
 					_mode = GPS_DRIVER_MODE_UBX;
 					px4_usleep(500000); // tried all possible drivers. Wait a bit before next round
 					break;
@@ -928,6 +936,7 @@ GPS::print_status()
 		case GPS_DRIVER_MODE_UBX:
 			PX4_INFO("protocol: UBX");
 			break;
+#ifndef CONSTRAINED_FLASH
 
 		case GPS_DRIVER_MODE_MTK:
 			PX4_INFO("protocol: MTK");
@@ -940,6 +949,7 @@ GPS::print_status()
 		case GPS_DRIVER_MODE_EMLIDREACH:
 			PX4_INFO("protocol: EMLIDREACH");
 			break;
+#endif // CONSTRAINED_FLASH
 
 		default:
 			break;
@@ -1247,7 +1257,7 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 		case 'p':
 			if (!strcmp(myoptarg, "ubx")) {
 				mode = GPS_DRIVER_MODE_UBX;
-
+#ifndef CONSTRAINED_FLASH
 			} else if (!strcmp(myoptarg, "mtk")) {
 				mode = GPS_DRIVER_MODE_MTK;
 
@@ -1256,7 +1266,7 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 
 			} else if (!strcmp(myoptarg, "eml")) {
 				mode = GPS_DRIVER_MODE_EMLIDREACH;
-
+#endif // CONSTRAINED_FLASH
 			} else {
 				PX4_ERR("unknown protocol: %s", myoptarg);
 				error_flag = true;
