@@ -143,6 +143,7 @@ PARAM_DEFINE_INT32(RTL_CONE_ANG, 45);
  * This is used to determine when the vehicle should be switched to RTL due to low battery.
  * Note, particularly for multirotors this should reflect flight time at cruise speed, not while stationary
  *
+ * @unit min
  * @group Commander
  */
 PARAM_DEFINE_FLOAT(RTL_FLT_TIME, 15);
