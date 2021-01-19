@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,37 +31,6 @@
 #
 ############################################################################
 
-# skip for px4_layer support on an IO board
-if(NOT PX4_BOARD MATCHES "px4_io")
-
-	add_library(px4_layer
-		board_crashdump.c
-		board_dma_alloc.c
-		board_fat_dma_alloc.c
-		console_buffer.cpp
-		cpuload.cpp
-		gpio.c
-		print_load.cpp
-		tasks.cpp
-		px4_nuttx_impl.cpp
-		px4_init.cpp
-		px4_manifest.cpp
-		px4_mtd.cpp
-		px4_24xxxx_mtd.c
-	)
-	target_link_libraries(px4_layer
-		PRIVATE
-			arch_board_reset
-			arch_board_critmon
-			arch_version
-			nuttx_apps
-			nuttx_sched
-			px4_work_queue
-		)
-else()
-	add_library(px4_layer ${PX4_SOURCE_DIR}/platforms/common/empty.c)
-endif()
-add_dependencies(px4_layer prebuild_targets)
-
-add_subdirectory(gpio)
-add_subdirectory(srgbled)
+px4_add_library(platform_srgbled
+	srgbled.cpp
+)
