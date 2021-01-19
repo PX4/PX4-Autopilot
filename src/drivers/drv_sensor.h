@@ -172,6 +172,8 @@
 
 #define DRV_GPIO_DEVTYPE_MCP23009	0x99
 
+#define DRV_DIST_DEVTYPE_SIM 0x9a
+
 #define DRV_DEVTYPE_UNUSED		0xff
 
 #endif /* _DRV_SENSOR_H */
