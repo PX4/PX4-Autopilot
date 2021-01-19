@@ -41,6 +41,7 @@
 #include <hardware/stm32_tim.h>
 #include <dwt.h>
 #include <nvic.h>
+#include <drivers/drv_neopixel.h>
 
 #include "led.h"
 
@@ -48,67 +49,15 @@
 #define TMR_FREQUENCY   STM32_APB2_TIM1_CLKIN
 #define TMR_REG(o)      (TMR_BASE+(o))
 
-#define LED_COUNT       8 // Eight LEDs in ring
-
-typedef union {
-	uint8_t  grb[3];
-	uint32_t l;
-} led_data_t;
-
-static  uint8_t off[] =  {0, 0, 0};
-
-#define REG(_addr)       (*(volatile uint32_t *)(_addr))
-#define rDEMCR           REG(NVIC_DEMCR)
-#define rDWT_CTRL        REG(DWT_CTRL)
-#define rDWT_CNT         REG(DWT_CYCCNT)
-#define PORT_B           REG(STM32_GPIOB_ODR)
-#define D0               REG(STM32_GPIOB_ODR) &= ~1;
-#define D1               REG(STM32_GPIOB_ODR) |= 1;
-
-#define DWT_DEADLINE(t)  rDWT_CNT + (t)
-#define DWT_WAIT(v, D)   while((rDWT_CNT - (v)) < (D));
-
-#define T0H              (STM32_SYSCLK_FREQUENCY/3333333)
-#define T1H              (STM32_SYSCLK_FREQUENCY/1666666)
-#define TW               (STM32_SYSCLK_FREQUENCY/800000)
-
-static void setled(uint8_t *p, int count)
-{
-	rDEMCR    |= NVIC_DEMCR_TRCENA;
-	rDWT_CTRL |= DWT_CTRL_CYCCNTENA_MASK;
-
-	while (count--) {
-		uint8_t l = *p++;
-		uint32_t  deadline = DWT_DEADLINE(TW);
-
-		for (uint32_t mask = (1 << 7);  mask != 0;  mask >>= 1) {
-			DWT_WAIT(deadline, TW);
-			deadline = rDWT_CNT;
-			D1;
-
-			if (l & mask) {
-				DWT_WAIT(deadline, T1H);
-
-			} else {
-				DWT_WAIT(deadline, T0H);
-			}
-
-			D0;
-		}
-
-		DWT_WAIT(deadline, TW);
-	}
-}
-
-
-static led_data_t led_data = {0};
+static  uint8_t _rgb[] = {0, 0, 0};
 
 static int timerInterrupt(int irq, void *context, void *arg)
 {
 	putreg16(~getreg16(TMR_REG(STM32_GTIM_SR_OFFSET)), TMR_REG(STM32_GTIM_SR_OFFSET));
 
 	static int d2 = 1;
-	setled((d2++ & 1) ? led_data.grb : off, sizeof(led_data.grb));
+	(d2++ & 1) ? neopixel_write_no_dma(0, 0, 0, 1) : neopixel_write_no_dma(_rgb[0], _rgb[1], _rgb[2], 1);
+
 	return 0;
 }
 
@@ -126,11 +75,7 @@ void rgb_led(int r, int g, int b, int freqs)
 
 		stm32_configgpio(GPIO_RGB_S);
 
-		for (int i = 0; i < LED_COUNT; i++) {
-			setled(off, sizeof(off));
-		}
-
-		/* Enable Clock to Block */
+		neopixel_write_no_dma(0, 0, 0, BOARD_HAS_N_S_RGB_LED);
 
 		modifyreg32(STM32_RCC_APB2ENR, 0, RCC_APB2ENR_TIM1EN);
 
@@ -156,10 +101,10 @@ void rgb_led(int r, int g, int b, int freqs)
 	long p  = freqs == 0 ? p1s + 1 : p0p5s / freqs;
 	putreg32(p + 1, TMR_REG(STM32_BTIM_ARR_OFFSET));
 	putreg32(p, TMR_REG(STM32_GTIM_CCR1_OFFSET));
-	led_data.grb[0] = g;
-	led_data.grb[1] = r;
-	led_data.grb[2] = b;
-	setled(led_data.grb, sizeof(led_data.grb));
+	_rgb[0] = r;
+	_rgb[1] = g;
+	_rgb[2] = b;
+	neopixel_write_no_dma(_rgb[0], _rgb[1], _rgb[2], 1);
 
 	val = getreg16(TMR_REG(STM32_BTIM_CR1_OFFSET));
 

@@ -2,7 +2,7 @@
 #
 # board specific defaults
 #------------------------------------------------------------------------------
-
+neopixel start
 
 if [ $AUTOCNF = yes ]
 then

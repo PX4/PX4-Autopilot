@@ -17,6 +17,7 @@ add_definitions(
 	-DHW_VERSION_MAJOR=${uavcanblid_hw_version_major}
 	-DHW_VERSION_MINOR=${uavcanblid_hw_version_minor}
 )
+add_definitions(-DUSE_S_RGB_LED_DMA)
 
 px4_add_board(
 	PLATFORM nuttx
@@ -31,6 +32,7 @@ px4_add_board(
 		barometer/ms5611
 		bootloaders
 		gps
+		lights/neopixel
 		magnetometer/rm3100
 		safety_button
 		tone_alarm
