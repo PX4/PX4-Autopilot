@@ -525,7 +525,7 @@ private:
 		tecs_status_s tecs_status;
 
 		if (_tecs_status_sub.update(&tecs_status)) {
-			_airspeed_sp.add_value(tecs_status.airspeed_sp, _update_rate_filtered);
+			_airspeed_sp.add_value(tecs_status.true_airspeed_sp, _update_rate_filtered);
 		}
 	}
 
