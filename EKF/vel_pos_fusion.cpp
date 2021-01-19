@@ -97,7 +97,7 @@ bool Ekf::fuseVerticalVelocity(const Vector3f &innov, const Vector2f &innov_gate
 }
 
 bool Ekf::fuseHorizontalPosition(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
-				 Vector3f &innov_var, Vector2f &test_ratio)
+				 Vector3f &innov_var, Vector2f &test_ratio, bool inhibit_gate)
 {
 
 	innov_var(0) = P(7, 7) + obs_var(0);
@@ -107,7 +107,7 @@ bool Ekf::fuseHorizontalPosition(const Vector3f &innov, const Vector2f &innov_ga
 
 	const bool innov_check_pass = test_ratio(0) <= 1.0f;
 
-	if (innov_check_pass) {
+	if (innov_check_pass || inhibit_gate) {
 		if (!_fuse_hpos_as_odom) {
 			_time_last_hor_pos_fuse = _time_last_imu;
 
