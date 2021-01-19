@@ -55,7 +55,8 @@ static constexpr float DT_MAX = 1.0f;	///< max value of _dt allowed before a fil
  * inertial nav data is not available. It also calculates a true airspeed derivative
  * which is used by the airspeed complimentary filter.
  */
-void TECS::update_vehicle_state_estimates(float airspeed, const float speed_deriv_forward, bool altitude_lock,
+void TECS::update_vehicle_state_estimates(float equivalent_airspeed, const float speed_deriv_forward,
+		bool altitude_lock,
 		bool in_air,
 		float altitude, float vz)
 {
@@ -79,7 +80,7 @@ void TECS::update_vehicle_state_estimates(float airspeed, const float speed_deri
 	}
 
 	_state_update_timestamp = now;
-	_EAS = airspeed;
+	_EAS = equivalent_airspeed;
 
 	_in_air = in_air;
 
@@ -88,7 +89,7 @@ void TECS::update_vehicle_state_estimates(float airspeed, const float speed_deri
 	_vert_pos_state = altitude;
 
 	// Update and average speed rate of change if airspeed is being measured
-	if (PX4_ISFINITE(airspeed) && airspeed_sensor_enabled()) {
+	if (PX4_ISFINITE(equivalent_airspeed) && airspeed_sensor_enabled()) {
 		// Apply some noise filtering
 		_TAS_rate_filter.update(speed_deriv_forward);
 		_speed_derivative = _TAS_rate_filter.getState();
@@ -103,25 +104,24 @@ void TECS::update_vehicle_state_estimates(float airspeed, const float speed_deri
 
 }
 
-void TECS::_update_speed_states(float airspeed_setpoint, float indicated_airspeed, float EAS2TAS)
+void TECS::_update_speed_states(float equivalent_airspeed_setpoint, float equivalent_airspeed, float EAS2TAS)
 {
 	// Calculate the time in seconds since the last update and use the default time step value if out of bounds
 	uint64_t now = hrt_absolute_time();
 	const float dt = constrain((now - _speed_update_timestamp) * 1.0e-6f, DT_MIN, DT_MAX);
 
 	// Convert equivalent airspeed quantities to true airspeed
-	_EAS_setpoint = airspeed_setpoint;
+	_EAS_setpoint = equivalent_airspeed_setpoint;
 	_TAS_setpoint  = _EAS_setpoint * EAS2TAS;
-	_TAS_max   = _indicated_airspeed_max * EAS2TAS;
-	_TAS_min   = _indicated_airspeed_min * EAS2TAS;
+	_TAS_max   = _equivalent_airspeed_max * EAS2TAS;
+	_TAS_min   = _equivalent_airspeed_min * EAS2TAS;
 
-	// If airspeed measurements are not being used, fix the airspeed estimate to halfway between
-	// min and max limits
-	if (!PX4_ISFINITE(indicated_airspeed) || !airspeed_sensor_enabled()) {
-		_EAS = 0.5f * (_indicated_airspeed_min + _indicated_airspeed_max);
+	// If airspeed measurements are not being used, fix the EAS estimate to halfway between min and max limits
+	if (!PX4_ISFINITE(equivalent_airspeed) || !airspeed_sensor_enabled()) {
+		_EAS = 0.5f * (_equivalent_airspeed_min + _equivalent_airspeed_max);
 
 	} else {
-		_EAS = indicated_airspeed;
+		_EAS = equivalent_airspeed;
 	}
 
 	// If first time through or not flying, reset airspeed states
@@ -130,7 +130,7 @@ void TECS::_update_speed_states(float airspeed_setpoint, float indicated_airspee
 		_tas_state = (_EAS * EAS2TAS);
 	}
 
-	// Obtain a smoothed airspeed estimate using a second order complementary filter
+	// Obtain a smoothed TAS estimate using a second order complementary filter
 
 	// Update TAS rate state
 	float tas_error = (_EAS * EAS2TAS) - _tas_state;
@@ -139,7 +139,6 @@ void TECS::_update_speed_states(float airspeed_setpoint, float indicated_airspee
 	// limit integrator input to prevent windup
 	if (_tas_state < 3.1f) {
 		tas_rate_state_input = max(tas_rate_state_input, 0.0f);
-
 	}
 
 	// Update TAS state
@@ -147,7 +146,7 @@ void TECS::_update_speed_states(float airspeed_setpoint, float indicated_airspee
 	float tas_state_input = _tas_rate_state + _speed_derivative + tas_error * _tas_estimate_freq * 1.4142f;
 	_tas_state = _tas_state + tas_state_input * dt;
 
-	// Limit the airspeed state to a minimum of 3 m/s
+	// Limit the TAS state to a minimum of 3 m/s
 	_tas_state = max(_tas_state, 3.0f);
 	_speed_update_timestamp = now;
 
@@ -155,7 +154,7 @@ void TECS::_update_speed_states(float airspeed_setpoint, float indicated_airspee
 
 void TECS::_update_speed_setpoint()
 {
-	// Set the airspeed demand to the minimum value if an underspeed or
+	// Set the TAS demand to the minimum value if an underspeed or
 	// or a uncontrolled descent condition exists to maximise climb rate
 	if ((_uncommanded_descent_recovery) || (_underspeed_detected)) {
 		_TAS_setpoint = _TAS_min;
@@ -535,7 +534,7 @@ void TECS::_update_STE_rate_lim()
 }
 
 void TECS::update_pitch_throttle(const matrix::Dcmf &rotMat, float pitch, float baro_altitude, float hgt_setpoint,
-				 float EAS_setpoint, float indicated_airspeed, float eas_to_tas, bool climb_out_setpoint, float pitch_min_climbout,
+				 float EAS_setpoint, float equivalent_airspeed, float eas_to_tas, bool climb_out_setpoint, float pitch_min_climbout,
 				 float throttle_min, float throttle_max, float throttle_cruise, float pitch_limit_min, float pitch_limit_max)
 {
 	// Calculate the time since last update (seconds)
@@ -558,7 +557,7 @@ void TECS::update_pitch_throttle(const matrix::Dcmf &rotMat, float pitch, float 
 	}
 
 	// Update the true airspeed state estimate
-	_update_speed_states(EAS_setpoint, indicated_airspeed, eas_to_tas);
+	_update_speed_states(EAS_setpoint, equivalent_airspeed, eas_to_tas);
 
 	// Calculate rate limits for specific total energy
 	_update_STE_rate_lim();
