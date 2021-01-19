@@ -1656,9 +1656,17 @@ Commander::run()
 			_system_power_sub.copy(&system_power);
 
 			if (hrt_elapsed_time(&system_power.timestamp) < 1_s) {
-				if (system_power.servo_valid &&
-				    !system_power.brick_valid &&
-				    !system_power.usb_connected) {
+				bool brick_valid = false;
+
+				for (auto &b : system_power.brick_valid) {
+					if (b) {
+						brick_valid = true;
+						break;
+					}
+				}
+
+				if (system_power.servo_power_available && system_power.servo_power_valid &&
+				    !brick_valid && !system_power.usb_connected) {
 					/* flying only on servo rail, this is unsafe */
 					_status_flags.condition_power_input_valid = false;
 

@@ -4,6 +4,7 @@
 #------------------------------------------------------------------------------
 
 board_adc start
+system_power start
 
 # Internal ICM-20602
 icm20602 -s -b 1 -R 8 start

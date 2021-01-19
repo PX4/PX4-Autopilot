@@ -39,20 +39,10 @@
 
 #pragma once
 
-/****************************************************************************************************
- * Included Files
- ****************************************************************************************************/
-
 #include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-/****************************************************************************************************
- * Definitions
- ****************************************************************************************************/
-/* Configuration ************************************************************************************/
-
-/* PX4FMU GPIOs ***********************************************************************************/
 /* LEDs */
 #define GPIO_LED1                    (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN11)
 #define GPIO_LED2                    (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN1)
@@ -98,18 +88,11 @@
 #define GPIO_TONE_ALARM_IDLE         (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN15)
 #define GPIO_TONE_ALARM              (GPIO_ALT|GPIO_AF1|GPIO_SPEED_2MHz|GPIO_PUSHPULL|GPIO_PORTA|GPIO_PIN15)
 
-/**
- * PWM:
- *
- * Six PWM outputs are configured.
- */
+/* PWM: Six PWM outputs are configured */
 #define DIRECT_PWM_OUTPUT_CHANNELS   6
 #define DIRECT_INPUT_TIMER_CHANNELS  6
 
-/**
- * USB OTG FS:
- * PA9  OTG_FS_VBUS VBUS sensing.
- */
+/* USB OTG FS: PA9 OTG_FS_VBUS VBUS sensing. */
 #define GPIO_OTGFS_VBUS              (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
 
 /* High-resolution timer */
@@ -120,7 +103,6 @@
 #define GPIO_PPM_IN                  (GPIO_ALT|GPIO_AF2|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN0)
 
 /* RC Serial port */
-
 #define RC_SERIAL_PORT               "/dev/ttyS4"
 
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2. */
@@ -149,7 +131,6 @@
 #define GPIO_HEATER_OUTPUT           (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN6)
 
 /* Power switch controls */
-
 #define SPEKTRUM_POWER(_on_true)     px4_arch_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (!_on_true))
 
 /**
@@ -166,17 +147,9 @@
 #define SPEKTRUM_RX_AS_UART()       /* Can be left as uart */
 #define SPEKTRUM_OUT(_one_true)      px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
 
-/**
- * By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
- * this board support the ADC system_power interface, and therefore
- * provides the true logic GPIO BOARD_ADC_xxxx macros.
- */
 #define BOARD_ADC_USB_CONNECTED      (px4_arch_gpioread(GPIO_OTGFS_VBUS))
 #define BOARD_ADC_BRICK_VALID        (px4_arch_gpioread(GPIO_VDD_BRICK_VALID))
 #define BOARD_ADC_USB_VALID          (px4_arch_gpioread(GPIO_VDD_USB_VALID))
-#define BOARD_ADC_SERVO_VALID        (1)
-#define BOARD_ADC_PERIPH_5V_OC       (0)
-#define BOARD_ADC_HIPOWER_5V_OC      (0)
 
 #define BOARD_HAS_PWM    DIRECT_PWM_OUTPUT_CHANNELS
 
@@ -189,25 +162,13 @@
 
 __BEGIN_DECLS
 
-/****************************************************************************************************
- * Public Types
- ****************************************************************************************************/
-
-/****************************************************************************************************
- * Public data
- ****************************************************************************************************/
-
 #ifndef __ASSEMBLY__
-
-/****************************************************************************************************
- * Public Functions
- ****************************************************************************************************/
 
 /****************************************************************************************************
  * Name: stm32_spiinitialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the PX4FMU board.
+ *   Called to configure SPI chip select GPIO pins for the board.
  *
  ****************************************************************************************************/
 

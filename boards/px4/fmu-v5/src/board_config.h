@@ -173,18 +173,14 @@
 	 (1 << ADC1_SPARE_1_CHANNEL))
 #endif
 
-/* Define Battery 1 Voltage Divider and A per V
- */
-
+/* Define Battery 1 Voltage Divider and A per V */
 #define BOARD_BATTERY1_V_DIV         (18.1f)     /* measured with the provided PM board */
 #define BOARD_BATTERY1_A_PER_V       (36.367515152f)
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
-
 #define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
 
 /* HW Version and Revision drive signals Default to 1 to detect */
-
 #define BOARD_HAS_HW_VERSIONING
 
 #define GPIO_HW_REV_DRIVE    /* PH14  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTH|GPIO_PIN14)
@@ -194,20 +190,15 @@
 #define HW_INFO_INIT         {'V','5','x', 'x',0}
 #define HW_INFO_INIT_VER     2
 #define HW_INFO_INIT_REV     3
-/* CAN Silence
- *
- * Silent mode control \ ESC Mux select
- */
 
+/* CAN Silence Silent mode control \ ESC Mux select */
 #define GPIO_CAN1_SILENT_S0  /* PH2  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN2)
 #define GPIO_CAN2_SILENT_S1  /* PH3  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN3)
 #define GPIO_CAN3_SILENT_S2  /* PH4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN4)
 
 #define UAVCAN_NUM_IFACES_RUNTIME 1
 
-/* HEATER
- * PWM in future
- */
+/* HEATER PWM in future */
 #define GPIO_HEATER_OUTPUT   /* PA7  T14CH1 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN7)
 
 /* PWM Capture
@@ -256,7 +247,6 @@
 
 #define GPIO_nVDD_BRICK1_VALID          GPIO_nPOWER_IN_A /* Brick 1 Is Chosen */
 #define GPIO_nVDD_BRICK2_VALID          GPIO_nPOWER_IN_B /* Brick 2 Is Chosen  */
-#define BOARD_NUMBER_BRICKS             2
 #define GPIO_nVDD_USB_VALID             GPIO_nPOWER_IN_C /* USB     Is Chosen */
 
 #define GPIO_nVDD_5V_PERIPH_EN          /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN4)
@@ -304,7 +294,6 @@
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
 
 /* RC Serial port */
-
 #define RC_SERIAL_PORT                     "/dev/ttyS4"
 #define RC_SERIAL_SINGLEWIRE
 
@@ -371,40 +360,16 @@
 #define SDIO_SLOTNO                    0  /* Only one slot */
 #define SDIO_MINOR                     0
 
-/* SD card bringup does not work if performed on the IDLE thread because it
- * will cause waiting.  Use either:
- *
- *  CONFIG_LIB_BOARDCTL=y, OR
- *  CONFIG_BOARD_INITIALIZE=y && CONFIG_BOARD_INITTHREAD=y
- */
-
-#if defined(CONFIG_BOARD_INITIALIZE) && !defined(CONFIG_LIB_BOARDCTL) && \
-   !defined(CONFIG_BOARD_INITTHREAD)
-#  warning SDIO initialization cannot be perfomed on the IDLE thread
-#endif
-
-/* By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
- * this board support the ADC system_power interface, and therefore
- * provides the true logic GPIO BOARD_ADC_xxxx macros.
- */
 #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
 
-#if BOARD_HAS_USB_VALID == 1
+#if defined(GPIO_nVDD_USB_VALID)
 #  define BOARD_ADC_USB_VALID     (!px4_arch_gpioread(GPIO_nVDD_USB_VALID))
-#else
-#  define BOARD_ADC_USB_VALID     BOARD_ADC_USB_CONNECTED
 #endif
-
-/* FMUv5 never powers odd the Servo rail */
-
-#define BOARD_ADC_SERVO_VALID     (1)
 
 #if !defined(BOARD_HAS_LTC44XX_VALIDS) || BOARD_HAS_LTC44XX_VALIDS == 0
 #  define BOARD_ADC_BRICK1_VALID  (1)
-#  define BOARD_ADC_BRICK2_VALID  (0)
 #elif BOARD_HAS_LTC44XX_VALIDS == 1
 #  define BOARD_ADC_BRICK1_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK1_VALID))
-#  define BOARD_ADC_BRICK2_VALID  (0)
 #elif BOARD_HAS_LTC44XX_VALIDS == 2
 #  define BOARD_ADC_BRICK1_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK1_VALID))
 #  define BOARD_ADC_BRICK2_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK2_VALID))

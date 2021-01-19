@@ -7,6 +7,7 @@ rgbled start -I
 rgbled_ncp5623c start -I
 
 board_adc start
+system_power start
 
 # Internal SPI bus ICM-20602 or ICM-20608-G
 if ! icm20602 -s -R 8 start

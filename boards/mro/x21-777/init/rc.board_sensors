@@ -3,6 +3,7 @@
 # Board specific sensors init
 #------------------------------------------------------------------------------
 board_adc start
+system_power start
 
 # SPI1
 ms5611 -s -b 1 start

@@ -4,6 +4,7 @@
 #------------------------------------------------------------------------------
 
 board_adc start
+system_power start
 
 # Internal I2C bus
 hmc5883 -T -I -R 12 start

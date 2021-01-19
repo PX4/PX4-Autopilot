@@ -49,12 +49,6 @@
 
 #include <stm32_gpio.h>
 
-/****************************************************************************************************
- * Definitions
- ****************************************************************************************************/
-
-/* GPIOs ***********************************************************************************/
-
 /* LEDs are driven with push open drain to support Anode to 5V or 3.3V */
 
 #define GPIO_nLED_BLUE       /* PA2 */  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN2)
@@ -63,7 +57,6 @@
 #define BOARD_ARMED_STATE_LED  LED_BLUE
 
 #define  FLASH_BASED_PARAMS
-
 
 /*
  * ADC channels
@@ -92,13 +85,11 @@
 	 (1 << ADC_BATTERY_CURRENT_CHANNEL)       | \
 	 (1 << ADC_RSSI_IN_CHANNEL))
 
-/* Define Battery 1 Voltage Divider and A per V
- */
+/* Define Battery 1 Voltage Divider and A per V. */
 #define BOARD_BATTERY1_V_DIV         (10.9f)
 #define BOARD_BATTERY1_A_PER_V       (17.f)
 
-/* PWM
- */
+/* PWM */
 #define DIRECT_PWM_OUTPUT_CHANNELS  6
 #define DIRECT_INPUT_TIMER_CHANNELS  6
 
@@ -106,10 +97,7 @@
 #define GPIO_TONE_ALARM_IDLE    /* PD15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN15)
 #define GPIO_TONE_ALARM_GPIO    /* PD15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN15)
 
-/* USB OTG FS
- *
- * PA8  OTG_FS_VBUS VBUS sensing
- */
+/* USB OTG FS PA8  OTG_FS_VBUS VBUS sensing */
 #define GPIO_OTGFS_VBUS         /* PA8 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_100MHz|GPIO_PORTA|GPIO_PIN8)
 
 /* High-resolution timer */
@@ -117,8 +105,7 @@
 #define HRT_TIMER_CHANNEL       1  /* use capture/compare channel 1 */
 
 /* RC Serial port */
-
-#define RC_SERIAL_PORT                     "/dev/ttyS4"
+#define RC_SERIAL_PORT               "/dev/ttyS4"
 
 #define GPIO_RSSI_IN                       /* PC5  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN5)
 
@@ -142,19 +129,7 @@
 
 __BEGIN_DECLS
 
-/****************************************************************************************************
- * Public Types
- ****************************************************************************************************/
-
-/****************************************************************************************************
- * Public data
- ****************************************************************************************************/
-
 #ifndef __ASSEMBLY__
-
-/****************************************************************************************************
- * Public Functions
- ****************************************************************************************************/
 
 /****************************************************************************************************
  * Name: stm32_spiinitialize

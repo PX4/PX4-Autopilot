@@ -4,6 +4,7 @@
 #------------------------------------------------------------------------------
 
 board_adc start
+system_power start
 
 # Internal SPI
 if ! ms5611 -T 5607 -s start

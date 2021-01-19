@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012, 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,59 +32,66 @@
  ****************************************************************************/
 
 /**
- * @file drv_adc.h
+ * @file SystemPower.hpp
  *
- * ADC driver interface.
+ * Driver for an ADC.
  *
  */
-
-#pragma once
-
 #include <stdint.h>
-#include <sys/ioctl.h>
-#include <systemlib/px4_macros.h>
+
+#include <drivers/drv_hrt.h>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/adc_report.h>
+#include <uORB/topics/system_power.h>
 
-#define BUILTIN_ADC_DEVID	0xffffffff	// TODO: integrate into existing ID management
+using namespace time_literals;
 
-__BEGIN_DECLS
+class SystemPower : public ModuleBase<SystemPower>, public px4::ScheduledWorkItem
+{
+public:
+	SystemPower();
+	~SystemPower() override;
 
-/**
- * Initialize ADC hardware
- * @param base_address architecture-specific address to specify the ADC
- * @return 0 on success, <0 error otherwise
- */
-int px4_arch_adc_init(uint32_t base_address);
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-/**
- * Uninitialize ADC hardware
- * @param base_address architecture-specific address to specify the ADC
- */
-void px4_arch_adc_uninit(uint32_t base_address);
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
 
-/**
- * Read a sample from the ADC
- * @param base_address architecture-specific address to specify the ADC
- * @param channel specify the channel
- * @return sample, 0xffffffff on error
- */
-uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel);
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
 
-/**
- * Get the ADC positive reference voltage
- * N.B This assume that all ADC channels share the same vref.
- * @return v_ref
- */
-float px4_arch_adc_reference_v(void);
+	int init();
 
-/**
- * Get the temperature sensor channel bitmask
- */
-uint32_t px4_arch_adc_temp_sensor_mask(void);
+private:
+	void Run() override;
 
-/**
- * Get the adc digital number full count
- */
-uint32_t px4_arch_adc_dn_fullcount(void);
+	void OpenGpioDevices();
+	void CloseGpioDevices();
+	uint8_t ReadGpioValue(int fd);
 
-__END_DECLS
+	static int DataReadyInterruptCallback(int irq, void *context, void *arg);
+	void DataReady();
+	bool DataReadyInterruptConfigure();
+	bool DataReadyInterruptDisable();
+
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+
+	uORB::Publication<system_power_s> _system_power_pub{ORB_ID(system_power)};
+	uORB::Subscription _adc_report_sub{ORB_ID(adc_report)};
+
+#if defined(BOARD_GPIO_VDD_5V_COMP_VALID)
+	int _5v_comp_valid_fd {-1};
+#endif // BOARD_GPIO_VDD_5V_COMP_VALID
+#if defined(BOARD_GPIO_VDD_5V_CAN1_GPS1_VALID)
+	int _5v_can1_gps1_valid_fd {-1};
+#endif // BOARD_GPIO_VDD_5V_CAN1_GPS1_VALID
+
+	bool _first_run{true};
+};

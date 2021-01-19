@@ -110,8 +110,6 @@
 #define DIRECT_PWM_OUTPUT_CHANNELS   8
 
 /* Power supply control and monitoring GPIOs */
-#define BOARD_NUMBER_BRICKS             2
-
 #define GPIO_nPOWER_IN_ADC              /* PG1  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN1)
 #define GPIO_nPOWER_IN_CAN              /* PG2  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN2)
 #define GPIO_nPOWER_IN_C                /* PG0  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN0)
@@ -179,10 +177,7 @@
 
 #define GPIO_LED_SAFETY FMU_LED_AMBER
 
-/* By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
- * this board support the ADC system_power interface, and therefore
- * provides the true logic GPIO BOARD_ADC_xxxx macros.
- */
+
 #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
 #define BOARD_ADC_USB_VALID     (!px4_arch_gpioread(GPIO_nVDD_USB_VALID))
 #define BOARD_ADC_BRICK1_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK1_VALID))

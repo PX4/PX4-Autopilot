@@ -45,6 +45,7 @@ px4_add_board(
 		rc_input
 		roboclaw
 		safety_button
+		#system_power # REVIEW
 		tap_esc
 		telemetry # all available telemetry drivers
 		tone_alarm

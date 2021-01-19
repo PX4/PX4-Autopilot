@@ -55,12 +55,6 @@ public:
 				    int source, int priority, float throttle_normalized);
 
 	/**
-	 * Whether the ADC channel for the voltage of this battery is valid.
-	 * Corresponds to BOARD_BRICK_VALID_LIST
-	 */
-	bool is_valid();
-
-	/**
 	 * Which ADC channel is used for voltage reading of this battery
 	 */
 	int get_voltage_channel();

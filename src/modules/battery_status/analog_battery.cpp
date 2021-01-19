@@ -35,20 +35,6 @@
 #include <lib/battery/battery.h>
 #include "analog_battery.h"
 
-// Defaults to use if the parameters are not set
-#if BOARD_NUMBER_BRICKS > 0
-#if defined(BOARD_BATT_V_LIST) && defined(BOARD_BATT_I_LIST)
-static constexpr int   DEFAULT_V_CHANNEL[BOARD_NUMBER_BRICKS] = BOARD_BATT_V_LIST;
-static constexpr int   DEFAULT_I_CHANNEL[BOARD_NUMBER_BRICKS] = BOARD_BATT_I_LIST;
-#else
-static constexpr int   DEFAULT_V_CHANNEL[BOARD_NUMBER_BRICKS] = {0};
-static constexpr int   DEFAULT_I_CHANNEL[BOARD_NUMBER_BRICKS] = {0};
-#endif
-#else
-static constexpr int DEFAULT_V_CHANNEL[1] = {0};
-static constexpr int DEFAULT_I_CHANNEL[1] = {0};
-#endif
-
 AnalogBattery::AnalogBattery(int index, ModuleParams *parent, const int sample_interval_us) :
 	Battery(index, parent, sample_interval_us)
 {
@@ -80,23 +66,12 @@ AnalogBattery::updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, 
 	float voltage_v = voltage_raw * _analog_params.v_div;
 	float current_a = (current_raw - _analog_params.v_offs_cur) * _analog_params.a_per_v;
 
-	bool connected = voltage_v > BOARD_ADC_OPEN_CIRCUIT_V &&
-			 (BOARD_ADC_OPEN_CIRCUIT_V <= BOARD_VALID_UV || is_valid());
+	bool connected = (voltage_v > BOARD_ADC_OPEN_CIRCUIT_V);// && (BOARD_ADC_OPEN_CIRCUIT_V <= BOARD_VALID_UV);
 
-
-	Battery::updateBatteryStatus(timestamp, voltage_v, current_a, connected,
-				     source, priority, throttle_normalized);
-}
-
-bool AnalogBattery::is_valid()
-{
-#ifdef BOARD_BRICK_VALID_LIST
-	bool valid[BOARD_NUMBER_BRICKS] = BOARD_BRICK_VALID_LIST;
-	return valid[_index - 1];
-#else
-	// TODO: Maybe return false instead?
-	return true;
-#endif
+	// only publish if connected
+	if (connected) {
+		Battery::updateBatteryStatus(timestamp, voltage_v, current_a, connected, source, priority, throttle_normalized);
+	}
 }
 
 int AnalogBattery::get_voltage_channel()
@@ -105,7 +80,12 @@ int AnalogBattery::get_voltage_channel()
 		return _analog_params.v_channel;
 
 	} else {
-		return DEFAULT_V_CHANNEL[_index - 1];
+#if defined(BOARD_BATT_V_LIST)
+		static constexpr int batt_v_list[BOARD_NUMBER_BRICKS] = BOARD_BATT_V_LIST;
+		return batt_v_list[_index - 1];
+#else
+		return 0;
+#endif // BOARD_BATT_V_LIST
 	}
 }
 
@@ -115,7 +95,12 @@ int AnalogBattery::get_current_channel()
 		return _analog_params.i_channel;
 
 	} else {
-		return DEFAULT_I_CHANNEL[_index - 1];
+#if defined(BOARD_BATT_I_LIST)
+		static constexpr int batt_i_list[BOARD_NUMBER_BRICKS] = BOARD_BATT_I_LIST;
+		return batt_i_list[_index - 1];
+#else
+		return 0;
+#endif // BOARD_BATT_I_LIST
 	}
 }
 

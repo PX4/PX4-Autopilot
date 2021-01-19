@@ -30,6 +30,7 @@ px4_add_board(
 		magnetometer/lsm9ds1_mag
 		pwm_out_sim
 		rc_input
+		system_power
 		#telemetry # all available telemetry drivers
 	MODULES
 		airspeed_selector

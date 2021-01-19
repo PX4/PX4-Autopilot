@@ -109,13 +109,6 @@
  */
 #define GPIO_OTGFS_VBUS		(GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
 
-/*
- * ADC channels
- *
- * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
- */
-#define ADC_CHANNELS 0
-
 /* Tone alarm output : These are only applicable when the buzzer deck is attached */
 #define TONE_ALARM_TIMER	5	/* timer 5 */
 #define TONE_ALARM_CHANNEL 3	/* channel 3 */
@@ -123,9 +116,7 @@
 #define GPIO_TONE_ALARM		(GPIO_ALT|GPIO_AF2|GPIO_SPEED_2MHz|GPIO_PUSHPULL|GPIO_PORTA|GPIO_PIN2)
 #define GPIO_TONE_ALARM_NEG (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN3)
 
-/* PWM
-*/
-
+/* PWM */
 #define DIRECT_PWM_OUTPUT_CHANNELS	4
 
 /* This board overrides the defaults by providing

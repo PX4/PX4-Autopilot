@@ -50,17 +50,10 @@
 
 #include <stm32_gpio.h>
 
-/****************************************************************************************************
- * Definitions
- ****************************************************************************************************/
-
 #define FLASH_BASED_PARAMS
 #define BOARD_USE_EXTERNAL_FLASH //Configuration and firmware are in external flash
 
-#define BOARD_HAS_USB_VALID            1 // LTC Has No USB valid
-
 /* LEDs are driven with push open drain to support Anode to 5V or 3.3V */
-
 #define GPIO_nLED_RED        /* PE3 */  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN3)
 
 #define BOARD_HAS_CONTROL_STATUS_LEDS      1
@@ -80,7 +73,6 @@
 	/* PC1 */  GPIO_ADC123_INP11, \
 	/* PC0 */  GPIO_ADC123_INP10
 
-
 /* Define Channel numbers must match above GPIO pin IN(n)*/
 #define ADC_RSSI_IN_CHANNEL                 /* PC4 */  4
 #define ADC_BATTERY_VOLTAGE_CHANNEL         /* PC1 */  11
@@ -88,13 +80,11 @@
 
 #define ADC_CHANNELS (1 << 4) | (1 << 10) | (1 << 11)
 
-/* Define Battery 1 Voltage Divider and A per V
- */
+/* Define Battery 1 Voltage Divider and A per V */
 #define BOARD_BATTERY1_V_DIV         (10.9f)
 #define BOARD_BATTERY1_A_PER_V       (17.f)
 
-/* PWM
- */
+/* PWM */
 #define DIRECT_PWM_OUTPUT_CHANNELS  8
 #define DIRECT_INPUT_TIMER_CHANNELS 8
 
@@ -102,19 +92,14 @@
 #define GPIO_TONE_ALARM_IDLE    /* PE5 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN5)
 #define GPIO_TONE_ALARM_GPIO    /* PE5 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN5)
 
-/* USB OTG FS
- *
- * PA8  OTG_FS_VBUS VBUS sensing
- */
+/* USB OTG FS PA8  OTG_FS_VBUS VBUS sensing */
 #define GPIO_OTGFS_VBUS         /* PA9 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_100MHz|GPIO_PORTA|GPIO_PIN9)
 
 /* High-resolution timer */
 #define HRT_TIMER               2  /* use timer2 for the HRT */
 #define HRT_TIMER_CHANNEL       3  /* use capture/compare channel 3 */
 
-
 /* RC Serial port */
-
 #define RC_SERIAL_PORT          "/dev/ttyS0"
 
 #define GPIO_RSSI_IN            /* PC5  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN5)
@@ -131,8 +116,8 @@
 #define BOARD_HAS_ON_RESET 1
 
 #define PX4_GPIO_INIT_LIST { \
-		PX4_ADC_GPIO,                     \
-		GPIO_TONE_ALARM_IDLE,             \
+		PX4_ADC_GPIO,                \
+		GPIO_TONE_ALARM_IDLE,        \
 		GPIO_RSSI_IN,                \
 	}
 
@@ -144,19 +129,7 @@
 
 __BEGIN_DECLS
 
-/****************************************************************************************************
- * Public Types
- ****************************************************************************************************/
-
-/****************************************************************************************************
- * Public data
- ****************************************************************************************************/
-
 #ifndef __ASSEMBLY__
-
-/****************************************************************************************************
- * Public Functions
- ****************************************************************************************************/
 
 /****************************************************************************
  * Name: stm32_sdio_initialize

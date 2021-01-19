@@ -164,17 +164,10 @@
 #define SPEKTRUM_RX_AS_UART()       /* Can be left as uart */
 #define SPEKTRUM_OUT(_one_true)      px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
 
-/**
- * By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
- * this board support the ADC system_power interface, and therefore
- * provides the true logic GPIO BOARD_ADC_xxxx macros.
- */
+
 #define BOARD_ADC_USB_CONNECTED      (px4_arch_gpioread(GPIO_OTGFS_VBUS))
 #define BOARD_ADC_BRICK_VALID        (px4_arch_gpioread(GPIO_VDD_BRICK_VALID))
 #define BOARD_ADC_USB_VALID          (px4_arch_gpioread(GPIO_VDD_USB_VALID))
-#define BOARD_ADC_SERVO_VALID        (1)
-#define BOARD_ADC_PERIPH_5V_OC       (0)
-#define BOARD_ADC_HIPOWER_5V_OC      (0)
 
 #define BOARD_HAS_PWM    DIRECT_PWM_OUTPUT_CHANNELS
 

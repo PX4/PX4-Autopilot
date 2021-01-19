@@ -3,6 +3,7 @@
 # board specific sensors init
 #------------------------------------------------------------------------------
 board_adc start
+system_power start
 
 # SPI1
 icm20689 -s -b 1 -R 2 start

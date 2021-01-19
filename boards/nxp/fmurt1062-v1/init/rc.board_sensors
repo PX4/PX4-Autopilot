@@ -16,6 +16,7 @@
 #------------------------------------------------------------------------------
 
 board_adc start
+system_power start
 
 # Internal SPI bus ICM-20602
 icm20602 -R 2 -s start

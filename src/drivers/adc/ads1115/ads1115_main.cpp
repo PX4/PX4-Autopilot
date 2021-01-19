@@ -51,7 +51,7 @@ ADS1115::ADS1115(I2CSPIBusOption bus_option, int bus, int addr, int bus_frequenc
 	_adc_report.resolution = 32768;
 	_adc_report.v_ref = 6.144f;
 
-	for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
+	for (unsigned i = 0; i < adc_report_s::MAX_ADC_CHANNELS; ++i) {
 		_adc_report.channel_id[i] = -1;
 	}
 

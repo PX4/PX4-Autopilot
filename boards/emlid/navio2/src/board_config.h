@@ -47,10 +47,8 @@
 
 #define BOARD_MAX_LEDS 1 // Number of external LED's this board has
 
-
 // I2C
 #define PX4_NUMBER_I2C_BUSES    1
-
 
 // ADC channels:
 // A0 - board voltage (shows 5V)

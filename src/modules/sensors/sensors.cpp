@@ -435,7 +435,7 @@ void Sensors::adc_poll()
 
 			if (_adc_report_sub.update(&adc)) {
 				/* Read add channels we got */
-				for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; i++) {
+				for (unsigned i = 0; i < adc_report_s::MAX_ADC_CHANNELS; i++) {
 					if (adc.channel_id[i] == -1) {
 						continue;	// skip non-exist channels
 					}

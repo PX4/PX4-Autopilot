@@ -4,6 +4,7 @@
 #------------------------------------------------------------------------------
 
 board_adc start
+system_power start
 
 # Internal Mag I2C bus roll 180, yaw 90
 bmm150 -I -R 10 start
