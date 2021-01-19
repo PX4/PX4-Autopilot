@@ -74,14 +74,15 @@ public:
 	 * Must be called prior to udating tecs control loops
 	 * Must be called at 50Hz or greater
 	 */
-	void update_vehicle_state_estimates(float airspeed, const float speed_deriv_forward, bool altitude_lock, bool in_air,
+	void update_vehicle_state_estimates(float equivalent_airspeed, const float speed_deriv_forward, bool altitude_lock,
+					    bool in_air,
 					    float altitude, float vz);
 
 	/**
 	 * Update the control loop calculations
 	 */
 	void update_pitch_throttle(const matrix::Dcmf &rotMat, float pitch, float baro_altitude, float hgt_setpoint,
-				   float EAS_setpoint, float indicated_airspeed, float eas_to_tas, bool climb_out_setpoint, float pitch_min_climbout,
+				   float EAS_setpoint, float equivalent_airspeed, float eas_to_tas, bool climb_out_setpoint, float pitch_min_climbout,
 				   float throttle_min, float throttle_setpoint_max, float throttle_cruise,
 				   float pitch_limit_min, float pitch_limit_max);
 
@@ -111,8 +112,8 @@ public:
 	void set_heightrate_ff(float heightrate_ff) { _height_setpoint_gain_ff = heightrate_ff; }
 	void set_height_error_time_constant(float time_const) { _height_error_gain = 1.0f / math::max(time_const, 0.1f); }
 
-	void set_indicated_airspeed_max(float airspeed) { _indicated_airspeed_max = airspeed; }
-	void set_indicated_airspeed_min(float airspeed) { _indicated_airspeed_min = airspeed; }
+	void set_equivalent_airspeed_max(float airspeed) { _equivalent_airspeed_max = airspeed; }
+	void set_equivalent_airspeed_min(float airspeed) { _equivalent_airspeed_min = airspeed; }
 
 	void set_pitch_damping(float damping) { _pitch_damping_gain = damping; }
 	void set_vertical_accel_limit(float limit) { _vert_accel_limit = limit; }
@@ -214,12 +215,12 @@ private:
 	float _pitch_speed_weight{1.0f};				///< speed control weighting used by pitch demand calculation
 	float _height_error_gain{0.2f};					///< height error inverse time constant [1/s]
 	float _height_setpoint_gain_ff{0.0f};				///< gain from height demand derivative to demanded climb rate
-	float _airspeed_error_gain{0.1f};							///< airspeed error inverse time constant [1/s]
-	float _indicated_airspeed_min{3.0f};				///< equivalent airspeed demand lower limit (m/sec)
-	float _indicated_airspeed_max{30.0f};				///< equivalent airspeed demand upper limit (m/sec)
+	float _airspeed_error_gain{0.1f};				///< airspeed error inverse time constant [1/s]
+	float _equivalent_airspeed_min{3.0f};				///< equivalent airspeed demand lower limit (m/sec)
+	float _equivalent_airspeed_max{30.0f};				///< equivalent airspeed demand upper limit (m/sec)
 	float _throttle_slewrate{0.0f};					///< throttle demand slew rate limit (1/sec)
 	float _STE_rate_time_const{0.1f};				///< filter time constant for specific total energy rate (damping path) (s)
-	float _speed_derivative_time_const{0.01f};		///< speed derivative filter time constant (s)
+	float _speed_derivative_time_const{0.01f};			///< speed derivative filter time constant (s)
 
 	// complimentary filter states
 	float _vert_vel_state{0.0f};					///< complimentary filter state - height rate (m/sec)
@@ -297,7 +298,7 @@ private:
 	/**
 	 * Update the airspeed internal state using a second order complementary filter
 	 */
-	void _update_speed_states(float airspeed_setpoint, float indicated_airspeed, float eas_to_tas);
+	void _update_speed_states(float airspeed_setpoint, float equivalent_airspeed, float cas_to_tas);
 
 	/**
 	 * Update the desired airspeed
