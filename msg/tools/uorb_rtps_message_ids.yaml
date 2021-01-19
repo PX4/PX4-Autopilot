@@ -84,6 +84,7 @@ rtps:
     id: 39
   - msg: mission_result
     id: 40
+    send: true
   - msg: mount_orientation
     id: 41
   - msg: multirotor_motor_limits
