@@ -144,6 +144,7 @@ public:
 	float hgt_rate_setpoint() { return _hgt_rate_setpoint; }
 	float vert_vel_state() { return _vert_vel_state; }
 
+	float get_EAS_setpoint() { return _EAS_setpoint; };
 	float TAS_rate_setpoint() { return _TAS_rate_setpoint; }
 	float speed_derivative() { return _speed_derivative; }
 
