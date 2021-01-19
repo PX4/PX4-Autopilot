@@ -112,7 +112,7 @@
 /* Power supply control and monitoring GPIOs */
 #define GPIO_nPOWER_IN_A                /* PB5 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN5)
 
-#define GPIO_nVDD_BRICK1_VALID          GPIO_nPOWER_IN_A /* Brick 1 Is Chosen */
+#define GPIO_VDD_BRICK1_VALID          GPIO_nPOWER_IN_A /* Brick 1 Is Chosen */
 #define BOARD_NUMBER_BRICKS             1
 
 #define GPIO_VDD_3V3_SPEKTRUM_POWER_EN  /* PE4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN4)
