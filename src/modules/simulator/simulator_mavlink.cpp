@@ -40,6 +40,7 @@
 #include <px4_platform_common/time.h>
 #include <px4_platform_common/tasks.h>
 #include <lib/ecl/geo/geo.h>
+#include <drivers/device/Device.hpp>
 #include <drivers/drv_pwm_output.h>
 #include <conversion/rotation.h>
 #include <mathlib/mathlib.h>
@@ -1316,8 +1317,14 @@ int Simulator::publish_distance_topic(const mavlink_distance_sensor_t *dist_mavl
 	dist.max_distance = dist_mavlink->max_distance / 100.0f;
 	dist.current_distance = dist_mavlink->current_distance / 100.0f;
 	dist.type = dist_mavlink->type;
-	dist.id = dist_mavlink->id;
 	dist.variance = dist_mavlink->covariance * 1e-4f; // cm^2 to m^2
+
+	device::Device::DeviceId device_id {};
+	device_id.devid_s.bus_type = device::Device::DeviceBusType_SIMULATION;
+	device_id.devid_s.address = dist_mavlink->id;
+	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_SIM;
+
+	dist.device_id = device_id.devid;
 
 	// MAVLink DISTANCE_SENSOR signal_quality value of 0 means unset/unknown
 	// quality value. Also it comes normalised between 1 and 100 while the uORB
@@ -1362,7 +1369,7 @@ int Simulator::publish_distance_topic(const mavlink_distance_sensor_t *dist_mavl
 
 	// New publishers will be created based on the sensor ID's being different or not
 	for (size_t i = 0; i < sizeof(_dist_sensor_ids) / sizeof(_dist_sensor_ids[0]); i++) {
-		if (_dist_pubs[i] && _dist_sensor_ids[i] == dist.id) {
+		if (_dist_pubs[i] && _dist_sensor_ids[i] == dist.device_id) {
 			_dist_pubs[i]->publish(dist);
 			break;
 
@@ -1370,7 +1377,7 @@ int Simulator::publish_distance_topic(const mavlink_distance_sensor_t *dist_mavl
 
 		if (_dist_pubs[i] == nullptr) {
 			_dist_pubs[i] = new uORB::PublicationMulti<distance_sensor_s> {ORB_ID(distance_sensor)};
-			_dist_sensor_ids[i] = dist.id;
+			_dist_sensor_ids[i] = dist.device_id;
 			_dist_pubs[i]->publish(dist);
 			break;
 		}
