@@ -87,13 +87,13 @@
 #define ADC_BATTERY_VOLTAGE_CHANNEL        /* PA2 */  ADC1_CH(2)
 #define ADC_BATTERY_CURRENT_CHANNEL        /* PA3 */  ADC1_CH(3)
 #define ADC_SCALED_V5_CHANNEL              /* PA4 */  ADC1_CH(4)
-#define ADC_RSSI_IN_CHANNEL                /* PC1 */  ADC1_CH(11)
+#define ADC_RC_RSSI_CHANNEL                /* PC1 */  ADC1_CH(11)
 
 #define ADC_CHANNELS \
 	((1 << ADC_BATTERY_VOLTAGE_CHANNEL)       | \
 	 (1 << ADC_BATTERY_CURRENT_CHANNEL)       | \
 	 (1 << ADC_SCALED_V5_CHANNEL)             | \
-	 (1 << ADC_RSSI_IN_CHANNEL))
+	 (1 << ADC_RC_RSSI_CHANNEL))
 
 /* Define Battery 1 Voltage Divider and A per V */
 #define BOARD_BATTERY1_V_DIV         (18.1f)     /* measured with the provided PM board */
