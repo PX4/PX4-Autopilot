@@ -175,7 +175,7 @@
 #define BOARD_ADC_USB_CONNECTED	       (px4_arch_gpioread(GPIO_OTGFS_VBUS))
 #define BOARD_ADC_USB_VALID            BOARD_ADC_USB_CONNECTED
 #define BOARD_ADC_SERVO_VALID          (1)	/* never powers off the Servo rail */
-#define BOARD_ADC_BRICK_VALID.         (px4_arch_gpioread(GPIO_nVDD_BRICK1_VALID))
+#define BOARD_ADC_BRICK_VALID          (px4_arch_gpioread(GPIO_nVDD_BRICK1_VALID))
 
 #define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
