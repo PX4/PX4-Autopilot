@@ -622,7 +622,7 @@ private:
 				  Vector3f &innov_var, Vector2f &test_ratio);
 
 	bool fuseHorizontalPosition(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
-				    Vector3f &innov_var, Vector2f &test_ratio);
+				    Vector3f &innov_var, Vector2f &test_ratiov, bool inhibit_gate);
 
 	bool fuseVerticalPosition(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
 				  Vector3f &innov_var, Vector2f &test_ratio);
