@@ -497,10 +497,9 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 	case commander_state_s::MAIN_STATE_AUTO_MISSION:
 
 		/* go into failsafe
-		 * - if commanded to do so
 		 * - if we have an engine failure
 		 * - if we have vtol transition failure
-		 * - depending on datalink, RC and if the mission is finished */
+		 * - on data and RC link loss */
 
 		if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
@@ -513,23 +512,29 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 		} else if (status->mission_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
-		} else if (data_link_loss_act_configured && status->data_link_lost && is_armed) {
-			/* datalink loss enabled:
-			 * check for datalink lost: this should always trigger RTL */
+		} else if (status->data_link_lost && data_link_loss_act_configured
+			   && is_armed && !landed) {
+			// Data link lost, data link loss reaction configured, do configured reaction
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 			set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act, 0);
 
-		} else if (!data_link_loss_act_configured && status->rc_signal_lost && status->data_link_lost && !landed
-			   && mission_finished && is_armed) {
-			/* datalink loss DISABLED:
-			 * check if both, RC and datalink are lost during the mission
-			 * or all links are lost after the mission finishes in air: this should always trigger RTL */
+		} else if (status->rc_signal_lost
+			   && status->data_link_lost && !data_link_loss_act_configured
+			   && is_armed && !landed) {
+			// All links lost, no data link loss reaction configured, immediately do RC loss reaction
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, param_com_rcl_act_t);
 
-			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, 0);
+		} else if (status->rc_signal_lost && !rc_loss_act_configured
+			   && status->data_link_lost && !data_link_loss_act_configured
+			   && is_armed && !landed
+			   && mission_finished) {
+			// All links lost, all link loss reactions disabled, return after mission to prevent stuck vehicle
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, link_loss_actions_t::AUTO_RTL, 0);
 
 		} else if (!stay_in_failsafe) {
-			/* stay where you are if you should stay in failsafe, otherwise everything is perfect */
+			// normal mission operation if there's no need to stay in failsafe
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
 		}
 
