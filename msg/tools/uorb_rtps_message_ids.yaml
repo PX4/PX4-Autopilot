@@ -308,6 +308,8 @@ rtps:
     id: 146
   - msg: control_allocator_status
     id: 147
+  - msg: mag_worker_data
+    id: 148
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 170
