@@ -148,6 +148,7 @@ private:
 
 	float _rtl_alt{0.0f};	// AMSL altitude at which the vehicle should return to the home position
 	bool _rtl_alt_min{false};
+	float _rtl_loiter_rad{50.0f};		// radius at which a fixed wing would loiter while descending
 	bool _climb_and_return_done{false};	// this flag is set to true if RTL is active and we are past the climb state and return state
 	bool _deny_mission_landing{false};
 
@@ -159,7 +160,8 @@ private:
 		(ParamInt<px4::params::RTL_TYPE>) _param_rtl_type,
 		(ParamInt<px4::params::RTL_CONE_ANG>) _param_rtl_cone_half_angle_deg,
 		(ParamFloat<px4::params::RTL_FLT_TIME>) _param_rtl_flt_time,
-		(ParamInt<px4::params::RTL_PLD_MD>) _param_rtl_pld_md
+		(ParamInt<px4::params::RTL_PLD_MD>) _param_rtl_pld_md,
+		(ParamFloat<px4::params::RTL_LOITER_RAD>) _param_rtl_loiter_rad
 	)
 
 	// These need to point at different parameters depending on vehicle type.
