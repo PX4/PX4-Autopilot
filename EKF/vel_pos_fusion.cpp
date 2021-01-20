@@ -108,6 +108,10 @@ bool Ekf::fuseHorizontalPosition(const Vector3f &innov, const Vector2f &innov_ga
 	const bool innov_check_pass = test_ratio(0) <= 1.0f;
 
 	if (innov_check_pass || inhibit_gate) {
+		if (inhibit_gate && test_ratio(0) > sq(100.0f / innov_gate(0))) {
+			// always protect against extreme values that could result in a NaN
+			return false;
+		}
 		if (!_fuse_hpos_as_odom) {
 			_time_last_hor_pos_fuse = _time_last_imu;
 
