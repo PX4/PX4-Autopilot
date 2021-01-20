@@ -63,6 +63,7 @@
 #include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/mag_worker_data.h>
 
 using namespace matrix;
 using namespace time_literals;
@@ -78,6 +79,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 /// Data passed to calibration worker routine
 struct mag_worker_data_t {
 	orb_advert_t	*mavlink_log_pub;
+	orb_advert_t	mag_worker_data_pub;
 	bool		append_to_existing_calibration;
 	unsigned	last_mag_progress;
 	unsigned	done_count;
@@ -388,6 +390,38 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 					}
 				}
 
+				hrt_abstime now = hrt_absolute_time();
+				mag_worker_data_s status;
+				status.timestamp = now;
+				status.timestamp_sample = now;
+				status.done_count = worker_data->done_count;
+				status.calibration_points_perside = worker_data->calibration_points_perside;
+				status.calibration_interval_perside_us = worker_data->calibration_interval_perside_us;
+
+				for (size_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
+					status.calibration_counter_total[cur_mag] = worker_data->calibration_counter_total[cur_mag];
+					status.side_data_collected[cur_mag] = worker_data->side_data_collected[cur_mag];
+
+					if (worker_data->calibration[cur_mag].device_id() != 0) {
+						const unsigned int sample = worker_data->calibration_counter_total[cur_mag] - 1;
+						status.x[cur_mag] = worker_data->x[cur_mag][sample];
+						status.y[cur_mag] = worker_data->y[cur_mag][sample];
+						status.z[cur_mag] = worker_data->z[cur_mag][sample];
+
+					} else {
+						status.x[cur_mag] = 0.f;
+						status.y[cur_mag] = 0.f;
+						status.z[cur_mag] = 0.f;
+					}
+				}
+
+				if (worker_data->mag_worker_data_pub == nullptr) {
+					worker_data->mag_worker_data_pub = orb_advertise(ORB_ID(mag_worker_data), &status);
+
+				} else {
+					orb_publish(ORB_ID(mag_worker_data), worker_data->mag_worker_data_pub, &status);
+				}
+
 				calibration_counter_side++;
 
 				unsigned new_progress = progress_percentage(worker_data) +
@@ -435,6 +469,8 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 	calibrate_return result = calibrate_return_ok;
 
 	mag_worker_data_t worker_data{};
+
+	worker_data.mag_worker_data_pub = nullptr;
 
 	// keep and update the existing calibration when we are not doing a full 6-axis calibration
 	worker_data.append_to_existing_calibration = cal_mask < ((1 << 6) - 1);
