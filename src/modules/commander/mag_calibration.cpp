@@ -587,8 +587,13 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 							sphere_fit_success = true;
 
 						} else {
-							// stop here if fit has previously succeeded
-							if (sphere_fit_success) {
+							// stop here if fit has previously succeeded an if it is good enough
+							// TODO: extract those conditions for the unit test
+							if (sphere_fit_success
+							    && (i > 10)
+							    && (fitness < 0.01f)
+							    && (sphere_radius[cur_mag] >= 0.2f)
+							    && (sphere_radius[cur_mag] <= 0.7f)) {
 								break;
 							}
 						}
