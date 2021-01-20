@@ -73,9 +73,9 @@ static constexpr wq_config_t INS1{"wq:INS1", 6000, -15};
 static constexpr wq_config_t INS2{"wq:INS2", 6000, -16};
 static constexpr wq_config_t INS3{"wq:INS3", 6000, -17};
 
-static constexpr wq_config_t uavcan{"wq:uavcan", 4000, -16};
+static constexpr wq_config_t hp_default{"wq:hp_default", 1900, -18};
 
-static constexpr wq_config_t uavcan{"wq:uavcan", 3000, -19};
+static constexpr wq_config_t uavcan{"wq:uavcan", 4000, -19};
 
 static constexpr wq_config_t UART0{"wq:UART0", 1400, -21};
 static constexpr wq_config_t UART1{"wq:UART1", 1400, -22};
