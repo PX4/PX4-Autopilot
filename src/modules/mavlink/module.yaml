@@ -100,7 +100,7 @@ parameters:
                 short: Input mode for manual actuator control
                 long: |
                     Sets the input source used to control actuators manually.
-                    
+
                     Options are RC control, MAVLink control (see MAV_CMD_DO_SET_ACTUATOR),
                     and `auto`.
 
