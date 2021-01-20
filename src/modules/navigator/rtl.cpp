@@ -257,6 +257,7 @@ void RTL::on_activation()
 
 	const vehicle_global_position_s &global_position = *_navigator->get_global_position();
 
+	_rtl_loiter_rad = _param_rtl_loiter_rad.get();
 	if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		_rtl_alt = calculate_return_alt_from_cone_half_angle((float)_param_rtl_cone_half_angle_deg.get());
 
@@ -408,6 +409,10 @@ void RTL::set_rtl_item()
 
 			} else {
 				_mission_item.yaw = _destination.yaw;
+			}
+
+			if (_navigator->get_vstatus()->is_vtol) {
+				_mission_item.loiter_radius = _rtl_loiter_rad;
 			}
 
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
