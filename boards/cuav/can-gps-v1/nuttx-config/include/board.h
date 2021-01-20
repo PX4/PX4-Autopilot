@@ -129,7 +129,7 @@
 /* Alternate function pin selections ************************************************/
 
 /* UARTs */
-#define GPIO_USART1_RX	GPIO_USART1_RX_2
+#define GPIO_USART1_RX	GPIO_USART1_RX_3
 #define GPIO_USART1_TX	GPIO_USART1_TX_2
 
 #define GPIO_USART2_RX	GPIO_USART2_RX_1
@@ -140,7 +140,7 @@
 #define GPIO_CAN1_TX	GPIO_CAN1_TX_2
 
 /* I2C */
-#define GPIO_I2C3_SCL		GPIO_I2C3_SCL_2
+#define GPIO_I2C3_SCL		GPIO_I2C3_SCL_1
 #define GPIO_I2C3_SDA		GPIO_I2C3_SDA_2
 
 /* SPI */
