@@ -122,10 +122,17 @@ public:
 	void get_circuit_breaker_params();
 
 private:
+
+	enum class FlightModeChange {
+		FallbackDisabled = 0,
+		FallbackEnabled
+	};
+
 	void answer_command(const vehicle_command_s &cmd, uint8_t result);
 
 	transition_result_t arm(arm_disarm_reason_t calling_reason, bool run_preflight_checks = true);
 	transition_result_t disarm(arm_disarm_reason_t calling_reason);
+	transition_result_t try_mode_change(main_state_t desired_mode, const FlightModeChange enable_fallback);
 
 	void battery_status_check();
 
