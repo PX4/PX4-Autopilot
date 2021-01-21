@@ -97,6 +97,7 @@
 using matrix::Vector3f;
 using matrix::wrap_2pi;
 
+#include "streams/ACTUATOR_OUTPUT_STATUS.hpp"
 #include "streams/ALTITUDE.hpp"
 #include "streams/ATTITUDE.hpp"
 #include "streams/ATTITUDE_QUATERNION.hpp"
@@ -3011,6 +3012,9 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamScaledPressure<0> >(),
 	// create_stream_list_item<MavlinkStreamScaledPressure<1> >(),
 	// create_stream_list_item<MavlinkStreamScaledPressure<2> >(),
+#if defined(ACTUATOR_OUTPUT_STATUS_HPP)
+	create_stream_list_item<MavlinkStreamActuatorOutputStatus>(),
+#endif // ACTUATOR_OUTPUT_STATUS_HPP
 #if defined(ATTITUDE_HPP)
 	create_stream_list_item<MavlinkStreamAttitude>(),
 #endif // ATTITUDE_HPP
