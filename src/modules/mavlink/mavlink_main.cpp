@@ -1622,7 +1622,6 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("ODOMETRY", 30.0f);
 
 		configure_stream_local("ACTUATOR_CONTROL_TARGET0", 10.0f);
-		configure_stream_local("ACTUATOR_OUTPUT_STATUS", 10.0f);
 		configure_stream_local("ADSB_VEHICLE", unlimited_rate);
 		configure_stream_local("ATTITUDE_QUATERNION", 50.0f);
 		configure_stream_local("ATTITUDE_TARGET", 10.0f);
