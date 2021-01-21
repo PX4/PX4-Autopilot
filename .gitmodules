@@ -4,7 +4,7 @@
 	branch = master
 [submodule "src/drivers/uavcan/libuavcan"]
 	path = src/drivers/uavcan/libuavcan
-	url = https://github.com/PX4/uavcan.git
+	url = https://github.com/PX4/libuavcan.git
 	branch = px4
 [submodule "Tools/jMAVSim"]
 	path = Tools/jMAVSim
@@ -16,11 +16,11 @@
 	branch = master
 [submodule "src/lib/matrix"]
 	path = src/lib/matrix
-	url = https://github.com/PX4/PX4-Matrix
+	url = https://github.com/PX4/PX4-Matrix.git
 	branch = master
 [submodule "src/lib/ecl"]
 	path = src/lib/ecl
-	url = https://github.com/PX4/PX4-ECL
+	url = https://github.com/PX4/PX4-ECL.git
 	branch = master
 [submodule "boards/atlflight/cmake_hexagon"]
 	path = boards/atlflight/cmake_hexagon
@@ -28,11 +28,11 @@
 	branch = px4
 [submodule "src/drivers/gps/devices"]
 	path = src/drivers/gps/devices
-	url = https://github.com/PX4/PX4-GPSDrivers
+	url = https://github.com/PX4/PX4-GPSDrivers.git
 	branch = master
 [submodule "src/modules/micrortps_bridge/micro-CDR"]
 	path = src/modules/micrortps_bridge/micro-CDR
-	url = https://github.com/PX4/micro-CDR.git
+	url = https://github.com/PX4/Micro-CDR.git
 	branch = px4
 [submodule "platforms/nuttx/NuttX/nuttx"]
 	path = platforms/nuttx/NuttX/nuttx
