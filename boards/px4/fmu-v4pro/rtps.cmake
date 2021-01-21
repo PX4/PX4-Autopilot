@@ -83,6 +83,7 @@ px4_add_board(
 		sih
 		temperature_compensation
 		uuv_att_control
+		uuv_bluerov2_control
 		vmount
 		vtol_att_control
 	SYSTEMCMDS

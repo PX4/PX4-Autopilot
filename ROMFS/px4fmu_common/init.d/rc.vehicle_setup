@@ -199,6 +199,32 @@ then
 fi
 
 
+#
+# BlueROV2 setup
+#
+echo "TEST"
+if [ $VEHICLE_TYPE = uuv_bluerov2 ]
+then
+    if [ $MIXER = none ]
+    then
+            echo "BlueROV2 mixer undefined"
+    fi
+
+    if [ $MAV_TYPE = none ]
+    then
+    # Set default MAV_TYPE to submarine if not defined
+            set MAV_TYPE 12
+    fi
+
+    param set MAV_TYPE ${MAV_TYPE}
+    # Load mixer and configure outputs.
+    . ${R}etc/init.d/rc.interface
+
+    # Start standard vtol apps.
+    . ${R}etc/init.d/rc.uuv_bluerov2
+
+fi
+
 
 #
 # Generic setup (autostart ID not found).

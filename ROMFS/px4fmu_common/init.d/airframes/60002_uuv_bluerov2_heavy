@@ -48,4 +48,5 @@ fi
 set PWM_OUT 12345678
 # set MIXER IO_pass
 set MIXER vectored6dof
+set VEHICLE_TYPE uuv_bluerov2
 
