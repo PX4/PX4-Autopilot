@@ -33,14 +33,12 @@
 
 /**
  *
- * This module is a modification of the rover attitide control module and is designed for the
- * TUHH hippocampus.
+ * This module is a modification of the hippocampus control module and is designed for the
+ * BlueROV2.
  *
  * All the acknowledgments and credits for the fw wing app are reported in those files.
  *
- * @author Daniel Duecker <daniel.duecker@tuhh.de>
- * @author Philipp Hastedt <philipp.hastedt@tuhh.de>
- * @author Tim Hansen <t.hansen@tuhh.de>
+ * @author Tim Hansen <t.hansen@jacobs-university.de>
  */
 
 #include <float.h>
@@ -135,11 +133,11 @@ private:
 		(ParamInt<px4::params::BR2_INPUT_MODE>) _param_input_mode,
 		(ParamInt<px4::params::BR2_SKIP_CTRL>) _param_skip_ctrl,
 		// direct access to inputs
-		(ParamFloat<px4::params::BR2_D_ROLL>) _param_direct_roll,
-		(ParamFloat<px4::params::BR2_D_PITCH>) _param_direct_pitch,
-		(ParamFloat<px4::params::BR2_D_YAW>) _param_direct_yaw,
-		(ParamFloat<px4::params::BR2_D_T_X>) _param_direct_thrust_x, /**< move into X direction */
-        (ParamFloat<px4::params::BR2_D_T_Y>) _param_direct_thrust_y, /**< move into X direction */
+		(ParamFloat<px4::params::BR2_DES_ROLL>) _param_direct_roll,
+		(ParamFloat<px4::params::BR2_DES_PITCH>) _param_direct_pitch,
+		(ParamFloat<px4::params::BR2_DES_YAW>) _param_direct_yaw,
+		(ParamFloat<px4::params::BR2_THRUST_X>) _param_direct_thrust_x, /**< move into X direction */
+        (ParamFloat<px4::params::BR2_THRUST_Y>) _param_direct_thrust_y, /**< move into Y direction */
         (ParamFloat<px4::params::BR2_DES_DEPTH>) _param_direct_depth /**< desired Depth to control*/
 	)
 
@@ -152,8 +150,6 @@ private:
 	/**
 	 * Control Attitude
 	 */
-	//void control_attitude_geo_hold_depth(const vehicle_attitude_s &attitude, const vehicle_local_position_s &local_position, const vehicle_attitude_setpoint_s &attitude_setpoint,
-	//			  const vehicle_angular_velocity_s &angular_velocity, const vehicle_rates_setpoint_s &rates_setpoint);
     void control_attitude_geo_hold_depth(const vehicle_attitude_s &attitude, const vehicle_attitude_setpoint_s &attitude_setpoint,
     			  const vehicle_angular_velocity_s &angular_velocity, const vehicle_rates_setpoint_s &rates_setpoint, const vehicle_local_position_s &vlocal_pos);
 

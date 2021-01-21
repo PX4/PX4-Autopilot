@@ -33,10 +33,11 @@
 
 /**
  *
- * This module is a modification of the fixed wing / rover module  and it is designed for unmanned underwater vehicles  (UUV).
- * It has been developed starting from the fw module, simplified and improved with dedicated items.
+ * This module is a modification of the hippocampus control module and is designed for the
+ * BlueROV2.
  *
- * All the acknowledgments and credits for the fw wing/rover app are reported in those files.
+ * All the acknowledgments and credits for the fw wing app are reported in those files.
+ *
  * @author Tim Hansen <t.hansen@jacobs-university.de>
  */
 
@@ -96,7 +97,6 @@ void UUVBR2Control::parameters_update(bool force)
 
 void UUVBR2Control::constrain_actuator_commands(float roll_u, float pitch_u, float yaw_u, float thrust_x, float thrust_y, float thrust_z)
 {
-    // printf("roll_u:%f  pitch_u%f  yaw_u%f  thrust_x%f  thrust_y%f thrust_z%f\n",(double)roll_u,(double)pitch_u,(double)yaw_u,(double)thrust_x,(double)thrust_y, (double)thrust_z);
 	if (PX4_ISFINITE(roll_u)) {
 		roll_u = math::constrain(roll_u, -1.0f, 1.0f);
 		_actuators.control[actuator_controls_s::INDEX_ROLL] = roll_u;
@@ -156,9 +156,9 @@ void UUVBR2Control::control_attitude_geo_hold_depth(const vehicle_attitude_s &at
 	 * based on
 	 * D. Mellinger, V. Kumar, "Minimum Snap Trajectory Generation and Control for Quadrotors", IEEE ICRA 2011, pp. 2520-2525.
 	 * D. A. Duecker, A. Hackbarth, T. Johannink, E. Kreuzer, and E. Solowjow, “Micro Underwater Vehicle Hydrobatics: A SubmergedFuruta Pendulum,” IEEE ICRA 2018, pp. 7498–7503.
+	 * Additionally a P-Control on the depth(should be PID in a future version)
 	 */
 	Eulerf euler_angles(matrix::Quatf(attitude.q));
-	//printf("z_pos:%f\n",(double)vlocal_pos.z);
 
 	float roll_u;
 	float pitch_u;
@@ -217,7 +217,7 @@ void UUVBR2Control::control_attitude_geo_hold_depth(const vehicle_attitude_s &at
     thrust_x = _attitude_setpoint.thrust_body[0];
     thrust_y = _attitude_setpoint.thrust_body[1];
 
-    // P Control in Depth getr d param by _param_depth_d.get()
+    // P Control in Depth get d param by _param_depth_d.get()
     thrust_z =_param_depth_p.get()*( vlocal_pos.z-_attitude_setpoint.thrust_body[2]);
 
 
@@ -287,7 +287,7 @@ void UUVBR2Control::Run()
 		if (_vcontrol_mode.flag_control_manual_enabled && !_vcontrol_mode.flag_control_rates_enabled) {
 			/* manual/direct control */
 			constrain_actuator_commands(_manual_control_setpoint.y, -_manual_control_setpoint.x,
-						    _manual_control_setpoint.r, _manual_control_setpoint.z,0 ,0 );//no input in y and z direction
+						    _manual_control_setpoint.r, _manual_control_setpoint.z,0 ,0 );//no input in y and z direction should be changed since 6-DOF
 		}
 
 	}

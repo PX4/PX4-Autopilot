@@ -120,42 +120,42 @@ PARAM_DEFINE_INT32(BR2_SKIP_CTRL, 0);
  *
  * @group UUV Attitude Control
  */
-PARAM_DEFINE_FLOAT(BR2_D_ROLL, 0.0f);
+PARAM_DEFINE_FLOAT(BR2_DES_ROLL, 0.0f);
 
 /**
  * Direct pitch input
  *
  * @group UUV Attitude Control
  */
-PARAM_DEFINE_FLOAT(BR2_D_PITCH, 0.0f);
+PARAM_DEFINE_FLOAT(BR2_DES_PITCH, 0.0f);
 
 /**
  * Direct yaw input
  *
  * @group UUV Attitude Control
  */
-PARAM_DEFINE_FLOAT(BR2_D_YAW, 0.0f);
+PARAM_DEFINE_FLOAT(BR2_DES_YAW, 0.0f);
 
 /**
  * Direct X thrust input
  *
  * @group UUV Attitude Control
  */
-PARAM_DEFINE_FLOAT(BR2_D_T_X, 0.0f);
+PARAM_DEFINE_FLOAT(BR2_THRUST_X, 0.0f);
 
 /**
  * Direct Y thrust input
  *
  * @group UUV Attitude Control
  */
-PARAM_DEFINE_FLOAT(BR2_D_T_Y, 0.0f);
+PARAM_DEFINE_FLOAT(BR2_THRUST_Y, 0.0f);
 
 /**
  * Direct desired DEPTH input
  *
  * @group UUV Attitude Control
  */
-PARAM_DEFINE_FLOAT(BR2_DES_DEPTH, 0.2f);
+PARAM_DEFINE_FLOAT(BR2_DES_DEPTH, 0.0f);
 
 /**
  * Depth P Gain
