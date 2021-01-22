@@ -24,9 +24,6 @@ set R /
 set AUTOCNF no
 set AUX_MODE pwm
 set DATAMAN_OPT ""
-set FAILSAFE none
-set FAILSAFE_AUX none
-set FAILSAFE_EXTRA none
 set FCONFIG /fs/microsd/etc/config.txt
 set FEXTRAS /fs/microsd/etc/extras.txt
 set FMU_MODE pwm
@@ -580,8 +577,6 @@ unset R
 unset AUTOCNF
 unset AUX_MODE
 unset DATAMAN_OPT
-unset FAILSAFE
-unset FAILSAFE_AUX
 unset FCONFIG
 unset FEXTRAS
 unset FMU_MODE

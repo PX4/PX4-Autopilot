@@ -69,6 +69,7 @@ enum PortMode {
 	PORT_MODE_UNSET = 0,
 	PORT_FULL_GPIO,
 	PORT_FULL_PWM,
+	PORT_PWM14,
 	PORT_PWM8,
 	PORT_PWM6,
 	PORT_PWM5,
@@ -148,8 +149,6 @@ public:
 					   hrt_abstime edge_time, uint32_t edge_state,
 					   uint32_t overflow);
 
-	void update_pwm_trims();
-
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
@@ -189,7 +188,7 @@ private:
 	void		update_current_rate();
 	int			set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
 	int			pwm_ioctl(file *filp, int cmd, unsigned long arg);
-	void		update_pwm_rev_mask();
+
 	void		update_pwm_out_state(bool on);
 
 	void		update_params();

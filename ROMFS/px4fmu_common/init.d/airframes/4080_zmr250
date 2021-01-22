@@ -21,8 +21,6 @@ if [ $AUTOCNF = yes ]
 then
 	param set CBRK_IO_SAFETY 22027
 
-	param set FAILSAFE 100
-
 	param set MC_ROLL_P 2.2
 	param set MC_ROLLRATE_P 0.06
 	param set MC_ROLLRATE_I 0.2
