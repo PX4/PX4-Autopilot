@@ -219,10 +219,6 @@ struct pwm_output_rc_config {
 /** get the TRIM value the output will send */
 #define PWM_SERVO_GET_TRIM_PWM	_PX4_IOC(_PWM_SERVO_BASE, 21)
 
-/** set the number of servos in (unsigned)arg - allows change of
- * split between servos and GPIO */
-#define PWM_SERVO_SET_COUNT	_PX4_IOC(_PWM_SERVO_BASE, 22)
-
 /** set the lockdown override flag to enable outputs in HIL */
 #define PWM_SERVO_SET_DISABLE_LOCKDOWN		_PX4_IOC(_PWM_SERVO_BASE, 23)
 
