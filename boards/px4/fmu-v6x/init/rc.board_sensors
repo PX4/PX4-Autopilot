@@ -23,7 +23,13 @@ bmm150 -I start
 
 # Possible internal Baro
 bmp388 -I -a 0x77 start
-bmp388 -I start
+
+if ver hwtypecmp V6X00
+then
+	bmp388 -I start
+else
+	bmp388 -X start
+fi
 
 # Baro on I2C3
 ms5611 -X start
