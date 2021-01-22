@@ -906,29 +906,6 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case PWM_SERVO_SET_TRIM_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			/* discard if too many values are sent */
-			if (pwm->channel_count > FMU_MAX_ACTUATORS) {
-				PX4_DEBUG("error: too many trim values: %d", pwm->channel_count);
-				ret = -EINVAL;
-				break;
-			}
-
-			if (_mixing_output.mixers() == nullptr) {
-				PX4_ERR("error: no mixer loaded");
-				ret = -EIO;
-				break;
-			}
-
-			/* copy the trim values to the mixer offsets */
-			_mixing_output.mixers()->set_trims((int16_t *)pwm->values, pwm->channel_count);
-			PX4_DEBUG("set_trims: %d, %d, %d, %d", pwm->values[0], pwm->values[1], pwm->values[2], pwm->values[3]);
-
-			break;
-		}
-
 	case PWM_SERVO_GET_TRIM_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
