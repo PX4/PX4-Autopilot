@@ -319,12 +319,12 @@ bool inv(const SquareMatrix<Type, M> & A, SquareMatrix<Type, M> & inv, size_t ra
     for (size_t n = 0; n < rank; n++) {
 
         // if diagonal is zero, swap with row below
-        if (fabs(static_cast<float>(U(n, n))) < FLT_EPSILON) {
+        if (fabs(U(n, n)) < Type(FLT_EPSILON)) {
             //printf("trying pivot for row %d\n",n);
             for (size_t i = n + 1; i < rank; i++) {
 
                 //printf("\ttrying row %d\n",i);
-                if (fabs(static_cast<float>(U(i, n))) > Type(1e-8f)) {
+                if (fabs(U(i, n)) > Type(FLT_EPSILON)) {
                     //printf("swapped %d\n",i);
                     U.swapRows(i, n);
                     P.swapRows(i, n);
