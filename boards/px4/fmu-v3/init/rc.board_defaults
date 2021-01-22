@@ -14,9 +14,9 @@ then
 	then
 		param set SYS_BL_UPDATE 0
 		param save
-		echo "BL update..." >> $LOG_FILE
+		echo "BL update..."
 		bl_update $BL_FILE
-		echo "BL update done" >> $LOG_FILE
+		echo "BL update done"
 		reboot
 	fi
 fi
