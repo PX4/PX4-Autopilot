@@ -2736,10 +2736,6 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		ret = dsm_bind_ioctl(arg);
 		break;
 
-	case DSM_BIND_POWER_UP:
-		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
-		break;
-
 	case PWM_SERVO_SET(0) ... PWM_SERVO_SET(PWM_OUTPUT_MAX_CHANNELS - 1): {
 
 			/* TODO: we could go lower for e.g. TurboPWM */
