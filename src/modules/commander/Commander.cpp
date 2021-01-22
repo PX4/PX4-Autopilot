@@ -1950,7 +1950,15 @@ Commander::run()
 		}
 
 		// update manual_control_setpoint before geofence (which might check sticks or switches)
-		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
+		if (_manual_control_setpoint_sub.update(&_manual_control_setpoint)) {
+			// manual control from mavlink
+			if (_manual_control_setpoint.data_source > manual_control_setpoint_s::SOURCE_RC) {
+				// if there's never been a mode change force position control as initial state
+				if (!_armed.armed && (_internal_state.main_state_changes == 0)) {
+					_internal_state.main_state = commander_state_s::MAIN_STATE_POSCTL;
+				}
+			}
+		}
 
 		/* start geofence result check */
 		_geofence_result_sub.update(&_geofence_result);
