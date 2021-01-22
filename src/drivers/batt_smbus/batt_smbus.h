@@ -202,26 +202,9 @@ public:
 
 	friend SMBus;
 
-	void RunImpl();
+	virtual void RunImpl() = 0;
 
 	void custom_method(const BusCLIArguments &cli) override;
-
-	/**
-	 * @brief Reads data from flash.
-	 * @param address The address to start the read from.
-	 * @param data The returned data.
-	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
-	 */
-	int dataflash_read(uint16_t &address, void *data, const unsigned length);
-
-	/**
-	 * @brief Writes data to flash.
-	 * @param address The start address of the write.
-	 * @param data The data to be written.
-	 * @param length The number of bytes being written.
-	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
-	 */
-	int dataflash_write(uint16_t address, void *data, const unsigned length);
 
 	/**
 	 * @brief Returns the SBS serial number of the battery device.
@@ -233,7 +216,7 @@ public:
 	* @brief Read info from battery on startup.
 	* @return Returns PX4_OK on success, PX4_ERROR on failure.
 	*/
-	int get_startup_info();
+	virtual int get_startup_info() = 0;
 
 	/**
 	 * @brief Gets the SBS manufacture date of the battery.
@@ -251,48 +234,6 @@ public:
 	int manufacturer_name(uint8_t *manufacturer_name, const uint8_t length);
 
 	/**
-	 * @brief Performs a ManufacturerBlockAccess() read command.
-	 * @param cmd_code The command code.
-	 * @param data The returned data.
-	 * @param length The number of bytes being written.
-	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
-	 */
-	int manufacturer_read(const uint16_t cmd_code, void *data, const unsigned length);
-
-	/**
-	 * @brief Performs a ManufacturerBlockAccess() write command.
-	 * @param cmd_code The command code.
-	 * @param data The sent data.
-	 * @param length The number of bytes being written.
-	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
-	 */
-	int manufacturer_write(const uint16_t cmd_code, void *data, const unsigned length);
-
-	/**
-	 * @brief Unseals the battery to allow writing to restricted flash.
-	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
-	 */
-	int unseal();
-
-	/**
-	 * @brief Seals the battery to disallow writing to restricted flash.
-	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
-	 */
-	int seal();
-
-	/**
-	 * @brief This command flushes the RAM Lifetime Data to data flash to help streamline evaluation testing.
-	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
-	 */
-	int lifetime_data_flush();
-
-	/**
-	 * @brief Reads the lifetime data from block 1.
-	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
-	 */
-	int lifetime_read_block_one();
-
-	/**
 	 * @brief Reads the cell voltages.
 	 * @return Returns PX4_OK on success or associated read error code on failure.
 	 */
@@ -301,7 +242,6 @@ public:
 	/**
 	 * @brief Enables or disables the cell under voltage protection emergency shut off.
 	 */
-	void set_undervoltage_protection(float average_current);
 
 	void suspend();
 

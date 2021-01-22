@@ -41,6 +41,8 @@
  */
 PARAM_DEFINE_INT32(SENS_EN_BATT, 0);
 
+// TODO: add param for BMS type
+
 /**
  * Capacity/current multiplier for high-current capable SMBUS battery
  *
