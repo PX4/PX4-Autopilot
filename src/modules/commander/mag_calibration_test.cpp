@@ -144,31 +144,21 @@ TEST_F(MagCalTest, sphere2Sides)
 
 	generate2SidesMagData(x, y, z, N_SAMPLES, mag_str_true);
 
-	float fitness = 1.0e30f;
-	float sphere_lambda = 1.f;
-	float sphere_radius = 0.2f;
-	Vector3f offset;
-	Vector3f diag = {1.f, 1.f, 1.f};
-	Vector3f offdiag;
-
 	// WHEN: fitting a sphere with the data and given a wrong initial radius
-	int ret = run_lm_sphere_fit(x, y, z,
-				    fitness, sphere_lambda, N_SAMPLES,
-				    &offset(0), &offset(1), &offset(2),
-				    &sphere_radius,
-				    &diag(0), &diag(1), &diag(2),
-				    &offdiag(0), &offdiag(1), &offdiag(2));
+	sphere_params sphere;
+	sphere.diag = {1.f, 1.f, 1.f};
+	sphere.radius = 0.2;
+	int success = lm_mag_fit(x, y, z, N_SAMPLES, sphere, false);
 
 	// THEN: the algorithm should converge in a single step
-	EXPECT_EQ(ret, 0);
-	EXPECT_LT(fitness, 1e-5f);
-	EXPECT_NEAR(sphere_radius, mag_str_true, 0.001f) << "radius: " << sphere_radius;
-	EXPECT_NEAR(offset(0), offset_true(0), 0.001f) << "offset X: " << offset(0);
-	EXPECT_NEAR(offset(1), offset_true(1), 0.001f) << "offset Y: " << offset(1);
-	EXPECT_NEAR(offset(2), offset_true(2), 0.001f) << "offset Z: " << offset(2);
-	EXPECT_NEAR(diag(0), scale_true(0), 0.001f) << "scale X: " << scale_true(0);
-	EXPECT_NEAR(diag(1), scale_true(1), 0.001f) << "scale Y: " << scale_true(1);
-	EXPECT_NEAR(diag(2), scale_true(2), 0.001f) << "scale Z: " << scale_true(2);
+	EXPECT_EQ(success, PX4_OK);
+	EXPECT_NEAR(sphere.radius, mag_str_true, 0.001f) << "radius: " << sphere.radius;
+	EXPECT_NEAR(sphere.offset(0), offset_true(0), 0.001f) << "offset X: " << sphere.offset(0);
+	EXPECT_NEAR(sphere.offset(1), offset_true(1), 0.001f) << "offset Y: " << sphere.offset(1);
+	EXPECT_NEAR(sphere.offset(2), offset_true(2), 0.001f) << "offset Z: " << sphere.offset(2);
+	EXPECT_NEAR(sphere.diag(0), scale_true(0), 0.001f) << "scale X: " << sphere.diag(0);
+	EXPECT_NEAR(sphere.diag(1), scale_true(1), 0.001f) << "scale Y: " << sphere.diag(1);
+	EXPECT_NEAR(sphere.diag(2), scale_true(2), 0.001f) << "scale Z: " << sphere.diag(2);
 }
 
 TEST_F(MagCalTest, sphereRegularlySpaced)
@@ -187,43 +177,22 @@ TEST_F(MagCalTest, sphereRegularlySpaced)
 	generateRegularData(x, y, z, N_SAMPLES, mag_str_true);
 	modifyOffsetScale(x, y, z, N_SAMPLES, offset_true, scale_true);
 
-	float fitness = 1.0e30f;
-	float sphere_lambda = 1.f;
-	float sphere_radius = 0.2f;
-	Vector3f offset;
-	Vector3f diag = {1.f, 1.f, 1.f};
-	Vector3f offdiag;
-
-	bool sphere_fit_success = false;
-
 	// WHEN: fitting a sphere to the data
-	for (int i = 0; i < 8; i++) {
-		const bool ret = run_lm_sphere_fit(x, y, z,
-						   fitness, sphere_lambda, N_SAMPLES,
-						   &offset(0), &offset(1), &offset(2),
-						   &sphere_radius,
-						   &diag(0), &diag(1), &diag(2),
-						   &offdiag(0), &offdiag(1), &offdiag(2));
-
-		if (ret == 0) {
-			sphere_fit_success = true;
-
-		} else if (sphere_fit_success) {
-			break;
-		}
-	}
+	sphere_params sphere;
+	sphere.diag = {1.f, 1.f, 1.f};
+	sphere.radius = 0.2;
+	int success = lm_mag_fit(x, y, z, N_SAMPLES, sphere, false);
 
 	// THEN: the algorithm should converge in a few iterations and
 	// find the correct parameters
-	EXPECT_TRUE(sphere_fit_success);
-	EXPECT_LT(fitness, 1e-6f);
-	EXPECT_NEAR(sphere_radius, mag_str_true, 0.001f) << "radius: " << sphere_radius;
-	EXPECT_NEAR(offset(0), offset_true(0), 0.001f) << "offset X: " << offset(0);
-	EXPECT_NEAR(offset(1), offset_true(1), 0.001f) << "offset Y: " << offset(1);
-	EXPECT_NEAR(offset(2), offset_true(2), 0.001f) << "offset Z: " << offset(2);
-	EXPECT_NEAR(diag(0), scale_true(0), 0.001f) << "scale X: " << scale_true(0);
-	EXPECT_NEAR(diag(1), scale_true(1), 0.001f) << "scale Y: " << scale_true(1);
-	EXPECT_NEAR(diag(2), scale_true(2), 0.001f) << "scale Z: " << scale_true(2);
+	EXPECT_EQ(success, PX4_OK);
+	EXPECT_NEAR(sphere.radius, mag_str_true, 0.001f) << "radius: " << sphere.radius;
+	EXPECT_NEAR(sphere.offset(0), offset_true(0), 0.001f) << "offset X: " << sphere.offset(0);
+	EXPECT_NEAR(sphere.offset(1), offset_true(1), 0.001f) << "offset Y: " << sphere.offset(1);
+	EXPECT_NEAR(sphere.offset(2), offset_true(2), 0.001f) << "offset Z: " << sphere.offset(2);
+	EXPECT_NEAR(sphere.diag(0), scale_true(0), 0.001f) << "scale X: " << scale_true(0);
+	EXPECT_NEAR(sphere.diag(1), scale_true(1), 0.001f) << "scale Y: " << scale_true(1);
+	EXPECT_NEAR(sphere.diag(2), scale_true(2), 0.001f) << "scale Z: " << scale_true(2);
 }
 
 TEST_F(MagCalTest, replayTestData)
@@ -235,76 +204,35 @@ TEST_F(MagCalTest, replayTestData)
 
 	const float mag_str_true = 0.4f;
 	const Vector3f offset_true = {-0.18f, 0.05f, -0.58f};
-	const Vector3f scale_true = {1.f, 1.06f, 0.94f};
-
-	float fitness = 1.0e30f;
-	float sphere_lambda = 1.f;
-	float sphere_radius = 0.2f;
-	Vector3f offset;
-	Vector3f diag = {1.f, 1.f, 1.f};
-	Vector3f offdiag;
-
-	bool sphere_fit_success = false;
 
 	// WHEN: fitting a sphere to the data
-	for (int i = 0; i < 100; i++) {
-		const bool ret = run_lm_sphere_fit(mag_data1_x, mag_data1_y, mag_data1_z,
-						   fitness, sphere_lambda, N_SAMPLES,
-						   &offset(0), &offset(1), &offset(2),
-						   &sphere_radius,
-						   &diag(0), &diag(1), &diag(2),
-						   &offdiag(0), &offdiag(1), &offdiag(2));
-
-		printf("fitness: %.6f\t sphere_lambda: %.3f\t radius: %.3f\n",
-		       (double)fitness, (double)sphere_lambda, (double)sphere_radius);
-
-		// This is fragile because it is a copy of the code and not a
-		// test of the code itself. TODO: move the check in a function that
-		// can be tested here
-		if (ret == 0) {
-
-			sphere_fit_success = true;
-
-		} else if (sphere_fit_success
-			   && (i > 10)
-			   && (fitness < 0.01f)
-			   && (sphere_radius >= 0.2f)
-			   && (sphere_radius <= 0.7f)) {
-			break;
-		}
-	}
-
-	printf("Ellipsoid fit\n");
-	bool ellipsoid_fit_success = false;
-
-	for (int i = 0; i < 100; i++) {
-		const bool ret = run_lm_ellipsoid_fit(mag_data1_x, mag_data1_y, mag_data1_z,
-						      fitness, sphere_lambda, N_SAMPLES,
-						      &offset(0), &offset(1), &offset(2),
-						      &sphere_radius,
-						      &diag(0), &diag(1), &diag(2),
-						      &offdiag(0), &offdiag(1), &offdiag(2));
-
-		printf("fitness: %.6f\t sphere_lambda: %.3f\t radius: %.3f\n",
-		       (double)fitness, (double)sphere_lambda, (double)sphere_radius);
-
-		if (ret == 0) {
-			ellipsoid_fit_success = true;
-
-		} else if (ellipsoid_fit_success) {
-			break;
-		}
-	}
+	sphere_params sphere;
+	sphere.diag = {1.f, 1.f, 1.f};
+	sphere.radius = 0.2;
+	int sphere_success = lm_mag_fit(mag_data1_x, mag_data1_y, mag_data1_z, N_SAMPLES, sphere, false);
 
 	// THEN: the algorithm should converge and find the correct parameters
-	EXPECT_TRUE(sphere_fit_success);
-	EXPECT_TRUE(ellipsoid_fit_success);
-	EXPECT_LT(fitness, 1e-3f);
-	EXPECT_NEAR(sphere_radius, mag_str_true, 0.1f) << "radius: " << sphere_radius;
-	EXPECT_NEAR(offset(0), offset_true(0), 0.01f) << "offset X: " << offset(0);
-	EXPECT_NEAR(offset(1), offset_true(1), 0.01f) << "offset Y: " << offset(1);
-	EXPECT_NEAR(offset(2), offset_true(2), 0.01f) << "offset Z: " << offset(2);
-	EXPECT_NEAR(diag(0), scale_true(0), 0.01f) << "scale X: " << diag(0);
-	EXPECT_NEAR(diag(1), scale_true(1), 0.01f) << "scale Y: " << diag(1);
-	EXPECT_NEAR(diag(2), scale_true(2), 0.01f) << "scale Z: " << diag(2);
+	EXPECT_EQ(sphere_success, PX4_OK);
+	EXPECT_NEAR(sphere.radius, mag_str_true, 0.1f) << "radius: " << sphere.radius;
+	EXPECT_NEAR(sphere.offset(0), offset_true(0), 0.01f) << "offset X: " << sphere.offset(0);
+	EXPECT_NEAR(sphere.offset(1), offset_true(1), 0.01f) << "offset Y: " << sphere.offset(1);
+	EXPECT_NEAR(sphere.offset(2), offset_true(2), 0.01f) << "offset Z: " << sphere.offset(2);
+
+	printf("Ellipsoid fit\n");
+	sphere_params ellipsoid;
+	ellipsoid.diag = {1.f, 1.f, 1.f};
+	ellipsoid.radius = 0.2;
+	int ellipsoid_step_1_success = lm_mag_fit(mag_data1_x, mag_data1_y, mag_data1_z, N_SAMPLES, ellipsoid, false);
+	int ellipsoid_success = lm_mag_fit(mag_data1_x, mag_data1_y, mag_data1_z, N_SAMPLES, ellipsoid, true);
+	const Vector3f scale_true = {1.f, 1.06f, 0.94f};
+
+	EXPECT_EQ(ellipsoid_step_1_success, PX4_OK);
+	EXPECT_EQ(ellipsoid_success, PX4_OK);
+	EXPECT_NEAR(ellipsoid.radius, mag_str_true, 0.1f) << "radius: " << sphere.radius;
+	EXPECT_NEAR(ellipsoid.offset(0), offset_true(0), 0.01f) << "offset X: " << ellipsoid.offset(0);
+	EXPECT_NEAR(ellipsoid.offset(1), offset_true(1), 0.01f) << "offset Y: " << ellipsoid.offset(1);
+	EXPECT_NEAR(ellipsoid.offset(2), offset_true(2), 0.01f) << "offset Z: " << ellipsoid.offset(2);
+	EXPECT_NEAR(ellipsoid.diag(0), scale_true(0), 0.01f) << "scale X: " << ellipsoid.diag(0);
+	EXPECT_NEAR(ellipsoid.diag(1), scale_true(1), 0.01f) << "scale Y: " << ellipsoid.diag(1);
+	EXPECT_NEAR(ellipsoid.diag(2), scale_true(2), 0.01f) << "scale Z: " << ellipsoid.diag(2);
 }
