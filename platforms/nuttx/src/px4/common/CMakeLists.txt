@@ -107,6 +107,7 @@ if (NOT DEFINED CONFIG_BUILD_FLAT AND "${PX4_PLATFORM}" MATCHES "nuttx")
 
 	add_library(px4_board_ctrl
 		board_ctrl.c
+		kernel_modules.c
 	)
 
 	add_dependencies(px4_board_ctrl nuttx_context nuttx_kernel_builtin_list_target)
