@@ -186,9 +186,6 @@ struct pwm_output_rc_config {
 /** start DSM bind */
 #define DSM_BIND_START	_PX4_IOC(_PWM_SERVO_BASE, 10)
 
-/** power up DSM receiver */
-#define DSM_BIND_POWER_UP _PX4_IOC(_PWM_SERVO_BASE, 11)
-
 /** set the PWM value for failsafe */
 #define PWM_SERVO_SET_FAILSAFE_PWM	_PX4_IOC(_PWM_SERVO_BASE, 12)
 
