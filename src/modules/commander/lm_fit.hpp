@@ -54,9 +54,9 @@
  *
  * @return 0 on success, 1 on failure
  */
-int run_lm_sphere_fit(const float x[], const float y[], const float z[], float &_fitness, float &_sphere_lambda,
-		      unsigned int samples_collected, float *offset_x, float *offset_y, float *offset_z,
-		      float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y, float *offdiag_z)
+inline int run_lm_sphere_fit(const float x[], const float y[], const float z[], float &_fitness, float &_sphere_lambda,
+			     unsigned int samples_collected, float *offset_x, float *offset_y, float *offset_z,
+			     float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y, float *offdiag_z)
 {
 	// Run Sphere Fit using Levenberg Marquardt LSq Fit
 	const float lma_damping = 10.f;
@@ -178,9 +178,9 @@ int run_lm_sphere_fit(const float x[], const float y[], const float z[], float &
 	}
 }
 
-int run_lm_ellipsoid_fit(const float x[], const float y[], const float z[], float &_fitness, float &_sphere_lambda,
-			 unsigned int samples_collected, float *offset_x, float *offset_y, float *offset_z,
-			 float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y, float *offdiag_z)
+inline int run_lm_ellipsoid_fit(const float x[], const float y[], const float z[], float &_fitness,
+				float &_sphere_lambda, unsigned int samples_collected, float *offset_x, float *offset_y, float *offset_z,
+				float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y, float *offdiag_z)
 {
 	// Run Sphere Fit using Levenberg Marquardt LSq Fit
 	const float lma_damping = 10.0f;
