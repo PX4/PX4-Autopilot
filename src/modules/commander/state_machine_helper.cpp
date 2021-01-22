@@ -398,6 +398,7 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 	if (ret == TRANSITION_CHANGED) {
 		if (internal_state->main_state != new_main_state) {
 			internal_state->main_state = new_main_state;
+			internal_state->main_state_changes++;
 			internal_state->timestamp = hrt_absolute_time();
 
 		} else {
@@ -493,6 +494,8 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 
 	case commander_state_s::MAIN_STATE_POSCTL: {
 
+			const bool rc_fallback_allowed = (posctl_nav_loss_act != position_nav_loss_actions_t::LAND_TERMINATE) || !is_armed;
+
 			if (rc_lost && is_armed) {
 				enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 				set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, param_com_rcl_act_t);
@@ -502,10 +505,8 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 				 * this enables POSCTL using e.g. flow.
 				 * For fixedwing, a global position is needed. */
 
-			} else if (is_armed
-				   && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags,
-						   !(posctl_nav_loss_act == position_nav_loss_actions_t::LAND_TERMINATE),
-						   status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
+			} else if (check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags,
+							       rc_fallback_allowed, status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
 				// nothing to do - everything done in check_invalid_pos_nav_state
 
 			} else {
@@ -783,7 +784,7 @@ bool check_invalid_pos_nav_state(vehicle_status_s *status, bool old_failsafe, or
 			if (status_flags.condition_local_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 
-			} else  if (status_flags.condition_local_altitude_valid) {
+			} else if (status_flags.condition_local_altitude_valid) {
 				if (status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 
