@@ -226,7 +226,7 @@ int main()
     printf("%s\n", output); // for debugging in case of failure
     for (size_t i = 0; i < len; i++) {
         if(buffer[i] != output[i]) { // for debugging in case of failure
-            printf("%d: \"%c\" != \"%c\"", int(i), buffer[i], output[i]);
+            printf("%d: \"%c\" != \"%c\"", int(i), buffer[i], output[i]); // LCOV_EXCL_LINE only print on failure
         }
         TEST(buffer[i] == output[i]);
         if (buffer[i] == '\0') {
