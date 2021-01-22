@@ -377,7 +377,7 @@ void EKF2Selector::PublishVehicleLocalPosition(bool reset)
 			// VZ reset
 			if (local_position.vz_reset_counter > _local_position_last.vz_reset_counter) {
 				++_vz_reset_counter;
-				_delta_z_reset = local_position.delta_vz;
+				_delta_vz_reset = local_position.delta_vz;
 			}
 
 			// heading reset
