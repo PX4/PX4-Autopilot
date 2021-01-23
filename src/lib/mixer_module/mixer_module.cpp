@@ -49,7 +49,9 @@ MixingOutput::MixingOutput(uint8_t max_num_outputs, OutputModuleInterface &inter
 	{&interface, ORB_ID(actuator_controls_0)},
 	{&interface, ORB_ID(actuator_controls_1)},
 	{&interface, ORB_ID(actuator_controls_2)},
-	{&interface, ORB_ID(actuator_controls_3)}
+	{&interface, ORB_ID(actuator_controls_3)},
+	{&interface, ORB_ID(actuator_controls_4)},
+	{&interface, ORB_ID(actuator_controls_5)},
 },
 _scheduling_policy(scheduling_policy),
 _support_esc_calibration(support_esc_calibration),
@@ -239,16 +241,26 @@ void MixingOutput::unregister()
 	}
 }
 
-void MixingOutput::updateOutputSlewrate()
+void MixingOutput::updateOutputSlewrateMultirotorMixer()
 {
 	const hrt_abstime now = hrt_absolute_time();
-	const float dt = math::constrain((now - _time_last_mix) / 1e6f, 0.0001f, 0.02f);
-	_time_last_mix = now;
+	const float dt = math::constrain((now - _time_last_dt_update_multicopter) / 1e6f, 0.0001f, 0.02f);
+	_time_last_dt_update_multicopter = now;
 
 	// maximum value the outputs of the multirotor mixer are allowed to change in this cycle
 	// factor 2 is needed because actuator outputs are in the range [-1,1]
 	const float delta_out_max = 2.0f * 1000.0f * dt / (_max_value[0] - _min_value[0]) / _param_mot_slew_max.get();
 	_mixers->set_max_delta_out_once(delta_out_max);
+}
+
+void MixingOutput::updateOutputSlewrateSimplemixer()
+{
+	const hrt_abstime now = hrt_absolute_time();
+	const float dt = math::constrain((now - _time_last_dt_update_simple_mixer) / 1e6f, 0.0001f, 0.02f);
+	_time_last_dt_update_simple_mixer = now;
+
+	// set dt for slew rate limiter in SimpleMixer (is reset internally after usig it, so needs to be set on every update)
+	_mixers->set_dt_once(dt);
 }
 
 
@@ -355,8 +367,10 @@ bool MixingOutput::update()
 	}
 
 	if (_param_mot_slew_max.get() > FLT_EPSILON) {
-		updateOutputSlewrate();
+		updateOutputSlewrateMultirotorMixer();
 	}
+
+	updateOutputSlewrateSimplemixer(); // update dt for output slew rate in simple mixer
 
 	unsigned n_updates = 0;
 
@@ -524,9 +538,11 @@ int MixingOutput::controlCallback(uintptr_t handle, uint8_t control_group, uint8
 
 	/* motor spinup phase - lock throttle to zero */
 	if (output->_output_limit.state == OUTPUT_LIMIT_STATE_RAMP) {
-		if ((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
-		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
-		    control_index == actuator_controls_s::INDEX_THROTTLE) {
+		if (((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
+		      control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
+		     control_index == actuator_controls_s::INDEX_THROTTLE) ||
+		    (control_group == actuator_controls_s::GROUP_INDEX_ALLOCATED_PART1 ||
+		     control_group == actuator_controls_s::GROUP_INDEX_ALLOCATED_PART2)) {
 			/* limit the throttle output to zero during motor spinup,
 			 * as the motors cannot follow any demand yet
 			 */
@@ -536,9 +552,11 @@ int MixingOutput::controlCallback(uintptr_t handle, uint8_t control_group, uint8
 
 	/* throttle not arming - mark throttle input as invalid */
 	if (output->armNoThrottle() && !output->_armed.in_esc_calibration_mode) {
-		if ((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
-		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
-		    control_index == actuator_controls_s::INDEX_THROTTLE) {
+		if (((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
+		      control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
+		     control_index == actuator_controls_s::INDEX_THROTTLE) ||
+		    (control_group == actuator_controls_s::GROUP_INDEX_ALLOCATED_PART1 ||
+		     control_group == actuator_controls_s::GROUP_INDEX_ALLOCATED_PART2)) {
 			/* set the throttle to an invalid value */
 			input = NAN;
 		}

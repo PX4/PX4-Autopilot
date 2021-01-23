@@ -48,14 +48,18 @@
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/sensor_preflight_mag.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_magnetometer.h>
+
+using namespace time_literals;
 
 namespace sensors
 {
@@ -82,6 +86,7 @@ private:
 	 * Calculates the magnitude in Gauss of the largest difference between the primary and any other magnetometers
 	 */
 	void calcMagInconsistency();
+	void MagCalibrationUpdate();
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
@@ -95,10 +100,22 @@ private:
 		{ORB_ID(vehicle_magnetometer)},
 	};
 
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
 	uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status), 0};
-	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
-	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
+
+	// Used to check, save and use learned magnetometer biases
+	uORB::SubscriptionMultiArray<estimator_sensor_bias_s> _estimator_sensor_bias_subs{ORB_ID::estimator_sensor_bias};
+
+	bool _mag_cal_available{false};
+
+	struct MagCal {
+		uint32_t device_id{0};
+		matrix::Vector3f mag_offset{};
+		matrix::Vector3f mag_bias_variance{};
+	} _mag_cal[ORB_MULTI_MAX_INSTANCES] {};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_sub[MAX_SENSOR_COUNT] {
 		{this, ORB_ID(sensor_mag), 0},
@@ -140,7 +157,7 @@ private:
 
 	int8_t _selected_sensor_sub_index{-1};
 
-	bool _armed{false};				/**< arming status of the vehicle */
+	bool _armed{false};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CAL_MAG_COMP_TYP>) _param_mag_comp_typ,

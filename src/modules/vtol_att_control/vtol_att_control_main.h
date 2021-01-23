@@ -66,7 +66,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed_validated.h>
-#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/tecs_status.h>
@@ -83,6 +83,8 @@
 #include "standard.h"
 #include "tailsitter.h"
 #include "tiltrotor.h"
+
+using namespace time_literals;
 
 extern "C" __EXPORT int vtol_att_control_main(int argc, char *argv[]);
 
@@ -105,7 +107,7 @@ public:
 	bool init();
 
 	bool is_fixed_wing_requested();
-	void abort_front_transition(const char *reason);
+	void quadchute(const char *reason);
 
 	struct actuator_controls_s 			*get_actuators_fw_in() {return &_actuators_fw_in;}
 	struct actuator_controls_s 			*get_actuators_mc_in() {return &_actuators_mc_in;}
@@ -133,14 +135,15 @@ private:
 	uORB::SubscriptionCallbackWorkItem _actuator_inputs_fw{this, ORB_ID(actuator_controls_virtual_fw)};
 	uORB::SubscriptionCallbackWorkItem _actuator_inputs_mc{this, ORB_ID(actuator_controls_virtual_mc)};
 
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};			// airspeed subscription
 	uORB::Subscription _fw_virtual_att_sp_sub{ORB_ID(fw_virtual_attitude_setpoint)};
 	uORB::Subscription _land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _local_pos_sp_sub{ORB_ID(vehicle_local_position_setpoint)};			// setpoint subscription
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};			// sensor subscription
-	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};	//manual control setpoint subscription
+	uORB::Subscription _manual_control_switches_sub{ORB_ID(manual_control_switches)};	//manual control setpoint subscription
 	uORB::Subscription _mc_virtual_att_sp_sub{ORB_ID(mc_virtual_attitude_setpoint)};
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};			// local position setpoint subscription
 	uORB::Subscription _tecs_status_sub{ORB_ID(tecs_status)};
 	uORB::Subscription _v_att_sub{ORB_ID(vehicle_attitude)};		//vehicle attitude subscription
@@ -165,7 +168,7 @@ private:
 	actuator_controls_s			_actuators_out_1{};	//actuator controls going to the fw mixer (used for elevons)
 
 	airspeed_validated_s 				_airspeed_validated{};			// airspeed
-	manual_control_setpoint_s		_manual_control_setpoint{}; //manual control setpoint
+	manual_control_switches_s		_manual_control_switches{}; //manual control setpoint
 	position_setpoint_triplet_s		_pos_sp_triplet{};
 	tecs_status_s				_tecs_status{};
 	vehicle_attitude_s			_v_att{};				//vehicle attitude
@@ -219,7 +222,6 @@ private:
 	 * for fixed wings we want to have an idle speed of zero since we do not want
 	 * to waste energy when gliding. */
 	int		_transition_command{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC};
-	bool		_abort_front_transition{false};
 
 	VtolType	*_vtol_type{nullptr};	// base class for different vtol types
 

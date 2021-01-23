@@ -7,6 +7,10 @@
 #
 # @maintainer Roman Bapst <roman@auterion.com>
 #
+# @board px4_fmu-v2 exclude
+# @board intel_aerofc-v1 exclude
+# @board bitcraze_crazyflie exclude
+#
 
 . ${R}etc/init.d/rc.vtol_defaults
 
@@ -51,7 +55,6 @@ then
 	param set NAV_LOITER_RAD 80
 
 	param set RTL_DESCEND_ALT 10
-	param set RTL_LAND_DELAY 0
 	param set RTL_RETURN_ALT 30
 
 	param set SDLOG_DIRS_MAX 7

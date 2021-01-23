@@ -24,7 +24,7 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		gps
 		#imu # all available imu drivers
-		imu/mpu9250
+		imu/invensense/mpu9250
 		linux_pwm_out
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
@@ -40,6 +40,7 @@ px4_add_board(
 		dataman
 		ekf2
 		events
+		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
 		land_detector

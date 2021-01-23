@@ -34,15 +34,12 @@
 #pragma once
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_range_finder.h>
-#include <lib/cdev/CDev.hpp>
 #include <lib/conversion/rotation.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/distance_sensor.h>
 
-class PX4Rangefinder : public cdev::CDev
+class PX4Rangefinder
 {
-
 public:
 	PX4Rangefinder(const uint32_t device_id,
 		       const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
@@ -64,12 +61,8 @@ public:
 
 	void update(const hrt_abstime &timestamp_sample, const float distance, const int8_t quality = -1);
 
-	int get_class_instance() { return _class_device_instance; };
+	int get_instance() { return _distance_sensor_pub.get_instance(); };
 
 private:
-
-	uORB::PublicationMultiData<distance_sensor_s> _distance_sensor_pub;
-
-	int			_class_device_instance{-1};
-
+	uORB::PublicationMultiData<distance_sensor_s> _distance_sensor_pub{ORB_ID(distance_sensor)};
 };

@@ -62,6 +62,7 @@ mc_att_control start
 # Start Multicopter Position Controller.
 #
 mc_hover_thrust_estimator start
+flight_mode_manager start
 mc_pos_control start
 
 #

@@ -55,6 +55,7 @@
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -107,6 +108,8 @@
 # include <uORB/topics/debug_vect.h>
 #endif // !CONSTRAINED_FLASH
 
+using namespace time_literals;
+
 class Mavlink;
 
 class MavlinkReceiver : public ModuleParams
@@ -121,6 +124,24 @@ public:
 	static void receive_start(pthread_t *thread, Mavlink *parent);
 
 	static void *start_helper(void *context);
+
+	/**
+	 * Get the cruising speed in offboard control
+	 *
+	 * @return the desired cruising speed for the current flight mode
+	 */
+	float get_offb_cruising_speed();
+
+	/**
+	 * Set the cruising speed in offboard control
+	 *
+	 * Passing a negative value or leaving the parameter away will reset the cruising speed
+	 * to its default value.
+	 *
+	 * Sets cruising speed for current flight mode only (resets on mode changes).
+	 *
+	 */
+	void set_offb_cruising_speed(float speed = -1.0f);
 
 private:
 
@@ -286,10 +307,11 @@ private:
 	// ORB subscriptions
 	uORB::Subscription	_actuator_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription	_control_mode_sub{ORB_ID(vehicle_control_mode)};
-	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription	_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription	_vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription	_vehicle_status_sub{ORB_ID(vehicle_status)};
+
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	// hil_sensor and hil_state_quaternion
 	enum SensorSource {
@@ -316,6 +338,9 @@ private:
 
 	hrt_abstime			_last_utm_global_pos_com{0};
 
+	float 				_offb_cruising_speed_mc{-1.0f};
+	float 				_offb_cruising_speed_fw{-1.0f};
+
 	// Allocated if needed.
 	TunePublisher *_tune_publisher{nullptr};
 
@@ -341,7 +366,6 @@ private:
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
 		(ParamFloat<px4::params::BAT_EMERGEN_THR>)  _param_bat_emergen_thr,
 		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr,
-		(ParamInt<px4::params::COM_FLIGHT_UUID>)    _param_com_flight_uuid,
 		(ParamFloat<px4::params::SENS_FLOW_MAXHGT>) _param_sens_flow_maxhgt,
 		(ParamFloat<px4::params::SENS_FLOW_MAXR>)   _param_sens_flow_maxr,
 		(ParamFloat<px4::params::SENS_FLOW_MINHGT>) _param_sens_flow_minhgt,

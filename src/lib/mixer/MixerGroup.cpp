@@ -39,6 +39,7 @@
 
 #include "MixerGroup.hpp"
 
+#include "AllocatedActuatorMixer/AllocatedActuatorMixer.hpp"
 #include "HelicopterMixer/HelicopterMixer.hpp"
 #include "MultirotorMixer/MultirotorMixer.hpp"
 #include "NullMixer/NullMixer.hpp"
@@ -192,6 +193,10 @@ MixerGroup::load_from_buf(Mixer::ControlCallback control_cb, uintptr_t cb_handle
 			m = NullMixer::from_text(p, resid);
 			break;
 
+		case 'A':
+			m = AllocatedActuatorMixer::from_text(control_cb, cb_handle, p, resid);
+			break;
+
 		case 'M':
 			m = SimpleMixer::from_text(control_cb, cb_handle, p, resid);
 			break;
@@ -241,5 +246,13 @@ void MixerGroup::set_max_delta_out_once(float delta_out_max)
 {
 	for (auto mixer : _mixers) {
 		mixer->set_max_delta_out_once(delta_out_max);
+	}
+}
+
+void
+MixerGroup::set_dt_once(float dt)
+{
+	for (auto mixer : _mixers) {
+		mixer->set_dt_once(dt);
 	}
 }

@@ -34,7 +34,7 @@ px4_add_board(
 		imu/adis16497
 		imu/bosch/bmi088
 		imu/invensense/icm20602
-		imu/st/ism330dlc
+		imu/invensense/icm42688p
 		irlock
 		lights/blinkm
 		lights/rgbled
@@ -69,6 +69,7 @@ px4_add_board(
 		ekf2
 		esc_battery
 		events
+		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
 		land_detector

@@ -8,17 +8,17 @@ board_adc start
 ina226 -X -b 1 -t 1 -k start
 ina226 -X -b 2 -t 2 -k start
 
-# Internal SPI bus ICM-20602
-icm20602 -R 10 -s start
-
-# Internal SPI bus ISM300DLC
-ism330dlc -s start
-
 # Internal SPI BMI088
 bmi088 -A -R 4 -s start
 bmi088 -G -R 4 -s start
 
-# Possible internal compass
+# Internal SPI bus ICM42688p
+icm42688p -R 6 -s start
+
+# Internal SPI bus ICM-20602 (hard-mounted)
+icm20602 -R 10 -s start
+
+# Internal magnetometer on I2c
 bmm150 -I start
 
 # Possible internal Baro

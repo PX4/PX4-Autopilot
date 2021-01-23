@@ -27,6 +27,7 @@ px4_add_board(
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		magnetometer/isentek/ist8310
+		magnetometer/qmc5883l
 		pca9685_pwm_out
 		pwm_out_sim
 		rc_input
@@ -40,6 +41,7 @@ px4_add_board(
 		dataman
 		ekf2
 		events
+		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
 		land_detector

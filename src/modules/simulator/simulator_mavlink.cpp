@@ -51,6 +51,7 @@
 #include <pthread.h>
 #include <sys/socket.h>
 #include <termios.h>
+#include <arpa/inet.h>
 
 #include <limits>
 
@@ -594,6 +595,10 @@ void Simulator::send()
 	pthread_setname_np(pthread_self(), "sim_send");
 #endif
 
+	// Subscribe to topics.
+	// Only subscribe to the first actuator_outputs to fill a single HIL_ACTUATOR_CONTROLS.
+	_actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs), 0);
+
 	// Before starting, we ought to send a heartbeat to initiate the SITL
 	// simulator to start sending sensor data which will set the time and
 	// get everything rolling.
@@ -631,6 +636,8 @@ void Simulator::send()
 			send_controls();
 		}
 	}
+
+	orb_unsubscribe(_actuator_outputs_sub);
 }
 
 void Simulator::request_hil_state_quaternion()
@@ -667,6 +674,10 @@ void Simulator::run()
 	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	_myaddr.sin_port = htons(_port);
 
+	if (_tcp_remote_ipaddr != nullptr) {
+		_myaddr.sin_addr.s_addr = inet_addr(_tcp_remote_ipaddr);
+	}
+
 	if (_ip == InternetProtocol::UDP) {
 
 		if ((_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -691,7 +702,7 @@ void Simulator::run()
 				break;
 
 			} else {
-				system_usleep(100);
+				system_usleep(500);
 			}
 		}
 
@@ -722,7 +733,7 @@ void Simulator::run()
 
 			} else {
 				::close(_fd);
-				system_usleep(100);
+				system_usleep(500);
 			}
 		}
 
@@ -735,7 +746,7 @@ void Simulator::run()
 
 	pthread_attr_t sender_thread_attr;
 	pthread_attr_init(&sender_thread_attr);
-	pthread_attr_setstacksize(&sender_thread_attr, PX4_STACK_ADJUSTED(4000));
+	pthread_attr_setstacksize(&sender_thread_attr, PX4_STACK_ADJUSTED(8000));
 
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&sender_thread_attr, &param);
@@ -769,10 +780,6 @@ void Simulator::run()
 
 #endif
 
-	// Subscribe to topics.
-	// Only subscribe to the first actuator_outputs to fill a single HIL_ACTUATOR_CONTROLS.
-	_actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs), 0);
-
 	// got data from simulator, now activate the sending thread
 	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, nullptr);
 	pthread_attr_destroy(&sender_thread_attr);
@@ -789,6 +796,7 @@ void Simulator::run()
 
 		if (pret == 0) {
 			// Timed out.
+			PX4_ERR("poll timeout %d, %d", pret, errno);
 			continue;
 		}
 
@@ -833,8 +841,6 @@ void Simulator::run()
 
 #endif
 	}
-
-	orb_unsubscribe(_actuator_outputs_sub);
 }
 
 #ifdef ENABLE_UART_RC_INPUT

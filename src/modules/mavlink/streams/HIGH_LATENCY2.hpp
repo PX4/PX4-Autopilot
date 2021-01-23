@@ -46,6 +46,7 @@
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
+#include <uORB/topics/mission_result.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/wind_estimate.h>
@@ -524,7 +525,7 @@ private:
 		tecs_status_s tecs_status;
 
 		if (_tecs_status_sub.update(&tecs_status)) {
-			_airspeed_sp.add_value(tecs_status.airspeed_sp, _update_rate_filtered);
+			_airspeed_sp.add_value(tecs_status.true_airspeed_sp, _update_rate_filtered);
 		}
 	}
 

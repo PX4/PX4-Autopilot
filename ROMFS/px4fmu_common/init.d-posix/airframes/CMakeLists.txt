@@ -33,6 +33,7 @@
 
 px4_add_romfs_files(
 	10016_iris
+	10017_iris_ctrlalloc
 	10020_if750a
 	10030_px4vision
 	1010_iris_opt_flow
@@ -73,4 +74,6 @@ px4_add_romfs_files(
 	2507_cloudship
 	6011_typhoon_h480
 	6011_typhoon_h480.post
+	6012_typhoon_ctrlalloc
+	6012_typhoon_ctrlalloc.post
 )

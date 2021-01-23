@@ -56,6 +56,7 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
@@ -69,11 +70,10 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/uORB.h>
 
 using matrix::Dcmf;
 
-using uORB::SubscriptionData;
+using namespace time_literals;
 
 class RoverPositionControl : public ModuleBase<RoverPositionControl>, public ModuleParams
 {
@@ -111,7 +111,7 @@ private:
 	int		_vehicle_attitude_sub{-1};
 	int		_sensor_combined_sub{-1};
 
-	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	manual_control_setpoint_s		_manual_control_setpoint{};			    /**< r/c channel data */
 	position_setpoint_triplet_s		_pos_sp_triplet{};		/**< triplet of mission items */
@@ -123,7 +123,7 @@ private:
 	vehicle_attitude_s				_vehicle_att{};
 	sensor_combined_s				_sensor_combined{};
 
-	SubscriptionData<vehicle_acceleration_s>		_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
+	uORB::SubscriptionData<vehicle_acceleration_s>		_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 

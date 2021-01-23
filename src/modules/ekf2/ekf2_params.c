@@ -429,17 +429,6 @@ PARAM_DEFINE_FLOAT(EKF2_BETA_GATE, 5.0f);
 PARAM_DEFINE_FLOAT(EKF2_BETA_NOISE, 0.3f);
 
 /**
- * Magnetic declination
- *
- * @group EKF2
- * @volatile
- * @category system
- * @unit deg
- * @decimal 1
- */
-PARAM_DEFINE_FLOAT(EKF2_MAG_DECL, 0);
-
-/**
  * Gate size for magnetic heading fusion
  *
  * Sets the number of standard deviations used by the innovation consistency test.
@@ -1050,82 +1039,6 @@ PARAM_DEFINE_FLOAT(EKF2_ANGERR_INIT, 0.1f);
 PARAM_DEFINE_FLOAT(EKF2_RNG_PITCH, 0.0f);
 
 /**
- * Learned value of magnetometer X axis bias.
- * This is the amount of X-axis magnetometer bias learned by the EKF and saved from the last flight. It must be set to zero if the ground based magnetometer calibration is repeated.
- *
- * @group EKF2
- * @min -0.5
- * @max 0.5
- * @reboot_required true
- * @volatile
- * @category system
- * @unit gauss
- * @decimal 3
- */
-PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_X, 0.0f);
-
-/**
- * Learned value of magnetometer Y axis bias.
- * This is the amount of Y-axis magnetometer bias learned by the EKF and saved from the last flight. It must be set to zero if the ground based magnetometer calibration is repeated.
- *
- * @group EKF2
- * @min -0.5
- * @max 0.5
- * @reboot_required true
- * @volatile
- * @category system
- * @unit gauss
- * @decimal 3
- */
-PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_Y, 0.0f);
-
-/**
- * Learned value of magnetometer Z axis bias.
- * This is the amount of Z-axis magnetometer bias learned by the EKF and saved from the last flight. It must be set to zero if the ground based magnetometer calibration is repeated.
- *
- * @group EKF2
- * @min -0.5
- * @max 0.5
- * @reboot_required true
- * @volatile
- * @category system
- * @unit gauss
- * @decimal 3
- */
-PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_Z, 0.0f);
-
-/**
- * ID of Magnetometer the learned bias is for.
- *
- * @group EKF2
- * @reboot_required true
- * @category system
- */
-PARAM_DEFINE_INT32(EKF2_MAGBIAS_ID, 0);
-
-/**
- * State variance assumed for magnetometer bias storage.
- * This is a reference variance used to calculate the fraction of learned magnetometer bias that will be used to update the stored value. Smaller values will make the stored bias data adjust more slowly from flight to flight. Larger values will make it adjust faster.
- *
- * @group EKF2
- * @reboot_required true
- * @unit gauss^2
- * @decimal 8
- */
-PARAM_DEFINE_FLOAT(EKF2_MAGB_VREF, 2.5E-7f);
-
-/**
- * Maximum fraction of learned mag bias saved at each disarm.
- * Smaller values make the saved mag bias learn slower from flight to flight. Larger values make it learn faster. Must be > 0.0 and <= 1.0.
- *
- * @group EKF2
- * @min 0.0
- * @max 1.0
- * @decimal 2
- */
-PARAM_DEFINE_FLOAT(EKF2_MAGB_K, 0.2f);
-
-/**
  * Range sensor aid.
  *
  * If this parameter is enabled then the estimator will make use of the range finder measurements
@@ -1183,6 +1096,17 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_A_HMAX, 5.0f);
  * @max 5.0
  */
 PARAM_DEFINE_FLOAT(EKF2_RNG_A_IGATE, 1.0f);
+
+/**
+ * Minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (s)
+ *
+ *
+ * @group EKF2
+ * @unit s
+ * @min 0.1
+ * @max 5
+*/
+PARAM_DEFINE_FLOAT(EKF2_RNG_QLTY_T, 1.0f);
 
 /**
  * Gate size for vision velocity estimate fusion
@@ -1401,6 +1325,20 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_GPS_H, 10.0f);
  * @boolean
  */
 PARAM_DEFINE_INT32(EKF2_MAG_CHECK, 0);
+
+/**
+ * Enable synthetic magnetometer Z component measurement.
+ *
+ * Use for vehicles where the measured body Z magnetic field is subject to strong magnetic interference.
+ * For magnetic heading fusion the magnetometer Z measurement will be replaced by a synthetic value calculated
+ * using the knowledge of the 3D magnetic field vector at the location of the drone. Therefore, this parameter
+ * will only have an effect if the global position of the drone is known.
+ * For 3D mag fusion the magnetometer Z measurement will simply be ingored instead of fusing the synthetic value.
+ *
+ * @group EKF2
+ * @boolean
+*/
+PARAM_DEFINE_INT32(EKF2_SYNT_MAG_Z, 0);
 
 /**
  * Default value of true airspeed used in EKF-GSF AHRS calculation.

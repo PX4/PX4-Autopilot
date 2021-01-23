@@ -41,6 +41,7 @@
 #include <px4_platform_common/defines.h>
 #include <systemlib/err.h>
 #include <uORB/uORB.h>
+#include "uORBDeviceNode.hpp"
 
 #include "Publication.hpp"
 
@@ -89,6 +90,15 @@ public:
 		}
 
 		return (orb_publish(get_topic(), _handle, &data) == PX4_OK);
+	}
+
+	int get_instance() const
+	{
+		if (_handle) {
+			return static_cast<uORB::DeviceNode *>(_handle)->get_instance();
+		}
+
+		return -1;
 	}
 };
 
