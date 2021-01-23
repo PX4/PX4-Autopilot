@@ -96,8 +96,8 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_max_climb_rate(_param_fw_t_clmb_max.get());
 	_tecs.set_max_sink_rate(_param_fw_t_sink_max.get());
 	_tecs.set_speed_weight(_param_fw_t_spdweight.get());
-	_tecs.set_indicated_airspeed_min(_param_fw_airspd_min.get());
-	_tecs.set_indicated_airspeed_max(_param_fw_airspd_max.get());
+	_tecs.set_equivalent_airspeed_min(_param_fw_airspd_min.get());
+	_tecs.set_equivalent_airspeed_max(_param_fw_airspd_max.get());
 	_tecs.set_min_sink_rate(_param_fw_t_sink_min.get());
 	_tecs.set_throttle_damp(_param_fw_t_thr_damp.get());
 	_tecs.set_integrator_gain_throttle(_param_fw_t_I_gain_thr.get());
@@ -341,14 +341,15 @@ FixedwingPositionControl::tecs_status_publish()
 	t.altitude_sp = _tecs.hgt_setpoint_adj();
 	t.altitude_filtered = _tecs.vert_pos_state();
 
-	t.airspeed_sp = _tecs.TAS_setpoint_adj();
-	t.airspeed_filtered = _tecs.tas_state();
+	t.true_airspeed_sp = _tecs.TAS_setpoint_adj();
+	t.true_airspeed_filtered = _tecs.tas_state();
 
 	t.height_rate_setpoint = _tecs.hgt_rate_setpoint();
 	t.height_rate = _tecs.vert_vel_state();
 
-	t.airspeed_derivative_sp = _tecs.TAS_rate_setpoint();
-	t.airspeed_derivative = _tecs.speed_derivative();
+	t.equivalent_airspeed_sp = _tecs.get_EAS_setpoint();
+	t.true_airspeed_derivative_sp = _tecs.TAS_rate_setpoint();
+	t.true_airspeed_derivative = _tecs.speed_derivative();
 
 	t.total_energy_error = _tecs.STE_error();
 	t.total_energy_rate_error = _tecs.STE_rate_error();

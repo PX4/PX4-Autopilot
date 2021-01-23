@@ -64,3 +64,4 @@ endif()
 add_dependencies(px4_layer prebuild_targets)
 
 add_subdirectory(gpio)
+add_subdirectory(srgbled)
