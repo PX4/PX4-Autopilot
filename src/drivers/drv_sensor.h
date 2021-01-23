@@ -44,8 +44,6 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
-#include "drv_device.h"
-
 /**
  * Sensor type definitions.
  *
@@ -126,7 +124,6 @@
 #define DRV_GYR_DEVTYPE_BMI088		0x66
 #define DRV_BARO_DEVTYPE_BMP388	0x67
 #define DRV_BARO_DEVTYPE_DPS310	0x68
-#define DRV_IMU_DEVTYPE_ST_ISM330DLC	0x69
 #define DRV_ACC_DEVTYPE_BMI088		0x6a
 #define DRV_OSD_DEVTYPE_ATXXXX		0x6b
 #define DRV_FLOW_DEVTYPE_PMW3901	0x6c
@@ -165,6 +162,8 @@
 
 #define DRV_ADC_DEVTYPE_ADS1115	0x90
 #define DRV_DIST_DEVTYPE_VL53L1X 0x91
+
+#define DRV_GPIO_DEVTYPE_MCP23009	0x99
 
 #define DRV_DEVTYPE_UNUSED		0xff
 

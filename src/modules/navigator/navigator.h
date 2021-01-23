@@ -55,11 +55,14 @@
 
 #include "navigation.h"
 
+#include "GeofenceBreachAvoidance/geofence_breach_avoidance.h"
+
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
@@ -78,11 +81,12 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
 
+using namespace time_literals;
+
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
 #define NAVIGATOR_MODE_ARRAY_SIZE 9
-
 
 class Navigator : public ModuleBase<Navigator>, public ModuleParams
 {
@@ -293,6 +297,8 @@ public:
 
 	bool		abort_landing();
 
+	void geofence_breach_check(bool &have_geofence_position_data);
+
 	// Param access
 	float		get_loiter_min_alt() const { return _param_mis_ltrmin_alt.get(); }
 	float		get_takeoff_min_alt() const { return _param_mis_takeoff_alt.get(); }
@@ -332,11 +338,12 @@ private:
 	int		_local_pos_sub{-1};		/**< local position subscription */
 	int		_vehicle_status_sub{-1};	/**< local position subscription */
 
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
 	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};	/**< global position subscription */
 	uORB::Subscription _gps_pos_sub{ORB_ID(vehicle_gps_position)};		/**< gps position subscription */
 	uORB::Subscription _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
 	uORB::Subscription _land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};	/**< param update subscription */
 	uORB::Subscription _pos_ctrl_landing_status_sub{ORB_ID(position_controller_landing_status)};	/**< position controller landing status subscription */
 	uORB::Subscription _traffic_sub{ORB_ID(transponder_report)};		/**< traffic subscription */
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};	/**< vehicle commands (onboard and offboard) */
@@ -375,6 +382,8 @@ private:
 
 	Geofence	_geofence;			/**< class that handles the geofence */
 	bool		_geofence_violation_warning_sent{false}; /**< prevents spaming to mavlink */
+	GeofenceBreachAvoidance _gf_breach_avoidance;
+	hrt_abstime _last_geofence_check = 0;
 
 	bool		_can_loiter_at_sp{false};			/**< flags if current position SP can be used to loiter */
 	bool		_pos_sp_triplet_updated{false};		/**< flags if position SP triplet needs to be published */

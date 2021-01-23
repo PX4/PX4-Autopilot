@@ -101,7 +101,7 @@
 #define OPT_RESTART_TIMEOUT_MS          20000
 
 /* Reserved for the Booloader */
-#define OPT_BOOTLOADER_SIZE_IN_K        (1024*8)
+#define OPT_BOOTLOADER_SIZE_IN_K        (1024*64)
 
 /* Reserved for the application out of the total
  * system flash minus the BOOTLOADER_SIZE_IN_K
@@ -132,9 +132,5 @@
 
 /* Bootloader Option*****************************************************************
  *
- *   GPIO      Function                                     MPU        Board
- *                                                          Pin #      Name
- * -- ----- --------------------------------             ----------------------------
- *  *  PC[09] PC9/TIM3_CH4                                     40       BOOT0
  */
-#define GPIO_GETNODEINFO_JUMPER (BUTTON_BOOT0n&~(GPIO_EXTI))
+#define GPIO_GETNODEINFO_JUMPER (BUTTON_SAFETY & ~GPIO_EXTI)

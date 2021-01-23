@@ -38,7 +38,6 @@
 #include <mathlib/math/Functions.hpp>
 
 using namespace matrix;
-using namespace time_literals;
 using math::radians;
 
 GyroFFT::GyroFFT() :

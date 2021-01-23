@@ -228,10 +228,10 @@ MulticopterAttitudeControl::Run()
 	perf_begin(_loop_perf);
 
 	// Check if parameters have changed
-	if (_params_sub.updated()) {
+	if (_parameter_update_sub.updated()) {
 		// clear update
 		parameter_update_s param_update;
-		_params_sub.copy(&param_update);
+		_parameter_update_sub.copy(&param_update);
 
 		updateParams();
 		parameters_updated();

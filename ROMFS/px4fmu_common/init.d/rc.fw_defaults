@@ -41,6 +41,7 @@ then
 	#
 	param set NAV_ACC_RAD 10
 
+	param set MIS_DIST_WPS 5000
 	param set MIS_LTRMIN_ALT 25
 	param set MIS_TAKEOFF_ALT 25
 

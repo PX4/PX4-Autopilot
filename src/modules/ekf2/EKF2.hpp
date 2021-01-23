@@ -208,6 +208,8 @@ private:
 
 	float _airspeed_scale_factor{1.0f}; ///< scale factor correction applied to airspeed measurements
 
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
 	uORB::Subscription _airdata_sub{ORB_ID(vehicle_air_data)};
 	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
 	uORB::Subscription _distance_sensor_sub{ORB_ID(distance_sensor)};
@@ -215,7 +217,6 @@ private:
 	uORB::Subscription _landing_target_pose_sub{ORB_ID(landing_target_pose)};
 	uORB::Subscription _magnetometer_sub{ORB_ID(vehicle_magnetometer)};
 	uORB::Subscription _optical_flow_sub{ORB_ID(optical_flow)};
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
@@ -388,6 +389,8 @@ private:
 		_param_ekf2_rng_a_hmax,	///< maximum allowed absolute altitude (AGL) for range aid (m)
 		(ParamExtFloat<px4::params::EKF2_RNG_A_IGATE>)
 		_param_ekf2_rng_a_igate,	///< gate size used for innovation consistency checks for range aid fusion (STD)
+		(ParamExtFloat<px4::params::EKF2_RNG_QLTY_T>)
+		_param_ekf2_rng_qlty_t, ///< Minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (s)
 
 		// vision estimate fusion
 		(ParamInt<px4::params::EKF2_EV_NOISE_MD>)
@@ -492,6 +495,8 @@ private:
 
 		(ParamFloat<px4::params::EKF2_REQ_GPS_H>) _param_ekf2_req_gps_h, ///< Required GPS health time
 		(ParamExtInt<px4::params::EKF2_MAG_CHECK>) _param_ekf2_mag_check, ///< Mag field strength check
+		(ParamExtInt<px4::params::EKF2_SYNT_MAG_Z>)
+		_param_ekf2_synthetic_mag_z, ///< Enables the use of a synthetic value for the Z axis of the magnetometer calculated from the 3D magnetic field vector at the location of the drone.
 
 		// Used by EKF-GSF experimental yaw estimator
 		(ParamExtFloat<px4::params::EKF2_GSF_TAS>)

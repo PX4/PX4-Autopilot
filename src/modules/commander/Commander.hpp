@@ -33,6 +33,8 @@
 
 #pragma once
 
+
+/*   Helper classes  */
 #include "Arming/PreFlightCheck/PreFlightCheck.hpp"
 #include "failure_detector/FailureDetector.hpp"
 #include "state_machine_helper.h"
@@ -75,6 +77,7 @@
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/power_button_state.h>
+#include <uORB/topics/rtl_flight_time.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/telemetry_status.h>
@@ -269,7 +272,10 @@ private:
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
 
-		(ParamFloat<px4::params::CP_DIST>) _param_cp_dist
+		(ParamFloat<px4::params::CP_DIST>) _param_cp_dist,
+
+		(ParamFloat<px4::params::BAT_LOW_THR>) _param_bat_low_thr,
+		(ParamFloat<px4::params::BAT_CRIT_THR>) _param_bat_crit_thr
 	)
 
 	enum class PrearmedMode {
@@ -403,13 +409,14 @@ private:
 	uORB::Subscription					_geofence_result_sub{ORB_ID(geofence_result)};
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 	uORB::Subscription					_land_detector_sub{ORB_ID(vehicle_land_detected)};
-	uORB::Subscription					_parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription					_safety_sub{ORB_ID(safety)};
 	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription					_manual_control_switches_sub{ORB_ID(manual_control_switches)};
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription					_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription					_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
+
+	uORB::SubscriptionInterval				_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
 	uORB::SubscriptionMultiArray<distance_sensor_s>         _distance_sensor_subs{ORB_ID::distance_sensor};
@@ -425,6 +432,7 @@ private:
 	uORB::SubscriptionData<offboard_control_mode_s>		_offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
 	uORB::SubscriptionData<vehicle_global_position_s>	_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::SubscriptionData<vehicle_local_position_s>	_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::SubscriptionData<rtl_flight_time_s>		_rtl_flight_time_sub{ORB_ID(rtl_flight_time)};
 
 	// Publications
 	uORB::Publication<actuator_armed_s>			_armed_pub{ORB_ID(actuator_armed)};

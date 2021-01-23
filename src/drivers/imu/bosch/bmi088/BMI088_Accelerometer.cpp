@@ -99,7 +99,13 @@ int BMI088_Accelerometer::probe()
 
 	const uint8_t ACC_CHIP_ID = RegisterRead(Register::ACC_CHIP_ID);
 
-	if (ACC_CHIP_ID != ID) {
+	if (ACC_CHIP_ID == ID_088) {
+		DEVICE_DEBUG("BMI088 Accel");
+
+	} else if (ACC_CHIP_ID == ID_090L) {
+		DEVICE_DEBUG("BMI090L Accel");
+
+	} else {
 		DEVICE_DEBUG("unexpected ACC_CHIP_ID 0x%02x", ACC_CHIP_ID);
 		return PX4_ERROR;
 	}
@@ -122,7 +128,7 @@ void BMI088_Accelerometer::RunImpl()
 		break;
 
 	case STATE::WAIT_FOR_RESET:
-		if (RegisterRead(Register::ACC_CHIP_ID) == ID) {
+		if ((RegisterRead(Register::ACC_CHIP_ID) == ID_088) || (RegisterRead(Register::ACC_CHIP_ID) == ID_090L)) {
 			// ACC_PWR_CONF: Power on sensor
 			RegisterWrite(Register::ACC_PWR_CONF, 0);
 

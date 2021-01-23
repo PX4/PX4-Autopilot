@@ -394,12 +394,12 @@ PARAM_DEFINE_FLOAT(FW_LND_FL_PMAX, 15.0f);
 PARAM_DEFINE_FLOAT(FW_LND_AIRSPD_SC, 1.3f);
 
 /**
- * Throttle time constant factor for landing
+ * Altitude time constant factor for landing
  *
- * Set this parameter to less than 1.0 to make the TECS throttle loop react faster during
+ * Set this parameter to less than 1.0 to make TECS react faster to altitude errors during
  * landing than during normal flight (i.e. giving efficiency and low motor wear at
  * high altitudes but control accuracy during landing). During landing, the TECS
- * throttle time constant (FW_T_THRO_CONST) is multiplied by this value.
+ * altitude time constant (FW_T_ALT_TC) is multiplied by this value.
  *
  * @unit
  * @min 0.2
@@ -521,38 +521,6 @@ PARAM_DEFINE_FLOAT(FW_T_SINK_MIN, 2.0f);
 PARAM_DEFINE_FLOAT(FW_T_SINK_MAX, 5.0f);
 
 /**
- * TECS time constant
- *
- * This is the time constant of the TECS control algorithm (in seconds).
- * Smaller values make it faster to respond, larger values make it slower
- * to respond.
- *
- * @unit s
- * @min 1.0
- * @max 10.0
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_T_TIME_CONST, 5.0f);
-
-/**
- * TECS Throttle time constant
- *
- * This is the time constant of the TECS throttle control algorithm (in seconds).
- * Smaller values make it faster to respond, larger values make it slower
- * to respond.
- *
- * @unit s
- * @min 1.0
- * @max 10.0
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_T_THRO_CONST, 8.0f);
-
-/**
  * Throttle damping factor
  *
  * This is the damping gain for the throttle demand loop.
@@ -560,16 +528,16 @@ PARAM_DEFINE_FLOAT(FW_T_THRO_CONST, 8.0f);
  *
  * @min 0.0
  * @max 2.0
- * @decimal 1
+ * @decimal 2
  * @increment 0.1
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.5f);
+PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.1f);
 
 /**
- * Integrator gain
+ * Integrator gain throttle
  *
- * This is the integrator gain on the control loop.
+ * This is the integrator gain on the throttle part of the control loop.
  * Increasing this gain increases the speed at which speed
  * and height offsets are trimmed out, but reduces damping and
  * increases overshoot. Set this value to zero to completely
@@ -581,7 +549,24 @@ PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.5f);
  * @increment 0.05
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_INTEG_GAIN, 0.1f);
+PARAM_DEFINE_FLOAT(FW_T_I_GAIN_THR, 0.3f);
+
+/**
+ * Integrator gain pitch
+ *
+ * This is the integrator gain on the pitch part of the control loop.
+ * Increasing this gain increases the speed at which speed
+ * and height offsets are trimmed out, but reduces damping and
+ * increases overshoot. Set this value to zero to completely
+ * disable all integrator action.
+ *
+ * @min 0.0
+ * @max 2.0
+ * @decimal 2
+ * @increment 0.05
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_I_GAIN_PIT, 0.1f);
 
 /**
  * Maximum vertical acceleration
@@ -671,22 +656,21 @@ PARAM_DEFINE_FLOAT(FW_T_SPDWEIGHT, 1.0f);
  *
  * @min 0.0
  * @max 2.0
- * @decimal 1
+ * @decimal 2
  * @increment 0.1
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.0f);
+PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.1f);
 
 /**
- * Height rate proportional factor
+ * Altitude error time constant.
  *
- * @min 0.0
- * @max 1.0
+ * @min 2.0
  * @decimal 2
- * @increment 0.05
+ * @increment 0.5
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_HRATE_P, 0.05f);
+PARAM_DEFINE_FLOAT(FW_T_ALT_TC, 5.0f);
 
 /**
  * Height rate feed forward
@@ -697,18 +681,17 @@ PARAM_DEFINE_FLOAT(FW_T_HRATE_P, 0.05f);
  * @increment 0.05
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.8f);
+PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.3f);
 
 /**
- * Speed rate P factor
+ * True airspeed error time constant.
  *
- * @min 0.0
- * @max 2.0
+ * @min 2.0
  * @decimal 2
- * @increment 0.01
+ * @increment 0.5
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_SRATE_P, 0.02f);
+PARAM_DEFINE_FLOAT(FW_T_TAS_TC, 5.0f);
 
 /**
  * Minimum groundspeed
@@ -737,3 +720,30 @@ PARAM_DEFINE_FLOAT(FW_GND_SPD_MIN, 5.0f);
  * @group FW L1 Control
  */
 PARAM_DEFINE_INT32(FW_POSCTL_INV_ST, 0);
+
+/**
+ * Specific total energy rate first order filter time constant.
+ *
+ * This filter is applied to the specific total energy rate used for throttle damping.
+ *
+ * @min 0.0
+ * @max 2
+ * @decimal 2
+ * @increment 0.01
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_STE_R_TC, 0.4f);
+
+
+/**
+ * True airspeed rate first order filter time constant.
+ *
+ * This filter is applied to the true airspeed rate.
+ *
+ * @min 0.0
+ * @max 2
+ * @decimal 2
+ * @increment 0.01
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_TAS_R_TC, 0.2f);

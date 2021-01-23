@@ -241,7 +241,7 @@ void BlockLocalPositionEstimator::Run()
 	_lastArmedState = armedState;
 
 	// see which updates are available
-	bool paramsUpdated = _sub_param_update.update();
+	const bool paramsUpdated = _parameter_update_sub.updated();
 	_baroUpdated = false;
 
 	if ((_param_lpe_fusion.get() & FUSE_BARO) && _sub_airdata.update()) {
@@ -266,6 +266,10 @@ void BlockLocalPositionEstimator::Run()
 
 	// update parameters
 	if (paramsUpdated) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+
 		SuperBlock::updateParams();
 		ModuleParams::updateParams();
 		updateSSParams();

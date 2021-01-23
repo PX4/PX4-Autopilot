@@ -37,7 +37,6 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/matrix/matrix/math.hpp>
 
-using namespace time_literals;
 using namespace matrix;
 
 MulticopterPositionControl::MulticopterPositionControl(bool vtol) :
@@ -250,12 +249,14 @@ void MulticopterPositionControl::Run()
 			_control.setState(_states);
 
 			vehicle_constraints_s constraints;
-			_vehicle_constraints_sub.update(&constraints);
-			_control.setConstraints(constraints);
-			_control.setThrustLimits(constraints.minimum_thrust, _param_mpc_thr_max.get());
 
-			if (constraints.reset_integral) {
-				_control.resetIntegral();
+			if (_vehicle_constraints_sub.update(&constraints)) {
+				_control.setConstraints(constraints);
+				_control.setThrustLimits(constraints.minimum_thrust, _param_mpc_thr_max.get());
+
+				if (constraints.reset_integral) {
+					_control.resetIntegral();
+				}
 			}
 
 			// Run position control
@@ -270,8 +271,12 @@ void MulticopterPositionControl::Run()
 				}
 
 				failsafe(time_stamp_now, setpoint, _states, !was_in_failsafe);
+
 				_control.setInputSetpoint(setpoint);
-				constraints = FlightTask::empty_constraints;
+
+				constraints = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, false, {}};
+				_control.setConstraints(constraints);
+
 				_control.update(dt);
 			}
 

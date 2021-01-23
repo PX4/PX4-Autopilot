@@ -82,7 +82,7 @@ private:
 	)
 
 	// Subscriptions
-	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 };
 

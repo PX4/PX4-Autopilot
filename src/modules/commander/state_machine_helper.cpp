@@ -985,9 +985,6 @@ void reset_offboard_loss_globals(actuator_armed_s *armed, const bool old_failsaf
 	}
 }
 
-
-
-
 void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status,
 		      const vehicle_status_flags_s &status_flags, commander_state_s *internal_state, const uint8_t battery_warning,
 		      const low_battery_action_t low_battery_action)
@@ -1015,22 +1012,33 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 		case LOW_BAT_ACTION::RETURN_OR_LAND:
 
 			if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
-				internal_state->main_state = commander_state_s::MAIN_STATE_AUTO_RTL;
-				internal_state->timestamp = hrt_absolute_time();
-				mavlink_log_critical(mavlink_log_pub, "%s, executing RTL", battery_critical);
+				if (!(internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_RTL ||
+				      internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
+				      internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
+
+					internal_state->main_state = commander_state_s::MAIN_STATE_AUTO_RTL;
+					internal_state->timestamp = hrt_absolute_time();
+					mavlink_log_critical(mavlink_log_pub, "%s, executing RTL", battery_critical);
+				}
 
 			} else {
-				internal_state->main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
-				internal_state->timestamp = hrt_absolute_time();
-				mavlink_log_emergency(mavlink_log_pub, "%s, can't execute RTL, landing instead", battery_critical);
+				if (!(internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
+				      internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
+					internal_state->main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
+					internal_state->timestamp = hrt_absolute_time();
+					mavlink_log_emergency(mavlink_log_pub, "%s, can't execute RTL, landing instead", battery_critical);
+				}
 			}
 
 			break;
 
 		case LOW_BAT_ACTION::LAND:
-			internal_state->main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
-			internal_state->timestamp = hrt_absolute_time();
-			mavlink_log_emergency(mavlink_log_pub, "%s, landing", battery_critical);
+			if (!(internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
+			      internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
+				internal_state->main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
+				internal_state->timestamp = hrt_absolute_time();
+				mavlink_log_emergency(mavlink_log_pub, "%s, landing", battery_critical);
+			}
 
 			break;
 		}
@@ -1048,14 +1056,21 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 
 		case LOW_BAT_ACTION::RETURN:
 			if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
-				internal_state->main_state = commander_state_s::MAIN_STATE_AUTO_RTL;
-				internal_state->timestamp = hrt_absolute_time();
-				mavlink_log_critical(mavlink_log_pub, "%s, executing RTL", battery_dangerous);
+				if (!(internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_RTL ||
+				      internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
+				      internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
+					internal_state->main_state = commander_state_s::MAIN_STATE_AUTO_RTL;
+					internal_state->timestamp = hrt_absolute_time();
+					mavlink_log_critical(mavlink_log_pub, "%s, executing RTL", battery_dangerous);
+				}
 
 			} else {
-				internal_state->main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
-				internal_state->timestamp = hrt_absolute_time();
-				mavlink_log_emergency(mavlink_log_pub, "%s, can't execute RTL, landing instead", battery_dangerous);
+				if (!(internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
+				      internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
+					internal_state->main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
+					internal_state->timestamp = hrt_absolute_time();
+					mavlink_log_emergency(mavlink_log_pub, "%s, can't execute RTL, landing instead", battery_dangerous);
+				}
 			}
 
 			break;
@@ -1064,9 +1079,12 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 
 		// FALLTHROUGH
 		case LOW_BAT_ACTION::LAND:
-			internal_state->main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
-			internal_state->timestamp = hrt_absolute_time();
-			mavlink_log_emergency(mavlink_log_pub, "%s, landing", battery_dangerous);
+			if (!(internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
+			      internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
+				internal_state->main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
+				internal_state->timestamp = hrt_absolute_time();
+				mavlink_log_emergency(mavlink_log_pub, "%s, landing", battery_dangerous);
+			}
 
 			break;
 		}

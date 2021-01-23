@@ -84,6 +84,8 @@
 #include "tailsitter.h"
 #include "tiltrotor.h"
 
+using namespace time_literals;
+
 extern "C" __EXPORT int vtol_att_control_main(int argc, char *argv[]);
 
 class VtolAttitudeControl : public ModuleBase<VtolAttitudeControl>, public px4::WorkItem
@@ -105,7 +107,7 @@ public:
 	bool init();
 
 	bool is_fixed_wing_requested();
-	void abort_front_transition(const char *reason);
+	void quadchute(const char *reason);
 
 	struct actuator_controls_s 			*get_actuators_fw_in() {return &_actuators_fw_in;}
 	struct actuator_controls_s 			*get_actuators_mc_in() {return &_actuators_mc_in;}
@@ -133,6 +135,8 @@ private:
 	uORB::SubscriptionCallbackWorkItem _actuator_inputs_fw{this, ORB_ID(actuator_controls_virtual_fw)};
 	uORB::SubscriptionCallbackWorkItem _actuator_inputs_mc{this, ORB_ID(actuator_controls_virtual_mc)};
 
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};			// airspeed subscription
 	uORB::Subscription _fw_virtual_att_sp_sub{ORB_ID(fw_virtual_attitude_setpoint)};
 	uORB::Subscription _land_detected_sub{ORB_ID(vehicle_land_detected)};
@@ -140,7 +144,6 @@ private:
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};			// sensor subscription
 	uORB::Subscription _manual_control_switches_sub{ORB_ID(manual_control_switches)};	//manual control setpoint subscription
 	uORB::Subscription _mc_virtual_att_sp_sub{ORB_ID(mc_virtual_attitude_setpoint)};
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};			// local position setpoint subscription
 	uORB::Subscription _tecs_status_sub{ORB_ID(tecs_status)};
 	uORB::Subscription _v_att_sub{ORB_ID(vehicle_attitude)};		//vehicle attitude subscription
@@ -219,7 +222,6 @@ private:
 	 * for fixed wings we want to have an idle speed of zero since we do not want
 	 * to waste energy when gliding. */
 	int		_transition_command{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC};
-	bool		_abort_front_transition{false};
 
 	VtolType	*_vtol_type{nullptr};	// base class for different vtol types
 

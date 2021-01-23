@@ -62,3 +62,5 @@ else()
 	add_library(px4_layer ${PX4_SOURCE_DIR}/platforms/common/empty.c)
 endif()
 add_dependencies(px4_layer prebuild_targets)
+
+add_subdirectory(gpio)

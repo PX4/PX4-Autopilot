@@ -69,7 +69,12 @@ elseif("${PX4_BOARD_LABEL}" STREQUAL "canbootloader")
 	)
 
 	target_link_libraries(px4 PRIVATE
-		-Wl,-wrap,sched_process_timer -Wl,-wrap,nx_sem_post -Wl,-wrap,nx_sem_wait
+		-Wl,-wrap,nxsched_process_timer
+		-Wl,-wrap,nxsem_post
+		-Wl,-wrap,nxsem_wait
+		-Wl,-wrap,arm_svcall
+		-Wl,-wrap,nx_start
+		-Wl,-wrap,exit
 	)
 else()
 	if(NOT "${PX4_BOARD_LINKER_PREFIX}" STREQUAL "")
@@ -119,7 +124,6 @@ target_link_libraries(px4 PRIVATE
 
 	-fno-exceptions
 	-fno-rtti
-
 	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx-config/scripts/${SCRIPT_PREFIX}script.ld
 	-Wl,-Map=${PX4_CONFIG}.map
 	-Wl,--warn-common
@@ -217,6 +221,9 @@ if(NOT NUTTX_DIR MATCHES "external")
 	elseif(CONFIG_ARCH_CHIP_STM32F405RG)
 		set(DEBUG_DEVICE "STM32F405RG")
 		set(DEBUG_SVD_FILE "STM32F405.svd")
+	elseif(CONFIG_ARCH_CHIP_STM32F412CE)
+		set(DEBUG_DEVICE "STM32F412CE")
+		set(DEBUG_SVD_FILE "STM32F412.svd")
 	elseif(CONFIG_ARCH_CHIP_STM32F427V)
 		set(DEBUG_DEVICE "STM32F427VI")
 		set(DEBUG_SVD_FILE "STM32F427.svd")
@@ -261,6 +268,9 @@ if(NOT NUTTX_DIR MATCHES "external")
 	)
 	if(DEBUG_SVD_FILE_PATH)
 		message(STATUS "Found SVD: ${DEBUG_SVD_FILE_PATH}")
+	endif()
+
+	if(DEBUG_DEVICE)
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/launch.json.in ${PX4_SOURCE_DIR}/.vscode/launch.json @ONLY)
 	endif()
 endif()

@@ -61,11 +61,21 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: av_x-v1_default
+    bitcraze_crazyflie_default:
+      short: bitcraze_crazyflie
+      buildType: MinSizeRel
+      settings:
+        CONFIG: bitcraze_crazyflie_default
     cuav_can-gps-v1_default:
       short: cuav_can-gps-v1_default
       buildType: MinSizeRel
       settings:
         CONFIG: cuav_can-gps-v1_default
+    cuav_can-gps-v1_canbootloader:
+      short: cuav_can-gps-v1_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: cuav_can-gps-v1_canbootloader
     cuav_nora_default:
       short: cuav_nora
       buildType: MinSizeRel

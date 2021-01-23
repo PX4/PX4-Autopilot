@@ -23,7 +23,7 @@ jobs:
         make airframe_metadata
         cd build/px4_sitl_default/docs
         ls -ls *
-      # TODO: deploy to devguide gitbook and s3
+      # TODO: deploy to userguide gitbook and s3
 
   module:
     runs-on: ubuntu-latest
@@ -38,7 +38,7 @@ jobs:
         make module_documentation
         cd build/px4_sitl_default/docs
         ls -ls *
-      # TODO: deploy to devguide gitbook and s3
+      # TODO: deploy to userguide gitbook and s3
 
   parameter:
     runs-on: ubuntu-latest

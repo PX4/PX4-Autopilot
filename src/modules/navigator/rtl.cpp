@@ -37,11 +37,14 @@
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Julian Kent <julian@auterion.com>
  */
 
 #include "rtl.h"
 #include "navigator.h"
 #include <dataman/dataman.h>
+
+#include <lib/ecl/geo/geo.h>
 
 
 static constexpr float DELAY_SIGMA = 0.01f;
@@ -153,7 +156,7 @@ void RTL::find_RTL_destination()
 	}
 
 	// compare to safe landing positions
-	mission_safe_point_s closest_safe_point {} ;
+	mission_safe_point_s closest_safe_point {};
 	mission_stats_entry_s stats;
 	int ret = dm_read(DM_KEY_SAFE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
 	int num_safe_points = 0;
@@ -212,6 +215,23 @@ void RTL::find_RTL_destination()
 		}
 	}
 
+	// figure out how long the RTL will take
+	float rtl_xy_speed, rtl_z_speed;
+	get_rtl_xy_z_speed(rtl_xy_speed, rtl_z_speed);
+
+	matrix::Vector3f to_destination_vec;
+	get_vector_to_next_waypoint(global_position.lat, global_position.lon, _destination.lat, _destination.lon,
+				    &to_destination_vec(0), &to_destination_vec(1));
+	to_destination_vec(2) = _destination.alt - global_position.alt;
+
+	float time_to_home_s = time_to_home(to_destination_vec, get_wind(), rtl_xy_speed, rtl_z_speed);
+
+	float rtl_flight_time_ratio = time_to_home_s / (60 * _param_rtl_flt_time.get());
+	rtl_flight_time_s rtl_flight_time{};
+	rtl_flight_time.timestamp = hrt_absolute_time();
+	rtl_flight_time.rtl_limit_fraction = rtl_flight_time_ratio;
+	rtl_flight_time.rtl_time_s = time_to_home_s;
+	_rtl_flight_time_pub.publish(rtl_flight_time);
 }
 
 void RTL::on_activation()
@@ -610,4 +630,79 @@ float RTL::calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg)
 	}
 
 	return max(return_altitude_amsl, gpos.alt);
+}
+
+void RTL::get_rtl_xy_z_speed(float &xy, float &z)
+{
+	uint8_t vehicle_type = _navigator->get_vstatus()->vehicle_type;
+	// Caution: here be dragons!
+	// Use C API to allow this code to be compiled with builds that don't have FW/MC/Rover
+
+	if (vehicle_type != _rtl_vehicle_type) {
+		_rtl_vehicle_type = vehicle_type;
+
+		switch (vehicle_type) {
+		case vehicle_status_s::VEHICLE_TYPE_ROTARY_WING:
+			_rtl_xy_speed = param_find("MPC_XY_CRUISE");
+			_rtl_descent_speed = param_find("MPC_Z_VEL_MAX_DN");
+			break;
+
+		case vehicle_status_s::VEHICLE_TYPE_FIXED_WING:
+			_rtl_xy_speed = param_find("FW_AIRSPD_TRIM");
+			_rtl_descent_speed = param_find("FW_T_SINK_MIN");
+			break;
+
+		case vehicle_status_s::VEHICLE_TYPE_ROVER:
+			_rtl_xy_speed = param_find("GND_SPEED_THR_SC");
+			_rtl_descent_speed = 65535;
+			break;
+		}
+	}
+
+	if (param_get(_rtl_xy_speed, &xy) != 0) {
+		xy = 1e6f;
+	}
+
+	if (param_get(_rtl_descent_speed, &z) != 0) {
+		z = 1e6f;
+	}
+
+}
+
+matrix::Vector2f RTL::get_wind()
+{
+	_wind_estimate_sub.update();
+	matrix::Vector2f wind;
+
+	if (hrt_absolute_time() - _wind_estimate_sub.get().timestamp < 1_s) {
+		wind(0) = _wind_estimate_sub.get().windspeed_north;
+		wind(1) = _wind_estimate_sub.get().windspeed_east;
+	}
+
+	return wind;
+}
+
+float time_to_home(const matrix::Vector3f &to_home_vec,
+		   const matrix::Vector2f &wind_velocity, float vehicle_speed_m_s, float vehicle_descent_speed_m_s)
+{
+	const matrix::Vector2f to_home = to_home_vec.xy();
+	const float alt_change = to_home_vec(2);
+	const matrix::Vector2f to_home_dir = to_home.unit_or_zero();
+	const float dist_to_home = to_home.norm();
+
+	const float wind_towards_home = wind_velocity.dot(to_home_dir);
+	const float wind_across_home = matrix::Vector2f(wind_velocity - to_home_dir * wind_towards_home).norm();
+
+	// Note: use fminf so that we don't _rely_ on wind towards home to make RTL more efficient
+	const float cruise_speed = sqrtf(vehicle_speed_m_s * vehicle_speed_m_s - wind_across_home * wind_across_home) + fminf(
+					   0.f, wind_towards_home);
+
+	if (!PX4_ISFINITE(cruise_speed) || cruise_speed <= 0) {
+		return INFINITY; // we never reach home if the wind is stronger than vehicle speed
+	}
+
+	// assume horizontal and vertical motions happen serially, so their time adds
+	float horiz = dist_to_home / cruise_speed;
+	float descent = fabsf(alt_change) / vehicle_descent_speed_m_s;
+	return horiz + descent;
 }

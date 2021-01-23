@@ -557,31 +557,6 @@ PARAM_DEFINE_FLOAT(COM_ARM_EKF_HGT, 1.0f);
 PARAM_DEFINE_FLOAT(COM_ARM_EKF_YAW, 0.5f);
 
 /**
- * Maximum value of EKF accelerometer delta velocity bias estimate that will allow arming.
- * Note: ekf2 will limit the delta velocity bias estimate magnitude to be less than EKF2_ABL_LIM * FILTER_UPDATE_PERIOD_MS * 0.001 so this parameter must be less than that to be useful.
- *
- * @group Commander
- * @unit m/s
- * @min 0.001
- * @max 0.01
- * @decimal 4
- * @increment 0.0001
- */
-PARAM_DEFINE_FLOAT(COM_ARM_EKF_AB, 0.0022f);
-
-/**
- * Maximum value of EKF gyro delta angle bias estimate that will allow arming
- *
- * @group Commander
- * @unit rad
- * @min 0.0001
- * @max 0.0017
- * @decimal 4
- * @increment 0.0001
- */
-PARAM_DEFINE_FLOAT(COM_ARM_EKF_GB, 0.0011f);
-
-/**
  * Maximum accelerometer inconsistency between IMU units that will allow arming
  *
  * @group Commander
@@ -640,17 +615,14 @@ PARAM_DEFINE_INT32(COM_REARM_GRACE, 1);
 /**
  * Enable RC stick override of auto and/or offboard modes
  *
- * When RC stick override is enabled, moving the RC sticks according to COM_RC_STICK_OV
- * immediately gives control back to the pilot (switches to manual position mode):
- * bit 0: Enable for auto modes (except for in critical battery reaction),
- * bit 1: Enable for offboard mode.
- *
- * Only has an effect on multicopters, and VTOLS in multicopter mode.
+ * When RC stick override is enabled, moving the RC sticks more than COM_RC_STICK_OV from
+ * their center position immediately gives control back to the pilot by switching to Position mode.
+ * Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
  *
  * @min 0
  * @max 3
- * @bit 0 Enable override in auto modes
- * @bit 1 Enable override in offboard mode
+ * @bit 0 Enable override during auto modes (except for in critical battery reaction)
+ * @bit 1 Enable override during offboard mode
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 1);
@@ -984,3 +956,15 @@ PARAM_DEFINE_INT32(COM_POWER_COUNT, 1);
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(COM_LKDOWN_TKO, 3.0f);
+
+/**
+* Enable preflight check for maximal allowed airspeed when arming.
+*
+* Deny arming if the current airspeed measurement is greater than half the stall speed (ASPD_STALL).
+* Excessive airspeed measurements on ground are either caused by wind or bad airspeed calibration.
+*
+* @group Commander
+* @value 0 Disabled
+* @value 1 Enabled
+*/
+PARAM_DEFINE_INT32(COM_ARM_ARSP_EN, 1);

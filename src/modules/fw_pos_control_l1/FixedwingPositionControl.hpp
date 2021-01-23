@@ -148,10 +148,11 @@ private:
 
 	uORB::SubscriptionCallbackWorkItem _local_pos_sub{this, ORB_ID(vehicle_local_position)};
 
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
 	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};		///< control mode subscription
 	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};	///< notification of manual control updates
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		///< notification of parameter updates
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};		///< vehicle attitude subscription
@@ -394,19 +395,20 @@ private:
 
 		(ParamFloat<px4::params::FW_T_CLMB_MAX>) _param_fw_t_clmb_max,
 		(ParamFloat<px4::params::FW_T_HRATE_FF>) _param_fw_t_hrate_ff,
-		(ParamFloat<px4::params::FW_T_HRATE_P>) _param_fw_t_hrate_p,
-		(ParamFloat<px4::params::FW_T_INTEG_GAIN>) _param_fw_t_integ_gain,
+		(ParamFloat<px4::params::FW_T_ALT_TC>) _param_fw_t_h_error_tc,
+		(ParamFloat<px4::params::FW_T_I_GAIN_THR>) _param_fw_t_I_gain_thr,
+		(ParamFloat<px4::params::FW_T_I_GAIN_PIT>) _param_fw_t_I_gain_pit,
 		(ParamFloat<px4::params::FW_T_PTCH_DAMP>) _param_fw_t_ptch_damp,
 		(ParamFloat<px4::params::FW_T_RLL2THR>) _param_fw_t_rll2thr,
 		(ParamFloat<px4::params::FW_T_SINK_MAX>) _param_fw_t_sink_max,
 		(ParamFloat<px4::params::FW_T_SINK_MIN>) _param_fw_t_sink_min,
 		(ParamFloat<px4::params::FW_T_SPD_OMEGA>) _param_fw_t_spd_omega,
 		(ParamFloat<px4::params::FW_T_SPDWEIGHT>) _param_fw_t_spdweight,
-		(ParamFloat<px4::params::FW_T_SRATE_P>) _param_fw_t_srate_p,
+		(ParamFloat<px4::params::FW_T_TAS_TC>) _param_fw_t_tas_error_tc,
 		(ParamFloat<px4::params::FW_T_THR_DAMP>) _param_fw_t_thr_damp,
-		(ParamFloat<px4::params::FW_T_THRO_CONST>) _param_fw_t_thro_const,
-		(ParamFloat<px4::params::FW_T_TIME_CONST>) _param_fw_t_time_const,
 		(ParamFloat<px4::params::FW_T_VERT_ACC>) _param_fw_t_vert_acc,
+		(ParamFloat<px4::params::FW_T_STE_R_TC>) _param_ste_rate_time_const,
+		(ParamFloat<px4::params::FW_T_TAS_R_TC>) _param_tas_rate_time_const,
 
 		(ParamFloat<px4::params::FW_THR_ALT_SCL>) _param_fw_thr_alt_scl,
 		(ParamFloat<px4::params::FW_THR_CRUISE>) _param_fw_thr_cruise,

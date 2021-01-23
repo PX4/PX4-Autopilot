@@ -333,7 +333,7 @@ class SourceParser(object):
                     self.param_groups[group].AddParameter(param)
                 state = None
         return True
-    
+
     def IsNumber(self, numberString):
         try:
             float(numberString)
@@ -348,8 +348,8 @@ class SourceParser(object):
         seenParamNames = []
         #allowedUnits should match set defined in /Firmware/validation/module_schema.yaml
         allowedUnits = set ([
-                                '%', 'Hz', 'mAh',
-                                'rad', '%/rad', 'rad/s', 'rad/s^2', '%/rad/s',  'rad s^2/m','rad s/m',
+                                '%', 'Hz', '1/s', 'mAh',
+                                'rad', '%/rad', 'rad/s', 'rad/s^2', '%/rad/s', 'rad s^2/m', 'rad s/m',
                                 'bit/s', 'B/s',
                                 'deg', 'deg*1e7', 'deg/s',
                                 'celcius', 'gauss', 'gauss/s', 'gauss^2',
@@ -357,9 +357,9 @@ class SourceParser(object):
                                 'mm', 'm', 'm/s', 'm^2', 'm/s^2', 'm/s^3', 'm/s^2/sqrt(Hz)', 'm/s/rad',
                                 'Ohm', 'V',
                                 'us', 'ms', 's',
-                                'S', 'A/%', '(m/s^2)^2',  'm/m',  'tan(rad)^2', '(m/s)^2', 'm/rad',
-                                'm/s^3/sqrt(Hz)', 'm/s/sqrt(Hz)', 's/(1000*PWM)', '%m/s', 'min', 'us/C', 
-                                'N/(m/s)', 'Nm/(rad/s)', 'Nm', 'N',
+                                'S', 'A/%', '(m/s^2)^2', 'm/m',  'tan(rad)^2', '(m/s)^2', 'm/rad',
+                                'm/s^3/sqrt(Hz)', 'm/s/sqrt(Hz)', 's/(1000*PWM)', '%m/s', 'min', 'us/C',
+                                'N/(m/s)', 'Nm/rad', 'Nm/(rad/s)', 'Nm', 'N',
                                 'normalized_thrust/s', 'normalized_thrust', 'norm', 'SD',''])
         for group in self.GetParamGroups():
             for param in group.GetParams():
@@ -380,7 +380,7 @@ class SourceParser(object):
                 min = param.GetFieldValue("min")
                 max = param.GetFieldValue("max")
                 units = param.GetFieldValue("unit")
-                if units not in allowedUnits: 
+                if units not in allowedUnits:
                     sys.stderr.write("Invalid unit in {0}: {1}\n".format(name, units))
                     return False
                 #sys.stderr.write("{0} default:{1} min:{2} max:{3}\n".format(name, default, min, max))

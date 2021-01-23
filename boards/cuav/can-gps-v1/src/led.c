@@ -39,17 +39,83 @@
 #include <arch/board/board.h>
 
 #include <hardware/stm32_tim.h>
+#include <dwt.h>
+#include <nvic.h>
 
 #include "led.h"
 
-#define TMR_BASE        STM32_TIM3_BASE
-#define TMR_FREQUENCY   STM32_APB1_TIM3_CLKIN
+#define TMR_BASE        STM32_TIM1_BASE
+#define TMR_FREQUENCY   STM32_APB2_TIM1_CLKIN
 #define TMR_REG(o)      (TMR_BASE+(o))
+
+#define LED_COUNT       8 // Eight LEDs in ring
+
+typedef union {
+	uint8_t  grb[3];
+	uint32_t l;
+} led_data_t;
+
+static  uint8_t off[] =  {0, 0, 0};
+
+#define REG(_addr)       (*(volatile uint32_t *)(_addr))
+#define rDEMCR           REG(NVIC_DEMCR)
+#define rDWT_CTRL        REG(DWT_CTRL)
+#define rDWT_CNT         REG(DWT_CYCCNT)
+#define PORT_B           REG(STM32_GPIOB_ODR)
+#define D0               REG(STM32_GPIOB_ODR) &= ~1;
+#define D1               REG(STM32_GPIOB_ODR) |= 1;
+
+#define DWT_DEADLINE(t)  rDWT_CNT + (t)
+#define DWT_WAIT(v, D)   while((rDWT_CNT - (v)) < (D));
+
+#define T0H              (STM32_SYSCLK_FREQUENCY/3333333)
+#define T1H              (STM32_SYSCLK_FREQUENCY/1666666)
+#define TW               (STM32_SYSCLK_FREQUENCY/800000)
+
+static void setled(uint8_t *p, int count)
+{
+	rDEMCR    |= NVIC_DEMCR_TRCENA;
+	rDWT_CTRL |= DWT_CTRL_CYCCNTENA_MASK;
+
+	while (count--) {
+		uint8_t l = *p++;
+		uint32_t  deadline = DWT_DEADLINE(TW);
+
+		for (uint32_t mask = (1 << 7);  mask != 0;  mask >>= 1) {
+			DWT_WAIT(deadline, TW);
+			deadline = rDWT_CNT;
+			D1;
+
+			if (l & mask) {
+				DWT_WAIT(deadline, T1H);
+
+			} else {
+				DWT_WAIT(deadline, T0H);
+			}
+
+			D0;
+		}
+
+		DWT_WAIT(deadline, TW);
+	}
+}
+
+
+static led_data_t led_data = {0};
+
+static int timerInterrupt(int irq, void *context, void *arg)
+{
+	putreg16(~getreg16(TMR_REG(STM32_GTIM_SR_OFFSET)), TMR_REG(STM32_GTIM_SR_OFFSET));
+
+	static int d2 = 1;
+	setled((d2++ & 1) ? led_data.grb : off, sizeof(led_data.grb));
+	return 0;
+}
 
 void rgb_led(int r, int g, int b, int freqs)
 {
 	long fosc = TMR_FREQUENCY;
-	long prescale = 2048;
+	long prescale = 1536;
 	long p1s = fosc / prescale;
 	long p0p5s  = p1s / 2;
 	uint16_t val;
@@ -58,8 +124,15 @@ void rgb_led(int r, int g, int b, int freqs)
 	if (!once) {
 		once = 1;
 
-		/* Enabel Clock to Block */
-		modifyreg32(STM32_RCC_APB1ENR, 0, RCC_APB1ENR_TIM3EN);
+		stm32_configgpio(GPIO_RGB_S);
+
+		for (int i = 0; i < LED_COUNT; i++) {
+			setled(off, sizeof(off));
+		}
+
+		/* Enable Clock to Block */
+
+		modifyreg32(STM32_RCC_APB2ENR, 0, RCC_APB2ENR_TIM1EN);
 
 		/* Reload */
 		val = getreg16(TMR_REG(STM32_BTIM_EGR_OFFSET));
@@ -72,28 +145,21 @@ void rgb_led(int r, int g, int b, int freqs)
 		/* Enable STM32_TIM_SETMODE*/
 		putreg16(ATIM_CR1_CEN | ATIM_CR1_ARPE, TMR_REG(STM32_BTIM_CR1_OFFSET));
 
+		putreg32(p0p5s + 1, TMR_REG(STM32_BTIM_ARR_OFFSET));
 
-		putreg16((ATIM_CCMR_MODE_PWM1 << ATIM_CCMR1_OC1M_SHIFT) | ATIM_CCMR1_OC1PE |
-			 (ATIM_CCMR_MODE_PWM1 << ATIM_CCMR1_OC2M_SHIFT) | ATIM_CCMR1_OC2PE, TMR_REG(STM32_GTIM_CCMR1_OFFSET));
-		putreg16((ATIM_CCMR_MODE_PWM1 << ATIM_CCMR2_OC3M_SHIFT) | ATIM_CCMR2_OC3PE, TMR_REG(STM32_GTIM_CCMR2_OFFSET));
-		putreg16(ATIM_CCER_CC3E | ATIM_CCER_CC3P |
-			 ATIM_CCER_CC2E | ATIM_CCER_CC2P |
-			 ATIM_CCER_CC1E | ATIM_CCER_CC1P, TMR_REG(STM32_GTIM_CCER_OFFSET));
 
-		// TODO: verify
-		stm32_configgpio(GPIO_TIM3_CH1OUT_1);
-		stm32_configgpio(GPIO_TIM3_CH2OUT_1);
-		stm32_configgpio(GPIO_TIM3_CH3OUT_1);
+		irq_attach(STM32_IRQ_TIM1CC, timerInterrupt, NULL);
+		up_enable_irq(STM32_IRQ_TIM1CC);
+		putreg16(GTIM_DIER_CC1IE, TMR_REG(STM32_GTIM_DIER_OFFSET));
 	}
 
-	long p  = freqs == 0 ? p1s : p1s / freqs;
-	putreg32(p, TMR_REG(STM32_BTIM_ARR_OFFSET));
-
-	p  = freqs == 0 ? p1s + 1 : p0p5s / freqs;
-
-	putreg32((r * p) / 255, TMR_REG(STM32_GTIM_CCR1_OFFSET));
-	putreg32((g * p) / 255, TMR_REG(STM32_GTIM_CCR2_OFFSET));
-	putreg32((b * p) / 255, TMR_REG(STM32_GTIM_CCR3_OFFSET));
+	long p  = freqs == 0 ? p1s + 1 : p0p5s / freqs;
+	putreg32(p + 1, TMR_REG(STM32_BTIM_ARR_OFFSET));
+	putreg32(p, TMR_REG(STM32_GTIM_CCR1_OFFSET));
+	led_data.grb[0] = g;
+	led_data.grb[1] = r;
+	led_data.grb[2] = b;
+	setled(led_data.grb, sizeof(led_data.grb));
 
 	val = getreg16(TMR_REG(STM32_BTIM_CR1_OFFSET));
 
