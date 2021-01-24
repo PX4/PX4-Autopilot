@@ -58,8 +58,8 @@ class Parameter(object):
         self.name = name
         self.type = type
         self.default = default
-        self.volatile = "false"
         self.category = ""
+        self.volatile = False
         self.boolean = False
 
     def GetName(self):
@@ -102,7 +102,7 @@ class Parameter(object):
         """
         Set volatile flag
         """
-        self.volatile = "true"
+        self.volatile = True
 
     def SetBoolean(self):
         """
