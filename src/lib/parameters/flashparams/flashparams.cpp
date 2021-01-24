@@ -53,7 +53,7 @@
 
 #include <parameters/param.h>
 
-#include "systemlib/uthash/utarray.h"
+#include "../uthash/utarray.h"
 #include <parameters/tinybson/tinybson.h>
 #include "flashparams.h"
 #include "flashfs.h"
