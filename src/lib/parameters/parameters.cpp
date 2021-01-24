@@ -60,7 +60,7 @@
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/sem.h>
 #include <px4_platform_common/shutdown.h>
-#include <systemlib/uthash/utarray.h>
+#include "uthash/utarray.h"
 
 using namespace time_literals;
 
