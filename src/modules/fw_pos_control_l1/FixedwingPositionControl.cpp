@@ -162,9 +162,19 @@ FixedwingPositionControl::vehicle_control_mode_poll()
 void
 FixedwingPositionControl::vehicle_command_poll()
 {
-	if (_vehicle_command_sub.updated()) {
-		_vehicle_command_sub.copy(&_vehicle_command);
-		handle_command();
+	vehicle_command_s vehicle_command;
+
+	while (_vehicle_command_sub.update(&vehicle_command)) {
+		if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_GO_AROUND) {
+			// only abort landing before point of no return (horizontal and vertical)
+			if (_control_mode.flag_control_auto_enabled &&
+			    _pos_sp_triplet.current.valid &&
+			    (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND)) {
+
+				abort_landing(true);
+			}
+		}
+
 	}
 }
 
@@ -1595,20 +1605,6 @@ FixedwingPositionControl::get_tecs_thrust()
 
 	// return 0 to prevent stale tecs state when it's not running
 	return 0.0f;
-}
-
-void
-FixedwingPositionControl::handle_command()
-{
-	if (_vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_GO_AROUND) {
-		// only abort landing before point of no return (horizontal and vertical)
-		if (_control_mode.flag_control_auto_enabled &&
-		    _pos_sp_triplet.current.valid &&
-		    _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-
-			abort_landing(true);
-		}
-	}
 }
 
 void
