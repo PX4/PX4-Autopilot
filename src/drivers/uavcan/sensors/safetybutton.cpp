@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,11 +49,9 @@ UavcanSafetyBridge::UavcanSafetyBridge(uavcan::INode &node) :
 	_sub_safety(node),
 	_pub_safety(node)
 {
-
 }
 
-int
-UavcanSafetyBridge::init()
+int UavcanSafetyBridge::init()
 {
 	int res = _pub_safety.init(uavcan::TransferPriority::MiddleLower);
 
@@ -72,42 +70,19 @@ UavcanSafetyBridge::init()
 	return 0;
 }
 
-unsigned
-UavcanSafetyBridge::get_num_redundant_channels() const
+unsigned UavcanSafetyBridge::get_num_redundant_channels() const
 {
 	return 0;
 }
 
-void
-UavcanSafetyBridge::print_status() const
+void UavcanSafetyBridge::print_status() const
 {
-
 }
 
-void
-UavcanSafetyBridge::safety_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::indication::Button>
-				  &msg)
+void UavcanSafetyBridge::safety_sub_cb(const uavcan::ReceivedDataStructure<standard::indication::Button> &msg)
 {
-
 	if (msg.press_time > 10 && msg.button == 1) {
 		if (_safety_disabled) { return; }
-
-		safety_s safety{};
-
-
-		if (_safety_sub.copy(&safety)) {
-			if (safety.safety_off) {
-				safety.safety_off = false;
-
-			} else {
-				safety.safety_off = true;
-
-			}
-
-			safety.timestamp = hrt_absolute_time();
-			safety.safety_switch_available = true;
-			_to_safety.publish(safety);
-		}
 
 		_safety_disabled = true;
 

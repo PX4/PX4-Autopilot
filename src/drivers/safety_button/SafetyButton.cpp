@@ -102,11 +102,6 @@ SafetyButton::CheckButton()
 
 	} else {
 		_button_counter = 0;
-		safety_s safety{};
-
-		if (_safety_sub.copy(&safety)) {
-			_safety_btn_off = safety.safety_off;
-		}
 	}
 
 	CheckPairingRequest(safety_button_pressed);
@@ -224,7 +219,7 @@ SafetyButton::Run()
 			_safety.safety_off = safety_off;
 			_safety.timestamp = hrt_absolute_time();
 
-			_to_safety.publish(_safety);
+			_safety_pub.publish(_safety);
 		}
 	}
 }
