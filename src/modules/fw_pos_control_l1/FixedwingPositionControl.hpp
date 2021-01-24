@@ -170,7 +170,6 @@ private:
 	position_setpoint_triplet_s	_pos_sp_triplet {};		///< triplet of mission items
 	vehicle_attitude_s		_att {};			///< vehicle attitude setpoint
 	vehicle_attitude_setpoint_s	_att_sp {};			///< vehicle attitude setpoint
-	vehicle_command_s		_vehicle_command {};		///< vehicle commands
 	vehicle_control_mode_s		_control_mode {};		///< control mode
 	vehicle_local_position_s	_local_pos {};			///< vehicle local position
 	vehicle_land_detected_s		_vehicle_land_detected {};	///< vehicle land detected
@@ -345,11 +344,6 @@ private:
 
 	float		get_demanded_airspeed();
 	float		calculate_target_airspeed(float airspeed_demand, const Vector2f &ground_speed);
-
-	/**
-	 * Handle incoming vehicle commands
-	 */
-	void		handle_command();
 
 	void		reset_takeoff_state(bool force = false);
 	void		reset_landing_state();

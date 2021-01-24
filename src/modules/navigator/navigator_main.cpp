@@ -212,7 +212,7 @@ Navigator::run()
 		_position_controller_status_sub.update();
 		_home_pos_sub.update(&_home_pos);
 
-		if (_vehicle_command_sub.updated()) {
+		while (_vehicle_command_sub.updated()) {
 			const unsigned last_generation = _vehicle_command_sub.get_last_generation();
 			vehicle_command_s cmd{};
 			_vehicle_command_sub.copy(&cmd);

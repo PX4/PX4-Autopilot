@@ -183,6 +183,13 @@ Mavlink::Mavlink() :
 	if (_first_start_time == 0) {
 		_first_start_time = hrt_absolute_time();
 	}
+
+	// ensure topic exists, otherwise we might lose first queued commands
+	if (!orb_exists(ORB_ID(vehicle_command), 0)) {
+		orb_advertise_queue(ORB_ID(vehicle_command), nullptr, vehicle_command_s::ORB_QUEUE_LENGTH);
+	}
+
+	_vehicle_command_sub.subscribe();
 }
 
 Mavlink::~Mavlink()
@@ -2135,19 +2142,6 @@ Mavlink::task_main(int argc, char *argv[])
 		pthread_mutex_init(&_message_buffer_mutex, nullptr);
 	}
 
-	uORB::Subscription cmd_sub{ORB_ID(vehicle_command)};
-	// ensure topic exists, otherwise we might lose first queued commands (leading to printf error's below)
-	orb_advertise_queue(ORB_ID(vehicle_command), nullptr, vehicle_command_s::ORB_QUEUE_LENGTH);
-	cmd_sub.subscribe();
-	uORB::Subscription status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription ack_sub{ORB_ID(vehicle_command_ack)};
-
-	/* command ack */
-	uORB::Publication<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
-
-	vehicle_status_s status{};
-	status_sub.copy(&status);
-
 	/* Activate sending the data by default (for the IRIDIUM mode it will be disabled after the first round of packages is sent)*/
 	_transmitting_enabled = true;
 	_transmitting_enabled_commanded = true;
@@ -2263,81 +2257,84 @@ Mavlink::task_main(int argc, char *argv[])
 
 		configure_sik_radio();
 
-		if (status_sub.update(&status)) {
-			/* switch HIL mode if required */
-			set_hil_enabled(status.hil_state == vehicle_status_s::HIL_STATE_ON);
+		if (_vehicle_status_sub.updated()) {
+			vehicle_status_s vehicle_status;
 
-			set_generate_virtual_rc_input(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_GENERATED);
+			if (_vehicle_status_sub.copy(&vehicle_status)) {
+				/* switch HIL mode if required */
+				set_hil_enabled(vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON);
 
-			if (_mode == MAVLINK_MODE_IRIDIUM) {
+				set_generate_virtual_rc_input(vehicle_status.rc_input_mode == vehicle_status_s::RC_IN_MODE_GENERATED);
 
-				if (_transmitting_enabled &&
-				    status.high_latency_data_link_lost &&
-				    !_transmitting_enabled_commanded &&
-				    (_first_heartbeat_sent)) {
+				if (_mode == MAVLINK_MODE_IRIDIUM) {
 
-					_transmitting_enabled = false;
-					mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s", _device_name);
+					if (_transmitting_enabled && vehicle_status.high_latency_data_link_lost &&
+					    !_transmitting_enabled_commanded && _first_heartbeat_sent) {
 
-				} else if (!_transmitting_enabled && !status.high_latency_data_link_lost) {
-					_transmitting_enabled = true;
-					mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s", _device_name);
+						_transmitting_enabled = false;
+						mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s", _device_name);
+
+					} else if (!_transmitting_enabled && !vehicle_status.high_latency_data_link_lost) {
+						_transmitting_enabled = true;
+						mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s", _device_name);
+					}
 				}
 			}
 		}
 
 
 		// vehicle_command
-		const unsigned last_generation = cmd_sub.get_last_generation();
-		vehicle_command_s vehicle_cmd;
+		while (_vehicle_command_sub.updated()) {
+			const unsigned last_generation = _vehicle_command_sub.get_last_generation();
+			vehicle_command_s vehicle_cmd;
 
-		if (cmd_sub.update(&vehicle_cmd)) {
-
-			if (cmd_sub.get_last_generation() != last_generation + 1) {
-				PX4_ERR("vehicle_command lost, generation %d -> %d", last_generation, cmd_sub.get_last_generation());
-			}
-
-			if ((vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY) &&
-			    (_mode == MAVLINK_MODE_IRIDIUM)) {
-				if (vehicle_cmd.param1 > 0.5f) {
-					if (!_transmitting_enabled) {
-						mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s by command",
-								 _device_name);
-					}
-
-					_transmitting_enabled = true;
-					_transmitting_enabled_commanded = true;
-
-				} else {
-					if (_transmitting_enabled) {
-						mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s by command",
-								 _device_name);
-					}
-
-					_transmitting_enabled = false;
-					_transmitting_enabled_commanded = false;
+			if (_vehicle_command_sub.update(&vehicle_cmd)) {
+				if (_vehicle_command_sub.get_last_generation() != last_generation + 1) {
+					PX4_ERR("vehicle_command lost, generation %d -> %d", last_generation, _vehicle_command_sub.get_last_generation());
 				}
 
-				// send positive command ack
-				vehicle_command_ack_s command_ack{};
-				command_ack.timestamp = vehicle_cmd.timestamp;
-				command_ack.command = vehicle_cmd.command;
-				command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
-				command_ack.from_external = !vehicle_cmd.from_external;
-				command_ack.target_system = vehicle_cmd.source_system;
-				command_ack.target_component = vehicle_cmd.source_component;
+				if ((vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY) &&
+				    (_mode == MAVLINK_MODE_IRIDIUM)) {
+					if (vehicle_cmd.param1 > 0.5f) {
+						if (!_transmitting_enabled) {
+							mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s by command",
+									 _device_name);
+						}
 
-				command_ack_pub.publish(command_ack);
+						_transmitting_enabled = true;
+						_transmitting_enabled_commanded = true;
+
+					} else {
+						if (_transmitting_enabled) {
+							mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s by command",
+									 _device_name);
+						}
+
+						_transmitting_enabled = false;
+						_transmitting_enabled_commanded = false;
+					}
+
+					// send positive command ack
+					vehicle_command_ack_s command_ack{};
+					command_ack.command = vehicle_cmd.command;
+					command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+					command_ack.from_external = !vehicle_cmd.from_external;
+					command_ack.target_system = vehicle_cmd.source_system;
+					command_ack.target_component = vehicle_cmd.source_component;
+					command_ack.timestamp = vehicle_cmd.timestamp;
+					_vehicle_command_ack_pub.publish(command_ack);
+				}
 			}
 		}
 
 		/* send command ACK */
-		uint16_t current_command_ack = 0;
+		bool cmd_logging_start_acknowledgement = false;
 
-		if (ack_sub.updated() && (get_free_tx_buf() >= MAVLINK_MSG_ID_COMMAND_ACK_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)) {
+		if (_vehicle_command_ack_sub.updated()) {
+			static constexpr size_t COMMAND_ACK_TOTAL_LEN = MAVLINK_MSG_ID_COMMAND_ACK_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 			vehicle_command_ack_s command_ack;
 
-			if (ack_sub.update(&command_ack)) {
+			while ((get_free_tx_buf() >= COMMAND_ACK_TOTAL_LEN) && _vehicle_command_ack_sub.update(&command_ack)) {
 				if (!command_ack.from_external) {
 					mavlink_command_ack_t msg;
 					msg.result = command_ack.result;
@@ -2346,13 +2343,16 @@ Mavlink::task_main(int argc, char *argv[])
 					msg.result_param2 = command_ack.result_param2;
 					msg.target_system = command_ack.target_system;
 					msg.target_component = command_ack.target_component;
-					current_command_ack = command_ack.command;
 
 					// TODO: always transmit the acknowledge once it is only sent over the instance the command is received
 					//bool _transmitting_enabled_temp = _transmitting_enabled;
 					//_transmitting_enabled = true;
 					mavlink_msg_command_ack_send_struct(get_channel(), &msg);
 					//_transmitting_enabled = _transmitting_enabled_temp;
+
+					if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
+						cmd_logging_start_acknowledgement = true;
+					}
 				}
 			}
 		}
@@ -2398,7 +2398,7 @@ Mavlink::task_main(int argc, char *argv[])
 				_mavlink_ulog_stop_requested = false;
 
 			} else {
-				if (current_command_ack == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
+				if (cmd_logging_start_acknowledgement) {
 					_mavlink_ulog->start_ack_received();
 				}
 
@@ -2612,7 +2612,7 @@ void Mavlink::publish_telemetry_status()
 
 	// telemetry_status is also updated from the receiver thread, but never the same fields
 	_tstatus.timestamp = hrt_absolute_time();
-	_telem_status_pub.publish(_tstatus);
+	_telemetry_status_pub.publish(_tstatus);
 	_tstatus_updated = false;
 }
 
