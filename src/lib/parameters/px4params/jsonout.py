@@ -52,8 +52,8 @@ class JsonOutput():
                     if (param.GetCategory()):
                         curr_param['category'] = param.GetCategory()
 
-                    if (param.GetVolatile() == "true"):
-                        curr_param['volatile'] = param.GetVolatile()
+                    if param.GetVolatile():
+                        curr_param['volatile'] = "True"
 
                     last_param_name = param.GetName()
                     for code in param.GetFieldCodes():
