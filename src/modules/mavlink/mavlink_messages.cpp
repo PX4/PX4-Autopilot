@@ -506,7 +506,7 @@ public:
 	}
 
 private:
-	uORB::Subscription _cmd_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 
 	/* do not allow top copying this class */
 	MavlinkStreamCommandLong(MavlinkStreamCommandLong &) = delete;
@@ -518,19 +518,28 @@ protected:
 
 	bool send() override
 	{
-		struct vehicle_command_s cmd;
 		bool sent = false;
 
-		if (_cmd_sub.update(&cmd)) {
+		while ((_mavlink->get_free_tx_buf() >= get_size()) && _vehicle_command_sub.updated()) {
 
-			if (!cmd.from_external) {
-				PX4_DEBUG("sending command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
+			const unsigned last_generation = _vehicle_command_sub.get_last_generation();
+			vehicle_command_s cmd;
 
-				MavlinkCommandSender::instance().handle_vehicle_command(cmd, _mavlink->get_channel());
-				sent = true;
+			if (_vehicle_command_sub.update(&cmd)) {
+				if (_vehicle_command_sub.get_last_generation() != last_generation + 1) {
+					PX4_ERR("COMMAND_LONG vehicle_command lost, generation %d -> %d", last_generation,
+						_vehicle_command_sub.get_last_generation());
+				}
 
-			} else {
-				PX4_DEBUG("not forwarding command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
+				if (!cmd.from_external) {
+					PX4_DEBUG("sending command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
+
+					MavlinkCommandSender::instance().handle_vehicle_command(cmd, _mavlink->get_channel());
+					sent = true;
+
+				} else {
+					PX4_DEBUG("not forwarding command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
+				}
 			}
 		}
 

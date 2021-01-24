@@ -2415,7 +2415,7 @@ Commander::run()
 		}
 
 		/* handle commands last, as the system needs to be updated to handle them */
-		if (_cmd_sub.updated()) {
+		while (_cmd_sub.updated()) {
 			/* got command */
 			const unsigned last_generation = _cmd_sub.get_last_generation();
 			vehicle_command_s cmd;
