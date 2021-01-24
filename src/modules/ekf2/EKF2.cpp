@@ -270,8 +270,14 @@ void EKF2::Run()
 	hrt_abstime imu_dt = 0; // for tracking time slip later
 
 	if (_multi_mode) {
+		const unsigned last_generation = _vehicle_imu_sub.get_last_generation();
 		vehicle_imu_s imu;
 		imu_updated = _vehicle_imu_sub.update(&imu);
+
+		if (imu_updated && (_vehicle_imu_sub.get_last_generation() != last_generation + 1)) {
+			PX4_ERR("%d - vehicle_imu lost, generation %d -> %d", _instance, last_generation,
+				_vehicle_imu_sub.get_last_generation());
+		}
 
 		imu_sample_new.time_us = imu.timestamp_sample;
 		imu_sample_new.delta_ang_dt = imu.delta_angle_dt * 1.e-6f;
@@ -1186,9 +1192,16 @@ void EKF2::UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps)
 {
 	// EKF auxillary velocity sample
 	//  - use the landing target pose estimate as another source of velocity data
+	const unsigned last_generation = _landing_target_pose_sub.get_last_generation();
 	landing_target_pose_s landing_target_pose;
 
 	if (_landing_target_pose_sub.update(&landing_target_pose)) {
+
+		if (_landing_target_pose_sub.get_last_generation() != last_generation + 1) {
+			PX4_ERR("%d - landing_target_pose lost, generation %d -> %d", _instance, last_generation,
+				_landing_target_pose_sub.get_last_generation());
+		}
+
 		// we can only use the landing target if it has a fixed position and  a valid velocity estimate
 		if (landing_target_pose.is_static && landing_target_pose.rel_vel_valid) {
 			// velocity of vehicle relative to target has opposite sign to target relative to vehicle
@@ -1222,9 +1235,16 @@ void EKF2::UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps)
 bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odometry_s &ev_odom)
 {
 	bool new_ev_odom = false;
+	const unsigned last_generation = _ev_odom_sub.get_last_generation();
 
 	// EKF external vision sample
 	if (_ev_odom_sub.update(&ev_odom)) {
+
+		if (_ev_odom_sub.get_last_generation() != last_generation + 1) {
+			PX4_ERR("%d - vehicle_visual_odometry lost, generation %d -> %d", _instance, last_generation,
+				_ev_odom_sub.get_last_generation());
+		}
+
 		if (_param_ekf2_aid_mask.get() & (MASK_USE_EVPOS | MASK_USE_EVYAW | MASK_USE_EVVEL)) {
 
 			extVisionSample ev_data{};
@@ -1314,10 +1334,16 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 
 bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps, optical_flow_s &optical_flow)
 {
-	// EKF flow sample
 	bool new_optical_flow = false;
+	const unsigned last_generation = _optical_flow_sub.get_last_generation();
 
 	if (_optical_flow_sub.update(&optical_flow)) {
+
+		if (_optical_flow_sub.get_last_generation() != last_generation + 1) {
+			PX4_ERR("%d - optical_flow lost, generation %d -> %d", _instance, last_generation,
+				_optical_flow_sub.get_last_generation());
+		}
+
 		if (_param_ekf2_aid_mask.get() & MASK_USE_OF) {
 
 			flowSample flow {
@@ -1390,9 +1416,15 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 
 void EKF2::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
 {
+	const unsigned last_generation = _magnetometer_sub.get_last_generation();
 	vehicle_magnetometer_s magnetometer;
 
 	if (_magnetometer_sub.update(&magnetometer)) {
+
+		if (_magnetometer_sub.get_last_generation() != last_generation + 1) {
+			PX4_ERR("%d - vehicle_magnetometer lost, generation %d -> %d", _instance, last_generation,
+				_magnetometer_sub.get_last_generation());
+		}
 
 		bool reset = false;
 
@@ -1450,9 +1482,16 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 	}
 
 	// EKF range sample
+	const unsigned last_generation = _distance_sensor_sub.get_last_generation();
 	distance_sensor_s distance_sensor;
 
 	if (_distance_sensor_sub.update(&distance_sensor)) {
+
+		if (_distance_sensor_sub.get_last_generation() != last_generation + 1) {
+			PX4_ERR("%d - distance_sensor lost, generation %d -> %d", _instance, last_generation,
+				_distance_sensor_sub.get_last_generation());
+		}
+
 		if (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING) {
 			rangeSample range_sample {
 				.time_us = distance_sensor.timestamp,
