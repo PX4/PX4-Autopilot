@@ -94,7 +94,7 @@ void UUVAttitudeControl::parameters_update(bool force)
 }
 
 void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u, float yaw_u,
-						     float thrust_x,float thrust_y, float thrust_z)
+		float thrust_x, float thrust_y, float thrust_z)
 {
 	if (PX4_ISFINITE(roll_u)) {
 		roll_u = math::constrain(roll_u, -1.0f, 1.0f);
@@ -136,7 +136,7 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 		_actuators.control[actuator_controls_s::INDEX_FLAPS] = 0.0f;
 	}
 
-		if (PX4_ISFINITE(thrust_z)) {
+	if (PX4_ISFINITE(thrust_z)) {
 		thrust_z = math::constrain(thrust_z, -1.0f, 1.0f);
 		_actuators.control[actuator_controls_s::INDEX_SPOILERS] = thrust_z;
 
