@@ -81,5 +81,7 @@ class BQ40ZX : public BATT_SMBUS
 
 	void set_undervoltage_protection(float average_current);
 
+	void custom_method(const BusCLIArguments &cli) override;
+
 };
 

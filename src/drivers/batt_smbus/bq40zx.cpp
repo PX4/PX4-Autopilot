@@ -329,3 +329,46 @@ void BQ40ZX::set_undervoltage_protection(float average_current)
 	}
 
 }
+
+void BQ40ZX::custom_method(const BusCLIArguments &cli)
+{
+	switch(cli.custom1) {
+		case 1: {
+			uint8_t man_name[22];
+			int result = manufacturer_name(man_name, sizeof(man_name));
+			PX4_INFO("The manufacturer name: %s", man_name);
+
+			result = manufacture_date();
+			PX4_INFO("The manufacturer date: %d", result);
+
+			uint16_t serial_num = 0;
+			serial_num = get_serial_number();
+			PX4_INFO("The serial number: %d", serial_num);
+		}
+			break;
+		case 2:
+			unseal();
+			break;
+		case 3:
+			seal();
+			break;
+		case 4:
+			suspend();
+			break;
+		case 5:
+			resume();
+			break;
+		case 6:
+			if (cli.custom_data) {
+				unsigned address = cli.custom2;
+				uint8_t *tx_buf = (uint8_t*)cli.custom_data;
+				unsigned length = tx_buf[0];
+
+				if (PX4_OK != dataflash_write(address, tx_buf+1, length)) {
+					PX4_ERR("Dataflash write failed: %d", address);
+				}
+				px4_usleep(100000);
+			}
+			break;
+	}
+}

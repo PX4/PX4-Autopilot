@@ -21,5 +21,7 @@ class Rotoye_Batmon : public BATT_SMBUS
 
 	int get_startup_info() override;
 
+	void custom_method(const BusCLIArguments &cli) override;
+
 };
 
