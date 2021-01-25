@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "UavcanNode.hpp"
+#include "indication_controller.hpp"
 
 #include "boot_app_shared.h"
 
@@ -289,6 +290,8 @@ void UavcanNode::Run()
 	if (!_initialized) {
 
 		get_node().setRestartRequestHandler(&restart_request_handler);
+
+		init_indication_controller(get_node());
 
 		// Set up the time synchronization
 		const int slave_init_res = _time_sync_slave.start();
