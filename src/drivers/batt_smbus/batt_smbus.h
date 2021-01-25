@@ -247,7 +247,7 @@ public:
 
 	void resume();
 
-private:
+protected:
 
 	SMBus *_interface;
 
@@ -302,6 +302,6 @@ private:
 	/** @param _cell_undervoltage_protection_status 0 if protection disabled, 1 if enabled */
 	uint8_t _cell_undervoltage_protection_status{1};
 
-	BATT_SMBUS(const BATT_SMBUS &) = delete;
-	BATT_SMBUS operator=(const BATT_SMBUS &) = delete;
+	//BATT_SMBUS(const BATT_SMBUS &) = delete;
+	//BATT_SMBUS operator=(const BATT_SMBUS &) = delete;
 };

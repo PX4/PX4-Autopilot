@@ -36,6 +36,8 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		batt_smbus.cpp
+		rotoye_batmon.cpp
+		bq40zx.cpp
 
 	DEPENDS
 		drivers__smbus
