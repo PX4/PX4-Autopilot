@@ -210,7 +210,21 @@ dataman start
 # only start the simulator if not in replay mode, as both control the lockstep time
 if ! replay tryapplyparams
 then
-	simulator start -c $simulator_tcp_port
+  # Check if PX4_SIM_HOSTNAME environment variable is empty
+  # If empty check if PX4_SIM_HOST_ADDR environment variable is empty
+  # If both are empty use localhost for simulator
+  if [ -z "${PX4_SIM_HOSTNAME}" ]; then
+    if [ -z "${PX4_SIM_HOST_ADDR}" ]; then
+      echo "PX4 SIM HOST: localhost"
+      simulator start -c $simulator_tcp_port
+    else
+      echo "PX4 SIM HOST: $PX4_SIM_HOST_ADDR"
+      simulator start -t $simulator_tcp_port $PX4_SIM_HOST_ADDR
+    fi
+  else
+    echo "PX4 SIM HOST: $PX4_SIM_HOSTNAME"
+    simulator start -h $simulator_tcp_port $PX4_SIM_HOSTNAME
+  fi
 fi
 load_mon start
 battery_simulator start

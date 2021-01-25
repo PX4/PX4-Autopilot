@@ -44,7 +44,9 @@
 #include <conversion/rotation.h>
 #include <mathlib/mathlib.h>
 
+#include <arpa/inet.h>
 #include <errno.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <poll.h>
@@ -677,8 +679,20 @@ void Simulator::run()
 
 	struct sockaddr_in _myaddr {};
 	_myaddr.sin_family = AF_INET;
-	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	_myaddr.sin_port = htons(_port);
+
+  if (_hostname.empty()) {
+		_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	} else {
+		/* resolve hostname */
+		struct hostent *host;
+		host = gethostbyname(_hostname.c_str());
+		memcpy(&_myaddr.sin_addr, host->h_addr_list[0], host->h_length);
+
+		char ip[30];
+		strcpy(ip, (char *)inet_ntoa((struct in_addr)_myaddr.sin_addr));
+		PX4_INFO("Resolved host '%s' to address: %s", _hostname.c_str(), ip);
+	}
 
 	if (_tcp_remote_ipaddr != nullptr) {
 		_myaddr.sin_addr.s_addr = inet_addr(_tcp_remote_ipaddr);
