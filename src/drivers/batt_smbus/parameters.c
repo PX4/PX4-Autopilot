@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * SMBUS Smart battery driver (BQ40Z50)
+ * Enable SMBUS Smart battery driver
  *
  * @reboot_required true
  *
@@ -41,7 +41,15 @@
  */
 PARAM_DEFINE_INT32(SENS_EN_BATT, 0);
 
-// TODO: add param for BMS type
+/**
+ * SBMUS Smart Battery Type
+ *
+ * @reboot_required true
+ *
+ * @boolean
+ * @group Sensors
+ */
+PARAM_DEFINE_INT32(BATT_SMBUS_TYPE, 1);
 
 /**
  * Capacity/current multiplier for high-current capable SMBUS battery

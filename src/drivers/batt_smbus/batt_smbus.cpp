@@ -206,12 +206,24 @@ I2CSPIDriverBase *BATT_SMBUS::instantiate(const BusCLIArguments &cli, const BusI
 		return nullptr;
 	}
 
-	// TODO: param
+	int32_t batt_t;
+	param_get(param_find("SMBUS_BATT_TYPE"), &batt_t);
+
 	BATT_SMBUS *instance;
-	if (true) {
-		instance = new Rotoye_Batmon(iterator.configuredBusOption(), iterator.bus(), interface);
-	} else {
+
+	switch(batt_t) {
+
+		case 0:
 		instance = new BQ40ZX(iterator.configuredBusOption(), iterator.bus(), interface);
+		break;
+
+		case 1:
+		instance = new Rotoye_Batmon(iterator.configuredBusOption(), iterator.bus(), interface);
+		break;
+
+		default:
+		instance = nullptr;
+		break;
 	}
 
 	if (instance == nullptr) {
