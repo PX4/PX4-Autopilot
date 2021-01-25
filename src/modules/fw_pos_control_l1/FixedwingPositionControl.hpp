@@ -277,6 +277,9 @@ private:
 	param_t _param_handle_airspeed_trans{PARAM_INVALID};
 	float _param_airspeed_trans{NAN};
 
+	hrt_abstime _timestamp_roll_setpoint_prev_time{0};
+	float _roll_setpoint_prev{0.f};
+
 	// Update our local parameter cache.
 	int		parameters_update();
 
@@ -429,7 +432,6 @@ private:
 		(ParamFloat<px4::params::FW_MAN_R_MAX>) _param_fw_man_r_max,
 
 		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad
-
 	)
 
 };

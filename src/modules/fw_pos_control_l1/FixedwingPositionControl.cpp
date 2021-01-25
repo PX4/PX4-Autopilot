@@ -89,8 +89,6 @@ FixedwingPositionControl::parameters_update()
 	// L1 control parameters
 	_l1_control.set_l1_damping(_param_fw_l1_damping.get());
 	_l1_control.set_l1_period(_param_fw_l1_period.get());
-	_l1_control.set_l1_roll_limit(radians(_param_fw_r_lim.get()));
-	_l1_control.set_roll_slew_rate(radians(_param_fw_l1_r_slew_max.get()));
 
 	// TECS parameters
 	_tecs.set_max_climb_rate(_param_fw_t_clmb_max.get());
@@ -572,8 +570,6 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 {
 	const float dt = math::constrain((now - _control_position_last_called) * 1e-6f, 0.01f, 0.05f);
 	_control_position_last_called = now;
-
-	_l1_control.set_dt(dt);
 
 	/* only run position controller in fixed-wing mode and during transitions for VTOL */
 	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !_vehicle_status.in_transition_mode) {
@@ -1703,17 +1699,31 @@ FixedwingPositionControl::Run()
 		if (control_position(_local_pos.timestamp, curr_pos, ground_speed, _pos_sp_triplet.previous, _pos_sp_triplet.current,
 				     _pos_sp_triplet.next)) {
 
-
 			// add attitude setpoint offsets
 			_att_sp.roll_body += radians(_param_fw_rsp_off.get());
 			_att_sp.pitch_body += radians(_param_fw_psp_off.get());
 
 			if (_control_mode.flag_control_manual_enabled) {
-				_att_sp.roll_body = constrain(_att_sp.roll_body, -radians(_param_fw_man_r_max.get()),
-							      radians(_param_fw_man_r_max.get()));
-				_att_sp.pitch_body = constrain(_att_sp.pitch_body, -radians(_param_fw_man_p_max.get()),
-							       radians(_param_fw_man_p_max.get()));
+				_att_sp.roll_body = constrain(_att_sp.roll_body,
+							      -radians(_param_fw_man_r_max.get()), radians(_param_fw_man_r_max.get()));
+
+				_att_sp.pitch_body = constrain(_att_sp.pitch_body,
+							       -radians(_param_fw_man_p_max.get()), radians(_param_fw_man_p_max.get()));
 			}
+
+			// roll slew
+			const float dt = math::constrain((_local_pos.timestamp - _timestamp_roll_setpoint_prev_time) * 1e-6f, 0.001f, 0.1f);
+			_timestamp_roll_setpoint_prev_time = _local_pos.timestamp;
+
+			_att_sp.roll_body = math::constrain(_att_sp.roll_body,
+							    _roll_setpoint_prev - radians(_param_fw_l1_r_slew_max.get()) * dt,
+							    _roll_setpoint_prev + radians(_param_fw_l1_r_slew_max.get()) * dt);
+			_roll_setpoint_prev = _att_sp.roll_body;
+
+			// overall roll limit
+			_att_sp.roll_body = constrain(_att_sp.roll_body,
+						      -radians(_param_fw_r_lim.get()),
+						      radians(_param_fw_r_lim.get()));
 
 			if (_control_mode.flag_control_offboard_enabled ||
 			    _control_mode.flag_control_position_enabled ||
@@ -1734,6 +1744,10 @@ FixedwingPositionControl::Run()
 
 				}
 			}
+
+		} else {
+			_roll_setpoint_prev = _roll;
+			_timestamp_roll_setpoint_prev_time = _local_pos.timestamp;
 		}
 
 		perf_end(_loop_perf);

@@ -40,30 +40,12 @@
 
 #include "ECL_L1_Pos_Controller.hpp"
 
-#include <lib/ecl/geo/geo.h>
-
 #include <px4_platform_common/defines.h>
 
 #include <float.h>
 
 using matrix::Vector2f;
 using matrix::wrap_pi;
-
-void ECL_L1_Pos_Controller::update_roll_setpoint()
-{
-	float roll_new = atanf(_lateral_accel * 1.0f / CONSTANTS_ONE_G);
-	roll_new = math::constrain(roll_new, -_roll_lim_rad, _roll_lim_rad);
-
-	if (_dt > 0.0f && _roll_slew_rate > 0.0f) {
-		// slew rate limiting active
-		roll_new = math::constrain(roll_new, _roll_setpoint - _roll_slew_rate * _dt, _roll_setpoint + _roll_slew_rate * _dt);
-	}
-
-	if (PX4_ISFINITE(roll_new)) {
-		_roll_setpoint = roll_new;
-	}
-
-}
 
 float ECL_L1_Pos_Controller::switch_distance(float wp_radius)
 {
@@ -196,8 +178,6 @@ ECL_L1_Pos_Controller::navigate_waypoints(const Vector2f &vector_A, const Vector
 
 	/* the bearing angle, in NED frame */
 	_bearing_error = eta;
-
-	update_roll_setpoint();
 }
 
 void
@@ -298,8 +278,6 @@ ECL_L1_Pos_Controller::navigate_loiter(const Vector2f &vector_A, const Vector2f 
 		/* bearing from current position to L1 point */
 		_nav_bearing = atan2f(-vector_A_to_airplane_unit(1), -vector_A_to_airplane_unit(0));
 	}
-
-	update_roll_setpoint();
 }
 
 void ECL_L1_Pos_Controller::navigate_heading(float navigation_heading, float current_heading,
@@ -335,8 +313,6 @@ void ECL_L1_Pos_Controller::navigate_heading(float navigation_heading, float cur
 	/* limit eta to 90 degrees */
 	eta = math::constrain(eta, (-M_PI_F) / 2.0f, +M_PI_F / 2.0f);
 	_lateral_accel = 2.0f * sinf(eta) * omega_vel;
-
-	update_roll_setpoint();
 }
 
 void ECL_L1_Pos_Controller::navigate_level_flight(float current_heading)
@@ -352,8 +328,6 @@ void ECL_L1_Pos_Controller::navigate_level_flight(float current_heading)
 
 	/* not circling a waypoint when flying level */
 	_circle_mode = false;
-
-	update_roll_setpoint();
 }
 
 Vector2f ECL_L1_Pos_Controller::get_local_planar_vector(const Vector2f &origin, const Vector2f &target) const

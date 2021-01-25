@@ -81,7 +81,6 @@ void RoverPositionControl::parameters_update(bool force)
 
 		_gnd_control.set_l1_damping(_param_l1_damping.get());
 		_gnd_control.set_l1_period(_param_l1_period.get());
-		_gnd_control.set_l1_roll_limit(math::radians(0.0f));
 
 		pid_init(&_speed_ctrl, PID_MODE_DERIVATIV_CALC, 0.01f);
 		pid_set_parameters(&_speed_ctrl,
