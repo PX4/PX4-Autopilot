@@ -161,7 +161,7 @@ void VehicleGPSPosition::Run()
 			// Check for new data on selected GPS, and clear blend offsets
 			for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 				_NE_pos_offset_m[i].zero();
-				_hgt_offset_mm[i] = 0.0f;
+				_hgt_offset_m[i] = 0.0f;
 			}
 
 			// re-publish current best GPS
@@ -509,38 +509,38 @@ sensor_gps_s VehicleGPSPosition::gps_blend_states(float blend_weights[GPS_MAX_RE
 
 	// Convert each GPS position to a local NEU offset relative to the reference position
 	Vector2f blended_NE_offset_m{0, 0};
-	float blended_alt_offset_mm = 0.0f;
+	float blended_alt_offset_m = 0.0f;
 
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		if ((blend_weights[i] > 0.0f) && (i != gps_best_index)) {
 			// calculate the horizontal offset
 			Vector2f horiz_offset{};
-			get_vector_to_next_waypoint((gps_blended_state.lat / 1.0e7), (gps_blended_state.lon / 1.0e7),
-						    (_gps_state[i].lat / 1.0e7), (_gps_state[i].lon / 1.0e7),
+			get_vector_to_next_waypoint(gps_blended_state.lat, gps_blended_state.lon,
+						    _gps_state[i].lat, _gps_state[i].lon,
 						    &horiz_offset(0), &horiz_offset(1));
 
 			// sum weighted offsets
 			blended_NE_offset_m += horiz_offset * blend_weights[i];
 
 			// calculate vertical offset
-			float vert_offset = (float)(_gps_state[i].alt - gps_blended_state.alt);
+			float vert_offset = _gps_state[i].alt - gps_blended_state.alt;
 
 			// sum weighted offsets
-			blended_alt_offset_mm += vert_offset * blend_weights[i];
+			blended_alt_offset_m += vert_offset * blend_weights[i];
 		}
 	}
 
 	// Add the sum of weighted offsets to the reference position to obtain the blended position
-	const double lat_deg_now = (double)gps_blended_state.lat * 1.0e-7;
-	const double lon_deg_now = (double)gps_blended_state.lon * 1.0e-7;
+	const double lat_deg_now = gps_blended_state.lat;
+	const double lon_deg_now = gps_blended_state.lon;
 	double lat_deg_res = 0;
 	double lon_deg_res = 0;
 	add_vector_to_global_position(lat_deg_now, lon_deg_now,
 				      blended_NE_offset_m(0), blended_NE_offset_m(1),
 				      &lat_deg_res, &lon_deg_res);
-	gps_blended_state.lat = (int32_t)(1.0E7 * lat_deg_res);
-	gps_blended_state.lon = (int32_t)(1.0E7 * lon_deg_res);
-	gps_blended_state.alt += (int32_t)blended_alt_offset_mm;
+	gps_blended_state.lat = lat_deg_res;
+	gps_blended_state.lon = lon_deg_res;
+	gps_blended_state.alt += blended_alt_offset_m;
 
 	// Take GPS heading from the highest weighted receiver that is publishing a valid .heading value
 	uint8_t gps_best_yaw_index = 0;
@@ -579,14 +579,14 @@ void VehicleGPSPosition::update_gps_offsets(const sensor_gps_s &gps_blended_stat
 	// Calculate a filtered position delta for each GPS relative to the blended solution state
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		Vector2f offset;
-		get_vector_to_next_waypoint((_gps_state[i].lat / 1.0e7), (_gps_state[i].lon / 1.0e7),
-					    (gps_blended_state.lat / 1.0e7), (gps_blended_state.lon / 1.0e7),
+		get_vector_to_next_waypoint(_gps_state[i].lat, _gps_state[i].lon,
+					    gps_blended_state.lat, gps_blended_state.lon,
 					    &offset(0), &offset(1));
 
 		_NE_pos_offset_m[i] = offset * alpha[i] + _NE_pos_offset_m[i] * (1.0f - alpha[i]);
 
-		_hgt_offset_mm[i] = (float)(gps_blended_state.alt - _gps_state[i].alt) *  alpha[i] +
-				    _hgt_offset_mm[i] * (1.0f - alpha[i]);
+		_hgt_offset_m[i] = (gps_blended_state.alt - _gps_state[i].alt) *  alpha[i] +
+				    _hgt_offset_m[i] * (1.0f - alpha[i]);
 	}
 
 	// calculate offset limits from the largest difference between receivers
@@ -597,8 +597,8 @@ void VehicleGPSPosition::update_gps_offsets(const sensor_gps_s &gps_blended_stat
 		for (uint8_t j = i; j < GPS_MAX_RECEIVERS; j++) {
 			if (i != j) {
 				Vector2f offset;
-				get_vector_to_next_waypoint((_gps_state[i].lat / 1.0e7), (_gps_state[i].lon / 1.0e7),
-							    (_gps_state[j].lat / 1.0e7), (_gps_state[j].lon / 1.0e7),
+				get_vector_to_next_waypoint(_gps_state[i].lat, _gps_state[i].lon,
+							    _gps_state[j].lat, _gps_state[j].lon,
 							    &offset(0), &offset(1));
 				max_ne_offset(0) = fmaxf(max_ne_offset(0), fabsf(offset(0)));
 				max_ne_offset(1) = fmaxf(max_ne_offset(1), fabsf(offset(1)));
@@ -611,7 +611,7 @@ void VehicleGPSPosition::update_gps_offsets(const sensor_gps_s &gps_blended_stat
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		_NE_pos_offset_m[i](0) = constrain(_NE_pos_offset_m[i](0), -max_ne_offset(0), max_ne_offset(0));
 		_NE_pos_offset_m[i](1) = constrain(_NE_pos_offset_m[i](1), -max_ne_offset(1), max_ne_offset(1));
-		_hgt_offset_mm[i] = constrain(_hgt_offset_mm[i], -max_alt_offset, max_alt_offset);
+		_hgt_offset_m[i] = constrain(_hgt_offset_m[i], -max_alt_offset, max_alt_offset);
 	}
 }
 
@@ -621,26 +621,26 @@ void VehicleGPSPosition::calc_gps_blend_output(sensor_gps_s &gps_blended_state,
 	// Convert each GPS position to a local NEU offset relative to the reference position
 	// which is defined as the positon of the blended solution calculated from non offset corrected data
 	Vector2f blended_NE_offset_m{0, 0};
-	float blended_alt_offset_mm = 0.0f;
+	float blended_alt_offset_m = 0.0f;
 
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		if (blend_weights[i] > 0.0f) {
 
 			// Add the sum of weighted offsets to the reference position to obtain the blended position
-			const double lat_deg_orig = (double)_gps_state[i].lat * 1.0e-7;
-			const double lon_deg_orig = (double)_gps_state[i].lon * 1.0e-7;
+			const double lat_deg_orig = _gps_state[i].lat;
+			const double lon_deg_orig = _gps_state[i].lon;
 			double lat_deg_offset_res = 0;
 			double lon_deg_offset_res = 0;
 			add_vector_to_global_position(lat_deg_orig, lon_deg_orig,
 						      _NE_pos_offset_m[i](0), _NE_pos_offset_m[i](1),
 						      &lat_deg_offset_res, &lon_deg_offset_res);
 
-			float alt_offset = _gps_state[i].alt + (int32_t)_hgt_offset_mm[i];
+			float alt_offset = _gps_state[i].alt + _hgt_offset_m[i];
 
 
 			// calculate the horizontal offset
 			Vector2f horiz_offset{};
-			get_vector_to_next_waypoint((gps_blended_state.lat / 1.0e7), (gps_blended_state.lon / 1.0e7),
+			get_vector_to_next_waypoint(gps_blended_state.lat, gps_blended_state.lon,
 						    lat_deg_offset_res, lon_deg_offset_res,
 						    &horiz_offset(0), &horiz_offset(1));
 
@@ -651,22 +651,22 @@ void VehicleGPSPosition::calc_gps_blend_output(sensor_gps_s &gps_blended_state,
 			float vert_offset = alt_offset - gps_blended_state.alt;
 
 			// sum weighted offsets
-			blended_alt_offset_mm += vert_offset * blend_weights[i];
+			blended_alt_offset_m += vert_offset * blend_weights[i];
 		}
 	}
 
 	// Add the sum of weighted offsets to the reference position to obtain the blended position
-	const double lat_deg_now = (double)gps_blended_state.lat * 1.0e-7;
-	const double lon_deg_now = (double)gps_blended_state.lon * 1.0e-7;
+	const double lat_deg_now = gps_blended_state.lat;
+	const double lon_deg_now = gps_blended_state.lon;
 	double lat_deg_res = 0;
 	double lon_deg_res = 0;
 	add_vector_to_global_position(lat_deg_now, lon_deg_now,
 				      blended_NE_offset_m(0), blended_NE_offset_m(1),
 				      &lat_deg_res, &lon_deg_res);
 
-	gps_blended_state.lat = (int32_t)(1.0E7 * lat_deg_res);
-	gps_blended_state.lon = (int32_t)(1.0E7 * lon_deg_res);
-	gps_blended_state.alt = gps_blended_state.alt + (int32_t)blended_alt_offset_mm;
+	gps_blended_state.lat = lat_deg_res;
+	gps_blended_state.lon = lon_deg_res;
+	gps_blended_state.alt = gps_blended_state.alt + blended_alt_offset_m;
 }
 
 void VehicleGPSPosition::Publish(const sensor_gps_s &gps, uint8_t selected)

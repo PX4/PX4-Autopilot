@@ -333,9 +333,9 @@ void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
 		gps.timestamp = hrt_absolute_time();
 		gps.time_utc_usec = hil_gps.time_usec;
 		gps.fix_type = hil_gps.fix_type;
-		gps.lat = hil_gps.lat;
-		gps.lon = hil_gps.lon;
-		gps.alt = hil_gps.alt;
+		gps.lat = hil_gps.lat * 1e-7;
+		gps.lon = hil_gps.lon * 1e-7;
+		gps.alt = hil_gps.alt * 1e-3f;
 		gps.eph = (float)hil_gps.eph * 1e-2f; // cm -> m
 		gps.epv = (float)hil_gps.epv * 1e-2f; // cm -> m
 		gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s

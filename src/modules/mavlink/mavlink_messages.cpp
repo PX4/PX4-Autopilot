@@ -1371,10 +1371,10 @@ protected:
 
 			msg.time_usec = gps.timestamp;
 			msg.fix_type = gps.fix_type;
-			msg.lat = gps.lat;
-			msg.lon = gps.lon;
-			msg.alt = gps.alt;
-			msg.alt_ellipsoid = gps.alt_ellipsoid;
+			msg.lat = gps.lat * 1e+7;
+			msg.lon = gps.lon * 1e+7;
+			msg.alt = gps.alt * 1e3f;
+			msg.alt_ellipsoid = gps.alt_ellipsoid * 1e3f;
 			msg.eph = gps.hdop * 100;
 			msg.epv = gps.vdop * 100;
 			msg.h_acc = gps.eph * 1e3f;
@@ -1447,16 +1447,16 @@ protected:
 
 			msg.time_usec = gps.timestamp;
 			msg.fix_type = gps.fix_type;
-			msg.lat = gps.lat;
-			msg.lon = gps.lon;
-			msg.alt = gps.alt;
+			msg.lat = (int32_t)(gps.lat * 1e+7);
+			msg.lon = (int32_t)(gps.lon * 1e+7);
+			msg.alt = (int32_t)(gps.alt * 1e3f);
 			msg.eph = gps.eph * 1e3f;
 			msg.epv = gps.epv * 1e3f;
 			msg.vel = cm_uint16_from_m_float(gps.vel_m_s);
 			msg.cog = math::degrees(wrap_2pi(gps.cog_rad)) * 1e2f;
 			msg.satellites_visible = gps.satellites_used;
+			msg.dgps_age = gps.dgps_age;
 			//msg.dgps_numch = // Number of DGPS satellites
-			//msg.dgps_age = // Age of DGPS info
 
 			mavlink_msg_gps2_raw_send_struct(_mavlink->get_channel(), &msg);
 

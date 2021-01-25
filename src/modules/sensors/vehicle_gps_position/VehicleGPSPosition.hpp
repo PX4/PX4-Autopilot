@@ -122,7 +122,7 @@ private:
 	sensor_gps_s _gps_state[GPS_MAX_RECEIVERS] {}; ///< internal state data for the physical GPS
 
 	matrix::Vector2f _NE_pos_offset_m[GPS_MAX_RECEIVERS] {}; ///< Filtered North,East position offset from GPS instance to blended solution in _output_state.location (m)
-	float _hgt_offset_mm[GPS_MAX_RECEIVERS] {};	///< Filtered height offset from GPS instance relative to blended solution in _output_state.location (mm)
+	float _hgt_offset_m[GPS_MAX_RECEIVERS] {};	///< Filtered height offset from GPS instance relative to blended solution in _output_state.location (m)
 
 	uint64_t _time_prev_us[GPS_MAX_RECEIVERS] {};	///< the previous value of time_us for that GPS instance - used to detect new data.
 	uint8_t _gps_time_ref_index{0};			///< index of the receiver that is used as the timing reference for the blending update

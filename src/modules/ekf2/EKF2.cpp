@@ -1134,7 +1134,7 @@ void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp, const optical_flo
 
 float EKF2::filter_altitude_ellipsoid(float amsl_hgt)
 {
-	float height_diff = static_cast<float>(_gps_alttitude_ellipsoid) * 1e-3f - amsl_hgt;
+	float height_diff = _gps_alttitude_ellipsoid - amsl_hgt;
 
 	if (_gps_alttitude_ellipsoid_previous_timestamp == 0) {
 

@@ -197,8 +197,7 @@ bool Geofence::check(const vehicle_global_position_s &global_position, const veh
 			return checkAll(global_position);
 
 		} else {
-			return checkAll((double)gps_position.lat * 1.0e-7, (double)gps_position.lon * 1.0e-7,
-					(double)gps_position.alt * 1.0e-3);
+			return checkAll(gps_position.lat, gps_position.lon, gps_position.alt);
 		}
 
 	} else {
@@ -210,7 +209,7 @@ bool Geofence::check(const vehicle_global_position_s &global_position, const veh
 			return checkAll(global_position, baro_altitude_amsl);
 
 		} else {
-			return checkAll((double)gps_position.lat * 1.0e-7, (double)gps_position.lon * 1.0e-7, baro_altitude_amsl);
+			return checkAll(gps_position.lat, gps_position.lon, baro_altitude_amsl);
 		}
 	}
 }

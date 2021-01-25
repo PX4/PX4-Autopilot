@@ -96,8 +96,8 @@ bool CRSFTelemetry::send_gps()
 		return false;
 	}
 
-	int32_t latitude = vehicle_gps_position.lat;
-	int32_t longitude = vehicle_gps_position.lon;
+	int32_t latitude = vehicle_gps_position.lat * 1e7;
+	int32_t longitude = vehicle_gps_position.lon * 1e7;
 	uint16_t groundspeed = vehicle_gps_position.vel_d_m_s / 3.6f * 10.f;
 	uint16_t gps_heading = math::degrees(vehicle_gps_position.cog_rad) * 100.f;
 	uint16_t altitude = vehicle_gps_position.alt + 1000;

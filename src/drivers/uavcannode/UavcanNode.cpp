@@ -471,10 +471,10 @@ void UavcanNode::Run()
 
 			fix2.gnss_time_standard = fix2.GNSS_TIME_STANDARD_UTC;
 			fix2.gnss_timestamp.usec = gps.time_utc_usec;
-			fix2.latitude_deg_1e8 = (int64_t)gps.lat * 10;
-			fix2.longitude_deg_1e8 = (int64_t)gps.lon * 10;
-			fix2.height_msl_mm = gps.alt;
-			fix2.height_ellipsoid_mm = gps.alt_ellipsoid;
+			fix2.latitude_deg_1e8 = (int64_t)(gps.lat * 1e+8d);
+			fix2.longitude_deg_1e8 = (int64_t)(gps.lon * 1e+8d);
+			fix2.height_msl_mm = gps.alt * 1e3f;
+			fix2.height_ellipsoid_mm = gps.alt_ellipsoid * 1e3f;
 			fix2.status = gps.fix_type;
 			fix2.ned_velocity[0] = gps.vel_n_m_s;
 			fix2.ned_velocity[1] = gps.vel_e_m_s;

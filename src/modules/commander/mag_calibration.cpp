@@ -236,11 +236,9 @@ static float get_sphere_radius()
 
 		if (gps_sub.copy(&gps)) {
 			if (hrt_elapsed_time(&gps.timestamp) < 100_s && (gps.fix_type >= 2) && (gps.eph < 1000)) {
-				const double lat = gps.lat / 1.e7;
-				const double lon = gps.lon / 1.e7;
 
 				// magnetic field data returned by the geo library using the current GPS position
-				return get_mag_strength_gauss(lat, lon);
+				return get_mag_strength_gauss(gps.lat, gps.lon);
 			}
 		}
 	}
@@ -970,8 +968,8 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 
 		if (vehicle_gps_position_sub.copy(&gps)) {
 			if ((gps.timestamp != 0) && (gps.eph < 1000)) {
-				latitude = gps.lat / 1.e7f;
-				longitude = gps.lon / 1.e7f;
+				latitude = (float)gps.lat;
+				longitude = (float)gps.lon;
 				mag_earth_available = true;
 			}
 		}

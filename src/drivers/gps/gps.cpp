@@ -722,10 +722,10 @@ GPS::run()
 
 		if (_fake_gps) {
 			_report_gps_pos.timestamp = hrt_absolute_time();
-			_report_gps_pos.lat = (int32_t)47.378301e7f;
-			_report_gps_pos.lon = (int32_t)8.538777e7f;
-			_report_gps_pos.alt = (int32_t)1200e3f;
-			_report_gps_pos.alt_ellipsoid = 10000;
+			_report_gps_pos.lat = 47.378301;
+			_report_gps_pos.lon = 8.538777;
+			_report_gps_pos.alt = 1200;
+			_report_gps_pos.alt_ellipsoid = 10;
 			_report_gps_pos.s_variance_m_s = 0.5f;
 			_report_gps_pos.c_variance_rad = 0.1f;
 			_report_gps_pos.fix_type = 3;

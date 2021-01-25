@@ -352,10 +352,10 @@ void Sih::send_IMU()
 void Sih::send_gps()
 {
 	_sensor_gps.timestamp = _now;
-	_sensor_gps.lat = (int32_t)(_gps_lat * 1e7);       // Latitude in 1E-7 degrees
-	_sensor_gps.lon = (int32_t)(_gps_lon * 1e7); // Longitude in 1E-7 degrees
-	_sensor_gps.alt = (int32_t)(_gps_alt * 1000.0f); // Altitude in 1E-3 meters above MSL, (millimetres)
-	_sensor_gps.alt_ellipsoid = (int32_t)(_gps_alt * 1000); // Altitude in 1E-3 meters bove Ellipsoid, (millimetres)
+	_sensor_gps.lat = _gps_lat; // Latitude in degrees
+	_sensor_gps.lon = _gps_lon; // Longitude in degrees
+	_sensor_gps.alt = _gps_alt; // Altitude in meters above MSL
+	_sensor_gps.alt_ellipsoid = _gps_alt; // Altitude in meters above Ellipsoid
 	_sensor_gps.vel_ned_valid = true;              // True if NED velocity is valid
 	_sensor_gps.vel_m_s = sqrtf(_gps_vel(0) * _gps_vel(0) + _gps_vel(1) * _gps_vel(
 					    1)); // GPS ground speed, (metres/sec)

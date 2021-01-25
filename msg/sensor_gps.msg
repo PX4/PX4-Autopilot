@@ -1,15 +1,15 @@
 # GPS position in WGS84 coordinates.
 # the field 'timestamp' is for the position & velocity (microseconds)
 uint64 timestamp		# time since system start (microseconds)
-
-int32 lat			# Latitude in 1E-7 degrees
-int32 lon			# Longitude in 1E-7 degrees
-int32 alt			# Altitude in 1E-3 meters above MSL, (millimetres)
-int32 alt_ellipsoid 		# Altitude in 1E-3 meters bove Ellipsoid, (millimetres)
-
+float64 lat				# Latitude in degrees
+float64 lon				# Longitude in degrees
+float32 alt				# Altitude AMSL, (meters)
+float32 alt_ellipsoid	# Altitude above ellipsoid, (meters)
 float32 s_variance_m_s		# GPS speed accuracy estimate, (metres/sec)
 float32 c_variance_rad		# GPS course accuracy estimate, (radians)
 uint8 fix_type # 0-1: no fix, 2: 2D fix, 3: 3D fix, 4: RTCM code differential, 5: Real-Time Kinematic, float, 6: Real-Time Kinematic, fixed, 8: Extrapolated. Some applications will not use the value of this field unless it is at least two, so always correctly fill in the fix.
+
+float32 dgps_age    # Age of Differential GPS data (seconds) 
 
 float32 eph			# GPS horizontal position accuracy (metres)
 float32 epv			# GPS vertical position accuracy (metres)
