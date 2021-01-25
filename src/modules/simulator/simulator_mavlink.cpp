@@ -681,8 +681,9 @@ void Simulator::run()
 	_myaddr.sin_family = AF_INET;
 	_myaddr.sin_port = htons(_port);
 
-  if (_hostname.empty()) {
+	if (_hostname.empty()) {
 		_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+
 	} else {
 		/* resolve hostname */
 		struct hostent *host;
