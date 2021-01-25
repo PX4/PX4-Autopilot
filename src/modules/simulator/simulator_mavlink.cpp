@@ -123,9 +123,9 @@ void Simulator::actuator_controls_from_outputs(mavlink_hil_actuator_controls_t *
 		break;
 
 	case MAV_TYPE_OCTOROTOR:
-	    	pos_thrust_motors_count = 8;
-	    	is_fixed_wing = false;
-	    	break;
+		pos_thrust_motors_count = 8;
+		is_fixed_wing = false;
+		break;
 
 	case MAV_TYPE_SUBMARINE:
 		pos_thrust_motors_count = 0;
