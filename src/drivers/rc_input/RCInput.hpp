@@ -49,11 +49,14 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/adc_report.h>
 #include <uORB/topics/input_rc.h>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_command.h>
 
 #include "crsf_telemetry.h"
@@ -62,7 +65,7 @@
 # include <systemlib/ppm_decode.h>
 #endif
 
-class RCInput : public ModuleBase<RCInput>, public px4::ScheduledWorkItem
+class RCInput : public ModuleBase<RCInput>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 
@@ -134,6 +137,8 @@ private:
 
 	static constexpr unsigned	_current_update_interval{4000}; // 250 Hz
 
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
 	uORB::Subscription	_vehicle_cmd_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription	_adc_sub{ORB_ID(adc_report)};
 
@@ -141,6 +146,7 @@ private:
 
 	float		_analog_rc_rssi_volt{-1.0f};
 	bool		_analog_rc_rssi_stable{false};
+
 
 	uORB::PublicationMulti<input_rc_s>	_to_input_rc{ORB_ID(input_rc)};
 
@@ -157,4 +163,10 @@ private:
 	perf_counter_t	_cycle_perf;
 	perf_counter_t	_publish_interval_perf;
 	uint32_t	_bytes_rx{0};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::RC_RSSI_PWM_CHAN>) _param_rc_rssi_pwm_chan,
+		(ParamInt<px4::params::RC_RSSI_PWM_MIN>) _param_rc_rssi_pwm_min,
+		(ParamInt<px4::params::RC_RSSI_PWM_MAX>) _param_rc_rssi_pwm_max
+	)
 };
