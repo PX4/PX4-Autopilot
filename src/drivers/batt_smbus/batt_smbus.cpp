@@ -144,16 +144,12 @@ int BATT_SMBUS::get_startup_info()
 	uint16_t manufacture_date;
 	ret |= _interface->read_word(BATT_SMBUS_MANUFACTURE_DATE, manufacture_date);
 
-	uint16_t state_of_health;
-	ret |= _interface->read_word(BATT_SMBUS_STATE_OF_HEALTH, state_of_health);
-
 	if (!ret) {
 		_serial_number = serial_num;
 		_batt_startup_capacity = (uint16_t)((float)remaining_cap * _c_mult);
 		_cycle_count = cycle_count;
 		_batt_capacity = (uint16_t)((float)full_cap * _c_mult);
 		_manufacture_date = manufacture_date;
-		_state_of_health = state_of_health;
 	}
 
 	return ret;

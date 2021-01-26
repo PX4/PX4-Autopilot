@@ -275,7 +275,7 @@ protected:
 	float _low_thr{0.f};
 
 	/** @parama _c_mult Capacity/current multiplier param  */
-	float _c_mult{0.f};
+	float _c_mult{1.f};
 
 	/** @param _manufacturer_name Name of the battery manufacturer. */
 	char _manufacturer_name[BATT_SMBUS_MANUFACTURER_NAME_SIZE + 1] {};	// Plus one for terminator
