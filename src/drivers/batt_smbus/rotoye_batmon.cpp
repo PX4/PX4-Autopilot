@@ -10,7 +10,6 @@ void Rotoye_Batmon::RunImpl()
 	// Read data from sensor.
 	battery_status_s new_report = {};
 
-	// TODO(hyonlim): this driver should support multiple SMBUS going forward.
 	new_report.id = 1;
 
 	// Set time of reading.
@@ -18,38 +17,10 @@ void Rotoye_Batmon::RunImpl()
 
 	new_report.connected = true;
 
-	// Temporary variable for storing SMBUS reads.
-	uint16_t result;
-
-	int ret = _interface->read_word(BATT_SMBUS_VOLTAGE, result);
+	int ret = populate_smbus_data(new_report);
 
 	ret |= get_cell_voltages();
 
-	// Convert millivolts to volts.
-	new_report.voltage_v = ((float)result) / 1000.0f;
-	new_report.voltage_filtered_v = new_report.voltage_v;
-
-	// Read current.
-	ret |= _interface->read_word(BATT_SMBUS_CURRENT, result);
-
-	new_report.current_a = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f) * _c_mult;
-	new_report.current_filtered_a = new_report.current_a;
-
-	// Read remaining capacity.
-	ret |= _interface->read_word(BATT_SMBUS_RELATIVE_SOC, result);
-	new_report.remaining = (float)result/100;
-
-	// Read remaining capacity.
-	ret |= _interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, result);
-	new_report.discharged_mah = _batt_startup_capacity - result;
-
-	// Read battery temperature and covert to Celsius.
-	ret |= _interface->read_word(BATT_SMBUS_TEMP, result);
-	new_report.temperature = ((float)result / 10.0f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
-
-	new_report.capacity = _batt_capacity;
-	new_report.cycle_count = _cycle_count;
-	new_report.serial_number = _serial_number;
 	new_report.max_cell_voltage_delta = _max_cell_voltage_delta;
 	new_report.cell_count = _cell_count;
 	for (uint8_t i = 0; i< _cell_count; i++)

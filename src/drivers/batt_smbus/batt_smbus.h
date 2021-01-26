@@ -88,34 +88,8 @@ using namespace time_literals;
 #define BATT_SMBUS_MANUFACTURER_NAME_SIZE               21              ///< manufacturer name data size
 #define BATT_SMBUS_MANUFACTURE_DATE                     0x1B            ///< manufacture date register
 #define BATT_SMBUS_SERIAL_NUMBER                        0x1C            ///< serial number register
-
-#define BATT_SMBUS_BQ40Z50_CELL_4_VOLTAGE               0x3C
-#define BATT_SMBUS_BQ40Z50_CELL_3_VOLTAGE               0x3D
-#define BATT_SMBUS_BQ40Z50_CELL_2_VOLTAGE               0x3E
-#define BATT_SMBUS_BQ40Z50_CELL_1_VOLTAGE               0x3F
-
-#define BATT_SMBUS_BQ40Z80_CELL_7_VOLTAGE               0x3C
-#define BATT_SMBUS_BQ40Z80_CELL_6_VOLTAGE               0x3D
-#define BATT_SMBUS_BQ40Z80_CELL_5_VOLTAGE               0x3E
-#define BATT_SMBUS_BQ40Z80_CELL_4_VOLTAGE               0x3F
-
-#define BATT_SMBUS_STATE_OF_HEALTH                      0x4F            ///< State of Health. The SOH information of the battery in percentage of Design Capacity
-
 #define BATT_SMBUS_MANUFACTURER_ACCESS                  0x00
 #define BATT_SMBUS_MANUFACTURER_DATA                    0x23
-#define BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS            0x44
-
-#define BATT_SMBUS_SECURITY_KEYS                        0x0035
-#define BATT_SMBUS_LIFETIME_FLUSH                       0x002E
-#define BATT_SMBUS_LIFETIME_BLOCK_ONE                   0x0060
-#define BATT_SMBUS_ENABLED_PROTECTIONS_A_ADDRESS        0x4938
-#define BATT_SMBUS_SEAL                                 0x0030
-#define BATT_SMBUS_DASTATUS1                            0x0071
-#define BATT_SMBUS_DASTATUS2                            0x0072
-#define BATT_SMBUS_DASTATUS3                            0x007B
-
-#define BATT_SMBUS_ENABLED_PROTECTIONS_A_DEFAULT        0xcf
-#define BATT_SMBUS_ENABLED_PROTECTIONS_A_CUV_DISABLED   0xce
 
 #define MAX_CELL_COUNT 10
 
@@ -213,7 +187,9 @@ public:
 
 	friend SMBus;
 
-	virtual void RunImpl() = 0;
+	int populate_smbus_data(battery_status_s &msg);
+
+	virtual void RunImpl();
 
 	/**
 	 * @brief Returns the SBS serial number of the battery device.
@@ -241,12 +217,6 @@ public:
 	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
 	 */
 	int manufacturer_name(uint8_t *manufacturer_name, const uint8_t length);
-
-	/**
-	 * @brief Reads the cell voltages.
-	 * @return Returns PX4_OK on success or associated read error code on failure.
-	 */
-	virtual int get_cell_voltages() = 0;
 
 	/**
 	 * @brief Enables or disables the cell under voltage protection emergency shut off.

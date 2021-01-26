@@ -36,11 +36,15 @@ class Rotoye_Batmon : public BATT_SMBUS
 
 	using BATT_SMBUS::BATT_SMBUS;
 
+	/**
+	 * @brief Reads the cell voltages.
+	 * @return Returns PX4_OK on success or associated read error code on failure.
+	 */
+	int get_cell_voltages();
+
 	void RunImpl() override;
 
 	void custom_method(const BusCLIArguments &cli) override;
-
-	int get_cell_voltages() override;
 
 };
 

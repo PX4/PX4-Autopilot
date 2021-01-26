@@ -158,6 +158,78 @@ int BATT_SMBUS::get_startup_info()
 	return ret;
 }
 
+int BATT_SMBUS::populate_smbus_data(battery_status_s &data) {
+
+	// Temporary variable for storing SMBUS reads.
+	uint16_t result;
+
+	int ret = _interface->read_word(BATT_SMBUS_VOLTAGE, result);
+
+	// Convert millivolts to volts.
+	data.voltage_v = ((float)result) / 1000.0f;
+	data.voltage_filtered_v = data.voltage_v;
+
+	// Read current.
+	ret |= _interface->read_word(BATT_SMBUS_CURRENT, result);
+
+	data.current_a = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f) * _c_mult;
+	data.current_filtered_a = data.current_a;
+
+	// Read remaining capacity.
+	ret |= _interface->read_word(BATT_SMBUS_RELATIVE_SOC, result);
+	data.remaining = (float)result/100;
+
+	// Read remaining capacity.
+	ret |= _interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, result);
+	data.discharged_mah = _batt_startup_capacity - result;
+
+	// Read full capacity.
+	ret |= _interface->read_word(BATT_SMBUS_FULL_CHARGE_CAPACITY, result);
+	data.capacity = result;
+
+	// Read cycle count.
+	ret |= _interface->read_word(BATT_SMBUS_CYCLE_COUNT, result);
+	data.cycle_count = result;
+
+	// Read serial number.
+	ret |= _interface->read_word(BATT_SMBUS_SERIAL_NUMBER, result);
+	data.serial_number = result;
+
+	// Read battery temperature and covert to Celsius.
+	ret |= _interface->read_word(BATT_SMBUS_TEMP, result);
+	data.temperature = ((float)result / 10.0f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+
+	return ret;
+
+}
+
+void BATT_SMBUS::RunImpl() {
+
+	// Get the current time.
+	uint64_t now = hrt_absolute_time();
+
+	// Read data from sensor.
+	battery_status_s new_report = {};
+
+	new_report.id = 1;
+
+	// Set time of reading.
+	new_report.timestamp = now;
+
+	new_report.connected = true;
+
+	int ret = populate_smbus_data(new_report);
+
+	new_report.cell_count = _cell_count;
+
+	// Only publish if no errors.
+	if (!ret) {
+		orb_publish(ORB_ID(battery_status), _batt_topic, &new_report);
+
+		_last_report = new_report;
+	}
+}
+
 
 int BATT_SMBUS::manufacture_date()
 {
@@ -247,9 +319,7 @@ I2CSPIDriverBase *BATT_SMBUS::instantiate(const BusCLIArguments &cli, const BusI
 		break;
 
 		default:
-		// TODO: implement generic SMBUS functions
-		//	 and get rid of pure virtuals
-		//instance = new BATT_SMBUS(iterator.configuredBusOption(), iterator.bus(), interface);
+		instance = new BATT_SMBUS(iterator.configuredBusOption(), iterator.bus(), interface);
 		break;
 	}
 
