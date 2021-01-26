@@ -120,6 +120,36 @@ void Rotoye_Batmon::RunImpl()
 	}
 }
 
+int BATT_SMBUS::get_cell_voltages()
+{
+	// Temporary variable for storing SMBUS reads.
+	uint16_t result = 0;
+	uint8_t ret = 0;
+
+	// Making the assumption that the register value of BATT_SMBUS_CELL_1_VOLTAGE and BATT_SMBUS_CELL_10_VOLTAGE are sequential and decreasing order.
+	for (int i = 0 ; i< _cell_count;i++)
+	{
+		ret |= _interface->read_word(BATT_SMBUS_CELL_1_VOLTAGE - i, result);
+		// Convert millivolts to volts.
+		_cell_voltages[i] = ((float)result) / 1000.0f;
+	}
+
+	//Calculate max cell delta
+	_min_cell_voltage = _cell_voltages[0];
+	float max_cell_voltage = _cell_voltages[0];
+
+	for (uint8_t i = 1; (i < _cell_count && i < (sizeof(_cell_voltages) / sizeof(_cell_voltages[0]))); i++) {
+		_min_cell_voltage = math::min(_min_cell_voltage, _cell_voltages[i]);
+		max_cell_voltage = math::max(max_cell_voltage, _cell_voltages[i]);
+	}
+
+	// Calculate the max difference between the min and max cells with complementary filter.
+	_max_cell_voltage_delta = (0.5f * (max_cell_voltage - _min_cell_voltage)) +
+					(0.5f * _last_report.max_cell_voltage_delta);
+
+	return ret;
+}
+
 void Rotoye_Batmon::custom_method(const BusCLIArguments &cli)
 {
 
