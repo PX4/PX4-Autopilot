@@ -73,6 +73,8 @@
 #define HRT_TIMER                    3  /* use timer 3 for the HRT */
 #define HRT_TIMER_CHANNEL            4  /* use capture/compare channel 4 */
 
+#define FLASH_BASED_PARAMS
+
 __BEGIN_DECLS
 #define BOARD_HAS_N_S_RGB_LED       8  /* Uses 8 SK6812 digital led chip */
 #define BOARD_MAX_LEDS              BOARD_HAS_N_S_RGB_LED

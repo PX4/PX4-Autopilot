@@ -71,6 +71,10 @@
 
 #include <px4_platform_common/init.h>
 
+# if defined(FLASH_BASED_PARAMS)
+#  include <parameters/flashparams/flashfs.h>
+#endif
+
 /************************************************************************************
  * Name: stm32_boardinitialize
  *
@@ -126,9 +130,24 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	px4_platform_init();
 
-	/* Configure the HW based on the manifest */
+#if defined(FLASH_BASED_PARAMS)
+	static sector_descriptor_t params_sector_map[] = {
+		{2, 16 * 1024, 0x08008000},
+		{3, 16 * 1024, 0x0800C000},
+		{0, 0, 0},
+	};
 
-	px4_platform_configure();
+	/* Initialize the flashfs layer to use heap allocated memory */
+	int result = parameter_flashfs_init(params_sector_map, NULL, 0);
+
+	if (result != OK) {
+		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
+		return -ENODEV;
+	}
+
+#endif // FLASH_BASED_PARAMS
+
+	//px4_platform_configure();
 
 	return OK;
 }
