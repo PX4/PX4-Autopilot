@@ -81,6 +81,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_air_data_static_temperature_publisher(_node),
 	_raw_air_data_publisher(_node),
 	_range_sensor_measurement(_node),
+	_flow_measurement_publisher(_node),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")),
 	_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")),
 	_reset_timer(_node)
@@ -305,9 +306,10 @@ void UavcanNode::Run()
 			dist.registerCallback();
 		}
 
+		_optical_flow_sub.registerCallback();
 		_sensor_baro_sub.registerCallback();
+		_sensor_gps_sub.registerCallback();
 		_sensor_mag_sub.registerCallback();
-		_vehicle_gps_position_sub.registerCallback();
 
 		_initialized = true;
 	}
@@ -380,7 +382,7 @@ void UavcanNode::Run()
 	}
 
 	// distance_sensor[] -> uavcan::equipment::range_sensor::Measurement
-	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+	for (int i = 0; i < MAX_INSTANCES; i++) {
 		distance_sensor_s dist;
 
 		if (_distance_sensor_sub[i].update(&dist)) {
@@ -389,7 +391,26 @@ void UavcanNode::Run()
 			range_sensor.sensor_id = i;
 			range_sensor.range = dist.current_distance;
 			range_sensor.field_of_view = dist.h_fov;
-			range_sensor.sensor_type = uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_UNDEFINED;
+
+			// sensor type
+			switch (dist.type) {
+			case distance_sensor_s::MAV_DISTANCE_SENSOR_LASER:
+				range_sensor.sensor_type = uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_LIDAR;
+				break;
+
+			case distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND:
+				range_sensor.sensor_type = uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_SONAR;
+				break;
+
+			case distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR:
+				range_sensor.sensor_type = uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_RADAR;
+				break;
+
+			case distance_sensor_s::MAV_DISTANCE_SENSOR_INFRARED:
+			default:
+				range_sensor.sensor_type = uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_UNDEFINED;
+				break;
+			}
 
 			// reading_type
 			if (dist.current_distance >= dist.max_distance) {
@@ -441,11 +462,11 @@ void UavcanNode::Run()
 		}
 	}
 
-	// vehicle_gps_position -> uavcan::equipment::gnss::Fix2
-	if (_vehicle_gps_position_sub.updated()) {
-		vehicle_gps_position_s gps;
+	// sensor_gps -> uavcan::equipment::gnss::Fix2
+	if (_sensor_gps_sub.updated()) {
+		sensor_gps_s gps;
 
-		if (_vehicle_gps_position_sub.copy(&gps)) {
+		if (_sensor_gps_sub.copy(&gps)) {
 			uavcan::equipment::gnss::Fix2 fix2{};
 
 			fix2.gnss_time_standard = fix2.GNSS_TIME_STANDARD_UTC;
@@ -473,6 +494,24 @@ void UavcanNode::Run()
 			fix2.covariance.push_back(gps.s_variance_m_s);
 
 			_gnss_fix2_publisher.broadcast(fix2);
+		}
+	}
+
+	// optical_flow -> com::hex::equipment::flow::Measurement
+	if (_optical_flow_sub.updated()) {
+		optical_flow_s optical_flow;
+
+		if (_optical_flow_sub.copy(&optical_flow)) {
+			com::hex::equipment::flow::Measurement measurement{};
+
+			measurement.integration_interval  = optical_flow.integration_timespan * 1e-6f; // us -> s
+			measurement.rate_gyro_integral[0] = optical_flow.gyro_x_rate_integral;
+			measurement.rate_gyro_integral[1] = optical_flow.gyro_y_rate_integral;
+			measurement.flow_integral[0] = optical_flow.pixel_flow_x_integral;
+			measurement.flow_integral[1] = optical_flow.pixel_flow_y_integral;
+			measurement.quality = optical_flow.quality;
+
+			_flow_measurement_publisher.broadcast(measurement);
 		}
 	}
 
@@ -607,7 +646,10 @@ extern "C" __EXPORT int uavcannode_main(int argc, char *argv[])
 	}
 
 	if (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info")) {
-		inst->print_info();
+		if (inst) {
+			inst->print_info();
+		}
+
 		return 0;
 	}
 

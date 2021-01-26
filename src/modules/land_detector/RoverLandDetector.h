@@ -42,7 +42,6 @@
 #pragma once
 
 #include "LandDetector.h"
-#include <uORB/topics/vehicle_status.h>
 
 namespace land_detector
 {
@@ -56,12 +55,6 @@ public:
 protected:
 	bool _get_ground_contact_state() override;
 	bool _get_landed_state() override;
-
-
-private:
-	// Program crashes when Subscriptor declared here
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	vehicle_status_s _vehicle_status{};		/**< vehicle status */
 
 };
 

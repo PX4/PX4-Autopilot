@@ -4,8 +4,9 @@
 #------------------------------------------------------------------------------
 
 rgbled start -I
+rgbled_ncp5623c start -I
 
-adc start
+board_adc start
 
 # Internal SPI bus ICM-20602 or ICM-20608-G
 if ! icm20602 -s -R 8 start
@@ -21,10 +22,3 @@ lis3mdl -s -R 0 start
 
 # Internal SPI
 ms5611 -s start
-
-# Possible external compasses
-hmc5883 -T -X start
-lis3mdl -X start
-ist8310 -X start
-qmc5883 -X start
-rm3100 -X start

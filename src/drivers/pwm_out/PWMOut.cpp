@@ -213,7 +213,7 @@ int PWMOut::set_mode(Mode mode)
 		_pwm_alt_rate_channels = 0;
 		_pwm_mask = 0x1f;
 		_pwm_initialized = false;
-		_num_outputs = 4;
+		_num_outputs = 5;
 
 		break;
 
@@ -375,6 +375,19 @@ int PWMOut::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_
 	_pwm_alt_rate_channels = rate_map;
 	_pwm_default_rate = default_rate;
 	_pwm_alt_rate = alt_rate;
+
+	// minimum rate for backup schedule
+	unsigned backup_schedule_rate_hz = math::min(_pwm_default_rate, _pwm_alt_rate);
+
+	if (backup_schedule_rate_hz == 0) {
+		// OneShot rate is 0
+		backup_schedule_rate_hz = 50;
+	}
+
+	// constrain reasonably (1 to 50 Hz)
+	backup_schedule_rate_hz = math::constrain(backup_schedule_rate_hz, 1u, 50u);
+
+	_backup_schedule_interval_us = roundf(1e6f / backup_schedule_rate_hz);
 
 	_current_update_rate = 0; // force update
 
@@ -545,7 +558,7 @@ bool PWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 
 	/* output to the servos */
 	if (_pwm_initialized) {
-		for (size_t i = 0; i < num_outputs; i++) {
+		for (size_t i = 0; i < math::min(_num_outputs, num_outputs); i++) {
 			up_pwm_servo_set(i, outputs[i]);
 		}
 	}
@@ -573,6 +586,9 @@ void PWMOut::Run()
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
 
+	// push backup schedule
+	ScheduleDelayed(_backup_schedule_interval_us);
+
 	_mixing_output.update();
 
 	/* update PWM status if armed or if disarmed PWM values are set */
@@ -598,7 +614,7 @@ void PWMOut::Run()
 	}
 
 	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
-	_mixing_output.updateSubscriptions(true);
+	_mixing_output.updateSubscriptions(true, true);
 
 	perf_end(_cycle_perf);
 }
@@ -890,29 +906,6 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case PWM_SERVO_SET_TRIM_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			/* discard if too many values are sent */
-			if (pwm->channel_count > FMU_MAX_ACTUATORS) {
-				PX4_DEBUG("error: too many trim values: %d", pwm->channel_count);
-				ret = -EINVAL;
-				break;
-			}
-
-			if (_mixing_output.mixers() == nullptr) {
-				PX4_ERR("error: no mixer loaded");
-				ret = -EIO;
-				break;
-			}
-
-			/* copy the trim values to the mixer offsets */
-			_mixing_output.mixers()->set_trims((int16_t *)pwm->values, pwm->channel_count);
-			PX4_DEBUG("set_trims: %d, %d, %d, %d", pwm->values[0], pwm->values[1], pwm->values[2], pwm->values[3]);
-
-			break;
-		}
-
 	case PWM_SERVO_GET_TRIM_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
@@ -1149,59 +1142,6 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		}
 
 		break;
-
-	case PWM_SERVO_SET_COUNT: {
-			/* change the number of outputs that are enabled for
-			 * PWM. This is used to change the split between GPIO
-			 * and PWM under control of the flight config
-			 * parameters.
-			 */
-			switch (arg) {
-			case 0:
-				set_mode(MODE_NONE);
-				break;
-
-			case 1:
-				set_mode(MODE_1PWM);
-				break;
-
-			case 2:
-				set_mode(MODE_2PWM);
-				break;
-
-			case 3:
-				set_mode(MODE_3PWM);
-				break;
-
-			case 4:
-				set_mode(MODE_4PWM);
-				break;
-
-			case 5:
-				set_mode(MODE_5PWM);
-				break;
-
-#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >=6
-
-			case 6:
-				set_mode(MODE_6PWM);
-				break;
-#endif
-
-#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >=8
-
-			case 8:
-				set_mode(MODE_8PWM);
-				break;
-#endif
-
-			default:
-				ret = -EINVAL;
-				break;
-			}
-
-			break;
-		}
 
 	case PWM_SERVO_SET_MODE: {
 			switch (arg) {
@@ -1530,6 +1470,9 @@ int PWMOut::fmu_new_mode(PortMode new_mode)
 		/* select 6-pin PWM mode */
 		servo_mode = PWMOut::MODE_6PWM;
 		break;
+#endif
+
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 5
 
 	case PORT_PWM5:
 		/* select 5-pin PWM mode */
@@ -1545,6 +1488,9 @@ int PWMOut::fmu_new_mode(PortMode new_mode)
 		break;
 
 #  endif
+#endif
+
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 4
 
 	case PORT_PWM4:
 		/* select 4-pin PWM mode */

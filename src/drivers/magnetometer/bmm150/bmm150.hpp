@@ -39,7 +39,6 @@
 #include <systemlib/conversions.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/i2c.h>
-#include <drivers/drv_mag.h>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 
 #define BMM150_SLAVE_ADDRESS                 0x10

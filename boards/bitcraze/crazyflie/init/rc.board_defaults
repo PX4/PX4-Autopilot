@@ -14,6 +14,6 @@ fi
 
 if [ $AUTOCNF = yes ]
 then
-
+	# don't probe external I2C
+	param set SENS_EXT_I2C_PRB 0
 fi
-

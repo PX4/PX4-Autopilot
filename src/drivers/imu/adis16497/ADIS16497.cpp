@@ -74,8 +74,8 @@ ADIS16497::ADIS16497(I2CSPIBusOption bus_option, int bus, int32_t device, enum R
 		     spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio) :
 	SPI(DRV_IMU_DEVTYPE_ADIS16497, MODULE_NAME, bus, device, spi_mode, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_accel(get_device_id(), ORB_PRIO_MAX, rotation),
-	_px4_gyro(get_device_id(), ORB_PRIO_MAX, rotation),
+	_px4_accel(get_device_id(), rotation),
+	_px4_gyro(get_device_id(), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_bad_transfers(perf_alloc(PC_COUNT, MODULE_NAME": bad transfers")),
 	_drdy_gpio(drdy_gpio)
@@ -84,9 +84,6 @@ ADIS16497::ADIS16497(I2CSPIBusOption bus_option, int bus, int32_t device, enum R
 	// Configure hardware reset line
 	px4_arch_configgpio(GPIO_SPI1_RESET_ADIS16497);
 #endif // GPIO_SPI1_RESET_ADIS16497
-
-	_px4_accel.set_update_rate(ADIS16497_DEFAULT_RATE);
-	_px4_gyro.set_update_rate(ADIS16497_DEFAULT_RATE);
 }
 
 ADIS16497::~ADIS16497()
@@ -508,6 +505,4 @@ ADIS16497::print_status()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_bad_transfers);
 
-	_px4_accel.print_status();
-	_px4_gyro.print_status();
 }

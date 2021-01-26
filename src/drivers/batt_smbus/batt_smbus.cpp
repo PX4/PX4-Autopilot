@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,17 +35,17 @@
  * @file batt_smbus.h
  *
  * Header for a battery monitor connected via SMBus (I2C).
- * Designed for BQ40Z50-R1/R2
+ * Designed for BQ40Z50-R1/R2 and BQ40Z80
  *
  * @author Jacob Dahl <dahl.jakejacob@gmail.com>
  * @author Alex Klimaj <alexklimaj@gmail.com>
+ * @author Bazooka Joe <BazookaJoe1900@gmail.com>
+ *
  */
 
 #include "batt_smbus.h"
 #include "rotoye_batmon.h"
-#include "bq40zx.h"
-
-#include <lib/parameters/param.h>
+#include "bq40z50.h"
 
 extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]);
 
@@ -57,7 +57,14 @@ BATT_SMBUS::BATT_SMBUS(I2CSPIBusOption bus_option, const int bus, SMBus *interfa
 	_batt_topic = orb_advertise(ORB_ID(battery_status), &new_report);
 
 	int battsource = 1;
+	int batt_device_type = (int)SMBUS_DEVICE_TYPE::UNDEFINED;
+
 	param_set(param_find("BAT_SOURCE"), &battsource);
+	param_get(param_find("BAT_SMBUS_MODEL"), &batt_device_type);
+
+
+	//TODO: probe the device and autodetect its type
+	_device_type = (SMBUS_DEVICE_TYPE)batt_device_type;
 
 	_interface->init();
 	// unseal() here to allow an external config script to write to protected flash.
@@ -73,10 +80,6 @@ BATT_SMBUS::~BATT_SMBUS()
 {
 	orb_unadvertise(_batt_topic);
 	perf_free(_cycle);
-
-	if (_manufacturer_name != nullptr) {
-		delete[] _manufacturer_name;
-	}
 
 	if (_interface != nullptr) {
 		delete _interface;
@@ -95,37 +98,6 @@ void BATT_SMBUS::resume()
 {
 	ScheduleOnInterval(BATT_SMBUS_MEASUREMENT_INTERVAL_US);
 }
-
-int BATT_SMBUS::get_cell_voltages()
-{
-	// Temporary variable for storing SMBUS reads.
-	uint16_t result = 0;
-	uint8_t ret = 0;
-
-    // Making the assumption that the register value of BATT_SMBUS_CELL_1_VOLTAGE and BATT_SMBUS_CELL_10_VOLTAGE are sequential and decreasing order.
-    for (int i = 0 ; i< _cell_count;i++)
-    {
-        ret |= _interface->read_word(BATT_SMBUS_CELL_1_VOLTAGE - i, result);
-        // Convert millivolts to volts.
-        _cell_voltages[i] = ((float)result) / 1000.0f;
-    }
-
-	//Calculate max cell delta
-	_min_cell_voltage = _cell_voltages[0];
-	float max_cell_voltage = _cell_voltages[0];
-
-	for (uint8_t i = 1; i < (sizeof(_cell_voltages) / sizeof(_cell_voltages[0])); i++) {
-		_min_cell_voltage = math::min(_min_cell_voltage, _cell_voltages[i]);
-		max_cell_voltage = math::max(max_cell_voltage, _cell_voltages[i]);
-	}
-
-	// Calculate the max difference between the min and max cells with complementary filter.
-	_max_cell_voltage_delta = (0.5f * (max_cell_voltage - _min_cell_voltage)) +
-				  (0.5f * _last_report.max_cell_voltage_delta);
-
-	return ret;
-}
-
 
 uint16_t BATT_SMBUS::get_serial_number()
 {
@@ -206,23 +178,29 @@ I2CSPIDriverBase *BATT_SMBUS::instantiate(const BusCLIArguments &cli, const BusI
 		return nullptr;
 	}
 
-	int32_t batt_t;
-	param_get(param_find("SMBUS_BATT_TYPE"), &batt_t);
+	SMBUS_DEVICE_TYPE batt_device_type = SMBUS_DEVICE_TYPE::UNDEFINED;
+	param_get(param_find("BAT_SMBUS_MODEL"), &batt_device_type);
 
 	BATT_SMBUS *instance;
 
-	switch(batt_t) {
+	switch(batt_device_type) {
 
-		case 0:
-		instance = new BQ40ZX(iterator.configuredBusOption(), iterator.bus(), interface);
+		case SMBUS_DEVICE_TYPE::BQ40Z80:
+		// TODO
 		break;
 
-		case 1:
+		case SMBUS_DEVICE_TYPE::BQ40Z50:
+		instance = new BQ40Z50(iterator.configuredBusOption(), iterator.bus(), interface);
+		break;
+
+		case SMBUS_DEVICE_TYPE::ROTOYE_BATMON:
 		instance = new Rotoye_Batmon(iterator.configuredBusOption(), iterator.bus(), interface);
 		break;
 
 		default:
-		instance = nullptr;
+		// TODO: implement generic SMBUS functions
+		//	 and get rid of pure virtuals
+		//instance = new BATT_SMBUS(iterator.configuredBusOption(), iterator.bus(), interface);
 		break;
 	}
 
@@ -231,9 +209,9 @@ I2CSPIDriverBase *BATT_SMBUS::instantiate(const BusCLIArguments &cli, const BusI
 		return nullptr;
 	}
 
-	int result = instance->get_startup_info();
+	int ret = instance->get_startup_info();
 
-	if (result != PX4_OK) {
+	if (ret != PX4_OK) {
 		delete instance;
 		return nullptr;
 	}

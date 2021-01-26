@@ -54,7 +54,6 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -109,7 +108,7 @@ private:
 
 	uORB::SubscriptionCallbackWorkItem _sensors_sub{this, ORB_ID(sensor_combined)};
 
-	uORB::Subscription		_parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::SubscriptionInterval	_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription		_gps_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription		_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription		_vision_odom_sub{ORB_ID(vehicle_visual_odometry)};
@@ -117,10 +116,6 @@ private:
 	uORB::Subscription		_magnetometer_sub{ORB_ID(vehicle_magnetometer)};
 
 	uORB::Publication<vehicle_attitude_s>	_att_pub{ORB_ID(vehicle_attitude)};
-
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-	uORB::Publication<ekf2_timestamps_s>	_ekf2_timestamps_pub {ORB_ID(ekf2_timestamps)};
-#endif
 
 	float		_mag_decl{0.0f};
 	float		_bias_max{0.0f};
@@ -158,15 +153,12 @@ private:
 		(ParamInt<px4::params::ATT_ACC_COMP>) _param_att_acc_comp,
 		(ParamFloat<px4::params::ATT_BIAS_MAX>) _param_att_bias_mas,
 		(ParamInt<px4::params::SYS_HAS_MAG>) _param_sys_has_mag
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-		, (ParamInt<px4::params::SYS_MC_EST_GROUP>) _param_est_group
-#endif
 	)
 };
 
 AttitudeEstimatorQ::AttitudeEstimatorQ() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers)
+	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
 	_vel_prev.zero();
 	_pos_acc.zero();
@@ -315,7 +307,7 @@ AttitudeEstimatorQ::Run()
 			if (_gps_sub.copy(&gps)) {
 				if (_param_att_mag_decl_a.get() && (gps.eph < 20.0f)) {
 					/* set magnetic declination automatically */
-					update_mag_declination(math::radians(get_mag_declination(gps.lat, gps.lon)));
+					update_mag_declination(get_mag_declination_radians(gps.lat, gps.lon));
 				}
 			}
 		}
@@ -357,29 +349,13 @@ AttitudeEstimatorQ::Run()
 
 		if (update(dt)) {
 			vehicle_attitude_s att = {};
-			att.timestamp = sensors.timestamp;
+			att.timestamp_sample = sensors.timestamp;
 			_q.copyTo(att.q);
 
 			/* the instance count is not used here */
+			att.timestamp = hrt_absolute_time();
 			_att_pub.publish(att);
 
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-
-			if (_param_est_group.get() == 3) {
-				// In this case the estimator_q is running without LPE and needs
-				// to publish ekf2_timestamps because SITL lockstep requires it.
-				ekf2_timestamps_s ekf2_timestamps;
-				ekf2_timestamps.timestamp = now;
-				ekf2_timestamps.airspeed_timestamp_rel = 0;
-				ekf2_timestamps.distance_sensor_timestamp_rel = 0;
-				ekf2_timestamps.optical_flow_timestamp_rel = 0;
-				ekf2_timestamps.vehicle_air_data_timestamp_rel = 0;
-				ekf2_timestamps.vehicle_magnetometer_timestamp_rel = 0;
-				ekf2_timestamps.visual_odometry_timestamp_rel = 0;
-				_ekf2_timestamps_pub.publish(ekf2_timestamps);
-			}
-
-#endif
 		}
 	}
 }

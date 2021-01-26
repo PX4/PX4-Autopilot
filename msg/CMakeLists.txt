@@ -48,22 +48,23 @@ set(msg_files
 	collision_constraints.msg
 	collision_report.msg
 	commander_state.msg
+	control_allocator_status.msg
 	cpuload.msg
-	debug_array.msg
-	debug_key_value.msg
-	debug_value.msg
-	debug_vect.msg
 	differential_pressure.msg
 	distance_sensor.msg
 	ekf2_timestamps.msg
 	ekf_gps_drift.msg
-	ekf_gps_position.msg
 	esc_report.msg
 	esc_status.msg
 	estimator_innovations.msg
+	estimator_optical_flow_vel.msg
+	estimator_selector_status.msg
 	estimator_sensor_bias.msg
+	estimator_states.msg
 	estimator_status.msg
+	estimator_status_flags.msg
 	follow_target.msg
+	generator_status.msg
 	geofence_result.msg
 	gps_dump.msg
 	gps_inject_data.msg
@@ -78,19 +79,19 @@ set(msg_files
 	led_control.msg
 	log_message.msg
 	logger_status.msg
+	mag_worker_data.msg
 	manual_control_setpoint.msg
+	manual_control_switches.msg
 	mavlink_log.msg
 	mission.msg
 	mission_result.msg
 	mount_orientation.msg
 	multirotor_motor_limits.msg
+	navigator_mission_item.msg
 	obstacle_distance.msg
 	offboard_control_mode.msg
 	onboard_computer_status.msg
 	optical_flow.msg
-	orb_test.msg
-	orb_test_large.msg
-	orb_test_medium.msg
 	orbit_status.msg
 	parameter_update.msg
 	ping.msg
@@ -101,6 +102,7 @@ set(msg_files
 	power_button_state.msg
 	power_monitor.msg
 	pwm_input.msg
+	px4io_status.msg
 	qshell_req.msg
 	qshell_retval.msg
 	radio_status.msg
@@ -108,24 +110,22 @@ set(msg_files
 	rc_channels.msg
 	rc_parameter_map.msg
 	rpm.msg
+	rtl_flight_time.msg
 	safety.msg
 	satellite_info.msg
 	sensor_accel.msg
 	sensor_accel_fifo.msg
-	sensor_accel_integrated.msg
-	sensor_accel_status.msg
 	sensor_baro.msg
 	sensor_combined.msg
 	sensor_correction.msg
+	sensor_gps.msg
 	sensor_gyro.msg
+	sensor_gyro_fft.msg
 	sensor_gyro_fifo.msg
-	sensor_gyro_integrated.msg
-	sensor_gyro_status.msg
 	sensor_mag.msg
-	sensor_preflight.msg
+	sensor_preflight_mag.msg
 	sensor_selection.msg
-	servorail_status.msg
-	subsystem_info.msg
+	sensors_status_imu.msg
 	system_power.msg
 	task_stack_info.msg
 	tecs_status.msg
@@ -142,8 +142,10 @@ set(msg_files
 	ulog_stream.msg
 	ulog_stream_ack.msg
 	vehicle_acceleration.msg
+	vehicle_actuator_setpoint.msg
 	vehicle_air_data.msg
 	vehicle_angular_acceleration.msg
+	vehicle_angular_acceleration_setpoint.msg
 	vehicle_angular_velocity.msg
 	vehicle_attitude.msg
 	vehicle_attitude_setpoint.msg
@@ -154,6 +156,7 @@ set(msg_files
 	vehicle_global_position.msg
 	vehicle_gps_position.msg
 	vehicle_imu.msg
+	vehicle_imu_status.msg
 	vehicle_land_detected.msg
 	vehicle_local_position.msg
 	vehicle_local_position_setpoint.msg
@@ -163,6 +166,8 @@ set(msg_files
 	vehicle_roi.msg
 	vehicle_status.msg
 	vehicle_status_flags.msg
+	vehicle_thrust_setpoint.msg
+	vehicle_torque_setpoint.msg
 	vehicle_trajectory_bezier.msg
 	vehicle_trajectory_waypoint.msg
 	vtol_vehicle_status.msg
@@ -170,6 +175,25 @@ set(msg_files
 	wind_estimate.msg
 	yaw_estimator_status.msg
 )
+
+if(NOT px4_constrained_flash_build)
+	list(APPEND msg_files
+		debug_array.msg
+		debug_key_value.msg
+		debug_value.msg
+		debug_vect.msg
+	)
+endif()
+
+if(PX4_TESTING)
+	list(APPEND msg_files
+		orb_test.msg
+		orb_test_large.msg
+		orb_test_medium.msg
+	)
+endif()
+
+list(SORT msg_files)
 
 set(deprecated_msgs
 	ekf2_innovations.msg	# 2019-11-22, Updated estimator interface and logging; replaced by 'estimator_innovations'.
@@ -222,6 +246,9 @@ if (px4_constrained_flash_build)
 	set(added_arguments --constrained-flash)
 endif()
 
+# set parent scope msg_files for other modules to consume (eg topic_listener)
+set(msg_files ${msg_files} PARENT_SCOPE)
+
 # Generate uORB headers
 add_custom_command(OUTPUT ${uorb_headers}
 	COMMAND ${PYTHON_EXECUTABLE} tools/px_generate_uorb_topic_files.py
@@ -238,6 +265,7 @@ add_custom_command(OUTPUT ${uorb_headers}
 		templates/uorb/msg.h.em
 		templates/uorb/uORBTopics.hpp.em
 		tools/px_generate_uorb_topic_files.py
+		tools/px_generate_uorb_topic_helper.py
 	COMMENT "Generating uORB topic headers"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	VERBATIM
@@ -260,10 +288,12 @@ add_custom_command(OUTPUT ${uorb_sources}
 		templates/uorb/msg.cpp.em
 		templates/uorb/uORBTopics.cpp.em
 		tools/px_generate_uorb_topic_files.py
+		tools/px_generate_uorb_topic_helper.py
 	COMMENT "Generating uORB topic sources"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	VERBATIM
 	)
 
 add_library(uorb_msgs ${uorb_sources})
+target_link_libraries(uorb_msgs PRIVATE m)
 add_dependencies(uorb_msgs prebuild_targets uorb_headers)

@@ -35,7 +35,6 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/device/spi.h>
-#include <drivers/drv_mag.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>

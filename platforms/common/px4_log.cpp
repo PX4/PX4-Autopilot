@@ -66,7 +66,7 @@ void px4_log_initialize(void)
 	log_message.severity = 6; //info
 	strcpy((char *)log_message.text, "initialized uORB logging");
 
-	orb_log_message_pub = orb_advertise_queue(ORB_ID(log_message), &log_message, 2);
+	orb_log_message_pub = orb_advertise_queue(ORB_ID(log_message), &log_message, log_message_s::ORB_QUEUE_LENGTH);
 
 	if (!orb_log_message_pub) {
 		PX4_ERR("failed to advertise log_message");
@@ -136,6 +136,12 @@ __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *
 
 		orb_publish(ORB_ID(log_message), orb_log_message_pub, &log_message);
 	}
+
+#ifdef CONFIG_ARCH_BOARD_PX4_SITL
+	// Without flushing it's tricky to see stdout output when PX4 is started by
+	// a script like for the MAVSDK tests.
+	fflush(out);
+#endif
 }
 
 __EXPORT void px4_log_raw(int level, const char *fmt, ...)

@@ -67,10 +67,10 @@
 #define PARAMS_OVERRIDE_FILE PX4_ROOTFSDIR "/replay_params.txt"
 
 using namespace std;
+using namespace time_literals;
 
 namespace px4
 {
-class Replay;
 
 char *Replay::_replay_file = nullptr;
 
@@ -127,7 +127,9 @@ Replay::setupReplayFile(const char *file_name)
 void
 Replay::setUserParams(const char *filename)
 {
-	string line, param_name, value_string;
+	string line;
+	string pname;
+	string value_string;
 	ifstream myfile(filename);
 
 	if (!myfile.is_open()) {
@@ -144,23 +146,37 @@ Replay::setUserParams(const char *filename)
 		}
 
 		istringstream mystrstream(line);
-		mystrstream >> param_name;
+		mystrstream >> pname;
 		mystrstream >> value_string;
 
 		double param_value_double = stod(value_string);
 
-		param_t handle = param_find(param_name.c_str());
+		param_t handle = param_find(pname.c_str());
 		param_type_t param_format = param_type(handle);
-		_overridden_params.insert(param_name);
+		_overridden_params.insert(pname);
 
 		if (param_format == PARAM_TYPE_INT32) {
-			int32_t value = 0;
-			value = (int32_t)param_value_double;
+			int32_t orig_value = 0;
+			param_get(handle, &orig_value);
+
+			int32_t value = (int32_t)param_value_double;
+
+			if (orig_value != value) {
+				PX4_WARN("setting %s (INT32) %d -> %d", param_name(handle), orig_value, value);
+			}
+
 			param_set(handle, (const void *)&value);
 
 		} else if (param_format == PARAM_TYPE_FLOAT) {
-			float value = 0;
-			value = (float)param_value_double;
+			float orig_value = 0;
+			param_get(handle, &orig_value);
+
+			float value = (float)param_value_double;
+
+			if (fabsf(orig_value - value) > FLT_EPSILON) {
+				PX4_WARN("setting %s (FLOAT) %.3f -> %.3f", param_name(handle), (double)orig_value, (double)value);
+			}
+
 			param_set(handle, (const void *)&value);
 		}
 	}
@@ -383,7 +399,7 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 		}
 
 		if (!compat) {
-			PX4_WARN("Formats for %s don't match. Will ignore it.", topic_name.c_str());
+			PX4_ERR("Formats for %s don't match. Will ignore it.", topic_name.c_str());
 			PX4_WARN(" Internal format: %s", orb_meta->o_fields);
 			PX4_WARN(" File format    : %s", file_format.c_str());
 			return true; // not a fatal error
@@ -549,7 +565,7 @@ Replay::readDropout(std::ifstream &file, uint16_t msg_size)
 	uint16_t duration;
 	file.read((char *)&duration, sizeof(duration));
 
-	PX4_INFO("Dropout in replayed log, %i ms", (int)duration);
+	PX4_ERR("Dropout in replayed log, %i ms", (int)duration);
 	return file.good();
 }
 
@@ -750,6 +766,13 @@ Replay::run()
 		return;
 	}
 
+	_speed_factor = 1.f;
+	const char *speedup = getenv("PX4_SIM_SPEED_FACTOR");
+
+	if (speedup) {
+		_speed_factor = atof(speedup);
+	}
+
 	onEnterMainLoop();
 
 	_replay_start_time = hrt_absolute_time();
@@ -767,9 +790,7 @@ Replay::run()
 		return;
 	}
 
-	//we update the timestamps from the file by a constant offset to match
-	//the current replay time
-	const uint64_t timestamp_offset = _replay_start_time - _file_start_time;
+	const uint64_t timestamp_offset = getTimestampOffset();
 	uint32_t nr_published_messages = 0;
 	streampos last_additional_message_pos = _data_section_start;
 
@@ -849,13 +870,23 @@ Replay::run()
 	if (!should_exit()) {
 		PX4_INFO("Replay done (published %u msgs, %.3lf s)", nr_published_messages,
 			 (double)hrt_elapsed_time(&_replay_start_time) / 1.e6);
-
-		//TODO: add parameter -q?
-		replay_file.close();
-		px4_shutdown_request();
 	}
 
 	onExitMainLoop();
+
+	if (!should_exit()) {
+		replay_file.close();
+		px4_shutdown_request();
+		// we need to ensure the shutdown logic gets updated and eventually triggers shutdown
+		hrt_abstime t = hrt_absolute_time();
+
+		for (int i = 0; i < 1000; ++i) {
+			struct timespec ts;
+			abstime_to_ts(&ts, t);
+			px4_clock_settime(CLOCK_MONOTONIC, &ts);
+			t += 10_ms;
+		}
+	}
 }
 
 void
@@ -884,7 +915,20 @@ Replay::handleTopicDelay(uint64_t next_file_time, uint64_t timestamp_offset)
 
 	// if some topics have a timestamp smaller than the log file start, publish them immediately
 	if (cur_time < publish_timestamp && next_file_time > _file_start_time) {
-		px4_usleep(publish_timestamp - cur_time);
+		if (_speed_factor > FLT_EPSILON) {
+			// avoid many small usleep calls
+			_accumulated_delay += (publish_timestamp - cur_time) / _speed_factor;
+
+			if (_accumulated_delay > 3000) {
+				system_usleep(_accumulated_delay);
+				_accumulated_delay = 0.f;
+			}
+		}
+
+		// adjust the lockstep time to the publication time
+		struct timespec ts;
+		abstime_to_ts(&ts, publish_timestamp);
+		px4_clock_settime(CLOCK_MONOTONIC, &ts);
 	}
 
 	return publish_timestamp;
@@ -927,7 +971,7 @@ Replay::publishTopic(Subscription &sub, void *data)
 
 			if (advertised) {
 				int instance;
-				sub.orb_advert = orb_advertise_multi(sub.orb_meta, data, &instance, ORB_PRIO_DEFAULT);
+				sub.orb_advert = orb_advertise_multi(sub.orb_meta, data, &instance);
 				published = true;
 			}
 		}
@@ -987,7 +1031,7 @@ Replay::applyParams(bool quiet)
 {
 	if (!isSetup()) {
 		if (quiet) {
-			return 0;
+			return -1;
 		}
 
 		PX4_ERR("no log file given (via env variable %s)", replay::ENV_FILENAME);

@@ -124,23 +124,16 @@ struct RawAccelMagReport {
 	int16_t		x;
 	int16_t		y;
 	int16_t		z;
+#if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 	int16_t		mx;
 	int16_t		my;
 	int16_t		mz;
+#endif // !BOARD_HAS_NOISY_FXOS8700_MAG
 };
 #pragma pack(pop)
 
 extern device::Device *FXOS8701CQ_SPI_interface(int bus, uint32_t chip_select, int bus_frequency, spi_mode_e spi_mode);
 extern device::Device *FXOS8701CQ_I2C_interface(int bus, int bus_frequency, int i2c_address);
-
-
-/*
-  we set the timer interrupt to run a bit faster than the desired
-  sample rate and then throw away duplicates using the data ready bit.
-  This time reduction is enough to cope with worst case timing jitter
-  due to other timers
- */
-#define FXOS8701C_TIMER_REDUCTION				240
 
 class FXOS8701CQ : public I2CSPIDriver<FXOS8701CQ>
 {
@@ -181,10 +174,7 @@ private:
 	 * @param		The register to read.
 	 * @return		The value that was read.
 	 */
-	inline uint8_t read_reg(unsigned reg)
-	{
-		return _interface->read_reg(reg);
-	}
+	inline uint8_t read_reg(unsigned reg) { return _interface->read_reg(reg); }
 
 	/**
 	 * Write a register in the FXOS8701C
@@ -193,10 +183,7 @@ private:
 	 * @param value		The new value to write.
 	 * @return		OK on success, negative errno otherwise.
 	 */
-	inline int write_reg(unsigned reg, uint8_t value)
-	{
-		return _interface->write_reg(reg, value);
-	}
+	inline int write_reg(unsigned reg, uint8_t value) { return _interface->write_reg(reg, value); }
 
 	/**
 	 * Modify a register in the FXOS8701C
@@ -254,11 +241,15 @@ private:
 	perf_counter_t		_mag_sample_perf;
 #endif
 
+	hrt_abstime		_last_temperature_update{0};
+
 	unsigned		_accel_samplerate{FXOS8701C_ACCEL_DEFAULT_RATE};
 
 	perf_counter_t		_accel_sample_perf;
 	perf_counter_t		_bad_registers;
 	perf_counter_t		_accel_duplicates;
+
+	int16_t _accel_prev[3] {};
 
 	uint8_t			_register_wait{0};
 

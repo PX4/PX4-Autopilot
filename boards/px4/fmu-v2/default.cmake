@@ -18,7 +18,7 @@ px4_add_board(
 		TEL2:/dev/ttyS2
 		TEL4:/dev/ttyS6
 	DRIVERS
-		adc
+		adc/board_adc
 		#barometer # all available barometer drivers
 		barometer/ms5611
 		#batt_smbus
@@ -28,7 +28,7 @@ px4_add_board(
 		differential_pressure/ms4525
 		#distance_sensor # all available distance sensor drivers
 		#distance_sensor/ll40ls
-		#distance_sensor/sf0x
+		#distance_sensor/lightware_laser_serial
 		#dshot
 		gps
 		#heater
@@ -39,9 +39,9 @@ px4_add_board(
 		imu/l3gd20
 		imu/lsm303d
 		#imu/invensense/icm20608g
+		#imu/invensense/icm20948
 		imu/invensense/mpu6000
 		#imu/invensense/mpu9250
-		#imu/icm20948
 		#imu/mpu6000 # legacy mpu6000
 		#iridiumsbd
 		#irlock
@@ -76,6 +76,7 @@ px4_add_board(
 		ekf2
 		#esc_battery
 		#events
+		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
 		land_detector
@@ -105,6 +106,7 @@ px4_add_board(
 		hardfault_log
 		#i2cdetect
 		#led_control
+		mft
 		mixer
 		#motor_ramp
 		#motor_test
@@ -122,7 +124,7 @@ px4_add_board(
 		#topic_listener
 		tune_control
 		#usb_connected
-		ver
+		#ver
 		#work_queue
 	EXAMPLES
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control

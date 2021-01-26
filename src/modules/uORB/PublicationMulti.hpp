@@ -41,6 +41,7 @@
 #include <px4_platform_common/defines.h>
 #include <systemlib/err.h>
 #include <uORB/uORB.h>
+#include "uORBDeviceNode.hpp"
 
 #include "Publication.hpp"
 
@@ -50,7 +51,7 @@ namespace uORB
 /**
  * Base publication multi wrapper class
  */
-template<typename T, uint8_t QSIZE = 1>
+template<typename T, uint8_t QSIZE = DefaultQueueSize<T>::value>
 class PublicationMulti : public PublicationBase
 {
 public:
@@ -59,23 +60,20 @@ public:
 	 * Constructor
 	 *
 	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
-	 * @param priority The priority for multi pub/sub, 0 means don't publish as multi
 	 */
-	PublicationMulti(ORB_ID id, ORB_PRIO priority = ORB_PRIO_DEFAULT) :
-		PublicationBase(id),
-		_priority(priority)
+	PublicationMulti(ORB_ID id) :
+		PublicationBase(id)
 	{}
 
-	PublicationMulti(const orb_metadata *meta, ORB_PRIO priority = ORB_PRIO_DEFAULT) :
-		PublicationBase(static_cast<ORB_ID>(meta->o_id)),
-		_priority(priority)
+	PublicationMulti(const orb_metadata *meta) :
+		PublicationBase(static_cast<ORB_ID>(meta->o_id))
 	{}
 
 	bool advertise()
 	{
 		if (!advertised()) {
 			int instance = 0;
-			_handle = orb_advertise_multi_queue(get_topic(), nullptr, &instance, _priority, QSIZE);
+			_handle = orb_advertise_multi_queue(get_topic(), nullptr, &instance, QSIZE);
 		}
 
 		return advertised();
@@ -94,8 +92,14 @@ public:
 		return (orb_publish(get_topic(), _handle, &data) == PX4_OK);
 	}
 
-protected:
-	const ORB_PRIO _priority;
+	int get_instance() const
+	{
+		if (_handle) {
+			return static_cast<uORB::DeviceNode *>(_handle)->get_instance();
+		}
+
+		return -1;
+	}
 };
 
 /**
@@ -109,14 +113,9 @@ public:
 	 * Constructor
 	 *
 	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
-	 * @param priority The priority for multi pub
 	 */
-	PublicationMultiData(ORB_ID id, ORB_PRIO priority = ORB_PRIO_DEFAULT) :
-		PublicationMulti<T>(id, priority)
-	{}
-	PublicationMultiData(const orb_metadata *meta, ORB_PRIO priority = ORB_PRIO_DEFAULT) :
-		PublicationMulti<T>(meta, priority)
-	{}
+	PublicationMultiData(ORB_ID id) : PublicationMulti<T>(id) {}
+	PublicationMultiData(const orb_metadata *meta) : PublicationMulti<T>(meta) {}
 
 	T	&get() { return _data; }
 	void	set(const T &data) { _data = data; }
@@ -132,9 +131,5 @@ public:
 private:
 	T _data{};
 };
-
-
-template<class T>
-using PublicationQueuedMulti = PublicationMulti<T, T::ORB_QUEUE_LENGTH>;
 
 } // namespace uORB

@@ -49,9 +49,7 @@
 #define GPIO_nLED_GREEN      /* PI6 */  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTI|GPIO_PIN6)
 #define GPIO_nLED_BLUE       /* PI7 */  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTI|GPIO_PIN7)
 
-#define BOARD_HAS_CONTROL_STATUS_LEDS      1
-#define BOARD_OVERLOAD_LED     LED_RED
-#define BOARD_ARMED_STATE_LED  LED_BLUE
+#define BOARD_HAS_LED_PWM              1
 
 /* ADC channels */
 #define PX4_ADC_GPIO  \
@@ -122,17 +120,17 @@
 #define GPIO_nVDD_BRICK2_VALID          GPIO_nPOWER_IN_ADC /* Brick 2 is Chosen  */
 #define GPIO_nVDD_USB_VALID             GPIO_nPOWER_IN_C   /* USB     is Chosen */
 
-#define GPIO_nVDD_5V_HIPOWER_EN         /* PD11 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN11)
+#define GPIO_VDD_5V_HIPOWER_EN          /* PD11 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN11)
 #define GPIO_nVDD_5V_PERIPH_EN          /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN4)
 #define GPIO_VDD_5V_RC_EN               /* PG5  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN5)
 #define GPIO_VDD_3V3_SD_CARD_EN         /* PG7  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN7)
 
-#define GPIO_nVDD_5V_HIPOWER_OC         /* PJ3 */  (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTJ|GPIO_PIN3)
+#define GPIO_VDD_5V_HIPOWER_OC          /* PJ3 */  (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTJ|GPIO_PIN3)
 #define GPIO_nVDD_5V_PERIPH_OC          /* PJ4 */  (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTJ|GPIO_PIN4)
 
 /* Power switch controls ******************************************************/
 #define VDD_5V_PERIPH_EN(on_true)          px4_arch_gpiowrite(GPIO_nVDD_5V_PERIPH_EN, !(on_true))
-#define VDD_5V_HIPOWER_EN(on_true)         px4_arch_gpiowrite(GPIO_nVDD_5V_HIPOWER_EN, !(on_true))
+#define VDD_5V_HIPOWER_EN(on_true)         px4_arch_gpiowrite(GPIO_VDD_5V_HIPOWER_EN, (on_true))
 #define VDD_3V3_SD_CARD_EN(on_true)        px4_arch_gpiowrite(GPIO_VDD_3V3_SD_CARD_EN, (on_true))
 
 #define SPEKTRUM_POWER(on_true)            px4_arch_gpiowrite(GPIO_VDD_5V_RC_EN, (on_true))
@@ -155,8 +153,7 @@
 /* High-resolution timer */
 #define HRT_TIMER               3  /* use timer3 for the HRT */
 #define HRT_TIMER_CHANNEL       3  /* use capture/compare channel 3 */
-#define STM32_RCC_APB1ENR  STM32_RCC_APB1LENR
-#define RCC_APB1ENR_TIM3EN RCC_APB1LENR_TIM3EN
+
 
 #define HRT_PPM_CHANNEL         /* T3C1 */  1  /* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* PB4 T3C1 */ GPIO_TIM3_CH1IN_2
@@ -176,9 +173,11 @@
 /* RSSI_IN */
 #define GPIO_RSSI_IN                   /* PB0  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN0)
 
-/* Safety Switch is only on PX4IO */
-#define GPIO_nSAFETY_SWITCH_LED_OUT   /* PE12 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN12) // FMU_LED_AMBER
+/* Safety Switch is only on FMU */
+#define FMU_LED_AMBER                 /* PE12 */ (GPIO_OUTPUT|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN12) // FMU_LED_AMBER
 #define GPIO_BTN_SAFETY               /* PE10 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN10) // SAFETY_SW
+
+#define GPIO_LED_SAFETY FMU_LED_AMBER
 
 /* By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
  * this board support the ADC system_power interface, and therefore
@@ -189,7 +188,7 @@
 #define BOARD_ADC_BRICK1_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK1_VALID))
 #define BOARD_ADC_BRICK2_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK2_VALID))
 #define BOARD_ADC_PERIPH_5V_OC  (!px4_arch_gpioread(GPIO_nVDD_5V_PERIPH_OC))
-#define BOARD_ADC_HIPOWER_5V_OC (!px4_arch_gpioread(GPIO_nVDD_5V_HIPOWER_OC))
+#define BOARD_ADC_HIPOWER_5V_OC (!px4_arch_gpioread(GPIO_VDD_5V_HIPOWER_OC))
 
 
 /* This board provides a DMA pool and APIs */
@@ -199,8 +198,6 @@
 #define BOARD_HAS_ON_RESET 1
 
 #define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
-
-#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4};
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
@@ -220,8 +217,8 @@
 		GPIO_nPOWER_IN_C,                 \
 		GPIO_nVDD_5V_PERIPH_EN,           \
 		GPIO_nVDD_5V_PERIPH_OC,           \
-		GPIO_nVDD_5V_HIPOWER_EN,          \
-		GPIO_nVDD_5V_HIPOWER_OC,          \
+		GPIO_VDD_5V_HIPOWER_EN,           \
+		GPIO_VDD_5V_HIPOWER_OC,          \
 		GPIO_VDD_5V_RC_EN,                \
 		PX4_GPIO_PIN_OFF(GPIO_SDMMC1_D0), \
 		PX4_GPIO_PIN_OFF(GPIO_SDMMC1_D1), \
@@ -233,7 +230,7 @@
 		GPIO_OTGFS_VBUS,                  \
 		PX4_GPIO_PIN_OFF(GPIO_HS_USB_EN), \
 		GPIO_RSSI_IN,                     \
-		GPIO_nSAFETY_SWITCH_LED_OUT,      \
+		FMU_LED_AMBER,                    \
 		GPIO_BTN_SAFETY,                  \
 	}
 

@@ -35,10 +35,11 @@
  * @file batt_smbus.h
  *
  * Header for a battery monitor connected via SMBus (I2C).
- * Designed for BQ40Z50-R1/R2
+ * Designed for BQ40Z50-R1/R2 or BQ40Z80
  *
  * @author Jacob Dahl <dahl.jakejacob@gmail.com>
  * @author Alex Klimaj <alexklimaj@gmail.com>
+ * @author Bazooka Joe <BazookaJoe1900@gmail.com>
  */
 
 #pragma once
@@ -48,11 +49,16 @@
 #include <mathlib/mathlib.h>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/param.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <uORB/topics/battery_status.h>
 
 #include <board_config.h>
+
+using namespace time_literals;
+
+#define BATT_SMBUS_MEASUREMENT_INTERVAL_US              100_ms         ///< time in microseconds, measure at 10Hz
 
 #define MAC_DATA_BUFFER_SIZE                            32
 
@@ -64,56 +70,61 @@
 
 #define BATT_SMBUS_ADDR                                 0x0B            ///< Default 7 bit address I2C address. 8 bit = 0x16
 
-#define BATT_SMBUS_CURRENT                              0x0A            ///< current register
-#define BATT_SMBUS_AVERAGE_CURRENT                      0x0B            ///< average current register
-#define BATT_SMBUS_MAX_ERROR				0x0C		///< max error
-#define BATT_SMBUS_RELATIVE_SOC				0x0D		///< Relative State Of Charge
 #define BATT_SMBUS_TEMP                                 0x08            ///< temperature register
 #define BATT_SMBUS_VOLTAGE                              0x09            ///< voltage register
+#define BATT_SMBUS_CURRENT                              0x0A            ///< current register
+#define BATT_SMBUS_AVERAGE_CURRENT                      0x0B            ///< average current register
+#define BATT_SMBUS_MAX_ERROR                            0x0C            ///< max error
+#define BATT_SMBUS_RELATIVE_SOC                         0x0D            ///< Relative State Of Charge
+#define BATT_SMBUS_ABSOLUTE_SOC                         0x0E            ///< Absolute State of charge
+#define BATT_SMBUS_REMAINING_CAPACITY                   0x0F            ///< predicted remaining battery capacity as a percentage
 #define BATT_SMBUS_FULL_CHARGE_CAPACITY                 0x10            ///< capacity when fully charged
 #define BATT_SMBUS_RUN_TIME_TO_EMPTY                    0x11            ///< predicted remaining battery capacity based on the present rate of discharge in min
 #define BATT_SMBUS_AVERAGE_TIME_TO_EMPTY                0x12            ///< predicted remaining battery capacity based on the present rate of discharge in min
-#define BATT_SMBUS_REMAINING_CAPACITY                   0x0F            ///< predicted remaining battery capacity as mAh
-#define BATT_SMBUS_RELATIVE_SOC				0x0D		///< predicted remaining battery capacity as a percentage
 #define BATT_SMBUS_CYCLE_COUNT                          0x17            ///< number of cycles the battery has experienced
 #define BATT_SMBUS_DESIGN_CAPACITY                      0x18            ///< design capacity register
 #define BATT_SMBUS_DESIGN_VOLTAGE                       0x19            ///< design voltage register
 #define BATT_SMBUS_MANUFACTURER_NAME                    0x20            ///< manufacturer name
+#define BATT_SMBUS_MANUFACTURER_NAME_SIZE               21              ///< manufacturer name data size
 #define BATT_SMBUS_MANUFACTURE_DATE                     0x1B            ///< manufacture date register
 #define BATT_SMBUS_SERIAL_NUMBER                        0x1C            ///< serial number register
-#define BATT_SMBUS_MEASUREMENT_INTERVAL_US              100000          ///< time in microseconds, measure at 10Hz
+
+#define BATT_SMBUS_BQ40Z50_CELL_4_VOLTAGE               0x3C
+#define BATT_SMBUS_BQ40Z50_CELL_3_VOLTAGE               0x3D
+#define BATT_SMBUS_BQ40Z50_CELL_2_VOLTAGE               0x3E
+#define BATT_SMBUS_BQ40Z50_CELL_1_VOLTAGE               0x3F
+
+#define BATT_SMBUS_BQ40Z80_CELL_7_VOLTAGE               0x3C
+#define BATT_SMBUS_BQ40Z80_CELL_6_VOLTAGE               0x3D
+#define BATT_SMBUS_BQ40Z80_CELL_5_VOLTAGE               0x3E
+#define BATT_SMBUS_BQ40Z80_CELL_4_VOLTAGE               0x3F
+
+#define BATT_SMBUS_STATE_OF_HEALTH                      0x4F            ///< State of Health. The SOH information of the battery in percentage of Design Capacity
+
 #define BATT_SMBUS_MANUFACTURER_ACCESS                  0x00
 #define BATT_SMBUS_MANUFACTURER_DATA                    0x23
 #define BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS            0x44
-#define BATT_SMBUS_STATE_OF_HEALTH			0x4F		///< State of Health. The SOH information of the battery in percentage of Design Capacity
+
 #define BATT_SMBUS_SECURITY_KEYS                        0x0035
-#define BATT_SMBUS_CELL_1_VOLTAGE                       0x3F
-#define BATT_SMBUS_CELL_2_VOLTAGE                       0x3E
-#define BATT_SMBUS_CELL_3_VOLTAGE                       0x3D
-#define BATT_SMBUS_CELL_4_VOLTAGE                       0x3C
-#define BATT_SMBUS_CELL_5_VOLTAGE                       0x3B
-#define BATT_SMBUS_CELL_6_VOLTAGE                       0x3A
-#define BATT_SMBUS_CELL_7_VOLTAGE                       0x39
-#define BATT_SMBUS_CELL_8_VOLTAGE                       0x38
-#define BATT_SMBUS_CELL_9_VOLTAGE                       0x37
-#define BATT_SMBUS_CELL_10_VOLTAGE                      0x36
-
-#define BATT_SMBUS_CELL_COUNT                           0x40            // < This is not a default register in the BQ40Z50 chip, but one that is really needed
-#define BATT_SMBUS_SAFETY_ALERT                         0x50            ///32 alert bits, threshold exceeded (used for burst current check)
-#define BATT_SMBUS_SAFETY_STATUS                        0x51            ///32 status bits, threshold exceeded for certain duration
-#define BATT_SMBUS_PF_ALERT                             0x52            ///32 permanent fail bits, issue warranting permanent shutoff occurred (used for cell voltage imbalance check)
-
-#define SMART_BATTERY_ROTOYE_BATMON 1
-#define SMART_BATTERY_BQ40Zx50 2
 #define BATT_SMBUS_LIFETIME_FLUSH                       0x002E
 #define BATT_SMBUS_LIFETIME_BLOCK_ONE                   0x0060
 #define BATT_SMBUS_ENABLED_PROTECTIONS_A_ADDRESS        0x4938
 #define BATT_SMBUS_SEAL                                 0x0030
+#define BATT_SMBUS_DASTATUS1                            0x0071
+#define BATT_SMBUS_DASTATUS2                            0x0072
+#define BATT_SMBUS_DASTATUS3                            0x007B
 
 #define BATT_SMBUS_ENABLED_PROTECTIONS_A_DEFAULT        0xcf
 #define BATT_SMBUS_ENABLED_PROTECTIONS_A_CUV_DISABLED   0xce
 
 #define MAX_CELL_COUNT 10
+
+enum class SMBUS_DEVICE_TYPE {
+	UNDEFINED     = 0,
+	BQ40Z50       = 1,
+	BQ40Z80       = 2,
+	ROTOYE_BATMON = 3
+};
 
 class BATT_SMBUS : public I2CSPIDriver<BATT_SMBUS>
 {
@@ -235,7 +246,7 @@ public:
 	 * @brief Reads the cell voltages.
 	 * @return Returns PX4_OK on success or associated read error code on failure.
 	 */
-	int get_cell_voltages();
+	virtual int get_cell_voltages() = 0;
 
 	/**
 	 * @brief Enables or disables the cell under voltage protection emergency shut off.
@@ -249,6 +260,8 @@ protected:
 
 	SMBus *_interface;
 
+	SMBUS_DEVICE_TYPE _device_type{SMBUS_DEVICE_TYPE::UNDEFINED};
+
 	perf_counter_t _cycle{perf_alloc(PC_ELAPSED, "batt_smbus_cycle")};
 
 	float _cell_voltages[MAX_CELL_COUNT] = {};
@@ -257,6 +270,9 @@ protected:
 
 	float _min_cell_voltage{0};
 
+	float _pack_power{0};
+	float _pack_average_power{0};
+
 	/** @param _last_report Last published report, used for test(). */
 	battery_status_s _last_report{};
 
@@ -264,7 +280,7 @@ protected:
 	orb_advert_t _batt_topic{nullptr};
 
 	/** @param _cell_count Number of series cell. */
-	uint16_t _cell_count;
+	uint8_t _cell_count{0};
 
 	/** @param _batt_capacity Battery design capacity in mAh (0 means unknown). */
 	uint16_t _batt_capacity{0};
@@ -291,7 +307,13 @@ protected:
 	float _c_mult{0.f};
 
 	/** @param _manufacturer_name Name of the battery manufacturer. */
-	char *_manufacturer_name{nullptr};
+	char _manufacturer_name[BATT_SMBUS_MANUFACTURER_NAME_SIZE + 1] {};	// Plus one for terminator
+
+	/** @param _manufacture_date Date of the battery manufacturing. */
+	uint16_t _manufacture_date{0};
+
+	/** @param _state_of_health state of health as read on connection  */
+	float _state_of_health{0.f};
 
 	uint8_t _smart_battery_type;
 	/** @param _lifetime_max_delta_cell_voltage Max lifetime delta of the battery cells */

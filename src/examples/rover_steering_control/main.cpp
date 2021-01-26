@@ -52,6 +52,7 @@
 #include <time.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -69,6 +70,8 @@
 
 /* process-specific header files */
 #include "params.h"
+
+using namespace time_literals;
 
 /* Prototypes */
 
@@ -101,7 +104,7 @@ int parameters_init(struct param_handles *h);
  * Update all parameters
  *
  */
-int parameters_update(const struct param_handles *h, struct params *p);
+int parameter_update(const struct param_handles *h, struct params *p);
 
 /**
  * Mainloop of daemon.
@@ -141,7 +144,7 @@ int parameters_init(struct param_handles *h)
 	return OK;
 }
 
-int parameters_update(const struct param_handles *h, struct params *p)
+int parameter_update(const struct param_handles *h, struct params *p)
 {
 	param_get(h->yaw_p, &(p->yaw_p));
 
@@ -201,7 +204,7 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 
 	/* initialize parameters, first the handles, then the values */
 	parameters_init(&ph);
-	parameters_update(&ph, &pp);
+	parameter_update(&ph, &pp);
 
 
 	/*
@@ -235,8 +238,8 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 	memset(&att_sp, 0, sizeof(att_sp));
 	struct vehicle_global_position_s global_pos;
 	memset(&global_pos, 0, sizeof(global_pos));
-	struct manual_control_setpoint_s manual_sp;
-	memset(&manual_sp, 0, sizeof(manual_sp));
+	struct manual_control_setpoint_s manual_control_setpoint;
+	memset(&manual_control_setpoint, 0, sizeof(manual_control_setpoint));
 	struct vehicle_status_s vstatus;
 	memset(&vstatus, 0, sizeof(vstatus));
 	struct position_setpoint_s global_sp;
@@ -265,13 +268,13 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 
 	int global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 
-	int manual_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+	int manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
 	int vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	int att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 
-	uORB::Subscription parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::SubscriptionInterval parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	/* Setup of loop */
 
@@ -313,7 +316,7 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 				parameter_update_sub.copy(&pupdate);
 
 				// if a param update occured, re-read our parameters
-				parameters_update(&ph, &pp);
+				parameter_update(&ph, &pp);
 			}
 
 			/* only run controller if attitude changed */
@@ -325,8 +328,8 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 				orb_check(global_pos_sub, &pos_updated);
 				bool att_sp_updated;
 				orb_check(att_sp_sub, &att_sp_updated);
-				bool manual_sp_updated;
-				orb_check(manual_sp_sub, &manual_sp_updated);
+				bool manual_control_setpoint_updated;
+				orb_check(manual_control_setpoint_sub, &manual_control_setpoint_updated);
 
 				/* get a local copy of attitude */
 				orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
@@ -338,10 +341,10 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 				/* control attitude / heading */
 				control_attitude(&_att_sp, &att, &actuators);
 
-				if (manual_sp_updated)
+				if (manual_control_setpoint_updated)
 					/* get the RC (or otherwise user based) input */
 				{
-					orb_copy(ORB_ID(manual_control_setpoint), manual_sp_sub, &manual_sp);
+					orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, &manual_control_setpoint);
 				}
 
 				// XXX copy from manual depending on flight / usage mode to override

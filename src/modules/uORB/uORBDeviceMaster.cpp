@@ -52,7 +52,6 @@
 uORB::DeviceMaster::DeviceMaster()
 {
 	px4_sem_init(&_lock, 0, 1);
-	_last_statistics_output = hrt_absolute_time();
 }
 
 uORB::DeviceMaster::~DeviceMaster()
@@ -60,7 +59,7 @@ uORB::DeviceMaster::~DeviceMaster()
 	px4_sem_destroy(&_lock);
 }
 
-int uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_advertiser, int *instance, ORB_PRIO priority)
+int uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_advertiser, int *instance)
 {
 	int ret = PX4_ERROR;
 
@@ -108,7 +107,7 @@ int uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_adver
 		}
 
 		/* construct the new node, passing the ownership of path to it */
-		uORB::DeviceNode *node = new uORB::DeviceNode(meta, group_tries, devpath, priority);
+		uORB::DeviceNode *node = new uORB::DeviceNode(meta, group_tries, devpath);
 
 		/* if we didn't get a device, that's bad, free the path too */
 		if (node == nullptr) {
@@ -143,7 +142,6 @@ int uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_adver
 				if (existing_node != nullptr &&
 				    (!existing_node->is_advertised() || is_single_instance_advertiser || !is_advertiser)) {
 					if (is_advertiser) {
-						existing_node->set_priority((ORB_PRIO)priority);
 						/* Set as advertised to avoid race conditions (otherwise 2 multi-instance advertisers
 						 * could get the same instance).
 						 */
@@ -178,15 +176,8 @@ int uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_adver
 	return ret;
 }
 
-void uORB::DeviceMaster::printStatistics(bool reset)
+void uORB::DeviceMaster::printStatistics()
 {
-	hrt_abstime current_time = hrt_absolute_time();
-	PX4_INFO("Statistics, since last output (%i ms):", (int)((current_time - _last_statistics_output) / 1000));
-	_last_statistics_output = current_time;
-
-	PX4_INFO("TOPIC, NR LOST MSGS");
-	bool had_print = false;
-
 	/* Add all nodes to a list while locked, and then print them in unlocked state, to avoid potential
 	 * dead-locks (where printing blocks) */
 	lock();
@@ -199,22 +190,19 @@ void uORB::DeviceMaster::printStatistics(bool reset)
 
 	if (ret != 0) {
 		PX4_ERR("addNewDeviceNodes failed (%i)", ret);
+		return;
 	}
+
+	PX4_INFO_RAW("%-*s INST #SUB #Q SIZE PATH\n", (int)max_topic_name_length - 2, "TOPIC NAME");
 
 	cur_node = first_node;
 
 	while (cur_node) {
-		if (cur_node->node->print_statistics(reset)) {
-			had_print = true;
-		}
+		cur_node->node->print_statistics(max_topic_name_length);
 
 		DeviceNodeStatisticsData *prev = cur_node;
 		cur_node = cur_node->next;
 		delete prev;
-	}
-
-	if (!had_print) {
-		PX4_INFO("No lost messages");
 	}
 }
 
@@ -280,8 +268,8 @@ int uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node,
 			max_topic_name_length = name_length;
 		}
 
-		last_node->last_lost_msg_count = last_node->node->lost_message_count();
-		last_node->last_pub_msg_count = last_node->node->published_message_count();
+		// Pass in 0 to get the index of the latest published data
+		last_node->last_pub_msg_count = last_node->node->updates_available(0);
 	}
 
 	return 0;
@@ -387,12 +375,9 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 			cur_node = first_node;
 
 			while (cur_node) {
-				uint32_t num_lost = cur_node->node->lost_message_count();
-				unsigned int num_msgs = cur_node->node->published_message_count();
-				cur_node->pub_msg_delta = roundf((num_msgs - cur_node->last_pub_msg_count) / dt);
-				cur_node->lost_msg_delta = roundf((num_lost - cur_node->last_lost_msg_count) / dt);
-				cur_node->last_lost_msg_count = num_lost;
-				cur_node->last_pub_msg_count = num_msgs;
+				unsigned int num_msgs = cur_node->node->updates_available(cur_node->last_pub_msg_count);
+				cur_node->pub_msg_delta = roundf(num_msgs / dt);
+				cur_node->last_pub_msg_count += num_msgs;
 				cur_node = cur_node->next;
 			}
 
@@ -404,16 +389,16 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 			}
 
 			PX4_INFO_RAW(CLEAR_LINE "update: 1s, num topics: %i\n", num_topics);
-			PX4_INFO_RAW(CLEAR_LINE "%-*s INST #SUB RATE #LOST #Q SIZE\n", (int)max_topic_name_length - 2, "TOPIC NAME");
+			PX4_INFO_RAW(CLEAR_LINE "%-*s INST #SUB RATE #Q SIZE\n", (int)max_topic_name_length - 2, "TOPIC NAME");
 			cur_node = first_node;
 
 			while (cur_node) {
 
 				if (!print_active_only || (cur_node->pub_msg_delta > 0 && cur_node->node->subscriber_count() > 0)) {
-					PX4_INFO_RAW(CLEAR_LINE "%-*s %2i %4i %4i %5i %2i %4i \n", (int)max_topic_name_length,
+					PX4_INFO_RAW(CLEAR_LINE "%-*s %2i %4i %4i %2i %4i \n", (int)max_topic_name_length,
 						     cur_node->node->get_meta()->o_name, (int)cur_node->node->get_instance(),
 						     (int)cur_node->node->subscriber_count(), cur_node->pub_msg_delta,
-						     (int)cur_node->lost_msg_delta, cur_node->node->get_queue_size(), cur_node->node->get_meta()->o_size);
+						     cur_node->node->get_queue_size(), cur_node->node->get_meta()->o_size);
 				}
 
 				cur_node = cur_node->next;

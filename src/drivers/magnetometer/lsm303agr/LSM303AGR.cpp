@@ -65,7 +65,7 @@ LSM303AGR::LSM303AGR(I2CSPIBusOption bus_option, int bus, int device, enum Rotat
 		     spi_mode_e spi_mode) :
 	SPI(DRV_MAG_DEVTYPE_LSM303AGR, MODULE_NAME, bus, device, spi_mode, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_mag(get_device_id(), external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT, rotation),
+	_px4_mag(get_device_id(), rotation),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": mag_read")),
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad_reg")),
 	_bad_values(perf_alloc(PC_COUNT, MODULE_NAME": bad_val"))
@@ -315,9 +315,9 @@ int LSM303AGR::collect()
 		const hrt_abstime timestamp_sample = hrt_absolute_time();
 
 		// switch to right hand coordinate system in place
-		float x_raw = read_reg(OUTX_L_REG_M) + (read_reg(OUTX_H_REG_M) << 8);
-		float y_raw = read_reg(OUTY_L_REG_M) + (read_reg(OUTY_H_REG_M) << 8);
-		float z_raw = -(read_reg(OUTZ_L_REG_M) + (read_reg(OUTZ_H_REG_M) << 8));
+		int16_t x_raw = read_reg(OUTX_L_REG_M) + (read_reg(OUTX_H_REG_M) << 8);
+		int16_t y_raw = read_reg(OUTY_L_REG_M) + (read_reg(OUTY_H_REG_M) << 8);
+		int16_t z_raw = -(read_reg(OUTZ_L_REG_M) + (read_reg(OUTZ_H_REG_M) << 8));
 
 		_px4_mag.update(timestamp_sample, x_raw, y_raw, z_raw);
 
@@ -334,5 +334,4 @@ void LSM303AGR::print_status()
 	perf_print_counter(_mag_sample_perf);
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_bad_values);
-	_px4_mag.print_status();
 }

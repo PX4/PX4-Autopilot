@@ -38,11 +38,11 @@
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 	initSPIBus(SPI::Bus::SPI1, {
 		initSPIDevice(DRV_DEVTYPE_UNUSED, SPI::CS{GPIO::PortF, GPIO::Pin10}, SPI::DRDY{GPIO::PortE, GPIO::Pin7}), // ADIS16470
-		initSPIDevice(DRV_MAG_DEVTYPE_RM3100, SPI::CS{GPIO::PortF, GPIO::Pin2}, SPI::DRDY{GPIO::PortE, GPIO::Pin4}),
 		initSPIDevice(DRV_IMU_DEVTYPE_ICM20689, SPI::CS{GPIO::PortG, GPIO::Pin6}, SPI::DRDY{GPIO::PortJ, GPIO::Pin0}),
 	}, {GPIO::PortE, GPIO::Pin3}),
 	initSPIBus(SPI::Bus::SPI2, {
-		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortF, GPIO::Pin5})
+		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortF, GPIO::Pin5}),
+		initSPIDevice(DRV_MAG_DEVTYPE_RM3100, SPI::CS{GPIO::PortF, GPIO::Pin2}, SPI::DRDY{GPIO::PortE, GPIO::Pin4}),
 	}),
 	initSPIBus(SPI::Bus::SPI4, {
 		initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::PortF, GPIO::Pin3}, SPI::DRDY{GPIO::PortB, GPIO::Pin15}),

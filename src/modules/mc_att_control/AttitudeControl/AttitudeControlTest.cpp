@@ -40,7 +40,7 @@ using namespace matrix;
 TEST(AttitudeControlTest, AllZeroCase)
 {
 	AttitudeControl attitude_control;
-	Vector3f rate_setpoint = attitude_control.update(Quatf(), Quatf(), 0.f);
+	Vector3f rate_setpoint = attitude_control.update(Quatf());
 	EXPECT_EQ(rate_setpoint, Vector3f());
 }
 
@@ -58,9 +58,11 @@ public:
 		int i; // need function scope to check how many steps
 		Vector3f rate_setpoint(1000.f, 1000.f, 1000.f);
 
+		_attitude_control.setAttitudeSetpoint(_quat_goal, 0.f);
+
 		for (i = 100; i > 0; i--) {
 			// run attitude control to get rate setpoints
-			const Vector3f rate_setpoint_new = _attitude_control.update(_quat_state, _quat_goal, 0.f);
+			const Vector3f rate_setpoint_new = _attitude_control.update(_quat_state);
 			// rotate the simulated state quaternion according to the rate setpoint
 			_quat_state = _quat_state * Quatf(AxisAnglef(rate_setpoint_new));
 			_quat_state = -_quat_state; // produce intermittent antipodal quaternion states to test against unwinding problem
@@ -112,25 +114,27 @@ TEST_F(AttitudeControlConvergenceTest, AttitudeControlConvergence)
 
 TEST(AttitudeControlTest, YawWeightScaling)
 {
-	// GIVEN: default tuning
+	// GIVEN: default tuning and pure yaw turn command
 	AttitudeControl attitude_control;
 	const float yaw_gain = 2.8f;
 	const float yaw_sp = .1f;
+	Quatf pure_yaw_attitude(cosf(yaw_sp / 2.f), 0, 0, sinf(yaw_sp / 2.f));
 	attitude_control.setProportionalGain(Vector3f(6.5f, 6.5f, yaw_gain), .4f);
 	attitude_control.setRateLimit(Vector3f(1000.f, 1000.f, 1000.f));
+	attitude_control.setAttitudeSetpoint(pure_yaw_attitude, 0.f);
 
-	// WHEN: we command a pure yaw turn
-	Vector3f rate_setpoint = attitude_control.update(Quatf(), Quatf(cosf(yaw_sp / 2.f), 0, 0, sinf(yaw_sp / 2.f)), 0.f);
+	// WHEN: we run one iteration of the controller
+	Vector3f rate_setpoint = attitude_control.update(Quatf());
 
 	// THEN: no actuation in roll, pitch
 	EXPECT_EQ(Vector2f(rate_setpoint), Vector2f());
 	// THEN: actuation error * gain in yaw
 	EXPECT_NEAR(rate_setpoint(2), yaw_sp * yaw_gain, 1e-4f);
 
-	// GIVEN: corner case of zero yaw weight
+	// GIVEN: additional corner case of zero yaw weight
 	attitude_control.setProportionalGain(Vector3f(6.5f, 6.5f, yaw_gain), 0.f);
-	// WHEN: we command a pure yaw turn
-	rate_setpoint = attitude_control.update(Quatf(), Quatf(cosf(yaw_sp / 2.f), 0, 0, sinf(yaw_sp / 2.f)), 0.f);
+	// WHEN: we run one iteration of the controller
+	rate_setpoint = attitude_control.update(Quatf());
 	// THEN: no actuation (also no NAN)
 	EXPECT_EQ(rate_setpoint, Vector3f());
 }

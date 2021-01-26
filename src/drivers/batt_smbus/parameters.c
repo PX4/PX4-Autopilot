@@ -42,16 +42,6 @@
 PARAM_DEFINE_INT32(SENS_EN_BATT, 0);
 
 /**
- * SBMUS Smart Battery Type
- *
- * @reboot_required true
- *
- * @boolean
- * @group Sensors
- */
-PARAM_DEFINE_INT32(BATT_SMBUS_TYPE, 1);
-
-/**
  * Capacity/current multiplier for high-current capable SMBUS battery
  *
  * @reboot_required true
@@ -59,3 +49,16 @@ PARAM_DEFINE_INT32(BATT_SMBUS_TYPE, 1);
  * @group Sensors
  */
 PARAM_DEFINE_FLOAT(BAT_C_MULT, 1.0f);
+
+/**
+ * Battery device model
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 2
+ * @group Sensors
+ * @value 0 AutoDetect
+ * @value 1 BQ40Z50 based
+ * @value 2 BQ40Z80 based
+ */
+PARAM_DEFINE_INT32(BAT_SMBUS_MODEL, 0);

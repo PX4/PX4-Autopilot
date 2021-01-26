@@ -541,16 +541,10 @@ size_t
 param_size(param_t param)
 {
 	if (handle_in_range(param)) {
-
 		switch (param_type(param)) {
-
 		case PARAM_TYPE_INT32:
 		case PARAM_TYPE_FLOAT:
 			return 4;
-
-		case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX:
-			/* decode structure size from type value */
-			return param_type(param) - PARAM_TYPE_STRUCT;
 
 		default:
 			return 0;
@@ -588,14 +582,7 @@ param_get_value_ptr(param_t param)
 			v = &param_info_base[param].val;
 		}
 
-		if (param_type(param) >= PARAM_TYPE_STRUCT &&
-		    param_type(param) <= PARAM_TYPE_STRUCT_MAX) {
-
-			result = v->p;
-
-		} else {
-			result = v;
-		}
+		result = v;
 	}
 
 	return result;
@@ -761,7 +748,6 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 
 		/* update the changed value */
 		switch (param_type(param)) {
-
 		case PARAM_TYPE_INT32:
 			params_changed = params_changed || s->val.i != *(int32_t *)val;
 			s->val.i = *(int32_t *)val;
@@ -770,27 +756,6 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 		case PARAM_TYPE_FLOAT:
 			params_changed = params_changed || fabsf(s->val.f - * (float *)val) > FLT_EPSILON;
 			s->val.f = *(float *)val;
-			break;
-
-		case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX:
-			if (s->val.p == nullptr) {
-				size_t psize = param_size(param);
-
-				if (psize > 0) {
-					s->val.p = malloc(psize);
-
-				} else {
-					s->val.p = nullptr;
-				}
-
-				if (s->val.p == nullptr) {
-					PX4_ERR("failed to allocate parameter storage");
-					goto out;
-				}
-			}
-
-			memcpy(s->val.p, val, param_size(param));
-			params_changed = true;
 			break;
 
 		default:
@@ -1026,7 +991,7 @@ param_save_default()
 		goto do_exit;
 	}
 
-	res = param_export(fd, false);
+	res = param_export(fd, false, nullptr);
 
 	if (res != OK) {
 		PX4_ERR("failed to write parameters to file: %s", filename);
@@ -1108,7 +1073,7 @@ param_load_default_no_notify()
 		return 1;
 	}
 
-	int result = param_import(fd_load);
+	int result = param_import(fd_load, true);
 
 	close(fd_load);
 
@@ -1123,7 +1088,7 @@ param_load_default_no_notify()
 }
 
 int
-param_export(int fd, bool only_unsaved)
+param_export(int fd, bool only_unsaved, param_filter_func filter)
 {
 	perf_begin(param_export_perf);
 
@@ -1164,6 +1129,10 @@ param_export(int fd, bool only_unsaved)
 			continue;
 		}
 
+		if (filter && !filter(s->param)) {
+			continue;
+		}
+
 		s->unsaved = false;
 
 		/* Make sure to get latest from shmem before saving. */
@@ -1193,22 +1162,6 @@ param_export(int fd, bool only_unsaved)
 				PX4_DEBUG("exporting: %s (%d) size: %d val: %.3f", name, s->param, size, (double)f);
 
 				if (bson_encoder_append_double(&encoder, name, f)) {
-					PX4_ERR("BSON append failed for '%s'", name);
-					goto out;
-				}
-			}
-			break;
-
-		case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX: {
-				const void *value_ptr = param_get_value_ptr(s->param);
-
-				/* lock as short as possible */
-				if (bson_encoder_append_binary(&encoder,
-							       name,
-							       BSON_BIN_BINARY,
-							       size,
-							       value_ptr)) {
-
 					PX4_ERR("BSON append failed for '%s'", name);
 					goto out;
 				}
@@ -1398,10 +1351,10 @@ param_import_internal(int fd, bool mark_saved)
 }
 
 int
-param_import(int fd)
+param_import(int fd, bool mark_saved)
 {
 #if !defined(FLASH_BASED_PARAMS)
-	return param_import_internal(fd, false);
+	return param_import_internal(fd, mark_saved);
 #else
 	(void)fd; // unused
 	// no need for locking here

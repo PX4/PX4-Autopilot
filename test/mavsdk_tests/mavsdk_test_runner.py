@@ -2,6 +2,7 @@
 
 import argparse
 import datetime
+import fnmatch
 import json
 import math
 import os
@@ -32,7 +33,8 @@ def main() -> NoReturn:
     parser.add_argument("--model", type=str, default='all',
                         help="only run tests for one model")
     parser.add_argument("--case", type=str, default='all',
-                        help="only run tests for one case")
+                        help="only run tests for one case "
+                             "(or multiple cases with wildcard '*')")
     parser.add_argument("--debugger", default="",
                         help="choice from valgrind, callgrind, gdb, lldb")
     parser.add_argument("--verbose", default=False, action='store_true',
@@ -134,7 +136,7 @@ class Tester:
         self.gui = gui
         self.verbose = verbose
         self.start_time = datetime.datetime.now()
-        self.combined_log_fd = TextIO
+        self.log_fd: Any[TextIO] = None
 
     @classmethod
     def determine_tests(cls,
@@ -148,9 +150,14 @@ class Tester:
             for key in test['cases'].keys():
                 test['cases'][key] = {
                     'selected': (test['selected'] and
-                                 (case == 'all' or case == key))}
+                                 (case == 'all' or
+                                  cls.wildcard_match(case, key)))}
 
         return tests
+
+    @staticmethod
+    def wildcard_match(pattern: str, potential_match: str) -> bool:
+        return fnmatch.fnmatchcase(potential_match, pattern)
 
     @staticmethod
     def query_test_cases(filter: str) -> List[str]:
@@ -269,7 +276,7 @@ class Tester:
 
                 log_dir = self.get_log_dir(iteration, test['model'], key)
                 if self.verbose:
-                    print("creating log directory: {}"
+                    print("Creating log directory: {}"
                           .format(log_dir))
                 os.makedirs(log_dir, exist_ok=True)
 
@@ -341,6 +348,8 @@ class Tester:
             is_success = False
 
         self.stop_runners()
+        # Collect what was left in output buffers.
+        self.collect_runner_output()
         self.stop_combined_log()
 
         result = {'success': is_success,
@@ -422,9 +431,11 @@ class Tester:
                 break
 
             # Workaround to prevent gz not being able to communicate
-            # with gzserver
+            # with gzserver. In CI it tends to take longer.
             if os.getenv("GITHUB_WORKFLOW") and runner.name == "gzserver":
                 time.sleep(10)
+            else:
+                time.sleep(2)
 
         if abort:
             self.stop_runners()
@@ -452,7 +463,8 @@ class Tester:
         self.log_fd = open(filename, 'w')
 
     def stop_combined_log(self) -> None:
-        self.log_fd.close()
+        if self.log_fd:
+            self.log_fd.close()
 
     def add_to_combined_log(self, output: str) -> None:
         self.log_fd.write(output)

@@ -16,7 +16,7 @@ px4_add_board(
 		TEL2:/dev/ttyS2
 		TEL4:/dev/ttyS3
 	DRIVERS
-		adc
+		adc/board_adc
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
@@ -28,7 +28,7 @@ px4_add_board(
 		imu/adis16477
 		imu/adis16497
 		#imu # all available imu drivers
-		imu/bmi055
+		imu/bosch/bmi055
 		imu/invensense/icm20602
 		imu/invensense/icm20689
 		#imu/mpu6000 # legacy icm20602/icm20689 driver
@@ -58,6 +58,7 @@ px4_add_board(
 		dataman
 		ekf2
 		events
+		flight_mode_manager
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -82,6 +83,7 @@ px4_add_board(
 		hardfault_log
 		i2cdetect
 		led_control
+		mft
 		mixer
 		motor_ramp
 		motor_test
@@ -93,6 +95,7 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
+		system_time
 		top
 		topic_listener
 		tune_control

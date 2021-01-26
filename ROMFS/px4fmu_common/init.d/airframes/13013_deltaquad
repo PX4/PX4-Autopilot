@@ -16,8 +16,12 @@
 # @output MAIN7 Pusher motor
 # @output MAIN8 Pusher reverse channel
 #
+# @board px4_fmu-v2 exclude
+# @board intel_aerofc-v1 exclude
+# @board bitcraze_crazyflie exclude
+#
 
-sh /etc/init.d/rc.vtol_defaults
+. ${R}etc/init.d/rc.vtol_defaults
 
 if [ $AUTOCNF = yes ]
 then
@@ -34,7 +38,7 @@ then
 	param set EKF2_GPS_P_GATE 10
 	param set EKF2_GPS_V_GATE 10
 
-	param set FW_ARSP_MODE 2
+	param set FW_ARSP_MODE 1
 	param set FW_L1_PERIOD 25
 	param set FW_PR_FF 0.7
 	param set FW_PR_I 0.18
@@ -50,7 +54,6 @@ then
 	param set FW_T_SINK_MAX 3
 	param set FW_T_SINK_MIN 1
 	param set FW_T_VERT_ACC 6
-	param set FW_T_HRATE_P 0.1
 	param set FW_THR_CRUISE 0.70
 	param set FW_THR_SLEW_MAX 1
 	param set FW_MAN_P_MAX 30
@@ -93,7 +96,7 @@ then
 	param set MIS_TAKEOFF_ALT 15
 
 	param set MPC_XY_P 0.8
-	param set MPC_XY_VEL_P 0.1
+	param set MPC_XY_VEL_P_ACC 2
 	param set MPC_XY_VEL_MAX 5
 	param set MPC_ACC_HOR_MAX 2
 	param set MPC_LAND_SPEED 1.2

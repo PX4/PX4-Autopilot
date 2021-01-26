@@ -3,24 +3,17 @@
 # mRo Control Zero specific board sensors init
 #------------------------------------------------------------------------------
 
-adc start
+board_adc start
 
 # Internal ICM-20602
-icm20602 -s -R 4 start
+icm20602 -s -b 1 -R 8 start
 
 # Internal SPI bus BMI088 accel & gyro
-bmi088 -A -R 10 -s start
-bmi088 -G -R 10 -s start
+bmi088 -A -s -b 5 -R 8 start
+bmi088 -G -s -b 5 -R 8 start
 
-# Internal ICM-20948
-icm20948 -s -R 10 start
+# Internal ICM-20948 (with magnetometer)
+icm20948 -s -b 1 -R 8 -M start
 
 # Interal DPS310 (barometer)
-dps310 -s start
-
-# Possible external compasses
-ist8310 -X start
-hmc5883 -T -X start
-qmc5883 -X start
-lis3mdl -X start
-rm3100 -X start
+dps310 -s -b 2 start

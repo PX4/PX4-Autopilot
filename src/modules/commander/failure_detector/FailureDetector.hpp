@@ -54,6 +54,7 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/esc_status.h>
 #include <uORB/topics/pwm_input.h>
 
 typedef enum {
@@ -62,6 +63,7 @@ typedef enum {
 	FAILURE_PITCH = vehicle_status_s::FAILURE_PITCH,
 	FAILURE_ALT = vehicle_status_s::FAILURE_ALT,
 	FAILURE_EXT = vehicle_status_s::FAILURE_EXT,
+	FAILURE_ARM_ESCS = vehicle_status_s::FAILURE_ARM_ESC
 } failure_detector_bitmak;
 
 using uORB::SubscriptionData;
@@ -72,11 +74,24 @@ public:
 	FailureDetector(ModuleParams *parent);
 
 	bool update(const vehicle_status_s &vehicle_status);
-
 	uint8_t getStatus() const { return _status; }
-	bool isFailure() const { return _status != FAILURE_NONE; }
 
 private:
+	bool isAttitudeStabilized(const vehicle_status_s &vehicle_status);
+	void updateAttitudeStatus();
+	void updateExternalAtsStatus();
+	void updateEscsStatus(const vehicle_status_s &vehicle_status);
+
+	uint8_t _status{FAILURE_NONE};
+
+	systemlib::Hysteresis _roll_failure_hysteresis{false};
+	systemlib::Hysteresis _pitch_failure_hysteresis{false};
+	systemlib::Hysteresis _ext_ats_failure_hysteresis{false};
+	systemlib::Hysteresis _esc_failure_hysteresis{false};
+
+	uORB::Subscription _vehicule_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
+	uORB::Subscription _pwm_input_sub{ORB_ID(pwm_input)};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::FD_FAIL_P>) _param_fd_fail_p,
@@ -84,22 +99,7 @@ private:
 		(ParamFloat<px4::params::FD_FAIL_R_TTRI>) _param_fd_fail_r_ttri,
 		(ParamFloat<px4::params::FD_FAIL_P_TTRI>) _param_fd_fail_p_ttri,
 		(ParamBool<px4::params::FD_EXT_ATS_EN>) _param_fd_ext_ats_en,
-		(ParamInt<px4::params::FD_EXT_ATS_TRIG>) _param_fd_ext_ats_trig
+		(ParamInt<px4::params::FD_EXT_ATS_TRIG>) _param_fd_ext_ats_trig,
+		(ParamInt<px4::params::FD_ESCS_EN>) _param_escs_en
 	)
-
-	// Subscriptions
-	uORB::Subscription _sub_vehicule_attitude{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _sub_pwm_input{ORB_ID(pwm_input)};
-
-
-	uint8_t _status{FAILURE_NONE};
-
-	systemlib::Hysteresis _roll_failure_hysteresis{false};
-	systemlib::Hysteresis _pitch_failure_hysteresis{false};
-	systemlib::Hysteresis _ext_ats_failure_hysteresis{false};
-
-	bool resetStatus();
-	bool isAttitudeStabilized(const vehicle_status_s &vehicle_status);
-	bool updateAttitudeStatus();
-	bool updateExternalAtsStatus();
 };

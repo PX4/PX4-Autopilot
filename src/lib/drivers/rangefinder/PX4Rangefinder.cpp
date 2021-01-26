@@ -35,8 +35,7 @@
 
 #include <lib/drivers/device/Device.hpp>
 
-PX4Rangefinder::PX4Rangefinder(const uint32_t device_id, const ORB_PRIO priority, const uint8_t device_orientation) :
-	_distance_sensor_pub{ORB_ID(distance_sensor), priority}
+PX4Rangefinder::PX4Rangefinder(const uint32_t device_id, const uint8_t device_orientation)
 {
 	_distance_sensor_pub.advertise();
 
@@ -85,8 +84,4 @@ void PX4Rangefinder::update(const hrt_abstime &timestamp_sample, const float dis
 	}
 
 	_distance_sensor_pub.update();
-}
-
-void PX4Rangefinder::print_status()
-{
 }

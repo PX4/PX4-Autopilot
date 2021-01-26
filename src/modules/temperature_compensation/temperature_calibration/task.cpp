@@ -87,7 +87,7 @@ public:
 private:
 	void publish_led_control(led_control_s &led_control);
 
-	uORB::PublicationQueued<led_control_s> _led_control_pub{ORB_ID(led_control)};
+	uORB::Publication<led_control_s> _led_control_pub{ORB_ID(led_control)};
 
 	bool	_force_task_exit = false;
 	int	_control_task = -1;		// task handle for task
@@ -162,16 +162,6 @@ void TemperatureCalibration::task_main()
 			PX4_ERR("alloc failed");
 		}
 	}
-
-	// reset params
-	for (int i = 0; i < num_calibrators; ++i) {
-		calibrators[i]->reset_calibration();
-	}
-
-	// make sure the system updates the changed parameters
-	param_notify_changes();
-
-	px4_usleep(300000); // wait a bit for the system to apply the parameters
 
 	hrt_abstime next_progress_output = hrt_absolute_time() + 1e6;
 

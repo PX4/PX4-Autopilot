@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# @name DJI Flame Wheel F330
+# @name DJI F330 w/ DJI ESCs
 #
 # @type Quadrotor x
 # @class Copter
@@ -8,7 +8,7 @@
 # @maintainer Lorenz Meier <lorenz@px4.io>
 #
 
-sh /etc/init.d/rc.mc_defaults
+. ${R}etc/init.d/rc.mc_defaults
 
 set MIXER quad_x
 set PWM_OUT 1234

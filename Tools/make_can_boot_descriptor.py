@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 import sys
@@ -182,7 +182,7 @@ class FirmwareImage(object):
             self._contents.seek(0, os.SEEK_END)
             self._length = self._contents.tell()
             if self._padding:
-                fill = self._length % self._padding
+                fill = self._padding - (self._length % self._padding)
                 if fill:
                     self._length += fill
                 self._padding = fill

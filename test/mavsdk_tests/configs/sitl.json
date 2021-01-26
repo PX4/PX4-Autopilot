@@ -11,26 +11,14 @@
             "timeout_min": 10
         },
         {
-            "model": "iris_opt_flow_mockup",
-            "vehicle": "iris_opt_flow_mockup",
-            "test_filter": "[multicopter][offboard][nogps]",
-            "timeout_min": 10
-        },
-        {
-            "model": "iris_vision_velocity",
-            "vehicle": "iris_vision",
-            "test_filter": "[multicopter][offboard][nogps]",
-            "timeout_min": 10
-        },
-        {
-            "model": "iris_vision",
-            "vehicle": "iris_vision",
-            "test_filter": "[multicopter][offboard][nogps]",
-            "timeout_min": 10
-        },
-        {
             "model": "standard_vtol",
             "vehicle": "standard_vtol",
+            "test_filter": "[multicopter][vtol]",
+            "timeout_min": 10
+        },
+        {
+            "model": "tailsitter",
+            "vehicle": "tailsitter",
             "test_filter": "[multicopter][vtol]",
             "timeout_min": 10
         }

@@ -3,15 +3,12 @@
 # Omnibus F4SD specific board sensors init
 #------------------------------------------------------------------------------
 
-adc start
+board_adc start
 
 if ! mpu6000 -R 6 -s start
 then
 	# some boards such as the Hobbywing XRotor F4 G2 use the ICM-20602
 	icm20602 -s -R 6 start
 fi
-
-# Possible external compasses
-hmc5883 -X start
 
 bmp280 -s start

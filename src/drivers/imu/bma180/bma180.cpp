@@ -179,10 +179,9 @@ BMA180::BMA180(I2CSPIBusOption bus_option, int bus, int32_t device, enum Rotatio
 	       spi_mode_e spi_mode) :
 	SPI(DRV_ACC_DEVTYPE_BMA180, MODULE_NAME, bus, device, spi_mode, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_accel(get_device_id(), ORB_PRIO_MAX, rotation),
+	_px4_accel(get_device_id(), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read"))
 {
-	_px4_accel.set_update_rate(1000);
 }
 
 BMA180::~BMA180()
@@ -432,7 +431,6 @@ void BMA180::print_status()
 {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
-	_px4_accel.print_status();
 }
 
 void BMA180::print_usage()

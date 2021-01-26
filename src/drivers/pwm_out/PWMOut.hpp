@@ -161,14 +161,15 @@ private:
 
 	Mode		_mode{MODE_NONE};
 
+	uint32_t	_backup_schedule_interval_us{1_s};
+
 	unsigned	_pwm_default_rate{50};
 	unsigned	_pwm_alt_rate{50};
 	uint32_t	_pwm_alt_rate_channels{0};
 
 	unsigned	_current_update_rate{0};
 
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
-
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	unsigned	_num_outputs{0};
 	int		_class_instance{-1};
