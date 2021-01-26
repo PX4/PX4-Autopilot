@@ -1,0 +1,11 @@
+# Status of the takeoff state machine currently just availble for multicopters
+
+uint64 timestamp # time since system start (microseconds)
+
+uint8 TAKEOFF_STATE_DISARMED = 0
+uint8 TAKEOFF_STATE_SPOOLUP = 1
+uint8 TAKEOFF_STATE_READY_FOR_TAKEOFF = 2
+uint8 TAKEOFF_STATE_RAMPUP = 3
+uint8 TAKEOFF_STATE_FLIGHT = 4
+
+uint8 takeoff_state

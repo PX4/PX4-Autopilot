@@ -44,7 +44,9 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/Publication.hpp>
+#include <uORB/topics/landing_gear.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/takeoff_status.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
@@ -134,6 +136,7 @@ private:
 	Takeoff _takeoff; ///< state machine and ramp to bring the vehicle off the ground without a jump
 	WeatherVane *_wv_controller{nullptr};
 	int8_t _old_landing_gear_position{landing_gear_s::GEAR_KEEP};
+	uint8_t _old_takeoff_state{0};
 	int _task_failure_count{0};
 	uint8_t _last_vehicle_nav_state{0};
 
@@ -153,6 +156,7 @@ private:
 	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	uORB::Publication<landing_gear_s> _landing_gear_pub{ORB_ID(landing_gear)};
+	uORB::Publication<takeoff_status_s> _takeoff_status_pub{ORB_ID(takeoff_status)};
 	uORB::Publication<vehicle_local_position_setpoint_s> _trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
 	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
