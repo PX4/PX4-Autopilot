@@ -34,10 +34,6 @@
  *
  ****************************************************************************/
 
-/****************************************************************************
- * Included Files
- ****************************************************************************/
-
 #include <nuttx/config.h>
 
 #include <stdint.h>
@@ -47,16 +43,13 @@
 #include "stm32.h"
 
 #include <errno.h>
-#include "boot_app_shared.h"
-#include "systemlib/crc.h"
 
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
+#include "boot_app_shared.h"
+
+#include <lib/systemlib/crc.h>
 
 #define BOOTLOADER_COMMON_APP_SIGNATURE         0xB0A04150u
 #define BOOTLOADER_COMMON_BOOTLOADER_SIGNATURE  0xB0A0424Cu
-
 
 /*  CAN_FiRx where (i=0..27|13, x=1, 2)
  *                      STM32_CAN1_FIR(i,x)
@@ -73,30 +66,6 @@
 #define CRC_H 1
 #define CRC_L 0
 
-/****************************************************************************
- * Private Types
- ****************************************************************************/
-
-/****************************************************************************
- * Private Function Prototypes
- ****************************************************************************/
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: read
- ****************************************************************************/
-
 inline static void read(bootloader_app_shared_t *pshared)
 {
 	pshared->signature = getreg32(signature_LOC);
@@ -104,12 +73,7 @@ inline static void read(bootloader_app_shared_t *pshared)
 	pshared->node_id = getreg32(node_id_LOC);
 	pshared->crc.ul[CRC_L] = getreg32(crc_LoLOC);
 	pshared->crc.ul[CRC_H] = getreg32(crc_HiLOC);
-
 }
-
-/****************************************************************************
- * Name: write
- ****************************************************************************/
 
 inline static void write(bootloader_app_shared_t *pshared)
 {
@@ -118,12 +82,7 @@ inline static void write(bootloader_app_shared_t *pshared)
 	putreg32(pshared->node_id, node_id_LOC);
 	putreg32(pshared->crc.ul[CRC_L], crc_LoLOC);
 	putreg32(pshared->crc.ul[CRC_H], crc_HiLOC);
-
 }
-
-/****************************************************************************
- * Name: calulate_signature
- ****************************************************************************/
 
 static uint64_t calulate_signature(bootloader_app_shared_t *pshared)
 {
@@ -135,9 +94,6 @@ static uint64_t calulate_signature(bootloader_app_shared_t *pshared)
 	return crc;
 }
 
-/****************************************************************************
- * Name: bootloader_app_shared_init
- ****************************************************************************/
 static void bootloader_app_shared_init(bootloader_app_shared_t *pshared, eRole_t role)
 {
 	memset(pshared, 0, sizeof(bootloader_app_shared_t));
@@ -148,12 +104,8 @@ static void bootloader_app_shared_init(bootloader_app_shared_t *pshared, eRole_t
 			 App ? BOOTLOADER_COMMON_APP_SIGNATURE :
 			 BOOTLOADER_COMMON_BOOTLOADER_SIGNATURE);
 	}
-
 }
 
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
 /****************************************************************************
  * Name: bootloader_app_shared_read
  *
@@ -181,10 +133,7 @@ static void bootloader_app_shared_init(bootloader_app_shared_t *pshared, eRole_t
  *            did not occur.
  *
  ****************************************************************************/
-
-__EXPORT
-int bootloader_app_shared_read(bootloader_app_shared_t *shared,
-			       eRole_t role)
+__EXPORT int bootloader_app_shared_read(bootloader_app_shared_t *shared, eRole_t role)
 {
 	int rv = -EBADR;
 	bootloader_app_shared_t working;
@@ -224,18 +173,12 @@ int bootloader_app_shared_read(bootloader_app_shared_t *shared,
  *   None.
  *
  ****************************************************************************/
-__EXPORT
-void bootloader_app_shared_write(bootloader_app_shared_t *shared,
-				 eRole_t role)
+__EXPORT void bootloader_app_shared_write(bootloader_app_shared_t *shared, eRole_t role)
 {
 	bootloader_app_shared_t working = *shared;
-	working.signature =
-		(role ==
-		 App ? BOOTLOADER_COMMON_APP_SIGNATURE :
-		 BOOTLOADER_COMMON_BOOTLOADER_SIGNATURE);
+	working.signature = (role == App ? BOOTLOADER_COMMON_APP_SIGNATURE : BOOTLOADER_COMMON_BOOTLOADER_SIGNATURE);
 	working.crc.ull = calulate_signature(&working);
 	write(&working);
-
 }
 
 /****************************************************************************
@@ -255,9 +198,7 @@ void bootloader_app_shared_write(bootloader_app_shared_t *shared,
  *   None.
  *
  ****************************************************************************/
-
-__EXPORT
-void bootloader_app_shared_invalidate(void)
+__EXPORT void bootloader_app_shared_invalidate(void)
 {
 	bootloader_app_shared_t working;
 	bootloader_app_shared_init(&working, Invalid);
