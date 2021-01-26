@@ -119,12 +119,16 @@ px4_add_module(
 		${LIBUAVCAN_DIR}/libuavcan/include/dsdlc_generated
 		${LIBUAVCAN_DIR}/libuavcan_drivers/posix/include
 		${LIBUAVCAN_DIR_DRIVERS}/${UAVCAN_DRIVER}/driver/include
+	COMPILE_OPTIONS
+		#-O0
 	SRCS
 		allocator.hpp
 		uavcan_driver.hpp
 		indication_controller.cpp
 		UavcanNode.cpp
 		UavcanNode.hpp
+		UavcanNodeParamManager.hpp
+		UavcanNodeParamManager.cpp
 	DEPENDS
 		px4_uavcan_dsdlc
 
