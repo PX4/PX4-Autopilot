@@ -41,15 +41,16 @@
 
 #include <lib/hysteresis/hysteresis.h>
 #include <drivers/drv_hrt.h>
+#include <uORB/topics/takeoff_status.h>
 
 using namespace time_literals;
 
 enum class TakeoffState {
-	disarmed = 0,
-	spoolup,
-	ready_for_takeoff,
-	rampup,
-	flight
+	disarmed = takeoff_status_s::TAKEOFF_STATE_DISARMED,
+	spoolup = takeoff_status_s::TAKEOFF_STATE_SPOOLUP,
+	ready_for_takeoff = takeoff_status_s::TAKEOFF_STATE_READY_FOR_TAKEOFF,
+	rampup = takeoff_status_s::TAKEOFF_STATE_RAMPUP,
+	flight = takeoff_status_s::TAKEOFF_STATE_FLIGHT
 };
 
 class Takeoff
