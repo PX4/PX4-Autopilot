@@ -1,3 +1,13 @@
+/**
+ * @file rotoye_batmon.cpp
+ *
+ * Header for a battery monitor connected via SMBus (I2C).
+ * Designed for Rotoye Batmon
+ *
+ * @author Nick Belanger <nbelanger@mail.skymul.com>
+ */
+
+
 #include "rotoye_batmon.h"
 #include <lib/parameters/param.h>
 
@@ -27,6 +37,8 @@ void Rotoye_Batmon::RunImpl()
 	{
 		new_report.voltage_cell_v[i] = _cell_voltages[i];
 	}
+
+	// TODO: Check warning flags (same as BQ driver)
 
 	// Only publish if no errors.
 	if (!ret) {

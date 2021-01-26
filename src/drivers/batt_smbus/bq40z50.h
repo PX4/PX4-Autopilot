@@ -1,5 +1,5 @@
 /**
- * @file bq40zx.h
+ * @file bq40z50.h
  *
  * Header for a battery monitor connected via SMBus (I2C).
  * Designed for BQ40Z50-R1/R2

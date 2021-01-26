@@ -1,3 +1,12 @@
+/**
+ * @file bq40z50.cpp
+ *
+ * Header for a battery monitor connected via SMBus (I2C).
+ * Designed for BQ40Z50-R1/R2
+ *
+ * @author Nick Belanger <nbelanger@mail.skymul.com>
+ */
+
 
 #include "bq40z50.h"
 #include <lib/parameters/param.h>

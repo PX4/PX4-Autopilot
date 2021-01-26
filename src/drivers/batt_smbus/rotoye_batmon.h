@@ -2,7 +2,7 @@
  * @file rotoye_batmon.h
  *
  * Header for a battery monitor connected via SMBus (I2C).
- * Designed for Rotoye Batmon BMS
+ * Designed for Rotoye Batmon
  *
  * @author Nick Belanger <nbelanger@mail.skymul.com>
  */

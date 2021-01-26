@@ -40,6 +40,7 @@
  * @author Jacob Dahl <dahl.jakejacob@gmail.com>
  * @author Alex Klimaj <alexklimaj@gmail.com>
  * @author Bazooka Joe <BazookaJoe1900@gmail.com>
+ * @author Nick Belanger <nbelanger@mail.skymul.com>
  */
 
 #pragma once

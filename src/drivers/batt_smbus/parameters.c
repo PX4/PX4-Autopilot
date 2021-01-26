@@ -60,5 +60,6 @@ PARAM_DEFINE_FLOAT(BAT_C_MULT, 1.0f);
  * @value 0 AutoDetect
  * @value 1 BQ40Z50 based
  * @value 2 BQ40Z80 based
+ * @value 3 Rotoye Batmon
  */
 PARAM_DEFINE_INT32(BAT_SMBUS_MODEL, 0);
