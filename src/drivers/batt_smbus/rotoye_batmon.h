@@ -38,8 +38,6 @@ class Rotoye_Batmon : public BATT_SMBUS
 
 	void RunImpl() override;
 
-	int get_startup_info() override;
-
 	void custom_method(const BusCLIArguments &cli) override;
 
 	int get_cell_voltages() override;

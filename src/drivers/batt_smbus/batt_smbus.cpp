@@ -56,8 +56,8 @@ BATT_SMBUS::BATT_SMBUS(I2CSPIBusOption bus_option, const int bus, SMBus *interfa
 	battery_status_s new_report = {};
 	_batt_topic = orb_advertise(ORB_ID(battery_status), &new_report);
 
-	int battsource = 1;
-	int batt_device_type = (int)SMBUS_DEVICE_TYPE::UNDEFINED;
+	int32_t battsource = 1;
+	int32_t batt_device_type = (int)SMBUS_DEVICE_TYPE::UNDEFINED;
 
 	param_set(param_find("BAT_SOURCE"), &battsource);
 	param_get(param_find("BAT_SMBUS_MODEL"), &batt_device_type);
@@ -109,6 +109,55 @@ uint16_t BATT_SMBUS::get_serial_number()
 
 	return PX4_ERROR;
 }
+
+int BATT_SMBUS::get_startup_info()
+{
+	int ret = PX4_OK;
+
+	// Read battery threshold params on startup.
+	param_get(param_find("BAT_CRIT_THR"), &_crit_thr);
+	param_get(param_find("BAT_LOW_THR"), &_low_thr);
+	param_get(param_find("BAT_EMERGEN_THR"), &_emergency_thr);
+	param_get(param_find("BAT_C_MULT"), &_c_mult);
+
+	int32_t cell_count_param = 0;
+	param_get(param_find("BAT_N_CELLS"), &cell_count_param);
+	_cell_count = (uint8_t)cell_count_param;
+
+	ret |= _interface->block_read(BATT_SMBUS_MANUFACTURER_NAME, _manufacturer_name, BATT_SMBUS_MANUFACTURER_NAME_SIZE,
+				      true);
+	_manufacturer_name[sizeof(_manufacturer_name) - 1] = '\0';
+
+	uint16_t serial_num;
+	ret |= _interface->read_word(BATT_SMBUS_SERIAL_NUMBER, serial_num);
+
+	uint16_t remaining_cap;
+	ret |= _interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, remaining_cap);
+
+	uint16_t cycle_count;
+	ret |= _interface->read_word(BATT_SMBUS_CYCLE_COUNT, cycle_count);
+
+	uint16_t full_cap;
+	ret |= _interface->read_word(BATT_SMBUS_FULL_CHARGE_CAPACITY, full_cap);
+
+	uint16_t manufacture_date;
+	ret |= _interface->read_word(BATT_SMBUS_MANUFACTURE_DATE, manufacture_date);
+
+	uint16_t state_of_health;
+	ret |= _interface->read_word(BATT_SMBUS_STATE_OF_HEALTH, state_of_health);
+
+	if (!ret) {
+		_serial_number = serial_num;
+		_batt_startup_capacity = (uint16_t)((float)remaining_cap * _c_mult);
+		_cycle_count = cycle_count;
+		_batt_capacity = (uint16_t)((float)full_cap * _c_mult);
+		_manufacture_date = manufacture_date;
+		_state_of_health = state_of_health;
+	}
+
+	return ret;
+}
+
 
 int BATT_SMBUS::manufacture_date()
 {
@@ -178,12 +227,12 @@ I2CSPIDriverBase *BATT_SMBUS::instantiate(const BusCLIArguments &cli, const BusI
 		return nullptr;
 	}
 
-	SMBUS_DEVICE_TYPE batt_device_type = SMBUS_DEVICE_TYPE::UNDEFINED;
+	int32_t batt_device_type = (int)SMBUS_DEVICE_TYPE::UNDEFINED;
 	param_get(param_find("BAT_SMBUS_MODEL"), &batt_device_type);
 
-	BATT_SMBUS *instance;
+	BATT_SMBUS *instance = nullptr;
 
-	switch(batt_device_type) {
+	switch((SMBUS_DEVICE_TYPE)batt_device_type) {
 
 		case SMBUS_DEVICE_TYPE::BQ40Z80:
 		// TODO

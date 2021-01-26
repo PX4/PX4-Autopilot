@@ -5,10 +5,7 @@
 
 int BQ40Z50::get_startup_info()
 {
-	int result = 0;
-
-	// The name field is 21 characters, add one for null terminator.
-	const unsigned name_length = 22;
+	int ret = PX4_OK;
 
 	// Read battery threshold params on startup.
 	param_get(param_find("BAT_CRIT_THR"), &_crit_thr);
@@ -16,42 +13,39 @@ int BQ40Z50::get_startup_info()
 	param_get(param_find("BAT_EMERGEN_THR"), &_emergency_thr);
 	param_get(param_find("BAT_C_MULT"), &_c_mult);
 
-	// Try and get battery SBS info.
-	if (_manufacturer_name == nullptr) {
-		char man_name[name_length] = {};
-		result = manufacturer_name((uint8_t *)man_name, sizeof(man_name));
+	int32_t cell_count_param = 0;
+	param_get(param_find("BAT_N_CELLS"), &cell_count_param);
+	_cell_count = (uint8_t)cell_count_param;
 
-		if (result != PX4_OK) {
-			PX4_DEBUG("Failed to get manufacturer name");
-			return PX4_ERROR;
-		}
-
-		_manufacturer_name = new char[sizeof(man_name)];
-
-		PX4_INFO("The manufacturer name: %s", man_name);
-	}
+	ret |= _interface->block_read(BATT_SMBUS_MANUFACTURER_NAME, _manufacturer_name, BATT_SMBUS_MANUFACTURER_NAME_SIZE,
+				      true);
+	_manufacturer_name[sizeof(_manufacturer_name) - 1] = '\0';
 
 	uint16_t serial_num;
-	result = _interface->read_word(BATT_SMBUS_SERIAL_NUMBER, serial_num);
+	ret |= _interface->read_word(BATT_SMBUS_SERIAL_NUMBER, serial_num);
 
 	uint16_t remaining_cap;
-	result |= _interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, remaining_cap);
+	ret |= _interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, remaining_cap);
 
 	uint16_t cycle_count;
-	result |= _interface->read_word(BATT_SMBUS_CYCLE_COUNT, cycle_count);
+	ret |= _interface->read_word(BATT_SMBUS_CYCLE_COUNT, cycle_count);
 
 	uint16_t full_cap;
-	result |= _interface->read_word(BATT_SMBUS_FULL_CHARGE_CAPACITY, full_cap);
+	ret |= _interface->read_word(BATT_SMBUS_FULL_CHARGE_CAPACITY, full_cap);
 
-	uint16_t cell_count;
-	result |= _interface->read_word(BATT_SMBUS_CELL_COUNT, cell_count);
+	uint16_t manufacture_date;
+	ret |= _interface->read_word(BATT_SMBUS_MANUFACTURE_DATE, manufacture_date);
 
-	if (!result) {
+	uint16_t state_of_health;
+	ret |= _interface->read_word(BATT_SMBUS_STATE_OF_HEALTH, state_of_health);
+
+	if (!ret) {
 		_serial_number = serial_num;
 		_batt_startup_capacity = (uint16_t)((float)remaining_cap * _c_mult);
 		_cycle_count = cycle_count;
-		_batt_capacity = full_cap;
-		_cell_count = cell_count;
+		_batt_capacity = (uint16_t)((float)full_cap * _c_mult);
+		_manufacture_date = manufacture_date;
+		_state_of_health = state_of_health;
 	}
 
 	if (lifetime_data_flush() == PX4_OK) {
@@ -69,7 +63,7 @@ int BQ40Z50::get_startup_info()
 		PX4_WARN("Failed to flush lifetime data");
 	}
 
-	return result;
+	return ret;
 }
 
 void BQ40Z50::RunImpl()
@@ -144,8 +138,6 @@ void BQ40Z50::RunImpl()
 			new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
 		}
 	}
-
-	new_report.is_smart = true;
 
 	// Read battery temperature and covert to Celsius.
 	ret |= _interface->read_word(BATT_SMBUS_TEMP, result);
@@ -269,25 +261,6 @@ int BQ40Z50::seal()
 int BQ40Z50::lifetime_data_flush()
 {
 	return manufacturer_write(BATT_SMBUS_LIFETIME_FLUSH, nullptr, 0);
-}
-}
-
-int BQ40Z50::lifetime_read_block_one()
-{
-	const int buffer_size = 32 + 2; // 32 bytes of data and 2 bytes of address
-	uint8_t lifetime_block_one[buffer_size] = {};
-
-	if (PX4_OK != manufacturer_read(BATT_SMBUS_LIFETIME_BLOCK_ONE, lifetime_block_one, buffer_size)) {
-		PX4_INFO("Failed to read lifetime block 1.");
-		return PX4_ERROR;
-	}
-
-	//Get max cell voltage delta and convert from mV to V.
-	_lifetime_max_delta_cell_voltage = (float)(lifetime_block_one[17] << 8 | lifetime_block_one[16]) / 1000.0f;
-
-	PX4_INFO("Max Cell Delta: %4.2f", (double)_lifetime_max_delta_cell_voltage);
-
-	return PX4_OK;
 }
 
 void BQ40Z50::set_undervoltage_protection(float average_current)

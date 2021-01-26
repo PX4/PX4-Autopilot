@@ -225,7 +225,7 @@ public:
 	* @brief Read info from battery on startup.
 	* @return Returns PX4_OK on success, PX4_ERROR on failure.
 	*/
-	virtual int get_startup_info() = 0;
+	virtual int get_startup_info();
 
 	/**
 	 * @brief Gets the SBS manufacture date of the battery.

@@ -2,60 +2,6 @@
 #include <lib/parameters/param.h>
 
 
-int Rotoye_Batmon::get_startup_info()
-{
-	int result = 0;
-
-	// The name field is 21 characters, add one for null terminator.
-	const unsigned name_length = 22;
-
-	// Read battery threshold params on startup.
-	param_get(param_find("BAT_CRIT_THR"), &_crit_thr);
-	param_get(param_find("BAT_LOW_THR"), &_low_thr);
-	param_get(param_find("BAT_EMERGEN_THR"), &_emergency_thr);
-	param_get(param_find("BAT_C_MULT"), &_c_mult);
-
-	// Try and get battery SBS info.
-	if (_manufacturer_name == nullptr) {
-		char man_name[name_length] = {};
-		result = manufacturer_name((uint8_t *)man_name, sizeof(man_name));
-
-		if (result != PX4_OK) {
-			PX4_DEBUG("Failed to get manufacturer name");
-			return PX4_ERROR;
-		}
-
-		_manufacturer_name = new char[sizeof(man_name)];
-
-		PX4_INFO("The manufacturer name: %s", man_name);
-	}
-
-	uint16_t serial_num;
-	result = _interface->read_word(BATT_SMBUS_SERIAL_NUMBER, serial_num);
-
-	uint16_t remaining_cap;
-	result |= _interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, remaining_cap);
-
-	uint16_t cycle_count;
-	result |= _interface->read_word(BATT_SMBUS_CYCLE_COUNT, cycle_count);
-
-	uint16_t full_cap;
-	result |= _interface->read_word(BATT_SMBUS_FULL_CHARGE_CAPACITY, full_cap);
-
-	uint16_t cell_count;
-	result |= _interface->read_word(BATT_SMBUS_CELL_COUNT, cell_count);
-
-	if (!result) {
-		_serial_number = serial_num;
-		_batt_startup_capacity = (uint16_t)((float)remaining_cap * _c_mult);
-		_cycle_count = cycle_count;
-		_batt_capacity = full_cap;
-		_cell_count = cell_count;
-	}
-
-	return result;
-}
-
 void Rotoye_Batmon::RunImpl()
 {
 	// Get the current time.
@@ -89,7 +35,6 @@ void Rotoye_Batmon::RunImpl()
 	new_report.current_a = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f) * _c_mult;
 	new_report.current_filtered_a = new_report.current_a;
 
-	new_report.is_smart = true;
 	// Read remaining capacity.
 	ret |= _interface->read_word(BATT_SMBUS_RELATIVE_SOC, result);
 	new_report.remaining = (float)result/100;
@@ -120,7 +65,7 @@ void Rotoye_Batmon::RunImpl()
 	}
 }
 
-int BATT_SMBUS::get_cell_voltages()
+int Rotoye_Batmon::get_cell_voltages()
 {
 	// Temporary variable for storing SMBUS reads.
 	uint16_t result = 0;
