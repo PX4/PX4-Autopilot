@@ -1,18 +1,19 @@
 /**
- * @file bq40z50.cpp
+ * @file bq40zx.cpp
  *
  * Header for a battery monitor connected via SMBus (I2C).
- * Designed for BQ40Z50-R1/R2
+ * Designed for BQ40Z50/80
  *
  * @author Nick Belanger <nbelanger@mail.skymul.com>
+ * @author Eohan George <eg@.skymul.com>
  */
 
 
-#include "bq40z50.h"
+#include "bq40zx.h"
 #include <lib/parameters/param.h>
 
 
-int BQ40Z50::get_startup_info()
+int BQ40ZX::get_startup_info()
 {
 	int ret = PX4_OK;
 
@@ -75,7 +76,7 @@ int BQ40Z50::get_startup_info()
 	return ret;
 }
 
-void BQ40Z50::RunImpl()
+void BQ40ZX::RunImpl()
 {
 	// Get the current time.
 	uint64_t now = hrt_absolute_time();
@@ -160,7 +161,7 @@ void BQ40Z50::RunImpl()
 }
 
 //@NOTE: Currently unused, could be helpful for debugging a parameter set though.
-int BQ40Z50::dataflash_read(uint16_t &address, void *data, const unsigned length)
+int BQ40ZX::dataflash_read(uint16_t &address, void *data, const unsigned length)
 {
 	uint8_t code = BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS;
 
@@ -175,7 +176,7 @@ int BQ40Z50::dataflash_read(uint16_t &address, void *data, const unsigned length
 	return result;
 }
 
-int BQ40Z50::dataflash_write(uint16_t address, void *data, const unsigned length)
+int BQ40ZX::dataflash_write(uint16_t address, void *data, const unsigned length)
 {
 	uint8_t code = BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS;
 
@@ -196,7 +197,7 @@ int BQ40Z50::dataflash_write(uint16_t address, void *data, const unsigned length
 	return result;
 }
 
-int BQ40Z50::manufacturer_read(const uint16_t cmd_code, void *data, const unsigned length)
+int BQ40ZX::manufacturer_read(const uint16_t cmd_code, void *data, const unsigned length)
 {
 	uint8_t code = BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS;
 
@@ -216,7 +217,7 @@ int BQ40Z50::manufacturer_read(const uint16_t cmd_code, void *data, const unsign
 	return result;
 }
 
-int BQ40Z50::manufacturer_write(const uint16_t cmd_code, void *data, const unsigned length)
+int BQ40ZX::manufacturer_write(const uint16_t cmd_code, void *data, const unsigned length)
 {
 	uint8_t code = BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS;
 
@@ -236,9 +237,9 @@ int BQ40Z50::manufacturer_write(const uint16_t cmd_code, void *data, const unsig
 	return result;
 }
 
-int BQ40Z50::unseal()
+int BQ40ZX::unseal()
 {
-	// See bq40z50 technical reference.
+	// See BQ40ZX technical reference.
 	uint16_t keys[2] = {0x0414, 0x3672};
 
 	int ret = _interface->write_word(BATT_SMBUS_MANUFACTURER_ACCESS, keys[0]);
@@ -248,20 +249,20 @@ int BQ40Z50::unseal()
 	return ret;
 }
 
-int BQ40Z50::seal()
+int BQ40ZX::seal()
 {
-	// See bq40z50 technical reference.
+	// See BQ40ZX technical reference.
 	uint16_t reg = BATT_SMBUS_SEAL;
 
 	return manufacturer_write(reg, nullptr, 0);
 }
 
-int BQ40Z50::lifetime_data_flush()
+int BQ40ZX::lifetime_data_flush()
 {
 	return manufacturer_write(BATT_SMBUS_LIFETIME_FLUSH, nullptr, 0);
 }
 
-void BQ40Z50::set_undervoltage_protection(float average_current)
+void BQ40ZX::set_undervoltage_protection(float average_current)
 {
 	// Disable undervoltage protection if armed. Enable if disarmed and cell voltage is above limit.
 	if (average_current > BATT_CURRENT_UNDERVOLTAGE_THRESHOLD) {
@@ -299,7 +300,7 @@ void BQ40Z50::set_undervoltage_protection(float average_current)
 
 }
 
-int BQ40Z50::get_cell_voltages()
+int BQ40ZX::get_cell_voltages()
 {
 	// Temporary variable for storing SMBUS reads.
 	uint16_t result = 0;
@@ -371,7 +372,7 @@ int BQ40Z50::get_cell_voltages()
 	return ret;
 }
 
-int BQ40Z50::lifetime_read_block_one()
+int BQ40ZX::lifetime_read_block_one()
 {
 	uint8_t lifetime_block_one[32 + 2] = {}; // 32 bytes of data and 2 bytes of address
 
@@ -395,7 +396,7 @@ int BQ40Z50::lifetime_read_block_one()
 	return PX4_OK;
 }
 
-void BQ40Z50::custom_method(const BusCLIArguments &cli)
+void BQ40ZX::custom_method(const BusCLIArguments &cli)
 {
 	switch(cli.custom1) {
 		case 1: {

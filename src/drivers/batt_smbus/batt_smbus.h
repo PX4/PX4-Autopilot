@@ -41,6 +41,7 @@
  * @author Alex Klimaj <alexklimaj@gmail.com>
  * @author Bazooka Joe <BazookaJoe1900@gmail.com>
  * @author Nick Belanger <nbelanger@mail.skymul.com>
+ * @author Eohan George <eg@.skymul.com>
  */
 
 #pragma once

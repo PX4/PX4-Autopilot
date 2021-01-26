@@ -41,12 +41,13 @@
  * @author Alex Klimaj <alexklimaj@gmail.com>
  * @author Bazooka Joe <BazookaJoe1900@gmail.com>
  * @author Nick Belanger <nbelanger@mail.skymul.com>
+ * @author Eohan George <eg@.skymul.com>
  *
  */
 
 #include "batt_smbus.h"
 #include "rotoye_batmon.h"
-#include "bq40z50.h"
+#include "bq40zx.h"
 
 extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]);
 
@@ -260,7 +261,7 @@ void BATT_SMBUS::print_usage()
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-Smart battery driver for the BQ40Z50 fuel gauge IC.
+Smart battery driver for the SMBus-enabled batteries
 
 ### Examples
 To write to flash to set parameters. address, number_of_bytes, byte0, ... , byteN
@@ -303,12 +304,14 @@ I2CSPIDriverBase *BATT_SMBUS::instantiate(const BusCLIArguments &cli, const BusI
 
 	switch((SMBUS_DEVICE_TYPE)batt_device_type) {
 
+		// TODO: implement seperate classes
+		//       for the BQ40zx devices
 		case SMBUS_DEVICE_TYPE::BQ40Z80:
-		// TODO
+		instance = new BQ40ZX(iterator.configuredBusOption(), iterator.bus(), interface);
 		break;
 
 		case SMBUS_DEVICE_TYPE::BQ40Z50:
-		instance = new BQ40Z50(iterator.configuredBusOption(), iterator.bus(), interface);
+		instance = new BQ40ZX(iterator.configuredBusOption(), iterator.bus(), interface);
 		break;
 
 		case SMBUS_DEVICE_TYPE::ROTOYE_BATMON:

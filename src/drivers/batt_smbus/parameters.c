@@ -57,7 +57,7 @@ PARAM_DEFINE_FLOAT(BAT_C_MULT, 1.0f);
  * @min 0
  * @max 2
  * @group Sensors
- * @value 0 AutoDetect
+ * @value 0 Generic SMBus
  * @value 1 BQ40Z50 based
  * @value 2 BQ40Z80 based
  * @value 3 Rotoye Batmon

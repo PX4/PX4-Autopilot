@@ -1,10 +1,11 @@
 /**
- * @file bq40z50.h
+ * @file bq40zx.h
  *
  * Header for a battery monitor connected via SMBus (I2C).
- * Designed for BQ40Z50-R1/R2
+ * Designed for BQ40Z50/80
  *
  * @author Nick Belanger <nbelanger@mail.skymul.com>
+ * @author Eohan George <eg@.skymul.com>
  */
 
 #pragma once
@@ -38,7 +39,7 @@
 #define BATT_SMBUS_ENABLED_PROTECTIONS_A_DEFAULT        0xcf
 #define BATT_SMBUS_ENABLED_PROTECTIONS_A_CUV_DISABLED   0xce
 
-class BQ40Z50 : public BATT_SMBUS
+class BQ40ZX : public BATT_SMBUS
 {
 
 	using BATT_SMBUS::BATT_SMBUS;

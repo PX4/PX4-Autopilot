@@ -5,6 +5,7 @@
  * Designed for Rotoye Batmon
  *
  * @author Nick Belanger <nbelanger@mail.skymul.com>
+ * @author Eohan George <eg@.skymul.com>
  */
 
 #pragma once
