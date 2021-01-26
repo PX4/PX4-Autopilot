@@ -83,6 +83,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_raw_air_data_publisher(_node),
 	_range_sensor_measurement(_node),
 	_flow_measurement_publisher(_node),
+	_indication_button_publisher(_node),
 	_param_server(_node),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")),
 	_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")),
@@ -518,6 +519,20 @@ void UavcanNode::Run()
 			measurement.quality = optical_flow.quality;
 
 			_flow_measurement_publisher.broadcast(measurement);
+		}
+	}
+
+	// safety -> standard::indication::button
+	if (_safety_sub.updated()) {
+		safety_s safety;
+
+		if (_safety_sub.copy(&safety)) {
+			if (safety.safety_switch_available) {
+				standard::indication::Button Button{};
+				Button.button = standard::indication::Button::BUTTON_SAFETY;
+				Button.press_time = safety.safety_off ? UINT8_MAX : 0;
+				_indication_button_publisher.broadcast(Button);
+			}
 		}
 	}
 
