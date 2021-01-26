@@ -33,15 +33,13 @@
 
 #pragma once
 
-#include <parameters/param.h>
-
 #include <uavcan/uavcan.hpp>
 #include <uavcan/protocol/param_server.hpp>
 
 class UavcanNodeParamManager : public uavcan::IParamManager
 {
 public:
-	UavcanNodeParamManager();
+	UavcanNodeParamManager() = default;
 
 	void getParamNameByIndex(Index index, Name &out_name) const override;
 	void assignParamValue(const Name &name, const Value &value) override;
@@ -50,30 +48,7 @@ public:
 				    NumericValue &out_max, NumericValue &out_min) const override;
 	int saveAllParams() override;
 	int eraseAllParams() override;
+
 private:
 
-	/**
-	 * Get parameter index in parameter map.
-	 */
-	int get_param_index(const char *name) const;
-
-	/**
-	 * Get the param_t handle for the mapping at index.
-	 */
-	param_t get_param_handle(int index) const;
-
-	/**
-	 * Initialize the parameter map.
-	 */
-	int init_parameters();
-
-	/**
-	 * Parameter map from UAVCAN indices to param handles.
-	 * Must be in alphabetical order by parameter name.
-	 */
-	struct ParameterMap {
-		param_t cannode_bitrate;
-		param_t cannode_node_id;
-		unsigned int param_count;
-	} _parameter_map{0};
 };
