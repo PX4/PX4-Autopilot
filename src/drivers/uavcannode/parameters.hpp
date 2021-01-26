@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,48 +32,44 @@
  ****************************************************************************/
 
 /**
- * UAVCAN Node ID.
+ * @file parameters.hpp
  *
- * Read the specs at http://uavcan.org to learn more about Node ID.
+ * Defines UAVCAN parameter system functions.
  *
- * @min 1
- * @max 125
- * @group UAVCAN
+ * @author Kenneth Thompson <ken@flyvoly.com>
  */
-PARAM_DEFINE_INT32(CANNODE_NODE_ID, 120);
+
+#pragma once
+
+#include <lib/parameters/param.h>
 
 /**
- * UAVCAN CAN bus bitrate.
- *
- * @min 20000
- * @max 1000000
- * @group UAVCAN
+ * Initialize the uavcan -> px4 parameter map
  */
-PARAM_DEFINE_INT32(CANNODE_BITRATE, 1000000);
+void uavcan_param_init();
 
 /**
- * UAVCAN uavcan.equipment.air_data.RawAirData publication period
- * @unit us
- * @min 0
- * @max 1000000
- * @group UAVCAN
+ * Look up a uavcan parameter name by UAVCAN parameter index
  */
-PARAM_DEFINE_INT32(UAVCAN_ARSP_T, 100000);
+const char *uavcan_param_name(unsigned index);
 
 /**
- * UAVCAN uavcan.equipment.ahrs.MagneticFieldStrength2 publication period
- * @unit us
- * @min 0
- * @max 1000000
- * @group UAVCAN
+ * Get the UAVCAN parameter index of a uavcan parameter
  */
-PARAM_DEFINE_INT32(UAVCAN_BARO_T, 100000);
+int uavcan_param_get_index(const char *name);
 
 /**
- * uavcan.equipment.ahrs.MagneticFieldStrength2 publication period
- * @unit us
- * @min 0
- * @max 1000000
- * @group UAVCAN
+ * Get the px4 parameter handle for a UAVCAN parameter index
  */
-PARAM_DEFINE_INT32(UAVCAN_MAG_T, 100000);
+param_t uavcan_param_get_handle_from_index(unsigned index);
+
+/**
+ * Get the number of UAVCAN parameters
+ */
+unsigned uavcan_param_count();
+
+/**
+ * Reset all UAVCAN parameter to their default values
+ */
+void uavcan_param_erase_all();
+
