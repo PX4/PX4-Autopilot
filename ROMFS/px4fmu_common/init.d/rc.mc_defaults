@@ -28,5 +28,3 @@ fi
 set MIXER_AUX pass
 
 set PWM_AUX_OUT 1234
-
-set BATT_SMBUS_TYPE 1
