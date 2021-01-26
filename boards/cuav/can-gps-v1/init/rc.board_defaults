@@ -3,6 +3,7 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 neopixel start
+tone_alarm start
 
 if [ $AUTOCNF = yes ]
 then

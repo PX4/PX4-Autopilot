@@ -36,8 +36,11 @@
 #include <uavcan_stm32/uavcan_stm32.hpp>
 #include "indication_controller.hpp"
 #include <uavcan/equipment/indication/LightsCommand.hpp>
+#include <uavcan/equipment/indication/BeepCommand.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/led_control.h>
+#include <uORB/topics/tune_control.h>
+#include <lib/tunes/tunes.h>
 
 namespace
 {
@@ -108,16 +111,37 @@ void cb_light_command(const uavcan::ReceivedDataStructure<uavcan::equipment::ind
 		}
 	}
 }
+
+void cb_beep_command(const uavcan::ReceivedDataStructure<uavcan::equipment::indication::BeepCommand> &msg)
+{
+	tune_control_s tune_control{};
+	tune_control.tune_id = 0;
+	tune_control.frequency = (uint16_t)msg.frequency;
+	tune_control.duration = uavcan::uint32_t(1000000 * msg.duration);
+	tune_control.volume = 0xff;
+	uORB::Publication<tune_control_s> tune_control_pub{ORB_ID(tune_control)};
+	tune_control.timestamp = hrt_absolute_time();
+	tune_control_pub.publish(tune_control);
+}
+
+
 }
 int init_indication_controller(uavcan::INode &node)
 {
 	static uavcan::Subscriber<uavcan::equipment::indication::LightsCommand> sub_light(node);
+	static uavcan::Subscriber<uavcan::equipment::indication::BeepCommand> sub_beep(node);
 
 	self_light_index = 0;
 
 	int res = 0;
 
 	res = sub_light.start(cb_light_command);
+
+	if (res != 0) {
+		return res;
+	}
+
+	res = sub_beep.start(cb_beep_command);
 
 	if (res != 0) {
 		return res;
