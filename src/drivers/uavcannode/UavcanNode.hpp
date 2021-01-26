@@ -48,6 +48,7 @@
 
 #include "uavcan_driver.hpp"
 #include "allocator.hpp"
+#include "UavcanNodeParamManager.hpp"
 
 #include <uavcan/helpers/heap_based_pool_allocator.hpp>
 #include <uavcan/protocol/global_time_sync_slave.hpp>
@@ -199,6 +200,9 @@ private:
 	uORB::SubscriptionCallbackWorkItem _sensor_baro_sub{this, ORB_ID(sensor_baro)};
 	uORB::SubscriptionCallbackWorkItem _sensor_mag_sub{this, ORB_ID(sensor_mag)};
 	uORB::SubscriptionCallbackWorkItem _sensor_gps_sub{this, ORB_ID(sensor_gps)};
+
+	UavcanNodeParamManager _param_manager;
+	uavcan::ParamServer _param_server;
 
 	perf_counter_t _cycle_perf;
 	perf_counter_t _interval_perf;
