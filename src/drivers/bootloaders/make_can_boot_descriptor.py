@@ -305,21 +305,7 @@ bootloader image to the output image.
 """.format(in_image, in_image.app_descriptor, out_image.app_descriptor,
            bootloader_size, len(bootloader_image)))
                 sys.stderr.write(
-"""READ VALUES
-------------------------------------------------------------------------------
-
-Field               Type              Value
-signature           uint64            {1.signature!r}
-image_crc           uint64            0x{1.image_crc:016X}
-image_size          uint32            0x{1.image_size:X} ({1.image_size:d} B)
-vcs_commit          uint32            {1.vcs_commit:08X}
-version_major       uint8             {1.version_major:d}
-version_minor       uint8             {1.version_minor:d}
-reserved            uint8[6]          {1.reserved!r}
-
-WRITTEN VALUES
-------------------------------------------------------------------------------
-
+"""------------------------------------------------------------------------------
 Field               Type              Value
 signature           uint64            {2.signature!r}
 image_crc           uint64            0x{2.image_crc:016X}
@@ -328,7 +314,6 @@ vcs_commit          uint32            {2.vcs_commit:08X}
 version_major       uint8             {2.version_major:d}
 version_minor       uint8             {2.version_minor:d}
 reserved            uint8[6]          {2.reserved!r}
-
 """.format(in_image, in_image.app_descriptor, out_image.app_descriptor,
            bootloader_size, len(bootloader_image)))
                 if out_image.padding:
