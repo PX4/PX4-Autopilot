@@ -24,4 +24,6 @@ px4_add_board(
 	LABEL canbootloader
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
+	DRIVERS
+		bootloaders
 )

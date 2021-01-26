@@ -51,7 +51,8 @@
 #include "timer.h"
 #include "uavcan.h"
 #include "can.h"
-#include "crc.h"
+
+#include <lib/systemlib/crc.h>
 
 #define CAN_REQUEST_TIMEOUT 1000
 #define ANY_NODE_ID 0
