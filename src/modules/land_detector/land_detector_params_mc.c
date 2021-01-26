@@ -84,3 +84,17 @@ PARAM_DEFINE_FLOAT(LNDMC_ROT_MAX, 20.0f);
  *
  */
 PARAM_DEFINE_FLOAT(LNDMC_ALT_MAX, -1.0f);
+
+/**
+ * Ground effect altitude for multicopters
+ *
+ * The height above ground below which ground effect creates barometric altitude errors.
+ * A negative value indicates no ground effect.
+ *
+ * @unit m
+ * @min -1
+ * @decimal 2
+ * @group Land Detector
+ *
+ */
+PARAM_DEFINE_FLOAT(LNDMC_ALT_GND, -1.0f);
