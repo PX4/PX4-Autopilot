@@ -35,5 +35,8 @@ then
 
 	param set RTL_TYPE 1
 
+	param set EKF2_MULTI_IMU 1
+	param set EKF2_MULTI_MAG 1
+
 	param set WV_EN 1
 fi
