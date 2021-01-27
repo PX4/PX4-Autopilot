@@ -581,6 +581,24 @@ param_get(param_t param, void *val)
 	return result;
 }
 
+int
+param_get_default_value(param_t param, void *default_val)
+{
+	if (default_val && handle_in_range(param)) {
+		switch (param_type(param)) {
+		case PARAM_TYPE_INT32:
+			memcpy(default_val, &param_info_base[param].val.i, param_size(param));
+			return 0;
+
+		case PARAM_TYPE_FLOAT:
+			memcpy(default_val, &param_info_base[param].val.f, param_size(param));
+			return 0;
+		}
+	}
+
+	return -1;
+}
+
 /**
  * worker callback method to save the parameters
  * @param arg unused
