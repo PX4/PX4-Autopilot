@@ -216,6 +216,16 @@ __EXPORT size_t		param_size(param_t param);
 __EXPORT int		param_get(param_t param, void *val);
 
 /**
+ * Copy the default value of a parameter.
+ *
+ * @param param		A handle returned by param_find or passed by param_foreach.
+ * @param val		Where to return the value, assumed to point to suitable storage for the parameter type.
+ *			For structures, a bitwise copy of the structure is performed to this address.
+ * @return		Zero if the parameter's deafult value could be returned, nonzero otherwise.
+ */
+__EXPORT int		param_get_default_value(param_t param, void *val);
+
+/**
  * Set the value of a parameter.
  *
  * @param param		A handle returned by param_find or passed by param_foreach.
