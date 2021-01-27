@@ -108,14 +108,20 @@ void UavcanNodeParamManager::readParamDefaultMaxMin(const Name &name, Value &out
 	param_type_t value_type = param_type(param_handle);
 
 	if (value_type == PARAM_TYPE_INT32) {
-		out_max.to<uavcan::protocol::param::NumericValue::Tag::integer_value>() = INT32_MAX;
+		int32_t default_value = 0;
+		param_get_default_value(param_handle, &default_value);
+		out_default.to<uavcan::protocol::param::Value::Tag::integer_value>() = default_value;
+
 		out_min.to<uavcan::protocol::param::NumericValue::Tag::integer_value>() = INT32_MIN;
-		out_default.to<uavcan::protocol::param::Value::Tag::integer_value>() = 0;
+		out_max.to<uavcan::protocol::param::NumericValue::Tag::integer_value>() = INT32_MAX;
 
 	} else if (value_type == PARAM_TYPE_FLOAT) {
-		out_max.to<uavcan::protocol::param::NumericValue::Tag::real_value>() = FLT_MAX;
+		float default_value = 0;
+		param_get_default_value(param_handle, &default_value);
+		out_default.to<uavcan::protocol::param::Value::Tag::real_value>() = default_value;
+
 		out_min.to<uavcan::protocol::param::NumericValue::Tag::real_value>() = -FLT_MAX;
-		out_default.to<uavcan::protocol::param::Value::Tag::real_value>() = 0.0;
+		out_max.to<uavcan::protocol::param::NumericValue::Tag::real_value>() = FLT_MAX;
 	}
 }
 
