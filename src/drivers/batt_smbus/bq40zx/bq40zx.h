@@ -10,34 +10,7 @@
 
 #pragma once
 
-#include "batt_smbus.h"
-
-
-#define BATT_SMBUS_BQ40Z50_CELL_4_VOLTAGE               0x3C
-#define BATT_SMBUS_BQ40Z50_CELL_3_VOLTAGE               0x3D
-#define BATT_SMBUS_BQ40Z50_CELL_2_VOLTAGE               0x3E
-#define BATT_SMBUS_BQ40Z50_CELL_1_VOLTAGE               0x3F
-
-#define BATT_SMBUS_BQ40Z80_CELL_7_VOLTAGE               0x3C
-#define BATT_SMBUS_BQ40Z80_CELL_6_VOLTAGE               0x3D
-#define BATT_SMBUS_BQ40Z80_CELL_5_VOLTAGE               0x3E
-#define BATT_SMBUS_BQ40Z80_CELL_4_VOLTAGE               0x3F
-
-#define BATT_SMBUS_STATE_OF_HEALTH                      0x4F            ///< State of Health. The SOH information of the battery in percentage of Design Capacity
-
-#define BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS            0x44
-
-#define BATT_SMBUS_SECURITY_KEYS                        0x0035
-#define BATT_SMBUS_LIFETIME_FLUSH                       0x002E
-#define BATT_SMBUS_LIFETIME_BLOCK_ONE                   0x0060
-#define BATT_SMBUS_ENABLED_PROTECTIONS_A_ADDRESS        0x4938
-#define BATT_SMBUS_SEAL                                 0x0030
-#define BATT_SMBUS_DASTATUS1                            0x0071
-#define BATT_SMBUS_DASTATUS2                            0x0072
-#define BATT_SMBUS_DASTATUS3                            0x007B
-
-#define BATT_SMBUS_ENABLED_PROTECTIONS_A_DEFAULT        0xcf
-#define BATT_SMBUS_ENABLED_PROTECTIONS_A_CUV_DISABLED   0xce
+#include "../batt_smbus.h"
 
 class BQ40ZX : public BATT_SMBUS
 {

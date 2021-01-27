@@ -46,8 +46,8 @@
  */
 
 #include "batt_smbus.h"
-#include "rotoye_batmon.h"
-#include "bq40zx.h"
+#include "rotoye_batmon/rotoye_batmon.h"
+#include "bq40zx/bq40zx.h"
 
 extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]);
 

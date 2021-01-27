@@ -35,7 +35,7 @@
  * @file batt_smbus.h
  *
  * Header for a battery monitor connected via SMBus (I2C).
- * Designed for BQ40Z50-R1/R2 or BQ40Z80
+ * Designed for SMBUS SBS v1.1-compatible Smart Batteries
  *
  * @author Jacob Dahl <dahl.jakejacob@gmail.com>
  * @author Alex Klimaj <alexklimaj@gmail.com>
@@ -61,14 +61,6 @@
 using namespace time_literals;
 
 #define BATT_SMBUS_MEASUREMENT_INTERVAL_US              100_ms         ///< time in microseconds, measure at 10Hz
-
-#define MAC_DATA_BUFFER_SIZE                            32
-
-#define BATT_CELL_VOLTAGE_THRESHOLD_RTL                 0.5f            ///< Threshold in volts to RTL if cells are imbalanced
-#define BATT_CELL_VOLTAGE_THRESHOLD_FAILED              1.5f            ///< Threshold in volts to Land if cells are imbalanced
-
-#define BATT_CURRENT_UNDERVOLTAGE_THRESHOLD             5.0f            ///< Threshold in amps to disable undervoltage protection
-#define BATT_VOLTAGE_UNDERVOLTAGE_THRESHOLD             3.4f            ///< Threshold in volts to re-enable undervoltage protection
 
 #define BATT_SMBUS_ADDR                                 0x0B            ///< Default 7 bit address I2C address. 8 bit = 0x16
 

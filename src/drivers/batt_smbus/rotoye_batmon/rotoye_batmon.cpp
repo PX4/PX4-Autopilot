@@ -12,6 +12,24 @@
 #include "rotoye_batmon.h"
 #include <lib/parameters/param.h>
 
+#define BATT_SMBUS_CELL_1_VOLTAGE                       0x3F
+#define BATT_SMBUS_CELL_2_VOLTAGE                       0x3E
+#define BATT_SMBUS_CELL_3_VOLTAGE                       0x3D
+#define BATT_SMBUS_CELL_4_VOLTAGE                       0x3C
+#define BATT_SMBUS_CELL_5_VOLTAGE                       0x3B
+#define BATT_SMBUS_CELL_6_VOLTAGE                       0x3A
+#define BATT_SMBUS_CELL_7_VOLTAGE                       0x39
+#define BATT_SMBUS_CELL_8_VOLTAGE                       0x38
+#define BATT_SMBUS_CELL_9_VOLTAGE                       0x37
+#define BATT_SMBUS_CELL_10_VOLTAGE                      0x36
+
+#define BATT_SMBUS_REMAINING_CAPACITY                   0x0F            ///< predicted remaining battery capacity as mAh
+#define BATT_SMBUS_RELATIVE_SOC				0x0D		///< predicted remaining battery capacity as a percentage
+
+#define BATT_SMBUS_CELL_COUNT                           0x40            // < This is not a default register in the BQ40Z50 chip, but one that is really needed
+#define BATT_SMBUS_SAFETY_ALERT                         0x50            ///32 alert bits, threshold exceeded (used for burst current check)
+#define BATT_SMBUS_SAFETY_STATUS                        0x51            ///32 status bits, threshold exceeded for certain duration
+#define BATT_SMBUS_PF_ALERT                             0x52            ///32 permanent fail bits, issue warranting permanent shutoff occurred (used for cell voltage imbalance check)
 
 void Rotoye_Batmon::RunImpl()
 {

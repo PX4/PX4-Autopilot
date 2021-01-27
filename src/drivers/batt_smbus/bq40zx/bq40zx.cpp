@@ -12,6 +12,40 @@
 #include "bq40zx.h"
 #include <lib/parameters/param.h>
 
+#define MAC_DATA_BUFFER_SIZE                            32
+
+#define BATT_CELL_VOLTAGE_THRESHOLD_RTL                 0.5f            ///< Threshold in volts to RTL if cells are imbalanced
+#define BATT_CELL_VOLTAGE_THRESHOLD_FAILED              1.5f            ///< Threshold in volts to Land if cells are imbalanced
+
+#define BATT_CURRENT_UNDERVOLTAGE_THRESHOLD             5.0f            ///< Threshold in amps to disable undervoltage protection
+#define BATT_VOLTAGE_UNDERVOLTAGE_THRESHOLD             3.4f            ///< Threshold in volts to re-enable undervoltage protection
+
+#define BATT_SMBUS_BQ40Z50_CELL_4_VOLTAGE               0x3C
+#define BATT_SMBUS_BQ40Z50_CELL_3_VOLTAGE               0x3D
+#define BATT_SMBUS_BQ40Z50_CELL_2_VOLTAGE               0x3E
+#define BATT_SMBUS_BQ40Z50_CELL_1_VOLTAGE               0x3F
+
+#define BATT_SMBUS_BQ40Z80_CELL_7_VOLTAGE               0x3C
+#define BATT_SMBUS_BQ40Z80_CELL_6_VOLTAGE               0x3D
+#define BATT_SMBUS_BQ40Z80_CELL_5_VOLTAGE               0x3E
+#define BATT_SMBUS_BQ40Z80_CELL_4_VOLTAGE               0x3F
+
+#define BATT_SMBUS_STATE_OF_HEALTH                      0x4F            ///< State of Health. The SOH information of the battery in percentage of Design Capacity
+
+#define BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS            0x44
+
+#define BATT_SMBUS_SECURITY_KEYS                        0x0035
+#define BATT_SMBUS_LIFETIME_FLUSH                       0x002E
+#define BATT_SMBUS_LIFETIME_BLOCK_ONE                   0x0060
+#define BATT_SMBUS_ENABLED_PROTECTIONS_A_ADDRESS        0x4938
+#define BATT_SMBUS_SEAL                                 0x0030
+#define BATT_SMBUS_DASTATUS1                            0x0071
+#define BATT_SMBUS_DASTATUS2                            0x0072
+#define BATT_SMBUS_DASTATUS3                            0x007B
+
+#define BATT_SMBUS_ENABLED_PROTECTIONS_A_DEFAULT        0xcf
+#define BATT_SMBUS_ENABLED_PROTECTIONS_A_CUV_DISABLED   0xce
+
 
 int BQ40ZX::get_startup_info()
 {
