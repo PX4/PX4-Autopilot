@@ -256,6 +256,41 @@ int BATT_SMBUS::manufacturer_name(uint8_t *man_name, const uint8_t length)
 	return result;
 }
 
+void BATT_SMBUS::custom_method(const BusCLIArguments &cli)
+{
+
+	switch(cli.custom1) {
+		case 1: {
+			uint8_t man_name[22];
+			int result = manufacturer_name(man_name, sizeof(man_name));
+			PX4_INFO("The manufacturer name: %s", man_name);
+
+			result = manufacture_date();
+			PX4_INFO("The manufacturer date: %d", result);
+
+			uint16_t serial_num = 0;
+			serial_num = get_serial_number();
+			PX4_INFO("The serial number: %d", serial_num);
+		}
+			break;
+		case 2:
+			PX4_WARN("Cannot unseal this device");
+			break;
+		case 3:
+			PX4_WARN("Cannot unseal this device");
+			break;
+		case 4:
+			suspend();
+			break;
+		case 5:
+			resume();
+			break;
+		case 6:
+			PX4_WARN("Cannot flash this device");
+			break;
+	}
+}
+
 void BATT_SMBUS::print_usage()
 {
 	PRINT_MODULE_DESCRIPTION(

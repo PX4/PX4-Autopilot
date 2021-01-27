@@ -185,6 +185,8 @@ public:
 
 	virtual void RunImpl();
 
+	virtual void custom_method(const BusCLIArguments &cli);
+
 	/**
 	 * @brief Returns the SBS serial number of the battery device.
 	 * @return Returns the SBS serial number of the battery device.
