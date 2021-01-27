@@ -17,6 +17,7 @@ jobs:
         check: [
           "check_format",
           "tests",
+          "tests_coverage",
           "px4_fmu-v2_default stack_check",
           "validate_module_configs",
           "shellcheck_all",
@@ -61,3 +62,10 @@ jobs:
           ulimit -a
     - name: ${{matrix.check}}
       run: make ${{matrix.check}}
+    - name: upload coverage
+      if: contains(matrix.check, 'coverage')
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        flags: unittests
+        file: coverage/lcov.info
