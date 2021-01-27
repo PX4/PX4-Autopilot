@@ -33,26 +33,51 @@
 
 #pragma once
 
-#include <uavcan/uavcan.hpp>
-#include <uavcan/protocol/param_server.hpp>
+#include "UavcanPublisherBase.hpp"
+
+#include <standard/indication/Button.hpp>
+
+#include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/safety.h>
 
 namespace uavcannode
 {
 
-class UavcanNodeParamManager : public uavcan::IParamManager
+class SafetyButton :
+	public UavcanPublisherBase,
+	public uORB::SubscriptionCallbackWorkItem,
+	private uavcan::Publisher<standard::indication::Button>
 {
 public:
-	UavcanNodeParamManager() = default;
+	SafetyButton(px4::WorkItem *work_item, uavcan::INode &node) :
+		UavcanPublisherBase(standard::indication::Button::DefaultDataTypeID),
+		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(safety)),
+		uavcan::Publisher<standard::indication::Button>(node)
+	{}
 
-	void getParamNameByIndex(Index index, Name &out_name) const override;
-	void assignParamValue(const Name &name, const Value &value) override;
-	void readParamValue(const Name &name, Value &out_value) const override;
-	void readParamDefaultMaxMin(const Name &name, Value &out_default,
-				    NumericValue &out_max, NumericValue &out_min) const override;
-	int saveAllParams() override;
-	int eraseAllParams() override;
+	void PrintInfo() override
+	{
+		if (uORB::SubscriptionCallbackWorkItem::advertised()) {
+			printf("\t%s -> %s:%d\n",
+			       uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
+			       standard::indication::Button::getDataTypeFullName(),
+			       standard::indication::Button::DefaultDataTypeID);
+		}
+	}
 
-private:
+	void BroadcastAnyUpdates() override
+	{
+		// safety -> standard::indication::button
+		safety_s safety;
 
+		if (uORB::SubscriptionCallbackWorkItem::update(&safety)) {
+			if (safety.safety_switch_available) {
+				standard::indication::Button Button{};
+				Button.button = standard::indication::Button::BUTTON_SAFETY;
+				Button.press_time = safety.safety_off ? UINT8_MAX : 0;
+				uavcan::Publisher<standard::indication::Button>::broadcast(Button);
+			}
+		}
+	}
 };
 } // namespace uavcannode

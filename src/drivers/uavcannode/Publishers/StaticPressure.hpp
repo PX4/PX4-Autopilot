@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
- *   Author: Pavel Kirienko <pavel.kirienko@gmail.com>
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,5 +33,51 @@
 
 #pragma once
 
+#include "UavcanPublisherBase.hpp"
 
-int init_indication_controller(uavcan::INode &node);
+#include <uavcan/equipment/air_data/StaticPressure.hpp>
+
+#include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/sensor_baro.h>
+
+namespace uavcannode
+{
+
+class StaticPressure :
+	public UavcanPublisherBase,
+	public uORB::SubscriptionCallbackWorkItem,
+	private uavcan::Publisher<uavcan::equipment::air_data::StaticPressure>
+{
+public:
+	StaticPressure(px4::WorkItem *work_item, uavcan::INode &node) :
+		UavcanPublisherBase(uavcan::equipment::air_data::StaticPressure::DefaultDataTypeID),
+		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_baro)),
+		uavcan::Publisher<uavcan::equipment::air_data::StaticPressure>(node)
+	{}
+
+	void PrintInfo() override
+	{
+		if (uORB::SubscriptionCallbackWorkItem::advertised()) {
+			printf("\t%s -> %s:%d\n",
+			       uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
+			       uavcan::equipment::air_data::StaticPressure::getDataTypeFullName(),
+			       uavcan::equipment::air_data::StaticPressure::DefaultDataTypeID);
+		}
+	}
+
+	void BroadcastAnyUpdates() override
+	{
+		// sensor_baro -> uavcan::equipment::air_data::StaticPressure
+		sensor_baro_s baro;
+
+		if (uORB::SubscriptionCallbackWorkItem::update(&baro)) {
+			uavcan::equipment::air_data::StaticPressure static_pressure{};
+			static_pressure.static_pressure = baro.pressure * 100; // millibar -> pascals
+			uavcan::Publisher<uavcan::equipment::air_data::StaticPressure>::broadcast(static_pressure);
+
+			// ensure callback is registered
+			uORB::SubscriptionCallbackWorkItem::registerCallback();
+		}
+	}
+};
+} // namespace uavcannode

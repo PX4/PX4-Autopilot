@@ -33,26 +33,55 @@
 
 #pragma once
 
-#include <uavcan/uavcan.hpp>
-#include <uavcan/protocol/param_server.hpp>
+#include "UavcanPublisherBase.hpp"
+
+#include <uavcan/equipment/air_data/StaticTemperature.hpp>
+
+#include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/sensor_baro.h>
 
 namespace uavcannode
 {
 
-class UavcanNodeParamManager : public uavcan::IParamManager
+class StaticTemperature :
+	public UavcanPublisherBase,
+	public uORB::SubscriptionCallbackWorkItem,
+	private uavcan::Publisher<uavcan::equipment::air_data::StaticTemperature>
 {
 public:
-	UavcanNodeParamManager() = default;
+	StaticTemperature(px4::WorkItem *work_item, uavcan::INode &node) :
+		UavcanPublisherBase(uavcan::equipment::air_data::StaticTemperature::DefaultDataTypeID),
+		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_baro)),
+		uavcan::Publisher<uavcan::equipment::air_data::StaticTemperature>(node)
+	{}
 
-	void getParamNameByIndex(Index index, Name &out_name) const override;
-	void assignParamValue(const Name &name, const Value &value) override;
-	void readParamValue(const Name &name, Value &out_value) const override;
-	void readParamDefaultMaxMin(const Name &name, Value &out_default,
-				    NumericValue &out_max, NumericValue &out_min) const override;
-	int saveAllParams() override;
-	int eraseAllParams() override;
+	void PrintInfo() override
+	{
+		if (uORB::SubscriptionCallbackWorkItem::advertised()) {
+			printf("\t%s -> %s:%d\n",
+			       uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
+			       uavcan::equipment::air_data::StaticTemperature::getDataTypeFullName(),
+			       uavcan::equipment::air_data::StaticTemperature::DefaultDataTypeID);
+		}
+	}
 
+	void BroadcastAnyUpdates() override
+	{
+		// sensor_baro -> uavcan::equipment::air_data::StaticTemperature
+		sensor_baro_s baro;
+
+		if ((hrt_elapsed_time(&_last_static_temperature_publish) > 1_s) && uORB::SubscriptionCallbackWorkItem::update(&baro)) {
+			uavcan::equipment::air_data::StaticTemperature static_temperature{};
+			static_temperature.static_temperature = baro.temperature + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+			uavcan::Publisher<uavcan::equipment::air_data::StaticTemperature>::broadcast(static_temperature);
+
+			// ensure callback is registered
+			uORB::SubscriptionCallbackWorkItem::registerCallback();
+
+			_last_static_temperature_publish = hrt_absolute_time();
+		}
+	}
 private:
-
+	hrt_abstime _last_static_temperature_publish{0};
 };
 } // namespace uavcannode
