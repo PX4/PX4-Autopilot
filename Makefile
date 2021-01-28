@@ -362,8 +362,10 @@ tests:
 
 tests_coverage:
 	@$(MAKE) clean
-	@$(MAKE) --no-print-directory px4_sitl_default test_coverage_genhtml PX4_CMAKE_BUILD_TYPE=Coverage
-	@echo "Open "$(SRC_DIR)"/build/px4_sitl_default/coverage-html/index.html to see coverage"
+	@$(MAKE) --no-print-directory tests PX4_CMAKE_BUILD_TYPE=Coverage
+	@mkdir -p coverage
+	@lcov --directory build/px4_sitl_test --base-directory build/px4_sitl_test --gcov-tool gcov --capture -o coverage/lcov.info
+
 
 rostest: px4_sitl_default
 	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo
