@@ -78,8 +78,8 @@ void LoggedTopics::add_default_topics()
 	add_topic("px4io_status");
 	add_topic("radio_status");
 	add_topic("rpm", 500);
-	add_topic("safety");
 	add_topic("rtl_flight_time", 1000);
+	add_topic("safety");
 	add_topic("sensor_combined");
 	add_topic("sensor_correction");
 	add_topic("sensor_gyro_fft");
@@ -87,6 +87,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("sensor_selection");
 	add_topic("sensors_status_imu", 200);
 	add_topic("system_power", 500);
+	add_topic("takeoff_status", 1000);
 	add_topic("tecs_status", 200);
 	add_topic("test_motor", 500);
 	add_topic("trajectory_setpoint", 200);
