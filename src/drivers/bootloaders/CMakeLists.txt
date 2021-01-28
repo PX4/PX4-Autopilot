@@ -57,7 +57,7 @@ if(NOT "${PX4_BOARD_LABEL}" MATCHES  "canbootloader")
 	if ("${uavcanbl_git_desc}" STREQUAL "")
 		set(uavcanbl_git_desc ffffffff)
 	endif()
-	set(uavcan_bl_imange_name ${HWNAME}-${HW_MAJOR}.${HW_MINOR}-${SW_MAJOR}.${SW_MINOR}.${uavcanbl_git_desc}.uavcan.bin)
+	set(uavcan_bl_imange_name ${HWNAME}-${HW_MAJOR}.${HW_MINOR}-${SW_MAJOR}.${SW_MINOR}.uavcan.bin)
 	message(STATUS "Generating UAVCAN Bootable as ${uavcan_bl_imange_name}")
 	add_custom_command(OUTPUT ${uavcan_bl_imange_name}
 		COMMAND
