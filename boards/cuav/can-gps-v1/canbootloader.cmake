@@ -7,8 +7,8 @@ add_definitions(
 	-DAPP_VERSION_MINOR=${uavcanblid_sw_version_minor}
 )
 
-set(uavcanblid_hw_version_major 1)
-set(uavcanblid_hw_version_minor 0)
+set(uavcanblid_hw_version_major 3)
+set(uavcanblid_hw_version_minor 233)
 set(uavcanblid_name "\"org.cuav.can-gps-v1\"")
 
 add_definitions(
