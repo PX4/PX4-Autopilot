@@ -12,6 +12,8 @@
 #include "rotoye_batmon.h"
 #include <lib/parameters/param.h>
 
+#define BATT_SMBUS_TEMP_EXTERNAL			0x07
+
 #define BATT_SMBUS_CELL_1_VOLTAGE                       0x3F
 #define BATT_SMBUS_CELL_2_VOLTAGE                       0x3E
 #define BATT_SMBUS_CELL_3_VOLTAGE                       0x3D
@@ -49,6 +51,15 @@ void Rotoye_Batmon::RunImpl()
 	int ret = populate_smbus_data(new_report);
 
 	ret |= get_cell_voltages();
+
+	uint16_t temp_ext;
+	ret |= _interface->read_word(BATT_SMBUS_TEMP_EXTERNAL, temp_ext);
+	if (temp_ext != 0) { // Sends 0 when no external therm is used
+		float temp_ext_c = ((float)temp_ext / 10.0f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+		if (temp_ext_c > new_report.temperature) {
+			new_report.temperature = temp_ext_c;
+		}
+	}
 
 	new_report.max_cell_voltage_delta = _max_cell_voltage_delta;
 	new_report.cell_count = _cell_count;
