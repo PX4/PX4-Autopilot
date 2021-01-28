@@ -33,26 +33,54 @@
 
 #pragma once
 
-#include <uavcan/uavcan.hpp>
-#include <uavcan/protocol/param_server.hpp>
+#include "UavcanPublisherBase.hpp"
+
+#include <uavcan/equipment/ahrs/MagneticFieldStrength2.hpp>
+
+#include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/sensor_mag.h>
 
 namespace uavcannode
 {
 
-class UavcanNodeParamManager : public uavcan::IParamManager
+class MagneticFieldStrength2 :
+	public UavcanPublisherBase,
+	public uORB::SubscriptionCallbackWorkItem,
+	private uavcan::Publisher<uavcan::equipment::ahrs::MagneticFieldStrength2>
 {
 public:
-	UavcanNodeParamManager() = default;
+	MagneticFieldStrength2(px4::WorkItem *work_item, uavcan::INode &node) :
+		UavcanPublisherBase(uavcan::equipment::ahrs::MagneticFieldStrength2::DefaultDataTypeID),
+		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_mag)),
+		uavcan::Publisher<uavcan::equipment::ahrs::MagneticFieldStrength2>(node)
+	{}
 
-	void getParamNameByIndex(Index index, Name &out_name) const override;
-	void assignParamValue(const Name &name, const Value &value) override;
-	void readParamValue(const Name &name, Value &out_value) const override;
-	void readParamDefaultMaxMin(const Name &name, Value &out_default,
-				    NumericValue &out_max, NumericValue &out_min) const override;
-	int saveAllParams() override;
-	int eraseAllParams() override;
+	void PrintInfo() override
+	{
+		if (uORB::SubscriptionCallbackWorkItem::advertised()) {
+			printf("\t%s -> %s:%d\n",
+			       uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
+			       uavcan::equipment::ahrs::MagneticFieldStrength2::getDataTypeFullName(),
+			       uavcan::equipment::ahrs::MagneticFieldStrength2::DefaultDataTypeID);
+		}
+	}
 
-private:
+	void BroadcastAnyUpdates() override
+	{
+		// sensor_mag -> uavcan::equipment::ahrs::MagneticFieldStrength2
+		sensor_mag_s mag;
 
+		if (uORB::SubscriptionCallbackWorkItem::update(&mag)) {
+			uavcan::equipment::ahrs::MagneticFieldStrength2 magnetic_field{};
+			magnetic_field.sensor_id = mag.device_id;
+			magnetic_field.magnetic_field_ga[0] = mag.x;
+			magnetic_field.magnetic_field_ga[1] = mag.y;
+			magnetic_field.magnetic_field_ga[2] = mag.z;
+			uavcan::Publisher<uavcan::equipment::ahrs::MagneticFieldStrength2>::broadcast(magnetic_field);
+
+			// ensure callback is registered
+			uORB::SubscriptionCallbackWorkItem::registerCallback();
+		}
+	}
 };
 } // namespace uavcannode
