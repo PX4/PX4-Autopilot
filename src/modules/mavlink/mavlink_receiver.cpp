@@ -643,7 +643,7 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 		distance_sensor_s d{};
 
 		device::Device::DeviceId device_id;
-		device_id.devid_s.bus = device::Device::DeviceBusType::DeviceBusType_SERIAL;
+		device_id.devid_s.bus = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
 		device_id.devid_s.devtype = DRV_DIST_DEVTYPE_MAVLINK;
 		device_id.devid_s.address = msg->sysid;
 
@@ -688,7 +688,7 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 	distance_sensor_s d{};
 
 	device::Device::DeviceId device_id;
-	device_id.devid_s.bus = device::Device::DeviceBusType::DeviceBusType_SERIAL;
+	device_id.devid_s.bus = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
 	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_MAVLINK;
 	device_id.devid_s.address = msg->sysid;
 
@@ -742,7 +742,7 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 	distance_sensor_s ds{};
 
 	device::Device::DeviceId device_id;
-	device_id.devid_s.bus = device::Device::DeviceBusType::DeviceBusType_SERIAL;
+	device_id.devid_s.bus = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
 	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_MAVLINK;
 	device_id.devid_s.address = dist_sensor.id;
 
