@@ -122,14 +122,14 @@ void VehicleGPSPosition::Run()
 
 	// Check all GPS instance
 	bool any_gps_updated = false;
-	bool gps_updated[GPS_MAX_RECEIVERS];
+	bool gps_updated = false;
 
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
-		gps_updated[i] = _sensor_gps_sub[i].updated();
+		gps_updated = _sensor_gps_sub[i].updated();
 
 		sensor_gps_s gps_data;
 
-		if (gps_updated[i]) {
+		if (gps_updated) {
 			any_gps_updated = true;
 
 			_sensor_gps_sub[i].copy(&gps_data);
