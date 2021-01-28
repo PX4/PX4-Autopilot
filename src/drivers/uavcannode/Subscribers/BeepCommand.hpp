@@ -33,26 +33,62 @@
 
 #pragma once
 
-#include <uavcan/uavcan.hpp>
-#include <uavcan/protocol/param_server.hpp>
+#include "UavcanSubscriberBase.hpp"
+
+#include <uavcan/equipment/indication/BeepCommand.hpp>
+
+#include <uORB/Publication.hpp>
+#include <uORB/topics/tune_control.h>
 
 namespace uavcannode
 {
 
-class UavcanNodeParamManager : public uavcan::IParamManager
+class BeepCommand;
+
+typedef uavcan::MethodBinder<BeepCommand *,
+	void (BeepCommand::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::indication::BeepCommand>&)>
+	BeepcommandBinder;
+
+class BeepCommand :
+	public UavcanSubscriberBase,
+	private uavcan::Subscriber<uavcan::equipment::indication::BeepCommand, BeepcommandBinder>
 {
 public:
-	UavcanNodeParamManager() = default;
+	BeepCommand(uavcan::INode &node) :
+		UavcanSubscriberBase(uavcan::equipment::indication::BeepCommand::DefaultDataTypeID),
+		uavcan::Subscriber<uavcan::equipment::indication::BeepCommand, BeepcommandBinder>(node)
+	{}
 
-	void getParamNameByIndex(Index index, Name &out_name) const override;
-	void assignParamValue(const Name &name, const Value &value) override;
-	void readParamValue(const Name &name, Value &out_value) const override;
-	void readParamDefaultMaxMin(const Name &name, Value &out_default,
-				    NumericValue &out_max, NumericValue &out_min) const override;
-	int saveAllParams() override;
-	int eraseAllParams() override;
+	bool init()
+	{
+		if (start(BeepcommandBinder(this, &BeepCommand::callback)) < 0) {
+			PX4_ERR("uavcan::equipment::indication::BeepCommand subscription failed");
+			return false;
+		}
+
+		return true;
+	}
+
+	void PrintInfo() const override
+	{
+		printf("\t%s:%d -> %s\n",
+		       uavcan::equipment::indication::BeepCommand::getDataTypeFullName(),
+		       uavcan::equipment::indication::BeepCommand::DefaultDataTypeID,
+		       _tune_control_pub.get_topic()->o_name);
+	}
 
 private:
+	void callback(const uavcan::ReceivedDataStructure<uavcan::equipment::indication::BeepCommand> &msg)
+	{
+		tune_control_s tune_control{};
+		tune_control.tune_id = 0;
+		tune_control.frequency = (uint16_t)msg.frequency;
+		tune_control.duration = uavcan::uint32_t(1000000 * msg.duration);
+		tune_control.volume = 0xff;
+		tune_control.timestamp = hrt_absolute_time();
+		_tune_control_pub.publish(tune_control);
+	}
 
+	uORB::Publication<tune_control_s> _tune_control_pub{ORB_ID(tune_control)};
 };
 } // namespace uavcannode

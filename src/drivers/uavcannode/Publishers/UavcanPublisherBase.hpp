@@ -33,26 +33,35 @@
 
 #pragma once
 
+#include <containers/IntrusiveSortedList.hpp>
 #include <uavcan/uavcan.hpp>
-#include <uavcan/protocol/param_server.hpp>
+
+#include <uavcan/node/publisher.hpp>
 
 namespace uavcannode
 {
 
-class UavcanNodeParamManager : public uavcan::IParamManager
+class UavcanPublisherBase : public IntrusiveSortedListNode<UavcanPublisherBase *>
 {
 public:
-	UavcanNodeParamManager() = default;
+	UavcanPublisherBase() = delete;
+	explicit UavcanPublisherBase(uint16_t id) : _id(id) {}
 
-	void getParamNameByIndex(Index index, Name &out_name) const override;
-	void assignParamValue(const Name &name, const Value &value) override;
-	void readParamValue(const Name &name, Value &out_value) const override;
-	void readParamDefaultMaxMin(const Name &name, Value &out_default,
-				    NumericValue &out_max, NumericValue &out_min) const override;
-	int saveAllParams() override;
-	int eraseAllParams() override;
+	virtual ~UavcanPublisherBase() = default;
+
+	/**
+	 * Prints current status in a human readable format to stdout.
+	 */
+	virtual void PrintInfo() = 0;
+
+	virtual void BroadcastAnyUpdates() = 0;
+
+	// sorted numerically by ID
+	bool operator<=(UavcanPublisherBase &rhs) { return id() <= rhs.id(); }
+
+	uint16_t id() const { return _id; }
 
 private:
-
+	uint16_t _id{0};
 };
 } // namespace uavcannode

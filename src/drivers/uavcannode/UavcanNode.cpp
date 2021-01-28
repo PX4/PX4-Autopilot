@@ -32,14 +32,29 @@
  ****************************************************************************/
 
 #include "UavcanNode.hpp"
-#include "indication_controller.hpp"
 
 #include "boot_app_shared.h"
 
 #include <lib/ecl/geo/geo.h>
 #include <lib/version/version.h>
 
+#include "Publishers/BatteryInfo.hpp"
+#include "Publishers/FlowMeasurement.hpp"
+#include "Publishers/GnssFix2.hpp"
+#include "Publishers/MagneticFieldStrength2.hpp"
+#include "Publishers/RangeSensorMeasurement.hpp"
+#include "Publishers/RawAirData.hpp"
+#include "Publishers/SafetyButton.hpp"
+#include "Publishers/StaticPressure.hpp"
+#include "Publishers/StaticTemperature.hpp"
+
+#include "Subscribers/BeepCommand.hpp"
+#include "Subscribers/LightsCommand.hpp"
+
 using namespace time_literals;
+
+namespace uavcannode
+{
 
 /**
  * @file uavcan_main.cpp
@@ -57,7 +72,6 @@ using namespace time_literals;
  * uavcan bootloader has the ability to validate the
  * image crc, size etc of this application
 */
-
 boot_app_shared_section app_descriptor_t AppDescriptor = {
 	.signature = {APP_DESCRIPTOR_SIGNATURE},
 	.image_crc = 0,
@@ -75,18 +89,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_node(can_driver, system_clock, _pool_allocator),
 	_time_sync_slave(_node),
 	_fw_update_listner(_node),
-	_ahrs_magnetic_field_strength2_publisher(_node),
-	_gnss_fix2_publisher(_node),
-	_power_battery_info_publisher(_node),
-	_air_data_static_pressure_publisher(_node),
-	_air_data_static_temperature_publisher(_node),
-	_raw_air_data_publisher(_node),
-	_range_sensor_measurement(_node),
-	_flow_measurement_publisher(_node),
-	_indication_button_publisher(_node),
 	_param_server(_node),
-	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")),
-	_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")),
 	_reset_timer(_node)
 {
 	int res = pthread_mutex_init(&_node_mutex, nullptr);
@@ -116,14 +119,15 @@ UavcanNode::~UavcanNode()
 		} while (_instance);
 	}
 
+	_publisher_list.clear();
+	_subscriber_list.clear();
+
 	perf_free(_cycle_perf);
 	perf_free(_interval_perf);
 }
 
 int UavcanNode::getHardwareVersion(uavcan::protocol::HardwareVersion &hwver)
 {
-	int rv = -1;
-
 	if (UavcanNode::instance()) {
 
 		hwver.major = HW_VERSION_MAJOR;
@@ -132,10 +136,10 @@ int UavcanNode::getHardwareVersion(uavcan::protocol::HardwareVersion &hwver)
 		mfguid_t mfgid = {};
 		board_get_mfguid(mfgid);
 		uavcan::copy(mfgid, mfgid + sizeof(mfgid), hwver.unique_id.begin());
-		rv = 0;
+		return 0;
 	}
 
-	return rv;
+	return -1;
 }
 
 int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
@@ -261,11 +265,27 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 
 	fill_node_info();
 
-	const int srv_start_res = _fw_update_listner.start(BeginFirmwareUpdateCallBack(this,
-				  &UavcanNode::cb_beginfirmware_update));
-
-	if (srv_start_res < 0) {
+	if (_fw_update_listner.start(BeginFirmwareUpdateCallBack(this, &UavcanNode::cb_beginfirmware_update)) < 0) {
+		PX4_ERR("firmware update listener start failed");
 		return PX4_ERROR;
+	}
+
+	// TODO: make runtime (and build time?) configurable
+	_publisher_list.add(new BatteryInfo(this, _node));
+	_publisher_list.add(new FlowMeasurement(this, _node));
+	_publisher_list.add(new GnssFix2(this, _node));
+	_publisher_list.add(new MagneticFieldStrength2(this, _node));
+	_publisher_list.add(new RangeSensorMeasurement(this, _node));
+	_publisher_list.add(new RawAirData(this, _node));
+	_publisher_list.add(new SafetyButton(this, _node));
+	_publisher_list.add(new StaticPressure(this, _node));
+	_publisher_list.add(new StaticTemperature(this, _node));
+
+	_subscriber_list.add(new BeepCommand(_node));
+	_subscriber_list.add(new LightsCommand(_node));
+
+	for (auto &subscriber : _subscriber_list) {
+		subscriber->init();
 	}
 
 	bus_events.registerSignalCallback(UavcanNode::busevent_signal_trampoline);
@@ -294,8 +314,6 @@ void UavcanNode::Run()
 		get_node().setRestartRequestHandler(&restart_request_handler);
 		_param_server.start(&_param_manager);
 
-		init_indication_controller(get_node());
-
 		// Set up the time synchronization
 		const int slave_init_res = _time_sync_slave.start();
 
@@ -305,18 +323,6 @@ void UavcanNode::Run()
 		}
 
 		_node.setModeOperational();
-
-		_diff_pressure_sub.registerCallback();
-
-		for (auto &dist : _distance_sensor_sub) {
-			dist.registerCallback();
-		}
-
-		_optical_flow_sub.registerCallback();
-		_sensor_baro_sub.registerCallback();
-		_sensor_gps_sub.registerCallback();
-		_sensor_mag_sub.registerCallback();
-		_sensor_gps_sub.registerCallback();
 
 		_initialized = true;
 	}
@@ -333,208 +339,13 @@ void UavcanNode::Run()
 		// update parameters from storage
 	}
 
-	const int spin_res = _node.spin(uavcan::MonotonicTime());
+	_node.spinOnce();
 
-	if (spin_res < 0) {
-		PX4_ERR("node spin error %i", spin_res);
+	for (auto &publisher : _publisher_list) {
+		publisher->BroadcastAnyUpdates();
 	}
 
-	// battery_status -> uavcan::equipment::power::BatteryInfo
-	if (_battery_status_sub.updated()) {
-		battery_status_s battery;
-
-		if (_battery_status_sub.copy(&battery)) {
-			uavcan::equipment::power::BatteryInfo battery_info{};
-			battery_info.voltage = battery.voltage_v;
-			battery_info.current = fabs(battery.current_a);
-			battery_info.temperature = battery.temperature - CONSTANTS_ABSOLUTE_NULL_CELSIUS; // convert from C to K
-			battery_info.full_charge_capacity_wh = battery.capacity;
-			battery_info.remaining_capacity_wh = battery.remaining * battery.capacity;
-			battery_info.state_of_charge_pct = battery.remaining * 100;
-			battery_info.state_of_charge_pct_stdev = battery.max_error;
-			battery_info.model_instance_id = 0; // TODO: what goes here?
-			battery_info.model_name = "ARK BMS Rev 0.2";
-			battery_info.battery_id = battery.serial_number;
-			battery_info.hours_to_full_charge = 0; // TODO: Read BQ40Z80_TIME_TO_FULL
-			battery_info.state_of_health_pct = battery.state_of_health;
-
-			if (battery.current_a > 0.0f) {
-				battery_info.status_flags = uavcan::equipment::power::BatteryInfo::STATUS_FLAG_CHARGING;
-
-			} else {
-				battery_info.status_flags = uavcan::equipment::power::BatteryInfo::STATUS_FLAG_IN_USE;
-			}
-
-			_power_battery_info_publisher.broadcast(battery_info);
-		}
-	}
-
-	// differential_pressure -> uavcan::equipment::air_data::RawAirData
-	if (_diff_pressure_sub.updated()) {
-		differential_pressure_s diff_press;
-
-		if (_diff_pressure_sub.copy(&diff_press)) {
-
-			uavcan::equipment::air_data::RawAirData raw_air_data{};
-
-			// raw_air_data.static_pressure =
-			raw_air_data.differential_pressure = diff_press.differential_pressure_raw_pa;
-			// raw_air_data.static_pressure_sensor_temperature =
-			raw_air_data.differential_pressure_sensor_temperature = diff_press.temperature - CONSTANTS_ABSOLUTE_NULL_CELSIUS;
-			raw_air_data.static_air_temperature = diff_press.temperature - CONSTANTS_ABSOLUTE_NULL_CELSIUS;
-			// raw_air_data.pitot_temperature
-			// raw_air_data.covariance
-			_raw_air_data_publisher.broadcast(raw_air_data);
-		}
-	}
-
-	// distance_sensor[] -> uavcan::equipment::range_sensor::Measurement
-	for (int i = 0; i < MAX_INSTANCES; i++) {
-		distance_sensor_s dist;
-
-		if (_distance_sensor_sub[i].update(&dist)) {
-			uavcan::equipment::range_sensor::Measurement range_sensor{};
-
-			range_sensor.sensor_id = i;
-			range_sensor.range = dist.current_distance;
-			range_sensor.field_of_view = dist.h_fov;
-
-			// sensor type
-			switch (dist.type) {
-			case distance_sensor_s::MAV_DISTANCE_SENSOR_LASER:
-				range_sensor.sensor_type = uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_LIDAR;
-				break;
-
-			case distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND:
-				range_sensor.sensor_type = uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_SONAR;
-				break;
-
-			case distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR:
-				range_sensor.sensor_type = uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_RADAR;
-				break;
-
-			case distance_sensor_s::MAV_DISTANCE_SENSOR_INFRARED:
-			default:
-				range_sensor.sensor_type = uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_UNDEFINED;
-				break;
-			}
-
-			// reading_type
-			if (dist.current_distance >= dist.max_distance) {
-				range_sensor.reading_type = uavcan::equipment::range_sensor::Measurement::READING_TYPE_TOO_FAR;
-
-			} else if (dist.current_distance <= dist.min_distance) {
-				range_sensor.reading_type = uavcan::equipment::range_sensor::Measurement::READING_TYPE_TOO_CLOSE;
-
-			} else if (dist.signal_quality != 0) {
-				range_sensor.reading_type = uavcan::equipment::range_sensor::Measurement::READING_TYPE_VALID_RANGE;
-
-			} else {
-				range_sensor.reading_type = uavcan::equipment::range_sensor::Measurement::READING_TYPE_UNDEFINED;
-			}
-
-			_range_sensor_measurement.broadcast(range_sensor);
-		}
-	}
-
-	// sensor_baro -> uavcan::equipment::air_data::StaticTemperature
-	if (_sensor_baro_sub.updated()) {
-		sensor_baro_s baro;
-
-		if (_sensor_baro_sub.copy(&baro)) {
-			uavcan::equipment::air_data::StaticPressure static_pressure{};
-			static_pressure.static_pressure = baro.pressure * 100; // millibar -> pascals
-			_air_data_static_pressure_publisher.broadcast(static_pressure);
-
-			if (hrt_elapsed_time(&_last_static_temperature_publish) > 1_s) {
-				uavcan::equipment::air_data::StaticTemperature static_temperature{};
-				static_temperature.static_temperature = baro.temperature + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
-				_air_data_static_temperature_publisher.broadcast(static_temperature);
-				_last_static_temperature_publish = hrt_absolute_time();
-			}
-		}
-	}
-
-	// sensor_mag -> uavcan::equipment::ahrs::MagneticFieldStrength2
-	if (_sensor_mag_sub.updated()) {
-		sensor_mag_s mag;
-
-		if (_sensor_mag_sub.copy(&mag)) {
-			uavcan::equipment::ahrs::MagneticFieldStrength2 magnetic_field{};
-			magnetic_field.sensor_id = mag.device_id;
-			magnetic_field.magnetic_field_ga[0] = mag.x;
-			magnetic_field.magnetic_field_ga[1] = mag.y;
-			magnetic_field.magnetic_field_ga[2] = mag.z;
-			_ahrs_magnetic_field_strength2_publisher.broadcast(magnetic_field);
-		}
-	}
-
-	// sensor_gps -> uavcan::equipment::gnss::Fix2
-	if (_sensor_gps_sub.updated()) {
-		sensor_gps_s gps;
-
-		if (_sensor_gps_sub.copy(&gps)) {
-			uavcan::equipment::gnss::Fix2 fix2{};
-
-			fix2.gnss_time_standard = fix2.GNSS_TIME_STANDARD_UTC;
-			fix2.gnss_timestamp.usec = gps.time_utc_usec;
-			fix2.latitude_deg_1e8 = (int64_t)gps.lat * 10;
-			fix2.longitude_deg_1e8 = (int64_t)gps.lon * 10;
-			fix2.height_msl_mm = gps.alt;
-			fix2.height_ellipsoid_mm = gps.alt_ellipsoid;
-			fix2.status = gps.fix_type;
-			fix2.ned_velocity[0] = gps.vel_n_m_s;
-			fix2.ned_velocity[1] = gps.vel_e_m_s;
-			fix2.ned_velocity[2] = gps.vel_d_m_s;
-			fix2.pdop = gps.hdop > gps.vdop ? gps.hdop :
-				    gps.vdop; // Use pdop for both hdop and vdop since uavcan v0 spec does not support them
-			fix2.sats_used = gps.satellites_used;
-
-			// Diagonal matrix
-			// position variances -- Xx, Yy, Zz
-			fix2.covariance.push_back(gps.eph);
-			fix2.covariance.push_back(gps.eph);
-			fix2.covariance.push_back(gps.eph);
-			// velocity variance -- Vxx, Vyy, Vzz
-			fix2.covariance.push_back(gps.s_variance_m_s);
-			fix2.covariance.push_back(gps.s_variance_m_s);
-			fix2.covariance.push_back(gps.s_variance_m_s);
-
-			_gnss_fix2_publisher.broadcast(fix2);
-		}
-	}
-
-	// optical_flow -> com::hex::equipment::flow::Measurement
-	if (_optical_flow_sub.updated()) {
-		optical_flow_s optical_flow;
-
-		if (_optical_flow_sub.copy(&optical_flow)) {
-			com::hex::equipment::flow::Measurement measurement{};
-
-			measurement.integration_interval  = optical_flow.integration_timespan * 1e-6f; // us -> s
-			measurement.rate_gyro_integral[0] = optical_flow.gyro_x_rate_integral;
-			measurement.rate_gyro_integral[1] = optical_flow.gyro_y_rate_integral;
-			measurement.flow_integral[0] = optical_flow.pixel_flow_x_integral;
-			measurement.flow_integral[1] = optical_flow.pixel_flow_y_integral;
-			measurement.quality = optical_flow.quality;
-
-			_flow_measurement_publisher.broadcast(measurement);
-		}
-	}
-
-	// safety -> standard::indication::button
-	if (_safety_sub.updated()) {
-		safety_s safety;
-
-		if (_safety_sub.copy(&safety)) {
-			if (safety.safety_switch_available) {
-				standard::indication::Button Button{};
-				Button.button = standard::indication::Button::BUTTON_SAFETY;
-				Button.press_time = safety.safety_off ? UINT8_MAX : 0;
-				_indication_button_publisher.broadcast(Button);
-			}
-		}
-	}
+	_node.spinOnce();
 
 	perf_end(_cycle_perf);
 
@@ -546,7 +357,7 @@ void UavcanNode::Run()
 	}
 }
 
-void UavcanNode::print_info()
+void UavcanNode::PrintInfo()
 {
 	pthread_mutex_lock(&_node_mutex);
 
@@ -582,6 +393,20 @@ void UavcanNode::print_info()
 	}
 
 	printf("\n");
+	printf("Publishers:\n");
+
+	for (const auto &publisher : _publisher_list) {
+		publisher->PrintInfo();
+	}
+
+	printf("\n");
+	printf("Subscribers:\n");
+
+	for (const auto &subscriber : _subscriber_list) {
+		subscriber->PrintInfo();
+	}
+
+	printf("\n");
 
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_interval_perf);
@@ -595,6 +420,8 @@ void UavcanNode::shrink()
 	_pool_allocator.shrink();
 	(void)pthread_mutex_unlock(&_node_mutex);
 }
+
+} // namespace uavcannode
 
 static void print_usage()
 {
@@ -637,7 +464,7 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 
 	// Start
 	PX4_INFO("Node ID %u, bitrate %u", node_id, bitrate);
-	int rv = UavcanNode::start(node_id, bitrate);
+	int rv = uavcannode::UavcanNode::start(node_id, bitrate);
 
 	return rv;
 }
@@ -650,7 +477,7 @@ extern "C" __EXPORT int uavcannode_main(int argc, char *argv[])
 	}
 
 	if (!std::strcmp(argv[1], "start")) {
-		if (UavcanNode::instance()) {
+		if (uavcannode::UavcanNode::instance()) {
 			PX4_ERR("already started");
 			return 1;
 		}
@@ -659,7 +486,7 @@ extern "C" __EXPORT int uavcannode_main(int argc, char *argv[])
 	}
 
 	/* commands below require the app to be started */
-	UavcanNode *const inst = UavcanNode::instance();
+	uavcannode::UavcanNode *const inst = uavcannode::UavcanNode::instance();
 
 	if (!inst) {
 		PX4_ERR("application not running");
@@ -668,7 +495,7 @@ extern "C" __EXPORT int uavcannode_main(int argc, char *argv[])
 
 	if (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info")) {
 		if (inst) {
-			inst->print_info();
+			inst->PrintInfo();
 		}
 
 		return 0;

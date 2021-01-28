@@ -129,7 +129,6 @@ px4_add_module(
 	SRCS
 		allocator.hpp
 		uavcan_driver.hpp
-		indication_controller.cpp
 		UavcanNode.cpp
 		UavcanNode.hpp
 		UavcanNodeParamManager.hpp

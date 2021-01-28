@@ -36,6 +36,9 @@
 #include <px4_platform_common/defines.h>
 #include <lib/parameters/param.h>
 
+namespace uavcannode
+{
+
 void UavcanNodeParamManager::getParamNameByIndex(Index index, Name &out_name) const
 {
 	if (index < param_count_used()) {
@@ -136,3 +139,5 @@ int UavcanNodeParamManager::eraseAllParams()
 	param_reset_all();
 	return 0;
 }
+
+} // namespace uavcannode
