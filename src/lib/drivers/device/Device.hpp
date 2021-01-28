@@ -148,6 +148,7 @@ public:
 		DeviceBusType_UAVCAN  = 3,
 		DeviceBusType_SIMULATION = 4,
 		DeviceBusType_SERIAL = 5,
+		DeviceBusType_MAVLINK = 6,
 	};
 
 	/*
@@ -195,6 +196,9 @@ public:
 
 		case DeviceBusType_SERIAL:
 			return "SERIAL";
+
+		case DeviceBusType_MAVLINK:
+			return "MAVLINK";
 
 		case DeviceBusType_UNKNOWN:
 		default:
