@@ -119,7 +119,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_actuator_setpoint", 20);
 
 	// multi topics
-	add_topic_multi("actuator_outputs", 100, 2);
+	add_topic_multi("actuator_outputs", 100, 3);
 	add_topic_multi("logger_status", 0, 2);
 	add_topic_multi("multirotor_motor_limits", 1000, 2);
 	add_topic_multi("rate_ctrl_status", 200, 2);
