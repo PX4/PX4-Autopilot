@@ -82,6 +82,8 @@
 #pragma message "******** DANGER DEBUG_APPLICATION_INPLACE is DEFINED ******"
 #endif
 
+extern bootloader_alt_app_shared_t _sapp_bl_shared;
+
 typedef volatile struct bootloader_t {
 	can_speed_t bus_speed;
 	volatile uint8_t health;
@@ -208,7 +210,7 @@ static void node_info_process(bl_timer_id id, void *context)
 			bootloader.fw_image_descriptor->minor_version;
 
 		response.software_version.vcs_commit =
-			bootloader.fw_image_descriptor->vcs_commit;
+			bootloader.fw_image_descriptor->git_hash;
 
 		response.software_version.image_crc =
 			bootloader.fw_image_descriptor->image_crc;
@@ -292,9 +294,9 @@ static void find_descriptor(void)
 	app_descriptor_t *descriptor = NULL;
 	union {
 		uint64_t ull;
-		char text[sizeof(uint64_t)];
+		uint8_t bytes[sizeof(uint64_t)];
 	} sig = {
-		.text = {APP_DESCRIPTOR_SIGNATURE}
+		.bytes = APP_DESCRIPTOR_SIGNATURE
 	};
 
 	do {
@@ -312,8 +314,8 @@ static void find_descriptor(void)
  *
  * Description:
  *   This functions validates the applications image based on the validity of
- *   the Application firmware descriptor's crc and the value of the first word
- *   in the FLASH image.
+ *   the Application firmware descriptor's 2 crcs and the value of
+ *   the first word in the FLASH image.
  *
  *
  * Input Parameters:
@@ -326,9 +328,9 @@ static void find_descriptor(void)
  ****************************************************************************/
 static bool is_app_valid(uint32_t first_word)
 {
-	uint64_t crc;
-	size_t i, length, crc_offset;
-	uint32_t word;
+	uint32_t block_crc1;
+	uint32_t block_crc2;
+	size_t length;
 
 	find_descriptor();
 
@@ -342,32 +344,21 @@ static bool is_app_valid(uint32_t first_word)
 		return false;
 	}
 
-	crc_offset = (size_t)(&bootloader.fw_image_descriptor->image_crc) -
-		     (size_t) bootloader.fw_image;
-	crc_offset >>= 2u;
-	length >>= 2u;
+	block_crc1 = crc32_signature(0, sizeof(first_word), (const uint8_t *)&first_word);
+	block_crc1 = crc32_signature(block_crc1, (size_t)(&bootloader.fw_image_descriptor->crc32_block1) -
+				     (size_t)(bootloader.fw_image + 1), (const uint8_t *)(bootloader.fw_image + 1));
 
-	crc = crc64_add_word(CRC64_INITIAL, first_word);
-
-	for (i = 1u; i < length; i++) {
-		if (i == crc_offset || i == crc_offset + 1u) {
-			/* Zero out the CRC field while computing the CRC */
-			word = 0u;
-
-		} else {
-			word = bootloader.fw_image[i];
-		}
-
-		crc = crc64_add_word(crc, word);
-	}
-
-	crc ^= CRC64_OUTPUT_XOR;
+	block_crc2 = crc32_signature(0,
+				     (size_t) bootloader.fw_image_descriptor->image_size - ((size_t)&bootloader.fw_image_descriptor->major_version
+						     - (size_t)bootloader.fw_image),
+				     (const uint8_t *) &bootloader.fw_image_descriptor->major_version);
 
 #if defined(DEBUG_APPLICATION_INPLACE)
 	return true;
 #endif
 
-	return crc == bootloader.fw_image_descriptor->image_crc;
+	return block_crc1 == bootloader.fw_image_descriptor->crc32_block1
+	       && block_crc2 == bootloader.fw_image_descriptor->crc32_block2;
 }
 
 /****************************************************************************
@@ -976,11 +967,16 @@ static void application_run(size_t fw_image_size, bootloader_app_shared_t *commo
 static int autobaud_and_get_dynamic_node_id(bl_timer_id tboot, can_speed_t *speed, uint32_t *node_id)
 {
 	board_indicate(autobaud_start);
-
+	bool autobaud_only = *speed == CAN_UNDEFINED;
 	int rv = can_autobaud(speed, tboot);
 
 	if (rv != CAN_BOOT_TIMEOUT) {
 		board_indicate(autobaud_end);
+
+		if (autobaud_only) {
+			return rv;
+		}
+
 		board_indicate(allocation_start);
 #if defined(DEBUG_APPLICATION_INPLACE)
 		*node_id = 125;
@@ -1071,9 +1067,24 @@ __EXPORT int main(int argc, char *argv[])
 
 	board_indicate(reset);
 
-	/* Was this boot a result of the Application being told it has a FW update ? */
-	bootloader.app_bl_request = (OK == bootloader_app_shared_read(&common, App)) &&
-				    common.bus_speed && common.node_id;
+	/* Was this boot a result of An Alternate Application being told it has a FW update ? */
+
+	bootloader_alt_app_shared_t *ps = (bootloader_alt_app_shared_t *) &_sapp_bl_shared;
+
+	if (ps->signature == BL_ALT_APP_SHARED_SIGNATURE) {
+
+		common.node_id = ps->node_id;
+		common.bus_speed = CAN_UNDEFINED;
+		bootloader.app_bl_request = ps->node_id != 0;
+		ps->signature = 0;
+
+	} else {
+
+		/* Was this boot a result of the Application being told it has a FW update ? */
+
+		bootloader.app_bl_request = (OK == bootloader_app_shared_read(&common, App)) &&
+					    common.bus_speed && common.node_id;
+	}
 
 	/*
 	 * Mark CRC to say this is not from
@@ -1130,6 +1141,23 @@ __EXPORT int main(int argc, char *argv[])
 	if (bootloader.app_bl_request) {
 
 		bootloader.bus_speed = common.bus_speed;
+
+		/* if the the bootloader_alt_app_shared_t was used there  is not bit rate.
+		 * So let auto baud only as signaled by bootloader.bus_speed == CAN_UNDEFINED
+		 */
+
+		if (common.bus_speed == CAN_UNDEFINED) {
+			if (CAN_OK != autobaud_and_get_dynamic_node_id(tboot, (can_speed_t *)&bootloader.bus_speed, &common.node_id)) {
+				/*
+				 * It is OK that node ID is set to the preferred Appl Node ID because
+				 *  common.crc.valid is not true yet
+				 */
+
+				goto boot;
+
+			}
+		}
+
 		can_init(can_freq2speed(common.bus_speed), CAN_Mode_Normal);
 
 	} else {
