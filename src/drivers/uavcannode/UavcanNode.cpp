@@ -73,13 +73,14 @@ namespace uavcannode
  * image crc, size etc of this application
 */
 boot_app_shared_section app_descriptor_t AppDescriptor = {
-	.signature = {APP_DESCRIPTOR_SIGNATURE},
+	.signature = APP_DESCRIPTOR_SIGNATURE,
 	.image_crc = 0,
 	.image_size = 0,
-	.vcs_commit = 0,
+	.git_hash  = 0,
 	.major_version = APP_VERSION_MAJOR,
 	.minor_version = APP_VERSION_MINOR,
-	.reserved = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff }
+	.board_id = HW_VERSION_MAJOR << 8 | HW_VERSION_MINOR,
+	.reserved = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }
 };
 
 UavcanNode *UavcanNode::_instance;
