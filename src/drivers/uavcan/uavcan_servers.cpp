@@ -72,6 +72,9 @@
 /*
  * UavcanNode
  */
+
+#define UAVCAN_FIRMWARE_CACHE_PATH UAVCAN_FIRMWARE_PATH"/c/"
+
 UavcanServers *UavcanServers::_instance;
 
 UavcanServers::UavcanServers(uavcan::INode &main_node) :
@@ -217,7 +220,7 @@ UavcanServers::init()
 
 	/* Start fw file server back */
 
-	ret = _fw_server.start();
+	ret = _fw_server.start(UAVCAN_FIRMWARE_CACHE_PATH);
 
 	if (ret < 0) {
 		PX4_ERR("BasicFileServer init: %d, errno: %d", ret, errno);
