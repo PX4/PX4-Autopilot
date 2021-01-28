@@ -16,6 +16,8 @@ jobs:
       matrix:
         config: [
           airmind_mindpx-v2_default,
+          ark_can-flow_canbootloader,
+          ark_can-flow_default,
           av_x-v1_default,
           bitcraze_crazyflie_default,
           bitcraze_crazyflie21_default,
