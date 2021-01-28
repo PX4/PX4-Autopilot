@@ -1113,15 +1113,25 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	case PWM_SERVO_GET(13):
 	case PWM_SERVO_GET(12):
-	case PWM_SERVO_GET(11):
-	case PWM_SERVO_GET(10):
-	case PWM_SERVO_GET(9):
-	case PWM_SERVO_GET(8):
 		if (_mode < MODE_14PWM) {
 			ret = -EINVAL;
 			break;
 		}
 
+#endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 12
+
+	// FALLTHROUGH
+	case PWM_SERVO_GET(11):
+	case PWM_SERVO_GET(10):
+	case PWM_SERVO_GET(9):
+	case PWM_SERVO_GET(8):
+		if (_mode < MODE_12PWM) {
+			ret = -EINVAL;
+			break;
+		}
+
+		// FALLTHROUGH
 #endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 

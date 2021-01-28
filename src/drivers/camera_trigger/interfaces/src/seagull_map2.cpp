@@ -21,7 +21,17 @@ CameraInterfaceSeagull::CameraInterfaceSeagull():
 	CameraInterface(),
 	_camera_is_on(false)
 {
-	get_pins();
+	//get_pins();
+
+	// NORA hacks
+	// Set all pins as invalid
+	for (unsigned i = 0; i < arraySize(_pins); i++) {
+		_pins[i] = -1;
+	}
+
+	_pins[0] = 14 - 1;
+	_pins[1] = 13 - 1;
+
 	setup();
 }
 
@@ -41,10 +51,12 @@ void CameraInterfaceSeagull::setup()
 			up_pwm_trigger_init(pin_bitmask);
 
 			// Set both interface pins to disarmed
-			up_pwm_trigger_set(_pins[i + 1], PWM_CAMERA_DISARMED);
-			up_pwm_trigger_set(_pins[i], PWM_CAMERA_DISARMED);
+			int ret1 = up_pwm_trigger_set(_pins[i + 1], PWM_CAMERA_DISARMED);
+			PX4_INFO("pwm trigger set %d %d=%d, ret=%d", i + 1, _pins[i + 1], PWM_CAMERA_DISARMED, ret1);
 
-			// We only support 2 consecutive pins while using the Seagull MAP2
+			int ret2 = up_pwm_trigger_set(_pins[i], PWM_CAMERA_DISARMED);
+			PX4_INFO("pwm trigger set %d %d=%d, ret=%d", i, _pins[i], PWM_CAMERA_DISARMED, ret2);
+
 			return;
 		}
 	}
@@ -54,7 +66,6 @@ void CameraInterfaceSeagull::setup()
 
 void CameraInterfaceSeagull::trigger(bool trigger_on_true)
 {
-
 	if (!_camera_is_on) {
 		return;
 	}
@@ -69,6 +80,7 @@ void CameraInterfaceSeagull::trigger(bool trigger_on_true)
 
 void CameraInterfaceSeagull::send_keep_alive(bool enable)
 {
+	fprintf(stderr, "seagull keep alive %d (camera is on: %d)\n", enable, _camera_is_on);
 	// This should alternate between enable and !enable to keep the camera alive
 
 	if (!_camera_is_on) {
@@ -78,6 +90,7 @@ void CameraInterfaceSeagull::send_keep_alive(bool enable)
 	for (unsigned i = 0; i < arraySize(_pins); i = i + 2) {
 		if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
 			// Set channel 2 pin to keep_alive or netural signal
+			fprintf(stderr, "seagull keep alive pin %d %d\n", i, _pins[i]);
 			up_pwm_trigger_set(_pins[i], enable ? PWM_2_CAMERA_KEEP_ALIVE : PWM_CAMERA_NEUTRAL);
 		}
 	}
@@ -85,7 +98,7 @@ void CameraInterfaceSeagull::send_keep_alive(bool enable)
 
 void CameraInterfaceSeagull::send_toggle_power(bool enable)
 {
-
+	fprintf(stderr, "seagull toggle power %d\n", enable);
 	// This should alternate between enable and !enable to toggle camera power
 
 	for (unsigned i = 0; i < arraySize(_pins); i = i + 2) {
