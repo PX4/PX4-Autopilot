@@ -23,6 +23,8 @@
 # define DIRENT_ISFILE(dtype)  ((dtype) == DT_REG)
 #endif
 
+#define ALT_APD_SIGNATURE 0x40, 0xa2, 0xe4, 0xf1, 0x64, 0x68, 0x91, 0x06
+
 namespace uavcan_posix
 {
 /**
@@ -51,12 +53,7 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
     typedef uavcan::MakeString<MaxPathLength>::Type PathString;
 
     BasePathString base_path_;
-    BasePathString cache_path_;
-
-    /**
-     * The folder where the files will be copied and read from
-     */
-    static const char* getCacheDir() { return "c"; }
+    BasePathString alt_base_path_;
 
     static void addSlash(BasePathString& path)
     {
@@ -79,147 +76,9 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
         base_path_ = path;
     }
 
-    void setFirmwareCachePath(const char* path)
+    void setFirmwareAltBasePath(const char* path)
     {
-        cache_path_ = path;
-    }
-
-    int copyIfNot(const char* srcpath, const char* destpath)
-    {
-        using namespace std;
-
-        // Does the file exist
-        int rv = 0;
-        int dfd = open(destpath, O_RDONLY, 0);
-
-        if (dfd >= 0)
-        {
-            // Close it and exit 0
-            (void)close(dfd);
-        }
-        else
-        {
-            uint8_t buffer[512];
-
-            dfd = open(destpath, O_WRONLY | O_CREAT, FilePermissions);
-            if (dfd < 0)
-            {
-                rv = -errno;
-            }
-            else
-            {
-                int sfd = open(srcpath, O_RDONLY, 0);
-                if (sfd < 0)
-                {
-                    rv = -errno;
-                }
-                else
-                {
-                    ssize_t size = 0;
-                    do
-                    {
-                        size = ::read(sfd, buffer, sizeof(buffer));
-                        if (size != 0)
-                        {
-                            if (size < 0)
-                            {
-                                rv = -errno;
-                            }
-                            else
-                            {
-                                rv = 0;
-                                ssize_t remaining = size;
-                                ssize_t total_written = 0;
-                                ssize_t written = 0;
-                                do
-                                {
-                                    written = write(dfd, &buffer[total_written], remaining);
-                                    if (written < 0)
-                                    {
-                                        rv = -errno;
-                                    }
-                                    else
-                                    {
-                                        total_written += written;
-                                        remaining -=  written;
-                                    }
-                                }
-                                while (written > 0 && remaining > 0);
-                            }
-                        }
-                    }
-                    while (rv == 0 && size != 0);
-
-                    (void)close(sfd);
-                }
-                (void)close(dfd);
-            }
-        }
-        return rv;
-    }
-
-    struct AppDescriptor
-    {
-        uavcan::uint8_t signature[sizeof(uavcan::uint64_t)];
-        uavcan::uint64_t image_crc;
-        uavcan::uint32_t image_size;
-        uavcan::uint32_t vcs_commit;
-        uavcan::uint8_t major_version;
-        uavcan::uint8_t minor_version;
-        uavcan::uint8_t reserved[6];
-    };
-
-    static int getFileInfo(const char* path, AppDescriptor& descriptor)
-    {
-        using namespace std;
-
-        const unsigned MaxChunk = 512 / sizeof(uint64_t);
-
-        uint64_t signature = 0;
-        std::memcpy(&signature, "APDesc00", 8);
-
-        int rv = -ENOENT;
-        uint64_t chunk[MaxChunk];
-        int fd = open(path, O_RDONLY);
-
-        if (fd >= 0)
-        {
-            AppDescriptor* pdescriptor = UAVCAN_NULLPTR;
-
-            while (pdescriptor == UAVCAN_NULLPTR)
-            {
-                int len = read(fd, chunk, sizeof(chunk));
-
-                if (len == 0)
-                {
-                    break;
-                }
-
-                if (len < 0)
-                {
-                    rv = -errno;
-                    goto out_close;
-                }
-
-                uint64_t* p = &chunk[0];
-
-                do
-                {
-                    if (*p == signature)
-                    {
-                        pdescriptor = reinterpret_cast<AppDescriptor*>(p); // FIXME TODO This breaks strict aliasing
-                        descriptor = *pdescriptor;
-                        rv = 0;
-                        break;
-                    }
-                }
-                while (p++ <= &chunk[MaxChunk - (sizeof(AppDescriptor) / sizeof(chunk[0]))]);
-            }
-
-        out_close:
-            (void)close(fd);
-        }
-        return rv;
+        alt_base_path_ = path;
     }
 
 protected:
@@ -249,73 +108,44 @@ protected:
          *
          *  So for the file:
          *    org.pixhawk.px4cannode-v1-0.1.59efc137.uavcan.bin
-         *    +---fw
-         *        +-c                           <----------- Files are cashed here.
-         *          +--- px4cannode-v1.59efc137.bin <------  A Firmware file
-         *        +---org.pixhawk.px4cannode-v1 <---------- node_info.name
-         *        +---1.0 <-------------------------------- node_info.name's hardware_version.major,minor
-         *            + - px4cannode-v1.59efc137.bin  <---- A well known file must match the name
-         *                                                   in the root fw folder, so if it does not exist
-         *                                                   it is copied up MUST BE < 32 Characters
+         *    +---ufw
+         *        +- board_id.bin
          */
         bool rv = false;
+        uint16_t board_id = (node_info.hardware_version.major << 8) + node_info.hardware_version.minor;
+        char bin_file_name[MaxBasePathLength + 1];
+        int n = snprintf(bin_file_name, sizeof(bin_file_name), "%u.bin", board_id);
 
-        char fname_root[MaxBasePathLength + 1];
-        int n = snprintf(fname_root, sizeof(fname_root), "%s%s/%d.%d",
-                         getFirmwareBasePath().c_str(),
-                         node_info.name.c_str(),
-                         node_info.hardware_version.major,
-                         node_info.hardware_version.minor);
-
-        if (n > 0 && n < (int)sizeof(fname_root) - 2)
+        if (n > 0 && n < (int)sizeof(bin_file_name) - 2)
         {
-            DIR* const fwdir = opendir(fname_root);
+            char bin_file_path[MaxBasePathLength + 1];
 
-            fname_root[n++] = getPathSeparator();
-            fname_root[n++] = '\0';
+            // Look on Primary location
 
-            if (fwdir != UAVCAN_NULLPTR)
+            snprintf(bin_file_path, sizeof(bin_file_path), "%s%s",
+                      getFirmwareBasePath().c_str(), bin_file_name);
+
+           // We have a file path, is it a valid image
+
+            AppDescriptor descriptor{0};
+
+            bool found = getFileInfo(bin_file_path, descriptor) == 0;
+
+            if (!found && !getFirmwareAltBasePath().empty())
             {
-                struct dirent* pfile = UAVCAN_NULLPTR;
-                while ((pfile = readdir(fwdir)) != UAVCAN_NULLPTR)
-                {
-                    if (DIRENT_ISFILE(pfile->d_type))
-                    {
-                        // Open any bin file in there.
-                        if (strstr(pfile->d_name, ".bin") != UAVCAN_NULLPTR)
-                        {
-                            PathString full_src_path = fname_root;
-                            full_src_path += pfile->d_name;
+                snprintf(bin_file_name, sizeof(bin_file_name), "%u.bin", board_id);
+                snprintf(bin_file_path, sizeof(bin_file_path), "%s/%s",
+                         getFirmwareAltBasePath().c_str(), bin_file_name);
 
-                            PathString full_dst_path = getFirmwareCachePath().c_str();
-                            full_dst_path += pfile->d_name;
+                found = getFileInfo(bin_file_path, descriptor) == 0;
+            }
 
-                            // ease the burden on the user
-                            int cr = copyIfNot(full_src_path.c_str(), full_dst_path.c_str());
-
-                            // We have a file, is it a valid image
-                            AppDescriptor descriptor;
-
-                            std::memset(&descriptor, 0, sizeof(descriptor));
-
-                            if (cr == 0 && getFileInfo(full_dst_path.c_str(), descriptor) == 0)
-                            {
-                                volatile AppDescriptor descriptorC = descriptor;
-                                descriptorC.reserved[1]++;
-
-                                if (node_info.software_version.image_crc == 0 ||
-                                    (node_info.software_version.major == 0 && node_info.software_version.minor == 0) ||
-                                    descriptor.image_crc != node_info.software_version.image_crc)
-                                {
-                                    rv = true;
-                                    out_firmware_file_path = pfile->d_name;
-                                }
-                                break;
-                            }
-                        }
-                    }
-                }
-                (void)closedir(fwdir);
+            if (found && (node_info.software_version.image_crc == 0 ||
+                (node_info.software_version.major == 0 && node_info.software_version.minor == 0) ||
+                descriptor.image_crc != node_info.software_version.image_crc))
+            {
+                rv = true;
+                out_firmware_file_path = bin_file_name;
             }
         }
         return rv;
@@ -349,9 +179,89 @@ protected:
     }
 
 public:
+    struct AppDescriptor
+    {
+        uavcan::uint8_t signature[sizeof(uavcan::uint64_t)];
+        union{
+            uavcan::uint64_t image_crc;
+            uavcan::uint32_t crc32_block1;
+            uavcan::uint32_t crc32_block2;
+        };
+        uavcan::uint32_t image_size;
+        uavcan::uint32_t vcs_commit;
+        uavcan::uint8_t  major_version;
+        uavcan::uint8_t  minor_version;
+        uavcan::uint16_t board_id;
+        uavcan::uint8_t  reserved[ 3 + 3 + 2];
+    };
+
+    static int getFileInfo(const char* path, AppDescriptor& descriptor, int limit = 0)
+    {
+        using namespace std;
+
+        const unsigned MaxChunk = 512 / sizeof(uint64_t);
+
+        // Make sure this does not present as a valid descriptor
+        struct {
+          union {
+            uavcan::uint64_t l;
+            uavcan::uint8_t  b[sizeof(uint64_t)]{ALT_APD_SIGNATURE};
+          } signature;
+          uavcan::uint8_t  zeropad[sizeof(AppDescriptor) - sizeof(uint64_t)]{0};
+        } s;
+
+        int rv = -ENOENT;
+        uint64_t chunk[MaxChunk];
+        int fd = open(path, O_RDONLY);
+
+        if (fd >= 0)
+        {
+            AppDescriptor* pdescriptor = UAVCAN_NULLPTR;
+
+            while (pdescriptor == UAVCAN_NULLPTR && limit >= 0)
+            {
+                int len = read(fd, chunk, sizeof(chunk));
+
+                if (len == 0)
+                {
+                    break;
+                }
+
+                if (len < 0)
+                {
+                    rv = -errno;
+                    goto out_close;
+                }
+
+                uint64_t* p = &chunk[0];
+
+                if (limit > 0)
+                {
+                    limit -= sizeof(chunk);
+                }
+
+                do
+                {
+                    if (*p == s.signature.l)
+                    {
+                        pdescriptor = reinterpret_cast<AppDescriptor*>(p); // FIXME TODO This breaks strict aliasing
+                        descriptor = *pdescriptor;
+                        rv = 0;
+                        break;
+                    }
+                }
+                while (p++ <= &chunk[MaxChunk - (sizeof(AppDescriptor) / sizeof(chunk[0]))]);
+            }
+
+        out_close:
+            (void)close(fd);
+        }
+        return rv;
+    }
+
     const BasePathString& getFirmwareBasePath() const { return base_path_; }
 
-    const BasePathString& getFirmwareCachePath() const { return cache_path_; }
+    const BasePathString& getFirmwareAltBasePath() const { return alt_base_path_; }
 
     static char getPathSeparator()
     {
@@ -365,16 +275,29 @@ public:
      * for the issues that FirmwareFilePath is 40
      *
      *  It creates a path structure:
-     *    +---(base_path)
-     *        +-c                           <----------- Files are cached here.
+     *    +---(base_path)  <----------- Files are here.
      */
-    int createFwPaths(const char* base_path)
+
+    int createFwPaths(const char* base_path, const char* alt_base_path = nullptr)
     {
         using namespace std;
         int rv = -uavcan::ErrInvalidParam;
 
-        if (base_path)
+        if (alt_base_path)
         {
+            const int len = strlen(alt_base_path);
+            if (len > 0 && len < base_path_.MaxSize)
+            {
+                setFirmwareAltBasePath(alt_base_path);
+            }
+            else
+              {
+                return rv;
+              }
+        }
+
+        if (base_path)
+            {
             const int len = strlen(base_path);
 
             if (len > 0 && len < base_path_.MaxSize)
@@ -383,35 +306,13 @@ public:
                 removeSlash(base_path_);
                 const char* path = getFirmwareBasePath().c_str();
 
-                setFirmwareCachePath(path);
-                addSlash(cache_path_);
-                cache_path_ += getCacheDir();
-
                 rv = 0;
                 struct stat sb;
                 if (stat(path, &sb) != 0 || !S_ISDIR(sb.st_mode))
                 {
                     rv = mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
                 }
-
-                path = getFirmwareCachePath().c_str();
-
-                if (rv == 0 && (stat(path, &sb) != 0 || !S_ISDIR(sb.st_mode)))
-                {
-                    rv = mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
-                }
-
                 addSlash(base_path_);
-                addSlash(cache_path_);
-
-                if (rv >= 0)
-                {
-                    if ((getFirmwareCachePath().size() + uavcan::protocol::file::Path::FieldTypes::path::MaxSize) >
-                        MaxPathLength)
-                    {
-                        rv = -uavcan::ErrInvalidConfiguration;
-                    }
-                }
             }
         }
         return rv;
@@ -419,7 +320,12 @@ public:
 
     const char* getFirmwarePath() const
     {
-        return getFirmwareCachePath().c_str();
+        return getFirmwareBasePath().c_str();
+    }
+
+    const char* getAltFirmwarePath() const
+    {
+        return getFirmwareAltBasePath().c_str();
     }
 };
 }
