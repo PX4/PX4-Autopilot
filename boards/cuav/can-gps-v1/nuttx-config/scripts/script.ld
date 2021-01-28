@@ -50,8 +50,9 @@
 
 MEMORY
 {
-    flash (rx)   : ORIGIN = 0x08010000, LENGTH = 448K
-    sram (rwx)   : ORIGIN = 0x20000000, LENGTH = 192K
+    flash (rx)  		: ORIGIN = 0x08010000, LENGTH = 448K
+    shared_sram (rwx)   : ORIGIN = 0x20000000, LENGTH = 256
+    sram (rwx)   		: ORIGIN = 0x20000100, LENGTH =  192K - 256
 }
 
 OUTPUT_ARCH(arm)
@@ -113,6 +114,10 @@ SECTIONS
 	__exidx_end = ABSOLUTE(.);
 
 	_eronly = ABSOLUTE(.);
+
+	.app_bl_shared : {
+		_sapp_bl_shared = ABSOLUTE(.);
+	} > shared_sram
 
 	.data : {
 		_sdata = ABSOLUTE(.);
