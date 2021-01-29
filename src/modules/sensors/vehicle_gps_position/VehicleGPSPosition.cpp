@@ -39,9 +39,6 @@
 
 namespace sensors
 {
-using namespace matrix;
-using math::constrain;
-
 VehicleGPSPosition::VehicleGPSPosition() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
