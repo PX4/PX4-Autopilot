@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file uuv_att_control_params.c
+ * @file uuv_pos_control_params.c
  *
- * Parameters defined by the attitude control task for unmanned underwater vehicles (UUVs)
+ * Parameters defined by the position control task for unmanned underwater vehicles (UUVs)
  *
  * This is a modification of the fixed wing/ground rover params and it is designed for ground rovers.
  * It has been developed starting from the fw  module, simplified and improved with dedicated items.
