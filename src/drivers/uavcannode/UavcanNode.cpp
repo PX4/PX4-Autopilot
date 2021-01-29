@@ -35,6 +35,7 @@
 
 #include "boot_app_shared.h"
 
+#include <drivers/drv_watchdog.h>
 #include <lib/ecl/geo/geo.h>
 #include <lib/version/version.h>
 
@@ -145,6 +146,7 @@ int UavcanNode::getHardwareVersion(uavcan::protocol::HardwareVersion &hwver)
 
 int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 {
+
 	if (_instance != nullptr) {
 		PX4_WARN("Already started");
 		return -1;
@@ -232,6 +234,7 @@ void UavcanNode::busevent_signal_trampoline()
 
 static void cb_reboot(const uavcan::TimerEvent &)
 {
+	watchdog_pet();
 	board_reset(0);
 }
 
@@ -309,6 +312,10 @@ class RestartRequestHandler: public uavcan::IRestartRequestHandler
 void UavcanNode::Run()
 {
 	pthread_mutex_lock(&_node_mutex);
+
+	// Bootloader started it.
+
+	watchdog_pet();
 
 	if (!_initialized) {
 
@@ -433,6 +440,9 @@ static void print_usage()
 extern "C" int uavcannode_start(int argc, char *argv[])
 {
 	//board_app_initialize(nullptr);
+
+	// Sarted byt the bootloader, we must pet it
+	watchdog_pet();
 
 	// CAN bitrate
 	int32_t bitrate = 0;
