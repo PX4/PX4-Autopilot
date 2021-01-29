@@ -362,7 +362,14 @@ static bool is_app_valid(uint32_t first_word)
 
 	length = bootloader.fw_image_descriptor->image_size;
 
-	if (length > APPLICATION_SIZE) {
+	if (length > APPLICATION_SIZE || length == 0) {
+		return false;
+	}
+
+	size_t block2_len = bootloader.fw_image_descriptor->image_size - ((size_t)&bootloader.fw_image_descriptor->major_version
+			    - (size_t)bootloader.fw_image);
+
+	if (block2_len > APPLICATION_SIZE || block2_len == 0) {
 		return false;
 	}
 
@@ -370,9 +377,7 @@ static bool is_app_valid(uint32_t first_word)
 	block_crc1 = crc32_signature(block_crc1, (size_t)(&bootloader.fw_image_descriptor->crc32_block1) -
 				     (size_t)(bootloader.fw_image + 1), (const uint8_t *)(bootloader.fw_image + 1));
 
-	block_crc2 = crc32_signature(0,
-				     (size_t) bootloader.fw_image_descriptor->image_size - ((size_t)&bootloader.fw_image_descriptor->major_version
-						     - (size_t)bootloader.fw_image),
+	block_crc2 = crc32_signature(0, block2_len,
 				     (const uint8_t *) &bootloader.fw_image_descriptor->major_version);
 
 #if defined(DEBUG_APPLICATION_INPLACE)
