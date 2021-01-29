@@ -235,6 +235,17 @@ bool VtolType::can_transition_on_ground()
 
 void VtolType::check_quadchute_condition()
 {
+	//TODO: adapt https://mavlink.io/en/messages/common.html#MAV_VTOL_STATE to contain MAV_VTOL_STATE_QC
+	//instead of hardcoded 5.
+	if (_attc->get_transition_command() == 5 && !_quadchute_command_treated) {
+		_attc->quadchute("QuadChute by command");
+		_quadchute_command_treated = true;
+
+	} else {
+		_quadchute_command_treated = false;
+	}
+
+
 
 	if (!_tecs_running) {
 		// reset the filtered height rate and heigh rate setpoint if TECS is not running

@@ -108,12 +108,13 @@ public:
 
 	bool is_fixed_wing_requested();
 	void quadchute(const char *reason);
+	int get_transition_command() {return _transition_command;}
 
 	struct actuator_controls_s 			*get_actuators_fw_in() {return &_actuators_fw_in;}
 	struct actuator_controls_s 			*get_actuators_mc_in() {return &_actuators_mc_in;}
 	struct actuator_controls_s 			*get_actuators_out0() {return &_actuators_out_0;}
 	struct actuator_controls_s 			*get_actuators_out1() {return &_actuators_out_1;}
-	struct airspeed_validated_s 				*get_airspeed() {return &_airspeed_validated;}
+	struct airspeed_validated_s 			*get_airspeed() {return &_airspeed_validated;}
 	struct position_setpoint_triplet_s		*get_pos_sp_triplet() {return &_pos_sp_triplet;}
 	struct tecs_status_s 				*get_tecs_status() {return &_tecs_status;}
 	struct vehicle_attitude_s 			*get_att() {return &_v_att;}
