@@ -408,7 +408,7 @@ int neopixel_init(neopixel::NeoLEDData *led_data, int number_of_packages)
 
 	/* Enable the timer clock before we try to talk to it */
 
-	modifyreg32(S_RGB_LED_CLOCK_ENABLE, 0, S_RGB_LED_CLOCK);
+	modifyreg32(S_RGB_LED_CLOCK_POWER_REG, 0, S_RGB_LED_CLOCK_ENABLE);
 
 	/* disable and configure the timer */
 
