@@ -687,6 +687,7 @@ void VehicleGPSPosition::Publish(const sensor_gps_s &gps, uint8_t selected)
 	gps_output.vdop = gps.vdop;
 	gps_output.noise_per_ms = gps.noise_per_ms;
 	gps_output.jamming_indicator = gps.jamming_indicator;
+	gps_output.jamming_state = gps.jamming_state;
 	gps_output.vel_m_s = gps.vel_m_s;
 	gps_output.vel_n_m_s = gps.vel_n_m_s;
 	gps_output.vel_e_m_s = gps.vel_e_m_s;
