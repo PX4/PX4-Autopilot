@@ -41,6 +41,7 @@
  *
  * All the ackowledgments and credits for the fw wing/rover app are reported in those files.
  *
+ * @author Tim Hansen <t.hansen@jacobs-university.de>
  * @author Daniel Duecker <daniel.duecker@tuhh.de>
  */
 
@@ -110,7 +111,7 @@ PARAM_DEFINE_FLOAT(UUV_GAIN_Y_D, 0.2f);
 PARAM_DEFINE_FLOAT(UUV_GAIN_Z_D, 0.2f);
 
 /**
- * Stabilization mode or Position Control
+ * Stabilization mode(1) or Position Control(0)
  *
  * @group UUV Attitude Control
  */
@@ -122,4 +123,3 @@ PARAM_DEFINE_INT32(UUV_STAB_MODE, 0);
  * @group UUV Attitude Control
  */
 PARAM_DEFINE_INT32(UUV_POS_DIRECT, 1);
-

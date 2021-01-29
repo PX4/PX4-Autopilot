@@ -85,85 +85,79 @@ using namespace time_literals;
 class UUVPOSControl: public ModuleBase<UUVPOSControl>, public ModuleParams, public px4::WorkItem
 {
 public:
-    UUVPOSControl();
-    ~UUVPOSControl();
+	UUVPOSControl();
+	~UUVPOSControl();
 
-    /** @see ModuleBase */
-    static int task_spawn(int argc, char *argv[]);
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-    static int custom_command(int argc, char *argv[]);
+	static int custom_command(int argc, char *argv[]);
 
-    /** @see ModuleBase */
-    static int print_usage(const char *reason = nullptr);
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
 
-    bool init();
+	bool init();
 
 private:
-    uORB::Publication<vehicle_attitude_setpoint_s> _att_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
+	uORB::Publication<vehicle_attitude_setpoint_s> _att_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
 
-    uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-    uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};	/**< current vehicle attitude */
-    //uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)}; /**< vehicle bodyrates setpoint subscriber */
-    //uORB::Subscription _angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};	/**< vehicle angular velocity subscription */
-    uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};	/**< notification of manual control updates */
-    uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle status subscription */
-    uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)}; /**< position setpoint */
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};	/**< current vehicle attitude */
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};	/**< notification of manual control updates */
+	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle status subscription */
+	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)}; /**< position setpoint */
 
-    uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
 
 
-    //actuator_controls_s _actuators {}; /**< actuator control inputs */
-    manual_control_setpoint_s _manual_control_setpoint {}; /**< r/c channel data */
-    vehicle_attitude_setpoint_s _attitude_setpoint {}; /**< vehicle attitude setpoint */
-    vehicle_attitude_s _vehicle_attitude {}; /**< vehicle attitude */
-    position_setpoint_triplet_s _pos_setpoint {}; /**< vehicle position setpoint */
-    vehicle_control_mode_s _vcontrol_mode {}; /**< vehicle control mode */
-    vehicle_local_position_s _vlocal_pos {}; /**< vehicle local position */
+	//actuator_controls_s _actuators {}; /**< actuator control inputs */
+	manual_control_setpoint_s _manual_control_setpoint {}; /**< r/c channel data */
+	vehicle_attitude_setpoint_s _attitude_setpoint {}; /**< vehicle attitude setpoint */
+	vehicle_attitude_s _vehicle_attitude {}; /**< vehicle attitude */
+	position_setpoint_triplet_s _pos_setpoint {}; /**< vehicle position setpoint */
+	vehicle_control_mode_s _vcontrol_mode {}; /**< vehicle control mode */
+	vehicle_local_position_s _vlocal_pos {}; /**< vehicle local position */
 
-    perf_counter_t	_loop_perf; /**< loop performance counter */
+	perf_counter_t	_loop_perf; /**< loop performance counter */
 
-    DEFINE_PARAMETERS(
-    // direct access to inputs
-            (ParamFloat<px4::params::UUV_DES_X>) _param_direct_pos_x, /**< desired X Position */
-            (ParamFloat<px4::params::UUV_DES_Y>) _param_direct_pos_y, /**< desired Y Position */
-            (ParamFloat<px4::params::UUV_DES_Z>) _param_direct_pos_z, /**< desired Z Position*/
-            (ParamFloat<px4::params::UUV_DIRCT_ROLL>) _param_direct_roll,
-            (ParamFloat<px4::params::UUV_DIRCT_PITCH>) _param_direct_pitch,
-            (ParamFloat<px4::params::UUV_DIRCT_YAW>) _param_direct_yaw,
+	DEFINE_PARAMETERS(
+		// direct access to inputs
+		(ParamFloat<px4::params::UUV_DES_X>) _param_direct_pos_x, /**< desired X Position */
+		(ParamFloat<px4::params::UUV_DES_Y>) _param_direct_pos_y, /**< desired Y Position */
+		(ParamFloat<px4::params::UUV_DES_Z>) _param_direct_pos_z, /**< desired Z Position*/
+		(ParamFloat<px4::params::UUV_DIRCT_ROLL>) _param_direct_roll,
+		(ParamFloat<px4::params::UUV_DIRCT_PITCH>) _param_direct_pitch,
+		(ParamFloat<px4::params::UUV_DIRCT_YAW>) _param_direct_yaw,
 
-            (ParamFloat<px4::params::UUV_GAIN_X_P>) _param_pose_gain_x,
-            (ParamFloat<px4::params::UUV_GAIN_Y_P>) _param_pose_gain_y,
-            (ParamFloat<px4::params::UUV_GAIN_Z_P>) _param_pose_gain_z,
-            (ParamFloat<px4::params::UUV_GAIN_X_D>) _param_pose_gain_d_x,
-            (ParamFloat<px4::params::UUV_GAIN_Y_D>) _param_pose_gain_d_y,
-            (ParamFloat<px4::params::UUV_GAIN_Z_D>) _param_pose_gain_d_z,
+		(ParamFloat<px4::params::UUV_GAIN_X_P>) _param_pose_gain_x,
+		(ParamFloat<px4::params::UUV_GAIN_Y_P>) _param_pose_gain_y,
+		(ParamFloat<px4::params::UUV_GAIN_Z_P>) _param_pose_gain_z,
+		(ParamFloat<px4::params::UUV_GAIN_X_D>) _param_pose_gain_d_x,
+		(ParamFloat<px4::params::UUV_GAIN_Y_D>) _param_pose_gain_d_y,
+		(ParamFloat<px4::params::UUV_GAIN_Z_D>) _param_pose_gain_d_z,
 
-            (ParamInt<px4::params::UUV_INPUT_MODE>) _param_input_mode,
-            (ParamInt<px4::params::UUV_POS_DIRECT>) _param_pos_direct,
-            (ParamInt<px4::params::UUV_STAB_MODE>) _param_stabilization,
-            (ParamInt<px4::params::UUV_SKIP_CTRL>) _param_skip_ctrl
-    )
+		(ParamInt<px4::params::UUV_INPUT_MODE>) _param_input_mode,
+		(ParamInt<px4::params::UUV_POS_DIRECT>) _param_pos_direct,
+		(ParamInt<px4::params::UUV_STAB_MODE>) _param_stabilization,
+		(ParamInt<px4::params::UUV_SKIP_CTRL>) _param_skip_ctrl
+	)
 
-    void Run() override;
-    /**
-     * Update our local parameter cache.
-     */
-    void parameters_update(bool force = false);
+	void Run() override;
+	/**
+	 * Update our local parameter cache.
+	 */
+	void parameters_update(bool force = false);
 
-    /**
-     * Control Attitude
-     */
-    void publish_attitude_setpoint(const float thrust_x, const float thrust_y, const float thrust_z,
-                                   const float roll_des, const float pitch_des, const float yaw_des);
-    void pose_controller_6dof(const float x_pos_des, const float y_pos_des, const float z_pos_des,
-                                       const float roll_des, const float pitch_des, const float yaw_des,
-                                       vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
-    void stabilization_controller_6dof(const float x_pos_des, const float y_pos_des, const float z_pos_des,
-                                                      const float roll_des, const float pitch_des, const float yaw_des,
-                                                      vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
-    //void control_attitude_geo_hold_depth(const vehicle_attitude_s &attitude, const vehicle_attitude_setpoint_s &attitude_setpoint,
-    //                                     const vehicle_angular_velocity_s &angular_velocity, const vehicle_rates_setpoint_s &rates_setpoint, const vehicle_local_position_s &vlocal_pos);
-
-    //void constrain_actuator_commands(float roll_u, float pitch_u, float yaw_u, float thrust_u, float thrust_y, float thrust_z);
+	/**
+	 * Control Attitude
+	 */
+	void publish_attitude_setpoint(const float thrust_x, const float thrust_y, const float thrust_z,
+				       const float roll_des, const float pitch_des, const float yaw_des);
+	void pose_controller_6dof(const float x_pos_des, const float y_pos_des, const float z_pos_des,
+				  const float roll_des, const float pitch_des, const float yaw_des,
+				  vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
+	void stabilization_controller_6dof(const float x_pos_des, const float y_pos_des, const float z_pos_des,
+					   const float roll_des, const float pitch_des, const float yaw_des,
+					   vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
 };
