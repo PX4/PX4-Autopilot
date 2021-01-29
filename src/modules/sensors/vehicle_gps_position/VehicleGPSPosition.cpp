@@ -142,7 +142,7 @@ void VehicleGPSPosition::Run()
 	}
 
 	if (any_gps_updated) {
-		_gps_blending.update();
+		_gps_blending.update(hrt_absolute_time());
 
 		if (_gps_blending.isNewOutputDataAvailable()) {
 			Publish(_gps_blending.getOutputGpsData(), _gps_blending.getSelectedGps());
