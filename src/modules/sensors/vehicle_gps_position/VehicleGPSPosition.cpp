@@ -108,18 +108,6 @@ void VehicleGPSPosition::Run()
 	// GPS blending
 	ScheduleDelayed(500_ms); // backup schedule
 
-	// if disabled simply republish the first sensor_gps as vehicle_gps_position and return immediately
-	if (_param_sens_gps_mask.get() == 0) {
-		sensor_gps_s gps;
-
-		if (_sensor_gps_sub[0].update(&gps)) {
-			Publish(gps, 0);
-		}
-
-		perf_end(_cycle_perf);
-		return;
-	}
-
 	// Check all GPS instance
 	bool any_gps_updated = false;
 	bool gps_updated = false;
