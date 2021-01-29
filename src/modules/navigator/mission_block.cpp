@@ -391,7 +391,7 @@ MissionBlock::is_mission_item_reached()
 				}
 
 
-				if (fabsf(yaw_err) < 0.1f) { //accept heading for exit if below 0.1 rad error (5.7deg)
+				if (fabsf(yaw_err) < _navigator->get_yaw_threshold()) {
 					exit_heading_reached = true;
 				}
 

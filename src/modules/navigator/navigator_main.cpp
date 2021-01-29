@@ -992,15 +992,17 @@ Navigator::get_cruising_throttle()
 float
 Navigator::get_acceptance_radius()
 {
-	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		// return the value specified in the parameter NAV_ACC_RAD
-		return get_default_acceptance_radius();
+	float acceptance_radius = get_default_acceptance_radius(); // the value specified in the parameter NAV_ACC_RAD
+	const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
 
-	} else {
-		// return the max of NAV_ACC_RAD and the controller acceptance radius (e.g. L1 distance)
-		const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
-		return math::max(pos_ctrl_status.acceptance_radius, get_default_acceptance_radius());
+	// for fixed-wing and rover, return the max of NAV_ACC_RAD and the controller acceptance radius (e.g. L1 distance)
+	if (_vstatus.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+	    && PX4_ISFINITE(pos_ctrl_status.acceptance_radius) && pos_ctrl_status.timestamp != 0) {
+
+		acceptance_radius = math::max(acceptance_radius, pos_ctrl_status.acceptance_radius);
 	}
+
+	return acceptance_radius;
 }
 
 float
