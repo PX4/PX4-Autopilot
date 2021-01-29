@@ -136,6 +136,7 @@ TEST_F(GpsBlendingTest, singleReceiver)
 {
 	GpsBlending<2> gps_blending;
 
+	gps_blending.setPrimaryInstance(-1);
 	sensor_gps_s gps_data = getDefaultGpsData();
 
 	gps_blending.setGpsData(gps_data, 1);
@@ -163,6 +164,8 @@ TEST_F(GpsBlendingTest, dualReceiverNoBlending)
 {
 	GpsBlending<2> gps_blending;
 
+	// GIVEN: two receivers with the same prioity
+	gps_blending.setPrimaryInstance(-1);
 	sensor_gps_s gps_data0 = getDefaultGpsData();
 	sensor_gps_s gps_data1 = getDefaultGpsData();
 
@@ -214,12 +217,15 @@ TEST_F(GpsBlendingTest, dualReceiverFailover)
 {
 	GpsBlending<2> gps_blending;
 
-	sensor_gps_s gps_data1 = getDefaultGpsData();
-
+	// GIVEN: a dual GPS setup with the first instance (0)
+	// set as primary
 	gps_blending.setPrimaryInstance(0);
-	gps_blending.setBlendingUseSpeedAccuracy(0);
-	gps_blending.setBlendingUseHPosAccuracy(0);
-	gps_blending.setBlendingUseVPosAccuracy(0);
+	gps_blending.setBlendingUseSpeedAccuracy(false);
+	gps_blending.setBlendingUseHPosAccuracy(false);
+	gps_blending.setBlendingUseVPosAccuracy(false);
+
+	// WHEN: only the secondary receiver is available
+	sensor_gps_s gps_data1 = getDefaultGpsData();
 
 	const float duration_s = 10.f;
 	runSeconds(duration_s, gps_blending, gps_data1, 1);

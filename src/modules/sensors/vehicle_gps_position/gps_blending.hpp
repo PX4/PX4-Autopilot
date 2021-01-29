@@ -121,7 +121,7 @@ private:
 	bool _gps_updated[GPS_MAX_RECEIVERS] {};
 	int _selected_gps{0};
 	int _np_gps_suitable_for_blending{0};
-	int _primary_instance{-1};
+	int _primary_instance{0}; ///< if -1, there is no primary isntance and the best receiver is used // TODO: use device_id
 	bool _fallback_allowed{false};
 
 	bool _is_new_output_data_available{false};
