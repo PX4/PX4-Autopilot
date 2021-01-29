@@ -134,6 +134,7 @@ px4_add_module(
 		UavcanNodeParamManager.hpp
 		UavcanNodeParamManager.cpp
 	DEPENDS
+		arch_watchdog_iwdg
 		px4_uavcan_dsdlc
 
 		drivers_bootloaders
