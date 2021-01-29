@@ -72,10 +72,12 @@ public:
 	void setBlendingUseHPosAccuracy(bool enabled) { _blend_use_hpos_acc = enabled; }
 	void setBlendingUseVPosAccuracy(bool enabled) { _blend_use_vpos_acc = enabled; }
 	void setBlendingTimeConstant(float tau) { _blending_time_constant = tau; }
+	void setPrimaryInstance(int primary) { _primary_instance = primary; }
 
-	void update();
+	void update(uint64_t hrt_now_us);
 
 	bool isNewOutputDataAvailable() const { return _is_new_output_data_available; }
+	int getNumberOfGpsSuitableForBlending() const { return _np_gps_suitable_for_blending; }
 	const sensor_gps_s &getOutputGpsData() const
 	{
 		if (_selected_gps < GPS_MAX_RECEIVERS) {
@@ -94,7 +96,7 @@ private:
 	 * have significant position differences, variation in receiver estimated accuracy will cause undesirable
 	 * variation in the position solution.
 	*/
-	bool blend_gps_data();
+	bool blend_gps_data(uint64_t hrt_now_us);
 
 	/*
 	 * Calculate internal states used to blend GPS data from multiple receivers using weightings calculated
@@ -118,6 +120,9 @@ private:
 	sensor_gps_s _gps_blended_state {};
 	bool _gps_updated[GPS_MAX_RECEIVERS] {};
 	int _selected_gps{0};
+	int _np_gps_suitable_for_blending{0};
+	int _primary_instance{-1};
+	bool _fallback_allowed{false};
 
 	bool _is_new_output_data_available{false};
 
@@ -138,12 +143,12 @@ private:
 };
 
 template <int GPS_MAX_RECEIVERS>
-void GpsBlending<GPS_MAX_RECEIVERS>::update()
+void GpsBlending<GPS_MAX_RECEIVERS>::update(uint64_t hrt_now_us)
 {
 	_is_new_output_data_available = false;
 
 	// blend multiple receivers if available
-	if (!blend_gps_data()) {
+	if (!blend_gps_data(hrt_now_us)) {
 		// Only use selected receiver data if it has been updated
 		uint8_t gps_select_index = 0;
 
@@ -173,14 +178,24 @@ void GpsBlending<GPS_MAX_RECEIVERS>::update()
 			_hgt_offset_mm[i] = 0.0f;
 		}
 
-		// re-publish current best GPS
+		// Only use a secondary instance if the fallback is allowed
+		if ((_primary_instance > -1)
+		    && (gps_select_index != _primary_instance)
+		    && !_fallback_allowed) {
+			gps_select_index = _primary_instance;
+		}
+
 		_selected_gps = gps_select_index;
 		_is_new_output_data_available =  _gps_updated[gps_select_index];
+
+		for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+			_gps_updated[gps_select_index] = false;
+		}
 	}
 }
 
 template <int GPS_MAX_RECEIVERS>
-bool GpsBlending<GPS_MAX_RECEIVERS>::blend_gps_data()
+bool GpsBlending<GPS_MAX_RECEIVERS>::blend_gps_data(uint64_t hrt_now_us)
 {
 	/*
 	 * If both receivers have the same update rate, use the oldest non-zero time.
@@ -193,22 +208,28 @@ bool GpsBlending<GPS_MAX_RECEIVERS>::blend_gps_data()
 	// Find the largest and smallest time step.
 	float dt_max = 0.0f;
 	float dt_min = GPS_TIMEOUT_S;
-	uint8_t gps_count = 0; // Count of receivers which have an active >=2D fix
-	const hrt_abstime hrt_now = hrt_absolute_time();
+	_np_gps_suitable_for_blending = 0;
 
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		const float raw_dt = 1e-6f * (float)(_gps_state[i].timestamp - _time_prev_us[i]);
-		const float present_dt = 1e-6f * (float)(hrt_now - _gps_state[i].timestamp);
+		const float present_dt = 1e-6f * (float)(hrt_now_us - _gps_state[i].timestamp);
 
 		if (raw_dt > 0.0f && raw_dt < GPS_TIMEOUT_S) {
 			_gps_dt[i] = 0.1f * raw_dt + 0.9f * _gps_dt[i];
 
-		} else if (present_dt >= GPS_TIMEOUT_S) {
+		} else if ((present_dt >= GPS_TIMEOUT_S)
+			   && (_gps_state[i].timestamp > 0)) {
 			// Timed out - kill the stored fix for this receiver and don't track its (stale) gps_dt
 			_gps_state[i].timestamp = 0;
 			_gps_state[i].fix_type = 0;
 			_gps_state[i].satellites_used = 0;
 			_gps_state[i].vel_ned_valid = 0;
+
+			if (i == _primary_instance) {
+				// Allow using a secondary instance when the primary
+				// receiver has timed out
+				_fallback_allowed = true;
+			}
 
 			continue;
 		}
@@ -227,7 +248,7 @@ bool GpsBlending<GPS_MAX_RECEIVERS>::blend_gps_data()
 			dt_min = _gps_dt[i];
 		}
 
-		gps_count++;
+		_np_gps_suitable_for_blending++;
 	}
 
 	// Find the receiver that is last be updated
@@ -246,7 +267,7 @@ bool GpsBlending<GPS_MAX_RECEIVERS>::blend_gps_data()
 		}
 	}
 
-	if (gps_count < 2) {
+	if (_np_gps_suitable_for_blending < 2) {
 		// Less than 2 receivers left, so fall out of blending
 		return false;
 	}
