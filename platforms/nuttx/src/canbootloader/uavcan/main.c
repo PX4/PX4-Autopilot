@@ -57,6 +57,7 @@
 #include "random.h"
 
 #include <drivers/bootloaders/boot_app_shared.h>
+#include <drivers/drv_watchdog.h>
 #include <lib/systemlib/crc.h>
 
 //#define DEBUG_APPLICATION_INPLACE    1 /* Never leave defined */
@@ -108,7 +109,7 @@ bootloader_t bootloader;
 const uint8_t debug_log_source[uavcan_byte_count(LogMessage, source)] = {'B', 'o', 'o', 't'};
 
 /****************************************************************************
- * Name: start_the_watch_dog
+ * Name: early_start_the_watch_dog
  *
  * Description:
  *   This function will start the hardware watchdog. Once stated the code must
@@ -122,10 +123,31 @@ const uint8_t debug_log_source[uavcan_byte_count(LogMessage, source)] = {'B', 'o
  *
  ****************************************************************************/
 
-static inline void start_the_watch_dog(void)
+static inline void early_start_the_watch_dog(void)
 {
 #ifdef OPT_ENABLE_WD
 #endif
+}
+
+/****************************************************************************
+ * Name: app_start_the_watch_dog
+ *
+ * Description:
+ *   This function will start the hardware watchdog. Once stated the code must
+ *   kick it before it time out a reboot will occur.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+static inline void app_start_the_watch_dog(void)
+{
+	watchdog_init();
+	watchdog_pet();
 }
 /****************************************************************************
  * Name: kick_the_watch_dog
@@ -943,6 +965,7 @@ static void application_run(size_t fw_image_size, bootloader_app_shared_t *commo
 		putreg32(APPLICATION_LOAD_ADDRESS, NVIC_VECTAB);
 		__asm volatile("dsb");
 		/* extract the stack and entrypoint from the app vector table and go */
+		app_start_the_watch_dog();
 		do_jump(fw_image[0], fw_image[1]);
 	}
 }
@@ -1014,7 +1037,7 @@ __EXPORT int main(int argc, char *argv[])
 	flash_error_t status;
 	bootloader_app_shared_t common;
 
-	start_the_watch_dog();
+	early_start_the_watch_dog();
 
 	/* Begin with all data zeroed */
 	memset((void *)&bootloader, 0, sizeof(bootloader));
