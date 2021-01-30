@@ -51,11 +51,11 @@
 #include "board.h"
 #include "px4_macros.h"
 #include "can.h"
-#include "crc.h"
 #include "timer.h"
 
 #include <arch/board/board.h>
 
+#include <lib/systemlib/crc.h>
 
 #define INAK_TIMEOUT          65535
 

@@ -42,7 +42,7 @@
 #pragma once
 
 #include <uavcan/uavcan.hpp>
-#include <ardupilot/indication/SafetyState.hpp>
+#include <standard/indication/SafetyState.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_armed.h>
 
@@ -74,7 +74,7 @@ private:
 	/*
 	 * Publish CAN Safety state led
 	 */
-	uavcan::Publisher<ardupilot::indication::SafetyState> _safety_state_pub;
+	uavcan::Publisher<standard::indication::SafetyState> _safety_state_pub;
 
 	uavcan::TimerEventForwarder<TimerCbBinder> _timer;
 

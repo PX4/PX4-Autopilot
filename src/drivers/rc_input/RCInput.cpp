@@ -41,6 +41,7 @@ using namespace time_literals;
 constexpr char const *RCInput::RC_SCAN_STRING[];
 
 RCInput::RCInput(const char *device) :
+	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device)),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")),
 	_publish_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": publish interval"))
@@ -197,9 +198,17 @@ RCInput::fill_rc_in(uint16_t raw_rc_count_local,
 
 	/* fake rssi if no value was provided */
 	if (rssi == -1) {
+		if ((_param_rc_rssi_pwm_chan.get() > 0) && (_param_rc_rssi_pwm_chan.get() < _rc_in.channel_count)) {
+			const int32_t rssi_pwm_chan = _param_rc_rssi_pwm_chan.get();
+			const int32_t rssi_pwm_min = _param_rc_rssi_pwm_min.get();
+			const int32_t rssi_pwm_max = _param_rc_rssi_pwm_max.get();
 
-		/* set RSSI if analog RSSI input is present */
-		if (_analog_rc_rssi_stable) {
+			// get RSSI from input channel
+			int rc_rssi = ((_rc_in.values[rssi_pwm_chan - 1] - rssi_pwm_min) * 100) / (rssi_pwm_max - rssi_pwm_min);
+			_rc_in.rssi = math::constrain(rc_rssi, 0, 100);
+
+		} else if (_analog_rc_rssi_stable) {
+			// set RSSI if analog RSSI input is present
 			float rssi_analog = ((_analog_rc_rssi_volt - 0.2f) / 3.0f) * 100.0f;
 
 			if (rssi_analog > 100.0f) {
@@ -280,6 +289,15 @@ void RCInput::Run()
 	} else {
 
 		perf_begin(_cycle_perf);
+
+		// Check if parameters have changed
+		if (_parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s param_update;
+			_parameter_update_sub.copy(&param_update);
+
+			updateParams();
+		}
 
 		const hrt_abstime cycle_timestamp = hrt_absolute_time();
 

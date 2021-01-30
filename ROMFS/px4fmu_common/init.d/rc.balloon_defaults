@@ -1,0 +1,20 @@
+#!/bin/sh
+#
+# Balloon default parameters
+#
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
+#
+
+set VEHICLE_TYPE fw
+
+if [ $AUTOCNF = yes ]
+then
+	#
+	# Default parameters for balloon UAVs.
+	#
+	#
+	# FW takeoff acceleration can easily exceed ublox GPS 2G default.
+	#
+	param set GPS_UBX_DYNMODEL 8
+  param set SYS_MC_EST_GROUP 1
+fi

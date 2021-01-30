@@ -15,6 +15,7 @@ jobs:
     strategy:
       matrix:
         config: [
+          ark_can-flow_default,
           cuav_can-gps-v1_default,
           #nxp_ucans32k146_default,
           px4_fmu-v4_cannode

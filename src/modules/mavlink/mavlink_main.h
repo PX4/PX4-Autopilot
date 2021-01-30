@@ -75,6 +75,9 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/radio_status.h>
 #include <uORB/topics/telemetry_status.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include "mavlink_command_sender.h"
 #include "mavlink_messages.h"
@@ -530,9 +533,13 @@ private:
 
 	orb_advert_t		_mavlink_log_pub{nullptr};
 
-	uORB::PublicationMulti<telemetry_status_s> _telem_status_pub{ORB_ID(telemetry_status)};
+	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::PublicationMulti<telemetry_status_s> _telemetry_status_pub{ORB_ID(telemetry_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription _vehicle_command_ack_sub{ORB_ID(vehicle_command_ack)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	bool			_task_running{true};
 	static bool		_boot_complete;

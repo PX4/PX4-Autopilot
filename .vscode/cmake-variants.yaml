@@ -56,6 +56,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: airmind_mindpx-v2_default
+    ark_can-flow_default:
+      short: ark_can-flow_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_can-flow_default
+    ark_can-flow_canbootloader:
+      short: ark_can-flow_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_can-flow_canbootloader
     av_x-v1_default:
       short: av_x-v1
       buildType: MinSizeRel

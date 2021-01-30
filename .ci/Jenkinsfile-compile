@@ -37,6 +37,7 @@ pipeline {
           def nuttx_builds_archive = [
             target: [
                      "airmind_mindpx-v2_default",
+                     "ark_can-flow_default",
                      "av_x-v1_default",
                      "bitcraze_crazyflie_default",
                      "bitcraze_crazyflie21_default",

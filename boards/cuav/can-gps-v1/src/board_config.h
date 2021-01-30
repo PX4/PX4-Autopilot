@@ -61,7 +61,7 @@
 #define GPIO_CAN1_SILENT_S0  /* PB5  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN5)
 
 #define GPIO_LED_SAFETY              (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN1)
-#define GPIO_BTN_SAFETY              (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN3)
+#define GPIO_BTN_SAFETY              (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTB|GPIO_PIN3)
 
 /* Tone alarm output. */
 #define TONE_ALARM_TIMER             2    /* timer 2 */
@@ -72,6 +72,8 @@
 /* High-resolution timer */
 #define HRT_TIMER                    3  /* use timer 3 for the HRT */
 #define HRT_TIMER_CHANNEL            4  /* use capture/compare channel 4 */
+
+#define FLASH_BASED_PARAMS
 
 __BEGIN_DECLS
 #define BOARD_HAS_N_S_RGB_LED       8  /* Uses 8 SK6812 digital led chip */

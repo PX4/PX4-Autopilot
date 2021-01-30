@@ -906,29 +906,6 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case PWM_SERVO_SET_TRIM_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			/* discard if too many values are sent */
-			if (pwm->channel_count > FMU_MAX_ACTUATORS) {
-				PX4_DEBUG("error: too many trim values: %d", pwm->channel_count);
-				ret = -EINVAL;
-				break;
-			}
-
-			if (_mixing_output.mixers() == nullptr) {
-				PX4_ERR("error: no mixer loaded");
-				ret = -EIO;
-				break;
-			}
-
-			/* copy the trim values to the mixer offsets */
-			_mixing_output.mixers()->set_trims((int16_t *)pwm->values, pwm->channel_count);
-			PX4_DEBUG("set_trims: %d, %d, %d, %d", pwm->values[0], pwm->values[1], pwm->values[2], pwm->values[3]);
-
-			break;
-		}
-
 	case PWM_SERVO_GET_TRIM_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
@@ -1165,59 +1142,6 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		}
 
 		break;
-
-	case PWM_SERVO_SET_COUNT: {
-			/* change the number of outputs that are enabled for
-			 * PWM. This is used to change the split between GPIO
-			 * and PWM under control of the flight config
-			 * parameters.
-			 */
-			switch (arg) {
-			case 0:
-				set_mode(MODE_NONE);
-				break;
-
-			case 1:
-				set_mode(MODE_1PWM);
-				break;
-
-			case 2:
-				set_mode(MODE_2PWM);
-				break;
-
-			case 3:
-				set_mode(MODE_3PWM);
-				break;
-
-			case 4:
-				set_mode(MODE_4PWM);
-				break;
-
-			case 5:
-				set_mode(MODE_5PWM);
-				break;
-
-#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >=6
-
-			case 6:
-				set_mode(MODE_6PWM);
-				break;
-#endif
-
-#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >=8
-
-			case 8:
-				set_mode(MODE_8PWM);
-				break;
-#endif
-
-			default:
-				ret = -EINVAL;
-				break;
-			}
-
-			break;
-		}
 
 	case PWM_SERVO_SET_MODE: {
 			switch (arg) {
