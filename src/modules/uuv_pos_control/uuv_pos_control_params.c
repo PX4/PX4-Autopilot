@@ -54,14 +54,14 @@
 /**
  * X Pos DES
  *
- * @group UUV Attitude Control
+ * @group UUV Position Control
  */
 PARAM_DEFINE_FLOAT(UUV_DES_X, 0.0f);
 
 /**
  * Y Pos DES
  *
- * @group UUV Attitude Control
+ * @group UUV Position Control
  */
 PARAM_DEFINE_FLOAT(UUV_DES_Y, 0.0f);
 
@@ -69,57 +69,60 @@ PARAM_DEFINE_FLOAT(UUV_DES_Y, 0.0f);
 /**
  * Z Pos DES
  *
- * @group UUV Attitude Control
+ * @group UUV Position Control
  */
 PARAM_DEFINE_FLOAT(UUV_DES_Z, 0.0f);
 /**
  * Gain of P controller X
  *
- * @group UUV Attitude Control
+ * @group UUV Position Control
  */
 PARAM_DEFINE_FLOAT(UUV_GAIN_X_P, 1.0f);
 /**
  * Gain of P controller Y
  *
- * @group UUV Attitude Control
+ * @group UUV Position Control
  */
 PARAM_DEFINE_FLOAT(UUV_GAIN_Y_P, 1.0f);
 /**
  * Gain of P controller Z
  *
- * @group UUV Attitude Control
+ * @group UUV Position Control
  */
 PARAM_DEFINE_FLOAT(UUV_GAIN_Z_P, 1.0f);
 
 /**
  * Gain of D controller X
  *
- * @group UUV Attitude Control
+ * @group UUV Position Control
  */
 PARAM_DEFINE_FLOAT(UUV_GAIN_X_D, 0.2f);
 /**
  * Gain of D controller Y
  *
- * @group UUV Attitude Control
+ * @group UUV Position Control
  */
 PARAM_DEFINE_FLOAT(UUV_GAIN_Y_D, 0.2f);
 /**
  * Gain of D controller Z
  *
- * @group UUV Attitude Control
+ * @group UUV Position Control
  */
 PARAM_DEFINE_FLOAT(UUV_GAIN_Z_D, 0.2f);
 
 /**
  * Stabilization mode(1) or Position Control(0)
  *
- * @group UUV Attitude Control
+ * @value Position Control
+ * @value Stabilization Mode
+ * @group UUV Position Control
  */
 PARAM_DEFINE_INT32(UUV_STAB_MODE, 0);
 
 /**
- * Position directly controlled with parameter (1) vs control via local pos setpoint topic (0)
  *
- * @group UUV Attitude Control
+ * @value 0 use Pos Setpoints
+ * @value 1 Pos Control with parameter
+ * @group UUV Position Control
  */
 PARAM_DEFINE_INT32(UUV_POS_DIRECT, 1);
