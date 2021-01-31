@@ -53,8 +53,11 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_odometry.h>
 
-static constexpr uint8_t EKF2_MAX_INSTANCES{9};
-static_assert(EKF2_MAX_INSTANCES <= ORB_MULTI_MAX_INSTANCES, "EKF2_MAX_INSTANCES must be <= ORB_MULTI_MAX_INSTANCES");
+#if CONSTRAINED_MEMORY
+# define EKF2_MAX_INSTANCES 2
+#else
+# define EKF2_MAX_INSTANCES 9
+#endif
 
 using namespace time_literals;
 
@@ -84,6 +87,7 @@ private:
 
 	// Subscriptions (per estimator instance)
 	struct EstimatorInstance {
+
 		EstimatorInstance(EKF2Selector *selector, uint8_t i) :
 			estimator_attitude_sub{selector, ORB_ID(estimator_attitude), i},
 			estimator_status_sub{selector, ORB_ID(estimator_status), i},
@@ -119,13 +123,17 @@ private:
 	EstimatorInstance _instance[EKF2_MAX_INSTANCES] {
 		{this, 0},
 		{this, 1},
+#if EKF2_MAX_INSTANCES > 2
 		{this, 2},
 		{this, 3},
+#if EKF2_MAX_INSTANCES > 4
 		{this, 4},
 		{this, 5},
 		{this, 6},
 		{this, 7},
 		{this, 8},
+#endif
+#endif
 	};
 
 	static constexpr uint8_t IMU_STATUS_SIZE = (sizeof(sensors_status_imu_s::gyro_inconsistency_rad_s) / sizeof(
@@ -136,7 +144,7 @@ private:
 	static_assert(IMU_STATUS_SIZE == sizeof(estimator_selector_status_s::accumulated_accel_error) / sizeof(
 			      estimator_selector_status_s::accumulated_accel_error[0]),
 		      "increase estimator_selector_status_s::accumulated_accel_error size");
-	static_assert(EKF2_MAX_INSTANCES == sizeof(estimator_selector_status_s::combined_test_ratio) / sizeof(
+	static_assert(EKF2_MAX_INSTANCES <= sizeof(estimator_selector_status_s::combined_test_ratio) / sizeof(
 			      estimator_selector_status_s::combined_test_ratio[0]),
 		      "increase estimator_selector_status_s::combined_test_ratio size");
 

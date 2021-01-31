@@ -111,7 +111,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_status_flags");
 	add_topic("vtol_vehicle_status", 200);
 
-	// Control allocaton topics
+	// Control allocation topics
 	add_topic("vehicle_angular_acceleration_setpoint", 20);
 	add_topic("vehicle_angular_acceleration", 20);
 	add_topic("vehicle_thrust_setpoint", 20);
@@ -126,7 +126,12 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("telemetry_status", 1000, 4);
 
 	// EKF multi topics (currently max 9 estimators)
-	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 4;
+#if CONSTRAINED_MEMORY
+	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 2;
+#else
+	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 6; // artificailly limited until PlotJuggler fixed
+#endif
+
 	add_topic("estimator_selector_status");
 	add_topic_multi("ekf_gps_drift", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_attitude", 500, MAX_ESTIMATOR_INSTANCES);
