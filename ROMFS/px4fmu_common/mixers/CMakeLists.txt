@@ -78,7 +78,6 @@ px4_add_romfs_files(
 	quad_x_vtol.main.mix
 	rover_diff_and_servo.main.mix
 	rover_generic.main.mix
-	stampede.main.mix
 	standard_vtol_hitl.main.mix
 	TF-AutoG2.main.mix
 	tilt_quad.aux.mix
