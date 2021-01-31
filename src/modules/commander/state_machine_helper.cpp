@@ -133,8 +133,8 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 		if (fRunPreArmChecks && (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
 		    && !hil_enabled) {
 
-			preflight_check_ret = PreFlightCheck::preflightCheck(mavlink_log_pub, *status, *status_flags,
-					      arm_requirements.global_position, true, true, time_since_boot);
+			preflight_check_ret = PreFlightCheck::preflightCheck(mavlink_log_pub, *status, *status_flags, true, true,
+					      time_since_boot);
 
 			if (preflight_check_ret) {
 				status_flags->condition_system_sensors_initialized = true;
@@ -153,7 +153,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 			if ((last_preflight_check == 0) || (hrt_elapsed_time(&last_preflight_check) > 1000 * 1000)) {
 
 				status_flags->condition_system_sensors_initialized = PreFlightCheck::preflightCheck(mavlink_log_pub, *status,
-						*status_flags, arm_requirements.global_position, false, status->arming_state != vehicle_status_s::ARMING_STATE_ARMED,
+						*status_flags, false, status->arming_state != vehicle_status_s::ARMING_STATE_ARMED,
 						time_since_boot);
 
 				last_preflight_check = hrt_absolute_time();
