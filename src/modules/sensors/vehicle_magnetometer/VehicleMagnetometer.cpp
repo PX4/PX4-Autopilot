@@ -442,7 +442,7 @@ void VehicleMagnetometer::Run()
 
 void VehicleMagnetometer::Publish(uint8_t instance, bool multi)
 {
-	if ((_param_sens_mag_rate.get() > 0) && (_last_publication_timestamp[instance] ||
+	if ((_param_sens_mag_rate.get() > 0) && ((_last_publication_timestamp[instance] == 0) ||
 			(hrt_elapsed_time(&_last_publication_timestamp[instance]) >= (1e6f / _param_sens_mag_rate.get())))) {
 
 		const Vector3f magnetometer_data = _mag_sum[instance] / _mag_sum_count[instance];
