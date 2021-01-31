@@ -78,7 +78,7 @@ public:
 	*   true if the system power should be checked
 	**/
 	static bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
-				   vehicle_status_flags_s &status_flags, const bool checkGNSS, bool reportFailures, const bool prearm,
+				   vehicle_status_flags_s &status_flags, bool reportFailures, const bool prearm,
 				   const hrt_abstime &time_since_boot);
 
 	struct arm_requirements_t {
@@ -109,7 +109,7 @@ private:
 	static bool powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail,
 			       const bool prearm);
 	static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_status, const bool optional,
-			      const bool report_fail, const bool enforce_gps_required);
+			      const bool report_fail);
 
 	static bool ekf2CheckSensorBias(orb_advert_t *mavlink_log_pub, const bool report_fail);
 
