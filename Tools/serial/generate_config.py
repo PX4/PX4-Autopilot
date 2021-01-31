@@ -36,6 +36,7 @@ except ImportError as e:
 # with QGC (parameter metadata)
 serial_ports = {
     # index 0 means disabled
+    # index 1000 means ethernet condiguration
 
     # Generic
 #     "URT1": {
@@ -155,6 +156,8 @@ parser.add_argument('--rc-dir', type=str, action='store',
                     help='ROMFS output directory', default=None)
 parser.add_argument('--params-file', type=str, action='store',
                     help='Parameter output file', default=None)
+parser.add_argument('--ethernet', action='store_true',
+                    help='Ethernet support')
 parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                     help='Verbose Output')
 
@@ -169,6 +172,7 @@ serial_params_output_file = args.params_file
 serial_params_template = 'serial_params.c.jinja'
 generate_for_all_ports = args.all_ports
 constrained_flash = args.constrained_flash
+ethernet_supported = args.ethernet
 
 if generate_for_all_ports:
     board_ports = [(key, "") for key in serial_ports]
@@ -184,7 +188,16 @@ if rc_serial_output_dir is None and serial_params_output_file is None:
 
 # parse the YAML files
 serial_commands = []
+ethernet_configuration = []
 additional_params = ""
+additional_ethernet_params = ""
+
+if ethernet_supported:
+    ethernet_configuration.append({
+        'tag': "ETH",
+        'label': "Ethernet",
+        'index': 1000
+        })
 
 def parse_yaml_serial_config(yaml_config):
     """ parse the serial_config section from the yaml config file """
@@ -211,6 +224,80 @@ def parse_yaml_parameters_config(yaml_config):
         param_group = parameters_section.get('group', None)
         for param_name in definitions:
             param = definitions[param_name]
+            if 'ethernet' in param:
+                continue
+            num_instances = param.get('num_instances', 1)
+            instance_start = param.get('instance_start', 0) # offset
+
+            # get the type and extract all tags
+            tags = '@group {:}'.format(param_group)
+            if param['type'] == 'enum':
+                param_type = 'INT32'
+                for key in param['values']:
+                    tags += '\n * @value {:} {:}'.format(key, param['values'][key])
+            elif param['type'] == 'boolean':
+                param_type = 'INT32'
+                tags += '\n * @boolean'
+            elif param['type'] == 'int32':
+                param_type = 'INT32'
+            elif param['type'] == 'float':
+                param_type = 'FLOAT'
+            else:
+                raise Exception("unknown param type {:}".format(param['type']))
+
+            for tag in ['decimal', 'increment', 'category', 'volatile', 'bit',
+                        'min', 'max', 'unit', 'reboot_required']:
+                if tag in param:
+                    tags += '\n * @{:} {:}'.format(tag, param[tag])
+
+            for i in range(num_instances):
+                # default value
+                default_value = 0
+                if 'default' in param:
+                    # default can be a list of num_instances or a single value
+                    if type(param['default']) == list:
+                        assert len(param['default']) == num_instances
+                        default_value = param['default'][i]
+                    else:
+                        default_value = param['default']
+
+                if type(default_value) == bool:
+                    default_value = int(default_value)
+
+                # output the existing C-style format
+                ret += '''
+/**
+ * {short_descr}
+ *
+ * {long_descr}
+ *
+ * {tags}
+ */
+PARAM_DEFINE_{param_type}({name}, {default_value});
+'''.format(short_descr=param['description']['short'].replace("\n", "\n * "),
+           long_descr=param['description']['long'].replace("\n", "\n * "),
+           tags=tags,
+           param_type=param_type,
+           name=param_name,
+           default_value=default_value,
+          ).replace('${i}', str(i+instance_start))
+    return ret
+
+def parse_yaml_ethernet_parameters_config(yaml_config):
+    """ parse the parameters section from the yaml config file """
+    if 'parameters' not in yaml_config:
+        return ''
+    parameters_section_list = yaml_config['parameters']
+    for parameters_section in parameters_section_list:
+        if 'definitions' not in parameters_section:
+            return ''
+        definitions = parameters_section['definitions']
+        ret = ''
+        param_group = parameters_section.get('group', None)
+        for param_name in definitions:
+            param = definitions[param_name]
+            if 'ethernet' not in param:
+                continue
             num_instances = param.get('num_instances', 1)
             instance_start = param.get('instance_start', 0) # offset
 
@@ -276,6 +363,8 @@ for yaml_file in args.config_files:
 
             # TODO: additional params should be parsed in a separate script
             additional_params += parse_yaml_parameters_config(yaml_config)
+            if ethernet_supported:
+                additional_ethernet_params += parse_yaml_ethernet_parameters_config(yaml_config)
 
         except yaml.YAMLError as exc:
             print(exc)
@@ -339,7 +428,8 @@ for serial_command in serial_commands:
             'port_param_name': port_param_name,
             'default_port': default_port,
             'param_group': port_config['group'],
-            'description_extended': port_config.get('description_extended', '')
+            'description_extended': port_config.get('description_extended', ''),
+			'ethernet_config': serial_command.get('ethernet', 'none')
             })
 
 if verbose:
@@ -372,6 +462,7 @@ if rc_serial_output_dir is not None:
         template = jinja_env.get_template(rc_serial_port_template)
         with open(rc_serial_port_output_file, 'w') as fid:
             fid.write(template.render(serial_devices=serial_devices,
+                ethernet_configuration=ethernet_configuration,
                 constrained_flash=constrained_flash))
 
 # parameter definitions
@@ -380,6 +471,8 @@ if serial_params_output_file is not None:
     template = jinja_env.get_template(serial_params_template)
     with open(serial_params_output_file, 'w') as fid:
         fid.write(template.render(serial_devices=serial_devices,
+            ethernet_configuration=ethernet_configuration,
             commands=commands, serial_ports=serial_ports,
-            additional_definitions=additional_params))
+            additional_definitions=additional_params,
+            additional_ethernet_definitions=additional_ethernet_params))
 
