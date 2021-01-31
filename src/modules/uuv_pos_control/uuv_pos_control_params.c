@@ -113,8 +113,8 @@ PARAM_DEFINE_FLOAT(UUV_GAIN_Z_D, 0.2f);
 /**
  * Stabilization mode(1) or Position Control(0)
  *
- * @value Position Control
- * @value Stabilization Mode
+ * @value 1 Position Control
+ * @value 0 Stabilization Mode
  * @group UUV Position Control
  */
 PARAM_DEFINE_INT32(UUV_STAB_MODE, 0);
