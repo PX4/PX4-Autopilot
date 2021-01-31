@@ -25,6 +25,7 @@ px4_add_board(
 	LABEL cannode
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
+	CONSTRAINED_MEMORY
 	ROMFSROOT cannode
 	UAVCAN_INTERFACES 1
 	SERIAL_PORTS

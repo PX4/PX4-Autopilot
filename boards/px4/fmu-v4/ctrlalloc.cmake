@@ -6,6 +6,7 @@ px4_add_board(
 	LABEL ctrlalloc
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
+	CONSTRAINED_MEMORY
 	ROMFSROOT px4fmu_common
 	TESTING
 	UAVCAN_INTERFACES 1
