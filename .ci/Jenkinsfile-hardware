@@ -83,6 +83,81 @@ pipeline {
           }
         }
 
+        stage("cuav_x7pro_default") {
+          stages {
+            stage("build cuav_x7pro_default") {
+              agent {
+                docker {
+                  image 'px4io/px4-dev-nuttx-focal:2020-09-14'
+                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                }
+              }
+              steps {
+                sh 'export'
+                sh 'make distclean'
+                sh 'ccache -s'
+                sh 'git fetch --tags'
+                sh 'make cuav_x7pro_default'
+                sh 'make sizes'
+                sh 'ccache -s'
+                stash includes: 'build/cuav_x7pro_default/cuav_x7pro_default.elf', name: 'cuav_x7pro_default'
+              }
+              post {
+                always {
+                    sh 'make distclean'
+                }
+              }
+            } // stage build
+            stage("test") {
+              agent {
+                label 'cuav_x7pro'
+              }
+              stages {
+                stage("flash") {
+                  steps {
+                    sh 'export'
+                    sh 'find /dev/serial'
+                    unstash 'cuav_x7pro_default'
+                    // flash board and watch bootup
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cuav_x7pro_default/cuav_x7pro_default.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
+                  }
+                }
+                stage("configure") {
+                  steps {
+                    // configure
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set CBRK_BUZZER 782097"'    // disable buzzer
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set IMU_GYRO_RATEMAX 4000"'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set SYS_AUTOCONFIG 2"'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set SYS_AUTOSTART 4001"'    // generic quadcopter
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set SYS_BL_UPDATE 1"'       // update bootloader
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param save"'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "reboot" || true'                  // reboot to apply
+                  }
+                }
+                stage("status") {
+                  steps {
+                    statusFTDI()
+                  }
+                }
+                stage("tests") {
+                  steps {
+                    // run tests
+                    sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-*`'
+                  }
+                }
+                stage("reset") {
+                  steps {
+                    cleanupFTDI();
+                  }
+                }
+              }
+              options {
+                timeout(time: 90, unit: 'MINUTES')
+              }
+            } // stage test
+          }
+        }
+
         // stage("px4_fmu-v2_test") {
         //   stages {
         //     stage("build px4_fmu-v2_test") {
