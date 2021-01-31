@@ -333,6 +333,8 @@ private:
 	hrt_abstime	_high_latency_datalink_lost{0};
 
 	int		_last_esc_online_flags{-1};
+	int		_last_esc_failure[esc_status_s::CONNECTED_ESC_MAX] {0};
+	bool		_esc_status_was_updated{false};
 
 	uint8_t		_battery_warning{battery_status_s::BATTERY_WARNING_NONE};
 	float		_battery_current{0.0f};

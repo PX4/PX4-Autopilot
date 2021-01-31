@@ -899,8 +899,9 @@ PARAM_DEFINE_INT32(COM_OBS_AVOID, 0);
 PARAM_DEFINE_INT32(COM_FLT_PROFILE, 0);
 
 /**
- * Require all the ESCs to be detected to arm.
+ * Enable checks on ESCs that report telemetry.
  *
+ * If this parameter is set, the system will check ESC's online status and failures.
  * This param is specific for ESCs reporting status. Normal ESCs configurations are not affected by the change of this param.
  *
  * @group Commander
