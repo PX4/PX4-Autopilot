@@ -727,12 +727,14 @@ int uORBTest::UnitTest::test_SubscriptionMulti()
 		ORB_ID::orb_test,
 		ORB_ID::orb_test,
 		ORB_ID::orb_test,
+#if ORB_MULTI_MAX_INSTANCES > 4
 		ORB_ID::orb_test,
 		ORB_ID::orb_test,
 		ORB_ID::orb_test,
 		ORB_ID::orb_test,
 		ORB_ID::orb_test,
 		ORB_ID::orb_test,
+#endif
 	};
 
 	uORB::SubscriptionMultiArray<orb_test_s> orb_test_sub_multi_array{ORB_ID::orb_test};

@@ -56,6 +56,7 @@
 #			[ EXAMPLES <list> ]
 #			[ SERIAL_PORTS <list> ]
 #			[ CONSTRAINED_FLASH ]
+#			[ CONSTRAINED_MEMORY ]
 #			[ TESTING ]
 #			[ LINKER_PREFIX <string> ]
 #			[ EMBEDDED_METADATA <string> ]
@@ -80,6 +81,7 @@
 #		SERIAL_PORTS		: mapping of user configurable serial ports and param facing name
 #		EMBEDDED_METADATA	: list of metadata to embed to ROMFS
 #		CONSTRAINED_FLASH	: flag to enable constrained flash options (eg limit init script status text)
+#		CONSTRAINED_MEMORY	: flag to enable constrained memory options (eg limit maximum number of uORB publications)
 #		TESTING			: flag to enable automatic inclusion of PX4 testing modules
 #		LINKER_PREFIX	: optional to prefix on the Linker script.
 #
@@ -156,6 +158,7 @@ function(px4_add_board)
 		OPTIONS
 			BUILD_BOOTLOADER
 			CONSTRAINED_FLASH
+			CONSTRAINED_MEMORY
 			TESTING
 		REQUIRED
 			PLATFORM
@@ -246,6 +249,11 @@ function(px4_add_board)
 	if(CONSTRAINED_FLASH)
 		set(px4_constrained_flash_build "1" CACHE INTERNAL "constrained flash build" FORCE)
 		add_definitions(-DCONSTRAINED_FLASH)
+	endif()
+
+	if(CONSTRAINED_MEMORY)
+		set(px4_constrained_memory_build "1" CACHE INTERNAL "constrained memory build" FORCE)
+		add_definitions(-DCONSTRAINED_MEMORY)
 	endif()
 
 	if(TESTING)
