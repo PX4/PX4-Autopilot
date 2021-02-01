@@ -21,8 +21,6 @@ if [ $AUTOCNF = yes ]
 then
 	param set CBRK_IO_SAFETY 22027
 
-	param set FAILSAFE 100
-
 	param set MC_ROLL_P 2.2
 	param set MC_ROLLRATE_P 0.06
 	param set MC_ROLLRATE_I 0.2
@@ -44,7 +42,7 @@ then
 
 	# param set NAV_RCL_ACT 6 # Lockdown
 
-	param set PWM_MIN 1075
-	param set PWM_RATE 400
-	param set PWM_DISARMED 900
+	param set PWM_MAIN_MIN 1075
+	param set PWM_MAIN_RATE 400
+	param set PWM_MAIN_DISARM 900
 fi

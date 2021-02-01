@@ -308,7 +308,7 @@ void VehicleMagnetometer::Run()
 					// advertise outputs in order if publishing all
 					if (!_param_sens_mag_mode.get()) {
 						for (int instance = 0; instance < uorb_index; instance++) {
-							_vehicle_magnetometer_multi_pub[instance].advertise();
+							_vehicle_magnetometer_pub[instance].advertise();
 						}
 					}
 
@@ -442,7 +442,7 @@ void VehicleMagnetometer::Run()
 
 void VehicleMagnetometer::Publish(uint8_t instance, bool multi)
 {
-	if ((_param_sens_mag_rate.get() > 0) && (_last_publication_timestamp[instance] ||
+	if ((_param_sens_mag_rate.get() > 0) && ((_last_publication_timestamp[instance] == 0) ||
 			(hrt_elapsed_time(&_last_publication_timestamp[instance]) >= (1e6f / _param_sens_mag_rate.get())))) {
 
 		const Vector3f magnetometer_data = _mag_sum[instance] / _mag_sum_count[instance];
@@ -463,11 +463,11 @@ void VehicleMagnetometer::Publish(uint8_t instance, bool multi)
 		out.timestamp = hrt_absolute_time();
 
 		if (multi) {
-			_vehicle_magnetometer_multi_pub[instance].publish(out);
+			_vehicle_magnetometer_pub[instance].publish(out);
 
 		} else {
 			// otherwise only ever publish the first instance
-			_vehicle_magnetometer_pub.publish(out);
+			_vehicle_magnetometer_pub[0].publish(out);
 		}
 
 		_last_publication_timestamp[instance] = out.timestamp;

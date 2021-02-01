@@ -577,6 +577,16 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 	}
 
 	_old_landing_gear_position = landing_gear.landing_gear;
+
+	// Publish takeoff status
+	takeoff_status_s takeoff_status;
+	takeoff_status.takeoff_state = static_cast<uint8_t>(_takeoff.getTakeoffState());
+
+	if (takeoff_status.takeoff_state != _old_takeoff_state) {
+		takeoff_status.timestamp = hrt_absolute_time();
+		_takeoff_status_pub.publish(takeoff_status);
+		_old_takeoff_state = takeoff_status.takeoff_state;
+	}
 }
 
 void FlightModeManager::limitAltitude(vehicle_local_position_setpoint_s &setpoint,

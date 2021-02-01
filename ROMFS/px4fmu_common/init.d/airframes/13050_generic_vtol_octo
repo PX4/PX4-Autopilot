@@ -29,7 +29,7 @@
 if [ $AUTOCNF = yes ]
 then
 	param set PWM_AUX_DIS5 950
-	param set PWM_RATE 400
+	param set PWM_MAIN_RATE 400
 
 	param set VT_TYPE 2
 	param set VT_MOT_ID 12345678

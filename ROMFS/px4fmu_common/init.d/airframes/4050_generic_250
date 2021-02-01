@@ -41,9 +41,9 @@ then
 	# use thrust curve factor (instead of TPA)
 	param set THR_MDL_FAC 0.3
 
-	param set PWM_MIN 1075
+	param set PWM_MAIN_MIN 1075
 	# enable one-shot
-	param set PWM_RATE 0
+	param set PWM_MAIN_RATE 0
 
 	# enable high-rate logging profile (helps with tuning)
 	param set SDLOG_PROFILE 19

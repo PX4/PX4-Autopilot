@@ -50,9 +50,9 @@ then
 	param set NAV_ACC_RAD 0.5
 
 	# Provide ESC a constant 1500 us pulse
-	param set PWM_DISARMED 1500
-	param set PWM_MAX 2000
-	param set PWM_MIN 1000
+	param set PWM_MAIN_DISARM 1500
+	param set PWM_MAIN_MAX 2000
+	param set PWM_MAIN_MIN 1000
 fi
 
 # Configure this as rover

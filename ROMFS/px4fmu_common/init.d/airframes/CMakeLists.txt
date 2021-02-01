@@ -159,8 +159,6 @@ px4_add_romfs_files(
 	24001_dodeca_cox
 
 	50000_generic_ground_vehicle
-	50001_axialracing_ax10
-	50002_traxxas_stampede_2wd
 	50003_aion_robotics_r1_rover
 	50004_nxpcup_car_dfrobot_gpx
 
