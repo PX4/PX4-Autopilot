@@ -37,9 +37,9 @@ then
 
 	param set PWM_AUX_DISARMED 950
 	param set PWM_AUX_RATE 50
-	param set PWM_MIN 1100
-	param set PWM_MAX 1900
-	param set PWM_RATE 50
+	param set PWM_MAIN_MIN 1100
+	param set PWM_MAIN_MAX 1900
+	param set PWM_MAIN_RATE 50
 
 	param set RTL_RETURN_ALT 30
 	param set RTL_DESCEND_ALT 10

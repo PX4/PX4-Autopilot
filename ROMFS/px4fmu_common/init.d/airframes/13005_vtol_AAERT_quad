@@ -28,7 +28,7 @@ if [ $AUTOCNF = yes ]
 then
 	param set PWM_AUX_DIS5 950
 
-	param set PWM_RATE 400
+	param set PWM_MAIN_RATE 400
 
 	param set MC_ROLL_P 6
 	param set MC_ROLLRATE_P 0.17

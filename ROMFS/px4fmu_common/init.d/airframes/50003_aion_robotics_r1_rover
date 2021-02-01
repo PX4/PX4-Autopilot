@@ -62,11 +62,11 @@ then
 
 	# Provide ESC a constant 1500 us pulse, which corresponds to
 	# idle on the Roboclaw motor controller on the Aion R1
-	param set PWM_DISARMED 1500
+	param set PWM_MAIN_DISARM 1500
 	param set PWM_MAIN_DIS0 1500
 	param set PWM_MAIN_DIS1 1500
-	param set PWM_MAX 2000
-	param set PWM_MIN 1000
+	param set PWM_MAIN_MAX 2000
+	param set PWM_MAIN_MIN 1000
 
 	# Enable Airspeed check circuit breaker because Rovers will have no airspeed sensor
 	param set CBRK_AIRSPD_CHK 162128

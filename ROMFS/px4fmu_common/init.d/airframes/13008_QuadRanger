@@ -50,7 +50,7 @@ then
 	param set PWM_AUX_DIS5 950
 	param set PWM_AUX_REV1 1
 	param set PWM_AUX_REV2 1
-	param set PWM_RATE 400
+	param set PWM_MAIN_RATE 400
 
 	param set VT_ARSP_TRANS 15
 	param set VT_ARSP_BLEND 8

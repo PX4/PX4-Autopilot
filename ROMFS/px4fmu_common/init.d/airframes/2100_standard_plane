@@ -27,7 +27,7 @@
 if [ $AUTOCNF = yes ]
 then
 	param set PWM_AUX_RATE 50
-	param set PWM_RATE 50
+	param set PWM_MAIN_RATE 50
 fi
 
 set MIXER AETRFG
