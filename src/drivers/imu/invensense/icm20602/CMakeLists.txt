@@ -35,6 +35,7 @@ px4_add_module(
 	MODULE drivers__imu__invensense__icm20602
 	MAIN icm20602
 	COMPILE_FLAGS
+		${MAX_CUSTOM_OPT_LEVEL}
 	SRCS
 		ICM20602.cpp
 		ICM20602.hpp

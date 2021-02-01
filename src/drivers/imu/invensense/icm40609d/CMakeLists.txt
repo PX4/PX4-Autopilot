@@ -34,6 +34,7 @@ px4_add_module(
 	MODULE drivers__imu__invensense__icm40609d
 	MAIN icm40609d
 	COMPILE_FLAGS
+		${MAX_CUSTOM_OPT_LEVEL}
 	SRCS
 		icm40609d_main.cpp
 		ICM40609D.cpp
