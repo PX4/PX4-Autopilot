@@ -55,7 +55,7 @@ PARAM_DEFINE_FLOAT(BAT_C_MULT, 1.0f);
  *
  * @reboot_required true
  * @min 0
- * @max 2
+ * @max 3
  * @group Sensors
  * @value 0 Generic SMBus
  * @value 1 BQ40Z50 based
