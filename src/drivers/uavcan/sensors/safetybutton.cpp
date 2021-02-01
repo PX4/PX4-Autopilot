@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,46 +32,66 @@
  ****************************************************************************/
 
 /**
- * @file safety_state.cpp
- *
  * @author CUAVcaijie <caijie@cuav.net>
  */
 
-#include "safety_state.hpp"
+#include "safetybutton.hpp"
+#include <cstdint>
+#include <drivers/drv_hrt.h>
+#include <systemlib/err.h>
+#include <mathlib/mathlib.h>
 
-UavcanSafetyState::UavcanSafetyState(uavcan::INode &node) :
-	_safety_state_pub(node),
-	_timer(node)
+using namespace time_literals;
+const char *const UavcanSafetyBridge::NAME = "safety";
+
+UavcanSafetyBridge::UavcanSafetyBridge(uavcan::INode &node) :
+	_node(node),
+	_sub_safety(node),
+	_pub_safety(node)
 {
 }
 
-int UavcanSafetyState::init()
+int UavcanSafetyBridge::init()
 {
-	/*
-	 * Setup timer and call back function for periodic updates
-	 */
-	if (!_timer.isRunning()) {
-		_timer.setCallback(TimerCbBinder(this, &UavcanSafetyState::periodic_update));
-		_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / MAX_RATE_HZ));
+	int res = _pub_safety.init(uavcan::TransferPriority::MiddleLower);
+
+	if (res < 0) {
+		printf("safety pub failed %i", res);
+		return res;
+	}
+
+	res = _sub_safety.start(SafetyCommandCbBinder(this, &UavcanSafetyBridge::safety_sub_cb));
+
+	if (res < 0) {
+		printf("safety pub failed %i", res);
+		return res;
 	}
 
 	return 0;
 }
 
-void UavcanSafetyState::periodic_update(const uavcan::TimerEvent &)
+unsigned UavcanSafetyBridge::get_num_redundant_channels() const
 {
-	actuator_armed_s actuator_armed;
+	return 0;
+}
 
-	if (_actuator_armed_sub.update(&actuator_armed)) {
-		ardupilot::indication::SafetyState cmd;
+void UavcanSafetyBridge::print_status() const
+{
+}
 
-		if (actuator_armed.armed || actuator_armed.prearmed) {
-			cmd.status = cmd.STATUS_SAFETY_OFF;
+void UavcanSafetyBridge::safety_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg)
+{
+	if (msg.press_time > 10 && msg.button == 1) {
+		if (_safety_disabled) { return; }
 
-		} else {
-			cmd.status = cmd.STATUS_SAFETY_ON;
-		}
+		_safety_disabled = true;
 
-		(void)_safety_state_pub.broadcast(cmd);
+	} else {
+
+		_safety_disabled = false;
 	}
+
+
+
+
 }
