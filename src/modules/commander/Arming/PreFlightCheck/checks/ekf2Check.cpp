@@ -90,7 +90,7 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 			} else if (status.pre_flt_fail_innov_vel_horiz) {
 				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: horizontal velocity estimate not stable");
 
-			} else if (status.pre_flt_fail_innov_vel_horiz) {
+			} else if (status.pre_flt_fail_innov_vel_vert) {
 				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: vertical velocity estimate not stable");
 
 			} else if (status.pre_flt_fail_innov_height) {
