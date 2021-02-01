@@ -35,7 +35,7 @@
 
 #include "UavcanPublisherBase.hpp"
 
-#include <standard/indication/Button.hpp>
+#include <ardupilot/indication/Button.hpp>
 
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/safety.h>
@@ -46,13 +46,13 @@ namespace uavcannode
 class SafetyButton :
 	public UavcanPublisherBase,
 	public uORB::SubscriptionCallbackWorkItem,
-	private uavcan::Publisher<standard::indication::Button>
+	private uavcan::Publisher<ardupilot::indication::Button>
 {
 public:
 	SafetyButton(px4::WorkItem *work_item, uavcan::INode &node) :
-		UavcanPublisherBase(standard::indication::Button::DefaultDataTypeID),
+		UavcanPublisherBase(ardupilot::indication::Button::DefaultDataTypeID),
 		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(safety)),
-		uavcan::Publisher<standard::indication::Button>(node)
+		uavcan::Publisher<ardupilot::indication::Button>(node)
 	{}
 
 	void PrintInfo() override
@@ -60,8 +60,8 @@ public:
 		if (uORB::SubscriptionCallbackWorkItem::advertised()) {
 			printf("\t%s -> %s:%d\n",
 			       uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
-			       standard::indication::Button::getDataTypeFullName(),
-			       standard::indication::Button::DefaultDataTypeID);
+			       ardupilot::indication::Button::getDataTypeFullName(),
+			       ardupilot::indication::Button::DefaultDataTypeID);
 		}
 	}
 
@@ -72,10 +72,10 @@ public:
 
 		if (uORB::SubscriptionCallbackWorkItem::update(&safety)) {
 			if (safety.safety_switch_available) {
-				standard::indication::Button Button{};
-				Button.button = standard::indication::Button::BUTTON_SAFETY;
+				ardupilot::indication::Button Button{};
+				Button.button = ardupilot::indication::Button::BUTTON_SAFETY;
 				Button.press_time = safety.safety_off ? UINT8_MAX : 0;
-				uavcan::Publisher<standard::indication::Button>::broadcast(Button);
+				uavcan::Publisher<ardupilot::indication::Button>::broadcast(Button);
 			}
 		}
 	}
