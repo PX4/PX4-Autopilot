@@ -21,8 +21,8 @@ then
 	param set PWM_AUX_MIN 1000
 	param set PWM_AUX_RATE 50
 
-	param set PWM_MAX 2000
-	param set PWM_RATE 400
+	param set PWM_MAIN_MAX 2000
+	param set PWM_MAIN_RATE 400
 
 	param set VT_MOT_ID 1234
 	param set VT_FW_MOT_OFFID 13

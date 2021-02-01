@@ -65,9 +65,9 @@ then
 	#param set THR_MDL_FAC 0.25
 
 	# System
-	param set PWM_MAX 1950
-	param set PWM_MIN 1100
-	param set PWM_RATE 0
+	param set PWM_MAIN_MAX 1950
+	param set PWM_MAIN_MIN 1100
+	param set PWM_MAIN_RATE 0
 
 	#param set SYS_FMU_TASK 1
 	param set SENS_BOARD_ROT 10

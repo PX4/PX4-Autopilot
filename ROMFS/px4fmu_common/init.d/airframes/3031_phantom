@@ -45,7 +45,7 @@ then
 	param set FW_R_LIM 50
 	param set FW_R_RMAX 50
 
-	param set PWM_DISARMED 1000
+	param set PWM_MAIN_DISARM 1000
 
 	# Bottom of bay and nominal zero-pitch attitude differ
 	# the payload bay is pitched up about 7 degrees

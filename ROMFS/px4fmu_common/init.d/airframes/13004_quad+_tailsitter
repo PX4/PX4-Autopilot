@@ -25,8 +25,8 @@
 
 if [ $AUTOCNF = yes ]
 then
-	param set PWM_MAX 2000
-	param set PWM_RATE 400
+	param set PWM_MAIN_MAX 2000
+	param set PWM_MAIN_RATE 400
 
 	param set VT_IDLE_PWM_MC  1080
 	param set VT_TYPE 0

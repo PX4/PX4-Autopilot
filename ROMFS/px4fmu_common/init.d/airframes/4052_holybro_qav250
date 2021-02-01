@@ -50,10 +50,10 @@ then
 	param set MPC_THR_MIN 0.05
 	param set MPC_Z_VEL_I_ACC 1.7
 
-	param set PWM_MAX 1950
-	param set PWM_MIN 1050
+	param set PWM_MAIN_MAX 1950
+	param set PWM_MAIN_MIN 1050
 
-	param set PWM_RATE 0
+	param set PWM_MAIN_RATE 0
 	param set THR_MDL_FAC 0.3
 fi
 

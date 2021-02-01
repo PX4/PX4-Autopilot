@@ -33,7 +33,7 @@ set PWM_OUT 1234
 # PWM Hz - 50 Hz is the normal rate in RC cars, higher rates
 # may damage analog servos.
 #
-set PWM_RATE 50
+set PWM_MAIN_RATE 50
 
 #
 # This is the gimbal pass mixer.

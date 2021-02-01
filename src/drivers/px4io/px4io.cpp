@@ -1206,10 +1206,10 @@ void PX4IO::update_params()
 
 	const char *prefix = "PWM_MAIN";
 
-	param_get(param_find("PWM_MIN"), &pwm_min_default);
-	param_get(param_find("PWM_MAX"), &pwm_max_default);
-	param_get(param_find("PWM_DISARMED"), &pwm_disarmed_default);
-	param_get(param_find("PWM_RATE"), &pwm_rate_default);
+	param_get(param_find("PWM_MAIN_MIN"), &pwm_min_default);
+	param_get(param_find("PWM_MAIN_MAX"), &pwm_max_default);
+	param_get(param_find("PWM_MAIN_DISARM"), &pwm_disarmed_default);
+	param_get(param_find("PWM_MAIN_RATE"), &pwm_rate_default);
 
 	char str[17];
 

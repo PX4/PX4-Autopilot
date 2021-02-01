@@ -47,7 +47,7 @@ then
 	param set MPC_YAWRAUTO_MAX 20
 
 	param set PWM_AUX_DIS3 950
-	param set PWM_RATE 400
+	param set PWM_MAIN_RATE 400
 
 	param set VT_MOT_ID 1234
 	param set VT_FW_MOT_OFFID 1234

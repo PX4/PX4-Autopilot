@@ -90,7 +90,7 @@ then
 
 	param set PWM_MAIN_DIS3 1000
 	param set PWM_MAIN_MIN3 1120
-	param set PWM_MIN 950
+	param set PWM_MAIN_MIN 950
 
 	param set SENS_BOARD_ROT 4
 

@@ -70,7 +70,7 @@ then
 
 	param set PWM_AUX_DIS5 950
 
-	param set PWM_RATE 400
+	param set PWM_MAIN_RATE 400
 
 	param set VT_ARSP_TRANS   15
 	param set VT_B_TRANS_DUR  4
