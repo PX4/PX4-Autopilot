@@ -121,6 +121,7 @@ private:
 		RTL_MOVE_TO_LAND_HOVER_VTOL,
 		RTL_STATE_LAND,
 		RTL_STATE_LANDED,
+		RTL_STATE_HEAD_TO_CENTER,
 	} _rtl_state{RTL_STATE_NONE};
 
 	struct RTLPosition {
