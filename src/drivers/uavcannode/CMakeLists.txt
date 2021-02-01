@@ -97,7 +97,7 @@ target_include_directories(uavcan_${UAVCAN_DRIVER}_driver PUBLIC
 set(DSDLC_DIR "${PX4_SOURCE_DIR}/src/drivers/uavcan/dsdl")
 set(DSDLC_INPUTS
 	"${DSDLC_DIR}/com"
-	"${DSDLC_DIR}/standard"
+	"${DSDLC_DIR}/ardupilot"
 	"${LIBUAVCAN_DIR}/dsdl/uavcan"
 )
 set(DSDLC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/include/dsdlc_generated")
