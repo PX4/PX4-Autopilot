@@ -38,7 +38,7 @@ then
 	param set MC_YAWRATE_I 0.1
 	param set MC_YAWRATE_D 0
 
-	param set PWM_DISARMED 0
-	param set PWM_MIN 500
-	param set PWM_MAX 2200
+	param set PWM_MAIN_DISARM 0
+	param set PWM_MAIN_MIN 500
+	param set PWM_MAIN_MAX 2200
 fi

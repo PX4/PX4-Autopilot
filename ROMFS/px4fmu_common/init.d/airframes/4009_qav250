@@ -37,5 +37,5 @@ then
 	param set MC_YAWRATE_D 0
 	param set MPC_THR_MIN 0.06
 
-	param set PWM_MIN 1075
+	param set PWM_MAIN_MIN 1075
 fi

@@ -171,11 +171,11 @@ then
 	param set NAV_RCL_ACT 1
 
 	# pwm control
-	param set PWM_DISARMED 900
-	param set PWM_MAX 1850
-	param set PWM_MIN 1075
+	param set PWM_MAIN_DISARM 900
+	param set PWM_MAIN_MAX 1850
+	param set PWM_MAIN_MIN 1075
 	# Oneshot125
-	param set PWM_RATE 0
+	param set PWM_MAIN_RATE 0
 
 	# rtl
 	param set RTL_DESCEND_ALT 5

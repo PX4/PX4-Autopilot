@@ -42,7 +42,7 @@ then
 	param set MC_YAWRATE_D 0
 	param set MC_YAWRATE_FF 0
 
-	param set PWM_RATE 400
+	param set PWM_MAIN_RATE 400
 
 	param set VT_FW_MOT_OFFID 34
 	param set VT_IDLE_PWM_MC 1080

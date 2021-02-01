@@ -254,9 +254,9 @@ then
 	if [ $PWM_OUT != none ]
 	then
 		# Set PWM output frequency.
-		if [ $PWM_RATE != none ]
+		if [ $PWM_MAIN_RATE != none ]
 		then
-			pwm rate -c ${PWM_OUT} -r ${PWM_RATE}
+			pwm rate -c ${PWM_OUT} -r ${PWM_MAIN_RATE}
 		fi
 	fi
 fi

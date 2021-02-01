@@ -122,7 +122,7 @@ then
 	param set PWM_MAIN_DIS7 900
 	param set PWM_MAIN_DIS8 900
 
-	param set PWM_RATE 400
+	param set PWM_MAIN_RATE 400
 
 	param set SENS_BOARD_ROT 18
 

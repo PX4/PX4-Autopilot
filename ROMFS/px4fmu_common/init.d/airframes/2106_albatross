@@ -43,7 +43,7 @@ then
 	param set FW_W_RMAX 0
 
 	# set disarmed value for the ESC
-	param set PWM_DISARMED 1000
+	param set PWM_MAIN_DISARM 1000
 fi
 
 set MIXER AAVVTWFF

@@ -67,11 +67,11 @@ then
 	param set THR_MDL_FAC 0.3
 
 	# System
-	param set PWM_MAX 1950
-	param set PWM_MIN 1180
+	param set PWM_MAIN_MAX 1950
+	param set PWM_MAIN_MIN 1180
 
 	# enable one-shot
-	param set PWM_RATE 0
+	param set PWM_MAIN_RATE 0
 
 	param set SENS_BOARD_ROT 2
 

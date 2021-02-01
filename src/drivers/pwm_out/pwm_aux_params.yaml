@@ -40,7 +40,7 @@ parameters:
             max: 2200
             default: 2000
 
-        PWM_AUX_DISARMED:
+        PWM_AUX_DISARM:
             description:
                 short: PWM aux disarmed value
                 long: |

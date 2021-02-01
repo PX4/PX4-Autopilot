@@ -61,8 +61,8 @@ then
 
 	param set PWM_MAIN_REV1 1
 	param set PWM_MAIN_REV2 1
-	param set PWM_MIN 900
-	param set PWM_MAX 2100
+	param set PWM_MAIN_MIN 900
+	param set PWM_MAIN_MAX 2100
 fi
 
 set MIXER caipi

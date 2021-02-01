@@ -6,7 +6,7 @@ parameters:
     - group: PWM Outputs
       definitions:
 
-        PWM_RATE:
+        PWM_MAIN_RATE:
             description:
                 short: PWM main output frequency
                 long: |
@@ -40,7 +40,7 @@ parameters:
             max: 2200
             default: 2000
 
-        PWM_DISARMED:
+        PWM_MAIN_DISARM:
             description:
                 short: PWM main disarmed value
                 long: |

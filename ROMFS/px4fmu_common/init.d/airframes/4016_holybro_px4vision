@@ -104,11 +104,11 @@ then
 	param set NAV_ACC_RAD 2
 
 	# PWM and RC Parameters
-	param set PWM_MAX 1950
-	param set PWM_MIN 1075
+	param set PWM_MAIN_MAX 1950
+	param set PWM_MAIN_MIN 1075
 
 	# use oneshot motor output protocol
-	param set PWM_RATE 0
+	param set PWM_MAIN_RATE 0
 
 	# RTL Parameters
 	param set RTL_DESCEND_ALT 5

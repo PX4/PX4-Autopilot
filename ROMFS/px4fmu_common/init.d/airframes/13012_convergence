@@ -61,7 +61,7 @@ then
 	param set MPC_TKO_SPEED 2.5
 	param set MPC_Z_VEL_MAX_UP 3
 
-	param set PWM_RATE 400
+	param set PWM_MAIN_RATE 400
 
 	param set SENS_BOARD_ROT 8
 

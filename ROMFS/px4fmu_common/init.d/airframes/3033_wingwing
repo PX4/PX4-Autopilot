@@ -44,7 +44,7 @@ then
 	param set FW_RR_FF 0.6
 	param set FW_RR_P 0.04
 
-	param set PWM_DISARMED 1000
+	param set PWM_MAIN_DISARM 1000
 fi
 
 # Configure this as plane.
