@@ -1530,7 +1530,7 @@ protected:
 	explicit MavlinkStreamAutopilotStateForGimbalDevice(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		if (_att_sub.advertised()) {
 
@@ -2021,7 +2021,7 @@ protected:
 	explicit MavlinkStreamGimbalDeviceAttitudeStatus(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		gimbal_device_attitude_status_s gimbal_device_attitude_status{};
 
@@ -2093,23 +2093,23 @@ protected:
 	explicit MavlinkStreamGimbalManagerInformation(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		gimbal_manager_information_s gimbal_manager_information;
 
-		if (_gimbal_manager_information_sub.advertised() && _gimbal_manager_information_sub.copy(&gimbal_device_information)) {
-			// send out gimbal_manager_info with info from gimbal_device_information
+		if (_gimbal_manager_information_sub.advertised() && _gimbal_manager_information_sub.copy(&gimbal_manager_information)) {
+			// send out gimbal_manager_info with info from gimbal_manager_information
 			mavlink_gimbal_manager_information_t msg{};
-			msg.time_boot_ms = gimbal_device_information.timestamp / 1000;
+			msg.time_boot_ms = gimbal_manager_information.timestamp / 1000;
 			msg.gimbal_device_id = 0;
-			msg.cap_flags = gimbal_device_information.cap_flags;
+			msg.cap_flags = gimbal_manager_information.cap_flags;
 
-			msg.roll_min = gimbal_device_information.roll_min;
-			msg.roll_max = gimbal_device_information.roll_max;
-			msg.pitch_min = gimbal_device_information.pitch_min;
-			msg.pitch_max = gimbal_device_information.pitch_max;
-			msg.yaw_min = gimbal_device_information.yaw_min;
-			msg.yaw_max = gimbal_device_information.yaw_max;
+			msg.roll_min = gimbal_manager_information.roll_min;
+			msg.roll_max = gimbal_manager_information.roll_max;
+			msg.pitch_min = gimbal_manager_information.pitch_min;
+			msg.pitch_max = gimbal_manager_information.pitch_max;
+			msg.yaw_min = gimbal_manager_information.yaw_min;
+			msg.yaw_max = gimbal_manager_information.yaw_max;
 
 			mavlink_msg_gimbal_manager_information_send_struct(_mavlink->get_channel(), &msg);
 
@@ -2166,7 +2166,7 @@ protected:
 	explicit MavlinkStreamGimbalManagerStatus(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		gimbal_manager_status_s gimbal_manager_status;
 
@@ -2174,6 +2174,10 @@ protected:
 			mavlink_gimbal_manager_status_t msg{};
 			msg.time_boot_ms = gimbal_manager_status.timestamp / 1000;
 			msg.gimbal_device_id = gimbal_manager_status.gimbal_device_id;
+			msg.primary_control_sysid = gimbal_manager_status.primary_control_sysid;
+			msg.primary_control_compid = gimbal_manager_status.primary_control_compid;
+			msg.secondary_control_sysid = gimbal_manager_status.secondary_control_sysid;
+			msg.secondary_control_compid = gimbal_manager_status.secondary_control_compid;
 			msg.flags = gimbal_manager_status.flags;
 
 			mavlink_msg_gimbal_manager_status_send_struct(_mavlink->get_channel(), &msg);
@@ -2233,7 +2237,7 @@ protected:
 	explicit MavlinkStreamGimbalDeviceSetAttitude(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		gimbal_device_set_attitude_s gimbal_device_set_attitude;
 

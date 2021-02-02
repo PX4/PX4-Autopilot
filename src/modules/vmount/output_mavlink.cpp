@@ -162,7 +162,7 @@ void OutputMavlinkV2::_request_gimbal_device_information()
 	vehicle_cmd.confirmation = 0;
 	vehicle_cmd.from_external = false;
 
-	uORB::PublicationQueued<vehicle_command_s> vehicle_command_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<vehicle_command_s> vehicle_command_pub{ORB_ID(vehicle_command)};
 	vehicle_command_pub.publish(vehicle_cmd);
 }
 
