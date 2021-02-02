@@ -69,6 +69,7 @@ __EXPORT void stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_CAN2_TX);
 	stm32_configgpio(GPIO_MCU_CAN1_SILENT);
 	stm32_configgpio(GPIO_MCU_CAN2_SILENT);
+	led_init(); // todo:Remove with creation of proper LED driver
 	putreg32(getreg32(STM32_RCC_APB1RSTR) | RCC_APB1RSTR_CAN1RST | RCC_APB1RSTR_CAN2RST, STM32_RCC_APB1RSTR);
 	putreg32(getreg32(STM32_RCC_APB1RSTR) & ~(RCC_APB1RSTR_CAN1RST | RCC_APB1RSTR_CAN2RST), STM32_RCC_APB1RSTR);
 
