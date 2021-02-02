@@ -34,8 +34,10 @@
 /**
  * @file batt_smbus.h
  *
- * Header for a battery monitor connected via SMBus (I2C).
- * Designed for BQ40Z50-R1/R2 and BQ40Z80
+ * This is a basic, SBS v1.1 compliant implementation of
+ * an SMBUS Smart Battery. This driver is to be used as a default,
+ * or as a base-class for more specific implementations such as
+ * the Rotoye Batmon of TI BQ40z50/80
  *
  * @author Jacob Dahl <dahl.jakejacob@gmail.com>
  * @author Alex Klimaj <alexklimaj@gmail.com>
