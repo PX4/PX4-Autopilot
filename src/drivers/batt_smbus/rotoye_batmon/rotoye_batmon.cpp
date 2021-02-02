@@ -56,7 +56,7 @@ void Rotoye_Batmon::RunImpl()
 	ret |= _interface->read_word(BATT_SMBUS_TEMP_EXTERNAL, temp_ext);
 
 	if (temp_ext != 0) { // Sends 0 when no external therm is used
-		float temp_ext_c = ((float)temp_ext / 10.0f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+		float temp_ext_c = ((float)temp_ext * 0.1f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
 
 		if (temp_ext_c > new_report.temperature) {
 			new_report.temperature = temp_ext_c;
@@ -90,7 +90,7 @@ int Rotoye_Batmon::get_cell_voltages()
 	for (int i = 0 ; i < _cell_count; i++) {
 		ret |= _interface->read_word(BATT_SMBUS_CELL_1_VOLTAGE - i, result);
 		// Convert millivolts to volts.
-		_cell_voltages[i] = ((float)result) / 1000.0f;
+		_cell_voltages[i] = ((float)result) * 0.001f;
 	}
 
 	//Calculate max cell delta

@@ -165,18 +165,18 @@ int BATT_SMBUS::populate_smbus_data(battery_status_s &data)
 	int ret = _interface->read_word(BATT_SMBUS_VOLTAGE, result);
 
 	// Convert millivolts to volts.
-	data.voltage_v = ((float)result) / 1000.0f;
+	data.voltage_v = ((float)result) * 0.001f;
 	data.voltage_filtered_v = data.voltage_v;
 
 	// Read current.
 	ret |= _interface->read_word(BATT_SMBUS_CURRENT, result);
 
-	data.current_a = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f) * _c_mult;
+	data.current_a = (-1.0f * ((float)(*(int16_t *)&result)) * 0.001f) * _c_mult;
 	data.current_filtered_a = data.current_a;
 
 	// Read remaining capacity.
 	ret |= _interface->read_word(BATT_SMBUS_RELATIVE_SOC, result);
-	data.remaining = (float)result / 100;
+	data.remaining = (float)result * 0.01f;
 
 	// Read remaining capacity.
 	ret |= _interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, result);
@@ -196,7 +196,7 @@ int BATT_SMBUS::populate_smbus_data(battery_status_s &data)
 
 	// Read battery temperature and covert to Celsius.
 	ret |= _interface->read_word(BATT_SMBUS_TEMP, result);
-	data.temperature = ((float)result / 10.0f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+	data.temperature = ((float)result * 0.1f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
 
 	return ret;
 

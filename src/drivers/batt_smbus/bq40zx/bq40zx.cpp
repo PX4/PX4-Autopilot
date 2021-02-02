@@ -135,7 +135,7 @@ void BQ40ZX::RunImpl()
 	// Read average current.
 	ret |= _interface->read_word(BATT_SMBUS_AVERAGE_CURRENT, result);
 
-	float average_current = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f);
+	float average_current = (-1.0f * ((float)(*(int16_t *)&result)) * 0.001f);
 
 	new_report.average_current_a = average_current;
 	// If current is high, turn under voltage protection off. This is neccessary to prevent
@@ -174,7 +174,7 @@ void BQ40ZX::RunImpl()
 
 	// Read battery temperature and covert to Celsius.
 	ret |= _interface->read_word(BATT_SMBUS_TEMP, result);
-	new_report.temperature = ((float)result / 10.0f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+	new_report.temperature = ((float)result * 0.1f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
 
 	new_report.capacity = _batt_capacity;
 	new_report.cycle_count = _cycle_count;
@@ -343,19 +343,19 @@ int BQ40ZX::get_cell_voltages()
 	if (_device_type == SMBUS_DEVICE_TYPE::BQ40Z50) {
 		ret |= _interface->read_word(BATT_SMBUS_BQ40Z50_CELL_1_VOLTAGE, result);
 		// Convert millivolts to volts.
-		_cell_voltages[0] = ((float)result) / 1000.0f;
+		_cell_voltages[0] = ((float)result) * 0.001f;
 
 		ret |= _interface->read_word(BATT_SMBUS_BQ40Z50_CELL_2_VOLTAGE, result);
 		// Convert millivolts to volts.
-		_cell_voltages[1] = ((float)result) / 1000.0f;
+		_cell_voltages[1] = ((float)result) * 0.001f;
 
 		ret |= _interface->read_word(BATT_SMBUS_BQ40Z50_CELL_3_VOLTAGE, result);
 		// Convert millivolts to volts.
-		_cell_voltages[2] = ((float)result) / 1000.0f;
+		_cell_voltages[2] = ((float)result) * 0.001f;
 
 		ret |= _interface->read_word(BATT_SMBUS_BQ40Z50_CELL_4_VOLTAGE, result);
 		// Convert millivolts to volts.
-		_cell_voltages[3] = ((float)result) / 1000.0f;
+		_cell_voltages[3] = ((float)result) * 0.001f;
 		_cell_voltages[4] = 0;
 		_cell_voltages[5] = 0;
 		_cell_voltages[6] = 0;
@@ -369,13 +369,13 @@ int BQ40ZX::get_cell_voltages()
 		}
 
 		// Convert millivolts to volts.
-		_cell_voltages[0] = ((float)((DAstatus1[1] << 8) | DAstatus1[0]) / 1000.0f);
-		_cell_voltages[1] = ((float)((DAstatus1[3] << 8) | DAstatus1[2]) / 1000.0f);
-		_cell_voltages[2] = ((float)((DAstatus1[5] << 8) | DAstatus1[4]) / 1000.0f);
-		_cell_voltages[3] = ((float)((DAstatus1[7] << 8) | DAstatus1[6]) / 1000.0f);
+		_cell_voltages[0] = ((float)((DAstatus1[1] << 8) | DAstatus1[0]) * 0.001f);
+		_cell_voltages[1] = ((float)((DAstatus1[3] << 8) | DAstatus1[2]) * 0.001f);
+		_cell_voltages[2] = ((float)((DAstatus1[5] << 8) | DAstatus1[4]) * 0.001f);
+		_cell_voltages[3] = ((float)((DAstatus1[7] << 8) | DAstatus1[6]) * 0.001f);
 
-		_pack_power = ((float)((DAstatus1[29] << 8) | DAstatus1[28]) / 100.0f); //TODO: decide if both needed
-		_pack_average_power = ((float)((DAstatus1[31] << 8) | DAstatus1[30]) / 100.0f);
+		_pack_power = ((float)((DAstatus1[29] << 8) | DAstatus1[28]) * 0.01f); //TODO: decide if both needed
+		_pack_average_power = ((float)((DAstatus1[31] << 8) | DAstatus1[30]) * 0.01f);
 
 		uint8_t DAstatus3[18 + 2] = {}; // 18 bytes of data and 2 bytes of address
 
@@ -384,9 +384,9 @@ int BQ40ZX::get_cell_voltages()
 			return PX4_ERROR;
 		}
 
-		_cell_voltages[4] = ((float)((DAstatus3[1] << 8) | DAstatus3[0]) / 1000.0f);
-		_cell_voltages[5] = ((float)((DAstatus3[7] << 8) | DAstatus3[6]) / 1000.0f);
-		_cell_voltages[6] = ((float)((DAstatus3[13] << 8) | DAstatus3[12]) / 1000.0f);
+		_cell_voltages[4] = ((float)((DAstatus3[1] << 8) | DAstatus3[0]) * 0.001f);
+		_cell_voltages[5] = ((float)((DAstatus3[7] << 8) | DAstatus3[6]) * 0.001f);
+		_cell_voltages[6] = ((float)((DAstatus3[13] << 8) | DAstatus3[12]) * 0.001f);
 
 	}
 
@@ -418,11 +418,11 @@ int BQ40ZX::lifetime_read_block_one()
 	//Get max cell voltage delta and convert from mV to V.
 	if (_device_type == SMBUS_DEVICE_TYPE::BQ40Z50) {
 
-		_lifetime_max_delta_cell_voltage = (float)(lifetime_block_one[17] << 8 | lifetime_block_one[16]) / 1000.0f;
+		_lifetime_max_delta_cell_voltage = (float)(lifetime_block_one[17] << 8 | lifetime_block_one[16]) * 0.001f;
 
 	} else if (_device_type == SMBUS_DEVICE_TYPE::BQ40Z80) {
 
-		_lifetime_max_delta_cell_voltage = (float)(lifetime_block_one[29] << 8 | lifetime_block_one[28]) / 1000.0f;
+		_lifetime_max_delta_cell_voltage = (float)(lifetime_block_one[29] << 8 | lifetime_block_one[28]) * 0.001f;
 	}
 
 	PX4_INFO("Max Cell Delta: %4.2f", (double)_lifetime_max_delta_cell_voltage);
