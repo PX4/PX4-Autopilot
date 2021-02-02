@@ -1,0 +1,20 @@
+#!/bin/sh
+#
+# PX4 FMUv6U specific board defaults
+#------------------------------------------------------------------------------
+
+
+if [ $AUTOCNF = yes ]
+then
+	# Multi-EKF
+	param set EKF2_MULTI_IMU 3
+	param set SENS_IMU_MODE 0
+	param set EKF2_MULTI_MAG 3
+	param set SENS_MAG_MODE 0
+
+	param set UAVCAN_ENABLE 2
+fi
+
+set LOGGER_BUF 64
+
+safety_button start
