@@ -343,3 +343,12 @@ PARAM_DEFINE_FLOAT(SIH_LOC_MU_Y, -0.045f);
  * @group Simulation In Hardware
  */
 PARAM_DEFINE_FLOAT(SIH_LOC_MU_Z,  0.504f);
+
+/**
+ * Number of GPS satellites used
+ *
+ * @min 0
+ * @max  50
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_INT32(SIH_GPS_USED, 10);
