@@ -811,53 +811,6 @@ int InputMavlinkGimbalV2::update_impl(unsigned int timeout_ms, ControlData **con
 						_ack_vehicle_command(&vehicle_command, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED);
 					}
 
-				} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL) {
-
-					switch ((int)vehicle_command.param7) {
-					case vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT:
-						_control_data.gimbal_shutter_retract = true;
-
-					/* FALLTHROUGH */
-
-					case vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL:
-						_control_data.type = ControlData::Type::Neutral;
-
-						*control_data = &_control_data;
-						break;
-
-					case vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING:
-						_control_data.type = ControlData::Type::Angle;
-						_control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
-						_control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
-						_control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
-						// vmount spec has roll on channel 0, MAVLink spec has pitch on channel 0
-						_control_data.type_data.angle.angles[0] = vehicle_command.param2 * M_DEG_TO_RAD_F;
-						// vmount spec has pitch on channel 1, MAVLink spec has roll on channel 1
-						_control_data.type_data.angle.angles[1] = vehicle_command.param1 * M_DEG_TO_RAD_F;
-						// both specs have yaw on channel 2
-						_control_data.type_data.angle.angles[2] = vehicle_command.param3 * M_DEG_TO_RAD_F;
-
-						// We expect angle of [-pi..+pi]. If the input range is [0..2pi] we can fix that.
-						if (_control_data.type_data.angle.angles[2] > M_PI_F) {
-							_control_data.type_data.angle.angles[2] -= 2 * M_PI_F;
-						}
-
-						*control_data = &_control_data;
-						break;
-
-					case vehicle_command_s::VEHICLE_MOUNT_MODE_RC_TARGETING:
-						break;
-
-					case vehicle_command_s::VEHICLE_MOUNT_MODE_GPS_POINT:
-						control_data_set_lon_lat((double)vehicle_command.param6, (double)vehicle_command.param5, vehicle_command.param4);
-
-						*control_data = &_control_data;
-						break;
-					}
-
-					_ack_vehicle_command(&vehicle_command);
-
-
 				} else {
 					exit_loop = false;
 				}
@@ -942,7 +895,7 @@ void InputMavlinkGimbalV2::_ack_vehicle_command(vehicle_command_s *cmd, uint8_t 
 	vehicle_command_ack.target_system = cmd->source_system;
 	vehicle_command_ack.target_component = cmd->source_component;
 
-	uORB::PublicationQueued<vehicle_command_ack_s> cmd_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_ack_s> cmd_ack_pub{ORB_ID(vehicle_command_ack)};
 	cmd_ack_pub.publish(vehicle_command_ack);
 }
 

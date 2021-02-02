@@ -64,7 +64,7 @@ public:
 	virtual void print_status();
 
 private:
-	uORB::PublicationQueued<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
 };
 
 class OutputMavlinkV2 : public OutputBase
