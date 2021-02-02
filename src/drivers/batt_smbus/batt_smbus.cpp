@@ -156,7 +156,8 @@ int BATT_SMBUS::get_startup_info()
 	return ret;
 }
 
-int BATT_SMBUS::populate_smbus_data(battery_status_s &data) {
+int BATT_SMBUS::populate_smbus_data(battery_status_s &data)
+{
 
 	// Temporary variable for storing SMBUS reads.
 	uint16_t result;
@@ -175,7 +176,7 @@ int BATT_SMBUS::populate_smbus_data(battery_status_s &data) {
 
 	// Read remaining capacity.
 	ret |= _interface->read_word(BATT_SMBUS_RELATIVE_SOC, result);
-	data.remaining = (float)result/100;
+	data.remaining = (float)result / 100;
 
 	// Read remaining capacity.
 	ret |= _interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, result);
@@ -201,7 +202,8 @@ int BATT_SMBUS::populate_smbus_data(battery_status_s &data) {
 
 }
 
-void BATT_SMBUS::RunImpl() {
+void BATT_SMBUS::RunImpl()
+{
 
 	// Get the current time.
 	uint64_t now = hrt_absolute_time();
@@ -259,8 +261,8 @@ int BATT_SMBUS::manufacturer_name(uint8_t *man_name, const uint8_t length)
 void BATT_SMBUS::custom_method(const BusCLIArguments &cli)
 {
 
-	switch(cli.custom1) {
-		case 1: {
+	switch (cli.custom1) {
+	case 1: {
 			uint8_t man_name[22];
 			int result = manufacturer_name(man_name, sizeof(man_name));
 			PX4_INFO("The manufacturer name: %s", man_name);
@@ -272,22 +274,27 @@ void BATT_SMBUS::custom_method(const BusCLIArguments &cli)
 			serial_num = get_serial_number();
 			PX4_INFO("The serial number: %d", serial_num);
 		}
-			break;
-		case 2:
-			PX4_WARN("Cannot unseal this device");
-			break;
-		case 3:
-			PX4_WARN("Cannot unseal this device");
-			break;
-		case 4:
-			suspend();
-			break;
-		case 5:
-			resume();
-			break;
-		case 6:
-			PX4_WARN("Cannot flash this device");
-			break;
+		break;
+
+	case 2:
+		PX4_WARN("Cannot unseal this device");
+		break;
+
+	case 3:
+		PX4_WARN("Cannot unseal this device");
+		break;
+
+	case 4:
+		suspend();
+		break;
+
+	case 5:
+		resume();
+		break;
+
+	case 6:
+		PX4_WARN("Cannot flash this device");
+		break;
 	}
 }
 

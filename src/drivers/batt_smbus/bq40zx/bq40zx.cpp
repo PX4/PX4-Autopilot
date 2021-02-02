@@ -96,12 +96,12 @@ int BQ40ZX::get_startup_info()
 		// Flush needs time to complete, otherwise device is busy. 100ms not enough, 200ms works.
 		px4_usleep(200000);
 
-	if (lifetime_read_block_one() == PX4_OK) {
-		if (_lifetime_max_delta_cell_voltage > BATT_CELL_VOLTAGE_THRESHOLD_FAILED) {
-			PX4_WARN("Battery Damaged Will Not Fly. Lifetime max voltage difference: %4.2f",
-					(double)_lifetime_max_delta_cell_voltage);
+		if (lifetime_read_block_one() == PX4_OK) {
+			if (_lifetime_max_delta_cell_voltage > BATT_CELL_VOLTAGE_THRESHOLD_FAILED) {
+				PX4_WARN("Battery Damaged Will Not Fly. Lifetime max voltage difference: %4.2f",
+					 (double)_lifetime_max_delta_cell_voltage);
+			}
 		}
-	}
 
 	} else {
 		PX4_WARN("Failed to flush lifetime data");
@@ -181,8 +181,8 @@ void BQ40ZX::RunImpl()
 	new_report.serial_number = _serial_number;
 	new_report.max_cell_voltage_delta = _max_cell_voltage_delta;
 	new_report.cell_count = _cell_count;
-	for (uint8_t i = 0; i< _cell_count; i++)
-	{
+
+	for (uint8_t i = 0; i < _cell_count; i++) {
 		new_report.voltage_cell_v[i] = _cell_voltages[i];
 	}
 
@@ -432,8 +432,8 @@ int BQ40ZX::lifetime_read_block_one()
 
 void BQ40ZX::custom_method(const BusCLIArguments &cli)
 {
-	switch(cli.custom1) {
-		case 1: {
+	switch (cli.custom1) {
+	case 1: {
 			uint8_t man_name[22];
 			int result = manufacturer_name(man_name, sizeof(man_name));
 			PX4_INFO("The manufacturer name: %s", man_name);
@@ -445,30 +445,37 @@ void BQ40ZX::custom_method(const BusCLIArguments &cli)
 			serial_num = get_serial_number();
 			PX4_INFO("The serial number: %d", serial_num);
 		}
-			break;
-		case 2:
-			unseal();
-			break;
-		case 3:
-			seal();
-			break;
-		case 4:
-			suspend();
-			break;
-		case 5:
-			resume();
-			break;
-		case 6:
-			if (cli.custom_data) {
-				unsigned address = cli.custom2;
-				uint8_t *tx_buf = (uint8_t*)cli.custom_data;
-				unsigned length = tx_buf[0];
+		break;
 
-				if (PX4_OK != dataflash_write(address, tx_buf+1, length)) {
-					PX4_ERR("Dataflash write failed: %d", address);
-				}
-				px4_usleep(100000);
+	case 2:
+		unseal();
+		break;
+
+	case 3:
+		seal();
+		break;
+
+	case 4:
+		suspend();
+		break;
+
+	case 5:
+		resume();
+		break;
+
+	case 6:
+		if (cli.custom_data) {
+			unsigned address = cli.custom2;
+			uint8_t *tx_buf = (uint8_t *)cli.custom_data;
+			unsigned length = tx_buf[0];
+
+			if (PX4_OK != dataflash_write(address, tx_buf + 1, length)) {
+				PX4_ERR("Dataflash write failed: %d", address);
 			}
-			break;
+
+			px4_usleep(100000);
+		}
+
+		break;
 	}
 }

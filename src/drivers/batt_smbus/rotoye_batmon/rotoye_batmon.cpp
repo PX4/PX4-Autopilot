@@ -54,8 +54,10 @@ void Rotoye_Batmon::RunImpl()
 
 	uint16_t temp_ext;
 	ret |= _interface->read_word(BATT_SMBUS_TEMP_EXTERNAL, temp_ext);
+
 	if (temp_ext != 0) { // Sends 0 when no external therm is used
 		float temp_ext_c = ((float)temp_ext / 10.0f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+
 		if (temp_ext_c > new_report.temperature) {
 			new_report.temperature = temp_ext_c;
 		}
@@ -63,8 +65,8 @@ void Rotoye_Batmon::RunImpl()
 
 	new_report.max_cell_voltage_delta = _max_cell_voltage_delta;
 	new_report.cell_count = _cell_count;
-	for (uint8_t i = 0; i< _cell_count; i++)
-	{
+
+	for (uint8_t i = 0; i < _cell_count; i++) {
 		new_report.voltage_cell_v[i] = _cell_voltages[i];
 	}
 
@@ -85,8 +87,7 @@ int Rotoye_Batmon::get_cell_voltages()
 	uint8_t ret = 0;
 
 	// Making the assumption that the register value of BATT_SMBUS_CELL_1_VOLTAGE and BATT_SMBUS_CELL_10_VOLTAGE are sequential and decreasing order.
-	for (int i = 0 ; i< _cell_count;i++)
-	{
+	for (int i = 0 ; i < _cell_count; i++) {
 		ret |= _interface->read_word(BATT_SMBUS_CELL_1_VOLTAGE - i, result);
 		// Convert millivolts to volts.
 		_cell_voltages[i] = ((float)result) / 1000.0f;
@@ -103,7 +104,7 @@ int Rotoye_Batmon::get_cell_voltages()
 
 	// Calculate the max difference between the min and max cells with complementary filter.
 	_max_cell_voltage_delta = (0.5f * (max_cell_voltage - _min_cell_voltage)) +
-					(0.5f * _last_report.max_cell_voltage_delta);
+				  (0.5f * _last_report.max_cell_voltage_delta);
 
 	return ret;
 }

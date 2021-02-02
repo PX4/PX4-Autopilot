@@ -97,78 +97,75 @@ enum class SMBUS_DEVICE_TYPE {
 class BATT_SMBUS : public I2CSPIDriver<BATT_SMBUS>
 {
 
-struct BATT_SMBUS_Safety_Status
-{
-	uint8_t len = 4;
-	union
-	{
-		struct
-		{
-			uint8_t _rsvd_31:1;
-			uint8_t _rsvd_30:1;
-			uint8_t FLAG_DISCHARGE_OVERCURRENT:1;
-			uint8_t FLAG_CELL_OVERVOLTAGE_LATCH:1;
-			uint8_t FLAG_DISCHARGE_UNDERTEMP:1;
-			uint8_t FLAG_CHARGE_UNDERTEMP:1;
-			uint8_t FLAG_OVERPRECHARGE_CURRENT:1;
-			uint8_t FLAG_OVERCHARGE_VOLTAGE:1;
-			uint8_t FLAG_OVERCHARGE_CURRENT:1;
-			uint8_t FLAG_OVERCHARGE:1;
-			uint8_t _rsvd_21:1;
-			uint8_t FLAG_CHARGE_TIMEOUT:1;
-			uint8_t _rsvd_19:1;
-			uint8_t FLAG_PRECHARGE_TIMEOUT:1;
-			uint8_t _rsvd_17:1;
-			uint8_t FLAG_FET_OVERTEMP:1;
-			uint8_t _rsvd_15:1;
-			uint8_t FLAG_CELL_UNDERVOLTAGE_COMPENSATED:1;
-			uint8_t FLAG_DISCHARGE_OVERTEMP:1;
-			uint8_t FLAG_CHARGE_OVERTEMP:1;
-			uint8_t FLAG_DISHCARGE_LATCH_SHORT_CIRCUIT:1;
-			uint8_t FLAG_DISCHARGE_SHORT_CIRCUIT:1;
-			uint8_t FLAG_CHARGE_LATCH_SHORT_CIRCUIT:1;
-			uint8_t FLAG_CHARGE_SHORT_CIRCUIT:1;
-			uint8_t FLAG_DISCHARGE_LATCH_OVERLOAD:1;
-			uint8_t FLAG_DISCHARGE_OVERLOAD:1;
-			uint8_t FLAG_DISCHARGE_OVERCURRENT_2:1;
-			uint8_t FLAG_DISCHARGE_OVERCURRENT_1:1;
-			uint8_t FLAG_CHARGE_OVERCURRENT_2:1;
-			uint8_t FLAG_CHARGE_OVERCURRENT_1:1;
-			uint8_t FLAG_CELL_OVERVOLTAGE:1;
-			uint8_t FLAG_CELL_UNDERVOLTAGE:1;
-		}flags;
-		uint32_t data;
-	}flag;
-	uint8_t crc;
-};
+	struct BATT_SMBUS_Safety_Status {
+		uint8_t len = 4;
+		union {
+			struct {
+				uint8_t _rsvd_31: 1;
+				uint8_t _rsvd_30: 1;
+				uint8_t FLAG_DISCHARGE_OVERCURRENT: 1;
+				uint8_t FLAG_CELL_OVERVOLTAGE_LATCH: 1;
+				uint8_t FLAG_DISCHARGE_UNDERTEMP: 1;
+				uint8_t FLAG_CHARGE_UNDERTEMP: 1;
+				uint8_t FLAG_OVERPRECHARGE_CURRENT: 1;
+				uint8_t FLAG_OVERCHARGE_VOLTAGE: 1;
+				uint8_t FLAG_OVERCHARGE_CURRENT: 1;
+				uint8_t FLAG_OVERCHARGE: 1;
+				uint8_t _rsvd_21: 1;
+				uint8_t FLAG_CHARGE_TIMEOUT: 1;
+				uint8_t _rsvd_19: 1;
+				uint8_t FLAG_PRECHARGE_TIMEOUT: 1;
+				uint8_t _rsvd_17: 1;
+				uint8_t FLAG_FET_OVERTEMP: 1;
+				uint8_t _rsvd_15: 1;
+				uint8_t FLAG_CELL_UNDERVOLTAGE_COMPENSATED: 1;
+				uint8_t FLAG_DISCHARGE_OVERTEMP: 1;
+				uint8_t FLAG_CHARGE_OVERTEMP: 1;
+				uint8_t FLAG_DISHCARGE_LATCH_SHORT_CIRCUIT: 1;
+				uint8_t FLAG_DISCHARGE_SHORT_CIRCUIT: 1;
+				uint8_t FLAG_CHARGE_LATCH_SHORT_CIRCUIT: 1;
+				uint8_t FLAG_CHARGE_SHORT_CIRCUIT: 1;
+				uint8_t FLAG_DISCHARGE_LATCH_OVERLOAD: 1;
+				uint8_t FLAG_DISCHARGE_OVERLOAD: 1;
+				uint8_t FLAG_DISCHARGE_OVERCURRENT_2: 1;
+				uint8_t FLAG_DISCHARGE_OVERCURRENT_1: 1;
+				uint8_t FLAG_CHARGE_OVERCURRENT_2: 1;
+				uint8_t FLAG_CHARGE_OVERCURRENT_1: 1;
+				uint8_t FLAG_CELL_OVERVOLTAGE: 1;
+				uint8_t FLAG_CELL_UNDERVOLTAGE: 1;
+			} flags;
+			uint32_t data;
+		} flag;
+		uint8_t crc;
+	};
 
-/*
-#define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
+	/*
+	#define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 
-enum BATT_SMBUS_BUS {
-	BATT_SMBUS_BUS_ALL = 0,
-	BATT_SMBUS_BUS_I2C_INTERNAL,
-	BATT_SMBUS_BUS_I2C_EXTERNAL,
-	BATT_SMBUS_BUS_I2C_EXTERNAL1,
-	BATT_SMBUS_BUS_I2C_EXTERNAL2
-};
+	enum BATT_SMBUS_BUS {
+		BATT_SMBUS_BUS_ALL = 0,
+		BATT_SMBUS_BUS_I2C_INTERNAL,
+		BATT_SMBUS_BUS_I2C_EXTERNAL,
+		BATT_SMBUS_BUS_I2C_EXTERNAL1,
+		BATT_SMBUS_BUS_I2C_EXTERNAL2
+	};
 
-struct batt_smbus_bus_option {
-	enum BATT_SMBUS_BUS busid;
-	const char *devpath;
-	uint8_t busnum;
-} bus_options[] = {
-	{ BATT_SMBUS_BUS_I2C_EXTERNAL, "/dev/batt_smbus_ext", PX4_I2C_BUS_EXPANSION},
-#ifdef PX4_I2C_BUS_EXPANSION1
-	{ BATT_SMBUS_BUS_I2C_EXTERNAL1, "/dev/batt_smbus_ext1", PX4_I2C_BUS_EXPANSION1},
-#endif
-#ifdef PX4_I2C_BUS_EXPANSION2
-	{ BATT_SMBUS_BUS_I2C_EXTERNAL2, "/dev/batt_smbus_ext2", PX4_I2C_BUS_EXPANSION2},
-#endif
-#ifdef PX4_I2C_BUS_ONBOARD
-	{ BATT_SMBUS_BUS_I2C_INTERNAL, "/dev/batt_smbus_int", PX4_I2C_BUS_ONBOARD},
-#endif
-};*/
+	struct batt_smbus_bus_option {
+		enum BATT_SMBUS_BUS busid;
+		const char *devpath;
+		uint8_t busnum;
+	} bus_options[] = {
+		{ BATT_SMBUS_BUS_I2C_EXTERNAL, "/dev/batt_smbus_ext", PX4_I2C_BUS_EXPANSION},
+	#ifdef PX4_I2C_BUS_EXPANSION1
+		{ BATT_SMBUS_BUS_I2C_EXTERNAL1, "/dev/batt_smbus_ext1", PX4_I2C_BUS_EXPANSION1},
+	#endif
+	#ifdef PX4_I2C_BUS_EXPANSION2
+		{ BATT_SMBUS_BUS_I2C_EXTERNAL2, "/dev/batt_smbus_ext2", PX4_I2C_BUS_EXPANSION2},
+	#endif
+	#ifdef PX4_I2C_BUS_ONBOARD
+		{ BATT_SMBUS_BUS_I2C_INTERNAL, "/dev/batt_smbus_int", PX4_I2C_BUS_ONBOARD},
+	#endif
+	};*/
 
 public:
 	BATT_SMBUS(I2CSPIBusOption bus_option, const int bus, SMBus *interface);
