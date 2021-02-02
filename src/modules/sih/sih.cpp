@@ -61,7 +61,7 @@ Sih::Sih() :
 
 	parameters_updated();
 	init_variables();
-	init_sensors();
+	gps_no_fix();
 
 	const hrt_abstime task_start = hrt_absolute_time();
 	_last_run = task_start;
@@ -182,6 +182,8 @@ void Sih::parameters_updated()
 	_Im1 = inv(_I);
 
 	_mu_I = Vector3f(_sih_mu_x.get(), _sih_mu_y.get(), _sih_mu_z.get());
+
+	_gps_used = _sih_gps_used.get();
 }
 
 // initialization of the variables for the simulator
@@ -197,10 +199,10 @@ void Sih::init_variables()
 	_u[0] = _u[1] = _u[2] = _u[3] = 0.0f;
 }
 
-void Sih::init_sensors()
+void Sih::gps_fix()
 {
 	_sensor_gps.fix_type = 3;  // 3D fix
-	_sensor_gps.satellites_used = 8;
+	_sensor_gps.satellites_used = _gps_used;
 	_sensor_gps.heading = NAN;
 	_sensor_gps.heading_offset = NAN;
 	_sensor_gps.s_variance_m_s = 0.5f;
@@ -210,6 +212,21 @@ void Sih::init_sensors()
 	_sensor_gps.hdop = 0.7f;
 	_sensor_gps.vdop = 1.1f;
 }
+
+void Sih::gps_no_fix()
+{
+	_sensor_gps.fix_type = 0;  // 3D fix
+	_sensor_gps.satellites_used = _gps_used;
+	_sensor_gps.heading = NAN;
+	_sensor_gps.heading_offset = NAN;
+	_sensor_gps.s_variance_m_s = 100.f;
+	_sensor_gps.c_variance_rad = 100.f;
+	_sensor_gps.eph = 100.f;
+	_sensor_gps.epv = 100.f;
+	_sensor_gps.hdop = 100.f;
+	_sensor_gps.vdop = 100.f;
+}
+
 
 // read the motor signals outputted from the mixer
 void Sih::read_motors()
@@ -315,6 +332,13 @@ void Sih::send_gps()
 	_sensor_gps.vel_d_m_s = _gps_vel(2);           // GPS Down velocity, (metres/sec)
 	_sensor_gps.cog_rad = atan2(_gps_vel(1),
 				    _gps_vel(0)); // Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
+
+	if (_gps_used >= 4) {
+		gps_fix();
+
+	} else {
+		gps_no_fix();
+	}
 
 	_sensor_gps_pub.publish(_sensor_gps);
 }
