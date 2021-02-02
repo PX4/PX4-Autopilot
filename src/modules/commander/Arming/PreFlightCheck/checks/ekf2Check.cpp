@@ -171,8 +171,8 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT)) {
 					message = "Preflight%s: not enough GPS Satellites";
 
-				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MIN_PDOP)) {
-					message = "Preflight%s: GPS PDOP too low";
+				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_PDOP)) {
+					message = "Preflight%s: GPS PDOP too high";
 
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR)) {
 					message = "Preflight%s: GPS Horizontal Pos Error too high";
