@@ -91,7 +91,7 @@ public:
 			// position variances -- Xx, Yy, Zz
 			fix2.covariance.push_back(gps.eph);
 			fix2.covariance.push_back(gps.eph);
-			fix2.covariance.push_back(gps.eph);
+			fix2.covariance.push_back(gps.epv);
 			// velocity variance -- Vxx, Vyy, Vzz
 			fix2.covariance.push_back(gps.s_variance_m_s);
 			fix2.covariance.push_back(gps.s_variance_m_s);
