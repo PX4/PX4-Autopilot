@@ -39,6 +39,8 @@ then
 
 	# Enable IMU thermal control
 	param set SENS_EN_THERMAL 1
+
+	param set UAVCAN_ENABLE 2
 fi
 
 set LOGGER_BUF 64
