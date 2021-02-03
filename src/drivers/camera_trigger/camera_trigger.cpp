@@ -54,17 +54,13 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/err.h>
 #include <parameters/param.h>
-#include <systemlib/mavlink_log.h>
 
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/camera_trigger.h>
-#include <uORB/topics/camera_capture.h>
-#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_global_position.h>
 
 #include <drivers/drv_hrt.h>
 
