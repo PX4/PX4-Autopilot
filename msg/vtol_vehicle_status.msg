@@ -4,6 +4,7 @@ uint8 VEHICLE_VTOL_STATE_TRANSITION_TO_FW = 1
 uint8 VEHICLE_VTOL_STATE_TRANSITION_TO_MC = 2
 uint8 VEHICLE_VTOL_STATE_MC = 3
 uint8 VEHICLE_VTOL_STATE_FW = 4
+uint8 VEHICLE_VTOL_STATE_QC = 5
 
 uint64 timestamp			# time since system start (microseconds)
 
