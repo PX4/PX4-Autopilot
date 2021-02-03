@@ -3,14 +3,4 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
-
-if [ $AUTOCNF = yes ]
-then
-	# Disable safety switch by default
-	param set CBRK_IO_SAFETY 22027
-
-fi
-
 rgbled_ncp5623c -I -b 1 -a 0x39  start
-
-#safety_button start
