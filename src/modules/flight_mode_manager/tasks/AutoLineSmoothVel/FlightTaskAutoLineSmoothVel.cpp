@@ -455,7 +455,7 @@ void FlightTaskAutoLineSmoothVel::_generateTrajectory()
 	Vector2f drone_to_trajectory_xy(position_trajectory_xy - position_xy);
 	float position_error = drone_to_trajectory_xy.length();
 
-	float time_stretch = 1.f - math::constrain(position_error * 0.5f, 0.f, 1.f);
+	float time_stretch = 1.f - math::constrain(position_error / _param_mpc_xy_err_max.get(), 0.f, 1.f);
 
 	// Don't stretch time if the drone is ahead of the position setpoint
 	if (drone_to_trajectory_xy.dot(vel_traj_xy) < 0.f) {
