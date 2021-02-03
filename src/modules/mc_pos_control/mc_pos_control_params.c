@@ -789,3 +789,51 @@ PARAM_DEFINE_FLOAT(MPC_SPOOLUP_TIME, 1.0f);
  * @group Mission
  */
 PARAM_DEFINE_INT32(MPC_YAW_MODE, 0);
+
+/**
+ * Responsiveness
+ *
+ * Changes the overall responsiveness of the vehicle.
+ * The higher the value, the faster the vehicle will react.
+ *
+ * If set to a value greater than zero, other parameters are automatically set (such as
+ * the acceleration or jerk limits).
+ * If set to -1, the existing individual parameters are used.
+ *
+ * @min -1
+ * @max 1
+ * @decimal 2
+ * @increment 0.05
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(SYS_VEHICLE_RESP, -0.4f);
+
+/**
+ * Overall Horizonal Velocity Limit
+ *
+ * If set to a value greater than zero, other parameters are automatically set (such as
+ * MPC_XY_VEL_MAX or MPC_VEL_MANUAL).
+ * If set to -1, the existing individual parameters are used.
+ *
+ * @min -20
+ * @max 20
+ * @decimal 1
+ * @increment 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_XY_VEL_ALL, -10.0f);
+
+/**
+ * Overall Vertical Velocity Limit
+ *
+ * If set to a value greater than zero, other parameters are automatically set (such as
+ * MPC_Z_VEL_MAX_UP or MPC_LAND_SPEED).
+ * If set to -1, the existing individual parameters are used.
+ *
+ * @min -3
+ * @max 8
+ * @decimal 1
+ * @increment 0.5
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_Z_VEL_ALL, -3.0f);
