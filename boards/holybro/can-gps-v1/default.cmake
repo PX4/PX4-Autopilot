@@ -27,7 +27,7 @@ px4_add_board(
 	ARCHITECTURE cortex-m4
 	CONSTRAINED_MEMORY
 	ROMFSROOT cannode
-	UAVCAN_INTERFACES 1
+	UAVCAN_INTERFACES 2
 	DRIVERS
 		adc/board_adc
 		barometer/bmp388
