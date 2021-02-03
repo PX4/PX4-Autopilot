@@ -84,7 +84,7 @@ SafetyButton::CheckButton()
 			_button_counter++;
 
 		} else if (_button_counter == CYCLE_COUNT) {
-			// switch to armed state
+			// switch safety off and to ok-to-arm state
 			_safety_btn_off = true;
 			_button_counter++;
 		}
@@ -95,8 +95,9 @@ SafetyButton::CheckButton()
 			_button_counter++;
 
 		} else if (_button_counter == CYCLE_COUNT) {
-			// change to disarmed state and notify
-			_safety_btn_off = false;
+			// do not switch safety off,
+			// as a button that is stuck in hardware
+			// could cause this
 			_button_counter++;
 		}
 
