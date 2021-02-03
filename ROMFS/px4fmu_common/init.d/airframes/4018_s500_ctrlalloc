@@ -8,7 +8,7 @@
 # @maintainer Silvan Fuhrer
 #
 
-. ${R}etcinit.d/rc.mc_defaults
+. ${R}etc/init.d/rc.mc_defaults
 . ${R}etc/init.d/rc.ctrlalloc
 
 if [ $AUTOCNF = yes ]
