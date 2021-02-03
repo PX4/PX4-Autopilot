@@ -94,9 +94,9 @@
 #define GPIO_HW_VER_REV_DRIVE /* PB5 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN5)
 #define GPIO_HW_REV_SENSE     /* PA0 */ ADC1_GPIO(0)
 #define GPIO_HW_VER_SENSE     /* PA1 */ ADC1_GPIO(1)
-#define HW_INFO_INIT         {'C','G','x', 'x',0}
-#define HW_INFO_INIT_VER     2
-#define HW_INFO_INIT_REV     3
+#define HW_INFO_INIT         {'C','A','N','G','P','S','x', 'x',0}
+#define HW_INFO_INIT_VER     6
+#define HW_INFO_INIT_REV     7
 
 /* CAN Silence
  *
