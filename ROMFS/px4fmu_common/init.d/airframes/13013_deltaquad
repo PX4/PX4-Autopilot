@@ -101,7 +101,6 @@ then
 	param set MPC_ACC_HOR_MAX 2
 	param set MPC_LAND_SPEED 1.2
 	param set MPC_TILTMAX_LND 35
-	param set MPC_Z_VEL_MAX 1.5
 	param set MPC_Z_VEL_MAX_UP 1.5
 	param set MPC_Z_VEL_MAX_DN 1.5
 	param set MPC_HOLD_MAX_XY 0.5
