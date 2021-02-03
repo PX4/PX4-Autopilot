@@ -29,6 +29,8 @@ jobs:
           cubepilot_cubeorange_default,
           cubepilot_cubeyellow_console,
           cubepilot_cubeyellow_default,
+          holybro_can-gps-v1_canbootloader,
+          holybro_can-gps-v1_default,
           holybro_durandal-v1_default,
           holybro_kakutef7_default,
           holybro_pix32v5_default,
