@@ -98,6 +98,8 @@
 #define HW_INFO_INIT_VER     6
 #define HW_INFO_INIT_REV     7
 
+#define FLASH_BASED_PARAMS
+
 /* CAN Silence
  *
  * Silent mode control
