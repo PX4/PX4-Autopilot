@@ -88,6 +88,57 @@ int MulticopterPositionControl::parameters_update(bool force)
 		ModuleParams::updateParams();
 		SuperBlock::updateParams();
 
+		int num_changed = 0;
+
+		if (_param_sys_vehicle_resp.get() >= 0.f) {
+			// make it less sensitive at the lower end
+			float responsiveness = _param_sys_vehicle_resp.get() * _param_sys_vehicle_resp.get();
+
+			num_changed += _param_mpc_acc_hor.commit_no_notification(math::lerp(1.f, 15.f, responsiveness));
+			num_changed += _param_mpc_acc_hor_max.commit_no_notification(math::lerp(2.f, 15.f, responsiveness));
+			num_changed += _param_mpc_man_y_max.commit_no_notification(math::lerp(80.f, 450.f, responsiveness));
+
+			if (responsiveness > 0.6f) {
+				num_changed += _param_mpc_man_y_tau.commit_no_notification(0.f);
+
+			} else {
+				num_changed += _param_mpc_man_y_tau.commit_no_notification(math::lerp(0.5f, 0.f, responsiveness / 0.6f));
+			}
+
+			if (responsiveness < 0.5f) {
+				num_changed += _param_mpc_tiltmax_air.commit_no_notification(45.f);
+
+			} else {
+				num_changed += _param_mpc_tiltmax_air.commit_no_notification(math::min(MAX_SAFE_TILT_DEG, math::lerp(45.f, 70.f,
+						(responsiveness - 0.5f) * 2.f)));
+			}
+
+			num_changed += _param_mpc_acc_down_max.commit_no_notification(math::lerp(0.8f, 15.f, responsiveness));
+			num_changed += _param_mpc_acc_up_max.commit_no_notification(math::lerp(1.f, 15.f, responsiveness));
+			num_changed += _param_mpc_jerk_max.commit_no_notification(math::lerp(2.f, 50.f, responsiveness));
+			num_changed += _param_mpc_jerk_auto.commit_no_notification(math::lerp(1.f, 25.f, responsiveness));
+		}
+
+		if (_param_mpc_xy_vel_all.get() >= 0.f) {
+			float xy_vel = _param_mpc_xy_vel_all.get();
+			num_changed += _param_mpc_vel_manual.commit_no_notification(xy_vel);
+			num_changed += _param_mpc_xy_cruise.commit_no_notification(xy_vel);
+			num_changed += _param_mpc_xy_vel_max.commit_no_notification(xy_vel);
+			num_changed += _param_mpc_land_vel_xy.commit_no_notification(xy_vel * 0.75f);
+		}
+
+		if (_param_mpc_z_vel_all.get() >= 0.f) {
+			float z_vel = _param_mpc_z_vel_all.get();
+			num_changed += _param_mpc_z_vel_max_up.commit_no_notification(z_vel);
+			num_changed += _param_mpc_z_vel_max_dn.commit_no_notification(z_vel * 0.75f);
+			num_changed += _param_mpc_tko_speed.commit_no_notification(z_vel * 0.6f);
+			num_changed += _param_mpc_land_speed.commit_no_notification(z_vel * 0.5f);
+		}
+
+		if (num_changed > 0) {
+			param_notify_changes();
+		}
+
 		if (_param_mpc_tiltmax_air.get() > MAX_SAFE_TILT_DEG) {
 			_param_mpc_tiltmax_air.set(MAX_SAFE_TILT_DEG);
 			_param_mpc_tiltmax_air.commit();
