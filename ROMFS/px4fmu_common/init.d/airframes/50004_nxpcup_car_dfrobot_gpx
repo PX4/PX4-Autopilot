@@ -34,7 +34,7 @@ then
 	param set FW_AIRSPD_MAX 3
 
 	param set GND_THR_IDLE 0
-	param set GND_THR_CRUISE 0
+	param set GND_THR_CRUISE 0.3
 	param set GND_THR_MAX 0.5
 
 	# Differential drive acts like ackermann steering with a maximum turn angle of 60 degrees, or pi/3 radians
