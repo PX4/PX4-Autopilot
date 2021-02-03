@@ -74,6 +74,9 @@
 #include <px4_platform/gpio.h>
 #include <px4_platform/board_determine_hw_info.h>
 #include <px4_platform/board_dma_alloc.h>
+# if defined(FLASH_BASED_PARAMS)
+#  include <parameters/flashparams/flashfs.h>
+#endif
 
 /*
  * Ideally we'd be able to get these from arm_internal.h,
@@ -158,6 +161,23 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	stm32_spiinitialize();
 
+#if defined(FLASH_BASED_PARAMS)
+	static sector_descriptor_t params_sector_map[] = {
+		{2, 16 * 1024, 0x08008000},
+		{0, 0, 0},
+	};
+
+	/* Initialize the flashfs layer to use heap allocated memory */
+	int result = parameter_flashfs_init(params_sector_map, NULL, 0);
+
+	if (result != OK) {
+		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
+		return -ENODEV;
+	}
+
+#endif // FLASH_BASED_PARAMS
+
+
 #if defined(SERIAL_HAVE_RXDMA)
 	/* set up the serial DMA polling */
 	static struct hrt_call serial_dma_call;
@@ -183,8 +203,5 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	led_on(LED_GREEN); // Indicate Power.
 	led_off(LED_BLUE);
 
-	/* Configure the HW based on the manifest */
-
-	px4_platform_configure();
 	return OK;
 }
