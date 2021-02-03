@@ -104,7 +104,7 @@ safety_check_button(void *arg)
 	safety_button_pressed = BUTTON_SAFETY;
 
 	/*
-	 * Keep pressed for a while to arm.
+	 * Keep pressed for a while to disable safety.
 	 *
 	 * Note that the counting sequence has to be same length
 	 * for arming / disarming in order to end up as proper
@@ -118,7 +118,9 @@ safety_check_button(void *arg)
 			counter++;
 
 		} else if (counter == ARM_COUNTER_THRESHOLD) {
-			/* switch to armed state */
+			/* switch to safety off state - the system still needs to be
+			 * fully armed by the operator
+			 */
 			atomic_modify_or(&r_status_flags, PX4IO_P_STATUS_FLAGS_SAFETY_OFF);
 			counter++;
 		}
@@ -129,8 +131,11 @@ safety_check_button(void *arg)
 			counter++;
 
 		} else if (counter == ARM_COUNTER_THRESHOLD) {
-			/* change to disarmed state and notify the FMU */
-			atomic_modify_clear(&r_status_flags, PX4IO_P_STATUS_FLAGS_SAFETY_OFF);
+			/* we are not switching out of the armed state
+			 * as a stuck button could cause this during
+			 * normal operation. The system needs to be
+			 * disarmed by software
+			 */
 			counter++;
 		}
 
