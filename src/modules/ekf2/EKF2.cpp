@@ -951,10 +951,16 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 
 	status.control_mode_flags = _ekf.control_status().value;
 	status.filter_fault_flags = _ekf.fault_status().value;
-	_ekf.get_innovation_test_status(status.innovation_check_flags, status.mag_test_ratio,
+
+	uint16_t innov_check_flags_temp = 0;
+	_ekf.get_innovation_test_status(innov_check_flags_temp, status.mag_test_ratio,
 					status.vel_test_ratio, status.pos_test_ratio,
 					status.hgt_test_ratio, status.tas_test_ratio,
 					status.hagl_test_ratio, status.beta_test_ratio);
+
+	// Bit mismatch between ecl and Firmware, combine the 2 first bits to preserve msg definition
+	// TODO: legacy use only, those flags are also in estimator_status_flags
+	status.innovation_check_flags = (innov_check_flags_temp >> 1) | (innov_check_flags_temp & 0x1);
 
 	_ekf.get_ekf_lpos_accuracy(&status.pos_horiz_accuracy, &status.pos_vert_accuracy);
 	_ekf.get_ekf_soln_status(&status.solution_status_flags);
