@@ -861,10 +861,7 @@ void InputMavlinkGimbalV2::_set_control_data_from_set_attitude(const uint32_t fl
 	} else {
 		_control_data.type = ControlData::Type::Angle;
 
-		_control_data.type_data.angle.q[0] = q(0);
-		_control_data.type_data.angle.q[1] = q(1);
-		_control_data.type_data.angle.q[2] = q(2);
-		_control_data.type_data.angle.q[3] = q(3);
+		q.copyTo(_control_data.type_data.angle.q);
 
 		_control_data.type_data.angle.angular_velocity[0] = angular_velocity(0);
 		_control_data.type_data.angle.angular_velocity[1] = angular_velocity(1);

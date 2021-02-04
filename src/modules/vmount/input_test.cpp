@@ -77,10 +77,7 @@ int InputTest::update(unsigned int timeout_ms, ControlData **control_data, bool 
 		math::radians(_angles[2]));
 	matrix::Quatf q(euler);
 
-	_control_data.type_data.angle.q[0] = q(0);
-	_control_data.type_data.angle.q[1] = q(1);
-	_control_data.type_data.angle.q[2] = q(2);
-	_control_data.type_data.angle.q[3] = q(3);
+	q.copyTo(_control_data.type_data.angle.q);
 
 	_control_data.gimbal_shutter_retract = false;
 	*control_data = &_control_data;
