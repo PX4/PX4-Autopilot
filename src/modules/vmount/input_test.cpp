@@ -43,6 +43,7 @@
 
 #include <px4_platform_common/posix.h>
 #include <lib/matrix/matrix/math.hpp>
+#include <lib/mathlib/mathlib.h>
 
 
 namespace vmount
@@ -71,9 +72,9 @@ int InputTest::update(unsigned int timeout_ms, ControlData **control_data, bool 
 	_control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 
 	matrix::Eulerf euler(
-		_angles[0] * M_DEG_TO_RAD_F,
-		_angles[1] * M_DEG_TO_RAD_F,
-		_angles[2] * M_DEG_TO_RAD_F);
+		math::radians(_angles[0]),
+		math::radians(_angles[1]),
+		math::radians(_angles[2]));
 	matrix::Quatf q(euler);
 
 	_control_data.type_data.angle.q[0] = q(0);
