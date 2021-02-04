@@ -82,7 +82,7 @@ px4_add_board(
 		rc_update
 		sensors
 		temperature_compensation
-		vmount
+		#vmount
 		#vtol_att_control
 		#airspeed_selector
 

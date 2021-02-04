@@ -59,7 +59,7 @@ px4_add_board(
 		sensors
 		#sih
 		#temperature_compensation
-		vmount
+		#vmount
 	SYSTEMCMDS
 		#bl_update
 		#dumpfile

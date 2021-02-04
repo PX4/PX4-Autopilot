@@ -52,7 +52,7 @@ px4_add_board(
 		rc_update
 		sensors
 		temperature_compensation
-		vmount
+		#vmount
 
 	SYSTEMCMDS
 		bl_update
