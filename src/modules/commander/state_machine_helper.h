@@ -124,7 +124,8 @@ transition_result_t
 main_state_transition(const vehicle_status_s &status, const main_state_t new_main_state,
 		      const vehicle_status_flags_s &status_flags, commander_state_s *internal_state);
 
-void enable_failsafe(vehicle_status_s *status, bool old_failsafe, orb_advert_t *mavlink_log_pub, const char *reason);
+void enable_failsafe(vehicle_status_s *status, const bool old_failsafe, orb_advert_t *mavlink_log_pub,
+		     const char *reason);
 
 bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_state_s *internal_state,
 		   orb_advert_t *mavlink_log_pub, const link_loss_actions_t data_link_loss_act, const bool mission_finished,
