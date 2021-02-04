@@ -1482,6 +1482,7 @@ protected:
 	}
 };
 
+#if !defined(CONSTRAINED_FLASH)
 class MavlinkStreamAutopilotStateForGimbalDevice : public MavlinkStream
 {
 public:
@@ -1585,7 +1586,7 @@ protected:
 		return false;
 	}
 };
-
+#endif
 
 class MavlinkStreamSystemTime : public MavlinkStream
 {
@@ -1976,6 +1977,7 @@ protected:
 	}
 };
 
+#if !defined(CONSTRAINED_FLASH)
 class MavlinkStreamGimbalDeviceAttitudeStatus : public MavlinkStream
 {
 public:
@@ -2265,6 +2267,7 @@ protected:
 		return false;
 	}
 };
+#endif
 
 class MavlinkStreamCameraTrigger : public MavlinkStream
 {
@@ -3445,11 +3448,13 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamEstimatorStatus>(),
 	create_stream_list_item<MavlinkStreamVibration>(),
 	create_stream_list_item<MavlinkStreamAttPosMocap>(),
+#if !defined(CONSTRAINED_FLASH)
 	create_stream_list_item<MavlinkStreamGimbalDeviceAttitudeStatus>(),
 	create_stream_list_item<MavlinkStreamGimbalManagerInformation>(),
 	create_stream_list_item<MavlinkStreamGimbalManagerStatus>(),
 	create_stream_list_item<MavlinkStreamAutopilotStateForGimbalDevice>(),
 	create_stream_list_item<MavlinkStreamGimbalDeviceSetAttitude>(),
+#endif
 	create_stream_list_item<MavlinkStreamHomePosition>(),
 	create_stream_list_item<MavlinkStreamServoOutputRaw<0> >(),
 	create_stream_list_item<MavlinkStreamServoOutputRaw<1> >(),
