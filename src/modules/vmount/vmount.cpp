@@ -233,12 +233,12 @@ static int vmount_thread_main(int argc, char *argv[])
 
 			output_config.gimbal_normal_mode_value = params.mnt_ob_norm_mode;
 			output_config.gimbal_retracted_mode_value = params.mnt_ob_lock_mode;
-			output_config.pitch_scale = 1.0f / ((params.mnt_range_pitch / 2.0f) * M_DEG_TO_RAD_F);
-			output_config.roll_scale = 1.0f / ((params.mnt_range_roll / 2.0f) * M_DEG_TO_RAD_F);
-			output_config.yaw_scale = 1.0f / ((params.mnt_range_yaw / 2.0f) * M_DEG_TO_RAD_F);
-			output_config.pitch_offset = params.mnt_off_pitch * M_DEG_TO_RAD_F;
-			output_config.roll_offset = params.mnt_off_roll * M_DEG_TO_RAD_F;
-			output_config.yaw_offset = params.mnt_off_yaw * M_DEG_TO_RAD_F;
+			output_config.pitch_scale = 1.0f / (math::radians(params.mnt_range_pitch / 2.0f));
+			output_config.roll_scale = 1.0f / (math::radians(params.mnt_range_roll / 2.0f));
+			output_config.yaw_scale = 1.0f / (math::radians(params.mnt_range_yaw / 2.0f));
+			output_config.pitch_offset = math::radians(params.mnt_off_pitch);
+			output_config.roll_offset = math::radians(params.mnt_off_roll);
+			output_config.yaw_offset = math::radians(params.mnt_off_yaw);
 			output_config.mavlink_sys_id_v1 = params.mnt_mav_sys_id_v1;
 			output_config.mavlink_comp_id_v1 = params.mnt_mav_comp_id_v1;
 
