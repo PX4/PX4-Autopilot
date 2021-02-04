@@ -101,9 +101,9 @@ int OutputMavlinkV1::update(const ControlData *control_data)
 
 	// vmount spec has roll, pitch on channels 0, 1, respectively; MAVLink spec has roll, pitch on channels 1, 0, respectively
 	// vmount uses radians, MAVLink uses degrees
-	vehicle_command.param1 = (_angle_outputs[1] + _config.pitch_offset) * M_RAD_TO_DEG_F;
-	vehicle_command.param2 = (_angle_outputs[0] + _config.roll_offset) * M_RAD_TO_DEG_F;
-	vehicle_command.param3 = (_angle_outputs[2] + _config.yaw_offset) * M_RAD_TO_DEG_F;
+	vehicle_command.param1 = math::degrees(_angle_outputs[1] + _config.pitch_offset);
+	vehicle_command.param2 = math::degrees(_angle_outputs[0] + _config.roll_offset);
+	vehicle_command.param3 = math::degrees(_angle_outputs[2] + _config.yaw_offset);
 	vehicle_command.param7 = 2.0f; // MAV_MOUNT_MODE_MAVLINK_TARGETING;
 
 	_vehicle_command_pub.publish(vehicle_command);

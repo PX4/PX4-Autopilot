@@ -270,11 +270,11 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 							_control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 
 							// vmount spec has roll on channel 0, MAVLink spec has pitch on channel 0
-							const float roll = vehicle_command.param2 * M_DEG_TO_RAD_F;
+							const float roll = math::radians(vehicle_command.param2);
 							// vmount spec has pitch on channel 1, MAVLink spec has roll on channel 1
-							const float pitch = vehicle_command.param1 * M_DEG_TO_RAD_F;
+							const float pitch = math::radians(vehicle_command.param1);
 							// both specs have yaw on channel 2
-							float yaw = vehicle_command.param3 * M_DEG_TO_RAD_F;
+							float yaw = math::radians(vehicle_command.param3);
 
 							matrix::Eulerf euler(roll, pitch, yaw);
 
@@ -639,11 +639,11 @@ int InputMavlinkGimbalV2::update_impl(unsigned int timeout_ms, ControlData **con
 							_control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 
 							// vmount spec has roll on channel 0, MAVLink spec has pitch on channel 0
-							const float roll = vehicle_command.param2 * M_DEG_TO_RAD_F;
+							const float roll = math::radians(vehicle_command.param2);
 							// vmount spec has pitch on channel 1, MAVLink spec has roll on channel 1
-							const float pitch = vehicle_command.param1 * M_DEG_TO_RAD_F;
+							const float pitch = math::radians(vehicle_command.param1);
 							// both specs have yaw on channel 2
-							float yaw = vehicle_command.param3 * M_DEG_TO_RAD_F;
+							float yaw = math::radians(vehicle_command.param3);
 
 							// We expect angle of [-pi..+pi]. If the input range is [0..2pi] we can fix that.
 							if (yaw > M_PI_F) {
@@ -795,7 +795,7 @@ int InputMavlinkGimbalV2::update_impl(unsigned int timeout_ms, ControlData **con
 					if (vehicle_command.source_system == _sys_id_primary_control &&
 					    vehicle_command.source_component == _comp_id_primary_control) {
 
-						const matrix::Eulerf euler(0.0f, vehicle_command.param1 * M_DEG_TO_RAD_F, vehicle_command.param2 * M_DEG_TO_RAD_F);
+						const matrix::Eulerf euler(0.0f, math::radians(vehicle_command.param1), math::radians(vehicle_command.param2));
 						const matrix::Quatf q(euler);
 						const matrix::Vector3f angular_velocity(0.0f, vehicle_command.param3, vehicle_command.param4);
 						const uint32_t flags = vehicle_command.param5;
@@ -832,8 +832,8 @@ int InputMavlinkGimbalV2::update_impl(unsigned int timeout_ms, ControlData **con
 					const matrix::Vector3f angular_velocity =
 						(PX4_ISFINITE(set_manual_control.pitch_rate) && PX4_ISFINITE(set_manual_control.yaw_rate)) ?
 						matrix::Vector3f(0.0f,
-								 _mnt_rate_pitch * M_DEG_TO_RAD_F * set_manual_control.pitch_rate,
-								 _mnt_rate_yaw * M_DEG_TO_RAD_F * set_manual_control.yaw_rate) :
+								 math::radians(_mnt_rate_pitch) * set_manual_control.pitch_rate,
+								 math::radians(_mnt_rate_yaw) * set_manual_control.yaw_rate) :
 						matrix::Vector3f(NAN, NAN, NAN);
 
 					_set_control_data_from_set_attitude(set_manual_control.flags, q, angular_velocity);
