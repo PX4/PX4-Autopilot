@@ -45,6 +45,7 @@ rtps:
     id: 20
   - msg: sensor_gps
     id: 21
+    receive: true
   - msg: esc_report
     id: 22
   - msg: esc_status
