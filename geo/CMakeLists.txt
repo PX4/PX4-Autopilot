@@ -37,3 +37,4 @@ add_library(ecl_geo
 add_dependencies(ecl_geo prebuild_targets)
 target_compile_definitions(ecl_geo PRIVATE -DMODULE_NAME="ecl/geo")
 target_include_directories(ecl_geo PUBLIC ${ECL_SOURCE_DIR})
+target_link_libraries(ecl_geo PRIVATE m)
