@@ -120,14 +120,6 @@ private:
 	perf_counter_t	_loop_perf; /**< loop performance counter */
 
 	DEFINE_PARAMETERS(
-		// direct access to inputs
-		(ParamFloat<px4::params::UUV_DES_X>) _param_direct_pos_x, /**< desired X Position */
-		(ParamFloat<px4::params::UUV_DES_Y>) _param_direct_pos_y, /**< desired Y Position */
-		(ParamFloat<px4::params::UUV_DES_Z>) _param_direct_pos_z, /**< desired Z Position*/
-		(ParamFloat<px4::params::UUV_DIRCT_ROLL>) _param_direct_roll,
-		(ParamFloat<px4::params::UUV_DIRCT_PITCH>) _param_direct_pitch,
-		(ParamFloat<px4::params::UUV_DIRCT_YAW>) _param_direct_yaw,
-
 		(ParamFloat<px4::params::UUV_GAIN_X_P>) _param_pose_gain_x,
 		(ParamFloat<px4::params::UUV_GAIN_Y_P>) _param_pose_gain_y,
 		(ParamFloat<px4::params::UUV_GAIN_Z_P>) _param_pose_gain_z,
@@ -136,7 +128,6 @@ private:
 		(ParamFloat<px4::params::UUV_GAIN_Z_D>) _param_pose_gain_d_z,
 
 		(ParamInt<px4::params::UUV_INPUT_MODE>) _param_input_mode,
-		(ParamInt<px4::params::UUV_POS_DIRECT>) _param_pos_direct,
 		(ParamInt<px4::params::UUV_STAB_MODE>) _param_stabilization,
 		(ParamInt<px4::params::UUV_SKIP_CTRL>) _param_skip_ctrl
 	)

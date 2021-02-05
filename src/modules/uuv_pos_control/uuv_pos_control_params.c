@@ -49,29 +49,6 @@
  * Controller parameters, accessible via MAVLink
  *
  */
-
-// Roll gains
-/**
- * X Pos DES
- *
- * @group UUV Position Control
- */
-PARAM_DEFINE_FLOAT(UUV_DES_X, 0.0f);
-
-/**
- * Y Pos DES
- *
- * @group UUV Position Control
- */
-PARAM_DEFINE_FLOAT(UUV_DES_Y, 0.0f);
-
-
-/**
- * Z Pos DES
- *
- * @group UUV Position Control
- */
-PARAM_DEFINE_FLOAT(UUV_DES_Z, 0.0f);
 /**
  * Gain of P controller X
  *
@@ -118,11 +95,3 @@ PARAM_DEFINE_FLOAT(UUV_GAIN_Z_D, 0.2f);
  * @group UUV Position Control
  */
 PARAM_DEFINE_INT32(UUV_STAB_MODE, 1);
-
-/**
- *
- * @value 0 use Pos Setpoints
- * @value 1 Pos Control with parameter
- * @group UUV Position Control
- */
-PARAM_DEFINE_INT32(UUV_POS_DIRECT, 0);

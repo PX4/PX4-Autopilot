@@ -184,24 +184,14 @@ void UUVPOSControl::Run()
 			float roll_des, pitch_des, yaw_des, x_pos_des, y_pos_des, z_pos_des;
 
 
-			if (_param_pos_direct.get()) {
-				roll_des = _param_direct_roll.get();
-				pitch_des = _param_direct_pitch.get();
-				yaw_des = _param_direct_yaw.get();
+			roll_des = 0;
+			pitch_des = 0;
+			yaw_des = _pos_setpoint.current.yaw;
 
-				x_pos_des = _param_direct_pos_x.get();
-				y_pos_des = _param_direct_pos_y.get();
-				z_pos_des = _param_direct_pos_z.get();
+			x_pos_des = _pos_setpoint.current.x;
+			y_pos_des = _pos_setpoint.current.y;
+			z_pos_des = _pos_setpoint.current.z;
 
-			} else {
-				roll_des = 0;
-				pitch_des = 0;
-				yaw_des = _pos_setpoint.current.yaw;
-
-				x_pos_des = _pos_setpoint.current.x;
-				y_pos_des = _pos_setpoint.current.y;
-				z_pos_des = _pos_setpoint.current.z;
-			}
 
 			//stabilization controller(keep pos and hold depth + angle) vs position controller(global + yaw)
 			if (_param_stabilization.get() == 0) {
