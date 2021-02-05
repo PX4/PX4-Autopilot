@@ -85,7 +85,7 @@ bool Ekf::fuseVerticalVelocity(const Vector3f &innov, const Vector2f &innov_gate
 
 	// if there is bad vertical acceleration data, then don't reject measurement,
 	// but limit innovation to prevent spikes that could destabilise the filter
-	float innovation = innov(2);
+	float innovation;
 	if (_bad_vert_accel_detected && !innov_check_pass) {
 		const float innov_limit = innov_gate(1) * sqrtf(innov_var(2));
 		innovation = math::constrain(innov(2), -innov_limit, innov_limit);
