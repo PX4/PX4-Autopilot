@@ -10,7 +10,6 @@ set(tests
 	bson
 	commander
 	controllib
-	conv
 	dataman
 	file2
 	float
