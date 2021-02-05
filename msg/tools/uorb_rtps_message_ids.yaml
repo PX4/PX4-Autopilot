@@ -63,6 +63,7 @@ rtps:
     id: 29
   - msg: input_rc
     id: 30
+    send: true
   - msg: iridiumsbd_status
     id: 31
   - msg: irlock_report
@@ -408,4 +409,10 @@ rtps:
   - msg: estimator_odometry
     id: 200
     alias: vehicle_odometry
+  - msg: actuator_controls_4
+    id: 201
+    alias: actuator_controls
+  - msg: actuator_controls_5
+    id: 202
+    alias: actuator_controls
   ########## multi topics: end ##########

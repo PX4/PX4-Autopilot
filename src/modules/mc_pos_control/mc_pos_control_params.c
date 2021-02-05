@@ -679,7 +679,7 @@ PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_MAX, 45.0f);
  *
  * Below this altitude:
  * - descending velocity gets limited to a value
- * between "MPC_Z_VEL_MAX" and "MPC_LAND_SPEED"
+ * between "MPC_Z_VEL_MAX_DN" and "MPC_LAND_SPEED"
  * - horizontal velocity gets limited to a value
  * between "MPC_VEL_MANUAL" and "MPC_LAND_VEL_XY"
  * for a smooth descent and landing experience.

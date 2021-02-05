@@ -174,7 +174,7 @@ PARAM_DEFINE_FLOAT(COM_EF_TIME, 10.0f);
 /**
  * RC loss time threshold
  *
- * After this amount of seconds without RC connection the rc lost flag is set to true
+ * After this amount of seconds without RC connection it's considered lost and not used anymore
  *
  * @group Commander
  * @unit s
@@ -184,6 +184,23 @@ PARAM_DEFINE_FLOAT(COM_EF_TIME, 10.0f);
  * @increment 0.1
  */
 PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
+
+/**
+ * Delay between RC loss and configured reaction
+ *
+ * RC signal not updated -> still use data for COM_RC_LOSS_T seconds
+ * Consider RC signal lost -> wait COM_RCL_ACT_T seconds on the spot waiting to regain signal
+ * React with failsafe action NAV_RCL_ACT
+ *
+ * A zero value disables the delay.
+ *
+ * @group Commander
+ * @unit s
+ * @min 0.0
+ * @max 25.0
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(COM_RCL_ACT_T, 15.0f);
 
 /**
  * Home set horizontal threshold

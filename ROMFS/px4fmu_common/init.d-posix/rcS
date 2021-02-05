@@ -46,10 +46,10 @@ else
 	# shellcheck disable=SC2012
 	REQUESTED_AUTOSTART=$(ls "$SCRIPT_DIR/airframes" | sed -n 's/^\([0-9][0-9]*\)_'${PX4_SIM_MODEL}'$/\1/p')
 	if [ -z "$REQUESTED_AUTOSTART" ]; then
-		echo "ERROR  [init] Unknown model $PX4_SIM_MODEL (not found by name on $SCRIPT_DIR/airframes)"
+		echo "Error: Unknown model $PX4_SIM_MODEL (not found by name on $SCRIPT_DIR/airframes)"
 		exit 1
 	else
-		echo "INFO  [init] found model autostart file as SYS_AUTOSTART=$REQUESTED_AUTOSTART"
+		echo "Info: found model autostart file as SYS_AUTOSTART=$REQUESTED_AUTOSTART"
 	fi
 fi
 
@@ -63,12 +63,12 @@ if [ -f $PARAM_FILE ]
 then
 	if param load
 	then
-		echo "INFO  [init] Loaded: $PARAM_FILE"
+		echo "[param] Loaded: $PARAM_FILE"
 	else
-		echo "ERROR  [init] FAILED loading $PARAM_FILE"
+		echo "[param] FAILED loading $PARAM_FILE"
 	fi
 else
-	echo "INFO  [init] parameter file not found, creating $PARAM_FILE"
+	echo "[param] parameter file not found, creating $PARAM_FILE"
 fi
 
 # exit early when the minimal shell is requested
@@ -192,7 +192,7 @@ do
 	esac
 done
 if [ ! -e "$autostart_file" ]; then
-	echo "ERROR  [init] no autostart file found ($autostart_file)"
+	echo "Error: no autostart file found ($autostart_file)"
 	exit 1
 fi
 
