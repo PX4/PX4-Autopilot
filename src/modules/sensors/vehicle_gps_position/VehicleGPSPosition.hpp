@@ -78,6 +78,8 @@ private:
 
 	// define max number of GPS receivers supported
 	static constexpr int GPS_MAX_RECEIVERS = 2;
+	static_assert(GPS_MAX_RECEIVERS == GpsBlending::GPS_MAX_RECEIVERS_BLEND,
+		      "GPS_MAX_RECEIVERS must match to GPS_MAX_RECEIVERS_BLEND");
 
 	uORB::Publication<vehicle_gps_position_s> _vehicle_gps_position_pub{ORB_ID(vehicle_gps_position)};
 
@@ -90,7 +92,7 @@ private:
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
-	GpsBlending<GPS_MAX_RECEIVERS> _gps_blending;
+	GpsBlending _gps_blending;
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SENS_GPS_MASK>) _param_sens_gps_mask,
