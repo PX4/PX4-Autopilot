@@ -511,20 +511,6 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.0f);
 PARAM_DEFINE_FLOAT(MPC_ACC_HOR, 3.0f);
 
 /**
- * Slow horizontal manual deceleration for manual mode
- *
- * Note: This is only used when MPC_POS_MODE is set to 1.
- *
- * @unit m/s^2
- * @min 0.5
- * @max 10.0
- * @increment 1
- * @decimal 2
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_DEC_HOR_SLOW, 5.0f);
-
-/**
  * Maximum vertical acceleration in velocity controlled modes upward
  *
  * @unit m/s^2
@@ -567,29 +553,6 @@ PARAM_DEFINE_FLOAT(MPC_ACC_DOWN_MAX, 3.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 8.0f);
-
-/**
- * Velocity-based jerk limit
- *
- * If this is not zero, a velocity-based maximum jerk limit is used: the applied
- * jerk limit linearly increases with the vehicle's velocity between
- * MPC_JERK_MIN (zero velocity) and MPC_JERK_MAX (maximum velocity).
- *
- * This means that the vehicle's motions are smooth for low velocities, but
- * still allows fast direction changes or breaking at higher velocities.
- *
- * Set this to zero to use a fixed maximum jerk limit (MPC_JERK_MAX).
- *
- * Note: This is only used when MPC_POS_MODE is set to 1.
- *
- * @unit m/s^3
- * @min 0
- * @max 30.0
- * @increment 1
- * @decimal 2
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_JERK_MIN, 8.0f);
 
 /**
  * Jerk limit in auto mode
