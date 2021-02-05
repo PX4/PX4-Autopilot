@@ -67,8 +67,10 @@ public:
 
 	void setGpsData(const sensor_gps_s &gps_data, int instance)
 	{
-		_gps_state[instance] = gps_data;
-		_gps_updated[instance] = true;
+		if (instance < GPS_MAX_RECEIVERS_BLEND) {
+			_gps_state[instance] = gps_data;
+			_gps_updated[instance] = true;
+		}
 	}
 	void setBlendingUseSpeedAccuracy(bool enabled) { _blend_use_spd_acc = enabled; }
 	void setBlendingUseHPosAccuracy(bool enabled) { _blend_use_hpos_acc = enabled; }
