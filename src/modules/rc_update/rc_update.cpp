@@ -117,9 +117,11 @@ RCUpdate::~RCUpdate()
 
 bool RCUpdate::init()
 {
-	if (!_input_rc_sub.registerCallback()) {
-		PX4_ERR("input_rc callback registration failed!");
-		return false;
+	for (int i = 0; i < MAX_INPUT_RC; i++) {
+		if (!_input_rc_subs[i].registerCallback()) {
+			PX4_ERR("input_rc callback registration failed!");
+			return false;
+		}
 	}
 
 	return true;
@@ -269,7 +271,10 @@ void RCUpdate::set_params_from_rc()
 void RCUpdate::Run()
 {
 	if (should_exit()) {
-		_input_rc_sub.unregisterCallback();
+		for (int i = 0; i < MAX_INPUT_RC; i++) {
+			_input_rc_subs[i].unregisterCallback();
+		}
+
 		exit_and_cleanup();
 		return;
 	}
@@ -290,10 +295,28 @@ void RCUpdate::Run()
 
 	rc_parameter_map_poll();
 
-	/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
 	input_rc_s input_rc;
+	bool input_rc_copy_ok = false;
 
-	if (_input_rc_sub.update(&input_rc)) {
+	if (_param_rc_multiple_inputs.get() == 0) {
+		/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
+		input_rc_copy_ok = _input_rc_subs[0].copy(&input_rc);
+
+	} else {
+		/* find the instance that triggered the callback and check if it should be used */
+		for (uint i = 0; i < MAX_INPUT_RC; i++) {
+			input_rc_s input_rc_tmp;
+
+			if (_input_rc_subs[i].copy(&input_rc_tmp)
+			    && (!input_rc_copy_ok
+				|| input_rc.timestamp_last_signal + _RC_UNAVAIBLE_T * 1_s < input_rc_tmp.timestamp_last_signal)) {
+				input_rc = input_rc_tmp;
+				input_rc_copy_ok = true;
+			}
+		}
+	}
+
+	if (input_rc_copy_ok) {
 
 		// warn if the channel count is changing (possibly indication of error)
 		if (!input_rc.rc_lost) {

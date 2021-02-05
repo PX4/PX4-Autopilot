@@ -89,6 +89,8 @@ public:
 
 	int print_status() override;
 
+	const float _RC_UNAVAIBLE_T = 0.2; // [s] allow search for input with less priority after this time without signal
+
 private:
 
 	void Run() override;
@@ -156,7 +158,14 @@ private:
 								because these parameters are never read. */
 	} _parameter_handles{};
 
-	uORB::SubscriptionCallbackWorkItem _input_rc_sub{this, ORB_ID(input_rc)};
+	static constexpr int MAX_INPUT_RC = 4;
+
+	uORB::SubscriptionCallbackWorkItem _input_rc_subs[MAX_INPUT_RC] {
+		{this, ORB_ID(input_rc), 0},
+		{this, ORB_ID(input_rc), 1},
+		{this, ORB_ID(input_rc), 2},
+		{this, ORB_ID(input_rc), 3}
+	};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -239,7 +248,9 @@ private:
 		(ParamFloat<px4::params::RC_MAN_TH>) _param_rc_man_th,
 		(ParamFloat<px4::params::RC_RETURN_TH>) _param_rc_return_th,
 
-		(ParamInt<px4::params::RC_CHAN_CNT>) _param_rc_chan_cnt
+		(ParamInt<px4::params::RC_CHAN_CNT>) _param_rc_chan_cnt,
+
+		(ParamInt<px4::params::RC_MULTIPLE_IN>) _param_rc_multiple_inputs
 	)
 };
 } /* namespace RCUpdate */

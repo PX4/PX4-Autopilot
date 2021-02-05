@@ -2293,3 +2293,21 @@ PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 1000);
  *
  */
 PARAM_DEFINE_INT32(RC_RSSI_PWM_MAX, 2000);
+
+/**
+ * Use multiple RC inputs
+ *
+ * The default value of 0 allow RC command only from the first provider.
+ * Setting this to 1 allows RC commands from any provider to be used.
+ * Priority will be the instance indexes (instance 0 will have higher priority, then 1, etc).
+ * Warning, in this case, if radio control is lost and other RC commands are recieved (for example
+ * joysticks with COM_RC_IN_MODE = 2), RC lost fail safe will not be triggered.
+ * Warning: all rc inputs must have the same channels mapping
+ *
+ * @group Radio Calibration
+ * @min 0
+ * @max 1
+ * @value 0 Use only first input
+ * @value 1 Use the all RC inputs
+ */
+PARAM_DEFINE_INT32(RC_MULTIPLE_IN, 0);
