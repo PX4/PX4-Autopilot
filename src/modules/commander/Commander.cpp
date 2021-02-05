@@ -4049,6 +4049,22 @@ void Commander::estimator_check()
 
 	_status_flags.condition_local_altitude_valid = lpos.z_valid
 			&& (hrt_elapsed_time(&lpos.timestamp) < (_param_com_pos_fs_delay.get() * 1_s));
+
+
+	// attitude
+	vehicle_attitude_s attitude{};
+	_vehicle_attitude_sub.copy(&attitude);
+	const matrix::Quatf q{attitude.q};
+	const matrix::Quatf q_norm{q.unit()};
+	_status_flags.condition_attitude_valid = (hrt_elapsed_time(&attitude.timestamp) < 1_s)
+			&& (matrix::Quatf(q - q_norm).length() < FLT_EPSILON);
+
+	// angular velocity
+	vehicle_angular_velocity_s angular_velocity{};
+	_vehicle_angular_velocity_sub.copy(&angular_velocity);
+	_status_flags.condition_angular_velocity_valid = (hrt_elapsed_time(&angular_velocity.timestamp) < 1_s)
+			&& PX4_ISFINITE(angular_velocity.xyz[0]) && PX4_ISFINITE(angular_velocity.xyz[1])
+			&& PX4_ISFINITE(angular_velocity.xyz[2]);
 }
 
 void Commander::UpdateEstimateValidity()
