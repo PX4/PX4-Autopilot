@@ -15,15 +15,40 @@ adc start
 voxlpm -X -b 3 -K -T VBATT start
 voxlpm -X -b 3 -T P5VDC start
 
-# Internal SPI bus ICM-20602
-icm20602 -R 12 -s start
+# Flight Core
+if ver hwtypecmp V106
+then
+	# Internal SPI bus ICM-42688
+	icm42688p -R 12 -s start
 
-# Internal SPI bus ICM-42688
-icm42688p -R 12 -s start
+	# Internal SPI bus ICM-20602
+	icm20602 -R 12 -s start
 
-# Internal SPI4 BMI088
-bmi088 -A -R 12 -s start
-bmi088 -G -R 12 -s start
+	# Internal SPI4 BMI088
+	bmi088 -A -R 12 -s start
+	bmi088 -G -R 12 -s start
+fi
+
+# VOXL Flight
+if ver hwtypecmp V110
+then
+	# Internal SPI bus ICM-42688
+	icm42688p -R 12 -s start
+
+	# Internal SPI bus ICM-20602
+	icm20602 -R 12 -s start
+
+	# Internal SPI4 BMI088
+	bmi088 -A -R 12 -s start
+	bmi088 -G -R 12 -s start
+fi
+
+# M0051
+if ver hwtypecmp V120
+then
+	# Internal SPI bus ICM-42688
+	icm42688p -R 8 -s start
+fi
 
 # Internal I2C Baro
 bmp388 -I start
