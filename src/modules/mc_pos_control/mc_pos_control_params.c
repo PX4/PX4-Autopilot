@@ -151,7 +151,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_P, 1.0f);
  * defined as correction acceleration in m/s^2 per m/s velocity error
  *
  * @min 2.0
- * @max 8.0
+ * @max 15.0
  * @decimal 2
  * @group Multicopter Position Control
  */
@@ -165,7 +165,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_P_ACC, 4.0f);
  * Non zero value allows hovering thrust estimation on stabilized or autonomous takeoff.
  *
  * @min 0.2
- * @max 2.0
+ * @max 3.0
  * @decimal 3
  * @group Multicopter Position Control
  */
@@ -224,7 +224,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_P, 0.95f);
  * defined as correction acceleration in m/s^2 per m/s velocity error
  *
  * @min 1.2
- * @max 3.0
+ * @max 5.0
  * @decimal 2
  * @group Multicopter Position Control
  */
