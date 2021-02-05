@@ -49,8 +49,8 @@ class GpsBlendingTest : public ::testing::Test
 {
 public:
 	sensor_gps_s getDefaultGpsData();
-	void runSeconds(float duration_s, GpsBlending<2> &gps_blending, sensor_gps_s &gps_data, int instance);
-	void runSeconds(float duration_s, GpsBlending<2> &gps_blending, sensor_gps_s &gps_data0, sensor_gps_s &gps_data1);
+	void runSeconds(float duration_s, GpsBlending &gps_blending, sensor_gps_s &gps_data, int instance);
+	void runSeconds(float duration_s, GpsBlending &gps_blending, sensor_gps_s &gps_data0, sensor_gps_s &gps_data1);
 
 	uint64_t _time_now_us{1000000};
 };
@@ -87,7 +87,7 @@ sensor_gps_s GpsBlendingTest::getDefaultGpsData()
 	return gps_data;
 }
 
-void GpsBlendingTest::runSeconds(float duration_s, GpsBlending<2> &gps_blending, sensor_gps_s &gps_data, int instance)
+void GpsBlendingTest::runSeconds(float duration_s, GpsBlending &gps_blending, sensor_gps_s &gps_data, int instance)
 {
 	const float dt = 0.1;
 	const uint64_t dt_us = static_cast<uint64_t>(dt * 1e6f);
@@ -101,7 +101,7 @@ void GpsBlendingTest::runSeconds(float duration_s, GpsBlending<2> &gps_blending,
 	}
 }
 
-void GpsBlendingTest::runSeconds(float duration_s, GpsBlending<2> &gps_blending, sensor_gps_s &gps_data0,
+void GpsBlendingTest::runSeconds(float duration_s, GpsBlending &gps_blending, sensor_gps_s &gps_data0,
 				 sensor_gps_s &gps_data1)
 {
 	const float dt = 0.1;
@@ -121,7 +121,7 @@ void GpsBlendingTest::runSeconds(float duration_s, GpsBlending<2> &gps_blending,
 
 TEST_F(GpsBlendingTest, noData)
 {
-	GpsBlending<2> gps_blending;
+	GpsBlending gps_blending;
 
 	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
 	EXPECT_FALSE(gps_blending.isNewOutputDataAvailable());
@@ -134,7 +134,7 @@ TEST_F(GpsBlendingTest, noData)
 
 TEST_F(GpsBlendingTest, singleReceiver)
 {
-	GpsBlending<2> gps_blending;
+	GpsBlending gps_blending;
 
 	gps_blending.setPrimaryInstance(-1);
 	sensor_gps_s gps_data = getDefaultGpsData();
@@ -162,7 +162,7 @@ TEST_F(GpsBlendingTest, singleReceiver)
 
 TEST_F(GpsBlendingTest, dualReceiverNoBlending)
 {
-	GpsBlending<2> gps_blending;
+	GpsBlending gps_blending;
 
 	// GIVEN: two receivers with the same prioity
 	gps_blending.setPrimaryInstance(-1);
@@ -192,7 +192,7 @@ TEST_F(GpsBlendingTest, dualReceiverNoBlending)
 
 TEST_F(GpsBlendingTest, dualReceiverBlendingHPos)
 {
-	GpsBlending<2> gps_blending;
+	GpsBlending gps_blending;
 
 	sensor_gps_s gps_data0 = getDefaultGpsData();
 	sensor_gps_s gps_data1 = getDefaultGpsData();
@@ -215,7 +215,7 @@ TEST_F(GpsBlendingTest, dualReceiverBlendingHPos)
 
 TEST_F(GpsBlendingTest, dualReceiverFailover)
 {
-	GpsBlending<2> gps_blending;
+	GpsBlending gps_blending;
 
 	// GIVEN: a dual GPS setup with the first instance (0)
 	// set as primary

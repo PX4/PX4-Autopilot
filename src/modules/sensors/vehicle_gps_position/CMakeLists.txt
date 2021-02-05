@@ -39,4 +39,4 @@ px4_add_library(vehicle_gps_position
 )
 target_link_libraries(vehicle_gps_position PRIVATE ecl_geo px4_work_queue)
 
-px4_add_functional_gtest(SRC gps_blending_test.cpp LINKLIBS ecl_geo)
+px4_add_functional_gtest(SRC gps_blending_test.cpp LINKLIBS vehicle_gps_position ecl_geo)
