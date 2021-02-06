@@ -35,7 +35,7 @@ px4_add_board(
 		gps
 		imu/bosch/bmi088
 		lights/rgbled_ncp5623c
-		magnetometer/bmm150
+		magnetometer/bosch/bmm150
 		uavcannode
 	MODULES
 		load_mon
