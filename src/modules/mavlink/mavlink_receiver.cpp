@@ -1406,7 +1406,10 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 			odometry.local_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
 		}
 
-		if (odom.estimator_type == MAV_ESTIMATOR_TYPE_VISION || odom.estimator_type == MAV_ESTIMATOR_TYPE_VIO) {
+		if ((odom.estimator_type == MAV_ESTIMATOR_TYPE_VISION)
+		    || (odom.estimator_type == MAV_ESTIMATOR_TYPE_VIO)
+		    || (odom.estimator_type == MAV_ESTIMATOR_TYPE_UNKNOWN)) {
+			// accept MAV_ESTIMATOR_TYPE_UNKNOWN for legacy support
 			_visual_odometry_pub.publish(odometry);
 
 		} else if (odom.estimator_type == MAV_ESTIMATOR_TYPE_MOCAP) {
