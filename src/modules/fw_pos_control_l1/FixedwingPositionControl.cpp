@@ -182,10 +182,10 @@ void
 FixedwingPositionControl::airspeed_poll()
 {
 	bool airspeed_valid = _airspeed_valid;
+	airspeed_validated_s airspeed_validated;
 
-	if ((_param_fw_arsp_mode.get() == 0) && _airspeed_validated_sub.update()) {
+	if ((_param_fw_arsp_mode.get() == 0) && _airspeed_validated_sub.update(&airspeed_validated)) {
 
-		const airspeed_validated_s &airspeed_validated = _airspeed_validated_sub.get();
 		_eas2tas = 1.0f; //this is the default value, taken in case of invalid airspeed
 
 		if (PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)
@@ -235,21 +235,37 @@ FixedwingPositionControl::manual_control_setpoint_poll()
 void
 FixedwingPositionControl::vehicle_attitude_poll()
 {
-	if (_vehicle_attitude_sub.update(&_att)) {
-		/* set rotation matrix and euler angles */
-		_R_nb = Quatf(_att.q);
+	vehicle_attitude_s att;
+
+	if (_vehicle_attitude_sub.update(&att)) {
+		vehicle_angular_velocity_s angular_velocity{};
+		_vehicle_angular_velocity_sub.copy(&angular_velocity);
+		const Vector3f rates{angular_velocity.xyz};
+
+		Dcmf R{Quatf(att.q)};
 
 		// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
 		// between multirotor and fixed wing flight
 		if (_vtol_tailsitter) {
-			Dcmf R_offset = Eulerf(0, M_PI_2_F, 0);
-			_R_nb = _R_nb * R_offset;
+			const Dcmf R_offset{Eulerf{0.f, M_PI_2_F, 0.f}};
+			R = R * R_offset;
+
+			_yawrate = rates(0);
+
+		} else {
+			_yawrate = rates(2);
 		}
 
-		const Eulerf euler_angles(_R_nb);
-		_roll    = euler_angles(0);
-		_pitch   = euler_angles(1);
-		_yaw     = euler_angles(2);
+		const Eulerf euler_angles(R);
+		_pitch = euler_angles(1);
+		_yaw = euler_angles(2);
+
+		_body_acceleration = R.transpose() * Vector3f{_local_pos.ax, _local_pos.ay, _local_pos.az};
+		_body_velocity = R.transpose() * Vector3f{_local_pos.vx, _local_pos.vy, _local_pos.vz};
+
+		// update TECS load factor
+		const float load_factor = 1.f / cosf(euler_angles(0));
+		_tecs.set_load_factor(load_factor);
 	}
 }
 
@@ -303,18 +319,13 @@ FixedwingPositionControl::calculate_target_airspeed(float airspeed_demand, const
 
 	// groundspeed undershoot
 	if (!_l1_control.circle_mode()) {
-
-		// rotate ground speed vector with current attitude
-		Vector2f yaw_vector(_R_nb(0, 0), _R_nb(1, 0));
-		yaw_vector.normalize();
-
-		const float ground_speed_body = yaw_vector * ground_speed;
-
 		/*
 		 * This error value ensures that a plane (as long as its throttle capability is
 		 * not exceeded) travels towards a waypoint (and is not pushed more and more away
 		 * by wind). Not countering this would lead to a fly-away.
 		 */
+		const float ground_speed_body = _body_velocity(0);
+
 		if (ground_speed_body < _param_fw_gnd_spd_min.get()) {
 			airspeed_demand += max(_param_fw_gnd_spd_min.get() - ground_speed_body, 0.0f);
 		}
@@ -328,7 +339,7 @@ FixedwingPositionControl::calculate_target_airspeed(float airspeed_demand, const
 void
 FixedwingPositionControl::tecs_status_publish()
 {
-	tecs_status_s t = {};
+	tecs_status_s t{};
 
 	switch (_tecs.tecs_mode()) {
 	case TECS::ECL_TECS_MODE_NORMAL:
@@ -616,14 +627,14 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 	float throttle_max = 1.0f;
 
 	/* save time when airplane is in air */
-	if (!_was_in_air && !_vehicle_land_detected.landed) {
+	if (!_was_in_air && !_landed) {
 		_was_in_air = true;
 		_time_went_in_air = now;
 		_takeoff_ground_alt = _current_altitude;
 	}
 
 	/* reset flag when airplane landed */
-	if (_vehicle_land_detected.landed) {
+	if (_landed) {
 		_was_in_air = false;
 	}
 
@@ -944,7 +955,7 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 		/* throttle limiting */
 		throttle_max = _param_fw_thr_max.get();
 
-		if (_vehicle_land_detected.landed && (fabsf(_manual_control_setpoint_airspeed) < THROTTLE_THRESH)) {
+		if (_landed && (fabsf(_manual_control_setpoint_airspeed) < THROTTLE_THRESH)) {
 			throttle_max = 0.0f;
 		}
 
@@ -964,7 +975,7 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 		    fabsf(_manual_control_setpoint.r) < HDG_HOLD_MAN_INPUT_THRESH) {
 
 			/* heading / roll is zero, lock onto current heading */
-			if (fabsf(_vehicle_rates_sub.get().xyz[2]) < HDG_HOLD_YAWRATE_THRESH && !_yaw_lock_engaged) {
+			if (fabsf(_yawrate) < HDG_HOLD_YAWRATE_THRESH && !_yaw_lock_engaged) {
 				// little yaw movement, lock to current heading
 				_yaw_lock_engaged = true;
 
@@ -1046,7 +1057,7 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 		/* throttle limiting */
 		throttle_max = _param_fw_thr_max.get();
 
-		if (_vehicle_land_detected.landed && (fabsf(_manual_control_setpoint_airspeed) < THROTTLE_THRESH)) {
+		if (_landed && (fabsf(_manual_control_setpoint_airspeed) < THROTTLE_THRESH)) {
 			throttle_max = 0.0f;
 		}
 
@@ -1107,7 +1118,7 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 
 	} else {
 		/* Copy thrust and pitch values from tecs */
-		if (_vehicle_land_detected.landed) {
+		if (_landed) {
 			// when we are landed state we want the motor to spin at idle speed
 			_att_sp.thrust_body[0] = min(_param_fw_thr_idle.get(), throttle_max);
 
@@ -1179,8 +1190,7 @@ FixedwingPositionControl::control_takeoff(const hrt_abstime &now, const Vector2f
 
 	if (_runway_takeoff.runwayTakeoffEnabled()) {
 		if (!_runway_takeoff.isInitialized()) {
-			Eulerf euler(Quatf(_att.q));
-			_runway_takeoff.init(now, euler.psi(), _current_latitude, _current_longitude);
+			_runway_takeoff.init(now, _yaw, _current_latitude, _current_longitude);
 
 			/* need this already before takeoff is detected
 			 * doesn't matter if it gets reset when takeoff is detected eventually */
@@ -1240,7 +1250,7 @@ FixedwingPositionControl::control_takeoff(const hrt_abstime &now, const Vector2f
 				}
 
 				/* Detect launch using body X (forward) acceleration */
-				_launchDetector.update(now, _vehicle_acceleration_sub.get().xyz[0]);
+				_launchDetector.update(now, _body_acceleration(0));
 
 				/* update our copy of the launch detection state */
 				_launch_detection_state = _launchDetector.getLaunchDetected();
@@ -1672,10 +1682,16 @@ FixedwingPositionControl::Run()
 		vehicle_attitude_poll();
 		vehicle_command_poll();
 		vehicle_control_mode_poll();
-		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
+
+		if (_vehicle_land_detected_sub.updated()) {
+			vehicle_land_detected_s vehicle_land_detected;
+
+			if (_vehicle_land_detected_sub.update(&vehicle_land_detected)) {
+				_landed = vehicle_land_detected.landed;
+			}
+		}
+
 		_vehicle_status_sub.update(&_vehicle_status);
-		_vehicle_acceleration_sub.update();
-		_vehicle_rates_sub.update();
 
 		Vector2f curr_pos((float)_current_latitude, (float)_current_longitude);
 		Vector2f ground_speed(_local_pos.vx, _local_pos.vy);
@@ -1740,7 +1756,7 @@ void
 FixedwingPositionControl::reset_takeoff_state(bool force)
 {
 	// only reset takeoff if !armed or just landed
-	if (!_control_mode.flag_armed || (_was_in_air && _vehicle_land_detected.landed) || force) {
+	if (!_control_mode.flag_armed || (_was_in_air && _landed) || force) {
 
 		_runway_takeoff.reset();
 
@@ -1785,7 +1801,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 	_last_tecs_update = now;
 
 	// do not run TECS if we are not in air
-	bool run_tecs = !_vehicle_land_detected.landed;
+	bool run_tecs = !_landed;
 
 	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
 	// (it should also not run during VTOL blending because airspeed is too low still)
@@ -1849,28 +1865,15 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 	/* Using tecs library */
 	float pitch_for_tecs = _pitch - radians(_param_fw_psp_off.get());
 
-	// calculate speed derivative in forward direction, which is used by complimentary filter to calculate filtered airspeed
-	Vector3f speed_deriv_body = _R_nb.transpose() * Vector3f(_local_pos.ax, _local_pos.ay, _local_pos.az);
-	float speed_deriv_forward;
-
-	// tailsitters use the multicopter frame as reference, in fixed wing
-	// we need to use the fixed wing frame
-	if (_vtol_tailsitter) {
-		speed_deriv_forward = -speed_deriv_body(2);
-
-	} else {
-		speed_deriv_forward = speed_deriv_body(0);
-	}
-
 	/* tell TECS to update its state, but let it know when it cannot actually control the plane */
-	bool in_air_alt_control = (!_vehicle_land_detected.landed &&
+	bool in_air_alt_control = (!_landed &&
 				   (_control_mode.flag_control_auto_enabled ||
 				    _control_mode.flag_control_offboard_enabled ||
 				    _control_mode.flag_control_velocity_enabled ||
 				    _control_mode.flag_control_altitude_enabled));
 
 	/* update TECS vehicle state estimates */
-	_tecs.update_vehicle_state_estimates(_airspeed, speed_deriv_forward, (_local_pos.timestamp > 0), in_air_alt_control,
+	_tecs.update_vehicle_state_estimates(_airspeed, _body_acceleration(0), (_local_pos.timestamp > 0), in_air_alt_control,
 					     _current_altitude, _local_pos.vz);
 
 	/* scale throttle cruise by baro pressure */
@@ -1889,7 +1892,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 		}
 	}
 
-	_tecs.update_pitch_throttle(_R_nb, pitch_for_tecs,
+	_tecs.update_pitch_throttle(pitch_for_tecs,
 				    _current_altitude, alt_sp,
 				    airspeed_sp, _airspeed, _eas2tas,
 				    climbout_mode, climbout_pitch_min_rad,
