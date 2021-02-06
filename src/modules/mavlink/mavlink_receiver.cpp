@@ -1406,13 +1406,14 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 			odometry.local_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
 		}
 
-		if (odom.estimator_type == MAV_ESTIMATOR_TYPE_MOCAP) {
+		if (odom.estimator_type == MAV_ESTIMATOR_TYPE_VISION || odom.estimator_type == MAV_ESTIMATOR_TYPE_VIO) {
+			_visual_odometry_pub.publish(odometry);
+
+		} else if (odom.estimator_type == MAV_ESTIMATOR_TYPE_MOCAP) {
 			_mocap_odometry_pub.publish(odometry);
 
 		} else {
-			// MAV_ESTIMATOR_TYPE_VISION, MAV_ESTIMATOR_TYPE_VIO
-			// publish anything else for now
-			_visual_odometry_pub.publish(odometry);
+			PX4_ERR("Estimator source %u not supported. Unable to publish pose and velocity", odom.estimator_type);
 		}
 
 	} else {
