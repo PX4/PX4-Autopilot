@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,12 +30,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE drivers__bmm150
+	MODULE drivers__magnetometer__bosch__bmm150
 	MAIN bmm150
 	COMPILE_FLAGS
 	SRCS
-		bmm150.cpp
+		BMM150.cpp
+		BMM150.hpp
+		bmm150_main.cpp
+		Bosch_BMM150_registers.hpp
 	DEPENDS
 		drivers_magnetometer
 		px4_work_queue
