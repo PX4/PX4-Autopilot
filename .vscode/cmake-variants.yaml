@@ -126,6 +126,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: modalai_fc-v1_default
+    mro_cannode_default:
+      short: mro_cannode_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: mro_cannode_default
     mro_ctrl-zero-f7_default:
       short: mro_ctrl-zero-f7
       buildType: MinSizeRel

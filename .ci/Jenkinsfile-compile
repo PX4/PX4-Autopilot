@@ -60,6 +60,8 @@ pipeline {
                      "holybro_pix32v5_default",
                      "modalai_fc-v1_default",
                      "modalai_fc-v1_rtps",
+                     "mro_cannode_canbootloader",
+                     "mro_cannode_default",
                      "mro_ctrl-zero-f7_default",
                      "mro_ctrl-zero-f7-oem_default",
                      "mro_ctrl-zero-h7_default",

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,11 +31,33 @@
 #
 ############################################################################
 
+if("${PX4_BOARD_LABEL}" STREQUAL  "canbootloader")
 
-add_subdirectory(board_critmon)
-add_subdirectory(../stm32_common/board_reset board_reset)
-add_subdirectory(../stm32_common/version version)
-add_subdirectory(../stm32_common/hrt hrt)
-add_subdirectory(../stm32_common/spi spi)
+	add_library(drivers_board
+		boot_config.h
+		boot.c
+		led.c
+	)
+	target_link_libraries(drivers_board
+		PRIVATE
+			nuttx_arch
+			nuttx_drivers
+			canbootloader
+	)
+	target_include_directories(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/canbootloader)
 
-add_subdirectory(watchdog)
+else()
+	add_library(drivers_board
+		i2c.cpp
+		init.c
+		spi.cpp
+	)
+
+	target_link_libraries(drivers_board
+		PRIVATE
+			nuttx_arch
+			nuttx_drivers
+			px4_layer
+			arch_spi
+	)
+endif()
