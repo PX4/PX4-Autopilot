@@ -23,12 +23,6 @@ then
 	param set UAVCAN_ENABLE 2
 fi
 
-# disable px4io on HolyBro mini (V540) and CUAV V5nano (V560)
-if ver hwtypecmp V540 V560
-then
-	param set SYS_USE_IO 0
-fi
-
 set LOGGER_BUF 64
 
 rgbled_pwm start
