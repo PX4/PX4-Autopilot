@@ -7,9 +7,6 @@
 __BEGIN_DECLS
 
 const
-#ifndef __PX4_DARWIN
-__attribute__((used, section("__param")))
-#endif
 
 struct px4_parameters_t px4_parameters = {
 {% for param in params %}
