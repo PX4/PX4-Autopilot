@@ -305,7 +305,7 @@ void BATT_SMBUS::print_usage()
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-Smart battery driver for the SMBus-enabled batteries
+Driver for generic SMBUS Compatible smart-batteries, or BMS's with added functionality such as Rotoye Batmon on TI BQ40x80/50
 
 ### Examples
 To write to flash to set parameters. address, number_of_bytes, byte0, ... , byteN
@@ -320,12 +320,12 @@ $ batt_smbus -X write_flash 19069 2 27 0
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x0B);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("man_info", "Prints manufacturer info.");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("unseal", "Unseals the devices flash memory to enable write_flash commands.");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("seal", "Seals the devices flash memory to disbale write_flash commands.");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("unseal", "Unseals the devices flash memory to enable write_flash commands (if applicable).");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("seal", "Seals the devices flash memory to disbale write_flash commands (if applicable).");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("suspend", "Suspends the driver from rescheduling the cycle.");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("resume", "Resumes the driver from suspension.");
 
-	PRINT_MODULE_USAGE_COMMAND_DESCR("write_flash", "Writes to flash. The device must first be unsealed with the unseal command.");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("write_flash", "Writes to flash. The device must first be unsealed with the unseal command (if applicable).");
 	PRINT_MODULE_USAGE_ARG("address", "The address to start writing.", true);
 	PRINT_MODULE_USAGE_ARG("number of bytes", "Number of bytes to send.", true);
 	PRINT_MODULE_USAGE_ARG("data[0]...data[n]", "One byte of data at a time separated by spaces.", true);
