@@ -60,12 +60,11 @@ public:
 	void getSetpoints(matrix::Vector3f &pos_sp, matrix::Vector3f &vel_sp, matrix::Vector3f &acc_sp);
 
 private:
-	void applyFeasibilityLimit(matrix::Vector2f &acceleration, const float dt);
+	void applyFeasibilityLimit(const float dt);
 	matrix::Vector2f calculateDrag(matrix::Vector2f drag_coefficient, const float dt, const matrix::Vector2f &stick_xy,
 				       const matrix::Vector2f &vel_sp);
 	void applyTiltLimit(matrix::Vector2f &acceleration);
-	void lockPosition(const matrix::Vector2f &vel_sp, const matrix::Vector3f &pos, const float dt,
-			  matrix::Vector2f &pos_sp);
+	void lockPosition(const matrix::Vector3f &pos, const float dt);
 
 	SlewRate<float> _acceleration_slew_rate_x;
 	SlewRate<float> _acceleration_slew_rate_y;
