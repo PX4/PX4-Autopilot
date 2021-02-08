@@ -81,12 +81,21 @@ void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, 
 	applyFeasibilityLimit(_acceleration, dt);
 
 	// Add drag to limit speed and brake again
-	_acceleration -= calculateDrag(acceleration_scale.edivide(velocity_scale), dt, stick_xy, _velocity);
+	Vector2f drag = calculateDrag(acceleration_scale.edivide(velocity_scale), dt, stick_xy, _velocity);
+
+	// Don't allow the drag to change the sign of the velocity, otherwise we might get into oscillations around 0, due
+	// to discretization
+	if (_acceleration.norm_squared() < FLT_EPSILON && _velocity.norm_squared() < drag.norm_squared() * dt * dt) {
+		drag.setZero();
+		_velocity.setZero();
+	}
+
+	_acceleration -= drag;
 
 	applyTiltLimit(_acceleration);
 
 	// Generate velocity setpoint by forward integrating commanded acceleration
-	_velocity += Vector2f(_acceleration) * dt;
+	_velocity += _acceleration * dt;
 
 	lockPosition(_velocity, pos, dt, _position);
 }
