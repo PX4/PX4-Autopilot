@@ -78,7 +78,7 @@ void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, 
 	Sticks::limitStickUnitLengthXY(stick_xy);
 	Sticks::rotateIntoHeadingFrameXY(stick_xy, yaw, yaw_sp);
 	_acceleration_setpoint = stick_xy.emult(acceleration_scale);
-	applyFeasibilityLimit(_acceleration_setpoint, dt);
+	applyFeasibilityLimit(dt);
 
 	// Add drag to limit speed and brake again
 	Vector2f drag = calculateDrag(acceleration_scale.edivide(velocity_scale), dt, stick_xy, _velocity_setpoint);
@@ -98,7 +98,7 @@ void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, 
 	// Generate velocity setpoint by forward integrating commanded acceleration
 	_velocity_setpoint += _acceleration_setpoint * dt;
 
-	lockPosition(_velocity_setpoint, pos, dt, _position_setpoint);
+	lockPosition(pos, dt);
 }
 
 void StickAccelerationXY::getSetpoints(Vector3f &pos_sp, Vector3f &vel_sp, Vector3f &acc_sp)
@@ -108,13 +108,13 @@ void StickAccelerationXY::getSetpoints(Vector3f &pos_sp, Vector3f &vel_sp, Vecto
 	acc_sp.xy() = _acceleration_setpoint;
 }
 
-void StickAccelerationXY::applyFeasibilityLimit(Vector2f &acceleration, const float dt)
+void StickAccelerationXY::applyFeasibilityLimit(const float dt)
 {
 	// Apply jerk limit - acceleration slew rate
 	_acceleration_slew_rate_x.setSlewRate(_param_mpc_jerk_max.get());
 	_acceleration_slew_rate_y.setSlewRate(_param_mpc_jerk_max.get());
-	acceleration(0) = _acceleration_slew_rate_x.update(acceleration(0), dt);
-	acceleration(1) = _acceleration_slew_rate_y.update(acceleration(1), dt);
+	_acceleration_setpoint(0) = _acceleration_slew_rate_x.update(_acceleration_setpoint(0), dt);
+	_acceleration_setpoint(1) = _acceleration_slew_rate_y.update(_acceleration_setpoint(1), dt);
 }
 
 Vector2f StickAccelerationXY::calculateDrag(Vector2f drag_coefficient, const float dt, const Vector2f &stick_xy,
@@ -147,15 +147,15 @@ void StickAccelerationXY::applyTiltLimit(Vector2f &acceleration)
 	}
 }
 
-void StickAccelerationXY::lockPosition(const Vector2f &vel_sp, const Vector3f &pos, const float dt, Vector2f &pos_sp)
+void StickAccelerationXY::lockPosition(const Vector3f &pos, const float dt)
 {
-	if (vel_sp.norm_squared() < FLT_EPSILON) {
-		if (!PX4_ISFINITE(pos_sp(0))) {
-			pos_sp = Vector2f(pos);
+	if (_velocity_setpoint.norm_squared() < FLT_EPSILON) {
+		if (!PX4_ISFINITE(_position_setpoint(0))) {
+			_position_setpoint = Vector2f(pos);
 		}
 
 	} else {
-		pos_sp.setNaN();
+		_position_setpoint.setNaN();
 
 	}
 }
