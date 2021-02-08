@@ -70,7 +70,7 @@ bool FlightTaskManualAcceleration::update()
 	_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint,
 				       _sticks.getPositionExpo()(3) * math::radians(_param_mpc_man_y_max.get()), _yaw, _deltatime);
 	_stick_acceleration_xy.generateSetpoints(_sticks.getPositionExpo().slice<2, 1>(0, 0), _yaw, _yaw_setpoint, _position,
-			_deltatime);
+			Vector2f(_velocity_setpoint_feedback), _deltatime);
 	_stick_acceleration_xy.getSetpoints(_position_setpoint, _velocity_setpoint, _acceleration_setpoint);
 
 	_constraints.want_takeoff = _checkTakeoff();
