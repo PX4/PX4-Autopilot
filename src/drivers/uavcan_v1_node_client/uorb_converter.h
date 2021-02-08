@@ -21,6 +21,9 @@
 /* monotonic timestamp */
 #include "libcancl/time.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -29,6 +32,10 @@
 void uorbConverterInit(CanardInstance *ins, int16_t *raw_uorb_port_id, int16_t *fix_port_id, int16_t *aux_port_id);
 
 void uorbProcessSub(int timeout_msec);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif /* SRC_DRIVERS_UAVCANNODE_V1_UORB_CONVERTER_H_ */

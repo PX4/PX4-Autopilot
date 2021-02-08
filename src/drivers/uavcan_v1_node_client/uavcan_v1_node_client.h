@@ -32,7 +32,6 @@
  ****************************************************************************/
 
 #pragma once
-#include <time.h>
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -59,7 +58,8 @@ enum class UavcanNodeStates {
 	UAVCANNODE_STATE_INIT = 0,
 	UAVCANNODE_STATE_ASK_NODE_ID,
 	UAVCANNODE_STATE_WAIT_NODE_ID,
-	UAVCANNODE_STATE_UORB_BRIDGE
+	UAVCANNODE_STATE_UORB_CONVERTER_INIT,
+	UAVCANNODE_STATE_UORB_CONVERTER_RUN
 };
 
 using namespace time_literals;
@@ -85,7 +85,16 @@ public:
 
 	void ask_node_id();
 	void wait_node_id();
-	void process_tx_rx_once(CanardInstance *ins, CanardSocketInstance *sock_ins, int timeout_msec);
+	hrt_abstime random_time();
+	void process_tx_once(CanardInstance *ins, CanardSocketInstance *sock_ins);
+	void process_rx_once(CanardInstance *ins, CanardSocketInstance *sock_ins);
+
+	static int32_t set_gps_uorb_port_id(uavcan_register_Value_1_0 *value);
+	static uavcan_register_Value_1_0 get_gps_uorb_port_id();
+	static int32_t set_gps_fix_port_id(uavcan_register_Value_1_0 *value);
+	static uavcan_register_Value_1_0 get_gps_fix_port_id();
+	static int32_t set_gps_aux_port_id(uavcan_register_Value_1_0 *value);
+	static uavcan_register_Value_1_0 get_gps_aux_port_id();
 
 	/** @see ModuleBase */
 	static UavcanNodeClient *instantiate(int argc, char *argv[]);
@@ -112,10 +121,10 @@ private:
 	char _can_bus_name[UAVCANNODE_CLIENT_DEV_NAME_SIZE];
 
 	UavcanNodeStates _state;
-	hrt_abstime _ask_node_id_time_capture;
+	hrt_abstime _random_wait_time;
 
-	static const hrt_abstime UAVCANNODE_CLIENT_INTERVAL	{100_us};
-	static const uint32_t UAVCANNODE_CLIENT_STACK_SIZE	{2048u};
-	static const hrt_abstime UAVCANNODE_CLIENT_WAIT_NODE_ID_TIMEOUT	{100000}; // 100 ms
-
+	static const int POLL_TIMEOUT					{10};	  // 10 ms
+	static const hrt_abstime TASK_INTERVAL			{100_us};
+	static const uint32_t STACK_SIZE				{4096u};
+	static const hrt_abstime WAIT_NODE_ID_TIMEOUT	{100000}; // 100 ms
 };
