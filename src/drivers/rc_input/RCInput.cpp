@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -638,7 +638,12 @@ void RCInput::Run()
 		if (rc_updated) {
 			perf_count(_publish_interval_perf);
 
-			_to_input_rc.publish(_rc_in);
+			// We are just skipping the publication itself
+			// to maintain stable timing / load
+			// independent of the configuration
+			if (_param_rc_publish_rc.get() == RC_INPUT_FMU) {
+				_to_input_rc.publish(_rc_in);
+			}
 
 		} else if (!rc_updated && ((hrt_absolute_time() - _rc_in.timestamp_last_signal) > 1_s)) {
 			_rc_scan_locked = false;

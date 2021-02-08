@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -155,6 +155,8 @@ private:
 
 	uint8_t _rcs_buf[SBUS_BUFFER_SIZE] {};
 
+	static constexpr int	RC_INPUT_FMU{2};		///< FMU selected as RC source
+
 	uint16_t _raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {};
 	uint16_t _raw_rc_count{};
 
@@ -167,6 +169,7 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::RC_RSSI_PWM_CHAN>) _param_rc_rssi_pwm_chan,
 		(ParamInt<px4::params::RC_RSSI_PWM_MIN>) _param_rc_rssi_pwm_min,
-		(ParamInt<px4::params::RC_RSSI_PWM_MAX>) _param_rc_rssi_pwm_max
+		(ParamInt<px4::params::RC_RSSI_PWM_MAX>) _param_rc_rssi_pwm_max,
+		(ParamInt<px4::params::SYS_RC_SOURCE>) _param_rc_publish_rc
 	)
 };
