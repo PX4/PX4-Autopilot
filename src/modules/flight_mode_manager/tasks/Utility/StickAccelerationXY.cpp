@@ -66,7 +66,7 @@ void StickAccelerationXY::resetAcceleration(const matrix::Vector2f &acceleration
 }
 
 void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, const float yaw_sp, const Vector3f &pos,
-		const float dt)
+		const matrix::Vector2f &vel_sp_feedback, const float dt)
 {
 	// maximum commanded acceleration and velocity
 	Vector2f acceleration_scale(_param_mpc_acc_hor.get(), _param_mpc_acc_hor.get());
@@ -98,7 +98,7 @@ void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, 
 	// Generate velocity setpoint by forward integrating commanded acceleration
 	_velocity_setpoint += _acceleration_setpoint * dt;
 
-	lockPosition(pos, dt);
+	lockPosition(pos, vel_sp_feedback, dt);
 }
 
 void StickAccelerationXY::getSetpoints(Vector3f &pos_sp, Vector3f &vel_sp, Vector3f &acc_sp)
@@ -147,7 +147,7 @@ void StickAccelerationXY::applyTiltLimit(Vector2f &acceleration)
 	}
 }
 
-void StickAccelerationXY::lockPosition(const Vector3f &pos, const float dt)
+void StickAccelerationXY::lockPosition(const Vector3f &pos, const matrix::Vector2f &vel_sp_feedback, const float dt)
 {
 	if (_velocity_setpoint.norm_squared() < FLT_EPSILON) {
 		if (!PX4_ISFINITE(_position_setpoint(0))) {
@@ -155,7 +155,10 @@ void StickAccelerationXY::lockPosition(const Vector3f &pos, const float dt)
 		}
 
 	} else {
-		_position_setpoint.setNaN();
-
+		if (PX4_ISFINITE(_position_setpoint(0))) {
+			_position_setpoint.setNaN();
+			// avoid velocity control jump because of remaining position error when unlocking
+			_velocity_setpoint = vel_sp_feedback;
+		}
 	}
 }
