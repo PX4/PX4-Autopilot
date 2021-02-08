@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -271,6 +271,8 @@ private:
 	int32_t			_rssi_pwm_max; ///< max RSSI input on PWM channel
 	int32_t			_rssi_pwm_min; ///< min RSSI input on PWM channel
 	int32_t			_thermal_control; ///< thermal control state
+	static constexpr int	RC_INPUT_IO{1};	///< IO selected as RC source
+	int32_t			_publish_rc{RC_INPUT_IO}; ///< publishing RC values
 	bool			_analog_rc_rssi_stable; ///< true when analog RSSI input is stable
 	float			_analog_rc_rssi_volt; ///< analog RSSI voltage
 
@@ -1206,10 +1208,14 @@ void PX4IO::update_params()
 
 	const char *prefix = "PWM_MAIN";
 
+	// Finding params in the same loop would be too expensive
+	// this would be done in flight. We are not getting here
+	// if armed, so the approach is sound.
 	param_get(param_find("PWM_MAIN_MIN"), &pwm_min_default);
 	param_get(param_find("PWM_MAIN_MAX"), &pwm_max_default);
 	param_get(param_find("PWM_MAIN_DISARM"), &pwm_disarmed_default);
 	param_get(param_find("PWM_MAIN_RATE"), &pwm_rate_default);
+	param_get(param_find("SYS_RC_SOURCE"), &_publish_rc);
 
 	char str[17];
 
@@ -2144,7 +2150,14 @@ PX4IO::io_publish_raw_rc()
 		}
 	}
 
-	_to_input_rc.publish(rc_val);
+	/*
+	 * We are just skipping the publication
+	 * to ensure the configuration difference
+	 * does not induce timing differences
+	 */
+	if (_publish_rc == RC_INPUT_IO) {
+		_to_input_rc.publish(rc_val);
+	}
 
 	return OK;
 }
