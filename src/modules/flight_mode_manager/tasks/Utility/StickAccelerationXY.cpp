@@ -51,12 +51,12 @@ StickAccelerationXY::StickAccelerationXY(ModuleParams *parent) :
 
 void StickAccelerationXY::resetPosition()
 {
-	_position.setNaN();
+	_position_setpoint.setNaN();
 }
 
 void StickAccelerationXY::resetVelocity(const matrix::Vector2f &velocity)
 {
-	_velocity = velocity;
+	_velocity_setpoint = velocity;
 }
 
 void StickAccelerationXY::resetAcceleration(const matrix::Vector2f &acceleration)
@@ -77,34 +77,35 @@ void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, 
 	// Map stick input to acceleration
 	Sticks::limitStickUnitLengthXY(stick_xy);
 	Sticks::rotateIntoHeadingFrameXY(stick_xy, yaw, yaw_sp);
-	_acceleration = stick_xy.emult(acceleration_scale);
-	applyFeasibilityLimit(_acceleration, dt);
+	_acceleration_setpoint = stick_xy.emult(acceleration_scale);
+	applyFeasibilityLimit(_acceleration_setpoint, dt);
 
 	// Add drag to limit speed and brake again
-	Vector2f drag = calculateDrag(acceleration_scale.edivide(velocity_scale), dt, stick_xy, _velocity);
+	Vector2f drag = calculateDrag(acceleration_scale.edivide(velocity_scale), dt, stick_xy, _velocity_setpoint);
 
 	// Don't allow the drag to change the sign of the velocity, otherwise we might get into oscillations around 0, due
 	// to discretization
-	if (_acceleration.norm_squared() < FLT_EPSILON && _velocity.norm_squared() < drag.norm_squared() * dt * dt) {
+	if (_acceleration_setpoint.norm_squared() < FLT_EPSILON
+	    && _velocity_setpoint.norm_squared() < drag.norm_squared() * dt * dt) {
 		drag.setZero();
-		_velocity.setZero();
+		_velocity_setpoint.setZero();
 	}
 
-	_acceleration -= drag;
+	_acceleration_setpoint -= drag;
 
-	applyTiltLimit(_acceleration);
+	applyTiltLimit(_acceleration_setpoint);
 
 	// Generate velocity setpoint by forward integrating commanded acceleration
-	_velocity += _acceleration * dt;
+	_velocity_setpoint += _acceleration_setpoint * dt;
 
-	lockPosition(_velocity, pos, dt, _position);
+	lockPosition(_velocity_setpoint, pos, dt, _position_setpoint);
 }
 
 void StickAccelerationXY::getSetpoints(Vector3f &pos_sp, Vector3f &vel_sp, Vector3f &acc_sp)
 {
-	pos_sp.xy() = _position;
-	vel_sp.xy() = _velocity;
-	acc_sp.xy() = _acceleration;
+	pos_sp.xy() = _position_setpoint;
+	vel_sp.xy() = _velocity_setpoint;
+	acc_sp.xy() = _acceleration_setpoint;
 }
 
 void StickAccelerationXY::applyFeasibilityLimit(Vector2f &acceleration, const float dt)

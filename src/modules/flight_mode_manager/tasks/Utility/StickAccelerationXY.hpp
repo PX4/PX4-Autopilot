@@ -71,9 +71,9 @@ private:
 	SlewRate<float> _acceleration_slew_rate_y;
 	AlphaFilter<float> _brake_boost_filter;
 
-	matrix::Vector2f _position;
-	matrix::Vector2f _velocity;
-	matrix::Vector2f _acceleration;
+	matrix::Vector2f _position_setpoint;
+	matrix::Vector2f _velocity_setpoint;
+	matrix::Vector2f _acceleration_setpoint;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_VEL_MANUAL>) _param_mpc_vel_manual,
