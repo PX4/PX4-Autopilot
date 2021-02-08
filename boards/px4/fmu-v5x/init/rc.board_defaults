@@ -11,6 +11,9 @@ then
 	param set SENS_IMU_MODE 0
 
 	param set UAVCAN_ENABLE 2
+
+	# Use always FMU as RC input
+	param set SYS_RC_SOURCE 2
 fi
 
 set LOGGER_BUF 64
