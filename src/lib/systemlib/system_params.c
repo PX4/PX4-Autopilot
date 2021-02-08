@@ -270,6 +270,19 @@ PARAM_DEFINE_INT32(SYS_FAC_CAL_MODE, 0);
 PARAM_DEFINE_INT32(SYS_BL_UPDATE, 0);
 
 /**
+ * RC Input Source
+ *
+ *
+ * @boolean
+ * @value 0 RC input disabled
+ * @value 1 RC input from FMU
+ * @value 2 RC input from IO
+ * @reboot_required true
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_RC_SOURCE, 0);
+
+/**
  * Enable failure injection
  *
  * If enabled allows MAVLink INJECT_FAILURE commands.
