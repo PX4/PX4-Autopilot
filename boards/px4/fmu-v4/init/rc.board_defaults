@@ -30,5 +30,8 @@ then
 	fi
 fi
 
+# Use always FMU as RC input
+param set SYS_RC_SOURCE 2
+
 safety_button start
 
