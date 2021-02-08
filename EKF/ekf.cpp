@@ -223,6 +223,7 @@ bool Ekf::initialiseFilter()
 	_time_last_delpos_fuse = _time_last_imu;
 	_time_last_hor_vel_fuse = _time_last_imu;
 	_time_last_hagl_fuse = _time_last_imu;
+	_time_last_flow_terrain_fuse = _time_last_imu;
 	_time_last_of_fuse = _time_last_imu;
 
 	// reset the output predictor state history to match the EKF initial values
