@@ -305,7 +305,8 @@ void BATT_SMBUS::print_usage()
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-Driver for generic SMBUS Compatible smart-batteries, or BMS's with added functionality such as Rotoye Batmon on TI BQ40x80/50
+Driver for generic SMBUS Compatible smart-batteries,
+or BMS's with added functionality such as Rotoye Batmon on TI BQ40x80/50
 
 ### Examples
 To write to flash to set parameters. address, number_of_bytes, byte0, ... , byteN
