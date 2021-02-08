@@ -41,6 +41,7 @@ set(msg_files
 	adc_report.msg
 	airspeed.msg
 	airspeed_validated.msg
+	airspeed_selector_wind_estimate.msg
 	battery_status.msg
 	camera_capture.msg
 	camera_trigger.msg
