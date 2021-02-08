@@ -470,6 +470,12 @@ else
 
 	if [ $IO_PRESENT = no ]
 	then
+		# If IO is not present default RC to FMU
+		param set SYS_RC_SOURCE 2
+	fi
+	# Start the RC input if selected by parameter
+	if param compare -s SYS_RC_SOURCE 2
+	then
 		# Must be started after the serial config is read
 		rc_input start $RC_INPUT_ARGS
 	fi
