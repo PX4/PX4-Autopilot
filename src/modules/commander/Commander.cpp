@@ -4001,39 +4001,44 @@ void Commander::estimator_check()
 		}
 
 		/* Check estimator status for signs of bad yaw induced post takeoff navigation failure
-		 * for a short time interval after takeoff. Fixed wing vehicles can recover using GPS heading,
-		 * but rotary wing vehicles cannot so the position and velocity validity needs to be latched
-		 * to false after failure to prevent flyaway crashes */
+		 * for a short time interval after takeoff.
+		 * Most of the time, the drone can recover from a bad initial yaw using GPS-inertial
+		 * heading estimation (yaw emergency estimator) or GPS heading (fixed wings only), but
+		 * if this does not fix the issue we need to stop using a position controlled
+		 * mode to prevent flyaway crashes.
+		 */
+
 		if (run_quality_checks && _status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
 			if (_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
-				// reset flags
 				_nav_test_failed = false;
 				_nav_test_passed = false;
 
 			} else {
-				// if nav status is unconfirmed, confirm yaw angle as passed after 30 seconds or achieving 5 m/s of speed
-				const bool sufficient_time = (_status.takeoff_time != 0) && (hrt_elapsed_time(&_status.takeoff_time) > 30_s);
-				const bool sufficient_speed = (lpos.vx * lpos.vx + lpos.vy * lpos.vy > 25.0f);
+				if (!_nav_test_passed) {
+					const bool innovation_pass = (estimator_status.vel_test_ratio < 1.0f) && (estimator_status.pos_test_ratio < 1.0f);
 
-				bool innovation_pass = estimator_status.vel_test_ratio < 1.0f && estimator_status.pos_test_ratio < 1.0f;
+					if (innovation_pass) {
+						_time_last_innov_pass = hrt_absolute_time();
 
-				if (!_nav_test_failed) {
-					if (!_nav_test_passed) {
-						// pass if sufficient time or speed
-						if (sufficient_time || sufficient_speed) {
+						// if nav status is unconfirmed, confirm yaw angle as passed after 30 seconds or achieving 5 m/s of speed
+						const bool sufficient_time = (_status.takeoff_time != 0) && (hrt_elapsed_time(&_status.takeoff_time) > 30_s);
+						const bool sufficient_speed = matrix::Vector2f(lpos.vx, lpos.vy).longerThan(5.f);
+
+						// Even if the test already failed, allow it to pass if it did not fail during the last 10 seconds
+						if (hrt_elapsed_time(&_time_last_innov_fail) > 10_s
+						    && (sufficient_time || sufficient_speed)) {
 							_nav_test_passed = true;
+							_nav_test_failed = false;
 						}
 
-						// record the last time the innovation check passed
-						if (innovation_pass) {
-							_time_last_innov_pass = hrt_absolute_time();
-						}
+					} else {
+						_time_last_innov_fail = hrt_absolute_time();
 
-						// if the innovation test has failed continuously, declare the nav as failed
-						if (hrt_elapsed_time(&_time_last_innov_pass) > 1_s) {
+						if (!_nav_test_failed && hrt_elapsed_time(&_time_last_innov_pass) > 1_s) {
+							// if the innovation test has failed continuously, declare the nav as failed
 							_nav_test_failed = true;
-							mavlink_log_emergency(&_mavlink_log_pub, "Critical navigation failure! Check sensor calibration");
+							mavlink_log_emergency(&_mavlink_log_pub, "Navigation failure! Recalibrate sensors");
 						}
 					}
 				}
