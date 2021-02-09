@@ -133,23 +133,27 @@ private:
 	bool poll_condition_with_timeout(
 		std::function<bool()> fun, std::chrono::duration<Rep, Period> duration)
 	{
-		const std::chrono::milliseconds duration_ms(duration);
+		static constexpr unsigned check_resolution = 100;
 
-		if (_info && _info->get_flight_information().first == mavsdk::Info::Result::Success) {
+		const std::chrono::microseconds duration_us(duration);
+
+		if (_telemetry && _telemetry->attitude_quaternion().timestamp_us != 0) {
 			// A system is connected. We can base the timeouts on the autopilot time.
-			uint32_t start_time = _info->get_flight_information().second.time_boot_ms;
+			const int64_t start_time_us = _telemetry->attitude_quaternion().timestamp_us;
 
 			while (!fun()) {
-				std::this_thread::sleep_for(duration_ms / 100);
+				std::this_thread::sleep_for(duration_us / check_resolution);
 
 				// This might potentially loop forever and the test needs to be killed by a watchdog outside.
 				// The reason not to include an absolute timeout here is that it can happen if the host is
 				// busy and PX4 doesn't run fast enough.
-				const int64_t elapsed_time_ms = _info->get_flight_information().second.time_boot_ms - start_time;
+				const int64_t elapsed_time_us = _telemetry->attitude_quaternion().timestamp_us - start_time_us;
 
-				if (elapsed_time_ms > duration_ms.count()) {
-					std::cout << time_str() << "Timeout, connected to vehicle but waiting for test for "
-						  << elapsed_time_ms / 1000.0 << " seconds\n";
+				std::cout << time_str() << "start_time_us: " << start_time_us << ", elapsed_time_us: " << elapsed_time_us << '\n';
+
+				if (elapsed_time_us > duration_us.count()) {
+					std::cout << time_str() << "Timeout, connected to vehicle but waiting for test for " << static_cast<double>
+						  (elapsed_time_us) / 1e6 << " seconds\n";
 					return false;
 				}
 			}
@@ -159,13 +163,15 @@ private:
 			const auto start_time = std::chrono::steady_clock::now();
 
 			while (!fun()) {
-				std::this_thread::sleep_for(duration_ms / 100);
-				const int64_t elapsed_time_us = std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() -
-								start_time).count();
+				std::this_thread::sleep_for(duration_us / check_resolution);
+				const auto elapsed_time_us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() -
+							     start_time);
 
-				if (elapsed_time_us > duration_ms.count() * 1000) {
+				if (elapsed_time_us > duration_us) {
 					std::cout << time_str() << "Timeout, waiting for the vehicle for "
-						  << elapsed_time_us / 1000000.0 << " seconds\n";
+						  << elapsed_time_us.count() * std::chrono::steady_clock::period::num
+						  / static_cast<double>(std::chrono::steady_clock::period::den)
+						  << " seconds\n";
 					return false;
 				}
 			}
