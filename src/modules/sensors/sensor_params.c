@@ -83,6 +83,7 @@ PARAM_DEFINE_FLOAT(CAL_AIR_TUBED_MM, 1.5f);
  *
  * @category system
  * @group Sensor Calibration
+ * @volatile
  */
 PARAM_DEFINE_FLOAT(SENS_DPRES_OFF, 0.0f);
 
