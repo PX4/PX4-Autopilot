@@ -28,6 +28,9 @@ typedef struct {
 	register_access_get_callback cb_get;
 } uavcan_register_interface_entry;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 int32_t uavcan_register_interface_init(CanardInstance *ins, uavcan_node_GetInfo_Response_1_0 *info);
 
@@ -45,5 +48,9 @@ int32_t uavcan_register_interface_access_response(CanardInstance *ins, CanardTra
 
 // Handler for register list interface
 int32_t uavcan_register_interface_list_response(CanardInstance *ins, CanardTransfer *request);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //UAVCAN_REGISTER_INTERFACE_H_

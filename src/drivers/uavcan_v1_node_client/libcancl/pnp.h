@@ -58,6 +58,9 @@
 
 #include "time.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 uint32_t initPNPAllocatee(CanardInstance *ins, uint8_t *unique_id);
 
@@ -67,7 +70,11 @@ int32_t PNPProcess(CanardInstance *ins, CanardTransfer *transfer);
 
 CanardNodeID PNPGetNodeID();
 
-const CanardPortID PNPGetPortID();
+CanardPortID PNPGetPortID();
+
+#ifdef __cplusplus
+}
+#endif
 
 
 

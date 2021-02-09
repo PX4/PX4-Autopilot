@@ -48,7 +48,8 @@ px4_add_board(
 		#tone_alarm
 		#uavcannode # TODO: CAN driver needed
 		#uavcan_v1
-		uavcannode_gps_demo
+		uavcan_v1_node_client
+		#uavcannode_gps_demo
 	MODULES
 		#ekf2
 		#load_mon

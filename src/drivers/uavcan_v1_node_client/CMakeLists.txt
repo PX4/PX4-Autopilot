@@ -46,17 +46,9 @@ else()
 	message(FATAL_ERROR "UAVCAN Nunavut nnvg not found")
 endif()
 
-add_definitions(
-	-DCONFIG_EXAMPLES_LIBCANARDV1_DEV="can0"
-	-DCONFIG_EXAMPLES_LIBCANARDV1_NODE_MEM_POOL_SIZE=8192
-	-DCONFIG_EXAMPLES_LIBCANARDV1_DAEMON_STACK_SIZE=5000
-	-DCONFIG_EXAMPLES_LIBCANARDV1_DAEMON_PRIORITY=100
-	-DCANARD_DSDL_CONFIG_LITTLE_ENDIAN=1
-)
-
 px4_add_module(
-	MODULE drivers__uavcannode-gps-demo
-	MAIN uavcannode_gps_demo
+	MODULE drivers__uavcan_v1_node_client
+	MAIN uavcan_v1_node_client
 	COMPILE_FLAGS
 		-Wno-error
 	    -DUINT32_C\(x\)=__UINT32_C\(x\)
@@ -64,7 +56,8 @@ px4_add_module(
 		${LIBCANARD_DIR}/libcanard/
 		${CMAKE_CURRENT_BINARY_DIR}/dsdlc_generated
 	SRCS
-		canard_main.c
+		uavcan_v1_node_client.cpp
+		uavcan_v1_node_client_main.cpp
 		socketcan.c
 		socketcan.h
 		uorb_converter.c

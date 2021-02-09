@@ -60,6 +60,12 @@
 [submodule "src/drivers/uavcan_v1/public_regulated_data_types"]
 	path = src/drivers/uavcan_v1/public_regulated_data_types
 	url = https://github.com/UAVCAN/public_regulated_data_types.git
+[submodule "src/drivers/uavcan_v1_node_client/libcanard"]
+	path = src/drivers/uavcan_v1_node_client/libcanard
+	url = https://github.com/UAVCAN/libcanard.git
+[submodule "src/drivers/uavcan_v1_node_client/public_regulated_data_types"]
+	path = src/drivers/uavcan_v1_node_client/public_regulated_data_types
+	url = https://github.com/UAVCAN/public_regulated_data_types.git
 [submodule "src/drivers/uavcannode_gps_demo/public_regulated_data_types"]
 	path = src/drivers/uavcannode_gps_demo/public_regulated_data_types
 	url = https://github.com/UAVCAN/public_regulated_data_types
