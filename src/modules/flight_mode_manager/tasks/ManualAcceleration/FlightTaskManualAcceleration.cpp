@@ -79,37 +79,10 @@ bool FlightTaskManualAcceleration::update()
 
 void FlightTaskManualAcceleration::_ekfResetHandlerPositionXY()
 {
-	if (PX4_ISFINITE(_position_setpoint(0))) {
-		_position_setpoint(0) = _position(0);
-		_position_setpoint(1) = _position(1);
-	}
+	_stick_acceleration_xy.resetPosition();
 }
 
 void FlightTaskManualAcceleration::_ekfResetHandlerVelocityXY()
 {
-	if (PX4_ISFINITE(_velocity_setpoint(0))) {
-		_velocity_setpoint(0) = _velocity(0);
-		_velocity_setpoint(1) = _velocity(1);
-	}
-}
-
-void FlightTaskManualAcceleration::_ekfResetHandlerPositionZ()
-{
-	if (PX4_ISFINITE(_position_setpoint(2))) {
-		_position_setpoint(2) = _position(2);
-	}
-}
-
-void FlightTaskManualAcceleration::_ekfResetHandlerVelocityZ()
-{
-	if (PX4_ISFINITE(_velocity_setpoint(2))) {
-		_velocity_setpoint(2) = _velocity(2);
-	}
-}
-
-void FlightTaskManualAcceleration::_ekfResetHandlerHeading(float delta_psi)
-{
-	if (PX4_ISFINITE(_yaw_setpoint)) {
-		_yaw_setpoint += delta_psi;
-	}
+	_stick_acceleration_xy.resetVelocity(Vector2f(_velocity));
 }
