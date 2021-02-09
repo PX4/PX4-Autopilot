@@ -256,13 +256,16 @@ void
 param_notify_changes()
 {
 	parameter_update_s pup{};
-	pup.timestamp = hrt_absolute_time();
 	pup.instance = param_instance++;
+	pup.get_count = perf_event_count(param_get_perf);
+	pup.set_count = perf_event_count(param_set_perf);
+	pup.find_count = perf_event_count(param_find_perf);
+	pup.export_count = perf_event_count(param_export_perf);
+	pup.active = params_active.count();
+	pup.changed = params_changed.count();
+	pup.custom_default = params_custom_default.count();
+	pup.timestamp = hrt_absolute_time();
 
-	/*
-	 * If we don't have a handle to our topic, create one now; otherwise
-	 * just publish.
-	 */
 	if (param_topic == nullptr) {
 		param_topic = orb_advertise(ORB_ID(parameter_update), &pup);
 
