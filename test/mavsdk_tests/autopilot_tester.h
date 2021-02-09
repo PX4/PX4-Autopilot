@@ -45,6 +45,7 @@
 #include <mavsdk/plugins/param/param.h>
 #include "catch2/catch.hpp"
 #include <chrono>
+#include <ctime>
 #include <iostream>
 #include <memory>
 #include <thread>
@@ -53,6 +54,17 @@ extern std::string connection_url;
 
 using namespace mavsdk;
 using namespace mavsdk::geometry;
+
+
+inline std::string time_str()
+{
+	time_t rawtime;
+	time(&rawtime);
+	struct tm *timeinfo = localtime(&rawtime);
+	char time_buffer[18];
+	strftime(time_buffer, 18, "[%I:%M:%S|Info ] ", timeinfo);
+	return time_buffer;
+}
 
 class AutopilotTester
 {
@@ -136,8 +148,8 @@ private:
 				const int64_t elapsed_time_ms = _info->get_flight_information().second.time_boot_ms - start_time;
 
 				if (elapsed_time_ms > duration_ms.count()) {
-					std::cout << "Timeout, connected to vehicle but waiting for test for " << elapsed_time_ms / 1000.0 << " seconds" <<
-						  std::endl;
+					std::cout << time_str() << "Timeout, connected to vehicle but waiting for test for "
+						  << elapsed_time_ms / 1000.0 << " seconds\n";
 					return false;
 				}
 			}
@@ -152,7 +164,8 @@ private:
 								start_time).count();
 
 				if (elapsed_time_us > duration_ms.count() * 1000) {
-					std::cout << "Timeout, waiting for the vehicle for " << elapsed_time_us / 1000000.0 << " seconds" << std::endl;
+					std::cout << time_str() << "Timeout, waiting for the vehicle for "
+						  << elapsed_time_us / 1000000.0 << " seconds\n";
 					return false;
 				}
 			}

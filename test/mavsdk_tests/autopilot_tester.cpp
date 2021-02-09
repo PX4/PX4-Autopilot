@@ -43,7 +43,7 @@ void AutopilotTester::connect(const std::string uri)
 	ConnectionResult ret = _mavsdk.add_any_connection(uri);
 	REQUIRE(ret == ConnectionResult::Success);
 
-	std::cout << "Waiting for system connect" << std::endl;
+	std::cout << time_str() << "Waiting for system connect" << std::endl;
 	REQUIRE(poll_condition_with_timeout(
 	[this]() { return _mavsdk.is_connected(); }, adjust_to_lockstep_speed(std::chrono::seconds(25))));
 
@@ -61,7 +61,7 @@ void AutopilotTester::connect(const std::string uri)
 
 void AutopilotTester::wait_until_ready()
 {
-	std::cout << "Waiting for system to be ready" << std::endl;
+	std::cout << time_str() << "Waiting for system to be ready" << std::endl;
 	CHECK(poll_condition_with_timeout(
 	[this]() { return _telemetry->health_all_ok(); }, std::chrono::seconds(30)));
 
@@ -73,7 +73,7 @@ void AutopilotTester::wait_until_ready()
 
 void AutopilotTester::wait_until_ready_local_position_only()
 {
-	std::cout << "Waiting for system to be ready" << std::endl;
+	std::cout << time_str() << "Waiting for system to be ready" << std::endl;
 	CHECK(poll_condition_with_timeout(
 	[this]() {
 		return
@@ -88,7 +88,7 @@ void AutopilotTester::wait_until_ready_local_position_only()
 void AutopilotTester::store_home()
 {
 	request_ground_truth();
-	std::cout << "Waiting to get home position" << std::endl;
+	std::cout << time_str() << "Waiting to get home position" << std::endl;
 	CHECK(poll_condition_with_timeout(
 	[this]() {
 		_home = _telemetry->ground_truth();
@@ -241,7 +241,7 @@ void AutopilotTester::execute_mission_and_lose_gps()
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
 
 	_mission->subscribe_mission_progress([this](Mission::MissionProgress progress) {
-		std::cout << "Progress: " << progress.current << "/" << progress.total << std::endl;
+		std::cout << time_str() << "Progress: " << progress.current << "/" << progress.total << std::endl;
 
 		if (progress.current == 1) {
 			std::thread([this]() {
@@ -272,7 +272,7 @@ void AutopilotTester::execute_mission_and_lose_mag()
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
 
 	_mission->subscribe_mission_progress([this](Mission::MissionProgress progress) {
-		std::cout << "Progress: " << progress.current << "/" << progress.total << std::endl;
+		std::cout << time_str() << "Progress: " << progress.current << "/" << progress.total << std::endl;
 
 		if (progress.current == 1) {
 			std::thread([this]() {
@@ -304,7 +304,7 @@ void AutopilotTester::execute_mission_and_lose_baro()
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
 
 	_mission->subscribe_mission_progress([this](Mission::MissionProgress progress) {
-		std::cout << "Progress: " << progress.current << "/" << progress.total << std::endl;
+		std::cout << time_str() << "Progress: " << progress.current << "/" << progress.total << std::endl;
 
 		if (progress.current == 1) {
 			std::thread([this]() {
@@ -335,7 +335,7 @@ void AutopilotTester::execute_mission_and_get_baro_stuck()
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
 
 	_mission->subscribe_mission_progress([this](Mission::MissionProgress progress) {
-		std::cout << "Progress: " << progress.current << "/" << progress.total << std::endl;
+		std::cout << time_str() << "Progress: " << progress.current << "/" << progress.total << std::endl;
 
 		if (progress.current == 1) {
 			std::thread([this]() {
@@ -366,7 +366,7 @@ void AutopilotTester::execute_mission_and_get_mag_stuck()
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
 
 	_mission->subscribe_mission_progress([this](Mission::MissionProgress progress) {
-		std::cout << "Progress: " << progress.current << "/" << progress.total << std::endl;
+		std::cout << time_str() << "Progress: " << progress.current << "/" << progress.total << std::endl;
 
 		if (progress.current == 1) {
 			std::thread([this]() {
@@ -426,7 +426,7 @@ void AutopilotTester::offboard_goto(const Offboard::PositionNedYaw &target, floa
 	REQUIRE(_offboard->start() == Offboard::Result::Success);
 	CHECK(poll_condition_with_timeout(
 	[ = ]() { return estimated_position_close_to(target, acceptance_radius_m); }, timeout_duration));
-	std::cout << "Target position reached" << std::endl;
+	std::cout << time_str() << "Target position reached" << std::endl;
 }
 
 void AutopilotTester::check_mission_item_speed_above(int item_index, float min_speed_m_s)
@@ -562,7 +562,7 @@ bool AutopilotTester::estimated_position_close_to(const Offboard::PositionNedYaw
 	const bool pass = distance_m < acceptance_radius_m;
 
 	if (!pass) {
-		std::cout << "distance: " << distance_m << ", " << "acceptance: " << acceptance_radius_m << std::endl;
+		std::cout << time_str() << "distance: " << distance_m << ", " << "acceptance: " << acceptance_radius_m << std::endl;
 	}
 
 	return  pass;
@@ -601,12 +601,12 @@ bool AutopilotTester::ground_truth_horizontal_position_close_to(const Telemetry:
 	const bool pass = distance_m < acceptance_radius_m;
 
 	if (!pass) {
-		std::cout << "target_pos.lat: " << target_pos.latitude_deg << std::endl;
-		std::cout << "target_pos.lon: " << target_pos.longitude_deg << std::endl;
-		std::cout << "current.lat: " << current_pos.latitude_deg << std::endl;
-		std::cout << "current.lon: " << current_pos.longitude_deg << std::endl;
-		std::cout << "Distance: " << distance_m << std::endl;
-		std::cout << "Acceptance radius: " << acceptance_radius_m << std::endl;
+		std::cout << time_str() << "target_pos.lat: " << target_pos.latitude_deg << std::endl;
+		std::cout << time_str() << "target_pos.lon: " << target_pos.longitude_deg << std::endl;
+		std::cout << time_str() << "current.lat: " << current_pos.latitude_deg << std::endl;
+		std::cout << time_str() << "current.lon: " << current_pos.longitude_deg << std::endl;
+		std::cout << time_str() << "Distance: " << distance_m << std::endl;
+		std::cout << time_str() << "Acceptance radius: " << acceptance_radius_m << std::endl;
 	}
 
 	return pass;
@@ -632,12 +632,12 @@ bool AutopilotTester::ground_truth_horizontal_position_far_from(const Telemetry:
 	const bool pass = distance_m > min_distance_m;
 
 	if (!pass) {
-		std::cout << "target_pos.lat: " << target_pos.latitude_deg << std::endl;
-		std::cout << "target_pos.lon: " << target_pos.longitude_deg << std::endl;
-		std::cout << "current.lat: " << current_pos.latitude_deg << std::endl;
-		std::cout << "current.lon: " << current_pos.longitude_deg << std::endl;
-		std::cout << "Distance: " << distance_m << std::endl;
-		std::cout << "Min distance: " << min_distance_m << std::endl;
+		std::cout << time_str() << "target_pos.lat: " << target_pos.latitude_deg << std::endl;
+		std::cout << time_str() << "target_pos.lon: " << target_pos.longitude_deg << std::endl;
+		std::cout << time_str() << "current.lat: " << current_pos.latitude_deg << std::endl;
+		std::cout << time_str() << "current.lon: " << current_pos.longitude_deg << std::endl;
+		std::cout << time_str() << "Distance: " << distance_m << std::endl;
+		std::cout << time_str() << "Min distance: " << min_distance_m << std::endl;
 	}
 
 	return pass;
