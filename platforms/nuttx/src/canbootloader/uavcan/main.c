@@ -1097,7 +1097,6 @@ __EXPORT int main(int argc, char *argv[])
 	board_indicate(reset);
 
 	/* Was this boot a result of the Application being told it has a FW update ? */
-
 	bootloader.app_bl_request = (OK == bootloader_app_shared_read(&common, App)) &&
 				    common.bus_speed && common.node_id;
 
@@ -1187,6 +1186,12 @@ __EXPORT int main(int argc, char *argv[])
 		}
 
 		can_init(can_freq2speed(common.bus_speed), CAN_Mode_Normal);
+		/*
+		 * Mark CRC to say this is from
+		 * auto baud and Node Allocation
+		 */
+		common.crc.valid = true;
+
 
 	} else {
 
