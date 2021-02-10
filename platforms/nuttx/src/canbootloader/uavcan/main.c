@@ -98,6 +98,7 @@ typedef volatile struct bootloader_t {
 	bool  wait_for_getnodeinfo;
 	bool  app_bl_request;
 	bool sent_node_info_response;
+	uint16_t percentage_done;
 	union {
 		uint32_t l;
 		uint8_t b[sizeof(uint32_t)];
@@ -288,7 +289,7 @@ static void node_status_process(bl_timer_id id, void *context)
 	message.u8 = uavcan_pack(bootloader.sub_mode, NodeStatus, sub_mode)
 		     | uavcan_pack(bootloader.mode, NodeStatus, mode)
 		     | uavcan_pack(bootloader.health, NodeStatus, health);
-	message.vendor_specific_status_code = 0u;
+	message.vendor_specific_status_code = bootloader.percentage_done;
 	uavcan_tx_dsdl(DSDLMsgNodeStatus, &protocol, (const uint8_t *) &message, sizeof(uavcan_NodeStatus_t));
 }
 
@@ -756,6 +757,8 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path, uint8_t
 	/* Set up the read request */
 	memcpy(&request.path, fw_path, sizeof(uavcan_Path_t));
 
+	bootloader.percentage_done = 0;
+
 	uint8_t retries = UavcanServiceRetries;
 
 	/*
@@ -852,6 +855,7 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path, uint8_t
 					      length + (length & 1));
 
 		request.offset  += length;
+		bootloader.percentage_done = (request.offset / 1024) + 1;
 
 		/* rate limit */
 		while (!timer_expired(tread)) {
@@ -870,7 +874,7 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path, uint8_t
 	 * was not. */
 	if (uavcan_status == UavcanOk && flash_status == FLASH_OK
 	    && request.offset == fw_image_size && length != 0) {
-
+		bootloader.percentage_done = 0;
 		return FLASH_OK;
 
 	} else {
