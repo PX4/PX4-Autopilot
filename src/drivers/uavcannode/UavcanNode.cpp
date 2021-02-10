@@ -311,6 +311,7 @@ class RestartRequestHandler: public uavcan::IRestartRequestHandler
 
 void UavcanNode::Run()
 {
+	static  hrt_abstime up_time{0};
 	pthread_mutex_lock(&_node_mutex);
 
 	// Bootloader started it.
@@ -318,7 +319,7 @@ void UavcanNode::Run()
 	watchdog_pet();
 
 	if (!_initialized) {
-
+		up_time = hrt_absolute_time();
 		get_node().setRestartRequestHandler(&restart_request_handler);
 		_param_server.start(&_param_manager);
 
@@ -354,6 +355,13 @@ void UavcanNode::Run()
 	}
 
 	_node.spinOnce();
+
+	// This is done only once to signify the node has run 30 seconds
+
+	if (up_time && hrt_elapsed_time(&up_time) > 30_s) {
+		up_time = 0;
+		board_configure_reset(BOARD_RESET_MODE_RTC_BOOT_FWOK, 0);
+	}
 
 	perf_end(_cycle_perf);
 
