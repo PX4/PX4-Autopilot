@@ -14,11 +14,7 @@
 # @board bitcraze_crazyflie exclude
 #
 
-. ${R}etc/init.d/rc.mc_defaults
-
-set MIXER quad_x
-set PWM_OUT 1234
-
+. ${R}etc/init.d/rc.mc_quad_defaults
 
 # System parameters
 # use FMU motor outputs for less delay in the rate control loop
@@ -102,12 +98,11 @@ param set-default MPC_LAND_ALT2 1
 # Navigator Parameters
 param set-default NAV_ACC_RAD 2
 
-# PWM and RC Parameters
-param set-default PWM_MAIN_MAX 1950
-param set-default PWM_MAIN_MIN 1075
-
 # use oneshot motor output protocol
-param set-default PWM_MAIN_RATE 0
+param set-default PWM_MAIN_RATE1 0
+param set-default PWM_MAIN_RATE2 0
+param set-default PWM_MAIN_RATE3 0
+param set-default PWM_MAIN_RATE4 0
 
 # RTL Parameters
 param set-default RTL_DESCEND_ALT 5

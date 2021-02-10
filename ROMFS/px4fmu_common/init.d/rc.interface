@@ -224,39 +224,10 @@ then
 				else
 					echo "ERROR  [init] Failed loading mixer: ${MIXER_AUX_FILE}"
 				fi
-			else
-				set PWM_AUX_OUT none
 			fi
 		else
 			echo "ERROR: Could not start: pwm_out mode_pwm"
 			tune_control play -t 18 # tune 18 = PROG_PX4IO_ERR
-			set PWM_AUX_OUT none
-		fi
-
-		# for DShot do not configure pwm values
-		if [ $OUTPUT_CMD != dshot ]
-		then
-			# Set min / max for aux out and rates.
-			if [ $PWM_AUX_OUT != none ]
-			then
-				# Set PWM_AUX output frequency.
-				if [ $PWM_AUX_RATE != none ]
-				then
-					pwm rate -c ${PWM_AUX_OUT} -r ${PWM_AUX_RATE} -d ${OUTPUT_AUX_DEV}
-				fi
-			fi
-		fi
-	fi
-fi
-
-if [ $OUTPUT_MODE = pwm_out -o $OUTPUT_MODE = io ]
-then
-	if [ $PWM_OUT != none ]
-	then
-		# Set PWM output frequency.
-		if [ $PWM_MAIN_RATE != none ]
-		then
-			pwm rate -c ${PWM_OUT} -r ${PWM_MAIN_RATE}
 		fi
 	fi
 fi
@@ -278,22 +249,12 @@ then
 		fi
 	fi
 
-
 	if mixer load ${OUTPUT_EXTRA_DEV} ${MIXER_EXTRA_FILE}
 	then
 		echo "INFO  [init] Mixer: ${MIXER_EXTRA_FILE} on ${OUTPUT_EXTRA_DEV}"
 	else
 		echo "ERROR  [init] Failed loading mixer: ${MIXER_EXTRA_FILE}"
 		tune_control play -t 20
-	fi
-
-	if [ $PWM_EXTRA_OUT != none ]
-	then
-		# Set PWM output frequency.
-		if [ $PWM_EXTRA_RATE != none ]
-		then
-			pwm rate -c ${PWM_EXTRA_OUT} -r ${PWM_EXTRA_RATE}
-		fi
 	fi
 fi
 

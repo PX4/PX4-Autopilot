@@ -558,11 +558,6 @@ int linux_pwm_out_main(int argc, char *argv[])
 		}
 	}
 
-	/** gets the parameters for the esc's pwm */
-	param_get(param_find("PWM_MAIN_DISARM"), &linux_pwm_out::_pwm_disarmed);
-	param_get(param_find("PWM_MAIN_MIN"), &linux_pwm_out::_pwm_min);
-	param_get(param_find("PWM_MAIN_MAX"), &linux_pwm_out::_pwm_max);
-
 	/*
 	 * Start/load the driver.
 	 */

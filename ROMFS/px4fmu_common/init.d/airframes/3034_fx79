@@ -27,5 +27,6 @@ param set-default FW_AIRSPD_TRIM 15
 
 param set-default NAV_LOITER_RAD 150
 
-
 set MIXER FX79
+
+param set-default PWM_MAIN_DIS4 1000

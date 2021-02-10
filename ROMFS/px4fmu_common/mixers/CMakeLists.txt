@@ -42,7 +42,6 @@ px4_add_romfs_files(
 	caipi.main.mix
 	CCPM.main.mix
 	claire.aux.mix
-	claire.main.mix
 	cloudship.main.mix
 	coax.main.mix
 	delta.main.mix

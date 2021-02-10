@@ -21,7 +21,6 @@
 
 . ${R}etc/init.d/rc.fw_defaults
 
-
 param set-default FW_AIRSPD_MAX 25
 param set-default FW_AIRSPD_MIN 12.5
 param set-default FW_AIRSPD_TRIM 16.5
@@ -60,9 +59,7 @@ param set-default NAV_LOITER_RAD 30
 
 param set-default PWM_MAIN_REV1 1
 param set-default PWM_MAIN_REV2 1
-param set-default PWM_MAIN_MIN 900
-param set-default PWM_MAIN_MAX 2100
-
+# Provide ESC a constant 1000 us pulse
+param set-default PWM_MAIN_DIS4 1000
 
 set MIXER caipi
-set PWM_OUT 1234

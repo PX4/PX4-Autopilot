@@ -16,15 +16,8 @@
 # @maintainer Iain Galloway <iain.galloway@nxp.com>
 #
 
-. ${R}etc/init.d/rc.mc_defaults
+. ${R}etc/init.d/rc.mc_quad_defaults
 
-set MIXER quad_x
-set PWM_OUT 1234
-
-
-
-param set-default IMU_GYRO_CUTOFF 40
-param set-default IMU_DGYRO_CUTOFF 20
 param set-default IMU_GYRO_RATEMAX 400
 
 param set-default MC_ROLLRATE_P 0.18

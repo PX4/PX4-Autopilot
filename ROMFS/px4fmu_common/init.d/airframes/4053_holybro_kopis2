@@ -12,13 +12,9 @@
 # @board bitcraze_crazyflie exclude
 #
 
-. ${R}etc/init.d/rc.mc_defaults
-
-set MIXER quad_x
-set PWM_OUT 1234
+. ${R}etc/init.d/rc.mc_quad_defaults
 
 set PARAM_DEFAULTS_VER 2
-
 
 param set-default BAT_N_CELLS 4
 

@@ -80,10 +80,8 @@ param set-default FW_RR_P 0.05
 # Roll Integrator Anti-Windup
 param set-default FW_RR_IMAX 0.2
 
-param set-default PWM_MAIN_DISARM 1000
-
 
 set MIXER fw_generic_wing.main.mix
 
 # Provide ESC a constant 1000 us pulse
-set PWM_OUT 4
+param set-default PWM_MAIN_DIS4 1000

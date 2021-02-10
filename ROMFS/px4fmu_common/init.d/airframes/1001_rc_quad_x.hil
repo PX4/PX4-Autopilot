@@ -11,6 +11,5 @@
 . ${R}etc/init.d/rc.mc_defaults
 
 set MIXER quad_x
-set PWM_OUT 1234
 
 param set SYS_HITL 1

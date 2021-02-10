@@ -11,11 +11,7 @@
 # @board bitcraze_crazyflie exclude
 #
 
-. ${R}etc/init.d/rc.mc_defaults
-
-set MIXER quad_x
-set PWM_OUT 1234
-
+. ${R}etc/init.d/rc.mc_quad_defaults
 
 param set-default MC_ROLL_P 8
 param set-default MC_ROLLRATE_P 0.08
@@ -32,5 +28,3 @@ param set-default MC_YAWRATE_D 0
 
 param set-default MPC_THR_MIN 0.06
 param set-default MPC_MANTHR_MIN 0.06
-
-param set-default PWM_MAIN_MIN 1075
