@@ -57,6 +57,7 @@
 #include "random.h"
 
 #include <drivers/bootloaders/boot_app_shared.h>
+#include <drivers/bootloaders/boot_alt_app_shared.h>
 #include <drivers/drv_watchdog.h>
 #include <lib/systemlib/crc.h>
 
@@ -1095,23 +1096,22 @@ __EXPORT int main(int argc, char *argv[])
 
 	board_indicate(reset);
 
+	/* Was this boot a result of the Application being told it has a FW update ? */
+
+	bootloader.app_bl_request = (OK == bootloader_app_shared_read(&common, App)) &&
+				    common.bus_speed && common.node_id;
+
+
 	/* Was this boot a result of An Alternate Application being told it has a FW update ? */
 
 	bootloader_alt_app_shared_t *ps = (bootloader_alt_app_shared_t *) &_sapp_bl_shared;
 
-	if (ps->signature == BL_ALT_APP_SHARED_SIGNATURE) {
+	if (!bootloader.app_bl_request && ps->signature == BL_ALT_APP_SHARED_SIGNATURE) {
 
 		common.node_id = ps->node_id;
 		common.bus_speed = CAN_UNDEFINED;
 		bootloader.app_bl_request = ps->node_id != 0;
 		ps->signature = 0;
-
-	} else {
-
-		/* Was this boot a result of the Application being told it has a FW update ? */
-
-		bootloader.app_bl_request = (OK == bootloader_app_shared_read(&common, App)) &&
-					    common.bus_speed && common.node_id;
 	}
 
 	/*
