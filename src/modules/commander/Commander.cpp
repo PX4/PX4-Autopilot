@@ -4016,7 +4016,10 @@ void Commander::estimator_check()
 
 			} else {
 				if (!_nav_test_passed) {
-					const bool innovation_pass = (estimator_status.vel_test_ratio < 1.0f) && (estimator_status.pos_test_ratio < 1.0f);
+					// Both test ratios need to pass/fail together to change the nav test status
+					const bool innovation_pass = (estimator_status.vel_test_ratio < 1.0f) && (estimator_status.pos_test_ratio < 1.0f)
+								     && (estimator_status.vel_test_ratio > FLT_EPSILON) && (estimator_status.pos_test_ratio > FLT_EPSILON);
+					const bool innovation_fail = (estimator_status.vel_test_ratio >= 1.0f) && (estimator_status.pos_test_ratio >= 1.0f);
 
 					if (innovation_pass) {
 						_time_last_innov_pass = hrt_absolute_time();
@@ -4032,7 +4035,7 @@ void Commander::estimator_check()
 							_nav_test_failed = false;
 						}
 
-					} else {
+					} else if (innovation_fail) {
 						_time_last_innov_fail = hrt_absolute_time();
 
 						if (!_nav_test_failed && hrt_elapsed_time(&_time_last_innov_pass) > 1_s) {
