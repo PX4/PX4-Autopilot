@@ -34,6 +34,7 @@
 #include "UavcanNode.hpp"
 
 #include "boot_app_shared.h"
+#include "boot_alt_app_shared.h"
 
 #include <drivers/drv_watchdog.h>
 #include <lib/ecl/geo/geo.h>
@@ -250,6 +251,14 @@ void UavcanNode::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<Uav
 
 		if (!inprogress) {
 			inprogress = true;
+			bootloader_alt_app_shared_t shared_alt{0};
+			shared_alt.fw_server_node_id = req.source_node_id;
+			shared_alt.node_id = _node.getNodeID().get();
+			shared_alt.path[0] = '\0';
+			strncat((char *)shared_alt.path, (const char *)req.image_file_remote_path.path.c_str(), sizeof(shared_alt.path) - 1);
+			bootloader_alt_app_shared_write(&shared_alt);
+			board_configure_reset(BOARD_RESET_MODE_CAN_BL, shared_alt.node_id);
+
 			bootloader_app_shared_t shared;
 			shared.bus_speed = active_bitrate;
 			shared.node_id = _node.getNodeID().get();
