@@ -587,6 +587,51 @@ int board_power_off(int status);
 int board_reset(int status);
 #endif
 
+/****************************************************************************
+ * Name: board_configure_reset
+ *
+ * Description:
+ *   Configures the device that maintains the state shared by the
+ *   application and boot loader. This is usually an RTC.
+ *
+ * Input Parameters:
+ *   mode  - The type of reset. See reset_mode_e
+ *
+ * Returned Value:
+ *   0 for Success
+ *   1 if invalid argument
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_BOARDCTL_RESET
+
+typedef enum  reset_mode_e {
+	BOARD_RESET_MODE_CLEAR             = 0, /* Clear the mode */
+	BOARD_RESET_MODE_BOOT_TO_BL        = 1, /* Reboot and stay in the bootloader */
+	BOARD_RESET_MODE_BOOT_TO_VALID_APP = 2, /* Reboot to a valid app or stay in bootloader */
+	BOARD_RESET_MODE_CAN_BL            = 3, /* Used to pass a node ID and stay in the can bootloader */
+	BOARD_RESET_MODE_RTC_BOOT_FWOK     = 4  /* Set by a a watch dogged application after running > 30 Seconds */
+} reset_mode_e;
+
+int board_configure_reset(reset_mode_e mode, uint32_t arg);
+#endif
+
+/****************************************************************************
+ * Name: board_booted_by_px4
+ *
+ * Description:
+ *   Determines if the the boot loader was PX4
+ *
+ * Input Parameters:
+ *   none
+ *
+ * Returned Value:
+ *   true if booted byt a PX4 bootloader.
+ *
+ ****************************************************************************/
+
+bool board_booted_by_px4(void);
+
 /************************************************************************************
  * Name: board_query_manifest
  *
