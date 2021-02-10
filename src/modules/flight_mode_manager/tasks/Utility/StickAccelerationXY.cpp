@@ -151,7 +151,7 @@ void StickAccelerationXY::lockPosition(const Vector3f &pos, const matrix::Vector
 {
 	if (_velocity_setpoint.norm_squared() < FLT_EPSILON) {
 		if (!PX4_ISFINITE(_position_setpoint(0))) {
-			_position_setpoint = Vector2f(pos);
+			_position_setpoint = pos.xy();
 		}
 
 	} else {
