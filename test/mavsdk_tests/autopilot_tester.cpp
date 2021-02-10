@@ -164,8 +164,7 @@ void AutopilotTester::wait_until_disarmed(std::chrono::seconds timeout_duration)
 
 void AutopilotTester::wait_until_hovering()
 {
-	REQUIRE(poll_condition_with_timeout(
-	[this]() { return _telemetry->landed_state() == Telemetry::LandedState::InAir; }, std::chrono::seconds(30)));
+	wait_for_landed_state(Telemetry::LandedState::InAir, std::chrono::seconds(30));
 }
 
 void AutopilotTester::prepare_square_mission(MissionOptions mission_options)
@@ -240,55 +239,21 @@ void AutopilotTester::execute_mission_and_lose_gps()
 {
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
 
-	_mission->subscribe_mission_progress([this](Mission::MissionProgress progress) {
-		std::cout << time_str() << "Progress: " << progress.current << "/" << progress.total << std::endl;
+	start_and_wait_for_first_mission_item();
 
-		if (progress.current == 1) {
-			std::thread([this]() {
-				CHECK(_failure->inject(Failure::FailureUnit::SensorGps, Failure::FailureType::Off, 0)
-				      == Failure::Result::Success);
-			}).detach();
-		}
-	});
-
-	std::promise<void> prom;
-	auto fut = prom.get_future();
-	_mission->start_mission_async([&prom](Mission::Result result) {
-		REQUIRE(Mission::Result::Success == result);
-		prom.set_value();
-	});
-	REQUIRE(fut.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
+	CHECK(_failure->inject(Failure::FailureUnit::SensorGps, Failure::FailureType::Off, 0) == Failure::Result::Success);
 
 	// We expect that a blind land is performed.
-	REQUIRE(poll_condition_with_timeout(
-	[this]() {
-		auto flight_mode = _telemetry->flight_mode();
-		return flight_mode == Telemetry::FlightMode::Land;
-	}, std::chrono::seconds(90)));
+	wait_for_flight_mode(Telemetry::FlightMode::Land, std::chrono::seconds(30));
 }
 
 void AutopilotTester::execute_mission_and_lose_mag()
 {
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
 
-	_mission->subscribe_mission_progress([this](Mission::MissionProgress progress) {
-		std::cout << time_str() << "Progress: " << progress.current << "/" << progress.total << std::endl;
+	start_and_wait_for_first_mission_item();
 
-		if (progress.current == 1) {
-			std::thread([this]() {
-				CHECK(_failure->inject(Failure::FailureUnit::SensorMag, Failure::FailureType::Off, 0)
-				      == Failure::Result::Success);
-			}).detach();
-		}
-	});
-
-	std::promise<void> prom;
-	auto fut = prom.get_future();
-	_mission->start_mission_async([&prom](Mission::Result result) {
-		REQUIRE(Mission::Result::Success == result);
-		prom.set_value();
-	});
-	REQUIRE(fut.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
+	CHECK(_failure->inject(Failure::FailureUnit::SensorMag, Failure::FailureType::Off, 0) == Failure::Result::Success);
 
 	// We except the mission to continue without mag just fine.
 	REQUIRE(poll_condition_with_timeout(
@@ -296,31 +261,15 @@ void AutopilotTester::execute_mission_and_lose_mag()
 		auto progress = _mission->mission_progress();
 		return progress.current == progress.total;
 	}, std::chrono::seconds(90)));
-
 }
 
 void AutopilotTester::execute_mission_and_lose_baro()
 {
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
 
-	_mission->subscribe_mission_progress([this](Mission::MissionProgress progress) {
-		std::cout << time_str() << "Progress: " << progress.current << "/" << progress.total << std::endl;
+	start_and_wait_for_first_mission_item();
 
-		if (progress.current == 1) {
-			std::thread([this]() {
-				CHECK(_failure->inject(Failure::FailureUnit::SensorBaro, Failure::FailureType::Off, 0)
-				      == Failure::Result::Success);
-			}).detach();
-		}
-	});
-
-	std::promise<void> prom;
-	auto fut = prom.get_future();
-	_mission->start_mission_async([&prom](Mission::Result result) {
-		REQUIRE(Mission::Result::Success == result);
-		prom.set_value();
-	});
-	REQUIRE(fut.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
+	CHECK(_failure->inject(Failure::FailureUnit::SensorBaro, Failure::FailureType::Off, 0) == Failure::Result::Success);
 
 	// We except the mission to continue without baro just fine.
 	REQUIRE(poll_condition_with_timeout(
@@ -334,24 +283,9 @@ void AutopilotTester::execute_mission_and_get_baro_stuck()
 {
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
 
-	_mission->subscribe_mission_progress([this](Mission::MissionProgress progress) {
-		std::cout << time_str() << "Progress: " << progress.current << "/" << progress.total << std::endl;
+	start_and_wait_for_first_mission_item();
 
-		if (progress.current == 1) {
-			std::thread([this]() {
-				CHECK(_failure->inject(Failure::FailureUnit::SensorBaro, Failure::FailureType::Stuck, 0)
-				      == Failure::Result::Success);
-			}).detach();
-		}
-	});
-
-	std::promise<void> prom;
-	auto fut = prom.get_future();
-	_mission->start_mission_async([&prom](Mission::Result result) {
-		REQUIRE(Mission::Result::Success == result);
-		prom.set_value();
-	});
-	REQUIRE(fut.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
+	CHECK(_failure->inject(Failure::FailureUnit::SensorBaro, Failure::FailureType::Stuck, 0) == Failure::Result::Success);
 
 	// We except the mission to continue with a stuck baro just fine.
 	REQUIRE(poll_condition_with_timeout(
@@ -365,24 +299,9 @@ void AutopilotTester::execute_mission_and_get_mag_stuck()
 {
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
 
-	_mission->subscribe_mission_progress([this](Mission::MissionProgress progress) {
-		std::cout << time_str() << "Progress: " << progress.current << "/" << progress.total << std::endl;
+	start_and_wait_for_first_mission_item();
 
-		if (progress.current == 1) {
-			std::thread([this]() {
-				CHECK(_failure->inject(Failure::FailureUnit::SensorMag, Failure::FailureType::Stuck, 0)
-				      == Failure::Result::Success);
-			}).detach();
-		}
-	});
-
-	std::promise<void> prom;
-	auto fut = prom.get_future();
-	_mission->start_mission_async([&prom](Mission::Result result) {
-		REQUIRE(Mission::Result::Success == result);
-		prom.set_value();
-	});
-	REQUIRE(fut.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
+	CHECK(_failure->inject(Failure::FailureUnit::SensorMag, Failure::FailureType::Stuck, 0) == Failure::Result::Success);
 
 	// We except the mission to continue with a stuck mag just fine.
 	REQUIRE(poll_condition_with_timeout(
@@ -641,6 +560,55 @@ bool AutopilotTester::ground_truth_horizontal_position_far_from(const Telemetry:
 	}
 
 	return pass;
+}
+
+void AutopilotTester::start_and_wait_for_first_mission_item()
+{
+	auto prom = std::promise<void> {};
+	auto fut = prom.get_future();
+
+	_mission->subscribe_mission_progress([&prom, this](Mission::MissionProgress progress) {
+		std::cout << time_str() << "Progress: " << progress.current << "/" << progress.total << std::endl;
+
+		if (progress.current >= 1) {
+			_mission->subscribe_mission_progress(nullptr);
+			prom.set_value();
+		}
+	});
+
+	REQUIRE(_mission->start_mission() == Mission::Result::Success);
+
+	REQUIRE(fut.wait_for(std::chrono::seconds(60)) == std::future_status::ready);
+}
+
+void AutopilotTester::wait_for_flight_mode(Telemetry::FlightMode flight_mode, std::chrono::seconds timeout)
+{
+	auto prom = std::promise<void> {};
+	auto fut = prom.get_future();
+
+	_telemetry->subscribe_flight_mode([&prom, flight_mode, this](Telemetry::FlightMode new_flight_mode) {
+		if (new_flight_mode == flight_mode) {
+			_telemetry->subscribe_flight_mode(nullptr);
+			prom.set_value();
+		}
+	});
+
+	REQUIRE(fut.wait_for(timeout) == std::future_status::ready);
+}
+
+void AutopilotTester::wait_for_landed_state(Telemetry::LandedState landed_state, std::chrono::seconds timeout)
+{
+	auto prom = std::promise<void> {};
+	auto fut = prom.get_future();
+
+	_telemetry->subscribe_landed_state([&prom, landed_state, this](Telemetry::LandedState new_landed_state) {
+		if (new_landed_state == landed_state) {
+			_telemetry->subscribe_landed_state(nullptr);
+			prom.set_value();
+		}
+	});
+
+	REQUIRE(fut.wait_for(timeout) == std::future_status::ready);
 }
 
 std::chrono::milliseconds AutopilotTester::adjust_to_lockstep_speed(std::chrono::milliseconds duration_ms)
