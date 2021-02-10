@@ -126,6 +126,9 @@ private:
 	bool ground_truth_horizontal_position_far_from(const Telemetry::GroundTruth &target_pos, float min_distance_m);
 	bool estimated_position_close_to(const Offboard::PositionNedYaw &target_pos, float acceptance_radius_m);
 	bool estimated_horizontal_position_close_to(const Offboard::PositionNedYaw &target_pos, float acceptance_radius_m);
+	void start_and_wait_for_first_mission_item();
+	void wait_for_flight_mode(Telemetry::FlightMode flight_mode, std::chrono::seconds timeout);
+	void wait_for_landed_state(Telemetry::LandedState landed_state, std::chrono::seconds timeout);
 
 	std::chrono::milliseconds adjust_to_lockstep_speed(std::chrono::milliseconds duration_ms);
 
