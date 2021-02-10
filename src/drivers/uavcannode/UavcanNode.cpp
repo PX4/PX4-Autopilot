@@ -274,7 +274,12 @@ void UavcanNode::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<Uav
 int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 {
 	_node.setName(HW_UAVCAN_NAME);
-	_node.setNodeID(node_id);
+
+	// Was the node_id supplied by the bootloader?
+
+	if (node_id != 0) {
+		_node.setNodeID(node_id);
+	}
 
 	fill_node_info();
 
@@ -303,7 +308,45 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 
 	bus_events.registerSignalCallback(UavcanNode::busevent_signal_trampoline);
 
-	return _node.start();
+	int rv = _node.start();
+
+	if (rv < 0) {
+		return rv;
+	}
+
+	// If the node_id was not supplied by the bootloader do Dynamic Node ID allocation
+
+	if (node_id == 0) {
+
+		uavcan::DynamicNodeIDClient client(_node);
+
+		int client_start_res = client.start(_node.getHardwareVersion().unique_id,    // USING THE SAME UNIQUE ID AS ABOVE
+						    node_id);
+
+		if (client_start_res < 0) {
+			PX4_ERR("Failed to start the dynamic node ID client");
+			return client_start_res;
+		}
+
+		watchdog_pet(); // If allocation takes too long reboot
+
+		/*
+		 * Waiting for the client to obtain a node ID.
+		 * This may take a few seconds.
+		 */
+
+		while (!client.isAllocationComplete()) {
+			const int res = _node.spin(uavcan::MonotonicDuration::fromMSec(200));    // Spin duration doesn't matter
+
+			if (res < 0) {
+				PX4_ERR("Transient failure: %d", res);
+			}
+		}
+
+		_node.setNodeID(client.getAllocatedNodeID());
+	}
+
+	return rv;
 }
 
 // Restart handler
@@ -481,11 +524,17 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 
 	} else {
 		// Node ID
-		(void)param_get(param_find("CANNODE_NODE_ID"), &node_id);
-		(void)param_get(param_find("CANNODE_BITRATE"), &bitrate);
+		if (!board_booted_by_px4()) {
+			node_id = 0;
+			bitrate = 1000000;
+
+		} else {
+			(void)param_get(param_find("CANNODE_NODE_ID"), &node_id);
+			(void)param_get(param_find("CANNODE_BITRATE"), &bitrate);
+		}
 	}
 
-	if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
+	if (board_booted_by_px4() && (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast())) {
 		PX4_ERR("Invalid Node ID %i", node_id);
 		return 1;
 	}
