@@ -1,9 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
- *       Author: Ben Dyer <ben_dyer@mac.com>
- *               Pavel Kirienko <pavel.kirienko@zubax.com>
- *               David Sidrane <david_s5@nscdg.com>
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *       Author: David Sidrane <david.sidrane@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,23 +38,6 @@
 
 __BEGIN_DECLS
 
-/* Define the signature for the Application descriptor as 'APDesc' and a
- * revision number of 00 used in app_descriptor_t
- */
-
-#define APP_DESCRIPTOR_SIGNATURE { 0x40, 0xa2, 0xe4, 0xf1, 0x64, 0x68, 0x91, 0x06 }
-
-/* N.B. the .ld file must emit this sections */
-# define boot_app_shared_section __attribute__((section(".app_descriptor")))
-
-/* eRole defines the role of the bootloader_app_shared_t structure */
-
-typedef enum eRole  {
-	Invalid,
-	App,
-	BootLoader
-} eRole_t;
-
 /****************************************************************************
  *
  * Bootloader and Application shared structure.
@@ -82,71 +63,23 @@ typedef enum eRole  {
  *
 ****************************************************************************/
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wattributes"
-typedef begin_packed_struct struct bootloader_app_shared_t {
-	union {
-		uint64_t ull;
-		uint32_t ul[2];
-		uint8_t  valid;
-	} crc;
-	uint32_t signature;
-	uint32_t bus_speed;
-	uint32_t node_id;
-} end_packed_struct bootloader_app_shared_t;
-
-/****************************************************************************
- *
- * Application firmware descriptor.
- *
- * This structure located by the linker script somewhere after the vector table.
- * (within the first several kilobytes of the beginning address of the
- * application);
- *
- * This structure must be aligned on an 8-byte boundary.
- *
- * The bootloader will scan through the application FLASH image until it
- * finds the signature.
- *
- * The image_crc is calculated as follows:
- *      1) All fields of this structure must be initialized with the correct
- *         information about the firmware image bin file
- *         (Here after refereed to as image)
- *      2) image_crc set to 0;
- *      3) The CRC 64 is calculated over the image from offset 0 up to and including the
- *         last byte of the image file.
- *      4) The calculated CRC 64 is stored in image_crc
- *      5) The new image file is then written to a file a ".img" extension.
- *
-****************************************************************************/
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wattributes"
-#pragma GCC diagnostic ignored "-Wpacked"
-typedef begin_packed_struct struct app_descriptor_t {
-	uint8_t signature[sizeof(uint64_t)];
-	union {
-		uint64_t image_crc;
-		struct {
-			uint32_t crc32_block1;
-			uint32_t crc32_block2;
-		};
-	};
-	uint32_t image_size;
-	uint32_t git_hash;
-	uint8_t  major_version;
-	uint8_t  minor_version;
-	uint16_t board_id;
-	uint8_t reserved[ 3 + 3 + 2];
-} end_packed_struct app_descriptor_t;
+#define BL_ALT_APP_SHARED_SIGNATURE 0xc544ad9a
+typedef begin_packed_struct struct bootloader_alt_app_shared_t {
+	uint32_t  signature;
+	uint32_t  reserved[4];
+	uint8_t   fw_server_node_id;
+	uint8_t   node_id;
+	uint8_t   path[201];
+} end_packed_struct bootloader_alt_app_shared_t;
 #pragma GCC diagnostic pop
 
+
 /****************************************************************************
- * Name: bootloader_app_shared_read
+ * Name: bootloader_alt_app_shared_read
  *
  * Description:
  *   Based on the role requested, this function will conditionally populate
- *   a bootloader_app_shared_t structure from the physical locations used
+ *   a bootloader_alt_app_shared_t structure from the physical locations used
  *   to transfer the shared data to/from an application (internal data) .
  *
  *   The functions will only populate the structure and return a status
@@ -154,25 +87,22 @@ typedef begin_packed_struct struct app_descriptor_t {
  *   requested by the Role AND has a valid crc.
  *
  * Input Parameters:
- *   shared - A pointer to a bootloader_app_shared_t return the data in if
+ *   shared - A pointer to a bootloader_alt_app_shared_t return the data in if
  *   the internal data is valid for the requested Role
- *   role   - An eRole_t of App or BootLoader to validate the internal data
- *            against. For a Bootloader this would be the value of App to
- *            read the application passed data.
  *
  * Returned value:
  *   OK     - Indicates that the internal data has been copied to callers
- *            bootloader_app_shared_t structure.
+ *            bootloader_alt_app_shared_t structure.
  *
  *  -EBADR  - The Role or crc of the internal data was not valid. The copy
  *            did not occur.
  *
  ****************************************************************************/
 
-int bootloader_app_shared_read(bootloader_app_shared_t *shared, eRole_t role);
+int bootloader_alt_app_shared_read(bootloader_alt_app_shared_t *alt_shared);
 
 /****************************************************************************
- * Name: bootloader_app_shared_write
+ * Name: bootloader_alt_app_shared_write
  *
  * Description:
  *   Based on the role, this function will commit the data passed
@@ -183,22 +113,18 @@ int bootloader_app_shared_read(bootloader_app_shared_t *shared, eRole_t role);
  *   based on the provided Role.
  *
  * Input Parameters:
- *   shared - A pointer to a bootloader_app_shared_t data to commit to
+ *   shared - A pointer to a bootloader_alt_app_shared_t data to commit to
  *   the internal data for passing to/from an application.
- *   role   - An eRole_t of App or BootLoader to use in the internal data
- *            to be passed to/from an application. For a Bootloader this
- *            would be the value of Bootloader to write to the passed data.
- *            to the application via the internal data.
  *
  * Returned value:
  *   None.
  *
  ****************************************************************************/
 
-void bootloader_app_shared_write(bootloader_app_shared_t *shared, eRole_t role);
+void bootloader_alt_app_shared_write(bootloader_alt_app_shared_t *alt_shared);
 
 /****************************************************************************
- * Name: bootloader_app_shared_invalidate
+ * Name: bootloader_alt_app_shared_invalidate
  *
  * Description:
  *   Invalidates the data passed the physical locations used to transfer
@@ -215,6 +141,6 @@ void bootloader_app_shared_write(bootloader_app_shared_t *shared, eRole_t role);
  *
  ****************************************************************************/
 
-void bootloader_app_shared_invalidate(void);
+void bootloader_alt_app_shared_invalidate(void);
 
 __END_DECLS
