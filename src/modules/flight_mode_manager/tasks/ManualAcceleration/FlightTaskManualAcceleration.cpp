@@ -51,7 +51,7 @@ bool FlightTaskManualAcceleration::activate(const vehicle_local_position_setpoin
 		_velocity_setpoint.xy() = Vector2f(last_setpoint.vx, last_setpoint.vy);
 
 	} else {
-		_velocity_setpoint.xy() = Vector2f(_velocity);
+		_velocity_setpoint.xy() = _velocity.xy();
 	}
 
 	_stick_acceleration_xy.resetPosition();
@@ -70,7 +70,7 @@ bool FlightTaskManualAcceleration::update()
 	_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint,
 				       _sticks.getPositionExpo()(3) * math::radians(_param_mpc_man_y_max.get()), _yaw, _deltatime);
 	_stick_acceleration_xy.generateSetpoints(_sticks.getPositionExpo().slice<2, 1>(0, 0), _yaw, _yaw_setpoint, _position,
-			Vector2f(_velocity_setpoint_feedback), _deltatime);
+			_velocity_setpoint_feedback.xy(), _deltatime);
 	_stick_acceleration_xy.getSetpoints(_position_setpoint, _velocity_setpoint, _acceleration_setpoint);
 
 	_constraints.want_takeoff = _checkTakeoff();
@@ -84,5 +84,5 @@ void FlightTaskManualAcceleration::_ekfResetHandlerPositionXY()
 
 void FlightTaskManualAcceleration::_ekfResetHandlerVelocityXY()
 {
-	_stick_acceleration_xy.resetVelocity(Vector2f(_velocity));
+	_stick_acceleration_xy.resetVelocity(_velocity.xy());
 }
