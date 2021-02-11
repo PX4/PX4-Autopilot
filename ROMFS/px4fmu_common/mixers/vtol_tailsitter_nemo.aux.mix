@@ -1,0 +1,29 @@
+Nemo
+=========================================
+
+Zero mixer (4x)
+---------------
+Channels 1,2,3,4 are unused.
+
+Z:
+
+Z:
+
+Z:
+
+Z:
+
+Elevons mixer
+--------------
+Channel 1 connects to the right (starboard) elevon.
+Channel 2 connects to the left (port) elevon.
+
+M: 2
+O:        7500    7500    0 -10000  10000
+S: 1 0  -10000  -10000    0 -10000  10000
+S: 1 1   10000   10000    0 -10000  10000
+
+M: 2
+O:        7500    7500    0 -10000  10000
+S: 1 0  -10000  -10000    0 -10000  10000
+S: 1 1  -10000  -10000    0 -10000  10000

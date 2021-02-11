@@ -1,0 +1,79 @@
+#!/bin/sh
+#
+# @name Nemo
+#
+# @type VTOL Duo Tailsitter
+# @class VTOL
+#
+# @output MAIN1 Left Swash Servo 1
+# @output MAIN2 Left Swash Servo 2
+# @output MAIN3 Left Swash Servo 3
+# @output MAIN4 Right Swash Servo 1
+# @output MAIN5 Right Swash Servo 2
+# @output MAIN6 Right Swash Servo 3
+# @output MAIN5 Left Throttle
+# @output MAIN6 Right Throttle
+#
+# @output AUX1 Right Elevon
+# @output AUX2 Left Elevon
+#
+# @maintainer Christian Lopez <Christian@anduril.com>
+#
+
+sh /etc/init.d/rc.vtol_defaults
+
+if [ $AUTOCNF = yes ]
+then
+	param set MAV_TYPE 19
+
+	param set BAT_A_PER_V 37.12486267
+	param set BAT_N_CELLS 12
+	param set BAT_V_CHARGED 4.2
+	param set BAT_V_DIV 17.54833794
+	param set BAT_V_EMPTY 3.2
+	param set BAT_V_OFFS_CURR 0.33199999
+
+	param set EKF2_GPS_MASK 7
+
+
+	param set MC_ROLL_P 2.95
+	param set MC_ROLLRATE_P 0.460
+	param set MC_ROLLRATE_I 0.05
+	param set MC_ROLLRATE_D 0.001
+	param set MC_ROLLRATE_FF 0.3
+	param set MC_ROLLRATE_MAX 90.0
+	param set MC_RR_INT_LIM 0.50
+
+	param set MC_PITCH_P 1.80
+	param set MC_PITCHRATE_P 0.160
+	param set MC_PITCHRATE_I 0.002
+	param set MC_PITCHRATE_D 0.000
+	param set MC_PITCHRATE_FF 0.24
+
+	param set MC_YAW_P 1
+	param set MC_YAWRATE_P 0.13
+	param set MC_YAWRATE_I 0.01
+	param set MC_YAWRATE_D 0.000
+	param set MC_YAWRATE_FF 0.05
+	param set MC_YAWRATE_MAX 60.0
+	param set MC_YR_INT_LIM 0.60
+
+	param set VT_IDLE_PWM_MC  1080
+	param set VT_ELEV_MC_LOCK 0
+	param set VT_MOT_ID 78
+	param set VT_TYPE 0
+
+	param set CBRK_IO_SAFETY 22027
+	param set CBRK_AIRSPD_CHK 162128
+
+
+	# Indicate that FW roll direction was fixed in mixer, to be removed in v1.10
+	param set V19_VT_ROLLDIR 0
+fi
+
+set MAV_TYPE 19
+
+set MIXER vtol_tailsitter_nemo
+set MIXER_AUX vtol_tailsitter_nemo
+
+set PWM_OUT 78
