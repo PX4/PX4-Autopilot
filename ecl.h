@@ -47,9 +47,15 @@
 #define ecl_elapsed_time hrt_elapsed_time
 using ecl_abstime = hrt_abstime;
 
-#define ECL_INFO PX4_INFO
-#define ECL_WARN PX4_WARN
-#define ECL_ERR	 PX4_ERR
+#if defined(__PX4_NUTTX)
+#  define ECL_INFO PX4_DEBUG
+#  define ECL_WARN PX4_DEBUG
+#  define ECL_ERR  PX4_DEBUG
+#else
+#  define ECL_INFO PX4_INFO
+#  define ECL_WARN PX4_WARN
+#  define ECL_ERR  PX4_ERR
+#endif
 
 #elif defined(__PAPARAZZI)
 
