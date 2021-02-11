@@ -1327,6 +1327,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				} else if (((int)(cmd.param1)) == 2) {
 					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					_worker_thread.startTask(WorkerThread::Request::ParamResetAll);
+
+				} else if (((int)(cmd.param1)) == 3) {
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+					_worker_thread.startTask(WorkerThread::Request::ParamResetSensorFactory);
 				}
 			}
 
