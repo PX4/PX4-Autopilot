@@ -20,7 +20,7 @@
 # @maintainer Christian Lopez <Christian@anduril.com>
 #
 
-sh /etc/init.d/rc.vtol_defaults
+. ${R}etc/init.d/rc.vtol_defaults
 
 if [ $AUTOCNF = yes ]
 then
