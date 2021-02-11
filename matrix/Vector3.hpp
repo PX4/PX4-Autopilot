@@ -30,7 +30,7 @@ class Vector3 : public Vector<Type, 3>
 {
 public:
 
-    typedef Matrix<Type, 3, 1> Matrix31;
+    using Matrix31 = Matrix<Type, 3, 1>;
 
     Vector3() = default;
 
@@ -148,7 +148,8 @@ public:
 
 };
 
-typedef Vector3<float> Vector3f;
+using Vector3f = Vector3<float>;
+using Vector3d = Vector3<double>;
 
 } // namespace matrix
 

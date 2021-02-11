@@ -50,7 +50,8 @@ private:
 
 };
 
-typedef Scalar<float> Scalarf;
+using Scalarf = Scalar<float>;
+using Scalard = Scalar<double>;
 
 } // namespace matrix
 

@@ -20,7 +20,7 @@ template<typename Type, size_t M>
 class Vector : public Matrix<Type, M, 1>
 {
 public:
-    typedef Matrix<Type, M, 1> MatrixM1;
+    using MatrixM1 = Matrix<Type, M, 1>;
 
     Vector() = default;
 

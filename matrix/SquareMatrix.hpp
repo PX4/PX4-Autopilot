@@ -266,7 +266,8 @@ public:
 
 };
 
-typedef SquareMatrix<float, 3> SquareMatrix3f;
+using SquareMatrix3f = SquareMatrix<float, 3>;
+using SquareMatrix3d = SquareMatrix<double, 3>;
 
 template<typename Type, size_t M>
 SquareMatrix<Type, M> eye() {
@@ -535,7 +536,8 @@ SquareMatrix <Type, M> choleskyInv(const SquareMatrix<Type, M> & A)
     return L_inv.T()*L_inv;
 }
 
-typedef SquareMatrix<float, 3> Matrix3f;
+using Matrix3f = SquareMatrix<float, 3>;
+using Matrix3d = SquareMatrix<double, 3>;
 
 } // namespace matrix
 

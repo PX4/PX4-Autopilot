@@ -153,7 +153,8 @@ public:
 
 };
 
-typedef Euler<float> Eulerf;
+using Eulerf = Euler<float>;
+using Eulerd = Euler<double>;
 
 } // namespace matrix
 
