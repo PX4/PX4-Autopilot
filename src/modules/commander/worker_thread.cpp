@@ -42,7 +42,11 @@
 #include "rc_calibration.h"
 
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/shutdown.h>
 #include <parameters/param.h>
+
+
+using namespace time_literals;
 
 WorkerThread::~WorkerThread()
 {
@@ -160,6 +164,15 @@ void WorkerThread::threadEntry()
 	case Request::ParamResetAll:
 		param_reset_all();
 		_ret_value = 0;
+		break;
+
+	case Request::ParamResetSensorFactory:
+		const char *reset_cal[] = { "CAL_ACC*", "CAL_GYRO*", "CAL_MAG*" };
+		param_reset_specific(reset_cal, sizeof(reset_cal) / sizeof(reset_cal[0]));
+		_ret_value = param_save_default();
+#if defined(CONFIG_BOARDCTL_RESET)
+		px4_reboot_request(false, 400_ms);
+#endif // CONFIG_BOARDCTL_RESET
 		break;
 	}
 
