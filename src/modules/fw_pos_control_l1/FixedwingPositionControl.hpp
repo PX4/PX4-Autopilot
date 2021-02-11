@@ -413,7 +413,6 @@ private:
 		(ParamInt<px4::params::FW_ARSP_MODE>) _param_fw_arsp_mode,
 
 		(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
-		(ParamFloat<px4::params::FW_RSP_OFF>) _param_fw_rsp_off,
 		(ParamFloat<px4::params::FW_MAN_P_MAX>) _param_fw_man_p_max,
 		(ParamFloat<px4::params::FW_MAN_R_MAX>) _param_fw_man_r_max,
 

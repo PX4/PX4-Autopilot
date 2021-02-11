@@ -1715,9 +1715,6 @@ FixedwingPositionControl::Run()
 		if (control_position(_local_pos.timestamp, curr_pos, ground_speed, _pos_sp_triplet.previous, _pos_sp_triplet.current,
 				     _pos_sp_triplet.next)) {
 
-			// add attitude roll setpoint offset (pitch is handled earlier)
-			_att_sp.roll_body += radians(_param_fw_rsp_off.get());
-
 			if (_control_mode.flag_control_manual_enabled) {
 				_att_sp.roll_body = constrain(_att_sp.roll_body, -radians(_param_fw_man_r_max.get()),
 							      radians(_param_fw_man_r_max.get()));
