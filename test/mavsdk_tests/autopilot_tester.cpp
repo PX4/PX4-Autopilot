@@ -226,13 +226,7 @@ void AutopilotTester::execute_mission()
 
 	// TODO: Adapt time limit based on mission size, flight speed, sim speed factor, etc.
 
-	REQUIRE(poll_condition_with_timeout(
-	[this]() {
-		auto result = _mission->is_mission_finished();
-		return result.first == Mission::Result::Success && result.second;
-	}, std::chrono::seconds(60)));
-
-	REQUIRE(fut.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
+	wait_for_mission_finished(std::chrono::seconds(60));
 }
 
 void AutopilotTester::execute_mission_and_lose_gps()
@@ -604,6 +598,21 @@ void AutopilotTester::wait_for_landed_state(Telemetry::LandedState landed_state,
 	_telemetry->subscribe_landed_state([&prom, landed_state, this](Telemetry::LandedState new_landed_state) {
 		if (new_landed_state == landed_state) {
 			_telemetry->subscribe_landed_state(nullptr);
+			prom.set_value();
+		}
+	});
+
+	REQUIRE(fut.wait_for(timeout) == std::future_status::ready);
+}
+
+void AutopilotTester::wait_for_mission_finished(std::chrono::seconds timeout)
+{
+	auto prom = std::promise<void> {};
+	auto fut = prom.get_future();
+
+	_mission->subscribe_mission_progress([&prom, this](Mission::MissionProgress progress) {
+		if (progress.current == progress.total) {
+			_mission->subscribe_mission_progress(nullptr);
 			prom.set_value();
 		}
 	});
