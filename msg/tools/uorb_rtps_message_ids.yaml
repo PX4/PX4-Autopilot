@@ -209,6 +209,7 @@ rtps:
     id: 94
   - msg: vehicle_land_detected
     id: 95
+    send: true
   - msg: vehicle_local_position
     id: 96
     send: true
