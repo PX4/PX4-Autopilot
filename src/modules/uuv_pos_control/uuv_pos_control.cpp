@@ -117,15 +117,16 @@ void UUVPOSControl::pose_controller_6dof(const float x_pos_des, const float y_po
 	Quatf q_att(vehicle_attitude.q);
 	Vector3f pos_des = Vector3f(x_pos_des, y_pos_des, z_pos_des);
 
-	Vector3f p_control_output = Vector3f(_param_pose_gain_x.get() * (pos_des(0) - vlocal_pos.x),
-					     _param_pose_gain_y.get() * (pos_des(1) - vlocal_pos.y),
-					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z));
+	Vector3f p_control_output = Vector3f(_param_pose_gain_x.get() * (pos_des(0) - vlocal_pos.x) - _param_pose_gain_d_x.get()
+					     * vlocal_pos.vx,
+					     _param_pose_gain_y.get() * (pos_des(1) - vlocal_pos.y) - _param_pose_gain_d_y.get() * vlocal_pos.vy,
+					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z) - _param_pose_gain_d_z.get() * vlocal_pos.vz);
 
 	Vector3f rotated_input = q_att.conjugate_inversed(p_control_output);//rotate the coord.sys (from global to body)
 
-	publish_attitude_setpoint(rotated_input(0) - _param_pose_gain_d_x.get()*vlocal_pos.vx,
-				  rotated_input(1) - _param_pose_gain_d_y.get()*vlocal_pos.vy,
-				  rotated_input(2) - _param_pose_gain_d_z.get()*vlocal_pos.vz,
+	publish_attitude_setpoint(rotated_input(0),
+				  rotated_input(1),
+				  rotated_input(2),
 				  roll_des, pitch_des, yaw_des);
 
 }
