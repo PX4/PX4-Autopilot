@@ -129,6 +129,7 @@ private:
 	void start_and_wait_for_first_mission_item();
 	void wait_for_flight_mode(Telemetry::FlightMode flight_mode, std::chrono::seconds timeout);
 	void wait_for_landed_state(Telemetry::LandedState landed_state, std::chrono::seconds timeout);
+	void wait_for_mission_finished(std::chrono::seconds timeout);
 
 	std::chrono::milliseconds adjust_to_lockstep_speed(std::chrono::milliseconds duration_ms);
 
