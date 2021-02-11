@@ -30,7 +30,7 @@ template<typename Type>
 class AxisAngle : public Vector<Type, 3>
 {
 public:
-    typedef Matrix<Type, 3, 1> Matrix31;
+    using Matrix31 = Matrix<Type, 3, 1>;
 
     /**
      * Constructor from array
@@ -152,7 +152,8 @@ public:
     }
 };
 
-typedef AxisAngle<float> AxisAnglef;
+using AxisAnglef = AxisAngle<float>;
+using AxisAngled = AxisAngle<double>;
 
 } // namespace matrix
 

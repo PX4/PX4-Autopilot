@@ -53,8 +53,8 @@ template<typename Type>
 class Quaternion : public Vector<Type, 4>
 {
 public:
-    typedef Matrix<Type, 4, 1> Matrix41;
-    typedef Matrix<Type, 3, 1> Matrix31;
+    using Matrix41 = Matrix<Type, 4, 1>;
+    using Matrix31 = Matrix<Type, 3, 1>;
 
     /**
      * Constructor from array
@@ -449,8 +449,11 @@ public:
     }
 };
 
-typedef Quaternion<float> Quatf;
-typedef Quaternion<float> Quaternionf;
+using Quatf = Quaternion<float>;
+using Quaternionf = Quaternion<float>;
+
+using Quatd = Quaternion<double>;
+using Quaterniond = Quaternion<double>;
 
 } // namespace matrix
 

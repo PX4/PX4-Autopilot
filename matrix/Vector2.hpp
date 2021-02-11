@@ -21,8 +21,8 @@ class Vector2 : public Vector<Type, 2>
 {
 public:
 
-    typedef Matrix<Type, 2, 1> Matrix21;
-    typedef Vector<Type, 3> Vector3;
+    using Matrix21 = Matrix<Type, 2, 1>;
+    using Vector3 = Vector<Type, 3>;
 
     Vector2() = default;
 
@@ -71,7 +71,9 @@ public:
 
 };
 
-typedef Vector2<float> Vector2f;
+
+using Vector2f = Vector2<float>;
+using Vector2d = Vector2<double>;
 
 } // namespace matrix
 

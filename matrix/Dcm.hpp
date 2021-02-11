@@ -39,7 +39,7 @@ template<typename Type>
 class Dcm : public SquareMatrix<Type, 3>
 {
 public:
-    typedef Matrix<Type, 3, 1> Vector3;
+    using Vector3 = Matrix<Type, 3, 1>;
 
     /**
      * Standard constructor
@@ -182,7 +182,8 @@ public:
     }
 };
 
-typedef Dcm<float> Dcmf;
+using Dcmf = Dcm<float>;
+using Dcmd = Dcm<double>;
 
 } // namespace matrix
 
