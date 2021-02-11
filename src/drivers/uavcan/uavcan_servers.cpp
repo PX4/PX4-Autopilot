@@ -38,6 +38,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <cctype>
 #include <fcntl.h>
 #include <dirent.h>
 #include <pthread.h>
@@ -72,8 +73,6 @@
 /*
  * UavcanNode
  */
-
-#define UAVCAN_FIRMWARE_CACHE_PATH UAVCAN_FIRMWARE_PATH"/c/"
 
 UavcanServers *UavcanServers::_instance;
 
@@ -211,7 +210,7 @@ UavcanServers::init()
 	 * Initialize the fw version checker.
 	 * giving it its path
 	 */
-	ret = _fw_version_checker.createFwPaths(UAVCAN_FIRMWARE_PATH);
+	ret = _fw_version_checker.createFwPaths(UAVCAN_FIRMWARE_PATH, UAVCAN_ROMFS_FW_PATH);
 
 	if (ret < 0) {
 		PX4_ERR("FirmwareVersionChecker init: %d, errno: %d", ret, errno);
@@ -220,7 +219,7 @@ UavcanServers::init()
 
 	/* Start fw file server back */
 
-	ret = _fw_server.start(UAVCAN_FIRMWARE_CACHE_PATH);
+	ret = _fw_server.start(UAVCAN_FIRMWARE_PATH, UAVCAN_ROMFS_FW_PATH);
 
 	if (ret < 0) {
 		PX4_ERR("BasicFileServer init: %d, errno: %d", ret, errno);
@@ -266,7 +265,7 @@ UavcanServers::init()
 	}
 
 	/* Start the fw version checker   */
-	ret = _fw_upgrade_trigger.start(_node_info_retriever, _fw_version_checker.getFirmwarePath());
+	ret = _fw_upgrade_trigger.start(_node_info_retriever);
 
 	if (ret < 0) {
 		PX4_ERR("FirmwareUpdateTrigger init: %d", ret);
@@ -285,10 +284,10 @@ UavcanServers::run(pthread_addr_t)
 	Lock lock(_subnode_mutex);
 
 	/*
-	Copy any firmware bundled in the ROMFS to the appropriate location on the
-	SD card, unless the user has copied other firmware for that device.
+	Check for firmware in the root directory, move it to appropriate location on
+	the SD card, as defined by the APDesc.
 	*/
-	unpackFwFromROMFS(UAVCAN_FIRMWARE_PATH, UAVCAN_ROMFS_FW_PATH);
+	migrateFWFromRoot(UAVCAN_FIRMWARE_PATH, UAVCAN_SD_ROOT_PATH);
 
 	/* the subscribe call needs to happen in the same thread,
 	 * so not in the constructor */
@@ -952,259 +951,84 @@ UavcanServers::cb_enumeration_save(const uavcan::ServiceCallResult<uavcan::proto
 	}
 }
 
+
 void
-UavcanServers::unpackFwFromROMFS(const char *sd_path, const char *romfs_path)
+UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_path)
 {
 	/*
-	Copy the ROMFS firmware directory to the appropriate location on SD, without
+	Copy Any bin files with APDes into appropriate location on SD card
 	overriding any firmware the user has already loaded there.
 
 	The SD firmware directory structure is along the lines of:
 
-		/fs/microsd/fw
-		-	/c
-			-	/nodename-v1-1.0.25d0137d.bin		cache file (copy of /fs/microsd/fw/org.pixhawk.nodename-v1/1.1/nodename-v1-1.0.25d0137d.bin)
-			-	/othernode-v3-1.6.25d0137d.bin		cache file (copy of /fs/microsd/fw/com.example.othernode-v3/1.6/othernode-v3-1.6.25d0137d.bin)
-		-	/org.pixhawk.nodename-v1				device directory for org.pixhawk.nodename-v1
-		-	-	/1.0								version directory for hardware 1.0
-		-	-	/1.1								version directory for hardware 1.1
-		-	-	-	/nodename-v1-1.0.25d0137d.bin	firmware file for org.pixhawk.nodename-v1 nodes, hardware version 1.1
-		-	/com.example.othernode-v3				device directory for com.example.othernode-v3
-		-	-	/1.0								version directory for hardawre 1.0
-		-	-	-	/othernode-v3-1.6.25d0137d.bin	firmware file for com.example.othernode-v3, hardware version 1.6
-
-	The ROMFS directory structure is the same, but located at /etc/uavcan/fw
-	Files located there are prefixed with _ to identify them a comming from the rom
-	file system.
-
-	We iterate over all device directories in the ROMFS base directory, and create
-	corresponding device directories on the SD card if they don't already exist.
-
-	In each device directory, we iterate over each version directory and create a
-	corresponding version directory on the SD card if it doesn't already exist.
-
-	In each version directory, we remove any files with a name starting with "_"
-	in the corresponding directory on the SD card that don't match the bundled firmware
-	filename; if the directory is empty after that process, we copy the bundled firmware.
-
-	todo:This code would benefit from the use of strcat.
-
+	  /fs/microsd/ufw
+	     nnnnn.bin - where n is the board_id
 	*/
+
 	const size_t maxlen = UAVCAN_MAX_PATH_LENGTH;
-	const size_t sd_path_len = strlen(sd_path);
-	const size_t romfs_path_len = strlen(romfs_path);
+	const size_t sd_root_path_len = strlen(sd_root_path);
 	struct stat sb;
 	int rv;
 	char dstpath[maxlen + 1];
 	char srcpath[maxlen + 1];
 
-	DIR *const romfs_dir = opendir(romfs_path);
+	DIR *const sd_root_dir = opendir(sd_root_path);
 
-	if (!romfs_dir) {
+	if (!sd_root_dir) {
 		return;
 	}
 
-	memcpy(dstpath, sd_path, sd_path_len + 1);
-	memcpy(srcpath, romfs_path, romfs_path_len + 1);
+	if (stat(sd_path, &sb) != 0 || !S_ISDIR(sb.st_mode)) {
+		rv = mkdir(sd_path, S_IRWXU | S_IRWXG | S_IRWXO);
 
-	// Iterate over all device directories in ROMFS
-	struct dirent *dev_dirent = NULL;
-
-	while ((dev_dirent = readdir(romfs_dir)) != NULL) {
-		// Skip if not a directory
-		if (!DIRENT_ISDIRECTORY(dev_dirent->d_type)) {
-			continue;
+		if (rv != 0) {
+			PX4_ERR("dev: couldn't create '%s'", sd_path);
+			return;
 		}
-
-		// Make sure the path fits
-		size_t dev_dirname_len = strlen(dev_dirent->d_name);
-		size_t srcpath_dev_len = romfs_path_len + 1 + dev_dirname_len;
-
-		if (srcpath_dev_len > maxlen) {
-			PX4_WARN("dev: srcpath '%s/%s' too long", romfs_path, dev_dirent->d_name);
-			continue;
-		}
-
-		size_t dstpath_dev_len = sd_path_len + 1 + dev_dirname_len;
-
-		if (dstpath_dev_len > maxlen) {
-			PX4_WARN("dev: dstpath '%s/%s' too long", sd_path, dev_dirent->d_name);
-			continue;
-		}
-
-		// Create the device name directory on the SD card if it doesn't already exist
-		dstpath[sd_path_len] = '/';
-		memcpy(&dstpath[sd_path_len + 1], dev_dirent->d_name, dev_dirname_len + 1);
-
-		if (stat(dstpath, &sb) != 0 || !S_ISDIR(sb.st_mode)) {
-			rv = mkdir(dstpath, S_IRWXU | S_IRWXG | S_IRWXO);
-
-			if (rv != 0) {
-				PX4_ERR("dev: couldn't create '%s'", dstpath);
-				continue;
-			}
-		}
-
-		// Set up the source path
-		srcpath[romfs_path_len] = '/';
-		memcpy(&srcpath[romfs_path_len + 1], dev_dirent->d_name, dev_dirname_len + 1);
-
-		DIR *const dev_dir = opendir(srcpath);
-
-		if (!dev_dir) {
-			PX4_ERR("dev: couldn't open '%s'", srcpath);
-			continue;
-		}
-
-		// Iterate over all version directories in the current ROMFS device directory
-		struct dirent *ver_dirent = NULL;
-
-		while ((ver_dirent = readdir(dev_dir)) != NULL) {
-			// Skip if not a directory
-			if (!DIRENT_ISDIRECTORY(ver_dirent->d_type)) {
-				continue;
-			}
-
-			// Make sure the path fits
-			size_t ver_dirname_len = strlen(ver_dirent->d_name);
-			size_t srcpath_ver_len = srcpath_dev_len + 1 + ver_dirname_len;
-
-			if (srcpath_ver_len > maxlen) {
-				PX4_ERR("ver: srcpath '%s/%s' too long", srcpath, ver_dirent->d_name);
-				continue;
-			}
-
-			size_t dstpath_ver_len = dstpath_dev_len + 1 + ver_dirname_len;
-
-			if (dstpath_ver_len > maxlen) {
-				PX4_ERR("ver: dstpath '%s/%s' too long", dstpath, ver_dirent->d_name);
-				continue;
-			}
-
-			// Create the device version directory on the SD card if it doesn't already exist
-			dstpath[dstpath_dev_len] = '/';
-			memcpy(&dstpath[dstpath_dev_len + 1], ver_dirent->d_name, ver_dirname_len + 1);
-
-			if (stat(dstpath, &sb) != 0 || !S_ISDIR(sb.st_mode)) {
-				rv = mkdir(dstpath, S_IRWXU | S_IRWXG | S_IRWXO);
-
-				if (rv != 0) {
-					PX4_ERR("ver: couldn't create '%s'", dstpath);
-					continue;
-				}
-			}
-
-			// Set up the source path
-			srcpath[srcpath_dev_len] = '/';
-			memcpy(&srcpath[srcpath_dev_len + 1], ver_dirent->d_name, ver_dirname_len + 1);
-
-			// Find the name of the bundled firmware file, or move on to the
-			// next directory if there's no file here.
-			DIR *const src_ver_dir = opendir(srcpath);
-
-			if (!src_ver_dir) {
-				PX4_ERR("ver: couldn't open '%s'", srcpath);
-				continue;
-			}
-
-			struct dirent *src_fw_dirent = NULL;
-
-			while ((src_fw_dirent = readdir(src_ver_dir)) != NULL &&
-			       !DIRENT_ISFILE(src_fw_dirent->d_type));
-
-			if (!src_fw_dirent) {
-				(void)closedir(src_ver_dir);
-				continue;
-			}
-
-			size_t fw_len = strlen(src_fw_dirent->d_name);
-
-			bool copy_fw = true;
-
-			// Clear out any romfs_ files in the version directory on the SD card
-			DIR *const dst_ver_dir = opendir(dstpath);
-
-			if (!dst_ver_dir) {
-				PX4_ERR("unlink: couldn't open '%s'", dstpath);
-
-			} else {
-				struct dirent *fw_dirent = NULL;
-
-				while ((fw_dirent = readdir(dst_ver_dir)) != NULL) {
-					// Skip if not a file
-					if (!DIRENT_ISFILE(fw_dirent->d_type)) {
-						continue;
-					}
-
-					if (!memcmp(&fw_dirent->d_name, src_fw_dirent->d_name, fw_len)) {
-						/*
-						 * Exact match between SD card filename and ROMFS filename; must be the same version
-						 * so don't bother deleting and rewriting it.
-						 */
-						copy_fw = false;
-
-					} else if (!memcmp(fw_dirent->d_name, UAVCAN_ROMFS_FW_PREFIX, sizeof(UAVCAN_ROMFS_FW_PREFIX) - 1)) {
-						size_t dst_fw_len = strlen(fw_dirent->d_name);
-						size_t dstpath_fw_len = dstpath_ver_len + dst_fw_len;
-
-						if (dstpath_fw_len > maxlen) {
-							// sizeof(prefix) includes trailing NUL, cancelling out the +1 for the path separator
-							PX4_ERR("unlink: path '%s/%s' too long", dstpath, fw_dirent->d_name);
-
-						} else {
-							// File name starts with "_", delete it.
-							dstpath[dstpath_ver_len] = '/';
-							memcpy(&dstpath[dstpath_ver_len + 1], fw_dirent->d_name, dst_fw_len + 1);
-							unlink(dstpath);
-							PX4_ERR("unlink: removed '%s'", dstpath);
-						}
-
-					} else {
-						// User file, don't copy firmware
-						copy_fw = false;
-					}
-				}
-
-				(void)closedir(dst_ver_dir);
-			}
-
-			// If we need to, copy the file from ROMFS to the SD card
-			if (copy_fw) {
-				size_t srcpath_fw_len = srcpath_ver_len + 1 + fw_len;
-				size_t dstpath_fw_len = dstpath_ver_len + fw_len;
-
-				if (srcpath_fw_len > maxlen) {
-					PX4_ERR("copy: srcpath '%s/%s' too long", srcpath, src_fw_dirent->d_name);
-
-				} else if (dstpath_fw_len > maxlen) {
-					PX4_ERR("copy: dstpath '%s/%s' too long", dstpath, src_fw_dirent->d_name);
-
-				} else {
-					// All OK, make the paths and copy the file
-					srcpath[srcpath_ver_len] = '/';
-					memcpy(&srcpath[srcpath_ver_len + 1], src_fw_dirent->d_name, fw_len + 1);
-
-					dstpath[dstpath_ver_len] = '/';
-					memcpy(&dstpath[dstpath_ver_len + 1], src_fw_dirent->d_name, fw_len + 1);
-
-					rv = copyFw(dstpath, srcpath);
-
-					if (rv != 0) {
-						PX4_ERR("copy: '%s' -> '%s' failed: %d", srcpath, dstpath, rv);
-
-					} else {
-						PX4_INFO("copy: '%s' -> '%s' succeeded", srcpath, dstpath);
-					}
-				}
-			}
-
-			(void)closedir(src_ver_dir);
-		}
-
-		(void)closedir(dev_dir);
 	}
 
-	(void)closedir(romfs_dir);
+	// Iterate over all bin files in root directory
+	struct dirent *dev_dirent = NULL;
+
+	while ((dev_dirent = readdir(sd_root_dir)) != nullptr) {
+
+		uavcan_posix::FirmwareVersionChecker::AppDescriptor descriptor;
+
+		// Looking for all uavcan.bin files.
+
+		if (DIRENT_ISFILE(dev_dirent->d_type) && strstr(dev_dirent->d_name, ".bin") != nullptr) {
+
+			// Make sure the path fits
+
+			size_t filename_len = strlen(dev_dirent->d_name);
+			size_t srcpath_len = sd_root_path_len + 1 + filename_len;
+
+			if (srcpath_len > maxlen) {
+				PX4_WARN("file: srcpath '%s%s' too long", sd_root_path, dev_dirent->d_name);
+				continue;
+			}
+
+			snprintf(srcpath, sizeof(srcpath), "%s%s", sd_root_path, dev_dirent->d_name);
+
+			if (uavcan_posix::FirmwareVersionChecker::getFileInfo(srcpath, descriptor, 1024) != 0) {
+				continue;
+			}
+
+			if (descriptor.image_crc == 0) {
+				continue;
+			}
+
+			snprintf(dstpath, sizeof(dstpath), "%s/%d.bin", sd_path, descriptor.board_id);
+
+			if (copyFw(dstpath, srcpath) >= 0) {
+				unlink(srcpath);
+			}
+		}
+	}
+
+	if (dev_dirent != nullptr) {
+		(void)closedir(dev_dirent);
+	}
 }
 
 int
