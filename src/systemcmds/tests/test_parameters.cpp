@@ -516,7 +516,7 @@ bool ParameterTest::exportImportAll()
 		return false;
 	}
 
-	result = param_import(fd, false);
+	result = param_import(fd, false, false);
 	close(fd);
 
 	if (result < 0) {

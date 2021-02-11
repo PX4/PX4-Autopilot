@@ -216,7 +216,7 @@ __EXPORT size_t		param_size(param_t param);
 __EXPORT int		param_get(param_t param, void *val);
 
 /**
- * Copy the default value of a parameter.
+ * Copy the default value of a parameter. If no airframe default has been set then the generic system default will be used.
  *
  * @param param		A handle returned by param_find or passed by param_foreach.
  * @param val		Where to return the value, assumed to point to suitable storage for the parameter type.
@@ -330,10 +330,12 @@ __EXPORT int		param_export(int fd, bool only_unsaved, param_filter_func filter);
  *
  * @param fd		File descriptor to import from (-1 selects the FLASH storage).
  * @param mark_saved	Whether to mark imported parameters as already saved
+ * @param import_as_airframe_default If true then the actual parameter will not be modified
+ *				but the default value will be set.
  * @return		Zero on success, nonzero if an error occurred during import.
  *			Note that in the failure case, parameters may be inconsistent.
  */
-__EXPORT int		param_import(int fd, bool mark_saved);
+__EXPORT int		param_import(int fd, bool mark_saved, bool import_as_airframe_default);
 
 /**
  * Load parameters from a file.
