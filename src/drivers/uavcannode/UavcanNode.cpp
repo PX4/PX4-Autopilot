@@ -251,16 +251,18 @@ void UavcanNode::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<Uav
 
 		if (!inprogress) {
 			inprogress = true;
+#if defined(SUPPORT_ALT_CAN_BOOTLOADER)
 
 			if (!board_booted_by_px4()) {
 				bootloader_alt_app_shared_t shared_alt{0};
 				shared_alt.fw_server_node_id = req.source_node_id;
 				shared_alt.node_id = _node.getNodeID().get();
-				shared_alt.path[0] = '\0';
 				strncat((char *)shared_alt.path, (const char *)req.image_file_remote_path.path.c_str(), sizeof(shared_alt.path) - 1);
 				bootloader_alt_app_shared_write(&shared_alt);
 				board_configure_reset(BOARD_RESET_MODE_CAN_BL, shared_alt.node_id);
 			}
+
+#endif
 
 			bootloader_app_shared_t shared;
 			shared.bus_speed = active_bitrate;
@@ -527,17 +529,24 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 
 	} else {
 		// Node ID
+#if defined(SUPPORT_ALT_CAN_BOOTLOADER)
 		if (!board_booted_by_px4()) {
 			node_id = 0;
 			bitrate = 1000000;
 
-		} else {
+		} else
+#endif
+		{
 			(void)param_get(param_find("CANNODE_NODE_ID"), &node_id);
 			(void)param_get(param_find("CANNODE_BITRATE"), &bitrate);
 		}
 	}
 
-	if (board_booted_by_px4() && (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast())) {
+	if (
+#if defined(SUPPORT_ALT_CAN_BOOTLOADER)
+		board_booted_by_px4() &&
+#endif
+		(node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast())) {
 		PX4_ERR("Invalid Node ID %i", node_id);
 		return 1;
 	}

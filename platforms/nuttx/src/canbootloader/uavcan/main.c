@@ -84,8 +84,6 @@
 #pragma message "******** DANGER DEBUG_APPLICATION_INPLACE is DEFINED ******"
 #endif
 
-extern bootloader_alt_app_shared_t _sapp_bl_shared;
-
 typedef volatile struct bootloader_t {
 	can_speed_t bus_speed;
 	volatile uint8_t health;
@@ -1104,7 +1102,7 @@ __EXPORT int main(int argc, char *argv[])
 	bootloader.app_bl_request = (OK == bootloader_app_shared_read(&common, App)) &&
 				    common.bus_speed && common.node_id;
 
-
+#if defined(SUPPORT_ALT_CAN_BOOTLOADER)
 	/* Was this boot a result of An Alternate Application being told it has a FW update ? */
 
 	bootloader_alt_app_shared_t *ps = (bootloader_alt_app_shared_t *) &_sapp_bl_shared;
@@ -1117,6 +1115,7 @@ __EXPORT int main(int argc, char *argv[])
 		ps->signature = 0;
 	}
 
+#endif
 	/*
 	 * Mark CRC to say this is not from
 	 * auto baud and Node Allocation

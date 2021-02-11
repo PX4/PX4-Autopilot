@@ -616,6 +616,7 @@ typedef enum  reset_mode_e {
 int board_configure_reset(reset_mode_e mode, uint32_t arg);
 #endif
 
+#if defined(SUPPORT_ALT_CAN_BOOTLOADER)
 /****************************************************************************
  * Name: board_booted_by_px4
  *
@@ -631,7 +632,7 @@ int board_configure_reset(reset_mode_e mode, uint32_t arg);
  ****************************************************************************/
 
 bool board_booted_by_px4(void);
-
+#endif
 /************************************************************************************
  * Name: board_query_manifest
  *
