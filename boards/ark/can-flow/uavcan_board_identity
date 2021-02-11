@@ -6,8 +6,8 @@ add_definitions(
 	-DAPP_VERSION_MINOR=${uavcanblid_sw_version_minor}
 )
 
-set(uavcanblid_hw_version_major 1)
-set(uavcanblid_hw_version_minor 0)
+set(uavcanblid_hw_version_major 0)
+set(uavcanblid_hw_version_minor 80)
 set(uavcanblid_name "\"org.ark.can-flow\"")
 
 add_definitions(
