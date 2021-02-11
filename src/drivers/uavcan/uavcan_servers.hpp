@@ -220,5 +220,6 @@ private:
 	uavcan::ServiceClient<uavcan::protocol::param::ExecuteOpcode, ExecuteOpcodeCallback> _enumeration_save_client;
 
 	void unpackFwFromROMFS(const char *sd_path, const char *romfs_path);
+	void migrateFWFromRoot(const char *sd_path, const char *sd_root_path);
 	int copyFw(const char *dst, const char *src);
 };
