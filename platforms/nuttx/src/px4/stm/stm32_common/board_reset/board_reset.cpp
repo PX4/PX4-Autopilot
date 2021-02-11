@@ -131,6 +131,7 @@ int board_reset(int status)
 
 #endif /* CONFIG_BOARDCTL_RESET */
 
+#if defined(SUPPORT_ALT_CAN_BOOTLOADER)
 /****************************************************************************
  * Name: board_booted_by_px4
  *
@@ -152,3 +153,4 @@ bool board_booted_by_px4(void)
 
 	return (vectors[2] == vectors[3]) && (vectors[4] == vectors[5]);
 }
+#endif

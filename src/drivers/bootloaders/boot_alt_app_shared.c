@@ -34,6 +34,7 @@
 
 #include <nuttx/config.h>
 
+#if defined(SUPPORT_ALT_CAN_BOOTLOADER)
 #include <stdint.h>
 #include <string.h>
 
@@ -45,8 +46,6 @@
 #include "boot_alt_app_shared.h"
 
 #include <lib/systemlib/crc.h>
-
-extern void *_sapp_bl_shared;
 
 /****************************************************************************
  * Name: bootloader_alt_app_shared_read
@@ -142,3 +141,4 @@ __EXPORT void bootloader_alt_app_shared_invalidate(void)
 	bootloader_alt_app_shared->signature = 0;
 
 }
+#endif

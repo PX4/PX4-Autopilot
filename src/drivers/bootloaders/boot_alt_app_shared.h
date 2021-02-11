@@ -35,7 +35,7 @@
 #pragma once
 
 #include <nuttx/compiler.h>
-
+#if defined(SUPPORT_ALT_CAN_BOOTLOADER)
 __BEGIN_DECLS
 
 /****************************************************************************
@@ -73,6 +73,7 @@ typedef begin_packed_struct struct bootloader_alt_app_shared_t {
 } end_packed_struct bootloader_alt_app_shared_t;
 #pragma GCC diagnostic pop
 
+extern bootloader_alt_app_shared_t _sapp_bl_shared;
 
 /****************************************************************************
  * Name: bootloader_alt_app_shared_read
@@ -144,3 +145,4 @@ void bootloader_alt_app_shared_write(bootloader_alt_app_shared_t *alt_shared);
 void bootloader_alt_app_shared_invalidate(void);
 
 __END_DECLS
+#endif
