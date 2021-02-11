@@ -61,7 +61,7 @@ bool Ekf::collect_gps(const gps_message &gps)
 	// Run GPS checks always
 	_gps_checks_passed = gps_is_good(gps);
 
-	if (!_NED_origin_initialised && _gps_checks_passed) {
+	if (_filter_initialised && !_NED_origin_initialised && _gps_checks_passed) {
 		// If we have good GPS data set the origin's WGS-84 position to the last gps fix
 		const double lat = gps.lat * 1.0e-7;
 		const double lon = gps.lon * 1.0e-7;
