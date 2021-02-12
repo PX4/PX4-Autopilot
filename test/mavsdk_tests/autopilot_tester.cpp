@@ -603,28 +603,3 @@ void AutopilotTester::wait_for_mission_finished(std::chrono::seconds timeout)
 
 	REQUIRE(fut.wait_for(timeout) == std::future_status::ready);
 }
-
-std::chrono::milliseconds AutopilotTester::adjust_to_lockstep_speed(std::chrono::milliseconds duration_ms)
-{
-	if (_info == nullptr) {
-		return duration_ms;
-	}
-
-	auto speed_factor = _info->get_speed_factor();
-
-	if (speed_factor.first == Info::Result::Success) {
-		// FIXME: Remove this again:
-		//        Sanitize speed factor to avoid test failures.
-		if (speed_factor.second > 20.0f) {
-			speed_factor.second = 20.0f;
-		}
-
-		return static_cast<std::chrono::milliseconds>(
-			       static_cast<unsigned long>(
-				       std::round(
-					       static_cast<double>(duration_ms.count()) / speed_factor.second)));
-
-	} else {
-		return duration_ms;
-	}
-}
