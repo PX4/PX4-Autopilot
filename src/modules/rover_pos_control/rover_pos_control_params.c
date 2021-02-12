@@ -139,21 +139,6 @@ PARAM_DEFINE_FLOAT(GND_THR_MAX, 0.3f);
 PARAM_DEFINE_FLOAT(GND_THR_MIN, 0.0f);
 
 /**
- * Idle throttle
- *
- * This is the minimum throttle while on the ground, it should be 0 for a rover
- *
- *
- * @unit norm
- * @min 0.0
- * @max 0.4
- * @decimal 2
- * @increment 0.01
- * @group Rover Position Control
- */
-PARAM_DEFINE_FLOAT(GND_THR_IDLE, 0.0f);
-
-/**
  * Control mode for speed
  *
  * This allows the user to choose between closed loop gps speed or open loop cruise throttle speed
