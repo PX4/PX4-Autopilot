@@ -35,6 +35,19 @@
 
 #include <vtol_att_control/vtol_type.h>
 
+using math::constrain;
+using math::max;
+using math::min;
+using math::radians;
+
+using matrix::Dcmf;
+using matrix::Eulerf;
+using matrix::Quatf;
+using matrix::Vector2f;
+using matrix::Vector2d;
+using matrix::Vector3f;
+using matrix::wrap_pi;
+
 FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
@@ -587,7 +600,7 @@ FixedwingPositionControl::do_takeoff_help(float *hold_altitude, float *pitch_lim
 }
 
 bool
-FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2f &curr_pos,
+FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2d &curr_pos,
 		const Vector2f &ground_speed,
 		const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next)
 {
@@ -662,8 +675,8 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 		_tecs.set_speed_weight(_param_fw_t_spdweight.get());
 		_tecs.set_height_error_time_constant(_param_fw_t_h_error_tc.get());
 
-		Vector2f curr_wp{0.0f, 0.0f};
-		Vector2f prev_wp{0.0f, 0.0f};
+		Vector2d curr_wp{0, 0};
+		Vector2d prev_wp{0, 0};
 
 		if (_vehicle_status.in_transition_to_fw) {
 
@@ -674,8 +687,8 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 				waypoint_from_heading_and_distance(_current_latitude, _current_longitude, _yaw, HDG_HOLD_DIST_NEXT, &lat_transition,
 								   &lon_transition);
 
-				_transition_waypoint(0) = (float)lat_transition;
-				_transition_waypoint(1) = (float)lon_transition;
+				_transition_waypoint(0) = lat_transition;
+				_transition_waypoint(1) = lon_transition;
 			}
 
 
@@ -683,24 +696,25 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 
 		} else {
 			/* current waypoint (the one currently heading for) */
-			curr_wp = Vector2f((float)pos_sp_curr.lat, (float)pos_sp_curr.lon);
+			curr_wp = Vector2d(pos_sp_curr.lat, pos_sp_curr.lon);
 
 			if (pos_sp_prev.valid) {
-				prev_wp(0) = (float)pos_sp_prev.lat;
-				prev_wp(1) = (float)pos_sp_prev.lon;
+				prev_wp(0) = pos_sp_prev.lat;
+				prev_wp(1) = pos_sp_prev.lon;
 
 			} else {
 				/*
 				 * No valid previous waypoint, go for the current wp.
 				 * This is automatically handled by the L1 library.
 				 */
-				prev_wp(0) = (float)pos_sp_curr.lat;
-				prev_wp(1) = (float)pos_sp_curr.lon;
+				prev_wp(0) = pos_sp_curr.lat;
+				prev_wp(1) = pos_sp_curr.lon;
 			}
 
 
 			/* reset transition waypoint, will be set upon entering front transition */
-			_transition_waypoint.setNaN();
+			_transition_waypoint(0) = static_cast<double>(NAN);
+			_transition_waypoint(1) = static_cast<double>(NAN);
 		}
 
 		/* Initialize attitude controller integrator reset flags to 0 */
@@ -1007,8 +1021,8 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 					get_waypoint_heading_distance(_hdg_hold_yaw, _hdg_hold_prev_wp, _hdg_hold_curr_wp, false);
 				}
 
-				Vector2f prev_wp{(float)_hdg_hold_prev_wp.lat, (float)_hdg_hold_prev_wp.lon};
-				Vector2f curr_wp{(float)_hdg_hold_curr_wp.lat, (float)_hdg_hold_curr_wp.lon};
+				Vector2d prev_wp{_hdg_hold_prev_wp.lat, _hdg_hold_prev_wp.lon};
+				Vector2d curr_wp{_hdg_hold_curr_wp.lat, _hdg_hold_curr_wp.lon};
 
 				/* populate l1 control setpoint */
 				_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, ground_speed);
@@ -1157,24 +1171,24 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 }
 
 void
-FixedwingPositionControl::control_takeoff(const hrt_abstime &now, const Vector2f &curr_pos,
+FixedwingPositionControl::control_takeoff(const hrt_abstime &now, const Vector2d &curr_pos,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
 	/* current waypoint (the one currently heading for) */
-	Vector2f curr_wp((float)pos_sp_curr.lat, (float)pos_sp_curr.lon);
-	Vector2f prev_wp{0.0f, 0.0f}; /* previous waypoint */
+	Vector2d curr_wp(pos_sp_curr.lat, pos_sp_curr.lon);
+	Vector2d prev_wp{0, 0}; /* previous waypoint */
 
 	if (pos_sp_prev.valid) {
-		prev_wp(0) = (float)pos_sp_prev.lat;
-		prev_wp(1) = (float)pos_sp_prev.lon;
+		prev_wp(0) = pos_sp_prev.lat;
+		prev_wp(1) = pos_sp_prev.lon;
 
 	} else {
 		/*
 		 * No valid previous waypoint, go for the current wp.
 		 * This is automatically handled by the L1 library.
 		 */
-		prev_wp(0) = (float)pos_sp_curr.lat;
-		prev_wp(1) = (float)pos_sp_curr.lon;
+		prev_wp(0) = pos_sp_curr.lat;
+		prev_wp(1) = pos_sp_curr.lon;
 	}
 
 	// apply flaps for takeoff according to the corresponding scale factor set
@@ -1326,24 +1340,24 @@ FixedwingPositionControl::control_takeoff(const hrt_abstime &now, const Vector2f
 }
 
 void
-FixedwingPositionControl::control_landing(const hrt_abstime &now, const Vector2f &curr_pos,
+FixedwingPositionControl::control_landing(const hrt_abstime &now, const Vector2d &curr_pos,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
 	/* current waypoint (the one currently heading for) */
-	Vector2f curr_wp((float)pos_sp_curr.lat, (float)pos_sp_curr.lon);
-	Vector2f prev_wp{0.0f, 0.0f}; /* previous waypoint */
+	Vector2d curr_wp(pos_sp_curr.lat, pos_sp_curr.lon);
+	Vector2d prev_wp{0, 0}; /* previous waypoint */
 
 	if (pos_sp_prev.valid) {
-		prev_wp(0) = (float)pos_sp_prev.lat;
-		prev_wp(1) = (float)pos_sp_prev.lon;
+		prev_wp(0) = pos_sp_prev.lat;
+		prev_wp(1) = pos_sp_prev.lon;
 
 	} else {
 		/*
 		 * No valid previous waypoint, go for the current wp.
 		 * This is automatically handled by the L1 library.
 		 */
-		prev_wp(0) = (float)pos_sp_curr.lat;
-		prev_wp(1) = (float)pos_sp_curr.lon;
+		prev_wp(0) = pos_sp_curr.lat;
+		prev_wp(1) = pos_sp_curr.lon;
 	}
 
 	// apply full flaps for landings. this flag will also trigger the use of flaperons
@@ -1392,8 +1406,8 @@ FixedwingPositionControl::control_landing(const hrt_abstime &now, const Vector2f
 		create_waypoint_from_line_and_dist(pos_sp_curr.lat, pos_sp_curr.lon,
 						   pos_sp_prev.lat, pos_sp_prev.lon, -1000.0f, &lat, &lon);
 
-		curr_wp(0) = (float)lat;
-		curr_wp(1) = (float)lon;
+		curr_wp(0) = lat;
+		curr_wp(1) = lon;
 	}
 
 	// we want the plane to keep tracking the desired flight path until we start flaring
@@ -1693,7 +1707,7 @@ FixedwingPositionControl::Run()
 
 		_vehicle_status_sub.update(&_vehicle_status);
 
-		Vector2f curr_pos((float)_current_latitude, (float)_current_longitude);
+		Vector2d curr_pos(_current_latitude, _current_longitude);
 		Vector2f ground_speed(_local_pos.vx, _local_pos.vy);
 
 		//Convert Local setpoints to global setpoints
