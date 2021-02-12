@@ -50,6 +50,7 @@
 #			[ IO <string> ]
 #			[ BOOTLOADER <string> ]
 #			[ UAVCAN_INTERFACES <string> ]
+#			[ UAVCAN_PERIPHERALS <list> ]
 #			[ DRIVERS <list> ]
 #			[ MODULES <list> ]
 #			[ SYSTEMCMDS <list> ]
@@ -74,6 +75,7 @@
 #		IO			: name of IO board to be built and included in the ROMFS (requires a valid ROMFSROOT)
 #		BOOTLOADER		: bootloader file to include for flashing via bl_update (currently NuttX only)
 #		UAVCAN_INTERFACES	: number of interfaces for UAVCAN
+#		UAVCAN_PERIPHERALS      : list of UAVCAN peripheral firmware to build and embed
 #		DRIVERS			: list of drivers to build for this board (relative to src/drivers)
 #		MODULES			: list of modules to build for this board (relative to src/modules)
 #		SYSTEMCMDS		: list of system commands to build for this board (relative to src/systemcmds)
@@ -154,6 +156,7 @@ function(px4_add_board)
 			SYSTEMCMDS
 			EXAMPLES
 			SERIAL_PORTS
+			UAVCAN_PERIPHERALS
 			EMBEDDED_METADATA
 		OPTIONS
 			BUILD_BOOTLOADER
@@ -235,6 +238,10 @@ function(px4_add_board)
 		# IO board (placed in ROMFS)
 		if(IO)
 			set(config_io_board ${IO} CACHE INTERNAL "IO" FORCE)
+		endif()
+
+		if(UAVCAN_PERIPHERALS)
+			set(config_uavcan_peripheral_firmware ${UAVCAN_PERIPHERALS} CACHE INTERNAL "UAVCAN peripheral firmware" FORCE)
 		endif()
 	endif()
 
