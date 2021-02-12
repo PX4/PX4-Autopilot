@@ -150,7 +150,7 @@ private:
 	} _pos_ctrl_state {STOPPING};			/// Position control state machine
 
 	/* previous waypoint */
-	matrix::Vector2f _prev_wp{0.0f, 0.0f};
+	matrix::Vector2d _prev_wp{0, 0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::GND_L1_PERIOD>) _param_l1_period,
@@ -190,7 +190,7 @@ private:
 	/**
 	 * Control position.
 	 */
-	bool		control_position(const matrix::Vector2f &global_pos, const matrix::Vector3f &ground_speed,
+	bool		control_position(const matrix::Vector2d &global_pos, const matrix::Vector3f &ground_speed,
 					 const position_setpoint_triplet_s &_pos_sp_triplet);
 	void		control_velocity(const matrix::Vector3f &current_velocity, const position_setpoint_triplet_s &pos_sp_triplet);
 	void		control_attitude(const vehicle_attitude_s &att, const vehicle_attitude_setpoint_s &att_sp);
