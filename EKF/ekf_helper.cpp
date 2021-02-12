@@ -688,7 +688,7 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 	bool current_pos_available = false;
 	double current_lat = static_cast<double>(NAN);
 	double current_lon = static_cast<double>(NAN);
-	float current_alt  = NAN;
+	float current_alt  = 0.f;
 
 	// if we are already doing aiding, correct for the change in position since the EKF started navigating
 	if (map_projection_initialized(&_pos_ref) && isHorizontalAidingActive()) {
@@ -699,7 +699,6 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 
 	// reinitialize map projection to latitude, longitude, altitude, and reset position
 	if (map_projection_init_timestamped(&_pos_ref, latitude, longitude, _time_last_imu) == 0) {
-
 		if (current_pos_available) {
 			// reset horizontal position
 			Vector2f position;
@@ -709,6 +708,9 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 			// reset altitude
 			_gps_alt_ref = altitude;
 			resetVerticalPositionTo(_gps_alt_ref - current_alt);
+		} else {
+			// reset altitude
+			_gps_alt_ref = altitude;
 		}
 
 		return true;

@@ -2,15 +2,15 @@
 
 
 SensorSimulator::SensorSimulator(std::shared_ptr<Ekf> ekf):
-_ekf{ekf},
-_imu(ekf),
-_mag(ekf),
-_baro(ekf),
-_gps(ekf),
-_flow(ekf),
-_rng(ekf),
-_vio(ekf),
-_airspeed(ekf)
+	_airspeed(ekf),
+	_baro(ekf),
+	_flow(ekf),
+	_gps(ekf),
+	_imu(ekf),
+	_mag(ekf),
+	_rng(ekf),
+	_vio(ekf),
+	_ekf{ekf}
 {
 	setSensorRateToDefault();
 	setSensorDataToDefault();
@@ -115,23 +115,24 @@ void SensorSimulator::setSensorRateToDefault()
 	_vio.setRateHz(30);
 	_airspeed.setRateHz(100);
 }
+
 void SensorSimulator::setSensorDataToDefault()
 {
-	_imu.setData(Vector3f{0.0f,0.0f,-CONSTANTS_ONE_G},
-		     Vector3f{0.0f,0.0f,0.0f});
-	_mag.setData(Vector3f{0.2f, 0.0f, 0.4f});
+	_airspeed.setData(0.0f, 0.0f);
 	_baro.setData(122.2f);
-	_gps.setData(_gps.getDefaultGpsData());
 	_flow.setData(_flow.dataAtRest());
+	_gps.setData(_gps.getDefaultGpsData());
+	_imu.setData(Vector3f{0.0f,0.0f,-CONSTANTS_ONE_G}, Vector3f{0.0f,0.0f,0.0f});
+	_mag.setData(Vector3f{0.2f, 0.0f, 0.4f});
 	_rng.setData(0.2f, 100);
 	_vio.setData(_vio.dataAtRest());
-	_airspeed.setData(0.0f, 0.0f);
 }
+
 void SensorSimulator::startBasicSensor()
 {
+	_baro.start();
 	_imu.start();
 	_mag.start();
-	_baro.start();
 }
 
 void SensorSimulator::runSeconds(float duration_seconds)
@@ -278,6 +279,24 @@ void SensorSimulator::setSingleReplaySample(const sensor_info& sample)
 		printf("Unknown sensor type, can not set replay sample");
 		exit(-1);
 	}
+}
+
+void SensorSimulator::setGpsLatitude(const double latitude)
+{
+	int32_t lat = static_cast<int32_t>(latitude * 1e7);
+	_gps.setLatitude(lat);
+}
+
+void SensorSimulator::setGpsLongitude(const double longitude)
+{
+	int32_t lon = static_cast<int32_t>(longitude * 1e7);
+	_gps.setLongitude(lon);
+}
+
+void SensorSimulator::setGpsAltitude(const float altitude)
+{
+	int32_t alt = static_cast<int32_t>(altitude * 1e3);
+	_gps.setAltitude(alt);
 }
 
 void SensorSimulator::setImuBias(Vector3f accel_bias, Vector3f gyro_bias)

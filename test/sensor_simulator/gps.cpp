@@ -13,7 +13,7 @@ Gps::~Gps()
 {
 }
 
-void Gps::send(uint64_t time)
+void Gps::send(const uint64_t time)
 {
 	const float dt = static_cast<float>(time - _gps_data.time_usec) * 1e-6f;
 
@@ -34,17 +34,17 @@ void Gps::setData(const gps_message& gps)
 	_gps_data = gps;
 }
 
-void Gps::setAltitude(int32_t alt)
+void Gps::setAltitude(const int32_t alt)
 {
 	_gps_data.alt = alt;
 }
 
-void Gps::setLatitude(int32_t lat)
+void Gps::setLatitude(const int32_t lat)
 {
 	_gps_data.lat = lat;
 }
 
-void Gps::setLongitude(int32_t lon)
+void Gps::setLongitude(const int32_t lon)
 {
 	_gps_data.lon = lon;
 }
@@ -54,43 +54,53 @@ void Gps::setVelocity(const Vector3f& vel)
 	_gps_data.vel_ned = vel;
 }
 
-void Gps::setYaw(float yaw) {
+void Gps::setYaw(const float yaw) {
 	_gps_data.yaw = yaw;
 }
 
-void Gps::setYawOffset(float yaw_offset) {
+void Gps::setYawOffset(const float yaw_offset) {
 	_gps_data.yaw_offset = yaw_offset;
 }
 
-void Gps::setFixType(int n)
+void Gps::setFixType(const int fix_type)
 {
-	_gps_data.fix_type = n;
+	_gps_data.fix_type = fix_type;
 }
 
-void Gps::setNumberOfSatellites(int n)
+void Gps::setNumberOfSatellites(const int num_satellites)
 {
-	_gps_data.nsats = n;
+	_gps_data.nsats = num_satellites;
 }
 
-void Gps::setPdop(float pdop)
+void Gps::setPdop(const float pdop)
 {
 	_gps_data.pdop = pdop;
 }
 
-void Gps::stepHeightByMeters(float hgt_change)
+void Gps::setPositionRateNED(const Vector3f& rate)
+{
+	_gps_pos_rate = rate;
+}
+
+void Gps::stepHeightByMeters(const float hgt_change)
 {
 	_gps_data.alt += hgt_change * 1e3f;
 }
 
-void Gps::stepHorizontalPositionByMeters(Vector2f hpos_change)
+void Gps::stepHorizontalPositionByMeters(const Vector2f hpos_change)
 {
-	float hposN_curr;
-	float hposE_curr;
+	float hposN_curr {0.f};
+	float hposE_curr {0.f};
+
+	double lat_new {0.0};
+	double lon_new {0.0};
+
 	map_projection_project(&_ekf->global_origin(), _gps_data.lat * 1e-7, _gps_data.lon * 1e-7, &hposN_curr, &hposE_curr);
+
 	Vector2f hpos_new = Vector2f{hposN_curr, hposE_curr} + hpos_change;
-	double lat_new;
-	double lon_new;
+
 	map_projection_reproject(&_ekf->global_origin(), hpos_new(0), hpos_new(1), &lat_new, &lon_new);
+
 	_gps_data.lon = static_cast<int32_t>(lon_new * 1e7);
 	_gps_data.lat = static_cast<int32_t>(lat_new * 1e7);
 }
