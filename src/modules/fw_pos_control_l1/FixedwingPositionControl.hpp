@@ -89,21 +89,12 @@
 #include <uORB/uORB.h>
 #include <vtol_att_control/vtol_type.h>
 
-using math::constrain;
-using math::max;
-using math::min;
-using math::radians;
-
-using matrix::Dcmf;
-using matrix::Eulerf;
-using matrix::Quatf;
-using matrix::Vector2f;
-using matrix::Vector3f;
-using matrix::wrap_pi;
-
 using namespace launchdetection;
 using namespace runwaytakeoff;
 using namespace time_literals;
+
+using matrix::Vector2d;
+using matrix::Vector2f;
 
 static constexpr float HDG_HOLD_DIST_NEXT =
 	3000.0f; // initial distance of waypoint in front of plane in heading hold mode
@@ -248,7 +239,7 @@ private:
 
 	bool _vtol_tailsitter{false};
 
-	Vector2f _transition_waypoint{NAN, NAN};
+	matrix::Vector2d _transition_waypoint{(double)NAN, (double)NAN};
 
 	// estimator reset counters
 	uint8_t _pos_reset_counter{0};				///< captures the number of times the estimator has reset the horizontal position
@@ -324,13 +315,13 @@ private:
 	 */
 	void		update_desired_altitude(float dt);
 
-	bool		control_position(const hrt_abstime &now, const Vector2f &curr_pos, const Vector2f &ground_speed,
+	bool		control_position(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
 					 const position_setpoint_s &pos_sp_prev,
 					 const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
-	void		control_takeoff(const hrt_abstime &now, const Vector2f &curr_pos, const Vector2f &ground_speed,
+	void		control_takeoff(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
 					const position_setpoint_s &pos_sp_prev,
 					const position_setpoint_s &pos_sp_curr);
-	void		control_landing(const hrt_abstime &now, const Vector2f &curr_pos, const Vector2f &ground_speed,
+	void		control_landing(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
 					const position_setpoint_s &pos_sp_prev,
 					const position_setpoint_s &pos_sp_curr);
 

@@ -46,7 +46,6 @@
 #include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 
-using matrix::Vector2f;
 using namespace time_literals;
 
 namespace runwaytakeoff
@@ -69,8 +68,8 @@ void RunwayTakeoff::init(const hrt_abstime &now, float yaw, double current_lat, 
 	_state = RunwayTakeoffState::THROTTLE_RAMP;
 	_initialized_time = now;
 	_climbout = true; // this is true until climbout is finished
-	_start_wp(0) = (float)current_lat;
-	_start_wp(1) = (float)current_lon;
+	_start_wp(0) = current_lat;
+	_start_wp(1) = current_lon;
 }
 
 void RunwayTakeoff::update(const hrt_abstime &now, float airspeed, float alt_agl,
@@ -103,8 +102,8 @@ void RunwayTakeoff::update(const hrt_abstime &now, float airspeed, float alt_agl
 			 * The navigator will take this as starting point to navigate towards the takeoff WP.
 			 */
 			if (_param_rwto_hdg.get() == 0) {
-				_start_wp(0) = (float)current_lat;
-				_start_wp(1) = (float)current_lon;
+				_start_wp(0) = current_lat;
+				_start_wp(1) = current_lon;
 			}
 
 			mavlink_log_info(mavlink_log_pub, "#Climbout");
@@ -246,14 +245,6 @@ float RunwayTakeoff::getMaxPitch(float max)
 	else {
 		return max;
 	}
-}
-
-/*
- * Returns the "previous" (start) WP for navigation.
- */
-Vector2f RunwayTakeoff::getStartWP()
-{
-	return _start_wp;
 }
 
 void RunwayTakeoff::reset()
