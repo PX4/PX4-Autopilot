@@ -179,15 +179,7 @@ void AutopilotTester::prepare_square_mission(MissionOptions mission_options)
 
 	_mission->set_return_to_launch_after_mission(mission_options.rtl_at_end);
 
-	std::promise<void> prom;
-	auto fut = prom.get_future();
-
-	_mission->upload_mission_async(mission_plan, [&prom](Mission::Result result) {
-		REQUIRE(Mission::Result::Success == result);
-		prom.set_value();
-	});
-
-	REQUIRE(fut.wait_for(std::chrono::seconds(2)) == std::future_status::ready);
+	REQUIRE(_mission->upload_mission(mission_plan) == Mission::Result::Success);
 }
 
 void AutopilotTester::prepare_straight_mission(MissionOptions mission_options)
@@ -203,15 +195,7 @@ void AutopilotTester::prepare_straight_mission(MissionOptions mission_options)
 
 	_mission->set_return_to_launch_after_mission(mission_options.rtl_at_end);
 
-	std::promise<void> prom;
-	auto fut = prom.get_future();
-
-	_mission->upload_mission_async(mission_plan, [&prom](Mission::Result result) {
-		REQUIRE(Mission::Result::Success == result);
-		prom.set_value();
-	});
-
-	REQUIRE(fut.wait_for(std::chrono::seconds(2)) == std::future_status::ready);
+	REQUIRE(_mission->upload_mission(mission_plan) == Mission::Result::Success);
 }
 
 void AutopilotTester::execute_mission()
