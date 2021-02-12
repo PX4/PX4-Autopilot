@@ -199,8 +199,8 @@ private:
 
 		// FIXME: Remove this again:
 		//        Sanitize speed factor to avoid test failures.
-		if (speed_factor.second > 50.0f) {
-			speed_factor.second = 50.0f;
+		if (speed_factor.second > 10.0f) {
+			speed_factor.second = 10.0f;
 		}
 
 		const auto new_duration_us  = static_cast<std::chrono::microseconds>(duration_us.count() / static_cast<int>
