@@ -62,32 +62,19 @@
 using namespace sensor_simulator::sensor;
 
 struct sensor_info {
-uint64_t timestamp {};
-enum measurement_t {IMU, MAG, BARO, GPS, AIRSPEED, RANGE, FLOW, VISION, LANDING_STATUS} sensor_type = IMU;
-std::array<double, 10> sensor_data {};
+	uint64_t timestamp {};
+	enum measurement_t {IMU, MAG, BARO, GPS, AIRSPEED, RANGE, FLOW, VISION, LANDING_STATUS} sensor_type = IMU;
+	std::array<double, 10> sensor_data {};
 };
 
 class SensorSimulator
 {
 
-private:
-	std::shared_ptr<Ekf> _ekf;
-
-	uint64_t _time {0};	// in microseconds
-
-	void setSensorDataToDefault();
-	void setSensorRateToDefault();
-	void startBasicSensor();
-	void updateSensors();
-	void setSensorDataFromReplayData();
-	void setSingleReplaySample(const sensor_info& sample);
-
-
 public:
 	SensorSimulator(std::shared_ptr<Ekf> ekf);
 	~SensorSimulator();
 
-	uint64_t getTime() const{ return _time; };
+	uint64_t getTime() const { return _time; };
 
 	void runSeconds(float duration_seconds);
 	void runMicroseconds(uint32_t duration);
@@ -95,40 +82,60 @@ public:
 	void runReplaySeconds(float duration_seconds);
 	void runReplayMicroseconds(uint32_t duration);
 
-	void startBaro(){ _baro.start(); }
-	void stopBaro(){ _baro.stop(); }
+	void startBaro() { _baro.start(); }
+	void stopBaro() { _baro.stop(); }
 
-	void startGps(){ _gps.start(); }
-	void stopGps(){ _gps.stop(); }
+	void startGps() { _gps.start(); }
+	void stopGps() { _gps.stop(); }
 
-	void startFlow(){ _flow.start(); }
-	void stopFlow(){ _flow.stop(); }
+	void startFlow() { _flow.start(); }
+	void stopFlow() { _flow.stop(); }
 
-	void startRangeFinder(){ _rng.start(); }
-	void stopRangeFinder(){ _rng.stop(); }
+	void startRangeFinder() { _rng.start(); }
+	void stopRangeFinder() { _rng.stop(); }
 
-	void startExternalVision(){ _vio.start(); }
-	void stopExternalVision(){ _vio.stop(); }
+	void startExternalVision() { _vio.start(); }
+	void stopExternalVision() { _vio.stop(); }
 
-	void startAirspeedSensor(){ _airspeed.start(); }
-	void stopAirspeedSensor(){ _airspeed.stop(); }
+	void startAirspeedSensor() { _airspeed.start(); }
+	void stopAirspeedSensor() { _airspeed.stop(); }
+
+	void setGpsLatitude(const double latitude);
+	void setGpsLongitude(const double longitude);
+	void setGpsAltitude(const float altitude);
 
 	void setImuBias(Vector3f accel_bias, Vector3f gyro_bias);
+
 	void simulateOrientation(Quatf orientation);
 
 	void loadSensorDataFromFile(std::string filename);
 
-	Imu _imu;
-	Mag _mag;
-	Baro _baro;
-	Gps _gps;
-	Flow _flow;
+	Airspeed    _airspeed;
+	Baro        _baro;
+	Flow        _flow;
+	Gps         _gps;
+	Imu         _imu;
+	Mag         _mag;
 	RangeFinder _rng;
-	Vio _vio;
-	Airspeed _airspeed;
+	Vio         _vio;
+
+protected:
+
+private:
+	void setSensorDataToDefault();
+	void setSensorDataFromReplayData();
+	void setSensorRateToDefault();
+	void setSingleReplaySample(const sensor_info& sample);
+	void startBasicSensor();
+	void updateSensors();
+
+	std::shared_ptr<Ekf> _ekf {nullptr};
+
+	std::vector<sensor_info> _replay_data {};
 
 	bool _has_replay_data {false};
-	std::vector<sensor_info> _replay_data;
+
 	uint64_t _current_replay_data_index {0};
+	uint64_t _time {0};	// microseconds
 
 };
