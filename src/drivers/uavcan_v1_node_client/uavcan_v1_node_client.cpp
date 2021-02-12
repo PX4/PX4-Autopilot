@@ -62,7 +62,8 @@ UavcanNodeClient::UavcanNodeClient(const char can_bus_name[], bool is_can_fd)  :
 	_fd{0},
 	_can_bus_name{},
 	_state(UavcanNodeStates::UAVCANNODE_STATE_INIT),
-	_random_wait_time(0)
+	_random_wait_time(0),
+	_is_time_for_new_uorb_msg(false)
 {
 	if (UAVCANNODE_CLIENT_DEV_NAME_SIZE >= strlen(can_bus_name)) {
 		memcpy(_can_bus_name, can_bus_name, strlen(can_bus_name));
@@ -184,7 +185,11 @@ void UavcanNodeClient::run()
 			}
 
 		case UavcanNodeStates::UAVCANNODE_STATE_UORB_CONVERTER_RUN:
-			uorbProcessSub(10);
+			if (_is_time_for_new_uorb_msg) {
+				_is_time_for_new_uorb_msg = false;
+				uorbProcessSub(10);
+			}
+
 			break;
 
 		default:
@@ -193,6 +198,7 @@ void UavcanNodeClient::run()
 
 		process_tx_once(&_canard_instance, &_canard_socket_instance);
 		process_rx_once(&_canard_instance, &_canard_socket_instance);
+		process_tx_once(&_canard_instance, &_canard_socket_instance); // previous rx function trigger transmit. Needs rework.
 
 		px4_usleep(TASK_INTERVAL);
 	}
@@ -238,24 +244,30 @@ void UavcanNodeClient::process_tx_once(CanardInstance *ins, CanardSocketInstance
 {
 	/* Transmitting */
 
-	for (const CanardFrame *txf = NULL; (txf = canardTxPeek(ins)) != NULL;) { // Look at the top of the TX queue.
+	const CanardFrame *txf = canardTxPeek(ins);
 
+	if (txf != NULL) {
+
+		int error;
+		bool timeout = false;
 		uint64_t current_timestamp = hrt_absolute_time();
 
 		if (txf->timestamp_usec > current_timestamp) { // Check if the frame has timed out.
 
-			int error = socketcanTransmit(sock_ins, txf); // Send the frame. Redundant interfaces may be used here.
-
-			if (error == -EBUSY) {
-				break; // If the driver is busy, break and retry later.
-			}
+			error = socketcanTransmit(sock_ins, txf); // Send the frame. Redundant interfaces may be used here.
 
 		} else {
-			PX4_INFO("Timeout??\n");
+			timeout = true;
+			PX4_INFO("Canard frame timeout!");
 		}
 
-		canardTxPop(ins);                         // Remove the frame from the queue after it's transmitted.
-		ins->memory_free(ins, (CanardFrame *)txf); // Deallocate the dynamic memory afterwards.
+		if ((error != -EBUSY) || timeout) {
+			canardTxPop(ins);                         // Remove the frame from the queue after it's transmitted.
+			ins->memory_free(ins, (CanardFrame *)txf); // Deallocate the dynamic memory afterwards.
+		}
+
+	} else {
+		_is_time_for_new_uorb_msg = true;
 	}
 }
 

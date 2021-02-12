@@ -122,6 +122,7 @@ private:
 
 	UavcanNodeStates _state;
 	hrt_abstime _random_wait_time;
+	bool _is_time_for_new_uorb_msg;
 
 	static const int POLL_TIMEOUT					{10};	  // 10 ms
 	static const hrt_abstime TASK_INTERVAL			{100_us};
