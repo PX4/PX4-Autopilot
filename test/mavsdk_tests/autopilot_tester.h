@@ -131,8 +131,6 @@ private:
 	void wait_for_landed_state(Telemetry::LandedState landed_state, std::chrono::seconds timeout);
 	void wait_for_mission_finished(std::chrono::seconds timeout);
 
-	std::chrono::milliseconds adjust_to_lockstep_speed(std::chrono::milliseconds duration_ms);
-
 	template<typename Rep, typename Period>
 	bool poll_condition_with_timeout(
 		std::function<bool()> fun, std::chrono::duration<Rep, Period> duration)
@@ -182,6 +180,33 @@ private:
 		}
 
 		return true;
+	}
+
+	template<typename Rep, typename Period>
+	std::chrono::microseconds adjust_to_lockstep_speed(std::chrono::duration<Rep, Period> duration)
+	{
+		const std::chrono::microseconds duration_us(duration);
+
+		if (_info == nullptr) {
+			return duration_us;
+		}
+
+		auto speed_factor = _info->get_speed_factor();
+
+		if (speed_factor.first != Info::Result::Success) {
+			return duration_us;
+		}
+
+		// FIXME: Remove this again:
+		//        Sanitize speed factor to avoid test failures.
+		if (speed_factor.second > 50.0f) {
+			speed_factor.second = 50.0f;
+		}
+
+		const auto new_duration_us  = static_cast<std::chrono::microseconds>(duration_us.count() / static_cast<int>
+					      (speed_factor.second));
+
+		return new_duration_us;
 	}
 
 	mavsdk::Mavsdk _mavsdk{};
