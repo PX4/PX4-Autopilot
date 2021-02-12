@@ -345,7 +345,7 @@ void AutopilotTester::fly_forward_in_posctl()
 	const unsigned manual_control_rate_hz = 50;
 
 	// Send something to make sure RC is available.
-	for (unsigned i = 0; i < 5 * manual_control_rate_hz; ++i) {
+	for (unsigned i = 0; i < 1 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 0.5f, 0.f) == ManualControl::Result::Success);
 		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
 	}
@@ -380,7 +380,7 @@ void AutopilotTester::fly_forward_in_altctl()
 	const unsigned manual_control_rate_hz = 50;
 
 	// Send something to make sure RC is available.
-	for (unsigned i = 0; i < 5 * manual_control_rate_hz; ++i) {
+	for (unsigned i = 0; i < 1 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 0.5f, 0.f) == ManualControl::Result::Success);
 		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
 	}
