@@ -108,6 +108,11 @@ private:
 	void Run() override;
 	void fill_node_info();
 
+	int handlePnpNodeIDAllocationData(const CanardTransfer &receive);
+	int handleRegisterList(const CanardTransfer &receive);
+	int handleBMSStatus(const CanardTransfer &receive);
+	int handleUORBSensorGPS(const CanardTransfer &receive);
+
 	void *_uavcan_heap{nullptr};
 
 	CanardInterface *const _can_interface;
