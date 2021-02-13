@@ -175,3 +175,35 @@ PARAM_DEFINE_FLOAT(MC_RATT_TH, 0.8f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MC_MAN_TILT_TAU, 0.0f);
+
+/**
+ * RCAC Attitude switches.
+ *
+ * Specifies RCAC state.
+ *
+ * @min -10
+ * @max 10
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MPC_RCAC_ATT_SW, -1.0f);
+
+/**
+ * PID Attitude gain.
+ *
+ * Specifies gain applied to the PID attitude gains.
+ *
+ * @min -10
+ * @max 10
+ * @group Multicopter RCAC Control
+ */
+PARAM_DEFINE_FLOAT(MPC_ATT_ALPHA, 1.0f);
+
+/**
+ * P0 for the Attitude controller
+ *
+ * @min 0.0
+ * @max 10.0
+ * @decimal 8
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MPC_RCAC_ATT_P0, 0.01f);

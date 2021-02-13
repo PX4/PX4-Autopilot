@@ -52,7 +52,8 @@ void AttitudeControl::setProportionalGain(const matrix::Vector3f &proportional_g
 	}
 }
 
-matrix::Vector3f AttitudeControl::update(const Quatf &q) const
+//matrix::Vector3f AttitudeControl::update(const Quatf &q) const
+matrix::Vector3f AttitudeControl::update(const Quatf &q, const bool landed)
 {
 	Quatf qd = _attitude_setpoint_q;
 
@@ -85,10 +86,56 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 
 	// using sin(alpha/2) scaled rotation axis as attitude error (see quaternion definition by axis angle)
 	// also taking care of the antipodal unit quaternion ambiguity
+	//const Vector3f eq = 2.f * qe.canonical().imag();
 	const Vector3f eq = 2.f * qe.canonical().imag();
 
 	// calculate angular rates setpoint
 	matrix::Vector3f rate_setpoint = eq.emult(_proportional_gain);
+	
+	//// rate_setpoint = alpha_PID*rate_setpoint;
+	//// rate_setpoint = alpha_PID_att*rate_setpoint;
+	
+	//this->z_k_Pq_R.setZero();
+	z_k_Pq_R = rate_setpoint;
+	u_k_Pq_R.setZero();
+	if (landed)
+	{
+		ii_Pq_R = 0;
+	}
+
+	if ((RCAC_Aq_ON) && (!landed))
+	{
+		ii_Pq_R = ii_Pq_R + 1;
+		if (ii_Pq_R == 1)
+		{
+			init_RCAC_att();
+			//P_Pq_R = eye<float, 3>() * _param_mpc_rcac_att_p0.get();
+		}
+		for (int i = 0; i <= 2; i++) {
+			phi_k_Pq_R(i, i) = eq(i);
+			theta_k_Pq_PID(i) = _proportional_gain(i); //Ankit: Not needed now, but keep it just in case
+		}
+
+		//z_k_Pq_R.setZero();
+		//z_k_Pq_R += rate_setpoint;
+
+		Gamma_Pq_R 	= phi_km1_Pq_R * P_Pq_R * phi_km1_Pq_R.T() + I3;
+		Gamma_Pq_R 	= Gamma_Pq_R.I();
+		P_Pq_R 		= P_Pq_R - (P_Pq_R * phi_km1_Pq_R.T()) * Gamma_Pq_R * (phi_km1_Pq_R * P_Pq_R);
+		//theta_k_Pq_R 	= theta_k_Pq_R + (P_Pq_R * phi_km1_Pq_R.T()) *
+		//		 (z_k_Pq_R + (-1.0f)*(phi_km1_Pq_R * theta_k_Pq_R - u_km1_Pq_R) * (-1.0f));
+		theta_k_Pq_R 	= theta_k_Pq_R + (P_Pq_R * phi_km1_Pq_R.T()) * N1_Pq *
+				 (z_k_Pq_R + N1_Pq*(phi_km1_Pq_R * theta_k_Pq_R - u_km1_Pq_R) );
+
+		//u_k_Pq_R 	= phi_k_Pq_R * (theta_k_Pq_R+ 0*alpha_PID *theta_k_Pq_PID);
+		u_k_Pq_R 	= phi_k_Pq_R * (theta_k_Pq_R+ 0*alpha_PID_att *theta_k_Pq_PID);
+		u_km1_Pq_R 	= u_k_Pq_R;
+		phi_km1_Pq_R 	= phi_k_Pq_R;
+	}
+	//rate_setpoint 	= alpha_PID * rate_setpoint + u_k_Pq_R;
+	rate_setpoint 	= alpha_PID_att * rate_setpoint + u_k_Pq_R;
+
+	
 
 	// Feed forward the yaw setpoint rate.
 	// yawspeed_setpoint is the feed forward commanded rotation around the world z-axis,

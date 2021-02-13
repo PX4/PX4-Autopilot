@@ -179,6 +179,141 @@ public:
 	 */
 	void getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const;
 
+		/**
+	 * 	Get the
+	 * 	@see z_k_Pr_R
+	 * 	@return The z variable used by RCAC in the P controller
+	 */
+	const matrix::Vector3f get_RCAC_pos_z();
+
+	/**
+	 * 	Get the
+	 * 	@see u_k_Pr_R
+	 * 	@return The u variable computed by RCAC in the P controller
+	 */
+	const matrix::Vector3f get_RCAC_pos_u();
+	/**
+	 * 	Get the
+	 * 	@see theta_k_Pr_R
+	 * 	@return The theta variable computed by RCAC in the P controller
+	 */
+	const matrix::Vector3f get_RCAC_pos_theta();
+
+	/**
+	 * 	Get the
+	 * 	@see Pos P gains
+	 * 	@return The P gains
+	 */
+	const matrix::Vector3f get_PX4_pos_theta();
+
+	/**
+	 * 	Get the
+	 * 	@see PID gains
+	 * 	@return PX4's PID gains in the outer loop
+	 */
+	const matrix::Matrix<float, 9,1> get_PX4_ol_theta();
+
+	/**
+	 * 	Get the
+	 * 	@see z_k_Pv_R
+	 * 	@return The z variable used by RCAC in the PID velocity controller
+	 */
+	const matrix::Vector3f get_RCAC_vel_z();
+
+	/**
+	 * 	Get the
+	 * 	@see u_k_Pr_R
+	 * 	@return The u variable computed by RCAC in the P controller
+	 */
+	const matrix::Vector3f get_RCAC_vel_u();
+
+	/**
+	 * 	Get the
+	 * 	@see theta_k_Pr_R
+	 * 	@return The theta variable computed by RCAC in the P controller
+	 */
+	const matrix::Matrix<float, 9,1> get_RCAC_vel_theta();
+
+	/**
+	 * 	Get the
+	 * 	@see ii
+	 * 	@return Iteration step of the RCAC position controller
+	 */
+	const int &get_RCAC_pos_ii() { return ii_Pr_R; }
+
+	/**
+	 * 	Get the
+	 * 	@see ii
+	 * 	@return Iteration step of the RCAC velocity controller
+	 */
+	const int &get_RCAC_vel_ii() { return ii_Pv_R; }
+
+	/**
+	 * 	Set the RCAC position switch.
+	 * 	@see _thr_int
+	 */
+	void set_RCAC_pos_switch(float switch_RCAC);
+
+	/**
+	 * 	Set the RCAC velocity switch.
+	 * 	@see _thr_int
+	 */
+	void set_RCAC_vel_switch(float switch_RCAC);
+
+	/**
+	 * 	Set the PID scaling factor.
+	 * 	@see _thr_int
+	 */
+	void set_PID_pv_factor(float PID_factor, float pos_alpha, float vel_alpha);
+	/**
+	 * 	Get the
+	 * 	@see RCAC_Pr_ON
+	 * 	@return Get RCAC pos controller switch
+	 */
+	const bool &get_RCAC_pos_switch() {return RCAC_Pr_ON;}
+
+	/**
+	 * 	Get the
+	 * 	@see RCAC_Pr_ON
+	 * 	@return Get RCAC vel controller switch
+	 */
+	const bool &get_RCAC_vel_switch() {return RCAC_Pv_ON;}
+
+	/**
+	 * 	Get the
+	 * 	@see alpha_PID_pos
+	 * 	@return Get gain that multiplies the position PID gains
+	 */
+	const float &get_pid_pos_alpha() {return alpha_PID_pos;}
+
+	/**
+	 * 	Get the
+	 * 	@see alpha_PID_vel
+	 * 	@return Get gain that multiplies the velocity PID gains
+	 */
+	const float &get_pid_vel_alpha() {return alpha_PID_vel;}
+
+	/**
+	 * 	Get the
+	 * 	@see P_Pr_R
+	 * 	@return RCAC P(1,1) of the Position controller
+	 */
+	const float &get_RCAC_P11_Pos() { return P_Pr_R(0,0); }
+
+	/**
+	 * 	Get the
+	 * 	@see P_vel_x
+	 * 	@return RCAC P(1,1) of the Velcity x controller
+	 */
+	const float &get_RCAC_P11_Velx() { return P_vel_x(0,0); }
+
+	/**
+	 * 	Reset RCAC variables
+	 * 	@see _thr_int
+	 */
+	void resetRCAC(float rcac_pos_p0, float rcac_vel_p0);
+	void init_RCAC(float rcac_pos_p0, float rcac_vel_p0);
+
 private:
 	bool _updateSuccessful();
 
@@ -218,4 +353,41 @@ private:
 	matrix::Vector3f _thr_sp; /**< desired thrust */
 	float _yaw_sp{}; /**< desired heading */
 	float _yawspeed_sp{}; /** desired yaw-speed */
+
+	// RCAC
+	int ii_Pr_R = 0;
+	bool RCAC_Pr_ON=1;
+	matrix::SquareMatrix<float, 3> P_Pr_R;
+	matrix::Matrix<float, 3,3> phi_k_Pr_R, phi_km1_Pr_R;
+	matrix::Matrix<float, 3,1> theta_k_Pr_R;
+  	matrix::Matrix<float, 3,1> z_k_Pr_R, z_km1_Pr_R,u_k_Pr_R, u_km1_Pr_R;
+	matrix::SquareMatrix<float, 3> Gamma_Pr_R;
+
+	// const TODO: make really const.
+	matrix::SquareMatrix<float, 3> I3, N1_Pr;
+
+	int ii_Pv_R = 0;
+	bool RCAC_Pv_ON=1;
+	bool _rcac_logging = true; /**< True if logging the aircraft state variable */ //TODO: MAV integration
+
+	// matrix::SquareMatrix<float, 9> P_Pv_R;
+	// matrix::Matrix<float, 3,9> phi_k_Pv_R, phi_km1_Pv_R;
+	// matrix::Matrix<float, 9,1> theta_k_Pv_R,theta_k_Pv_PID;
+  	// matrix::Matrix<float, 3,1> z_k_Pv_R, z_km1_Pv_R,u_k_Pv_R, u_km1_Pv_R;
+	// matrix::SquareMatrix<float, 3> Gamma_Pv_R, N1_Pv;
+
+	matrix::SquareMatrix<float, 3> P_vel_x,P_vel_y,P_vel_z;
+	matrix::Matrix<float, 1,3> phi_k_vel_x, phi_km1_vel_x;
+	matrix::Matrix<float, 1,3> phi_k_vel_y, phi_km1_vel_y;
+	matrix::Matrix<float, 1,3> phi_k_vel_z, phi_km1_vel_z;
+	matrix::Vector3f theta_k_vel_x, theta_k_vel_y, theta_k_vel_z;
+  	matrix::Vector3f z_k_vel, z_km1_vel, u_k_vel, u_km1_vel;
+	matrix::Vector3f N1_vel, Gamma_vel;
+	matrix::Matrix<float, 1,1> dummy1,dummy2,dummy3;
+
+	//float alpha_PID = 1.0f;
+	float alpha_PID_pos = 1.0f;
+	float alpha_PID_vel = 1.0f;
+
+	matrix::Vector3f Pv_intg;
 };

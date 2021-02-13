@@ -1600,6 +1600,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("POSITION_TARGET_LOCAL_NED", 1.5f);
 		configure_stream_local("RAW_RPM", 2.0f);
 		configure_stream_local("RC_CHANNELS", 5.0f);
+		configure_stream_local("RCAC_ATT_VARIABLES", 2.0f);
+		configure_stream_local("RCAC_RATE_VARIABLES", 2.0f);
+		configure_stream_local("RCAC_POS_VEL_VARIABLES", 2.0f);
 		configure_stream_local("SERVO_OUTPUT_RAW_0", 1.0f);
 		configure_stream_local("SYS_STATUS", 1.0f);
 		configure_stream_local("UTM_GLOBAL_POSITION", 0.5f);
@@ -1655,6 +1658,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("POSITION_TARGET_LOCAL_NED", 10.0f);
 		configure_stream_local("RAW_RPM", 5.0f);
 		configure_stream_local("RC_CHANNELS", 20.0f);
+		configure_stream_local("RCAC_ATT_VARIABLES", 2.0f);
+		configure_stream_local("RCAC_RATE_VARIABLES", 2.0f);
+		configure_stream_local("RCAC_POS_VEL_VARIABLES", 2.0f);
 		configure_stream_local("SERVO_OUTPUT_RAW_0", 10.0f);
 		configure_stream_local("SYS_STATUS", 5.0f);
 		configure_stream_local("SYSTEM_TIME", 1.0f);
@@ -1708,6 +1714,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 1.5f);
 		configure_stream_local("POSITION_TARGET_LOCAL_NED", 1.5f);
 		configure_stream_local("RC_CHANNELS", 5.0f);
+		configure_stream_local("RCAC_ATT_VARIABLES", 2.0f);
+		configure_stream_local("RCAC_RATE_VARIABLES", 2.0f);
+		configure_stream_local("RCAC_POS_VEL_VARIABLES", 2.0f);
 		configure_stream_local("SERVO_OUTPUT_RAW_0", 1.0f);
 		configure_stream_local("SYS_STATUS", 5.0f);
 		configure_stream_local("TRAJECTORY_REPRESENTATION_WAYPOINTS", 5.0f);
@@ -1737,6 +1746,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("GPS_RAW_INT", 1.0f);
 		configure_stream_local("HOME_POSITION", 0.5f);
 		configure_stream_local("RC_CHANNELS", 5.0f);
+		configure_stream_local("RCAC_ATT_VARIABLES", 2.0f);
+		configure_stream_local("RCAC_RATE_VARIABLES", 2.0f);
+		configure_stream_local("RCAC_POS_VEL_VARIABLES", 2.0f);
 		configure_stream_local("SERVO_OUTPUT_RAW_0", 1.0f);
 		configure_stream_local("SYS_STATUS", 5.0f);
 		configure_stream_local("SYSTEM_TIME", 1.0f);
@@ -1788,6 +1800,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 10.0f);
 		configure_stream_local("RAW_RPM", 5.0f);
 		configure_stream_local("RC_CHANNELS", 10.0f);
+		configure_stream_local("RCAC_ATT_VARIABLES", 2.0f);
+		configure_stream_local("RCAC_RATE_VARIABLES", 2.0f);
+		configure_stream_local("RCAC_POS_VEL_VARIABLES", 2.0f);
 		configure_stream_local("SCALED_IMU", 25.0f);
 		configure_stream_local("SCALED_IMU2", 25.0f);
 		configure_stream_local("SCALED_IMU3", 25.0f);

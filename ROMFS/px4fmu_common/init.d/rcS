@@ -612,3 +612,15 @@ unset VEHICLE_TYPE
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running.
 #
 mavlink boot_complete
+
+mavlink stream -d /dev/ttyACM0 -s RCAC_ATT_VARIABLES -r 2
+mavlink stream -d /dev/ttyS1 -s RCAC_ATT_VARIABLES -r 2
+mavlink stream -d /dev/ttyS2 -s RCAC_ATT_VARIABLES -r 2
+mavlink stream -d /dev/ttyACM0 -s RCAC_RATE_VARIABLES -r 2
+mavlink stream -d /dev/ttyS1 -s RCAC_RATE_VARIABLES -r 2
+mavlink stream -d /dev/ttyS2 -s RCAC_RATE_VARIABLES -r 2
+mavlink stream -d /dev/ttyACM0 -s RCAC_POS_VEL_VARIABLES -r 2
+mavlink stream -d /dev/ttyS1 -s RCAC_POS_VEL_VARIABLES -r 2
+mavlink stream -d /dev/ttyS2 -s RCAC_POS_VEL_VARIABLES -r 2
+mavlink stream -d /dev/ttyS1 -s ODOMETRY -r 10
+mavlink stream -d /dev/ttyS2 -s LOCAL_POSITION_NED -10

@@ -100,6 +100,181 @@ public:
 	 */
 	void getRateControlStatus(rate_ctrl_status_s &rate_ctrl_status);
 
+	/**
+	 * 	Get the
+	 * 	@see z_k_Pr_R
+	 * 	@return The z variable used by RCAC in the PID+FF controller
+	 */
+	const matrix::Vector3f get_RCAC_rate_z()
+	{
+		matrix::Vector3f RCAC_z{};
+
+		for (int i = 0; i <= 2; i++) {
+			RCAC_z(i) = z_k_rate(i); //z_k_AC_R(i,0);
+		}
+
+		return RCAC_z;
+	}
+
+	/**
+	 * 	Get the
+	 * 	@see u_k_Pr_R
+	 * 	@return The u variable computed by RCAC in the PID+FF controller
+	 */
+	const matrix::Vector3f get_RCAC_rate_u()
+	{
+		matrix::Vector3f RCAC_u{};
+
+		for (int i = 0; i <= 2; i++) {
+			RCAC_u(i) = u_k_rate(i); //u_k_AC_R(i,0);
+		}
+
+		return RCAC_u;
+	}
+
+	/**
+	 * 	Get the
+	 * 	@see theta_k_Pr_R
+	 * 	@return The theta variable computed by RCAC in the PID+FF controller
+	 */
+	const matrix::Matrix<float, 12,1> get_RCAC_rate_theta()
+	{
+		matrix::Matrix<float, 12,1> RCAC_theta{};
+
+		for (int i = 0; i <= 3; i++) {
+			// RCAC_theta(i,0) = theta_k_AC_R(i,0);
+			RCAC_theta(i,0) = theta_k_rate_x(i,0);
+			RCAC_theta(i+4,0) = theta_k_rate_y(i,0);
+			RCAC_theta(i+8,0) = theta_k_rate_z(i,0);
+		}
+
+		return RCAC_theta;
+	}
+
+	/**
+	 * 	Get the
+	 * 	@see gains
+	 * 	@return PX4 PID gains for the rate controller
+	 */
+	const matrix::Matrix<float, 12,1> get_PX4_rate_theta()
+	{
+		matrix::Matrix<float, 12,1> PX4_rate_theta{};
+
+		PX4_rate_theta(0,0) = _gain_p(0);
+		PX4_rate_theta(1,0) = _gain_i(0);
+		PX4_rate_theta(2,0) = _gain_d(0);
+		PX4_rate_theta(3,0) = _gain_ff(0);
+		PX4_rate_theta(4,0) = _gain_p(1);
+		PX4_rate_theta(5,0) = _gain_i(1);
+		PX4_rate_theta(6,0) = _gain_d(1);
+		PX4_rate_theta(7,0) = _gain_ff(1);
+		PX4_rate_theta(8,0) = _gain_p(2);
+		PX4_rate_theta(9,0) = _gain_i(2);
+		PX4_rate_theta(10,0) = _gain_d(2);
+		PX4_rate_theta(11,0) = _gain_ff(2);
+
+		return PX4_rate_theta;
+	}
+
+	/**
+	 * 	Get the
+	 * 	@see ii
+	 * 	@return Iteration step of the RCAC rate controller
+	 */
+	const int &get_RCAC_rate_ii() { return ii_AC_R; }
+
+	/**
+	 * 	Get the
+	 * 	@see RCAC_Aq_ON
+	 * 	@return Get RCAC rate controller switch
+	 */
+	const bool &get_RCAC_rate_switch() {return RCAC_Aw_ON;}
+
+	/**
+	 * 	Get the
+	 * 	@see alpha_PID_rate
+	 * 	@return Get the gain that multiplies the rate PID gains.
+	 */
+	const float &get_alpha_PID_rate() {return alpha_PID_rate;}
+
+
+	/**
+	 * 	Set the RCAC Rate switch.
+	 * 	@see _thr_int
+	 */
+	void set_RCAC_rate_switch(float switch_RCAC)
+	{
+		RCAC_Aw_ON = 1;
+		if (switch_RCAC<0.0f) {
+			RCAC_Aw_ON = 0;
+		}
+	}
+
+	/**
+	 * 	Set the PID scaling factor.
+	 * 	@see _thr_int
+	 */
+	void set_PID_rate_factor(float PID_factor, float PID_val)
+	{
+		//alpha_PID = 1;
+		alpha_PID_rate = 1.0f;
+		if (PID_factor<0.0f) {
+			//alpha_PID = 0.5;
+			alpha_PID_rate = PID_val;
+		}
+	}
+
+	/**
+	 * 	Get the
+	 * 	@see P_rate_x
+	 * 	@return RCAC P(1,1) of the Rate controller
+	 */
+	const float &get_RCAC_P11_Ratex() { return P_rate_x(0,0); }
+
+	/**
+	 * 	Set RCAC variables.
+	 * 	@see all RCAC variables
+	 */
+	void init_RCAC_rate()
+	{
+		P_rate_x.setZero(); //= eye<float, 4>() * 0.00010;
+		P_rate_y.setZero(); //= eye<float, 4>() * 0.00010;
+		P_rate_z.setZero(); //= eye<float, 4>() * 0.00010;
+		for (int i = 0; i <= 3; i++) {
+			P_rate_x(i,i) = 0.001f;
+			P_rate_y(i,i) = 0.001f;
+			P_rate_z(i,i) = 0.001f;
+			P_rate_x(i,i) = rcac_rate_P0;
+			P_rate_y(i,i) = rcac_rate_P0;
+			P_rate_z(i,i) = rcac_rate_P0;
+		}
+		for (int i = 0; i <= 2; i++) {
+			N1_rate(i) = 1;
+		}
+		phi_k_rate_x.setZero();
+		phi_k_rate_y.setZero();
+		phi_k_rate_z.setZero();
+		phi_km1_rate_x.setZero();
+		phi_km1_rate_y.setZero();
+		phi_km1_rate_z.setZero();
+		theta_k_rate_x.setZero();
+		theta_k_rate_y.setZero();
+		theta_k_rate_z.setZero();
+		u_k_rate.setZero();
+		z_k_rate.setZero();
+		u_km1_rate.setZero();
+		z_km1_rate.setZero();
+	}
+
+	/**
+	 * 	Set the RCAC Rate Controller P0.
+	 * 	@see rcac_rate_P0
+	 */
+	void set_RCAC_rate_P0(float rate_P0)
+	{
+		rcac_rate_P0 = rate_P0;
+	}
+
 private:
 	void updateIntegral(matrix::Vector3f &rate_error, const float dt);
 
@@ -115,4 +290,25 @@ private:
 
 	bool _mixer_saturation_positive[3] {};
 	bool _mixer_saturation_negative[3] {};
+	
+	int ii_AC_R = 0;
+  	bool RCAC_Aw_ON=1;
+	// matrix::SquareMatrix<float, 12> P_AC_R;
+	// matrix::Matrix<float, 3,12> phi_k_AC_R, phi_km1_AC_R;
+	// matrix::Matrix<float, 12,1> theta_k_AC_R,theta_k_Ac_PID;
+  	// matrix::Matrix<float, 3,1> z_k_AC_R, z_km1_AC_R,u_k_AC_R, u_km1_AC_R;
+	// matrix::SquareMatrix<float, 3> Gamma_AC_R, I3, N1_Aw;
+
+	matrix::SquareMatrix<float, 4> P_rate_x,P_rate_y,P_rate_z;
+	matrix::Matrix<float, 1,4> phi_k_rate_x, phi_km1_rate_x;
+	matrix::Matrix<float, 1,4> phi_k_rate_y, phi_km1_rate_y;
+	matrix::Matrix<float, 1,4> phi_k_rate_z, phi_km1_rate_z;
+	matrix::Matrix<float, 4,1> theta_k_rate_x, theta_k_rate_y, theta_k_rate_z;
+  	matrix::Vector3f z_k_rate, z_km1_rate, u_k_rate, u_km1_rate;
+	matrix::Vector3f N1_rate, Gamma_rate;
+	matrix::Matrix<float, 1,1> dummy1,dummy2,dummy3;
+
+	//float alpha_PID = 1.0f;
+	float alpha_PID_rate = 1.0f;
+	float rcac_rate_P0 = 0.0011f;
 };

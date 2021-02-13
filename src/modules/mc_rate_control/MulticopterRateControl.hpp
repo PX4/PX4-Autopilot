@@ -59,6 +59,8 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/rcac_rate_variables.h>
+#include <uORB/topics/rc_channels.h>
 
 using namespace time_literals;
 
@@ -86,6 +88,8 @@ private:
 	 * initialize some vectors/matrices from parameters
 	 */
 	void		parameters_updated();
+	
+	void		publish_rcac_rate_variables();
 
 	RateControl _rate_control; ///< class for rate control calculations
 
@@ -98,6 +102,7 @@ private:
 	uORB::Subscription _vehicle_angular_acceleration_sub{ORB_ID(vehicle_angular_acceleration)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _rc_channels_sub{ORB_ID(rc_channels)};	/**< RC switch>*/
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -107,10 +112,14 @@ private:
 	uORB::PublicationMulti<rate_ctrl_status_s>	_controller_status_pub{ORB_ID(rate_ctrl_status)};	/**< controller status publication */
 	uORB::Publication<landing_gear_s>		_landing_gear_pub{ORB_ID(landing_gear)};
 	uORB::Publication<vehicle_rates_setpoint_s>	_v_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};			/**< rate setpoint publication */
+	uORB::Publication<rcac_rate_variables_s>     _rcac_rate_variables_pub{ORB_ID(rcac_rate_variables)}; 		/**< RCAC variables log */
+
 
 	manual_control_setpoint_s	_manual_control_setpoint{};
 	vehicle_control_mode_s		_v_control_mode{};
 	vehicle_status_s		_vehicle_status{};
+	rc_channels_s			_rc_channels_switch{};	/**< Switch from the RC channel */
+	rcac_rate_variables_s _rcac_rate_variables{}; 
 
 	bool _actuators_0_circuit_breaker_enabled{false};	/**< circuit breaker to suppress output */
 	bool _landed{true};
@@ -164,7 +173,11 @@ private:
 
 		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en,
 
-		(ParamInt<px4::params::CBRK_RATE_CTRL>) _param_cbrk_rate_ctrl
+		(ParamInt<px4::params::CBRK_RATE_CTRL>) _param_cbrk_rate_ctrl,
+
+		(ParamFloat<px4::params::MPC_RCAC_RATE_SW>) _param_mpc_rcac_rate_sw,
+		(ParamFloat<px4::params::MPC_RATE_ALPHA>) _param_mpc_rate_alpha,
+		(ParamFloat<px4::params::MPC_RCAC_RATE_P0>) _param_mpc_rcac_rate_P0
 	)
 
 	matrix::Vector3f _acro_rate_max;	/**< max attitude rates in acro mode */

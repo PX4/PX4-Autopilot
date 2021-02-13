@@ -395,3 +395,35 @@ PARAM_DEFINE_FLOAT(MC_ACRO_SUPEXPOY, 0.7f);
  * @group Multicopter Rate Control
  */
 PARAM_DEFINE_INT32(MC_BAT_SCALE_EN, 0);
+
+/**
+ * RCAC Rate switches.
+ *
+ * Specifies RCAC state.
+ *
+ * @min -10
+ * @max 10
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MPC_RCAC_RATE_SW, -1.0f);
+
+/**
+ * PID Rate gain.
+ *
+ * Specifies gain applied to the PID rate gains.
+ *
+ * @min -10
+ * @max 10
+ * @group Multicopter RCAC Control
+ */
+PARAM_DEFINE_FLOAT(MPC_RATE_ALPHA, 1.0f);
+
+/**
+ * P0 for the Rate controller
+ *
+ * @min 0.0
+ * @max 10.0
+ * @decimal 8
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MPC_RCAC_RATE_P0, 0.001f);

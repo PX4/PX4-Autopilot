@@ -60,6 +60,8 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/rcac_pos_vel_variables.h>
+#include <uORB/topics/rc_channels.h>
 
 #include "PositionControl/PositionControl.hpp"
 
@@ -91,6 +93,10 @@ private:
 
 	uORB::Publication<vehicle_local_position_setpoint_s>	_local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};	/**< vehicle local position setpoint publication */
 
+	uORB::Publication<rcac_pos_vel_variables_s>     _rcac_pos_vel_variables_pub{ORB_ID(rcac_pos_vel_variables)}; 		/**< RCAC variables log */
+
+
+
 	uORB::SubscriptionCallbackWorkItem _local_pos_sub{this, ORB_ID(vehicle_local_position)};	/**< vehicle local position */
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -99,6 +105,7 @@ private:
 	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _vehicle_constraints_sub{ORB_ID(vehicle_constraints)};
+	uORB::Subscription _rc_channels_sub{ORB_ID(rc_channels)}; 			/**< Switch from the RC channel */
 
 	hrt_abstime	_time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
 
@@ -106,6 +113,8 @@ private:
 
 	vehicle_control_mode_s	_control_mode{};		/**< vehicle control mode */
 	vehicle_local_position_s _local_pos{};			/**< vehicle local position */
+	rcac_pos_vel_variables_s _rcac_pos_vel_variables{}; 		/**< RCAC variables */
+	rc_channels_s	_rc_channels_switch{};			/**< Switch from the RC channel */
 
 	DEFINE_PARAMETERS(
 		// Position Control
@@ -123,6 +132,12 @@ private:
 		(ParamFloat<px4::params::MPC_TILTMAX_AIR>) _param_mpc_tiltmax_air,
 		(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover,
 		(ParamBool<px4::params::MPC_USE_HTE>) _param_mpc_use_hte,
+		(ParamFloat<px4::params::MPC_RCAC_POS_SW>) _param_mpc_rcac_pos_sw,
+		(ParamFloat<px4::params::MPC_RCAC_VEL_SW>) _param_mpc_rcac_vel_sw,
+		(ParamFloat<px4::params::MPC_POS_ALPHA>) _param_mpc_pos_alpha,
+		(ParamFloat<px4::params::MPC_VEL_ALPHA>) _param_mpc_vel_alpha,
+		(ParamFloat<px4::params::MPC_RCAC_POS_P0>) _param_mpc_rcac_pos_p0,
+		(ParamFloat<px4::params::MPC_RCAC_VEL_P0>) _param_mpc_rcac_vel_p0,
 
 		// Takeoff / Land
 		(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
@@ -149,6 +164,8 @@ private:
 
 	bool _in_failsafe = false; /**< true if failsafe was entered within current cycle */
 
+ 	bool _rcac_logging = true; /**< True if logging the aircraft state variable */ //TODO: MAV integration
+
 	bool _hover_thrust_initialized{false};
 
 	/** Timeout in us for trajectory data to get considered invalid */
@@ -163,6 +180,13 @@ private:
 	systemlib::Hysteresis _failsafe_land_hysteresis{false}; /**< becomes true if task did not update correctly for LOITER_TIME_BEFORE_DESCEND */
 
 	perf_counter_t _cycle_perf;
+
+	/**
+	 * Publish RCAC position and velocity variables for logging and mavlink send commands
+	 * @param pid_scale Denotes the gain by which regular PID commands are scaled.
+	 * @param rcac_switch Denotes the state of the swicth taht enables RCAC.
+	 */
+	void publish_rcac_pos_vel_variables(float pid_scale, float rcac_switch);
 
 	/**
 	 * Update our local parameter cache.

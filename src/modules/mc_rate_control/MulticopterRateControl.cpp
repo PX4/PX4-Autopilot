@@ -94,6 +94,39 @@ MulticopterRateControl::parameters_updated()
 				  radians(_param_mc_acro_y_max.get()));
 
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled_by_val(_param_cbrk_rate_ctrl.get(), CBRK_RATE_CTRL_KEY);
+
+	
+	//Set P0 for RCAC attitude and Rate controller
+	
+	_rate_control.set_RCAC_rate_P0(_param_mpc_rcac_rate_P0.get());
+	_rate_control.init_RCAC_rate();
+	PX4_INFO("Rate Control P0:\t%8.6f", (double)_param_mpc_rcac_rate_P0.get());
+
+}
+
+void
+MulticopterRateControl::publish_rcac_rate_variables()
+{
+	_rcac_rate_variables.timestamp = hrt_absolute_time();
+	_rcac_rate_variables.ii_rate = _rate_control.get_RCAC_rate_ii();
+
+	_rcac_rate_variables.switch_rate = _rate_control.get_RCAC_rate_switch();
+
+	_rcac_rate_variables.alpha_pid_rate = _rate_control.get_alpha_PID_rate();
+
+	_rcac_rate_variables.p11_ratex = _rate_control.get_RCAC_P11_Ratex();
+
+	for (int i = 0; i <= 2; i++) {
+
+		_rcac_rate_variables.rcac_rate_z[i] = _rate_control.get_RCAC_rate_z()(i);
+		_rcac_rate_variables.rcac_rate_u[i] = _rate_control.get_RCAC_rate_u()(i);
+
+	}
+	for (int i = 0; i <= 11; i++) {
+		_rcac_rate_variables.rcac_rate_theta[i] = _rate_control.get_RCAC_rate_theta()(i,0);
+		_rcac_rate_variables.px4_rate_theta[i] = _rate_control.get_PX4_rate_theta()(i,0);
+	}
+	_rcac_rate_variables_pub.publish(_rcac_rate_variables);
 }
 
 void
@@ -134,6 +167,34 @@ MulticopterRateControl::Run()
 
 		const Vector3f angular_accel{v_angular_acceleration.xyz};
 		const Vector3f rates{angular_velocity.xyz};
+
+				//RCtopic
+		// Ankit: RCAC switches and the PID scaling factor controlled by the RC transmitter
+		_rc_channels_sub.update(&_rc_channels_switch);
+		float RCAC_switch = _rc_channels_switch.channels[14];
+		float PID_scale_f = _rc_channels_switch.channels[13];
+		// SITL
+		//RCAC_switch = -1.0f;
+		//PID_scale_f = 1.0f;
+		if (RCAC_switch>0.0f)
+		{
+			_rate_control.set_RCAC_rate_switch(_param_mpc_rcac_rate_sw.get());
+		}
+		else
+		{
+			_rate_control.set_RCAC_rate_switch(RCAC_switch);
+		}
+		//_rate_control.set_RCAC_rate_switch(RCAC_switch);
+		_rate_control.set_PID_rate_factor(PID_scale_f, _param_mpc_rate_alpha.get());
+
+		// _rate_control.set_RCAC_rate_switch(_rc_channels_switch.channels[14]);
+		// _rate_control.set_PID_rate_factor(_rc_channels_switch.channels[13]);
+
+		// // Ankit: RCAC switches and the PID scaling factor for SITL testing
+		// _rate_control.set_RCAC_rate_switch(-1.0f);
+		// _rate_control.set_PID_rate_factor(1.0f);
+
+
 
 		/* check for updates in other topics */
 		_v_control_mode_sub.update(&_v_control_mode);
@@ -276,6 +337,7 @@ MulticopterRateControl::Run()
 
 			actuators.timestamp = hrt_absolute_time();
 			_actuators_0_pub.publish(actuators);
+			publish_rcac_rate_variables();
 
 		} else if (_v_control_mode.flag_control_termination_enabled) {
 			if (!_vehicle_status.is_vtol) {
@@ -283,6 +345,7 @@ MulticopterRateControl::Run()
 				actuator_controls_s actuators{};
 				actuators.timestamp = hrt_absolute_time();
 				_actuators_0_pub.publish(actuators);
+				publish_rcac_rate_variables();
 			}
 		}
 	}

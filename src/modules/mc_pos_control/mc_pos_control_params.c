@@ -789,3 +789,67 @@ PARAM_DEFINE_FLOAT(MPC_SPOOLUP_TIME, 1.0f);
  * @group Mission
  */
 PARAM_DEFINE_INT32(MPC_YAW_MODE, 0);
+
+/**
+ * RCAC Position switches.
+ *
+ * Specifies RCAC state.
+ *
+ * @min -10
+ * @max 10
+ * @group Multicopter RCAC Control
+ */
+PARAM_DEFINE_FLOAT(MPC_RCAC_POS_SW, 1.0f);
+
+/**
+ * RCAC Velocity switches.
+ *
+ * Specifies RCAC state.
+ *
+ * @min -10
+ * @max 10
+ * @group Multicopter RCAC Control
+ */
+PARAM_DEFINE_FLOAT(MPC_RCAC_VEL_SW, 1.0f);
+
+/**
+ * PID Position gain.
+ *
+ * Specifies gain applied to the PID position gains.
+ *
+ * @min -10
+ * @max 10
+ * @group Multicopter RCAC Control
+ */
+PARAM_DEFINE_FLOAT(MPC_POS_ALPHA, 1.0f);
+
+/**
+ * PID Velocity gain.
+ *
+ * Specifies gain applied to the PID velocity gains.
+ *
+ * @min -10
+ * @max 10
+ * @group Multicopter RCAC Control
+ */
+PARAM_DEFINE_FLOAT(MPC_VEL_ALPHA, 1.0f);
+
+/**
+ * P0 for the position controller
+ *
+ * @min 0.0
+ * @max 10.0
+ * @decimal 8
+ * @group Multicopter RCAC Control
+ */
+PARAM_DEFINE_FLOAT(MPC_RCAC_POS_P0, 0.005f);
+
+/**
+ * P0 for the velocity controller
+ *
+ * @min 0.0
+ * @max 10.0
+ * @decimal 8
+ * @group Multicopter RCAC Control
+ */
+PARAM_DEFINE_FLOAT(MPC_RCAC_VEL_P0, 0.001f);

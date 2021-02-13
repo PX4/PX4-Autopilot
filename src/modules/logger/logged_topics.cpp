@@ -111,6 +111,11 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_status");
 	add_topic("vehicle_status_flags");
 	add_topic("vtol_vehicle_status", 200);
+	add_topic("rcac_pos_vel_variables", 100);
+	add_topic("rcac_att_variables", 100);
+	add_topic("rcac_rate_variables", 100);
+
+
 
 	// Control allocation topics
 	add_topic("vehicle_angular_acceleration_setpoint", 20);

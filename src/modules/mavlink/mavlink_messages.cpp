@@ -52,6 +52,10 @@
 #include <lib/matrix/matrix/math.hpp>
 #include <px4_platform_common/time.h>
 #include <math.h>
+#include <v2.0/rcac_3/mavlink.h>
+#include <v2.0/rcac_3/mavlink_msg_rcac_att_variables.h>
+#include <v2.0/rcac_3/mavlink_msg_rcac_rate_variables.h>
+#include <v2.0/rcac_3/mavlink_msg_rcac_pos_vel_variables.h>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
@@ -71,6 +75,9 @@
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/rcac_att_variables.h>
+#include <uORB/topics/rcac_rate_variables.h>
+#include <uORB/topics/rcac_pos_vel_variables.h>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_mag.h>
@@ -2224,8 +2231,10 @@ protected:
 			odom_updated = _vodom_sub.update(&odom);
 
 			// set the frame_id according to the local frame of the data
+			//Juan: Take into account for MOCAP frame
 			if (odom.local_frame == vehicle_odometry_s::LOCAL_FRAME_NED) {
-				msg.frame_id = MAV_FRAME_LOCAL_NED;
+				//msg.frame_id = MAV_FRAME_LOCAL_NED;
+				msg.frame_id = MAV_FRAME_LOCAL_FRD;
 
 			} else {
 				msg.frame_id = MAV_FRAME_LOCAL_FRD;
@@ -2237,7 +2246,8 @@ protected:
 		} else {
 			odom_updated = _odom_sub.update(&odom);
 
-			msg.frame_id = MAV_FRAME_LOCAL_NED;
+			//msg.frame_id = MAV_FRAME_LOCAL_NED;
+			msg.frame_id = MAV_FRAME_LOCAL_FRD;
 
 			// source: PX4 estimator
 			msg.estimator_type = MAV_ESTIMATOR_TYPE_AUTOPILOT;
@@ -3005,6 +3015,241 @@ protected:
 	}
 };
 
+// Juan: Added classes for RCAC messages streaming
+class MavlinkStreamRcacAttVariables : public MavlinkStream
+{
+public:
+    const char *get_name() const override
+    {
+        return MavlinkStreamRcacAttVariables::get_name_static();
+    }
+    static constexpr const char *get_name_static()
+    {
+        return "RCAC_ATT_VARIABLES";
+    }
+    static constexpr uint16_t get_id_static()
+    {
+        return MAVLINK_MSG_ID_RCAC_ATT_VARIABLES;
+    }
+    uint16_t get_id() override
+    {
+        return get_id_static();
+    }
+    static MavlinkStream *new_instance(Mavlink *mavlink)
+    {
+        return new MavlinkStreamRcacAttVariables(mavlink);
+    }
+    unsigned get_size() override
+    {
+        return MAVLINK_MSG_ID_RCAC_ATT_VARIABLES_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+    }
+
+private:
+	
+    //MavlinkOrbSubscription *_sub;
+    //uint64_t _rcac_arv_time;
+	uORB::Subscription _rcac_att_sub{ORB_ID(rcac_att_variables)};
+
+    /* do not allow top copying this class */
+    MavlinkStreamRcacAttVariables(MavlinkStreamRcacAttVariables &) = delete;
+    MavlinkStreamRcacAttVariables& operator = (const MavlinkStreamRcacAttVariables &) = delete;
+
+protected:
+    /*explicit MavlinkStreamRcacAttVariables(Mavlink *mavlink) : MavlinkStream(mavlink),
+        _sub(_mavlink->add_orb_subscription(ORB_ID(rcac_att_variables))),
+        _rcac_arv_time(0)
+    {}*/
+	explicit MavlinkStreamRcacAttVariables(Mavlink *mavlink) : MavlinkStream(mavlink)
+    {}
+
+    //bool send(const hrt_abstime t)
+	bool send() override
+    {
+        //struct rcac_att_variables_struct_s _rcac_att_variables;
+	rcac_att_variables_s _rcac_att_variables;
+
+        if (_rcac_att_sub.update(&_rcac_att_variables)) {
+            mavlink_rcac_att_variables_t _msg_rcac_att_variables {};
+
+            _msg_rcac_att_variables.timestamp 				= _rcac_att_variables.timestamp;
+			_msg_rcac_att_variables.switch_att 		= _rcac_att_variables.switch_att;
+			_msg_rcac_att_variables.alpha_pid_att 		= _rcac_att_variables.alpha_pid_att;
+			_msg_rcac_att_variables.p11_att 		= _rcac_att_variables.p11_att;
+			_msg_rcac_att_variables.rcac_att_theta[0] 	= _rcac_att_variables.rcac_att_theta[0];
+			_msg_rcac_att_variables.rcac_att_theta[1] 	= _rcac_att_variables.rcac_att_theta[1];
+			_msg_rcac_att_variables.rcac_att_theta[2] 	= _rcac_att_variables.rcac_att_theta[2];
+
+            mavlink_msg_rcac_att_variables_send_struct(_mavlink->get_channel(), &_msg_rcac_att_variables);
+        }
+
+        return true;
+    }
+};
+/******************************************/
+class MavlinkStreamRcacRateVariables : public MavlinkStream
+{
+public:
+    const char *get_name() const override
+    {
+        return MavlinkStreamRcacRateVariables::get_name_static();
+    }
+    static constexpr const char *get_name_static()
+    {
+        return "RCAC_RATE_VARIABLES";
+    }
+    static constexpr uint16_t get_id_static()
+    {
+        return MAVLINK_MSG_ID_RCAC_RATE_VARIABLES;
+    }
+    uint16_t get_id() override
+    {
+        return get_id_static();
+    }
+    static MavlinkStream *new_instance(Mavlink *mavlink)
+    {
+        return new MavlinkStreamRcacRateVariables(mavlink);
+    }
+    unsigned get_size() override
+    {
+        return MAVLINK_MSG_ID_RCAC_RATE_VARIABLES_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+    }
+
+private:
+	
+    //MavlinkOrbSubscription *_sub;
+    //uint64_t _rcac_arv_time;
+	uORB::Subscription _rcac_rate_sub{ORB_ID(rcac_rate_variables)};
+
+    /* do not allow top copying this class */
+    MavlinkStreamRcacRateVariables(MavlinkStreamRcacRateVariables &) = delete;
+    MavlinkStreamRcacRateVariables& operator = (const MavlinkStreamRcacRateVariables &) = delete;
+
+protected:
+    /*explicit MavlinkStreamRcacRateVariables(Mavlink *mavlink) : MavlinkStream(mavlink),
+        _sub(_mavlink->add_orb_subscription(ORB_ID(rcac_rate_variables))),
+        _rcac_arv_time(0)
+    {}*/
+	explicit MavlinkStreamRcacRateVariables(Mavlink *mavlink) : MavlinkStream(mavlink)
+    {}
+
+    //bool send(const hrt_abstime t)
+	bool send() override
+    {
+        //struct rcac_rate_variables_struct_s _rcac_rate_variables;
+	rcac_rate_variables_s _rcac_rate_variables;
+
+        if (_rcac_rate_sub.update(&_rcac_rate_variables)) {
+            mavlink_rcac_rate_variables_t _msg_rcac_rate_variables {};
+
+            _msg_rcac_rate_variables.timestamp 				= _rcac_rate_variables.timestamp;
+			_msg_rcac_rate_variables.switch_rate 		= _rcac_rate_variables.switch_rate;
+			_msg_rcac_rate_variables.alpha_pid_rate 	= _rcac_rate_variables.alpha_pid_rate;
+			_msg_rcac_rate_variables.p11_ratex 		= _rcac_rate_variables.p11_ratex;
+			_msg_rcac_rate_variables.rcac_rate_theta[0] 	= _rcac_rate_variables.rcac_rate_theta[0];
+			_msg_rcac_rate_variables.rcac_rate_theta[1] 	= _rcac_rate_variables.rcac_rate_theta[1];
+			_msg_rcac_rate_variables.rcac_rate_theta[2] 	= _rcac_rate_variables.rcac_rate_theta[2];
+			_msg_rcac_rate_variables.rcac_rate_theta[3] 	= _rcac_rate_variables.rcac_rate_theta[3];
+			_msg_rcac_rate_variables.rcac_rate_theta[4] 	= _rcac_rate_variables.rcac_rate_theta[4];
+			_msg_rcac_rate_variables.rcac_rate_theta[5] 	= _rcac_rate_variables.rcac_rate_theta[5];
+			_msg_rcac_rate_variables.rcac_rate_theta[6] 	= _rcac_rate_variables.rcac_rate_theta[6];
+			_msg_rcac_rate_variables.rcac_rate_theta[7] 	= _rcac_rate_variables.rcac_rate_theta[7];
+			_msg_rcac_rate_variables.rcac_rate_theta[8] 	= _rcac_rate_variables.rcac_rate_theta[8];
+			_msg_rcac_rate_variables.rcac_rate_theta[9] 	= _rcac_rate_variables.rcac_rate_theta[9];
+			_msg_rcac_rate_variables.rcac_rate_theta[10] 	= _rcac_rate_variables.rcac_rate_theta[10];
+			_msg_rcac_rate_variables.rcac_rate_theta[11] 	= _rcac_rate_variables.rcac_rate_theta[11];
+
+            mavlink_msg_rcac_rate_variables_send_struct(_mavlink->get_channel(), &_msg_rcac_rate_variables);
+        }
+
+        return true;
+    }
+};
+/******************************************/
+class MavlinkStreamRcacPosVelVariables : public MavlinkStream
+{
+public:
+    const char *get_name() const override
+    {
+        return MavlinkStreamRcacPosVelVariables::get_name_static();
+    }
+    static constexpr const char *get_name_static()
+    {
+        return "RCAC_POS_VEL_VARIABLES";
+    }
+    static constexpr uint16_t get_id_static()
+    {
+        return MAVLINK_MSG_ID_RCAC_POS_VEL_VARIABLES;
+    }
+    uint16_t get_id() override
+    {
+        return get_id_static();
+    }
+    static MavlinkStream *new_instance(Mavlink *mavlink)
+    {
+        return new MavlinkStreamRcacPosVelVariables(mavlink);
+    }
+    unsigned get_size() override
+    {
+        return MAVLINK_MSG_ID_RCAC_POS_VEL_VARIABLES_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+    }
+
+private:
+    /*MavlinkOrbSubscription *_sub;
+    uint64_t _rcac_pvv_time;*/
+	uORB::Subscription _rcac_pos_vel_sub{ORB_ID(rcac_pos_vel_variables)};
+
+    /* do not allow top copying this class */
+    MavlinkStreamRcacPosVelVariables(MavlinkStreamRcacPosVelVariables &) = delete;
+    MavlinkStreamRcacPosVelVariables& operator = (const MavlinkStreamRcacPosVelVariables &) = delete;
+
+protected:
+    /*explicit MavlinkStreamRcacPosVelVariables(Mavlink *mavlink) : MavlinkStream(mavlink),
+        _sub(_mavlink->add_orb_subscription(ORB_ID(rcac_pos_vel_variables))),
+        _rcac_pvv_time(0)
+    {}*/
+	explicit MavlinkStreamRcacPosVelVariables(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{}
+
+    //bool send(const hrt_abstime t)
+	bool send() override
+    {
+        //struct rcac_pos_vel_variables_struct_s _rcac_pos_vel_variables;
+		rcac_pos_vel_variables_s _rcac_pos_vel_variables;
+
+        /*if (_sub->update(&_rcac_pvv_time, &_rcac_pos_vel_variables)) {*/
+		if (_rcac_pos_vel_sub.update(&_rcac_pos_vel_variables)) {
+            mavlink_rcac_pos_vel_variables_t _msg_rcac_pos_vel_variables{};
+
+            _msg_rcac_pos_vel_variables.timestamp 			= _rcac_pos_vel_variables.timestamp;
+			_msg_rcac_pos_vel_variables.pid_factor 			= _rcac_pos_vel_variables.pid_factor;
+			_msg_rcac_pos_vel_variables.rcac_master_sw 		= _rcac_pos_vel_variables.rcac_master_sw;
+			_msg_rcac_pos_vel_variables.switch_pos 			= _rcac_pos_vel_variables.switch_pos;
+			_msg_rcac_pos_vel_variables.switch_vel 			= _rcac_pos_vel_variables.switch_vel;
+			_msg_rcac_pos_vel_variables.alpha_pid_pos 		= _rcac_pos_vel_variables.alpha_pid_pos;
+			_msg_rcac_pos_vel_variables.alpha_pid_vel 		= _rcac_pos_vel_variables.alpha_pid_vel;
+			_msg_rcac_pos_vel_variables.p11_pos 			= _rcac_pos_vel_variables.p11_pos;
+			_msg_rcac_pos_vel_variables.p11_velx 			= _rcac_pos_vel_variables.p11_velx;
+			_msg_rcac_pos_vel_variables.rcac_pos_theta[0] 	= _rcac_pos_vel_variables.rcac_pos_theta[0];
+			_msg_rcac_pos_vel_variables.rcac_pos_theta[1] 	= _rcac_pos_vel_variables.rcac_pos_theta[1];
+			_msg_rcac_pos_vel_variables.rcac_pos_theta[2] 	= _rcac_pos_vel_variables.rcac_pos_theta[2];
+			_msg_rcac_pos_vel_variables.rcac_vel_theta[0] 	= _rcac_pos_vel_variables.rcac_vel_theta[0];
+			_msg_rcac_pos_vel_variables.rcac_vel_theta[1] 	= _rcac_pos_vel_variables.rcac_vel_theta[1];
+			_msg_rcac_pos_vel_variables.rcac_vel_theta[2] 	= _rcac_pos_vel_variables.rcac_vel_theta[2];
+			_msg_rcac_pos_vel_variables.rcac_vel_theta[3] 	= _rcac_pos_vel_variables.rcac_vel_theta[3];
+			_msg_rcac_pos_vel_variables.rcac_vel_theta[4] 	= _rcac_pos_vel_variables.rcac_vel_theta[4];
+			_msg_rcac_pos_vel_variables.rcac_vel_theta[5] 	= _rcac_pos_vel_variables.rcac_vel_theta[5];
+			_msg_rcac_pos_vel_variables.rcac_vel_theta[6] 	= _rcac_pos_vel_variables.rcac_vel_theta[6];
+			_msg_rcac_pos_vel_variables.rcac_vel_theta[7] 	= _rcac_pos_vel_variables.rcac_vel_theta[7];
+			_msg_rcac_pos_vel_variables.rcac_vel_theta[8] 	= _rcac_pos_vel_variables.rcac_vel_theta[8];
+
+            mavlink_msg_rcac_pos_vel_variables_send_struct(_mavlink->get_channel(), &_msg_rcac_pos_vel_variables);
+        }
+
+        return true;
+    }
+};
+/******************************************/
+
 static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamHeartbeat>(),
 #if defined(STATUSTEXT_HPP)
@@ -3093,6 +3338,9 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamCameraCapture>(),
 	create_stream_list_item<MavlinkStreamCameraTrigger>(),
 	create_stream_list_item<MavlinkStreamCameraImageCaptured>(),
+	create_stream_list_item<MavlinkStreamRcacAttVariables>(),
+	create_stream_list_item<MavlinkStreamRcacRateVariables>(),
+	create_stream_list_item<MavlinkStreamRcacPosVelVariables>(),
 #if defined(DISTANCE_SENSOR_HPP)
 	create_stream_list_item<MavlinkStreamDistanceSensor>(),
 #endif // DISTANCE_SENSOR_HPP

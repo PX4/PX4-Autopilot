@@ -98,6 +98,12 @@ MulticopterAttitudeControl::parameters_updated()
 						radians(_param_mc_yawrate_max.get())));
 
 	_man_tilt_max = math::radians(_param_mpc_man_tilt_max.get());
+	
+	//Set P0 for RCAC attitude and Rate controller
+	_attitude_control.set_RCAC_att_P0(_param_mpc_rcac_att_P0.get());
+	_attitude_control.init_RCAC_att();
+	PX4_INFO("Att Control P0:\t%8.6f", (double)_param_mpc_rcac_att_P0.get());
+
 }
 
 float
@@ -217,6 +223,30 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 }
 
 void
+MulticopterAttitudeControl::publish_rcac_att_variables()
+{
+	_rcac_att_variables.timestamp = hrt_absolute_time();
+	_rcac_att_variables.ii_att = _attitude_control.get_RCAC_att_ii();
+	
+
+	_rcac_att_variables.switch_att = _attitude_control.get_RCAC_att_switch();
+
+	_rcac_att_variables.alpha_pid_att = _attitude_control.get_alpha_PID_att();
+
+	_rcac_att_variables.p11_att = _attitude_control.get_RCAC_P11_Att();
+
+	for (int i = 0; i <= 2; i++) {
+		_rcac_att_variables.rcac_att_z[i] = _attitude_control.get_RCAC_att_z()(i);
+		_rcac_att_variables.rcac_att_u[i] = _attitude_control.get_RCAC_att_u()(i);
+		_rcac_att_variables.rcac_att_theta[i] = _attitude_control.get_RCAC_att_theta()(i);
+
+		_rcac_att_variables.px4_att_theta[i] = _attitude_control.get_PX4_att_theta()(i);
+
+	}
+	_rcac_att_variables_pub.publish(_rcac_att_variables);
+}
+
+void
 MulticopterAttitudeControl::Run()
 {
 	if (should_exit()) {
@@ -260,6 +290,32 @@ MulticopterAttitudeControl::Run()
 			_quat_reset_counter = v_att.quat_reset_counter;
 		}
 
+		//RCtopic
+		// Ankit: RCAC switches and the PID scaling factor controlled by the RC transmitter
+		_rc_channels_sub.update(&_rc_channels_switch);
+		float RCAC_switch = _rc_channels_switch.channels[14];
+		float PID_scale_f = _rc_channels_switch.channels[13];
+		// SITL
+		//RCAC_switch = -1.0f;
+		//PID_scale_f = 1.0f;
+		if (RCAC_switch>0.0f)
+		{
+			_attitude_control.set_RCAC_att_switch(_param_mpc_rcac_att_sw.get());
+		}
+		else
+		{
+			_attitude_control.set_RCAC_att_switch(RCAC_switch);
+		}
+		//_attitude_control.set_RCAC_att_switch(RCAC_switch);
+		_attitude_control.set_PID_att_factor(PID_scale_f, _param_mpc_att_alpha.get());
+
+		// _attitude_control.set_RCAC_att_switch(_rc_channels_switch.channels[14]);
+		// _attitude_control.set_PID_att_factor(_rc_channels_switch.channels[13]);
+		
+		// // Ankit: RCAC switches and the PID scaling factor for SITL testing
+		// _attitude_control.set_RCAC_att_switch(-1.0f);
+		// _attitude_control.set_PID_att_factor(1.0f);
+
 		// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
 		const float dt = math::constrain(((v_att.timestamp - _last_run) * 1e-6f), 0.0002f, 0.02f);
 		_last_run = v_att.timestamp;
@@ -268,11 +324,13 @@ MulticopterAttitudeControl::Run()
 		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 		_v_control_mode_sub.update(&_v_control_mode);
 
+
 		if (_vehicle_land_detected_sub.updated()) {
 			vehicle_land_detected_s vehicle_land_detected;
 
 			if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
 				_landed = vehicle_land_detected.landed;
+				_maybe_landed = vehicle_land_detected.maybe_landed;
 			}
 		}
 
@@ -321,8 +379,10 @@ MulticopterAttitudeControl::Run()
 				_man_x_input_filter.reset(0.f);
 				_man_y_input_filter.reset(0.f);
 			}
-
-			Vector3f rates_sp = _attitude_control.update(q);
+			
+			//Juan: Made changes to controller inputs
+			const bool landed = _maybe_landed || _landed;
+			Vector3f rates_sp = _attitude_control.update(q, landed);
 
 			if (_v_control_mode.flag_control_yawrate_override_enabled) {
 				/* Yaw rate override enabled, overwrite the yaw setpoint */
@@ -343,6 +403,7 @@ MulticopterAttitudeControl::Run()
 			v_rates_sp.timestamp = hrt_absolute_time();
 
 			_v_rates_sp_pub.publish(v_rates_sp);
+			publish_rcac_att_variables();
 		}
 
 		// reset yaw setpoint during transitions, tailsitter.cpp generates
@@ -354,6 +415,7 @@ MulticopterAttitudeControl::Run()
 
 	perf_end(_loop_perf);
 }
+
 
 int MulticopterAttitudeControl::task_spawn(int argc, char *argv[])
 {

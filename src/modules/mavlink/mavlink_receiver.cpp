@@ -1405,7 +1405,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		} else {
 			odometry.local_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
 		}
-
+		// Juan: Keep this in mind when trying MOCAP out.
 		if ((odom.estimator_type == MAV_ESTIMATOR_TYPE_VISION)
 		    || (odom.estimator_type == MAV_ESTIMATOR_TYPE_VIO)
 		    || (odom.estimator_type == MAV_ESTIMATOR_TYPE_UNKNOWN)) {
