@@ -116,8 +116,56 @@ RoverPositionControl::vehicle_control_mode_poll()
 void
 RoverPositionControl::manual_control_setpoint_poll()
 {
-	if (_manual_control_setpoint_sub.updated()) {
-		_manual_control_setpoint_sub.copy(&_manual_control_setpoint);
+	if (_control_mode.flag_control_manual_enabled) {
+		if (_manual_control_setpoint_sub.copy(&_manual_control_setpoint)) {
+			float dt = math::constrain(hrt_elapsed_time(&_manual_setpoint_last_called) * 1e-6f,  0.0002f, 0.04f);
+
+			if (!_control_mode.flag_control_climb_rate_enabled &&
+			    !_control_mode.flag_control_offboard_enabled) {
+
+				if (_control_mode.flag_control_attitude_enabled) {
+					// STABILIZED mode generate the attitude setpoint from manual user inputs
+					_att_sp.roll_body = 0.0;
+					_att_sp.pitch_body = 0.0;
+
+					/* reset yaw setpoint to current position if needed */
+					if (_reset_yaw_sp) {
+						const float vehicle_yaw = Eulerf(Quatf(_vehicle_att.q)).psi();
+						_manual_yaw_sp = vehicle_yaw;
+						_reset_yaw_sp = false;
+
+					} else {
+						const float yaw_rate = math::radians(_param_gnd_man_y_max.get());
+						_att_sp.yaw_sp_move_rate = _manual_control_setpoint.r * yaw_rate;
+						_manual_yaw_sp = wrap_pi(_manual_yaw_sp + _att_sp.yaw_sp_move_rate * dt);
+					}
+
+					_att_sp.yaw_body = _manual_yaw_sp;
+					_att_sp.thrust_body[0] = _manual_control_setpoint.z;
+
+					Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
+					q.copyTo(_att_sp.q_d);
+
+					_att_sp.timestamp = hrt_absolute_time();
+
+
+					_attitude_sp_pub.publish(_att_sp);
+
+				} else {
+					/* manual/direct control */
+					_act_controls.control[actuator_controls_s::INDEX_ROLL] = _manual_control_setpoint.y;
+					_act_controls.control[actuator_controls_s::INDEX_PITCH] = -_manual_control_setpoint.x;
+					_act_controls.control[actuator_controls_s::INDEX_YAW] = _manual_control_setpoint.r; //TODO: Readd yaw scale param
+					_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = _manual_control_setpoint.z;
+					_reset_yaw_sp = true;
+				}
+
+			} else {
+				_reset_yaw_sp = true;
+			}
+
+			_manual_setpoint_last_called = hrt_absolute_time();
+		}
 	}
 }
 
@@ -353,8 +401,6 @@ RoverPositionControl::Run()
 		/* update parameters from storage */
 		parameters_update();
 
-		bool manual_mode = _control_mode.flag_control_manual_enabled;
-
 		/* only run controller if position changed */
 		if (_local_pos_sub.update(&_local_pos)) {
 
@@ -383,7 +429,7 @@ RoverPositionControl::Run()
 			matrix::Vector2d current_position(_global_pos.lat, _global_pos.lon);
 			matrix::Vector3f current_velocity(_local_pos.vx, _local_pos.vy, _local_pos.vz);
 
-			if (!manual_mode && _control_mode.flag_control_position_enabled) {
+			if (!_control_mode.flag_control_manual_enabled && _control_mode.flag_control_position_enabled) {
 
 				if (control_position(current_position, ground_speed, _pos_sp_triplet)) {
 
@@ -413,43 +459,29 @@ RoverPositionControl::Run()
 
 				}
 
-			} else if (!manual_mode && _control_mode.flag_control_velocity_enabled) {
+			} else if (!_control_mode.flag_control_manual_enabled && _control_mode.flag_control_velocity_enabled) {
 
 				control_velocity(current_velocity, _pos_sp_triplet);
 
 			}
 		}
 
-		if (!manual_mode && _control_mode.flag_control_attitude_enabled
+		if (_control_mode.flag_control_attitude_enabled
 		    && !_control_mode.flag_control_position_enabled
 		    && !_control_mode.flag_control_velocity_enabled) {
-
 			control_attitude(_vehicle_att, _att_sp);
 
 		}
 
-		if (manual_mode) {
-			/* manual/direct control */
-			//PX4_INFO("Manual mode!");
-			_act_controls.control[actuator_controls_s::INDEX_ROLL] = _manual_control_setpoint.y;
-			_act_controls.control[actuator_controls_s::INDEX_PITCH] = -_manual_control_setpoint.x;
-			_act_controls.control[actuator_controls_s::INDEX_YAW] = _manual_control_setpoint.r; //TODO: Readd yaw scale param
-			_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = _manual_control_setpoint.z;
-		}
+		_act_controls.timestamp = hrt_absolute_time();
 
-		if (_sensor_combined_sub.update(&_sensor_combined)) {
-
-			//orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_vehicle_att);
-			_act_controls.timestamp = hrt_absolute_time();
-
-			/* Only publish if any of the proper modes are enabled */
-			if (_control_mode.flag_control_velocity_enabled ||
-			    _control_mode.flag_control_attitude_enabled ||
-			    _control_mode.flag_control_position_enabled ||
-			    manual_mode) {
-				/* publish the actuator controls */
-				_actuator_controls_pub.publish(_act_controls);
-			}
+		/* Only publish if any of the proper modes are enabled */
+		if (_control_mode.flag_control_velocity_enabled ||
+		    _control_mode.flag_control_attitude_enabled ||
+		    _control_mode.flag_control_position_enabled ||
+		    _control_mode.flag_control_manual_enabled) {
+			/* publish the actuator controls */
+			_actuator_controls_pub.publish(_act_controls);
 		}
 	}
 

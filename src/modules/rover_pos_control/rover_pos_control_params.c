@@ -286,3 +286,14 @@ PARAM_DEFINE_FLOAT(GND_WHEEL_BASE, 2.0f);
  * @group Rover Position Control
  */
 PARAM_DEFINE_FLOAT(GND_MAX_ANG, 0.7854f);
+
+/**
+ * Max manual yaw rate
+ *
+ * @unit deg/s
+ * @min 0.0
+ * @max 400
+ * @decimal 1
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_MAN_Y_MAX, 150.0f);
