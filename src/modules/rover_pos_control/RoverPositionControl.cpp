@@ -105,17 +105,6 @@ RoverPositionControl::vehicle_control_mode_poll()
 }
 
 void
-RoverPositionControl::manual_control_setpoint_poll()
-{
-	bool manual_updated;
-	orb_check(_manual_control_setpoint_sub, &manual_updated);
-
-	if (manual_updated) {
-		orb_copy(ORB_ID(manual_control_setpoint), _manual_control_setpoint_sub, &_manual_control_setpoint);
-	}
-}
-
-void
 RoverPositionControl::position_setpoint_triplet_poll()
 {
 	bool pos_sp_triplet_updated;
@@ -357,7 +346,6 @@ RoverPositionControl::run()
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 
 	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 
 	/* rate limit control mode updates to 5Hz */
 	orb_set_interval(_control_mode_sub, 200);
@@ -369,19 +357,15 @@ RoverPositionControl::run()
 	parameters_update(true);
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[5];
+	px4_pollfd_struct_t fds[3];
 
 	/* Setup of loop */
 	fds[0].fd = _global_pos_sub;
 	fds[0].events = POLLIN;
-	fds[1].fd = _manual_control_setpoint_sub;
+	fds[1].fd = _local_pos_sub;  // Added local position as source of position
 	fds[1].events = POLLIN;
-	fds[2].fd = _sensor_combined_sub;
+	fds[2].fd = _vehicle_attitude_sub; // Poll attitude
 	fds[2].events = POLLIN;
-	fds[3].fd = _vehicle_attitude_sub; // Poll attitude
-	fds[3].events = POLLIN;
-	fds[4].fd = _local_pos_sub;  // Added local position as source of position
-	fds[4].events = POLLIN;
 
 	while (!should_exit()) {
 
@@ -397,7 +381,6 @@ RoverPositionControl::run()
 		/* check vehicle control mode for changes to publication state */
 		vehicle_control_mode_poll();
 		attitude_setpoint_poll();
-		//manual_control_setpoint_poll();
 
 		_vehicle_acceleration_sub.update();
 
@@ -406,8 +389,8 @@ RoverPositionControl::run()
 
 		bool manual_mode = _control_mode.flag_control_manual_enabled;
 
-		/* only run controller if position changed */
-		if (fds[0].revents & POLLIN || fds[4].revents & POLLIN) {
+		// Respond to a position update
+		if (fds[0].revents & POLLIN || fds[1].revents & POLLIN) {
 			perf_begin(_loop_perf);
 
 			/* load local copies */
@@ -476,7 +459,8 @@ RoverPositionControl::run()
 			perf_end(_loop_perf);
 		}
 
-		if (fds[3].revents & POLLIN) {
+		// Respond to an attitude update and run the attitude controller if enabled
+		if (fds[2].revents & POLLIN) {
 
 			vehicle_attitude_poll();
 
@@ -490,37 +474,28 @@ RoverPositionControl::run()
 
 		}
 
-		if (fds[1].revents & POLLIN) {
-
-			// This should be copied even if not in manual mode. Otherwise, the poll(...) call will keep
-			// returning immediately and this loop will eat up resources.
+		// Manual pass-through if no other control mode is enabled
+		if (manual_mode) {
+			/* manual/direct control */
 			orb_copy(ORB_ID(manual_control_setpoint), _manual_control_setpoint_sub, &_manual_control_setpoint);
 
-			if (manual_mode) {
-				/* manual/direct control */
-				//PX4_INFO("Manual mode!");
-				_act_controls.control[actuator_controls_s::INDEX_ROLL] = _manual_control_setpoint.y;
-				_act_controls.control[actuator_controls_s::INDEX_PITCH] = -_manual_control_setpoint.x;
-				_act_controls.control[actuator_controls_s::INDEX_YAW] = _manual_control_setpoint.r; //TODO: Readd yaw scale param
-				_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = _manual_control_setpoint.z;
-			}
+			_act_controls.control[actuator_controls_s::INDEX_ROLL] = 0.0f; // Nominally roll: _manual_control_setpoint.y;
+			_act_controls.control[actuator_controls_s::INDEX_PITCH] = 0.0f; // Nominally pitch: -_manual_control_setpoint.x;
+			// Set heading from the manual roll input channel
+			_act_controls.control[actuator_controls_s::INDEX_YAW] =
+				_manual_control_setpoint.y; // Nominally yaw: _manual_control_setpoint.r;
+			// Set throttle from the manual throttle channel
+			_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = _manual_control_setpoint.z;
 		}
 
-		if (fds[2].revents & POLLIN) {
-
-			orb_copy(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensor_combined);
-
-			//orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_vehicle_att);
+		// publish the controller output
+		if (_control_mode.flag_control_velocity_enabled ||
+		    _control_mode.flag_control_attitude_enabled ||
+		    _control_mode.flag_control_position_enabled ||
+		    manual_mode) {
+			// timestamp and publish controls
 			_act_controls.timestamp = hrt_absolute_time();
-
-			/* Only publish if any of the proper modes are enabled */
-			if (_control_mode.flag_control_velocity_enabled ||
-			    _control_mode.flag_control_attitude_enabled ||
-			    _control_mode.flag_control_position_enabled ||
-			    manual_mode) {
-				/* publish the actuator controls */
-				_actuator_controls_pub.publish(_act_controls);
-			}
+			_actuator_controls_pub.publish(_act_controls);
 		}
 
 	}
@@ -531,7 +506,6 @@ RoverPositionControl::run()
 	orb_unsubscribe(_manual_control_setpoint_sub);
 	orb_unsubscribe(_pos_sp_triplet_sub);
 	orb_unsubscribe(_vehicle_attitude_sub);
-	orb_unsubscribe(_sensor_combined_sub);
 
 	warnx("exiting.\n");
 }
