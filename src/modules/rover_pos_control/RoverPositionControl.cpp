@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -58,14 +58,26 @@ extern "C" __EXPORT int rover_pos_control_main(int argc, char *argv[]);
 
 RoverPositionControl::RoverPositionControl() :
 	ModuleParams(nullptr),
+	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	/* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, "rover position control")) // TODO : do we even need these perf counters
+	_loop_perf(perf_alloc(PC_ELAPSED,  MODULE_NAME": cycle")) // TODO : do we even need these perf counters
 {
 }
 
 RoverPositionControl::~RoverPositionControl()
 {
 	perf_free(_loop_perf);
+}
+
+bool
+RoverPositionControl::init()
+{
+	if (!_vehicle_attitude_sub.registerCallback()) {
+		PX4_ERR("vehicle attitude callback registration failed!");
+		return false;
+	}
+
+	return true;
 }
 
 void RoverPositionControl::parameters_update(bool force)
@@ -96,44 +108,32 @@ void RoverPositionControl::parameters_update(bool force)
 void
 RoverPositionControl::vehicle_control_mode_poll()
 {
-	bool updated;
-	orb_check(_control_mode_sub, &updated);
+	if (_control_mode_sub.updated()) {
+		_control_mode_sub.copy(&_control_mode);
+	}
+}
 
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
+void
+RoverPositionControl::manual_control_setpoint_poll()
+{
+	if (_manual_control_setpoint_sub.updated()) {
+		_manual_control_setpoint_sub.copy(&_manual_control_setpoint);
 	}
 }
 
 void
 RoverPositionControl::position_setpoint_triplet_poll()
 {
-	bool pos_sp_triplet_updated;
-	orb_check(_pos_sp_triplet_sub, &pos_sp_triplet_updated);
-
-	if (pos_sp_triplet_updated) {
-		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
+	if (_pos_sp_triplet_sub.updated()) {
+		_pos_sp_triplet_sub.copy(&_pos_sp_triplet);
 	}
 }
 
 void
 RoverPositionControl::attitude_setpoint_poll()
 {
-	bool att_sp_updated;
-	orb_check(_att_sp_sub, &att_sp_updated);
-
-	if (att_sp_updated) {
-		orb_copy(ORB_ID(vehicle_attitude_setpoint), _att_sp_sub, &_att_sp);
-	}
-}
-
-void
-RoverPositionControl::vehicle_attitude_poll()
-{
-	bool att_updated;
-	orb_check(_vehicle_attitude_sub, &att_updated);
-
-	if (att_updated) {
-		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_vehicle_att);
+	if (_att_sp_sub.updated()) {
+		_att_sp_sub.copy(&_att_sp);
 	}
 }
 
@@ -336,51 +336,16 @@ RoverPositionControl::control_attitude(const vehicle_attitude_s &att, const vehi
 }
 
 void
-RoverPositionControl::run()
+RoverPositionControl::Run()
 {
-	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	_manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
-	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
-
-	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-
-	/* rate limit control mode updates to 5Hz */
-	orb_set_interval(_control_mode_sub, 200);
-
-	/* rate limit position updates to 50 Hz */
-	orb_set_interval(_global_pos_sub, 20);
-	orb_set_interval(_local_pos_sub, 20);
-
 	parameters_update(true);
 
-	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[3];
-
-	/* Setup of loop */
-	fds[0].fd = _global_pos_sub;
-	fds[0].events = POLLIN;
-	fds[1].fd = _local_pos_sub;  // Added local position as source of position
-	fds[1].events = POLLIN;
-	fds[2].fd = _vehicle_attitude_sub; // Poll attitude
-	fds[2].events = POLLIN;
-
-	while (!should_exit()) {
-
-		/* wait for up to 500ms for data */
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 500);
-
-		/* this is undesirable but not much we can do - might want to flag unhappy status */
-		if (pret < 0) {
-			warn("poll error %d, %d", pret, errno);
-			continue;
-		}
+	if (_vehicle_attitude_sub.update(&_vehicle_att)) {
 
 		/* check vehicle control mode for changes to publication state */
 		vehicle_control_mode_poll();
 		attitude_setpoint_poll();
+		manual_control_setpoint_poll();
 
 		_vehicle_acceleration_sub.update();
 
@@ -389,13 +354,11 @@ RoverPositionControl::run()
 
 		bool manual_mode = _control_mode.flag_control_manual_enabled;
 
-		// Respond to a position update
-		if (fds[0].revents & POLLIN || fds[1].revents & POLLIN) {
-			perf_begin(_loop_perf);
+		/* only run controller if position changed */
+		if (_local_pos_sub.update(&_local_pos)) {
 
 			/* load local copies */
-			orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
-			orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
+			_global_pos_sub.update(&_global_pos);
 
 			position_setpoint_triplet_poll();
 
@@ -454,31 +417,19 @@ RoverPositionControl::run()
 				control_velocity(current_velocity, _pos_sp_triplet);
 
 			}
-
-
-			perf_end(_loop_perf);
 		}
 
 		// Respond to an attitude update and run the attitude controller if enabled
-		if (fds[2].revents & POLLIN) {
+		if (!manual_mode && _control_mode.flag_control_attitude_enabled
+		    && !_control_mode.flag_control_position_enabled
+		    && !_control_mode.flag_control_velocity_enabled) {
 
-			vehicle_attitude_poll();
-
-			if (!manual_mode && _control_mode.flag_control_attitude_enabled
-			    && !_control_mode.flag_control_position_enabled
-			    && !_control_mode.flag_control_velocity_enabled) {
-
-				control_attitude(_vehicle_att, _att_sp);
-
-			}
+			control_attitude(_vehicle_att, _att_sp);
 
 		}
 
 		// Manual pass-through if no other control mode is enabled
 		if (manual_mode) {
-			/* manual/direct control */
-			orb_copy(ORB_ID(manual_control_setpoint), _manual_control_setpoint_sub, &_manual_control_setpoint);
-
 			_act_controls.control[actuator_controls_s::INDEX_ROLL] = 0.0f; // Nominally roll: _manual_control_setpoint.y;
 			_act_controls.control[actuator_controls_s::INDEX_PITCH] = 0.0f; // Nominally pitch: -_manual_control_setpoint.x;
 			// Set heading from the manual roll input channel
@@ -497,52 +448,30 @@ RoverPositionControl::run()
 			_act_controls.timestamp = hrt_absolute_time();
 			_actuator_controls_pub.publish(_act_controls);
 		}
-
 	}
-
-	orb_unsubscribe(_control_mode_sub);
-	orb_unsubscribe(_global_pos_sub);
-	orb_unsubscribe(_local_pos_sub);
-	orb_unsubscribe(_manual_control_setpoint_sub);
-	orb_unsubscribe(_pos_sp_triplet_sub);
-	orb_unsubscribe(_vehicle_attitude_sub);
-
-	warnx("exiting.\n");
 }
 
 int RoverPositionControl::task_spawn(int argc, char *argv[])
 {
-	/* start the task */
-	_task_id = px4_task_spawn_cmd("rover_pos_ctrl",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_POSITION_CONTROL,
-				      1700,
-				      (px4_main_t)&RoverPositionControl::run_trampoline,
-				      nullptr);
-
-	if (_task_id < 0) {
-		warn("task start failed");
-		return -errno;
-	}
-
-	return OK;
-}
-
-RoverPositionControl *RoverPositionControl::instantiate(int argc, char *argv[])
-{
-
-	if (argc > 0) {
-		PX4_WARN("Command 'start' takes no arguments.");
-		return nullptr;
-	}
-
 	RoverPositionControl *instance = new RoverPositionControl();
 
-	if (instance == nullptr) {
-		PX4_ERR("Failed to instantiate RoverPositionControl object");
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+
+		if (instance->init()) {
+			return PX4_OK;
+		}
+
+	} else {
+		PX4_ERR("alloc failed");
 	}
 
-	return instance;
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
 }
 
 int RoverPositionControl::custom_command(int argc, char *argv[])
