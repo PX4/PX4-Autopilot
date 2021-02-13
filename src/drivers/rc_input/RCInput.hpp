@@ -97,17 +97,19 @@ private:
 		RC_SCAN_SUMD,
 		RC_SCAN_ST24,
 		RC_SCAN_CRSF,
-		RC_SCAN_GHST
+		RC_SCAN_GHST,
+		RC_SCAN_SRXL,
 	} _rc_scan_state{RC_SCAN_SBUS};
 
-	static constexpr char const *RC_SCAN_STRING[7] {
+	static constexpr char const *RC_SCAN_STRING[8] {
 		"PPM",
 		"SBUS",
 		"DSM",
 		"SUMD",
 		"ST24",
 		"CRSF",
-		"GHST"
+		"GHST",
+		"SRXL",
 	};
 
 	void Run() override;
@@ -160,6 +162,10 @@ private:
 
 	CRSFTelemetry *_crsf_telemetry{nullptr};
 	GHSTTelemetry *_ghst_telemetry{nullptr};
+
+	// these are not defined in this module...  but ... should be?
+	// how is this accessed, otherwise?
+	//SRXLTelemetry * _srxl_telemetry{nullptr};
 
 	perf_counter_t	_cycle_perf;
 	perf_counter_t	_publish_interval_perf;

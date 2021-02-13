@@ -38,6 +38,7 @@ add_library(rc
 	sumd.cpp
 	sbus.cpp
 	dsm.cpp
+	srxl.cpp
 	common_rc.cpp
 )
 target_compile_options(rc
