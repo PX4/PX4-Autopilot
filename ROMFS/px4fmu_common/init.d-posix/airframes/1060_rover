@@ -8,6 +8,7 @@
 if [ $AUTOCNF = yes ]
 then
 	param set GND_L1_DIST 5
+	param set GND_L1_PERIOD 10
 	param set GND_SP_CTRL_MODE 1
 	param set GND_SPEED_D 0.001
 	param set GND_SPEED_I 3
