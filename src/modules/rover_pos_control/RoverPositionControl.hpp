@@ -102,6 +102,7 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
+	uORB::Publication<vehicle_attitude_setpoint_s>	_attitude_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<position_controller_status_s>	_pos_ctrl_status_pub{ORB_ID(position_controller_status)};  /**< navigation capabilities publication */
 	uORB::Publication<actuator_controls_s>		_actuator_controls_pub{ORB_ID(actuator_controls_0)};  /**< actuator controls publication */
 
@@ -126,6 +127,7 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	hrt_abstime _control_position_last_called{0}; 	/**<last call of control_position  */
+	hrt_abstime _manual_setpoint_last_called{0};
 
 	/* Pid controller for the speed. Here we assume we can control airspeed but the control variable is actually on
 	 the throttle. For now just assuming a proportional scaler between controlled airspeed and throttle output.*/
@@ -150,6 +152,9 @@ private:
 	/* previous waypoint */
 	matrix::Vector2d _prev_wp{0, 0};
 
+	float _manual_yaw_sp{0.0};
+	bool _reset_yaw_sp{true};
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::GND_L1_PERIOD>) _param_l1_period,
 		(ParamFloat<px4::params::GND_L1_DAMPING>) _param_l1_damping,
@@ -171,6 +176,7 @@ private:
 
 		(ParamFloat<px4::params::GND_WHEEL_BASE>) _param_wheel_base,
 		(ParamFloat<px4::params::GND_MAX_ANG>) _param_max_turn_angle,
+		(ParamFloat<px4::params::GND_MAN_Y_MAX>) _param_gnd_man_y_max,
 		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad	/**< loiter radius for Rover */
 	)
 
