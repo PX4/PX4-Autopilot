@@ -32,7 +32,7 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		gps
 		#heater
-		#imu/adis16448
+		#imu/analog_devices/adis16448
 		#imu # all available imu drivers
 		imu/l3gd20
 		imu/lsm303d
