@@ -1,7 +1,7 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR px4 
+	VENDOR px4
 	MODEL fmu-v6u
 	LABEL default
 	TOOLCHAIN arm-none-eabi
@@ -41,7 +41,6 @@ px4_add_board(
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		magnetometer # all available magnetometer drivers
-		mkblctrl
 		optical_flow # all available optical flow drivers
 		#osd
 		pca9685
