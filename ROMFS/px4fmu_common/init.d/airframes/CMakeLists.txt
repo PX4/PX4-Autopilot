@@ -158,6 +158,10 @@ px4_add_romfs_files(
 	18001_TF-B1
 
 	# [22000, 22999] Reserve for custom models
+	# ETHZ ASL Vehicles
+	22000_asl_easyglider
+	22001_asl_techpod
+	22002_asl_sensesoar2
 
 	24001_dodeca_cox
 

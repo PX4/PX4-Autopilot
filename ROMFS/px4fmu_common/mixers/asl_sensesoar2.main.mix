@@ -1,0 +1,61 @@
+ASL SenseSoar2 mixer for PX4IO
+=============================
+
+Documentation: https://dev.px4.io/en/concept/mixing.html
+
+Note1: CH2 AilR is down for pos PWM signal change, CH5 Ail L the other way around.
+Note2: The mixer defines a certain aileron differential, but the phyiscal differential
+       is stronger because of the servo mechanics (70% mixer diff -> ca. 60% physical).
+Note3: In the extras.txt on the sd-card, set pwm min/max such that the ailerons have
+       2.5cm upwards and 2.0cm downwards travel at FULL (u=+/- 1.0) mixer output. The
+       downwards travel with the mixer differential is then obviously less.
+
+=============================
+
+### Motor
+M: 1
+O:      10000  10000      0 -10000  10000
+S: 0 3      0  20000 -10000 -10000  10000
+
+
+### Right aileron (with differential)
+M: 1
+O:      10000  10000      0 -10000  10000
+S: 0 0  -7000 -10000      0 -10000  10000
+
+
+### Right ruddervator
+M: 2
+O:       6000   6000      0 -10000  10000
+S: 0 1  -6500  -6500      0 -10000  10000
+S: 0 2   7500   7500      0 -10000  10000
+
+
+### Left ruddervator
+M: 2
+O:       6000   6000      0 -10000  10000
+S: 0 1   6500   6500      0 -10000  10000
+S: 0 2   7500   7500      0 -10000  10000
+
+
+### Left aileron (with differential)
+M: 1
+O:      10000  10000      0 -10000  10000
+S: 0 0 -10000  -7000      0 -10000  10000
+
+
+### Right flap
+#M: 1
+#O:      10000  10000      0 -10000   4000
+#S: 3 4  10000  10000      0 -10000  10000
+
+### Right flap
+M: 1
+O:      10000  10000      0 -10000   4000
+S: 0 4      0  20000 -10000 -10000  10000
+
+
+### Left flap
+M: 1
+O:      10000  10000      0  -4000  10000
+S: 0 4      0 -20000  10000 -10000  10000

@@ -94,4 +94,8 @@ px4_add_romfs_files(
 	vtol_delta.aux.mix
 	vtol_tailsitter_duo.main.mix
 	wingwing.main.mix
+	#ETHZ ASL Custom Mixers
+	asl_easyglider.main.mix
+	asl_sensesoar2.main.mix
+	asl_techpod.main.mix
 )

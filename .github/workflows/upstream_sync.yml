@@ -1,0 +1,22 @@
+# This pipeline keeps the master branch up to date with upstream master
+name: Upstream Synchronization
+
+on:
+  schedule:
+  - cron:  "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  repo-sync:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        persist-credentials: false
+    - name: repo-sync
+      uses: repo-sync/github-sync@v2
+      with:
+        source_repo: "https://github.com/PX4/PX4-Autopilot.git"
+        source_branch: "master"
+        destination_branch: "master"
+        github_token: ${{ secrets.PAT }}
