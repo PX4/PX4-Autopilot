@@ -72,6 +72,7 @@ RCInput::~RCInput()
 	dsm_deinit();
 
 	delete _crsf_telemetry;
+	delete _ghst_telemetry;
 
 	perf_free(_cycle_perf);
 	perf_free(_publish_interval_perf);
@@ -627,6 +628,53 @@ void RCInput::Run()
 
 			} else {
 				// Scan the next protocol
+				set_rc_scan_state(RC_SCAN_GHST);
+			}
+
+			break;
+
+		case RC_SCAN_GHST:
+			if (_rc_scan_begin == 0) {
+				_rc_scan_begin = cycle_timestamp;
+				// Configure serial port for GHST
+				ghst_config(_rcs_fd);
+				rc_io_invert(false);
+
+			} else if (_rc_scan_locked
+				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+
+				// parse new data
+				if (newBytes > 0) {
+					int8_t ghst_rssi = -1;
+					rc_updated = ghst_parse(cycle_timestamp, &_rcs_buf[0], newBytes, &_raw_rc_values[0], &ghst_rssi,
+								&_raw_rc_count, input_rc_s::RC_INPUT_MAX_CHANNELS);
+
+					if (rc_updated) {
+						// we have a new GHST frame. Publish it.
+						_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_GHST;
+						fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp, false, false, 0, ghst_rssi);
+
+						// Enable GHST Telemetry only on the Omnibus, because on Pixhawk (-related) boards
+						// we cannot write to the RC UART
+						// It might work on FMU-v5. Or another option is to use a different UART port
+#ifdef CONFIG_ARCH_BOARD_OMNIBUS_F4SD
+
+						if (!_rc_scan_locked && !_ghst_telemetry) {
+							_ghst_telemetry = new GHSTTelemetry(_rcs_fd);
+						}
+
+#endif /* CONFIG_ARCH_BOARD_OMNIBUS_F4SD */
+
+						_rc_scan_locked = true;
+
+						if (_ghst_telemetry) {
+							_ghst_telemetry->update(cycle_timestamp);
+						}
+					}
+				}
+
+			} else {
+				// Scan the next protocol
 				set_rc_scan_state(RC_SCAN_SBUS);
 			}
 
@@ -730,6 +778,10 @@ int RCInput::print_status()
 		switch (_rc_scan_state) {
 		case RC_SCAN_CRSF:
 			PX4_INFO("CRSF Telemetry: %s", _crsf_telemetry ? "yes" : "no");
+			break;
+
+		case RC_SCAN_GHST:
+			PX4_INFO("GHST Telemetry: %s", _ghst_telemetry ? "yes" : "no");
 			break;
 
 		case RC_SCAN_SBUS:
