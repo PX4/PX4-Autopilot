@@ -37,8 +37,6 @@ set MIXER none
 set MIXER_AUX none
 set MIXER_FILE none
 set MIXER_EXTRA none
-set MK_MODE none
-set MKBLCTRL_ARG ""
 set OUTPUT_MODE none
 set PARAM_FILE /fs/microsd/params
 set PWM_OUT none
@@ -591,8 +589,6 @@ unset MAV_TYPE
 unset MIXER
 unset MIXER_AUX
 unset MIXER_FILE
-unset MK_MODE
-unset MKBLCTRL_ARG
 unset OUTPUT_MODE
 unset PARAM_DEFAULTS_VER
 unset PARAM_FILE
