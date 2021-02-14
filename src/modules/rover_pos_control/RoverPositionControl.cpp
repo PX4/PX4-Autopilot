@@ -149,7 +149,7 @@ RoverPositionControl::vehicle_attitude_poll()
 }
 
 bool
-RoverPositionControl::control_position(const matrix::Vector2f &current_position,
+RoverPositionControl::control_position(const matrix::Vector2d &current_position,
 				       const matrix::Vector3f &ground_speed, const position_setpoint_triplet_s &pos_sp_triplet)
 {
 	float dt = 0.01; // Using non zero value to a avoid division by zero
@@ -172,14 +172,14 @@ RoverPositionControl::control_position(const matrix::Vector2f &current_position,
 		//bool was_circle_mode = _gnd_control.circle_mode();
 
 		/* current waypoint (the one currently heading for) */
-		matrix::Vector2f curr_wp((float)pos_sp_triplet.current.lat, (float)pos_sp_triplet.current.lon);
+		matrix::Vector2d curr_wp(pos_sp_triplet.current.lat, pos_sp_triplet.current.lon);
 
 		/* previous waypoint */
-		matrix::Vector2f prev_wp = curr_wp;
+		matrix::Vector2d prev_wp = curr_wp;
 
 		if (pos_sp_triplet.previous.valid) {
-			prev_wp(0) = (float)pos_sp_triplet.previous.lat;
-			prev_wp(1) = (float)pos_sp_triplet.previous.lon;
+			prev_wp(0) = pos_sp_triplet.previous.lat;
+			prev_wp(1) = pos_sp_triplet.previous.lon;
 		}
 
 		matrix::Vector2f ground_speed_2d(ground_speed);
@@ -433,7 +433,7 @@ RoverPositionControl::run()
 			_pos_reset_counter = _global_pos.lat_lon_reset_counter;
 
 			matrix::Vector3f ground_speed(_local_pos.vx, _local_pos.vy,  _local_pos.vz);
-			matrix::Vector2f current_position((float)_global_pos.lat, (float)_global_pos.lon);
+			matrix::Vector2d current_position(_global_pos.lat, _global_pos.lon);
 			matrix::Vector3f current_velocity(_local_pos.vx, _local_pos.vy, _local_pos.vz);
 
 			if (!manual_mode && _control_mode.flag_control_position_enabled) {

@@ -31,6 +31,8 @@
 #
 ############################################################################
 
+add_compile_options(${MAX_CUSTOM_OPT_LEVEL})
+
 add_subdirectory(tinybson)
 
 if (NOT PARAM_DEFAULT_OVERRIDES)
@@ -113,16 +115,14 @@ add_custom_command(OUTPUT ${parameters_xml} ${parameters_json} ${parameters_json
 )
 add_custom_target(parameters_xml DEPENDS ${parameters_xml})
 
-# generate px4_parameters.c and px4_parameters{,_public}.h
-add_custom_command(OUTPUT px4_parameters.c px4_parameters.h px4_parameters_public.h
+# generate px4_parameters.hpp
+add_custom_command(OUTPUT px4_parameters.hpp
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_generate_params.py
 		--xml ${parameters_xml} --dest ${CMAKE_CURRENT_BINARY_DIR}
 	DEPENDS
 		${PX4_BINARY_DIR}/parameters.xml
 		px_generate_params.py
-		templates/px4_parameters.c.jinja
-		templates/px4_parameters.h.jinja
-		templates/px4_parameters_public.h.jinja
+		templates/px4_parameters.hpp.jinja
 	)
 
 set(SRCS)
@@ -147,10 +147,8 @@ endif()
 if (NOT "${PX4_BOARD}" MATCHES "px4_io")
 	add_library(parameters
 		${SRCS}
-		px4_parameters.c
-		px4_parameters.h
-		px4_parameters_public.h
-		)
+		px4_parameters.hpp
+	)
 
 	if ("${CONFIG_SHMEM}" STREQUAL "1")
 		target_link_libraries(parameters PRIVATE px4_layer)
