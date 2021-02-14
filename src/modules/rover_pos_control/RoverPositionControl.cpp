@@ -136,7 +136,7 @@ RoverPositionControl::manual_control_setpoint_poll()
 
 					} else {
 						const float yaw_rate = math::radians(_param_gnd_man_y_max.get());
-						_att_sp.yaw_sp_move_rate = _manual_control_setpoint.r * yaw_rate;
+						_att_sp.yaw_sp_move_rate = _manual_control_setpoint.y * yaw_rate;
 						_manual_yaw_sp = wrap_pi(_manual_yaw_sp + _att_sp.yaw_sp_move_rate * dt);
 					}
 
