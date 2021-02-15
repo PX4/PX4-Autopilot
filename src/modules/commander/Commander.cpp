@@ -707,12 +707,13 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 			// Adhere to MAVLink specs, but base on knowledge that these fundamentally encode ints
 			// for logic state parameters
-			if (static_cast<int>(cmd.param1 + 0.5f) != 0 && static_cast<int>(cmd.param1 + 0.5f) != 1) {
+			const int param1_arm = static_cast<int>(roundf(cmd.param1));
+
+			if (param1_arm != 0 && param1_arm != 1) {
 				mavlink_log_critical(&_mavlink_log_pub, "Unsupported ARM_DISARM param: %.3f", (double)cmd.param1);
 
 			} else {
-
-				bool cmd_arms = (static_cast<int>(cmd.param1 + 0.5f) == 1);
+				const bool cmd_arms = (param1_arm == 1);
 
 				// Arm is forced (checks skipped) when param2 is set to a magic number.
 				const bool forced = (static_cast<int>(roundf(cmd.param2)) == 21196);
