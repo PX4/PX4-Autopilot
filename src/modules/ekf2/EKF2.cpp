@@ -55,6 +55,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_local_position_pub(multi_mode ? ORB_ID(estimator_local_position) : ORB_ID(vehicle_local_position)),
 	_global_position_pub(multi_mode ? ORB_ID(estimator_global_position) : ORB_ID(vehicle_global_position)),
 	_odometry_pub(multi_mode ? ORB_ID(estimator_odometry) : ORB_ID(vehicle_odometry)),
+	_wind_estimate_pub(multi_mode ? ORB_ID(estimator_wind_estimate) : ORB_ID(wind_estimate)),
 	_params(_ekf.getParamHandle()),
 	_param_ekf2_min_obs_dt(_params->sensor_interval_min_ms),
 	_param_ekf2_mag_delay(_params->mag_delay_ms),
@@ -189,7 +190,7 @@ bool EKF2::multi_init(int imu, int mag)
 	_estimator_status_pub.advertise();
 	_estimator_status_flags_pub.advertise();
 	_estimator_visual_odometry_aligned_pub.advertised();
-	_wind_pub.advertise();
+	_wind_estimate_pub.advertise();
 	_yaw_est_pub.advertise();
 
 	_vehicle_imu_sub.ChangeInstance(imu);
@@ -1128,7 +1129,7 @@ void EKF2::PublishWindEstimate(const hrt_abstime &timestamp)
 		wind_estimate.variance_east = wind_vel_var(1);
 		wind_estimate.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 
-		_wind_pub.publish(wind_estimate);
+		_wind_estimate_pub.publish(wind_estimate);
 	}
 }
 
