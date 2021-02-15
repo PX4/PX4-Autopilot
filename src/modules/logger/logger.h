@@ -318,6 +318,8 @@ private:
 	 */
 	bool handle_event_updates(uint32_t &total_bytes);
 
+	void adjust_subscription_updates();
+
 	uint8_t						*_msg_buffer{nullptr};
 	int						_msg_buffer_len{0};
 
