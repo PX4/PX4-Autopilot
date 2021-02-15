@@ -665,6 +665,8 @@ void Logger::run()
 		_lockstep_component = px4_lockstep_register_component();
 	}
 
+	bool was_started = false;
+
 	while (!should_exit()) {
 		// Start/stop logging (depending on logging mode, by default when arming/disarming)
 		const bool logging_started = start_stop_logging();
@@ -688,6 +690,10 @@ void Logger::run()
 		const hrt_abstime loop_time = hrt_absolute_time();
 
 		if (_writer.is_started(LogType::Full)) { // mission log only runs when full log is also started
+
+			if (!was_started) {
+				adjust_subscription_updates();
+			}
 
 			/* check if we need to output the process load */
 			if (_next_load_print != 0 && loop_time >= _next_load_print) {
@@ -835,6 +841,8 @@ void Logger::run()
 
 			debug_print_buffer(total_bytes, timer_start);
 
+			was_started = true;
+
 		} else { // not logging
 
 			// try to subscribe to new topics, even if we don't log, so that:
@@ -853,6 +861,8 @@ void Logger::run()
 			} else if (loop_time > next_subscribe_check) {
 				next_subscribe_topic_index = 0;
 			}
+
+			was_started = false;
 		}
 
 		update_params();
@@ -1022,6 +1032,26 @@ void Logger::publish_logger_status()
 		}
 
 		_logger_status_last = hrt_absolute_time();
+	}
+}
+
+void Logger::adjust_subscription_updates()
+{
+	// we want subscriptions to update evenly distributed over time to avoid
+	// data bursts. This is particularly important for low-rate topics
+	hrt_abstime now = hrt_absolute_time();
+	int j = 0;
+
+	for (int i = 0; i < _num_subscriptions; ++i) {
+		if (_subscriptions[i].get_interval_us() >= 500_ms) {
+			hrt_abstime adjustment = (_log_interval * j) % 500_ms;
+
+			if (adjustment < now) {
+				_subscriptions[i].set_last_update(now - adjustment);
+			}
+
+			++j;
+		}
 	}
 }
 
@@ -1386,6 +1416,8 @@ void Logger::start_log_mavlink()
 	_writer.set_need_reliable_transfer(false);
 	_writer.unselect_write_backend();
 	_writer.notify();
+
+	adjust_subscription_updates(); // redistribute updates as sending the header can take some time
 }
 
 void Logger::stop_log_mavlink()
