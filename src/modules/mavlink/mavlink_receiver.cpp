@@ -594,9 +594,6 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 				// from the logger.
 				_mavlink->try_start_ulog_streaming(msg->sysid, msg->compid);
 			}
-
-		} else if (cmd_mavlink.command == MAV_CMD_LOGGING_STOP) {
-			_mavlink->request_stop_ulog_streaming();
 		}
 
 		if (!send_ack) {
