@@ -2192,13 +2192,9 @@ Commander::run()
 					} else {
 						disarm(arm_disarm_reason_t::RC_STICK);
 					}
-
-					// reset counter
-					_stick_off_counter = 0;
-
-				} else {
-					_stick_off_counter++;
 				}
+
+				_stick_off_counter++;
 
 			} else if (!(_param_arm_switch_is_button.get()
 				     && _manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON)) {
@@ -2244,13 +2240,9 @@ Commander::run()
 							arm(arm_disarm_reason_t::RC_STICK);
 						}
 					}
-
-					// reset counter
-					_stick_on_counter = 0;
-
-				} else {
-					_stick_on_counter++;
 				}
+
+				_stick_on_counter++;
 
 			} else if (!(_param_arm_switch_is_button.get()
 				     && _manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON)) {
