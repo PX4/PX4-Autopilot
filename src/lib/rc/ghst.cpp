@@ -203,9 +203,7 @@ static bool ghst_parse_buffer(uint16_t *values, int8_t *rssi, uint16_t *num_valu
 			// discard most of the data, but keep the last 3 bytes (otherwise we could miss the frame start)
 			current_frame_position = 3;
 
-			for (unsigned i = 0; i < current_frame_position; ++i) {
-				ghst_frame_ptr[i] = ghst_frame_ptr[sizeof(ghst_frame_t) - current_frame_position + i];
-			}
+			memcpy(ghst_frame_ptr, ghst_frame_ptr + sizeof(ghst_frame_t) - current_frame_position, current_frame_position);
 
 			GHST_VERBOSE("Discarding buffer");
 		}
