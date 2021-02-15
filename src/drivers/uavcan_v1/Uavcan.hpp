@@ -43,6 +43,7 @@
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/battery_status.h>
@@ -133,8 +134,8 @@ private:
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
-	uORB::Publication<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
-	uORB::Publication<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
+	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
 	perf_counter_t _interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
@@ -158,7 +159,7 @@ private:
 	CanardTransferID _uavcan_register_access_request_transfer_id{0};
 	//Register interface NodeID TODO MVP right have to make a queue
 	uint8_t _node_id_ready_to_give = 2;
-	uint8_t _node_register_setup = CANARD_NODE_ID_UNSET;
+	uint8_t _node_register_setup = 0;
 	int32_t _node_register_request_index = 0;
 	int32_t _node_register_last_received_index = -1;
 

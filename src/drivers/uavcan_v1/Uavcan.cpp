@@ -392,7 +392,6 @@ void UavcanNode::Run()
 				} else {
 					if (strncmp((char *)msg.name.name.elements, "uavcan.pub.gnss_uorb.id",
 						    msg.name.name.count) == 0) { //Demo GPS status publisher
-						_node_register_setup = CANARD_NODE_ID_UNSET;
 						PX4_INFO("NodeID %i GPS publisher set PortID to %i", receive.remote_node_id, gps_port_id);
 						_node_register_last_received_index++;
 
@@ -428,7 +427,6 @@ void UavcanNode::Run()
 
 					if (strncmp((char *)msg.name.name.elements, "uavcan.pub.energy_source.id",
 						    msg.name.name.count) == 0) { //Battery status publisher
-						_node_register_setup = CANARD_NODE_ID_UNSET;
 						PX4_INFO("NodeID %i battery energy_source publisher set PortID to %i", receive.remote_node_id,
 							 battery_energy_source_port_id);
 						_node_register_last_received_index++;
@@ -466,7 +464,6 @@ void UavcanNode::Run()
 
 
 			} else if (receive.port_id == battery_energy_source_port_id) {
-				PX4_INFO("NodeID %i Battery Status msg", receive.remote_node_id);
 				//TODO deserialize
 
 				reg_drone_physics_electricity_SourceTs_0_1 msg;
@@ -484,7 +481,8 @@ void UavcanNode::Run()
 				//battery_status.discharged_mah = (msg.value.full_energy.joule - msg.value.energy.joule) / XXX; //TODO get rated voltage
 				battery_status.remaining = msg.value.energy.joule / msg.value.full_energy.joule;
 				battery_status.timestamp = hrt_absolute_time(); //TODO timesync but this suffice for now
-				_battery_status_pub.publish(battery_status);
+				bool pub_status = _battery_status_pub.publish(battery_status);
+				PX4_INFO("NodeID %i Battery Source msg %i", receive.remote_node_id, pub_status);
 
 			} else if (receive.port_id == gps_port_id) {
 				PX4_INFO("NodeID %i GPS sensor msg", receive.remote_node_id);
