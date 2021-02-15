@@ -434,7 +434,9 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 				tune_negative(true);
 				return TRANSITION_DENIED;
 
-			} else if (throttle_above_low) {
+			}
+
+			if (!_vehicle_control_mode.flag_control_climb_rate_enabled && throttle_above_low) {
 				mavlink_log_critical(&_mavlink_log_pub, "Arming denied! Throttle not zero");
 				tune_negative(true);
 				return TRANSITION_DENIED;
