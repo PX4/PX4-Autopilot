@@ -1124,7 +1124,11 @@ void Logger::handle_vehicle_command_update()
 			}
 
 		} else if (command.command == vehicle_command_s::VEHICLE_CMD_LOGGING_STOP) {
-			stop_log_mavlink();
+			if (_writer.is_started(LogType::Full, LogWriter::BackendMavlink)) {
+				ack_vehicle_command(&command, vehicle_command_s::VEHICLE_CMD_RESULT_IN_PROGRESS);
+				stop_log_mavlink();
+			}
+
 			ack_vehicle_command(&command, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 		}
 	}
@@ -1388,7 +1392,16 @@ void Logger::stop_log_mavlink()
 {
 	// don't write perf data since a client does not expect more data after a stop command
 	PX4_INFO("Stop mavlink log");
-	_writer.stop_log_mavlink();
+
+	if (_writer.is_started(LogType::Full, LogWriter::BackendMavlink)) {
+		_writer.select_write_backend(LogWriter::BackendMavlink);
+		_writer.set_need_reliable_transfer(true);
+		write_perf_data(false);
+		_writer.set_need_reliable_transfer(false);
+		_writer.unselect_write_backend();
+		_writer.notify();
+		_writer.stop_log_mavlink();
+	}
 }
 
 struct perf_callback_data_t {
