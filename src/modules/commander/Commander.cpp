@@ -2089,7 +2089,7 @@ Commander::run()
 			_geofence_violated_prev = false;
 		}
 
-		// abort auto mode or geofence reaction if sticks are moved significantly
+		// abort autonomous mode and switch to position mode if sticks are moved significantly
 		if ((_param_rc_override.get() != 0) && (_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)) {
 
 			const bool override_auto_mode = (_param_rc_override.get() & OVERRIDE_AUTO_MODE_BIT)
@@ -2101,12 +2101,10 @@ Commander::run()
 			if ((override_auto_mode || override_offboard_mode) && !in_low_battery_failsafe && !_geofence_warning_action_on) {
 				const float minimum_stick_deflection = 0.01f * _param_com_rc_stick_ov.get();
 
-				// transition to previous state if sticks are touched
 				if (!_status.rc_signal_lost &&
 				    ((fabsf(_manual_control_setpoint.x) > minimum_stick_deflection) ||
 				     (fabsf(_manual_control_setpoint.y) > minimum_stick_deflection))) {
 
-					// revert to position control in any case
 					if (main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags,
 								  &_internal_state) == TRANSITION_CHANGED) {
 						tune_positive(true);
