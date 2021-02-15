@@ -1397,6 +1397,10 @@ void Logger::start_log_mavlink()
 		return;
 	}
 
+	// mavlink log does not work in combination with lockstep, it leads to dead-locks
+	px4_lockstep_unregister_component(_lockstep_component);
+	_lockstep_component = -1;
+
 	// initialize cpu load as early as possible to get more data
 	initialize_load_output(PrintLoadReason::Preflight);
 
