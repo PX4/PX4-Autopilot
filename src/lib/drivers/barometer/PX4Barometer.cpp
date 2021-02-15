@@ -38,8 +38,6 @@
 
 PX4Barometer::PX4Barometer(uint32_t device_id)
 {
-	_sensor_baro_pub.advertise();
-
 	_sensor_baro_pub.get().device_id = device_id;
 }
 

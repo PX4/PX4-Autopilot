@@ -64,6 +64,8 @@
 #include "mavlink_main.h"
 #include "mavlink_receiver.h"
 
+#include <lib/drivers/device/Device.hpp> // For DeviceId union
+
 #ifdef CONFIG_NET
 #define MAVLINK_RECEIVER_NET_ADDED_STACK 1360
 #else
@@ -640,12 +642,17 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 
 		distance_sensor_s d{};
 
+		device::Device::DeviceId device_id;
+		device_id.devid_s.bus = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
+		device_id.devid_s.devtype = DRV_DIST_DEVTYPE_MAVLINK;
+		device_id.devid_s.address = msg->sysid;
+
 		d.timestamp = f.timestamp;
 		d.min_distance = 0.3f;
 		d.max_distance = 5.0f;
 		d.current_distance = flow.distance; /* both are in m */
-		d.type = 1;
-		d.id = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
+		d.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
+		d.device_id = device_id.devid;
 		d.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 		d.variance = 0.0;
 
@@ -680,12 +687,17 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 	/* Use distance value for distance sensor topic */
 	distance_sensor_s d{};
 
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
+	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_MAVLINK;
+	device_id.devid_s.address = msg->sysid;
+
 	d.timestamp = hrt_absolute_time();
 	d.min_distance = 0.3f;
 	d.max_distance = 5.0f;
 	d.current_distance = flow.distance; /* both are in m */
 	d.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
-	d.id = 0;
+	d.device_id = device_id.devid;
 	d.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	d.variance = 0.0;
 
@@ -729,6 +741,11 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 
 	distance_sensor_s ds{};
 
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
+	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_MAVLINK;
+	device_id.devid_s.address = dist_sensor.id;
+
 	ds.timestamp        = hrt_absolute_time(); /* Use system time for now, don't trust sender to attach correct timestamp */
 	ds.min_distance     = static_cast<float>(dist_sensor.min_distance) * 1e-2f;     /* cm to m */
 	ds.max_distance     = static_cast<float>(dist_sensor.max_distance) * 1e-2f;     /* cm to m */
@@ -741,7 +758,7 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 	ds.q[2]             = dist_sensor.quaternion[2];
 	ds.q[3]             = dist_sensor.quaternion[3];
 	ds.type             = dist_sensor.type;
-	ds.id               = dist_sensor.id;
+	ds.device_id        = device_id.devid;
 	ds.orientation      = dist_sensor.orientation;
 
 	// MAVLink DISTANCE_SENSOR signal_quality value of 0 means unset/unknown
@@ -1389,7 +1406,10 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 			odometry.local_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
 		}
 
-		if (odom.estimator_type == MAV_ESTIMATOR_TYPE_VISION || odom.estimator_type == MAV_ESTIMATOR_TYPE_VIO) {
+		if ((odom.estimator_type == MAV_ESTIMATOR_TYPE_VISION)
+		    || (odom.estimator_type == MAV_ESTIMATOR_TYPE_VIO)
+		    || (odom.estimator_type == MAV_ESTIMATOR_TYPE_UNKNOWN)) {
+			// accept MAV_ESTIMATOR_TYPE_UNKNOWN for legacy support
 			_visual_odometry_pub.publish(odometry);
 
 		} else if (odom.estimator_type == MAV_ESTIMATOR_TYPE_MOCAP) {
@@ -1712,7 +1732,8 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	uint8_t cell_count = 0;
 
 	while (battery_mavlink.voltages[cell_count] < UINT16_MAX && cell_count < 10) {
-		voltage_sum += (float)(battery_mavlink.voltages[cell_count]) / 1000.0f;
+		battery_status.voltage_cell_v[cell_count] = (float)(battery_mavlink.voltages[cell_count]) / 1000.0f;
+		voltage_sum += battery_status.voltage_cell_v[cell_count];
 		cell_count++;
 	}
 
@@ -1723,6 +1744,7 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	battery_status.remaining = (float)battery_mavlink.battery_remaining / 100.0f;
 	battery_status.discharged_mah = (float)battery_mavlink.current_consumed;
 	battery_status.cell_count = cell_count;
+	battery_status.temperature = (float)battery_mavlink.temperature;
 	battery_status.connected = true;
 
 	// Set the battery warning based on remaining charge.
@@ -3037,6 +3059,7 @@ MavlinkReceiver::Run()
 				/* if read failed, this loop won't execute */
 				for (ssize_t i = 0; i < nread; i++) {
 					if (mavlink_parse_char(_mavlink->get_channel(), buf[i], &msg, &_status)) {
+						_total_received_counter++;
 
 						/* check if we received version 2 and request a switch. */
 						if (!(_mavlink->get_status()->flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1)) {
@@ -3067,12 +3090,126 @@ MavlinkReceiver::Run()
 
 						/* handle packet with parent object */
 						_mavlink->handle_message(&msg);
+
+
+						// calculate lost messages for this system id
+						bool px4_sysid_index_found = false;
+						int px4_sysid_index = 0;
+
+						if (msg.sysid != mavlink_system.sysid) {
+							for (int sys_id = 1; sys_id < MAX_REMOTE_SYSTEM_IDS; sys_id++) {
+								if (_system_id_map[sys_id] == msg.sysid) {
+									// slot found
+									px4_sysid_index_found = true;
+									px4_sysid_index = sys_id;
+									break;
+								}
+							}
+
+							// otherwise record newly seen system id in first available slot
+							if (!px4_sysid_index_found) {
+								for (int sys_id = 1; sys_id < MAX_REMOTE_SYSTEM_IDS; sys_id++) {
+									if (_system_id_map[sys_id] == 0) {
+										// slot available
+										px4_sysid_index_found = true;
+										px4_sysid_index = sys_id;
+										_system_id_map[sys_id] = msg.sysid;
+										break;
+									}
+								}
+							}
+
+							if (!px4_sysid_index_found) {
+								PX4_ERR("not enough system id slots (%d)", MAX_REMOTE_SYSTEM_IDS);
+							}
+
+						} else {
+							px4_sysid_index_found = true;
+						}
+
+						// find PX4 component id
+						uint8_t px4_comp_id = 0;
+						bool px4_comp_id_found = false;
+
+						for (int id = 0; id < COMP_ID_MAX; id++) {
+							if (supported_component_map[id] == msg.compid) {
+								px4_comp_id = id;
+								px4_comp_id_found = true;
+								break;
+							}
+						}
+
+						if (!px4_comp_id_found) {
+							PX4_WARN("unsupported component id, msgid: %d, sysid: %d compid: %d", msg.msgid, msg.sysid, msg.compid);
+						}
+
+						if (px4_comp_id_found && px4_sysid_index_found) {
+							// Increase receive counter
+							_total_received_supported_counter++;
+
+							uint8_t last_seq = _last_index[px4_sysid_index][px4_comp_id];
+							uint8_t expected_seq = last_seq + 1;
+
+							// Determine what the next expected sequence number is, accounting for
+							// never having seen a message for this system/component pair.
+							if (!_sys_comp_present[px4_sysid_index][px4_comp_id]) {
+								_sys_comp_present[px4_sysid_index][px4_comp_id] = true;
+								last_seq = msg.seq;
+								expected_seq = msg.seq;
+							}
+
+							// And if we didn't encounter that sequence number, record the error
+							if (msg.seq != expected_seq) {
+								int lost_messages = 0;
+
+								// Account for overflow during packet loss
+								if (msg.seq < expected_seq) {
+									lost_messages = (msg.seq + 255) - expected_seq;
+
+								} else {
+									lost_messages = msg.seq - expected_seq;
+								}
+
+								// Log how many were lost
+								_total_lost_counter += lost_messages;
+							}
+
+							// And update the last sequence number for this system/component pair
+							_last_index[px4_sysid_index][px4_comp_id] = msg.seq;
+
+							// Calculate new loss ratio
+							const float total_sent = _total_received_supported_counter + _total_lost_counter;
+							float rx_loss_percent = (_total_lost_counter / total_sent) * 100.f;
+
+							_running_loss_percent = (rx_loss_percent * 0.5f) + (_running_loss_percent * 0.5f);
+						}
 					}
 				}
 
 				/* count received bytes (nread will be -1 on read error) */
 				if (nread > 0) {
 					_mavlink->count_rxbytes(nread);
+
+					telemetry_status_s &tstatus = _mavlink->telemetry_status();
+					tstatus.rx_message_count = _total_received_counter;
+					tstatus.rx_message_count_supported = _total_received_supported_counter;
+					tstatus.rx_message_lost_count = _total_lost_counter;
+					tstatus.rx_message_lost_rate = _running_loss_percent;
+
+					if (_mavlink_status_last_buffer_overrun != _status.buffer_overrun) {
+						tstatus.rx_buffer_overruns++;
+						_mavlink_status_last_buffer_overrun = _status.buffer_overrun;
+					}
+
+					if (_mavlink_status_last_parse_error != _status.parse_error) {
+						tstatus.rx_parse_errors++;
+						_mavlink_status_last_parse_error = _status.parse_error;
+					}
+
+					if (_mavlink_status_last_packet_rx_drop_count != _status.packet_rx_drop_count) {
+						tstatus.rx_packet_drop_count++;
+						_mavlink_status_last_packet_rx_drop_count = _status.packet_rx_drop_count;
+					}
 				}
 
 #if defined(MAVLINK_UDP)

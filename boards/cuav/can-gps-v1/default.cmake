@@ -26,6 +26,7 @@ px4_add_board(
 	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
+	CONSTRAINED_MEMORY
 	ROMFSROOT cannode
 	UAVCAN_INTERFACES 1
 	DRIVERS
@@ -50,15 +51,4 @@ px4_add_board(
 		tune_control
 		ver
 		work_queue
-)
-
-include(px4_make_uavcan_bootloader)
-px4_make_uavcan_bootloadable(
-	BOARD ${PX4_BOARD}
-	BIN ${PX4_BINARY_DIR}/${PX4_BOARD}.bin
-	HWNAME ${uavcanblid_name}
-	HW_MAJOR ${uavcanblid_hw_version_major}
-	HW_MINOR ${uavcanblid_hw_version_minor}
-	SW_MAJOR ${uavcanblid_sw_version_major}
-	SW_MINOR ${uavcanblid_sw_version_minor}
 )

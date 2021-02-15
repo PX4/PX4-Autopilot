@@ -64,7 +64,8 @@ void UavcanBeep::periodic_update(const uavcan::TimerEvent &)
 		_tune_control_sub.copy(&_tune);
 
 		if (_tune.timestamp > 0) {
-			_play_tone = (_tunes.set_control(_tune) == Tunes::ControlResult::Success);
+			Tunes::ControlResult result =  _tunes.set_control(_tune);
+			_play_tone = (result == Tunes::ControlResult::Success) || (result == Tunes::ControlResult::AlreadyPlaying);
 		}
 	}
 

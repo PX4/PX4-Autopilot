@@ -81,7 +81,8 @@
 #include <uORB/topics/safety.h>
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/telemetry_status.h>
-#include <uORB/topics/vehicle_acceleration.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -123,7 +124,8 @@ public:
 private:
 	void answer_command(const vehicle_command_s &cmd, uint8_t result);
 
-	transition_result_t arm_disarm(bool arm, bool run_preflight_checks, arm_disarm_reason_t calling_reason);
+	transition_result_t arm(arm_disarm_reason_t calling_reason, bool run_preflight_checks = true);
+	transition_result_t disarm(arm_disarm_reason_t calling_reason);
 
 	void battery_status_check();
 
@@ -152,7 +154,6 @@ private:
 
 	void offboard_control_update();
 
-	void print_reject_arm(const char *msg);
 	void print_reject_mode(const char *msg);
 
 	void reset_posvel_validity();
@@ -195,6 +196,7 @@ private:
 
 		(ParamInt<px4::params::NAV_RCL_ACT>) _param_nav_rcl_act,
 		(ParamFloat<px4::params::COM_RC_LOSS_T>) _param_com_rc_loss_t,
+		(ParamFloat<px4::params::COM_RCL_ACT_T>) _param_com_rcl_act_t,
 
 		(ParamFloat<px4::params::COM_HOME_H_T>) _param_com_home_h_t,
 		(ParamFloat<px4::params::COM_HOME_V_T>) _param_com_home_v_t,
@@ -317,7 +319,8 @@ private:
 	hrt_abstime	_lvel_probation_time_us = POSVEL_PROBATION_MIN;
 
 	/* class variables used to check for navigation failure after takeoff */
-	hrt_abstime	_time_last_innov_pass{0};	/**< last time velocity or position innovations passed */
+	hrt_abstime	_time_last_innov_pass{0};	/**< last time velocity and position innovations passed */
+	hrt_abstime	_time_last_innov_fail{0};	/**< last time velocity and position innovations failed */
 	bool		_nav_test_passed{false};	/**< true if the post takeoff navigation test has passed */
 	bool		_nav_test_failed{false};	/**< true if the post takeoff navigation test has failed */
 
@@ -388,15 +391,18 @@ private:
 
 	main_state_t	_main_state_pre_offboard{commander_state_s::MAIN_STATE_MANUAL};
 
-	actuator_armed_s	_armed{};
-	commander_state_s	_internal_state{};
 	cpuload_s		_cpuload{};
 	geofence_result_s	_geofence_result{};
 	vehicle_land_detected_s	_land_detector{};
 	safety_s		_safety{};
-	vehicle_status_s	_status{};
-	vehicle_status_flags_s	_status_flags{};
 	vtol_vehicle_status_s	_vtol_status{};
+
+	// commander publications
+	actuator_armed_s        _armed{};
+	commander_state_s       _internal_state{};
+	vehicle_control_mode_s  _vehicle_control_mode{};
+	vehicle_status_s        _status{};
+	vehicle_status_flags_s  _status_flags{};
 
 	WorkerThread _worker_thread;
 
@@ -413,7 +419,8 @@ private:
 	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription					_manual_control_switches_sub{ORB_ID(manual_control_switches)};
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
-	uORB::Subscription					_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
+	uORB::Subscription					_vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
+	uORB::Subscription					_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription					_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
 
 	uORB::SubscriptionInterval				_parameter_update_sub{ORB_ID(parameter_update), 1_s};

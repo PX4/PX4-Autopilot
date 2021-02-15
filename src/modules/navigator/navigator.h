@@ -247,15 +247,6 @@ public:
 	void		set_cruising_throttle(float throttle = NAN) { _mission_throttle = throttle; }
 
 	/**
-	 * Get the acceptance radius given the mission item preset radius
-	 *
-	 * @param mission_item_radius the radius to use in case the controller-derived radius is smaller
-	 *
-	 * @return the distance at which the next waypoint should be used
-	 */
-	float		get_acceptance_radius(float mission_item_radius);
-
-	/**
 	 * Get the yaw acceptance given the current mission item
 	 *
 	 * @param mission_item_yaw the yaw to use in case the controller-derived radius is finite

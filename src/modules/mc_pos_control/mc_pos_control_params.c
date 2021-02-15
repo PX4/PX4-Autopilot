@@ -282,6 +282,24 @@ PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 PARAM_DEFINE_FLOAT(MPC_XY_TRAJ_P, 0.5f);
 
 /**
+ * Maximum horizontal error allowed by the trajectory generator
+ *
+ * The integration speed of the trajectory setpoint is linearly
+ * reduced with the horizontal position tracking error. When the
+ * error is above this parameter, the integration of the
+ * trajectory is stopped to wait for the drone.
+ *
+ * This value can be adjusted depending on the tracking
+ * capabilities of the vehicle.
+ *
+ * @min 0.1
+ * @max 10.0
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_XY_ERR_MAX, 2.0f);
+
+/**
  * Maximum horizontal velocity setpoint for manual controlled mode
  * If velocity setpoint larger than MPC_XY_VEL_MAX is set, then
  * the setpoint will be capped to MPC_XY_VEL_MAX
@@ -679,7 +697,7 @@ PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_MAX, 45.0f);
  *
  * Below this altitude:
  * - descending velocity gets limited to a value
- * between "MPC_Z_VEL_MAX" and "MPC_LAND_SPEED"
+ * between "MPC_Z_VEL_MAX_DN" and "MPC_LAND_SPEED"
  * - horizontal velocity gets limited to a value
  * between "MPC_VEL_MANUAL" and "MPC_LAND_VEL_XY"
  * for a smooth descent and landing experience.

@@ -8,6 +8,7 @@ px4_add_board(
 	LABEL stackcheck
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
+	CONSTRAINED_MEMORY
 	ROMFSROOT px4fmu_common
 	IO px4_io-v2_default
 	TESTING
@@ -41,7 +42,6 @@ px4_add_board(
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		magnetometer # all available magnetometer drivers
-		mkblctrl
 		#optical_flow # all available optical flow drivers
 		optical_flow/px4flow
 		pca9685

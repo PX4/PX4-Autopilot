@@ -104,6 +104,7 @@ using matrix::wrap_2pi;
 #include "streams/ATTITUDE_TARGET.hpp"
 #include "streams/AUTOPILOT_VERSION.hpp"
 #include "streams/COLLISION.hpp"
+#include "streams/COMPONENT_INFORMATION.hpp"
 #include "streams/DISTANCE_SENSOR.hpp"
 #include "streams/ESC_INFO.hpp"
 #include "streams/ESC_STATUS.hpp"
@@ -137,6 +138,7 @@ using matrix::wrap_2pi;
 # include "streams/DEBUG_FLOAT_ARRAY.hpp"
 # include "streams/DEBUG_VECT.hpp"
 # include "streams/NAMED_VALUE_FLOAT.hpp"
+# include "streams/LINK_NODE_STATUS.hpp"
 #endif // !CONSTRAINED_FLASH
 
 // ensure PX4 rotation enum and MAV_SENSOR_ROTATION align
@@ -506,7 +508,7 @@ public:
 	}
 
 private:
-	uORB::Subscription _cmd_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 
 	/* do not allow top copying this class */
 	MavlinkStreamCommandLong(MavlinkStreamCommandLong &) = delete;
@@ -518,19 +520,28 @@ protected:
 
 	bool send() override
 	{
-		struct vehicle_command_s cmd;
 		bool sent = false;
 
-		if (_cmd_sub.update(&cmd)) {
+		while ((_mavlink->get_free_tx_buf() >= get_size()) && _vehicle_command_sub.updated()) {
 
-			if (!cmd.from_external) {
-				PX4_DEBUG("sending command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
+			const unsigned last_generation = _vehicle_command_sub.get_last_generation();
+			vehicle_command_s cmd;
 
-				MavlinkCommandSender::instance().handle_vehicle_command(cmd, _mavlink->get_channel());
-				sent = true;
+			if (_vehicle_command_sub.update(&cmd)) {
+				if (_vehicle_command_sub.get_last_generation() != last_generation + 1) {
+					PX4_ERR("COMMAND_LONG vehicle_command lost, generation %d -> %d", last_generation,
+						_vehicle_command_sub.get_last_generation());
+				}
 
-			} else {
-				PX4_DEBUG("not forwarding command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
+				if (!cmd.from_external) {
+					PX4_DEBUG("sending command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
+
+					MavlinkCommandSender::instance().handle_vehicle_command(cmd, _mavlink->get_channel());
+					sent = true;
+
+				} else {
+					PX4_DEBUG("not forwarding command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
+				}
 			}
 		}
 
@@ -3135,9 +3146,15 @@ static const StreamListItem streams_list[] = {
 #if defined(GPS_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamGPSStatus>(),
 #endif // GPS_STATUS_HPP
+#if defined(LINK_NODE_STATUS_HPP)
+	create_stream_list_item<MavlinkStreamLinkNodeStatus>(),
+#endif // LINK_NODE_STATUS_HPP
 #if defined(STORAGE_INFORMATION_HPP)
 	create_stream_list_item<MavlinkStreamStorageInformation>(),
 #endif // STORAGE_INFORMATION_HPP
+#if defined(COMPONENT_INFORMATION_HPP)
+	create_stream_list_item<MavlinkStreamComponentInformation>(),
+#endif // COMPONENT_INFORMATION_HPP
 #if defined(RAW_RPM_HPP)
 	create_stream_list_item<MavlinkStreamRawRpm>()
 #endif // RAW_RPM_HPP

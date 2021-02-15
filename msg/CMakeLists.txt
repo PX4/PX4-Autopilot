@@ -131,6 +131,7 @@ set(msg_files
 	tecs_status.msg
 	telemetry_status.msg
 	test_motor.msg
+	takeoff_status.msg
 	timesync.msg
 	timesync_status.msg
 	trajectory_bezier.msg

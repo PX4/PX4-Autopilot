@@ -172,7 +172,6 @@ private:
 	position_setpoint_triplet_s		_pos_sp_triplet{};
 	tecs_status_s				_tecs_status{};
 	vehicle_attitude_s			_v_att{};				//vehicle attitude
-	vehicle_command_s			_vehicle_cmd{};
 	vehicle_control_mode_s			_v_control_mode{};	//vehicle control mode
 	vehicle_land_detected_s			_land_detected{};
 	vehicle_local_position_s		_local_pos{};
@@ -232,6 +231,4 @@ private:
 	void		vehicle_cmd_poll();
 
 	int 		parameters_update();			//Update local parameter cache
-
-	void		handle_command();
 };
