@@ -391,6 +391,7 @@ private:
 	Vector3f _delta_angle_bias_var_accum;	///< kahan summation algorithm accumulator for delta angle bias variance
 
 	Vector3f _last_vel_obs;			///< last velocity observation (m/s)
+	Vector3f _last_vel_obs_var;		///< last velocity observation variance (m/s)**2
 	Vector2f _last_fail_hvel_innov;		///< last failed horizontal velocity innovation (m/s)**2
 	float _vert_pos_innov_ratio;		///< vertical position innovation divided by estimated standard deviation of innovation
 	uint64_t _vert_pos_fuse_attempt_time_us;	///< last system time in usec vertical position measurement fuson was attempted
