@@ -128,7 +128,15 @@ int MavlinkULog::handle_update(mavlink_channel_t channel)
 		}
 	}
 
-	while ((_current_num_msgs < _max_num_messages) && _ulog_stream_sub.update()) {
+
+	while ((_current_num_msgs < _max_num_messages) && _ulog_stream_sub.updated()) {
+		const unsigned last_generation = _ulog_stream_sub.get_last_generation();
+		_ulog_stream_sub.update();
+
+		if (_ulog_stream_sub.get_last_generation() != last_generation + 1) {
+			PX4_ERR("ulog_stream lost, generation %d -> %d", last_generation, _ulog_stream_sub.get_last_generation());
+		}
+
 		const ulog_stream_s &ulog_data = _ulog_stream_sub.get();
 
 		if (ulog_data.timestamp > 0) {
