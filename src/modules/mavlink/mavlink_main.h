@@ -498,10 +498,6 @@ public:
 
 		_mavlink_ulog = MavlinkULog::try_start(_datarate, 0.7f, target_system, target_component);
 	}
-	void			request_stop_ulog_streaming()
-	{
-		if (_mavlink_ulog) { _mavlink_ulog_stop_requested.store(true); }
-	}
 
 	const events::SendProtocol &get_events_protocol() const { return _events; };
 	bool ftp_enabled() const { return _ftp_on; }
@@ -574,8 +570,6 @@ private:
 	MavlinkULog		*_mavlink_ulog{nullptr};
 	static events::EventBuffer	*_event_buffer;
 	events::SendProtocol		_events{*_event_buffer, *this};
-
-	px4::atomic_bool	_mavlink_ulog_stop_requested{false};
 
 	MAVLINK_MODE 		_mode{MAVLINK_MODE_NORMAL};
 
