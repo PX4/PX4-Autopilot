@@ -363,7 +363,8 @@ private:
 
 	unsigned int	_leds_counter{0};
 
-	manual_control_setpoint_s _manual_control_setpoint{};		///< the current manual control setpoint
+	manual_control_setpoint_s _manual_control_setpoint{};
+	manual_control_setpoint_s _last_manual_control_setpoint{};
 	manual_control_switches_s _manual_control_switches{};
 	manual_control_switches_s _last_manual_control_switches{};
 	hrt_abstime	_rc_signal_lost_timestamp{0};		///< Time at which the RC reception was lost
