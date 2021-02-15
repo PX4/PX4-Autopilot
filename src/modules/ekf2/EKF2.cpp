@@ -966,6 +966,13 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 	_ekf.get_ekf_soln_status(&status.solution_status_flags);
 	_ekf.getImuVibrationMetrics().copyTo(status.vibe);
 
+	// reset counters
+	status.reset_count_vel_ne = _ekf.state_reset_status().velNE_counter;
+	status.reset_count_vel_d = _ekf.state_reset_status().velD_counter;
+	status.reset_count_pos_ne = _ekf.state_reset_status().posNE_counter;
+	status.reset_count_pod_d = _ekf.state_reset_status().posD_counter;
+	status.reset_count_quat = _ekf.state_reset_status().quat_counter;
+
 	status.time_slip = _last_time_slip_us * 1e-6f;
 
 	status.pre_flt_fail_innov_heading = _preflt_checker.hasHeadingFailed();
