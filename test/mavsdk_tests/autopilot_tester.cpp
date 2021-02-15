@@ -45,7 +45,7 @@ void AutopilotTester::connect(const std::string uri)
 
 	std::cout << time_str() << "Waiting for system connect" << std::endl;
 	REQUIRE(poll_condition_with_timeout(
-	[this]() { return _mavsdk.is_connected(); }, adjust_to_lockstep_speed(std::chrono::seconds(25))));
+	[this]() { return _mavsdk.is_connected(); }, std::chrono::seconds(25)));
 
 	auto &system = _mavsdk.system();
 
@@ -347,7 +347,7 @@ void AutopilotTester::fly_forward_in_posctl()
 	// Send something to make sure RC is available.
 	for (unsigned i = 0; i < 1 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 0.5f, 0.f) == ManualControl::Result::Success);
-		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
 	}
 
 	CHECK(_manual_control->start_position_control() == ManualControl::Result::Success);
@@ -355,19 +355,19 @@ void AutopilotTester::fly_forward_in_posctl()
 	// Climb up for 20 seconds
 	for (unsigned i = 0; i < 20 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 1.f, 0.f) == ManualControl::Result::Success);
-		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
 	}
 
 	// Fly forward for 60 seconds
 	for (unsigned i = 0; i < 60 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.5f, 0.f, 0.5f, 0.f) == ManualControl::Result::Success);
-		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
 	}
 
 	// Descend until disarmed
 	for (unsigned i = 0; i < 60 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 0.0f, 0.f) == ManualControl::Result::Success);
-		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
 
 		if (!_telemetry->in_air()) {
 			break;
@@ -382,7 +382,7 @@ void AutopilotTester::fly_forward_in_altctl()
 	// Send something to make sure RC is available.
 	for (unsigned i = 0; i < 1 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 0.5f, 0.f) == ManualControl::Result::Success);
-		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
 	}
 
 	CHECK(_manual_control->start_altitude_control() == ManualControl::Result::Success);
@@ -390,19 +390,19 @@ void AutopilotTester::fly_forward_in_altctl()
 	// Climb up for 20 seconds
 	for (unsigned i = 0; i < 20 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 1.f, 0.f) == ManualControl::Result::Success);
-		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
 	}
 
 	// Fly forward for 60 seconds
 	for (unsigned i = 0; i < 60 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.5f, 0.f, 0.5f, 0.f) == ManualControl::Result::Success);
-		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
 	}
 
 	// Descend until disarmed
 	for (unsigned i = 0; i < 60 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 0.0f, 0.f) == ManualControl::Result::Success);
-		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
 
 		if (!_telemetry->in_air()) {
 			break;
