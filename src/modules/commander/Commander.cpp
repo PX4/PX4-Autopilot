@@ -1556,7 +1556,7 @@ Commander::run()
 	_last_lvel_fail_time_us = _boot_timestamp;
 
 	// user adjustable duration required to assert arm/disarm via throttle/rudder stick
-	uint32_t rc_arm_hyst = _param_rc_arm_hyst.get() * COMMANDER_MONITORING_LOOPSPERMSEC;
+	uint32_t rc_arm_hyst = _param_rc_arm_hyst.get() * COMMANDER_MONITORING_LOOPSPERMSEC; //
 
 	int32_t airmode = 0;
 	int32_t rc_map_arm_switch = 0;
@@ -2155,6 +2155,10 @@ Commander::run()
 			 * and we are in MANUAL, Rattitude, or AUTO_READY mode or (ASSIST mode and landed)
 			 * do it only for rotary wings in manual mode or fixed wing if landed.
 			 * Disable stick-disarming if arming switch or button is mapped */
+			if (_manual_control.wantsDisarm(_vehicle_control_mode, _status, _land_detector.landed)) {
+				disarm(arm_disarm_reason_t::RC_STICK);
+			}
+
 			const bool stick_in_lower_left = _manual_control_setpoint.r < -STICK_ON_OFF_LIMIT
 							 && (_manual_control_setpoint.z < 0.1f)
 							 && !arm_switch_or_button_mapped;

@@ -235,7 +235,7 @@ private:
 		(ParamFloat<px4::params::COM_EF_TIME>) _param_ef_time_thres,
 
 		(ParamBool<px4::params::COM_ARM_WO_GPS>) _param_arm_without_gps,
-		(ParamBool<px4::params::COM_ARM_SWISBTN>) _param_arm_switch_is_button,
+		(ParamBool<px4::params::COM_ARM_SWISBTN>) _param_arm_switch_is_button, //
 		(ParamBool<px4::params::COM_ARM_MIS_REQ>) _param_arm_mission_required,
 		(ParamBool<px4::params::COM_ARM_AUTH_REQ>) _param_arm_auth_required,
 		(ParamBool<px4::params::COM_ARM_CHK_ESCS>) _param_escs_checks_required,
@@ -245,7 +245,7 @@ private:
 		(ParamInt<px4::params::COM_TAKEOFF_ACT>) _param_takeoff_finished_action,
 
 		(ParamInt<px4::params::COM_RC_IN_MODE>) _param_rc_in_off,
-		(ParamInt<px4::params::COM_RC_ARM_HYST>) _param_rc_arm_hyst,
+		(ParamInt<px4::params::COM_RC_ARM_HYST>) _param_rc_arm_hyst, //
 
 		(ParamInt<px4::params::COM_FLTMODE1>) _param_fltmode_1,
 		(ParamInt<px4::params::COM_FLTMODE2>) _param_fltmode_2,
@@ -287,7 +287,7 @@ private:
 	static constexpr uint64_t COMMANDER_MONITORING_INTERVAL{10_ms};
 	static constexpr float COMMANDER_MONITORING_LOOPSPERMSEC{1 / (COMMANDER_MONITORING_INTERVAL / 1000.0f)};
 
-	static constexpr float STICK_ON_OFF_LIMIT{0.9f};
+	static constexpr float STICK_ON_OFF_LIMIT{0.9f}; //
 
 	static constexpr uint64_t HOTPLUG_SENS_TIMEOUT{8_s};	/**< wait for hotplug sensors to come online for upto 8 seconds */
 	static constexpr uint64_t PRINT_MODE_REJECT_INTERVAL{500_ms};

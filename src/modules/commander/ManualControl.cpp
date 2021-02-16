@@ -57,12 +57,6 @@ void ManualControl::update()
 	}
 }
 
-void ManualControl::process(manual_control_setpoint_s &manual_control_setpoint)
-{
-	_last_manual_control_setpoint = _manual_control_setpoint;
-	_manual_control_setpoint = manual_control_setpoint;
-}
-
 bool ManualControl::wantsOverride(const vehicle_control_mode_s &vehicle_control_mode)
 {
 	const bool override_auto_mode = (_param_rc_override.get() & OverrideBits::OVERRIDE_AUTO_MODE_BIT)
@@ -87,4 +81,23 @@ bool ManualControl::wantsOverride(const vehicle_control_mode_s &vehicle_control_
 	}
 
 	return false;
+}
+
+bool ManualControl::wantsDisarm(const vehicle_control_mode_s &vehicle_control_mode,
+				const vehicle_status_s &vehicle_status, const bool landed)
+{
+	bool ret = false;
+	return ret;
+}
+
+void ManualControl::updateParams()
+{
+	ModuleParams::updateParams();
+	_stick_disarm_hysteresis.set_hysteresis_time_from(false, _param_rc_arm_hyst.get() * 1_ms);
+}
+
+void ManualControl::process(manual_control_setpoint_s &manual_control_setpoint)
+{
+	_last_manual_control_setpoint = _manual_control_setpoint;
+	_manual_control_setpoint = manual_control_setpoint;
 }

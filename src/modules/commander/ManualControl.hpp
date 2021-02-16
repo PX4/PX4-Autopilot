@@ -41,11 +41,13 @@
 
 #pragma once
 
+#include <lib/hysteresis/hysteresis.h>
 #include <px4_platform_common/module_params.h>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_status.h>
 
 class ManualControl : ModuleParams
 {
@@ -57,10 +59,13 @@ public:
 	void update();
 	bool isRCAvailable() { return _rc_available; }
 	bool wantsOverride(const vehicle_control_mode_s &vehicle_control_mode);
+	bool wantsDisarm(const vehicle_control_mode_s &vehicle_control_mode, const vehicle_status_s &vehicle_status,
+			 const bool landed);
 
 	manual_control_setpoint_s _manual_control_setpoint{};
 
 private:
+	void updateParams() override;
 	void process(manual_control_setpoint_s &manual_control_setpoint);
 
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
@@ -69,8 +74,11 @@ private:
 	bool _rc_allowed{false};
 	bool _rc_available{false};
 
+	systemlib::Hysteresis _stick_disarm_hysteresis{false};
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::COM_RC_LOSS_T>) _param_com_rc_loss_t,
+		(ParamInt<px4::params::COM_RC_ARM_HYST>) _param_rc_arm_hyst,
 		(ParamInt<px4::params::COM_RC_OVERRIDE>) _param_rc_override,
 		(ParamFloat<px4::params::COM_RC_STICK_OV>) _param_com_rc_stick_ov
 	)
