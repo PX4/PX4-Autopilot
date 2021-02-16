@@ -1991,9 +1991,6 @@ Commander::run()
 			}
 		}
 
-		_manual_control.update();
-		_manual_control_setpoint = _manual_control._manual_control_setpoint;
-
 		/* start geofence result check */
 		_geofence_result_sub.update(&_geofence_result);
 
@@ -2095,10 +2092,14 @@ Commander::run()
 			_geofence_violated_prev = false;
 		}
 
+		_manual_control.setRCAllowed(!_status_flags.rc_input_blocked);
+		_manual_control.update();
+		_manual_control_setpoint = _manual_control._manual_control_setpoint;
+
 		// abort autonomous mode and switch to position mode if sticks are moved significantly
 		if ((_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
 		    && !in_low_battery_failsafe && !_geofence_warning_action_on
-		    && _manual_control.wantsOverride(_vehicle_control_mode, !_status.rc_signal_lost)) {
+		    && _manual_control.wantsOverride(_vehicle_control_mode)) {
 			if (main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags,
 						  &_internal_state) == TRANSITION_CHANGED) {
 				tune_positive(true);
@@ -2124,9 +2125,9 @@ Commander::run()
 			}
 		}
 
+
 		/* RC input check */
-		if (!_status_flags.rc_input_blocked && _manual_control_setpoint.timestamp != 0 &&
-		    (hrt_elapsed_time(&_manual_control_setpoint.timestamp) < (_param_com_rc_loss_t.get() * 1_s))) {
+		if (_manual_control.isRCAvailable()) {
 
 			/* handle the case where RC signal was regained */
 			if (!_status_flags.rc_signal_found_once) {
@@ -2687,7 +2688,6 @@ Commander::run()
 		_last_condition_global_position_valid = _status_flags.condition_global_position_valid;
 
 		_was_armed = _armed.armed;
-		_last_manual_control_setpoint = _manual_control_setpoint;
 
 		arm_auth_update(now, params_updated || param_init_forced);
 
