@@ -330,6 +330,15 @@ void MulticopterPositionControl::Run()
 				_vehicle_constraints.speed_up = _param_mpc_z_vel_max_up.get();
 			}
 
+			if (_control_mode.flag_control_offboard_enabled) {
+				_vehicle_constraints.want_takeoff = _control_mode.flag_armed && hrt_elapsed_time(&_setpoint.timestamp) < 1_s;
+
+				// override with defaults
+				_vehicle_constraints.speed_xy = _param_mpc_xy_vel_max.get();
+				_vehicle_constraints.speed_up = _param_mpc_z_vel_max_up.get();
+				_vehicle_constraints.speed_down = _param_mpc_z_vel_max_dn.get();
+			}
+
 			// handle smooth takeoff
 			_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, _vehicle_constraints.want_takeoff,
 						    _vehicle_constraints.speed_up, false, time_stamp_now);

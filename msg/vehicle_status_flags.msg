@@ -28,7 +28,6 @@ bool circuit_breaker_vtol_fw_arming_check 	# set to true if for VTOLs arming in 
 
 bool offboard_control_signal_found_once
 bool offboard_control_signal_lost
-bool offboard_control_set_by_command                # true if the offboard mode was set by a mavlink command and should not be overridden by RC
 
 bool rc_signal_found_once
 bool rc_input_blocked                                # set if RC input should be ignored temporarily

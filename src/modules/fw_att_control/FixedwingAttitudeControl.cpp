@@ -151,8 +151,7 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 				}
 			}
 
-			if (!_vcontrol_mode.flag_control_climb_rate_enabled &&
-			    !_vcontrol_mode.flag_control_offboard_enabled) {
+			if (!_vcontrol_mode.flag_control_climb_rate_enabled) {
 
 				if (_vcontrol_mode.flag_control_attitude_enabled) {
 					// STABILIZED mode generate the attitude setpoint from manual user inputs
