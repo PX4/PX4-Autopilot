@@ -94,7 +94,7 @@ jobs:
         PX4_HOME_LON: ${{matrix.config.longitude}}
         PX4_HOME_ALT: ${{matrix.config.altitude}}
         PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
-      run: test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early --model ${{matrix.config.model}} test/mavsdk_tests/configs/sitl.json
+      run: test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early --model ${{matrix.config.model}} --upload test/mavsdk_tests/configs/sitl.json
 
     - name: Look at core files
       if: failure()
@@ -105,9 +105,6 @@ jobs:
       with:
         name: coredump
         path: px4.core
-
-    - name: Upload logs to flight review
-      run: ./Tools/upload_log.py -q --description "${GITHUB_WORKFLOW} ${GITHUB_RUN_ID}" --feedback "${GITHUB_WORKFLOW} ${GITHUB_RUN_ID} ${GITHUB_REPOSITORY} ${GITHUB_REF}, model: ${{matrix.config.model}}, latitude: ${{matrix.config.latitude}}, longitude: ${{matrix.config.longitude}}, altitude: ${{matrix.config.altitude}} --build type ${{matrix.config.build_type}}" --source CI ${GITHUB_WORKSPACE}/build/px4_sitl_default/tmp_mavsdk_tests/rootfs/log/*/*.ulg
 
     - name: Upload px4 binary
       if: failure()
