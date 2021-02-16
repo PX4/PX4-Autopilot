@@ -32,6 +32,9 @@
  ****************************************************************************/
 
 #include "ManualControl.hpp"
+#include <drivers/drv_hrt.h>
+
+using namespace time_literals;
 
 enum OverrideBits {
 	OVERRIDE_AUTO_MODE_BIT = (1 << 0),
@@ -41,6 +44,10 @@ enum OverrideBits {
 
 void ManualControl::update()
 {
+	_rc_available = _rc_allowed
+			&& _last_manual_control_setpoint.timestamp != 0
+			&& (hrt_elapsed_time(&_last_manual_control_setpoint.timestamp) < (_param_com_rc_loss_t.get() * 1_s));
+
 	if (_manual_control_setpoint_sub.updated()) {
 		manual_control_setpoint_s manual_control_setpoint;
 
@@ -56,7 +63,7 @@ void ManualControl::process(manual_control_setpoint_s &manual_control_setpoint)
 	_manual_control_setpoint = manual_control_setpoint;
 }
 
-bool ManualControl::wantsOverride(const vehicle_control_mode_s &vehicle_control_mode, const bool rc_available)
+bool ManualControl::wantsOverride(const vehicle_control_mode_s &vehicle_control_mode)
 {
 	const bool override_auto_mode = (_param_rc_override.get() & OverrideBits::OVERRIDE_AUTO_MODE_BIT)
 					&& vehicle_control_mode.flag_control_auto_enabled;
@@ -64,7 +71,7 @@ bool ManualControl::wantsOverride(const vehicle_control_mode_s &vehicle_control_
 	const bool override_offboard_mode = (_param_rc_override.get() & OverrideBits::OVERRIDE_OFFBOARD_MODE_BIT)
 					    && vehicle_control_mode.flag_control_offboard_enabled;
 
-	if (rc_available && (override_auto_mode || override_offboard_mode)) {
+	if (_rc_available && (override_auto_mode || override_offboard_mode)) {
 		const float minimum_stick_change = .01f * _param_com_rc_stick_ov.get();
 
 		const bool rpy_moved = (fabsf(_manual_control_setpoint.x - _last_manual_control_setpoint.x) > minimum_stick_change)
