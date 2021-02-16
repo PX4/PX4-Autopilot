@@ -6,7 +6,7 @@ constexpr uint64_t FlightTask::_timeout;
 // First index of empty_setpoint corresponds to time-stamp and requires a finite number.
 const vehicle_local_position_setpoint_s FlightTask::empty_setpoint = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {}};
 
-const vehicle_constraints_s FlightTask::empty_constraints = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, false, {}};
+const vehicle_constraints_s FlightTask::empty_constraints = {0, NAN, NAN, NAN, {}};
 const landing_gear_s FlightTask::empty_landing_gear_default_keep = {0, landing_gear_s::GEAR_KEEP, {}};
 
 bool FlightTask::activate(const vehicle_local_position_setpoint_s &last_setpoint)
@@ -172,9 +172,6 @@ void FlightTask::_setDefaultConstraints()
 	_constraints.speed_xy = _param_mpc_xy_vel_max.get();
 	_constraints.speed_up = _param_mpc_z_vel_max_up.get();
 	_constraints.speed_down = _param_mpc_z_vel_max_dn.get();
-	_constraints.tilt = NAN;
-	_constraints.min_distance_to_ground = NAN;
-	_constraints.max_distance_to_ground = NAN;
 	_constraints.want_takeoff = false;
 }
 
