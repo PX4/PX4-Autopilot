@@ -433,7 +433,7 @@ rtps:
   - msg: actuator_controls_5
     id: 202
     alias: actuator_controls
-  - msg: estimator_wind_estimate
+  - msg: estimator_wind
     id: 203
     alias: wind_estimate
   ########## multi topics: end ##########

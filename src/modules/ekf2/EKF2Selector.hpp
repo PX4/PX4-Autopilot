@@ -96,7 +96,7 @@ private:
 			estimator_local_position_sub{ORB_ID(estimator_local_position), i},
 			estimator_global_position_sub{ORB_ID(estimator_global_position), i},
 			estimator_odometry_sub{ORB_ID(estimator_odometry), i},
-			estimator_wind_estimate_sub{ORB_ID(estimator_wind_estimate), i},
+			estimator_wind_sub{ORB_ID(estimator_wind), i},
 			instance(i)
 		{}
 
@@ -106,7 +106,7 @@ private:
 		uORB::Subscription estimator_local_position_sub;
 		uORB::Subscription estimator_global_position_sub;
 		uORB::Subscription estimator_odometry_sub;
-		uORB::Subscription estimator_wind_estimate_sub;
+		uORB::Subscription estimator_wind_sub;
 
 		uint64_t timestamp_sample_last{0};
 

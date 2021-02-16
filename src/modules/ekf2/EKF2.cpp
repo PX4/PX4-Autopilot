@@ -55,7 +55,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_local_position_pub(multi_mode ? ORB_ID(estimator_local_position) : ORB_ID(vehicle_local_position)),
 	_global_position_pub(multi_mode ? ORB_ID(estimator_global_position) : ORB_ID(vehicle_global_position)),
 	_odometry_pub(multi_mode ? ORB_ID(estimator_odometry) : ORB_ID(vehicle_odometry)),
-	_wind_estimate_pub(multi_mode ? ORB_ID(estimator_wind_estimate) : ORB_ID(wind_estimate)),
+	_wind_estimate_pub(multi_mode ? ORB_ID(estimator_wind) : ORB_ID(wind_estimate)),
 	_params(_ekf.getParamHandle()),
 	_param_ekf2_min_obs_dt(_params->sensor_interval_min_ms),
 	_param_ekf2_mag_delay(_params->mag_delay_ms),
