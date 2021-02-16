@@ -441,6 +441,13 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 
 			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, param_com_rcl_act_t);
 
+		/* fall back to RTL when no RCL activity was set and in manual mode */
+		} else if (status->rc_signal_lost && is_armed) {
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
+
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, link_loss_actions_t::AUTO_RTL, param_com_rcl_act_t);
+
+
 		} else {
 			switch (internal_state->main_state) {
 			case commander_state_s::MAIN_STATE_ACRO:
