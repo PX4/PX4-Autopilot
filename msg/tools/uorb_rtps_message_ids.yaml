@@ -329,7 +329,7 @@ rtps:
     id: 156
   - msg: gimbal_manager_set_manual_control
     id: 157
-  - msg: airspeed_selector_wind_estimate
+  - msg: airspeed_wind
     id: 158
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
