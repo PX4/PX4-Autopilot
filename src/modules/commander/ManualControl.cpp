@@ -56,24 +56,23 @@ void ManualControl::process(manual_control_setpoint_s &manual_control_setpoint)
 	_manual_control_setpoint = manual_control_setpoint;
 }
 
-bool ManualControl::wantsOverride(const int param_rc_override, const float param_com_rc_stick_ov,
-				  const vehicle_control_mode_s &vehicle_control_mode, const bool rc_available)
+bool ManualControl::wantsOverride(const vehicle_control_mode_s &vehicle_control_mode, const bool rc_available)
 {
-	const bool override_auto_mode = (param_rc_override & OverrideBits::OVERRIDE_AUTO_MODE_BIT)
+	const bool override_auto_mode = (_param_rc_override.get() & OverrideBits::OVERRIDE_AUTO_MODE_BIT)
 					&& vehicle_control_mode.flag_control_auto_enabled;
 
-	const bool override_offboard_mode = (param_rc_override & OverrideBits::OVERRIDE_OFFBOARD_MODE_BIT)
+	const bool override_offboard_mode = (_param_rc_override.get() & OverrideBits::OVERRIDE_OFFBOARD_MODE_BIT)
 					    && vehicle_control_mode.flag_control_offboard_enabled;
 
 	if (rc_available && (override_auto_mode || override_offboard_mode)) {
-		const float minimum_stick_change = .01f * param_com_rc_stick_ov;
+		const float minimum_stick_change = .01f * _param_com_rc_stick_ov.get();
 
 		const bool rpy_moved = (fabsf(_manual_control_setpoint.x - _last_manual_control_setpoint.x) > minimum_stick_change)
 				       || (fabsf(_manual_control_setpoint.y - _last_manual_control_setpoint.y) > minimum_stick_change)
 				       || (fabsf(_manual_control_setpoint.r - _last_manual_control_setpoint.r) > minimum_stick_change);
 		const bool throttle_moved =
 			(fabsf(_manual_control_setpoint.z - _last_manual_control_setpoint.z) * 2.f > minimum_stick_change);
-		const bool use_throttle = !(param_rc_override & OverrideBits::OVERRIDE_IGNORE_THROTTLE_BIT);
+		const bool use_throttle = !(_param_rc_override.get() & OverrideBits::OVERRIDE_IGNORE_THROTTLE_BIT);
 
 		if (rpy_moved || (use_throttle && throttle_moved)) {
 			return true;
