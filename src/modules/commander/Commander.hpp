@@ -195,7 +195,6 @@ private:
 		(ParamInt<px4::params::COM_HLDL_REG_T>) _param_com_hldl_reg_t,
 
 		(ParamInt<px4::params::NAV_RCL_ACT>) _param_nav_rcl_act,
-		(ParamFloat<px4::params::COM_RC_LOSS_T>) _param_com_rc_loss_t,
 		(ParamFloat<px4::params::COM_RCL_ACT_T>) _param_com_rcl_act_t,
 
 		(ParamFloat<px4::params::COM_HOME_H_T>) _param_com_home_h_t,
@@ -356,7 +355,6 @@ private:
 	unsigned int	_leds_counter{0};
 
 	manual_control_setpoint_s _manual_control_setpoint{};
-	manual_control_setpoint_s _last_manual_control_setpoint{};
 	manual_control_switches_s _manual_control_switches{};
 	manual_control_switches_s _last_manual_control_switches{};
 	ManualControl _manual_control{this};
