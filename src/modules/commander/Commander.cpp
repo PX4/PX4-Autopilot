@@ -2096,11 +2096,9 @@ Commander::run()
 		}
 
 		// abort autonomous mode and switch to position mode if sticks are moved significantly
-		if ((_param_rc_override.get() != 0)
-		    && (_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
+		if ((_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
 		    && !in_low_battery_failsafe && !_geofence_warning_action_on
-		    && _manual_control.wantsOverride(_param_rc_override.get(), _param_com_rc_stick_ov.get(), _vehicle_control_mode,
-						     !_status.rc_signal_lost)) {
+		    && _manual_control.wantsOverride(_vehicle_control_mode, !_status.rc_signal_lost)) {
 			if (main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags,
 						  &_internal_state) == TRANSITION_CHANGED) {
 				tune_positive(true);
