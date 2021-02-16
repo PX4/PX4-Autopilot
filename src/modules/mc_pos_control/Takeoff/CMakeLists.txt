@@ -33,7 +33,9 @@
 
 px4_add_library(Takeoff
 	Takeoff.cpp
+	Takeoff.hpp
 )
+#target_compile_definitions(Takeoff PRIVATE DEBUG_BUILD)
 target_include_directories(Takeoff PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(Takeoff PUBLIC hysteresis)
 

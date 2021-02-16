@@ -81,17 +81,17 @@ bool FlightTaskManualAltitude::activate(const vehicle_local_position_setpoint_s 
 void FlightTaskManualAltitude::_updateConstraintsFromEstimator()
 {
 	if (PX4_ISFINITE(_sub_vehicle_local_position.get().hagl_min)) {
-		_constraints.min_distance_to_ground = _sub_vehicle_local_position.get().hagl_min;
+		_min_distance_to_ground = _sub_vehicle_local_position.get().hagl_min;
 
 	} else {
-		_constraints.min_distance_to_ground = -INFINITY;
+		_min_distance_to_ground = -INFINITY;
 	}
 
 	if (PX4_ISFINITE(_sub_vehicle_local_position.get().hagl_max)) {
-		_constraints.max_distance_to_ground = _sub_vehicle_local_position.get().hagl_max;
+		_max_distance_to_ground = _sub_vehicle_local_position.get().hagl_max;
 
 	} else {
-		_constraints.max_distance_to_ground = INFINITY;
+		_max_distance_to_ground = INFINITY;
 	}
 }
 
@@ -184,7 +184,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 
 			// Ensure that minimum altitude is respected if
 			// there is a distance sensor and distance to bottom is below minimum.
-			if (PX4_ISFINITE(_dist_to_bottom) && _dist_to_bottom < _constraints.min_distance_to_ground) {
+			if (PX4_ISFINITE(_dist_to_bottom) && _dist_to_bottom < _min_distance_to_ground) {
 				_terrainFollowing(apply_brake, stopped);
 
 			} else {
@@ -210,14 +210,10 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 
 void FlightTaskManualAltitude::_respectMinAltitude()
 {
-	const bool respectAlt = PX4_ISFINITE(_dist_to_bottom)
-				&& _dist_to_bottom < _constraints.min_distance_to_ground;
-
 	// Height above ground needs to be limited (flow / range-finder)
-	if (respectAlt) {
+	if (PX4_ISFINITE(_dist_to_bottom) && (_dist_to_bottom < _min_distance_to_ground)) {
 		// increase altitude to minimum flow distance
-		_position_setpoint(2) = _position(2)
-					- (_constraints.min_distance_to_ground - _dist_to_bottom);
+		_position_setpoint(2) = _position(2) - (_min_distance_to_ground - _dist_to_bottom);
 	}
 }
 
@@ -253,8 +249,8 @@ void FlightTaskManualAltitude::_respectMaxAltitude()
 
 		// if there is a valid maximum distance to ground, linearly increase speed limit with distance
 		// below the maximum, preserving control loop vertical position error gain.
-		if (PX4_ISFINITE(_constraints.max_distance_to_ground)) {
-			_constraints.speed_up = math::constrain(_param_mpc_z_p.get() * (_constraints.max_distance_to_ground - _dist_to_bottom),
+		if (PX4_ISFINITE(_max_distance_to_ground)) {
+			_constraints.speed_up = math::constrain(_param_mpc_z_p.get() * (_max_distance_to_ground - _dist_to_bottom),
 								-_max_speed_down, _max_speed_up);
 
 		} else {
@@ -262,17 +258,16 @@ void FlightTaskManualAltitude::_respectMaxAltitude()
 		}
 
 		// if distance to bottom exceeded maximum distance, slowly approach maximum distance
-		if (_dist_to_bottom >  _constraints.max_distance_to_ground) {
+		if (_dist_to_bottom > _max_distance_to_ground) {
 			// difference between current distance to ground and maximum distance to ground
-			const float delta_distance_to_max = _dist_to_bottom - _constraints.max_distance_to_ground;
+			const float delta_distance_to_max = _dist_to_bottom - _max_distance_to_ground;
 			// set position setpoint to maximum distance to ground
-			_position_setpoint(2) = _position(2) +  delta_distance_to_max;
+			_position_setpoint(2) = _position(2) + delta_distance_to_max;
 			// limit speed downwards to 0.7m/s
 			_constraints.speed_down = math::min(_max_speed_down, 0.7f);
 
 		} else {
 			_constraints.speed_down = _max_speed_down;
-
 		}
 	}
 }
