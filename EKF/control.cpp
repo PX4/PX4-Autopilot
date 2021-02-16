@@ -120,8 +120,6 @@ void Ekf::controlFusionModes()
 		_delta_time_baro_us = _baro_sample_delayed.time_us - _delta_time_baro_us;
 	}
 
-
-
 	{
 	// Get range data from buffer and check validity
 	const bool is_rng_data_ready = _range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, _range_sensor.getSampleAddress());
@@ -598,13 +596,6 @@ void Ekf::controlGpsFusion()
 			   A reset is not performed when getting GPS back after a significant period of no data because the timeout
 			   could have been caused by bad GPS.
 			*/
-
-			if (!_control_status.flags.in_air) {
-				_time_last_on_ground_us = _time_last_imu;
-
-			} else {
-				_time_last_in_air = _time_last_imu;
-			}
 
 			const bool recent_takeoff_nav_failure = _control_status.flags.in_air &&
 								!isTimedOut(_time_last_on_ground_us, 30000000) &&
