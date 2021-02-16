@@ -41,19 +41,20 @@
 
 #pragma once
 
+#include <px4_platform_common/module_params.h>
+
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 
-class ManualControl
+class ManualControl : ModuleParams
 {
 public:
-	ManualControl() = default;
-	~ManualControl() = default;
+	ManualControl(ModuleParams *parent) : ModuleParams(parent) {};
+	~ManualControl() override = default;
 
 	void update();
-	bool wantsOverride(const int param_rc_override, const float param_com_rc_stick_ov,
-			   const vehicle_control_mode_s &vehicle_control_mode, const bool rc_available);
+	bool wantsOverride(const vehicle_control_mode_s &vehicle_control_mode, const bool rc_available);
 
 //private:
 	void process(manual_control_setpoint_s &manual_control_setpoint);
@@ -61,4 +62,9 @@ public:
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	manual_control_setpoint_s _manual_control_setpoint{};
 	manual_control_setpoint_s _last_manual_control_setpoint{};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::COM_RC_OVERRIDE>) _param_rc_override,
+		(ParamFloat<px4::params::COM_RC_STICK_OV>) _param_com_rc_stick_ov
+	)
 };
