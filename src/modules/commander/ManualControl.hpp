@@ -58,11 +58,12 @@ public:
 	bool isRCAvailable() { return _rc_available; }
 	bool wantsOverride(const vehicle_control_mode_s &vehicle_control_mode);
 
-//private:
+	manual_control_setpoint_s _manual_control_setpoint{};
+
+private:
 	void process(manual_control_setpoint_s &manual_control_setpoint);
 
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
-	manual_control_setpoint_s _manual_control_setpoint{};
 	manual_control_setpoint_s _last_manual_control_setpoint{};
 
 	bool _rc_allowed{false};
