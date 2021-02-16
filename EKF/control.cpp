@@ -333,7 +333,7 @@ void Ekf::controlExternalVisionFusion()
 			fuseHeading();
 		}
 
-	} else if ((_control_status.flags.ev_pos || _control_status.flags.ev_vel)
+	} else if ((_control_status.flags.ev_pos || _control_status.flags.ev_vel ||  _control_status.flags.ev_yaw)
 		   && isTimedOut(_time_last_ext_vision, (uint64_t)_params.reset_timeout_max)) {
 
 		// Turn off EV fusion mode if no data has been received

@@ -270,6 +270,7 @@ TEST_F(EkfFusionLogicTest, doVisionVelocityFusion)
 TEST_F(EkfFusionLogicTest, doVisionHeadingFusion)
 {
 	// WHEN: allow vision position to be fused and we send vision data
+	const int initial_quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
 	_ekf_wrapper.enableExternalVisionHeadingFusion();
 	_sensor_simulator.startExternalVision();
 	_sensor_simulator.runSeconds(4);
@@ -281,19 +282,23 @@ TEST_F(EkfFusionLogicTest, doVisionHeadingFusion)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingExternalVisionHeadingFusion());
 	EXPECT_FALSE(_ekf->local_position_is_valid());
 	EXPECT_FALSE(_ekf->global_position_is_valid());
+	// THEN: Yaw state should be reset to vision
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
 
 	// WHEN: stop sending vision data
 	_sensor_simulator.stopExternalVision();
-	_sensor_simulator.runSeconds(6);
+	_sensor_simulator.runSeconds(7.1);
 
 	// THEN: EKF should stop to intend to fuse vision position estimate
 	//       and EKF should not have a valid local position estimate anymore
 	EXPECT_FALSE(_ekf_wrapper.isIntendingExternalVisionPositionFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingExternalVisionVelocityFusion());
-	EXPECT_TRUE(_ekf_wrapper.isIntendingExternalVisionHeadingFusion());
-	// TODO: it is still intending to fuse ev_yaw. There should be some fallback to mag if possible
+	EXPECT_FALSE(_ekf_wrapper.isIntendingExternalVisionHeadingFusion());
 	EXPECT_FALSE(_ekf->local_position_is_valid());
 	EXPECT_FALSE(_ekf->global_position_is_valid());
+	// THEN: Yaw state shoud be reset to mag 
+	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 2);
 }
 
 TEST_F(EkfFusionLogicTest, doBaroHeightFusion)

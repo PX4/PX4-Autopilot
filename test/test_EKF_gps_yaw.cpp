@@ -195,6 +195,8 @@ TEST_F(EkfGpsHeadingTest, fallBackToMag)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingMagHeadingFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingMag3DFusion());
 
+	const int initial_quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+
 	// BUT WHEN: the GPS yaw is suddenly invalid
 	gps_heading = NAN;
 	_sensor_simulator._gps.setYaw(gps_heading);
@@ -204,4 +206,5 @@ TEST_F(EkfGpsHeadingTest, fallBackToMag)
 	// the estimator should fall back to mag fusion
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
 }
