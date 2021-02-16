@@ -94,7 +94,16 @@ public:
 	parameters *getParamHandle() { return &_params; }
 
 	// set vehicle landed status data
-	void set_in_air_status(bool in_air) { _control_status.flags.in_air = in_air; }
+	void set_in_air_status(bool in_air)
+	{
+		if (!in_air) {
+			_time_last_on_ground_us = _time_last_imu;
+
+		} else {
+			_time_last_in_air = _time_last_imu;
+		}
+		_control_status.flags.in_air = in_air;
+	}
 
 	// return true if the attitude is usable
 	bool attitude_valid() const { return ISFINITE(_output_new.quat_nominal(0)) && _control_status.flags.tilt_align; }
@@ -320,6 +329,8 @@ protected:
 					// [1] Vertical position drift rate (m/s)
 					// [2] Filtered horizontal velocity (m/s)
 	uint64_t _time_last_move_detect_us{0};	// timestamp of last movement detection event in microseconds
+	uint64_t _time_last_on_ground_us{0};	///< last time we were on the ground (uSec)
+	uint64_t _time_last_in_air{0};		///< last time we were in air (uSec)
 	bool _gps_drift_updated{false};	// true when _gps_drift_metrics has been updated and is ready for retrieval
 
 	// data buffer instances
