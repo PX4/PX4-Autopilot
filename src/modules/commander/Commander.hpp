@@ -37,6 +37,7 @@
 /*   Helper classes  */
 #include "Arming/PreFlightCheck/PreFlightCheck.hpp"
 #include "failure_detector/FailureDetector.hpp"
+#include "ManualControl.hpp"
 #include "state_machine_helper.h"
 #include "worker_thread.hpp"
 
@@ -70,7 +71,6 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/iridiumsbd_status.h>
-#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
@@ -286,12 +286,6 @@ private:
 		ALWAYS = 2
 	};
 
-	enum OverrideMode {
-		OVERRIDE_AUTO_MODE_BIT = (1 << 0),
-		OVERRIDE_OFFBOARD_MODE_BIT = (1 << 1),
-		OVERRIDE_IGNORE_THROTTLE_BIT = (1 << 2)
-	};
-
 	/* Decouple update interval and hysteresis counters, all depends on intervals */
 	static constexpr uint64_t COMMANDER_MONITORING_INTERVAL{10_ms};
 	static constexpr float COMMANDER_MONITORING_LOOPSPERMSEC{1 / (COMMANDER_MONITORING_INTERVAL / 1000.0f)};
@@ -367,6 +361,7 @@ private:
 	manual_control_setpoint_s _last_manual_control_setpoint{};
 	manual_control_switches_s _manual_control_switches{};
 	manual_control_switches_s _last_manual_control_switches{};
+	ManualControl _manual_control;
 	hrt_abstime	_rc_signal_lost_timestamp{0};		///< Time at which the RC reception was lost
 	int32_t		_flight_mode_slots[manual_control_switches_s::MODE_SLOT_NUM] {};
 	uint8_t		_last_manual_control_switches_arm_switch{manual_control_switches_s::SWITCH_POS_NONE};
@@ -417,7 +412,6 @@ private:
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 	uORB::Subscription					_land_detector_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription					_safety_sub{ORB_ID(safety)};
-	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription					_manual_control_switches_sub{ORB_ID(manual_control_switches)};
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription					_vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};

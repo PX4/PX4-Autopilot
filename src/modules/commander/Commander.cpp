@@ -1991,8 +1991,8 @@ Commander::run()
 			}
 		}
 
-		// update manual_control_setpoint before geofence (which might check sticks or switches)
-		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
+		_manual_control.update();
+		_manual_control_setpoint = _manual_control._manual_control_setpoint;
 
 		/* start geofence result check */
 		_geofence_result_sub.update(&_geofence_result);
@@ -2096,33 +2096,16 @@ Commander::run()
 		}
 
 		// abort autonomous mode and switch to position mode if sticks are moved significantly
-		if ((_param_rc_override.get() != 0) && (_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)) {
-
-			const bool override_auto_mode = (_param_rc_override.get() & OVERRIDE_AUTO_MODE_BIT)
-							&& _vehicle_control_mode.flag_control_auto_enabled;
-
-			const bool override_offboard_mode = (_param_rc_override.get() & OVERRIDE_OFFBOARD_MODE_BIT)
-							    && _vehicle_control_mode.flag_control_offboard_enabled;
-
-			if ((override_auto_mode || override_offboard_mode) && !in_low_battery_failsafe && !_geofence_warning_action_on) {
-				const float minimum_stick_change = .01f * _param_com_rc_stick_ov.get();
-
-				const bool rpy_moved = (fabsf(_manual_control_setpoint.x - _last_manual_control_setpoint.x) > minimum_stick_change)
-						|| (fabsf(_manual_control_setpoint.y - _last_manual_control_setpoint.y) > minimum_stick_change)
-						|| (fabsf(_manual_control_setpoint.r - _last_manual_control_setpoint.r) > minimum_stick_change);
-				const bool throttle_moved =
-					(fabsf(_manual_control_setpoint.z - _last_manual_control_setpoint.z) * 2.f > minimum_stick_change);
-				const bool use_throttle = !(_param_rc_override.get() & OVERRIDE_IGNORE_THROTTLE_BIT);
-
-				if (!_status.rc_signal_lost &&
-				(rpy_moved || (use_throttle && throttle_moved))) {
-					if (main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags,
-								  &_internal_state) == TRANSITION_CHANGED) {
-						tune_positive(true);
-						mavlink_log_info(&_mavlink_log_pub, "Pilot took over control using sticks");
-						_status_changed = true;
-					}
-				}
+		if ((_param_rc_override.get() != 0)
+		    && (_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
+		    && !in_low_battery_failsafe && !_geofence_warning_action_on
+		    && _manual_control.wantsOverride(_param_rc_override.get(), _param_com_rc_stick_ov.get(), _vehicle_control_mode,
+						     !_status.rc_signal_lost)) {
+			if (main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags,
+						  &_internal_state) == TRANSITION_CHANGED) {
+				tune_positive(true);
+				mavlink_log_info(&_mavlink_log_pub, "Pilot took over control using sticks");
+				_status_changed = true;
 			}
 		}
 
