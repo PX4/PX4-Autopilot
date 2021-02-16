@@ -126,7 +126,7 @@ public:
 	const Vector2f &getWindVelocity() const { return _state.wind_vel; };
 
 	// get the wind velocity var
-	Vector2f getWindVelocityVariance() const { return P.slice<2, 2>(22,22).diag(); }
+	Vector2f getWindVelocityVariance() const { return P.slice<2, 2>(22, 22).diag(); }
 
 	// get the true airspeed in m/s
 	void get_true_airspeed(float *tas) const;
@@ -217,7 +217,7 @@ public:
 
 	Vector3f getGyroBias() const { return _state.delta_ang_bias / _dt_ekf_avg; } // get the gyroscope bias in rad/s
 	Vector3f getAccelBias() const { return _state.delta_vel_bias / _dt_ekf_avg; } // get the accelerometer bias in m/s**2
-	const Vector3f& getMagBias() const { return _state.mag_B; }
+	const Vector3f &getMagBias() const { return _state.mag_B; }
 
 	Vector3f getGyroBiasVariance() const { return Vector3f{P(10, 10), P(11, 11), P(12, 12)} / _dt_ekf_avg; } // get the gyroscope bias variance in rad/s
 	Vector3f getAccelBiasVariance() const { return Vector3f{P(13, 13), P(14, 14), P(15, 15)} / _dt_ekf_avg; } // get the accelerometer bias variance in m/s**2
@@ -225,6 +225,8 @@ public:
 
 	// get GPS check status
 	void get_gps_check_status(uint16_t *val) const { *val = _gps_check_fail_status.value; }
+
+	const auto &state_reset_status() const { return _state_reset_status; }
 
 	// return the amount the local vertical position changed in the last reset and the number of reset events
 	void get_posD_reset(float *delta, uint8_t *counter) const
