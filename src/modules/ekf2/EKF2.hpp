@@ -85,7 +85,7 @@
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/wind_estimate.h>
+#include <uORB/topics/vehicle_wind.h>
 #include <uORB/topics/yaw_estimator_status.h>
 
 #include "Utility/PreFlightChecker.hpp"
@@ -260,7 +260,7 @@ private:
 	uORB::PublicationMulti<vehicle_local_position_s>     _local_position_pub;
 	uORB::PublicationMulti<vehicle_global_position_s>    _global_position_pub;
 	uORB::PublicationMulti<vehicle_odometry_s>           _odometry_pub;
-	uORB::PublicationMulti<wind_estimate_s>              _wind_estimate_pub;
+	uORB::PublicationMulti<vehicle_wind_s>              _vehicle_wind_pub;
 
 
 	PreFlightChecker _preflt_checker;

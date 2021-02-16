@@ -501,20 +501,20 @@ void EKF2Selector::PublishVehicleGlobalPosition(bool reset)
 
 void EKF2Selector::PublishWindEstimate(bool reset)
 {
-	wind_estimate_s wind_estimate;
+	vehicle_wind_s vehicle_wind;
 
-	if (_instance[_selected_instance].estimator_wind_sub.copy(&wind_estimate)) {
+	if (_instance[_selected_instance].estimator_wind_sub.copy(&vehicle_wind)) {
 		if (reset) {
 			// ensure monotonically increasing timestamp_sample through reset
-			wind_estimate.timestamp_sample = max(wind_estimate.timestamp_sample, _wind_estimate_last.timestamp_sample);
+			vehicle_wind.timestamp_sample = max(vehicle_wind.timestamp_sample, _vehicle_wind_last.timestamp_sample);
 		}
 
-		// save last primary wind_estimate
-		_wind_estimate_last = wind_estimate;
+		// save last primary vehicle_wind
+		_vehicle_wind_last = vehicle_wind;
 
 		// republish with current timestamp
-		wind_estimate.timestamp = hrt_absolute_time();
-		_wind_estimate_pub.publish(wind_estimate);
+		vehicle_wind.timestamp = hrt_absolute_time();
+		_vehicle_wind_pub.publish(vehicle_wind);
 	}
 }
 
@@ -671,7 +671,7 @@ void EKF2Selector::Run()
 		PublishVehicleGlobalPosition();
 	}
 
-	// selected estimator_wind -> wind_estimate
+	// selected estimator_wind -> vehicle_wind
 	if (_instance[_selected_instance].estimator_wind_sub.updated()) {
 		PublishWindEstimate();
 	}
