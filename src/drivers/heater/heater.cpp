@@ -74,57 +74,15 @@ Heater::Heater() :
 
 #endif
 
-	// Initialize heater to off state
 	heater_enable();
 }
 
 Heater::~Heater()
 {
-	// Reset heater to off state
 	heater_disable();
 
 #ifdef HEATER_PX4IO
 	px4_close(_io_fd);
-#endif
-}
-
-void Heater::heater_enable()
-{
-#ifdef HEATER_PX4IO
-	px4_ioctl(_io_fd, PX4IO_HEATER_CONTROL, HEATER_MODE_OFF);
-#endif
-#ifdef HEATER_GPIO
-	px4_arch_configgpio(GPIO_HEATER_OUTPUT);
-#endif
-}
-
-void Heater::heater_disable()
-{
-#ifdef HEATER_PX4IO
-	px4_ioctl(_io_fd, PX4IO_HEATER_CONTROL, HEATER_MODE_DISABLED);
-#endif
-#ifdef HEATER_GPIO
-	px4_arch_configgpio(GPIO_HEATER_OUTPUT);
-#endif
-}
-
-void Heater::heater_on()
-{
-#ifdef HEATER_PX4IO
-	px4_ioctl(_io_fd, PX4IO_HEATER_CONTROL, HEATER_MODE_ON);
-#endif
-#ifdef HEATER_GPIO
-	px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, 1);
-#endif
-}
-
-void Heater::heater_off()
-{
-#ifdef HEATER_PX4IO
-	px4_ioctl(_io_fd, PX4IO_HEATER_CONTROL, HEATER_MODE_OFF);
-#endif
-#ifdef HEATER_GPIO
-	px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, 0);
 #endif
 }
 
@@ -139,56 +97,51 @@ int Heater::custom_command(int argc, char *argv[])
 	return print_usage("Unrecognized command.");
 }
 
-void Heater::Run()
+uint32_t Heater::get_sensor_id()
 {
-	if (should_exit()) {
-		exit_and_cleanup();
-		return;
-	}
+	return _sensor_accel.device_id;
+}
 
-	if (_heater_on) {
-		// Turn the heater off.
-		heater_off();
-		_heater_on = false;
+void Heater::heater_disable()
+{
+	// Reset heater to off state.
+#ifdef HEATER_PX4IO
+	px4_ioctl(_io_fd, PX4IO_HEATER_CONTROL, HEATER_MODE_DISABLED);
+#endif
+#ifdef HEATER_GPIO
+	px4_arch_configgpio(GPIO_HEATER_OUTPUT);
+#endif
+}
 
-	} else {
-		update_params(false);
+void Heater::heater_enable()
+{
+	// Initialize heater to off state.
+#ifdef HEATER_PX4IO
+	px4_ioctl(_io_fd, PX4IO_HEATER_CONTROL, HEATER_MODE_OFF);
+#endif
+#ifdef HEATER_GPIO
+	px4_arch_configgpio(GPIO_HEATER_OUTPUT);
+#endif
+}
 
-		_sensor_accel_sub.update(&_sensor_accel);
+void Heater::heater_off()
+{
+#ifdef HEATER_PX4IO
+	px4_ioctl(_io_fd, PX4IO_HEATER_CONTROL, HEATER_MODE_OFF);
+#endif
+#ifdef HEATER_GPIO
+	px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, 0);
+#endif
+}
 
-		// Obtain the current IMU sensor temperature.
-		_sensor_temperature = _sensor_accel.temperature;
-
-		// Calculate the temperature delta between the setpoint and reported temperature.
-		float temperature_delta = _param_sens_imu_temp.get() - _sensor_temperature;
-
-		// Modulate the heater time on with a feedforward/PI controller.
-		_proportional_value = temperature_delta * _param_sens_imu_temp_p.get();
-		_integrator_value += temperature_delta * _param_sens_imu_temp_i.get();
-
-		// Constrain the integrator value to no more than 25% of the duty cycle.
-		_integrator_value = math::constrain(_integrator_value, -0.25f, 0.25f);
-
-		// Calculate the duty cycle. This is a value between 0 and 1.
-		float duty = _proportional_value + _integrator_value;
-
-		_controller_time_on_usec = (int)(duty * (float)_controller_period_usec);
-
-		// Constrain the heater time within the allowable duty cycle.
-		_controller_time_on_usec = math::constrain(_controller_time_on_usec, 0, _controller_period_usec);
-
-		// Turn the heater on.
-		_heater_on = true;
-		heater_on();
-	}
-
-	// Schedule the next cycle.
-	if (_heater_on) {
-		ScheduleDelayed(_controller_time_on_usec);
-
-	} else {
-		ScheduleDelayed(_controller_period_usec - _controller_time_on_usec);
-	}
+void Heater::heater_on()
+{
+#ifdef HEATER_PX4IO
+	px4_ioctl(_io_fd, PX4IO_HEATER_CONTROL, HEATER_MODE_ON);
+#endif
+#ifdef HEATER_GPIO
+	px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, 1);
+#endif
 }
 
 void Heater::initialize_topics()
@@ -196,15 +149,20 @@ void Heater::initialize_topics()
 	// Get the total number of accelerometer instances.
 	uint8_t number_of_imus = orb_group_count(ORB_ID(sensor_accel));
 
-	// Check each instance for the correct ID.
+	// Get the total number of accelerometer instances and check each instance for the correct ID.
 	for (uint8_t x = 0; x < number_of_imus; x++) {
-		_sensor_accel_sub = uORB::Subscription{ORB_ID(sensor_accel), x};
+		_sensor_accel.device_id = 0;
 
-		if (!_sensor_accel_sub.advertised()) {
-			continue;
+		while (_sensor_accel.device_id == 0) {
+			_sensor_accel_sub = uORB::Subscription{ORB_ID(sensor_accel), x};
+
+			if (!_sensor_accel_sub.advertised()) {
+				px4_usleep(100);
+				continue;
+			}
+
+			_sensor_accel_sub.copy(&_sensor_accel);
 		}
-
-		_sensor_accel_sub.copy(&_sensor_accel);
 
 		// If the correct ID is found, exit the for-loop with _sensor_accel_sub pointing to the correct instance.
 		if (_sensor_accel.device_id == (uint32_t)_param_sens_temp_id.get()) {
@@ -221,53 +179,20 @@ void Heater::initialize_topics()
 
 int Heater::print_status()
 {
-	PX4_INFO("Sensor ID: %d - Temperature: %3.3fC, Setpoint: %3.2fC, Heater State: %s",
+	float _feedforward_value = _param_sens_imu_temp_ff.get();
+
+	PX4_INFO("Sensor ID: %d,\tSetpoint: %3.2fC,\t Sensor Temperature: %3.2fC,\tDuty Cycle (usec): %d",
 		 _sensor_accel.device_id,
-		 (double)_sensor_temperature,
-		 (double)_param_sens_imu_temp.get(),
-		 _heater_on ? "On" : "Off");
+		 static_cast<double>(_param_sens_imu_temp.get()),
+		 static_cast<double>(_sensor_accel.temperature),
+		 _controller_period_usec);
+	PX4_INFO("Feed Forward control effort: %3.2f%%,\tProportional control effort: %3.2f%%,\tIntegrator control effort: %3.3f%%,\t Heater cycle: %3.2f%%",
+		 static_cast<double>(_feedforward_value * 100),
+		 static_cast<double>(_proportional_value * 100),
+		 static_cast<double>(_integrator_value * 100),
+		 static_cast<double>(static_cast<float>(_controller_time_on_usec) / static_cast<float>(_controller_period_usec) * 100));
 
 	return PX4_OK;
-}
-
-int Heater::start()
-{
-	update_params(true);
-	initialize_topics();
-
-	ScheduleNow();
-
-	return PX4_OK;
-}
-
-int Heater::task_spawn(int argc, char *argv[])
-{
-	Heater *heater = new Heater();
-
-	if (!heater) {
-		PX4_ERR("driver allocation failed");
-		return PX4_ERROR;
-	}
-
-	_object.store(heater);
-	_task_id = task_id_is_work_queue;
-
-	heater->start();
-
-	return 0;
-}
-
-void Heater::update_params(const bool force)
-{
-	// check for parameter updates
-	if (_parameter_update_sub.updated() || force) {
-		// clear update
-		parameter_update_s pupdate;
-		_parameter_update_sub.copy(&pupdate);
-
-		// update parameters from storage
-		ModuleParams::updateParams();
-	}
 }
 
 int Heater::print_usage(const char *reason)
@@ -289,6 +214,97 @@ This task can be started at boot from the startup scripts by setting SENS_EN_THE
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
+}
+
+void Heater::Run()
+{
+	if (should_exit()) {
+		exit_and_cleanup();
+		return;
+	}
+
+	if (_heater_on) {
+		// Turn the heater off.
+		heater_off();
+		_heater_on = false;
+
+	} else {
+		update_params(false);
+
+		_sensor_accel_sub.update(&_sensor_accel);
+
+		float temperature_delta {0.f};
+
+		// Update the current IMU sensor temperature if valid.
+		if (!isnan(_sensor_accel.temperature)) {
+			temperature_delta = _param_sens_imu_temp.get() - _sensor_accel.temperature;
+		}
+
+		_proportional_value = temperature_delta * _param_sens_imu_temp_p.get();
+		_integrator_value += temperature_delta * _param_sens_imu_temp_i.get();
+
+		if (fabs(_param_sens_imu_temp_i.get()) <= 0.0001) {
+			_integrator_value = 0.f;
+		}
+
+		// Guard against integrator wind up.
+		_integrator_value = math::constrain(_integrator_value, -0.25f, 0.25f);
+
+		_controller_time_on_usec = static_cast<int>((_param_sens_imu_temp_ff.get() + _proportional_value +
+						             _integrator_value) * static_cast<float>(_controller_period_usec));
+
+		_controller_time_on_usec = math::constrain(_controller_time_on_usec, 0, _controller_period_usec);
+
+		_heater_on = true;
+		heater_on();
+	}
+
+	// Schedule the next cycle.
+	if (_heater_on) {
+		ScheduleDelayed(_controller_time_on_usec);
+
+	} else {
+		ScheduleDelayed(_controller_period_usec - _controller_time_on_usec);
+	}
+}
+
+int Heater::start()
+{
+	update_params(true);
+	initialize_topics();
+
+	// Allow sufficient time for all additional sensors and processes to start.
+	ScheduleDelayed(100000);
+	return PX4_OK;
+}
+
+int Heater::task_spawn(int argc, char *argv[])
+{
+	Heater *heater = new Heater();
+
+	if (!heater) {
+		PX4_ERR("driver allocation failed");
+		return PX4_ERROR;
+	}
+
+	_object.store(heater);
+	_task_id = task_id_is_work_queue;
+
+	heater->start();
+	return 0;
+}
+
+void Heater::update_params(const bool force)
+{
+	// check for parameter updates
+	if (_parameter_update_sub.updated() || force) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+
+		// update parameters from storage
+		ModuleParams::updateParams();
+	}
 }
 
 /**
