@@ -601,6 +601,9 @@ void Ekf::controlGpsFusion()
 
 			if (!_control_status.flags.in_air) {
 				_time_last_on_ground_us = _time_last_imu;
+
+			} else {
+				_time_last_in_air = _time_last_imu;
 			}
 
 			const bool recent_takeoff_nav_failure = _control_status.flags.in_air &&
