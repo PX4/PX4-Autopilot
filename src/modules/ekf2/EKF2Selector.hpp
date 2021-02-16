@@ -52,7 +52,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_odometry.h>
-#include <uORB/topics/vehicle_wind.h>
+#include <uORB/topics/wind.h>
 
 #if CONSTRAINED_MEMORY
 # define EKF2_MAX_INSTANCES 2
@@ -200,7 +200,7 @@ private:
 	uint8_t _alt_reset_counter{0};
 
 	// wind estimate
-	vehicle_wind_s _vehicle_wind_last{};
+	wind_s _wind_last{};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _sensors_status_imu{ORB_ID(sensors_status_imu)};
@@ -212,7 +212,7 @@ private:
 	uORB::Publication<vehicle_global_position_s>   _vehicle_global_position_pub{ORB_ID(vehicle_global_position)};
 	uORB::Publication<vehicle_local_position_s>    _vehicle_local_position_pub{ORB_ID(vehicle_local_position)};
 	uORB::Publication<vehicle_odometry_s>          _vehicle_odometry_pub{ORB_ID(vehicle_odometry)};
-	uORB::Publication<vehicle_wind_s>             _vehicle_wind_pub{ORB_ID(vehicle_wind)};
+	uORB::Publication<wind_s>             _wind_pub{ORB_ID(wind)};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::EKF2_SEL_ERR_RED>) _param_ekf2_sel_err_red,

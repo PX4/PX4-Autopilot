@@ -225,7 +225,7 @@ rtps:
     receive: true
   - msg: vtol_vehicle_status
     id: 105
-  - msg: vehicle_wind
+  - msg: wind
     id: 106
   - msg: collision_constraints
     id: 107
@@ -435,5 +435,5 @@ rtps:
     alias: actuator_controls
   - msg: estimator_wind
     id: 203
-    alias: vehicle_wind
+    alias: wind
   ########## multi topics: end ##########

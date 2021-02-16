@@ -55,7 +55,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_local_position_pub(multi_mode ? ORB_ID(estimator_local_position) : ORB_ID(vehicle_local_position)),
 	_global_position_pub(multi_mode ? ORB_ID(estimator_global_position) : ORB_ID(vehicle_global_position)),
 	_odometry_pub(multi_mode ? ORB_ID(estimator_odometry) : ORB_ID(vehicle_odometry)),
-	_vehicle_wind_pub(multi_mode ? ORB_ID(estimator_wind) : ORB_ID(vehicle_wind)),
+	_wind_pub(multi_mode ? ORB_ID(estimator_wind) : ORB_ID(wind)),
 	_params(_ekf.getParamHandle()),
 	_param_ekf2_min_obs_dt(_params->sensor_interval_min_ms),
 	_param_ekf2_mag_delay(_params->mag_delay_ms),
@@ -190,7 +190,7 @@ bool EKF2::multi_init(int imu, int mag)
 	_estimator_status_pub.advertise();
 	_estimator_status_flags_pub.advertise();
 	_estimator_visual_odometry_aligned_pub.advertised();
-	_vehicle_wind_pub.advertise();
+	_wind_pub.advertise();
 	_yaw_est_pub.advertise();
 
 	_vehicle_imu_sub.ChangeInstance(imu);
@@ -1113,23 +1113,23 @@ void EKF2::PublishWindEstimate(const hrt_abstime &timestamp)
 {
 	if (_ekf.get_wind_status()) {
 		// Publish wind estimate only if ekf declares them valid
-		vehicle_wind_s vehicle_wind{};
-		vehicle_wind.timestamp_sample = timestamp;
+		wind_s wind{};
+		wind.timestamp_sample = timestamp;
 
 		const Vector2f wind_vel = _ekf.getWindVelocity();
 		const Vector2f wind_vel_var = _ekf.getWindVelocityVariance();
-		_ekf.getAirspeedInnov(vehicle_wind.tas_innov);
-		_ekf.getAirspeedInnovVar(vehicle_wind.tas_innov_var);
-		_ekf.getBetaInnov(vehicle_wind.beta_innov);
-		_ekf.getBetaInnovVar(vehicle_wind.beta_innov_var);
+		_ekf.getAirspeedInnov(wind.tas_innov);
+		_ekf.getAirspeedInnovVar(wind.tas_innov_var);
+		_ekf.getBetaInnov(wind.beta_innov);
+		_ekf.getBetaInnovVar(wind.beta_innov_var);
 
-		vehicle_wind.windspeed_north = wind_vel(0);
-		vehicle_wind.windspeed_east = wind_vel(1);
-		vehicle_wind.variance_north = wind_vel_var(0);
-		vehicle_wind.variance_east = wind_vel_var(1);
-		vehicle_wind.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+		wind.windspeed_north = wind_vel(0);
+		wind.windspeed_east = wind_vel(1);
+		wind.variance_north = wind_vel_var(0);
+		wind.variance_east = wind_vel_var(1);
+		wind.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 
-		_vehicle_wind_pub.publish(vehicle_wind);
+		_wind_pub.publish(wind);
 	}
 }
 
