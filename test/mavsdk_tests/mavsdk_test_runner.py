@@ -497,7 +497,7 @@ class Tester:
             print("    Could not find ulog log file to upload")
             return
 
-        if not os.getenv('GITHUB_WORKFLOW'):
+        if not os.getenv('GITHUB_RUN_ID'):
             print("    Upload only implemented for GitHub Actions CI")
             return
 
@@ -505,18 +505,17 @@ class Tester:
 
         server = "https://logs.px4.io"
 
+        result_str = "passing" if success else "failing"
+
         payload = {
             "type": "flightreport",
-            "description": "SITL integration test with {} for {}: {}"
-            .format(model, case, "passing" if success else "failing"),
+            "description": "SITL integration test - {}: '{}' -> {}"
+            .format(model, case, result_str),
             "feedback":
-                "workflow: {}, ".format(os.getenv("GITHUB_WORKFLOW")) +
-                "run_id: {}, ".format(os.getenv("GITHUB_RUN_ID")) +
-                "repository: {}, ".format(os.getenv("GITHUB_REPOSITORY")) +
-                "ref: {}, ".format(os.getenv("GITHUB_REF")) +
-                "model: {}, ".format(model) +
-                "case: {}, ".format(case) +
-                "pass: {}".format("true" if success else "false"),
+                "{}/{}/actions/runs/{}"
+                .format(os.getenv("GITHUB_SERVER_URL"),
+                        os.getenv("GITHUB_REPOSITORY"),
+                        os.getenv("GITHUB_RUN_ID")),
             "email": "",
             "source": "CI",
             "videoUrl": "",
