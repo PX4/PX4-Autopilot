@@ -52,9 +52,6 @@ BATT_SMBUS::BATT_SMBUS(I2CSPIBusOption bus_option, const int bus, SMBus *interfa
 		     interface->get_device_address()),
 	_interface(interface)
 {
-	battery_status_s new_report = {};
-	_batt_topic = orb_advertise(ORB_ID(battery_status), &new_report);
-
 	int battsource = 1;
 	int batt_device_type = (int)SMBUS_DEVICE_TYPE::UNDEFINED;
 
@@ -193,7 +190,9 @@ void BATT_SMBUS::RunImpl()
 		}
 
 		new_report.interface_error = perf_event_count(_interface->_interface_errors);
-		orb_publish(ORB_ID(battery_status), _batt_topic, &new_report);
+
+		int instance = 0;
+		orb_publish_auto(ORB_ID(battery_status), &_batt_topic, &new_report, &instance);
 
 		_last_report = new_report;
 	}
