@@ -1546,9 +1546,6 @@ Commander::run()
 	_last_gpos_fail_time_us = _boot_timestamp;
 	_last_lvel_fail_time_us = _boot_timestamp;
 
-	// user adjustable duration required to assert arm/disarm via throttle/rudder stick
-	uint32_t rc_arm_hyst = _param_rc_arm_hyst.get() * COMMANDER_MONITORING_LOOPSPERMSEC;
-
 	int32_t airmode = 0;
 	int32_t rc_map_arm_switch = 0;
 
@@ -1622,8 +1619,6 @@ Commander::run()
 			_status_flags.avoidance_system_required = _param_com_obs_avoid.get();
 
 			_status.rc_input_mode = _param_rc_in_off.get();
-
-			rc_arm_hyst = _param_rc_arm_hyst.get() * COMMANDER_MONITORING_LOOPSPERMSEC;
 
 			_arm_requirements.arm_authorization = _param_arm_auth_required.get();
 			_arm_requirements.esc_check = _param_escs_checks_required.get();
@@ -2149,101 +2144,28 @@ Commander::run()
 
 			_status.rc_signal_lost = false;
 
-			const bool in_armed_state = (_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-			const bool arm_switch_or_button_mapped =
-				_manual_control_switches.arm_switch != manual_control_switches_s::SWITCH_POS_NONE;
-			const bool arm_button_pressed = _param_arm_switch_is_button.get()
-							&& (_manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON);
-
 			/* DISARM
 			 * check if left stick is in lower left position or arm button is pushed or arm switch has transition from arm to disarm
 			 * and we are in MANUAL, Rattitude, or AUTO_READY mode or (ASSIST mode and landed)
 			 * do it only for rotary wings in manual mode or fixed wing if landed.
 			 * Disable stick-disarming if arming switch or button is mapped */
-			const bool stick_in_lower_left = _manual_control_setpoint.r < -STICK_ON_OFF_LIMIT
-							 && (_manual_control_setpoint.z < 0.1f)
-							 && !arm_switch_or_button_mapped;
-			const bool arm_switch_to_disarm_transition = !_param_arm_switch_is_button.get() &&
-					(_last_manual_control_switches_arm_switch == manual_control_switches_s::SWITCH_POS_ON) &&
-					(_manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_OFF);
-
-			if (in_armed_state &&
-			    (_status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF) &&
-			    (_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING || _land_detector.landed) &&
-			    (stick_in_lower_left || arm_button_pressed || arm_switch_to_disarm_transition)) {
-
-				const bool manual_thrust_mode = _vehicle_control_mode.flag_control_manual_enabled
-								&& !_vehicle_control_mode.flag_control_climb_rate_enabled;
-
-				const bool rc_wants_disarm = (_stick_off_counter == rc_arm_hyst && _stick_on_counter < rc_arm_hyst)
-							     || arm_switch_to_disarm_transition;
-
-				if (rc_wants_disarm && (_land_detector.landed || manual_thrust_mode)) {
-					if (arm_switch_to_disarm_transition) {
-						disarm(arm_disarm_reason_t::RC_SWITCH);
-
-					} else {
-						disarm(arm_disarm_reason_t::RC_STICK);
-					}
-				}
-
-				_stick_off_counter++;
-
-			} else if (!(_param_arm_switch_is_button.get()
-				     && _manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON)) {
-				/* do not reset the counter when holding the arm button longer than needed */
-				_stick_off_counter = 0;
+			if (_manual_control.wantsDisarm(_vehicle_control_mode, _status, _manual_control_switches, _land_detector.landed)) {
+				disarm(arm_disarm_reason_t::RC_STICK);
 			}
 
 			/* ARM
 			 * check if left stick is in lower right position or arm button is pushed or arm switch has transition from disarm to arm
 			 * and we're in MANUAL mode.
 			 * Disable stick-arming if arming switch or button is mapped */
-			const bool stick_in_lower_right = _manual_control_setpoint.r > STICK_ON_OFF_LIMIT && _manual_control_setpoint.z < 0.1f
-							  && !arm_switch_or_button_mapped;
-			/* allow a grace period for re-arming: preflight checks don't need to pass during that time,
-			 * for example for accidental in-air disarming */
-			const bool in_rearming_grace_period = _param_com_rearm_grace.get() && (_last_disarmed_timestamp != 0)
-							      && (hrt_elapsed_time(&_last_disarmed_timestamp) < 5_s);
+			if (_manual_control.wantsArm(_vehicle_control_mode, _status, _manual_control_switches, _land_detector.landed)) {
+				if (_vehicle_control_mode.flag_control_manual_enabled) {
+					arm(arm_disarm_reason_t::RC_STICK);
 
-			const bool arm_switch_to_arm_transition = !_param_arm_switch_is_button.get() &&
-					(_last_manual_control_switches_arm_switch == manual_control_switches_s::SWITCH_POS_OFF) &&
-					(_manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON) &&
-					(_manual_control_setpoint.z < 0.1f || in_rearming_grace_period);
-
-			if (!in_armed_state &&
-			    (_status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF) &&
-			    (stick_in_lower_right || arm_button_pressed || arm_switch_to_arm_transition)) {
-
-				if ((_stick_on_counter == rc_arm_hyst && _stick_off_counter < rc_arm_hyst) || arm_switch_to_arm_transition) {
-
-					/* we check outside of the transition function here because the requirement
-					 * for being in manual mode only applies to manual arming actions.
-					 * the system can be armed in auto if armed via the GCS.
-					 */
-					if (!_vehicle_control_mode.flag_control_manual_enabled) {
-						mavlink_log_critical(&_mavlink_log_pub, "Arming denied! Switch to a manual mode first");
-						tune_negative(true);
-
-					} else {
-						if (arm_switch_to_arm_transition) {
-							arm(arm_disarm_reason_t::RC_SWITCH);
-
-						} else {
-							arm(arm_disarm_reason_t::RC_STICK);
-						}
-					}
+				} else {
+					mavlink_log_critical(&_mavlink_log_pub, "Not arming! Switch to a manual mode first");
+					tune_negative(true);
 				}
-
-				_stick_on_counter++;
-
-			} else if (!(_param_arm_switch_is_button.get()
-				     && _manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON)) {
-				/* do not reset the counter when holding the arm button longer than needed */
-				_stick_on_counter = 0;
 			}
-
-			_last_manual_control_switches_arm_switch = _manual_control_switches.arm_switch;
 
 			if (_manual_control_switches_sub.update(&_manual_control_switches) || safety_updated) {
 
