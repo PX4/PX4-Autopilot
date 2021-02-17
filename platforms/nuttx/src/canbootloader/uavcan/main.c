@@ -45,7 +45,6 @@
 #include <string.h>
 
 #include "chip.h"
-#include "stm32.h"
 #include "nvic.h"
 
 #include "board.h"
@@ -100,7 +99,7 @@ typedef volatile struct bootloader_t {
 	union {
 		uint32_t l;
 		uint8_t b[sizeof(uint32_t)];
-	} fw_word0;
+	} fw_word0[LATER_FLAHSED_WORDS];
 
 } bootloader_t;
 
@@ -341,14 +340,14 @@ static void find_descriptor(void)
  *
  *
  * Input Parameters:
- *   first_word - the value read from the first word of the Application's
+ *   first_word - pointer the value read from the first 2 words of the Application's
  *   in FLASH image.
  *
  * Returned Value:
  *   true if the application in flash is valid., false otherwise.
  *
  ****************************************************************************/
-static bool is_app_valid(uint32_t first_word)
+static bool is_app_valid(volatile uint32_t *first_words)
 {
 	uint32_t block_crc1;
 	uint32_t block_crc2;
@@ -356,7 +355,7 @@ static bool is_app_valid(uint32_t first_word)
 
 	find_descriptor();
 
-	if (!bootloader.fw_image_descriptor || first_word == 0xFFFFFFFFu) {
+	if (!bootloader.fw_image_descriptor || first_words[0] == 0xFFFFFFFFu) {
 		return false;
 	}
 
@@ -373,9 +372,9 @@ static bool is_app_valid(uint32_t first_word)
 		return false;
 	}
 
-	block_crc1 = crc32_signature(0, sizeof(first_word), (const uint8_t *)&first_word);
+	block_crc1 = crc32_signature(0, LATER_FLAHSED_WORDS * sizeof(uint32_t), (const uint8_t *)first_words);
 	block_crc1 = crc32_signature(block_crc1, (size_t)(&bootloader.fw_image_descriptor->crc32_block1) -
-				     (size_t)(bootloader.fw_image + 1), (const uint8_t *)(bootloader.fw_image + 1));
+				     (size_t)(bootloader.fw_image + LATER_FLAHSED_WORDS), (const uint8_t *)(bootloader.fw_image + LATER_FLAHSED_WORDS));
 
 	block_crc2 = crc32_signature(0, block2_len,
 				     (const uint8_t *) &bootloader.fw_image_descriptor->major_version);
@@ -842,10 +841,15 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path, uint8_t
 			data[length] = 0xff;
 		}
 
-		/* Save the first word off */
+		/* Save the first words off */
 		if (request.offset == 0u) {
-			bootloader.fw_word0.l = *(uint32_t *)data;
-			*(uint32_t *)data = 0xffffffff;
+			uint32_t *datal = (uint32_t *)data;
+			bootloader.fw_word0[0].l = datal[0];
+			datal[0] = 0xffffffff;
+#if LATER_FLAHSED_WORDS > 1
+			bootloader.fw_word0[1].l = datal[1];
+			datal[1] = 0xffffffff;
+#endif
 		}
 
 		flash_status = bl_flash_write(flash_address + request.offset,
@@ -1089,12 +1093,12 @@ __EXPORT int main(int argc, char *argv[])
 	 *
 	 */
 #if defined(OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO)
-	bootloader.wait_for_getnodeinfo = (stm32_gpioread(GPIO_GETNODEINFO_JUMPER) ^
+	bootloader.wait_for_getnodeinfo = (px4_arch_gpioread(GPIO_GETNODEINFO_JUMPER) ^
 					   OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO_INVERT);
 #endif
 
 	/* Is the memory in the Application space occupied by a valid application? */
-	bootloader.app_valid = is_app_valid(bootloader.fw_image[0]);
+	bootloader.app_valid = is_app_valid(bootloader.fw_image);
 
 	board_indicate(reset);
 
@@ -1312,7 +1316,6 @@ __EXPORT int main(int argc, char *argv[])
 			      LOGMESSAGE_STAGE_ERASE,
 			      LOGMESSAGE_RESULT_START);
 
-
 	/* Need to signal that the app is no longer valid  if Node Info Request are done */
 	bootloader.app_valid = false;
 
@@ -1335,7 +1338,7 @@ __EXPORT int main(int argc, char *argv[])
 	}
 
 	/* Did we program a valid image ?*/
-	if (!is_app_valid(bootloader.fw_word0.l)) {
+	if (!is_app_valid(&bootloader.fw_word0[0].l)) {
 		bootloader.app_valid = 0u;
 
 		board_indicate(fw_update_invalid_crc);
@@ -1344,9 +1347,9 @@ __EXPORT int main(int argc, char *argv[])
 		goto failure;
 	}
 
-	/* Yes Commit the first word to location 0 of the Application image in flash */
-	status = bl_flash_write((uint32_t) bootloader.fw_image, (uint8_t *) &bootloader.fw_word0.b[0],
-				sizeof(bootloader.fw_word0.b));
+	/* Yes Commit the first word(s) to location 0 of the Application image in flash */
+	status = bl_flash_write((uint32_t) bootloader.fw_image, (uint8_t *) &bootloader.fw_word0[0].b[0],
+				sizeof(bootloader.fw_word0));
 
 	if (status != FLASH_OK) {
 		error_log_stage = LOGMESSAGE_STAGE_FINALIZE;

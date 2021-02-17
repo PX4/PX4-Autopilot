@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
+ *   Author: @author David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,27 +31,31 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#pragma once
-/*
- * This file is a shim to bridge to nuttx_v3
+
+/**
+ * @file board_identity.c
+ * Implementation of S32K based Board identity API
  */
 
-__BEGIN_DECLS
+#include <px4_config.h>
+#include <stdio.h>
+#include <string.h>
 
-#    define PX4_CPU_UUID_BYTE_LENGTH                12
-#    define PX4_CPU_UUID_WORD32_LENGTH              (PX4_CPU_UUID_BYTE_LENGTH/sizeof(uint32_t))
+#include "board_common.h"
 
-/* The mfguid will be an array of bytes with
- * MSD @ index 0 - LSD @ index PX4_CPU_MFGUID_BYTE_LENGTH-1
- *
- * It will be converted to a string with the MSD on left and LSD on the right most position.
- */
-#    define PX4_CPU_MFGUID_BYTE_LENGTH              PX4_CPU_UUID_BYTE_LENGTH
+#include <hardware/s32k1xx_memorymap.h>
+#include <hardware/s32k1xx_sim.h>
 
-/*                                                  Separator    nnn:nnn:nnnn     2 char per byte           term */
-#    define PX4_CPU_UUID_WORD32_FORMAT_SIZE         (PX4_CPU_UUID_WORD32_LENGTH-1+(2*PX4_CPU_UUID_BYTE_LENGTH)+1)
-#    define PX4_CPU_MFGUID_FORMAT_SIZE              ((2*PX4_CPU_MFGUID_BYTE_LENGTH)+1)
+#define SWAP_UINT32(x) (((x) >> 24) | (((x) & 0x00ff0000) >> 8) | (((x) & 0x0000ff00) << 8) | ((x) << 24))
 
+int board_get_mfguid(mfguid_t mfgid)
+{
+	uint32_t *chip_uuid = (uint32_t *) S32K1XX_SIM_UIDH;
+	uint32_t  *rv = (uint32_t *) &mfgid[0];
 
-#include <arch/board/board.h>
-__END_DECLS
+	for (unsigned int i = 0; i < PX4_CPU_UUID_WORD32_LENGTH; i++) {
+		*rv++ = SWAP_UINT32(chip_uuid[(PX4_CPU_UUID_WORD32_LENGTH - 1) - i]);
+	}
+
+	return PX4_CPU_MFGUID_BYTE_LENGTH;
+}
