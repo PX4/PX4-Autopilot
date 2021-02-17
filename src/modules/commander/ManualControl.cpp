@@ -115,9 +115,10 @@ bool ManualControl::wantsDisarm(const vehicle_control_mode_s &vehicle_control_mo
 		const bool manual_thrust_mode = vehicle_control_mode.flag_control_manual_enabled
 						&& !vehicle_control_mode.flag_control_climb_rate_enabled;
 
-		bool disarm_trigger = _stick_disarm_hysteresis.get_state();
+		const bool last_disarm_hysteresis = _stick_disarm_hysteresis.get_state();
 		_stick_disarm_hysteresis.set_state_and_update(true, hrt_absolute_time());
-		disarm_trigger = !disarm_trigger && _stick_disarm_hysteresis.get_state();
+		const bool disarm_trigger = !last_disarm_hysteresis && _stick_disarm_hysteresis.get_state()
+					    && !_stick_arm_hysteresis.get_state();
 
 		const bool rc_wants_disarm = (disarm_trigger) || arm_switch_to_disarm_transition;
 
@@ -125,8 +126,7 @@ bool ManualControl::wantsDisarm(const vehicle_control_mode_s &vehicle_control_mo
 			ret = true;
 		}
 
-	} else if (!(_param_arm_switch_is_button.get()
-		     && manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON)) {
+	} else if (!arm_button_pressed) {
 
 		_stick_disarm_hysteresis.set_state_and_update(false, hrt_absolute_time());
 	}
@@ -156,16 +156,16 @@ bool ManualControl::wantsArm(const vehicle_control_mode_s &vehicle_control_mode,
 	    && (vehicle_status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF)
 	    && (stick_in_lower_right || arm_button_pressed || arm_switch_to_arm_transition)) {
 
-		bool arm_trigger = _stick_arm_hysteresis.get_state();
+		const bool last_arm_hysteresis = _stick_arm_hysteresis.get_state();
 		_stick_arm_hysteresis.set_state_and_update(true, hrt_absolute_time());
-		arm_trigger = !arm_trigger && _stick_arm_hysteresis.get_state();
+		const bool arm_trigger = !last_arm_hysteresis && _stick_arm_hysteresis.get_state()
+					 && !_stick_disarm_hysteresis.get_state();
 
 		if (arm_trigger || arm_switch_to_arm_transition) {
 			ret = true;
 		}
 
-	} else if (!(_param_arm_switch_is_button.get()
-		     && manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON)) {
+	} else if (!arm_button_pressed) {
 
 		_stick_arm_hysteresis.set_state_and_update(false, hrt_absolute_time());
 	}
