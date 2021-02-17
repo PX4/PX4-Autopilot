@@ -426,18 +426,15 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 
 	if (run_preflight_checks) {
 		if (_vehicle_control_mode.flag_control_manual_enabled) {
-			const bool throttle_above_low = (_manual_control_setpoint.z > 0.1f);
-			const bool throttle_above_center = (_manual_control_setpoint.z > 0.6f);
-
-			if (_vehicle_control_mode.flag_control_climb_rate_enabled && throttle_above_center) {
-				mavlink_log_critical(&_mavlink_log_pub, "Arming denied! Throttle not centered");
+			if (_vehicle_control_mode.flag_control_climb_rate_enabled && _manual_control.isThrottleAboveCenter()) {
+				mavlink_log_critical(&_mavlink_log_pub, "Arming denied because throttle above center");
 				tune_negative(true);
 				return TRANSITION_DENIED;
 
 			}
 
-			if (!_vehicle_control_mode.flag_control_climb_rate_enabled && throttle_above_low) {
-				mavlink_log_critical(&_mavlink_log_pub, "Arming denied! Throttle not zero");
+			if (!_vehicle_control_mode.flag_control_climb_rate_enabled && !_manual_control.isThrottleLow()) {
+				mavlink_log_critical(&_mavlink_log_pub, "Arming denied because of high throttle");
 				tune_negative(true);
 				return TRANSITION_DENIED;
 			}
@@ -2089,7 +2086,6 @@ Commander::run()
 
 		_manual_control.setRCAllowed(!_status_flags.rc_input_blocked);
 		_manual_control.update();
-		_manual_control_setpoint = _manual_control._manual_control_setpoint;
 
 		// abort autonomous mode and switch to position mode if sticks are moved significantly
 		if ((_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
@@ -2235,7 +2231,7 @@ Commander::run()
 				if (!_status_flags.condition_calibration_enabled && !_status_flags.rc_input_blocked) {
 					mavlink_log_critical(&_mavlink_log_pub, "Manual control lost");
 					_status.rc_signal_lost = true;
-					_rc_signal_lost_timestamp = _manual_control_setpoint.timestamp;
+					_rc_signal_lost_timestamp = _manual_control.getLastRCTimestamp();
 					set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, false, _status);
 					_status_changed = true;
 				}

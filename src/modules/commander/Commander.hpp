@@ -349,7 +349,6 @@ private:
 
 	unsigned int	_leds_counter{0};
 
-	manual_control_setpoint_s _manual_control_setpoint{};
 	manual_control_switches_s _manual_control_switches{};
 	manual_control_switches_s _last_manual_control_switches{};
 	ManualControl _manual_control{this};
