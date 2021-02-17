@@ -45,9 +45,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "chip.h"
-#include "stm32.h"
-
 #include "timer.h"
 #include "uavcan.h"
 #include "can.h"
