@@ -31,32 +31,35 @@
 #
 ############################################################################
 
-set(SRCS)
+# this includes the generated topics directory
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-if (NOT "${PX4_PLATFORM}" MATCHES "qurt" AND NOT "${PX4_BOARD}" MATCHES "io-v2" AND NOT "${PX4_BOARD_LABEL}" MATCHES "bootloader")
-	list(APPEND SRCS
-		px4_log.cpp
-	)
-endif()
-
-add_library(px4_platform
-	board_identity.c
-	external_reset_lockout.cpp
-	i2c.cpp
-	i2c_spi_buses.cpp
-	module.cpp
-	px4_getopt.c
-	px4_cli.cpp
-	shutdown.cpp
-	spi.cpp
-	${SRCS}
+px4_add_library(uORB
+	ORBSet.hpp
+	Publication.hpp
+	PublicationMulti.hpp
+	Subscription.cpp
+	Subscription.hpp
+	SubscriptionCallback.hpp
+	SubscriptionInterval.hpp
+	SubscriptionMultiArray.hpp
+	uORB.cpp
+	uORB.h
+	uORBCommon.hpp
+	uORBCommunicator.hpp
+	uORBDeviceMaster.cpp
+	uORBDeviceMaster.hpp
+	uORBDeviceNode.cpp
+	uORBDeviceNode.hpp
+	uORBManager.cpp
+	uORBManager.hpp
+	uORBUtils.cpp
+	uORBUtils.hpp
 )
-add_dependencies(px4_platform prebuild_targets)
 
-if (NOT "${PX4_BOARD}" MATCHES "io-v2")
-	add_subdirectory(uORB)
-	target_link_libraries(px4_platform PRIVATE uORB)
+target_compile_options(uORB PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_link_libraries(uORB PRIVATE cdev uorb_msgs)
+
+if(PX4_TESTING)
+	add_subdirectory(uORB_tests)
 endif()
-
-add_subdirectory(px4_work_queue)
-add_subdirectory(work_queue)

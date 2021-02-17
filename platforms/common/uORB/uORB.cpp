@@ -37,8 +37,59 @@
  */
 
 #include "uORB.h"
+
 #include "uORBManager.hpp"
 #include "uORBCommon.hpp"
+
+static uORB::DeviceMaster *g_dev = nullptr;
+
+int uorb_start(void)
+{
+	if (g_dev != nullptr) {
+		PX4_WARN("already loaded");
+		/* user wanted to start uorb, its already running, no error */
+		return 0;
+	}
+
+	if (!uORB::Manager::initialize()) {
+		PX4_ERR("uorb manager alloc failed");
+		return -ENOMEM;
+	}
+
+	/* create the driver */
+	g_dev = uORB::Manager::get_instance()->get_device_master();
+
+	if (g_dev == nullptr) {
+		return -errno;
+	}
+
+	return OK;
+}
+
+int uorb_status(void)
+{
+	if (g_dev != nullptr) {
+		g_dev->printStatistics();
+
+	} else {
+		PX4_INFO("uorb is not running");
+	}
+
+	return OK;
+}
+
+int uorb_top(char **topic_filter, int num_filters)
+{
+	if (g_dev != nullptr) {
+		g_dev->showTop(topic_filter, num_filters);
+
+	} else {
+		PX4_INFO("uorb is not running");
+	}
+
+	return OK;
+}
+
 
 orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data)
 {

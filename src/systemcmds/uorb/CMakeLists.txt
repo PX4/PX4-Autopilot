@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,45 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-if(NOT PX4_BOARD MATCHES "px4_io") # TODO: fix this hack (move uORB to platform layer)
-
-	# this includes the generated topics directory
-	include_directories(${CMAKE_CURRENT_BINARY_DIR})
-
-	px4_add_module(
-		MODULE modules__uORB
-		MAIN uorb
-		COMPILE_FLAGS
-			${MAX_CUSTOM_OPT_LEVEL}
-		SRCS
-			ORBSet.hpp
-			Publication.hpp
-			PublicationMulti.hpp
-			Subscription.cpp
-			Subscription.hpp
-			SubscriptionCallback.hpp
-			SubscriptionInterval.hpp
-			SubscriptionMultiArray.hpp
-			uORB.cpp
-			uORB.h
-			uORBCommon.hpp
-			uORBCommunicator.hpp
-			uORBDeviceMaster.cpp
-			uORBDeviceMaster.hpp
-			uORBDeviceNode.cpp
-			uORBDeviceNode.hpp
-			uORBMain.cpp
-			uORBManager.cpp
-			uORBManager.hpp
-			uORBUtils.cpp
-			uORBUtils.hpp
-		DEPENDS
-			cdev
-			uorb_msgs
-		)
-
-	if(PX4_TESTING)
-		add_subdirectory(uORB_tests)
-	endif()
-endif()
+px4_add_module(
+	MODULE systemcmds__uorb
+	MAIN uorb
+	COMPILE_FLAGS
+	SRCS
+		uorb.cpp
+	DEPENDS
+	)

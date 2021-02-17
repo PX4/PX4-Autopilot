@@ -3,8 +3,6 @@
 # (px4-alias.sh is expected to be in the PATH)
 . px4-alias.sh
 
-uorb start
-
 param load
 
 param set BAT_N_CELLS 3
