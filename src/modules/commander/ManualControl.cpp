@@ -101,7 +101,7 @@ bool ManualControl::wantsDisarm(const vehicle_control_mode_s &vehicle_control_mo
 	const bool arm_button_pressed = _param_arm_switch_is_button.get()
 					&& (manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON);
 	const bool stick_in_lower_left = _manual_control_setpoint.r < -.9f
-					 && (_manual_control_setpoint.z < .1f)
+					 && isThrottleLow()
 					 && !arm_switch_or_button_mapped;
 	const bool arm_switch_to_disarm_transition = !_param_arm_switch_is_button.get()
 			&& (_last_manual_control_switches_arm_switch == manual_control_switches_s::SWITCH_POS_ON)
@@ -142,7 +142,7 @@ bool ManualControl::wantsArm(const vehicle_control_mode_s &vehicle_control_mode,
 	const bool arm_button_pressed = _param_arm_switch_is_button.get()
 					&& (manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON);
 	const bool stick_in_lower_right = _manual_control_setpoint.r > .9f
-					  && _manual_control_setpoint.z < 0.1f
+					  && isThrottleLow()
 					  && !arm_switch_or_button_mapped;
 
 	const bool arm_switch_to_arm_transition = !_param_arm_switch_is_button.get()
