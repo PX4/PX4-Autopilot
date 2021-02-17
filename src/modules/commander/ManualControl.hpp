@@ -64,14 +64,16 @@ public:
 			 manual_control_switches_s &manual_control_switches, const bool landed);
 	bool wantsArm(const vehicle_control_mode_s &vehicle_control_mode, const vehicle_status_s &vehicle_status,
 		      manual_control_switches_s &manual_control_switches, const bool landed);
-
-	manual_control_setpoint_s _manual_control_setpoint{};
+	bool isThrottleLow() { return _last_manual_control_setpoint.z < 0.1f; }
+	bool isThrottleAboveCenter() { return _last_manual_control_setpoint.z > 0.6f; }
+	hrt_abstime getLastRCTimestamp() { return _last_manual_control_setpoint.timestamp; }
 
 private:
 	void updateParams() override;
 	void process(manual_control_setpoint_s &manual_control_setpoint);
 
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	manual_control_setpoint_s _manual_control_setpoint{};
 	manual_control_setpoint_s _last_manual_control_setpoint{};
 
 	// Availability
