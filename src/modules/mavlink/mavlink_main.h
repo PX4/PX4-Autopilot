@@ -192,6 +192,7 @@ public:
 		MAVLINK_MODE_EXTVISION,
 		MAVLINK_MODE_EXTVISIONMIN,
 		MAVLINK_MODE_GIMBAL,
+		MAVLINK_MODE_ONBOARD_LOW_BANDWIDTH,
 		MAVLINK_MODE_COUNT
 	};
 
@@ -242,6 +243,9 @@ public:
 
 		case MAVLINK_MODE_GIMBAL:
 			return "Gimbal";
+
+		case MAVLINK_MODE_ONBOARD_LOW_BANDWIDTH:
+			return "OnboardLowBandwidth";
 
 		default:
 			return "Unknown";
