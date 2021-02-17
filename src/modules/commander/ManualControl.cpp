@@ -95,15 +95,20 @@ bool ManualControl::wantsDisarm(const vehicle_control_mode_s &vehicle_control_mo
 {
 	bool ret = false;
 
+	// no switch or button is mapped
+	const bool use_stick = manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_NONE;
+	// arm switch mapped and "switch is button" configured
+	const bool use_button = !use_stick && _param_com_arm_swisbtn.get();
+	// arm switch mapped and "switch_is_button" configured
+	const bool use_switch = !use_stick && !use_button;
+
 	const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-	const bool arm_switch_or_button_mapped =
-		manual_control_switches.arm_switch != manual_control_switches_s::SWITCH_POS_NONE;
-	const bool arm_button_pressed = _param_arm_switch_is_button.get()
-					&& (manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON);
-	const bool stick_in_lower_left = _manual_control_setpoint.r < -.9f
+	const bool stick_in_lower_left = use_stick
 					 && isThrottleLow()
-					 && !arm_switch_or_button_mapped;
-	const bool arm_switch_to_disarm_transition = !_param_arm_switch_is_button.get()
+					 && _manual_control_setpoint.r < -.9f;
+	const bool arm_button_pressed = (manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON)
+					&& use_button;
+	const bool arm_switch_to_disarm_transition = use_switch
 			&& (_last_manual_control_switches_arm_switch == manual_control_switches_s::SWITCH_POS_ON)
 			&& (manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_OFF);
 	const bool mc_manual_thrust_mode = vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
@@ -136,16 +141,20 @@ bool ManualControl::wantsArm(const vehicle_control_mode_s &vehicle_control_mode,
 {
 	bool ret = false;
 
-	const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-	const bool arm_switch_or_button_mapped =
-		manual_control_switches.arm_switch != manual_control_switches_s::SWITCH_POS_NONE;
-	const bool arm_button_pressed = _param_arm_switch_is_button.get()
-					&& (manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON);
-	const bool stick_in_lower_right = _manual_control_setpoint.r > .9f
-					  && isThrottleLow()
-					  && !arm_switch_or_button_mapped;
+	// no switch or button is mapped
+	const bool use_stick = manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_NONE;
+	// arm switch mapped and "switch is button" configured
+	const bool use_button = !use_stick && _param_com_arm_swisbtn.get();
+	// arm switch mapped and "switch_is_button" configured
+	const bool use_switch = !use_stick && !use_button;
 
-	const bool arm_switch_to_arm_transition = !_param_arm_switch_is_button.get()
+	const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+	const bool stick_in_lower_right = use_stick
+					  && isThrottleLow()
+					  && _manual_control_setpoint.r > .9f;
+	const bool arm_button_pressed = use_button
+					&& (manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON);
+	const bool arm_switch_to_arm_transition = use_switch
 			&& (_last_manual_control_switches_arm_switch == manual_control_switches_s::SWITCH_POS_OFF)
 			&& (manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON);
 
