@@ -39,11 +39,11 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "chip.h"
-#include "stm32.h"
 
 #include <errno.h>
 
+#include <px4_arch/micro_hal.h>
+#include "arm_arch.h"
 #include "boot_app_shared.h"
 
 #include <lib/systemlib/crc.h>
@@ -51,18 +51,6 @@
 #define BOOTLOADER_COMMON_APP_SIGNATURE         0xB0A04150u
 #define BOOTLOADER_COMMON_BOOTLOADER_SIGNATURE  0xB0A0424Cu
 
-/*  CAN_FiRx where (i=0..27|13, x=1, 2)
- *                      STM32_CAN1_FIR(i,x)
- * Using i = 2 does not requier there block
- * to be enabled nor FINIT in CAN_FMR to be set.
- * todo:Validate this claim on F2, F3
- */
-
-#define crc_HiLOC       STM32_CAN1_FIR(2,1)
-#define crc_LoLOC       STM32_CAN1_FIR(2,2)
-#define signature_LOC   STM32_CAN1_FIR(3,1)
-#define bus_speed_LOC   STM32_CAN1_FIR(3,2)
-#define node_id_LOC     STM32_CAN1_FIR(4,1)
 #define CRC_H 1
 #define CRC_L 0
 
