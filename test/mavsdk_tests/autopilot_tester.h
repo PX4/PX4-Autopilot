@@ -151,8 +151,6 @@ private:
 				// busy and PX4 doesn't run fast enough.
 				const int64_t elapsed_time_us = _telemetry->attitude_quaternion().timestamp_us - start_time_us;
 
-				std::cout << time_str() << "start_time_us: " << start_time_us << ", elapsed_time_us: " << elapsed_time_us << '\n';
-
 				if (elapsed_time_us > duration_us.count()) {
 					std::cout << time_str() << "Timeout, connected to vehicle but waiting for test for " << static_cast<double>
 						  (elapsed_time_us) / 1e6 << " seconds\n";
