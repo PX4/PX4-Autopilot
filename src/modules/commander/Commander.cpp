@@ -2144,26 +2144,21 @@ Commander::run()
 
 			_status.rc_signal_lost = false;
 
-			/* DISARM
-			 * check if left stick is in lower left position or arm button is pushed or arm switch has transition from arm to disarm
-			 * and we are in MANUAL, Rattitude, or AUTO_READY mode or (ASSIST mode and landed)
-			 * do it only for rotary wings in manual mode or fixed wing if landed.
-			 * Disable stick-disarming if arming switch or button is mapped */
-			if (_manual_control.wantsDisarm(_vehicle_control_mode, _status, _manual_control_switches, _land_detector.landed)) {
-				disarm(arm_disarm_reason_t::RC_STICK);
-			}
+			const bool rc_arming_enabled = (_status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF);
 
-			/* ARM
-			 * check if left stick is in lower right position or arm button is pushed or arm switch has transition from disarm to arm
-			 * and we're in MANUAL mode.
-			 * Disable stick-arming if arming switch or button is mapped */
-			if (_manual_control.wantsArm(_vehicle_control_mode, _status, _manual_control_switches, _land_detector.landed)) {
-				if (_vehicle_control_mode.flag_control_manual_enabled) {
-					arm(arm_disarm_reason_t::RC_STICK);
+			if (rc_arming_enabled) {
+				if (_manual_control.wantsDisarm(_vehicle_control_mode, _status, _manual_control_switches, _land_detector.landed)) {
+					disarm(arm_disarm_reason_t::RC_STICK);
+				}
 
-				} else {
-					mavlink_log_critical(&_mavlink_log_pub, "Not arming! Switch to a manual mode first");
-					tune_negative(true);
+				if (_manual_control.wantsArm(_vehicle_control_mode, _status, _manual_control_switches, _land_detector.landed)) {
+					if (_vehicle_control_mode.flag_control_manual_enabled) {
+						arm(arm_disarm_reason_t::RC_STICK);
+
+					} else {
+						mavlink_log_critical(&_mavlink_log_pub, "Not arming! Switch to a manual mode first");
+						tune_negative(true);
+					}
 				}
 			}
 
