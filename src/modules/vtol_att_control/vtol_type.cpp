@@ -498,6 +498,26 @@ float VtolType::pusher_assist()
 		}
 
 		break;
+
+	case ENABLE_ABOVE_MPC_LAND_ALT1_WITHOUT_LAND: // disable if below MPC_LAND_ALT1 or in land mode
+		if ((_attc->get_pos_sp_triplet()->current.valid
+		    && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND
+		    && _v_control_mode->flag_control_auto_enabled) ||
+		    (!PX4_ISFINITE(dist_to_ground) || (dist_to_ground < _params->mpc_land_alt1))) {
+			return 0.0f;
+		}
+
+		break;
+
+	case ENABLE_ABOVE_MPC_LAND_ALT2_WITHOUT_LAND: // disable if below MPC_LAND_ALT2 or in land mode
+		if ((_attc->get_pos_sp_triplet()->current.valid
+		    && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND
+		    && _v_control_mode->flag_control_auto_enabled) ||
+		    (!PX4_ISFINITE(dist_to_ground) || (dist_to_ground < _params->mpc_land_alt2))) {
+			return 0.0f;
+		}
+
+		break;
 	}
 
 	// if the thrust scale param is zero or the drone is not in some position or altitude control mode,
