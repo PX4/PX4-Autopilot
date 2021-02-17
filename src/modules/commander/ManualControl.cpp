@@ -95,7 +95,7 @@ bool ManualControl::wantsDisarm(const vehicle_control_mode_s &vehicle_control_mo
 {
 	bool ret = false;
 
-	const bool in_armed_state = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+	const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 	const bool arm_switch_or_button_mapped =
 		manual_control_switches.arm_switch != manual_control_switches_s::SWITCH_POS_NONE;
 	const bool arm_button_pressed = _param_arm_switch_is_button.get()
@@ -106,23 +106,21 @@ bool ManualControl::wantsDisarm(const vehicle_control_mode_s &vehicle_control_mo
 	const bool arm_switch_to_disarm_transition = !_param_arm_switch_is_button.get()
 			&& (_last_manual_control_switches_arm_switch == manual_control_switches_s::SWITCH_POS_ON)
 			&& (manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_OFF);
+	const bool mc_manual_thrust_mode = vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+					   && vehicle_control_mode.flag_control_manual_enabled
+					   && !vehicle_control_mode.flag_control_climb_rate_enabled;
 
-	if (in_armed_state
+	if (armed
 	    && (vehicle_status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF)
-	    && (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING || landed)
+	    && (landed || mc_manual_thrust_mode)
 	    && (stick_in_lower_left || arm_button_pressed || arm_switch_to_disarm_transition)) {
-
-		const bool manual_thrust_mode = vehicle_control_mode.flag_control_manual_enabled
-						&& !vehicle_control_mode.flag_control_climb_rate_enabled;
 
 		const bool last_disarm_hysteresis = _stick_disarm_hysteresis.get_state();
 		_stick_disarm_hysteresis.set_state_and_update(true, hrt_absolute_time());
 		const bool disarm_trigger = !last_disarm_hysteresis && _stick_disarm_hysteresis.get_state()
 					    && !_stick_arm_hysteresis.get_state();
 
-		const bool rc_wants_disarm = (disarm_trigger) || arm_switch_to_disarm_transition;
-
-		if (rc_wants_disarm && (landed || manual_thrust_mode)) {
+		if (disarm_trigger || arm_switch_to_disarm_transition) {
 			ret = true;
 		}
 
@@ -139,7 +137,7 @@ bool ManualControl::wantsArm(const vehicle_control_mode_s &vehicle_control_mode,
 {
 	bool ret = false;
 
-	const bool in_armed_state = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+	const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 	const bool arm_switch_or_button_mapped =
 		manual_control_switches.arm_switch != manual_control_switches_s::SWITCH_POS_NONE;
 	const bool arm_button_pressed = _param_arm_switch_is_button.get()
@@ -152,7 +150,7 @@ bool ManualControl::wantsArm(const vehicle_control_mode_s &vehicle_control_mode,
 			&& (_last_manual_control_switches_arm_switch == manual_control_switches_s::SWITCH_POS_OFF)
 			&& (manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON);
 
-	if (!in_armed_state
+	if (!armed
 	    && (vehicle_status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF)
 	    && (stick_in_lower_right || arm_button_pressed || arm_switch_to_arm_transition)) {
 
