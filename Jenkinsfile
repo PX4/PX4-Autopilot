@@ -67,11 +67,9 @@ pipeline {
               unset ROS_DISTRO;
               mkdir -p colcon_ws/src;
               cd colcon_ws;
-              git -C ${WORKSPACE}/colcon_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
-              git clone --recursive ${WORKSPACE}/colcon_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
+              git -C ${WORKSPACE}/colcon_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo;
               git -C ${WORKSPACE}/colcon_ws/src/Firmware fetch --tags;
-              source /opt/ros/bouncy/setup.sh;
-              source /opt/ros/melodic/setup.sh;
+              source /opt/ros/foxy/setup.sh;
               colcon build --event-handlers console_direct+ --symlink-install;
             '''
           }
