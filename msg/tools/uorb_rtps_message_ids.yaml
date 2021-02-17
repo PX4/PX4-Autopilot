@@ -148,6 +148,7 @@ rtps:
     id: 67
   - msg: sensor_mag
     id: 68
+    send: true
   - msg: sensors_status_imu
     id: 69
   - msg: sensor_selection
