@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2021 Technology Innovation Institute. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,16 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE systemcmds__param
-	MAIN param
+	MODULE systemcmds__kparam
+	MAIN kparam
 	COMPILE_FLAGS
 		-Wno-array-bounds
 	SRCS
-		param.cpp
+		../param/param.cpp
 	DEPENDS
 	)
-
-if(${PX4_PLATFORM} STREQUAL "nuttx" AND NOT CONFIG_BUILD_FLAT)
-target_link_libraries(systemcmds__param PRIVATE systemcmds__launch_kmod)
-endif()

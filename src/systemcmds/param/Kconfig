@@ -3,3 +3,8 @@ menuconfig SYSTEMCMDS_PARAM
 	default n
 	---help---
 		Enable support for param
+
+config USER_PARAM
+	bool
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_PARAM

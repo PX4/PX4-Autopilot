@@ -1,0 +1,10 @@
+menuconfig SYSTEMCMDS_KPARAM
+	bool "param"
+	default n
+	---help---
+		Enable support for param
+
+config USER_KPARAM
+	bool
+	default n
+	depends on BOARD_PROTECTED && SYSTEMCMDS_KPARAM
