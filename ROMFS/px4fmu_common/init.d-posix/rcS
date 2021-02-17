@@ -53,8 +53,6 @@ else
 	fi
 fi
 
-uorb start
-
 # Load parameters
 set PARAM_FILE eeprom/parameters_"$REQUESTED_AUTOSTART"
 param select $PARAM_FILE

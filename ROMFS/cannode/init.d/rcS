@@ -31,13 +31,6 @@ sercon
 ver all
 
 #
-# Start the ORB (first app to start)
-# tone_alarm and tune_control
-# is dependent.
-#
-uorb start
-
-#
 # Set the parameter file if mtd starts successfully.
 #
 if mtd start
