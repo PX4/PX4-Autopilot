@@ -111,7 +111,6 @@ bool ManualControl::wantsDisarm(const vehicle_control_mode_s &vehicle_control_mo
 					   && !vehicle_control_mode.flag_control_climb_rate_enabled;
 
 	if (armed
-	    && (vehicle_status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF)
 	    && (landed || mc_manual_thrust_mode)
 	    && (stick_in_lower_left || arm_button_pressed || arm_switch_to_disarm_transition)) {
 
@@ -151,7 +150,6 @@ bool ManualControl::wantsArm(const vehicle_control_mode_s &vehicle_control_mode,
 			&& (manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON);
 
 	if (!armed
-	    && (vehicle_status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF)
 	    && (stick_in_lower_right || arm_button_pressed || arm_switch_to_arm_transition)) {
 
 		const bool last_arm_hysteresis = _stick_arm_hysteresis.get_state();
