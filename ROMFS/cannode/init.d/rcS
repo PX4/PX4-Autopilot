@@ -30,12 +30,14 @@ sercon
 #
 ver all
 
-#
-# Set the parameter file if mtd starts successfully.
-#
-if mtd start
+if mft query -q -k MTD -s MTD_PARAMETERS -v /fs/mtd_params
 then
 	set PARAM_FILE /fs/mtd_params
+fi
+
+if mft query -q -k MTD -s MTD_PARAMETERS -v /dev/eeeprom0
+then
+	set PARAM_FILE /dev/eeeprom0
 fi
 
 #

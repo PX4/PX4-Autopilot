@@ -1,9 +1,9 @@
 /****************************************************************************
- * boards/arm/s32k1xx/ucans32k146/scripts/flash.ld
+ * nuttx-config/scripts/canbootloader_script.ld
  *
- *   Copyright (C) 2019 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2021 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
- *
+  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -44,15 +44,15 @@
  *   SRAM_U 20000000 - 2000efff 60Kb
  */
 
-/* 6 4Kib Sectors 24 Kib for the bootloader
+/* 6 4Kib Sectors  24 Kib for the bootloader
  * paramater storace is in eeprom (dflash)
  */
 
 MEMORY
 {
-  vflash  (rx) : ORIGIN = 0x00006000, LENGTH = 1K
-  pflash  (rx) : ORIGIN = 0x00006400, LENGTH = 16
-  pflash1 (rx) : ORIGIN = 0x00006410, LENGTH = 1024K-(24K + 1K + 16)
+  vflash  (rx) : ORIGIN = 0x00000000, LENGTH = 1K
+  pflash  (rx) : ORIGIN = 0x00000400, LENGTH = 16
+  pflash1 (rx) : ORIGIN = 0x00000410, LENGTH = 24K-(1K + 16)
   dflash  (rx) : ORIGIN = 0x10000000, LENGTH = 64K
   sram   (rwx) : ORIGIN = 0x1fff0000, LENGTH = 124K
 }
@@ -60,8 +60,6 @@ MEMORY
 OUTPUT_ARCH(arm)
 EXTERN(_vectors)
 EXTERN(g_flashcfg)
-EXTERN(board_get_manifest)
-
 ENTRY(_stext)
 
 SECTIONS
@@ -69,7 +67,7 @@ SECTIONS
   .vectors :
   {
     _stext = ABSOLUTE(.);
-    KEEP(*(.vectors))
+    *(.vectors)
   } > vflash
 
   .flashcfg :
@@ -79,15 +77,6 @@ SECTIONS
 
   .text :
   {
-       . = ALIGN(8);
-      /*
-       * This section positions the app_descriptor_t used
-       * by the make_can_boot_descriptor.py tool to set
-       * the application image's descriptor so that the
-       * uavcan bootloader has the ability to validate the
-       * image crc, size etc
-      */
-    KEEP(*(.app_descriptor))
     *(.text .text.*)
     *(.fixup)
     *(.gnu.warning)
@@ -99,10 +88,8 @@ SECTIONS
     *(.gcc_except_table)
     *(.gnu.linkonce.r.*)
     _etext = ABSOLUTE(.);
-    . = ALIGN(8);
-    FILL(0xff)
-    . += 8;
-  } > pflash1 = 0xff
+
+  } > pflash1
 
   .init_section :
   {
@@ -131,10 +118,7 @@ SECTIONS
     CONSTRUCTORS
     . = ALIGN(4);
     _edata = ABSOLUTE(.);
-    . = ALIGN(8);
-    FILL(0xff)
-    . += 8;
-  } > sram AT > pflash1 = 0xff
+  } > sram AT > pflash1
 
   _eronly = LOADADDR(.data);
 
@@ -143,10 +127,7 @@ SECTIONS
     _sramfuncs = ABSOLUTE(.);
     *(.ramfunc  .ramfunc.*)
     _eramfuncs = ABSOLUTE(.);
-    . = ALIGN(8);
-    FILL(0xff)
-    . += 8;
-  } > sram AT > pflash1 = 0xff
+  } > sram AT > pflash1
 
   _framfuncs = LOADADDR(.ramfunc);
 
