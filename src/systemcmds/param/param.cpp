@@ -64,6 +64,11 @@ __BEGIN_DECLS
 __EXPORT int param_main(int argc, char *argv[]);
 __END_DECLS
 
+#if defined (__PX4_NUTTX) && !defined (CONFIG_BUILD_FLAT) && !defined(__KERNEL__)
+static const char kparam_main_fn[] = "kparam";
+extern "C" int launch_kmod_main(int argc, char *argv[]);
+#endif
+
 enum class COMPARE_OPERATOR {
 	EQUAL = 0,
 	GREATER = 1,
@@ -185,7 +190,7 @@ $ reboot
 	PRINT_MODULE_USAGE_ARG("<param>", "param name", false);
 }
 
-int
+extern "C" int
 param_main(int argc, char *argv[])
 {
 	if (argc >= 2) {
@@ -216,12 +221,21 @@ param_main(int argc, char *argv[])
 		}
 
 		if (!strcmp(argv[1], "import")) {
+			int ret;
 			if (argc >= 3) {
-				return do_import(argv[2]);
+				ret = do_import(argv[2]);
 
 			} else {
-				return do_import();
+				ret = do_import();
 			}
+
+#if defined (__PX4_NUTTX) && !defined (CONFIG_BUILD_FLAT) && !defined(__KERNEL__)
+			if (ret == 0) {
+				argv[0] = (char *)kparam_main_fn;
+				ret = launch_kmod_main(argc, argv);
+			}
+#endif
+			return ret;
 		}
 
 		if (!strcmp(argv[1], "select")) {
@@ -237,8 +251,12 @@ param_main(int argc, char *argv[])
 			if (default_file) {
 				PX4_INFO("selected parameter default file %s", default_file);
 			}
-
+#if defined (__PX4_NUTTX) && !defined (CONFIG_BUILD_FLAT) && !defined(__KERNEL__)
+			argv[0] = (char *)kparam_main_fn;
+			return launch_kmod_main(argc, argv);
+#else
 			return 0;
+#endif
 		}
 
 		if (!strcmp(argv[1], "show")) {
@@ -422,6 +440,14 @@ do_save(const char *param_file_name)
 
 	return 0;
 }
+
+#if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
+extern "C" int
+kparam_main(int argc, char *argv[])
+{
+  return param_main(argc, argv);
+}
+#endif
 
 static int
 do_load(const char *param_file_name)
