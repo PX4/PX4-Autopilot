@@ -113,7 +113,7 @@ include(px4_parse_function_args)
 include(px4_git)
 
 execute_process(
-	COMMAND git describe --always --tags
+	COMMAND git describe --exclude ext/* --always --tags
 	OUTPUT_VARIABLE PX4_GIT_TAG
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
