@@ -2960,7 +2960,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		}
 
 		/* reboot into bootloader - arg must be PX4IO_REBOOT_BL_MAGIC */
-		usleep(1);
+		usleep(50);
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_REBOOT_BL, arg);
 		// we don't expect a reply from this operation
 		ret = OK;
@@ -3451,45 +3451,60 @@ px4io_main(int argc, char *argv[])
 		  the user to hold the safety switch down
 		 */
 		if (argc <= 3) {
-			warnx("usage: px4io forceupdate MAGIC filename");
+			PX4_WARN("usage: px4io forceupdate MAGIC filename");
 			exit(1);
-		}
-
-		if (g_dev == nullptr) {
-			warnx("px4io is not started, still attempting upgrade");
-
-			/* allocate the interface */
-			device::Device *interface = get_interface();
-
-			/* create the driver - it will set g_dev */
-			(void)new PX4IO(interface);
-
-			if (g_dev == nullptr) {
-				delete interface;
-				errx(1, "driver allocation failed");
-			}
 		}
 
 		uint16_t arg = atol(argv[2]);
-		int ret = g_dev->ioctl(nullptr, PX4IO_REBOOT_BOOTLOADER, arg);
+		constexpr unsigned MAX_RETRIES = 5;
+		unsigned retries = 0;
+		int ret = PX4_ERROR;
 
-		if (ret != OK) {
-			warnx("reboot failed - %d", ret);
-			exit(1);
+		while (ret != OK && retries < MAX_RETRIES) {
+
+			retries++;
+			// Sleep 200 ms before the next attempt
+			usleep(200 * 1000);
+
+			if (g_dev == nullptr) {
+				/* allocate the interface */
+				device::Device *interface = get_interface();
+
+				/* create the driver - it will set g_dev */
+				(void)new PX4IO(interface);
+
+				if (g_dev == nullptr) {
+					delete interface;
+					errx(1, "driver allocation failed");
+				}
+			}
+
+			// Try to reboot
+			ret = g_dev->ioctl(nullptr, PX4IO_REBOOT_BOOTLOADER, arg);
+
+			if (ret != OK) {
+				PX4_WARN("reboot failed - %d", ret);
+				exit(1);
+			}
+
+			// tear down the px4io instance
+			delete g_dev;
+			g_dev = nullptr;
+
+			// upload the specified firmware
+			const char *fn[2];
+			fn[0] = argv[3];
+			fn[1] = nullptr;
+			PX4IO_Uploader *up = new PX4IO_Uploader;
+
+			// Upload and retry if it fails
+			ret = up->upload(&fn[0]);
+			delete up;
 		}
 
-		// tear down the px4io instance
-		delete g_dev;
-		g_dev = nullptr;
+		PX4_INFO("IO update: %s, retries: %d (reboot)", (ret == OK) ? "done" : "failed", retries);
 
-		// upload the specified firmware
-		const char *fn[2];
-		fn[0] = argv[3];
-		fn[1] = nullptr;
-		PX4IO_Uploader *up = new PX4IO_Uploader;
-		up->upload(&fn[0]);
-		delete up;
-		exit(0);
+		exit(ret);
 	}
 
 	/* commands below here require a started driver */
@@ -3671,6 +3686,6 @@ px4io_main(int argc, char *argv[])
 out:
 	errx(1, "need a command, try 'start', 'stop', 'status', 'monitor', 'debug <level>',\n"
 	     "'recovery', 'bind', 'checkcrc', 'safety_on', 'safety_off',\n"
-	     "'forceupdate', 'update', 'sbus1_out', 'sbus2_out', 'rssi_analog' or 'rssi_pwm',\n"
+	     "'forceupdate 14662', 'sbus1_out', 'sbus2_out', 'rssi_analog' or 'rssi_pwm',\n"
 	     "'test_fmu_fail', 'test_fmu_ok'");
 }
