@@ -526,11 +526,12 @@ void UavcanNode::Run()
 
 				battery_status.id = 0; //TODO use other msgs as well singular for now
 				battery_status.current_a = msg.value.power.current.ampere;
-				battery_status.current_filtered_a = 0;
+				battery_status.current_filtered_a = msg.value.power.current.ampere;
 				battery_status.voltage_v = msg.value.power.voltage.volt;
-				battery_status.voltage_filtered_v = 0;
+				battery_status.voltage_filtered_v = msg.value.power.voltage.volt;
 				//battery_status.discharged_mah = (msg.value.full_energy.joule - msg.value.energy.joule) / XXX; //TODO get rated voltage
-				battery_status.remaining = msg.value.energy.joule / msg.value.full_energy.joule;
+				battery_status.remaining = msg.value.energy.joule /
+							   msg.value.full_energy.joule; // Not accurate we're missing cell count and cell over voltage
 				battery_status.timestamp = hrt_absolute_time(); //TODO timesync but this suffice for now
 				bool pub_status = _battery_status_pub.publish(battery_status);
 				PX4_INFO("NodeID %i Battery Source msg %i", receive.remote_node_id, pub_status);

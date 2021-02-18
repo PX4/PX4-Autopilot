@@ -136,7 +136,7 @@ private:
 
 	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
 
-	battery_status_s battery_status;
+	battery_status_s battery_status{0};
 
 	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
 
