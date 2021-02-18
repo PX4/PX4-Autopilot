@@ -37,7 +37,7 @@ header = """
 
 
 # PX4
-git_tag = subprocess.check_output('git describe --always --tags --dirty'.split(),
+git_tag = subprocess.check_output('git describe --exclude ext/* --always --tags --dirty'.split(),
                                   stderr=subprocess.STDOUT).decode('utf-8').strip()
 if validate:
     if verbose:

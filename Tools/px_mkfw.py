@@ -99,7 +99,7 @@ if args.summary != None:
 if args.description != None:
 	desc['description']	= str(args.description)
 if args.git_identity != None:
-	cmd = "git --git-dir '{:}/.git' describe --always --tags".format(args.git_identity)
+	cmd = "git --git-dir '{:}/.git' describe --exclude ext/* --always --tags".format(args.git_identity)
 	p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout
 	desc['git_identity']	= str(p.read().strip())
 	p.close()
