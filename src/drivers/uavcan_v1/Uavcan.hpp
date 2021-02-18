@@ -74,6 +74,28 @@
 
 #include "CanardInterface.hpp"
 
+typedef struct {
+	const char *uavcan_name;
+	const char *px4_name;
+} UavcanParamBinder;
+
+class UavcanSubscription
+{
+public:
+	UavcanSubscription(const char *pname) : _uavcan_param(pname) {};
+
+	virtual void callback(const CanardTransfer &msg) { (void)msg; /* TODO virtual func; implement in subclass */ };
+
+	CanardPortID id() { return _port_id; };
+
+	void updateParam() { /* TODO: Set _port_id from _uavcan_param */ };
+
+private:
+	const char *_uavcan_param;
+
+	CanardPortID _port_id {0};
+};
+
 class UavcanNode : public ModuleParams, public px4::ScheduledWorkItem
 {
 	/*
@@ -170,6 +192,13 @@ private:
 	hrt_abstime _regulated_drone_sensor_bmsstatus_last{0};
 	CanardTransferID _regulated_drone_sensor_bmsstatus_transfer_id{0};
 
+	UavcanSubscription _gps0_sub;
+	UavcanSubscription _gps1_sub;
+	UavcanSubscription _bms0_sub;
+	UavcanSubscription _bms1_sub;
+
+	UavcanSubscription _subscribers[4];
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::UAVCAN_V1_ENABLE>) _param_uavcan_v1_enable,
 		(ParamInt<px4::params::UAVCAN_V1_ID>) _param_uavcan_v1_id,
@@ -177,4 +206,16 @@ private:
 		(ParamInt<px4::params::UAVCAN_V1_BAT_MD>) _param_uavcan_v1_bat_md,
 		(ParamInt<px4::params::UAVCAN_V1_BAT_ID>) _param_uavcan_v1_bat_id
 	)
+
+	/// TODO:
+	/// use qsort() to order alphabetically by UAVCAN name
+	/// copy over Ken's parameter find/get/set code
+	const UavcanParamBinder _uavcan_params[6] {
+		{"uavcan.pub.esc.0.id",   "UAVCANV1_ESC0_PID"},
+		{"uavcan.pub.servo.0.id", "UAVCANV1_SERVO0_PID"},
+		{"uavcan.sub.gps.0.id",   "UAVCANV1_GPS0_PID"},
+		{"uavcan.sub.gps.1.id",   "UAVCANV1_GPS1_PID"},
+		{"uavcan.sub.bms.0.id",   "UAVCANV1_BMS0_PID"},
+		{"uavcan.sub.bms.1.id",   "UAVCANV1_BMS1_PID"},
+	};
 };

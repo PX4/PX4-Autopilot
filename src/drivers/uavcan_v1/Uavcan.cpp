@@ -56,7 +56,12 @@ static void memFree(CanardInstance *const ins, void *const pointer) { o1heapFree
 UavcanNode::UavcanNode(CanardInterface *interface, uint32_t node_id) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
-	_can_interface(interface)
+	_can_interface(interface),
+	_gps0_sub("uavcan.sub.gps.0.id"),
+	_gps1_sub("uavcan.sub.gps.1.id"),
+	_bms0_sub("uavcan.sub.bms.0.id"),
+	_bms1_sub("uavcan.sub.bms.1.id"),
+	_subscribers({_gps0_sub, _gps1_sub, _bms0_sub, _bms1_sub})
 {
 	pthread_mutex_init(&_node_mutex, nullptr);
 
@@ -214,6 +219,10 @@ void UavcanNode::Run()
 
 		// update parameters from storage
 		updateParams();
+
+		for (auto &subscriber : _subscribers) {
+			subscriber.updateParam();
+		}
 	}
 
 	perf_begin(_cycle_perf);
@@ -318,6 +327,8 @@ void UavcanNode::Run()
 		}
 	}
 
+	/* Process received messages */
+
 	uint8_t data[64] {};
 	CanardFrame received_frame{};
 	received_frame.payload = &data;
@@ -350,6 +361,12 @@ void UavcanNode::Run()
 			} else if (receive.port_id == gps_port_id) {
 				result = handleUORBSensorGPS(receive);
 
+			} else if (receive.port_id > 0) {
+				for (auto &subscriber : _subscribers) {
+					if (receive.port_id == subscriber.id()) {
+						subscriber.callback(receive);
+					}
+				}
 			}
 
 			// Deallocate the dynamic memory afterwards.
