@@ -707,13 +707,11 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.heading = Eulerf(_ekf.getQuaternion()).psi();
 	lpos.delta_heading = Eulerf(delta_q_reset).psi();
 
-	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid();
-
-	float terrain_vpos = _ekf.getTerrainVertPos();
-
 	// Distance to bottom surface (ground) in meters
 	// constrain the distance to ground to _rng_gnd_clearance
-	lpos.dist_bottom = math::max(terrain_vpos - lpos.z, _param_ekf2_min_rng.get());
+	lpos.dist_bottom = math::max(_ekf.getTerrainVertPos() - lpos.z, _param_ekf2_min_rng.get());
+	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid();
+	lpos.dist_bottom_sensor_bitfield = _ekf.getTerrainEstimateSensorBitfield();
 
 	if (!_had_valid_terrain) {
 		_had_valid_terrain = lpos.dist_bottom_valid;
