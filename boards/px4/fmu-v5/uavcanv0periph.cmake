@@ -1,27 +1,25 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR cuav
-	MODEL nora
-	LABEL uavcan
+	VENDOR px4
+	MODEL fmu-v5
+	LABEL uavcanv0periph
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
-	#BUILD_BOOTLOADER
+	IO px4_io-v2_default
 	#TESTING
 	UAVCAN_INTERFACES 2
-	UAVCAN_TIMER_OVERRIDE 2
 	UAVCAN_PERIPHERALS
 		cuav_can-gps-v1_default
 	SERIAL_PORTS
 		GPS1:/dev/ttyS0
 		TEL1:/dev/ttyS1
-		GPS2:/dev/ttyS2
-		TEL2:/dev/ttyS3
-		# CONSOLE: /dev/ttyS4
-		# RC: /dev/ttyS5
+		TEL2:/dev/ttyS2
+		TEL4:/dev/ttyS3
 	DRIVERS
 		adc/board_adc
+		#adc/ads1115
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
@@ -30,13 +28,17 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		dshot
 		gps
-		heater
+		#heater
 		#imu # all available imu drivers
-		imu/bosch/bmi088
-		imu/invensense/icm20649
+		#imu/adis16448
+		#imu/adis16477
+		#imu/adis16497
+		imu/bosch/bmi055
+		imu/invensense/icm20602
 		imu/invensense/icm20689
-		irlock
-		lights/blinkm
+		#imu/mpu6000 # legacy icm20602/icm20689 driver
+		#irlock
+		#lights/blinkm
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		lights/rgbled_pwm
@@ -44,12 +46,16 @@ px4_add_board(
 		optical_flow # all available optical flow drivers
 		#osd
 		pca9685
+		#pca9685_pwm_out
 		power_monitor/ina226
 		#protocol_splitter
+		#pwm_input
 		pwm_out_sim
 		pwm_out
+		px4io
 		rc_input
-		roboclaw
+		#roboclaw
+		#rpm
 		safety_button
 		#tap_esc
 		telemetry # all available telemetry drivers
@@ -64,6 +70,7 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
+		#esc_battery
 		events
 		flight_mode_manager
 		fw_att_control
@@ -71,26 +78,30 @@ px4_add_board(
 		land_detector
 		landing_target_estimator
 		load_mon
-		local_position_estimator
+		#local_position_estimator
 		logger
 		mavlink
 		mc_att_control
 		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
+		#micrortps_bridge
 		navigator
 		rc_update
-		rover_pos_control
+		#rover_pos_control
 		sensors
-		sih
+		#sih
 		temperature_compensation
+		#uuv_att_control
+		#uuv_pos_control
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
 		#bl_update
 		dmesg
-		dumpfile
+		#dumpfile
 		esc_calib
+		#gpio
 		hardfault_log
 		i2cdetect
 		led_control
@@ -111,11 +122,15 @@ px4_add_board(
 		top
 		topic_listener
 		tune_control
+		uorb
 		usb_connected
 		ver
 		work_queue
 	EXAMPLES
+		#fake_gyro
+		#fake_magnetometer
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		#gyro_fft
 		#hello
 		#hwtest # Hardware test
 		#matlab_csv_serial
