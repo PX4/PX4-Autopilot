@@ -460,8 +460,61 @@ void UavcanNode::Run()
 							result = canardTxPush(&_canard_instance, &transfer);
 						}
 					}
+
+					if (strncmp((char *)msg.name.name.elements, "uavcan.pub.battery_status.id",
+						    msg.name.name.count) == 0) { //Battery status publisher
+						PX4_INFO("NodeID %i battery battery_status publisher set PortID to %i", receive.remote_node_id,
+							 battery_battery_status_port_id);
+						_node_register_last_received_index++;
+
+						uavcan_register_Access_Request_1_0 request_msg;
+						memcpy(&request_msg.name, &msg.name, sizeof(uavcan_register_Name_1_0));
+
+						uavcan_register_Value_1_0_select_natural16_(&request_msg.value);
+						request_msg.value.natural16.value.count = 1;
+						request_msg.value.natural16.value.elements[0] = battery_battery_status_port_id;
+
+
+						uint8_t request_payload_buffer[uavcan_register_Access_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
+
+						CanardTransfer transfer = {
+							.timestamp_usec = hrt_absolute_time(),      // Zero if transmission deadline is not limited.
+							.priority       = CanardPriorityNominal,
+							.transfer_kind  = CanardTransferKindRequest,
+							.port_id        = uavcan_register_Access_1_0_FIXED_PORT_ID_,                // This is the subject-ID.
+							.remote_node_id = receive.remote_node_id,       // Messages cannot be unicast, so use UNSET.
+							.transfer_id    = _uavcan_register_access_request_transfer_id,
+							.payload_size   = uavcan_register_Access_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_,
+							.payload        = &request_payload_buffer,
+						};
+
+						result = uavcan_register_Access_Request_1_0_serialize_(&request_msg, request_payload_buffer, &transfer.payload_size);
+
+						if (result == 0) {
+							// set the data ready in the buffer and chop if needed
+							++_uavcan_register_access_request_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
+							result = canardTxPush(&_canard_instance, &transfer);
+						}
+					}
 				}
 
+
+			} else if (receive.port_id == battery_battery_status_port_id) {
+				//TODO deserialize
+
+				/*reg_drone_service_battery_Status_0_2 msg; //This frame is way to big!! Werror=frame-larger-than
+
+				size_t register_in_size_bits = receive.payload_size;
+				reg_drone_service_battery_Status_0_2_deserialize_(&msg, (const uint8_t *)receive.payload, &register_in_size_bits);
+
+				// Update battery_status struct
+
+				battery_status.temperature = msg.temperature_min_max[1].kelvin; //uORB kelinv?? Take MAX??
+				battery_status.cell_count = msg.cell_voltages.count;
+
+				for(size_t cell_count = 0; cell_countz < (sizeof(battery_status.voltage_cell_v)/sizeof(battery_status.voltage_cell_v)); cell_count++) {
+				battery_status.voltage_cell_v[cell_count] = msg.cell_voltages.elements[cell_count];
+				}*/
 
 			} else if (receive.port_id == battery_energy_source_port_id) {
 				//TODO deserialize
@@ -471,8 +524,6 @@ void UavcanNode::Run()
 				size_t register_in_size_bits = receive.payload_size;
 				reg_drone_physics_electricity_SourceTs_0_1_deserialize_(&msg, (const uint8_t *)receive.payload, &register_in_size_bits);
 
-
-				battery_status_s battery_status{};
 				battery_status.id = 0; //TODO use other msgs as well singular for now
 				battery_status.current_a = msg.value.power.current.ampere;
 				battery_status.current_filtered_a = 0;

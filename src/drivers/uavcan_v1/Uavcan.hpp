@@ -56,8 +56,8 @@
 #include <canard_dsdl.h>
 
 #include <reg/drone/physics/electricity/SourceTs_0_1.h>
-#include <reg/drone/service/battery/Status_0_1.h>
-#include <reg/drone/service/battery/Parameters_0_1.h>
+#include <reg/drone/service/battery/Status_0_2.h>
+#include <reg/drone/service/battery/Parameters_0_2.h>
 #include <uavcan/node/Heartbeat_1_0.h>
 
 //Quick and Dirty PNP imlementation only V1 for now as well
@@ -135,6 +135,9 @@ private:
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
 	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
+
+	battery_status_s battery_status;
+
 	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
@@ -151,6 +154,7 @@ private:
 	*/
 	const uint16_t battery_energy_source_port_id = 1234;
 	const uint16_t gps_port_id = 1235;
+	const uint16_t battery_battery_status_port_id = 1236;
 
 	CanardTransferID _uavcan_pnp_nodeidallocation_v1_transfer_id{0};
 	hrt_abstime _uavcan_pnp_nodeidallocation_last{0};
