@@ -60,6 +60,8 @@
 
 /// DSDL UPDATE WIP
 #include <reg/drone/physics/kinematics/geodetic/Point_0_1.h>
+#include <uavcan/_register/Value_1_0.h>
+#include <uavcan/primitive/Empty_1_0.h>
 /// ---------------
 
 //Quick and Dirty PNP imlementation only V1 for now as well
@@ -81,6 +83,8 @@
 typedef struct {
 	const char *uavcan_name;
 	const char *px4_name;
+	bool is_mutable {true};
+	bool is_persistent {true};
 } UavcanParamBinder;
 
 class UavcanSubscription
@@ -123,7 +127,8 @@ public:
 protected:
 	CanardInstance *_canard_instance;
 	CanardRxSubscription _canard_sub;
-	const char *_uavcan_param;
+	const char *_uavcan_param; // Port ID parameter
+	/// TODO: 'type' parameter? uavcan.pub.PORT_NAME.type (see 384.Access.1.0.uavcan)
 
 	CanardPortID _port_id {0};
 };
@@ -188,10 +193,17 @@ private:
 	void Run() override;
 	void fill_node_info();
 
+	// Sends a heartbeat at 1s intervals
+	void sendHeartbeat();
+
 	int handlePnpNodeIDAllocationData(const CanardTransfer &receive);
 	int handleRegisterList(const CanardTransfer &receive);
+	int handleRegisterAccess(const CanardTransfer &receive);
 	int handleBMSStatus(const CanardTransfer &receive);
 	int handleUORBSensorGPS(const CanardTransfer &receive);
+
+	bool GetParamByName(const uavcan_register_Name_1_0 &name, uavcan_register_Value_1_0 &value);
+	bool SetParamByName(const uavcan_register_Name_1_0 &name, const uavcan_register_Value_1_0 &value);
 
 	void *_uavcan_heap{nullptr};
 
