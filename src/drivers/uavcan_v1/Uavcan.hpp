@@ -54,9 +54,13 @@
 #include <canard.h>
 #include <canard_dsdl.h>
 
-#include <reg/drone/srv/battery/Status_0_1.h>
-#include <reg/drone/srv/battery/Parameters_0_1.h>
+#include <reg/drone/service/battery/Status_0_1.h>
+#include <reg/drone/service/battery/Parameters_0_1.h>
 #include <uavcan/node/Heartbeat_1_0.h>
+
+/// DSDL UPDATE WIP
+#include <reg/drone/physics/kinematics/geodetic/Point_0_1.h>
+/// ---------------
 
 //Quick and Dirty PNP imlementation only V1 for now as well
 #include <uavcan/node/ID_1_0.h>
@@ -82,18 +86,72 @@ typedef struct {
 class UavcanSubscription
 {
 public:
-	UavcanSubscription(const char *pname) : _uavcan_param(pname) {};
+	UavcanSubscription(CanardInstance *ins, const char *pname) : _canard_instance(ins), _uavcan_param(pname) { };
 
-	virtual void callback(const CanardTransfer &msg) { (void)msg; /* TODO virtual func; implement in subclass */ };
+	virtual void subscribe() = 0;
+	virtual void unsubscribe() { canardRxUnsubscribe(_canard_instance, CanardTransferKindMessage, _port_id); };
+
+	virtual void callback(const CanardTransfer &msg) = 0;
 
 	CanardPortID id() { return _port_id; };
 
-	void updateParam() { /* TODO: Set _port_id from _uavcan_param */ };
+	void updateParam()
+	{
+		// Set _port_id from _uavcan_param
 
-private:
+		CanardPortID new_id {0};
+		/// TODO: --- update parameter here: new_id = uavcan_param_get(_uavcan_param);
+
+		if (_port_id != new_id) {
+			if (new_id == 0) {
+				// Cancel subscription
+				unsubscribe();
+
+			} else {
+				if (_port_id > 0) {
+					// Already active; unsubscribe first
+					unsubscribe();
+				}
+
+				// Subscribe on the new port ID
+				_port_id = new_id;
+				subscribe();
+			}
+		}
+	};
+
+protected:
+	CanardInstance *_canard_instance;
+	CanardRxSubscription _canard_sub;
 	const char *_uavcan_param;
 
 	CanardPortID _port_id {0};
+};
+
+class UavcanGpsSubscription : public UavcanSubscription
+{
+public:
+	UavcanGpsSubscription(CanardInstance *ins, const char *pname) : UavcanSubscription(ins, pname) { };
+
+	void subscribe() override;
+
+	void callback(const CanardTransfer &msg) override;
+
+private:
+
+};
+
+class UavcanBmsSubscription : public UavcanSubscription
+{
+public:
+	UavcanBmsSubscription(CanardInstance *ins, const char *pname) : UavcanSubscription(ins, pname) { };
+
+	void subscribe() override;
+
+	void callback(const CanardTransfer &msg) override;
+
+private:
+
 };
 
 class UavcanNode : public ModuleParams, public px4::ScheduledWorkItem
@@ -156,6 +214,11 @@ private:
 	CanardRxSubscription _register_access_subscription;
 	CanardRxSubscription _register_list_subscription;
 
+	CanardRxSubscription _canard_gps0_sub;
+	CanardRxSubscription _canard_gps1_sub;
+	CanardRxSubscription _canard_bms0_sub;
+	CanardRxSubscription _canard_bms1_sub;
+
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
@@ -188,16 +251,16 @@ private:
 	int32_t _node_register_last_received_index = -1;
 
 	// regulated::drone::sensor::BMSStatus_1_0
-	uint8_t _regulated_drone_sensor_bmsstatus_buffer[reg_drone_srv_battery_Status_0_1_EXTENT_BYTES_];
+	uint8_t _regulated_drone_sensor_bmsstatus_buffer[reg_drone_service_battery_Status_0_1_EXTENT_BYTES_];
 	hrt_abstime _regulated_drone_sensor_bmsstatus_last{0};
 	CanardTransferID _regulated_drone_sensor_bmsstatus_transfer_id{0};
 
-	UavcanSubscription _gps0_sub;
-	UavcanSubscription _gps1_sub;
-	UavcanSubscription _bms0_sub;
-	UavcanSubscription _bms1_sub;
+	UavcanGpsSubscription _gps0_sub;
+	UavcanGpsSubscription _gps1_sub;
+	UavcanBmsSubscription _bms0_sub;
+	UavcanBmsSubscription _bms1_sub;
 
-	UavcanSubscription _subscribers[4];
+	UavcanSubscription *_subscribers[4]; /// TODO: turn into List<UavcanSubscription*>
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::UAVCAN_V1_ENABLE>) _param_uavcan_v1_enable,
