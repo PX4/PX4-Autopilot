@@ -53,15 +53,72 @@ static void memFree(CanardInstance *const ins, void *const pointer) { o1heapFree
 # endif // CONFIG_CAN
 #endif // NuttX
 
+/**                Begin UavcanSubscription Class Definitions                **/
+/// TODO: Reorganize into separate files
+
+void UavcanGpsSubscription::subscribe()
+{
+	// Subscribe to messages reg.drone.physics.kinematics.geodetic.Point.0.1
+	canardRxSubscribe(_canard_instance,
+			  CanardTransferKindMessage,
+			  _port_id,
+			  reg_drone_physics_kinematics_geodetic_Point_0_1_EXTENT_BYTES_,
+			  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
+			  &_canard_sub);
+}
+
+void UavcanGpsSubscription::callback(const CanardTransfer &receive)
+{
+	PX4_INFO("GpsCallback");
+
+	reg_drone_physics_kinematics_geodetic_Point_0_1 geo {};
+	size_t geo_size_in_bits = receive.payload_size;
+	reg_drone_physics_kinematics_geodetic_Point_0_1_deserialize_(&geo, (const uint8_t *)receive.payload, &geo_size_in_bits);
+
+	double lat = geo.latitude;
+	double lon = geo.longitude;
+	PX4_INFO("Latitude: %f, Longitude: %f", lat, lon);
+	/// do something with the data
+}
+
+void UavcanBmsSubscription::subscribe()
+{
+	// Subscribe to messages reg.drone.service.battery.Status.0.1
+	canardRxSubscribe(_canard_instance,
+			  CanardTransferKindMessage,
+			  _port_id,
+			  reg_drone_service_battery_Status_0_1_EXTENT_BYTES_,
+			  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
+			  &_canard_sub);
+}
+
+void UavcanBmsSubscription::callback(const CanardTransfer &receive)
+{
+	PX4_INFO("BmsCallback");
+
+	reg_drone_service_battery_Status_0_1 bat {};
+	size_t bat_size_in_bits = receive.payload_size;
+	reg_drone_service_battery_Status_0_1_deserialize_(&bat, (const uint8_t *)receive.payload, &bat_size_in_bits);
+
+	uavcan_si_unit_voltage_Scalar_1_0 V_Min = bat.cell_voltage_min_max[0];
+	uavcan_si_unit_voltage_Scalar_1_0 V_Max = bat.cell_voltage_min_max[1];
+	double vmin = static_cast<double>(V_Min.volt);
+	double vmax = static_cast<double>(V_Max.volt);
+	PX4_INFO("Min voltage: %f, Max Voltage: %f", vmin, vmax);
+	/// do something with the data
+}
+
+/**                 End UavcanSubscription Class Definitions                 **/
+
 UavcanNode::UavcanNode(CanardInterface *interface, uint32_t node_id) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
 	_can_interface(interface),
-	_gps0_sub("uavcan.sub.gps.0.id"),
-	_gps1_sub("uavcan.sub.gps.1.id"),
-	_bms0_sub("uavcan.sub.bms.0.id"),
-	_bms1_sub("uavcan.sub.bms.1.id"),
-	_subscribers({_gps0_sub, _gps1_sub, _bms0_sub, _bms1_sub})
+	_gps0_sub(&_canard_instance, "uavcan.sub.gps.0.id"),
+	_gps1_sub(&_canard_instance, "uavcan.sub.gps.1.id"),
+	_bms0_sub(&_canard_instance, "uavcan.sub.bms.0.id"),
+	_bms1_sub(&_canard_instance, "uavcan.sub.bms.1.id"),
+	_subscribers{&_gps0_sub, &_gps1_sub, &_bms0_sub, &_bms1_sub}
 {
 	pthread_mutex_init(&_node_mutex, nullptr);
 
@@ -153,6 +210,8 @@ void UavcanNode::Run()
 		if (_can_interface) {
 			if (_can_interface->init() == PX4_OK) {
 
+				// We can't accept just any message; we must fist subscribe to specific IDs
+
 				// Subscribe to messages uavcan.node.Heartbeat.
 				canardRxSubscribe(&_canard_instance,
 						  CanardTransferKindMessage,
@@ -188,7 +247,7 @@ void UavcanNode::Run()
 				canardRxSubscribe(&_canard_instance,
 						  CanardTransferKindMessage,
 						  bms_port_id,
-						  reg_drone_srv_battery_Status_0_1_EXTENT_BYTES_,
+						  reg_drone_service_battery_Status_0_1_EXTENT_BYTES_,
 						  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
 						  &_drone_srv_battery_subscription);
 
@@ -221,7 +280,10 @@ void UavcanNode::Run()
 		updateParams();
 
 		for (auto &subscriber : _subscribers) {
-			subscriber.updateParam();
+			// Have the subscriber update its associated port-id parameter
+			// If the port-id changes, (re)start the subscription
+			// Setting the port-id to 0 disables the subscription
+			subscriber->updateParam();
 		}
 	}
 
@@ -363,8 +425,8 @@ void UavcanNode::Run()
 
 			} else if (receive.port_id > 0) {
 				for (auto &subscriber : _subscribers) {
-					if (receive.port_id == subscriber.id()) {
-						subscriber.callback(receive);
+					if (receive.port_id == subscriber->id()) {
+						subscriber->callback(receive);
 					}
 				}
 			}
