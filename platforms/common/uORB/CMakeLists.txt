@@ -31,44 +31,35 @@
 #
 ############################################################################
 
-if(NOT PX4_BOARD MATCHES "px4_io") # TODO: fix this hack (move uORB to platform layer)
+# this includes the generated topics directory
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-	# this includes the generated topics directory
-	include_directories(${CMAKE_CURRENT_BINARY_DIR})
+px4_add_library(uORB
+	ORBSet.hpp
+	Publication.hpp
+	PublicationMulti.hpp
+	Subscription.cpp
+	Subscription.hpp
+	SubscriptionCallback.hpp
+	SubscriptionInterval.hpp
+	SubscriptionMultiArray.hpp
+	uORB.cpp
+	uORB.h
+	uORBCommon.hpp
+	uORBCommunicator.hpp
+	uORBDeviceMaster.cpp
+	uORBDeviceMaster.hpp
+	uORBDeviceNode.cpp
+	uORBDeviceNode.hpp
+	uORBManager.cpp
+	uORBManager.hpp
+	uORBUtils.cpp
+	uORBUtils.hpp
+)
 
-	px4_add_module(
-		MODULE modules__uORB
-		MAIN uorb
-		COMPILE_FLAGS
-			${MAX_CUSTOM_OPT_LEVEL}
-		SRCS
-			ORBSet.hpp
-			Publication.hpp
-			PublicationMulti.hpp
-			Subscription.cpp
-			Subscription.hpp
-			SubscriptionCallback.hpp
-			SubscriptionInterval.hpp
-			SubscriptionMultiArray.hpp
-			uORB.cpp
-			uORB.h
-			uORBCommon.hpp
-			uORBCommunicator.hpp
-			uORBDeviceMaster.cpp
-			uORBDeviceMaster.hpp
-			uORBDeviceNode.cpp
-			uORBDeviceNode.hpp
-			uORBMain.cpp
-			uORBManager.cpp
-			uORBManager.hpp
-			uORBUtils.cpp
-			uORBUtils.hpp
-		DEPENDS
-			cdev
-			uorb_msgs
-		)
+target_compile_options(uORB PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_link_libraries(uORB PRIVATE cdev uorb_msgs)
 
-	if(PX4_TESTING)
-		add_subdirectory(uORB_tests)
-	endif()
+if(PX4_TESTING)
+	add_subdirectory(uORB_tests)
 endif()

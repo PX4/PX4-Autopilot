@@ -93,7 +93,7 @@ list(APPEND nuttx_libs
 	nuttx_fs
 	nuttx_mm
 	nuttx_sched
-	)
+)
 
 if (CONFIG_NET)
 	list(APPEND nuttx_libs nuttx_net)
@@ -163,7 +163,7 @@ endif()
 add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
 	COMMAND ${CMAKE_OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BINARY_OUTPUT}
 	DEPENDS px4
-	)
+)
 
 # create .px4 with parameter and airframe metadata
 if (TARGET parameters_xml AND TARGET airframes_xml)
@@ -203,7 +203,7 @@ add_custom_target(weak_symbols
 	DEPENDS px4
 	VERBATIM
 	USES_TERMINAL
-	)
+)
 
 
 # debugger helpers
@@ -292,7 +292,7 @@ add_custom_target(debug
 	DEPENDS px4 ${PX4_BINARY_DIR}/.gdbinit
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	USES_TERMINAL
-	)
+)
 
 include(blackmagic)
 include(jlink)

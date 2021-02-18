@@ -131,8 +131,6 @@ private:
 	void wait_for_landed_state(Telemetry::LandedState landed_state, std::chrono::seconds timeout);
 	void wait_for_mission_finished(std::chrono::seconds timeout);
 
-	std::chrono::milliseconds adjust_to_lockstep_speed(std::chrono::milliseconds duration_ms);
-
 	template<typename Rep, typename Period>
 	bool poll_condition_with_timeout(
 		std::function<bool()> fun, std::chrono::duration<Rep, Period> duration)
@@ -152,8 +150,6 @@ private:
 				// The reason not to include an absolute timeout here is that it can happen if the host is
 				// busy and PX4 doesn't run fast enough.
 				const int64_t elapsed_time_us = _telemetry->attitude_quaternion().timestamp_us - start_time_us;
-
-				std::cout << time_str() << "start_time_us: " << start_time_us << ", elapsed_time_us: " << elapsed_time_us << '\n';
 
 				if (elapsed_time_us > duration_us.count()) {
 					std::cout << time_str() << "Timeout, connected to vehicle but waiting for test for " << static_cast<double>
@@ -182,6 +178,31 @@ private:
 		}
 
 		return true;
+	}
+
+	template<typename Rep, typename Period>
+	void sleep_for(std::chrono::duration<Rep, Period> duration)
+	{
+		const std::chrono::microseconds duration_us(duration);
+
+		if (_telemetry && _telemetry->attitude_quaternion().timestamp_us != 0) {
+
+			const int64_t start_time_us = _telemetry->attitude_quaternion().timestamp_us;
+
+			while (true) {
+				// Hopefully this is often enough not to have PX4 time out on us.
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+				const int64_t elapsed_time_us = _telemetry->attitude_quaternion().timestamp_us - start_time_us;
+
+				if (elapsed_time_us > duration_us.count()) {
+					return;
+				}
+			}
+
+		} else {
+			std::this_thread::sleep_for(duration);
+		}
 	}
 
 	mavsdk::Mavsdk _mavsdk{};

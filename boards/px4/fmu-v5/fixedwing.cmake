@@ -23,7 +23,7 @@ px4_add_board(
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		gps
-		imu/adis16448
+		imu/analog_devices/adis16448
 		imu/adis16477
 		imu/adis16497
 		#imu # all available imu drivers
@@ -87,6 +87,7 @@ px4_add_board(
 		top
 		topic_listener
 		tune_control
+		uorb
 		usb_connected
 		ver
 		work_queue

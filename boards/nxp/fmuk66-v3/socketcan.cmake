@@ -34,7 +34,6 @@ px4_add_board(
 		lights/rgbled_ncp5623c
 		lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
-		mkblctrl
 		#optical_flow # all available optical flow drivers
 		optical_flow/px4flow
 		#osd
@@ -106,6 +105,7 @@ px4_add_board(
 		top
 		topic_listener
 		tune_control
+		uorb
 		usb_connected
 		ver
 		work_queue

@@ -1374,6 +1374,30 @@ Navigator::publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t res
 	_vehicle_cmd_ack_pub.publish(command_ack);
 }
 
+void
+Navigator::acquire_gimbal_control()
+{
+	vehicle_command_s vcmd = {};
+	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE;
+	vcmd.param1 = _vstatus.system_id;
+	vcmd.param2 = _vstatus.component_id;
+	vcmd.param3 = -1.0f; // Leave unchanged.
+	vcmd.param4 = -1.0f; // Leave unchanged.
+	publish_vehicle_cmd(&vcmd);
+}
+
+void
+Navigator::release_gimbal_control()
+{
+	vehicle_command_s vcmd = {};
+	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE;
+	vcmd.param1 = -3.0f; // Remove control if it had it.
+	vcmd.param2 = -3.0f; // Remove control if it had it.
+	vcmd.param3 = -1.0f; // Leave unchanged.
+	vcmd.param4 = -1.0f; // Leave unchanged.
+	publish_vehicle_cmd(&vcmd);
+}
+
 int Navigator::print_usage(const char *reason)
 {
 	if (reason) {

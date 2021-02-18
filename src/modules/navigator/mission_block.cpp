@@ -96,6 +96,8 @@ MissionBlock::is_mission_item_reached()
 	case NAV_CMD_DO_CONTROL_VIDEO:
 	case NAV_CMD_DO_MOUNT_CONFIGURE:
 	case NAV_CMD_DO_MOUNT_CONTROL:
+	case NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
+	case NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
 	case NAV_CMD_DO_SET_ROI:
 	case NAV_CMD_DO_SET_ROI_LOCATION:
 	case NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET:
@@ -105,6 +107,7 @@ MissionBlock::is_mission_item_reached()
 	case NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL:
 	case NAV_CMD_SET_CAMERA_MODE:
 	case NAV_CMD_SET_CAMERA_ZOOM:
+	case NAV_CMD_SET_CAMERA_FOCUS:
 		return true;
 
 	case NAV_CMD_DO_VTOL_TRANSITION:
@@ -472,7 +475,10 @@ MissionBlock::issue_command(const mission_item_s &item)
 	} else {
 		_action_start = hrt_absolute_time();
 
-		// mission_item -> vehicle_command
+		// This is to support legacy DO_MOUNT_CONTROL as part of a mission.
+		if (item.nav_cmd == NAV_CMD_DO_MOUNT_CONTROL) {
+			_navigator->acquire_gimbal_control();
+		}
 
 		// we're expecting a mission command item here so assign the "raw" inputs to the command
 		// (MAV_FRAME_MISSION mission item)

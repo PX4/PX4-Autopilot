@@ -194,7 +194,7 @@ public:
 		MAVLINK_MODE_MINIMAL,
 		MAVLINK_MODE_EXTVISION,
 		MAVLINK_MODE_EXTVISIONMIN,
-
+		MAVLINK_MODE_GIMBAL,
 		MAVLINK_MODE_COUNT
 	};
 
@@ -242,6 +242,9 @@ public:
 
 		case MAVLINK_MODE_EXTVISIONMIN:
 			return "ExtVisionMin";
+
+		case MAVLINK_MODE_GIMBAL:
+			return "Gimbal";
 
 		default:
 			return "Unknown";
@@ -540,7 +543,7 @@ private:
 
 	bool			_task_running{true};
 	static bool		_boot_complete;
-	static constexpr int	MAVLINK_MAX_INSTANCES{4};
+	static constexpr int	MAVLINK_MAX_INSTANCES{MAVLINK_COMM_NUM_BUFFERS};
 	static constexpr int	MAVLINK_MIN_INTERVAL{1500};
 	static constexpr int	MAVLINK_MAX_INTERVAL{10000};
 	static constexpr float	MAVLINK_MIN_MULTIPLIER{0.0005f};

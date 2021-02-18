@@ -131,6 +131,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: mro_ctrl-zero-f7_default
+    mro_pixracerpro_bootloader:
+      short: mro_pixracerpro_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: mro_pixracerpro_bootloader
+    mro_pixracerpro_default:
+      short: mro_pixracerpro_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: mro_pixracerpro_default
     mro_x21-777_default:
       short: mro_x2.1-777
       buildType: MinSizeRel

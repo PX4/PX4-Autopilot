@@ -34,7 +34,7 @@ px4_add_board(
 		gps
 		#heater
 		#imu # all available imu drivers
-		#imu/adis16448
+		#imu/analog_devices/adis16448
 		#imu/adis16477
 		#imu/adis16497
 		imu/l3gd20
@@ -50,7 +50,6 @@ px4_add_board(
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
-		#mkblctrl
 		#optical_flow # all available optical flow drivers
 		#optical_flow/px4flow
 		#osd
@@ -97,7 +96,7 @@ px4_add_board(
 		sensors
 		#sih
 		#temperature_compensation
-		vmount
+		#vmount
 		#vtol_att_control
 	SYSTEMCMDS
 		bl_update
@@ -124,6 +123,7 @@ px4_add_board(
 		top
 		#topic_listener
 		tune_control
+		#uorb
 		#usb_connected
 		#ver
 		#work_queue

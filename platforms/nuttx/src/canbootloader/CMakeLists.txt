@@ -48,4 +48,5 @@ target_compile_options(canbootloader PRIVATE -Wno-error)
 target_link_libraries(canbootloader
 	PRIVATE
 		drivers_bootloaders
+		arch_watchdog_iwdg
 )

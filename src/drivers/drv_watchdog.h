@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
- *   Author: Marco Bauer <marco@wtns.de>
+ *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,21 +32,18 @@
  ****************************************************************************/
 
 /**
- * @file mkblctrl_params.c
+ * @file drv_watchdog.h
  *
- * Parameters defined by the mkblctrl driver.
+ *  watchdog driver interface.
  *
- * @author Marco Bauer <marco@wtns.de>
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <parameters/param.h>
+#pragma once
 
-/**
- * Test mode (Identify) of MKBLCTRL Driver
- *
- * @boolean
- * @group MKBLCTRL Testmode
- */
-PARAM_DEFINE_INT32(MKBLCTRL_TEST, 0);
+#include <stdint.h>
 
+__BEGIN_DECLS
+
+void watchdog_init(void);
+void watchdog_pet(void);
+__END_DECLS

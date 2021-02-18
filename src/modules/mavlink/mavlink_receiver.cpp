@@ -279,6 +279,18 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		break;
 #endif // !CONSTRAINED_FLASH
 
+	case MAVLINK_MSG_ID_GIMBAL_MANAGER_SET_ATTITUDE:
+		handle_message_gimbal_manager_set_attitude(msg);
+		break;
+
+	case MAVLINK_MSG_ID_GIMBAL_MANAGER_SET_MANUAL_CONTROL:
+		handle_message_gimbal_manager_set_manual_control(msg);
+		break;
+
+	case MAVLINK_MSG_ID_GIMBAL_DEVICE_INFORMATION:
+		handle_message_gimbal_device_information(msg);
+		break;
+
 	default:
 		break;
 	}
@@ -2936,6 +2948,94 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 		_mavlink->telemetry_status_updated();
 		_last_heartbeat_check = t;
 	}
+}
+
+void
+MavlinkReceiver::handle_message_gimbal_manager_set_manual_control(mavlink_message_t *msg)
+{
+	mavlink_gimbal_manager_set_manual_control_t set_manual_control_msg;
+	mavlink_msg_gimbal_manager_set_manual_control_decode(msg, &set_manual_control_msg);
+
+	gimbal_manager_set_manual_control_s set_manual_control{};
+	set_manual_control.timestamp = hrt_absolute_time();
+	set_manual_control.origin_sysid = msg->sysid;
+	set_manual_control.origin_compid = msg->compid;
+	set_manual_control.target_system = set_manual_control_msg.target_system;
+	set_manual_control.target_component = set_manual_control_msg.target_component;
+	set_manual_control.flags = set_manual_control_msg.flags;
+	set_manual_control.gimbal_device_id = set_manual_control_msg.gimbal_device_id;
+
+	set_manual_control.pitch = set_manual_control_msg.pitch;
+	set_manual_control.yaw = set_manual_control_msg.yaw;
+	set_manual_control.pitch_rate = set_manual_control_msg.pitch_rate;
+	set_manual_control.yaw_rate = set_manual_control_msg.yaw_rate;
+
+	_gimbal_manager_set_manual_control_pub.publish(set_manual_control);
+}
+
+void
+MavlinkReceiver::handle_message_gimbal_manager_set_attitude(mavlink_message_t *msg)
+{
+	mavlink_gimbal_manager_set_attitude_t set_attitude_msg;
+	mavlink_msg_gimbal_manager_set_attitude_decode(msg, &set_attitude_msg);
+
+	gimbal_manager_set_attitude_s gimbal_attitude{};
+	gimbal_attitude.timestamp = hrt_absolute_time();
+	gimbal_attitude.origin_sysid = msg->sysid;
+	gimbal_attitude.origin_compid = msg->compid;
+	gimbal_attitude.target_system = set_attitude_msg.target_system;
+	gimbal_attitude.target_component = set_attitude_msg.target_component;
+	gimbal_attitude.flags = set_attitude_msg.flags;
+	gimbal_attitude.gimbal_device_id = set_attitude_msg.gimbal_device_id;
+
+	matrix::Quatf q(set_attitude_msg.q);
+	q.copyTo(gimbal_attitude.q);
+
+	gimbal_attitude.angular_velocity_x = set_attitude_msg.angular_velocity_x;
+	gimbal_attitude.angular_velocity_y = set_attitude_msg.angular_velocity_y;
+	gimbal_attitude.angular_velocity_z = set_attitude_msg.angular_velocity_z;
+
+	_gimbal_manager_set_attitude_pub.publish(gimbal_attitude);
+}
+
+void
+MavlinkReceiver::handle_message_gimbal_device_information(mavlink_message_t *msg)
+{
+
+	mavlink_gimbal_device_information_t gimbal_device_info_msg;
+	mavlink_msg_gimbal_device_information_decode(msg, &gimbal_device_info_msg);
+
+	gimbal_device_information_s gimbal_information{};
+	gimbal_information.timestamp = hrt_absolute_time();
+
+	static_assert(sizeof(gimbal_information.vendor_name) == sizeof(gimbal_device_info_msg.vendor_name),
+		      "vendor_name length doesn't match");
+	static_assert(sizeof(gimbal_information.model_name) == sizeof(gimbal_device_info_msg.model_name),
+		      "model_name length doesn't match");
+	static_assert(sizeof(gimbal_information.custom_name) == sizeof(gimbal_device_info_msg.custom_name),
+		      "custom_name length doesn't match");
+	memcpy(gimbal_information.vendor_name, gimbal_device_info_msg.vendor_name, sizeof(gimbal_information.vendor_name));
+	memcpy(gimbal_information.model_name, gimbal_device_info_msg.model_name, sizeof(gimbal_information.model_name));
+	memcpy(gimbal_information.custom_name, gimbal_device_info_msg.custom_name, sizeof(gimbal_information.custom_name));
+	gimbal_device_info_msg.vendor_name[sizeof(gimbal_device_info_msg.vendor_name) - 1] = '\0';
+	gimbal_device_info_msg.model_name[sizeof(gimbal_device_info_msg.model_name) - 1] = '\0';
+	gimbal_device_info_msg.custom_name[sizeof(gimbal_device_info_msg.custom_name) - 1] = '\0';
+
+	gimbal_information.firmware_version = gimbal_device_info_msg.firmware_version;
+	gimbal_information.hardware_version = gimbal_device_info_msg.hardware_version;
+	gimbal_information.cap_flags = gimbal_device_info_msg.cap_flags;
+	gimbal_information.custom_cap_flags = gimbal_device_info_msg.custom_cap_flags;
+	gimbal_information.uid = gimbal_device_info_msg.uid;
+
+	gimbal_information.pitch_max = gimbal_device_info_msg.pitch_max;
+	gimbal_information.pitch_min = gimbal_device_info_msg.pitch_min;
+
+	gimbal_information.yaw_max = gimbal_device_info_msg.yaw_max;
+	gimbal_information.yaw_min = gimbal_device_info_msg.yaw_min;
+
+	gimbal_information.gimbal_device_compid = msg->compid;
+
+	_gimbal_device_information_pub.publish(gimbal_information);
 }
 
 /**
