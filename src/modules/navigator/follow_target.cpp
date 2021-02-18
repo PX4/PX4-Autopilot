@@ -310,7 +310,7 @@ void FollowTarget::on_active()
 		}
 	}
 
-	last_update_time = current_time;
+	_last_update_time = current_time;
 }
 
 void FollowTarget::update_position_sp(bool use_velocity, bool use_position, float yaw_rate)
