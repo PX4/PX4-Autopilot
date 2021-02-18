@@ -326,38 +326,7 @@ void UavcanNode::Run()
 	}
 
 	// send uavcan::node::Heartbeat_1_0 @ 1 Hz
-	if (hrt_elapsed_time(&_uavcan_node_heartbeat_last) >= 1_s) {
-
-		uavcan_node_Heartbeat_1_0 heartbeat{};
-		heartbeat.uptime = _uavcan_node_heartbeat_transfer_id; // TODO: use real uptime
-		heartbeat.health.value = uavcan_node_Health_1_0_NOMINAL;
-		heartbeat.mode.value = uavcan_node_Mode_1_0_OPERATIONAL;
-
-
-		CanardTransfer transfer = {
-			.timestamp_usec = hrt_absolute_time(),
-			.priority       = CanardPriorityNominal,
-			.transfer_kind  = CanardTransferKindMessage,
-			.port_id        = uavcan_node_Heartbeat_1_0_FIXED_PORT_ID_,
-			.remote_node_id = CANARD_NODE_ID_UNSET,
-			.transfer_id    = _uavcan_node_heartbeat_transfer_id++,
-			.payload_size   = uavcan_node_Heartbeat_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_,
-			.payload        = &_uavcan_node_heartbeat_buffer,
-		};
-
-		uavcan_node_Heartbeat_1_0_serialize_(&heartbeat, _uavcan_node_heartbeat_buffer, &transfer.payload_size);
-
-		int32_t result = canardTxPush(&_canard_instance, &transfer);
-
-		if (result < 0) {
-			// An error has occurred: either an argument is invalid or we've ran out of memory.
-			// It is possible to statically prove that an out-of-memory will never occur for a given application if the
-			// heap is sized correctly; for background, refer to the Robson's Proof and the documentation for O1Heap.
-			PX4_ERR("Heartbeat transmit error %d", result);
-		}
-
-		_uavcan_node_heartbeat_last = transfer.timestamp_usec;
-	}
+	sendHeartbeat();
 
 	// Transmitting
 	// Look at the top of the TX queue.
@@ -417,6 +386,9 @@ void UavcanNode::Run()
 			} else if (receive.port_id == uavcan_register_List_1_0_FIXED_PORT_ID_) {
 				result = handleRegisterList(receive);
 
+			} else if (receive.port_id == uavcan_register_Access_1_0_FIXED_PORT_ID_) {
+				result = handleRegisterAccess(receive);
+
 			} else if (receive.port_id == bms_port_id) {
 				result = handleBMSStatus(receive);
 
@@ -424,6 +396,7 @@ void UavcanNode::Run()
 				result = handleUORBSensorGPS(receive);
 
 			} else if (receive.port_id > 0) {
+				// If not a fixed port ID, check any subscribers which may have registered it
 				for (auto &subscriber : _subscribers) {
 					if (receive.port_id == subscriber->id()) {
 						subscriber->callback(receive);
@@ -515,6 +488,42 @@ extern "C" __EXPORT int uavcan_v1_main(int argc, char *argv[])
 	return 1;
 }
 
+void UavcanNode::sendHeartbeat()
+{
+	if (hrt_elapsed_time(&_uavcan_node_heartbeat_last) >= 1_s) {
+
+		uavcan_node_Heartbeat_1_0 heartbeat{};
+		heartbeat.uptime = _uavcan_node_heartbeat_transfer_id; // TODO: use real uptime
+		heartbeat.health.value = uavcan_node_Health_1_0_NOMINAL;
+		heartbeat.mode.value = uavcan_node_Mode_1_0_OPERATIONAL;
+
+
+		CanardTransfer transfer = {
+			.timestamp_usec = hrt_absolute_time(),
+			.priority       = CanardPriorityNominal,
+			.transfer_kind  = CanardTransferKindMessage,
+			.port_id        = uavcan_node_Heartbeat_1_0_FIXED_PORT_ID_,
+			.remote_node_id = CANARD_NODE_ID_UNSET,
+			.transfer_id    = _uavcan_node_heartbeat_transfer_id++,
+			.payload_size   = uavcan_node_Heartbeat_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_,
+			.payload        = &_uavcan_node_heartbeat_buffer,
+		};
+
+		uavcan_node_Heartbeat_1_0_serialize_(&heartbeat, _uavcan_node_heartbeat_buffer, &transfer.payload_size);
+
+		int32_t result = canardTxPush(&_canard_instance, &transfer);
+
+		if (result < 0) {
+			// An error has occurred: either an argument is invalid or we've ran out of memory.
+			// It is possible to statically prove that an out-of-memory will never occur for a given application if the
+			// heap is sized correctly; for background, refer to the Robson's Proof and the documentation for O1Heap.
+			PX4_ERR("Heartbeat transmit error %d", result);
+		}
+
+		_uavcan_node_heartbeat_last = transfer.timestamp_usec;
+	}
+}
+
 int UavcanNode::handlePnpNodeIDAllocationData(const CanardTransfer &receive)
 {
 	uavcan_pnp_NodeIDAllocationData_1_0 msg;
@@ -600,9 +609,8 @@ int UavcanNode::handleRegisterList(const CanardTransfer &receive)
 			++_uavcan_register_access_request_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
 			result = canardTxPush(&_canard_instance, &transfer);
 		}
-	}
 
-	if (strncmp((char *)msg.name.name.elements, "uavcan.pub.battery_status.id",
+	} else if (strncmp((char *)msg.name.name.elements, "uavcan.pub.battery_status.id",
 		    msg.name.name.count) == 0) { //Battery status publisher
 		_node_register_setup = CANARD_NODE_ID_UNSET;
 		PX4_INFO("NodeID %i battery_status publisher set PortID to %i", receive.remote_node_id, bms_port_id);
@@ -614,7 +622,6 @@ int UavcanNode::handleRegisterList(const CanardTransfer &receive)
 		uavcan_register_Value_1_0_select_natural16_(&request_msg.value);
 		request_msg.value.natural16.value.count = 1;
 		request_msg.value.natural16.value.elements[0] = bms_port_id;
-
 
 		uint8_t request_payload_buffer[uavcan_register_Access_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
 
@@ -636,6 +643,98 @@ int UavcanNode::handleRegisterList(const CanardTransfer &receive)
 			++_uavcan_register_access_request_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
 			result = canardTxPush(&_canard_instance, &transfer);
 		}
+
+	} else {
+		uavcan_register_Value_1_0 out_value;
+		if (GetParamByName(msg.name, out_value)) {
+			/// TODO: running into this error again:
+			// 	../../src/drivers/uavcan_v1/Uavcan.cpp:685:1: error: the frame size of 2192 bytes is larger than 2048 bytes [-Werror=frame-larger-than=]
+
+			_node_register_setup = CANARD_NODE_ID_UNSET;
+			_node_register_last_received_index++;
+
+			uavcan_register_Access_Request_1_0 request_msg;
+			memcpy(&request_msg.name, &msg.name, sizeof(uavcan_register_Name_1_0));
+
+			uavcan_register_Value_1_0_select_natural16_(&request_msg.value); /// TODO don't select; see which it is
+			request_msg.value.natural16.value.count = 1;
+			request_msg.value.natural16.value.elements[0] = out_value.natural16.value.elements[0]; /// TODO
+
+			uint8_t request_payload_buffer[uavcan_register_Access_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
+
+			CanardTransfer transfer = {
+				.timestamp_usec = hrt_absolute_time(),      // Zero if transmission deadline is not limited.
+				.priority       = CanardPriorityNominal,
+				.transfer_kind  = CanardTransferKindRequest,
+				.port_id        = uavcan_register_Access_1_0_FIXED_PORT_ID_,                // This is the subject-ID.
+				.remote_node_id = receive.remote_node_id,       // Messages cannot be unicast, so use UNSET.
+				.transfer_id    = _uavcan_register_access_request_transfer_id,
+				.payload_size   = uavcan_register_Access_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_,
+				.payload        = &request_payload_buffer,
+			};
+
+			result = uavcan_register_Access_Request_1_0_serialize_(&request_msg, request_payload_buffer, &transfer.payload_size);
+
+			if (result == 0) {
+				// set the data ready in the buffer and chop if needed
+				++_uavcan_register_access_request_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
+				result = canardTxPush(&_canard_instance, &transfer);
+			}
+		}
+	}
+
+	return result;
+}
+
+int UavcanNode::handleRegisterAccess(const CanardTransfer &receive)
+{
+	uavcan_register_Access_Request_1_0 msg {};
+
+	size_t register_in_size_bits = receive.payload_size;
+	uavcan_register_Access_Request_1_0_deserialize_(&msg, (const uint8_t *)receive.payload, &register_in_size_bits);
+
+	int result {0};
+
+	uavcan_register_Value_1_0 value = msg.value;
+	uavcan_register_Name_1_0 name = msg.name;
+
+	/// TODO: get/set parameter based on whether empty or not
+	if (uavcan_register_Value_1_0_is_empty_(&value)) { // Tag Type: uavcan_primitive_Empty_1_0
+		// Value is empty -- 'Get' only
+		result = GetParamByName(name, value) ? 0 : -1;
+
+	} else {
+		// Set value
+		result = SetParamByName(name, value) ? 0 : -1;
+
+	}
+
+	/// TODO: I'm getting the following error:
+	/// 	"error: the frame size of 2448 bytes is larger than 2048 bytes [-Werror=frame-larger-than=]"
+
+	/// TODO: Access_Response
+	uavcan_register_Access_Response_1_0 response {};
+	response.value = value;
+
+	uint8_t response_payload_buffer[uavcan_register_Access_Response_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
+
+	CanardTransfer transfer = {
+		.timestamp_usec = hrt_absolute_time(),      // Zero if transmission deadline is not limited.
+		.priority       = CanardPriorityNominal,
+		.transfer_kind  = CanardTransferKindResponse,
+		.port_id        = uavcan_register_Access_1_0_FIXED_PORT_ID_,                // This is the subject-ID.
+		.remote_node_id = receive.remote_node_id,       // Messages cannot be unicast, so use UNSET.
+		.transfer_id    = _uavcan_register_access_request_transfer_id, /// TODO: track register Access _response_ separately?
+		.payload_size   = uavcan_register_Access_Response_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_,
+		.payload        = &response_payload_buffer,
+	};
+
+	result = uavcan_register_Access_Response_1_0_serialize_(&response, response_payload_buffer, &transfer.payload_size);
+
+	if (result == 0) {
+		// set the data ready in the buffer and chop if needed
+		++_uavcan_register_access_request_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
+		result = canardTxPush(&_canard_instance, &transfer);
 	}
 
 	return result;
@@ -664,4 +763,40 @@ int UavcanNode::handleUORBSensorGPS(const CanardTransfer &receive)
 	sensor_gps_s *gps_msg = (sensor_gps_s *)receive.payload;
 
 	return _sensor_gps_pub.publish(*gps_msg) ? 0 : -1;
+}
+
+bool UavcanNode::GetParamByName(const uavcan_register_Name_1_0 &name, uavcan_register_Value_1_0 &value)
+{
+	for (auto &param : _uavcan_params) {
+		if (strncmp((char *)name.name.elements, param.uavcan_name, name.name.count) == 0) {
+			param_t param_handle = param_find(param.px4_name);
+			if (param_handle == PARAM_INVALID) {
+				return false;
+			}
+			float out_val;
+			param_get(param_handle, &out_val); /// TODO: Type casting / setting
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool UavcanNode::SetParamByName(const uavcan_register_Name_1_0 &name, const uavcan_register_Value_1_0 &value)
+{
+		for (auto &param : _uavcan_params) {
+		if (strncmp((char *)name.name.elements, param.uavcan_name, name.name.count) == 0) {
+			param_t param_handle = param_find(param.px4_name);
+			if (param_handle == PARAM_INVALID) {
+				return false;
+			}
+			float out_val {};
+			param_set(param_handle, &out_val); /// TODO: Type casting / setting
+
+			return true;
+		}
+	}
+
+	return false;
 }
