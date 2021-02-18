@@ -84,15 +84,26 @@ except:
     git_branch_name = ''
 git_version_short = git_version[0:16]
 
+# OEM version
+try:
+    oem_tag = subprocess.check_output('git describe --match ext/oem-* --tags'.split(),
+                                      stderr=subprocess.STDOUT).decode('utf-8').strip()
+    oem_tag = oem_tag[8:]
+except:
+    oem_tag = ''
+
 header += """
 #define PX4_GIT_VERSION_STR  "{git_version}"
 #define PX4_GIT_VERSION_BINARY 0x{git_version_short}
 #define PX4_GIT_TAG_STR  "{git_tag}"
 #define PX4_GIT_BRANCH_NAME  "{git_branch_name}"
+
+#define PX4_GIT_OEM_VERSION_STR  "{oem_tag}"
 """.format(git_tag=git_tag,
            git_version=git_version,
            git_version_short=git_version_short,
-           git_branch_name=git_branch_name)
+           git_branch_name=git_branch_name,
+           oem_tag=oem_tag)
 
 
 # ECL
