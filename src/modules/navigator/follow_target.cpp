@@ -177,7 +177,8 @@ void FollowTarget::on_active()
 			// just traveling at the exact velocity of the target will not
 			// get any closer or farther from the target
 
-			_acceleration_m_s2 = ((_est_target_vel - _current_vel) + (_target_position_offset + _target_distance) * FF_K) / (dt_ms / 1000.0f);
+			_acceleration_m_s2 = ((_est_target_vel - _current_vel) + (_target_position_offset + _target_distance) * FF_K) /
+					     (dt_ms / 1000.0f);
 
 			// if we are less than 1 meter from the target don't worry about trying to yaw
 			// lock the yaw until we are at a distance that makes sense
