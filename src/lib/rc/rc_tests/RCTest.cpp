@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <algorithm>
 
 #include <drivers/drv_hrt.h>
 
@@ -150,6 +149,7 @@ bool RCTest::ghstTest()
 
 	ut_test(fp);
 
+	int uart_fd = -1;
 	const int line_size = 500;
 	char line[line_size];
 	bool has_decoded_values = false;
@@ -158,6 +158,7 @@ bool RCTest::ghstTest()
 	uint16_t num_values = 0;
 	int line_counter = 1;
 	int8_t ghst_rssi = -1;
+	ghst_config(uart_fd);
 
 	while (fgets(line, line_size, fp) != nullptr)  {
 
@@ -167,8 +168,6 @@ bool RCTest::ghstTest()
 				PX4_ERR("Parser decoded values that are not in the test file (line=%i)", line_counter);
 				return false;
 			}
-
-			std::fill_n(rc_values, max_channels, UINT16_MAX);
 
 			// read the values
 			const char *file_buffer = line + 6;
