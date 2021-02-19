@@ -43,7 +43,7 @@ add_library(drivers_board
 	usb.c
 	toc.c
 )
-add_dependencies(drivers_board arch_board_hw_info)
+add_dependencies(drivers_board nuttx_context)
 
 target_link_libraries(drivers_board
 	PRIVATE
@@ -52,5 +52,16 @@ target_link_libraries(drivers_board
 		drivers__led # drv_led_start
 		nuttx_arch # sdio
 		nuttx_drivers # sdio
-		px4_layer
 )
+
+if (NOT DEFINED CONFIG_BUILD_FLAT)
+	target_link_libraries(drivers_board PRIVATE px4_kernel_layer)
+else()
+	target_link_libraries(drivers_board PRIVATE px4_layer)
+endif()
+
+add_library(drivers_userspace
+	stm32_userspace.c
+)
+
+add_dependencies(drivers_userspace nuttx_context)
