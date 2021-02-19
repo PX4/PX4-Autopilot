@@ -70,6 +70,7 @@
 #define GHST_FRAME_CRC_SIZE			(1)
 #define GHST_FRAME_TYPE_SIZE			(1)
 #define GHST_TYPE_DATA_CRC_SIZE			(12u)
+#define GHST_MAX_NUM_CHANNELS			(16)
 
 enum class ghst_parser_state_t : uint8_t {
 	unsynced = 0,
@@ -82,6 +83,8 @@ static int8_t ghst_rssi = -1;
 static ghst_frame_t &ghst_frame = rc_decode_buf.ghst_frame;
 static uint32_t current_frame_position = 0;
 static ghst_parser_state_t parser_state = ghst_parser_state_t::unsynced;
+
+static uint16_t prev_rc_vals[GHST_MAX_NUM_CHANNELS];
 
 /**
  * parse the current ghst_frame buffer
@@ -97,6 +100,7 @@ int ghst_config(int uart_fd)
 	tcgetattr(uart_fd, &t);
 	cfsetspeed(&t, GHST_BAUDRATE);
 	t.c_cflag &= ~(CSTOPB | PARENB);
+	memset(prev_rc_vals, (int)UINT16_MAX, sizeof(uint16_t) * GHST_MAX_NUM_CHANNELS);
 	ret_val = tcsetattr(uart_fd, TCSANOW, &t);
 	return ret_val;
 }
@@ -114,6 +118,8 @@ bool ghst_parse(const uint64_t now, const uint8_t *frame, unsigned len, uint16_t
 {
 	bool success = false;
 	uint8_t *ghst_frame_ptr = (uint8_t *)&ghst_frame;
+
+	memcpy(values, prev_rc_vals, sizeof(uint16_t) * GHST_MAX_NUM_CHANNELS);
 
 	while (len > 0) {
 
@@ -247,7 +253,7 @@ static bool ghst_parse_buffer(uint16_t *values, int8_t *rssi, uint16_t *num_valu
 
 		if (crc == ghst_frame_CRC(ghst_frame)) {
 			const ghstPayloadData_t *const rcChannels = (ghstPayloadData_t *)&ghst_frame.payload;
-			*num_values = MIN(max_channels, 16);
+			*num_values = MIN(max_channels, GHST_MAX_NUM_CHANNELS);
 
 			// all frames contain data from chan1to4
 			if (max_channels > 0) { values[0] = convert_channel_value(rcChannels->chan1to4.chan1 >> 1); }
@@ -296,6 +302,8 @@ static bool ghst_parse_buffer(uint16_t *values, int8_t *rssi, uint16_t *num_valu
 			}
 
 			*rssi = ghst_rssi;
+
+			memcpy(prev_rc_vals, values, sizeof(uint16_t) * GHST_MAX_NUM_CHANNELS);
 
 			GHST_VERBOSE("Got Channels");
 
