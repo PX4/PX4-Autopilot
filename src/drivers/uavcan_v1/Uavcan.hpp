@@ -90,10 +90,11 @@ typedef struct {
 class UavcanSubscription
 {
 public:
-	UavcanSubscription(CanardInstance *ins, const char *pname) : _canard_instance(ins), _uavcan_param(pname) { };
+	UavcanSubscription(CanardInstance &ins, const char *uavcan_pname, const char *px4_pname) :
+		_canard_instance(ins), _uavcan_param(uavcan_pname), _px4_param(px4_pname) { };
 
 	virtual void subscribe() = 0;
-	virtual void unsubscribe() { canardRxUnsubscribe(_canard_instance, CanardTransferKindMessage, _port_id); };
+	virtual void unsubscribe() { canardRxUnsubscribe(&_canard_instance, CanardTransferKindMessage, _port_id); };
 
 	virtual void callback(const CanardTransfer &msg) = 0;
 
@@ -103,8 +104,9 @@ public:
 	{
 		// Set _port_id from _uavcan_param
 
-		CanardPortID new_id {0};
+		int32_t new_id {0};
 		/// TODO: --- update parameter here: new_id = uavcan_param_get(_uavcan_param);
+		param_get(param_find(_px4_param), &new_id);
 
 		if (_port_id != new_id) {
 			if (new_id == 0) {
@@ -118,16 +120,25 @@ public:
 				}
 
 				// Subscribe on the new port ID
-				_port_id = new_id;
+				_port_id = (CanardPortID)new_id;
+				printf("Subscribing %s on port %d\n", _uavcan_param, _port_id);
 				subscribe();
 			}
 		}
 	};
 
+	void printInfo()
+	{
+		if (_port_id > 0) {
+			printf("Subscribed %s on port %d\n", _uavcan_param, _port_id);
+		}
+	}
+
 protected:
-	CanardInstance *_canard_instance;
+	CanardInstance &_canard_instance;
 	CanardRxSubscription _canard_sub;
 	const char *_uavcan_param; // Port ID parameter
+	const char *_px4_param;
 	/// TODO: 'type' parameter? uavcan.pub.PORT_NAME.type (see 384.Access.1.0.uavcan)
 
 	CanardPortID _port_id {0};
@@ -136,7 +147,8 @@ protected:
 class UavcanGpsSubscription : public UavcanSubscription
 {
 public:
-	UavcanGpsSubscription(CanardInstance *ins, const char *pname) : UavcanSubscription(ins, pname) { };
+	UavcanGpsSubscription(CanardInstance &ins, const char *uavcan_pname, const char *px4_pname) :
+		UavcanSubscription(ins, uavcan_pname, px4_pname) { };
 
 	void subscribe() override;
 
@@ -149,7 +161,8 @@ private:
 class UavcanBmsSubscription : public UavcanSubscription
 {
 public:
-	UavcanBmsSubscription(CanardInstance *ins, const char *pname) : UavcanSubscription(ins, pname) { };
+	UavcanBmsSubscription(CanardInstance &ins, const char *uavcan_pname, const char *px4_pname) :
+		UavcanSubscription(ins, uavcan_pname, px4_pname) { };
 
 	void subscribe() override;
 
@@ -286,11 +299,11 @@ private:
 	/// use qsort() to order alphabetically by UAVCAN name
 	/// copy over Ken's parameter find/get/set code
 	const UavcanParamBinder _uavcan_params[6] {
-		{"uavcan.pub.esc.0.id",   "UAVCANV1_ESC0_PID"},
-		{"uavcan.pub.servo.0.id", "UAVCANV1_SERVO0_PID"},
-		{"uavcan.sub.gps.0.id",   "UAVCANV1_GPS0_PID"},
-		{"uavcan.sub.gps.1.id",   "UAVCANV1_GPS1_PID"},
-		{"uavcan.sub.bms.0.id",   "UAVCANV1_BMS0_PID"},
-		{"uavcan.sub.bms.1.id",   "UAVCANV1_BMS1_PID"},
+		{"uavcan.pub.esc.0.id",   "UCAN1_ESC0_PID"},
+		{"uavcan.pub.servo.0.id", "UCAN1_SERVO0_PID"},
+		{"uavcan.sub.gps.0.id",   "UCAN1_GPS0_PID"},
+		{"uavcan.sub.gps.1.id",   "UCAN1_GPS1_PID"},
+		{"uavcan.sub.bms.0.id",   "UCAN1_BMS0_PID"},
+		{"uavcan.sub.bms.1.id",   "UCAN1_BMS1_PID"},
 	};
 };
