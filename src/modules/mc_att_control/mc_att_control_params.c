@@ -185,7 +185,7 @@ PARAM_DEFINE_FLOAT(MC_MAN_TILT_TAU, 0.0f);
  * @max 10
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MPC_RCAC_ATT_SW, -1.0f);
+PARAM_DEFINE_FLOAT(MPC_RCAC_ATT_SW, 1.0f);
 
 /**
  * PID Attitude gain.

@@ -3019,7 +3019,7 @@ protected:
 class MavlinkStreamRcacAttVariables : public MavlinkStream
 {
 public:
-    const char *get_name() const override
+    const char *get_name() const
     {
         return MavlinkStreamRcacAttVariables::get_name_static();
     }
@@ -3031,7 +3031,7 @@ public:
     {
         return MAVLINK_MSG_ID_RCAC_ATT_VARIABLES;
     }
-    uint16_t get_id() override
+    uint16_t get_id()
     {
         return get_id_static();
     }
@@ -3039,7 +3039,7 @@ public:
     {
         return new MavlinkStreamRcacAttVariables(mavlink);
     }
-    unsigned get_size() override
+    unsigned get_size()
     {
         return MAVLINK_MSG_ID_RCAC_ATT_VARIABLES_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
     }
@@ -3051,8 +3051,8 @@ private:
 	uORB::Subscription _rcac_att_sub{ORB_ID(rcac_att_variables)};
 
     /* do not allow top copying this class */
-    MavlinkStreamRcacAttVariables(MavlinkStreamRcacAttVariables &) = delete;
-    MavlinkStreamRcacAttVariables& operator = (const MavlinkStreamRcacAttVariables &) = delete;
+    MavlinkStreamRcacAttVariables(MavlinkStreamRcacAttVariables &);
+    MavlinkStreamRcacAttVariables& operator = (const MavlinkStreamRcacAttVariables &);
 
 protected:
     /*explicit MavlinkStreamRcacAttVariables(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -3066,10 +3066,11 @@ protected:
 	bool send() override
     {
         //struct rcac_att_variables_struct_s _rcac_att_variables;
-	rcac_att_variables_s _rcac_att_variables;
+	struct rcac_att_variables_s _rcac_att_variables;
+	//rcac_att_variables_s _rcac_att_variables;
 
         if (_rcac_att_sub.update(&_rcac_att_variables)) {
-            mavlink_rcac_att_variables_t _msg_rcac_att_variables {};
+            mavlink_rcac_att_variables_t _msg_rcac_att_variables;
 
             _msg_rcac_att_variables.timestamp 				= _rcac_att_variables.timestamp;
 			_msg_rcac_att_variables.switch_att 		= _rcac_att_variables.switch_att;
@@ -3080,16 +3081,18 @@ protected:
 			_msg_rcac_att_variables.rcac_att_theta[2] 	= _rcac_att_variables.rcac_att_theta[2];
 
             mavlink_msg_rcac_att_variables_send_struct(_mavlink->get_channel(), &_msg_rcac_att_variables);
+
+	return true;
         }
 
-        return true;
+        return false;
     }
 };
 /******************************************/
 class MavlinkStreamRcacRateVariables : public MavlinkStream
 {
 public:
-    const char *get_name() const override
+    const char *get_name() const
     {
         return MavlinkStreamRcacRateVariables::get_name_static();
     }
@@ -3101,7 +3104,7 @@ public:
     {
         return MAVLINK_MSG_ID_RCAC_RATE_VARIABLES;
     }
-    uint16_t get_id() override
+    uint16_t get_id()
     {
         return get_id_static();
     }
@@ -3109,7 +3112,7 @@ public:
     {
         return new MavlinkStreamRcacRateVariables(mavlink);
     }
-    unsigned get_size() override
+    unsigned get_size()
     {
         return MAVLINK_MSG_ID_RCAC_RATE_VARIABLES_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
     }
@@ -3121,8 +3124,8 @@ private:
 	uORB::Subscription _rcac_rate_sub{ORB_ID(rcac_rate_variables)};
 
     /* do not allow top copying this class */
-    MavlinkStreamRcacRateVariables(MavlinkStreamRcacRateVariables &) = delete;
-    MavlinkStreamRcacRateVariables& operator = (const MavlinkStreamRcacRateVariables &) = delete;
+    MavlinkStreamRcacRateVariables(MavlinkStreamRcacRateVariables &);
+    MavlinkStreamRcacRateVariables& operator = (const MavlinkStreamRcacRateVariables &);
 
 protected:
     /*explicit MavlinkStreamRcacRateVariables(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -3136,10 +3139,11 @@ protected:
 	bool send() override
     {
         //struct rcac_rate_variables_struct_s _rcac_rate_variables;
-	rcac_rate_variables_s _rcac_rate_variables;
+	struct rcac_rate_variables_s _rcac_rate_variables;
+	//rcac_rate_variables_s _rcac_rate_variables;
 
         if (_rcac_rate_sub.update(&_rcac_rate_variables)) {
-            mavlink_rcac_rate_variables_t _msg_rcac_rate_variables {};
+            mavlink_rcac_rate_variables_t _msg_rcac_rate_variables;
 
             _msg_rcac_rate_variables.timestamp 				= _rcac_rate_variables.timestamp;
 			_msg_rcac_rate_variables.switch_rate 		= _rcac_rate_variables.switch_rate;
@@ -3159,16 +3163,18 @@ protected:
 			_msg_rcac_rate_variables.rcac_rate_theta[11] 	= _rcac_rate_variables.rcac_rate_theta[11];
 
             mavlink_msg_rcac_rate_variables_send_struct(_mavlink->get_channel(), &_msg_rcac_rate_variables);
+
+	return true;
         }
 
-        return true;
+        return false;
     }
 };
 /******************************************/
 class MavlinkStreamRcacPosVelVariables : public MavlinkStream
 {
 public:
-    const char *get_name() const override
+    const char *get_name() const
     {
         return MavlinkStreamRcacPosVelVariables::get_name_static();
     }
@@ -3180,7 +3186,7 @@ public:
     {
         return MAVLINK_MSG_ID_RCAC_POS_VEL_VARIABLES;
     }
-    uint16_t get_id() override
+    uint16_t get_id()
     {
         return get_id_static();
     }
@@ -3188,7 +3194,7 @@ public:
     {
         return new MavlinkStreamRcacPosVelVariables(mavlink);
     }
-    unsigned get_size() override
+    unsigned get_size()
     {
         return MAVLINK_MSG_ID_RCAC_POS_VEL_VARIABLES_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
     }
@@ -3199,8 +3205,8 @@ private:
 	uORB::Subscription _rcac_pos_vel_sub{ORB_ID(rcac_pos_vel_variables)};
 
     /* do not allow top copying this class */
-    MavlinkStreamRcacPosVelVariables(MavlinkStreamRcacPosVelVariables &) = delete;
-    MavlinkStreamRcacPosVelVariables& operator = (const MavlinkStreamRcacPosVelVariables &) = delete;
+    MavlinkStreamRcacPosVelVariables(MavlinkStreamRcacPosVelVariables &);
+    MavlinkStreamRcacPosVelVariables& operator = (const MavlinkStreamRcacPosVelVariables &);
 
 protected:
     /*explicit MavlinkStreamRcacPosVelVariables(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -3214,11 +3220,12 @@ protected:
 	bool send() override
     {
         //struct rcac_pos_vel_variables_struct_s _rcac_pos_vel_variables;
-		rcac_pos_vel_variables_s _rcac_pos_vel_variables;
+	struct rcac_pos_vel_variables_s _rcac_pos_vel_variables;
+	//rcac_pos_vel_variables_s _rcac_pos_vel_variables;
 
         /*if (_sub->update(&_rcac_pvv_time, &_rcac_pos_vel_variables)) {*/
 		if (_rcac_pos_vel_sub.update(&_rcac_pos_vel_variables)) {
-            mavlink_rcac_pos_vel_variables_t _msg_rcac_pos_vel_variables{};
+            mavlink_rcac_pos_vel_variables_t _msg_rcac_pos_vel_variables;
 
             _msg_rcac_pos_vel_variables.timestamp 			= _rcac_pos_vel_variables.timestamp;
 			_msg_rcac_pos_vel_variables.pid_factor 			= _rcac_pos_vel_variables.pid_factor;
@@ -3241,11 +3248,11 @@ protected:
 			_msg_rcac_pos_vel_variables.rcac_vel_theta[6] 	= _rcac_pos_vel_variables.rcac_vel_theta[6];
 			_msg_rcac_pos_vel_variables.rcac_vel_theta[7] 	= _rcac_pos_vel_variables.rcac_vel_theta[7];
 			_msg_rcac_pos_vel_variables.rcac_vel_theta[8] 	= _rcac_pos_vel_variables.rcac_vel_theta[8];
-
             mavlink_msg_rcac_pos_vel_variables_send_struct(_mavlink->get_channel(), &_msg_rcac_pos_vel_variables);
+	return true;
         }
 
-        return true;
+        return false;
     }
 };
 /******************************************/

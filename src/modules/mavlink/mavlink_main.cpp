@@ -1840,6 +1840,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("RC_CHANNELS", 0.5f);
 		configure_stream_local("SYS_STATUS", 0.1f);
 		configure_stream_local("VFR_HUD", 1.0f);
+		configure_stream_local("RCAC_ATT_VARIABLES", 2.0f);
+		configure_stream_local("RCAC_RATE_VARIABLES", 2.0f);
+		configure_stream_local("RCAC_POS_VEL_VARIABLES", 2.0f);
 
 #if !defined(CONSTRAINED_FLASH)
 		configure_stream_local("LINK_NODE_STATUS", 1.0f);

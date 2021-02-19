@@ -242,6 +242,9 @@ if [ -e etc/init.d-posix/rc.mavlink_override ]
 then
 	echo "Running non-default mavlink config rc.mavlink_override"
 	sh etc/init.d-posix/rc.mavlink_override
+	#mavlink stream -r 2 -s RCAC_ATT_VARIABLES -u $udp_gcs_port_local
+	#mavlink stream -r 2 -s RCAC_RATE_VARIABLES -u $udp_gcs_port_local
+	#mavlink stream -r 2 -s RCAC_POS_VEL_VARIABLES -u $udp_gcs_port_local
 else
 	# GCS link
 	mavlink start -x -u $udp_gcs_port_local -r 4000000
@@ -254,9 +257,9 @@ else
 	mavlink stream -r 50 -s SERVO_OUTPUT_RAW_0 -u $udp_gcs_port_local
 	mavlink stream -r 20 -s RC_CHANNELS -u $udp_gcs_port_local
 	mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u $udp_gcs_port_local
-	mavlink stream -r 2 -s RCAC_ATT_VARIABLES -u $udp_gcs_port_local
-	mavlink stream -r 2 -s RCAC_RATE_VARIABLES -u $udp_gcs_port_local
-	mavlink stream -r 2 -s RCAC_POS_VEL_VARIABLES -u $udp_gcs_port_local
+	#mavlink stream -r 2 -s RCAC_ATT_VARIABLES -u $udp_gcs_port_local
+	#mavlink stream -r 2 -s RCAC_RATE_VARIABLES -u $udp_gcs_port_local
+	#mavlink stream -r 2 -s RCAC_POS_VEL_VARIABLES -u $udp_gcs_port_local
 
 
 
@@ -282,3 +285,7 @@ fi
 
 mavlink boot_complete
 replay trystart
+
+mavlink stream -r 2 -s RCAC_ATT_VARIABLES -u $udp_gcs_port_local
+mavlink stream -r 2 -s RCAC_RATE_VARIABLES -u $udp_gcs_port_local
+mavlink stream -r 2 -s RCAC_POS_VEL_VARIABLES -u $udp_gcs_port_local
