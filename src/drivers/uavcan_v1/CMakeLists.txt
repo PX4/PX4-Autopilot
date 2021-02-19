@@ -72,6 +72,10 @@ px4_add_module(
 		${LIBCANARD_DIR}/libcanard/
 		${CMAKE_CURRENT_BINARY_DIR}/dsdlc_generated
 	SRCS
+		ParamManager.hpp
+		ParamManager.cpp
+		Subscriber.cpp
+		Subscriber.hpp
 		Uavcan.cpp
 		Uavcan.hpp
 		${SRCS}
