@@ -283,8 +283,8 @@ static bool dsm_guess_format(bool reset)
 	printf("dsm guess format: samples: %d %s\n", samples, (reset) ? "RESET" : "");
 #endif
 
-	/* wait until we have seen plenty of frames - 5 should normally be enough */
-	if (samples < 5) {
+	/* wait until we have seen plenty of frames */
+	if (samples < 20) {
 		return false;
 	}
 
