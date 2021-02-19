@@ -47,7 +47,7 @@ void CameraInterfaceSeagull::setup()
 		if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
 
 			// Initialize the interface
-			uint8_t pin_bitmask = (1 << _pins[i + 1]) | (1 << _pins[i]);
+			uint32_t pin_bitmask = (1 << _pins[i + 1]) | (1 << _pins[i]);
 			up_pwm_trigger_init(pin_bitmask);
 
 			// Set both interface pins to disarmed
