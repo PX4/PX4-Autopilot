@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,24 +54,21 @@
 #include <canard.h>
 #include <canard_dsdl.h>
 
-#include <reg/drone/service/battery/Status_0_1.h>
-#include <reg/drone/service/battery/Parameters_0_1.h>
-#include <uavcan/node/Heartbeat_1_0.h>
-
-/// DSDL UPDATE WIP
-#include <reg/drone/physics/kinematics/geodetic/Point_0_1.h>
+#include <uavcan/_register/Access_1_0.h>
+#include <uavcan/_register/List_1_0.h>
 #include <uavcan/_register/Value_1_0.h>
+#include <uavcan/node/Heartbeat_1_0.h>
 #include <uavcan/primitive/Empty_1_0.h>
-/// ---------------
 
 //Quick and Dirty PNP imlementation only V1 for now as well
 #include <uavcan/node/ID_1_0.h>
 #include <uavcan/pnp/NodeIDAllocationData_1_0.h>
 #include <uavcan/pnp/NodeIDAllocationData_2_0.h>
 
-//Quick and Dirty UAVCAN register implementation
-#include <uavcan/_register/List_1_0.h>
-#include <uavcan/_register/Access_1_0.h>
+// DS-15 Specification Messages
+#include <reg/drone/physics/kinematics/geodetic/Point_0_1.h>
+#include <reg/drone/service/battery/Parameters_0_1.h>
+#include <reg/drone/service/battery/Status_0_1.h>
 
 #define PNP1_PORT_ID                                 uavcan_pnp_NodeIDAllocationData_1_0_FIXED_PORT_ID_
 #define PNP1_PAYLOAD_SIZE                            uavcan_pnp_NodeIDAllocationData_1_0_EXTENT_BYTES_
@@ -79,98 +76,7 @@
 #define PNP2_PAYLOAD_SIZE                            uavcan_pnp_NodeIDAllocationData_2_0_EXTENT_BYTES_
 
 #include "CanardInterface.hpp"
-
-typedef struct {
-	const char *uavcan_name;
-	const char *px4_name;
-	bool is_mutable {true};
-	bool is_persistent {true};
-} UavcanParamBinder;
-
-class UavcanSubscription
-{
-public:
-	UavcanSubscription(CanardInstance &ins, const char *uavcan_pname, const char *px4_pname) :
-		_canard_instance(ins), _uavcan_param(uavcan_pname), _px4_param(px4_pname) { };
-
-	virtual void subscribe() = 0;
-	virtual void unsubscribe() { canardRxUnsubscribe(&_canard_instance, CanardTransferKindMessage, _port_id); };
-
-	virtual void callback(const CanardTransfer &msg) = 0;
-
-	CanardPortID id() { return _port_id; };
-
-	void updateParam()
-	{
-		// Set _port_id from _uavcan_param
-
-		int32_t new_id {0};
-		/// TODO: --- update parameter here: new_id = uavcan_param_get(_uavcan_param);
-		param_get(param_find(_px4_param), &new_id);
-
-		if (_port_id != new_id) {
-			if (new_id == 0) {
-				// Cancel subscription
-				unsubscribe();
-
-			} else {
-				if (_port_id > 0) {
-					// Already active; unsubscribe first
-					unsubscribe();
-				}
-
-				// Subscribe on the new port ID
-				_port_id = (CanardPortID)new_id;
-				printf("Subscribing %s on port %d\n", _uavcan_param, _port_id);
-				subscribe();
-			}
-		}
-	};
-
-	void printInfo()
-	{
-		if (_port_id > 0) {
-			printf("Subscribed %s on port %d\n", _uavcan_param, _port_id);
-		}
-	}
-
-protected:
-	CanardInstance &_canard_instance;
-	CanardRxSubscription _canard_sub;
-	const char *_uavcan_param; // Port ID parameter
-	const char *_px4_param;
-	/// TODO: 'type' parameter? uavcan.pub.PORT_NAME.type (see 384.Access.1.0.uavcan)
-
-	CanardPortID _port_id {0};
-};
-
-class UavcanGpsSubscription : public UavcanSubscription
-{
-public:
-	UavcanGpsSubscription(CanardInstance &ins, const char *uavcan_pname, const char *px4_pname) :
-		UavcanSubscription(ins, uavcan_pname, px4_pname) { };
-
-	void subscribe() override;
-
-	void callback(const CanardTransfer &msg) override;
-
-private:
-
-};
-
-class UavcanBmsSubscription : public UavcanSubscription
-{
-public:
-	UavcanBmsSubscription(CanardInstance &ins, const char *uavcan_pname, const char *px4_pname) :
-		UavcanSubscription(ins, uavcan_pname, px4_pname) { };
-
-	void subscribe() override;
-
-	void callback(const CanardTransfer &msg) override;
-
-private:
-
-};
+#include "Subscriber.hpp"
 
 class UavcanNode : public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -203,6 +109,7 @@ public:
 	int32_t active_bitrate{0};
 
 private:
+	void init();
 	void Run() override;
 	void fill_node_info();
 
@@ -214,9 +121,6 @@ private:
 	int handleRegisterAccess(const CanardTransfer &receive);
 	int handleBMSStatus(const CanardTransfer &receive);
 	int handleUORBSensorGPS(const CanardTransfer &receive);
-
-	bool GetParamByName(const uavcan_register_Name_1_0 &name, uavcan_register_Value_1_0 &value);
-	bool SetParamByName(const uavcan_register_Name_1_0 &name, const uavcan_register_Value_1_0 &value);
 
 	void *_uavcan_heap{nullptr};
 
@@ -295,15 +199,5 @@ private:
 		(ParamInt<px4::params::UAVCAN_V1_BAT_ID>) _param_uavcan_v1_bat_id
 	)
 
-	/// TODO:
-	/// use qsort() to order alphabetically by UAVCAN name
-	/// copy over Ken's parameter find/get/set code
-	const UavcanParamBinder _uavcan_params[6] {
-		{"uavcan.pub.esc.0.id",   "UCAN1_ESC0_PID"},
-		{"uavcan.pub.servo.0.id", "UCAN1_SERVO0_PID"},
-		{"uavcan.sub.gps.0.id",   "UCAN1_GPS0_PID"},
-		{"uavcan.sub.gps.1.id",   "UCAN1_GPS1_PID"},
-		{"uavcan.sub.bms.0.id",   "UCAN1_BMS0_PID"},
-		{"uavcan.sub.bms.1.id",   "UCAN1_BMS1_PID"},
-	};
+	UavcanParamManager _param_manager;
 };
