@@ -59,7 +59,7 @@ static void memFree(CanardInstance *const ins, void *const pointer) { o1heapFree
 void UavcanGpsSubscription::subscribe()
 {
 	// Subscribe to messages reg.drone.physics.kinematics.geodetic.Point.0.1
-	canardRxSubscribe(_canard_instance,
+	canardRxSubscribe(&_canard_instance,
 			  CanardTransferKindMessage,
 			  _port_id,
 			  reg_drone_physics_kinematics_geodetic_Point_0_1_EXTENT_BYTES_,
@@ -69,6 +69,9 @@ void UavcanGpsSubscription::subscribe()
 
 void UavcanGpsSubscription::callback(const CanardTransfer &receive)
 {
+	// Test with Yakut:
+	// export YAKUT_TRANSPORT="pyuavcan.transport.can.CANTransport(pyuavcan.transport.can.media.slcan.SLCANMedia('/dev/serial/by-id/usb-Zubax_Robotics_Zubax_Babel_23002B000E514E413431302000000000-if00', 8, 115200), 42)"
+	// yakut pub 1500.reg.drone.physics.kinematics.geodetic.Point.0.1 '{latitude: 1.234, longitude: 2.34, altitude: {meter: 0.5}}'
 	PX4_INFO("GpsCallback");
 
 	reg_drone_physics_kinematics_geodetic_Point_0_1 geo {};
@@ -77,14 +80,15 @@ void UavcanGpsSubscription::callback(const CanardTransfer &receive)
 
 	double lat = geo.latitude;
 	double lon = geo.longitude;
-	PX4_INFO("Latitude: %f, Longitude: %f", lat, lon);
+	double alt = geo.altitude.meter;
+	PX4_INFO("Latitude: %f, Longitude: %f, Altitude: %f", lat, lon, alt);
 	/// do something with the data
 }
 
 void UavcanBmsSubscription::subscribe()
 {
 	// Subscribe to messages reg.drone.service.battery.Status.0.1
-	canardRxSubscribe(_canard_instance,
+	canardRxSubscribe(&_canard_instance,
 			  CanardTransferKindMessage,
 			  _port_id,
 			  reg_drone_service_battery_Status_0_1_EXTENT_BYTES_,
@@ -114,10 +118,10 @@ UavcanNode::UavcanNode(CanardInterface *interface, uint32_t node_id) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
 	_can_interface(interface),
-	_gps0_sub(&_canard_instance, "uavcan.sub.gps.0.id"),
-	_gps1_sub(&_canard_instance, "uavcan.sub.gps.1.id"),
-	_bms0_sub(&_canard_instance, "uavcan.sub.bms.0.id"),
-	_bms1_sub(&_canard_instance, "uavcan.sub.bms.1.id"),
+	_gps0_sub(_canard_instance, "uavcan.sub.gps.0.id", "UCAN1_GPS0_PID"),
+	_gps1_sub(_canard_instance, "uavcan.sub.gps.1.id", "UCAN1_GPS1_PID"),
+	_bms0_sub(_canard_instance, "uavcan.sub.bms.0.id", "UCAN1_BMS0_PID"),
+	_bms1_sub(_canard_instance, "uavcan.sub.bms.1.id", "UCAN1_BMS1_PID"),
 	_subscribers{&_gps0_sub, &_gps1_sub, &_bms0_sub, &_bms1_sub}
 {
 	pthread_mutex_init(&_node_mutex, nullptr);
@@ -140,6 +144,12 @@ UavcanNode::UavcanNode(CanardInterface *interface, uint32_t node_id) :
 
 	} else {
 		_canard_instance.mtu_bytes = CANARD_MTU_CAN_CLASSIC;
+	}
+
+	PX4_INFO("main _canard_instance = %p", &_canard_instance);
+
+	for (auto &subscriber : _subscribers) {
+		subscriber->updateParam();
 	}
 }
 
@@ -431,6 +441,10 @@ void UavcanNode::print_info()
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_interval_perf);
 
+	for (auto &subscriber : _subscribers) {
+		subscriber->printInfo();
+	}
+
 	pthread_mutex_unlock(&_node_mutex);
 }
 
@@ -611,7 +625,7 @@ int UavcanNode::handleRegisterList(const CanardTransfer &receive)
 		}
 
 	} else if (strncmp((char *)msg.name.name.elements, "uavcan.pub.battery_status.id",
-		    msg.name.name.count) == 0) { //Battery status publisher
+			   msg.name.name.count) == 0) { //Battery status publisher
 		_node_register_setup = CANARD_NODE_ID_UNSET;
 		PX4_INFO("NodeID %i battery_status publisher set PortID to %i", receive.remote_node_id, bms_port_id);
 		_node_register_last_received_index++;
@@ -646,6 +660,7 @@ int UavcanNode::handleRegisterList(const CanardTransfer &receive)
 
 	} else {
 		uavcan_register_Value_1_0 out_value;
+
 		if (GetParamByName(msg.name, out_value)) {
 			/// TODO: running into this error again:
 			// 	../../src/drivers/uavcan_v1/Uavcan.cpp:685:1: error: the frame size of 2192 bytes is larger than 2048 bytes [-Werror=frame-larger-than=]
@@ -767,14 +782,33 @@ int UavcanNode::handleUORBSensorGPS(const CanardTransfer &receive)
 
 bool UavcanNode::GetParamByName(const uavcan_register_Name_1_0 &name, uavcan_register_Value_1_0 &value)
 {
+	/// TODO: More intelligent search needed?  Only if using many parameters, I think.
 	for (auto &param : _uavcan_params) {
 		if (strncmp((char *)name.name.elements, param.uavcan_name, name.name.count) == 0) {
 			param_t param_handle = param_find(param.px4_name);
+
 			if (param_handle == PARAM_INVALID) {
 				return false;
 			}
-			float out_val;
-			param_get(param_handle, &out_val); /// TODO: Type casting / setting
+
+			/// TODO: What will be our approach for handling other UAVCAN data-value types?
+			switch (param_type(param_handle)) {
+			case PARAM_TYPE_INT32: {
+					int32_t out_val {};
+					param_set(param_handle, &out_val);
+					value.integer32.value.elements[0] = out_val;
+					uavcan_register_Value_1_0_select_integer32_(&value);
+					break;
+				}
+
+			case PARAM_TYPE_FLOAT: {
+					float out_val {};
+					param_set(param_handle, &out_val);
+					value.natural32.value.elements[0] = out_val;
+					uavcan_register_Value_1_0_select_natural32_(&value);
+					break;
+				}
+			}
 
 			return true;
 		}
@@ -785,14 +819,27 @@ bool UavcanNode::GetParamByName(const uavcan_register_Name_1_0 &name, uavcan_reg
 
 bool UavcanNode::SetParamByName(const uavcan_register_Name_1_0 &name, const uavcan_register_Value_1_0 &value)
 {
-		for (auto &param : _uavcan_params) {
+	for (auto &param : _uavcan_params) {
 		if (strncmp((char *)name.name.elements, param.uavcan_name, name.name.count) == 0) {
 			param_t param_handle = param_find(param.px4_name);
+
 			if (param_handle == PARAM_INVALID) {
 				return false;
 			}
-			float out_val {};
-			param_set(param_handle, &out_val); /// TODO: Type casting / setting
+
+			switch (param_type(param_handle)) {
+			case PARAM_TYPE_INT32: {
+					int32_t in_val = value.integer32.value.elements[0];
+					param_set(param_handle, &in_val);
+					break;
+				}
+
+			case PARAM_TYPE_FLOAT: {
+					float in_val = value.natural32.value.elements[0];
+					param_set(param_handle, &in_val);
+					break;
+				}
+			}
 
 			return true;
 		}
