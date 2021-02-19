@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 ################################################################################
 #
-# Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
+# Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -68,7 +68,22 @@ class Classifier():
         msg_list = []
         for filename in os.listdir(self.msg_folder):
             if '.msg' in filename:
+                # add base messages
                 msg_list.append(re.sub(".msg", "", filename))
+
+                # add alias / multi-topics messages
+                with open(os.path.join(self.msg_folder, filename), 'r') as f:
+                    alias_msgs = []
+                    lines = f.readlines()
+                    for line in lines:
+                        if '# TOPICS' in line:
+                            fileUpdated = True
+                            alias_msgs += line.split()
+                            alias_msgs.remove('#')
+                            alias_msgs.remove('TOPICS')
+                            for msg in alias_msgs:
+                                if msg not in msg_list:
+                                    msg_list.append(msg)
         return msg_list
 
     def set_msgs_to_send(self):
@@ -140,7 +155,7 @@ class Classifier():
                 "\n%s %s: " % (error_msg, yaml_file) + ", ".join('%s' % msg for msg in none_listed_msgs) +
                 "\n\nPlease add them to the yaml file with the respective ID and, if applicable, mark them " +
                 "to be sent or received by the micro-RTPS bridge.\n"
-                "NOTE: If the message has multi-topics (#TOPICS), these should be added as well.\n")
+                "NOTE: If the message is an alias / part of multi-topics (#TOPICS) of a base message, it should be added as well.\n")
 
     def check_base_type(self):
         """

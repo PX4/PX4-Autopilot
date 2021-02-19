@@ -6,6 +6,7 @@ px4_add_board(
 	LABEL rtps
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
+	CONSTRAINED_MEMORY
 	ROMFSROOT px4fmu_common
 	SERIAL_PORTS
 		GPS1:/dev/ttyS5
@@ -86,6 +87,7 @@ px4_add_board(
 		top
 		#topic_listener
 		tune_control
+		uorb
 		ver
 		work_queue
 	EXAMPLES

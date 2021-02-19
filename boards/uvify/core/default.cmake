@@ -6,6 +6,7 @@ px4_add_board(
 	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
+	CONSTRAINED_MEMORY
 	ROMFSROOT px4fmu_common
 	UAVCAN_INTERFACES 1
 	SERIAL_PORTS
@@ -27,7 +28,7 @@ px4_add_board(
 		imu/invensense/mpu9250
 		irlock
 		lights/rgbled_ncp5623c
-		magnetometer/bmm150
+		magnetometer/bosch/bmm150
 		magnetometer/lis3mdl
 		magnetometer/isentek/ist8310
 		optical_flow # all available optical flow drivers
@@ -87,6 +88,7 @@ px4_add_board(
 		top
 		topic_listener
 		tune_control
+		uorb
 		usb_connected
 		ver
 		work_queue

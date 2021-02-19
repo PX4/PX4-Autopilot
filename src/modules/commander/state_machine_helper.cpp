@@ -45,9 +45,12 @@
 #include <uORB/topics/vehicle_status.h>
 #include <systemlib/mavlink_log.h>
 #include <drivers/drv_hrt.h>
+#include <float.h>
 
 #include "state_machine_helper.h"
 #include "commander_helper.h"
+
+using namespace time_literals;
 
 static constexpr const char reason_no_rc[] = "No manual control stick input";
 static constexpr const char reason_no_offboard[] = "no offboard";
@@ -85,7 +88,8 @@ const char *const arming_state_names[vehicle_status_s::ARMING_STATE_MAX] = {
 static hrt_abstime last_preflight_check = 0;	///< initialize so it gets checked immediately
 
 void set_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed,
-			     const vehicle_status_flags_s &status_flags, commander_state_s *internal_state, const link_loss_actions_t link_loss_act);
+			     const vehicle_status_flags_s &status_flags, commander_state_s *internal_state, link_loss_actions_t link_loss_act,
+			     const float ll_delay);
 
 void reset_link_loss_globals(actuator_armed_s *armed, const bool old_failsafe, const link_loss_actions_t link_loss_act);
 
@@ -133,8 +137,8 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 		if (fRunPreArmChecks && (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
 		    && !hil_enabled) {
 
-			preflight_check_ret = PreFlightCheck::preflightCheck(mavlink_log_pub, *status, *status_flags,
-					      arm_requirements.global_position, true, true, time_since_boot);
+			preflight_check_ret = PreFlightCheck::preflightCheck(mavlink_log_pub, *status, *status_flags, true, true,
+					      time_since_boot);
 
 			if (preflight_check_ret) {
 				status_flags->condition_system_sensors_initialized = true;
@@ -153,7 +157,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 			if ((last_preflight_check == 0) || (hrt_elapsed_time(&last_preflight_check) > 1000 * 1000)) {
 
 				status_flags->condition_system_sensors_initialized = PreFlightCheck::preflightCheck(mavlink_log_pub, *status,
-						*status_flags, arm_requirements.global_position, false, status->arming_state != vehicle_status_s::ARMING_STATE_ARMED,
+						*status_flags, false, status->arming_state != vehicle_status_s::ARMING_STATE_ARMED,
 						time_since_boot);
 
 				last_preflight_check = hrt_absolute_time();
@@ -385,6 +389,12 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 void enable_failsafe(vehicle_status_s *status, bool old_failsafe, orb_advert_t *mavlink_log_pub, const char *reason)
 {
 	if (!old_failsafe && status->arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+		// make sure intermittent failsafes don't lead to infinite delay by not constantly reseting the timestamp
+		if (status->failsafe_timestamp == 0 ||
+		    hrt_elapsed_time(&status->failsafe_timestamp) > 30_s) {
+			status->failsafe_timestamp = hrt_absolute_time();
+		}
+
 		mavlink_log_critical(mavlink_log_pub, "Failsafe enabled: %s", reason);
 	}
 
@@ -399,7 +409,8 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 		   const bool stay_in_failsafe, const vehicle_status_flags_s &status_flags, bool landed,
 		   const link_loss_actions_t rc_loss_act, const offboard_loss_actions_t offb_loss_act,
 		   const offboard_loss_rc_actions_t offb_loss_rc_act,
-		   const position_nav_loss_actions_t posctl_nav_loss_act)
+		   const position_nav_loss_actions_t posctl_nav_loss_act,
+		   const float param_com_rcl_act_t)
 {
 	const navigation_state_t nav_state_old = status->nav_state;
 
@@ -428,7 +439,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 		if (rc_lost && is_armed) {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
-			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, param_com_rcl_act_t);
 
 		} else {
 			switch (internal_state->main_state) {
@@ -464,8 +475,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 
 			if (rc_lost && is_armed) {
 				enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
-
-				set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
+				set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, param_com_rcl_act_t);
 
 				/* As long as there is RC, we can fallback to ALTCTL, or STAB. */
 				/* A local position estimate is enough for POSCTL for multirotors,
@@ -487,10 +497,9 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 	case commander_state_s::MAIN_STATE_AUTO_MISSION:
 
 		/* go into failsafe
-		 * - if commanded to do so
 		 * - if we have an engine failure
 		 * - if we have vtol transition failure
-		 * - depending on datalink, RC and if the mission is finished */
+		 * - on data and RC link loss */
 
 		if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
@@ -503,24 +512,39 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 		} else if (status->mission_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
-		} else if (data_link_loss_act_configured && status->data_link_lost && is_armed) {
-			/* datalink loss enabled:
-			 * check for datalink lost: this should always trigger RTL */
+		} else if (status->data_link_lost && data_link_loss_act_configured
+			   && is_armed && !landed) {
+			// Data link lost, data link loss reaction configured -> do configured reaction
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act, 0);
 
-			set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act);
+		} else if (status->rc_signal_lost && rc_loss_act_configured && status_flags.rc_signal_found_once
+			   && is_armed && !landed) {
+			// RC link lost, rc loss reaction configured, RC was used before -> RC loss reaction after delay
+			// Safety pilot expects to be able to take over by RC in case anything unexpected happens
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, param_com_rcl_act_t);
 
-		} else if (!data_link_loss_act_configured && status->rc_signal_lost && status->data_link_lost && !landed
-			   && mission_finished && is_armed) {
-			/* datalink loss DISABLED:
-			 * check if both, RC and datalink are lost during the mission
-			 * or all links are lost after the mission finishes in air: this should always trigger RTL */
+		} else if (status->rc_signal_lost && rc_loss_act_configured
+			   && status->data_link_lost && !data_link_loss_act_configured
+			   && is_armed && !landed) {
+			// All links lost, no data link loss reaction configured -> immediately do RC loss reaction
+			// Lost all communication, by default it's considered unsafe to continue the mission
+			// Note this case is reached after the previous one when flying mission completely without RC
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, 0);
 
-			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
+		} else if (status->rc_signal_lost && !rc_loss_act_configured
+			   && status->data_link_lost && !data_link_loss_act_configured
+			   && is_armed && !landed
+			   && mission_finished) {
+			// All links lost, all link loss reactions disabled -> return after mission
+			// Pilot disabled all reactions, finish mission but then return to avoid lost vehicle
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, link_loss_actions_t::AUTO_RTL, 0);
 
 		} else if (!stay_in_failsafe) {
-			/* stay where you are if you should stay in failsafe, otherwise everything is perfect */
+			// normal mission operation if there's no need to stay in failsafe
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
 		}
 
@@ -536,7 +560,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 			// nothing to do - everything done in check_invalid_pos_nav_state
 		} else if (status->data_link_lost && data_link_loss_act_configured && !landed && is_armed) {
 			/* also go into failsafe if just datalink is lost, and we're actually in air */
-			set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act);
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act, 0);
 
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 
@@ -544,7 +568,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 			/* go into failsafe if RC is lost and datalink is lost and datalink loss is not set up */
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
-			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, 0);
 
 		} else if (status->rc_signal_lost) {
 			/* don't bother if RC is lost if datalink is connected */
@@ -608,7 +632,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 
 		} else if (status->data_link_lost && data_link_loss_act_configured && !landed && is_armed) {
 			// failsafe: just datalink is lost and we're in air
-			set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act);
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act, 0);
 
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 
@@ -620,7 +644,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 			// Orbit does not depend on RC but while armed & all links lost & when datalink loss is not set up, we failsafe
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
-			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, 0);
 
 			// Orbit can only be started via vehicle_command (mavlink). Consequently, recovery from failsafe into orbit
 			// is not possible and therefore the internal_state needs to be adjusted.
@@ -767,10 +791,16 @@ bool check_invalid_pos_nav_state(vehicle_status_s *status, bool old_failsafe, or
 }
 
 void set_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed,
-			     const vehicle_status_flags_s &status_flags, commander_state_s *internal_state, const link_loss_actions_t link_loss_act)
+			     const vehicle_status_flags_s &status_flags, commander_state_s *internal_state, link_loss_actions_t link_loss_act,
+			     const float ll_delay)
 {
-	// do the best you can according to the action set
+	if (hrt_elapsed_time(&status->failsafe_timestamp) < (ll_delay * 1_s)
+	    && link_loss_act != link_loss_actions_t::DISABLED) {
+		// delay failsafe reaction by trying to hold position if configured
+		link_loss_act = link_loss_actions_t::AUTO_LOITER;
+	}
 
+	// do the best you can according to the action set
 	switch (link_loss_act) {
 	case link_loss_actions_t::DISABLED:
 		// If datalink loss failsafe is disabled then no action must be taken.

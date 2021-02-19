@@ -1305,13 +1305,6 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->altitude_is_relative = true;
 		}
 
-		/* this field is shared with pitch_min (and circle_radius for geofence) in memory and
-		 * exclusive in the MAVLink spec. Set it to 0 first
-		 * and then set minimum pitch later only for the
-		 * corresponding item
-		 */
-		mission_item->time_inside = 0.0f;
-
 		switch (mavlink_mission_item->command) {
 		case MAV_CMD_NAV_WAYPOINT:
 			mission_item->nav_cmd = NAV_CMD_WAYPOINT;
@@ -1329,6 +1322,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_NAV_LOITER_TIME:
 			mission_item->nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
 			mission_item->time_inside = mavlink_mission_item->param1;
+			mission_item->force_heading = (mavlink_mission_item->param2 > 0);
 			mission_item->loiter_radius = mavlink_mission_item->param3;
 			mission_item->loiter_exit_xtrack = (mavlink_mission_item->param4 > 0);
 			// Yaw is only valid for multicopter but we set it always because
@@ -1344,9 +1338,17 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			break;
 
 		case MAV_CMD_NAV_TAKEOFF:
-			mission_item->nav_cmd = NAV_CMD_TAKEOFF;
-			mission_item->pitch_min = mavlink_mission_item->param1;
-			mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
+
+			// reject takeoff item if minimum pitch (parameter 1) is set
+			if (PX4_ISFINITE(mavlink_mission_item->param1) && (fabsf(mavlink_mission_item->param1) > FLT_EPSILON)) {
+				_mavlink->send_statustext_critical("Takeoff rejected, remove deprecated minimum pitch");
+				return MAV_MISSION_INVALID_PARAM1;
+
+			} else {
+				mission_item->nav_cmd = NAV_CMD_TAKEOFF;
+				mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
+			}
+
 			break;
 
 		case MAV_CMD_NAV_LOITER_TO_ALT:
@@ -1473,6 +1475,9 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_DO_DIGICAM_CONTROL:
 		case MAV_CMD_DO_MOUNT_CONFIGURE:
 		case MAV_CMD_DO_MOUNT_CONTROL:
+		case NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
+		case NAV_CMD_SET_CAMERA_FOCUS:
+		case NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
 		case MAV_CMD_IMAGE_START_CAPTURE:
 		case MAV_CMD_IMAGE_STOP_CAPTURE:
 		case MAV_CMD_VIDEO_START_CAPTURE:
@@ -1572,12 +1577,15 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case NAV_CMD_DO_CONTROL_VIDEO:
 		case NAV_CMD_DO_MOUNT_CONFIGURE:
 		case NAV_CMD_DO_MOUNT_CONTROL:
+		case NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
+		case NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
 		case NAV_CMD_DO_SET_ROI:
 		case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
 		case NAV_CMD_OBLIQUE_SURVEY:
 		case NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL:
 		case NAV_CMD_SET_CAMERA_MODE:
 		case NAV_CMD_SET_CAMERA_ZOOM:
+		case NAV_CMD_SET_CAMERA_FOCUS:
 		case NAV_CMD_DO_VTOL_TRANSITION:
 			break;
 
@@ -1639,6 +1647,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 
 		case NAV_CMD_LOITER_TIME_LIMIT:
 			mavlink_mission_item->param1 = mission_item->time_inside;
+			mavlink_mission_item->param2 = mission_item->force_heading;
 			mavlink_mission_item->param3 = mission_item->loiter_radius;
 			mavlink_mission_item->param4 = mission_item->loiter_exit_xtrack;
 			break;
@@ -1650,7 +1659,6 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 			break;
 
 		case NAV_CMD_TAKEOFF:
-			mavlink_mission_item->param1 = mission_item->pitch_min;
 			mavlink_mission_item->param4 = math::degrees(mission_item->yaw);
 			break;
 

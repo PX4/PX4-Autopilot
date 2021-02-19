@@ -1,3 +1,5 @@
+# workaround for syslink parameter PARAM_DEFINE_INT32(SLNK_RADIO_ADDR2, 3890735079); // 0xE7E7E7E7
+add_compile_options(-Wno-narrowing)
 
 px4_add_board(
 	PLATFORM nuttx
@@ -5,6 +7,7 @@ px4_add_board(
 	MODEL crazyflie
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
+	CONSTRAINED_MEMORY
 	ROMFSROOT px4fmu_common
 	CONSTRAINED_FLASH
 	DRIVERS
@@ -61,6 +64,7 @@ px4_add_board(
 		top
 		topic_listener
 		tune_control
+		uorb
 		usb_connected
 		ver
 		work_queue

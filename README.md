@@ -108,4 +108,4 @@ Additional information about supported hardware can be found in [PX4 user Guide 
 
 ## Project Roadmap
 
-A high level project roadmap is available [here](https://www.dronecode.org/roadmap/).
+A high level project roadmap is available [here](https://github.com/orgs/PX4/projects/25).

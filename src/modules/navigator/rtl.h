@@ -115,9 +115,9 @@ private:
 		RTL_STATE_NONE = 0,
 		RTL_STATE_CLIMB,
 		RTL_STATE_RETURN,
-		RTL_STATE_TRANSITION_TO_MC,
 		RTL_STATE_DESCEND,
 		RTL_STATE_LOITER,
+		RTL_STATE_TRANSITION_TO_MC,
 		RTL_MOVE_TO_LAND_HOVER_VTOL,
 		RTL_STATE_LAND,
 		RTL_STATE_LANDED,
@@ -165,8 +165,9 @@ private:
 	// These need to point at different parameters depending on vehicle type.
 	// Can't hard-code them because we have non-MC/FW/Rover builds
 	uint8_t _rtl_vehicle_type{vehicle_status_s::VEHICLE_TYPE_UNKNOWN};
-	param_t _rtl_xy_speed{PARAM_INVALID};
-	param_t _rtl_descent_speed{PARAM_INVALID};
+
+	param_t _param_rtl_xy_speed{PARAM_INVALID};
+	param_t _param_rtl_descent_speed{PARAM_INVALID};
 
 	uORB::SubscriptionData<wind_estimate_s>		_wind_estimate_sub{ORB_ID(wind_estimate)};
 	uORB::Publication<rtl_flight_time_s>		_rtl_flight_time_pub{ORB_ID(rtl_flight_time)};

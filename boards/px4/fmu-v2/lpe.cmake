@@ -6,6 +6,7 @@ px4_add_board(
 	LABEL lpe
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
+	CONSTRAINED_MEMORY
 	ROMFSROOT px4fmu_common
 	BOOTLOADER ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/extras/px4fmuv3_bl.bin
 	IO px4_io-v2_default
@@ -31,7 +32,7 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		gps
 		#heater
-		#imu/adis16448
+		#imu/analog_devices/adis16448
 		#imu # all available imu drivers
 		imu/l3gd20
 		imu/lsm303d
@@ -42,7 +43,6 @@ px4_add_board(
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
-		#mkblctrl
 		#optical_flow # all available optical flow drivers
 		optical_flow/px4flow
 		#pca9685
@@ -82,7 +82,7 @@ px4_add_board(
 		rc_update
 		sensors
 		temperature_compensation
-		vmount
+		#vmount
 		#vtol_att_control
 		#airspeed_selector
 
@@ -108,6 +108,7 @@ px4_add_board(
 		top
 		#topic_listener
 		tune_control
+		uorb
 		ver
 		work_queue
 

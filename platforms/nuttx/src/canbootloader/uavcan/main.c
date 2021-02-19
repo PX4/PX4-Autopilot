@@ -55,8 +55,9 @@
 #include "can.h"
 #include "uavcan.h"
 #include "random.h"
-#include "crc.h"
-#include "boot_app_shared.h"
+
+#include <drivers/bootloaders/boot_app_shared.h>
+#include <lib/systemlib/crc.h>
 
 //#define DEBUG_APPLICATION_INPLACE    1 /* Never leave defined */
 #define DEBUG_NO_FW_UPDATE           1 /* With DEBUG_APPLICATION_INPLACE

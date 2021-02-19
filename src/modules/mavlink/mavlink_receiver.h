@@ -67,6 +67,9 @@
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/follow_target.h>
 #include <uORB/topics/generator_status.h>
+#include <uORB/topics/gimbal_manager_set_attitude.h>
+#include <uORB/topics/gimbal_manager_set_manual_control.h>
+#include <uORB/topics/gimbal_device_information.h>
 #include <uORB/topics/gps_inject_data.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/input_rc.h>
@@ -201,6 +204,9 @@ private:
 	void handle_message_trajectory_representation_waypoints(mavlink_message_t *msg);
 	void handle_message_utm_global_position(mavlink_message_t *msg);
 	void handle_message_vision_position_estimate(mavlink_message_t *msg);
+	void handle_message_gimbal_manager_set_attitude(mavlink_message_t *msg);
+	void handle_message_gimbal_manager_set_manual_control(mavlink_message_t *msg);
+	void handle_message_gimbal_device_information(mavlink_message_t *msg);
 
 #if !defined(CONSTRAINED_FLASH)
 	void handle_message_debug(mavlink_message_t *msg);
@@ -252,6 +258,98 @@ private:
 
 	mavlink_status_t		_status{}; ///< receiver status, used for mavlink_parse_char()
 
+	// subset of MAV_COMPONENTs we support
+	enum SUPPORTED_COMPONENTS : uint8_t {
+		COMP_ID_ALL,
+		COMP_ID_AUTOPILOT1,
+
+		COMP_ID_TELEMETRY_RADIO,
+
+		COMP_ID_CAMERA,
+		COMP_ID_CAMERA2,
+
+		COMP_ID_GIMBAL,
+		COMP_ID_LOG,
+		COMP_ID_ADSB,
+		COMP_ID_OSD,
+		COMP_ID_PERIPHERAL,
+
+		COMP_ID_FLARM,
+
+		COMP_ID_GIMBAL2,
+
+		COMP_ID_MISSIONPLANNER,
+		COMP_ID_ONBOARD_COMPUTER,
+
+		COMP_ID_PATHPLANNER,
+		COMP_ID_OBSTACLE_AVOIDANCE,
+		COMP_ID_VISUAL_INERTIAL_ODOMETRY,
+		COMP_ID_PAIRING_MANAGER,
+
+		COMP_ID_IMU,
+
+		COMP_ID_GPS,
+		COMP_ID_GPS2,
+
+		COMP_ID_UDP_BRIDGE,
+		COMP_ID_UART_BRIDGE,
+		COMP_ID_TUNNEL_NODE,
+
+		COMP_ID_MAX
+	};
+
+	// map of supported component IDs to MAV_COMP value
+	const uint8_t supported_component_map[COMP_ID_MAX] {
+		[COMP_ID_ALL]                      = MAV_COMP_ID_ALL,
+		[COMP_ID_AUTOPILOT1]               = MAV_COMP_ID_AUTOPILOT1,
+
+		[COMP_ID_TELEMETRY_RADIO]          = MAV_COMP_ID_TELEMETRY_RADIO,
+
+		[COMP_ID_CAMERA]                   = MAV_COMP_ID_CAMERA,
+		[COMP_ID_CAMERA2]                  = MAV_COMP_ID_CAMERA2,
+
+		[COMP_ID_GIMBAL]                   = MAV_COMP_ID_GIMBAL,
+		[COMP_ID_LOG]                      = MAV_COMP_ID_LOG,
+		[COMP_ID_ADSB]                     = MAV_COMP_ID_ADSB,
+		[COMP_ID_OSD]                      = MAV_COMP_ID_OSD,
+		[COMP_ID_PERIPHERAL]               = MAV_COMP_ID_PERIPHERAL,
+
+		[COMP_ID_FLARM]                    = MAV_COMP_ID_FLARM,
+
+		[COMP_ID_GIMBAL2]                  = MAV_COMP_ID_GIMBAL2,
+
+		[COMP_ID_MISSIONPLANNER]           = MAV_COMP_ID_MISSIONPLANNER,
+		[COMP_ID_ONBOARD_COMPUTER]         = MAV_COMP_ID_ONBOARD_COMPUTER,
+
+		[COMP_ID_PATHPLANNER]              = MAV_COMP_ID_PATHPLANNER,
+		[COMP_ID_OBSTACLE_AVOIDANCE]       = MAV_COMP_ID_OBSTACLE_AVOIDANCE,
+		[COMP_ID_VISUAL_INERTIAL_ODOMETRY] = MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY,
+		[COMP_ID_PAIRING_MANAGER]          = MAV_COMP_ID_PAIRING_MANAGER,
+
+		[COMP_ID_IMU]                      = MAV_COMP_ID_IMU,
+
+		[COMP_ID_GPS]                      = MAV_COMP_ID_GPS,
+		[COMP_ID_GPS2]                     = MAV_COMP_ID_GPS2,
+
+		[COMP_ID_UDP_BRIDGE]               = MAV_COMP_ID_UDP_BRIDGE,
+		[COMP_ID_UART_BRIDGE]              = MAV_COMP_ID_UART_BRIDGE,
+		[COMP_ID_TUNNEL_NODE]              = MAV_COMP_ID_TUNNEL_NODE,
+	};
+
+	static constexpr int MAX_REMOTE_SYSTEM_IDS{8};
+	uint8_t _system_id_map[MAX_REMOTE_SYSTEM_IDS] {};
+
+	uint8_t  _last_index[MAX_REMOTE_SYSTEM_IDS][COMP_ID_MAX] {};    ///< Store the last received sequence ID for each system/componenet pair
+	uint8_t  _sys_comp_present[MAX_REMOTE_SYSTEM_IDS][COMP_ID_MAX] {}; ///< First message flag
+	uint64_t _total_received_counter{0};                            ///< The total number of successfully received messages
+	uint64_t _total_received_supported_counter{0};                  ///< The total number of successfully received messages
+	uint64_t _total_lost_counter{0};                                ///< Total messages lost during transmission.
+	float    _running_loss_percent{0};                              ///< Loss rate
+
+	uint8_t _mavlink_status_last_buffer_overrun{0};
+	uint8_t _mavlink_status_last_parse_error{0};
+	uint16_t _mavlink_status_last_packet_rx_drop_count{0};
+
 	// ORB publications
 	uORB::Publication<actuator_controls_s>			_actuator_controls_pubs[4] {ORB_ID(actuator_controls_0), ORB_ID(actuator_controls_1), ORB_ID(actuator_controls_2), ORB_ID(actuator_controls_3)};
 	uORB::Publication<airspeed_s>				_airspeed_pub{ORB_ID(airspeed)};
@@ -260,6 +358,9 @@ private:
 	uORB::Publication<collision_report_s>			_collision_report_pub{ORB_ID(collision_report)};
 	uORB::Publication<differential_pressure_s>		_differential_pressure_pub{ORB_ID(differential_pressure)};
 	uORB::Publication<follow_target_s>			_follow_target_pub{ORB_ID(follow_target)};
+	uORB::Publication<gimbal_manager_set_attitude_s>	_gimbal_manager_set_attitude_pub{ORB_ID(gimbal_manager_set_attitude)};
+	uORB::Publication<gimbal_manager_set_manual_control_s>	_gimbal_manager_set_manual_control_pub{ORB_ID(gimbal_manager_set_manual_control)};
+	uORB::Publication<gimbal_device_information_s>		_gimbal_device_information_pub{ORB_ID(gimbal_device_information)};
 	uORB::Publication<irlock_report_s>			_irlock_report_pub{ORB_ID(irlock_report)};
 	uORB::Publication<landing_target_pose_s>		_landing_target_pose_pub{ORB_ID(landing_target_pose)};
 	uORB::Publication<log_message_s>			_log_message_pub{ORB_ID(log_message)};

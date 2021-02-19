@@ -270,8 +270,14 @@ void EKF2::Run()
 	hrt_abstime imu_dt = 0; // for tracking time slip later
 
 	if (_multi_mode) {
+		const unsigned last_generation = _vehicle_imu_sub.get_last_generation();
 		vehicle_imu_s imu;
 		imu_updated = _vehicle_imu_sub.update(&imu);
+
+		if (imu_updated && (_vehicle_imu_sub.get_last_generation() != last_generation + 1)) {
+			PX4_ERR("%d - vehicle_imu lost, generation %d -> %d", _instance, last_generation,
+				_vehicle_imu_sub.get_last_generation());
+		}
 
 		imu_sample_new.time_us = imu.timestamp_sample;
 		imu_sample_new.delta_ang_dt = imu.delta_angle_dt * 1.e-6f;
@@ -945,10 +951,16 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 
 	status.control_mode_flags = _ekf.control_status().value;
 	status.filter_fault_flags = _ekf.fault_status().value;
-	_ekf.get_innovation_test_status(status.innovation_check_flags, status.mag_test_ratio,
+
+	uint16_t innov_check_flags_temp = 0;
+	_ekf.get_innovation_test_status(innov_check_flags_temp, status.mag_test_ratio,
 					status.vel_test_ratio, status.pos_test_ratio,
 					status.hgt_test_ratio, status.tas_test_ratio,
 					status.hagl_test_ratio, status.beta_test_ratio);
+
+	// Bit mismatch between ecl and Firmware, combine the 2 first bits to preserve msg definition
+	// TODO: legacy use only, those flags are also in estimator_status_flags
+	status.innovation_check_flags = (innov_check_flags_temp >> 1) | (innov_check_flags_temp & 0x1);
 
 	_ekf.get_ekf_lpos_accuracy(&status.pos_horiz_accuracy, &status.pos_vert_accuracy);
 	_ekf.get_ekf_soln_status(&status.solution_status_flags);
@@ -1186,9 +1198,16 @@ void EKF2::UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps)
 {
 	// EKF auxillary velocity sample
 	//  - use the landing target pose estimate as another source of velocity data
+	const unsigned last_generation = _landing_target_pose_sub.get_last_generation();
 	landing_target_pose_s landing_target_pose;
 
 	if (_landing_target_pose_sub.update(&landing_target_pose)) {
+
+		if (_landing_target_pose_sub.get_last_generation() != last_generation + 1) {
+			PX4_ERR("%d - landing_target_pose lost, generation %d -> %d", _instance, last_generation,
+				_landing_target_pose_sub.get_last_generation());
+		}
+
 		// we can only use the landing target if it has a fixed position and  a valid velocity estimate
 		if (landing_target_pose.is_static && landing_target_pose.rel_vel_valid) {
 			// velocity of vehicle relative to target has opposite sign to target relative to vehicle
@@ -1222,9 +1241,16 @@ void EKF2::UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps)
 bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odometry_s &ev_odom)
 {
 	bool new_ev_odom = false;
+	const unsigned last_generation = _ev_odom_sub.get_last_generation();
 
 	// EKF external vision sample
 	if (_ev_odom_sub.update(&ev_odom)) {
+
+		if (_ev_odom_sub.get_last_generation() != last_generation + 1) {
+			PX4_ERR("%d - vehicle_visual_odometry lost, generation %d -> %d", _instance, last_generation,
+				_ev_odom_sub.get_last_generation());
+		}
+
 		if (_param_ekf2_aid_mask.get() & (MASK_USE_EVPOS | MASK_USE_EVYAW | MASK_USE_EVVEL)) {
 
 			extVisionSample ev_data{};
@@ -1314,10 +1340,16 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 
 bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps, optical_flow_s &optical_flow)
 {
-	// EKF flow sample
 	bool new_optical_flow = false;
+	const unsigned last_generation = _optical_flow_sub.get_last_generation();
 
 	if (_optical_flow_sub.update(&optical_flow)) {
+
+		if (_optical_flow_sub.get_last_generation() != last_generation + 1) {
+			PX4_ERR("%d - optical_flow lost, generation %d -> %d", _instance, last_generation,
+				_optical_flow_sub.get_last_generation());
+		}
+
 		if (_param_ekf2_aid_mask.get() & MASK_USE_OF) {
 
 			flowSample flow {
@@ -1390,9 +1422,15 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 
 void EKF2::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
 {
+	const unsigned last_generation = _magnetometer_sub.get_last_generation();
 	vehicle_magnetometer_s magnetometer;
 
 	if (_magnetometer_sub.update(&magnetometer)) {
+
+		if (_magnetometer_sub.get_last_generation() != last_generation + 1) {
+			PX4_ERR("%d - vehicle_magnetometer lost, generation %d -> %d", _instance, last_generation,
+				_magnetometer_sub.get_last_generation());
+		}
 
 		bool reset = false;
 
@@ -1439,9 +1477,11 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 
 			if (distance_sensor_subs[i].copy(&distance_sensor)) {
 				// only use the first instace which has the correct orientation
-				if ((distance_sensor.timestamp != 0) && (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING)) {
+				if ((hrt_elapsed_time(&distance_sensor.timestamp) < 100_ms)
+				    && (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING)) {
+
 					if (_distance_sensor_sub.ChangeInstance(i)) {
-						PX4_INFO("%d - found range finder with instance %d", _instance, i);
+						PX4_INFO("%d - selected distance_sensor:%d", _instance, i);
 						_distance_sensor_selected = true;
 					}
 				}
@@ -1450,9 +1490,19 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 	}
 
 	// EKF range sample
+	const unsigned last_generation = _distance_sensor_sub.get_last_generation();
 	distance_sensor_s distance_sensor;
 
 	if (_distance_sensor_sub.update(&distance_sensor)) {
+
+		if (_distance_sensor_sub.get_last_generation() != last_generation + 1) {
+			PX4_ERR("%d - distance_sensor lost, generation %d -> %d", _instance, last_generation,
+				_distance_sensor_sub.get_last_generation());
+		}
+
+		ekf2_timestamps.distance_sensor_timestamp_rel = (int16_t)((int64_t)distance_sensor.timestamp / 100 -
+				(int64_t)ekf2_timestamps.timestamp / 100);
+
 		if (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING) {
 			rangeSample range_sample {
 				.time_us = distance_sensor.timestamp,
@@ -1463,10 +1513,14 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 
 			// Save sensor limits reported by the rangefinder
 			_ekf.set_rangefinder_limits(distance_sensor.min_distance, distance_sensor.max_distance);
-		}
 
-		ekf2_timestamps.distance_sensor_timestamp_rel = (int16_t)((int64_t)distance_sensor.timestamp / 100 -
-				(int64_t)ekf2_timestamps.timestamp / 100);
+			_last_range_sensor_update = distance_sensor.timestamp;
+			return;
+		}
+	}
+
+	if (hrt_elapsed_time(&_last_range_sensor_update) > 1_s) {
+		_distance_sensor_selected = false;
 	}
 }
 

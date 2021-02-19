@@ -91,6 +91,7 @@ px4_add_romfs_files(
 	4250_teal
 	4500_clover4
 	4900_crazyflie
+	4901_crazyflie21
 
 	# [5000, 5999] Quadrotor +"
 	5001_quad_+
@@ -137,6 +138,7 @@ px4_add_romfs_files(
 	13012_convergence
 	13013_deltaquad
 	13014_vtol_babyshark
+	13015_generic_vtol_standard
 	13050_generic_vtol_octo
 	13200_generic_vtol_tailsitter
 
@@ -152,11 +154,14 @@ px4_add_romfs_files(
 	17002_TF-AutoG2
 	17003_TF-G2
 
+	# [18000, 18999] High-altitude balloons
+	18001_TF-B1
+
+	# [22000, 22999] Reserve for custom models
+
 	24001_dodeca_cox
 
 	50000_generic_ground_vehicle
-	50001_axialracing_ax10
-	50002_traxxas_stampede_2wd
 	50003_aion_robotics_r1_rover
 	50004_nxpcup_car_dfrobot_gpx
 

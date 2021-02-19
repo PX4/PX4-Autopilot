@@ -183,6 +183,13 @@ Mavlink::Mavlink() :
 	if (_first_start_time == 0) {
 		_first_start_time = hrt_absolute_time();
 	}
+
+	// ensure topic exists, otherwise we might lose first queued commands
+	if (!orb_exists(ORB_ID(vehicle_command), 0)) {
+		orb_advertise_queue(ORB_ID(vehicle_command), nullptr, vehicle_command_s::ORB_QUEUE_LENGTH);
+	}
+
+	_vehicle_command_sub.subscribe();
 }
 
 Mavlink::~Mavlink()
@@ -210,7 +217,6 @@ Mavlink::~Mavlink()
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
 	perf_free(_send_byte_error_perf);
-	perf_free(_send_start_tx_buf_low);
 }
 
 void
@@ -272,7 +278,7 @@ Mavlink::set_channel()
 #endif
 
 	default:
-		PX4_WARN("instance ID is out of range");
+		PX4_WARN("instance ID %d is out of range", _instance_id);
 		px4_task_exit(1);
 		break;
 	}
@@ -741,7 +747,11 @@ Mavlink::get_free_tx_buf()
 
 	// if we are using network sockets, return max length of one packet
 	if (get_protocol() == Protocol::UDP) {
+# if defined(__PX4_POSIX)
+		return  1500 * 10; // Speed up FTP transfers
+# else
 		return  1500;
+# endif /* defined(__PX4_POSIX) */
 
 	} else
 #endif // MAVLINK_UDP
@@ -782,10 +792,10 @@ void Mavlink::send_start(int length)
 		// not enough space in buffer to send
 		count_txerrbytes(length);
 
+		_tstatus.tx_buffer_overruns++;
+
 		// prevent writes
 		_tx_buffer_low = true;
-
-		perf_count(_send_start_tx_buf_low);
 
 	} else {
 		_tx_buffer_low = false;
@@ -847,6 +857,7 @@ void Mavlink::send_finish()
 #endif // MAVLINK_UDP
 
 	if (ret == (int)_buf_fill) {
+		_tstatus.tx_message_count++;
 		count_txbytes(_buf_fill);
 		_last_write_success_time = _last_write_try_time;
 
@@ -1116,6 +1127,11 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 
 	if (get_forwarding_on()) {
 		/* forward any messages to other mavlink instances */
+		Mavlink::forward_message(msg, this);
+	}
+
+	// Special case for gimbals that need to forward GIMBAL_DEVICE_ATTITUDE_STATUS.
+	else if (msg->msgid == MAVLINK_MSG_ID_GIMBAL_DEVICE_ATTITUDE_STATUS) {
 		Mavlink::forward_message(msg, this);
 	}
 }
@@ -1487,15 +1503,14 @@ Mavlink::update_rate_mult()
 
 	float hardware_mult = 1.0f;
 
-	/* scale down if we have a TX err rate suggesting link congestion */
-	if (_tstatus.rate_txerr > 0.0f && !_radio_status_critical) {
-		hardware_mult = (_tstatus.rate_tx) / (_tstatus.rate_tx + _tstatus.rate_txerr);
+	// scale down if we have a TX err rate suggesting link congestion
+	if ((_tstatus.tx_error_rate_avg > 0.f) && !_radio_status_critical) {
+		hardware_mult = _tstatus.tx_rate_avg / (_tstatus.tx_rate_avg + _tstatus.tx_error_rate_avg);
 
 	} else if (_radio_status_available) {
 
 		// check for RADIO_STATUS timeout and reset
-		if (hrt_elapsed_time(&_rstatus.timestamp) > (_param_mav_radio_timeout.get() *
-				1_s)) {
+		if (hrt_elapsed_time(&_rstatus.timestamp) > (_param_mav_radio_timeout.get() * 1_s)) {
 			PX4_ERR("instance %d: RADIO_STATUS timeout", _instance_id);
 			_radio_status_available = false;
 
@@ -1577,6 +1592,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("ESTIMATOR_STATUS", 0.5f);
 		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
 		configure_stream_local("GLOBAL_POSITION_INT", 5.0f);
+		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 1.0f);
+		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
+		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
 		configure_stream_local("GPS2_RAW", 1.0f);
 		configure_stream_local("GPS_RAW_INT", 1.0f);
 		configure_stream_local("GPS_STATUS", 1.0f);
@@ -1602,6 +1620,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("DEBUG_FLOAT_ARRAY", 1.0f);
 		configure_stream_local("DEBUG_VECT", 1.0f);
 		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
+		configure_stream_local("LINK_NODE_STATUS", 1.0f);
 #endif // !CONSTRAINED_FLASH
 
 		break;
@@ -1631,6 +1650,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("COLLISION", unlimited_rate);
 		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
 		configure_stream_local("EXTENDED_SYS_STATE", 5.0f);
+		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 1.0f);
+		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
+		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
 		configure_stream_local("GLOBAL_POSITION_INT", 50.0f);
 		configure_stream_local("GPS2_RAW", unlimited_rate);
 		configure_stream_local("GPS_RAW_INT", unlimited_rate);
@@ -1658,8 +1680,15 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("DEBUG_FLOAT_ARRAY", 10.0f);
 		configure_stream_local("DEBUG_VECT", 10.0f);
 		configure_stream_local("NAMED_VALUE_FLOAT", 10.0f);
+		configure_stream_local("LINK_NODE_STATUS", 1.0f);
 #endif // !CONSTRAINED_FLASH
 
+		break;
+
+	case MAVLINK_MODE_GIMBAL:
+		// Note: streams requiring low latency come first
+		configure_stream_local("AUTOPILOT_STATE_FOR_GIMBAL_DEVICE", 20.0f);
+		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 20.0f);
 		break;
 
 	case MAVLINK_MODE_EXTVISION:
@@ -1709,6 +1738,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("DEBUG_FLOAT_ARRAY", 1.0f);
 		configure_stream_local("DEBUG_VECT", 1.0f);
 		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
+		configure_stream_local("LINK_NODE_STATUS", 1.0f);
 #endif // !CONSTRAINED_FLASH
 
 		break;
@@ -1792,6 +1822,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("DEBUG_FLOAT_ARRAY", 50.0f);
 		configure_stream_local("DEBUG_VECT", 50.0f);
 		configure_stream_local("NAMED_VALUE_FLOAT", 50.0f);
+		configure_stream_local("LINK_NODE_STATUS", 1.0f);
 #endif // !CONSTRAINED_FLASH
 
 		break;
@@ -1811,6 +1842,11 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("RC_CHANNELS", 0.5f);
 		configure_stream_local("SYS_STATUS", 0.1f);
 		configure_stream_local("VFR_HUD", 1.0f);
+
+#if !defined(CONSTRAINED_FLASH)
+		configure_stream_local("LINK_NODE_STATUS", 1.0f);
+#endif // !CONSTRAINED_FLASH
+
 		break;
 
 	default:
@@ -2019,6 +2055,9 @@ Mavlink::task_main(int argc, char *argv[])
 					} else if (strcmp(myoptarg, "extvisionmin") == 0) {
 						_mode = MAVLINK_MODE_EXTVISIONMIN;
 
+					} else if (strcmp(myoptarg, "gimbal") == 0) {
+						_mode = MAVLINK_MODE_GIMBAL;
+
 					} else {
 						PX4_ERR("invalid mode");
 						err_flag = true;
@@ -2135,19 +2174,6 @@ Mavlink::task_main(int argc, char *argv[])
 		pthread_mutex_init(&_message_buffer_mutex, nullptr);
 	}
 
-	uORB::Subscription cmd_sub{ORB_ID(vehicle_command)};
-	// ensure topic exists, otherwise we might lose first queued commands (leading to printf error's below)
-	orb_advertise_queue(ORB_ID(vehicle_command), nullptr, vehicle_command_s::ORB_QUEUE_LENGTH);
-	cmd_sub.subscribe();
-	uORB::Subscription status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription ack_sub{ORB_ID(vehicle_command_ack)};
-
-	/* command ack */
-	uORB::Publication<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
-
-	vehicle_status_s status{};
-	status_sub.copy(&status);
-
 	/* Activate sending the data by default (for the IRIDIUM mode it will be disabled after the first round of packages is sent)*/
 	_transmitting_enabled = true;
 	_transmitting_enabled_commanded = true;
@@ -2239,7 +2265,7 @@ Mavlink::task_main(int argc, char *argv[])
 		perf_count(_loop_interval_perf);
 		perf_begin(_loop_perf);
 
-		hrt_abstime t = hrt_absolute_time();
+		const hrt_abstime t = hrt_absolute_time();
 
 		update_rate_mult();
 
@@ -2263,81 +2289,84 @@ Mavlink::task_main(int argc, char *argv[])
 
 		configure_sik_radio();
 
-		if (status_sub.update(&status)) {
-			/* switch HIL mode if required */
-			set_hil_enabled(status.hil_state == vehicle_status_s::HIL_STATE_ON);
+		if (_vehicle_status_sub.updated()) {
+			vehicle_status_s vehicle_status;
 
-			set_generate_virtual_rc_input(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_GENERATED);
+			if (_vehicle_status_sub.copy(&vehicle_status)) {
+				/* switch HIL mode if required */
+				set_hil_enabled(vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON);
 
-			if (_mode == MAVLINK_MODE_IRIDIUM) {
+				set_generate_virtual_rc_input(vehicle_status.rc_input_mode == vehicle_status_s::RC_IN_MODE_GENERATED);
 
-				if (_transmitting_enabled &&
-				    status.high_latency_data_link_lost &&
-				    !_transmitting_enabled_commanded &&
-				    (_first_heartbeat_sent)) {
+				if (_mode == MAVLINK_MODE_IRIDIUM) {
 
-					_transmitting_enabled = false;
-					mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s", _device_name);
+					if (_transmitting_enabled && vehicle_status.high_latency_data_link_lost &&
+					    !_transmitting_enabled_commanded && _first_heartbeat_sent) {
 
-				} else if (!_transmitting_enabled && !status.high_latency_data_link_lost) {
-					_transmitting_enabled = true;
-					mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s", _device_name);
+						_transmitting_enabled = false;
+						mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s", _device_name);
+
+					} else if (!_transmitting_enabled && !vehicle_status.high_latency_data_link_lost) {
+						_transmitting_enabled = true;
+						mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s", _device_name);
+					}
 				}
 			}
 		}
 
 
 		// vehicle_command
-		const unsigned last_generation = cmd_sub.get_last_generation();
-		vehicle_command_s vehicle_cmd;
+		while (_vehicle_command_sub.updated()) {
+			const unsigned last_generation = _vehicle_command_sub.get_last_generation();
+			vehicle_command_s vehicle_cmd;
 
-		if (cmd_sub.update(&vehicle_cmd)) {
-
-			if (cmd_sub.get_last_generation() != last_generation + 1) {
-				PX4_ERR("vehicle_command lost, generation %d -> %d", last_generation, cmd_sub.get_last_generation());
-			}
-
-			if ((vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY) &&
-			    (_mode == MAVLINK_MODE_IRIDIUM)) {
-				if (vehicle_cmd.param1 > 0.5f) {
-					if (!_transmitting_enabled) {
-						mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s by command",
-								 _device_name);
-					}
-
-					_transmitting_enabled = true;
-					_transmitting_enabled_commanded = true;
-
-				} else {
-					if (_transmitting_enabled) {
-						mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s by command",
-								 _device_name);
-					}
-
-					_transmitting_enabled = false;
-					_transmitting_enabled_commanded = false;
+			if (_vehicle_command_sub.update(&vehicle_cmd)) {
+				if (_vehicle_command_sub.get_last_generation() != last_generation + 1) {
+					PX4_ERR("vehicle_command lost, generation %d -> %d", last_generation, _vehicle_command_sub.get_last_generation());
 				}
 
-				// send positive command ack
-				vehicle_command_ack_s command_ack{};
-				command_ack.timestamp = vehicle_cmd.timestamp;
-				command_ack.command = vehicle_cmd.command;
-				command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
-				command_ack.from_external = !vehicle_cmd.from_external;
-				command_ack.target_system = vehicle_cmd.source_system;
-				command_ack.target_component = vehicle_cmd.source_component;
+				if ((vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY) &&
+				    (_mode == MAVLINK_MODE_IRIDIUM)) {
+					if (vehicle_cmd.param1 > 0.5f) {
+						if (!_transmitting_enabled) {
+							mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s by command",
+									 _device_name);
+						}
 
-				command_ack_pub.publish(command_ack);
+						_transmitting_enabled = true;
+						_transmitting_enabled_commanded = true;
+
+					} else {
+						if (_transmitting_enabled) {
+							mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s by command",
+									 _device_name);
+						}
+
+						_transmitting_enabled = false;
+						_transmitting_enabled_commanded = false;
+					}
+
+					// send positive command ack
+					vehicle_command_ack_s command_ack{};
+					command_ack.command = vehicle_cmd.command;
+					command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+					command_ack.from_external = !vehicle_cmd.from_external;
+					command_ack.target_system = vehicle_cmd.source_system;
+					command_ack.target_component = vehicle_cmd.source_component;
+					command_ack.timestamp = vehicle_cmd.timestamp;
+					_vehicle_command_ack_pub.publish(command_ack);
+				}
 			}
 		}
 
 		/* send command ACK */
-		uint16_t current_command_ack = 0;
+		bool cmd_logging_start_acknowledgement = false;
 
-		if (ack_sub.updated() && (get_free_tx_buf() >= MAVLINK_MSG_ID_COMMAND_ACK_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)) {
+		if (_vehicle_command_ack_sub.updated()) {
+			static constexpr size_t COMMAND_ACK_TOTAL_LEN = MAVLINK_MSG_ID_COMMAND_ACK_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 			vehicle_command_ack_s command_ack;
 
-			if (ack_sub.update(&command_ack)) {
+			while ((get_free_tx_buf() >= COMMAND_ACK_TOTAL_LEN) && _vehicle_command_ack_sub.update(&command_ack)) {
 				if (!command_ack.from_external) {
 					mavlink_command_ack_t msg;
 					msg.result = command_ack.result;
@@ -2346,13 +2375,16 @@ Mavlink::task_main(int argc, char *argv[])
 					msg.result_param2 = command_ack.result_param2;
 					msg.target_system = command_ack.target_system;
 					msg.target_component = command_ack.target_component;
-					current_command_ack = command_ack.command;
 
 					// TODO: always transmit the acknowledge once it is only sent over the instance the command is received
 					//bool _transmitting_enabled_temp = _transmitting_enabled;
 					//_transmitting_enabled = true;
 					mavlink_msg_command_ack_send_struct(get_channel(), &msg);
 					//_transmitting_enabled = _transmitting_enabled_temp;
+
+					if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
+						cmd_logging_start_acknowledgement = true;
+					}
 				}
 			}
 		}
@@ -2398,7 +2430,7 @@ Mavlink::task_main(int argc, char *argv[])
 				_mavlink_ulog_stop_requested = false;
 
 			} else {
-				if (current_command_ack == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
+				if (cmd_logging_start_acknowledgement) {
 					_mavlink_ulog->start_ack_received();
 				}
 
@@ -2464,13 +2496,13 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		/* update TX/RX rates*/
-		if (t > _bytes_timestamp + 1000000) {
+		if (t > _bytes_timestamp + 1_s) {
 			if (_bytes_timestamp != 0) {
-				const float dt = (t - _bytes_timestamp) / 1000.0f;
+				const float dt = (t - _bytes_timestamp) * 1e-6f;
 
-				_tstatus.rate_tx = _bytes_tx / dt;
-				_tstatus.rate_txerr = _bytes_txerr / dt;
-				_tstatus.rate_rx = _bytes_rx / dt;
+				_tstatus.tx_rate_avg = _bytes_tx / dt;
+				_tstatus.tx_error_rate_avg = _bytes_txerr / dt;
+				_tstatus.rx_rate_avg = _bytes_rx / dt;
 
 				_bytes_tx = 0;
 				_bytes_txerr = 0;
@@ -2612,7 +2644,7 @@ void Mavlink::publish_telemetry_status()
 
 	// telemetry_status is also updated from the receiver thread, but never the same fields
 	_tstatus.timestamp = hrt_absolute_time();
-	_telem_status_pub.publish(_tstatus);
+	_telemetry_status_pub.publish(_tstatus);
 	_tstatus_updated = false;
 }
 
@@ -2785,11 +2817,12 @@ Mavlink::display_status()
 
 	printf("\tflow control: %s\n", _flow_control_mode ? "ON" : "OFF");
 	printf("\trates:\n");
-	printf("\t  tx: %.3f kB/s\n", (double)_tstatus.rate_tx);
-	printf("\t  txerr: %.3f kB/s\n", (double)_tstatus.rate_txerr);
+	printf("\t  tx: %.1f B/s\n", (double)_tstatus.tx_rate_avg);
+	printf("\t  txerr: %.1f B/s\n", (double)_tstatus.tx_error_rate_avg);
 	printf("\t  tx rate mult: %.3f\n", (double)_rate_mult);
 	printf("\t  tx rate max: %i B/s\n", _datarate);
-	printf("\t  rx: %.3f kB/s\n", (double)_tstatus.rate_rx);
+	printf("\t  rx: %.1f B/s\n", (double)_tstatus.rx_rate_avg);
+	printf("\t  rx loss: %.1f%%\n", (double)_tstatus.rx_message_lost_rate);
 
 	if (_mavlink_ulog) {
 		printf("\tULog rate: %.1f%% of max %.1f%%\n", (double)_mavlink_ulog->current_data_rate() * 100.,
@@ -3055,7 +3088,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_STRING('t', "127.0.0.1", nullptr,
 					"Partner IP (broadcasting can be enabled via MAV_BROADCAST param)", true);
 #endif
-	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvsision",
+	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvision|extvisionmin|gimbal",
 					"Mode: sets default streams and rates", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, "<interface_name>", "wifi/ethernet interface name", true);
 #if defined(CONFIG_NET_IGMP) && defined(CONFIG_NET_ROUTE)

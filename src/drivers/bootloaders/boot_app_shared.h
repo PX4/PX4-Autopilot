@@ -36,17 +36,9 @@
 
 #pragma once
 
-/****************************************************************************
- * Included Files
- ****************************************************************************/
-
 #include <nuttx/compiler.h>
 
 __BEGIN_DECLS
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
 
 /* Define the signature for the Application descriptor as 'APDesc' and a
  * revision number of 00 used in app_descriptor_t
@@ -58,10 +50,6 @@ __BEGIN_DECLS
 
 /* N.B. the .ld file must emit this sections */
 # define boot_app_shared_section __attribute__((section(".app_descriptor")))
-
-/****************************************************************************
- * Public Type Definitions
- ****************************************************************************/
 
 /* eRole defines the role of the bootloader_app_shared_t structure */
 
@@ -150,13 +138,6 @@ typedef begin_packed_struct struct app_descriptor_t {
 #pragma GCC diagnostic pop
 
 /****************************************************************************
- * Global Variables
- ****************************************************************************/
-
-/****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
-/****************************************************************************
  * Name: bootloader_app_shared_read
  *
  * Description:
@@ -184,8 +165,7 @@ typedef begin_packed_struct struct app_descriptor_t {
  *
  ****************************************************************************/
 
-int bootloader_app_shared_read(bootloader_app_shared_t *shared,
-			       eRole_t role);
+int bootloader_app_shared_read(bootloader_app_shared_t *shared, eRole_t role);
 
 /****************************************************************************
  * Name: bootloader_app_shared_write
@@ -211,8 +191,7 @@ int bootloader_app_shared_read(bootloader_app_shared_t *shared,
  *
  ****************************************************************************/
 
-void bootloader_app_shared_write(bootloader_app_shared_t *shared,
-				 eRole_t role);
+void bootloader_app_shared_write(bootloader_app_shared_t *shared, eRole_t role);
 
 /****************************************************************************
  * Name: bootloader_app_shared_invalidate

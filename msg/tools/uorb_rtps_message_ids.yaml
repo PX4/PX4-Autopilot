@@ -63,6 +63,7 @@ rtps:
     id: 29
   - msg: input_rc
     id: 30
+    send: true
   - msg: iridiumsbd_status
     id: 31
   - msg: irlock_report
@@ -308,6 +309,26 @@ rtps:
     id: 146
   - msg: control_allocator_status
     id: 147
+  - msg: mag_worker_data
+    id: 148
+  - msg: takeoff_status
+    id: 149
+  - msg: heater_status
+    id: 150
+  - msg: gimbal_device_attitude_status
+    id: 151
+  - msg: gimbal_device_information
+    id: 152
+  - msg: gimbal_device_set_attitude
+    id: 153
+  - msg: gimbal_manager_information
+    id: 154
+  - msg: gimbal_manager_set_attitude
+    id: 155
+  - msg: gimbal_manager_status
+    id: 156
+  - msg: gimbal_manager_set_manual_control
+    id: 157
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 170
@@ -404,4 +425,10 @@ rtps:
   - msg: estimator_odometry
     id: 200
     alias: vehicle_odometry
+  - msg: actuator_controls_4
+    id: 201
+    alias: actuator_controls
+  - msg: actuator_controls_5
+    id: 202
+    alias: actuator_controls
   ########## multi topics: end ##########
