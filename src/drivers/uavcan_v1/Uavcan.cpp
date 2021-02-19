@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -53,75 +53,14 @@ static void memFree(CanardInstance *const ins, void *const pointer) { o1heapFree
 # endif // CONFIG_CAN
 #endif // NuttX
 
-/**                Begin UavcanSubscription Class Definitions                **/
-/// TODO: Reorganize into separate files
-
-void UavcanGpsSubscription::subscribe()
-{
-	// Subscribe to messages reg.drone.physics.kinematics.geodetic.Point.0.1
-	canardRxSubscribe(&_canard_instance,
-			  CanardTransferKindMessage,
-			  _port_id,
-			  reg_drone_physics_kinematics_geodetic_Point_0_1_EXTENT_BYTES_,
-			  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-			  &_canard_sub);
-}
-
-void UavcanGpsSubscription::callback(const CanardTransfer &receive)
-{
-	// Test with Yakut:
-	// export YAKUT_TRANSPORT="pyuavcan.transport.can.CANTransport(pyuavcan.transport.can.media.slcan.SLCANMedia('/dev/serial/by-id/usb-Zubax_Robotics_Zubax_Babel_23002B000E514E413431302000000000-if00', 8, 115200), 42)"
-	// yakut pub 1500.reg.drone.physics.kinematics.geodetic.Point.0.1 '{latitude: 1.234, longitude: 2.34, altitude: {meter: 0.5}}'
-	PX4_INFO("GpsCallback");
-
-	reg_drone_physics_kinematics_geodetic_Point_0_1 geo {};
-	size_t geo_size_in_bits = receive.payload_size;
-	reg_drone_physics_kinematics_geodetic_Point_0_1_deserialize_(&geo, (const uint8_t *)receive.payload, &geo_size_in_bits);
-
-	double lat = geo.latitude;
-	double lon = geo.longitude;
-	double alt = geo.altitude.meter;
-	PX4_INFO("Latitude: %f, Longitude: %f, Altitude: %f", lat, lon, alt);
-	/// do something with the data
-}
-
-void UavcanBmsSubscription::subscribe()
-{
-	// Subscribe to messages reg.drone.service.battery.Status.0.1
-	canardRxSubscribe(&_canard_instance,
-			  CanardTransferKindMessage,
-			  _port_id,
-			  reg_drone_service_battery_Status_0_1_EXTENT_BYTES_,
-			  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-			  &_canard_sub);
-}
-
-void UavcanBmsSubscription::callback(const CanardTransfer &receive)
-{
-	PX4_INFO("BmsCallback");
-
-	reg_drone_service_battery_Status_0_1 bat {};
-	size_t bat_size_in_bits = receive.payload_size;
-	reg_drone_service_battery_Status_0_1_deserialize_(&bat, (const uint8_t *)receive.payload, &bat_size_in_bits);
-
-	uavcan_si_unit_voltage_Scalar_1_0 V_Min = bat.cell_voltage_min_max[0];
-	uavcan_si_unit_voltage_Scalar_1_0 V_Max = bat.cell_voltage_min_max[1];
-	double vmin = static_cast<double>(V_Min.volt);
-	double vmax = static_cast<double>(V_Max.volt);
-	PX4_INFO("Min voltage: %f, Max Voltage: %f", vmin, vmax);
-	/// do something with the data
-}
-
-/**                 End UavcanSubscription Class Definitions                 **/
-
 UavcanNode::UavcanNode(CanardInterface *interface, uint32_t node_id) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
 	_can_interface(interface),
-	_gps0_sub(_canard_instance, "uavcan.sub.gps.0.id", "UCAN1_GPS0_PID"),
-	_gps1_sub(_canard_instance, "uavcan.sub.gps.1.id", "UCAN1_GPS1_PID"),
-	_bms0_sub(_canard_instance, "uavcan.sub.bms.0.id", "UCAN1_BMS0_PID"),
-	_bms1_sub(_canard_instance, "uavcan.sub.bms.1.id", "UCAN1_BMS1_PID"),
+	_gps0_sub(_canard_instance, _param_manager, "uavcan.sub.gps.0.id"),
+	_gps1_sub(_canard_instance, _param_manager, "uavcan.sub.gps.1.id"),
+	_bms0_sub(_canard_instance, _param_manager, "uavcan.sub.bms.0.id"),
+	_bms1_sub(_canard_instance, _param_manager, "uavcan.sub.bms.1.id"),
 	_subscribers{&_gps0_sub, &_gps1_sub, &_bms0_sub, &_bms1_sub}
 {
 	pthread_mutex_init(&_node_mutex, nullptr);
@@ -211,67 +150,72 @@ int UavcanNode::start(uint32_t node_id, uint32_t bitrate)
 	return PX4_OK;
 }
 
+void UavcanNode::init()
+{
+	// interface init
+	if (_can_interface) {
+		if (_can_interface->init() == PX4_OK) {
+
+			// We can't accept just any message; we must fist subscribe to specific IDs
+
+			// Subscribe to messages uavcan.node.Heartbeat.
+			canardRxSubscribe(&_canard_instance,
+					  CanardTransferKindMessage,
+					  uavcan_node_Heartbeat_1_0_FIXED_PORT_ID_,
+					  uavcan_node_Heartbeat_1_0_EXTENT_BYTES_,
+					  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
+					  &_heartbeat_subscription);
+
+			// Subscribe to messages uavcan.node.NodeIDAllocationData_1_0 for PNP V1
+			canardRxSubscribe(&_canard_instance,
+					  CanardTransferKindMessage,
+					  uavcan_pnp_NodeIDAllocationData_1_0_FIXED_PORT_ID_,
+					  uavcan_pnp_NodeIDAllocationData_1_0_EXTENT_BYTES_,
+					  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
+					  &_pnp_v1_subscription);
+
+			canardRxSubscribe(&_canard_instance,
+					  CanardTransferKindResponse,
+					  uavcan_register_Access_1_0_FIXED_PORT_ID_,
+					  uavcan_register_Access_Response_1_0_EXTENT_BYTES_,
+					  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
+					  &_register_access_subscription);
+
+			canardRxSubscribe(&_canard_instance,
+					  CanardTransferKindResponse,
+					  uavcan_register_List_1_0_FIXED_PORT_ID_,
+					  uavcan_register_List_Response_1_0_EXTENT_BYTES_,
+					  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
+					  &_register_list_subscription);
+
+
+
+			canardRxSubscribe(&_canard_instance,
+					  CanardTransferKindMessage,
+					  bms_port_id,
+					  reg_drone_service_battery_Status_0_1_EXTENT_BYTES_,
+					  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
+					  &_drone_srv_battery_subscription);
+
+			canardRxSubscribe(&_canard_instance, //Temporory GPS message DSDL not defined yet
+					  CanardTransferKindMessage,
+					  gps_port_id,
+					  sizeof(struct sensor_gps_s),
+					  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
+					  &_drone_srv_gps_subscription);
+
+
+			_initialized = true;
+		}
+	}
+}
+
 void UavcanNode::Run()
 {
 	pthread_mutex_lock(&_node_mutex);
 
 	if (!_initialized) {
-		// interface init
-		if (_can_interface) {
-			if (_can_interface->init() == PX4_OK) {
-
-				// We can't accept just any message; we must fist subscribe to specific IDs
-
-				// Subscribe to messages uavcan.node.Heartbeat.
-				canardRxSubscribe(&_canard_instance,
-						  CanardTransferKindMessage,
-						  uavcan_node_Heartbeat_1_0_FIXED_PORT_ID_,
-						  uavcan_node_Heartbeat_1_0_EXTENT_BYTES_,
-						  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-						  &_heartbeat_subscription);
-
-				// Subscribe to messages uavcan.node.NodeIDAllocationData_1_0 for PNP V1
-				canardRxSubscribe(&_canard_instance,
-						  CanardTransferKindMessage,
-						  uavcan_pnp_NodeIDAllocationData_1_0_FIXED_PORT_ID_,
-						  uavcan_pnp_NodeIDAllocationData_1_0_EXTENT_BYTES_,
-						  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-						  &_pnp_v1_subscription);
-
-				canardRxSubscribe(&_canard_instance,
-						  CanardTransferKindResponse,
-						  uavcan_register_Access_1_0_FIXED_PORT_ID_,
-						  uavcan_register_Access_Response_1_0_EXTENT_BYTES_,
-						  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-						  &_register_access_subscription);
-
-				canardRxSubscribe(&_canard_instance,
-						  CanardTransferKindResponse,
-						  uavcan_register_List_1_0_FIXED_PORT_ID_,
-						  uavcan_register_List_Response_1_0_EXTENT_BYTES_,
-						  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-						  &_register_list_subscription);
-
-
-
-				canardRxSubscribe(&_canard_instance,
-						  CanardTransferKindMessage,
-						  bms_port_id,
-						  reg_drone_service_battery_Status_0_1_EXTENT_BYTES_,
-						  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-						  &_drone_srv_battery_subscription);
-
-				canardRxSubscribe(&_canard_instance, //Temporory GPS message DSDL not defined yet
-						  CanardTransferKindMessage,
-						  gps_port_id,
-						  sizeof(struct sensor_gps_s),
-						  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-						  &_drone_srv_gps_subscription);
-
-
-				_initialized = true;
-			}
-		}
+		init();
 
 		// return early if still not initialized
 		if (!_initialized) {
@@ -661,10 +605,7 @@ int UavcanNode::handleRegisterList(const CanardTransfer &receive)
 	} else {
 		uavcan_register_Value_1_0 out_value;
 
-		if (GetParamByName(msg.name, out_value)) {
-			/// TODO: running into this error again:
-			// 	../../src/drivers/uavcan_v1/Uavcan.cpp:685:1: error: the frame size of 2192 bytes is larger than 2048 bytes [-Werror=frame-larger-than=]
-
+		if (_param_manager.GetParamByName(msg.name, out_value)) {
 			_node_register_setup = CANARD_NODE_ID_UNSET;
 			_node_register_last_received_index++;
 
@@ -716,11 +657,11 @@ int UavcanNode::handleRegisterAccess(const CanardTransfer &receive)
 	/// TODO: get/set parameter based on whether empty or not
 	if (uavcan_register_Value_1_0_is_empty_(&value)) { // Tag Type: uavcan_primitive_Empty_1_0
 		// Value is empty -- 'Get' only
-		result = GetParamByName(name, value) ? 0 : -1;
+		result = _param_manager.GetParamByName(name, value) ? 0 : -1;
 
 	} else {
 		// Set value
-		result = SetParamByName(name, value) ? 0 : -1;
+		result = _param_manager.SetParamByName(name, value) ? 0 : -1;
 
 	}
 
@@ -778,72 +719,4 @@ int UavcanNode::handleUORBSensorGPS(const CanardTransfer &receive)
 	sensor_gps_s *gps_msg = (sensor_gps_s *)receive.payload;
 
 	return _sensor_gps_pub.publish(*gps_msg) ? 0 : -1;
-}
-
-bool UavcanNode::GetParamByName(const uavcan_register_Name_1_0 &name, uavcan_register_Value_1_0 &value)
-{
-	/// TODO: More intelligent search needed?  Only if using many parameters, I think.
-	for (auto &param : _uavcan_params) {
-		if (strncmp((char *)name.name.elements, param.uavcan_name, name.name.count) == 0) {
-			param_t param_handle = param_find(param.px4_name);
-
-			if (param_handle == PARAM_INVALID) {
-				return false;
-			}
-
-			/// TODO: What will be our approach for handling other UAVCAN data-value types?
-			switch (param_type(param_handle)) {
-			case PARAM_TYPE_INT32: {
-					int32_t out_val {};
-					param_set(param_handle, &out_val);
-					value.integer32.value.elements[0] = out_val;
-					uavcan_register_Value_1_0_select_integer32_(&value);
-					break;
-				}
-
-			case PARAM_TYPE_FLOAT: {
-					float out_val {};
-					param_set(param_handle, &out_val);
-					value.natural32.value.elements[0] = out_val;
-					uavcan_register_Value_1_0_select_natural32_(&value);
-					break;
-				}
-			}
-
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool UavcanNode::SetParamByName(const uavcan_register_Name_1_0 &name, const uavcan_register_Value_1_0 &value)
-{
-	for (auto &param : _uavcan_params) {
-		if (strncmp((char *)name.name.elements, param.uavcan_name, name.name.count) == 0) {
-			param_t param_handle = param_find(param.px4_name);
-
-			if (param_handle == PARAM_INVALID) {
-				return false;
-			}
-
-			switch (param_type(param_handle)) {
-			case PARAM_TYPE_INT32: {
-					int32_t in_val = value.integer32.value.elements[0];
-					param_set(param_handle, &in_val);
-					break;
-				}
-
-			case PARAM_TYPE_FLOAT: {
-					float in_val = value.natural32.value.elements[0];
-					param_set(param_handle, &in_val);
-					break;
-				}
-			}
-
-			return true;
-		}
-	}
-
-	return false;
 }
