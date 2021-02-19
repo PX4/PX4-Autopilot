@@ -90,8 +90,8 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
 *
 * @min 0
 * @max 2000
-* @value 0 0 (no limit)
-* @value 50 50 Hz
+* @value 0 0 (driver minimum)
+* @value 100 100 Hz
 * @value 250 250 Hz
 * @value 400 400 Hz
 * @value 1000 1000 Hz
@@ -100,7 +100,7 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
 * @reboot_required true
 * @group Sensors
 */
-PARAM_DEFINE_INT32(IMU_GYRO_RATEMAX, 0);
+PARAM_DEFINE_INT32(IMU_GYRO_RATEMAX, 400);
 
 /**
 * Cutoff frequency for angular acceleration (D-Term filter)
