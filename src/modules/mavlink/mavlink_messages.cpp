@@ -60,7 +60,6 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/camera_capture.h>
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/differential_pressure.h>
@@ -107,6 +106,7 @@ using matrix::wrap_2pi;
 #include "streams/ATTITUDE_QUATERNION.hpp"
 #include "streams/ATTITUDE_TARGET.hpp"
 #include "streams/AUTOPILOT_VERSION.hpp"
+#include "streams/CAMERA_IMAGE_CAPTURED.hpp"
 #include "streams/COLLISION.hpp"
 #include "streams/COMPONENT_INFORMATION.hpp"
 #include "streams/DISTANCE_SENSOR.hpp"
@@ -2382,86 +2382,6 @@ protected:
 	}
 };
 
-class MavlinkStreamCameraImageCaptured : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamCameraImageCaptured::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "CAMERA_IMAGE_CAPTURED";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_CAMERA_IMAGE_CAPTURED;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	bool const_rate() override
-	{
-		return true;
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamCameraImageCaptured(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return _capture_sub.advertised() ? MAVLINK_MSG_ID_CAMERA_IMAGE_CAPTURED_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
-	}
-
-private:
-	uORB::Subscription _capture_sub{ORB_ID(camera_capture)};
-
-	/* do not allow top copying this class */
-	MavlinkStreamCameraImageCaptured(MavlinkStreamCameraImageCaptured &) = delete;
-	MavlinkStreamCameraImageCaptured &operator = (const MavlinkStreamCameraImageCaptured &) = delete;
-
-protected:
-	explicit MavlinkStreamCameraImageCaptured(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send() override
-	{
-		camera_capture_s capture;
-
-		if ((_mavlink->get_free_tx_buf() >= get_size()) && _capture_sub.update(&capture)) {
-			mavlink_camera_image_captured_t msg{};
-
-			msg.time_boot_ms = capture.timestamp / 1000;
-			msg.time_utc = capture.timestamp_utc;
-			msg.camera_id = 1;	// FIXME : get this from uORB
-			msg.lat = capture.lat * 1e7;
-			msg.lon = capture.lon * 1e7;
-			msg.alt = capture.alt * 1e3f;
-			msg.relative_alt = capture.ground_distance * 1e3f;
-			msg.q[0] = capture.q[0];
-			msg.q[1] = capture.q[1];
-			msg.q[2] = capture.q[2];
-			msg.q[3] = capture.q[3];
-			msg.image_index = capture.seq;
-			msg.capture_result = capture.result;
-			msg.file_url[0] = '\0';
-
-			mavlink_msg_camera_image_captured_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
-		}
-
-		return false;
-	}
-};
-
 class MavlinkStreamCameraCapture : public MavlinkStream
 {
 public:
@@ -2645,7 +2565,9 @@ static const StreamListItem streams_list[] = {
 #endif // NAV_CONTROLLER_OUTPUT_HPP
 	create_stream_list_item<MavlinkStreamCameraCapture>(),
 	create_stream_list_item<MavlinkStreamCameraTrigger>(),
+#if defined(CAMERA_IMAGE_CAPTURED_HPP)
 	create_stream_list_item<MavlinkStreamCameraImageCaptured>(),
+#endif // CAMERA_IMAGE_CAPTURED_HPP
 #if defined(DISTANCE_SENSOR_HPP)
 	create_stream_list_item<MavlinkStreamDistanceSensor>(),
 #endif // DISTANCE_SENSOR_HPP
