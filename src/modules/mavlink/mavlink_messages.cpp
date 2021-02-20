@@ -69,7 +69,6 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/gimbal_device_attitude_status.h>
-#include <uORB/topics/gimbal_manager_information.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_baro.h>
@@ -147,6 +146,7 @@ using matrix::wrap_2pi;
 # include "streams/DEBUG_FLOAT_ARRAY.hpp"
 # include "streams/DEBUG_VECT.hpp"
 # include "streams/GIMBAL_DEVICE_SET_ATTITUDE.hpp"
+# include "streams/GIMBAL_MANAGER_INFORMATION.hpp"
 # include "streams/GIMBAL_MANAGER_STATUS.hpp"
 # include "streams/LINK_NODE_STATUS.hpp"
 # include "streams/NAMED_VALUE_FLOAT.hpp"
@@ -2053,79 +2053,6 @@ protected:
 	}
 };
 
-class MavlinkStreamGimbalManagerInformation : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamGimbalManagerInformation::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "GIMBAL_MANAGER_INFORMATION";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_GIMBAL_MANAGER_INFORMATION;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamGimbalManagerInformation(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return _gimbal_manager_information_sub.advertised() ? (MAVLINK_MSG_ID_GIMBAL_MANAGER_INFORMATION_LEN +
-				MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
-	}
-
-private:
-	uORB::Subscription _gimbal_manager_information_sub{ORB_ID(gimbal_manager_information)};
-
-	/* do not allow top copying this class */
-	MavlinkStreamGimbalManagerInformation(MavlinkStreamGimbalManagerInformation &) = delete;
-	MavlinkStreamGimbalManagerInformation &operator = (const MavlinkStreamGimbalManagerInformation &) = delete;
-
-protected:
-	explicit MavlinkStreamGimbalManagerInformation(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send() override
-	{
-		gimbal_manager_information_s gimbal_manager_information;
-
-		if (_gimbal_manager_information_sub.advertised() && _gimbal_manager_information_sub.copy(&gimbal_manager_information)) {
-			// send out gimbal_manager_info with info from gimbal_manager_information
-			mavlink_gimbal_manager_information_t msg{};
-			msg.time_boot_ms = gimbal_manager_information.timestamp / 1000;
-			msg.gimbal_device_id = 0;
-			msg.cap_flags = gimbal_manager_information.cap_flags;
-
-			msg.roll_min = gimbal_manager_information.roll_min;
-			msg.roll_max = gimbal_manager_information.roll_max;
-			msg.pitch_min = gimbal_manager_information.pitch_min;
-			msg.pitch_max = gimbal_manager_information.pitch_max;
-			msg.yaw_min = gimbal_manager_information.yaw_min;
-			msg.yaw_max = gimbal_manager_information.yaw_max;
-
-			mavlink_msg_gimbal_manager_information_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
-
-		}
-
-		return false;
-	}
-};
-
 #endif
 
 class MavlinkStreamCameraTrigger : public MavlinkStream
@@ -2364,9 +2291,11 @@ static const StreamListItem streams_list[] = {
 #endif // ATT_POS_MOCAP_HPP
 #if !defined(CONSTRAINED_FLASH)
 	create_stream_list_item<MavlinkStreamGimbalDeviceAttitudeStatus>(),
-	create_stream_list_item<MavlinkStreamGimbalManagerInformation>(),
 	create_stream_list_item<MavlinkStreamAutopilotStateForGimbalDevice>(),
 #endif
+#if defined(GIMBAL_MANAGER_INFORMATION_HPP)
+	create_stream_list_item<MavlinkStreamGimbalManagerInformation>(),
+#endif // GIMBAL_MANAGER_INFORMATION_HPP
 #if defined(GIMBAL_MANAGER_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamGimbalManagerStatus>(),
 #endif // GIMBAL_MANAGER_STATUS_HPP
