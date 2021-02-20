@@ -141,11 +141,12 @@ using matrix::wrap_2pi;
 #include "streams/WIND_COV.hpp"
 
 #if !defined(CONSTRAINED_FLASH)
+# include "streams/ATT_POS_MOCAP.hpp"
 # include "streams/DEBUG.hpp"
 # include "streams/DEBUG_FLOAT_ARRAY.hpp"
 # include "streams/DEBUG_VECT.hpp"
-# include "streams/NAMED_VALUE_FLOAT.hpp"
 # include "streams/LINK_NODE_STATUS.hpp"
+# include "streams/NAMED_VALUE_FLOAT.hpp"
 #endif // !CONSTRAINED_FLASH
 
 // ensure PX4 rotation enum and MAV_SENSOR_ROTATION align
@@ -2986,75 +2987,6 @@ protected:
 	}
 };
 
-class MavlinkStreamAttPosMocap : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamAttPosMocap::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "ATT_POS_MOCAP";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_ATT_POS_MOCAP;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamAttPosMocap(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return _mocap_sub.advertised() ? MAVLINK_MSG_ID_ATT_POS_MOCAP_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
-	}
-
-private:
-	uORB::Subscription _mocap_sub{ORB_ID(vehicle_mocap_odometry)};
-
-	/* do not allow top copying this class */
-	MavlinkStreamAttPosMocap(MavlinkStreamAttPosMocap &) = delete;
-	MavlinkStreamAttPosMocap &operator = (const MavlinkStreamAttPosMocap &) = delete;
-
-protected:
-	explicit MavlinkStreamAttPosMocap(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send() override
-	{
-		vehicle_odometry_s mocap;
-
-		if (_mocap_sub.update(&mocap)) {
-			mavlink_att_pos_mocap_t msg{};
-
-			msg.time_usec = mocap.timestamp_sample;
-			msg.q[0] = mocap.q[0];
-			msg.q[1] = mocap.q[1];
-			msg.q[2] = mocap.q[2];
-			msg.q[3] = mocap.q[3];
-			msg.x = mocap.x;
-			msg.y = mocap.y;
-			msg.z = mocap.z;
-
-			mavlink_msg_att_pos_mocap_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
-		}
-
-		return false;
-	}
-};
-
 class MavlinkStreamCameraCapture : public MavlinkStream
 {
 public:
@@ -3166,7 +3098,9 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamOdometry>(),
 	create_stream_list_item<MavlinkStreamEstimatorStatus>(),
 	create_stream_list_item<MavlinkStreamVibration>(),
+#if defined(ATT_POS_MOCAP_HPP)
 	create_stream_list_item<MavlinkStreamAttPosMocap>(),
+#endif // ATT_POS_MOCAP_HPP
 #if !defined(CONSTRAINED_FLASH)
 	create_stream_list_item<MavlinkStreamGimbalDeviceAttitudeStatus>(),
 	create_stream_list_item<MavlinkStreamGimbalManagerInformation>(),
