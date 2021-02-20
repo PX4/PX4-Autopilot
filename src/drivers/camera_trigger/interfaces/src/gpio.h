@@ -27,11 +27,11 @@ private:
 
 	void setup();
 
-	param_t _p_polarity;
+	param_t _p_polarity{PARAM_INVALID};
 
-	bool _trigger_invert;
+	bool _trigger_invert{false};
 
-	uint32_t _triggers[num_gpios];
+	uint32_t _triggers[num_gpios]{};
 };
 
 #endif /* ifdef __PX4_NUTTX */

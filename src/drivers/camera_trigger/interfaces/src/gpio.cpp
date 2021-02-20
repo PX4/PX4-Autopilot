@@ -4,15 +4,12 @@
 #include <cstring>
 #include <px4_arch/io_timer.h>
 
-CameraInterfaceGPIO::CameraInterfaceGPIO():
-	CameraInterface(),
-	_trigger_invert(false),
-	_triggers{}
+CameraInterfaceGPIO::CameraInterfaceGPIO()
 {
 	_p_polarity = param_find("TRIG_POLARITY");
 
 	// polarity of the trigger (0 = active low, 1 = active high )
-	int32_t polarity;
+	int32_t polarity = 0;
 	param_get(_p_polarity, &polarity);
 	_trigger_invert = (polarity == 0);
 
@@ -23,7 +20,6 @@ CameraInterfaceGPIO::CameraInterfaceGPIO():
 void CameraInterfaceGPIO::setup()
 {
 	for (unsigned i = 0, t = 0; i < arraySize(_pins); i++) {
-
 		// Pin range is from 0 to num_gpios - 1
 		if (_pins[i] >= 0 && t < (int)arraySize(_triggers)) {
 			uint32_t gpio = io_timer_channel_get_gpio_output(_pins[i]);
@@ -39,10 +35,9 @@ void CameraInterfaceGPIO::trigger(bool trigger_on_true)
 	bool trigger_state = trigger_on_true ^ _trigger_invert;
 
 	for (unsigned i = 0; i < arraySize(_triggers); i++) {
-
-		if (_triggers[i] == 0) { break; }
-
-		px4_arch_gpiowrite(_triggers[i], trigger_state);
+		if (_triggers[i] != 0) {
+			px4_arch_gpiowrite(_triggers[i], trigger_state);
+		}
 	}
 }
 

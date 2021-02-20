@@ -33,7 +33,7 @@ public:
 private:
 	void setup();
 
-	bool _camera_is_on;
+	bool _camera_is_on{false};
 
 };
 

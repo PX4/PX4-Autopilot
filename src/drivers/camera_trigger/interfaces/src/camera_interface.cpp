@@ -1,20 +1,8 @@
 #include "camera_interface.h"
 #include <px4_platform_common/log.h>
 
-/**
- * @file camera_interface.cpp
- *
- */
-
-CameraInterface::CameraInterface():
-	_p_pin(PARAM_INVALID),
-	_pins{}
-{
-}
-
 void CameraInterface::get_pins()
 {
-
 	// Get parameter handle
 	_p_pin = param_find("TRIG_PINS");
 

@@ -17,9 +17,7 @@
 #define PWM_2_CAMERA_KEEP_ALIVE		1700
 #define PWM_2_CAMERA_ON_OFF			1900
 
-CameraInterfaceSeagull::CameraInterfaceSeagull():
-	CameraInterface(),
-	_camera_is_on(false)
+CameraInterfaceSeagull::CameraInterfaceSeagull()
 {
 	//get_pins();
 
@@ -80,9 +78,7 @@ void CameraInterfaceSeagull::trigger(bool trigger_on_true)
 
 void CameraInterfaceSeagull::send_keep_alive(bool enable)
 {
-	fprintf(stderr, "seagull keep alive %d (camera is on: %d)\n", enable, _camera_is_on);
 	// This should alternate between enable and !enable to keep the camera alive
-
 	if (!_camera_is_on) {
 		return;
 	}
@@ -90,7 +86,6 @@ void CameraInterfaceSeagull::send_keep_alive(bool enable)
 	for (unsigned i = 0; i < arraySize(_pins); i = i + 2) {
 		if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
 			// Set channel 2 pin to keep_alive or netural signal
-			fprintf(stderr, "seagull keep alive pin %d %d\n", i, _pins[i]);
 			up_pwm_trigger_set(_pins[i], enable ? PWM_2_CAMERA_KEEP_ALIVE : PWM_CAMERA_NEUTRAL);
 		}
 	}
@@ -98,9 +93,7 @@ void CameraInterfaceSeagull::send_keep_alive(bool enable)
 
 void CameraInterfaceSeagull::send_toggle_power(bool enable)
 {
-	fprintf(stderr, "seagull toggle power %d\n", enable);
 	// This should alternate between enable and !enable to toggle camera power
-
 	for (unsigned i = 0; i < arraySize(_pins); i = i + 2) {
 		if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
 			// Set channel 1 to neutral
@@ -110,7 +103,9 @@ void CameraInterfaceSeagull::send_toggle_power(bool enable)
 		}
 	}
 
-	if (!enable) { _camera_is_on = !_camera_is_on; }
+	if (!enable) {
+		_camera_is_on = !_camera_is_on;
+	}
 }
 
 void CameraInterfaceSeagull::info()
