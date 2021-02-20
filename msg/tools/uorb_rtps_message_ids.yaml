@@ -225,7 +225,7 @@ rtps:
     receive: true
   - msg: vtol_vehicle_status
     id: 105
-  - msg: wind_estimate
+  - msg: wind
     id: 106
   - msg: collision_constraints
     id: 107
@@ -329,6 +329,8 @@ rtps:
     id: 156
   - msg: gimbal_manager_set_manual_control
     id: 157
+  - msg: airspeed_wind
+    id: 158
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 170
@@ -431,4 +433,7 @@ rtps:
   - msg: actuator_controls_5
     id: 202
     alias: actuator_controls
+  - msg: estimator_wind
+    id: 203
+    alias: wind
   ########## multi topics: end ##########

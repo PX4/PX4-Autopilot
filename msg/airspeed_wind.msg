@@ -16,8 +16,7 @@ float32 beta_innov_var 		# Sideslip measurement innovation variance
 
 uint8 source			# source of wind estimate
 
-uint8 SOURCE_EKF = 0		# wind estimate source is the EKF
-uint8 SOURCE_AS_BETA_ONLY = 1	# wind estimate from airspeed selector, only based on synthetic sideslip fusion
-uint8 SOURCE_AS_SENSOR_1 = 2	# combined synthetic sideslip and airspeed fusion (data from first airspeed sensor)
-uint8 SOURCE_AS_SENSOR_2 = 3	# combined synthetic sideslip and airspeed fusion (data from second airspeed sensor)
-uint8 SOURCE_AS_SENSOR_3 = 4	# combined synthetic sideslip and airspeed fusion (data from third airspeed sensor)
+uint8 SOURCE_AS_BETA_ONLY = 0	# wind estimate only based on synthetic sideslip fusion
+uint8 SOURCE_AS_SENSOR_1 = 1	# combined synthetic sideslip and airspeed fusion (data from first airspeed sensor)
+uint8 SOURCE_AS_SENSOR_2 = 2	# combined synthetic sideslip and airspeed fusion (data from second airspeed sensor)
+uint8 SOURCE_AS_SENSOR_3 = 3	# combined synthetic sideslip and airspeed fusion (data from third airspeed sensor)

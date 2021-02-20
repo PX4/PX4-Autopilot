@@ -50,7 +50,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/rtl_flight_time.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/wind_estimate.h>
+#include <uORB/topics/wind.h>
 #include <matrix/math.hpp>
 #include <lib/ecl/geo/geo.h>
 
@@ -169,7 +169,7 @@ private:
 	param_t _param_rtl_xy_speed{PARAM_INVALID};
 	param_t _param_rtl_descent_speed{PARAM_INVALID};
 
-	uORB::SubscriptionData<wind_estimate_s>		_wind_estimate_sub{ORB_ID(wind_estimate)};
+	uORB::SubscriptionData<wind_s>		_wind_sub{ORB_ID(wind)};
 	uORB::Publication<rtl_flight_time_s>		_rtl_flight_time_pub{ORB_ID(rtl_flight_time)};
 };
 
