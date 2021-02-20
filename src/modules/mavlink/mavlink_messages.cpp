@@ -143,6 +143,7 @@ using matrix::wrap_2pi;
 #if !defined(CONSTRAINED_FLASH)
 # include "streams/ADSB_VEHICLE.hpp"
 # include "streams/ATT_POS_MOCAP.hpp"
+# include "streams/AUTOPILOT_STATE_FOR_GIMBAL_DEVICE.hpp"
 # include "streams/DEBUG.hpp"
 # include "streams/DEBUG_FLOAT_ARRAY.hpp"
 # include "streams/DEBUG_VECT.hpp"
@@ -1488,112 +1489,6 @@ protected:
 	}
 };
 
-#if !defined(CONSTRAINED_FLASH)
-class MavlinkStreamAutopilotStateForGimbalDevice : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamAutopilotStateForGimbalDevice::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "AUTOPILOT_STATE_FOR_GIMBAL_DEVICE";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_AUTOPILOT_STATE_FOR_GIMBAL_DEVICE;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamAutopilotStateForGimbalDevice(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return _att_sub.advertised() ? MAVLINK_MSG_ID_GIMBAL_DEVICE_SET_ATTITUDE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
-	}
-
-private:
-	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _lpos_sub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
-	uORB::Subscription _est_sub{ORB_ID(estimator_status)};
-	uORB::Subscription _landed_sub{ORB_ID(vehicle_land_detected)};
-
-	/* do not allow top copying this class */
-	MavlinkStreamAutopilotStateForGimbalDevice(MavlinkStreamAutopilotStateForGimbalDevice &) = delete;
-	MavlinkStreamAutopilotStateForGimbalDevice &operator = (const MavlinkStreamAutopilotStateForGimbalDevice &) = delete;
-
-protected:
-	explicit MavlinkStreamAutopilotStateForGimbalDevice(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send() override
-	{
-		if (_att_sub.advertised()) {
-
-			mavlink_autopilot_state_for_gimbal_device_t msg{};
-
-			{
-				vehicle_attitude_s att{};
-				_att_sub.copy(&att);
-				msg.time_boot_us = att.timestamp;
-				msg.q[0] = att.q[0];
-				msg.q[1] = att.q[1];
-				msg.q[2] = att.q[2];
-				msg.q[3] = att.q[3];
-				msg.q_estimated_delay_us = 0; // I don't know.
-			}
-
-			{
-				vehicle_local_position_s lpos{};
-				_lpos_sub.copy(&lpos);
-				msg.vx = lpos.vx;
-				msg.vy = lpos.vy;
-				msg.vz = lpos.vz;
-				msg.v_estimated_delay_us = 0; // I don't know.
-			}
-
-			{
-				vehicle_attitude_setpoint_s att_sp{};
-				_att_sp_sub.copy(&att_sp);
-				msg.feed_forward_angular_velocity_z = att_sp.yaw_sp_move_rate;
-			}
-
-			{
-				estimator_status_s est{};
-				_est_sub.copy(&est);
-				msg.estimator_status = est.solution_status_flags;
-			}
-
-			{
-				vehicle_land_detected_s land_detected{};
-				_landed_sub.copy(&land_detected);
-
-				// Ignore take-off and landing states for now.
-				msg.landed_state = land_detected.landed ? MAV_LANDED_STATE_ON_GROUND : MAV_LANDED_STATE_IN_AIR;
-			}
-
-			mavlink_msg_autopilot_state_for_gimbal_device_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
-
-		}
-
-		return false;
-	}
-};
-#endif
-
 class MavlinkStreamCameraTrigger : public MavlinkStream
 {
 public:
@@ -1832,11 +1727,11 @@ static const StreamListItem streams_list[] = {
 #if defined(ATT_POS_MOCAP_HPP)
 	create_stream_list_item<MavlinkStreamAttPosMocap>(),
 #endif // ATT_POS_MOCAP_HPP
-#if !defined(CONSTRAINED_FLASH)
-	create_stream_list_item<MavlinkStreamGimbalDeviceAttitudeStatus>(),
-#endif
-#if defined(GIMBAL_DEVICE_ATTITUDE_STATUS_HPP)
+#if defined(AUTOPILOT_STATE_FOR_GIMBAL_DEVICE_HPP)
 	create_stream_list_item<MavlinkStreamAutopilotStateForGimbalDevice>(),
+#endif // AUTOPILOT_STATE_FOR_GIMBAL_DEVICE_HPP
+#if defined(GIMBAL_DEVICE_ATTITUDE_STATUS_HPP)
+	create_stream_list_item<MavlinkStreamGimbalDeviceAttitudeStatus>(),
 #endif // GIMBAL_DEVICE_ATTITUDE_STATUS_HPP
 #if defined(GIMBAL_MANAGER_INFORMATION_HPP)
 	create_stream_list_item<MavlinkStreamGimbalManagerInformation>(),
