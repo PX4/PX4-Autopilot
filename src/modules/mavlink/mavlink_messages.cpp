@@ -135,6 +135,7 @@ using matrix::wrap_2pi;
 #include "streams/STATUSTEXT.hpp"
 #include "streams/STORAGE_INFORMATION.hpp"
 #include "streams/SYSTEM_TIME.hpp"
+#include "streams/TIMESYNC.hpp"
 #include "streams/TRAJECTORY_REPRESENTATION_WAYPOINTS.hpp"
 #include "streams/VIBRATION.hpp"
 #include "streams/WIND_COV.hpp"
@@ -1593,61 +1594,6 @@ protected:
 };
 #endif
 
-class MavlinkStreamTimesync : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamTimesync::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "TIMESYNC";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_TIMESYNC;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamTimesync(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return MAVLINK_MSG_ID_TIMESYNC_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-	}
-
-private:
-	/* do not allow top copying this class */
-	MavlinkStreamTimesync(MavlinkStreamTimesync &) = delete;
-	MavlinkStreamTimesync &operator = (const MavlinkStreamTimesync &) = delete;
-
-protected:
-	explicit MavlinkStreamTimesync(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send() override
-	{
-		mavlink_timesync_t msg{};
-
-		msg.tc1 = 0;
-		msg.ts1 = hrt_absolute_time() * 1000; // boot time in nanoseconds
-
-		mavlink_msg_timesync_send_struct(_mavlink->get_channel(), &msg);
-
-		return true;
-	}
-};
-
 class MavlinkStreamCameraTrigger : public MavlinkStream
 {
 public:
@@ -1865,7 +1811,9 @@ static const StreamListItem streams_list[] = {
 #if defined(SYSTEM_TIME_HPP)
 	create_stream_list_item<MavlinkStreamSystemTime>(),
 #endif // SYSTEM_TIME_HPP
+#if defined(TIMESYNC_HPP)
 	create_stream_list_item<MavlinkStreamTimesync>(),
+#endif // TIMESYNC_HPP
 #if defined(GLOBAL_POSITION_INT_HPP)
 	create_stream_list_item<MavlinkStreamGlobalPositionInt>(),
 #endif // GLOBAL_POSITION_INT_HPP
