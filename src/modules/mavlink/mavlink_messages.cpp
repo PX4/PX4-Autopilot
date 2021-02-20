@@ -69,7 +69,6 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/gimbal_device_attitude_status.h>
-#include <uORB/topics/gimbal_device_set_attitude.h>
 #include <uORB/topics/gimbal_manager_information.h>
 #include <uORB/topics/gimbal_manager_status.h>
 #include <uORB/topics/home_position.h>
@@ -148,6 +147,7 @@ using matrix::wrap_2pi;
 # include "streams/DEBUG.hpp"
 # include "streams/DEBUG_FLOAT_ARRAY.hpp"
 # include "streams/DEBUG_VECT.hpp"
+# include "streams/GIMBAL_DEVICE_SET_ATTITUDE.hpp"
 # include "streams/LINK_NODE_STATUS.hpp"
 # include "streams/NAMED_VALUE_FLOAT.hpp"
 # include "streams/ODOMETRY.hpp"
@@ -2195,81 +2195,6 @@ protected:
 	}
 };
 
-
-
-class MavlinkStreamGimbalDeviceSetAttitude : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamGimbalDeviceSetAttitude::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "GIMBAL_DEVICE_SET_ATTITUDE";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_GIMBAL_DEVICE_SET_ATTITUDE;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamGimbalDeviceSetAttitude(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return _gimbal_device_set_attitude_sub.advertised() ? (MAVLINK_MSG_ID_GIMBAL_DEVICE_SET_ATTITUDE_LEN +
-				MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
-	}
-
-private:
-	uORB::Subscription _gimbal_device_set_attitude_sub{ORB_ID(gimbal_device_set_attitude)};
-
-	/* do not allow top copying this class */
-	MavlinkStreamGimbalDeviceSetAttitude(MavlinkStreamGimbalDeviceSetAttitude &) = delete;
-	MavlinkStreamGimbalDeviceSetAttitude &operator = (const MavlinkStreamGimbalDeviceSetAttitude &) = delete;
-
-protected:
-	explicit MavlinkStreamGimbalDeviceSetAttitude(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send() override
-	{
-		gimbal_device_set_attitude_s gimbal_device_set_attitude;
-
-		if (_gimbal_device_set_attitude_sub.advertised() && _gimbal_device_set_attitude_sub.copy(&gimbal_device_set_attitude)) {
-			mavlink_gimbal_device_set_attitude_t msg{};
-			msg.flags = gimbal_device_set_attitude.flags;
-			msg.target_system = gimbal_device_set_attitude.target_system;
-			msg.target_component = gimbal_device_set_attitude.target_component;
-
-			msg.q[0] = gimbal_device_set_attitude.q[0];
-			msg.q[1] = gimbal_device_set_attitude.q[1];
-			msg.q[2] = gimbal_device_set_attitude.q[2];
-			msg.q[3] = gimbal_device_set_attitude.q[3];
-
-			msg.angular_velocity_x = gimbal_device_set_attitude.angular_velocity_x;
-			msg.angular_velocity_y = gimbal_device_set_attitude.angular_velocity_y;
-			msg.angular_velocity_z = gimbal_device_set_attitude.angular_velocity_z;
-
-			mavlink_msg_gimbal_device_set_attitude_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
-
-		}
-
-		return false;
-	}
-};
 #endif
 
 class MavlinkStreamCameraTrigger : public MavlinkStream
@@ -2511,8 +2436,10 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamGimbalManagerInformation>(),
 	create_stream_list_item<MavlinkStreamGimbalManagerStatus>(),
 	create_stream_list_item<MavlinkStreamAutopilotStateForGimbalDevice>(),
-	create_stream_list_item<MavlinkStreamGimbalDeviceSetAttitude>(),
 #endif
+#if defined(GIMBAL_DEVICE_SET_ATTITUDE_HPP)
+	create_stream_list_item<MavlinkStreamGimbalDeviceSetAttitude>(),
+#endif // GIMBAL_DEVICE_SET_ATTITUDE_HPP
 #if defined(HOME_POSITION_HPP)
 	create_stream_list_item<MavlinkStreamHomePosition>(),
 #endif // HOME_POSITION_HPP
