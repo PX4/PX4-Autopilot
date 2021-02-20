@@ -149,6 +149,7 @@ using matrix::wrap_2pi;
 # include "streams/DEBUG_VECT.hpp"
 # include "streams/LINK_NODE_STATUS.hpp"
 # include "streams/NAMED_VALUE_FLOAT.hpp"
+# include "streams/ODOMETRY.hpp"
 #endif // !CONSTRAINED_FLASH
 
 // ensure PX4 rotation enum and MAV_SENSOR_ROTATION align
@@ -2565,162 +2566,6 @@ protected:
 	}
 };
 
-class MavlinkStreamOdometry : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamOdometry::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "ODOMETRY";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_ODOMETRY;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamOdometry(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		if (_mavlink->odometry_loopback_enabled()) {
-			return _vodom_sub.advertised() ? MAVLINK_MSG_ID_ODOMETRY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
-
-		} else {
-			return _odom_sub.advertised() ? MAVLINK_MSG_ID_ODOMETRY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
-		}
-	}
-
-private:
-	uORB::Subscription _odom_sub{ORB_ID(vehicle_odometry)};
-	uORB::Subscription _vodom_sub{ORB_ID(vehicle_visual_odometry)};
-
-	/* do not allow top copying this class */
-	MavlinkStreamOdometry(MavlinkStreamOdometry &) = delete;
-	MavlinkStreamOdometry &operator = (const MavlinkStreamOdometry &) = delete;
-
-protected:
-	explicit MavlinkStreamOdometry(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send() override
-	{
-		vehicle_odometry_s odom;
-		// check if it is to send visual odometry loopback or not
-		bool odom_updated = false;
-
-		mavlink_odometry_t msg{};
-
-		if (_mavlink->odometry_loopback_enabled()) {
-			odom_updated = _vodom_sub.update(&odom);
-
-			// set the frame_id according to the local frame of the data
-			if (odom.local_frame == vehicle_odometry_s::LOCAL_FRAME_NED) {
-				msg.frame_id = MAV_FRAME_LOCAL_NED;
-
-			} else {
-				msg.frame_id = MAV_FRAME_LOCAL_FRD;
-			}
-
-			// source: external vision system
-			msg.estimator_type = MAV_ESTIMATOR_TYPE_VISION;
-
-		} else {
-			odom_updated = _odom_sub.update(&odom);
-
-			msg.frame_id = MAV_FRAME_LOCAL_NED;
-
-			// source: PX4 estimator
-			msg.estimator_type = MAV_ESTIMATOR_TYPE_AUTOPILOT;
-		}
-
-		if (odom_updated) {
-			msg.time_usec = odom.timestamp_sample;
-			msg.child_frame_id = MAV_FRAME_BODY_FRD;
-
-			// Current position
-			msg.x = odom.x;
-			msg.y = odom.y;
-			msg.z = odom.z;
-
-			// Current orientation
-			msg.q[0] = odom.q[0];
-			msg.q[1] = odom.q[1];
-			msg.q[2] = odom.q[2];
-			msg.q[3] = odom.q[3];
-
-			switch (odom.velocity_frame) {
-			case vehicle_odometry_s::BODY_FRAME_FRD:
-				msg.vx = odom.vx;
-				msg.vy = odom.vy;
-				msg.vz = odom.vz;
-				break;
-
-			case vehicle_odometry_s::LOCAL_FRAME_FRD:
-			case vehicle_odometry_s::LOCAL_FRAME_NED:
-				// Body frame to local frame
-				const matrix::Dcmf R_body_to_local(matrix::Quatf(odom.q));
-
-				// Rotate linear velocity from local to body frame
-				const matrix::Vector3f linvel_body(R_body_to_local.transpose() *
-								   matrix::Vector3f(odom.vx, odom.vy, odom.vz));
-
-				msg.vx = linvel_body(0);
-				msg.vy = linvel_body(1);
-				msg.vz = linvel_body(2);
-				break;
-			}
-
-			// Current body rates
-			msg.rollspeed = odom.rollspeed;
-			msg.pitchspeed = odom.pitchspeed;
-			msg.yawspeed = odom.yawspeed;
-
-			// get the covariance matrix size
-
-			// pose_covariance
-			static constexpr size_t POS_URT_SIZE = sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0]);
-			static_assert(POS_URT_SIZE == (sizeof(msg.pose_covariance) / sizeof(msg.pose_covariance[0])),
-				      "Odometry Pose Covariance matrix URT array size mismatch");
-
-			// velocity_covariance
-			static constexpr size_t VEL_URT_SIZE = sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0]);
-			static_assert(VEL_URT_SIZE == (sizeof(msg.velocity_covariance) / sizeof(msg.velocity_covariance[0])),
-				      "Odometry Velocity Covariance matrix URT array size mismatch");
-
-			// copy pose covariances
-			for (size_t i = 0; i < POS_URT_SIZE; i++) {
-				msg.pose_covariance[i] = odom.pose_covariance[i];
-			}
-
-			// copy velocity covariances
-			//TODO: Apply rotation matrix to transform from body-fixed NED to earth-fixed NED frame
-			for (size_t i = 0; i < VEL_URT_SIZE; i++) {
-				msg.velocity_covariance[i] = odom.velocity_covariance[i];
-			}
-
-			mavlink_msg_odometry_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
-		}
-
-		return false;
-
-	}
-};
-
 class MavlinkStreamCameraCapture : public MavlinkStream
 {
 public:
@@ -2831,7 +2676,9 @@ static const StreamListItem streams_list[] = {
 #if defined(LOCAL_POSITION_NED_HPP)
 	create_stream_list_item<MavlinkStreamLocalPositionNED>(),
 #endif // LOCAL_POSITION_NED_HPP
+#if defined(ODOMETRY_HPP)
 	create_stream_list_item<MavlinkStreamOdometry>(),
+#endif // ODOMETRY_HPP
 #if defined(ESTIMATOR_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamEstimatorStatus>(),
 #endif // ESTIMATOR_STATUS_HPP
