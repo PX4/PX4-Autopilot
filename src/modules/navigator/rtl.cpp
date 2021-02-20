@@ -670,12 +670,12 @@ void RTL::get_rtl_xy_z_speed(float &xy, float &z)
 
 matrix::Vector2f RTL::get_wind()
 {
-	_wind_estimate_sub.update();
+	_wind_sub.update();
 	matrix::Vector2f wind;
 
-	if (hrt_absolute_time() - _wind_estimate_sub.get().timestamp < 1_s) {
-		wind(0) = _wind_estimate_sub.get().windspeed_north;
-		wind(1) = _wind_estimate_sub.get().windspeed_east;
+	if (hrt_absolute_time() - _wind_sub.get().timestamp < 1_s) {
+		wind(0) = _wind_sub.get().windspeed_north;
+		wind(1) = _wind_sub.get().windspeed_east;
 	}
 
 	return wind;
