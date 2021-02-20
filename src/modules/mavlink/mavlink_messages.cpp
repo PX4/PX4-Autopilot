@@ -104,6 +104,7 @@ using matrix::wrap_2pi;
 #include "streams/BATTERY_STATUS.hpp"
 #include "streams/CAMERA_IMAGE_CAPTURED.hpp"
 #include "streams/COLLISION.hpp"
+#include "streams/COMMAND_LONG.hpp"
 #include "streams/COMPONENT_INFORMATION.hpp"
 #include "streams/DISTANCE_SENSOR.hpp"
 #include "streams/ESC_INFO.hpp"
@@ -483,83 +484,6 @@ protected:
 	}
 };
 
-class MavlinkStreamCommandLong : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamCommandLong::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "COMMAND_LONG";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_COMMAND_LONG;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamCommandLong(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return 0;	// commands stream is not regular and not predictable
-	}
-
-private:
-	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
-
-	/* do not allow top copying this class */
-	MavlinkStreamCommandLong(MavlinkStreamCommandLong &) = delete;
-	MavlinkStreamCommandLong &operator = (const MavlinkStreamCommandLong &) = delete;
-
-protected:
-	explicit MavlinkStreamCommandLong(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send() override
-	{
-		bool sent = false;
-
-		while ((_mavlink->get_free_tx_buf() >= get_size()) && _vehicle_command_sub.updated()) {
-
-			const unsigned last_generation = _vehicle_command_sub.get_last_generation();
-			vehicle_command_s cmd;
-
-			if (_vehicle_command_sub.update(&cmd)) {
-				if (_vehicle_command_sub.get_last_generation() != last_generation + 1) {
-					PX4_ERR("COMMAND_LONG vehicle_command lost, generation %d -> %d", last_generation,
-						_vehicle_command_sub.get_last_generation());
-				}
-
-				if (!cmd.from_external && cmd.command < vehicle_command_s::VEHICLE_CMD_PX4_INTERNAL_START) {
-					PX4_DEBUG("sending command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
-
-					MavlinkCommandSender::instance().handle_vehicle_command(cmd, _mavlink->get_channel());
-					sent = true;
-
-				} else {
-					PX4_DEBUG("not forwarding command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
-				}
-			}
-		}
-
-		MavlinkCommandSender::instance().check_timeout(_mavlink->get_channel());
-
-		return sent;
-	}
-};
-
 class MavlinkStreamCameraTrigger : public MavlinkStream
 {
 public:
@@ -746,7 +670,9 @@ static const StreamListItem streams_list[] = {
 #if defined(STATUSTEXT_HPP)
 	create_stream_list_item<MavlinkStreamStatustext>(),
 #endif // STATUSTEXT_HPP
+#if defined(COMMAND_LONG_HPP)
 	create_stream_list_item<MavlinkStreamCommandLong>(),
+#endif // COMMAND_LONG_HPP
 #if defined(SYSTEM_TIME_HPP)
 	create_stream_list_item<MavlinkStreamSysStatus>(),
 #endif // SYSTEM_TIME_HPP
