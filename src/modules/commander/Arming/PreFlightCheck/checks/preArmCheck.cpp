@@ -94,7 +94,7 @@ bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_st
 		}
 	}
 
-	if (arm_requirements.global_position) {
+	if (arm_requirements.global_position && !status_flags.circuit_breaker_engaged_posfailure_check) {
 
 		if (!status_flags.condition_global_position_valid) {
 			if (prearm_ok) {
