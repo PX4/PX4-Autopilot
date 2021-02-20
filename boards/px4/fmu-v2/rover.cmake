@@ -79,5 +79,4 @@ px4_add_board(
 		usb_connected
 		ver
 		work_queue
-
 	)
