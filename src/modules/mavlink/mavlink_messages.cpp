@@ -90,7 +90,6 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_imu.h>
-#include <uORB/topics/vehicle_imu_status.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
@@ -117,10 +116,10 @@ using matrix::wrap_2pi;
 #include "streams/FLIGHT_INFORMATION.hpp"
 #include "streams/GPS_GLOBAL_ORIGIN.hpp"
 #include "streams/GPS_STATUS.hpp"
-#include "streams/HOME_POSITION.hpp"
 #include "streams/HIGH_LATENCY2.hpp"
 #include "streams/HIL_ACTUATOR_CONTROLS.hpp"
 #include "streams/HIL_STATE_QUATERNION.hpp"
+#include "streams/HOME_POSITION.hpp"
 #include "streams/MANUAL_CONTROL.hpp"
 #include "streams/MOUNT_ORIENTATION.hpp"
 #include "streams/NAV_CONTROLLER_OUTPUT.hpp"
@@ -138,6 +137,7 @@ using matrix::wrap_2pi;
 #include "streams/STATUSTEXT.hpp"
 #include "streams/STORAGE_INFORMATION.hpp"
 #include "streams/TRAJECTORY_REPRESENTATION_WAYPOINTS.hpp"
+#include "streams/VIBRATION.hpp"
 #include "streams/WIND_COV.hpp"
 
 #if !defined(CONSTRAINED_FLASH)
@@ -2868,125 +2868,6 @@ protected:
 	}
 };
 
-class MavlinkStreamVibration : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamVibration::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "VIBRATION";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_VIBRATION;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamVibration(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		const unsigned size = MAVLINK_MSG_ID_VIBRATION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-
-		if (_sensor_selection_sub.advertised()) {
-			return size;
-		}
-
-		if (_vehicle_imu_status_subs.advertised()) {
-			return size;
-		}
-
-		return 0;
-	}
-
-private:
-	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
-	uORB::SubscriptionMultiArray<vehicle_imu_status_s, 3> _vehicle_imu_status_subs{ORB_ID::vehicle_imu_status};
-
-	/* do not allow top copying this class */
-	MavlinkStreamVibration(MavlinkStreamVibration &) = delete;
-	MavlinkStreamVibration &operator = (const MavlinkStreamVibration &) = delete;
-
-protected:
-	explicit MavlinkStreamVibration(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send() override
-	{
-		if (_sensor_selection_sub.updated() || _vehicle_imu_status_subs.updated()) {
-
-			mavlink_vibration_t msg{};
-			msg.time_usec = hrt_absolute_time();
-
-			// VIBRATION usage not to mavlink spec, this is our current usage.
-			//  vibration_x : Primary gyro delta angle coning metric = filtered length of (delta_angle x prev_delta_angle)
-			//  vibration_y : Primary gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
-			//  vibration_z : Primary accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
-
-			sensor_selection_s sensor_selection{};
-			_sensor_selection_sub.copy(&sensor_selection);
-
-			// primary accel high frequency vibration metric
-			if (sensor_selection.accel_device_id != 0) {
-				for (auto &x : _vehicle_imu_status_subs) {
-					vehicle_imu_status_s status;
-
-					if (x.copy(&status)) {
-						if (status.accel_device_id == sensor_selection.accel_device_id) {
-							msg.vibration_x = status.gyro_coning_vibration;
-							msg.vibration_y = status.gyro_vibration_metric;
-							msg.vibration_z = status.accel_vibration_metric;
-							break;
-						}
-					}
-				}
-			}
-
-			// accel 0, 1, 2 cumulative clipping
-			for (int i = 0; i < math::min(static_cast<uint8_t>(3), _vehicle_imu_status_subs.size()); i++) {
-				vehicle_imu_status_s status;
-
-				if (_vehicle_imu_status_subs[i].copy(&status)) {
-
-					const uint32_t clipping = status.accel_clipping[0] + status.accel_clipping[1] + status.accel_clipping[2];
-
-					switch (i) {
-					case 0:
-						msg.clipping_0 = clipping;
-						break;
-
-					case 1:
-						msg.clipping_1 = clipping;
-						break;
-
-					case 2:
-						msg.clipping_2 = clipping;
-						break;
-					}
-				}
-			}
-
-			mavlink_msg_vibration_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
-		}
-
-		return false;
-	}
-};
-
 class MavlinkStreamCameraCapture : public MavlinkStream
 {
 public:
@@ -3097,7 +2978,9 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamLocalPositionNED>(),
 	create_stream_list_item<MavlinkStreamOdometry>(),
 	create_stream_list_item<MavlinkStreamEstimatorStatus>(),
+#if defined(VIBRATION_HPP)
 	create_stream_list_item<MavlinkStreamVibration>(),
+#endif // VIBRATION_HPP
 #if defined(ATT_POS_MOCAP_HPP)
 	create_stream_list_item<MavlinkStreamAttPosMocap>(),
 #endif // ATT_POS_MOCAP_HPP
