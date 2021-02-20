@@ -76,7 +76,9 @@ namespace uavcannode
 */
 boot_app_shared_section app_descriptor_t AppDescriptor = {
 	.signature = APP_DESCRIPTOR_SIGNATURE,
-	.image_crc = 0,
+	{
+		0,
+	},
 	.image_size = 0,
 	.git_hash  = 0,
 	.major_version = APP_VERSION_MAJOR,
