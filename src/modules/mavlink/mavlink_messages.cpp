@@ -112,6 +112,7 @@ using matrix::wrap_2pi;
 #include "streams/FLIGHT_INFORMATION.hpp"
 #include "streams/GLOBAL_POSITION_INT.hpp"
 #include "streams/GPS_GLOBAL_ORIGIN.hpp"
+#include "streams/GPS_RAW_INT.hpp"
 #include "streams/GPS_STATUS.hpp"
 #include "streams/HIGH_LATENCY2.hpp"
 #include "streams/HIL_ACTUATOR_CONTROLS.hpp"
@@ -1329,89 +1330,6 @@ protected:
 	}
 };
 
-class MavlinkStreamGPSRawInt : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamGPSRawInt::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "GPS_RAW_INT";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_GPS_RAW_INT;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamGPSRawInt(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return _gps_sub.advertised() ? MAVLINK_MSG_ID_GPS_RAW_INT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
-	}
-
-private:
-	uORB::Subscription _gps_sub{ORB_ID(sensor_gps), 0};
-
-	/* do not allow top copying this class */
-	MavlinkStreamGPSRawInt(MavlinkStreamGPSRawInt &) = delete;
-	MavlinkStreamGPSRawInt &operator = (const MavlinkStreamGPSRawInt &) = delete;
-
-protected:
-	explicit MavlinkStreamGPSRawInt(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send() override
-	{
-		sensor_gps_s gps;
-
-		if (_gps_sub.update(&gps)) {
-			mavlink_gps_raw_int_t msg{};
-
-			msg.time_usec = gps.timestamp;
-			msg.fix_type = gps.fix_type;
-			msg.lat = gps.lat;
-			msg.lon = gps.lon;
-			msg.alt = gps.alt;
-			msg.alt_ellipsoid = gps.alt_ellipsoid;
-			msg.eph = gps.hdop * 100;
-			msg.epv = gps.vdop * 100;
-			msg.h_acc = gps.eph * 1e3f;
-			msg.v_acc = gps.epv * 1e3f;
-			msg.vel_acc = gps.s_variance_m_s * 1e3f;
-			msg.hdg_acc = math::degrees(gps.c_variance_rad) * 1e5f; // degE5
-
-			if (PX4_ISFINITE(gps.vel_m_s) && (fabsf(gps.vel_m_s) >= 0.f)) {
-				msg.vel = gps.vel_m_s * 100.f; // cm/s
-
-			} else {
-				msg.vel = UINT16_MAX; // If unknown, set to: UINT16_MAX
-			}
-
-			msg.cog = math::degrees(wrap_2pi(gps.cog_rad)) * 1e2f;
-			msg.satellites_visible = gps.satellites_used;
-
-			mavlink_msg_gps_raw_int_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
-		}
-
-		return false;
-	}
-};
-
 class MavlinkStreamCameraTrigger : public MavlinkStream
 {
 public:
@@ -1624,7 +1542,9 @@ static const StreamListItem streams_list[] = {
 #if defined(GPS_GLOBAL_ORIGIN_HPP)
 	create_stream_list_item<MavlinkStreamGpsGlobalOrigin>(),
 #endif // GPS_GLOBAL_ORIGIN_HPP
+#if defined(GPS_RAW_INT_HPP)
 	create_stream_list_item<MavlinkStreamGPSRawInt>(),
+#endif // GPS_RAW_INT_HPP
 #if defined(GPS2_RAW_HPP)
 	create_stream_list_item<MavlinkStreamGPS2Raw>(),
 #endif // GPS2_RAW_HPP
