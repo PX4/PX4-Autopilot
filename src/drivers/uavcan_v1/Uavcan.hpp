@@ -79,8 +79,9 @@
 #include "CanardInterface.hpp"
 #include "Publishers/Publisher.hpp"
 #include "Subscribers/Subscriber.hpp"
-#include "Subscribers/Gnss.hpp"
 #include "Subscribers/Battery.hpp"
+#include "Subscribers/Esc.hpp"
+#include "Subscribers/Gnss.hpp"
 #include "Actuators/EscClient.hpp" /// TODO: Add EscServer.hpp for node-side service
 
 /**
@@ -238,8 +239,9 @@ private:
 	UavcanGpsSubscription _gps1_sub {_canard_instance, _param_manager, "uavcan.sub.gps.1.id"};
 	UavcanBmsSubscription _bms0_sub {_canard_instance, _param_manager, "uavcan.sub.bms.0.id"};
 	UavcanBmsSubscription _bms1_sub {_canard_instance, _param_manager, "uavcan.sub.bms.1.id"};
+	UavcanEscSubscription _esc_sub  {_canard_instance, _param_manager, "uavcan.sub.esc.0.id"};
 
-	UavcanSubscription *_subscribers[4] {&_gps0_sub, &_gps1_sub, &_bms0_sub, &_bms1_sub}; /// TODO: turn into List<UavcanSubscription*>
+	UavcanSubscription *_subscribers[5] {&_gps0_sub, &_gps1_sub, &_bms0_sub, &_bms1_sub, &_esc_sub}; /// TODO: turn into List<UavcanSubscription*>
 
 	UavcanEscController _esc_controller {_canard_instance, 22};
 
