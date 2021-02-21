@@ -56,12 +56,8 @@ static void memFree(CanardInstance *const ins, void *const pointer) { o1heapFree
 UavcanNode::UavcanNode(CanardInterface *interface, uint32_t node_id) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
-	_can_interface(interface),
-	_gps0_sub(_canard_instance, _param_manager, "uavcan.sub.gps.0.id"),
-	_gps1_sub(_canard_instance, _param_manager, "uavcan.sub.gps.1.id"),
-	_bms0_sub(_canard_instance, _param_manager, "uavcan.sub.bms.0.id"),
-	_bms1_sub(_canard_instance, _param_manager, "uavcan.sub.bms.1.id"),
-	_subscribers{&_gps0_sub, &_gps1_sub, &_bms0_sub, &_bms1_sub}
+	_can_interface(interface)//,
+	// _subscribers{&_gps0_sub, &_gps1_sub, &_bms0_sub, &_bms1_sub}
 {
 	pthread_mutex_init(&_node_mutex, nullptr);
 
@@ -389,6 +385,8 @@ void UavcanNode::print_info()
 		subscriber->printInfo();
 	}
 
+	_mixing_output.printInfo();
+
 	pthread_mutex_unlock(&_node_mutex);
 }
 
@@ -479,6 +477,13 @@ void UavcanNode::sendHeartbeat()
 		}
 
 		_uavcan_node_heartbeat_last = transfer.timestamp_usec;
+
+		uint16_t outputs[8] {};
+		outputs[0] = 1000;
+		outputs[1] = 2000;
+		outputs[2] = 3000;
+		outputs[3] = 4000;
+		_mixing_output.updateOutputs(false, outputs, 4, 1);
 	}
 }
 
@@ -719,4 +724,26 @@ int UavcanNode::handleUORBSensorGPS(const CanardTransfer &receive)
 	sensor_gps_s *gps_msg = (sensor_gps_s *)receive.payload;
 
 	return _sensor_gps_pub.publish(*gps_msg) ? 0 : -1;
+}
+
+
+bool UavcanMixingInterface::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+		unsigned num_control_groups_updated)
+{
+	// Note: This gets called from MixingOutput from within its update() function
+	// Hence, the mutex lock in UavcanMixingInterface::Run() is in effect
+
+	/// TODO: Need esc/servo metadata / bitmask(s)
+	_esc_controller.update_outputs(stop_motors, outputs, num_outputs);
+	// _servo_controller.update_outputs(stop_motors, outputs, num_outputs);
+
+	return true;
+}
+
+void UavcanMixingInterface::Run()
+{
+	pthread_mutex_lock(&_node_mutex);
+	_mixing_output.update();
+	_mixing_output.updateSubscriptions(false);
+	pthread_mutex_unlock(&_node_mutex);
 }

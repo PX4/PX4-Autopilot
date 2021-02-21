@@ -55,7 +55,7 @@ bool UavcanParamManager::GetParamByName(const char *param_name, uavcan_register_
 			switch (param_type(param_handle)) {
 			case PARAM_TYPE_INT32: {
 					int32_t out_val {};
-					param_set(param_handle, &out_val);
+					param_get(param_handle, &out_val);
 					value.integer32.value.elements[0] = out_val;
 					uavcan_register_Value_1_0_select_integer32_(&value);
 					break;
@@ -63,7 +63,7 @@ bool UavcanParamManager::GetParamByName(const char *param_name, uavcan_register_
 
 			case PARAM_TYPE_FLOAT: {
 					float out_val {};
-					param_set(param_handle, &out_val);
+					param_get(param_handle, &out_val);
 					value.natural32.value.elements[0] = out_val;
 					uavcan_register_Value_1_0_select_natural32_(&value);
 					break;

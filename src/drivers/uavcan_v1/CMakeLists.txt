@@ -74,8 +74,6 @@ px4_add_module(
 	SRCS
 		ParamManager.hpp
 		ParamManager.cpp
-		Subscriber.cpp
-		Subscriber.hpp
 		Uavcan.cpp
 		Uavcan.hpp
 		${SRCS}
