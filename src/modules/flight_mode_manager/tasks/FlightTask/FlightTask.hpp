@@ -227,9 +227,6 @@ protected:
 	float _dist_to_bottom{}; /**< current height above ground level */
 	float _dist_to_ground{}; /**< equals _dist_to_bottom if valid, height above home otherwise */
 
-	float _min_distance_to_ground{-INFINITY}; /**< min distance to ground constraint */
-	float _max_distance_to_ground{INFINITY};  /**< max distance to ground constraint */
-
 	/**
 	 * Setpoints which the position controller has to execute.
 	 * Setpoints that are set to NAN are not controlled. Not all setpoints can be set at the same time.
