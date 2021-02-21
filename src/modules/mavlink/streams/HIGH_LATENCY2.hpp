@@ -34,7 +34,6 @@
 #ifndef HIGH_LATENCY2_HPP
 #define HIGH_LATENCY2_HPP
 
-#include <commander/px4_custom_mode.h>
 #include <lib/ecl/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/matrix/matrix/math.hpp>
@@ -447,9 +446,7 @@ private:
 			}
 
 			// flight mode
-			union px4_custom_mode custom_mode;
-			uint8_t mavlink_base_mode;
-			get_mavlink_navigation_mode(&status, &mavlink_base_mode, &custom_mode);
+			union px4_custom_mode custom_mode {get_px4_custom_mode(status.nav_state)};
 			msg->custom_mode = custom_mode.custom_mode_hl;
 
 			return true;
