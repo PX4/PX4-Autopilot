@@ -132,7 +132,7 @@ private:
 
 	WeatherVane *_wv_controller{nullptr};
 	int8_t _old_landing_gear_position{landing_gear_s::GEAR_KEEP};
-	uint8_t _takeoff_state{takeoff_status_s::TAKEOFF_STATE_DISARMED};
+	uint8_t _takeoff_state{takeoff_status_s::TAKEOFF_STATE_UNINITIALIZED};
 	int _task_failure_count{0};
 	uint8_t _last_vehicle_nav_state{0};
 
