@@ -49,11 +49,6 @@
 
 #include <lib/parameters/param.h>
 
-#include "o1heap/o1heap.h"
-
-#include <canard.h>
-#include <canard_dsdl.h>
-
 #include <uavcan/_register/Access_1_0.h>
 #include <uavcan/_register/List_1_0.h>
 #include <uavcan/_register/Value_1_0.h>
@@ -64,13 +59,8 @@
 #include <uavcan/pnp/NodeIDAllocationData_1_0.h>
 #include <uavcan/pnp/NodeIDAllocationData_2_0.h>
 
-// DS-15 Specification Messages
-#include <reg/drone/physics/kinematics/geodetic/Point_0_1.h>
-#include <reg/drone/service/battery/Parameters_0_1.h>
-#include <reg/drone/service/battery/Status_0_1.h>
-
-#include "CanardInterface.hpp"
-#include "ParamManager.hpp"
+#include "../CanardInterface.hpp"
+#include "../ParamManager.hpp"
 
 class UavcanSubscription
 {
@@ -88,7 +78,6 @@ public:
 	void updateParam()
 	{
 		// Set _port_id from _uavcan_param
-
 		uavcan_register_Value_1_0 value;
 		_param_manager.GetParamByName(_uavcan_param, value);
 		int32_t new_id = value.integer32.value.elements[0];
@@ -127,32 +116,4 @@ protected:
 	/// TODO: 'type' parameter? uavcan.pub.PORT_NAME.type (see 384.Access.1.0.uavcan)
 
 	CanardPortID _port_id {0};
-};
-
-class UavcanGpsSubscription : public UavcanSubscription
-{
-public:
-	UavcanGpsSubscription(CanardInstance &ins, UavcanParamManager &pmgr, const char *uavcan_pname) :
-		UavcanSubscription(ins, pmgr, uavcan_pname) { };
-
-	void subscribe() override;
-
-	void callback(const CanardTransfer &msg) override;
-
-private:
-
-};
-
-class UavcanBmsSubscription : public UavcanSubscription
-{
-public:
-	UavcanBmsSubscription(CanardInstance &ins, UavcanParamManager &pmgr, const char *uavcan_pname) :
-		UavcanSubscription(ins, pmgr, uavcan_pname) { };
-
-	void subscribe() override;
-
-	void callback(const CanardTransfer &msg) override;
-
-private:
-
 };
