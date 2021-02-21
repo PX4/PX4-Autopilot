@@ -299,41 +299,25 @@ void MulticopterPositionControl::Run()
 			// adjust existing (or older) setpoint with any EKF reset deltas
 			if (_setpoint.timestamp < local_pos.timestamp) {
 				if (local_pos.vxy_reset_counter != _vxy_reset_counter) {
-					if (PX4_ISFINITE(_setpoint.vx)) {
-						_setpoint.vx += local_pos.delta_vxy[0];
-					}
-
-					if (PX4_ISFINITE(_setpoint.vy)) {
-						_setpoint.vy += local_pos.delta_vxy[1];
-					}
+					_setpoint.vx += local_pos.delta_vxy[0];
+					_setpoint.vy += local_pos.delta_vxy[1];
 				}
 
 				if (local_pos.vz_reset_counter != _vz_reset_counter) {
-					if (PX4_ISFINITE(_setpoint.vz)) {
-						_setpoint.vz += local_pos.delta_vz;
-					}
+					_setpoint.vz += local_pos.delta_vz;
 				}
 
 				if (local_pos.xy_reset_counter != _xy_reset_counter) {
-					if (PX4_ISFINITE(_setpoint.x)) {
-						_setpoint.x += local_pos.delta_xy[0];
-					}
-
-					if (PX4_ISFINITE(_setpoint.y)) {
-						_setpoint.y += local_pos.delta_xy[1];
-					}
+					_setpoint.x += local_pos.delta_xy[0];
+					_setpoint.y += local_pos.delta_xy[1];
 				}
 
 				if (local_pos.z_reset_counter != _z_reset_counter) {
-					if (PX4_ISFINITE(_setpoint.z)) {
-						_setpoint.z += local_pos.delta_z;
-					}
+					_setpoint.z += local_pos.delta_z;
 				}
 
 				if (local_pos.heading_reset_counter != _heading_reset_counter) {
-					if (PX4_ISFINITE(_setpoint.yaw)) {
-						_setpoint.yaw += local_pos.delta_heading;
-					}
+					_setpoint.yaw += local_pos.delta_heading;
 				}
 			}
 
