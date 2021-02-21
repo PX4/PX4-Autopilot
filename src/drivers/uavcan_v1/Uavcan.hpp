@@ -185,11 +185,6 @@ private:
 	CanardRxSubscription _register_access_subscription;
 	CanardRxSubscription _register_list_subscription;
 
-	CanardRxSubscription _canard_gps0_sub;
-	CanardRxSubscription _canard_gps1_sub;
-	CanardRxSubscription _canard_bms0_sub;
-	CanardRxSubscription _canard_bms1_sub;
-
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
