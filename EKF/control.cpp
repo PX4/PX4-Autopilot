@@ -336,7 +336,7 @@ void Ekf::controlExternalVisionFusion()
 
 		// Turn off EV fusion mode if no data has been received
 		stopEvFusion();
-		ECL_INFO_TIMESTAMPED("vision data stopped");
+		ECL_WARN_TIMESTAMPED("vision data stopped");
 
 	}
 }
