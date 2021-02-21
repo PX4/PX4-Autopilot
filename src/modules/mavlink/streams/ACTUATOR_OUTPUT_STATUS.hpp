@@ -34,49 +34,28 @@
 #ifndef ACTUATOR_OUTPUT_STATUS_HPP
 #define ACTUATOR_OUTPUT_STATUS_HPP
 
+#include <uORB/topics/actuator_outputs.h>
+
 class MavlinkStreamActuatorOutputStatus : public MavlinkStream
 {
 public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamActuatorOutputStatus::get_name_static();
-	}
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamActuatorOutputStatus(mavlink); }
 
-	static constexpr const char *get_name_static()
-	{
-		return "ACTUATOR_OUTPUT_STATUS";
-	}
+	static constexpr const char *get_name_static() { return "ACTUATOR_OUTPUT_STATUS"; }
+	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_ACTUATOR_OUTPUT_STATUS; }
 
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_ACTUATOR_OUTPUT_STATUS;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamActuatorOutputStatus(mavlink);
-	}
+	const char *get_name() const override { return get_name_static(); }
+	uint16_t get_id() override { return get_id_static(); }
 
 	unsigned get_size() override
 	{
-		return (_act_output_sub.advertised()) ? (MAVLINK_MSG_ID_ACTUATOR_OUTPUT_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+		return _act_output_sub.advertised() ? (MAVLINK_MSG_ID_ACTUATOR_OUTPUT_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
 private:
+	explicit MavlinkStreamActuatorOutputStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+
 	uORB::Subscription _act_output_sub{ORB_ID(actuator_outputs)};
-
-	/* do not allow top copying this class */
-	MavlinkStreamActuatorOutputStatus(MavlinkStreamActuatorOutputStatus &) = delete;
-	MavlinkStreamActuatorOutputStatus &operator = (const MavlinkStreamActuatorOutputStatus &) = delete;
-
-protected:
-	explicit MavlinkStreamActuatorOutputStatus(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
 
 	bool send() override
 	{
