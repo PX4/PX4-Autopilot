@@ -35,14 +35,21 @@ px4_add_module(
 	MAIN land_detector
 	COMPILE_FLAGS
 	SRCS
+		AirshipLandDetector.cpp
+		AirshipLandDetector.h
+		FixedwingLandDetector.cpp
+		FixedwingLandDetector.h
 		land_detector_main.cpp
 		LandDetector.cpp
+		LandDetector.h
 		MulticopterLandDetector.cpp
-		FixedwingLandDetector.cpp
-		VtolLandDetector.cpp
+		MulticopterLandDetector.h
 		RoverLandDetector.cpp
-		AirshipLandDetector.cpp
+		RoverLandDetector.h
+		VtolLandDetector.cpp
+		VtolLandDetector.h
 	DEPENDS
 		hysteresis
+		px4_work_queue
 	)
 

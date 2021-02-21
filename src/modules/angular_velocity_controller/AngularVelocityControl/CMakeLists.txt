@@ -33,6 +33,7 @@
 
 px4_add_library(AngularVelocityControl
 	AngularVelocityControl.cpp
+	AngularVelocityControl.hpp
 )
 target_compile_options(AngularVelocityControl PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
 target_include_directories(AngularVelocityControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

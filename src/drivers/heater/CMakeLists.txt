@@ -36,4 +36,5 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		heater.cpp
+		heater.h
 	)

@@ -35,16 +35,23 @@ px4_add_module(
 	MAIN vmount
 	COMPILE_FLAGS
 	SRCS
-		input.cpp
+		common.h
 		input_mavlink.cpp
+		input_mavlink.h
 		input_rc.cpp
+		input_rc.h
 		input_test.cpp
-		output.cpp
+		input_test.h
+		input.cpp
+		input.h
 		output_mavlink.cpp
+		output_mavlink.h
 		output_rc.cpp
+		output_rc.h
+		output.cpp
+		output.h
 		vmount.cpp
 	DEPENDS
 		git_ecl
 		ecl_geo
 	)
-

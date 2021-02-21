@@ -37,16 +37,17 @@ px4_add_module(
 	STACK_MAIN 5700
 	STACK_MAX 3700
 	SRCS
-		BlockLocalPositionEstimator.cpp
-		sensors/flow.cpp
-		sensors/lidar.cpp
-		sensors/sonar.cpp
-		sensors/gps.cpp
 		sensors/baro.cpp
-		sensors/vision.cpp
-		sensors/mocap.cpp
+		sensors/flow.cpp
+		sensors/gps.cpp
 		sensors/land.cpp
 		sensors/landing_target.cpp
+		sensors/lidar.cpp
+		sensors/mocap.cpp
+		sensors/sonar.cpp
+		sensors/vision.cpp
+		BlockLocalPositionEstimator.cpp
+		BlockLocalPositionEstimator.hpp
 	DEPENDS
 		controllib
 		git_ecl

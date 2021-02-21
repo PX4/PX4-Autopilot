@@ -36,5 +36,5 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		camera_capture.cpp
+		camera_capture.hpp
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

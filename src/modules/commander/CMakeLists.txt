@@ -40,20 +40,37 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		accelerometer_calibration.cpp
+		accelerometer_calibration.h
 		airspeed_calibration.cpp
+		airspeed_calibration.h
+		calibration_messages.h
 		calibration_routines.cpp
-		Commander.cpp
+		calibration_routines.h
 		commander_helper.cpp
+		commander_helper.h
+		Commander.cpp
+		Commander.hpp
 		esc_calibration.cpp
+		esc_calibration.h
 		factory_calibration_storage.cpp
+		factory_calibration_storage.h
 		gyro_calibration.cpp
+		gyro_calibration.h
 		level_calibration.cpp
+		level_calibration.h
 		lm_fit.cpp
+		lm_fit.hpp
 		mag_calibration.cpp
+		mag_calibration.h
 		ManualControl.cpp
+		ManualControl.hpp
+		px4_custom_mode.h
 		rc_calibration.cpp
+		rc_calibration.h
 		state_machine_helper.cpp
+		state_machine_helper.h
 		worker_thread.cpp
+		worker_thread.hpp
 	DEPENDS
 		circuit_breaker
 		failure_detector

@@ -35,12 +35,20 @@ px4_add_module(
 	MODULE modules__temperature_compensation
 	MAIN temperature_compensation
 	SRCS
-		TemperatureCompensationModule.cpp
 		TemperatureCompensation.cpp
+		TemperatureCompensation.h
+		TemperatureCompensationModule.cpp
+		TemperatureCompensationModule.h
 		temperature_calibration/accel.cpp
+		temperature_calibration/accel.h
 		temperature_calibration/baro.cpp
+		temperature_calibration/baro.h
+		temperature_calibration/common.h
 		temperature_calibration/gyro.cpp
+		temperature_calibration/gyro.h
+		temperature_calibration/polyfit.hpp
 		temperature_calibration/task.cpp
+		temperature_calibration/temperature_calibration.h
 	DEPENDS
 		mathlib
 	)

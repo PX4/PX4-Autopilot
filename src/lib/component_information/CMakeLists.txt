@@ -60,8 +60,6 @@ add_custom_command(OUTPUT ${component_information_header}
 		--output ${component_information_header}
 	DEPENDS
 		generate_hashes.py
-		parameters_xml
-		${PX4_BINARY_DIR}/params.json.xz
 		${component_version_json}
 	COMMENT "Generating component_information/hashes.h"
 )

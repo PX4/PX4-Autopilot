@@ -202,6 +202,7 @@ else()
 endif()
 
 # context
+execute_process(COMMAND make --no-print-directory --quiet pass1dep WORKING_DIRECTORY ${NUTTX_DIR} OUTPUT_QUIET)
 add_custom_command(
 	OUTPUT
 		${NUTTX_DIR}/include/nuttx/config.h

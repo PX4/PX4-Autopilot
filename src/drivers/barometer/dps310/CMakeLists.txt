@@ -39,6 +39,7 @@ px4_add_module(
 		DPS310_I2C.cpp
 		DPS310_SPI.cpp
 		dps310_main.cpp
+		Infineon_DPS310_Registers.hpp
 	DEPENDS
 		drivers_barometer
 		px4_work_queue

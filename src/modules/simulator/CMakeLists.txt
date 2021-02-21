@@ -47,9 +47,9 @@ endif()
 configure_file(simulator_config.h.in simulator_config.h @ONLY)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-set(SIMULATOR_SRCS simulator.cpp)
+set(SIMULATOR_EXTRA_SRCS)
 if (NOT ${PX4_PLATFORM} STREQUAL "qurt")
-	list(APPEND SIMULATOR_SRCS
+	list(APPEND SIMULATOR_EXTRA_SRCS
 		simulator_mavlink.cpp)
 endif()
 
@@ -63,7 +63,9 @@ px4_add_module(
 	INCLUDES
 		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	SRCS
-		${SIMULATOR_SRCS}
+		${SIMULATOR_EXTRA_SRCS}
+		simulator.cpp
+		simulator.h
 	DEPENDS
 		git_mavlink_v2
 		conversion

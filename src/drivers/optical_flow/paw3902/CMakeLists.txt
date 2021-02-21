@@ -37,4 +37,6 @@ px4_add_module(
 	SRCS
 		paw3902_main.cpp
 		PAW3902.cpp
+		PAW3902.hpp
+		PixArt_PAW3902JF_Registers.hpp
 	)

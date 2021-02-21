@@ -37,5 +37,6 @@ px4_add_module(
 	SRCS
 		ads1115_main.cpp
 		ADS1115.cpp
+		ADS1115.h
 	DEPENDS
 	)

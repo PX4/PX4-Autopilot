@@ -33,8 +33,8 @@
 px4_add_module(
 	MODULE modules__uuv_att_control
 	MAIN uuv_att_control
-	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
 		uuv_att_control.cpp
+		uuv_att_control.hpp
 	)
