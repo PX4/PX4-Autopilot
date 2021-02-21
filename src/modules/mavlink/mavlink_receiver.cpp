@@ -41,7 +41,6 @@
  */
 
 #include <airspeed/airspeed.h>
-#include <commander/px4_custom_mode.h>
 #include <conversion/rotation.h>
 #include <drivers/drv_rc_input.h>
 #include <ecl/geo/geo.h>
