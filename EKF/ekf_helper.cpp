@@ -1611,7 +1611,7 @@ bool Ekf::resetYawToEKFGSF()
 		// stop using the magnetometer in the main EKF otherwise it's fusion could drag the yaw around
 		// and cause another navigation failure
 		_control_status.flags.mag_fault = true;
-		ECL_INFO_TIMESTAMPED("Emergency yaw reset - mag use stopped");
+		ECL_WARN_TIMESTAMPED("Emergency yaw reset - mag use stopped");
 	}
 
 	return true;
