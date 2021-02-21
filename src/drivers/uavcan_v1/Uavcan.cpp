@@ -478,6 +478,8 @@ void UavcanNode::sendHeartbeat()
 
 		_uavcan_node_heartbeat_last = transfer.timestamp_usec;
 
+		/// TESTING -- Remove before flight!
+		// Since we don't have a mixer file here yet
 		uint16_t outputs[8] {};
 		outputs[0] = 1000;
 		outputs[1] = 2000;
