@@ -1399,6 +1399,7 @@ PX4IO::io_set_control_state(unsigned group)
 	case 3:
 		changed = _t_actuator_controls_3.update(&controls);
 		break;
+
 	}
 
 	if (!changed && (!_in_esc_calibration_mode || group != 0)) {
@@ -2652,6 +2653,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			if (alarms & PX4IO_P_STATUS_ALARMS_PWM_ERROR) {
 				ret = -EINVAL;
 				io_reg_set(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS, PX4IO_P_STATUS_ALARMS_PWM_ERROR);
+				PX4_ERR("failed setting PWM rate on IO");
 			}
 
 			break;
@@ -2951,19 +2953,26 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			PX4_ERR("not upgrading IO firmware, system is armed");
 			return -EINVAL;
 
-		} else if (system_status() & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) {
-			// re-enable safety
-			ret = io_reg_modify(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, PX4IO_P_STATUS_FLAGS_SAFETY_OFF, 0);
-
-			// set new status
-			_status &= ~(PX4IO_P_STATUS_FLAGS_SAFETY_OFF);
 		}
 
+		// re-enable safety
+		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_ON, PX4IO_FORCE_SAFETY_MAGIC);
+
+		if (ret != PX4_OK) {
+			PX4_ERR("IO refused to re-enable safety");
+		}
+
+		// set new status
+		_status &= ~(PX4IO_P_STATUS_FLAGS_SAFETY_OFF);
+
 		/* reboot into bootloader - arg must be PX4IO_REBOOT_BL_MAGIC */
-		usleep(50);
-		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_REBOOT_BL, arg);
-		// we don't expect a reply from this operation
-		ret = OK;
+		usleep(1);
+		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_REBOOT_BL, arg);
+
+		if (ret != PX4_OK) {
+			PX4_ERR("IO refused to reboot");
+		}
+
 		break;
 
 	case PX4IO_CHECK_CRC: {
@@ -2976,7 +2985,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			}
 
 			if (io_crc != arg) {
-				PX4_DEBUG("crc mismatch 0x%08x 0x%08lx", io_crc, arg);
+				PX4_DEBUG("Firmware CRC mismatch 0x%08x 0x%08lx", io_crc, arg);
 				return -EINVAL;
 			}
 
@@ -3172,7 +3181,8 @@ checkcrc(int argc, char *argv[])
 		(void)new PX4IO(interface);
 
 		if (g_dev == nullptr) {
-			errx(1, "driver allocation failed");
+			PX4_ERR("driver allocation failed");
+			exit(1);
 		}
 
 	} else {
@@ -3184,14 +3194,14 @@ checkcrc(int argc, char *argv[])
 	  check IO CRC against CRC of a file
 	 */
 	if (argc < 2) {
-		warnx("usage: px4io checkcrc filename");
+		PX4_WARN("usage: px4io checkcrc filename");
 		exit(1);
 	}
 
 	int fd = open(argv[1], O_RDONLY);
 
 	if (fd == -1) {
-		warnx("open of %s failed: %d", argv[1], errno);
+		PX4_ERR("open of %s failed: %d", argv[1], errno);
 		exit(1);
 	}
 
@@ -3225,8 +3235,11 @@ checkcrc(int argc, char *argv[])
 	}
 
 	if (ret != OK) {
-		warn("check CRC failed: %d", ret);
+		PX4_ERR("check CRC failed: %d, CRC: %u", ret, fw_crc);
 		exit(1);
+
+	} else {
+		PX4_INFO("IO FW CRC match");
 	}
 
 	exit(0);
@@ -3398,64 +3411,6 @@ px4io_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "update")) {
 
-		if (g_dev != nullptr) {
-			warnx("loaded, detaching first");
-			/* stop the driver */
-			delete g_dev;
-			g_dev = nullptr;
-		}
-
-		PX4IO_Uploader *up;
-
-		/* Assume we are using default paths */
-
-		const char *fn[4] = PX4IO_FW_SEARCH_PATHS;
-
-		/* Override defaults if a path is passed on command line */
-		if (argc > 2) {
-			fn[0] = argv[2];
-			fn[1] = nullptr;
-		}
-
-		up = new PX4IO_Uploader;
-		int ret = up->upload(&fn[0]);
-		delete up;
-
-		switch (ret) {
-		case OK:
-			break;
-
-		case -ENOENT:
-			errx(1, "PX4IO firmware file not found");
-
-		case -EEXIST:
-		case -EIO:
-			errx(1, "error updating PX4IO - check that bootloader mode is enabled");
-
-		case -EINVAL:
-			errx(1, "verify failed - retry the update");
-
-		case -ETIMEDOUT:
-			errx(1, "timed out waiting for bootloader - power-cycle and try again");
-
-		default:
-			errx(1, "unexpected error %d", ret);
-		}
-
-		return ret;
-	}
-
-	if (!strcmp(argv[1], "forceupdate")) {
-		/*
-		  force update of the IO firmware without requiring
-		  the user to hold the safety switch down
-		 */
-		if (argc <= 3) {
-			PX4_WARN("usage: px4io forceupdate MAGIC filename");
-			exit(1);
-		}
-
-		uint16_t arg = atol(argv[2]);
 		constexpr unsigned MAX_RETRIES = 5;
 		unsigned retries = 0;
 		int ret = PX4_ERROR;
@@ -3480,31 +3435,59 @@ px4io_main(int argc, char *argv[])
 			}
 
 			// Try to reboot
-			ret = g_dev->ioctl(nullptr, PX4IO_REBOOT_BOOTLOADER, arg);
-
-			if (ret != OK) {
-				PX4_WARN("reboot failed - %d", ret);
-				exit(1);
-			}
-
+			ret = g_dev->ioctl(nullptr, PX4IO_REBOOT_BOOTLOADER, PX4IO_REBOOT_BL_MAGIC);
 			// tear down the px4io instance
 			delete g_dev;
 			g_dev = nullptr;
 
-			// upload the specified firmware
-			const char *fn[2];
-			fn[0] = argv[3];
-			fn[1] = nullptr;
-			PX4IO_Uploader *up = new PX4IO_Uploader;
+			if (ret != OK) {
+				PX4_ERR("reboot failed - %d, still attempting upgrade", ret);
+			}
 
-			// Upload and retry if it fails
+			PX4IO_Uploader *up;
+
+			/* Assume we are using default paths */
+
+			const char *fn[4] = PX4IO_FW_SEARCH_PATHS;
+
+			/* Override defaults if a path is passed on command line */
+			if (argc > 2) {
+				fn[0] = argv[2];
+				fn[1] = nullptr;
+			}
+
+			up = new PX4IO_Uploader;
 			ret = up->upload(&fn[0]);
 			delete up;
 		}
 
-		PX4_INFO("IO update: %s, retries: %d (reboot)", (ret == OK) ? "done" : "failed", retries);
+		switch (ret) {
+		case OK:
+			break;
 
-		exit(ret);
+		case -ENOENT:
+			PX4_ERR("PX4IO firmware file not found");
+			break;
+
+		case -EEXIST:
+		case -EIO:
+			PX4_ERR("error updating PX4IO - check that bootloader mode is enabled");
+			break;
+
+		case -EINVAL:
+			PX4_ERR("verify failed - retry the update");
+			break;
+
+		case -ETIMEDOUT:
+			PX4_ERR("timed out waiting for bootloader - power-cycle and try again");
+			break;
+
+		default:
+			PX4_ERR("unexpected error %d", ret);
+			break;
+		}
+
+		return ret;
 	}
 
 	/* commands below here require a started driver */
@@ -3686,6 +3669,6 @@ px4io_main(int argc, char *argv[])
 out:
 	errx(1, "need a command, try 'start', 'stop', 'status', 'monitor', 'debug <level>',\n"
 	     "'recovery', 'bind', 'checkcrc', 'safety_on', 'safety_off',\n"
-	     "'forceupdate 14662', 'sbus1_out', 'sbus2_out', 'rssi_analog' or 'rssi_pwm',\n"
+	     "'update', 'sbus1_out', 'sbus2_out', 'rssi_analog' or 'rssi_pwm',\n"
 	     "'test_fmu_fail', 'test_fmu_ok'");
 }
