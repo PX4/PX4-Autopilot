@@ -79,7 +79,7 @@ private:
 				msg.vel = UINT16_MAX; // If unknown, set to: UINT16_MAX
 			}
 
-			msg.cog = math::degrees(wrap_2pi(gps.cog_rad)) * 1e2f;
+			msg.cog = math::degrees(matrix::wrap_2pi(gps.cog_rad)) * 1e2f;
 			msg.satellites_visible = gps.satellites_used;
 
 			//msg.dgps_numch = // Number of DGPS satellites

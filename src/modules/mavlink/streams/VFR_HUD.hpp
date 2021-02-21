@@ -86,7 +86,7 @@ private:
 			mavlink_vfr_hud_t msg{};
 			msg.airspeed = airspeed_validated.calibrated_airspeed_m_s;
 			msg.groundspeed = sqrtf(lpos.vx * lpos.vx + lpos.vy * lpos.vy);
-			msg.heading = math::degrees(wrap_2pi(lpos.heading));
+			msg.heading = math::degrees(matrix::wrap_2pi(lpos.heading));
 
 			if (armed.armed) {
 				actuator_controls_s act0{};

@@ -54,44 +54,7 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/airspeed_validated.h>
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/camera_trigger.h>
-#include <uORB/topics/cpuload.h>
-#include <uORB/topics/differential_pressure.h>
-#include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/estimator_selector_status.h>
-#include <uORB/topics/estimator_sensor_bias.h>
-#include <uORB/topics/estimator_status.h>
-#include <uORB/topics/geofence_result.h>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/sensor_baro.h>
-#include <uORB/topics/sensor_gps.h>
-#include <uORB/topics/sensor_mag.h>
-#include <uORB/topics/sensor_selection.h>
-#include <uORB/topics/telemetry_status.h>
-#include <uORB/topics/vehicle_air_data.h>
-#include <uORB/topics/vehicle_angular_velocity.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_land_detected.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_imu.h>
-#include <uORB/topics/vehicle_magnetometer.h>
-#include <uORB/topics/vehicle_odometry.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_status_flags.h>
-#include <uORB/topics/vtol_vehicle_status.h>
-
-using matrix::Vector3f;
-using matrix::wrap_2pi;
 
 #include "streams/ACTUATOR_CONTROL_TARGET.hpp"
 #include "streams/ACTUATOR_OUTPUT_STATUS.hpp"
@@ -139,8 +102,8 @@ using matrix::wrap_2pi;
 #include "streams/SERVO_OUTPUT_RAW.hpp"
 #include "streams/STATUSTEXT.hpp"
 #include "streams/STORAGE_INFORMATION.hpp"
-#include "streams/SYSTEM_TIME.hpp"
 #include "streams/SYS_STATUS.hpp"
+#include "streams/SYSTEM_TIME.hpp"
 #include "streams/TIMESYNC.hpp"
 #include "streams/TRAJECTORY_REPRESENTATION_WAYPOINTS.hpp"
 #include "streams/VFR_HUD.hpp"

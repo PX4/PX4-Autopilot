@@ -110,7 +110,7 @@ private:
 			msg.vy = lpos.vy * 100.0f;
 			msg.vz = lpos.vz * 100.0f;
 
-			msg.hdg = math::degrees(wrap_2pi(lpos.heading)) * 100.0f;
+			msg.hdg = math::degrees(matrix::wrap_2pi(lpos.heading)) * 100.0f;
 
 			mavlink_msg_global_position_int_send_struct(_mavlink->get_channel(), &msg);
 
