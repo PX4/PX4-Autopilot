@@ -40,6 +40,7 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
+#include <lib/mixer_module/mixer_module.hpp>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 #include <uORB/Publication.hpp>
@@ -76,7 +77,47 @@
 #define PNP2_PAYLOAD_SIZE                            uavcan_pnp_NodeIDAllocationData_2_0_EXTENT_BYTES_
 
 #include "CanardInterface.hpp"
-#include "Subscriber.hpp"
+#include "Publishers/Publisher.hpp"
+#include "Subscribers/Subscriber.hpp"
+#include "Subscribers/Gnss.hpp"
+#include "Subscribers/Battery.hpp"
+#include "Actuators/EscClient.hpp" /// TODO: Add EscServer.hpp for node-side service
+
+/**
+ * UAVCAN mixing class.
+ * It is separate from UavcanNode to have 2 WorkItems and therefore allowing independent scheduling
+ * (I.e. UavcanMixingInterface runs upon actuator_control updates, whereas UavcanNode runs at
+ * a fixed rate or upon bus updates).
+ * Both work items are expected to run on the same work queue.
+ */
+class UavcanMixingInterface : public OutputModuleInterface
+{
+public:
+	UavcanMixingInterface(pthread_mutex_t &node_mutex,
+			      UavcanEscController &esc_controller) //, UavcanServoController &servo_controller)
+		: OutputModuleInterface(MODULE_NAME "-actuators", px4::wq_configurations::uavcan),
+		  _node_mutex(node_mutex),
+		  _esc_controller(esc_controller)/*,
+		  _servo_controller(servo_controller)*/ {}
+
+	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+			   unsigned num_outputs, unsigned num_control_groups_updated) override;
+
+	void mixerChanged() override {};
+
+	void printInfo() { _mixing_output.printStatus(); }
+
+	MixingOutput &mixingOutput() { return _mixing_output; }
+
+protected:
+	void Run() override;
+private:
+	friend class UavcanNode;
+	pthread_mutex_t &_node_mutex;
+	UavcanEscController &_esc_controller;
+	// UavcanServoController &_servo_controller;
+	MixingOutput _mixing_output{MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+};
 
 class UavcanNode : public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -184,13 +225,6 @@ private:
 	hrt_abstime _regulated_drone_sensor_bmsstatus_last{0};
 	CanardTransferID _regulated_drone_sensor_bmsstatus_transfer_id{0};
 
-	UavcanGpsSubscription _gps0_sub;
-	UavcanGpsSubscription _gps1_sub;
-	UavcanBmsSubscription _bms0_sub;
-	UavcanBmsSubscription _bms1_sub;
-
-	UavcanSubscription *_subscribers[4]; /// TODO: turn into List<UavcanSubscription*>
-
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::UAVCAN_V1_ENABLE>) _param_uavcan_v1_enable,
 		(ParamInt<px4::params::UAVCAN_V1_ID>) _param_uavcan_v1_id,
@@ -200,4 +234,14 @@ private:
 	)
 
 	UavcanParamManager _param_manager;
+	UavcanGpsSubscription _gps0_sub {_canard_instance, _param_manager, "uavcan.sub.gps.0.id"};
+	UavcanGpsSubscription _gps1_sub {_canard_instance, _param_manager, "uavcan.sub.gps.1.id"};
+	UavcanBmsSubscription _bms0_sub {_canard_instance, _param_manager, "uavcan.sub.bms.0.id"};
+	UavcanBmsSubscription _bms1_sub {_canard_instance, _param_manager, "uavcan.sub.bms.1.id"};
+
+	UavcanSubscription *_subscribers[4] {&_gps0_sub, &_gps1_sub, &_bms0_sub, &_bms1_sub}; /// TODO: turn into List<UavcanSubscription*>
+
+	UavcanEscController _esc_controller {_canard_instance, 22};
+
+	UavcanMixingInterface _mixing_output {_node_mutex, _esc_controller};
 };
