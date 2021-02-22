@@ -77,11 +77,15 @@
 #define PNP2_PAYLOAD_SIZE                            uavcan_pnp_NodeIDAllocationData_2_0_EXTENT_BYTES_
 
 #include "CanardInterface.hpp"
+
 #include "Publishers/Publisher.hpp"
+#include "Publishers/Gnss.hpp"
+
 #include "Subscribers/Subscriber.hpp"
 #include "Subscribers/Battery.hpp"
 #include "Subscribers/Esc.hpp"
 #include "Subscribers/Gnss.hpp"
+
 #include "Actuators/EscClient.hpp" /// TODO: Add EscServer.hpp for node-side service
 
 /**
@@ -230,15 +234,20 @@ private:
 	)
 
 	UavcanParamManager _param_manager;
-	UavcanGpsSubscription _gps0_sub {_canard_instance, _param_manager, "uavcan.sub.gps.0.id"};
-	UavcanGpsSubscription _gps1_sub {_canard_instance, _param_manager, "uavcan.sub.gps.1.id"};
-	UavcanBmsSubscription _bms0_sub {_canard_instance, _param_manager, "uavcan.sub.bms.0.id"};
-	UavcanBmsSubscription _bms1_sub {_canard_instance, _param_manager, "uavcan.sub.bms.1.id"};
-	UavcanEscSubscription _esc_sub  {_canard_instance, _param_manager, "uavcan.sub.esc.0.id"};
+
+	UavcanGnssPublication _gps_pub {_canard_instance, _param_manager, "uavcan.pub.gps.0.id"};
+
+	UavcanPublication *_publishers[1] {&_gps_pub};
+
+	UavcanGnssSubscription _gps0_sub {_canard_instance, _param_manager, "uavcan.sub.gps.0.id"};
+	UavcanGnssSubscription _gps1_sub {_canard_instance, _param_manager, "uavcan.sub.gps.1.id"};
+	UavcanBmsSubscription  _bms0_sub {_canard_instance, _param_manager, "uavcan.sub.bms.0.id"};
+	UavcanBmsSubscription  _bms1_sub {_canard_instance, _param_manager, "uavcan.sub.bms.1.id"};
+	UavcanEscSubscription  _esc_sub  {_canard_instance, _param_manager, "uavcan.sub.esc.0.id"};
 
 	UavcanSubscription *_subscribers[5] {&_gps0_sub, &_gps1_sub, &_bms0_sub, &_bms1_sub, &_esc_sub}; /// TODO: turn into List<UavcanSubscription*>
 
-	UavcanEscController _esc_controller {_canard_instance, 22};
+	UavcanEscController _esc_controller {_canard_instance, 22}; //// TODO
 
 	UavcanMixingInterface _mixing_output {_node_mutex, _esc_controller};
 };
