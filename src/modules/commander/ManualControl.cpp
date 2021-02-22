@@ -42,8 +42,10 @@ enum OverrideBits {
 	OVERRIDE_IGNORE_THROTTLE_BIT = (1 << 2)
 };
 
-void ManualControl::update()
+bool ManualControl::update()
 {
+	bool ret = false;
+
 	_rc_available = _rc_allowed
 			&& _last_manual_control_setpoint.timestamp != 0
 			&& (hrt_elapsed_time(&_last_manual_control_setpoint.timestamp) < (_param_com_rc_loss_t.get() * 1_s));
@@ -54,7 +56,11 @@ void ManualControl::update()
 		if (_manual_control_setpoint_sub.copy(&manual_control_setpoint)) {
 			process(manual_control_setpoint);
 		}
+
+		ret = true;
 	}
+
+	return ret && _rc_available;
 }
 
 void ManualControl::process(manual_control_setpoint_s &manual_control_setpoint)

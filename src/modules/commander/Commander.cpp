@@ -2084,21 +2084,6 @@ Commander::run()
 			_geofence_violated_prev = false;
 		}
 
-		_manual_control.setRCAllowed(!_status_flags.rc_input_blocked);
-		_manual_control.update();
-
-		// abort autonomous mode and switch to position mode if sticks are moved significantly
-		if ((_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
-		    && !in_low_battery_failsafe && !_geofence_warning_action_on
-		    && _manual_control.wantsOverride(_vehicle_control_mode)) {
-			if (main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags,
-						  &_internal_state) == TRANSITION_CHANGED) {
-				tune_positive(true);
-				mavlink_log_info(&_mavlink_log_pub, "Pilot took over control using sticks");
-				_status_changed = true;
-			}
-		}
-
 		/* Check for mission flight termination */
 		if (_armed.armed && _mission_result_sub.get().flight_termination &&
 		    !_status_flags.circuit_breaker_flight_termination_disabled) {
@@ -2116,9 +2101,10 @@ Commander::run()
 			}
 		}
 
+		// Manual control input handling
+		_manual_control.setRCAllowed(!_status_flags.rc_input_blocked);
 
-		/* RC input check */
-		if (_manual_control.isRCAvailable()) {
+		if (_manual_control.update()) {
 
 			/* handle the case where RC signal was regained */
 			if (!_status_flags.rc_signal_found_once) {
@@ -2155,6 +2141,18 @@ Commander::run()
 						mavlink_log_critical(&_mavlink_log_pub, "Not arming! Switch to a manual mode first");
 						tune_negative(true);
 					}
+				}
+			}
+
+			// abort autonomous mode and switch to position mode if sticks are moved significantly
+			if ((_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
+			    && !in_low_battery_failsafe && !_geofence_warning_action_on
+			    && _manual_control.wantsOverride(_vehicle_control_mode)) {
+				if (main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags,
+							  &_internal_state) == TRANSITION_CHANGED) {
+					tune_positive(true);
+					mavlink_log_info(&_mavlink_log_pub, "Pilot took over control using sticks");
+					_status_changed = true;
 				}
 			}
 
@@ -2223,8 +2221,9 @@ Commander::run()
 			}
 
 			/* no else case: do not change lockdown flag in unconfigured case */
+		}
 
-		} else {
+		if (!_manual_control.isRCAvailable()) {
 			// set RC lost
 			if (_status_flags.rc_signal_found_once && !_status.rc_signal_lost) {
 				// ignore RC lost during calibration
