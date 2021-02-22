@@ -237,7 +237,11 @@ private:
 
 	UavcanGnssPublication _gps_pub {_canard_instance, _param_manager, "uavcan.pub.gps.0.id"};
 
-	UavcanPublication *_publishers[1] {&_gps_pub};
+	UavcanEscController _esc_controller {_canard_instance, _param_manager, "uavcan.pub.esc.0.id"};
+
+	// Publication objects: Any object used to bridge a uORB message to a UAVCAN message
+	/// TODO: For some service implementations, it makes sense to have them be both Publishers and Subscribers
+	UavcanPublication *_publishers[2] {&_gps_pub, &_esc_controller};
 
 	UavcanGnssSubscription _gps0_sub {_canard_instance, _param_manager, "uavcan.sub.gps.0.id"};
 	UavcanGnssSubscription _gps1_sub {_canard_instance, _param_manager, "uavcan.sub.gps.1.id"};
@@ -245,9 +249,8 @@ private:
 	UavcanBmsSubscription  _bms1_sub {_canard_instance, _param_manager, "uavcan.sub.bms.1.id"};
 	UavcanEscSubscription  _esc_sub  {_canard_instance, _param_manager, "uavcan.sub.esc.0.id"};
 
+	// Subscription objects: Any object used to bridge a UAVCAN message to a uORB message
 	UavcanSubscription *_subscribers[5] {&_gps0_sub, &_gps1_sub, &_bms0_sub, &_bms1_sub, &_esc_sub}; /// TODO: turn into List<UavcanSubscription*>
-
-	UavcanEscController _esc_controller {_canard_instance, 22}; //// TODO
 
 	UavcanMixingInterface _mixing_output {_node_mutex, _esc_controller};
 };
