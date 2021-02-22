@@ -352,3 +352,13 @@ PARAM_DEFINE_FLOAT(SIH_LOC_MU_Z,  0.504f);
  * @group Simulation In Hardware
  */
 PARAM_DEFINE_INT32(SIH_GPS_USED, 10);
+
+/**
+ * Barometer offset in meters
+ *
+ * Absolute value superior to 10000 will disable barometer
+ *
+ * @unit m
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_BARO_OFFSET,  0.0f);
