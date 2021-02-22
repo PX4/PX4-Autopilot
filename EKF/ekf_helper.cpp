@@ -926,7 +926,19 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 	pos = math::max(sqrtf(_gps_pos_test_ratio(0)), sqrtf(_ev_pos_test_ratio(0)));
 
 	// return the vertical position innovation test ratio
-	hgt = sqrtf(_gps_pos_test_ratio(0));
+	if (_control_status.flags.baro_hgt) {
+		hgt = sqrtf(_baro_hgt_test_ratio(1));
+
+	} else if (_control_status.flags.gps_hgt) {
+		hgt = sqrtf(_gps_pos_test_ratio(1));
+
+	} else if (_control_status.flags.rng_hgt) {
+		hgt = sqrtf(_rng_hgt_test_ratio(1));
+
+	} else if (_control_status.flags.ev_hgt) {
+		hgt = sqrtf(_ev_pos_test_ratio(1));
+	}
+
 	// return the airspeed fusion innovation test ratio
 	tas = sqrtf(_tas_test_ratio);
 	// return the terrain height innovation test ratio
