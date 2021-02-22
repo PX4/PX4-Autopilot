@@ -42,22 +42,10 @@
 #pragma once
 
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/atomic.h>
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/module_params.h>
 
 #include <lib/parameters/param.h>
 
 #include <uavcan/_register/Access_1_0.h>
-#include <uavcan/_register/List_1_0.h>
-#include <uavcan/_register/Value_1_0.h>
-#include <uavcan/primitive/Empty_1_0.h>
-
-//Quick and Dirty PNP imlementation only V1 for now as well
-#include <uavcan/node/ID_1_0.h>
-#include <uavcan/pnp/NodeIDAllocationData_1_0.h>
-#include <uavcan/pnp/NodeIDAllocationData_2_0.h>
 
 #include "../CanardInterface.hpp"
 #include "../ParamManager.hpp"
