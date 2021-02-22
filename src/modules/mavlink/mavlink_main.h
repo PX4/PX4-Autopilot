@@ -518,6 +518,8 @@ public:
 
 	static hrt_abstime &get_first_start_time() { return _first_start_time; }
 
+	bool radio_status_critical() const { return _radio_status_critical; }
+
 private:
 	int			_instance_id{0};
 
