@@ -57,7 +57,12 @@ public:
 	~ManualControl() override = default;
 
 	void setRCAllowed(const bool rc_allowed) { _rc_allowed = rc_allowed; }
-	void update();
+
+	/**
+	 * Check for manual control input changes and process them
+	 * @return true if there was new data
+	 */
+	bool update();
 	bool isRCAvailable() { return _rc_available; }
 	bool wantsOverride(const vehicle_control_mode_s &vehicle_control_mode);
 	bool wantsDisarm(const vehicle_control_mode_s &vehicle_control_mode, const vehicle_status_s &vehicle_status,
