@@ -83,6 +83,10 @@ UavcanNode::UavcanNode(CanardInterface *interface, uint32_t node_id) :
 
 	PX4_INFO("main _canard_instance = %p", &_canard_instance);
 
+	for (auto &publisher : _publishers) {
+		publisher->updateParam();
+	}
+
 	for (auto &subscriber : _subscribers) {
 		subscriber->updateParam();
 	}
@@ -229,6 +233,12 @@ void UavcanNode::Run()
 		// update parameters from storage
 		updateParams();
 
+		for (auto &publisher : _publishers) {
+			// Have the publisher update its associated port-id parameter
+			// Setting to 0 disable publication
+			publisher->updateParam();
+		}
+
 		for (auto &subscriber : _subscribers) {
 			// Have the subscriber update its associated port-id parameter
 			// If the port-id changes, (re)start the subscription
@@ -239,8 +249,6 @@ void UavcanNode::Run()
 
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
-
-
 
 	if (hrt_elapsed_time(&_uavcan_pnp_nodeidallocation_last) >= 1_s &&
 	    _node_register_setup != CANARD_NODE_ID_UNSET &&
@@ -277,6 +285,11 @@ void UavcanNode::Run()
 
 	// send uavcan::node::Heartbeat_1_0 @ 1 Hz
 	sendHeartbeat();
+
+	// Check all publishers
+	for (auto &publisher : _publishers) {
+		publisher->update();
+	}
 
 	// Transmitting
 	// Look at the top of the TX queue.
@@ -380,6 +393,10 @@ void UavcanNode::print_info()
 
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_interval_perf);
+
+	for (auto &publisher : _publishers) {
+		publisher->printInfo();
+	}
 
 	for (auto &subscriber : _subscribers) {
 		subscriber->printInfo();

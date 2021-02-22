@@ -32,45 +32,66 @@
  ****************************************************************************/
 
 /**
- * @file ParamManager.hpp
+ * @file Publisher.hpp
  *
- * Defines basic functionality of UAVCAN parameter management class
+ * Defines basic functionality of UAVCAN v1 publisher class
  *
  * @author Jacob Crabill <jacob@flyvoly.com>
  */
 
 #pragma once
 
+#include <px4_platform_common/px4_config.h>
+
 #include <lib/parameters/param.h>
 
-#include <uavcan/_register/Name_1_0.h>
-#include <uavcan/_register/Value_1_0.h>
+#include <uavcan/_register/Access_1_0.h>
 
-typedef struct {
-	const char *uavcan_name;
-	const char *px4_name;
-	bool is_mutable {true};
-	bool is_persistent {true};
-} UavcanParamBinder;
+#include "../CanardInterface.hpp"
+#include "../ParamManager.hpp"
 
-class UavcanParamManager
+class UavcanPublication
 {
 public:
+	UavcanPublication(CanardInstance &ins, UavcanParamManager &pmgr, const char *uavcan_pname) :
+		_canard_instance(ins), _param_manager(pmgr), _uavcan_param(uavcan_pname) { };
 
-	bool GetParamByName(const char *param_name, uavcan_register_Value_1_0 &value);
-	bool GetParamByName(const uavcan_register_Name_1_0 &name, uavcan_register_Value_1_0 &value);
-	bool SetParamByName(const uavcan_register_Name_1_0 &name, const uavcan_register_Value_1_0 &value);
+	// Update the uORB Subscription and broadcast a UAVCAN message
+	virtual void update() = 0;
 
-private:
+	CanardPortID id() { return _port_id; };
 
-	const UavcanParamBinder _uavcan_params[8] {
-		{"uavcan.pub.esc.0.id",   "UCAN1_ESC_PUB"},
-		{"uavcan.pub.servo.0.id", "UCAN1_SERVO_PUB"},
-		{"uavcan.pub.gps.0.id",   "UCAN1_GPS_PUB"},
-		{"uavcan.sub.esc.0.id",   "UCAN1_ESC_PID"},
-		{"uavcan.sub.gps.0.id",   "UCAN1_GPS0_PID"},
-		{"uavcan.sub.gps.1.id",   "UCAN1_GPS1_PID"},
-		{"uavcan.sub.bms.0.id",   "UCAN1_BMS0_PID"},
-		{"uavcan.sub.bms.1.id",   "UCAN1_BMS1_PID"},
+	void updateParam()
+	{
+		// Set _port_id from _uavcan_param
+		uavcan_register_Value_1_0 value;
+		_param_manager.GetParamByName(_uavcan_param, value);
+		int32_t new_id = value.integer32.value.elements[0];
+
+		if (_port_id != new_id) {
+			if (new_id == 0) {
+				PX4_INFO("Disabling publication of %s", _uavcan_param);
+
+			} else {
+				_port_id = (CanardPortID)new_id;
+				PX4_INFO("Enabling %s on port %d", _uavcan_param, _port_id);
+			}
+		}
 	};
+
+	void printInfo()
+	{
+		if (_port_id > 0) {
+			PX4_INFO("Enabled %s on port %d", _uavcan_param, _port_id);
+		}
+	}
+
+protected:
+	CanardInstance &_canard_instance;
+	UavcanParamManager &_param_manager;
+	CanardRxSubscription _canard_sub;
+	const char *_uavcan_param; // Port ID parameter
+
+	CanardPortID _port_id {0};
+	CanardTransferID _transfer_id {0};
 };

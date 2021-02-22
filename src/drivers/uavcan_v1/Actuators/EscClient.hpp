@@ -61,6 +61,7 @@ public:
 	static constexpr unsigned MAX_RATE_HZ = 200;			///< XXX make this configurable
 	static constexpr uint16_t DISARMED_OUTPUT_VALUE = UINT16_MAX;
 
+	/// TODO: derive from Publisher class to handle port-ID setting via parameter
 	UavcanEscController(CanardInstance &ins, const CanardPortID &baseID) :
 		_canard_instance(ins), _base_port_id(baseID) {};
 
