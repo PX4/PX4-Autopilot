@@ -125,9 +125,11 @@ void Sih::Run()
 	_px4_gyro.update(_now, _gyro(0), _gyro(1), _gyro(2));
 
 	// magnetometer published at 50 Hz
-	if (_now - _mag_time >= 20_ms) {
+	if (_now - _mag_time >= 20_ms
+	    && fabs(_mag_offset_x) < 10000
+	    && fabs(_mag_offset_y) < 10000
+	    && fabs(_mag_offset_z) < 10000) {
 		_mag_time = _now;
-
 		_px4_mag.update(_now, _mag(0), _mag(1), _mag(2));
 	}
 
@@ -186,6 +188,9 @@ void Sih::parameters_updated()
 
 	_gps_used = _sih_gps_used.get();
 	_baro_offset_m = _sih_baro_offset.get();
+	_mag_offset_x = _sih_mag_offset_x.get();
+	_mag_offset_y = _sih_mag_offset_y.get();
+	_mag_offset_z = _sih_mag_offset_z.get();
 }
 
 // initialization of the variables for the simulator
@@ -301,6 +306,9 @@ void Sih::reconstruct_sensors_signals()
 	_acc = _C_IB.transpose() * (_v_I_dot - Vector3f(0.0f, 0.0f, CONSTANTS_ONE_G)) + noiseGauss3f(0.5f, 1.7f, 1.4f);
 	_gyro = _w_B + noiseGauss3f(0.14f, 0.07f, 0.03f);
 	_mag = _C_IB.transpose() * _mu_I + noiseGauss3f(0.02f, 0.02f, 0.03f);
+	_mag(0) += _mag_offset_x;
+	_mag(1) += _mag_offset_y;
+	_mag(2) += _mag_offset_z;
 
 	// barometer
 	float altitude = (_H0 - _p_I(2)) + _baro_offset_m + generate_wgn() * 0.14f; // altitude with noise
