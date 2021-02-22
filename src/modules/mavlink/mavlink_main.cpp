@@ -1476,6 +1476,9 @@ Mavlink::update_radio_status(const radio_status_s &radio_status)
 			/* this indicates spare bandwidth, increase by 2.5% */
 			_radio_status_mult *= 1.025f;
 		}
+
+		/* Constrain radio status multiplier between 1% and 100% to allow recovery */
+		_radio_status_mult = math::constrain(_radio_status_mult, 0.01f, 1.0f);
 	}
 }
 
