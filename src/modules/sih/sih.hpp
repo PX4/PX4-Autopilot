@@ -176,6 +176,7 @@ private:
 	matrix::Vector3f _mu_I; // NED magnetic field in inertial frame [G]
 
 	int _gps_used;
+	float _baro_offset_m;
 
 	// parameters defined in sih_params.c
 	DEFINE_PARAMETERS(
@@ -200,6 +201,7 @@ private:
 		(ParamFloat<px4::params::SIH_LOC_MU_X>) _sih_mu_x,
 		(ParamFloat<px4::params::SIH_LOC_MU_Y>) _sih_mu_y,
 		(ParamFloat<px4::params::SIH_LOC_MU_Z>) _sih_mu_z,
-		(ParamInt<px4::params::SIH_GPS_USED>) _sih_gps_used
+		(ParamInt<px4::params::SIH_GPS_USED>) _sih_gps_used,
+		(ParamFloat<px4::params::SIH_BARO_OFFSET>) _sih_baro_offset
 	)
 };

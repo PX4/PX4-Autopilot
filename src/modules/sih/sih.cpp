@@ -132,7 +132,8 @@ void Sih::Run()
 	}
 
 	// baro published at 20 Hz
-	if (_now - _baro_time >= 50_ms) {
+	if (_now - _baro_time >= 50_ms
+	    && fabs(_baro_offset_m) < 10000) {
 		_baro_time = _now;
 		_px4_baro.set_temperature(_baro_temp_c);
 		_px4_baro.update(_now, _baro_p_mBar);
@@ -184,6 +185,7 @@ void Sih::parameters_updated()
 	_mu_I = Vector3f(_sih_mu_x.get(), _sih_mu_y.get(), _sih_mu_z.get());
 
 	_gps_used = _sih_gps_used.get();
+	_baro_offset_m = _sih_baro_offset.get();
 }
 
 // initialization of the variables for the simulator
@@ -301,7 +303,7 @@ void Sih::reconstruct_sensors_signals()
 	_mag = _C_IB.transpose() * _mu_I + noiseGauss3f(0.02f, 0.02f, 0.03f);
 
 	// barometer
-	float altitude = (_H0 - _p_I(2)) + generate_wgn() * 0.14f; // altitude with noise
+	float altitude = (_H0 - _p_I(2)) + _baro_offset_m + generate_wgn() * 0.14f; // altitude with noise
 	_baro_p_mBar = CONSTANTS_STD_PRESSURE_MBAR *        // reconstructed pressure in mBar
 		       powf((1.0f + altitude * TEMP_GRADIENT / T1_K), -CONSTANTS_ONE_G / (TEMP_GRADIENT * CONSTANTS_AIR_GAS_CONST));
 	_baro_temp_c = T1_K + CONSTANTS_ABSOLUTE_NULL_CELSIUS + TEMP_GRADIENT * altitude; // reconstructed temperture in celcius
