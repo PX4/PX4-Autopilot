@@ -1168,24 +1168,25 @@ void Ekf::checkRangeAidSuitability()
 {
 	if (_control_status.flags.in_air
 	    && _range_sensor.isHealthy()
-	    && isTerrainEstimateValid()
-	    && isHorizontalAidingActive()) {
+	    && isTerrainEstimateValid()) {
 		// check if we can use range finder measurements to estimate height, use hysteresis to avoid rapid switching
 		// Note that the 0.7 coefficients and the innovation check are arbitrary values but work well in practice
-		const bool is_in_range = _is_range_aid_suitable
-					 ? (_terrain_vpos - _state.pos(2) < _params.max_hagl_for_range_aid)
-					 : (_terrain_vpos - _state.pos(2) < _params.max_hagl_for_range_aid * 0.7f);
+		const float range_hagl = _terrain_vpos - _state.pos(2);
+		const float range_hagl_max = _is_range_aid_suitable ? _params.max_hagl_for_range_aid : (_params.max_hagl_for_range_aid * 0.7f);
+		const bool is_in_range = range_hagl < range_hagl_max;
 
-		const float ground_vel = sqrtf(_state.vel(0) * _state.vel(0) + _state.vel(1) * _state.vel(1));
-		const bool is_below_max_speed = _is_range_aid_suitable
-						? ground_vel < _params.max_vel_for_range_aid
-						: ground_vel < _params.max_vel_for_range_aid * 0.7f;
+		const float hagl_test_ratio = (_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var));
+		const bool is_hagl_stable = _is_range_aid_suitable ? (hagl_test_ratio < 1.f) : (hagl_test_ratio < 0.01f);
 
-		const bool is_hagl_stable = _is_range_aid_suitable
-					    ? ((_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var)) < 1.0f)
-					    : ((_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var)) < 0.01f);
+		if (isHorizontalAidingActive()) {
+			const float max_vel = _is_range_aid_suitable ? _params.max_vel_for_range_aid : (_params.max_vel_for_range_aid * 0.7f);
+			const bool is_below_max_speed = !_state.vel.xy().longerThan(max_vel);
 
-		_is_range_aid_suitable = is_in_range && is_below_max_speed && is_hagl_stable;
+			_is_range_aid_suitable = is_in_range && is_hagl_stable && is_below_max_speed;
+
+		} else {
+			_is_range_aid_suitable = is_in_range && is_hagl_stable;
+		}
 
 	} else {
 		_is_range_aid_suitable = false;
