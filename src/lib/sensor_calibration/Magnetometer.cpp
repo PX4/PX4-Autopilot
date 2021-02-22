@@ -207,8 +207,14 @@ void Magnetometer::ParametersUpdate()
 
 void Magnetometer::Reset()
 {
-	_rotation.setIdentity();
-	_rotation_enum = ROTATION_NONE;
+	if (_external) {
+		set_rotation(ROTATION_NONE);
+
+	} else {
+		// internal sensors follow board rotation
+		set_rotation(GetBoardRotation());
+	}
+
 	_offset.zero();
 	_scale.setIdentity();
 
