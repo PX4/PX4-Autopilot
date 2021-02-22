@@ -250,6 +250,9 @@
 
 #define STM32_RCC_D3CCIPR_ADCSEL     RCC_D3CCIPR_ADCSEL_PLL2
 
+/* CAN FD clock source */
+#define STM32_FDCANCLK STM32_HSE_FREQUENCY
+
 /* FLASH wait states
  *
  *  ------------ ---------- -----------
