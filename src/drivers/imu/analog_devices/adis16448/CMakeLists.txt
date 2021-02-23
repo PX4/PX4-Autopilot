@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,18 +30,22 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE drivers__imu__adis16448
+	MODULE drivers__imu__analog_devices__adis16448
 	MAIN adis16448
 	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
+		${MAX_CUSTOM_OPT_LEVEL}
+		#-DDEBUG_BUILD
 	SRCS
 		ADIS16448.cpp
+		ADIS16448.hpp
 		adis16448_main.cpp
+		Analog_Devices_ADIS16448_registers.hpp
 	DEPENDS
-		px4_work_queue
 		drivers_accelerometer
 		drivers_barometer
 		drivers_gyroscope
 		drivers_magnetometer
+		px4_work_queue
 	)

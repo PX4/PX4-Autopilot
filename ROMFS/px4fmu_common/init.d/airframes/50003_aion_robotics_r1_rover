@@ -35,7 +35,6 @@ param set-default FW_AIRSPD_MAX 3
 param set-default GND_SP_CTRL_MODE 1
 param set-default GND_L1_DIST 5
 param set-default GND_L1_PERIOD 3
-param set-default GND_THR_IDLE 0
 param set-default GND_THR_CRUISE 0.7
 param set-default GND_THR_MAX 0.5
 

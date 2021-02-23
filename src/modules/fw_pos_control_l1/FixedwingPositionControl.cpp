@@ -233,14 +233,14 @@ FixedwingPositionControl::manual_control_setpoint_poll()
 	_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 
 	_manual_control_setpoint_altitude = _manual_control_setpoint.x;
-	_manual_control_setpoint_airspeed = _manual_control_setpoint.z;
+	_manual_control_setpoint_airspeed = math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f);
 
 	if (_param_fw_posctl_inv_st.get()) {
 		/* Alternate stick allocation (similar concept as for multirotor systems:
 		 * demanding up/down with the throttle stick, and move faster/break with the pitch one.
 		 */
-		_manual_control_setpoint_altitude = -(_manual_control_setpoint.z * 2.f - 1.f);
-		_manual_control_setpoint_airspeed = _manual_control_setpoint.x / 2.f + 0.5f;
+		_manual_control_setpoint_altitude = -(math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f) * 2.f - 1.f);
+		_manual_control_setpoint_airspeed = math::constrain(_manual_control_setpoint.x, 0.0f, 1.0f) / 2.f + 0.5f;
 	}
 }
 
