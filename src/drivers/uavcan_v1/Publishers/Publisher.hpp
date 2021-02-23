@@ -53,6 +53,8 @@
 class UavcanPublication
 {
 public:
+	static constexpr uint16_t CANARD_PORT_ID_UNSET = 65535U;
+
 	UavcanPublication(CanardInstance &ins, UavcanParamManager &pmgr, const char *uavcan_pname) :
 		_canard_instance(ins), _param_manager(pmgr), _uavcan_param(uavcan_pname) { };
 
@@ -69,7 +71,7 @@ public:
 		int32_t new_id = value.integer32.value.elements[0];
 
 		if (_port_id != new_id) {
-			if (new_id == 0) {
+			if (new_id == CANARD_PORT_ID_UNSET) {
 				PX4_INFO("Disabling publication of %s", _uavcan_param);
 
 			} else {
@@ -81,7 +83,7 @@ public:
 
 	void printInfo()
 	{
-		if (_port_id > 0) {
+		if (_port_id != CANARD_PORT_ID_UNSET) {
 			PX4_INFO("Enabled %s on port %d", _uavcan_param, _port_id);
 		}
 	}
@@ -92,6 +94,6 @@ protected:
 	CanardRxSubscription _canard_sub;
 	const char *_uavcan_param; // Port ID parameter
 
-	CanardPortID _port_id {0};
+	CanardPortID _port_id {CANARD_PORT_ID_UNSET};
 	CanardTransferID _transfer_id {0};
 };
