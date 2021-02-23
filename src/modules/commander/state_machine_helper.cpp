@@ -173,7 +173,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 
 				//      Do not perform pre-arm checks if coming from in air restore
 				//      Allow if vehicle_status_s::HIL_STATE_ON
-				if (status->arming_state != vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE && !hil_enabled) {
+				if (status->arming_state != vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE) {
 
 					bool prearm_check_ret = true;
 
