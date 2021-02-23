@@ -218,6 +218,12 @@ public:
 	const innovation_fault_status_u &innov_check_fail_status() const { return _innov_check_fail_status; }
 	const decltype(innovation_fault_status_u::flags) &innov_check_fail_status_flags() const { return _innov_check_fail_status.flags; }
 
+	const warning_event_status_u &warning_event_status() const { return _warning_events; }
+	const decltype(warning_event_status_u::flags) &warning_event_flags() const { return _warning_events.flags; }
+
+	const information_event_status_u &information_event_status() const { return _information_events; }
+	const decltype(information_event_status_u::flags) &information_event_flags() const { return _information_events.flags; }
+
 	bool isVehicleAtRest() const { return _control_status.flags.vehicle_at_rest; }
 
 	// Getter for the average imu update period in s
@@ -380,6 +386,9 @@ protected:
 	filter_control_status_u _control_status_prev{};
 
 	virtual float compensateBaroForDynamicPressure(const float baro_alt_uncompensated) const = 0;
+
+	warning_event_status_u _warning_events{};
+	information_event_status_u _information_events{};
 
 private:
 

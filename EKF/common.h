@@ -505,9 +505,48 @@ union ekf_solution_status {
 union terrain_fusion_status_u {
 	struct {
 		bool range_finder: 1;	///< 0 - true if we are fusing range finder data
-		bool flow: 1;			///< 1 - true if we are fusing flow data
+		bool flow: 1;		///< 1 - true if we are fusing flow data
 	} flags;
 	uint8_t value;
+};
+
+// define structure used to communicate information events
+union information_event_status_u {
+	struct {
+		bool ekf_tilt_aligned		: 1; ///< 0 - true when the tilt alignment using the sensed gravity vector is complete
+		bool reset_vel_to_gps		: 1; ///< 1 - true when the velocity states are reset to the gps measurement
+		bool reset_vel_to_flow		: 1; ///< 2 - true when the velocity states are reset using the optical flow measurement
+		bool reset_vel_to_vision	: 1; ///< 3 - true when the velocity states are reset to the vision system measurement
+		bool reset_vel_to_zero		: 1; ///<4   - true when the velocity states are reset to zero
+		bool reset_pos_to_last_known	: 1; ///< 5 - true when the position states are reset to the last known position
+		bool reset_pos_to_gps		: 1; ///< 6 - true when the position states are reset to the gps measurement
+		bool reset_pos_to_vision	: 1; ///< 7 - true when the position states are reset to the vision system measurement
+		bool starting_gps_fusion	: 1; ///< 8 - true when the filter starts using gps measurements to correct the state estimates
+		bool starting_vision_pos_fusion	: 1; ///< 9 - true when the filter starts using vision system position measurements to correct the state estimates
+		bool starting_vision_vel_fusion	: 1; ///< 10 - true when the filter starts using vision system velocity measurements to correct the state estimates
+		bool starting_vision_yaw_fusion	: 1; ///< 11 - true when the filter starts using vision system yaw  measurements to correct the state estimates
+		bool yaw_aligned_to_imu_gps	: 1; ///< 12 - true when the filter resets the yaw to an estimate derived from IMU and GPS data
+		bool gps_checks_passed		: 1; ///< 13 - true when gps quality checks are passing passed
+	} flags;
+	uint32_t value;
+};
+
+// define structure used to communicate information events
+union warning_event_status_u {
+	struct {
+		bool gps_quality_poor			: 1; ///< 0 - true when the gps is failing quality checks
+		bool gps_fusion_timout			: 1; ///< 1 - true when the gps data has not been used to correct the state estimates for a significant time period
+		bool gps_data_stopped			: 1; ///< 2 - true when the gps data has stopped for a significant time period
+		bool gps_data_stopped_using_alternate	: 1; ///< 3 - true when the gps data has stopped for a significant time period but the filter is able to use other sources of data to maintain navigation
+		bool height_sensor_timeout		: 1; ///< 4 - true when the height sensor has not been used to correct the state estimates for a significant time period
+		bool stopping_navigation		: 1; ///< 5 - true when the filter has insufficient data to estimate velocity and position and is falling back to an attitude, height and height rate mode of operation
+		bool invalid_accel_bias_cov_reset	: 1; ///< 6 - true when the filter has detected bad acceerometer bias state esitmstes and has reset the corresponding covariance matrix elements
+		bool bad_yaw_using_gps_course		: 1; ///< 7 - true when the fiter has detected an invalid yaw esitmate and has reset the yaw angle to the GPS ground course
+		bool stopping_mag_use			: 1; ///< 8 - true when the filter has detected bad magnetometer data and is stopping further use of the magnetomer data
+		bool vision_data_stopped		: 1; ///< 9 - true when the vision system data has stopped for a significant time period
+		bool emergency_yaw_reset_mag_stopped	: 1; ///< 10 - true when the filter has detected bad magnetometer data, has reset the yaw to anothter source of data and has stopped further use of the magnetomer data
+	} flags;
+	uint32_t value;
 };
 
 }

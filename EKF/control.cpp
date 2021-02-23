@@ -78,6 +78,7 @@ void Ekf::controlFusionModes()
 
 			}
 			if (height_source){
+				_information_events.flags.ekf_tilt_aligned = true;
 				ECL_INFO("%llu: EKF aligned, (%s hgt, IMU buf: %i, OBS buf: %i)",
 					(unsigned long long)_imu_sample_delayed.time_us, height_source, (int)_imu_buffer_length, (int)_obs_buffer_length);
 			}
@@ -336,6 +337,7 @@ void Ekf::controlExternalVisionFusion()
 
 		// Turn off EV fusion mode if no data has been received
 		stopEvFusion();
+		_warning_events.flags.vision_data_stopped = true;
 		ECL_WARN_TIMESTAMPED("vision data stopped");
 
 	}
@@ -552,6 +554,7 @@ void Ekf::controlGpsFusion()
 			if (_control_status.flags.ev_pos && !(_params.fusion_mode & MASK_ROTATE_EV)) {
 				resetHorizontalPosition();
 			}
+			_warning_events.flags.gps_quality_poor = true;
 			ECL_WARN_TIMESTAMPED("GPS quality poor - stopping use");
 		}
 
@@ -659,6 +662,7 @@ void Ekf::controlGpsFusion()
 				resetVelocity();
 				resetHorizontalPosition();
 				_velpos_reset_request = false;
+				_warning_events.flags.gps_fusion_timout = true;
 				ECL_WARN_TIMESTAMPED("GPS fusion timeout - reset to GPS");
 
 				// Reset the timeout counters
@@ -719,11 +723,13 @@ void Ekf::controlGpsFusion()
 
 	} else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)10e6)) {
 		stopGpsFusion();
+		_warning_events.flags.gps_data_stopped = true;
 		ECL_WARN_TIMESTAMPED("GPS data stopped");
 	}  else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)1e6) && isOtherSourceOfHorizontalAidingThan(_control_status.flags.gps)) {
 		// Handle the case where we are fusing another position source along GPS,
 		// stop waiting for GPS after 1 s of lost signal
 		stopGpsFusion();
+		_warning_events.flags.gps_data_stopped_using_alternate = true;
 		ECL_WARN_TIMESTAMPED("GPS data stopped, using only EV, OF or air data" );
 	}
 }
@@ -879,6 +885,7 @@ void Ekf::controlHeightSensorTimeouts()
 		}
 
 		if (failing_height_source && new_height_source) {
+			_warning_events.flags.height_sensor_timeout = true;
 			ECL_WARN("%s hgt timeout - reset to %s", failing_height_source, new_height_source);
 		}
 
@@ -1293,6 +1300,7 @@ void Ekf::controlFakePosFusion()
 				_fuse_hpos_as_odom = false;
 
 				if (_time_last_fake_pos != 0) {
+					_warning_events.flags.stopping_navigation = true;
 					ECL_WARN_TIMESTAMPED("stopping navigation");
 				}
 

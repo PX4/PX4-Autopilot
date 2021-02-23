@@ -112,6 +112,7 @@ bool Ekf::collect_gps(const gps_message &gps)
 			startGpsHgtFusion();
 		}
 
+		_information_events.flags.gps_checks_passed = true;
 		ECL_INFO_TIMESTAMPED("GPS checks passed");
 
 	} else if (!_NED_origin_initialised) {

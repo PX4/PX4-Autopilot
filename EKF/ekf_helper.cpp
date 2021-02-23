@@ -65,6 +65,7 @@ void Ekf::resetVelocity()
 
 void Ekf::resetVelocityToGps()
 {
+	_information_events.flags.reset_vel_to_gps = true;
 	ECL_INFO_TIMESTAMPED("reset velocity to GPS");
 	resetVelocityTo(_gps_sample_delayed.vel);
 	P.uncorrelateCovarianceSetVariance<3>(4, sq(_gps_sample_delayed.sacc));
@@ -72,6 +73,7 @@ void Ekf::resetVelocityToGps()
 
 void Ekf::resetHorizontalVelocityToOpticalFlow()
 {
+	_information_events.flags.reset_vel_to_flow = true;
 	ECL_INFO_TIMESTAMPED("reset velocity to flow");
 	// constrain height above ground to be above minimum possible
 	const float heightAboveGndEst = fmaxf((_terrain_vpos - _state.pos(2)), _params.rng_gnd_clearance);
@@ -102,6 +104,7 @@ void Ekf::resetHorizontalVelocityToOpticalFlow()
 
 void Ekf::resetVelocityToVision()
 {
+	_information_events.flags.reset_vel_to_vision = true;
 	ECL_INFO_TIMESTAMPED("reset to vision velocity");
 	resetVelocityTo(getVisionVelocityInEkfFrame());
 	P.uncorrelateCovarianceSetVariance<3>(4, getVisionVelocityVarianceInEkfFrame());
@@ -109,6 +112,7 @@ void Ekf::resetVelocityToVision()
 
 void Ekf::resetHorizontalVelocityToZero()
 {
+	_information_events.flags.reset_vel_to_zero = true;
 	ECL_INFO_TIMESTAMPED("reset velocity to zero");
 	// Used when falling back to non-aiding mode of operation
 	resetHorizontalVelocityTo(Vector2f{0.f, 0.f});
@@ -167,6 +171,7 @@ void Ekf::resetHorizontalPosition()
 		resetHorizontalPositionToVision();
 
 	} else if (_control_status.flags.opt_flow) {
+		_information_events.flags.reset_pos_to_last_known = true;
 		ECL_INFO_TIMESTAMPED("reset position to last known position");
 
 		if (!_control_status.flags.in_air) {
@@ -181,6 +186,7 @@ void Ekf::resetHorizontalPosition()
 		P.uncorrelateCovarianceSetVariance<2>(7, 0.0f);
 
 	} else {
+		_information_events.flags.reset_pos_to_last_known = true;
 		ECL_INFO_TIMESTAMPED("reset position to last known position");
 		// Used when falling back to non-aiding mode of operation
 		resetHorizontalPositionTo(_last_known_posNE);
@@ -190,6 +196,7 @@ void Ekf::resetHorizontalPosition()
 
 void Ekf::resetHorizontalPositionToGps()
 {
+	_information_events.flags.reset_pos_to_gps = true;
 	ECL_INFO_TIMESTAMPED("reset position to GPS");
 	resetHorizontalPositionTo(_gps_sample_delayed.pos);
 	P.uncorrelateCovarianceSetVariance<2>(7, sq(_gps_sample_delayed.hacc));
@@ -197,6 +204,7 @@ void Ekf::resetHorizontalPositionToGps()
 
 void Ekf::resetHorizontalPositionToVision()
 {
+	_information_events.flags.reset_pos_to_vision = true;
 	ECL_INFO_TIMESTAMPED("reset position to ev position");
 	Vector3f _ev_pos = _ev_sample_delayed.pos;
 
@@ -386,11 +394,13 @@ bool Ekf::realignYawGPS()
 
 	// correct yaw angle using GPS ground course if compass yaw bad or yaw is previously not aligned
 	if (badMagYaw || !_control_status.flags.yaw_align) {
+		_warning_events.flags.bad_yaw_using_gps_course = true;
 		ECL_WARN_TIMESTAMPED("bad yaw, using GPS course");
 
 		// declare the magnetometer as failed if a bad yaw has occurred more than once
 		if (_control_status.flags.mag_aligned_in_flight && (_num_bad_flight_yaw_events >= 2)
 		    && !_control_status.flags.mag_fault) {
+			_warning_events.flags.stopping_mag_use = true;
 			ECL_WARN_TIMESTAMPED("stopping mag use");
 			_control_status.flags.mag_fault = true;
 		}
@@ -1413,6 +1423,7 @@ void Ekf::startGpsFusion()
 		resetVelocityToGps();
 	}
 
+	_information_events.flags.starting_gps_fusion = true;
 	ECL_INFO_TIMESTAMPED("starting GPS fusion");
 	_control_status.flags.gps = true;
 }
@@ -1458,6 +1469,7 @@ void Ekf::startEvPosFusion()
 {
 	_control_status.flags.ev_pos = true;
 	resetHorizontalPosition();
+	_information_events.flags.starting_vision_pos_fusion = true;
 	ECL_INFO_TIMESTAMPED("starting vision pos fusion");
 }
 
@@ -1465,6 +1477,7 @@ void Ekf::startEvVelFusion()
 {
 	_control_status.flags.ev_vel = true;
 	resetVelocity();
+	_information_events.flags.starting_vision_vel_fusion = true;
 	ECL_INFO_TIMESTAMPED("starting vision vel fusion");
 }
 
@@ -1486,6 +1499,7 @@ void Ekf::startEvYawFusion()
 	stopMagHdgFusion();
 	stopMag3DFusion();
 
+	_information_events.flags.starting_vision_yaw_fusion = true;
 	ECL_INFO_TIMESTAMPED("starting vision yaw fusion");
 }
 
@@ -1605,12 +1619,14 @@ bool Ekf::resetYawToEKFGSF()
 	_control_status.flags.yaw_align = true;
 
 	if (_params.mag_fusion_type == MAG_FUSE_TYPE_NONE) {
+		_information_events.flags.yaw_aligned_to_imu_gps = true;
 		ECL_INFO_TIMESTAMPED("Yaw aligned using IMU and GPS");
 
 	} else {
 		// stop using the magnetometer in the main EKF otherwise it's fusion could drag the yaw around
 		// and cause another navigation failure
 		_control_status.flags.mag_fault = true;
+		_warning_events.flags.emergency_yaw_reset_mag_stopped = true;
 		ECL_WARN_TIMESTAMPED("Emergency yaw reset - mag use stopped");
 	}
 
