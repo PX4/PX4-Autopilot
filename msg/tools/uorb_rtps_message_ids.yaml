@@ -11,6 +11,7 @@ rtps:
     id: 5
   - msg: battery_status
     id: 6
+    send: true
   - msg: camera_capture
     id: 7
   - msg: camera_trigger
