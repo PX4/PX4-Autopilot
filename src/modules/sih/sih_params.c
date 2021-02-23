@@ -415,3 +415,12 @@ PARAM_DEFINE_FLOAT(SIH_DISTSNSR_MIN, 0.0f);
  * @group Simulation In Hardware
  */
 PARAM_DEFINE_FLOAT(SIH_DISTSNSR_MAX, 100.0f);
+
+/**
+ * if >= 0 the distance sensor measures will be overrided by this value
+ * Absolute value superior to 10000 will disable distance sensor
+ *
+ * @unit m
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_DISTSNSR_OVR, -1.0f);
