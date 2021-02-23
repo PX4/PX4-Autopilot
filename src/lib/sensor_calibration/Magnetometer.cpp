@@ -85,7 +85,7 @@ void Magnetometer::set_external(bool external)
 
 bool Magnetometer::set_offset(const Vector3f &offset)
 {
-	if (Vector3f(_offset - offset).longerThan(0.001f)) {
+	if (Vector3f(_offset - offset).longerThan(0.01f)) {
 		_offset = offset;
 
 		_calibration_count++;
@@ -97,7 +97,7 @@ bool Magnetometer::set_offset(const Vector3f &offset)
 
 bool Magnetometer::set_scale(const Vector3f &scale)
 {
-	if (Vector3f(_scale.diag() - scale).longerThan(0.001f)) {
+	if (Vector3f(_scale.diag() - scale).longerThan(0.01f)) {
 		_scale(0, 0) = scale(0);
 		_scale(1, 1) = scale(1);
 		_scale(2, 2) = scale(2);
@@ -111,7 +111,7 @@ bool Magnetometer::set_scale(const Vector3f &scale)
 
 bool Magnetometer::set_offdiagonal(const Vector3f &offdiagonal)
 {
-	if (Vector3f(Vector3f{_scale(0, 1), _scale(0, 2), _scale(1, 2)} - offdiagonal).longerThan(0.001f)) {
+	if (Vector3f(Vector3f{_scale(0, 1), _scale(0, 2), _scale(1, 2)} - offdiagonal).longerThan(0.01f)) {
 		_scale(0, 1) = offdiagonal(0);
 		_scale(1, 0) = offdiagonal(0);
 

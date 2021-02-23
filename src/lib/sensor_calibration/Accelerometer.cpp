@@ -125,7 +125,7 @@ void Accelerometer::SensorCorrectionsUpdate(bool force)
 
 bool Accelerometer::set_offset(const Vector3f &offset)
 {
-	if (Vector3f(_offset - offset).longerThan(0.001f)) {
+	if (Vector3f(_offset - offset).longerThan(0.01f)) {
 		_offset = offset;
 
 		_calibration_count++;
@@ -137,7 +137,7 @@ bool Accelerometer::set_offset(const Vector3f &offset)
 
 bool Accelerometer::set_scale(const Vector3f &scale)
 {
-	if (Vector3f(_scale - scale).longerThan(0.001f)) {
+	if (Vector3f(_scale - scale).longerThan(0.01f)) {
 		_scale = scale;
 
 		_calibration_count++;
