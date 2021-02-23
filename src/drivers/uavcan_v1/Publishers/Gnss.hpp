@@ -59,7 +59,7 @@ public:
 	// Update the uORB Subscription and broadcast a UAVCAN message
 	virtual void update() override
 	{
-		if (_gps_sub.updated() && _port_id > 0) {
+		if (_gps_sub.updated() && _port_id != CANARD_PORT_ID_UNSET) {
 			sensor_gps_s gps {};
 			_gps_sub.update(&gps);
 
