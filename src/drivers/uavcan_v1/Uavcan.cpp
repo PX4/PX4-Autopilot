@@ -90,6 +90,8 @@ UavcanNode::UavcanNode(CanardInterface *interface, uint32_t node_id) :
 	for (auto &subscriber : _subscribers) {
 		subscriber->updateParam();
 	}
+
+	_mixing_output.mixingOutput().updateSubscriptions(false, false);
 }
 
 UavcanNode::~UavcanNode()
@@ -245,6 +247,10 @@ void UavcanNode::Run()
 			// Setting the port-id to 0 disables the subscription
 			subscriber->updateParam();
 		}
+
+		_mixing_output.updateParams();
+
+		_mixing_output.mixingOutput().updateSubscriptions(false, false);
 	}
 
 	perf_begin(_cycle_perf);
@@ -341,7 +347,7 @@ void UavcanNode::Run()
 
 		} else if (result == 1) {
 			// A transfer has been received, process it.
-			PX4_INFO("received Port ID: %d", receive.port_id);
+			// PX4_INFO("received Port ID: %d", receive.port_id);
 
 			if (receive.port_id == uavcan_pnp_NodeIDAllocationData_1_0_FIXED_PORT_ID_) {
 				result = handlePnpNodeIDAllocationData(receive);
@@ -495,15 +501,6 @@ void UavcanNode::sendHeartbeat()
 		}
 
 		_uavcan_node_heartbeat_last = transfer.timestamp_usec;
-
-		/// TESTING -- Remove before flight!
-		// Since we don't have a mixer file here yet
-		uint16_t outputs[8] {};
-		outputs[0] = 1000;
-		outputs[1] = 2000;
-		outputs[2] = 3000;
-		outputs[3] = 4000;
-		_mixing_output.updateOutputs(false, outputs, 4, 1);
 	}
 }
 
@@ -690,9 +687,6 @@ int UavcanNode::handleRegisterAccess(const CanardTransfer &receive)
 
 	}
 
-	/// TODO: I'm getting the following error:
-	/// 	"error: the frame size of 2448 bytes is larger than 2048 bytes [-Werror=frame-larger-than=]"
-
 	/// TODO: Access_Response
 	uavcan_register_Access_Response_1_0 response {};
 	response.value = value;
@@ -764,6 +758,6 @@ void UavcanMixingInterface::Run()
 {
 	pthread_mutex_lock(&_node_mutex);
 	_mixing_output.update();
-	_mixing_output.updateSubscriptions(false);
+	_mixing_output.updateSubscriptions(false, false);
 	pthread_mutex_unlock(&_node_mutex);
 }
