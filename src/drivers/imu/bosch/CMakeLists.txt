@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,13 +31,5 @@
 #
 ############################################################################
 
-add_subdirectory(adis16477)
-add_subdirectory(adis16497)
-add_subdirectory(analog_devices)
-add_subdirectory(bosch)
-add_subdirectory(fxas21002c)
-add_subdirectory(fxos8701cq)
-add_subdirectory(invensense)
-add_subdirectory(l3gd20)
-add_subdirectory(lsm303d)
-add_subdirectory(st)
+add_subdirectory(bmi055)
+add_subdirectory(bmi088)
