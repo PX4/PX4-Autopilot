@@ -34,7 +34,6 @@
 add_subdirectory(adis16477)
 add_subdirectory(adis16497)
 add_subdirectory(analog_devices)
-add_subdirectory(bma180)
 add_subdirectory(bmi055)
 add_subdirectory(bmi088)
 add_subdirectory(bmi160)
