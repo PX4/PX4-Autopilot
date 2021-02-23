@@ -114,8 +114,8 @@ function(px4_add_common_flags)
 	elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 
 		if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.9)
-			# enable color for gcc > 4.9 when stdout is terminal
-			add_compile_options(-fdiagnostics-color=auto)
+			# force color for gcc > 4.9
+			add_compile_options(-fdiagnostics-color=always)
 		endif()
 
 		if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 9.3)
