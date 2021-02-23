@@ -209,6 +209,7 @@ private:
 	float _discharged_mah{0.f};
 	float _discharged_mah_loop{0.f};
 	float _remaining_voltage{-1.f};		///< normalized battery charge level remaining based on voltage
+	float _remaining_current{-1.f};		///< normalized battery charge level remaining based on current and capacity
 	float _remaining{-1.f};			///< normalized battery charge level, selected based on config param
 	float _scale{1.f};
 	uint8_t _warning{battery_status_s::BATTERY_WARNING_NONE};

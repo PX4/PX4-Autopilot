@@ -226,6 +226,12 @@ void Battery::estimateRemaining(const float voltage_v, const float current_a, co
 			// directly apply current capacity slope calculated using current
 			_remaining -= _discharged_mah_loop / _params.capacity;
 			_remaining = math::max(_remaining, 0.f);
+
+			// calculation should never exceed percentage based on raw current consumption
+			_remaining_current = 1 - _discharged_mah / _params.capacity;
+			_remaining_current = math::max(_remaining_current, 0.f);
+			_remaining = math::min(_remaining_current, _remaining);
+
 		}
 
 	} else {
