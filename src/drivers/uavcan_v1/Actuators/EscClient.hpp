@@ -129,9 +129,18 @@ public:
 		if (_port_id > 0) {
 			reg_drone_service_actuator_common_sp_Vector31_0_1 msg_sp {0};
 
-			for (uint8_t i = 0; i < num_outputs; i++) {
-				msg_sp.value[i] = outputs[i];
+			for (uint8_t i = 0; i < MAX_ACTUATORS; i++) {
+				if (i < num_outputs) {
+					msg_sp.value[i] = static_cast<float>(outputs[i]);
+
+				} else {
+					// "unset" values published as NaN
+					msg_sp.value[i] = NAN;
+				}
 			}
+
+			PX4_INFO("Publish %d values %f, %f, %f, %f", num_outputs, (double)msg_sp.value[0], (double)msg_sp.value[1],
+				 (double)msg_sp.value[2], (double)msg_sp.value[3]);
 
 			uint8_t esc_sp_payload_buffer[reg_drone_service_actuator_common_sp_Vector31_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_];
 

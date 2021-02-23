@@ -42,8 +42,12 @@
 
 #pragma once
 
+/// For use with PR-16808 once merged
+// #include <uORB/topics/output_control.h>
+
 // DS-15 Specification Messages
 #include <reg/drone/service/actuator/common/sp/Vector8_0_1.h>
+#include <reg/drone/service/common/Readiness_0_1.h>
 
 #include "Subscriber.hpp"
 
@@ -63,15 +67,20 @@ public:
 				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
 				  &_canard_sub);
 
-		/** TODO: Add additional ESC-service messages: reg.drone.service.common.Readiness
-		 */
+		// Subscribe to messages reg.drone.service.common.Readiness.0.1
+		canardRxSubscribe(&_canard_instance,
+				  CanardTransferKindMessage,
+				  static_cast<CanardPortID>(static_cast<uint32_t>(_port_id) + 1),
+				  reg_drone_service_common_Readiness_0_1_EXTENT_BYTES_,
+				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
+				  &_canard_sub_readiness);
 	};
 
 	void callback(const CanardTransfer &receive) override
 	{
 		// Test with Yakut:
 		// export YAKUT_TRANSPORT="pyuavcan.transport.can.CANTransport(pyuavcan.transport.can.media.slcan.SLCANMedia('/dev/serial/by-id/usb-Zubax_Robotics_Zubax_Babel_23002B000E514E413431302000000000-if00', 8, 115200), 42)"
-		// yakut pub 22.reg.drone.service.actuator.common.sp.Vector8.0.1 '{value: {1000, 2000, 3000, 4000}, longitude: 2.34, altitude: {meter: 0.5}}'
+		// yakut pub 22.reg.drone.service.actuator.common.sp.Vector8.0.1 '{value: [1000, 2000, 3000, 4000, 0, 0, 0, 0]}'
 		PX4_INFO("EscCallback");
 
 		reg_drone_service_actuator_common_sp_Vector8_0_1 esc {};
@@ -86,7 +95,19 @@ public:
 		PX4_INFO("values[0-3] = {%f, %f, %f, %f}", val1, val2, val3, val4);
 		/// do something with the data
 
-		/// TODO: Publish to output_control_mc
+		/// For use with PR-16808 once merged
+		// output_control_s outputs;
+
+		// for (uint8_t i = 0; i < 8; i++) {
+		// 	outputs.value[i] = 2.f * (esc.value[i] / 8191.f) - 1.f;
+		// }
+
+		// _output_pub.publish(outputs);
 	};
 
+private:
+	/// For use with PR-16808 once merged
+	// uORB::Publication<output_control_s> _output_pub{ORB_ID(output_control_mc)};
+
+	CanardRxSubscription _canard_sub_readiness;
 };
