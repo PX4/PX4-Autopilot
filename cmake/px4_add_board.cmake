@@ -105,8 +105,8 @@
 #			DRIVERS
 #				barometer/ms5611
 #				gps
-#				imu/bmi055
-#				imu/mpu6000
+#				imu/bosch/bmi055
+#				imu/invensense/mpu6000
 #				magnetometer/isentek/ist8310
 #				pwm_out
 #				px4io
