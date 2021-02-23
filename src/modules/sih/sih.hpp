@@ -184,7 +184,7 @@ private:
 
 	int _gps_used;
 	float _baro_offset_m, _mag_offset_x, _mag_offset_y, _mag_offset_z;
-	float _distance_snsr_min, _distance_snsr_max;
+	float _distance_snsr_min, _distance_snsr_max, _distance_snsr_override;
 
 	// parameters defined in sih_params.c
 	DEFINE_PARAMETERS(
@@ -215,6 +215,7 @@ private:
 		(ParamFloat<px4::params::SIH_MAG_OFFSET_Y>) _sih_mag_offset_y,
 		(ParamFloat<px4::params::SIH_MAG_OFFSET_Z>) _sih_mag_offset_z,
 		(ParamFloat<px4::params::SIH_DISTSNSR_MIN>) _sih_distance_snsr_min,
-		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max
+		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
+		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override
 	)
 };

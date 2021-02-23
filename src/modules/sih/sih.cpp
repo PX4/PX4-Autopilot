@@ -150,7 +150,8 @@ void Sih::Run()
 	}
 
 	// distance sensor published at 50 Hz
-	if (_now - _dist_snsr_time >= 20_ms) {
+	if (_now - _dist_snsr_time >= 20_ms
+	    && fabs(_distance_snsr_override) < 10000) {
 		_dist_snsr_time = _now;
 		send_dist_snsr();
 	}
@@ -201,6 +202,7 @@ void Sih::parameters_updated()
 
 	_distance_snsr_min = _sih_distance_snsr_min.get();
 	_distance_snsr_max = _sih_distance_snsr_max.get();
+	_distance_snsr_override = _sih_distance_snsr_override.get();
 }
 
 // initialization of the variables for the simulator
@@ -373,12 +375,17 @@ void Sih::send_dist_snsr()
 	_distance_snsr.signal_quality = -1;
 	_distance_snsr.device_id = 0;
 
-	_distance_snsr.current_distance = -_p_I(2) / _C_IB(2, 2);
+	if (_distance_snsr_override >= 0.f) {
+		_distance_snsr.current_distance = _distance_snsr_override;
 
-	if (_distance_snsr.current_distance > _distance_snsr_max) {
-		// this is based on lightware lw20 behavior
-		_distance_snsr.current_distance = UINT16_MAX / 100.f;
+	} else {
+		_distance_snsr.current_distance = -_p_I(2) / _C_IB(2, 2);
 
+		if (_distance_snsr.current_distance > _distance_snsr_max) {
+			// this is based on lightware lw20 behavior
+			_distance_snsr.current_distance = UINT16_MAX / 100.f;
+
+		}
 	}
 
 	_distance_snsr_pub.publish(_distance_snsr);
