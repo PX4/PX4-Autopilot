@@ -43,7 +43,6 @@ px4_add_board(
 		#imu/invensense/icm20948
 		imu/invensense/mpu6000
 		#imu/invensense/mpu9250
-		#imu/mpu6000 # legacy mpu6000
 		#iridiumsbd
 		#irlock
 		#lights/blinkm
