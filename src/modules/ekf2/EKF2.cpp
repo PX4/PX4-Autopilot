@@ -178,6 +178,7 @@ bool EKF2::multi_init(int imu, int mag)
 	_local_position_pub.advertise();
 	_global_position_pub.advertise();
 	_odometry_pub.advertise();
+	_wind_pub.advertise();
 
 	_ekf2_timestamps_pub.advertise();
 	_ekf_gps_drift_pub.advertise();
@@ -190,7 +191,6 @@ bool EKF2::multi_init(int imu, int mag)
 	_estimator_status_pub.advertise();
 	_estimator_status_flags_pub.advertise();
 	_estimator_visual_odometry_aligned_pub.advertised();
-	_wind_pub.advertise();
 	_yaw_est_pub.advertise();
 
 	_vehicle_imu_sub.ChangeInstance(imu);
@@ -522,54 +522,45 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 {
 	if (_ekf.global_position_is_valid() && !_preflt_checker.hasFailed()) {
 		// only publish if position has changed by at least 1 mm (map_projection_reproject is relatively expensive)
-		const Vector3f position = _ekf.getPosition();
+		const Vector3f position{_ekf.getPosition()};
 
 		if ((_last_local_position_for_gpos - position).longerThan(0.001f)) {
-
 			// generate and publish global position data
 			vehicle_global_position_s global_pos;
 			global_pos.timestamp_sample = timestamp;
 
 			// Position of local NED origin in GPS / WGS84 frame
-			uint64_t origin_time;
-			map_projection_reference_s ekf_origin;
-			float ref_alt;
-			// true if position (x,y,z) has a valid WGS-84 global reference (ref_lat, ref_lon, alt)
-			const bool ekf_origin_valid = _ekf.get_ekf_origin(&origin_time, &ekf_origin, &ref_alt);
+			map_projection_reproject(&_ekf.global_origin(), position(0), position(1), &global_pos.lat, &global_pos.lon);
 
-			if (ekf_origin_valid) {
+			float delta_xy[2];
+			_ekf.get_posNE_reset(delta_xy, &global_pos.lat_lon_reset_counter);
 
-				map_projection_reproject(&ekf_origin, position(0), position(1), &global_pos.lat, &global_pos.lon);
+			global_pos.alt = -position(2) + _ekf.getEkfGlobalOriginAltitude(); // Altitude AMSL in meters
+			global_pos.alt_ellipsoid = filter_altitude_ellipsoid(global_pos.alt);
 
-				float delta_xy[2];
-				_ekf.get_posNE_reset(delta_xy, &global_pos.lat_lon_reset_counter);
+			// global altitude has opposite sign of local down position
+			float delta_z;
+			uint8_t z_reset_counter;
+			_ekf.get_posD_reset(&delta_z, &z_reset_counter);
+			global_pos.delta_alt = -delta_z;
 
-				global_pos.alt = -position(2) + ref_alt; // Altitude AMSL in meters
-				global_pos.alt_ellipsoid = filter_altitude_ellipsoid(global_pos.alt);
+			_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
 
-				// global altitude has opposite sign of local down position
-				float delta_z;
-				uint8_t z_reset_counter;
-				_ekf.get_posD_reset(&delta_z, &z_reset_counter);
-				global_pos.delta_alt = -delta_z;
+			if (_ekf.isTerrainEstimateValid()) {
+				// Terrain altitude in m, WGS84
+				global_pos.terrain_alt = _ekf.getEkfGlobalOriginAltitude() - _ekf.getTerrainVertPos();
+				global_pos.terrain_alt_valid = true;
 
-				_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
-
-				global_pos.terrain_alt_valid = _ekf.isTerrainEstimateValid();
-
-				if (global_pos.terrain_alt_valid) {
-					global_pos.terrain_alt = ref_alt -  _ekf.getTerrainVertPos(); // Terrain altitude in m, WGS84
-
-				} else {
-					global_pos.terrain_alt = 0.0f; // Terrain altitude in m, WGS84
-				}
-
-				global_pos.dead_reckoning = _ekf.inertial_dead_reckoning(); // True if this position is estimated through dead-reckoning
-				global_pos.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-				_global_position_pub.publish(global_pos);
-
-				_last_local_position_for_gpos = position;
+			} else {
+				global_pos.terrain_alt = NAN;
+				global_pos.terrain_alt_valid = false;
 			}
+
+			global_pos.dead_reckoning = _ekf.inertial_dead_reckoning(); // True if this position is estimated through dead-reckoning
+			global_pos.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+			_global_position_pub.publish(global_pos);
+
+			_last_local_position_for_gpos = position;
 		}
 	}
 }
@@ -665,13 +656,13 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.timestamp_sample = timestamp;
 
 	// Position of body origin in local NED frame
-	const Vector3f position = _ekf.getPosition();
+	const Vector3f position{_ekf.getPosition()};
 	lpos.x = position(0);
 	lpos.y = position(1);
 	lpos.z = position(2);
 
 	// Velocity of body origin in local NED frame (m/s)
-	const Vector3f velocity = _ekf.getVelocity();
+	const Vector3f velocity{_ekf.getVelocity()};
 	lpos.vx = velocity(0);
 	lpos.vy = velocity(1);
 	lpos.vz = velocity(2);
@@ -680,7 +671,7 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.z_deriv = _ekf.getVerticalPositionDerivative();
 
 	// Acceleration of body origin in local frame
-	Vector3f vel_deriv = _ekf.getVelocityDerivative();
+	const Vector3f vel_deriv{_ekf.getVelocityDerivative()};
 	lpos.ax = vel_deriv(0);
 	lpos.ay = vel_deriv(1);
 	lpos.az = vel_deriv(2);
@@ -692,15 +683,22 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.v_z_valid = !_preflt_checker.hasVertFailed();
 
 	// Position of local NED origin in GPS / WGS84 frame
-	uint64_t origin_time;
-	map_projection_reference_s ekf_origin_pos;
-	const bool ekf_origin_valid = _ekf.get_ekf_origin(&origin_time, &ekf_origin_pos, &lpos.ref_alt);
-	lpos.ref_timestamp = origin_time;
-	lpos.ref_lat = math::degrees(ekf_origin_pos.lat_rad); // Reference point latitude in degrees
-	lpos.ref_lon = math::degrees(ekf_origin_pos.lon_rad); // Reference point longitude in degrees
+	if (_ekf.global_origin_valid()) {
+		lpos.ref_timestamp = _ekf.global_origin().timestamp;
+		lpos.ref_lat = math::degrees(_ekf.global_origin().lat_rad); // Reference point latitude in degrees
+		lpos.ref_lon = math::degrees(_ekf.global_origin().lon_rad); // Reference point longitude in degrees
+		lpos.ref_alt = _ekf.getEkfGlobalOriginAltitude();           // Reference point in MSL altitude meters
+		lpos.xy_global = true;
+		lpos.z_global = true;
 
-	lpos.xy_global = ekf_origin_valid;
-	lpos.z_global = ekf_origin_valid;
+	} else {
+		lpos.ref_timestamp = 0;
+		lpos.ref_lat = static_cast<double>(NAN);
+		lpos.ref_lon = static_cast<double>(NAN);
+		lpos.ref_alt = NAN;
+		lpos.xy_global = false;
+		lpos.z_global = false;
+	}
 
 	Quatf delta_q_reset;
 	_ekf.get_quat_reset(&delta_q_reset(0), &lpos.heading_reset_counter);
@@ -771,14 +769,14 @@ void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu)
 	odom.local_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
 
 	// Vehicle odometry position
-	const Vector3f position = _ekf.getPosition();
+	const Vector3f position{_ekf.getPosition()};
 	odom.x = position(0);
 	odom.y = position(1);
 	odom.z = position(2);
 
 	// Vehicle odometry linear velocity
 	odom.velocity_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
-	const Vector3f velocity = _ekf.getVelocity();
+	const Vector3f velocity{_ekf.getVelocity()};
 	odom.vx = velocity(0);
 	odom.vy = velocity(1);
 	odom.vz = velocity(2);
@@ -787,8 +785,8 @@ void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu)
 	_ekf.getQuaternion().copyTo(odom.q);
 
 	// Vehicle odometry angular rates
-	const Vector3f gyro_bias = _ekf.getGyroBias();
-	const Vector3f rates(imu.delta_ang / imu.delta_ang_dt);
+	const Vector3f gyro_bias{_ekf.getGyroBias()};
+	const Vector3f rates{imu.delta_ang / imu.delta_ang_dt};
 	odom.rollspeed = rates(0) - gyro_bias(0);
 	odom.pitchspeed = rates(1) - gyro_bias(1);
 	odom.yawspeed = rates(2) - gyro_bias(2);
