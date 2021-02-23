@@ -64,6 +64,7 @@ set(msg_files
 	estimator_states.msg
 	estimator_status.msg
 	estimator_status_flags.msg
+	estimator_event_flags.msg
 	follow_target.msg
 	generator_status.msg
 	geofence_result.msg
