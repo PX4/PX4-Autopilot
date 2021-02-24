@@ -80,7 +80,7 @@ __EXPORT void stm32_boardinitialize(void)
 }
 
 /************************************************************************************
- * Name: stm32_boarddeinitialize
+ * Name: board_deinitialize
  *
  * Description:
  *   This function is called by the bootloader code prior to booting
@@ -88,7 +88,7 @@ __EXPORT void stm32_boardinitialize(void)
  *
  ************************************************************************************/
 
-void stm32_boarddeinitialize(void)
+void board_deinitialize(void)
 {
 	putreg32(getreg32(STM32_RCC_APB1RSTR) | RCC_APB1RSTR_CAN1RST, STM32_RCC_APB1RSTR);
 }
