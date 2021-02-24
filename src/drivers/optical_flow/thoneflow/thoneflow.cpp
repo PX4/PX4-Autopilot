@@ -230,7 +230,7 @@ Thoneflow::init()
 
 		/* Integrated flow is sent at 66fps */
 		_report.frame_count_since_last_readout = 1;
-		_report.integration_timespan = 15151;	// microseconds
+		_report.integration_timespan = 10526;	// microseconds
 
 		/* Get a publish handle on the optical flow topic */
 		_optical_flow_pub = orb_advertise(ORB_ID(optical_flow), &_report);
