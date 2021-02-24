@@ -246,14 +246,14 @@ private:
 	/// TODO: For some service implementations, it makes sense to have them be both Publishers and Subscribers
 	UavcanPublisher *_publishers[2] {&_gps_pub, &_esc_controller};
 
-	UavcanGnssSubscription _gps0_sub {_canard_instance, _param_manager, 0};
-	UavcanGnssSubscription _gps1_sub {_canard_instance, _param_manager, 1};
-	UavcanBmsSubscription  _bms0_sub {_canard_instance, _param_manager, 0};
-	UavcanBmsSubscription  _bms1_sub {_canard_instance, _param_manager, 1};
-	UavcanEscSubscription  _esc_sub  {_canard_instance, _param_manager, 0};
+	UavcanGnssSubscriber _gps0_sub {_canard_instance, _param_manager, 0};
+	UavcanGnssSubscriber _gps1_sub {_canard_instance, _param_manager, 1};
+	UavcanBmsSubscriber  _bms0_sub {_canard_instance, _param_manager, 0};
+	UavcanBmsSubscriber  _bms1_sub {_canard_instance, _param_manager, 1};
+	UavcanEscSubscriber  _esc_sub  {_canard_instance, _param_manager, 0};
 
-	// Subscription objects: Any object used to bridge a UAVCAN message to a uORB message
-	UavcanSubscription *_subscribers[5] {&_gps0_sub, &_gps1_sub, &_bms0_sub, &_bms1_sub, &_esc_sub}; /// TODO: turn into List<UavcanSubscription*>
+	// Subscriber objects: Any object used to bridge a UAVCAN message to a uORB message
+	UavcanSubscriber *_subscribers[5] {&_gps0_sub, &_gps1_sub, &_bms0_sub, &_bms1_sub, &_esc_sub}; /// TODO: turn into List<UavcanSubscription*>
 
 	UavcanMixingInterface _mixing_output {_node_mutex, _esc_controller};
 };

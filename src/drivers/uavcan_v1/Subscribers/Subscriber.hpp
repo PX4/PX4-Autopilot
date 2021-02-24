@@ -50,12 +50,12 @@
 #include "../CanardInterface.hpp"
 #include "../ParamManager.hpp"
 
-class UavcanSubscription
+class UavcanSubscriber
 {
 public:
 	static constexpr uint16_t CANARD_PORT_ID_UNSET = 65535U;
 
-	UavcanSubscription(CanardInstance &ins, UavcanParamManager &pmgr, const char *subject_name, uint8_t instance = 0) :
+	UavcanSubscriber(CanardInstance &ins, UavcanParamManager &pmgr, const char *subject_name, uint8_t instance = 0) :
 		_canard_instance(ins), _param_manager(pmgr), _subject_name(subject_name), _instance(instance) { };
 
 	virtual void subscribe() = 0;

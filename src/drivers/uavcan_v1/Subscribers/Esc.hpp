@@ -51,11 +51,11 @@
 
 #include "Subscriber.hpp"
 
-class UavcanEscSubscription : public UavcanSubscription
+class UavcanEscSubscriber : public UavcanSubscriber
 {
 public:
-	UavcanEscSubscription(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanSubscription(ins, pmgr, "esc", instance) { };
+	UavcanEscSubscriber(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
+		UavcanSubscriber(ins, pmgr, "esc", instance) { };
 
 	void subscribe() override
 	{
