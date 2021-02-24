@@ -60,7 +60,7 @@ void TECS::update_vehicle_state_estimates(float equivalent_airspeed, const float
 {
 	// calculate the time lapsed since the last update
 	uint64_t now = hrt_absolute_time();
-	float dt = constrain((now - _state_update_timestamp) * 1.0e-6f, DT_MIN, DT_MAX);
+	float dt = fmaxf((now - _state_update_timestamp) * 1e-6f, DT_MIN);
 
 	bool reset_altitude = false;
 
