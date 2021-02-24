@@ -80,7 +80,7 @@ __EXPORT void s32k1xx_board_initialize(void)
 }
 
 /************************************************************************************
- * Name: stm32_boarddeinitialize
+ * Name: board_deinitialize
  *
  * Description:
  *   This function is called by the bootloader code prior to booting
@@ -88,7 +88,7 @@ __EXPORT void s32k1xx_board_initialize(void)
  *
  ************************************************************************************/
 
-void stm32_boarddeinitialize(void)
+void board_deinitialize(void)
 {
 	uint32_t regval  = getreg32(S32K1XX_CAN0_MCR);
 	regval |= CAN_MCR_MDIS;

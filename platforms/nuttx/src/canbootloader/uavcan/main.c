@@ -952,7 +952,7 @@ static void application_run(size_t fw_image_size, bootloader_app_shared_t *commo
 
 		__asm__ __volatile__("\tcpsid  i\n");
 
-		stm32_boarddeinitialize();
+		board_deinitialize();
 
 		/* kill the systick interrupt */
 		putreg32(0, NVIC_SYSTICK_CTRL);
