@@ -49,7 +49,7 @@
 #include "nvic.h"
 
 #include "board.h"
-#include "px4_macros.h"
+#include <systemlib/px4_macros.h>
 #include "can.h"
 #include "timer.h"
 
