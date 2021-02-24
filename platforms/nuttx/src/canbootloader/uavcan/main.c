@@ -758,20 +758,9 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path, uint8_t
 
 	uint8_t retries = UavcanServiceRetries;
 
-	/*
-	 * Rate limiting on read requests:
-	 *
-	 *  2/sec (500  ms) on a 125 Kbaud bus Speed = 1 1000/2
-	 *  4/sec (250  ms) on a 250 Kbaud bus Speed = 2 1000/4
-	 *  8/sec (125  ms) on a 500 Kbaud bus Speed = 3 1000/8
-	 * 16/sec (62.5 ms) on a 1 Mbaud bus   Speed = 4 1000/16
-	 */
-
-	uint32_t read_ms = 1000 >> bootloader.bus_speed;
 	size_t length;
 
 	protocol.tail_init.u8  = 0;
-	bl_timer_id tread = timer_allocate(modeTimeout | modeStarted, read_ms, 0);
 
 	do {
 		/* reset the rate limit */
@@ -779,8 +768,6 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path, uint8_t
 		uavcan_status = UavcanError;
 
 		while (retries && uavcan_status != UavcanOk) {
-
-			timer_restart(tread, read_ms);
 
 			length = FixedSizeReadRequest + fw_path_length;
 			protocol.ser.source_node_id = g_server_node_id;
@@ -859,16 +846,9 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path, uint8_t
 		request.offset  += length;
 		bootloader.percentage_done = (request.offset / 1024) + 1;
 
-		/* rate limit */
-		while (!timer_expired(tread)) {
-			;
-		}
-
 	} while (request.offset < fw_image_size &&
 		 length == sizeof(response.data)  &&
 		 flash_status == FLASH_OK);
-
-	timer_free(tread);
 
 	/*
 	 * Return success if the last read succeeded, the last write succeeded, the
