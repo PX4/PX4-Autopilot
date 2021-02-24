@@ -69,8 +69,8 @@ public:
 		PX4_INFO("BmsCallback");
 
 		reg_drone_service_battery_Status_0_1 bat {};
-		size_t bat_size_in_bits = receive.payload_size;
-		reg_drone_service_battery_Status_0_1_deserialize_(&bat, (const uint8_t *)receive.payload, &bat_size_in_bits);
+		size_t bat_size_in_bytes = receive.payload_size;
+		reg_drone_service_battery_Status_0_1_deserialize_(&bat, (const uint8_t *)receive.payload, &bat_size_in_bytes);
 
 		uavcan_si_unit_voltage_Scalar_1_0 V_Min = bat.cell_voltage_min_max[0];
 		uavcan_si_unit_voltage_Scalar_1_0 V_Max = bat.cell_voltage_min_max[1];

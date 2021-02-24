@@ -64,8 +64,8 @@ bool UavcanParamManager::GetParamByName(const char *param_name, uavcan_register_
 			case PARAM_TYPE_FLOAT: {
 					float out_val {};
 					param_get(param_handle, &out_val);
-					value.natural32.value.elements[0] = out_val;
-					uavcan_register_Value_1_0_select_natural32_(&value);
+					value.real32.value.elements[0] = out_val;
+					uavcan_register_Value_1_0_select_real32_(&value);
 					break;
 				}
 			}
@@ -100,8 +100,8 @@ bool UavcanParamManager::GetParamByName(const uavcan_register_Name_1_0 &name, ua
 			case PARAM_TYPE_FLOAT: {
 					float out_val {};
 					param_set(param_handle, &out_val);
-					value.natural32.value.elements[0] = out_val;
-					uavcan_register_Value_1_0_select_natural32_(&value);
+					value.real32.value.elements[0] = out_val;
+					uavcan_register_Value_1_0_select_real32_(&value);
 					break;
 				}
 			}
