@@ -536,7 +536,7 @@ void TECS::update_pitch_throttle(float pitch, float baro_altitude, float hgt_set
 {
 	// Calculate the time since last update (seconds)
 	uint64_t now = hrt_absolute_time();
-	_dt = constrain((now - _pitch_update_timestamp) * 1e-6f, DT_MIN, DT_MAX);
+	_dt = fmaxf((now - _pitch_update_timestamp) * 1e-6f, DT_MIN);
 
 	// Set class variables from inputs
 	_throttle_setpoint_max = throttle_max;
