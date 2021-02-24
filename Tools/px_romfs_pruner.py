@@ -83,6 +83,7 @@ def main():
 
             # only prune text files
             if ".zip" in file or ".bin" in file or ".swp" in file \
+                    or ".gz" in file or ".xz" in file or ".bz2" in file \
                     or ".data" in file or ".DS_Store" in file:
                 continue
 
@@ -96,7 +97,7 @@ def main():
                     # handle mixer files differently than startup files
                     if file_path.endswith(".mix"):
                         if line.startswith(("Z:", "M:", "R: ", "O:", "S:",
-                                            "H:", "T:", "P:")):
+                                            "H:", "T:", "P:", "A:")):
                             # reduce multiple consecutive spaces into a
                             # single space
                             line_reduced = re.sub(' +', ' ', line)

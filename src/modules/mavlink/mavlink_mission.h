@@ -85,7 +85,7 @@ public:
 	 * Handle sending of messages. Call this regularly at a fixed frequency.
 	 * @param t current time
 	 */
-	void send(const hrt_abstime t);
+	void send();
 
 	void handle_message(const mavlink_message_t *msg);
 
@@ -187,7 +187,7 @@ private:
 	 *
 	 *  @param seq The waypoint sequence number the MAV should fly to.
 	 */
-	void send_mission_current(uint16_t seq);
+	void send_mission_current(int32_t seq);
 
 	void send_mission_count(uint8_t sysid, uint8_t compid, uint16_t count, MAV_MISSION_TYPE mission_type);
 

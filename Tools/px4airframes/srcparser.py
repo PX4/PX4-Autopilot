@@ -90,10 +90,14 @@ class ParameterGroup(object):
             return "YPlus"
         elif (self.name == "Autogyro"):
             return "Autogyro"
+        elif (self.name == "Airship"):
+            return "Airship"
         elif (self.name == "Rover"):
             return "Rover"
         elif (self.name == "Boat"):
             return "Boat"
+        elif (self.name == "Balloon"):
+            return "Balloon"
         return "AirframeUnknown"
 
     def GetParams(self):

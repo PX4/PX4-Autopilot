@@ -36,8 +36,10 @@
 SRF02::SRF02(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency, int address) :
 	I2C(DRV_DIST_DEVTYPE_SRF02, MODULE_NAME, bus, address, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_rangefinder(get_device_id(), ORB_PRIO_DEFAULT, rotation)
+	_px4_rangefinder(get_device_id(), rotation)
 {
+	_px4_rangefinder.set_device_type(DRV_DIST_DEVTYPE_SRF02);
+	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND);
 	_px4_rangefinder.set_max_distance(SRF02_MAX_DISTANCE);
 	_px4_rangefinder.set_min_distance(SRF02_MIN_DISTANCE);
 }
@@ -147,6 +149,4 @@ void SRF02::print_status()
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-
-	_px4_rangefinder.print_status();
 }

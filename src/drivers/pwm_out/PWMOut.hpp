@@ -69,6 +69,8 @@ enum PortMode {
 	PORT_MODE_UNSET = 0,
 	PORT_FULL_GPIO,
 	PORT_FULL_PWM,
+	PORT_PWM14,
+	PORT_PWM12,
 	PORT_PWM8,
 	PORT_PWM6,
 	PORT_PWM5,
@@ -108,6 +110,7 @@ public:
 		MODE_5PWM1CAP,
 		MODE_6PWM,
 		MODE_8PWM,
+		MODE_12PWM,
 		MODE_14PWM,
 		MODE_4CAP,
 		MODE_5CAP,
@@ -148,8 +151,6 @@ public:
 					   hrt_abstime edge_time, uint32_t edge_state,
 					   uint32_t overflow);
 
-	void update_pwm_trims();
-
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
@@ -161,14 +162,15 @@ private:
 
 	Mode		_mode{MODE_NONE};
 
+	uint32_t	_backup_schedule_interval_us{1_s};
+
 	unsigned	_pwm_default_rate{50};
 	unsigned	_pwm_alt_rate{50};
 	uint32_t	_pwm_alt_rate_channels{0};
 
 	unsigned	_current_update_rate{0};
 
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
-
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	unsigned	_num_outputs{0};
 	int		_class_instance{-1};
@@ -181,13 +183,14 @@ private:
 	unsigned	_num_disarmed_set{0};
 
 	perf_counter_t	_cycle_perf;
+	perf_counter_t	_interval_perf;
 
 	void		capture_callback(uint32_t chan_index,
 					 hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
 	void		update_current_rate();
 	int			set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
 	int			pwm_ioctl(file *filp, int cmd, unsigned long arg);
-	void		update_pwm_rev_mask();
+
 	void		update_pwm_out_state(bool on);
 
 	void		update_params();

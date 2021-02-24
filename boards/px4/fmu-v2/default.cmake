@@ -6,6 +6,7 @@ px4_add_board(
 	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
+	CONSTRAINED_MEMORY
 	ROMFSROOT px4fmu_common
 	BOOTLOADER ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/extras/px4fmuv3_bl.bin
 	IO px4_io-v2_default
@@ -18,7 +19,7 @@ px4_add_board(
 		TEL2:/dev/ttyS2
 		TEL4:/dev/ttyS6
 	DRIVERS
-		adc
+		adc/board_adc
 		#barometer # all available barometer drivers
 		barometer/ms5611
 		#batt_smbus
@@ -28,28 +29,26 @@ px4_add_board(
 		differential_pressure/ms4525
 		#distance_sensor # all available distance sensor drivers
 		#distance_sensor/ll40ls
-		#distance_sensor/sf0x
+		#distance_sensor/lightware_laser_serial
 		#dshot
 		gps
 		#heater
 		#imu # all available imu drivers
-		#imu/adis16448
+		#imu/analog_devices/adis16448
 		#imu/adis16477
 		#imu/adis16497
 		imu/l3gd20
 		imu/lsm303d
 		#imu/invensense/icm20608g
+		#imu/invensense/icm20948
 		imu/invensense/mpu6000
 		#imu/invensense/mpu9250
-		#imu/icm20948
-		#imu/mpu6000 # legacy mpu6000
 		#iridiumsbd
 		#irlock
 		#lights/blinkm
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
-		#mkblctrl
 		#optical_flow # all available optical flow drivers
 		#optical_flow/px4flow
 		#osd
@@ -76,6 +75,7 @@ px4_add_board(
 		ekf2
 		#esc_battery
 		#events
+		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
 		land_detector
@@ -95,7 +95,7 @@ px4_add_board(
 		sensors
 		#sih
 		#temperature_compensation
-		vmount
+		#vmount
 		#vtol_att_control
 	SYSTEMCMDS
 		bl_update
@@ -105,6 +105,7 @@ px4_add_board(
 		hardfault_log
 		#i2cdetect
 		#led_control
+		mft
 		mixer
 		#motor_ramp
 		#motor_test
@@ -121,10 +122,12 @@ px4_add_board(
 		top
 		#topic_listener
 		tune_control
+		#uorb
 		#usb_connected
-		ver
+		#ver
 		#work_queue
 	EXAMPLES
+		#fake_gps
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hello
 		#hwtest # Hardware test

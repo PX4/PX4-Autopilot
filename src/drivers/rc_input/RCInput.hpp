@@ -41,6 +41,7 @@
 #include <drivers/drv_rc_input.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/rc/crsf.h>
+#include <lib/rc/ghst.h>
 #include <lib/rc/dsm.h>
 #include <lib/rc/sbus.h>
 #include <lib/rc/st24.h>
@@ -49,20 +50,24 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/adc_report.h>
 #include <uORB/topics/input_rc.h>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_command.h>
 
 #include "crsf_telemetry.h"
+#include "ghst_telemetry.h"
 
 #ifdef HRT_PPM_CHANNEL
 # include <systemlib/ppm_decode.h>
 #endif
 
-class RCInput : public ModuleBase<RCInput>, public px4::ScheduledWorkItem
+class RCInput : public ModuleBase<RCInput>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 
@@ -85,25 +90,48 @@ public:
 
 private:
 
-	void Run() override;
-
 	enum RC_SCAN {
 		RC_SCAN_PPM = 0,
 		RC_SCAN_SBUS,
 		RC_SCAN_DSM,
 		RC_SCAN_SUMD,
 		RC_SCAN_ST24,
-		RC_SCAN_CRSF
+		RC_SCAN_CRSF,
+		RC_SCAN_GHST
 	} _rc_scan_state{RC_SCAN_SBUS};
 
-	static constexpr char const *RC_SCAN_STRING[6] {
+	static constexpr char const *RC_SCAN_STRING[7] {
 		"PPM",
 		"SBUS",
 		"DSM",
 		"SUMD",
 		"ST24",
-		"CRSF"
+		"CRSF",
+		"GHST"
 	};
+
+	void Run() override;
+
+#if defined(SPEKTRUM_POWER)
+	bool bind_spektrum(int arg = DSMX8_BIND_PULSES) const;
+#endif // SPEKTRUM_POWER
+
+	void fill_rc_in(uint16_t raw_rc_count_local,
+			uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
+			hrt_abstime now, bool frame_drop, bool failsafe,
+			unsigned frame_drops, int rssi);
+
+	void set_rc_scan_state(RC_SCAN _rc_scan_state);
+
+	void rc_io_invert(bool invert);
+
+	/**
+	 * Respond to a vehicle command with an ACK message
+	 *
+	 * @param cmd		The command that was executed or denied (inbound)
+	 * @param result	The command result
+	 */
+	void			answer_command(const vehicle_command_s &cmd, uint8_t result);
 
 	hrt_abstime _rc_scan_begin{0};
 
@@ -113,6 +141,8 @@ private:
 
 	static constexpr unsigned	_current_update_interval{4000}; // 250 Hz
 
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
 	uORB::Subscription	_vehicle_cmd_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription	_adc_sub{ORB_ID(adc_report)};
 
@@ -120,6 +150,7 @@ private:
 
 	float		_analog_rc_rssi_volt{-1.0f};
 	bool		_analog_rc_rssi_stable{false};
+
 
 	uORB::PublicationMulti<input_rc_s>	_to_input_rc{ORB_ID(input_rc)};
 
@@ -132,17 +163,15 @@ private:
 	uint16_t _raw_rc_count{};
 
 	CRSFTelemetry *_crsf_telemetry{nullptr};
+	GHSTTelemetry *_ghst_telemetry{nullptr};
 
-	perf_counter_t      _cycle_perf;
-	perf_counter_t      _publish_interval_perf;
+	perf_counter_t	_cycle_perf;
+	perf_counter_t	_publish_interval_perf;
+	uint32_t	_bytes_rx{0};
 
-	void fill_rc_in(uint16_t raw_rc_count_local,
-			uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
-			hrt_abstime now, bool frame_drop, bool failsafe,
-			unsigned frame_drops, int rssi);
-
-	void set_rc_scan_state(RC_SCAN _rc_scan_state);
-
-	void rc_io_invert(bool invert);
-
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::RC_RSSI_PWM_CHAN>) _param_rc_rssi_pwm_chan,
+		(ParamInt<px4::params::RC_RSSI_PWM_MIN>) _param_rc_rssi_pwm_min,
+		(ParamInt<px4::params::RC_RSSI_PWM_MAX>) _param_rc_rssi_pwm_max
+	)
 };

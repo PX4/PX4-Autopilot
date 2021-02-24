@@ -44,7 +44,7 @@ LSM9DS1_MAG::LSM9DS1_MAG(I2CSPIBusOption bus_option, int bus, uint32_t device, e
 			 int bus_frequency, spi_mode_e spi_mode) :
 	SPI(DRV_MAG_DEVTYPE_ST_LSM9DS1_M, MODULE_NAME, bus, device, spi_mode, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_mag(get_device_id(), external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT, rotation)
+	_px4_mag(get_device_id(), rotation)
 {
 	_px4_mag.set_external(external());
 }
@@ -200,5 +200,4 @@ void LSM9DS1_MAG::print_status()
 	perf_print_counter(_interval_perf);
 	perf_print_counter(_transfer_perf);
 	perf_print_counter(_data_overrun_perf);
-	_px4_mag.print_status();
 }

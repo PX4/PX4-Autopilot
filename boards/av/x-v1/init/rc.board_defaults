@@ -3,10 +3,11 @@
 # av_x1-v1 specific board init
 #------------------------------------------------------------------------------
 
+# system_power unavailable
+param set-default CBRK_SUPPLY_CHK 894281
 
-if [ $AUTOCNF = yes ]
-then
-
-fi
+# Multi-EKF
+param set-default EKF2_MULTI_IMU 3
+param set-default SENS_IMU_MODE 0
 
 set LOGGER_BUF 64

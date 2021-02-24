@@ -42,9 +42,6 @@
 #define BOARD_OVERRIDE_UUID "RPIID00000000000" // must be of length 16
 #define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_RPI
 
-#define BOARD_HAS_NO_RESET
-#define BOARD_HAS_NO_BOOTLOADER
-
 /*
  * I2C busses
  */

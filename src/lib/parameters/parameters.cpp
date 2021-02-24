@@ -44,21 +44,23 @@
 #define PARAM_IMPLEMENTATION
 #include "param.h"
 #include "param_translation.h"
-#include <parameters/px4_parameters.h>
+#include <parameters/px4_parameters.hpp>
 #include "tinybson/tinybson.h"
 
 #include <crc32.h>
 #include <float.h>
 #include <math.h>
 
+#include <containers/Bitset.hpp>
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/atomic_bitset.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/sem.h>
 #include <px4_platform_common/shutdown.h>
-#include <systemlib/uthash/utarray.h>
+#include "uthash/utarray.h"
 
 using namespace time_literals;
 
@@ -71,7 +73,7 @@ using namespace time_literals;
 #include "flashparams/flashparams.h"
 static const char *param_default_file = nullptr; // nullptr means to store to FLASH
 #else
-inline static int flash_param_save(bool only_unsaved) { return -1; }
+inline static int flash_param_save(bool only_unsaved, param_filter_func filter) { return -1; }
 inline static int flash_param_load() { return -1; }
 inline static int flash_param_import() { return -1; }
 static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";
@@ -91,63 +93,30 @@ static char *param_user_file = nullptr;
 /* autosaving variables */
 static hrt_abstime last_autosave_timestamp = 0;
 static struct work_s autosave_work {};
-static volatile bool autosave_scheduled = false;
+static px4::atomic<bool> autosave_scheduled{false};
 static bool autosave_disabled = false;
 
-/**
- * Array of static parameter info.
- */
-static const param_info_s *param_info_base = (const param_info_s *) &px4_parameters;
-#define	param_info_count px4_parameters.param_count
+static constexpr uint16_t param_info_count = sizeof(px4::parameters) / sizeof(param_info_s);
+static px4::AtomicBitset<param_info_count> params_active;  // params found
+static px4::AtomicBitset<param_info_count> params_changed; // params non-default
+static px4::Bitset<param_info_count> params_custom_default; // params with runtime default value
 
-/**
- * Storage for modified parameters.
- */
+// Storage for modified parameters.
 struct param_wbuf_s {
-	union param_value_u	val;
-	param_t			param;
-	bool			unsaved;
+	union param_value_u val;
+	param_t             param;
+	bool                unsaved;
 };
-
-
-uint8_t  *param_changed_storage = nullptr;
-int size_param_changed_storage_bytes = 0;
-const int bits_per_allocation_unit  = (sizeof(*param_changed_storage) * 8);
-
-
-static unsigned
-get_param_info_count()
-{
-	/* Singleton creation of and array of bits to track changed values */
-	if (!param_changed_storage) {
-		/* Note that we have a (highly unlikely) race condition here: in the worst case the allocation is done twice */
-		size_param_changed_storage_bytes  = (param_info_count / bits_per_allocation_unit) + 1;
-		param_changed_storage = (uint8_t *)calloc(size_param_changed_storage_bytes, 1);
-
-		/* If the allocation fails we need to indicate failure in the
-		 * API by returning PARAM_INVALID
-		 */
-		if (param_changed_storage == nullptr) {
-			return 0;
-		}
-	}
-
-	return param_info_count;
-}
 
 /** flexible array holding modified parameter values */
 UT_array *param_values{nullptr};
+UT_array *param_custom_default_values{nullptr};
 
-/** array info for the modified parameters array */
 const UT_icd param_icd = {sizeof(param_wbuf_s), nullptr, nullptr, nullptr};
 
 /** parameter update topic handle */
 static orb_advert_t param_topic = nullptr;
 static unsigned int param_instance = 0;
-
-static void param_set_used_internal(param_t param);
-
-static param_t param_find_internal(const char *name, bool notification);
 
 // the following implements an RW-lock using 2 semaphores (used as mutexes). It gives
 // priority to readers, meaning a writer could suffer from starvation, but in our use-case
@@ -226,10 +195,10 @@ param_init()
 	px4_sem_init(&param_sem_save, 0, 1);
 	px4_sem_init(&reader_lock_holders_lock, 0, 1);
 
-	param_export_perf = perf_alloc(PC_ELAPSED, "param_export");
-	param_find_perf = perf_alloc(PC_ELAPSED, "param_find");
-	param_get_perf = perf_alloc(PC_ELAPSED, "param_get");
-	param_set_perf = perf_alloc(PC_ELAPSED, "param_set");
+	param_export_perf = perf_alloc(PC_ELAPSED, "param: export");
+	param_find_perf = perf_alloc(PC_COUNT, "param: find");
+	param_get_perf = perf_alloc(PC_COUNT, "param: get");
+	param_set_perf = perf_alloc(PC_ELAPSED, "param: set");
 }
 
 /**
@@ -238,15 +207,10 @@ param_init()
  * @param param			The parameter handle to test.
  * @return			True if the handle is valid.
  */
-static bool
-handle_in_range(param_t param)
-{
-	unsigned count = get_param_info_count();
-	return (count && param < count);
-}
+static constexpr bool handle_in_range(param_t param) { return (param < param_info_count); }
 
 /**
- * Compare two modifid parameter structures to determine ordering.
+ * Compare two modified parameter structures to determine ordering.
  *
  * This function is suitable for passing to qsort or bsearch.
  */
@@ -277,30 +241,31 @@ param_compare_values(const void *a, const void *b)
 static param_wbuf_s *
 param_find_changed(param_t param)
 {
-	param_wbuf_s	*s = nullptr;
-
 	param_assert_locked();
 
-	if (param_values != nullptr) {
+	if (params_changed[param] && (param_values != nullptr)) {
 		param_wbuf_s key{};
 		key.param = param;
-		s = (param_wbuf_s *)utarray_find(param_values, &key, param_compare_values);
+		return (param_wbuf_s *)utarray_find(param_values, &key, param_compare_values);
 	}
 
-	return s;
+	return nullptr;
 }
 
-static void
-_param_notify_changes()
+void
+param_notify_changes()
 {
-	parameter_update_s pup = {};
-	pup.timestamp = hrt_absolute_time();
+	parameter_update_s pup{};
 	pup.instance = param_instance++;
+	pup.get_count = perf_event_count(param_get_perf);
+	pup.set_count = perf_event_count(param_set_perf);
+	pup.find_count = perf_event_count(param_find_perf);
+	pup.export_count = perf_event_count(param_export_perf);
+	pup.active = params_active.count();
+	pup.changed = params_changed.count();
+	pup.custom_default = params_custom_default.count();
+	pup.timestamp = hrt_absolute_time();
 
-	/*
-	 * If we don't have a handle to our topic, create one now; otherwise
-	 * just publish.
-	 */
 	if (param_topic == nullptr) {
 		param_topic = orb_advertise(ORB_ID(parameter_update), &pup);
 
@@ -309,30 +274,23 @@ _param_notify_changes()
 	}
 }
 
-void
-param_notify_changes()
+static param_t param_find_internal(const char *name, bool notification)
 {
-	_param_notify_changes();
-}
-
-param_t
-param_find_internal(const char *name, bool notification)
-{
-	perf_begin(param_find_perf);
+	perf_count(param_find_perf);
 
 	param_t middle;
 	param_t front = 0;
-	param_t last = get_param_info_count();
+	param_t last = param_info_count;
 
 	/* perform a binary search of the known parameters */
 
 	while (front <= last) {
 		middle = front + (last - front) / 2;
-		int ret = strcmp(name, param_info_base[middle].name);
+		int ret = strcmp(name, param_name(middle));
 
 		if (ret == 0) {
 			if (notification) {
-				param_set_used_internal(middle);
+				param_set_used(middle);
 			}
 
 			perf_end(param_find_perf);
@@ -350,84 +308,54 @@ param_find_internal(const char *name, bool notification)
 		}
 	}
 
-	perf_end(param_find_perf);
-
 	/* not found */
 	return PARAM_INVALID;
 }
 
-param_t
-param_find(const char *name)
+param_t param_find(const char *name)
 {
 	return param_find_internal(name, true);
 }
 
-param_t
-param_find_no_notification(const char *name)
+param_t param_find_no_notification(const char *name)
 {
 	return param_find_internal(name, false);
 }
 
-unsigned
-param_count()
+unsigned param_count()
 {
-	return get_param_info_count();
+	return param_info_count;
 }
 
-unsigned
-param_count_used()
+unsigned param_count_used()
 {
-	unsigned count = 0;
-
-	// ensure the allocation has been done
-	if (get_param_info_count()) {
-
-		for (int i = 0; i < size_param_changed_storage_bytes; i++) {
-			for (int j = 0; j < bits_per_allocation_unit; j++) {
-				if (param_changed_storage[i] & (1 << j)) {
-					count++;
-				}
-			}
-		}
-	}
-
-	return count;
+	return params_active.count();
 }
 
-param_t
-param_for_index(unsigned index)
+param_t param_for_index(unsigned index)
 {
-	unsigned count = get_param_info_count();
-
-	if (count && index < count) {
+	if (index < param_info_count) {
 		return (param_t)index;
 	}
 
 	return PARAM_INVALID;
 }
 
-param_t
-param_for_used_index(unsigned index)
+param_t param_for_used_index(unsigned index)
 {
-	int count = get_param_info_count();
-
-	if (count && (int)index < count) {
-		/* walk all params and count used params */
+	// walk all params and count used params
+	if (index < param_info_count) {
 		unsigned used_count = 0;
 
-		for (int i = 0; i < size_param_changed_storage_bytes; i++) {
-			for (int j = 0; j < bits_per_allocation_unit; j++) {
-				if (param_changed_storage[i] & (1 << j)) {
-
-					/* we found the right used count,
-					 * return the param value
-					 */
-					if (index == used_count) {
-						return (param_t)(i * bits_per_allocation_unit + j);
-					}
-
-					used_count++;
+		for (int i = 0; i < params_active.size(); i++) {
+			if (params_active[i]) {
+				// we found the right used count,
+				//  return the param value
+				if (index == used_count) {
+					return static_cast<param_t>(i);
 				}
+
+				used_count++;
 			}
 		}
 	}
@@ -435,8 +363,7 @@ param_for_used_index(unsigned index)
 	return PARAM_INVALID;
 }
 
-int
-param_get_index(param_t param)
+int param_get_index(param_t param)
 {
 	if (handle_in_range(param)) {
 		return (unsigned)param;
@@ -445,8 +372,7 @@ param_get_index(param_t param)
 	return -1;
 }
 
-int
-param_get_used_index(param_t param)
+int param_get_used_index(param_t param)
 {
 	/* this tests for out of bounds and does a constant time lookup */
 	if (!param_used(param)) {
@@ -456,42 +382,46 @@ param_get_used_index(param_t param)
 	/* walk all params and count, now knowing that it has a valid index */
 	int used_count = 0;
 
-	for (int i = 0; i < size_param_changed_storage_bytes; i++) {
-		for (int j = 0; j < bits_per_allocation_unit; j++) {
-			if (param_changed_storage[i] & (1 << j)) {
+	for (int i = 0; i < params_active.size(); i++) {
+		if (params_active[i]) {
 
-				if ((int)param == i * bits_per_allocation_unit + j) {
-					return used_count;
-				}
-
-				used_count++;
+			if (param == i) {
+				return used_count;
 			}
+
+			used_count++;
 		}
 	}
 
 	return -1;
 }
 
-const char *
-param_name(param_t param)
+const char *param_name(param_t param)
 {
-	return handle_in_range(param) ? param_info_base[param].name : nullptr;
+	return handle_in_range(param) ? px4::parameters[param].name : nullptr;
 }
 
-bool
-param_is_volatile(param_t param)
+param_type_t param_type(param_t param)
 {
-	return handle_in_range(param) ? param_info_base[param].volatile_param : false;
+	return handle_in_range(param) ? px4::parameters_type[param] : PARAM_TYPE_UNKNOWN;
 }
 
-bool
-param_value_is_default(param_t param)
+bool param_is_volatile(param_t param)
 {
-	struct param_wbuf_s *s;
-	param_lock_reader();
-	s = param_find_changed(param);
-	param_unlock_reader();
-	return s == nullptr;
+	if (handle_in_range(param)) {
+		for (const auto &p : px4::parameters_volatile) {
+			if (static_cast<px4::params>(param) == p) {
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+bool param_value_is_default(param_t param)
+{
+	return handle_in_range(param) && !params_changed[param];
 }
 
 bool
@@ -505,26 +435,13 @@ param_value_unsaved(param_t param)
 	return ret;
 }
 
-param_type_t
-param_type(param_t param)
-{
-	return handle_in_range(param) ? param_info_base[param].type : PARAM_TYPE_UNKNOWN;
-}
-
-size_t
-param_size(param_t param)
+size_t param_size(param_t param)
 {
 	if (handle_in_range(param)) {
-
 		switch (param_type(param)) {
-
 		case PARAM_TYPE_INT32:
 		case PARAM_TYPE_FLOAT:
 			return 4;
-
-		case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX:
-			/* decode structure size from type value */
-			return param_type(param) - PARAM_TYPE_STRUCT;
 
 		default:
 			return 0;
@@ -544,56 +461,116 @@ param_size(param_t param)
 static const void *
 param_get_value_ptr(param_t param)
 {
-	const void *result = nullptr;
-
 	param_assert_locked();
 
 	if (handle_in_range(param)) {
-
-		const union param_value_u *v;
-
 		/* work out whether we're fetching the default or a written value */
 		struct param_wbuf_s *s = param_find_changed(param);
 
 		if (s != nullptr) {
-			v = &s->val;
+			return &s->val;
 
 		} else {
-			v = &param_info_base[param].val;
+			if (params_custom_default[param] && param_custom_default_values) {
+				// get default from custom default storage
+				param_wbuf_s key{};
+				key.param = param;
+				param_wbuf_s *pbuf = (param_wbuf_s *)utarray_find(param_custom_default_values, &key, param_compare_values);
+
+				if (pbuf != nullptr) {
+					return &pbuf->val;
+				}
+			}
+
+			// otherwise return static default value
+			switch (param_type(param)) {
+			case PARAM_TYPE_INT32:
+				return &px4::parameters[param].val.i;
+
+			case PARAM_TYPE_FLOAT:
+				return &px4::parameters[param].val.f;
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+int
+param_get(param_t param, void *val)
+{
+	perf_count(param_get_perf);
+
+	if (!handle_in_range(param)) {
+		PX4_ERR("get: param %d invalid", param);
+		return PX4_ERROR;
+	}
+
+	if (!params_active[param]) {
+		PX4_WARN("get: param %d (%s) not active", param, param_name(param));
+	}
+
+	int result = PX4_ERROR;
+
+	if (val) {
+		param_lock_reader();
+
+		const void *v = param_get_value_ptr(param);
+
+		if (v) {
+			memcpy(val, v, param_size(param));
+			result = PX4_OK;
 		}
 
-		if (param_type(param) >= PARAM_TYPE_STRUCT &&
-		    param_type(param) <= PARAM_TYPE_STRUCT_MAX) {
-
-			result = v->p;
-
-		} else {
-			result = v;
-		}
+		param_unlock_reader();
 	}
 
 	return result;
 }
 
 int
-param_get(param_t param, void *val)
+param_get_default_value_internal(param_t param, void *default_val)
 {
-	int result = -1;
-
-	param_lock_reader();
-	perf_begin(param_get_perf);
-
-	const void *v = param_get_value_ptr(param);
-
-	if (val && v) {
-		memcpy(val, v, param_size(param));
-		result = 0;
+	if (!handle_in_range(param)) {
+		PX4_ERR("get default value: param %d invalid", param);
+		return PX4_ERROR;
 	}
 
-	perf_end(param_get_perf);
-	param_unlock_reader();
+	if (default_val) {
+		if (params_custom_default[param] && param_custom_default_values) {
+			// get default from custom default storage
+			param_wbuf_s key{};
+			key.param = param;
+			param_wbuf_s *pbuf = (param_wbuf_s *)utarray_find(param_custom_default_values, &key, param_compare_values);
 
-	return result;
+			if (pbuf != nullptr) {
+				memcpy(default_val, &pbuf->val, param_size(param));
+				return PX4_OK;
+			}
+		}
+
+		// otherwise return static default value
+		switch (param_type(param)) {
+		case PARAM_TYPE_INT32:
+			memcpy(default_val, &px4::parameters[param].val.i, param_size(param));
+			return PX4_OK;
+
+		case PARAM_TYPE_FLOAT:
+			memcpy(default_val, &px4::parameters[param].val.f, param_size(param));
+			return PX4_OK;
+		}
+	}
+
+	return PX4_ERROR;
+}
+
+int
+param_get_default_value(param_t param, void *default_val)
+{
+	param_lock_reader();
+	int ret = param_get_default_value_internal(param, default_val);
+	param_unlock_reader();
+	return ret;
 }
 
 /**
@@ -618,7 +595,7 @@ autosave_worker(void *arg)
 
 	param_lock_writer();
 	last_autosave_timestamp = hrt_absolute_time();
-	autosave_scheduled = false;
+	autosave_scheduled.store(false);
 	disabled = autosave_disabled;
 	param_unlock_writer();
 
@@ -643,7 +620,7 @@ autosave_worker(void *arg)
 static void
 param_autosave()
 {
-	if (autosave_scheduled || autosave_disabled) {
+	if (autosave_scheduled.load() || autosave_disabled) {
 		return;
 	}
 
@@ -660,7 +637,7 @@ param_autosave()
 		delay = rate_limit - last_save_elapsed;
 	}
 
-	autosave_scheduled = true;
+	autosave_scheduled.store(true);
 	work_queue(LPWORK, &autosave_work, (worker_t)&autosave_worker, nullptr, USEC2TICK(delay));
 }
 
@@ -669,9 +646,9 @@ param_control_autosave(bool enable)
 {
 	param_lock_writer();
 
-	if (!enable && autosave_scheduled) {
+	if (!enable && autosave_scheduled.load()) {
 		work_cancel(LPWORK, &autosave_work);
-		autosave_scheduled = false;
+		autosave_scheduled.store(false);
 	}
 
 	autosave_disabled = !enable;
@@ -681,83 +658,119 @@ param_control_autosave(bool enable)
 static int
 param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes)
 {
+	if (!handle_in_range(param)) {
+		PX4_ERR("set invalid param %d", param);
+		return PX4_ERROR;
+	}
+
+	if (val == nullptr) {
+		PX4_ERR("set invalid value");
+		return PX4_ERROR;
+	}
+
 	int result = -1;
-	bool params_changed = false;
+	bool param_changed = false;
 
 	param_lock_writer();
 	perf_begin(param_set_perf);
 
+	// create the parameter store if it doesn't exist
 	if (param_values == nullptr) {
 		utarray_new(param_values, &param_icd);
+
+		// mark all parameters unchanged (default)
+		for (int i = 0; i < params_changed.size(); i++) {
+			params_changed.set(i, false);
+		}
 	}
 
 	if (param_values == nullptr) {
 		PX4_ERR("failed to allocate modified values array");
 		goto out;
-	}
 
-	if (handle_in_range(param)) {
+	} else {
+		// check if param being set to default value
+		bool set_to_default = false;
+
+		switch (param_type(param)) {
+		case PARAM_TYPE_INT32: {
+				int32_t default_val = 0;
+
+				if (param_get_default_value_internal(param, &default_val) == PX4_OK) {
+					set_to_default = (default_val == *(int32_t *)val);
+				}
+			}
+			break;
+
+		case PARAM_TYPE_FLOAT: {
+				float default_val = 0;
+
+				if (param_get_default_value_internal(param, &default_val) == PX4_OK) {
+					set_to_default = (fabsf(default_val - * (float *)val) < FLT_EPSILON);
+				}
+			}
+			break;
+		}
 
 		param_wbuf_s *s = param_find_changed(param);
 
-		if (s == nullptr) {
+		if (set_to_default) {
+			if (s != nullptr) {
+				// param is being set non-default -> default, simply clear storage
+				int pos = utarray_eltidx(param_values, s);
+				utarray_erase(param_values, pos, 1);
+				param_changed = true;
 
-			/* construct a new parameter */
-			param_wbuf_s buf = {};
-			buf.param = param;
-
-			params_changed = true;
-
-			/* add it to the array and sort */
-			utarray_push_back(param_values, &buf);
-			utarray_sort(param_values, param_compare_values);
-
-			/* find it after sorting */
-			s = param_find_changed(param);
-		}
-
-		/* update the changed value */
-		switch (param_type(param)) {
-
-		case PARAM_TYPE_INT32:
-			params_changed = params_changed || s->val.i != *(int32_t *)val;
-			s->val.i = *(int32_t *)val;
-			break;
-
-		case PARAM_TYPE_FLOAT:
-			params_changed = params_changed || fabsf(s->val.f - * (float *)val) > FLT_EPSILON;
-			s->val.f = *(float *)val;
-			break;
-
-		case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX:
-			if (s->val.p == nullptr) {
-				size_t psize = param_size(param);
-
-				if (psize > 0) {
-					s->val.p = malloc(psize);
-
-				} else {
-					s->val.p = nullptr;
-				}
-
-				if (s->val.p == nullptr) {
-					PX4_ERR("failed to allocate parameter storage");
-					goto out;
-				}
+			} else {
+				// do nothing if param not already set and being set to default
 			}
 
-			memcpy(s->val.p, val, param_size(param));
-			params_changed = true;
-			break;
+			params_changed.set(param, false);
+			result = PX4_OK;
 
-		default:
-			goto out;
+		} else {
+			if (s == nullptr) {
+				/* construct a new parameter */
+				param_wbuf_s buf{};
+				buf.param = param;
+
+				param_changed = true;
+
+				/* add it to the array and sort */
+				utarray_push_back(param_values, &buf);
+				utarray_sort(param_values, param_compare_values);
+				params_changed.set(param, true);
+
+				/* find it after sorting */
+				s = param_find_changed(param);
+			}
+
+			if (s != nullptr) {
+				/* update the changed value */
+				switch (param_type(param)) {
+				case PARAM_TYPE_INT32:
+					param_changed = param_changed || s->val.i != *(int32_t *)val;
+					s->val.i = *(int32_t *)val;
+					s->unsaved = !mark_saved;
+					params_changed.set(param, true);
+					result = PX4_OK;
+					break;
+
+				case PARAM_TYPE_FLOAT:
+					param_changed = param_changed || fabsf(s->val.f - * (float *)val) > FLT_EPSILON;
+					s->val.f = *(float *)val;
+					s->unsaved = !mark_saved;
+					params_changed.set(param, true);
+					result = PX4_OK;
+					break;
+
+				default:
+					break;
+				}
+			}
 		}
 
-		s->unsaved = !mark_saved;
-		result = 0;
-
-		if (!mark_saved) { // this is false when importing parameters
+		if ((result == PX4_OK) && !mark_saved) { // this is false when importing parameters
 			param_autosave();
 		}
 	}
@@ -770,8 +783,8 @@ out:
 	 * If we set something, now that we have unlocked, go ahead and advertise that
 	 * a thing has been set.
 	 */
-	if (params_changed && notify_changes) {
-		_param_notify_changes();
+	if ((result == PX4_OK) && param_changed && notify_changes) {
+		param_notify_changes();
 	}
 
 	return result;
@@ -789,51 +802,143 @@ const void *param_get_value_ptr_external(param_t param)
 }
 #endif
 
-int
-param_set(param_t param, const void *val)
+int param_set(param_t param, const void *val)
 {
 	return param_set_internal(param, val, false, true);
 }
 
-int
-param_set_no_notification(param_t param, const void *val)
+int param_set_no_notification(param_t param, const void *val)
 {
 	return param_set_internal(param, val, false, false);
 }
 
-bool
-param_used(param_t param)
+bool param_used(param_t param)
 {
-	int param_index = param_get_index(param);
-
-	if (param_index < 0) {
-		return false;
+	if (handle_in_range(param)) {
+		return params_active[param];
 	}
 
-	return param_changed_storage[param_index / bits_per_allocation_unit] &
-	       (1 << param_index % bits_per_allocation_unit);
+	return false;
 }
 
 void param_set_used(param_t param)
 {
-	param_set_used_internal(param);
+	if (handle_in_range(param)) {
+		params_active.set(param, true);
+	}
 }
 
-void param_set_used_internal(param_t param)
+int param_set_default_value(param_t param, const void *val)
 {
-	int param_index = param_get_index(param);
-
-	if (param_index < 0) {
-		return;
+	if (!handle_in_range(param)) {
+		PX4_ERR("set default value invalid param %d", param);
+		return PX4_ERROR;
 	}
 
-	// FIXME: this needs locking too
-	param_changed_storage[param_index / bits_per_allocation_unit] |=
-		(1 << param_index % bits_per_allocation_unit);
+	if (val == nullptr) {
+		PX4_ERR("set default value invalid value");
+		return PX4_ERROR;
+	}
+
+	int result = PX4_ERROR;
+
+	param_lock_writer();
+
+	if (param_custom_default_values == nullptr) {
+		utarray_new(param_custom_default_values, &param_icd);
+
+		// mark all parameters unchanged (default)
+		for (int i = 0; i < params_custom_default.size(); i++) {
+			params_custom_default.set(i, false);
+		}
+	}
+
+	if (param_custom_default_values == nullptr) {
+		PX4_ERR("failed to allocate custom default values array");
+		param_unlock_writer();
+		return PX4_ERROR;
+	}
+
+	// check if param being set to default value
+	bool setting_to_static_default = false;
+
+	switch (param_type(param)) {
+	case PARAM_TYPE_INT32:
+		setting_to_static_default = (px4::parameters[param].val.i == *(int32_t *)val);
+		break;
+
+	case PARAM_TYPE_FLOAT:
+		setting_to_static_default = (fabsf(px4::parameters[param].val.f - * (float *)val) < FLT_EPSILON);
+		break;
+	}
+
+	// find if custom default value is already set
+	param_wbuf_s *s = nullptr;
+
+	{
+		param_wbuf_s key{};
+		key.param = param;
+		s = (param_wbuf_s *)utarray_find(param_custom_default_values, &key, param_compare_values);
+	}
+
+	if (setting_to_static_default) {
+		if (s != nullptr) {
+			// param in memory and set to non-default value, clear
+			int pos = utarray_eltidx(param_custom_default_values, s);
+			utarray_erase(param_custom_default_values, pos, 1);
+		}
+
+		// do nothing if param not already set and being set to default
+		params_custom_default.set(param, false);
+		result = PX4_OK;
+
+	} else {
+		if (s == nullptr) {
+			// construct a new parameter default value
+			param_wbuf_s buf{};
+			buf.param = param;
+
+			// add it to the array and sort
+			utarray_push_back(param_custom_default_values, &buf);
+			utarray_sort(param_custom_default_values, param_compare_values);
+
+			// find it after sorting
+			s = (param_wbuf_s *)utarray_find(param_custom_default_values, &buf, param_compare_values);
+		}
+
+		if (s != nullptr) {
+			// update the default value
+			switch (param_type(param)) {
+			case PARAM_TYPE_INT32:
+				s->val.i = *(int32_t *)val;
+				params_custom_default.set(param, true);
+				result = PX4_OK;
+				break;
+
+			case PARAM_TYPE_FLOAT:
+				s->val.f = *(float *)val;
+				params_custom_default.set(param, true);
+				result = PX4_OK;
+				break;
+
+			default:
+				break;
+			}
+		}
+	}
+
+	param_unlock_writer();
+
+	if ((result == PX4_OK) && param_used(param)) {
+		// send notification if param is already in use
+		param_notify_changes();
+	}
+
+	return result;
 }
 
-int
-param_reset(param_t param)
+
+static int param_reset_internal(param_t param, bool notify = true)
 {
 	param_wbuf_s *s = nullptr;
 	bool param_found = false;
@@ -851,6 +956,8 @@ param_reset(param_t param)
 			utarray_erase(param_values, pos, 1);
 		}
 
+		params_changed.set(param, false);
+
 		param_found = true;
 	}
 
@@ -858,12 +965,16 @@ param_reset(param_t param)
 
 	param_unlock_writer();
 
-	if (s != nullptr) {
-		_param_notify_changes();
+	if (s != nullptr && notify) {
+		param_notify_changes();
 	}
 
 	return (!param_found);
 }
+
+int param_reset(param_t param) { return param_reset_internal(param, true); }
+int param_reset_no_notification(param_t param) { return param_reset_internal(param, false); }
+
 static void
 param_reset_all_internal(bool auto_save)
 {
@@ -871,6 +982,10 @@ param_reset_all_internal(bool auto_save)
 
 	if (param_values != nullptr) {
 		utarray_free(param_values);
+
+		for (int i = 0; i < params_changed.size(); i++) {
+			params_changed.set(i, false);
+		}
 	}
 
 	/* mark as reset / deleted */
@@ -882,7 +997,7 @@ param_reset_all_internal(bool auto_save)
 
 	param_unlock_writer();
 
-	_param_notify_changes();
+	param_notify_changes();
 }
 
 void
@@ -894,9 +1009,7 @@ param_reset_all()
 void
 param_reset_excludes(const char *excludes[], int num_excludes)
 {
-	param_t	param;
-
-	for (param = 0; handle_in_range(param); param++) {
+	for (param_t param = 0; handle_in_range(param); param++) {
 		const char *name = param_name(param);
 		bool exclude = false;
 
@@ -916,8 +1029,31 @@ param_reset_excludes(const char *excludes[], int num_excludes)
 			param_reset(param);
 		}
 	}
+}
 
-	_param_notify_changes();
+void
+param_reset_specific(const char *resets[], int num_resets)
+{
+	for (param_t param = 0; handle_in_range(param); param++) {
+		const char *name = param_name(param);
+		bool reset = false;
+
+		for (int index = 0; index < num_resets; index++) {
+			int len = strlen(resets[index]);
+
+			if ((resets[index][len - 1] == '*'
+			     && strncmp(name, resets[index], len - 1) == 0)
+			    || strcmp(name, resets[index]) == 0) {
+
+				reset = true;
+				break;
+			}
+		}
+
+		if (reset) {
+			param_reset(param);
+		}
+	}
 }
 
 int
@@ -949,19 +1085,18 @@ param_get_default_file()
 	return (param_user_file != nullptr) ? param_user_file : param_default_file;
 }
 
-int
-param_save_default()
+int param_save_default()
 {
 	int res = PX4_ERROR;
 
 	const char *filename = param_get_default_file();
 
 	if (!filename) {
-		perf_begin(param_export_perf);
 		param_lock_writer();
-		res = flash_param_save(false);
-		param_unlock_writer();
+		perf_begin(param_export_perf);
+		res = flash_param_save(false, nullptr);
 		perf_end(param_export_perf);
+		param_unlock_writer();
 		return res;
 	}
 
@@ -970,13 +1105,14 @@ param_save_default()
 
 	if (fd < 0) {
 		PX4_ERR("failed to open param file: %s", filename);
+
 		return PX4_ERROR;
 	}
 
 	int attempts = 5;
 
 	while (res != OK && attempts > 0) {
-		res = param_export(fd, false);
+		res = param_export(fd, false, nullptr);
 		attempts--;
 
 		if (res != PX4_OK) {
@@ -1031,7 +1167,7 @@ param_load_default()
 }
 
 int
-param_export(int fd, bool only_unsaved)
+param_export(int fd, bool only_unsaved, param_filter_func filter)
 {
 	int	result = -1;
 	perf_begin(param_export_perf);
@@ -1039,7 +1175,7 @@ param_export(int fd, bool only_unsaved)
 	if (fd < 0) {
 		param_lock_writer();
 		// flash_param_save() will take the shutdown lock
-		result = flash_param_save(only_unsaved);
+		result = flash_param_save(only_unsaved, filter);
 		param_unlock_writer();
 		perf_end(param_export_perf);
 		return result;
@@ -1077,6 +1213,15 @@ param_export(int fd, bool only_unsaved)
 			continue;
 		}
 
+		if (filter && !filter(s->param)) {
+			continue;
+		}
+
+		// don't export default values
+		if (param_value_is_default(s->param)) {
+			continue;
+		}
+
 		s->unsaved = false;
 
 		const char *name = param_name(s->param);
@@ -1087,8 +1232,7 @@ param_export(int fd, bool only_unsaved)
 
 		case PARAM_TYPE_INT32: {
 				const int32_t i = s->val.i;
-
-				PX4_DEBUG("exporting: %s (%d) size: %d val: %d", name, s->param, size, i);
+				PX4_DEBUG("exporting: %s (%d) size: %lu val: %d", name, s->param, (long unsigned int)size, i);
 
 				if (bson_encoder_append_int(&encoder, name, i)) {
 					PX4_ERR("BSON append failed for '%s'", name);
@@ -1099,26 +1243,9 @@ param_export(int fd, bool only_unsaved)
 
 		case PARAM_TYPE_FLOAT: {
 				const double f = (double)s->val.f;
-
-				PX4_DEBUG("exporting: %s (%d) size: %d val: %.3f", name, s->param, size, (double)f);
+				PX4_DEBUG("exporting: %s (%d) size: %lu val: %.3f", name, s->param, (long unsigned int)size, (double)f);
 
 				if (bson_encoder_append_double(&encoder, name, f)) {
-					PX4_ERR("BSON append failed for '%s'", name);
-					goto out;
-				}
-			}
-			break;
-
-		case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX: {
-				const void *value_ptr = param_get_value_ptr(s->param);
-
-				/* lock as short as possible */
-				if (bson_encoder_append_binary(&encoder,
-							       name,
-							       BSON_BIN_BINARY,
-							       size,
-							       value_ptr)) {
-
 					PX4_ERR("BSON append failed for '%s'", name);
 					goto out;
 				}
@@ -1310,13 +1437,13 @@ param_import_internal(int fd, bool mark_saved)
 }
 
 int
-param_import(int fd)
+param_import(int fd, bool mark_saved)
 {
 	if (fd < 0) {
 		return flash_param_import();
 	}
 
-	return param_import_internal(fd, false);
+	return param_import_internal(fd, mark_saved);
 }
 
 int
@@ -1389,6 +1516,12 @@ void param_print_status()
 	if (param_values != nullptr) {
 		PX4_INFO("storage array: %d/%d elements (%zu bytes total)",
 			 utarray_len(param_values), param_values->n, param_values->n * sizeof(UT_icd));
+	}
+
+	if (param_custom_default_values != nullptr) {
+		PX4_INFO("storage array (custom defaults): %d/%d elements (%zu bytes total)",
+			 utarray_len(param_custom_default_values), param_custom_default_values->n,
+			 param_custom_default_values->n * sizeof(UT_icd));
 	}
 
 	PX4_INFO("auto save: %s", autosave_disabled ? "off" : "on");

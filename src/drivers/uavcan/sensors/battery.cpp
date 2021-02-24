@@ -39,7 +39,7 @@
 const char *const UavcanBatteryBridge::NAME = "battery";
 
 UavcanBatteryBridge::UavcanBatteryBridge(uavcan::INode &node) :
-	UavcanCDevSensorBridgeBase("uavcan_battery", "/dev/uavcan/battery", "/dev/battery", ORB_ID(battery_status)),
+	UavcanSensorBridgeBase("uavcan_battery", ORB_ID(battery_status)),
 	ModuleParams(nullptr),
 	_sub_battery(node),
 	_warning(battery_status_s::BATTERY_WARNING_NONE),
@@ -47,16 +47,9 @@ UavcanBatteryBridge::UavcanBatteryBridge(uavcan::INode &node) :
 {
 }
 
-int
-UavcanBatteryBridge::init()
+int UavcanBatteryBridge::init()
 {
-	int res = device::CDev::init();
-
-	if (res < 0) {
-		return res;
-	}
-
-	res = _sub_battery.start(BatteryInfoCbBinder(this, &UavcanBatteryBridge::battery_sub_cb));
+	int res = _sub_battery.start(BatteryInfoCbBinder(this, &UavcanBatteryBridge::battery_sub_cb));
 
 	if (res < 0) {
 		PX4_ERR("failed to start uavcan sub: %d", res);
@@ -95,7 +88,12 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	battery.serial_number = msg.model_instance_id;
 	battery.id = msg.getSrcNodeID().get();
 
-	// battery.voltage_cell_v[0] = msg.;
+	// Mavlink 2 needs individual cell voltages or cell[0] if cell voltages are not available.
+	battery.voltage_cell_v[0] = msg.voltage;
+
+	// Set cell count to 1 so the the battery code in mavlink_messages.cpp copies the values correctly (hack?)
+	battery.cell_count = 1;
+
 	// battery.max_cell_voltage_delta = msg.;
 
 	// battery.is_powering_off = msg.;

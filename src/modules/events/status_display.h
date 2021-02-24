@@ -42,7 +42,7 @@
 
 #include <drivers/drv_hrt.h>
 
-#include <uORB/PublicationQueued.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/cpuload.h>
@@ -97,7 +97,7 @@ private:
 	int _old_nav_state = -1;
 	int _old_battery_status_warning = -1;
 
-	uORB::PublicationQueued<led_control_s> _led_control_pub{ORB_ID(led_control)};
+	uORB::Publication<led_control_s> _led_control_pub{ORB_ID(led_control)};
 
 };
 

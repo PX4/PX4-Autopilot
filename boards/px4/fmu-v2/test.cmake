@@ -6,6 +6,7 @@ px4_add_board(
 	LABEL test
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
+	CONSTRAINED_MEMORY
 	ROMFSROOT px4fmu_test
 	IO px4_io-v2_default
 	TESTING
@@ -17,7 +18,7 @@ px4_add_board(
 		TEL2:/dev/ttyS2
 		TEL4:/dev/ttyS6
 	DRIVERS
-		adc
+		adc/board_adc
 		#barometer # all available barometer drivers
 		barometer/ms5611
 		#batt_smbus
@@ -27,12 +28,12 @@ px4_add_board(
 		differential_pressure/ms4525
 		#distance_sensor # all available distance sensor drivers
 		distance_sensor/ll40ls
-		distance_sensor/sf0x
+		distance_sensor/lightware_laser_serial
 		#dshot
 		gps
 		#heater
 		#imu # all available imu drivers
-		#imu/adis16448
+		#imu/analog_devices/adis16448
 		#imu/adis16477
 		#imu/adis16497
 		imu/l3gd20
@@ -45,7 +46,6 @@ px4_add_board(
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
-		#mkblctrl
 		#optical_flow # all available optical flow drivers
 		optical_flow/px4flow
 		#osd
@@ -70,6 +70,7 @@ px4_add_board(
 		dataman
 		#ekf2
 		#events
+		flight_mode_manager
 		#fw_att_control
 		#fw_pos_control_l1
 		land_detector
@@ -98,6 +99,7 @@ px4_add_board(
 		hardfault_log
 		#i2cdetect
 		#led_control
+		mft
 		mixer
 		#motor_ramp
 		#motor_test
@@ -114,10 +116,12 @@ px4_add_board(
 		top
 		#topic_listener
 		tune_control
+		#uorb
 		#usb_connected
 		ver
 		#work_queue
 	EXAMPLES
+		#fake_gps
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hello
 		#hwtest # Hardware test

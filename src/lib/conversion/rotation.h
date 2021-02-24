@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,15 +40,17 @@
 #ifndef ROTATION_H_
 #define ROTATION_H_
 
-#include <unistd.h>
+#include <stdint.h>
+
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
+#include <px4_platform_common/defines.h>
 
 /**
  * Enum for board and external compass rotations.
  * This enum maps from board attitude to airframe attitude.
  */
-enum Rotation {
+enum Rotation : uint8_t {
 	ROTATION_NONE                = 0,
 	ROTATION_YAW_45              = 1,
 	ROTATION_YAW_90              = 2,
@@ -75,27 +77,32 @@ enum Rotation {
 	ROTATION_ROLL_270_YAW_135    = 23,
 	ROTATION_PITCH_90            = 24,
 	ROTATION_PITCH_270           = 25,
-	ROTATION_ROLL_270_YAW_270    = 26,
-	ROTATION_ROLL_180_PITCH_270  = 27,
-	ROTATION_PITCH_90_YAW_180    = 28,
-	ROTATION_PITCH_90_ROLL_90	 = 29,
-	ROTATION_YAW_293_PITCH_68_ROLL_90 = 30,
-	ROTATION_PITCH_90_ROLL_270	 = 31,
-	ROTATION_PITCH_9_YAW_180 = 32,
-	ROTATION_PITCH_45 = 33,
-	ROTATION_PITCH_315 = 34,
-	ROTATION_ROLL_90_YAW_270 = 35,
-	ROTATION_ROLL_270_YAW_180 = 41,
+	ROTATION_PITCH_180_YAW_90    = 26,
+	ROTATION_PITCH_180_YAW_270   = 27,
+	ROTATION_ROLL_90_PITCH_90    = 28,
+	ROTATION_ROLL_180_PITCH_90   = 29,
+	ROTATION_ROLL_270_PITCH_90   = 30,
+	ROTATION_ROLL_90_PITCH_180   = 31,
+	ROTATION_ROLL_270_PITCH_180  = 32,
+	ROTATION_ROLL_90_PITCH_270   = 33,
+	ROTATION_ROLL_180_PITCH_270  = 34,
+	ROTATION_ROLL_270_PITCH_270  = 35,
+	ROTATION_ROLL_90_PITCH_180_YAW_90 = 36,
+	ROTATION_ROLL_90_YAW_270          = 37,
+	ROTATION_ROLL_90_PITCH_68_YAW_293 = 38,
+	ROTATION_PITCH_315                = 39,
+	ROTATION_ROLL_90_PITCH_315        = 40,
+
 	ROTATION_MAX
 };
 
-typedef struct {
+struct rot_lookup_t {
 	uint16_t roll;
 	uint16_t pitch;
 	uint16_t yaw;
-} rot_lookup_t;
+};
 
-const rot_lookup_t rot_lookup[] = {
+static constexpr rot_lookup_t rot_lookup[ROTATION_MAX] = {
 	{  0,   0,   0 },
 	{  0,   0,  45 },
 	{  0,   0,  90 },
@@ -122,17 +129,21 @@ const rot_lookup_t rot_lookup[] = {
 	{270,   0, 135 },
 	{  0,  90,   0 },
 	{  0, 270,   0 },
-	{270,   0, 270 },
-	{180, 270,   0 },
-	{  0,  90, 180 },
+	{  0, 180,  90 },
+	{  0, 180, 270 },
 	{ 90,  90,   0 },
-	{ 90,  68, 293 },
+	{180,  90,   0 },
 	{270,  90,   0 },
-	{  0,   9, 180 },
-	{ 0,   45,   0 },
-	{ 0,  315,   0 },
+	{ 90, 180,   0 },
+	{270, 180,   0 },
+	{ 90, 270,   0 },
+	{180, 270,   0 },
+	{270, 270,   0 },
+	{ 90, 180,  90 },
 	{ 90,   0, 270 },
-	{270,   0, 180 },
+	{ 90,  68, 293 },
+	{  0, 315,   0 },
+	{ 90, 315,   0 },
 };
 
 /**

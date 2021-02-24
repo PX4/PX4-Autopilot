@@ -6,7 +6,9 @@ px4_add_board(
 	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
+	CONSTRAINED_MEMORY
 	ROMFSROOT px4fmu_common
+	CONSTRAINED_FLASH
 	SERIAL_PORTS
 		GPS1:/dev/ttyS5
 		TEL1:/dev/ttyS3
@@ -21,7 +23,7 @@ px4_add_board(
 		#irlock
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
-		magnetometer/ist8310
+		magnetometer/isentek/ist8310
 		#optical_flow/px4flow
 		#protocol_splitter
 		pwm_out_sim
@@ -39,6 +41,7 @@ px4_add_board(
 		dataman
 		ekf2
 		events
+		flight_mode_manager
 		#fw_att_control
 		#fw_pos_control_l1
 		land_detector
@@ -68,6 +71,7 @@ px4_add_board(
 		hardfault_log
 		i2cdetect
 		led_control
+		mft
 		mixer
 		motor_ramp
 		motor_test
@@ -79,14 +83,16 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
-		shutdown
+		system_time
 		#tests # tests and test runner
 		top
 		#topic_listener
 		tune_control
+		uorb
 		ver
 		work_queue
 	EXAMPLES
+		#fake_gps
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hello
 		#hwtest # Hardware test

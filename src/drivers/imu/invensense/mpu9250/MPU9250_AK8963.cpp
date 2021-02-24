@@ -48,40 +48,24 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 MPU9250_AK8963::MPU9250_AK8963(MPU9250 &mpu9250, enum Rotation rotation) :
 	ScheduledWorkItem("mpu9250_ak8963", px4::device_bus_to_wq(mpu9250.get_device_id())),
 	_mpu9250(mpu9250),
-	_px4_mag(mpu9250.get_device_id(), ORB_PRIO_DEFAULT, rotation)
+	_px4_mag(mpu9250.get_device_id(), rotation)
 {
 	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_AK8963);
 	_px4_mag.set_external(mpu9250.external());
+
+	// in 16-bit sampling mode the mag resolution is 1.5 milli Gauss per bit */
+	_px4_mag.set_scale(1.5e-3f);
 }
 
 MPU9250_AK8963::~MPU9250_AK8963()
 {
-	Stop();
-
-	perf_free(_transfer_perf);
-	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
-	perf_free(_duplicate_data_perf);
-}
-
-bool MPU9250_AK8963::Init()
-{
-	return Reset();
-}
-
-void MPU9250_AK8963::Stop()
-{
-	// wait until stopped
-	while (_state.load() != STATE::STOPPED) {
-		_state.store(STATE::REQUEST_STOP);
-		ScheduleNow();
-		px4_usleep(10);
-	}
+	perf_free(_magnetic_sensor_overflow_perf);
 }
 
 bool MPU9250_AK8963::Reset()
 {
-	_state.store(STATE::RESET);
+	_state = STATE::RESET;
 	ScheduleClear();
 	ScheduleNow();
 	return true;
@@ -89,29 +73,26 @@ bool MPU9250_AK8963::Reset()
 
 void MPU9250_AK8963::PrintInfo()
 {
-	perf_print_counter(_transfer_perf);
-	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
-	perf_print_counter(_duplicate_data_perf);
-
-	_px4_mag.print_status();
+	perf_print_counter(_magnetic_sensor_overflow_perf);
 }
 
 void MPU9250_AK8963::Run()
 {
-	switch (_state.load()) {
+	switch (_state) {
 	case STATE::RESET:
 		// CNTL2 SRST: Soft reset
-		RegisterWrite(Register::CNTL2, CNTL2_BIT::SRST);
+		_mpu9250.I2CSlaveRegisterWrite(I2C_ADDRESS_DEFAULT, (uint8_t)Register::CNTL2, CNTL2_BIT::SRST);
 		_reset_timestamp = hrt_absolute_time();
-		_state.store(STATE::READ_WHO_AM_I);
+		_failure_count = 0;
+		_state = STATE::READ_WHO_AM_I;
 		ScheduleDelayed(100_ms);
 		break;
 
 	case STATE::READ_WHO_AM_I:
-		_mpu9250.I2CSlaveRegisterStartRead(I2C_ADDRESS_DEFAULT, (uint8_t)Register::WIA);
-		_state.store(STATE::WAIT_FOR_RESET);
-		ScheduleDelayed(10_ms);
+		_mpu9250.I2CSlaveExternalSensorDataEnable(I2C_ADDRESS_DEFAULT, (uint8_t)Register::WIA, 1);
+		_state = STATE::WAIT_FOR_RESET;
+		ScheduleDelayed(100_ms);
 		break;
 
 	case STATE::WAIT_FOR_RESET: {
@@ -119,20 +100,36 @@ void MPU9250_AK8963::Run()
 			uint8_t WIA = 0;
 			_mpu9250.I2CSlaveExternalSensorDataRead(&WIA, 1);
 
-			if (WIA == WHOAMI) {
+			if (WIA == Device_ID) {
 				// if reset succeeded then configure
-				_state.store(STATE::CONFIGURE);
-				ScheduleDelayed(10_ms);
+				if (!_sensitivity_adjustments_loaded) {
+					// Set Fuse ROM Access mode before reading Fuse ROM data.
+					_mpu9250.I2CSlaveRegisterWrite(I2C_ADDRESS_DEFAULT, (uint8_t)Register::CNTL1,
+								       CNTL1_BIT::BIT_16 | CNTL1_BIT::FUSE_ROM_ACCESS_MODE);
 
-			} else {
-				// RESET not complete
-				if (hrt_elapsed_time(&_reset_timestamp) > 100_ms) {
-					PX4_DEBUG("Reset failed, retrying");
-					_state.store(STATE::RESET);
+					// Read ASAX, ASAY, ASAZ
+					_mpu9250.I2CSlaveExternalSensorDataEnable(I2C_ADDRESS_DEFAULT, (uint8_t)Register::ASAX, 3);
+					_state = STATE::READ_SENSITIVITY_ADJUSTMENTS;
 					ScheduleDelayed(100_ms);
 
 				} else {
-					PX4_DEBUG("Reset not complete, check again in 100 ms");
+					// set continuous mode 2 (100 Hz)
+					_mpu9250.I2CSlaveRegisterWrite(I2C_ADDRESS_DEFAULT, (uint8_t)Register::CNTL1,
+								       CNTL1_BIT::BIT_16 | CNTL1_BIT::CONTINUOUS_MODE_2);
+
+					_state = STATE::READ;
+					ScheduleDelayed(100_ms);
+				}
+
+			} else {
+				// RESET not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("AK8963 reset failed, retrying");
+					_state = STATE::RESET;
+					ScheduleDelayed(1000_ms);
+
+				} else {
+					PX4_DEBUG("AK8963 reset not complete, check again in 100 ms");
 					ScheduleDelayed(100_ms);
 				}
 			}
@@ -140,171 +137,83 @@ void MPU9250_AK8963::Run()
 
 		break;
 
-	// TODO: read FUSE ROM (to get ASA corrections)
+	case STATE::READ_SENSITIVITY_ADJUSTMENTS: {
+			// read FUSE ROM (to get ASA corrections)
+			uint8_t response[3] {};
+			_mpu9250.I2CSlaveExternalSensorDataRead((uint8_t *)&response, sizeof(response));
 
-	case STATE::CONFIGURE:
-		if (Configure()) {
-			// if configure succeeded then start reading
-			_mpu9250.I2CSlaveExternalSensorDataEnable(I2C_ADDRESS_DEFAULT, (uint8_t)Register::HXL, sizeof(TransferBuffer));
-			_state.store(STATE::READ);
-			ScheduleOnInterval(10_ms, 10_ms); // 100 Hz
+			bool valid = true;
 
-		} else {
-			PX4_DEBUG("Configure failed, retrying");
-			// try again in 100 ms
+			for (int i = 0; i < 3; i++) {
+				if (response[i] != 0 && response[i] != 0xFF) {
+					_sensitivity[i] = ((float)(response[i] - 128) / 256.f) + 1.f;
+
+				} else {
+					valid = false;
+				}
+			}
+
+			_sensitivity_adjustments_loaded = valid;
+
+			// After reading fuse ROM data, set power-down mode (MODE[3:0]=“0000”) before the transition to another mode.
+			_mpu9250.I2CSlaveRegisterWrite(I2C_ADDRESS_DEFAULT, (uint8_t)Register::CNTL1, 0);
+			_state = STATE::RESET;
 			ScheduleDelayed(100_ms);
 		}
-
 		break;
 
 	case STATE::READ: {
-			perf_begin(_transfer_perf);
-
 			TransferBuffer buffer{};
 			const hrt_abstime timestamp_sample = hrt_absolute_time();
-			bool success = _mpu9250.I2CSlaveExternalSensorDataRead((uint8_t *)&buffer, sizeof(TransferBuffer));
+			bool ret = _mpu9250.I2CSlaveExternalSensorDataRead((uint8_t *)&buffer, sizeof(TransferBuffer));
 
-			perf_end(_transfer_perf);
+			bool success = false;
 
-			if (success && !(buffer.ST2 & ST2_BIT::HOFL)) {
-				// sensor's frame is +y forward (x), -x right, +z down
-				int16_t x = combine(buffer.HYH, buffer.HYL); // +Y
-				int16_t y = combine(buffer.HXH, buffer.HXL); // +X
-				y = (y == INT16_MIN) ? INT16_MAX : -y; // flip y
-				int16_t z = combine(buffer.HZH, buffer.HZL);
+			if (ret) {
+				if (buffer.ST2 & ST2_BIT::HOFL) {
+					perf_count(_magnetic_sensor_overflow_perf);
 
-				const bool all_zero = (x == 0 && y == 0 && z == 0);
-				const bool new_data = (_last_measurement[0] != x || _last_measurement[1] != y || _last_measurement[2] != z);
+				} else if (buffer.ST2 & ST2_BIT::BITM) {
+					const int16_t x = combine(buffer.HXH, buffer.HXL);
+					const int16_t y = combine(buffer.HYH, buffer.HYL);
+					const int16_t z = combine(buffer.HZH, buffer.HZL);
 
-				if (!new_data) {
-					perf_count(_duplicate_data_perf);
-				}
+					// sensor's frame is +Y forward (X), -X right (Y), +Z down (Z)
+					// adjust with sensitivity scale factors
+					float x_f = y * _sensitivity[0];   // X := +Y
+					float y_f = -x * _sensitivity[1];  // Y := -X
+					float z_f = z * _sensitivity[2];   // Z := +Z
 
-				if (!all_zero && new_data) {
-					_px4_mag.update(timestamp_sample, x, y, z);
+					_px4_mag.update(timestamp_sample, x_f, y_f, z_f);
 
-					_last_measurement[0] = x;
-					_last_measurement[1] = y;
-					_last_measurement[2] = z;
+					success = true;
 
-				} else {
-					success = false;
+					if (_failure_count > 0) {
+						_failure_count--;
+					}
+
+					ScheduleDelayed(20_ms); // ~50 Hz
+					return;
 				}
 			}
 
 			if (!success) {
 				perf_count(_bad_transfer_perf);
+				_failure_count++;
+
+				if (_failure_count > 10) {
+					Reset();
+					return;
+				}
 			}
+
+			// ensure mpu9250 slave sensor reading is configured
+			_mpu9250.I2CSlaveExternalSensorDataEnable(I2C_ADDRESS_DEFAULT, (uint8_t)Register::ST1, sizeof(TransferBuffer));
+			ScheduleDelayed(100_ms);
 		}
 
 		break;
-
-	case STATE::REQUEST_STOP:
-		ScheduleClear();
-		_state.store(STATE::STOPPED);
-		break;
-
-	case STATE::STOPPED:
-		// DO NOTHING
-		break;
 	}
-}
-
-bool MPU9250_AK8963::Configure()
-{
-	bool success = true;
-
-	for (const auto &reg : _register_cfg) {
-		if (!RegisterCheck(reg)) {
-			success = false;
-		}
-	}
-
-	// TODO: read ASA and set sensitivity
-
-	//const uint8_t ASAX = RegisterRead(Register::ASAX);
-	//const uint8_t ASAY = RegisterRead(Register::ASAY);
-	//const uint8_t ASAZ = RegisterRead(Register::ASAZ);
-
-	// float ak8963_ASA[3] {};
-
-	// for (int i = 0; i < 3; i++) {
-	// 	if (0 != response[i] && 0xff != response[i]) {
-	// 		ak8963_ASA[i] = ((float)(response[i] - 128) / 256.0f) + 1.0f;
-
-	// 	} else {
-	// 		return false;
-	// 	}
-	// }
-
-	// _px4_mag.set_sensitivity(ak8963_ASA[0], ak8963_ASA[1], ak8963_ASA[2]);
-
-
-	// in 16-bit sampling mode the mag resolution is 1.5 milli Gauss per bit */
-	_px4_mag.set_scale(1.5e-3f);
-
-	return success;
-}
-
-bool MPU9250_AK8963::RegisterCheck(const register_config_t &reg_cfg, bool notify)
-{
-	bool success = true;
-
-	const uint8_t reg_value = RegisterRead(reg_cfg.reg);
-
-	if (reg_cfg.set_bits && ((reg_value & reg_cfg.set_bits) != reg_cfg.set_bits)) {
-		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not set)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.set_bits);
-		success = false;
-	}
-
-	if (reg_cfg.clear_bits && ((reg_value & reg_cfg.clear_bits) != 0)) {
-		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.clear_bits);
-		success = false;
-	}
-
-	if (!success) {
-		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
-
-		if (notify) {
-			perf_count(_bad_register_perf);
-			_px4_mag.increase_error_count();
-		}
-	}
-
-	return success;
-}
-
-uint8_t MPU9250_AK8963::RegisterRead(Register reg)
-{
-	// TODO: use slave 4 and check register
-	_mpu9250.I2CSlaveRegisterStartRead(I2C_ADDRESS_DEFAULT, static_cast<uint8_t>(reg));
-	usleep(1000);
-
-	uint8_t buffer{};
-	_mpu9250.I2CSlaveExternalSensorDataRead(&buffer, 1);
-
-	return buffer;
-}
-
-void MPU9250_AK8963::RegisterWrite(Register reg, uint8_t value)
-{
-	return _mpu9250.I2CSlaveRegisterWrite(I2C_ADDRESS_DEFAULT, static_cast<uint8_t>(reg), value);
-}
-
-void MPU9250_AK8963::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits)
-{
-	const uint8_t orig_val = RegisterRead(reg);
-	uint8_t val = orig_val;
-
-	if (setbits) {
-		val |= setbits;
-	}
-
-	if (clearbits) {
-		val &= ~clearbits;
-	}
-
-	RegisterWrite(reg, val);
 }
 
 } // namespace AKM_AK8963

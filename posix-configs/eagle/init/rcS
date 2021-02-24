@@ -4,7 +4,6 @@
 # (px4-alias.sh is expected to be in the PATH)
 . px4-alias.sh
 
-uorb start
 muorb start
 
 # We need to wait until the DSP side is ready before
@@ -88,6 +87,7 @@ fi
 qshell commander start
 qshell land_detector start multicopter
 qshell mc_hover_thrust_estimator start
+qshell flight_mode_manager start
 qshell mc_pos_control start
 qshell mc_att_control start
 qshell mc_rate_control start

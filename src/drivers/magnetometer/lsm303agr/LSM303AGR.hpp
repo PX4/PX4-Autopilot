@@ -35,7 +35,6 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/device/spi.h>
-#include <drivers/drv_mag.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
@@ -152,13 +151,14 @@ private:
 	 * @param		The register to read.
 	 * @return		The value that was read.
 	 */
-	uint8_t			read_reg(unsigned reg);
+	uint8_t			read_reg(unsigned reg) override;
 
 	/**
 	 * Write a register in the LSM303AGR
 	 *
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
+	 * @return		OK on success, negative errno otherwise.
 	 */
-	void			write_reg(unsigned reg, uint8_t value);
+	int			write_reg(unsigned reg, uint8_t value) override;
 };

@@ -1,13 +1,10 @@
 uint64 timestamp		# time since system start (microseconds)
-float32[24] states		# Internal filter states
-uint8 n_states		# Number of states effectively used
+uint64 timestamp_sample         # the timestamp of the raw data (microseconds)
 
 float32[3] vibe			# IMU vibration metrics in the following array locations
 # 0 : Gyro delta angle coning metric = filtered length of (delta_angle x prev_delta_angle)
 # 1 : Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
 # 2 : Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
-
-float32[24] covariances	# Diagonal Elements of Covariance Matrix
 
 float32[3] output_tracking_error # return a vector containing the output predictor angular, velocity and position tracking error magnitudes (rad), (m/s), (m)
 
@@ -15,7 +12,7 @@ uint16 gps_check_fail_flags     # Bitmask to indicate status of GPS checks - see
 # bits are true when corresponding test has failed
 uint8 GPS_CHECK_FAIL_GPS_FIX = 0		# 0 : insufficient fix type (no 3D solution)
 uint8 GPS_CHECK_FAIL_MIN_SAT_COUNT = 1		# 1 : minimum required sat count fail
-uint8 GPS_CHECK_FAIL_MIN_PDOP = 2		# 2 : minimum required PDOP fail
+uint8 GPS_CHECK_FAIL_MAX_PDOP = 2		# 2 : maximum allowed PDOP fail
 uint8 GPS_CHECK_FAIL_MAX_HORZ_ERR = 3		# 3 : maximum allowed horizontal position error fail
 uint8 GPS_CHECK_FAIL_MAX_VERT_ERR = 4		# 4 : maximum allowed vertical position error fail
 uint8 GPS_CHECK_FAIL_MAX_SPD_ERR = 5		# 5 : maximum allowed speed error fail
@@ -50,7 +47,7 @@ uint8 CS_RNG_STUCK = 21		# 21 - true when a stuck range finder sensor has been d
 uint8 CS_GPS_YAW = 22		# 22 - true when yaw (not ground course) data from a GPS receiver is being fused
 uint8 CS_MAG_ALIGNED = 23	# 23 - true when the in-flight mag field alignment has been completed
 
-uint16 filter_fault_flags	# Bitmask to indicate EKF internal faults
+uint32 filter_fault_flags	# Bitmask to indicate EKF internal faults
 # 0 - true if the fusion of the magnetometer X-axis has encountered a numerical error
 # 1 - true if the fusion of the magnetometer Y-axis has encountered a numerical error
 # 2 - true if the fusion of the magnetometer Z-axis has encountered a numerical error
@@ -67,6 +64,8 @@ uint16 filter_fault_flags	# Bitmask to indicate EKF internal faults
 # 13 - true if fusion of the East position has encountered a numerical error
 # 14 - true if fusion of the Down position has encountered a numerical error
 # 15 - true if bad delta velocity bias estimates have been detected
+# 16 - true if bad vertical accelerometer data has been detected
+# 17 - true if delta velocity data contains clipping (asymmetric railing)
 
 float32 pos_horiz_accuracy # 1-Sigma estimated horizontal position accuracy relative to the estimators origin (m)
 float32 pos_vert_accuracy # 1-Sigma estimated vertical position accuracy relative to the estimators origin (m)
@@ -106,6 +105,12 @@ uint16 solution_status_flags # Bitmask indicating which filter kinematic state o
 # 10 - True if the EKF has detected a GPS glitch
 # 11 - True if the EKF has detected bad accelerometer data
 
+uint8 reset_count_vel_ne # number of horizontal position reset events (allow to wrap if count exceeds 255)
+uint8 reset_count_vel_d  # number of vertical velocity reset events (allow to wrap if count exceeds 255)
+uint8 reset_count_pos_ne # number of horizontal position reset events (allow to wrap if count exceeds 255)
+uint8 reset_count_pod_d  # number of vertical position reset events (allow to wrap if count exceeds 255)
+uint8 reset_count_quat   # number of quaternion reset events (allow to wrap if count exceeds 255)
+
 float32 time_slip # cumulative amount of time in seconds that the EKF inertial calculation has slipped relative to system time
 
 bool pre_flt_fail_innov_heading
@@ -113,6 +118,11 @@ bool pre_flt_fail_innov_vel_horiz
 bool pre_flt_fail_innov_vel_vert
 bool pre_flt_fail_innov_height
 bool pre_flt_fail_mag_field_disturbed
+
+uint32 accel_device_id
+uint32 gyro_device_id
+uint32 baro_device_id
+uint32 mag_device_id
 
 # legacy local position estimator (LPE) flags
 uint8 health_flags		# Bitmask to indicate sensor health states (vel, pos, hgt)

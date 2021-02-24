@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,7 +39,7 @@
 class AnalogBattery : public Battery
 {
 public:
-	AnalogBattery(int index, ModuleParams *parent);
+	AnalogBattery(int index, ModuleParams *parent, const int sample_interval_us);
 
 	/**
 	 * Update current battery status message.

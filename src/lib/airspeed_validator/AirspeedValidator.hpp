@@ -40,7 +40,7 @@
 
 #include <airspeed/airspeed.h>
 #include <ecl/airdata/WindEstimator.hpp>
-#include <uORB/topics/wind_estimate.h>
+#include <uORB/topics/airspeed_wind.h>
 
 
 using matrix::Dcmf;
@@ -78,13 +78,15 @@ public:
 
 	void update_airspeed_validator(const airspeed_validator_update_data &input_data);
 
+	void reset_airspeed_to_invalid(const uint64_t timestamp);
+
 	float get_IAS() { return _IAS; }
-	float get_EAS() { return _EAS; }
+	float get_CAS() { return _CAS; }
 	float get_TAS() { return _TAS; }
 	bool get_airspeed_valid() { return _airspeed_valid; }
-	float get_EAS_scale() {return _EAS_scale;}
+	float get_CAS_scale() {return _CAS_scale;}
 
-	wind_estimate_s get_wind_estimator_states(uint64_t timestamp);
+	airspeed_wind_s get_wind_estimator_states(uint64_t timestamp);
 
 	// setters wind estimator parameters
 	void set_wind_estimator_wind_p_noise(float wind_sigma) { _wind_estimator.set_wind_p_noise(wind_sigma); }
@@ -115,21 +117,15 @@ private:
 	WindEstimator _wind_estimator{}; ///< wind estimator instance running in this particular airspeedValidator
 
 	// wind estimator parameter
-	bool _wind_estimator_scale_estimation_on{false};	///< online scale estimation (IAS-->CAS/EAS) is on
+	bool _wind_estimator_scale_estimation_on{false};	///< online scale estimation (IAS-->CAS) is on
 	float _airspeed_scale_manual{1.0f}; ///< manually entered airspeed scale
 
 	// general states
 	bool _in_fixed_wing_flight{false}; ///< variable to bypass innovation and load factor checks
 	float _IAS{0.0f}; ///< indicated airsped in m/s
-	float _EAS{0.0f}; ///< equivalent airspeed in m/s
+	float _CAS{0.0f}; ///< calibrated airspeed in m/s
 	float _TAS{0.0f}; ///< true airspeed in m/s
-	float _EAS_scale{1.0f}; ///< scale factor from IAS to EAS
-
-	uint64_t	_time_last_airspeed{0};		///< time last airspeed measurement was received (uSec)
-
-	// states of data stopped check
-	bool _data_stopped_failed{false}; ///< data_stopp check has detected failure
-	hrt_abstime _previous_airspeed_timestamp{0}; ///< timestamp from previous measurement input, to check validity of measurement
+	float _CAS_scale{1.0f}; ///< scale factor from IAS to CAS
 
 	// states of innovation check
 	float _tas_gate{1.0f}; ///< gate size of airspeed innovation (to calculate tas_test_ratio)
@@ -138,8 +134,7 @@ private:
 	float _tas_innov_integ_threshold{-1.0}; ///< integrator innovation error threshold for triggering innovation check failure
 	uint64_t	_time_last_aspd_innov_check{0};	///< time airspeed innovation was last checked (uSec)
 	uint64_t	_time_last_tas_pass{0};		///< last time innovation checks passed
-	uint64_t	_time_last_tas_fail{0};		///< last time innovation checks failed
-	float		_apsd_innov_integ_state{0.0f};	///< inegral of excess normalised airspeed innovation (sec)
+	float		_apsd_innov_integ_state{0.0f};	///< integral of excess normalised airspeed innovation (sec)
 	static constexpr uint64_t TAS_INNOV_FAIL_DELAY{1_s};	///< time required for innovation levels to pass or fail (usec)
 	uint64_t	_time_wind_estimator_initialized{0};		///< time last time wind estimator was initialized (uSec)
 
@@ -149,10 +144,9 @@ private:
 	float	_load_factor_ratio{0.5f};	///< ratio of maximum load factor predicted by stall speed to measured load factor
 
 	// states of airspeed valid declaration
-	bool _airspeed_valid{false}; ///< airspeed valid (pitot or groundspeed-windspeed)
+	bool _airspeed_valid{true}; ///< airspeed valid (pitot or groundspeed-windspeed)
 	int _checks_fail_delay{3}; ///< delay for airspeed invalid declaration after single check failure (Sec)
 	int _checks_clear_delay{3}; ///< delay for airspeed valid declaration after all checks passed again (Sec)
-	bool		_airspeed_failing{false};	///< airspeed sensor checks have detected failure, but not yet declared failed
 	uint64_t	_time_checks_passed{0};	///< time the checks have last passed (uSec)
 	uint64_t	_time_checks_failed{0};	///< time the checks have last not passed (uSec)
 
@@ -162,11 +156,12 @@ private:
 				   float lpos_vy,
 				   float lpos_vz,
 				   float lpos_evh, float lpos_evv, const float att_q[4]);
-	void update_EAS_scale();
-	void update_EAS_TAS(float air_pressure_pa, float air_temperature_celsius);
+	void update_CAS_scale();
+	void update_CAS_TAS(float air_pressure_pa, float air_temperature_celsius);
 	void check_airspeed_innovation(uint64_t timestamp, float estimator_status_vel_test_ratio,
 				       float estimator_status_mag_test_ratio);
 	void check_load_factor(float accel_z);
 	void update_airspeed_valid_status(const uint64_t timestamp);
+	void reset();
 
 };

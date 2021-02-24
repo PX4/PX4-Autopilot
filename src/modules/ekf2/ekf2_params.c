@@ -98,7 +98,7 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_DELAY, 110);
  * @reboot_required true
  * @decimal 1
  */
-PARAM_DEFINE_FLOAT(EKF2_OF_DELAY, 5);
+PARAM_DEFINE_FLOAT(EKF2_OF_DELAY, 20);
 
 /**
  * Range finder measurement delay relative to IMU measurements
@@ -153,7 +153,7 @@ PARAM_DEFINE_FLOAT(EKF2_AVEL_DELAY, 5);
  *
  * Set bits to 1 to enable checks. Checks enabled by the following bit positions
  * 0 : Minimum required sat count set by EKF2_REQ_NSATS
- * 1 : Minimum required PDOP set by EKF2_REQ_PDOP
+ * 1 : Maximum allowed PDOP set by EKF2_REQ_PDOP
  * 2 : Maximum allowed horizontal position error set by EKF2_REQ_EPH
  * 3 : Maximum allowed vertical position error set by EKF2_REQ_EPV
  * 4 : Maximum allowed speed error set by EKF2_REQ_SACC
@@ -166,7 +166,7 @@ PARAM_DEFINE_FLOAT(EKF2_AVEL_DELAY, 5);
  * @min 0
  * @max 511
  * @bit 0 Min sat count (EKF2_REQ_NSATS)
- * @bit 1 Min PDOP (EKF2_REQ_PDOP)
+ * @bit 1 Max PDOP (EKF2_REQ_PDOP)
  * @bit 2 Max horizontal position error (EKF2_REQ_EPH)
  * @bit 3 Max vertical position error (EKF2_REQ_EPV)
  * @bit 4 Max speed error (EKF2_REQ_SACC)
@@ -220,7 +220,7 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_SACC, 0.5f);
 PARAM_DEFINE_INT32(EKF2_REQ_NSATS, 6);
 
 /**
- * Required PDOP to use GPS.
+ * Maximum PDOP to use GPS.
  *
  * @group EKF2
  * @min 1.5
@@ -268,7 +268,7 @@ PARAM_DEFINE_FLOAT(EKF2_GYR_NOISE, 1.5e-2f);
  * @group EKF2
  * @min 0.01
  * @max 1.0
- * @unit m/s/s
+ * @unit m/s^2
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_ACC_NOISE, 3.5e-1f);
@@ -279,7 +279,7 @@ PARAM_DEFINE_FLOAT(EKF2_ACC_NOISE, 3.5e-1f);
  * @group EKF2
  * @min 0.0
  * @max 0.01
- * @unit rad/s**2
+ * @unit rad/s^2
  * @decimal 6
  */
 PARAM_DEFINE_FLOAT(EKF2_GYR_B_NOISE, 1.0e-3f);
@@ -290,7 +290,7 @@ PARAM_DEFINE_FLOAT(EKF2_GYR_B_NOISE, 1.0e-3f);
  * @group EKF2
  * @min 0.0
  * @max 0.01
- * @unit m/s**3
+ * @unit m/s^3
  * @decimal 6
  */
 PARAM_DEFINE_FLOAT(EKF2_ACC_B_NOISE, 3.0e-3f);
@@ -301,7 +301,7 @@ PARAM_DEFINE_FLOAT(EKF2_ACC_B_NOISE, 3.0e-3f);
  * @group EKF2
  * @min 0.0
  * @max 0.1
- * @unit Gauss/s
+ * @unit gauss/s
  * @decimal 6
  */
 PARAM_DEFINE_FLOAT(EKF2_MAG_B_NOISE, 1.0e-4f);
@@ -312,7 +312,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_B_NOISE, 1.0e-4f);
  * @group EKF2
  * @min 0.0
  * @max 0.1
- * @unit Gauss/s
+ * @unit gauss/s
  * @decimal 6
  */
 PARAM_DEFINE_FLOAT(EKF2_MAG_E_NOISE, 1.0e-3f);
@@ -323,7 +323,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_E_NOISE, 1.0e-3f);
  * @group EKF2
  * @min 0.0
  * @max 1.0
- * @unit m/s/s
+ * @unit m/s^2
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(EKF2_WIND_NOISE, 1.0e-1f);
@@ -337,7 +337,7 @@ PARAM_DEFINE_FLOAT(EKF2_WIND_NOISE, 1.0e-1f);
  * @unit m/s
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(EKF2_GPS_V_NOISE, 0.5f);
+PARAM_DEFINE_FLOAT(EKF2_GPS_V_NOISE, 0.3f);
 
 /**
  * Measurement noise for gps position.
@@ -370,7 +370,7 @@ PARAM_DEFINE_FLOAT(EKF2_NOAID_NOISE, 10.0f);
  * @unit m
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(EKF2_BARO_NOISE, 2.0f);
+PARAM_DEFINE_FLOAT(EKF2_BARO_NOISE, 3.5f);
 
 /**
  * Measurement noise for magnetic heading fusion.
@@ -389,7 +389,7 @@ PARAM_DEFINE_FLOAT(EKF2_HEAD_NOISE, 0.3f);
  * @group EKF2
  * @min 0.001
  * @max 1.0
- * @unit Gauss
+ * @unit gauss
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(EKF2_MAG_NOISE, 5.0e-2f);
@@ -427,17 +427,6 @@ PARAM_DEFINE_FLOAT(EKF2_BETA_GATE, 5.0f);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_BETA_NOISE, 0.3f);
-
-/**
- * Magnetic declination
- *
- * @group EKF2
- * @volatile
- * @category system
- * @unit deg
- * @decimal 1
- */
-PARAM_DEFINE_FLOAT(EKF2_MAG_DECL, 0);
 
 /**
  * Gate size for magnetic heading fusion
@@ -509,7 +498,7 @@ PARAM_DEFINE_INT32(EKF2_MAG_TYPE, 0);
  * @group EKF2
  * @min 0.0
  * @max 5.0
- * @unit m/s**2
+ * @unit m/s^2
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_MAG_ACCLIM, 0.5f);
@@ -547,7 +536,7 @@ PARAM_DEFINE_FLOAT(EKF2_BARO_GATE, 5.0f);
  * @group EKF2
  * @min 0.0
  * @max 10.0
- * @unit M
+ * @unit m
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_GND_EFF_DZ, 0.0f);
@@ -560,7 +549,7 @@ PARAM_DEFINE_FLOAT(EKF2_GND_EFF_DZ, 0.0f);
  * @group EKF2
  * @min 0.0
  * @max 5.0
- * @unit M
+ * @unit m
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_GND_MAX_HGT, 0.5f);
@@ -666,7 +655,7 @@ PARAM_DEFINE_INT32(EKF2_TERR_MASK, 3);
  * @group EKF2
  * @min 500000
  * @max 10000000
- * @unit uSec
+ * @unit us
  */
 PARAM_DEFINE_INT32(EKF2_NOAID_TOUT, 5000000);
 
@@ -750,7 +739,7 @@ PARAM_DEFINE_FLOAT(EKF2_EVV_NOISE, 0.1f);
  * Measurement noise for vision angle observations used to lower bound or replace the uncertainty included in the message
  *
  * @group EKF2
- * @min 0.01
+ * @min 0.05
  * @unit rad
  * @decimal 2
  */
@@ -819,19 +808,6 @@ PARAM_DEFINE_FLOAT(EKF2_TERR_NOISE, 5.0f);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_TERR_GRAD, 0.5f);
-
-/**
- * Device id of IMU
- *
- * Set to 0 to use system selected (sensor_combined) IMU,
- * otherwise set to the device id of the desired IMU (vehicle_imu).
- *
- * @group EKF2
- * @value 0 System Primary
- * @category Developer
- *
- */
-PARAM_DEFINE_INT32(EKF2_IMU_ID, 0);
 
 /**
  * X position of IMU in body frame (forward axis with origin relative to vehicle centre of gravity)
@@ -1021,7 +997,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAU_POS, 0.25f);
  * @group EKF2
  * @min 0.0
  * @max 0.2
- * @unit rad/sec
+ * @unit rad/s
  * @reboot_required true
  * @decimal 2
  */
@@ -1033,7 +1009,7 @@ PARAM_DEFINE_FLOAT(EKF2_GBIAS_INIT, 0.1f);
  * @group EKF2
  * @min 0.0
  * @max 0.5
- * @unit m/s/s
+ * @unit m/s^2
  * @reboot_required true
  * @decimal 2
  */
@@ -1061,82 +1037,6 @@ PARAM_DEFINE_FLOAT(EKF2_ANGERR_INIT, 0.1f);
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(EKF2_RNG_PITCH, 0.0f);
-
-/**
- * Learned value of magnetometer X axis bias.
- * This is the amount of X-axis magnetometer bias learned by the EKF and saved from the last flight. It must be set to zero if the ground based magnetometer calibration is repeated.
- *
- * @group EKF2
- * @min -0.5
- * @max 0.5
- * @reboot_required true
- * @volatile
- * @category system
- * @unit mGauss
- * @decimal 3
- */
-PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_X, 0.0f);
-
-/**
- * Learned value of magnetometer Y axis bias.
- * This is the amount of Y-axis magnetometer bias learned by the EKF and saved from the last flight. It must be set to zero if the ground based magnetometer calibration is repeated.
- *
- * @group EKF2
- * @min -0.5
- * @max 0.5
- * @reboot_required true
- * @volatile
- * @category system
- * @unit mGauss
- * @decimal 3
- */
-PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_Y, 0.0f);
-
-/**
- * Learned value of magnetometer Z axis bias.
- * This is the amount of Z-axis magnetometer bias learned by the EKF and saved from the last flight. It must be set to zero if the ground based magnetometer calibration is repeated.
- *
- * @group EKF2
- * @min -0.5
- * @max 0.5
- * @reboot_required true
- * @volatile
- * @category system
- * @unit mGauss
- * @decimal 3
- */
-PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_Z, 0.0f);
-
-/**
- * ID of Magnetometer the learned bias is for.
- *
- * @group EKF2
- * @reboot_required true
- * @category system
- */
-PARAM_DEFINE_INT32(EKF2_MAGBIAS_ID, 0);
-
-/**
- * State variance assumed for magnetometer bias storage.
- * This is a reference variance used to calculate the fraction of learned magnetometer bias that will be used to update the stored value. Smaller values will make the stored bias data adjust more slowly from flight to flight. Larger values will make it adjust faster.
- *
- * @group EKF2
- * @reboot_required true
- * @unit mGauss**2
- * @decimal 8
- */
-PARAM_DEFINE_FLOAT(EKF2_MAGB_VREF, 2.5E-7f);
-
-/**
- * Maximum fraction of learned mag bias saved at each disarm.
- * Smaller values make the saved mag bias learn slower from flight to flight. Larger values make it learn faster. Must be > 0.0 and <= 1.0.
- *
- * @group EKF2
- * @min 0.0
- * @max 1.0
- * @decimal 2
- */
-PARAM_DEFINE_FLOAT(EKF2_MAGB_K, 0.2f);
 
 /**
  * Range sensor aid.
@@ -1198,6 +1098,17 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_A_HMAX, 5.0f);
 PARAM_DEFINE_FLOAT(EKF2_RNG_A_IGATE, 1.0f);
 
 /**
+ * Minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (s)
+ *
+ *
+ * @group EKF2
+ * @unit s
+ * @min 0.1
+ * @max 5
+*/
+PARAM_DEFINE_FLOAT(EKF2_RNG_QLTY_T, 1.0f);
+
+/**
  * Gate size for vision velocity estimate fusion
  *
  * Sets the number of standard deviations used by the innovation consistency test.
@@ -1226,7 +1137,7 @@ PARAM_DEFINE_FLOAT(EKF2_EVP_GATE, 5.0f);
  * @group EKF2
  * @min 0.5
  * @max 10.0
- * @unit (m/sec**2)**2
+ * @unit (m/s^2)^2
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_DRAG_NOISE, 2.5f);
@@ -1238,7 +1149,7 @@ PARAM_DEFINE_FLOAT(EKF2_DRAG_NOISE, 2.5f);
  * @group EKF2
  * @min 1.0
  * @max 100.0
- * @unit kg/m**2
+ * @unit kg/m^2
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_BCOEF_X, 25.0f);
@@ -1250,7 +1161,7 @@ PARAM_DEFINE_FLOAT(EKF2_BCOEF_X, 25.0f);
  * @group EKF2
  * @min 1.0
  * @max 100.0
- * @unit kg/m**2
+ * @unit kg/m^2
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_BCOEF_Y, 25.0f);
@@ -1331,7 +1242,7 @@ PARAM_DEFINE_FLOAT(EKF2_PCOEF_Z, 0.0f);
  * @group EKF2
  * @min 0.0
  * @max 0.8
- * @unit m/s/s
+ * @unit m/s^2
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_ABL_LIM, 0.4f);
@@ -1344,7 +1255,7 @@ PARAM_DEFINE_FLOAT(EKF2_ABL_LIM, 0.4f);
  * @group EKF2
  * @min 20.0
  * @max 200.0
- * @unit m/s/s
+ * @unit m/s^2
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_ABL_ACCLIM, 25.0f);
@@ -1374,37 +1285,6 @@ PARAM_DEFINE_FLOAT(EKF2_ABL_GYRLIM, 3.0f);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_ABL_TAU, 0.5f);
-
-/**
- * Multi GPS Blending Control Mask.
- *
- * Set bits in the following positions to set which GPS accuracy metrics will be used to calculate the blending weight. Set to zero to disable and always used first GPS instance.
- * 0 : Set to true to use speed accuracy
- * 1 : Set to true to use horizontal position accuracy
- * 2 : Set to true to use vertical position accuracy
- *
- * @group EKF2
- * @min 0
- * @max 7
- * @bit 0 use speed accuracy
- * @bit 1 use hpos accuracy
- * @bit 2 use vpos accuracy
- */
-PARAM_DEFINE_INT32(EKF2_GPS_MASK, 0);
-
-/**
- * Multi GPS Blending Time Constant
- *
- * Sets the longest time constant that will be applied to the calculation of GPS position and height offsets used to correct data from multiple GPS data for steady state position differences.
- *
- *
- * @group EKF2
- * @min 1.0
- * @max 100.0
- * @unit s
- * @decimal 1
- */
-PARAM_DEFINE_FLOAT(EKF2_GPS_TAU, 10.0f);
 
 /**
  * Vehicle movement test threshold
@@ -1445,6 +1325,20 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_GPS_H, 10.0f);
  * @boolean
  */
 PARAM_DEFINE_INT32(EKF2_MAG_CHECK, 0);
+
+/**
+ * Enable synthetic magnetometer Z component measurement.
+ *
+ * Use for vehicles where the measured body Z magnetic field is subject to strong magnetic interference.
+ * For magnetic heading fusion the magnetometer Z measurement will be replaced by a synthetic value calculated
+ * using the knowledge of the 3D magnetic field vector at the location of the drone. Therefore, this parameter
+ * will only have an effect if the global position of the drone is known.
+ * For 3D mag fusion the magnetometer Z measurement will simply be ingored instead of fusing the synthetic value.
+ *
+ * @group EKF2
+ * @boolean
+*/
+PARAM_DEFINE_INT32(EKF2_SYNT_MAG_Z, 0);
 
 /**
  * Default value of true airspeed used in EKF-GSF AHRS calculation.

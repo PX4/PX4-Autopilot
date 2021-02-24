@@ -38,7 +38,8 @@ extern "C" __EXPORT int sdp3x_airspeed_main(int argc, char *argv[]);
 I2CSPIDriverBase *SDP3X::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 				     int runtime_instance)
 {
-	SDP3X *instance = new SDP3X(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.i2c_address);
+	SDP3X *instance = new SDP3X(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.i2c_address,
+				    cli.keep_running);
 
 	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
@@ -50,7 +51,7 @@ I2CSPIDriverBase *SDP3X::instantiate(const BusCLIArguments &cli, const BusInstan
 		return nullptr;
 	}
 
-	instance->ScheduleNow();
+	instance->start();
 	return instance;
 }
 
@@ -63,6 +64,7 @@ SDP3X::print_usage()
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x21);
+	PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG();
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -73,6 +75,7 @@ sdp3x_airspeed_main(int argc, char *argv[])
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 100000;
 	cli.i2c_address = I2C_ADDRESS_1_SDP3X;
+	cli.support_keep_running = true;
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
 

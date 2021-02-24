@@ -19,6 +19,7 @@ float32 vdop			# Vertical dilution of precision
 
 int32 noise_per_ms		# GPS noise per millisecond
 int32 jamming_indicator		# indicates jamming is occurring
+uint8 jamming_state		# indicates whether jamming has been detected or suspected by the receivers. O: Unknown, 1: OK, 2: Warning, 3: Critical
 
 float32 vel_m_s			# GPS ground speed, (metres/sec)
 float32 vel_n_m_s		# GPS North velocity, (metres/sec)
@@ -34,3 +35,5 @@ uint8 satellites_used		# Number of satellites used
 
 float32 heading			# heading angle of XYZ body frame rel to NED. Set to NaN if not available and updated (used for dual antenna GPS), (rad, [-PI, PI])
 float32 heading_offset		# heading offset of dual antenna array in body frame. Set to NaN if not applicable. (rad, [-PI, PI])
+
+uint8 selected			# GPS selection: 0: GPS1, 1: GPS2. 2: GPS3. 3. Blending multiple receivers

@@ -101,7 +101,7 @@ __BEGIN_DECLS
 #define px4_arch_gpioread(pinset)               imxrt_gpio_read(pinset)
 #define px4_arch_gpiowrite(pinset, value)       imxrt_gpio_write(pinset, value)
 
-/* imxrt_gpiosetevent is not implemented and will need to be added */
+int imxrt_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge, bool event, xcpt_t func, void *arg);
 
 #define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)  imxrt_gpiosetevent(pinset,r,f,e,fp,a)
 

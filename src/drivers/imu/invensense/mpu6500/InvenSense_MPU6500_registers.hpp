@@ -151,7 +151,7 @@ enum SIGNAL_PATH_RESET_BIT : uint8_t {
 enum USER_CTRL_BIT : uint8_t {
 	FIFO_EN      = Bit6,
 	I2C_MST_EN   = Bit5,
-	I2C_IF_DIS   = Bit4,
+	I2C_IF_DIS   = Bit4, // Always write 0 to I2C_IF_DIS.
 
 	FIFO_RST     = Bit2,
 	I2C_MST_RST  = Bit1,
@@ -163,11 +163,9 @@ enum PWR_MGMT_1_BIT : uint8_t {
 	H_RESET    = Bit7,
 	SLEEP      = Bit6,
 
-	CLKSEL_2   = Bit2,
-	CLKSEL_1   = Bit1,
-	CLKSEL_0   = Bit0,
+	// CLKSEL[2:0]
+	CLKSEL_0     = Bit0, // It is required that CLKSEL[2:0] be set to 001 to achieve full gyroscope performance.
 };
-
 
 namespace FIFO
 {

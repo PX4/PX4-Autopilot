@@ -35,7 +35,7 @@
 
 #include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
 
-#include <uORB/PublicationQueued.hpp>
+#include <uORB/Publication.hpp>
 #include <px4_platform_common/log.h>
 
 using namespace time_literals;
@@ -49,7 +49,9 @@ MixingOutput::MixingOutput(uint8_t max_num_outputs, OutputModuleInterface &inter
 	{&interface, ORB_ID(actuator_controls_0)},
 	{&interface, ORB_ID(actuator_controls_1)},
 	{&interface, ORB_ID(actuator_controls_2)},
-	{&interface, ORB_ID(actuator_controls_3)}
+	{&interface, ORB_ID(actuator_controls_3)},
+	{&interface, ORB_ID(actuator_controls_4)},
+	{&interface, ORB_ID(actuator_controls_5)},
 },
 _scheduling_policy(scheduling_policy),
 _support_esc_calibration(support_esc_calibration),
@@ -72,7 +74,7 @@ _control_latency_perf(perf_alloc(PC_ELAPSED, "control latency"))
 
 	// Enforce the existence of the test_motor topic, so we won't miss initial publications
 	test_motor_s test{};
-	uORB::PublicationQueued<test_motor_s> test_motor_pub{ORB_ID(test_motor)};
+	uORB::Publication<test_motor_s> test_motor_pub{ORB_ID(test_motor)};
 	test_motor_pub.publish(test);
 	_motor_test.test_motor_sub.subscribe();
 }
@@ -115,7 +117,7 @@ void MixingOutput::updateParams()
 	}
 }
 
-bool MixingOutput::updateSubscriptions(bool allow_wq_switch)
+bool MixingOutput::updateSubscriptions(bool allow_wq_switch, bool limit_callbacks_to_primary)
 {
 	if (_groups_subscribed == _groups_required) {
 		return false;
@@ -143,12 +145,33 @@ bool MixingOutput::updateSubscriptions(bool allow_wq_switch)
 			}
 		}
 
+		bool sub_group_0_callback_registered = false;
+		bool sub_group_1_callback_registered = false;
+
 		// register callback to all required actuator control groups
 		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-			if (_groups_required & (1 << i)) {
-				PX4_DEBUG("subscribe to actuator_controls_%d", i);
 
-				if (!_control_subs[i].registerCallback()) {
+			if (limit_callbacks_to_primary) {
+				// don't register additional callbacks if actuator_controls_0 or actuator_controls_1 are already registered
+				if ((i > 1) && (sub_group_0_callback_registered || sub_group_1_callback_registered)) {
+					break;
+				}
+			}
+
+			if (_groups_required & (1 << i)) {
+				if (_control_subs[i].registerCallback()) {
+					PX4_DEBUG("subscribed to actuator_controls_%d", i);
+
+					if (limit_callbacks_to_primary) {
+						if (i == 0) {
+							sub_group_0_callback_registered = true;
+
+						} else if (i == 1) {
+							sub_group_1_callback_registered = true;
+						}
+					}
+
+				} else {
 					PX4_ERR("actuator_controls_%d register callback failed!", i);
 				}
 			}
@@ -218,16 +241,26 @@ void MixingOutput::unregister()
 	}
 }
 
-void MixingOutput::updateOutputSlewrate()
+void MixingOutput::updateOutputSlewrateMultirotorMixer()
 {
 	const hrt_abstime now = hrt_absolute_time();
-	const float dt = math::constrain((now - _time_last_mix) / 1e6f, 0.0001f, 0.02f);
-	_time_last_mix = now;
+	const float dt = math::constrain((now - _time_last_dt_update_multicopter) / 1e6f, 0.0001f, 0.02f);
+	_time_last_dt_update_multicopter = now;
 
 	// maximum value the outputs of the multirotor mixer are allowed to change in this cycle
 	// factor 2 is needed because actuator outputs are in the range [-1,1]
 	const float delta_out_max = 2.0f * 1000.0f * dt / (_max_value[0] - _min_value[0]) / _param_mot_slew_max.get();
 	_mixers->set_max_delta_out_once(delta_out_max);
+}
+
+void MixingOutput::updateOutputSlewrateSimplemixer()
+{
+	const hrt_abstime now = hrt_absolute_time();
+	const float dt = math::constrain((now - _time_last_dt_update_simple_mixer) / 1e6f, 0.0001f, 0.02f);
+	_time_last_dt_update_simple_mixer = now;
+
+	// set dt for slew rate limiter in SimpleMixer (is reset internally after usig it, so needs to be set on every update)
+	_mixers->set_dt_once(dt);
 }
 
 
@@ -334,8 +367,10 @@ bool MixingOutput::update()
 	}
 
 	if (_param_mot_slew_max.get() > FLT_EPSILON) {
-		updateOutputSlewrate();
+		updateOutputSlewrateMultirotorMixer();
 	}
+
+	updateOutputSlewrateSimplemixer(); // update dt for output slew rate in simple mixer
 
 	unsigned n_updates = 0;
 
@@ -499,18 +534,15 @@ int MixingOutput::controlCallback(uintptr_t handle, uint8_t control_group, uint8
 	input = output->_controls[control_group].control[control_index];
 
 	/* limit control input */
-	if (input > 1.0f) {
-		input = 1.0f;
-
-	} else if (input < -1.0f) {
-		input = -1.0f;
-	}
+	input = math::constrain(input, -1.f, 1.f);
 
 	/* motor spinup phase - lock throttle to zero */
 	if (output->_output_limit.state == OUTPUT_LIMIT_STATE_RAMP) {
-		if ((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
-		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
-		    control_index == actuator_controls_s::INDEX_THROTTLE) {
+		if (((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
+		      control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
+		     control_index == actuator_controls_s::INDEX_THROTTLE) ||
+		    (control_group == actuator_controls_s::GROUP_INDEX_ALLOCATED_PART1 ||
+		     control_group == actuator_controls_s::GROUP_INDEX_ALLOCATED_PART2)) {
 			/* limit the throttle output to zero during motor spinup,
 			 * as the motors cannot follow any demand yet
 			 */
@@ -520,9 +552,11 @@ int MixingOutput::controlCallback(uintptr_t handle, uint8_t control_group, uint8
 
 	/* throttle not arming - mark throttle input as invalid */
 	if (output->armNoThrottle() && !output->_armed.in_esc_calibration_mode) {
-		if ((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
-		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
-		    control_index == actuator_controls_s::INDEX_THROTTLE) {
+		if (((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
+		      control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
+		     control_index == actuator_controls_s::INDEX_THROTTLE) ||
+		    (control_group == actuator_controls_s::GROUP_INDEX_ALLOCATED_PART1 ||
+		     control_group == actuator_controls_s::GROUP_INDEX_ALLOCATED_PART2)) {
 			/* set the throttle to an invalid value */
 			input = NAN;
 		}

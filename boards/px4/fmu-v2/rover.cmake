@@ -6,6 +6,7 @@ px4_add_board(
 	LABEL rover
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
+	CONSTRAINED_MEMORY
 	ROMFSROOT px4fmu_common
 	IO px4_io-v2_default
 	CONSTRAINED_FLASH
@@ -17,7 +18,7 @@ px4_add_board(
 		TEL4:/dev/ttyS6
 
 	DRIVERS
-		adc
+		adc/board_adc
 		barometer/ms5611
 		batt_smbus
 		camera_capture
@@ -51,7 +52,7 @@ px4_add_board(
 		rc_update
 		sensors
 		temperature_compensation
-		vmount
+		#vmount
 
 	SYSTEMCMDS
 		bl_update
@@ -60,6 +61,7 @@ px4_add_board(
 		hardfault_log
 		i2cdetect
 		#led_control
+		mft
 		mixer
 		#motor_ramp
 		#motor_test
@@ -73,8 +75,8 @@ px4_add_board(
 		top
 		#topic_listener
 		tune_control
+		uorb
 		usb_connected
 		ver
 		work_queue
-
 	)

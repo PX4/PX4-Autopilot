@@ -45,9 +45,6 @@
 #define BOARD_BATTERY1_V_DIV   (10.177939394f)
 #define BOARD_BATTERY1_A_PER_V (15.391030303f)
 
-#define BOARD_HAS_NO_RESET
-#define BOARD_HAS_NO_BOOTLOADER
-
 #define BOARD_MAX_LEDS 1 // Number of external LED's this board has
 
 

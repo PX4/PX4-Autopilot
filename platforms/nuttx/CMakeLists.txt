@@ -69,7 +69,12 @@ elseif("${PX4_BOARD_LABEL}" STREQUAL "canbootloader")
 	)
 
 	target_link_libraries(px4 PRIVATE
-		-Wl,-wrap,sched_process_timer -Wl,-wrap,sem_post -Wl,-wrap,sem_wait
+		-Wl,-wrap,nxsched_process_timer
+		-Wl,-wrap,nxsem_post
+		-Wl,-wrap,nxsem_wait
+		-Wl,-wrap,arm_svcall
+		-Wl,-wrap,nx_start
+		-Wl,-wrap,exit
 	)
 else()
 	if(NOT "${PX4_BOARD_LINKER_PREFIX}" STREQUAL "")
@@ -88,7 +93,7 @@ list(APPEND nuttx_libs
 	nuttx_fs
 	nuttx_mm
 	nuttx_sched
-	)
+)
 
 if (CONFIG_NET)
 	list(APPEND nuttx_libs nuttx_net)
@@ -119,12 +124,10 @@ target_link_libraries(px4 PRIVATE
 
 	-fno-exceptions
 	-fno-rtti
-
 	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx-config/scripts/${SCRIPT_PREFIX}script.ld
 	-Wl,-Map=${PX4_CONFIG}.map
 	-Wl,--warn-common
 	-Wl,--gc-sections
-	-Wl,--print-memory-usage
 
 	-Wl,--start-group
 		${nuttx_libs}
@@ -134,6 +137,10 @@ target_link_libraries(px4 PRIVATE
 	gcc
 	)
 
+if(NOT USE_LD_GOLD)
+	target_link_libraries(px4 PRIVATE -Wl,--print-memory-usage)
+endif()
+
 target_link_libraries(px4 PRIVATE ${module_libraries})
 
 if (config_romfs_root)
@@ -141,10 +148,22 @@ if (config_romfs_root)
 	target_link_libraries(px4 PRIVATE romfs)
 endif()
 
-add_custom_command(OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_BOARD}.bin
-	COMMAND ${CMAKE_OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BINARY_DIR_REL}/${PX4_BOARD}.bin
+if((DEFINED ENV{SIGNING_TOOL}) AND (NOT NUTTX_DIR MATCHES "external"))
+	set(PX4_BINARY_OUTPUT ${PX4_BINARY_DIR}/${PX4_BOARD}_unsigned.bin)
+
+	add_custom_command(OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_BOARD}.bin
+		COMMAND $ENV{SIGNING_TOOL} $ENV{SIGNING_ARGS} ${PX4_BINARY_OUTPUT} ${PX4_BINARY_DIR}/${PX4_BOARD}.bin
+		DEPENDS ${PX4_BINARY_OUTPUT}
+		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+)
+else()
+set(PX4_BINARY_OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_BOARD}.bin)
+endif()
+
+add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
+	COMMAND ${CMAKE_OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BINARY_OUTPUT}
 	DEPENDS px4
-	)
+)
 
 # create .px4 with parameter and airframe metadata
 if (TARGET parameters_xml AND TARGET airframes_xml)
@@ -184,7 +203,7 @@ add_custom_target(weak_symbols
 	DEPENDS px4
 	VERBATIM
 	USES_TERMINAL
-	)
+)
 
 
 # debugger helpers
@@ -214,6 +233,9 @@ if(NOT NUTTX_DIR MATCHES "external")
 	elseif(CONFIG_ARCH_CHIP_STM32F405RG)
 		set(DEBUG_DEVICE "STM32F405RG")
 		set(DEBUG_SVD_FILE "STM32F405.svd")
+	elseif(CONFIG_ARCH_CHIP_STM32F412CE)
+		set(DEBUG_DEVICE "STM32F412CE")
+		set(DEBUG_SVD_FILE "STM32F412.svd")
 	elseif(CONFIG_ARCH_CHIP_STM32F427V)
 		set(DEBUG_DEVICE "STM32F427VI")
 		set(DEBUG_SVD_FILE "STM32F427.svd")
@@ -235,8 +257,17 @@ if(NOT NUTTX_DIR MATCHES "external")
 	elseif(CONFIG_ARCH_CHIP_STM32F777NI)
 		set(DEBUG_DEVICE "STM32F777NI")
 		set(DEBUG_SVD_FILE "STM32F7x7.svd")
+	elseif(CONFIG_ARCH_CHIP_STM32H743II)
+		set(DEBUG_DEVICE "STM32H743II")
+		set(DEBUG_SVD_FILE "STM32H7x3.svd")
+	elseif(CONFIG_ARCH_CHIP_STM32H743XI)
+		set(DEBUG_DEVICE "STM32H743XI")
+		set(DEBUG_SVD_FILE "STM32H7x3.svd")
 	elseif(CONFIG_ARCH_CHIP_STM32H743ZI)
 		set(DEBUG_DEVICE "STM32H743ZI")
+		set(DEBUG_SVD_FILE "STM32H7x3.svd")
+	elseif(CONFIG_ARCH_CHIP_STM32H753II)
+		set(DEBUG_DEVICE "STM32H753II")
 		set(DEBUG_SVD_FILE "STM32H7x3.svd")
 	else()
 		set(DEBUG_DEVICE "")
@@ -247,8 +278,11 @@ if(NOT NUTTX_DIR MATCHES "external")
 		LIST_DIRECTORIES false
 		${CMAKE_SOURCE_DIR}/../cmsis-svd/data/*/${DEBUG_SVD_FILE}
 	)
-	if(NOT DEBUG_SVD_FILE MATCHES "unknown")
+	if(DEBUG_SVD_FILE_PATH)
 		message(STATUS "Found SVD: ${DEBUG_SVD_FILE_PATH}")
+	endif()
+
+	if(DEBUG_DEVICE)
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/launch.json.in ${PX4_SOURCE_DIR}/.vscode/launch.json @ONLY)
 	endif()
 endif()
@@ -258,7 +292,7 @@ add_custom_target(debug
 	DEPENDS px4 ${PX4_BINARY_DIR}/.gdbinit
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	USES_TERMINAL
-	)
+)
 
 include(blackmagic)
 include(jlink)

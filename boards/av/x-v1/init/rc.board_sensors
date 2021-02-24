@@ -3,7 +3,7 @@
 # av_x1-v1 specific board sensors init
 #------------------------------------------------------------------------------
 
-adc start
+board_adc start
 
 adis16477 -s -R 8 start
 
@@ -18,8 +18,3 @@ then
 	# try to start adis16497 only if pmw3901 isn't enabled, or parameter doesn't exists
 	adis16497 -S start
 fi
-
-# Possible external compasses
-ist8310 -X start
-hmc5883 -T -X start
-qmc5883 -X start

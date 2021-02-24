@@ -89,6 +89,7 @@ function(px4_add_common_flags)
 		-Wno-missing-field-initializers
 		-Wno-missing-include-dirs # TODO: fix and enable
 		-Wno-unused-parameter
+
 		)
 
 	# compiler specific flags
@@ -113,8 +114,12 @@ function(px4_add_common_flags)
 	elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 
 		if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.9)
-			# force color for gcc > 4.9
-			add_compile_options(-fdiagnostics-color=always)
+			# enable color for gcc > 4.9 when stdout is terminal
+			add_compile_options(-fdiagnostics-color=auto)
+		endif()
+
+		if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 9.3)
+			add_compile_options(-Wno-stringop-truncation)
 		endif()
 
 		add_compile_options(
@@ -175,7 +180,9 @@ function(px4_add_common_flags)
 
 		${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/${PX4_CHIP_MANUFACTURER}/${PX4_CHIP}/include
 		${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/common/include
+		${PX4_SOURCE_DIR}/platforms/common
 		${PX4_SOURCE_DIR}/platforms/common/include
+
 		${PX4_SOURCE_DIR}/src
 		${PX4_SOURCE_DIR}/src/include
 		${PX4_SOURCE_DIR}/src/lib

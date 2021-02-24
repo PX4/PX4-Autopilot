@@ -1,0 +1,71 @@
+name: Checks
+
+on:
+  push:
+    branches:
+    - 'master'
+  pull_request:
+    branches:
+    - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        check: [
+          "check_format",
+          "tests",
+          "tests_coverage",
+          "px4_fmu-v2_default stack_check",
+          "validate_module_configs",
+          "shellcheck_all",
+          "NO_NINJA_BUILD=1 px4_fmu-v5_default",
+          "NO_NINJA_BUILD=1 px4_sitl_default",
+          "airframe_metadata",
+          "module_documentation",
+          "parameters_metadata",
+        ]
+    container:
+      image: px4io/px4-dev-nuttx-focal:2021-02-04
+      options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        token: ${{ secrets.ACCESS_TOKEN }}
+
+    - name: Prepare ccache timestamp
+      id: ccache_cache_timestamp
+      shell: cmake -P {0}
+      run: |
+        string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
+        message("::set-output name=timestamp::${current_date}")
+    - name: ccache cache files
+      uses: actions/cache@v2
+      with:
+        path: ~/.ccache
+        key: tests_${{matrix.ubuntu_release}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
+        restore-keys: tests_${{matrix.ubuntu_release}}-ccache-
+    - name: setup ccache
+      run: |
+          mkdir -p ~/.ccache
+          echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+          echo "compression = true" >> ~/.ccache/ccache.conf
+          echo "compression_level = 5" >> ~/.ccache/ccache.conf
+          echo "max_size = 100M" >> ~/.ccache/ccache.conf
+          ccache -s
+          ccache -z
+    - name: check environment
+      run: |
+          export
+          ulimit -a
+    - name: ${{matrix.check}}
+      run: make ${{matrix.check}}
+    - name: upload coverage
+      if: contains(matrix.check, 'coverage')
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        flags: unittests
+        file: coverage/lcov.info

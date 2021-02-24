@@ -103,6 +103,8 @@
 #define DIRECT_PWM_OUTPUT_CHANNELS  9
 #define DIRECT_INPUT_TIMER_CHANNELS  9
 
+#define BOARD_CAPTURE_GPIO /* PD14 */  (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTD|GPIO_PIN14)
+
 /* High-resolution timer */
 #define HRT_TIMER		     5  /* use timer5 for the HRT */
 #define HRT_TIMER_CHANNEL    1  /* use capture/compare channel 3 */

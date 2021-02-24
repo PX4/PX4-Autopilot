@@ -81,7 +81,7 @@ except AttributeError:
     Domain::removeParticipant(mp_participant);
 }
 
-bool @(topic)_Subscriber::init(uint8_t topic_ID, std::condition_variable* t_send_queue_cv, std::mutex* t_send_queue_mutex, std::queue<uint8_t>* t_send_queue)
+bool @(topic)_Subscriber::init(uint8_t topic_ID, std::condition_variable* t_send_queue_cv, std::mutex* t_send_queue_mutex, std::queue<uint8_t>* t_send_queue, const std::string& ns)
 {
     m_listener.topic_ID = topic_ID;
     m_listener.t_send_queue_cv = t_send_queue_cv;
@@ -90,13 +90,19 @@ bool @(topic)_Subscriber::init(uint8_t topic_ID, std::condition_variable* t_send
 
     // Create RTPSParticipant
     ParticipantAttributes PParam;
-    PParam.rtps.builtin.domainId = 0; // MUST BE THE SAME AS IN THE PUBLISHER
-@[if version.parse(fastrtps_version[:3]) <= version.parse('1.8')]@
+@[if version.parse(fastrtps_version) < version.parse('2.0')]@
+    PParam.rtps.builtin.domainId = 0;
+@[else]@
+    PParam.domainId = 0;
+@[end if]@
+@[if version.parse(fastrtps_version) <= version.parse('1.8.4')]@
     PParam.rtps.builtin.leaseDuration = c_TimeInfinite;
 @[else]@
     PParam.rtps.builtin.discovery_config.leaseDuration = c_TimeInfinite;
 @[end if]@
-    PParam.rtps.setName("@(topic)_subscriber");
+    std::string nodeName = ns;
+    nodeName.append("@(topic)_subscriber");
+    PParam.rtps.setName(nodeName.c_str());
     mp_participant = Domain::createParticipant(PParam);
     if(mp_participant == nullptr)
             return false;
@@ -111,12 +117,19 @@ bool @(topic)_Subscriber::init(uint8_t topic_ID, std::condition_variable* t_send
 @[if ros2_distro]@
 @[    if ros2_distro == "ardent"]@
     Rparam.qos.m_partition.push_back("rt");
-    Rparam.topic.topicName = "@(topic)_PubSubTopic";
+    std::string topicName = ns;
+    topicName.append("@(topic)_PubSubTopic");
+    Rparam.topic.topicName = topicName;
 @[    else]@
-    Rparam.topic.topicName = "rt/@(topic)_PubSubTopic";
+    std::string topicName = "rt/";
+    topicName.append(ns);
+    topicName.append("@(topic)_PubSubTopic");
+    Rparam.topic.topicName = topicName;
 @[    end if]@
 @[else]@
-    Rparam.topic.topicName = "@(topic)PubSubTopic";
+    std::string topicName = ns;
+    topicName.append("@(topic)PubSubTopic");
+    Rparam.topic.topicName = topicName;
 @[end if]@
     mp_subscriber = Domain::createSubscriber(mp_participant, Rparam, static_cast<SubscriberListener*>(&m_listener));
     if(mp_subscriber == nullptr)
@@ -143,10 +156,10 @@ void @(topic)_Subscriber::SubListener::onSubscriptionMatched(Subscriber* sub, Ma
     if (is_different_endpoint) {
         if (info.status == MATCHED_MATCHING) {
             n_matched++;
-            std::cout << " - @(topic) subscriber matched" << std::endl;
+            std::cout << "\033[0;37m[   micrortps_agent   ]\t@(topic) subscriber matched\033[0m" << std::endl;
         } else {
             n_matched--;
-            std::cout << " - @(topic) subscriber unmatched" << std::endl;
+            std::cout << "\033[0;37m[   micrortps_agent   ]\t@(topic) subscriber unmatched\033[0m" << std::endl;
         }
     }
 @[else]@

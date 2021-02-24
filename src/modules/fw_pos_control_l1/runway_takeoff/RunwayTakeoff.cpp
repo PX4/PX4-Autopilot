@@ -46,7 +46,7 @@
 #include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 
-using matrix::Vector2f;
+using namespace time_literals;
 
 namespace runwaytakeoff
 {
@@ -61,25 +61,25 @@ RunwayTakeoff::RunwayTakeoff(ModuleParams *parent) :
 {
 }
 
-void RunwayTakeoff::init(float yaw, double current_lat, double current_lon)
+void RunwayTakeoff::init(const hrt_abstime &now, float yaw, double current_lat, double current_lon)
 {
 	_init_yaw = yaw;
 	_initialized = true;
 	_state = RunwayTakeoffState::THROTTLE_RAMP;
-	_initialized_time = hrt_absolute_time();
+	_initialized_time = now;
 	_climbout = true; // this is true until climbout is finished
-	_start_wp(0) = (float)current_lat;
-	_start_wp(1) = (float)current_lon;
+	_start_wp(0) = current_lat;
+	_start_wp(1) = current_lon;
 }
 
-void RunwayTakeoff::update(float airspeed, float alt_agl,
+void RunwayTakeoff::update(const hrt_abstime &now, float airspeed, float alt_agl,
 			   double current_lat, double current_lon, orb_advert_t *mavlink_log_pub)
 {
-
 	switch (_state) {
 	case RunwayTakeoffState::THROTTLE_RAMP:
-		if (hrt_elapsed_time(&_initialized_time) > _param_rwto_ramp_time.get() * 1e6f
-		    || airspeed > _param_fw_airspd_min.get() * _param_rwto_airspd_scl.get() * 0.9f) {
+		if (((now - _initialized_time) > (_param_rwto_ramp_time.get() * 1_s))
+		    || (airspeed > (_param_fw_airspd_min.get() * _param_rwto_airspd_scl.get() * 0.9f))) {
+
 			_state = RunwayTakeoffState::CLAMPED_TO_RUNWAY;
 		}
 
@@ -102,8 +102,8 @@ void RunwayTakeoff::update(float airspeed, float alt_agl,
 			 * The navigator will take this as starting point to navigate towards the takeoff WP.
 			 */
 			if (_param_rwto_hdg.get() == 0) {
-				_start_wp(0) = (float)current_lat;
-				_start_wp(1) = (float)current_lon;
+				_start_wp(0) = current_lat;
+				_start_wp(1) = current_lon;
 			}
 
 			mavlink_log_info(mavlink_log_pub, "#Climbout");
@@ -191,15 +191,12 @@ float RunwayTakeoff::getYaw(float navigatorYaw)
  * Ramps up in the beginning, until it lifts off the runway it is set to
  * parameter value, then it returns the TECS throttle.
  */
-float RunwayTakeoff::getThrottle(float tecsThrottle)
+float RunwayTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 {
 	switch (_state) {
 	case RunwayTakeoffState::THROTTLE_RAMP: {
-			float throttle = (hrt_elapsed_time(&_initialized_time) / (float)_param_rwto_ramp_time.get() * 1e6f) *
-					 _param_rwto_max_thr.get();
-			return throttle < _param_rwto_max_thr.get() ?
-			       throttle :
-			       _param_rwto_max_thr.get();
+			float throttle = ((now - _initialized_time) / (_param_rwto_ramp_time.get() * 1_s)) * _param_rwto_max_thr.get();
+			return math::min(throttle, _param_rwto_max_thr.get());
 		}
 
 	case RunwayTakeoffState::CLAMPED_TO_RUNWAY:
@@ -223,13 +220,12 @@ bool RunwayTakeoff::resetIntegrators()
  * the climbtout minimum pitch (parameter).
  * Otherwise use the minimum that is enforced generally (parameter).
  */
-float RunwayTakeoff::getMinPitch(float sp_min, float climbout_min, float min)
+float RunwayTakeoff::getMinPitch(float climbout_min, float min)
 {
 	if (_state < RunwayTakeoffState::FLY) {
-		return math::max(sp_min, climbout_min);
-	}
+		return climbout_min;
 
-	else {
+	} else {
 		return min;
 	}
 }
@@ -249,14 +245,6 @@ float RunwayTakeoff::getMaxPitch(float max)
 	else {
 		return max;
 	}
-}
-
-/*
- * Returns the "previous" (start) WP for navigation.
- */
-Vector2f RunwayTakeoff::getStartWP()
-{
-	return _start_wp;
 }
 
 void RunwayTakeoff::reset()

@@ -71,33 +71,20 @@ SafetyButton::CheckButton()
 {
 	const bool safety_button_pressed = px4_arch_gpioread(GPIO_BTN_SAFETY);
 
-	/*
-	 * Keep pressed for a while to arm.
+	/* Keep safety button pressed for one second to turn off safety
 	 *
-	 * Note that the counting sequence has to be same length
-	 * for arming / disarming in order to end up as proper
-	 * state machine, keep ARM_COUNTER_THRESHOLD the same
-	 * length in all cases of the if/else struct below.
+	 * Note that safety cannot be turned on again by button because a button
+	 * hardware problem could accidentally disable it in flight.
 	 */
 	if (safety_button_pressed && !_safety_btn_off) {
-		if (_button_counter < CYCLE_COUNT) {
-			_button_counter++;
 
-		} else if (_button_counter == CYCLE_COUNT) {
-			// switch to armed state
-			_safety_btn_off = true;
+		if (_button_counter <= CYCLE_COUNT) {
 			_button_counter++;
 		}
 
-	} else if (safety_button_pressed && _safety_btn_off) {
-
-		if (_button_counter < CYCLE_COUNT) {
-			_button_counter++;
-
-		} else if (_button_counter == CYCLE_COUNT) {
-			// change to disarmed state and notify
-			_safety_btn_off = false;
-			_button_counter++;
+		if (_button_counter == CYCLE_COUNT) {
+			// switch safety off -> ready to arm state
+			_safety_btn_off = true;
 		}
 
 	} else {
@@ -129,14 +116,11 @@ SafetyButton::CheckPairingRequest(bool button_pressed)
 		++_pairing_button_counter;
 	}
 
-
 	if (_pairing_button_counter == 3) {
-
-
 		vehicle_command_s vcmd{};
 		vcmd.command = vehicle_command_s::VEHICLE_CMD_START_RX_PAIR;
-		vcmd.timestamp = now;
 		vcmd.param1 = 10.f; // GCS pairing request handled by a companion.
+		vcmd.timestamp = hrt_absolute_time();
 		_to_command.publish(vcmd);
 		PX4_DEBUG("Sending GCS pairing request");
 
@@ -150,9 +134,8 @@ SafetyButton::CheckPairingRequest(bool button_pressed)
 		_to_led_control.publish(led_control);
 
 		tune_control_s tune_control{};
-		tune_control.tune_id = TONE_NOTIFY_POSITIVE_TUNE;
+		tune_control.tune_id = tune_control_s::TUNE_ID_NOTIFY_POSITIVE;
 		tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
-		tune_control.tune_override = 0;
 		tune_control.timestamp = hrt_absolute_time();
 		_to_tune_control.publish(tune_control);
 
@@ -213,13 +196,18 @@ SafetyButton::Run()
 	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO)) {
 		FlashButton();
 
-		safety_s safety{};
-		safety.timestamp = hrt_absolute_time();
-		safety.safety_switch_available = true;
-		safety.safety_off = _safety_btn_off || _safety_disabled;
+		const bool safety_off = _safety_btn_off || _safety_disabled;
 
-		// publish the safety status
-		_to_safety.publish(safety);
+		// publish immediately on change, otherwise at 1 Hz
+		if ((hrt_elapsed_time(&_safety.timestamp) >= 1_s)
+		    || (_safety.safety_off != safety_off)) {
+
+			_safety.safety_switch_available = true;
+			_safety.safety_off = safety_off;
+			_safety.timestamp = hrt_absolute_time();
+
+			_to_safety.publish(_safety);
+		}
 	}
 }
 

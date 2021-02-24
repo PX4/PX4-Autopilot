@@ -43,9 +43,15 @@ if(CONFIG_ARCH_CHIP)
 	if(${CONFIG_ARCH_CHIP} MATCHES "kinetis")
 		set(UAVCAN_DRIVER "kinetis")
 		set(UAVCAN_TIMER 1)
+	elseif(${CONFIG_ARCH_CHIP} MATCHES "stm32h7")
+		set(UAVCAN_DRIVER "stm32h7")
+		set(UAVCAN_TIMER 5) # The default timer is TIM5
+		if (DEFINED config_uavcan_timer_override)
+			set (UAVCAN_TIMER  ${config_uavcan_timer_override})
+		endif()
 	elseif(${CONFIG_ARCH_CHIP} MATCHES "stm32")
 		set(UAVCAN_DRIVER "stm32")
-		set(UAVCAN_TIMER 5) # The default timer the 5
+		set(UAVCAN_TIMER 5) # The default timer is TIM5
 	endif()
 endif()
 
@@ -71,7 +77,11 @@ add_definitions(
 	-DUAVCAN_PLATFORM=${UAVCAN_PLATFORM}
 )
 
-add_compile_options(-Wno-cast-align) # TODO: fix and enable
+add_compile_options(
+	-Wno-cast-align # TODO: fix and enable
+	-Wno-deprecated-copy # TODO: fix
+	-Wno-address-of-packed-member
+)
 add_subdirectory(${LIBUAVCAN_DIR} libuavcan EXCLUDE_FROM_ALL)
 add_dependencies(uavcan prebuild_targets)
 
@@ -84,7 +94,12 @@ target_include_directories(uavcan_${UAVCAN_DRIVER}_driver PUBLIC
 
 
 # generated DSDL
-set(DSDLC_INPUTS "${CMAKE_CURRENT_SOURCE_DIR}/dsdl/com" "${LIBUAVCAN_DIR}/dsdl/uavcan")
+set(DSDLC_DIR "${PX4_SOURCE_DIR}/src/drivers/uavcan/dsdl")
+set(DSDLC_INPUTS
+	"${DSDLC_DIR}/com"
+	"${DSDLC_DIR}/ardupilot"
+	"${LIBUAVCAN_DIR}/dsdl/uavcan"
+)
 set(DSDLC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/include/dsdlc_generated")
 
 set(DSDLC_INPUT_FILES)
@@ -93,7 +108,7 @@ foreach(DSDLC_INPUT ${DSDLC_INPUTS})
 	list(APPEND DSDLC_INPUT_FILES ${DSDLC_NEW_INPUT_FILES})
 endforeach(DSDLC_INPUT)
 add_custom_command(OUTPUT px4_uavcan_dsdlc_run.stamp
-	COMMAND ${PYTHON} ${LIBUAVCAN_DIR}/libuavcan/dsdl_compiler/libuavcan_dsdlc ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
+	COMMAND ${PYTHON_EXECUTABLE} ${LIBUAVCAN_DIR}/libuavcan/dsdl_compiler/libuavcan_dsdlc ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
 	COMMAND ${CMAKE_COMMAND} -E touch px4_uavcan_dsdlc_run.stamp
 	DEPENDS ${DSDLC_INPUT_FILES}
 	COMMENT "PX4 UAVCAN dsdl compiler"
@@ -109,16 +124,25 @@ px4_add_module(
 		${LIBUAVCAN_DIR}/libuavcan/include/dsdlc_generated
 		${LIBUAVCAN_DIR}/libuavcan_drivers/posix/include
 		${LIBUAVCAN_DIR_DRIVERS}/${UAVCAN_DRIVER}/driver/include
+	COMPILE_OPTIONS
+		#-O0
 	SRCS
 		allocator.hpp
 		uavcan_driver.hpp
 		UavcanNode.cpp
 		UavcanNode.hpp
+		UavcanNodeParamManager.hpp
+		UavcanNodeParamManager.cpp
 	DEPENDS
+		arch_watchdog_iwdg
 		px4_uavcan_dsdlc
+
 		drivers_bootloaders
 		version
+
 		git_uavcan
 		uavcan_${UAVCAN_DRIVER}_driver
-		uavcan # within libuavcan
+
+		# within libuavcan
+		uavcan
 	)

@@ -56,9 +56,7 @@
 #include <containers/Array.hpp>
 #include <drivers/device/device.h>
 #include <drivers/device/i2c.h>
-#include <drivers/device/ringbuffer.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_range_finder.h>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
@@ -145,15 +143,15 @@ private:
 	 */
 	int measure();
 
+	static constexpr uint8_t RANGE_FINDER_MAX_SENSORS = 4;
 	px4::Array<uint8_t, RANGE_FINDER_MAX_SENSORS> _sensor_addresses {};
 	px4::Array<uint8_t, RANGE_FINDER_MAX_SENSORS> _sensor_rotations {};
 
 	int _measure_interval{MB12XX_MEASURE_INTERVAL};	// Initialize the measure interval for a single sensor.
-	int _orb_class_instance{-1};
 
-	size_t _sensor_index{0};	// Initialize counter for cycling i2c adresses to zero.
+	int _sensor_index{0};	// Initialize counter for cycling i2c adresses to zero.
 
-	size_t _sensor_count{0};
+	int _sensor_count{0};
 
 	orb_advert_t _distance_sensor_topic{nullptr};
 
@@ -182,6 +180,7 @@ MB12XX::MB12XX(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int
 	ModuleParams(nullptr),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
 {
+	set_device_type(DRV_DIST_DEVTYPE_MB12XX);
 }
 
 MB12XX::~MB12XX()
@@ -224,7 +223,7 @@ MB12XX::collect()
 
 	distance_sensor_s report;
 	report.current_distance = distance_m;
-	report.id               = _sensor_addresses[_sensor_index];
+	report.device_id        = get_device_id();
 	report.max_distance     = MB12XX_MAX_DISTANCE;
 	report.min_distance     = MB12XX_MIN_DISTANCE;
 	report.orientation      = _sensor_rotations[_sensor_index];
@@ -234,7 +233,7 @@ MB12XX::collect()
 	report.variance         = 0.0f;
 
 	int instance_id;
-	orb_publish_auto(ORB_ID(distance_sensor), &_distance_sensor_topic, &report, &instance_id, ORB_PRIO_DEFAULT);
+	orb_publish_auto(ORB_ID(distance_sensor), &_distance_sensor_topic, &report, &instance_id);
 
 	// Begin the next measurement.
 	if (measure() != PX4_OK) {
@@ -347,8 +346,8 @@ MB12XX::print_status()
 	perf_print_counter(_comms_error);
 	PX4_INFO("poll interval:  %ums", _measure_interval / 1000);
 
-	for (size_t i = 0; i < _sensor_count; i++) {
-		PX4_INFO("sensor: %u, address %u", i, _sensor_addresses[i]);
+	for (int i = 0; i < _sensor_count; i++) {
+		PX4_INFO("sensor: %i, address %u", i, _sensor_addresses[i]);
 	}
 }
 

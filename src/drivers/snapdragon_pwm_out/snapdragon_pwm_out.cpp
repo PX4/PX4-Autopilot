@@ -333,7 +333,7 @@ void task_main(int argc, char *argv[])
 
 	Mixer::Airmode airmode = Mixer::Airmode::disabled;
 	update_params(airmode);
-	uORB::Subscription parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::SubscriptionInterval parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	// Start disarmed
 	_armed.armed = false;
@@ -557,9 +557,9 @@ int snapdragon_pwm_out_main(int argc, char *argv[])
 	}
 
 	// gets the parameters for the esc's pwm
-	param_get(param_find("PWM_DISARMED"), &snapdragon_pwm::_pwm_disarmed);
-	param_get(param_find("PWM_MIN"), &snapdragon_pwm::_pwm_min);
-	param_get(param_find("PWM_MAX"), &snapdragon_pwm::_pwm_max);
+	param_get(param_find("PWM_MAIN_DISARM"), &snapdragon_pwm::_pwm_disarmed);
+	param_get(param_find("PWM_MAIN_MIN"), &snapdragon_pwm::_pwm_min);
+	param_get(param_find("PWM_MAIN_MAX"), &snapdragon_pwm::_pwm_max);
 
 	/*
 	 * Start/load the driver.
