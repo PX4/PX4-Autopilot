@@ -47,11 +47,11 @@
 
 #include "Publisher.hpp"
 
-class UavcanGnssPublication : public UavcanPublication
+class UavcanGnssPublisher : public UavcanPublisher
 {
 public:
-	UavcanGnssPublication(CanardInstance &ins, UavcanParamManager &pmgr, const char *uavcan_pname) :
-		UavcanPublication(ins, pmgr, uavcan_pname)
+	UavcanGnssPublisher(CanardInstance &ins, UavcanParamManager &pmgr, const char *uavcan_pname) :
+		UavcanPublisher(ins, pmgr, uavcan_pname)
 	{
 
 	};
