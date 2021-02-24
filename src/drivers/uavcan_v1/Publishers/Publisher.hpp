@@ -55,8 +55,8 @@ class UavcanPublisher
 public:
 	static constexpr uint16_t CANARD_PORT_ID_UNSET = 65535U;
 
-	UavcanPublisher(CanardInstance &ins, UavcanParamManager &pmgr, const char *uavcan_pname) :
-		_canard_instance(ins), _param_manager(pmgr), _uavcan_param(uavcan_pname) { };
+	UavcanPublisher(CanardInstance &ins, UavcanParamManager &pmgr, const char *subject_name, uint8_t instance = 0) :
+		_canard_instance(ins), _param_manager(pmgr), _subject_name(subject_name), _instance(instance) { };
 
 	// Update the uORB Subscription and broadcast a UAVCAN message
 	virtual void update() = 0;
@@ -65,18 +65,21 @@ public:
 
 	void updateParam()
 	{
+		char uavcan_param[90];
+		sprintf(uavcan_param, "uavcan.pub.%s.%d.id", _subject_name, _instance);
+
 		// Set _port_id from _uavcan_param
 		uavcan_register_Value_1_0 value;
-		_param_manager.GetParamByName(_uavcan_param, value);
+		_param_manager.GetParamByName(uavcan_param, value);
 		int32_t new_id = value.integer32.value.elements[0];
 
 		if (_port_id != new_id) {
 			if (new_id == CANARD_PORT_ID_UNSET) {
-				PX4_INFO("Disabling publication of %s", _uavcan_param);
+				PX4_INFO("Disabling publication of subject %s.%d", _subject_name, _instance);
 
 			} else {
 				_port_id = (CanardPortID)new_id;
-				PX4_INFO("Enabling %s on port %d", _uavcan_param, _port_id);
+				PX4_INFO("Enabling subject %s.%d on port %d", _subject_name, _instance, _port_id);
 			}
 		}
 	};
@@ -84,7 +87,7 @@ public:
 	void printInfo()
 	{
 		if (_port_id != CANARD_PORT_ID_UNSET) {
-			PX4_INFO("Enabled %s on port %d", _uavcan_param, _port_id);
+			PX4_INFO("Enabled subject %s.%d on port %d", _subject_name, _instance, _port_id);
 		}
 	}
 
@@ -92,7 +95,8 @@ protected:
 	CanardInstance &_canard_instance;
 	UavcanParamManager &_param_manager;
 	CanardRxSubscription _canard_sub;
-	const char *_uavcan_param; // Port ID parameter
+	const char *_subject_name;
+	uint8_t _instance {0};
 
 	CanardPortID _port_id {CANARD_PORT_ID_UNSET};
 	CanardTransferID _transfer_id {0};
