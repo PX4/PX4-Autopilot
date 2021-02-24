@@ -146,12 +146,14 @@ void
 Mission::on_inactivation()
 {
 	// Disable camera trigger
-	vehicle_command_s cmd = {};
+	vehicle_command_s cmd {};
 	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL;
 	// Pause trigger
 	cmd.param1 = -1.0f;
 	cmd.param3 = 1.0f;
 	_navigator->publish_vehicle_cmd(&cmd);
+
+	_navigator->release_gimbal_control();
 
 	if (_navigator->get_precland()->is_activated()) {
 		_navigator->get_precland()->on_inactivation();

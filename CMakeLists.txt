@@ -406,7 +406,6 @@ add_subdirectory(src/lib EXCLUDE_FROM_ALL)
 
 add_subdirectory(platforms/${PX4_PLATFORM}/src/px4)
 add_subdirectory(platforms EXCLUDE_FROM_ALL)
-add_subdirectory(src/modules/uORB EXCLUDE_FROM_ALL) # TODO: platform layer
 
 if(EXISTS "${PX4_BOARD_DIR}/CMakeLists.txt")
 	add_subdirectory(${PX4_BOARD_DIR})

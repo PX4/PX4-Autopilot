@@ -92,7 +92,7 @@ function(px4_add_functional_gtest)
 		target_link_libraries(${TESTNAME} ${LINKLIBS} gtest_functional_main
 		                                              px4_layer
 		                                              px4_platform
-		                                              modules__uORB
+		                                              uORB
 		                                              systemlib
 		                                              cdev
 		                                              px4_work_queue

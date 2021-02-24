@@ -343,3 +343,51 @@ PARAM_DEFINE_FLOAT(SIH_LOC_MU_Y, -0.045f);
  * @group Simulation In Hardware
  */
 PARAM_DEFINE_FLOAT(SIH_LOC_MU_Z,  0.504f);
+
+/**
+ * Number of GPS satellites used
+ *
+ * @min 0
+ * @max  50
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_INT32(SIH_GPS_USED, 10);
+
+/**
+ * Barometer offset in meters
+ *
+ * Absolute value superior to 10000 will disable barometer
+ *
+ * @unit m
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_BARO_OFFSET,  0.0f);
+
+/**
+ * magnetometer X offset in Gauss
+ *
+ * Absolute value superior to 10000 will disable magnetometer
+ *
+ * @unit gauss
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_MAG_OFFSET_X,  0.0f);
+
+/**
+ * magnetometer Y offset in Gauss
+ *
+ * Absolute value superior to 10000 will disable magnetometer
+ *
+ * @unit gauss
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_MAG_OFFSET_Y,  0.0f);
+/**
+ * magnetometer Z offset in Gauss
+ *
+ * Absolute value superior to 10000 will disable magnetometer
+ *
+ * @unit gauss
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_MAG_OFFSET_Z,  0.0f);

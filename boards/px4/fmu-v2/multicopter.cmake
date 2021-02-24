@@ -59,7 +59,7 @@ px4_add_board(
 		sensors
 		#sih
 		#temperature_compensation
-		vmount
+		#vmount
 	SYSTEMCMDS
 		#bl_update
 		#dumpfile
@@ -81,6 +81,7 @@ px4_add_board(
 		top
 		#topic_listener
 		tune_control
+		#uorb
 		#usb_connected
 		ver
 		#work_queue

@@ -68,7 +68,6 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
-#include <systemlib/uthash/utlist.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/SubscriptionInterval.hpp>
@@ -103,7 +102,7 @@ enum class Protocol {
 
 using namespace time_literals;
 
-class Mavlink : public ModuleParams
+class Mavlink final : public ModuleParams
 {
 
 public:
@@ -139,8 +138,6 @@ public:
 	static int		instance_count();
 
 	static Mavlink		*new_instance();
-
-	static Mavlink		*get_instance(int instance);
 
 	static Mavlink 		*get_instance_for_device(const char *device_name);
 
@@ -194,7 +191,7 @@ public:
 		MAVLINK_MODE_MINIMAL,
 		MAVLINK_MODE_EXTVISION,
 		MAVLINK_MODE_EXTVISIONMIN,
-
+		MAVLINK_MODE_GIMBAL,
 		MAVLINK_MODE_COUNT
 	};
 
@@ -242,6 +239,9 @@ public:
 
 		case MAVLINK_MODE_EXTVISIONMIN:
 			return "ExtVisionMin";
+
+		case MAVLINK_MODE_GIMBAL:
+			return "Gimbal";
 
 		default:
 			return "Unknown";
@@ -518,8 +518,7 @@ public:
 
 	static hrt_abstime &get_first_start_time() { return _first_start_time; }
 
-protected:
-	Mavlink			*next{nullptr};
+	bool radio_status_critical() const { return _radio_status_critical; }
 
 private:
 	int			_instance_id{0};
@@ -540,7 +539,7 @@ private:
 
 	bool			_task_running{true};
 	static bool		_boot_complete;
-	static constexpr int	MAVLINK_MAX_INSTANCES{4};
+
 	static constexpr int	MAVLINK_MIN_INTERVAL{1500};
 	static constexpr int	MAVLINK_MAX_INTERVAL{10000};
 	static constexpr float	MAVLINK_MIN_MULTIPLIER{0.0005f};
@@ -743,7 +742,7 @@ private:
 
 	void set_channel();
 
-	void set_instance_id();
+	bool set_instance_id();
 
 	/**
 	 * Main mavlink task.

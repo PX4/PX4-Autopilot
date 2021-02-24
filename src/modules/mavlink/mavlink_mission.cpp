@@ -1338,16 +1338,8 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			break;
 
 		case MAV_CMD_NAV_TAKEOFF:
-
-			// reject takeoff item if minimum pitch (parameter 1) is set
-			if (PX4_ISFINITE(mavlink_mission_item->param1) && (fabsf(mavlink_mission_item->param1) > FLT_EPSILON)) {
-				_mavlink->send_statustext_critical("Takeoff rejected, remove deprecated minimum pitch");
-				return MAV_MISSION_INVALID_PARAM1;
-
-			} else {
-				mission_item->nav_cmd = NAV_CMD_TAKEOFF;
-				mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
-			}
+			mission_item->nav_cmd = NAV_CMD_TAKEOFF;
+			mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
 
 			break;
 
@@ -1475,6 +1467,9 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_DO_DIGICAM_CONTROL:
 		case MAV_CMD_DO_MOUNT_CONFIGURE:
 		case MAV_CMD_DO_MOUNT_CONTROL:
+		case NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
+		case NAV_CMD_SET_CAMERA_FOCUS:
+		case NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
 		case MAV_CMD_IMAGE_START_CAPTURE:
 		case MAV_CMD_IMAGE_STOP_CAPTURE:
 		case MAV_CMD_VIDEO_START_CAPTURE:
@@ -1574,12 +1569,15 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case NAV_CMD_DO_CONTROL_VIDEO:
 		case NAV_CMD_DO_MOUNT_CONFIGURE:
 		case NAV_CMD_DO_MOUNT_CONTROL:
+		case NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
+		case NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
 		case NAV_CMD_DO_SET_ROI:
 		case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
 		case NAV_CMD_OBLIQUE_SURVEY:
 		case NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL:
 		case NAV_CMD_SET_CAMERA_MODE:
 		case NAV_CMD_SET_CAMERA_ZOOM:
+		case NAV_CMD_SET_CAMERA_FOCUS:
 		case NAV_CMD_DO_VTOL_TRANSITION:
 			break;
 

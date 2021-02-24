@@ -100,7 +100,9 @@ enum VtolForwardActuationMode {
 	ENABLE_WITHOUT_LAND,
 	ENABLE_ABOVE_MPC_LAND_ALT1,
 	ENABLE_ABOVE_MPC_LAND_ALT2,
-	ENABLE_ALL_MODES
+	ENABLE_ALL_MODES,
+	ENABLE_ABOVE_MPC_LAND_ALT1_WITHOUT_LAND,
+	ENABLE_ABOVE_MPC_LAND_ALT2_WITHOUT_LAND
 };
 
 // these are states that can be applied to a selection of multirotor motors.

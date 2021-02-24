@@ -14,7 +14,7 @@ px4_add_board(
 		TEL2:/dev/ttyS1
 		GPS1:/dev/ttyS2
 		#RC:/dev/ttyS3
-		#CONSOLE:/dev/ttyS4
+		TEL3:/dev/ttyS4
 		#FRSKY:/dev/ttyS5
 	DRIVERS
 		adc/board_adc
@@ -109,10 +109,12 @@ px4_add_board(
 		top
 		topic_listener
 		tune_control
+		uorb
 		usb_connected
 		ver
 		work_queue
 	EXAMPLES
+		fake_gps
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		hwtest # Hardware test

@@ -55,6 +55,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_local_position_pub(multi_mode ? ORB_ID(estimator_local_position) : ORB_ID(vehicle_local_position)),
 	_global_position_pub(multi_mode ? ORB_ID(estimator_global_position) : ORB_ID(vehicle_global_position)),
 	_odometry_pub(multi_mode ? ORB_ID(estimator_odometry) : ORB_ID(vehicle_odometry)),
+	_wind_pub(multi_mode ? ORB_ID(estimator_wind) : ORB_ID(wind)),
 	_params(_ekf.getParamHandle()),
 	_param_ekf2_min_obs_dt(_params->sensor_interval_min_ms),
 	_param_ekf2_mag_delay(_params->mag_delay_ms),
@@ -707,13 +708,11 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.heading = Eulerf(_ekf.getQuaternion()).psi();
 	lpos.delta_heading = Eulerf(delta_q_reset).psi();
 
-	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid();
-
-	float terrain_vpos = _ekf.getTerrainVertPos();
-
 	// Distance to bottom surface (ground) in meters
 	// constrain the distance to ground to _rng_gnd_clearance
-	lpos.dist_bottom = math::max(terrain_vpos - lpos.z, _param_ekf2_min_rng.get());
+	lpos.dist_bottom = math::max(_ekf.getTerrainVertPos() - lpos.z, _param_ekf2_min_rng.get());
+	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid();
+	lpos.dist_bottom_sensor_bitfield = _ekf.getTerrainEstimateSensorBitfield();
 
 	if (!_had_valid_terrain) {
 		_had_valid_terrain = lpos.dist_bottom_valid;
@@ -966,6 +965,13 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 	_ekf.get_ekf_soln_status(&status.solution_status_flags);
 	_ekf.getImuVibrationMetrics().copyTo(status.vibe);
 
+	// reset counters
+	status.reset_count_vel_ne = _ekf.state_reset_status().velNE_counter;
+	status.reset_count_vel_d = _ekf.state_reset_status().velD_counter;
+	status.reset_count_pos_ne = _ekf.state_reset_status().posNE_counter;
+	status.reset_count_pod_d = _ekf.state_reset_status().posD_counter;
+	status.reset_count_quat = _ekf.state_reset_status().quat_counter;
+
 	status.time_slip = _last_time_slip_us * 1e-6f;
 
 	status.pre_flt_fail_innov_heading = _preflt_checker.hasHeadingFailed();
@@ -1107,25 +1113,23 @@ void EKF2::PublishWindEstimate(const hrt_abstime &timestamp)
 {
 	if (_ekf.get_wind_status()) {
 		// Publish wind estimate only if ekf declares them valid
-		wind_estimate_s wind_estimate{};
-		wind_estimate.timestamp_sample = timestamp;
+		wind_s wind{};
+		wind.timestamp_sample = timestamp;
 
 		const Vector2f wind_vel = _ekf.getWindVelocity();
 		const Vector2f wind_vel_var = _ekf.getWindVelocityVariance();
-		_ekf.getAirspeedInnov(wind_estimate.tas_innov);
-		_ekf.getAirspeedInnovVar(wind_estimate.tas_innov_var);
-		_ekf.getBetaInnov(wind_estimate.beta_innov);
-		_ekf.getBetaInnovVar(wind_estimate.beta_innov_var);
+		_ekf.getAirspeedInnov(wind.tas_innov);
+		_ekf.getAirspeedInnovVar(wind.tas_innov_var);
+		_ekf.getBetaInnov(wind.beta_innov);
+		_ekf.getBetaInnovVar(wind.beta_innov_var);
 
-		wind_estimate.windspeed_north = wind_vel(0);
-		wind_estimate.windspeed_east = wind_vel(1);
-		wind_estimate.variance_north = wind_vel_var(0);
-		wind_estimate.variance_east = wind_vel_var(1);
-		wind_estimate.tas_scale = 0.0f; //leave at 0 as scale is not estimated in ekf
-		wind_estimate.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-		wind_estimate.source = wind_estimate_s::SOURCE_EKF;
+		wind.windspeed_north = wind_vel(0);
+		wind.windspeed_east = wind_vel(1);
+		wind.variance_north = wind_vel_var(0);
+		wind.variance_east = wind_vel_var(1);
+		wind.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 
-		_wind_pub.publish(wind_estimate);
+		_wind_pub.publish(wind);
 	}
 }
 

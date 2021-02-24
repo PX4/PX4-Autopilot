@@ -40,7 +40,7 @@
 
 #include <airspeed/airspeed.h>
 #include <ecl/airdata/WindEstimator.hpp>
-#include <uORB/topics/wind_estimate.h>
+#include <uORB/topics/airspeed_wind.h>
 
 
 using matrix::Dcmf;
@@ -86,7 +86,7 @@ public:
 	bool get_airspeed_valid() { return _airspeed_valid; }
 	float get_CAS_scale() {return _CAS_scale;}
 
-	wind_estimate_s get_wind_estimator_states(uint64_t timestamp);
+	airspeed_wind_s get_wind_estimator_states(uint64_t timestamp);
 
 	// setters wind estimator parameters
 	void set_wind_estimator_wind_p_noise(float wind_sigma) { _wind_estimator.set_wind_p_noise(wind_sigma); }

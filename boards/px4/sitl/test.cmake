@@ -78,10 +78,12 @@ px4_add_board(
 		#top
 		topic_listener
 		tune_control
+		uorb
 		ver
 		work_queue
 	EXAMPLES
 		dyn_hello # dynamically loading modules example
+		fake_gps
 		fake_magnetometer
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello

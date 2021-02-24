@@ -52,6 +52,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_odometry.h>
+#include <uORB/topics/wind.h>
 
 #if CONSTRAINED_MEMORY
 # define EKF2_MAX_INSTANCES 2
@@ -80,6 +81,7 @@ private:
 	void PublishVehicleAttitude(bool reset = false);
 	void PublishVehicleLocalPosition(bool reset = false);
 	void PublishVehicleGlobalPosition(bool reset = false);
+	void PublishWindEstimate(bool reset = false);
 	bool SelectInstance(uint8_t instance);
 
 	// Update the error scores for all available instances
@@ -94,6 +96,7 @@ private:
 			estimator_local_position_sub{ORB_ID(estimator_local_position), i},
 			estimator_global_position_sub{ORB_ID(estimator_global_position), i},
 			estimator_odometry_sub{ORB_ID(estimator_odometry), i},
+			estimator_wind_sub{ORB_ID(estimator_wind), i},
 			instance(i)
 		{}
 
@@ -103,6 +106,7 @@ private:
 		uORB::Subscription estimator_local_position_sub;
 		uORB::Subscription estimator_global_position_sub;
 		uORB::Subscription estimator_odometry_sub;
+		uORB::Subscription estimator_wind_sub;
 
 		uint64_t timestamp_sample_last{0};
 
@@ -195,6 +199,9 @@ private:
 	uint8_t _lat_lon_reset_counter{0};
 	uint8_t _alt_reset_counter{0};
 
+	// wind estimate
+	wind_s _wind_last{};
+
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _sensors_status_imu{ORB_ID(sensors_status_imu)};
 
@@ -205,6 +212,7 @@ private:
 	uORB::Publication<vehicle_global_position_s>   _vehicle_global_position_pub{ORB_ID(vehicle_global_position)};
 	uORB::Publication<vehicle_local_position_s>    _vehicle_local_position_pub{ORB_ID(vehicle_local_position)};
 	uORB::Publication<vehicle_odometry_s>          _vehicle_odometry_pub{ORB_ID(vehicle_odometry)};
+	uORB::Publication<wind_s>             _wind_pub{ORB_ID(wind)};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::EKF2_SEL_ERR_RED>) _param_ekf2_sel_err_red,

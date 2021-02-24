@@ -45,7 +45,7 @@ void AutopilotTester::connect(const std::string uri)
 
 	std::cout << time_str() << "Waiting for system connect" << std::endl;
 	REQUIRE(poll_condition_with_timeout(
-	[this]() { return _mavsdk.is_connected(); }, adjust_to_lockstep_speed(std::chrono::seconds(25))));
+	[this]() { return _mavsdk.is_connected(); }, std::chrono::seconds(25)));
 
 	auto &system = _mavsdk.system();
 
@@ -179,15 +179,7 @@ void AutopilotTester::prepare_square_mission(MissionOptions mission_options)
 
 	_mission->set_return_to_launch_after_mission(mission_options.rtl_at_end);
 
-	std::promise<void> prom;
-	auto fut = prom.get_future();
-
-	_mission->upload_mission_async(mission_plan, [&prom](Mission::Result result) {
-		REQUIRE(Mission::Result::Success == result);
-		prom.set_value();
-	});
-
-	REQUIRE(fut.wait_for(std::chrono::seconds(2)) == std::future_status::ready);
+	REQUIRE(_mission->upload_mission(mission_plan) == Mission::Result::Success);
 }
 
 void AutopilotTester::prepare_straight_mission(MissionOptions mission_options)
@@ -203,15 +195,7 @@ void AutopilotTester::prepare_straight_mission(MissionOptions mission_options)
 
 	_mission->set_return_to_launch_after_mission(mission_options.rtl_at_end);
 
-	std::promise<void> prom;
-	auto fut = prom.get_future();
-
-	_mission->upload_mission_async(mission_plan, [&prom](Mission::Result result) {
-		REQUIRE(Mission::Result::Success == result);
-		prom.set_value();
-	});
-
-	REQUIRE(fut.wait_for(std::chrono::seconds(2)) == std::future_status::ready);
+	REQUIRE(_mission->upload_mission(mission_plan) == Mission::Result::Success);
 }
 
 void AutopilotTester::execute_mission()
@@ -361,29 +345,29 @@ void AutopilotTester::fly_forward_in_posctl()
 	const unsigned manual_control_rate_hz = 50;
 
 	// Send something to make sure RC is available.
-	for (unsigned i = 0; i < 5 * manual_control_rate_hz; ++i) {
+	for (unsigned i = 0; i < 1 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 0.5f, 0.f) == ManualControl::Result::Success);
-		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
 	}
 
 	CHECK(_manual_control->start_position_control() == ManualControl::Result::Success);
 
-	// Climb up for 10 seconds
-	for (unsigned i = 0; i < 10 * manual_control_rate_hz; ++i) {
+	// Climb up for 20 seconds
+	for (unsigned i = 0; i < 20 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 1.f, 0.f) == ManualControl::Result::Success);
-		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
 	}
 
 	// Fly forward for 60 seconds
 	for (unsigned i = 0; i < 60 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.5f, 0.f, 0.5f, 0.f) == ManualControl::Result::Success);
-		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
 	}
 
 	// Descend until disarmed
 	for (unsigned i = 0; i < 60 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 0.0f, 0.f) == ManualControl::Result::Success);
-		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
 
 		if (!_telemetry->in_air()) {
 			break;
@@ -396,29 +380,29 @@ void AutopilotTester::fly_forward_in_altctl()
 	const unsigned manual_control_rate_hz = 50;
 
 	// Send something to make sure RC is available.
-	for (unsigned i = 0; i < 5 * manual_control_rate_hz; ++i) {
+	for (unsigned i = 0; i < 1 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 0.5f, 0.f) == ManualControl::Result::Success);
-		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
 	}
 
 	CHECK(_manual_control->start_altitude_control() == ManualControl::Result::Success);
 
-	// Climb up for 10 seconds
-	for (unsigned i = 0; i < 10 * manual_control_rate_hz; ++i) {
+	// Climb up for 20 seconds
+	for (unsigned i = 0; i < 20 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 1.f, 0.f) == ManualControl::Result::Success);
-		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
 	}
 
 	// Fly forward for 60 seconds
 	for (unsigned i = 0; i < 60 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.5f, 0.f, 0.5f, 0.f) == ManualControl::Result::Success);
-		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
 	}
 
 	// Descend until disarmed
 	for (unsigned i = 0; i < 60 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 0.0f, 0.f) == ManualControl::Result::Success);
-		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
 
 		if (!_telemetry->in_air()) {
 			break;
@@ -618,29 +602,4 @@ void AutopilotTester::wait_for_mission_finished(std::chrono::seconds timeout)
 	});
 
 	REQUIRE(fut.wait_for(timeout) == std::future_status::ready);
-}
-
-std::chrono::milliseconds AutopilotTester::adjust_to_lockstep_speed(std::chrono::milliseconds duration_ms)
-{
-	if (_info == nullptr) {
-		return duration_ms;
-	}
-
-	auto speed_factor = _info->get_speed_factor();
-
-	if (speed_factor.first == Info::Result::Success) {
-		// FIXME: Remove this again:
-		//        Sanitize speed factor to avoid test failures.
-		if (speed_factor.second > 20.0f) {
-			speed_factor.second = 20.0f;
-		}
-
-		return static_cast<std::chrono::milliseconds>(
-			       static_cast<unsigned long>(
-				       std::round(
-					       static_cast<double>(duration_ms.count()) / speed_factor.second)));
-
-	} else {
-		return duration_ms;
-	}
 }

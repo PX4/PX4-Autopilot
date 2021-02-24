@@ -57,7 +57,7 @@
 #include <px4_platform_common/shutdown.h>
 
 #include <perf/perf_counter.h>
-#include <systemlib/uthash/utarray.h>
+#include "uthash/utarray.h"
 
 #include "uORB/uORB.h"
 #include "uORB/topics/parameter_update.h"

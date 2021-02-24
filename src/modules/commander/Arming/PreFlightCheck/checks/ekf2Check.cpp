@@ -242,7 +242,7 @@ bool PreFlightCheck::ekf2CheckSensorBias(orb_advert_t *mavlink_log_pub, const bo
 
 		// check accelerometer bias estimates
 		if (bias.accel_bias_valid) {
-			const float ekf_ab_test_limit = 0.5f * bias.accel_bias_limit;
+			const float ekf_ab_test_limit = 0.75f * bias.accel_bias_limit;
 
 			for (uint8_t axis_index = 0; axis_index < 3; axis_index++) {
 				// allow for higher uncertainty in estimates for axes that are less observable to prevent false positives
@@ -263,7 +263,7 @@ bool PreFlightCheck::ekf2CheckSensorBias(orb_advert_t *mavlink_log_pub, const bo
 
 		// check gyro bias estimates
 		if (bias.gyro_bias_valid) {
-			const float ekf_gb_test_limit = 0.5f * bias.gyro_bias_limit;
+			const float ekf_gb_test_limit = 0.75f * bias.gyro_bias_limit;
 
 			for (uint8_t axis_index = 0; axis_index < 3; axis_index++) {
 				// allow for higher uncertainty in estimates for axes that are less observable to prevent false positives

@@ -24,7 +24,8 @@ then
 
 	param set TRIG_INTERFACE 3
 	param set TRIG_MODE 4
-	param set MNT_MODE_IN 0
+	param set MNT_MODE_IN 4
+	param set MNT_MODE_OUT 2
 	param set MAV_PROTO_VER 2
 fi
 

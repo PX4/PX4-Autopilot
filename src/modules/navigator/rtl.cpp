@@ -257,6 +257,8 @@ void RTL::on_activation()
 
 	const vehicle_global_position_s &global_position = *_navigator->get_global_position();
 
+	_rtl_loiter_rad = _param_rtl_loiter_rad.get();
+
 	if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		_rtl_alt = calculate_return_alt_from_cone_half_angle((float)_param_rtl_cone_half_angle_deg.get());
 
@@ -410,6 +412,10 @@ void RTL::set_rtl_item()
 				_mission_item.yaw = _destination.yaw;
 			}
 
+			if (_navigator->get_vstatus()->is_vtol) {
+				_mission_item.loiter_radius = _rtl_loiter_rad;
+			}
+
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 			_mission_item.time_inside = 0.0f;
 			_mission_item.autocontinue = true;
@@ -450,6 +456,24 @@ void RTL::set_rtl_item()
 				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, loitering");
 			}
 
+			break;
+		}
+
+	case RTL_STATE_HEAD_TO_CENTER: {
+			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+
+			_mission_item.lat = _destination.lat;
+			_mission_item.lon = _destination.lon;
+			_mission_item.altitude = loiter_altitude;
+			_mission_item.altitude_is_relative = false;
+			_mission_item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, _mission_item.lat, _mission_item.lon);
+			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+			_mission_item.time_inside = 0.0f;
+			_mission_item.autocontinue = true;
+			_mission_item.origin = ORIGIN_ONBOARD;
+
+			// Disable previous setpoint to prevent drift.
+			pos_sp_triplet->previous.valid = false;
 			break;
 		}
 
@@ -554,7 +578,7 @@ void RTL::advance_rtl()
 			_rtl_state = RTL_STATE_LOITER;
 
 		} else if (vtol_in_fw_mode) {
-			_rtl_state = RTL_STATE_TRANSITION_TO_MC;
+			_rtl_state = RTL_STATE_HEAD_TO_CENTER;
 
 		} else {
 			_rtl_state = RTL_STATE_LAND;
@@ -571,6 +595,12 @@ void RTL::advance_rtl()
 		}
 
 		_rtl_state = RTL_STATE_LAND;
+		break;
+
+	case RTL_STATE_HEAD_TO_CENTER:
+
+		_rtl_state = RTL_STATE_TRANSITION_TO_MC;
+
 		break;
 
 	case RTL_STATE_TRANSITION_TO_MC:
@@ -670,12 +700,12 @@ void RTL::get_rtl_xy_z_speed(float &xy, float &z)
 
 matrix::Vector2f RTL::get_wind()
 {
-	_wind_estimate_sub.update();
+	_wind_sub.update();
 	matrix::Vector2f wind;
 
-	if (hrt_absolute_time() - _wind_estimate_sub.get().timestamp < 1_s) {
-		wind(0) = _wind_estimate_sub.get().windspeed_north;
-		wind(1) = _wind_estimate_sub.get().windspeed_east;
+	if (hrt_absolute_time() - _wind_sub.get().timestamp < 1_s) {
+		wind(0) = _wind_sub.get().windspeed_north;
+		wind(1) = _wind_sub.get().windspeed_east;
 	}
 
 	return wind;
