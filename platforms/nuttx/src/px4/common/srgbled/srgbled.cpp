@@ -100,7 +100,7 @@
 
 int neopixel_write_no_dma(uint8_t r, uint8_t g, uint8_t b, uint8_t led_count)
 {
-	register neopixel::NeoLEDData::led_data_t data;
+	neopixel::NeoLEDData::led_data_t data;
 	data.grb[2] = g;
 	data.grb[1] = r;
 	data.grb[0] = b;
