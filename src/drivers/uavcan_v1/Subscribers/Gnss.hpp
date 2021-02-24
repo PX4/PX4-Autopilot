@@ -46,11 +46,11 @@
 
 #include "Subscriber.hpp"
 
-class UavcanGnssSubscription : public UavcanSubscription
+class UavcanGnssSubscriber : public UavcanSubscriber
 {
 public:
-	UavcanGnssSubscription(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanSubscription(ins, pmgr, "gps", instance) { };
+	UavcanGnssSubscriber(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
+		UavcanSubscriber(ins, pmgr, "gps", instance) { };
 
 	void subscribe() override
 	{

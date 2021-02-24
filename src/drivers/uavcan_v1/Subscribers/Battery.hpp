@@ -47,11 +47,11 @@
 
 #include "Subscriber.hpp"
 
-class UavcanBmsSubscription : public UavcanSubscription
+class UavcanBmsSubscriber : public UavcanSubscriber
 {
 public:
-	UavcanBmsSubscription(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanSubscription(ins, pmgr, "bms", instance) { };
+	UavcanBmsSubscriber(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
+		UavcanSubscriber(ins, pmgr, "bms", instance) { };
 
 	void subscribe() override
 	{
