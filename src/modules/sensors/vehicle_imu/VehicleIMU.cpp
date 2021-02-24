@@ -173,7 +173,7 @@ bool VehicleIMU::UpdateIntervalAverage(IntervalAverage &intavg, const hrt_abstim
 				if ((fabsf(intavg.update_interval - sample_interval_avg) / intavg.update_interval) > 0.005f) {
 
 					intavg.update_interval = sample_interval_avg;
-					intavg.update_interval_raw = sample_interval_avg * ((float)intavg.interval_count / (float)intavg.interval_samples);
+					intavg.update_interval_raw = (float)intavg.interval_sum / (float)intavg.interval_samples;
 					updated = true;
 				}
 			}
