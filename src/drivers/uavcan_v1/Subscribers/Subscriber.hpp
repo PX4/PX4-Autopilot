@@ -55,8 +55,8 @@ class UavcanSubscription
 public:
 	static constexpr uint16_t CANARD_PORT_ID_UNSET = 65535U;
 
-	UavcanSubscription(CanardInstance &ins, UavcanParamManager &pmgr, const char *uavcan_pname) :
-		_canard_instance(ins), _param_manager(pmgr), _uavcan_param(uavcan_pname) { };
+	UavcanSubscription(CanardInstance &ins, UavcanParamManager &pmgr, const char *subject_name, uint8_t instance = 0) :
+		_canard_instance(ins), _param_manager(pmgr), _subject_name(subject_name), _instance(instance) { };
 
 	virtual void subscribe() = 0;
 	virtual void unsubscribe() { canardRxUnsubscribe(&_canard_instance, CanardTransferKindMessage, _port_id); };
@@ -67,9 +67,12 @@ public:
 
 	void updateParam()
 	{
+		char uavcan_param[90];
+		sprintf(uavcan_param, "uavcan.sub.%s.%d.id", _subject_name, _instance);
+
 		// Set _port_id from _uavcan_param
 		uavcan_register_Value_1_0 value;
-		_param_manager.GetParamByName(_uavcan_param, value);
+		_param_manager.GetParamByName(uavcan_param, value);
 		int32_t new_id = value.integer32.value.elements[0];
 
 		if (_port_id != new_id) {
@@ -85,7 +88,7 @@ public:
 
 				// Subscribe on the new port ID
 				_port_id = (CanardPortID)new_id;
-				PX4_INFO("Subscribing %s on port %d", _uavcan_param, _port_id);
+				PX4_INFO("Subscribing %s.%d on port %d", _subject_name, _instance, _port_id);
 				subscribe();
 			}
 		}
@@ -94,7 +97,7 @@ public:
 	void printInfo()
 	{
 		if (_port_id != CANARD_PORT_ID_UNSET) {
-			PX4_INFO("Subscribed %s on port %d", _uavcan_param, _port_id);
+			PX4_INFO("Subscribed %s.%d on port %d", _subject_name, _instance, _port_id);
 		}
 	}
 
@@ -102,7 +105,8 @@ protected:
 	CanardInstance &_canard_instance;
 	UavcanParamManager &_param_manager;
 	CanardRxSubscription _canard_sub;
-	const char *_uavcan_param; // Port ID parameter
+	const char *_subject_name;
+	uint8_t _instance {0};
 	/// TODO: 'type' parameter? uavcan.pub.PORT_NAME.type (see 384.Access.1.0.uavcan)
 
 	CanardPortID _port_id {CANARD_PORT_ID_UNSET};

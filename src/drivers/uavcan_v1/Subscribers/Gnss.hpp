@@ -49,8 +49,8 @@
 class UavcanGnssSubscription : public UavcanSubscription
 {
 public:
-	UavcanGnssSubscription(CanardInstance &ins, UavcanParamManager &pmgr, const char *uavcan_pname) :
-		UavcanSubscription(ins, pmgr, uavcan_pname) { };
+	UavcanGnssSubscription(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
+		UavcanSubscription(ins, pmgr, "gps", instance) { };
 
 	void subscribe() override
 	{
