@@ -96,7 +96,7 @@ public:
 				.position = NAN,
 				.horizontal = gps.hdop,
 				.vertical = gps.vdop,
-				.time = (float)gps.time_utc_usec / 1.e6f, /// ?
+				.time = NAN,
 				.northing = NAN,
 				.easting = NAN,
 			};
