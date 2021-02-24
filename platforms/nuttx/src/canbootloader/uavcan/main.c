@@ -761,6 +761,7 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path, uint8_t
 	size_t length;
 
 	protocol.tail_init.u8  = 0;
+	int a_percent = fw_image_size / 100;
 
 	do {
 		/* reset the rate limit */
@@ -844,7 +845,7 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path, uint8_t
 					      length + (length & 1));
 
 		request.offset  += length;
-		bootloader.percentage_done = (request.offset / 1024) + 1;
+		bootloader.percentage_done = (request.offset / a_percent);
 
 	} while (request.offset < fw_image_size &&
 		 length == sizeof(response.data)  &&
@@ -856,7 +857,6 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path, uint8_t
 	 * was not. */
 	if (uavcan_status == UavcanOk && flash_status == FLASH_OK
 	    && request.offset == fw_image_size && length != 0) {
-		bootloader.percentage_done = 0;
 		return FLASH_OK;
 
 	} else {
@@ -1335,6 +1335,8 @@ __EXPORT int main(int argc, char *argv[])
 		error_log_stage = LOGMESSAGE_STAGE_FINALIZE;
 		goto failure;
 	}
+
+	bootloader.percentage_done = 100;
 
 	/* Send a completion log allocation_message */
 	uavcan_tx_log_message(LOGMESSAGE_LEVELINFO,
