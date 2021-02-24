@@ -54,8 +54,8 @@
 class UavcanEscSubscription : public UavcanSubscription
 {
 public:
-	UavcanEscSubscription(CanardInstance &ins, UavcanParamManager &pmgr, const char *uavcan_pname) :
-		UavcanSubscription(ins, pmgr, uavcan_pname) { };
+	UavcanEscSubscription(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
+		UavcanSubscription(ins, pmgr, "esc", instance) { };
 
 	void subscribe() override
 	{
