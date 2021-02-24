@@ -62,13 +62,13 @@
 #include <reg/drone/service/common/Readiness_0_1.h>
 
 /// TODO: Allow derived class of Subscription at same time, to handle ESC Feedback/Status
-class UavcanEscController : public UavcanPublication
+class UavcanEscController : public UavcanPublisher
 {
 public:
 	static constexpr int MAX_ACTUATORS = MixingOutput::MAX_ACTUATORS;
 
 	UavcanEscController(CanardInstance &ins, UavcanParamManager &pmgr, const char *uavcan_pname) :
-		UavcanPublication(ins, pmgr, uavcan_pname) { };
+		UavcanPublisher(ins, pmgr, uavcan_pname) { };
 
 	~UavcanEscController() {};
 
