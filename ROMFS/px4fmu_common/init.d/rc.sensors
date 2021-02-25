@@ -5,7 +5,7 @@
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
-if ! ver hwcmp AEROFC_V1 OMNIBUS_F4SD
+if ! ver hwcmp OMNIBUS_F4SD
 then
 	if ! ver hwcmp BITCRAZE_CRAZYFLIE
 	then
