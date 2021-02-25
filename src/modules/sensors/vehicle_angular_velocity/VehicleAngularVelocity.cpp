@@ -309,7 +309,7 @@ void VehicleAngularVelocity::Run()
 					if (UpdateSampleRate()) {
 						// in FIFO mode the unscaled raw data is filtered
 						_angular_velocity_prev = _angular_velocity / sensor_fifo_data.scale;
-						ResetFilters(_angular_velocity / sensor_fifo_data.scale, _angular_acceleration / sensor_fifo_data.scale);
+						ResetFilters(_angular_velocity_prev, _angular_acceleration / sensor_fifo_data.scale);
 
 						_fifo_last_scale = sensor_fifo_data.scale;
 					}
