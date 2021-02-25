@@ -349,7 +349,6 @@ MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_c
 	bool target_ok = false;
 
 	switch (command) {
-
 	case MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES:
 	case MAV_CMD_REQUEST_PROTOCOL_VERSION:
 		/* broadcast and ignore component */
@@ -1106,28 +1105,21 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 					/* set the local pos values */
 					vehicle_local_position_s local_pos{};
 
-					if (!offboard_control_mode.ignore_position && _vehicle_local_position_sub.copy(&local_pos)) {
-						if (!globallocalconverter_initialized()) {
-							globallocalconverter_init(local_pos.ref_lat, local_pos.ref_lon,
-										  local_pos.ref_alt, local_pos.ref_timestamp);
-							pos_sp_triplet.current.position_valid = false;
+					if (!offboard_control_mode.ignore_position && _vehicle_local_position_sub.copy(&local_pos)
+					    && (local_pos.ref_timestamp != 0)) {
 
-						} else {
-							float target_altitude;
+						// global -> local
+						const double lat = set_position_target_global_int.lat_int / 1e7;
+						const double lon = set_position_target_global_int.lon_int / 1e7;
+						const float alt = set_position_target_global_int.alt;
 
-							if (set_position_target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
-								target_altitude = set_position_target_global_int.alt + local_pos.ref_alt;
+						map_projection_reference_s global_local_proj_ref;
+						map_projection_init_timestamped(&global_local_proj_ref, local_pos.ref_lat, local_pos.ref_lon, local_pos.ref_timestamp);
+						map_projection_project(&global_local_proj_ref, lat, lon, &pos_sp_triplet.current.x, &pos_sp_triplet.current.y);
 
-							} else {
-								target_altitude = set_position_target_global_int.alt; //MAV_FRAME_GLOBAL_INT
-							}
+						pos_sp_triplet.current.z = local_pos.ref_alt - alt;
 
-							globallocalconverter_tolocal(set_position_target_global_int.lat_int / 1e7,
-										     set_position_target_global_int.lon_int / 1e7, target_altitude,
-										     &pos_sp_triplet.current.x, &pos_sp_triplet.current.y, &pos_sp_triplet.current.z);
-							pos_sp_triplet.current.cruising_speed = get_offb_cruising_speed();
-							pos_sp_triplet.current.position_valid = true;
-						}
+						pos_sp_triplet.current.position_valid = true;
 
 					} else {
 						pos_sp_triplet.current.position_valid = false;
@@ -1284,14 +1276,23 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 void
 MavlinkReceiver::handle_message_set_gps_global_origin(mavlink_message_t *msg)
 {
-	mavlink_set_gps_global_origin_t origin;
-	mavlink_msg_set_gps_global_origin_decode(msg, &origin);
+	mavlink_set_gps_global_origin_t gps_global_origin;
+	mavlink_msg_set_gps_global_origin_decode(msg, &gps_global_origin);
 
-	if (!globallocalconverter_initialized() && (origin.target_system == _mavlink->get_system_id())) {
-		/* Set reference point conversion of local coordiantes <--> global coordinates */
-		globallocalconverter_init((double)origin.latitude * 1.0e-7, (double)origin.longitude * 1.0e-7,
-					  (float)origin.altitude * 1.0e-3f, hrt_absolute_time());
-		_global_ref_timestamp = hrt_absolute_time();
+	if (gps_global_origin.target_system == _mavlink->get_system_id()) {
+		vehicle_command_s vcmd{};
+		vcmd.param5 = (double)gps_global_origin.latitude * 1.e-7;
+		vcmd.param6 = (double)gps_global_origin.longitude * 1.e-7;
+		vcmd.param7 = (float)gps_global_origin.altitude * 1.e-3f;
+		vcmd.command = vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN;
+		vcmd.target_system = _mavlink->get_system_id();
+		vcmd.target_component = MAV_COMP_ID_ALL;
+		vcmd.source_system = msg->sysid;
+		vcmd.source_component = msg->compid;
+		vcmd.confirmation = false;
+		vcmd.from_external = true;
+		vcmd.timestamp = hrt_absolute_time();
+		_cmd_pub.publish(vcmd);
 	}
 
 	handle_request_message_command(MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN);
@@ -2677,34 +2678,32 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 
 	/* local position */
 	{
-		double lat = hil_state.lat * 1e-7;
-		double lon = hil_state.lon * 1e-7;
+		const double lat = hil_state.lat * 1e-7;
+		const double lon = hil_state.lon * 1e-7;
 
-		if (!_hil_local_proj_inited) {
-			_hil_local_proj_inited = true;
-			_hil_local_alt0 = hil_state.alt / 1000.0f;
+		map_projection_reference_s global_local_proj_ref;
+		map_projection_init(&global_local_proj_ref, lat, lon);
 
-			map_projection_init(&_hil_local_proj_ref, lat, lon);
-		}
+		float global_local_alt0 = hil_state.alt / 1000.f;
 
 		float x = 0.0f;
 		float y = 0.0f;
-		map_projection_project(&_hil_local_proj_ref, lat, lon, &x, &y);
+		map_projection_project(&global_local_proj_ref, lat, lon, &x, &y);
 
 		vehicle_local_position_s hil_local_pos{};
 		hil_local_pos.timestamp = timestamp;
 
-		hil_local_pos.ref_timestamp = _hil_local_proj_ref.timestamp;
-		hil_local_pos.ref_lat = math::radians(_hil_local_proj_ref.lat_rad);
-		hil_local_pos.ref_lon = math::radians(_hil_local_proj_ref.lon_rad);
-		hil_local_pos.ref_alt = _hil_local_alt0;
+		hil_local_pos.ref_timestamp = global_local_proj_ref.timestamp;
+		hil_local_pos.ref_lat = math::degrees(global_local_proj_ref.lat_rad);
+		hil_local_pos.ref_lon = math::degrees(global_local_proj_ref.lon_rad);
+		hil_local_pos.ref_alt = global_local_alt0;
 		hil_local_pos.xy_valid = true;
 		hil_local_pos.z_valid = true;
 		hil_local_pos.v_xy_valid = true;
 		hil_local_pos.v_z_valid = true;
 		hil_local_pos.x = x;
 		hil_local_pos.y = y;
-		hil_local_pos.z = _hil_local_alt0 - hil_state.alt / 1000.0f;
+		hil_local_pos.z = global_local_alt0 - hil_state.alt / 1000.0f;
 		hil_local_pos.vx = hil_state.vx / 100.0f;
 		hil_local_pos.vy = hil_state.vy / 100.0f;
 		hil_local_pos.vz = hil_state.vz / 100.0f;

@@ -261,14 +261,8 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 
 	// hil map_ref data
-	struct map_projection_reference_s _hil_local_proj_ref {};
-
-	bool _hil_local_proj_inited{false};
-
-	double _hil_ref_lat{0};
-	double _hil_ref_lon{0};
-	float _hil_ref_alt{0.0f};
-	uint64_t _hil_ref_timestamp{0};
+	map_projection_reference_s	_global_local_proj_ref{};
+	float						_global_local_alt0{NAN};
 
 	vehicle_status_s _vehicle_status{};
 

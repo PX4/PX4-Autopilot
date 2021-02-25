@@ -166,6 +166,9 @@ private:
 	double _current_longitude{0};
 	float _current_altitude{0.f};
 
+	map_projection_reference_s _global_local_proj_ref{};
+	float                      _global_local_alt0{NAN};
+
 	perf_counter_t	_loop_perf;				///< loop performance counter
 
 	float	_hold_alt{0.0f};				///< hold altitude for altitude mode
