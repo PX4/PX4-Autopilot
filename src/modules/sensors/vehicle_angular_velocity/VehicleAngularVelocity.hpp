@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,6 +50,7 @@
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/sensor_gyro_fft.h>
 #include <uORB/topics/sensor_gyro_fifo.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_angular_acceleration.h>
@@ -66,22 +67,21 @@ public:
 	VehicleAngularVelocity();
 	~VehicleAngularVelocity() override;
 
+	void PrintStatus();
 	bool Start();
 	void Stop();
-
-	void PrintStatus();
 
 private:
 	void Run() override;
 
-	void ResetFilters(const matrix::Vector3f &angular_velocity, const matrix::Vector3f &angular_acceleration);
-	bool UpdateSampleRate();
-
+	void DisableDynamicNotchFFT();
 	void ParametersUpdate(bool force = false);
+	void Publish(const hrt_abstime &timestamp_sample);
+	void ResetFilters(const matrix::Vector3f &angular_velocity, const matrix::Vector3f &angular_acceleration);
 	void SensorBiasUpdate(bool force = false);
 	bool SensorSelectionUpdate(bool force = false);
-
-	void Publish(const hrt_abstime &timestamp_sample);
+	void UpdateDynamicNotchFFT(bool force = false);
+	bool UpdateSampleRate();
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
@@ -90,6 +90,9 @@ private:
 
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};
+#if !defined(CONSTRAINED_FLASH)
+	uORB::Subscription _sensor_gyro_fft_sub {ORB_ID(sensor_gyro_fft)};
+#endif // !CONSTRAINED_FLASH
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -118,6 +121,14 @@ private:
 	math::LowPassFilter2pArray _lp_filter_velocity[3] {{kInitialRateHz, 30.f}, {kInitialRateHz, 30.f}, {kInitialRateHz, 30.f}};
 	math::NotchFilterArray<float> _notch_filter_velocity[3] {};
 
+#if !defined(CONSTRAINED_FLASH)
+	static constexpr int MAX_NUM_FFT_PEAKS = sizeof(sensor_gyro_fft_s::peak_frequencies_x) / sizeof(
+				sensor_gyro_fft_s::peak_frequencies_x[0]);
+
+	math::NotchFilterArray<float> _dynamic_notch_filter[MAX_NUM_FFT_PEAKS][3] {};
+	bool _dynamic_notch_available{false};
+#endif // !CONSTRAINED_FLASH
+
 	// angular acceleration filter
 	math::LowPassFilter2p _lp_filter_acceleration[3] {{kInitialRateHz, 30.f}, {kInitialRateHz, 30.f}, {kInitialRateHz, 30.f}};
 
@@ -133,7 +144,8 @@ private:
 		(ParamFloat<px4::params::IMU_GYRO_NF_FREQ>) _param_imu_gyro_nf_freq,
 		(ParamFloat<px4::params::IMU_GYRO_NF_BW>) _param_imu_gyro_nf_bw,
 		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_ratemax,
-		(ParamFloat<px4::params::IMU_DGYRO_CUTOFF>) _param_imu_dgyro_cutoff
+		(ParamFloat<px4::params::IMU_DGYRO_CUTOFF>) _param_imu_dgyro_cutoff,
+		(ParamBool<px4::params::IMU_GYRO_DYN_NF>) _param_imu_gyro_dyn_nf
 	)
 };
 

@@ -121,3 +121,15 @@ PARAM_DEFINE_INT32(IMU_GYRO_RATEMAX, 400);
 * @group Sensors
 */
 PARAM_DEFINE_FLOAT(IMU_DGYRO_CUTOFF, 10.0f);
+
+/**
+* IMU gyro dynamic notch filtering
+*
+* Enable bank of dynamically updating notch filters.
+* Requires onboard FFT (IMU_GYRO_FFT_EN).
+*
+* @boolean
+* @reboot_required true
+* @group Sensors
+*/
+PARAM_DEFINE_INT32(IMU_GYRO_DYN_NF, 0);
