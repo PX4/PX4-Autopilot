@@ -77,14 +77,26 @@ public:
 	bool init();
 
 private:
-	static constexpr uint16_t FFT_LENGTH = 2048;
-
-	float EstimatePeakFrequency(q15_t fft[FFT_LENGTH * 2], uint8_t peak_index);
+	float EstimatePeakFrequency(q15_t fft[], uint8_t peak_index);
 	void Run() override;
 	bool SensorSelectionUpdate(bool force = false);
 	void VehicleIMUStatusUpdate();
 
-	static constexpr int MAX_SENSOR_COUNT = 3;
+	template<size_t N>
+	void AllocateBuffers()
+	{
+		_gyro_data_buffer_x = new q15_t[N];
+		_gyro_data_buffer_y = new q15_t[N];
+		_gyro_data_buffer_z = new q15_t[N];
+		_hanning_window = new q15_t[N];
+		_fft_input_buffer = new q15_t[N];
+		_fft_outupt_buffer = new q15_t[N * 2];
+	}
+
+	static constexpr int MAX_SENSOR_COUNT = 4;
+
+	static constexpr int MAX_NUM_PEAKS = sizeof(sensor_gyro_fft_s::peak_frequencies_x) / sizeof(
+			sensor_gyro_fft_s::peak_frequencies_x[0]);
 
 	uORB::Publication<sensor_gyro_fft_s> _sensor_gyro_fft_pub{ORB_ID(sensor_gyro_fft)};
 
@@ -104,22 +116,25 @@ private:
 
 	arm_rfft_instance_q15 _rfft_q15;
 
-	q15_t _gyro_data_buffer[3][FFT_LENGTH] {};
-	q15_t _hanning_window[FFT_LENGTH] {};
-	q15_t _fft_input_buffer[FFT_LENGTH] {};
-	q15_t _fft_outupt_buffer[FFT_LENGTH * 2] {};
+	q15_t *_gyro_data_buffer_x{nullptr};
+	q15_t *_gyro_data_buffer_y{nullptr};
+	q15_t *_gyro_data_buffer_z{nullptr};
+	q15_t *_hanning_window{nullptr};
+	q15_t *_fft_input_buffer{nullptr};
+	q15_t *_fft_outupt_buffer{nullptr};
 
 	float _gyro_sample_rate_hz{8000}; // 8 kHz default
+
+	float _fifo_last_scale{0};
 
 	int _fft_buffer_index[3] {};
 
 	unsigned _gyro_last_generation{0};
 
-	math::MedianFilter<float, 3> _median_filter[3] {};
-
 	sensor_gyro_fft_s _sensor_gyro_fft{};
 
 	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::IMU_GYRO_FFT_LEN>) _param_imu_gyro_fft_len,
 		(ParamFloat<px4::params::IMU_GYRO_FFT_MIN>) _param_imu_gyro_fft_min,
 		(ParamFloat<px4::params::IMU_GYRO_FFT_MAX>) _param_imu_gyro_fft_max
 	)
