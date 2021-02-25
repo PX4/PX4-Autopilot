@@ -46,10 +46,6 @@ bool ManualControl::update()
 {
 	bool ret = false;
 
-	_rc_available = _rc_allowed
-			&& _last_manual_control_setpoint.timestamp != 0
-			&& (hrt_elapsed_time(&_last_manual_control_setpoint.timestamp) < (_param_com_rc_loss_t.get() * 1_s));
-
 	if (_manual_control_setpoint_sub.updated()) {
 		manual_control_setpoint_s manual_control_setpoint;
 
@@ -59,6 +55,10 @@ bool ManualControl::update()
 
 		ret = true;
 	}
+
+	_rc_available = _rc_allowed
+			&& _manual_control_setpoint.timestamp != 0
+			&& (hrt_elapsed_time(&_manual_control_setpoint.timestamp) < (_param_com_rc_loss_t.get() * 1_s));
 
 	return ret && _rc_available;
 }
