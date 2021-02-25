@@ -207,13 +207,39 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 	// accel
 	if ((sensors.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL) {
 		for (int i = 0; i < ACCEL_COUNT_MAX; i++) {
-			if (_accel_stuck[i]) {
-				_px4_accel[i].update(time, _last_accel[i](0), _last_accel[i](1), _last_accel[i](2));
+			if (i == 0) {
+				// accel 0 is simulated FIFO
+				static constexpr float ACCEL_FIFO_SCALE = CONSTANTS_ONE_G / 2048.f;
+				static constexpr float ACCEL_FIFO_RANGE = 16.f * CONSTANTS_ONE_G;
 
-			} else if (!_accel_blocked[i]) {
-				_px4_accel[i].set_temperature(_sensors_temperature);
-				_px4_accel[i].update(time, sensors.xacc, sensors.yacc, sensors.zacc);
-				_last_accel[i] = matrix::Vector3f{sensors.xacc, sensors.yacc, sensors.zacc};
+				_px4_accel[i].set_scale(ACCEL_FIFO_SCALE);
+				_px4_accel[i].set_range(ACCEL_FIFO_RANGE);
+
+				if (_accel_stuck[i]) {
+					_px4_accel[i].updateFIFO(_last_accel_fifo);
+
+				} else if (!_accel_blocked[i]) {
+					_px4_accel[i].set_temperature(_sensors_temperature);
+
+					_last_accel_fifo.samples = 1;
+					_last_accel_fifo.dt = time - _last_accel_fifo.timestamp_sample;
+					_last_accel_fifo.timestamp_sample = time;
+					_last_accel_fifo.x[0] = sensors.xacc / ACCEL_FIFO_SCALE;
+					_last_accel_fifo.y[0] = sensors.yacc / ACCEL_FIFO_SCALE;
+					_last_accel_fifo.z[0] = sensors.zacc / ACCEL_FIFO_SCALE;
+
+					_px4_accel[i].updateFIFO(_last_accel_fifo);
+				}
+
+			} else {
+				if (_accel_stuck[i]) {
+					_px4_accel[i].update(time, _last_accel[i](0), _last_accel[i](1), _last_accel[i](2));
+
+				} else if (!_accel_blocked[i]) {
+					_px4_accel[i].set_temperature(_sensors_temperature);
+					_px4_accel[i].update(time, sensors.xacc, sensors.yacc, sensors.zacc);
+					_last_accel[i] = matrix::Vector3f{sensors.xacc, sensors.yacc, sensors.zacc};
+				}
 			}
 		}
 	}
@@ -221,13 +247,39 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 	// gyro
 	if ((sensors.fields_updated & SensorSource::GYRO) == SensorSource::GYRO) {
 		for (int i = 0; i < GYRO_COUNT_MAX; i++) {
-			if (_gyro_stuck[i]) {
-				_px4_gyro[i].update(time, _last_gyro[i](0), _last_gyro[i](1), _last_gyro[i](2));
+			if (i == 0) {
+				// gyro 0 is simulated FIFO
+				static constexpr float GYRO_FIFO_SCALE = math::radians(2000.f / 32768.f);
+				static constexpr float GYRO_FIFO_RANGE = math::radians(2000.f);
 
-			} else if (!_gyro_blocked[i]) {
-				_px4_gyro[i].set_temperature(_sensors_temperature);
-				_px4_gyro[i].update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
-				_last_gyro[i] = matrix::Vector3f{sensors.xgyro, sensors.ygyro, sensors.zgyro};
+				_px4_gyro[i].set_scale(GYRO_FIFO_SCALE);
+				_px4_gyro[i].set_range(GYRO_FIFO_RANGE);
+
+				if (_gyro_stuck[i]) {
+					_px4_gyro[i].updateFIFO(_last_gyro_fifo);
+
+				} else if (!_gyro_blocked[i]) {
+					_px4_gyro[i].set_temperature(_sensors_temperature);
+
+					_last_gyro_fifo.samples = 1;
+					_last_gyro_fifo.dt = time - _last_gyro_fifo.timestamp_sample;
+					_last_gyro_fifo.timestamp_sample = time;
+					_last_gyro_fifo.x[0] = sensors.xgyro / GYRO_FIFO_SCALE;
+					_last_gyro_fifo.y[0] = sensors.ygyro / GYRO_FIFO_SCALE;
+					_last_gyro_fifo.z[0] = sensors.zgyro / GYRO_FIFO_SCALE;
+
+					_px4_gyro[i].updateFIFO(_last_gyro_fifo);
+				}
+
+			} else {
+				if (_gyro_stuck[i]) {
+					_px4_gyro[i].update(time, _last_gyro[i](0), _last_gyro[i](1), _last_gyro[i](2));
+
+				} else if (!_gyro_blocked[i]) {
+					_px4_gyro[i].set_temperature(_sensors_temperature);
+					_px4_gyro[i].update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
+					_last_gyro[i] = matrix::Vector3f{sensors.xgyro, sensors.ygyro, sensors.zgyro};
+				}
 			}
 		}
 	}
