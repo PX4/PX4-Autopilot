@@ -265,9 +265,7 @@ public:
 #if defined(MAVLINK_UDP)
 	static Mavlink 		*get_instance_for_network_port(unsigned long port);
 
-	bool			broadcast_enabled() { return _mav_broadcast == BROADCAST_MODE_ON; }
-
-	bool			multicast_enabled() { return _mav_broadcast == BROADCAST_MODE_MULTICAST; }
+	bool			broadcast_enabled() { return _param_mav_broadcast.get() == BROADCAST_MODE_ON; }
 #endif // MAVLINK_UDP
 
 	/**
@@ -612,8 +610,6 @@ private:
 	hrt_abstime		_bytes_timestamp{0};
 
 #if defined(MAVLINK_UDP)
-	BROADCAST_MODE		_mav_broadcast {BROADCAST_MODE_OFF};
-
 	sockaddr_in		_myaddr {};
 	sockaddr_in		_src_addr {};
 	sockaddr_in		_bcast_addr {};
@@ -663,6 +659,9 @@ private:
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
 		(ParamBool<px4::params::MAV_USEHILGPS>) _param_mav_usehilgps,
 		(ParamBool<px4::params::MAV_FWDEXTSP>) _param_mav_fwdextsp,
+#if defined(MAVLINK_UDP)
+		(ParamInt<px4::params::MAV_BROADCAST>) _param_mav_broadcast,
+#endif // MAVLINK_UDP
 		(ParamBool<px4::params::MAV_HASH_CHK_EN>) _param_mav_hash_chk_en,
 		(ParamBool<px4::params::MAV_HB_FORW_EN>) _param_mav_hb_forw_en,
 		(ParamBool<px4::params::MAV_ODOM_LP>) _param_mav_odom_lp,

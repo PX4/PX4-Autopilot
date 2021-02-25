@@ -131,6 +131,19 @@ PARAM_DEFINE_INT32(MAV_USEHILGPS, 0);
 PARAM_DEFINE_INT32(MAV_FWDEXTSP, 1);
 
 /**
+ * Broadcast heartbeats on local network
+ *
+ * This allows a ground control station to automatically find the drone
+ * on the local network.
+ *
+ * @value 0 Never broadcast
+ * @value 1 Always broadcast
+ * @value 2 Only multicast
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_BROADCAST, 0);
+
+/**
  * Parameter hash check.
  *
  * Disabling the parameter hash check functionality will make the mavlink instance

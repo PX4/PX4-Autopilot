@@ -61,7 +61,6 @@
 #			[ TESTING ]
 #			[ LINKER_PREFIX <string> ]
 #			[ EMBEDDED_METADATA <string> ]
-#			[ ETHERNET ]
 #			)
 #
 #	Input:
@@ -87,7 +86,6 @@
 #		CONSTRAINED_MEMORY	: flag to enable constrained memory options (eg limit maximum number of uORB publications)
 #		TESTING			: flag to enable automatic inclusion of PX4 testing modules
 #		LINKER_PREFIX	: optional to prefix on the Linker script.
-#		ETHERNET		: flag to indicate that ethernet is enabled
 #
 #
 #	Example:
@@ -165,7 +163,6 @@ function(px4_add_board)
 			CONSTRAINED_FLASH
 			CONSTRAINED_MEMORY
 			TESTING
-			ETHERNET
 		REQUIRED
 			PLATFORM
 			VENDOR
@@ -270,10 +267,6 @@ function(px4_add_board)
 
 	if(TESTING)
 		set(PX4_TESTING "1" CACHE INTERNAL "testing enabled" FORCE)
-	endif()
-
-	if(ETHERNET)
-		set(PX4_ETHERNET "1" CACHE INTERNAL "ethernet enabled" FORCE)
 	endif()
 
 	if(LINKER_PREFIX)
