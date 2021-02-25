@@ -65,6 +65,9 @@
 
 #include "libcancl/pnp.h"
 #include "libcancl/registerinterface.h"
+
+#include "boot_app_shared.h"
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -76,6 +79,23 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
+/*
+ * This is the AppImageDescriptor used
+ * by the make_can_boot_descriptor.py tool to set
+ * the application image's descriptor so that the
+ * uavcan bootloader has the ability to validate the
+ * image crc, size etc of this application
+*/
+boot_app_shared_section app_descriptor_t AppDescriptor = {
+	.signature = APP_DESCRIPTOR_SIGNATURE,
+	.image_crc = 0,
+	.image_size = 0,
+	.git_hash  = 0,
+	.major_version = APP_VERSION_MAJOR,
+	.minor_version = APP_VERSION_MINOR,
+	.board_id = HW_VERSION_MAJOR << 8 | HW_VERSION_MINOR,
+	.reserved = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }
+};
 
 O1HeapInstance *my_allocator;
 static uint8_t uavcan_heap[O1_HEAP_SIZE]

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,27 +30,54 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#pragma once
-/*
- * This file is a shim to bridge to nuttx_v3
- */
 
-__BEGIN_DECLS
-
-#    define PX4_CPU_UUID_BYTE_LENGTH                12
-#    define PX4_CPU_UUID_WORD32_LENGTH              (PX4_CPU_UUID_BYTE_LENGTH/sizeof(uint32_t))
-
-/* The mfguid will be an array of bytes with
- * MSD @ index 0 - LSD @ index PX4_CPU_MFGUID_BYTE_LENGTH-1
+/**
+ * @file Battery.hpp
  *
- * It will be converted to a string with the MSD on left and LSD on the right most position.
+ * Defines basic functionality of UAVCAN v1 Battery subscription
+ *
+ * @author Jacob Crabill <jacob@flyvoly.com>
  */
-#    define PX4_CPU_MFGUID_BYTE_LENGTH              PX4_CPU_UUID_BYTE_LENGTH
 
-/*                                                  Separator    nnn:nnn:nnnn     2 char per byte           term */
-#    define PX4_CPU_UUID_WORD32_FORMAT_SIZE         (PX4_CPU_UUID_WORD32_LENGTH-1+(2*PX4_CPU_UUID_BYTE_LENGTH)+1)
-#    define PX4_CPU_MFGUID_FORMAT_SIZE              ((2*PX4_CPU_MFGUID_BYTE_LENGTH)+1)
+#pragma once
 
+// DS-15 Specification Messages
+#include <reg/drone/service/battery/Parameters_0_1.h>
+#include <reg/drone/service/battery/Status_0_1.h>
 
-#include <arch/board/board.h>
-__END_DECLS
+#include "Subscriber.hpp"
+
+class UavcanBmsSubscriber : public UavcanSubscriber
+{
+public:
+	UavcanBmsSubscriber(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
+		UavcanSubscriber(ins, pmgr, "bms", instance) { };
+
+	void subscribe() override
+	{
+		// Subscribe to messages reg.drone.service.battery.Status.0.1
+		canardRxSubscribe(&_canard_instance,
+				  CanardTransferKindMessage,
+				  _port_id,
+				  reg_drone_service_battery_Status_0_1_EXTENT_BYTES_,
+				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
+				  &_canard_sub);
+	};
+
+	void callback(const CanardTransfer &receive) override
+	{
+		PX4_INFO("BmsCallback");
+
+		reg_drone_service_battery_Status_0_1 bat {};
+		size_t bat_size_in_bytes = receive.payload_size;
+		reg_drone_service_battery_Status_0_1_deserialize_(&bat, (const uint8_t *)receive.payload, &bat_size_in_bytes);
+
+		uavcan_si_unit_voltage_Scalar_1_0 V_Min = bat.cell_voltage_min_max[0];
+		uavcan_si_unit_voltage_Scalar_1_0 V_Max = bat.cell_voltage_min_max[1];
+		double vmin = static_cast<double>(V_Min.volt);
+		double vmax = static_cast<double>(V_Max.volt);
+		PX4_INFO("Min voltage: %f, Max Voltage: %f", vmin, vmax);
+		/// do something with the data
+	};
+
+};

@@ -31,9 +31,9 @@
 #
 ############################################################################
 
+add_subdirectory(arch/${PX4_CHIP_MANUFACTURER})
+
 px4_add_library(canbootloader
-	arch/stm32/board_identity.c
-	arch/stm32/drivers/can/driver.c
 	common/nuttx_stubs.c
 	fs/flash.c
 	protocol/uavcan.c
@@ -44,9 +44,12 @@ px4_add_library(canbootloader
 
 include_directories(include)
 target_include_directories(canbootloader INTERFACE include)
+
 target_compile_options(canbootloader PRIVATE -Wno-error)
+target_compile_options(arch_canbootloader PRIVATE -Wno-error)
+
 target_link_libraries(canbootloader
 	PRIVATE
 		drivers_bootloaders
-		arch_watchdog_iwdg
+		arch_canbootloader
 )
