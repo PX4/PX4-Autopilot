@@ -33,3 +33,6 @@
 #pragma once
 
 #define px4_arch_gpiosetevent(pinset,r,f,e,fp,a) -1
+
+#define px4_udelay(usec) px4_usleep(usec)
+#define px4_mdelay(msec) px4_msleep(msec)
