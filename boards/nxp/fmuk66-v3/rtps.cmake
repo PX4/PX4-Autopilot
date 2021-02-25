@@ -45,7 +45,6 @@ px4_add_board(
 		rc_input
 		roboclaw
 		safety_button
-		tap_esc
 		telemetry # all available telemetry drivers
 		#test_ppm # NOT Portable YET
 		tone_alarm

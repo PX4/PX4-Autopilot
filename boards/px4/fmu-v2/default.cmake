@@ -60,7 +60,6 @@ px4_add_board(
 		pwm_out
 		px4io
 		#roboclaw
-		#tap_esc
 		#telemetry # all available telemetry drivers
 		#test_ppm
 		tone_alarm
