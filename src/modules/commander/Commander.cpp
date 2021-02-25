@@ -2057,61 +2057,7 @@ Commander::run()
 		}
 
 		/* start mission result check */
-		if (_mission_result_sub.updated()) {
-			const mission_result_s &mission_result = _mission_result_sub.get();
-
-			const auto prev_mission_instance_count = mission_result.instance_count;
-			_mission_result_sub.update();
-
-			// if mission_result is valid for the current mission
-			const bool mission_result_ok = (mission_result.timestamp > _boot_timestamp)
-						       && (mission_result.instance_count > 0);
-
-			_status_flags.condition_auto_mission_available = mission_result_ok && mission_result.valid;
-
-			if (mission_result_ok) {
-				if (_status.mission_failure != mission_result.failure) {
-					_status.mission_failure = mission_result.failure;
-					_status_changed = true;
-
-					if (_status.mission_failure) {
-						mavlink_log_critical(&_mavlink_log_pub, "Mission cannot be completed");
-					}
-				}
-
-				/* Only evaluate mission state if home is set */
-				if (_status_flags.condition_home_position_valid &&
-				    (prev_mission_instance_count != mission_result.instance_count)) {
-
-					if (!_status_flags.condition_auto_mission_available) {
-						/* the mission is invalid */
-						tune_mission_fail(true);
-
-					} else if (mission_result.warning) {
-						/* the mission has a warning */
-						tune_mission_warn(true);
-
-					} else {
-						/* the mission is valid */
-						tune_mission_ok(true);
-					}
-				}
-			}
-
-			// Transition main state to loiter or auto-mission after takeoff is completed.
-			if (_armed.armed && !_land_detector.landed
-			    && (_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF)
-			    && (mission_result.timestamp >= _status.nav_state_timestamp)
-			    && mission_result.finished) {
-
-				if ((_param_takeoff_finished_action.get() == 1) && _status_flags.condition_auto_mission_available) {
-					main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_MISSION, _status_flags, _internal_state);
-
-				} else {
-					main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _status_flags, _internal_state);
-				}
-			}
-		}
+		check_mission_result();
 
 		/* start geofence result check */
 		_geofence_result_sub.update(&_geofence_result);
@@ -2769,6 +2715,66 @@ Commander::get_circuit_breaker_params()
 			CBRK_VELPOSERR_KEY);
 	_status_flags.circuit_breaker_vtol_fw_arming_check = circuit_breaker_enabled_by_val(_param_cbrk_vtolarming.get(),
 			CBRK_VTOLARMING_KEY);
+}
+
+void
+Commander::check_mission_result()
+{
+	if (_mission_result_sub.updated()) {
+		const mission_result_s &mission_result = _mission_result_sub.get();
+
+		const auto prev_mission_instance_count = mission_result.instance_count;
+		_mission_result_sub.update();
+
+		// if mission_result is valid for the current mission
+		const bool mission_result_ok = (mission_result.timestamp > _boot_timestamp)
+					       && (mission_result.instance_count > 0);
+
+		_status_flags.condition_auto_mission_available = mission_result_ok && mission_result.valid;
+
+		if (mission_result_ok) {
+			if (_status.mission_failure != mission_result.failure) {
+				_status.mission_failure = mission_result.failure;
+				_status_changed = true;
+
+				if (_status.mission_failure) {
+					mavlink_log_critical(&_mavlink_log_pub, "Mission cannot be completed");
+				}
+			}
+
+			/* Only evaluate mission state if home is set */
+			if (_status_flags.condition_home_position_valid &&
+			    (prev_mission_instance_count != mission_result.instance_count)) {
+
+				if (!_status_flags.condition_auto_mission_available) {
+					/* the mission is invalid */
+					tune_mission_fail(true);
+
+				} else if (mission_result.warning) {
+					/* the mission has a warning */
+					tune_mission_warn(true);
+
+				} else {
+					/* the mission is valid */
+					tune_mission_ok(true);
+				}
+			}
+		}
+
+		// Transition main state to loiter or auto-mission after takeoff is completed.
+		if (_armed.armed && !_land_detector.landed
+		    && (_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF)
+		    && (mission_result.timestamp >= _status.nav_state_timestamp)
+		    && mission_result.finished) {
+
+			if ((_param_takeoff_finished_action.get() == 1) && _status_flags.condition_auto_mission_available) {
+				main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_MISSION, _status_flags, &_internal_state);
+
+			} else {
+				main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _status_flags, &_internal_state);
+			}
+		}
+	}
 }
 
 void
