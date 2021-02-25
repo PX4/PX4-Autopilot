@@ -46,7 +46,6 @@ px4_add_board(
 		pwm_out_sim
 		pwm_out
 		#roboclaw
-		#tap_esc
 		rc_input
 		telemetry # all available telemetry drivers
 		#test_ppm

@@ -144,11 +144,6 @@ then
 		set OUTPUT_DEV /dev/uavcan/esc
 	fi
 
-	if [ $OUTPUT_MODE = tap_esc ]
-	then
-		set OUTPUT_DEV /dev/tap_esc
-	fi
-
 	if mixer load ${OUTPUT_DEV} ${MIXER_FILE}
 	then
 		echo "INFO  [init] Mixer: ${MIXER_FILE} on ${OUTPUT_DEV}"
