@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,53 +30,28 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#ifdef CONFIG_ARCH_BOARD_BEAGLEBONE_BLUE
 
-#include <fcntl.h>
-#include <errno.h>
-#include <px4_platform_common/log.h>
+#pragma once
 
-#include <robotcontrol.h>
-#include <board_config.h>
+#include <stdint.h>
 
-#include "bbblue_pwm_rc.h"
-
-using namespace linux_pwm_out;
-
-BBBlueRcPWMOut::BBBlueRcPWMOut(int max_num_outputs) : _num_outputs(max_num_outputs)
+namespace pwm_out
 {
-	if (_num_outputs > MAX_NUM_PWM) {
-		PX4_WARN("number of outputs too large. Setting to %i", MAX_NUM_PWM);
-		_num_outputs = MAX_NUM_PWM;
-	}
-}
 
-BBBlueRcPWMOut::~BBBlueRcPWMOut()
+/**
+ ** class PWMOutBase
+ * common abstract PWM output base class
+ */
+class PWMOutBase
 {
-	rc_cleaning();
-}
+public:
 
-int BBBlueRcPWMOut::init()
-{
-	rc_init();
+	virtual ~PWMOutBase() {}
 
-	return 0;
-}
+	virtual int init() = 0;
 
-int BBBlueRcPWMOut::send_output_pwm(const uint16_t *pwm, int num_outputs)
-{
-	if (num_outputs > _num_outputs) {
-		num_outputs = _num_outputs;
-	}
+	virtual int send_output_pwm(const uint16_t *pwm, int num_outputs) = 0;
+};
 
-	int ret = 0;
 
-	// pwm[ch] is duty_cycle in us
-	for (int ch = 0; ch < num_outputs; ++ch) {
-		ret += rc_servo_send_pulse_us(ch + 1, pwm[ch]); // converts to 1-based channel #
-	}
-
-	return ret;
-}
-
-#endif  // CONFIG_ARCH_BOARD_BEAGLEBONE_BLUE
+} /* namespace pwm_out */
