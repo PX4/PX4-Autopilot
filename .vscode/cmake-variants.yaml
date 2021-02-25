@@ -116,11 +116,6 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: holybro_durandal-v1_default
-    intel_aerofc-v1_default:
-      short: intel_aerofc-v1
-      buildType: MinSizeRel
-      settings:
-        CONFIG: intel_aerofc-v1_default
     modalai_fc-v1_default:
       short: modalai_fc-v1
       buildType: MinSizeRel
