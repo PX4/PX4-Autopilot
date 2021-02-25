@@ -30,18 +30,22 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#ifndef MODULE_NAME
+#define MODULE_NAME "navio_sysfs_pwm_out"
+#endif
 
-#include "navio_sysfs.h"
+#include "board_pwm_out.h"
 
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
 #include <px4_platform_common/log.h>
 
-using namespace linux_pwm_out;
+using namespace pwm_out;
 
-NavioSysfsPWMOut::NavioSysfsPWMOut(const char *device, int max_num_outputs)
-	: _device(device)
+const char NavioSysfsPWMOut::_device[] = "/sys/class/pwm/pwmchip0";
+
+NavioSysfsPWMOut::NavioSysfsPWMOut(int max_num_outputs)
 {
 	if (max_num_outputs > MAX_NUM_PWM) {
 		PX4_WARN("number of outputs too large. Setting to %i", MAX_NUM_PWM);

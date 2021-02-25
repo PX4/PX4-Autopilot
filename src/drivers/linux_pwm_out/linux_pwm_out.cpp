@@ -58,22 +58,16 @@
 #include <output_limit/output_limit.h>
 #include <perf/perf_counter.h>
 
-#include "common.h"
-#include "navio_sysfs.h"
-#include "PCA9685.h"
-#include "ocpoc_mmap.h"
-#include "bbblue_pwm_rc.h"
+#include <board_pwm_out.h>
 
 using namespace time_literals;
 
-namespace linux_pwm_out
+namespace pwm_out
 {
 static px4_task_t _task_handle = -1;
 volatile bool _task_should_exit = false;
 static bool _is_running = false;
 
-static char _device[64] = "/sys/class/pwm/pwmchip0";
-static char _protocol[64] = "navio";
 static int _max_num_outputs = 8; ///< maximum number of outputs the driver should use
 static char _mixer_filename[64] = "etc/mixers/quad_x.main.mix";
 
@@ -228,27 +222,7 @@ void task_main(int argc, char *argv[])
 		return;
 	}
 
-	PWMOutBase *pwm_out;
-
-	if (strcmp(_protocol, "pca9685") == 0) {
-		PX4_INFO("Starting PWM output in PCA9685 mode");
-		pwm_out = new PCA9685();
-
-	} else if (strcmp(_protocol, "ocpoc_mmap") == 0) {
-		PX4_INFO("Starting PWM output in ocpoc_mmap mode");
-		pwm_out = new OcpocMmapPWMOut(_max_num_outputs);
-
-#ifdef CONFIG_ARCH_BOARD_BEAGLEBONE_BLUE
-
-	} else if (strcmp(_protocol, "bbblue_rc") == 0) {
-		PX4_INFO("Starting PWM output in bbblue_rc mode");
-		pwm_out = new BBBlueRcPWMOut(_max_num_outputs);
-#endif
-
-	} else { /* navio */
-		PX4_INFO("Starting PWM output in Navio mode");
-		pwm_out = new NavioSysfsPWMOut(_device, _max_num_outputs);
-	}
+	PWMOutBase *pwm_out = new BOARD_PWM_OUT_IMPL(_max_num_outputs);
 
 	if (pwm_out->init() != 0) {
 		PX4_ERR("PWM output init failed");
@@ -494,20 +468,16 @@ void stop()
 
 void usage()
 {
-	PX4_INFO("usage: pwm_out start [-d pwmdevice] [-m mixerfile] [-p protocol]");
-	PX4_INFO("       -d pwmdevice : sysfs device for pwm generation (only for Navio)");
-	PX4_INFO("                       (default /sys/class/pwm/pwmchip0)");
+	PX4_INFO("usage: linux_pwm_out start [-m mixerfile]");
 	PX4_INFO("       -m mixerfile : path to mixerfile");
 	PX4_INFO("                       (default etc/mixers/quad_x.main.mix)");
-	PX4_INFO("       -p protocol : driver output protocol (navio|pca9685|ocpoc_mmap|bbblue_rc)");
-	PX4_INFO("                       (default is navio)");
 	PX4_INFO("       -n num_outputs : maximum number of outputs the driver should use");
 	PX4_INFO("                       (default is 8)");
-	PX4_INFO("       pwm_out stop");
-	PX4_INFO("       pwm_out status");
+	PX4_INFO("       linux_pwm_out stop");
+	PX4_INFO("       linux_pwm_out status");
 }
 
-} // namespace linux_pwm_out
+} // namespace pwm_out
 
 /* driver 'main' command */
 extern "C" __EXPORT int linux_pwm_out_main(int argc, char *argv[]);
@@ -527,18 +497,11 @@ int linux_pwm_out_main(int argc, char *argv[])
 		return 1;
 	}
 
-	while ((ch = px4_getopt(argc, argv, "d:m:p:n:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "m:n:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'd':
-			strncpy(linux_pwm_out::_device, myoptarg, sizeof(linux_pwm_out::_device) - 1);
-			break;
 
 		case 'm':
-			strncpy(linux_pwm_out::_mixer_filename, myoptarg, sizeof(linux_pwm_out::_mixer_filename) - 1);
-			break;
-
-		case 'p':
-			strncpy(linux_pwm_out::_protocol, myoptarg, sizeof(linux_pwm_out::_protocol) - 1);
+			strncpy(pwm_out::_mixer_filename, myoptarg, sizeof(pwm_out::_mixer_filename) - 1);
 			break;
 
 		case 'n': {
@@ -552,44 +515,44 @@ int linux_pwm_out_main(int argc, char *argv[])
 					max_num = actuator_outputs_s::NUM_ACTUATOR_OUTPUTS;
 				}
 
-				linux_pwm_out::_max_num_outputs = max_num;
+				pwm_out::_max_num_outputs = max_num;
 			}
 			break;
 		}
 	}
 
 	/** gets the parameters for the esc's pwm */
-	param_get(param_find("PWM_MAIN_DISARM"), &linux_pwm_out::_pwm_disarmed);
-	param_get(param_find("PWM_MAIN_MIN"), &linux_pwm_out::_pwm_min);
-	param_get(param_find("PWM_MAIN_MAX"), &linux_pwm_out::_pwm_max);
+	param_get(param_find("PWM_MAIN_DISARM"), &pwm_out::_pwm_disarmed);
+	param_get(param_find("PWM_MAIN_MIN"), &pwm_out::_pwm_min);
+	param_get(param_find("PWM_MAIN_MAX"), &pwm_out::_pwm_max);
 
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(verb, "start")) {
-		if (linux_pwm_out::_is_running) {
+		if (pwm_out::_is_running) {
 			PX4_WARN("pwm_out already running");
 			return 1;
 		}
 
-		linux_pwm_out::start();
+		pwm_out::start();
 	}
 
 	else if (!strcmp(verb, "stop")) {
-		if (!linux_pwm_out::_is_running) {
+		if (!pwm_out::_is_running) {
 			PX4_WARN("pwm_out is not running");
 			return 1;
 		}
 
-		linux_pwm_out::stop();
+		pwm_out::stop();
 	}
 
 	else if (!strcmp(verb, "status")) {
-		PX4_WARN("pwm_out is %s", linux_pwm_out::_is_running ? "running" : "not running");
+		PX4_WARN("pwm_out is %s", pwm_out::_is_running ? "running" : "not running");
 		return 0;
 
 	} else {
-		linux_pwm_out::usage();
+		pwm_out::usage();
 		return 1;
 	}
 

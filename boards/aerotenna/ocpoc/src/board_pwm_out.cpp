@@ -31,7 +31,11 @@
  *
  ****************************************************************************/
 
-#include "ocpoc_mmap.h"
+#ifndef MODULE_NAME
+#define MODULE_NAME "ocpoc_pwm_out"
+#endif
+
+#include "board_pwm_out.h"
 
 #include <px4_platform_common/log.h>
 
@@ -39,7 +43,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-using namespace linux_pwm_out;
+using namespace pwm_out;
 
 #define RCOUT_ZYNQ_PWM_BASE	    0x43c00000
 static const int TICK_PER_US   =  50;

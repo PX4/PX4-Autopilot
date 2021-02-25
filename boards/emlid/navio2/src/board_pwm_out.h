@@ -33,43 +33,37 @@
 
 #pragma once
 
-#include "common.h"
+#include <px4_platform/pwm_out_base.h>
 
-namespace linux_pwm_out
+#define BOARD_PWM_OUT_IMPL NavioSysfsPWMOut
+
+namespace pwm_out
 {
 
 /**
- ** class OcpocMmapPWMOut
- * PWM output class for Aerotenna OcPoC via mmap
+ ** class NavioSysfsPWMOut
+ * PWM output class for Navio Sysfs
  */
-class OcpocMmapPWMOut : public PWMOutBase
+class NavioSysfsPWMOut : public PWMOutBase
 {
 public:
-	OcpocMmapPWMOut(int max_num_outputs);
-	virtual ~OcpocMmapPWMOut();
+	NavioSysfsPWMOut(int max_num_outputs);
+	virtual ~NavioSysfsPWMOut();
 
 	int init() override;
 
 	int send_output_pwm(const uint16_t *pwm, int num_outputs) override;
 
 private:
-	static unsigned long freq2tick(uint16_t freq_hz);
+	int pwm_write_sysfs(char *path, int value);
 
-	static constexpr int MAX_ZYNQ_PWMS = 8;	/**< maximum number of pwm channels */
+	static const int MAX_NUM_PWM = 14;
+	static const int FREQUENCY_PWM = 400;
 
-	// Period|Hi 32 bits each
-	struct s_period_hi {
-		uint32_t period;
-		uint32_t hi;
-	};
+	int _pwm_fd[MAX_NUM_PWM];
+	int _pwm_num;
 
-	struct pwm_cmd {
-		struct s_period_hi periodhi[MAX_ZYNQ_PWMS];
-	};
-
-	volatile struct pwm_cmd *_shared_mem_cmd = nullptr;
-	static constexpr const char *_device = "/dev/mem";
-	int _num_outputs;
+	static const char _device[];
 };
 
 }
