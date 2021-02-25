@@ -36,8 +36,9 @@
 #include <lib/sensor_calibration/Gyroscope.hpp>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
-#include <lib/mathlib/math/filter/LowPassFilter2pVector3f.hpp>
-#include <lib/mathlib/math/filter/NotchFilter.hpp>
+#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
+#include <lib/mathlib/math/filter/LowPassFilter2pArray.hpp>
+#include <lib/mathlib/math/filter/NotchFilterArray.hpp>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
@@ -49,6 +50,7 @@
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/sensor_gyro_fifo.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_angular_acceleration.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -72,15 +74,19 @@ public:
 private:
 	void Run() override;
 
-	void CheckAndUpdateFilters();
+	void ResetFilters(const matrix::Vector3f &angular_velocity, const matrix::Vector3f &angular_acceleration);
+	bool UpdateSampleRate();
+
 	void ParametersUpdate(bool force = false);
 	void SensorBiasUpdate(bool force = false);
 	bool SensorSelectionUpdate(bool force = false);
 
+	void Publish(const hrt_abstime &timestamp_sample);
+
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
 	uORB::Publication<vehicle_angular_acceleration_s> _vehicle_angular_acceleration_pub{ORB_ID(vehicle_angular_acceleration)};
-	uORB::Publication<vehicle_angular_velocity_s> _vehicle_angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
+	uORB::Publication<vehicle_angular_velocity_s>     _vehicle_angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
 
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};
@@ -89,32 +95,44 @@ private:
 
 	uORB::SubscriptionCallbackWorkItem _sensor_selection_sub{this, ORB_ID(sensor_selection)};
 	uORB::SubscriptionCallbackWorkItem _sensor_sub{this, ORB_ID(sensor_gyro)};
+	uORB::SubscriptionCallbackWorkItem _sensor_fifo_sub{this, ORB_ID(sensor_gyro_fifo)};
 
 	calibration::Gyroscope _calibration{};
 
 	matrix::Vector3f _bias{};
 
-	matrix::Vector3f _angular_acceleration_prev{};
-	matrix::Vector3f _angular_velocity_prev{};
-	hrt_abstime _timestamp_sample_prev{0};
+	matrix::Vector3f _angular_velocity{};
+	matrix::Vector3f _angular_acceleration{};
 
+	matrix::Vector3f _angular_velocity_prev{};
+	hrt_abstime _timestamp_sample_last{0};
+
+	hrt_abstime _publish_interval_min_us{0};
 	hrt_abstime _last_publish{0};
+
+	float _filter_sample_rate_hz{0.f};
+
 	static constexpr const float kInitialRateHz{1000.f}; /**< sensor update rate used for initialization */
-	float _filter_sample_rate{kInitialRateHz};
 
 	// angular velocity filters
-	math::LowPassFilter2pVector3f _lp_filter_velocity{kInitialRateHz, 30.f};
-	math::NotchFilter<matrix::Vector3f> _notch_filter_velocity{};
+	math::LowPassFilter2pArray _lp_filter_velocity[3] {{kInitialRateHz, 30.f}, {kInitialRateHz, 30.f}, {kInitialRateHz, 30.f}};
+	math::NotchFilterArray<float> _notch_filter_velocity[3] {};
 
 	// angular acceleration filter
-	math::LowPassFilter2pVector3f _lp_filter_acceleration{kInitialRateHz, 30.f};
+	math::LowPassFilter2p _lp_filter_acceleration[3] {{kInitialRateHz, 30.f}, {kInitialRateHz, 30.f}, {kInitialRateHz, 30.f}};
+
+	uint32_t _selected_sensor_device_id{0};
+
+	float _fifo_last_scale{0};
+
+	bool _reset_filters{true};
+	bool _fifo_available{false};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,
 		(ParamFloat<px4::params::IMU_GYRO_NF_FREQ>) _param_imu_gyro_nf_freq,
 		(ParamFloat<px4::params::IMU_GYRO_NF_BW>) _param_imu_gyro_nf_bw,
-		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_rate_max,
-
+		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_ratemax,
 		(ParamFloat<px4::params::IMU_DGYRO_CUTOFF>) _param_imu_dgyro_cutoff
 	)
 };
