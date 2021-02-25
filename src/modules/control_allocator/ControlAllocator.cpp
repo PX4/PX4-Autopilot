@@ -338,11 +338,6 @@ ControlAllocator::Run()
 		// Publish actuator setpoint and allocator status
 		publish_actuator_setpoint();
 		publish_control_allocator_status();
-
-		// Publish on legacy topics for compatibility with
-		// the current mixer system and multicopter controller
-		// TODO: remove
-		// publish_legacy_actuator_controls();
 	}
 
 	perf_end(_loop_perf);
