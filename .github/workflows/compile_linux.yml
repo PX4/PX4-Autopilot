@@ -15,7 +15,6 @@ jobs:
     strategy:
       matrix:
         config: [
-          aerotenna_ocpoc_default,
           beaglebone_blue_default,
           emlid_navio2_default,
           px4_raspberrypi_default,
