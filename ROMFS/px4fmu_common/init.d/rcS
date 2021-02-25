@@ -23,7 +23,6 @@ set +e
 set R /
 set AUTOCNF no
 set AUX_MODE pwm
-set DATAMAN_OPT ""
 set FCONFIG /fs/microsd/etc/config.txt
 set FEXTRAS /fs/microsd/etc/extras.txt
 set FMU_MODE pwm
@@ -211,7 +210,7 @@ else
 	# Waypoint storage.
 	# REBOOTWORK this needs to start in parallel.
 	#
-	dataman start $DATAMAN_OPT
+	dataman start
 
 	#
 	# Start the socket communication send_event handler.
@@ -559,7 +558,6 @@ fi
 unset R
 unset AUTOCNF
 unset AUX_MODE
-unset DATAMAN_OPT
 unset FCONFIG
 unset FEXTRAS
 unset FMU_MODE
