@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,32 +33,44 @@
 
 #pragma once
 
-#include "common.h"
+#include <px4_platform/pwm_out_base.h>
 
-namespace linux_pwm_out
+#define BOARD_PWM_OUT_IMPL OcpocMmapPWMOut
+
+namespace pwm_out
 {
 
 /**
- ** class BBBlueRcPWMOut
- * PWM output class for BeagleBone Blue with Robotics Cape Library
- *
- * Ref: https://github.com/StrawsonDesign/Robotics_Cape_Installer
- *      http://www.strawsondesign.com/#!manual-servos
+ ** class OcpocMmapPWMOut
+ * PWM output class for Aerotenna OcPoC via mmap
  */
-class BBBlueRcPWMOut : public PWMOutBase
+class OcpocMmapPWMOut : public PWMOutBase
 {
 public:
-	BBBlueRcPWMOut(int max_num_outputs);
-	virtual ~BBBlueRcPWMOut();
+	OcpocMmapPWMOut(int max_num_outputs);
+	virtual ~OcpocMmapPWMOut();
 
 	int init() override;
 
 	int send_output_pwm(const uint16_t *pwm, int num_outputs) override;
 
 private:
-	static const int MAX_NUM_PWM = 8;
-	static const int MIN_FREQUENCY_PWM = 40;
+	static unsigned long freq2tick(uint16_t freq_hz);
 
+	static constexpr int MAX_ZYNQ_PWMS = 8;	/**< maximum number of pwm channels */
+
+	// Period|Hi 32 bits each
+	struct s_period_hi {
+		uint32_t period;
+		uint32_t hi;
+	};
+
+	struct pwm_cmd {
+		struct s_period_hi periodhi[MAX_ZYNQ_PWMS];
+	};
+
+	volatile struct pwm_cmd *_shared_mem_cmd = nullptr;
+	static constexpr const char *_device = "/dev/mem";
 	int _num_outputs;
 };
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,35 +33,35 @@
 
 #pragma once
 
-#include "common.h"
+#include <px4_platform/pwm_out_base.h>
 
-namespace linux_pwm_out
+#define BOARD_PWM_OUT_IMPL BBBlueRcPWMOut
+
+namespace pwm_out
 {
 
 /**
- ** class NavioSysfsPWMOut
- * PWM output class for Navio Sysfs
+ ** class BBBlueRcPWMOut
+ * PWM output class for BeagleBone Blue with Robotics Cape Library
+ *
+ * Ref: https://github.com/StrawsonDesign/Robotics_Cape_Installer
+ *      http://www.strawsondesign.com/#!manual-servos
  */
-class NavioSysfsPWMOut : public PWMOutBase
+class BBBlueRcPWMOut : public PWMOutBase
 {
 public:
-	NavioSysfsPWMOut(const char *device, int max_num_outputs);
-	virtual ~NavioSysfsPWMOut();
+	BBBlueRcPWMOut(int max_num_outputs);
+	virtual ~BBBlueRcPWMOut();
 
 	int init() override;
 
 	int send_output_pwm(const uint16_t *pwm, int num_outputs) override;
 
 private:
-	int pwm_write_sysfs(char *path, int value);
+	static const int MAX_NUM_PWM = 8;
+	static const int MIN_FREQUENCY_PWM = 40;
 
-	static const int MAX_NUM_PWM = 14;
-	static const int FREQUENCY_PWM = 400;
-
-	int _pwm_fd[MAX_NUM_PWM];
-	int _pwm_num;
-
-	const char *_device;
+	int _num_outputs;
 };
 
 }
