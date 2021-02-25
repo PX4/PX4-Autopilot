@@ -10,7 +10,11 @@ serial_config:
             if param compare MAV_${i}_BROADCAST 1
             then
                 set MAV_ARGS "${MAV_ARGS} -p"
-            fi        
+            fi
+            if param compare MAV_${i}_BROADCAST 2
+            then
+                set MAV_ARGS "${MAV_ARGS} -c"
+            fi
         fi
         if param compare MAV_${i}_FORWARD 1
         then

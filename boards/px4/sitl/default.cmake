@@ -7,6 +7,7 @@ px4_add_board(
 	LABEL default
 	EMBEDDED_METADATA parameters
 	TESTING
+	ETHERNET
 	DRIVERS
 		#barometer # all available barometer drivers
 		#batt_smbus
