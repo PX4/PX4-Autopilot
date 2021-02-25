@@ -265,12 +265,11 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 
 	// differential pressure
 	if ((sensors.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS && !_airspeed_blocked) {
-		differential_pressure_s report{};
-		report.timestamp = time;
+		sensor_differential_pressure_s report{};
+		report.timestamp_sample = time;
 		report.temperature = _sensors_temperature;
-		report.differential_pressure_filtered_pa = sensors.diff_pressure * 100.0f; // convert from millibar to bar;
-		report.differential_pressure_raw_pa = sensors.diff_pressure * 100.0f; // convert from millibar to bar;
-
+		report.differential_pressure_pa = sensors.diff_pressure * 100.0f; // convert from millibar to bar;
+		report.timestamp = hrt_absolute_time();
 		_differential_pressure_pub.publish(report);
 	}
 }

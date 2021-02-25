@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,76 +30,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
-/**
- * Airspeed sensor compensation model for the SDP3x
- *
- * Model with Pitot
- * 		CAL_AIR_TUBED_MM: Not used, 1.5 mm tubes assumed.
- * 		CAL_AIR_TUBELEN: Length of the tubes connecting the pitot to the sensor.
- * Model without Pitot (1.5 mm tubes)
- * 		CAL_AIR_TUBED_MM: Not used, 1.5 mm tubes assumed.
- * 		CAL_AIR_TUBELEN: Length of the tubes connecting the pitot to the sensor.
- * Tube Pressure Drop
- * 		CAL_AIR_TUBED_MM: Diameter in mm of the pitot and tubes, must have the same diameter.
- * 		CAL_AIR_TUBELEN: Length of the tubes connecting the pitot to the sensor and the static + dynamic port length of the pitot.
- *
- * @value 0 Model with Pitot
- * @value 1 Model without Pitot (1.5 mm tubes)
- * @value 2 Tube Pressure Drop
- *
- * @group Sensors
- */
-PARAM_DEFINE_INT32(CAL_AIR_CMODEL, 0);
-
-/**
- * Airspeed sensor tube length.
- *
- * See the CAL_AIR_CMODEL explanation on how this parameter should be set.
- *
- * @min 0.01
- * @max 2.00
- * @unit m
- *
- * @group Sensors
- */
-PARAM_DEFINE_FLOAT(CAL_AIR_TUBELEN, 0.2f);
-
-/**
- * Airspeed sensor tube diameter. Only used for the Tube Pressure Drop Compensation.
- *
- * @min 0.1
- * @max 100
- * @unit mm
- *
- * @group Sensors
- */
-PARAM_DEFINE_FLOAT(CAL_AIR_TUBED_MM, 1.5f);
-
-/**
- * Differential pressure sensor offset
- *
- * The offset (zero-reading) in Pascal
- *
- * @category system
- * @group Sensor Calibration
- * @volatile
- */
-PARAM_DEFINE_FLOAT(SENS_DPRES_OFF, 0.0f);
-
-/**
- * Differential pressure sensor analog scaling
- *
- * Pick the appropriate scaling from the datasheet.
- * this number defines the (linear) conversion from voltage
- * to Pascal (pa). For the MPXV7002DP this is 1000.
- *
- * NOTE: If the sensor always registers zero, try switching
- * the static and dynamic tubes.
- *
- * @group Sensor Calibration
- */
-PARAM_DEFINE_FLOAT(SENS_DPRES_ANSC, 0);
 
 /**
  * Board rotation

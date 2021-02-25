@@ -47,7 +47,7 @@ UavcanAirspeedBridge::UavcanAirspeedBridge(uavcan::INode &node) :
 	_sub_ias_data(node),
 	_sub_tas_data(node),
 	_sub_oat_data(node)
-{ }
+{}
 
 int UavcanAirspeedBridge::init()
 {
@@ -75,36 +75,26 @@ int UavcanAirspeedBridge::init()
 	return 0;
 }
 
-void
-UavcanAirspeedBridge::oat_sub_cb(const
-				 uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticTemperature> &msg)
+void UavcanAirspeedBridge::oat_sub_cb(const
+				      uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticTemperature> &msg)
 {
 	_last_outside_air_temp_k = msg.static_temperature;
 }
 
-void
-UavcanAirspeedBridge::tas_sub_cb(const
-				 uavcan::ReceivedDataStructure<uavcan::equipment::air_data::TrueAirspeed> &msg)
+void UavcanAirspeedBridge::tas_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::TrueAirspeed>
+				      &msg)
 {
 	_last_tas_m_s = msg.true_airspeed;
 }
-void
-UavcanAirspeedBridge::ias_sub_cb(const
-				 uavcan::ReceivedDataStructure<uavcan::equipment::air_data::IndicatedAirspeed> &msg)
+
+void UavcanAirspeedBridge::ias_sub_cb(const
+				      uavcan::ReceivedDataStructure<uavcan::equipment::air_data::IndicatedAirspeed> &msg)
 {
 	airspeed_s report{};
-
-	/*
-	 * FIXME HACK
-	 * This code used to rely on msg.getMonotonicTimestamp().toUSec() instead of HRT.
-	 * It stopped working when the time sync feature has been introduced, because it caused libuavcan
-	 * to use an independent time source (based on hardware TIM5) instead of HRT.
-	 * The proper solution is to be developed.
-	 */
-	report.timestamp   		= hrt_absolute_time();
+	report.timestamp_sample   	= hrt_absolute_time();
 	report.indicated_airspeed_m_s   = msg.indicated_airspeed;
 	report.true_airspeed_m_s   	= _last_tas_m_s;
 	report.air_temperature_celsius 	= _last_outside_air_temp_k + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
-
+	report.timestamp   		= hrt_absolute_time();
 	publish(msg.getSrcNodeID().get(), &report);
 }

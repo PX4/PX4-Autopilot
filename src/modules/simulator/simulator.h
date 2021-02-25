@@ -58,7 +58,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/differential_pressure.h>
+#include <uORB/topics/sensor_differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -189,7 +189,7 @@ private:
 	perf_counter_t _perf_sim_interval{perf_alloc(PC_INTERVAL, MODULE_NAME": network interval")};
 
 	// uORB publisher handlers
-	uORB::Publication<differential_pressure_s>	_differential_pressure_pub{ORB_ID(differential_pressure)};
+	uORB::Publication<sensor_differential_pressure_s>	_differential_pressure_pub{ORB_ID(sensor_differential_pressure)};
 	uORB::PublicationMulti<optical_flow_s>		_flow_pub{ORB_ID(optical_flow)};
 	uORB::Publication<irlock_report_s>		_irlock_report_pub{ORB_ID(irlock_report)};
 	uORB::Publication<vehicle_odometry_s>		_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};

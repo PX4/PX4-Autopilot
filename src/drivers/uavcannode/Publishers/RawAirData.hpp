@@ -38,7 +38,7 @@
 #include <uavcan/equipment/air_data/RawAirData.hpp>
 
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/differential_pressure.h>
+#include <uORB/topics/sensor_differential_pressure.h>
 
 namespace uavcannode
 {
@@ -51,7 +51,7 @@ class RawAirData :
 public:
 	RawAirData(px4::WorkItem *work_item, uavcan::INode &node) :
 		UavcanPublisherBase(uavcan::equipment::air_data::RawAirData::DefaultDataTypeID),
-		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(differential_pressure)),
+		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_differential_pressure)),
 		uavcan::Publisher<uavcan::equipment::air_data::RawAirData>(node)
 	{}
 
@@ -68,13 +68,13 @@ public:
 	void BroadcastAnyUpdates() override
 	{
 		// differential_pressure -> uavcan::equipment::air_data::RawAirData
-		differential_pressure_s diff_press;
+		sensor_differential_pressure_s diff_press;
 
 		if (uORB::SubscriptionCallbackWorkItem::update(&diff_press)) {
 			uavcan::equipment::air_data::RawAirData raw_air_data{};
 
 			// raw_air_data.static_pressure =
-			raw_air_data.differential_pressure = diff_press.differential_pressure_raw_pa;
+			raw_air_data.differential_pressure = diff_press.differential_pressure_pa;
 			// raw_air_data.static_pressure_sensor_temperature =
 			raw_air_data.differential_pressure_sensor_temperature = diff_press.temperature - CONSTANTS_ABSOLUTE_NULL_CELSIUS;
 			raw_air_data.static_air_temperature = diff_press.temperature - CONSTANTS_ABSOLUTE_NULL_CELSIUS;

@@ -42,8 +42,13 @@
 
 using namespace time_literals;
 
-int
-SDP3X::probe()
+SDP3X::~SDP3X()
+{
+	perf_free(_sample_perf);
+	perf_free(_comms_errors);
+}
+
+int SDP3X::probe()
 {
 	bool require_initialization = !init_sdp3x();
 
@@ -63,14 +68,12 @@ int SDP3X::write_command(uint16_t command)
 	return transfer(&cmd[0], 2, nullptr, 0);
 }
 
-bool
-SDP3X::init_sdp3x()
+bool SDP3X::init_sdp3x()
 {
 	return configure() == 0;
 }
 
-int
-SDP3X::configure()
+int SDP3X::configure()
 {
 	int ret = write_command(SDP3X_CONT_MEAS_AVG_MODE);
 
@@ -86,8 +89,7 @@ SDP3X::configure()
 	return ret;
 }
 
-int
-SDP3X::read_scale()
+int SDP3X::read_scale()
 {
 	// get scale
 	uint8_t val[9];
@@ -109,15 +111,15 @@ SDP3X::read_scale()
 
 	switch (_scale) {
 	case SDP3X_SCALE_PRESSURE_SDP31:
-		_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SDP31;
+		set_device_type(DRV_DIFF_PRESS_DEVTYPE_SDP31);
 		break;
 
 	case SDP3X_SCALE_PRESSURE_SDP32:
-		_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SDP32;
+		set_device_type(DRV_DIFF_PRESS_DEVTYPE_SDP32);
 		break;
 
 	case SDP3X_SCALE_PRESSURE_SDP33:
-		_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SDP33;
+		set_device_type(DRV_DIFF_PRESS_DEVTYPE_SDP33);
 		break;
 	}
 
@@ -130,13 +132,14 @@ void SDP3X::start()
 	ScheduleDelayed(10_ms);
 }
 
-int
-SDP3X::collect()
+int SDP3X::collect()
 {
 	perf_begin(_sample_perf);
 
+	const hrt_abstime timestamp_sample = hrt_absolute_time();
+
 	// read 6 bytes from the sensor
-	uint8_t val[6];
+	uint8_t val[6] {};
 	int ret = transfer(nullptr, 0, &val[0], sizeof(val));
 
 	if (ret != PX4_OK) {
@@ -154,26 +157,23 @@ SDP3X::collect()
 	int16_t temp = (((int16_t)val[3]) << 8) | val[4];
 
 	float diff_press_pa_raw = static_cast<float>(P) / static_cast<float>(_scale);
-	float temperature_c = temp / static_cast<float>(SDP3X_SCALE_TEMPERATURE);
+	float temperature = temp / static_cast<float>(SDP3X_SCALE_TEMPERATURE);
 
-	differential_pressure_s report{};
-
-	report.timestamp = hrt_absolute_time();
+	sensor_differential_pressure_s report{};
+	report.timestamp_sample = timestamp_sample;
+	report.device_id = get_device_id();
+	report.differential_pressure_pa = diff_press_pa_raw;
+	report.temperature = temperature;
 	report.error_count = perf_event_count(_comms_errors);
-	report.temperature = temperature_c;
-	report.differential_pressure_filtered_pa = _filter.apply(diff_press_pa_raw) - _diff_pres_offset;
-	report.differential_pressure_raw_pa = diff_press_pa_raw - _diff_pres_offset;
-	report.device_id = _device_id.devid;
-
-	_airspeed_pub.publish(report);
+	report.timestamp = hrt_absolute_time();
+	_differential_pressure_pub.publish(report);
 
 	perf_end(_sample_perf);
 
-	return ret;
+	return PX4_OK;
 }
 
-void
-SDP3X::RunImpl()
+void SDP3X::RunImpl()
 {
 	switch (_state) {
 	case State::RequireConfig:

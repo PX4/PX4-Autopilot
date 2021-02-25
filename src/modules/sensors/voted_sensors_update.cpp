@@ -46,18 +46,11 @@
 
 using namespace sensors;
 using namespace matrix;
-using namespace time_literals;
 
-VotedSensorsUpdate::VotedSensorsUpdate(bool hil_enabled,
-				       uORB::SubscriptionCallbackWorkItem(&vehicle_imu_sub)[MAX_SENSOR_COUNT]) :
+VotedSensorsUpdate::VotedSensorsUpdate(uORB::SubscriptionCallbackWorkItem(&vehicle_imu_sub)[MAX_SENSOR_COUNT]) :
 	ModuleParams(nullptr),
-	_vehicle_imu_sub(vehicle_imu_sub),
-	_hil_enabled(hil_enabled)
+	_vehicle_imu_sub(vehicle_imu_sub)
 {
-	if (_hil_enabled) { // HIL has less accurate timing so increase the timeouts a bit
-		_gyro.voter.set_timeout(500000);
-		_accel.voter.set_timeout(500000);
-	}
 }
 
 int VotedSensorsUpdate::init(sensor_combined_s &raw)
@@ -259,7 +252,7 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 
 bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_name)
 {
-	if (sensor.last_failover_count != sensor.voter.failover_count() && !_hil_enabled) {
+	if (sensor.last_failover_count != sensor.voter.failover_count()) {
 
 		uint32_t flags = sensor.voter.failover_state();
 		int failover_index = sensor.voter.failover_index();

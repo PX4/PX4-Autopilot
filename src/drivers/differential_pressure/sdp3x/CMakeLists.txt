@@ -31,13 +31,14 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__sdp3x_airspeed
-	MAIN sdp3x_airspeed
+	MODULE drivers__differential_pressure__sdp3x
+	MAIN sdp3x
 	COMPILE_FLAGS
 	SRCS
+		sdp3x_main.cpp
 		SDP3X.cpp
-		SDP3X_main.cpp
+		SDP3X.hpp
 	DEPENDS
-		drivers__airspeed
 		mathlib
+		px4_work_queue
 	)

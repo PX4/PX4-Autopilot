@@ -33,31 +33,29 @@
 
 #pragma once
 
-#include <drivers/airspeed/airspeed.h>
-#include <math.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <drivers/device/i2c.h>
+#include <uORB/topics/sensor_differential_pressure.h>
+#include <uORB/PublicationMulti.hpp>
 
 /* The MS5525DSO address is 111011Cx, where C is the complementary value of the pin CSB */
 static constexpr uint8_t I2C_ADDRESS_1_MS5525DSO = 0x76;
 
 /* Measurement rate is 100Hz */
 static constexpr unsigned MEAS_RATE = 100;
-static constexpr float MEAS_DRIVER_FILTER_FREQ = 1.2f;
 static constexpr int64_t CONVERSION_INTERVAL = (1000000 / MEAS_RATE); /* microseconds */
 
-class MS5525 : public Airspeed, public I2CSPIDriver<MS5525>
+class MS5525 : public device::I2C, public I2CSPIDriver<MS5525>
 {
 public:
 	MS5525(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS_1_MS5525DSO) :
-		Airspeed(bus, bus_frequency, address, CONVERSION_INTERVAL),
+		I2C(DRV_DIFF_PRESS_DEVTYPE_MS5525, MODULE_NAME, bus, address, bus_frequency),
 		I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
-	{
-	}
+	{}
 
-	virtual ~MS5525() = default;
+	virtual ~MS5525();
 
 	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 					     int runtime_instance);
@@ -66,12 +64,14 @@ public:
 	void	RunImpl();
 
 private:
+	int probe() override;
 
-	int measure() override;
-	int collect() override;
+	bool init_ms5525();
 
-	// temperature is read once every 10 cycles
-	math::LowPassFilter2p _filter{MEAS_RATE * 0.9, MEAS_DRIVER_FILTER_FREQ};
+	uint8_t prom_crc4(uint16_t n_prom[]) const;
+
+	int measure();
+	int collect();
 
 	static constexpr uint8_t CMD_RESET = 0x1E; // ADC reset command
 	static constexpr uint8_t CMD_ADC_READ = 0x00; // ADC read command
@@ -121,9 +121,16 @@ private:
 	uint32_t D1{0};
 	uint32_t D2{0};
 
-	bool init_ms5525();
 	bool _inited{false};
 
-	uint8_t prom_crc4(uint16_t n_prom[]) const;
+	bool _sensor_ok{false};
+	int _measure_interval{0};
+	bool _collect_phase{false};
+	unsigned _conversion_interval{0};
+
+	uORB::PublicationMulti<sensor_differential_pressure_s>	_differential_pressure_pub{ORB_ID(sensor_differential_pressure)};
+
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com err")};
 
 };

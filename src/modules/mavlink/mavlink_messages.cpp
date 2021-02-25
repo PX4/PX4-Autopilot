@@ -63,7 +63,7 @@
 #include <uORB/topics/camera_capture.h>
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/cpuload.h>
-#include <uORB/topics/differential_pressure.h>
+#include <uORB/topics/sensor_differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_sensor_bias.h>
@@ -923,7 +923,7 @@ private:
 	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
-	uORB::Subscription _differential_pressure_sub{ORB_ID(differential_pressure)};
+	uORB::Subscription _sensor_differential_pressure_sub{ORB_ID(sensor_differential_pressure)};
 	uORB::Subscription _magnetometer_sub{ORB_ID(vehicle_magnetometer)};
 	uORB::Subscription _air_data_sub{ORB_ID(vehicle_air_data)};
 
@@ -1026,14 +1026,14 @@ protected:
 				_air_data_sub.copy(&air_data);
 			}
 
-			differential_pressure_s differential_pressure{};
+			sensor_differential_pressure_s differential_pressure{};
 
-			if (_differential_pressure_sub.update(&differential_pressure)) {
+			if (_sensor_differential_pressure_sub.update(&differential_pressure)) {
 				/* mark fourth group (dpres field) dimensions as changed */
 				fields_updated |= (1 << 10);
 
 			} else {
-				_differential_pressure_sub.copy(&differential_pressure);
+				_sensor_differential_pressure_sub.copy(&differential_pressure);
 			}
 
 			const float accel_dt_inv = 1.e6f / (float)imu.delta_velocity_dt;
@@ -1055,7 +1055,7 @@ protected:
 			msg.ymag = mag(1);
 			msg.zmag = mag(2);
 			msg.abs_pressure = air_data.baro_pressure_pa;
-			msg.diff_pressure = differential_pressure.differential_pressure_raw_pa;
+			msg.diff_pressure = differential_pressure.differential_pressure_pa;
 			msg.pressure_alt = air_data.baro_alt_meter;
 			msg.temperature = air_data.baro_temp_celcius;
 			msg.fields_updated = fields_updated;
@@ -1089,7 +1089,7 @@ public:
 	}
 
 private:
-	uORB::Subscription _differential_pressure_sub{ORB_ID(differential_pressure)};
+	uORB::Subscription _sensor_differential_pressure_sub{ORB_ID(sensor_differential_pressure)};
 	uORB::Subscription _sensor_baro_sub{ORB_ID(sensor_baro), N};
 
 	/* do not allow top copying this class */
@@ -1102,16 +1102,16 @@ protected:
 
 	bool send() override
 	{
-		if (_sensor_baro_sub.updated() || _differential_pressure_sub.updated()) {
+		if (_sensor_baro_sub.updated() || _sensor_differential_pressure_sub.updated()) {
 			sensor_baro_s sensor_baro{};
-			differential_pressure_s differential_pressure{};
+			sensor_differential_pressure_s differential_pressure{};
 			_sensor_baro_sub.copy(&sensor_baro);
-			_differential_pressure_sub.copy(&differential_pressure);
+			_sensor_differential_pressure_sub.copy(&differential_pressure);
 
 			typename Derived::mav_msg_type msg{};
 			msg.time_boot_ms = sensor_baro.timestamp / 1000;
 			msg.press_abs = sensor_baro.pressure;
-			msg.press_diff = differential_pressure.differential_pressure_raw_pa;
+			msg.press_diff = differential_pressure.differential_pressure_pa;
 			msg.temperature = sensor_baro.temperature;
 
 			Derived::send(_mavlink->get_channel(), &msg);

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,9 +31,12 @@
 #
 ############################################################################
 
-add_subdirectory(analog_diffpres)
-add_subdirectory(ets)
-add_subdirectory(ms4515)
-add_subdirectory(ms4525)
-add_subdirectory(ms5525)
-add_subdirectory(sdp3x)
+px4_add_library(sensors_airspeed
+	Airspeed.cpp
+	Airspeed.hpp
+)
+target_link_libraries(sensors_airspeed
+	PRIVATE
+		airspeed
+		px4_work_queue
+)

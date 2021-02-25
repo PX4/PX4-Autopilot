@@ -31,12 +31,13 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__ms4525_airspeed
-	MAIN ms4525_airspeed
+	MODULE drivers__differential_pressure__ms4525
+	MAIN ms4525
 	COMPILE_FLAGS
 	SRCS
-		ms4525_airspeed.cpp
+		MS4525.cpp
+		MS4525.hpp
 	DEPENDS
-		drivers__airspeed
 		mathlib
+		px4_work_queue
 	)

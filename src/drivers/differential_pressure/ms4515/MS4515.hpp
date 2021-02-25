@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,28 +32,58 @@
  ****************************************************************************/
 
 /**
- * @file board_config.h
  *
- * RPI internal definitions
+ * Driver for the MEAS Spec series connected via I2C.
+ *
+ * Supported sensors:
+ *
+ *    - MS4515DO
+ *
+ * Interface application notes:
+ *
+ *    - Interfacing to MEAS Digital Pressure Modules (http://www.meas-spec.com/downloads/Interfacing_to_MEAS_Digital_Pressure_Modules.pdf)
  */
 
 #pragma once
 
-#define BOARD_OVERRIDE_UUID "RPIID00000000000" // must be of length 16
-#define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_RPI
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+#include <drivers/device/i2c.h>
+#include <uORB/topics/sensor_differential_pressure.h>
+#include <uORB/PublicationMulti.hpp>
 
-/*
- * I2C busses
- */
-#define PX4_NUMBER_I2C_BUSES    2
+#define I2C_ADDRESS_MS4515DO	0x46	/* I2C bus address is 1010001x */
 
-#define ADC_BATTERY_VOLTAGE_CHANNEL	0
-#define ADC_BATTERY_CURRENT_CHANNEL	-1
-#define ADC_AIRSPEED_VOLTAGE_CHANNEL 2
+class MS4515 : public device::I2C, public I2CSPIDriver<MS4515>
+{
+public:
+	MS4515(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS_MS4515DO);
 
-#define BOARD_BATTERY1_V_DIV 5.7f	// 1K + 4.7K
+	virtual ~MS4515();
 
-#define BOARD_ADC_OPEN_CIRCUIT_V 5.3f	// Powered from USB
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
 
-#include <system_config.h>
-#include <px4_platform_common/board_common.h>
+	void	RunImpl();
+
+private:
+	int	probe() override;
+
+	int	measure();
+	int	collect();
+
+	bool _sensor_ok{false};
+	int _measure_interval{0};
+	bool _collect_phase{false};
+	unsigned _conversion_interval{0};
+
+	int16_t _dp_raw_prev{0};
+	int16_t _dT_raw_prev{0};
+
+	uORB::PublicationMulti<sensor_differential_pressure_s>	_differential_pressure_pub{ORB_ID(sensor_differential_pressure)};
+
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com err")};
+};

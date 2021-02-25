@@ -34,6 +34,7 @@
 add_subdirectory(data_validator)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+add_subdirectory(airspeed)
 add_subdirectory(vehicle_acceleration)
 add_subdirectory(vehicle_angular_velocity)
 add_subdirectory(vehicle_air_data)
@@ -55,6 +56,7 @@ px4_add_module(
 		git_ecl
 		mathlib
 		sensor_calibration
+		sensors_airspeed
 		vehicle_acceleration
 		vehicle_angular_velocity
 		vehicle_air_data

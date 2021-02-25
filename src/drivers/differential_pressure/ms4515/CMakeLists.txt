@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,6 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-px4_add_library(drivers__airspeed airspeed.cpp)
-target_link_libraries(drivers__airspeed PRIVATE drivers__device)
+px4_add_module(
+	MODULE drivers__differential_pressure__ms4515
+	MAIN ms4515
+	COMPILE_FLAGS
+	SRCS
+		MS4515.cpp
+		MS4515.hpp
+	DEPENDS
+		mathlib
+		px4_work_queue
+	)

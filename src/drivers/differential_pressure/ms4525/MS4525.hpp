@@ -31,57 +31,64 @@
  *
  ****************************************************************************/
 
+/**
+ * @file MS4525.hpp
+ * @author Lorenz Meier
+ * @author Sarthak Kaingade
+ * @author Simon Wilks
+ * @author Thomas Gubler
+ *
+ * Driver for the MEAS Spec series connected via I2C.
+ *
+ * Supported sensors:
+ *
+ *    - MS4525DO (http://www.meas-spec.com/downloads/MS4525DO.pdf)
+ *
+ * Interface application notes:
+ *
+ *    - Interfacing to MEAS Digital Pressure Modules (http://www.meas-spec.com/downloads/Interfacing_to_MEAS_Digital_Pressure_Modules.pdf)
+ */
+
 #pragma once
 
-#include <string.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <drivers/device/i2c.h>
-#include <drivers/drv_airspeed.h>
-#include <drivers/drv_hrt.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
-#include <perf/perf_counter.h>
-#include <uORB/topics/differential_pressure.h>
+#include <uORB/topics/sensor_differential_pressure.h>
 #include <uORB/PublicationMulti.hpp>
 
-class __EXPORT Airspeed : public device::I2C
+#define I2C_ADDRESS_MS4525DO	0x28	/**< 7-bit address. Depends on the order code (this is for code "I") */
+
+class MS4525 : public device::I2C, public I2CSPIDriver<MS4525>
 {
 public:
-	Airspeed(int bus, int bus_frequency, int address, unsigned conversion_interval);
-	virtual ~Airspeed();
+	MS4525(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS_MS4525DO);
 
-	int	init() override;
+	virtual ~MS4525();
 
-	int	ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
+
+	void	RunImpl();
 
 private:
-	Airspeed(const Airspeed &) = delete;
-	Airspeed &operator=(const Airspeed &) = delete;
-
-protected:
 	int	probe() override;
 
-	/**
-	* Perform a poll cycle; collect from the previous measurement
-	* and start a new one.
-	*/
-	virtual int	measure() = 0;
-	virtual int	collect() = 0;
+	int	measure();
+	int	collect();
 
-	bool			_sensor_ok;
-	int				_measure_interval;
-	bool			_collect_phase;
-	float			_diff_pres_offset;
+	bool _sensor_ok{false};
+	int _measure_interval{0};
+	bool _collect_phase{false};
+	unsigned _conversion_interval{0};
 
-	uORB::PublicationMulti<differential_pressure_s>	_airspeed_pub{ORB_ID(differential_pressure)};
+	int16_t _dp_raw_prev{0};
+	int16_t _dT_raw_prev{0};
 
-	int			_airspeed_orb_class_instance;
+	uORB::PublicationMulti<sensor_differential_pressure_s>	_differential_pressure_pub{ORB_ID(sensor_differential_pressure)};
 
-	int			_class_instance;
-
-	unsigned		_conversion_interval;
-
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_comms_errors;
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com err")};
 };
-
-

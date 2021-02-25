@@ -36,17 +36,17 @@
  *
  * Driver for Sensirion SDP3X Differential Pressure Sensor
  *
- * Datasheet: https://www.sensirion.com/fileadmin/user_upload/customers/sensirion/Dokumente/8_Differential_Pressure/Sensirion_Differential_Pressure_Sensors_SDP3x_Digital_Datasheet_V0.8.pdf
+ * Datasheet: https://www.sensirion.com/fileadmin/user_upload/customers/sensirion/Dokumente/8_Differential_Pressure/Sensirion_sensor_differential_pressure_sensors_SDP3x_Digital_Datasheet_V0.8.pdf
  */
 
 #pragma once
 
-#include <drivers/airspeed/airspeed.h>
-#include <math.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <drivers/device/i2c.h>
+#include <uORB/topics/sensor_differential_pressure.h>
+#include <uORB/PublicationMulti.hpp>
 
 #define I2C_ADDRESS_1_SDP3X		0x21
 #define I2C_ADDRESS_2_SDP3X		0x22
@@ -63,27 +63,26 @@
 
 // Measurement rate is 20Hz
 #define SPD3X_MEAS_RATE 100
-#define SDP3X_MEAS_DRIVER_FILTER_FREQ 3.0f
 #define CONVERSION_INTERVAL	(1000000 / SPD3X_MEAS_RATE)	/* microseconds */
 
-class SDP3X : public Airspeed, public I2CSPIDriver<SDP3X>
+class SDP3X : public device::I2C, public I2CSPIDriver<SDP3X>
 {
 public:
 	SDP3X(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS_1_SDP3X,
 	      bool keep_retrying = false) :
-		Airspeed(bus, bus_frequency, address, CONVERSION_INTERVAL),
+		I2C(DRV_DIFF_PRESS_DEVTYPE_SDP33, MODULE_NAME, bus, address, bus_frequency),
 		I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address),
 		_keep_retrying{keep_retrying}
 	{
 	}
 
-	virtual ~SDP3X() = default;
+	virtual ~SDP3X();
 
 	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 					     int runtime_instance);
 	static void print_usage();
 
-	void	RunImpl();
+	void RunImpl();
 
 	void start();
 
@@ -94,13 +93,12 @@ private:
 		Running
 	};
 
-	int	measure() override { return 0; }
-	int	collect() override;
+	int	measure() { return 0; }
+	int	collect();
+
 	int	probe() override;
 	int	configure();
 	int	read_scale();
-
-	math::LowPassFilter2p _filter{SPD3X_MEAS_RATE, SDP3X_MEAS_DRIVER_FILTER_FREQ};
 
 	bool init_sdp3x();
 
@@ -114,7 +112,17 @@ private:
 	 */
 	int write_command(uint16_t command);
 
+	bool _sensor_ok{false};
+	int _measure_interval{0};
+	bool _collect_phase{false};
+	unsigned _conversion_interval{0};
+
 	uint16_t _scale{0};
 	const bool _keep_retrying;
 	State _state{State::RequireConfig};
+
+	uORB::PublicationMulti<sensor_differential_pressure_s>	_differential_pressure_pub{ORB_ID(sensor_differential_pressure)};
+
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com err")};
 };

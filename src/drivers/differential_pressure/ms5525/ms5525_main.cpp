@@ -33,8 +33,6 @@
 
 #include "MS5525.hpp"
 
-extern "C" __EXPORT int ms5525_airspeed_main(int argc, char *argv[]);
-
 I2CSPIDriverBase *MS5525::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 				      int runtime_instance)
 {
@@ -54,19 +52,16 @@ I2CSPIDriverBase *MS5525::instantiate(const BusCLIArguments &cli, const BusInsta
 	return instance;
 }
 
-
-void
-MS5525::print_usage()
+void MS5525::print_usage()
 {
-	PRINT_MODULE_USAGE_NAME("ms5525_airspeed", "driver");
+	PRINT_MODULE_USAGE_NAME("ms5525", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("airspeed_sensor");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-int
-ms5525_airspeed_main(int argc, char *argv[])
+extern "C" __EXPORT int ms5525_main(int argc, char *argv[])
 {
 	using ThisDriver = MS5525;
 	BusCLIArguments cli{true, false};

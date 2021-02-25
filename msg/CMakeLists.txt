@@ -51,7 +51,6 @@ set(msg_files
 	commander_state.msg
 	control_allocator_status.msg
 	cpuload.msg
-	differential_pressure.msg
 	distance_sensor.msg
 	ekf2_timestamps.msg
 	ekf_gps_drift.msg
@@ -127,6 +126,7 @@ set(msg_files
 	sensor_baro.msg
 	sensor_combined.msg
 	sensor_correction.msg
+	sensor_differential_pressure.msg
 	sensor_gps.msg
 	sensor_gyro.msg
 	sensor_gyro_fft.msg
