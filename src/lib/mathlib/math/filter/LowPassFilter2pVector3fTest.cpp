@@ -51,7 +51,7 @@ public:
 
 	math::LowPassFilter2pVector3f _lpf{800.f, 30.f};
 
-	const float _epsilon_near = 10e-3f;
+	const float _epsilon_near = 0.08f;
 };
 
 void LowPassFilter2pVector3fTest::runSimulatedFilter(const Vector3f &signal_freq_hz, const Vector3f &phase_delay_deg,
@@ -66,10 +66,11 @@ void LowPassFilter2pVector3fTest::runSimulatedFilter(const Vector3f &signal_freq
 	}
 
 	const float dt = 1.f / _lpf.get_sample_freq();
+	const int n_steps = roundf(1.f / dt); // run for 1 second
 
 	float t = 0.f;
 
-	for (int i = 0; i < 1000; i++) {
+	for (int i = 0; i < n_steps; i++) {
 		Vector3f input{0.f, sinf(omega(1) * t), -sinf(omega(2) * t)};
 		Vector3f output_expected{0.f,
 					 gain(1) *sinf(omega(1) * t - phase_delay(1)),
@@ -78,7 +79,7 @@ void LowPassFilter2pVector3fTest::runSimulatedFilter(const Vector3f &signal_freq
 		t = i * dt;
 
 		// Let some time for the filter to settle
-		if (i > 30) {
+		if (t > 0.3f) {
 			EXPECT_EQ(out(0), 0.f);
 			EXPECT_NEAR(out(1), output_expected(1), _epsilon_near);
 			EXPECT_NEAR(out(2), output_expected(2), _epsilon_near);
@@ -96,14 +97,17 @@ TEST_F(LowPassFilter2pVector3fTest, setGet)
 	EXPECT_EQ(_lpf.get_cutoff_freq(), cutoff_freq);
 }
 
-TEST_F(LowPassFilter2pVector3fTest, belowAndAboveCutoff)
+TEST_F(LowPassFilter2pVector3fTest, simulate80HzCutoff)
 {
-	const float sample_freq = 1000.f;
+	const float sample_freqs[4] = {400.f, 1000.f, 8000.f, 16000.f};
 	const float cutoff_freq = 80.f;
-	_lpf.set_cutoff_frequency(sample_freq, cutoff_freq);
 
 	const Vector3f signal_freq_hz{0.f, 10.f, 100.f};
 	const Vector3f phase_delay_deg = Vector3f{0.f, 10.4f, 108.5f}; // Given by simulation
 	const Vector3f gain_db{0.f, 0.f, -5.66f}; // given by simulation
-	runSimulatedFilter(signal_freq_hz, phase_delay_deg, gain_db);
+
+	for (float sample_freq : sample_freqs) {
+		_lpf.set_cutoff_frequency(sample_freq, cutoff_freq);
+		runSimulatedFilter(signal_freq_hz, phase_delay_deg, gain_db);
+	}
 }
