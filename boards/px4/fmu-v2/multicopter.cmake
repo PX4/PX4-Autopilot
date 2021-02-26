@@ -43,6 +43,7 @@ px4_add_board(
 		dataman
 		ekf2
 		flight_mode_manager
+		#gyro_fft
 		#events
 		land_detector
 		landing_target_estimator
