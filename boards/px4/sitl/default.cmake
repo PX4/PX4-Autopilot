@@ -89,6 +89,7 @@ px4_add_board(
 		fake_gps
 		fake_magnetometer
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		gyro_fft
 		hello
 		#hwtest # Hardware test
 		#matlab_csv_serial
