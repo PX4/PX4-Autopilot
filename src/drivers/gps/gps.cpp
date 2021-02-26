@@ -245,6 +245,8 @@ private:
 	void dumpGpsData(uint8_t *data, size_t len, bool msg_to_gps_device);
 
 	void initializeCommunicationDump();
+
+	static constexpr int SET_CLOCK_DRIFT_TIME_S{5};			///< RTC drift time when time synchronization is needed (in seconds)
 };
 
 px4::atomic_bool GPS::_is_gps_main_advertised{false};
@@ -327,6 +329,8 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 {
 	GPS *gps = (GPS *)user;
 
+	timespec rtc_system_time;
+
 	switch (type) {
 	case GPSCallbackType::readDeviceData: {
 			int num_read = gps->pollOrRead((uint8_t *)data1, data2, *((int *)data1));
@@ -355,7 +359,19 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 		break;
 
 	case GPSCallbackType::setClock:
-		px4_clock_settime(CLOCK_REALTIME, (timespec *)data1);
+
+		px4_clock_gettime(CLOCK_REALTIME, &rtc_system_time);
+		timespec rtc_gps_time = *(timespec *)data1;
+		int drift_time = abs(rtc_system_time.tv_sec - rtc_gps_time.tv_sec);
+
+		if (drift_time >= SET_CLOCK_DRIFT_TIME_S) {
+			// as of 2021 setting the time on Nuttx temporarily pauses interrupts
+			// so only set the time if it is very wrong.
+			// TODO: clock slewing of the RTC for small time differences
+			px4_clock_settime(CLOCK_REALTIME, &rtc_gps_time);
+		}
+
+
 		break;
 	}
 
