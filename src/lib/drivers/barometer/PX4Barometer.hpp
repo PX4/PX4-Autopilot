@@ -54,7 +54,11 @@ public:
 
 	void update(const hrt_abstime &timestamp_sample, float pressure);
 
-	int get_instance() { return _sensor_baro_pub.get_instance(); };
+	int get_instance()
+	{
+		_sensor_baro_pub.advertise();
+		return _sensor_baro_pub.get_instance();
+	}
 
 private:
 

@@ -56,7 +56,11 @@ public:
 
 	void update(const hrt_abstime &timestamp_sample, float x, float y, float z);
 
-	int get_instance() { return _sensor_pub.get_instance(); };
+	int get_instance()
+	{
+		_sensor_pub.advertise();
+		return _sensor_pub.get_instance();
+	}
 
 private:
 	uORB::PublicationMulti<sensor_mag_s> _sensor_pub{ORB_ID(sensor_mag)};
