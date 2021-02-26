@@ -24,6 +24,7 @@ px4_add_board(
 		dataman
 		ekf2
 		events
+		gyro_fft
 		land_detector
 		landing_target_estimator
 		load_mon

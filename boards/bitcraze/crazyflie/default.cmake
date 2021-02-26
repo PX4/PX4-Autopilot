@@ -26,6 +26,7 @@ px4_add_board(
 		ekf2
 		events
 		flight_mode_manager
+		gyro_fft
 		land_detector
 		#landing_target_estimator
 		load_mon
