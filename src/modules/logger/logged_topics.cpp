@@ -188,7 +188,7 @@ void LoggedTopics::add_default_topics()
 	int32_t gps_dump_comm = 0;
 	param_get(param_find("GPS_DUMP_COMM"), &gps_dump_comm);
 
-	if (gps_dump_comm == 1) {
+	if (gps_dump_comm >= 1) {
 		add_topic("gps_dump");
 	}
 }

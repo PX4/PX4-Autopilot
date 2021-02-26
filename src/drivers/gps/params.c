@@ -32,14 +32,19 @@
  ****************************************************************************/
 
 /**
- * Dump GPS communication to a file.
+ * Log GPS communication data
  *
  * If this is set to 1, all GPS communication data will be published via uORB,
  * and written to the log file as gps_dump message.
+ *
+ * If this is set to 2, the main GPS is configured to output RTCM data,
+ * which is then logged as gps_dump and can be used for PPK.
+ *
  * @min 0
- * @max 1
+ * @max 2
  * @value 0 Disable
- * @value 1 Enable
+ * @value 1 Full communication
+ * @value 2 RTCM output (PPK)
  * @group GPS
  */
 PARAM_DEFINE_INT32(GPS_DUMP_COMM, 0);

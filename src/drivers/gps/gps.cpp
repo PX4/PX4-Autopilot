@@ -88,6 +88,12 @@ typedef enum {
 	GPS_DRIVER_MODE_FEMTOMES
 } gps_driver_mode_t;
 
+enum class gps_dump_comm_mode_t : int32_t {
+	Disabled = 0,
+	Full, ///< dump full RX and TX data for all devices
+	RTCM ///< dump received RTCM from Main GPS
+};
+
 /* struct for dynamic allocation of satellite info data */
 struct GPS_Sat_Info {
 	satellite_info_s _data;
@@ -186,7 +192,7 @@ private:
 	uORB::Publication<gps_dump_s>	_dump_communication_pub{ORB_ID(gps_dump)};
 	gps_dump_s			*_dump_to_device{nullptr};
 	gps_dump_s			*_dump_from_device{nullptr};
-	bool				_should_dump_communication{false};			///< if true, dump communication
+	gps_dump_comm_mode_t _dump_communication_mode{gps_dump_comm_mode_t::Disabled};
 
 	static px4::atomic_bool _is_gps_main_advertised; ///< for the second gps we want to make sure that it gets instance 1
 	/// and thus we wait until the first one publishes at least one message.
@@ -245,9 +251,10 @@ private:
 	 * Dump gps communication.
 	 * @param data message
 	 * @param len length of the message
+	 * @param mode calling source
 	 * @param msg_to_gps_device if true, this is a message sent to the gps device, otherwise it's from the device
 	 */
-	void dumpGpsData(uint8_t *data, size_t len, bool msg_to_gps_device);
+	void dumpGpsData(uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool msg_to_gps_device);
 
 	void initializeCommunicationDump();
 
@@ -352,14 +359,14 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 			int num_read = gps->pollOrRead((uint8_t *)data1, data2, *((int *)data1));
 
 			if (num_read > 0) {
-				gps->dumpGpsData((uint8_t *)data1, (size_t)num_read, false);
+				gps->dumpGpsData((uint8_t *)data1, (size_t)num_read, gps_dump_comm_mode_t::Full, false);
 			}
 
 			return num_read;
 		}
 
 	case GPSCallbackType::writeDeviceData:
-		gps->dumpGpsData((uint8_t *)data1, (size_t)data2, true);
+		gps->dumpGpsData((uint8_t *)data1, (size_t)data2, gps_dump_comm_mode_t::Full, true);
 
 		return ::write(gps->_serial_fd, data1, (size_t)data2);
 
@@ -367,7 +374,7 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 		return gps->setBaudrate(data2);
 
 	case GPSCallbackType::gotRTCMMessage:
-		/* not used */
+		gps->dumpGpsData((uint8_t *)data1, (size_t)data2, gps_dump_comm_mode_t::RTCM, false);
 		break;
 
 	case GPSCallbackType::surveyInStatus:
@@ -502,7 +509,7 @@ void GPS::handleInjectDataTopic()
 
 bool GPS::injectData(uint8_t *data, size_t len)
 {
-	dumpGpsData(data, len, true);
+	dumpGpsData(data, len, gps_dump_comm_mode_t::Full, true);
 
 	size_t written = ::write(_serial_fd, data, len);
 	::fsync(_serial_fd);
@@ -608,7 +615,7 @@ void GPS::initializeCommunicationDump()
 		return;
 	}
 
-	if (param_dump_comm != 1) {
+	if (param_dump_comm < 1 || param_dump_comm > 2) {
 		return; //dumping disabled
 	}
 
@@ -625,19 +632,20 @@ void GPS::initializeCommunicationDump()
 
 	//make sure to use a large enough queue size, so that we don't lose messages. You may also want
 	//to increase the logger rate for that.
-	_dump_communication_pub.publish(*_dump_from_device);
+	_dump_communication_pub.advertise();
 
-	_should_dump_communication = true;
+	_dump_communication_mode = (gps_dump_comm_mode_t)param_dump_comm;
 }
 
-void GPS::dumpGpsData(uint8_t *data, size_t len, bool msg_to_gps_device)
+void GPS::dumpGpsData(uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool msg_to_gps_device)
 {
-	if (!_should_dump_communication) {
+	gps_dump_s *dump_data  = msg_to_gps_device ? _dump_to_device : _dump_from_device;
+
+	if (_dump_communication_mode != mode || !dump_data) {
 		return;
 	}
 
-	gps_dump_s *dump_data  = msg_to_gps_device ? _dump_to_device : _dump_from_device;
-	dump_data->instance = (uint8_t) _instance;
+	dump_data->instance = (uint8_t)_instance;
 
 	while (len > 0) {
 		size_t write_len = len;
@@ -791,8 +799,14 @@ GPS::run()
 
 		_baudrate = _configured_baudrate;
 		GPSHelper::GPSConfig gpsConfig{};
-		gpsConfig.output_mode = GPSHelper::OutputMode::GPS;
 		gpsConfig.gnss_systems = static_cast<GPSHelper::GNSSSystemsMask>(gnssSystemsParam);
+
+		if (_instance == Instance::Main && _dump_communication_mode == gps_dump_comm_mode_t::RTCM) {
+			gpsConfig.output_mode = GPSHelper::OutputMode::GPSAndRTCM;
+
+		} else {
+			gpsConfig.output_mode = GPSHelper::OutputMode::GPS;
+		}
 
 		if (_helper && _helper->configure(_baudrate, gpsConfig) == 0) {
 
