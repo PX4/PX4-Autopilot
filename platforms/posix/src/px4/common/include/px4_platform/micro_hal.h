@@ -32,6 +32,10 @@
  ****************************************************************************/
 #pragma once
 
+#define px4_arch_configgpio(pinset)              -1
+#define px4_arch_unconfiggpio(pinset)
+#define px4_arch_gpioread(pinset)                -1
+#define px4_arch_gpiowrite(pinset, value)        -1
 #define px4_arch_gpiosetevent(pinset,r,f,e,fp,a) -1
 
 #define px4_udelay(usec) px4_usleep(usec)
