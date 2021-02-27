@@ -158,9 +158,11 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v,
 		static constexpr int uorb_max_cells = sizeof(_battery_status.voltage_cell_v) / sizeof(
 				_battery_status.voltage_cell_v[0]);
 
+		int max_cells = math::min(_battery_status.cell_count, uorb_max_cells);
+
 		// Fill cell voltages with average values to work around MAVLink BATTERY_STATUS not allowing to report just total voltage
-		for (int i = 0; (i < _battery_status.cell_count) && (i < uorb_max_cells); i++) {
-			_battery_status.voltage_cell_v[i] = _battery_status.voltage_filtered_v / _battery_status.cell_count;
+		for (int i = 0; i < max_cells; i++) {
+			_battery_status.voltage_cell_v[i] = _battery_status.voltage_filtered_v / max_cells;
 		}
 	}
 
