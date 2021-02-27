@@ -46,6 +46,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/esc_status.h>
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
@@ -74,12 +75,14 @@ public:
 private:
 	void Run() override;
 
+	void DisableDynamicNotchEscRpm();
 	void DisableDynamicNotchFFT();
 	void ParametersUpdate(bool force = false);
 	void Publish(const hrt_abstime &timestamp_sample);
 	void ResetFilters(const matrix::Vector3f &angular_velocity, const matrix::Vector3f &angular_acceleration);
 	void SensorBiasUpdate(bool force = false);
 	bool SensorSelectionUpdate(bool force = false);
+	void UpdateDynamicNotchEscRpm(bool force = false);
 	void UpdateDynamicNotchFFT(bool force = false);
 	bool UpdateSampleRate();
 
@@ -91,6 +94,7 @@ private:
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};
 #if !defined(CONSTRAINED_FLASH)
+	uORB::Subscription _esc_status_sub {ORB_ID(esc_status)};
 	uORB::Subscription _sensor_gyro_fft_sub {ORB_ID(sensor_gyro_fft)};
 #endif // !CONSTRAINED_FLASH
 
@@ -122,11 +126,20 @@ private:
 	math::NotchFilterArray<float> _notch_filter_velocity[3] {};
 
 #if !defined(CONSTRAINED_FLASH)
+	static constexpr int MAX_NUM_ESC_RPM = sizeof(esc_status_s::esc) / sizeof(esc_status_s::esc[0]);
 	static constexpr int MAX_NUM_FFT_PEAKS = sizeof(sensor_gyro_fft_s::peak_frequencies_x) / sizeof(
 				sensor_gyro_fft_s::peak_frequencies_x[0]);
 
-	math::NotchFilterArray<float> _dynamic_notch_filter[MAX_NUM_FFT_PEAKS][3] {};
-	bool _dynamic_notch_available{false};
+	math::NotchFilterArray<float> _dynamic_notch_filter_esc_rpm[MAX_NUM_ESC_RPM][3] {};
+	math::NotchFilterArray<float> _dynamic_notch_filter_fft[MAX_NUM_FFT_PEAKS][3] {};
+
+	perf_counter_t _dynamic_notch_filter_esc_rpm_update_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro dynamic notch filter ESC RPM update")};
+	perf_counter_t _dynamic_notch_filter_fft_update_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro dynamic notch filter FFT update")};
+	perf_counter_t _dynamic_notch_filter_esc_rpm_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": gyro dynamic notch ESC RPM filter")};
+	perf_counter_t _dynamic_notch_filter_fft_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": gyro dynamic notch FFT filter")};
+
+	bool _dynamic_notch_esc_rpm_available{false};
+	bool _dynamic_notch_fft_available{false};
 #endif // !CONSTRAINED_FLASH
 
 	// angular acceleration filter
@@ -134,23 +147,23 @@ private:
 
 	uint32_t _selected_sensor_device_id{0};
 
-	float _fifo_last_scale{0};
+	float _last_scale{0.f};
 
 	bool _reset_filters{true};
 	bool _fifo_available{false};
 
 	perf_counter_t _filter_reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro filter reset")};
-	perf_counter_t _dynamic_notch_filter_update_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro dynamic notch filter update")};
 	perf_counter_t _selection_changed_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro selection changed")};
-	perf_counter_t _dynamic_notch_filter_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": gyro dynamic notch filter")};
 
 	DEFINE_PARAMETERS(
+#if !defined(CONSTRAINED_FLASH)
+		(ParamInt<px4::params::IMU_GYRO_DYN_NF>) _param_imu_gyro_dyn_nf,
+#endif // !CONSTRAINED_FLASH
 		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,
 		(ParamFloat<px4::params::IMU_GYRO_NF_FREQ>) _param_imu_gyro_nf_freq,
 		(ParamFloat<px4::params::IMU_GYRO_NF_BW>) _param_imu_gyro_nf_bw,
 		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_ratemax,
-		(ParamFloat<px4::params::IMU_DGYRO_CUTOFF>) _param_imu_dgyro_cutoff,
-		(ParamBool<px4::params::IMU_GYRO_DYN_NF>) _param_imu_gyro_dyn_nf
+		(ParamFloat<px4::params::IMU_DGYRO_CUTOFF>) _param_imu_dgyro_cutoff
 	)
 };
 
