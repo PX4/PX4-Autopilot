@@ -44,8 +44,6 @@ px4_add_module(
 		Analog_Devices_ADIS16362_registers.hpp
 	DEPENDS
 		drivers_accelerometer
-		# drivers_barometer
 		drivers_gyroscope
-		# drivers_magnetometer
 		px4_work_queue
 	)
