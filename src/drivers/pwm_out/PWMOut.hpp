@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -93,7 +93,10 @@ enum PortMode {
 // TODO: keep in sync with drivers/camera_capture
 #define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
 
-class PWMOut : public cdev::CDev, public ModuleBase<PWMOut>, public OutputModuleInterface
+static constexpr int PWM_OUT_MAX_INSTANCES{(DIRECT_PWM_OUTPUT_CHANNELS > 8) ? 2 : 1};
+extern pthread_mutex_t pwm_out_module_mutex;
+
+class PWMOut : public cdev::CDev, public OutputModuleInterface
 {
 public:
 	enum Mode {
@@ -116,7 +119,10 @@ public:
 		MODE_5CAP,
 		MODE_6CAP,
 	};
-	PWMOut();
+
+	PWMOut() = delete;
+	explicit PWMOut(int instance = 0, uint8_t output_base = 0);
+
 	virtual ~PWMOut();
 
 	/** @see ModuleBase */
@@ -131,7 +137,14 @@ public:
 	void Run() override;
 
 	/** @see ModuleBase::print_status() */
-	int print_status() override;
+	int print_status();
+
+	bool should_exit() const { return _task_should_exit.load(); }
+	void request_stop() { _task_should_exit.store(true); }
+
+	static void lock_module() { pthread_mutex_lock(&pwm_out_module_mutex); }
+	static bool trylock_module() { return (pthread_mutex_trylock(&pwm_out_module_mutex) == 0); }
+	static void unlock_module() { pthread_mutex_unlock(&pwm_out_module_mutex); }
 
 	/** change the FMU mode of the running module */
 	static int fmu_new_mode(PortMode new_mode);
@@ -157,6 +170,11 @@ public:
 private:
 	static constexpr int FMU_MAX_ACTUATORS = DIRECT_PWM_OUTPUT_CHANNELS;
 	static_assert(FMU_MAX_ACTUATORS <= MAX_ACTUATORS, "Increase MAX_ACTUATORS if this fails");
+
+	px4::atomic_bool _task_should_exit{false};
+
+	const int _instance;
+	const uint32_t _output_base;
 
 	MixingOutput _mixing_output{FMU_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
 
