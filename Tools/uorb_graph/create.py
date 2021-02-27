@@ -581,41 +581,42 @@ class OutputJSON(object):
             json.dump(data, outfile) # add indent=2 for readable formatting
 
 
+if "__main__" == __name__:
 
-# ignore topics that are subscribed/published by many topics, but are not really
-# useful to show in the graph
-topic_blacklist = [ 'parameter_update', 'mavlink_log', 'log_message' ]
-print('Excluded topics: '+str(topic_blacklist))
+    # ignore topics that are subscribed/published by many topics, but are not really
+    # useful to show in the graph
+    topic_blacklist = [ 'parameter_update', 'mavlink_log', 'log_message' ]
+    print('Excluded topics: '+str(topic_blacklist))
 
-if len(args.modules) == 0:
-    module_whitelist = []
-else:
-    module_whitelist = [ m.strip() for m in args.modules.split(',')]
+    if len(args.modules) == 0:
+        module_whitelist = []
+    else:
+        module_whitelist = [ m.strip() for m in args.modules.split(',')]
 
-graph = Graph(module_whitelist=module_whitelist, topic_blacklist=topic_blacklist)
-if len(args.src_path) == 0:
-    args.src_path = ['src']
-graph.build(args.src_path, args.exclude_path, use_topic_pubsub_union=args.use_topic_union)
+    graph = Graph(module_whitelist=module_whitelist, topic_blacklist=topic_blacklist)
+    if len(args.src_path) == 0:
+        args.src_path = ['src']
 
+    graph.build(args.src_path, args.exclude_path, use_topic_pubsub_union=args.use_topic_union)
 
-if args.output == 'json':
-    output_json = OutputJSON(graph)
-    output_json.write(args.file+'.json')
+    if args.output == 'json':
+        output_json = OutputJSON(graph)
+        output_json.write(args.file+'.json')
 
-elif args.output == 'graphviz':
-    try:
-        from graphviz import Digraph
-    except ImportError as e:
-        print("Failed to import graphviz: " + e)
-        print("")
-        print("You may need to install it with:")
-        print("    pip3 install --user graphviz")
-        print("")
-        sys.exit(1)
-    output_graphviz = OutputGraphviz(graph)
-    engine='fdp' # use neato or fdp
-    output_graphviz.write(args.file+'.fv', engine=engine)
-    output_graphviz.write(args.file+'_subs.fv', show_publications=False, engine=engine)
-    output_graphviz.write(args.file+'_pubs.fv', show_subscriptions=False, engine=engine)
-else:
-    print('Error: unknown output format '+args.output)
+    elif args.output in ('graphviz','gv'):
+        try:
+            from graphviz import Digraph
+        except ImportError as e:
+            print("Failed to import graphviz: " + e)
+            print("")
+            print("You may need to install it with:")
+            print("    pip3 install --user graphviz")
+            print("")
+            sys.exit(1)
+        output_graphviz = OutputGraphviz(graph)
+        engine='fdp' # use neato or fdp
+        output_graphviz.write(args.file+'.fv', engine=engine)
+        output_graphviz.write(args.file+'_subs.fv', show_publications=False, engine=engine)
+        output_graphviz.write(args.file+'_pubs.fv', show_subscriptions=False, engine=engine)
+    else:
+        print('Error: unknown output format '+args.output)
