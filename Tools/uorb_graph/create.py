@@ -44,7 +44,7 @@ parser.add_argument('-m', '--modules', action='store',
                     default='')
 
 
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.WARNING,format='%(message)s')
 log = logging.getLogger()
 
 def get_N_colors(N, s=0.8, v=0.9):
@@ -61,6 +61,9 @@ class PubSub(object):
     """ Collects either publication or subscription information for nodes
     (modules and topics) & edges """
 
+    # special value to signal an ambiguous was found -- don't record this topic, and stop processing.
+    AMBIGUOUS_SITE_TOPIC = "AMBIGUOUS"
+
     def __init__(self, name, topic_blacklist, regexes):
         """
             :param is_publication: if True, publications, False for
@@ -74,13 +77,12 @@ class PubSub(object):
         self._topic_blacklist = topic_blacklist
         self._regexes = set([ re.compile(regex) for regex in regexes])
 
-    def match(self, source_line: str) -> Set[str]:
+    def match(self, source_line: str) -> str:
         """ Extract subscribed/published topics from a source string
         :param src_str: string of C/C++ code with comments and whitespace removed
-        :return: if any topic was found, it is returned as a str.  Otherwise, None
+        :return: if any topic was found, returned as a str.   On error, raise on exception.  On ambiguous line, return `AMBIGUOUS_SITE_TOPIC`.  Otherwise, return `None`
         """
 
-        matches = set()
         for regex in self._regexes:
             # just the matches for this particular pattern:
             match = regex.search(source_line)
@@ -88,11 +90,10 @@ class PubSub(object):
             if match is None:
                 continue
 
-            # all regexes should contain 2 capture groups
-            # total_match = match.group(0)
+            # # all regexes should contain 2 capture groups  (or else this code block crashes)
             route_group, topic_group = match.groups()
 
-            log.debug(f"          ####:{self._name}:  {route_group}, {topic_group}")
+            log.debug("          ####:{}:  {}, {}".format( self._name, route_group, topic_group))
 
             # # TODO: handle this case... but not sure where, yet
             # if match == 'ORB_ID_VEHICLE_ATTITUDE_CONTROLS': # special case
@@ -102,49 +103,31 @@ class PubSub(object):
             if route_group:
                 if route_group == 'ORB_ID':
                     log.debug("            >>> Found ORB_ID topic: " + topic_group +  "    w/regex: " + str(regex.pattern))
-                    self._add_topic(matches, topic_group)
-                    break
-                elif route_group == '<' and topic_group.endswith('_s'):
-                    topic_group = topic_group[:-2]
-                    log.debug("            >>> Found C++ template-declaration: " + topic_group +  "    w/regex: " + str(regex.pattern))
-                    self._add_topic(matches, topic_group)
-                    # continue processing
-                elif route_group in ['{','('] and topic_group.endswith('_s'):
-                    topic_group = topic_group[:-2]
-                    log.debug("            >>> Found standard declaration: " + topic_group +  "    w/regex: " + str(regex.pattern))
-                    self._add_topic(matches, topic_group)
-                    break
+                    return self._filter_topic(topic_group)
                 elif route_group == '[':
-                    if topic_group.endswith('_s'):
-                        topic_group = topic_group[:-2]
-                        log.debug("            >>> Found array declaration: " + topic_group +  "    w/regex: " + str(regex.pattern))
-                        self._add_topic(matches, topic_group)
-                        break
-                    else:
-                        # no topic found -- ambiguity -- return an empty set
-                        return set()
-                elif 'Multi' in route_group and topic_group.endswith('_s'):
-                        topic_group = topic_group[:-2]
-                        log.debug("            >>> Found 'multi' declaration: " + topic_group +  "    w/regex: " + str(regex.pattern))
-                        self._add_topic(matches, topic_group)
-                        break
+                    if not topic_group:
+                        log.debug("            !! found an ambiguous site => return an empty set")
+                        return PubSub.AMBIGUOUS_SITE_TOPIC
                 else:
                     raise SyntaxError('!!! Encountered regex case:  `route_group` contains unrecognized value!: '+ route_group+'  (::'+str(regex.pattern)+')\n'
                                         + "        ("+ route_group+', '+topic_group +")\n"
                                         + "        " + source_line)
+            elif route_group.empty() and topic_group.empty():
+                log.debug('!!! Found ambiguous site, without `ORB_ID` or topic (::'+str(regex.pattern))
+                return PubSub.AMBIGUOUS_SITE_TOPIC
 
             else:
                 raise SyntaxError("            !!! unhandled case:  unknown-variant: "+route_group+", " + topic_group + " ....from regex: " + str(regex.pattern))
 
-        return matches
+        return None
 
-    def _add_topic(self, topic_set: Set[str], topic_name: str):
+    def _filter_topic(self, topic_name: str) -> str:
         """ add topic to set, unless the topic is ignored """
         if topic_name in self._topic_blacklist:
             log.debug("                    XX Ignoring blacklisted topic " + topic_name)
-            return
+            return None
         else:
-            return topic_set.add(topic_name)
+            return topic_name
 
 class Publications(PubSub):
     """ Collects topic publication information for scopes """
@@ -189,7 +172,7 @@ class Scope(object):
         return self._name
 
     def reduce_ambiguities(self) -> Set[str]:
-        self.ambiguities = self.ambiguities - self.subscriptions - self.ambiguities
+        self.ambiguities = self.ambiguities - self.subscriptions - self.publications
         return self.dependencies
 
     @property
@@ -225,8 +208,8 @@ class Graph(object):
             - topic_blacklist
         """
 
-        self._comment_remove_pattern = re.compile( r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"', re.DOTALL | re.MULTILINE)
         self._whitespace_pattern = re.compile(r'\s+')
+
         self._scope_blacklist = set(kwargs.get('scope_blacklist',set()))
         self._scope_whitelist = set(kwargs.get('scope_whitelist',set()))
 
@@ -249,28 +232,27 @@ class Graph(object):
         self._topic_colors = {} # key = topic, value = color (html string)
 
         # note: the source-file-string is pre-processed to remove whitespace -- regexes should ignore whitespace
-        # note:  the regexes should have at least 3 capture groups '()'; otherwise they break downstream code
-        capture_cases_sub = [r"\borb_subscribe(?:_multi|)\b\s*\(\s*(ORB_ID)\s*\(\s*(\w+)",
-                             r"(?:uORB::)Subscription(?:Interval|)\s+\w+\s*[\{\(]\s*(ORB_ID)\s*\(\s*(\w+)",
-                             r"(?:uORB::)Subscription(?:Data|MultiArray|Blocking|)\s*(<)\s*(\w+)",
-                             r"(?:uORB::)SubscriptionCallbackWorkItem\s+\w+\s*\{\s*this,\s*(ORB_ID)\((\w+)",
+        # note: the regexes should 2 capture groups '()' to correctly register with downstream code
+        capture_cases_sub = [r"orb_subscribe\w*\((ORB_ID)(?:\(|::)(\w+)",
+                             r"orb_copy\((ORB_ID)(?:\(|::)(\w+)",
+                             r"Subscription\w*(?:<[^>]+>|)\w*(?:\[[^]]+\]|)[\{\(](ORB_ID)(?:\(|::)(\w+)",
+                             r"SubscriptionCallbackWorkItem\w+\{this,(ORB_ID)(?:\(|::)(\w+)",
                             ]
         self._subscriptions = Subscriptions( self._topic_blacklist, capture_cases_sub)
 
         # note: the source-file-string is pre-processed to remove whitespace -- regexes should ignore whitespace
-        # note: the regexes should have at least 3 capture groups '()'; otherwise they break downstream code
-        capture_cases_pub = [r"(?:uORB::)Publication(?:Data|Multi|)\s*(<)(\w+)>",
-                             r"orb_advertise(?:_multi|_queue|_multi_queue|)\s*\(\s*(ORB_ID)\s*\(\s*(\w+)",
-                             r"orb_publish(?:_auto|)\s*\(\s*(ORB_ID)\s*\(\s*(\w+)",
-                             r"(?:uORB::)Publication(?:Data|Multi|)\s*<\w+>\s+\w+\s*[\(\{](ORB_ID)\((\w+)"
+        # note: the regexes should 2 capture groups '()' to correctly register with downstream code
+        capture_cases_pub = [r"orb_advertise(?:_multi|_queue|_multi_queue|)\((ORB_ID)(?:\(|::)(\w+)",
+                             r"orb_publish(?:_auto|)\((ORB_ID)(?:\(|::)(\w+)",
+                             r"Publication\w*<\w+>\w+(?:\[[^]]+\]|)[\(\{]*(ORB_ID)(?:\(|::)(\w+)",
                             ]
         self._publications = Publications( self._topic_blacklist, capture_cases_pub)
 
         # note: the source-file-string is pre-processed to remove whitespace -- regexes should ignore whitespace
-        # note: the regexes should have at least 3 capture groups '()'; otherwise they break downstream code
-        capture_cases_ambiguous = [ r"orb_copy\s*\(\s*(ORB_ID)\s*\(\s*(\w+)",
-                                    r"(?:uORB::)Subscription[^\s]*\s+\w+\s*(\[)\s*\w+\s*\]()",
-                                    r"(ORB_ID)\s*\(\s*(\w+)",
+        # note: the regexes should 2 capture groups '()' to correctly register with downstream code
+        capture_cases_ambiguous = [ r"Publication\w*(?:\<\w+\>|)\w+(\[)()",
+                                    r"Subscription\w*(?:\<\w+\>|)\w+(\[)()",
+                                    r"(ORB_ID)(?:\(|::)(\w+)",
                                   ]
         self._ambiguities = Ambiguities( self._topic_blacklist, capture_cases_ambiguous)
 
@@ -279,7 +261,7 @@ class Graph(object):
             return None
         return self._current_scope[-1]
 
-    def build(self, src_path_list, path_blacklist=[], **kwargs):
+    def build(self, src_path_list, **kwargs):
         """ parse the source tree & extract pub/sub information.
             :param use_topic_pubsub_union: if true, use all topics that have a
             publisher or subscriber. If false, use only topics with at least one
@@ -288,7 +270,8 @@ class Graph(object):
             fill in self._module_subsciptions & self._module_publications
         """
 
-        self._path_blacklist = [os.path.normpath(p) for p in path_blacklist]
+
+        self._path_blacklist =  set([ os.path.normpath(p) for p in kwargs.get('path_blacklist',[]) ])
 
         for path in src_path_list:
             log.info("## Add src path: " + path )
@@ -296,9 +279,9 @@ class Graph(object):
 
         # Summarize the found counts: (all topics are defined in 'dependency' library)
         log.info('### Summary: Total Scanned:')
-        log.info('    Libraries Count:    '+str(len(self._found_libraries)))
-        log.info('    Modules Count:      '+str(len(self._found_modules)))
-        log.info('    Warnings Count:     '+str(len(self._warnings)))
+        log.info('    Library Count:      '+str(len(self._found_libraries)))
+        log.info('    Module Count:       '+str(len(self._found_modules)))
+        log.info('    Warning Count:      '+str(len(self._warnings)))
 
         if kwargs['merge_depends']:
             graph.merge_depends()
@@ -307,18 +290,21 @@ class Graph(object):
         self._generate_print_lists(use_topic_pubsub_union=kwargs['use_topic_pubsub_union'], merge_depends=kwargs['merge_depends'])
 
         # Summarize the found counts:
-        print('          ### Summary (in-scope):')
-        print('              Ambiguous Count:    '+str(len(self._print_ambiguities)))
-        print('              Scope Count:        '+str(len(self._print_scopes)))
-        print('              Topics Count:       '+str(len(self._print_topics)))
-        print('              Warnings Count:     '+str(len(self._warnings)))
+        log.info('### Summary (in-scope):')
+        log.info('    Scope Count:        '+str(len(self._print_scopes)))
+        log.info('    Ambiguous Topics:   '+str(len(self._print_ambiguities)))
+        log.info('    Linked Topics:      '+str(len(self._print_topics)))
+        log.info('    Warnings:           '+str(len(self._warnings)))
 
         if 0 < len(self._warnings):
             # print out the list of warning-sites:
             log.info('## Warning Sites:')
             for w in self._warnings:
+                scope_name = 'no-scope'
+                if None is not w[0]:
+                    scope_name = w[0].name
                 # warnings tuple contains: (current_scope, file_name, line_number, line)
-                log.info("    -['{}']:{:<64s}:{} = {}".format(w[0].name, w[1].lstrip('/.'), w[2], w[3] ))
+                log.info("    -['{}']:{:<64s}:{} = {}".format(scope_name, w[1].lstrip('/.'), w[2], w[3] ))
 
         # initialize colors
         color_list = get_N_colors(len(self._print_topics), 0.7, 0.85)
@@ -334,9 +320,8 @@ class Graph(object):
         published_topics = set()
         ambiguous_topics = set()
 
-        # gather all possible modules...
-        # all_scopes = self._found_libraries | self._found_modules         # Python 3.9 or greater
-        all_scopes = { **self._found_libraries, **self._found_modules }    # Python 3.5 or greater
+        # gather all found scopes:
+        all_scopes = { **self._found_libraries, **self._found_modules }
 
         if 0 == len(self._scope_whitelist):
             select_scopes = self._found_modules
@@ -346,27 +331,28 @@ class Graph(object):
                 if scope_name in all_scopes:
                     select_scopes[scope_name] = all_scopes[scope_name]
         if not isinstance(select_scopes, dict) or 0 == len(select_scopes):
-            raise TypeError("'select_scopes' should be a set!! aborting.")
+            log.error("!! No requested modules not found -- exiting.")
+            sys.exit(0)
 
-        log.debug(f'    >> Condensing found topics: scope -> total')
+        log.debug('### Condensing found topics: scope -> total')
         for name,scope in select_scopes.items():
-            log.debug(f'        @@ Scope: {name}')
+            log.debug('    # Scope: '+ name )
 
-            log.debug(f'          ## Subs: {name}')
-            for topic in scope.subscriptions:
-                log.debug(f'            - {topic}')
+            log.debug('        ## Subs: ' + str(len(scope.subscriptions)))
+            for topic in sorted(scope.subscriptions):
+                log.debug('            - ' + topic)
                 subscribed_topics.add(topic)
 
-            log.debug(f'          ## Pubs: {name}')
-            for topic in scope.publications:
-                log.debug(f'            - {topic}')
+            log.debug('        ## Pubs: ' + str(len(scope.publications)))
+            for topic in sorted(scope.publications):
+                log.debug('            - ' + topic )
                 published_topics.add(topic)
 
             scope.reduce_ambiguities()
 
-            log.debug(f'          ## Ambiguities: {name}')
-            for topic in scope.ambiguities:
-                log.debug(f'            - {topic}')
+            log.debug('        ## Ambiguities: ' + str(len(scope.ambiguities)))
+            for topic in sorted(scope.ambiguities):
+                log.debug('            - ' + topic )
                 ambiguous_topics.add(topic)
 
         # filter modules iff they have at least a subscription or a publication
@@ -400,11 +386,11 @@ class Graph(object):
 
         entries = os.listdir(path)
 
-        # check if entering a new module
+        # check if entering a new scope
         cmake_file = 'CMakeLists.txt'
-        new_module = False
+        new_scope = False
         if cmake_file in entries:
-            new_module = self._extract_build_information(os.path.join(path, cmake_file), **kwargs)
+            new_scope = self._extract_build_information(os.path.join(path, cmake_file), **kwargs)
 
         # iterate directories recursively
         for entry in entries:
@@ -414,23 +400,23 @@ class Graph(object):
 
 
         # iterate source files
-        # Note: Skip all entries if we're not in a module -- both finding known pubs/subs and emitting warnings
-        if (0 == len(self._scope_whitelist)) or (0 < len(self._current_scope)) and (self._current_scope[-1].name in self._scope_whitelist):
-            for entry in entries:
-                file_name = os.path.join(path, entry)
-                if os.path.isfile(file_name):
-                    _, ext = os.path.splitext(file_name)
-                    if ext in ['.cpp', '.c', '.h', '.hpp']:
-                        self._process_source_file(file_name)
+        # Note: Skip all entries if we're not in a scope -- both finding known pubs/subs and emitting warnings
+        for entry in entries:
+            file_name = os.path.join(path, entry)
+            if os.path.isfile(file_name):
+                _, ext = os.path.splitext(file_name)
+                if ext in ['.cpp', '.c', '.h', '.hpp']:
+                    self._process_source_file(file_name)
 
-
-        if new_module:
+        if new_scope:
             self._current_scope.pop()
 
 
     def _extract_build_information(self, file_name, **kwargs):
-        """ extract the module name from a CMakeLists.txt file and store
-            in self._current_scope if there is any """
+        """ extract the module or library name from a CMakeLists.txt file and store
+            in self._current_scope if there is any
+            Also records dependencies, if any are specified.
+        """
 
         datafile = open(file_name)
         found_module_def = False
@@ -496,52 +482,59 @@ class Graph(object):
 
 
             current_scope = self._get_current_scope()
+            if current_scope:
+                if current_scope.name in self._scope_blacklist:
+                    return
+                elif current_scope.name == 'uorb_tests': # skip this
+                    return
+                elif current_scope.name == 'uorb':
 
-            if current_scope is None:
-                return  # ignore declarations outside of a declared module
-            elif current_scope.name in self._scope_blacklist:
-                return
-            elif current_scope.name == 'uorb_tests': # skip this
-                return
-            elif current_scope.name == 'uorb':
+                    # search and validate the ORB_ID_VEHICLE_ATTITUDE_CONTROLS define
+                    matches = self._orb_id_vehicle_attitude_controls_re.findall(content)
+                    for match in matches:
+                        if match != 'ORB_ID('+self._orb_id_vehicle_attitude_controls_topic:
+                            # if we land here, you need to change _orb_id_vehicle_attitude_controls_topic
+                            raise Exception(
+                                'The extracted define for ORB_ID_VEHICLE_ATTITUDE_CONTROLS '
+                                'is '+match+' but expected ORB_ID('+
+                                self._orb_id_vehicle_attitude_controls_topic)
 
-                # search and validate the ORB_ID_VEHICLE_ATTITUDE_CONTROLS define
-                matches = self._orb_id_vehicle_attitude_controls_re.findall(content)
-                for match in matches:
-                    if match != 'ORB_ID('+self._orb_id_vehicle_attitude_controls_topic:
-                        # if we land here, you need to change _orb_id_vehicle_attitude_controls_topic
-                        raise Exception(
-                            'The extracted define for ORB_ID_VEHICLE_ATTITUDE_CONTROLS '
-                            'is '+match+' but expected ORB_ID('+
-                            self._orb_id_vehicle_attitude_controls_topic)
-
-                return # skip uorb module for the rest
+                    return # skip uorb module for the rest
 
             line_number = 0
-            for line in content.splitlines():
+            for full_line in content.splitlines():
                 line_number += 1
 
-                pub_topics = self._publications.match(line)
-                for each_topic in pub_topics:
-                    current_scope.publications.add(each_topic)
-                if pub_topics:
-                    continue
+                short_line = re.sub(self._whitespace_pattern, '', full_line)
 
-                sub_topics = self._subscriptions.match(line)
-                for each_topic in sub_topics:
-                    current_scope.subscriptions.add(each_topic)
-                if sub_topics:
-                    continue
+                topic = self._publications.match(short_line)
+                if topic:
+                    if current_scope:
+                        current_scope.publications.add(topic)
+                        continue
+                    else:
+                        raise AssertionError("Encountered Publication topic outside of any scope! " + file_name + " Aborting!")
 
-                ambi_topics = self._ambiguities.match(line)
-                for each_topic in ambi_topics:
-                    current_scope.ambiguities.add(each_topic)
-                    self._warnings.append((current_scope, file_name, line_number, line))
+                topic = self._subscriptions.match(short_line)
+                if topic:
+                    if current_scope:
+                        current_scope.subscriptions.add(topic)
+                        continue
+                    else:
+                        raise AssertionError("Encountered Subscription topic outside of any scope! " + file_name + " Aborting!")
+
+                topic = self._ambiguities.match(short_line)
+                if topic:
+                    if current_scope:
+                        if topic != PubSub.AMBIGUOUS_SITE_TOPIC:
+                            current_scope.ambiguities.add(topic)
+                        self._warnings.append((current_scope, file_name, line_number, full_line))
+                        continue
+                    else:
+                        raise AssertionError("Encountered Ambiguous topic outside of any scope! " + file_name + " Aborting!")
 
     def _in_scope(self, scope_name = None):
-        if 0 == len(self._scope_whitelist):
-            return True
-        elif 0 < len(self._current_scope):
+        if 0 < len(self._current_scope):
             if None is scope_name:
                 scope_name = self._current_scope[-1].name
             if scope_name in self._scope_whitelist:
@@ -550,8 +543,10 @@ class Graph(object):
         return False
 
     def merge_depends(self):
+        log.info('### Merge Depends:')
+
         for modname,module in self._found_modules.items():
-            if self._in_scope(modname):
+            if modname in self._scope_whitelist or 0==len(self._scope_whitelist):
                 for depname in module.dependencies:
                     if depname in self._found_libraries:
                         dep = self._found_libraries[depname]
@@ -730,33 +725,38 @@ if "__main__" == __name__:
     topic_blacklist = [ 'parameter_update', 'mavlink_log', 'log_message' ]
     print('Excluded topics: '+str(topic_blacklist))
 
-    # ignore certain modules; for any reason
-    scope_blacklist = []
-    if scope_blacklist:
-        print('Excluded Modules: '+str(topic_blacklist))
-
     if len(args.modules) == 0:
         scope_whitelist = []
     else:
         scope_whitelist = [ m.strip() for m in args.modules.split(',')]
         scope_whitelist = set(scope_whitelist)
 
-    graph = Graph(scope_whitelist=scope_whitelist, scope_blacklist=scope_blacklist, topic_blacklist=topic_blacklist)
+    graph = Graph(scope_whitelist=scope_whitelist, topic_blacklist=topic_blacklist)
+
+    # if no source paths are supplied, guess that we're in the project root, and apply it to the entire 'src/' tree
     if len(args.src_path) == 0:
         args.src_path = ['src']
 
-        if not os.path.exists(args.src_path[0]):
-            print(f"    !?could not find source directory: {args.src_path[0]}")
-            script_path = os.path.dirname(os.path.realpath(__file__))
-            args.src_path[0] = os.path.realpath(os.path.join( script_path, '..', '..', 'src' ))
-            print(f"        >> guessing at path: {args.src_path[0]}")
-
+    # transcribe only the source paths that actually exist:
+    source_paths = []
     for path in args.src_path:
-        if not os.path.exists(path):
-            print(f"    !?could not find source directory: {path} -- please check path!")
-            print(f"    Exiting.")
+        if os.path.exists(path):
+            source_paths.append(path)
+        else:
+            log.warn("Could not find path: " + path)
 
-    graph.build(args.src_path, args.exclude_path, use_topic_pubsub_union=args.use_topic_union, merge_depends=args.merge_depends)
+    if 0 == len(source_paths):
+        print("!! None of the source directories were valid -- Exiting.")
+        sys.exit(-1)
+
+    # ignore certain paths
+    path_blacklist = ['src/lib/parameters/']
+    if 0 < len(args.exclude_path):
+        path_blacklist = args.exclude_path
+    if path_blacklist:
+        print('Excluded Path: '+str(path_blacklist))
+
+    graph.build(source_paths, path_blacklist=path_blacklist, use_topic_pubsub_union=args.use_topic_union, merge_depends=args.merge_depends)
 
     if args.output == 'json':
         output_json = OutputJSON(graph)
