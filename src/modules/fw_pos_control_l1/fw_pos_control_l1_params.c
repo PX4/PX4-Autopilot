@@ -436,7 +436,7 @@ PARAM_DEFINE_FLOAT(FW_LND_THRTC_SC, 1.0f);
  * increase airspeed more aggressively.
  *
  * @unit m/s
- * @min 0.0
+ * @min 0.5
  * @max 40
  * @decimal 1
  * @increment 0.5
@@ -451,7 +451,7 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
  * airspeed more aggressively.
  *
  * @unit m/s
- * @min 0.0
+ * @min 0.5
  * @max 40
  * @decimal 1
  * @increment 0.5
@@ -467,7 +467,7 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
  * no other airspeed setpoint sources are present (e.g. through non-centered RC sticks).
  *
  * @unit m/s
- * @min 0.0
+ * @min 0.5
  * @max 40
  * @decimal 1
  * @increment 0.5

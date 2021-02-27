@@ -39,6 +39,7 @@
 
 #pragma once
 
+#include <lib/mathlib/mathlib.h>
 #include <matrix/matrix/math.hpp>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
@@ -114,9 +115,9 @@ public:
 
 	/**
 	 * Set the normalized hover thrust
-	 * @param thrust [0,1] with which the vehicle hovers not acelerating down or up with level orientation
+	 * @param thrust [0.1, 0.9] with which the vehicle hovers not acelerating down or up with level orientation
 	 */
-	void setHoverThrust(const float hover_thrust) { _hover_thrust = hover_thrust; }
+	void setHoverThrust(const float hover_thrust) { _hover_thrust = math::constrain(hover_thrust, 0.1f, 0.9f); }
 
 	/**
 	 * Update the hover thrust without immediately affecting the output
@@ -192,7 +193,7 @@ private:
 	float _lim_thr_max{}; ///< Maximum collective thrust allowed as output [-1,0] e.g. -0.1
 	float _lim_tilt{}; ///< Maximum tilt from level the output attitude is allowed to have
 
-	float _hover_thrust{}; ///< Thrust [0,1] with which the vehicle hovers not accelerating down or up with level orientation
+	float _hover_thrust{}; ///< Thrust [0.1, 0.9] with which the vehicle hovers not accelerating down or up with level orientation
 
 	// States
 	matrix::Vector3f _pos; /**< current position */
