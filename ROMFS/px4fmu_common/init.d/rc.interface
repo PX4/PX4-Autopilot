@@ -32,7 +32,7 @@ fi
 # USE_IO is set to 'no' for all boards w/o px4io driver or SYS_USE_IO disabled
 if [ $USE_IO = no ]
 then
-	set MIXER_AUX none
+	set AUX_MODE none
 fi
 
 #
@@ -147,6 +147,7 @@ then
 	if mixer load ${OUTPUT_DEV} ${MIXER_FILE}
 	then
 		echo "INFO  [init] Mixer: ${MIXER_FILE} on ${OUTPUT_DEV}"
+
 	else
 		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}"
 		tune_control play -t 18 # tune 18 = PROG_PX4IO_ERR
@@ -199,6 +200,7 @@ then
 					echo "ERROR  [init] Failed loading mixer: ${MIXER_AUX_FILE}"
 				fi
 			else
+				echo "INFO  [init] setting PWM_AUX_OUT none"
 				set PWM_AUX_OUT none
 			fi
 		else
@@ -220,6 +222,36 @@ then
 				fi
 			fi
 		fi
+	fi
+fi
+
+if [ $MIXER_AUX != none -a $AUX_MODE = none -a -e $OUTPUT_AUX_DEV ]
+then
+	#
+	# Load aux mixer.
+	#
+	if [ -f ${SDCARD_MIXERS_PATH}/${MIXER_AUX}.aux.mix ]
+	then
+		set MIXER_AUX_FILE ${SDCARD_MIXERS_PATH}/${MIXER_AUX}.aux.mix
+	else
+
+		if [ -f /etc/mixers/${MIXER_AUX}.aux.mix ]
+		then
+			set MIXER_AUX_FILE /etc/mixers/${MIXER_AUX}.aux.mix
+		fi
+	fi
+
+	if mixer load ${OUTPUT_AUX_DEV} ${MIXER_AUX_FILE}
+	then
+		echo "INFO  [init] Mixer: ${MIXER_AUX_FILE} on ${OUTPUT_AUX_DEV}"
+
+		# Set PWM_AUX output frequency.
+		if [ $PWM_AUX_RATE != none ]
+		then
+			pwm rate -c ${PWM_AUX_OUT} -r ${PWM_AUX_RATE} -d ${OUTPUT_AUX_DEV}
+		fi
+	else
+		echo "ERROR  [init] Failed loading mixer: ${MIXER_AUX_FILE}"
 	fi
 fi
 
