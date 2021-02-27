@@ -45,9 +45,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/spi.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
-// #include <lib/drivers/barometer/PX4Barometer.hpp> // Not needed for ADIS16362
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
-// #include <lib/drivers/magnetometer/PX4Magnetometer.hpp> // Not needed for ADIS16362
 #include <lib/ecl/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
@@ -100,12 +98,9 @@ private:
 	const spi_drdy_gpio_t _drdy_gpio;
 
 	PX4Accelerometer _px4_accel;
-  	// PX4Barometer _px4_baro;
 	PX4Gyroscope _px4_gyro;
-  	// PX4Magnetometer _px4_mag;
 
 	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
-	// perf_counter_t _perf_crc_bad{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": CRC16 bad"))};
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
 
@@ -113,7 +108,6 @@ private:
 	hrt_abstime _last_config_check_timestamp{0};
 	int _failure_count{0};
 
-	// bool _check_crc{false}; // CRC-16 not supported on earlier models (eg ADIS16448AMLZ)
 	bool _data_ready_interrupt_enabled{false};
 
 	bool _self_test_passed{false};
@@ -129,12 +123,9 @@ private:
 	uint8_t _checked_register{0};
 	static constexpr uint8_t size_register_cfg{4};
 	register_config_t _register_cfg[size_register_cfg] {
-	  // Register                | Set bits, Clear bits
-	  // { Register::MSC_CTRL,   MSC_CTRL_BIT::CRC16_for_burst, 0 }, // Not used for ADIS16362
-	  // { Register::SMPL_PRD,   SMPL_PRD_BIT::internal_sampling_clock, SMPL_PRD_BIT::decimation_rate },
-	  { Register::SMPL_PRD,   SMPL_PRD_BIT::Increment_setting, SMPL_PRD_BIT::Time_base }, // Internal sample period tS = tB × (NS + 1)
-	  // { Register::SENS_AVG,   SENS_AVG_BIT::Measurement_range_1000_set, SENS_AVG_BIT::Measurement_range_1000_clear | SENS_AVG_BIT::Filter_Size_Variable_B },
-	  { Register::SENS_AVG,   SENS_AVG_BIT::Measurement_range_1000_set, SENS_AVG_BIT::Measurement_range_1000_clear | SENS_AVG_BIT::Number_of_taps_in_each_stage },
-	  { Register::GPIO_CTRL,   GPIO_CTRL_BIT::GPIO2_DIRECTION | GPIO_CTRL_BIT::GPIO1_DIRECTION, 0},
+	  // Register                	| Set bits, Clear bits
+	  { Register::SMPL_PRD,   	SMPL_PRD_BIT::Increment_setting, SMPL_PRD_BIT::Time_base }, // Internal sample period tS = tB × (NS + 1)
+	  { Register::SENS_AVG,   	SENS_AVG_BIT::Measurement_range_1000_set, SENS_AVG_BIT::Measurement_range_1000_clear | SENS_AVG_BIT::Number_of_taps_in_each_stage },
+	  { Register::GPIO_CTRL,   	GPIO_CTRL_BIT::GPIO2_DIRECTION | GPIO_CTRL_BIT::GPIO1_DIRECTION, 0},
 	};
 };
