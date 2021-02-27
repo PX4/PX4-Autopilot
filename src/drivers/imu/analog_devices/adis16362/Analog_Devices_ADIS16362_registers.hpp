@@ -94,9 +94,6 @@ enum class Register : uint16_t {
 enum MSC_CTRL_BIT : uint16_t {
 	Checksum_memory_test   = Bit11, // Memory test (cleared upon completion)
 	Internal_self_test     = Bit10, // Internal self test (cleared upon completion)
-	// Not used            = Bit5
-	// CRC16_for_burst     = Bit4,  // Not used for ADIS16362
-	// Not used            = Bit3
 	Data_ready_enable      = Bit2,  // Data ready enable
 	Data_ready_polarity    = Bit1,  // 1 = active high when data is valid
 	Data_ready_line_select = Bit0,  // Data ready line select 1 = DIO2, 0 = DIO1
@@ -111,14 +108,11 @@ enum DIAG_STAT_BIT : uint16_t {
 	Y_axis_gyroscope_self_test_failure     = Bit11, // 1 = fail, 0 = pass
 	X_axis_gyroscope_self_test_failure     = Bit10, // 1 = fail, 0 = pass
 
-	// New_data_xMAGN_OUT_BARO_OUT         = Bit7, // New data, xMAGN_OUT/BARO_OUT (Not used for ADIS16362)
 	Flash_test_checksum_flag               = Bit6, // 1 = fail, 0 = pass
 	Self_test_diagnostic_error_flag        = Bit5, // 1 = fail, 0 = pass
 
 	SPI_communication_failure              = Bit3, // 1 = fail, 0 = pass
 
-	// Barometer_functional_test           = Bit1, // 1 = fail, 0 = pass (Alternate use for ADIS16362)
-	// Magnetometer_functional_test        = Bit0, // 1 = fail, 0 = pass (Alternate use for ADIS16362)
 	Power_supply_greater_than_5V25	       = Bit1, // 1 = power supply > 5.25 V, 0 = power supply ≤ 5.25 V
 	Power_supply_less_than_4V75	       = Bit0, // 1 = power supply < 4.75 V, 0 = power supply ≥ 4.75 V
 };
@@ -130,12 +124,6 @@ enum GLOB_CMD_BIT : uint16_t {
 
 // SMPL_PRD 
 enum SMPL_PRD_BIT : uint16_t {
-  	// // [12:8] D, decimation rate setting, binomial,
-	// decimation_rate = Bit12 | Bit11 | Bit10 | Bit9, // disable
-
-	// internal_sampling_clock = Bit0, // 1 = internal sampling clock, 819.2 SPS
-
-  
   	// (SMPL_PRD default = 0x0001 for sample rate setting of 819.2 SPS for ADIS16362)
 	Time_base 		= Bit7 // 0 = 0.61035 ms, 1 = 18.921 ms
   
@@ -148,9 +136,6 @@ enum SENS_AVG_BIT : uint16_t {
 	// [10:8] Measurement range (sensitivity) selection
 	Measurement_range_1000_set   = Bit10, // 100 = ±300°/sec (default condition)
 	Measurement_range_1000_clear = Bit9 | Bit8,
-
-	// // [2:0] Filter Size Variable B
-	// Filter_Size_Variable_B = Bit2 | Bit1 | Bit0, // disable
 
 	// [2:0] Number of taps in each stage
 	Number_of_taps_in_each_stage = Bit2 | Bit1 | Bit0, // N = 2^M
