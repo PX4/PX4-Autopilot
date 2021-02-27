@@ -139,6 +139,11 @@ private:
 	bool _reset_filters{true};
 	bool _fifo_available{false};
 
+	perf_counter_t _filter_reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro filter reset")};
+	perf_counter_t _dynamic_notch_filter_update_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro dynamic notch filter update")};
+	perf_counter_t _selection_changed_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro selection changed")};
+	perf_counter_t _dynamic_notch_filter_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": gyro dynamic notch filter")};
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,
 		(ParamFloat<px4::params::IMU_GYRO_NF_FREQ>) _param_imu_gyro_nf_freq,

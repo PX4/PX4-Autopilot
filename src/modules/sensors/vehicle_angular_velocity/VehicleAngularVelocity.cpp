@@ -51,6 +51,11 @@ VehicleAngularVelocity::VehicleAngularVelocity() :
 VehicleAngularVelocity::~VehicleAngularVelocity()
 {
 	Stop();
+
+	perf_free(_filter_reset_perf);
+	perf_free(_dynamic_notch_filter_update_perf);
+	perf_free(_selection_changed_perf);
+	perf_free(_dynamic_notch_filter_perf);
 }
 
 bool VehicleAngularVelocity::Start()
@@ -158,6 +163,7 @@ void VehicleAngularVelocity::ResetFilters(const Vector3f &angular_velocity, cons
 	}
 
 	_reset_filters = false;
+	perf_count(_filter_reset_perf);
 }
 
 void VehicleAngularVelocity::SensorBiasUpdate(bool force)
@@ -209,6 +215,8 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(bool force)
 						_bias.zero();
 						_fifo_available = true;
 
+						perf_count(_selection_changed_perf);
+
 						return true;
 					}
 				}
@@ -231,6 +239,8 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(bool force)
 						_reset_filters = true;
 						_bias.zero();
 						_fifo_available = false;
+
+						perf_count(_selection_changed_perf);
 
 						return true;
 					}
@@ -328,6 +338,8 @@ void VehicleAngularVelocity::UpdateDynamicNotchFFT(bool force)
 							if ((change_percent > 0.01f) && (_fifo_last_scale > 0.f)) {
 								dnf.reset(_angular_velocity(axis) / _fifo_last_scale);
 							}
+
+							perf_count(_dynamic_notch_filter_update_perf);
 						}
 
 						_dynamic_notch_available = true;
@@ -404,11 +416,15 @@ void VehicleAngularVelocity::Run()
 
 					// Apply dynamic notch filter from FFT
 					if (_dynamic_notch_available) {
+						perf_begin(_dynamic_notch_filter_perf);
+
 						for (auto &dnf : _dynamic_notch_filter) {
 							if (dnf[axis].getNotchFreq() > 0.f) {
 								dnf[axis].applyDF1(data, N);
 							}
 						}
+
+						perf_end(_dynamic_notch_filter_perf);
 					}
 
 #endif // !CONSTRAINED_FLASH
