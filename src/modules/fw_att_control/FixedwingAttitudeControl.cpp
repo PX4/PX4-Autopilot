@@ -449,10 +449,15 @@ void FixedwingAttitudeControl::Run()
 				*/
 				float groundspeed = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
 				float gspd_scaling_trim = (_param_fw_airspd_min.get() * 0.6f);
-				float groundspeed_scaler = gspd_scaling_trim / ((groundspeed < gspd_scaling_trim) ? gspd_scaling_trim : groundspeed);
 
 				control_input.groundspeed = groundspeed;
-				control_input.groundspeed_scaler = groundspeed_scaler;
+
+				if (groundspeed > gspd_scaling_trim) {
+					control_input.groundspeed_scaler = gspd_scaling_trim / groundspeed;
+
+				} else {
+					control_input.groundspeed_scaler = 1.0f;
+				}
 			}
 
 			/* reset body angular rate limits on mode change */
