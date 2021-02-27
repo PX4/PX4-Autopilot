@@ -35,51 +35,6 @@
 
 using namespace time_literals;
 
-// CRC not used for ADIS16362
-// // computes the CCITT CRC16 on the data received from a burst read
-// static uint16_t ComputeCRC16(uint16_t burstData[13])
-// {
-// 	uint16_t crc = 0xFFFF; // Holds the CRC value
-
-// 	unsigned int data; // Holds the lower/Upper byte for CRC computation
-// 	static constexpr unsigned int POLY = 0x1021; // Divisor used during CRC computation
-
-// 	// Compute CRC on burst data starting from XGYRO_OUT and ending with TEMP_OUT.
-// 	// Start with the lower byte and then the upper byte of each word.
-// 	// i.e. Compute XGYRO_OUT_LSB CRC first and then compute XGYRO_OUT_MSB CRC.
-// 	for (int i = 1; i < 12; i++) {
-// 		unsigned int upperByte = (burstData[i] >> 8) & 0xFF;
-// 		unsigned int lowerByte = (burstData[i] & 0xFF);
-// 		data = lowerByte; // Compute lower byte CRC first
-
-// 		for (int ii = 0; ii < 8; ii++, data >>= 1) {
-// 			if ((crc & 0x0001) ^ (data & 0x0001)) {
-// 				crc = (crc >> 1) ^ POLY;
-
-// 			} else {
-// 				crc >>= 1;
-// 			}
-// 		}
-
-// 		data = upperByte; // Compute upper byte of CRC
-
-// 		for (int ii = 0; ii < 8; ii++, data >>= 1) {
-// 			if ((crc & 0x0001) ^ (data & 0x0001)) {
-// 				crc = (crc >> 1) ^ POLY;
-
-// 			} else {
-// 				crc >>= 1;
-// 			}
-// 		}
-// 	}
-
-// 	crc = ~crc; // Compute complement of CRC
-// 	data = crc;
-// 	crc = (crc << 8) | (data >> 8 & 0xFF); // Perform byte swap prior to returning CRC
-
-// 	return crc;
-// }
-
 // convert 12 bit integer format to int16.
 static int16_t convert12BitToINT16(uint16_t word)
 {
@@ -102,16 +57,13 @@ ADIS16362::ADIS16362(I2CSPIBusOption bus_option, int bus, uint32_t device, enum 
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_drdy_gpio(drdy_gpio), // TODO: DRDY disabled
 	_px4_accel(get_device_id(), rotation),
-	// _px4_baro(get_device_id()),
 	_px4_gyro(get_device_id(), rotation),
-	// _px4_mag(get_device_id(), rotation)
 {
 }
 
 ADIS16362::~ADIS16362()
 {
 	perf_free(_reset_perf);
-	// perf_free(_perf_crc_bad);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 }
@@ -148,7 +100,6 @@ void ADIS16362::print_status()
 	I2CSPIDriverBase::print_status();
 
 	perf_print_counter(_reset_perf);
-	// perf_print_counter(_perf_crc_bad);
 	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
 }
@@ -172,11 +123,6 @@ int ADIS16362::probe()
 	const uint16_t LOT_ID2 = RegisterRead(Register::LOT_ID2);
 
 	PX4_INFO("Serial Number: 0x%02x, Lot ID1: 0x%02x ID2: 0x%02x", SERIAL_NUM, LOT_ID1, LOT_ID2);
-
-	// // Only enable CRC-16 for verified lots (HACK to support older ADIS16448AMLZ with no explicit detection)
-	// if (LOT_ID1 == 0x1824) {
-	// 	_check_crc = true;
-	// }
 
 	return PX4_OK;
 }
@@ -230,17 +176,6 @@ void ADIS16362::RunImpl()
 
 			if (DIAG_STAT & DIAG_STAT_BIT::Self_test_diagnostic_error_flag) {
 				PX4_ERR("self test failed");
-
-				// // Magnetometer
-				// if (DIAG_STAT & DIAG_STAT_BIT::Magnetometer_functional_test) {
-				// 	// tolerate mag test failure (likely due to surrounding magnetic field)
-				// 	PX4_ERR("Magnetometer functional test fail");
-				// }
-
-				// // Barometer
-				// if (DIAG_STAT & DIAG_STAT_BIT::Barometer_functional_test) {
-				// 	PX4_ERR("Barometer functional test test fail");
-				// }
 
 				// Power supply > 5.25 V ?
 				if (DIAG_STAT & DIAG_STAT_BIT::Power_supply_greater_than_5V25) {
@@ -325,7 +260,6 @@ void ADIS16362::RunImpl()
 
 			struct BurstRead {
 				uint16_t cmd;
-			  	// uint16_t DIAG_STAT;
 			  	int16_t SUPPLY_OUT;
 				int16_t XGYRO_OUT;
 				int16_t YGYRO_OUT;
@@ -333,20 +267,12 @@ void ADIS16362::RunImpl()
 				int16_t XACCL_OUT;
 				int16_t YACCL_OUT;
 				int16_t ZACCL_OUT;
-				// int16_t XMAGN_OUT;
-				// int16_t YMAGN_OUT;
-				// int16_t ZMAGN_OUT;
-				// uint16_t BARO_OUT;
-				// uint16_t TEMP_OUT;
-				// uint16_t CRC16;
 			  	int16_t XTEMP_OUT;
 				int16_t YTEMP_OUT;
 				int16_t ZTEMP_OUT;
 			  	int16_t AUX_ADC;
 			} buffer{};
 
-			// // ADIS16448 burst report should be 224 bits
-			// static_assert(sizeof(BurstRead) == (224 / 8), "ADIS16448 report not 224 bits");
 			// ADIS16362 burst report should be 192 bits (12 * 16 bits)
 			static_assert(sizeof(BurstRead) == (192 / 8), "ADIS16362 report not 192 bits");
 
@@ -358,14 +284,6 @@ void ADIS16362::RunImpl()
 
 				bool publish_data = true;
 
-				// // checksum
-				// if (_check_crc) {
-				// 	if (buffer.CRC16 != ComputeCRC16((uint16_t *)&buffer.DIAG_STAT)) {
-				// 		perf_count(_perf_crc_bad);
-				// 		publish_data = false;
-				// 	}
-				// }
-
 				if (buffer.DIAG_STAT == DIAG_STAT_BIT::SPI_communication_failure) {
 					perf_count(_bad_transfer_perf);
 					publish_data = false;
@@ -376,9 +294,6 @@ void ADIS16362::RunImpl()
 					const uint32_t error_count = perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf);
 					_px4_accel.set_error_count(error_count);
 					_px4_gyro.set_error_count(error_count);
-
-					// // temperature 0.07386 °C/LSB, 31 °C = 0x000
-					// const float temperature = (convert12BitToINT16(buffer.TEMP_OUT) * 0.07386f) + 31.f;
 
 					// temperature 0.136 °C/LSB, 25 °C = 0x000
 					const float x_gyro_temperature = (convert12BitToINT16(buffer.XTEMP_OUT) * 0.136f) + 25.f;
@@ -401,23 +316,6 @@ void ADIS16362::RunImpl()
 
 					_px4_accel.update(now, accel_x, accel_y, accel_z);
 					_px4_gyro.update(now, gyro_x, gyro_y, gyro_z);
-
-					// // DIAG_STAT bit 7: New data, xMAGN_OUT/BARO_OUT
-					// if (buffer.DIAG_STAT & DIAG_STAT_BIT::New_data_xMAGN_OUT_BARO_OUT) {
-					// 	_px4_mag.set_error_count(error_count);
-					// 	_px4_mag.set_temperature(temperature);
-
-					// 	const int16_t mag_x = buffer.XMAGN_OUT;
-					// 	const int16_t mag_y = (buffer.YMAGN_OUT == INT16_MIN) ? INT16_MAX : -buffer.YMAGN_OUT;
-					// 	const int16_t mag_z = (buffer.ZMAGN_OUT == INT16_MIN) ? INT16_MAX : -buffer.ZMAGN_OUT;
-					// 	_px4_mag.update(now, mag_x, mag_y, mag_z);
-
-					// 	_px4_baro.set_error_count(error_count);
-					// 	_px4_baro.set_temperature(temperature);
-
-					// 	float pressure_pa = buffer.BARO_OUT * 0.02f; // 20 μbar per LSB
-					// 	_px4_baro.update(now, pressure_pa);
-					// }
 
 					success = true;
 
@@ -474,18 +372,11 @@ bool ADIS16362::Configure()
 		}
 	}
 
-	// _px4_accel.set_scale(0.833f * 1e-3f * CONSTANTS_ONE_G); // 0.833 mg/LSB
 	_px4_accel.set_scale(0.333f * 1e-3f * CONSTANTS_ONE_G); // 0.333 mg/LSB
-	// _px4_gyro.set_scale(math::radians(0.05f));              // 0.05 °/sec/LSB
 	_px4_gyro.set_scale(math::radians(0.04f));              // 0.04 °/sec/LSB
-	// _px4_mag.set_scale(142.9f * 1e-6f);                     // μgauss/LSB
 
-	// _px4_accel.set_range(18.f * CONSTANTS_ONE_G);
 	_px4_accel.set_range(1.7.f * CONSTANTS_ONE_G);
-	// _px4_gyro.set_range(math::radians(1000.f));
 	_px4_gyro.set_range(math::radians(300.f));
-
-	// _px4_mag.set_external(external());
 
 	return success;
 }
