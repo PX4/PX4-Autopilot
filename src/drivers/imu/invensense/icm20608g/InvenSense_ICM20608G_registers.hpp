@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -85,6 +85,15 @@ enum class Register : uint8_t {
 	FIFO_COUNTL       = 0x73,
 	FIFO_R_W          = 0x74,
 	WHO_AM_I          = 0x75,
+
+	XA_OFFSET_H       = 0x77,
+	XA_OFFSET_L       = 0x78,
+
+	YA_OFFSET_H       = 0x7A,
+	YA_OFFSET_L       = 0x7B,
+
+	ZA_OFFSET_H       = 0x7D,
+	ZA_OFFSET_L       = 0x7E,
 };
 
 // CONFIG
