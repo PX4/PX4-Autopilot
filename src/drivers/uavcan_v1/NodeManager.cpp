@@ -48,19 +48,18 @@ bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg)
 		msg.allocated_node_id.elements[0].value = CANARD_NODE_ID_UNSET;
 
 		/* Search for an available NodeID to assign */
-		if (msg.allocated_node_id.elements[0].value == CANARD_NODE_ID_UNSET) {
-			for (uint32_t i = 1; i < 16; i++) { // Note we're node ID 0
-				if (nodeid_registry[i].node_id == 0) { // Unused
-					nodeid_registry[i].node_id = 1;
-					memcpy(&nodeid_registry[i].unique_id, &msg.unique_id_hash, 6);
-					break;
+		for (uint32_t i = 1; i < 16; i++) {
+			if (i == _canard_instance.node_id) {
+				continue; // Don't give our NodeID to a node
 
-				} else {
-					if (memcmp(&nodeid_registry[i].unique_id[0], &msg.unique_id_hash, 6) == 0) {
-						msg.allocated_node_id.elements[0].value = nodeid_registry[i].node_id; // Existing NodeID
-						break;
-					}
-				}
+			} else if (nodeid_registry[i].node_id == 0) { // Unused
+				nodeid_registry[i].node_id = i;
+				memcpy(&nodeid_registry[i].unique_id, &msg.unique_id_hash, 6);
+				break;
+
+			} else if (memcmp(&nodeid_registry[i].unique_id[0], &msg.unique_id_hash, 6) == 0) {
+				msg.allocated_node_id.elements[0].value = nodeid_registry[i].node_id; // Existing NodeID
+				break;
 			}
 		}
 
@@ -79,7 +78,7 @@ bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg)
 				.timestamp_usec = hrt_absolute_time(),      // Zero if transmission deadline is not limited.
 				.priority       = CanardPriorityNominal,
 				.transfer_kind  = CanardTransferKindMessage,
-				.port_id        = uavcan_pnp_NodeIDAllocationData_1_0_FIXED_PORT_ID_,                // This is the subject-ID.
+				.port_id        = uavcan_pnp_NodeIDAllocationData_1_0_FIXED_PORT_ID_, // This is the subject-ID.
 				.remote_node_id = CANARD_NODE_ID_UNSET,       // Messages cannot be unicast, so use UNSET.
 				.transfer_id    = _uavcan_pnp_nodeidallocation_v1_transfer_id,
 				.payload_size   = uavcan_pnp_NodeIDAllocationData_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_,
