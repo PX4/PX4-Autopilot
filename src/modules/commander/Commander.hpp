@@ -219,6 +219,8 @@ private:
 
 		(ParamInt<px4::params::COM_FLT_PROFILE>) _param_com_flt_profile,
 
+		(ParamFloat<px4::params::COM_OBC_LOSS_T>) _param_com_obc_loss_t,
+
 		// Offboard
 		(ParamFloat<px4::params::COM_OF_LOSS_T>) _param_com_of_loss_t,
 		(ParamInt<px4::params::COM_OBL_ACT>) _param_com_obl_act,
