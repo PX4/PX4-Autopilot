@@ -125,6 +125,7 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_airspeed_error_time_constant(_param_fw_t_tas_error_tc.get());
 	_tecs.set_ste_rate_time_const(_param_ste_rate_time_const.get());
 	_tecs.set_speed_derivative_time_constant(_param_tas_rate_time_const.get());
+	_tecs.set_seb_rate_ff_gain(_param_seb_rate_ff.get());
 
 
 	// Landing slope

@@ -761,3 +761,16 @@ PARAM_DEFINE_FLOAT(FW_T_STE_R_TC, 0.4f);
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_TAS_R_TC, 0.2f);
+
+
+/**
+ * Specific total energy balance rate feedforward gain.
+ *
+ *
+ * @min 0.5
+ * @max 3
+ * @decimal 2
+ * @increment 0.01
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_SEB_R_FF, 1.0f);

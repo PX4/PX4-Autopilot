@@ -131,6 +131,8 @@ public:
 	void set_ste_rate_time_const(float time_const) { _STE_rate_time_const = time_const; }
 	void set_speed_derivative_time_constant(float time_const) { _speed_derivative_time_const = time_const; }
 
+	void set_seb_rate_ff_gain(float ff_gain) { _SEB_rate_ff = ff_gain; }
+
 
 	// TECS status
 	uint64_t timestamp() { return _pitch_update_timestamp; }
@@ -224,6 +226,7 @@ private:
 	float _throttle_slewrate{0.0f};					///< throttle demand slew rate limit (1/sec)
 	float _STE_rate_time_const{0.1f};				///< filter time constant for specific total energy rate (damping path) (s)
 	float _speed_derivative_time_const{0.01f};			///< speed derivative filter time constant (s)
+	float _SEB_rate_ff{1.0f};
 
 	// complimentary filter states
 	float _vert_vel_state{0.0f};					///< complimentary filter state - height rate (m/sec)
