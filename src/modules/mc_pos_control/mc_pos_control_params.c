@@ -708,13 +708,11 @@ PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 3.0f);
  * The supported sub-modes are:
  * 0 Simple position control where sticks map directly to velocity setpoints
  *   without smoothing. Useful for velocity control tuning.
- * 1 Smooth position control with maximum acceleration and jerk limits based on slew-rates.
  * 3 Smooth position control with maximum acceleration and jerk limits based on
  *   jerk optimized trajectory generator (different algorithm than 1).
  * 4 Smooth position control where sticks map to acceleration and there's a virtual brake drag
  *
  * @value 0 Simple position control
- * @value 1 Smooth position control
  * @value 3 Smooth position control (Jerk optimized)
  * @value 4 Acceleration based input
  * @group Multicopter Position Control
