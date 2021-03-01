@@ -3510,9 +3510,9 @@ void Commander::data_link_check()
 		}
 	}
 
-	// ONBOARD CONTROLLER data link loss failsafe (hard coded 5 seconds)
+	// ONBOARD CONTROLLER data link loss failsafe
 	if ((_datalink_last_heartbeat_onboard_controller > 0)
-	    && (hrt_elapsed_time(&_datalink_last_heartbeat_onboard_controller) > 5_s)
+	    && (hrt_elapsed_time(&_datalink_last_heartbeat_onboard_controller) > (_param_com_obc_loss_t.get() * 1_s))
 	    && !_onboard_controller_lost) {
 
 		mavlink_log_critical(&_mavlink_log_pub, "Connection to mission computer lost");
