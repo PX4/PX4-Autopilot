@@ -389,6 +389,17 @@ PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
 PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
 
 /**
+ * Time-out to wait when onboard computer connection is lost before warning about loss connection.
+ *
+ * @group Commander
+ * @unit s
+ * @min 0
+ * @max 60
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(COM_OBC_LOSS_T, 5.0f);
+
+/**
  * First flightmode slot (1000-1160)
  *
  * If the main switch channel is in this range the
