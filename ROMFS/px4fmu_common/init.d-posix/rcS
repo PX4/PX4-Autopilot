@@ -177,6 +177,10 @@ if [ -n "$PX4_SIM_SPEED_FACTOR" ]; then
 	COM_OF_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 0.5" | bc)
 	echo "COM_OF_LOSS_T set to $COM_OF_LOSS_T_LONGER"
 	param set COM_OF_LOSS_T $COM_OF_LOSS_T_LONGER
+
+	COM_OBC_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 5.0" | bc)
+	echo "COM_OBC_LOSS_T set to $COM_OBC_LOSS_T_LONGER"
+	param set COM_OBC_LOSS_T $COM_OBC_LOSS_T_LONGER
 fi
 
 # Autostart ID
