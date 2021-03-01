@@ -572,10 +572,11 @@ int UavcanNode::handleRegisterList(const CanardTransfer &receive)
 
 	} else {
 		uavcan_register_Value_1_0 out_value;
+		_node_manager._node_register_last_received_index++;
+		_node_manager._uavcan_pnp_nodeidallocation_last = hrt_absolute_time(); // Reset timer for next request
 
 		if (_param_manager.GetParamByName(msg.name, out_value)) {
 			_node_manager._node_register_setup = CANARD_NODE_ID_UNSET;
-			_node_manager._node_register_last_received_index++;
 
 			uavcan_register_Access_Request_1_0 request_msg;
 			memcpy(&request_msg.name, &msg.name, sizeof(uavcan_register_Name_1_0));
