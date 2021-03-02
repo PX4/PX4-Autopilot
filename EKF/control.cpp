@@ -78,7 +78,6 @@ void Ekf::controlFusionModes()
 
 			}
 			if (height_source){
-				_information_events.flags.ekf_tilt_aligned = true;
 				ECL_INFO("%llu: EKF aligned, (%s hgt, IMU buf: %i, OBS buf: %i)",
 					(unsigned long long)_imu_sample_delayed.time_us, height_source, (int)_imu_buffer_length, (int)_obs_buffer_length);
 			}
