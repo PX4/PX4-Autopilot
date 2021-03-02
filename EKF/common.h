@@ -513,11 +513,11 @@ union terrain_fusion_status_u {
 // define structure used to communicate information events
 union information_event_status_u {
 	struct {
-		bool ekf_tilt_aligned		: 1; ///< 0 - true when the tilt alignment using the sensed gravity vector is complete
+		bool gps_checks_passed		: 1; ///< 0 - true when gps quality checks are passing passed
 		bool reset_vel_to_gps		: 1; ///< 1 - true when the velocity states are reset to the gps measurement
 		bool reset_vel_to_flow		: 1; ///< 2 - true when the velocity states are reset using the optical flow measurement
 		bool reset_vel_to_vision	: 1; ///< 3 - true when the velocity states are reset to the vision system measurement
-		bool reset_vel_to_zero		: 1; ///<4   - true when the velocity states are reset to zero
+		bool reset_vel_to_zero		: 1; ///< 4  - true when the velocity states are reset to zero
 		bool reset_pos_to_last_known	: 1; ///< 5 - true when the position states are reset to the last known position
 		bool reset_pos_to_gps		: 1; ///< 6 - true when the position states are reset to the gps measurement
 		bool reset_pos_to_vision	: 1; ///< 7 - true when the position states are reset to the vision system measurement
@@ -526,7 +526,6 @@ union information_event_status_u {
 		bool starting_vision_vel_fusion	: 1; ///< 10 - true when the filter starts using vision system velocity measurements to correct the state estimates
 		bool starting_vision_yaw_fusion	: 1; ///< 11 - true when the filter starts using vision system yaw  measurements to correct the state estimates
 		bool yaw_aligned_to_imu_gps	: 1; ///< 12 - true when the filter resets the yaw to an estimate derived from IMU and GPS data
-		bool gps_checks_passed		: 1; ///< 13 - true when gps quality checks are passing passed
 	} flags;
 	uint32_t value;
 };
