@@ -43,4 +43,3 @@ param set-default UAVCAN_ENABLE 2
 
 
 set LOGGER_BUF 64
-set IOFW "/etc/extras/cubepilot_io-v2_default.bin"

@@ -133,6 +133,13 @@ public:
 	virtual int		detect();
 
 	/**
+	 * @brief Check the integrity of the IO binary
+	 *
+	 * Succeeds if the IO binary matches the binary we have stored.
+	 */
+	int		check_crc(const char *file, uint32_t io_crc);
+
+	/**
 	 * IO Control handler.
 	 *
 	 * Handle all IOCTL calls to the PX4IO file descriptor.
@@ -463,6 +470,46 @@ bool PX4IO::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	return true;
 }
 
+int PX4IO::check_crc(const char *file, uint32_t io_crc)
+{
+	int fd = ::open(file, O_RDONLY);
+
+	if (fd == -1) {
+		PX4_WARN("open of %s failed: %d", file, errno);
+		return PX4_ERROR;
+	}
+
+	const uint32_t app_size_max = 0xf000;
+	uint32_t fw_crc = 0;
+	uint32_t nbytes = 0;
+
+	while (true) {
+		uint8_t buf[16];
+		int n = ::read(fd, buf, sizeof(buf));
+
+		if (n <= 0) { break; }
+
+		fw_crc = crc32part(buf, n, fw_crc);
+		nbytes += n;
+	}
+
+	::close(fd);
+
+	while (nbytes < app_size_max) {
+		uint8_t b = 0xff;
+		fw_crc = crc32part(&b, 1, fw_crc);
+		nbytes++;
+	}
+
+	if (io_crc != fw_crc) {
+		PX4_DEBUG("Firmware CRC mismatch 0x%08x 0x%08lx", io_crc, fw_crc);
+		return -EINVAL;
+
+	} else {
+		return PX4_OK;
+	}
+}
+
 int PX4IO::init()
 {
 	/* do regular cdev init */
@@ -522,21 +569,6 @@ int PX4IO::init()
 
 	if (_max_rc_input > input_rc_s::RC_INPUT_MAX_CHANNELS) {
 		_max_rc_input = input_rc_s::RC_INPUT_MAX_CHANNELS;
-	}
-
-	/*
-	 * Check for IO flight state - if FMU was flagged to be in
-	 * armed state, FMU is recovering from an in-air reset.
-	 * Read back status and request the commander to arm
-	 * in this case.
-	 */
-	uint16_t reg = 0;
-
-	/* get IO's last seen FMU state */
-	ret = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, &reg, sizeof(reg));
-
-	if (ret != OK) {
-		return ret;
 	}
 
 	/* dis-arm IO before touching anything */
@@ -2035,10 +2067,7 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 				return ret;
 			}
 
-			if (io_crc != arg) {
-				PX4_DEBUG("Firmware CRC mismatch 0x%08x 0x%08lx", io_crc, arg);
-				return -EINVAL;
-			}
+			ret = check_crc((const char *)arg, io_crc);
 
 			break;
 		}
@@ -2117,7 +2146,7 @@ void start(int argc, char *argv[])
 	device::Device *interface = get_interface();
 
 	/* create the driver - it will set g_dev */
-	PX4IO *dev = new PX4IO(interface);
+	(void)new PX4IO(interface);
 
 	if (g_dev == nullptr) {
 		delete interface;
@@ -2192,36 +2221,7 @@ void checkcrc(int argc, char *argv[])
 		exit(1);
 	}
 
-	int fd = open(argv[1], O_RDONLY);
-
-	if (fd == -1) {
-		PX4_WARN("open of %s failed: %d", argv[1], errno);
-		exit(1);
-	}
-
-	const uint32_t app_size_max = 0xf000;
-	uint32_t fw_crc = 0;
-	uint32_t nbytes = 0;
-
-	while (true) {
-		uint8_t buf[16];
-		int n = read(fd, buf, sizeof(buf));
-
-		if (n <= 0) { break; }
-
-		fw_crc = crc32part(buf, n, fw_crc);
-		nbytes += n;
-	}
-
-	close(fd);
-
-	while (nbytes < app_size_max) {
-		uint8_t b = 0xff;
-		fw_crc = crc32part(&b, 1, fw_crc);
-		nbytes++;
-	}
-
-	int ret = g_dev->ioctl(nullptr, PX4IO_CHECK_CRC, fw_crc);
+	int ret = g_dev->ioctl(nullptr, PX4IO_CHECK_CRC, (long unsigned int)argv[1]);
 
 	if (!keep_running) {
 		delete g_dev;
@@ -2229,11 +2229,9 @@ void checkcrc(int argc, char *argv[])
 	}
 
 	if (ret != OK) {
-		PX4_ERR("check CRC failed: %d, CRC: %u", ret, fw_crc);
+		PX4_ERR("check CRC failed: %d", ret);
 		exit(1);
 
-	} else {
-		PX4_INFO("IO FW CRC match");
 	}
 
 	exit(0);

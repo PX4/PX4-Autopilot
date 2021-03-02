@@ -46,6 +46,7 @@
 
 /* PX4IO connection configuration */
 #define BOARD_USES_PX4IO_VERSION       2
+#define BOARD_PX4IO_FW_SEARCH_PATHS {"/etc/extras/cubepilot_io-v2_default.bin","/fs/microsd/cubepilot_io-v2_default.bin", nullptr }
 #define PX4IO_SERIAL_DEVICE            "/dev/ttyS3"
 #define PX4IO_SERIAL_TX_GPIO           GPIO_USART6_TX
 #define PX4IO_SERIAL_RX_GPIO           GPIO_USART6_RX
