@@ -220,9 +220,11 @@ public:
 
 	const warning_event_status_u &warning_event_status() const { return _warning_events; }
 	const decltype(warning_event_status_u::flags) &warning_event_flags() const { return _warning_events.flags; }
+	void clear_warning_events() { _warning_events.value = 0; }
 
 	const information_event_status_u &information_event_status() const { return _information_events; }
 	const decltype(information_event_status_u::flags) &information_event_flags() const { return _information_events.flags; }
+	void clear_information_events() { _information_events.value = 0; }
 
 	bool isVehicleAtRest() const { return _control_status.flags.vehicle_at_rest; }
 
