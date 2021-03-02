@@ -389,6 +389,8 @@ protected:
 
 	virtual float compensateBaroForDynamicPressure(const float baro_alt_uncompensated) const = 0;
 
+	// these are used to record single frame events for external monitoring and should NOT be used for
+	// state logic becasue they will be cleared externally after being read.
 	warning_event_status_u _warning_events{};
 	information_event_status_u _information_events{};
 
