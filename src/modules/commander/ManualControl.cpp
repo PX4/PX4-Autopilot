@@ -44,7 +44,7 @@ enum OverrideBits {
 
 bool ManualControl::update()
 {
-	bool ret = false;
+	bool updated = false;
 
 	if (_manual_control_setpoint_sub.updated()) {
 		manual_control_setpoint_s manual_control_setpoint;
@@ -53,17 +53,17 @@ bool ManualControl::update()
 			process(manual_control_setpoint);
 		}
 
-		ret = true;
+		updated = true;
 	}
 
 	_rc_available = _rc_allowed
 			&& _manual_control_setpoint.timestamp != 0
 			&& (hrt_elapsed_time(&_manual_control_setpoint.timestamp) < (_param_com_rc_loss_t.get() * 1_s));
 
-	return ret && _rc_available;
+	return updated && _rc_available;
 }
 
-void ManualControl::process(manual_control_setpoint_s &manual_control_setpoint)
+void ManualControl::process(const manual_control_setpoint_s &manual_control_setpoint)
 {
 	_last_manual_control_setpoint = _manual_control_setpoint;
 	_manual_control_setpoint = manual_control_setpoint;
@@ -83,6 +83,7 @@ bool ManualControl::wantsOverride(const vehicle_control_mode_s &vehicle_control_
 		const bool rpy_moved = (fabsf(_manual_control_setpoint.x - _last_manual_control_setpoint.x) > minimum_stick_change)
 				       || (fabsf(_manual_control_setpoint.y - _last_manual_control_setpoint.y) > minimum_stick_change)
 				       || (fabsf(_manual_control_setpoint.r - _last_manual_control_setpoint.r) > minimum_stick_change);
+		// Throttle change value doubled to achieve the same scaling even though the range is [0,1] instead of [-1,1]
 		const bool throttle_moved =
 			(fabsf(_manual_control_setpoint.z - _last_manual_control_setpoint.z) * 2.f > minimum_stick_change);
 		const bool use_throttle = !(_param_rc_override.get() & OverrideBits::OVERRIDE_IGNORE_THROTTLE_BIT);
@@ -101,11 +102,8 @@ bool ManualControl::wantsDisarm(const vehicle_control_mode_s &vehicle_control_mo
 {
 	bool ret = false;
 
-	// no switch or button is mapped
 	const bool use_stick = manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_NONE;
-	// arm switch mapped and "switch is button" configured
 	const bool use_button = !use_stick && _param_com_arm_swisbtn.get();
-	// arm switch mapped and "switch_is_button" configured
 	const bool use_switch = !use_stick && !use_button;
 
 	const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
@@ -143,15 +141,12 @@ bool ManualControl::wantsDisarm(const vehicle_control_mode_s &vehicle_control_mo
 }
 
 bool ManualControl::wantsArm(const vehicle_control_mode_s &vehicle_control_mode, const vehicle_status_s &vehicle_status,
-			     manual_control_switches_s &manual_control_switches, const bool landed)
+			     const manual_control_switches_s &manual_control_switches, const bool landed)
 {
 	bool ret = false;
 
-	// no switch or button is mapped
 	const bool use_stick = manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_NONE;
-	// arm switch mapped and "switch is button" configured
 	const bool use_button = !use_stick && _param_com_arm_swisbtn.get();
-	// arm switch mapped and "switch_is_button" configured
 	const bool use_switch = !use_stick && !use_button;
 
 	const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
