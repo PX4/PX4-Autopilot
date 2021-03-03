@@ -427,14 +427,14 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 	if (run_preflight_checks) {
 		if (_vehicle_control_mode.flag_control_manual_enabled) {
 			if (_vehicle_control_mode.flag_control_climb_rate_enabled && _manual_control.isThrottleAboveCenter()) {
-				mavlink_log_critical(&_mavlink_log_pub, "Arming denied because throttle above center");
+				mavlink_log_critical(&_mavlink_log_pub, "Arming denied: throttle above center");
 				tune_negative(true);
 				return TRANSITION_DENIED;
 
 			}
 
 			if (!_vehicle_control_mode.flag_control_climb_rate_enabled && !_manual_control.isThrottleLow()) {
-				mavlink_log_critical(&_mavlink_log_pub, "Arming denied because of high throttle");
+				mavlink_log_critical(&_mavlink_log_pub, "Arming denied: high throttle");
 				tune_negative(true);
 				return TRANSITION_DENIED;
 			}
@@ -2230,7 +2230,7 @@ Commander::run()
 				if (!_status_flags.condition_calibration_enabled && !_status_flags.rc_input_blocked) {
 					mavlink_log_critical(&_mavlink_log_pub, "Manual control lost");
 					_status.rc_signal_lost = true;
-					_rc_signal_lost_timestamp = _manual_control.getLastRCTimestamp();
+					_rc_signal_lost_timestamp = _manual_control.getLastRcTimestamp();
 					set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, false, _status);
 					_status_changed = true;
 				}
