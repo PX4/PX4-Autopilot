@@ -61,6 +61,7 @@ class EkfGpsHeadingTest : public ::testing::Test {
 	void SetUp() override
 	{
 		_ekf->init(0);
+		_sensor_simulator.runSeconds(_init_duration_s);
 		_sensor_simulator._gps.setYaw(NAN);
 		_sensor_simulator.runSeconds(2);
 		_ekf_wrapper.enableGpsFusion();
@@ -68,6 +69,8 @@ class EkfGpsHeadingTest : public ::testing::Test {
 		_sensor_simulator.startGps();
 		_sensor_simulator.runSeconds(11);
 	}
+
+	const uint32_t _init_duration_s{4};
 };
 
 void EkfGpsHeadingTest::runConvergenceScenario(float yaw_offset_rad, float antenna_offset_rad)
@@ -137,7 +140,7 @@ TEST_F(EkfGpsHeadingTest, yawConvergence)
 	// AND WHEN: the the measurement changes
 	gps_heading += math::radians(2.f);
 	_sensor_simulator._gps.setYaw(gps_heading);
-	_sensor_simulator.runSeconds(6);
+	_sensor_simulator.runSeconds(10);
 
 	// THEN: the estimate slowly converges to the new measurement
 	// Note that the process is slow, because the gyro did not detect any motion
