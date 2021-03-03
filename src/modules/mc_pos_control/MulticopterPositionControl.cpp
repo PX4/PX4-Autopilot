@@ -355,7 +355,8 @@ void MulticopterPositionControl::Run()
 				_control.setTiltLimit(math::radians(_param_mpc_tiltmax_air.get()));
 			}
 
-			const float speed_up = _takeoff.updateRamp(dt, _vehicle_constraints.speed_up);
+			const float speed_up = _takeoff.updateRamp(dt,
+					       PX4_ISFINITE(_vehicle_constraints.speed_up) ? _vehicle_constraints.speed_up : _param_mpc_z_vel_max_up.get());
 			const float speed_down = PX4_ISFINITE(_vehicle_constraints.speed_down) ? _vehicle_constraints.speed_down :
 						 _param_mpc_z_vel_max_dn.get();
 			const float speed_horizontal = PX4_ISFINITE(_vehicle_constraints.speed_xy) ? _vehicle_constraints.speed_xy :
@@ -368,7 +369,7 @@ void MulticopterPositionControl::Run()
 
 			_control.setVelocityLimits(
 				math::constrain(speed_horizontal, 0.f, _param_mpc_xy_vel_max.get()),
-				math::constrain(speed_up, 0.f, _param_mpc_z_vel_max_up.get()),
+				math::min(speed_up, _param_mpc_z_vel_max_up.get()), // takeoff ramp starts with negative velocity limit
 				math::constrain(speed_down, 0.f, _param_mpc_z_vel_max_dn.get()));
 
 			_control.setInputSetpoint(_setpoint);
