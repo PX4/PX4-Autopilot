@@ -23,7 +23,6 @@ px4_add_board(
 		gps
 		#imu # all available imu drivers
 		imu/invensense/mpu9250
-		linux_pwm_out
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		pca9685_pwm_out
@@ -83,6 +82,7 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
+		fake_gps
 		dyn_hello # dynamically loading modules example
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello

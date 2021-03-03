@@ -274,10 +274,12 @@ private:
 
 	bool _accel_blocked[ACCEL_COUNT_MAX] {};
 	bool _accel_stuck[ACCEL_COUNT_MAX] {};
+	sensor_accel_fifo_s _last_accel_fifo{};
 	matrix::Vector3f _last_accel[GYRO_COUNT_MAX] {};
 
 	bool _gyro_blocked[GYRO_COUNT_MAX] {};
 	bool _gyro_stuck[GYRO_COUNT_MAX] {};
+	sensor_gyro_fifo_s _last_gyro_fifo{};
 	matrix::Vector3f _last_gyro[GYRO_COUNT_MAX] {};
 
 	bool _baro_blocked{false};

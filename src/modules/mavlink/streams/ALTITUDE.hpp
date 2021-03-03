@@ -35,7 +35,7 @@
 #define ALTITUDE_HPP
 
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/wind_estimate.h>
+#include <uORB/topics/wind.h>
 
 class MavlinkStreamAltitude : public MavlinkStream
 {

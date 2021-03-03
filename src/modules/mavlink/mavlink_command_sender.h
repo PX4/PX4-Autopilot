@@ -49,7 +49,6 @@
 
 #include "timestamped_list.h"
 #include "mavlink_bridge_header.h"
-#include <v2.0/mavlink_types.h>
 
 /**
  * @class MavlinkCommandSender
@@ -108,13 +107,12 @@ private:
 		hrt_abstime last_time_sent_us = 0;
 		// -1: channel did not request this command to be sent, -2: channel got an ack for this command
 #if MAVLINK_COMM_NUM_BUFFERS == 4
-		int8_t num_sent_per_channel[MAVLINK_COMM_NUM_BUFFERS] = {-1, -1, -1, -1};
+		int8_t num_sent_per_channel[MAVLINK_COMM_NUM_BUFFERS] {-1, -1, -1, -1};
 #elif MAVLINK_COMM_NUM_BUFFERS == 6
-		int8_t num_sent_per_channel[MAVLINK_COMM_NUM_BUFFERS] = {-1, -1, -1, -1, -1, -1};
+		int8_t num_sent_per_channel[MAVLINK_COMM_NUM_BUFFERS] {-1, -1, -1, -1, -1, -1};
 #else
-#error Unknown number of MAVLINK_COMM_NUM_BUFFERS
+# error Unknown number of MAVLINK_COMM_NUM_BUFFERS
 #endif
-
 	};
 
 	TimestampedList<command_item_s> _commands{3};

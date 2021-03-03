@@ -43,7 +43,6 @@ px4_add_board(
 		#imu/invensense/icm20948
 		imu/invensense/mpu6000
 		#imu/invensense/mpu9250
-		#imu/mpu6000 # legacy mpu6000
 		#iridiumsbd
 		#irlock
 		#lights/blinkm
@@ -61,7 +60,6 @@ px4_add_board(
 		pwm_out
 		px4io
 		#roboclaw
-		#tap_esc
 		#telemetry # all available telemetry drivers
 		#test_ppm
 		tone_alarm
@@ -128,6 +126,7 @@ px4_add_board(
 		#ver
 		#work_queue
 	EXAMPLES
+		#fake_gps
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hello
 		#hwtest # Hardware test

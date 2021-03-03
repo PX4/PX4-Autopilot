@@ -45,7 +45,6 @@ px4_add_board(
 		rc_input
 		roboclaw
 		safety_button
-		tap_esc
 		telemetry # all available telemetry drivers
 		#test_ppm # NOT Portable YET
 		tone_alarm
@@ -111,6 +110,7 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
+		fake_gps
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		hwtest # Hardware test

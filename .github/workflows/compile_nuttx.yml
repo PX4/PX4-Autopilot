@@ -19,8 +19,8 @@ jobs:
           ark_can-flow_canbootloader,
           ark_can-flow_default,
           av_x-v1_default,
-          bitcraze_crazyflie_default,
           bitcraze_crazyflie21_default,
+          bitcraze_crazyflie_default,
           cuav_can-gps-v1_canbootloader,
           cuav_can-gps-v1_default,
           cuav_nora_default,
@@ -34,9 +34,11 @@ jobs:
           holybro_durandal-v1_default,
           holybro_kakutef7_default,
           holybro_pix32v5_default,
-          intel_aerofc-v1_default,
           modalai_fc-v1_default,
           mro_ctrl-zero-f7_default,
+          mro_ctrl-zero-f7-oem_default,
+          mro_ctrl-zero-h7_default,
+          mro_ctrl-zero-h7-oem_default,
           mro_pixracerpro_default,
           mro_x21-777_default,
           mro_x21_default,
@@ -49,17 +51,12 @@ jobs:
           omnibus_f4sd_default,
           px4_fmu-v2_default,
           px4_fmu-v2_fixedwing,
-          px4_fmu-v2_lpe,
           px4_fmu-v2_multicopter,
           px4_fmu-v2_rover,
           px4_fmu-v2_test,
-          px4_fmu-v3_ctrlalloc,
           px4_fmu-v3_default,
           px4_fmu-v4_cannode,
-          px4_fmu-v4_ctrlalloc,
           px4_fmu-v4_default,
-          px4_fmu-v4_optimized,
-          px4_fmu-v4_uavcanv1,
           px4_fmu-v4pro_default,
           px4_fmu-v5_ctrlalloc,
           px4_fmu-v5_default,
@@ -68,12 +65,12 @@ jobs:
           px4_fmu-v5_optimized,
           px4_fmu-v5_rover,
           px4_fmu-v5_rtps,
-          px4_fmu-v5_stackcheck,
+          px4_fmu-v5_uavcanv0periph,
           px4_fmu-v5_uavcanv1,
           px4_fmu-v5x_base_phy_DP83848C,
           px4_fmu-v5x_default,
-          px4_fmu-v6x_default,
           px4_fmu-v6u_default,
+          px4_fmu-v6x_default,
           px4_io-v2_default,
           spracing_h7extreme_default,
           uvify_core_default
@@ -100,8 +97,8 @@ jobs:
           mkdir -p ~/.ccache
           echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
           echo "compression = true" >> ~/.ccache/ccache.conf
-          echo "compression_level = 6" >> ~/.ccache/ccache.conf
-          echo "max_size = 400M" >> ~/.ccache/ccache.conf
+          echo "compression_level = 5" >> ~/.ccache/ccache.conf
+          echo "max_size = 100M" >> ~/.ccache/ccache.conf
           ccache -s
           ccache -z
 

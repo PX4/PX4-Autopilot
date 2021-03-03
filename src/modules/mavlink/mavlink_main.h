@@ -68,7 +68,6 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
-#include <systemlib/uthash/utlist.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/SubscriptionInterval.hpp>
@@ -103,7 +102,7 @@ enum class Protocol {
 
 using namespace time_literals;
 
-class Mavlink : public ModuleParams
+class Mavlink final : public ModuleParams
 {
 
 public:
@@ -139,8 +138,6 @@ public:
 	static int		instance_count();
 
 	static Mavlink		*new_instance();
-
-	static Mavlink		*get_instance(int instance);
 
 	static Mavlink 		*get_instance_for_device(const char *device_name);
 
@@ -268,7 +265,9 @@ public:
 #if defined(MAVLINK_UDP)
 	static Mavlink 		*get_instance_for_network_port(unsigned long port);
 
-	bool			broadcast_enabled() { return _param_mav_broadcast.get() == BROADCAST_MODE_ON; }
+	bool			broadcast_enabled() { return _mav_broadcast == BROADCAST_MODE_ON; }
+
+	bool			multicast_enabled() { return _mav_broadcast == BROADCAST_MODE_MULTICAST; }
 #endif // MAVLINK_UDP
 
 	/**
@@ -521,8 +520,7 @@ public:
 
 	static hrt_abstime &get_first_start_time() { return _first_start_time; }
 
-protected:
-	Mavlink			*next{nullptr};
+	bool radio_status_critical() const { return _radio_status_critical; }
 
 private:
 	int			_instance_id{0};
@@ -543,7 +541,7 @@ private:
 
 	bool			_task_running{true};
 	static bool		_boot_complete;
-	static constexpr int	MAVLINK_MAX_INSTANCES{MAVLINK_COMM_NUM_BUFFERS};
+
 	static constexpr int	MAVLINK_MIN_INTERVAL{1500};
 	static constexpr int	MAVLINK_MAX_INTERVAL{10000};
 	static constexpr float	MAVLINK_MIN_MULTIPLIER{0.0005f};
@@ -614,6 +612,8 @@ private:
 	hrt_abstime		_bytes_timestamp{0};
 
 #if defined(MAVLINK_UDP)
+	BROADCAST_MODE		_mav_broadcast {BROADCAST_MODE_OFF};
+
 	sockaddr_in		_myaddr {};
 	sockaddr_in		_src_addr {};
 	sockaddr_in		_bcast_addr {};
@@ -663,9 +663,6 @@ private:
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
 		(ParamBool<px4::params::MAV_USEHILGPS>) _param_mav_usehilgps,
 		(ParamBool<px4::params::MAV_FWDEXTSP>) _param_mav_fwdextsp,
-#if defined(MAVLINK_UDP)
-		(ParamInt<px4::params::MAV_BROADCAST>) _param_mav_broadcast,
-#endif // MAVLINK_UDP
 		(ParamBool<px4::params::MAV_HASH_CHK_EN>) _param_mav_hash_chk_en,
 		(ParamBool<px4::params::MAV_HB_FORW_EN>) _param_mav_hb_forw_en,
 		(ParamBool<px4::params::MAV_ODOM_LP>) _param_mav_odom_lp,
@@ -746,7 +743,7 @@ private:
 
 	void set_channel();
 
-	void set_instance_id();
+	bool set_instance_id();
 
 	/**
 	 * Main mavlink task.

@@ -37,6 +37,7 @@ px4_add_library(mathlib
 	math/filter/LowPassFilter2pVector3f.cpp
 )
 
+px4_add_unit_gtest(SRC math/filter/LowPassFilter2pVector3fTest.cpp LINKLIBS mathlib)
 px4_add_unit_gtest(SRC math/filter/MedianFilterTest.cpp)
 px4_add_unit_gtest(SRC math/filter/NotchFilterTest.cpp)
 px4_add_unit_gtest(SRC math/FunctionsTest.cpp)

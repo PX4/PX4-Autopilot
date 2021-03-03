@@ -602,16 +602,47 @@ void RCUpdate::UpdateManualSetpoint(const hrt_abstime &timestamp_sample)
 	_last_manual_control_setpoint_publish = manual_control_setpoint.timestamp;
 
 
-	// populate and publish actuator_controls_3 copied from mapped manual_control_setpoint
 	actuator_controls_s actuator_group_3{};
+	// copy in previous actuator control setpoint in case aux{1, 2, 3} isn't changed
+	_actuator_controls_3_sub.update(&actuator_group_3);
+	// populate and publish actuator_controls_3 copied from mapped manual_control_setpoint
 	actuator_group_3.control[0] = manual_control_setpoint.y;
 	actuator_group_3.control[1] = manual_control_setpoint.x;
 	actuator_group_3.control[2] = manual_control_setpoint.r;
 	actuator_group_3.control[3] = manual_control_setpoint.z;
 	actuator_group_3.control[4] = manual_control_setpoint.flaps;
-	actuator_group_3.control[5] = manual_control_setpoint.aux1;
-	actuator_group_3.control[6] = manual_control_setpoint.aux2;
-	actuator_group_3.control[7] = manual_control_setpoint.aux3;
+
+	float new_aux_values[3];
+	new_aux_values[0] = manual_control_setpoint.aux1;
+	new_aux_values[1] = manual_control_setpoint.aux2;
+	new_aux_values[2] = manual_control_setpoint.aux3;
+
+	// if AUX RC was already active, we update. otherwise, we check
+	// if there is a major stick movement to re-activate RC mode
+	bool major_movement[3] = {false, false, false};
+
+	// detect a big stick movement
+	for (int i = 0; i < 3; i++) {
+		if (fabsf(_last_manual_control_setpoint[i] - new_aux_values[i]) > 0.1f) {
+			major_movement[i] = true;
+		}
+	}
+
+	for (int i = 0; i < 3; i++) {
+		// if someone else (DO_SET_ACTUATOR) updated the actuator control
+		// and we haven't had a major movement, switch back to automatic control
+		if ((fabsf(_last_manual_control_setpoint[i] - actuator_group_3.control[5 + i])
+		     > 0.0001f) && (!major_movement[i])) {
+			_aux_already_active[i] = false;
+		}
+
+		if (_aux_already_active[i] || major_movement[i]) {
+			_aux_already_active[i] = true;
+			_last_manual_control_setpoint[i] = new_aux_values[i];
+
+			actuator_group_3.control[5 + i] = new_aux_values[i];
+		}
+	}
 
 	actuator_group_3.timestamp = hrt_absolute_time();
 	_actuator_group_3_pub.publish(actuator_group_3);

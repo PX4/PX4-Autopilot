@@ -26,7 +26,7 @@ px4_add_board(
 		gps
 		imu/l3gd20
 		imu/lsm303d
-		imu/mpu6000
+		imu/invensense/mpu6000
 		#imu/invensense/mpu9250
 		irlock
 		lights/rgbled

@@ -84,7 +84,7 @@ then
 else
 	echo "PX4IO CRC failure"
 	tune_control play -t 16 # tune 16 = PROG_PX4IO
-	if px4io forceupdate 14662 $io_file
+	if px4io update $io_file
 	then
 		if px4io start
 		then

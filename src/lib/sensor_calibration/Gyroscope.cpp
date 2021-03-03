@@ -125,7 +125,7 @@ void Gyroscope::SensorCorrectionsUpdate(bool force)
 
 bool Gyroscope::set_offset(const Vector3f &offset)
 {
-	if (Vector3f(_offset - offset).longerThan(0.001f)) {
+	if (Vector3f(_offset - offset).longerThan(0.01f)) {
 		_offset = offset;
 
 		_calibration_count++;
@@ -205,8 +205,14 @@ void Gyroscope::ParametersUpdate()
 
 void Gyroscope::Reset()
 {
-	_rotation.setIdentity();
-	_rotation_enum = ROTATION_NONE;
+	if (_external) {
+		set_rotation(ROTATION_NONE);
+
+	} else {
+		// internal sensors follow board rotation
+		set_rotation(GetBoardRotation());
+	}
+
 	_offset.zero();
 	_thermal_offset.zero();
 

@@ -81,6 +81,9 @@ file(GLOB jinja_templates ${PX4_SOURCE_DIR}/Tools/serial/*.jinja)
 if (px4_constrained_flash_build)
 	set(added_arguments --constrained-flash)
 endif()
+if(PX4_ETHERNET)
+	set(added_arguments ${added_arguments} --ethernet)
+endif()	
 # create list of relative romfs file names
 set(romfs_copy_files_relative)
 foreach(romfs_file IN LISTS romfs_copy_files)
@@ -186,6 +189,46 @@ foreach(board_rc_file ${OPTIONAL_BOARD_RC})
 	endif()
 
 endforeach()
+
+
+if(config_uavcan_peripheral_firmware)
+
+	include(ExternalProject)
+
+	foreach(uavcan_peripheral_config ${config_uavcan_peripheral_firmware})
+		# include the px4io binary in ROMFS
+		message(STATUS "ROMFS: Building and including UAVCAN peripheral ${uavcan_peripheral_config}")
+		ExternalProject_Add(build_${uavcan_peripheral_config}
+			SOURCE_DIR ${CMAKE_SOURCE_DIR}
+			DOWNLOAD_COMMAND ""
+			UPDATE_COMMAND ""
+			CMAKE_ARGS -DCONFIG=${uavcan_peripheral_config}
+			INSTALL_COMMAND ""
+			USES_TERMINAL_BUILD true
+			DEPENDS git_nuttx git_nuttx_apps
+			BUILD_ALWAYS 1
+		)
+
+		ExternalProject_Get_Property(build_${uavcan_peripheral_config} BINARY_DIR)
+
+		add_custom_command(
+			OUTPUT
+				${romfs_gen_root_dir}/uavcan/fw/_${uavcan_board_id}.bin
+				${uavcan_peripheral_config}.stamp
+			COMMAND ${CMAKE_COMMAND} -E make_directory ${romfs_gen_root_dir}/uavcan/fw/
+			COMMAND ${CMAKE_COMMAND} -E copy ${BINARY_DIR}/deploy/*.bin ${romfs_gen_root_dir}/uavcan/fw/
+			COMMAND ls -lsa ${romfs_gen_root_dir}/uavcan/fw/
+			COMMAND ${CMAKE_COMMAND} -E touch ${uavcan_peripheral_config}.stamp
+			DEPENDS
+				build_${uavcan_peripheral_config}
+			COMMENT "ROMFS: copying ${uavcan_peripheral_config}"
+		)
+
+		list(APPEND extras_dependencies
+			${uavcan_peripheral_config}.stamp
+		)
+	endforeach()
+endif()
 
 list(APPEND extras_dependencies
 	${config_romfs_extra_dependencies}

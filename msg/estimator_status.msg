@@ -105,6 +105,12 @@ uint16 solution_status_flags # Bitmask indicating which filter kinematic state o
 # 10 - True if the EKF has detected a GPS glitch
 # 11 - True if the EKF has detected bad accelerometer data
 
+uint8 reset_count_vel_ne # number of horizontal position reset events (allow to wrap if count exceeds 255)
+uint8 reset_count_vel_d  # number of vertical velocity reset events (allow to wrap if count exceeds 255)
+uint8 reset_count_pos_ne # number of horizontal position reset events (allow to wrap if count exceeds 255)
+uint8 reset_count_pod_d  # number of vertical position reset events (allow to wrap if count exceeds 255)
+uint8 reset_count_quat   # number of quaternion reset events (allow to wrap if count exceeds 255)
+
 float32 time_slip # cumulative amount of time in seconds that the EKF inertial calculation has slipped relative to system time
 
 bool pre_flt_fail_innov_heading
