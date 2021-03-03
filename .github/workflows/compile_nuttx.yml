@@ -43,6 +43,8 @@ jobs:
           mro_x21-777_default,
           mro_x21_default,
           nxp_fmuk66-e_default,
+          nxp_fmuk66-e_rtps,
+          nxp_fmuk66-e_socketcan,
           nxp_fmuk66-v3_default,
           nxp_fmuk66-v3_rtps,
           nxp_fmuk66-v3_socketcan,
