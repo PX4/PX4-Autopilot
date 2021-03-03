@@ -111,6 +111,11 @@ private:
 	void update_mission();
 
 	/**
+	 * Restore old mission if update mission was not successful
+	 */
+	bool restore_old_mission();
+
+	/**
 	 * Move on to next mission item or switch to loiter
 	 */
 	void advance_mission();
@@ -247,6 +252,7 @@ private:
 
 	uORB::Subscription	_mission_sub{ORB_ID(mission)};		/**< mission subscription */
 	mission_s		_mission {};
+	mission_s		_old_mission {};			/**< old mission is used as a backup and for comparison with a new mission */
 
 	int32_t _current_mission_index{-1};
 

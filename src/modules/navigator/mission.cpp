@@ -489,7 +489,8 @@ Mission::update_mission()
 	 * an existing ROI setting from previous missions */
 	_navigator->reset_vroi();
 
-	const mission_s old_mission = _mission;
+	_old_mission = _mission;
+	_old_mission.current_seq = _current_mission_index;
 
 	if (_mission_sub.copy(&_mission)) {
 		/* determine current index */
@@ -528,8 +529,8 @@ Mission::update_mission()
 
 		/* check if the mission waypoints changed while the vehicle is in air
 		 * TODO add a flag to mission_s which actually tracks if the position of the waypoint changed */
-		if (((_mission.count != old_mission.count) ||
-		     (_mission.dataman_id != old_mission.dataman_id)) &&
+		if (((_mission.count != _old_mission.count) ||
+		     (_mission.dataman_id != _old_mission.dataman_id)) &&
 		    !_navigator->get_land_detected()->landed) {
 			_mission_waypoints_changed = true;
 		}
@@ -544,10 +545,15 @@ Mission::update_mission()
 			PX4_WARN("mission check failed");
 		}
 
-		// reset the mission
-		_mission.count = 0;
-		_mission.current_seq = 0;
-		_current_mission_index = 0;
+		bool restored = restore_old_mission();
+
+		if (!restored) {
+
+			// Mission can't be restored, reset the mission
+			_mission.count = 0;
+			_mission.current_seq = 0;
+			_current_mission_index = 0;
+		}
 	}
 
 	// find and store landing start marker (if available)
@@ -556,6 +562,23 @@ Mission::update_mission()
 	set_current_mission_item();
 }
 
+bool
+Mission::restore_old_mission()
+{
+	_mission = _old_mission;
+
+	/* check if valid. It could be invalid if there is no previous mission. */
+	check_mission_valid(true);
+	bool valid = _navigator->get_mission_result()->valid;
+
+	if (valid) {
+		_mission_changed = true;
+		_navigator->get_mission_result()->failure = false;
+		_current_mission_index = _old_mission.current_seq;
+	}
+
+	return valid;
+}
 
 void
 Mission::advance_mission()
