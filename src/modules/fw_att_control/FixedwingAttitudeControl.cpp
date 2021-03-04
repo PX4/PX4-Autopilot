@@ -143,14 +143,6 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 		// Always copy the new manual setpoint, even if it wasn't updated, to fill the _actuators with valid values
 		if (_manual_control_setpoint_sub.copy(&_manual_control_setpoint)) {
 
-			// Check if we are in rattitude mode and the pilot is above the threshold on pitch
-			if (_vcontrol_mode.flag_control_rattitude_enabled) {
-				if (fabsf(_manual_control_setpoint.y) > _param_fw_ratt_th.get()
-				    || fabsf(_manual_control_setpoint.x) > _param_fw_ratt_th.get()) {
-					_vcontrol_mode.flag_control_attitude_enabled = false;
-				}
-			}
-
 			if (!_vcontrol_mode.flag_control_climb_rate_enabled) {
 
 				if (_vcontrol_mode.flag_control_attitude_enabled) {

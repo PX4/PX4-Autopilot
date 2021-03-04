@@ -172,14 +172,6 @@ MulticopterRateControl::Run()
 			if (!_v_control_mode.flag_control_attitude_enabled) {
 				manual_rate_sp = true;
 			}
-
-			// Check if we are in rattitude mode and the pilot is within the center threshold on pitch and roll
-			//  if true then use published rate setpoint, otherwise generate from manual_control_setpoint (like acro)
-			if (_v_control_mode.flag_control_rattitude_enabled) {
-				manual_rate_sp =
-					(fabsf(_manual_control_setpoint.y) > _param_mc_ratt_th.get()) ||
-					(fabsf(_manual_control_setpoint.x) > _param_mc_ratt_th.get());
-			}
 		}
 
 		if (manual_rate_sp) {
