@@ -76,13 +76,11 @@ bool FailureDetector::isAttitudeStabilized(const vehicle_status_s &vehicle_statu
 	const uint8_t nav_state = vehicle_status.nav_state;
 
 	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		attitude_is_stabilized =  nav_state != vehicle_status_s::NAVIGATION_STATE_ACRO &&
-					  nav_state != vehicle_status_s::NAVIGATION_STATE_RATTITUDE;
+		attitude_is_stabilized =  nav_state != vehicle_status_s::NAVIGATION_STATE_ACRO;
 
 	} else if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		attitude_is_stabilized =  nav_state != vehicle_status_s::NAVIGATION_STATE_MANUAL &&
-					  nav_state != vehicle_status_s::NAVIGATION_STATE_ACRO &&
-					  nav_state != vehicle_status_s::NAVIGATION_STATE_RATTITUDE;
+					  nav_state != vehicle_status_s::NAVIGATION_STATE_ACRO;
 	}
 
 	return attitude_is_stabilized;

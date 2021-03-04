@@ -206,7 +206,6 @@ private:
 		(ParamInt<px4::params::RC_MAP_FLAPS>) _param_rc_map_flaps,
 
 		(ParamInt<px4::params::RC_MAP_RETURN_SW>) _param_rc_map_return_sw,
-		(ParamInt<px4::params::RC_MAP_RATT_SW>) _param_rc_map_ratt_sw,
 		(ParamInt<px4::params::RC_MAP_POSCTL_SW>) _param_rc_map_posctl_sw,
 		(ParamInt<px4::params::RC_MAP_LOITER_SW>) _param_rc_map_loiter_sw,
 		(ParamInt<px4::params::RC_MAP_ACRO_SW>) _param_rc_map_acro_sw,
@@ -229,7 +228,6 @@ private:
 
 		(ParamFloat<px4::params::RC_ASSIST_TH>) _param_rc_assist_th,
 		(ParamFloat<px4::params::RC_AUTO_TH>) _param_rc_auto_th,
-		(ParamFloat<px4::params::RC_RATT_TH>) _param_rc_ratt_th,
 		(ParamFloat<px4::params::RC_POSCTL_TH>) _param_rc_posctl_th,
 		(ParamFloat<px4::params::RC_LOITER_TH>) _param_rc_loiter_th,
 		(ParamFloat<px4::params::RC_ACRO_TH>) _param_rc_acro_th,
