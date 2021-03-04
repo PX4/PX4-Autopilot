@@ -184,8 +184,6 @@ private:
 		(ParamFloat<px4::params::FW_PR_P>) _param_fw_pr_p,
 		(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
 
-		(ParamFloat<px4::params::FW_RATT_TH>) _param_fw_ratt_th,
-
 		(ParamFloat<px4::params::FW_R_RMAX>) _param_fw_r_rmax,
 		(ParamFloat<px4::params::FW_R_TC>) _param_fw_r_tc,
 		(ParamFloat<px4::params::FW_RLL_TO_YAW_FF>) _param_fw_rll_to_yaw_ff,

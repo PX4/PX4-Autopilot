@@ -279,11 +279,6 @@ void get_mavlink_navigation_mode(const struct vehicle_status_s *const status, ui
 		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_ACRO;
 		break;
 
-	case vehicle_status_s::NAVIGATION_STATE_RATTITUDE:
-		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
-		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_RATTITUDE;
-		break;
-
 	case vehicle_status_s::NAVIGATION_STATE_STAB:
 		*mavlink_base_mode	|= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
 					   | MAV_MODE_FLAG_STABILIZE_ENABLED;
