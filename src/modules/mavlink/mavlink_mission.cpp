@@ -943,8 +943,7 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 			_transfer_partner_sysid = msg->sysid;
 			_transfer_partner_compid = msg->compid;
 			_transfer_count = wpc.count;
-			_transfer_dataman_id = (_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
-						DM_KEY_WAYPOINTS_OFFBOARD_0);	// use inactive storage for transmission
+			_transfer_dataman_id = next_transfer_dataman_id();
 			_transfer_current_seq = -1;
 
 			if (_mission_type == MAV_MISSION_TYPE_FENCE) {
@@ -992,6 +991,37 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 
 		send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
 	}
+}
+
+dm_item_t
+MavlinkMissionManager::next_transfer_dataman_id()
+{
+	dm_item_t transfer_dataman_id = _dataman_id;
+	/* lock MISSION_STATE item */
+	int dm_lock_ret = dm_lock(DM_KEY_MISSION_STATE);
+
+	if (dm_lock_ret != 0) {
+		PX4_ERR("DM_KEY_MISSION_STATE lock failed");
+	}
+
+	mission_s mission_state;
+	int ret = dm_read(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s));
+
+	/* unlock MISSION_STATE item */
+	if (dm_lock_ret == 0) {
+		dm_unlock(DM_KEY_MISSION_STATE);
+	}
+
+	if (ret == sizeof(mission_s)) {
+		_dataman_id = (dm_item_t)mission_state.dataman_id;
+		transfer_dataman_id = (_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
+				       DM_KEY_WAYPOINTS_OFFBOARD_0);	// use inactive storage for transmission
+
+	} else {
+		PX4_ERR("Can't read DM_KEY_MISSION_STATE");
+	}
+
+	return transfer_dataman_id;
 }
 
 void

@@ -216,6 +216,15 @@ private:
 
 	void handle_mission_count(const mavlink_message_t *msg);
 
+	/**
+	 * Helper function to determine next transfer dataman id.
+	 * It reads DM_KEY_MISSION_STATE which stores previous valid dataman_id.
+	 * Since mavlink_mission module and mission module communicate over dataman,
+	 * mission module is restoring dataman_id for invalid mission to previous valid mission
+	 * if valid mission exist.
+	 */
+	dm_item_t next_transfer_dataman_id();
+
 	void handle_mission_item(const mavlink_message_t *msg);
 	void handle_mission_item_int(const mavlink_message_t *msg);
 	void handle_mission_item_both(const mavlink_message_t *msg);

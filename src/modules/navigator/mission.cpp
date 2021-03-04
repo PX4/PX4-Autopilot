@@ -565,6 +565,8 @@ Mission::update_mission()
 bool
 Mission::restore_old_mission()
 {
+	bool success = false;
+
 	_mission = _old_mission;
 
 	/* check if valid. It could be invalid if there is no previous mission. */
@@ -575,9 +577,33 @@ Mission::restore_old_mission()
 		_mission_changed = true;
 		_navigator->get_mission_result()->failure = false;
 		_current_mission_index = _old_mission.current_seq;
+
+		/* lock MISSION_STATE item */
+		int dm_lock_ret = dm_lock(DM_KEY_MISSION_STATE);
+
+		if (dm_lock_ret != 0) {
+			PX4_ERR("DM_KEY_MISSION_STATE lock failed");
+		}
+
+		/* Since mission is invalid restore DM_KEY_MISSION_STATE with old dataman_id.
+		 * This helps mavlink_mission module to not overwrite the valid mission if two or more invalid missions are sent.
+		 */
+		int res =  dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &_mission, sizeof(mission_s));
+
+		/* unlock MISSION_STATE item */
+		if (dm_lock_ret == 0) {
+			dm_unlock(DM_KEY_MISSION_STATE);
+		}
+
+		if (res == sizeof(mission_s)) {
+			success = true;
+
+		} else {
+			PX4_ERR("Can't write DM_KEY_MISSION_STATE. The next invalid mission will not be restored!");
+		}
 	}
 
-	return valid;
+	return success;
 }
 
 void
