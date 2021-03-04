@@ -2296,7 +2296,7 @@ Commander::run()
 		}
 
 		/* Check for failure detector status */
-		if (_failure_detector.update(_status)) {
+		if (_failure_detector.update(_status, _vehicle_control_mode)) {
 			_status.failure_detector_status = _failure_detector.getStatus();
 			_status_changed = true;
 
