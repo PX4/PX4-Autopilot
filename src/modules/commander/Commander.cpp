@@ -3849,7 +3849,7 @@ void Commander::estimator_check()
 					} else if (innovation_fail) {
 						_time_last_innov_fail = hrt_absolute_time();
 
-						if (!_nav_test_failed && hrt_elapsed_time(&_time_last_innov_pass) > 1_s) {
+						if (!_nav_test_failed && hrt_elapsed_time(&_time_last_innov_pass) > 2_s) {
 							// if the innovation test has failed continuously, declare the nav as failed
 							_nav_test_failed = true;
 							mavlink_log_emergency(&_mavlink_log_pub, "Navigation failure! Land and recalibrate sensors");
