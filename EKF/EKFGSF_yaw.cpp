@@ -293,7 +293,7 @@ void EKFGSF_yaw::predictEKF(const uint8_t model_index)
 bool EKFGSF_yaw::updateEKF(const uint8_t model_index)
 {
 	// set observation variance from accuracy estimate supplied by GPS and apply a sanity check minimum
-	const float velObsVar = sq(fmaxf(_vel_accuracy, 0.5f));
+	const float velObsVar = sq(fmaxf(_vel_accuracy, 0.01f));
 
 	// calculate velocity observation innovations
 	_ekf_gsf[model_index].innov(0) = _ekf_gsf[model_index].X(0) - _vel_NE(0);
