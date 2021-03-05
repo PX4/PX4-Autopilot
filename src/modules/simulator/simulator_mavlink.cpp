@@ -504,25 +504,21 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 	}
 
 	/* local position */
-	struct vehicle_local_position_s hil_lpos = {};
+	vehicle_local_position_s hil_lpos{};
 	{
 		hil_lpos.timestamp = timestamp;
 
 		double lat = hil_state.lat * 1e-7;
 		double lon = hil_state.lon * 1e-7;
 
-		if (!_hil_local_proj_inited) {
-			_hil_local_proj_inited = true;
-			map_projection_init(&_hil_local_proj_ref, lat, lon);
-			_hil_ref_timestamp = timestamp;
-			_hil_ref_lat = lat;
-			_hil_ref_lon = lon;
-			_hil_ref_alt = hil_state.alt / 1000.0f;
+		if (!map_projection_initialized(&_global_local_proj_ref)) {
+			map_projection_init(&_global_local_proj_ref, lat, lon);
+			_global_local_alt0 = hil_state.alt / 1000.f;
 		}
 
 		float x;
 		float y;
-		map_projection_project(&_hil_local_proj_ref, lat, lon, &x, &y);
+		map_projection_project(&_global_local_proj_ref, lat, lon, &x, &y);
 		hil_lpos.timestamp = timestamp;
 		hil_lpos.xy_valid = true;
 		hil_lpos.z_valid = true;
@@ -530,7 +526,7 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 		hil_lpos.v_z_valid = true;
 		hil_lpos.x = x;
 		hil_lpos.y = y;
-		hil_lpos.z = _hil_ref_alt - hil_state.alt / 1000.0f;
+		hil_lpos.z = _global_local_alt0 - hil_state.alt / 1000.0f;
 		hil_lpos.vx = hil_state.vx / 100.0f;
 		hil_lpos.vy = hil_state.vy / 100.0f;
 		hil_lpos.vz = hil_state.vz / 100.0f;
@@ -538,10 +534,10 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 		hil_lpos.heading = euler.psi();
 		hil_lpos.xy_global = true;
 		hil_lpos.z_global = true;
-		hil_lpos.ref_lat = _hil_ref_lat;
-		hil_lpos.ref_lon = _hil_ref_lon;
-		hil_lpos.ref_alt = _hil_ref_alt;
-		hil_lpos.ref_timestamp = _hil_ref_timestamp;
+		hil_lpos.ref_timestamp = _global_local_proj_ref.timestamp;
+		hil_lpos.ref_lat = math::degrees(_global_local_proj_ref.lat_rad);
+		hil_lpos.ref_lon = math::degrees(_global_local_proj_ref.lon_rad);
+		hil_lpos.ref_alt = _global_local_alt0;
 		hil_lpos.vxy_max = std::numeric_limits<float>::infinity();
 		hil_lpos.vz_max = std::numeric_limits<float>::infinity();
 		hil_lpos.hagl_min = std::numeric_limits<float>::infinity();

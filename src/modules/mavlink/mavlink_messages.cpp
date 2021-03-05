@@ -537,7 +537,7 @@ protected:
 						_vehicle_command_sub.get_last_generation());
 				}
 
-				if (!cmd.from_external) {
+				if (!cmd.from_external && cmd.command < vehicle_command_s::VEHICLE_CMD_PX4_INTERNAL_START) {
 					PX4_DEBUG("sending command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
 
 					MavlinkCommandSender::instance().handle_vehicle_command(cmd, _mavlink->get_channel());

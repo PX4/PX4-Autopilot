@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -262,6 +262,28 @@ void EKF2::Run()
 			PX4_WARN("%d - failed to register callback, retrying", _instance);
 			ScheduleDelayed(1_s);
 			return;
+		}
+	}
+
+	if (_vehicle_command_sub.updated()) {
+		vehicle_command_s vehicle_command;
+
+		if (_vehicle_command_sub.update(&vehicle_command)) {
+			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN) {
+				if (!_ekf.control_status_flags().in_air) {
+
+					uint64_t origin_time {};
+					double latitude = vehicle_command.param5;
+					double longitude = vehicle_command.param6;
+					float altitude = vehicle_command.param7;
+
+					_ekf.setEkfGlobalOrigin(latitude, longitude, altitude);
+
+					// Validate the ekf origin status.
+					_ekf.getEkfGlobalOrigin(origin_time, latitude, longitude, altitude);
+					PX4_INFO("New NED origin (LLA): %3.10f, %3.10f, %4.3f\n", latitude, longitude, static_cast<double>(altitude));
+				}
+			}
 		}
 	}
 

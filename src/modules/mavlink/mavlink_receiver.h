@@ -395,10 +395,10 @@ private:
 	uORB::PublicationMulti<radio_status_s>			_radio_status_pub{ORB_ID(radio_status)};
 
 	// ORB publications (queue length > 1)
-	uORB::Publication<gps_inject_data_s>	_gps_inject_data_pub{ORB_ID(gps_inject_data)};
-	uORB::Publication<transponder_report_s>	_transponder_report_pub{ORB_ID(transponder_report)};
-	uORB::Publication<vehicle_command_ack_s>	_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
-	uORB::Publication<vehicle_command_s>	_cmd_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<gps_inject_data_s>     _gps_inject_data_pub{ORB_ID(gps_inject_data)};
+	uORB::Publication<transponder_report_s>  _transponder_report_pub{ORB_ID(transponder_report)};
+	uORB::Publication<vehicle_command_s>     _cmd_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<vehicle_command_ack_s> _cmd_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	// ORB subscriptions
 	uORB::Subscription	_actuator_armed_sub{ORB_ID(actuator_armed)};
@@ -427,15 +427,6 @@ private:
 	static constexpr unsigned int	MOM_SWITCH_COUNT{8};
 	uint8_t				_mom_switch_pos[MOM_SWITCH_COUNT] {};
 	uint16_t			_mom_switch_state{0};
-
-	map_projection_reference_s	_global_local_proj_ref{};
-	float				_global_local_alt0{NAN};
-
-	uint64_t			_global_ref_timestamp{0};
-
-	map_projection_reference_s	_hil_local_proj_ref{};
-	float				_hil_local_alt0{0.0f};
-	bool				_hil_local_proj_inited{false};
 
 	hrt_abstime			_last_utm_global_pos_com{0};
 
