@@ -325,16 +325,6 @@ MulticopterAttitudeControl::Run()
 
 			Vector3f rates_sp = _attitude_control.update(q);
 
-			if (_v_control_mode.flag_control_yawrate_override_enabled) {
-				/* Yaw rate override enabled, overwrite the yaw setpoint */
-				vehicle_rates_setpoint_s v_rates_sp{};
-
-				if (_v_rates_sp_sub.copy(&v_rates_sp)) {
-					const float yawrate_sp = v_rates_sp.yaw;
-					rates_sp(2) = yawrate_sp;
-				}
-			}
-
 			// publish rate setpoint
 			vehicle_rates_setpoint_s v_rates_sp{};
 			v_rates_sp.roll = rates_sp(0);

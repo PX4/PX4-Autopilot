@@ -857,41 +857,6 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		}
 		break;
 
-	case vehicle_command_s::VEHICLE_CMD_NAV_GUIDED_ENABLE: {
-			transition_result_t res = TRANSITION_DENIED;
-
-			if (_internal_state.main_state != commander_state_s::MAIN_STATE_OFFBOARD) {
-				_main_state_pre_offboard = _internal_state.main_state;
-			}
-
-			if (cmd.param1 > 0.5f) {
-				res = main_state_transition(_status, commander_state_s::MAIN_STATE_OFFBOARD, _status_flags, &_internal_state);
-
-				if (res == TRANSITION_DENIED) {
-					print_reject_mode("OFFBOARD");
-					_status_flags.offboard_control_set_by_command = false;
-
-				} else {
-					/* Set flag that offboard was set via command, main state is not overridden by rc */
-					_status_flags.offboard_control_set_by_command = true;
-				}
-
-			} else {
-				/* If the mavlink command is used to enable or disable offboard control:
-				 * switch back to previous mode when disabling */
-				res = main_state_transition(_status, _main_state_pre_offboard, _status_flags, &_internal_state);
-				_status_flags.offboard_control_set_by_command = false;
-			}
-
-			if (res == TRANSITION_DENIED) {
-				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-
-			} else {
-				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
-			}
-		}
-		break;
-
 	case vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH: {
 			/* switch to RTL which ends the mission */
 			if (TRANSITION_CHANGED == main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_RTL, _status_flags,
@@ -1644,7 +1609,7 @@ Commander::run()
 				}
 			}
 
-			_offboard_available.set_hysteresis_time_from(true, _param_com_of_loss_t.get());
+			_offboard_available.set_hysteresis_time_from(true, _param_com_of_loss_t.get() * 1e6f);
 
 			param_init_forced = false;
 		}
@@ -3333,55 +3298,39 @@ Commander::update_control_mode()
 		_vehicle_control_mode.flag_control_termination_enabled = true;
 		break;
 
-	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD: {
-			_vehicle_control_mode.flag_control_offboard_enabled = true;
+	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
+		_vehicle_control_mode.flag_control_offboard_enabled = true;
 
-			const offboard_control_mode_s &offboard = _offboard_control_mode_sub.get();
+		if (_offboard_control_mode_sub.get().position) {
+			_vehicle_control_mode.flag_control_position_enabled = true;
+			_vehicle_control_mode.flag_control_velocity_enabled = true;
+			_vehicle_control_mode.flag_control_altitude_enabled = true;
+			_vehicle_control_mode.flag_control_climb_rate_enabled = true;
+			_vehicle_control_mode.flag_control_acceleration_enabled = true;
+			_vehicle_control_mode.flag_control_rates_enabled = true;
+			_vehicle_control_mode.flag_control_attitude_enabled = true;
 
-			if (!offboard.ignore_acceleration_force) {
-				// OFFBOARD acceleration
-				_vehicle_control_mode.flag_control_acceleration_enabled = true;
-				_vehicle_control_mode.flag_control_attitude_enabled = true;
-				_vehicle_control_mode.flag_control_rates_enabled = true;
+		} else if (_offboard_control_mode_sub.get().velocity) {
+			_vehicle_control_mode.flag_control_velocity_enabled = true;
+			_vehicle_control_mode.flag_control_altitude_enabled = true;
+			_vehicle_control_mode.flag_control_climb_rate_enabled = true;
+			_vehicle_control_mode.flag_control_acceleration_enabled = true;
+			_vehicle_control_mode.flag_control_rates_enabled = true;
+			_vehicle_control_mode.flag_control_attitude_enabled = true;
 
-			} else if (!offboard.ignore_position) {
-				// OFFBOARD position
-				_vehicle_control_mode.flag_control_position_enabled = true;
-				_vehicle_control_mode.flag_control_velocity_enabled = true;
-				_vehicle_control_mode.flag_control_altitude_enabled = true;
-				_vehicle_control_mode.flag_control_climb_rate_enabled = true;
-				_vehicle_control_mode.flag_control_attitude_enabled = true;
-				_vehicle_control_mode.flag_control_rates_enabled = true;
+		} else if (_offboard_control_mode_sub.get().acceleration) {
+			_vehicle_control_mode.flag_control_acceleration_enabled = true;
+			_vehicle_control_mode.flag_control_rates_enabled = true;
+			_vehicle_control_mode.flag_control_attitude_enabled = true;
 
-			} else if (!offboard.ignore_velocity) {
-				// OFFBOARD velocity
-				_vehicle_control_mode.flag_control_velocity_enabled = true;
-				_vehicle_control_mode.flag_control_altitude_enabled = true;
-				_vehicle_control_mode.flag_control_climb_rate_enabled = true;
-				_vehicle_control_mode.flag_control_attitude_enabled = true;
-				_vehicle_control_mode.flag_control_rates_enabled = true;
+		} else if (_offboard_control_mode_sub.get().attitude) {
+			_vehicle_control_mode.flag_control_rates_enabled = true;
+			_vehicle_control_mode.flag_control_attitude_enabled = true;
 
-			} else if (!offboard.ignore_attitude) {
-				// OFFBOARD attitude
-				_vehicle_control_mode.flag_control_attitude_enabled = true;
-				_vehicle_control_mode.flag_control_rates_enabled = true;
-
-			} else if (!offboard.ignore_bodyrate_x || !offboard.ignore_bodyrate_y || !offboard.ignore_bodyrate_z) {
-				// OFFBOARD rate
-				_vehicle_control_mode.flag_control_rates_enabled = true;
-			}
-
-			// TO-DO: Add support for other modes than yawrate control
-			_vehicle_control_mode.flag_control_yawrate_override_enabled = offboard.ignore_bodyrate_x && offboard.ignore_bodyrate_y
-					&& !offboard.ignore_bodyrate_z && !offboard.ignore_attitude;
-
-			// VTOL transition override
-			if (_status.in_transition_mode) {
-				_vehicle_control_mode.flag_control_acceleration_enabled = false;
-				_vehicle_control_mode.flag_control_velocity_enabled = false;
-				_vehicle_control_mode.flag_control_position_enabled = false;
-			}
+		} else if (_offboard_control_mode_sub.get().body_rate) {
+			_vehicle_control_mode.flag_control_rates_enabled = true;
 		}
+
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ORBIT:
@@ -3979,30 +3928,41 @@ void Commander::UpdateEstimateValidity()
 void
 Commander::offboard_control_update()
 {
-	const offboard_control_mode_s &offboard_control_mode = _offboard_control_mode_sub.get();
+	bool offboard_available = false;
 
 	if (_offboard_control_mode_sub.updated()) {
-		const offboard_control_mode_s old = offboard_control_mode;
+		const offboard_control_mode_s old = _offboard_control_mode_sub.get();
 
 		if (_offboard_control_mode_sub.update()) {
-			if (old.ignore_thrust != offboard_control_mode.ignore_thrust ||
-			    old.ignore_attitude != offboard_control_mode.ignore_attitude ||
-			    old.ignore_bodyrate_x != offboard_control_mode.ignore_bodyrate_x ||
-			    old.ignore_bodyrate_y != offboard_control_mode.ignore_bodyrate_y ||
-			    old.ignore_bodyrate_z != offboard_control_mode.ignore_bodyrate_z ||
-			    old.ignore_position != offboard_control_mode.ignore_position ||
-			    old.ignore_velocity != offboard_control_mode.ignore_velocity ||
-			    old.ignore_acceleration_force != offboard_control_mode.ignore_acceleration_force ||
-			    old.ignore_alt_hold != offboard_control_mode.ignore_alt_hold) {
+			const offboard_control_mode_s &ocm = _offboard_control_mode_sub.get();
+
+			if (old.position != ocm.position ||
+			    old.velocity != ocm.velocity ||
+			    old.acceleration != ocm.acceleration ||
+			    old.attitude != ocm.attitude ||
+			    old.body_rate != ocm.body_rate) {
 
 				_status_changed = true;
+			}
+
+			if (ocm.position || ocm.velocity || ocm.acceleration || ocm.attitude || ocm.body_rate) {
+				offboard_available = true;
 			}
 		}
 	}
 
-	_offboard_available.set_state_and_update(
-		hrt_elapsed_time(&offboard_control_mode.timestamp) < _param_com_of_loss_t.get() * 1e6f,
-		hrt_absolute_time());
+	if (_offboard_control_mode_sub.get().position && !_status_flags.condition_local_position_valid) {
+		offboard_available = false;
+
+	} else if (_offboard_control_mode_sub.get().velocity && !_status_flags.condition_local_velocity_valid) {
+		offboard_available = false;
+
+	} else if (_offboard_control_mode_sub.get().acceleration && !_status_flags.condition_local_velocity_valid) {
+		// OFFBOARD acceleration handled by position controller
+		offboard_available = false;
+	}
+
+	_offboard_available.set_state_and_update(offboard_available, hrt_absolute_time());
 
 	const bool offboard_lost = !_offboard_available.get_state();
 

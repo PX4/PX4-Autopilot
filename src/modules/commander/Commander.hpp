@@ -372,8 +372,6 @@ private:
 	bool		_flight_termination_printed{false};
 	bool		_system_power_usb_connected{false};
 
-	main_state_t	_main_state_pre_offboard{commander_state_s::MAIN_STATE_MANUAL};
-
 	cpuload_s		_cpuload{};
 	geofence_result_s	_geofence_result{};
 	vehicle_land_detected_s	_land_detector{};

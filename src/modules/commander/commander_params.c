@@ -349,7 +349,7 @@ PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
  * @max 60
  * @increment 0.01
  */
-PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 0.5f);
+PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 1.0f);
 
 /**
  * Set offboard loss failsafe mode
