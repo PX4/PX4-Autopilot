@@ -407,12 +407,14 @@ void MulticopterPositionControl::Run()
 					_last_warn = time_stamp_now;
 				}
 
-				failsafe(time_stamp_now, _setpoint, states, !was_in_failsafe);
+				vehicle_local_position_setpoint_s failsafe_setpoint{};
+
+				failsafe(time_stamp_now, failsafe_setpoint, states, !was_in_failsafe);
 
 				// reset constraints
 				_vehicle_constraints = {0, NAN, NAN, NAN, false, {}};
 
-				_control.setInputSetpoint(_setpoint);
+				_control.setInputSetpoint(failsafe_setpoint);
 				_control.setVelocityLimits(_param_mpc_xy_vel_max.get(), _param_mpc_z_vel_max_up.get(), _param_mpc_z_vel_max_dn.get());
 				_control.update(dt);
 			}
