@@ -140,7 +140,7 @@ private:
 	hrt_abstime _baro_time{0};
 	hrt_abstime _gps_time{0};
 	hrt_abstime _mag_time{0};
-	hrt_abstime _serial_time{0};
+	hrt_abstime _gt_time{0};
 	hrt_abstime _dist_snsr_time{0};
 	hrt_abstime _now{0};
 	float       _dt{0};         // sampling time [s]
@@ -175,7 +175,7 @@ private:
 	float       _baro_temp_c;   // reconstructed (simulated) barometer temperature in celcius
 
 	// parameters
-	float _MASS, _T_MAX, _Q_MAX, _L_ROLL, _L_PITCH, _KDV, _KDW, _H0;
+	float _MASS, _T_MAX, _Q_MAX, _L_ROLL, _L_PITCH, _KDV, _KDW, _H0, _T_TAU;
 	double _LAT0, _LON0, _COS_LAT0;
 	matrix::Vector3f _W_I;  // weight of the vehicle in inertial frame [N]
 	matrix::Matrix3f _I;    // vehicle inertia matrix
@@ -216,6 +216,7 @@ private:
 		(ParamFloat<px4::params::SIH_MAG_OFFSET_Z>) _sih_mag_offset_z,
 		(ParamFloat<px4::params::SIH_DISTSNSR_MIN>) _sih_distance_snsr_min,
 		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
-		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override
+		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override,
+		(ParamFloat<px4::params::SIH_T_TAU>) _sih_thrust_tau
 	)
 };
