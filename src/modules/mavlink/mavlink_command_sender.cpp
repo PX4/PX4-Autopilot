@@ -65,8 +65,13 @@ MavlinkCommandSender::~MavlinkCommandSender()
 	px4_sem_destroy(&_lock);
 }
 
-int MavlinkCommandSender::handle_vehicle_command(const struct vehicle_command_s &command, mavlink_channel_t channel)
+int MavlinkCommandSender::handle_vehicle_command(const vehicle_command_s &command, mavlink_channel_t channel)
 {
+	// commands > uint16 are PX4 internal only
+	if (command.command >= vehicle_command_s::VEHICLE_CMD_PX4_INTERNAL_START) {
+		return 0;
+	}
+
 	lock();
 	CMD_DEBUG("new command: %d (channel: %d)", command.command, channel);
 

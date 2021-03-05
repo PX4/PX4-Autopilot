@@ -87,6 +87,12 @@ uint16 VEHICLE_CMD_PAYLOAD_PREPARE_DEPLOY = 30001	# Prepare a payload deployment
 uint16 VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY = 30002	# Control a pre-programmed payload deployment
 uint16 VEHICLE_CMD_FIXED_MAG_CAL_YAW = 42006            # Magnetometer calibration based on provided known yaw. This allows for fast calibration using WMM field tables in the vehicle, given only the known yaw of the vehicle. If Latitude and longitude are both zero then use the current vehicle location.
 
+
+# PX4 vehicle commands (beyond 16 bit mavlink commands)
+uint32 VEHICLE_CMD_PX4_INTERNAL_START    = 65537        # start of PX4 internal only vehicle commands (> UINT16_MAX)
+uint32 VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN = 100000       # Sets the GPS co-ordinates of the vehicle local origin (0,0,0) position. |Empty|Empty|Empty|Empty|Latitude|Longitude|Altitude|
+
+
 uint8 VEHICLE_CMD_RESULT_ACCEPTED = 0			# Command ACCEPTED and EXECUTED |
 uint8 VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED = 1	# Command TEMPORARY REJECTED/DENIED |
 uint8 VEHICLE_CMD_RESULT_DENIED = 2			# Command PERMANENTLY DENIED |
@@ -148,7 +154,7 @@ float32 param4			# Parameter 4, as defined by MAVLink uint16 VEHICLE_CMD enum.
 float64 param5			# Parameter 5, as defined by MAVLink uint16 VEHICLE_CMD enum.
 float64 param6			# Parameter 6, as defined by MAVLink uint16 VEHICLE_CMD enum.
 float32 param7			# Parameter 7, as defined by MAVLink uint16 VEHICLE_CMD enum.
-uint16 command			# Command ID, as defined MAVLink by uint16 VEHICLE_CMD enum.
+uint32 command			# Command ID
 uint8 target_system		# System which should execute the command
 uint8 target_component		# Component which should execute the command, 0 for all components
 uint8 source_system		# System sending the command
