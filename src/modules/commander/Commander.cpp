@@ -3899,8 +3899,10 @@ void Commander::UpdateEstimateValidity()
 	float lpos_eph_threshold_adj = _param_com_pos_fs_eph.get();
 
 	// relax local position eph threshold in operator controlled position mode
-	// TODO: update to vehicle_control_mode (when available) - flag_control_manual_enabled && flag_control_position_enabled
-	if (_status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL) {
+	if (_internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL &&
+	    ((_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL)
+	     || (_status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL))) {
+
 		// Set the allowable position uncertainty based on combination of flight and estimator state
 		// When we are in a operator demanded position control mode and are solely reliant on optical flow, do not check position error because it will gradually increase throughout flight and the operator will compensate for the drift
 		const bool reliant_on_opt_flow = ((status.control_mode_flags & (1 << estimator_status_s::CS_OPT_FLOW))
