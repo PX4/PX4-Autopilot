@@ -41,7 +41,6 @@
 
 #include <matrix/matrix/math.hpp>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/vehicle_constraints.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 
 struct PositionControlStates {
@@ -140,13 +139,6 @@ public:
 	void setInputSetpoint(const vehicle_local_position_setpoint_s &setpoint);
 
 	/**
-	 * Pass constraints that are stricter than the global limits
-	 * Note: NAN value means no constraint, take maximum limit of controller.
-	 * @param constraints a PositionControl structure with supported constraints
-	 */
-	void setConstraints(const vehicle_constraints_s &constraints);
-
-	/**
 	 * Apply P-position and PID-velocity controller that updates the member
 	 * thrust, yaw- and yawspeed-setpoints.
 	 * @see _thr_sp
@@ -208,8 +200,6 @@ private:
 	matrix::Vector3f _vel_dot; /**< velocity derivative (replacement for acceleration estimate) */
 	matrix::Vector3f _vel_int; /**< integral term of the velocity controller */
 	float _yaw{}; /**< current heading */
-
-	vehicle_constraints_s _constraints{}; /**< variable constraints */
 
 	// Setpoints
 	matrix::Vector3f _pos_sp; /**< desired position */

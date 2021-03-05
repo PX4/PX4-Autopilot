@@ -16,7 +16,7 @@ bmi088 -G -R 4 -s start
 icm42688p -R 6 -s start
 
 # Internal SPI bus ICM-20649 (hard-mounted)
-icm20649 -R 2 -s start
+icm20649 -R 14 -s start
 
 # Internal magnetometer on I2c
 bmm150 -I start

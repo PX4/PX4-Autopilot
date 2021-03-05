@@ -21,6 +21,3 @@ then
 	fi
 fi
 unset BL_FILE
-
-# to minimize cpu usage on older boards limit inner loop to 400 Hz by default
-param set-default IMU_GYRO_RATEMAX 400
