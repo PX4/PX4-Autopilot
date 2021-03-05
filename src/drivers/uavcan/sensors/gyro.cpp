@@ -57,8 +57,7 @@ int UavcanGyroBridge::init()
 	return 0;
 }
 
-void UavcanGyroBridge::imu_sub_cb(const
-		uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::RawIMU> &msg)
+void UavcanGyroBridge::imu_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::RawIMU> &msg)
 {
 	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get());
 
