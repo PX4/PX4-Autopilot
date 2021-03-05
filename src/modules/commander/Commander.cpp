@@ -446,18 +446,15 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 
 	if (run_preflight_checks) {
 		if (_vehicle_control_mode.flag_control_manual_enabled) {
-			const bool throttle_above_low = (_manual_control_setpoint.z > 0.1f);
-			const bool throttle_above_center = (_manual_control_setpoint.z > 0.6f);
-
-			if (_vehicle_control_mode.flag_control_climb_rate_enabled && throttle_above_center) {
-				mavlink_log_critical(&_mavlink_log_pub, "Arming denied! Throttle not centered");
+			if (_vehicle_control_mode.flag_control_climb_rate_enabled && _manual_control.isThrottleAboveCenter()) {
+				mavlink_log_critical(&_mavlink_log_pub, "Arming denied: throttle above center");
 				tune_negative(true);
 				return TRANSITION_DENIED;
 
 			}
 
-			if (!_vehicle_control_mode.flag_control_climb_rate_enabled && throttle_above_low) {
-				mavlink_log_critical(&_mavlink_log_pub, "Arming denied! Throttle not zero");
+			if (!_vehicle_control_mode.flag_control_climb_rate_enabled && !_manual_control.isThrottleLow()) {
+				mavlink_log_critical(&_mavlink_log_pub, "Arming denied: high throttle");
 				tune_negative(true);
 				return TRANSITION_DENIED;
 			}
@@ -876,41 +873,6 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				} else {
 					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
 				}
-			}
-		}
-		break;
-
-	case vehicle_command_s::VEHICLE_CMD_NAV_GUIDED_ENABLE: {
-			transition_result_t res = TRANSITION_DENIED;
-
-			if (_internal_state.main_state != commander_state_s::MAIN_STATE_OFFBOARD) {
-				_main_state_pre_offboard = _internal_state.main_state;
-			}
-
-			if (cmd.param1 > 0.5f) {
-				res = main_state_transition(_status, commander_state_s::MAIN_STATE_OFFBOARD, _status_flags, &_internal_state);
-
-				if (res == TRANSITION_DENIED) {
-					print_reject_mode("OFFBOARD");
-					_status_flags.offboard_control_set_by_command = false;
-
-				} else {
-					/* Set flag that offboard was set via command, main state is not overridden by rc */
-					_status_flags.offboard_control_set_by_command = true;
-				}
-
-			} else {
-				/* If the mavlink command is used to enable or disable offboard control:
-				 * switch back to previous mode when disabling */
-				res = main_state_transition(_status, _main_state_pre_offboard, _status_flags, &_internal_state);
-				_status_flags.offboard_control_set_by_command = false;
-			}
-
-			if (res == TRANSITION_DENIED) {
-				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-
-			} else {
-				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 			}
 		}
 		break;
@@ -1568,9 +1530,6 @@ Commander::run()
 	_last_gpos_fail_time_us = _boot_timestamp;
 	_last_lvel_fail_time_us = _boot_timestamp;
 
-	// user adjustable duration required to assert arm/disarm via throttle/rudder stick
-	uint32_t rc_arm_hyst = _param_rc_arm_hyst.get() * COMMANDER_MONITORING_LOOPSPERMSEC;
-
 	int32_t airmode = 0;
 	int32_t rc_map_arm_switch = 0;
 
@@ -1645,8 +1604,6 @@ Commander::run()
 
 			_status.rc_input_mode = _param_rc_in_off.get();
 
-			rc_arm_hyst = _param_rc_arm_hyst.get() * COMMANDER_MONITORING_LOOPSPERMSEC;
-
 			_arm_requirements.arm_authorization = _param_arm_auth_required.get();
 			_arm_requirements.esc_check = _param_escs_checks_required.get();
 			_arm_requirements.global_position = !_param_arm_without_gps.get();
@@ -1674,7 +1631,7 @@ Commander::run()
 				}
 			}
 
-			_offboard_available.set_hysteresis_time_from(true, _param_com_of_loss_t.get());
+			_offboard_available.set_hysteresis_time_from(true, _param_com_of_loss_t.get() * 1e6f);
 
 			param_init_forced = false;
 		}
@@ -2013,9 +1970,6 @@ Commander::run()
 			}
 		}
 
-		// update manual_control_setpoint before geofence (which might check sticks or switches)
-		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
-
 		/* start geofence result check */
 		_geofence_result_sub.update(&_geofence_result);
 
@@ -2117,32 +2071,6 @@ Commander::run()
 			_geofence_violated_prev = false;
 		}
 
-		// abort autonomous mode and switch to position mode if sticks are moved significantly
-		if ((_param_rc_override.get() != 0) && (_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)) {
-
-			const bool override_auto_mode = (_param_rc_override.get() & OVERRIDE_AUTO_MODE_BIT)
-							&& _vehicle_control_mode.flag_control_auto_enabled;
-
-			const bool override_offboard_mode = (_param_rc_override.get() & OVERRIDE_OFFBOARD_MODE_BIT)
-							    && _vehicle_control_mode.flag_control_offboard_enabled;
-
-			if ((override_auto_mode || override_offboard_mode) && !in_low_battery_failsafe && !_geofence_warning_action_on) {
-				const float minimum_stick_deflection = 0.01f * _param_com_rc_stick_ov.get();
-
-				if (!_status.rc_signal_lost &&
-				    ((fabsf(_manual_control_setpoint.x) > minimum_stick_deflection) ||
-				     (fabsf(_manual_control_setpoint.y) > minimum_stick_deflection))) {
-
-					if (main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags,
-								  &_internal_state) == TRANSITION_CHANGED) {
-						tune_positive(true);
-						mavlink_log_info(&_mavlink_log_pub, "Pilot took over control using sticks");
-						_status_changed = true;
-					}
-				}
-			}
-		}
-
 		/* Check for mission flight termination */
 		if (_armed.armed && _mission_result_sub.get().flight_termination &&
 		    !_status_flags.circuit_breaker_flight_termination_disabled) {
@@ -2160,9 +2088,10 @@ Commander::run()
 			}
 		}
 
-		/* RC input check */
-		if (!_status_flags.rc_input_blocked && _manual_control_setpoint.timestamp != 0 &&
-		    (hrt_elapsed_time(&_manual_control_setpoint.timestamp) < (_param_com_rc_loss_t.get() * 1_s))) {
+		// Manual control input handling
+		_manual_control.setRCAllowed(!_status_flags.rc_input_blocked);
+
+		if (_manual_control.update()) {
 
 			/* handle the case where RC signal was regained */
 			if (!_status_flags.rc_signal_found_once) {
@@ -2184,101 +2113,35 @@ Commander::run()
 
 			_status.rc_signal_lost = false;
 
-			const bool in_armed_state = (_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-			const bool arm_switch_or_button_mapped =
-				_manual_control_switches.arm_switch != manual_control_switches_s::SWITCH_POS_NONE;
-			const bool arm_button_pressed = _param_arm_switch_is_button.get()
-							&& (_manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON);
+			const bool rc_arming_enabled = (_status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF);
 
-			/* DISARM
-			 * check if left stick is in lower left position or arm button is pushed or arm switch has transition from arm to disarm
-			 * and we are in MANUAL, Rattitude, or AUTO_READY mode or (ASSIST mode and landed)
-			 * do it only for rotary wings in manual mode or fixed wing if landed.
-			 * Disable stick-disarming if arming switch or button is mapped */
-			const bool stick_in_lower_left = _manual_control_setpoint.r < -STICK_ON_OFF_LIMIT
-							 && (_manual_control_setpoint.z < 0.1f)
-							 && !arm_switch_or_button_mapped;
-			const bool arm_switch_to_disarm_transition = !_param_arm_switch_is_button.get() &&
-					(_last_manual_control_switches_arm_switch == manual_control_switches_s::SWITCH_POS_ON) &&
-					(_manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_OFF);
-
-			if (in_armed_state &&
-			    (_status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF) &&
-			    (_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING || _land_detector.landed) &&
-			    (stick_in_lower_left || arm_button_pressed || arm_switch_to_disarm_transition)) {
-
-				const bool manual_thrust_mode = _vehicle_control_mode.flag_control_manual_enabled
-								&& !_vehicle_control_mode.flag_control_climb_rate_enabled;
-
-				const bool rc_wants_disarm = (_stick_off_counter == rc_arm_hyst && _stick_on_counter < rc_arm_hyst)
-							     || arm_switch_to_disarm_transition;
-
-				if (rc_wants_disarm && (_land_detector.landed || manual_thrust_mode)) {
-					if (arm_switch_to_disarm_transition) {
-						disarm(arm_disarm_reason_t::RC_SWITCH);
-
-					} else {
-						disarm(arm_disarm_reason_t::RC_STICK);
-					}
+			if (rc_arming_enabled) {
+				if (_manual_control.wantsDisarm(_vehicle_control_mode, _status, _manual_control_switches, _land_detector.landed)) {
+					disarm(arm_disarm_reason_t::RC_STICK);
 				}
 
-				_stick_off_counter++;
+				if (_manual_control.wantsArm(_vehicle_control_mode, _status, _manual_control_switches, _land_detector.landed)) {
+					if (_vehicle_control_mode.flag_control_manual_enabled) {
+						arm(arm_disarm_reason_t::RC_STICK);
 
-			} else if (!(_param_arm_switch_is_button.get()
-				     && _manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON)) {
-				/* do not reset the counter when holding the arm button longer than needed */
-				_stick_off_counter = 0;
-			}
-
-			/* ARM
-			 * check if left stick is in lower right position or arm button is pushed or arm switch has transition from disarm to arm
-			 * and we're in MANUAL mode.
-			 * Disable stick-arming if arming switch or button is mapped */
-			const bool stick_in_lower_right = _manual_control_setpoint.r > STICK_ON_OFF_LIMIT && _manual_control_setpoint.z < 0.1f
-							  && !arm_switch_or_button_mapped;
-			/* allow a grace period for re-arming: preflight checks don't need to pass during that time,
-			 * for example for accidental in-air disarming */
-			const bool in_rearming_grace_period = _param_com_rearm_grace.get() && (_last_disarmed_timestamp != 0)
-							      && (hrt_elapsed_time(&_last_disarmed_timestamp) < 5_s);
-
-			const bool arm_switch_to_arm_transition = !_param_arm_switch_is_button.get() &&
-					(_last_manual_control_switches_arm_switch == manual_control_switches_s::SWITCH_POS_OFF) &&
-					(_manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON) &&
-					(_manual_control_setpoint.z < 0.1f || in_rearming_grace_period);
-
-			if (!in_armed_state &&
-			    (_status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF) &&
-			    (stick_in_lower_right || arm_button_pressed || arm_switch_to_arm_transition)) {
-
-				if ((_stick_on_counter == rc_arm_hyst && _stick_off_counter < rc_arm_hyst) || arm_switch_to_arm_transition) {
-
-					/* we check outside of the transition function here because the requirement
-					 * for being in manual mode only applies to manual arming actions.
-					 * the system can be armed in auto if armed via the GCS.
-					 */
-					if (!_vehicle_control_mode.flag_control_manual_enabled) {
-						mavlink_log_critical(&_mavlink_log_pub, "Arming denied! Switch to a manual mode first");
+					} else {
+						mavlink_log_critical(&_mavlink_log_pub, "Not arming! Switch to a manual mode first");
 						tune_negative(true);
-
-					} else {
-						if (arm_switch_to_arm_transition) {
-							arm(arm_disarm_reason_t::RC_SWITCH);
-
-						} else {
-							arm(arm_disarm_reason_t::RC_STICK);
-						}
 					}
 				}
-
-				_stick_on_counter++;
-
-			} else if (!(_param_arm_switch_is_button.get()
-				     && _manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON)) {
-				/* do not reset the counter when holding the arm button longer than needed */
-				_stick_on_counter = 0;
 			}
 
-			_last_manual_control_switches_arm_switch = _manual_control_switches.arm_switch;
+			// abort autonomous mode and switch to position mode if sticks are moved significantly
+			if ((_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
+			    && !in_low_battery_failsafe && !_geofence_warning_action_on
+			    && _manual_control.wantsOverride(_vehicle_control_mode)) {
+				if (main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags,
+							  &_internal_state) == TRANSITION_CHANGED) {
+					tune_positive(true);
+					mavlink_log_info(&_mavlink_log_pub, "Pilot took over control using sticks");
+					_status_changed = true;
+				}
+			}
 
 			if (_manual_control_switches_sub.update(&_manual_control_switches) || safety_updated) {
 
@@ -2345,15 +2208,16 @@ Commander::run()
 			}
 
 			/* no else case: do not change lockdown flag in unconfigured case */
+		}
 
-		} else {
+		if (!_manual_control.isRCAvailable()) {
 			// set RC lost
 			if (_status_flags.rc_signal_found_once && !_status.rc_signal_lost) {
 				// ignore RC lost during calibration
 				if (!_status_flags.condition_calibration_enabled && !_status_flags.rc_input_blocked) {
 					mavlink_log_critical(&_mavlink_log_pub, "Manual control lost");
 					_status.rc_signal_lost = true;
-					_rc_signal_lost_timestamp = _manual_control_setpoint.timestamp;
+					_rc_signal_lost_timestamp = _manual_control.getLastRcTimestamp();
 					set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, false, _status);
 					_status_changed = true;
 				}
@@ -3456,55 +3320,39 @@ Commander::update_control_mode()
 		_vehicle_control_mode.flag_control_termination_enabled = true;
 		break;
 
-	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD: {
-			_vehicle_control_mode.flag_control_offboard_enabled = true;
+	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
+		_vehicle_control_mode.flag_control_offboard_enabled = true;
 
-			const offboard_control_mode_s &offboard = _offboard_control_mode_sub.get();
+		if (_offboard_control_mode_sub.get().position) {
+			_vehicle_control_mode.flag_control_position_enabled = true;
+			_vehicle_control_mode.flag_control_velocity_enabled = true;
+			_vehicle_control_mode.flag_control_altitude_enabled = true;
+			_vehicle_control_mode.flag_control_climb_rate_enabled = true;
+			_vehicle_control_mode.flag_control_acceleration_enabled = true;
+			_vehicle_control_mode.flag_control_rates_enabled = true;
+			_vehicle_control_mode.flag_control_attitude_enabled = true;
 
-			if (!offboard.ignore_acceleration_force) {
-				// OFFBOARD acceleration
-				_vehicle_control_mode.flag_control_acceleration_enabled = true;
-				_vehicle_control_mode.flag_control_attitude_enabled = true;
-				_vehicle_control_mode.flag_control_rates_enabled = true;
+		} else if (_offboard_control_mode_sub.get().velocity) {
+			_vehicle_control_mode.flag_control_velocity_enabled = true;
+			_vehicle_control_mode.flag_control_altitude_enabled = true;
+			_vehicle_control_mode.flag_control_climb_rate_enabled = true;
+			_vehicle_control_mode.flag_control_acceleration_enabled = true;
+			_vehicle_control_mode.flag_control_rates_enabled = true;
+			_vehicle_control_mode.flag_control_attitude_enabled = true;
 
-			} else if (!offboard.ignore_position) {
-				// OFFBOARD position
-				_vehicle_control_mode.flag_control_position_enabled = true;
-				_vehicle_control_mode.flag_control_velocity_enabled = true;
-				_vehicle_control_mode.flag_control_altitude_enabled = true;
-				_vehicle_control_mode.flag_control_climb_rate_enabled = true;
-				_vehicle_control_mode.flag_control_attitude_enabled = true;
-				_vehicle_control_mode.flag_control_rates_enabled = true;
+		} else if (_offboard_control_mode_sub.get().acceleration) {
+			_vehicle_control_mode.flag_control_acceleration_enabled = true;
+			_vehicle_control_mode.flag_control_rates_enabled = true;
+			_vehicle_control_mode.flag_control_attitude_enabled = true;
 
-			} else if (!offboard.ignore_velocity) {
-				// OFFBOARD velocity
-				_vehicle_control_mode.flag_control_velocity_enabled = true;
-				_vehicle_control_mode.flag_control_altitude_enabled = true;
-				_vehicle_control_mode.flag_control_climb_rate_enabled = true;
-				_vehicle_control_mode.flag_control_attitude_enabled = true;
-				_vehicle_control_mode.flag_control_rates_enabled = true;
+		} else if (_offboard_control_mode_sub.get().attitude) {
+			_vehicle_control_mode.flag_control_rates_enabled = true;
+			_vehicle_control_mode.flag_control_attitude_enabled = true;
 
-			} else if (!offboard.ignore_attitude) {
-				// OFFBOARD attitude
-				_vehicle_control_mode.flag_control_attitude_enabled = true;
-				_vehicle_control_mode.flag_control_rates_enabled = true;
-
-			} else if (!offboard.ignore_bodyrate_x || !offboard.ignore_bodyrate_y || !offboard.ignore_bodyrate_z) {
-				// OFFBOARD rate
-				_vehicle_control_mode.flag_control_rates_enabled = true;
-			}
-
-			// TO-DO: Add support for other modes than yawrate control
-			_vehicle_control_mode.flag_control_yawrate_override_enabled = offboard.ignore_bodyrate_x && offboard.ignore_bodyrate_y
-					&& !offboard.ignore_bodyrate_z && !offboard.ignore_attitude;
-
-			// VTOL transition override
-			if (_status.in_transition_mode) {
-				_vehicle_control_mode.flag_control_acceleration_enabled = false;
-				_vehicle_control_mode.flag_control_velocity_enabled = false;
-				_vehicle_control_mode.flag_control_position_enabled = false;
-			}
+		} else if (_offboard_control_mode_sub.get().body_rate) {
+			_vehicle_control_mode.flag_control_rates_enabled = true;
 		}
+
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ORBIT:
@@ -4102,30 +3950,41 @@ void Commander::UpdateEstimateValidity()
 void
 Commander::offboard_control_update()
 {
-	const offboard_control_mode_s &offboard_control_mode = _offboard_control_mode_sub.get();
+	bool offboard_available = false;
 
 	if (_offboard_control_mode_sub.updated()) {
-		const offboard_control_mode_s old = offboard_control_mode;
+		const offboard_control_mode_s old = _offboard_control_mode_sub.get();
 
 		if (_offboard_control_mode_sub.update()) {
-			if (old.ignore_thrust != offboard_control_mode.ignore_thrust ||
-			    old.ignore_attitude != offboard_control_mode.ignore_attitude ||
-			    old.ignore_bodyrate_x != offboard_control_mode.ignore_bodyrate_x ||
-			    old.ignore_bodyrate_y != offboard_control_mode.ignore_bodyrate_y ||
-			    old.ignore_bodyrate_z != offboard_control_mode.ignore_bodyrate_z ||
-			    old.ignore_position != offboard_control_mode.ignore_position ||
-			    old.ignore_velocity != offboard_control_mode.ignore_velocity ||
-			    old.ignore_acceleration_force != offboard_control_mode.ignore_acceleration_force ||
-			    old.ignore_alt_hold != offboard_control_mode.ignore_alt_hold) {
+			const offboard_control_mode_s &ocm = _offboard_control_mode_sub.get();
+
+			if (old.position != ocm.position ||
+			    old.velocity != ocm.velocity ||
+			    old.acceleration != ocm.acceleration ||
+			    old.attitude != ocm.attitude ||
+			    old.body_rate != ocm.body_rate) {
 
 				_status_changed = true;
+			}
+
+			if (ocm.position || ocm.velocity || ocm.acceleration || ocm.attitude || ocm.body_rate) {
+				offboard_available = true;
 			}
 		}
 	}
 
-	_offboard_available.set_state_and_update(
-		hrt_elapsed_time(&offboard_control_mode.timestamp) < _param_com_of_loss_t.get() * 1e6f,
-		hrt_absolute_time());
+	if (_offboard_control_mode_sub.get().position && !_status_flags.condition_local_position_valid) {
+		offboard_available = false;
+
+	} else if (_offboard_control_mode_sub.get().velocity && !_status_flags.condition_local_velocity_valid) {
+		offboard_available = false;
+
+	} else if (_offboard_control_mode_sub.get().acceleration && !_status_flags.condition_local_velocity_valid) {
+		// OFFBOARD acceleration handled by position controller
+		offboard_available = false;
+	}
+
+	_offboard_available.set_state_and_update(offboard_available, hrt_absolute_time());
 
 	const bool offboard_lost = !_offboard_available.get_state();
 

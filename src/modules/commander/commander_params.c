@@ -313,10 +313,11 @@ PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
 PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
 
 /**
- * Arm switch is only a button
+ * Arm switch is a momentary button
  *
- * The default uses the arm switch as real switch.
- * If parameter set button gets handled like stick arming.
+ * 0: Arming/disarming triggers on switch transition.
+ * 1: Arming/disarming triggers when holding the momentary button down
+ * for COM_RC_ARM_HYST like the stick gesture.
  *
  * @group Commander
  * @boolean
@@ -348,7 +349,7 @@ PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
  * @max 60
  * @increment 0.01
  */
-PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 0.5f);
+PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 1.0f);
 
 /**
  * Set offboard loss failsafe mode
@@ -638,9 +639,10 @@ PARAM_DEFINE_INT32(COM_REARM_GRACE, 1);
  * Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
  *
  * @min 0
- * @max 3
+ * @max 7
  * @bit 0 Enable override during auto modes (except for in critical battery reaction)
  * @bit 1 Enable override during offboard mode
+ * @bit 2 Ignore throttle stick
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 1);
@@ -648,8 +650,8 @@ PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 1);
 /**
  * RC stick override threshold
  *
- * If COM_RC_OVERRIDE is enabled and the joystick input controlling the horizontally axis (right stick for RC in mode 2)
- * is moved more than this threshold from the center the autopilot switches to position mode and the pilot takes over control.
+ * If COM_RC_OVERRIDE is enabled and the joystick input is moved more than this threshold
+ * the autopilot the pilot takes over control.
  *
  * @group Commander
  * @unit %

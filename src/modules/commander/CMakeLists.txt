@@ -50,6 +50,7 @@ px4_add_module(
 		level_calibration.cpp
 		lm_fit.cpp
 		mag_calibration.cpp
+		ManualControl.cpp
 		rc_calibration.cpp
 		state_machine_helper.cpp
 		worker_thread.cpp

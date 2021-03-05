@@ -48,7 +48,7 @@ then
 	exit 1
 fi
 
-while getopts n:m:w:s:t: option
+while getopts n:m:w:s:t:l: option
 do
 	case "${option}"
 	in
@@ -57,13 +57,15 @@ do
 		w) WORLD=${OPTARG};;
 		s) SCRIPT=${OPTARG};;
 		t) TARGET=${OPTARG};;
+		l) LABEL=_${OPTARG};;
 	esac
 done
 
 num_vehicles=${NUM_VEHICLES:=3}
 world=${WORLD:=empty}
 target=${TARGET:=px4_sitl_default}
-export PX4_SIM_MODEL=${VEHICLE_MODEL:=iris}
+vehicle_model=${VEHICLE_MODEL:="iris"}
+export PX4_SIM_MODEL=${vehicle_model}${LABEL}
 
 echo ${SCRIPT}
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -93,7 +95,7 @@ if [ -z ${SCRIPT} ]; then
 	fi
 
 	while [ $n -lt $num_vehicles ]; do
-		spawn_model ${PX4_SIM_MODEL} $n
+		spawn_model ${vehicle_model} $n
 		n=$(($n + 1))
 	done
 else

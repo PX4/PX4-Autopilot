@@ -1,37 +1,55 @@
-add_definitions(
-	-D__PX4_LINUX
-)
 
 px4_add_board(
-	VENDOR emlid
-	MODEL navio2
-	LABEL default
-	PLATFORM posix
-	ARCHITECTURE cortex-a53
+	PLATFORM nuttx
+	VENDOR nxp
+	MODEL fmuk66-e
+	LABEL rtps
+	TOOLCHAIN arm-none-eabi
+	ARCHITECTURE cortex-m4
+	CONSTRAINED_MEMORY
 	ROMFSROOT px4fmu_common
-	TOOLCHAIN arm-linux-gnueabihf
 	TESTING
+	UAVCAN_INTERFACES 2
+	SERIAL_PORTS
+		GPS1:/dev/ttyS3
+		TEL1:/dev/ttyS4
+		TEL2:/dev/ttyS1
 	DRIVERS
 		adc/board_adc
-		#barometer # all available barometer drivers
-		barometer/ms5611
+		barometer # all available barometer drivers
+		barometer/mpl3115a2
 		batt_smbus
 		camera_capture
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
+		distance_sensor/srf05 # Specific driver
 		gps
+		#heater
 		#imu # all available imu drivers
-		imu/analog_devices/adis16448
-		imu/invensense/mpu9250
-		imu/st/lsm9ds1
-		linux_pwm_out
-		#magnetometer # all available magnetometer drivers
-		magnetometer/hmc5883
-		magnetometer/lsm9ds1_mag
+		imu/bosch/bmi088
+		imu/invensense/icm42688p
+		irlock
+		lights/blinkm
+		lights/rgbled
+		lights/rgbled_ncp5623c
+		lights/rgbled_pwm
+		magnetometer # all available magnetometer drivers
+		#optical_flow # all available optical flow drivers
+		optical_flow/px4flow
+		#osd
+		pca9685
+		power_monitor/ina226
+		#protocol_splitter
 		pwm_out_sim
+		pwm_out
 		rc_input
-		#telemetry # all available telemetry drivers
+		roboclaw
+		safety_button
+		telemetry # all available telemetry drivers
+		#test_ppm # NOT Portable YET
+		tone_alarm
+		uavcan
 	MODULES
 		airspeed_selector
 		attitude_estimator_q
@@ -54,42 +72,49 @@ px4_add_board(
 		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
-		#micrortps_bridge
+		micrortps_bridge
 		navigator
 		rc_update
 		rover_pos_control
 		sensors
 		sih
-		#simulator
 		temperature_compensation
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
-		dyn
+		bl_update
+		#dmesg
+		dumpfile
 		esc_calib
+		#hardfault_log # Needs bbsrm
+		i2cdetect
 		led_control
+		mft
 		mixer
 		motor_ramp
 		motor_test
+		mtd
+		nshterm
 		param
 		perf
 		pwm
+		reboot
+		reflect
 		sd_bench
 		system_time
-		shutdown
 		tests # tests and test runner
-		#top
+		top
 		topic_listener
 		tune_control
 		uorb
+		usb_connected
 		ver
 		work_queue
 	EXAMPLES
-		dyn_hello # dynamically loading modules example
 		fake_gps
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
-		#hwtest # Hardware test
+		hwtest # Hardware test
 		#matlab_csv_serial
 		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html

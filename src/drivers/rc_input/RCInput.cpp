@@ -58,7 +58,7 @@ RCInput::RCInput(const char *device) :
 	}
 
 	if (device) {
-		strncpy(_device, device, sizeof(_device));
+		strncpy(_device, device, sizeof(_device) - 1);
 		_device[sizeof(_device) - 1] = '\0';
 	}
 }
