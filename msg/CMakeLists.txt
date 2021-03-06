@@ -57,6 +57,7 @@ set(msg_files
 	ekf_gps_drift.msg
 	esc_report.msg
 	esc_status.msg
+	estimator_event_flags.msg
 	estimator_innovations.msg
 	estimator_optical_flow_vel.msg
 	estimator_selector_status.msg
@@ -64,7 +65,6 @@ set(msg_files
 	estimator_states.msg
 	estimator_status.msg
 	estimator_status_flags.msg
-	estimator_event_flags.msg
 	follow_target.msg
 	generator_status.msg
 	geofence_result.msg

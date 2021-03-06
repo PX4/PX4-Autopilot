@@ -129,6 +129,7 @@ private:
 
 	void PublishAttitude(const hrt_abstime &timestamp);
 	void PublishEkfDriftMetrics(const hrt_abstime &timestamp);
+	void PublishEventFlags(const hrt_abstime &timestamp);
 	void PublishGlobalPosition(const hrt_abstime &timestamp);
 	void PublishInnovations(const hrt_abstime &timestamp, const imuSample &imu);
 	void PublishInnovationTestRatios(const hrt_abstime &timestamp);
@@ -141,7 +142,6 @@ private:
 	void PublishStates(const hrt_abstime &timestamp);
 	void PublishStatus(const hrt_abstime &timestamp);
 	void PublishStatusFlags(const hrt_abstime &timestamp);
-	void PublishEstimatorEvents(const hrt_abstime &timestamp);
 	void PublishWindEstimate(const hrt_abstime &timestamp);
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 
