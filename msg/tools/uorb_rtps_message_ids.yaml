@@ -331,6 +331,8 @@ rtps:
     id: 157
   - msg: airspeed_wind
     id: 158
+  - msg: estimator_event_flags
+    id: 159
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 170
