@@ -1116,6 +1116,7 @@ void EKF2::PublishEstimatorEvents(const hrt_abstime &timestamp)
 	// information events
 	uint32_t information_events = _ekf.information_event_status().value;
 	bool information_event_updated = false;
+
 	if (information_events != 0) {
 		information_event_updated = true;
 		_filter_information_event_changes++;
@@ -1124,6 +1125,7 @@ void EKF2::PublishEstimatorEvents(const hrt_abstime &timestamp)
 	// warning events
 	uint32_t warning_events = _ekf.warning_event_status().value;
 	bool warning_event_updated = false;
+
 	if (warning_events != 0) {
 		warning_event_updated = true;
 		_filter_warning_event_changes++;
