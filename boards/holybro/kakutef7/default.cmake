@@ -38,6 +38,7 @@ px4_add_board(
 		#ekf2
 		events
 		flight_mode_manager
+		gyro_calibration
 		#gyro_fft
 		land_detector
 		load_mon
