@@ -64,6 +64,7 @@ px4_add_romfs_files(
 	1040_standard_vtol
 	1041_tailsitter
 	1042_tiltrotor
+	1043_standard_vtol_drop
 	1060_rover
 	1061_r1_rover
 	1062_tf-r1
