@@ -516,6 +516,11 @@ else
 		gyro_fft start
 	fi
 
+	if param compare -s IMU_GYRO_CAL_EN 1
+	then
+		gyro_calibration start
+	fi
+
 	#
 	# Optional board supplied extras: rc.board_extras
 	#
