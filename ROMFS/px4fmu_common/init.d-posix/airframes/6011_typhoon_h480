@@ -9,11 +9,11 @@
 
 if [ $AUTOCNF = yes ]
 then
-	param set MC_PITCHRATE_P 0.1000
+	param set MC_PITCHRATE_P 0.0800
 	param set MC_PITCHRATE_I 0.0400
 	param set MC_PITCHRATE_D 0.0010
 	param set MC_PITCH_P 9.0
-	param set MC_ROLLRATE_P 0.1000
+	param set MC_ROLLRATE_P 0.0800
 	param set MC_ROLLRATE_I 0.0400
 	param set MC_ROLLRATE_D 0.0010
 	param set MC_ROLL_P 9.0
