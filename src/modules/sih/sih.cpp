@@ -61,12 +61,13 @@ Sih::Sih() :
 
 	parameters_updated();
 	init_variables();
-	init_sensors();
+	gps_no_fix();
 
 	const hrt_abstime task_start = hrt_absolute_time();
 	_last_run = task_start;
 	_gps_time = task_start;
 	_serial_time = task_start;
+	_dist_snsr_time = task_start;
 }
 
 Sih::~Sih()
@@ -125,14 +126,17 @@ void Sih::Run()
 	_px4_gyro.update(_now, _gyro(0), _gyro(1), _gyro(2));
 
 	// magnetometer published at 50 Hz
-	if (_now - _mag_time >= 20_ms) {
+	if (_now - _mag_time >= 20_ms
+	    && fabs(_mag_offset_x) < 10000
+	    && fabs(_mag_offset_y) < 10000
+	    && fabs(_mag_offset_z) < 10000) {
 		_mag_time = _now;
-
 		_px4_mag.update(_now, _mag(0), _mag(1), _mag(2));
 	}
 
 	// baro published at 20 Hz
-	if (_now - _baro_time >= 50_ms) {
+	if (_now - _baro_time >= 50_ms
+	    && fabs(_baro_offset_m) < 10000) {
 		_baro_time = _now;
 		_px4_baro.set_temperature(_baro_temp_c);
 		_px4_baro.update(_now, _baro_p_mBar);
@@ -143,6 +147,13 @@ void Sih::Run()
 	if (_now - _gps_time >= 50_ms) {
 		_gps_time = _now;
 		send_gps();
+	}
+
+	// distance sensor published at 50 Hz
+	if (_now - _dist_snsr_time >= 20_ms
+	    && fabs(_distance_snsr_override) < 10000) {
+		_dist_snsr_time = _now;
+		send_dist_snsr();
 	}
 
 	// send uart message every 40 ms
@@ -182,6 +193,16 @@ void Sih::parameters_updated()
 	_Im1 = inv(_I);
 
 	_mu_I = Vector3f(_sih_mu_x.get(), _sih_mu_y.get(), _sih_mu_z.get());
+
+	_gps_used = _sih_gps_used.get();
+	_baro_offset_m = _sih_baro_offset.get();
+	_mag_offset_x = _sih_mag_offset_x.get();
+	_mag_offset_y = _sih_mag_offset_y.get();
+	_mag_offset_z = _sih_mag_offset_z.get();
+
+	_distance_snsr_min = _sih_distance_snsr_min.get();
+	_distance_snsr_max = _sih_distance_snsr_max.get();
+	_distance_snsr_override = _sih_distance_snsr_override.get();
 }
 
 // initialization of the variables for the simulator
@@ -197,10 +218,10 @@ void Sih::init_variables()
 	_u[0] = _u[1] = _u[2] = _u[3] = 0.0f;
 }
 
-void Sih::init_sensors()
+void Sih::gps_fix()
 {
 	_sensor_gps.fix_type = 3;  // 3D fix
-	_sensor_gps.satellites_used = 8;
+	_sensor_gps.satellites_used = _gps_used;
 	_sensor_gps.heading = NAN;
 	_sensor_gps.heading_offset = NAN;
 	_sensor_gps.s_variance_m_s = 0.5f;
@@ -210,6 +231,21 @@ void Sih::init_sensors()
 	_sensor_gps.hdop = 0.7f;
 	_sensor_gps.vdop = 1.1f;
 }
+
+void Sih::gps_no_fix()
+{
+	_sensor_gps.fix_type = 0;  // 3D fix
+	_sensor_gps.satellites_used = _gps_used;
+	_sensor_gps.heading = NAN;
+	_sensor_gps.heading_offset = NAN;
+	_sensor_gps.s_variance_m_s = 100.f;
+	_sensor_gps.c_variance_rad = 100.f;
+	_sensor_gps.eph = 100.f;
+	_sensor_gps.epv = 100.f;
+	_sensor_gps.hdop = 100.f;
+	_sensor_gps.vdop = 100.f;
+}
+
 
 // read the motor signals outputted from the mixer
 void Sih::read_motors()
@@ -282,9 +318,12 @@ void Sih::reconstruct_sensors_signals()
 	_acc = _C_IB.transpose() * (_v_I_dot - Vector3f(0.0f, 0.0f, CONSTANTS_ONE_G)) + noiseGauss3f(0.5f, 1.7f, 1.4f);
 	_gyro = _w_B + noiseGauss3f(0.14f, 0.07f, 0.03f);
 	_mag = _C_IB.transpose() * _mu_I + noiseGauss3f(0.02f, 0.02f, 0.03f);
+	_mag(0) += _mag_offset_x;
+	_mag(1) += _mag_offset_y;
+	_mag(2) += _mag_offset_z;
 
 	// barometer
-	float altitude = (_H0 - _p_I(2)) + generate_wgn() * 0.14f; // altitude with noise
+	float altitude = (_H0 - _p_I(2)) + _baro_offset_m + generate_wgn() * 0.14f; // altitude with noise
 	_baro_p_mBar = CONSTANTS_STD_PRESSURE_MBAR *        // reconstructed pressure in mBar
 		       powf((1.0f + altitude * TEMP_GRADIENT / T1_K), -CONSTANTS_ONE_G / (TEMP_GRADIENT * CONSTANTS_AIR_GAS_CONST));
 	_baro_temp_c = T1_K + CONSTANTS_ABSOLUTE_NULL_CELSIUS + TEMP_GRADIENT * altitude; // reconstructed temperture in celcius
@@ -294,9 +333,9 @@ void Sih::reconstruct_sensors_signals()
 	_gps_lon_noiseless = _LON0 + degrees((double)_p_I(1) / CONSTANTS_RADIUS_OF_EARTH) / _COS_LAT0;
 	_gps_alt_noiseless = _H0 - _p_I(2);
 
-	_gps_lat = _gps_lat_noiseless + (double)(generate_wgn() * 7.2e-6f); // latitude in degrees
-	_gps_lon = _gps_lon_noiseless + (double)(generate_wgn() * 1.75e-5f); // longitude in degrees
-	_gps_alt = _gps_alt_noiseless + generate_wgn() * 1.78f;
+	_gps_lat = _gps_lat_noiseless + degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
+	_gps_lon = _gps_lon_noiseless + degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH) / _COS_LAT0;
+	_gps_alt = _gps_alt_noiseless + generate_wgn() * 0.5f;
 	_gps_vel = _v_I + noiseGauss3f(0.06f, 0.077f, 0.158f);
 }
 
@@ -316,7 +355,40 @@ void Sih::send_gps()
 	_sensor_gps.cog_rad = atan2(_gps_vel(1),
 				    _gps_vel(0)); // Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
 
+	if (_gps_used >= 4) {
+		gps_fix();
+
+	} else {
+		gps_no_fix();
+	}
+
 	_sensor_gps_pub.publish(_sensor_gps);
+}
+
+void Sih::send_dist_snsr()
+{
+	_distance_snsr.timestamp = _now;
+	_distance_snsr.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+	_distance_snsr.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	_distance_snsr.min_distance = _distance_snsr_min;
+	_distance_snsr.max_distance = _distance_snsr_max;
+	_distance_snsr.signal_quality = -1;
+	_distance_snsr.device_id = 0;
+
+	if (_distance_snsr_override >= 0.f) {
+		_distance_snsr.current_distance = _distance_snsr_override;
+
+	} else {
+		_distance_snsr.current_distance = -_p_I(2) / _C_IB(2, 2);
+
+		if (_distance_snsr.current_distance > _distance_snsr_max) {
+			// this is based on lightware lw20 behavior
+			_distance_snsr.current_distance = UINT16_MAX / 100.f;
+
+		}
+	}
+
+	_distance_snsr_pub.publish(_distance_snsr);
 }
 
 void Sih::publish_sih()

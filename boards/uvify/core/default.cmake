@@ -28,7 +28,7 @@ px4_add_board(
 		imu/invensense/mpu9250
 		irlock
 		lights/rgbled_ncp5623c
-		magnetometer/bmm150
+		magnetometer/bosch/bmm150
 		magnetometer/lis3mdl
 		magnetometer/isentek/ist8310
 		optical_flow # all available optical flow drivers
@@ -48,6 +48,7 @@ px4_add_board(
 		ekf2
 		events
 		flight_mode_manager
+		gyro_fft
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -88,6 +89,7 @@ px4_add_board(
 		top
 		topic_listener
 		tune_control
+		uorb
 		usb_connected
 		ver
 		work_queue

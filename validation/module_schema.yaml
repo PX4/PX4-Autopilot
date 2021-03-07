@@ -75,6 +75,10 @@ serial_config:
                 # Default: 1
                 type: integer
                 min: 1
+            ethernet:
+                # Optional command ethernet.
+                # If omitted, ethernet condiguration value will be omitted.
+                nullable: True 
 
 
 parameters:
@@ -206,5 +210,9 @@ parameters:
                             # [0, N-1]
                             # Default: 0
                             type: integer
+                        ethernet:
+                            # Optional command ethernet.
+                            # If specified, parameter will be generated only if board supports Ethernet.
+                            nullable: True            
 
 

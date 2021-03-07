@@ -7,6 +7,7 @@ px4_add_board(
 	LABEL default
 	EMBEDDED_METADATA parameters
 	TESTING
+	ETHERNET
 	DRIVERS
 		#barometer # all available barometer drivers
 		#batt_smbus
@@ -35,6 +36,7 @@ px4_add_board(
 		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
+		gyro_fft
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -55,6 +57,7 @@ px4_add_board(
 		simulator
 		temperature_compensation
 		uuv_att_control
+		uuv_pos_control
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
@@ -79,10 +82,12 @@ px4_add_board(
 		#top
 		topic_listener
 		tune_control
+		uorb
 		ver
 		work_queue
 	EXAMPLES
 		dyn_hello # dynamically loading modules example
+		fake_gps
 		fake_magnetometer
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello

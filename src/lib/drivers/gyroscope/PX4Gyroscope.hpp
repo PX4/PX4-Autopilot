@@ -62,7 +62,7 @@ public:
 	void updateFIFO(sensor_gyro_fifo_s &sample);
 
 private:
-	void Publish(const hrt_abstime &timestamp_sample, float x, float y, float z);
+	void Publish(const hrt_abstime &timestamp_sample, float x, float y, float z, uint8_t samples = 1);
 
 	uORB::PublicationMulti<sensor_gyro_s> _sensor_pub{ORB_ID(sensor_gyro)};
 	uORB::PublicationMulti<sensor_gyro_fifo_s>  _sensor_fifo_pub{ORB_ID(sensor_gyro_fifo)};

@@ -41,6 +41,7 @@ set(msg_files
 	adc_report.msg
 	airspeed.msg
 	airspeed_validated.msg
+	airspeed_wind.msg
 	battery_status.msg
 	camera_capture.msg
 	camera_trigger.msg
@@ -66,8 +67,16 @@ set(msg_files
 	follow_target.msg
 	generator_status.msg
 	geofence_result.msg
+	gimbal_device_attitude_status.msg
+	gimbal_device_information.msg
+	gimbal_device_set_attitude.msg
+	gimbal_manager_information.msg
+	gimbal_manager_set_attitude.msg
+	gimbal_manager_set_manual_control.msg
+	gimbal_manager_status.msg
 	gps_dump.msg
 	gps_inject_data.msg
+	heater_status.msg
 	home_position.msg
 	hover_thrust_estimate.msg
 	input_rc.msg
@@ -127,11 +136,11 @@ set(msg_files
 	sensor_selection.msg
 	sensors_status_imu.msg
 	system_power.msg
+	takeoff_status.msg
 	task_stack_info.msg
 	tecs_status.msg
 	telemetry_status.msg
 	test_motor.msg
-	takeoff_status.msg
 	timesync.msg
 	timesync_status.msg
 	trajectory_bezier.msg
@@ -173,7 +182,7 @@ set(msg_files
 	vehicle_trajectory_waypoint.msg
 	vtol_vehicle_status.msg
 	wheel_encoders.msg
-	wind_estimate.msg
+	wind.msg
 	yaw_estimator_status.msg
 )
 

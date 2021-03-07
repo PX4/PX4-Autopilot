@@ -15,7 +15,7 @@ pipeline {
         // stage('Catkin build on ROS workspace') {
         //   agent {
         //     docker {
-        //       image 'px4io/px4-dev-ros-melodic:2020-11-18'
+        //       image 'px4io/px4-dev-ros-melodic:2021-02-04'
         //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
         //     }
         //   }
@@ -56,7 +56,7 @@ pipeline {
         stage('Colcon build on ROS2 workspace') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros2-foxy:2020-11-18'
+              image 'px4io/px4-dev-ros2-foxy:2021-02-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -67,11 +67,9 @@ pipeline {
               unset ROS_DISTRO;
               mkdir -p colcon_ws/src;
               cd colcon_ws;
-              git -C ${WORKSPACE}/colcon_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
-              git clone --recursive ${WORKSPACE}/colcon_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
+              git -C ${WORKSPACE}/colcon_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo;
               git -C ${WORKSPACE}/colcon_ws/src/Firmware fetch --tags;
-              source /opt/ros/bouncy/setup.sh;
-              source /opt/ros/melodic/setup.sh;
+              source /opt/ros/foxy/setup.sh;
               colcon build --event-handlers console_direct+ --symlink-install;
             '''
           }
@@ -87,7 +85,7 @@ pipeline {
 
         stage('Airframe') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2020-11-18' }
+            docker { image 'px4io/px4-dev-base-focal:2021-02-04' }
           }
           steps {
             sh 'make distclean'
@@ -106,14 +104,14 @@ pipeline {
 
         stage('Parameter') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2020-11-18' }
+            docker { image 'px4io/px4-dev-base-focal:2021-02-04' }
           }
           steps {
             sh 'make distclean'
             sh 'make parameters_metadata'
             dir('build/px4_sitl_default/docs') {
-              archiveArtifacts(artifacts: 'parameters.md, parameters.xml')
-              stash includes: 'parameters.md, parameters.xml', name: 'metadata_parameters'
+              archiveArtifacts(artifacts: 'parameters.md, parameters.xml, params.json.xz')
+              stash includes: 'parameters.md, parameters.xml, params.json.xz', name: 'metadata_parameters'
             }
           }
           post {
@@ -125,7 +123,7 @@ pipeline {
 
         stage('Module') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2020-11-18' }
+            docker { image 'px4io/px4-dev-base-focal:2021-02-04' }
           }
           steps {
             sh 'make distclean'
@@ -145,7 +143,7 @@ pipeline {
         stage('uORB graphs') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx-focal:2020-11-18'
+              image 'px4io/px4-dev-nuttx-focal:2021-02-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -174,7 +172,7 @@ pipeline {
 
         stage('Userguide') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2020-11-18' }
+            docker { image 'px4io/px4-dev-base-focal:2021-02-04' }
           }
           steps {
             sh('export')
@@ -204,7 +202,7 @@ pipeline {
 
         stage('QGroundControl') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2020-11-18' }
+            docker { image 'px4io/px4-dev-base-focal:2021-02-04' }
           }
           steps {
             sh('export')
@@ -232,7 +230,7 @@ pipeline {
 
         stage('microRTPS agent') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2020-11-18' }
+            docker { image 'px4io/px4-dev-base-focal:2021-02-04' }
           }
           steps {
             sh('export')
@@ -262,7 +260,7 @@ pipeline {
 
         stage('PX4 ROS msgs') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2020-11-18' }
+            docker { image 'px4io/px4-dev-base-focal:2021-02-04' }
           }
           steps {
             sh('export')
@@ -291,7 +289,7 @@ pipeline {
 
         stage('PX4 ROS2 bridge') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2020-11-18' }
+            docker { image 'px4io/px4-dev-base-focal:2021-02-04' }
           }
           steps {
             sh('export')
@@ -334,7 +332,7 @@ pipeline {
 
         stage('S3') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2020-11-18' }
+            docker { image 'px4io/px4-dev-base-focal:2021-02-04' }
           }
           steps {
             sh('export')
@@ -344,6 +342,7 @@ pipeline {
             withAWS(credentials: 'px4_aws_s3_key', region: 'us-east-1') {
               s3Upload(acl: 'PublicRead', bucket: 'px4-travis', file: 'airframes.xml', path: 'Firmware/master/')
               s3Upload(acl: 'PublicRead', bucket: 'px4-travis', file: 'parameters.xml', path: 'Firmware/master/')
+              s3Upload(acl: 'PublicRead', bucket: 'px4-travis', file: 'params.json.xz', path: 'Firmware/master/')
             }
           }
           when {

@@ -38,6 +38,7 @@ px4_add_board(
 		#ekf2
 		events
 		flight_mode_manager
+		#gyro_fft
 		land_detector
 		load_mon
 		#local_position_estimator
@@ -72,6 +73,7 @@ px4_add_board(
 		top
 		topic_listener
 		tune_control
+		uorb
 		usb_connected
 		ver
 		work_queue

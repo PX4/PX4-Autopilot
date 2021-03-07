@@ -63,7 +63,8 @@ public:
 	void updateFIFO(sensor_accel_fifo_s &sample);
 
 private:
-	void Publish(const hrt_abstime &timestamp_sample, float x, float y, float z, uint8_t clip_count[3]);
+	void Publish(const hrt_abstime &timestamp_sample, float x, float y, float z, uint8_t clip_count[3],
+		     uint8_t samples = 1);
 	void UpdateClipLimit();
 
 	uORB::PublicationMulti<sensor_accel_s> _sensor_pub{ORB_ID(sensor_accel)};

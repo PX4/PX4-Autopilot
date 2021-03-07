@@ -302,6 +302,9 @@ public:
 
 	bool		force_vtol();
 
+	void		acquire_gimbal_control();
+	void		release_gimbal_control();
+
 private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad,	/**< loiter radius for fixedwing */
@@ -326,8 +329,9 @@ private:
 		(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err
 	)
 
-	int		_local_pos_sub{-1};		/**< local position subscription */
-	int		_vehicle_status_sub{-1};	/**< local position subscription */
+	int		_local_pos_sub{-1};
+	int		_mission_sub{-1};
+	int		_vehicle_status_sub{-1};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -402,7 +406,6 @@ private:
 	float _mission_cruising_speed_mc{-1.0f};
 	float _mission_cruising_speed_fw{-1.0f};
 	float _mission_throttle{NAN};
-
 
 	bool _mission_landing_in_progress{false};	// this flag gets set if the mission is currently executing on a landing pattern
 	// if mission mode is inactive, this flag will be cleared after 2 seconds

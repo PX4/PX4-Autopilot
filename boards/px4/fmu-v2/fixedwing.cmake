@@ -52,6 +52,7 @@ px4_add_board(
 		#events
 		fw_att_control
 		fw_pos_control_l1
+		#gyro_fft
 		land_detector
 		load_mon
 		logger
@@ -82,6 +83,7 @@ px4_add_board(
 		top
 		#topic_listener
 		tune_control
+		#uorb
 		#usb_connected
 		ver
 		#work_queue

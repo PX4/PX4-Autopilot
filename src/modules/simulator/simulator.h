@@ -261,23 +261,19 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 
 	// hil map_ref data
-	struct map_projection_reference_s _hil_local_proj_ref {};
-
-	bool _hil_local_proj_inited{false};
-
-	double _hil_ref_lat{0};
-	double _hil_ref_lon{0};
-	float _hil_ref_alt{0.0f};
-	uint64_t _hil_ref_timestamp{0};
+	map_projection_reference_s	_global_local_proj_ref{};
+	float						_global_local_alt0{NAN};
 
 	vehicle_status_s _vehicle_status{};
 
 	bool _accel_blocked[ACCEL_COUNT_MAX] {};
 	bool _accel_stuck[ACCEL_COUNT_MAX] {};
+	sensor_accel_fifo_s _last_accel_fifo{};
 	matrix::Vector3f _last_accel[GYRO_COUNT_MAX] {};
 
 	bool _gyro_blocked[GYRO_COUNT_MAX] {};
 	bool _gyro_stuck[GYRO_COUNT_MAX] {};
+	sensor_gyro_fifo_s _last_gyro_fifo{};
 	matrix::Vector3f _last_gyro[GYRO_COUNT_MAX] {};
 
 	bool _baro_blocked{false};

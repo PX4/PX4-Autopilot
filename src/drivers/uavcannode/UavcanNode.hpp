@@ -58,6 +58,7 @@
 #include <uavcan/protocol/param/GetSet.hpp>
 #include <uavcan/protocol/param/ExecuteOpcode.hpp>
 #include <uavcan/protocol/RestartNode.hpp>
+#include <uavcan/protocol/dynamic_node_id_client.hpp>
 
 #include <containers/IntrusiveSortedList.hpp>
 

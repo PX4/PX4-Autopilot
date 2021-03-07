@@ -23,14 +23,13 @@ px4_add_board(
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		gps
-		imu/adis16448
+		imu/analog_devices/adis16448
 		imu/adis16477
 		imu/adis16497
 		#imu # all available imu drivers
 		imu/bosch/bmi055
 		imu/invensense/icm20602
 		imu/invensense/icm20689
-		#imu/mpu6000 # legacy icm20602/icm20689 driver
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		lights/rgbled_pwm
@@ -54,6 +53,7 @@ px4_add_board(
 		events
 		fw_att_control
 		fw_pos_control_l1
+		gyro_fft
 		land_detector
 		load_mon
 		logger
@@ -87,6 +87,7 @@ px4_add_board(
 		top
 		topic_listener
 		tune_control
+		uorb
 		usb_connected
 		ver
 		work_queue

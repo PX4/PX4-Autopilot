@@ -34,7 +34,9 @@
 #include "UavcanNode.hpp"
 
 #include "boot_app_shared.h"
+#include "boot_alt_app_shared.h"
 
+#include <drivers/drv_watchdog.h>
 #include <lib/ecl/geo/geo.h>
 #include <lib/version/version.h>
 
@@ -73,13 +75,16 @@ namespace uavcannode
  * image crc, size etc of this application
 */
 boot_app_shared_section app_descriptor_t AppDescriptor = {
-	.signature = {APP_DESCRIPTOR_SIGNATURE},
-	.image_crc = 0,
+	.signature = APP_DESCRIPTOR_SIGNATURE,
+	{
+		0,
+	},
 	.image_size = 0,
-	.vcs_commit = 0,
+	.git_hash  = 0,
 	.major_version = APP_VERSION_MAJOR,
 	.minor_version = APP_VERSION_MINOR,
-	.reserved = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff }
+	.board_id = HW_VERSION_MAJOR << 8 | HW_VERSION_MINOR,
+	.reserved = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }
 };
 
 UavcanNode *UavcanNode::_instance;
@@ -144,6 +149,7 @@ int UavcanNode::getHardwareVersion(uavcan::protocol::HardwareVersion &hwver)
 
 int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 {
+
 	if (_instance != nullptr) {
 		PX4_WARN("Already started");
 		return -1;
@@ -231,6 +237,7 @@ void UavcanNode::busevent_signal_trampoline()
 
 static void cb_reboot(const uavcan::TimerEvent &)
 {
+	watchdog_pet();
 	board_reset(0);
 }
 
@@ -246,6 +253,19 @@ void UavcanNode::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<Uav
 
 		if (!inprogress) {
 			inprogress = true;
+#if defined(SUPPORT_ALT_CAN_BOOTLOADER)
+
+			if (!board_booted_by_px4()) {
+				bootloader_alt_app_shared_t shared_alt{0};
+				shared_alt.fw_server_node_id = req.source_node_id;
+				shared_alt.node_id = _node.getNodeID().get();
+				strncat((char *)shared_alt.path, (const char *)req.image_file_remote_path.path.c_str(), sizeof(shared_alt.path) - 1);
+				bootloader_alt_app_shared_write(&shared_alt);
+				board_configure_reset(BOARD_RESET_MODE_CAN_BL, shared_alt.node_id);
+			}
+
+#endif
+
 			bootloader_app_shared_t shared;
 			shared.bus_speed = active_bitrate;
 			shared.node_id = _node.getNodeID().get();
@@ -261,7 +281,12 @@ void UavcanNode::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<Uav
 int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 {
 	_node.setName(HW_UAVCAN_NAME);
-	_node.setNodeID(node_id);
+
+	// Was the node_id supplied by the bootloader?
+
+	if (node_id != 0) {
+		_node.setNodeID(node_id);
+	}
 
 	fill_node_info();
 
@@ -290,7 +315,45 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 
 	bus_events.registerSignalCallback(UavcanNode::busevent_signal_trampoline);
 
-	return _node.start();
+	int rv = _node.start();
+
+	if (rv < 0) {
+		return rv;
+	}
+
+	// If the node_id was not supplied by the bootloader do Dynamic Node ID allocation
+
+	if (node_id == 0) {
+
+		uavcan::DynamicNodeIDClient client(_node);
+
+		int client_start_res = client.start(_node.getHardwareVersion().unique_id,    // USING THE SAME UNIQUE ID AS ABOVE
+						    node_id);
+
+		if (client_start_res < 0) {
+			PX4_ERR("Failed to start the dynamic node ID client");
+			return client_start_res;
+		}
+
+		watchdog_pet(); // If allocation takes too long reboot
+
+		/*
+		 * Waiting for the client to obtain a node ID.
+		 * This may take a few seconds.
+		 */
+
+		while (!client.isAllocationComplete()) {
+			const int res = _node.spin(uavcan::MonotonicDuration::fromMSec(200));    // Spin duration doesn't matter
+
+			if (res < 0) {
+				PX4_ERR("Transient failure: %d", res);
+			}
+		}
+
+		_node.setNodeID(client.getAllocatedNodeID());
+	}
+
+	return rv;
 }
 
 // Restart handler
@@ -307,10 +370,15 @@ class RestartRequestHandler: public uavcan::IRestartRequestHandler
 
 void UavcanNode::Run()
 {
+	static  hrt_abstime up_time{0};
 	pthread_mutex_lock(&_node_mutex);
 
-	if (!_initialized) {
+	// Bootloader started it.
 
+	watchdog_pet();
+
+	if (!_initialized) {
+		up_time = hrt_absolute_time();
 		get_node().setRestartRequestHandler(&restart_request_handler);
 		_param_server.start(&_param_manager);
 
@@ -346,6 +414,13 @@ void UavcanNode::Run()
 	}
 
 	_node.spinOnce();
+
+	// This is done only once to signify the node has run 30 seconds
+
+	if (up_time && hrt_elapsed_time(&up_time) > 30_s) {
+		up_time = 0;
+		board_configure_reset(BOARD_RESET_MODE_RTC_BOOT_FWOK, 0);
+	}
 
 	perf_end(_cycle_perf);
 
@@ -433,6 +508,9 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 {
 	//board_app_initialize(nullptr);
 
+	// Sarted byt the bootloader, we must pet it
+	watchdog_pet();
+
 	// CAN bitrate
 	int32_t bitrate = 0;
 
@@ -453,11 +531,24 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 
 	} else {
 		// Node ID
-		(void)param_get(param_find("CANNODE_NODE_ID"), &node_id);
-		(void)param_get(param_find("CANNODE_BITRATE"), &bitrate);
+#if defined(SUPPORT_ALT_CAN_BOOTLOADER)
+		if (!board_booted_by_px4()) {
+			node_id = 0;
+			bitrate = 1000000;
+
+		} else
+#endif
+		{
+			(void)param_get(param_find("CANNODE_NODE_ID"), &node_id);
+			(void)param_get(param_find("CANNODE_BITRATE"), &bitrate);
+		}
 	}
 
-	if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
+	if (
+#if defined(SUPPORT_ALT_CAN_BOOTLOADER)
+		board_booted_by_px4() &&
+#endif
+		(node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast())) {
 		PX4_ERR("Invalid Node ID %i", node_id);
 		return 1;
 	}

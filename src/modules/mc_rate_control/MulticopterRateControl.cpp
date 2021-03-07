@@ -192,7 +192,7 @@ MulticopterRateControl::Run()
 					math::superexpo(_manual_control_setpoint.r, _param_mc_acro_expo_y.get(), _param_mc_acro_supexpoy.get())};
 
 				_rates_sp = man_rate_sp.emult(_acro_rate_max);
-				_thrust_sp = _manual_control_setpoint.z;
+				_thrust_sp = math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f);
 
 				// publish rate setpoint
 				vehicle_rates_setpoint_s v_rates_sp{};
@@ -212,9 +212,9 @@ MulticopterRateControl::Run()
 			vehicle_rates_setpoint_s v_rates_sp;
 
 			if (_v_rates_sp_sub.update(&v_rates_sp)) {
-				_rates_sp(0) = v_rates_sp.roll;
-				_rates_sp(1) = v_rates_sp.pitch;
-				_rates_sp(2) = v_rates_sp.yaw;
+				_rates_sp(0) = PX4_ISFINITE(v_rates_sp.roll)  ? v_rates_sp.roll  : rates(0);
+				_rates_sp(1) = PX4_ISFINITE(v_rates_sp.pitch) ? v_rates_sp.pitch : rates(1);
+				_rates_sp(2) = PX4_ISFINITE(v_rates_sp.yaw)   ? v_rates_sp.yaw   : rates(2);
 				_thrust_sp = -v_rates_sp.thrust_body[2];
 			}
 		}

@@ -86,10 +86,10 @@ AirspeedValidator::update_wind_estimator(const uint64_t time_now_usec, float air
 }
 
 // this function returns the current states of the wind estimator to be published in the airspeed module
-wind_estimate_s
+airspeed_wind_s
 AirspeedValidator::get_wind_estimator_states(uint64_t timestamp)
 {
-	wind_estimate_s wind_est = {};
+	airspeed_wind_s wind_est = {};
 
 	wind_est.timestamp = timestamp;
 	float wind[2];
