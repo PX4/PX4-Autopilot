@@ -506,10 +506,10 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		// index should be 0, otherwise ignore the message
 		if (((int) vehicle_command.param7) == 0) {
 			actuator_controls_s actuator_controls{};
-			actuator_controls.timestamp = hrt_absolute_time();
-
 			// update with existing values to avoid changing unspecified controls
 			_actuator_controls_3_sub.update(&actuator_controls);
+
+			actuator_controls.timestamp = hrt_absolute_time();
 
 			bool updated = false;
 
