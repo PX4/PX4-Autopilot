@@ -32,65 +32,57 @@
  ****************************************************************************/
 
 /**
- * @file NodeManager.hpp
+ * @file ListRequest.hpp
  *
- * Defines basic implementation of UAVCAN PNP for dynamic Node ID
+ * Defines a List Service invoker and process List responses
  *
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
 
 #pragma once
 
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/module.h>
+#include <version/version.h>
 
-#include <px4_platform_common/defines.h>
-#include <drivers/drv_hrt.h>
+#include <uavcan/_register/List_1_0.h>
 
-#include "CanardInterface.hpp"
-
-#include <uavcan/node/ID_1_0.h>
-#include <uavcan/pnp/NodeIDAllocationData_1_0.h>
-#include <uavcan/pnp/NodeIDAllocationData_2_0.h>
-
-
-class NodeManager;
-
-#include "Services/AccessRequest.hpp"
-#include "Services/ListRequest.hpp"
-
-//TODO make this an object instead?
-typedef struct {
-	uint8_t   node_id;
-	uint8_t   unique_id[16];
-	bool      register_setup;
-	uint16_t  register_index;
-} UavcanNodeEntry;
-
-class NodeManager
+class UavcanListServiceRequest
 {
 public:
-	NodeManager(CanardInstance &ins) : _canard_instance(ins), _access_request(ins), _list_request(ins) { };
-
-	bool HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg);
-	bool HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_2_0 &msg);
+	UavcanListServiceRequest(CanardInstance &ins) :
+		_canard_instance(ins) { };
 
 
-	void HandleListResponse(CanardNodeID node_id, uavcan_register_List_Response_1_0 &msg);
+	void request(CanardNodeID node_id, uint16_t index)
+	{
+		uavcan_register_List_Request_1_0 msg;
+		msg.index = index;
 
-	void update();
+		uint8_t request_payload_buffer[uavcan_register_List_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
+
+		CanardTransfer request = {
+			.timestamp_usec = hrt_absolute_time(), // Zero if transmission deadline is not limited.
+			.priority       = CanardPriorityNominal,
+			.transfer_kind  = CanardTransferKindRequest,
+			.port_id        = uavcan_register_List_1_0_FIXED_PORT_ID_, // This is the subject-ID.
+			.remote_node_id = node_id,
+			.transfer_id    = list_request_transfer_id,
+			.payload_size   = uavcan_register_List_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_,
+			.payload        = &request_payload_buffer,
+		};
+
+		int32_t result = uavcan_register_List_Request_1_0_serialize_(&msg, request_payload_buffer, &request.payload_size);
+
+		if (result == 0) {
+			// set the data ready in the buffer and chop if needed
+			++list_request_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
+			result = canardTxPush(&_canard_instance, &request);
+		}
+	};
 
 private:
 	CanardInstance &_canard_instance;
-	CanardTransferID _uavcan_pnp_nodeidallocation_v1_transfer_id{0};
-	UavcanNodeEntry nodeid_registry[16] {0}; //TODO configurable or just rewrite
+	CanardTransferID list_request_transfer_id = 0;
 
-	UavcanAccessServiceRequest _access_request;
-	UavcanListServiceRequest _list_request;
-
-	bool nodeRegisterSetup = 0;
-
-	hrt_abstime _register_request_last{0};
-
-	//TODO work this out
-	const char *gps_uorb_register_name = "uavcan.pub.gnss_uorb.id";
-	const char *bms_status_register_name = "uavcan.pub.battery_status.id";
 };

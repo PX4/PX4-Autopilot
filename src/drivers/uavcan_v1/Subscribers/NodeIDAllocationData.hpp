@@ -53,13 +53,13 @@
 #define PNP2_PORT_ID                                 uavcan_pnp_NodeIDAllocationData_2_0_FIXED_PORT_ID_
 #define PNP2_PAYLOAD_SIZE                            uavcan_pnp_NodeIDAllocationData_2_0_SERIALIZATION_BUFFER_SIZE_BYTES_
 
-#include "Subscriber.hpp"
+#include "BaseSubscriber.hpp"
 
-class UavcanNodeIDAllocationDataSubscriber : public UavcanSubscriber
+class UavcanNodeIDAllocationDataSubscriber : public UavcanBaseSubscriber
 {
 public:
-	UavcanNodeIDAllocationDataSubscriber(CanardInstance &ins, UavcanParamManager &pmgr, NodeManager &nmgr) :
-		UavcanSubscriber(ins, pmgr, "NodeIDAllocationData", 0), _nmgr(nmgr) { };
+	UavcanNodeIDAllocationDataSubscriber(CanardInstance &ins, NodeManager &nmgr) :
+		UavcanBaseSubscriber(ins, "NodeIDAllocationData", 0), _nmgr(nmgr) { };
 
 	void subscribe() override
 	{

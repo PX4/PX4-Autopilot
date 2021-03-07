@@ -45,13 +45,13 @@
 #include <reg/drone/service/battery/Parameters_0_1.h>
 #include <reg/drone/service/battery/Status_0_1.h>
 
-#include "Subscriber.hpp"
+#include "DynamicPortSubscriber.hpp"
 
-class UavcanBmsSubscriber : public UavcanSubscriber
+class UavcanBmsSubscriber : public UavcanDynamicPortSubscriber
 {
 public:
 	UavcanBmsSubscriber(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanSubscriber(ins, pmgr, "bms", instance) { };
+		UavcanDynamicPortSubscriber(ins, pmgr, "bms", instance) { };
 
 	void subscribe() override
 	{
