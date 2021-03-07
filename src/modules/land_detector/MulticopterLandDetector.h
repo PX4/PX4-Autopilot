@@ -117,6 +117,7 @@ private:
 	uORB::Subscription _takeoff_status_sub{ORB_ID(takeoff_status)};
 
 	hrt_abstime _hover_thrust_estimate_last_valid{0};
+	bool _hover_thrust_estimate_valid{false};
 
 	bool _flag_control_climb_rate_enabled{false};
 	bool _hover_thrust_initialized{false};
