@@ -50,6 +50,9 @@ then
 	param set VT_B_TRANS_DUR 8
 	param set VT_TYPE 2
 
+	param set RC_MAP_AUX1 8
+	param set RC_MAP_AUX2 9
+	param set RC_MAP_AUX3 10
 fi
 
 set MAV_TYPE 22
