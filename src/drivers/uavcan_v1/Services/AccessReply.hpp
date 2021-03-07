@@ -32,65 +32,51 @@
  ****************************************************************************/
 
 /**
- * @file NodeManager.hpp
+ * @file Access.hpp
  *
- * Defines basic implementation of UAVCAN PNP for dynamic Node ID
+ * Defines a Access Service invoker and process Access responses
  *
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
 
 #pragma once
 
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/module.h>
+#include <version/version.h>
 
-#include <px4_platform_common/defines.h>
-#include <drivers/drv_hrt.h>
+#include "../NodeManager.hpp"
 
-#include "CanardInterface.hpp"
+#include <uavcan/_register/Access_1_0.h>
 
-#include <uavcan/node/ID_1_0.h>
-#include <uavcan/pnp/NodeIDAllocationData_1_0.h>
-#include <uavcan/pnp/NodeIDAllocationData_2_0.h>
+#include "../Subscribers/BaseSubscriber.hpp"
 
-
-class NodeManager;
-
-#include "Services/AccessRequest.hpp"
-#include "Services/ListRequest.hpp"
-
-//TODO make this an object instead?
-typedef struct {
-	uint8_t   node_id;
-	uint8_t   unique_id[16];
-	bool      register_setup;
-	uint16_t  register_index;
-} UavcanNodeEntry;
-
-class NodeManager
+class UavcanAccessServiceReply : public UavcanBaseSubscriber
 {
 public:
-	NodeManager(CanardInstance &ins) : _canard_instance(ins), _access_request(ins), _list_request(ins) { };
+	UavcanAccessServiceReply(CanardInstance &ins, NodeManager &nmgr) :
+		UavcanBaseSubscriber(ins, "Access", 0), _nmgr(nmgr) { };
 
-	bool HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg);
-	bool HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_2_0 &msg);
+	void subscribe() override
+	{
+		// Subscribe to requests uavcan.pnp.NodeIDAllocationData
+		canardRxSubscribe(&_canard_instance,
+				  CanardTransferKindResponse,
+				  uavcan_register_Access_1_0_FIXED_PORT_ID_,
+				  uavcan_register_Access_Response_1_0_EXTENT_BYTES_,
+				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
+				  &_canard_sub);
 
+		_port_id = uavcan_register_Access_1_0_FIXED_PORT_ID_;
 
-	void HandleListResponse(CanardNodeID node_id, uavcan_register_List_Response_1_0 &msg);
+	};
 
-	void update();
+	void callback(const CanardTransfer &receive) override
+	{
+		PX4_INFO("Access response");
+	};
 
 private:
-	CanardInstance &_canard_instance;
-	CanardTransferID _uavcan_pnp_nodeidallocation_v1_transfer_id{0};
-	UavcanNodeEntry nodeid_registry[16] {0}; //TODO configurable or just rewrite
+	NodeManager &_nmgr;
 
-	UavcanAccessServiceRequest _access_request;
-	UavcanListServiceRequest _list_request;
-
-	bool nodeRegisterSetup = 0;
-
-	hrt_abstime _register_request_last{0};
-
-	//TODO work this out
-	const char *gps_uorb_register_name = "uavcan.pub.gnss_uorb.id";
-	const char *bms_status_register_name = "uavcan.pub.battery_status.id";
 };

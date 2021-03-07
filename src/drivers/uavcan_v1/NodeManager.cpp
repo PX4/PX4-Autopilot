@@ -48,7 +48,7 @@ bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg)
 		msg.allocated_node_id.elements[0].value = CANARD_NODE_ID_UNSET;
 
 		/* Search for an available NodeID to assign */
-		for (uint32_t i = 1; i < 16; i++) {
+		for (uint32_t i = 1; i < sizeof(nodeid_registry) / sizeof(nodeid_registry[0]); i++) {
 			if (i == _canard_instance.node_id) {
 				continue; // Don't give our NodeID to a node
 
@@ -64,11 +64,6 @@ bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg)
 		}
 
 		if (msg.allocated_node_id.elements[0].value != CANARD_NODE_ID_UNSET) {
-
-			_uavcan_pnp_nodeidallocation_last = hrt_absolute_time();
-			_node_register_request_index = 0;
-			_node_register_last_received_index = -1;
-			_node_register_setup = msg.allocated_node_id.elements[0].value; // This nodeID has to be configured
 
 			PX4_INFO("Received NodeID allocation request assigning %i", msg.allocated_node_id.elements[0].value);
 
@@ -93,6 +88,8 @@ bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg)
 				result = canardTxPush(&_canard_instance, &transfer);
 			}
 
+			_register_request_last = hrt_absolute_time();
+
 			return result >= 0;
 		}
 	}
@@ -105,4 +102,50 @@ bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_2_0 &msg)
 {
 	//TODO V2 CAN FD implementation
 	return false;
+}
+
+
+void NodeManager::HandleListResponse(CanardNodeID node_id, uavcan_register_List_Response_1_0 &msg)
+{
+	if (msg.name.name.count == 0) {
+		// Index doesn't exist, we've parsed through all registers
+		for (uint32_t i = 0; i < sizeof(nodeid_registry) / sizeof(nodeid_registry[0]); i++) {
+			if (nodeid_registry[i].node_id == node_id) {
+				nodeid_registry[i].register_setup = true; // Don't update anymore
+			}
+		}
+
+	} else {
+		for (uint32_t i = 0; i < sizeof(nodeid_registry) / sizeof(nodeid_registry[0]); i++) {
+			if (nodeid_registry[i].node_id == node_id) {
+				nodeid_registry[i].register_index++; // Increment index counter for next update()
+				nodeid_registry[i].register_setup = false;
+			}
+		}
+
+
+		if (strncmp((char *)msg.name.name.elements, gps_uorb_register_name,
+			    msg.name.name.count) == 0) {
+			_access_request.setPortId(node_id, gps_uorb_register_name, 1235); //TODO configurable and combine with ParamManager.
+
+		} else if (strncmp((char *)msg.name.name.elements, bms_status_register_name,
+				   msg.name.name.count) == 0) { //Battery status publisher
+			_access_request.setPortId(node_id, bms_status_register_name, 1234); //TODO configurable and combine with ParamManager.
+		}
+	}
+}
+void NodeManager::update()
+{
+	if (hrt_elapsed_time(&_register_request_last) >= hrt_abstime(2 *
+			1000000ULL)) { // Compiler hates me here, some 1_s doesn't work
+		for (uint32_t i = 0; i < sizeof(nodeid_registry) / sizeof(nodeid_registry[0]); i++) {
+			if (nodeid_registry[i].node_id != 0 && nodeid_registry[i].register_setup == false) {
+				//Setting up registers
+				_list_request.request(nodeid_registry[i].node_id, nodeid_registry[i].register_index);
+				nodeid_registry[i].register_setup = true;
+			}
+		}
+
+		_register_request_last = hrt_absolute_time();
+	}
 }

@@ -32,65 +32,61 @@
  ****************************************************************************/
 
 /**
- * @file NodeManager.hpp
+ * @file DynamicPortSubscriber.hpp
  *
- * Defines basic implementation of UAVCAN PNP for dynamic Node ID
+ * Defines basic functionality of UAVCAN v1 subscriber class with Non-fixed unregulated port identifier
  *
- * @author Peter van der Perk <peter.vanderperk@nxp.com>
+ * @author Jacob Crabill <jacob@flyvoly.com>
  */
 
 #pragma once
 
+#include <px4_platform_common/px4_config.h>
 
-#include <px4_platform_common/defines.h>
-#include <drivers/drv_hrt.h>
+#include <lib/parameters/param.h>
 
-#include "CanardInterface.hpp"
+#include <uavcan/_register/Access_1_0.h>
 
-#include <uavcan/node/ID_1_0.h>
-#include <uavcan/pnp/NodeIDAllocationData_1_0.h>
-#include <uavcan/pnp/NodeIDAllocationData_2_0.h>
+#include "DynamicPortSubscriber.hpp"
+#include "../CanardInterface.hpp"
+#include "../ParamManager.hpp"
 
-
-class NodeManager;
-
-#include "Services/AccessRequest.hpp"
-#include "Services/ListRequest.hpp"
-
-//TODO make this an object instead?
-typedef struct {
-	uint8_t   node_id;
-	uint8_t   unique_id[16];
-	bool      register_setup;
-	uint16_t  register_index;
-} UavcanNodeEntry;
-
-class NodeManager
+class UavcanDynamicPortSubscriber : public UavcanBaseSubscriber
 {
 public:
-	NodeManager(CanardInstance &ins) : _canard_instance(ins), _access_request(ins), _list_request(ins) { };
+	UavcanDynamicPortSubscriber(CanardInstance &ins, UavcanParamManager &pmgr, const char *subject_name,
+				    uint8_t instance = 0) :
+		UavcanBaseSubscriber(ins, subject_name, instance), _param_manager(pmgr) { };
 
-	bool HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg);
-	bool HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_2_0 &msg);
+	void updateParam()
+	{
+		char uavcan_param[90];
+		sprintf(uavcan_param, "uavcan.sub.%s.%d.id", _subject_name, _instance);
 
+		// Set _port_id from _uavcan_param
+		uavcan_register_Value_1_0 value;
+		_param_manager.GetParamByName(uavcan_param, value);
+		int32_t new_id = value.integer32.value.elements[0];
 
-	void HandleListResponse(CanardNodeID node_id, uavcan_register_List_Response_1_0 &msg);
+		if (_port_id != new_id) {
+			if (new_id == CANARD_PORT_ID_UNSET) {
+				// Cancel subscription
+				unsubscribe();
 
-	void update();
+			} else {
+				if (_port_id != CANARD_PORT_ID_UNSET) {
+					// Already active; unsubscribe first
+					unsubscribe();
+				}
 
-private:
-	CanardInstance &_canard_instance;
-	CanardTransferID _uavcan_pnp_nodeidallocation_v1_transfer_id{0};
-	UavcanNodeEntry nodeid_registry[16] {0}; //TODO configurable or just rewrite
+				// Subscribe on the new port ID
+				_port_id = (CanardPortID)new_id;
+				PX4_INFO("Subscribing %s.%d on port %d", _subject_name, _instance, _port_id);
+				subscribe();
+			}
+		}
+	};
 
-	UavcanAccessServiceRequest _access_request;
-	UavcanListServiceRequest _list_request;
-
-	bool nodeRegisterSetup = 0;
-
-	hrt_abstime _register_request_last{0};
-
-	//TODO work this out
-	const char *gps_uorb_register_name = "uavcan.pub.gnss_uorb.id";
-	const char *bms_status_register_name = "uavcan.pub.battery_status.id";
+protected:
+	UavcanParamManager &_param_manager;
 };
