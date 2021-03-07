@@ -44,13 +44,13 @@
 // DS-15 Specification Messages
 #include <reg/drone/physics/kinematics/geodetic/Point_0_1.h>
 
-#include "Subscriber.hpp"
+#include "DynamicPortSubscriber.hpp"
 
-class UavcanGnssSubscriber : public UavcanSubscriber
+class UavcanGnssSubscriber : public UavcanDynamicPortSubscriber
 {
 public:
 	UavcanGnssSubscriber(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanSubscriber(ins, pmgr, "gps", instance) { };
+		UavcanDynamicPortSubscriber(ins, pmgr, "gps", instance) { };
 
 	void subscribe() override
 	{

@@ -71,11 +71,17 @@
 #include "Publishers/Publisher.hpp"
 #include "Publishers/Gnss.hpp"
 
-#include "Subscribers/Subscriber.hpp"
+#include "Subscribers/BaseSubscriber.hpp"
 #include "Subscribers/Battery.hpp"
 #include "Subscribers/Esc.hpp"
 #include "Subscribers/Gnss.hpp"
 #include "Subscribers/NodeIDAllocationData.hpp"
+
+#include "ServiceClients/GetInfo.hpp"
+#include "ServiceClients/Access.hpp"
+
+#include "Services/AccessReply.hpp"
+#include "Services/ListReply.hpp"
 
 #include "NodeManager.hpp"
 
@@ -239,10 +245,17 @@ private:
 	UavcanBmsSubscriber  _bms0_sub {_canard_instance, _param_manager, 0};
 	UavcanBmsSubscriber  _bms1_sub {_canard_instance, _param_manager, 1};
 	UavcanEscSubscriber  _esc_sub  {_canard_instance, _param_manager, 0};
-	UavcanNodeIDAllocationDataSubscriber _nodeid_sub {_canard_instance, _param_manager, _node_manager};
+	UavcanNodeIDAllocationDataSubscriber _nodeid_sub {_canard_instance, _node_manager};
+
+	UavcanGetInfoResponse _getinfo_rsp {_canard_instance};
+	UavcanAccessResponse  _access_rsp {_canard_instance, _param_manager};
+
+	UavcanAccessServiceReply _access_service {_canard_instance, _node_manager};
+	UavcanListServiceReply   _list_service {_canard_instance, _node_manager};
 
 	// Subscriber objects: Any object used to bridge a UAVCAN message to a uORB message
-	UavcanSubscriber *_subscribers[6] {&_gps0_sub, &_gps1_sub, &_bms0_sub, &_bms1_sub, &_esc_sub, &_nodeid_sub}; /// TODO: turn into List<UavcanSubscription*>
+	UavcanDynamicPortSubscriber *_dynsubscribers[5] {&_gps0_sub, &_gps1_sub, &_bms0_sub, &_bms1_sub, &_esc_sub}; /// TODO: turn into List<UavcanSubscription*>
+	UavcanBaseSubscriber *_subscribers[5] {&_nodeid_sub, &_getinfo_rsp, &_access_rsp, &_access_service, &_list_service}; /// TODO: turn into List<UavcanSubscription*>
 
 	UavcanMixingInterface _mixing_output {_node_mutex, _esc_controller};
 
