@@ -48,7 +48,7 @@
 class Integrator
 {
 public:
-	Integrator(bool coning_compensation = false) : _coning_comp_on(coning_compensation) {}
+	Integrator() = default;
 	~Integrator() = default;
 
 	/**
@@ -58,29 +58,23 @@ public:
 	 * @param val		Item to put.
 	 * @return		true if data was accepted and integrated.
 	 */
-	bool put(const uint64_t &timestamp, const matrix::Vector3f &val);
-
-	/**
-	 * Put an item into the integral.
-	 *
-	 * @param timestamp	Timestamp of the current value.
-	 * @param val		Item to put.
-	 * @param integral	Current integral in case the integrator did reset, else the value will not be modified
-	 * @param integral_dt	Get the dt in us of the current integration (only if reset).
-	 * @return		true if putting the item triggered an integral reset and the integral should be
-	 *			published.
-	 */
-	bool put(const uint64_t &timestamp, const matrix::Vector3f &val, matrix::Vector3f &integral, uint32_t &integral_dt)
+	void put(const matrix::Vector3f &val, const float dt)
 	{
-		return put(timestamp, val) && reset(integral, integral_dt);
+		if (dt > FLT_EPSILON && dt <= _reset_interval_min) {
+			_alpha += integrate(val, dt);
+
+		} else {
+			reset();
+			_last_val = val;
+		}
 	}
 
 	/**
 	 * Set reset interval during runtime. This won't reset the integrator.
 	 *
-	 * @param reset_interval	    	New reset time interval for the integrator.
+	 * @param reset_interval	New reset time interval for the integrator in microseconds.
 	 */
-	void set_reset_interval(uint32_t reset_interval) { _reset_interval_min = reset_interval; }
+	void set_reset_interval(uint32_t reset_interval_us) { _reset_interval_min = reset_interval_us * 1e-6f; }
 
 	/**
 	 * Set required samples for reset. This won't reset the integrator.
@@ -95,29 +89,123 @@ public:
 	 *
 	 * @return		true if integrator has sufficient data (minimum interval & samples satisfied) to reset.
 	 */
-	bool integral_ready() const { return (_integrated_samples >= _reset_samples_min) || (_last_integration_time >= (_last_reset_time + _reset_interval_min)); }
+	bool integral_ready() const { return (_integrated_samples >= _reset_samples_min) || (_integral_dt >= _reset_interval_min); }
+
+	void reset()
+	{
+		_alpha.zero();
+		_integral_dt = 0;
+		_integrated_samples = 0;
+	}
 
 	/* Reset integrator and return current integral & integration time
 	 *
 	 * @param integral_dt	Get the dt in us of the current integration.
 	 * @return		true if integral valid
 	 */
-	bool reset(matrix::Vector3f &integral, uint32_t &integral_dt);
+	bool reset(matrix::Vector3f &integral, uint32_t &integral_dt)
+	{
+		if (integral_ready()) {
+			integral = _alpha;
+			integral_dt = roundf(_integral_dt * 1e6f); // seconds to microseconds
 
-private:
-	uint64_t _last_integration_time{0}; /**< timestamp of the last integration step */
-	uint64_t _last_reset_time{0};       /**< last auto-announcement of integral value */
+			reset();
 
-	matrix::Vector3f _alpha{0.f, 0.f, 0.f};            /**< integrated value before coning corrections are applied */
-	matrix::Vector3f _last_alpha{0.f, 0.f, 0.f};       /**< previous value of _alpha */
-	matrix::Vector3f _beta{0.f, 0.f, 0.f};             /**< accumulated coning corrections */
-	matrix::Vector3f _last_val{0.f, 0.f, 0.f};         /**< previous input */
-	matrix::Vector3f _last_delta_alpha{0.f, 0.f, 0.f}; /**< integral from previous previous sampling interval */
+			return true;
+		}
 
-	uint32_t _reset_interval_min{1}; /**< the interval after which the content will be published and the integrator reset */
+		return false;
+	}
 
-	uint8_t _integrated_samples{0};
+protected:
+
+	matrix::Vector3f integrate(const matrix::Vector3f &val, const float dt)
+	{
+		// Use trapezoidal integration to calculate the delta integral
+		_integrated_samples++;
+		_integral_dt += dt;
+		const matrix::Vector3f delta_alpha{(val + _last_val) *dt * 0.5f};
+		_last_val = val;
+
+		return delta_alpha;
+	}
+
+	matrix::Vector3f _alpha{0.f, 0.f, 0.f};    /**< integrated value before coning corrections are applied */
+	matrix::Vector3f _last_val{0.f, 0.f, 0.f}; /**< previous input */
+	float _integral_dt{0};
+
+	float _reset_interval_min{0.005f}; /**< the interval after which the content will be published and the integrator reset */
 	uint8_t _reset_samples_min{1};
 
-	const bool _coning_comp_on{false};                       /**< true to turn on coning corrections */
+	uint8_t _integrated_samples{0};
+};
+
+class IntegratorConing : public Integrator
+{
+public:
+	IntegratorConing() = default;
+	~IntegratorConing() = default;
+
+	/**
+	 * Put an item into the integral.
+	 *
+	 * @param timestamp	Timestamp of the current value.
+	 * @param val		Item to put.
+	 * @return		true if data was accepted and integrated.
+	 */
+	void put(const matrix::Vector3f &val, const float dt)
+	{
+		if (dt > FLT_EPSILON && dt <= _reset_interval_min) {
+			// Use trapezoidal integration to calculate the delta integral
+			const matrix::Vector3f delta_alpha{integrate(val, dt)};
+
+			// Calculate coning corrections
+			// Coning compensation derived by Paul Riseborough and Jonathan Challinger,
+			// following:
+			// Strapdown Inertial Navigation Integration Algorithm Design Part 1: Attitude Algorithms
+			// Sourced: https://arc.aiaa.org/doi/pdf/10.2514/2.4228
+			// Simulated: https://github.com/priseborough/InertialNav/blob/master/models/imu_error_modelling.m
+			_beta += ((_last_alpha + _last_delta_alpha * (1.f / 6.f)) % delta_alpha) * 0.5f;
+			_last_delta_alpha = delta_alpha;
+			_last_alpha = _alpha;
+
+			// accumulate delta integrals
+			_alpha += delta_alpha;
+
+		} else {
+			reset();
+			_last_val = val;
+		}
+	}
+
+	void reset()
+	{
+		Integrator::reset();
+		_beta.zero();
+		_last_alpha.zero();
+	}
+
+	/* Reset integrator and return current integral & integration time
+	 *
+	 * @param integral_dt	Get the dt in us of the current integration.
+	 * @return		true if integral valid
+	 */
+	bool reset(matrix::Vector3f &integral, uint32_t &integral_dt)
+	{
+		if (Integrator::reset(integral, integral_dt)) {
+			// apply coning corrections
+			integral += _beta;
+			_beta.zero();
+			_last_alpha.zero();
+			return true;
+		}
+
+		return false;
+	}
+
+private:
+	matrix::Vector3f _beta{0.f, 0.f, 0.f};             /**< accumulated coning corrections */
+	matrix::Vector3f _last_delta_alpha{0.f, 0.f, 0.f}; /**< integral from previous previous sampling interval */
+	matrix::Vector3f _last_alpha{0.f, 0.f, 0.f};       /**< previous value of _alpha */
+
 };
