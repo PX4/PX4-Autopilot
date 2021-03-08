@@ -331,8 +331,10 @@ rtps:
     id: 157
   - msg: airspeed_wind
     id: 158
-  - msg: mavlink_tunnel
+  - msg: estimator_event_flags
     id: 159
+ - msg: mavlink_tunnel
+    id: 160
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 170
