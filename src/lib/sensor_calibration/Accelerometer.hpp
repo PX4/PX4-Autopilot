@@ -64,6 +64,7 @@ public:
 	void set_external(bool external = true);
 	bool set_offset(const matrix::Vector3f &offset);
 	bool set_scale(const matrix::Vector3f &scale);
+	bool set_offdiagonal(const matrix::Vector3f &offdiagonal);
 	void set_rotation(Rotation rotation);
 
 	uint8_t calibration_count() const { return _calibration_count; }
@@ -74,13 +75,14 @@ public:
 	const int32_t &priority() const { return _priority; }
 	const matrix::Dcmf &rotation() const { return _rotation; }
 	const Rotation &rotation_enum() const { return _rotation_enum; }
-	const matrix::Vector3f &scale() const { return _scale; }
+	const matrix::SquareMatrix3f &scale() const { return _scale; }
+	const matrix::Vector3f &thermal_offset() const { return _thermal_offset; }
 
 	// apply offsets and scale
 	// rotate corrected measurements from sensor to body frame
 	inline matrix::Vector3f Correct(const matrix::Vector3f &data) const
 	{
-		return _rotation * matrix::Vector3f{(data - _thermal_offset - _offset).emult(_scale)};
+		return _rotation * _scale * (data - _thermal_offset - _offset);
 	}
 
 	bool ParametersSave();
@@ -97,7 +99,7 @@ private:
 
 	matrix::Dcmf _rotation;
 	matrix::Vector3f _offset;
-	matrix::Vector3f _scale;
+	matrix::SquareMatrix3f _scale;
 	matrix::Vector3f _thermal_offset;
 
 	int8_t _calibration_index{-1};

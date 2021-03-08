@@ -166,3 +166,30 @@ PARAM_DEFINE_FLOAT(CAL_ACC1_YSCALE, 1.0f);
  * @volatile
  */
 PARAM_DEFINE_FLOAT(CAL_ACC1_ZSCALE, 1.0f);
+
+/**
+ * Accelerometer X-axis off diagonal factor
+ *
+ * @category system
+ * @group Sensor Calibration
+ * @volatile
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC1_XODIAG, 0.0f);
+
+/**
+ * Accelerometer Y-axis off diagonal factor
+ *
+ * @category system
+ * @group Sensor Calibration
+ * @volatile
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC1_YODIAG, 0.0f);
+
+/**
+ * Accelerometer Z-axis off diagonal factor
+ *
+ * @category system
+ * @group Sensor Calibration
+ * @volatile
+ */
+PARAM_DEFINE_FLOAT(CAL_ACC1_ZODIAG, 0.0f);

@@ -82,7 +82,7 @@ public:
 	// rotate corrected measurements from sensor to body frame
 	inline matrix::Vector3f Correct(const matrix::Vector3f &data) const
 	{
-		return _rotation * (_scale * ((data + _power * _power_compensation) - _offset));
+		return _rotation * _scale * ((data + _power * _power_compensation) - _offset);
 	}
 
 	// Compute sensor offset from bias (board frame)

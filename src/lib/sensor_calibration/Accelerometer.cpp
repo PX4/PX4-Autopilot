@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -143,11 +143,34 @@ bool Accelerometer::set_offset(const Vector3f &offset)
 
 bool Accelerometer::set_scale(const Vector3f &scale)
 {
-	if (Vector3f(_scale - scale).longerThan(0.01f)) {
+	if (Vector3f(_scale.diag() - scale).longerThan(0.01f)) {
 		if ((scale(0) > 0.f) && (scale(1) > 0.f) && (scale(2) > 0.f) &&
 		    PX4_ISFINITE(scale(0)) && PX4_ISFINITE(scale(1)) && PX4_ISFINITE(scale(2))) {
+			_scale(0, 0) = scale(0);
+			_scale(1, 1) = scale(1);
+			_scale(2, 2) = scale(2);
 
-			_scale = scale;
+			_calibration_count++;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool Accelerometer::set_offdiagonal(const Vector3f &offdiagonal)
+{
+	if (Vector3f(Vector3f{_scale(0, 1), _scale(0, 2), _scale(1, 2)} - offdiagonal).longerThan(0.01f)) {
+		if (PX4_ISFINITE(offdiagonal(0)) && PX4_ISFINITE(offdiagonal(1)) && PX4_ISFINITE(offdiagonal(2))) {
+			_scale(0, 1) = offdiagonal(0);
+			_scale(1, 0) = offdiagonal(0);
+
+			_scale(0, 2) = offdiagonal(1);
+			_scale(2, 0) = offdiagonal(1);
+
+			_scale(1, 2) = offdiagonal(2);
+			_scale(2, 1) = offdiagonal(2);
+
 			_calibration_count++;
 			return true;
 		}
@@ -215,6 +238,9 @@ void Accelerometer::ParametersUpdate()
 		// CAL_ACCx_SCALE{X,Y,Z}
 		set_scale(GetCalibrationParamsVector3f(SensorString(), "SCALE", _calibration_index));
 
+		// CAL_ACCx_ODIAG{X,Y,Z}
+		set_offdiagonal(GetCalibrationParamsVector3f(SensorString(), "ODIAG", _calibration_index));
+
 	} else {
 		Reset();
 	}
@@ -231,7 +257,7 @@ void Accelerometer::Reset()
 	}
 
 	_offset.zero();
-	_scale = Vector3f{1.f, 1.f, 1.f};
+	_scale.setIdentity();
 
 	_thermal_offset.zero();
 
@@ -250,7 +276,12 @@ bool Accelerometer::ParametersSave()
 		success &= SetCalibrationParam(SensorString(), "ID", _calibration_index, _device_id);
 		success &= SetCalibrationParam(SensorString(), "PRIO", _calibration_index, _priority);
 		success &= SetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index, _offset);
-		success &= SetCalibrationParamsVector3f(SensorString(), "SCALE", _calibration_index, _scale);
+
+		const Vector3f scale{_scale.diag()};
+		success &= SetCalibrationParamsVector3f(SensorString(), "SCALE", _calibration_index, scale);
+
+		const Vector3f off_diag{_scale(0, 1), _scale(0, 2), _scale(1, 2)};
+		success &= SetCalibrationParamsVector3f(SensorString(), "ODIAG", _calibration_index, off_diag);
 
 		if (_external) {
 			success &= SetCalibrationParam(SensorString(), "ROT", _calibration_index, (int32_t)_rotation_enum);
@@ -267,14 +298,18 @@ bool Accelerometer::ParametersSave()
 
 void Accelerometer::PrintStatus()
 {
-	PX4_INFO("%s %" PRIu32 " EN: %d, offset: [%.4f %.4f %.4f] scale: [%.4f %.4f %.4f]", SensorString(), device_id(),
-		 enabled(),
-		 (double)_offset(0), (double)_offset(1), (double)_offset(2), (double)_scale(0), (double)_scale(1), (double)_scale(2));
+	PX4_INFO("%s %d EN: %d, offset: [%.4f %.4f %.4f] scale: [%.4f %.4f %.4f]", SensorString(), device_id(), enabled(),
+		 (double)_offset(0), (double)_offset(1), (double)_offset(2), (double)_scale(0, 0), (double)_scale(1, 1),
+		 (double)_scale(2, 2));
 
 	if (_thermal_offset.norm() > 0.f) {
 		PX4_INFO("%s %" PRIu32 " temperature offset: [%.4f %.4f %.4f]", SensorString(), _device_id,
 			 (double)_thermal_offset(0), (double)_thermal_offset(1), (double)_thermal_offset(2));
 	}
+
+#if 1//defined(DEBUG_BUILD)
+	_scale.print();
+#endif // DEBUG_BUILD
 }
 
 } // namespace calibration
