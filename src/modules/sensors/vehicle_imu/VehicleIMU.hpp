@@ -73,6 +73,7 @@ public:
 
 private:
 	void ParametersUpdate(bool force = false);
+	void Publish();
 	void Run() override;
 
 	struct IntervalAverage {
@@ -134,6 +135,7 @@ private:
 	orb_advert_t _mavlink_log_pub{nullptr};
 
 	bool _intervals_configured{false};
+	bool _publish_status{false};
 
 	const uint8_t _instance;
 
