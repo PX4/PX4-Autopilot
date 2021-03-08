@@ -152,7 +152,7 @@ private:
 		(ParamInt<px4::params::ATT_EXT_HDG_M>) _param_att_ext_hdg_m,
 		(ParamInt<px4::params::ATT_ACC_COMP>) _param_att_acc_comp,
 		(ParamFloat<px4::params::ATT_BIAS_MAX>) _param_att_bias_mas,
-		(ParamInt<px4::params::SYS_HAS_MAG>) _param_sys_has_mag
+		(ParamInt<px4::params::SENS_MAG_MIN_NB>) _param_sens_mag_min_nb
 	)
 };
 
@@ -373,7 +373,7 @@ AttitudeEstimatorQ::update_parameters(bool force)
 		updateParams();
 
 		// disable mag fusion if the system does not have a mag
-		if (_param_sys_has_mag.get() == 0) {
+		if (_param_sens_mag_min_nb.get() == 0) {
 			_param_att_w_mag.set(0.0f);
 		}
 

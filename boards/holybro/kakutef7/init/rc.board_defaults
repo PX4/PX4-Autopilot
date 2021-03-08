@@ -15,7 +15,7 @@ param set-default ATT_ACC_COMP 0
 param set-default ATT_W_ACC 0.4000
 param set-default ATT_W_GYRO_BIAS 0.0000
 
-param set-default SYS_HAS_MAG 0
+param set-default SENS_MAG_MIN_NB 0
 
 # the startup tune is not great on a binary output buzzer, so disable it
 param set-default CBRK_BUZZER 782090

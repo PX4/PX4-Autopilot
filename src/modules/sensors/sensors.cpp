@@ -212,7 +212,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::SYS_HAS_BARO>) _param_sys_has_baro,
-		(ParamBool<px4::params::SYS_HAS_MAG>) _param_sys_has_mag,
+		(ParamBool<px4::params::SENS_MAG_MIN_NB>) _param_sens_mag_min_nb,
 		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
 	)
 };
@@ -545,7 +545,7 @@ void Sensors::InitializeVehicleIMU()
 
 void Sensors::InitializeVehicleMagnetometer()
 {
-	if (_param_sys_has_mag.get()) {
+	if (_param_sens_mag_min_nb.get() > 0) {
 		if (_vehicle_magnetometer == nullptr) {
 			if (orb_exists(ORB_ID(sensor_mag), 0) == PX4_OK) {
 				_vehicle_magnetometer = new VehicleMagnetometer();

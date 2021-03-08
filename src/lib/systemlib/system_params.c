@@ -206,20 +206,6 @@ PARAM_DEFINE_INT32(SYS_CAL_TMIN, 5);
 PARAM_DEFINE_INT32(SYS_CAL_TMAX, 10);
 
 /**
- * Control if the vehicle has a magnetometer
- *
- * Disable this if the board has no magnetometer, such as the Omnibus F4 SD.
- * If disabled, the preflight checks will not check for the presence of a
- * magnetometer.
- *
- * @boolean
- * @reboot_required true
- *
- * @group System
- */
-PARAM_DEFINE_INT32(SYS_HAS_MAG, 1);
-
-/**
  * Control if the vehicle has a barometer
  *
  * Disable this if the board has no barometer, such as some of the Omnibus

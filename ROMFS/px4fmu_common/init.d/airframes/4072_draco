@@ -31,7 +31,7 @@ param set-default SYS_MC_EST_GROUP 3
 param set-default ATT_ACC_COMP 0
 param set-default ATT_W_ACC 0.4
 param set-default ATT_W_GYRO_BIAS 0
-param set-default SYS_HAS_MAG 0
+param set-default SENS_MAG_MIN_NB 0
 
 # Attitude & rate gains
 param set-default MC_ROLL_P 8.0
