@@ -51,6 +51,14 @@ else()
 	message(FATAL_ERROR "UAVCAN Nunavut nnvg not found")
 endif()
 
+find_program(KCONFIG_PATH kconfig-mconf)
+if(KCONFIG_PATH)
+    set(menuconfig ${KCONFIG_PATH})
+else()
+    set(menuconfig "python3")
+    set(menuconfig_arg "${NUTTX_SRC_DIR}/tools/menuconfig.py")
+endif()
+
 set(SRCS)
 if(${PX4_PLATFORM} MATCHES "nuttx")
 	if(CONFIG_NET_CAN)
@@ -115,19 +123,11 @@ ENDFOREACH()
 
 target_compile_definitions(drivers__uavcan_v1 PRIVATE ${uavcan_config})
 
-# UAVCANv1 menuconfig
-add_custom_target(menuconfig_uavcan
-	COMMAND kconfig-mconf Kconfig
-	#DEPENDS nuttx_config_target ${CMAKE_CURRENT_SOURCE_DIR}/.config
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	USES_TERMINAL
-	)
-
 # UAVCANv1 menuconfig + savedefconfig back to PX4
 add_custom_target(uavcanconfig
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	COMMAND ${CMAKE_COMMAND} -E copy ${UAVCAN_DEFCONFIG} ${CMAKE_CURRENT_SOURCE_DIR}/.config
-	COMMAND kconfig-mconf Kconfig
+	COMMAND ${menuconfig} ${menuconfig_arg} Kconfig
 	COMMENT "Running UAVCAN make menuconfig for ${UAVCAN_DEFCONFIG}"
 	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/.config ${UAVCAN_DEFCONFIG}
 	COMMENT "Saved config to ${UAVCAN_DEFCONFIG}"
