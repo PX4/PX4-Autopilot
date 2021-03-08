@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -100,8 +100,8 @@ private:
 	calibration::Accelerometer _accel_calibration{};
 	calibration::Gyroscope _gyro_calibration{};
 
-	Integrator _accel_integrator{}; // 200 Hz default
-	Integrator _gyro_integrator{true};   // 200 Hz default, coning compensation enabled
+	Integrator       _accel_integrator{};
+	IntegratorConing _gyro_integrator{};
 
 	hrt_abstime _last_timestamp_sample_accel{0};
 	hrt_abstime _last_timestamp_sample_gyro{0};
