@@ -72,10 +72,6 @@ public:
 	void PrintStatus();
 
 private:
-	void ParametersUpdate(bool force = false);
-	void Publish();
-	void Run() override;
-
 	struct IntervalAverage {
 		hrt_abstime timestamp_sample_last{0};
 		uint32_t interval_sum{0};
@@ -85,10 +81,15 @@ private:
 		float update_interval_raw{0.f};
 	};
 
+	void ParametersUpdate(bool force = false);
+	void Publish();
+	void Run() override;
+	void UpdateAccel();
+	void UpdateAccelVibrationMetrics(const matrix::Vector3f &delta_velocity);
+	void UpdateGyro();
+	void UpdateGyroVibrationMetrics(const matrix::Vector3f &delta_angle);
 	bool UpdateIntervalAverage(IntervalAverage &intavg, const hrt_abstime &timestamp_sample, uint8_t samples = 1);
 	void UpdateIntegratorConfiguration();
-	void UpdateGyroVibrationMetrics(const matrix::Vector3f &delta_angle);
-	void UpdateAccelVibrationMetrics(const matrix::Vector3f &delta_velocity);
 
 	uORB::PublicationMulti<vehicle_imu_s> _vehicle_imu_pub{ORB_ID(vehicle_imu)};
 	uORB::PublicationMulti<vehicle_imu_status_s> _vehicle_imu_status_pub{ORB_ID(vehicle_imu_status)};
@@ -134,6 +135,8 @@ private:
 	uint64_t _last_clipping_notify_total_count{0};
 	orb_advert_t _mavlink_log_pub{nullptr};
 
+	bool _update_integrator_config{false};
+	bool _sensor_data_gap{false};
 	bool _intervals_configured{false};
 	bool _publish_status{false};
 
