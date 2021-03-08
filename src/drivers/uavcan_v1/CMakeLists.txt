@@ -31,6 +31,8 @@
 #
 ############################################################################
 
+set(UAVCAN_DEFCONFIG ${PX4_BOARD_DIR}/uavcanconfig CACHE FILEPATH "path to defconfig" FORCE)
+
 set(LIBCANARD_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libcanard)
 set(DSDL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/public_regulated_data_types)
 set(LEGACY_DSDL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/legacy_data_types)
@@ -98,3 +100,36 @@ px4_add_module(
 		git_legacy_data_types
 		version
 	)
+
+
+# Use uavcanconfig file for compile definitions
+file(STRINGS ${UAVCAN_DEFCONFIG} lines)
+
+FOREACH(i IN LISTS lines)
+        if(i MATCHES "#")
+        else()
+            string(REPLACE "\n" "" i ${i})
+            SET(uavcan_config "${uavcan_config}${i};")
+        endif()
+ENDFOREACH()
+
+target_compile_definitions(drivers__uavcan_v1 PRIVATE ${uavcan_config})
+
+# UAVCANv1 menuconfig
+add_custom_target(menuconfig_uavcan
+	COMMAND kconfig-mconf Kconfig
+	#DEPENDS nuttx_config_target ${CMAKE_CURRENT_SOURCE_DIR}/.config
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	USES_TERMINAL
+	)
+
+# UAVCANv1 menuconfig + savedefconfig back to PX4
+add_custom_target(uavcanconfig
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	COMMAND ${CMAKE_COMMAND} -E copy ${UAVCAN_DEFCONFIG} ${CMAKE_CURRENT_SOURCE_DIR}/.config
+	COMMAND kconfig-mconf Kconfig
+	COMMENT "Running UAVCAN make menuconfig for ${UAVCAN_DEFCONFIG}"
+	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/.config ${UAVCAN_DEFCONFIG}
+	COMMENT "Saved config to ${UAVCAN_DEFCONFIG}"
+	USES_TERMINAL
+)
