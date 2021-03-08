@@ -31,32 +31,36 @@
  *
  ****************************************************************************/
 
-#pragma once
-
-#include <matrix/matrix/math.hpp>
-#include <px4_platform_common/defines.h>
-
-struct sphere_params {
-	matrix::Vector3f offset{0.f, 0.f, 0.f};
-	matrix::Vector3f diag{1.f, 1.f, 1.f};
-	matrix::Vector3f offdiag{0.f, 0.f, 0.f};
-	float radius{0.2f};
-};
-
+/**
+ * Bitfield selecting mag sides for calibration
+ *
+ * If set to two side calibration, only the offsets are estimated, the scale
+ * calibration is left unchanged. Thus an initial six side calibration is
+ * recommended.
+ *
+ * Bits:
+ * ORIENTATION_TAIL_DOWN = 1
+ * ORIENTATION_NOSE_DOWN = 2
+ * ORIENTATION_LEFT = 4
+ * ORIENTATION_RIGHT = 8
+ * ORIENTATION_UPSIDE_DOWN = 16
+ * ORIENTATION_RIGHTSIDE_UP = 32
+ *
+ * @min 34
+ * @max 63
+ * @value 34 Two side calibration
+ * @value 38 Three side calibration
+ * @value 63 Six side calibration
+ * @group Sensors
+ */
+PARAM_DEFINE_INT32(CAL_ACC_SIDES, 63);
 
 /**
- * Least-squares fit of a sphere to a set of points.
+ * Automatically set external rotations.
  *
- * Fits a sphere to a set of points on the sphere surface.
+ * During calibration attempt to automatically determine the rotation of external magnetometers.
  *
- * @param data x,y,z point coordinates
- * @param samples_collected number of points
- * @param max_iterations abort if maximum number of iterations have been reached. If unsure, set to 100.
- * @param params the values to be optimized
- * @param full_ellipsoid whether to just optimize a sphere, or do an ellipsoid optimization
- *
- * NB!! If you optimize the full ellipsoid, you must have already optimized without the full ellipsoid
- *
- * @return 0 on success, 1 on failure
+ * @boolean
+ * @group Sensors
  */
-int lm_fit(const matrix::Vector3f data[], unsigned samples_collected, sphere_params &params, bool full_ellipsoid);
+PARAM_DEFINE_INT32(CAL_CAL_ROT_AUTO, 1);

@@ -76,6 +76,7 @@ public:
 	const matrix::Dcmf &rotation() const { return _rotation; }
 	const Rotation &rotation_enum() const { return _rotation_enum; }
 	const matrix::Vector3f &scale() const { return _scale; }
+	const matrix::Vector3f &thermal_offset() const { return _thermal_offset; }
 
 	// apply offsets and scale
 	// rotate corrected measurements from sensor to body frame

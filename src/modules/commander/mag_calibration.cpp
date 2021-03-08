@@ -90,9 +90,7 @@ struct mag_worker_data_t {
 	uint64_t	calibration_interval_perside_us;
 	unsigned int	calibration_counter_total[MAX_MAGS];
 
-	float		*x[MAX_MAGS];
-	float		*y[MAX_MAGS];
-	float		*z[MAX_MAGS];
+	matrix::Vector3f *data[MAX_MAGS] {nullptr, nullptr, nullptr, nullptr};
 
 	float		temperature[MAX_MAGS] {NAN, NAN, NAN, NAN};
 
@@ -141,19 +139,20 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 	return result;
 }
 
-static bool reject_sample(float sx, float sy, float sz, float x[], float y[], float z[], unsigned count,
+static bool reject_sample(Vector3f s, Vector3f data[], unsigned count,
 			  unsigned max_count, float mag_sphere_radius)
 {
 	float min_sample_dist = fabsf(5.4f * mag_sphere_radius / sqrtf(max_count)) / 3.0f;
 
 	for (size_t i = 0; i < count; i++) {
-		float dx = sx - x[i];
-		float dy = sy - y[i];
-		float dz = sz - z[i];
+		float dx = s(0) - data[i](0);
+		float dy = s(1) - data[i](1);
+		float dz = s(2) - data[i](2);
 		float dist = sqrtf(dx * dx + dy * dy + dz * dz);
 
 		if (dist < min_sample_dist) {
-			PX4_DEBUG("rejected X: %.3f Y: %.3f Z: %.3f (%.3f < %.3f) (%u/%u) ", (double)sx, (double)sy, (double)sz, (double)dist,
+			PX4_DEBUG("rejected X: %.3f Y: %.3f Z: %.3f (%.3f < %.3f) (%u/%u) ", (double)s(0), (double)s(1), (double)s(2),
+				  (double)dist,
 				  (double)min_sample_dist, count, max_count);
 
 			return true;
@@ -363,8 +362,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 						}
 
 						// Check if this measurement is good to go in
-						bool reject = reject_sample(mag.x, mag.y, mag.z,
-									    worker_data->x[cur_mag], worker_data->y[cur_mag], worker_data->z[cur_mag],
+						bool reject = reject_sample(Vector3f{mag.x, mag.y, mag.z}, worker_data->data[cur_mag],
 									    worker_data->calibration_counter_total[cur_mag],
 									    worker_data->calibration_sides * worker_data->calibration_points_perside,
 									    mag_sphere_radius);
@@ -388,9 +386,9 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 			if (!rejected) {
 				for (uint8_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 					if (worker_data->calibration[cur_mag].device_id() != 0) {
-						worker_data->x[cur_mag][worker_data->calibration_counter_total[cur_mag]] = new_samples[cur_mag](0);
-						worker_data->y[cur_mag][worker_data->calibration_counter_total[cur_mag]] = new_samples[cur_mag](1);
-						worker_data->z[cur_mag][worker_data->calibration_counter_total[cur_mag]] = new_samples[cur_mag](2);
+
+						worker_data->data[cur_mag][worker_data->calibration_counter_total[cur_mag]] = new_samples[cur_mag];
+						worker_data->calibration_counter_total[cur_mag]++;
 
 						if (!PX4_ISFINITE(worker_data->temperature[cur_mag])) {
 							// set first valid value
@@ -399,13 +397,11 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 						} else {
 							worker_data->temperature[cur_mag] = 0.5f * (worker_data->temperature[cur_mag] + new_temperature[cur_mag]);
 						}
-
-						worker_data->calibration_counter_total[cur_mag]++;
 					}
 				}
 
 				hrt_abstime now = hrt_absolute_time();
-				mag_worker_data_s status;
+				mag_worker_data_s status{};
 				status.timestamp = now;
 				status.timestamp_sample = now;
 				status.done_count = worker_data->done_count;
@@ -418,9 +414,9 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 
 					if (worker_data->calibration[cur_mag].device_id() != 0) {
 						const unsigned int sample = worker_data->calibration_counter_total[cur_mag] - 1;
-						status.x[cur_mag] = worker_data->x[cur_mag][sample];
-						status.y[cur_mag] = worker_data->y[cur_mag][sample];
-						status.z[cur_mag] = worker_data->z[cur_mag][sample];
+						status.x[cur_mag] = worker_data->data[cur_mag][sample](0);
+						status.y[cur_mag] = worker_data->data[cur_mag][sample](1);
+						status.z[cur_mag] = worker_data->data[cur_mag][sample](2);
 
 					} else {
 						status.x[cur_mag] = 0.f;
@@ -527,9 +523,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 	for (size_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 		// Initialize to no memory allocated
-		worker_data.x[cur_mag] = nullptr;
-		worker_data.y[cur_mag] = nullptr;
-		worker_data.z[cur_mag] = nullptr;
 		worker_data.calibration_counter_total[cur_mag] = 0;
 	}
 
@@ -547,11 +540,10 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		worker_data.calibration[cur_mag].set_calibration_index(cur_mag);
 
 		if (worker_data.calibration[cur_mag].device_id() != 0) {
-			worker_data.x[cur_mag] = static_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
-			worker_data.y[cur_mag] = static_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
-			worker_data.z[cur_mag] = static_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
 
-			if (worker_data.x[cur_mag] == nullptr || worker_data.y[cur_mag] == nullptr || worker_data.z[cur_mag] == nullptr) {
+			worker_data.data[cur_mag] = new matrix::Vector3f[calibration_points_maxcount];
+
+			if (worker_data.data[cur_mag] == nullptr) {
 				calibration_log_critical(mavlink_log_pub, "ERROR: out of memory");
 				result = calibrate_return_error;
 				break;
@@ -566,8 +558,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		result = calibrate_from_orientation(mavlink_log_pub,                    // uORB handle to write output
 						    worker_data.side_data_collected,    // Sides to calibrate
 						    mag_calibration_worker,             // Calibration worker
-						    &worker_data,			// Opaque data for calibration worked
-						    true);				// true: lenient still detection
+						    &worker_data);			// Opaque data for calibration worked
 	}
 
 	// calibration values for each mag
@@ -594,26 +585,26 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 				// Estimate only the offsets if two-sided calibration is selected, as the problem is not constrained
 				// enough to reliably estimate both scales and offsets with 2 sides only (even if the existing calibration
 				// is already close)
-				bool sphere_fit_only = worker_data.calibration_sides <= 2;
+				const bool sphere_fit_only = worker_data.calibration_sides <= 2;
 
-				sphere_params sphere_data;
+				sphere_params sphere_data{};
 				sphere_data.radius = sphere_radius[cur_mag];
-				sphere_data.offset = matrix::Vector3f(sphere[cur_mag](0), sphere[cur_mag](1), sphere[cur_mag](2));
-				sphere_data.diag = matrix::Vector3f(diag[cur_mag](0), diag[cur_mag](1), diag[cur_mag](2));
-				sphere_data.offdiag = matrix::Vector3f(offdiag[cur_mag](0), offdiag[cur_mag](1), offdiag[cur_mag](2));
+				sphere_data.offset = sphere[cur_mag];
+				sphere_data.diag = diag[cur_mag];
+				sphere_data.offdiag = offdiag[cur_mag];
 
 				bool sphere_fit_success = false;
 				bool ellipsoid_fit_success = false;
-				int ret = lm_mag_fit(worker_data.x[cur_mag], worker_data.y[cur_mag], worker_data.z[cur_mag],
-						     worker_data.calibration_counter_total[cur_mag], sphere_data, false);
+
+				int ret = lm_fit(worker_data.data[cur_mag], worker_data.calibration_counter_total[cur_mag], sphere_data, false);
 
 				if (ret == PX4_OK) {
 					sphere_fit_success = true;
 					PX4_INFO("Mag: %" PRIu8 " sphere radius: %.4f", cur_mag, (double)sphere_data.radius);
 
 					if (!sphere_fit_only) {
-						int ellipsoid_ret = lm_mag_fit(worker_data.x[cur_mag], worker_data.y[cur_mag], worker_data.z[cur_mag],
-									       worker_data.calibration_counter_total[cur_mag], sphere_data, true);
+						int ellipsoid_ret = lm_fit(worker_data.data[cur_mag], worker_data.calibration_counter_total[cur_mag], sphere_data,
+									   true);
 
 						if (ellipsoid_ret == PX4_OK) {
 							ellipsoid_fit_success  = true;
@@ -621,13 +612,14 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 					}
 				}
 
+
+				// TODO: verify sphere radius
+
 				sphere_radius[cur_mag] = sphere_data.radius;
 
-				for (int i = 0; i < 3; i++) {
-					sphere[cur_mag](i) = sphere_data.offset(i);
-					diag[cur_mag](i) = sphere_data.diag(i);
-					offdiag[cur_mag](i) = sphere_data.offdiag(i);
-				}
+				sphere[cur_mag] = sphere_data.offset;
+				diag[cur_mag] = sphere_data.diag;
+				offdiag[cur_mag] = sphere_data.offdiag;
 
 				if (!sphere_fit_success && !ellipsoid_fit_success) {
 					calibration_log_emergency(mavlink_log_pub, "Retry calibration (unable to fit mag %" PRIu8 ")", cur_mag);
@@ -728,7 +720,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 						for (unsigned i = 0; i < worker_data.calibration_counter_total[cur_mag]; i++) {
 
-							const Vector3f sample{worker_data.x[cur_mag][i], worker_data.y[cur_mag][i], worker_data.z[cur_mag][i]};
+							const Vector3f sample{worker_data.data[cur_mag][i]};
 
 							// apply calibration
 							Vector3f m{scale *(sample - offset)};
@@ -739,9 +731,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 							}
 
 							// store back in worker_data
-							worker_data.x[cur_mag][i] = m(0);
-							worker_data.y[cur_mag][i] = m(1);
-							worker_data.z[cur_mag][i] = m(2);
+							worker_data.data[cur_mag][i] = m;
 						}
 					}
 				}
@@ -775,14 +765,8 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 								float diff_sum = 0.f;
 
 								for (int i = 0; i < last_sample_index; i++) {
-									float x = worker_data.x[cur_mag][i];
-									float y = worker_data.y[cur_mag][i];
-									float z = worker_data.z[cur_mag][i];
-									rotate_3f((enum Rotation)r, x, y, z);
-
-									Vector3f diff = Vector3f{x, y, z} - Vector3f{worker_data.x[internal_index][i], worker_data.y[internal_index][i], worker_data.z[internal_index][i]};
-
-									diff_sum += diff.norm_squared();
+									const Vector3f &m{worker_data.data[cur_mag][i]};
+									diff_sum += Vector3f((get_rot_matrix((enum Rotation)r) * m) - m).norm_squared();
 								}
 
 								// compute mean squared error
@@ -878,9 +862,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 	// Data points are no longer needed
 	for (size_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
-		free(worker_data.x[cur_mag]);
-		free(worker_data.y[cur_mag]);
-		free(worker_data.z[cur_mag]);
+		delete[] worker_data.data[cur_mag];
 	}
 
 	FactoryCalibrationStorage factory_storage;
