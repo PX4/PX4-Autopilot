@@ -129,7 +129,7 @@ PARAM_DEFINE_FLOAT(IMU_DGYRO_CUTOFF, 10.0f);
 * Requires ESC RPM feedback or onboard FFT (IMU_GYRO_FFT_EN).
 * @group Sensors
 * @min 0
-* @max 2
+* @max 3
 * @bit 0 ESC RPM
 * @bit 1 FFT
 */

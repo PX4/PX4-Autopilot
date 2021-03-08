@@ -301,6 +301,31 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 				break;
 			}
 		}
+
+#if !defined(CONSTRAINED_FLASH)
+
+		if (_param_imu_gyro_dyn_nf.get() & DynamicNotch::EscRpm) {
+			if (_dynamic_notch_filter_esc_rpm_update_perf == nullptr) {
+				_dynamic_notch_filter_esc_rpm_update_perf = perf_alloc(PC_COUNT,
+						MODULE_NAME": gyro dynamic notch filter ESC RPM update");
+			}
+
+			if (_dynamic_notch_filter_esc_rpm_perf == nullptr) {
+				_dynamic_notch_filter_esc_rpm_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": gyro dynamic notch ESC RPM filter");
+			}
+		}
+
+		if (_param_imu_gyro_dyn_nf.get() & DynamicNotch::FFT) {
+			if (_dynamic_notch_filter_fft_update_perf == nullptr) {
+				_dynamic_notch_filter_fft_update_perf = perf_alloc(PC_COUNT, MODULE_NAME": gyro dynamic notch filter FFT update");
+			}
+
+			if (_dynamic_notch_filter_fft_perf == nullptr) {
+				_dynamic_notch_filter_fft_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": gyro dynamic notch FFT filter");
+			}
+		}
+
+#endif // !CONSTRAINED_FLASH
 	}
 }
 
@@ -337,7 +362,7 @@ void VehicleAngularVelocity::DisableDynamicNotchFFT()
 void VehicleAngularVelocity::UpdateDynamicNotchEscRpm(bool force)
 {
 #if !defined(CONSTRAINED_FLASH)
-	const bool enabled = _param_imu_gyro_dyn_nf.get() & 0b01;
+	const bool enabled = _param_imu_gyro_dyn_nf.get() & DynamicNotch::EscRpm;
 
 	if (enabled && (_esc_status_sub.updated() || force)) {
 		_dynamic_notch_esc_rpm_available = false;
@@ -390,7 +415,7 @@ void VehicleAngularVelocity::UpdateDynamicNotchEscRpm(bool force)
 void VehicleAngularVelocity::UpdateDynamicNotchFFT(bool force)
 {
 #if !defined(CONSTRAINED_FLASH)
-	const bool enabled = _param_imu_gyro_dyn_nf.get() & 0b10;
+	const bool enabled = _param_imu_gyro_dyn_nf.get() & DynamicNotch::FFT;
 
 	if (enabled && (_sensor_gyro_fft_sub.updated() || force)) {
 		_dynamic_notch_fft_available = false;
@@ -400,7 +425,7 @@ void VehicleAngularVelocity::UpdateDynamicNotchFFT(bool force)
 		if (_sensor_gyro_fft_sub.copy(&sensor_gyro_fft) && (sensor_gyro_fft.device_id == _selected_sensor_device_id)
 		    && (fabsf(sensor_gyro_fft.sensor_sample_rate_hz - _filter_sample_rate_hz) < 0.05f)) {
 
-			float *peak_frequencies[] { sensor_gyro_fft.peak_frequencies_x, sensor_gyro_fft.peak_frequencies_y, sensor_gyro_fft.peak_frequencies_z};
+			float *peak_frequencies[] {sensor_gyro_fft.peak_frequencies_x, sensor_gyro_fft.peak_frequencies_y, sensor_gyro_fft.peak_frequencies_z};
 
 			for (int axis = 0; axis < 3; axis++) {
 				for (int i = 0; i < MAX_NUM_FFT_PEAKS; i++) {
