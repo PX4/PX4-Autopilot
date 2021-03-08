@@ -131,5 +131,7 @@ add_custom_target(uavcanconfig
 	COMMENT "Running UAVCAN make menuconfig for ${UAVCAN_DEFCONFIG}"
 	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/.config ${UAVCAN_DEFCONFIG}
 	COMMENT "Saved config to ${UAVCAN_DEFCONFIG}"
+	COMMENT "Reconfiguring ${PX4_BINARY_DIR}"
+	COMMAND ${CMAKE_COMMAND} --clean ${PX4_BINARY_DIR}
 	USES_TERMINAL
 )
