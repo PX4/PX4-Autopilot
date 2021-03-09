@@ -50,6 +50,17 @@ then
 fi
 
 #
+# Optional board architecture defaults: rc.board_arch_defaults
+#
+set BOARD_ARCH_RC_DEFAULTS ${R}etc/init.d/rc.board_arch_defaults
+if [ -f $BOARD_ARCH_RC_DEFAULTS ]
+then
+	echo "Board architecture defaults: ${BOARD_ARCH_RC_DEFAULTS}"
+	. $BOARD_ARCH_RC_DEFAULTS
+fi
+unset BOARD_ARCH_RC_DEFAULTS
+
+#
 # Optional board defaults: rc.board_defaults
 #
 set BOARD_RC_DEFAULTS ${R}etc/init.d/rc.board_defaults
