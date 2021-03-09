@@ -58,7 +58,6 @@ private:
 	const float _accel_noise{2.0f};		// horizontal accel noise used for covariance prediction (m/sec**2)
 	const float _tilt_gain{0.2f};		// gain from tilt error to gyro correction for complementary filter (1/sec)
 	const float _gyro_bias_gain{0.04f};	// gain applied to integral of gyro correction for complementary filter (1/sec)
-	const float _weight_min{0.0f};		// minimum value of an individual model weighting
 
 	// Declarations used by the bank of N_MODELS_EKFGSF AHRS complementary filters
 
