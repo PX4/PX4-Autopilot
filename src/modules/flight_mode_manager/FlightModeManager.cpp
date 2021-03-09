@@ -467,7 +467,7 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 		if (_vehicle_local_position_setpoint_sub.copy(&vehicle_local_position_setpoint)) {
 			const Vector3f vel_sp{vehicle_local_position_setpoint.vx, vehicle_local_position_setpoint.vy, vehicle_local_position_setpoint.vz};
 			const Vector3f acc_sp{vehicle_local_position_setpoint.acceleration};
-			_current_task.task->updateVelocityControllerIO(vel_sp, acc_sp);
+			_current_task.task->updateVelocityControllerFeedback(vel_sp, acc_sp);
 		}
 	}
 
