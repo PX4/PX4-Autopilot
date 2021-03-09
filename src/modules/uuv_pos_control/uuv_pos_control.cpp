@@ -178,21 +178,16 @@ void UUVPOSControl::Run()
 		    && _vcontrol_mode.flag_control_attitude_enabled
 		    && _vcontrol_mode.flag_control_rates_enabled) {
 
-
 			_vehicle_attitude_sub.update(&_vehicle_attitude);//get current vehicle attitude
-			_pos_sp_triplet_sub.update(&_pos_setpoint);
+			_trajectory_setpoint_sub.update(&_trajectory_setpoint);
 
-			float roll_des, pitch_des, yaw_des, x_pos_des, y_pos_des, z_pos_des;
+			float roll_des = 0;
+			float pitch_des = 0;
+			float yaw_des = _trajectory_setpoint.yaw;
 
-
-			roll_des = 0;
-			pitch_des = 0;
-			yaw_des = _pos_setpoint.current.yaw;
-
-			x_pos_des = _pos_setpoint.current.x;
-			y_pos_des = _pos_setpoint.current.y;
-			z_pos_des = _pos_setpoint.current.z;
-
+			float x_pos_des = _trajectory_setpoint.x;
+			float y_pos_des = _trajectory_setpoint.y;
+			float z_pos_des = _trajectory_setpoint.z;
 
 			//stabilization controller(keep pos and hold depth + angle) vs position controller(global + yaw)
 			if (_param_stabilization.get() == 0) {
@@ -203,9 +198,6 @@ void UUVPOSControl::Run()
 				stabilization_controller_6dof(x_pos_des, y_pos_des, z_pos_des,
 							      roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
 			}
-
-
-
 		}
 	}
 
