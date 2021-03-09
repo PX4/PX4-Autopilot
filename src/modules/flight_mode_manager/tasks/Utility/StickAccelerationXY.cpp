@@ -149,15 +149,20 @@ void StickAccelerationXY::applyTiltLimit(Vector2f &acceleration)
 
 void StickAccelerationXY::lockPosition(const Vector3f &pos, const matrix::Vector2f &vel_sp_feedback, const float dt)
 {
-	if (_velocity_setpoint.norm_squared() < FLT_EPSILON) {
-		if (!PX4_ISFINITE(_position_setpoint(0))) {
-			_position_setpoint = pos.xy();
-		}
+	const bool moving = _velocity_setpoint.norm_squared() > FLT_EPSILON;
+	const bool position_locked = PX4_ISFINITE(_position_setpoint(0)) || PX4_ISFINITE(_position_setpoint(1));
 
-	} else {
-		if (PX4_ISFINITE(_position_setpoint(0))) {
-			_position_setpoint.setNaN();
-			// avoid velocity control jump because of remaining position error when unlocking
+	// lock position
+	if (!moving && !position_locked) {
+		_position_setpoint = pos.xy();
+	}
+
+	// open position loop
+	if (moving && position_locked) {
+		_position_setpoint.setNaN();
+
+		// avoid velocity setpoint jump caused by ignoring remaining position error
+		if (PX4_ISFINITE(vel_sp_feedback(0)) && PX4_ISFINITE(vel_sp_feedback(1))) {
 			_velocity_setpoint = vel_sp_feedback;
 		}
 	}
