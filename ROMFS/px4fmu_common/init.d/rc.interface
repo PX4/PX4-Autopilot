@@ -30,7 +30,7 @@ then
 fi
 
 # USE_IO is set to 'no' for all boards w/o px4io driver or SYS_USE_IO disabled
-if [ $USE_IO = no ]
+if [ $USE_IO = no -a $AUX_BANK2 = none ]
 then
 	set AUX_MODE none
 fi
