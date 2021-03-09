@@ -3,12 +3,6 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
-if [ $AUTOCNF = yes ]
-then
-
-fi
-
 neopixel start
 safety_button start
 tone_alarm start
-

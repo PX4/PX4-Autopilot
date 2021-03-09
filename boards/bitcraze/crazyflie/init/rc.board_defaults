@@ -1,10 +1,11 @@
 #!/bin/sh
 #
-# Bitcraze Crazyflie specific board sensors init
+# board specific defaults
 #------------------------------------------------------------------------------
 
 # system_power unavailable
 param set-default CBRK_SUPPLY_CHK 894281
+
 param set-default SYS_AUTOSTART 4900
 
 # don't probe external I2C

@@ -1,7 +1,0 @@
-#!/bin/sh
-#
-# Airmind Mindpx-v2 specific board defaults
-#------------------------------------------------------------------------------
-
-# Disable safety switch by default
-param set-default CBRK_IO_SAFETY 22027

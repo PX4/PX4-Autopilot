@@ -83,7 +83,7 @@ if (px4_constrained_flash_build)
 endif()
 if(PX4_ETHERNET)
 	set(added_arguments ${added_arguments} --ethernet)
-endif()	
+endif()
 # create list of relative romfs file names
 set(romfs_copy_files_relative)
 foreach(romfs_file IN LISTS romfs_copy_files)
@@ -157,6 +157,30 @@ if(config_build_bootloader)
 		${bootloader_bin}
 	)
 endif()
+
+
+# optional board architecture defaults
+set(board_arch_rc_file "rc.board_arch_defaults")
+if(EXISTS "${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/init/${CONFIG_ARCH_CHIP}/${board_arch_rc_file}")
+	message(STATUS "ROMFS: Adding ${board_arch_rc_file}")
+
+	add_custom_command(
+		OUTPUT
+			${romfs_gen_root_dir}/init.d/${board_arch_rc_file}
+			${board_arch_rc_file}.stamp
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/init/${CONFIG_ARCH_CHIP}/${board_arch_rc_file} ${romfs_gen_root_dir}/init.d/${board_arch_rc_file}
+		COMMAND ${CMAKE_COMMAND} -E touch ${board_arch_rc_file}.stamp
+		DEPENDS
+			${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/init/${CONFIG_ARCH_CHIP}/${board_arch_rc_file}
+			romfs_copy.stamp
+		COMMENT "ROMFS: copying ${board_arch_rc_file}"
+	)
+
+	list(APPEND extras_dependencies
+		${board_arch_rc_file}.stamp
+	)
+endif()
+
 
 set(OPTIONAL_BOARD_RC)
 list(APPEND OPTIONAL_BOARD_RC
