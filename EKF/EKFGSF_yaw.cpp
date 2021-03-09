@@ -97,32 +97,6 @@ void EKFGSF_yaw::update(const imuSample& imu_sample,
 					// all weights have collapsed due to excessive innovation variances so reset filters
 					initialiseEKFGSF();
 				}
-
-				// Enforce a minimum weighting value. This was added during initial development but has not been needed
-				// subsequently, so this block of code and the corresponding _weight_min can be removed if we get
-				// through testing without any weighting function issues.
-				if (_weight_min > FLT_EPSILON) {
-					float correction_sum = 0.0f; // amount the sum of weights has been increased by application of the limit
-					bool change_mask[N_MODELS_EKFGSF] = {}; // true when the weighting for that model has been increased
-					float unmodified_weights_sum = 0.0f; // sum of unmodified weights
-					for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
-						if (_model_weights(model_index) < _weight_min) {
-							correction_sum += _weight_min - _model_weights(model_index);
-							_model_weights(model_index) = _weight_min;
-							change_mask[model_index] = true;
-						} else {
-							unmodified_weights_sum += _model_weights(model_index);
-						}
-					}
-
-					// rescale the unmodified weights to make the total sum unity
-					const float scale_factor = (unmodified_weights_sum - correction_sum - _weight_min) / (unmodified_weights_sum - _weight_min);
-					for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
-						if (!change_mask[model_index]) {
-							_model_weights(model_index) = _weight_min + scale_factor * (_model_weights(model_index) - _weight_min);
-						}
-					}
-				}
 			}
 		}
 	} else if (_ekf_gsf_vel_fuse_started && !_run_ekf_gsf) {
