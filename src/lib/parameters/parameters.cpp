@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file param.c
+ * @file parameters.cpp
  *
  * Global parameter store.
  *
@@ -419,11 +419,6 @@ bool param_is_volatile(param_t param)
 	return false;
 }
 
-bool param_value_is_default(param_t param)
-{
-	return handle_in_range(param) && !params_changed[param];
-}
-
 bool
 param_value_unsaved(param_t param)
 {
@@ -573,6 +568,53 @@ param_get_default_value(param_t param, void *default_val)
 	return ret;
 }
 
+bool param_value_is_default(param_t param)
+{
+	if (handle_in_range(param)) {
+		switch (param_type(param)) {
+		case PARAM_TYPE_INT32: {
+				param_lock_reader();
+				int32_t default_value = 0;
+
+				if (param_get_default_value_internal(param, &default_value) == PX4_OK) {
+					const void *v = param_get_value_ptr(param);
+
+					if (v) {
+						int32_t current_value;
+						memcpy(&current_value, v, param_size(param));
+						param_unlock_reader();
+						return (current_value == default_value);
+					}
+				}
+
+				param_unlock_reader();
+			}
+			break;
+
+		case PARAM_TYPE_FLOAT: {
+				param_lock_reader();
+				float default_value = 0;
+
+				if (param_get_default_value_internal(param, &default_value) == PX4_OK) {
+					const void *v = param_get_value_ptr(param);
+
+					if (v) {
+						float current_value;
+						memcpy(&current_value, v, param_size(param));
+						param_unlock_reader();
+						return (fabsf(current_value - default_value) <= FLT_EPSILON);
+					}
+				}
+
+				param_unlock_reader();
+			}
+			break;
+		}
+	}
+
+	return false;
+}
+
 /**
  * worker callback method to save the parameters
  * @param arg unused
@@ -689,84 +731,45 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 		goto out;
 
 	} else {
-		// check if param being set to default value
-		bool set_to_default = false;
-
-		switch (param_type(param)) {
-		case PARAM_TYPE_INT32: {
-				int32_t default_val = 0;
-
-				if (param_get_default_value_internal(param, &default_val) == PX4_OK) {
-					set_to_default = (default_val == *(int32_t *)val);
-				}
-			}
-			break;
-
-		case PARAM_TYPE_FLOAT: {
-				float default_val = 0;
-
-				if (param_get_default_value_internal(param, &default_val) == PX4_OK) {
-					set_to_default = (fabsf(default_val - * (float *)val) < FLT_EPSILON);
-				}
-			}
-			break;
-		}
-
 		param_wbuf_s *s = param_find_changed(param);
 
-		if (set_to_default) {
-			if (s != nullptr) {
-				// param is being set non-default -> default, simply clear storage
-				int pos = utarray_eltidx(param_values, s);
-				utarray_erase(param_values, pos, 1);
-				param_changed = true;
+		if (s == nullptr) {
+			/* construct a new parameter */
+			param_wbuf_s buf{};
+			buf.param = param;
 
-			} else {
-				// do nothing if param not already set and being set to default
-			}
+			param_changed = true;
 
-			params_changed.set(param, false);
-			result = PX4_OK;
+			/* add it to the array and sort */
+			utarray_push_back(param_values, &buf);
+			utarray_sort(param_values, param_compare_values);
+			params_changed.set(param, true);
 
-		} else {
-			if (s == nullptr) {
-				/* construct a new parameter */
-				param_wbuf_s buf{};
-				buf.param = param;
+			/* find it after sorting */
+			s = param_find_changed(param);
+		}
 
-				param_changed = true;
-
-				/* add it to the array and sort */
-				utarray_push_back(param_values, &buf);
-				utarray_sort(param_values, param_compare_values);
+		if (s != nullptr) {
+			/* update the changed value */
+			switch (param_type(param)) {
+			case PARAM_TYPE_INT32:
+				param_changed = param_changed || s->val.i != *(int32_t *)val;
+				s->val.i = *(int32_t *)val;
+				s->unsaved = !mark_saved;
 				params_changed.set(param, true);
+				result = PX4_OK;
+				break;
 
-				/* find it after sorting */
-				s = param_find_changed(param);
-			}
+			case PARAM_TYPE_FLOAT:
+				param_changed = param_changed || fabsf(s->val.f - * (float *)val) > FLT_EPSILON;
+				s->val.f = *(float *)val;
+				s->unsaved = !mark_saved;
+				params_changed.set(param, true);
+				result = PX4_OK;
+				break;
 
-			if (s != nullptr) {
-				/* update the changed value */
-				switch (param_type(param)) {
-				case PARAM_TYPE_INT32:
-					param_changed = param_changed || s->val.i != *(int32_t *)val;
-					s->val.i = *(int32_t *)val;
-					s->unsaved = !mark_saved;
-					params_changed.set(param, true);
-					result = PX4_OK;
-					break;
-
-				case PARAM_TYPE_FLOAT:
-					param_changed = param_changed || fabsf(s->val.f - * (float *)val) > FLT_EPSILON;
-					s->val.f = *(float *)val;
-					s->unsaved = !mark_saved;
-					params_changed.set(param, true);
-					result = PX4_OK;
-					break;
-
-				default:
-					break;
-				}
+			default:
+				break;
 			}
 		}
 
@@ -937,7 +940,6 @@ int param_set_default_value(param_t param, const void *val)
 	return result;
 }
 
-
 static int param_reset_internal(param_t param, bool notify = true)
 {
 	param_wbuf_s *s = nullptr;
@@ -946,7 +948,6 @@ static int param_reset_internal(param_t param, bool notify = true)
 	param_lock_writer();
 
 	if (handle_in_range(param)) {
-
 		/* look for a saved value */
 		s = param_find_changed(param);
 
@@ -1218,8 +1219,28 @@ param_export(int fd, bool only_unsaved, param_filter_func filter)
 		}
 
 		// don't export default values
-		if (param_value_is_default(s->param)) {
-			continue;
+		switch (param_type(s->param)) {
+		case PARAM_TYPE_INT32: {
+				int32_t default_value = 0;
+				param_get_default_value_internal(s->param, &default_value);
+
+				if (s->val.i == default_value) {
+					PX4_DEBUG("skipping %s %d export", param_name(s->param), default_value);
+					continue;
+				}
+			}
+			break;
+
+		case PARAM_TYPE_FLOAT: {
+				float default_value = 0;
+				param_get_default_value_internal(s->param, &default_value);
+
+				if (fabsf(s->val.f - default_value) <= FLT_EPSILON) {
+					PX4_DEBUG("skipping %s %.3f export", param_name(s->param), (double)default_value);
+					continue;
+				}
+			}
+			break;
 		}
 
 		s->unsaved = false;
