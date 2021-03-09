@@ -12,6 +12,6 @@ param set-default SENS_MAG_MODE 0
 param set-default UAVCAN_ENABLE 2
 
 
-set LOGGER_BUF 64
+set LOGGER_BUF 128
 
 safety_button start

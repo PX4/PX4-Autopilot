@@ -42,7 +42,7 @@ param set-default SENS_EN_THERMAL 1
 param set-default UAVCAN_ENABLE 2
 
 
-set LOGGER_BUF 64
+set LOGGER_BUF 128
 
 rgbled_pwm start
 safety_button start
