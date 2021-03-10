@@ -74,6 +74,9 @@ int MavlinkShell::start()
 	return -1;
 #endif /* __PX4_NUTTX */
 
+
+	PX4_INFO("Starting mavlink shell");
+
 	int p1[2], p2[2];
 
 	/* Create the shell task and redirect its stdin & stdout. If we used pthread, we would redirect
