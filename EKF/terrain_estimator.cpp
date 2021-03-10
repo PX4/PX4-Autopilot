@@ -166,7 +166,8 @@ void Ekf::fuseHagl()
 
 	} else {
 		// If we have been rejecting range data for too long, reset to measurement
-		if (isTimedOut(_time_last_hagl_fuse, (uint64_t)10E6)) {
+		const uint64_t timeout = static_cast<uint64_t>(_params.terrain_timeout * 1e6f);
+		if (isTimedOut(_time_last_hagl_fuse, timeout)) {
 			_terrain_vpos = _state.pos(2) + meas_hagl;
 			_terrain_var = obs_variance;
 
