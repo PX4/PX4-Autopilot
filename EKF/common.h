@@ -243,6 +243,7 @@ struct parameters {
 	float wind_vel_p_noise_scaler{0.5f};	///< scaling of wind process noise with vertical velocity
 	float terrain_p_noise{5.0f};		///< process noise for terrain offset (m/sec)
 	float terrain_gradient{0.5f};		///< gradient of terrain used to estimate process noise due to changing position (m/m)
+	float terrain_timeout{10.f};		///< maximum time for invalid bottom distance measurements before resetting terrain estimate (s)
 
 	// initialization errors
 	float switch_on_gyro_bias{0.1f};	///< 1-sigma gyro bias uncertainty at switch on (rad/sec)
