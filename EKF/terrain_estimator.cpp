@@ -170,6 +170,7 @@ void Ekf::fuseHagl()
 		if (isTimedOut(_time_last_hagl_fuse, timeout)) {
 			_terrain_vpos = _state.pos(2) + meas_hagl;
 			_terrain_var = obs_variance;
+			_terrain_vpos_reset_counter++;
 
 		} else {
 			_innov_check_fail_status.flags.reject_hagl = true;

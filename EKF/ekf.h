@@ -217,6 +217,9 @@ public:
 	// get the estimated terrain vertical position relative to the NED origin
 	float getTerrainVertPos() const { return _terrain_vpos; };
 
+	// get the number of times the vertical terrain position has been reset
+	uint8_t getTerrainVertPosResetCounter() const { return _terrain_vpos_reset_counter; };
+
 	// get the terrain variance
 	float get_terrain_var() const { return _terrain_var; }
 
@@ -510,6 +513,7 @@ private:
 	// Terrain height state estimation
 	float _terrain_vpos{0.0f};		///< estimated vertical position of the terrain underneath the vehicle in local NED frame (m)
 	float _terrain_var{1e4f};		///< variance of terrain position estimate (m**2)
+	uint8_t _terrain_vpos_reset_counter{0};	///< number of times _terrain_vpos has been reset
 	uint64_t _time_last_hagl_fuse{0};		///< last system time that a range sample was fused by the terrain estimator
 	uint64_t _time_last_fake_hagl_fuse{0};	///< last system time that a fake range sample was fused by the terrain estimator
 	bool _terrain_initialised{false};	///< true when the terrain estimator has been initialized
