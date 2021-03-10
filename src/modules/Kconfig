@@ -1,0 +1,245 @@
+menuconfig AIRSHIP_ATT_CONTROL
+	bool "airship att control Support"
+	default n
+	---help---
+		Enable support for airship att control
+		
+menuconfig AIRSPEED_SELECTOR
+	bool "airspeed selector Support"
+	default n
+	---help---
+		Enable support for airspeed selector
+		
+menuconfig ANGULAR_VELOCITY_CONTROLLER
+	bool "angular velocity controller Support"
+	default n
+	---help---
+		Enable support for angular velocity controller
+		
+menuconfig ATTITUDE_ESTIMATOR_Q
+	bool "attitude estimator q Support"
+	default n
+	---help---
+		Enable support for attitude estimator q
+		
+menuconfig BATTERY_STATUS
+	bool "battery status Support"
+	default n
+	---help---
+		Enable support for battery status
+		
+menuconfig CAMERA_FEEDBACK
+	bool "camera feedback Support"
+	default n
+	---help---
+		Enable support for camera feedback
+		
+menuconfig COMMANDER
+	bool "commander Support"
+	default n
+	---help---
+		Enable support for commander
+		
+menuconfig CONTROL_ALLOCATOR
+	bool "control allocator Support"
+	default n
+	---help---
+		Enable support for control allocator
+		
+menuconfig DATAMAN
+	bool "dataman Support"
+	default n
+	---help---
+		Enable support for dataman
+		
+menuconfig EKF2
+	bool "ekf2 Support"
+	default n
+	---help---
+		Enable support for ekf2
+		
+menuconfig ESC_BATTERY
+	bool "esc battery Support"
+	default n
+	---help---
+		Enable support for esc battery
+		
+menuconfig EVENTS
+	bool "events Support"
+	default n
+	---help---
+		Enable support for events
+		
+menuconfig FLIGHT_MODE_MANAGER
+	bool "flight mode manager Support"
+	default n
+	---help---
+		Enable support for flight mode manager
+		
+menuconfig FW_ATT_CONTROL
+	bool "fw att control Support"
+	default n
+	---help---
+		Enable support for fw att control
+		
+menuconfig FW_POS_CONTROL_L1
+	bool "fw pos control l1 Support"
+	default n
+	---help---
+		Enable support for fw pos control l1
+		
+menuconfig GYRO_FFT
+	bool "gyro fft Support"
+	default n
+	---help---
+		Enable support for gyro fft
+		
+menuconfig LAND_DETECTOR
+	bool "land detector Support"
+	default n
+	---help---
+		Enable support for land detector
+		
+menuconfig LANDING_TARGET_ESTIMATOR
+	bool "landing target estimator Support"
+	default n
+	---help---
+		Enable support for landing target estimator
+		
+menuconfig LOAD_MON
+	bool "load mon Support"
+	default n
+	---help---
+		Enable support for load mon
+		
+menuconfig LOCAL_POSITION_ESTIMATOR
+	bool "local position estimator Support"
+	default n
+	---help---
+		Enable support for local position estimator
+		
+menuconfig LOGGER
+	bool "logger Support"
+	default n
+	---help---
+		Enable support for logger
+		
+menuconfig MAVLINK
+	bool "mavlink Support"
+	default n
+	---help---
+		Enable support for mavlink
+		
+menuconfig MC_ATT_CONTROL
+	bool "mc att control Support"
+	default n
+	---help---
+		Enable support for mc att control
+		
+menuconfig MC_HOVER_THRUST_ESTIMATOR
+	bool "mc hover thrust estimator Support"
+	default n
+	---help---
+		Enable support for mc hover thrust estimator
+		
+menuconfig MC_POS_CONTROL
+	bool "mc pos control Support"
+	default n
+	---help---
+		Enable support for mc pos control
+		
+menuconfig MC_RATE_CONTROL
+	bool "mc rate control Support"
+	default n
+	---help---
+		Enable support for mc rate control
+		
+menuconfig MICRORTPS_BRIDGE
+	bool "micrortps bridge Support"
+	default n
+	---help---
+		Enable support for micrortps bridge
+		
+menuconfig MUORB
+	bool "muorb Support"
+	default n
+	---help---
+		Enable support for muorb
+		
+menuconfig NAVIGATOR
+	bool "navigator Support"
+	default n
+	---help---
+		Enable support for navigator
+		
+menuconfig PX4IOFIRMWARE
+	bool "px4iofirmware Support"
+	default n
+	---help---
+		Enable support for px4iofirmware
+		
+menuconfig RC_UPDATE
+	bool "rc update Support"
+	default n
+	---help---
+		Enable support for rc update
+		
+menuconfig REPLAY
+	bool "replay Support"
+	default n
+	---help---
+		Enable support for replay
+		
+menuconfig ROVER_POS_CONTROL
+	bool "rover pos control Support"
+	default n
+	---help---
+		Enable support for rover pos control
+		
+menuconfig SENSORS
+	bool "sensors Support"
+	default n
+	---help---
+		Enable support for sensors
+		
+menuconfig SIH
+	bool "sih Support"
+	default n
+	---help---
+		Enable support for sih
+		
+menuconfig SIMULATOR
+	bool "simulator Support"
+	default n
+	---help---
+		Enable support for simulator
+		
+menuconfig TEMPERATURE_COMPENSATION
+	bool "temperature compensation Support"
+	default n
+	---help---
+		Enable support for temperature compensation
+		
+menuconfig UUV_ATT_CONTROL
+	bool "uuv att control Support"
+	default n
+	---help---
+		Enable support for uuv att control
+		
+menuconfig UUV_POS_CONTROL
+	bool "uuv pos control Support"
+	default n
+	---help---
+		Enable support for uuv pos control
+		
+menuconfig VMOUNT
+	bool "vmount Support"
+	default n
+	---help---
+		Enable support for vmount
+		
+menuconfig VTOL_ATT_CONTROL
+	bool "vtol att control Support"
+	default n
+	---help---
+		Enable support for vtol att control
