@@ -702,7 +702,7 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 					if ((dist_curr_z > dist_z_threshold) || !pos_sp_next.valid) {
 						// SETPOINT_TYPE_POSITION -> SETPOINT_TYPE_LOITER
 						//  - achieve position setpoint altitude via loiter if close to
-						//    waypoint, but altitude error greater than twice climbout difference
+						//    waypoint, but altitude error greater than twice altitude acceptance radius
 						//  - loiter if there isn't another valid setpoint
 						position_sp_type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 					}
