@@ -174,6 +174,8 @@ define cmake-build
 	@$(call cmake-cache-check)
 	@# make sure to start from scratch when switching from GNU Make to Ninja
 	@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
+	@# make sure to start from scratch if ninja build file is missing
+	@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ ! -f $(BUILD_DIR)/build.ninja ]; then rm -rf $(BUILD_DIR); fi
 	@# only excplicitly configure the first build, if cache file already exists the makefile will rerun cmake automatically if necessary
 	@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ] || [ $(CMAKE_CACHE_CHECK) ]; then \
 		mkdir -p $(BUILD_DIR) \
