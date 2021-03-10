@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+# @name 3DR Iris Quadrotor SITL (foggy_lidar)
+#
+# @type Quadrotor Wide
+#
+
+. ${R}etc/init.d-posix/airframes/10016_iris
+
+if [ $AUTOCNF = yes ]
+then
+	param set EKF2_RNG_AID 1
+	param set EKF2_RNG_A_HMAX 10
+fi
