@@ -175,13 +175,6 @@ void FlightModeManager::start_flight_task()
 		return;
 	}
 
-	// Switch to clean new task when mode switches e.g. to reset state when switching between auto modes
-	// exclude Orbit mode since the task is initiated in FlightTasks through the vehicle_command and we should not switch out
-	if (_last_vehicle_nav_state != _vehicle_status_sub.get().nav_state
-	    && _vehicle_status_sub.get().nav_state != vehicle_status_s::NAVIGATION_STATE_ORBIT) {
-		switchTask(FlightTaskIndex::None);
-	}
-
 	// Only run transition flight task if altitude control is enabled (e.g. in Altitdue, Position, Auto flight mode)
 	if (_vehicle_status_sub.get().in_transition_mode && _vehicle_control_mode_sub.get().flag_control_altitude_enabled) {
 
