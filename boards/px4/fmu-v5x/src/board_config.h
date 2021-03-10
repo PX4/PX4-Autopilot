@@ -156,8 +156,6 @@
 #define ADC_HW_VER_SENSE_CHANNEL                /* PF4 */  ADC3_CH(14)
 #define ADC_HW_REV_SENSE_CHANNEL                /* PF5 */  ADC3_CH(15)
 
-#define ADC_INTERNAL_TEMP_SENSOR_CHANNEL (18) /* No Gpio assigned, internal channel*/
-
 #define ADC_CHANNELS \
 	((1 << ADC_SCALED_VDD_3V3_SENSORS1_CHANNEL) | \
 	 (1 << ADC_SCALED_VDD_3V3_SENSORS2_CHANNEL) | \
