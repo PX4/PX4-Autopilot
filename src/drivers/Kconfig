@@ -1,0 +1,86 @@
+
+menuconfig ADC
+	bool "ADC Support"
+	default n
+	---help---
+		Enable support for ADC
+
+menuconfig BAROMETER
+	bool "Barometer Support"
+	default n
+	---help---
+		Enable support for all available barometer drivers
+		
+menuconfig BOOTLOADERS
+	bool "BOOTLOADERS Support"
+	default n
+	---help---
+		Enable support for bootloaders
+		
+menuconfig DIFFERENTIAL_PRESSURE
+	bool "Differential pressure Support"
+	default n
+	---help---
+		Enable support for all available differential pressure drivers
+		
+menuconfig GPS
+	bool "GPS Support"
+	default n
+	---help---
+		Enable support for all available GPS drivers
+
+menuconfig IMU
+	bool "IMU Support"
+	default n
+	---help---
+		Enable support for all available IMU drivers
+		
+menuconfig LIGHTS
+	bool "Lights Support"
+	default n
+	---help---
+		Enable support for lights
+		
+if LIGHTS
+#source src/drivers/lights/Kconfig
+endif #LIGHTS
+
+menuconfig MAGNETOMETER
+	bool "Magnetometer Support"
+	default n
+	---help---
+		Enable support for all available magnetometer drivers
+		
+menuconfig OPTICAL_FLOW
+	bool "Optical flow Support"
+	default n
+	---help---
+		Enable support for all available optical flow drivers
+		
+menuconfig PWM_OUT
+	bool "PWM Out Support"
+	default n
+	---help---
+		Enable support for PWM Out
+		
+menuconfig SAFETY_BUTTON
+	bool "Safety button Support"
+	default n
+	---help---
+		Enable support for Safety button
+		
+menuconfig TONE_ALARM
+	bool "Tone alarm Support"
+	default n
+	---help---
+		Enable support for tone alarm
+		
+menuconfig UAVCAN_V1
+	bool "UAVCANv1 Support"
+	default n
+	---help---
+		Enable support for UAVCANv1
+
+if UAVCAN_V1
+source src/drivers/uavcan_v1/Kconfig
+endif #UAVCAN_V1

@@ -1,0 +1,16 @@
+# PX4 Firmware Configuration
+
+
+mainmenu "PX4 Firmware Configuration"
+
+menu "drivers"
+source src/drivers/Kconfig
+endmenu
+
+menu "modules"
+source src/modules/Kconfig
+endmenu
+
+menu "systemcmds"
+source src/systemcmds/Kconfig
+endmenu
