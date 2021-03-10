@@ -62,5 +62,6 @@ int stm32h7_flash_lock(size_t addr);
 int stm32h7_flash_unlock(size_t addr);
 int stm32h7_flash_writeprotect(size_t block, bool enabled);
 #define  stm32_flash_lock() stm32h7_flash_lock(PX4_FLASH_BASE)
+#define APX4_ADC_INTERNAL_TEMP_SENSOR_CHANNEL 17 //Valid for ADC3 on H7x3
 
 __END_DECLS
