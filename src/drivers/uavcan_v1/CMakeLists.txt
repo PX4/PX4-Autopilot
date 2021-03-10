@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-set(UAVCAN_DEFCONFIG ${PX4_BOARD_DIR}/uavcanconfig CACHE FILEPATH "path to defconfig" FORCE)
+set(UAVCAN_DEFCONFIG ${PX4_BOARD_DIR}/${PX4_BOARD_LABEL}-uavcanconfig CACHE FILEPATH "path to defconfig" FORCE)
 
 set(LIBCANARD_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libcanard)
 set(DSDL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/public_regulated_data_types)
@@ -111,15 +111,19 @@ px4_add_module(
 
 
 # Use uavcanconfig file for compile definitions
-file(STRINGS ${UAVCAN_DEFCONFIG} lines)
+if(EXISTS ${UAVCAN_DEFCONFIG})
+    file(STRINGS ${UAVCAN_DEFCONFIG} lines)
 
-FOREACH(i IN LISTS lines)
-        if(i MATCHES "#")
-        else()
-            string(REPLACE "\n" "" i ${i})
-            SET(uavcan_config "${uavcan_config}${i};")
-        endif()
-ENDFOREACH()
+    FOREACH(i IN LISTS lines)
+            if(i MATCHES "#")
+            else()
+                string(REPLACE "\n" "" i ${i})
+                SET(uavcan_config "${uavcan_config}${i};")
+            endif()
+    ENDFOREACH()
+else()
+    file(TOUCH ${UAVCAN_DEFCONFIG} lines)
+endif()
 
 target_compile_definitions(drivers__uavcan_v1 PRIVATE ${uavcan_config})
 
