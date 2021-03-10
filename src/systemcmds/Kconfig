@@ -1,0 +1,203 @@
+menuconfig BL_UPDATE
+	bool "bl update Support"
+	default n
+	---help---
+		Enable support for bl update
+		
+menuconfig DMESG
+	bool "dmesg Support"
+	default n
+	---help---
+		Enable support for dmesg
+		
+menuconfig DUMPFILE
+	bool "dumpfile Support"
+	default n
+	---help---
+		Enable support for dumpfile
+		
+menuconfig DYN
+	bool "dyn Support"
+	default n
+	---help---
+		Enable support for dyn
+		
+menuconfig ESC_CALIB
+	bool "esc calib Support"
+	default n
+	---help---
+		Enable support for esc calib
+		
+menuconfig FAILURE
+	bool "failure Support"
+	default n
+	---help---
+		Enable support for failure
+		
+menuconfig GPIO
+	bool "gpio Support"
+	default n
+	---help---
+		Enable support for gpio
+		
+menuconfig HARDFAULT_LOG
+	bool "hardfault log Support"
+	default n
+	---help---
+		Enable support for hardfault log
+		
+menuconfig I2CDETECT
+	bool "i2cdetect Support"
+	default n
+	---help---
+		Enable support for i2cdetect
+		
+menuconfig LED_CONTROL
+	bool "led control Support"
+	default n
+	---help---
+		Enable support for led control
+		
+menuconfig MFT
+	bool "mft Support"
+	default n
+	---help---
+		Enable support for mft
+		
+menuconfig MIXER
+	bool "mixer Support"
+	default n
+	---help---
+		Enable support for mixer
+		
+menuconfig MOTOR_RAMP
+	bool "motor ramp Support"
+	default n
+	---help---
+		Enable support for motor ramp
+		
+menuconfig MOTOR_TEST
+	bool "motor test Support"
+	default n
+	---help---
+		Enable support for motor test
+		
+menuconfig MTD
+	bool "mtd Support"
+	default n
+	---help---
+		Enable support for mtd
+		
+menuconfig NETMAN
+	bool "netman Support"
+	default n
+	---help---
+		Enable support for netman
+		
+menuconfig NSHTERM
+	bool "nshterm Support"
+	default n
+	---help---
+		Enable support for nshterm
+		
+menuconfig PARAM
+	bool "param Support"
+	default n
+	---help---
+		Enable support for param
+		
+menuconfig PERF
+	bool "perf Support"
+	default n
+	---help---
+		Enable support for perf
+		
+menuconfig PWM
+	bool "pwm Support"
+	default n
+	---help---
+		Enable support for pwm
+		
+menuconfig REBOOT
+	bool "reboot Support"
+	default n
+	---help---
+		Enable support for reboot
+		
+menuconfig REFLECT
+	bool "reflect Support"
+	default n
+	---help---
+		Enable support for reflect
+		
+menuconfig SD_BENCH
+	bool "sd bench Support"
+	default n
+	---help---
+		Enable support for sd bench
+		
+menuconfig SERIAL_TEST
+	bool "serial test Support"
+	default n
+	---help---
+		Enable support for serial test
+		
+menuconfig SHUTDOWN
+	bool "shutdown Support"
+	default n
+	---help---
+		Enable support for shutdown
+		
+menuconfig SYSTEM_TIME
+	bool "system time Support"
+	default n
+	---help---
+		Enable support for system time
+		
+menuconfig TESTS
+	bool "tests Support"
+	default n
+	---help---
+		Enable support for tests
+		
+menuconfig TOP
+	bool "top Support"
+	default n
+	---help---
+		Enable support for top
+		
+menuconfig TOPIC_LISTENER
+	bool "topic listener Support"
+	default n
+	---help---
+		Enable support for topic listener
+		
+menuconfig TUNE_CONTROL
+	bool "tune control Support"
+	default n
+	---help---
+		Enable support for tune control
+		
+menuconfig UORB
+	bool "uorb Support"
+	default n
+	---help---
+		Enable support for uorb
+		
+menuconfig USB_CONNECTED
+	bool "usb connected Support"
+	default n
+	---help---
+		Enable support for usb connected
+		
+menuconfig VER
+	bool "ver Support"
+	default n
+	---help---
+		Enable support for ver
+		
+menuconfig WORK_QUEUE
+	bool "work queue Support"
+	default n
+	---help---
+		Enable support for work queue
