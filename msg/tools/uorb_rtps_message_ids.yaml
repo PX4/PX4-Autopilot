@@ -185,6 +185,7 @@ rtps:
     id: 86
   - msg: vehicle_attitude
     id: 87
+    send: true
   - msg: vehicle_attitude_setpoint
     id: 88
   - msg: vehicle_command
@@ -205,6 +206,7 @@ rtps:
     id: 95
   - msg: vehicle_local_position
     id: 96
+    send: true
   - msg: vehicle_local_position_setpoint
     id: 97
     receive: true
@@ -219,11 +221,12 @@ rtps:
     id: 101
   - msg: vehicle_status
     id: 102
+    send: true
   - msg: vehicle_status_flags
     id: 103
   - msg: vehicle_trajectory_waypoint
     id: 104
-    receive: true
+    send: true
   - msg: vtol_vehicle_status
     id: 105
   - msg: wind
@@ -241,6 +244,7 @@ rtps:
     id: 111
   - msg: vehicle_angular_velocity
     id: 112
+    send: true
   - msg: vehicle_acceleration
     id: 113
   - msg: airspeed_validated
@@ -268,8 +272,10 @@ rtps:
     id: 125
   - msg: trajectory_bezier
     id: 126
+    receive: true
   - msg: vehicle_trajectory_bezier
     id: 127
+    receive: true
   - msg: timesync_status
     id: 128
   - msg: orb_test
