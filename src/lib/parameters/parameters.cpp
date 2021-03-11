@@ -570,6 +570,8 @@ param_get_default_value(param_t param, void *default_val)
 
 bool param_value_is_default(param_t param)
 {
+	// the param_values dynamic array might carry things that have been set
+	// back to default, so we don't rely on the params_changed bitset here
 	if (handle_in_range(param)) {
 		switch (param_type(param)) {
 		case PARAM_TYPE_INT32: {
