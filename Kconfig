@@ -23,3 +23,8 @@ endmenu
 menu "systemcmds"
 source src/systemcmds/Kconfig
 endmenu
+
+menu "examples"
+source src/examples/Kconfig
+endmenu
+

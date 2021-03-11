@@ -1,203 +1,203 @@
-menuconfig BL_UPDATE
-	bool "bl update Support"
+menuconfig SYSTEMCMDS_BL_UPDATE
+	bool "bl update"
 	default n
 	---help---
 		Enable support for bl update
 		
-menuconfig DMESG
-	bool "dmesg Support"
+menuconfig SYSTEMCMDS_DMESG
+	bool "dmesg"
 	default n
 	---help---
 		Enable support for dmesg
 		
-menuconfig DUMPFILE
-	bool "dumpfile Support"
+menuconfig SYSTEMCMDS_DUMPFILE
+	bool "dumpfile"
 	default n
 	---help---
 		Enable support for dumpfile
 		
-menuconfig DYN
-	bool "dyn Support"
+menuconfig SYSTEMCMDS_DYN
+	bool "dyn"
 	default n
 	---help---
 		Enable support for dyn
 		
-menuconfig ESC_CALIB
-	bool "esc calib Support"
+menuconfig SYSTEMCMDS_ESC_CALIB
+	bool "esc calib"
 	default n
 	---help---
 		Enable support for esc calib
 		
-menuconfig FAILURE
-	bool "failure Support"
+menuconfig SYSTEMCMDS_FAILURE
+	bool "failure"
 	default n
 	---help---
 		Enable support for failure
 		
-menuconfig GPIO
-	bool "gpio Support"
+menuconfig SYSTEMCMDS_GPIO
+	bool "gpio"
 	default n
 	---help---
 		Enable support for gpio
 		
-menuconfig HARDFAULT_LOG
-	bool "hardfault log Support"
+menuconfig SYSTEMCMDS_HARDFAULT_LOG
+	bool "hardfault log"
 	default n
 	---help---
 		Enable support for hardfault log
 		
-menuconfig I2CDETECT
-	bool "i2cdetect Support"
+menuconfig SYSTEMCMDS_I2CDETECT
+	bool "i2cdetect"
 	default n
 	---help---
 		Enable support for i2cdetect
 		
-menuconfig LED_CONTROL
-	bool "led control Support"
+menuconfig SYSTEMCMDS_LED_CONTROL
+	bool "led control"
 	default n
 	---help---
 		Enable support for led control
 		
-menuconfig MFT
-	bool "mft Support"
+menuconfig SYSTEMCMDS_MFT
+	bool "mft"
 	default n
 	---help---
 		Enable support for mft
 		
-menuconfig MIXER
-	bool "mixer Support"
+menuconfig SYSTEMCMDS_MIXER
+	bool "mixer"
 	default n
 	---help---
 		Enable support for mixer
 		
-menuconfig MOTOR_RAMP
-	bool "motor ramp Support"
+menuconfig SYSTEMCMDS_MOTOR_RAMP
+	bool "motor ramp"
 	default n
 	---help---
 		Enable support for motor ramp
 		
-menuconfig MOTOR_TEST
-	bool "motor test Support"
+menuconfig SYSTEMCMDS_MOTOR_TEST
+	bool "motor test"
 	default n
 	---help---
 		Enable support for motor test
 		
-menuconfig MTD
-	bool "mtd Support"
+menuconfig SYSTEMCMDS_MTD
+	bool "mtd"
 	default n
 	---help---
 		Enable support for mtd
 		
-menuconfig NETMAN
-	bool "netman Support"
+menuconfig SYSTEMCMDS_NETMAN
+	bool "netman"
 	default n
 	---help---
 		Enable support for netman
 		
-menuconfig NSHTERM
-	bool "nshterm Support"
+menuconfig SYSTEMCMDS_NSHTERM
+	bool "nshterm"
 	default n
 	---help---
 		Enable support for nshterm
 		
-menuconfig PARAM
-	bool "param Support"
+menuconfig SYSTEMCMDS_PARAM
+	bool "param"
 	default n
 	---help---
 		Enable support for param
 		
-menuconfig PERF
-	bool "perf Support"
+menuconfig SYSTEMCMDS_PERF
+	bool "perf"
 	default n
 	---help---
 		Enable support for perf
 		
-menuconfig PWM
-	bool "pwm Support"
+menuconfig SYSTEMCMDS_PWM
+	bool "pwm"
 	default n
 	---help---
 		Enable support for pwm
 		
-menuconfig REBOOT
-	bool "reboot Support"
+menuconfig SYSTEMCMDS_REBOOT
+	bool "reboot"
 	default n
 	---help---
 		Enable support for reboot
 		
-menuconfig REFLECT
-	bool "reflect Support"
+menuconfig SYSTEMCMDS_REFLECT
+	bool "reflect"
 	default n
 	---help---
 		Enable support for reflect
 		
-menuconfig SD_BENCH
-	bool "sd bench Support"
+menuconfig SYSTEMCMDS_SD_BENCH
+	bool "sd bench"
 	default n
 	---help---
 		Enable support for sd bench
 		
-menuconfig SERIAL_TEST
-	bool "serial test Support"
+menuconfig SYSTEMCMDS_SERIAL_TEST
+	bool "serial test"
 	default n
 	---help---
 		Enable support for serial test
 		
-menuconfig SHUTDOWN
-	bool "shutdown Support"
+menuconfig SYSTEMCMDS_SHUTDOWN
+	bool "shutdown"
 	default n
 	---help---
 		Enable support for shutdown
 		
-menuconfig SYSTEM_TIME
-	bool "system time Support"
+menuconfig SYSTEMCMDS_SYSTEM_TIME
+	bool "system time"
 	default n
 	---help---
 		Enable support for system time
 		
-menuconfig TESTS
-	bool "tests Support"
+menuconfig SYSTEMCMDS_TESTS
+	bool "tests"
 	default n
 	---help---
 		Enable support for tests
 		
-menuconfig TOP
-	bool "top Support"
+menuconfig SYSTEMCMDS_TOP
+	bool "top"
 	default n
 	---help---
 		Enable support for top
 		
-menuconfig TOPIC_LISTENER
-	bool "topic listener Support"
+menuconfig SYSTEMCMDS_TOPIC_LISTENER
+	bool "topic listener"
 	default n
 	---help---
 		Enable support for topic listener
 		
-menuconfig TUNE_CONTROL
-	bool "tune control Support"
+menuconfig SYSTEMCMDS_TUNE_CONTROL
+	bool "tune control"
 	default n
 	---help---
 		Enable support for tune control
 		
-menuconfig UORB
-	bool "uorb Support"
+menuconfig SYSTEMCMDS_UORB
+	bool "uorb"
 	default n
 	---help---
 		Enable support for uorb
 		
-menuconfig USB_CONNECTED
-	bool "usb connected Support"
+menuconfig SYSTEMCMDS_USB_CONNECTED
+	bool "usb connected"
 	default n
 	---help---
 		Enable support for usb connected
 		
-menuconfig VER
-	bool "ver Support"
+menuconfig SYSTEMCMDS_VER
+	bool "ver"
 	default n
 	---help---
 		Enable support for ver
 		
-menuconfig WORK_QUEUE
-	bool "work queue Support"
+menuconfig SYSTEMCMDS_WORK_QUEUE
+	bool "work queue"
 	default n
 	---help---
 		Enable support for work queue
