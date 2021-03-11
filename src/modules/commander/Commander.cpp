@@ -3336,8 +3336,6 @@ Commander::update_control_mode()
 		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
 		_vehicle_control_mode.flag_control_position_enabled = !_status.in_transition_mode;
 		_vehicle_control_mode.flag_control_velocity_enabled = !_status.in_transition_mode;
-		_vehicle_control_mode.flag_control_acceleration_enabled = false;
-		_vehicle_control_mode.flag_control_termination_enabled = false;
 		break;
 
 	default:
