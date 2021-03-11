@@ -184,15 +184,3 @@ PARAM_DEFINE_INT32(ASPD_FS_T_STOP, 2);
  * @max 1000
  */
 PARAM_DEFINE_INT32(ASPD_FS_T_START, -1);
-
-/**
- * Airspeed fault detection stall airspeed
- *
- * This is the minimum indicated airspeed at which the wing can produce 1g of lift.
- * It is used by the airspeed sensor fault detection and failsafe calculation to detect a
- * significant airspeed low measurement error condition and should be set based on flight test for reliable operation.
- *
- * @group Airspeed Validator
- * @unit m/s
- */
-PARAM_DEFINE_FLOAT(ASPD_STALL, 10.0f);

@@ -433,7 +433,8 @@ PARAM_DEFINE_FLOAT(FW_LND_THRTC_SC, 1.0f);
 /**
  * Minimum Airspeed (CAS)
  *
- * If the CAS (calibrated airspeed) falls below this value, the TECS controller will try to
+ * The minimal airspeed (calibrated airspeed) the user is able to command.
+ * Further, if the airspeed falls below this value, the TECS controller will try to
  * increase airspeed more aggressively.
  *
  * @unit m/s
@@ -475,6 +476,22 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 15.0f);
+
+/**
+ * Stall Airspeed (CAS)
+ *
+ * The stall airspeed (calibrated airspeed) of the vehicle.
+ * It is used for airspeed sensor failure detection and for the control
+ * surface scaling airspeed limits.
+ *
+ * @unit m/s
+ * @min 0.5
+ * @max 40
+ * @decimal 1
+ * @increment 0.5
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_AIRSPD_STALL, 7.0f);
 
 /**
  * Maximum climb rate

@@ -245,7 +245,7 @@ float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 		// than the minimum airspeed
 		if (_vehicle_status.is_vtol && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 		    && !_vehicle_status.in_transition_mode) {
-			airspeed = _param_fw_airspd_min.get();
+			airspeed = _param_fw_airspd_stall.get();
 		}
 	}
 
@@ -256,7 +256,7 @@ float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 	 *
 	 * Forcing the scaling to this value allows reasonable handheld tests.
 	 */
-	const float airspeed_constrained = constrain(constrain(airspeed, _param_fw_airspd_min.get(),
+	const float airspeed_constrained = constrain(constrain(airspeed, _param_fw_airspd_stall.get(),
 					   _param_fw_airspd_max.get()), 0.1f, 1000.0f);
 
 	_airspeed_scaling = (_param_fw_arsp_scale_en.get()) ? (_param_fw_airspd_trim.get() / airspeed_constrained) : 1.0f;
@@ -427,7 +427,7 @@ void FixedwingAttitudeControl::Run()
 			control_input.roll_setpoint = _att_sp.roll_body;
 			control_input.pitch_setpoint = _att_sp.pitch_body;
 			control_input.yaw_setpoint = _att_sp.yaw_body;
-			control_input.airspeed_min = _param_fw_airspd_min.get();
+			control_input.airspeed_min = _param_fw_airspd_stall.get();
 			control_input.airspeed_max = _param_fw_airspd_max.get();
 			control_input.airspeed = airspeed;
 			control_input.scaler = _airspeed_scaling;
@@ -436,11 +436,11 @@ void FixedwingAttitudeControl::Run()
 			if (wheel_control) {
 				_local_pos_sub.update(&_local_pos);
 
-				/* Use min airspeed to calculate ground speed scaling region.
+				/* Use stall airspeed to calculate ground speed scaling region.
 				* Don't scale below gspd_scaling_trim
 				*/
 				float groundspeed = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
-				float gspd_scaling_trim = (_param_fw_airspd_min.get() * 0.6f);
+				float gspd_scaling_trim = (_param_fw_airspd_stall.get());
 
 				control_input.groundspeed = groundspeed;
 
@@ -477,11 +477,11 @@ void FixedwingAttitudeControl::Run()
 			float trim_yaw = _param_trim_yaw.get();
 
 			if (airspeed < _param_fw_airspd_trim.get()) {
-				trim_roll += gradual(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(), _param_fw_dtrim_r_vmin.get(),
+				trim_roll += gradual(airspeed, _param_fw_airspd_stall.get(), _param_fw_airspd_trim.get(), _param_fw_dtrim_r_vmin.get(),
 						     0.0f);
-				trim_pitch += gradual(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(), _param_fw_dtrim_p_vmin.get(),
+				trim_pitch += gradual(airspeed, _param_fw_airspd_stall.get(), _param_fw_airspd_trim.get(), _param_fw_dtrim_p_vmin.get(),
 						      0.0f);
-				trim_yaw += gradual(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(), _param_fw_dtrim_y_vmin.get(),
+				trim_yaw += gradual(airspeed, _param_fw_airspd_stall.get(), _param_fw_airspd_trim.get(), _param_fw_dtrim_y_vmin.get(),
 						    0.0f);
 
 			} else {
