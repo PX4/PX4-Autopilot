@@ -80,6 +80,8 @@ public:
 		_bodyrate_setpoint = math::constrain(rate, -_max_rate_neg, _max_rate);
 	}
 
+	float get_gain_compression_factor() const { return _gain_compression_factor; }
+
 protected:
 	float _max_rate_neg{0.0f};
 	float _roll_ff{0.0f};
