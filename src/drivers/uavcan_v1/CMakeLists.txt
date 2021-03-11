@@ -31,8 +31,6 @@
 #
 ############################################################################
 
-set(UAVCAN_DEFCONFIG ${PX4_BOARD_DIR}/${PX4_BOARD_LABEL}-uavcanconfig CACHE FILEPATH "path to defconfig" FORCE)
-
 set(LIBCANARD_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libcanard)
 set(DSDL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/public_regulated_data_types)
 set(LEGACY_DSDL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/legacy_data_types)
@@ -49,14 +47,6 @@ if(NNVG_PATH)
 	execute_process(COMMAND ${NNVG_PATH} --outdir ${CMAKE_CURRENT_BINARY_DIR}/dsdlc_generated --target-language c ${DSDL_DIR}/uavcan)
 else()
 	message(FATAL_ERROR "UAVCAN Nunavut nnvg not found")
-endif()
-
-find_program(KCONFIG_PATH kconfig-mconf)
-if(KCONFIG_PATH)
-    set(menuconfig ${KCONFIG_PATH})
-else()
-    set(menuconfig "python3")
-    set(menuconfig_arg "${NUTTX_SRC_DIR}/tools/menuconfig.py")
 endif()
 
 set(SRCS)
@@ -108,34 +98,3 @@ px4_add_module(
 		git_legacy_data_types
 		version
 	)
-
-
-# Use uavcanconfig file for compile definitions
-if(EXISTS ${UAVCAN_DEFCONFIG})
-    file(STRINGS ${UAVCAN_DEFCONFIG} lines)
-
-    FOREACH(i IN LISTS lines)
-            if(i MATCHES "#")
-            else()
-                string(REPLACE "\n" "" i ${i})
-                SET(uavcan_config "${uavcan_config}${i};")
-            endif()
-    ENDFOREACH()
-else()
-    file(TOUCH ${UAVCAN_DEFCONFIG} lines)
-endif()
-
-target_compile_definitions(drivers__uavcan_v1 PRIVATE ${uavcan_config})
-
-# UAVCANv1 menuconfig + savedefconfig back to PX4
-add_custom_target(uavcanconfig
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	COMMAND ${CMAKE_COMMAND} -E copy ${UAVCAN_DEFCONFIG} ${CMAKE_CURRENT_SOURCE_DIR}/.config
-	COMMAND ${menuconfig} ${menuconfig_arg} Kconfig
-	COMMENT "Running UAVCAN make menuconfig for ${UAVCAN_DEFCONFIG}"
-	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/.config ${UAVCAN_DEFCONFIG}
-	COMMENT "Saved config to ${UAVCAN_DEFCONFIG}"
-	COMMENT "Reconfiguring ${PX4_BINARY_DIR}"
-	COMMAND ${CMAKE_COMMAND} --clean ${PX4_BINARY_DIR}
-	USES_TERMINAL
-)
