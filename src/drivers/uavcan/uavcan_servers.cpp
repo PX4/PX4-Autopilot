@@ -475,12 +475,14 @@ UavcanServers::run(pthread_addr_t)
 
 		// Check for ESC enumeration commands
 		if (vcmd_sub.updated() && !_cmd_in_progress) {
+			bool acknowledge = false;
 			vehicle_command_s cmd{};
 			vcmd_sub.copy(&cmd);
 
 			uint8_t cmd_ack_result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
 
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_UAVCAN) {
+				acknowledge = true;
 				int command_id = static_cast<int>(cmd.param1 + 0.5f);
 				int node_id = static_cast<int>(cmd.param2 + 0.5f);
 				int call_res;
@@ -520,6 +522,7 @@ UavcanServers::run(pthread_addr_t)
 				}
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_STORAGE) {
+				acknowledge = true;
 				int command_id = static_cast<int>(cmd.param1 + 0.5f);
 
 				PX4_INFO("UAVCAN command bridge: received storage command ID %d", command_id);
@@ -552,15 +555,16 @@ UavcanServers::run(pthread_addr_t)
 				}
 			}
 
-			// Acknowledge the received command
-			vehicle_command_ack_s ack{};
-			ack.timestamp = hrt_absolute_time();
-			ack.command = cmd.command;
-			ack.result = cmd_ack_result;
-			ack.target_system = cmd.source_system;
-			ack.target_component = cmd.source_component;
-
-			_command_ack_pub.publish(ack);
+			if (acknowledge) {
+				// Acknowledge the received command
+				vehicle_command_ack_s ack{};
+				ack.command = cmd.command;
+				ack.result = cmd_ack_result;
+				ack.target_system = cmd.source_system;
+				ack.target_component = cmd.source_component;
+				ack.timestamp = hrt_absolute_time();
+				_command_ack_pub.publish(ack);
+			}
 		}
 
 		// Shut down once armed
