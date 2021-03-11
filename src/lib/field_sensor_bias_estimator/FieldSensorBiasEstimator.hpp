@@ -71,7 +71,7 @@ public:
 	{
 		const matrix::Vector3f field_pred = _field_prev + (-gyro % (_field_prev - _state_bias)) * dt;
 		const matrix::Vector3f field_innov = field - field_pred;
-		_state_bias += _learning_gain * (-gyro % field_innov);
+		_state_bias += _learning_gain * (-gyro % field_innov) * dt;
 		_field_prev = field;
 	}
 
