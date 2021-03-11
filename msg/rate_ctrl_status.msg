@@ -5,3 +5,6 @@ float32 rollspeed_integ
 float32 pitchspeed_integ
 float32 yawspeed_integ
 float32 additional_integ1	# FW: wheel rate integrator (optional)
+
+# gain compression factors used for limit cycle protection
+float32 pitch_gcf
