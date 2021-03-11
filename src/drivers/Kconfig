@@ -93,13 +93,14 @@ menuconfig DRIVERS_MAGNETOMETER
 	---help---
 		Enable support for all available magnetometer drivers
 		
-menuconfig DRIVERS_OPTICAL_FLOW
-	bool "Optical flow"
-	default n
-	---help---
-		Enable support for all available optical flow drivers
-		
-		
+if DRIVERS_MAGNETOMETER
+source src/drivers/magnetometer/Kconfig
+endif #DRIVERS_MAGNETOMETER
+
+menu "Optical flow"
+source src/drivers/optical_flow/Kconfig
+endmenu
+
 menuconfig DRIVERS_OSD
 	bool "osd"
 	default n
@@ -117,12 +118,10 @@ menuconfig DRIVERS_PCA9685_PWM_OUT
 	default n
 	---help---
 		Enable support for pca9685 pwm out
-		
-menuconfig DRIVERS_POWER_MONITOR
-	bool "power monitor"
-	default n
-	---help---
-		Enable support for power monitor
+
+menu "Power monitor"
+source src/drivers/power_monitor/Kconfig
+endmenu
 		
 menuconfig DRIVERS_PROTOCOL_SPLITTER
 	bool "protocol splitter"
