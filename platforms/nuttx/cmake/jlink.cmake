@@ -81,3 +81,26 @@ if(Ozone_PATH)
 		USES_TERMINAL
 	)
 endif()
+
+if(bootloader_bin OR (EXISTS "${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin"))
+	# jlink_flash_bootloader
+	find_program(JLinkExe_PATH JLinkExe)
+	if(JLinkExe_PATH)
+
+		if(bootloader_bin)
+			set(BOARD_BL_FIRMWARE_BIN ${bootloader_bin})
+		else()
+			set(BOARD_BL_FIRMWARE_BIN ${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin)
+		endif()
+
+		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/flash_bootloader.jlink.in ${PX4_BINARY_DIR}/flash_bootloader.jlink @ONLY)
+		add_custom_target(jlink_flash_bootloader
+			COMMAND ${JLinkExe_PATH} -CommandFile ${PX4_BINARY_DIR}/flash_bootloader.jlink
+			DEPENDS
+				px4
+				${CMAKE_CURRENT_SOURCE_DIR}/Debug/flash_bootloader.jlink.in
+			WORKING_DIRECTORY ${PX4_BINARY_DIR}
+			USES_TERMINAL
+		)
+	endif()
+endif()
