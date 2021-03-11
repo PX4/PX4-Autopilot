@@ -14,7 +14,8 @@
 
 param set-default EKF2_ARSP_THR 8
 param set-default EKF2_FUSE_BETA 1
-param set-default ASPD_STALL 10.0
+
+param set-default FW_AIRSPD_STALL 8
 
 param set-default FW_P_RMAX_NEG 20.0
 param set-default FW_P_RMAX_POS 60.0
