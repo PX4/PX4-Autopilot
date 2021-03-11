@@ -156,6 +156,20 @@ PARAM_DEFINE_FLOAT(FW_P_RMAX_NEG, 60.0f);
 PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.4f);
 
 /**
+ * Pitch control actuator slew rate limit
+ *
+ * If the rate of change of the actuator demand due to pitch rate feedback exceeds this value, the rate feeedback gain will be reduced to protect against a high frequency limit cycle. Set t / slew_time, where slew_time is the time in seconds required for the actuator to slew from the maximum positive to maximum negative deflection. Set to 0 to disable this feature.
+ *
+ * @unit 1/s
+ * @min 0.0
+ * @max 20.0
+ * @decimal 1
+ * @increment 0.1
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_PR_SLEW_LIM, 5.0f);
+
+/**
  * Roll rate proportional Gain
  *
  * This defines how much the aileron input will be commanded depending on the
