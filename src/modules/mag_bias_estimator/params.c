@@ -55,4 +55,4 @@ PARAM_DEFINE_INT32(MBE_ENABLE, 1);
  * @decimal 1
  * @group Magnetometer Bias Estimator
  */
-PARAM_DEFINE_FLOAT(MBE_LEARN_GAIN, 0.4f);
+PARAM_DEFINE_FLOAT(MBE_LEARN_GAIN, 18.f);

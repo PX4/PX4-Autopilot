@@ -44,7 +44,7 @@ using namespace matrix;
 TEST(MagnetometerBiasEstimatorTest, constantZRotation)
 {
 	FieldSensorBiasEstimator field_sensor_bias_estimator;
-	field_sensor_bias_estimator.setLearningGain(100.f);
+	field_sensor_bias_estimator.setLearningGain(10000.f);
 	const Vector3f virtual_gyro = Vector3f(0.f, 0.f, 0.1f);
 	Vector3f virtual_unbiased_mag = Vector3f(0.9f, 0.f, 1.79f); // taken from SITL jmavsim initialization
 	const Vector3f virtual_bias(0.2f, -0.4f, 0.5f);
