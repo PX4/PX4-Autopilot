@@ -18,6 +18,7 @@ set PWM_OUT 1234
 
 if [ $AUTOCNF = yes ]
 then
+	# Default rates
 	param set IMU_GYRO_CUTOFF 60
 	param set IMU_DGYRO_CUTOFF 30
 	param set MC_ROLLRATE_P 0.14
@@ -27,9 +28,23 @@ then
 	param set MC_ROLLRATE_D 0.004
 	param set MC_PITCHRATE_D 0.004
 
+	# Battery parameters
 	param set BAT_N_CELLS 4
+	param set BAT_V_CHARGED 4.2
+	param set BAT_V_EMPTY 3.6
+	param set BAT_V_DIV 18.1
 
+	# RTPS/MAV on TELEMETRY 1
 	param set MAV_0_CONFIG 0
 	param set RTPS_MAV_CONFIG 101
-	param set SER_TEL1_BAUD 3000000
+	param set SER_TEL1_BAUD 1000000
+
+	# Enable LL40LS in i2c
+	param set SENS_EN_LL40LS 2
+
+	# LEDs on TELEMETRY 2
+	param set SER_TEL2_BAUD 57600
+	param set MAV_1_CONFIG 102
+	param set MAV_1_MODE 7
+	param set MAV_1_RATE 1000
 fi
