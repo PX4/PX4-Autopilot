@@ -1,5 +1,13 @@
 set(BOARD_DEFCONFIG ${PX4_BOARD_DIR}/${PX4_BOARD_LABEL}-boardconfig CACHE FILEPATH "path to defconfig" FORCE)
 
+
+find_program(MENUCONFIG_PATH menuconfig)
+find_program(GUICONFIG_PATH guiconfig)
+if(NOT MENUCONFIG_PATH AND NOT GUICONFIG_PATH)
+    message(WARNING "kconfiglib is not installed\n"
+                        "please install using \"pip3 install kconfiglib\"\n")
+endif()
+
 set(COMMON_KCONFIG_ENV_SETTINGS
 	PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
 	KCONFIG_CONFIG=${BOARD_DEFCONFIG}
@@ -17,7 +25,16 @@ set(COMMON_KCONFIG_ENV_SETTINGS
 add_custom_target(boardconfig
 	${CMAKE_COMMAND} -E env
 	${COMMON_KCONFIG_ENV_SETTINGS}
-	${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/tools/menuconfig.py Kconfig
+	${MENUCONFIG_PATH} Kconfig
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+	USES_TERMINAL
+	COMMAND_EXPAND_LISTS
+)
+
+add_custom_target(boardguiconfig
+	${CMAKE_COMMAND} -E env
+	${COMMON_KCONFIG_ENV_SETTINGS}
+	${GUICONFIG_PATH} Kconfig
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	USES_TERMINAL
 	COMMAND_EXPAND_LISTS
@@ -78,5 +95,41 @@ foreach(NameAndValue ${ConfigContents})
 			message(FATAL_ERROR "Couldn't find path for ${driver}")
 		endif()
 		
+	endif()
+
+	# Find variable name
+	string(REGEX MATCH "^CONFIG_MODULES[^=]+" Modules ${NameAndValue})
+
+	if(Modules)
+		# Find the value
+		string(REPLACE "${Name}=" "" Value ${NameAndValue})
+		string(REPLACE "CONFIG_MODULES_" "" module ${Name})
+		string(TOLOWER ${module} module)
+		
+		list(APPEND config_module_list modules/${module})
+	endif()
+
+	# Find variable name
+	string(REGEX MATCH "^CONFIG_SYSTEMCMDS[^=]+" Systemcmds ${NameAndValue})
+
+	if(Systemcmds)
+		# Find the value
+		string(REPLACE "${Name}=" "" Value ${NameAndValue})
+		string(REPLACE "CONFIG_SYSTEMCMDS_" "" systemcmd ${Name})
+		string(TOLOWER ${systemcmd} systemcmd)
+		
+		list(APPEND config_module_list systemcmds/${systemcmd})
+	endif()
+
+	# Find variable name
+	string(REGEX MATCH "^CONFIG_EXAMPLES[^=]+" Examples ${NameAndValue})
+
+	if(Examples)
+		# Find the value
+		string(REPLACE "${Name}=" "" Value ${NameAndValue})
+		string(REPLACE "CONFIG_EXAMPLES_" "" example ${Name})
+		string(TOLOWER ${example} example)
+		
+		list(APPEND config_module_list examples/${example})
 	endif()
 endforeach()
