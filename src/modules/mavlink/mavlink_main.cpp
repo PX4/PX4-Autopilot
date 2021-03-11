@@ -2298,26 +2298,35 @@ Mavlink::task_main(int argc, char *argv[])
 
 		if (_vehicle_command_ack_sub.updated()) {
 			static constexpr size_t COMMAND_ACK_TOTAL_LEN = MAVLINK_MSG_ID_COMMAND_ACK_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-			vehicle_command_ack_s command_ack;
 
-			while ((get_free_tx_buf() >= COMMAND_ACK_TOTAL_LEN) && _vehicle_command_ack_sub.update(&command_ack)) {
-				if (!command_ack.from_external && command_ack.command < vehicle_command_s::VEHICLE_CMD_PX4_INTERNAL_START) {
-					mavlink_command_ack_t msg;
-					msg.result = command_ack.result;
-					msg.command = command_ack.command;
-					msg.progress = command_ack.result_param1;
-					msg.result_param2 = command_ack.result_param2;
-					msg.target_system = command_ack.target_system;
-					msg.target_component = command_ack.target_component;
+			while ((get_free_tx_buf() >= COMMAND_ACK_TOTAL_LEN) && _vehicle_command_ack_sub.updated()) {
+				vehicle_command_ack_s command_ack;
+				const unsigned last_generation = _vehicle_command_ack_sub.get_last_generation();
 
-					// TODO: always transmit the acknowledge once it is only sent over the instance the command is received
-					//bool _transmitting_enabled_temp = _transmitting_enabled;
-					//_transmitting_enabled = true;
-					mavlink_msg_command_ack_send_struct(get_channel(), &msg);
-					//_transmitting_enabled = _transmitting_enabled_temp;
+				if (_vehicle_command_ack_sub.update(&command_ack)) {
+					if (_vehicle_command_ack_sub.get_last_generation() != last_generation + 1) {
+						PX4_ERR("vehicle_command_ack lost, generation %d -> %d", last_generation,
+							_vehicle_command_ack_sub.get_last_generation());
+					}
 
-					if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
-						cmd_logging_start_acknowledgement = true;
+					if (!command_ack.from_external && command_ack.command < vehicle_command_s::VEHICLE_CMD_PX4_INTERNAL_START) {
+						mavlink_command_ack_t msg{};
+						msg.result = command_ack.result;
+						msg.command = command_ack.command;
+						msg.progress = command_ack.result_param1;
+						msg.result_param2 = command_ack.result_param2;
+						msg.target_system = command_ack.target_system;
+						msg.target_component = command_ack.target_component;
+
+						// TODO: always transmit the acknowledge once it is only sent over the instance the command is received
+						//bool _transmitting_enabled_temp = _transmitting_enabled;
+						//_transmitting_enabled = true;
+						mavlink_msg_command_ack_send_struct(get_channel(), &msg);
+						//_transmitting_enabled = _transmitting_enabled_temp;
+
+						if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
+							cmd_logging_start_acknowledgement = true;
+						}
 					}
 				}
 			}
