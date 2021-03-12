@@ -289,7 +289,7 @@ param_main(int argc, char *argv[])
 				return do_set(argv[2], argv[3], false);
 
 			} else {
-				PX4_ERR("not enough arguments.\nTry 'param set PARAM_NAME 3 [fail]'");
+				PX4_ERR("not enough arguments.\nTry 'param set %s 3 [fail]'", (argc > 2) ? argv[2] : "PARAM_NAME");
 				return 1;
 			}
 		}
@@ -299,7 +299,7 @@ param_main(int argc, char *argv[])
 				return do_set_custom_default(argv[2], argv[3]);
 
 			} else {
-				PX4_ERR("not enough arguments.\nTry 'param set-default PARAM_NAME 3'");
+				PX4_ERR("not enough arguments.\nTry 'param set-default %s 3'", (argc > 2) ? argv[2] : "PARAM_NAME");
 				return 1;
 			}
 		}
@@ -312,7 +312,7 @@ param_main(int argc, char *argv[])
 				return do_compare(argv[2], &argv[3], argc - 3, COMPARE_OPERATOR::EQUAL, COMPARE_ERROR_LEVEL::DO_ERROR);
 
 			} else {
-				PX4_ERR("not enough arguments.\nTry 'param compare PARAM_NAME 3'");
+				PX4_ERR("not enough arguments.\nTry 'param compare %s 3'", (argc > 2) ? argv[2] : "PARAM_NAME");
 				return 1;
 			}
 		}
@@ -325,7 +325,7 @@ param_main(int argc, char *argv[])
 				return do_compare(argv[2], &argv[3], argc - 3, COMPARE_OPERATOR::GREATER, COMPARE_ERROR_LEVEL::DO_ERROR);
 
 			} else {
-				PX4_ERR("not enough arguments.\nTry 'param greater PARAM_NAME 3'");
+				PX4_ERR("not enough arguments.\nTry 'param greater %s 3'", (argc > 2) ? argv[2] : "PARAM_NAME");
 				return 1;
 			}
 		}
@@ -384,7 +384,7 @@ param_main(int argc, char *argv[])
 				return do_find(argv[2]);
 
 			} else {
-				PX4_ERR("not enough arguments.\nTry 'param find PARAM_NAME'");
+				PX4_ERR("not enough arguments.\nTry 'param find %s'", (argc > 2) ? argv[2] : "PARAM_NAME");
 				return 1;
 			}
 		}
