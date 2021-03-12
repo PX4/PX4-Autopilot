@@ -61,6 +61,8 @@ def main():
                         help="Board architecture for this run")
     args = parser.parse_args()
 
+    err_count = 0
+
     # go through temp folder
     for (root, dirs, files) in os.walk(args.folder):
         for file in files:
@@ -90,8 +92,17 @@ def main():
             # read file line by line
             pruned_content = ""
             board_excluded = False
+
             with io.open(file_path, "r", newline=None) as f:
                 for line in f:
+                    # abort if spurious tabs are found
+                    if re.search(r"[a-zA-Z0-9]+\t.+", line):
+                        file_local = re.sub(args.folder, '', file_path)
+                        print("ERROR: Spurious TAB character in file " + file_local)
+                        print("Line: " + line)
+                        err_count += 1
+
+                    # find excluded boards
                     if re.search(r'\b{0} exclude\b'.format(args.board), line):
                         board_excluded = True
                     # handle mixer files differently than startup files
@@ -115,6 +126,9 @@ def main():
                     f.write(pruned_content.encode("ascii", errors='strict'))
             else:
                 os.remove(file_path)
+
+    if (err_count > 0):
+        exit(1)
 
 
 if __name__ == '__main__':
