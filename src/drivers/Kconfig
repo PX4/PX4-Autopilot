@@ -1,7 +1,7 @@
 
 menu "ADC"
-source src/drivers/adc/Kconfig
-endmenu
+source "src/drivers/adc/Kconfig"
+endmenu #ADC
 
 menuconfig DRIVERS_BAROMETER
 	bool "Barometer"
@@ -10,7 +10,7 @@ menuconfig DRIVERS_BAROMETER
 		Enable support for Barometers
 
 if DRIVERS_BAROMETER
-source src/drivers/barometer/Kconfig
+source "src/drivers/barometer/Kconfig"
 endif #DRIVERS_BAROMETER
 
 menuconfig DRIVERS_BATT_SMBUS
@@ -68,7 +68,7 @@ menuconfig DRIVERS_HEATER
 		Enable support for heater
 		
 menu "IMU"
-source src/drivers/imu/Kconfig
+source "src/drivers/imu/Kconfig"
 endmenu
 
 menuconfig DRIVERS_IRLOCK
@@ -78,7 +78,7 @@ menuconfig DRIVERS_IRLOCK
 		Enable support for irlock
 		
 menu "Lights"
-source src/drivers/lights/Kconfig
+source "src/drivers/lights/Kconfig"
 endmenu
 
 menuconfig DRIVERS_LINUX_PWM_OUT
@@ -94,11 +94,11 @@ menuconfig DRIVERS_MAGNETOMETER
 		Enable support for all available magnetometer drivers
 		
 if DRIVERS_MAGNETOMETER
-source src/drivers/magnetometer/Kconfig
+source "src/drivers/magnetometer/Kconfig"
 endif #DRIVERS_MAGNETOMETER
 
 menu "Optical flow"
-source src/drivers/optical_flow/Kconfig
+source "src/drivers/optical_flow/Kconfig"
 endmenu
 
 menuconfig DRIVERS_OSD
@@ -120,7 +120,7 @@ menuconfig DRIVERS_PCA9685_PWM_OUT
 		Enable support for pca9685 pwm out
 
 menu "Power monitor"
-source src/drivers/power_monitor/Kconfig
+source "src/drivers/power_monitor/Kconfig"
 endmenu
 		
 menuconfig DRIVERS_PROTOCOL_SPLITTER
@@ -226,5 +226,5 @@ menuconfig DRIVERS_UAVCAN_V1
 		Enable support for UAVCANv1
 
 if DRIVERS_UAVCAN_V1
-source src/drivers/uavcan_v1/Kconfig
+source "src/drivers/uavcan_v1/Kconfig"
 endif #DRIVERS_UAVCAN_V1
