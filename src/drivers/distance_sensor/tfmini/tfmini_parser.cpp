@@ -37,7 +37,7 @@
  * @author Chuong Nguyen <chnguye7@asu.edu>
  * @author Ayush Gaud <ayush.gaud@gmail.com>
  *
- * Declarations of parser for the Benewake TFmini laser rangefinder series
+ * Declarations of parser for the Benewake TF Series LiDARs
  */
 
 #include "tfmini_parser.h"

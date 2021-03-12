@@ -75,7 +75,7 @@ TFMINI::init()
 	int32_t hw_model = 1; // only one model so far...
 
 	switch (hw_model) {
-	case 1: // TFMINI (12m, 100 Hz)
+	case 1: // TF LiDAR Series (8m to 350m depending upon the product model, 100 Hz)
 		// Note:
 		// Sensor specification shows 0.1m as minimum, but in practice
 		// 0.1 is too close to minimum so chattering of invalid sensor decision

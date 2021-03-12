@@ -111,7 +111,7 @@ usage()
 		R"DESCR_STR(
 ### Description
 
-Serial bus driver for the Benewake TFmini LiDAR.
+Serial bus driver for the Benewake TF Series LiDAR.
 
 Most boards are configured to enable/start the driver on a specified UART using the SENS_TFMINI_CFG parameter.
 
