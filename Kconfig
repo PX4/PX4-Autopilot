@@ -11,20 +11,18 @@ comment "Toolchain: $(TOOLCHAIN)"
 comment "Architecture: $(ARCHITECTURE)"
 comment "Romfsroot: $(ROMFSROOT)"
 
-
 menu "drivers"
-source src/drivers/Kconfig
+source "src/drivers/Kconfig"
 endmenu
 
 menu "modules"
-source src/modules/Kconfig
+source "src/modules/Kconfig"
 endmenu
 
 menu "systemcmds"
-source src/systemcmds/Kconfig
+source "src/systemcmds/Kconfig"
 endmenu
 
 menu "examples"
-source src/examples/Kconfig
+source "src/examples/Kconfig"
 endmenu
-

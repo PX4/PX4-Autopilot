@@ -1,16 +1,18 @@
 set(BOARD_DEFCONFIG ${PX4_BOARD_DIR}/${PX4_BOARD_LABEL}-boardconfig CACHE FILEPATH "path to defconfig" FORCE)
-
+set(BOARD_CONFIG ${PX4_BINARY_DIR}/boardconfig CACHE FILEPATH "path to config" FORCE)
 
 find_program(MENUCONFIG_PATH menuconfig)
 find_program(GUICONFIG_PATH guiconfig)
-if(NOT MENUCONFIG_PATH AND NOT GUICONFIG_PATH)
+find_program(DEFCONFIG_PATH defconfig)
+find_program(SAVEDEFCONFIG_PATH savedefconfig)
+if(NOT MENUCONFIG_PATH OR NOT GUICONFIG_PATH OR NOT DEFCONFIG_PATH OR NOT SAVEDEFCONFIG_PATH)
     message(STATUS "kconfiglib is not installed\n"
                         "please install using \"pip3 install kconfiglib\"\n")
 endif()
 
 set(COMMON_KCONFIG_ENV_SETTINGS
 	PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
-	KCONFIG_CONFIG=${BOARD_DEFCONFIG}
+	KCONFIG_CONFIG=${BOARD_CONFIG}
 	# Set environment variables so that Kconfig can prune Kconfig source
 	# files for other architectures
 	PLATFORM=${PX4_PLATFORM}
@@ -26,6 +28,8 @@ add_custom_target(boardconfig
 	${CMAKE_COMMAND} -E env
 	${COMMON_KCONFIG_ENV_SETTINGS}
 	${MENUCONFIG_PATH} Kconfig
+	COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${SAVEDEFCONFIG_PATH}
+	COMMAND ${CMAKE_COMMAND} -E copy defconfig ${BOARD_DEFCONFIG}
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	USES_TERMINAL
 	COMMAND_EXPAND_LISTS
@@ -35,14 +39,24 @@ add_custom_target(boardguiconfig
 	${CMAKE_COMMAND} -E env
 	${COMMON_KCONFIG_ENV_SETTINGS}
 	${GUICONFIG_PATH} Kconfig
+	COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${SAVEDEFCONFIG_PATH}
+	COMMAND ${CMAKE_COMMAND} -E copy defconfig ${BOARD_DEFCONFIG}
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	USES_TERMINAL
 	COMMAND_EXPAND_LISTS
 )
 
 if(EXISTS ${BOARD_DEFCONFIG})
+
+
+    # Generate boardconfig from saved defconfig
+    execute_process(COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} 
+                    ${DEFCONFIG_PATH} ${BOARD_DEFCONFIG}
+                    WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+                    OUTPUT_VARIABLE DUMMY_RESULTS)
+
     # parse board config options for cmake
-    file(STRINGS ${BOARD_DEFCONFIG} ConfigContents)
+    file(STRINGS ${BOARD_CONFIG} ConfigContents)
     foreach(NameAndValue ${ConfigContents})
         # Strip leading spaces
         string(REGEX REPLACE "^[ ]+" "" NameAndValue ${NameAndValue})
