@@ -1,0 +1,6 @@
+module_name: VESC motor contoller
+serial_config:
+    - command: vesc start -d ${SERIAL_DEV}
+      port_config_param:
+        name: VESC_PORT
+        group: VESC
