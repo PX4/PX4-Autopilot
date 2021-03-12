@@ -49,6 +49,10 @@ menuconfig DRIVERS_DISTANCE_SENSOR
 	---help---
 		Enable support for distance sensor
 		
+if DRIVERS_DISTANCE_SENSOR
+source "src/drivers/distance_sensor/Kconfig"
+endif #DRIVERS_DISTANCE_SENSOR
+		
 menuconfig DRIVERS_DSHOT
 	bool "dshot"
 	default n
