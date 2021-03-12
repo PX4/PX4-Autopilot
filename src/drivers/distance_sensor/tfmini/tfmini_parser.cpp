@@ -57,8 +57,8 @@ const char *parser_state[] = {
 	"4_GOT_DIST_H",
 	"5_GOT_STRENGTH_L",
 	"6_GOT_STRENGTH_H",
-	"7_GOT_PRESERVED",
-	"8_GOT_QUALITY"
+	"7_GOT_CHIP_TEMP",
+	"8_GOT_CHIP_TEMP"
 	"9_GOT_CHECKSUM"
 };
 #endif
@@ -132,20 +132,20 @@ int tfmini_parse(char c, char *parserbuf, unsigned *parserbuf_index, TFMINI_PARS
 		break;
 
 	case TFMINI_PARSE_STATE::STATE3_GOT_STRENGTH_H:
-		*state = TFMINI_PARSE_STATE::STATE4_GOT_RESERVED;
+		*state = TFMINI_PARSE_STATE::STATE4_GOT_CHIP_TEMPL;
 		parserbuf[*parserbuf_index] = c;
 		(*parserbuf_index)++;
 
 		break;
 
-	case TFMINI_PARSE_STATE::STATE4_GOT_RESERVED:
-		*state = TFMINI_PARSE_STATE::STATE5_GOT_QUALITY;
+	case TFMINI_PARSE_STATE::STATE4_GOT_CHIP_TEMPL:
+		*state = TFMINI_PARSE_STATE::STATE5_GOT_CHIP_TEMPH;
 		parserbuf[*parserbuf_index] = c;
 		(*parserbuf_index)++;
 
 		break;
 
-	case TFMINI_PARSE_STATE::STATE5_GOT_QUALITY:
+	case TFMINI_PARSE_STATE::STATE5_GOT_CHIP_TEMPH:
 		// Find the checksum
 		unsigned char cksm = 0;
 

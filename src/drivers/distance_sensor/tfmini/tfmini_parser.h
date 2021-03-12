@@ -37,12 +37,12 @@
  * @author Chuong Nguyen <chnguye7@asu.edu>
  * @author Ayush Gaud <ayush.gaud@gmail.com>
  *
- * Declarations of parser for the Benewake TFmini laser rangefinder series
+ * Declarations of parser for the Benewake TF LiDAR rangefinder series
  */
 
 #pragma once
 
-// Data Format for Benewake TFmini
+// Data Format for Benewake TF Series
 // ===============================
 // 9 bytes total per message:
 // 1) 0x59
@@ -51,8 +51,8 @@
 // 4) Dist_H (high 8bit)
 // 5) Strength_L (low 8bit)
 // 6) Strength_H (high 8bit)
-// 7) Reserved bytes
-// 8) Original signal quality degree
+// 7) Chip Temperature_L (low 8bit)
+// 8) Chip Temperature_H (high 8bit)
 // 9) Checksum parity bit (low 8bit), Checksum = Byte1 + Byte2 +...+Byte8. This is only a low 8bit though
 
 
@@ -64,8 +64,8 @@ enum class TFMINI_PARSE_STATE {
 	STATE2_GOT_DIST_H,
 	STATE3_GOT_STRENGTH_L,
 	STATE3_GOT_STRENGTH_H,
-	STATE4_GOT_RESERVED,
-	STATE5_GOT_QUALITY,
+	STATE4_GOT_CHIP_TEMPL,
+	STATE5_GOT_CHIP_TEMPH,
 	STATE6_GOT_CHECKSUM
 };
 
