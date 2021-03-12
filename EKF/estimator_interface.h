@@ -321,7 +321,7 @@ protected:
 	Vector2f _gps_pos_test_ratio;		// GPS position innovation consistency check ratios
 	Vector2f _ev_vel_test_ratio;		// EV velocity innovation consistency check ratios
 	Vector2f _ev_pos_test_ratio ;		// EV position innovation consistency check ratios
-	Vector2f _aux_vel_test_ratio;		// Auxiliray horizontal velocity innovation consistency check ratio
+	Vector2f _aux_vel_test_ratio;		// Auxiliary horizontal velocity innovation consistency check ratio
 	Vector2f _baro_hgt_test_ratio;		// baro height innovation consistency check ratios
 	Vector2f _rng_hgt_test_ratio;		// range finder height innovation consistency check ratios
 	float _optflow_test_ratio{};		// Optical flow innovation consistency check ratio
