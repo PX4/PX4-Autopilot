@@ -927,13 +927,22 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 {
 	// return the integer bitmask containing the consistency check pass/fail status
 	status = _innov_check_fail_status.value;
+
 	// return the largest magnetometer innovation test ratio
 	mag = sqrtf(math::max(_yaw_test_ratio, _mag_test_ratio.max()));
-	// return the largest velocity innovation test ratio
-	vel = math::max(sqrtf(math::max(_gps_vel_test_ratio(0), _gps_vel_test_ratio(1))),
-			sqrtf(math::max(_ev_vel_test_ratio(0), _ev_vel_test_ratio(1))));
-	// return the largest position innovation test ratio
-	pos = math::max(sqrtf(_gps_pos_test_ratio(0)), sqrtf(_ev_pos_test_ratio(0)));
+
+	// return the largest velocity and position innovation test ratio
+	if (_control_status.flags.gps) {
+		vel = sqrtf(math::max(_gps_vel_test_ratio(0), _gps_vel_test_ratio(1)));
+		pos = sqrtf(_gps_pos_test_ratio(0));
+	}
+	if (_control_status.flags.ev_vel) {
+		vel = math::max(vel, sqrtf(math::max(_ev_vel_test_ratio(0), _ev_vel_test_ratio(1))));
+		pos = math::max(pos, sqrtf(_ev_pos_test_ratio(0)));
+	}
+	if (isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow)) {
+		vel = sqrtf(_optflow_test_ratio);
+	}
 
 	// return the vertical position innovation test ratio
 	if (_control_status.flags.baro_hgt) {
@@ -951,8 +960,10 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 
 	// return the airspeed fusion innovation test ratio
 	tas = sqrtf(_tas_test_ratio);
+
 	// return the terrain height innovation test ratio
 	hagl = sqrtf(_hagl_test_ratio);
+
 	// return the synthetic sideslip innovation test ratio
 	beta = sqrtf(_beta_test_ratio);
 }
