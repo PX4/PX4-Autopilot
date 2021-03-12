@@ -132,6 +132,8 @@ private:
 
 	sensor_gyro_fft_s _sensor_gyro_fft{};
 
+	int32_t _imu_gyro_fft_len{256};
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::IMU_GYRO_FFT_LEN>) _param_imu_gyro_fft_len,
 		(ParamFloat<px4::params::IMU_GYRO_FFT_MIN>) _param_imu_gyro_fft_min,
