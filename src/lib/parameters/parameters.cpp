@@ -617,6 +617,34 @@ bool param_value_is_default(param_t param)
 	return false;
 }
 
+int
+param_get_system_default_value(param_t param, void *default_val)
+{
+	if (!handle_in_range(param)) {
+		return PX4_ERROR;
+	}
+
+	int ret = PX4_OK;
+	param_lock_reader();
+
+	switch (param_type(param)) {
+	case PARAM_TYPE_INT32:
+		memcpy(default_val, &px4::parameters[param].val.i, param_size(param));
+		break;
+
+	case PARAM_TYPE_FLOAT:
+		memcpy(default_val, &px4::parameters[param].val.f, param_size(param));
+		break;
+
+	default:
+		ret = PX4_ERROR;
+		break;
+	}
+
+	param_unlock_reader();
+	return ret;
+}
+
 /**
  * worker callback method to save the parameters
  * @param arg unused
