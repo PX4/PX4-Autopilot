@@ -151,5 +151,17 @@ if(EXISTS ${BOARD_DEFCONFIG})
             
             list(APPEND config_module_list examples/${example})
         endif()
+
+		# Find variable name
+		string(REGEX MATCH "^CONFIG_UAVCAN_INTERFACES" UAVCAN_INTERFACES ${NameAndValue})
+
+		# Temporary located here to maintain binary compatibility, have to be removed later
+		if(UAVCAN_INTERFACES)
+			# Find the value
+			string(REPLACE "${Name}=" "" Value ${NameAndValue})
+
+			set(config_uavcan_num_ifaces ${Value} CACHE INTERNAL "UAVCAN interfaces" FORCE)
+		endif()
+
     endforeach()
 endif()
