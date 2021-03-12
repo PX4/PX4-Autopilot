@@ -139,17 +139,17 @@ menuconfig DRIVERS_PWM_INPUT
 	---help---
 		Enable support for pwm input
 		
-menuconfig DRIVERS_PWM_OUT
-	bool "pwm out"
-	default n
-	---help---
-		Enable support for pwm out
-		
 menuconfig DRIVERS_PWM_OUT_SIM
 	bool "pwm out sim"
 	default n
 	---help---
 		Enable support for pwm out sim
+		
+menuconfig DRIVERS_PWM_OUT
+	bool "pwm out"
+	default n
+	---help---
+		Enable support for pwm out
 		
 menuconfig DRIVERS_PX4IO
 	bool "px4io"
