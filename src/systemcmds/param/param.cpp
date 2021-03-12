@@ -843,7 +843,7 @@ do_set_custom_default(const char *name, const char *val)
 				int32_t newval = strtol(val, &end, 10);
 
 				if ((i != newval) && (param_set_default_value(param, &newval) == PX4_OK)) {
-					PARAM_PRINT(" parameter default: %s %d -> %d\n", param_name(param), i, newval);
+					PX4_DEBUG(" parameter default: %s %d -> %d", param_name(param), i, newval);
 				}
 			}
 		}
@@ -859,7 +859,7 @@ do_set_custom_default(const char *name, const char *val)
 				float newval = strtod(val, &end);
 
 				if ((fabsf(f - newval) > FLT_EPSILON) && (param_set_default_value(param, &newval) == PX4_OK)) {
-					PARAM_PRINT(" parameter default: %s %4.2f -> %4.2f\n", param_name(param), (double)f, (double)newval);
+					PX4_DEBUG(" parameter default: %s %4.2f -> %4.2f", param_name(param), (double)f, (double)newval);
 				}
 			}
 		}
