@@ -223,6 +223,10 @@ menuconfig DRIVERS_UAVCAN
 	---help---
 		Enable support for uavcan
 		
+if DRIVERS_UAVCAN
+source "src/drivers/uavcan/Kconfig"
+endif #DRIVERS_UAVCAN
+
 menuconfig DRIVERS_UAVCAN_V1
 	bool "UAVCANv1"
 	default n
