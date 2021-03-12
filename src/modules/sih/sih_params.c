@@ -424,3 +424,13 @@ PARAM_DEFINE_FLOAT(SIH_DISTSNSR_MAX, 100.0f);
  * @group Simulation In Hardware
  */
 PARAM_DEFINE_FLOAT(SIH_DISTSNSR_OVR, -1.0f);
+
+/**
+ * thruster time constant tau
+ *
+ * the time taken for the thruster to step from 0 to 100% should be about 4 times tau
+ *
+ * @unit s
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_T_TAU, 0.05f);
