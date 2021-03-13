@@ -41,14 +41,14 @@
 #pragma once
 
 #include "VescProtocol.h"
-#include "VescWritable.hpp"
+#include "VescWritableInterface.hpp"
 #include <stdint.h>
 #include <stdio.h>
 
 class VescDriver
 {
 public:
-	VescDriver(VescWritable *vesc_writable) : _vesc_writable(vesc_writable) {};
+	VescDriver(VescWritableInterface &vesc_writable) : _vesc_writable(vesc_writable) {};
 	~VescDriver() = default;
 
 	void commandDutyCycle(float duty_cycle, const uint8_t forward_can_id = 0);
@@ -79,7 +79,7 @@ private:
 	float extractFloat32(const uint8_t *buffer, uint16_t &index);
 
 	// Write access to device through callback
-	VescWritable *_vesc_writable;
+	VescWritableInterface &_vesc_writable;
 
 	// Input packet parsing
 	size_t _input_byte_index{0}; ///< keeps track of the input packets parsing state

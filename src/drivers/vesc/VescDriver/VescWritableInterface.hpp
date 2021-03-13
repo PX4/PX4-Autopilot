@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file VescWritable.hpp
+ * @file VescWritableInterface.hpp
  * @brief Interface calls defining the write callback for VESC communication
  * @details To keep the driver cross-platform compatible the device owner class
  * needs to implement this interface and pass itself to the driver via constructor
@@ -43,12 +43,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
-class VescWritable
+class VescWritableInterface
 {
 public:
-	VescWritable() = default;
-	~VescWritable() = default;
 	virtual size_t writeCallback(const uint8_t *buffer, const uint16_t length) = 0;
-
-private:
 };

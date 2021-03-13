@@ -40,7 +40,7 @@
 #include "VescDriver/VescDriver.hpp"
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-class VescDevice : public px4::ScheduledWorkItem, public VescWritable
+class VescDevice : public px4::ScheduledWorkItem, public VescWritableInterface
 {
 public:
 	VescDevice(const char *port);

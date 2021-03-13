@@ -122,13 +122,7 @@ size_t VescDriver::sendPacket(const uint8_t *payload, uint16_t payload_length, c
 	packet_buffer[index++] = 3;
 
 	// Write bytes out through callback interface
-	size_t ret{0};
-
-	if (_vesc_writable) {
-		ret = _vesc_writable->writeCallback(packet_buffer, index);
-	}
-
-	return ret;
+	return _vesc_writable.writeCallback(packet_buffer, index);
 }
 
 void VescDriver::parseInputByte(uint8_t byte)

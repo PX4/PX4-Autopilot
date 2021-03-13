@@ -45,7 +45,7 @@ using namespace time_literals;
 
 VescDevice::VescDevice(const char *port) :
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
-	_vesc_driver(this)
+	_vesc_driver(*this)
 {
 	// Store port name
 	strncpy(_port, port, sizeof(_port) - 1);
