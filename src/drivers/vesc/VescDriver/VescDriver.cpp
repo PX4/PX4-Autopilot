@@ -39,6 +39,14 @@
 #include "VescDriver.hpp"
 #include <memory.h>
 
+void VescDriver::commandDutyCycle(float duty_cycle)
+{
+	uint8_t command[5] {VescCommand::SET_DUTY};
+	uint16_t index{1};
+	insertInt32(command, index, static_cast<int32_t>(duty_cycle * 100000.f));
+	sendPacket(command, 5);
+}
+
 void VescDriver::commandCurrent(float current)
 {
 	uint8_t command[5] {VescCommand::SET_CURRENT};

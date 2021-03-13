@@ -51,6 +51,7 @@ public:
 	VescDriver(VescWritable *vesc_writable) : _vesc_writable(vesc_writable) {};
 	~VescDriver() = default;
 
+	void commandDutyCycle(float duty_cycle);
 	void commandCurrent(float current);
 	void commandBrakeCurrent(float current);
 

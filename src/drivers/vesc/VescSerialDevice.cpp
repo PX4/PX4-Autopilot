@@ -79,7 +79,7 @@ void VescDevice::Run()
 	}
 
 	_vesc_driver.requestFirmwareVersion();
-	_vesc_driver.commandCurrent(.5f);
+	_vesc_driver.commandDutyCycle(.05f);
 
 	// Check the number of bytes available in the buffer
 	int bytes_available{0};
