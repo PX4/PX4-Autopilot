@@ -130,7 +130,7 @@ enum SMPL_PRD_BIT : uint16_t {
 	Time_base = Bit7, // 0 = 0.61035 ms, 1 = 18.921 ms
 	
 	// [6:0] Multiplier (NS)
-	Multiplier = Bit0, //  Sample period multiplier = 000001: tS = tB × (NS + 1) = 0.61035 × (1 + 1) = 1.2207 ms 
+	Sample_period_multiplier = Bit0, //  Ns = 000001: tS = tB × (NS + 1) = 0.61035 × (1 + 1) = 1.2207 ms 
 };
 
 // SENS_AVG
