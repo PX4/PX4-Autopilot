@@ -39,43 +39,57 @@
 #include "VescDriver.hpp"
 #include <memory.h>
 
-void VescDriver::commandDutyCycle(float duty_cycle)
+void VescDriver::commandDutyCycle(float duty_cycle, const uint8_t forward_can_id)
 {
 	uint8_t command[5] {VescCommand::SET_DUTY};
 	uint16_t index{1};
 	insertInt32(command, index, static_cast<int32_t>(duty_cycle * 100000.f));
-	sendPacket(command, 5);
+	sendPayload(command, 5, forward_can_id);
 }
 
-void VescDriver::commandCurrent(float current)
+void VescDriver::commandCurrent(float current, const uint8_t forward_can_id)
 {
 	uint8_t command[5] {VescCommand::SET_CURRENT};
 	uint16_t index{1};
 	insertInt32(command, index, static_cast<int32_t>(current * 1000.f));
-	sendPacket(command, 5);
+	sendPayload(command, 5, forward_can_id);
 }
 
-void VescDriver::commandBrakeCurrent(float current)
+void VescDriver::commandBrakeCurrent(float current, const uint8_t forward_can_id)
 {
 	uint8_t command[5] {VescCommand::SET_CURRENT_BRAKE};
 	uint16_t index{1};
 	insertInt32(command, index, static_cast<int32_t>(current * 1000.f));
-	sendPacket(command, 5);
+	sendPayload(command, 5, forward_can_id);
 }
 
 void VescDriver::requestFirmwareVersion()
 {
 	uint8_t command{VescCommand::FW_VERSION};
-	sendPacket(&command, 1);
+	sendPayload(&command, 1);
 }
 
 void VescDriver::requestValues()
 {
 	uint8_t command{VescCommand::GET_VALUES};
-	sendPacket(&command, 1);
+	sendPayload(&command, 1);
 }
 
-size_t VescDriver::sendPacket(const uint8_t *payload, const uint16_t payload_length)
+size_t VescDriver::sendPayload(const uint8_t *payload, const uint16_t payload_length, const uint8_t forward_can_id)
+{
+	if (forward_can_id == 0) {
+		return sendPacket(payload, payload_length);
+
+	} else {
+		uint8_t command[2 + payload_length] {VescCommand::FORWARD_CAN, forward_can_id};
+		uint16_t index{2};
+		memcpy(&command[index], payload, payload_length);
+		index += payload_length;
+		return sendPacket(command, 2 + payload_length);
+	}
+}
+
+size_t VescDriver::sendPacket(const uint8_t *payload, uint16_t payload_length, const uint8_t can_forwarding_id)
 {
 	if (payload_length == 0 || payload_length > MAXIMUM_PAYLOAD_LENGTH) {
 		return 0;

@@ -51,9 +51,9 @@ public:
 	VescDriver(VescWritable *vesc_writable) : _vesc_writable(vesc_writable) {};
 	~VescDriver() = default;
 
-	void commandDutyCycle(float duty_cycle);
-	void commandCurrent(float current);
-	void commandBrakeCurrent(float current);
+	void commandDutyCycle(float duty_cycle, const uint8_t forward_can_id = 0);
+	void commandCurrent(float current, const uint8_t forward_can_id = 0);
+	void commandBrakeCurrent(float current, const uint8_t forward_can_id = 0);
 
 	void requestFirmwareVersion();
 	void requestValues();
@@ -66,7 +66,8 @@ public:
 
 private:
 	// De-/serialize packets
-	size_t sendPacket(const uint8_t *payload, const uint16_t payload_length);
+	size_t sendPayload(const uint8_t *payload, const uint16_t payload_length, const uint8_t forward_can_id = 0);
+	size_t sendPacket(const uint8_t *payload, uint16_t payload_length, const uint8_t can_forwarding_id = 0);
 	void parsePayload(const uint8_t *payload, const uint16_t payload_length);
 	uint16_t crc16(const uint8_t *buffer, const uint16_t length);
 
