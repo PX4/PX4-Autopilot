@@ -121,7 +121,7 @@ private:
 	} _state{STATE::RESET};
 
 	uint8_t _checked_register{0};
-	static constexpr uint8_t size_register_cfg{3};
+	static constexpr uint8_t size_register_cfg{4};
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register               | Set bits, Clear bits
 		{ Register::SMPL_PRD,     SMPL_PRD_BIT::Sample_period_multiplier, SMPL_PRD_BIT::Time_base },
