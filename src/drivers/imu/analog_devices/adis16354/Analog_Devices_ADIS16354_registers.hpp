@@ -123,8 +123,8 @@ enum STATUS_BIT : uint16_t {
 enum COMMAND_BIT : uint16_t {
 	Software_reset = Bit7,
 };
-	
-// SMPL_PRD 
+
+// SMPL_PRD
 enum SMPL_PRD_BIT : uint16_t {
 	// (SMPL_PRD default = 0x0001 for sample rate setting of 819.2 SPS for ADIS16354)
 	Time_base = Bit7, // 0 = 0.61035 ms, 1 = 18.921 ms
