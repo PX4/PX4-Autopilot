@@ -123,7 +123,7 @@ private:
 	uint8_t _checked_register{0};
 	static constexpr uint8_t size_register_cfg{3};
 	register_config_t _register_cfg[size_register_cfg] {
-	  // Register                		| Set bits, Clear bits
+	  	// Register                	| Set bits, Clear bits
 	  	{ Register::SMPL_PRD,   	SMPL_PRD_BIT::Multiplier, SMPL_PRD_BIT::Time_base }, // Multiplier = 1, Time_base = 0
 		{ Register::SENS_AVG,   	SENS_AVG_BIT::Measurement_range_set | SENS_AVG_BIT::Number_of_filter_taps, SENS_AVG_BIT::Measurement_range_clear },
 		// Measurement_range_set = 1, Number_of_filter_taps = 1, Measurement_range_clear = 0, 0000 0100 0000 0010 (0x0402)
