@@ -123,9 +123,9 @@ private:
 	uint8_t _checked_register{0};
 	static constexpr uint8_t size_register_cfg{3};
 	register_config_t _register_cfg[size_register_cfg] {
-	  	// Register                	| Set bits, Clear bits
-	  	{ Register::SMPL_PRD,   	SMPL_PRD_BIT::Multiplier, SMPL_PRD_BIT::Time_base },
-		{ Register::SENS_AVG,   	SENS_AVG_BIT::Measurement_range_set | SENS_AVG_BIT::Number_of_filter_taps, SENS_AVG_BIT::Measurement_range_clear },
-		{ Register::GPIO_CTRL,   	GPIO_CTRL_BIT::GPIO2_DIRECTION | GPIO_CTRL_BIT::GPIO1_DIRECTION, 0},
+		// Register               | Set bits, Clear bits
+		{ Register::SMPL_PRD,     SMPL_PRD_BIT::Multiplier, SMPL_PRD_BIT::Time_base },
+		{ Register::SENS_AVG,     SENS_AVG_BIT::Measurement_range_set | SENS_AVG_BIT::Number_of_filter_taps, SENS_AVG_BIT::Measurement_range_clear },
+		{ Register::GPIO_CTRL,    GPIO_CTRL_BIT::GPIO2_DIRECTION | GPIO_CTRL_BIT::GPIO1_DIRECTION, 0},
 	};
 };
