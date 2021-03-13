@@ -270,7 +270,6 @@ void ADIS16354::RunImpl()
 			_px4_accel.set_temperature(temperature);
 			_px4_gyro.set_temperature(temperature);
 		}
-		
 		break;
 	}
 }
