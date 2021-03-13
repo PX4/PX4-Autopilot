@@ -126,14 +126,14 @@ enum COMMAND_BIT : uint16_t {
 
 // SMPL_PRD
 enum SMPL_PRD_BIT : uint16_t {
-	Time_base = Bit7,
+	Time_base = Bit7, // 0 = 0.61035 ms, 1 = 18.921 ms
 	Sample_period_multiplier = Bit0,
 };
 
 // SENS_AVG
 enum SENS_AVG_BIT : uint16_t {
 	// [10:8] Measurement range (sensitivity) selection
-	Measurement_range_set = Bit10, // [10:8] = [100] = ±300°/sec (default condition)
+	Measurement_range_set = Bit10, // [10:8] = [100] = 300°/sec (default condition)
 	Measurement_range_clear = Bit9 | Bit8,
 
 	// [2:0] Number of filter taps
