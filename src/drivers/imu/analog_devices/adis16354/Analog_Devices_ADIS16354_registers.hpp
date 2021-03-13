@@ -123,7 +123,7 @@ enum STATUS_BIT : uint16_t {
 enum COMMAND_BIT : uint16_t {
 	Software_reset = Bit7,
 };
-
+	
 // SMPL_PRD 
 enum SMPL_PRD_BIT : uint16_t {
 	// (SMPL_PRD default = 0x0001 for sample rate setting of 819.2 SPS for ADIS16354)
@@ -141,7 +141,6 @@ enum SENS_AVG_BIT : uint16_t {
 
 	// [2:0] Number of filter taps
 	Number_of_filter_taps = Bit1, // N = 2^M = 2^2 = 4 (bandwidth < 350 Hz)
-
 };
 
 // GPIO_CTRL
