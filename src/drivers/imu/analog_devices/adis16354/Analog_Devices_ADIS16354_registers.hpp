@@ -83,13 +83,13 @@ enum class Register : uint16_t {
 	YTEMP_OUT  = 0x13, // Y-axis gyro temperature measurement
 	ZTEMP_OUT  = 0x15, // Z-axis gyro temperature measurement
 	AUX_ADC    = 0x17, // Auxiliary ADC output
-	
+
 	GPIO_CTRL  = 0x32, // Auxiliary digital input/output control
-	
+
 	MSC_CTRL   = 0x34, // Miscellaneous control
 	SMPL_PRD   = 0x36, // Internal sample period (rate) control
 	SENS_AVG   = 0x38, // Dynamic range and digital filter control
-	
+
 	STATUS     = 0x3C, // System status
 	COMMAND    = 0x3E, // System command
 };
@@ -126,11 +126,8 @@ enum COMMAND_BIT : uint16_t {
 
 // SMPL_PRD
 enum SMPL_PRD_BIT : uint16_t {
-	// (SMPL_PRD default = 0x0001 for sample rate setting of 819.2 SPS for ADIS16354)
-	Time_base = Bit7, // 0 = 0.61035 ms, 1 = 18.921 ms
-	
-	// [6:0] Multiplier (NS)
-	Sample_period_multiplier = Bit0, //  Ns = 000001: tS = tB × (NS + 1) = 0.61035 × (1 + 1) = 1.2207 ms 
+	Time_base = Bit7,
+	Sample_period_multiplier = Bit0,
 };
 
 // SENS_AVG
