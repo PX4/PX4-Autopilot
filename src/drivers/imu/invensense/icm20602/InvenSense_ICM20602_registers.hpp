@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -196,6 +196,7 @@ struct DATA {
 	uint8_t GYRO_ZOUT_H;
 	uint8_t GYRO_ZOUT_L;
 };
+static constexpr uint8_t MAX_SAMPLES{SIZE / sizeof(DATA)};
 }
 
 } // namespace InvenSense_ICM20602

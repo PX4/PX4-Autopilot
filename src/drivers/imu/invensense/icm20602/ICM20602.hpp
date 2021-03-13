@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -101,6 +101,7 @@ private:
 
 	bool Reset();
 
+	bool CheckConfiguration();
 	bool Configure();
 	void ConfigureAccel();
 	void ConfigureGyro();
@@ -143,16 +144,18 @@ private:
 	int _failure_count{0};
 
 	px4::atomic<uint32_t> _drdy_fifo_read_samples{0};
+	hrt_abstime _drdy_fifo_watermark_timestamp{0};
 	bool _data_ready_interrupt_enabled{false};
+
+	hrt_abstime _last_successful_read{0};
 
 	enum class STATE : uint8_t {
 		RESET,
 		WAIT_FOR_RESET,
 		CONFIGURE,
+		CHECK_CONFIGURATION,
 		FIFO_READ,
-	};
-
-	STATE _state{STATE::RESET};
+	} _state{STATE::RESET};
 
 	uint16_t _fifo_empty_interval_us{1250}; // default 1250 us / 800 Hz transfer interval
 	uint32_t _fifo_gyro_samples{static_cast<uint32_t>(_fifo_empty_interval_us / (1000000 / GYRO_RATE))};

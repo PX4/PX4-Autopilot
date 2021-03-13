@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -74,7 +74,21 @@ int ICM20602::init()
 		return ret;
 	}
 
-	return Reset() ? 0 : -1;
+	_state = STATE::CHECK_CONFIGURATION;
+	ScheduleNow();
+	return 0;
+}
+
+int ICM20602::probe()
+{
+	const uint8_t whoami = RegisterRead(Register::WHO_AM_I);
+
+	if (whoami != WHOAMI) {
+		DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x", whoami);
+		return PX4_ERROR;
+	}
+
+	return PX4_OK;
 }
 
 bool ICM20602::Reset()
@@ -104,18 +118,6 @@ void ICM20602::print_status()
 	perf_print_counter(_fifo_overflow_perf);
 	perf_print_counter(_fifo_reset_perf);
 	perf_print_counter(_drdy_missed_perf);
-}
-
-int ICM20602::probe()
-{
-	const uint8_t whoami = RegisterRead(Register::WHO_AM_I);
-
-	if (whoami != WHOAMI) {
-		DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x", whoami);
-		return PX4_ERROR;
-	}
-
-	return PX4_OK;
 }
 
 void ICM20602::RunImpl()
@@ -168,20 +170,8 @@ void ICM20602::RunImpl()
 	case STATE::CONFIGURE:
 		if (Configure()) {
 			// if configure succeeded then start reading from FIFO
-			_state = STATE::FIFO_READ;
-
-			if (DataReadyInterruptConfigure()) {
-				_data_ready_interrupt_enabled = true;
-
-				// backup schedule as a watchdog timeout
-				ScheduleDelayed(100_ms);
-
-			} else {
-				_data_ready_interrupt_enabled = false;
-				ScheduleOnInterval(_fifo_empty_interval_us, _fifo_empty_interval_us);
-			}
-
-			FIFOReset();
+			_state = STATE::CHECK_CONFIGURATION;
+			ScheduleNow();
 
 		} else {
 			// CONFIGURE not complete
@@ -198,23 +188,59 @@ void ICM20602::RunImpl()
 
 		break;
 
+	case STATE::CHECK_CONFIGURATION:
+		if (CheckConfiguration()) {
+			// if configuration is correct then start reading from FIFO
+			_state = STATE::FIFO_READ;
+
+			if (DataReadyInterruptConfigure()) {
+				_data_ready_interrupt_enabled = true;
+
+				// backup schedule as a watchdog timeout
+				ScheduleDelayed(100_ms);
+
+			} else {
+				_data_ready_interrupt_enabled = false;
+				ScheduleOnInterval(_fifo_empty_interval_us, _fifo_empty_interval_us);
+			}
+
+			ScheduleNow();
+
+		} else {
+			// not fully configured, try again
+			_state = STATE::CONFIGURE;
+			ScheduleDelayed(10_ms);
+		}
+
+		break;
+
 	case STATE::FIFO_READ: {
+			hrt_abstime timestamp_sample = 0;
 			uint32_t samples = 0;
 
 			if (_data_ready_interrupt_enabled) {
-				// scheduled from interrupt if _drdy_fifo_read_samples was set as expected
-				if (_drdy_fifo_read_samples.fetch_and(0) != _fifo_gyro_samples) {
-					perf_count(_drdy_missed_perf);
+				auto flags = px4_enter_critical_section();
+
+				if ((_drdy_fifo_read_samples.fetch_and(0) == _fifo_gyro_samples)
+				    && (hrt_elapsed_time(&_drdy_fifo_watermark_timestamp) < (FIFO_SAMPLE_DT * 2))) {
+
+					if (hrt_elapsed_time(&_last_successful_read) > (_fifo_empty_interval_us / 2)) {
+						// only use if the last transfer wasn't too recent
+						timestamp_sample = _drdy_fifo_watermark_timestamp;
+						samples = _fifo_gyro_samples;
+					}
 
 				} else {
-					samples = _fifo_gyro_samples;
+					perf_count(_drdy_missed_perf);
 				}
+
+				px4_leave_critical_section(flags);
 
 				// push backup schedule back
 				ScheduleDelayed(_fifo_empty_interval_us * 2);
 			}
 
-			if (samples == 0) {
+			if ((samples == 0) || (timestamp_sample == 0)) {
 				// check current FIFO count
 				const uint16_t fifo_count = FIFOReadCount();
 
@@ -234,6 +260,9 @@ void ICM20602::RunImpl()
 						FIFOReset();
 						perf_count(_fifo_overflow_perf);
 						samples = 0;
+
+					} else {
+						timestamp_sample = now;
 					}
 				}
 			}
@@ -241,7 +270,7 @@ void ICM20602::RunImpl()
 			bool success = false;
 
 			if (samples >= SAMPLES_PER_TRANSFER) {
-				if (FIFORead(now, samples)) {
+				if (FIFORead(timestamp_sample, samples)) {
 					success = true;
 
 					if (_failure_count > 0) {
@@ -367,14 +396,8 @@ void ICM20602::ConfigureFIFOWatermark(uint8_t samples)
 	}
 }
 
-bool ICM20602::Configure()
+bool ICM20602::CheckConfiguration()
 {
-	// first set and clear all configured register bits
-	for (const auto &reg_cfg : _register_cfg) {
-		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
-	}
-
-	// now check that all are configured
 	bool success = true;
 
 	for (const auto &reg_cfg : _register_cfg) {
@@ -385,6 +408,19 @@ bool ICM20602::Configure()
 
 	ConfigureAccel();
 	ConfigureGyro();
+
+	return success;
+}
+
+bool ICM20602::Configure()
+{
+	// first set and clear all configured register bits
+	for (const auto &reg_cfg : _register_cfg) {
+		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
+	}
+
+	// now check that all are configured
+	bool success = CheckConfiguration();
 
 	return success;
 }
@@ -400,6 +436,7 @@ void ICM20602::DataReady()
 	uint32_t expected = 0;
 
 	if (_drdy_fifo_read_samples.compare_exchange(&expected, _fifo_gyro_samples)) {
+		hrt_store_absolute_time(&_drdy_fifo_watermark_timestamp);
 		ScheduleNow();
 	}
 }
@@ -509,6 +546,8 @@ bool ICM20602::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 	const uint8_t valid_samples = math::min(samples, fifo_count_samples);
 
 	if (valid_samples > 0) {
+		_last_successful_read = timestamp_sample;
+
 		// use raw temperature to first validate FIFO transfer
 		if (ProcessTemperature(buffer.f, valid_samples)) {
 			ProcessGyro(timestamp_sample, buffer.f, valid_samples);
