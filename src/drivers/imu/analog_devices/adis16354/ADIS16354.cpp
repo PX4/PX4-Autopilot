@@ -254,14 +254,14 @@ void ADIS16354::RunImpl()
 
 			const int16_t gyro_x = convert14BitToINT16(RegisterRead(Register::XGYRO_OUT));
 			const int16_t gyro_y_unflipped = convert14BitToINT16(RegisterRead(Register::YGYRO_OUT));
-		        const int16_t gyro_y = (gyro_y_unflipped == INT16_MIN) ? INT16_MAX : -gyro_y_unflipped;
+			const int16_t gyro_y = (gyro_y_unflipped == INT16_MIN) ? INT16_MAX : -gyro_y_unflipped;
 			const int16_t gyro_z_unflipped = convert14BitToINT16(RegisterRead(Register::ZGYRO_OUT));
 			const int16_t gyro_z = (gyro_z_unflipped == INT16_MIN) ? INT16_MAX : -gyro_z_unflipped;
 
 			_px4_accel.update(now, accel_x, accel_y, accel_z);
 			_px4_gyro.update(now, gyro_x, gyro_y, gyro_z);
 
-			// temperature 0.145 °C/LSB, 25 °C = 0x000
+			// temperature 0.145 Â°C/LSB, 25 Â°C = 0x000
 			const float x_gyro_temperature = (convert12BitToINT16(RegisterRead(Register::XTEMP_OUT)) * 0.145f) + 25.f;
 			const float y_gyro_temperature = (convert12BitToINT16(RegisterRead(Register::YTEMP_OUT)) * 0.145f) + 25.f;
 			const float z_gyro_temperature = (convert12BitToINT16(RegisterRead(Register::ZTEMP_OUT)) * 0.145f) + 25.f;
@@ -269,7 +269,6 @@ void ADIS16354::RunImpl()
 
 			_px4_accel.set_temperature(temperature);
 			_px4_gyro.set_temperature(temperature);
-
 		break;
 	}
 }
@@ -291,10 +290,10 @@ bool ADIS16354::Configure()
 	}
 
 	_px4_accel.set_scale(0.467f * 1e-3f * CONSTANTS_ONE_G); // 0.467 mg/LSB
-	_px4_gyro.set_scale(math::radians(0.0733f));            // 0.0733 °/sec/LSB
+	_px4_gyro.set_scale(math::radians(0.0733f));            // 0.0733 Â°/sec/LSB
 
-	_px4_accel.set_range(1.7.f * CONSTANTS_ONE_G); // ±1.7 g
-	_px4_gyro.set_range(math::radians(300.f)); // ±300 °/s
+	_px4_accel.set_range(1.7.f * CONSTANTS_ONE_G); // 1.7 g
+	_px4_gyro.set_range(math::radians(300.f)); // 300 Â°/s
 
 	return success;
 }
