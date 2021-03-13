@@ -72,24 +72,24 @@ static constexpr uint32_t SAMPLE_INTERVAL_US = (1e6f / 819.2f); // ~819.2 Hz
 
 
 enum class Register : uint16_t {
-        SUPPLY_OUT = 0x03, // Power supply measurement
-        XGYRO_OUT  = 0x05, // X-axis gyro output
-        YGYRO_OUT  = 0x07, // Y-axis gyro output
-        ZGYRO_OUT  = 0x09, // Z-axis gyro output
-        XACCL_OUT  = 0x0B, // X-axis accelerometer output
-        YACCL_OUT  = 0x0D, // Y-axis accelerometer output
-        ZACCL_OUT  = 0x0F, // Z-axis accelerometer output
-        XTEMP_OUT  = 0x11, // X-axis gyro temperature measurement
-        YTEMP_OUT  = 0x13, // Y-axis gyro temperature measurement
-        ZTEMP_OUT  = 0x15, // Z-axis gyro temperature measurement
-        AUX_ADC    = 0x17, // Auxiliary ADC output
-  
+	SUPPLY_OUT = 0x03, // Power supply measurement
+	XGYRO_OUT  = 0x05, // X-axis gyro output
+	YGYRO_OUT  = 0x07, // Y-axis gyro output
+	ZGYRO_OUT  = 0x09, // Z-axis gyro output
+	XACCL_OUT  = 0x0B, // X-axis accelerometer output
+	YACCL_OUT  = 0x0D, // Y-axis accelerometer output
+	ZACCL_OUT  = 0x0F, // Z-axis accelerometer output
+	XTEMP_OUT  = 0x11, // X-axis gyro temperature measurement
+	YTEMP_OUT  = 0x13, // Y-axis gyro temperature measurement
+	ZTEMP_OUT  = 0x15, // Z-axis gyro temperature measurement
+	AUX_ADC    = 0x17, // Auxiliary ADC output
+	
 	GPIO_CTRL  = 0x32, // Auxiliary digital input/output control
-
+	
 	MSC_CTRL   = 0x34, // Miscellaneous control
 	SMPL_PRD   = 0x36, // Internal sample period (rate) control
 	SENS_AVG   = 0x38, // Dynamic range and digital filter control
-
+	
 	STATUS     = 0x3C, // System status
 	COMMAND    = 0x3E, // System command
 };
@@ -126,9 +126,9 @@ enum COMMAND_BIT : uint16_t {
 
 // SMPL_PRD 
 enum SMPL_PRD_BIT : uint16_t {
-  	// (SMPL_PRD default = 0x0001 for sample rate setting of 819.2 SPS for ADIS16354)
-        Time_base = Bit7, // 0 = 0.61035 ms, 1 = 18.921 ms
-  
+	// (SMPL_PRD default = 0x0001 for sample rate setting of 819.2 SPS for ADIS16354)
+	Time_base = Bit7, // 0 = 0.61035 ms, 1 = 18.921 ms
+	
 	// [6:0] Multiplier (NS)
 	Multiplier = Bit0, //  Sample period multiplier = 000001: tS = tB × (NS + 1) = 0.61035 × (1 + 1) = 1.2207 ms 
 };
