@@ -44,7 +44,7 @@ class VescDevice : public px4::ScheduledWorkItem, public VescWritable
 {
 public:
 	VescDevice(const char *port);
-	~VescDevice() = default;
+	~VescDevice();
 	int init();
 	void print_info();
 
@@ -57,4 +57,5 @@ private:
 	char _port[20] {};
 	int _serial_fd{-1};
 	VescDriver _vesc_driver;
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 };

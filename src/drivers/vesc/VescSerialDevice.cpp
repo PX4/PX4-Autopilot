@@ -54,6 +54,11 @@ VescDevice::VescDevice(const char *port) :
 	_port[sizeof(_port) - 1] = '\0';
 }
 
+VescDevice::~VescDevice()
+{
+	perf_free(_cycle_perf);
+}
+
 int VescDevice::init()
 {
 	int ret = setBaudrate(115200);
@@ -69,16 +74,19 @@ void VescDevice::print_info()
 {
 	printf("Using port '%s'\n", _port);
 	printf("VESC version: %d.%d\n", _vesc_driver.getVersionMajor(), _vesc_driver.getVersionMinor());
+	perf_print_counter(_cycle_perf);
 }
 
 void VescDevice::Run()
 {
+	perf_begin(_cycle_perf);
+
 	if (_serial_fd < 0) {
 		// Reopen fd from the work queue context
 		_serial_fd = ::open(_port, O_RDWR | O_NOCTTY);
+		_vesc_driver.requestFirmwareVersion();
 	}
 
-	_vesc_driver.requestFirmwareVersion();
 	_vesc_driver.commandDutyCycle(.05f);
 
 	// Check the number of bytes available in the buffer
@@ -107,6 +115,7 @@ void VescDevice::Run()
 	}
 
 	// TODO: ::close(_serial_fd); on exit
+	perf_end(_cycle_perf);
 }
 
 int VescDevice::setBaudrate(const unsigned baudrate)
