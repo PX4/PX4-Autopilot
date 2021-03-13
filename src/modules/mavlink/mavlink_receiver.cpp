@@ -1398,7 +1398,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 
 			// TODO: review use case
 			attitude_setpoint.yaw_sp_move_rate = (type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_YAW_RATE_IGNORE) ?
-							     attitude_target.body_yaw_rate : NAN;
+							     NAN : attitude_target.body_yaw_rate;
 
 			if (!(attitude_target.type_mask & ATTITUDE_TARGET_TYPEMASK_THROTTLE_IGNORE)) {
 				fill_thrust(attitude_setpoint.thrust_body, vehicle_status.vehicle_type, attitude_target.thrust);
