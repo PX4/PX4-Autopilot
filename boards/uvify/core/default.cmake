@@ -48,6 +48,7 @@ px4_add_board(
 		ekf2
 		events
 		flight_mode_manager
+		gyro_calibration
 		gyro_fft
 		land_detector
 		landing_target_estimator
@@ -59,6 +60,7 @@ px4_add_board(
 		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
+		#micrortps_bridge
 		navigator
 		rc_update
 		sensors
@@ -70,6 +72,7 @@ px4_add_board(
 		dmesg
 		dumpfile
 		esc_calib
+		gpio
 		hardfault_log
 		i2cdetect
 		led_control
@@ -85,6 +88,7 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
+		serial_test
 		system_time
 		top
 		topic_listener
