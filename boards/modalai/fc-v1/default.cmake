@@ -28,7 +28,7 @@ px4_add_board(
 		imu/invensense/icm20602
 		imu/invensense/icm42688p
 		irlock
-		lights/blinkm
+		#lights/blinkm
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		magnetometer # all available magnetometer drivers
@@ -43,6 +43,7 @@ px4_add_board(
 		pwm_out
 		rc_input
 		roboclaw
+		rpm
 		safety_button
 		telemetry # all available telemetry drivers
 		test_ppm
@@ -71,12 +72,15 @@ px4_add_board(
 		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
+		#micrortps_bridge
 		navigator
 		rc_update
 		rover_pos_control
 		sensors
 		sih
 		temperature_compensation
+		uuv_att_control
+		uuv_pos_control
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
@@ -84,6 +88,7 @@ px4_add_board(
 		dmesg
 		dumpfile
 		esc_calib
+		gpio
 		hardfault_log
 		i2cdetect
 		led_control
@@ -110,6 +115,8 @@ px4_add_board(
 		work_queue
 	EXAMPLES
 		fake_gps
+		fake_gyro
+		fake_magnetometer
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		hwtest # Hardware test

@@ -164,7 +164,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
 
-
 	/* initial LED state */
 	drv_led_start();
 	led_off(LED_RED);
@@ -195,7 +194,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #endif /* CONFIG_MMCSD */
 
 	/* Configure the HW based on the manifest */
-
 	px4_platform_configure();
 
 	return OK;

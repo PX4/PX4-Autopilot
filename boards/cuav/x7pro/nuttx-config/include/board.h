@@ -220,55 +220,61 @@
 
 #define STM32_SDMMC_CLKCR_EDGE      STM32_SDMMC_CLKCR_NEGEDGE
 
+
 /* UART/USART */
-#define GPIO_USART1_RX   GPIO_USART1_RX_3      /* PB7 */
-#define GPIO_USART1_TX   GPIO_USART1_TX_3      /* PB6 */
+#define GPIO_USART1_TX   GPIO_USART1_TX_3      /* PB6  */
+#define GPIO_USART1_RX   GPIO_USART1_RX_3      /* PB7  */
 
-#define GPIO_USART2_RX   GPIO_USART2_RX_2      /* PD6 */
-#define GPIO_USART2_TX   GPIO_USART2_TX_2      /* PD5 */
-#define GPIO_USART2_RTS  GPIO_USART2_RTS_2     /* PD4 */
-#define GPIO_USART2_CTS  GPIO_USART2_CTS_NSS_2 /* PD3 */
+#define GPIO_USART2_CTS  GPIO_USART2_CTS_NSS_2 /* PD3  */
+#define GPIO_USART2_RTS  GPIO_USART2_RTS_2     /* PD4  */
+#define GPIO_USART2_TX   GPIO_USART2_TX_2      /* PD5  */
+#define GPIO_USART2_RX   GPIO_USART2_RX_2      /* PD6  */
 
-#define GPIO_UART4_RX    GPIO_UART4_RX_5       /* PD0 */
-#define GPIO_UART4_TX    GPIO_UART4_TX_5       /* PD1 */
+#define GPIO_UART4_TX    GPIO_UART4_TX_5       /* PD1  */
+#define GPIO_UART4_RX    GPIO_UART4_RX_5       /* PD0  */
 
-#define GPIO_USART6_RX   GPIO_USART6_RX_2      /* PG9  */
 #define GPIO_USART6_TX   GPIO_USART6_TX_2      /* PG14 */
+#define GPIO_USART6_RX   GPIO_USART6_RX_2      /* PG9  */
 #define GPIO_USART6_RTS  GPIO_USART6_RTS_2     /* PG8  */
 #define GPIO_USART6_CTS  GPIO_USART6_CTS_NSS_2 /* PG15 */
 
-#define GPIO_UART7_RX    GPIO_UART7_RX_4       /* PF6 */
-#define GPIO_UART7_TX    GPIO_UART7_TX_3       /* PE8 */
+#define GPIO_UART7_TX    GPIO_UART7_TX_3       /* PE8  */
+#define GPIO_UART7_RX    GPIO_UART7_RX_4       /* PF6  */
 
-#define GPIO_UART8_RX    GPIO_UART8_RX_1       /* PE0 */
-#define GPIO_UART8_TX    GPIO_UART8_TX_1       /* PE1 */
+#define GPIO_UART8_TX    GPIO_UART8_TX_1       /* PE1  */
+#define GPIO_UART8_RX    GPIO_UART8_RX_1       /* PE0  */
+
 
 /* CAN */
-#define GPIO_CAN1_RX     GPIO_CAN1_RX_5        /* PI9  */
 #define GPIO_CAN1_TX     GPIO_CAN1_TX_4        /* PH13 */
+#define GPIO_CAN1_RX     GPIO_CAN1_RX_5        /* PI9  */
 #define GPIO_CAN2_RX     GPIO_CAN2_RX_1        /* PB12 */
 #define GPIO_CAN2_TX     GPIO_CAN2_TX_1        /* PB13 */
 
+
 /* SPI */
-#define GPIO_SPI1_SCK    GPIO_SPI1_SCK_3    /* PG11 */
-#define GPIO_SPI1_MISO   GPIO_SPI1_MISO_1   /* PA6 */
-#define GPIO_SPI1_MOSI   GPIO_SPI1_MOSI_3   /* PD7 */
+#define ADJ_SLEW_RATE(p) (((p) & ~GPIO_SPEED_MASK) | (GPIO_SPEED_2MHz))
 
-#define GPIO_SPI2_SCK    GPIO_SPI2_SCK_6    /* PI1 */
-#define GPIO_SPI2_MISO   GPIO_SPI2_MISO_3   /* PI2 */
-#define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_4   /* PI3 */
+#define GPIO_SPI1_SCK    ADJ_SLEW_RATE(GPIO_SPI1_SCK_3) /* PG11 */
+#define GPIO_SPI1_MISO   GPIO_SPI1_MISO_1               /* PA6  */
+#define GPIO_SPI1_MOSI   GPIO_SPI1_MOSI_3               /* PD7  */
 
-#define GPIO_SPI4_SCK    GPIO_SPI4_SCK_2    /* PE2 */
-#define GPIO_SPI4_MISO   GPIO_SPI4_MISO_1   /* PE13 */
-#define GPIO_SPI4_MOSI   GPIO_SPI4_MOSI_2   /* PE6 */
+#define GPIO_SPI2_SCK    ADJ_SLEW_RATE(GPIO_SPI2_SCK_6) /* PI1  */
+#define GPIO_SPI2_MISO   GPIO_SPI2_MISO_3               /* PI2  */
+#define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_4               /* PI3  */
 
-#define GPIO_SPI5_SCK    GPIO_SPI5_SCK_1    /* PF7 */
-#define GPIO_SPI5_MISO   GPIO_SPI5_MISO_1   /* PF8 */
-#define GPIO_SPI5_MOSI   GPIO_SPI5_MOSI_2   /* PF9 */
+#define GPIO_SPI4_SCK    ADJ_SLEW_RATE(GPIO_SPI4_SCK_2) /* PE2  */
+#define GPIO_SPI4_MISO   GPIO_SPI4_MISO_1               /* PE13 */
+#define GPIO_SPI4_MOSI   GPIO_SPI4_MOSI_2               /* PE6  */
 
-#define GPIO_SPI6_SCK    GPIO_SPI6_SCK_1    /* PG13 */
-#define GPIO_SPI6_MISO   GPIO_SPI6_MISO_1   /* PG12 */
-#define GPIO_SPI6_MOSI   GPIO_SPI6_MOSI_2   /* PA7 */
+#define GPIO_SPI5_SCK    ADJ_SLEW_RATE(GPIO_SPI5_SCK_1) /* PF7  */
+#define GPIO_SPI5_MISO   GPIO_SPI5_MISO_1               /* PF8  */
+#define GPIO_SPI5_MOSI   GPIO_SPI5_MOSI_2               /* PF9  */
+
+#define GPIO_SPI6_SCK    ADJ_SLEW_RATE(GPIO_SPI6_SCK_1) /* PG13 */
+#define GPIO_SPI6_MISO   GPIO_SPI6_MISO_1               /* PG12 */
+#define GPIO_SPI6_MOSI   GPIO_SPI6_MOSI_2               /* PA7  */
+
 
 /* I2C */
 #define GPIO_I2C1_SCL GPIO_I2C1_SCL_2       /* PB8  */

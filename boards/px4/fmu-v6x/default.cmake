@@ -10,7 +10,7 @@ px4_add_board(
 	BUILD_BOOTLOADER
 	IO px4_io-v2_default
 	TESTING
-#	UAVCAN_INTERFACES 2  - No H7 or FD can support in UAVCAN
+	UAVCAN_INTERFACES 2
 	SERIAL_PORTS
 		GPS1:/dev/ttyS0
 		TEL1:/dev/ttyS6
@@ -30,8 +30,6 @@ px4_add_board(
 		heater
 		#imu # all available imu drivers
 		imu/analog_devices/adis16448
-		imu/adis16477
-		imu/adis16497
 		imu/bosch/bmi088
 		imu/invensense/icm20649
 		irlock
@@ -44,8 +42,7 @@ px4_add_board(
 		pca9685
 		power_monitor/ina226
 		#protocol_splitter
-#		pwm_input  - Need to create arch/stm32 arch/stm32h7 arch/kinetis and reloacate
-#					   all arch dependant code there
+		#pwm_input  - Need to create arch/stm32 arch/stm32h7
 		pwm_out_sim
 		pwm_out
 		px4io
@@ -56,10 +53,11 @@ px4_add_board(
 		telemetry # all available telemetry drivers
 		test_ppm
 		tone_alarm
-#		uavcan - No H7 or FD can support in UAVCAN yet
+		uavcan
 	MODULES
 		airspeed_selector
 		attitude_estimator_q
+		#battery_status
 		camera_feedback
 		commander
 		dataman
@@ -94,6 +92,7 @@ px4_add_board(
 		dmesg
 		dumpfile
 		esc_calib
+		gpio
 		hardfault_log
 		i2cdetect
 		led_control
@@ -109,6 +108,7 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
+		serial_test
 		system_time
 		tests # tests and test runner
 		top
@@ -118,7 +118,6 @@ px4_add_board(
 		usb_connected
 		ver
 		work_queue
-		serial_test
 	EXAMPLES
 		fake_gps
 		fake_magnetometer

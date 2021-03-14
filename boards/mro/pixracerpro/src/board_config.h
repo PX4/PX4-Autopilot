@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -58,29 +58,30 @@
 	/* PA2 */  GPIO_ADC12_INP14,  \
 	/* PA3 */  GPIO_ADC12_INP15,  \
 	/* PA4 */  GPIO_ADC12_INP18,  \
-	/* PC1 */  GPIO_ADC123_INN10
+	/* PC1 */  GPIO_ADC123_INP11
 
-/* Define Channel numbers must match above GPIO pin */
-#define ADC_BATTERY_VOLTAGE_CHANNEL        14 /* PA2 BATT_VOLT_SENS */
-#define ADC_BATTERY_CURRENT_CHANNEL        15 /* PA3 BATT_CURRENT_SENS */
-#define ADC_SCALED_V5_CHANNEL              18 /* PA4 VDD_5V_SENS */
-#define ADC_RSSI_IN_CHANNEL                10 /* PC1 */
+/* Define Channel numbers must match above GPIO pins */
+#define ADC_BATTERY_VOLTAGE_CHANNEL       14 /* PA2 BATT_VOLT_SENS */
+#define ADC_BATTERY_CURRENT_CHANNEL       15 /* PA3 BATT_CURRENT_SENS */
+#define ADC_SCALED_V5_CHANNEL             18 /* PA4 VDD_5V_SENS */
+#define ADC_RC_RSSI_CHANNEL               11 /* PC1 */
 
 #define ADC_CHANNELS \
 	((1 << ADC_BATTERY_VOLTAGE_CHANNEL)       | \
 	 (1 << ADC_BATTERY_CURRENT_CHANNEL)       | \
 	 (1 << ADC_SCALED_V5_CHANNEL)             | \
-	 (1 << ADC_RSSI_IN_CHANNEL))
+	 (1 << ADC_RC_RSSI_CHANNEL))
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
 #define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
 
 /* CAN Silence: Silent mode control */
-#define GPIO_CAN1_SILENT_S0  /* PF11 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTF|GPIO_PIN11)
-#define GPIO_CAN2_SILENT_S0  /* PF14 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTF|GPIO_PIN14)
+#define GPIO_CAN1_SILENT_S0     /* PF11 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTF|GPIO_PIN11)
+#define GPIO_CAN2_SILENT_S0     /* PF14 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTF|GPIO_PIN14)
 
-#define GPIO_LEVEL_SHIFTER_OE /* PI3 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTI|GPIO_PIN3)
-#define GPIO_PWM_VOLT_SEL     /* PG6 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN6)
+#define GPIO_LEVEL_SHIFTER_OE   /* PI3  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTI|GPIO_PIN3)
+#define GPIO_VDD_3V3_SENSORS_EN /* PE3  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN3)
+#define GPIO_PWM_VOLT_SEL       /* PG6  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN6)
 
 /* PWM */
 #define DIRECT_PWM_OUTPUT_CHANNELS  8
@@ -118,7 +119,7 @@
 #define GPIO_PPM_IN             /* PB0 T3C3 */ GPIO_TIM3_CH3IN_1
 
 /* RC Serial port */
-#define RC_SERIAL_PORT          "/dev/ttyS3"
+#define RC_SERIAL_PORT          "/dev/ttyS4"
 
 #define GPIO_RSSI_IN            /* PC1  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN1)
 
@@ -148,7 +149,7 @@
 
 #define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 #define BOARD_NUM_IO_TIMERS 3
-#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5};
+#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5, 6, 7};
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120 /* This board provides a DMA pool and APIs */
 #define BOARD_HAS_ON_RESET 1 /* This board provides the board_on_reset interface */
 #define BOARD_ENABLE_CONSOLE_BUFFER
@@ -162,6 +163,7 @@
 		GPIO_CAN1_SILENT_S0,              \
 		GPIO_CAN2_SILENT_S0,              \
 		GPIO_LEVEL_SHIFTER_OE,            \
+		GPIO_VDD_3V3_SENSORS_EN,          \
 		GPIO_PWM_VOLT_SEL,                \
 		GPIO_nPOWER_IN_A,                 \
 		GPIO_VDD_3V3_SPEKTRUM_POWER_EN,   \

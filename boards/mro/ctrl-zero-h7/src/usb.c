@@ -37,21 +37,10 @@
  * Board-specific USB functions.
  */
 
-#include <px4_platform_common/px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <debug.h>
-
+#include "board_config.h"
 #include <nuttx/usb/usbdev.h>
 #include <nuttx/usb/usbdev_trace.h>
-
-#include <arm_arch.h>
-#include <chip.h>
-#include <stm32_gpio.h>
 #include <stm32_otg.h>
-#include "board_config.h"
 
 /************************************************************************************
  * Name:  stm32_usbsuspend
@@ -63,19 +52,6 @@
  *   while the USB is suspended.
  *
  ************************************************************************************/
-__EXPORT void stm32_usbinitialize(void)
-{
-	/* The OTG FS has an internal soft pull-up */
-
-	/* Configure the OTG FS VBUS sensing GPIO, Power On, and Overcurrent GPIOs */
-
-#ifdef CONFIG_STM32H7_OTGFS
-	stm32_configgpio(GPIO_OTGFS_VBUS);
-#endif
-}
-
-
-
 __EXPORT void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume)
 {
 	uinfo("resume: %d\n", resume);

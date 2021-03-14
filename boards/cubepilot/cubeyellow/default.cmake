@@ -30,8 +30,6 @@ px4_add_board(
 		#heater
 		#imu # all available imu drivers
 		imu/analog_devices/adis16448
-		imu/adis16477
-		imu/adis16497
 		imu/invensense/icm20602
 		imu/invensense/icm20649
 		imu/invensense/icm20948
@@ -51,7 +49,7 @@ px4_add_board(
 		roboclaw
 		rpm
 		telemetry # all available telemetry drivers
-		test_ppm
+		#test_ppm
 		tone_alarm
 		uavcan
 	MODULES
@@ -108,7 +106,9 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
-		tests # tests and test runner
+		serial_test
+		system_time
+		#tests # tests and test runner
 		top
 		topic_listener
 		tune_control

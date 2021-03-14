@@ -16,8 +16,8 @@ px4_add_board(
 		TEL2:/dev/ttyS2
 		TEL4:/dev/ttyS3
 	DRIVERS
-		adc/board_adc
 		adc/ads1115
+		adc/board_adc
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
@@ -29,19 +29,14 @@ px4_add_board(
 		#heater
 		#imu # all available imu drivers
 		imu/analog_devices/adis16448
-		imu/adis16477
-		imu/adis16497
 		imu/bosch/bmi055
 		imu/invensense/icm20602
 		imu/invensense/icm20689
 		irlock
-		lights/blinkm
-		lights/rgbled
-		lights/rgbled_ncp5623c
-		lights/rgbled_pwm
+		lights # all available light drivers
 		magnetometer # all available magnetometer drivers
 		optical_flow # all available optical flow drivers
-		#osd
+		osd
 		pca9685
 		pca9685_pwm_out
 		power_monitor/ina226
