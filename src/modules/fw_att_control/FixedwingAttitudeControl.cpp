@@ -242,7 +242,7 @@ float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 	} else {
 		// VTOL: if we have no airspeed available and we are in hover mode then assume the lowest airspeed possible
 		// this assumption is good as long as the vehicle is not hovering in a headwind which is much larger
-		// than the minimum airspeed
+		// than the stall airspeed
 		if (_vehicle_status.is_vtol && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 		    && !_vehicle_status.in_transition_mode) {
 			airspeed = _param_fw_airspd_stall.get();
@@ -250,7 +250,7 @@ float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 	}
 
 	/*
-	 * For scaling our actuators using anything less than the min (close to stall)
+	 * For scaling our actuators using anything less than the stall
 	 * speed doesn't make any sense - its the strongest reasonable deflection we
 	 * want to do in flight and its the baseline a human pilot would choose.
 	 *
