@@ -40,8 +40,10 @@
  * @author Juraj Ciberlin <jciberlin1@gmail.com>
  */
 
-#include "ghst_telemetry.h"
-#include <lib/rc/ghst.h>
+#include "ghst_telemetry.hpp"
+#include <lib/rc/ghst.hpp>
+
+using time_literals::operator ""_s;
 
 GHSTTelemetry::GHSTTelemetry(int uart_fd) :
 	_uart_fd(uart_fd)
@@ -50,36 +52,44 @@ GHSTTelemetry::GHSTTelemetry(int uart_fd) :
 
 bool GHSTTelemetry::update(const hrt_abstime &now)
 {
-	const int update_rate_hz = 10;
+	bool success = false;
 
-	if (now - _last_update <= 1_s / (update_rate_hz * num_data_types)) {
-		return false;
+	if ((now - _last_update) > (1_s / (UPDATE_RATE_HZ * NUM_DATA_TYPES))) {
+
+		switch (_next_type) {
+		case 0U:
+			success = send_battery_status();
+			break;
+
+		default:
+			success = false;
+			break;
+		}
+
+		_last_update = now;
+		_next_type = (_next_type + 1U) % NUM_DATA_TYPES;
 	}
 
-	bool sent = false;
-
-	switch (_next_type) {
-	case 0:
-		sent = send_battery_status();
-		break;
-	}
-
-	_last_update = now;
-	_next_type = (_next_type + 1) % num_data_types;
-
-	return sent;
+	return success;
 }
 
 bool GHSTTelemetry::send_battery_status()
 {
+	bool success = false;
+	float voltage_in_10mV;
+	float current_in_10mA;
+	float fuel_in_10mAh;
 	battery_status_s battery_status;
 
-	if (!_battery_status_sub.update(&battery_status)) {
-		return false;
+	if (_battery_status_sub.update(&battery_status)) {
+		voltage_in_10mV = battery_status.voltage_filtered_v * FACTOR_VOLTS_TO_10MV;
+		current_in_10mA = battery_status.current_filtered_a * FACTOR_AMPS_TO_10MA;
+		fuel_in_10mAh = battery_status.discharged_mah * FACTOR_MAH_TO_10MAH;
+		success = ghst_send_telemetry_battery_status(_uart_fd,
+				static_cast<uint16_t>(voltage_in_10mV),
+				static_cast<uint16_t>(current_in_10mA),
+				static_cast<uint16_t>(fuel_in_10mAh));
 	}
 
-	uint16_t voltage = battery_status.voltage_filtered_v * 10;
-	uint16_t current = battery_status.current_filtered_a * 10;
-	uint16_t fuel = battery_status.discharged_mah;
-	return ghst_send_telemetry_battery(_uart_fd, voltage, current, fuel);
+	return success;
 }

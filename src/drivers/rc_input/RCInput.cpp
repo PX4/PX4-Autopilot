@@ -654,16 +654,14 @@ void RCInput::Run()
 						_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_GHST;
 						fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp, false, false, 0, ghst_rssi);
 
-						// Enable GHST Telemetry only on the Omnibus, because on Pixhawk (-related) boards
+						// ghst telemetry works on fmu-v5
+						// on other Pixhawk (-related) boards it does not work because
 						// we cannot write to the RC UART
-						// It might work on FMU-v5. Or another option is to use a different UART port
-#ifdef CONFIG_ARCH_BOARD_OMNIBUS_F4SD
 
 						if (!_rc_scan_locked && !_ghst_telemetry) {
 							_ghst_telemetry = new GHSTTelemetry(_rcs_fd);
 						}
 
-#endif /* CONFIG_ARCH_BOARD_OMNIBUS_F4SD */
 
 						_rc_scan_locked = true;
 
