@@ -18,8 +18,8 @@ px4_add_board(
 		TEL3:/dev/ttyS0
 		TEL4:/dev/ttyS6
 	DRIVERS
-		adc/board_adc
 		adc/ads1115
+		adc/board_adc
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
@@ -30,26 +30,25 @@ px4_add_board(
 		gps
 		#heater
 		#imu # all available imu drivers
+		imu/analog_devices/adis16448
 		imu/invensense/icm20602
 		imu/invensense/icm20608g
 		imu/invensense/mpu9250
 		irlock
-		lights/blinkm
-		lights/rgbled
-		lights/rgbled_ncp5623c
+		lights # all available light drivers
 		magnetometer # all available magnetometer drivers
-		#optical_flow # all available optical flow drivers
-		optical_flow/px4flow
-		#osd
+		optical_flow # all available optical flow drivers
+		osd
 		pca9685
 		pca9685_pwm_out
-		power_monitor/ina226
+		#power_monitor/ina226
 		#protocol_splitter
 		pwm_input
 		pwm_out_sim
 		pwm_out
 		px4io
 		roboclaw
+		rpm
 		telemetry # all available telemetry drivers
 		test_ppm
 		tone_alarm
@@ -95,6 +94,7 @@ px4_add_board(
 		#dmesg
 		dumpfile
 		esc_calib
+		gpio
 		hardfault_log
 		i2cdetect
 		led_control
@@ -121,6 +121,8 @@ px4_add_board(
 		work_queue
 	EXAMPLES
 		fake_gps
+		fake_gyro
+		fake_magnetometer
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		hwtest # Hardware test

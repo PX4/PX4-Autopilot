@@ -14,6 +14,7 @@ px4_add_board(
 	TOOLCHAIN arm-linux-gnueabihf
 	TESTING
 	DRIVERS
+		adc/ads1115
 		adc/board_adc
 		#barometer # all available barometer drivers
 		barometer/bmp280
@@ -24,6 +25,7 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		gps
 		#imu # all available imu drivers
+		imu/analog_devices/adis16448
 		imu/invensense/mpu9250
 		linux_pwm_out
 		#magnetometer # all available magnetometer drivers
@@ -39,6 +41,7 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
+		esc_battery
 		events
 		flight_mode_manager
 		fw_att_control
@@ -63,6 +66,8 @@ px4_add_board(
 		sih
 		#simulator
 		temperature_compensation
+		uuv_att_control
+		uuv_pos_control
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
@@ -76,8 +81,9 @@ px4_add_board(
 		perf
 		pwm
 		sd_bench
-		shutdown
+		#serial_test
 		system_time
+		shutdown
 		tests # tests and test runner
 		#top
 		topic_listener
@@ -86,8 +92,10 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
-		fake_gps
 		dyn_hello # dynamically loading modules example
+		fake_gps
+		fake_gyro
+		fake_magnetometer
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		#hwtest # Hardware test

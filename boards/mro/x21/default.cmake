@@ -12,10 +12,15 @@ px4_add_board(
 	TESTING
 	UAVCAN_INTERFACES 1
 	SERIAL_PORTS
-		GPS1:/dev/ttyS3
+		# IO DEBUG:/dev/ttyS0
 		TEL1:/dev/ttyS1
 		TEL2:/dev/ttyS2
+		GPS1:/dev/ttyS3
+		# PX4IO:/dev/ttyS4
+		# CONSOLE:/dev/ttyS5
+		# OSD:/dev/tty6
 	DRIVERS
+		adc/ads1115
 		adc/board_adc
 		barometer # all available barometer drivers
 		batt_smbus
@@ -23,29 +28,27 @@ px4_add_board(
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
-		#dshot
+		dshot
 		gps
-		#heater
 		#imu # all available imu drivers
 		imu/invensense/icm20602
 		imu/invensense/icm20608g
 		imu/invensense/mpu9250
 		irlock
-		lights/blinkm
-		lights/rgbled
-		#lights/rgbled_ncp5623c
+		lights # all available light drivers
 		magnetometer # all available magnetometer drivers
-		#optical_flow # all available optical flow drivers
-		optical_flow/px4flow
-		#osd
+		optical_flow # all available optical flow drivers
+		osd
 		pca9685
-		#power_monitor/ina226
+		pca9685_pwm_out
+		power_monitor/ina226
 		#protocol_splitter
 		pwm_input
 		pwm_out_sim
 		pwm_out
 		px4io
 		roboclaw
+		rpm
 		telemetry # all available telemetry drivers
 		test_ppm
 		tone_alarm
@@ -58,6 +61,7 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
+		esc_battery
 		events
 		flight_mode_manager
 		fw_att_control
@@ -81,6 +85,8 @@ px4_add_board(
 		sensors
 		sih
 		temperature_compensation
+		uuv_att_control
+		uuv_pos_control
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
@@ -88,6 +94,7 @@ px4_add_board(
 		#dmesg
 		dumpfile
 		esc_calib
+		gpio
 		hardfault_log
 		i2cdetect
 		led_control
@@ -103,6 +110,7 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
+		serial_test
 		system_time
 		tests # tests and test runner
 		top
@@ -114,6 +122,8 @@ px4_add_board(
 		work_queue
 	EXAMPLES
 		fake_gps
+		fake_gyro
+		fake_magnetometer
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		hwtest # Hardware test
