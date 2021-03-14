@@ -46,8 +46,6 @@
 #include <uORB/topics/battery_status.h>
 #include <drivers/drv_hrt.h>
 
-using namespace time_literals;
-
 /**
  * High-level class that handles sending of GHST telemetry data
  */
@@ -58,7 +56,7 @@ public:
 	 * @param uart_fd file descriptor for the UART to use. It is expected to be configured
 	 * already.
 	 */
-	GHSTTelemetry(int uart_fd);
+	explicit GHSTTelemetry(int uart_fd);
 
 	~GHSTTelemetry() = default;
 
@@ -74,10 +72,16 @@ private:
 
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 
-	hrt_abstime _last_update{0};
-
-	static constexpr int num_data_types{1}; // number of different telemetry data types
-	int _next_type{0};
-
 	int _uart_fd;
+	hrt_abstime _last_update {0U};
+	uint32_t _next_type {0U};
+
+	static constexpr uint32_t NUM_DATA_TYPES {1U};	// number of different telemetry data types
+	static constexpr uint32_t UPDATE_RATE_HZ {10U};	// update rate [Hz]
+
+	// Factors that should be applied to get correct values
+	static constexpr float FACTOR_VOLTS_TO_10MV {100.0F};
+	static constexpr float FACTOR_AMPS_TO_10MA {100.0F};
+	static constexpr float FACTOR_MAH_TO_10MAH {0.1F};
+
 };
