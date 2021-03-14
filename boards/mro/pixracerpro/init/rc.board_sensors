@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Board specific sensors init
+# board specific sensors init
 #------------------------------------------------------------------------------
 board_adc start
 
