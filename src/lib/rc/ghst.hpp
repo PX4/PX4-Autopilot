@@ -68,14 +68,14 @@ enum class ghstTelemetryType {
 };
 
 struct ghst_frame_header_t {
-	uint8_t device_address;				// device address
-	uint8_t length;					// length
+	uint8_t device_address;			// device address
+	uint8_t length;				// length
 };
 
 struct ghst_frame_t {
 	ghst_frame_header_t header;			// header
 	uint8_t type;					// frame type
-	uint8_t payload[GHST_PAYLOAD_MAX_SIZE + 1];	// payload data including 1 byte CRC at the end
+	uint8_t payload[GHST_PAYLOAD_MAX_SIZE + 1U];	// payload data including 1 byte CRC at the end
 };
 
 // Channel data (1-4)
@@ -131,11 +131,12 @@ __EXPORT bool ghst_parse(const uint64_t now, const uint8_t *frame, unsigned len,
 /**
  * Send telemetry battery information
  * @param uart_fd UART file descriptor
- * @param voltage Voltage [0.1V]
- * @param current Current [0.1A]
- * @param fuel drawn mAh
+ * @param voltage_in_10mV Voltage [10 mV]
+ * @param current_in_10mA Current [10 mA]
+ * @param fuel_in_10mAh Fuel [10 mAh]
  * @return true on success
  */
-__EXPORT bool ghst_send_telemetry_battery(int uart_fd, uint16_t voltage, uint16_t current, uint16_t fuel);
+__EXPORT bool ghst_send_telemetry_battery_status(int uart_fd, uint16_t voltage_in_10mV,
+		uint16_t current_in_10mA, uint16_t fuel_in_10mAh);
 
 __END_DECLS

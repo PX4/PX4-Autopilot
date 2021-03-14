@@ -14,7 +14,7 @@
 #include <lib/rc/st24.h>
 #include <lib/rc/sumd.h>
 #include <lib/rc/crsf.h>
-#include <lib/rc/ghst.h>
+#include <lib/rc/ghst.hpp>
 
 #if defined(CONFIG_ARCH_BOARD_PX4_SITL)
 #define TEST_DATA_PATH "./test_data/"
