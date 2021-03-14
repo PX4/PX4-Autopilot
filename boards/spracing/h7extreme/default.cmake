@@ -18,7 +18,7 @@ px4_add_board(
 		#batt_smbus
 		camera_capture
 		camera_trigger
-		differential_pressure # all available differential pressure drivers
+		#differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		dshot
 		gps
@@ -78,7 +78,7 @@ px4_add_board(
 		#rover_pos_control
 		sensors
 		#sih
-		temperature_compensation
+		#temperature_compensation
 		vmount
 		#vtol_att_control
 	SYSTEMCMDS
