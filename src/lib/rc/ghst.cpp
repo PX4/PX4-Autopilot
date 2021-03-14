@@ -371,7 +371,6 @@ static inline void write_frame_crc(uint8_t *buf, int &offset, int buf_size)
 bool ghst_send_telemetry_battery_status(int uart_fd, uint16_t voltage_in_10mV,
 					uint16_t current_in_10mA, uint16_t fuel_in_10mAh)
 {
-	bool success;
 	uint8_t buf[GHST_FRAME_PAYLOAD_SIZE_TELEMETRY + 4U]; // address, frame length, type, crc
 	int offset = 0;
 	write_frame_header(buf, offset, ghstTelemetryType::batteryPack, GHST_FRAME_PAYLOAD_SIZE_TELEMETRY);
@@ -384,12 +383,5 @@ bool ghst_send_telemetry_battery_status(int uart_fd, uint16_t voltage_in_10mV,
 	write_uint8_t(buf, offset, 0x00U); // empty
 	write_frame_crc(buf, offset, sizeof(buf));
 
-	if (write(uart_fd, buf, offset) == offset) {
-		success = true;
-
-	} else {
-		success = false;
-	}
-
-	return success;
+	return write(uart_fd, buf, offset) == offset;
 }
