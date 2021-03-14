@@ -145,7 +145,7 @@ FixedwingPositionControl::parameters_update()
 
 	// sanity check parameters
 	if (_param_fw_airspd_max.get() < _param_fw_airspd_min.get()) {
-		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Airspeed min smaller than max");
+		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Airspeed max smaller than min");
 		check_ret = PX4_ERROR;
 	}
 
