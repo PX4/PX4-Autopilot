@@ -136,6 +136,11 @@ protected:
 	 */
 	virtual bool _get_ground_effect_state() { return false; }
 
+	virtual bool _get_in_descend() { return false; }
+	virtual bool _get_has_low_throttle() { return false; }
+	virtual bool _get_horizontal_movement() { return false; }
+	virtual bool _get_vertical_movement() { return false; }
+	virtual bool _get_close_to_ground_or_skipped_check() {  return false; }
 	virtual void _set_hysteresis_factor(const int factor) = 0;
 
 	systemlib::Hysteresis _freefall_hysteresis{false};

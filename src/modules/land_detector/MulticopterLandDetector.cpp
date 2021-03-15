@@ -162,8 +162,6 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	// land speed threshold, 90% of MPC_LAND_SPEED
 	const float land_speed_threshold = 0.9f * math::max(_params.landSpeed, 0.1f);
 
-	bool vertical_movement = true;
-
 	if (lpos_available && _vehicle_local_position.v_z_valid) {
 		// Check if we are moving vertically - this might see a spike after arming due to
 		// throttle-up vibration. If accelerating fast the throttle thresholds will still give
@@ -176,7 +174,10 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 			max_climb_rate = _param_lndmc_z_vel_max.get() * 2.5f;
 		}
 
-		vertical_movement = (fabsf(_vehicle_local_position.vz) > max_climb_rate);
+		_vertical_movement = (fabsf(_vehicle_local_position.vz) > max_climb_rate);
+
+	} else {
+		_vertical_movement = true;
 	}
 
 
@@ -206,7 +207,8 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	// low thrust: 30% of throttle range between min and hover, relaxed to 60% if hover thrust estimate available
 	const float thr_pct_hover = _hover_thrust_estimate_valid ? 0.6f : 0.3f;
 	const float sys_low_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * thr_pct_hover;
-	bool ground_contact = (_actuator_controls_throttle <= sys_low_throttle);
+	_has_low_throttle = (_actuator_controls_throttle <= sys_low_throttle);
+	bool ground_contact = _has_low_throttle;
 
 	// if we have a valid velocity setpoint and the vehicle is demanded to go down but no vertical movement present,
 	// we then can assume that the vehicle hit ground
@@ -233,20 +235,20 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 		_in_descend = false;
 	}
 
+	// if there is no distance to ground estimate available then don't enforce using it.
+	// if a distance to the ground estimate is generally available (_dist_bottom_is_observable=true), then
+	// we already increased the hysteresis for the land detection states in order to reduce the chance of false positives.
+	const bool skip_close_to_ground_check = !_dist_bottom_is_observable || !_vehicle_local_position.dist_bottom_valid;
+	_close_to_ground_or_skipped_check = _is_close_to_ground() || skip_close_to_ground_check;
 
 	// When not armed, consider to have ground-contact
 	if (!_armed) {
 		return true;
 	}
 
-	// if there is no distance to ground estimate available then don't enforce using it.
-	// if a distance to the ground estimate is generally available (_dist_bottom_is_observable=true), then
-	// we already increased the hysteresis for the land detection states in order to reduce the chance of false positives.
-	const bool skip_close_to_ground_check = !_dist_bottom_is_observable || !_vehicle_local_position.dist_bottom_valid;
-
 	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
-	return (_is_close_to_ground() || skip_close_to_ground_check) && ground_contact && !_horizontal_movement
-	       && !vertical_movement;
+	return _close_to_ground_or_skipped_check && ground_contact && !_horizontal_movement
+	       && !_vertical_movement;
 }
 
 bool MulticopterLandDetector::_get_maybe_landed_state()
