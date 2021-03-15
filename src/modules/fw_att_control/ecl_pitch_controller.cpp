@@ -115,7 +115,7 @@ float ECL_PitchController::control_bodyrate(const float dt, const ECL_ControlDat
 		filter_input = p_term;
 	} else {
 		// Some users will use a zero feed forward gain and rely on the rate error term
-		// to do all the work, resuling in large rate error tranisents. In this scenario
+		// to do all the work, resulting in large rate error tranisents. In this scenario
 		// it is better to monitor the gyro feedback contribution only
 		filter_input = ctl_data.body_y_rate * _k_p * ctl_data.scaler * ctl_data.scaler;
 	}
