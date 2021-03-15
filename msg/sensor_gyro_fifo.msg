@@ -14,4 +14,4 @@ int16[32] z               # angular velocity in the FRD board frame Z-axis in ra
 
 uint8 rotation            # Direction the sensor faces (see Rotation enum)
 
-uint8 ORB_QUEUE_LENGTH = 2
+uint8 ORB_QUEUE_LENGTH = 4
