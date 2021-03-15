@@ -384,6 +384,7 @@ int Commander::custom_command(int argc, char *argv[])
 int Commander::print_status()
 {
 	PX4_INFO("arming: %s", arming_state_names[_status.arming_state]);
+	PX4_INFO("navigation: %s", nav_state_names[_status.nav_state]);
 	return 0;
 }
 
