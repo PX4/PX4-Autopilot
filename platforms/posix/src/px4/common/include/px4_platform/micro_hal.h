@@ -40,3 +40,6 @@
 
 #define px4_udelay(usec) px4_usleep(usec)
 #define px4_mdelay(msec) px4_msleep(msec)
+
+#define px4_cache_aligned_data()
+#define px4_cache_aligned_alloc malloc
