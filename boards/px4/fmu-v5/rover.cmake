@@ -23,8 +23,6 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		gps
 		imu/analog_devices/adis16448
-		imu/adis16477
-		imu/adis16497
 		imu/bosch/bmi055
 		imu/invensense/icm20602
 		imu/invensense/icm20689
