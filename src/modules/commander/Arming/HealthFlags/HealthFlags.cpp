@@ -124,6 +124,5 @@ void print_health_flags(const vehicle_status_s &status)
 	_print_sub("SATCOM", status, subsystem_info_s::SUBSYSTEM_TYPE_SATCOM);
 	_print_sub("PREARM", status, subsystem_info_s::SUBSYSTEM_TYPE_PREARM_CHECK);
 	_print_sub("OBSAVD", status, subsystem_info_s::SUBSYSTEM_TYPE_OBSTACLE_AVOIDANCE);
-	_print_sub("SAFETYSW", status, subsystem_info_s::SUBSYSTEM_TYPE_SAFETY_SWITCH);
 #endif
 }
