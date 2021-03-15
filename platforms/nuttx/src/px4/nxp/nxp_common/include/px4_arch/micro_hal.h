@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,24 +32,18 @@
  ****************************************************************************/
 #pragma once
 
-
-#include "../../../stm32_common/include/px4_arch/micro_hal.h"
+#include <px4_platform/micro_hal.h>
 
 __BEGIN_DECLS
 
-#define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_STM32F7
-#include <chip.h>
-#include <hardware/stm32_flash.h>
-#include <arm_internal.h> //include up_systemreset() which is included on stm32.h
-#include <stm32_bbsram.h>
-#define PX4_BBSRAM_SIZE STM32F7_BBSRAM_SIZE
-#define PX4_BBSRAM_GETDESC_IOCTL STM32F7_BBSRAM_GETDESC_IOCTL
-#define PX4_FLASH_BASE  0x08000000
-#define PX4_NUMBER_I2C_BUSES STM32F7_NI2C
+#if defined(CONFIG_ARMV7M_DCACHE)
+#  define PX4_ARCH_DCACHE_ALIGNMENT ARMV7M_DCACHE_LINESIZE
+#  define px4_cache_aligned_data() aligned_data(ARMV7M_DCACHE_LINESIZE)
+#  define px4_cache_aligned_alloc(s) memalign(ARMV7M_DCACHE_LINESIZE,(s))
+#else
+#  define px4_cache_aligned_data()
+#  define px4_cache_aligned_alloc malloc
+#endif
 
-int stm32_flash_lock(void);
-int stm32_flash_unlock(void);
-int stm32_flash_writeprotect(size_t page, bool enabled);
 
 __END_DECLS
-

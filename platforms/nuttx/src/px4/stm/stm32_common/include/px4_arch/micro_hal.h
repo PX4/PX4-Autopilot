@@ -125,5 +125,14 @@ __BEGIN_DECLS
 #define bus_speed_LOC   STM32_CAN1_FIR(3,2)
 #define node_id_LOC     STM32_CAN1_FIR(4,1)
 
+#if defined(CONFIG_ARMV7M_DCACHE)
+#  define PX4_ARCH_DCACHE_ALIGNMENT ARMV7M_DCACHE_LINESIZE
+#  define px4_cache_aligned_data() aligned_data(ARMV7M_DCACHE_LINESIZE)
+#  define px4_cache_aligned_alloc(s) memalign(ARMV7M_DCACHE_LINESIZE,(s))
+#else
+#  define px4_cache_aligned_data()
+#  define px4_cache_aligned_alloc malloc
+#endif
+
 
 __END_DECLS
