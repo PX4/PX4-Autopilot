@@ -111,7 +111,6 @@ protected:
 	float _integrator_max;
 	float _max_rate;
 	float _output_slew_rate_limit;
-	float _output_slew_tau;
 	float _last_output;
 	float _last_gyro_term_hpf;
 	float _integrator;

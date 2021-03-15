@@ -104,11 +104,6 @@ void ECL_Controller::set_output_max_slew_rate(float max)
 	_output_slew_rate_limit = max;
 }
 
-void ECL_Controller::set_output_slew_tau(float tau)
-{
-	_output_slew_tau = tau;
-}
-
 void ECL_Controller::set_max_rate(float max_rate)
 {
 	_max_rate = max_rate;
