@@ -49,8 +49,6 @@ __BEGIN_DECLS
 #define RCC_APB1RSTR_TIM2RST  RCC_APB1LRSTR_TIM2RST
 #define RCC_APB1RSTR_TIM5RST  RCC_APB1LRSTR_TIM5RST
 
-
-
 #include <chip.h>
 #include <hardware/stm32_flash.h>
 #include <arm_internal.h> //include up_systemreset() which is included on stm32.h
@@ -59,7 +57,6 @@ __BEGIN_DECLS
 #define PX4_BBSRAM_GETDESC_IOCTL STM32H7_BBSRAM_GETDESC_IOCTL
 #define PX4_FLASH_BASE  0x08000000
 #define PX4_NUMBER_I2C_BUSES STM32H7_NI2C
-#define PX4_ARCH_DCACHE_LINESIZE ARMV7M_DCACHE_LINESIZE //Fix me! REMOVE this The DSHOT added this and needs to be fixed
 
 int stm32h7_flash_lock(size_t addr);
 int stm32h7_flash_unlock(size_t addr);
