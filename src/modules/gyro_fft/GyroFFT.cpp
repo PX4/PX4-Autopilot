@@ -318,7 +318,8 @@ void GyroFFT::Run()
 					}
 
 					if (peaks_detected) {
-						float *peak_frequencies[] { _sensor_gyro_fft.peak_frequencies_x, _sensor_gyro_fft.peak_frequencies_y, _sensor_gyro_fft.peak_frequencies_z};
+						float *peak_frequencies[] {_sensor_gyro_fft.peak_frequencies_x, _sensor_gyro_fft.peak_frequencies_y, _sensor_gyro_fft.peak_frequencies_z};
+						uint32_t *peak_magnitude[] {_sensor_gyro_fft.peak_magnitude_x, _sensor_gyro_fft.peak_magnitude_y, _sensor_gyro_fft.peak_magnitude_z};
 
 						int num_peaks_found = 0;
 
@@ -333,6 +334,8 @@ void GyroFFT::Run()
 									}
 
 									peak_frequencies[axis][num_peaks_found] = freq;
+									peak_magnitude[axis][num_peaks_found] = peaks_magnitude[i];
+
 									num_peaks_found++;
 								}
 							}
