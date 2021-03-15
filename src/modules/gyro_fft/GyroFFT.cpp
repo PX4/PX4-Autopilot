@@ -269,7 +269,7 @@ void GyroFFT::Run()
 			int &buffer_index = _fft_buffer_index[axis];
 
 			for (int n = 0; n < N; n++) {
-				if (buffer_index < _imu_gyro_fft_len) {
+				if (buffer_index < _imu_gyro_fft_len - 1) {
 					// convert int16_t -> q15_t (scaling isn't relevant)
 					gyro_data_buffer[axis][buffer_index] = input[axis][n] / 2;
 					buffer_index++;
