@@ -125,10 +125,11 @@ bool GyroFFT::SensorSelectionUpdate(bool force)
 
 				if (sensor_gyro_fifo_sub.get().device_id == sensor_selection.gyro_device_id) {
 					if (_sensor_gyro_fifo_sub.ChangeInstance(i) && _sensor_gyro_fifo_sub.registerCallback()) {
+						_sensor_gyro_fifo_sub.set_required_updates(sensor_gyro_fifo_s::ORB_QUEUE_LENGTH - 1);
+
 						// find corresponding vehicle_imu_status instance
 						for (uint8_t imu_status = 0; imu_status < MAX_SENSOR_COUNT; imu_status++) {
 							uORB::Subscription imu_status_sub{ORB_ID(vehicle_imu_status), imu_status};
-
 							vehicle_imu_status_s vehicle_imu_status;
 
 							if (imu_status_sub.copy(&vehicle_imu_status)) {
