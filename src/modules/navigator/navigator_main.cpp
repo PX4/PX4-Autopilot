@@ -65,7 +65,6 @@
  */
 extern "C" __EXPORT int navigator_main(int argc, char *argv[]);
 using namespace time_literals;
-
 namespace navigator
 {
 Navigator	*g_navigator;
@@ -100,6 +99,9 @@ Navigator::Navigator() :
 	_handle_back_trans_dec_mss = param_find("VT_B_DEC_MSS");
 	_handle_reverse_delay = param_find("VT_B_REV_DEL");
 
+	_handle_mpc_jerk_max = param_find("MPC_JERK_MAX");
+	_handle_mpc_acc_hor = param_find("MPC_ACC_HOR");
+
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_mission_sub = orb_subscribe(ORB_ID(mission));
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
@@ -126,6 +128,14 @@ Navigator::params_update()
 
 	if (_handle_reverse_delay != PARAM_INVALID) {
 		param_get(_handle_reverse_delay, &_param_reverse_delay);
+	}
+
+	if (_handle_mpc_jerk_max != PARAM_INVALID) {
+		param_get(_handle_mpc_jerk_max, &_param_mpc_jerk_max);
+	}
+
+	if (_handle_mpc_acc_hor != PARAM_INVALID) {
+		param_get(_handle_mpc_acc_hor, &_param_mpc_acc_hor);
 	}
 }
 
@@ -294,7 +304,6 @@ Navigator::run()
 					}
 
 					if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
-
 						// Position change with optional altitude change
 						rep->current.lat = cmd.param5;
 						rep->current.lon = cmd.param6;
@@ -307,25 +316,41 @@ Navigator::run()
 						}
 
 					} else if (PX4_ISFINITE(cmd.param7)) {
-
-						// Altitude without position change
-						// This condition is necessary for altitude changes just after takeoff where lat and lon are still nan
-						if (curr->current.valid && PX4_ISFINITE(curr->current.lat) && PX4_ISFINITE(curr->current.lon)) {
-							rep->current.lat = curr->current.lat;
-							rep->current.lon = curr->current.lon;
-
-						} else {
-							rep->current.lat = get_global_position()->lat;
-							rep->current.lon = get_global_position()->lon;
-						}
-
+						// Received only a request to change altitude, thus we keep the setpoint
+						rep->current.lat = curr->current.lat;
+						rep->current.lon = curr->current.lon;
 						rep->current.alt = cmd.param7;
 
 					} else {
-						// All three set to NaN - hold in current position
-						rep->current.lat = get_global_position()->lat;
-						rep->current.lon = get_global_position()->lon;
+						// All three set to NaN - pause vehicle
 						rep->current.alt = get_global_position()->alt;
+
+						if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+						    && (get_position_setpoint_triplet()->current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
+
+							// For multirotors we need to account for the braking distance, otherwise the vehicle will overshoot and go back
+							double lat, lon;
+							float course_over_ground = atan2f(_local_pos.vy, _local_pos.vx);
+
+							// predict braking distance
+
+							const float velocity_hor_abs = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
+
+							float multirotor_braking_distance = math::trajectory::computeBrakingDistanceFromVelocity(velocity_hor_abs,
+											    _param_mpc_jerk_max, _param_mpc_acc_hor, 0.6f * _param_mpc_jerk_max);
+
+							waypoint_from_heading_and_distance(get_global_position()->lat, get_global_position()->lon, course_over_ground,
+											   multirotor_braking_distance, &lat, &lon);
+							rep->current.lat = lat;
+							rep->current.lon = lon;
+							rep->current.yaw = get_local_position()->heading;
+							rep->current.yaw_valid = true;
+
+						} else {
+							// For fixedwings we can use the current vehicle's position to define the loiter point
+							rep->current.lat = get_global_position()->lat;
+							rep->current.lon = get_global_position()->lon;
+						}
 					}
 
 					rep->previous.valid = true;
@@ -972,7 +997,7 @@ Navigator::reset_position_setpoint(position_setpoint_s &sp)
 	sp = position_setpoint_s{};
 	sp.timestamp = hrt_absolute_time();
 	sp.lat = static_cast<double>(NAN);
-	sp.lon = static_cast<double>(NAN);;
+	sp.lon = static_cast<double>(NAN);
 	sp.loiter_radius = get_loiter_radius();
 	sp.acceptance_radius = get_default_acceptance_radius();
 	sp.cruising_speed = get_cruising_speed();

@@ -400,8 +400,13 @@ private:
 
 	param_t _handle_back_trans_dec_mss{PARAM_INVALID};
 	param_t _handle_reverse_delay{PARAM_INVALID};
+	param_t _handle_mpc_jerk_max{PARAM_INVALID};
+	param_t _handle_mpc_acc_hor{PARAM_INVALID};
+
 	float _param_back_trans_dec_mss{0.f};
 	float _param_reverse_delay{0.f};
+	float _param_mpc_jerk_max{8.f};	/**< initialized with the default jerk max value to prevent division by 0 if the parameter is accidentally set to 0 */
+	float _param_mpc_acc_hor{3.f}; /**< initialized with the default horizontal acc value to prevent division by 0 if the parameter is accidentally set to 0 */
 
 	float _mission_cruising_speed_mc{-1.0f};
 	float _mission_cruising_speed_fw{-1.0f};
