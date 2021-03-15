@@ -211,7 +211,7 @@ private:
 	void		InitializeVehicleMagnetometer();
 
 	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::SYS_HAS_BARO>) _param_sys_has_baro,
+		(ParamBool<px4::params::SENS_BARO_MIN_NB>) _param_sens_baro_min_nb,
 		(ParamBool<px4::params::SENS_MAG_MIN_NB>) _param_sens_mag_min_nb,
 		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
 	)
@@ -477,7 +477,7 @@ void Sensors::adc_poll()
 
 void Sensors::InitializeVehicleAirData()
 {
-	if (_param_sys_has_baro.get()) {
+	if (_param_sens_baro_min_nb.get() > 0) {
 		if (_vehicle_air_data == nullptr) {
 			if (orb_exists(ORB_ID(sensor_baro), 0) == PX4_OK) {
 				_vehicle_air_data = new VehicleAirData();

@@ -206,21 +206,6 @@ PARAM_DEFINE_INT32(SYS_CAL_TMIN, 5);
 PARAM_DEFINE_INT32(SYS_CAL_TMAX, 10);
 
 /**
- * Control if the vehicle has a barometer
- *
- * Disable this if the board has no barometer, such as some of the Omnibus
- * F4 SD variants.
- * If disabled, the preflight checks will not check for the presence of a
- * barometer.
- *
- * @boolean
- * @reboot_required true
- *
- * @group System
- */
-PARAM_DEFINE_INT32(SYS_HAS_BARO, 1);
-
-/**
  * Enable factory calibration mode
  *
  * If enabled, future sensor calibrations will be stored to /fs/mtd_caldata.

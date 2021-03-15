@@ -246,3 +246,16 @@ PARAM_DEFINE_INT32(SENS_INT_BARO_EN, 1);
  * @group System
  */
 PARAM_DEFINE_INT32(SENS_MAG_MIN_NB, 1);
+
+/**
+ * Number of mandatory barometers
+ *
+ * If set to 0, no barometers will be used even if one is found
+ *
+ * @reboot_required true
+ *
+ * @min 0
+ * @max 4
+ * @group System
+ */
+PARAM_DEFINE_INT32(SENS_BARO_MIN_NB, 1);

@@ -51,7 +51,7 @@ param set-default MPC_MAN_TILT_MAX 60
 param set-default MOT_ORDERING 1
 param set-default DSHOT_CONFIG 600
 
-param set-default SYS_HAS_BARO 0
+param set-default SENS_BARO_MIN_NB 0
 param set-default SENS_MAG_MIN_NB 0
 
 param set-default BAT_N_CELLS 2
