@@ -87,7 +87,13 @@ menuconfig MODULES_FW_POS_CONTROL_L1
 	default n
 	---help---
 		Enable support for fw pos control l1
-		
+	
+menuconfig MODULES_GYRO_CALIBRATION
+	bool "gyro calibration"
+	default n
+	---help---
+		Enable support for gyro calibration
+	
 menuconfig MODULES_GYRO_FFT
 	bool "gyro fft"
 	default n
