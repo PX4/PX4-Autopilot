@@ -259,3 +259,15 @@ PARAM_DEFINE_INT32(SENS_MAG_MIN_NB, 1);
  * @group System
  */
 PARAM_DEFINE_INT32(SENS_BARO_MIN_NB, 1);
+
+
+/**
+ * Number of mandatory accelerometer
+ *
+ * @reboot_required true
+ *
+ * @min 1
+ * @max 4
+ * @group System
+ */
+PARAM_DEFINE_INT32(SENS_ACC_MIN_NB, 1);
