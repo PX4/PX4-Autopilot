@@ -103,6 +103,10 @@ float ECL_PitchController::control_bodyrate(const float dt, const ECL_ControlDat
 	}
 
 	// Calculate the contribution of the rate gyro to the actuator demand and high pass filter
+	// The high pass filter reduces the contribution of the attitude control loop to the slew rat
+	// metric and reduces th elikelihood that a loss of stability caused by a too small value of
+	// _tc would result in a an undesirable reduction in gyro rate feedback
+	// Note: high pass filter is implemented as HPF_output = input - LPF_output
 	const float p_term = _rate_error * _k_p * ctl_data.scaler * ctl_data.scaler;
 	float filter_input;
 	if (_k_ff > 0.0f) {
@@ -117,8 +121,8 @@ float ECL_PitchController::control_bodyrate(const float dt, const ECL_ControlDat
 	}
 	const float filt_tconst = _tc / 2.0f;
 	const float filt_coef = fminf(dt, filt_tconst) / filt_tconst;
-	_gyro_contribution_hpf = (1.0f - filt_coef) * _gyro_contribution_hpf + filt_coef * filter_input;
-	const float gyro_term_hpf = filter_input - _gyro_contribution_hpf;
+	_gyro_contribution_lpf = (1.0f - filt_coef) * _gyro_contribution_lpf + filt_coef * filter_input;
+	const float gyro_term_hpf = filter_input - _gyro_contribution_lpf;
 
 	// Calculate the actuator slew rate due to gyro feedback
 	const float gyro_term_slew_rate = (gyro_term_hpf - _last_gyro_term_hpf) / dt;
@@ -131,7 +135,7 @@ float ECL_PitchController::control_bodyrate(const float dt, const ECL_ControlDat
 	/* calculate gain compression factor required to prevent the rate feedback */
 	/*  term exceeding the actuator slew rate limit */
 	if (_output_slew_rate_limit > 0.0f) {
-		// apply a peak hold decaying envelope filter to the slew rste in the positive and negative direction
+		// apply a peak hold decaying envelope filter to the slew rate in the positive and negative direction
 		const float decay_tconst = _tc * 2.0f;
 		if (gyro_term_slew_rate > _max_pos_slew_rate) {
 			_max_pos_slew_rate = gyro_term_slew_rate;
