@@ -147,6 +147,11 @@ void LandDetector::Run()
 		_land_detected.ground_contact = ground_contactDetected;
 		_land_detected.alt_max = alt_max;
 		_land_detected.in_ground_effect = in_ground_effect;
+		_land_detected.in_descend = _get_in_descend();
+		_land_detected.has_low_throttle = _get_has_low_throttle();
+		_land_detected.horizontal_movement = _get_horizontal_movement();
+		_land_detected.vertical_movement = _get_vertical_movement();
+		_land_detected.close_to_ground_or_skipped_check = _get_close_to_ground_or_skipped_check();
 		_land_detected.timestamp = hrt_absolute_time();
 		_vehicle_land_detected_pub.publish(_land_detected);
 	}
