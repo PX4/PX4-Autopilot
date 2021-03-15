@@ -45,7 +45,6 @@
 
 using namespace time_literals;
 
-static constexpr unsigned max_mandatory_gyro_count = 1;
 static constexpr unsigned max_optional_gyro_count = 4;
 static constexpr unsigned max_optional_accel_count = 4;
 static constexpr unsigned max_optional_mag_count = 4;
@@ -122,8 +121,11 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 	/* ---- GYRO ---- */
 	{
 		/* check all sensors individually, but fail only for mandatory ones */
+		int32_t mandatory_gyro_count = 1;
+		param_get(param_find("SENS_GYRO_MIN_NB"), &mandatory_gyro_count);
+
 		for (unsigned i = 0; i < max_optional_gyro_count; i++) {
-			const bool required = (i < max_mandatory_gyro_count);
+			const bool required = (i < (uint32_t) mandatory_gyro_count);
 			bool report_fail = report_failures;
 
 			int32_t device_id = -1;
