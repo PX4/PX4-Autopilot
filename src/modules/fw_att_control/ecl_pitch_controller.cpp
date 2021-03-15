@@ -128,10 +128,6 @@ float ECL_PitchController::control_bodyrate(const float dt, const ECL_ControlDat
 	const float gyro_term_slew_rate = (gyro_term_hpf - _last_gyro_term_hpf) / dt;
 	_last_gyro_term_hpf = gyro_term_hpf;
 
-	/* Apply PI rate controller and store non-limited output */
-	/* FF terms scales with 1/TAS and P,I with 1/IAS^2 */
-	_last_output = _bodyrate_setpoint * _k_ff * ctl_data.scaler + p_term * _gain_compression_factor + _integrator;
-
 	/* calculate gain compression factor required to prevent the rate feedback */
 	/*  term exceeding the actuator slew rate limit */
 	if (_output_slew_rate_limit > 0.0f) {
@@ -161,6 +157,10 @@ float ECL_PitchController::control_bodyrate(const float dt, const ECL_ControlDat
 	} else {
 		_gain_compression_factor = 1.0f;
 	}
+
+	/* Apply PI rate controller and store non-limited output */
+	/* FF terms scales with 1/TAS and P,I with 1/IAS^2 */
+	_last_output = _bodyrate_setpoint * _k_ff * ctl_data.scaler + p_term * _gain_compression_factor + _integrator;
 
 	return math::constrain(_last_output, -1.0f, 1.0f);
 }
