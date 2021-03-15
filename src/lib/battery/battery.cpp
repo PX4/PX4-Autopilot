@@ -227,7 +227,7 @@ void Battery::estimateStateOfCharge(const float voltage_v, const float current_a
 			_state_of_charge -= _discharged_mah_loop / _params.capacity;
 			_state_of_charge = math::max(_state_of_charge, 0.f);
 
-			const float state_of_charge_current_based = math::max(1 - _discharged_mah / _params.capacity, 0.f);
+			const float state_of_charge_current_based = math::max(1.f - _discharged_mah / _params.capacity, 0.f);
 			_state_of_charge = math::min(state_of_charge_current_based, _state_of_charge);
 
 		}
