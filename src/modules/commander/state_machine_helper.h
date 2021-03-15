@@ -96,6 +96,7 @@ enum class position_nav_loss_actions_t {
 };
 
 extern const char *const arming_state_names[];
+extern const char *const nav_state_names[];
 
 enum class arm_disarm_reason_t {
 	TRANSITION_TO_STANDBY = 0,
