@@ -237,7 +237,7 @@ class Graph(object):
         self._orb_id_vehicle_attitude_controls_topic = 'actuator_controls_0'
         self._orb_id_vehicle_attitude_controls_re = re.compile(r'\#define\s+ORB_ID_VEHICLE_ATTITUDE_CONTROLS\s+([^,)]+)')
 
-        self._warnings = [] # list off all ambiguous scan sites
+        self._warnings = [] # list of all ambiguous scan sites
 
         self._current_scope = [] # stack with current module (they can be nested)
 
