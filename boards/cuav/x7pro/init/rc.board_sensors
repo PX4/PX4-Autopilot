@@ -5,8 +5,10 @@
 board_adc start
 
 # SPI1
-#adis16470 -s start
-icm20689 -s -b 1 -R 2 start
+if ! icm20689 -s -b 1 -R 2 start
+then
+	adis16470 -s -b 1 -R 2 start
+fi
 
 # SPI2
 rm3100 -s -b 2 start
