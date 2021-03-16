@@ -292,7 +292,7 @@ void GyroFFT::Run()
 
 					// start at 2 to skip DC
 					// output is ordered [real[0], imag[0], real[1], imag[1], real[2], imag[2] ... real[(N/2)-1], imag[(N/2)-1]
-					for (uint8_t bucket_index = 2; bucket_index < (_imu_gyro_fft_len / 2); bucket_index = bucket_index + 2) {
+					for (uint16_t bucket_index = 2; bucket_index < (_imu_gyro_fft_len / 2); bucket_index = bucket_index + 2) {
 						const float freq_hz = (bucket_index / 2) * resolution_hz;
 
 						if (freq_hz > _param_imu_gyro_fft_max.get()) {
