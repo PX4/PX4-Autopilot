@@ -103,8 +103,8 @@ float ECL_PitchController::control_bodyrate(const float dt, const ECL_ControlDat
 	}
 
 	// Calculate the contribution of the rate gyro to the actuator demand and high pass filter
-	// The high pass filter reduces the contribution of the attitude control loop to the slew rat
-	// metric and reduces th elikelihood that a loss of stability caused by a too small value of
+	// The high pass filter reduces the contribution of the attitude control loop to the slew rate
+	// metric and reduces the likelihood that a loss of stability caused by a too small value of
 	// _tc would result in a an undesirable reduction in gyro rate feedback
 	// Note: high pass filter is implemented as HPF_output = input - LPF_output
 	const float p_term = _rate_error * _k_p * ctl_data.scaler * ctl_data.scaler;
