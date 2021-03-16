@@ -269,7 +269,7 @@ class Graph(object):
         # note: the source-file-string is pre-processed to remove whitespace -- regexes should ignore whitespace
         # note: the regexes should have at least 3 capture groups '()'; otherwise they break downstream code
         capture_cases_ambiguous = [ r"orb_copy\s*\(\s*(ORB_ID)\s*\(\s*(\w+)",
-                                    r"(?:uORB::)Subscription\s+\w+\s*(\[)\s*\w+\s*\]()",
+                                    r"(?:uORB::)Subscription[^\s]*\s+\w+\s*(\[)\s*\w+\s*\]()",
                                     r"(ORB_ID)\s*\(\s*(\w+)",
                                   ]
         self._ambiguities = Ambiguities( self._topic_blacklist, capture_cases_ambiguous)
