@@ -88,7 +88,7 @@ class PubSub(object):
             if match is None:
                 continue
 
-            # # all regexes should contain 3 capture groups  (or else this code block crashes)
+            # all regexes should contain 2 capture groups
             # total_match = match.group(0)
             route_group, topic_group = match.groups()
 
