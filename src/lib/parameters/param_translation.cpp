@@ -186,6 +186,15 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2021-07-12: translate VT_DWN_PITCH_MAX to VT_PITCH_MIN
+	{
+		if (strcmp("VT_DWN_PITCH_MAX", node->name) == 0) {
+			strcpy(node->name, "VT_PITCH_MIN");
+			node->d *= -1;
+			PX4_INFO("copying and inverting sign %s -> %s", "VT_DWN_PITCH_MAX", "VT_PITCH_MIN");
+		}
+	}
+
 	// translate (SPI) calibration ID parameters. This can be removed after the next release (current release=1.10)
 
 	if (node->type != BSON_INT32) {
@@ -193,7 +202,6 @@ bool param_modify_on_import(bson_node_t node)
 	}
 
 	int64_t *ivalue = &node->i;
-
 	const char *cal_id_params[] = {
 		"CAL_ACC0_ID",
 		"CAL_GYRO0_ID",
