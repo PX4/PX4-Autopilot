@@ -160,6 +160,7 @@ rtps:
     id: 75
   - msg: telemetry_status
     id: 76
+    receive: true
   - msg: test_motor
     id: 77
   - msg: timesync
@@ -169,6 +170,7 @@ rtps:
   - msg: trajectory_waypoint
     id: 79
     receive: true
+    send: true
   - msg: transponder_report
     id: 80
   - msg: tune_control
@@ -226,7 +228,7 @@ rtps:
     id: 103
   - msg: vehicle_trajectory_waypoint
     id: 104
-    send: true
+    receive: true
   - msg: vtol_vehicle_status
     id: 105
   - msg: wind
@@ -385,6 +387,7 @@ rtps:
   - msg: vehicle_trajectory_waypoint_desired
     id: 183
     alias: vehicle_trajectory_waypoint
+    send: true
   - msg: obstacle_distance_fused
     id: 184
     alias: obstacle_distance
