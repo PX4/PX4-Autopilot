@@ -36,8 +36,8 @@ px4_add_board(
 		imu/invensense/icm20689
 		irlock
 		lights/rgbled
-		lights/rgbled_ncp5623c
-		lights/rgbled_pwm
+		#lights/rgbled_ncp5623c
+		#lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		optical_flow # all available optical flow drivers
 		#osd
@@ -47,7 +47,6 @@ px4_add_board(
 		pwm_out_sim
 		pwm_out
 		rc_input
-		roboclaw
 		safety_button
 		telemetry # all available telemetry drivers
 		test_ppm
