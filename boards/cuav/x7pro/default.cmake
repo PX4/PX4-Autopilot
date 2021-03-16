@@ -35,7 +35,6 @@ px4_add_board(
 		imu/invensense/icm20649
 		imu/invensense/icm20689
 		irlock
-		#lights/blinkm
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		lights/rgbled_pwm
