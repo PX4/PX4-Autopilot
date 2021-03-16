@@ -31,6 +31,7 @@ px4_add_board(
 		heater
 		#imu # all available imu drivers
 		imu/analog_devices/adis16448
+		imu/analog_devices/adis16470
 		imu/bosch/bmi088
 		imu/invensense/icm20649
 		imu/invensense/icm20689
@@ -117,6 +118,7 @@ px4_add_board(
 		work_queue
 	EXAMPLES
 		fake_gps
+		fake_gyro
 		fake_magnetometer
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hello
