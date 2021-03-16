@@ -56,18 +56,6 @@ GyroFFT::GyroFFT() :
 		AllocateBuffers<512>();
 		break;
 
-	case 1024:
-		AllocateBuffers<1024>();
-		break;
-
-	case 2048:
-		AllocateBuffers<2048>();
-		break;
-
-	case 4096:
-		AllocateBuffers<4096>();
-		break;
-
 	default:
 		// otherwise default to 256
 		PX4_ERR("Invalid IMU_GYRO_FFT_LEN=%.3f, resetting", (double)_param_imu_gyro_fft_len.get());
