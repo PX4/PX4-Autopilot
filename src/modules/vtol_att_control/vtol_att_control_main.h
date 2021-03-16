@@ -217,7 +217,8 @@ private:
 		param_t fw_motors_off;
 		param_t diff_thrust;
 		param_t diff_thrust_scale;
-		param_t down_pitch_max;
+		param_t pitch_min_rad;
+		param_t land_pitch_min_rad;
 		param_t forward_thrust_scale;
 		param_t dec_to_pitch_ff;
 		param_t dec_to_pitch_i;
