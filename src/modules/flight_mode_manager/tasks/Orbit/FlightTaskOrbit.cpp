@@ -77,16 +77,24 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 	_initial_heading = _yaw;
 
 	// commanded center coordinates
-	if (map_projection_initialized(&_global_local_proj_ref)) {
-		if (PX4_ISFINITE(command.param5) && PX4_ISFINITE(command.param6)) {
+	if (PX4_ISFINITE(command.param5) && PX4_ISFINITE(command.param6)) {
+		if (map_projection_initialized(&_global_local_proj_ref)) {
 			map_projection_project(&_global_local_proj_ref,
 					       command.param5, command.param6,
 					       &_center(0), &_center(1));
-		}
 
-		// commanded altitude
-		if (PX4_ISFINITE(command.param7)) {
+		} else {
+			ret = false;
+		}
+	}
+
+	// commanded altitude
+	if (PX4_ISFINITE(command.param7)) {
+		if (map_projection_initialized(&_global_local_proj_ref)) {
 			_position_setpoint(2) = _global_local_alt0 - command.param7;
+
+		} else {
+			ret = false;
 		}
 	}
 
