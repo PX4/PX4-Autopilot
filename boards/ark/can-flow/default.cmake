@@ -20,9 +20,12 @@ px4_add_board(
 		load_mon
 		#sensors
 	SYSTEMCMDS
+		mft
+		mtd
 		param
 		perf
 		reboot
+		system_time
 		top
 		topic_listener
 		ver
