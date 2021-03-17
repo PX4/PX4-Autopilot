@@ -35,8 +35,24 @@
 #include "math_helpers.h"
 #include <iostream>
 #include <future>
+#include <thread>
 
 std::string connection_url {"udp://"};
+std::optional<float> speed_factor {std::nullopt};
+
+AutopilotTester::AutopilotTester() :
+	_real_time_report_thread([this]()
+{
+	report_speed_factor();
+})
+{
+}
+
+AutopilotTester::~AutopilotTester()
+{
+	_should_exit = true;
+	_real_time_report_thread.join();
+}
 
 void AutopilotTester::connect(const std::string uri)
 {
@@ -602,4 +618,26 @@ void AutopilotTester::wait_for_mission_finished(std::chrono::seconds timeout)
 	});
 
 	REQUIRE(fut.wait_for(timeout) == std::future_status::ready);
+}
+
+void AutopilotTester::report_speed_factor()
+{
+	// We check the exit flag more often than the speed factor.
+	unsigned counter = 0;
+
+	while (!_should_exit) {
+		if (counter++ % 10 == 0) {
+			if (_info != nullptr) {
+				std::cout << "Current speed factor: " << _info->get_speed_factor().second ;
+
+				if (speed_factor.has_value()) {
+					std::cout << " (set: " << speed_factor.value() << ')';
+				}
+
+				std::cout << '\n';
+			}
+		}
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
 }
