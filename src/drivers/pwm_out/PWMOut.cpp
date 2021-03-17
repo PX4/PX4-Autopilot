@@ -1983,8 +1983,8 @@ int PWMOut::custom_command(int argc, char *argv[])
 	}
 
 
-	/* start the FMU if not running */
-	if (!is_running()) {
+	/* start pwm_out if not running */
+	if (_objects[0].load() == nullptr) {
 		int ret = PWMOut::task_spawn(argc, argv);
 
 		if (ret) {
