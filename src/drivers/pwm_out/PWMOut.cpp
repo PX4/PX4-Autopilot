@@ -2258,14 +2258,23 @@ extern "C" __EXPORT int pwm_out_main(int argc, char *argv[])
 
 	} else if (strcmp(argv[1], "status") == 0) {
 		if (PWMOut::trylock_module()) {
+
+			unsigned count = 0;
+
 			for (int i = 0; i < PWM_OUT_MAX_INSTANCES; i++) {
 				if (_objects[i].load()) {
 					PX4_INFO_RAW("\n");
 					_objects[i].load()->print_status();
+					count++;
 				}
 			}
 
 			PWMOut::unlock_module();
+
+			if (count == 0) {
+				PX4_INFO("not running");
+				return 1;
+			}
 
 		} else {
 			PX4_WARN("module locked, try again later");
