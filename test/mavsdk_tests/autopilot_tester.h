@@ -44,13 +44,16 @@
 #include <mavsdk/plugins/telemetry/telemetry.h>
 #include <mavsdk/plugins/param/param.h>
 #include "catch2/catch.hpp"
+#include <atomic>
 #include <chrono>
 #include <ctime>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <thread>
 
 extern std::string connection_url;
+extern std::optional<float> speed_factor;
 
 using namespace mavsdk;
 using namespace mavsdk::geometry;
@@ -80,6 +83,9 @@ public:
 		Baro,
 		Gps
 	};
+
+	AutopilotTester();
+	~AutopilotTester();
 
 	void connect(const std::string uri);
 	void wait_until_ready();
@@ -130,6 +136,8 @@ private:
 	void wait_for_flight_mode(Telemetry::FlightMode flight_mode, std::chrono::seconds timeout);
 	void wait_for_landed_state(Telemetry::LandedState landed_state, std::chrono::seconds timeout);
 	void wait_for_mission_finished(std::chrono::seconds timeout);
+
+	void report_speed_factor();
 
 	template<typename Rep, typename Period>
 	bool poll_condition_with_timeout(
@@ -216,4 +224,7 @@ private:
 	std::unique_ptr<mavsdk::Telemetry> _telemetry{};
 
 	Telemetry::GroundTruth _home{NAN, NAN, NAN};
+
+	std::atomic<bool> _should_exit {false};
+	std::thread _real_time_report_thread {};
 };
