@@ -151,6 +151,8 @@ px4_add_module(
 		sensors/gnss.cpp
 		sensors/mag.cpp
 		sensors/rangefinder.cpp
+		sensors/accel.cpp
+		sensors/gyro.cpp
 
 	DEPENDS
 		px4_uavcan_dsdlc
