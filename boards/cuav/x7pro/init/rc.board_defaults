@@ -16,6 +16,8 @@ param set-default BAT2_A_PER_V 24
 
 # Enable IMU thermal control
 param set-default SENS_EN_THERMAL 1
+# Disable FFT because of lack of FIFO for ADIS16470
+param set-default IMU_GYRO_FFT_EN 0
 
 rgbled_pwm start
 safety_button start
