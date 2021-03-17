@@ -179,6 +179,8 @@ then
 
 	if [ $MIXER_AUX_FILE != none ]
 	then
+		# Start the output module
+		$OUTPUT_CMD start
 		if $OUTPUT_CMD mode_${AUX_MODE}
 		then
 			# Append aux mixer to main device.
