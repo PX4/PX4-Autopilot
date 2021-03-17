@@ -116,6 +116,7 @@
 #  error "ADC STM32_PLL2P_FREQUENCY too high - no divisor found "
 #endif
 
+#define ADC3_INTERNAL_TEMP_SENSOR_CHANNEL 18 //define to map the internal temperature channel.
 
 int px4_arch_adc_init(uint32_t base_address)
 {
@@ -276,8 +277,10 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 {
 	irqstate_t flags = px4_enter_critical_section();
 
-	if (channel >  PX4_ADC_ADC3_CHANNEL_OFFSET) {
-		channel = channel - PX4_ADC_ADC3_CHANNEL_OFFSET;
+	/* Add a channel mapping for ADC3 on the H7 */
+
+	if (channel == PX4_ADC_INTERNAL_TEMP_SENSOR_CHANNEL) {
+		channel = ADC3_INTERNAL_TEMP_SENSOR_CHANNEL;
 		base_address = STM32_ADC3_BASE;
 	}
 
