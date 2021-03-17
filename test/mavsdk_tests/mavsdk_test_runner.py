@@ -436,6 +436,7 @@ class Tester:
             test['model'],
             case,
             self.config['mavlink_connection'],
+            self.speed_factor,
             self.verbose)
         self.active_runners.append(mavsdk_tests_runner)
 
