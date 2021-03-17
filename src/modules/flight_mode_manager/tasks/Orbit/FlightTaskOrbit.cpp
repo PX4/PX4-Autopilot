@@ -167,7 +167,6 @@ bool FlightTaskOrbit::activate(const vehicle_local_position_setpoint_s &last_set
 	_r = _radius_min;
 	_v =  1.f;
 	_center = _position.xy();
-	_center(0) -= _r;
 	_initial_heading = _yaw;
 	_slew_rate_yaw.setForcedValue(_yaw);
 	_slew_rate_yaw.setSlewRate(math::radians(_param_mpc_yawrauto_max.get()));
