@@ -92,7 +92,7 @@ add_custom_command(OUTPUT ${generated_serial_params_file}
 )
 
 set(parameters_xml ${PX4_BINARY_DIR}/parameters.xml)
-set(parameters_json ${PX4_BINARY_DIR}/params.json) # file name needs to be kept short to fit into url (metadata_uri)
+set(parameters_json ${PX4_BINARY_DIR}/parameters.json)
 file(GLOB_RECURSE param_src_files ${PX4_SOURCE_DIR}/src/*params.c)
 add_custom_command(OUTPUT ${parameters_xml} ${parameters_json} ${parameters_json}.xz
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_process_params.py

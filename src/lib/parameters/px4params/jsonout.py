@@ -8,7 +8,6 @@ class JsonOutput():
     def __init__(self, groups, board, inject_xml_file_name):
         all_json=dict()
         all_json['version']=1
-        all_json['scope']="Firmware"
         all_params=[]
         all_json['parameters']=all_params
 
