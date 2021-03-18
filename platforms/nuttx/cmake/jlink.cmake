@@ -104,3 +104,22 @@ if(bootloader_bin OR (EXISTS "${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${
 		)
 	endif()
 endif()
+
+if(uavcan_bl_image_name)
+	# jlink_flash_bootloader
+	find_program(JLinkExe_PATH JLinkExe)
+	if(JLinkExe_PATH)
+		set(BOARD_FIRMWARE_BIN ${PX4_BINARY_DIR}/${uavcan_bl_image_name})
+		set(BOARD_FIRMWARE_APP_OFFSET "0x08010000")
+
+		configure_file(${PX4_SOURCE_DIR}/platforms/nuttx/Debug/flash_bin.jlink.in ${PX4_BINARY_DIR}/flash_bin.jlink @ONLY)
+		add_custom_target(jlink_flash_uavcan_bin
+			COMMAND ${JLinkExe_PATH} -CommandFile ${PX4_BINARY_DIR}/flash_bin.jlink
+			DEPENDS
+				${PX4_SOURCE_DIR}/platforms/nuttx/Debug/flash_bin.jlink.in
+				${uavcan_bl_image_name}
+			WORKING_DIRECTORY ${PX4_BINARY_DIR}
+			USES_TERMINAL
+		)
+	endif()
+endif()

@@ -60,21 +60,23 @@ if(NOT "${PX4_BOARD_LABEL}" MATCHES  "canbootloader")
 	if ("${uavcanbl_git_desc}" STREQUAL "")
 		set(uavcanbl_git_desc ffffffff)
 	endif()
-	set(uavcan_bl_imange_name ${HWBOARD_ID}-${SW_MAJOR}.${SW_MINOR}.${uavcanbl_git_desc}.uavcan.bin)
-	message(STATUS "Generating UAVCAN Bootable as ${uavcan_bl_imange_name}")
-	add_custom_command(OUTPUT ${uavcan_bl_imange_name} deploy/${HWBOARD_ID}.bin
+	set(uavcan_bl_image_name ${HWBOARD_ID}-${SW_MAJOR}.${SW_MINOR}.${uavcanbl_git_desc}.uavcan.bin)
+	set(uavcan_bl_image_name "${uavcan_bl_image_name}" CACHE STRING "UAVCAN BL Image name" FORCE)
+	message(STATUS "Generating UAVCAN Bootable as ${uavcan_bl_image_name}")
+	add_custom_command(OUTPUT ${uavcan_bl_image_name} deploy/${HWBOARD_ID}.bin
 		COMMAND
 			${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/make_can_boot_descriptor.py
-				-v --use-git-hash ${PX4_BOARD}.bin ${uavcan_bl_imange_name}
+				-v --use-git-hash ${PX4_BOARD}.bin ${uavcan_bl_image_name}
 		COMMAND
 			 COMMAND ${CMAKE_COMMAND} -E make_directory deploy
 		COMMAND
-			${CMAKE_COMMAND} -E copy ${uavcan_bl_imange_name} deploy/${HWBOARD_ID}.bin
+			${CMAKE_COMMAND} -E copy ${uavcan_bl_image_name} deploy/${HWBOARD_ID}.bin
 		DEPENDS
 			${PX4_BINARY_DIR}/${PX4_BOARD}.bin
 			${CMAKE_CURRENT_SOURCE_DIR}/make_can_boot_descriptor.py
 		WORKING_DIRECTORY
 			${PX4_BINARY_DIR}
 	)
-	add_custom_target(build_uavcan_bl ALL DEPENDS ${uavcan_bl_imange_name})
+	add_custom_target(build_uavcan_bl ALL DEPENDS ${uavcan_bl_image_name})
+
 endif()
