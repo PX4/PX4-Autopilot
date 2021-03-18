@@ -34,13 +34,6 @@
 set(CMSIS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/CMSIS_5)
 set(CMSIS_DSP ${CMSIS_ROOT}/CMSIS/DSP)
 
-add_compile_options(
-	-Wno-error
-
-	-DARM_ALL_FFT_TABLES
-	-DARM_MATH_LOOPUNROLL
-)
-
 if(${PX4_PLATFORM} MATCHES "NuttX")
 	add_compile_options(-DARM_MATH_DSP)
 endif()
@@ -54,6 +47,8 @@ px4_add_module(
 		4096
 	COMPILE_FLAGS
 		${MAX_CUSTOM_OPT_LEVEL}
+		-DARM_ALL_FFT_TABLES
+		-DARM_MATH_LOOPUNROLL
 	INCLUDES
 		${CMSIS_ROOT}/CMSIS/Core/Include
 		${CMSIS_DSP}/Include
