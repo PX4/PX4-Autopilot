@@ -112,7 +112,7 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
 		uavcan::uint32_t ExtIdFilterSA;
 		uavcan::uint32_t RxFIFO0SA;
 		uavcan::uint32_t RxFIFO1SA;
-		uavcan::uint32_t TxQueueSA;
+		uavcan::uint32_t TxFIFOSA;
 	} message_ram_;
 
 	enum { NumTxMailboxes = 32 }; // Should match the number of Tx FIFOs available in message RAM
