@@ -43,49 +43,6 @@ GyroFFT::GyroFFT() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
-	switch (_param_imu_gyro_fft_len.get()) {
-	case 128:
-		AllocateBuffers<128>();
-		break;
-
-	case 256:
-		AllocateBuffers<256>();
-		break;
-
-	case 512:
-		AllocateBuffers<512>();
-		break;
-
-	case 1024:
-		AllocateBuffers<1024>();
-		break;
-
-	case 2048:
-		AllocateBuffers<2048>();
-		break;
-
-	case 4096:
-		AllocateBuffers<4096>();
-		break;
-
-	default:
-		// otherwise default to 256
-		PX4_ERR("Invalid IMU_GYRO_FFT_LEN=%.3f, resetting", (double)_param_imu_gyro_fft_len.get());
-		AllocateBuffers<256>();
-		_param_imu_gyro_fft_len.set(256);
-		_param_imu_gyro_fft_len.commit();
-		break;
-	}
-
-	_imu_gyro_fft_len = _param_imu_gyro_fft_len.get();
-
-	arm_rfft_init_q15(&_rfft_q15, _imu_gyro_fft_len, 0, 1);
-
-	// init Hanning window
-	for (int n = 0; n < _imu_gyro_fft_len; n++) {
-		const float hanning_value = 0.5f * (1.f - cosf(2.f * M_PI_F * n / (_imu_gyro_fft_len - 1)));
-		arm_float_to_q15(&hanning_value, &_hanning_window[n], 1);
-	}
 }
 
 GyroFFT::~GyroFFT()
@@ -96,22 +53,109 @@ GyroFFT::~GyroFFT()
 	perf_free(_gyro_generation_gap_perf);
 	perf_free(_gyro_fifo_generation_gap_perf);
 
-	delete _gyro_data_buffer_x;
-	delete _gyro_data_buffer_y;
-	delete _gyro_data_buffer_z;
-	delete _hanning_window;
-	delete _fft_input_buffer;
-	delete _fft_outupt_buffer;
+	delete[] _gyro_data_buffer_x;
+	delete[] _gyro_data_buffer_y;
+	delete[] _gyro_data_buffer_z;
+	delete[] _hanning_window;
+	delete[] _fft_input_buffer;
+	delete[] _fft_outupt_buffer;
 }
 
 bool GyroFFT::init()
 {
-	if (!SensorSelectionUpdate(true)) {
-		PX4_WARN("sensor_gyro callback registration failed!");
-		ScheduleDelayed(500_ms);
+	bool buffers_allocated = false;
+
+	// arm_rfft_init_q15(&_rfft_q15, _imu_gyro_fft_len, 0, 1) manually inlined to save flash
+	_rfft_q15.pTwiddleAReal = (q15_t *) realCoefAQ15;
+	_rfft_q15.pTwiddleBReal = (q15_t *) realCoefBQ15;
+	_rfft_q15.ifftFlagR = 0;
+	_rfft_q15.bitReverseFlagR = 1;
+
+	switch (_param_imu_gyro_fft_len.get()) {
+	// case 128:
+	// 	buffers_allocated = AllocateBuffers<128>();
+	// 	_rfft_q15.fftLenReal = 128;
+	// 	_rfft_q15.twidCoefRModifier = 64U;
+	// 	_rfft_q15.pCfft = &arm_cfft_sR_q15_len64;
+	// 	break;
+
+	case 256:
+		buffers_allocated = AllocateBuffers<256>();
+		_rfft_q15.fftLenReal = 256;
+		_rfft_q15.twidCoefRModifier = 32U;
+		_rfft_q15.pCfft = &arm_cfft_sR_q15_len128;
+		break;
+
+	// case 512:
+	// 	buffers_allocated = AllocateBuffers<512>();
+	// 	_rfft_q15.fftLenReal = 512;
+	// 	_rfft_q15.twidCoefRModifier = 16U;
+	// 	_rfft_q15.pCfft = &arm_cfft_sR_q15_len256;
+	// 	break;
+
+	case 1024:
+		buffers_allocated = AllocateBuffers<1024>();
+		_rfft_q15.fftLenReal = 1024;
+		_rfft_q15.twidCoefRModifier = 8U;
+		_rfft_q15.pCfft = &arm_cfft_sR_q15_len512;
+		break;
+
+	// case 2048:
+	// 	buffers_allocated = AllocateBuffers<2048>();
+	// 	_rfft_q15.fftLenReal = 2048;
+	// 	_rfft_q15.twidCoefRModifier = 4U;
+	// 	_rfft_q15.pCfft = &arm_cfft_sR_q15_len1024;
+	// 	break;
+
+	case 4096:
+		buffers_allocated = AllocateBuffers<4096>();
+		_rfft_q15.fftLenReal = 4096;
+		_rfft_q15.twidCoefRModifier = 2U;
+		_rfft_q15.pCfft = &arm_cfft_sR_q15_len2048;
+		break;
+
+	// case 8192:
+	// 	buffers_allocated = AllocateBuffers<8192>();
+	// 	_rfft_q15.fftLenReal = 8192;
+	// 	_rfft_q15.twidCoefRModifier = 1U;
+	// 	_rfft_q15.pCfft = &arm_cfft_sR_q15_len4096;
+	// 	break;
+
+	default:
+		// otherwise default to 256
+		PX4_ERR("Invalid IMU_GYRO_FFT_LEN=%.3f, resetting", (double)_param_imu_gyro_fft_len.get());
+		AllocateBuffers<256>();
+		_param_imu_gyro_fft_len.set(256);
+		_param_imu_gyro_fft_len.commit();
+		break;
 	}
 
-	return true;
+	if (buffers_allocated) {
+		_imu_gyro_fft_len = _param_imu_gyro_fft_len.get();
+
+		// init Hanning window
+		for (int n = 0; n < _imu_gyro_fft_len; n++) {
+			const float hanning_value = 0.5f * (1.f - cosf(2.f * M_PI_F * n / (_imu_gyro_fft_len - 1)));
+			arm_float_to_q15(&hanning_value, &_hanning_window[n], 1);
+		}
+
+		if (!SensorSelectionUpdate(true)) {
+			PX4_WARN("sensor_gyro callback registration failed!");
+			ScheduleDelayed(500_ms);
+		}
+
+		return true;
+	}
+
+	PX4_ERR("failed to allocate buffers");
+	delete[] _gyro_data_buffer_x;
+	delete[] _gyro_data_buffer_y;
+	delete[] _gyro_data_buffer_z;
+	delete[] _hanning_window;
+	delete[] _fft_input_buffer;
+	delete[] _fft_outupt_buffer;
+
+	return false;
 }
 
 bool GyroFFT::SensorSelectionUpdate(bool force)
@@ -403,6 +447,7 @@ void GyroFFT::Update(const hrt_abstime &timestamp_sample, int16_t *input[], uint
 					// mark remaining slots empty
 					for (int i = num_peaks_found; i < MAX_NUM_PEAKS; i++) {
 						peak_frequencies[axis][i] = NAN;
+						peak_magnitude[axis][i] = 0;
 					}
 				}
 
@@ -455,6 +500,7 @@ int GyroFFT::print_status()
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_cycle_interval_perf);
 	perf_print_counter(_fft_perf);
+	perf_print_counter(_gyro_generation_gap_perf);
 	perf_print_counter(_gyro_fifo_generation_gap_perf);
 	return 0;
 }

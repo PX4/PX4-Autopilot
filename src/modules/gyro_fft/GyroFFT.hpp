@@ -84,7 +84,7 @@ private:
 	void VehicleIMUStatusUpdate(bool force = false);
 
 	template<size_t N>
-	void AllocateBuffers()
+	bool AllocateBuffers()
 	{
 		_gyro_data_buffer_x = new q15_t[N];
 		_gyro_data_buffer_y = new q15_t[N];
@@ -92,6 +92,11 @@ private:
 		_hanning_window = new q15_t[N];
 		_fft_input_buffer = new q15_t[N];
 		_fft_outupt_buffer = new q15_t[N * 2];
+
+		return (_gyro_data_buffer_x && _gyro_data_buffer_y && _gyro_data_buffer_z
+			&& _hanning_window
+			&& _fft_input_buffer
+			&& _fft_outupt_buffer);
 	}
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
