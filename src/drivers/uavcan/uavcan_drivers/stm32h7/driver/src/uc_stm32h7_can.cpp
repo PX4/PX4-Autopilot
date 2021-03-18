@@ -522,6 +522,29 @@ uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig *filter
 	return 0;
 }
 
+bool CanIface::waitCCCRBitStateChange(uint32_t mask, bool target_state)
+{
+#if UAVCAN_STM32_NUTTX
+	const unsigned Timeout = 1000;
+#else
+	const unsigned Timeout = 2000000;
+#endif
+
+	for (unsigned wait_ack = 0; wait_ack < Timeout; wait_ack++) {
+		const bool state = (can_->CCCR & mask) != 0;
+
+		if (state == target_state) {
+			return true;
+		}
+
+#if UAVCAN_STM32_NUTTX
+		::usleep(1000);
+#endif
+	}
+
+	return false;
+}
+
 int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 {
 	/*
@@ -533,13 +556,20 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 		// Exit Power-down / Sleep mode, then wait for acknowledgement
 		can_->CCCR &= ~FDCAN_CCCR_CSR;
 
-		// TODO: add timeout
-		while ((can_->CCCR & FDCAN_CCCR_CSA) == FDCAN_CCCR_CSA) {}
+		if (!waitCCCRBitStateChange(FDCAN_CCCR_CSA, false)) {
+			UAVCAN_STM32H7_LOG("CCCR CCCR_CSA not cleared");
+			can_->CCCR |= FDCAN_CCCR_INIT;
+			return -ErrCCCrCSANotCleared;
+		}
+
 
 		// Request Init mode, then wait for completion
 		can_->CCCR |= FDCAN_CCCR_INIT;
 
-		while ((can_->CCCR & FDCAN_CCCR_INIT) == 0) {}
+		if (!waitCCCRBitStateChange(FDCAN_CCCR_INIT, true)) {
+			UAVCAN_STM32H7_LOG("CCCR FDCAN_CCCR_INIT not set");
+			return -ErrCCCrINITNotSet;
+		}
 
 		// Configuration Changes Enable.  Can only be set during Init mode;
 		// cleared when INIT bit is cleared.
@@ -547,7 +577,8 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 
 		// Disable interrupts while we configure the hardware
 		can_->IE = 0;
-	}
+
+	} // End Critcal section
 
 	/*
 	 * Object state - interrupts are disabled, so it's safe to modify it now
