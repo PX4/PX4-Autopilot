@@ -258,9 +258,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D_ACC, 0.2f);
 /**
  * Maximum horizontal velocity in mission
  *
- * Normal horizontal velocity in AUTO modes (includes
- * also RTL / hold / etc.) and endpoint for
- * position stabilized mode (POSCTRL).
+ * Horizontal velocity used when flying autonomously in e.g. Missions, RTL, Goto.
  *
  * @unit m/s
  * @min 3.0
