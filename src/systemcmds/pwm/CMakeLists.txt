@@ -35,7 +35,6 @@ px4_add_module(
 	MAIN pwm
 	COMPILE_FLAGS
 		-Wno-array-bounds
-		-O0
 	SRCS
 		pwm.cpp
 	DEPENDS
