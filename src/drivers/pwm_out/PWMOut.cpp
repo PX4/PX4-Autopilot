@@ -37,7 +37,16 @@ pthread_mutex_t pwm_out_module_mutex = PTHREAD_MUTEX_INITIALIZER;
 static px4::atomic<PWMOut *> _objects[PWM_OUT_MAX_INSTANCES] {};
 static bool _pwm_out_started = false;
 
-static bool is_running() { return (_objects[0].load() != nullptr) || (_objects[1].load() != nullptr); }
+static bool is_running()
+{
+	for (auto &obj : _objects) {
+		if (obj.load() != nullptr) {
+			return true;
+		}
+	}
+
+	return false;
+}
 
 PWMOut::PWMOut(int instance, uint8_t output_base) :
 	CDev((instance == 0) ? PX4FMU_DEVICE_PATH : PX4FMU_DEVICE_PATH"1"),
@@ -570,6 +579,11 @@ void PWMOut::Run()
 
 	// push backup schedule
 	ScheduleDelayed(_backup_schedule_interval_us);
+
+	if (_new_mode_request.load() != _mode) {
+		set_mode(_new_mode_request.load());
+		_new_mode_request.store(_mode);
+	}
 
 	_mixing_output.update();
 
@@ -1729,17 +1743,23 @@ int PWMOut::fmu_new_mode(PortMode new_mode)
 		return -1;
 	}
 
+#if PWM_OUT_MAX_INSTANCES > 0
 	PWMOut *pwm0 = _objects[0].load(); // TODO: get_instance();
 
 	if (pwm0 && pwm_mode0 != pwm0->get_mode()) {
-		pwm0->set_mode(pwm_mode0);
+		pwm0->request_mode(pwm_mode0);
 	}
 
+#endif
+
+#if PWM_OUT_MAX_INSTANCES > 1
 	PWMOut *pwm1 = _objects[1].load(); // TODO: get_instance();
 
 	if (pwm1 && pwm_mode1 != pwm1->get_mode()) {
-		pwm1->set_mode(pwm_mode1);
+		pwm1->request_mode(pwm_mode1);
 	}
+
+#endif
 
 	return OK;
 }
