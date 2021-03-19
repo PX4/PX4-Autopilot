@@ -40,6 +40,14 @@
 #include <stm32_adc.h>
 #include <stm32_gpio.h>
 
+/*
+ *  If there is only one ADC in use in PX4 and it is not
+ *  ADC3 we still need ADC3 for temperature sensing.
+ */
+#if SYSTEM_ADC_COUNT == 1 && SYSTEM_ADC_BASE != STM32_ADC3_BASE
+#  undef SYSTEM_ADC_COUNT
+#  define SYSTEM_ADC_COUNT 2
+#endif
 
 /*
  * Register accessors.
@@ -280,8 +288,15 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 	/* Add a channel mapping for ADC3 on the H7 */
 
 	if (channel == PX4_ADC_INTERNAL_TEMP_SENSOR_CHANNEL) {
+		static bool once = false;
 		channel = ADC3_INTERNAL_TEMP_SENSOR_CHANNEL;
 		base_address = STM32_ADC3_BASE;
+
+		// Init it once (px4_arch_adc_init does this as well, but this is less cycles)
+		if (!once) {
+			once = true;
+			px4_arch_adc_init(base_address);
+		}
 	}
 
 
