@@ -157,6 +157,7 @@ public:
 
 	int		set_mode(Mode mode);
 	Mode		get_mode() { return _mode; }
+	void		request_mode(Mode new_mode) { _new_mode_request.store(new_mode); }
 
 	static int	set_i2c_bus_clock(unsigned bus, unsigned clock_hz);
 
@@ -179,6 +180,8 @@ private:
 	MixingOutput _mixing_output{FMU_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
 
 	Mode		_mode{MODE_NONE};
+
+	px4::atomic<Mode> _new_mode_request{MODE_NONE};
 
 	uint32_t	_backup_schedule_interval_us{1_s};
 
