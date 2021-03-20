@@ -35,6 +35,7 @@
 
 pthread_mutex_t pwm_out_module_mutex = PTHREAD_MUTEX_INITIALIZER;
 static px4::atomic<PWMOut *> _objects[PWM_OUT_MAX_INSTANCES] {};
+static bool _pwm_out_started = false;
 
 static bool is_running() { return (_objects[0].load() != nullptr) || (_objects[1].load() != nullptr); }
 
@@ -473,24 +474,35 @@ void PWMOut::update_current_rate()
 
 int PWMOut::task_spawn(int argc, char *argv[])
 {
-	for (int instance = 0; instance < PWM_OUT_MAX_INSTANCES; instance++) {
-		uint8_t base = instance * 8;  // TODO: configurable
-		PWMOut *dev = new PWMOut(instance, base);
+	for (unsigned instance = 0; instance < (sizeof(_objects) / sizeof(_objects[0])); instance++) {
 
-		if (dev) {
-			_objects[instance].store(dev);
+		if (instance < PWM_OUT_MAX_INSTANCES) {
+			uint8_t base = instance * 8;  // TODO: configurable
+			PWMOut *dev = new PWMOut(instance, base);
 
-			if (dev->init() != PX4_OK) {
-				PX4_ERR("%d - init failed", instance);
-				delete dev;
-				_objects[instance].store(nullptr);
-				return PX4_ERROR;
+			if (dev) {
+				_objects[instance].store(dev);
+
+				if (dev->init() != PX4_OK) {
+					PX4_ERR("%d - init failed", instance);
+					delete dev;
+					_objects[instance].store(nullptr);
+					return PX4_ERROR;
+				}
+
+			} else {
+				PX4_ERR("alloc failed");
 			}
 
 		} else {
-			PX4_ERR("alloc failed");
+			// This hardware platform does not support
+			// this many devices, set the storage to
+			// a sane default
+			_objects[instance].store(nullptr);
 		}
 	}
+
+	_pwm_out_started = true;
 
 	return PX4_OK;
 }
@@ -1984,7 +1996,8 @@ int PWMOut::custom_command(int argc, char *argv[])
 
 
 	/* start pwm_out if not running */
-	if (_objects[0].load() == nullptr) {
+	if (!_pwm_out_started) {
+
 		int ret = PWMOut::task_spawn(argc, argv);
 
 		if (ret) {
@@ -2244,7 +2257,13 @@ extern "C" __EXPORT int pwm_out_main(int argc, char *argv[])
 	}
 
 	if (strcmp(argv[1], "start") == 0) {
+
+		if (_pwm_out_started) {
+			return 0;
+		}
+
 		int ret = 0;
+
 		PWMOut::lock_module();
 
 		ret = PWMOut::task_spawn(argc - 1, argv + 1);
@@ -2323,6 +2342,8 @@ extern "C" __EXPORT int pwm_out_main(int argc, char *argv[])
 				PX4_WARN("not running");
 			}
 		}
+
+		_pwm_out_started = false;
 
 		PWMOut::unlock_module();
 		return PX4_OK;
