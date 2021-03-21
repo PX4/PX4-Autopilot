@@ -90,8 +90,8 @@ PARAM_DEFINE_FLOAT(RWTO_MAX_THR, 1.0);
 
 /**
  * Pitch setpoint during taxi / before takeoff airspeed is reached.
- * A taildragger with stearable wheel might need to pitch up
- * a little to keep it's wheel on the ground before airspeed
+ * A taildragger with steerable wheel might need to pitch up
+ * a little to keep its wheel on the ground before airspeed
  * to takeoff is reached.
  *
  * @unit deg
