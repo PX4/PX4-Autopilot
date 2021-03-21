@@ -150,7 +150,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_baro_count; i++) {
 			const bool required = (i < max_mandatory_baro_count) && (sys_has_baro == 1);
-			bool report_fail = (report_failures && !baro_fail_reported);
+			bool report_fail = (required && report_failures && !baro_fail_reported);
 
 			int32_t device_id = -1;
 
