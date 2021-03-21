@@ -56,6 +56,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: airmind_mindpx-v2_default
+    ark_can-bms_default:
+      short: ark_can-bms_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_can-bms_default
+    ark_can-bms_canbootloader:
+      short: ark_can-bms_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_can-bms_canbootloader
     ark_can-flow_default:
       short: ark_can-flow_default
       buildType: MinSizeRel
