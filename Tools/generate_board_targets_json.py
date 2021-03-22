@@ -22,7 +22,11 @@ verbose = args.verbose
 build_configs = []
 excluded_manufacturers = ['atlflight']
 excluded_platforms = ['qurt']
-excluded_labels = ['stackcheck', 'nolockstep', 'replay', 'test']
+excluded_labels = [
+    'stackcheck',
+    'nolockstep', 'replay', 'test',
+    'uavcanv1' # TODO: fix and enable
+    ]
 
 def process_target(cmake_file, target_name):
     ret = None
