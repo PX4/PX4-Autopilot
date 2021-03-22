@@ -137,6 +137,5 @@
         "workbench.settings.enableNaturalLanguageSearch": false,
         "yaml.schemas": {
                 "${workspaceFolder}/validation/module_schema.yaml": "${workspaceFolder}/src/modules/*/module.yaml"
-        },
-        "python.pythonPath": "/usr/bin/python3"
+        }
 }
