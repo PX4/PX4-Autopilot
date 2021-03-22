@@ -47,4 +47,5 @@ px4_add_module(
 		controllib
 		git_ecl
 		ecl_geo
+		SlewRate
 	)
