@@ -44,8 +44,8 @@
 #include "FlightTaskManualAltitudeSmoothVel.hpp"
 #include <uORB/Publication.hpp>
 #include <uORB/topics/orbit_status.h>
-#include <StraightLine.hpp>
-#include <SlewRateYaw.hpp>
+#include "StraightLine.hpp"
+#include <lib/slew_rate/SlewRateYaw.hpp>
 
 class FlightTaskOrbit : public FlightTaskManualAltitudeSmoothVel
 {
