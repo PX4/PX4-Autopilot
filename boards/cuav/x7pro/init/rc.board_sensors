@@ -19,7 +19,7 @@ bmi088 -s -b 4 -G -R 2 start
 ms5611 -s -b 4 start
 
 # SPI6
-#icm20649 -s -b 6 -R 2 start # TODO: not started by default until NuttX SPI6 BDMA is fixed
+icm20649 -s -b 6 -R 2 start
 ms5611 -s -b 6 start
 
 # External compass on GPS1/I2C1: standard CUAV GPS/compass puck (with lights, safety button, and buzzer)
