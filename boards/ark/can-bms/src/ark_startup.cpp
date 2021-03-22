@@ -21,8 +21,8 @@ static float _soc = 0;
 
 // Expose these functions for use in init.c
 __BEGIN_DECLS
-extern void ark_display_bq_startup_init(void);
-extern void ark_check_button_and_update_display();
+extern void ark_bq_startup_init(void);
+extern void ark_check_button();
 extern void ark_clean_up();
 __END_DECLS
 
@@ -31,7 +31,7 @@ void update_led_status(void);
 bool check_pack_voltage(void);
 int manufacturer_read(const uint16_t cmd_code, void *data, const unsigned length);
 
-void ark_display_bq_startup_init(void)
+void ark_bq_startup_init(void)
 {
 	int address = BATT_SMBUS_ADDR;
 	int bus = 1;
@@ -48,7 +48,7 @@ void ark_clean_up(void)
 	delete _interface;
 }
 
-void ark_check_button_and_update_display()
+void ark_check_button()
 {
 	static bool button_was_held = true;
 	static constexpr uint64_t BUTTON_SHUTDOWN_DURATION_US = 3000000;
