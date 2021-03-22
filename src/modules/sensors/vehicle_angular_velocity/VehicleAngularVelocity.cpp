@@ -330,6 +330,18 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 	}
 }
 
+Vector3f VehicleAngularVelocity::GetResetAngularVelocity() const
+{
+	if (_fifo_available && (_last_scale > 0.f)) {
+		return _calibration.Uncorrect(_angular_velocity + _bias) / _last_scale;
+
+	} else if (!_fifo_available) {
+		return _angular_velocity;
+	}
+
+	return Vector3f{0.f, 0.f, 0.f};
+}
+
 void VehicleAngularVelocity::DisableDynamicNotchEscRpm()
 {
 #if !defined(CONSTRAINED_FLASH)
@@ -395,10 +407,12 @@ void VehicleAngularVelocity::UpdateDynamicNotchEscRpm(bool force)
 							}
 
 							// only reset if there's sufficient change (> 1%)
-							if ((change_percent > 0.01f) && (_last_scale > 0.f)) {
+							if (change_percent > 0.01f) {
+								const Vector3f reset_angular_velocity{GetResetAngularVelocity()};
+
 								for (int axis = 0; axis < 3; axis++) {
 									auto &dnf = _dynamic_notch_filter_esc_rpm[i][harmonic][axis];
-									dnf.reset(_angular_velocity(axis) / _last_scale);
+									dnf.reset(reset_angular_velocity(axis));
 								}
 							}
 
@@ -451,9 +465,9 @@ void VehicleAngularVelocity::UpdateDynamicNotchFFT(bool force)
 							// peak frequency changed by at least 0.1%
 							dnf.setParameters(_filter_sample_rate_hz, peak_freq, sensor_gyro_fft.resolution_hz);
 
-							// only reset if there's sufficient change (> 1%)
-							if ((peak_diff_abs > sensor_gyro_fft.resolution_hz) && (_last_scale > 0.f)) {
-								dnf.reset(_angular_velocity(axis) / _last_scale);
+							// only reset if there's sufficient change
+							if (peak_diff_abs > sensor_gyro_fft.resolution_hz) {
+								dnf.reset(GetResetAngularVelocity()(axis));
 							}
 
 							perf_count(_dynamic_notch_filter_fft_update_perf);
@@ -500,15 +514,16 @@ void VehicleAngularVelocity::Run()
 
 				const int N = sensor_fifo_data.samples;
 				const float dt_s = sensor_fifo_data.dt * 1e-6f;
-				const enum Rotation fifo_rotation = static_cast<enum Rotation>(sensor_fifo_data.rotation);
 
 				if (_reset_filters || (fabsf(sensor_fifo_data.scale - _last_scale) > FLT_EPSILON)) {
 					if (UpdateSampleRate()) {
 						// in FIFO mode the unscaled raw data is filtered
-						_angular_velocity_prev = _angular_velocity / sensor_fifo_data.scale;
-						ResetFilters(_angular_velocity_prev, _angular_acceleration / sensor_fifo_data.scale);
-
 						_last_scale = sensor_fifo_data.scale;
+
+						_angular_velocity_prev = GetResetAngularVelocity();
+						Vector3f angular_acceleration{_calibration.rotation().I() *_angular_acceleration / _last_scale};
+
+						ResetFilters(_angular_velocity_prev, angular_acceleration);
 					}
 
 					if (_reset_filters) {
@@ -592,16 +607,13 @@ void VehicleAngularVelocity::Run()
 				}
 
 				// Angular velocity: rotate sensor frame to board, scale raw data to SI, apply calibration, and remove in-run estimated bias
-				rotate_3f(fifo_rotation, angular_velocity_unscaled(0), angular_velocity_unscaled(1), angular_velocity_unscaled(2));
 				_angular_velocity = _calibration.Correct(angular_velocity_unscaled * sensor_fifo_data.scale) - _bias;
 
 				// Angular acceleration: rotate sensor frame to board, scale raw data to SI, apply any additional configured rotation
-				rotate_3f(fifo_rotation, angular_acceleration_unscaled(0), angular_acceleration_unscaled(1),
-					  angular_acceleration_unscaled(2));
 				_angular_acceleration = _calibration.rotation() * angular_acceleration_unscaled * sensor_fifo_data.scale;
 
 				// Publish
-				if (!_sensor_fifo_sub.updated() && (sensor_fifo_data.timestamp_sample - _last_publish >= _publish_interval_min_us)) {
+				if (!_sensor_fifo_sub.updated()) {
 					Publish(sensor_fifo_data.timestamp_sample);
 				}
 			}
@@ -683,7 +695,7 @@ void VehicleAngularVelocity::Run()
 			_angular_velocity = angular_velocity;
 
 			// Publish
-			if (!_sensor_sub.updated() && (sensor_data.timestamp_sample - _last_publish >= _publish_interval_min_us)) {
+			if (!_sensor_sub.updated()) {
 				Publish(sensor_data.timestamp_sample);
 			}
 		}
@@ -692,23 +704,25 @@ void VehicleAngularVelocity::Run()
 
 void VehicleAngularVelocity::Publish(const hrt_abstime &timestamp_sample)
 {
-	// Publish vehicle_angular_acceleration
-	vehicle_angular_acceleration_s v_angular_acceleration;
-	v_angular_acceleration.timestamp_sample = timestamp_sample;
-	_angular_acceleration.copyTo(v_angular_acceleration.xyz);
-	v_angular_acceleration.timestamp = hrt_absolute_time();
-	_vehicle_angular_acceleration_pub.publish(v_angular_acceleration);
+	if (timestamp_sample >= _last_publish + _publish_interval_min_us) {
+		// Publish vehicle_angular_acceleration
+		vehicle_angular_acceleration_s v_angular_acceleration;
+		v_angular_acceleration.timestamp_sample = timestamp_sample;
+		_angular_acceleration.copyTo(v_angular_acceleration.xyz);
+		v_angular_acceleration.timestamp = hrt_absolute_time();
+		_vehicle_angular_acceleration_pub.publish(v_angular_acceleration);
 
-	// Publish vehicle_angular_velocity
-	vehicle_angular_velocity_s v_angular_velocity;
-	v_angular_velocity.timestamp_sample = timestamp_sample;
-	_angular_velocity.copyTo(v_angular_velocity.xyz);
-	v_angular_velocity.timestamp = hrt_absolute_time();
-	_vehicle_angular_velocity_pub.publish(v_angular_velocity);
+		// Publish vehicle_angular_velocity
+		vehicle_angular_velocity_s v_angular_velocity;
+		v_angular_velocity.timestamp_sample = timestamp_sample;
+		_angular_velocity.copyTo(v_angular_velocity.xyz);
+		v_angular_velocity.timestamp = hrt_absolute_time();
+		_vehicle_angular_velocity_pub.publish(v_angular_velocity);
 
-	// shift last publish time forward, but don't let it get further behind than the interval
-	_last_publish = math::constrain(_last_publish + _publish_interval_min_us,
-					timestamp_sample - _publish_interval_min_us, timestamp_sample);
+		// shift last publish time forward, but don't let it get further behind than the interval
+		_last_publish = math::constrain(_last_publish + _publish_interval_min_us,
+						timestamp_sample - _publish_interval_min_us, timestamp_sample);
+	}
 }
 
 void VehicleAngularVelocity::PrintStatus()

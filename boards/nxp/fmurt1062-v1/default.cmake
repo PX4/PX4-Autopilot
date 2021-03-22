@@ -71,7 +71,7 @@ px4_add_board(
 		navigator
 		rc_update
 		sensors
-		sih
+		#sih
 		temperature_compensation
 		#vmount
 	SYSTEMCMDS
@@ -94,6 +94,7 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
+		#serial_test
 		system_time
 		top
 		topic_listener
@@ -102,7 +103,6 @@ px4_add_board(
 		usb_connected
 		ver
 		work_queue
-		serial_test
 	EXAMPLES
 ##		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 #		hello

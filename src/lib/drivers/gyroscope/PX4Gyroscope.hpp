@@ -1,7 +1,7 @@
 
 /****************************************************************************
  *
- *   Copyright (c) 2018-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -65,8 +65,6 @@ public:
 	int get_instance() { return _sensor_pub.get_instance(); };
 
 private:
-	void Publish(const hrt_abstime &timestamp_sample, float x, float y, float z, uint8_t samples = 1);
-
 	uORB::PublicationMulti<sensor_gyro_s> _sensor_pub{ORB_ID(sensor_gyro)};
 	uORB::PublicationMulti<sensor_gyro_fifo_s>  _sensor_fifo_pub{ORB_ID(sensor_gyro_fifo)};
 
