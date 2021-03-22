@@ -15,6 +15,7 @@ jobs:
     strategy:
       matrix:
         config: [
+          ark_can-bms_default,
           ark_can-flow_default,
           cuav_can-gps-v1_default,
           holybro_can-gps-v1_default,
