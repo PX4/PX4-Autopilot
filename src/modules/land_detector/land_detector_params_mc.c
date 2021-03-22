@@ -34,7 +34,7 @@
 /**
  * Multicopter max climb rate
  *
- * Maximum vertical velocity allowed in the landed state (m/s up and down)
+ * Maximum vertical velocity allowed in the landed state
  *
  * @unit m/s
  * @decimal 1
@@ -46,7 +46,7 @@ PARAM_DEFINE_FLOAT(LNDMC_Z_VEL_MAX, 0.50f);
 /**
  * Multicopter max horizontal velocity
  *
- * Maximum horizontal velocity allowed in the landed state (m/s)
+ * Maximum horizontal velocity allowed in the landed state
  *
  * @unit m/s
  * @decimal 1
