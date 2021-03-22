@@ -47,6 +47,8 @@ if("${PX4_BOARD_LABEL}" STREQUAL  "canbootloader")
 	target_include_directories(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/canbootloader)
 
 else()
+	add_subdirectory(button_task)
+
 	add_library(drivers_board
 		can.c
 		i2c.cpp
