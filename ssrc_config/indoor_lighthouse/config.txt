@@ -1,0 +1,45 @@
+# Default parameter set for indoor flying with lighthouse tracker / libsurvive fake GPS
+
+# Disable internal compass
+param set GPS_1_CONFIG 0
+
+# Set waypoint acceptance radius to 0.5m
+param set NAV_ACC_RAD 0.5
+
+# Set height acceptance radius to 0.3m
+param set NAV_MC_ALT_RAD 0.3
+
+# Enable LL40LS in i2c and use that as main height source for EKF
+param set EKF2_HGT_MODE 2
+param set SENS_EN_LL40LS 2
+
+# RTL altitudes to avoid hitting the roof
+param set RTL_DESCEND_ALT 2
+param set RTL_RETURN_ALT 2
+
+# Offboard failsafe, set to land immediately even when RC is available
+param set COM_OBL_RC_ACT 4
+
+# RC failsafe, land immediately
+param set NAV_RCL_ACT 3
+
+# Cruise speed
+param set MPC_XY_CRUISE 0.5
+
+# Track trajectory more aggressively (default 0.5)
+param set MPC_XY_TRAJ_P 0.7
+
+# Increase velocity controller P gain
+param set MPC_XY_VEL_P_ACC 2.4
+
+# Make it accelerate faster upwards at takeoff
+param set MPC_TKO_RAMP_T 1.0
+
+# Limit upward movement speed for safety
+param set MPC_Z_VEL_MAX_UP 1.0
+
+# LEDS
+param set SER_TEL2_BAUD 57600
+param set MAV_1_CONFIG 102
+param set MAV_1_MODE 7
+param set MAV_1_RATE 1000
