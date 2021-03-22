@@ -75,11 +75,17 @@ public:
 private:
 	void Run() override;
 
+	void CalibrateAndPublish(const hrt_abstime &timestamp_sample, const matrix::Vector3f &angular_velocity,
+				 const matrix::Vector3f &angular_acceleration, float scale = 1.f);
+
+	float FilterAngularVelocity(int axis, float data[], int N);
+	float FilterAngularAcceleration(int axis, float data[], int N, float dt_s);
+
 	void DisableDynamicNotchEscRpm();
 	void DisableDynamicNotchFFT();
 	void ParametersUpdate(bool force = false);
-	void Publish(const hrt_abstime &timestamp_sample);
-	void ResetFilters(const matrix::Vector3f &angular_velocity, const matrix::Vector3f &angular_acceleration);
+
+	void ResetFilters();
 	void SensorBiasUpdate(bool force = false);
 	bool SensorSelectionUpdate(bool force = false);
 	void UpdateDynamicNotchEscRpm(bool force = false);
@@ -88,6 +94,7 @@ private:
 
 	// scaled appropriately for current FIFO mode
 	matrix::Vector3f GetResetAngularVelocity() const;
+	matrix::Vector3f GetResetAngularAcceleration() const;
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
