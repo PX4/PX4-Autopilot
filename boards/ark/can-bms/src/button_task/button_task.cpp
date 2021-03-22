@@ -161,7 +161,8 @@ ButtonTask::Run()
 			int instance = 0;
 			orb_publish_auto(ORB_ID(power_button_state), &_power_button_state_topic, &new_report, &instance);
 
-			stm32_gpiowrite(GPIO_BTN_N, false);
+			stm32_gpiowrite(GPIO_PWR_EN, false);
+
 			stm32_gpiowrite(GPIO_nLED_RED, true);
 			stm32_gpiowrite(GPIO_nLED_BLUE, true);
 

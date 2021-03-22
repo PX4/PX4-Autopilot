@@ -73,6 +73,7 @@ __BEGIN_DECLS
 extern void led_init(void);
 extern void led_on(int led);
 extern void led_off(int led);
+extern void ark_check_button(void);
 __END_DECLS
 
 /************************************************************************************
@@ -152,6 +153,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* Configure the HW based on the manifest */
 
 	px4_platform_configure();
+
+	ark_check_button();
 
 	return OK;
 }
