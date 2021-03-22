@@ -86,6 +86,9 @@ private:
 	void UpdateDynamicNotchFFT(bool force = false);
 	bool UpdateSampleRate();
 
+	// scaled appropriately for current FIFO mode
+	matrix::Vector3f GetResetAngularVelocity() const;
+
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
 	uORB::Publication<vehicle_angular_acceleration_s> _vehicle_angular_acceleration_pub{ORB_ID(vehicle_angular_acceleration)};
