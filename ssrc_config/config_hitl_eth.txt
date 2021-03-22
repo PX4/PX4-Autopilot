@@ -1,0 +1,27 @@
+# Default parameter set for HITL with ethernet gazebo connection (partly derived from indoor flying parameters)
+# [ type: hitl_eth ]
+
+#####################################
+# HITL configuration
+#
+
+# Set HITL flag
+param set SYS_HITL 1
+
+# Start Mavlink for simulator connection
+mavlink start -c 192.168.200.100 -u 14560 -o 14561 -m onboard -r 2000000
+
+# disable some checks to allow to fly
+# - with usb
+param set CBRK_USB_CHK 197848
+# - without real battery
+param set CBRK_SUPPLY_CHK 894281
+# - without safety switch
+param set COM_PREARM_MODE 0
+param set CBRK_IO_SAFETY 22027
+
+# Disable RC controller check
+param set NAV_RCL_ACT 0
+
+# Disable ekf2 multi-imu, because gazebo provides only one
+param set EKF2_MULTI_IMU 1
