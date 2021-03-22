@@ -210,4 +210,17 @@ const T lerp(const T &a, const T &b, const T &s)
 	return (static_cast<T>(1) - s) * a + s * b;
 }
 
+template<typename T>
+constexpr T negate(T value)
+{
+	static_assert(sizeof(T) > 2, "implement for T");
+	return -value;
+}
+
+template<>
+constexpr int16_t negate<int16_t>(int16_t value)
+{
+	return (value == INT16_MIN) ? INT16_MAX : -value;
+}
+
 } /* namespace math */
