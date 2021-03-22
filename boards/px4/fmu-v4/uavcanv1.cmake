@@ -50,7 +50,6 @@ px4_add_board(
 		rc_input
 		roboclaw
 		safety_button
-		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm
 		tone_alarm
@@ -125,7 +124,6 @@ px4_add_board(
 		fake_gyro
 		fake_magnetometer
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
-		gyro_fft
 		hello
 		hwtest # Hardware test
 		#matlab_csv_serial
