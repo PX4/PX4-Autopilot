@@ -318,7 +318,7 @@ coverity_scan: px4_sitl_default
 .PHONY: parameters_metadata airframe_metadata module_documentation px4_metadata doxygen
 
 parameters_metadata:
-	@$(MAKE) --no-print-directory px4_sitl_default metadata_parameters
+	@$(MAKE) --no-print-directory px4_sitl_default metadata_parameters ver_gen
 
 airframe_metadata:
 	@$(MAKE) --no-print-directory px4_sitl_default metadata_airframes
