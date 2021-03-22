@@ -84,6 +84,7 @@ void VehicleAngularVelocity::Stop()
 {
 	// clear all registered callbacks
 	_sensor_sub.unregisterCallback();
+	_sensor_fifo_sub.unregisterCallback();
 	_sensor_selection_sub.unregisterCallback();
 
 	Deinit();
@@ -433,7 +434,7 @@ void VehicleAngularVelocity::UpdateDynamicNotchFFT(bool force)
 		sensor_gyro_fft_s sensor_gyro_fft;
 
 		if (_sensor_gyro_fft_sub.copy(&sensor_gyro_fft) && (sensor_gyro_fft.device_id == _selected_sensor_device_id)
-		    && (fabsf(sensor_gyro_fft.sensor_sample_rate_hz - _filter_sample_rate_hz) < 0.05f)) {
+		    && (fabsf(sensor_gyro_fft.sensor_sample_rate_hz - _filter_sample_rate_hz) < 10.f)) {
 
 			float *peak_frequencies[] {sensor_gyro_fft.peak_frequencies_x, sensor_gyro_fft.peak_frequencies_y, sensor_gyro_fft.peak_frequencies_z};
 
@@ -443,14 +444,15 @@ void VehicleAngularVelocity::UpdateDynamicNotchFFT(bool force)
 					const float &peak_freq = peak_frequencies[axis][i];
 
 					if (PX4_ISFINITE(peak_freq) && (peak_freq > 1.f)) {
-						const float change_percent = fabsf(dnf.getNotchFreq() - peak_freq) / peak_freq;
+						const float peak_diff_abs = fabsf(dnf.getNotchFreq() - peak_freq);
+						const float change_percent = peak_diff_abs / peak_freq;
 
 						if (change_percent > 0.001f) {
 							// peak frequency changed by at least 0.1%
 							dnf.setParameters(_filter_sample_rate_hz, peak_freq, sensor_gyro_fft.resolution_hz);
 
 							// only reset if there's sufficient change (> 1%)
-							if ((change_percent > 0.01f) && (_last_scale > 0.f)) {
+							if ((peak_diff_abs > sensor_gyro_fft.resolution_hz) && (_last_scale > 0.f)) {
 								dnf.reset(_angular_velocity(axis) / _last_scale);
 							}
 
@@ -494,6 +496,8 @@ void VehicleAngularVelocity::Run()
 			static constexpr int FIFO_SIZE_MAX = sizeof(sensor_fifo_data.x) / sizeof(sensor_fifo_data.x[0]);
 
 			if ((sensor_fifo_data.samples > 0) && (sensor_fifo_data.samples <= FIFO_SIZE_MAX)) {
+				_timestamp_sample_last = sensor_fifo_data.timestamp_sample;
+
 				const int N = sensor_fifo_data.samples;
 				const float dt_s = sensor_fifo_data.dt * 1e-6f;
 				const enum Rotation fifo_rotation = static_cast<enum Rotation>(sensor_fifo_data.rotation);
