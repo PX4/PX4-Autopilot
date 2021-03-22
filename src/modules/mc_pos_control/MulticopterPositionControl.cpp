@@ -49,12 +49,9 @@ MulticopterPositionControl::MulticopterPositionControl(bool vtol) :
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD")
 {
-	// fetch initial parameter values
 	parameters_update(true);
-
-	// set failsafe hysteresis
 	_failsafe_land_hysteresis.set_hysteresis_time_from(false, LOITER_TIME_BEFORE_DESCEND);
-
+	_tilt_limit_slew_rate.setSlewRate(.2f);
 	reset_setpoint_to_nan(_setpoint);
 }
 
@@ -378,12 +375,13 @@ void MulticopterPositionControl::Run()
 			}
 
 			// limit tilt during takeoff ramupup
-			if (_takeoff.getTakeoffState() < TakeoffState::flight) {
-				_control.setTiltLimit(math::radians(_param_mpc_tiltmax_lnd.get()));
+			float tilt_limit = math::radians(_param_mpc_tiltmax_air.get());
 
-			} else {
-				_control.setTiltLimit(math::radians(_param_mpc_tiltmax_air.get()));
+			if (_takeoff.getTakeoffState() < TakeoffState::flight) {
+				tilt_limit = math::radians(_param_mpc_tiltmax_lnd.get());
 			}
+
+			_control.setTiltLimit(_tilt_limit_slew_rate.update(tilt_limit, dt));
 
 			const float speed_up = _takeoff.updateRamp(dt,
 					       PX4_ISFINITE(_vehicle_constraints.speed_up) ? _vehicle_constraints.speed_up : _param_mpc_z_vel_max_up.get());
