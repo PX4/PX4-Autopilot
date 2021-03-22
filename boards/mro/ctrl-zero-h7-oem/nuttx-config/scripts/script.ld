@@ -199,7 +199,7 @@ SECTIONS
 	} > AXI_SRAM
 
 	/* Emit the the D3 power domain section for locating BDMA data */
-	.SRAM4 (NOLOAD) :
+	.sram4 (NOLOAD) :
 	{
 	} > SRAM4
 
