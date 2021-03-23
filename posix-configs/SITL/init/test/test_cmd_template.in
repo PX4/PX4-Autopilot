@@ -9,6 +9,6 @@ simulator start
 tone_alarm start
 pwm_out_sim start
 
-tests @test_name@
+@test_name@
 
 shutdown
