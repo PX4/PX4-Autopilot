@@ -19,8 +19,6 @@ ver all
 mavlink start -x -u 14556 -r 2000000 -p
 mavlink boot_complete
 
-tests mavlink
-
-dataman status
+mavlink_tests
 
 shutdown
