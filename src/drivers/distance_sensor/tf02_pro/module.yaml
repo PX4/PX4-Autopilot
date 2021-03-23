@@ -1,0 +1,7 @@
+module_name: TF02_pro Rangefinder
+serial_config:
+    - command: tf02_pro start -d ${SERIAL_DEV}
+      port_config_param:
+        name: SENS_02PRO_CFG
+        group: Sensors
+

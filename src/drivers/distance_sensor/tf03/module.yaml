@@ -1,0 +1,7 @@
+module_name: Benewake TF03 Rangefinder
+serial_config:
+    - command: tf03 start -d ${SERIAL_DEV}
+      port_config_param:
+        name: SENS_TF03_CFG
+        group: Sensors
+

@@ -1,0 +1,7 @@
+module_name: Benewake TFluna Rangefinder
+serial_config:
+    - command: tfluna start -d ${SERIAL_DEV}
+      port_config_param:
+        name: SENS_TFLUNA_CFG
+        group: Sensors
+
