@@ -341,6 +341,7 @@ PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
 
 /**
  * Time-out to wait when offboard connection is lost before triggering offboard lost action.
+ *
  * See COM_OBL_ACT and COM_OBL_RC_ACT to configure action.
  *
  * @group Commander
@@ -595,6 +596,7 @@ PARAM_DEFINE_FLOAT(COM_ARM_IMU_GYR, 0.25f);
 
 /**
  * Maximum magnetic field inconsistency between units that will allow arming
+ *
  * Set -1 to disable the check.
  *
  * @group Commander

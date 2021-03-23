@@ -305,6 +305,8 @@ class SourceParser(object):
                     group = "Miscellaneous"
                     if state == "comment-processed":
                         if short_desc is not None:
+                            if '\n' in short_desc:
+                                raise Exception('short description must be a single line (parameter: {:})'.format(name))
                             param.SetField("short_desc", self.re_remove_dots.sub('', short_desc))
                         if long_desc is not None:
                             long_desc = self.re_remove_carriage_return.sub(' ', long_desc)
