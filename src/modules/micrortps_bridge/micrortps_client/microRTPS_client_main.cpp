@@ -225,7 +225,7 @@ int micrortps_client_main(int argc, char *argv[])
 		_rtps_task = px4_task_spawn_cmd("micrortps_client",
 						SCHED_DEFAULT,
 						SCHED_PRIORITY_DEFAULT,
-						2650,
+						3450,
 						(px4_main_t) micrortps_start,
 						(char *const *)argv);
 
