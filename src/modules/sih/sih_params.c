@@ -418,6 +418,7 @@ PARAM_DEFINE_FLOAT(SIH_DISTSNSR_MAX, 100.0f);
 
 /**
  * if >= 0 the distance sensor measures will be overrided by this value
+ *
  * Absolute value superior to 10000 will disable distance sensor
  *
  * @unit m

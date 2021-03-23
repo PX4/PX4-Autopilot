@@ -321,6 +321,7 @@ PARAM_DEFINE_FLOAT(FW_LND_TLALT, -1.0f);
 
 /**
  * Landing heading hold horizontal distance.
+ *
  * Set to 0 to disable heading hold.
  *
  * @unit m
