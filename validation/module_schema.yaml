@@ -111,6 +111,8 @@ parameters:
                                     # Short description (one line)
                                     type: string
                                     required: true
+                                    maxlength: 70
+                                    regex: '[^\n]+'
                                 long:
                                     # Long description (can be multiple lines)
                                     type: string

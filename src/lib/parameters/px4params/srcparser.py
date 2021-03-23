@@ -307,6 +307,8 @@ class SourceParser(object):
                         if short_desc is not None:
                             if '\n' in short_desc:
                                 raise Exception('short description must be a single line (parameter: {:})'.format(name))
+                            if len(short_desc) > 150:
+                                raise Exception('short description too long (150 max, is {:}, parameter: {:})'.format(len(short_desc), name))
                             param.SetField("short_desc", self.re_remove_dots.sub('', short_desc))
                         if long_desc is not None:
                             long_desc = self.re_remove_carriage_return.sub(' ', long_desc)
