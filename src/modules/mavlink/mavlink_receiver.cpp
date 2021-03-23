@@ -2342,7 +2342,8 @@ MavlinkReceiver::handle_message_utm_global_position(mavlink_message_t *msg)
 #ifndef BOARD_HAS_NO_UUID
 	px4_guid_t px4_guid;
 	board_get_px4_guid(px4_guid);
-	is_self_published = sizeof(px4_guid) == sizeof(utm_pos.uas_id) && memcmp(px4_guid, utm_pos.uas_id, sizeof(px4_guid_t)) == 0;
+	is_self_published = sizeof(px4_guid) == sizeof(utm_pos.uas_id)
+			    && memcmp(px4_guid, utm_pos.uas_id, sizeof(px4_guid_t)) == 0;
 #else
 
 	is_self_published = msg->sysid == _mavlink->get_system_id();
