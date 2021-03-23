@@ -7,6 +7,7 @@ px4_add_board(
 	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
+	CONSTRAINED_FLASH
 	CONSTRAINED_MEMORY
 	ROMFSROOT cannode
 	UAVCAN_INTERFACES 1
@@ -17,14 +18,17 @@ px4_add_board(
 		uavcannode
 	MODULES
 		#ekf2
-		load_mon
+		#load_mon
 		#sensors
 	SYSTEMCMDS
+		mft
+		mtd
 		param
-		perf
-		reboot
-		top
-		topic_listener
-		ver
-		work_queue
+		#perf
+		#reboot
+		#system_time
+		#top
+		#topic_listener
+		#ver
+		#work_queue
 )

@@ -31,19 +31,17 @@ px4_add_board(
 		#heater
 		#imu # all available imu drivers
 		imu/analog_devices/adis16448
-		imu/adis16477
-		imu/adis16497
 		imu/bosch/bmi088
 		imu/invensense/icm20602
 		imu/invensense/icm42688p
 		irlock
-		lights/blinkm
+		#lights/blinkm
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		magnetometer # all available magnetometer drivers
 		optical_flow # all available optical flow drivers
 		#osd
-		pca9685
+		#pca9685
 		pca9685_pwm_out
 		power_monitor/ina226
 		#protocol_splitter
@@ -71,6 +69,7 @@ px4_add_board(
 		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
+		gyro_calibration
 		gyro_fft
 		land_detector
 		landing_target_estimator

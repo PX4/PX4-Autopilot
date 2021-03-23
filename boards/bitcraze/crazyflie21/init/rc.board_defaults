@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Bitcraze Crazyflie specific board sensors init
+# board specific defaults
 #------------------------------------------------------------------------------
 
 # system_power unavailable

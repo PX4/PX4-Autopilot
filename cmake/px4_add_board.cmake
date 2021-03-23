@@ -48,7 +48,6 @@
 #			[ ROMFSROOT <string> ]
 #			[ BUILD_BOOTLOADER ]
 #			[ IO <string> ]
-#			[ BOOTLOADER <string> ]
 #			[ UAVCAN_INTERFACES <string> ]
 #			[ UAVCAN_PERIPHERALS <list> ]
 #			[ DRIVERS <list> ]
@@ -74,7 +73,6 @@
 #		ROMFSROOT		: relative path to the ROMFS root directory
 #		BUILD_BOOTLOADER	: flag to enable building and including the bootloader config
 #		IO			: name of IO board to be built and included in the ROMFS (requires a valid ROMFSROOT)
-#		BOOTLOADER		: bootloader file to include for flashing via bl_update (currently NuttX only)
 #		UAVCAN_INTERFACES	: number of interfaces for UAVCAN
 #		UAVCAN_PERIPHERALS      : list of UAVCAN peripheral firmware to build and embed
 #		DRIVERS			: list of drivers to build for this board (relative to src/drivers)
@@ -148,7 +146,6 @@ function(px4_add_board)
 			ARCHITECTURE
 			ROMFSROOT
 			IO
-			BOOTLOADER
 			UAVCAN_INTERFACES
 			UAVCAN_TIMER_OVERRIDE
 			LINKER_PREFIX
@@ -210,9 +207,6 @@ function(px4_add_board)
 
 	set(romfs_extra_files)
 	set(config_romfs_extra_dependencies)
-	if(BOOTLOADER)
-		list(APPEND romfs_extra_files ${BOOTLOADER})
-	endif()
 	foreach(metadata ${EMBEDDED_METADATA})
 		if(${metadata} STREQUAL "parameters")
 			list(APPEND romfs_extra_files ${PX4_BINARY_DIR}/params.json.xz)

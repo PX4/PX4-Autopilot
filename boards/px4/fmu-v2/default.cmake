@@ -8,7 +8,6 @@ px4_add_board(
 	ARCHITECTURE cortex-m4
 	CONSTRAINED_MEMORY
 	ROMFSROOT px4fmu_common
-	BOOTLOADER ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/extras/px4fmuv3_bl.bin
 	IO px4_io-v2_default
 	#TESTING
 	#UAVCAN_INTERFACES 2
@@ -77,6 +76,7 @@ px4_add_board(
 		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
+		gyro_calibration
 		#gyro_fft
 		land_detector
 		#landing_target_estimator

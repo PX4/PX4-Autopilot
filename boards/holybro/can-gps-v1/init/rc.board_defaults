@@ -3,4 +3,4 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
-rgbled_ncp5623c -I -b 1 -a 0x39  start
+rgbled_ncp5623c -I -b 1 -a 0x39 start

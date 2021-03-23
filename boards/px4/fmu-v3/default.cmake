@@ -32,8 +32,6 @@ px4_add_board(
 		#heater
 		#imu # all available imu drivers
 		imu/analog_devices/adis16448
-		imu/adis16477
-		imu/adis16497
 		imu/l3gd20
 		imu/lsm303d
 		imu/invensense/icm20608g
@@ -74,6 +72,7 @@ px4_add_board(
 		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
+		gyro_calibration
 		gyro_fft
 		land_detector
 		landing_target_estimator

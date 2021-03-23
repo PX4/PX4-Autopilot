@@ -207,6 +207,7 @@ rtps:
     id: 96
   - msg: vehicle_local_position_setpoint
     id: 97
+    receive: true
   - msg: vehicle_magnetometer
     id: 98
   - msg: vehicle_odometry
@@ -387,6 +388,7 @@ rtps:
   - msg: trajectory_setpoint
     id: 186
     alias: vehicle_local_position_setpoint
+    receive: true
   - msg: camera_trigger_secondary
     id: 187
     alias: camera_trigger

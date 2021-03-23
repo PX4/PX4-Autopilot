@@ -77,7 +77,7 @@ if (px4_constrained_flash_build)
 endif()
 if(PX4_ETHERNET)
 	set(added_arguments ${added_arguments} --ethernet)
-endif()	
+endif()
 add_custom_command(OUTPUT ${generated_serial_params_file}
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_params_dir}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py

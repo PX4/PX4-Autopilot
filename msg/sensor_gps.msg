@@ -18,6 +18,7 @@ float32 hdop			# Horizontal dilution of precision
 float32 vdop			# Vertical dilution of precision
 
 int32 noise_per_ms		# GPS noise per millisecond
+uint16 automatic_gain_control   # Automatic gain control monitor
 int32 jamming_indicator		# indicates jamming is occurring
 uint8 jamming_state		# indicates whether jamming has been detected or suspected by the receivers. O: Unknown, 1: OK, 2: Warning, 3: Critical
 

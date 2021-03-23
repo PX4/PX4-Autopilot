@@ -21,6 +21,7 @@ fi
 
 # initialize script variables
 set AUX_MODE                    none
+set AUX_BANK2			none
 set IO_PRESENT                  no
 set MAV_TYPE                    none
 set MIXER                       none
@@ -153,6 +154,8 @@ param set-default SENS_IMU_MODE 0
 param set-default EKF2_MULTI_MAG 2
 param set-default SENS_MAG_MODE 0
 
+param set-default IMU_GYRO_FFT_EN 1
+
 # By default log from boot until first disarm.
 param set-default SDLOG_MODE 1
 # enable default, estimator replay and vision/avoidance logging profiles
@@ -235,6 +238,16 @@ then
 	camera_feedback start
 fi
 
+if param compare -s IMU_GYRO_FFT_EN 1
+then
+	gyro_fft start
+fi
+
+if param compare -s IMU_GYRO_CAL_EN 1
+then
+	gyro_calibration start
+fi
+
 # Configure vehicle type specific parameters.
 # Note: rc.vehicle_setup is the entry point for rc.interface,
 #       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
@@ -247,7 +260,7 @@ then
 	sh etc/init.d-posix/rc.mavlink_override
 else
 	# GCS link
-	mavlink start -x -u $udp_gcs_port_local -r 4000000 -f -p
+	mavlink start -x -u $udp_gcs_port_local -r 4000000 -f
 	mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u $udp_gcs_port_local
 	mavlink stream -r 50 -s LOCAL_POSITION_NED -u $udp_gcs_port_local
 	mavlink stream -r 50 -s GLOBAL_POSITION_INT -u $udp_gcs_port_local
@@ -259,13 +272,13 @@ else
 	mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u $udp_gcs_port_local
 
 	# API/Offboard link
-	mavlink start -x -u $udp_offboard_port_local -r 4000000 -f -m onboard -o $udp_offboard_port_remote -p
+	mavlink start -x -u $udp_offboard_port_local -r 4000000 -f -m onboard -o $udp_offboard_port_remote
 
 	# Onboard link to camera
-	mavlink start -x -u $udp_onboard_payload_port_local -r 4000 -f -m onboard -o $udp_onboard_payload_port_remote -p
+	mavlink start -x -u $udp_onboard_payload_port_local -r 4000 -f -m onboard -o $udp_onboard_payload_port_remote
 
 	# Onboard link to gimbal
-	mavlink start -x -u $udp_onboard_gimbal_port_local -r 400000 -m gimbal -o $udp_onboard_gimbal_port_remote -p
+	mavlink start -x -u $udp_onboard_gimbal_port_local -r 400000 -m gimbal -o $udp_onboard_gimbal_port_remote
 fi
 
 # execute autostart post script if any

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# SP Racing H7 EXTREME specific board defaults
+# board specific defaults
 #------------------------------------------------------------------------------
 
 # system_power unavailable
@@ -8,9 +8,6 @@ param set-default CBRK_SUPPLY_CHK 894281
 
 # Select the Generic 250 Racer by default
 param set-default SYS_AUTOSTART 4050
-
-# Disable safety switch by default
-param set-default CBRK_IO_SAFETY 22027
 
 # use the Q attitude estimator, it works w/o mag or GPS.
 param set-default SYS_MC_EST_GROUP 3
@@ -21,6 +18,3 @@ param set-default ATT_W_GYRO_BIAS 0.0000
 param set-default SYS_HAS_MAG 0
 
 param set-default DSHOT_CONFIG 600
-
-
-set LOGGER_BUF 64

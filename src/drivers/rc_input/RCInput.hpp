@@ -41,7 +41,7 @@
 #include <drivers/drv_rc_input.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/rc/crsf.h>
-#include <lib/rc/ghst.h>
+#include <lib/rc/ghst.hpp>
 #include <lib/rc/dsm.h>
 #include <lib/rc/sbus.h>
 #include <lib/rc/st24.h>
@@ -61,7 +61,7 @@
 #include <uORB/topics/vehicle_command.h>
 
 #include "crsf_telemetry.h"
-#include "ghst_telemetry.h"
+#include "ghst_telemetry.hpp"
 
 #ifdef HRT_PPM_CHANNEL
 # include <systemlib/ppm_decode.h>

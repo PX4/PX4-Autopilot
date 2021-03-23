@@ -181,6 +181,17 @@ else
 	fi
 
 	#
+	# Optional board architecture defaults: rc.board_arch_defaults
+	#
+	set BOARD_ARCH_RC_DEFAULTS ${R}etc/init.d/rc.board_arch_defaults
+	if [ -f $BOARD_ARCH_RC_DEFAULTS ]
+	then
+		echo "Board architecture defaults: ${BOARD_ARCH_RC_DEFAULTS}"
+		. $BOARD_ARCH_RC_DEFAULTS
+	fi
+	unset BOARD_ARCH_RC_DEFAULTS
+
+	#
 	# Optional board defaults: rc.board_defaults
 	#
 	set BOARD_RC_DEFAULTS ${R}etc/init.d/rc.board_defaults
@@ -505,6 +516,11 @@ else
 		gyro_fft start
 	fi
 
+	if param compare -s IMU_GYRO_CAL_EN 1
+	then
+		gyro_calibration start
+	fi
+
 	#
 	# Optional board supplied extras: rc.board_extras
 	#
@@ -536,6 +552,22 @@ else
 	if ! param compare SYS_AUTOSTART 0
 	then
 		. ${R}etc/init.d/rc.autostart.post
+	fi
+
+	#
+	# Bootloader upgrade
+	#
+	if param compare -s SYS_BL_UPDATE 1
+	then
+		if [ -f "/etc/extras/bootloader.bin" ]
+		then
+			param set SYS_BL_UPDATE 0
+			param save
+			echo "bootloader update..."
+			bl_update "/etc/extras/bootloader.bin"
+			echo "bootloader update done, rebooting"
+			reboot
+		fi
 	fi
 
 	if ! param compare SYS_PARAM_VER ${PARAM_DEFAULTS_VER}

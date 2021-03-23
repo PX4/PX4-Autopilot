@@ -69,6 +69,12 @@
 #  include <parameters/flashparams/flashfs.h>
 #endif
 
+__BEGIN_DECLS
+extern void led_init(void);
+extern void led_on(int led);
+extern void led_off(int led);
+__END_DECLS
+
 /************************************************************************************
  * Name: stm32_boardinitialize
  *
@@ -121,6 +127,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	px4_platform_init();
 
+	// Configure LEDs.
+	board_autoled_initialize();
+
 #if defined(FLASH_BASED_PARAMS)
 	static sector_descriptor_t params_sector_map[] = {
 		{2, 16 * 1024, 0x08008000},
@@ -138,7 +147,14 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #endif // FLASH_BASED_PARAMS
 
-	//px4_platform_configure();
+	/* initial LED state */
+	drv_led_start();
+	led_off(LED_RED);
+	led_on(LED_BLUE);
+
+	/* Configure the HW based on the manifest */
+
+	px4_platform_configure();
 
 	return OK;
 }

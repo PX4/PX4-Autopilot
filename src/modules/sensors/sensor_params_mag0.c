@@ -195,9 +195,11 @@ PARAM_DEFINE_FLOAT(CAL_MAG0_YODIAG, 0.0f);
 PARAM_DEFINE_FLOAT(CAL_MAG0_ZODIAG, 0.0f);
 
 /**
+* X Axis throttle compensation for Mag 0
+*
 * Coefficient describing linear relationship between
 * X component of magnetometer in body frame axis
-* and either current or throttle depending on value of CAL_MAG_COMP_TYP
+* and either current or throttle depending on value of CAL_MAG_COMP_TYP.
 * Unit for throttle-based compensation is [G] and
 * for current-based compensation [G/kA]
 *
@@ -207,9 +209,11 @@ PARAM_DEFINE_FLOAT(CAL_MAG0_ZODIAG, 0.0f);
 PARAM_DEFINE_FLOAT(CAL_MAG0_XCOMP, 0.0f);
 
 /**
+* Y Axis throttle compensation for Mag 0
+*
 * Coefficient describing linear relationship between
 * Y component of magnetometer in body frame axis
-* and either current or throttle depending on value of CAL_MAG_COMP_TYP
+* and either current or throttle depending on value of CAL_MAG_COMP_TYP.
 * Unit for throttle-based compensation is [G] and
 * for current-based compensation [G/kA]
 *
@@ -219,9 +223,11 @@ PARAM_DEFINE_FLOAT(CAL_MAG0_XCOMP, 0.0f);
 PARAM_DEFINE_FLOAT(CAL_MAG0_YCOMP, 0.0f);
 
 /**
+* Z Axis throttle compensation for Mag 0
+*
 * Coefficient describing linear relationship between
 * Z component of magnetometer in body frame axis
-* and either current or throttle depending on value of CAL_MAG_COMP_TYP
+* and either current or throttle depending on value of CAL_MAG_COMP_TYP.
 * Unit for throttle-based compensation is [G] and
 * for current-based compensation [G/kA]
 *

@@ -24,8 +24,6 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		gps
 		imu/analog_devices/adis16448
-		imu/adis16477
-		imu/adis16497
 		#imu # all available imu drivers
 		imu/bosch/bmi055
 		imu/invensense/icm20602
@@ -53,6 +51,7 @@ px4_add_board(
 		events
 		fw_att_control
 		fw_pos_control_l1
+		gyro_calibration
 		gyro_fft
 		land_detector
 		load_mon

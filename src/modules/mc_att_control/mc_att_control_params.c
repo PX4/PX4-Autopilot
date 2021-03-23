@@ -148,6 +148,7 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 200.0f);
 
 /**
  * Manual tilt input filter time constant
+ *
  * Setting this parameter to 0 disables the filter
  *
  * @unit s
