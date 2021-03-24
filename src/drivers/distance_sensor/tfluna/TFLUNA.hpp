@@ -60,8 +60,8 @@ using namespace time_literals;
 class TFLUNA : public px4::ScheduledWorkItem
 {
 public:
-        TFLUNA(const char *port, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
-        virtual ~TFLUNA();
+       TFLUNA(const char *port, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+       virtual ~TFLUNA();
 
 	int init();
 
@@ -78,7 +78,7 @@ private:
 
 	PX4Rangefinder	_px4_rangefinder;
 
-        TFLUNA_PARSE_STATE _parse_state {TFLUNA_PARSE_STATE::STATE0_UNSYNC};
+       TFLUNA_PARSE_STATE _parse_state {TFLUNA_PARSE_STATE::STATE0_UNSYNC};
 
 	char _linebuf[10] {};
 	char _port[20] {};
