@@ -218,29 +218,27 @@ void ADIS16470::RunImpl()
 			bool success = false;
 
 			struct BurstRead {
-				uint8_t cmd[2];
-				uint8_t DIAG_STAT[2];
-				uint8_t X_GYRO_OUT[2];
-				uint8_t Y_GYRO_OUT[2];
-				uint8_t Z_GYRO_OUT[2];
-				uint8_t X_ACCL_OUT[2];
-				uint8_t Y_ACCL_OUT[2];
-				uint8_t Z_ACCL_OUT[2];
-				uint8_t TEMP_OUT[2];
-				uint8_t DATA_CNTR[2];
-				uint8_t _padding; // 16 bit SPI mode
-				uint8_t checksum;
+				uint16_t cmd;
+				uint16_t DIAG_STAT;
+				int16_t X_GYRO_OUT;
+				int16_t Y_GYRO_OUT;
+				int16_t Z_GYRO_OUT;
+				int16_t X_ACCL_OUT;
+				int16_t Y_ACCL_OUT;
+				int16_t Z_ACCL_OUT;
+				int16_t TEMP_OUT;
+				uint16_t DATA_CNTR;
+				uint16_t checksum;
 			} buffer{};
 
 			// ADIS16470 burst report should be 176 bits
 			static_assert(sizeof(BurstRead) == (176 / 8), "ADIS16470 report not 176 bits");
 
-			buffer.cmd[0] = static_cast<uint16_t>(Register::GLOB_CMD);// << 8;
+			buffer.cmd = static_cast<uint16_t>(Register::GLOB_CMD) << 8;
 
 			set_frequency(SPI_SPEED_BURST);
 
-			//if (transferhword((uint16_t *)&buffer, (uint16_t *)&buffer, sizeof(buffer) / sizeof(uint16_t)) == PX4_OK) {
-			if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, sizeof(buffer)) == PX4_OK) {
+			if (transferhword((uint16_t *)&buffer, (uint16_t *)&buffer, sizeof(buffer) / sizeof(uint16_t)) == PX4_OK) {
 
 				// Calculate checksum and compare
 
@@ -255,7 +253,7 @@ void ADIS16470::RunImpl()
 				//  DATA_CNTR, Bits[15:8] + DATA_CNTR, Bits[7:0]
 				uint8_t *checksum_helper = (uint8_t *)&buffer.DIAG_STAT;
 
-				uint8_t checksum = 0;
+				uint16_t checksum = 0;
 
 				for (int i = 0; i < 18; i++) {
 					checksum += checksum_helper[i];
@@ -266,9 +264,7 @@ void ADIS16470::RunImpl()
 					perf_count(_bad_transfer_perf);
 				}
 
-				uint16_t DIAG_STAT = combine(buffer.DIAG_STAT[0], buffer.DIAG_STAT[1]);
-
-				if (DIAG_STAT != DIAG_STAT_BIT::Data_path_overrun) {
+				if (buffer.DIAG_STAT != DIAG_STAT_BIT::Data_path_overrun) {
 					// Data path overrun. A 1 indicates that one of the
 					// data paths have experienced an overrun condition.
 					// If this occurs, initiate a reset,
@@ -278,19 +274,19 @@ void ADIS16470::RunImpl()
 				}
 
 				// Check all Status/Error Flag Indicators (DIAG_STAT)
-				if (DIAG_STAT != 0) {
+				if (buffer.DIAG_STAT != 0) {
 					perf_count(_bad_transfer_perf);
 				}
 
 				// temperature 1 LSB = 0.1°C
-				const float temperature = combine(buffer.TEMP_OUT[0], buffer.TEMP_OUT[1]) * 0.1f;
+				const float temperature = buffer.TEMP_OUT * 0.1f;
 				_px4_accel.set_temperature(temperature);
 				_px4_gyro.set_temperature(temperature);
 
 
-				int16_t accel_x = combine(buffer.X_ACCL_OUT[0], buffer.X_ACCL_OUT[1]);
-				int16_t accel_y = combine(buffer.Y_ACCL_OUT[0], buffer.Y_ACCL_OUT[1]);
-				int16_t accel_z = combine(buffer.Z_ACCL_OUT[0], buffer.Z_ACCL_OUT[1]);
+				int16_t accel_x = buffer.X_ACCL_OUT;
+				int16_t accel_y = buffer.Y_ACCL_OUT;
+				int16_t accel_z = buffer.Z_ACCL_OUT;
 
 				// sensor's frame is +x forward, +y left, +z up
 				//  flip y & z to publish right handed with z down (x forward, y right, z down)
@@ -300,9 +296,9 @@ void ADIS16470::RunImpl()
 				_px4_accel.update(now, accel_x, accel_y, accel_z);
 
 
-				int16_t gyro_x = combine(buffer.X_GYRO_OUT[0], buffer.X_GYRO_OUT[1]);
-				int16_t gyro_y = combine(buffer.Y_GYRO_OUT[0], buffer.Y_GYRO_OUT[1]);
-				int16_t gyro_z = combine(buffer.Z_GYRO_OUT[0], buffer.Z_GYRO_OUT[1]);
+				int16_t gyro_x = buffer.X_GYRO_OUT;
+				int16_t gyro_y = buffer.Y_GYRO_OUT;
+				int16_t gyro_z = buffer.Z_GYRO_OUT;
 				// sensor's frame is +x forward, +y left, +z up
 				//  flip y & z to publish right handed with z down (x forward, y right, z down)
 				gyro_y = (gyro_y == INT16_MIN) ? INT16_MAX : -gyro_y;
