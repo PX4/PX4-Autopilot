@@ -246,6 +246,8 @@ void RCInput::set_rc_scan_state(RC_SCAN newState)
 	_rc_scan_begin = 0;
 	_rc_scan_state = newState;
 	_rc_scan_locked = false;
+
+	_report_lock = true;
 }
 
 void RCInput::rc_io_invert(bool invert)
@@ -387,11 +389,6 @@ void RCInput::Run()
 		constexpr hrt_abstime rc_scan_max = 300_ms;
 
 		unsigned frame_drops = 0;
-
-		if (_report_lock && _rc_scan_locked) {
-			_report_lock = false;
-			PX4_INFO("RC scan: %s RC input locked", RC_SCAN_STRING[_rc_scan_state]);
-		}
 
 		int newBytes = 0;
 
@@ -703,6 +700,11 @@ void RCInput::Run()
 
 		} else if (!rc_updated && ((hrt_absolute_time() - _rc_in.timestamp_last_signal) > 1_s)) {
 			_rc_scan_locked = false;
+		}
+
+		if (_report_lock && _rc_scan_locked) {
+			_report_lock = false;
+			PX4_INFO("RC scan: %s RC input locked", RC_SCAN_STRING[_rc_scan_state]);
 		}
 	}
 }
