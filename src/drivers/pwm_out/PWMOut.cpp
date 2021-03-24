@@ -1743,23 +1743,21 @@ int PWMOut::fmu_new_mode(PortMode new_mode)
 		return -1;
 	}
 
-#if PWM_OUT_MAX_INSTANCES > 0
-	PWMOut *pwm0 = _objects[0].load(); // TODO: get_instance();
+	if (PWM_OUT_MAX_INSTANCES > 0) {
+		PWMOut *pwm0 = _objects[0].load(); // TODO: get_instance();
 
-	if (pwm0 && pwm_mode0 != pwm0->get_mode()) {
-		pwm0->request_mode(pwm_mode0);
+		if (pwm0 && pwm_mode0 != pwm0->get_mode()) {
+			pwm0->request_mode(pwm_mode0);
+		}
 	}
 
-#endif
+	if (PWM_OUT_MAX_INSTANCES > 1) {
+		PWMOut *pwm1 = _objects[1].load(); // TODO: get_instance();
 
-#if PWM_OUT_MAX_INSTANCES > 1
-	PWMOut *pwm1 = _objects[1].load(); // TODO: get_instance();
-
-	if (pwm1 && pwm_mode1 != pwm1->get_mode()) {
-		pwm1->request_mode(pwm_mode1);
+		if (pwm1 && pwm_mode1 != pwm1->get_mode()) {
+			pwm1->request_mode(pwm_mode1);
+		}
 	}
-
-#endif
 
 	return OK;
 }
