@@ -405,7 +405,7 @@ void RCInput::Run()
 		// read all available data from the serial RC input UART
 
 		// read all available data from the serial RC input UART
-		int newBytes = ::read(_rcs_fd, &_rcs_buf[0], SBUS_BUFFER_SIZE);
+		int newBytes = ::read(_rcs_fd, &_rcs_buf[0], RC_MAX_BUFFER_SIZE);
 
 		if (newBytes > 0) {
 			_bytes_rx += newBytes;
@@ -850,7 +850,11 @@ int RCInput::print_status()
 	}
 
 #if ADC_RC_RSSI_CHANNEL
-	PX4_INFO("vrssi: %dmV", (int)(_analog_rc_rssi_volt * 1000.0f));
+
+	if (_analog_rc_rssi_stable) {
+		PX4_INFO("vrssi: %dmV", (int)(_analog_rc_rssi_volt * 1000.0f));
+	}
+
 #endif
 
 	perf_print_counter(_cycle_perf);
