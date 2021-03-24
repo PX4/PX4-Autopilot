@@ -34,8 +34,6 @@ px4_add_module(
 	MODULE drivers__pwm_out
 	MAIN pwm_out
 	COMPILE_FLAGS
-		-Wno-unused-but-set-variable # TODO
-		-Wno-unused-variable # TODO
 	SRCS
 		PWMOut.cpp
 		PWMOut.hpp
