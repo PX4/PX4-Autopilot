@@ -698,7 +698,7 @@ void RCInput::Run()
 
 			_to_input_rc.publish(_rc_in);
 
-		} else if (!rc_updated && ((hrt_absolute_time() - _rc_in.timestamp_last_signal) > 1_s)) {
+		} else if (!rc_updated && !_armed && (hrt_elapsed_time(&_rc_in.timestamp_last_signal) > 1_s)) {
 			_rc_scan_locked = false;
 		}
 
