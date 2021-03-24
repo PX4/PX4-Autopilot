@@ -36,6 +36,8 @@
 #include "crsf_telemetry.h"
 #include <uORB/topics/vehicle_command_ack.h>
 
+#include <termios.h>
+
 using namespace time_literals;
 
 constexpr char const *RCInput::RC_SCAN_STRING[];
@@ -397,15 +399,13 @@ void RCInput::Run()
 
 		unsigned frame_drops = 0;
 
-		int newBytes = 0;
-
 		// TODO: needs work (poll _rcs_fd)
 		// int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), 100);
 		// then update priority to SCHED_PRIORITY_FAST_DRIVER
 		// read all available data from the serial RC input UART
 
 		// read all available data from the serial RC input UART
-		newBytes = ::read(_rcs_fd, &_rcs_buf[0], SBUS_BUFFER_SIZE);
+		int newBytes = ::read(_rcs_fd, &_rcs_buf[0], SBUS_BUFFER_SIZE);
 
 		if (newBytes > 0) {
 			_bytes_rx += newBytes;
@@ -418,6 +418,10 @@ void RCInput::Run()
 				// Configure serial port for SBUS
 				sbus_config(_rcs_fd, board_rc_singlewire(_device));
 				rc_io_invert(true);
+
+				// flush serial buffer and any existing buffered data
+				tcflush(_rcs_fd, TCIOFLUSH);
+				memset(_rcs_buf, 0, sizeof(_rcs_buf));
 
 			} else if (_rc_scan_locked
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
@@ -453,6 +457,10 @@ void RCInput::Run()
 				// Configure serial port for DSM
 				dsm_config(_rcs_fd);
 
+				// flush serial buffer and any existing buffered data
+				tcflush(_rcs_fd, TCIOFLUSH);
+				memset(_rcs_buf, 0, sizeof(_rcs_buf));
+
 			} else if (_rc_scan_locked
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
 
@@ -485,6 +493,10 @@ void RCInput::Run()
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for DSM
 				dsm_config(_rcs_fd);
+
+				// flush serial buffer and any existing buffered data
+				tcflush(_rcs_fd, TCIOFLUSH);
+				memset(_rcs_buf, 0, sizeof(_rcs_buf));
 
 			} else if (_rc_scan_locked
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
@@ -532,6 +544,10 @@ void RCInput::Run()
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for DSM
 				dsm_config(_rcs_fd);
+
+				// flush serial buffer and any existing buffered data
+				tcflush(_rcs_fd, TCIOFLUSH);
+				memset(_rcs_buf, 0, sizeof(_rcs_buf));
 
 			} else if (_rc_scan_locked
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
@@ -607,6 +623,10 @@ void RCInput::Run()
 				// Configure serial port for CRSF
 				crsf_config(_rcs_fd);
 
+				// flush serial buffer and any existing buffered data
+				tcflush(_rcs_fd, TCIOFLUSH);
+				memset(_rcs_buf, 0, sizeof(_rcs_buf));
+
 			} else if (_rc_scan_locked
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
 
@@ -650,6 +670,10 @@ void RCInput::Run()
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for GHST
 				ghst_config(_rcs_fd);
+
+				// flush serial buffer and any existing buffered data
+				tcflush(_rcs_fd, TCIOFLUSH);
+				memset(_rcs_buf, 0, sizeof(_rcs_buf));
 
 			} else if (_rc_scan_locked
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
