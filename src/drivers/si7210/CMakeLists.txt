@@ -33,12 +33,11 @@
 px4_add_module(
 	MODULE drivers__si7210
 	MAIN si7210
-	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
 		si7210.cpp
 		parameters.cpp
 	DEPENDS
-		platforms__common
+		px4_work_queue
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :

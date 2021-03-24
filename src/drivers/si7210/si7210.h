@@ -1,7 +1,7 @@
 #ifndef SI7210_HPP_
 #define SI7210_HPP_
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <parameters/param.h>
 
 #include <sys/types.h>
@@ -34,8 +34,8 @@
 #include <board_config.h>
 #include <drivers/drv_hrt.h>
 
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/integrator.h>
+// #include <ringbuffer.h>
+// #include <drivers/device/integrator.h>
 #include <drivers/device/i2c.h>
 #include <drivers/drv_hall.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>

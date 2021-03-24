@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,38 +31,29 @@
  *
  ****************************************************************************/
 
-#pragma once
-
 /**
- * @file parameters.h
+ * @file drv_hall.h
  *
- * defines the list of parameters that are used within the power board module
- *
- * @author Amir Melzer <amir.melzer@mavt.ethz.ch>
+ * Hall Effect Magnetic Sensor driver interface.
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <parameters/param.h>
-#include <mathlib/mathlib.h>
+#ifndef _DRV_HALL_H
+#define _DRV_HALL_H
 
-namespace si7210
-{
+#include <px4_defines.h>
+#include <stdint.h>
+#include <sys/ioctl.h>
 
-struct Parameters {
-};
+#include "drv_sensor.h"
+#include "drv_orb_dev.h"
 
-struct ParameterHandles {
-};
+#define HALL_BASE_DEVICE_PATH	"/dev/hall"
+#define HALL0_DEVICE_PATH		"/dev/hall0"
+#define HALL1_DEVICE_PATH		"/dev/hall1"
+#define HALL2_DEVICE_PATH		"/dev/hall2"
+#define HALL3_DEVICE_PATH		"/dev/hall3"
 
-/**
- * initialize ParameterHandles struct
- */
-void initialize_parameter_handles(ParameterHandles &parameter_handles);
+#include <uORB/topics/sensor_hall.h>
+#define si7210_report sensor_hall_s
 
-/**
- * Read out the parameters using the handles into the parameters struct.
- * @return 0 on success, <0 on error
- */
-int update_parameters(const ParameterHandles &parameter_handles, Parameters &parameters);
-
-} /* namespace si7210 */
+#endif /* _DRV_HALL_H */

@@ -39,7 +39,7 @@
 
 #include "si7210.h"
 
-#include <px4_getopt.h>
+#include <getopt.h>
 
 /** driver 'main' command */
 extern "C" { __EXPORT int si7210_main(int argc, char *argv[]); }
