@@ -47,4 +47,11 @@ then
 	param set MAV_1_CONFIG 102
 	param set MAV_1_MODE 7
 	param set MAV_1_RATE 1000
+
+	# Disable multi ekf for now
+	param set EKF2_MULTI_IMU 0
+	param set SENS_IMU_MODE 1
+	param set EKF2_MULTI_MAG 0
+	param set SENS_MAG_MODE 1
+
 fi
