@@ -256,7 +256,14 @@ void RCInput::rc_io_invert(bool invert)
 	// and if not use an IOCTL
 	if (!board_rc_invert_input(_device, invert)) {
 #if defined(TIOCSINVERT)
-		ioctl(_rcs_fd, TIOCSINVERT, invert ? (SER_INVERT_ENABLED_RX | SER_INVERT_ENABLED_TX) : 0);
+
+		if (invert) {
+			ioctl(_rcs_fd, TIOCSINVERT, SER_INVERT_ENABLED_RX | SER_INVERT_ENABLED_TX);
+
+		} else {
+			ioctl(_rcs_fd, TIOCSINVERT, 0);
+		}
+
 #endif // TIOCSINVERT
 	}
 }
@@ -434,6 +441,7 @@ void RCInput::Run()
 
 			} else {
 				// Scan the next protocol
+				rc_io_invert(false);
 				set_rc_scan_state(RC_SCAN_DSM);
 			}
 
@@ -442,9 +450,8 @@ void RCInput::Run()
 		case RC_SCAN_DSM:
 			if (_rc_scan_begin == 0) {
 				_rc_scan_begin = cycle_timestamp;
-				//			// Configure serial port for DSM
+				// Configure serial port for DSM
 				dsm_config(_rcs_fd);
-				rc_io_invert(false);
 
 			} else if (_rc_scan_locked
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
@@ -478,7 +485,6 @@ void RCInput::Run()
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for DSM
 				dsm_config(_rcs_fd);
-				rc_io_invert(false);
 
 			} else if (_rc_scan_locked
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
@@ -526,7 +532,6 @@ void RCInput::Run()
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for DSM
 				dsm_config(_rcs_fd);
-				rc_io_invert(false);
 
 			} else if (_rc_scan_locked
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
@@ -568,8 +573,6 @@ void RCInput::Run()
 				_rc_scan_begin = cycle_timestamp;
 				// Configure timer input pin for CPPM
 				px4_arch_configgpio(GPIO_PPM_IN);
-				rc_io_invert(false);
-				ioctl(_rcs_fd, TIOCSINVERT, 0);
 
 			} else if (_rc_scan_locked || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
 
@@ -603,7 +606,6 @@ void RCInput::Run()
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for CRSF
 				crsf_config(_rcs_fd);
-				rc_io_invert(false);
 
 			} else if (_rc_scan_locked
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
@@ -648,7 +650,6 @@ void RCInput::Run()
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for GHST
 				ghst_config(_rcs_fd);
-				rc_io_invert(false);
 
 			} else if (_rc_scan_locked
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
