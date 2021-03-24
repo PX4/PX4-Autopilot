@@ -75,7 +75,7 @@ int TF03::init()
 
 	switch (hw_model) {
 	case 1: // TF03-180 (130m @90% reflectivity, in the presence of 100Klux light at 100 Hz)
-	       // We set it according to outdoor environment.
+	        // We set it according to outdoor environment.
 		// Note:
 		// Sensor specification shows 0.1m as minimum, but in practice
 		// 0.1 is too close to minimum so chattering of invalid sensor decision
