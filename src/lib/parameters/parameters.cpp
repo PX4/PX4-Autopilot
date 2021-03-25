@@ -660,7 +660,7 @@ autosave_worker(void *arg)
 		uORB::SubscriptionData<actuator_armed_s> armed_sub{ORB_ID(actuator_armed)};
 
 		if (armed_sub.get().armed) {
-			work_queue(LPWORK, &autosave_work, (worker_t)&autosave_worker, nullptr, USEC2TICK(1_s));
+			work_queue(HPWORK, &autosave_work, (worker_t)&autosave_worker, nullptr, USEC2TICK(1_s));
 			return;
 		}
 	}
@@ -710,7 +710,7 @@ param_autosave()
 	}
 
 	autosave_scheduled.store(true);
-	work_queue(LPWORK, &autosave_work, (worker_t)&autosave_worker, nullptr, USEC2TICK(delay));
+	work_queue(HPWORK, &autosave_work, (worker_t)&autosave_worker, nullptr, USEC2TICK(delay));
 }
 
 void
@@ -719,7 +719,7 @@ param_control_autosave(bool enable)
 	param_lock_writer();
 
 	if (!enable && autosave_scheduled.load()) {
-		work_cancel(LPWORK, &autosave_work);
+		work_cancel(HPWORK, &autosave_work);
 		autosave_scheduled.store(false);
 	}
 

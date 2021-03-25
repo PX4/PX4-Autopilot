@@ -204,6 +204,7 @@ void work_queues_init(void)
 						work_hpthread,
 						(char *const *)NULL);
 
+#ifdef CONFIG_SCHED_LPWORK
 	// Create low priority worker thread
 	g_work[LPWORK].pid = px4_task_spawn_cmd("lpwork",
 						SCHED_DEFAULT,
@@ -211,6 +212,7 @@ void work_queues_init(void)
 						2000,
 						work_lpthread,
 						(char *const *)NULL);
+#endif /* CONFIG_SCHED_LPWORK */
 
 }
 
@@ -260,7 +262,7 @@ int work_hpthread(int argc, char *argv[])
 		 */
 
 #ifndef CONFIG_SCHED_LPWORK
-		sched_garbagecollection();
+		//sched_garbagecollection();
 #endif
 
 		/* Then process queued work.  We need to keep interrupts disabled while

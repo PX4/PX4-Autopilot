@@ -691,7 +691,7 @@ param_autosave()
 	}
 
 	autosave_scheduled = true;
-	work_queue(LPWORK, &autosave_work, (worker_t)&autosave_worker, nullptr, USEC2TICK(delay));
+	work_queue(HPWORK, &autosave_work, (worker_t)&autosave_worker, nullptr, USEC2TICK(delay));
 }
 
 void
@@ -700,7 +700,7 @@ param_control_autosave(bool enable)
 	param_lock_writer();
 
 	if (!enable && autosave_scheduled) {
-		work_cancel(LPWORK, &autosave_work);
+		work_cancel(HPWORK, &autosave_work);
 		autosave_scheduled = false;
 	}
 

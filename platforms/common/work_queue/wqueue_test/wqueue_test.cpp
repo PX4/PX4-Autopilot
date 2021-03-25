@@ -55,27 +55,6 @@ void WQueueTest::hp_worker_cb(void *p)
 	wqep->do_hp_work();
 }
 
-void WQueueTest::lp_worker_cb(void *p)
-{
-	WQueueTest *wqep = (WQueueTest *)p;
-
-	wqep->do_lp_work();
-}
-
-void WQueueTest::do_lp_work()
-{
-	static int iter = 0;
-	printf("done lp work\n");
-
-	if (iter > 5) {
-		_lpwork_done = true;
-	}
-
-	++iter;
-
-	work_queue(LPWORK, &_lpwork, (worker_t)&lp_worker_cb, this, 1000);
-}
-
 void WQueueTest::do_hp_work()
 {
 	static int iter = 0;
@@ -97,11 +76,6 @@ int WQueueTest::main()
 
 	//Put work on HP work queue
 	work_queue(HPWORK, &_hpwork, (worker_t)&hp_worker_cb, this, 1000);
-
-
-	//Put work on LP work queue
-	work_queue(LPWORK, &_lpwork, (worker_t)&lp_worker_cb, this, 1000);
-
 
 	// Wait for work to finsh
 	while (!appState.exitRequested() && !(_hpwork_done && _lpwork_done)) {
