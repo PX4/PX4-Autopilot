@@ -34,15 +34,13 @@
 #include "autopilot_tester.h"
 
 
-TEST_CASE("Takeoff and transition and RTL", "[vtol]")
+TEST_CASE("Fly VTOL mission", "[vtol]")
 {
 	AutopilotTester tester;
 	tester.connect(connection_url);
+	tester.load_qgc_mission_raw("test/mavsdk_tests/vtol_mission_allmend.plan");
 	tester.wait_until_ready();
 	tester.arm();
-	tester.takeoff();
-	tester.wait_until_hovering();
-	tester.transition_to_fixedwing();
-	tester.execute_rtl();
+	tester.execute_mission_raw();
 	tester.wait_until_disarmed();
 }
