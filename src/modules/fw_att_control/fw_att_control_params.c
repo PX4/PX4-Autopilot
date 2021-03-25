@@ -158,7 +158,7 @@ PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.4f);
 /**
  * Pitch control actuator slew rate limit
  *
- * If the rate of change of the actuator demand due to pitch rate feedback exceeds this value, the rate feeedback gain will be reduced to protect against a high frequency limit cycle. Set t / slew_time, where slew_time is the time in seconds required for the actuator to slew from the maximum positive to maximum negative deflection. Set to 0 to disable this feature.
+ * If the rate of change of the actuator demand due to pitch rate feedback exceeds this value, the rate feeedback gain will be reduced to reduce the likelihood of a high frequency high amplitude limit cycle developing that could overstress the aircraft or lead to loss of control. Set to 1 / slew_time, where slew_time is the time in seconds required for the actuator to slew from the maximum positive to maximum negative deflection. Note that the servo manufacturers specified slew time is usually only achievable when the servo is not driving a control surface, so it is advised to de-rate the specified slew time by a factor of 2 when calculating the value of FW_PR_SLEW_LIM. Set to 0 to disable this feature.
  *
  * @unit 1/s
  * @min 0.0
@@ -230,7 +230,7 @@ PARAM_DEFINE_FLOAT(FW_R_RMAX, 70.0f);
 /**
  * Roll control actuator slew rate limit
  *
- * If the rate of change of the actuator demand due to roll rate feedback exceeds this value, the rate feeedback gain will be reduced to protect against a high frequency limit cycle. Set t / slew_time, where slew_time is the time in seconds required for the actuator to slew from the maximum positive to maximum negative deflection. Set to 0 to disable this feature.
+ * If the rate of change of the actuator demand due to roll rate feedback exceeds this value, the rate feeedback gain will be reduced to reduce the likelihood of a high frequency high amplitude limit cycle developing that could overstress the aircraft or lead to loss of control. Set to 1 / slew_time, where slew_time is the time in seconds required for the actuator to slew from the maximum positive to maximum negative deflection. Note that the servo manufacturers specified slew time is usually only achievable when the servo is not driving a control surface, so it is advised to de-rate the specified slew time by a factor of 2 when calculating the value of FW_PR_SLEW_LIM. Set to 0 to disable this feature.
  *
  * @unit 1/s
  * @min 0.0
