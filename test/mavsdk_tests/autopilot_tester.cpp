@@ -36,6 +36,7 @@
 #include <iostream>
 #include <future>
 #include <thread>
+#include <unistd.h>
 
 std::string connection_url {"udp://"};
 std::optional<float> speed_factor {std::nullopt};
@@ -70,6 +71,7 @@ void AutopilotTester::connect(const std::string uri)
 	_info.reset(new Info(system));
 	_manual_control.reset(new ManualControl(system));
 	_mission.reset(new Mission(system));
+	_mission_raw.reset(new MissionRaw(system));
 	_offboard.reset(new Offboard(system));
 	_param.reset(new Param(system));
 	_telemetry.reset(new Telemetry(system));
@@ -219,10 +221,7 @@ void AutopilotTester::execute_mission()
 	std::promise<void> prom;
 	auto fut = prom.get_future();
 
-	_mission->start_mission_async([&prom](Mission::Result result) {
-		REQUIRE(Mission::Result::Success == result);
-		prom.set_value();
-	});
+	REQUIRE(_mission->start_mission() == Mission::Result::Success);
 
 	// TODO: Adapt time limit based on mission size, flight speed, sim speed factor, etc.
 
@@ -325,6 +324,26 @@ Mission::MissionItem  AutopilotTester::create_mission_item(
 	mission_item.relative_altitude_m = mission_options.relative_altitude_m;
 	mission_item.is_fly_through = mission_options.fly_through;
 	return mission_item;
+}
+
+void AutopilotTester::load_qgc_mission_raw(const std::string &plan_file)
+{
+	const auto import_result = _mission_raw->import_qgroundcontrol_mission(plan_file);
+	REQUIRE(import_result.first == MissionRaw::Result::Success);
+
+	REQUIRE(_mission_raw->upload_mission(import_result.second.mission_items) == MissionRaw::Result::Success);
+}
+
+void AutopilotTester::execute_mission_raw()
+{
+	std::promise<void> prom;
+	auto fut = prom.get_future();
+
+	REQUIRE(_mission->start_mission() == Mission::Result::Success);
+
+	// TODO: Adapt time limit based on mission size, flight speed, sim speed factor, etc.
+
+	wait_for_mission_raw_finished(std::chrono::seconds(60));
 }
 
 void AutopilotTester::execute_rtl()
@@ -613,6 +632,21 @@ void AutopilotTester::wait_for_mission_finished(std::chrono::seconds timeout)
 	_mission->subscribe_mission_progress([&prom, this](Mission::MissionProgress progress) {
 		if (progress.current == progress.total) {
 			_mission->subscribe_mission_progress(nullptr);
+			prom.set_value();
+		}
+	});
+
+	REQUIRE(fut.wait_for(timeout) == std::future_status::ready);
+}
+
+void AutopilotTester::wait_for_mission_raw_finished(std::chrono::seconds timeout)
+{
+	auto prom = std::promise<void> {};
+	auto fut = prom.get_future();
+
+	_mission_raw->subscribe_mission_progress([&prom, this](MissionRaw::MissionProgress progress) {
+		if (progress.current == progress.total) {
+			_mission_raw->subscribe_mission_progress(nullptr);
 			prom.set_value();
 		}
 	});
