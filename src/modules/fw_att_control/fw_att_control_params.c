@@ -228,6 +228,20 @@ PARAM_DEFINE_FLOAT(FW_RR_IMAX, 0.2f);
 PARAM_DEFINE_FLOAT(FW_R_RMAX, 70.0f);
 
 /**
+ * Roll control actuator slew rate limit
+ *
+ * If the rate of change of the actuator demand due to roll rate feedback exceeds this value, the rate feeedback gain will be reduced to protect against a high frequency limit cycle. Set t / slew_time, where slew_time is the time in seconds required for the actuator to slew from the maximum positive to maximum negative deflection. Set to 0 to disable this feature.
+ *
+ * @unit 1/s
+ * @min 0.0
+ * @max 20.0
+ * @decimal 1
+ * @increment 0.1
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_RR_SLEW_LIM, 5.0f);
+
+/**
  * Yaw rate proportional gain
  *
  * This defines how much the rudder input will be commanded depending on the

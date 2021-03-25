@@ -102,6 +102,7 @@ FixedwingAttitudeControl::parameters_update()
 	_roll_ctrl.set_k_i(_param_fw_rr_i.get());
 	_roll_ctrl.set_k_ff(_param_fw_rr_ff.get());
 	_roll_ctrl.set_integrator_max(_param_fw_rr_imax.get());
+	_roll_ctrl.set_output_max_slew_rate(_param_fw_rr_slew_lim.get());
 
 	/* yaw control parameters */
 	_yaw_ctrl.set_k_p(_param_fw_yr_p.get());

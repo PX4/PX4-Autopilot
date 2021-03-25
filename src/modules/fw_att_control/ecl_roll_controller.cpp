@@ -99,11 +99,67 @@ float ECL_RollController::control_bodyrate(const float dt, const ECL_ControlData
 		_integrator = math::constrain(_integrator + id * _k_i, -_integrator_max, _integrator_max);
 	}
 
+	// Calculate the contribution of the rate gyro to the actuator demand and high pass filter
+	// The high pass filter reduces the contribution of the attitude control loop to the slew rate
+	// metric and reduces the likelihood that a loss of stability caused by a too small value of
+	// _tc would result in a an undesirable reduction in gyro rate feedback
+	// Note: high pass filter is implemented as HPF_output = input - LPF_output
+	const float p_term = _rate_error * _k_p * ctl_data.scaler * ctl_data.scaler;
+	float filter_input;
+	if (_k_ff > 0.0f) {
+		// If feed forward is being used then we can monitor the rate error term
+		// because the feed forward should be doing most of the work
+		filter_input = p_term;
+	} else {
+		// Some users will use a zero feed forward gain and rely on the rate error term
+		// to do all the work, resulting in large rate error tranisents. In this scenario
+		// it is better to monitor the gyro feedback contribution only
+		filter_input = ctl_data.body_y_rate * _k_p * ctl_data.scaler * ctl_data.scaler;
+	}
+	const float filt_tconst = _tc / 2.0f;
+	const float filt_coef = fminf(dt, filt_tconst) / filt_tconst;
+	_gyro_contribution_lpf = (1.0f - filt_coef) * _gyro_contribution_lpf + filt_coef * filter_input;
+	const float gyro_term_hpf = filter_input - _gyro_contribution_lpf;
+
+	// Calculate the actuator slew rate due to gyro feedback
+	const float gyro_term_slew_rate = (gyro_term_hpf - _last_gyro_term_hpf) / dt;
+	_last_gyro_term_hpf = gyro_term_hpf;
+
+	/* calculate gain compression factor required to prevent the rate feedback */
+	/*  term exceeding the actuator slew rate limit */
+	if (_output_slew_rate_limit > 0.0f) {
+		// apply a peak hold decaying envelope filter to the slew rate in the positive and negative direction
+		const float decay_tconst = _tc * 2.0f;
+		if (gyro_term_slew_rate > _max_pos_slew_rate) {
+			_max_pos_slew_rate = gyro_term_slew_rate;
+		} else {
+			_max_pos_slew_rate *= (1.0f - fminf(dt, decay_tconst) / decay_tconst);
+		}
+		if (gyro_term_slew_rate < -_max_neg_slew_rate) {
+			_max_neg_slew_rate = -gyro_term_slew_rate;
+		} else {
+			_max_neg_slew_rate *= (1.0f - fminf(dt, decay_tconst) / decay_tconst);
+		}
+
+		// calculate the peak slew rate of the oscillation using the smallest of the slew rate
+		// in each direction to prevent single direction transients being detected as a limit cycle
+		const float limit_cycle_slew_rate = fminf(_max_pos_slew_rate,_max_neg_slew_rate);
+		if (limit_cycle_slew_rate > _output_slew_rate_limit) {
+			// reduce gain inversely to the exceedance ratio but limit the lower value to prevent
+			// possible loss of control due to vibration affecting the gyro signal
+			_gain_compression_factor = fmaxf(_output_slew_rate_limit / limit_cycle_slew_rate, 0.25f);
+		} else {
+			_gain_compression_factor = 1.0f;
+		}
+	} else {
+		_gain_compression_factor = 1.0f;
+	}
+
 	/* Apply PI rate controller and store non-limited output */
 	/* FF terms scales with 1/TAS and P,I with 1/IAS^2 */
 	_last_output = _bodyrate_setpoint * _k_ff * ctl_data.scaler +
-		       _rate_error * _k_p * ctl_data.scaler * ctl_data.scaler
-		       + _integrator;
+			p_term * _gain_compression_factor +
+			_integrator;
 
 	return math::constrain(_last_output, -1.0f, 1.0f);
 }

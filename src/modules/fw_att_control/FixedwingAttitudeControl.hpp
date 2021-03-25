@@ -200,6 +200,7 @@ private:
 		(ParamFloat<px4::params::FW_RR_I>) _param_fw_rr_i,
 		(ParamFloat<px4::params::FW_RR_IMAX>) _param_fw_rr_imax,
 		(ParamFloat<px4::params::FW_RR_P>) _param_fw_rr_p,
+		(ParamFloat<px4::params::FW_RR_SLEW_LIM>) _param_fw_rr_slew_lim,
 
 		(ParamBool<px4::params::FW_W_EN>) _param_fw_w_en,
 		(ParamFloat<px4::params::FW_W_RMAX>) _param_fw_w_rmax,
