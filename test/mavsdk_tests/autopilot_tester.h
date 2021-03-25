@@ -40,6 +40,7 @@
 #include <mavsdk/plugins/info/info.h>
 #include <mavsdk/plugins/manual_control/manual_control.h>
 #include <mavsdk/plugins/mission/mission.h>
+#include <mavsdk/plugins/mission_raw/mission_raw.h>
 #include <mavsdk/plugins/offboard/offboard.h>
 #include <mavsdk/plugins/telemetry/telemetry.h>
 #include <mavsdk/plugins/param/param.h>
@@ -110,6 +111,8 @@ public:
 	void execute_mission_and_get_mag_stuck();
 	void execute_mission_and_lose_baro();
 	void execute_mission_and_get_baro_stuck();
+	void load_qgc_mission_raw(const std::string &plan_file);
+	void execute_mission_raw();
 	void execute_rtl();
 	void offboard_goto(const Offboard::PositionNedYaw &target, float acceptance_radius_m = 0.3f,
 			   std::chrono::seconds timeout_duration = std::chrono::seconds(60));
@@ -136,6 +139,7 @@ private:
 	void wait_for_flight_mode(Telemetry::FlightMode flight_mode, std::chrono::seconds timeout);
 	void wait_for_landed_state(Telemetry::LandedState landed_state, std::chrono::seconds timeout);
 	void wait_for_mission_finished(std::chrono::seconds timeout);
+	void wait_for_mission_raw_finished(std::chrono::seconds timeout);
 
 	void report_speed_factor();
 
@@ -219,6 +223,7 @@ private:
 	std::unique_ptr<mavsdk::Info> _info{};
 	std::unique_ptr<mavsdk::ManualControl> _manual_control{};
 	std::unique_ptr<mavsdk::Mission> _mission{};
+	std::unique_ptr<mavsdk::MissionRaw> _mission_raw{};
 	std::unique_ptr<mavsdk::Offboard> _offboard{};
 	std::unique_ptr<mavsdk::Param> _param{};
 	std::unique_ptr<mavsdk::Telemetry> _telemetry{};
