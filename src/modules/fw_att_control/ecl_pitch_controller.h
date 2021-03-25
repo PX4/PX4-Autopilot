@@ -85,10 +85,6 @@ public:
 protected:
 	float _max_rate_neg{0.0f};
 	float _roll_ff{0.0f};
-	float _gyro_contribution_lpf;	// contribution of the gyro feedback to the actuator demand after low pass filtering
-	float _max_pos_slew_rate{0.0f}; // peak slew rate of the gyro induced actuator demand in the positive direction
-	float _max_neg_slew_rate{0.0f}; // peak slew rate of the gyro induced actuator demand in the negative direction
-	float _gain_compression_factor{1.0f}; // factor applied to the rate error control gain _k_p
 };
 
 #endif // ECL_PITCH_CONTROLLER_H
