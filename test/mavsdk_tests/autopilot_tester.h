@@ -111,7 +111,7 @@ public:
 	void execute_mission_and_get_mag_stuck();
 	void execute_mission_and_lose_baro();
 	void execute_mission_and_get_baro_stuck();
-	void load_qgc_mission_raw(const std::string &plan_file);
+	void load_qgc_mission_raw_and_move_here(const std::string &plan_file);
 	void execute_mission_raw();
 	void execute_rtl();
 	void offboard_goto(const Offboard::PositionNedYaw &target, float acceptance_radius_m = 0.3f,
@@ -140,6 +140,7 @@ private:
 	void wait_for_landed_state(Telemetry::LandedState landed_state, std::chrono::seconds timeout);
 	void wait_for_mission_finished(std::chrono::seconds timeout);
 	void wait_for_mission_raw_finished(std::chrono::seconds timeout);
+	void move_mission_raw_here(std::vector<mavsdk::MissionRaw::MissionItem> &mission_items);
 
 	void report_speed_factor();
 
