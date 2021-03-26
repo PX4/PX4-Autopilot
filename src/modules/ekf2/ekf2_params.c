@@ -1062,7 +1062,7 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_PITCH, 0.0f);
  * @value 0 Range aid disabled
  * @value 1 Range aid enabled
  */
-PARAM_DEFINE_INT32(EKF2_RNG_AID, 0);
+PARAM_DEFINE_INT32(EKF2_RNG_AID, 1);
 
 /**
  * Maximum horizontal velocity allowed for range aid mode.
