@@ -326,10 +326,12 @@ Mission::MissionItem  AutopilotTester::create_mission_item(
 	return mission_item;
 }
 
-void AutopilotTester::load_qgc_mission_raw(const std::string &plan_file)
+void AutopilotTester::load_qgc_mission_raw_and_move_here(const std::string &plan_file)
 {
-	const auto import_result = _mission_raw->import_qgroundcontrol_mission(plan_file);
+	auto import_result = _mission_raw->import_qgroundcontrol_mission(plan_file);
 	REQUIRE(import_result.first == MissionRaw::Result::Success);
+
+	move_mission_raw_here(import_result.second.mission_items);
 
 	REQUIRE(_mission_raw->upload_mission(import_result.second.mission_items) == MissionRaw::Result::Success);
 }
@@ -652,6 +654,24 @@ void AutopilotTester::wait_for_mission_raw_finished(std::chrono::seconds timeout
 	});
 
 	REQUIRE(fut.wait_for(timeout) == std::future_status::ready);
+}
+
+void AutopilotTester::move_mission_raw_here(std::vector<MissionRaw::MissionItem> &mission_items)
+{
+	const auto position = _telemetry->position();
+	REQUIRE(std::isfinite(position.latitude_deg));
+	REQUIRE(std::isfinite(position.longitude_deg));
+
+	auto offset_x = mission_items[0].x - static_cast<int32_t>(1e7 * position.latitude_deg);
+	auto offset_y = mission_items[1].y - static_cast<int32_t>(1e7 * position.longitude_deg);
+
+	for (auto &item : mission_items) {
+		if (item.frame == 3) { // MAV_FRAME_GLOBAL_RELATIVE_ALT
+			item.x -= offset_x;
+		}
+
+		item.y -= offset_y;
+	}
 }
 
 void AutopilotTester::report_speed_factor()

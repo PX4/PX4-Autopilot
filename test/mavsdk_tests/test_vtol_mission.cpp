@@ -38,8 +38,8 @@ TEST_CASE("Fly VTOL mission", "[vtol]")
 {
 	AutopilotTester tester;
 	tester.connect(connection_url);
-	tester.load_qgc_mission_raw("test/mavsdk_tests/vtol_mission_allmend.plan");
 	tester.wait_until_ready();
+	tester.load_qgc_mission_raw_and_move_here("test/mavsdk_tests/vtol_mission_allmend.plan");
 	tester.arm();
 	tester.execute_mission_raw();
 	tester.wait_until_disarmed();
