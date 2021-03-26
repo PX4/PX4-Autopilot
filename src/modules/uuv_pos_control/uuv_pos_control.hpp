@@ -114,7 +114,7 @@ private:
 	//actuator_controls_s _actuators {}; /**< actuator control inputs */
 	manual_control_setpoint_s _manual_control_setpoint {}; /**< r/c channel data */
 	vehicle_attitude_s _vehicle_attitude {}; /**< vehicle attitude */
-	trajectory_setpoint_s _trajectory_setpoint{}; 
+	trajectory_setpoint_s _trajectory_setpoint{};
 	vehicle_control_mode_s _vcontrol_mode {}; /**< vehicle control mode */
 
 	perf_counter_t	_loop_perf; /**< loop performance counter */
