@@ -3809,6 +3809,7 @@ void Commander::estimator_check()
 
 		if (!mag_fault_prev && mag_fault) {
 			mavlink_log_critical(&_mavlink_log_pub, "Stopping compass use! Check calibration on landing");
+			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MAG, true, true, false, _status);
 		}
 
 		/* Check estimator status for signs of bad yaw induced post takeoff navigation failure
@@ -3849,7 +3850,7 @@ void Commander::estimator_check()
 					} else if (innovation_fail) {
 						_time_last_innov_fail = hrt_absolute_time();
 
-						if (!_nav_test_failed && hrt_elapsed_time(&_time_last_innov_pass) > 1_s) {
+						if (!_nav_test_failed && hrt_elapsed_time(&_time_last_innov_pass) > 2_s) {
 							// if the innovation test has failed continuously, declare the nav as failed
 							_nav_test_failed = true;
 							mavlink_log_emergency(&_mavlink_log_pub, "Navigation failure! Land and recalibrate sensors");

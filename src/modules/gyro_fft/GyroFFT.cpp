@@ -140,7 +140,6 @@ bool GyroFFT::init()
 		}
 
 		if (!SensorSelectionUpdate(true)) {
-			PX4_WARN("sensor_gyro callback registration failed!");
 			ScheduleDelayed(500_ms);
 		}
 
