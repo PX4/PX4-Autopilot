@@ -39,7 +39,7 @@
  * @author Christoph Tobler <christoph@px4.io>
  * @author Mohammed Kabir <mhkabir@mit.edu>
  *
- * Driver for the Benewake TFmini laser rangefinder series
+ * Driver for the Benewake TF LiDAR rangefinder series
  */
 
 #pragma once

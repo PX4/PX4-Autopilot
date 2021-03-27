@@ -32,41 +32,66 @@
  ****************************************************************************/
 
 /**
- * @file modified from sf0x_parser.cpp
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Chuong Nguyen <chnguye7@asu.edu>
- * @author Ayush Gaud <ayush.gaud@gmail.com>
+ * @file tf02_pro.cpp
+ * @file modified from tfmini_parser.c
+ * @author Ibrahim <ibrahimqazi63@yahoo.com>
  *
- * Declarations of parser for the Benewake TF LiDAR rangefinder series
+ * Driver for the Benewake TF02_PRO laser rangefinder series
  */
 
 #pragma once
 
-// Data Format for Benewake TF Series
-// ===============================
-// 9 bytes total per message:
-// 1) 0x59
-// 2) 0x59
-// 3) Dist_L (low 8bit)
-// 4) Dist_H (high 8bit)
-// 5) Strength_L (low 8bit)
-// 6) Strength_H (high 8bit)
-// 7) Chip Temperature_L (low 8bit)
-// 8) Chip Temperature_H (high 8bit)
-// 9) Checksum parity bit (low 8bit), Checksum = Byte1 + Byte2 +...+Byte8. This is only a low 8bit though
+#include <termios.h>
 
+#include <drivers/drv_hrt.h>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
+#include <uORB/topics/distance_sensor.h>
 
-enum class TFMINI_PARSE_STATE {
-	STATE0_UNSYNC = 0,
-	STATE1_SYNC_1,
-	STATE1_SYNC_2,
-	STATE2_GOT_DIST_L,
-	STATE2_GOT_DIST_H,
-	STATE3_GOT_STRENGTH_L,
-	STATE3_GOT_STRENGTH_H,
-	STATE4_GOT_CHIP_TEMPL,
-	STATE5_GOT_CHIP_TEMPH,
-	STATE6_GOT_CHECKSUM
+#include "tf02_pro_parser.h"
+
+#define TF02_PRO_DEFAULT_PORT	"/dev/ttyS2"
+
+using namespace time_literals;
+
+class TF02_PRO : public px4::ScheduledWorkItem
+{
+public:
+       TF02_PRO(const char *port, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+       virtual ~TF02_PRO();
+
+	int init();
+
+	void print_info();
+
+private:
+
+	int collect();
+
+	void Run() override;
+
+	void start();
+	void stop();
+
+	PX4Rangefinder	_px4_rangefinder;
+
+       TF02_PRO_PARSE_STATE _parse_state {TF02_PRO_PARSE_STATE::STATE0_UNSYNC};
+
+	char _linebuf[10] {};
+	char _port[20] {};
+
+	static constexpr int kCONVERSIONINTERVAL{9_ms};
+
+	int _fd{-1};
+
+	unsigned int _linebuf_index{0};
+
+	hrt_abstime _last_read{0};
+
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+
 };
-
-int tfmini_parse(char c, char *parserbuf, unsigned *parserbuf_index, TFMINI_PARSE_STATE *state, float *dist);

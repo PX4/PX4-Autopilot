@@ -31,12 +31,12 @@
  *
  ****************************************************************************/
 
-#include "TFMINI.hpp"
+#include "TF02_pro.hpp"
 
 #include <lib/drivers/device/Device.hpp>
 #include <fcntl.h>
 
-TFMINI::TFMINI(const char *port, uint8_t rotation) :
+TF02_PRO::TF02_PRO(const char *port, uint8_t rotation) :
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
 	_px4_rangefinder(0, rotation)
 {
@@ -47,7 +47,7 @@ TFMINI::TFMINI(const char *port, uint8_t rotation) :
 	_port[sizeof(_port) - 1] = '\0';
 
 	device::Device::DeviceId device_id;
-	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_TFMINI;
+	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_PRO;
 	device_id.devid_s.bus_type = device::Device::DeviceBusType_SERIAL;
 
 	uint8_t bus_num = atoi(&_port[strlen(_port) - 1]); // Assuming '/dev/ttySx'
@@ -60,7 +60,7 @@ TFMINI::TFMINI(const char *port, uint8_t rotation) :
 	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
 }
 
-TFMINI::~TFMINI()
+TF02_PRO::~TF02_PRO()
 {
 	// make sure we are truly inactive
 	stop();
@@ -69,21 +69,20 @@ TFMINI::~TFMINI()
 	perf_free(_comms_errors);
 }
 
-int
-TFMINI::init()
+int TF02_PRO::init()
 {
 	int32_t hw_model = 1; // only one model so far...
 
 	switch (hw_model) {
-	case 1: // TF LiDAR Series (8m to 350m depending upon the product model, 100 Hz)
+	case 1: // TF02_pro (40m @90% reflectivity, in the presence of 100Klux light at 100 Hz)
 		// Note:
 		// Sensor specification shows 0.1m as minimum, but in practice
 		// 0.1 is too close to minimum so chattering of invalid sensor decision
 		// is happening sometimes. this cause EKF to believe inconsistent range readings.
-		// So we set 0.3 as valid minimum.
-		_px4_rangefinder.set_min_distance(0.3f);
-		_px4_rangefinder.set_max_distance(350.0f);
-		_px4_rangefinder.set_fov(math::radians(1.15f));
+		// So we set 0.4 as valid minimum.
+		_px4_rangefinder.set_min_distance(0.4f);
+		_px4_rangefinder.set_max_distance(40.0f);
+		_px4_rangefinder.set_fov(math::radians(1.5f));
 
 		break;
 
@@ -169,7 +168,7 @@ TFMINI::init()
 }
 
 int
-TFMINI::collect()
+TF02_PRO::collect()
 {
 	perf_begin(_sample_perf);
 
@@ -219,7 +218,7 @@ TFMINI::collect()
 
 		// parse buffer
 		for (int i = 0; i < ret; i++) {
-			tfmini_parse(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &distance_m);
+			tf02_pro_parse(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &distance_m);
 		}
 
 		// bytes left to parse
@@ -242,20 +241,20 @@ TFMINI::collect()
 }
 
 void
-TFMINI::start()
+TF02_PRO::start()
 {
 	// schedule a cycle to start things (the sensor sends at 100Hz, but we run a bit faster to avoid missing data)
 	ScheduleOnInterval(7_ms);
 }
 
 void
-TFMINI::stop()
+TF02_PRO::stop()
 {
 	ScheduleClear();
 }
 
 void
-TFMINI::Run()
+TF02_PRO::Run()
 {
 	// fds initialized?
 	if (_fd < 0) {
@@ -273,7 +272,7 @@ TFMINI::Run()
 }
 
 void
-TFMINI::print_info()
+TF02_PRO::print_info()
 {
 	printf("Using port '%s'\n", _port);
 	perf_print_counter(_sample_perf);

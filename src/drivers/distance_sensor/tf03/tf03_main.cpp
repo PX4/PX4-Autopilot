@@ -31,17 +31,17 @@
  *
  ****************************************************************************/
 
-#include "TFMINI.hpp"
+#include "TF03.hpp"
 
 #include <px4_platform_common/getopt.h>
 
 /**
  * Local functions in support of the shell command.
  */
-namespace tfmini
+namespace tf03
 {
 
-TFMINI	*g_dev{nullptr};
+TF03	*g_dev{nullptr};
 
 int start(const char *port, uint8_t rotation);
 int status();
@@ -57,7 +57,7 @@ start(const char *port, uint8_t rotation)
 	}
 
 	// Instantiate the driver.
-	g_dev = new TFMINI(port, rotation);
+	g_dev = new TF03(port, rotation);
 
 	if (g_dev == nullptr) {
 		PX4_ERR("driver start failed");
@@ -111,21 +111,21 @@ usage()
 		R"DESCR_STR(
 ### Description
 
-Serial bus driver for the Benewake TF Series LiDAR.
+Serial bus driver for the Benewake TF03 LiDAR.
 
-Most boards are configured to enable/start the driver on a specified UART using the SENS_TFMINI_CFG parameter.
+Most boards are configured to enable/start the driver on a specified UART using the SENS_TF03_CFG parameter.
 
 Setup/usage information: https://docs.px4.io/master/en/sensor/tfmini.html
 
 ### Examples
 
 Attempt to start driver on a specified serial device.
-$ tfmini start -d /dev/ttyS1
+$ tf03 start -d /dev/ttyS1
 Stop driver
-$ tfmini stop
+$ tf03 stop
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("tfmini", "driver");
+	PRINT_MODULE_USAGE_NAME("tf03", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start","Start driver");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
@@ -139,11 +139,11 @@ $ tfmini stop
 
 } // namespace
 
-extern "C" __EXPORT int tfmini_main(int argc, char *argv[])
+extern "C" __EXPORT int tf03_main(int argc, char *argv[])
 {
 	int ch = 0;
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-	const char *device_path = TFMINI_DEFAULT_PORT;
+	const char *device_path = TF03_DEFAULT_PORT;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
@@ -165,24 +165,24 @@ extern "C" __EXPORT int tfmini_main(int argc, char *argv[])
 
 	if (myoptind >= argc) {
 		PX4_ERR("unrecognized command");
-		return tfmini::usage();
+		return tf03::usage();
 	}
 
 	if (!strcmp(argv[myoptind], "start")) {
 		if (strcmp(device_path, "") != 0) {
-			return tfmini::start(device_path, rotation);
+			return tf03::start(device_path, rotation);
 
 		} else {
 			PX4_WARN("Please specify device path!");
-			return tfmini::usage();
+			return tf03::usage();
 		}
 
 	} else if (!strcmp(argv[myoptind], "stop")) {
-		return tfmini::stop();
+		return tf03::stop();
 
 	} else if (!strcmp(argv[myoptind], "status")) {
-		return tfmini::status();
+		return tf03::status();
 	}
 
-	return tfmini::usage();
+	return tf03::usage();
 }

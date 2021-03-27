@@ -32,18 +32,27 @@
  ****************************************************************************/
 
 /**
- * @file modified from sf0x_parser.cpp
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Chuong Nguyen <chnguye7@asu.edu>
- * @author Ayush Gaud <ayush.gaud@gmail.com>
+ * @file modified from tfmini_parser.h
+ * @author Ibrahim <ibrahimqazi63@yahoo.com>
  *
- * Declarations of parser for the Benewake TF LiDAR rangefinder series
+ * Declarations of parser for the Benewake TF03 laser rangefinder series
  */
 
 #pragma once
 
-// Data Format for Benewake TF Series
-// ===============================
+// Data Format for Benewake TF03
+// ===========Old version====================
+// 9 bytes total per message:
+// 1) 0x59
+// 2) 0x59
+// 3) Dist_L (low 8bit)
+// 4) Dist_H (high 8bit)
+// 5) Reserved bytes
+// 6) Reserved bytes
+// 7) Reserved bytes
+// 8) Reserved bytes
+// 9) Checksum parity bit (low 8bit), Checksum = Byte1 + Byte2 +...+Byte8. This is only a low 8bit
+// ===========New version====================
 // 9 bytes total per message:
 // 1) 0x59
 // 2) 0x59
@@ -51,12 +60,11 @@
 // 4) Dist_H (high 8bit)
 // 5) Strength_L (low 8bit)
 // 6) Strength_H (high 8bit)
-// 7) Chip Temperature_L (low 8bit)
-// 8) Chip Temperature_H (high 8bit)
+// 7) Chip Temperature (low 8bit)
+// 8) Chip Temperature (high 8bit)
 // 9) Checksum parity bit (low 8bit), Checksum = Byte1 + Byte2 +...+Byte8. This is only a low 8bit though
 
-
-enum class TFMINI_PARSE_STATE {
+enum class TF03_PARSE_STATE {
 	STATE0_UNSYNC = 0,
 	STATE1_SYNC_1,
 	STATE1_SYNC_2,
@@ -64,9 +72,9 @@ enum class TFMINI_PARSE_STATE {
 	STATE2_GOT_DIST_H,
 	STATE3_GOT_STRENGTH_L,
 	STATE3_GOT_STRENGTH_H,
-	STATE4_GOT_CHIP_TEMPL,
-	STATE5_GOT_CHIP_TEMPH,
+	STATE4_GOT_CHIP_TEMP_L,
+	STATE5_GOT_CHIP_TEMP_H,
 	STATE6_GOT_CHECKSUM
 };
 
-int tfmini_parse(char c, char *parserbuf, unsigned *parserbuf_index, TFMINI_PARSE_STATE *state, float *dist);
+int tf03_parse(char c, char *parserbuf, unsigned *parserbuf_index, TF03_PARSE_STATE *state, float *dist);

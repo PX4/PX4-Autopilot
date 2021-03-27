@@ -29,6 +29,11 @@ px4_add_board(
 		#distance_sensor # all available distance sensor drivers
 		#distance_sensor/ll40ls
 		#distance_sensor/lightware_laser_serial
+                #distance_sensor/tfmini
+                distance_sensor/tf02_pro
+                #distance_sensor/tf03
+                #distance_sensor/tfluna
+                #distance_sensor/tf350
 		#dshot
 		gps
 		#heater
@@ -59,6 +64,7 @@ px4_add_board(
 		pwm_out
 		px4io
 		#roboclaw
+		#tap_esc
 		#telemetry # all available telemetry drivers
 		#test_ppm
 		tone_alarm
