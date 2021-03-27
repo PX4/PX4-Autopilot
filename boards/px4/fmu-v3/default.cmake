@@ -33,7 +33,7 @@ px4_add_board(
 		imu/l3gd20
 		imu/lsm303d
 		imu/invensense/icm20608g
-		imu/invensense/icm20948
+		imu/invensense/icm20948 # required for ak09916 mag
 		imu/invensense/mpu6000
 		imu/invensense/mpu9250
 		irlock

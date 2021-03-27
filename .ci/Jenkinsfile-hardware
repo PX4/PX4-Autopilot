@@ -84,9 +84,9 @@ pipeline {
           }
         }
 
-        stage("cuav_x7pro_default") {
+        stage("cuav_x7pro_test") {
           stages {
-            stage("build cuav_x7pro_default") {
+            stage("build cuav_x7pro_test") {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2020-09-14'
@@ -99,10 +99,10 @@ pipeline {
                 sh 'make distclean'
                 sh 'ccache -s'
                 sh 'git fetch --tags'
-                sh 'make cuav_x7pro_default'
+                sh 'make cuav_x7pro_test'
                 sh 'make sizes'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'cuav_x7pro_default'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'cuav_x7pro_test'
               }
               post {
                 always {
@@ -119,9 +119,9 @@ pipeline {
                   steps {
                     sh 'export'
                     sh 'find /dev/serial'
-                    unstash 'cuav_x7pro_default'
+                    unstash 'cuav_x7pro_test'
                     // flash board and watch bootup
-                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cuav_x7pro_default/cuav_x7pro_default.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cuav_x7pro_test/cuav_x7pro_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                   }
                 }
                 stage("configure") {
@@ -823,9 +823,9 @@ pipeline {
           }
         }
 
-        stage("holybro_durandal-v1_default") {
+        stage("holybro_durandal-v1_test") {
           stages {
-            stage("build holybro_durandal-v1_default") {
+            stage("build holybro_durandal-v1_test") {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2020-09-14'
@@ -838,10 +838,10 @@ pipeline {
                 sh 'make distclean'
                 sh 'ccache -s'
                 sh 'git fetch --tags'
-                sh 'make holybro_durandal-v1_default'
+                sh 'make holybro_durandal-v1_test'
                 sh 'make sizes'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'holybro_durandal-v1_default'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'holybro_durandal-v1_test'
               }
               post {
                 always {
@@ -858,9 +858,9 @@ pipeline {
                   steps {
                     sh 'export'
                     sh 'find /dev/serial'
-                    unstash 'holybro_durandal-v1_default'
+                    unstash 'holybro_durandal-v1_test'
                     // flash board and watch bootup
-                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/holybro_durandal-v1_default/holybro_durandal-v1_default.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/holybro_durandal-v1_test/holybro_durandal-v1_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                   }
                 }
                 stage("configure") {
