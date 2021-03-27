@@ -258,9 +258,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D_ACC, 0.2f);
 /**
  * Maximum horizontal velocity in mission
  *
- * Normal horizontal velocity in AUTO modes (includes
- * also RTL / hold / etc.) and endpoint for
- * position stabilized mode (POSCTRL).
+ * Horizontal velocity used when flying autonomously in e.g. Missions, RTL, Goto.
  *
  * @unit m/s
  * @min 3.0
@@ -301,6 +299,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_ERR_MAX, 2.0f);
 
 /**
  * Maximum horizontal velocity setpoint for manual controlled mode
+ *
  * If velocity setpoint larger than MPC_XY_VEL_MAX is set, then
  * the setpoint will be capped to MPC_XY_VEL_MAX
  *
@@ -366,6 +365,7 @@ PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.7f);
 
 /**
  * Maximum horizontal position mode velocity when close to ground/home altitude
+ *
  * Set the value higher than the otherwise expected maximum to disable any slowdown.
  *
  * @unit m/s
@@ -425,6 +425,7 @@ PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 150.0f);
 
 /**
  * Manual yaw rate input filter time constant
+ *
  * Setting this parameter to 0 disables the filter
  *
  * @unit s

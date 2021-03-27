@@ -303,7 +303,6 @@ check_%:
 	@echo
 
 uorb_graphs:
-	@./Tools/uorb_graph/create_from_startupscript.sh
 	@./Tools/uorb_graph/create.py --src-path src --exclude-path src/examples --file Tools/uorb_graph/graph_full
 	@$(MAKE) --no-print-directory px4_fmu-v2_default uorb_graph
 	@$(MAKE) --no-print-directory px4_fmu-v4_default uorb_graph
@@ -319,7 +318,7 @@ coverity_scan: px4_sitl_default
 .PHONY: parameters_metadata airframe_metadata module_documentation px4_metadata doxygen
 
 parameters_metadata:
-	@$(MAKE) --no-print-directory px4_sitl_default metadata_parameters
+	@$(MAKE) --no-print-directory px4_sitl_default metadata_parameters ver_gen
 
 airframe_metadata:
 	@$(MAKE) --no-print-directory px4_sitl_default metadata_airframes

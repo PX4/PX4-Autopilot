@@ -75,16 +75,26 @@ public:
 private:
 	void Run() override;
 
+	void CalibrateAndPublish(const hrt_abstime &timestamp_sample, const matrix::Vector3f &angular_velocity,
+				 const matrix::Vector3f &angular_acceleration, float scale = 1.f);
+
+	float FilterAngularVelocity(int axis, float data[], int N);
+	float FilterAngularAcceleration(int axis, float data[], int N, float dt_s);
+
 	void DisableDynamicNotchEscRpm();
 	void DisableDynamicNotchFFT();
 	void ParametersUpdate(bool force = false);
-	void Publish(const hrt_abstime &timestamp_sample);
-	void ResetFilters(const matrix::Vector3f &angular_velocity, const matrix::Vector3f &angular_acceleration);
+
+	void ResetFilters();
 	void SensorBiasUpdate(bool force = false);
 	bool SensorSelectionUpdate(bool force = false);
 	void UpdateDynamicNotchEscRpm(bool force = false);
 	void UpdateDynamicNotchFFT(bool force = false);
 	bool UpdateSampleRate();
+
+	// scaled appropriately for current FIFO mode
+	matrix::Vector3f GetResetAngularVelocity() const;
+	matrix::Vector3f GetResetAngularAcceleration() const;
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
@@ -133,10 +143,12 @@ private:
 	};
 
 	static constexpr int MAX_NUM_ESC_RPM = sizeof(esc_status_s::esc) / sizeof(esc_status_s::esc[0]);
+	static constexpr int MAX_NUM_ESC_RPM_HARMONICS = 3;
+
 	static constexpr int MAX_NUM_FFT_PEAKS = sizeof(sensor_gyro_fft_s::peak_frequencies_x) / sizeof(
 				sensor_gyro_fft_s::peak_frequencies_x[0]);
 
-	math::NotchFilterArray<float> _dynamic_notch_filter_esc_rpm[MAX_NUM_ESC_RPM][3] {};
+	math::NotchFilterArray<float> _dynamic_notch_filter_esc_rpm[MAX_NUM_ESC_RPM][MAX_NUM_ESC_RPM_HARMONICS][3] {};
 	math::NotchFilterArray<float> _dynamic_notch_filter_fft[MAX_NUM_FFT_PEAKS][3] {};
 
 	perf_counter_t _dynamic_notch_filter_esc_rpm_update_perf{nullptr};

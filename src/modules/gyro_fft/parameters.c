@@ -60,16 +60,13 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_FFT_MIN, 32.f);
 * @reboot_required true
 * @group Sensors
 */
-PARAM_DEFINE_FLOAT(IMU_GYRO_FFT_MAX, 256.f);
+PARAM_DEFINE_FLOAT(IMU_GYRO_FFT_MAX, 192.f);
 
 /**
 * IMU gyro FFT length.
 *
-* @value 128 128
 * @value 256 256
-* @value 512 512
 * @value 1024 1024
-* @value 2048 2048
 * @value 4096 4096
 * @unit Hz
 * @reboot_required true

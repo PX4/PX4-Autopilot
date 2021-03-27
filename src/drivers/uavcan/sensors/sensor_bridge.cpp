@@ -46,6 +46,8 @@
 #include "flow.hpp"
 #include "mag.hpp"
 #include "rangefinder.hpp"
+#include "accel.hpp"
+#include "gyro.hpp"
 
 /*
  * IUavcanSensorBridge
@@ -60,6 +62,8 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	list.add(new UavcanAirspeedBridge(node));
 	list.add(new UavcanDifferentialPressureBridge(node));
 	list.add(new UavcanRangefinderBridge(node));
+	list.add(new UavcanAccelBridge(node));
+	list.add(new UavcanGyroBridge(node));
 }
 
 /*

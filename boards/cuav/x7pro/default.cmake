@@ -29,13 +29,12 @@ px4_add_board(
 		dshot
 		gps
 		heater
-		#imu # all available imu drivers
-		imu/analog_devices/adis16448
+		#imu # all relevant IMU drivers
+		imu/analog_devices/adis16470
 		imu/bosch/bmi088
 		imu/invensense/icm20649
 		imu/invensense/icm20689
 		irlock
-		#lights/blinkm
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		lights/rgbled_pwm
@@ -48,7 +47,6 @@ px4_add_board(
 		pwm_out_sim
 		pwm_out
 		rc_input
-		roboclaw
 		safety_button
 		telemetry # all available telemetry drivers
 		test_ppm
@@ -117,6 +115,7 @@ px4_add_board(
 		work_queue
 	EXAMPLES
 		fake_gps
+		fake_gyro
 		fake_magnetometer
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hello

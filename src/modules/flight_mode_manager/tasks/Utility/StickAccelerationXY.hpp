@@ -73,6 +73,7 @@ private:
 	matrix::Vector2f _position_setpoint;
 	matrix::Vector2f _velocity_setpoint;
 	matrix::Vector2f _acceleration_setpoint;
+	matrix::Vector2f _acceleration_setpoint_prev;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_VEL_MANUAL>) _param_mpc_vel_manual,

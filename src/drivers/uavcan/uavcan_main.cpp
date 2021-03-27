@@ -653,7 +653,7 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 			return ret;
 		}
 
-		PX4_INFO("sensor bridge '%s' init ok", br->get_name());
+		PX4_DEBUG("sensor bridge '%s' init ok", br->get_name());
 	}
 
 	_mixing_interface.mixingOutput().setAllDisarmedValues(UavcanEscController::DISARMED_OUTPUT_VALUE);

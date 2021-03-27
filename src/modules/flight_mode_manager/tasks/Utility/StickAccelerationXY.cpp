@@ -99,6 +99,7 @@ void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, 
 	_velocity_setpoint += _acceleration_setpoint * dt;
 
 	lockPosition(pos, vel_sp_feedback, dt);
+	_acceleration_setpoint_prev = _acceleration_setpoint;
 }
 
 void StickAccelerationXY::getSetpoints(Vector3f &pos_sp, Vector3f &vel_sp, Vector3f &acc_sp)
@@ -111,8 +112,13 @@ void StickAccelerationXY::getSetpoints(Vector3f &pos_sp, Vector3f &vel_sp, Vecto
 void StickAccelerationXY::applyFeasibilityLimit(const float dt)
 {
 	// Apply jerk limit - acceleration slew rate
-	_acceleration_slew_rate_x.setSlewRate(_param_mpc_jerk_max.get());
-	_acceleration_slew_rate_y.setSlewRate(_param_mpc_jerk_max.get());
+	// Scale each jerk limit with the normalized projection of the acceleration
+	// setpoint increment to produce a synchronized motion
+	const Vector2f dir = Vector2f(_acceleration_setpoint - _acceleration_setpoint_prev).unit_or_zero();
+	const float jerk_max_x = fabsf(dir(0)) * _param_mpc_jerk_max.get();
+	const float jerk_max_y = fabsf(dir(1)) * _param_mpc_jerk_max.get();
+	_acceleration_slew_rate_x.setSlewRate(jerk_max_x);
+	_acceleration_slew_rate_y.setSlewRate(jerk_max_y);
 	_acceleration_setpoint(0) = _acceleration_slew_rate_x.update(_acceleration_setpoint(0), dt);
 	_acceleration_setpoint(1) = _acceleration_slew_rate_y.update(_acceleration_setpoint(1), dt);
 }

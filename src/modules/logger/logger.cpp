@@ -1781,6 +1781,13 @@ void Logger::write_version(LogType type)
 		write_info(type, "sys_os_ver", os_version);
 	}
 
+	const char *oem_version = px4_firmware_oem_version_string();
+
+	if (oem_version && oem_version[0]) {
+		write_info(type, "ver_oem", oem_version);
+	}
+
+
 	write_info(type, "sys_os_ver_release", px4_os_version());
 	write_info(type, "sys_toolchain", px4_toolchain_name());
 	write_info(type, "sys_toolchain_ver", px4_toolchain_version());

@@ -82,6 +82,11 @@ public:
 		return _rotation * matrix::Vector3f{data - _thermal_offset - _offset};
 	}
 
+	inline matrix::Vector3f Uncorrect(const matrix::Vector3f &corrected_data) const
+	{
+		return (_rotation.I() * corrected_data) + _thermal_offset + _offset;
+	}
+
 	bool ParametersSave();
 	void ParametersUpdate();
 

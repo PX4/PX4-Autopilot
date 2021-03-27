@@ -384,6 +384,7 @@ int Commander::custom_command(int argc, char *argv[])
 int Commander::print_status()
 {
 	PX4_INFO("arming: %s", arming_state_names[_status.arming_state]);
+	PX4_INFO("navigation: %s", nav_state_names[_status.nav_state]);
 	return 0;
 }
 
@@ -1745,6 +1746,9 @@ Commander::run()
 			const bool previous_safety_off = _safety.safety_off;
 
 			if (_safety_sub.copy(&_safety)) {
+				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MOTORCONTROL, _safety.safety_switch_available, _safety.safety_off,
+						 _safety.safety_switch_available, _status);
+
 				// disarm if safety is now on and still armed
 				if (_armed.armed && _safety.safety_switch_available && !_safety.safety_off) {
 
@@ -2475,7 +2479,8 @@ Commander::run()
 
 			// Evaluate current prearm status
 			if (!_armed.armed && !_status_flags.condition_calibration_enabled) {
-				bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, _status, _status_flags, false, true, 30_s);
+				bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, _status, _status_flags, false, true,
+							   hrt_elapsed_time(&_boot_timestamp));
 
 				// skip arm authorization check until actual arming attempt
 				PreFlightCheck::arm_requirements_t arm_req = _arm_requirements;
@@ -3804,6 +3809,7 @@ void Commander::estimator_check()
 
 		if (!mag_fault_prev && mag_fault) {
 			mavlink_log_critical(&_mavlink_log_pub, "Stopping compass use! Check calibration on landing");
+			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MAG, true, true, false, _status);
 		}
 
 		/* Check estimator status for signs of bad yaw induced post takeoff navigation failure
@@ -3844,7 +3850,7 @@ void Commander::estimator_check()
 					} else if (innovation_fail) {
 						_time_last_innov_fail = hrt_absolute_time();
 
-						if (!_nav_test_failed && hrt_elapsed_time(&_time_last_innov_pass) > 1_s) {
+						if (!_nav_test_failed && hrt_elapsed_time(&_time_last_innov_pass) > 2_s) {
 							// if the innovation test has failed continuously, declare the nav as failed
 							_nav_test_failed = true;
 							mavlink_log_emergency(&_mavlink_log_pub, "Navigation failure! Land and recalibrate sensors");
