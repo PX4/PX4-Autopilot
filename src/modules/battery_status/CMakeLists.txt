@@ -35,8 +35,9 @@ px4_add_module(
 	MODULE modules__battery_status
 	MAIN battery_status
 	SRCS
-		battery_status.cpp
 		analog_battery.cpp
+		analog_battery.h
+		battery_status.cpp
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS

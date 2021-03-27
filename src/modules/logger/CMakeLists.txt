@@ -38,13 +38,21 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
-		logged_topics.cpp
-		logger.cpp
-		log_writer.cpp
 		log_writer_file.cpp
+		log_writer_file.h
 		log_writer_mavlink.cpp
+		log_writer_mavlink.h
+		log_writer.cpp
+		log_writer.h
+		logged_topics.cpp
+		logged_topics.h
+		logger.cpp
+		logger.h
+		messages.h
 		util.cpp
+		util.h
 		watchdog.cpp
+		watchdog.h
 	DEPENDS
 		version
 	)

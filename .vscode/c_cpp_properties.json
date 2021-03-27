@@ -2,12 +2,18 @@
     "configurations": [
         {
             "name": "PX4",
-            "includePath": [
-                "${workspaceFolder}/**"
-            ],
-            "defines": [],
-            "macFrameworkPath": [],
             "configurationProvider": "ms-vscode.cmake-tools",
+            "compileCommands": "${workspaceFolder}/.vscode/compile_commands.json",
+            "includePath": [
+                ".",
+                "${workspaceFolder}/platforms/common",
+                "${workspaceFolder}/platforms/common/include",
+                "${workspaceFolder}/src",
+                "${workspaceFolder}/src/include",
+                "${workspaceFolder}/src/lib",
+                "${workspaceFolder}/src/lib/matrix",
+                "${workspaceFolder}/src/modules"
+            ],
             "cppStandard": "c++14",
             "cStandard": "c11"
         }

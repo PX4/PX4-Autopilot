@@ -166,7 +166,7 @@ add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
 )
 
 # create .px4 with parameter and airframe metadata
-if (TARGET parameters_xml AND TARGET airframes_xml)
+if(TARGET airframes_xml)
 
 	string(REPLACE ".elf" ".px4" fw_package ${PX4_BINARY_DIR}/${FW_NAME})
 
@@ -182,7 +182,6 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 		DEPENDS
 			${PX4_BINARY_DIR}/${PX4_BOARD}.bin
 			airframes_xml
-			parameters_xml
 		COMMENT "Creating ${fw_package}"
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 		)

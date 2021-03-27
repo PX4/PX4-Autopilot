@@ -34,10 +34,14 @@ px4_add_module(
 	MODULE modules__vtol_att_control
 	MAIN vtol_att_control
 	SRCS
-		vtol_att_control_main.cpp
-		tiltrotor.cpp
-		vtol_type.cpp
-		tailsitter.cpp
 		standard.cpp
+		standard.h
+		tailsitter.cpp
+		tailsitter.h
+		tiltrotor.cpp
+		tiltrotor.h
+		vtol_att_control_main.cpp
+		vtol_att_control_main.h
+		vtol_type.cpp
+		vtol_type.h
 	)
-

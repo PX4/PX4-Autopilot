@@ -40,13 +40,25 @@ px4_add_module(
 		-Wno-cast-align # TODO: fix and enable
 		-Wno-stringop-overflow # due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=91707
 	SRCS
-		gps.cpp
-		devices/src/gps_helper.cpp
-		devices/src/mtk.cpp
 		devices/src/ashtech.cpp
-		devices/src/ubx.cpp
-		devices/src/rtcm.cpp
+		devices/src/ashtech.h
+		devices/src/base_station.h
 		devices/src/emlid_reach.cpp
+		devices/src/emlid_reach.h
+		devices/src/femtomes.cpp
+		devices/src/femtomes.h
+		devices/src/gps_helper.cpp
+		devices/src/gps_helper.h
+		devices/src/mtk.cpp
+		devices/src/mtk.h
+		devices/src/rtcm.cpp
+		devices/src/rtcm.h
+		#devices/src/sbf.cpp
+		#devices/src/sbf.h
+		devices/src/ubx.cpp
+		devices/src/ubx.h
+		definitions.h
+		gps.cpp
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS

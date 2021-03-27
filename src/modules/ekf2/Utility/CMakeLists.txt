@@ -32,7 +32,9 @@
 #############################################################################
 
 px4_add_library(EKF2Utility
+	InnovationLpf.hpp
 	PreFlightChecker.cpp
+	PreFlightChecker.hpp
 )
 
 target_include_directories(EKF2Utility

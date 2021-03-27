@@ -37,20 +37,35 @@ px4_add_module(
 	MODULE modules__navigator
 	MAIN navigator
 	SRCS
+		enginefailure.cpp
+		enginefailure.h
+		follow_target.cpp
+		follow_target.h
+		geofence.cpp
+		geofence.h
+		gpsfailure.cpp
+		gpsfailure.h
+		land.cpp
+		land.h
+		loiter.cpp
+		loiter.h
+		mission_block.cpp
+		mission_block.h
+		mission_feasibility_checker.cpp
+		mission_feasibility_checker.h
+		mission.cpp
+		mission.h
+		navigation.h
 		navigator_main.cpp
 		navigator_mode.cpp
-		mission_block.cpp
-		mission.cpp
-		loiter.cpp
-		rtl.cpp
-		takeoff.cpp
-		land.cpp
+		navigator_mode.h
+		navigator.h
 		precland.cpp
-		mission_feasibility_checker.cpp
-		geofence.cpp
-		enginefailure.cpp
-		gpsfailure.cpp
-		follow_target.cpp
+		precland.h
+		rtl.cpp
+		rtl.h
+		takeoff.cpp
+		takeoff.h
 	DEPENDS
 		git_ecl
 		ecl_geo

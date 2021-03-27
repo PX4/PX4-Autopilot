@@ -37,7 +37,10 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		rc_loss_alarm.cpp
+		rc_loss_alarm.h
 		send_event.cpp
+		send_event.h
 		set_leds.cpp
 		status_display.cpp
+		status_display.h
 	)
