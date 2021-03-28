@@ -239,14 +239,6 @@ else
 	rgbled start -X -q
 	rgbled_ncp5623c start -X -q
 
-	if param greater -s LIGHT_EN_BLINKM 0
-	then
-		if blinkm start -X
-		then
-			blinkm systemstate
-		fi
-	fi
-
 	#
 	# Set parameters and env variables for selected AUTOSTART.
 	#

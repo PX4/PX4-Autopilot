@@ -31,7 +31,6 @@
 #
 ############################################################################
 
-add_subdirectory(blinkm)
 #add_subdirectory(neopixel) # requires board support (BOARD_HAS_N_S_RGB_LED)
 add_subdirectory(rgbled)
 add_subdirectory(rgbled_ncp5623c)
