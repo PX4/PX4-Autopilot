@@ -32,9 +32,7 @@ px4_add_board(
 		imu/invensense/icm20602
 		imu/invensense/icm20689
 		irlock
-		lights/blinkm
-		lights/rgbled
-		lights/rgbled_ncp5623c
+		lights # all available light drivers
 		lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		optical_flow # all available optical flow drivers
