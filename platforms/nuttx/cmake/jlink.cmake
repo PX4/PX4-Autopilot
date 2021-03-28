@@ -117,7 +117,7 @@ if(uavcan_bl_image_name)
 			COMMAND ${JLinkExe_PATH} -CommandFile ${PX4_BINARY_DIR}/flash_bin.jlink
 			DEPENDS
 				${PX4_SOURCE_DIR}/platforms/nuttx/Debug/flash_bin.jlink.in
-				${uavcan_bl_image_name}
+				${PX4_BINARY_DIR}/${uavcan_bl_image_name}
 			WORKING_DIRECTORY ${PX4_BINARY_DIR}
 			USES_TERMINAL
 		)
