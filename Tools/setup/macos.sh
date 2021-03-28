@@ -24,12 +24,12 @@ then
 	/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
 fi
 
+# confirm Homebrew installed correctly
+brew doctor
+
 # Install px4-dev formula
 if [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
 	echo "Re-installing PX4 general dependencies (homebrew px4-dev)"
-
-	# confirm Homebrew installed correctly
-	brew doctor
 
 	brew tap PX4/px4
 	brew reinstall px4-dev
