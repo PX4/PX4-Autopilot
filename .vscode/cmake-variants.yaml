@@ -111,6 +111,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: emlid_navio2_default
+    holybro_can-gps-v1_canbootloader:
+      short: holybro_can-gps-v1_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: holybro_can-gps-v1_canbootloader
+    holybro_can-gps-v1_default:
+      short: holybro_can-gps-v1_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: holybro_can-gps-v1_default
     holybro_durandal-v1_default:
       short: holybro_durandal-v1
       buildType: MinSizeRel
