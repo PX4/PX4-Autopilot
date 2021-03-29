@@ -435,6 +435,41 @@ static constexpr const char *arm_disarm_reason_str(arm_disarm_reason_t calling_r
 	return "";
 };
 
+static constexpr const char *main_state_str(uint8_t main_state)
+{
+	switch (main_state) {
+	case commander_state_s::MAIN_STATE_MANUAL: return "manual";
+
+	case commander_state_s::MAIN_STATE_ALTCTL: return "altitude control";
+
+	case commander_state_s::MAIN_STATE_POSCTL: return "position control";
+
+	case commander_state_s::MAIN_STATE_AUTO_MISSION: return "auto mission";
+
+	case commander_state_s::MAIN_STATE_AUTO_LOITER: return "auto hold";
+
+	case commander_state_s::MAIN_STATE_AUTO_RTL: return "RTL";
+
+	case commander_state_s::MAIN_STATE_ACRO: return "acro";
+
+	case commander_state_s::MAIN_STATE_OFFBOARD: return "offboard";
+
+	case commander_state_s::MAIN_STATE_STAB: return "stabilized";
+
+	case commander_state_s::MAIN_STATE_AUTO_TAKEOFF: return "auto takeoff";
+
+	case commander_state_s::MAIN_STATE_AUTO_LAND: return "auto land";
+
+	case commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET: return "follow target";
+
+	case commander_state_s::MAIN_STATE_AUTO_PRECLAND: return "auto precision land";
+
+	case commander_state_s::MAIN_STATE_ORBIT: return "orbit";
+
+	default: return "unknown";
+	}
+}
+
 transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_preflight_checks)
 {
 	// allow a grace period for re-arming: preflight checks don't need to pass during that time, for example for accidential in-air disarming
@@ -513,102 +548,66 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason)
 }
 
 transition_result_t
-Commander::try_mode_change(main_state_t desired_mode, const FlightModeChange enable_fallback)
+Commander::try_mode_change(main_state_t desired_mode)
 {
 	transition_result_t res = main_state_transition(_status, desired_mode, _status_flags, &_internal_state);
 
 	if (res == TRANSITION_DENIED) {
 
+		print_reject_mode(desired_mode);
+
 		if (desired_mode == commander_state_s::MAIN_STATE_OFFBOARD) {
 			/* offboard does not have a fallback */
-			print_reject_mode("Offboard");
-
 			return res;
 		}
 
 		if (desired_mode == commander_state_s::MAIN_STATE_AUTO_MISSION) {
-			print_reject_mode("Auto Mission");
-
-			if (enable_fallback == FlightModeChange::FallbackEnabled) {
-				desired_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
-				res = main_state_transition(_status, desired_mode, _status_flags, &_internal_state);
-			}
+			desired_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
+			res = main_state_transition(_status, desired_mode, _status_flags, &_internal_state);
 		}
 
 		if (desired_mode == commander_state_s::MAIN_STATE_AUTO_RTL && (res == TRANSITION_DENIED)) {
-			print_reject_mode("Auto RTL");
-
-			if (enable_fallback == FlightModeChange::FallbackEnabled) {
-				desired_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
-				res = main_state_transition(_status, desired_mode, _status_flags, &_internal_state);
-			}
+			desired_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
+			res = main_state_transition(_status, desired_mode, _status_flags, &_internal_state);
 		}
 
 		if (desired_mode == commander_state_s::MAIN_STATE_AUTO_LAND && (res == TRANSITION_DENIED)) {
-			print_reject_mode("Auto Land");
-
-			if (enable_fallback == FlightModeChange::FallbackEnabled) {
-				desired_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
-				res = main_state_transition(_status, desired_mode, _status_flags, &_internal_state);
-			}
+			desired_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
+			res = main_state_transition(_status, desired_mode, _status_flags, &_internal_state);
 		}
 
 		if (desired_mode == commander_state_s::MAIN_STATE_AUTO_TAKEOFF && (res == TRANSITION_DENIED)) {
-			print_reject_mode("Auto Takeoff");
-
-			if (enable_fallback == FlightModeChange::FallbackEnabled) {
-				desired_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
-				res = main_state_transition(_status, desired_mode, _status_flags, &_internal_state);
-			}
+			desired_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
+			res = main_state_transition(_status, desired_mode, _status_flags, &_internal_state);
 		}
 
 		if (desired_mode == commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET && (res == TRANSITION_DENIED)) {
-			print_reject_mode("Auto Follow");
-
-			if (enable_fallback == FlightModeChange::FallbackEnabled) {
-				desired_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
-				res = main_state_transition(_status, desired_mode, _status_flags, &_internal_state);
-			}
+			desired_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
+			res = main_state_transition(_status, desired_mode, _status_flags, &_internal_state);
 		}
 
 		if (desired_mode == commander_state_s::MAIN_STATE_AUTO_LOITER && (res == TRANSITION_DENIED)) {
-			print_reject_mode("Auto Hold");
-
-			if (enable_fallback == FlightModeChange::FallbackEnabled) {
-				/* fall back to position control */
-				desired_mode = commander_state_s::MAIN_STATE_POSCTL;
-				res = main_state_transition(_status, desired_mode, _status_flags, &_internal_state);
-			}
+			/* fall back to position control */
+			desired_mode = commander_state_s::MAIN_STATE_POSCTL;
+			res = main_state_transition(_status, desired_mode, _status_flags, &_internal_state);
 		}
 
 		if (desired_mode == commander_state_s::MAIN_STATE_POSCTL && (res == TRANSITION_DENIED)) {
-			print_reject_mode("Position");
-
-			if (enable_fallback == FlightModeChange::FallbackEnabled) {
-				/* fall back to altitude control */
-				desired_mode = commander_state_s::MAIN_STATE_ALTCTL;
-				res = main_state_transition(_status, desired_mode, _status_flags, &_internal_state);
-			}
+			/* fall back to altitude control */
+			desired_mode = commander_state_s::MAIN_STATE_ALTCTL;
+			res = main_state_transition(_status, desired_mode, _status_flags, &_internal_state);
 		}
 
 		if (desired_mode == commander_state_s::MAIN_STATE_ALTCTL && (res == TRANSITION_DENIED)) {
-			print_reject_mode("Altitude");
-
-			if (enable_fallback == FlightModeChange::FallbackEnabled) {
-				/* fall back to stabilized */
-				desired_mode = commander_state_s::MAIN_STATE_STAB;
-				res = main_state_transition(_status, desired_mode, _status_flags, &_internal_state);
-			}
+			/* fall back to stabilized */
+			desired_mode = commander_state_s::MAIN_STATE_STAB;
+			res = main_state_transition(_status, desired_mode, _status_flags, &_internal_state);
 		}
 
 		if (desired_mode == commander_state_s::MAIN_STATE_STAB && (res == TRANSITION_DENIED)) {
-			print_reject_mode("Stabilized");
-
-			if (enable_fallback == FlightModeChange::FallbackEnabled) {
-				/* fall back to manual */
-				desired_mode = commander_state_s::MAIN_STATE_MANUAL;
-				res = main_state_transition(_status, desired_mode, _status_flags, &_internal_state);
-			}
+			/* fall back to manual */
+			desired_mode = commander_state_s::MAIN_STATE_MANUAL;
+			res = main_state_transition(_status, desired_mode, _status_flags, &_internal_state);
 		}
 	}
 
@@ -2243,9 +2242,9 @@ Commander::run()
 				}
 			}
 
-			if (_manual_control.isMavlink()) {
+			if (!_armed.armed && _manual_control.isMavlink()) {
 				// if there's never been a mode change force position control as initial state
-				if (!_armed.armed && (_internal_state.main_state_changes == 0)) {
+				if (_internal_state.main_state_changes == 0) {
 					_internal_state.main_state = commander_state_s::MAIN_STATE_POSCTL;
 				}
 			}
@@ -2942,9 +2941,13 @@ Commander::set_main_state_rc()
 
 	/* offboard switch overrides main switch */
 	if (_manual_control_switches.offboard_switch == manual_control_switches_s::SWITCH_POS_ON) {
-		res = try_mode_change(commander_state_s::MAIN_STATE_OFFBOARD, FlightModeChange::FallbackDisabled);
+		res = main_state_transition(_status, commander_state_s::MAIN_STATE_OFFBOARD, _status_flags, &_internal_state);
 
-		if (res != TRANSITION_DENIED) {
+		if (res == TRANSITION_DENIED) {
+			print_reject_mode(commander_state_s::MAIN_STATE_OFFBOARD);
+			/* mode rejected, continue to evaluate the main system mode */
+
+		} else {
 			/* changed successfully or already in this state */
 			return res;
 		}
@@ -2952,8 +2955,7 @@ Commander::set_main_state_rc()
 
 	/* RTL switch overrides main switch */
 	if (_manual_control_switches.return_switch == manual_control_switches_s::SWITCH_POS_ON) {
-
-		res = try_mode_change(commander_state_s::MAIN_STATE_AUTO_RTL, FlightModeChange::FallbackEnabled);
+		res = try_mode_change(commander_state_s::MAIN_STATE_AUTO_RTL);
 
 		if (res != TRANSITION_DENIED) {
 			/* changed successfully or already in this state */
@@ -2965,7 +2967,7 @@ Commander::set_main_state_rc()
 
 	/* Loiter switch overrides main switch */
 	if (_manual_control_switches.loiter_switch == manual_control_switches_s::SWITCH_POS_ON) {
-		res = try_mode_change(commander_state_s::MAIN_STATE_AUTO_LOITER, FlightModeChange::FallbackDisabled);
+		res = try_mode_change(commander_state_s::MAIN_STATE_AUTO_LOITER);
 
 		if (res != TRANSITION_DENIED) {
 			return res;
@@ -2987,7 +2989,7 @@ Commander::set_main_state_rc()
 			res = TRANSITION_NOT_CHANGED;
 
 		} else {
-			res = try_mode_change(new_mode, FlightModeChange::FallbackEnabled);
+			res = try_mode_change(new_mode);
 		}
 
 		return res;
@@ -3053,31 +3055,16 @@ Commander::set_main_state_rc()
 
 		case manual_control_switches_s::SWITCH_POS_MIDDLE:		// ASSIST
 			if (_manual_control_switches.posctl_switch == manual_control_switches_s::SWITCH_POS_ON) {
-				res = try_mode_change(commander_state_s::MAIN_STATE_POSCTL, FlightModeChange::FallbackDisabled);
+				res = try_mode_change(commander_state_s::MAIN_STATE_POSCTL);
 
-				if (res != TRANSITION_DENIED) {
-					break;	// changed successfully or already in this state
-				}
+			} else {
+				res = try_mode_change(commander_state_s::MAIN_STATE_ALTCTL);
 			}
 
-			// fallback to ALTCTL
-			res = main_state_transition(_status, commander_state_s::MAIN_STATE_ALTCTL, _status_flags, &_internal_state);
-
-			if (res != TRANSITION_DENIED) {
-				break;	// changed successfully or already in this mode
-			}
-
-			if (_manual_control_switches.posctl_switch != manual_control_switches_s::SWITCH_POS_ON) {
-				print_reject_mode("Altitude");
-			}
-
-			// fallback to MANUAL
-			res = main_state_transition(_status, commander_state_s::MAIN_STATE_MANUAL, _status_flags, &_internal_state);
-			// TRANSITION_DENIED is not possible here
 			break;
 
-		case manual_control_switches_s::SWITCH_POS_ON:			// AUTO
-			res = try_mode_change(commander_state_s::MAIN_STATE_AUTO_MISSION, FlightModeChange::FallbackEnabled);
+		case manual_control_switches_s::SWITCH_POS_ON:		// AUTO
+			res = try_mode_change(commander_state_s::MAIN_STATE_AUTO_MISSION);
 			break;
 
 		default:
@@ -3308,17 +3295,17 @@ Commander::stabilization_required()
 }
 
 void
-Commander::print_reject_mode(const char *msg)
+Commander::print_reject_mode(uint8_t main_state)
 {
-	const hrt_abstime t = hrt_absolute_time();
+	if (hrt_elapsed_time(&_last_print_mode_reject_time) > 1_s) {
 
-	if (t - _last_print_mode_reject_time > PRINT_MODE_REJECT_INTERVAL) {
-		_last_print_mode_reject_time = t;
-		mavlink_log_critical(&_mavlink_log_pub, "Switching to %s is currently not available.", msg);
+		mavlink_log_critical(&_mavlink_log_pub, "Switching to %s is currently not available.", main_state_str(main_state));
 
 		/* only buzz if armed, because else we're driving people nuts indoors
 		they really need to look at the leds as well. */
 		tune_negative(_armed.armed);
+
+		_last_print_mode_reject_time = hrt_absolute_time();
 	}
 }
 
