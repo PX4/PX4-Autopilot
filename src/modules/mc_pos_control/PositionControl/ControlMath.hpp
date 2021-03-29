@@ -115,4 +115,18 @@ void addIfNotNanVector3f(matrix::Vector3f &setpoint, const matrix::Vector3f &add
  * @param vector possibly containing NAN elements
  */
 void setZeroIfNanVector3f(matrix::Vector3f &vector);
+
+/**
+ * Replaces value with something if value is NAN.
+ * @param value Existing value.
+ * @param to_set New value to use.
+ */
+void setIfNan(float &value, const float to_set);
+
+/**
+ * Replaces value with second param if value is NAN.
+ * @param value Existing value.
+ * @param to_set New value to use.
+ */
+void setIfNanVector3(matrix::Vector3f &value, const matrix::Vector3f to_set);
 }

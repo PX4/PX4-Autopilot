@@ -108,8 +108,9 @@ void PositionControl::_positionControl()
 {
 	// P-position controller
 	Vector3f vel_sp_position = (_pos_sp - _pos).emult(_gain_pos_p);
-	// Position and feed-forward velocity setpoints or position states being NAN results in them not having an influence
-	ControlMath::addIfNotNanVector3f(_vel_sp, vel_sp_position);
+	// We overwrite the velocity setpoint unless it's already set.
+	// This allows e.g. offboard control feed forward velocity setpoints.
+	ControlMath::setIfNanVector3(_vel_sp, vel_sp_position);
 	// make sure there are no NAN elements for further reference while constraining
 	ControlMath::setZeroIfNanVector3f(vel_sp_position);
 

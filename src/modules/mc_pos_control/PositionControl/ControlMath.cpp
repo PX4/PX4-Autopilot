@@ -258,4 +258,18 @@ void setZeroIfNanVector3f(Vector3f &vector)
 	addIfNotNanVector3f(vector, Vector3f());
 }
 
+void setIfNan(float &value, const float to_set)
+{
+	if (!PX4_ISFINITE(value)) {
+		value = to_set;
+	}
+}
+
+void setIfNanVector3(Vector3f &value, const Vector3f to_set)
+{
+	for (int i = 0; i < 3; i++) {
+		setIfNan(value(i), to_set(i));
+	}
+}
+
 } // ControlMath
