@@ -51,6 +51,8 @@ class JsonOutput():
                     curr_param['group'] = group_name
                     if param.GetCategory():
                         curr_param['category'] = param.GetCategory()
+                    else:
+                        curr_param['category'] = 'Standard'
 
                     if param.GetVolatile():
                         curr_param['volatile'] = True
