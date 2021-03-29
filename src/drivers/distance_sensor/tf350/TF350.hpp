@@ -60,8 +60,8 @@ using namespace time_literals;
 class TF350 : public px4::ScheduledWorkItem
 {
 public:
-       TF350(const char *port, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
-       virtual ~TF350();
+	TF350(const char *port, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	virtual ~TF350();
 
 	int init();
 
@@ -78,7 +78,7 @@ private:
 
 	PX4Rangefinder	_px4_rangefinder;
 
-       TF350_PARSE_STATE _parse_state {TF350_PARSE_STATE::STATE0_UNSYNC};
+	TF350_PARSE_STATE _parse_state {TF350_PARSE_STATE::STATE0_UNSYNC};
 
 	char _linebuf[10] {};
 	char _port[20] {};
