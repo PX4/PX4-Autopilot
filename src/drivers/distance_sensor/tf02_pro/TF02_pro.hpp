@@ -60,8 +60,8 @@ using namespace time_literals;
 class TF02_PRO : public px4::ScheduledWorkItem
 {
 public:
-       TF02_PRO(const char *port, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
-       virtual ~TF02_PRO();
+	TF02_PRO(const char *port, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	virtual ~TF02_PRO();
 
 	int init();
 
@@ -78,7 +78,7 @@ private:
 
 	PX4Rangefinder	_px4_rangefinder;
 
-       TF02_PRO_PARSE_STATE _parse_state {TF02_PRO_PARSE_STATE::STATE0_UNSYNC};
+	TF02_PRO_PARSE_STATE _parse_state {TF02_PRO_PARSE_STATE::STATE0_UNSYNC};
 
 	char _linebuf[10] {};
 	char _port[20] {};
