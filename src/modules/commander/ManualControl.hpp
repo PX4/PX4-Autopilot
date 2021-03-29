@@ -75,7 +75,6 @@ public:
 
 private:
 	void updateParams() override;
-	void process(const manual_control_setpoint_s &manual_control_setpoint);
 
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	manual_control_setpoint_s _manual_control_setpoint{};
