@@ -88,88 +88,44 @@ bool ManualControl::wantsOverride(const vehicle_control_mode_s &vehicle_control_
 }
 
 bool ManualControl::wantsDisarm(const vehicle_control_mode_s &vehicle_control_mode,
-				const vehicle_status_s &vehicle_status,
-				manual_control_switches_s &manual_control_switches, const bool landed)
+				const vehicle_status_s &vehicle_status, const bool landed)
 {
-	bool ret = false;
-
-	const bool use_stick = manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_NONE;
-	const bool use_button = !use_stick && _param_com_arm_swisbtn.get();
-	const bool use_switch = !use_stick && !use_button;
-
 	const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-	const bool stick_in_lower_left = use_stick
-					 && isThrottleLow()
-					 && _manual_control_setpoint.r < -.9f;
-	const bool arm_button_pressed = (manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON)
-					&& use_button;
-	const bool arm_switch_to_disarm_transition = use_switch
-			&& (_last_manual_control_switches_arm_switch == manual_control_switches_s::SWITCH_POS_ON)
-			&& (manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_OFF);
+	const bool stick_in_lower_left = isThrottleLow() && (_manual_control_setpoint.r < -.9f);
+
 	const bool mc_manual_thrust_mode = vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 					   && vehicle_control_mode.flag_control_manual_enabled
 					   && !vehicle_control_mode.flag_control_climb_rate_enabled;
 
-	if (armed
-	    && (landed || mc_manual_thrust_mode)
-	    && (stick_in_lower_left || arm_button_pressed || arm_switch_to_disarm_transition)) {
+	if (armed && (landed || mc_manual_thrust_mode) && stick_in_lower_left) {
 
 		const bool last_disarm_hysteresis = _stick_disarm_hysteresis.get_state();
 		_stick_disarm_hysteresis.set_state_and_update(true, hrt_absolute_time());
-		const bool disarm_trigger = !last_disarm_hysteresis && _stick_disarm_hysteresis.get_state()
-					    && !_stick_arm_hysteresis.get_state();
 
-		if (disarm_trigger || arm_switch_to_disarm_transition) {
-			ret = true;
+		if (!last_disarm_hysteresis && _stick_disarm_hysteresis.get_state() && !_stick_arm_hysteresis.get_state()) {
+			return true;
 		}
-
-	} else if (!arm_button_pressed) {
-
-		_stick_disarm_hysteresis.set_state_and_update(false, hrt_absolute_time());
 	}
 
-	return ret;
+	return false;
 }
 
 bool ManualControl::wantsArm(const vehicle_control_mode_s &vehicle_control_mode, const vehicle_status_s &vehicle_status,
-			     const manual_control_switches_s &manual_control_switches, const bool landed)
+			     const bool landed)
 {
-	bool ret = false;
-
-	const bool use_stick = manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_NONE;
-	const bool use_button = !use_stick && _param_com_arm_swisbtn.get();
-	const bool use_switch = !use_stick && !use_button;
-
 	const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-	const bool stick_in_lower_right = use_stick
-					  && isThrottleLow()
-					  && _manual_control_setpoint.r > .9f;
-	const bool arm_button_pressed = use_button
-					&& (manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON);
-	const bool arm_switch_to_arm_transition = use_switch
-			&& (_last_manual_control_switches_arm_switch == manual_control_switches_s::SWITCH_POS_OFF)
-			&& (manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON);
+	const bool stick_in_lower_right = isThrottleLow() && (_manual_control_setpoint.r > .9f);
 
-	if (!armed
-	    && (stick_in_lower_right || arm_button_pressed || arm_switch_to_arm_transition)) {
-
+	if (!armed && stick_in_lower_right) {
 		const bool last_arm_hysteresis = _stick_arm_hysteresis.get_state();
 		_stick_arm_hysteresis.set_state_and_update(true, hrt_absolute_time());
-		const bool arm_trigger = !last_arm_hysteresis && _stick_arm_hysteresis.get_state()
-					 && !_stick_disarm_hysteresis.get_state();
 
-		if (arm_trigger || arm_switch_to_arm_transition) {
-			ret = true;
+		if (!last_arm_hysteresis && _stick_arm_hysteresis.get_state() && !_stick_disarm_hysteresis.get_state()) {
+			return true;
 		}
-
-	} else if (!arm_button_pressed) {
-
-		_stick_arm_hysteresis.set_state_and_update(false, hrt_absolute_time());
 	}
 
-	_last_manual_control_switches_arm_switch = manual_control_switches.arm_switch; // After disarm and arm check
-
-	return ret;
+	return false;
 }
 
 void ManualControl::updateParams()

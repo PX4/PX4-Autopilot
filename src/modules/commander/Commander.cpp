@@ -1627,6 +1627,9 @@ Commander::run()
 
 			_offboard_available.set_hysteresis_time_from(true, _param_com_of_loss_t.get() * 1e6f);
 
+			_arm_button_hysteresis.set_hysteresis_time_from(true, _param_rc_arm_hyst.get() * 1_ms);
+			_arm_button_hysteresis.set_hysteresis_time_from(false, _param_rc_arm_hyst.get() * 1_ms);
+
 			param_init_forced = false;
 		}
 
@@ -1740,9 +1743,7 @@ Commander::run()
 		}
 
 		/* update safety topic */
-		const bool safety_updated = _safety_sub.updated();
-
-		if (safety_updated) {
+		if (_safety_sub.updated()) {
 			const bool previous_safety_off = _safety.safety_off;
 
 			if (_safety_sub.copy(&_safety)) {
@@ -1777,6 +1778,18 @@ Commander::run()
 					}
 
 					_status_changed = true;
+				}
+
+				if (_safety.override_available && _safety.override_enabled) {
+					const transition_result_t res = main_state_transition(_status, commander_state_s::MAIN_STATE_MANUAL, _status_flags,
+									&_internal_state);
+
+					if (res == TRANSITION_CHANGED) {
+						_status_changed = true;
+
+						// play tune on mode change only if armed, blink LED always
+						tune_positive(_armed.armed);
+					}
 				}
 			}
 		}
@@ -2034,7 +2047,8 @@ Commander::run()
 
 			// reset if no longer in LOITER or if manually switched to LOITER
 			const bool in_loiter_mode = _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER;
-			const bool manual_loiter_switch_on = _manual_control_switches.loiter_switch == manual_control_switches_s::SWITCH_POS_ON;
+			const bool manual_loiter_switch_on = _last_manual_control_switches.loiter_switch ==
+							     manual_control_switches_s::SWITCH_POS_ON;
 
 			if (!in_loiter_mode || manual_loiter_switch_on) {
 				_geofence_loiter_on = false;
@@ -2043,7 +2057,8 @@ Commander::run()
 
 			// reset if no longer in RTL or if manually switched to RTL
 			const bool in_rtl_mode = _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL;
-			const bool manual_return_switch_on = _manual_control_switches.return_switch == manual_control_switches_s::SWITCH_POS_ON;
+			const bool manual_return_switch_on = _last_manual_control_switches.return_switch ==
+							     manual_control_switches_s::SWITCH_POS_ON;
 
 			if (!in_rtl_mode || manual_return_switch_on) {
 				_geofence_rtl_on = false;
@@ -2110,14 +2125,14 @@ Commander::run()
 
 			_status.rc_signal_lost = false;
 
-			const bool rc_arming_enabled = (_status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF);
+			if ((_status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF)
+			    && (_last_manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_NONE)) {
 
-			if (rc_arming_enabled) {
-				if (_manual_control.wantsDisarm(_vehicle_control_mode, _status, _manual_control_switches, _land_detector.landed)) {
+				if (_manual_control.wantsDisarm(_vehicle_control_mode, _status, _land_detector.landed)) {
 					disarm(arm_disarm_reason_t::RC_STICK);
 				}
 
-				if (_manual_control.wantsArm(_vehicle_control_mode, _status, _manual_control_switches, _land_detector.landed)) {
+				if (_manual_control.wantsArm(_vehicle_control_mode, _status, _land_detector.landed)) {
 					if (_vehicle_control_mode.flag_control_manual_enabled) {
 						arm(arm_disarm_reason_t::RC_STICK);
 
@@ -2139,21 +2154,40 @@ Commander::run()
 					_status_changed = true;
 				}
 			}
+		}
 
-			if (_manual_control_switches_sub.update(&_manual_control_switches) || safety_updated) {
+		if (!_manual_control.isRCAvailable()) {
+			// set RC lost
+			if (_status_flags.rc_signal_found_once && !_status.rc_signal_lost) {
+				// ignore RC lost during calibration
+				if (!_status_flags.condition_calibration_enabled && !_status_flags.rc_input_blocked) {
+					mavlink_log_critical(&_mavlink_log_pub, "Manual control lost");
+					_status.rc_signal_lost = true;
+					_rc_signal_lost_timestamp = _manual_control.getLastRcTimestamp();
+					set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, false, _status);
+					_status_changed = true;
+				}
+			}
+		}
+
+
+		if (_manual_control_switches_sub.updated()) {
+			manual_control_switches_s manual_control_switches;
+
+			if (_manual_control_switches_sub.copy(&manual_control_switches)) {
 
 				// handle landing gear switch if configured and in a manual mode
 				if ((_vehicle_control_mode.flag_control_manual_enabled) &&
-				    (_manual_control_switches.gear_switch != manual_control_switches_s::SWITCH_POS_NONE) &&
+				    (manual_control_switches.gear_switch != manual_control_switches_s::SWITCH_POS_NONE) &&
 				    (_last_manual_control_switches.gear_switch != manual_control_switches_s::SWITCH_POS_NONE) &&
-				    (_manual_control_switches.gear_switch != _last_manual_control_switches.gear_switch)) {
+				    (manual_control_switches.gear_switch != _last_manual_control_switches.gear_switch)) {
 					// Only switch the landing gear up if the user switched from gear down to gear up.
 					int8_t gear = landing_gear_s::GEAR_KEEP;
 
-					if (_manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_OFF) {
+					if (manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_OFF) {
 						gear = landing_gear_s::GEAR_DOWN;
 
-					} else if (_manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_ON) {
+					} else if (manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_ON) {
 						// gear up ignored unless flying
 						if (!_land_detector.landed && !_land_detector.maybe_landed) {
 							gear = landing_gear_s::GEAR_UP;
@@ -2171,55 +2205,93 @@ Commander::run()
 					}
 				}
 
-				// evaluate the main state machine according to mode switches
-				if (set_main_state(&_status_changed) == TRANSITION_CHANGED) {
-					// play tune on mode change only if armed, blink LED always
-					tune_positive(_armed.armed);
-					_status_changed = true;
+
+				// evaluate the main state machine according to mode switches (unless in manual override)
+				if (!_safety.override_available || !_safety.override_enabled) {
+					if (set_main_state(manual_control_switches) == TRANSITION_CHANGED) {
+						// play tune on mode change only if armed, blink LED always
+						tune_positive(_armed.armed);
+						_status_changed = true;
+					}
 				}
-			}
 
-			/* check throttle kill switch */
-			if (_manual_control_switches.kill_switch == manual_control_switches_s::SWITCH_POS_ON) {
-				/* set lockdown flag */
-				if (!_armed.manual_lockdown) {
-					const char kill_switch_string[] = "Kill-switch engaged";
 
-					if (_land_detector.landed) {
-						mavlink_log_info(&_mavlink_log_pub, kill_switch_string);
+				// check throttle kill switch
+				if (manual_control_switches.kill_switch == manual_control_switches_s::SWITCH_POS_ON) {
+					// set lockdown flag
+					if (!_armed.manual_lockdown) {
+						static constexpr const char kill_switch_string[] = "Kill-switch engaged";
 
-					} else {
-						mavlink_log_critical(&_mavlink_log_pub, kill_switch_string);
+						if (_land_detector.landed) {
+							mavlink_log_info(&_mavlink_log_pub, kill_switch_string);
+
+						} else {
+							mavlink_log_critical(&_mavlink_log_pub, kill_switch_string);
+						}
+
+						_status_changed = true;
+						_armed.manual_lockdown = true;
 					}
 
-					_status_changed = true;
-					_armed.manual_lockdown = true;
+				} else if (manual_control_switches.kill_switch == manual_control_switches_s::SWITCH_POS_OFF) {
+					if (_armed.manual_lockdown) {
+						mavlink_log_info(&_mavlink_log_pub, "Kill-switch disengaged");
+						_status_changed = true;
+						_armed.manual_lockdown = false;
+					}
 				}
 
-			} else if (_manual_control_switches.kill_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-				if (_armed.manual_lockdown) {
-					mavlink_log_info(&_mavlink_log_pub, "Kill-switch disengaged");
-					_status_changed = true;
-					_armed.manual_lockdown = false;
+
+				// arm_switch
+				if (manual_control_switches.arm_switch != manual_control_switches_s::SWITCH_POS_NONE) {
+					if (_param_com_arm_swisbtn.get() == 0) {
+						// COM_ARM_SWISBTN 0 - arm on switch transition
+
+						if (!_armed.armed && (_last_manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_OFF)
+						    && (manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON)) {
+							// arm_switch OFF -> ON (arm)
+							arm(arm_disarm_reason_t::RC_SWITCH);
+
+						} else if (_armed.armed && (_last_manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON)
+							   && (manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_OFF)) {
+							// arm_switch ON -> OFF (disarm)
+							disarm(arm_disarm_reason_t::RC_SWITCH);
+						}
+
+					} else if (_param_com_arm_swisbtn.get() == 1) {
+						// COM_ARM_SWISBTN 1 - arm when momentary held down
+						const bool last_arm_hysteresis = _arm_button_hysteresis.get_state();
+						const bool arm_button_pressed = (manual_control_switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON);
+
+						if (!_armed.armed && arm_button_pressed) {
+							// pressing button to arm
+							_arm_button_hysteresis.set_state_and_update(true, hrt_absolute_time());
+
+							if (!last_arm_hysteresis && _arm_button_hysteresis.get_state()) {
+								// disarmed and arm button pressed -> ARM
+								arm(arm_disarm_reason_t::RC_SWITCH);
+							}
+
+						} else if (_armed.armed && arm_button_pressed) {
+							// pressing button disarm
+							_arm_button_hysteresis.set_state_and_update(false, hrt_absolute_time());
+
+							if (last_arm_hysteresis && !_arm_button_hysteresis.get_state()) {
+								// armed and arm button pressed again-> DISARM
+								disarm(arm_disarm_reason_t::RC_SWITCH);
+							}
+
+						} else {
+							// otherwise track armed state
+							_arm_button_hysteresis.set_state_and_update(_armed.armed, hrt_absolute_time());
+						}
+					}
 				}
+
+				_last_manual_control_switches = manual_control_switches;
 			}
-
-			/* no else case: do not change lockdown flag in unconfigured case */
 		}
 
-		if (!_manual_control.isRCAvailable()) {
-			// set RC lost
-			if (_status_flags.rc_signal_found_once && !_status.rc_signal_lost) {
-				// ignore RC lost during calibration
-				if (!_status_flags.condition_calibration_enabled && !_status_flags.rc_input_blocked) {
-					mavlink_log_critical(&_mavlink_log_pub, "Manual control lost");
-					_status.rc_signal_lost = true;
-					_rc_signal_lost_timestamp = _manual_control.getLastRcTimestamp();
-					set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, false, _status);
-					_status_changed = true;
-				}
-			}
-		}
 
 		// data link checks which update the status
 		data_link_check();
@@ -2748,58 +2820,29 @@ Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 }
 
 transition_result_t
-Commander::set_main_state(bool *changed)
+Commander::set_main_state(const manual_control_switches_s &manual_control_switches)
 {
-	if (_safety.override_available && _safety.override_enabled) {
-		return set_main_state_override_on(changed);
-
-	} else {
-		return set_main_state_rc();
-	}
-}
-
-transition_result_t
-Commander::set_main_state_override_on(bool *changed)
-{
-	const transition_result_t res = main_state_transition(_status, commander_state_s::MAIN_STATE_MANUAL, _status_flags,
-					&_internal_state);
-	*changed = (res == TRANSITION_CHANGED);
-
-	return res;
-}
-
-transition_result_t
-Commander::set_main_state_rc()
-{
-	if ((_manual_control_switches.timestamp == 0)
-	    || (_manual_control_switches.timestamp == _last_manual_control_switches.timestamp)) {
-
-		// no manual control or no update -> nothing changed
-		return TRANSITION_NOT_CHANGED;
-	}
-
 	// Note: even if _status_flags.offboard_control_set_by_command is set
 	// we want to allow rc mode change to take precedence.  This is a safety
 	// feature, just in case offboard control goes crazy.
 
 	// only switch mode based on RC switch if necessary to also allow mode switching via MAVLink
 	bool should_evaluate_rc_mode_switch =
-		(_last_manual_control_switches.offboard_switch != _manual_control_switches.offboard_switch)
-		|| (_last_manual_control_switches.return_switch != _manual_control_switches.return_switch)
-		|| (_last_manual_control_switches.mode_switch != _manual_control_switches.mode_switch)
-		|| (_last_manual_control_switches.acro_switch != _manual_control_switches.acro_switch)
-		|| (_last_manual_control_switches.posctl_switch != _manual_control_switches.posctl_switch)
-		|| (_last_manual_control_switches.loiter_switch != _manual_control_switches.loiter_switch)
-		|| (_last_manual_control_switches.mode_slot != _manual_control_switches.mode_slot)
-		|| (_last_manual_control_switches.stab_switch != _manual_control_switches.stab_switch)
-		|| (_last_manual_control_switches.man_switch != _manual_control_switches.man_switch);
+		(_last_manual_control_switches.offboard_switch != manual_control_switches.offboard_switch)
+		|| (_last_manual_control_switches.return_switch != manual_control_switches.return_switch)
+		|| (_last_manual_control_switches.mode_switch != manual_control_switches.mode_switch)
+		|| (_last_manual_control_switches.acro_switch != manual_control_switches.acro_switch)
+		|| (_last_manual_control_switches.posctl_switch != manual_control_switches.posctl_switch)
+		|| (_last_manual_control_switches.loiter_switch != manual_control_switches.loiter_switch)
+		|| (_last_manual_control_switches.mode_slot != manual_control_switches.mode_slot)
+		|| (_last_manual_control_switches.stab_switch != manual_control_switches.stab_switch)
+		|| (_last_manual_control_switches.man_switch != manual_control_switches.man_switch);
 
 
 	if (_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 		// if already armed don't evaluate first time RC
 		if (_last_manual_control_switches.timestamp == 0) {
 			should_evaluate_rc_mode_switch = false;
-			_last_manual_control_switches = _manual_control_switches;
 		}
 
 	} else {
@@ -2821,8 +2864,6 @@ Commander::set_main_state_rc()
 		return TRANSITION_NOT_CHANGED;
 	}
 
-	_last_manual_control_switches = _manual_control_switches;
-
 	// reset the position and velocity validity calculation to give the best change of being able to select
 	// the desired mode
 	reset_posvel_validity();
@@ -2831,7 +2872,7 @@ Commander::set_main_state_rc()
 	transition_result_t res = TRANSITION_NOT_CHANGED;
 
 	/* offboard switch overrides main switch */
-	if (_manual_control_switches.offboard_switch == manual_control_switches_s::SWITCH_POS_ON) {
+	if (manual_control_switches.offboard_switch == manual_control_switches_s::SWITCH_POS_ON) {
 		res = main_state_transition(_status, commander_state_s::MAIN_STATE_OFFBOARD, _status_flags, &_internal_state);
 
 		if (res == TRANSITION_DENIED) {
@@ -2845,7 +2886,7 @@ Commander::set_main_state_rc()
 	}
 
 	/* RTL switch overrides main switch */
-	if (_manual_control_switches.return_switch == manual_control_switches_s::SWITCH_POS_ON) {
+	if (manual_control_switches.return_switch == manual_control_switches_s::SWITCH_POS_ON) {
 		res = main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_RTL, _status_flags, &_internal_state);
 
 		if (res == TRANSITION_DENIED) {
@@ -2864,7 +2905,7 @@ Commander::set_main_state_rc()
 	}
 
 	/* Loiter switch overrides main switch */
-	if (_manual_control_switches.loiter_switch == manual_control_switches_s::SWITCH_POS_ON) {
+	if (manual_control_switches.loiter_switch == manual_control_switches_s::SWITCH_POS_ON) {
 		res = main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _status_flags, &_internal_state);
 
 		if (res == TRANSITION_DENIED) {
@@ -2876,14 +2917,14 @@ Commander::set_main_state_rc()
 	}
 
 	/* we know something has changed - check if we are in mode slot operation */
-	if (_manual_control_switches.mode_slot != manual_control_switches_s::MODE_SLOT_NONE) {
+	if (manual_control_switches.mode_slot != manual_control_switches_s::MODE_SLOT_NONE) {
 
-		if (_manual_control_switches.mode_slot > manual_control_switches_s::MODE_SLOT_NUM) {
+		if (manual_control_switches.mode_slot > manual_control_switches_s::MODE_SLOT_NUM) {
 			PX4_WARN("m slot overflow");
 			return TRANSITION_DENIED;
 		}
 
-		int new_mode = _flight_mode_slots[_manual_control_switches.mode_slot - 1];
+		int new_mode = _flight_mode_slots[manual_control_switches.mode_slot - 1];
 
 		if (new_mode < 0) {
 			/* slot is unused */
@@ -3013,21 +3054,21 @@ Commander::set_main_state_rc()
 
 		return res;
 
-	} else if (_manual_control_switches.mode_switch != manual_control_switches_s::SWITCH_POS_NONE) {
+	} else if (manual_control_switches.mode_switch != manual_control_switches_s::SWITCH_POS_NONE) {
 		/* offboard and RTL switches off or denied, check main mode switch */
-		switch (_manual_control_switches.mode_switch) {
+		switch (manual_control_switches.mode_switch) {
 		case manual_control_switches_s::SWITCH_POS_NONE:
 			res = TRANSITION_NOT_CHANGED;
 			break;
 
 		case manual_control_switches_s::SWITCH_POS_OFF:		// MANUAL
-			if (_manual_control_switches.stab_switch == manual_control_switches_s::SWITCH_POS_NONE &&
-			    _manual_control_switches.man_switch == manual_control_switches_s::SWITCH_POS_NONE) {
+			if (manual_control_switches.stab_switch == manual_control_switches_s::SWITCH_POS_NONE &&
+			    manual_control_switches.man_switch == manual_control_switches_s::SWITCH_POS_NONE) {
 				/*
 				 * Legacy mode:
 				 * Acro switch being used as stabilized switch in FW.
 				 */
-				if (_manual_control_switches.acro_switch == manual_control_switches_s::SWITCH_POS_ON) {
+				if (manual_control_switches.acro_switch == manual_control_switches_s::SWITCH_POS_ON) {
 					/* manual mode is stabilized already for multirotors, so switch to acro
 					 * for any non-manual mode
 					 */
@@ -3050,16 +3091,16 @@ Commander::set_main_state_rc()
 				 * - Acro is Acro
 				 * - Manual is not default anymore when the manual switch is assigned
 				 */
-				if (_manual_control_switches.man_switch == manual_control_switches_s::SWITCH_POS_ON) {
+				if (manual_control_switches.man_switch == manual_control_switches_s::SWITCH_POS_ON) {
 					res = main_state_transition(_status, commander_state_s::MAIN_STATE_MANUAL, _status_flags, &_internal_state);
 
-				} else if (_manual_control_switches.acro_switch == manual_control_switches_s::SWITCH_POS_ON) {
+				} else if (manual_control_switches.acro_switch == manual_control_switches_s::SWITCH_POS_ON) {
 					res = main_state_transition(_status, commander_state_s::MAIN_STATE_ACRO, _status_flags, &_internal_state);
 
-				} else if (_manual_control_switches.stab_switch == manual_control_switches_s::SWITCH_POS_ON) {
+				} else if (manual_control_switches.stab_switch == manual_control_switches_s::SWITCH_POS_ON) {
 					res = main_state_transition(_status, commander_state_s::MAIN_STATE_STAB, _status_flags, &_internal_state);
 
-				} else if (_manual_control_switches.man_switch == manual_control_switches_s::SWITCH_POS_NONE) {
+				} else if (manual_control_switches.man_switch == manual_control_switches_s::SWITCH_POS_NONE) {
 					// default to MANUAL when no manual switch is set
 					res = main_state_transition(_status, commander_state_s::MAIN_STATE_MANUAL, _status_flags, &_internal_state);
 
@@ -3073,7 +3114,7 @@ Commander::set_main_state_rc()
 			break;
 
 		case manual_control_switches_s::SWITCH_POS_MIDDLE:		// ASSIST
-			if (_manual_control_switches.posctl_switch == manual_control_switches_s::SWITCH_POS_ON) {
+			if (manual_control_switches.posctl_switch == manual_control_switches_s::SWITCH_POS_ON) {
 				res = main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags, &_internal_state);
 
 				if (res != TRANSITION_DENIED) {
@@ -3090,7 +3131,7 @@ Commander::set_main_state_rc()
 				break;	// changed successfully or already in this mode
 			}
 
-			if (_manual_control_switches.posctl_switch != manual_control_switches_s::SWITCH_POS_ON) {
+			if (manual_control_switches.posctl_switch != manual_control_switches_s::SWITCH_POS_ON) {
 				print_reject_mode("ALTITUDE CONTROL");
 			}
 

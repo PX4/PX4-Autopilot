@@ -173,14 +173,8 @@ private:
 
 	void UpdateEstimateValidity();
 
-	// Set the main system state based on RC and override device inputs
-	transition_result_t set_main_state(bool *changed);
-
-	// Enable override (manual reversion mode) on the system
-	transition_result_t set_main_state_override_on(bool *changed);
-
-	// Set the system main state based on the current RC inputs
-	transition_result_t set_main_state_rc();
+	// Set the main system state based on manual switches
+	transition_result_t set_main_state(const manual_control_switches_s &manual_control_switches);
 
 	bool shutdown_if_allowed();
 
@@ -233,6 +227,9 @@ private:
 		(ParamFloat<px4::params::COM_EF_THROT>) _param_ef_throttle_thres,
 		(ParamFloat<px4::params::COM_EF_C2T>) _param_ef_current2throttle_thres,
 		(ParamFloat<px4::params::COM_EF_TIME>) _param_ef_time_thres,
+
+		(ParamInt<px4::params::COM_RC_ARM_HYST>) _param_rc_arm_hyst,
+		(ParamBool<px4::params::COM_ARM_SWISBTN>) _param_com_arm_swisbtn,
 
 		(ParamBool<px4::params::COM_ARM_WO_GPS>) _param_arm_without_gps,
 		(ParamBool<px4::params::COM_ARM_MIS_REQ>) _param_arm_mission_required,
@@ -335,6 +332,7 @@ private:
 	uint8_t		_battery_warning{battery_status_s::BATTERY_WARNING_NONE};
 	float		_battery_current{0.0f};
 
+	Hysteresis	_arm_button_hysteresis{false};
 	Hysteresis	_auto_disarm_landed{false};
 	Hysteresis	_auto_disarm_killed{false};
 	Hysteresis	_offboard_available{false};
@@ -349,7 +347,6 @@ private:
 
 	unsigned int	_leds_counter{0};
 
-	manual_control_switches_s _manual_control_switches{};
 	manual_control_switches_s _last_manual_control_switches{};
 	ManualControl _manual_control{this};
 	hrt_abstime	_rc_signal_lost_timestamp{0};		///< Time at which the RC reception was lost

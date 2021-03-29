@@ -66,9 +66,9 @@ public:
 	bool isRCAvailable() const { return _rc_available; }
 	bool wantsOverride(const vehicle_control_mode_s &vehicle_control_mode);
 	bool wantsDisarm(const vehicle_control_mode_s &vehicle_control_mode, const vehicle_status_s &vehicle_status,
-			 manual_control_switches_s &manual_control_switches, const bool landed);
+			 const bool landed);
 	bool wantsArm(const vehicle_control_mode_s &vehicle_control_mode, const vehicle_status_s &vehicle_status,
-		      const manual_control_switches_s &manual_control_switches, const bool landed);
+		      const bool landed);
 	bool isThrottleLow() const { return _last_manual_control_setpoint.z < 0.1f; }
 	bool isThrottleAboveCenter() const { return _last_manual_control_setpoint.z > 0.6f; }
 	hrt_abstime getLastRcTimestamp() const { return _last_manual_control_setpoint.timestamp; }
