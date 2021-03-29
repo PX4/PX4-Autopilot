@@ -64,7 +64,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 	bool failed = false;
 
 	failed = failed || !airframeCheck(mavlink_log_pub, status);
-	failed = failed || !sdcardCheck(mavlink_log_pub, report_failures);
+	failed = failed || !sdcardCheck(mavlink_log_pub, status_flags.sd_card_detected_once, report_failures);
 
 	/* ---- MAG ---- */
 	{
