@@ -159,7 +159,7 @@ private:
 
 	void init_offboard_mission();
 
-	int update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq);
+	int update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq, bool clear_mission = false);
 
 	/** store the geofence count to dataman */
 	int update_geofence_count(unsigned count);

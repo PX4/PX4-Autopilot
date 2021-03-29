@@ -482,7 +482,7 @@ void
 Mission::update_mission()
 {
 
-	bool failed = true;
+	bool failed = false;
 
 	/* Reset vehicle_roi
 	 * Missions that do not explicitly configure ROI would not override
@@ -493,46 +493,58 @@ Mission::update_mission()
 	_old_mission.current_seq = _current_mission_index;
 
 	if (_mission_sub.copy(&_mission)) {
-		/* determine current index */
-		if (_mission.current_seq >= 0 && _mission.current_seq < (int)_mission.count) {
-			_current_mission_index = _mission.current_seq;
+
+		/* If _mission.clear_mission flag is set to true, mission is deleted from dataman.
+		 * No mission validation needed. */
+		if (_mission.clear_mission) {
+			_mission.count = 0;
+			_mission.current_seq = 0;
+			_current_mission_index = 0;
 
 		} else {
-			/* if less items available, reset to first item */
-			if (_current_mission_index >= (int)_mission.count) {
-				_current_mission_index = 0;
 
-			} else if (_current_mission_index < 0) {
-				/* if not initialized, set it to 0 */
-				_current_mission_index = 0;
+			/* determine current index */
+			if (_mission.current_seq >= 0 && _mission.current_seq < (int)_mission.count) {
+				_current_mission_index = _mission.current_seq;
+
+			} else {
+				/* if less items available, reset to first item */
+				if (_current_mission_index >= (int)_mission.count) {
+					_current_mission_index = 0;
+
+				} else if (_current_mission_index < 0) {
+					/* if not initialized, set it to 0 */
+					_current_mission_index = 0;
+				}
+
+				/* otherwise, just leave it */
 			}
 
-			/* otherwise, just leave it */
-		}
+			check_mission_valid(true);
 
-		check_mission_valid(true);
+			failed = !_navigator->get_mission_result()->valid;
 
-		failed = !_navigator->get_mission_result()->valid;
+			if (!failed) {
+				/* reset mission failure if we have an updated valid mission */
+				_navigator->get_mission_result()->failure = false;
 
-		if (!failed) {
-			/* reset mission failure if we have an updated valid mission */
-			_navigator->get_mission_result()->failure = false;
+				/* reset sequence info as well */
+				_navigator->get_mission_result()->seq_reached = -1;
+				_navigator->get_mission_result()->seq_total = _mission.count;
 
-			/* reset sequence info as well */
-			_navigator->get_mission_result()->seq_reached = -1;
-			_navigator->get_mission_result()->seq_total = _mission.count;
+				/* reset work item if new mission has been accepted */
+				_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+				_mission_changed = true;
+			}
 
-			/* reset work item if new mission has been accepted */
-			_work_item_type = WORK_ITEM_TYPE_DEFAULT;
-			_mission_changed = true;
-		}
+			/* check if the mission waypoints changed while the vehicle is in air
+			 * TODO add a flag to mission_s which actually tracks if the position of the waypoint changed */
+			if (((_mission.count != _old_mission.count) ||
+			     (_mission.dataman_id != _old_mission.dataman_id)) &&
+			    !_navigator->get_land_detected()->landed) {
+				_mission_waypoints_changed = true;
+			}
 
-		/* check if the mission waypoints changed while the vehicle is in air
-		 * TODO add a flag to mission_s which actually tracks if the position of the waypoint changed */
-		if (((_mission.count != _old_mission.count) ||
-		     (_mission.dataman_id != _old_mission.dataman_id)) &&
-		    !_navigator->get_land_detected()->landed) {
-			_mission_waypoints_changed = true;
 		}
 
 	} else {
