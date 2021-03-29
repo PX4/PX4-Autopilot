@@ -173,6 +173,9 @@ private:
 
 	void UpdateEstimateValidity();
 
+	void UpdateManualControl();
+	void UpdateManualSwitches();
+
 	// Set the main system state based on manual switches
 	transition_result_t set_main_state(const manual_control_switches_s &manual_control_switches);
 
