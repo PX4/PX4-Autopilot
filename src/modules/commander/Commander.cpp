@@ -438,35 +438,35 @@ static constexpr const char *arm_disarm_reason_str(arm_disarm_reason_t calling_r
 static constexpr const char *main_state_str(uint8_t main_state)
 {
 	switch (main_state) {
-	case commander_state_s::MAIN_STATE_MANUAL: return "manual";
+	case commander_state_s::MAIN_STATE_MANUAL: return "Manual";
 
-	case commander_state_s::MAIN_STATE_ALTCTL: return "altitude control";
+	case commander_state_s::MAIN_STATE_ALTCTL: return "Altitude";
 
-	case commander_state_s::MAIN_STATE_POSCTL: return "position control";
+	case commander_state_s::MAIN_STATE_POSCTL: return "Position";
 
-	case commander_state_s::MAIN_STATE_AUTO_MISSION: return "auto mission";
+	case commander_state_s::MAIN_STATE_AUTO_MISSION: return "Mission";
 
-	case commander_state_s::MAIN_STATE_AUTO_LOITER: return "auto hold";
+	case commander_state_s::MAIN_STATE_AUTO_LOITER: return "Hold";
 
 	case commander_state_s::MAIN_STATE_AUTO_RTL: return "RTL";
 
-	case commander_state_s::MAIN_STATE_ACRO: return "acro";
+	case commander_state_s::MAIN_STATE_ACRO: return "Acro";
 
-	case commander_state_s::MAIN_STATE_OFFBOARD: return "offboard";
+	case commander_state_s::MAIN_STATE_OFFBOARD: return "Offboard";
 
-	case commander_state_s::MAIN_STATE_STAB: return "stabilized";
+	case commander_state_s::MAIN_STATE_STAB: return "Stabilized";
 
-	case commander_state_s::MAIN_STATE_AUTO_TAKEOFF: return "auto takeoff";
+	case commander_state_s::MAIN_STATE_AUTO_TAKEOFF: return "Takeoff";
 
-	case commander_state_s::MAIN_STATE_AUTO_LAND: return "auto land";
+	case commander_state_s::MAIN_STATE_AUTO_LAND: return "Land";
 
-	case commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET: return "follow target";
+	case commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET: return "Follow target";
 
-	case commander_state_s::MAIN_STATE_AUTO_PRECLAND: return "auto precision land";
+	case commander_state_s::MAIN_STATE_AUTO_PRECLAND: return "Precision land";
 
-	case commander_state_s::MAIN_STATE_ORBIT: return "orbit";
+	case commander_state_s::MAIN_STATE_ORBIT: return "Orbit";
 
-	default: return "unknown";
+	default: return "Unknown";
 	}
 }
 
@@ -2242,11 +2242,9 @@ Commander::run()
 				}
 			}
 
-			if (!_armed.armed && _manual_control.isMavlink()) {
+			if (!_armed.armed && _manual_control.isMavlink() && (_internal_state.main_state_changes == 0)) {
 				// if there's never been a mode change force position control as initial state
-				if (_internal_state.main_state_changes == 0) {
-					_internal_state.main_state = commander_state_s::MAIN_STATE_POSCTL;
-				}
+				_internal_state.main_state = commander_state_s::MAIN_STATE_POSCTL;
 			}
 
 			if (_manual_control_switches_sub.update(&_manual_control_switches) || safety_updated) {
@@ -2967,9 +2965,14 @@ Commander::set_main_state_rc()
 
 	/* Loiter switch overrides main switch */
 	if (_manual_control_switches.loiter_switch == manual_control_switches_s::SWITCH_POS_ON) {
-		res = try_mode_change(commander_state_s::MAIN_STATE_AUTO_LOITER);
+		res = main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _status_flags, &_internal_state);;
 
-		if (res != TRANSITION_DENIED) {
+		if (res == TRANSITION_DENIED) {
+			print_reject_mode(commander_state_s::MAIN_STATE_AUTO_LOITER);
+			/* mode rejected, continue to evaluate the main system mode */
+
+		} else {
+			/* changed successfully or already in this state */
 			return res;
 		}
 	}
