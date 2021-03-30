@@ -1,11 +1,3 @@
-menuconfig DRIVERS_POWER_MONITOR_INA226
-	bool "ina226"
-	default n
-	---help---
-		Enable support for ina226
-		
-menuconfig DRIVERS_POWER_MONITOR_VOXLPM
-	bool "voxlpm"
-	default n
-	---help---
-		Enable support for voxlpm
+menu "Power monitor"
+rsource "*/Kconfig"
+endmenu
