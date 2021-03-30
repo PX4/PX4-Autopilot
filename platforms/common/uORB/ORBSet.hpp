@@ -118,6 +118,7 @@ public:
 				unlinkNext(p);
 				return true;
 			}
+			p = p->next;
 		}
 
 		return false;
