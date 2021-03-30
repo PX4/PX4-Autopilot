@@ -69,7 +69,7 @@ int Simulator::start(int argc, char *argv[])
 	_instance = new Simulator();
 
 	if (_instance) {
-		
+
 		if (argc == 5 && strcmp(argv[3], "-u") == 0) {
 			_instance->set_ip(InternetProtocol::UDP);
 			_instance->set_port(atoi(argv[4]));
@@ -112,7 +112,7 @@ static void usage()
 	PX4_INFO("Start simulator:     simulator start");
 	PX4_INFO("Connect using UDP: simulator start -u udp_port");
 	PX4_INFO("Connect using TCP: simulator start -c tcp_port");
-	PX4_INFO("Connect to a remote server using TCP: simulator start -t ip_addr tcp_port");	
+	PX4_INFO("Connect to a remote server using TCP: simulator start -t ip_addr tcp_port");
 	PX4_INFO("Connect to a remote server via hostname using TCP: simulator start -h hostname tcp_port");
 }
 

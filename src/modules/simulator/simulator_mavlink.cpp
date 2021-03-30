@@ -733,6 +733,7 @@ void Simulator::run()
 
 	if (_tcp_remote_ipaddr != nullptr) {
 		_myaddr.sin_addr.s_addr = inet_addr(_tcp_remote_ipaddr);
+
 	} else if (!_hostname.empty()) {
 		/* resolve hostname */
 		struct hostent *host;
