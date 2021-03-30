@@ -132,7 +132,7 @@ private:
 
 	bool check_posvel_validity(const bool data_valid, const float data_accuracy, const float required_accuracy,
 				   const hrt_abstime &data_timestamp_us, hrt_abstime *last_fail_time_us, hrt_abstime *probation_time_us,
-				   bool *valid_state);
+				   const bool was_valid);
 
 	void control_status_leds(bool changed, const uint8_t battery_warning);
 
