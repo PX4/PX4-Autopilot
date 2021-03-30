@@ -375,13 +375,9 @@ void MulticopterPositionControl::Run()
 			}
 
 			// limit tilt during takeoff ramupup
-			float tilt_limit = math::radians(_param_mpc_tiltmax_air.get());
-
-			if (_takeoff.getTakeoffState() < TakeoffState::flight) {
-				tilt_limit = math::radians(_param_mpc_tiltmax_lnd.get());
-			}
-
-			_control.setTiltLimit(_tilt_limit_slew_rate.update(tilt_limit, dt));
+			const float tilt_limit_deg = (_takeoff.getTakeoffState() < TakeoffState::flight)
+						     ? _param_mpc_tiltmax_lnd.get() : _param_mpc_tiltmax_air.get();
+			_control.setTiltLimit(_tilt_limit_slew_rate.update(math::radians(tilt_limit_deg), dt));
 
 			const float speed_up = _takeoff.updateRamp(dt,
 					       PX4_ISFINITE(_vehicle_constraints.speed_up) ? _vehicle_constraints.speed_up : _param_mpc_z_vel_max_up.get());
