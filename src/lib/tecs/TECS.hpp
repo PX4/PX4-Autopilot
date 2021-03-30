@@ -149,7 +149,7 @@ public:
 
 	float get_EAS_setpoint() { return _EAS_setpoint; };
 	float TAS_rate_setpoint() { return _TAS_rate_setpoint; }
-	float speed_derivative() { return _speed_derivative; }
+	float speed_derivative() { return _tas_rate_filtered; }
 
 	float STE_error() { return _STE_error; }
 	float STE_rate_error() { return _STE_rate_error; }
@@ -239,7 +239,7 @@ private:
 	float _pitch_integ_state{0.0f};					///< pitch integrator state (rad)
 	float _last_throttle_setpoint{0.0f};				///< throttle demand rate limiter state (1/sec)
 	float _last_pitch_setpoint{0.0f};				///< pitch demand rate limiter state (rad/sec)
-	float _speed_derivative{0.0f};					///< rate of change of speed along X axis (m/sec**2)
+	float _tas_rate_filtered{0.0f};					///< low pass filtered rate of change of speed along X axis (m/sec**2)
 
 	// speed demand calculations
 	float _EAS{0.0f};						///< equivalent airspeed (m/sec)
@@ -250,6 +250,7 @@ private:
 	float _EAS_setpoint{0.0f};					///< Equivalent airspeed demand (m/sec)
 	float _TAS_setpoint_adj{0.0f};					///< true airspeed demand tracked by the TECS algorithm (m/sec)
 	float _TAS_rate_setpoint{0.0f};					///< true airspeed rate demand tracked by the TECS algorithm (m/sec**2)
+	float _tas_rate_raw{0.0f};					///< true airspeed rate, calculated as inertial acceleration in body X direction
 
 	// height demand calculations
 	float _hgt_setpoint{0.0f};					///< demanded height tracked by the TECS algorithm (m)
