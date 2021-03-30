@@ -122,17 +122,11 @@ public:
 	void get_circuit_breaker_params();
 
 private:
-
-	enum class FlightModeChange {
-		FallbackDisabled = 0,
-		FallbackEnabled
-	};
-
 	void answer_command(const vehicle_command_s &cmd, uint8_t result);
 
 	transition_result_t arm(arm_disarm_reason_t calling_reason, bool run_preflight_checks = true);
 	transition_result_t disarm(arm_disarm_reason_t calling_reason);
-	transition_result_t try_mode_change(main_state_t desired_mode, const FlightModeChange enable_fallback);
+	transition_result_t try_mode_change(main_state_t desired_mode);
 
 	void battery_status_check();
 
@@ -161,7 +155,7 @@ private:
 
 	void offboard_control_update();
 
-	void print_reject_mode(const char *msg);
+	void print_reject_mode(uint8_t main_state);
 
 	void reset_posvel_validity();
 
@@ -292,7 +286,6 @@ private:
 	static constexpr uint64_t COMMANDER_MONITORING_INTERVAL{10_ms};
 
 	static constexpr uint64_t HOTPLUG_SENS_TIMEOUT{8_s};	/**< wait for hotplug sensors to come online for upto 8 seconds */
-	static constexpr uint64_t PRINT_MODE_REJECT_INTERVAL{500_ms};
 	static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL{500_ms};
 
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
