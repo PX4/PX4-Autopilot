@@ -54,4 +54,7 @@ then
 	param set EKF2_MULTI_MAG 0
 	param set SENS_MAG_MODE 1
 
+	# Set battery load drop value to match
+	# the "default" battery used in this drone
+	param set BAT_V_LOAD_DROP 0.1
 fi
