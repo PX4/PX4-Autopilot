@@ -822,7 +822,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				const bool forced = (static_cast<int>(roundf(cmd.param2)) == 21196);
 
 				if (!forced) {
-					if (!(_land_detector.landed || _land_detector.maybe_landed) && !is_ground_rover(&_status)) {
+					if (!(_land_detector.landed || _land_detector.maybe_landed) && !is_ground_rover(_status)) {
 						if (cmd_arms) {
 							if (_armed.armed) {
 								mavlink_log_warning(&_mavlink_log_pub, "Arming denied! Already armed");
@@ -1603,21 +1603,21 @@ Commander::run()
 	/* update vehicle status to find out vehicle type (required for preflight checks) */
 	_status.system_type = _param_mav_type.get();
 
-	if (is_rotary_wing(&_status) || is_vtol(&_status)) {
+	if (is_rotary_wing(_status) || is_vtol(_status)) {
 		_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
-	} else if (is_fixed_wing(&_status)) {
+	} else if (is_fixed_wing(_status)) {
 		_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 
-	} else if (is_ground_rover(&_status)) {
+	} else if (is_ground_rover(_status)) {
 		_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROVER;
 
 	} else {
 		_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_UNKNOWN;
 	}
 
-	_status.is_vtol = is_vtol(&_status);
-	_status.is_vtol_tailsitter = is_vtol_tailsitter(&_status);
+	_status.is_vtol = is_vtol(_status);
+	_status.is_vtol_tailsitter = is_vtol_tailsitter(_status);
 
 	_boot_timestamp = hrt_absolute_time();
 
@@ -1668,9 +1668,9 @@ Commander::run()
 			if (!_armed.armed) {
 				_status.system_type = _param_mav_type.get();
 
-				const bool is_rotary = is_rotary_wing(&_status) || (is_vtol(&_status) && _vtol_status.vtol_in_rw_mode);
-				const bool is_fixed = is_fixed_wing(&_status) || (is_vtol(&_status) && !_vtol_status.vtol_in_rw_mode);
-				const bool is_ground = is_ground_rover(&_status);
+				const bool is_rotary = is_rotary_wing(_status) || (is_vtol(_status) && _vtol_status.vtol_in_rw_mode);
+				const bool is_fixed = is_fixed_wing(_status) || (is_vtol(_status) && !_vtol_status.vtol_in_rw_mode);
+				const bool is_ground = is_ground_rover(_status);
 
 				/* disable manual override for all systems that rely on electronic stabilization */
 				if (is_rotary) {
@@ -1684,8 +1684,8 @@ Commander::run()
 				}
 
 				/* set vehicle_status.is_vtol flag */
-				_status.is_vtol = is_vtol(&_status);
-				_status.is_vtol_tailsitter = is_vtol_tailsitter(&_status);
+				_status.is_vtol = is_vtol(_status);
+				_status.is_vtol_tailsitter = is_vtol_tailsitter(_status);
 
 				/* check and update system / component ID */
 				_status.system_id = _param_mav_sys_id.get();
@@ -1890,7 +1890,7 @@ Commander::run()
 			_status.vtol_fw_permanent_stab = _vtol_status.fw_permanent_stab;
 
 			/* Make sure that this is only adjusted if vehicle really is of type vtol */
-			if (is_vtol(&_status)) {
+			if (is_vtol(_status)) {
 
 				// Check if there has been any change while updating the flags
 				const auto new_vehicle_type = _vtol_status.vtol_in_rw_mode ?
