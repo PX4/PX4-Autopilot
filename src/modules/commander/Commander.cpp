@@ -1957,18 +1957,21 @@ Commander::run()
 			}
 		}
 
-		if (_esc_status_sub.updated() || _esc_status_was_updated) {
+		if (_esc_status_sub.updated()) {
 			/* ESCs status changed */
-			esc_status_s esc_status;
-			_esc_status_was_updated = true;
+			esc_status_check();
 
-			if (_esc_status_sub.copy(&esc_status)) {
-				esc_status_check(esc_status);
+		} else if (hrt_elapsed_time(&_last_esc_status_updated) > 700_ms) {
+			// Some DShot ESCs are unresponsive for ~550ms during their initialization, so we use a timeout higher than that
+
+			if (!_status_flags.condition_escs_error) {
+				mavlink_log_critical(&_mavlink_log_pub, "ESCs telemetry timeout");
 			}
+
+			_status_flags.condition_escs_error = true;
 		}
 
 		estimator_check();
-
 
 		// Auto disarm when landed or kill switch engaged
 		if (_armed.armed) {
@@ -3936,10 +3939,13 @@ Commander::offboard_control_update()
 	}
 }
 
-void Commander::esc_status_check(const esc_status_s &esc_status)
+void Commander::esc_status_check()
 {
-	if ((esc_status.esc_count > 0) && (hrt_elapsed_time(&esc_status.timestamp) < 700_ms)) {
-		// Some DShot ESCs are unresponsive for ~550ms during their initialization, so we use a timeout higher than that
+	esc_status_s esc_status{};
+
+	_esc_status_sub.copy(&esc_status);
+
+	if (esc_status.esc_count > 0) {
 
 		char esc_fail_msg[50];
 		esc_fail_msg[0] = '\0';
@@ -4018,14 +4024,9 @@ void Commander::esc_status_check(const esc_status_s &esc_status)
 			}
 		}
 
-	} else {
-
-		if (_esc_status_was_updated && !_status_flags.condition_escs_error) {
-			mavlink_log_critical(&_mavlink_log_pub, "ESCs telemetry timeout");
-		}
-
-		_status_flags.condition_escs_error = true;
 	}
+
+	_last_esc_status_updated = esc_status.timestamp;
 }
 
 int Commander::print_usage(const char *reason)
