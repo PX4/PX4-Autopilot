@@ -143,7 +143,7 @@ private:
 
 	void avoidance_check();
 
-	void esc_status_check(const esc_status_s &esc_status);
+	void esc_status_check();
 
 	void estimator_check();
 
@@ -334,7 +334,7 @@ private:
 
 	int		_last_esc_online_flags{-1};
 	int		_last_esc_failure[esc_status_s::CONNECTED_ESC_MAX] {0};
-	bool		_esc_status_was_updated{false};
+	hrt_abstime	_last_esc_status_updated{0};
 
 	uint8_t		_battery_warning{battery_status_s::BATTERY_WARNING_NONE};
 	float		_battery_current{0.0f};
