@@ -1418,6 +1418,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 		const bool attitude = !(type_mask & ATTITUDE_TARGET_TYPEMASK_ATTITUDE_IGNORE);
 		const bool body_rates = !(type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_ROLL_RATE_IGNORE)
 					&& !(type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_PITCH_RATE_IGNORE);
+		const bool thrust_body = (type_mask & ATTITUDE_TARGET_TYPEMASK_THRUST_BODY_SET);
 
 		vehicle_status_s vehicle_status{};
 		_vehicle_status_sub.copy(&vehicle_status);
@@ -1437,8 +1438,13 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 			attitude_setpoint.yaw_sp_move_rate = (type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_YAW_RATE_IGNORE) ?
 							     NAN : attitude_target.body_yaw_rate;
 
-			if (!(attitude_target.type_mask & ATTITUDE_TARGET_TYPEMASK_THROTTLE_IGNORE)) {
+			if (!thrust_body && !(attitude_target.type_mask & ATTITUDE_TARGET_TYPEMASK_THROTTLE_IGNORE)) {
 				fill_thrust(attitude_setpoint.thrust_body, vehicle_status.vehicle_type, attitude_target.thrust);
+
+			} else if (thrust_body) {
+				attitude_setpoint.thrust_body[0] = attitude_target.thrust_body[0];
+				attitude_setpoint.thrust_body[1] = attitude_target.thrust_body[1];
+				attitude_setpoint.thrust_body[2] = attitude_target.thrust_body[2];
 			}
 
 			// publish offboard_control_mode
