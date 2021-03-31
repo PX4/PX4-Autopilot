@@ -261,7 +261,7 @@ fi
 if [ -e etc/init.d-posix/rc.mavlink_override ]
 then
 	echo "Running non-default mavlink config rc.mavlink_override"
-	sh etc/init.d-posix/rc.mavlink_override
+	. ${R}etc/init.d-posix/rc.mavlink_override
 else
 	# GCS link
 	mavlink start -x -u $udp_gcs_port_local -r 4000000 -f
