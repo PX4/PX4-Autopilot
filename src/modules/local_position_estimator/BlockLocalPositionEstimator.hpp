@@ -401,8 +401,6 @@ private:
 
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
-
 		// general parameters
 		(ParamInt<px4::params::LPE_FUSION>) _param_lpe_fusion,
 		(ParamFloat<px4::params::LPE_VXY_PUB>) _param_lpe_vxy_pub,

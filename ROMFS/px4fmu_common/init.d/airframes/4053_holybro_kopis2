@@ -16,8 +16,6 @@
 set MIXER quad_x
 set PWM_OUT 1234
 
-set PARAM_DEFAULTS_VER 2
-
 
 param set-default BAT_N_CELLS 4
 
