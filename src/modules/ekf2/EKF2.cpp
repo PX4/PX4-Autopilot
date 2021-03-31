@@ -1611,7 +1611,9 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 	}
 
 	if (hrt_elapsed_time(&_last_range_sensor_update) > 1_s) {
-		_distance_sensor_selected = false;
+		_distance_sensor_selected_instance = -1;
+		_distance_max_distance = 0;
+
 	}
 }
 
