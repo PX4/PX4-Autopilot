@@ -9,4 +9,10 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
+if [ $AUTOCNF = yes ]
+then
+	# Hotfix for jMAVSim pitch oscillations after the default D term cutoff was lowered
+	param set MC_PITCHRATE_D 0.0025
+fi
+
 set MIXER quad_w
