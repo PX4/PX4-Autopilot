@@ -134,7 +134,8 @@ static int power_button_state_notification_cb(board_power_button_state_notificat
 #ifndef CONSTRAINED_FLASH
 static bool send_vehicle_command(const uint32_t cmd, const float param1 = NAN, const float param2 = NAN,
 				 const float param3 = NAN,  const float param4 = NAN, const double param5 = static_cast<double>(NAN),
-				 const double param6 = static_cast<double>(NAN), const float param7 = NAN)
+				 const double param6 = static_cast<double>(NAN), const float param7 = NAN, bool system_broadcast = false,
+				 bool component_broadcast = false)
 {
 	vehicle_command_s vcmd{};
 
@@ -150,9 +151,9 @@ static bool send_vehicle_command(const uint32_t cmd, const float param1 = NAN, c
 
 	uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
 	vcmd.source_system = vehicle_status_sub.get().system_id;
-	vcmd.target_system = vehicle_status_sub.get().system_id;
+	vcmd.target_system = (system_broadcast) ? 0 : vehicle_status_sub.get().system_id;
 	vcmd.source_component = vehicle_status_sub.get().component_id;
-	vcmd.target_component = vehicle_status_sub.get().component_id;
+	vcmd.target_component = (component_broadcast) ? 0 : vehicle_status_sub.get().component_id;
 
 	vcmd.timestamp = hrt_absolute_time();
 
@@ -353,6 +354,15 @@ int Commander::custom_command(int argc, char *argv[])
 
 		bool ret = send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION,
 						strcmp(argv[1], "off") ? 2.0f : 0.0f /* lockdown */, 0.0f);
+
+		return (ret ? 0 : 1);
+	}
+
+	if (!strcmp(argv[0], "pair")) {
+
+		// GCS pairing request handled by a companion
+		bool ret = send_vehicle_command(vehicle_command_s::VEHICLE_CMD_START_RX_PAIR,
+						10.f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, true, true);
 
 		return (ret ? 0 : 1);
 	}
@@ -3971,6 +3981,7 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("mode", "Change flight mode");
 	PRINT_MODULE_USAGE_ARG("manual|acro|offboard|stabilized|altctl|posctl|auto:mission|auto:loiter|auto:rtl|auto:takeoff|auto:land|auto:precland",
 			"Flight mode", false);
+	PRINT_MODULE_USAGE_COMMAND("pair");
 	PRINT_MODULE_USAGE_COMMAND("lockdown");
 	PRINT_MODULE_USAGE_ARG("off", "Turn lockdown off", true);
 	PRINT_MODULE_USAGE_COMMAND("set_ekf_origin");
