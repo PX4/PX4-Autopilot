@@ -73,6 +73,43 @@
 
 using matrix::wrap_2pi;
 
+const uint8_t MavlinkReceiver::supported_component_map[COMP_ID_MAX] = {
+	[COMP_ID_ALL]                      = MAV_COMP_ID_ALL,
+	[COMP_ID_AUTOPILOT1]               = MAV_COMP_ID_AUTOPILOT1,
+
+	[COMP_ID_TELEMETRY_RADIO]          = MAV_COMP_ID_TELEMETRY_RADIO,
+
+	[COMP_ID_CAMERA]                   = MAV_COMP_ID_CAMERA,
+	[COMP_ID_CAMERA2]                  = MAV_COMP_ID_CAMERA2,
+
+	[COMP_ID_GIMBAL]                   = MAV_COMP_ID_GIMBAL,
+	[COMP_ID_LOG]                      = MAV_COMP_ID_LOG,
+	[COMP_ID_ADSB]                     = MAV_COMP_ID_ADSB,
+	[COMP_ID_OSD]                      = MAV_COMP_ID_OSD,
+	[COMP_ID_PERIPHERAL]               = MAV_COMP_ID_PERIPHERAL,
+
+	[COMP_ID_FLARM]                    = MAV_COMP_ID_FLARM,
+
+	[COMP_ID_GIMBAL2]                  = MAV_COMP_ID_GIMBAL2,
+
+	[COMP_ID_MISSIONPLANNER]           = MAV_COMP_ID_MISSIONPLANNER,
+	[COMP_ID_ONBOARD_COMPUTER]         = MAV_COMP_ID_ONBOARD_COMPUTER,
+
+	[COMP_ID_PATHPLANNER]              = MAV_COMP_ID_PATHPLANNER,
+	[COMP_ID_OBSTACLE_AVOIDANCE]       = MAV_COMP_ID_OBSTACLE_AVOIDANCE,
+	[COMP_ID_VISUAL_INERTIAL_ODOMETRY] = MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY,
+	[COMP_ID_PAIRING_MANAGER]          = MAV_COMP_ID_PAIRING_MANAGER,
+
+	[COMP_ID_IMU]                      = MAV_COMP_ID_IMU,
+
+	[COMP_ID_GPS]                      = MAV_COMP_ID_GPS,
+	[COMP_ID_GPS2]                     = MAV_COMP_ID_GPS2,
+
+	[COMP_ID_UDP_BRIDGE]               = MAV_COMP_ID_UDP_BRIDGE,
+	[COMP_ID_UART_BRIDGE]              = MAV_COMP_ID_UART_BRIDGE,
+	[COMP_ID_TUNNEL_NODE]              = MAV_COMP_ID_TUNNEL_NODE,
+};
+
 MavlinkReceiver::~MavlinkReceiver()
 {
 	delete _tune_publisher;
@@ -3058,8 +3095,9 @@ MavlinkReceiver::Run()
 							}
 						}
 
-						if (!px4_comp_id_found) {
+						if (!px4_comp_id_found && !_reported_unsupported_comp_id) {
 							PX4_WARN("unsupported component id, msgid: %d, sysid: %d compid: %d", msg.msgid, msg.sysid, msg.compid);
+							_reported_unsupported_comp_id = true;
 						}
 
 						if (px4_comp_id_found && px4_sysid_index_found) {
