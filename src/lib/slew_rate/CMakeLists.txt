@@ -32,6 +32,7 @@
 ############################################################################
 
 px4_add_library(SlewRate
+	dummy.cpp
 	SlewRate.hpp
 	SlewRateYaw.hpp
 )
