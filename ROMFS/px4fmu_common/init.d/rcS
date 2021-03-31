@@ -51,12 +51,6 @@ set STARTUP_TUNE 1
 set USE_IO no
 set VEHICLE_TYPE none
 
-# Airframe parameter versioning: airframe maintainers can set this in the
-# airframe startup script, and then increase it by one whenever an airframe
-# parameter is updated - it will ensure that these parameters will be updated
-# when the firmware is flashed.
-set PARAM_DEFAULTS_VER 1
-
 #
 # Mount the procfs.
 #
@@ -171,12 +165,8 @@ else
 	#
 	if param greater SYS_AUTOCONFIG 0
 	then
-		if param compare SYS_AUTOCONFIG 1
-		then
-			# Wipe out params except RC*, flight modes, total flight time, calibration parameters, next flight UUID
-			param reset_all SYS_AUTO* RC* COM_FLTMODE* LND_FLIGHT* TC_* CAL_ACC* CAL_GYRO* COM_FLIGHT* SYS_PARAM_VER
-		fi
-
+		# Wipe out params except RC*, flight modes, total flight time, calibration parameters, next flight UUID
+		param reset_all SYS_AUTO* RC* COM_FLTMODE* LND_FLIGHT* TC_* CAL_ACC* CAL_GYRO* COM_FLIGHT*
 		set AUTOCNF yes
 	fi
 
@@ -562,15 +552,6 @@ else
 		fi
 	fi
 
-	if ! param compare SYS_PARAM_VER ${PARAM_DEFAULTS_VER}
-	then
-		echo "Switched to different parameter version. Resetting parameters."
-		param set SYS_PARAM_VER ${PARAM_DEFAULTS_VER}
-		param set SYS_AUTOCONFIG 2
-		param save
-		reboot
-	fi
-
 #
 # End of autostart.
 #
@@ -595,7 +576,6 @@ unset MIXER
 unset MIXER_AUX
 unset MIXER_FILE
 unset OUTPUT_MODE
-unset PARAM_DEFAULTS_VER
 unset PARAM_FILE
 unset PWM_AUX_OUT
 unset PWM_AUX_RATE
