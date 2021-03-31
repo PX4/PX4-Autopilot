@@ -379,6 +379,7 @@ TEST_F(EkfFusionLogicTest, doVisionHeightFusion)
 	_sensor_simulator.runSeconds(12);
 
 	// THEN: EKF should stop to intend to use vision height
-	// TODO: This is not happening
-	EXPECT_TRUE(_ekf_wrapper.isIntendingVisionHeightFusion()); // TODO: Needs to change
+
+	EXPECT_FALSE(_ekf_wrapper.isIntendingVisionHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
 }

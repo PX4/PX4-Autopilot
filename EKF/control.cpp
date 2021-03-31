@@ -787,7 +787,9 @@ void Ekf::controlHeightSensorTimeouts()
 	const bool continuous_bad_accel_hgt = isTimedOut(_time_good_vert_accel, (uint64_t)_params.bad_acc_reset_delay_us);
 
 	// check if height has been inertial deadreckoning for too long
-	const bool hgt_fusion_timeout = isTimedOut(_time_last_hgt_fuse, (uint64_t)5e6);
+	// in vision hgt mode check for vision data
+	const bool hgt_fusion_timeout = isTimedOut(_time_last_hgt_fuse, (uint64_t)5e6)  ||
+			 (_control_status.flags.ev_hgt && !isRecent(_time_last_ext_vision, 5 * EV_MAX_INTERVAL));
 
 	if (hgt_fusion_timeout || continuous_bad_accel_hgt) {
 
@@ -875,6 +877,13 @@ void Ekf::controlHeightSensorTimeouts()
 				request_height_reset = true;
 				failing_height_source = "ev";
 				new_height_source = "ev";
+
+			// Fallback to rangefinder data if available
+			} else if (_range_sensor.isHealthy()) {
+				setControlRangeHeight();
+				request_height_reset = true;
+				failing_height_source = "ev";
+				new_height_source = "rng";
 
 			} else if (!_baro_hgt_faulty) {
 				startBaroHgtFusion();
@@ -1061,11 +1070,13 @@ void Ekf::controlHeightFusion()
 
 	case VDIST_SENSOR_EV:
 
-		// don't start using EV data unless data is arriving frequently
+		// don't start using EV data unless data is arriving frequently, do not reset if pref mode was height
 		if (!_control_status.flags.ev_hgt && isRecent(_time_last_ext_vision, 2 * EV_MAX_INTERVAL)) {
 			fuse_height = true;
 			setControlEVHeight();
-			resetHeight();
+			if (!_control_status_prev.flags.rng_hgt) {
+				 resetHeight();
+			}
 		}
 
 		if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
