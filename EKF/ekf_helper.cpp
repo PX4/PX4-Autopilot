@@ -262,6 +262,20 @@ void Ekf::resetHeight()
 
 	// reset the vertical position
 	if (_control_status.flags.rng_hgt) {
+
+		// a fallback from any other height source to rangefinder happened
+		if(!_control_status_prev.flags.rng_hgt) {
+
+			if (_control_status.flags.in_air && isTerrainEstimateValid()) {
+			    _hgt_sensor_offset = _terrain_vpos;
+			} else if (_control_status.flags.in_air) {
+				 _hgt_sensor_offset = _range_sensor.getDistBottom() + _state.pos(2);
+			} else {
+				_hgt_sensor_offset = _params.rng_gnd_clearance;
+			}
+
+		}
+
 		// update the state and associated variance
 		resetVerticalPositionTo(_hgt_sensor_offset - _range_sensor.getDistBottom());
 
