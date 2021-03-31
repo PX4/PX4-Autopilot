@@ -231,7 +231,9 @@ private:
 
 	bool _callback_registered{false};
 
-	bool _distance_sensor_selected{false}; // because we can have several distance sensor instances with different orientations
+	int8_t  _distance_sensor_selected_instance{-1};
+	int32_t _distance_max_distance{0};
+	
 	bool _armed{false};
 	bool _standby{false}; // standby arming state
 

@@ -1553,25 +1553,31 @@ void EKF2::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
 
 void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 {
-	if (!_distance_sensor_selected) {
-		// get subscription index of first downward-facing range sensor
-		uORB::SubscriptionMultiArray<distance_sensor_s> distance_sensor_subs{ORB_ID::distance_sensor};
+	// get subscription index of first downward-facing range sensor
+	uORB::SubscriptionMultiArray<distance_sensor_s> distance_sensor_subs {
+			ORB_ID::distance_sensor };
 
-		for (unsigned i = 0; i < distance_sensor_subs.size(); i++) {
-			distance_sensor_s distance_sensor;
+	// Search for the rangefinder with highest max_distance
+	int8_t selected_instance = -1;
+	for (int8_t i = 0; i < distance_sensor_subs.size(); i++) {
+		distance_sensor_s distance_sensor;
 
-			if (distance_sensor_subs[i].copy(&distance_sensor)) {
-				// only use the first instace which has the correct orientation
-				if ((hrt_elapsed_time(&distance_sensor.timestamp) < 100_ms)
-				    && (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING)) {
-
-					if (_distance_sensor_sub.ChangeInstance(i)) {
-						PX4_INFO("%d - selected distance_sensor:%d", _instance, i);
-						_distance_sensor_selected = true;
-					}
-				}
+		if (distance_sensor_subs[i].copy(&distance_sensor)) {
+			// use the instance with highest max distance property
+			if ((hrt_elapsed_time(&distance_sensor.timestamp) < 100_ms)
+				 && (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING)
+				 && (distance_sensor.max_distance > _distance_max_distance)) {
+					_distance_max_distance = distance_sensor.max_distance;
+						selected_instance = i;
 			}
 		}
+	}
+
+	if(selected_instance >=0 && selected_instance != _distance_sensor_selected_instance
+		&& _distance_sensor_sub.ChangeInstance(selected_instance)) {
+			_distance_sensor_selected_instance = selected_instance;
+			PX4_INFO("%d - selected distance_sensor: %d with max_distance %dm",
+						  _instance, selected_instance, _distance_max_distance);
 	}
 
 	// EKF range sample
