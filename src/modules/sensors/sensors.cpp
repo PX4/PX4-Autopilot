@@ -319,22 +319,22 @@ int Sensors::parameters_update()
 	// mark all existing sensor calibrations active even if sensor is missing
 	// this preserves the calibration in the event of a parameter export while the sensor is missing
 	for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
-		uint32_t device_id_accel = calibration::GetCalibrationParam("ACC",  "ID", i);
-		uint32_t device_id_gyro  = calibration::GetCalibrationParam("GYRO", "ID", i);
-		uint32_t device_id_mag   = calibration::GetCalibrationParam("MAG",  "ID", i);
+		uint32_t device_id_accel = calibration::GetCalibrationParamInt32("ACC",  "ID", i);
+		uint32_t device_id_gyro  = calibration::GetCalibrationParamInt32("GYRO", "ID", i);
+		uint32_t device_id_mag   = calibration::GetCalibrationParamInt32("MAG",  "ID", i);
 
 		if (device_id_accel != 0) {
-			bool external_accel = (calibration::GetCalibrationParam("ACC", "ROT", i) >= 0);
+			bool external_accel = (calibration::GetCalibrationParamInt32("ACC", "ROT", i) >= 0);
 			calibration::Accelerometer accel_cal(device_id_accel, external_accel);
 		}
 
 		if (device_id_gyro != 0) {
-			bool external_gyro = (calibration::GetCalibrationParam("GYRO", "ROT", i) >= 0);
+			bool external_gyro = (calibration::GetCalibrationParamInt32("GYRO", "ROT", i) >= 0);
 			calibration::Gyroscope gyro_cal(device_id_gyro, external_gyro);
 		}
 
 		if (device_id_mag != 0) {
-			bool external_mag = (calibration::GetCalibrationParam("MAG", "ROT", i) >= 0);
+			bool external_mag = (calibration::GetCalibrationParamInt32("MAG", "ROT", i) >= 0);
 			calibration::Magnetometer mag_cal(device_id_mag, external_mag);
 		}
 	}
@@ -343,21 +343,21 @@ int Sensors::parameters_update()
 	// this to done to eliminate differences in the active set of parameters before and after sensor calibration
 	for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
 		if (orb_exists(ORB_ID(sensor_accel), i) == PX4_OK) {
-			bool external = (calibration::GetCalibrationParam("ACC", "ROT", i) >= 0);
+			bool external = (calibration::GetCalibrationParamInt32("ACC", "ROT", i) >= 0);
 			calibration::Accelerometer cal{0, external};
 			cal.set_calibration_index(i);
 			cal.ParametersUpdate();
 		}
 
 		if (orb_exists(ORB_ID(sensor_gyro), i) == PX4_OK) {
-			bool external = (calibration::GetCalibrationParam("GYRO", "ROT", i) >= 0);
+			bool external = (calibration::GetCalibrationParamInt32("GYRO", "ROT", i) >= 0);
 			calibration::Gyroscope cal{0, external};
 			cal.set_calibration_index(i);
 			cal.ParametersUpdate();
 		}
 
 		if (orb_exists(ORB_ID(sensor_mag), i) == PX4_OK) {
-			bool external = (calibration::GetCalibrationParam("MAG", "ROT", i) >= 0);
+			bool external = (calibration::GetCalibrationParamInt32("MAG", "ROT", i) >= 0);
 			calibration::Magnetometer cal{0, external};
 			cal.set_calibration_index(i);
 			cal.ParametersUpdate();
