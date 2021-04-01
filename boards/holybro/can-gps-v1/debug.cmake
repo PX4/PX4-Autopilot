@@ -8,6 +8,7 @@ px4_add_board(
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	CONSTRAINED_MEMORY
+	CONSTRAINED_FLASH
 	ROMFSROOT cannode
 	UAVCAN_INTERFACES 2
 	DRIVERS
@@ -20,7 +21,7 @@ px4_add_board(
 		magnetometer/bosch/bmm150
 		uavcannode
 	MODULES
-		ekf2
+		#ekf2
 		load_mon
 		sensors
 	SYSTEMCMDS
@@ -29,7 +30,7 @@ px4_add_board(
 		perf
 		reboot
 		top
-		topic_listener
+		#topic_listener
 		uorb
 		ver
 		work_queue
