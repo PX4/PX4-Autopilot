@@ -134,31 +134,51 @@ static int power_button_state_notification_cb(board_power_button_state_notificat
 #ifndef CONSTRAINED_FLASH
 static bool send_vehicle_command(const uint32_t cmd, const float param1 = NAN, const float param2 = NAN,
 				 const float param3 = NAN,  const float param4 = NAN, const double param5 = static_cast<double>(NAN),
-				 const double param6 = static_cast<double>(NAN), const float param7 = NAN, bool system_broadcast = false,
-				 bool component_broadcast = false)
+				 const double param6 = static_cast<double>(NAN), const float param7 = NAN)
 {
 	vehicle_command_s vcmd{};
-
+	vcmd.command = cmd;
 	vcmd.param1 = param1;
 	vcmd.param2 = param2;
 	vcmd.param3 = param3;
 	vcmd.param4 = param4;
-	vcmd.param5 = (double)param5;
-	vcmd.param6 = (double)param6;
+	vcmd.param5 = param5;
+	vcmd.param6 = param6;
 	vcmd.param7 = param7;
-
-	vcmd.command = cmd;
 
 	uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
 	vcmd.source_system = vehicle_status_sub.get().system_id;
-	vcmd.target_system = (system_broadcast) ? 0 : vehicle_status_sub.get().system_id;
+	vcmd.target_system = vehicle_status_sub.get().system_id;
 	vcmd.source_component = vehicle_status_sub.get().component_id;
-	vcmd.target_component = (component_broadcast) ? 0 : vehicle_status_sub.get().component_id;
-
-	vcmd.timestamp = hrt_absolute_time();
+	vcmd.target_component = vehicle_status_sub.get().component_id;
 
 	uORB::Publication<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
+	vcmd.timestamp = hrt_absolute_time();
+	return vcmd_pub.publish(vcmd);
+}
 
+static bool broadcast_vehicle_command(const uint32_t cmd, const float param1 = NAN, const float param2 = NAN,
+				      const float param3 = NAN,  const float param4 = NAN, const double param5 = static_cast<double>(NAN),
+				      const double param6 = static_cast<double>(NAN), const float param7 = NAN)
+{
+	vehicle_command_s vcmd{};
+	vcmd.command = cmd;
+	vcmd.param1 = param1;
+	vcmd.param2 = param2;
+	vcmd.param3 = param3;
+	vcmd.param4 = param4;
+	vcmd.param5 = param5;
+	vcmd.param6 = param6;
+	vcmd.param7 = param7;
+
+	uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
+	vcmd.source_system = vehicle_status_sub.get().system_id;
+	vcmd.target_system = 0;
+	vcmd.source_component = vehicle_status_sub.get().component_id;
+	vcmd.target_component = 0;
+
+	uORB::Publication<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
+	vcmd.timestamp = hrt_absolute_time();
 	return vcmd_pub.publish(vcmd);
 }
 #endif
@@ -361,8 +381,7 @@ int Commander::custom_command(int argc, char *argv[])
 	if (!strcmp(argv[0], "pair")) {
 
 		// GCS pairing request handled by a companion
-		bool ret = send_vehicle_command(vehicle_command_s::VEHICLE_CMD_START_RX_PAIR,
-						10.f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, true, true);
+		bool ret = broadcast_vehicle_command(vehicle_command_s::VEHICLE_CMD_START_RX_PAIR, 10.f);
 
 		return (ret ? 0 : 1);
 	}
