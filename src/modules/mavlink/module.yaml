@@ -34,7 +34,7 @@ serial_config:
         # 2: Board-specific / no fixed function or port
         default: [TEL1, "", ""]
       num_instances: *max_num_config_instances
-      ethernet:
+      supports_networking: true
 
 parameters:
     - group: MAVLink
@@ -122,7 +122,7 @@ parameters:
             reboot_required: true
             num_instances: *max_num_config_instances
             default: [14556, 0, 0]
-            ethernet:
+            requires_ethernet: true
 
         MAV_${i}_REMOTE_PRT:
             description:
@@ -135,7 +135,7 @@ parameters:
             reboot_required: true
             num_instances: *max_num_config_instances
             default: [14550, 0, 0]
-            ethernet:
+            requires_ethernet: true
 
         MAV_${i}_BROADCAST:
             description:
@@ -151,4 +151,4 @@ parameters:
                 2: Only multicast        
             num_instances: *max_num_config_instances
             default: [1, 0, 0]
-            ethernet:
+            requires_ethernet: true
