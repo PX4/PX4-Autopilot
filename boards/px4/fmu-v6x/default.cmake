@@ -11,6 +11,7 @@ px4_add_board(
 	IO px4_io-v2_default
 	TESTING
 	UAVCAN_INTERFACES 2
+	UAVCAN_TIMER_OVERRIDE 2
 	ETHERNET
 	SERIAL_PORTS
 		GPS1:/dev/ttyS0
@@ -54,7 +55,7 @@ px4_add_board(
 		telemetry # all available telemetry drivers
 		test_ppm
 		tone_alarm
-#		uavcan - No H7 or FD can support in UAVCAN yet
+		uavcan
 	MODULES
 		airspeed_selector
 		attitude_estimator_q
@@ -114,7 +115,7 @@ px4_add_board(
 		sd_bench
 		serial_test
 		system_time
-		tests # tests and test runner
+#		tests # tests and test runner
 		top
 		topic_listener
 		tune_control
