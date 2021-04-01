@@ -570,19 +570,18 @@ UavcanServers::run(pthread_addr_t)
 		// Shut down once armed
 		// TODO (elsewhere): start up again once disarmed?
 		if (armed_sub.updated()) {
-			actuator_armed_s armed{};
-			armed_sub.copy(&armed);
+			actuator_armed_s armed;
 
-			if (armed.armed && !(armed.lockdown || armed.manual_lockdown)) {
-				PX4_INFO("UAVCAN command bridge: system armed, exiting now.");
-				break;
+			if (armed_sub.copy(&armed)) {
+				if (armed.armed && !(armed.lockdown || armed.manual_lockdown)) {
+					PX4_INFO("UAVCAN command bridge: system armed, exiting now.");
+				}
 			}
 		}
 	}
 
 	_subnode_thread_should_exit = false;
 
-	PX4_INFO("exiting");
 	return (pthread_addr_t) 0;
 }
 
