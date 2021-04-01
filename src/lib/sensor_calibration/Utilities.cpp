@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020,2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -76,7 +76,7 @@ int8_t FindCalibrationIndex(const char *sensor_type, uint32_t device_id)
 	return -1;
 }
 
-int32_t GetCalibrationParam(const char *sensor_type, const char *cal_type, uint8_t instance)
+int32_t GetCalibrationParamInt32(const char *sensor_type, const char *cal_type, uint8_t instance)
 {
 	// eg CAL_MAGn_ID/CAL_MAGn_ROT
 	char str[20] {};
@@ -91,20 +91,19 @@ int32_t GetCalibrationParam(const char *sensor_type, const char *cal_type, uint8
 	return value;
 }
 
-bool SetCalibrationParam(const char *sensor_type, const char *cal_type, uint8_t instance, int32_t value)
+float GetCalibrationParamFloat(const char *sensor_type, const char *cal_type, uint8_t instance)
 {
+	// eg CAL_MAGn_TEMP
 	char str[20] {};
-
-	// eg CAL_MAGn_ID/CAL_MAGn_ROT
 	sprintf(str, "CAL_%s%" PRIu8 "_%s", sensor_type, instance, cal_type);
 
-	int ret = param_set_no_notification(param_find(str), &value);
+	float value = NAN;
 
-	if (ret != PX4_OK) {
-		PX4_ERR("failed to set %s = %" PRId32, str, value);
+	if (param_get(param_find(str), &value) != 0) {
+		PX4_ERR("failed to get %s", str);
 	}
 
-	return ret == PX4_OK;
+	return value;
 }
 
 Vector3f GetCalibrationParamsVector3f(const char *sensor_type, const char *cal_type, uint8_t instance)
