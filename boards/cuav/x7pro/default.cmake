@@ -31,7 +31,7 @@ px4_add_board(
 		gps
 		heater
 		#imu # all available imu drivers
-		imu/analog_devices/adis16448
+		imu/analog_devices/adis16470
 		imu/bosch/bmi088
 		imu/invensense/icm20649
 		imu/invensense/icm20689
