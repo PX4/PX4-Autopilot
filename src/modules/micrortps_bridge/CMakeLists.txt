@@ -35,17 +35,17 @@
 # RTPS and micro-cdr
 #
 
-find_program(FASTRTPSGEN fastrtpsgen PATHS $ENV{FASTRTPSGEN_DIR})
-if(NOT FASTRTPSGEN)
-	message(FATAL_ERROR "Unable to find fastrtpsgen")
+find_program(FASTDDSGEN fastddsgen PATHS $ENV{FASTDDSGEN_DIR})
+if(NOT FASTDDSGEN)
+	message(FATAL_ERROR "Unable to find fastddsgen")
 else()
 	execute_process(
-		COMMAND $ENV{FASTRTPSGEN_DIR}fastrtpsgen -version
-		OUTPUT_VARIABLE FASTRTPSGEN_VERSION
+		COMMAND $ENV{FASTDDSGEN_DIR}fastddsgen -version
+		OUTPUT_VARIABLE FASTDDSGEN_VERSION
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 		ERROR_QUIET
 	)
-	message(STATUS "${FASTRTPSGEN_VERSION}")
+	message(STATUS "${FASTDDSGEN_VERSION}")
 endif()
 
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
@@ -86,7 +86,7 @@ if (EXISTS "${PX4_SOURCE_DIR}/msg/tools/urtps_bridge_topics.yaml")
 	STRING(REPLACE "\n" "" config_rtps_receive_topics "${config_rtps_receive_topics}")
 endif()
 
-if (FASTRTPSGEN AND (config_rtps_send_topics OR config_rtps_receive_topics))
+if (FASTDDSGEN AND (config_rtps_send_topics OR config_rtps_receive_topics))
 	option(GENERATE_RTPS_BRIDGE "enable RTPS and microCDR" ON)
 endif()
 

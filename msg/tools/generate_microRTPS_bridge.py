@@ -33,9 +33,9 @@
 ################################################################################
 
 # This script can generate the client and agent code based on a set of topics
-# to sent and set to receive. It uses fastrtpsgen to generate the code from the
+# to sent and set to receive. It uses fastddsgen to generate the code from the
 # IDL for the topic messages. The PX4 msg definitions are used to create the IDL
-# used by fastrtpsgen using templates.
+# used by fastddsgen using templates.
 
 import sys
 import os
@@ -104,10 +104,10 @@ parser.add_argument("-o", "--agent-outdir", dest='agentdir', type=str,
                     help="Agent output dir, by default using relative path 'src/modules/micrortps_bridge/micrortps_agent'", default=default_agent_out)
 parser.add_argument("-u", "--client-outdir", dest='clientdir', type=str,
                     help="Client output dir, by default using relative path 'src/modules/micrortps_bridge/micrortps_client'", default=default_client_out)
-parser.add_argument("-f", "--fastrtpsgen-dir", dest='fastrtpsgen', type=str, nargs='?',
-                    help="fastrtpsgen installation dir, only needed if fastrtpsgen is not in PATH, by default empty", default="")
-parser.add_argument("-g", "--fastrtpsgen-include", dest='fastrtpsgen_include', type=str,
-                    help="directory(ies) to add to preprocessor include paths of fastrtpsgen, by default empty", default="")
+parser.add_argument("-f", "--fastddsgen-dir", dest='fastddsgen', type=str, nargs='?',
+                    help="fastddsgen installation dir, only needed if fastddsgen is not in PATH, by default empty", default="")
+parser.add_argument("-g", "--fastddsgen-include", dest='fastddsgen_include', type=str,
+                    help="directory(ies) to add to preprocessor include paths of fastddsgen, by default empty", default="")
 parser.add_argument("-r", "--ros2-distro", dest='ros2_distro', type=str, nargs='?',
                     help="ROS2 distro, only required if generating the agent for usage with ROS2 nodes, by default empty", default="")
 parser.add_argument("--delete-tree", dest='del_tree',
@@ -146,48 +146,48 @@ if idl_dir != '':
 else:
     idl_dir = os.path.join(agent_out_dir, "idl")
 
-if args.fastrtpsgen is None or args.fastrtpsgen == '':
-    # Assume fastrtpsgen is in PATH
-    fastrtpsgen_path = 'fastrtpsgen'
+if args.fastddsgen is None or args.fastddsgen == '':
+    # Assume fastddsgen is in PATH
+    fastddsgen_path = 'fastddsgen'
     for dirname in os.environ['PATH'].split(':'):
-        candidate = os.path.join(dirname, 'fastrtpsgen')
+        candidate = os.path.join(dirname, 'fastddsgen')
         if os.path.isfile(candidate):
-            fastrtpsgen_path = candidate
+            fastddsgen_path = candidate
 else:
-    # Path to fastrtpsgen is explicitly specified
-    if os.path.isdir(args.fastrtpsgen):
-        fastrtpsgen_path = os.path.join(
-            os.path.abspath(args.fastrtpsgen), 'fastrtpsgen')
+    # Path to fastddsgen is explicitly specified
+    if os.path.isdir(args.fastddsgen):
+        fastddsgen_path = os.path.join(
+            os.path.abspath(args.fastddsgen), 'fastddsgen')
     else:
-        fastrtpsgen_path = args.fastrtpsgen
+        fastddsgen_path = args.fastddsgen
 
-fastrtpsgen_include = args.fastrtpsgen_include
-if fastrtpsgen_include is not None and fastrtpsgen_include != '':
-    fastrtpsgen_include = "-I " + \
+fastddsgen_include = args.fastddsgen_include
+if fastddsgen_include is not None and fastddsgen_include != '':
+    fastddsgen_include = "-I " + \
         os.path.abspath(
-            args.fastrtpsgen_include) + " "
+            args.fastddsgen_include) + " "
 
-# get FastRTPSGen version
-# .. note:: since Fast-RTPS 1.8.0 release, FastRTPSGen is a separated repository
+# get Fastddsgen version
+# .. note:: since Fast-RTPS 1.8.0 release, Fastddsgen is a separated repository
 # and not included in the Fast-RTPS project.
 # The starting version since this separation is 1.0.0, which follows its own
 # versioning
-fastrtpsgen_version = version.Version("1.0.0")
-if(os.path.exists(fastrtpsgen_path)):
+fastddsgen_version = version.Version("1.0.0")
+if(os.path.exists(fastddsgen_path)):
     try:
-        fastrtpsgen_version_out = subprocess.check_output(
-            [fastrtpsgen_path, "-version"]).decode("utf-8").strip()[-5:]
+        fastddsgen_version_out = subprocess.check_output(
+            [fastddsgen_path, "-version"]).decode("utf-8").strip()[-5:]
     except OSError:
         raise
 
     try:
-        fastrtpsgen_version = version.parse(fastrtpsgen_version_out)
+        fastddsgen_version = version.parse(fastddsgen_version_out)
     except version.InvalidVersion:
         raise Exception(
-            "'fastrtpsgen -version' returned None or an invalid version")
+            "'fastddsgen -version' returned None or an invalid version")
 else:
     raise Exception(
-        "FastRTPSGen not found. Specify the location of fastrtpsgen with the -f flag")
+        "Fastddsgen not found. Specify the location of fastddsgen with the -f flag")
 
 
 # get ROS 2 version, if exists
@@ -344,17 +344,17 @@ def generate_agent(out_dir):
                                                             urtps_templates_dir, package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_list, fastrtps_version, ros2_distro, uRTPS_AGENT_CMAKELISTS_TEMPL_FILE)
 
     # Final steps to install agent
-    mkdir_p(os.path.join(out_dir, "fastrtpsgen"))
+    mkdir_p(os.path.join(out_dir, "fastddsgen"))
     prev_cwd_path = os.getcwd()
-    os.chdir(os.path.join(out_dir, "fastrtpsgen"))
+    os.chdir(os.path.join(out_dir, "fastddsgen"))
     if not glob.glob(os.path.join(idl_dir, "*.idl")):
         raise Exception("No IDL files found in %s" % idl_dir)
 
     # If it is generating the bridge code for interfacing with ROS2, then set
-    # the '-typeros2' option in fastrtpsgen.
-    # .. note:: This is only available in FastRTPSGen 1.0.4 and above
+    # the '-typeros2' option in fastddsgen.
+    # .. note:: This is only available in Fastddsgen 1.0.4 and above
     gen_ros2_typename = ""
-    if ros2_distro and ros2_distro in ['dashing', 'eloquent', 'foxy', 'galactic', 'rolling'] and fastrtpsgen_version >= version.Version("1.0.4"):
+    if ros2_distro and ros2_distro in ['dashing', 'eloquent', 'foxy', 'galactic', 'rolling'] and fastddsgen_version >= version.Version("1.0.4"):
         gen_ros2_typename = "-typeros2 "
 
     idl_files = []
@@ -365,20 +365,20 @@ def generate_agent(out_dir):
             idl_files.append(idl_file)
 
     try:
-        ret = subprocess.check_call(fastrtpsgen_path + " -d " + out_dir +
-                                    "/fastrtpsgen -example x64Linux2.6gcc " + gen_ros2_typename + fastrtpsgen_include + " ".join(str(idl_file) for idl_file in idl_files), shell=True)
+        ret = subprocess.check_call(fastddsgen_path + " -d " + out_dir +
+                                    "/fastddsgen -example x64Linux2.6gcc " + gen_ros2_typename + fastddsgen_include + " ".join(str(idl_file) for idl_file in idl_files), shell=True)
     except OSError:
         raise
 
-    rm_wildcard(os.path.join(out_dir, "fastrtpsgen/*PubSubMain*"))
-    rm_wildcard(os.path.join(out_dir, "fastrtpsgen/makefile*"))
-    rm_wildcard(os.path.join(out_dir, "fastrtpsgen/*Publisher*"))
-    rm_wildcard(os.path.join(out_dir, "fastrtpsgen/*Subscriber*"))
-    for f in glob.glob(os.path.join(out_dir, "fastrtpsgen/*.cxx")):
+    rm_wildcard(os.path.join(out_dir, "fastddsgen/*PubSubMain*"))
+    rm_wildcard(os.path.join(out_dir, "fastddsgen/makefile*"))
+    rm_wildcard(os.path.join(out_dir, "fastddsgen/*Publisher*"))
+    rm_wildcard(os.path.join(out_dir, "fastddsgen/*Subscriber*"))
+    for f in glob.glob(os.path.join(out_dir, "fastddsgen/*.cxx")):
         os.rename(f, f.replace(".cxx", ".cpp"))
-    cp_wildcard(os.path.join(out_dir, "fastrtpsgen/*"), out_dir)
-    if os.path.isdir(os.path.join(out_dir, "fastrtpsgen")):
-        shutil.rmtree(os.path.join(out_dir, "fastrtpsgen"))
+    cp_wildcard(os.path.join(out_dir, "fastddsgen/*"), out_dir)
+    if os.path.isdir(os.path.join(out_dir, "fastddsgen")):
+        shutil.rmtree(os.path.join(out_dir, "fastddsgen"))
     cp_wildcard(os.path.join(urtps_templates_dir,
                              "microRTPS_transport.*"), agent_out_dir)
     if cmakelists:

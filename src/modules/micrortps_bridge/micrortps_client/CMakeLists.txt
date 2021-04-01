@@ -73,7 +73,7 @@ if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_t
 
 	add_custom_command(OUTPUT ${topic_bridge_files_out}
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/msg/tools/generate_microRTPS_bridge.py
-			--fastrtpsgen-dir $ENV{FASTRTPSGEN_DIR}
+			--fastddsgen-dir $ENV{FASTDDSGEN_DIR}
 			--generate-idl
 			--mkdir-build
 			--generate-cmakelists
