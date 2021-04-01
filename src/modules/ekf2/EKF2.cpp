@@ -169,6 +169,7 @@ EKF2::~EKF2()
 {
 	perf_free(_ecl_ekf_update_perf);
 	perf_free(_ecl_ekf_update_full_perf);
+	perf_free(_imu_missed_perf);
 }
 
 bool EKF2::multi_init(int imu, int mag)
@@ -219,6 +220,7 @@ int EKF2::print_status()
 		     _ekf.local_position_is_valid(), _ekf.global_position_is_valid());
 	perf_print_counter(_ecl_ekf_update_perf);
 	perf_print_counter(_ecl_ekf_update_full_perf);
+	perf_print_counter(_imu_missed_perf);
 	return 0;
 }
 
@@ -298,8 +300,9 @@ void EKF2::Run()
 		imu_updated = _vehicle_imu_sub.update(&imu);
 
 		if (imu_updated && (_vehicle_imu_sub.get_last_generation() != last_generation + 1)) {
-			PX4_ERR("%d - vehicle_imu lost, generation %d -> %d", _instance, last_generation,
-				_vehicle_imu_sub.get_last_generation());
+			perf_count(_imu_missed_perf);
+			PX4_DEBUG("%d - vehicle_imu lost, generation %d -> %d", _instance, last_generation,
+				  _vehicle_imu_sub.get_last_generation());
 		}
 
 		imu_sample_new.time_us = imu.timestamp_sample;
