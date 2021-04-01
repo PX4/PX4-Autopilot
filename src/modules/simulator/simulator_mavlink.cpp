@@ -45,7 +45,9 @@
 #include <conversion/rotation.h>
 #include <mathlib/mathlib.h>
 
+#include <arpa/inet.h>
 #include <errno.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <poll.h>
@@ -731,7 +733,18 @@ void Simulator::run()
 
 	if (_tcp_remote_ipaddr != nullptr) {
 		_myaddr.sin_addr.s_addr = inet_addr(_tcp_remote_ipaddr);
+
+	} else if (!_hostname.empty()) {
+		/* resolve hostname */
+		struct hostent *host;
+		host = gethostbyname(_hostname.c_str());
+		memcpy(&_myaddr.sin_addr, host->h_addr_list[0], host->h_length);
+
+		char ip[30];
+		strcpy(ip, (char *)inet_ntoa((struct in_addr)_myaddr.sin_addr));
+		PX4_INFO("Resolved host '%s' to address: %s", _hostname.c_str(), ip);
 	}
+
 
 	if (_ip == InternetProtocol::UDP) {
 

@@ -123,6 +123,7 @@ public:
 
 	void set_ip(InternetProtocol ip) { _ip = ip; }
 	void set_port(unsigned port) { _port = port; }
+	void set_hostname(std::string hostname) { _hostname = hostname; }
 	void set_tcp_remote_ipaddr(char *tcp_remote_ipaddr) { _tcp_remote_ipaddr = tcp_remote_ipaddr; }
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
@@ -205,6 +206,8 @@ private:
 	unsigned int _port{14560};
 
 	InternetProtocol _ip{InternetProtocol::UDP};
+
+	std::string _hostname{""};
 
 	char *_tcp_remote_ipaddr{nullptr};
 
