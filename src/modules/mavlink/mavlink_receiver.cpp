@@ -2232,6 +2232,12 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 
 	sensor_gps_s gps{};
 
+	device::Device::DeviceId device_id{};
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
+	device_id.devid_s.address = msg->sysid;
+	device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+	gps.device_id = device_id.devid;
+
 	gps.lat = hil_gps.lat;
 	gps.lon = hil_gps.lon;
 	gps.alt = hil_gps.alt;

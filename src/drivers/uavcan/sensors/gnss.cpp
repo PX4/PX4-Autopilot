@@ -64,6 +64,8 @@ UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node) :
 	for (uint8_t i = 0; i < _max_channels; i++) {
 		_channel_using_fix2[i] = false;
 	}
+
+	set_device_type(DRV_GPS_DEVTYPE_UAVCAN);
 }
 
 UavcanGnssBridge::~UavcanGnssBridge()
@@ -282,6 +284,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 				    const bool valid_pos_cov, const bool valid_vel_cov)
 {
 	sensor_gps_s report{};
+	report.device_id = get_device_id();
 
 	/*
 	 * FIXME HACK

@@ -46,6 +46,7 @@
 #include <px4_platform_common/log.h>
 
 #include <drivers/drv_pwm_output.h>         // to get PWM flags
+#include <lib/drivers/device/Device.hpp>
 
 using namespace math;
 using namespace matrix;
@@ -363,6 +364,14 @@ void Sih::send_gps()
 	} else {
 		gps_no_fix();
 	}
+
+	// device id
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	device_id.devid_s.bus = 0;
+	device_id.devid_s.address = 0;
+	device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+	_sensor_gps.device_id = device_id.devid;
 
 	_sensor_gps_pub.publish(_sensor_gps);
 }

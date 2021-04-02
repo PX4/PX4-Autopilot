@@ -44,6 +44,7 @@
 #include <drivers/drv_pwm_output.h>
 #include <conversion/rotation.h>
 #include <mathlib/mathlib.h>
+#include <lib/drivers/device/Device.hpp>
 
 #include <arpa/inet.h>
 #include <errno.h>
@@ -432,6 +433,14 @@ void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
 			if (_sensor_gps_pubs[i] == nullptr) {
 				_sensor_gps_pubs[i] = new uORB::PublicationMulti<sensor_gps_s> {ORB_ID(sensor_gps)};
 				_gps_ids[i] = hil_gps.id;
+
+				device::Device::DeviceId device_id;
+				device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+				device_id.devid_s.bus = 0;
+				device_id.devid_s.address = i;
+				device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+				gps.device_id = device_id.devid;
+
 				_sensor_gps_pubs[i]->publish(gps);
 				break;
 			}
