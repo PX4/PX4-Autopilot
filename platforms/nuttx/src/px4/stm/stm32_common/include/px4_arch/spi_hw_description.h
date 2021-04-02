@@ -129,7 +129,8 @@ static inline constexpr SPI::bus_device_external_cfg_t initSPIConfigExternal(SPI
 struct px4_spi_bus_array_t {
 	px4_spi_bus_t item[SPI_BUS_MAX_BUS_ITEMS];
 };
-static inline constexpr px4_spi_bus_all_hw_t initSPIHWVersion(int hw_version, const px4_spi_bus_array_t &bus_items)
+static inline constexpr px4_spi_bus_all_hw_t initSPIHWVersion(int hw_version_revision,
+		const px4_spi_bus_array_t &bus_items)
 {
 	px4_spi_bus_all_hw_t ret{};
 
@@ -137,7 +138,7 @@ static inline constexpr px4_spi_bus_all_hw_t initSPIHWVersion(int hw_version, co
 		ret.buses[i] = bus_items.item[i];
 	}
 
-	ret.board_hw_version = hw_version;
+	ret.board_hw_version_revision = hw_version_revision;
 	return ret;
 }
 constexpr bool validateSPIConfig(const px4_spi_bus_t spi_buses_conf[SPI_BUS_MAX_BUS_ITEMS]);
