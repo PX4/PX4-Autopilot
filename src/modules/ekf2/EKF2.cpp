@@ -1553,67 +1553,74 @@ void EKF2::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
 
 void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 {
-	// get subscription index of first downward-facing range sensor
-	uORB::SubscriptionMultiArray<distance_sensor_s> distance_sensor_subs {
-			ORB_ID::distance_sensor };
+	if (_distance_sensor_subs.updated()) {
 
-	// Search for the rangefinder with highest max_distance
-	int8_t selected_instance = -1;
-	for (int8_t i = 0; i < distance_sensor_subs.size(); i++) {
-		distance_sensor_s distance_sensor;
+		// first update current selected distance_sensor (if available)
+		distance_sensor_s distance_sensor_ecl;
+		bool distance_sensor_ecl_updated = false;
 
-		if (distance_sensor_subs[i].copy(&distance_sensor)) {
-			// use the instance with highest max distance property
-			if ((hrt_elapsed_time(&distance_sensor.timestamp) < 100_ms)
-				 && (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING)
-				 && (distance_sensor.max_distance > _distance_max_distance)) {
-					_distance_max_distance = distance_sensor.max_distance;
-						selected_instance = i;
+		if (_distance_sensor_selected_instance >= 0) {
+			if (_distance_sensor_subs[_distance_sensor_selected_instance].update(&distance_sensor_ecl)) {
+				distance_sensor_ecl_updated = true;
+				_distance_max_distance = distance_sensor_ecl.max_distance;
 			}
 		}
-	}
 
-	if(selected_instance >=0 && selected_instance != _distance_sensor_selected_instance
-		&& _distance_sensor_sub.ChangeInstance(selected_instance)) {
-			_distance_sensor_selected_instance = selected_instance;
-			PX4_INFO("%d - selected distance_sensor: %d with max_distance %dm",
-						  _instance, selected_instance, _distance_max_distance);
-	}
+		const int8_t selected_instance_prev = _distance_sensor_selected_instance;
+		const bool primary_timeout = hrt_elapsed_time(&_last_range_sensor_update) > 1_s;
 
-	// EKF range sample
-	const unsigned last_generation = _distance_sensor_sub.get_last_generation();
-	distance_sensor_s distance_sensor;
+		// Search for the rangefinder with highest max_distance
+		for (int8_t i = 0; i < _distance_sensor_subs.size(); i++) {
+			distance_sensor_s dist;
 
-	if (_distance_sensor_sub.update(&distance_sensor)) {
+			if ((i != _distance_sensor_selected_instance) && _distance_sensor_subs[i].update(&dist)) {
 
-		if (_distance_sensor_sub.get_last_generation() != last_generation + 1) {
-			PX4_ERR("%d - distance_sensor lost, generation %d -> %d", _instance, last_generation,
-				_distance_sensor_sub.get_last_generation());
+				bool valid = (dist.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING)
+					     && (hrt_elapsed_time(&dist.timestamp) < 100_ms)
+					     && (dist.current_distance >= dist.min_distance)
+					     && (dist.current_distance <= dist.max_distance);
+
+				// use the valid instance with highest max distance property or any valid instance if the primary has stopped
+				if (valid && (primary_timeout || (dist.max_distance > _distance_max_distance))) {
+
+					_distance_max_distance = dist.max_distance;
+					_distance_sensor_selected_instance = i;
+
+					// use for distance sensor update
+					distance_sensor_ecl = dist;
+					distance_sensor_ecl_updated = true;
+				}
+			}
 		}
 
-		ekf2_timestamps.distance_sensor_timestamp_rel = (int16_t)((int64_t)distance_sensor.timestamp / 100 -
-				(int64_t)ekf2_timestamps.timestamp / 100);
-
-		if (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING) {
-			rangeSample range_sample {
-				.time_us = distance_sensor.timestamp,
-				.rng = distance_sensor.current_distance,
-				.quality = distance_sensor.signal_quality,
-			};
-			_ekf.setRangeData(range_sample);
-
-			// Save sensor limits reported by the rangefinder
-			_ekf.set_rangefinder_limits(distance_sensor.min_distance, distance_sensor.max_distance);
-
-			_last_range_sensor_update = distance_sensor.timestamp;
-			return;
+		if (selected_instance_prev != _distance_sensor_selected_instance) {
+			PX4_INFO("%d - selected distance_sensor: %d (%d) with max_distance %dm", _instance, _distance_sensor_selected_instance,
+				 distance_sensor_ecl.device_id, _distance_max_distance);
 		}
-	}
 
-	if (hrt_elapsed_time(&_last_range_sensor_update) > 1_s) {
-		_distance_sensor_selected_instance = -1;
-		_distance_max_distance = 0;
+		// EKF range sample
+		if (distance_sensor_ecl_updated) {
+			ekf2_timestamps.distance_sensor_timestamp_rel = (int16_t)((int64_t)distance_sensor_ecl.timestamp / 100 -
+					(int64_t)ekf2_timestamps.timestamp / 100);
 
+			if (distance_sensor_ecl.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING) {
+				rangeSample range_sample {
+					.time_us = distance_sensor_ecl.timestamp,
+					.rng = distance_sensor_ecl.current_distance,
+					.quality = distance_sensor_ecl.signal_quality,
+				};
+				_ekf.setRangeData(range_sample);
+
+				// Save sensor limits reported by the rangefinder
+				_ekf.set_rangefinder_limits(distance_sensor_ecl.min_distance, distance_sensor_ecl.max_distance);
+
+				_last_range_sensor_update = distance_sensor_ecl.timestamp;
+
+			} else {
+				// force re-selection
+				_distance_max_distance = 0;
+			}
+		}
 	}
 }
 
