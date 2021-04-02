@@ -96,11 +96,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: cuav_x7pro_default
-    cubepilot_cubeorange_default:
+    cubepilot_cubeorange_console:
       short: cubepilot_cubeorange
       buildType: MinSizeRel
       settings:
-        CONFIG: cubepilot_orange_default
+        CONFIG: cubepilot_orange_console
     cubepilot_cubeyellow_default:
       short: cubepilot_cubeyellow
       buildType: MinSizeRel

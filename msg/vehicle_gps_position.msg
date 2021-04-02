@@ -1,6 +1,9 @@
 # GPS position in WGS84 coordinates.
-# the field 'timestamp' is for the position & velocity (microseconds)
-uint64 timestamp		# time since system start (microseconds)
+
+uint64 timestamp                # time since system start (microseconds)
+uint64 timestamp_sample         # the field 'timestamp_sample' is for the position & velocity (microseconds)
+
+uint32 device_id                # unique device ID for the sensor that does not change between power cycles
 
 int32 lat			# Latitude in 1E-7 degrees
 int32 lon			# Longitude in 1E-7 degrees
@@ -35,5 +38,8 @@ uint8 satellites_used		# Number of satellites used
 
 float32 heading			# heading angle of XYZ body frame rel to NED. Set to NaN if not available and updated (used for dual antenna GPS), (rad, [-PI, PI])
 float32 heading_offset		# heading offset of dual antenna array in body frame. Set to NaN if not applicable. (rad, [-PI, PI])
+
+
+float32[3] position_offset
 
 uint8 selected			# GPS selection: 0: GPS1, 1: GPS2. 2: GPS3. 3. Blending multiple receivers

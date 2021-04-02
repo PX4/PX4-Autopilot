@@ -1479,7 +1479,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 
 		if (_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
 			gps_message gps_msg{
-				.time_usec = vehicle_gps_position.timestamp,
+				.time_usec = vehicle_gps_position.timestamp_sample,
 				.lat = vehicle_gps_position.lat,
 				.lon = vehicle_gps_position.lon,
 				.alt = vehicle_gps_position.alt,

@@ -269,7 +269,6 @@ protected:
 		_device_id.devid_s.bus = bus;
 		set_device_address(address);
 	}
-
 };
 
 } // namespace device
