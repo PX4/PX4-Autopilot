@@ -176,6 +176,7 @@ private:
 
 	perf_counter_t _ecl_ekf_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL update")};
 	perf_counter_t _ecl_ekf_update_full_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL full update")};
+	perf_counter_t _imu_missed_perf{perf_alloc(PC_COUNT, MODULE_NAME": IMU message missed")};
 
 	// Used to check, save and use learned magnetometer biases
 	hrt_abstime _mag_cal_last_us{0};	///< last time the EKF was operating a mode that estimates magnetomer biases (uSec)

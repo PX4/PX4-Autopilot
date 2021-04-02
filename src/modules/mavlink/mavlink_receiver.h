@@ -294,42 +294,9 @@ private:
 	};
 
 	// map of supported component IDs to MAV_COMP value
-	const uint8_t supported_component_map[COMP_ID_MAX] {
-		[COMP_ID_ALL]                      = MAV_COMP_ID_ALL,
-		[COMP_ID_AUTOPILOT1]               = MAV_COMP_ID_AUTOPILOT1,
+	static const uint8_t supported_component_map[COMP_ID_MAX];
 
-		[COMP_ID_TELEMETRY_RADIO]          = MAV_COMP_ID_TELEMETRY_RADIO,
-
-		[COMP_ID_CAMERA]                   = MAV_COMP_ID_CAMERA,
-		[COMP_ID_CAMERA2]                  = MAV_COMP_ID_CAMERA2,
-
-		[COMP_ID_GIMBAL]                   = MAV_COMP_ID_GIMBAL,
-		[COMP_ID_LOG]                      = MAV_COMP_ID_LOG,
-		[COMP_ID_ADSB]                     = MAV_COMP_ID_ADSB,
-		[COMP_ID_OSD]                      = MAV_COMP_ID_OSD,
-		[COMP_ID_PERIPHERAL]               = MAV_COMP_ID_PERIPHERAL,
-
-		[COMP_ID_FLARM]                    = MAV_COMP_ID_FLARM,
-
-		[COMP_ID_GIMBAL2]                  = MAV_COMP_ID_GIMBAL2,
-
-		[COMP_ID_MISSIONPLANNER]           = MAV_COMP_ID_MISSIONPLANNER,
-		[COMP_ID_ONBOARD_COMPUTER]         = MAV_COMP_ID_ONBOARD_COMPUTER,
-
-		[COMP_ID_PATHPLANNER]              = MAV_COMP_ID_PATHPLANNER,
-		[COMP_ID_OBSTACLE_AVOIDANCE]       = MAV_COMP_ID_OBSTACLE_AVOIDANCE,
-		[COMP_ID_VISUAL_INERTIAL_ODOMETRY] = MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY,
-		[COMP_ID_PAIRING_MANAGER]          = MAV_COMP_ID_PAIRING_MANAGER,
-
-		[COMP_ID_IMU]                      = MAV_COMP_ID_IMU,
-
-		[COMP_ID_GPS]                      = MAV_COMP_ID_GPS,
-		[COMP_ID_GPS2]                     = MAV_COMP_ID_GPS2,
-
-		[COMP_ID_UDP_BRIDGE]               = MAV_COMP_ID_UDP_BRIDGE,
-		[COMP_ID_UART_BRIDGE]              = MAV_COMP_ID_UART_BRIDGE,
-		[COMP_ID_TUNNEL_NODE]              = MAV_COMP_ID_TUNNEL_NODE,
-	};
+	bool _reported_unsupported_comp_id{false};
 
 	static constexpr int MAX_REMOTE_SYSTEM_IDS{8};
 	uint8_t _system_id_map[MAX_REMOTE_SYSTEM_IDS] {};

@@ -98,7 +98,7 @@ then
 	set AUTOCNF yes
 
 	# Wipe out params except RC*, flight modes, total flight time, accel cal, gyro cal, next flight UUID
-	param reset_all SYS_AUTOSTART SYS_AUTOCONFIG RC* COM_FLTMODE* LND_FLIGHT_T_* TC_* CAL_ACC* CAL_GYRO* COM_FLIGHT_UUID
+	param reset_all SYS_AUTO* RC* COM_FLTMODE* LND_FLIGHT* TC_* CAL_ACC* CAL_GYRO* COM_FLIGHT*
 fi
 
 # multi-instance setup
@@ -220,7 +220,21 @@ dataman start
 # only start the simulator if not in replay mode, as both control the lockstep time
 if ! replay tryapplyparams
 then
-	simulator start -c $simulator_tcp_port
+  # Check if PX4_SIM_HOSTNAME environment variable is empty
+  # If empty check if PX4_SIM_HOST_ADDR environment variable is empty
+  # If both are empty use localhost for simulator
+  if [ -z "${PX4_SIM_HOSTNAME}" ]; then
+    if [ -z "${PX4_SIM_HOST_ADDR}" ]; then
+      echo "PX4 SIM HOST: localhost"
+      simulator start -c $simulator_tcp_port
+    else
+      echo "PX4 SIM HOST: $PX4_SIM_HOST_ADDR"
+      simulator start -t $PX4_SIM_HOST_ADDR $simulator_tcp_port 
+    fi
+  else
+    echo "PX4 SIM HOST: $PX4_SIM_HOSTNAME"
+    simulator start -h $PX4_SIM_HOSTNAME $simulator_tcp_port 
+  fi
 fi
 load_mon start
 battery_simulator start
