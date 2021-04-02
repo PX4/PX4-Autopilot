@@ -39,14 +39,19 @@
 #if BOARD_NUM_SPI_CFG_HW_VERSIONS > 1
 void px4_set_spi_buses_from_hw_version()
 {
-	int hw_version = board_get_hw_version();
+#if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
+	int hw_version_revision = board_get_hw_version();
+#else
+	int hw_version_revision = board_get_hw_revision();
+#endif
+
 
 	for (int i = 0; i < BOARD_NUM_SPI_CFG_HW_VERSIONS; ++i) {
-		if (!px4_spi_buses && px4_spi_buses_all_hw[i].board_hw_version == 0) {
+		if (!px4_spi_buses && px4_spi_buses_all_hw[i].board_hw_version_revision == 0) {
 			px4_spi_buses = px4_spi_buses_all_hw[i].buses;
 		}
 
-		if (px4_spi_buses_all_hw[i].board_hw_version == hw_version) {
+		if (px4_spi_buses_all_hw[i].board_hw_version_revision == hw_version_revision) {
 			px4_spi_buses = px4_spi_buses_all_hw[i].buses;
 		}
 	}
