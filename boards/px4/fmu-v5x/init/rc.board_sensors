@@ -8,13 +8,19 @@ board_adc start
 ina226 -X -b 1 -t 1 -k start
 ina226 -X -b 2 -t 2 -k start
 
-if ver hwtypecmp V5X90 V5X91 V5Xa0 V5Xa1
+if ver hwtypecmp V5X90 V5X91 V5X92 V5Xa0 V5Xa1 V5Xa2
 then
 	#SKYNODE base fmu board orientation
 
-	# Internal SPI BMI088
-	bmi088 -A -R 2 -s start
-	bmi088 -G -R 2 -s start
+	if ver hwtypecmp V5X90 V5X91 V5Xa0 V5Xa1
+	then
+		# Internal SPI BMI088
+		bmi088 -A -R 2 -s start
+		bmi088 -G -R 2 -s start
+	else
+		# Internal SPI bus ICM20649
+		icm20649 -s -R 4 start
+	fi
 
 	# Internal SPI bus ICM42688p
 	icm42688p -R 4 -s start
@@ -28,9 +34,15 @@ then
 else
 	#FMUv5Xbase board orientation
 
-	# Internal SPI BMI088
-	bmi088 -A -R 4 -s start
-	bmi088 -G -R 4 -s start
+	if ver hwtypecmp V5X00 V5X01
+	then
+		# Internal SPI BMI088
+		bmi088 -A -R 4 -s start
+		bmi088 -G -R 4 -s start
+	else
+		# Internal SPI bus ICM20649
+		icm20649 -s -R 6 start
+	fi
 
 	# Internal SPI bus ICM42688p
 	icm42688p -R 6 -s start
