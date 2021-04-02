@@ -190,6 +190,8 @@ public:
 
 	mode get_mode() {return _vtol_mode;}
 
+	bool was_in_trans_mode() {return _flag_was_in_trans_mode;}
+
 	virtual void parameters_update() = 0;
 
 protected:

@@ -225,8 +225,11 @@ void Tailsitter::update_transition_state()
 	_q_trans_sp.normalize();
 
 	// tilt angle (zero if vehicle nose points up (hover))
-	const float tilt = acosf(_q_trans_sp(0) * _q_trans_sp(0) - _q_trans_sp(1) * _q_trans_sp(1) - _q_trans_sp(2) *
-				 _q_trans_sp(2) + _q_trans_sp(3) * _q_trans_sp(3));
+	float cos_tilt = _q_trans_sp(0) * _q_trans_sp(0) - _q_trans_sp(1) * _q_trans_sp(1) - _q_trans_sp(2) *
+			 _q_trans_sp(2) + _q_trans_sp(3) * _q_trans_sp(3);
+	cos_tilt = cos_tilt >  1.0f ?  1.0f : cos_tilt;
+	cos_tilt = cos_tilt < -1.0f ? -1.0f : cos_tilt;
+	const float tilt = acosf(cos_tilt);
 
 	if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_FRONT_P1) {
 
