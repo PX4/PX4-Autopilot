@@ -922,7 +922,7 @@ PARAM_DEFINE_INT32(COM_ARM_CHK_ESCS, 1);
  *
  * @group Commander
  */
-PARAM_DEFINE_INT32(COM_PREARM_MODE, 1);
+PARAM_DEFINE_INT32(COM_PREARM_MODE, 0);
 
 /**
  * Enable Motor Testing
