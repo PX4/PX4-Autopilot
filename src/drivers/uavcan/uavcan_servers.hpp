@@ -113,7 +113,7 @@ public:
 private:
 	pthread_t         _subnode_thread{-1};
 	pthread_mutex_t   _subnode_mutex{};
-	volatile bool     _subnode_thread_should_exit{false};
+	px4::atomic_bool  _subnode_thread_should_exit{false};
 
 	int		init();
 
