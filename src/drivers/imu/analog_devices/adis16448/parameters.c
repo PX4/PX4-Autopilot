@@ -32,10 +32,13 @@
  ****************************************************************************/
 
 /**
- * Analog Devices ADIS16448 IMU (serial)
+ * Analog Devices ADIS16448 IMU (external SPI)
  *
  * @reboot_required true
+ * @min 0
+ * @max 1
  * @group Sensors
- * @value 1 SF02
+ * @value 0 Disabled
+ * @value 1 Enabled
   */
-PARAM_DEFINE_INT32(SENS_EN_ADIS16448, 0);
+PARAM_DEFINE_INT32(SENS_EN_ADIS164X, 0);
