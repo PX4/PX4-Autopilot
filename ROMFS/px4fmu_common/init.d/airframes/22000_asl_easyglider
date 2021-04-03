@@ -43,6 +43,8 @@ then
 
     # set disarmed value for the ESC
     param set PWM_DISARMED 1000
+
+    param set-default SENS_EN_ADIS16448 1
 fi
 
 set MIXER asl_easyglider
