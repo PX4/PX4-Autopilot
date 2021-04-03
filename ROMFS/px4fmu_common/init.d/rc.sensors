@@ -108,6 +108,12 @@ then
 	vl53l1x start -X
 fi
 
+# ADIS16448 spi external IMU
+if param compare -s SENS_EN_ADIS16448 1
+then
+	adis16448 -S start
+fi
+
 # probe for optional external I2C devices
 if param compare SENS_EXT_I2C_PRB 1
 then
