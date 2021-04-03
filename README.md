@@ -85,23 +85,24 @@ See also [maintainers list](https://px4.io/community/maintainers/) (px4.io) and 
 This repository contains code supporting Pixhawk standard boards (best supported, best tested, recommended choice) and proprietary boards.
 
 ### Pixhawk Standard Boards
-  * FMUv2
-    * [Pixhawk](https://docs.px4.io/master/en/flight_controller/pixhawk.html)
-    * [Pixfalcon](https://docs.px4.io/master/en/flight_controller/pixfalcon.html)
-  * FMUv3
+  * FMUv6X and FMUv6U (STM32H7, 2021)
+    * Various vendors will provide FMUv6X and FMUv6U based designs Q3/2021
+  * FMUv5 and FMUv5X (STM32F7, 2019/20)
+    * [Pixhawk 4 (FMUv5)](https://docs.px4.io/master/en/flight_controller/pixhawk4.html)
+    * [Pixhawk 4 mini (FMUv5)](https://docs.px4.io/master/en/flight_controller/pixhawk4_mini.html)
+    * [CUAV V5+ (FMUv5)](https://docs.px4.io/master/en/flight_controller/cuav_v5_plus.html)
+    * [CUAV V5 nano (FMUv5)](https://docs.px4.io/master/en/flight_controller/cuav_v5_nano.html)
+    * [Auterion Skynode (FMUv5X)](https://docs.px4.io/master/en/flight_controller/auterion_skynode.html)
+  * FMUv4 (STM32F4, 2015)
+    * [Pixracer](https://docs.px4.io/master/en/flight_controller/pixracer.html)
+    * [Pixhawk 3 Pro](https://docs.px4.io/master/en/flight_controller/pixhawk3_pro.html)
+  * FMUv3 (STM32F4, 2014)
     * [Pixhawk 2](https://docs.px4.io/master/en/flight_controller/pixhawk-2.html)
     * [Pixhawk Mini](https://docs.px4.io/master/en/flight_controller/pixhawk_mini.html)
     * [CUAV Pixhack v3](https://docs.px4.io/master/en/flight_controller/pixhack_v3.html)
-  * FMUv4 (STM32F4)
-    * [Pixracer](https://docs.px4.io/master/en/flight_controller/pixracer.html)
-    * [Pixhawk 3 Pro](https://docs.px4.io/master/en/flight_controller/pixhawk3_pro.html)
-  * FMUv5 (STM32F7)
-    * [Pixhawk 4](https://docs.px4.io/master/en/flight_controller/pixhawk4.html)
-    * [Pixhawk 4 mini](https://docs.px4.io/master/en/flight_controller/pixhawk4_mini.html)
-    * [CUAV V5+](https://docs.px4.io/master/en/flight_controller/cuav_v5_plus.html)
-    * [CUAV V5 nano](https://docs.px4.io/master/en/flight_controller/cuav_v5_nano.html)
-  * FMUv6X and FMUv6U (STM32H7)
-    * Various vendors will provide FMUv6X and FMUv6U based designs Q2/2021
+  * FMUv2 (STM32F4, 2013)
+    * [Pixhawk](https://docs.px4.io/master/en/flight_controller/pixhawk.html)
+    * [Pixfalcon](https://docs.px4.io/master/en/flight_controller/pixfalcon.html)
 
 ### Manufacturer and Community supported
   * [Holybro Durandal](https://docs.px4.io/master/en/flight_controller/durandal.html)
