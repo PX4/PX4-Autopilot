@@ -33,3 +33,4 @@
 
 add_subdirectory(adis16448)
 add_subdirectory(adis16470)
+add_subdirectory(adis16354)
