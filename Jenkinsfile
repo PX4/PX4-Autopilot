@@ -127,6 +127,7 @@ pipeline {
           }
           steps {
             sh 'make distclean'
+            sh 'git fetch --all --tags'
             sh 'make module_documentation'
             dir('build/px4_sitl_default/docs') {
               archiveArtifacts(artifacts: 'modules/*.md')
@@ -150,6 +151,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
+            sh 'git fetch --all --tags'
             sh 'make uorb_graphs'
             dir('Tools/uorb_graph') {
               archiveArtifacts(artifacts: 'graph_px4_sitl.json')
