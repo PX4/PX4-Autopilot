@@ -285,6 +285,8 @@ else
 					else
 						tune_control play -t 18 # tune 18 = PROG_PX4IO_ERR
 					fi
+				else
+					tune_control stop
 				fi
 			fi
 		fi
