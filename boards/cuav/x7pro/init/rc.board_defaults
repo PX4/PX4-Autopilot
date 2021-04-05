@@ -17,7 +17,5 @@ param set-default BAT2_A_PER_V 24
 # Enable IMU thermal control
 param set-default SENS_EN_THERMAL 1
 
-param set-default IMU_GYRO_FFT_EN 1
-
 rgbled_pwm start
 safety_button start

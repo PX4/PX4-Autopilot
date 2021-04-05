@@ -49,8 +49,8 @@ px4_add_board(
 		pwm_out_sim
 		pwm_out
 		rc_input
-		roboclaw
-		rpm
+		#roboclaw
+		#rpm
 		safety_button
 		telemetry # all available telemetry drivers
 		test_ppm
@@ -84,7 +84,7 @@ px4_add_board(
 		#micrortps_bridge
 		navigator
 		rc_update
-		rover_pos_control
+		#rover_pos_control
 		sensors
 		sih
 		temperature_compensation
