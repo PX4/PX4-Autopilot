@@ -258,15 +258,12 @@ else
 	# Check if PX4IO present and update firmware if needed.
 	# Assumption IOFW set to firmware file and IO_PRESENT = no
 	#
-
-	if [ -f $IOFW ]
+	if [ -f ${IOFW} ]
 	then
-		# Check for the mini using build with px4io fw file
-		# but not a px4IO
-		if ver hwtypecmp V540 V560
+		if param compare -s SYS_USE_IO 1
 		then
-			param set SYS_USE_IO 0
-		else
+			set USE_IO yes
+
 			if px4io checkcrc ${IOFW}
 			then
 				set IO_PRESENT yes
@@ -289,21 +286,13 @@ else
 					tune_control stop
 				fi
 			fi
+
+			if [ $USE_IO = yes -a $IO_PRESENT = no ]
+			then
+				echo "PX4IO not found"
+				tune_control play error
+			fi
 		fi
-	fi
-
-	#
-	# Set USE_IO flag.
-	#
-	if param compare -s SYS_USE_IO 1
-	then
-		set USE_IO yes
-	fi
-
-	if [ $USE_IO = yes -a $IO_PRESENT = no ]
-	then
-		echo "PX4IO not found"
-		tune_control play error
 	fi
 
 	#

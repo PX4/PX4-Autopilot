@@ -18,5 +18,10 @@ else
 	param set-default SENS_MAG_MODE 0
 fi
 
+if ver hwtypecmp V540 V560
+then
+	param set-default SYS_USE_IO 0
+fi
+
 rgbled_pwm start
 safety_button start
