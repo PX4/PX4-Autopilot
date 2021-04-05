@@ -31,6 +31,7 @@ px4_add_board(
 		gps
 		heater
 		#imu # all available imu drivers
+		imu/analog_devices/adis16448
 		imu/analog_devices/adis16470
 		imu/bosch/bmi088
 		imu/invensense/icm20649
@@ -49,8 +50,8 @@ px4_add_board(
 		pwm_out_sim
 		pwm_out
 		rc_input
-		roboclaw
-		rpm
+		#roboclaw
+		#rpm
 		safety_button
 		telemetry # all available telemetry drivers
 		test_ppm
@@ -84,7 +85,7 @@ px4_add_board(
 		#micrortps_bridge
 		navigator
 		rc_update
-		rover_pos_control
+		#rover_pos_control
 		sensors
 		sih
 		temperature_compensation

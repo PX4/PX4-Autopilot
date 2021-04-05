@@ -34,7 +34,7 @@ px4_add_board(
 		imu/bosch/bmi088
 		imu/invensense/icm20649
 		imu/invensense/icm20689
-		#imu/invensense/icm20948 # required for ak09916 mag
+		imu/invensense/icm20948 # required for ak09916 mag
 		irlock
 		lights # all available light drivers
 		lights/rgbled_pwm

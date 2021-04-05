@@ -3,6 +3,9 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
+# Enables the 2nd bank of mixers
+set AUX_BANK2 yes
+
 param set-default BAT_V_DIV 18
 param set-default BAT1_V_DIV 18
 param set-default BAT2_V_DIV 18
