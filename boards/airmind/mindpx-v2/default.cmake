@@ -27,6 +27,7 @@ px4_add_board(
 		gps
 		#heater
 		#imu # all available imu drivers
+		imu/invensense/icm20948 # required for ak09916 mag
 		imu/l3gd20
 		imu/lsm303d
 		imu/invensense/mpu6000

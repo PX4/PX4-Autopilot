@@ -22,6 +22,7 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		gps
 		#imu # all available imu drivers
+		imu/invensense/icm20948 # required for ak09916 mag
 		imu/invensense/mpu9250
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883

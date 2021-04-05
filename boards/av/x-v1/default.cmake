@@ -30,6 +30,7 @@ px4_add_board(
 		#imu # all available imu drivers
 		imu/adis16477
 		imu/adis16497
+		imu/invensense/icm20948 # required for ak09916 mag
 		irlock
 		lights # all available light drivers
 		magnetometer # all available magnetometer drivers

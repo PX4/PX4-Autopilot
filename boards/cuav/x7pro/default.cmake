@@ -8,7 +8,6 @@ px4_add_board(
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
 	BUILD_BOOTLOADER
-	TESTING
 	UAVCAN_INTERFACES 2
 	UAVCAN_TIMER_OVERRIDE 2
 	SERIAL_PORTS
@@ -35,6 +34,7 @@ px4_add_board(
 		imu/bosch/bmi088
 		imu/invensense/icm20649
 		imu/invensense/icm20689
+		imu/invensense/icm20948 # required for ak09916 mag
 		irlock
 		lights # all available light drivers
 		lights/rgbled_pwm
@@ -52,7 +52,6 @@ px4_add_board(
 		rpm
 		safety_button
 		telemetry # all available telemetry drivers
-		test_ppm
 		tone_alarm
 		uavcan
 	MODULES
@@ -114,7 +113,7 @@ px4_add_board(
 		sd_bench
 		serial_test
 		system_time
-		tests # tests and test runner
+		#tests # tests and test runner
 		top
 		topic_listener
 		tune_control
