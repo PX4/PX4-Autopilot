@@ -624,13 +624,13 @@ void RCInput::Run()
 						// Enable CRSF Telemetry only on the Omnibus, because on Pixhawk (-related) boards
 						// we cannot write to the RC UART
 						// It might work on FMU-v5. Or another option is to use a different UART port
-#ifdef CONFIG_ARCH_BOARD_OMNIBUS_F4SD
+#ifdef BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 						if (!_rc_scan_locked && !_crsf_telemetry) {
 							_crsf_telemetry = new CRSFTelemetry(_rcs_fd);
 						}
 
-#endif /* CONFIG_ARCH_BOARD_OMNIBUS_F4SD */
+#endif /* BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT */
 
 						_rc_scan_locked = true;
 
