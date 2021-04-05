@@ -248,7 +248,7 @@ void Standard::update_transition_state()
 		    PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s) &&
 		    _airspeed_validated->calibrated_airspeed_m_s > 0.0f &&
 		    _airspeed_validated->calibrated_airspeed_m_s >= _params->airspeed_blend &&
-			time_since_trans_start > _attc->get_front_trans_time_min()) {
+		    time_since_trans_start > _attc->get_front_trans_time_min()) {
 
 			mc_weight = 1.0f - fabsf(_airspeed_validated->calibrated_airspeed_m_s - _params->airspeed_blend) /
 				    _airspeed_trans_blend_margin;
