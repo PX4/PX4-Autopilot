@@ -18,6 +18,7 @@
 #
 # @board intel_aerofc-v1 exclude
 # @board bitcraze_crazyflie exclude
+# @board px4_fmu-v2 exclude
 #
 
 sh /etc/init.d/rc.vtol_defaults
