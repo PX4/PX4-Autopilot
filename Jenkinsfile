@@ -89,6 +89,7 @@ pipeline {
           }
           steps {
             sh 'make distclean'
+            sh 'git fetch --all --tags'
             sh 'make airframe_metadata'
             dir('build/px4_sitl_default/docs') {
               archiveArtifacts(artifacts: 'airframes.md, airframes.xml')
@@ -108,6 +109,7 @@ pipeline {
           }
           steps {
             sh 'make distclean'
+            sh 'git fetch --all --tags'
             sh 'make parameters_metadata'
             dir('build/px4_sitl_default/docs') {
               archiveArtifacts(artifacts: 'parameters.md, parameters.xml, parameters.json.xz')
