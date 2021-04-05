@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,14 +31,14 @@
  *
  ****************************************************************************/
 
-#include "MPU9250_I2C.hpp"
+#include "ICM20948_I2C_Passthrough.hpp"
 
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void MPU9250_I2C::print_usage()
+void ICM20948_I2C_Passthrough::print_usage()
 {
-	PRINT_MODULE_USAGE_NAME("mpu9520_i2c", "driver");
+	PRINT_MODULE_USAGE_NAME("icm20948_i2c_passthrough", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
@@ -47,11 +47,11 @@ void MPU9250_I2C::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *MPU9250_I2C::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+I2CSPIDriverBase *ICM20948_I2C_Passthrough::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 		int runtime_instance)
 {
-	MPU9250_I2C *instance = new MPU9250_I2C(iterator.configuredBusOption(), iterator.bus(), iterator.devid(), cli.rotation,
-						cli.bus_frequency, cli.i2c_address, iterator.DRDYGPIO());
+	ICM20948_I2C_Passthrough *instance = new ICM20948_I2C_Passthrough(iterator.configuredBusOption(), iterator.bus(),
+			cli.bus_frequency);
 
 	if (!instance) {
 		PX4_ERR("alloc failed");
@@ -66,30 +66,20 @@ I2CSPIDriverBase *MPU9250_I2C::instantiate(const BusCLIArguments &cli, const Bus
 	return instance;
 }
 
-extern "C" int mpu9250_i2c_main(int argc, char *argv[])
+extern "C" int icm20948_i2c_passthrough_main(int argc, char *argv[])
 {
-	int ch;
-	using ThisDriver = MPU9250_I2C;
+	using ThisDriver = ICM20948_I2C_Passthrough;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = I2C_SPEED;
-	cli.i2c_address = I2C_ADDRESS_DEFAULT;
 
-	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
-		switch (ch) {
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optarg());
-			break;
-		}
-	}
-
-	const char *verb = cli.optarg();
+	const char *verb = cli.parseDefaultArguments(argc, argv);
 
 	if (!verb) {
 		ThisDriver::print_usage();
 		return -1;
 	}
 
-	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_IMU_DEVTYPE_MPU9250);
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_IMU_DEVTYPE_ICM20948);
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);

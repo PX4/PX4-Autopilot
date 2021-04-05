@@ -24,6 +24,7 @@ px4_add_board(
 		gps
 		#imu # all available imu drivers
 		imu/analog_devices/adis16448
+		imu/invensense/icm20948 # required for ak09916 mag
 		imu/invensense/mpu9250
 		imu/st/lsm9ds1
 		linux_pwm_out

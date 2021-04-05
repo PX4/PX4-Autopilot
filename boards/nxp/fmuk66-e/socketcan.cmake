@@ -28,6 +28,7 @@ px4_add_board(
 		gps
 		#imu # all available imu drivers
 		imu/bosch/bmi088
+		imu/invensense/icm20948 # required for ak09916 mag
 		imu/invensense/icm42688p
 		irlock
 		lights # all available light drivers

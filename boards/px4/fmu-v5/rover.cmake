@@ -26,6 +26,7 @@ px4_add_board(
 		imu/bosch/bmi055
 		imu/invensense/icm20602
 		imu/invensense/icm20689
+		imu/invensense/icm20948 # required for ak09916 mag
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		lights/rgbled_pwm
