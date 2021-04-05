@@ -331,7 +331,7 @@ private:
 	uORB::Publication<onboard_computer_status_s>		_onboard_computer_status_pub{ORB_ID(onboard_computer_status)};
 	uORB::Publication<generator_status_s>			_generator_status_pub{ORB_ID(generator_status)};
 	uORB::Publication<optical_flow_s>			_flow_pub{ORB_ID(optical_flow)};
-	uORB::Publication<sensor_gps_s>				_gps_pub{ORB_ID(sensor_gps)};
+	uORB::Publication<sensor_gps_s>				_sensor_gps_pub{ORB_ID(sensor_gps)};
 	uORB::Publication<vehicle_attitude_s>			_attitude_pub{ORB_ID(vehicle_attitude)};
 	uORB::Publication<vehicle_attitude_setpoint_s>		_att_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<vehicle_attitude_setpoint_s>		_mc_virtual_att_sp_pub{ORB_ID(mc_virtual_attitude_setpoint)};

@@ -71,8 +71,6 @@
 #define MAVLINK_RECEIVER_NET_ADDED_STACK 0
 #endif
 
-using matrix::wrap_2pi;
-
 const uint8_t MavlinkReceiver::supported_component_map[COMP_ID_MAX] = {
 	[COMP_ID_ALL]                      = MAV_COMP_ID_ALL,
 	[COMP_ID_AUTOPILOT1]               = MAV_COMP_ID_AUTOPILOT1,
@@ -2229,39 +2227,49 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 {
-	mavlink_hil_gps_t gps;
-	mavlink_msg_hil_gps_decode(msg, &gps);
+	mavlink_hil_gps_t hil_gps;
+	mavlink_msg_hil_gps_decode(msg, &hil_gps);
 
-	const uint64_t timestamp = hrt_absolute_time();
+	sensor_gps_s gps{};
 
-	sensor_gps_s hil_gps{};
+	gps.lat = hil_gps.lat;
+	gps.lon = hil_gps.lon;
+	gps.alt = hil_gps.alt;
+	gps.alt_ellipsoid = hil_gps.alt;
 
-	hil_gps.timestamp_time_relative = 0;
-	hil_gps.time_utc_usec = gps.time_usec;
+	gps.s_variance_m_s = 0.25f;
+	gps.c_variance_rad = 0.5f;
+	gps.fix_type = hil_gps.fix_type;
 
-	hil_gps.timestamp = timestamp;
-	hil_gps.lat = gps.lat;
-	hil_gps.lon = gps.lon;
-	hil_gps.alt = gps.alt;
-	hil_gps.eph = (float)gps.eph * 1e-2f; // from cm to m
-	hil_gps.epv = (float)gps.epv * 1e-2f; // from cm to m
+	gps.eph = (float)hil_gps.eph * 1e-2f; // cm -> m
+	gps.epv = (float)hil_gps.epv * 1e-2f; // cm -> m
 
-	hil_gps.s_variance_m_s = 0.1f;
+	gps.hdop = 0; // TODO
+	gps.vdop = 0; // TODO
 
-	hil_gps.vel_m_s = (float)gps.vel * 1e-2f; // from cm/s to m/s
-	hil_gps.vel_n_m_s = gps.vn * 1e-2f; // from cm to m
-	hil_gps.vel_e_m_s = gps.ve * 1e-2f; // from cm to m
-	hil_gps.vel_d_m_s = gps.vd * 1e-2f; // from cm to m
-	hil_gps.vel_ned_valid = true;
-	hil_gps.cog_rad = ((gps.cog == 65535) ? NAN : wrap_2pi(math::radians(gps.cog * 1e-2f)));
+	gps.noise_per_ms = 0;
+	gps.automatic_gain_control = 0;
+	gps.jamming_indicator = 0;
+	gps.jamming_state = 0;
 
-	hil_gps.fix_type = gps.fix_type;
-	hil_gps.satellites_used = gps.satellites_visible;  //TODO: rename mavlink_hil_gps_t sats visible to used?
+	gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
+	gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
+	gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
+	gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
+	gps.cog_rad = ((hil_gps.cog == 65535) ? NAN : matrix::wrap_2pi(math::radians(hil_gps.cog * 1e-2f))); // cdeg -> rad
+	gps.vel_ned_valid = true;
 
-	hil_gps.heading = NAN;
-	hil_gps.heading_offset = NAN;
+	gps.timestamp_time_relative = 0;
+	gps.time_utc_usec = hil_gps.time_usec;
 
-	_gps_pub.publish(hil_gps);
+	gps.satellites_used = hil_gps.satellites_visible;
+
+	gps.heading = NAN;
+	gps.heading_offset = NAN;
+
+	gps.timestamp = hrt_absolute_time();
+
+	_sensor_gps_pub.publish(gps);
 }
 
 void
