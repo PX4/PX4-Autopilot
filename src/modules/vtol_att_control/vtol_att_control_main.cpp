@@ -203,13 +203,17 @@ VtolAttitudeControl::is_fixed_wing_requested()
  * Returns front_trans_min_time optionally scaled over presure.
  */
 float
-VtolAttitudeControl::get_front_trans_time_min(){
+VtolAttitudeControl::get_front_trans_time_min()
+{
 	float front_trans_time_min = _params.front_trans_time_min;
+
 	if (PX4_ISFINITE(_air_data.baro_pressure_pa) && PX4_ISFINITE(_params.front_trans_time_min_scale)) {
 		const float eas2tas = sqrtf(CONSTANTS_STD_PRESSURE_PA / _air_data.baro_pressure_pa);
 		const float scale = math::constrain((eas2tas - 1.0f) * _params.front_trans_time_min_scale + 1.f, 1.f, 5.f);
-		front_trans_time_min = math::constrain(front_trans_time_min * scale, front_trans_time_min, _params.front_trans_timeout-0.5f);
+		front_trans_time_min = math::constrain(front_trans_time_min * scale, front_trans_time_min,
+						       _params.front_trans_timeout - 0.5f);
 	}
+
 	return front_trans_time_min;
 }
 
@@ -274,6 +278,7 @@ VtolAttitudeControl::parameters_update()
 		param_set_no_notification(_params_handles.front_trans_time_openloop, &_params.front_trans_time_openloop);
 		mavlink_log_critical(&_mavlink_log_pub, "OL transition time set larger than min transition time");
 	}
+
 	param_get(_params_handles.front_trans_time_min_scale, &_params.front_trans_time_min_scale);
 	param_get(_params_handles.front_trans_duration, &_params.front_trans_duration);
 	param_get(_params_handles.back_trans_duration, &_params.back_trans_duration);
