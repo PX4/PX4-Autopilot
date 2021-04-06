@@ -621,9 +621,8 @@ void RCInput::Run()
 						_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_CRSF;
 						fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp, false, false, 0);
 
-						// Enable CRSF Telemetry only on the Omnibus, because on Pixhawk (-related) boards
-						// we cannot write to the RC UART
-						// It might work on FMU-v5. Or another option is to use a different UART port
+						// on Pixhawk (-related) boards we cannot write to the RC UART
+						// another option is to use a different UART port
 #ifdef BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 						if (!_rc_scan_locked && !_crsf_telemetry) {
@@ -669,13 +668,15 @@ void RCInput::Run()
 						fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp, false, false, 0, ghst_rssi);
 
 						// ghst telemetry works on fmu-v5
-						// on other Pixhawk (-related) boards it does not work because
-						// we cannot write to the RC UART
+						// on other Pixhawk (-related) boards we cannot write to the RC UART
+						// another option is to use a different UART port
+#ifdef BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 						if (!_rc_scan_locked && !_ghst_telemetry) {
 							_ghst_telemetry = new GHSTTelemetry(_rcs_fd);
 						}
 
+#endif /* BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT */
 
 						_rc_scan_locked = true;
 
