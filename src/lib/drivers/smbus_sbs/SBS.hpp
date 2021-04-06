@@ -58,7 +58,7 @@ template<class T>
 class SMBUS_SBS_BaseClass : public I2CSPIDriver<T>
 {
 public:
-	SMBUS_SBS_BaseClass(I2CSPIBusOption bus_option, const int bus, SMBus *interface);
+	SMBUS_SBS_BaseClass(const I2CSPIDriverConfig &config, SMBus *interface);
 	SMBUS_SBS_BaseClass();
 
 	~SMBUS_SBS_BaseClass();
@@ -170,16 +170,12 @@ protected:
 };
 
 template<class T>
-SMBUS_SBS_BaseClass<T>::SMBUS_SBS_BaseClass(I2CSPIBusOption bus_option, const int bus, SMBus *interface):
-	I2CSPIDriver<T>(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus,
-			interface->get_device_address()),
+SMBUS_SBS_BaseClass<T>::SMBUS_SBS_BaseClass(const I2CSPIDriverConfig &config, SMBus *interface):
+	I2CSPIDriver<T>(config),
 	_interface(interface)
 {
-	static int SBS_instance_number = 0;
 	battery_status_s new_report = {};
-	SBS_instance_number++;
-	// TODO: there maybe a better way to assign instance number. This would
-	// 	 result in continuously increasing instance number and possible overflow
+	int SBS_instance_number = 0;
 	_batt_topic = orb_advertise_multi(ORB_ID(battery_status), &new_report, &SBS_instance_number);
 	_interface->init();
 }

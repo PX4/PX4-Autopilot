@@ -47,25 +47,6 @@ void MPU9250_I2C::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *MPU9250_I2C::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-		int runtime_instance)
-{
-	MPU9250_I2C *instance = new MPU9250_I2C(iterator.configuredBusOption(), iterator.bus(), iterator.devid(), cli.rotation,
-						cli.bus_frequency, cli.i2c_address, iterator.DRDYGPIO());
-
-	if (!instance) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (OK != instance->init()) {
-		delete instance;
-		return nullptr;
-	}
-
-	return instance;
-}
-
 extern "C" int mpu9250_i2c_main(int argc, char *argv[])
 {
 	int ch;

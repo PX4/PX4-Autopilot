@@ -45,7 +45,7 @@ void BMI088::print_usage()
 	PRINT_MODULE_USAGE_PARAM_FLAG('A', "Accel", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('G', "Gyro", true);
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
-	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x76);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x18);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
@@ -54,21 +54,24 @@ extern "C" int bmi088_i2c_main(int argc, char *argv[])
 {
 	int ch;
 	using ThisDriver = BMI088;
-	BusCLIArguments cli{true, true};
+	BusCLIArguments cli{true, false};
 	cli.i2c_address = 0x18;
 	cli.default_i2c_frequency = 400 * 1000;
-	cli.default_spi_frequency = 400 * 1000;
+	uint16_t type = 0;
+	const char *name = MODULE_NAME;
 
 
 	while ((ch = cli.getOpt(argc, argv, "AGR:")) != EOF) {
 		switch (ch) {
 		case 'A':
-			cli.type = DRV_ACC_DEVTYPE_BMI088;
+			type = DRV_ACC_DEVTYPE_BMI088;
+			name = MODULE_NAME "_accel";
 			cli.i2c_address = 0x18;
 			break;
 
 		case 'G':
-			cli.type = DRV_GYR_DEVTYPE_BMI088;
+			type = DRV_GYR_DEVTYPE_BMI088;
+			name = MODULE_NAME "_gyro";
 			cli.i2c_address = 0x69;
 			break;
 
@@ -80,12 +83,12 @@ extern "C" int bmi088_i2c_main(int argc, char *argv[])
 
 	const char *verb = cli.optArg();
 
-	if (!verb) {
+	if (!verb || type == 0) {
 		ThisDriver::print_usage();
 		return -1;
 	}
 
-	BusInstanceIterator iterator(MODULE_NAME, cli, cli.type);
+	BusInstanceIterator iterator(name, cli, type);
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);

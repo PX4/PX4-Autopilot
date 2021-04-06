@@ -42,31 +42,19 @@ PCF8583::print_usage()
 	PRINT_MODULE_USAGE_NAME("pcf8583", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(80);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *PCF8583::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				       int runtime_instance)
-{
-	PCF8583 *instance = new PCF8583(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency);
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (instance->init() != PX4_OK) {
-		delete instance;
-		return nullptr;
-	}
-
-	return instance;
-}
 extern "C" __EXPORT int pcf8583_main(int argc, char *argv[])
 {
 	using ThisDriver = PCF8583;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 400000;
+
+	int32_t addr{80};
+	param_get(param_find("PCF8583_ADDR"), &addr);
+	cli.i2c_address = addr;
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
 

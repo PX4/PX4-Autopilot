@@ -58,6 +58,10 @@
 #define IOCTL_RESET			2
 #define IOCTL_MEASURE			3
 
+#define MS5611_ADDRESS_1		0x76	/* address select pins pulled high (PX4FMU series v1.6+) */
+#define MS5611_ADDRESS_2		0x77    /* address select pins pulled low (PX4FMU prototypes) */
+
+
 namespace ms5611
 {
 

@@ -127,12 +127,11 @@ enum class SMBUS_DEVICE_TYPE {
 class BATT_SMBUS : public I2CSPIDriver<BATT_SMBUS>
 {
 public:
-	BATT_SMBUS(I2CSPIBusOption bus_option, const int bus, SMBus *interface);
+	BATT_SMBUS(const I2CSPIDriverConfig &config, SMBus *interface);
 
 	~BATT_SMBUS();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
 	friend SMBus;

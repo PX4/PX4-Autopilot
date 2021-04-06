@@ -56,12 +56,9 @@ using namespace InvenSense_MPU9250;
 class MPU9250_I2C : public device::I2C, public I2CSPIDriver<MPU9250_I2C>
 {
 public:
-	MPU9250_I2C(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-		    int address, spi_drdy_gpio_t drdy_gpio);
+	MPU9250_I2C(const I2CSPIDriverConfig &config);
 	~MPU9250_I2C() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void RunImpl();

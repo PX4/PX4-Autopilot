@@ -138,11 +138,10 @@ extern device::Device *FXOS8701CQ_I2C_interface(int bus, int bus_frequency, int 
 class FXOS8701CQ : public I2CSPIDriver<FXOS8701CQ>
 {
 public:
-	FXOS8701CQ(device::Device *interface, I2CSPIBusOption bus_option, int bus, enum Rotation rotation, int i2c_address);
+	FXOS8701CQ(device::Device *interface, const I2CSPIDriverConfig &config);
 	virtual ~FXOS8701CQ();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
 	int		init();

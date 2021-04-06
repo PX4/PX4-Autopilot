@@ -40,12 +40,11 @@ using namespace time_literals;
 namespace Bosch::BMI055::Accelerometer
 {
 
-BMI055_Accelerometer::BMI055_Accelerometer(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation,
-		int bus_frequency, spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio) :
-	BMI055(DRV_ACC_DEVTYPE_BMI055, "BMI055_Accelerometer", bus_option, bus, device, spi_mode, bus_frequency, drdy_gpio),
-	_px4_accel(get_device_id(), rotation)
+BMI055_Accelerometer::BMI055_Accelerometer(const I2CSPIDriverConfig &config) :
+	BMI055(config),
+	_px4_accel(get_device_id(), config.rotation)
 {
-	if (drdy_gpio != 0) {
+	if (config.drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME"_accel: DRDY missed");
 	}
 

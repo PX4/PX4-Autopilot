@@ -56,12 +56,9 @@ using namespace InvenSense_ICM42688P;
 class ICM42688P : public device::SPI, public I2CSPIDriver<ICM42688P>
 {
 public:
-	ICM42688P(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-		  spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio);
+	ICM42688P(const I2CSPIDriverConfig &config);
 	~ICM42688P() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void RunImpl();

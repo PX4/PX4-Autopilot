@@ -41,10 +41,10 @@
 #include "ina226.h"
 
 
-INA226::INA226(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address, int battery_index) :
-	I2C(DRV_POWER_DEVTYPE_INA226, MODULE_NAME, bus, address, bus_frequency),
+INA226::INA226(const I2CSPIDriverConfig &config, int battery_index) :
+	I2C(config),
 	ModuleParams(nullptr),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address),
+	I2CSPIDriver(config),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ina226_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ina226_com_err")),
 	_collection_errors(perf_alloc(PC_COUNT, "ina226_collection_err")),
