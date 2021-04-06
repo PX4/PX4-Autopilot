@@ -129,8 +129,8 @@ private:
 	static struct work_s _work;
 
 	/** File descriptor for PX4IO for heater ioctl's */
-#if defined(HEATER_PX4IO)
-	int _io_fd_ {-1};
+#if defined(PX4IO_HEATER_ENABLED)
+	int _io_fd {-1};
 #endif
 
 	bool _heater_on = false;
