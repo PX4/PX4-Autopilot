@@ -41,6 +41,7 @@ namespace math
 void LowPassFilter2p::set_cutoff_frequency(float sample_freq, float cutoff_freq)
 {
 	_cutoff_freq = cutoff_freq;
+	_sample_freq = sample_freq;
 
 	// reset delay elements on filter change
 	_delay_element_1 = 0.0f;
