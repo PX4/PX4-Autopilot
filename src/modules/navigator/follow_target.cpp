@@ -103,11 +103,12 @@ void FollowTarget::on_active()
 	float dt_ms = 0;
 
 	if (_follow_target_sub.updated()) {
+		updated = true;
 		follow_target_s target_motion;
 
 		_target_updates++;
 
-		// save last known motion topic
+		// save last known motion topic for interpolation later
 
 		_previous_target_motion = _current_target_motion;
 
