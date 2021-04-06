@@ -33,7 +33,7 @@ param set-default MC_YAW_P 4
 
 param set-default NAV_ACC_RAD 2
 
-param set-default PWM_AUX_DISARMED 950
+param set-default PWM_AUX_DISARM 950
 param set-default PWM_AUX_RATE 50
 param set-default PWM_MAIN_MIN 1100
 param set-default PWM_MAIN_MAX 1900

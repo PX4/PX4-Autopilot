@@ -57,7 +57,7 @@ parameters:
                 short: PWM main ${i} minimum value
                 long: |
                     This is the minimum PWM pulse the autopilot is allowed to output.
-                    When set to -1 the value for PWM_MIN will be used
+                    When set to -1 the value for PWM_MAIN_MIN will be used
             type: int32
             unit: us
             min: -1
@@ -71,7 +71,7 @@ parameters:
                 short: PWM main ${i} maximum value
                 long: |
                     This is the maximum PWM pulse the autopilot is allowed to output.
-                    When set to -1 the value for PWM_MAX will be used
+                    When set to -1 the value for PWM_MAIN_MAX will be used
             type: int32
             unit: us
             min: -1
@@ -100,7 +100,7 @@ parameters:
                 short: PWM main ${i} disarmed value
                 long: |
                     This is the PWM pulse the autopilot is outputting if not armed.
-                    When set to -1 the value for PWM_DISARMED will be used
+                    When set to -1 the value for PWM_MAIN_DISARM will be used
             type: int32
             unit: us
             min: -1
