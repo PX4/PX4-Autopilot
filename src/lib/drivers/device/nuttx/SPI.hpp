@@ -45,6 +45,8 @@
 #include <nuttx/spi/spi.h>
 #include <px4_platform_common/spi.h>
 
+struct I2CSPIDriverConfig;
+
 namespace device __EXPORT
 {
 
@@ -72,6 +74,9 @@ protected:
 	 * @param frequency	SPI clock frequency
 	 */
 	SPI(uint8_t device_type, const char *name, int bus, uint32_t device, enum spi_mode_e mode, uint32_t frequency);
+
+	SPI(const I2CSPIDriverConfig &config);
+
 	virtual ~SPI();
 
 	/**
