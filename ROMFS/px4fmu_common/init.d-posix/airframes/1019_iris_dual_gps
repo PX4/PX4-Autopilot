@@ -8,4 +8,4 @@
 . ${R}etc/init.d-posix/airframes/10016_iris
 
 # EKF2: Multi GPS blending
-param set-default EKF2_GPS_MASK 7
+param set-default SENS_GPS_MASK 7
