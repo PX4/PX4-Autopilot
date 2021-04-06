@@ -307,11 +307,11 @@ PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 25.0f);
 /**
  * Allow arming without GPS
  *
- * The default allows to arm the vehicle without GPS signal.
+ * The default allows the vehicle to arm without GPS signal.
  *
  * @group Commander
- * @value 0 Allow arming without GPS
- * @value 1 Require GPS lock to arm
+ * @value 0 Require GPS lock to arm
+ * @value 1 Allow arming without GPS
  */
 PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
 
