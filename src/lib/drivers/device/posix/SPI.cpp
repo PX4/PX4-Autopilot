@@ -48,6 +48,7 @@
 #include <linux/types.h>
 #include <linux/spi/spidev.h>
 
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/px4_config.h>
 
 namespace device
@@ -65,6 +66,13 @@ SPI::SPI(uint8_t device_type, const char *name, int bus, uint32_t device, enum s
 	_device_id.devid_s.bus = bus;
 	_device_id.devid_s.address = (uint8_t)device;
 }
+
+SPI::SPI(const I2CSPIDriverConfig &config)
+	: SPI(config.devid_driver_index, config.module_name, config.bus, config.spi_devid, config.spi_mode,
+	      config.bus_frequency)
+{
+}
+
 
 SPI::~SPI()
 {
