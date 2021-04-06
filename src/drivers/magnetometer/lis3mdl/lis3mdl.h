@@ -92,14 +92,16 @@ enum OPERATING_MODE {
 	SINGLE
 };
 
+#define LIS3MDLL_ADDRESS        0x1e
+
+
 class LIS3MDL : public I2CSPIDriver<LIS3MDL>
 {
 public:
-	LIS3MDL(device::Device *interface, enum Rotation rotation, I2CSPIBusOption bus_option, int bus);
+	LIS3MDL(device::Device *interface, const I2CSPIDriverConfig &config);
 	virtual ~LIS3MDL();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
 	void custom_method(const BusCLIArguments &cli) override;

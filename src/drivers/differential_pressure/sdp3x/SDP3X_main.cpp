@@ -35,27 +35,6 @@
 
 extern "C" __EXPORT int sdp3x_airspeed_main(int argc, char *argv[]);
 
-I2CSPIDriverBase *SDP3X::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				     int runtime_instance)
-{
-	SDP3X *instance = new SDP3X(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.i2c_address,
-				    cli.keep_running);
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (instance->init() != PX4_OK) {
-		delete instance;
-		return nullptr;
-	}
-
-	instance->start();
-	return instance;
-}
-
-
 void
 SDP3X::print_usage()
 {

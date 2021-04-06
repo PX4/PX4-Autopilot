@@ -141,12 +141,9 @@
 class LSM303D : public device::SPI, public I2CSPIDriver<LSM303D>
 {
 public:
-	LSM303D(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-		spi_mode_e spi_mode);
+	LSM303D(const I2CSPIDriverConfig &config);
 	~LSM303D() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void RunImpl();

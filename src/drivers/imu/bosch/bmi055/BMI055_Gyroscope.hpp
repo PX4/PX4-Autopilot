@@ -45,8 +45,7 @@ namespace Bosch::BMI055::Gyroscope
 class BMI055_Gyroscope : public BMI055
 {
 public:
-	BMI055_Gyroscope(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-			 spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio);
+	BMI055_Gyroscope(const I2CSPIDriverConfig &config);
 	~BMI055_Gyroscope() override;
 
 	void RunImpl() override;

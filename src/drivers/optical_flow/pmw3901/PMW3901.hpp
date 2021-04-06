@@ -65,13 +65,10 @@
 class PMW3901 : public device::SPI, public I2CSPIDriver<PMW3901>
 {
 public:
-	PMW3901(I2CSPIBusOption bus_option, int bus, int devid, enum Rotation yaw_rotation, int bus_frequency,
-		spi_mode_e spi_mode);
+	PMW3901(const I2CSPIDriverConfig &config);
 
 	virtual ~PMW3901();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	virtual int init();

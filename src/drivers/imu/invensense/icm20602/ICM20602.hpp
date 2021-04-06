@@ -56,12 +56,9 @@ using namespace InvenSense_ICM20602;
 class ICM20602 : public device::SPI, public I2CSPIDriver<ICM20602>
 {
 public:
-	ICM20602(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-		 spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio);
+	ICM20602(const I2CSPIDriverConfig &config);
 	~ICM20602() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void RunImpl();

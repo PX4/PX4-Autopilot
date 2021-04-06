@@ -43,13 +43,11 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) 
 class BMI088 : public device::I2C, public I2CSPIDriver<BMI088>
 {
 public:
-	BMI088(uint8_t devtype, const char *name, I2CSPIBusOption bus_option, int bus, uint32_t device, enum spi_mode_e mode,
-	       uint32_t frequency, spi_drdy_gpio_t drdy_gpio);
+	BMI088(const I2CSPIDriverConfig &config);
 
 	virtual ~BMI088() = default;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
 	virtual void RunImpl() = 0;

@@ -53,27 +53,9 @@ Setup/usage information: https://docs.px4.io/master/en/sensor/rangefinders.html#
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x30);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 25, 0, 25, "Sensor rotation - downward facing by default", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-}
-
-I2CSPIDriverBase *TERARANGER::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				     int runtime_instance)
-{
-	TERARANGER *instance = new TERARANGER(iterator.configuredBusOption(), iterator.bus(), cli.orientation, cli.bus_frequency);
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (instance->init() != PX4_OK) {
-		delete instance;
-		return nullptr;
-	}
-
-	instance->start();
-	return instance;
 }
 
 extern "C" __EXPORT int teraranger_main(int argc, char *argv[])
@@ -81,13 +63,14 @@ extern "C" __EXPORT int teraranger_main(int argc, char *argv[])
 	int ch;
 	using ThisDriver = TERARANGER;
 	BusCLIArguments cli{true, false};
-	cli.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	cli.rotation = (Rotation)distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	cli.default_i2c_frequency = 100000;
+	cli.i2c_address = TERARANGER_ONE_BASEADDR;
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
 		case 'R':
-			cli.orientation = atoi(cli.optArg());
+			cli.rotation = (Rotation)atoi(cli.optArg());
 			break;
 		}
 	}

@@ -47,14 +47,13 @@ static void getTwosComplement(T &raw, uint8_t length)
 	}
 }
 
-LPS33HW::LPS33HW(I2CSPIBusOption bus_option, int bus, device::Device *interface, bool keep_retrying) :
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus,
-		     interface->get_device_address()),
+LPS33HW::LPS33HW(const I2CSPIDriverConfig &config, device::Device *interface) :
+	I2CSPIDriver(config),
 	_px4_barometer(interface->get_device_id()),
 	_interface(interface),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comm errors")),
-	_keep_retrying(keep_retrying)
+	_keep_retrying(config.keep_running)
 {
 }
 
