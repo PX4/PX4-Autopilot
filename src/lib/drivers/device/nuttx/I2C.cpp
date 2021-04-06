@@ -42,6 +42,7 @@
 
 #include "I2C.hpp"
 
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <nuttx/i2c/i2c_master.h>
 
 namespace device
@@ -62,6 +63,11 @@ I2C::I2C(uint8_t device_type, const char *name, const int bus, const uint16_t ad
 	_device_id.devid_s.bus_type = DeviceBusType_I2C;
 	_device_id.devid_s.bus = bus;
 	_device_id.devid_s.address = address;
+}
+
+I2C::I2C(const I2CSPIDriverConfig &config)
+	: I2C(config.devid_driver_index, config.module_name, config.bus, config.i2c_address, config.bus_frequency)
+{
 }
 
 I2C::~I2C()

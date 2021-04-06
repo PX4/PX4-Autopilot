@@ -109,8 +109,7 @@ bool px4_spi_bus_external(const px4_spi_bus_t &bus)
 
 bool SPIBusIterator::next()
 {
-	// we have at most 1 match per bus, so we can directly jump to the next bus
-	while (++_index < SPI_BUS_MAX_BUS_ITEMS && px4_spi_buses[_index].bus != -1) {
+	while (_index < SPI_BUS_MAX_BUS_ITEMS && px4_spi_buses[_index].bus != -1) {
 		const px4_spi_bus_t &bus_data = px4_spi_buses[_index];
 
 		if (!board_has_bus(BOARD_SPI_BUS, bus_data.bus)) {
@@ -127,7 +126,7 @@ bool SPIBusIterator::next()
 			if (!bus_data.is_external) {
 				if (_bus == bus_data.bus || _bus == -1) {
 					// find device id
-					for (int i = 0; i < SPI_BUS_MAX_DEVICES; ++i) {
+					for (int i = _bus_device_index + 1; i < SPI_BUS_MAX_DEVICES; ++i) {
 						if (PX4_SPI_DEVICE_ID == PX4_SPIDEVID_TYPE(bus_data.devices[i].devid) &&
 						    _devid_driver_index == bus_data.devices[i].devtype_driver) {
 							_bus_device_index = i;
@@ -141,11 +140,10 @@ bool SPIBusIterator::next()
 
 		case FilterType::ExternalBus:
 			if (bus_data.is_external) {
-				++_external_bus_counter;
 				uint16_t cs_index = _devid_driver_index - 1;
 
 				if (_bus == _external_bus_counter && cs_index < SPI_BUS_MAX_DEVICES &&
-				    bus_data.devices[cs_index].cs_gpio != 0) {
+				    bus_data.devices[cs_index].cs_gpio != 0 && cs_index != _bus_device_index) {
 					// we know that bus_data.devices[cs_index].devtype_driver == cs_index
 					_bus_device_index = cs_index;
 					return true;
@@ -154,6 +152,13 @@ bool SPIBusIterator::next()
 
 			break;
 		}
+
+		if (bus_data.is_external) {
+			++_external_bus_counter;
+		}
+
+		++_index;
+		_bus_device_index = -1;
 	}
 
 	return false;
