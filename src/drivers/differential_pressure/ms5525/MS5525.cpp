@@ -33,6 +33,17 @@
 
 #include "MS5525.hpp"
 
+int	MS5525::init()
+{
+	int ret = Airspeed::init();
+
+	if (ret == PX4_OK) {
+		ScheduleNow();
+	}
+
+	return ret;
+}
+
 int
 MS5525::measure()
 {

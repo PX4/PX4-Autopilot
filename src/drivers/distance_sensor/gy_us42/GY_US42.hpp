@@ -63,12 +63,9 @@
 class GY_US42 : public device::I2C, public I2CSPIDriver<GY_US42>
 {
 public:
-	GY_US42(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency,
-		int address = GY_US42_BASEADDR);
+	GY_US42(const I2CSPIDriverConfig &config);
 	~GY_US42() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	int init() override;

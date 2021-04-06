@@ -47,9 +47,8 @@
 
 extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]);
 
-BATT_SMBUS::BATT_SMBUS(I2CSPIBusOption bus_option, const int bus, SMBus *interface) :
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus,
-		     interface->get_device_address()),
+BATT_SMBUS::BATT_SMBUS(const I2CSPIDriverConfig &config, SMBus *interface) :
+	I2CSPIDriver(config),
 	_interface(interface)
 {
 	int32_t battsource = 1;
@@ -534,15 +533,14 @@ $ batt_smbus -X write_flash 19069 2 27 0
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *BATT_SMBUS::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				      int runtime_instance)
+I2CSPIDriverBase *BATT_SMBUS::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
-	SMBus *interface = new SMBus(DRV_BAT_DEVTYPE_SMBUS, iterator.bus(), cli.i2c_address);
+	SMBus *interface = new SMBus(DRV_BAT_DEVTYPE_SMBUS, config.bus, config.i2c_address);
 	if (interface == nullptr) {
 		PX4_ERR("alloc failed");
 		return nullptr;
 	}
-	BATT_SMBUS *instance = new BATT_SMBUS(iterator.configuredBusOption(), iterator.bus(), interface);
+	BATT_SMBUS *instance = new BATT_SMBUS(config, interface);
 
 	if (instance == nullptr) {
 		PX4_ERR("alloc failed");

@@ -36,21 +36,18 @@
 
 #include "voxlpm.hpp"
 
-I2CSPIDriverBase *VOXLPM::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				      int runtime_instance)
+I2CSPIDriverBase *VOXLPM::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
-	VOXLPM *instance = new VOXLPM(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency,
-				      (VOXLPM_CH_TYPE)cli.type);
+	VOXLPM *instance = new VOXLPM(config);
 
 	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
 		return nullptr;
 	}
 
-	if (cli.keep_running) {
+	if (config.keep_running) {
 		if (OK != instance->force_init()) {
-			PX4_INFO("Failed to init voxlpm type: %d on bus: %d, but will try again periodically.", (VOXLPM_CH_TYPE)cli.type,
-				 iterator.bus());
+			PX4_INFO("Failed to init voxlpm type: %d on bus: %d, but will try again periodically.", config.custom1, config.bus);
 		}
 
 	} else if (OK != instance->init()) {
@@ -68,6 +65,7 @@ VOXLPM::print_usage()
 
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x44);
 	PRINT_MODULE_USAGE_PARAM_STRING('T', "VBATT", "VBATT|P5VDC|P12VDC", "Type", true);
 	PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG();
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
@@ -80,20 +78,21 @@ voxlpm_main(int argc, char *argv[])
 	using ThisDriver = VOXLPM;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 400000;
-	cli.type = VOXLPM_CH_TYPE_VBATT;
+	cli.custom1 = VOXLPM_CH_TYPE_VBATT;
 	cli.support_keep_running = true;
+	cli.i2c_address = VOXLPM_INA231_ADDR_VBATT;
 
 	while ((ch = cli.getOpt(argc, argv, "T:")) != EOF) {
 		switch (ch) {
 		case 'T':
 			if (strcmp(cli.optArg(), "VBATT") == 0) {
-				cli.type = VOXLPM_CH_TYPE_VBATT;
+				cli.custom1 = VOXLPM_CH_TYPE_VBATT;
 
 			} else if (strcmp(cli.optArg(), "P5VDC") == 0) {
-				cli.type = VOXLPM_CH_TYPE_P5VDC;
+				cli.custom1 = VOXLPM_CH_TYPE_P5VDC;
 
 			} else if (strcmp(cli.optArg(), "P12VDC") == 0) {
-				cli.type = VOXLPM_CH_TYPE_P12VDC; //  same as P5VDC
+				cli.custom1 = VOXLPM_CH_TYPE_P12VDC; //  same as P5VDC
 
 			} else {
 				PX4_ERR("unknown type");

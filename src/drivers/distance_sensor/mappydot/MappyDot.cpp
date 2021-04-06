@@ -144,11 +144,9 @@ using namespace time_literals;
 class MappyDot : public device::I2C, public ModuleParams, public I2CSPIDriver<MappyDot>
 {
 public:
-	MappyDot(I2CSPIBusOption bus_option, const int bus, int bus_frequency);
+	MappyDot(const I2CSPIDriverConfig &config);
 	virtual ~MappyDot();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	/**
@@ -221,10 +219,10 @@ private:
 };
 
 
-MappyDot::MappyDot(I2CSPIBusOption bus_option, const int bus, int bus_frequency) :
-	I2C(DRV_DIST_DEVTYPE_MAPPYDOT, MODULE_NAME, bus, MAPPYDOT_BASE_ADDR, bus_frequency),
+MappyDot::MappyDot(const I2CSPIDriverConfig &config) :
+	I2C(config),
 	ModuleParams(nullptr),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus)
+	I2CSPIDriver(config)
 {
 	set_device_type(DRV_DIST_DEVTYPE_MAPPYDOT);
 }
@@ -382,6 +380,7 @@ MappyDot::init()
 
 	PX4_INFO("%i sensors connected", _sensor_count);
 
+	start();
 	return PX4_OK;
 }
 
@@ -417,9 +416,6 @@ MappyDot::RunImpl()
 void
 MappyDot::start()
 {
-	// Fetch parameter values.
-	ModuleParams::updateParams();
-
 	// Schedule the driver to run on a set interval
 	ScheduleOnInterval(MAPPYDOT_MEASUREMENT_INTERVAL_USEC, 10000);
 }
@@ -434,25 +430,6 @@ MappyDot::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *MappyDot::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					int runtime_instance)
-{
-	MappyDot *instance = new MappyDot(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency);
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (instance->init() != PX4_OK) {
-		delete instance;
-		return nullptr;
-	}
-
-	instance->start();
-	return instance;
-}
-
 extern "C" __EXPORT int mappydot_main(int argc, char *argv[])
 {
 	using ThisDriver = MappyDot;
@@ -465,6 +442,8 @@ extern "C" __EXPORT int mappydot_main(int argc, char *argv[])
 		ThisDriver::print_usage();
 		return -1;
 	}
+
+	cli.i2c_address = MAPPYDOT_BASE_ADDR;
 
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_DIST_DEVTYPE_MAPPYDOT);
 

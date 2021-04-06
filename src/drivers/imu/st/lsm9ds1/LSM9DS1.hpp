@@ -55,12 +55,9 @@ using namespace ST_LSM9DS1;
 class LSM9DS1 : public device::SPI, public I2CSPIDriver<LSM9DS1>
 {
 public:
-	LSM9DS1(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-		spi_mode_e spi_mode);
+	LSM9DS1(const I2CSPIDriverConfig &config);
 	~LSM9DS1() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void RunImpl();

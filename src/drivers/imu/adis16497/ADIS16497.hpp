@@ -86,12 +86,9 @@ static constexpr uint32_t crc32_tab[] = {
 class ADIS16497 : public device::SPI, public I2CSPIDriver<ADIS16497>
 {
 public:
-	ADIS16497(I2CSPIBusOption bus_option, int bus, int32_t device, enum Rotation rotation, int bus_frequency,
-		  spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio);
+	ADIS16497(const I2CSPIDriverConfig &config);
 	virtual ~ADIS16497();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	int		init() override;

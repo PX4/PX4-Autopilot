@@ -42,22 +42,23 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 	return (msb << 8u) | lsb;
 }
 
-ICM20948::ICM20948(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-		   spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio, bool enable_magnetometer) :
-	SPI(DRV_IMU_DEVTYPE_ICM20948, MODULE_NAME, bus, device, spi_mode, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_drdy_gpio(drdy_gpio),
-	_px4_accel(get_device_id(), rotation),
-	_px4_gyro(get_device_id(), rotation)
+ICM20948::ICM20948(const I2CSPIDriverConfig &config) :
+	SPI(config),
+	I2CSPIDriver(config),
+	_drdy_gpio(config.drdy_gpio),
+	_px4_accel(get_device_id(), config.rotation),
+	_px4_gyro(get_device_id(), config.rotation)
 {
-	if (drdy_gpio != 0) {
+	if (_drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
 	}
 
 	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
 
+	bool enable_magnetometer = config.custom1 == 1;
+
 	if (enable_magnetometer) {
-		_slave_ak09916_magnetometer = new AKM_AK09916::ICM20948_AK09916(*this, rotation);
+		_slave_ak09916_magnetometer = new AKM_AK09916::ICM20948_AK09916(*this, config.rotation);
 
 		if (_slave_ak09916_magnetometer) {
 			for (auto &r : _register_bank3_cfg) {

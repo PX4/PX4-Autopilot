@@ -68,11 +68,9 @@ extern "C" __EXPORT int atxxxx_main(int argc, char *argv[]);
 class OSDatxxxx : public device::SPI, public ModuleParams, public I2CSPIDriver<OSDatxxxx>
 {
 public:
-	OSDatxxxx(I2CSPIBusOption bus_option, int bus, int devid, int bus_frequency, spi_mode_e spi_mode);
+	OSDatxxxx(const I2CSPIDriverConfig &config);
 	virtual ~OSDatxxxx() = default;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	int init() override;

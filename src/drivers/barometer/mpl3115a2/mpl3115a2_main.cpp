@@ -43,24 +43,8 @@ MPL3115A2::print_usage()
 	PRINT_MODULE_USAGE_SUBCATEGORY("baro");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x60);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-}
-
-I2CSPIDriverBase *MPL3115A2::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-		int runtime_instance)
-{
-	MPL3115A2 *dev = new MPL3115A2(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency);
-
-	if (dev == nullptr) {
-		return nullptr;
-	}
-
-	if (OK != dev->init()) {
-		delete dev;
-		return nullptr;
-	}
-
-	return dev;
 }
 
 extern "C" int mpl3115a2_main(int argc, char *argv[])
@@ -68,6 +52,7 @@ extern "C" int mpl3115a2_main(int argc, char *argv[])
 	using ThisDriver = MPL3115A2;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 400000;
+	cli.i2c_address = MPL3115A2_ADDRESS;
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
 

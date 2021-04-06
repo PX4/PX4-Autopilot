@@ -56,12 +56,9 @@ using namespace Analog_Devices_ADIS16470;
 class ADIS16470 : public device::SPI, public I2CSPIDriver<ADIS16470>
 {
 public:
-	ADIS16470(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-		  spi_drdy_gpio_t drdy_gpio);
+	ADIS16470(const I2CSPIDriverConfig &config);
 	~ADIS16470() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void RunImpl();
