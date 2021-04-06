@@ -156,7 +156,14 @@ void FollowTarget::on_active()
 					       &(_target_position_delta(0)), &(_target_position_delta(1)));
 
 			// update the average velocity of the target based on the position
-			_est_target_vel = _target_position_delta / (dt_ms / 1000.0f);
+			if (PX4_ISFINITE(_current_target_motion.vx) && PX4_ISFINITE(_current_target_motion.vy)) {
+				// No need to estimate target velocity if we can take it from the target
+				_est_target_vel(0) = _current_target_motion.vx;
+				_est_target_vel(1) = _current_target_motion.vy;
+				_est_target_vel(2) = 0.0f;
+			} else {
+				_est_target_vel = _target_position_delta / (dt_ms / 1000.0f);
+			}
 
 			// if the target is moving add an offset and rotation
 			if (_est_target_vel.length() > .5F) {
