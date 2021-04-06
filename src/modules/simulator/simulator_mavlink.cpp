@@ -575,15 +575,20 @@ void Simulator::handle_message_landing_target(const mavlink_message_t *msg)
 	mavlink_landing_target_t landing_target_mavlink;
 	mavlink_msg_landing_target_decode(msg, &landing_target_mavlink);
 
-	irlock_report_s report{};
-	report.timestamp = hrt_absolute_time();
-	report.signature = landing_target_mavlink.target_num;
-	report.pos_x = landing_target_mavlink.angle_x;
-	report.pos_y = landing_target_mavlink.angle_y;
-	report.size_x = landing_target_mavlink.size_x;
-	report.size_y = landing_target_mavlink.size_y;
+	if (landing_target_mavlink.position_valid) {
+		PX4_WARN("Only landing targets relative to captured images are supported");
 
-	_irlock_report_pub.publish(report);
+	} else {
+		irlock_report_s report{};
+		report.timestamp = hrt_absolute_time();
+		report.signature = landing_target_mavlink.target_num;
+		report.pos_x = landing_target_mavlink.angle_x;
+		report.pos_y = landing_target_mavlink.angle_y;
+		report.size_x = landing_target_mavlink.size_x;
+		report.size_y = landing_target_mavlink.size_y;
+
+		_irlock_report_pub.publish(report);
+	}
 }
 
 void Simulator::handle_message_odometry(const mavlink_message_t *msg)

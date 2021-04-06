@@ -2305,6 +2305,11 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 
 		_landing_target_pose_pub.publish(landing_target_pose);
 
+	} else if (landing_target.position_valid) {
+		// We only support MAV_FRAME_LOCAL_NED. In this case, the frame was unsupported.
+		mavlink_log_critical(&_mavlink_log_pub, "landing target: coordinate frame %d unsupported",
+				     landing_target.frame);
+
 	} else {
 		irlock_report_s irlock_report{};
 
