@@ -48,6 +48,7 @@
 #include "rangefinder.hpp"
 #include "accel.hpp"
 #include "gyro.hpp"
+#include "cbat.hpp"
 
 /*
  * IUavcanSensorBridge
@@ -58,7 +59,18 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	list.add(new UavcanMagnetometerBridge(node));
 	list.add(new UavcanGnssBridge(node));
 	list.add(new UavcanFlowBridge(node));
-	list.add(new UavcanBatteryBridge(node));
+
+	int32_t bat_monitor;
+	param_t _param_bat_monitor = param_find("UAVCAN_BAT_MON");
+	param_get(_param_bat_monitor, &bat_monitor);
+
+	if (bat_monitor == 0) {
+		list.add(new UavcanBatteryBridge(node));
+
+	} else if (bat_monitor == 1) {
+		list.add(new UavcanCBATBridge(node));
+	}
+
 	list.add(new UavcanAirspeedBridge(node));
 	list.add(new UavcanDifferentialPressureBridge(node));
 	list.add(new UavcanRangefinderBridge(node));
