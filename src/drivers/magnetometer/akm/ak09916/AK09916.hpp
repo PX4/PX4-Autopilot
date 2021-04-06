@@ -53,11 +53,9 @@ using namespace AKM_AK09916;
 class AK09916 : public device::I2C, public I2CSPIDriver<AK09916>
 {
 public:
-	AK09916(I2CSPIBusOption bus_option, int bus, int bus_frequency, enum Rotation rotation = ROTATION_NONE);
+	AK09916(const I2CSPIDriverConfig &config);
 	~AK09916() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void RunImpl();

@@ -83,15 +83,15 @@
 extern device::Device *LIS2MDL_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
 extern device::Device *LIS2MDL_I2C_interface(int bus, int bus_frequency);
 
+#define LIS2MDLL_ADDRESS        0x1e
 
 class LIS2MDL : public I2CSPIDriver<LIS2MDL>
 {
 public:
-	LIS2MDL(device::Device *interface, enum Rotation rotation, I2CSPIBusOption bus_option, int bus);
+	LIS2MDL(device::Device *interface, const I2CSPIDriverConfig &config);
 	virtual ~LIS2MDL();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
 	virtual int init();

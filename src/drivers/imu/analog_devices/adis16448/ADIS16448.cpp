@@ -95,15 +95,14 @@ static int16_t convert12BitToINT16(uint16_t word)
 	return output;
 }
 
-ADIS16448::ADIS16448(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-		     spi_drdy_gpio_t drdy_gpio) :
-	SPI(DRV_IMU_DEVTYPE_ADIS16448, MODULE_NAME, bus, device, SPIDEV_MODE3, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_drdy_gpio(drdy_gpio), // TODO: DRDY disabled
-	_px4_accel(get_device_id(), rotation),
+ADIS16448::ADIS16448(const I2CSPIDriverConfig &config) :
+	SPI(config),
+	I2CSPIDriver(config),
+	_drdy_gpio(config.drdy_gpio), // TODO: DRDY disabled
+	_px4_accel(get_device_id(), config.rotation),
 	_px4_baro(get_device_id()),
-	_px4_gyro(get_device_id(), rotation),
-	_px4_mag(get_device_id(), rotation)
+	_px4_gyro(get_device_id(), config.rotation),
+	_px4_mag(get_device_id(), config.rotation)
 {
 }
 

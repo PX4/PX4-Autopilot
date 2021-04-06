@@ -152,11 +152,10 @@ using namespace time_literals;
 class INA226 : public device::I2C, public ModuleParams, public I2CSPIDriver<INA226>
 {
 public:
-	INA226(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address, int battery_index);
+	INA226(const I2CSPIDriverConfig &config, int battery_index);
 	virtual ~INA226();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
 	void	RunImpl();

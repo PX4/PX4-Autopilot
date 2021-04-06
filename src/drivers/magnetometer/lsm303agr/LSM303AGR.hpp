@@ -85,12 +85,9 @@ static constexpr uint8_t OUTZ_H_REG_M = 0x6D;
 class LSM303AGR : public device::SPI, public I2CSPIDriver<LSM303AGR>
 {
 public:
-	LSM303AGR(I2CSPIBusOption bus_option, int bus, int device, enum Rotation rotation, int bus_frequency,
-		  spi_mode_e spi_mode);
+	LSM303AGR(const I2CSPIDriverConfig &config);
 	virtual ~LSM303AGR();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	int		init() override;

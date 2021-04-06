@@ -65,11 +65,10 @@ static constexpr uint8_t _checked_registers[] {
 
 using namespace time_literals;
 
-FXAS21002C::FXAS21002C(device::Device *interface, I2CSPIBusOption bus_option, int bus, enum Rotation rotation,
-		       int i2c_address) :
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus, i2c_address),
+FXAS21002C::FXAS21002C(device::Device *interface, const I2CSPIDriverConfig &config) :
+	I2CSPIDriver(config),
 	_interface(interface),
-	_px4_gyro(_interface->get_device_id(), rotation),
+	_px4_gyro(_interface->get_device_id(), config.rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_errors(perf_alloc(PC_COUNT, MODULE_NAME": err")),
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad register")),

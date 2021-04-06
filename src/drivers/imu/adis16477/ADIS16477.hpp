@@ -50,12 +50,9 @@
 class ADIS16477 : public device::SPI, public I2CSPIDriver<ADIS16477>
 {
 public:
-	ADIS16477(I2CSPIBusOption bus_option, int bus, int32_t device, enum Rotation rotation, int bus_frequency,
-		  spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio);
+	ADIS16477(const I2CSPIDriverConfig &config);
 	virtual ~ADIS16477();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	int		init();

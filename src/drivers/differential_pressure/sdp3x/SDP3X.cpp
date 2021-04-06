@@ -124,10 +124,16 @@ SDP3X::read_scale()
 	return PX4_OK;
 }
 
-void SDP3X::start()
+int	SDP3X::init()
 {
-	// make sure to wait 10ms after configuring the measurement mode
-	ScheduleDelayed(10_ms);
+	int ret = Airspeed::init();
+
+	if (ret == PX4_OK) {
+		// make sure to wait 10ms after configuring the measurement mode
+		ScheduleDelayed(10_ms);
+	}
+
+	return ret;
 }
 
 int

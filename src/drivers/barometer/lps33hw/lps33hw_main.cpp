@@ -56,30 +56,29 @@ LPS33HW::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *LPS33HW::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				       int runtime_instance)
+I2CSPIDriverBase *LPS33HW::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
 	device::Device *interface = nullptr;
 
-	if (iterator.busType() == BOARD_I2C_BUS) {
-		interface = LPS33HW_I2C_interface(iterator.bus(), cli.i2c_address, cli.bus_frequency);
+	if (config.bus_type == BOARD_I2C_BUS) {
+		interface = LPS33HW_I2C_interface(config.bus, config.i2c_address, config.bus_frequency);
 
-	} else if (iterator.busType() == BOARD_SPI_BUS) {
-		interface = LPS33HW_SPI_interface(iterator.bus(), iterator.devid(), cli.bus_frequency, cli.spi_mode);
+	} else if (config.bus_type == BOARD_SPI_BUS) {
+		interface = LPS33HW_SPI_interface(config.bus, config.spi_devid, config.bus_frequency, config.spi_mode);
 	}
 
 	if (interface == nullptr) {
-		PX4_ERR("failed creating interface for bus %i (devid 0x%" PRIx32 ")", iterator.bus(), iterator.devid());
+		PX4_ERR("failed creating interface for bus %i (devid 0x%" PRIx32 ")", config.bus, config.spi_devid);
 		return nullptr;
 	}
 
 	if (interface->init() != OK) {
 		delete interface;
-		PX4_DEBUG("no device on bus %i (devid 0x%" PRIx32 ")", iterator.bus(), iterator.devid());
+		PX4_DEBUG("no device on bus %i (devid 0x%" PRIx32 ")", config.bus, config.spi_devid);
 		return nullptr;
 	}
 
-	LPS33HW *dev = new LPS33HW(iterator.configuredBusOption(), iterator.bus(), interface, cli.keep_running);
+	LPS33HW *dev = new LPS33HW(config, interface);
 
 	if (dev == nullptr) {
 		delete interface;
