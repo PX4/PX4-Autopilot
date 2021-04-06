@@ -345,7 +345,7 @@ void AutopilotTester::execute_mission_raw()
 
 	// TODO: Adapt time limit based on mission size, flight speed, sim speed factor, etc.
 
-	wait_for_mission_raw_finished(std::chrono::seconds(60));
+	wait_for_mission_raw_finished(std::chrono::seconds(120));
 }
 
 void AutopilotTester::execute_rtl()
