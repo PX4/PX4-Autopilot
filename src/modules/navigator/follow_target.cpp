@@ -118,7 +118,7 @@ void FollowTarget::on_active()
 			_current_target_motion = target_motion;
 		}
 
-		_current_target_motion.timestamp = target_motion.timestamp;
+		_current_target_motion = target_motion;
 		_current_target_motion.lat = (_current_target_motion.lat * (double)_responsiveness) + target_motion.lat * (double)(
 						     1 - _responsiveness);
 		_current_target_motion.lon = (_current_target_motion.lon * (double)_responsiveness) + target_motion.lon * (double)(
