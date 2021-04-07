@@ -80,7 +80,7 @@
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/log_message.h>
-#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/manual_control_input.h>
 #include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/onboard_computer_status.h>
@@ -331,7 +331,7 @@ private:
 	uORB::PublicationMulti<distance_sensor_s>		_distance_sensor_pub{ORB_ID(distance_sensor)};
 	uORB::PublicationMulti<distance_sensor_s>		_flow_distance_sensor_pub{ORB_ID(distance_sensor)};
 	uORB::PublicationMulti<input_rc_s>			_rc_pub{ORB_ID(input_rc)};
-	uORB::PublicationMulti<manual_control_setpoint_s>	_manual_control_setpoint_pub{ORB_ID(manual_control_setpoint)};
+	uORB::PublicationMulti<manual_control_input_s>		_manual_control_input_pub{ORB_ID(manual_control_input)};
 	uORB::PublicationMulti<ping_s>				_ping_pub{ORB_ID(ping)};
 	uORB::PublicationMulti<radio_status_s>			_radio_status_pub{ORB_ID(radio_status)};
 
