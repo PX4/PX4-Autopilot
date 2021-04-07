@@ -1,6 +1,6 @@
-uint64 timestamp                        # time since system start (microseconds)
+uint64 timestamp			# time since system start (microseconds)
 
-uint64 timestamp_sample                 # the timestamp of the raw data (microseconds)
+uint64 timestamp_sample                # the timestamp of the raw data (microseconds)
 
 uint8 SOURCE_UNKNOWN   = 0
 uint8 SOURCE_RC        = 1		# radio control (input_rc)
@@ -41,22 +41,12 @@ float32 r			 # yaw stick/twist position, -1..1
 				 # in general corresponds to the righthand rotation around the vertical
 				 # (downwards) axis of the vehicle
 
-# stick velocity
-float32 vx
-float32 vy
-float32 vz
-float32 vr
-
 float32 flaps			 # flap position
 
-float32 aux1
-float32 aux2
-float32 aux3
-float32 aux4
-float32 aux5
+float32 aux1			 # default function: camera yaw / azimuth
+float32 aux2			 # default function: camera pitch / tilt
+float32 aux3			 # default function: camera trigger
+float32 aux4			 # default function: camera roll
+float32 aux5			 # default function: payload drop
 float32 aux6
 
-bool arm_gesture
-bool disarm_gesture
-
-bool user_override
