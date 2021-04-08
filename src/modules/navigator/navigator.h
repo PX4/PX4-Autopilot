@@ -408,6 +408,10 @@ private:
 	float _mission_throttle{NAN};
 
 	bool _mission_landing_in_progress{false};	// this flag gets set if the mission is currently executing on a landing pattern
+
+	float _loiter_altitude_amsl{0};
+	matrix::Vector2<double> _lointer_center_lat_lon{};
+
 	// if mission mode is inactive, this flag will be cleared after 2 seconds
 
 	// update subscriptions
