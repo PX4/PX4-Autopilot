@@ -19,6 +19,7 @@ px4_add_board(
 		TEL3:/dev/ttyS4
 		GPS2:/dev/ttyS5
 	DRIVERS
+		adc/ads1115
 		adc/board_adc
 		barometer # all available barometer drivers
 		batt_smbus
@@ -35,15 +36,15 @@ px4_add_board(
 		imu/invensense/icm20649
 		imu/invensense/icm20948
 		irlock
-		lights/blinkm
-		lights/rgbled
-		lights/rgbled_ncp5623c
+		lights # all available light drivers
 		magnetometer # all available magnetometer drivers
 		optical_flow # all available optical flow drivers
-		#osd
+		osd
 		pca9685
+		pca9685_pwm_out
 		power_monitor/ina226
 		#protocol_splitter
+		pwm_input
 		pwm_out_sim
 		pwm_out
 		px4io
@@ -66,6 +67,7 @@ px4_add_board(
 		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
+		gyro_calibration
 		gyro_fft
 		land_detector
 		landing_target_estimator
@@ -84,6 +86,8 @@ px4_add_board(
 		sensors
 		sih
 		temperature_compensation
+		#uuv_att_control
+		#uuv_pos_control
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
@@ -107,6 +111,8 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
+		#serial_test
+		system_time
 		#tests # tests and test runner
 		top
 		topic_listener
@@ -117,7 +123,8 @@ px4_add_board(
 		work_queue
 	EXAMPLES
 		fake_gps
-		fake_magnetometer
+		#fake_gyro
+		#fake_magnetometer
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hello
 		#hwtest # Hardware test

@@ -21,6 +21,7 @@ fi
 
 # initialize script variables
 set AUX_MODE                    none
+set AUX_BANK2			none
 set IO_PRESENT                  no
 set MAV_TYPE                    none
 set MIXER                       none
@@ -97,7 +98,7 @@ then
 	set AUTOCNF yes
 
 	# Wipe out params except RC*, flight modes, total flight time, accel cal, gyro cal, next flight UUID
-	param reset_all SYS_AUTOSTART SYS_AUTOCONFIG RC* COM_FLTMODE* LND_FLIGHT_T_* TC_* CAL_ACC* CAL_GYRO* COM_FLIGHT_UUID
+	param reset_all SYS_AUTO* RC* COM_FLTMODE* LND_FLIGHT* TC_* CAL_ACC* CAL_GYRO* COM_FLIGHT*
 fi
 
 # multi-instance setup
@@ -153,6 +154,8 @@ param set-default SENS_IMU_MODE 0
 param set-default EKF2_MULTI_MAG 2
 param set-default SENS_MAG_MODE 0
 
+param set-default IMU_GYRO_FFT_EN 1
+
 # By default log from boot until first disarm.
 param set-default SDLOG_MODE 1
 # enable default, estimator replay and vision/avoidance logging profiles
@@ -174,6 +177,10 @@ if [ -n "$PX4_SIM_SPEED_FACTOR" ]; then
 	COM_OF_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 0.5" | bc)
 	echo "COM_OF_LOSS_T set to $COM_OF_LOSS_T_LONGER"
 	param set COM_OF_LOSS_T $COM_OF_LOSS_T_LONGER
+
+	COM_OBC_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 5.0" | bc)
+	echo "COM_OBC_LOSS_T set to $COM_OBC_LOSS_T_LONGER"
+	param set COM_OBC_LOSS_T $COM_OBC_LOSS_T_LONGER
 fi
 
 # Autostart ID
@@ -213,7 +220,21 @@ dataman start
 # only start the simulator if not in replay mode, as both control the lockstep time
 if ! replay tryapplyparams
 then
-	simulator start -c $simulator_tcp_port
+  # Check if PX4_SIM_HOSTNAME environment variable is empty
+  # If empty check if PX4_SIM_HOST_ADDR environment variable is empty
+  # If both are empty use localhost for simulator
+  if [ -z "${PX4_SIM_HOSTNAME}" ]; then
+    if [ -z "${PX4_SIM_HOST_ADDR}" ]; then
+      echo "PX4 SIM HOST: localhost"
+      simulator start -c $simulator_tcp_port
+    else
+      echo "PX4 SIM HOST: $PX4_SIM_HOST_ADDR"
+      simulator start -t $PX4_SIM_HOST_ADDR $simulator_tcp_port 
+    fi
+  else
+    echo "PX4 SIM HOST: $PX4_SIM_HOSTNAME"
+    simulator start -h $PX4_SIM_HOSTNAME $simulator_tcp_port 
+  fi
 fi
 load_mon start
 battery_simulator start
@@ -235,6 +256,16 @@ then
 	camera_feedback start
 fi
 
+if param compare -s IMU_GYRO_FFT_EN 1
+then
+	gyro_fft start
+fi
+
+if param compare -s IMU_GYRO_CAL_EN 1
+then
+	gyro_calibration start
+fi
+
 # Configure vehicle type specific parameters.
 # Note: rc.vehicle_setup is the entry point for rc.interface,
 #       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
@@ -244,10 +275,10 @@ fi
 if [ -e etc/init.d-posix/rc.mavlink_override ]
 then
 	echo "Running non-default mavlink config rc.mavlink_override"
-	sh etc/init.d-posix/rc.mavlink_override
+	. ${R}etc/init.d-posix/rc.mavlink_override
 else
 	# GCS link
-	mavlink start -x -u $udp_gcs_port_local -r 4000000 -f -p
+	mavlink start -x -u $udp_gcs_port_local -r 4000000 -f
 	mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u $udp_gcs_port_local
 	mavlink stream -r 50 -s LOCAL_POSITION_NED -u $udp_gcs_port_local
 	mavlink stream -r 50 -s GLOBAL_POSITION_INT -u $udp_gcs_port_local
@@ -259,13 +290,13 @@ else
 	mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u $udp_gcs_port_local
 
 	# API/Offboard link
-	mavlink start -x -u $udp_offboard_port_local -r 4000000 -f -m onboard -o $udp_offboard_port_remote -p
+	mavlink start -x -u $udp_offboard_port_local -r 4000000 -f -m onboard -o $udp_offboard_port_remote
 
 	# Onboard link to camera
-	mavlink start -x -u $udp_onboard_payload_port_local -r 4000 -f -m onboard -o $udp_onboard_payload_port_remote -p
+	mavlink start -x -u $udp_onboard_payload_port_local -r 4000 -f -m onboard -o $udp_onboard_payload_port_remote
 
 	# Onboard link to gimbal
-	mavlink start -x -u $udp_onboard_gimbal_port_local -r 400000 -m gimbal -o $udp_onboard_gimbal_port_remote -p
+	mavlink start -x -u $udp_onboard_gimbal_port_local -r 400000 -m gimbal -o $udp_onboard_gimbal_port_remote
 fi
 
 # execute autostart post script if any

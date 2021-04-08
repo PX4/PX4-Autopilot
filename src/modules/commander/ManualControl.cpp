@@ -47,11 +47,8 @@ bool ManualControl::update()
 	bool updated = false;
 
 	if (_manual_control_setpoint_sub.updated()) {
-		manual_control_setpoint_s manual_control_setpoint;
-
-		if (_manual_control_setpoint_sub.copy(&manual_control_setpoint)) {
-			process(manual_control_setpoint);
-		}
+		_last_manual_control_setpoint = _manual_control_setpoint;
+		_manual_control_setpoint_sub.copy(&_manual_control_setpoint);
 
 		updated = true;
 	}
@@ -61,12 +58,6 @@ bool ManualControl::update()
 			&& (hrt_elapsed_time(&_manual_control_setpoint.timestamp) < (_param_com_rc_loss_t.get() * 1_s));
 
 	return updated && _rc_available;
-}
-
-void ManualControl::process(const manual_control_setpoint_s &manual_control_setpoint)
-{
-	_last_manual_control_setpoint = _manual_control_setpoint;
-	_manual_control_setpoint = manual_control_setpoint;
 }
 
 bool ManualControl::wantsOverride(const vehicle_control_mode_s &vehicle_control_mode)

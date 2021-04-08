@@ -52,6 +52,7 @@ px4_add_board(
 		#events
 		fw_att_control
 		fw_pos_control_l1
+		gyro_calibration
 		#gyro_fft
 		land_detector
 		load_mon

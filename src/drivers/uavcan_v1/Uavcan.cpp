@@ -87,7 +87,7 @@ UavcanNode::UavcanNode(CanardInterface *interface, uint32_t node_id) :
 		publisher->updateParam();
 	}
 
-	for (auto &subscriber : _subscribers) {
+	for (auto &subscriber : _dynsubscribers) {
 		subscriber->updateParam();
 	}
 
@@ -168,30 +168,6 @@ void UavcanNode::init()
 					  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
 					  &_heartbeat_subscription);
 
-			// Subscribe to messages uavcan.node.NodeIDAllocationData_1_0 for PNP V1
-			canardRxSubscribe(&_canard_instance,
-					  CanardTransferKindMessage,
-					  uavcan_pnp_NodeIDAllocationData_1_0_FIXED_PORT_ID_,
-					  uavcan_pnp_NodeIDAllocationData_1_0_EXTENT_BYTES_,
-					  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-					  &_pnp_v1_subscription);
-
-			canardRxSubscribe(&_canard_instance,
-					  CanardTransferKindResponse,
-					  uavcan_register_Access_1_0_FIXED_PORT_ID_,
-					  uavcan_register_Access_Response_1_0_EXTENT_BYTES_,
-					  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-					  &_register_access_subscription);
-
-			canardRxSubscribe(&_canard_instance,
-					  CanardTransferKindResponse,
-					  uavcan_register_List_1_0_FIXED_PORT_ID_,
-					  uavcan_register_List_Response_1_0_EXTENT_BYTES_,
-					  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-					  &_register_list_subscription);
-
-
-
 			canardRxSubscribe(&_canard_instance,
 					  CanardTransferKindMessage,
 					  bms_port_id,
@@ -206,6 +182,9 @@ void UavcanNode::init()
 					  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
 					  &_drone_srv_gps_subscription);
 
+			for (auto &subscriber : _subscribers) {
+				subscriber->subscribe();
+			}
 
 			_initialized = true;
 		}
@@ -241,7 +220,7 @@ void UavcanNode::Run()
 			publisher->updateParam();
 		}
 
-		for (auto &subscriber : _subscribers) {
+		for (auto &subscriber : _dynsubscribers) {
 			// Have the subscriber update its associated port-id parameter
 			// If the port-id changes, (re)start the subscription
 			// Setting the port-id to 0 disables the subscription
@@ -256,39 +235,6 @@ void UavcanNode::Run()
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
 
-	if (hrt_elapsed_time(&_uavcan_pnp_nodeidallocation_last) >= 1_s &&
-	    _node_register_setup != CANARD_NODE_ID_UNSET &&
-	    _node_register_request_index == _node_register_last_received_index + 1) {
-
-		PX4_INFO("NodeID %i request register %i", _node_register_setup, _node_register_request_index);
-
-		uavcan_register_List_Request_1_0 msg;
-		msg.index = _node_register_request_index;
-
-		uint8_t request_payload_buffer[uavcan_register_List_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
-
-		CanardTransfer request = {
-			.timestamp_usec = hrt_absolute_time(), // Zero if transmission deadline is not limited.
-			.priority       = CanardPriorityNominal,
-			.transfer_kind  = CanardTransferKindRequest,
-			.port_id        = uavcan_register_List_1_0_FIXED_PORT_ID_, // This is the subject-ID.
-			.remote_node_id = _node_register_setup,
-			.transfer_id    = _uavcan_register_list_request_transfer_id,
-			.payload_size   = uavcan_register_List_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_,
-			.payload        = &request_payload_buffer,
-		};
-
-		int32_t result = uavcan_register_List_Request_1_0_serialize_(&msg, request_payload_buffer, &request.payload_size);
-
-		if (result == 0) {
-			// set the data ready in the buffer and chop if needed
-			++_uavcan_register_list_request_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
-			result = canardTxPush(&_canard_instance, &request);
-
-			++_node_register_request_index;
-		}
-	}
-
 	// send uavcan::node::Heartbeat_1_0 @ 1 Hz
 	sendHeartbeat();
 
@@ -296,6 +242,8 @@ void UavcanNode::Run()
 	for (auto &publisher : _publishers) {
 		publisher->update();
 	}
+
+	_node_manager.update();
 
 	// Transmitting
 	// Look at the top of the TX queue.
@@ -349,16 +297,7 @@ void UavcanNode::Run()
 			// A transfer has been received, process it.
 			// PX4_INFO("received Port ID: %d", receive.port_id);
 
-			if (receive.port_id == uavcan_pnp_NodeIDAllocationData_1_0_FIXED_PORT_ID_) {
-				result = handlePnpNodeIDAllocationData(receive);
-
-			} else if (receive.port_id == uavcan_register_List_1_0_FIXED_PORT_ID_) {
-				result = handleRegisterList(receive);
-
-			} else if (receive.port_id == uavcan_register_Access_1_0_FIXED_PORT_ID_) {
-				result = handleRegisterAccess(receive);
-
-			} else if (receive.port_id == bms_port_id) {
+			if (receive.port_id == bms_port_id) {
 				result = handleBMSStatus(receive);
 
 			} else if (receive.port_id == gps_port_id) {
@@ -367,6 +306,12 @@ void UavcanNode::Run()
 			} else if (receive.port_id > 0) {
 				// If not a fixed port ID, check any subscribers which may have registered it
 				for (auto &subscriber : _subscribers) {
+					if (receive.port_id == subscriber->id()) {
+						subscriber->callback(receive);
+					}
+				}
+
+				for (auto &subscriber : _dynsubscribers) {
 					if (receive.port_id == subscriber->id()) {
 						subscriber->callback(receive);
 					}
@@ -502,217 +447,6 @@ void UavcanNode::sendHeartbeat()
 
 		_uavcan_node_heartbeat_last = transfer.timestamp_usec;
 	}
-}
-
-int UavcanNode::handlePnpNodeIDAllocationData(const CanardTransfer &receive)
-{
-	uavcan_pnp_NodeIDAllocationData_1_0 msg;
-
-	size_t pnp_in_size_bits = receive.payload_size;
-	uavcan_pnp_NodeIDAllocationData_1_0_deserialize_(&msg, (const uint8_t *)receive.payload, &pnp_in_size_bits);
-
-	//TODO internal database with unique id to node ip mappings now we give an hardcoded ID back
-	msg.allocated_node_id.count = 1;
-	msg.allocated_node_id.elements[0].value = 15; // HACK hardcoded ID
-
-	_uavcan_pnp_nodeidallocation_last = hrt_absolute_time();
-	_node_register_request_index = 0;
-	_node_register_last_received_index = -1;
-	_node_register_setup = msg.allocated_node_id.elements[0].value; // This nodeID has to be configured
-
-	PX4_INFO("Received NodeID allocation request assigning %i", msg.allocated_node_id.elements[0].value);
-
-	uint8_t node_id_alloc_payload_buffer[uavcan_pnp_NodeIDAllocationData_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
-
-	CanardTransfer transfer = {
-		.timestamp_usec = hrt_absolute_time(),      // Zero if transmission deadline is not limited.
-		.priority       = CanardPriorityNominal,
-		.transfer_kind  = CanardTransferKindMessage,
-		.port_id        = uavcan_pnp_NodeIDAllocationData_1_0_FIXED_PORT_ID_,                // This is the subject-ID.
-		.remote_node_id = CANARD_NODE_ID_UNSET,       // Messages cannot be unicast, so use UNSET.
-		.transfer_id    = _uavcan_pnp_nodeidallocation_v1_transfer_id,
-		.payload_size   = uavcan_pnp_NodeIDAllocationData_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_,
-		.payload        = &node_id_alloc_payload_buffer,
-	};
-
-	int result = uavcan_pnp_NodeIDAllocationData_1_0_serialize_(&msg, node_id_alloc_payload_buffer, &transfer.payload_size);
-
-	if (result == 0) {
-		// set the data ready in the buffer and chop if needed
-		++_uavcan_pnp_nodeidallocation_v1_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
-		result = canardTxPush(&_canard_instance, &transfer);
-	}
-
-	return result;
-}
-
-int UavcanNode::handleRegisterList(const CanardTransfer &receive)
-{
-	uavcan_register_List_Response_1_0 msg;
-
-	size_t register_in_size_bits = receive.payload_size;
-	uavcan_register_List_Response_1_0_deserialize_(&msg, (const uint8_t *)receive.payload, &register_in_size_bits);
-
-	int result;
-
-	if (strncmp((char *)msg.name.name.elements, "uavcan.pub.gnss_uorb.id",
-		    msg.name.name.count) == 0) { //Demo GPS status publisher
-		_node_register_setup = CANARD_NODE_ID_UNSET;
-		PX4_INFO("NodeID %i GPS publisher set PortID to %i", receive.remote_node_id, gps_port_id);
-		_node_register_last_received_index++;
-
-		uavcan_register_Access_Request_1_0 request_msg;
-		memcpy(&request_msg.name, &msg.name, sizeof(uavcan_register_Name_1_0));
-
-		uavcan_register_Value_1_0_select_natural16_(&request_msg.value);
-		request_msg.value.natural16.value.count = 1;
-		request_msg.value.natural16.value.elements[0] = gps_port_id;
-
-
-		uint8_t request_payload_buffer[uavcan_register_Access_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
-
-		CanardTransfer transfer = {
-			.timestamp_usec = hrt_absolute_time(),      // Zero if transmission deadline is not limited.
-			.priority       = CanardPriorityNominal,
-			.transfer_kind  = CanardTransferKindRequest,
-			.port_id        = uavcan_register_Access_1_0_FIXED_PORT_ID_,                // This is the subject-ID.
-			.remote_node_id = receive.remote_node_id,       // Messages cannot be unicast, so use UNSET.
-			.transfer_id    = _uavcan_register_access_request_transfer_id,
-			.payload_size   = uavcan_register_Access_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_,
-			.payload        = &request_payload_buffer,
-		};
-
-		result = uavcan_register_Access_Request_1_0_serialize_(&request_msg, request_payload_buffer, &transfer.payload_size);
-
-		if (result == 0) {
-			// set the data ready in the buffer and chop if needed
-			++_uavcan_register_access_request_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
-			result = canardTxPush(&_canard_instance, &transfer);
-		}
-
-	} else if (strncmp((char *)msg.name.name.elements, "uavcan.pub.battery_status.id",
-			   msg.name.name.count) == 0) { //Battery status publisher
-		_node_register_setup = CANARD_NODE_ID_UNSET;
-		PX4_INFO("NodeID %i battery_status publisher set PortID to %i", receive.remote_node_id, bms_port_id);
-		_node_register_last_received_index++;
-
-		uavcan_register_Access_Request_1_0 request_msg;
-		memcpy(&request_msg.name, &msg.name, sizeof(uavcan_register_Name_1_0));
-
-		uavcan_register_Value_1_0_select_natural16_(&request_msg.value);
-		request_msg.value.natural16.value.count = 1;
-		request_msg.value.natural16.value.elements[0] = bms_port_id;
-
-		uint8_t request_payload_buffer[uavcan_register_Access_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
-
-		CanardTransfer transfer = {
-			.timestamp_usec = hrt_absolute_time(),      // Zero if transmission deadline is not limited.
-			.priority       = CanardPriorityNominal,
-			.transfer_kind  = CanardTransferKindRequest,
-			.port_id        = uavcan_register_Access_1_0_FIXED_PORT_ID_,                // This is the subject-ID.
-			.remote_node_id = receive.remote_node_id,       // Messages cannot be unicast, so use UNSET.
-			.transfer_id    = _uavcan_register_access_request_transfer_id,
-			.payload_size   = uavcan_register_Access_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_,
-			.payload        = &request_payload_buffer,
-		};
-
-		result = uavcan_register_Access_Request_1_0_serialize_(&request_msg, request_payload_buffer, &transfer.payload_size);
-
-		if (result == 0) {
-			// set the data ready in the buffer and chop if needed
-			++_uavcan_register_access_request_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
-			result = canardTxPush(&_canard_instance, &transfer);
-		}
-
-	} else {
-		uavcan_register_Value_1_0 out_value;
-
-		if (_param_manager.GetParamByName(msg.name, out_value)) {
-			_node_register_setup = CANARD_NODE_ID_UNSET;
-			_node_register_last_received_index++;
-
-			uavcan_register_Access_Request_1_0 request_msg;
-			memcpy(&request_msg.name, &msg.name, sizeof(uavcan_register_Name_1_0));
-
-			uavcan_register_Value_1_0_select_natural16_(&request_msg.value); /// TODO don't select; see which it is
-			request_msg.value.natural16.value.count = 1;
-			request_msg.value.natural16.value.elements[0] = out_value.natural16.value.elements[0]; /// TODO
-
-			uint8_t request_payload_buffer[uavcan_register_Access_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
-
-			CanardTransfer transfer = {
-				.timestamp_usec = hrt_absolute_time(),      // Zero if transmission deadline is not limited.
-				.priority       = CanardPriorityNominal,
-				.transfer_kind  = CanardTransferKindRequest,
-				.port_id        = uavcan_register_Access_1_0_FIXED_PORT_ID_,                // This is the subject-ID.
-				.remote_node_id = receive.remote_node_id,       // Messages cannot be unicast, so use UNSET.
-				.transfer_id    = _uavcan_register_access_request_transfer_id,
-				.payload_size   = uavcan_register_Access_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_,
-				.payload        = &request_payload_buffer,
-			};
-
-			result = uavcan_register_Access_Request_1_0_serialize_(&request_msg, request_payload_buffer, &transfer.payload_size);
-
-			if (result == 0) {
-				// set the data ready in the buffer and chop if needed
-				++_uavcan_register_access_request_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
-				result = canardTxPush(&_canard_instance, &transfer);
-			}
-		}
-	}
-
-	return result;
-}
-
-int UavcanNode::handleRegisterAccess(const CanardTransfer &receive)
-{
-	uavcan_register_Access_Request_1_0 msg {};
-
-	size_t register_in_size_bits = receive.payload_size;
-	uavcan_register_Access_Request_1_0_deserialize_(&msg, (const uint8_t *)receive.payload, &register_in_size_bits);
-
-	int result {0};
-
-	uavcan_register_Value_1_0 value = msg.value;
-	uavcan_register_Name_1_0 name = msg.name;
-
-	/// TODO: get/set parameter based on whether empty or not
-	if (uavcan_register_Value_1_0_is_empty_(&value)) { // Tag Type: uavcan_primitive_Empty_1_0
-		// Value is empty -- 'Get' only
-		result = _param_manager.GetParamByName(name, value) ? 0 : -1;
-
-	} else {
-		// Set value
-		result = _param_manager.SetParamByName(name, value) ? 0 : -1;
-
-	}
-
-	/// TODO: Access_Response
-	uavcan_register_Access_Response_1_0 response {};
-	response.value = value;
-
-	uint8_t response_payload_buffer[uavcan_register_Access_Response_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
-
-	CanardTransfer transfer = {
-		.timestamp_usec = hrt_absolute_time(),      // Zero if transmission deadline is not limited.
-		.priority       = CanardPriorityNominal,
-		.transfer_kind  = CanardTransferKindResponse,
-		.port_id        = uavcan_register_Access_1_0_FIXED_PORT_ID_,                // This is the subject-ID.
-		.remote_node_id = receive.remote_node_id,       // Messages cannot be unicast, so use UNSET.
-		.transfer_id    = _uavcan_register_access_request_transfer_id, /// TODO: track register Access _response_ separately?
-		.payload_size   = uavcan_register_Access_Response_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_,
-		.payload        = &response_payload_buffer,
-	};
-
-	result = uavcan_register_Access_Response_1_0_serialize_(&response, response_payload_buffer, &transfer.payload_size);
-
-	if (result == 0) {
-		// set the data ready in the buffer and chop if needed
-		++_uavcan_register_access_request_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
-		result = canardTxPush(&_canard_instance, &transfer);
-	}
-
-	return result;
 }
 
 int UavcanNode::handleBMSStatus(const CanardTransfer &receive)

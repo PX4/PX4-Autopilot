@@ -49,13 +49,13 @@
 #include <reg/drone/service/actuator/common/sp/Vector8_0_1.h>
 #include <reg/drone/service/common/Readiness_0_1.h>
 
-#include "Subscriber.hpp"
+#include "DynamicPortSubscriber.hpp"
 
-class UavcanEscSubscriber : public UavcanSubscriber
+class UavcanEscSubscriber : public UavcanDynamicPortSubscriber
 {
 public:
 	UavcanEscSubscriber(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanSubscriber(ins, pmgr, "esc", instance) { };
+		UavcanDynamicPortSubscriber(ins, pmgr, "esc", instance) { };
 
 	void subscribe() override
 	{

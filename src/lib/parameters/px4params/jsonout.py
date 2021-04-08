@@ -8,7 +8,6 @@ class JsonOutput():
     def __init__(self, groups, board, inject_xml_file_name):
         all_json=dict()
         all_json['version']=1
-        all_json['scope']="Firmware"
         all_params=[]
         all_json['parameters']=all_params
 
@@ -52,6 +51,8 @@ class JsonOutput():
                     curr_param['group'] = group_name
                     if param.GetCategory():
                         curr_param['category'] = param.GetCategory()
+                    else:
+                        curr_param['category'] = 'Standard'
 
                     if param.GetVolatile():
                         curr_param['volatile'] = True

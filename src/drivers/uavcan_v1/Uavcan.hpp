@@ -61,30 +61,29 @@
 #include <uavcan/node/Heartbeat_1_0.h>
 #include <uavcan/primitive/Empty_1_0.h>
 
-//Quick and Dirty PNP imlementation only V1 for now as well
-#include <uavcan/node/ID_1_0.h>
-#include <uavcan/pnp/NodeIDAllocationData_1_0.h>
-#include <uavcan/pnp/NodeIDAllocationData_2_0.h>
-
 // DS-15 Specification Messages
 #include <reg/drone/physics/kinematics/geodetic/Point_0_1.h>
 #include <reg/drone/service/battery/Parameters_0_1.h>
 #include <reg/drone/service/battery/Status_0_1.h>
-
-#define PNP1_PORT_ID                                 uavcan_pnp_NodeIDAllocationData_1_0_FIXED_PORT_ID_
-#define PNP1_PAYLOAD_SIZE                            uavcan_pnp_NodeIDAllocationData_1_0_EXTENT_BYTES_
-#define PNP2_PORT_ID                                 uavcan_pnp_NodeIDAllocationData_2_0_FIXED_PORT_ID_
-#define PNP2_PAYLOAD_SIZE                            uavcan_pnp_NodeIDAllocationData_2_0_EXTENT_BYTES_
 
 #include "CanardInterface.hpp"
 
 #include "Publishers/Publisher.hpp"
 #include "Publishers/Gnss.hpp"
 
-#include "Subscribers/Subscriber.hpp"
+#include "Subscribers/BaseSubscriber.hpp"
 #include "Subscribers/Battery.hpp"
 #include "Subscribers/Esc.hpp"
 #include "Subscribers/Gnss.hpp"
+#include "Subscribers/NodeIDAllocationData.hpp"
+
+#include "ServiceClients/GetInfo.hpp"
+#include "ServiceClients/Access.hpp"
+
+#include "Services/AccessReply.hpp"
+#include "Services/ListReply.hpp"
+
+#include "NodeManager.hpp"
 
 #include "Actuators/EscClient.hpp" /// TODO: Add EscServer.hpp for node-side service
 
@@ -213,15 +212,8 @@ private:
 	const uint16_t bms_port_id = 1234;
 	const uint16_t gps_port_id = 1235;
 
-	CanardTransferID _uavcan_pnp_nodeidallocation_v1_transfer_id{0};
-	hrt_abstime _uavcan_pnp_nodeidallocation_last{0};
-
 	CanardTransferID _uavcan_register_list_request_transfer_id{0};
 	CanardTransferID _uavcan_register_access_request_transfer_id{0};
-	//Register interface NodeID TODO MVP right have to make a queue
-	uint8_t _node_register_setup = CANARD_NODE_ID_UNSET;
-	int32_t _node_register_request_index = 0;
-	int32_t _node_register_last_received_index = -1;
 
 	// regulated::drone::sensor::BMSStatus_1_0
 	uint8_t _regulated_drone_sensor_bmsstatus_buffer[reg_drone_service_battery_Status_0_1_EXTENT_BYTES_];
@@ -238,6 +230,8 @@ private:
 
 	UavcanParamManager _param_manager;
 
+	NodeManager _node_manager {_canard_instance};
+
 	UavcanGnssPublisher _gps_pub {_canard_instance, _param_manager};
 
 	UavcanEscController _esc_controller {_canard_instance, _param_manager};
@@ -251,9 +245,18 @@ private:
 	UavcanBmsSubscriber  _bms0_sub {_canard_instance, _param_manager, 0};
 	UavcanBmsSubscriber  _bms1_sub {_canard_instance, _param_manager, 1};
 	UavcanEscSubscriber  _esc_sub  {_canard_instance, _param_manager, 0};
+	UavcanNodeIDAllocationDataSubscriber _nodeid_sub {_canard_instance, _node_manager};
+
+	UavcanGetInfoResponse _getinfo_rsp {_canard_instance};
+	UavcanAccessResponse  _access_rsp {_canard_instance, _param_manager};
+
+	UavcanAccessServiceReply _access_service {_canard_instance, _node_manager};
+	UavcanListServiceReply   _list_service {_canard_instance, _node_manager};
 
 	// Subscriber objects: Any object used to bridge a UAVCAN message to a uORB message
-	UavcanSubscriber *_subscribers[5] {&_gps0_sub, &_gps1_sub, &_bms0_sub, &_bms1_sub, &_esc_sub}; /// TODO: turn into List<UavcanSubscription*>
+	UavcanDynamicPortSubscriber *_dynsubscribers[5] {&_gps0_sub, &_gps1_sub, &_bms0_sub, &_bms1_sub, &_esc_sub}; /// TODO: turn into List<UavcanSubscription*>
+	UavcanBaseSubscriber *_subscribers[5] {&_nodeid_sub, &_getinfo_rsp, &_access_rsp, &_access_service, &_list_service}; /// TODO: turn into List<UavcanSubscription*>
 
 	UavcanMixingInterface _mixing_output {_node_mutex, _esc_controller};
+
 };

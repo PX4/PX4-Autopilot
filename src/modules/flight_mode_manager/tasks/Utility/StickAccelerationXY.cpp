@@ -99,6 +99,7 @@ void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, 
 	_velocity_setpoint += _acceleration_setpoint * dt;
 
 	lockPosition(pos, vel_sp_feedback, dt);
+	_acceleration_setpoint_prev = _acceleration_setpoint;
 }
 
 void StickAccelerationXY::getSetpoints(Vector3f &pos_sp, Vector3f &vel_sp, Vector3f &acc_sp)
@@ -111,8 +112,13 @@ void StickAccelerationXY::getSetpoints(Vector3f &pos_sp, Vector3f &vel_sp, Vecto
 void StickAccelerationXY::applyFeasibilityLimit(const float dt)
 {
 	// Apply jerk limit - acceleration slew rate
-	_acceleration_slew_rate_x.setSlewRate(_param_mpc_jerk_max.get());
-	_acceleration_slew_rate_y.setSlewRate(_param_mpc_jerk_max.get());
+	// Scale each jerk limit with the normalized projection of the acceleration
+	// setpoint increment to produce a synchronized motion
+	const Vector2f dir = Vector2f(_acceleration_setpoint - _acceleration_setpoint_prev).unit_or_zero();
+	const float jerk_max_x = fabsf(dir(0)) * _param_mpc_jerk_max.get();
+	const float jerk_max_y = fabsf(dir(1)) * _param_mpc_jerk_max.get();
+	_acceleration_slew_rate_x.setSlewRate(jerk_max_x);
+	_acceleration_slew_rate_y.setSlewRate(jerk_max_y);
 	_acceleration_setpoint(0) = _acceleration_slew_rate_x.update(_acceleration_setpoint(0), dt);
 	_acceleration_setpoint(1) = _acceleration_slew_rate_y.update(_acceleration_setpoint(1), dt);
 }
@@ -149,15 +155,20 @@ void StickAccelerationXY::applyTiltLimit(Vector2f &acceleration)
 
 void StickAccelerationXY::lockPosition(const Vector3f &pos, const matrix::Vector2f &vel_sp_feedback, const float dt)
 {
-	if (_velocity_setpoint.norm_squared() < FLT_EPSILON) {
-		if (!PX4_ISFINITE(_position_setpoint(0))) {
-			_position_setpoint = pos.xy();
-		}
+	const bool moving = _velocity_setpoint.norm_squared() > FLT_EPSILON;
+	const bool position_locked = PX4_ISFINITE(_position_setpoint(0)) || PX4_ISFINITE(_position_setpoint(1));
 
-	} else {
-		if (PX4_ISFINITE(_position_setpoint(0))) {
-			_position_setpoint.setNaN();
-			// avoid velocity control jump because of remaining position error when unlocking
+	// lock position
+	if (!moving && !position_locked) {
+		_position_setpoint = pos.xy();
+	}
+
+	// open position loop
+	if (moving && position_locked) {
+		_position_setpoint.setNaN();
+
+		// avoid velocity setpoint jump caused by ignoring remaining position error
+		if (PX4_ISFINITE(vel_sp_feedback(0)) && PX4_ISFINITE(vel_sp_feedback(1))) {
 			_velocity_setpoint = vel_sp_feedback;
 		}
 	}

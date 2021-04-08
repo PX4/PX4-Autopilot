@@ -3,6 +3,7 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR omnibus
 	MODEL f4sd
+	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	CONSTRAINED_MEMORY
@@ -24,11 +25,10 @@ px4_add_board(
 		imu/invensense/icm20602
 		imu/invensense/mpu6000
 		#irlock
-		#lights/blinkm
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
-		optical_flow/px4flow
+		#optical_flow # all available optical flow drivers
 		osd
 		#pca9685
 		#pwm_input
@@ -46,10 +46,12 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
+		#esc_battery
 		events
 		flight_mode_manager
 		#fw_att_control
 		#fw_pos_control_l1
+		gyro_calibration
 		#gyro_fft
 		land_detector
 		#landing_target_estimator
@@ -61,12 +63,15 @@ px4_add_board(
 		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
+		#micrortps_bridge
 		navigator
 		rc_update
 		#rover_pos_control
 		sensors
 		#sih
 		#temperature_compensation
+		#uuv_att_control
+		#uuv_pos_control
 		#vmount
 		#vtol_att_control
 	SYSTEMCMDS
@@ -74,6 +79,7 @@ px4_add_board(
 		dmesg
 		dumpfile
 		esc_calib
+		#gpio
 		hardfault_log
 		i2cdetect
 		led_control
@@ -89,6 +95,8 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
+		#serial_test
+		#system_time
 		#tests # tests and test runner
 		top
 		#topic_listener
@@ -99,6 +107,8 @@ px4_add_board(
 		work_queue
 	EXAMPLES
 		#fake_gps
+		#fake_gyro
+		#fake_magnetometer
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hello
 		#hwtest # Hardware test

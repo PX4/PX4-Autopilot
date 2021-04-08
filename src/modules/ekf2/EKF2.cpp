@@ -169,6 +169,7 @@ EKF2::~EKF2()
 {
 	perf_free(_ecl_ekf_update_perf);
 	perf_free(_ecl_ekf_update_full_perf);
+	perf_free(_imu_missed_perf);
 }
 
 bool EKF2::multi_init(int imu, int mag)
@@ -219,6 +220,7 @@ int EKF2::print_status()
 		     _ekf.local_position_is_valid(), _ekf.global_position_is_valid());
 	perf_print_counter(_ecl_ekf_update_perf);
 	perf_print_counter(_ecl_ekf_update_full_perf);
+	perf_print_counter(_imu_missed_perf);
 	return 0;
 }
 
@@ -298,8 +300,9 @@ void EKF2::Run()
 		imu_updated = _vehicle_imu_sub.update(&imu);
 
 		if (imu_updated && (_vehicle_imu_sub.get_last_generation() != last_generation + 1)) {
-			PX4_ERR("%d - vehicle_imu lost, generation %d -> %d", _instance, last_generation,
-				_vehicle_imu_sub.get_last_generation());
+			perf_count(_imu_missed_perf);
+			PX4_DEBUG("%d - vehicle_imu lost, generation %d -> %d", _instance, last_generation,
+				  _vehicle_imu_sub.get_last_generation());
 		}
 
 		imu_sample_new.time_us = imu.timestamp_sample;
@@ -472,6 +475,7 @@ void EKF2::Run()
 
 			// publish status/logging messages
 			PublishEkfDriftMetrics(now);
+			PublishEventFlags(now);
 			PublishStates(now);
 			PublishStatus(now);
 			PublishStatusFlags(now);
@@ -538,6 +542,66 @@ void EKF2::PublishEkfDriftMetrics(const hrt_abstime &timestamp)
 
 		_ekf_gps_drift_pub.publish(drift_data);
 	}
+}
+
+void EKF2::PublishEventFlags(const hrt_abstime &timestamp)
+{
+	// information events
+	uint32_t information_events = _ekf.information_event_status().value;
+	bool information_event_updated = false;
+
+	if (information_events != 0) {
+		information_event_updated = true;
+		_filter_information_event_changes++;
+	}
+
+	// warning events
+	uint32_t warning_events = _ekf.warning_event_status().value;
+	bool warning_event_updated = false;
+
+	if (warning_events != 0) {
+		warning_event_updated = true;
+		_filter_warning_event_changes++;
+	}
+
+	if (information_event_updated || warning_event_updated) {
+		estimator_event_flags_s event_flags{};
+		event_flags.timestamp_sample = timestamp;
+
+		event_flags.information_event_changes           = _filter_information_event_changes;
+		event_flags.gps_checks_passed                   = _ekf.information_event_flags().gps_checks_passed;
+		event_flags.reset_vel_to_gps                    = _ekf.information_event_flags().reset_vel_to_gps;
+		event_flags.reset_vel_to_flow                   = _ekf.information_event_flags().reset_vel_to_flow;
+		event_flags.reset_vel_to_vision                 = _ekf.information_event_flags().reset_vel_to_vision;
+		event_flags.reset_vel_to_zero                   = _ekf.information_event_flags().reset_vel_to_zero;
+		event_flags.reset_pos_to_last_known             = _ekf.information_event_flags().reset_pos_to_last_known;
+		event_flags.reset_pos_to_gps                    = _ekf.information_event_flags().reset_pos_to_gps;
+		event_flags.reset_pos_to_vision                 = _ekf.information_event_flags().reset_pos_to_vision;
+		event_flags.starting_gps_fusion                 = _ekf.information_event_flags().starting_gps_fusion;
+		event_flags.starting_vision_pos_fusion          = _ekf.information_event_flags().starting_vision_pos_fusion;
+		event_flags.starting_vision_vel_fusion          = _ekf.information_event_flags().starting_vision_vel_fusion;
+		event_flags.starting_vision_yaw_fusion          = _ekf.information_event_flags().starting_vision_yaw_fusion;
+		event_flags.yaw_aligned_to_imu_gps              = _ekf.information_event_flags().yaw_aligned_to_imu_gps;
+
+		event_flags.warning_event_changes               = _filter_warning_event_changes;
+		event_flags.gps_quality_poor                    = _ekf.warning_event_flags().gps_quality_poor;
+		event_flags.gps_fusion_timout                   = _ekf.warning_event_flags().gps_fusion_timout;
+		event_flags.gps_data_stopped                    = _ekf.warning_event_flags().gps_data_stopped;
+		event_flags.gps_data_stopped_using_alternate    = _ekf.warning_event_flags().gps_data_stopped_using_alternate;
+		event_flags.height_sensor_timeout               = _ekf.warning_event_flags().height_sensor_timeout;
+		event_flags.stopping_navigation                 = _ekf.warning_event_flags().stopping_mag_use;
+		event_flags.invalid_accel_bias_cov_reset        = _ekf.warning_event_flags().invalid_accel_bias_cov_reset;
+		event_flags.bad_yaw_using_gps_course            = _ekf.warning_event_flags().bad_yaw_using_gps_course;
+		event_flags.stopping_mag_use                    = _ekf.warning_event_flags().stopping_mag_use;
+		event_flags.vision_data_stopped                 = _ekf.warning_event_flags().vision_data_stopped;
+		event_flags.emergency_yaw_reset_mag_stopped     = _ekf.warning_event_flags().emergency_yaw_reset_mag_stopped;
+
+		event_flags.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+		_estimator_event_flags_pub.publish(event_flags);
+	}
+
+	_ekf.clear_information_events();
+	_ekf.clear_warning_events();
 }
 
 void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)

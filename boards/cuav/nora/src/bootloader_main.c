@@ -48,7 +48,6 @@
 #include "arm_internal.h"
 #include <px4_platform_common/init.h>
 
-
 extern int sercon_main(int c, char **argv);
 
 __EXPORT void board_on_reset(int status) {}

@@ -418,12 +418,11 @@ int uORBTest::UnitTest::pub_test_multi2_main()
 
 	while (message_counter++ < num_messages) {
 		px4_usleep(2); //make sure the timestamps are different
-		orb_advert_t &pub = orb_pub[data_next_idx];
 
 		data_topic.timestamp = hrt_absolute_time();
 		data_topic.val = data_next_idx;
 
-		orb_publish(ORB_ID(orb_test_medium_multi), pub, &data_topic);
+		orb_publish(ORB_ID(orb_test_medium_multi), orb_pub[data_next_idx], &data_topic);
 //		PX4_WARN("publishing msg (idx=%i, t=%" PRIu64 ")", data_next_idx, data_topic.time);
 
 		data_next_idx = (data_next_idx + 1) % num_instances;
@@ -470,7 +469,7 @@ int uORBTest::UnitTest::test_multi2()
 		return test_fail("failed launching task");
 	}
 
-	hrt_abstime last_time = 0;
+	hrt_abstime last_time[num_instances] {};
 
 	while (!_thread_should_exit) {
 
@@ -484,11 +483,11 @@ int uORBTest::UnitTest::test_multi2()
 			orb_test_medium_s msg{};
 			orb_copy(ORB_ID(orb_test_medium_multi), orb_data_cur_fd, &msg);
 
-			if (last_time >= msg.timestamp && last_time != 0) {
-				return test_fail("Timestamp not increasing! (%" PRIu64 " >= %" PRIu64 ")", last_time, msg.timestamp);
+			if (last_time[orb_data_next] >= msg.timestamp && last_time[orb_data_next] != 0) {
+				return test_fail("Timestamp not increasing! (%" PRIu64 " >= %" PRIu64 ")", last_time[orb_data_next], msg.timestamp);
 			}
 
-			last_time = msg.timestamp;
+			last_time[orb_data_next] = msg.timestamp;
 
 			PX4_DEBUG("got message (val=%i, idx=%i, t=%" PRIu64 ")", msg.val, orb_data_next, msg.timestamp);
 			orb_data_next = (orb_data_next + 1) % num_instances;

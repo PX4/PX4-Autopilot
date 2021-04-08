@@ -51,6 +51,7 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/position_setpoint.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/vehicle_acceleration.h>
@@ -117,7 +118,9 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
+	uORB::Subscription _position_setpoint_sub{ORB_ID(position_setpoint)};
 	uORB::SubscriptionMultiArray<airspeed_s, MAX_NUM_AIRSPEED_SENSORS> _airspeed_subs{ORB_ID::airspeed};
+
 
 	estimator_status_s _estimator_status {};
 	vehicle_acceleration_s _accel {};
@@ -127,6 +130,7 @@ private:
 	vehicle_local_position_s _vehicle_local_position {};
 	vehicle_status_s _vehicle_status {};
 	vtol_vehicle_status_s _vtol_vehicle_status {};
+	position_setpoint_s _position_setpoint {};
 
 	WindEstimator	_wind_estimator_sideslip; /**< wind estimator instance only fusing sideslip */
 	airspeed_wind_s _wind_estimate_sideslip {}; /**< wind estimate message for wind estimator instance only fusing sideslip */
@@ -306,8 +310,12 @@ AirspeedModule::Run()
 
 	if (_number_of_airspeed_sensors > 0) {
 
-		const bool fixed_wing = !_vtol_vehicle_status.vtol_in_rw_mode;
-		const bool in_air = !_vehicle_land_detected.landed;
+		// disable checks if not a fixed-wing or the vehicle is landing/landed, as then airspeed can fall below stall speed
+		// and wind estimate isn't accurate anymore. Even better would be to have a reliable "ground_contact" detection
+		// for fixed-wing landings.
+		const bool in_air_fixed_wing = !_vehicle_land_detected.landed &&
+					       _position_setpoint.type != position_setpoint_s::SETPOINT_TYPE_LAND &&
+					       _vehicle_status.system_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 
 		// Prepare data for airspeed_validator
 		struct airspeed_validator_update_data input_data = {};
@@ -345,12 +353,12 @@ AirspeedModule::Run()
 					_in_takeoff_situation = false;
 				}
 
-				// reset takeoff_situation to true when not in air or not in fixed-wing mode
-				if (!in_air || !fixed_wing) {
+				// reset takeoff_situation to true when not in air and not in fixed-wing mode
+				if (!in_air_fixed_wing) {
 					_in_takeoff_situation = true;
 				}
 
-				input_data.in_fixed_wing_flight = (armed && fixed_wing && in_air && !_in_takeoff_situation);
+				input_data.in_fixed_wing_flight = (armed && in_air_fixed_wing && !_in_takeoff_situation);
 
 				// push input data into airspeed validator
 				_airspeed_validator[i].update_airspeed_validator(input_data);
@@ -458,6 +466,8 @@ void AirspeedModule::poll_topics()
 	_vehicle_status_sub.update(&_vehicle_status);
 	_vtol_vehicle_status_sub.update(&_vtol_vehicle_status);
 	_vehicle_local_position_sub.update(&_vehicle_local_position);
+	_position_setpoint_sub.update(&_position_setpoint);
+
 
 	_vehicle_local_position_valid = (_time_now_usec - _vehicle_local_position.timestamp < 1_s)
 					&& (_vehicle_local_position.timestamp > 0) && _vehicle_local_position.v_xy_valid;

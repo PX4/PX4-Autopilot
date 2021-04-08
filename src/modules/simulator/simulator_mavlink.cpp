@@ -44,8 +44,11 @@
 #include <drivers/drv_pwm_output.h>
 #include <conversion/rotation.h>
 #include <mathlib/mathlib.h>
+#include <lib/drivers/device/Device.hpp>
 
+#include <arpa/inet.h>
 #include <errno.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <poll.h>
@@ -383,33 +386,61 @@ void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
 	if (!_gps_blocked) {
 		sensor_gps_s gps{};
 
-		gps.timestamp = hrt_absolute_time();
-		gps.time_utc_usec = hil_gps.time_usec;
-		gps.fix_type = hil_gps.fix_type;
 		gps.lat = hil_gps.lat;
 		gps.lon = hil_gps.lon;
 		gps.alt = hil_gps.alt;
+		gps.alt_ellipsoid = hil_gps.alt;
+
+		gps.s_variance_m_s = 0.25f;
+		gps.c_variance_rad = 0.5f;
+		gps.fix_type = hil_gps.fix_type;
+
 		gps.eph = (float)hil_gps.eph * 1e-2f; // cm -> m
 		gps.epv = (float)hil_gps.epv * 1e-2f; // cm -> m
+
+		gps.hdop = 0; // TODO
+		gps.vdop = 0; // TODO
+
+		gps.noise_per_ms = 0;
+		gps.automatic_gain_control = 0;
+		gps.jamming_indicator = 0;
+		gps.jamming_state = 0;
+
 		gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
 		gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
 		gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
 		gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
-		gps.cog_rad = math::radians((float)(hil_gps.cog) / 100.0f); // cdeg -> rad
+		gps.cog_rad = ((hil_gps.cog == 65535) ? NAN : matrix::wrap_2pi(math::radians(hil_gps.cog * 1e-2f))); // cdeg -> rad
+		gps.vel_ned_valid = true;
+
+		gps.timestamp_time_relative = 0;
+		gps.time_utc_usec = hil_gps.time_usec;
+
 		gps.satellites_used = hil_gps.satellites_visible;
-		gps.s_variance_m_s = 0.25f;
+
+		gps.heading = NAN;
+		gps.heading_offset = NAN;
+
+		gps.timestamp = hrt_absolute_time();
 
 		// New publishers will be created based on the HIL_GPS ID's being different or not
 		for (size_t i = 0; i < sizeof(_gps_ids) / sizeof(_gps_ids[0]); i++) {
 			if (_sensor_gps_pubs[i] && _gps_ids[i] == hil_gps.id) {
 				_sensor_gps_pubs[i]->publish(gps);
 				break;
-
 			}
 
 			if (_sensor_gps_pubs[i] == nullptr) {
 				_sensor_gps_pubs[i] = new uORB::PublicationMulti<sensor_gps_s> {ORB_ID(sensor_gps)};
 				_gps_ids[i] = hil_gps.id;
+
+				device::Device::DeviceId device_id;
+				device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+				device_id.devid_s.bus = 0;
+				device_id.devid_s.address = i;
+				device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+				gps.device_id = device_id.devid;
+
 				_sensor_gps_pubs[i]->publish(gps);
 				break;
 			}
@@ -553,15 +584,20 @@ void Simulator::handle_message_landing_target(const mavlink_message_t *msg)
 	mavlink_landing_target_t landing_target_mavlink;
 	mavlink_msg_landing_target_decode(msg, &landing_target_mavlink);
 
-	irlock_report_s report{};
-	report.timestamp = hrt_absolute_time();
-	report.signature = landing_target_mavlink.target_num;
-	report.pos_x = landing_target_mavlink.angle_x;
-	report.pos_y = landing_target_mavlink.angle_y;
-	report.size_x = landing_target_mavlink.size_x;
-	report.size_y = landing_target_mavlink.size_y;
+	if (landing_target_mavlink.position_valid) {
+		PX4_WARN("Only landing targets relative to captured images are supported");
 
-	_irlock_report_pub.publish(report);
+	} else {
+		irlock_report_s report{};
+		report.timestamp = hrt_absolute_time();
+		report.signature = landing_target_mavlink.target_num;
+		report.pos_x = landing_target_mavlink.angle_x;
+		report.pos_y = landing_target_mavlink.angle_y;
+		report.size_x = landing_target_mavlink.size_x;
+		report.size_y = landing_target_mavlink.size_y;
+
+		_irlock_report_pub.publish(report);
+	}
 }
 
 void Simulator::handle_message_odometry(const mavlink_message_t *msg)
@@ -731,7 +767,18 @@ void Simulator::run()
 
 	if (_tcp_remote_ipaddr != nullptr) {
 		_myaddr.sin_addr.s_addr = inet_addr(_tcp_remote_ipaddr);
+
+	} else if (!_hostname.empty()) {
+		/* resolve hostname */
+		struct hostent *host;
+		host = gethostbyname(_hostname.c_str());
+		memcpy(&_myaddr.sin_addr, host->h_addr_list[0], host->h_length);
+
+		char ip[30];
+		strcpy(ip, (char *)inet_ntoa((struct in_addr)_myaddr.sin_addr));
+		PX4_INFO("Resolved host '%s' to address: %s", _hostname.c_str(), ip);
 	}
+
 
 	if (_ip == InternetProtocol::UDP) {
 

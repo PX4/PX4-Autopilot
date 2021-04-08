@@ -37,6 +37,7 @@ ExternalProject_Add(sitl_gazebo
 	CMAKE_ARGS
 		-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
 		-DSEND_ODOMETRY_DATA=ON
+		-DGENERATE_ROS_MODELS=ON
 	BINARY_DIR ${PX4_BINARY_DIR}/build_gazebo
 	INSTALL_COMMAND ""
 	DEPENDS git_gazebo
@@ -107,6 +108,7 @@ set(models
 	iris
 	iris_ctrlalloc
 	iris_dual_gps
+	iris_foggy_lidar
 	iris_irlock
 	iris_obs_avoid
 	iris_opt_flow
@@ -124,6 +126,7 @@ set(models
 	shell
 	solo
 	standard_vtol
+	standard_vtol_drop
 	tailsitter
 	techpod
 	tiltrotor

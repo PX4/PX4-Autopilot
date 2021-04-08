@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * CUAV X7Pro internal definitions
+ * Board internal definitions
  */
 
 #pragma once

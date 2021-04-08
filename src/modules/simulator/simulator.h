@@ -123,6 +123,7 @@ public:
 
 	void set_ip(InternetProtocol ip) { _ip = ip; }
 	void set_port(unsigned port) { _port = port; }
+	void set_hostname(std::string hostname) { _hostname = hostname; }
 	void set_tcp_remote_ipaddr(char *tcp_remote_ipaddr) { _tcp_remote_ipaddr = tcp_remote_ipaddr; }
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
@@ -198,13 +199,15 @@ private:
 	uORB::Publication<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	uORB::PublicationMulti<distance_sensor_s>	*_dist_pubs[ORB_MULTI_MAX_INSTANCES] {};
-	uint8_t _dist_sensor_ids[ORB_MULTI_MAX_INSTANCES] {};
+	uint32_t _dist_sensor_ids[ORB_MULTI_MAX_INSTANCES] {};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	unsigned int _port{14560};
 
 	InternetProtocol _ip{InternetProtocol::UDP};
+
+	std::string _hostname{""};
 
 	char *_tcp_remote_ipaddr{nullptr};
 

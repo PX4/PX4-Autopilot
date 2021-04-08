@@ -84,7 +84,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("safety");
 	add_topic("sensor_combined");
 	add_topic("sensor_correction");
-	add_topic("sensor_gyro_fft");
+	add_topic("sensor_gyro_fft", 50);
 	add_topic("sensor_preflight_mag", 500);
 	add_topic("sensor_selection");
 	add_topic("sensors_status_imu", 200);
@@ -140,12 +140,13 @@ void LoggedTopics::add_default_topics()
 	add_topic("estimator_selector_status");
 	add_topic_multi("ekf_gps_drift", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_attitude", 500, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_event_flags", 0, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_global_position", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_innovation_test_ratios", 500, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_innovation_variances", 500, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_innovations", 500, MAX_ESTIMATOR_INSTANCES);
-	add_topic_multi("estimator_optical_flow_vel", 200, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_local_position", 500, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_optical_flow_vel", 200, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_sensor_bias", 0, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_states", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_status", 200, MAX_ESTIMATOR_INSTANCES);

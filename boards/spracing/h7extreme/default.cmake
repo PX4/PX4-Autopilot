@@ -18,7 +18,7 @@ px4_add_board(
 		#batt_smbus
 		camera_capture
 		camera_trigger
-		differential_pressure # all available differential pressure drivers
+		#differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		dshot
 		gps
@@ -32,9 +32,7 @@ px4_add_board(
 		imu/invensense/icm20602
 		#imu/mpu9250
 		#irlock
-		lights/blinkm
-		lights/rgbled
-		lights/rgbled_ncp5623c
+		lights # all available light drivers
 		magnetometer # all available magnetometer drivers
 		optical_flow # all available optical flow drivers
 		osd
@@ -78,7 +76,7 @@ px4_add_board(
 		#rover_pos_control
 		sensors
 		#sih
-		temperature_compensation
+		#temperature_compensation
 		vmount
 		#vtol_att_control
 	SYSTEMCMDS

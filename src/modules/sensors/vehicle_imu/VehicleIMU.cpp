@@ -34,6 +34,7 @@
 #include "VehicleIMU.hpp"
 
 #include <px4_platform_common/log.h>
+#include <lib/systemlib/mavlink_log.h>
 
 #include <float.h>
 
@@ -326,6 +327,17 @@ void VehicleIMU::Run()
 			}
 
 			publish_status = true;
+
+			// start notifying the user periodically if there's significant continuous clipping
+			const uint64_t clipping_total = _status.accel_clipping[0] + _status.accel_clipping[1] + _status.accel_clipping[2];
+
+			if ((hrt_elapsed_time(&_last_clipping_notify_time) > 3_s)
+			    && (clipping_total > _last_clipping_notify_total_count + 100)) {
+
+				mavlink_log_critical(&_mavlink_log_pub, "Accel %d clipping, land immediately!", _instance);
+				_last_clipping_notify_time = accel.timestamp_sample;
+				_last_clipping_notify_total_count = clipping_total;
+			}
 		}
 
 		// break once caught up to gyro

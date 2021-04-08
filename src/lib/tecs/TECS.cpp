@@ -88,12 +88,14 @@ void TECS::update_vehicle_state_estimates(float equivalent_airspeed, const float
 
 	// Update and average speed rate of change if airspeed is being measured
 	if (PX4_ISFINITE(equivalent_airspeed) && airspeed_sensor_enabled()) {
+		_tas_rate_raw = speed_deriv_forward;
 		// Apply some noise filtering
 		_TAS_rate_filter.update(speed_deriv_forward);
-		_speed_derivative = _TAS_rate_filter.getState();
+		_tas_rate_filtered = _TAS_rate_filter.getState();
 
 	} else {
-		_speed_derivative = 0.0f;
+		_tas_rate_raw = 0.0f;
+		_tas_rate_filtered = 0.0f;
 	}
 
 	if (!_in_air) {
@@ -141,7 +143,7 @@ void TECS::_update_speed_states(float equivalent_airspeed_setpoint, float equiva
 
 	// Update TAS state
 	_tas_rate_state = _tas_rate_state + tas_rate_state_input * dt;
-	float tas_state_input = _tas_rate_state + _speed_derivative + tas_error * _tas_estimate_freq * 1.4142f;
+	float tas_state_input = _tas_rate_state + _tas_rate_raw + tas_error * _tas_estimate_freq * 1.4142f;
 	_tas_state = _tas_state + tas_state_input * dt;
 
 	// Limit the TAS state to a minimum of 3 m/s
@@ -260,7 +262,7 @@ void TECS::_update_energy_estimates()
 
 	// Calculate specific energy rates in units of (m**2/sec**3)
 	_SPE_rate = _vert_vel_state * CONSTANTS_ONE_G; // potential energy rate of change
-	_SKE_rate = _tas_state * _speed_derivative;// kinetic energy rate of change
+	_SKE_rate = _tas_state * _tas_rate_filtered;// kinetic energy rate of change
 }
 
 void TECS::_update_throttle_setpoint(const float throttle_cruise)
@@ -436,7 +438,8 @@ void TECS::_update_pitch_setpoint()
 	}
 
 	// Calculate a specific energy correction that doesn't include the integrator contribution
-	float SEB_rate_correction = _SEB_rate_error * _pitch_damping_gain + _pitch_integ_state + SEB_rate_setpoint;
+	float SEB_rate_correction = _SEB_rate_error * _pitch_damping_gain + _pitch_integ_state + _SEB_rate_ff *
+				    SEB_rate_setpoint;
 
 	// During climbout, bias the demanded pitch angle so that a zero speed error produces a pitch angle
 	// demand equal to the minimum pitch angle set by the mission plan. This prevents the integrator

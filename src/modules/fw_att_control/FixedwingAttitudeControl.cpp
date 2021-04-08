@@ -143,14 +143,6 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 		// Always copy the new manual setpoint, even if it wasn't updated, to fill the _actuators with valid values
 		if (_manual_control_setpoint_sub.copy(&_manual_control_setpoint)) {
 
-			// Check if we are in rattitude mode and the pilot is above the threshold on pitch
-			if (_vcontrol_mode.flag_control_rattitude_enabled) {
-				if (fabsf(_manual_control_setpoint.y) > _param_fw_ratt_th.get()
-				    || fabsf(_manual_control_setpoint.x) > _param_fw_ratt_th.get()) {
-					_vcontrol_mode.flag_control_attitude_enabled = false;
-				}
-			}
-
 			if (!_vcontrol_mode.flag_control_climb_rate_enabled) {
 
 				if (_vcontrol_mode.flag_control_attitude_enabled) {
@@ -264,7 +256,8 @@ float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 	 *
 	 * Forcing the scaling to this value allows reasonable handheld tests.
 	 */
-	const float airspeed_constrained = constrain(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_max.get());
+	const float airspeed_constrained = constrain(constrain(airspeed, _param_fw_airspd_min.get(),
+					   _param_fw_airspd_max.get()), 0.1f, 1000.0f);
 
 	_airspeed_scaling = (_param_fw_arsp_scale_en.get()) ? (_param_fw_airspd_trim.get() / airspeed_constrained) : 1.0f;
 

@@ -49,12 +49,9 @@ MulticopterPositionControl::MulticopterPositionControl(bool vtol) :
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD")
 {
-	// fetch initial parameter values
 	parameters_update(true);
-
-	// set failsafe hysteresis
 	_failsafe_land_hysteresis.set_hysteresis_time_from(false, LOITER_TIME_BEFORE_DESCEND);
-
+	_tilt_limit_slew_rate.setSlewRate(.2f);
 	reset_setpoint_to_nan(_setpoint);
 }
 
@@ -292,7 +289,7 @@ void MulticopterPositionControl::Run()
 
 		PositionControlStates states{set_vehicle_states(local_pos)};
 
-		if (_control_mode.flag_control_climb_rate_enabled) {
+		if (_control_mode.flag_control_acceleration_enabled || _control_mode.flag_control_climb_rate_enabled) {
 
 			_trajectory_setpoint_sub.update(&_setpoint);
 
@@ -331,7 +328,28 @@ void MulticopterPositionControl::Run()
 			}
 
 			if (_control_mode.flag_control_offboard_enabled) {
-				_vehicle_constraints.want_takeoff = _control_mode.flag_armed && hrt_elapsed_time(&_setpoint.timestamp) < 1_s;
+
+				bool want_takeoff = _control_mode.flag_armed && _vehicle_land_detected.landed
+						    && hrt_elapsed_time(&_setpoint.timestamp) < 1_s;
+
+				if (want_takeoff && PX4_ISFINITE(_setpoint.z)
+				    && (_setpoint.z < states.position(2))) {
+
+					_vehicle_constraints.want_takeoff = true;
+
+				} else if (want_takeoff && PX4_ISFINITE(_setpoint.vz)
+					   && (_setpoint.vz < 0.f)) {
+
+					_vehicle_constraints.want_takeoff = true;
+
+				} else if (want_takeoff && PX4_ISFINITE(_setpoint.acceleration[2])
+					   && (_setpoint.acceleration[2] < 0.f)) {
+
+					_vehicle_constraints.want_takeoff = true;
+
+				} else {
+					_vehicle_constraints.want_takeoff = false;
+				}
 
 				// override with defaults
 				_vehicle_constraints.speed_xy = _param_mpc_xy_vel_max.get();
@@ -347,6 +365,11 @@ void MulticopterPositionControl::Run()
 			const bool flying = (_takeoff.getTakeoffState() >= TakeoffState::flight);
 			const bool flying_but_ground_contact = (flying && _vehicle_land_detected.ground_contact);
 
+			// make sure takeoff ramp is not amended by acceleration feed-forward
+			if (!flying) {
+				_setpoint.acceleration[2] = NAN;
+			}
+
 			if (not_taken_off || flying_but_ground_contact) {
 				// we are not flying yet and need to avoid any corrections
 				reset_setpoint_to_nan(_setpoint);
@@ -357,12 +380,9 @@ void MulticopterPositionControl::Run()
 			}
 
 			// limit tilt during takeoff ramupup
-			if (_takeoff.getTakeoffState() < TakeoffState::flight) {
-				_control.setTiltLimit(math::radians(_param_mpc_tiltmax_lnd.get()));
-
-			} else {
-				_control.setTiltLimit(math::radians(_param_mpc_tiltmax_air.get()));
-			}
+			const float tilt_limit_deg = (_takeoff.getTakeoffState() < TakeoffState::flight)
+						     ? _param_mpc_tiltmax_lnd.get() : _param_mpc_tiltmax_air.get();
+			_control.setTiltLimit(_tilt_limit_slew_rate.update(math::radians(tilt_limit_deg), dt));
 
 			const float speed_up = _takeoff.updateRamp(dt,
 					       PX4_ISFINITE(_vehicle_constraints.speed_up) ? _vehicle_constraints.speed_up : _param_mpc_z_vel_max_up.get());

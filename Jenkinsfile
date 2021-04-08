@@ -89,6 +89,7 @@ pipeline {
           }
           steps {
             sh 'make distclean'
+            sh 'git fetch --all --tags'
             sh 'make airframe_metadata'
             dir('build/px4_sitl_default/docs') {
               archiveArtifacts(artifacts: 'airframes.md, airframes.xml')
@@ -108,10 +109,11 @@ pipeline {
           }
           steps {
             sh 'make distclean'
+            sh 'git fetch --all --tags'
             sh 'make parameters_metadata'
             dir('build/px4_sitl_default/docs') {
-              archiveArtifacts(artifacts: 'parameters.md, parameters.xml, params.json.xz')
-              stash includes: 'parameters.md, parameters.xml, params.json.xz', name: 'metadata_parameters'
+              archiveArtifacts(artifacts: 'parameters.md, parameters.xml, parameters.json.xz')
+              stash includes: 'parameters.md, parameters.xml, parameters.json.xz', name: 'metadata_parameters'
             }
           }
           post {
@@ -127,6 +129,7 @@ pipeline {
           }
           steps {
             sh 'make distclean'
+            sh 'git fetch --all --tags'
             sh 'make module_documentation'
             dir('build/px4_sitl_default/docs') {
               archiveArtifacts(artifacts: 'modules/*.md')
@@ -150,6 +153,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
+            sh 'git fetch --all --tags'
             sh 'make uorb_graphs'
             dir('Tools/uorb_graph') {
               archiveArtifacts(artifacts: 'graph_px4_sitl.json')
@@ -342,7 +346,7 @@ pipeline {
             withAWS(credentials: 'px4_aws_s3_key', region: 'us-east-1') {
               s3Upload(acl: 'PublicRead', bucket: 'px4-travis', file: 'airframes.xml', path: 'Firmware/master/')
               s3Upload(acl: 'PublicRead', bucket: 'px4-travis', file: 'parameters.xml', path: 'Firmware/master/')
-              s3Upload(acl: 'PublicRead', bucket: 'px4-travis', file: 'params.json.xz', path: 'Firmware/master/')
+              s3Upload(acl: 'PublicRead', bucket: 'px4-travis', file: 'parameters.json.xz', path: 'Firmware/master/')
             }
           }
           when {

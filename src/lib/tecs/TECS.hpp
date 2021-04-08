@@ -131,6 +131,8 @@ public:
 	void set_ste_rate_time_const(float time_const) { _STE_rate_time_const = time_const; }
 	void set_speed_derivative_time_constant(float time_const) { _speed_derivative_time_const = time_const; }
 
+	void set_seb_rate_ff_gain(float ff_gain) { _SEB_rate_ff = ff_gain; }
+
 
 	// TECS status
 	uint64_t timestamp() { return _pitch_update_timestamp; }
@@ -147,7 +149,7 @@ public:
 
 	float get_EAS_setpoint() { return _EAS_setpoint; };
 	float TAS_rate_setpoint() { return _TAS_rate_setpoint; }
-	float speed_derivative() { return _speed_derivative; }
+	float speed_derivative() { return _tas_rate_filtered; }
 
 	float STE_error() { return _STE_error; }
 	float STE_rate_error() { return _STE_rate_error; }
@@ -224,6 +226,7 @@ private:
 	float _throttle_slewrate{0.0f};					///< throttle demand slew rate limit (1/sec)
 	float _STE_rate_time_const{0.1f};				///< filter time constant for specific total energy rate (damping path) (s)
 	float _speed_derivative_time_const{0.01f};			///< speed derivative filter time constant (s)
+	float _SEB_rate_ff{1.0f};
 
 	// complimentary filter states
 	float _vert_vel_state{0.0f};					///< complimentary filter state - height rate (m/sec)
@@ -236,7 +239,7 @@ private:
 	float _pitch_integ_state{0.0f};					///< pitch integrator state (rad)
 	float _last_throttle_setpoint{0.0f};				///< throttle demand rate limiter state (1/sec)
 	float _last_pitch_setpoint{0.0f};				///< pitch demand rate limiter state (rad/sec)
-	float _speed_derivative{0.0f};					///< rate of change of speed along X axis (m/sec**2)
+	float _tas_rate_filtered{0.0f};					///< low pass filtered rate of change of speed along X axis (m/sec**2)
 
 	// speed demand calculations
 	float _EAS{0.0f};						///< equivalent airspeed (m/sec)
@@ -247,6 +250,7 @@ private:
 	float _EAS_setpoint{0.0f};					///< Equivalent airspeed demand (m/sec)
 	float _TAS_setpoint_adj{0.0f};					///< true airspeed demand tracked by the TECS algorithm (m/sec)
 	float _TAS_rate_setpoint{0.0f};					///< true airspeed rate demand tracked by the TECS algorithm (m/sec**2)
+	float _tas_rate_raw{0.0f};					///< true airspeed rate, calculated as inertial acceleration in body X direction
 
 	// height demand calculations
 	float _hgt_setpoint{0.0f};					///< demanded height tracked by the TECS algorithm (m)

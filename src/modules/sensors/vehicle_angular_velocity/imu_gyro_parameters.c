@@ -94,6 +94,7 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
 * @value 100 100 Hz
 * @value 250 250 Hz
 * @value 400 400 Hz
+* @value 800 800 Hz
 * @value 1000 1000 Hz
 * @value 2000 2000 Hz
 * @unit Hz
@@ -120,7 +121,7 @@ PARAM_DEFINE_INT32(IMU_GYRO_RATEMAX, 400);
 * @reboot_required true
 * @group Sensors
 */
-PARAM_DEFINE_FLOAT(IMU_DGYRO_CUTOFF, 10.0f);
+PARAM_DEFINE_FLOAT(IMU_DGYRO_CUTOFF, 20.0f);
 
 /**
 * IMU gyro dynamic notch filtering
@@ -129,7 +130,7 @@ PARAM_DEFINE_FLOAT(IMU_DGYRO_CUTOFF, 10.0f);
 * Requires ESC RPM feedback or onboard FFT (IMU_GYRO_FFT_EN).
 * @group Sensors
 * @min 0
-* @max 2
+* @max 3
 * @bit 0 ESC RPM
 * @bit 1 FFT
 */

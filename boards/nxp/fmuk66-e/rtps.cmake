@@ -15,6 +15,7 @@ px4_add_board(
 		TEL1:/dev/ttyS4
 		TEL2:/dev/ttyS1
 	DRIVERS
+		adc/ads1115
 		adc/board_adc
 		barometer # all available barometer drivers
 		barometer/mpl3115a2
@@ -25,26 +26,25 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		distance_sensor/srf05 # Specific driver
 		gps
-		#heater
 		#imu # all available imu drivers
 		imu/bosch/bmi088
+		imu/invensense/icm20948 # required for ak09916 mag
 		imu/invensense/icm42688p
 		irlock
-		lights/blinkm
-		lights/rgbled
-		lights/rgbled_ncp5623c
+		lights # all available light drivers
 		lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
-		#optical_flow # all available optical flow drivers
-		optical_flow/px4flow
-		#osd
+		optical_flow # all available optical flow drivers
+		osd
 		pca9685
+		pca9685_pwm_out
 		power_monitor/ina226
 		#protocol_splitter
 		pwm_out_sim
 		pwm_out
 		rc_input
 		roboclaw
+		rpm
 		safety_button
 		telemetry # all available telemetry drivers
 		#test_ppm # NOT Portable YET
@@ -58,10 +58,13 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
+		esc_battery
 		events
 		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
+		gyro_calibration
+		gyro_fft
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -79,14 +82,16 @@ px4_add_board(
 		sensors
 		sih
 		temperature_compensation
+		#uuv_att_control
+		#uuv_pos_control
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
-		bl_update
+		#bl_update
 		#dmesg
 		dumpfile
 		esc_calib
-		#hardfault_log # Needs bbsrm
+		#gpio
 		i2cdetect
 		led_control
 		mft
@@ -101,6 +106,7 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
+		serial_test
 		system_time
 		tests # tests and test runner
 		top
@@ -112,6 +118,8 @@ px4_add_board(
 		work_queue
 	EXAMPLES
 		fake_gps
+		fake_gyro
+		fake_magnetometer
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		hwtest # Hardware test

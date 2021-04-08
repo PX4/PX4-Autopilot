@@ -41,7 +41,6 @@
  */
 
 #include <airspeed/airspeed.h>
-#include <commander/px4_custom_mode.h>
 #include <conversion/rotation.h>
 #include <drivers/drv_rc_input.h>
 #include <ecl/geo/geo.h>
@@ -72,7 +71,42 @@
 #define MAVLINK_RECEIVER_NET_ADDED_STACK 0
 #endif
 
-using matrix::wrap_2pi;
+const uint8_t MavlinkReceiver::supported_component_map[COMP_ID_MAX] = {
+	[COMP_ID_ALL]                      = MAV_COMP_ID_ALL,
+	[COMP_ID_AUTOPILOT1]               = MAV_COMP_ID_AUTOPILOT1,
+
+	[COMP_ID_TELEMETRY_RADIO]          = MAV_COMP_ID_TELEMETRY_RADIO,
+
+	[COMP_ID_CAMERA]                   = MAV_COMP_ID_CAMERA,
+	[COMP_ID_CAMERA2]                  = MAV_COMP_ID_CAMERA2,
+
+	[COMP_ID_GIMBAL]                   = MAV_COMP_ID_GIMBAL,
+	[COMP_ID_LOG]                      = MAV_COMP_ID_LOG,
+	[COMP_ID_ADSB]                     = MAV_COMP_ID_ADSB,
+	[COMP_ID_OSD]                      = MAV_COMP_ID_OSD,
+	[COMP_ID_PERIPHERAL]               = MAV_COMP_ID_PERIPHERAL,
+
+	[COMP_ID_FLARM]                    = MAV_COMP_ID_FLARM,
+
+	[COMP_ID_GIMBAL2]                  = MAV_COMP_ID_GIMBAL2,
+
+	[COMP_ID_MISSIONPLANNER]           = MAV_COMP_ID_MISSIONPLANNER,
+	[COMP_ID_ONBOARD_COMPUTER]         = MAV_COMP_ID_ONBOARD_COMPUTER,
+
+	[COMP_ID_PATHPLANNER]              = MAV_COMP_ID_PATHPLANNER,
+	[COMP_ID_OBSTACLE_AVOIDANCE]       = MAV_COMP_ID_OBSTACLE_AVOIDANCE,
+	[COMP_ID_VISUAL_INERTIAL_ODOMETRY] = MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY,
+	[COMP_ID_PAIRING_MANAGER]          = MAV_COMP_ID_PAIRING_MANAGER,
+
+	[COMP_ID_IMU]                      = MAV_COMP_ID_IMU,
+
+	[COMP_ID_GPS]                      = MAV_COMP_ID_GPS,
+	[COMP_ID_GPS2]                     = MAV_COMP_ID_GPS2,
+
+	[COMP_ID_UDP_BRIDGE]               = MAV_COMP_ID_UDP_BRIDGE,
+	[COMP_ID_UART_BRIDGE]              = MAV_COMP_ID_UART_BRIDGE,
+	[COMP_ID_TUNNEL_NODE]              = MAV_COMP_ID_TUNNEL_NODE,
+};
 
 MavlinkReceiver::~MavlinkReceiver()
 {
@@ -506,10 +540,10 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		// index should be 0, otherwise ignore the message
 		if (((int) vehicle_command.param7) == 0) {
 			actuator_controls_s actuator_controls{};
-			actuator_controls.timestamp = hrt_absolute_time();
-
 			// update with existing values to avoid changing unspecified controls
 			_actuator_controls_3_sub.update(&actuator_controls);
+
+			actuator_controls.timestamp = hrt_absolute_time();
 
 			bool updated = false;
 
@@ -930,8 +964,8 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		setpoint.thrust[1] = NAN;
 		setpoint.thrust[2] = NAN;
 
-		setpoint.yaw      = (type_mask == POSITION_TARGET_TYPEMASK_YAW_IGNORE)      ? NAN : target_local_ned.yaw;
-		setpoint.yawspeed = (type_mask == POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE) ? NAN : target_local_ned.yaw_rate;
+		setpoint.yaw      = (type_mask & POSITION_TARGET_TYPEMASK_YAW_IGNORE)      ? NAN : target_local_ned.yaw;
+		setpoint.yawspeed = (type_mask & POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE) ? NAN : target_local_ned.yaw_rate;
 
 
 		offboard_control_mode_s ocm{};
@@ -1054,8 +1088,8 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 		setpoint.thrust[1] = NAN;
 		setpoint.thrust[2] = NAN;
 
-		setpoint.yaw      = (type_mask == POSITION_TARGET_TYPEMASK_YAW_IGNORE)      ? NAN : target_global_int.yaw;
-		setpoint.yawspeed = (type_mask == POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE) ? NAN : target_global_int.yaw_rate;
+		setpoint.yaw      = (type_mask & POSITION_TARGET_TYPEMASK_YAW_IGNORE)      ? NAN : target_global_int.yaw;
+		setpoint.yawspeed = (type_mask & POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE) ? NAN : target_global_int.yaw_rate;
 
 
 		offboard_control_mode_s ocm{};
@@ -1382,6 +1416,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 		const bool attitude = !(type_mask & ATTITUDE_TARGET_TYPEMASK_ATTITUDE_IGNORE);
 		const bool body_rates = !(type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_ROLL_RATE_IGNORE)
 					&& !(type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_PITCH_RATE_IGNORE);
+		const bool thrust_body = (type_mask & ATTITUDE_TARGET_TYPEMASK_THRUST_BODY_SET);
 
 		vehicle_status_s vehicle_status{};
 		_vehicle_status_sub.copy(&vehicle_status);
@@ -1399,10 +1434,15 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 
 			// TODO: review use case
 			attitude_setpoint.yaw_sp_move_rate = (type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_YAW_RATE_IGNORE) ?
-							     attitude_target.body_yaw_rate : NAN;
+							     NAN : attitude_target.body_yaw_rate;
 
-			if (!(attitude_target.type_mask & ATTITUDE_TARGET_TYPEMASK_THROTTLE_IGNORE)) {
+			if (!thrust_body && !(attitude_target.type_mask & ATTITUDE_TARGET_TYPEMASK_THROTTLE_IGNORE)) {
 				fill_thrust(attitude_setpoint.thrust_body, vehicle_status.vehicle_type, attitude_target.thrust);
+
+			} else if (thrust_body) {
+				attitude_setpoint.thrust_body[0] = attitude_target.thrust_body[0];
+				attitude_setpoint.thrust_body[1] = attitude_target.thrust_body[1];
+				attitude_setpoint.thrust_body[2] = attitude_target.thrust_body[2];
 			}
 
 			// publish offboard_control_mode
@@ -2187,39 +2227,55 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 {
-	mavlink_hil_gps_t gps;
-	mavlink_msg_hil_gps_decode(msg, &gps);
+	mavlink_hil_gps_t hil_gps;
+	mavlink_msg_hil_gps_decode(msg, &hil_gps);
 
-	const uint64_t timestamp = hrt_absolute_time();
+	sensor_gps_s gps{};
 
-	sensor_gps_s hil_gps{};
+	device::Device::DeviceId device_id{};
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
+	device_id.devid_s.address = msg->sysid;
+	device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+	gps.device_id = device_id.devid;
 
-	hil_gps.timestamp_time_relative = 0;
-	hil_gps.time_utc_usec = gps.time_usec;
+	gps.lat = hil_gps.lat;
+	gps.lon = hil_gps.lon;
+	gps.alt = hil_gps.alt;
+	gps.alt_ellipsoid = hil_gps.alt;
 
-	hil_gps.timestamp = timestamp;
-	hil_gps.lat = gps.lat;
-	hil_gps.lon = gps.lon;
-	hil_gps.alt = gps.alt;
-	hil_gps.eph = (float)gps.eph * 1e-2f; // from cm to m
-	hil_gps.epv = (float)gps.epv * 1e-2f; // from cm to m
+	gps.s_variance_m_s = 0.25f;
+	gps.c_variance_rad = 0.5f;
+	gps.fix_type = hil_gps.fix_type;
 
-	hil_gps.s_variance_m_s = 0.1f;
+	gps.eph = (float)hil_gps.eph * 1e-2f; // cm -> m
+	gps.epv = (float)hil_gps.epv * 1e-2f; // cm -> m
 
-	hil_gps.vel_m_s = (float)gps.vel * 1e-2f; // from cm/s to m/s
-	hil_gps.vel_n_m_s = gps.vn * 1e-2f; // from cm to m
-	hil_gps.vel_e_m_s = gps.ve * 1e-2f; // from cm to m
-	hil_gps.vel_d_m_s = gps.vd * 1e-2f; // from cm to m
-	hil_gps.vel_ned_valid = true;
-	hil_gps.cog_rad = ((gps.cog == 65535) ? NAN : wrap_2pi(math::radians(gps.cog * 1e-2f)));
+	gps.hdop = 0; // TODO
+	gps.vdop = 0; // TODO
 
-	hil_gps.fix_type = gps.fix_type;
-	hil_gps.satellites_used = gps.satellites_visible;  //TODO: rename mavlink_hil_gps_t sats visible to used?
+	gps.noise_per_ms = 0;
+	gps.automatic_gain_control = 0;
+	gps.jamming_indicator = 0;
+	gps.jamming_state = 0;
 
-	hil_gps.heading = NAN;
-	hil_gps.heading_offset = NAN;
+	gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
+	gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
+	gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
+	gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
+	gps.cog_rad = ((hil_gps.cog == 65535) ? NAN : matrix::wrap_2pi(math::radians(hil_gps.cog * 1e-2f))); // cdeg -> rad
+	gps.vel_ned_valid = true;
 
-	_gps_pub.publish(hil_gps);
+	gps.timestamp_time_relative = 0;
+	gps.time_utc_usec = hil_gps.time_usec;
+
+	gps.satellites_used = hil_gps.satellites_visible;
+
+	gps.heading = NAN;
+	gps.heading_offset = NAN;
+
+	gps.timestamp = hrt_absolute_time();
+
+	_sensor_gps_pub.publish(gps);
 }
 
 void
@@ -2234,6 +2290,9 @@ MavlinkReceiver::handle_message_follow_target(mavlink_message_t *msg)
 	follow_target_topic.lat = follow_target_msg.lat * 1e-7;
 	follow_target_topic.lon = follow_target_msg.lon * 1e-7;
 	follow_target_topic.alt = follow_target_msg.alt;
+	follow_target_topic.vx = follow_target_msg.vel[0];
+	follow_target_topic.vy = follow_target_msg.vel[1];
+	follow_target_topic.vz = follow_target_msg.vel[2];
 
 	_follow_target_pub.publish(follow_target_topic);
 }
@@ -2254,6 +2313,11 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 		landing_target_pose.z_abs = landing_target.z;
 
 		_landing_target_pose_pub.publish(landing_target_pose);
+
+	} else if (landing_target.position_valid) {
+		// We only support MAV_FRAME_LOCAL_NED. In this case, the frame was unsupported.
+		mavlink_log_critical(&_mavlink_log_pub, "landing target: coordinate frame %d unsupported",
+				     landing_target.frame);
 
 	} else {
 		irlock_report_s irlock_report{};
@@ -2337,76 +2401,82 @@ MavlinkReceiver::handle_message_utm_global_position(mavlink_message_t *msg)
 	mavlink_utm_global_position_t utm_pos;
 	mavlink_msg_utm_global_position_decode(msg, &utm_pos);
 
-	px4_guid_t px4_guid;
+	bool is_self_published = false;
+
+
 #ifndef BOARD_HAS_NO_UUID
+	px4_guid_t px4_guid;
 	board_get_px4_guid(px4_guid);
+	is_self_published = sizeof(px4_guid) == sizeof(utm_pos.uas_id)
+			    && memcmp(px4_guid, utm_pos.uas_id, sizeof(px4_guid_t)) == 0;
 #else
-	// TODO Fill ID with something reasonable
-	memset(&px4_guid[0], 0, sizeof(px4_guid));
+
+	is_self_published = msg->sysid == _mavlink->get_system_id();
 #endif /* BOARD_HAS_NO_UUID */
 
 
 	//Ignore selfpublished UTM messages
-	if (sizeof(px4_guid) == sizeof(utm_pos.uas_id) && memcmp(px4_guid, utm_pos.uas_id, sizeof(px4_guid_t)) != 0) {
-
-		// Convert cm/s to m/s
-		float vx = utm_pos.vx / 100.0f;
-		float vy = utm_pos.vy / 100.0f;
-		float vz = utm_pos.vz / 100.0f;
-
-		transponder_report_s t{};
-		t.timestamp = hrt_absolute_time();
-		mav_array_memcpy(t.uas_id, utm_pos.uas_id, sizeof(px4_guid_t));
-		t.lat = utm_pos.lat * 1e-7;
-		t.lon = utm_pos.lon * 1e-7;
-		t.altitude = utm_pos.alt / 1000.0f;
-		t.altitude_type = ADSB_ALTITUDE_TYPE_GEOMETRIC;
-		// UTM_GLOBAL_POSIION uses NED (north, east, down) coordinates for velocity, in cm / s.
-		t.heading = atan2f(vy, vx);
-		t.hor_velocity = sqrtf(vy * vy + vx * vx);
-		t.ver_velocity = -vz;
-		// TODO: Callsign
-		// For now, set it to all 0s. This is a null-terminated string, so not explicitly giving it a null
-		// terminator could cause problems.
-		memset(&t.callsign[0], 0, sizeof(t.callsign));
-		t.emitter_type = ADSB_EMITTER_TYPE_UAV;  // TODO: Is this correct?x2?
-
-		// The Mavlink docs do not specify what to do if tslc (time since last communication) is out of range of
-		// an 8-bit int, or if this is the first communication.
-		// Here, I assume that if this is the first communication, tslc = 0.
-		// If tslc > 255, then tslc = 255.
-		unsigned long time_passed = (t.timestamp - _last_utm_global_pos_com) / 1000000;
-
-		if (_last_utm_global_pos_com == 0) {
-			time_passed = 0;
-
-		} else if (time_passed > UINT8_MAX) {
-			time_passed = UINT8_MAX;
-		}
-
-		t.tslc = (uint8_t) time_passed;
-
-		t.flags = 0;
-
-		if (utm_pos.flags & UTM_DATA_AVAIL_FLAGS_POSITION_AVAILABLE) {
-			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS;
-		}
-
-		if (utm_pos.flags & UTM_DATA_AVAIL_FLAGS_ALTITUDE_AVAILABLE) {
-			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
-		}
-
-		if (utm_pos.flags & UTM_DATA_AVAIL_FLAGS_HORIZONTAL_VELO_AVAILABLE) {
-			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING;
-			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
-		}
-
-		// Note: t.flags has deliberately NOT set VALID_CALLSIGN or VALID_SQUAWK, because UTM_GLOBAL_POSITION does not
-		// provide these.
-		_transponder_report_pub.publish(t);
-
-		_last_utm_global_pos_com = t.timestamp;
+	if (is_self_published) {
+		return;
 	}
+
+	// Convert cm/s to m/s
+	float vx = utm_pos.vx / 100.0f;
+	float vy = utm_pos.vy / 100.0f;
+	float vz = utm_pos.vz / 100.0f;
+
+	transponder_report_s t{};
+	t.timestamp = hrt_absolute_time();
+	mav_array_memcpy(t.uas_id, utm_pos.uas_id, PX4_GUID_BYTE_LENGTH);
+	t.lat = utm_pos.lat * 1e-7;
+	t.lon = utm_pos.lon * 1e-7;
+	t.altitude = utm_pos.alt / 1000.0f;
+	t.altitude_type = ADSB_ALTITUDE_TYPE_GEOMETRIC;
+	// UTM_GLOBAL_POSIION uses NED (north, east, down) coordinates for velocity, in cm / s.
+	t.heading = atan2f(vy, vx);
+	t.hor_velocity = sqrtf(vy * vy + vx * vx);
+	t.ver_velocity = -vz;
+	// TODO: Callsign
+	// For now, set it to all 0s. This is a null-terminated string, so not explicitly giving it a null
+	// terminator could cause problems.
+	memset(&t.callsign[0], 0, sizeof(t.callsign));
+	t.emitter_type = ADSB_EMITTER_TYPE_UAV;  // TODO: Is this correct?x2?
+
+	// The Mavlink docs do not specify what to do if tslc (time since last communication) is out of range of
+	// an 8-bit int, or if this is the first communication.
+	// Here, I assume that if this is the first communication, tslc = 0.
+	// If tslc > 255, then tslc = 255.
+	unsigned long time_passed = (t.timestamp - _last_utm_global_pos_com) / 1000000;
+
+	if (_last_utm_global_pos_com == 0) {
+		time_passed = 0;
+
+	} else if (time_passed > UINT8_MAX) {
+		time_passed = UINT8_MAX;
+	}
+
+	t.tslc = (uint8_t) time_passed;
+
+	t.flags = 0;
+
+	if (utm_pos.flags & UTM_DATA_AVAIL_FLAGS_POSITION_AVAILABLE) {
+		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS;
+	}
+
+	if (utm_pos.flags & UTM_DATA_AVAIL_FLAGS_ALTITUDE_AVAILABLE) {
+		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
+	}
+
+	if (utm_pos.flags & UTM_DATA_AVAIL_FLAGS_HORIZONTAL_VELO_AVAILABLE) {
+		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING;
+		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
+	}
+
+	// Note: t.flags has deliberately NOT set VALID_CALLSIGN or VALID_SQUAWK, because UTM_GLOBAL_POSITION does not
+	// provide these.
+	_transponder_report_pub.publish(t);
+
+	_last_utm_global_pos_com = t.timestamp;
 }
 
 void
@@ -3053,8 +3123,9 @@ MavlinkReceiver::Run()
 							}
 						}
 
-						if (!px4_comp_id_found) {
+						if (!px4_comp_id_found && !_reported_unsupported_comp_id) {
 							PX4_WARN("unsupported component id, msgid: %d, sysid: %d compid: %d", msg.msgid, msg.sysid, msg.compid);
+							_reported_unsupported_comp_id = true;
 						}
 
 						if (px4_comp_id_found && px4_sysid_index_found) {

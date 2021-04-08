@@ -35,8 +35,25 @@
 #include "math_helpers.h"
 #include <iostream>
 #include <future>
+#include <thread>
+#include <unistd.h>
 
 std::string connection_url {"udp://"};
+std::optional<float> speed_factor {std::nullopt};
+
+AutopilotTester::AutopilotTester() :
+	_real_time_report_thread([this]()
+{
+	report_speed_factor();
+})
+{
+}
+
+AutopilotTester::~AutopilotTester()
+{
+	_should_exit = true;
+	_real_time_report_thread.join();
+}
 
 void AutopilotTester::connect(const std::string uri)
 {
@@ -54,6 +71,7 @@ void AutopilotTester::connect(const std::string uri)
 	_info.reset(new Info(system));
 	_manual_control.reset(new ManualControl(system));
 	_mission.reset(new Mission(system));
+	_mission_raw.reset(new MissionRaw(system));
 	_offboard.reset(new Offboard(system));
 	_param.reset(new Param(system));
 	_telemetry.reset(new Telemetry(system));
@@ -203,10 +221,7 @@ void AutopilotTester::execute_mission()
 	std::promise<void> prom;
 	auto fut = prom.get_future();
 
-	_mission->start_mission_async([&prom](Mission::Result result) {
-		REQUIRE(Mission::Result::Success == result);
-		prom.set_value();
-	});
+	REQUIRE(_mission->start_mission() == Mission::Result::Success);
 
 	// TODO: Adapt time limit based on mission size, flight speed, sim speed factor, etc.
 
@@ -309,6 +324,28 @@ Mission::MissionItem  AutopilotTester::create_mission_item(
 	mission_item.relative_altitude_m = mission_options.relative_altitude_m;
 	mission_item.is_fly_through = mission_options.fly_through;
 	return mission_item;
+}
+
+void AutopilotTester::load_qgc_mission_raw_and_move_here(const std::string &plan_file)
+{
+	auto import_result = _mission_raw->import_qgroundcontrol_mission(plan_file);
+	REQUIRE(import_result.first == MissionRaw::Result::Success);
+
+	move_mission_raw_here(import_result.second.mission_items);
+
+	REQUIRE(_mission_raw->upload_mission(import_result.second.mission_items) == MissionRaw::Result::Success);
+}
+
+void AutopilotTester::execute_mission_raw()
+{
+	std::promise<void> prom;
+	auto fut = prom.get_future();
+
+	REQUIRE(_mission->start_mission() == Mission::Result::Success);
+
+	// TODO: Adapt time limit based on mission size, flight speed, sim speed factor, etc.
+
+	wait_for_mission_raw_finished(std::chrono::seconds(120));
 }
 
 void AutopilotTester::execute_rtl()
@@ -602,4 +639,59 @@ void AutopilotTester::wait_for_mission_finished(std::chrono::seconds timeout)
 	});
 
 	REQUIRE(fut.wait_for(timeout) == std::future_status::ready);
+}
+
+void AutopilotTester::wait_for_mission_raw_finished(std::chrono::seconds timeout)
+{
+	auto prom = std::promise<void> {};
+	auto fut = prom.get_future();
+
+	_mission_raw->subscribe_mission_progress([&prom, this](MissionRaw::MissionProgress progress) {
+		if (progress.current == progress.total) {
+			_mission_raw->subscribe_mission_progress(nullptr);
+			prom.set_value();
+		}
+	});
+
+	REQUIRE(fut.wait_for(timeout) == std::future_status::ready);
+}
+
+void AutopilotTester::move_mission_raw_here(std::vector<MissionRaw::MissionItem> &mission_items)
+{
+	const auto position = _telemetry->position();
+	REQUIRE(std::isfinite(position.latitude_deg));
+	REQUIRE(std::isfinite(position.longitude_deg));
+
+	auto offset_x = mission_items[0].x - static_cast<int32_t>(1e7 * position.latitude_deg);
+	auto offset_y = mission_items[1].y - static_cast<int32_t>(1e7 * position.longitude_deg);
+
+	for (auto &item : mission_items) {
+		if (item.frame == 3) { // MAV_FRAME_GLOBAL_RELATIVE_ALT
+			item.x -= offset_x;
+		}
+
+		item.y -= offset_y;
+	}
+}
+
+void AutopilotTester::report_speed_factor()
+{
+	// We check the exit flag more often than the speed factor.
+	unsigned counter = 0;
+
+	while (!_should_exit) {
+		if (counter++ % 10 == 0) {
+			if (_info != nullptr) {
+				std::cout << "Current speed factor: " << _info->get_speed_factor().second ;
+
+				if (speed_factor.has_value()) {
+					std::cout << " (set: " << speed_factor.value() << ')';
+				}
+
+				std::cout << '\n';
+			}
+		}
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
 }
