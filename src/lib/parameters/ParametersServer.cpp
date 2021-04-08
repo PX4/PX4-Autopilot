@@ -106,4 +106,82 @@ void ParametersServer::Run()
 	if (ret != 0) {
 		PX4_ERR("param auto save failed (%i)", ret);
 	}
+
+	// Check for parameter requests (get/set/list)
+	if (_param_request_sub.updated()) {
+		parameter_request_s request{};
+		param_request_sub.copy(&request);
+
+		/*
+		 * We know how many parameters are exposed by this node, so
+		 * process the request.
+		 */
+		if (request.message_type == parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_READ) {
+			parameter_value_s parameter_value{};
+
+			if (request.param_index >= 0) {
+				param_for_index(request.param_index);
+
+			} else {
+				param_find(&request.param_id);
+			}
+
+			int call_res = _param_getset_client.call(request.node_id, req);
+
+			if (call_res < 0) {
+				PX4_ERR("couldn't send GetSet: %d", call_res);
+
+			} else {
+				_param_in_progress = true;
+				_param_index = request.param_index;
+			}
+
+		} else if (request.message_type == parameter_request_s::MESSAGE_TYPE_PARAM_SET) {
+			uavcan::protocol::param::GetSet::Request req;
+
+			if (request.param_index >= 0) {
+				req.index = request.param_index;
+
+			} else {
+				req.name = (char *)request.param_id;
+			}
+
+			if (request.param_type == parameter_request_s::TYPE_REAL32) {
+				req.value.to<uavcan::protocol::param::Value::Tag::real_value>() = request.real_value;
+
+			} else if (request.param_type == parameter_request_s::TYPE_UINT8) {
+				req.value.to<uavcan::protocol::param::Value::Tag::boolean_value>() = request.int_value;
+
+			} else {
+				req.value.to<uavcan::protocol::param::Value::Tag::integer_value>() = request.int_value;
+			}
+
+		} else if (request.message_type == parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_LIST) {
+			// This triggers the _param_list_in_progress case below.
+			_param_index = 0;
+			_param_list_in_progress = true;
+			_param_list_node_id = request.node_id;
+			_param_list_all_nodes = false;
+
+			PX4_DEBUG("starting component-specific param list");
+
+		} else if (request.node_id == parameter_request_s::NODE_ID_ALL) {
+			if (request.message_type == parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_LIST) {
+				/*
+				 * This triggers the _param_list_in_progress case below,
+				 * but additionally iterates over all active nodes.
+				 */
+				_param_index = 0;
+				_param_list_in_progress = true;
+				_param_list_node_id = get_next_active_node_id(0);
+				_param_list_all_nodes = true;
+
+				PX4_DEBUG("starting global param list with node %hhu", _param_list_node_id);
+
+				if (_param_counts[_param_list_node_id] == 0) {
+					param_count(_param_list_node_id);
+				}
+			}
+		}
+	}
 }

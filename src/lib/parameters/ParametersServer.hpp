@@ -35,6 +35,11 @@
 
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
+#include <uORB/topics/parameter_request.h>
+#include <uORB/topics/parameter_value.h>
+#include <uORB/Publication.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+
 /**
  * Automatically save the parameters after a timeout and limited rate.
  *
@@ -56,7 +61,11 @@ public:
 	static void print_status();
 
 private:
+	void Run() override;
+
 	hrt_abstime _last_autosave_timestamp{0};
 
-	void Run() override;
+	uORB::Publication<parameter_value_s> _param_response_pub{ORB_ID(parameter_value)};
+	uORB::Subscription _param_request_sub{ORB_ID(uavcan_parameter_request)};
+
 };
