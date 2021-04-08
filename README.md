@@ -17,7 +17,7 @@ PX4 is highly portable, OS-independent and supports Linux, NuttX and QuRT out of
   * [VTOL](https://docs.px4.io/master/en/frames_vtol/)
   * [Autogyro](https://docs.px4.io/master/en/frames_autogyro/)
   * [Rover](https://docs.px4.io/master/en/frames_rover/)
-  * many more experimental types (Blimps, Boats, Submarines, [High altitude balloon](https://github.com/PX4/PX4-Autopilot/pull/16632), etc)
+  * many more experimental types (Blimps, Boats, Submarines, High altitude balloons, etc)
 * Releases: [Downloads](https://github.com/PX4/PX4-Autopilot/releases)
 
 
