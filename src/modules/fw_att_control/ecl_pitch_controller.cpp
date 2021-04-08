@@ -120,9 +120,8 @@ float ECL_PitchController::control_bodyrate(const float dt, const ECL_ControlDat
 		filter_input = ctl_data.body_y_rate * _k_p * ctl_data.scaler * ctl_data.scaler;
 	}
 	const float filt_tconst = _tc / 2.0f;
-	const float filt_coef = fminf(dt, filt_tconst) / filt_tconst;
-	_gyro_contribution_lpf = (1.0f - filt_coef) * _gyro_contribution_lpf + filt_coef * filter_input;
-	const float gyro_term_hpf = filter_input - _gyro_contribution_lpf;
+	_gyro_contribution_lpf.setAlpha(fminf(dt, filt_tconst) / filt_tconst);
+	const float gyro_term_hpf = filter_input - _gyro_contribution_lpf.update(filter_input);;
 
 	// Calculate the actuator slew rate due to gyro feedback
 	const float gyro_term_slew_rate = (gyro_term_hpf - _last_gyro_term_hpf) / dt;
