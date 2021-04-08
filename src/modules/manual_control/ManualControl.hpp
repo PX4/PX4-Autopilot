@@ -46,6 +46,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include "ManualControlSelector.hpp"
 
 using namespace time_literals;
 
@@ -92,14 +93,11 @@ private:
 		{this, ORB_ID(manual_control_input), 2},
 	};
 
-	manual_control_input_s _manual_control_input[MAX_MANUAL_INPUT_COUNT] {};
-
-	bool _available[MAX_MANUAL_INPUT_COUNT] {};
-
-	int8_t _selected_manual_input{-1};
-
 	systemlib::Hysteresis _stick_arm_hysteresis{false};
 	systemlib::Hysteresis _stick_disarm_hysteresis{false};
+
+	ManualControlSelector _selector;
+	bool _published_invalid_once{false};
 
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
@@ -112,4 +110,4 @@ private:
 		(ParamInt<px4::params::COM_RC_ARM_HYST>) _param_rc_arm_hyst
 	)
 };
-}; // namespace manual_control
+} // namespace manual_control

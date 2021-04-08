@@ -2,6 +2,8 @@ uint64 timestamp                        # time since system start (microseconds)
 
 uint64 timestamp_sample                 # the timestamp of the raw data (microseconds)
 
+bool valid
+
 uint8 SOURCE_UNKNOWN   = 0
 uint8 SOURCE_RC        = 1		# radio control (input_rc)
 uint8 SOURCE_MAVLINK_0 = 2		# mavlink instance 0
