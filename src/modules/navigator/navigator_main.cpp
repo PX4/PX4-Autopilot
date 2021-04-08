@@ -824,6 +824,13 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 		}
 
 		_geofence_result_pub.publish(_geofence_result);
+
+	} else if (_geofence.getGeofenceAction() == geofence_result_s::GF_ACTION_NONE) {
+		_geofence_result.timestamp = hrt_absolute_time();
+		_geofence_result.geofence_action = _geofence.getGeofenceAction();
+		_geofence_result.home_required = false;
+		_geofence_result.geofence_violated = false;
+		_geofence_result_pub.publish(_geofence_result);
 	}
 }
 

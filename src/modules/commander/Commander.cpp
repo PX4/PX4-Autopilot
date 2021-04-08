@@ -2197,6 +2197,7 @@ Commander::run()
 			_geofence_land_on = false;
 			_geofence_warning_action_on = false;
 			_geofence_violated_prev = false;
+			set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GEOFENCE, true, _status);
 		}
 
 		/* Check for mission flight termination */
