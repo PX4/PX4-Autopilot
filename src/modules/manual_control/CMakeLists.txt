@@ -39,6 +39,10 @@ px4_add_module(
 	ManualControl.cpp
 		ManualControl.cpp
 		ManualControl.hpp
+		ManualControlSelector.hpp
+		ManualControlSelector.cpp
 	DEPENDS
 		px4_work_queue
 	)
+
+px4_add_unit_gtest(SRC ManualControlSelectorTest.cpp LINKLIBS module__manual_control)

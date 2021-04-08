@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -77,108 +77,76 @@ void ManualControl::Run()
 
 		_stick_arm_hysteresis.set_hysteresis_time_from(false, _param_rc_arm_hyst.get() * 1_ms);
 		_stick_disarm_hysteresis.set_hysteresis_time_from(false, _param_rc_arm_hyst.get() * 1_ms);
+
+		_selector.set_rc_in_mode(_param_com_rc_in_mode.get());
+		_selector.set_timeout(_param_com_rc_loss_t.get() * 1_s);
 	}
 
-	const hrt_abstime rc_timeout = _param_com_rc_loss_t.get() * 1_s;
-
-	bool publish_once = false;
-	int selected_manual_input = -1;
+	bool found_at_least_one = false;
+	const hrt_abstime now = hrt_absolute_time();
 
 	for (int i = 0; i < MAX_MANUAL_INPUT_COUNT; i++) {
 		manual_control_input_s manual_control_input;
 
 		if (_manual_control_input_subs[i].update(&manual_control_input)) {
 
-			bool publish = false;
+			found_at_least_one = true;
 
-			if ((_param_com_rc_in_mode.get() == 0)
-			    && (manual_control_input.data_source == manual_control_input_s::SOURCE_RC)) {
+			_selector.update_manual_control_input(now, manual_control_input);
 
-				publish = true;
-
-			} else if ((_param_com_rc_in_mode.get() == 1)
-				   && (manual_control_input.data_source >= manual_control_input_s::SOURCE_MAVLINK_0)) {
-
-				publish = true;
-
-			} else {
-				// otherwise, first come, first serve (REVIEW)
-				publish = true;
-			}
-
-
-			bool available = (hrt_elapsed_time(&manual_control_input.timestamp) < rc_timeout)
-					 && (hrt_elapsed_time(&_manual_control_input[i].timestamp) < rc_timeout);
-
-			if (publish && available && !publish_once) {
-				const float dt_inv = 1e6f / static_cast<float>(manual_control_input.timestamp_sample -
-						     _manual_control_input[i].timestamp_sample);
-
-				manual_control_setpoint_s manual_control_setpoint{};
-
-				manual_control_setpoint.timestamp_sample = manual_control_input.timestamp_sample;
-				manual_control_setpoint.x = manual_control_input.x;
-				manual_control_setpoint.y = manual_control_input.y;
-				manual_control_setpoint.z = manual_control_input.z;
-				manual_control_setpoint.r = manual_control_input.r;
-				manual_control_setpoint.vx = (manual_control_input.x - _manual_control_input[i].x) * dt_inv;
-				manual_control_setpoint.vy = (manual_control_input.y - _manual_control_input[i].y) * dt_inv;
-				manual_control_setpoint.vz = (manual_control_input.z - _manual_control_input[i].z) * dt_inv;
-				manual_control_setpoint.vr = (manual_control_input.r - _manual_control_input[i].r) * dt_inv;
-				manual_control_setpoint.flaps = manual_control_input.flaps;
-				manual_control_setpoint.aux1 = manual_control_input.aux1;
-				manual_control_setpoint.aux2 = manual_control_input.aux2;
-				manual_control_setpoint.aux3 = manual_control_input.aux3;
-				manual_control_setpoint.aux4 = manual_control_input.aux4;
-				manual_control_setpoint.aux5 = manual_control_input.aux5;
-				manual_control_setpoint.aux6 = manual_control_input.aux6;
-				manual_control_setpoint.data_source = manual_control_input.data_source;
-
-
-				// user arm/disarm gesture
-				const bool right_stick_centered = (fabsf(manual_control_input.x) < 0.1f) && (fabsf(manual_control_input.y) < 0.1f);
-				const bool stick_lower_left = (manual_control_input.z < 0.1f) && (manual_control_input.r < -0.9f);
-				const bool stick_lower_right = (manual_control_input.z < 0.1f) && (manual_control_input.r > 0.9f);
-
-				_stick_arm_hysteresis.set_state_and_update(stick_lower_right && right_stick_centered, manual_control_input.timestamp);
-				_stick_disarm_hysteresis.set_state_and_update(stick_lower_left && right_stick_centered, manual_control_input.timestamp);
-				manual_control_setpoint.arm_gesture = _stick_arm_hysteresis.get_state();
-				manual_control_setpoint.disarm_gesture = _stick_disarm_hysteresis.get_state();
-
-
-				// user wants override
-				const float minimum_stick_change = 0.01f * _param_com_rc_stick_ov.get();
-				const bool rpy_moved = (fabsf(manual_control_input.x - _manual_control_input[i].x) > minimum_stick_change)
-						       || (fabsf(manual_control_input.y - _manual_control_input[i].y) > minimum_stick_change)
-						       || (fabsf(manual_control_input.r - _manual_control_input[i].r) > minimum_stick_change);
-
-				// Throttle change value doubled to achieve the same scaling even though the range is [0,1] instead of [-1,1]
-				const bool throttle_moved = (fabsf(manual_control_input.z - _manual_control_input[i].z) * 2.f > minimum_stick_change);
-				const bool use_throttle = !(_param_rc_override.get() & OverrideBits::OVERRIDE_IGNORE_THROTTLE_BIT);
-
-				manual_control_setpoint.user_override = rpy_moved || (use_throttle && throttle_moved);
-
-
-				manual_control_setpoint.timestamp = hrt_absolute_time();
-				_manual_control_setpoint_pub.publish(manual_control_setpoint);
-				publish_once = true;
-
-				selected_manual_input = i;
-			}
-
-			_manual_control_input[i] = manual_control_input;
-			_available[i] = available;
 		}
 	}
 
-	if ((selected_manual_input >= 0) && (selected_manual_input != _selected_manual_input)) {
-		if (_selected_manual_input >= 0) {
-			PX4_INFO("selected manual_control_input changed %d -> %d", _selected_manual_input, selected_manual_input);
-		}
-
-		_manual_control_input_subs[selected_manual_input].registerCallback();
-		_selected_manual_input = selected_manual_input;
+	if (!found_at_least_one) {
+		_selector.update_time_only(now);
 	}
+
+	if (_selector.setpoint().valid) {
+		_published_invalid_once = false;
+
+		// user arm/disarm gesture
+		const bool right_stick_centered = (fabsf(_selector.setpoint().x) < 0.1f) && (fabsf(_selector.setpoint().y) < 0.1f);
+		const bool stick_lower_left = (_selector.setpoint().z < 0.1f) && (_selector.setpoint().r < -0.9f);
+		const bool stick_lower_right = (_selector.setpoint().z < 0.1f) && (_selector.setpoint().r > 0.9f);
+
+		_stick_arm_hysteresis.set_state_and_update(stick_lower_right && right_stick_centered, _selector.setpoint().timestamp);
+		_stick_disarm_hysteresis.set_state_and_update(stick_lower_left && right_stick_centered, _selector.setpoint().timestamp);
+		_selector.setpoint().arm_gesture = _stick_arm_hysteresis.get_state();
+		_selector.setpoint().disarm_gesture = _stick_disarm_hysteresis.get_state();
+
+
+		// user wants override
+		//const float minimum_stick_change = 0.01f * _param_com_rc_stick_ov.get();
+
+		// FIXME: we need previous
+		//const bool rpy_moved = (fabsf(_selector.setpoint().x - _manual_control_input[i].x) > minimum_stick_change)
+		//		       || (fabsf(_selector.setpoint().y - _manual_control_input[i].y) > minimum_stick_change)
+		//		       || (fabsf(_selector.setpoint().r - _manual_control_input[i].r) > minimum_stick_change);
+
+		// Throttle change value doubled to achieve the same scaling even though the range is [0,1] instead of [-1,1]
+		//const bool throttle_moved = (fabsf(_selector.setpoint().z - _manual_control_input[i].z) * 2.f > minimum_stick_change);
+		//const bool use_throttle = !(_param_rc_override.get() & OverrideBits::OVERRIDE_IGNORE_THROTTLE_BIT);
+
+		//_selector.setpoint().user_override = rpy_moved || (use_throttle && throttle_moved);
+
+
+		_selector.setpoint().timestamp = now;
+		_manual_control_setpoint_pub.publish(_selector.setpoint());
+
+	} else {
+		_published_invalid_once = true;
+		_manual_control_setpoint_pub.publish(_selector.setpoint());
+	}
+
+	// FIXME: get from selector
+	//if ((selected_manual_input >= 0) && (selected_manual_input != _selected_manual_input)) {
+	//	if (_selected_manual_input >= 0) {
+	//		PX4_INFO("selected manual_control_input changed %d -> %d", _selected_manual_input, selected_manual_input);
+	//	}
+
+	//	_manual_control_input_subs[selected_manual_input].registerCallback();
+	//	_selected_manual_input = selected_manual_input;
+	//}
 
 	// reschedule timeout
 	ScheduleDelayed(200_ms);
