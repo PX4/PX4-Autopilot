@@ -151,6 +151,8 @@ if (NOT "${PX4_BOARD}" MATCHES "px4_io")
 	add_library(parameters
 		${SRCS}
 		px4_parameters.hpp
+		ParametersServer.cpp
+		ParametersServer.hpp
 	)
 
 	target_link_libraries(parameters PRIVATE perf tinybson px4_layer)

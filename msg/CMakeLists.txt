@@ -148,8 +148,8 @@ set(msg_files
 	trajectory_waypoint.msg
 	transponder_report.msg
 	tune_control.msg
-	uavcan_parameter_request.msg
-	uavcan_parameter_value.msg
+	parameter_request.msg
+	parameter_value.msg
 	ulog_stream.msg
 	ulog_stream_ack.msg
 	vehicle_acceleration.msg

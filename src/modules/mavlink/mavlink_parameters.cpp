@@ -80,7 +80,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 			if (req_list.target_system == mavlink_system.sysid && req_list.target_component < 127 &&
 			    (req_list.target_component != mavlink_system.compid || req_list.target_component == MAV_COMP_ID_ALL)) {
 				// publish list request to UAVCAN driver via uORB.
-				uavcan_parameter_request_s req{};
+				parameter_request_s req{};
 				req.message_type = msg->msgid;
 				req.node_id = req_list.target_component;
 				req.param_index = 0;
@@ -140,7 +140,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 			if (set.target_system == mavlink_system.sysid && set.target_component < 127 &&
 			    (set.target_component != mavlink_system.compid || set.target_component == MAV_COMP_ID_ALL)) {
 				// publish set request to UAVCAN driver via uORB.
-				uavcan_parameter_request_s req{};
+				parameter_request_s req{};
 				req.message_type = msg->msgid;
 				req.node_id = set.target_component;
 				req.param_index = -1;
@@ -219,7 +219,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 			if (req_read.target_system == mavlink_system.sysid && req_read.target_component < 127 &&
 			    (req_read.target_component != mavlink_system.compid || req_read.target_component == MAV_COMP_ID_ALL)) {
 				// publish set request to UAVCAN driver via uORB.
-				uavcan_parameter_request_s req{};
+				parameter_request_s req{};
 				req.timestamp = hrt_absolute_time();
 				req.message_type = msg->msgid;
 				req.node_id = req_read.target_component;
@@ -406,7 +406,7 @@ bool
 MavlinkParametersManager::send_uavcan()
 {
 	/* Send parameter values received from the UAVCAN topic */
-	uavcan_parameter_value_s value{};
+	parameter_value_s value{};
 
 	if (_uavcan_parameter_value_sub.update(&value)) {
 
@@ -593,7 +593,7 @@ void MavlinkParametersManager::request_next_uavcan_parameter()
 {
 	// Request a parameter if we are not already waiting on a response and if the list is not empty
 	if (!_uavcan_waiting_for_request_response && _uavcan_open_request_list != nullptr) {
-		uavcan_parameter_request_s req = _uavcan_open_request_list->req;
+		parameter_request_s req = _uavcan_open_request_list->req;
 
 		_uavcan_parameter_request_pub.publish(req);
 
@@ -601,7 +601,7 @@ void MavlinkParametersManager::request_next_uavcan_parameter()
 	}
 }
 
-void MavlinkParametersManager::enque_uavcan_request(uavcan_parameter_request_s *req)
+void MavlinkParametersManager::enque_uavcan_request(parameter_request_s *req)
 {
 	// We store at max 10 requests to keep memory consumption low.
 	// Dropped requests will be repeated by the ground station

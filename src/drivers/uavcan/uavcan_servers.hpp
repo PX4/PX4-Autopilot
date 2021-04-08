@@ -38,7 +38,7 @@
 #include <drivers/device/Device.hpp>
 #include <lib/perf/perf_counter.h>
 #include <uORB/Publication.hpp>
-#include <uORB/topics/uavcan_parameter_value.h>
+#include <uORB/topics/parameter_value.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
 #include <uavcan/node/sub_node.hpp>
@@ -162,7 +162,7 @@ private:
 	bool _cmd_in_progress = false;
 
 	// uORB topic handle for MAVLink parameter responses
-	uORB::Publication<uavcan_parameter_value_s> _param_response_pub{ORB_ID(uavcan_parameter_value)};
+	uORB::Publication<parameter_value_s> _param_response_pub{ORB_ID(uavcan_parameter_value)};
 	uORB::Publication<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	typedef uavcan::MethodBinder<UavcanServers *,

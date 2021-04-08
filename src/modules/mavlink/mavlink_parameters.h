@@ -49,8 +49,8 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/rc_parameter_map.h>
-#include <uORB/topics/uavcan_parameter_request.h>
-#include <uORB/topics/uavcan_parameter_value.h>
+#include <uORB/topics/parameter_request.h>
+#include <uORB/topics/parameter_value.h>
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_hrt.h>
 
@@ -105,8 +105,8 @@ protected:
 
 	// Item of a single-linked list to store requested uavcan parameters
 	struct _uavcan_open_request_list_item {
-		uavcan_parameter_request_s req;
-		struct _uavcan_open_request_list_item *next;
+		parameter_request_s req{};
+		_uavcan_open_request_list_item *next{nullptr};
 	};
 
 	/**
@@ -117,7 +117,7 @@ protected:
 	/**
 	 * Enqueue one uavcan parameter reqest. We store 10 at max.
 	 */
-	void enque_uavcan_request(uavcan_parameter_request_s *req);
+	void enque_uavcan_request(parameter_request_s *req);
 
 	/**
 	 * Drop the first reqest from the list
@@ -131,22 +131,22 @@ protected:
 	uORB::Publication<rc_parameter_map_s>	_rc_param_map_pub{ORB_ID(rc_parameter_map)};
 	rc_parameter_map_s _rc_param_map{};
 
-	uORB::Publication<uavcan_parameter_request_s> _uavcan_parameter_request_pub{ORB_ID(uavcan_parameter_request)};
+	uORB::Publication<parameter_request_s> _uavcan_parameter_request_pub{ORB_ID(uavcan_parameter_request)};
 	// enforce ORB_ID(uavcan_parameter_request) constants that map to MAVLINK defines
-	static_assert(uavcan_parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_READ == MAVLINK_MSG_ID_PARAM_REQUEST_READ,
-		      "uavcan_parameter_request_s MAVLINK_MSG_ID_PARAM_REQUEST_READ constant mismatch");
-	static_assert(uavcan_parameter_request_s::MESSAGE_TYPE_PARAM_SET == MAVLINK_MSG_ID_PARAM_SET,
-		      "uavcan_parameter_request_s MAVLINK_MSG_ID_PARAM_SET constant mismatch");
-	static_assert(uavcan_parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_LIST == MAVLINK_MSG_ID_PARAM_REQUEST_LIST,
-		      "uavcan_parameter_request_s MAVLINK_MSG_ID_PARAM_REQUEST_LIST constant mismatch");
-	static_assert(uavcan_parameter_request_s::NODE_ID_ALL == MAV_COMP_ID_ALL,
-		      "uavcan_parameter_request_s MAV_COMP_ID_ALL constant mismatch");
-	static_assert(uavcan_parameter_request_s::PARAM_TYPE_UINT8 == MAV_PARAM_TYPE_UINT8,
-		      "uavcan_parameter_request_s MAV_PARAM_TYPE_UINT8 constant mismatch");
-	static_assert(uavcan_parameter_request_s::PARAM_TYPE_REAL32 == MAV_PARAM_TYPE_REAL32,
-		      "uavcan_parameter_request_s MAV_PARAM_TYPE_REAL32 constant mismatch");
-	static_assert(uavcan_parameter_request_s::PARAM_TYPE_INT64 == MAV_PARAM_TYPE_INT64,
-		      "uavcan_parameter_request_s MAV_PARAM_TYPE_INT64 constant mismatch");
+	static_assert(parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_READ == MAVLINK_MSG_ID_PARAM_REQUEST_READ,
+		      "parameter_request_s MAVLINK_MSG_ID_PARAM_REQUEST_READ constant mismatch");
+	static_assert(parameter_request_s::MESSAGE_TYPE_PARAM_SET == MAVLINK_MSG_ID_PARAM_SET,
+		      "parameter_request_s MAVLINK_MSG_ID_PARAM_SET constant mismatch");
+	static_assert(parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_LIST == MAVLINK_MSG_ID_PARAM_REQUEST_LIST,
+		      "parameter_request_s MAVLINK_MSG_ID_PARAM_REQUEST_LIST constant mismatch");
+	static_assert(parameter_request_s::NODE_ID_ALL == MAV_COMP_ID_ALL,
+		      "parameter_request_s MAV_COMP_ID_ALL constant mismatch");
+	static_assert(parameter_request_s::TYPE_UINT8 == MAV_PARAM_TYPE_UINT8,
+		      "parameter_request_s MAV_PARAM_TYPE_UINT8 constant mismatch");
+	static_assert(parameter_request_s::TYPE_REAL32 == MAV_PARAM_TYPE_REAL32,
+		      "parameter_request_s MAV_PARAM_TYPE_REAL32 constant mismatch");
+	static_assert(parameter_request_s::TYPE_INT64 == MAV_PARAM_TYPE_INT64,
+		      "parameter_request_s MAV_PARAM_TYPE_INT64 constant mismatch");
 
 	uORB::Subscription _uavcan_parameter_value_sub{ORB_ID(uavcan_parameter_value)};
 
