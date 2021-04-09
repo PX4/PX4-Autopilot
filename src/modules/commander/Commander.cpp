@@ -746,7 +746,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 						switch (custom_sub_mode) {
 						case PX4_CUSTOM_SUB_MODE_POSCTL_HEADLESS:
-							main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL_HEADLESS, _status_flags, _internal_state);
+							main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL_HEADLESS, _status_flags,
+											 _internal_state);
 							break;
 
 						default:
