@@ -154,7 +154,7 @@ if (NOT "${PX4_BOARD}" MATCHES "px4_io")
 	)
 
 	target_link_libraries(parameters PRIVATE perf tinybson px4_layer)
-	target_compile_definitions(parameters PRIVATE -DMODULE_NAME="parameters")
+	target_compile_definitions(parameters PRIVATE -DMODULE_NAME="parameters" -DDEBUG_BUILD)
 	target_compile_options(parameters
 		PRIVATE
 			-Wno-cast-align		# TODO: fix and enable

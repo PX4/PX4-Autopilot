@@ -41,10 +41,16 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+/* The path to the Battery Backed up SRAM */
+#define BBSRAM_PATH "/fs/bbr"
+
 #define HARDFAULT_REBOOT_FILENO 0
 #define HARDFAULT_REBOOT_PATH BBSRAM_PATH "" STRINGIFY(HARDFAULT_REBOOT_FILENO)
+
 #define HARDFAULT_ULOG_FILENO 3
 #define HARDFAULT_ULOG_PATH BBSRAM_PATH "" STRINGIFY(HARDFAULT_ULOG_FILENO)
+
 #define HARDFAULT_FILENO 4
 #define HARDFAULT_PATH BBSRAM_PATH "" STRINGIFY(HARDFAULT_FILENO)
 
@@ -63,20 +69,18 @@
  */
 #define BBSRAM_HEADER_SIZE 20 /* This is an assumption */
 #define BBSRAM_USED ((5*BBSRAM_HEADER_SIZE)+(BBSRAM_SIZE_FN0+BBSRAM_SIZE_FN1+BBSRAM_SIZE_FN2+BBSRAM_SIZE_FN3))
-#define BBSRAM_REAMINING (PX4_BBSRAM_SIZE-BBSRAM_USED)
+#define BBSRAM_REMAINING (PX4_BBSRAM_SIZE-BBSRAM_USED)
 #if CONFIG_ARCH_INTERRUPTSTACK <= 3
 #  define BBSRAM_NUMBER_STACKS 1
 #else
 #  define BBSRAM_NUMBER_STACKS 2
 #endif
 #define BBSRAM_FIXED_ELEMENTS_SIZE (sizeof(info_s))
-#define BBSRAM_LEFTOVER (BBSRAM_REAMINING-BBSRAM_FIXED_ELEMENTS_SIZE)
+#define BBSRAM_LEFTOVER (BBSRAM_REMAINING-BBSRAM_FIXED_ELEMENTS_SIZE)
 
 #define CONFIG_ISTACK_SIZE (BBSRAM_LEFTOVER/BBSRAM_NUMBER_STACKS/sizeof(stack_word_t))
 #define CONFIG_USTACK_SIZE (BBSRAM_LEFTOVER/BBSRAM_NUMBER_STACKS/sizeof(stack_word_t))
 
-/* The path to the Battery Backed up SRAM */
-#define BBSRAM_PATH "/fs/bbr"
 /* The sizes of the files to create (-1) use rest of BBSRAM memory */
 #define BSRAM_FILE_SIZES { \
 		BBSRAM_SIZE_FN0,   /* For Time stamp only */                  \
@@ -256,15 +260,13 @@ typedef struct {
 	fault_regs_s          fault_regs;             /* NVIC status */
 	stack_t               stacks;                 /* Stack info */
 #if CONFIG_TASK_NAME_SIZE > 0
-	char                  name[CONFIG_TASK_NAME_SIZE + 1]; /* Task name (with NULL
-													* terminator) */
+	char                  name[CONFIG_TASK_NAME_SIZE + 1]; /* Task name (with NULL terminator) */
 #endif
-	char                  filename[MAX_FILE_PATH_LENGTH]; /* the Last of chars in
-												  * __FILE__ to up_assert */
+	char                  filename[MAX_FILE_PATH_LENGTH]; /* the Last of chars in __FILE__ to up_assert */
 } info_s;
 
 typedef struct {
-	info_s    info;                       /* The info */
+	info_s    info;                 /* The info */
 #if CONFIG_ARCH_INTERRUPTSTACK > 3      /* The amount of stack data is compile time
 									 * sized backed on what is left after the
 									 * other BBSRAM files are defined

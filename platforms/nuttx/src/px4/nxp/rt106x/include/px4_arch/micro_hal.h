@@ -82,10 +82,6 @@ __BEGIN_DECLS
 #define PX4_CPU_UUID_WORD32_FORMAT_SIZE         (PX4_CPU_UUID_WORD32_LENGTH-1+(2*PX4_CPU_UUID_BYTE_LENGTH)+1)
 #define PX4_CPU_MFGUID_FORMAT_SIZE              ((2*PX4_CPU_MFGUID_BYTE_LENGTH)+1)
 
-#define imxrt_bbsram_savepanic(fileno, context, length) (0) // todo:Not implemented yet
-
-#define px4_savepanic(fileno, context, length)   imxrt_bbsram_savepanic(fileno, context, length)
-
 /* bus_num is 1 based on imx and must be translated from the legacy one based */
 
 #define PX4_BUS_OFFSET       0                  /* imxrt buses are 1 based no adjustment needed */

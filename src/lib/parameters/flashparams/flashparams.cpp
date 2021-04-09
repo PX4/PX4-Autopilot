@@ -117,7 +117,7 @@ param_export_internal(bool only_unsaved, param_filter_func filter)
 		case PARAM_TYPE_INT32:
 			i = s->val.i;
 
-			if (bson_encoder_append_int(&encoder, param_name(s->param), i)) {
+			if (bson_encoder_append_int32(&encoder, param_name(s->param), i)) {
 				debug("BSON append failed for '%s'", param_name(s->param));
 				goto out;
 			}

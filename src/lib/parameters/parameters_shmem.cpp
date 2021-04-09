@@ -1149,7 +1149,7 @@ param_export(int fd, bool only_unsaved, param_filter_func filter)
 
 				PX4_DEBUG("exporting: %s (%d) size: %d val: %d", name, s->param, size, i);
 
-				if (bson_encoder_append_int(&encoder, name, i)) {
+				if (bson_encoder_append_int32(&encoder, name, i)) {
 					PX4_ERR("BSON append failed for '%s'", name);
 					goto out;
 				}

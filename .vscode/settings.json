@@ -137,5 +137,8 @@
         "workbench.settings.enableNaturalLanguageSearch": false,
         "yaml.schemas": {
                 "${workspaceFolder}/validation/module_schema.yaml": "${workspaceFolder}/src/modules/*/module.yaml"
-        }
+        },
+        "python.autoComplete.extraPaths": [
+                "/opt/ros/foxy/lib/python3.8/site-packages"
+        ]
 }

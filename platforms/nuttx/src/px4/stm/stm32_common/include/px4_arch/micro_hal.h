@@ -88,8 +88,6 @@ __BEGIN_DECLS
 #define PX4_CPU_UUID_WORD32_FORMAT_SIZE         (PX4_CPU_UUID_WORD32_LENGTH-1+(2*PX4_CPU_UUID_BYTE_LENGTH)+1)
 #define PX4_CPU_MFGUID_FORMAT_SIZE              ((2*PX4_CPU_MFGUID_BYTE_LENGTH)+1)
 
-#define px4_savepanic(fileno, context, length)  stm32_bbsram_savepanic(fileno, context, length)
-
 #define PX4_BUS_OFFSET       0                  /* STM buses are 1 based no adjustment needed */
 #define px4_spibus_initialize(bus_num_1based)   stm32_spibus_initialize(bus_num_1based)
 
