@@ -250,7 +250,6 @@ protected:
 	bool _quadchute_command_treated = 0;
 
 
-
 	/**
 	 * @brief      Sets mc motor minimum pwm to VT_IDLE_PWM_MC which ensures
 	 *             that they are spinning in mc mode.
