@@ -424,7 +424,7 @@ VtolAttitudeControl::Run()
 
 			_fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
 
-			if (mc_att_sp_updated || fw_att_sp_updated) {
+			if (!_vtol_type->was_in_trans_mode() || mc_att_sp_updated || fw_att_sp_updated) {
 				_vtol_type->update_transition_state();
 				_v_att_sp_pub.publish(_v_att_sp);
 			}

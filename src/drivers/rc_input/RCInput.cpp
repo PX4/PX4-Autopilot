@@ -58,7 +58,7 @@ RCInput::RCInput(const char *device) :
 	}
 
 	if (device) {
-		strncpy(_device, device, sizeof(_device));
+		strncpy(_device, device, sizeof(_device) - 1);
 		_device[sizeof(_device) - 1] = '\0';
 	}
 }
@@ -245,6 +245,7 @@ void RCInput::set_rc_scan_state(RC_SCAN newState)
 	PX4_DEBUG("RCscan: %s failed, trying %s", RCInput::RC_SCAN_STRING[_rc_scan_state], RCInput::RC_SCAN_STRING[newState]);
 	_rc_scan_begin = 0;
 	_rc_scan_state = newState;
+	_rc_scan_locked = false;
 }
 
 void RCInput::rc_io_invert(bool invert)
@@ -256,19 +257,6 @@ void RCInput::rc_io_invert(bool invert)
 		ioctl(_rcs_fd, TIOCSINVERT, invert ? (SER_INVERT_ENABLED_RX | SER_INVERT_ENABLED_TX) : 0);
 #endif // TIOCSINVERT
 	}
-}
-
-void RCInput::answer_command(const vehicle_command_s &cmd, uint8_t result)
-{
-	/* publish ACK */
-	uORB::Publication<vehicle_command_ack_s> vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
-	vehicle_command_ack_s command_ack{};
-	command_ack.command = cmd.command;
-	command_ack.result = result;
-	command_ack.target_system = cmd.source_system;
-	command_ack.target_component = cmd.source_component;
-	command_ack.timestamp = hrt_absolute_time();
-	vehicle_command_ack_pub.publish(command_ack);
 }
 
 void RCInput::Run()
@@ -300,6 +288,14 @@ void RCInput::Run()
 			updateParams();
 		}
 
+		if (_vehicle_status_sub.updated()) {
+			vehicle_status_s vehicle_status;
+
+			if (_vehicle_status_sub.copy(&vehicle_status)) {
+				_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			}
+		}
+
 		const hrt_abstime cycle_timestamp = hrt_absolute_time();
 
 
@@ -308,12 +304,12 @@ void RCInput::Run()
 
 		if (_vehicle_cmd_sub.update(&vcmd)) {
 			// Check for a pairing command
-			if ((unsigned int)vcmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) {
+			if (vcmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) {
 
 				uint8_t cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 #if defined(SPEKTRUM_POWER)
 
-				if (!_rc_scan_locked /* !_armed.armed */) { // TODO: add armed check?
+				if (!_rc_scan_locked && !_armed) {
 					if ((int)vcmd.param1 == 0) {
 						// DSM binding command
 						int dsm_bind_mode = (int)vcmd.param2;
@@ -334,39 +330,55 @@ void RCInput::Run()
 
 						cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 					}
+
+				} else {
+					cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 				}
 
-#endif /* SPEKTRUM_POWER */
-				answer_command(vcmd, cmd_ret);
+#endif // SPEKTRUM_POWER
+
+				// publish acknowledgement
+				vehicle_command_ack_s command_ack{};
+				command_ack.command = vcmd.command;
+				command_ack.result = cmd_ret;
+				command_ack.target_system = vcmd.source_system;
+				command_ack.target_component = vcmd.source_component;
+				command_ack.timestamp = hrt_absolute_time();
+				uORB::Publication<vehicle_command_ack_s> vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
+				vehicle_command_ack_pub.publish(command_ack);
 			}
 		}
 
-		/* update ADC sampling */
-#ifdef ADC_RC_RSSI_CHANNEL
-		adc_report_s adc;
 
-		if (_adc_sub.update(&adc)) {
-			for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
-				if (adc.channel_id[i] == ADC_RC_RSSI_CHANNEL) {
-					float adc_volt = adc.raw_data[i] *
-							 adc.v_ref /
-							 adc.resolution;
+#if defined(ADC_RC_RSSI_CHANNEL)
 
-					if (_analog_rc_rssi_volt < 0.0f) {
-						_analog_rc_rssi_volt = adc_volt;
-					}
+		// update ADC sampling
+		if (_adc_report_sub.updated()) {
+			adc_report_s adc;
 
-					_analog_rc_rssi_volt = _analog_rc_rssi_volt * 0.995f + adc_volt * 0.005f;
+			if (_adc_report_sub.copy(&adc)) {
+				for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
+					if (adc.channel_id[i] == ADC_RC_RSSI_CHANNEL) {
+						float adc_volt = adc.raw_data[i] *
+								 adc.v_ref /
+								 adc.resolution;
 
-					/* only allow this to be used if we see a high RSSI once */
-					if (_analog_rc_rssi_volt > 2.5f) {
-						_analog_rc_rssi_stable = true;
+						if (_analog_rc_rssi_volt < 0.0f) {
+							_analog_rc_rssi_volt = adc_volt;
+						}
+
+						_analog_rc_rssi_volt = _analog_rc_rssi_volt * 0.995f + adc_volt * 0.005f;
+
+						/* only allow this to be used if we see a high RSSI once */
+						if (_analog_rc_rssi_volt > 2.5f) {
+							_analog_rc_rssi_stable = true;
+						}
 					}
 				}
 			}
 		}
 
-#endif /* ADC_RC_RSSI_CHANNEL */
+#endif // ADC_RC_RSSI_CHANNEL
 
 		bool rc_updated = false;
 
@@ -374,9 +386,7 @@ void RCInput::Run()
 		// Scan for 300 msec, then switch protocol
 		constexpr hrt_abstime rc_scan_max = 300_ms;
 
-		bool sbus_failsafe, sbus_frame_drop;
 		unsigned frame_drops = 0;
-		bool dsm_11_bit;
 
 		if (_report_lock && _rc_scan_locked) {
 			_report_lock = false;
@@ -410,6 +420,9 @@ void RCInput::Run()
 
 				// parse new data
 				if (newBytes > 0) {
+					bool sbus_failsafe = false;
+					bool sbus_frame_drop = false;
+
 					rc_updated = sbus_parse(cycle_timestamp, &_rcs_buf[0], newBytes, &_raw_rc_values[0], &_raw_rc_count, &sbus_failsafe,
 								&sbus_frame_drop, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
@@ -440,7 +453,8 @@ void RCInput::Run()
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
 
 				if (newBytes > 0) {
-					int8_t dsm_rssi;
+					int8_t dsm_rssi = 0;
+					bool dsm_11_bit = false;
 
 					// parse new data
 					rc_updated = dsm_parse(cycle_timestamp, &_rcs_buf[0], newBytes, &_raw_rc_values[0], &_raw_rc_count,
@@ -654,16 +668,14 @@ void RCInput::Run()
 						_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_GHST;
 						fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp, false, false, 0, ghst_rssi);
 
-						// Enable GHST Telemetry only on the Omnibus, because on Pixhawk (-related) boards
+						// ghst telemetry works on fmu-v5
+						// on other Pixhawk (-related) boards it does not work because
 						// we cannot write to the RC UART
-						// It might work on FMU-v5. Or another option is to use a different UART port
-#ifdef CONFIG_ARCH_BOARD_OMNIBUS_F4SD
 
 						if (!_rc_scan_locked && !_ghst_telemetry) {
 							_ghst_telemetry = new GHSTTelemetry(_rcs_fd);
 						}
 
-#endif /* CONFIG_ARCH_BOARD_OMNIBUS_F4SD */
 
 						_rc_scan_locked = true;
 

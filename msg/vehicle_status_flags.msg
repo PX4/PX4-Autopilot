@@ -28,13 +28,13 @@ bool circuit_breaker_vtol_fw_arming_check 	# set to true if for VTOLs arming in 
 
 bool offboard_control_signal_found_once
 bool offboard_control_signal_lost
-bool offboard_control_set_by_command                # true if the offboard mode was set by a mavlink command and should not be overridden by RC
 
 bool rc_signal_found_once
 bool rc_input_blocked                                # set if RC input should be ignored temporarily
 bool rc_calibration_valid                            # set if RC calibration is valid
 bool vtol_transition_failure                        # Set to true if vtol transition failed
 bool usb_connected                                # status of the USB power supply
+bool sd_card_detected_once                        # set to true if the SD card was detected
 
 bool avoidance_system_required					  # Set to true if avoidance system is enabled via COM_OBS_AVOID parameter
 bool avoidance_system_valid                       # Status of the obstacle avoidance system

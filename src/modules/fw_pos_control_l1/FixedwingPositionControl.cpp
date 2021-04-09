@@ -125,6 +125,7 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_airspeed_error_time_constant(_param_fw_t_tas_error_tc.get());
 	_tecs.set_ste_rate_time_const(_param_ste_rate_time_const.get());
 	_tecs.set_speed_derivative_time_constant(_param_tas_rate_time_const.get());
+	_tecs.set_seb_rate_ff_gain(_param_seb_rate_ff.get());
 
 
 	// Landing slope
@@ -1686,9 +1687,48 @@ FixedwingPositionControl::Run()
 		_alt_reset_counter = _local_pos.vz_reset_counter;
 		_pos_reset_counter = _local_pos.vxy_reset_counter;
 
-		if (_pos_sp_triplet_sub.update(&_pos_sp_triplet)) {
-			// reset the altitude foh (first order hold) logic
-			_min_current_sp_distance_xy = FLT_MAX;
+
+		if (_control_mode.flag_control_offboard_enabled) {
+			// Convert Local setpoints to global setpoints
+			if (!map_projection_initialized(&_global_local_proj_ref)
+			    || (_global_local_proj_ref.timestamp != _local_pos.ref_timestamp)) {
+
+				map_projection_init_timestamped(&_global_local_proj_ref, _local_pos.ref_lat, _local_pos.ref_lon,
+								_local_pos.ref_timestamp);
+				_global_local_alt0 = _local_pos.ref_alt;
+			}
+
+			vehicle_local_position_setpoint_s trajectory_setpoint;
+
+			if (_trajectory_setpoint_sub.update(&trajectory_setpoint)) {
+				if (PX4_ISFINITE(trajectory_setpoint.x) && PX4_ISFINITE(trajectory_setpoint.y) && PX4_ISFINITE(trajectory_setpoint.z)) {
+					double lat;
+					double lon;
+
+					if (map_projection_reproject(&_global_local_proj_ref, trajectory_setpoint.x, trajectory_setpoint.y, &lat, &lon) == 0) {
+						_pos_sp_triplet = {}; // clear any existing
+
+						_pos_sp_triplet.timestamp = trajectory_setpoint.timestamp;
+						_pos_sp_triplet.current.timestamp = trajectory_setpoint.timestamp;
+						_pos_sp_triplet.current.valid = true;
+						_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+						_pos_sp_triplet.current.lat = lat;
+						_pos_sp_triplet.current.lon = lon;
+						_pos_sp_triplet.current.alt = _global_local_alt0 - trajectory_setpoint.z;
+						_pos_sp_triplet.current.cruising_speed = NAN; // ignored
+						_pos_sp_triplet.current.cruising_throttle = NAN; // ignored
+					}
+
+				} else {
+					mavlink_log_critical(&_mavlink_log_pub, "Invalid offboard setpoint");
+				}
+			}
+
+		} else {
+			if (_pos_sp_triplet_sub.update(&_pos_sp_triplet)) {
+				// reset the altitude foh (first order hold) logic
+				_min_current_sp_distance_xy = FLT_MAX;
+			}
 		}
 
 		airspeed_poll();
@@ -1710,18 +1750,6 @@ FixedwingPositionControl::Run()
 		Vector2d curr_pos(_current_latitude, _current_longitude);
 		Vector2f ground_speed(_local_pos.vx, _local_pos.vy);
 
-		//Convert Local setpoints to global setpoints
-		if (_control_mode.flag_control_offboard_enabled) {
-			if (!globallocalconverter_initialized()) {
-				globallocalconverter_init(_local_pos.ref_lat, _local_pos.ref_lon,
-							  _local_pos.ref_alt, _local_pos.ref_timestamp);
-
-			} else {
-				globallocalconverter_toglobal(_pos_sp_triplet.current.x, _pos_sp_triplet.current.y, _pos_sp_triplet.current.z,
-							      &_pos_sp_triplet.current.lat, &_pos_sp_triplet.current.lon, &_pos_sp_triplet.current.alt);
-			}
-		}
-
 		/*
 		 * Attempt to control position, on success (= sensors present and not in manual mode),
 		 * publish setpoint.
@@ -1736,8 +1764,7 @@ FixedwingPositionControl::Run()
 							       radians(_param_fw_man_p_max.get()));
 			}
 
-			if (_control_mode.flag_control_offboard_enabled ||
-			    _control_mode.flag_control_position_enabled ||
+			if (_control_mode.flag_control_position_enabled ||
 			    _control_mode.flag_control_velocity_enabled ||
 			    _control_mode.flag_control_acceleration_enabled ||
 			    _control_mode.flag_control_altitude_enabled) {
@@ -1874,7 +1901,6 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 	/* tell TECS to update its state, but let it know when it cannot actually control the plane */
 	bool in_air_alt_control = (!_landed &&
 				   (_control_mode.flag_control_auto_enabled ||
-				    _control_mode.flag_control_offboard_enabled ||
 				    _control_mode.flag_control_velocity_enabled ||
 				    _control_mode.flag_control_altitude_enabled));
 

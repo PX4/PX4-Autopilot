@@ -17,8 +17,8 @@
 # @board px4_fmu-v4pro exclude
 # @board px4_fmu-v5 exclude
 # @board px4_fmu-v5x exclude
-# @board intel_aerofc-v1 exclude
 # @board bitcraze_crazyflie exclude
+# @board cuav_x7pro exclude
 #
 
 set VEHICLE_TYPE mc
@@ -112,10 +112,12 @@ param set-default NAV_RCL_ACT 6
 # TELEM1 ttyS1 - Wifi module
 param set-default MAV_0_CONFIG 101
 param set-default MAV_0_RATE 0
-param set-default MAV_0_MODE 2	# onboard
+# onboard
+param set-default MAV_0_MODE 2
 param set-default SER_TEL1_BAUD 921600
 
 # TELEM2 ttyS2 - Sub 1-Ghz
 param set-default MAV_1_CONFIG 102
-param set-default MAV_1_MODE 0	# normal
+# normal
+param set-default MAV_1_MODE 0
 param set-default SER_TEL2_BAUD 57600

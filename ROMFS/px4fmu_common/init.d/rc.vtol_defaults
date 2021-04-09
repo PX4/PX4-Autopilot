@@ -7,9 +7,6 @@
 
 set VEHICLE_TYPE vtol
 
-# to minimize cpu usage on older boards limit inner loop to 400 Hz
-param set-default IMU_GYRO_RATEMAX 400
-
 param set-default MIS_TAKEOFF_ALT 20
 param set-default MIS_YAW_TMT 10
 

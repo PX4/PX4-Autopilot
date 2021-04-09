@@ -115,10 +115,6 @@ void FlightModeManager::Run()
 			}
 		}
 
-		// an update is necessary here because otherwise the takeoff state doesn't get skiped with non-altitude-controlled modes
-		_takeoff.updateTakeoffState(_vehicle_control_mode_sub.get().flag_armed, _vehicle_land_detected_sub.get().landed, false,
-					    10.f, !_vehicle_control_mode_sub.get().flag_control_climb_rate_enabled, time_stamp_now);
-
 		// activate the weathervane controller if required. If activated a flighttask can use it to implement a yaw-rate control strategy
 		// that turns the nose of the vehicle into the wind
 		if (_wv_controller != nullptr) {
@@ -162,10 +158,6 @@ void FlightModeManager::updateParams()
 		_current_task.task->handleParameterUpdate();
 	}
 
-	_takeoff.setSpoolupTime(_param_mpc_spoolup_time.get());
-	_takeoff.setTakeoffRampTime(_param_mpc_tko_ramp_t.get());
-	_takeoff.generateInitialRampValue(_param_mpc_z_vel_p_acc.get());
-
 	if (_wv_controller != nullptr) {
 		_wv_controller->update_parameters();
 	}
@@ -181,13 +173,6 @@ void FlightModeManager::start_flight_task()
 	if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		switchTask(FlightTaskIndex::None);
 		return;
-	}
-
-	// Switch to clean new task when mode switches e.g. to reset state when switching between auto modes
-	// exclude Orbit mode since the task is initiated in FlightTasks through the vehicle_command and we should not switch out
-	if (_last_vehicle_nav_state != _vehicle_status_sub.get().nav_state
-	    && _vehicle_status_sub.get().nav_state != vehicle_status_s::NAVIGATION_STATE_ORBIT) {
-		switchTask(FlightTaskIndex::None);
 	}
 
 	// Only run transition flight task if altitude control is enabled (e.g. in Altitdue, Position, Auto flight mode)
@@ -210,31 +195,6 @@ void FlightModeManager::start_flight_task()
 		}
 
 		return;
-	}
-
-	// offboard
-	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD
-	    && (_vehicle_control_mode_sub.get().flag_control_altitude_enabled ||
-		_vehicle_control_mode_sub.get().flag_control_position_enabled ||
-		_vehicle_control_mode_sub.get().flag_control_climb_rate_enabled ||
-		_vehicle_control_mode_sub.get().flag_control_velocity_enabled ||
-		_vehicle_control_mode_sub.get().flag_control_acceleration_enabled)) {
-
-		should_disable_task = false;
-		FlightTaskError error = switchTask(FlightTaskIndex::Offboard);
-
-		if (error != FlightTaskError::NoError) {
-			if (prev_failure_count == 0) {
-				PX4_WARN("Offboard activation failed with error: %s", errorToString(error));
-			}
-
-			task_failure = true;
-			_task_failure_count++;
-
-		} else {
-			// we want to be in this mode, reset the failure count
-			_task_failure_count = 0;
-		}
 	}
 
 	// Auto-follow me
@@ -314,6 +274,12 @@ void FlightModeManager::start_flight_task()
 
 		case 4:
 		default:
+			if (_param_mpc_pos_mode.get() != 4) {
+				PX4_ERR("MPC_POS_MODE %d invalid, resetting", _param_mpc_pos_mode.get());
+				_param_mpc_pos_mode.set(4);
+				_param_mpc_pos_mode.commit();
+			}
+
 			error = switchTask(FlightTaskIndex::ManualAcceleration);
 			break;
 		}
@@ -494,7 +460,7 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 		if (_vehicle_local_position_setpoint_sub.copy(&vehicle_local_position_setpoint)) {
 			const Vector3f vel_sp{vehicle_local_position_setpoint.vx, vehicle_local_position_setpoint.vy, vehicle_local_position_setpoint.vz};
 			const Vector3f acc_sp{vehicle_local_position_setpoint.acceleration};
-			_current_task.task->updateVelocityControllerIO(vel_sp, acc_sp);
+			_current_task.task->updateVelocityControllerFeedback(vel_sp, acc_sp);
 		}
 	}
 
@@ -511,21 +477,15 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 	// limit altitude according to land detector
 	limitAltitude(setpoint, vehicle_local_position);
 
-	const bool not_taken_off = _takeoff.getTakeoffState() < TakeoffState::rampup;
-	const bool flying = _takeoff.getTakeoffState() >= TakeoffState::flight;
-	const bool flying_but_ground_contact = flying && _vehicle_land_detected_sub.get().ground_contact;
+	if (_takeoff_status_sub.updated()) {
+		takeoff_status_s takeoff_status;
 
-	if (not_taken_off || flying_but_ground_contact) {
-		// we are not flying yet and need to avoid any corrections
-		reset_setpoint_to_nan(setpoint);
-		Vector3f(0.f, 0.f, 100.f).copyTo(setpoint.acceleration); // High downwards acceleration to make sure there's no thrust
-		// set yaw-sp to current yaw
-		setpoint.yawspeed = 0.f;
-		// prevent any integrator windup
-		constraints.reset_integral = true;
+		if (_takeoff_status_sub.copy(&takeoff_status)) {
+			_takeoff_state = takeoff_status.takeoff_state;
+		}
 	}
 
-	if (not_taken_off) {
+	if (_takeoff_state < takeoff_status_s::TAKEOFF_STATE_RAMPUP) {
 		// reactivate the task which will reset the setpoint to current state
 		_current_task.task->reActivate();
 	}
@@ -534,37 +494,8 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 	setpoint.timestamp = hrt_absolute_time();
 	_trajectory_setpoint_pub.publish(setpoint);
 
-
-	// Allow ramping from zero thrust on takeoff
-	if (flying) {
-		constraints.minimum_thrust = _param_mpc_thr_min.get();
-
-	} else {
-		// allow zero thrust when taking off and landing
-		constraints.minimum_thrust = 0.f;
-	}
-
-	// fix to prevent the takeoff ramp to ramp to a too high value or get stuck because of NAN
-	// TODO: this should get obsolete once the takeoff limiting moves into the flight tasks
-	if (!PX4_ISFINITE(constraints.speed_up) || (constraints.speed_up > _param_mpc_z_vel_max_up.get())) {
-		constraints.speed_up = _param_mpc_z_vel_max_up.get();
-	}
-
-	// limit tilt during takeoff ramupup
-	if (_takeoff.getTakeoffState() < TakeoffState::flight) {
-		constraints.tilt = math::radians(_param_mpc_tiltmax_lnd.get());
-	}
-
-	// handle smooth takeoff
-	_takeoff.updateTakeoffState(_vehicle_control_mode_sub.get().flag_armed, _vehicle_land_detected_sub.get().landed,
-				    constraints.want_takeoff, constraints.speed_up, !_vehicle_control_mode_sub.get().flag_control_climb_rate_enabled,
-				    _time_stamp_last_loop);
-	constraints.speed_up = _takeoff.updateRamp(dt, constraints.speed_up);
-
-	constraints.flight_task = static_cast<uint32_t>(_current_task.index);
 	constraints.timestamp = hrt_absolute_time();
 	_vehicle_constraints_pub.publish(constraints);
-
 
 	// if there's any change in landing gear setpoint publish it
 	landing_gear_s landing_gear = _current_task.task->getGear();
@@ -577,16 +508,6 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 	}
 
 	_old_landing_gear_position = landing_gear.landing_gear;
-
-	// Publish takeoff status
-	takeoff_status_s takeoff_status;
-	takeoff_status.takeoff_state = static_cast<uint8_t>(_takeoff.getTakeoffState());
-
-	if (takeoff_status.takeoff_state != _old_takeoff_state) {
-		takeoff_status.timestamp = hrt_absolute_time();
-		_takeoff_status_pub.publish(takeoff_status);
-		_old_takeoff_state = takeoff_status.takeoff_state;
-	}
 }
 
 void FlightModeManager::limitAltitude(vehicle_local_position_setpoint_s &setpoint,
@@ -606,15 +527,6 @@ void FlightModeManager::limitAltitude(vehicle_local_position_setpoint_s &setpoin
 		setpoint.z = min_z;
 		setpoint.vz = math::max(setpoint.vz, 0.f);
 	}
-}
-
-void FlightModeManager::reset_setpoint_to_nan(vehicle_local_position_setpoint_s &setpoint)
-{
-	setpoint.x = setpoint.y = setpoint.z = NAN;
-	setpoint.vx = setpoint.vy = setpoint.vz = NAN;
-	setpoint.yaw = setpoint.yawspeed = NAN;
-	setpoint.acceleration[0] = setpoint.acceleration[1] = setpoint.acceleration[2] = NAN;
-	setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = NAN;
 }
 
 FlightTaskError FlightModeManager::switchTask(FlightTaskIndex new_task_index)

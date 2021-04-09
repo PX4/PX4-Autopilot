@@ -7,6 +7,8 @@
 
 set VEHICLE_TYPE mc
 
+param set-default IMU_GYRO_RATEMAX 800
+
 param set-default NAV_ACC_RAD 2
 
 param set-default RTL_RETURN_ALT 30

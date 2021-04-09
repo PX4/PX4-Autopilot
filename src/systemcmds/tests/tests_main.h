@@ -89,14 +89,6 @@ extern int test_uart_send(int argc, char *argv[]);
 extern int test_versioning(int argc, char *argv[]);
 extern int test_cli(int argc, char *argv[]);
 
-/* external */
-extern int commander_tests_main(int argc, char *argv[]);
-extern int mavlink_tests_main(int argc, char *argv[]);
-extern int controllib_test_main(int argc, char *argv[]);
-extern int uorb_tests_main(int argc, char *argv[]);
-extern int rc_tests_main(int argc, char *argv[]);
-extern int lightware_laser_test_main(int argc, char *argv[]);
-
 __END_DECLS
 
 #endif /* __APPS_PX4_TESTS_H */

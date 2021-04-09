@@ -22,7 +22,6 @@
 # @maintainer Ian McNanie <ianmcnanie@gmail.com>
 # @maintainer William Peale <develop707@gmail.com>
 #
-# @board intel_aerofc-v1 exclude
 # @board bitcraze_crazyflie exclude
 #
 

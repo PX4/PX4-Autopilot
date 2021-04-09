@@ -13,15 +13,16 @@
 # @board px4_fmu-v4pro exclude
 # @board px4_fmu-v5 exclude
 # @board px4_fmu-v5x exclude
-# @board intel_aerofc-v1 exclude
 #
 . ${R}etc/init.d/rc.mc_defaults
 
 set MIXER quad_x_cw
 set PWM_OUT 1234
 
-param set-default SYS_MC_EST_GROUP 3
+param set-default SYS_MC_EST_GROUP 2
 param set-default SYS_HAS_MAG 0
+param set-default EKF2_AID_MASK 2
+param set-default EKF2_MAG_TYPE 5
 
 param set-default BAT_N_CELLS 1
 param set-default BAT1_N_CELLS 1
@@ -59,7 +60,7 @@ param set-default MPC_MAX_FLOW_HGT 3
 param set-default NAV_RCL_ACT 3
 
 param set-default PWM_MAIN_DISARM 0
-param set-default PWM_MAIN_MIN 0
+param set-default PWM_MAIN_MIN 20
 param set-default PWM_MAIN_MAX 255
 
 # Run the motors at 328.125 kHz (recommended)

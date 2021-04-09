@@ -83,6 +83,9 @@ typedef pollevent_t px4_pollevent_t;
 
 #define	 PX4_STACK_OVERHEAD	(1024 * 24)
 
+#define px4_cache_aligned_data()
+#define px4_cache_aligned_alloc malloc
+
 __BEGIN_DECLS
 
 typedef short px4_pollevent_t;

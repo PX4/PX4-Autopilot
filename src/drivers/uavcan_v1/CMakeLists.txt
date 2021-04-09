@@ -63,6 +63,7 @@ endif()
 px4_add_module(
 	MODULE drivers__uavcan_v1
 	MAIN uavcan_v1
+	STACK_MAIN 4096
 	COMPILE_FLAGS
 		#-DCANARD_ASSERT
 		-DUINT32_C\(x\)=__UINT32_C\(x\)
@@ -71,6 +72,10 @@ px4_add_module(
 		${LIBCANARD_DIR}/libcanard/
 		${CMAKE_CURRENT_BINARY_DIR}/dsdlc_generated
 	SRCS
+		ParamManager.hpp
+		ParamManager.cpp
+		NodeManager.hpp
+		NodeManager.cpp
 		Uavcan.cpp
 		Uavcan.hpp
 		${SRCS}

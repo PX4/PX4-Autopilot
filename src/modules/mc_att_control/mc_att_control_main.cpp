@@ -287,15 +287,6 @@ MulticopterAttitudeControl::Run()
 			}
 		}
 
-		/* Check if we are in rattitude mode and the pilot is above the threshold on pitch
-		* or roll (yaw can rotate 360 in normal att control). If both are true don't
-		* even bother running the attitude controllers */
-		if (_v_control_mode.flag_control_rattitude_enabled) {
-			_v_control_mode.flag_control_attitude_enabled =
-				fabsf(_manual_control_setpoint.y) <= _param_mc_ratt_th.get() &&
-				fabsf(_manual_control_setpoint.x) <= _param_mc_ratt_th.get();
-		}
-
 		bool attitude_setpoint_generated = false;
 
 		const bool is_hovering = (_vehicle_type_rotary_wing && !_vtol_in_transition_mode);
@@ -325,16 +316,6 @@ MulticopterAttitudeControl::Run()
 
 			Vector3f rates_sp = _attitude_control.update(q);
 
-			if (_v_control_mode.flag_control_yawrate_override_enabled) {
-				/* Yaw rate override enabled, overwrite the yaw setpoint */
-				vehicle_rates_setpoint_s v_rates_sp{};
-
-				if (_v_rates_sp_sub.copy(&v_rates_sp)) {
-					const float yawrate_sp = v_rates_sp.yaw;
-					rates_sp(2) = yawrate_sp;
-				}
-			}
-
 			// publish rate setpoint
 			vehicle_rates_setpoint_s v_rates_sp{};
 			v_rates_sp.roll = rates_sp(0);
@@ -348,9 +329,7 @@ MulticopterAttitudeControl::Run()
 
 		// reset yaw setpoint during transitions, tailsitter.cpp generates
 		// attitude setpoint for the transition
-		_reset_yaw_sp = (!attitude_setpoint_generated && !_v_control_mode.flag_control_rattitude_enabled) ||
-				_landed || (_vtol && _vtol_in_transition_mode);
-
+		_reset_yaw_sp = !attitude_setpoint_generated || _landed || (_vtol && _vtol_in_transition_mode);
 	}
 
 	perf_end(_loop_perf);

@@ -23,7 +23,6 @@ set +e
 set R /
 set AUTOCNF no
 set AUX_MODE pwm
-set DATAMAN_OPT ""
 set FCONFIG /fs/microsd/etc/config.txt
 set FEXTRAS /fs/microsd/etc/extras.txt
 set FMU_MODE pwm
@@ -51,12 +50,6 @@ set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
 set STARTUP_TUNE 1
 set USE_IO no
 set VEHICLE_TYPE none
-
-# Airframe parameter versioning: airframe maintainers can set this in the
-# airframe startup script, and then increase it by one whenever an airframe
-# parameter is updated - it will ensure that these parameters will be updated
-# when the firmware is flashed.
-set PARAM_DEFAULTS_VER 1
 
 #
 # Mount the procfs.
@@ -172,14 +165,21 @@ else
 	#
 	if param greater SYS_AUTOCONFIG 0
 	then
-		if param compare SYS_AUTOCONFIG 1
-		then
-			# Wipe out params except RC*, flight modes, total flight time, calibration parameters, next flight UUID
-			param reset_all SYS_AUTO* RC* COM_FLTMODE* LND_FLIGHT* TC_* CAL_ACC* CAL_GYRO* COM_FLIGHT* SYS_PARAM_VER
-		fi
-
+		# Wipe out params except RC*, flight modes, total flight time, calibration parameters, next flight UUID
+		param reset_all SYS_AUTO* RC* COM_FLTMODE* LND_FLIGHT* TC_* CAL_ACC* CAL_GYRO* COM_FLIGHT*
 		set AUTOCNF yes
 	fi
+
+	#
+	# Optional board architecture defaults: rc.board_arch_defaults
+	#
+	set BOARD_ARCH_RC_DEFAULTS ${R}etc/init.d/rc.board_arch_defaults
+	if [ -f $BOARD_ARCH_RC_DEFAULTS ]
+	then
+		echo "Board architecture defaults: ${BOARD_ARCH_RC_DEFAULTS}"
+		. $BOARD_ARCH_RC_DEFAULTS
+	fi
+	unset BOARD_ARCH_RC_DEFAULTS
 
 	#
 	# Optional board defaults: rc.board_defaults
@@ -211,7 +211,7 @@ else
 	# Waypoint storage.
 	# REBOOTWORK this needs to start in parallel.
 	#
-	dataman start $DATAMAN_OPT
+	dataman start
 
 	#
 	# Start the socket communication send_event handler.
@@ -228,14 +228,6 @@ else
 	#
 	rgbled start -X -q
 	rgbled_ncp5623c start -X -q
-
-	if param greater -s LIGHT_EN_BLINKM 0
-	then
-		if blinkm start -X
-		then
-			blinkm systemstate
-		fi
-	fi
 
 	#
 	# Set parameters and env variables for selected AUTOSTART.
@@ -427,6 +419,11 @@ else
 		fi
 	fi
 
+	if param greater -s UAVCAN_V1_ENABLE 0
+	then
+		uavcan_v1 start
+	fi
+
 	#
 	# Optional board mavlink streams: rc.board_mavlink
 	#
@@ -501,6 +498,11 @@ else
 		gyro_fft start
 	fi
 
+	if param compare -s IMU_GYRO_CAL_EN 1
+	then
+		gyro_calibration start
+	fi
+
 	#
 	# Optional board supplied extras: rc.board_extras
 	#
@@ -534,13 +536,20 @@ else
 		. ${R}etc/init.d/rc.autostart.post
 	fi
 
-	if ! param compare SYS_PARAM_VER ${PARAM_DEFAULTS_VER}
+	#
+	# Bootloader upgrade
+	#
+	if param compare -s SYS_BL_UPDATE 1
 	then
-		echo "Switched to different parameter version. Resetting parameters."
-		param set SYS_PARAM_VER ${PARAM_DEFAULTS_VER}
-		param set SYS_AUTOCONFIG 2
-		param save
-		reboot
+		if [ -f "/etc/extras/bootloader.bin" ]
+		then
+			param set SYS_BL_UPDATE 0
+			param save
+			echo "bootloader update..."
+			bl_update "/etc/extras/bootloader.bin"
+			echo "bootloader update done, rebooting"
+			reboot
+		fi
 	fi
 
 #
@@ -554,7 +563,6 @@ fi
 unset R
 unset AUTOCNF
 unset AUX_MODE
-unset DATAMAN_OPT
 unset FCONFIG
 unset FEXTRAS
 unset FMU_MODE
@@ -568,7 +576,6 @@ unset MIXER
 unset MIXER_AUX
 unset MIXER_FILE
 unset OUTPUT_MODE
-unset PARAM_DEFAULTS_VER
 unset PARAM_FILE
 unset PWM_AUX_OUT
 unset PWM_AUX_RATE

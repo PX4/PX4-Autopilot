@@ -49,7 +49,7 @@
 #include <arch/irq.h>
 #include <arch/board/board.h>
 
-#include "px4_macros.h"
+#include <systemlib/px4_macros.h>
 #include "timer.h"
 #include "nvic.h"
 

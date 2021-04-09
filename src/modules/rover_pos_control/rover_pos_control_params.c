@@ -262,6 +262,7 @@ PARAM_DEFINE_FLOAT(GND_SPEED_MAX, 10.0f);
 
 /**
  * Maximum turn angle for Ackerman steering.
+ *
  * At a control output of 0, the steering wheels are at 0 radians.
  * At a control output of 1, the steering wheels are at GND_MAX_ANG radians.
  *

@@ -174,6 +174,8 @@ define cmake-build
 	@$(call cmake-cache-check)
 	@# make sure to start from scratch when switching from GNU Make to Ninja
 	@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
+	@# make sure to start from scratch if ninja build file is missing
+	@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ ! -f $(BUILD_DIR)/build.ninja ]; then rm -rf $(BUILD_DIR); fi
 	@# only excplicitly configure the first build, if cache file already exists the makefile will rerun cmake automatically if necessary
 	@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ] || [ $(CMAKE_CACHE_CHECK) ]; then \
 		mkdir -p $(BUILD_DIR) \
@@ -268,7 +270,6 @@ px4fmu_firmware: \
 misc_qgc_extra_firmware: \
 	check_nxp_fmuk66-v3_default \
 	check_nxp_fmurt1062-v1_default \
-	check_intel_aerofc-v1_default \
 	check_mro_x21_default \
 	check_bitcraze_crazyflie_default \
 	check_bitcraze_crazyflie21_default \
@@ -302,7 +303,6 @@ check_%:
 	@echo
 
 uorb_graphs:
-	@./Tools/uorb_graph/create_from_startupscript.sh
 	@./Tools/uorb_graph/create.py --src-path src --exclude-path src/examples --file Tools/uorb_graph/graph_full
 	@$(MAKE) --no-print-directory px4_fmu-v2_default uorb_graph
 	@$(MAKE) --no-print-directory px4_fmu-v4_default uorb_graph
@@ -318,7 +318,7 @@ coverity_scan: px4_sitl_default
 .PHONY: parameters_metadata airframe_metadata module_documentation px4_metadata doxygen
 
 parameters_metadata:
-	@$(MAKE) --no-print-directory px4_sitl_default metadata_parameters
+	@$(MAKE) --no-print-directory px4_sitl_default metadata_parameters ver_gen
 
 airframe_metadata:
 	@$(MAKE) --no-print-directory px4_sitl_default metadata_airframes

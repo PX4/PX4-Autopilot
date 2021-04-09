@@ -51,9 +51,6 @@
 [submodule "Tools/jsbsim_bridge"]
 	path = Tools/jsbsim_bridge
 	url = https://github.com/PX4/px4-jsbsim-bridge.git
-[submodule "src/examples/gyro_fft/CMSIS_5"]
-	path = src/examples/gyro_fft/CMSIS_5
-	url = https://github.com/ARM-software/CMSIS_5.git
 [submodule "src/drivers/uavcan_v1/libcanard"]
 	path = src/drivers/uavcan_v1/libcanard
 	url = https://github.com/UAVCAN/libcanard.git

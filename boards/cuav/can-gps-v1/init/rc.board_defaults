@@ -3,12 +3,8 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
-if [ $AUTOCNF = yes ]
-then
-
-fi
+param set-default CBRK_IO_SAFETY 0
 
 neopixel start
 safety_button start
 tone_alarm start
-

@@ -15,6 +15,7 @@ px4_add_board(
 		TEL2:/dev/ttyS4 # UART5  / J1
 		TEL3:/dev/ttyS1 # USART2 / J4
 	DRIVERS
+		adc/ads1115
 		adc/board_adc
 		barometer # all available barometer drivers
 		batt_smbus
@@ -28,13 +29,12 @@ px4_add_board(
 		imu/invensense/icm20602
 		imu/invensense/icm42688p
 		irlock
-		lights/blinkm
-		lights/rgbled
-		lights/rgbled_ncp5623c
+		lights # all available light drivers
 		magnetometer # all available magnetometer drivers
-		#optical_flow # all available optical flow drivers
-		#osd
+		optical_flow # all available optical flow drivers
+		osd
 		pca9685
+		pca9685_pwm_out
 		power_monitor/ina226
 		power_monitor/voxlpm
 		#protocol_splitter
@@ -43,8 +43,8 @@ px4_add_board(
 		pwm_out
 		rc_input
 		roboclaw
+		rpm
 		safety_button
-		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm
 		#tone_alarm
@@ -61,6 +61,8 @@ px4_add_board(
 		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
+		gyro_calibration
+		gyro_fft
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -71,12 +73,15 @@ px4_add_board(
 		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
+		#micrortps_bridge
 		navigator
 		rc_update
 		rover_pos_control
 		sensors
 		sih
 		temperature_compensation
+		uuv_att_control
+		uuv_pos_control
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
@@ -84,6 +89,7 @@ px4_add_board(
 		dmesg
 		dumpfile
 		esc_calib
+		gpio
 		hardfault_log
 		i2cdetect
 		led_control
@@ -99,6 +105,7 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
+		serial_test
 		system_time
 		tests # tests and test runner
 		top
@@ -110,6 +117,8 @@ px4_add_board(
 		work_queue
 	EXAMPLES
 		fake_gps
+		fake_gyro
+		fake_magnetometer
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		hwtest # Hardware test

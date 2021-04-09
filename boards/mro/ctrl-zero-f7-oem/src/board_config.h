@@ -191,9 +191,9 @@
 		GPIO_CAN1_TX,                     \
 		GPIO_CAN1_RX,                     \
 		GPIO_CAN2_TX,                     \
-		GPIO_CAN2_RX,           	  \
+		GPIO_CAN2_RX,           	        \
 		GPIO_CAN1_SILENT_S0,              \
-		GPIO_CAN2_SILENT_S0,              \
+		GPIO_CAN2_SILENT_S0,		          \
 		GPIO_nPOWER_IN_A,                 \
 		GPIO_VDD_3V3_SPEKTRUM_POWER_EN,   \
 		GPIO_TONE_ALARM_IDLE,             \

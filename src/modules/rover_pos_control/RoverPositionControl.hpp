@@ -70,6 +70,7 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
 
 using matrix::Dcmf;
@@ -112,6 +113,7 @@ private:
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)}; /**< notification of manual control updates */
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
+	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 
 	manual_control_setpoint_s		_manual_control_setpoint{};			    /**< r/c channel data */
 	position_setpoint_triplet_s		_pos_sp_triplet{};		/**< triplet of mission items */
@@ -121,6 +123,7 @@ private:
 	vehicle_local_position_s		_local_pos{};			/**< global vehicle position */
 	actuator_controls_s				_act_controls{};		/**< direct control of actuators */
 	vehicle_attitude_s				_vehicle_att{};
+	vehicle_local_position_setpoint_s       _trajectory_setpoint{};
 
 	uORB::SubscriptionData<vehicle_acceleration_s>		_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
@@ -128,6 +131,9 @@ private:
 
 	hrt_abstime _control_position_last_called{0}; 	/**<last call of control_position  */
 	hrt_abstime _manual_setpoint_last_called{0};
+
+	map_projection_reference_s _global_local_proj_ref{};
+	float                      _global_local_alt0{NAN};
 
 	/* Pid controller for the speed. Here we assume we can control airspeed but the control variable is actually on
 	 the throttle. For now just assuming a proportional scaler between controlled airspeed and throttle output.*/
@@ -151,6 +157,11 @@ private:
 
 	/* previous waypoint */
 	matrix::Vector2d _prev_wp{0, 0};
+
+	enum class VelocityFrame {
+		NED,
+		BODY,
+	} _velocity_frame{VelocityFrame::NED};
 
 	float _manual_yaw_sp{0.0};
 	bool _reset_yaw_sp{true};
@@ -196,7 +207,7 @@ private:
 	 */
 	bool		control_position(const matrix::Vector2d &global_pos, const matrix::Vector3f &ground_speed,
 					 const position_setpoint_triplet_s &_pos_sp_triplet);
-	void		control_velocity(const matrix::Vector3f &current_velocity, const position_setpoint_triplet_s &pos_sp_triplet);
+	void		control_velocity(const matrix::Vector3f &current_velocity);
 	void		control_attitude(const vehicle_attitude_s &att, const vehicle_attitude_setpoint_s &att_sp);
 
 };

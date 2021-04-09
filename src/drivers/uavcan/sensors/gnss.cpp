@@ -476,7 +476,7 @@ bool UavcanGnssBridge::injectData(const uint8_t *const data, const size_t data_l
 		}
 
 		result = _pub_rtcm.broadcast(msg) >= 0;
-		msg.data = {};
+		msg.data.clear();
 	}
 
 	return result;

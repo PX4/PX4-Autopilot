@@ -50,7 +50,6 @@ static bool operator ==(const manual_control_switches_s &a, const manual_control
 	return (a.mode_slot == b.mode_slot &&
 		a.mode_switch == b.mode_switch &&
 		a.return_switch == b.return_switch &&
-		a.rattitude_switch == b.rattitude_switch &&
 		a.posctl_switch == b.posctl_switch &&
 		a.loiter_switch == b.loiter_switch &&
 		a.acro_switch == b.acro_switch &&
@@ -168,7 +167,6 @@ void RCUpdate::update_rc_functions()
 
 	_rc.function[rc_channels_s::FUNCTION_MODE] = _param_rc_map_mode_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_RETURN] = _param_rc_map_return_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_RATTITUDE] = _param_rc_map_ratt_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_POSCTL] = _param_rc_map_posctl_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_LOITER] = _param_rc_map_loiter_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_ACRO] = _param_rc_map_acro_sw.get() - 1;
@@ -541,7 +539,6 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 		// only used with legacy mode switch
 		switches.man_switch       = get_rc_sw2pos_position(rc_channels_s::FUNCTION_MAN,       _param_rc_man_th.get());
 		switches.acro_switch      = get_rc_sw2pos_position(rc_channels_s::FUNCTION_ACRO,      _param_rc_acro_th.get());
-		switches.rattitude_switch = get_rc_sw2pos_position(rc_channels_s::FUNCTION_RATTITUDE, _param_rc_ratt_th.get());
 		switches.stab_switch      = get_rc_sw2pos_position(rc_channels_s::FUNCTION_STAB,      _param_rc_stab_th.get());
 		switches.posctl_switch    = get_rc_sw2pos_position(rc_channels_s::FUNCTION_POSCTL,    _param_rc_posctl_th.get());
 	}
@@ -602,16 +599,47 @@ void RCUpdate::UpdateManualSetpoint(const hrt_abstime &timestamp_sample)
 	_last_manual_control_setpoint_publish = manual_control_setpoint.timestamp;
 
 
-	// populate and publish actuator_controls_3 copied from mapped manual_control_setpoint
 	actuator_controls_s actuator_group_3{};
+	// copy in previous actuator control setpoint in case aux{1, 2, 3} isn't changed
+	_actuator_controls_3_sub.update(&actuator_group_3);
+	// populate and publish actuator_controls_3 copied from mapped manual_control_setpoint
 	actuator_group_3.control[0] = manual_control_setpoint.y;
 	actuator_group_3.control[1] = manual_control_setpoint.x;
 	actuator_group_3.control[2] = manual_control_setpoint.r;
 	actuator_group_3.control[3] = manual_control_setpoint.z;
 	actuator_group_3.control[4] = manual_control_setpoint.flaps;
-	actuator_group_3.control[5] = manual_control_setpoint.aux1;
-	actuator_group_3.control[6] = manual_control_setpoint.aux2;
-	actuator_group_3.control[7] = manual_control_setpoint.aux3;
+
+	float new_aux_values[3];
+	new_aux_values[0] = manual_control_setpoint.aux1;
+	new_aux_values[1] = manual_control_setpoint.aux2;
+	new_aux_values[2] = manual_control_setpoint.aux3;
+
+	// if AUX RC was already active, we update. otherwise, we check
+	// if there is a major stick movement to re-activate RC mode
+	bool major_movement[3] = {false, false, false};
+
+	// detect a big stick movement
+	for (int i = 0; i < 3; i++) {
+		if (fabsf(_last_manual_control_setpoint[i] - new_aux_values[i]) > 0.1f) {
+			major_movement[i] = true;
+		}
+	}
+
+	for (int i = 0; i < 3; i++) {
+		// if someone else (DO_SET_ACTUATOR) updated the actuator control
+		// and we haven't had a major movement, switch back to automatic control
+		if ((fabsf(_last_manual_control_setpoint[i] - actuator_group_3.control[5 + i])
+		     > 0.0001f) && (!major_movement[i])) {
+			_aux_already_active[i] = false;
+		}
+
+		if (_aux_already_active[i] || major_movement[i]) {
+			_aux_already_active[i] = true;
+			_last_manual_control_setpoint[i] = new_aux_values[i];
+
+			actuator_group_3.control[5 + i] = new_aux_values[i];
+		}
+	}
 
 	actuator_group_3.timestamp = hrt_absolute_time();
 	_actuator_group_3_pub.publish(actuator_group_3);

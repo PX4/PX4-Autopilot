@@ -292,13 +292,16 @@ PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
  * A non-zero, positive value specifies the time after arming, in seconds, within which the
  * vehicle must take off (after which it will automatically disarm).
  *
+ * This is set to 25 seconds to ensure a system will not disarm if the pilot is not immediately
+ * taking off, but not so long that a system is completely forgotten about.
+ *
  * A zero or negative value means that automatic disarming triggered by a pre-takeoff timeout is disabled.
  *
  * @group Commander
  * @unit s
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
+PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 25.0f);
 
 
 /**
@@ -313,10 +316,11 @@ PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
 PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
 
 /**
- * Arm switch is only a button
+ * Arm switch is a momentary button
  *
- * The default uses the arm switch as real switch.
- * If parameter set button gets handled like stick arming.
+ * 0: Arming/disarming triggers on switch transition.
+ * 1: Arming/disarming triggers when holding the momentary button down
+ * for COM_RC_ARM_HYST like the stick gesture.
  *
  * @group Commander
  * @boolean
@@ -340,6 +344,7 @@ PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
 
 /**
  * Time-out to wait when offboard connection is lost before triggering offboard lost action.
+ *
  * See COM_OBL_ACT and COM_OBL_RC_ACT to configure action.
  *
  * @group Commander
@@ -348,7 +353,7 @@ PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
  * @max 60
  * @increment 0.01
  */
-PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 0.5f);
+PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 1.0f);
 
 /**
  * Set offboard loss failsafe mode
@@ -387,6 +392,17 @@ PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
 PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
 
 /**
+ * Time-out to wait when onboard computer connection is lost before warning about loss connection.
+ *
+ * @group Commander
+ * @unit s
+ * @min 0
+ * @max 60
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(COM_OBC_LOSS_T, 5.0f);
+
+/**
  * First flightmode slot (1000-1160)
  *
  * If the main switch channel is in this range the
@@ -404,7 +420,6 @@ PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
  * @value 6 Acro
  * @value 7 Offboard
  * @value 8 Stabilized
- * @value 9 Rattitude
  * @value 12 Follow Me
  * @group Commander
  */
@@ -428,7 +443,6 @@ PARAM_DEFINE_INT32(COM_FLTMODE1, -1);
  * @value 6 Acro
  * @value 7 Offboard
  * @value 8 Stabilized
- * @value 9 Rattitude
  * @value 12 Follow Me
  * @group Commander
  */
@@ -452,7 +466,6 @@ PARAM_DEFINE_INT32(COM_FLTMODE2, -1);
  * @value 6 Acro
  * @value 7 Offboard
  * @value 8 Stabilized
- * @value 9 Rattitude
  * @value 12 Follow Me
  * @group Commander
  */
@@ -476,7 +489,6 @@ PARAM_DEFINE_INT32(COM_FLTMODE3, -1);
  * @value 6 Acro
  * @value 7 Offboard
  * @value 8 Stabilized
- * @value 9 Rattitude
  * @value 12 Follow Me
  * @group Commander
  */
@@ -500,7 +512,6 @@ PARAM_DEFINE_INT32(COM_FLTMODE4, -1);
  * @value 6 Acro
  * @value 7 Offboard
  * @value 8 Stabilized
- * @value 9 Rattitude
  * @value 12 Follow Me
  * @group Commander
  */
@@ -524,7 +535,6 @@ PARAM_DEFINE_INT32(COM_FLTMODE5, -1);
  * @value 6 Acro
  * @value 7 Offboard
  * @value 8 Stabilized
- * @value 9 Rattitude
  * @value 12 Follow Me
  * @group Commander
  */
@@ -600,6 +610,7 @@ PARAM_DEFINE_FLOAT(COM_ARM_IMU_GYR, 0.25f);
 
 /**
  * Maximum magnetic field inconsistency between units that will allow arming
+ *
  * Set -1 to disable the check.
  *
  * @group Commander
@@ -638,9 +649,10 @@ PARAM_DEFINE_INT32(COM_REARM_GRACE, 1);
  * Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
  *
  * @min 0
- * @max 3
+ * @max 7
  * @bit 0 Enable override during auto modes (except for in critical battery reaction)
  * @bit 1 Enable override during offboard mode
+ * @bit 2 Ignore throttle stick
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 1);
@@ -648,8 +660,8 @@ PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 1);
 /**
  * RC stick override threshold
  *
- * If COM_RC_OVERRIDE is enabled and the joystick input controlling the horizontally axis (right stick for RC in mode 2)
- * is moved more than this threshold from the center the autopilot switches to position mode and the pilot takes over control.
+ * If COM_RC_OVERRIDE is enabled and the joystick input is moved more than this threshold
+ * the autopilot the pilot takes over control.
  *
  * @group Commander
  * @unit %
@@ -910,7 +922,7 @@ PARAM_DEFINE_INT32(COM_ARM_CHK_ESCS, 1);
  *
  * @group Commander
  */
-PARAM_DEFINE_INT32(COM_PREARM_MODE, 1);
+PARAM_DEFINE_INT32(COM_PREARM_MODE, 0);
 
 /**
  * Enable Motor Testing
@@ -964,7 +976,7 @@ PARAM_DEFINE_INT32(COM_POWER_COUNT, 1);
  *
  * A non-zero, positive value specifies the timeframe in seconds within failure detector is allowed to put the vehicle into
  * a lockdown state if attitude exceeds the limits defined in FD_FAIL_P and FD_FAIL_R.
- * The check is not executed for flight modes that do support acrobatic maneuvers, e.g: Acro (MC/FW), Rattitude and Manual (FW).
+ * The check is not executed for flight modes that do support acrobatic maneuvers, e.g: Acro (MC/FW) and Manual (FW).
  * A zero or negative value means that the check is disabled.
  *
  * @group Commander

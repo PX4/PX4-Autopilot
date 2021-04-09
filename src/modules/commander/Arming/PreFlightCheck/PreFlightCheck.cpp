@@ -64,7 +64,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 	bool failed = false;
 
 	failed = failed || !airframeCheck(mavlink_log_pub, status);
-	failed = failed || !sdcardCheck(mavlink_log_pub, report_failures);
+	failed = failed || !sdcardCheck(mavlink_log_pub, status_flags.sd_card_detected_once, report_failures);
 
 	/* ---- MAG ---- */
 	{
@@ -236,18 +236,19 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 	}
 
 	if (estimator_type == 2) {
-		bool ekf_healthy = false;
 
-		// don't report ekf failures for the first 10 seconds to allow time for the filter to start
-		if (time_since_boot > 10_s) {
+		const bool ekf_healthy = ekf2Check(mavlink_log_pub, status, false, report_failures) &&
+					 ekf2CheckSensorBias(mavlink_log_pub, report_failures);
 
-			ekf_healthy = ekf2Check(mavlink_log_pub, status, false, report_failures) &&
-				      ekf2CheckSensorBias(mavlink_log_pub, report_failures);
+		// For the first 10 seconds the ekf2 can be unhealthy, and we just mark it
+		// as not present.
+		// After that or if report_failures is true, we'll set the flags as is.
 
-			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, true, true, ekf_healthy, status);
+		if (!ekf_healthy && time_since_boot < 10_s && !report_failures) {
+			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, true, false, false, status);
 
 		} else {
-			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, true, false, false, status);
+			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, true, true, ekf_healthy, status);
 		}
 
 		failed |= !ekf_healthy;

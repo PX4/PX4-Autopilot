@@ -85,6 +85,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
 #include <vtol_att_control/vtol_type.h>
@@ -143,6 +144,7 @@ private:
 	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
+	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
@@ -167,6 +169,9 @@ private:
 	float _current_altitude{0.f};
 
 	perf_counter_t	_loop_perf;				///< loop performance counter
+
+	map_projection_reference_s _global_local_proj_ref{};
+	float	_global_local_alt0{NAN};
 
 	float	_hold_alt{0.0f};				///< hold altitude for altitude mode
 	float	_takeoff_ground_alt{0.0f};			///< ground altitude at which plane was launched
@@ -389,6 +394,7 @@ private:
 		(ParamFloat<px4::params::FW_T_VERT_ACC>) _param_fw_t_vert_acc,
 		(ParamFloat<px4::params::FW_T_STE_R_TC>) _param_ste_rate_time_const,
 		(ParamFloat<px4::params::FW_T_TAS_R_TC>) _param_tas_rate_time_const,
+		(ParamFloat<px4::params::FW_T_SEB_R_FF>) _param_seb_rate_ff,
 
 		(ParamFloat<px4::params::FW_THR_ALT_SCL>) _param_fw_thr_alt_scl,
 		(ParamFloat<px4::params::FW_THR_CRUISE>) _param_fw_thr_cruise,

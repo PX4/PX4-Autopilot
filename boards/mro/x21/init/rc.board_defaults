@@ -1,7 +1,0 @@
-#!/bin/sh
-#
-# mRo x21 specific board defaults
-#------------------------------------------------------------------------------
-
-# to minimize cpu usage on older boards limit inner loop to 400 Hz by default
-param set-default IMU_GYRO_RATEMAX 400

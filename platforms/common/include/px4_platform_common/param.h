@@ -40,6 +40,8 @@
 #pragma once
 
 #include "param_macros.h"
+#include <float.h>
+#include <math.h>
 
 #include <parameters/px4_parameters.hpp>
 
@@ -130,6 +132,18 @@ public:
 	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
 	bool commit_no_notification() const { return param_set_no_notification(handle(), &_val) == 0; }
 
+	/// Set and commit a new value. Returns true if the value changed.
+	bool commit_no_notification(float val)
+	{
+		if (fabsf(val - _val) > FLT_EPSILON) {
+			set(val);
+			commit_no_notification();
+			return true;
+		}
+
+		return false;
+	}
+
 	void set(float val) { _val = val; }
 
 	void reset()
@@ -170,6 +184,18 @@ public:
 	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
 	bool commit_no_notification() const { return param_set_no_notification(handle(), &_val) == 0; }
 
+	/// Set and commit a new value. Returns true if the value changed.
+	bool commit_no_notification(float val)
+	{
+		if (fabsf(val - _val) > FLT_EPSILON) {
+			set(val);
+			commit_no_notification();
+			return true;
+		}
+
+		return false;
+	}
+
 	void set(float val) { _val = val; }
 
 	void reset()
@@ -207,6 +233,18 @@ public:
 
 	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
 	bool commit_no_notification() const { return param_set_no_notification(handle(), &_val) == 0; }
+
+	/// Set and commit a new value. Returns true if the value changed.
+	bool commit_no_notification(int32_t val)
+	{
+		if (val != _val) {
+			set(val);
+			commit_no_notification();
+			return true;
+		}
+
+		return false;
+	}
 
 	void set(int32_t val) { _val = val; }
 
@@ -247,6 +285,18 @@ public:
 
 	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
 	bool commit_no_notification() const { return param_set_no_notification(handle(), &_val) == 0; }
+
+	/// Set and commit a new value. Returns true if the value changed.
+	bool commit_no_notification(int32_t val)
+	{
+		if (val != _val) {
+			set(val);
+			commit_no_notification();
+			return true;
+		}
+
+		return false;
+	}
 
 	void set(int32_t val) { _val = val; }
 
@@ -292,6 +342,18 @@ public:
 	{
 		int32_t value_int = (int32_t)_val;
 		return param_set_no_notification(handle(), &value_int) == 0;
+	}
+
+	/// Set and commit a new value. Returns true if the value changed.
+	bool commit_no_notification(bool val)
+	{
+		if (val != _val) {
+			set(val);
+			commit_no_notification();
+			return true;
+		}
+
+		return false;
 	}
 
 	void set(bool val) { _val = val; }

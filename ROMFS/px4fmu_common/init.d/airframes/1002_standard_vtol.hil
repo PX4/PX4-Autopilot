@@ -8,7 +8,6 @@
 # @maintainer Roman Bapst <roman@auterion.com>
 #
 # @board px4_fmu-v2 exclude
-# @board intel_aerofc-v1 exclude
 # @board bitcraze_crazyflie exclude
 #
 
@@ -66,6 +65,15 @@ param set-default VT_TYPE 2
 
 
 param set SYS_HITL 1
+
+# disable some checks to allow to fly
+# - with usb
+param set-default CBRK_USB_CHK 197848
+# - without real battery
+param set-default CBRK_SUPPLY_CHK 894281
+# - without safety switch
+param set-default COM_PREARM_MODE 0
+param set-default CBRK_IO_SAFETY 22027
 
 set MAV_TYPE 22
 

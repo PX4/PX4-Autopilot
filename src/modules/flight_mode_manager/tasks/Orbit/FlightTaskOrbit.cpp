@@ -76,21 +76,24 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 	// save current yaw estimate for ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING
 	_initial_heading = _yaw;
 
-	// TODO: apply x,y / z independently in geo library
 	// commanded center coordinates
-	// if(PX4_ISFINITE(command.param5) && PX4_ISFINITE(command.param6)) {
-	// 	map_projection_global_project(command.param5, command.param6, &_center(0), &_center(1));
-	// }
+	if (PX4_ISFINITE(command.param5) && PX4_ISFINITE(command.param6)) {
+		if (map_projection_initialized(&_global_local_proj_ref)) {
+			map_projection_project(&_global_local_proj_ref,
+					       command.param5, command.param6,
+					       &_center(0), &_center(1));
+
+		} else {
+			ret = false;
+		}
+	}
 
 	// commanded altitude
-	// if(PX4_ISFINITE(command.param7)) {
-	// 	_position_setpoint(2) = gl_ref.alt - command.param7;
-	// }
+	if (PX4_ISFINITE(command.param7)) {
+		if (map_projection_initialized(&_global_local_proj_ref)) {
+			_position_setpoint(2) = _global_local_alt0 - command.param7;
 
-	if (PX4_ISFINITE(command.param5) && PX4_ISFINITE(command.param6) && PX4_ISFINITE(command.param7)) {
-		if (globallocalconverter_tolocal(command.param5, command.param6, command.param7, &_center(0), &_center(1),
-						 &_position_setpoint(2))) {
-			// global to local conversion failed
+		} else {
 			ret = false;
 		}
 	}
@@ -109,8 +112,12 @@ bool FlightTaskOrbit::sendTelemetry()
 	orbit_status.frame = 0; // MAV_FRAME::MAV_FRAME_GLOBAL
 	orbit_status.yaw_behaviour = _yaw_behaviour;
 
-	if (globallocalconverter_toglobal(_center(0), _center(1), _position_setpoint(2), &orbit_status.x, &orbit_status.y,
-					  &orbit_status.z)) {
+	if (map_projection_initialized(&_global_local_proj_ref)) {
+		// local -> global
+		map_projection_reproject(&_global_local_proj_ref, _center(0), _center(1), &orbit_status.x, &orbit_status.y);
+		orbit_status.z = _global_local_alt0 - _position_setpoint(2);
+
+	} else {
 		return false; // don't send the message if the transformation failed
 	}
 
@@ -160,7 +167,6 @@ bool FlightTaskOrbit::activate(const vehicle_local_position_setpoint_s &last_set
 	_r = _radius_min;
 	_v =  1.f;
 	_center = _position.xy();
-	_center(0) -= _r;
 	_initial_heading = _yaw;
 	_slew_rate_yaw.setForcedValue(_yaw);
 	_slew_rate_yaw.setSlewRate(math::radians(_param_mpc_yawrauto_max.get()));

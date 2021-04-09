@@ -117,7 +117,7 @@ UavcanServers::stop()
 
 	if (server->_subnode_thread) {
 		PX4_INFO("stopping fw srv thread...");
-		server->_subnode_thread_should_exit = true;
+		server->_subnode_thread_should_exit.store(true);
 		(void)pthread_join(server->_subnode_thread, NULL);
 	}
 
@@ -279,7 +279,7 @@ UavcanServers::init()
 pthread_addr_t
 UavcanServers::run(pthread_addr_t)
 {
-	prctl(PR_SET_NAME, "uavcan fw srv", 0);
+	prctl(PR_SET_NAME, "uavcan_fw_srv", 0);
 
 	Lock lock(_subnode_mutex);
 
@@ -311,7 +311,7 @@ UavcanServers::run(pthread_addr_t)
 	memset(_esc_enumeration_ids, 0, sizeof(_esc_enumeration_ids));
 	_esc_enumeration_index = 0;
 
-	while (!_subnode_thread_should_exit) {
+	while (!_subnode_thread_should_exit.load()) {
 
 		if (_check_fw == true) {
 			_check_fw = false;
@@ -347,7 +347,7 @@ UavcanServers::run(pthread_addr_t)
 					int call_res = _param_getset_client.call(request.node_id, req);
 
 					if (call_res < 0) {
-						PX4_ERR("UAVCAN command bridge: couldn't send GetSet: %d", call_res);
+						PX4_ERR("couldn't send GetSet: %d", call_res);
 
 					} else {
 						_param_in_progress = true;
@@ -380,7 +380,7 @@ UavcanServers::run(pthread_addr_t)
 					int call_res = _param_getset_client.call(request.node_id, req);
 
 					if (call_res < 0) {
-						PX4_ERR("UAVCAN command bridge: couldn't send GetSet: %d", call_res);
+						PX4_ERR("couldn't send GetSet: %d", call_res);
 
 					} else {
 						_param_in_progress = true;
@@ -394,7 +394,7 @@ UavcanServers::run(pthread_addr_t)
 					_param_list_node_id = request.node_id;
 					_param_list_all_nodes = false;
 
-					PX4_INFO("UAVCAN command bridge: starting component-specific param list");
+					PX4_DEBUG("starting component-specific param list");
 				}
 
 			} else if (request.node_id == uavcan_parameter_request_s::NODE_ID_ALL) {
@@ -408,7 +408,7 @@ UavcanServers::run(pthread_addr_t)
 					_param_list_node_id = get_next_active_node_id(0);
 					_param_list_all_nodes = true;
 
-					PX4_INFO("UAVCAN command bridge: starting global param list with node %hhu", _param_list_node_id);
+					PX4_DEBUG("starting global param list with node %hhu", _param_list_node_id);
 
 					if (_param_counts[_param_list_node_id] == 0) {
 						param_count(_param_list_node_id);
@@ -427,7 +427,7 @@ UavcanServers::run(pthread_addr_t)
 		// Handle parameter listing index/node ID advancement
 		if (_param_list_in_progress && !_param_in_progress && !_count_in_progress) {
 			if (_param_index >= _param_counts[_param_list_node_id]) {
-				PX4_INFO("UAVCAN command bridge: completed param list for node %hhu", _param_list_node_id);
+				PX4_DEBUG("completed param list for node %hhu", _param_list_node_id);
 				// Reached the end of the current node's parameter set.
 				_param_list_in_progress = false;
 
@@ -449,7 +449,7 @@ UavcanServers::run(pthread_addr_t)
 						// Keep on listing.
 						_param_index = 0;
 						_param_list_in_progress = true;
-						PX4_INFO("UAVCAN command bridge: started param list for node %hhu", _param_list_node_id);
+						PX4_DEBUG("started param list for node %hhu", _param_list_node_id);
 					}
 				}
 			}
@@ -466,7 +466,7 @@ UavcanServers::run(pthread_addr_t)
 
 			if (call_res < 0) {
 				_param_list_in_progress = false;
-				PX4_ERR("UAVCAN command bridge: couldn't send param list GetSet: %d", call_res);
+				PX4_ERR("couldn't send param list GetSet: %d", call_res);
 
 			} else {
 				_param_in_progress = true;
@@ -475,17 +475,19 @@ UavcanServers::run(pthread_addr_t)
 
 		// Check for ESC enumeration commands
 		if (vcmd_sub.updated() && !_cmd_in_progress) {
+			bool acknowledge = false;
 			vehicle_command_s cmd{};
 			vcmd_sub.copy(&cmd);
 
 			uint8_t cmd_ack_result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
 
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_UAVCAN) {
+				acknowledge = true;
 				int command_id = static_cast<int>(cmd.param1 + 0.5f);
 				int node_id = static_cast<int>(cmd.param2 + 0.5f);
 				int call_res;
 
-				PX4_INFO("UAVCAN command bridge: received UAVCAN command ID %d, node ID %d", command_id, node_id);
+				PX4_DEBUG("received UAVCAN command ID %d, node ID %d", command_id, node_id);
 
 				switch (command_id) {
 				case 0:
@@ -513,16 +515,17 @@ UavcanServers::run(pthread_addr_t)
 					}
 
 				default: {
-						PX4_ERR("UAVCAN command bridge: unknown command ID %d", command_id);
+						PX4_ERR("unknown command ID %d", command_id);
 						cmd_ack_result = vehicle_command_ack_s::VEHICLE_RESULT_UNSUPPORTED;
 						break;
 					}
 				}
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_STORAGE) {
+				acknowledge = true;
 				int command_id = static_cast<int>(cmd.param1 + 0.5f);
 
-				PX4_INFO("UAVCAN command bridge: received storage command ID %d", command_id);
+				PX4_DEBUG("received storage command ID %d", command_id);
 
 				switch (command_id) {
 				case 1: {
@@ -552,33 +555,31 @@ UavcanServers::run(pthread_addr_t)
 				}
 			}
 
-			// Acknowledge the received command
-			vehicle_command_ack_s ack{};
-			ack.timestamp = hrt_absolute_time();
-			ack.command = cmd.command;
-			ack.result = cmd_ack_result;
-			ack.target_system = cmd.source_system;
-			ack.target_component = cmd.source_component;
-
-			_command_ack_pub.publish(ack);
+			if (acknowledge) {
+				// Acknowledge the received command
+				vehicle_command_ack_s ack{};
+				ack.command = cmd.command;
+				ack.result = cmd_ack_result;
+				ack.target_system = cmd.source_system;
+				ack.target_component = cmd.source_component;
+				ack.timestamp = hrt_absolute_time();
+				_command_ack_pub.publish(ack);
+			}
 		}
 
 		// Shut down once armed
 		// TODO (elsewhere): start up again once disarmed?
 		if (armed_sub.updated()) {
-			actuator_armed_s armed{};
-			armed_sub.copy(&armed);
+			actuator_armed_s armed;
 
-			if (armed.armed && !(armed.lockdown || armed.manual_lockdown)) {
-				PX4_INFO("UAVCAN command bridge: system armed, exiting now.");
-				break;
+			if (armed_sub.copy(&armed)) {
+				if (armed.armed) {
+					_subnode_thread_should_exit.store(true);
+				}
 			}
 		}
 	}
 
-	_subnode_thread_should_exit = false;
-
-	PX4_INFO("exiting");
 	return (pthread_addr_t) 0;
 }
 
@@ -609,14 +610,14 @@ UavcanServers::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::param
 				if (call_res < 0) {
 					_count_in_progress = false;
 					_count_index = 0;
-					PX4_ERR("UAVCAN command bridge: couldn't send GetSet during param count: %d", call_res);
+					PX4_ERR("couldn't send GetSet during param count: %d", call_res);
 					beep(BeepFrequencyError);
 				}
 
 			} else {
 				_count_in_progress = false;
 				_count_index = 0;
-				PX4_INFO("UAVCAN command bridge: completed param count for node %hhu: %hhu", node_id, _param_counts[node_id]);
+				PX4_DEBUG("completed param count for node %hhu: %hhu", node_id, _param_counts[node_id]);
 				beep(BeepFrequencyGenericIndication);
 			}
 
@@ -624,7 +625,7 @@ UavcanServers::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::param
 			_param_counts[node_id] = 0;
 			_count_in_progress = false;
 			_count_index = 0;
-			PX4_ERR("UAVCAN command bridge: GetSet error during param count");
+			PX4_ERR("GetSet error during param count");
 		}
 
 	} else {
@@ -659,7 +660,7 @@ UavcanServers::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::param
 			_param_response_pub.publish(response);
 
 		} else {
-			PX4_ERR("UAVCAN command bridge: GetSet error");
+			PX4_ERR("GetSet error");
 		}
 
 		_param_in_progress = false;
@@ -675,12 +676,12 @@ UavcanServers::param_count(uavcan::NodeID node_id)
 	int call_res = _param_getset_client.call(node_id, req);
 
 	if (call_res < 0) {
-		PX4_ERR("UAVCAN command bridge: couldn't start parameter count: %d", call_res);
+		PX4_ERR("couldn't start parameter count: %d", call_res);
 
 	} else {
 		_count_in_progress = true;
 		_count_index = 0;
-		PX4_INFO("UAVCAN command bridge: starting param count");
+		PX4_DEBUG("starting param count");
 	}
 }
 
@@ -692,11 +693,11 @@ UavcanServers::param_opcode(uavcan::NodeID node_id)
 	int call_res = _param_opcode_client.call(node_id, opcode_req);
 
 	if (call_res < 0) {
-		PX4_ERR("UAVCAN command bridge: couldn't send ExecuteOpcode: %d", call_res);
+		PX4_ERR("couldn't send ExecuteOpcode: %d", call_res);
 
 	} else {
 		_cmd_in_progress = true;
-		PX4_INFO("UAVCAN command bridge: sent ExecuteOpcode");
+		PX4_INFO("sent ExecuteOpcode");
 	}
 }
 
@@ -710,23 +711,23 @@ UavcanServers::cb_opcode(const uavcan::ServiceCallResult<uavcan::protocol::param
 	_cmd_in_progress = false;
 
 	if (!result.isSuccessful()) {
-		PX4_ERR("UAVCAN command bridge: save request for node %hhu timed out.", node_id);
+		PX4_ERR("save request for node %hhu timed out.", node_id);
 
 	} else if (!result.getResponse().ok) {
-		PX4_ERR("UAVCAN command bridge: save request for node %hhu rejected.", node_id);
+		PX4_ERR("save request for node %hhu rejected.", node_id);
 
 	} else {
-		PX4_INFO("UAVCAN command bridge: save request for node %hhu completed OK, restarting.", node_id);
+		PX4_INFO("save request for node %hhu completed OK, restarting.", node_id);
 
 		uavcan::protocol::RestartNode::Request restart_req;
 		restart_req.magic_number = restart_req.MAGIC_NUMBER;
 		int call_res = _param_restartnode_client.call(node_id, restart_req);
 
 		if (call_res < 0) {
-			PX4_ERR("UAVCAN command bridge: couldn't send RestartNode: %d", call_res);
+			PX4_ERR("couldn't send RestartNode: %d", call_res);
 
 		} else {
-			PX4_ERR("UAVCAN command bridge: sent RestartNode");
+			PX4_ERR("sent RestartNode");
 			_cmd_in_progress = true;
 		}
 	}
@@ -756,13 +757,13 @@ UavcanServers::cb_restart(const uavcan::ServiceCallResult<uavcan::protocol::Rest
 	_cmd_in_progress = false;
 
 	if (success) {
-		PX4_INFO("UAVCAN command bridge: restart request for node %hhu completed OK.", node_id);
+		PX4_DEBUG("restart request for node %hhu completed OK.", node_id);
 
 		// Clear the dirty flag
 		clear_node_params_dirty(node_id);
 
 	} else {
-		PX4_ERR("UAVCAN command bridge: restart request for node %hhu failed.", node_id);
+		PX4_ERR("restart request for node %hhu failed.", node_id);
 	}
 
 	// Get the next dirty node ID and send the same command to it

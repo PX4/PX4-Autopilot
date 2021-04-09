@@ -14,8 +14,8 @@ px4_add_board(
 		barometer/lps25h
 		distance_sensor/vl53l0x
 		gps
-		magnetometer/akm/ak8963
 		imu/invensense/mpu9250
+		magnetometer/akm/ak8963
 		optical_flow/pmw3901
 		pwm_out
 	MODULES
@@ -26,6 +26,7 @@ px4_add_board(
 		ekf2
 		events
 		flight_mode_manager
+		gyro_fft
 		land_detector
 		#landing_target_estimator
 		load_mon
@@ -44,7 +45,7 @@ px4_add_board(
 		#bl_update
 		dmesg
 		dumpfile
-		esc_calib
+		#esc_calib
 		hardfault_log
 		i2cdetect
 		led_control

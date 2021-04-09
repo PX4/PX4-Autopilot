@@ -22,7 +22,6 @@
 # @board px4_fmu-v4pro exclude
 # @board px4_fmu-v5 exclude
 # @board px4_fmu-v5x exclude
-# @board intel_aerofc-v1 exclude
 # @board bitcraze_crazyflie exclude
 #
 
@@ -123,7 +122,7 @@ param set-default BAT_V_DIV 10.133
 
 # TELEM1 ttyS1
 param set-default MAV_0_CONFIG 101
-param set-default MAV_0_MODE 0	# onboard
+param set-default MAV_0_MODE 0
 param set-default MAV_0_FORWARD 1
 param set-default SER_TEL1_BAUD 57600
 

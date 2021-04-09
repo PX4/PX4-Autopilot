@@ -23,12 +23,9 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		gps
 		imu/analog_devices/adis16448
-		imu/adis16477
-		imu/adis16497
 		imu/bosch/bmi055
 		imu/invensense/icm20602
 		imu/invensense/icm20689
-		#imu/mpu6000 # legacy icm20602/icm20689 driver
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		lights/rgbled_pwm

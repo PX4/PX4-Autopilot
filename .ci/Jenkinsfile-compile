@@ -17,7 +17,7 @@ pipeline {
           ]
 
           def armhf_builds = [
-            target: ["aerotenna_ocpoc_default", "beaglebone_blue_default", "emlid_navio2_default", "px4_raspberrypi_default", "scumaker_pilotpi_default"],
+            target: ["beaglebone_blue_default", "emlid_navio2_default", "px4_raspberrypi_default", "scumaker_pilotpi_default"],
             image: docker_images.armhf,
             archive: false
           ]
@@ -55,18 +55,23 @@ pipeline {
                      "holybro_durandal-v1_default",
                      "holybro_kakutef7_default",
                      "holybro_pix32v5_default",
-                     "intel_aerofc-v1_default",
                      "modalai_fc-v1_default",
                      "mro_ctrl-zero-f7_default",
+                     "mro_ctrl-zero-f7-oem_default",
+                     "mro_ctrl-zero-h7_default",
+                     "mro_ctrl-zero-h7-oem_default",
                      "mro_pixracerpro_default",
                      "mro_x21-777_default",
                      "mro_x21_default",
                      "nxp_fmuk66-e_default",
+                     "nxp_fmuk66-e_rtps",
+                     "nxp_fmuk66-e_socketcan",
                      "nxp_fmuk66-v3_default",
                      "nxp_fmuk66-v3_rtps",
                      "nxp_fmuk66-v3_socketcan",
                      "nxp_fmurt1062-v1_default",
                      "nxp_ucans32k146_default",
+                     "nxp_ucans32k146_canbootloader",
                      "omnibus_f4sd_default",
                      "px4_fmu-v2_default",
                      "px4_fmu-v2_fixedwing",
@@ -91,6 +96,7 @@ pipeline {
                      "px4_fmu-v5x_base_phy_DP83848C",
                      "px4_fmu-v5x_default",
                      "px4_fmu-v6u_default",
+                     "px4_fmu-v6u_test",
                      "px4_fmu-v6x_default",
                      "px4_io-v2_default",
                      "spracing_h7extreme_default",

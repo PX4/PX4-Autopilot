@@ -143,16 +143,7 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 		// Always copy the new manual setpoint, even if it wasn't updated, to fill the _actuators with valid values
 		if (_manual_control_setpoint_sub.copy(&_manual_control_setpoint)) {
 
-			// Check if we are in rattitude mode and the pilot is above the threshold on pitch
-			if (_vcontrol_mode.flag_control_rattitude_enabled) {
-				if (fabsf(_manual_control_setpoint.y) > _param_fw_ratt_th.get()
-				    || fabsf(_manual_control_setpoint.x) > _param_fw_ratt_th.get()) {
-					_vcontrol_mode.flag_control_attitude_enabled = false;
-				}
-			}
-
-			if (!_vcontrol_mode.flag_control_climb_rate_enabled &&
-			    !_vcontrol_mode.flag_control_offboard_enabled) {
+			if (!_vcontrol_mode.flag_control_climb_rate_enabled) {
 
 				if (_vcontrol_mode.flag_control_attitude_enabled) {
 					// STABILIZED mode generate the attitude setpoint from manual user inputs
@@ -449,10 +440,15 @@ void FixedwingAttitudeControl::Run()
 				*/
 				float groundspeed = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
 				float gspd_scaling_trim = (_param_fw_airspd_min.get() * 0.6f);
-				float groundspeed_scaler = gspd_scaling_trim / ((groundspeed < gspd_scaling_trim) ? gspd_scaling_trim : groundspeed);
 
 				control_input.groundspeed = groundspeed;
-				control_input.groundspeed_scaler = groundspeed_scaler;
+
+				if (groundspeed > gspd_scaling_trim) {
+					control_input.groundspeed_scaler = gspd_scaling_trim / groundspeed;
+
+				} else {
+					control_input.groundspeed_scaler = 1.0f;
+				}
 			}
 
 			/* reset body angular rate limits on mode change */

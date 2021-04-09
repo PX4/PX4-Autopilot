@@ -45,7 +45,9 @@
 #include <conversion/rotation.h>
 #include <mathlib/mathlib.h>
 
+#include <arpa/inet.h>
 #include <errno.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <poll.h>
@@ -207,13 +209,39 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 	// accel
 	if ((sensors.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL) {
 		for (int i = 0; i < ACCEL_COUNT_MAX; i++) {
-			if (_accel_stuck[i]) {
-				_px4_accel[i].update(time, _last_accel[i](0), _last_accel[i](1), _last_accel[i](2));
+			if (i == 0) {
+				// accel 0 is simulated FIFO
+				static constexpr float ACCEL_FIFO_SCALE = CONSTANTS_ONE_G / 2048.f;
+				static constexpr float ACCEL_FIFO_RANGE = 16.f * CONSTANTS_ONE_G;
 
-			} else if (!_accel_blocked[i]) {
-				_px4_accel[i].set_temperature(_sensors_temperature);
-				_px4_accel[i].update(time, sensors.xacc, sensors.yacc, sensors.zacc);
-				_last_accel[i] = matrix::Vector3f{sensors.xacc, sensors.yacc, sensors.zacc};
+				_px4_accel[i].set_scale(ACCEL_FIFO_SCALE);
+				_px4_accel[i].set_range(ACCEL_FIFO_RANGE);
+
+				if (_accel_stuck[i]) {
+					_px4_accel[i].updateFIFO(_last_accel_fifo);
+
+				} else if (!_accel_blocked[i]) {
+					_px4_accel[i].set_temperature(_sensors_temperature);
+
+					_last_accel_fifo.samples = 1;
+					_last_accel_fifo.dt = time - _last_accel_fifo.timestamp_sample;
+					_last_accel_fifo.timestamp_sample = time;
+					_last_accel_fifo.x[0] = sensors.xacc / ACCEL_FIFO_SCALE;
+					_last_accel_fifo.y[0] = sensors.yacc / ACCEL_FIFO_SCALE;
+					_last_accel_fifo.z[0] = sensors.zacc / ACCEL_FIFO_SCALE;
+
+					_px4_accel[i].updateFIFO(_last_accel_fifo);
+				}
+
+			} else {
+				if (_accel_stuck[i]) {
+					_px4_accel[i].update(time, _last_accel[i](0), _last_accel[i](1), _last_accel[i](2));
+
+				} else if (!_accel_blocked[i]) {
+					_px4_accel[i].set_temperature(_sensors_temperature);
+					_px4_accel[i].update(time, sensors.xacc, sensors.yacc, sensors.zacc);
+					_last_accel[i] = matrix::Vector3f{sensors.xacc, sensors.yacc, sensors.zacc};
+				}
 			}
 		}
 	}
@@ -221,13 +249,39 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 	// gyro
 	if ((sensors.fields_updated & SensorSource::GYRO) == SensorSource::GYRO) {
 		for (int i = 0; i < GYRO_COUNT_MAX; i++) {
-			if (_gyro_stuck[i]) {
-				_px4_gyro[i].update(time, _last_gyro[i](0), _last_gyro[i](1), _last_gyro[i](2));
+			if (i == 0) {
+				// gyro 0 is simulated FIFO
+				static constexpr float GYRO_FIFO_SCALE = math::radians(2000.f / 32768.f);
+				static constexpr float GYRO_FIFO_RANGE = math::radians(2000.f);
 
-			} else if (!_gyro_blocked[i]) {
-				_px4_gyro[i].set_temperature(_sensors_temperature);
-				_px4_gyro[i].update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
-				_last_gyro[i] = matrix::Vector3f{sensors.xgyro, sensors.ygyro, sensors.zgyro};
+				_px4_gyro[i].set_scale(GYRO_FIFO_SCALE);
+				_px4_gyro[i].set_range(GYRO_FIFO_RANGE);
+
+				if (_gyro_stuck[i]) {
+					_px4_gyro[i].updateFIFO(_last_gyro_fifo);
+
+				} else if (!_gyro_blocked[i]) {
+					_px4_gyro[i].set_temperature(_sensors_temperature);
+
+					_last_gyro_fifo.samples = 1;
+					_last_gyro_fifo.dt = time - _last_gyro_fifo.timestamp_sample;
+					_last_gyro_fifo.timestamp_sample = time;
+					_last_gyro_fifo.x[0] = sensors.xgyro / GYRO_FIFO_SCALE;
+					_last_gyro_fifo.y[0] = sensors.ygyro / GYRO_FIFO_SCALE;
+					_last_gyro_fifo.z[0] = sensors.zgyro / GYRO_FIFO_SCALE;
+
+					_px4_gyro[i].updateFIFO(_last_gyro_fifo);
+				}
+
+			} else {
+				if (_gyro_stuck[i]) {
+					_px4_gyro[i].update(time, _last_gyro[i](0), _last_gyro[i](1), _last_gyro[i](2));
+
+				} else if (!_gyro_blocked[i]) {
+					_px4_gyro[i].set_temperature(_sensors_temperature);
+					_px4_gyro[i].update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
+					_last_gyro[i] = matrix::Vector3f{sensors.xgyro, sensors.ygyro, sensors.zgyro};
+				}
 			}
 		}
 	}
@@ -452,25 +506,21 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 	}
 
 	/* local position */
-	struct vehicle_local_position_s hil_lpos = {};
+	vehicle_local_position_s hil_lpos{};
 	{
 		hil_lpos.timestamp = timestamp;
 
 		double lat = hil_state.lat * 1e-7;
 		double lon = hil_state.lon * 1e-7;
 
-		if (!_hil_local_proj_inited) {
-			_hil_local_proj_inited = true;
-			map_projection_init(&_hil_local_proj_ref, lat, lon);
-			_hil_ref_timestamp = timestamp;
-			_hil_ref_lat = lat;
-			_hil_ref_lon = lon;
-			_hil_ref_alt = hil_state.alt / 1000.0f;
+		if (!map_projection_initialized(&_global_local_proj_ref)) {
+			map_projection_init(&_global_local_proj_ref, lat, lon);
+			_global_local_alt0 = hil_state.alt / 1000.f;
 		}
 
 		float x;
 		float y;
-		map_projection_project(&_hil_local_proj_ref, lat, lon, &x, &y);
+		map_projection_project(&_global_local_proj_ref, lat, lon, &x, &y);
 		hil_lpos.timestamp = timestamp;
 		hil_lpos.xy_valid = true;
 		hil_lpos.z_valid = true;
@@ -478,7 +528,7 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 		hil_lpos.v_z_valid = true;
 		hil_lpos.x = x;
 		hil_lpos.y = y;
-		hil_lpos.z = _hil_ref_alt - hil_state.alt / 1000.0f;
+		hil_lpos.z = _global_local_alt0 - hil_state.alt / 1000.0f;
 		hil_lpos.vx = hil_state.vx / 100.0f;
 		hil_lpos.vy = hil_state.vy / 100.0f;
 		hil_lpos.vz = hil_state.vz / 100.0f;
@@ -486,10 +536,10 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 		hil_lpos.heading = euler.psi();
 		hil_lpos.xy_global = true;
 		hil_lpos.z_global = true;
-		hil_lpos.ref_lat = _hil_ref_lat;
-		hil_lpos.ref_lon = _hil_ref_lon;
-		hil_lpos.ref_alt = _hil_ref_alt;
-		hil_lpos.ref_timestamp = _hil_ref_timestamp;
+		hil_lpos.ref_timestamp = _global_local_proj_ref.timestamp;
+		hil_lpos.ref_lat = math::degrees(_global_local_proj_ref.lat_rad);
+		hil_lpos.ref_lon = math::degrees(_global_local_proj_ref.lon_rad);
+		hil_lpos.ref_alt = _global_local_alt0;
 		hil_lpos.vxy_max = std::numeric_limits<float>::infinity();
 		hil_lpos.vz_max = std::numeric_limits<float>::infinity();
 		hil_lpos.hagl_min = std::numeric_limits<float>::infinity();
@@ -683,7 +733,18 @@ void Simulator::run()
 
 	if (_tcp_remote_ipaddr != nullptr) {
 		_myaddr.sin_addr.s_addr = inet_addr(_tcp_remote_ipaddr);
+
+	} else if (!_hostname.empty()) {
+		/* resolve hostname */
+		struct hostent *host;
+		host = gethostbyname(_hostname.c_str());
+		memcpy(&_myaddr.sin_addr, host->h_addr_list[0], host->h_length);
+
+		char ip[30];
+		strcpy(ip, (char *)inet_ntoa((struct in_addr)_myaddr.sin_addr));
+		PX4_INFO("Resolved host '%s' to address: %s", _hostname.c_str(), ip);
 	}
+
 
 	if (_ip == InternetProtocol::UDP) {
 

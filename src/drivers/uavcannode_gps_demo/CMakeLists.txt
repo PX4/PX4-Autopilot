@@ -78,5 +78,6 @@ px4_add_module(
 	DEPENDS
 		git_libcanard
 		git_public_regulated_data_types
+		drivers_bootloaders
 		version
 	)

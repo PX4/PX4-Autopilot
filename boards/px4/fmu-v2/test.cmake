@@ -42,7 +42,6 @@ px4_add_board(
 		#imu/invensense/mpu9250
 		#iridiumsbd
 		#irlock
-		#lights/blinkm
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
@@ -56,7 +55,6 @@ px4_add_board(
 		pwm_out
 		px4io
 		#roboclaw
-		#tap_esc
 		#telemetry # all available telemetry drivers
 		#test_ppm
 		tone_alarm

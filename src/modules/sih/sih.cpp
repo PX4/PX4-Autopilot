@@ -66,7 +66,8 @@ Sih::Sih() :
 	const hrt_abstime task_start = hrt_absolute_time();
 	_last_run = task_start;
 	_gps_time = task_start;
-	_serial_time = task_start;
+	_gt_time = task_start;
+	_dist_snsr_time = task_start;
 }
 
 Sih::~Sih()
@@ -141,16 +142,22 @@ void Sih::Run()
 		_px4_baro.update(_now, _baro_p_mBar);
 	}
 
-
 	// gps published at 20Hz
 	if (_now - _gps_time >= 50_ms) {
 		_gps_time = _now;
 		send_gps();
 	}
 
-	// send uart message every 40 ms
-	if (_now - _serial_time >= 40_ms) {
-		_serial_time = _now;
+	// distance sensor published at 50 Hz
+	if (_now - _dist_snsr_time >= 20_ms
+	    && fabs(_distance_snsr_override) < 10000) {
+		_dist_snsr_time = _now;
+		send_dist_snsr();
+	}
+
+	// send groundtruth message every 40 ms
+	if (_now - _gt_time >= 40_ms) {
+		_gt_time = _now;
 
 		publish_sih();  // publish _sih message for debug purpose
 	}
@@ -191,6 +198,12 @@ void Sih::parameters_updated()
 	_mag_offset_x = _sih_mag_offset_x.get();
 	_mag_offset_y = _sih_mag_offset_y.get();
 	_mag_offset_z = _sih_mag_offset_z.get();
+
+	_distance_snsr_min = _sih_distance_snsr_min.get();
+	_distance_snsr_max = _sih_distance_snsr_max.get();
+	_distance_snsr_override = _sih_distance_snsr_override.get();
+
+	_T_TAU = _sih_thrust_tau.get();
 }
 
 // initialization of the variables for the simulator
@@ -242,7 +255,8 @@ void Sih::read_motors()
 
 	if (_actuator_out_sub.update(&actuators_out)) {
 		for (int i = 0; i < NB_MOTORS; i++) { // saturate the motor signals
-			_u[i] = constrain((actuators_out.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN), 0.0f, 1.0f);
+			float u_sp = constrain((actuators_out.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN), 0.0f, 1.0f);
+			_u[i] = _u[i] + _dt / _T_TAU * (u_sp - _u[i]); // first order transfer function with time constant tau
 		}
 	}
 }
@@ -321,9 +335,9 @@ void Sih::reconstruct_sensors_signals()
 	_gps_lon_noiseless = _LON0 + degrees((double)_p_I(1) / CONSTANTS_RADIUS_OF_EARTH) / _COS_LAT0;
 	_gps_alt_noiseless = _H0 - _p_I(2);
 
-	_gps_lat = _gps_lat_noiseless + (double)(generate_wgn() * 7.2e-6f); // latitude in degrees
-	_gps_lon = _gps_lon_noiseless + (double)(generate_wgn() * 1.75e-5f); // longitude in degrees
-	_gps_alt = _gps_alt_noiseless + generate_wgn() * 1.78f;
+	_gps_lat = _gps_lat_noiseless + degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
+	_gps_lon = _gps_lon_noiseless + degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH) / _COS_LAT0;
+	_gps_alt = _gps_alt_noiseless + generate_wgn() * 0.5f;
 	_gps_vel = _v_I + noiseGauss3f(0.06f, 0.077f, 0.158f);
 }
 
@@ -353,6 +367,32 @@ void Sih::send_gps()
 	_sensor_gps_pub.publish(_sensor_gps);
 }
 
+void Sih::send_dist_snsr()
+{
+	_distance_snsr.timestamp = _now;
+	_distance_snsr.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+	_distance_snsr.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	_distance_snsr.min_distance = _distance_snsr_min;
+	_distance_snsr.max_distance = _distance_snsr_max;
+	_distance_snsr.signal_quality = -1;
+	_distance_snsr.device_id = 0;
+
+	if (_distance_snsr_override >= 0.f) {
+		_distance_snsr.current_distance = _distance_snsr_override;
+
+	} else {
+		_distance_snsr.current_distance = -_p_I(2) / _C_IB(2, 2);
+
+		if (_distance_snsr.current_distance > _distance_snsr_max) {
+			// this is based on lightware lw20 behaviour
+			_distance_snsr.current_distance = UINT16_MAX / 100.f;
+
+		}
+	}
+
+	_distance_snsr_pub.publish(_distance_snsr);
+}
+
 void Sih::publish_sih()
 {
 	// publish angular velocity groundtruth
@@ -372,6 +412,7 @@ void Sih::publish_sih()
 
 	_att_gt_pub.publish(_att_gt);
 
+	// publish position groundtruth
 	_gpos_gt.timestamp = hrt_absolute_time();
 	_gpos_gt.lat = _gps_lat_noiseless;
 	_gpos_gt.lon = _gps_lon_noiseless;

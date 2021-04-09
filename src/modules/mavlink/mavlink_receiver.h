@@ -52,6 +52,7 @@
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#include <lib/systemlib/mavlink_log.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -93,7 +94,6 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
-#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -127,13 +127,6 @@ public:
 	static void receive_start(pthread_t *thread, Mavlink *parent);
 
 	static void *start_helper(void *context);
-
-	/**
-	 * Get the cruising speed in offboard control
-	 *
-	 * @return the desired cruising speed for the current flight mode
-	 */
-	float get_offb_cruising_speed();
 
 	/**
 	 * Set the cruising speed in offboard control
@@ -258,6 +251,8 @@ private:
 
 	mavlink_status_t		_status{}; ///< receiver status, used for mavlink_parse_char()
 
+	orb_advert_t _mavlink_log_pub{nullptr};
+
 	// subset of MAV_COMPONENTs we support
 	enum SUPPORTED_COMPONENTS : uint8_t {
 		COMP_ID_ALL,
@@ -299,42 +294,9 @@ private:
 	};
 
 	// map of supported component IDs to MAV_COMP value
-	const uint8_t supported_component_map[COMP_ID_MAX] {
-		[COMP_ID_ALL]                      = MAV_COMP_ID_ALL,
-		[COMP_ID_AUTOPILOT1]               = MAV_COMP_ID_AUTOPILOT1,
+	static const uint8_t supported_component_map[COMP_ID_MAX];
 
-		[COMP_ID_TELEMETRY_RADIO]          = MAV_COMP_ID_TELEMETRY_RADIO,
-
-		[COMP_ID_CAMERA]                   = MAV_COMP_ID_CAMERA,
-		[COMP_ID_CAMERA2]                  = MAV_COMP_ID_CAMERA2,
-
-		[COMP_ID_GIMBAL]                   = MAV_COMP_ID_GIMBAL,
-		[COMP_ID_LOG]                      = MAV_COMP_ID_LOG,
-		[COMP_ID_ADSB]                     = MAV_COMP_ID_ADSB,
-		[COMP_ID_OSD]                      = MAV_COMP_ID_OSD,
-		[COMP_ID_PERIPHERAL]               = MAV_COMP_ID_PERIPHERAL,
-
-		[COMP_ID_FLARM]                    = MAV_COMP_ID_FLARM,
-
-		[COMP_ID_GIMBAL2]                  = MAV_COMP_ID_GIMBAL2,
-
-		[COMP_ID_MISSIONPLANNER]           = MAV_COMP_ID_MISSIONPLANNER,
-		[COMP_ID_ONBOARD_COMPUTER]         = MAV_COMP_ID_ONBOARD_COMPUTER,
-
-		[COMP_ID_PATHPLANNER]              = MAV_COMP_ID_PATHPLANNER,
-		[COMP_ID_OBSTACLE_AVOIDANCE]       = MAV_COMP_ID_OBSTACLE_AVOIDANCE,
-		[COMP_ID_VISUAL_INERTIAL_ODOMETRY] = MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY,
-		[COMP_ID_PAIRING_MANAGER]          = MAV_COMP_ID_PAIRING_MANAGER,
-
-		[COMP_ID_IMU]                      = MAV_COMP_ID_IMU,
-
-		[COMP_ID_GPS]                      = MAV_COMP_ID_GPS,
-		[COMP_ID_GPS2]                     = MAV_COMP_ID_GPS2,
-
-		[COMP_ID_UDP_BRIDGE]               = MAV_COMP_ID_UDP_BRIDGE,
-		[COMP_ID_UART_BRIDGE]              = MAV_COMP_ID_UART_BRIDGE,
-		[COMP_ID_TUNNEL_NODE]              = MAV_COMP_ID_TUNNEL_NODE,
-	};
+	bool _reported_unsupported_comp_id{false};
 
 	static constexpr int MAX_REMOTE_SYSTEM_IDS{8};
 	uint8_t _system_id_map[MAX_REMOTE_SYSTEM_IDS] {};
@@ -369,7 +331,6 @@ private:
 	uORB::Publication<onboard_computer_status_s>		_onboard_computer_status_pub{ORB_ID(onboard_computer_status)};
 	uORB::Publication<generator_status_s>			_generator_status_pub{ORB_ID(generator_status)};
 	uORB::Publication<optical_flow_s>			_flow_pub{ORB_ID(optical_flow)};
-	uORB::Publication<position_setpoint_triplet_s>		_pos_sp_triplet_pub{ORB_ID(position_setpoint_triplet)};
 	uORB::Publication<sensor_gps_s>				_gps_pub{ORB_ID(sensor_gps)};
 	uORB::Publication<vehicle_attitude_s>			_attitude_pub{ORB_ID(vehicle_attitude)};
 	uORB::Publication<vehicle_attitude_setpoint_s>		_att_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
@@ -378,6 +339,7 @@ private:
 	uORB::Publication<vehicle_global_position_s>		_global_pos_pub{ORB_ID(vehicle_global_position)};
 	uORB::Publication<vehicle_land_detected_s>		_land_detector_pub{ORB_ID(vehicle_land_detected)};
 	uORB::Publication<vehicle_local_position_s>		_local_pos_pub{ORB_ID(vehicle_local_position)};
+	uORB::Publication<vehicle_local_position_setpoint_s>	_trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
 	uORB::Publication<vehicle_odometry_s>			_mocap_odometry_pub{ORB_ID(vehicle_mocap_odometry)};
 	uORB::Publication<vehicle_odometry_s>			_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Publication<vehicle_rates_setpoint_s>		_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
@@ -400,17 +362,19 @@ private:
 	uORB::PublicationMulti<radio_status_s>			_radio_status_pub{ORB_ID(radio_status)};
 
 	// ORB publications (queue length > 1)
-	uORB::Publication<gps_inject_data_s>	_gps_inject_data_pub{ORB_ID(gps_inject_data)};
-	uORB::Publication<transponder_report_s>	_transponder_report_pub{ORB_ID(transponder_report)};
-	uORB::Publication<vehicle_command_ack_s>	_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
-	uORB::Publication<vehicle_command_s>	_cmd_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<gps_inject_data_s>     _gps_inject_data_pub{ORB_ID(gps_inject_data)};
+	uORB::Publication<transponder_report_s>  _transponder_report_pub{ORB_ID(transponder_report)};
+	uORB::Publication<vehicle_command_s>     _cmd_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<vehicle_command_ack_s> _cmd_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	// ORB subscriptions
 	uORB::Subscription	_actuator_armed_sub{ORB_ID(actuator_armed)};
-	uORB::Subscription	_control_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription	_home_position_sub{ORB_ID(home_position)};
 	uORB::Subscription	_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription	_vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription	_vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription	_vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription 	_actuator_controls_3_sub{ORB_ID(actuator_controls_3)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -431,16 +395,7 @@ private:
 	uint8_t				_mom_switch_pos[MOM_SWITCH_COUNT] {};
 	uint16_t			_mom_switch_state{0};
 
-	uint64_t			_global_ref_timestamp{0};
-
-	map_projection_reference_s	_hil_local_proj_ref{};
-	float				_hil_local_alt0{0.0f};
-	bool				_hil_local_proj_inited{false};
-
 	hrt_abstime			_last_utm_global_pos_com{0};
-
-	float 				_offb_cruising_speed_mc{-1.0f};
-	float 				_offb_cruising_speed_fw{-1.0f};
 
 	// Allocated if needed.
 	TunePublisher *_tune_publisher{nullptr};

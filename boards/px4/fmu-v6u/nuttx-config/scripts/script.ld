@@ -200,9 +200,13 @@ SECTIONS
 
 	/* Emit the the D3 power domain section for locating BDMA data */
 
-	.sram4 (NOLOAD) :
+	.sram4_reserve (NOLOAD) :
 	{
+		*(.sram4)
+		. = ALIGN(4);
+		_sram4_heap_start = ABSOLUTE(.);
 	} > sram4
+
 
 	/* Stabs debugging sections. */
 	.stab 0 : { *(.stab) }

@@ -122,13 +122,7 @@
 #define APPLICATION_LAST_64BIT_ADDRRESS ((uint64_t *)((APPLICATION_LOAD_ADDRESS+APPLICATION_SIZE)-sizeof(uint64_t)))
 
 /* If this board uses big flash that have large sectors */
-
-#if defined(CONFIG_STM32_FLASH_CONFIG_E) || \
-   defined(CONFIG_STM32_FLASH_CONFIG_F) || \
-   defined(CONFIG_STM32_FLASH_CONFIG_G) || \
-   defined(CONFIG_STM32_FLASH_CONFIG_I)
 #define OPT_USE_YIELD
-#endif
 
 /* Bootloader Option*****************************************************************
  *

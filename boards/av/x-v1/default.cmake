@@ -9,6 +9,7 @@ px4_add_board(
 	ROMFSROOT px4fmu_common
 	TESTING
 	UAVCAN_INTERFACES 2
+	ETHERNET
 	SERIAL_PORTS
 		GPS1:/dev/ttyS6
 		TEL1:/dev/ttyS0
@@ -16,6 +17,7 @@ px4_add_board(
 		TEL3:/dev/ttyS2
 		TEL4:/dev/ttyS3
 	DRIVERS
+		adc/ads1115
 		adc/board_adc
 		barometer # all available barometer drivers
 		batt_smbus
@@ -25,18 +27,16 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		#dshot
 		gps
-		#heater
 		#imu # all available imu drivers
 		imu/adis16477
 		imu/adis16497
 		irlock
-		lights/blinkm
-		#lights/rgbled
-		#lights/rgbled_ncp5623c
+		lights # all available light drivers
 		magnetometer # all available magnetometer drivers
 		optical_flow # all available optical flow drivers
-		#osd
+		osd
 		pca9685
+		pca9685_pwm_out
 		power_monitor/ina226
 		#protocol_splitter
 		#pwm_input
@@ -44,7 +44,7 @@ px4_add_board(
 		pwm_out
 		rc_input
 		roboclaw
-		tap_esc
+		rpm
 		telemetry # all available telemetry drivers
 		test_ppm
 		#tone_alarm
@@ -57,10 +57,13 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
+		esc_battery
 		events
 		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
+		gyro_calibration
+		gyro_fft
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -71,19 +74,23 @@ px4_add_board(
 		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
+		#micrortps_bridge
 		navigator
 		rc_update
 		rover_pos_control
 		sensors
 		sih
 		temperature_compensation
+		uuv_att_control
+		uuv_pos_control
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
-		#bl_update
+		bl_update
 		dmesg
 		dumpfile
 		esc_calib
+		gpio
 		hardfault_log
 		i2cdetect
 		led_control
@@ -91,12 +98,14 @@ px4_add_board(
 		motor_ramp
 		motor_test
 		nshterm
+		netman
 		param
 		perf
 		pwm
 		reboot
 		reflect
 		sd_bench
+		serial_test
 		system_time
 		tests # tests and test runner
 		top
@@ -107,6 +116,8 @@ px4_add_board(
 		work_queue
 	EXAMPLES
 		fake_gps
+		fake_gyro
+		fake_magnetometer
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		hwtest # Hardware test

@@ -101,6 +101,7 @@ Navigator::Navigator() :
 	_handle_reverse_delay = param_find("VT_B_REV_DEL");
 
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+	_mission_sub = orb_subscribe(ORB_ID(mission));
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	reset_triplets();
@@ -110,6 +111,7 @@ Navigator::~Navigator()
 {
 	perf_free(_loop_perf);
 	orb_unsubscribe(_local_pos_sub);
+	orb_unsubscribe(_mission_sub);
 	orb_unsubscribe(_vehicle_status_sub);
 }
 
@@ -144,13 +146,15 @@ Navigator::run()
 	params_update();
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[2] {};
+	px4_pollfd_struct_t fds[3] {};
 
 	/* Setup of loop */
 	fds[0].fd = _local_pos_sub;
 	fds[0].events = POLLIN;
 	fds[1].fd = _vehicle_status_sub;
 	fds[1].events = POLLIN;
+	fds[2].fd = _mission_sub;
+	fds[2].events = POLLIN;
 
 	/* rate-limit position subscription to 20 Hz / 50 ms */
 	orb_set_interval(_local_pos_sub, 50);
@@ -168,17 +172,18 @@ Navigator::run()
 			PX4_ERR("poll error %d, %d", pret, errno);
 			px4_usleep(10000);
 			continue;
-
-		} else {
-			if (fds[0].revents & POLLIN) {
-				/* success, local pos is available */
-				orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
-			}
 		}
 
 		perf_begin(_loop_perf);
 
+		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vstatus);
+
+		if (fds[2].revents & POLLIN) {
+			// copy mission to clear any update
+			mission_s mission;
+			orb_copy(ORB_ID(mission), _mission_sub, &mission);
+		}
 
 		/* gps updated */
 		if (_gps_pos_sub.updated()) {

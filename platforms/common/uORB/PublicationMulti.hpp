@@ -92,9 +92,10 @@ public:
 		return (orb_publish(get_topic(), _handle, &data) == PX4_OK);
 	}
 
-	int get_instance() const
+	int get_instance()
 	{
-		if (_handle) {
+		// advertise if not already advertised
+		if (advertise()) {
 			return static_cast<uORB::DeviceNode *>(_handle)->get_instance();
 		}
 

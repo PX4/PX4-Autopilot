@@ -14,6 +14,7 @@ px4_add_board(
 		camera_trigger
 		#differential_pressure # all available differential pressure drivers
 		#distance_sensor # all available distance sensor drivers
+		distance_sensor/lightware_laser_serial
 		gps
 		#imu # all available imu drivers
 		#magnetometer # all available magnetometer drivers
@@ -35,6 +36,8 @@ px4_add_board(
 		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
+		gyro_calibration
+		gyro_fft
 		land_detector
 		landing_target_estimator
 		load_mon

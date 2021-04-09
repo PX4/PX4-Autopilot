@@ -113,7 +113,7 @@ include(px4_parse_function_args)
 include(px4_git)
 
 execute_process(
-	COMMAND git describe --always --tags
+	COMMAND git describe --exclude ext/* --always --tags
 	OUTPUT_VARIABLE PX4_GIT_TAG
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
@@ -454,3 +454,10 @@ add_custom_target(size
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	USES_TERMINAL
 	)
+
+# install python requirements using configured python
+add_custom_target(install_python_requirements
+	COMMAND ${PYTHON_EXECUTABLE} -m pip install --requirement ${PX4_SOURCE_DIR}/Tools/setup/requirements.txt
+	DEPENDS ${PX4_SOURCE_DIR}/Tools/setup/requirements.txt
+	USES_TERMINAL
+)

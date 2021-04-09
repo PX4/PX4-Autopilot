@@ -319,18 +319,15 @@ RoverPositionControl::control_position(const matrix::Vector2d &current_position,
 }
 
 void
-RoverPositionControl::control_velocity(const matrix::Vector3f &current_velocity,
-				       const position_setpoint_triplet_s &pos_sp_triplet)
+RoverPositionControl::control_velocity(const matrix::Vector3f &current_velocity)
 {
-
+	const Vector3f desired_velocity{_trajectory_setpoint.vx, _trajectory_setpoint.vy, _trajectory_setpoint.vz};
 	float dt = 0.01; // Using non zero value to a avoid division by zero
 
 	const float mission_throttle = _param_throttle_cruise.get();
-	const matrix::Vector3f desired_velocity{pos_sp_triplet.current.vx, pos_sp_triplet.current.vy, pos_sp_triplet.current.vz};
 	const float desired_speed = desired_velocity.norm();
 
 	if (desired_speed > 0.01f) {
-
 		const Dcmf R_to_body(Quatf(_vehicle_att.q).inversed());
 		const Vector3f vel = R_to_body * Vector3f(current_velocity(0), current_velocity(1), current_velocity(2));
 
@@ -344,13 +341,12 @@ RoverPositionControl::control_velocity(const matrix::Vector3f &current_velocity,
 
 		Vector3f desired_body_velocity;
 
-		if (pos_sp_triplet.current.velocity_frame == position_setpoint_s::VELOCITY_FRAME_BODY_NED) {
+		if (_velocity_frame == VelocityFrame::NED) {
 			desired_body_velocity = desired_velocity;
 
 		} else {
 			// If the frame of the velocity setpoint is unknown, assume it is in local frame
 			desired_body_velocity = R_to_body * desired_velocity;
-
 		}
 
 		const float desired_theta = atan2f(desired_body_velocity(1), desired_body_velocity(0));
@@ -363,7 +359,6 @@ RoverPositionControl::control_velocity(const matrix::Vector3f &current_velocity,
 
 		_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = 0.0f;
 		_act_controls.control[actuator_controls_s::INDEX_YAW] = 0.0f;
-
 	}
 }
 
@@ -410,17 +405,26 @@ RoverPositionControl::Run()
 
 			position_setpoint_triplet_poll();
 
-			//Convert Local setpoints to global setpoints
+			// Convert Local setpoints to global setpoints
 			if (_control_mode.flag_control_offboard_enabled) {
-				if (!globallocalconverter_initialized()) {
-					globallocalconverter_init(_local_pos.ref_lat, _local_pos.ref_lon,
-								  _local_pos.ref_alt, _local_pos.ref_timestamp);
+				if (!map_projection_initialized(&_global_local_proj_ref)
+				    || (_global_local_proj_ref.timestamp != _local_pos.ref_timestamp)) {
 
-				} else {
-					globallocalconverter_toglobal(_pos_sp_triplet.current.x, _pos_sp_triplet.current.y, _pos_sp_triplet.current.z,
-								      &_pos_sp_triplet.current.lat, &_pos_sp_triplet.current.lon, &_pos_sp_triplet.current.alt);
+					map_projection_init_timestamped(&_global_local_proj_ref, _local_pos.ref_lat, _local_pos.ref_lon,
+									_local_pos.ref_timestamp);
 
+					_global_local_alt0 = _local_pos.ref_alt;
 				}
+
+				_trajectory_setpoint_sub.update(&_trajectory_setpoint);
+
+				// local -> global
+				map_projection_reproject(&_global_local_proj_ref,
+							 _trajectory_setpoint.x, _trajectory_setpoint.y,
+							 &_pos_sp_triplet.current.lat, &_pos_sp_triplet.current.lon);
+
+				_pos_sp_triplet.current.alt = _global_local_alt0 - _trajectory_setpoint.z;
+				_pos_sp_triplet.current.valid = true;
 			}
 
 			// update the reset counters in any case
@@ -438,7 +442,7 @@ RoverPositionControl::Run()
 					float turn_distance = _param_l1_distance.get(); //_gnd_control.switch_distance(100.0f);
 
 					// publish status
-					position_controller_status_s pos_ctrl_status = {};
+					position_controller_status_s pos_ctrl_status{};
 
 					pos_ctrl_status.nav_roll = 0.0f;
 					pos_ctrl_status.nav_pitch = 0.0f;
@@ -456,14 +460,11 @@ RoverPositionControl::Run()
 					pos_ctrl_status.timestamp = hrt_absolute_time();
 
 					_pos_ctrl_status_pub.publish(pos_ctrl_status);
-
-
 				}
 
 			} else if (!_control_mode.flag_control_manual_enabled && _control_mode.flag_control_velocity_enabled) {
-
-				control_velocity(current_velocity, _pos_sp_triplet);
-
+				_trajectory_setpoint_sub.update(&_trajectory_setpoint);
+				control_velocity(current_velocity);
 			}
 		}
 

@@ -314,7 +314,7 @@ int update(const char *path, const char *netdev)
 
 	rv = config.read(netdev);
 
-	if (rv == ENOENT) {
+	if (rv == -ENOENT) {
 		goto write_reboot;
 	}
 
@@ -419,7 +419,7 @@ static void usage(const char *reason)
 )DESCR_STR");
     PRINT_MODULE_USAGE_NAME("netman", "system");
     PRINT_MODULE_USAGE_COMMAND_DESCR("show", "Display the current persistent network settings to the console.");
-    PRINT_MODULE_USAGE_COMMAND_DESCR("update","Check SD card for network.cfg and update network persistent network settings.");
+    PRINT_MODULE_USAGE_COMMAND_DESCR("update","Check SD card for net.cfg and update network persistent network settings.");
     PRINT_MODULE_USAGE_COMMAND_DESCR("save", "Save the current network parameters to the SD card.");
     PRINT_MODULE_USAGE_PARAM_STRING('i',"eth0", nullptr, "Set the interface name", true);
 }

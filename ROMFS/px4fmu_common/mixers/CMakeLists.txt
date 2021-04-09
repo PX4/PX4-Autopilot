@@ -90,6 +90,7 @@ px4_add_romfs_files(
 	Viper.main.mix
 	vtol_AAERT.aux.mix
 	vtol_AAVVT.aux.mix
+	vtol_TTTTAAER.aux.mix
 	vtol_convergence.main.mix
 	vtol_delta.aux.mix
 	vtol_tailsitter_duo.main.mix

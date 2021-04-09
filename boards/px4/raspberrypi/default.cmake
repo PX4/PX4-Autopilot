@@ -23,7 +23,6 @@ px4_add_board(
 		gps
 		#imu # all available imu drivers
 		imu/invensense/mpu9250
-		linux_pwm_out
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		pca9685_pwm_out
@@ -39,10 +38,13 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
+		esc_battery
 		events
 		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
+		gyro_calibration
+		gyro_fft
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -58,9 +60,11 @@ px4_add_board(
 		rc_update
 		rover_pos_control
 		sensors
-		temperature_compensation
 		sih
 		#simulator
+		temperature_compensation
+		uuv_att_control
+		uuv_pos_control
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
@@ -69,10 +73,12 @@ px4_add_board(
 		led_control
 		mixer
 		motor_ramp
+		motor_test
 		param
 		perf
 		pwm
 		sd_bench
+		#serial_test
 		system_time
 		shutdown
 		tests # tests and test runner
@@ -83,8 +89,10 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
-		fake_gps
 		dyn_hello # dynamically loading modules example
+		fake_gps
+		fake_gyro
+		fake_magnetometer
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		#hwtest # Hardware test

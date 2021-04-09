@@ -195,7 +195,7 @@ static calibrate_return check_calibration_result(float offset_x, float offset_y,
 
 	// earth field between 0.25 and 0.65 Gauss
 	if (sphere_radius < 0.2f || sphere_radius >= 0.7f) {
-		calibration_log_emergency(mavlink_log_pub, "Retry calibration (mag %u sphere radius invaid %.3f)", cur_mag,
+		calibration_log_emergency(mavlink_log_pub, "Retry calibration (mag %u sphere radius invalid %.3f)", cur_mag,
 					  (double)sphere_radius);
 		return calibrate_return_error;
 	}

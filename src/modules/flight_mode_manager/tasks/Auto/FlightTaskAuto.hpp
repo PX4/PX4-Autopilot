@@ -66,7 +66,6 @@ enum class WaypointType : int {
 	takeoff = position_setpoint_s::SETPOINT_TYPE_TAKEOFF,
 	land = position_setpoint_s::SETPOINT_TYPE_LAND,
 	idle = position_setpoint_s::SETPOINT_TYPE_IDLE,
-	offboard = position_setpoint_s::SETPOINT_TYPE_OFFBOARD, // only part of this structure due to legacy reason. It is not used within the Auto flighttasks
 	follow_target = position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET,
 };
 

@@ -37,6 +37,7 @@
 /*   Helper classes  */
 #include "Arming/PreFlightCheck/PreFlightCheck.hpp"
 #include "failure_detector/FailureDetector.hpp"
+#include "ManualControl.hpp"
 #include "state_machine_helper.h"
 #include "worker_thread.hpp"
 
@@ -70,7 +71,6 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/iridiumsbd_status.h>
-#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
@@ -126,12 +126,13 @@ private:
 
 	transition_result_t arm(arm_disarm_reason_t calling_reason, bool run_preflight_checks = true);
 	transition_result_t disarm(arm_disarm_reason_t calling_reason);
+	transition_result_t try_mode_change(main_state_t desired_mode);
 
 	void battery_status_check();
 
 	bool check_posvel_validity(const bool data_valid, const float data_accuracy, const float required_accuracy,
 				   const hrt_abstime &data_timestamp_us, hrt_abstime *last_fail_time_us, hrt_abstime *probation_time_us,
-				   bool *valid_state);
+				   const bool was_valid);
 
 	void control_status_leds(bool changed, const uint8_t battery_warning);
 
@@ -154,7 +155,7 @@ private:
 
 	void offboard_control_update();
 
-	void print_reject_mode(const char *msg);
+	void print_reject_mode(uint8_t main_state);
 
 	void reset_posvel_validity();
 
@@ -174,10 +175,10 @@ private:
 	void UpdateEstimateValidity();
 
 	// Set the main system state based on RC and override device inputs
-	transition_result_t set_main_state(bool *changed);
+	transition_result_t set_main_state(bool &changed);
 
 	// Enable override (manual reversion mode) on the system
-	transition_result_t set_main_state_override_on(bool *changed);
+	transition_result_t set_main_state_override_on(bool &changed);
 
 	// Set the system main state based on the current RC inputs
 	transition_result_t set_main_state_rc();
@@ -195,7 +196,6 @@ private:
 		(ParamInt<px4::params::COM_HLDL_REG_T>) _param_com_hldl_reg_t,
 
 		(ParamInt<px4::params::NAV_RCL_ACT>) _param_nav_rcl_act,
-		(ParamFloat<px4::params::COM_RC_LOSS_T>) _param_com_rc_loss_t,
 		(ParamFloat<px4::params::COM_RCL_ACT_T>) _param_com_rcl_act_t,
 
 		(ParamFloat<px4::params::COM_HOME_H_T>) _param_com_home_h_t,
@@ -219,6 +219,8 @@ private:
 
 		(ParamInt<px4::params::COM_FLT_PROFILE>) _param_com_flt_profile,
 
+		(ParamFloat<px4::params::COM_OBC_LOSS_T>) _param_com_obc_loss_t,
+
 		// Offboard
 		(ParamFloat<px4::params::COM_OF_LOSS_T>) _param_com_of_loss_t,
 		(ParamInt<px4::params::COM_OBL_ACT>) _param_com_obl_act,
@@ -236,7 +238,6 @@ private:
 		(ParamFloat<px4::params::COM_EF_TIME>) _param_ef_time_thres,
 
 		(ParamBool<px4::params::COM_ARM_WO_GPS>) _param_arm_without_gps,
-		(ParamBool<px4::params::COM_ARM_SWISBTN>) _param_arm_switch_is_button,
 		(ParamBool<px4::params::COM_ARM_MIS_REQ>) _param_arm_mission_required,
 		(ParamBool<px4::params::COM_ARM_AUTH_REQ>) _param_arm_auth_required,
 		(ParamBool<px4::params::COM_ARM_CHK_ESCS>) _param_escs_checks_required,
@@ -245,10 +246,7 @@ private:
 		(ParamInt<px4::params::COM_FLIGHT_UUID>) _param_flight_uuid,
 		(ParamInt<px4::params::COM_TAKEOFF_ACT>) _param_takeoff_finished_action,
 
-		(ParamInt<px4::params::COM_RC_OVERRIDE>) _param_rc_override,
 		(ParamInt<px4::params::COM_RC_IN_MODE>) _param_rc_in_off,
-		(ParamInt<px4::params::COM_RC_ARM_HYST>) _param_rc_arm_hyst,
-		(ParamFloat<px4::params::COM_RC_STICK_OV>) _param_com_rc_stick_ov,
 
 		(ParamInt<px4::params::COM_FLTMODE1>) _param_fltmode_1,
 		(ParamInt<px4::params::COM_FLTMODE2>) _param_fltmode_2,
@@ -286,20 +284,10 @@ private:
 		ALWAYS = 2
 	};
 
-	enum OverrideMode {
-		OVERRIDE_DISABLED = 0,
-		OVERRIDE_AUTO_MODE_BIT = (1 << 0),
-		OVERRIDE_OFFBOARD_MODE_BIT = (1 << 1)
-	};
-
 	/* Decouple update interval and hysteresis counters, all depends on intervals */
 	static constexpr uint64_t COMMANDER_MONITORING_INTERVAL{10_ms};
-	static constexpr float COMMANDER_MONITORING_LOOPSPERMSEC{1 / (COMMANDER_MONITORING_INTERVAL / 1000.0f)};
-
-	static constexpr float STICK_ON_OFF_LIMIT{0.9f};
 
 	static constexpr uint64_t HOTPLUG_SENS_TIMEOUT{8_s};	/**< wait for hotplug sensors to come online for upto 8 seconds */
-	static constexpr uint64_t PRINT_MODE_REJECT_INTERVAL{500_ms};
 	static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL{500_ms};
 
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
@@ -363,14 +351,11 @@ private:
 
 	unsigned int	_leds_counter{0};
 
-	manual_control_setpoint_s _manual_control_setpoint{};		///< the current manual control setpoint
 	manual_control_switches_s _manual_control_switches{};
 	manual_control_switches_s _last_manual_control_switches{};
+	ManualControl _manual_control{this};
 	hrt_abstime	_rc_signal_lost_timestamp{0};		///< Time at which the RC reception was lost
 	int32_t		_flight_mode_slots[manual_control_switches_s::MODE_SLOT_NUM] {};
-	uint8_t		_last_manual_control_switches_arm_switch{manual_control_switches_s::SWITCH_POS_NONE};
-	uint32_t	_stick_off_counter{0};
-	uint32_t	_stick_on_counter{0};
 
 	hrt_abstime	_boot_timestamp{0};
 	hrt_abstime	_last_disarmed_timestamp{0};
@@ -388,8 +373,6 @@ private:
 	bool		_should_set_home_on_takeoff{true};
 	bool		_flight_termination_printed{false};
 	bool		_system_power_usb_connected{false};
-
-	main_state_t	_main_state_pre_offboard{commander_state_s::MAIN_STATE_MANUAL};
 
 	cpuload_s		_cpuload{};
 	geofence_result_s	_geofence_result{};
@@ -416,7 +399,6 @@ private:
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 	uORB::Subscription					_land_detector_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription					_safety_sub{ORB_ID(safety)};
-	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription					_manual_control_switches_sub{ORB_ID(manual_control_switches)};
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription					_vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
