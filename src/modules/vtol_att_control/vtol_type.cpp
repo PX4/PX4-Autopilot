@@ -235,15 +235,15 @@ bool VtolType::can_transition_on_ground()
 
 void VtolType::check_quadchute_condition()
 {
-	if (_attc->get_transition_command() == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_QC && !_quadchute_command_treated) {
-		_attc->quadchute("QuadChute by command");
+	if (_attc->get_transition_command() == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC && _attc->get_immediate_transition()
+	    && !_quadchute_command_treated) {
+		_attc->quadchute("QuadChute by external command");
 		_quadchute_command_treated = true;
+		_attc->reset_immediate_transition();
 
 	} else {
 		_quadchute_command_treated = false;
 	}
-
-
 
 	if (!_tecs_running) {
 		// reset the filtered height rate and heigh rate setpoint if TECS is not running

@@ -109,6 +109,8 @@ public:
 	bool is_fixed_wing_requested();
 	void quadchute(const char *reason);
 	int get_transition_command() {return _transition_command;}
+	bool get_immediate_transition() {return _immediate_transition;}
+	void reset_immediate_transition() {_immediate_transition = false;}
 
 	struct actuator_controls_s 			*get_actuators_fw_in() {return &_actuators_fw_in;}
 	struct actuator_controls_s 			*get_actuators_mc_in() {return &_actuators_mc_in;}
@@ -222,6 +224,7 @@ private:
 	 * for fixed wings we want to have an idle speed of zero since we do not want
 	 * to waste energy when gliding. */
 	int		_transition_command{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC};
+	bool		_immediate_transition{false};
 
 	VtolType	*_vtol_type{nullptr};	// base class for different vtol types
 

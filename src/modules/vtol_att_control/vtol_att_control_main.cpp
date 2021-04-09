@@ -160,6 +160,7 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 
 			} else {
 				_transition_command = int(vehicle_command.param1 + 0.5f);
+				_immediate_transition = int(vehicle_command.param2 + 0.5f);
 			}
 
 			if (vehicle_command.from_external) {
