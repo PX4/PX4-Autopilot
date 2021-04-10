@@ -1436,6 +1436,8 @@ param_import_internal(int fd, bool mark_saved)
 
 	} while (result > 0);
 
+	PX4_INFO("BSON document size %d bytes, decoded %d bytes", decoder.total_document_size, decoder.total_decoded_size);
+
 	return result;
 }
 
