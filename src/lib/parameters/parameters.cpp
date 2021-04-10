@@ -1131,32 +1131,30 @@ int param_save_default()
 		return res;
 	}
 
-	/* write parameters to temp file */
-	int fd = PARAM_OPEN(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
-
-	if (fd < 0) {
-		PX4_ERR("failed to open param file: %s", filename);
-
-		return PX4_ERROR;
-	}
-
 	int attempts = 5;
 
 	while (res != OK && attempts > 0) {
-		res = param_export(fd, false, nullptr);
-		attempts--;
+		// write parameters to file
+		int fd = PARAM_OPEN(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
 
-		if (res != PX4_OK) {
-			PX4_ERR("param_export failed, retrying %d", attempts);
-			lseek(fd, 0, SEEK_SET); // jump back to the beginning of the file
+		if (fd > -1) {
+			res = param_export(fd, false, nullptr);
+			PARAM_CLOSE(fd);
+
+			if (res != PX4_OK) {
+				PX4_ERR("param_export failed, retrying %d", attempts);
+			}
+
+		} else {
+			PX4_ERR("failed to open param file %s, retrying %d", filename, attempts);
 		}
+
+		attempts--;
 	}
 
 	if (res != OK) {
 		PX4_ERR("failed to write parameters to file: %s", filename);
 	}
-
-	PARAM_CLOSE(fd);
 
 	return res;
 }
@@ -1280,12 +1278,11 @@ param_export(int fd, bool only_unsaved, param_filter_func filter)
 
 		/* append the appropriate BSON type object */
 		switch (param_type(s->param)) {
-
 		case PARAM_TYPE_INT32: {
 				const int32_t i = s->val.i;
 				PX4_DEBUG("exporting: %s (%d) size: %lu val: %d", name, s->param, (long unsigned int)size, i);
 
-				if (bson_encoder_append_int(&encoder, name, i)) {
+				if (bson_encoder_append_int(&encoder, name, i) != 0) {
 					PX4_ERR("BSON append failed for '%s'", name);
 					goto out;
 				}
@@ -1296,7 +1293,7 @@ param_export(int fd, bool only_unsaved, param_filter_func filter)
 				const double f = (double)s->val.f;
 				PX4_DEBUG("exporting: %s (%d) size: %lu val: %.3f", name, s->param, (long unsigned int)size, (double)f);
 
-				if (bson_encoder_append_double(&encoder, name, f)) {
+				if (bson_encoder_append_double(&encoder, name, f) != 0) {
 					PX4_ERR("BSON append failed for '%s'", name);
 					goto out;
 				}
@@ -1304,8 +1301,7 @@ param_export(int fd, bool only_unsaved, param_filter_func filter)
 			break;
 
 		default:
-			PX4_ERR("unrecognized parameter type");
-			goto out;
+			PX4_ERR("%s unrecognized parameter type %d, skipping export", name, param_type(s->param));
 		}
 	}
 
@@ -1315,7 +1311,8 @@ out:
 
 	if (result == 0) {
 		if (bson_encoder_fini(&encoder) != PX4_OK) {
-			PX4_ERR("bson encoder finish failed");
+			PX4_ERR("BSON encoder finialize failed");
+			result = -1;
 		}
 	}
 
