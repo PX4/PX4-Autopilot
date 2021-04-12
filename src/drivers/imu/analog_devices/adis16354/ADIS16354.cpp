@@ -540,27 +540,39 @@ uint16_t ADIS16354::RegisterRead(Register reg)
 {
 	set_frequency(SPI_SPEED);
 
-	uint16_t cmd[1];
-	cmd[0] = (static_cast<uint16_t>(reg) << 8);
+	uint8_t cmd[2];
+	cmd[0] = (static_cast<uint8_t>(reg));
+	cmd[1] = (static_cast<uint8_t>(reg) + 1);
 
-	transferhword(cmd, nullptr, 1);
+	transfer(&cmd[0], nullptr, 1);
 	px4_udelay(SPI_STALL_PERIOD);
-	transferhword(nullptr, cmd, 1);
+	transfer(nullptr, &cmd[0], 1);
+	px4_udelay(SPI_STALL_PERIOD);
+	transfer(&cmd[1], nullptr, 1);
+	px4_udelay(SPI_STALL_PERIOD);
+	transfer(nullptr, &cmd[1], 1);
 
-	return cmd[0];
+	int16_t data16bit = combine(cmd[1], cmd[0]);
+	return data16bit;
 }
 
 void ADIS16354::RegisterWrite(Register reg, uint16_t value)
 {
 	set_frequency(SPI_SPEED);
 
-	uint16_t cmd[2];
-	cmd[0] = (((static_cast<uint16_t>(reg))     | DIR_WRITE) << 8) | ((0x00FF & value));
-	cmd[1] = (((static_cast<uint16_t>(reg) + 1) | DIR_WRITE) << 8) | ((0xFF00 & value) >> 8);
+	uint8_t cmd[4];
+	cmd[0] = ((static_cast<uint8_t>(reg))     | DIR_WRITE);
+	cmd[1] = (0x00FF & value);
+	cmd[2] = ((static_cast<uint8_t>(reg) + 1) | DIR_WRITE);
+	cmd[3] = ((0xFF00 & value) >> 8);
 
-	transferhword(cmd, nullptr, 1);
+	transfer(&cmd[0], nullptr, 1);
 	px4_udelay(SPI_STALL_PERIOD);
-	transferhword(cmd + 1, nullptr, 1);
+	transfer(&cmd[1], nullptr, 1);
+	px4_udelay(SPI_STALL_PERIOD);
+	transfer(&cmd[2], nullptr, 1);
+	px4_udelay(SPI_STALL_PERIOD);
+	transfer(&cmd[3], nullptr, 1);
 }
 
 void ADIS16354::RegisterSetAndClearBits(Register reg, uint16_t setbits, uint16_t clearbits)
