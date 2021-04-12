@@ -57,10 +57,10 @@ public:
 		// Subscribe to messages reg.drone.physics.kinematics.geodetic.Point.0.1
 		canardRxSubscribe(&_canard_instance,
 				  CanardTransferKindMessage,
-				  _port_id,
+				  _subj_sub._canard_sub._port_id,
 				  reg_drone_physics_kinematics_geodetic_Point_0_1_EXTENT_BYTES_,
 				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-				  &_canard_sub);
+				  &_subj_sub._canard_sub);
 
 		/** TODO: Add additional GPS-data messages: (reg.drone.service.gnss._.0.1.uavcan):
 		 * # A compliant implementation of this service should publish the following subjects:

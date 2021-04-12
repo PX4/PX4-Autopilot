@@ -168,13 +168,6 @@ void UavcanNode::init()
 					  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
 					  &_heartbeat_subscription);
 
-			canardRxSubscribe(&_canard_instance,
-					  CanardTransferKindMessage,
-					  bms_port_id,
-					  reg_drone_service_battery_Status_0_1_EXTENT_BYTES_,
-					  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-					  &_drone_srv_battery_subscription);
-
 			canardRxSubscribe(&_canard_instance, //Temporory GPS message DSDL not defined yet
 					  CanardTransferKindMessage,
 					  gps_port_id,
@@ -281,6 +274,8 @@ void UavcanNode::Run()
 	CanardFrame received_frame{};
 	received_frame.payload = &data;
 
+	/* FIXME this flawed we've to go through the whole loop to get the next frame in the buffer  */
+
 	if (_can_interface->receive(&received_frame) > 0) {
 
 		CanardTransfer receive{};
@@ -297,22 +292,19 @@ void UavcanNode::Run()
 			// A transfer has been received, process it.
 			// PX4_INFO("received Port ID: %d", receive.port_id);
 
-			if (receive.port_id == bms_port_id) {
-				result = handleBMSStatus(receive);
-
-			} else if (receive.port_id == gps_port_id) {
+			if (receive.port_id == gps_port_id) {
 				result = handleUORBSensorGPS(receive);
 
 			} else if (receive.port_id > 0) {
 				// If not a fixed port ID, check any subscribers which may have registered it
 				for (auto &subscriber : _subscribers) {
-					if (receive.port_id == subscriber->id()) {
+					if (subscriber->hasPortID(receive.port_id)) {
 						subscriber->callback(receive);
 					}
 				}
 
 				for (auto &subscriber : _dynsubscribers) {
-					if (receive.port_id == subscriber->id()) {
+					if (subscriber->hasPortID(receive.port_id)) {
 						subscriber->callback(receive);
 					}
 				}
@@ -447,22 +439,6 @@ void UavcanNode::sendHeartbeat()
 
 		_uavcan_node_heartbeat_last = transfer.timestamp_usec;
 	}
-}
-
-int UavcanNode::handleBMSStatus(const CanardTransfer &receive)
-{
-	PX4_INFO("NodeID %i Battery Status msg", receive.remote_node_id);
-	//TODO deserialize
-	/*
-	battery_status_s battery_status{};
-	battery_status.id = bms_status.battery_id;
-	        battery_status.voltage_v = bms_status.voltage;
-	//battery_status.remaining = bms_status.remaining_capacity;
-	battery_status.timestamp = hrt_absolute_time();
-	_battery_status_pub.publish(battery_status);
-	*/
-
-	return 0;
 }
 
 int UavcanNode::handleUORBSensorGPS(const CanardTransfer &receive)
