@@ -31,8 +31,8 @@
  *
  ****************************************************************************/
 
-#ifndef SCALED_IMU_HPP
-#define SCALED_IMU_HPP
+#ifndef SCALED_IMU2_HPP
+#define SCALED_IMU2_HPP
 
 #include <lib/ecl/geo/geo.h>
 #include <lib/matrix/matrix/math.hpp>
@@ -40,13 +40,13 @@
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/vehicle_imu.h>
 
-class MavlinkStreamScaledIMU : public MavlinkStream
+class MavlinkStreamScaledIMU2 : public MavlinkStream
 {
 public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamScaledIMU(mavlink); }
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamScaledIMU2(mavlink); }
 
-	static constexpr const char *get_name_static() { return "SCALED_IMU"; }
-	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_SCALED_IMU; }
+	static constexpr const char *get_name_static() { return "SCALED_IMU2"; }
+	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_SCALED_IMU2; }
 
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
@@ -54,22 +54,22 @@ public:
 	unsigned get_size() override
 	{
 		if (_vehicle_imu_sub.advertised() || _sensor_mag_sub.advertised()) {
-			return MAVLINK_MSG_ID_SCALED_IMU_LEN  + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+			return MAVLINK_MSG_ID_SCALED_IMU2_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 		}
 
 		return 0;
 	}
 
 private:
-	explicit MavlinkStreamScaledIMU(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamScaledIMU2(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _vehicle_imu_sub{ORB_ID(vehicle_imu), 0};
-	uORB::Subscription _sensor_mag_sub{ORB_ID(sensor_mag), 0};
+	uORB::Subscription _vehicle_imu_sub{ORB_ID(vehicle_imu), 1};
+	uORB::Subscription _sensor_mag_sub{ORB_ID(sensor_mag), 1};
 
 	bool send() override
 	{
 		if (_vehicle_imu_sub.updated() || _sensor_mag_sub.updated()) {
-			mavlink_scaled_imu_t msg{};
+			mavlink_scaled_imu2_t msg{};
 
 			vehicle_imu_s imu;
 
@@ -104,11 +104,11 @@ private:
 				msg.temperature = sensor_mag.temperature;
 			}
 
-			mavlink_msg_scaled_imu_send_struct(_mavlink->get_channel(), &msg);
+			mavlink_msg_scaled_imu2_send_struct(_mavlink->get_channel(), &msg);
 			return true;
 		}
 
 		return false;
 	}
 };
-#endif /* SCALED_IMU_HPP */
+#endif /* SCALED_IMU2_HPP */
