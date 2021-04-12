@@ -76,17 +76,17 @@ static constexpr uint16_t DIR_WRITE = 0x80;
 static constexpr uint32_t SAMPLE_INTERVAL_US = (1e6f / 819.2f); // ~819.2 Hz
 
 enum class Register : uint16_t {
-	SUPPLY_OUT = 0x03, // Power supply measurement
-	XGYRO_OUT  = 0x05, // X-axis gyro output
-	YGYRO_OUT  = 0x07, // Y-axis gyro output
-	ZGYRO_OUT  = 0x09, // Z-axis gyro output
-	XACCL_OUT  = 0x0B, // X-axis accelerometer output
-	YACCL_OUT  = 0x0D, // Y-axis accelerometer output
-	ZACCL_OUT  = 0x0F, // Z-axis accelerometer output
-	XTEMP_OUT  = 0x11, // X-axis gyro temperature measurement
-	YTEMP_OUT  = 0x13, // Y-axis gyro temperature measurement
-	ZTEMP_OUT  = 0x15, // Z-axis gyro temperature measurement
-	AUX_ADC    = 0x17, // Auxiliary ADC output
+	SUPPLY_OUT = 0x02, // Power supply measurement
+	XGYRO_OUT  = 0x04, // X-axis gyro output
+	YGYRO_OUT  = 0x06, // Y-axis gyro output
+	ZGYRO_OUT  = 0x08, // Z-axis gyro output
+	XACCL_OUT  = 0x0A, // X-axis accelerometer output
+	YACCL_OUT  = 0x0C, // Y-axis accelerometer output
+	ZACCL_OUT  = 0x0E, // Z-axis accelerometer output
+	XTEMP_OUT  = 0x10, // X-axis gyro temperature measurement
+	YTEMP_OUT  = 0x12, // Y-axis gyro temperature measurement
+	ZTEMP_OUT  = 0x14, // Z-axis gyro temperature measurement
+	AUX_ADC    = 0x16, // Auxiliary ADC output
 
 	/* DIAG_STAT      = 0x02,
 
