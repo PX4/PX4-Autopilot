@@ -98,6 +98,8 @@
 #include "streams/RAW_RPM.hpp"
 #include "streams/RC_CHANNELS.hpp"
 #include "streams/SCALED_IMU.hpp"
+#include "streams/SCALED_IMU2.hpp"
+#include "streams/SCALED_IMU3.hpp"
 #include "streams/SCALED_PRESSURE.hpp"
 #include "streams/SERVO_OUTPUT_RAW.hpp"
 #include "streams/STATUSTEXT.hpp"
@@ -333,10 +335,14 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamHighresIMU>(),
 #endif // HIGHRES_IMU_HPP
 #if defined(SCALED_IMU_HPP)
-	create_stream_list_item<MavlinkStreamScaledIMU<0> >(),
-	create_stream_list_item<MavlinkStreamScaledIMU<1> >(),
-	create_stream_list_item<MavlinkStreamScaledIMU<2> >(),
+	create_stream_list_item<MavlinkStreamScaledIMU>(),
 #endif // SCALED_IMU_HPP
+#if defined(SCALED_IMU2_HPP)
+	create_stream_list_item<MavlinkStreamScaledIMU2>(),
+#endif // SCALED_IMU2_HPP
+#if defined(SCALED_IMU3_HPP)
+	create_stream_list_item<MavlinkStreamScaledIMU3>(),
+#endif // SCALED_IMU3_HPP
 #if defined(SCALED_PRESSURE)
 	create_stream_list_item<MavlinkStreamScaledPressure>(),
 #endif // SCALED_PRESSURE
