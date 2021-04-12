@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,6 @@
 
 pthread_mutex_t pwm_out_module_mutex = PTHREAD_MUTEX_INITIALIZER;
 static px4::atomic<PWMOut *> _objects[PWM_OUT_MAX_INSTANCES] {};
-static bool _pwm_out_started = false;
 
 static bool is_running()
 {
@@ -511,8 +510,6 @@ int PWMOut::task_spawn(int argc, char *argv[])
 		}
 	}
 
-	_pwm_out_started = true;
-
 	return PX4_OK;
 }
 
@@ -618,11 +615,6 @@ void PWMOut::Run()
 void PWMOut::update_params()
 {
 	updateParams();
-
-	// skip update when armed
-	if (_mixing_output.armed().armed) {
-		return;
-	}
 
 	int32_t pwm_min_default = PWM_DEFAULT_MIN;
 	int32_t pwm_max_default = PWM_DEFAULT_MAX;
@@ -2030,7 +2022,7 @@ int PWMOut::custom_command(int argc, char *argv[])
 
 
 	/* start pwm_out if not running */
-	if (!_pwm_out_started) {
+	if (!is_running()) {
 
 		int ret = PWMOut::task_spawn(argc, argv);
 
@@ -2292,7 +2284,7 @@ extern "C" __EXPORT int pwm_out_main(int argc, char *argv[])
 
 	if (strcmp(argv[1], "start") == 0) {
 
-		if (_pwm_out_started) {
+		if (is_running()) {
 			return 0;
 		}
 
@@ -2376,8 +2368,6 @@ extern "C" __EXPORT int pwm_out_main(int argc, char *argv[])
 				PX4_WARN("not running");
 			}
 		}
-
-		_pwm_out_started = false;
 
 		PWMOut::unlock_module();
 		return PX4_OK;
