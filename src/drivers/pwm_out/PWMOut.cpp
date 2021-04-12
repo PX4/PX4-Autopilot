@@ -580,9 +580,9 @@ void PWMOut::Run()
 	// push backup schedule
 	ScheduleDelayed(_backup_schedule_interval_us);
 
-	if (_new_mode_request.load() != _mode) {
+	if (_new_mode_request.load() != MODE_NO_REQUEST) {
 		set_mode(_new_mode_request.load());
-		_new_mode_request.store(_mode);
+		_new_mode_request.store(MODE_NO_REQUEST);
 	}
 
 	_mixing_output.update();
@@ -1762,6 +1762,22 @@ int PWMOut::fmu_new_mode(PortMode new_mode)
 	return OK;
 }
 
+void PWMOut::request_mode(Mode new_mode)
+{
+	if (_new_mode_request.load() != MODE_NO_REQUEST) {
+		PX4_ERR("already being set"); // not expected to happen
+		return;
+	}
+
+	_new_mode_request.store(new_mode);
+	ScheduleNow();
+	// wait until processed
+	int max_time = 1000;
+
+	while (_new_mode_request.load() != MODE_NO_REQUEST && max_time-- > 0) {
+		px4_usleep(1000);
+	}
+}
 
 namespace
 {

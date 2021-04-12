@@ -118,6 +118,8 @@ public:
 		MODE_4CAP,
 		MODE_5CAP,
 		MODE_6CAP,
+
+		MODE_NO_REQUEST
 	};
 
 	PWMOut() = delete;
@@ -157,7 +159,7 @@ public:
 
 	int		set_mode(Mode mode);
 	Mode		get_mode() { return _mode; }
-	void		request_mode(Mode new_mode) { _new_mode_request.store(new_mode); }
+	void		request_mode(Mode new_mode);
 
 	static int	set_i2c_bus_clock(unsigned bus, unsigned clock_hz);
 
@@ -181,7 +183,7 @@ private:
 
 	Mode		_mode{MODE_NONE};
 
-	px4::atomic<Mode> _new_mode_request{MODE_NONE};
+	px4::atomic<Mode> _new_mode_request{MODE_NO_REQUEST};
 
 	uint32_t	_backup_schedule_interval_us{1_s};
 
