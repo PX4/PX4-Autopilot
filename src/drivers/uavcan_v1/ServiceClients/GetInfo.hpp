@@ -66,9 +66,7 @@ public:
 				  uavcan_node_GetInfo_1_0_FIXED_PORT_ID_,
 				  uavcan_node_GetInfo_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_,
 				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-				  &_canard_sub);
-
-		_port_id = uavcan_node_GetInfo_1_0_FIXED_PORT_ID_;
+				  &_subj_sub._canard_sub);
 
 	};
 

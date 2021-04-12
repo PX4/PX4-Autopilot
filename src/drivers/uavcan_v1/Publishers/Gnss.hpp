@@ -59,7 +59,8 @@ public:
 	// Update the uORB Subscription and broadcast a UAVCAN message
 	virtual void update() override
 	{
-		if (_gps_sub.updated() && _port_id != CANARD_PORT_ID_UNSET) {
+		if (_gps_sub.updated() && _port_id != CANARD_PORT_ID_UNSET
+		    && _port_id != 0) { //FIXME either make default param UNSET or handle 0 in base class
 			sensor_gps_s gps {};
 			_gps_sub.update(&gps);
 
