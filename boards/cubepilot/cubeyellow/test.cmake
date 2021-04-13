@@ -2,12 +2,11 @@
 px4_add_board(
 	PLATFORM nuttx
 	VENDOR cubepilot
-	MODEL cubeorange
-	LABEL console
+	MODEL cubeyellow
+	LABEL test
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
-	BUILD_BOOTLOADER
 	IO cubepilot_io-v2_default
 	TESTING
 	UAVCAN_INTERFACES 2
@@ -43,7 +42,6 @@ px4_add_board(
 		#pca9685_pwm_out
 		power_monitor/ina226
 		#protocol_splitter
-		pwm_input
 		pwm_out_sim
 		pwm_out
 		px4io

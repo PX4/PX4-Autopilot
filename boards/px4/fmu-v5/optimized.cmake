@@ -126,4 +126,17 @@ px4_add_board(
 		usb_connected
 		ver
 		work_queue
+	EXAMPLES
+		fake_gps
+		#fake_gyro
+		#fake_magnetometer
+		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		#hello
+		#hwtest # Hardware test
+		#matlab_csv_serial
+		#px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
+		#px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
+		#rover_steering_control # Rover example app
+		#uuv_example_app
+		#work_item
 	)

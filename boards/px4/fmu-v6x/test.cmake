@@ -1,37 +1,44 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR nxp
-	MODEL fmuk66-v3
-	LABEL socketcan
+	VENDOR px4
+	MODEL fmu-v6x
+	LABEL test
 	TOOLCHAIN arm-none-eabi
-	ARCHITECTURE cortex-m4
-	CONSTRAINED_MEMORY
+	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
+	BUILD_BOOTLOADER
+	IO px4_io-v2_default
+	TESTING
 	UAVCAN_INTERFACES 2
+	UAVCAN_TIMER_OVERRIDE 2
+	ETHERNET
 	SERIAL_PORTS
-		GPS1:/dev/ttyS3
-		TEL1:/dev/ttyS4
-		TEL2:/dev/ttyS1
+		GPS1:/dev/ttyS0
+		TEL1:/dev/ttyS6
+		TEL2:/dev/ttyS4
+		TEL3:/dev/ttyS1
+		GPS2:/dev/ttyS7
 	DRIVERS
 		adc/ads1115
 		adc/board_adc
 		barometer # all available barometer drivers
-		barometer/mpl3115a2
 		batt_smbus
 		camera_capture
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
-		distance_sensor/srf05 # Specific driver
+		dshot
 		gps
+		heater
 		#imu # all available imu drivers
-		imu/fxas21002c
-		imu/fxos8701cq
+		imu/bosch/bmi088
+		imu/invensense/icm20602
+		imu/invensense/icm20649
 		imu/invensense/icm20948 # required for ak09916 mag
+		imu/invensense/icm42688p
 		irlock
 		lights # all available light drivers
-		lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		optical_flow # all available optical flow drivers
 		osd
@@ -41,17 +48,18 @@ px4_add_board(
 		#protocol_splitter
 		pwm_out_sim
 		pwm_out
+		px4io
 		rc_input
 		roboclaw
 		rpm
 		safety_button
 		telemetry # all available telemetry drivers
+		test_ppm
 		tone_alarm
-		uavcan_v1
+		uavcan
 	MODULES
 		airspeed_selector
 		attitude_estimator_q
-		battery_status
 		camera_feedback
 		commander
 		dataman
@@ -85,11 +93,12 @@ px4_add_board(
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
-		#bl_update
-		#dmesg
+		bl_update
+		dmesg
 		dumpfile
 		esc_calib
-		#gpio
+		gpio
+		hardfault_log
 		i2cdetect
 		led_control
 		mft
@@ -98,6 +107,7 @@ px4_add_board(
 		motor_test
 		mtd
 		nshterm
+		netman
 		param
 		perf
 		pwm
@@ -106,7 +116,7 @@ px4_add_board(
 		sd_bench
 		serial_test
 		system_time
-		tests # tests and test runner
+#		tests # tests and test runner
 		top
 		topic_listener
 		tune_control
