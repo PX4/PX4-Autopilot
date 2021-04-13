@@ -111,5 +111,6 @@ set MAV_TYPE 22
 set MIXER babyshark
 set MIXER_AUX pass
 
+# Mark outputs for the alternate rate
+# or D-Shot
 set PWM_OUT 5678
-set PWM_AUX_OUT 1234
