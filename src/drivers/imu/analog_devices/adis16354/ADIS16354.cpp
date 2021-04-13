@@ -562,9 +562,9 @@ void ADIS16354::RegisterWrite(Register reg, uint16_t value)
 
 	uint8_t cmd[4];
 	cmd[0] = ((static_cast<uint8_t>(reg))     | DIR_WRITE);
-	cmd[1] = ((0xFF00 & value) >> 8);
+	cmd[1] = (0x00FF & value);
 	cmd[2] = ((static_cast<uint8_t>(reg) + 1) | DIR_WRITE);
-	cmd[3] = (0x00FF & value);
+	cmd[3] = ((0xFF00 & value) >> 8);
 
 	transfer(&cmd[0], nullptr, 1);
 	px4_udelay(SPI_STALL_PERIOD);
