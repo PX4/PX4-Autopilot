@@ -41,7 +41,7 @@
 
 using namespace time_literals;
 
-namespace RCUpdate
+namespace rc_update
 {
 
 // TODO: find a better home for this
@@ -803,9 +803,9 @@ To reduce control latency, the module is scheduled on input_rc publications.
 	return 0;
 }
 
-} // namespace RCUpdate
+} // namespace rc_update
 
 extern "C" __EXPORT int rc_update_main(int argc, char *argv[])
 {
-	return RCUpdate::RCUpdate::main(argc, argv);
+	return rc_update::RCUpdate::main(argc, argv);
 }
