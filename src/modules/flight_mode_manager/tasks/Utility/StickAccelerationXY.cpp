@@ -72,7 +72,7 @@ void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, 
 	Vector2f acceleration_scale(_param_mpc_acc_hor.get(), _param_mpc_acc_hor.get());
 	Vector2f velocity_scale(_param_mpc_vel_manual.get(), _param_mpc_vel_manual.get());
 
-	acceleration_scale *= 2.f; // because of drag the average aceleration is half
+	acceleration_scale *= 2.f; // because of drag the average acceleration is half
 
 	// Map stick input to acceleration
 	Sticks::limitStickUnitLengthXY(stick_xy);
@@ -144,9 +144,13 @@ Vector2f StickAccelerationXY::calculateDrag(Vector2f drag_coefficient, const flo
 
 void StickAccelerationXY::applyTiltLimit(Vector2f &acceleration)
 {
+	// fetch the tilt limit which is lower than the maximum during takeoff
+	takeoff_status_s takeoff_status{};
+	_takeoff_status_sub.copy(&takeoff_status);
+
 	// Check if acceleration would exceed the tilt limit
 	const float acc = acceleration.length();
-	const float acc_tilt_max = tanf(M_DEG_TO_RAD_F * _param_mpc_tiltmax_air.get()) * CONSTANTS_ONE_G;
+	const float acc_tilt_max = tanf(takeoff_status.tilt_limit) * CONSTANTS_ONE_G;
 
 	if (acc > acc_tilt_max) {
 		acceleration *= acc_tilt_max / acc;

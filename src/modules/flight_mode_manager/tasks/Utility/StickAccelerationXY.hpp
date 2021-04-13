@@ -40,9 +40,10 @@
 #pragma once
 
 #include <px4_platform_common/module_params.h>
-#include <float.h> // TODO add this include to AlphaFilter since it's used there
 #include <lib/ecl/AlphaFilter/AlphaFilter.hpp>
 #include <matrix/math.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/takeoff_status.h>
 
 #include "SlewRate.hpp"
 
@@ -65,6 +66,8 @@ private:
 				       const matrix::Vector2f &vel_sp);
 	void applyTiltLimit(matrix::Vector2f &acceleration);
 	void lockPosition(const matrix::Vector3f &pos, const matrix::Vector2f &vel_sp_feedback, const float dt);
+
+	uORB::Subscription _takeoff_status_sub{ORB_ID(takeoff_status)};
 
 	SlewRate<float> _acceleration_slew_rate_x;
 	SlewRate<float> _acceleration_slew_rate_y;
