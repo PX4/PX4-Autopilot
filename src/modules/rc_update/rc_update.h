@@ -104,7 +104,7 @@ private:
 	 */
 	void		update_rc_functions();
 
-	void		UpdateManualSetpoint(const hrt_abstime &timestamp_sample);
+	void		UpdateManualControlInput(const hrt_abstime &timestamp_sample);
 	void		UpdateManualSwitches(const hrt_abstime &timestamp_sample);
 
 	/**
