@@ -239,8 +239,8 @@ protected:
 	 * Setpoints that are set to NAN are not controlled. Not all setpoints can be set at the same time.
 	 * If more than one type of setpoint is set, then order of control is a as follow: position, velocity,
 	 * acceleration, thrust. The exception is _position_setpoint together with _velocity_setpoint, where the
-	 * _velocity_setpoint is used as feedforward.
-	 * _acceleration_setpoint and _jerk_setpoint are currently not supported.
+	 * _velocity_setpoint and _acceleration_setpoint are used as feedforward.
+	 * _jerk_setpoint does not executed but just serves as internal state.
 	 */
 	matrix::Vector3f _position_setpoint;
 	matrix::Vector3f _velocity_setpoint;
