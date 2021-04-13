@@ -39,7 +39,6 @@ px4_add_board(
 	VENDOR atlflight
 	MODEL excelsior
 	LABEL default
-	#TESTING
 	TOOLCHAIN arm-oemllib32-linux-gnueabi
 	DRIVERS
 		#barometer # all available barometer drivers
@@ -106,7 +105,6 @@ px4_add_board(
 		sd_bench
 		shutdown
 		system_time
-		#tests # tests and test runner
 		#top
 		topic_listener
 		tune_control

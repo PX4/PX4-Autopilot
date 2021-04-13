@@ -1,24 +1,21 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR cubepilot
-	MODEL cubeyellow
-	LABEL console
+	VENDOR modalai
+	MODEL fc-v1
+	LABEL test
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
-	IO cubepilot_io-v2_default
 	TESTING
-	UAVCAN_INTERFACES 2
+	UAVCAN_INTERFACES 1
 	SERIAL_PORTS
-		TEL1:/dev/ttyS0
-		TEL2:/dev/ttyS1
-		GPS1:/dev/ttyS2
-		# PX4IO:/dev/ttyS3
-		# CONSOLE:/dev/ttyS4
-		GPS2:/dev/ttyS5
+		GPS1:/dev/ttyS0 # UART1  / J10
+		TEL1:/dev/ttyS6 # UART7  / J5
+		TEL2:/dev/ttyS4 # UART5  / J1
+		TEL3:/dev/ttyS1 # USART2 / J4
 	DRIVERS
-		#adc/ads1115
+		adc/ads1115
 		adc/board_adc
 		barometer # all available barometer drivers
 		batt_smbus
@@ -28,33 +25,34 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		dshot
 		gps
-		#heater
-		#imu # all available imu drivers
+		imu/bosch/bmi088
 		imu/invensense/icm20602
-		imu/invensense/icm20649
-		imu/invensense/icm20948
+		imu/invensense/icm20948 # required for ak09916 mag
+		imu/invensense/icm42688p
 		irlock
 		lights # all available light drivers
 		magnetometer # all available magnetometer drivers
 		optical_flow # all available optical flow drivers
 		osd
 		pca9685
-		#pca9685_pwm_out
+		pca9685_pwm_out
 		power_monitor/ina226
+		power_monitor/voxlpm
 		#protocol_splitter
+		#pwm_input
 		pwm_out_sim
 		pwm_out
-		px4io
+		rc_input
 		roboclaw
 		rpm
+		safety_button
 		telemetry # all available telemetry drivers
 		test_ppm
-		tone_alarm
+		#tone_alarm
 		uavcan
 	MODULES
 		airspeed_selector
-		#attitude_estimator_q
-		battery_status
+		attitude_estimator_q
 		camera_feedback
 		commander
 		dataman
@@ -69,7 +67,7 @@ px4_add_board(
 		land_detector
 		landing_target_estimator
 		load_mon
-		#local_position_estimator
+		local_position_estimator
 		logger
 		mavlink
 		mc_att_control
@@ -79,12 +77,12 @@ px4_add_board(
 		#micrortps_bridge
 		navigator
 		rc_update
-		#rover_pos_control
+		rover_pos_control
 		sensors
-		#sih
-		#temperature_compensation
-		#uuv_att_control
-		#uuv_pos_control
+		sih
+		temperature_compensation
+		uuv_att_control
+		uuv_pos_control
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
@@ -108,7 +106,7 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
-		#serial_test
+		serial_test
 		system_time
 		tests # tests and test runner
 		top
@@ -120,15 +118,15 @@ px4_add_board(
 		work_queue
 	EXAMPLES
 		fake_gps
-		#fake_gyro
-		#fake_magnetometer
-		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
-		#hello
-		#hwtest # Hardware test
+		fake_gyro
+		fake_magnetometer
+		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		hello
+		hwtest # Hardware test
 		#matlab_csv_serial
-		#px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
-		#px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
-		#rover_steering_control # Rover example app
-		#uuv_example_app
-		#work_item
+		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
+		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
+		rover_steering_control # Rover example app
+		uuv_example_app
+		work_item
 	)
