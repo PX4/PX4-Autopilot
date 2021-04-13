@@ -57,9 +57,9 @@
 #			[ SERIAL_PORTS <list> ]
 #			[ CONSTRAINED_FLASH ]
 #			[ CONSTRAINED_MEMORY ]
+#			[ EXTERNAL_METADATA ]
 #			[ TESTING ]
 #			[ LINKER_PREFIX <string> ]
-#			[ EMBEDDED_METADATA <string> ]
 #			[ ETHERNET ]
 #			)
 #
@@ -80,9 +80,9 @@
 #		SYSTEMCMDS		: list of system commands to build for this board (relative to src/systemcmds)
 #		EXAMPLES		: list of example modules to build for this board (relative to src/examples)
 #		SERIAL_PORTS		: mapping of user configurable serial ports and param facing name
-#		EMBEDDED_METADATA	: list of metadata to embed to ROMFS
 #		CONSTRAINED_FLASH	: flag to enable constrained flash options (eg limit init script status text)
 #		CONSTRAINED_MEMORY	: flag to enable constrained memory options (eg limit maximum number of uORB publications)
+#		EXTERNAL_METADATA	: flag to exclude metadata to reduce flash
 #		TESTING			: flag to enable automatic inclusion of PX4 testing modules
 #		LINKER_PREFIX	: optional to prefix on the Linker script.
 #		ETHERNET		: flag to indicate that ethernet is enabled
@@ -156,11 +156,11 @@ function(px4_add_board)
 			EXAMPLES
 			SERIAL_PORTS
 			UAVCAN_PERIPHERALS
-			EMBEDDED_METADATA
 		OPTIONS
 			BUILD_BOOTLOADER
 			CONSTRAINED_FLASH
 			CONSTRAINED_MEMORY
+			EXTERNAL_METADATA
 			TESTING
 			ETHERNET
 		REQUIRED
@@ -207,14 +207,11 @@ function(px4_add_board)
 
 	set(romfs_extra_files)
 	set(config_romfs_extra_dependencies)
-	foreach(metadata ${EMBEDDED_METADATA})
-		if(${metadata} STREQUAL "parameters")
-			list(APPEND romfs_extra_files ${PX4_BINARY_DIR}/parameters.json.xz)
-			list(APPEND romfs_extra_dependencies parameters_xml)
-		else()
-			message(FATAL_ERROR "invalid value for EMBEDDED_METADATA: ${metadata}")
-		endif()
-	endforeach()
+	# additional embedded metadata
+	if (NOT CONSTRAINED_FLASH AND NOT EXTERNAL_METADATA AND NOT ${PX4_BOARD_LABEL} STREQUAL "test")
+		list(APPEND romfs_extra_files ${PX4_BINARY_DIR}/parameters.json.xz)
+		list(APPEND romfs_extra_dependencies parameters_xml)
+	endif()
 	list(APPEND romfs_extra_files ${PX4_BINARY_DIR}/component_general.json.xz)
 	list(APPEND romfs_extra_dependencies component_general_json)
 	set(config_romfs_extra_files ${romfs_extra_files} CACHE INTERNAL "extra ROMFS files" FORCE)

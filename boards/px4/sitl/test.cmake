@@ -5,7 +5,6 @@ px4_add_board(
 	MODEL sitl
 	ROMFSROOT px4fmu_common
 	LABEL test
-	EMBEDDED_METADATA parameters
 	TESTING
 	DRIVERS
 		#barometer # all available barometer drivers

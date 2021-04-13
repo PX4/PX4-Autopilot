@@ -5,7 +5,6 @@ px4_add_board(
 	MODEL sitl
 	ROMFSROOT px4fmu_common
 	LABEL default
-	EMBEDDED_METADATA parameters
 	TESTING
 	ETHERNET
 	DRIVERS
