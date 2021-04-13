@@ -531,12 +531,43 @@ void PWMOut::capture_callback(uint32_t chan_index,
 void PWMOut::update_pwm_out_state(bool on)
 {
 	if (on && !_pwm_initialized && _pwm_mask != 0) {
-		up_pwm_servo_init(_pwm_mask);
-		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
+
+		// Collect all PWM masks from all instances
+		uint32_t pwm_mask_new = 0;
+		// Collect the PWM alt rate channels across all instances
+		uint32_t pwm_alt_rate_channels_new = 0;
+
+		// Collect the minimum default rate
+		unsigned default_rate_min = 0;
+		// Collect the maximum alternative rate (400 Hz or DSHOT outputs)
+		unsigned alt_rate_max = 0;
+
+		for (int i = 0; i < PWM_OUT_MAX_INSTANCES; i++) {
+			if (_objects[i].load()) {
+				pwm_mask_new |= _objects[i].load()->get_pwm_mask();
+				pwm_alt_rate_channels_new |= _objects[i].load()->get_alt_rate_channels();
+
+				if (_objects[i].load()->get_alt_rate() > alt_rate_max) {
+					alt_rate_max = _objects[i].load()->get_alt_rate();
+				}
+
+				if (_objects[i].load()->get_default_rate() < default_rate_min) {
+					default_rate_min = _objects[i].load()->get_default_rate();
+				}
+			}
+		}
+
+		// Initialize the PWM output state for all instances
+		// this is re-done once per instance, but harmless
+		up_pwm_servo_init(pwm_mask_new);
+
+		// Set rate is not affecting non-masked channels, so can be called
+		// individually
+		set_pwm_rate(pwm_alt_rate_channels_new, default_rate_min, alt_rate_max);
 		_pwm_initialized = true;
 	}
 
-	up_pwm_servo_arm(on); // TODO REVIEW for multi
+	up_pwm_servo_arm(on);
 }
 
 bool PWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
