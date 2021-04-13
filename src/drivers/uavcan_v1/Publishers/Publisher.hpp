@@ -94,7 +94,6 @@ public:
 protected:
 	CanardInstance &_canard_instance;
 	UavcanParamManager &_param_manager;
-	CanardRxSubscription _canard_sub;
 	const char *_subject_name;
 	uint8_t _instance {0};
 

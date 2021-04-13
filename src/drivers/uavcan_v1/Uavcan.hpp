@@ -185,11 +185,7 @@ private:
 	pthread_mutex_t _node_mutex;
 
 	CanardRxSubscription _heartbeat_subscription;
-	CanardRxSubscription _pnp_v1_subscription;
-	CanardRxSubscription _drone_srv_battery_subscription;
 	CanardRxSubscription _drone_srv_gps_subscription;
-	CanardRxSubscription _register_access_subscription;
-	CanardRxSubscription _register_list_subscription;
 
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
