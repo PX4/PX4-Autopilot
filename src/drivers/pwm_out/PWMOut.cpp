@@ -474,7 +474,9 @@ void PWMOut::update_current_rate()
 	// max interval 0.5 - 100 ms (10 - 2000Hz)
 	const int update_interval_in_us = math::constrain(1000000 / max_rate, 500, 100000);
 
-	PX4_INFO("instance: %d, MAX RATE: %d, default: %d, alt: %d", _instance, max_rate, _pwm_default_rate, _pwm_alt_rate);
+	if (_current_update_rate != max_rate) {
+		PX4_INFO("instance: %d, max rate: %d, default: %d, alt: %d", _instance, max_rate, _pwm_default_rate, _pwm_alt_rate);
+	}
 
 	_current_update_rate = max_rate;
 	_mixing_output.setMaxTopicUpdateRate(update_interval_in_us);
