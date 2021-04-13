@@ -96,11 +96,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: cuav_x7pro_default
-    cubepilot_cubeorange_console:
+    cubepilot_cubeorange_test:
       short: cubepilot_cubeorange
       buildType: MinSizeRel
       settings:
-        CONFIG: cubepilot_orange_console
+        CONFIG: cubepilot_orange_test
     emlid_navio2_default:
       short: emlid_navio2
       buildType: MinSizeRel

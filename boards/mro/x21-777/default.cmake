@@ -8,7 +8,6 @@ px4_add_board(
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
 	IO px4_io-v2_default
-	TESTING
 	UAVCAN_INTERFACES 1
 	SERIAL_PORTS
 		# IO DEBUG:/dev/ttyS0
@@ -50,7 +49,6 @@ px4_add_board(
 		roboclaw
 		rpm
 		telemetry # all available telemetry drivers
-		test_ppm
 		tone_alarm
 		uavcan
 	MODULES
@@ -112,7 +110,6 @@ px4_add_board(
 		sd_bench
 		serial_test
 		system_time
-		tests # tests and test runner
 		top
 		topic_listener
 		tune_control
