@@ -875,11 +875,13 @@ parameter_flashfs_write(flash_file_token_t token, uint8_t *buffer, size_t buf_si
 				}
 
 				pf = (flash_entry_header_t *) current_sector->address;
+
+				if (!blank_check(pf, total_size)) {
+					rv = erase_sector(current_sector, pf);
+				}
+
 			}
 
-			if (!blank_check(pf, total_size)) {
-				rv = erase_sector(current_sector, pf);
-			}
 		}
 
 		flash_entry_header_t *pn = (flash_entry_header_t *)(buffer - sizeof(flash_entry_header_t));
