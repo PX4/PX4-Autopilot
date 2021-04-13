@@ -461,13 +461,12 @@ void MulticopterPositionControl::Run()
 		// Publish takeoff status
 		const uint8_t takeoff_state = static_cast<uint8_t>(_takeoff.getTakeoffState());
 
-		if (takeoff_state != _old_takeoff_state) {
-			takeoff_status_s takeoff_status{};
-			takeoff_status.takeoff_state = takeoff_state;
-			takeoff_status.timestamp = hrt_absolute_time();
-			_takeoff_status_pub.publish(takeoff_status);
-
-			_old_takeoff_state = takeoff_state;
+		if (takeoff_state != _takeoff_status_pub.get().takeoff_state
+		    || !isEqualF(_tilt_limit_slew_rate.getState(), _takeoff_status_pub.get().tilt_limit)) {
+			_takeoff_status_pub.get().takeoff_state = takeoff_state;
+			_takeoff_status_pub.get().tilt_limit = _tilt_limit_slew_rate.getState();
+			_takeoff_status_pub.get().timestamp = hrt_absolute_time();
+			_takeoff_status_pub.update();
 		}
 
 		// save latest reset counters
