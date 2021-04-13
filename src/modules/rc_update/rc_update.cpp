@@ -527,7 +527,7 @@ void RCUpdate::Run()
 
 				// limit processing if there's no update
 				if (rc_updated || (hrt_elapsed_time(&_last_manual_control_input_publish) > 300_ms)) {
-					UpdateManualSetpoint(input_rc.timestamp_last_signal);
+					UpdateManualControlInput(input_rc.timestamp_last_signal);
 				}
 
 				UpdateManualSwitches(input_rc.timestamp_last_signal);
@@ -659,7 +659,7 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 	_manual_switches_previous = switches;
 }
 
-void RCUpdate::UpdateManualSetpoint(const hrt_abstime &timestamp_sample)
+void RCUpdate::UpdateManualControlInput(const hrt_abstime &timestamp_sample)
 {
 	manual_control_input_s manual_control_input{};
 	manual_control_input.timestamp_sample = timestamp_sample;
