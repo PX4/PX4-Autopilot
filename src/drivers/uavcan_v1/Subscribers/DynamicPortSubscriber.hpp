@@ -64,7 +64,7 @@ public:
 
 		while (curSubj != NULL) {
 			char uavcan_param[90];
-			sprintf(uavcan_param, "uavcan.sub.%s.%d.id", curSubj->_subject_name, _instance);
+			snprintf(uavcan_param, sizeof(uavcan_param), "uavcan.sub.%s.%d.id", curSubj->_subject_name, _instance);
 
 			// Set _port_id from _uavcan_param
 			uavcan_register_Value_1_0 value;
