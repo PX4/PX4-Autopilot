@@ -191,7 +191,7 @@ private:
 	unsigned	_pwm_alt_rate{50};
 	uint32_t	_pwm_alt_rate_channels{0};
 
-	unsigned	_current_update_rate{0};
+	int		_current_update_rate{0};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
