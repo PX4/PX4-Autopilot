@@ -3,6 +3,7 @@ uint64 timestamp	# time since system start (microseconds)
 uint32 device_id
 
 bool heater_on
+bool temperature_target_met
 
 float32 temperature_sensor
 float32 temperature_target
