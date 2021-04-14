@@ -41,10 +41,11 @@ void ManualControlSelector::update_time_only(uint64_t now)
 {
 	if (_setpoint.timestamp_sample + _timeout < now) {
 		_setpoint.valid = false;
+		_instance = -1;
 	}
 }
 
-void ManualControlSelector::update_manual_control_input(uint64_t now, const manual_control_input_s &input)
+void ManualControlSelector::update_manual_control_input(uint64_t now, const manual_control_input_s &input, int instance)
 {
 	// This method requires the current timestamp explicitly in order to prevent weird cases
 	// if the timestamp_sample of some source is invalid/wrong.
@@ -55,6 +56,7 @@ void ManualControlSelector::update_manual_control_input(uint64_t now, const manu
 	if (_rc_in_mode == 0 && input.data_source == manual_control_input_s::SOURCE_RC) {
 		_setpoint = setpoint_from_input(input);
 		_setpoint.valid = true;
+		_instance = instance;
 
 	} else if (_rc_in_mode == 1 && (input.data_source == manual_control_input_s::SOURCE_MAVLINK_0
 			|| input.data_source == manual_control_input_s::SOURCE_MAVLINK_1
@@ -67,6 +69,7 @@ void ManualControlSelector::update_manual_control_input(uint64_t now, const manu
 		if (_setpoint.data_source == input.data_source || !_setpoint.valid) {
 			_setpoint = setpoint_from_input(input);
 			_setpoint.valid = true;
+			_instance = instance;
 		}
 	} else if (_rc_in_mode == 2) {
 		// FIXME: what to do in the legacy case?
@@ -76,6 +79,7 @@ void ManualControlSelector::update_manual_control_input(uint64_t now, const manu
 		if (_setpoint.data_source == input.data_source || !_setpoint.valid) {
 			_setpoint = setpoint_from_input(input);
 			_setpoint.valid = true;
+			_instance = instance;
 		}
 	} else {
 		// FIXME: param value unknown, what to do?
