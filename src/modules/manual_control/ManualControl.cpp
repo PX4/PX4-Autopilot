@@ -92,7 +92,7 @@ void ManualControl::Run()
 
 			found_at_least_one = true;
 
-			_selector.update_manual_control_input(now, manual_control_input);
+			_selector.update_manual_control_input(now, manual_control_input, i);
 
 		}
 	}
@@ -133,20 +133,22 @@ void ManualControl::Run()
 		_selector.setpoint().timestamp = now;
 		_manual_control_setpoint_pub.publish(_selector.setpoint());
 
+		_manual_control_input_subs[_selector.instance()].registerCallback();
+
+		if (_last_selected_input != _selector.instance()) {
+
+			PX4_INFO("selected manual_control_input changed %d -> %d", _last_selected_input, _selector.instance());
+			_last_selected_input = _selector.instance();
+		}
+
+
 	} else {
-		_published_invalid_once = true;
-		_manual_control_setpoint_pub.publish(_selector.setpoint());
+		_last_selected_input = -1;
+		if (!_published_invalid_once) {
+			_published_invalid_once = true;
+			_manual_control_setpoint_pub.publish(_selector.setpoint());
+		}
 	}
-
-	// FIXME: get from selector
-	//if ((selected_manual_input >= 0) && (selected_manual_input != _selected_manual_input)) {
-	//	if (_selected_manual_input >= 0) {
-	//		PX4_INFO("selected manual_control_input changed %d -> %d", _selected_manual_input, selected_manual_input);
-	//	}
-
-	//	_manual_control_input_subs[selected_manual_input].registerCallback();
-	//	_selected_manual_input = selected_manual_input;
-	//}
 
 	// reschedule timeout
 	ScheduleDelayed(200_ms);
@@ -198,7 +200,7 @@ int ManualControl::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-
+Module consuming manual_control_inputs publishing one manual_control_setpoint.
 
 )DESCR_STR");
 
