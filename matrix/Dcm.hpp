@@ -46,10 +46,7 @@ public:
      *
      * Initializes to identity
      */
-    Dcm()
-    {
-        (*this) = eye<Type, 3>();
-    }
+    Dcm() : SquareMatrix<Type, 3>(eye<Type, 3>()) {}
 
     /**
      * Constructor from array
