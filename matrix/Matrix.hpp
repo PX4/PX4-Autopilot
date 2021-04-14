@@ -18,14 +18,6 @@
 
 #include "math.hpp"
 
-// There is a bug in GCC 4.8, which causes the compiler to segfault due to array {} constructors.
-// Do for-loop constructors just for GCC 4.8
-#ifdef __GNUC__
-#define MATRIX_GCC_4_8_WORKAROUND (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 9))
-#else
-#define MATRIX_GCC_4_8_WORKAROUND 0
-#endif
-
 namespace matrix
 {
 
@@ -41,41 +33,38 @@ class Slice;
 template<typename Type, size_t M, size_t N>
 class Matrix
 {
-#if MATRIX_GCC_4_8_WORKAROUND
-    Type _data[M][N];
-#else
     Type _data[M][N] {};
-#endif
 
 public:
 
     // Constructors
-#if MATRIX_GCC_4_8_WORKAROUND
-    Matrix()
-    {
-        for (size_t i = 0; i < M; i++) {
-            for (size_t j = 0; j < N; j++) {
-                _data[i][j] = Type{};
-            }
-        }
-    }
-#else
     Matrix() = default;
-#endif
 
     explicit Matrix(const Type data_[M*N])
     {
-        memcpy(_data, data_, sizeof(_data));
+        for (size_t i = 0; i < M; i++) {
+            for (size_t j = 0; j < N; j++) {
+                _data[i][j] = data_[N*i + j];
+            }
+        }
     }
 
     explicit Matrix(const Type data_[M][N])
     {
-        memcpy(_data, data_, sizeof(_data));
+        for (size_t i = 0; i < M; i++) {
+            for (size_t j = 0; j < N; j++) {
+                _data[i][j] = data_[i][j];
+            }
+        }
     }
 
     Matrix(const Matrix &other)
     {
-        memcpy(_data, other._data, sizeof(_data));
+        for (size_t i = 0; i < M; i++) {
+            for (size_t j = 0; j < N; j++) {
+                _data[i][j] = other(i, j);
+            }
+        }
     }
 
     template<size_t P, size_t Q>
@@ -113,14 +102,24 @@ public:
     Matrix<Type, M, N> & operator=(const Matrix<Type, M, N> &other)
     {
         if (this != &other) {
-            memcpy(_data, other._data, sizeof(_data));
+            Matrix<Type, M, N> &self = *this;
+            for (size_t i = 0; i < M; i++) {
+                for (size_t j = 0; j < N; j++) {
+                    self(i, j) = other(i, j);
+                }
+            }
         }
         return (*this);
     }
 
     void copyTo(Type dst[M*N]) const
     {
-        memcpy(dst, _data, sizeof(Type)*M*N);
+        const Matrix<Type, M, N> &self = *this;
+        for (size_t i = 0; i < M; i++) {
+            for (size_t j = 0; j < N; j++) {
+                dst[N*i + j] = self(i, j);
+            }
+        }
     }
 
     void copyToColumnMajor(Type dst[M*N]) const
@@ -146,8 +145,7 @@ public:
     Matrix<Type, M, P> operator*(const Matrix<Type, N, P> &other) const
     {
         const Matrix<Type, M, N> &self = *this;
-        Matrix<Type, M, P> res;
-        res.setZero();
+        Matrix<Type, M, P> res{};
 
         for (size_t i = 0; i < M; i++) {
             for (size_t k = 0; k < P; k++) {
