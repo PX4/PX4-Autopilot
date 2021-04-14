@@ -98,6 +98,7 @@ private:
 
 	ManualControlSelector _selector;
 	bool _published_invalid_once{false};
+	int _last_selected_input{-1};
 
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};

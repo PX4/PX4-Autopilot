@@ -45,8 +45,9 @@ public:
 	void set_rc_in_mode(int32_t rc_in_mode) { _rc_in_mode = rc_in_mode; }
 	void set_timeout(uint64_t timeout) { _timeout = timeout; }
 	void update_time_only(uint64_t now);
-	void update_manual_control_input(uint64_t now, const manual_control_input_s &input);
+	void update_manual_control_input(uint64_t now, const manual_control_input_s &input, int instance);
 	manual_control_setpoint_s &setpoint();
+	int instance() const { return _instance; };
 
 private:
 	manual_control_setpoint_s setpoint_from_input(const manual_control_input_s &input);
@@ -54,6 +55,7 @@ private:
 	manual_control_setpoint_s _setpoint {};
 	uint64_t _timeout {0};
 	int32_t _rc_in_mode {0};
+	int _instance {-1};
 };
 
 } // namespace manual_control
