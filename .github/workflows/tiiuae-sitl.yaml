@@ -1,0 +1,64 @@
+name: tiiuea-sitl
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  sitl:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout px4-firmware
+        uses: actions/checkout@v2
+        with:
+          path: px4-firmware
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Checkout ci-scripts
+        uses: actions/checkout@v2
+        with:
+          repository: tiiuae/fogsw-ci-scripts
+          path: fogsw-ci-scripts
+
+      # Run docker build
+      - name: Run fog-sw docker build
+        run: |
+          set -eux
+          mkdir bin
+          pushd fogsw-ci-scripts/px4/sitl
+          ./build.sh ../../../px4-firmware ../../../bin
+          popd
+
+      - name: Install jfrog CLI tool
+        env:
+          JFROG_CLI_URL: https://artifactory.ssrc.fi/artifactory/gen-public-local/tools/jfrog/jfrog-1.45.2.tar.gz
+        if: github.event_name == 'push'
+        run: |
+          set -exu
+          mkdir -p "$GITHUB_WORKSPACE/.jfrog/bin"
+          curl -L "$JFROG_CLI_URL" -o "$GITHUB_WORKSPACE/.jfrog/jfrog.tar.gz"
+          tar -C "$GITHUB_WORKSPACE/.jfrog/bin" -zxf "$GITHUB_WORKSPACE/.jfrog/jfrog.tar.gz"
+          echo "$GITHUB_WORKSPACE/.jfrog/bin" >> "$GITHUB_PATH"
+          echo "JFROG_CLI_HOME_DIR=$GITHUB_WORKSPACE/.jfrog" >> "$GITHUB_ENV"
+
+      - name: Upload to Artifactory
+        env:
+          ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
+          ARTIFACTORY_GEN_REPO: gen-public-local
+          CI: true
+        if: github.event_name == 'push'
+        run: |
+          set -exu
+          jfrog rt c import "$ARTIFACTORY_TOKEN"
+          jfrog rt ping
+          pkg=$(find bin -name 'px4_sitl_build*.tar.gz')
+          pkg_name=$(basename $pkg)
+          jfrog rt u --target-props COMMIT="$GITHUB_SHA" \
+                     "$pkg" \
+                     "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/sitl/$pkg_name"
+          jfrog rt cp "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/sitl/$pkg_name" \
+                      "$ARTIFACTORY_GEN_REPO/px4_sitl_build-LATEST.tar.gz"
