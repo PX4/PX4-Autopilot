@@ -77,7 +77,7 @@ Heater::Heater() :
 
 Heater::~Heater()
 {
-	heater_disable();
+	disable_heater();
 }
 
 int Heater::custom_command(int argc, char *argv[])
@@ -91,7 +91,7 @@ int Heater::custom_command(int argc, char *argv[])
 	return print_usage("Unrecognized command.");
 }
 
-void Heater::heater_disable()
+void Heater::disable_heater()
 {
 	// Reset heater to off state.
 #ifdef HEATER_PX4IO
@@ -106,7 +106,7 @@ void Heater::heater_disable()
 #endif
 }
 
-void Heater::heater_initialize()
+void Heater::initialize_heater_io()
 {
 	// Initialize heater to off state.
 #ifdef HEATER_PX4IO
@@ -160,13 +160,15 @@ bool Heater::initialize_topics()
 	for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		uORB::SubscriptionData<sensor_accel_s> sensor_accel_sub{ORB_ID(sensor_accel), i};
 
-		if (sensor_accel_sub.get().timestamp != 0 && sensor_accel_sub.get().device_id != 0
-		    && PX4_ISFINITE(sensor_accel_sub.get().temperature)) {
+		if (sensor_accel_sub.get().timestamp != 0 &&
+		    sensor_accel_sub.get().device_id != 0 &&
+		    PX4_ISFINITE(sensor_accel_sub.get().temperature)) {
 
 			// If the correct ID is found, exit the for-loop with _sensor_accel_sub pointing to the correct instance.
 			if (sensor_accel_sub.get().device_id == (uint32_t)_param_sens_temp_id.get()) {
 				_sensor_accel_sub.ChangeInstance(i);
 				_sensor_device_id = sensor_accel_sub.get().device_id;
+				initialize_heater_io();
 				return true;
 			}
 		}
@@ -190,21 +192,10 @@ void Heater::Run()
 		return;
 	}
 
-	// check for parameter updates
-	if (_parameter_update_sub.updated()) {
-		// clear update
-		parameter_update_s pupdate;
-		_parameter_update_sub.copy(&pupdate);
-
-		// update parameters from storage
-		ModuleParams::updateParams();
-	}
+	update_params();
 
 	if (_sensor_device_id == 0) {
-		if (initialize_topics()) {
-			heater_initialize();
-
-		} else {
+		if (!initialize_topics()) {
 			// if sensor still not found try again in 1 second
 			ScheduleDelayed(1_s);
 			return;
@@ -212,14 +203,15 @@ void Heater::Run()
 	}
 
 	sensor_accel_s sensor_accel;
+	float temperature_delta {0.f};
 
 	if (_heater_on) {
 		// Turn the heater off.
-		heater_off();
 		_heater_on = false;
+		heater_off();
+		ScheduleDelayed(_controller_period_usec - _controller_time_on_usec);
 
 	} else if (_sensor_accel_sub.update(&sensor_accel)) {
-		float temperature_delta {0.f};
 
 		// Update the current IMU sensor temperature if valid.
 		if (PX4_ISFINITE(sensor_accel.temperature)) {
@@ -230,11 +222,6 @@ void Heater::Run()
 		_proportional_value = temperature_delta * _param_sens_imu_temp_p.get();
 		_integrator_value += temperature_delta * _param_sens_imu_temp_i.get();
 
-		if (fabs(_param_sens_imu_temp_i.get()) <= 0.0001) {
-			_integrator_value = 0.f;
-		}
-
-		// Guard against integrator wind up.
 		_integrator_value = math::constrain(_integrator_value, -0.25f, 0.25f);
 
 		_controller_time_on_usec = static_cast<int>((_param_sens_imu_temp_ff.get() + _proportional_value +
@@ -242,36 +229,41 @@ void Heater::Run()
 
 		_controller_time_on_usec = math::constrain(_controller_time_on_usec, 0, _controller_period_usec);
 
+		if (abs(temperature_delta) < TEMPERATURE_TARGET_THRESHOLD) {
+			_temperature_target_met = true;
+
+		} else {
+
+			_temperature_target_met = false;
+		}
+
 		_heater_on = true;
 		heater_on();
-	}
-
-	// Schedule the next cycle.
-	if (_heater_on) {
 		ScheduleDelayed(_controller_time_on_usec);
-
-	} else {
-		ScheduleDelayed(_controller_period_usec - _controller_time_on_usec);
 	}
 
+	publish_status();
+}
 
-	// publish status
+void Heater::publish_status()
+{
 	heater_status_s status{};
-	status.heater_on = _heater_on;
-	status.device_id = _sensor_device_id;
-	status.temperature_sensor = _temperature_last;
-	status.temperature_target = _param_sens_imu_temp.get();
-	status.controller_period_usec = _controller_period_usec;
+	status.device_id               = _sensor_device_id;
+	status.heater_on               = _heater_on;
+	status.temperature_sensor      = _temperature_last;
+	status.temperature_target      = _param_sens_imu_temp.get();
+	status.temperature_target_met  = _temperature_target_met;
+	status.controller_period_usec  = _controller_period_usec;
 	status.controller_time_on_usec = _controller_time_on_usec;
-	status.proportional_value = _proportional_value;
-	status.integrator_value = _integrator_value;
-	status.feed_forward_value = _param_sens_imu_temp_ff.get();
+	status.proportional_value      = _proportional_value;
+	status.integrator_value        = _integrator_value;
+	status.feed_forward_value      = _param_sens_imu_temp_ff.get();
 
 #ifdef HEATER_PX4IO
-	status.mode |= heater_status_s::MODE_PX4IO;
+	status.mode = heater_status_s::MODE_PX4IO;
 #endif
 #ifdef HEATER_GPIO
-	status.mode |= heater_status_s::MODE_GPIO;
+	status.mode = heater_status_s::MODE_GPIO;
 #endif
 
 	status.timestamp = hrt_absolute_time();
@@ -287,6 +279,7 @@ int Heater::start()
 		return PX4_ERROR;
 	}
 
+	update_params(true);
 	ScheduleNow();
 	return PX4_OK;
 }
@@ -305,6 +298,18 @@ int Heater::task_spawn(int argc, char *argv[])
 
 	heater->start();
 	return 0;
+}
+
+void Heater::update_params(const bool force)
+{
+	if (_parameter_update_sub.updated() || force) {
+		// clear update
+		parameter_update_s param_update;
+		_parameter_update_sub.copy(&param_update);
+
+		// update parameters from storage
+		ModuleParams::updateParams();
+	}
 }
 
 int Heater::print_usage(const char *reason)
