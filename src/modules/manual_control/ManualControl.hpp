@@ -80,6 +80,7 @@ private:
 
 	void send_arm_command();
 	void send_disarm_command();
+	void send_rtl_command();
 
 	uORB::Publication<manual_control_setpoint_s> _manual_control_setpoint_pub{ORB_ID(manual_control_setpoint)};
 
@@ -105,6 +106,9 @@ private:
 	float _previous_y{NAN};
 	float _previous_z{NAN};
 	float _previous_r{NAN};
+
+	manual_control_switches_s _previous_switches{};
+	bool _previous_switches_initialized{false};
 
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
