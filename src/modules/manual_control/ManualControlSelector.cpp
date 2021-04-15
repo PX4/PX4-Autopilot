@@ -59,11 +59,11 @@ void ManualControlSelector::update_manual_control_input(uint64_t now, const manu
 		_instance = instance;
 
 	} else if (_rc_in_mode == 1 && (input.data_source == manual_control_input_s::SOURCE_MAVLINK_0
-			|| input.data_source == manual_control_input_s::SOURCE_MAVLINK_1
-			|| input.data_source == manual_control_input_s::SOURCE_MAVLINK_2
-			|| input.data_source == manual_control_input_s::SOURCE_MAVLINK_3
-			|| input.data_source == manual_control_input_s::SOURCE_MAVLINK_4
-			|| input.data_source == manual_control_input_s::SOURCE_MAVLINK_5)) {
+					|| input.data_source == manual_control_input_s::SOURCE_MAVLINK_1
+					|| input.data_source == manual_control_input_s::SOURCE_MAVLINK_2
+					|| input.data_source == manual_control_input_s::SOURCE_MAVLINK_3
+					|| input.data_source == manual_control_input_s::SOURCE_MAVLINK_4
+					|| input.data_source == manual_control_input_s::SOURCE_MAVLINK_5)) {
 
 		// We only stick to the first discovered mavlink channel.
 		if (_setpoint.data_source == input.data_source || !_setpoint.valid) {
@@ -71,6 +71,7 @@ void ManualControlSelector::update_manual_control_input(uint64_t now, const manu
 			_setpoint.valid = true;
 			_instance = instance;
 		}
+
 	} else if (_rc_in_mode == 2) {
 		// FIXME: what to do in the legacy case?
 	} else if (_rc_in_mode == 3) {
@@ -81,6 +82,7 @@ void ManualControlSelector::update_manual_control_input(uint64_t now, const manu
 			_setpoint.valid = true;
 			_instance = instance;
 		}
+
 	} else {
 		// FIXME: param value unknown, what to do?
 	}

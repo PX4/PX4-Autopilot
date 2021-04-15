@@ -37,7 +37,8 @@
 #include <uORB/topics/manual_control_input.h>
 #include <uORB/topics/manual_control_setpoint.h>
 
-namespace manual_control {
+namespace manual_control
+{
 
 class ManualControlSelector
 {
