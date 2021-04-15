@@ -117,9 +117,8 @@ public:
      *
      * @param q quaternion
     */
-    Euler(const Quaternion<Type> &q)
+    Euler(const Quaternion<Type> &q) : Vector<Type, 3>(Euler(Dcm<Type>(q)))
     {
-        *this = Euler(Dcm<Type>(q));
     }
 
     inline Type phi() const
