@@ -231,17 +231,17 @@ bool RCTest::ghstTest()
 
 bool RCTest::dsmTest10Ch()
 {
-	return dsmTest(TEST_DATA_PATH "dsm_x_data.txt", 10, 6, 1500);
+	return dsmTest(TEST_DATA_PATH "dsm_x_data.txt", 10, 17, 1500);
 }
 
 bool RCTest::dsmTest16Ch()
 {
-	return dsmTest(TEST_DATA_PATH "dsm_x_dx9_data.txt", 16, 3, 1500);
+	return dsmTest(TEST_DATA_PATH "dsm_x_dx9_data.txt", 16, 6, 1500);
 }
 
 bool RCTest::dsmTest22msDSMX16Ch()
 {
-	return dsmTest(TEST_DATA_PATH "dsm_x_dx9_px4_binding_data.txt", 16, 6, 1499);
+	return dsmTest(TEST_DATA_PATH "dsm_x_dx9_px4_binding_data.txt", 16, 11, 1499);
 }
 
 bool RCTest::dsmTest(const char *filepath, unsigned expected_chancount, unsigned expected_dropcount, unsigned chan0)
@@ -290,7 +290,7 @@ bool RCTest::dsmTest(const char *filepath, unsigned expected_chancount, unsigned
 					&dsm_11_bit, &dsm_frame_drops, nullptr, max_channels);
 
 		if (result) {
-			if (count > (16 * 10)) { // need to process enough data to have full channel count
+			if (count > (16 * 20)) { // need to process enough data to have full channel count
 				ut_compare("num_values == expected_chancount", num_values, expected_chancount);
 			}
 
@@ -312,6 +312,8 @@ bool RCTest::dsmTest(const char *filepath, unsigned expected_chancount, unsigned
 	}
 
 	fclose(fp);
+
+	ut_compare("num_values == expected_chancount", num_values, expected_chancount);
 
 	ut_test(ret == EOF);
 	//PX4_INFO("drop: %d", (int)last_drop);
