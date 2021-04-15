@@ -34,6 +34,7 @@
 #include "ManualControl.hpp"
 
 #include <drivers/drv_hrt.h>
+#include <uORB/topics/vehicle_command.h>
 
 namespace manual_control
 {
@@ -91,10 +92,15 @@ void ManualControl::Run()
 		if (_manual_control_input_subs[i].update(&manual_control_input)) {
 
 			found_at_least_one = true;
-
 			_selector.update_manual_control_input(now, manual_control_input, i);
-
 		}
+	}
+
+	bool switches_updated = false;
+	manual_control_switches_s manual_control_switches;
+
+	if (_manual_control_switches_sub.update(&manual_control_switches)) {
+		switches_updated = true;
 	}
 
 	if (!found_at_least_one) {
@@ -114,6 +120,21 @@ void ManualControl::Run()
 		_selector.setpoint().arm_gesture = _stick_arm_hysteresis.get_state();
 		_selector.setpoint().disarm_gesture = _stick_disarm_hysteresis.get_state();
 
+		if (_selector.setpoint().arm_gesture && !_previous_arm_gesture) {
+			_previous_arm_gesture = true;
+			send_arm_command();
+
+		} else if (!_selector.setpoint().arm_gesture) {
+			_previous_arm_gesture = false;
+		}
+
+		if (_selector.setpoint().disarm_gesture && !_previous_disarm_gesture) {
+			_previous_disarm_gesture = true;
+			send_disarm_command();
+
+		} else if (!_selector.setpoint().disarm_gesture) {
+			_previous_disarm_gesture = false;
+		}
 
 		// user wants override
 		//const float minimum_stick_change = 0.01f * _param_com_rc_stick_ov.get();
@@ -129,11 +150,17 @@ void ManualControl::Run()
 
 		//_selector.setpoint().user_override = rpy_moved || (use_throttle && throttle_moved);
 
+		// TODO: at least 3 samples in a time
+
+		if (switches_updated) {
+			// Only use switches if current source is RC as well.
+			if (_selector.setpoint().data_source == manual_control_input_s::SOURCE_RC) {
+				// TODO: handle buttons
+			}
+		}
 
 		_selector.setpoint().timestamp = now;
 		_manual_control_setpoint_pub.publish(_selector.setpoint());
-
-		_manual_control_input_subs[_selector.instance()].registerCallback();
 
 		if (_last_selected_input != _selector.instance()) {
 
@@ -141,6 +168,8 @@ void ManualControl::Run()
 			_last_selected_input = _selector.instance();
 		}
 
+		_manual_control_input_subs[_selector.instance()].registerCallback();
+		_manual_control_switches_sub.registerCallback();
 
 	} else {
 		_last_selected_input = -1;
@@ -154,6 +183,34 @@ void ManualControl::Run()
 	ScheduleDelayed(200_ms);
 
 	perf_end(_loop_perf);
+}
+
+void ManualControl::send_arm_command()
+{
+	vehicle_command_s command{};
+	command.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
+	command.param1 = 1.0;
+	command.param3 = 1.0; // We use param3 to signal that the origin is manual control stick.
+	command.target_system = 1;
+	command.target_component = 1;
+
+	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
+	command.timestamp = hrt_absolute_time();
+	command_pub.publish(command);
+}
+
+void ManualControl::send_disarm_command()
+{
+	vehicle_command_s command{};
+	command.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
+	command.param1 = 0.0;
+	command.param3 = 1.0; // We use param3 to signal that the origin is manual control stick.
+	command.target_system = 1;
+	command.target_component = 1;
+
+	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
+	command.timestamp = hrt_absolute_time();
+	command_pub.publish(command);
 }
 
 int ManualControl::task_spawn(int argc, char *argv[])
