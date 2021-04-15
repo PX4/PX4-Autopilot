@@ -43,12 +43,6 @@ float32 r			 # yaw stick/twist position, -1..1
 				 # in general corresponds to the righthand rotation around the vertical
 				 # (downwards) axis of the vehicle
 
-# stick velocity
-float32 vx
-float32 vy
-float32 vz
-float32 vr
-
 float32 flaps			 # flap position
 
 float32 aux1
