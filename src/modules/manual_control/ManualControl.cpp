@@ -34,6 +34,7 @@
 #include "ManualControl.hpp"
 
 #include <drivers/drv_hrt.h>
+#include <commander/px4_custom_mode.h>
 #include <uORB/topics/vehicle_command.h>
 
 namespace manual_control
@@ -97,9 +98,9 @@ void ManualControl::Run()
 	}
 
 	bool switches_updated = false;
-	manual_control_switches_s manual_control_switches;
+	manual_control_switches_s switches;
 
-	if (_manual_control_switches_sub.update(&manual_control_switches)) {
+	if (_manual_control_switches_sub.update(&switches)) {
 		switches_updated = true;
 	}
 
@@ -158,7 +159,28 @@ void ManualControl::Run()
 		if (switches_updated) {
 			// Only use switches if current source is RC as well.
 			if (_selector.setpoint().data_source == manual_control_input_s::SOURCE_RC) {
-				// TODO: handle buttons
+				if (_previous_switches_initialized) {
+					if (switches.arm_switch != _previous_switches.arm_switch) {
+						if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON) {
+							send_arm_command();
+						} else if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_OFF) {
+							send_disarm_command();
+						}
+					}
+
+					if (switches.return_switch != _previous_switches.return_switch) {
+						if (switches.return_switch == manual_control_switches_s::SWITCH_POS_ON) {
+							send_rtl_command();
+						}
+					}
+					// TODO: handle the rest of the buttons
+				}
+				_previous_switches = switches;
+				_previous_switches_initialized = true;
+
+			} else {
+				_previous_switches = {};
+				_previous_switches_initialized = false;
 			}
 		}
 
@@ -213,6 +235,21 @@ void ManualControl::send_disarm_command()
 	command.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
 	command.param1 = 0.0;
 	command.param3 = 1.0; // We use param3 to signal that the origin is manual control stick.
+	command.target_system = 1;
+	command.target_component = 1;
+
+	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
+	command.timestamp = hrt_absolute_time();
+	command_pub.publish(command);
+}
+
+void ManualControl::send_rtl_command()
+{
+	vehicle_command_s command{};
+	command.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
+	command.param1 = 1.0;
+	command.param2 = PX4_CUSTOM_MAIN_MODE_AUTO;
+	command.param3 = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
 	command.target_system = 1;
 	command.target_component = 1;
 
