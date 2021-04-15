@@ -66,7 +66,8 @@ bool ManualControl::wantsOverride(const vehicle_control_mode_s &vehicle_control_
 	const bool override_auto_mode = (_param_rc_override.get() & static_cast<int32_t>(OverrideBits::OVERRIDE_AUTO_MODE_BIT))
 					&& vehicle_control_mode.flag_control_auto_enabled;
 
-	const bool override_offboard_mode = (_param_rc_override.get() & static_cast<int32_t>(OverrideBits::OVERRIDE_OFFBOARD_MODE_BIT))
+	const bool override_offboard_mode = (_param_rc_override.get() & static_cast<int32_t>
+					     (OverrideBits::OVERRIDE_OFFBOARD_MODE_BIT))
 					    && vehicle_control_mode.flag_control_offboard_enabled;
 
 	// in Descend manual override is enbaled independently of COM_RC_OVERRIDE

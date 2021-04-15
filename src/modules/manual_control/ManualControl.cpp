@@ -163,6 +163,7 @@ void ManualControl::Run()
 					if (switches.arm_switch != _previous_switches.arm_switch) {
 						if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON) {
 							send_arm_command();
+
 						} else if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_OFF) {
 							send_disarm_command();
 						}
@@ -173,8 +174,10 @@ void ManualControl::Run()
 							send_rtl_command();
 						}
 					}
+
 					// TODO: handle the rest of the buttons
 				}
+
 				_previous_switches = switches;
 				_previous_switches_initialized = true;
 
@@ -198,6 +201,7 @@ void ManualControl::Run()
 
 	} else {
 		_last_selected_input = -1;
+
 		if (!_published_invalid_once) {
 			_published_invalid_once = true;
 			_manual_control_setpoint_pub.publish(_selector.setpoint());
