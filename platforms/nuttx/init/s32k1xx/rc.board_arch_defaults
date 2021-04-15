@@ -3,7 +3,7 @@
 # S32K1XX specific defaults
 #------------------------------------------------------------------------------
 
-set LOGGER_BUF 12
+set LOGGER_BUF 8
 
 if param greater -s UAVCAN_ENABLE 1
 then
