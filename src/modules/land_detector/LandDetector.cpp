@@ -96,6 +96,22 @@ void LandDetector::Run()
 
 	_update_topics();
 
+	if (!_dist_bottom_is_observable) {
+		// we consider the distance to the ground observable if the system is using a range sensor
+		_dist_bottom_is_observable = _vehicle_local_position.dist_bottom_sensor_bitfield &
+					     vehicle_local_position_s::DIST_BOTTOM_SENSOR_RANGE;
+
+	} else {
+		if (!_high_hysteresis_active && !_vehicle_local_position.dist_bottom_valid) {
+			_set_hysteresis_factor(3);
+			_high_hysteresis_active = true;
+
+		} else if (_high_hysteresis_active && _vehicle_local_position.dist_bottom_valid) {
+			_set_hysteresis_factor(1);
+			_high_hysteresis_active = false;
+		}
+	}
+
 	const hrt_abstime now_us = hrt_absolute_time();
 
 	_freefall_hysteresis.set_state_and_update(_get_freefall_state(), now_us);
