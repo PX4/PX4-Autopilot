@@ -3533,7 +3533,7 @@ void Commander::data_link_check()
 			_status.data_link_lost = true;
 			_status.data_link_lost_counter++;
 
-			mavlink_log_critical(&_mavlink_log_pub, "Connection to ground station lost");
+			mavlink_log_info(&_mavlink_log_pub, "Connection to ground station lost");
 
 			_status_changed = true;
 		}
