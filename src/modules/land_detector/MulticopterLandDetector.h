@@ -73,9 +73,12 @@ protected:
 	bool _get_ground_effect_state() override;
 
 	float _get_max_altitude() override;
+
+	void _set_hysteresis_factor(const int factor) override;
 private:
 
 	float _get_gnd_effect_altitude();
+	bool _is_close_to_ground();
 
 	/** Time in us that freefall has to hold before triggering freefall */
 	static constexpr hrt_abstime FREEFALL_TRIGGER_TIME_US = 300_ms;
@@ -91,6 +94,9 @@ private:
 
 	/** Time interval in us in which wider acceptance thresholds are used after landed. */
 	static constexpr hrt_abstime LAND_DETECTOR_LAND_PHASE_TIME_US = 2_s;
+
+	/** Distance above ground below which entering ground contact state is possible when distance to ground is available. */
+	static constexpr float DIST_FROM_GROUND_THRESHOLD = 1.0f;
 
 	/** Handles for interesting parameters. **/
 	struct {

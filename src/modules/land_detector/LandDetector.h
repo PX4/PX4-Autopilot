@@ -136,6 +136,8 @@ protected:
 	 */
 	virtual bool _get_ground_effect_state() { return false; }
 
+	virtual void _set_hysteresis_factor(const int factor) = 0;
+
 	systemlib::Hysteresis _freefall_hysteresis{false};
 	systemlib::Hysteresis _landed_hysteresis{true};
 	systemlib::Hysteresis _maybe_landed_hysteresis{true};
@@ -149,6 +151,7 @@ protected:
 
 	bool _armed{false};
 	bool _previous_armed_state{false};	///< stores the previous actuator_armed.armed state
+	bool _dist_bottom_is_observable{false};
 
 private:
 	void Run() override;
@@ -164,6 +167,8 @@ private:
 
 	hrt_abstime _takeoff_time{0};
 	hrt_abstime _total_flight_time{0};	///< total vehicle flight time in microseconds
+
+	bool _high_hysteresis_active{false};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
