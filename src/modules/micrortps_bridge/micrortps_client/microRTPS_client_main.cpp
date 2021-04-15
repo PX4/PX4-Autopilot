@@ -96,7 +96,21 @@ static int parse_options(int argc, char *argv[])
 
 		case 'w': _options.sleep_ms        = strtoul(myoptarg, nullptr, 10);    break;
 
-		case 'b': _options.baudrate        = strtoul(myoptarg, nullptr, 10);    break;
+		case 'b':
+		{
+			int baudrate = 0;
+			if (px4_get_parameter_value(myoptarg, baudrate) != 0) {
+				PX4_ERR("baudrate parsing failed");
+			}
+
+			if (baudrate < 9600 || baudrate > 3000000) {
+				PX4_ERR("invalid baud rate '%s'", myoptarg);
+			}
+
+			_options.baudrate = baudrate;
+
+			break;
+		}
 
 		case 'r': _options.recv_port       = strtoul(myoptarg, nullptr, 10);    break;
 
