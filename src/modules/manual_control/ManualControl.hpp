@@ -41,6 +41,7 @@
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/perf/perf_counter.h>
 #include <uORB/topics/manual_control_input.h>
+#include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/Publication.hpp>
@@ -84,6 +85,9 @@ private:
 
 	void Run() override;
 
+	void send_arm_command();
+	void send_disarm_command();
+
 	uORB::Publication<manual_control_setpoint_s> _manual_control_setpoint_pub{ORB_ID(manual_control_setpoint)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -92,6 +96,7 @@ private:
 		{this, ORB_ID(manual_control_input), 1},
 		{this, ORB_ID(manual_control_input), 2},
 	};
+	uORB::SubscriptionCallbackWorkItem _manual_control_switches_sub{this, ORB_ID(manual_control_switches)};
 
 	systemlib::Hysteresis _stick_arm_hysteresis{false};
 	systemlib::Hysteresis _stick_disarm_hysteresis{false};
@@ -99,6 +104,9 @@ private:
 	ManualControlSelector _selector;
 	bool _published_invalid_once{false};
 	int _last_selected_input{-1};
+
+	bool _previous_arm_gesture{false};
+	bool _previous_disarm_gesture{false};
 
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
