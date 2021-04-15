@@ -50,6 +50,7 @@
 #define ECL_ROLL_CONTROLLER_H
 
 #include "ecl_controller.h"
+#include "ecl_limit_cycle_detector.h"
 
 class ECL_RollController :
 	public ECL_Controller
@@ -61,6 +62,9 @@ public:
 	float control_attitude(const float dt, const ECL_ControlData &ctl_data) override;
 	float control_euler_rate(const float dt, const ECL_ControlData &ctl_data, float bodyrate_ff) override;
 	float control_bodyrate(const float dt, const ECL_ControlData &ctl_data) override;
+
+private:
+	ECL_LimitCycleDetector _limit_cycle_detector;
 };
 
 #endif // ECL_ROLL_CONTROLLER_H

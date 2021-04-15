@@ -52,6 +52,7 @@
 #include <mathlib/mathlib.h>
 
 #include "ecl_controller.h"
+#include "ecl_limit_cycle_detector.h"
 
 class ECL_PitchController :
 	public ECL_Controller
@@ -85,6 +86,9 @@ public:
 protected:
 	float _max_rate_neg{0.0f};
 	float _roll_ff{0.0f};
+
+private:
+	ECL_LimitCycleDetector _limit_cycle_detector;
 };
 
 #endif // ECL_PITCH_CONTROLLER_H
