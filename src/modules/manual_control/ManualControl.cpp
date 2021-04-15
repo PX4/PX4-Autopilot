@@ -137,20 +137,23 @@ void ManualControl::Run()
 		}
 
 		// user wants override
-		//const float minimum_stick_change = 0.01f * _param_com_rc_stick_ov.get();
+		const float minimum_stick_change = 0.01f * _param_com_rc_stick_ov.get();
 
-		// FIXME: we need previous
-		//const bool rpy_moved = (fabsf(_selector.setpoint().x - _manual_control_input[i].x) > minimum_stick_change)
-		//		       || (fabsf(_selector.setpoint().y - _manual_control_input[i].y) > minimum_stick_change)
-		//		       || (fabsf(_selector.setpoint().r - _manual_control_input[i].r) > minimum_stick_change);
+		// TODO: look at least at 3 samples in a specific time
+
+		const bool rpy_moved = (fabsf(_selector.setpoint().x - _previous_x) > minimum_stick_change)
+				       || (fabsf(_selector.setpoint().y - _previous_y) > minimum_stick_change)
+				       || (fabsf(_selector.setpoint().r - _previous_r) > minimum_stick_change);
 
 		// Throttle change value doubled to achieve the same scaling even though the range is [0,1] instead of [-1,1]
-		//const bool throttle_moved = (fabsf(_selector.setpoint().z - _manual_control_input[i].z) * 2.f > minimum_stick_change);
-		//const bool use_throttle = !(_param_rc_override.get() & OverrideBits::OVERRIDE_IGNORE_THROTTLE_BIT);
+		const bool throttle_moved = (fabsf(_selector.setpoint().z - _previous_z) * 2.f > minimum_stick_change);
 
-		//_selector.setpoint().user_override = rpy_moved || (use_throttle && throttle_moved);
+		_selector.setpoint().user_override = rpy_moved || throttle_moved;
 
-		// TODO: at least 3 samples in a time
+		_previous_x = _selector.setpoint().x;
+		_previous_y = _selector.setpoint().y;
+		_previous_z = _selector.setpoint().z;
+		_previous_r = _selector.setpoint().r;
 
 		if (switches_updated) {
 			// Only use switches if current source is RC as well.
@@ -177,6 +180,11 @@ void ManualControl::Run()
 			_published_invalid_once = true;
 			_manual_control_setpoint_pub.publish(_selector.setpoint());
 		}
+
+		_previous_x = NAN;
+		_previous_y = NAN;
+		_previous_z = NAN;
+		_previous_r = NAN;
 	}
 
 	// reschedule timeout

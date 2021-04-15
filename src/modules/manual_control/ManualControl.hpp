@@ -76,13 +76,6 @@ public:
 private:
 	static constexpr int MAX_MANUAL_INPUT_COUNT = 3;
 
-
-	enum OverrideBits {
-		OVERRIDE_AUTO_MODE_BIT       = (1 << 0),
-		OVERRIDE_OFFBOARD_MODE_BIT   = (1 << 1),
-		OVERRIDE_IGNORE_THROTTLE_BIT = (1 << 2)
-	};
-
 	void Run() override;
 
 	void send_arm_command();
@@ -108,13 +101,17 @@ private:
 	bool _previous_arm_gesture{false};
 	bool _previous_disarm_gesture{false};
 
+	float _previous_x{NAN};
+	float _previous_y{NAN};
+	float _previous_z{NAN};
+	float _previous_r{NAN};
+
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode,
 		(ParamFloat<px4::params::COM_RC_LOSS_T>) _param_com_rc_loss_t,
-		(ParamInt<px4::params::COM_RC_OVERRIDE>) _param_rc_override,
 		(ParamFloat<px4::params::COM_RC_STICK_OV>) _param_com_rc_stick_ov,
 		(ParamInt<px4::params::COM_RC_ARM_HYST>) _param_rc_arm_hyst
 	)
