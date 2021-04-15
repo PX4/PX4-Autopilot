@@ -36,10 +36,9 @@
 
 using namespace time_literals;
 
-enum OverrideBits {
+enum class OverrideBits : int32_t {
 	OVERRIDE_AUTO_MODE_BIT = (1 << 0),
 	OVERRIDE_OFFBOARD_MODE_BIT = (1 << 1),
-	OVERRIDE_IGNORE_THROTTLE_BIT = (1 << 2)
 };
 
 bool ManualControl::update()
@@ -63,10 +62,10 @@ bool ManualControl::update()
 bool ManualControl::wantsOverride(const vehicle_control_mode_s &vehicle_control_mode,
 				  const vehicle_status_s &vehicle_status)
 {
-	const bool override_auto_mode = (_param_rc_override.get() & OverrideBits::OVERRIDE_AUTO_MODE_BIT)
+	const bool override_auto_mode = (_param_rc_override.get() & static_cast<int32_t>(OverrideBits::OVERRIDE_AUTO_MODE_BIT))
 					&& vehicle_control_mode.flag_control_auto_enabled;
 
-	const bool override_offboard_mode = (_param_rc_override.get() & OverrideBits::OVERRIDE_OFFBOARD_MODE_BIT)
+	const bool override_offboard_mode = (_param_rc_override.get() & static_cast<int32_t>(OverrideBits::OVERRIDE_OFFBOARD_MODE_BIT))
 					    && vehicle_control_mode.flag_control_offboard_enabled;
 
 	// in Descend manual override is enbaled independently of COM_RC_OVERRIDE
@@ -74,19 +73,8 @@ bool ManualControl::wantsOverride(const vehicle_control_mode_s &vehicle_control_
 
 
 	if (_rc_available && (override_auto_mode || override_offboard_mode || override_landing)) {
-		const float minimum_stick_change = .01f * _param_com_rc_stick_ov.get();
 
-		const bool rpy_moved = (fabsf(_manual_control_setpoint.x - _last_manual_control_setpoint.x) > minimum_stick_change)
-				       || (fabsf(_manual_control_setpoint.y - _last_manual_control_setpoint.y) > minimum_stick_change)
-				       || (fabsf(_manual_control_setpoint.r - _last_manual_control_setpoint.r) > minimum_stick_change);
-		// Throttle change value doubled to achieve the same scaling even though the range is [0,1] instead of [-1,1]
-		const bool throttle_moved =
-			(fabsf(_manual_control_setpoint.z - _last_manual_control_setpoint.z) * 2.f > minimum_stick_change);
-		const bool use_throttle = !(_param_rc_override.get() & OverrideBits::OVERRIDE_IGNORE_THROTTLE_BIT);
-
-		if (rpy_moved || (use_throttle && throttle_moved)) {
-			return true;
-		}
+		return _manual_control_setpoint.user_override;
 	}
 
 	return false;
