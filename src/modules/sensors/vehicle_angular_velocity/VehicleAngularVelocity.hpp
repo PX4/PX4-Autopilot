@@ -75,26 +75,26 @@ public:
 private:
 	void Run() override;
 
-	void CalibrateAndPublish(const hrt_abstime &timestamp_sample, const matrix::Vector3f &angular_velocity,
+	void CalibrateAndPublish(bool publish, const hrt_abstime &timestamp_sample, const matrix::Vector3f &angular_velocity,
 				 const matrix::Vector3f &angular_acceleration, float scale = 1.f);
 
-	float FilterAngularVelocity(int axis, float data[], int N);
-	float FilterAngularAcceleration(int axis, float data[], int N, float dt_s);
+	float FilterAngularVelocity(int axis, float data[], int N = 1);
+	float FilterAngularAcceleration(int axis, float dt_s, float data[], int N = 1);
 
 	void DisableDynamicNotchEscRpm();
 	void DisableDynamicNotchFFT();
 	void ParametersUpdate(bool force = false);
 
-	void ResetFilters();
+	void ResetFilters(float new_scale = 1.f);
 	void SensorBiasUpdate(bool force = false);
 	bool SensorSelectionUpdate(bool force = false);
-	void UpdateDynamicNotchEscRpm(bool force = false);
-	void UpdateDynamicNotchFFT(bool force = false);
+	void UpdateDynamicNotchEscRpm(float new_scale = 1.f, bool force = false);
+	void UpdateDynamicNotchFFT(float new_scale = 1.f, bool force = false);
 	bool UpdateSampleRate();
 
 	// scaled appropriately for current FIFO mode
-	matrix::Vector3f GetResetAngularVelocity() const;
-	matrix::Vector3f GetResetAngularAcceleration() const;
+	matrix::Vector3f GetResetAngularVelocity(float new_scale = 1.f) const;
+	matrix::Vector3f GetResetAngularAcceleration(float new_scale = 1.f) const;
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
@@ -127,7 +127,7 @@ private:
 	hrt_abstime _publish_interval_min_us{0};
 	hrt_abstime _last_publish{0};
 
-	float _filter_sample_rate_hz{0.f};
+	float _filter_sample_rate_hz{NAN};
 
 	static constexpr const float kInitialRateHz{1000.f}; /**< sensor update rate used for initialization */
 
