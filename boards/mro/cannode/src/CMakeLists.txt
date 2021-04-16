@@ -59,5 +59,7 @@ else()
 			nuttx_drivers
 			px4_layer
 			arch_spi
+			drivers__device
 	)
+#target_include_directories(drivers__device PRIVATE ${PX4_SOURCE_DIR}/src/lib/drivers/device/)
 endif()

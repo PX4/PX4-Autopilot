@@ -6,9 +6,9 @@ add_definitions(
 	-DAPP_VERSION_MINOR=${uavcanblid_sw_version_minor}
 )
 
-set(uavcanblid_hw_version_major 0x3)
-set(uavcanblid_hw_version_minor 0xEC)
-set(uavcanblid_name "\"org.ardupilot.mro_m10025\"")
+set(uavcanblid_hw_version_major 3)
+set(uavcanblid_hw_version_minor 236)
+set(uavcanblid_name "\"org.ardupilot.mro_f303\"")
 
 add_definitions(
 	-DHW_UAVCAN_NAME=${uavcanblid_name}
