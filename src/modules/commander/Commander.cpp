@@ -1874,14 +1874,6 @@ Commander::run()
 			_arm_requirements.mission = _param_arm_mission_required.get();
 			_arm_requirements.geofence = _param_geofence_action.get() > geofence_result_s::GF_ACTION_NONE;
 
-			/* flight mode slots */
-			_flight_mode_slots[0] = _param_fltmode_1.get();
-			_flight_mode_slots[1] = _param_fltmode_2.get();
-			_flight_mode_slots[2] = _param_fltmode_3.get();
-			_flight_mode_slots[3] = _param_fltmode_4.get();
-			_flight_mode_slots[4] = _param_fltmode_5.get();
-			_flight_mode_slots[5] = _param_fltmode_6.get();
-
 			_auto_disarm_killed.set_hysteresis_time_from(false, _param_com_kill_disarm.get() * 1_s);
 
 			/* check for unsafe Airmode settings: yaw airmode requires the use of an arming switch */
@@ -2465,13 +2457,6 @@ Commander::run()
 						landing_gear.timestamp = hrt_absolute_time();
 						_landing_gear_pub.publish(landing_gear);
 					}
-				}
-
-				// evaluate the main state machine according to mode switches
-				if (set_main_state() == TRANSITION_CHANGED) {
-					// play tune on mode change only if armed, blink LED always
-					tune_positive(_armed.armed);
-					_status_changed = true;
 				}
 			}
 
@@ -3101,125 +3086,6 @@ Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 	}
 
 	_leds_counter++;
-}
-
-transition_result_t Commander::set_main_state()
-{
-	if ((_manual_control_switches.timestamp == 0)
-	    || (_manual_control_switches.timestamp == _last_manual_control_switches.timestamp)) {
-
-		// no manual control or no update -> nothing changed
-		return TRANSITION_NOT_CHANGED;
-	}
-
-	// Note: even if _status_flags.offboard_control_set_by_command is set
-	// we want to allow rc mode change to take precedence.  This is a safety
-	// feature, just in case offboard control goes crazy.
-
-	// only switch mode based on RC switch if necessary to also allow mode switching via MAVLink
-	bool should_evaluate_rc_mode_switch =
-		(_last_manual_control_switches.offboard_switch != _manual_control_switches.offboard_switch)
-		|| (_last_manual_control_switches.return_switch != _manual_control_switches.return_switch)
-		|| (_last_manual_control_switches.loiter_switch != _manual_control_switches.loiter_switch)
-		|| (_last_manual_control_switches.mode_slot != _manual_control_switches.mode_slot);
-
-	if (_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-		// if already armed don't evaluate first time RC
-		if (_last_manual_control_switches.timestamp == 0) {
-			should_evaluate_rc_mode_switch = false;
-			_last_manual_control_switches = _manual_control_switches;
-		}
-
-	} else {
-		// not armed
-		if (!should_evaluate_rc_mode_switch) {
-			// to respect initial switch position (eg POSCTL) force RC switch re-evaluation if estimates become valid
-			const bool altitude_got_valid = (!_last_condition_local_altitude_valid && _status_flags.condition_local_altitude_valid);
-			const bool lpos_got_valid = (!_last_condition_local_position_valid && _status_flags.condition_local_position_valid);
-			const bool gpos_got_valid = (!_last_condition_global_position_valid && _status_flags.condition_global_position_valid);
-
-			if (altitude_got_valid || lpos_got_valid || gpos_got_valid) {
-				should_evaluate_rc_mode_switch = true;
-			}
-		}
-	}
-
-	if (!should_evaluate_rc_mode_switch) {
-		/* no timestamp change or no switch change -> nothing changed */
-		return TRANSITION_NOT_CHANGED;
-	}
-
-	_last_manual_control_switches = _manual_control_switches;
-
-	// reset the position and velocity validity calculation to give the best change of being able to select
-	// the desired mode
-	reset_posvel_validity();
-
-	/* set main state according to RC switches */
-	transition_result_t res = TRANSITION_NOT_CHANGED;
-
-	/* offboard switch overrides main switch */
-	if (_manual_control_switches.offboard_switch == manual_control_switches_s::SWITCH_POS_ON) {
-		res = main_state_transition(_status, commander_state_s::MAIN_STATE_OFFBOARD, _status_flags, _internal_state);
-
-		if (res == TRANSITION_DENIED) {
-			print_reject_mode(commander_state_s::MAIN_STATE_OFFBOARD);
-			/* mode rejected, continue to evaluate the main system mode */
-
-		} else {
-			/* changed successfully or already in this state */
-			return res;
-		}
-	}
-
-	/* RTL switch overrides main switch */
-	if (_manual_control_switches.return_switch == manual_control_switches_s::SWITCH_POS_ON) {
-		res = try_mode_change(commander_state_s::MAIN_STATE_AUTO_RTL);
-
-		if (res != TRANSITION_DENIED) {
-			/* changed successfully or already in this state */
-			return res;
-		}
-
-		/* if we get here mode was rejected, continue to evaluate the main system mode */
-	}
-
-	/* Loiter switch overrides main switch */
-	if (_manual_control_switches.loiter_switch == manual_control_switches_s::SWITCH_POS_ON) {
-		res = main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _status_flags, _internal_state);
-
-		if (res == TRANSITION_DENIED) {
-			print_reject_mode(commander_state_s::MAIN_STATE_AUTO_LOITER);
-			/* mode rejected, continue to evaluate the main system mode */
-
-		} else {
-			/* changed successfully or already in this state */
-			return res;
-		}
-	}
-
-	/* we know something has changed - check if we are in mode slot operation */
-	if (_manual_control_switches.mode_slot != manual_control_switches_s::MODE_SLOT_NONE) {
-
-		if (_manual_control_switches.mode_slot > manual_control_switches_s::MODE_SLOT_NUM) {
-			PX4_WARN("m slot overflow");
-			return TRANSITION_DENIED;
-		}
-
-		int new_mode = _flight_mode_slots[_manual_control_switches.mode_slot - 1];
-
-		if (new_mode < 0) {
-			/* slot is unused */
-			res = TRANSITION_NOT_CHANGED;
-
-		} else {
-			res = try_mode_change(new_mode);
-		}
-
-		return res;
-	}
-
-	return res;
 }
 
 void

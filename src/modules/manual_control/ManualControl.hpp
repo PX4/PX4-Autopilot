@@ -76,11 +76,22 @@ public:
 private:
 	static constexpr int MAX_MANUAL_INPUT_COUNT = 3;
 
+	enum class ArmingOrigin {
+		GESTURE = 1,
+		SWITCH = 2,
+		BUTTON = 3,
+	};
+
 	void Run() override;
 
-	void send_arm_command();
-	void send_disarm_command();
+	void send_mode_command(int32_t commander_main_state);
+	void send_arm_command(bool should_arm, ArmingOrigin origin);
 	void send_rtl_command();
+	void send_loiter_command();
+	void send_offboard_command();
+	void send_termination_command(bool should_terminate);
+	void publish_landing_gear(int8_t action);
+	void send_vtol_transition_command(uint8_t action);
 
 	uORB::Publication<manual_control_setpoint_s> _manual_control_setpoint_pub{ORB_ID(manual_control_setpoint)};
 
@@ -109,6 +120,7 @@ private:
 
 	manual_control_switches_s _previous_switches{};
 	bool _previous_switches_initialized{false};
+	int32_t _last_mode_slot_flt{-1};
 
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
@@ -117,7 +129,13 @@ private:
 		(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode,
 		(ParamFloat<px4::params::COM_RC_LOSS_T>) _param_com_rc_loss_t,
 		(ParamFloat<px4::params::COM_RC_STICK_OV>) _param_com_rc_stick_ov,
-		(ParamInt<px4::params::COM_RC_ARM_HYST>) _param_rc_arm_hyst
+		(ParamInt<px4::params::COM_RC_ARM_HYST>) _param_rc_arm_hyst,
+		(ParamInt<px4::params::COM_FLTMODE1>) _param_fltmode_1,
+		(ParamInt<px4::params::COM_FLTMODE2>) _param_fltmode_2,
+		(ParamInt<px4::params::COM_FLTMODE3>) _param_fltmode_3,
+		(ParamInt<px4::params::COM_FLTMODE4>) _param_fltmode_4,
+		(ParamInt<px4::params::COM_FLTMODE5>) _param_fltmode_5,
+		(ParamInt<px4::params::COM_FLTMODE6>) _param_fltmode_6
 	)
 };
 } // namespace manual_control
