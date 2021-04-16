@@ -419,14 +419,17 @@ LidarLiteI2C::collect()
 		}
 
 		uint8_t ll40ls_peak_strength = val[0];
-		// If peak strength is under the acceptance limit, just don't report
-		if (ll40ls_peak_strength < LL40LS_PEAK_STRENGTH_LOW || ll40ls_peak_strength > LL40LS_PEAK_STRENGTH_HIGH) {
+
+		// The LL40LS reports 1 cm distance when the measurement is invalid. Don't report this upwards at all, since the value itself is meaningless
+		if (distance_m < LL40LS_MIN_DISTANCE) {
 			perf_end(_sample_perf);
 			return OK;
 		}
 
 		// For v2 and v3 use ll40ls_signal_strength (a relative measure, i.e. peak strength to noise!) to reject potentially ambiguous measurements
-		if (ll40ls_signal_strength <= LL40LS_SIGNAL_STRENGTH_LOW || distance_m < LL40LS_MIN_DISTANCE) {
+		if (ll40ls_signal_strength < LL40LS_SIGNAL_STRENGTH_LOW ||
+		    ll40ls_peak_strength < LL40LS_PEAK_STRENGTH_LOW ||
+		    ll40ls_peak_strength > LL40LS_PEAK_STRENGTH_HIGH) {
 			signal_quality = 0;
 
 		} else {
