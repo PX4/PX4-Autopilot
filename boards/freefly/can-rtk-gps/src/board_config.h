@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,31 +30,42 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
+/**
+ * @file board_config.h
+ *
+ * board internal definitions
+ */
+
 #pragma once
 
+#include <px4_platform_common/px4_config.h>
+#include <nuttx/compiler.h>
+#include <stdint.h>
 
-#include "../../../stm32_common/include/px4_arch/micro_hal.h"
+/* BUTTON *************************************************************************** */
+#define BUTTON_SAFETY         /* PB3  */  (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTB|GPIO_PIN3|GPIO_EXTI)
+
+#define GPIO_LED_SAFETY              (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN6)
+#define GPIO_BTN_SAFETY              (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTC|GPIO_PIN14)
+
+
+#define FLASH_BASED_PARAMS
+
+/* High-resolution timer */
+#define HRT_TIMER               2  /* use timer 2 for the HRT */
+#define HRT_TIMER_CHANNEL       1  /* use capture/compare channel 1 */
+
+#define BOARD_ENABLE_CONSOLE_BUFFER
 
 __BEGIN_DECLS
 
-#define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_STM32F7
-#include <chip.h>
-#include <stm32_gpio.h>
-#include <hardware/stm32_flash.h>
-#include <arm_internal.h> //include up_systemreset() which is included on stm32.h
-#if defined(CONFIG_STM32F7_BKPSRAM)
-# include <stm32_bbsram.h>
-# define PX4_BBSRAM_SIZE STM32F7_BBSRAM_SIZE
-# define PX4_BBSRAM_GETDESC_IOCTL STM32F7_BBSRAM_GETDESC_IOCTL
-#endif // CONFIG_STM32F7_BKPSRAM
-#define PX4_FLASH_BASE  0x08000000
-#define PX4_NUMBER_I2C_BUSES STM32F7_NI2C
-#define PX4_ADC_INTERNAL_TEMP_SENSOR_CHANNEL 18
+#ifndef __ASSEMBLY__
 
+extern void stm32_spiinitialize(void);
 
-int stm32_flash_lock(void);
-int stm32_flash_unlock(void);
-int stm32_flash_writeprotect(size_t page, bool enabled);
+#include <px4_platform_common/board_common.h>
+
+#endif /* __ASSEMBLY__ */
 
 __END_DECLS
-

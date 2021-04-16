@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,31 +30,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#pragma once
 
+#include <px4_arch/spi_hw_description.h>
+#include <drivers/drv_sensor.h>
+#include <nuttx/spi/spi.h>
 
-#include "../../../stm32_common/include/px4_arch/micro_hal.h"
+constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
+	initSPIBus(SPI::Bus::SPI3, {
+		initSPIDevice(DRV_IMU_DEVTYPE_ST_LSM9DS1_AG, SPI::CS{GPIO::PortA, GPIO::Pin15}),
+	}),
+};
 
-__BEGIN_DECLS
-
-#define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_STM32F7
-#include <chip.h>
-#include <stm32_gpio.h>
-#include <hardware/stm32_flash.h>
-#include <arm_internal.h> //include up_systemreset() which is included on stm32.h
-#if defined(CONFIG_STM32F7_BKPSRAM)
-# include <stm32_bbsram.h>
-# define PX4_BBSRAM_SIZE STM32F7_BBSRAM_SIZE
-# define PX4_BBSRAM_GETDESC_IOCTL STM32F7_BBSRAM_GETDESC_IOCTL
-#endif // CONFIG_STM32F7_BKPSRAM
-#define PX4_FLASH_BASE  0x08000000
-#define PX4_NUMBER_I2C_BUSES STM32F7_NI2C
-#define PX4_ADC_INTERNAL_TEMP_SENSOR_CHANNEL 18
-
-
-int stm32_flash_lock(void);
-int stm32_flash_unlock(void);
-int stm32_flash_writeprotect(size_t page, bool enabled);
-
-__END_DECLS
-
+static constexpr bool unused = validateSPIConfig(px4_spi_buses);

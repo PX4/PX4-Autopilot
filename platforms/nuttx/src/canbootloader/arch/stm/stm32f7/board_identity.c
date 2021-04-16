@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
+ *   Author: @author David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,31 +31,26 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#pragma once
 
+/**
+ * @file board_identity.c
+ * Implementation of STM32 based Board identity API
+ */
 
-#include "../../../stm32_common/include/px4_arch/micro_hal.h"
+#include <px4_config.h>
+#include <stdio.h>
+#include <string.h>
 
-__BEGIN_DECLS
+#define SWAP_UINT32(x) (((x) >> 24) | (((x) & 0x00ff0000) >> 8) | (((x) & 0x0000ff00) << 8) | ((x) << 24))
 
-#define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_STM32F7
-#include <chip.h>
-#include <stm32_gpio.h>
-#include <hardware/stm32_flash.h>
-#include <arm_internal.h> //include up_systemreset() which is included on stm32.h
-#if defined(CONFIG_STM32F7_BKPSRAM)
-# include <stm32_bbsram.h>
-# define PX4_BBSRAM_SIZE STM32F7_BBSRAM_SIZE
-# define PX4_BBSRAM_GETDESC_IOCTL STM32F7_BBSRAM_GETDESC_IOCTL
-#endif // CONFIG_STM32F7_BKPSRAM
-#define PX4_FLASH_BASE  0x08000000
-#define PX4_NUMBER_I2C_BUSES STM32F7_NI2C
-#define PX4_ADC_INTERNAL_TEMP_SENSOR_CHANNEL 18
+int board_get_mfguid(mfguid_t mfgid)
+{
+	uint32_t *chip_uuid = (uint32_t *) STM32_SYSMEM_UID;
+	uint32_t  *rv = (uint32_t *) &mfgid[0];
 
+	for (unsigned int i = 0; i < PX4_CPU_UUID_WORD32_LENGTH; i++) {
+		*rv++ = SWAP_UINT32(chip_uuid[(PX4_CPU_UUID_WORD32_LENGTH - 1) - i]);
+	}
 
-int stm32_flash_lock(void);
-int stm32_flash_unlock(void);
-int stm32_flash_writeprotect(size_t page, bool enabled);
-
-__END_DECLS
-
+	return PX4_CPU_MFGUID_BYTE_LENGTH;
+}

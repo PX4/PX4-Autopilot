@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,18 +31,35 @@
 #
 ############################################################################
 
+if("${PX4_BOARD_LABEL}" STREQUAL  "canbootloader")
 
-add_subdirectory(../stm32_common/adc adc)
-add_subdirectory(../stm32_common/board_critmon board_critmon)
-add_subdirectory(../stm32_common/board_hw_info board_hw_info)
-add_subdirectory(../stm32_common/board_reset board_reset)
-add_subdirectory(../stm32_common/dshot dshot)
-add_subdirectory(../stm32_common/hrt hrt)
-add_subdirectory(../stm32_common/led_pwm led_pwm)
-add_subdirectory(../stm32_common/io_pins io_pins)
-add_subdirectory(../stm32_common/spi spi)
-add_subdirectory(../stm32_common/tone_alarm tone_alarm)
-add_subdirectory(../stm32_common/version version)
+	add_library(drivers_board
+		boot_config.h
+		boot.c
+	)
+	target_link_libraries(drivers_board
+		PRIVATE
+			nuttx_arch
+			nuttx_drivers
+			canbootloader
+	)
+	target_include_directories(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/canbootloader)
 
-add_subdirectory(px4io_serial)
-add_subdirectory(watchdog)
+else()
+	add_library(drivers_board
+		can.c
+		i2c.cpp
+		init.c
+		spi.cpp
+		usb.c
+	)
+
+	target_link_libraries(drivers_board
+		PRIVATE
+			arch_spi
+			nuttx_arch
+			nuttx_drivers
+			px4_layer
+			arch_io_pins
+	)
+endif()
