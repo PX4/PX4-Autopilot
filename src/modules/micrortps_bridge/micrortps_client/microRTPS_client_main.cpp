@@ -103,10 +103,6 @@ static int parse_options(int argc, char *argv[])
 					PX4_ERR("baudrate parsing failed");
 				}
 
-				if (baudrate < 9600 || baudrate > 3000000) {
-					PX4_ERR("invalid baud rate '%s'", myoptarg);
-				}
-
 				_options.baudrate = baudrate;
 
 				break;
