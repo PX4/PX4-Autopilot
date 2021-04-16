@@ -175,9 +175,6 @@ private:
 
 	void UpdateEstimateValidity();
 
-	// Set the system main state based on the current RC inputs
-	transition_result_t set_main_state();
-
 	bool shutdown_if_allowed();
 
 	bool stabilization_required();
@@ -250,13 +247,6 @@ private:
 		(ParamInt<px4::params::COM_TAKEOFF_ACT>) _param_takeoff_finished_action,
 
 		(ParamInt<px4::params::COM_RC_IN_MODE>) _param_rc_in_off,
-
-		(ParamInt<px4::params::COM_FLTMODE1>) _param_fltmode_1,
-		(ParamInt<px4::params::COM_FLTMODE2>) _param_fltmode_2,
-		(ParamInt<px4::params::COM_FLTMODE3>) _param_fltmode_3,
-		(ParamInt<px4::params::COM_FLTMODE4>) _param_fltmode_4,
-		(ParamInt<px4::params::COM_FLTMODE5>) _param_fltmode_5,
-		(ParamInt<px4::params::COM_FLTMODE6>) _param_fltmode_6,
 
 		// Circuit breakers
 		(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk,
@@ -361,7 +351,6 @@ private:
 	manual_control_switches_s _last_manual_control_switches{};
 	ManualControl _manual_control{this};
 	hrt_abstime	_rc_signal_lost_timestamp{0};		///< Time at which the RC reception was lost
-	int32_t		_flight_mode_slots[manual_control_switches_s::MODE_SLOT_NUM] {};
 
 	hrt_abstime	_boot_timestamp{0};
 	hrt_abstime	_last_disarmed_timestamp{0};
