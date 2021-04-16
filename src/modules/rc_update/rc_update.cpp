@@ -155,6 +155,18 @@ void RCUpdate::parameters_updated()
 	}
 
 	update_rc_functions();
+
+	// deprecated parameters, will be removed post v1.12 once QGC is updated
+	{
+		int32_t rc_map_value = 0;
+
+		if (param_get(param_find("RC_MAP_RATT_SW"), &rc_map_value) == PX4_OK) {
+			if (rc_map_value != 0) {
+				PX4_WARN("RC_MAP_RATT_SW deprecated");
+				param_reset(param_find("RC_MAP_RATT_SW"));
+			}
+		}
+	}
 }
 
 void RCUpdate::update_rc_functions()
