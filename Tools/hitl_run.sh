@@ -114,8 +114,8 @@ elif [ "$simulation" == "jsbsim" ] && [ -z "$no_sim" ]; then
 			--disable-ai-models &> /dev/null &
 		FGFS_PID=$!
 	fi
-	"${build_path}/build_jsbsim_bridge/jsbsim_bridge" ${model} -s "${src_path}/Tools/jsbsim_bridge/scene/${world}.xml" 2> /dev/null &
-	JSBSIM_PID=$!
+	"${build_path}/build_jsbsim_bridge/jsbsim_bridge" ${model} -d ${device} -b ${baudrate} -s "${src_path}/Tools/jsbsim_bridge/scene/${world}.xml"
+	SIM_PID=$!
 fi
 
 
