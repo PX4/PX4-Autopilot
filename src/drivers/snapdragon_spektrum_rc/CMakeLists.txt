@@ -32,11 +32,10 @@
 ############################################################################
 
 px4_add_module(
-	MODULE drivers__spektrum_rc
+	MODULE drivers__snapdragon_spektrum_rc
 	MAIN spektrum_rc
 	SRCS
 		spektrum_rc.cpp
 	DEPENDS
 		rc
 	)
-
