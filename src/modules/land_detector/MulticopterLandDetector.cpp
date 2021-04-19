@@ -75,12 +75,6 @@ namespace land_detector
 
 MulticopterLandDetector::MulticopterLandDetector()
 {
-	_paramHandle.landSpeed = param_find("MPC_LAND_SPEED");
-	_paramHandle.minManThrottle = param_find("MPC_MANTHR_MIN");
-	_paramHandle.minThrottle = param_find("MPC_THR_MIN");
-	_paramHandle.useHoverThrustEstimate = param_find("MPC_USE_HTE");
-	_paramHandle.hoverThrottle = param_find("MPC_THR_HOVER");
-
 	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
 	_freefall_hysteresis.set_hysteresis_time_from(false, FREEFALL_TRIGGER_TIME_US);
 	_ground_contact_hysteresis.set_hysteresis_time_from(false, GROUND_CONTACT_TRIGGER_TIME_US);
@@ -90,25 +84,23 @@ MulticopterLandDetector::MulticopterLandDetector()
 
 void MulticopterLandDetector::_update_topics()
 {
-	actuator_controls_s actuator_controls;
+	actuator_controls_s actuator_controls{};
+	hover_thrust_estimate_s hover_thrust_estimate{};
+	vehicle_control_mode_s vehicle_control_mode{};
 
 	if (_actuator_controls_sub.update(&actuator_controls)) {
 		_actuator_controls_throttle = actuator_controls.control[actuator_controls_s::INDEX_THROTTLE];
 	}
 
-	vehicle_control_mode_s vehicle_control_mode;
-
 	if (_vehicle_control_mode_sub.update(&vehicle_control_mode)) {
 		_flag_control_climb_rate_enabled = vehicle_control_mode.flag_control_climb_rate_enabled;
 	}
 
-	if (_params.useHoverThrustEstimate) {
-		hover_thrust_estimate_s hte;
-
-		if (_hover_thrust_estimate_sub.update(&hte)) {
-			if (hte.valid) {
-				_params.hoverThrottle = hte.hover_thrust;
-				_hover_thrust_estimate_last_valid = hte.timestamp;
+	if (_use_hover_thrust_estimate) {
+		if (_hover_thrust_estimate_sub.update(&hover_thrust_estimate)) {
+			if (hover_thrust_estimate.valid) {
+				_hover_thrust_estimate = hover_thrust_estimate.hover_thrust;
+				_hover_thrust_estimate_last_valid = hover_thrust_estimate.timestamp;
 			}
 		}
 	}
@@ -122,24 +114,16 @@ void MulticopterLandDetector::_update_topics()
 
 void MulticopterLandDetector::_update_params()
 {
-	param_get(_paramHandle.minThrottle, &_params.minThrottle);
-	param_get(_paramHandle.minManThrottle, &_params.minManThrottle);
-	param_get(_paramHandle.landSpeed, &_params.landSpeed);
-
-	if (_param_lndmc_z_vel_max.get() > _params.landSpeed) {
+	if (_param_lndmc_z_vel_max.get() > _param_mpc_land_speed.get()) {
 		PX4_ERR("LNDMC_Z_VEL_MAX > MPC_LAND_SPEED, updating %.3f -> %.3f",
-			(double)_param_lndmc_z_vel_max.get(), (double)_params.landSpeed);
+			static_cast<double>(_param_lndmc_z_vel_max.get()), static_cast<double>(_param_mpc_land_speed.get()));
 
-		_param_lndmc_z_vel_max.set(_params.landSpeed);
+		_param_lndmc_z_vel_max.set(_param_mpc_land_speed.get());
 		_param_lndmc_z_vel_max.commit_no_notification();
 	}
 
-	int32_t use_hover_thrust_estimate = 0;
-	param_get(_paramHandle.useHoverThrustEstimate, &use_hover_thrust_estimate);
-	_params.useHoverThrustEstimate = (use_hover_thrust_estimate == 1);
-
-	if (!_params.useHoverThrustEstimate || !_hover_thrust_initialized) {
-		param_get(_paramHandle.hoverThrottle, &_params.hoverThrottle);
+	if (!_param_mpc_use_hte.get() || !_hover_thrust_initialized) {
+		_param_mpc_thr_hover.get();
 
 		// HTE runs based on the position controller so, even if we wish to use
 		// the estimate, it is only available in altitude and position modes.
@@ -163,7 +147,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	const bool lpos_available = ((time_now_us - _vehicle_local_position.timestamp) < 1_s);
 
 	// land speed threshold, 90% of MPC_LAND_SPEED
-	const float land_speed_threshold = 0.9f * math::max(_params.landSpeed, 0.1f);
+	const float land_speed_threshold = 0.9f * math::max(_param_mpc_land_speed.get(), 0.1f);
 
 	bool vertical_movement = true;
 
@@ -208,7 +192,8 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 
 	// low thrust: 30% of throttle range between min and hover, relaxed to 60% if hover thrust estimate available
 	const float thr_pct_hover = _hover_thrust_estimate_valid ? 0.6f : 0.3f;
-	const float sys_low_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * thr_pct_hover;
+	const float sys_low_throttle = _param_mpc_thr_min.get() + (_param_mpc_thr_hover.get() - _param_mpc_thr_min.get()) *
+				       thr_pct_hover;
 	bool ground_contact = (_actuator_controls_throttle <= sys_low_throttle);
 
 	// if we have a valid velocity setpoint and the vehicle is demanded to go down but no vertical movement present,
@@ -257,11 +242,11 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 	const hrt_abstime time_now_us = hrt_absolute_time();
 
 	// minimal throttle: initially 10% of throttle range between min and hover
-	float sys_min_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * 0.1f;
+	float sys_min_throttle = _param_mpc_thr_min.get() + (_param_mpc_thr_hover.get() - _param_mpc_thr_min.get()) * 0.1f;
 
 	// Determine the system min throttle based on flight mode
 	if (!_flag_control_climb_rate_enabled) {
-		sys_min_throttle = (_params.minManThrottle + 0.01f);
+		sys_min_throttle = (_param_mpc_manthr_min.get() + 0.01f);
 	}
 
 	// Check if thrust output is less than the minimum throttle.
