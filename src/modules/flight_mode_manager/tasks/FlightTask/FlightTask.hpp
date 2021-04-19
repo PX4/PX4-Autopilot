@@ -244,14 +244,13 @@ protected:
 	 */
 	matrix::Vector3f _position_setpoint;
 	matrix::Vector3f _velocity_setpoint;
+	matrix::Vector3f _velocity_setpoint_feedback;
 	matrix::Vector3f _acceleration_setpoint;
+	matrix::Vector3f _acceleration_setpoint_feedback;
 	matrix::Vector3f _jerk_setpoint;
 
 	float _yaw_setpoint{};
 	float _yawspeed_setpoint{};
-
-	matrix::Vector3f _velocity_setpoint_feedback;
-	matrix::Vector3f _acceleration_setpoint_feedback;
 
 	ekf_reset_counters_s _reset_counters{}; ///< Counters for estimator local position resets
 
