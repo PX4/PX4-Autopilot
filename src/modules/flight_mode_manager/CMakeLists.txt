@@ -52,16 +52,16 @@ endif()
 
 # add core flight tasks to list
 list(APPEND flight_tasks_all
+	AutoFollowMe
+	AutoLineSmoothVel
+	Descend
+	Failsafe
+	ManualAcceleration
 	ManualAltitude
 	ManualAltitudeSmoothVel
 	ManualPosition
 	ManualPositionSmoothVel
-	AutoLineSmoothVel
-	AutoFollowMe
-	Failsafe
-	Descend
 	Transition
-	ManualAcceleration
 	${flight_tasks_to_add}
 )
 
