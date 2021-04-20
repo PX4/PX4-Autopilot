@@ -36,9 +36,8 @@
  * Tests for the bson en/decoder
  */
 
-#include <inttypes.h>
-
 #include <px4_platform_common/defines.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
