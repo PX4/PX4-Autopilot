@@ -62,7 +62,7 @@ public:
 		uint8_t request_payload_buffer[uavcan_register_List_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
 
 		CanardTransfer request = {
-			.timestamp_usec = hrt_absolute_time(), // Zero if transmission deadline is not limited.
+			.timestamp_usec = hrt_absolute_time() + CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
 			.priority       = CanardPriorityNominal,
 			.transfer_kind  = CanardTransferKindRequest,
 			.port_id        = uavcan_register_List_1_0_FIXED_PORT_ID_, // This is the subject-ID.

@@ -33,6 +33,7 @@
 
 set(LIBCANARD_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libcanard)
 set(DSDL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/public_regulated_data_types)
+set(LEGACY_DSDL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/legacy_data_types)
 
 px4_add_git_submodule(TARGET git_libcanard PATH ${LIBCANARD_DIR})
 px4_add_git_submodule(TARGET git_public_regulated_data_types PATH ${DSDL_DIR})
@@ -40,7 +41,7 @@ px4_add_git_submodule(TARGET git_public_regulated_data_types PATH ${DSDL_DIR})
 find_program(NNVG_PATH nnvg)
 if(NNVG_PATH)
 	execute_process(COMMAND ${NNVG_PATH} --outdir ${CMAKE_CURRENT_BINARY_DIR}/dsdlc_generated --target-language c -I ${DSDL_DIR}/uavcan ${DSDL_DIR}/reg)
-	execute_process(COMMAND ${NNVG_PATH} --outdir ${CMAKE_CURRENT_BINARY_DIR}/dsdlc_generated --target-language c -I ${DSDL_DIR}/uavcan ${DSDL_DIR}/legacy)
+	execute_process(COMMAND ${NNVG_PATH} --outdir ${CMAKE_CURRENT_BINARY_DIR}/dsdlc_generated --target-language c -I ${LEGACY_DSDL_DIR}/uavcan ${LEGACY_DSDL_DIR}/legacy)
 	execute_process(COMMAND ${NNVG_PATH} --outdir ${CMAKE_CURRENT_BINARY_DIR}/dsdlc_generated --target-language c ${DSDL_DIR}/uavcan)
 else()
 	message(FATAL_ERROR "UAVCAN Nunavut nnvg not found")
