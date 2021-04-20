@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -60,7 +60,7 @@ extern "C" int bmi088_i2c_main(int argc, char *argv[])
 	cli.default_spi_frequency = 400 * 1000;
 
 
-	while ((ch = cli.getopt(argc, argv, "AGR:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "AGR:")) != EOF) {
 		switch (ch) {
 		case 'A':
 			cli.type = DRV_ACC_DEVTYPE_BMI088;
@@ -73,12 +73,12 @@ extern "C" int bmi088_i2c_main(int argc, char *argv[])
 			break;
 
 		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optarg());
+			cli.rotation = (enum Rotation)atoi(cli.optArg());
 			break;
 		}
 	}
 
-	const char *verb = cli.optarg();
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();
