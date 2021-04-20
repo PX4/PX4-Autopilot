@@ -563,7 +563,6 @@ void PWMOut::update_pwm_out_state(bool on)
 
 		// Set rate is not affecting non-masked channels, so can be called
 		// individually
-		set_pwm_rate(pwm_alt_rate_channels_new, default_rate_min, alt_rate_max);
 		_pwm_initialized = true;
 	}
 
