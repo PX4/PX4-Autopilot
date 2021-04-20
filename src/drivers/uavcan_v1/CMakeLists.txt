@@ -37,6 +37,7 @@ set(LEGACY_DSDL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/legacy_data_types)
 
 px4_add_git_submodule(TARGET git_libcanard PATH ${LIBCANARD_DIR})
 px4_add_git_submodule(TARGET git_public_regulated_data_types PATH ${DSDL_DIR})
+px4_add_git_submodule(TARGET git_legacy_data_types PATH ${LEGACY_DSDL_DIR})
 
 find_program(NNVG_PATH nnvg)
 if(NNVG_PATH)
@@ -88,5 +89,6 @@ px4_add_module(
 	DEPENDS
 		git_libcanard
 		git_public_regulated_data_types
+		git_legacy_data_types
 		version
 	)

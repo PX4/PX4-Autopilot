@@ -47,6 +47,8 @@
 
 #include <uavcan/_register/Access_1_0.h>
 
+#include "../Publishers/Publisher.hpp"
+
 class UavcanAccessServiceRequest
 {
 public:
@@ -68,7 +70,7 @@ public:
 		uint8_t request_payload_buffer[uavcan_register_Access_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
 
 		CanardTransfer transfer = {
-			.timestamp_usec = hrt_absolute_time() + CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
+			.timestamp_usec = hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
 			.priority       = CanardPriorityNominal,
 			.transfer_kind  = CanardTransferKindRequest,
 			.port_id        = uavcan_register_Access_1_0_FIXED_PORT_ID_,                // This is the subject-ID.

@@ -50,6 +50,12 @@
 #include "../CanardInterface.hpp"
 #include "../ParamManager.hpp"
 
+/* This is a default baseline timeout for publishers
+ * Still it's recommended for implementers to check if their publisher
+ * has timing requirements and if it should drop messages that are too old in favour of newer messages
+ */
+#define PUBLISHER_DEFAULT_TIMEOUT_USEC 100000UL
+
 class UavcanPublisher
 {
 public:

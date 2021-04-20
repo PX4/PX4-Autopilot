@@ -102,7 +102,7 @@ public:
 
 				CanardPortID arming_pid = static_cast<CanardPortID>(static_cast<uint32_t>(_port_id) + 1);
 				CanardTransfer transfer = {
-					.timestamp_usec = hrt_absolute_time() + CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
+					.timestamp_usec = hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
 					.priority       = CanardPriorityNominal,
 					.transfer_kind  = CanardTransferKindMessage,
 					.port_id        = arming_pid,                // This is the subject-ID.
@@ -145,7 +145,7 @@ public:
 			uint8_t esc_sp_payload_buffer[reg_drone_service_actuator_common_sp_Vector31_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_];
 
 			CanardTransfer transfer = {
-				.timestamp_usec = hrt_absolute_time() + CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
+				.timestamp_usec = hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
 				.priority       = CanardPriorityNominal,
 				.transfer_kind  = CanardTransferKindMessage,
 				.port_id        = _port_id,                // This is the subject-ID.
