@@ -92,23 +92,6 @@ private:
 	/** Time interval in us in which wider acceptance thresholds are used after landed. */
 	static constexpr hrt_abstime LAND_DETECTOR_LAND_PHASE_TIME_US = 2_s;
 
-	/** Handles for interesting parameters. **/
-	struct {
-		param_t minThrottle;
-		param_t hoverThrottle;
-		param_t minManThrottle;
-		param_t landSpeed;
-		param_t useHoverThrustEstimate;
-	} _paramHandle{};
-
-	struct {
-		float minThrottle;
-		float hoverThrottle;
-		float minManThrottle;
-		float landSpeed;
-		bool useHoverThrustEstimate;
-	} _params{};
-
 	uORB::Subscription _actuator_controls_sub{ORB_ID(actuator_controls_0)};
 	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
@@ -121,6 +104,7 @@ private:
 
 	bool _flag_control_climb_rate_enabled{false};
 	bool _hover_thrust_initialized{false};
+	float _hover_thrust{0.f}; ///< either parameter value or estimate if it's enabled and valid
 
 	float _actuator_controls_throttle{0.f};
 
@@ -139,7 +123,12 @@ private:
 		(ParamFloat<px4::params::LNDMC_ROT_MAX>)    _param_lndmc_rot_max,
 		(ParamFloat<px4::params::LNDMC_XY_VEL_MAX>) _param_lndmc_xy_vel_max,
 		(ParamFloat<px4::params::LNDMC_Z_VEL_MAX>)  _param_lndmc_z_vel_max,
-		(ParamFloat<px4::params::LNDMC_ALT_GND>)    _param_lndmc_alt_gnd_effect
+		(ParamFloat<px4::params::LNDMC_ALT_GND>)    _param_lndmc_alt_gnd_effect,
+		(ParamFloat<px4::params::MPC_LAND_SPEED>)   _param_mpc_land_speed,
+		(ParamFloat<px4::params::MPC_MANTHR_MIN>)   _param_mpc_manthr_min,
+		(ParamFloat<px4::params::MPC_THR_MIN>)      _param_mpc_thr_min,
+		(ParamBool<px4::params::MPC_USE_HTE>)       _param_mpc_use_hte,
+		(ParamFloat<px4::params::MPC_THR_HOVER>)    _param_mpc_thr_hover
 	);
 };
 
