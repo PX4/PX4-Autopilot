@@ -49,6 +49,7 @@
 #include <nuttx/config.h>
 #include <board_config.h>
 
+#include <inttypes.h>
 #include <stdbool.h>
 
 #include "systemlib/px4_macros.h"
@@ -136,7 +137,7 @@ __EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id)
 		}
 
 		if (boards_manifest == px4_hw_mft_list_uninitialized) {
-			syslog(LOG_ERR, "[boot] Board %4x is not supported!\n", ver_rev);
+			syslog(LOG_ERR, "[boot] Board %4"  PRIx32 " is not supported!\n", ver_rev);
 		}
 	}
 
