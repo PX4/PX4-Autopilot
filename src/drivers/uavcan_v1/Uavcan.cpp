@@ -417,7 +417,7 @@ void UavcanNode::sendHeartbeat()
 
 
 		CanardTransfer transfer = {
-			.timestamp_usec = hrt_absolute_time() + CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
+			.timestamp_usec = hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
 			.priority       = CanardPriorityNominal,
 			.transfer_kind  = CanardTransferKindMessage,
 			.port_id        = uavcan_node_Heartbeat_1_0_FIXED_PORT_ID_,

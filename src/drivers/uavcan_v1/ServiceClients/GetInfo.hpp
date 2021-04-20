@@ -108,7 +108,7 @@ public:
 		uint8_t response_payload_buffer[uavcan_node_GetInfo_Response_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
 
 		CanardTransfer response = {
-			.timestamp_usec = hrt_absolute_time() + CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
+			.timestamp_usec = hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
 			.priority       = CanardPriorityNominal,
 			.transfer_kind  = CanardTransferKindResponse,
 			.port_id        = uavcan_node_GetInfo_1_0_FIXED_PORT_ID_, // This is the subject-ID.
