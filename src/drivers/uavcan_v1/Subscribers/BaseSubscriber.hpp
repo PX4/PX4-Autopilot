@@ -71,13 +71,13 @@ public:
 
 	virtual void callback(const CanardTransfer &msg) = 0;
 
-	CanardPortID id(uint32_t id = 0)
+	CanardPortID id(uint32_t instance = 0)
 	{
 		uint32_t i = 0;
 		SubjectSubscription *curSubj = &_subj_sub;
 
 		while (curSubj != NULL) {
-			if (id == i) {
+			if (instance == i) {
 				return curSubj->_canard_sub._port_id;
 			}
 

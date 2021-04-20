@@ -168,7 +168,7 @@ void UavcanNode::init()
 					  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
 					  &_heartbeat_subscription);
 
-			canardRxSubscribe(&_canard_instance, //Temporory GPS message DSDL not defined yet
+			canardRxSubscribe(&_canard_instance, // uORB over UAVCAN GPS message
 					  CanardTransferKindMessage,
 					  gps_port_id,
 					  sizeof(struct sensor_gps_s),
@@ -241,8 +241,9 @@ void UavcanNode::Run()
 	// Transmitting
 	// Look at the top of the TX queue.
 	for (const CanardFrame *txf = nullptr; (txf = canardTxPeek(&_canard_instance)) != nullptr;) {
-		// Check if the frame has timed out.
-		if (hrt_absolute_time() > txf->timestamp_usec) { //FIXME wrong I think
+		// Attempt transmission only if the frame is not yet timed out while waiting in the TX queue.
+		// Otherwise just drop it and move on to the next one.
+		if (txf->timestamp_usec == 0 || hrt_absolute_time() > txf->timestamp_usec) {
 			// Send the frame. Redundant interfaces may be used here.
 			const int tx_res = _can_interface->transmit(*txf);
 
@@ -416,7 +417,7 @@ void UavcanNode::sendHeartbeat()
 
 
 		CanardTransfer transfer = {
-			.timestamp_usec = hrt_absolute_time(),
+			.timestamp_usec = hrt_absolute_time() + CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
 			.priority       = CanardPriorityNominal,
 			.transfer_kind  = CanardTransferKindMessage,
 			.port_id        = uavcan_node_Heartbeat_1_0_FIXED_PORT_ID_,
