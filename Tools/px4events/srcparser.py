@@ -89,6 +89,7 @@ class SourceParser(object):
 
     re_split_lines = re.compile(r'[\r\n]+')
     re_comment_start = re.compile(r'^\/\*\s*EVENT$')
+    re_events_send = re.compile(r'^events::send[<\(]')
     re_comment_content = re.compile(r'^\*\s*(.*)')
     re_comment_tag = re.compile(r'^@([a-zA-Z][a-zA-Z0-9_]*):?\s*(.*)')
     re_comment_end = re.compile(r'(.*?)\s*\*\/$')
@@ -142,6 +143,10 @@ class SourceParser(object):
             # Ignore empty lines
             if line == "":
                 continue
+
+            assert not line.startswith("using namespace events;"), "Avoid 'using namespace events;', as it prevents proper events extraction"
+
+            # Check for '/* EVENT'
             if self.re_comment_start.match(line):
                 state = "parse-comments"
                 event = Event()
@@ -149,8 +154,20 @@ class SourceParser(object):
                 current_value = None
                 current_code = ""
                 continue
+
+            # Check for events::send (allow '/* EVENT' to be optional)
+            if state is None and self.re_events_send.match(line):
+                state = "parse-command"
+                event = Event()
+                current_tag = None
+                current_value = None
+                current_code = ""
+
             if state is None:
+                assert 'events::ID(' not in line or line.startswith('//'), \
+                    "unmatched 'events::ID(' found in line '{:}'".format(line)
                 continue
+
             if state == "parse-command":
                 current_code += line
                 m = self.re_code_end.search(line)
@@ -185,18 +202,26 @@ class SourceParser(object):
                         event.arguments[i] = (arg_type, arg_name)
                     #print("method: {}, args: {}, template args: {}".format(call, args, event.arguments))
 
+                    ignore_event = False
+
                     # extract function arguments
                     args_split = self._parse_arguments(args)
                     if call == "events::send" or call == "send":
-                        assert len(args_split) == num_args + 3, \
-                            "Unexpected Number of arguments for: {:}, {:}".format(args_split, num_args)
-                        m = self.re_event_id.search(args_split[0])
-                        if m:
-                            _, event_name = m.group(1, 2)
+                        if len(args_split) == 1:
+                            # This is a send call for a generated event
+                            ignore_event = True
                         else:
-                            raise Exception("Could not extract event ID from {:}".format(args_split[0]))
-                        event.name = event_name
-                        event.message = args_split[2][1:-1]
+                            assert len(args_split) == num_args + 3, \
+                                "Unexpected Number of arguments for: {:}, " \
+                                "num template args: {:} (missing template args?)" \
+                                .format(args_split, num_args)
+                            m = self.re_event_id.search(args_split[0])
+                            if m:
+                                _, event_name = m.group(1, 2)
+                            else:
+                                raise Exception("Could not extract event ID from {:}".format(args_split[0]))
+                            event.name = event_name
+                            event.message = args_split[2][1:-1]
                     elif call in ['reporter.healthFailure', 'reporter.armingCheckFailure']:
                         assert len(args_split) == num_args + 5, \
                             "Unexpected Number of arguments for: {:}, {:}".format(args_split, num_args)
@@ -216,16 +241,17 @@ class SourceParser(object):
                     else:
                         raise Exception("unknown event method call: {}, args: {}".format(call, args))
 
-                    event.validate()
+                    if not ignore_event:
+                        event.validate()
 
-                    # insert
-                    if not event.group in self._events:
-                        self._events[event.group] = []
-                    self._events[event.group].append(event)
+                        # insert
+                        if not event.group in self._events:
+                            self._events[event.group] = []
+                        self._events[event.group].append(event)
 
                     state = None
 
-            else:
+            else: # parse-comments
                 m = self.re_comment_end.search(line)
                 if m:
                     line = m.group(1)
