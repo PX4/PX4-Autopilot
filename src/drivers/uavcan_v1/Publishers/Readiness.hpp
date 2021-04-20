@@ -76,7 +76,7 @@ public:
 			uint8_t readiness_payload_buffer[reg_drone_service_common_Readiness_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_];
 
 			CanardTransfer transfer = {
-				.timestamp_usec = hrt_absolute_time(), // Zero if transmission deadline is not limited.
+				.timestamp_usec = hrt_absolute_time() + CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
 				.priority       = CanardPriorityNominal,
 				.transfer_kind  = CanardTransferKindMessage,
 				.port_id        = _port_id, // This is the subject-ID.
