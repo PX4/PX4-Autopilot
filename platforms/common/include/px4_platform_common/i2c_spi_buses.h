@@ -92,13 +92,13 @@ public:
 	/**
 	 * Like px4_getopt(), but adds and handles i2c/spi driver-specific arguments
 	 */
-	int getopt(int argc, char *argv[], const char *options);
+	int getOpt(int argc, char *argv[], const char *options);
 
 	/**
 	 * returns the current optional argument (for options like 'T:'), or the command (e.g. "start")
 	 * @return nullptr or argument/command
 	 */
-	const char *optarg() const { return _optarg; }
+	const char *optArg() const { return _optarg; }
 
 
 	I2CSPIBusOption bus_option{I2CSPIBusOption::All};

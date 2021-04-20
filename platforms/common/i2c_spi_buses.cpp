@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2020 PX4 Development Team. All rights reserved.
+ * Copyright (C) 2020, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,15 +51,15 @@ static pthread_mutex_t i2c_spi_module_instances_mutex = PTHREAD_MUTEX_INITIALIZE
 
 const char *BusCLIArguments::parseDefaultArguments(int argc, char *argv[])
 {
-	if (getopt(argc, argv, "") == EOF) {
-		return optarg();
+	if (getOpt(argc, argv, "") == EOF) {
+		return optArg();
 	}
 
 	// unexpected arguments
 	return nullptr;
 }
 
-int BusCLIArguments::getopt(int argc, char *argv[], const char *options)
+int BusCLIArguments::getOpt(int argc, char *argv[], const char *options)
 {
 	if (_options[0] == 0) { // need to initialize
 		if (!validateConfiguration()) {
