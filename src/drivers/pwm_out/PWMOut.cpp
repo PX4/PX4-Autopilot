@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,6 @@
 
 pthread_mutex_t pwm_out_module_mutex = PTHREAD_MUTEX_INITIALIZER;
 static px4::atomic<PWMOut *> _objects[PWM_OUT_MAX_INSTANCES] {};
-static bool _pwm_out_started = false;
 
 static bool is_running()
 {
@@ -475,7 +474,9 @@ void PWMOut::update_current_rate()
 	// max interval 0.5 - 100 ms (10 - 2000Hz)
 	const int update_interval_in_us = math::constrain(1000000 / max_rate, 500, 100000);
 
-	PX4_INFO("instance: %d, MAX RATE: %d, default: %d, alt: %d", _instance, max_rate, _pwm_default_rate, _pwm_alt_rate);
+	if (_current_update_rate != max_rate) {
+		PX4_INFO("instance: %d, max rate: %d, default: %d, alt: %d", _instance, max_rate, _pwm_default_rate, _pwm_alt_rate);
+	}
 
 	_current_update_rate = max_rate;
 	_mixing_output.setMaxTopicUpdateRate(update_interval_in_us);
@@ -511,8 +512,6 @@ int PWMOut::task_spawn(int argc, char *argv[])
 		}
 	}
 
-	_pwm_out_started = true;
-
 	return PX4_OK;
 }
 
@@ -532,12 +531,43 @@ void PWMOut::capture_callback(uint32_t chan_index,
 void PWMOut::update_pwm_out_state(bool on)
 {
 	if (on && !_pwm_initialized && _pwm_mask != 0) {
-		up_pwm_servo_init(_pwm_mask);
-		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
+
+		// Collect all PWM masks from all instances
+		uint32_t pwm_mask_new = 0;
+		// Collect the PWM alt rate channels across all instances
+		uint32_t pwm_alt_rate_channels_new = 0;
+
+		// Collect the minimum default rate
+		unsigned default_rate_min = 0;
+		// Collect the maximum alternative rate (400 Hz or DSHOT outputs)
+		unsigned alt_rate_max = 0;
+
+		for (int i = 0; i < PWM_OUT_MAX_INSTANCES; i++) {
+			if (_objects[i].load()) {
+				pwm_mask_new |= _objects[i].load()->get_pwm_mask();
+				pwm_alt_rate_channels_new |= _objects[i].load()->get_alt_rate_channels();
+
+				if (_objects[i].load()->get_alt_rate() > alt_rate_max) {
+					alt_rate_max = _objects[i].load()->get_alt_rate();
+				}
+
+				if (_objects[i].load()->get_default_rate() < default_rate_min) {
+					default_rate_min = _objects[i].load()->get_default_rate();
+				}
+			}
+		}
+
+		// Initialize the PWM output state for all instances
+		// this is re-done once per instance, but harmless
+		up_pwm_servo_init(pwm_mask_new);
+
+		// Set rate is not affecting non-masked channels, so can be called
+		// individually
+		set_pwm_rate(pwm_alt_rate_channels_new, default_rate_min, alt_rate_max);
 		_pwm_initialized = true;
 	}
 
-	up_pwm_servo_arm(on); // TODO REVIEW for multi
+	up_pwm_servo_arm(on);
 }
 
 bool PWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
@@ -580,9 +610,9 @@ void PWMOut::Run()
 	// push backup schedule
 	ScheduleDelayed(_backup_schedule_interval_us);
 
-	if (_new_mode_request.load() != _mode) {
+	if (_new_mode_request.load() != MODE_NO_REQUEST) {
 		set_mode(_new_mode_request.load());
-		_new_mode_request.store(_mode);
+		_new_mode_request.store(MODE_NO_REQUEST);
 	}
 
 	_mixing_output.update();
@@ -618,11 +648,6 @@ void PWMOut::Run()
 void PWMOut::update_params()
 {
 	updateParams();
-
-	// skip update when armed
-	if (_mixing_output.armed().armed) {
-		return;
-	}
 
 	int32_t pwm_min_default = PWM_DEFAULT_MIN;
 	int32_t pwm_max_default = PWM_DEFAULT_MAX;
@@ -1762,6 +1787,22 @@ int PWMOut::fmu_new_mode(PortMode new_mode)
 	return OK;
 }
 
+void PWMOut::request_mode(Mode new_mode)
+{
+	if (_new_mode_request.load() != MODE_NO_REQUEST) {
+		PX4_ERR("already being set"); // not expected to happen
+		return;
+	}
+
+	_new_mode_request.store(new_mode);
+	ScheduleNow();
+	// wait until processed
+	int max_time = 1000;
+
+	while (_new_mode_request.load() != MODE_NO_REQUEST && max_time-- > 0) {
+		px4_usleep(1000);
+	}
+}
 
 namespace
 {
@@ -2014,7 +2055,7 @@ int PWMOut::custom_command(int argc, char *argv[])
 
 
 	/* start pwm_out if not running */
-	if (!_pwm_out_started) {
+	if (!is_running()) {
 
 		int ret = PWMOut::task_spawn(argc, argv);
 
@@ -2276,7 +2317,7 @@ extern "C" __EXPORT int pwm_out_main(int argc, char *argv[])
 
 	if (strcmp(argv[1], "start") == 0) {
 
-		if (_pwm_out_started) {
+		if (is_running()) {
 			return 0;
 		}
 
@@ -2360,8 +2401,6 @@ extern "C" __EXPORT int pwm_out_main(int argc, char *argv[])
 				PX4_WARN("not running");
 			}
 		}
-
-		_pwm_out_started = false;
 
 		PWMOut::unlock_module();
 		return PX4_OK;

@@ -155,6 +155,18 @@ void RCUpdate::parameters_updated()
 	}
 
 	update_rc_functions();
+
+	// deprecated parameters, will be removed post v1.12 once QGC is updated
+	{
+		int32_t rc_map_value = 0;
+
+		if (param_get(param_find("RC_MAP_RATT_SW"), &rc_map_value) == PX4_OK) {
+			if (rc_map_value != 0) {
+				PX4_WARN("RC_MAP_RATT_SW deprecated");
+				param_reset(param_find("RC_MAP_RATT_SW"));
+			}
+		}
+	}
 }
 
 void RCUpdate::update_rc_functions()
@@ -424,35 +436,39 @@ void RCUpdate::Run()
 		/* publish rc_channels topic even if signal is invalid, for debug */
 		_rc_channels_pub.publish(_rc);
 
-		/* only publish manual control if the signal is present */
-		if (input_source_stable && channel_count_stable && !signal_lost
-		    && (input_rc.timestamp_last_signal > _last_timestamp_signal)) {
+		// only publish manual control if the signal is present and regularly updating
+		if (input_source_stable && channel_count_stable && !signal_lost) {
 
-			_last_timestamp_signal = input_rc.timestamp_last_signal;
-			perf_count(_valid_data_interval_perf);
+			if ((input_rc.timestamp_last_signal > _last_timestamp_signal)
+			    && (input_rc.timestamp_last_signal - _last_timestamp_signal < 1_s)) {
 
-			// check if channels actually updated
-			bool rc_updated = false;
+				perf_count(_valid_data_interval_perf);
 
-			for (unsigned i = 0; i < channel_count_limited; i++) {
-				if (_rc_values_previous[i] != input_rc.values[i]) {
-					rc_updated = true;
-					break;
+				// check if channels actually updated
+				bool rc_updated = false;
+
+				for (unsigned i = 0; i < channel_count_limited; i++) {
+					if (_rc_values_previous[i] != input_rc.values[i]) {
+						rc_updated = true;
+						break;
+					}
+				}
+
+				// limit processing if there's no update
+				if (rc_updated || (hrt_elapsed_time(&_last_manual_control_setpoint_publish) > 300_ms)) {
+					UpdateManualSetpoint(input_rc.timestamp_last_signal);
+				}
+
+				UpdateManualSwitches(input_rc.timestamp_last_signal);
+
+				/* Update parameters from RC Channels (tuning with RC) if activated */
+				if (hrt_elapsed_time(&_last_rc_to_param_map_time) > 1_s) {
+					set_params_from_rc();
+					_last_rc_to_param_map_time = hrt_absolute_time();
 				}
 			}
 
-			// limit processing if there's no update
-			if (rc_updated || (hrt_elapsed_time(&_last_manual_control_setpoint_publish) > 300_ms)) {
-				UpdateManualSetpoint(input_rc.timestamp_last_signal);
-			}
-
-			UpdateManualSwitches(input_rc.timestamp_last_signal);
-
-			/* Update parameters from RC Channels (tuning with RC) if activated */
-			if (hrt_elapsed_time(&_last_rc_to_param_map_time) > 1_s) {
-				set_params_from_rc();
-				_last_rc_to_param_map_time = hrt_absolute_time();
-			}
+			_last_timestamp_signal = input_rc.timestamp_last_signal;
 		}
 
 		memcpy(_rc_values_previous, input_rc.values, sizeof(input_rc.values[0]) * channel_count_limited);

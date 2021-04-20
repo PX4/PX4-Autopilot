@@ -37,12 +37,10 @@
 # 2: COMP_METADATA_TYPE_COMMANDS
 # 3: COMP_METADATA_TYPE_PERIPHERALS
 set(comp_metadata_types)
-# We disable parameter support if the metadata is not in the ROMFS. This can be
-# removed once it is stored on a server
-list(FIND config_romfs_extra_dependencies "parameters_xml" index)
 set(comp_metadata_board "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}")
 set(s3_url "https://px4-travis.s3.amazonaws.com")
 set(comp_metadata_param_uri_board "${s3_url}/Firmware/{version}/${comp_metadata_board}/parameters.json.xz")
+list(FIND config_romfs_extra_dependencies "parameters_xml" index)
 if (${index} EQUAL -1)
 	set(comp_metadata_param_uri ${comp_metadata_param_uri_board})
 	# use generic URL as fallback

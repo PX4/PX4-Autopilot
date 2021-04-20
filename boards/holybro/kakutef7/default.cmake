@@ -6,6 +6,7 @@ px4_add_board(
 	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
+	EXTERNAL_METADATA
 	ROMFSROOT px4fmu_common
 	SERIAL_PORTS
 		TEL1:/dev/ttyS0 # UART1

@@ -114,7 +114,6 @@ px4_add_board(
 		sd_bench
 		serial_test
 		system_time
-		#tests # tests and test runner
 		top
 		topic_listener
 		tune_control

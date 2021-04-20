@@ -57,7 +57,8 @@
 
 using namespace time_literals;
 
-#define CONTROLLER_PERIOD_DEFAULT 100000
+#define CONTROLLER_PERIOD_DEFAULT    10000
+#define TEMPERATURE_TARGET_THRESHOLD 2.5f
 
 class Heater : public ModuleBase<Heater>, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -101,8 +102,24 @@ public:
 
 private:
 
+	/** Disables the heater (either by GPIO or PX4IO). */
+	void disable_heater();
+
+	/** Turns the heater on (either by GPIO or PX4IO). */
+	void heater_on();
+
+	/** Turns the heater off (either by GPIO or PX4IO). */
+	void heater_off();
+
+	void initialize();
+
+	/** Enables / configures the heater (either by GPIO or PX4IO). */
+	void initialize_heater_io();
+
 	/** @brief Called once to initialize uORB topics. */
 	bool initialize_topics();
+
+	void publish_status();
 
 	/** @brief Calculates the heater element on/off time and schedules the next cycle. */
 	void Run() override;
@@ -113,18 +130,6 @@ private:
 	 */
 	void update_params(const bool force = false);
 
-	/** Enables / configures the heater (either by GPIO or PX4IO). */
-	void heater_initialize();
-
-	/** Disnables the heater (either by GPIO or PX4IO). */
-	void heater_disable();
-
-	/** Turns the heater on (either by GPIO or PX4IO). */
-	void heater_on();
-
-	/** Turns the heater off (either by GPIO or PX4IO). */
-	void heater_off();
-
 	/** Work queue struct for the scheduler. */
 	static struct work_s _work;
 
@@ -133,7 +138,9 @@ private:
 	int _io_fd {-1};
 #endif
 
-	bool _heater_on = false;
+	bool _heater_initialized     = false;
+	bool _heater_on              = false;
+	bool _temperature_target_met = false;
 
 	int _controller_period_usec = CONTROLLER_PERIOD_DEFAULT;
 	int _controller_time_on_usec = 0;
@@ -155,7 +162,7 @@ private:
 		(ParamFloat<px4::params::SENS_IMU_TEMP_FF>) _param_sens_imu_temp_ff,
 		(ParamFloat<px4::params::SENS_IMU_TEMP_I>)  _param_sens_imu_temp_i,
 		(ParamFloat<px4::params::SENS_IMU_TEMP_P>)  _param_sens_imu_temp_p,
-		(ParamInt<px4::params::SENS_TEMP_ID>)       _param_sens_temp_id,
-		(ParamFloat<px4::params::SENS_IMU_TEMP>)    _param_sens_imu_temp
+		(ParamFloat<px4::params::SENS_IMU_TEMP>)    _param_sens_imu_temp,
+		(ParamInt<px4::params::SENS_TEMP_ID>)       _param_sens_temp_id
 	)
 };
