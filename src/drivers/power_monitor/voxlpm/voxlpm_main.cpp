@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -83,16 +83,16 @@ voxlpm_main(int argc, char *argv[])
 	cli.type = VOXLPM_CH_TYPE_VBATT;
 	cli.support_keep_running = true;
 
-	while ((ch = cli.getopt(argc, argv, "T:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "T:")) != EOF) {
 		switch (ch) {
 		case 'T':
-			if (strcmp(cli.optarg(), "VBATT") == 0) {
+			if (strcmp(cli.optArg(), "VBATT") == 0) {
 				cli.type = VOXLPM_CH_TYPE_VBATT;
 
-			} else if (strcmp(cli.optarg(), "P5VDC") == 0) {
+			} else if (strcmp(cli.optArg(), "P5VDC") == 0) {
 				cli.type = VOXLPM_CH_TYPE_P5VDC;
 
-			} else if (strcmp(cli.optarg(), "P12VDC") == 0) {
+			} else if (strcmp(cli.optArg(), "P12VDC") == 0) {
 				cli.type = VOXLPM_CH_TYPE_P12VDC; //  same as P5VDC
 
 			} else {
@@ -104,7 +104,7 @@ voxlpm_main(int argc, char *argv[])
 		}
 	}
 
-	const char *verb = cli.optarg();
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();

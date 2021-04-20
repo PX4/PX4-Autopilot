@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -182,11 +182,11 @@ extern "C" int ads1115_main(int argc, char *argv[])
 	cli.default_i2c_frequency = 400000;
 	cli.i2c_address = 0x48;
 
-	while ((ch = cli.getopt(argc, argv, "")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "")) != EOF) {
 
 	}
 
-	const char *verb = cli.optarg();
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();
