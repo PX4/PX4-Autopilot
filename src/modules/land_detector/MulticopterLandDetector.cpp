@@ -65,7 +65,7 @@
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 
-#include "MulticopterLandDetector.h"
+#include "MulticopterLandDetector.hpp"
 
 using matrix::Vector2f;
 using matrix::Vector3f;

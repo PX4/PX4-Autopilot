@@ -42,7 +42,7 @@
 #include <drivers/drv_hrt.h>
 #include <matrix/math.hpp>
 
-#include "VtolLandDetector.h"
+#include "VtolLandDetector.hpp"
 
 namespace land_detector
 {

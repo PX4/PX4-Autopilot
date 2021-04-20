@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file VtolLandDetector.h
+ * @file VtolLandDetector.hpp
  * Land detection implementation for VTOL also called hybrids.
  *
  * @author Roman Bapst <bapstr@gmail.com>
@@ -43,7 +43,7 @@
 
 #include <uORB/topics/airspeed_validated.h>
 
-#include "MulticopterLandDetector.h"
+#include "MulticopterLandDetector.hpp"
 
 namespace land_detector
 {

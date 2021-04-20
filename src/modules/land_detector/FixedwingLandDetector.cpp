@@ -39,7 +39,7 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include "FixedwingLandDetector.h"
+#include "FixedwingLandDetector.hpp"
 
 namespace land_detector
 {

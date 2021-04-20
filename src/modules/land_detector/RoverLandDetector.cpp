@@ -39,7 +39,7 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include "RoverLandDetector.h"
+#include "RoverLandDetector.hpp"
 
 namespace land_detector
 {

@@ -45,11 +45,11 @@
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/tasks.h>
 
-#include "FixedwingLandDetector.h"
-#include "MulticopterLandDetector.h"
-#include "RoverLandDetector.h"
-#include "VtolLandDetector.h"
-#include "AirshipLandDetector.h"
+#include "FixedwingLandDetector.hpp"
+#include "MulticopterLandDetector.hpp"
+#include "RoverLandDetector.hpp"
+#include "VtolLandDetector.hpp"
+#include "AirshipLandDetector.hpp"
 
 
 namespace land_detector

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file RoverLandDetector.h
+ * @file RoverLandDetector.hpp
  * Land detection implementation for VTOL also called hybrids.
  *
  * @author Roman Bapst <bapstr@gmail.com>
@@ -41,7 +41,7 @@
 
 #pragma once
 
-#include "LandDetector.h"
+#include "LandDetector.hpp"
 
 namespace land_detector
 {

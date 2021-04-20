@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,56 +32,29 @@
  ****************************************************************************/
 
 /**
- * @file FixedwingLandDetector.h
- * Land detector implementation for fixedwing.
+ * @file AirshipLandDetector.hpp
+ * Land detection implementation for airships.
  *
- * @author Johan Jansen <jnsn.johan@gmail.com>
- * @author Morten Lysgaard <morten@lysgaard.no>
- * @author Julian Oes <julian@oes.ch>
+ * @author Anton Erasmus <anton@flycloudline.com>
  */
 
 #pragma once
 
-#include <matrix/math.hpp>
-#include <uORB/topics/airspeed_validated.h>
-
-#include "LandDetector.h"
-
-using namespace time_literals;
+#include "LandDetector.hpp"
 
 namespace land_detector
 {
 
-class FixedwingLandDetector final : public LandDetector
+class AirshipLandDetector : public LandDetector
 {
 public:
-	FixedwingLandDetector();
-	~FixedwingLandDetector() override = default;
+	AirshipLandDetector() = default;
+	~AirshipLandDetector() override = default;
 
 protected:
-
+	bool _get_ground_contact_state() override;
 	bool _get_landed_state() override;
 
-private:
-
-	/** Time in us that landing conditions have to hold before triggering a land. */
-	static constexpr hrt_abstime LANDED_TRIGGER_TIME_US = 2_s;
-	static constexpr hrt_abstime FLYING_TRIGGER_TIME_US = 0_us;
-
-	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
-
-	float _airspeed_filtered{0.0f};
-	float _velocity_xy_filtered{0.0f};
-	float _velocity_z_filtered{0.0f};
-	float _xy_accel_filtered{0.0f};
-
-	DEFINE_PARAMETERS_CUSTOM_PARENT(
-		LandDetector,
-		(ParamFloat<px4::params::LNDFW_XYACC_MAX>)  _param_lndfw_xyaccel_max,
-		(ParamFloat<px4::params::LNDFW_AIRSPD_MAX>) _param_lndfw_airspd,
-		(ParamFloat<px4::params::LNDFW_VEL_XY_MAX>) _param_lndfw_vel_xy_max,
-		(ParamFloat<px4::params::LNDFW_VEL_Z_MAX>)  _param_lndfw_vel_z_max
-	);
 };
 
 } // namespace land_detector

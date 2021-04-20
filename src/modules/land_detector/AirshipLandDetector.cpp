@@ -38,7 +38,7 @@
  * @author Anton Erasmus <anton@flycloudline.com>
  */
 
-#include "AirshipLandDetector.h"
+#include "AirshipLandDetector.hpp"
 
 namespace land_detector
 {

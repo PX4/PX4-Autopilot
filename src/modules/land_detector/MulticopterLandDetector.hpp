@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file MulticopterLandDetector.h
+ * @file MulticopterLandDetector.hpp
  * Land detection implementation for multicopters.
  *
  * @author Johan Jansen <jnsn.johan@gmail.com>
@@ -49,7 +49,7 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/takeoff_status.h>
 
-#include "LandDetector.h"
+#include "LandDetector.hpp"
 
 using namespace time_literals;
 

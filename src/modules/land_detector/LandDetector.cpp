@@ -38,7 +38,7 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include "LandDetector.h"
+#include "LandDetector.hpp"
 
 using namespace time_literals;
 
