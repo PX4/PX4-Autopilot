@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,7 +48,8 @@ int PCF8583::init()
 		return PX4_ERROR;
 	}
 
-	PX4_DEBUG("addr: %d, pool: %d, reset: %d, magenet: %d", get_device_address(), _param_pcf8583_pool.get(),
+	PX4_DEBUG("addr: %" PRId8 ", pool: %" PRId32 ", reset: %" PRId32 ", magenet: %" PRId32, get_device_address(),
+		  _param_pcf8583_pool.get(),
 		  _param_pcf8583_reset.get(),
 		  _param_pcf8583_magnet.get());
 
@@ -141,5 +142,5 @@ void PCF8583::RunImpl()
 void PCF8583::print_status()
 {
 	I2CSPIDriverBase::print_status();
-	PX4_INFO("poll interval:  %d us", _param_pcf8583_pool.get());
+	PX4_INFO("poll interval:  %" PRId32 " us", _param_pcf8583_pool.get());
 }
