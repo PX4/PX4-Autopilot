@@ -497,7 +497,7 @@ public:
 	}
 	void			request_stop_ulog_streaming()
 	{
-		if (_mavlink_ulog) { _mavlink_ulog_stop_requested = true; }
+		if (_mavlink_ulog) { _mavlink_ulog_stop_requested.store(true); }
 	}
 
 	bool ftp_enabled() const { return _ftp_on; }
@@ -569,7 +569,7 @@ private:
 	MavlinkShell		*_mavlink_shell{nullptr};
 	MavlinkULog		*_mavlink_ulog{nullptr};
 
-	volatile bool		_mavlink_ulog_stop_requested{false};
+	px4::atomic_bool	_mavlink_ulog_stop_requested{false};
 
 	MAVLINK_MODE 		_mode{MAVLINK_MODE_NORMAL};
 
