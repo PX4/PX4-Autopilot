@@ -64,7 +64,7 @@ jobs:
                      "$pkg" \
                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/sitl/$pkg_name"
           jfrog rt build-publish "$BUILD_NAME" "$GITHUB_SHA"
-          jfrog rt bpr "$BUILD_NAME" "$GITHUB_SHA" "$ARTIFACTORY_REPO" \
+          jfrog rt bpr "$BUILD_NAME" "$GITHUB_SHA" "$ARTIFACTORY_GEN_REPO" \
                        --status dev \
                        --comment "development build"
           jfrog rt cp "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/sitl/$pkg_name" \
