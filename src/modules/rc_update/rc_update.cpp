@@ -483,6 +483,8 @@ switch_pos_t RCUpdate::get_rc_sw3pos_position(uint8_t func, float on_th, float m
 	if (_rc.function[func] >= 0) {
 		const bool on_inv = (on_th < 0.f);
 		const bool mid_inv = (mid_th < 0.f);
+		on_th = fabsf(on_th);
+		mid_th = fabsf(mid_th);
 
 		const float value = 0.5f * _rc.channels[_rc.function[func]] + 0.5f;
 
@@ -504,6 +506,7 @@ switch_pos_t RCUpdate::get_rc_sw2pos_position(uint8_t func, float on_th) const
 {
 	if (_rc.function[func] >= 0) {
 		const bool on_inv = (on_th < 0.f);
+		on_th = fabsf(on_th);
 
 		const float value = 0.5f * _rc.channels[_rc.function[func]] + 0.5f;
 
