@@ -132,6 +132,7 @@ ButtonTask::Run()
 
 	if (!button_pressed) {
 		return;
+
 	} else {
 		button_pressed = false;
 	}
@@ -167,7 +168,7 @@ ButtonTask::Run()
 			stm32_gpiowrite(GPIO_nLED_BLUE, true);
 
 			// TODO: Check if actually shut down. If not, need to keep running and assume we're in parallel with another battery or connected to a charger.
-			while(1){;};
+			while (1) {;};
 		}
 
 		usleep(100000); // 10hz

@@ -89,6 +89,9 @@ __END_DECLS
 
 __EXPORT void stm32_boardinitialize(void)
 {
+	stm32_configgpio(GPIO_PWR_EN);
+	stm32_configgpio(GPIO_BTN_N);
+
 	// Configure CAN interface
 	stm32_configgpio(GPIO_CAN1_RX);
 	stm32_configgpio(GPIO_CAN1_TX);
