@@ -52,8 +52,8 @@ void CameraInterface::get_pins()
 		_pins[i] = -1;
 	}
 
-	int pin_list = 0;
-	int pin_list_ex = 0;
+	int32_t pin_list = 0;
+	int32_t pin_list_ex = 0;
 
 	if (_p_pin_ex != PARAM_INVALID) {
 		param_get(_p_pin_ex, &pin_list_ex);
