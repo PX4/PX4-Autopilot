@@ -49,6 +49,7 @@ jobs:
         env:
           ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
           ARTIFACTORY_GEN_REPO: gen-public-local
+          BUILD_NAME: px4-sitl
           CI: true
         if: github.event_name == 'push'
         run: |
@@ -58,7 +59,13 @@ jobs:
           pkg=$(find bin -name 'px4_sitl_build*.tar.gz')
           pkg_name=$(basename $pkg)
           jfrog rt u --target-props COMMIT="$GITHUB_SHA" \
+                     --build-name "$BUILD_NAME" \
+                     --build-number "$GITHUB_SHA" \
                      "$pkg" \
                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/sitl/$pkg_name"
+          jfrog rt build-publish "$BUILD_NAME" "$GITHUB_SHA"
+          jfrog rt bpr "$BUILD_NAME" "$GITHUB_SHA" "$ARTIFACTORY_REPO" \
+                       --status dev \
+                       --comment "development build"
           jfrog rt cp "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/sitl/$pkg_name" \
                       "$ARTIFACTORY_GEN_REPO/px4_sitl_build-LATEST.tar.gz"
