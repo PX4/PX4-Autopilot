@@ -61,7 +61,7 @@ TEST_CASE("Offboard position control", "[multicopter][offboard]")
 	tester.wait_until_ready();
 	tester.store_home();
 	tester.arm();
-	std::chrono::seconds goto_timeout = std::chrono::seconds(90);
+	std::chrono::seconds goto_timeout = std::chrono::seconds(120);
 	tester.offboard_goto(takeoff_position, 0.1f, goto_timeout);
 	tester.offboard_goto(setpoint_1, 0.1f, goto_timeout);
 	tester.offboard_goto(setpoint_2, 0.1f, goto_timeout);
