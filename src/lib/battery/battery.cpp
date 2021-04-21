@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -110,7 +110,7 @@ void Battery::reset()
 	_battery_status.remaining = 1.f;
 	_battery_status.scale = 1.f;
 	// Publish at least one cell such that the total voltage gets into MAVLink BATTERY_STATUS
-	_battery_status.cell_count = math::max(_params.n_cells, 1);
+	_battery_status.cell_count = math::max(_params.n_cells, static_cast<int32_t>(1));
 	// TODO: check if it is sane to reset warning to NONE
 	_battery_status.warning = battery_status_s::BATTERY_WARNING_NONE;
 	_battery_status.connected = false;
@@ -155,8 +155,8 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v,
 		_battery_status.source = source;
 		_battery_status.priority = priority;
 
-		static constexpr int uorb_max_cells = sizeof(_battery_status.voltage_cell_v) / sizeof(
-				_battery_status.voltage_cell_v[0]);
+		static constexpr int32_t uorb_max_cells = sizeof(_battery_status.voltage_cell_v) / sizeof(
+					_battery_status.voltage_cell_v[0]);
 
 		int max_cells = math::min(_battery_status.cell_count, uorb_max_cells);
 
@@ -282,16 +282,16 @@ void Battery::updateParams()
 				    _first_parameter_update);
 		migrateParam<float>(_param_handles.v_charged_old, _param_handles.v_charged, &_params.v_charged_old, &_params.v_charged,
 				    _first_parameter_update);
-		migrateParam<int>(_param_handles.n_cells_old, _param_handles.n_cells, &_params.n_cells_old, &_params.n_cells,
-				  _first_parameter_update);
+		migrateParam<int32_t>(_param_handles.n_cells_old, _param_handles.n_cells, &_params.n_cells_old, &_params.n_cells,
+				      _first_parameter_update);
 		migrateParam<float>(_param_handles.capacity_old, _param_handles.capacity, &_params.capacity_old, &_params.capacity,
 				    _first_parameter_update);
 		migrateParam<float>(_param_handles.v_load_drop_old, _param_handles.v_load_drop, &_params.v_load_drop_old,
 				    &_params.v_load_drop, _first_parameter_update);
 		migrateParam<float>(_param_handles.r_internal_old, _param_handles.r_internal, &_params.r_internal_old,
 				    &_params.r_internal, _first_parameter_update);
-		migrateParam<int>(_param_handles.source_old, _param_handles.source, &_params.source_old, &_params.source,
-				  _first_parameter_update);
+		migrateParam<int32_t>(_param_handles.source_old, _param_handles.source, &_params.source_old, &_params.source,
+				      _first_parameter_update);
 
 	} else {
 		param_get(_param_handles.v_empty, &_params.v_empty);
