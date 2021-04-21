@@ -121,14 +121,12 @@ public:
 	MavlinkReceiver(Mavlink *parent);
 	~MavlinkReceiver() override;
 
-	/**
-	 * Start the receiver thread
-	 */
-	static void receive_start(pthread_t *thread, Mavlink *parent);
-
-	static void *start_helper(void *context);
+	void start();
+	void stop();
 
 private:
+	static void *start_trampoline(void *context);
+	void run();
 
 	void acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result);
 
@@ -199,8 +197,6 @@ private:
 
 	void CheckHeartbeats(const hrt_abstime &t, bool force = false);
 
-	void Run();
-
 	/**
 	 * Set the interval at which the given message stream is published.
 	 * The rate is the number of messages per second.
@@ -226,6 +222,9 @@ private:
 	void schedule_tune(const char *tune);
 
 	void update_rx_stats(const mavlink_message_t &message);
+
+	px4::atomic_bool 	_should_exit{false};
+	pthread_t		*_thread {};
 
 	Mavlink				*_mavlink;
 
