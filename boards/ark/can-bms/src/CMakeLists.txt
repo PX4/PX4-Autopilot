@@ -50,7 +50,6 @@ else()
 	add_subdirectory(button_task)
 
 	add_library(drivers_board
-		ark_startup.cpp
 		can.c
 		i2c.cpp
 		init.c
