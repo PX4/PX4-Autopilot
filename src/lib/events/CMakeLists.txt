@@ -37,6 +37,7 @@ get_property(all_px4_src_files GLOBAL PROPERTY PX4_SRC_FILES)
 
 set(generated_events_dir ${PX4_BINARY_DIR}/events)
 set(generated_events_px4_file ${generated_events_dir}/px4.json)
+set(generated_events_common_enums_file ${generated_events_dir}/common_with_enums.json)
 add_custom_command(OUTPUT ${generated_events_px4_file}
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_events_dir}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_events.py
@@ -56,7 +57,7 @@ set(generated_events_file ${generated_events_dir}/all_events.json)
 add_custom_command(OUTPUT ${generated_events_file} ${generated_events_file}.xz
 	COMMAND ${PYTHON_EXECUTABLE} libevents/scripts/combine.py
 		${generated_events_px4_file}
-		libevents/events/common.json
+		${generated_events_common_enums_file}
 		--output ${generated_events_file}
 	COMMAND ${PYTHON_EXECUTABLE} libevents/scripts/validate.py
 		${generated_events_file}
@@ -64,7 +65,7 @@ add_custom_command(OUTPUT ${generated_events_file} ${generated_events_file}.xz
 		${generated_events_file}
 	DEPENDS
 		${generated_events_px4_file}
-		libevents/events/common.json
+		${generated_events_common_enums_file}
 		libevents/scripts/combine.py
 		libevents/scripts/validate.py
 		${PX4_SOURCE_DIR}/Tools/compress.py
@@ -73,7 +74,23 @@ add_custom_command(OUTPUT ${generated_events_file} ${generated_events_file}.xz
 )
 add_custom_target(events_json DEPENDS ${generated_events_file})
 
-# generate header from common.json
+# combine common.json with our enums for the code generation
+add_custom_command(OUTPUT ${generated_events_common_enums_file}
+	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_events_dir}
+	COMMAND ${PYTHON_EXECUTABLE} libevents/scripts/combine.py
+		enums.json
+		libevents/events/common.json
+		--output ${generated_events_common_enums_file}
+	DEPENDS
+		enums.json
+		libevents/events/common.json
+		libevents/scripts/combine.py
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	COMMENT "Generating combined event json file"
+)
+#add_custom_target(events_common_enums DEPENDS ${generated_events_common_enums_file})
+
+# generate header from common.json + our enums
 # (we don't add the definitions from the source as they are not needed and to
 # avoid additional dependencies)
 set(generated_events_header ${generated_events_dir}/events_generated.h)
@@ -82,9 +99,9 @@ add_custom_command(OUTPUT ${generated_events_header}
 	COMMAND ${PYTHON_EXECUTABLE} libevents/scripts/generate.py
 		--template libevents/libs/cpp/templates/events_generated.h.jinja
 		--output ${generated_events_dir}
-		libevents/events/common.json
+		${generated_events_common_enums_file}
 	DEPENDS
-		libevents/events/common.json
+		${generated_events_common_enums_file}
 		libevents/libs/cpp/templates/events_generated.h.jinja
 		libevents/scripts/generate.py
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
