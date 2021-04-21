@@ -43,6 +43,7 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -295,7 +296,7 @@ CameraTrigger::CameraTrigger() :
 		break;
 
 	default:
-		PX4_ERR("unknown camera interface mode: %i", (int)_camera_interface_mode);
+		PX4_ERR("unknown camera interface mode: %d", static_cast<int>(_camera_interface_mode));
 		break;
 	}
 
@@ -769,7 +770,7 @@ unknown_cmd:
 
 	// Command ACK handling
 	if (updated && need_ack) {
-		PX4_DEBUG("acknowledging command %d, result=%d", cmd.command, cmd_result);
+		PX4_DEBUG("acknowledging command %" PRId32 ", result=%u", cmd.command, cmd_result);
 		vehicle_command_ack_s command_ack{};
 		command_ack.command = cmd.command;
 		command_ack.result = (uint8_t)cmd_result;
@@ -897,7 +898,7 @@ CameraTrigger::status()
 {
 	PX4_INFO("main state : %s", _trigger_enabled ? "enabled" : "disabled");
 	PX4_INFO("pause state : %s", _trigger_paused ? "paused" : "active");
-	PX4_INFO("mode : %i", _trigger_mode);
+	PX4_INFO("mode : %d", static_cast<int>(_trigger_mode));
 
 	if (_trigger_mode == TRIGGER_MODE_INTERVAL_ALWAYS_ON ||
 	    _trigger_mode == TRIGGER_MODE_INTERVAL_ON_CMD) {
