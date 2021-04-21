@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1129,7 +1129,7 @@ PX4IO::task_main()
 				}
 
 				/* S.BUS output */
-				int sbus_mode;
+				long sbus_mode;
 				parm_handle = param_find("PWM_SBUS_MODE");
 
 				if (parm_handle != PARAM_INVALID) {
@@ -1231,7 +1231,7 @@ void PX4IO::update_params()
 
 			if (param_get(param_find(str), &pwm_min) == PX4_OK) {
 				if (pwm_min >= 0) {
-					pwm.values[i] = math::constrain(pwm_min, PWM_LOWEST_MIN, PWM_HIGHEST_MIN);
+					pwm.values[i] = math::constrain(pwm_min, static_cast<int32_t>(PWM_LOWEST_MIN), static_cast<int32_t>(PWM_HIGHEST_MIN));
 
 					if (pwm_min != pwm.values[i]) {
 						int32_t pwm_min_new = pwm.values[i];
@@ -1260,7 +1260,7 @@ void PX4IO::update_params()
 
 			if (param_get(param_find(str), &pwm_max) == PX4_OK) {
 				if (pwm_max >= 0) {
-					pwm.values[i] = math::constrain(pwm_max, PWM_LOWEST_MAX, PWM_HIGHEST_MAX);
+					pwm.values[i] = math::constrain(pwm_max, static_cast<int32_t>(PWM_LOWEST_MAX), static_cast<int32_t>(PWM_HIGHEST_MAX));
 
 					if (pwm_max != pwm.values[i]) {
 						int32_t pwm_max_new = pwm.values[i];
@@ -1289,7 +1289,7 @@ void PX4IO::update_params()
 
 			if (param_get(param_find(str), &pwm_fail) == PX4_OK) {
 				if (pwm_fail >= 0) {
-					pwm.values[i] = math::constrain(pwm_fail, 0, PWM_HIGHEST_MAX);
+					pwm.values[i] = math::constrain(pwm_fail, static_cast<int32_t>(0), static_cast<int32_t>(PWM_HIGHEST_MAX));
 
 					if (pwm_fail != pwm.values[i]) {
 						int32_t pwm_fail_new = pwm.values[i];
@@ -1315,7 +1315,7 @@ void PX4IO::update_params()
 
 			if (param_get(param_find(str), &pwm_dis) == PX4_OK) {
 				if (pwm_dis >= 0) {
-					pwm.values[i] = math::constrain(pwm_dis, 0, PWM_HIGHEST_MAX);
+					pwm.values[i] = math::constrain(pwm_dis, static_cast<int32_t>(0), static_cast<int32_t>(PWM_HIGHEST_MAX));
 
 					if (pwm_dis != pwm.values[i]) {
 						int32_t pwm_dis_new = pwm.values[i];
@@ -1511,7 +1511,7 @@ PX4IO::handle_motor_test()
 					    io_reg_get(PX4IO_PAGE_CONTROL_MAX_PWM, 0, pwm_max.values, _max_actuators) == 0) {
 
 						uint16_t value = math::constrain<uint16_t>(pwm_min.values[idx] +
-								 (uint16_t)((pwm_max.values[idx] - pwm_min.values[idx]) * test_motor.value),
+								 static_cast<uint16_t>(((pwm_max.values[idx] - pwm_min.values[idx]) * test_motor.value)),
 								 pwm_min.values[idx], pwm_max.values[idx]);
 						io_reg_set(PX4IO_PAGE_DIRECT_PWM, idx, value);
 					}
