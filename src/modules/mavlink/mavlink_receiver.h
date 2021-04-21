@@ -124,6 +124,8 @@ public:
 	void start();
 	void stop();
 
+	void print_detailed_rx_stats() const;
+
 private:
 	static void *start_trampoline(void *context);
 	void run();

@@ -3151,6 +3151,26 @@ void MavlinkReceiver::update_rx_stats(const mavlink_message_t &message)
 	}
 }
 
+void MavlinkReceiver::print_detailed_rx_stats() const
+{
+	const uint32_t now_ms = hrt_absolute_time() / 1000;
+
+	// TODO: add mutex around shared data.
+	for (unsigned i = 0; i < MAX_REMOTE_COMPONENTS; ++i) {
+		if (_component_states[i].received_messages > 0) {
+			printf("\t  received from %u/%u: %lu, lost: %lu, last %lu ms ago\n",
+			       _component_states[i].system_id,
+			       _component_states[i].component_id,
+			       _component_states[i].received_messages,
+			       _component_states[i].missed_messages,
+			       now_ms - _component_states[i].last_time_received_ms);
+
+		} else {
+			break;
+		}
+	}
+}
+
 void MavlinkReceiver::start()
 {
 	pthread_attr_t receiveloop_attr;
