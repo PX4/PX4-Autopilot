@@ -14,7 +14,7 @@
  *
  * Derived from drivers/mtd/m25px.c
  *
- *   Copyright (C) 2009-2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2011, 2021 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,6 +55,7 @@
 #include <px4_platform_common/time.h>
 
 #include <sys/types.h>
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -270,7 +271,7 @@ void at24c_test(void)
 			}
 
 		} else if (result != 1) {
-			syslog(LOG_INFO, "unexpected %u\n", result);
+			syslog(LOG_INFO, "unexpected %zu\n", result);
 		}
 
 		if ((count % 100) == 0) {
@@ -314,7 +315,7 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
 #endif
 	blocksleft  = nblocks;
 
-	finfo("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
+	finfo("startblock: %08jx nblocks: %zu\n", (intmax_t)startblock, nblocks);
 
 	if (startblock >= priv->npages) {
 		return 0;
@@ -409,7 +410,7 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
 		nblocks = priv->npages - startblock;
 	}
 
-	finfo("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
+	finfo("startblock: %08jx nblocks: %zu\n", (intmax_t)startblock, nblocks);
 
 	BOARD_EEPROM_WP_CTRL(false);
 
@@ -505,7 +506,7 @@ static int at24c_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
 #endif
 				ret               = OK;
 
-				finfo("blocksize: %d erasesize: %d neraseblocks: %d\n",
+				finfo("blocksize: %" PRId32 " erasesize: %" PRId32 " neraseblocks: %" PRId32 "\n",
 				      geo->blocksize, geo->erasesize, geo->neraseblocks);
 			}
 		}
