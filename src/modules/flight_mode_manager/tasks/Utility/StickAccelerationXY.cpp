@@ -78,7 +78,7 @@ void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, 
 	Sticks::limitStickUnitLengthXY(stick_xy);
 	Sticks::rotateIntoHeadingFrameXY(stick_xy, yaw, yaw_sp);
 	_acceleration_setpoint = stick_xy.emult(acceleration_scale);
-	applyFeasibilityLimit(dt);
+	applyJerkLimit(dt);
 
 	// Add drag to limit speed and brake again
 	Vector2f drag = calculateDrag(acceleration_scale.edivide(velocity_scale), dt, stick_xy, _velocity_setpoint);
@@ -109,7 +109,7 @@ void StickAccelerationXY::getSetpoints(Vector3f &pos_sp, Vector3f &vel_sp, Vecto
 	acc_sp.xy() = _acceleration_setpoint;
 }
 
-void StickAccelerationXY::applyFeasibilityLimit(const float dt)
+void StickAccelerationXY::applyJerkLimit(const float dt)
 {
 	// Apply jerk limit - acceleration slew rate
 	// Scale each jerk limit with the normalized projection of the acceleration
