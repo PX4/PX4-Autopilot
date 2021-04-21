@@ -2887,11 +2887,8 @@ MavlinkReceiver::handle_message_gimbal_device_information(mavlink_message_t *msg
 	_gimbal_device_information_pub.publish(gimbal_information);
 }
 
-/**
- * Receive data from UART/UDP
- */
 void
-MavlinkReceiver::Run()
+MavlinkReceiver::run()
 {
 	/* set thread name */
 	{
@@ -3154,17 +3151,7 @@ void MavlinkReceiver::update_rx_stats(const mavlink_message_t &message)
 	}
 }
 
-void *
-MavlinkReceiver::start_helper(void *context)
-{
-	MavlinkReceiver rcv{(Mavlink *)context};
-	rcv.Run();
-
-	return nullptr;
-}
-
-void
-MavlinkReceiver::receive_start(pthread_t *thread, Mavlink *parent)
+void MavlinkReceiver::start()
 {
 	pthread_attr_t receiveloop_attr;
 	pthread_attr_init(&receiveloop_attr);
@@ -3177,7 +3164,20 @@ MavlinkReceiver::receive_start(pthread_t *thread, Mavlink *parent)
 	pthread_attr_setstacksize(&receiveloop_attr,
 				  PX4_STACK_ADJUSTED(sizeof(MavlinkReceiver) + 2840 + MAVLINK_RECEIVER_NET_ADDED_STACK));
 
-	pthread_create(thread, &receiveloop_attr, MavlinkReceiver::start_helper, (void *)parent);
+	pthread_create(_thread, &receiveloop_attr, MavlinkReceiver::start_trampoline, this);
 
 	pthread_attr_destroy(&receiveloop_attr);
+}
+
+void *MavlinkReceiver::start_trampoline(void *context)
+{
+	MavlinkReceiver *self = reinterpret_cast<MavlinkReceiver *>(context);
+	self->run();
+	return nullptr;
+}
+
+void MavlinkReceiver::stop()
+{
+	_should_exit.store(true);
+	pthread_join(*_thread, nullptr);
 }
