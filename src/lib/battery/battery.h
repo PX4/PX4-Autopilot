@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -128,24 +128,24 @@ protected:
 	struct {
 		float v_empty;
 		float v_charged;
-		int n_cells;
+		int32_t  n_cells;
 		float capacity;
 		float v_load_drop;
 		float r_internal;
 		float low_thr;
 		float crit_thr;
 		float emergen_thr;
-		int source;
+		int32_t source;
 
 		// TODO: These parameters are depracated. They can be removed entirely once the
 		//  new version of Firmware has been around for long enough.
 		float v_empty_old;
 		float v_charged_old;
-		int n_cells_old;
+		int32_t  n_cells_old;
 		float capacity_old;
 		float v_load_drop_old;
 		float r_internal_old;
-		int source_old;
+		int32_t source_old;
 	} _params{};
 
 	battery_status_s _battery_status{};
