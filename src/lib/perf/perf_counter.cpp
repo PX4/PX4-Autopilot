@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016, 2021, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +37,7 @@
  * @brief Performance measuring tools.
  */
 
+#include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -436,21 +437,22 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 
 	switch (handle->type) {
 	case PC_COUNT:
-		dprintf(fd, "%s: %llu events\n",
+		dprintf(fd, "%s: %" PRIu64 " events\n",
 			handle->name,
-			(unsigned long long)((struct perf_ctr_count *)handle)->event_count);
+			((struct perf_ctr_count *)handle)->event_count);
 		break;
 
 	case PC_ELAPSED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 			float rms = sqrtf(pce->M2 / (pce->event_count - 1));
-			dprintf(fd, "%s: %llu events, %lluus elapsed, %.2fus avg, min %lluus max %lluus %5.3fus rms\n",
+			dprintf(fd, "%s: %" PRIu64 " events, %" PRIu64 "us elapsed, %.2fus avg, min %" PRIu32 "us max %" PRIu32
+				"us %5.3fus rms\n",
 				handle->name,
-				(unsigned long long)pce->event_count,
-				(unsigned long long)pce->time_total,
+				pce->event_count,
+				pce->time_total,
 				(pce->event_count == 0) ? 0 : (double)pce->time_total / (double)pce->event_count,
-				(unsigned long long)pce->time_least,
-				(unsigned long long)pce->time_most,
+				pce->time_least,
+				pce->time_most,
 				(double)(1e6f * rms));
 			break;
 		}
@@ -459,12 +461,12 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
 			float rms = sqrtf(pci->M2 / (pci->event_count - 1));
 
-			dprintf(fd, "%s: %llu events, %.2fus avg, min %lluus max %lluus %5.3fus rms\n",
+			dprintf(fd, "%s: %" PRIu64 " events, %.2fus avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms\n",
 				handle->name,
-				(unsigned long long)pci->event_count,
+				pci->event_count,
 				(pci->event_count == 0) ? 0 : (double)(pci->time_last - pci->time_first) / (double)pci->event_count,
-				(unsigned long long)pci->time_least,
-				(unsigned long long)pci->time_most,
+				pci->time_least,
+				pci->time_most,
 				(double)(1e6f * rms));
 			break;
 		}
@@ -486,21 +488,22 @@ perf_print_counter_buffer(char *buffer, int length, perf_counter_t handle)
 
 	switch (handle->type) {
 	case PC_COUNT:
-		num_written = snprintf(buffer, length, "%s: %llu events",
+		num_written = snprintf(buffer, length, "%s: %" PRIu64 " events",
 				       handle->name,
-				       (unsigned long long)((struct perf_ctr_count *)handle)->event_count);
+				       ((struct perf_ctr_count *)handle)->event_count);
 		break;
 
 	case PC_ELAPSED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 			float rms = sqrtf(pce->M2 / (pce->event_count - 1));
-			num_written = snprintf(buffer, length, "%s: %llu events, %lluus elapsed, %.2fus avg, min %lluus max %lluus %5.3fus rms",
+			num_written = snprintf(buffer, length,
+					       "%s: %" PRIu64 " events, %" PRIu64 "us elapsed, %.2fus avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms",
 					       handle->name,
-					       (unsigned long long)pce->event_count,
-					       (unsigned long long)pce->time_total,
+					       pce->event_count,
+					       pce->time_total,
 					       (pce->event_count == 0) ? 0 : (double)pce->time_total / (double)pce->event_count,
-					       (unsigned long long)pce->time_least,
-					       (unsigned long long)pce->time_most,
+					       pce->time_least,
+					       pce->time_most,
 					       (double)(1e6f * rms));
 			break;
 		}
@@ -509,12 +512,13 @@ perf_print_counter_buffer(char *buffer, int length, perf_counter_t handle)
 			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
 			float rms = sqrtf(pci->M2 / (pci->event_count - 1));
 
-			num_written = snprintf(buffer, length, "%s: %llu events, %.2f avg, min %lluus max %lluus %5.3fus rms",
+			num_written = snprintf(buffer, length,
+					       "%s: %" PRIu64 " events, %.2f avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms",
 					       handle->name,
-					       (unsigned long long)pci->event_count,
+					       pci->event_count,
 					       (pci->event_count == 0) ? 0 : (double)(pci->time_last - pci->time_first) / (double)pci->event_count,
-					       (unsigned long long)pci->time_least,
-					       (unsigned long long)pci->time_most,
+					       pci->time_least,
+					       pci->time_most,
 					       (double)(1e6f * rms));
 			break;
 		}
@@ -618,7 +622,8 @@ perf_print_latency(int fd)
 	}
 
 	// print the overflow bucket value
-	dprintf(fd, " >%4i : %i\n", latency_buckets[latency_bucket_count - 1], latency_counters[latency_bucket_count]);
+	dprintf(fd, " >%4" PRIu16 " : %" PRIu32 "\n", latency_buckets[latency_bucket_count - 1],
+		latency_counters[latency_bucket_count]);
 }
 
 void
