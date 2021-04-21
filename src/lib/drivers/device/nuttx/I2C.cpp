@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -114,7 +114,7 @@ I2C::init()
 	if (_bus_clocks[bus_index] > _frequency) {
 		(void)px4_i2cbus_uninitialize(_dev);
 		_dev = nullptr;
-		DEVICE_LOG("FAIL: too slow for bus #%u: %u KHz, device max: %u KHz)",
+		DEVICE_LOG("FAIL: too slow for bus #%u: %u KHz, device max: %" PRIu32 " KHz)",
 			   get_device_bus(), _bus_clocks[bus_index] / 1000, _frequency / 1000);
 		ret = -EINVAL;
 		goto out;
@@ -153,7 +153,7 @@ I2C::init()
 	}
 
 	// tell the world where we are
-	DEVICE_DEBUG("on I2C bus %d at 0x%02x (bus: %u KHz, max: %u KHz)",
+	DEVICE_DEBUG("on I2C bus %d at 0x%02x (bus: %u KHz, max: %" PRIu32 " KHz)",
 		     get_device_bus(), get_device_address(), _bus_clocks[bus_index] / 1000, _frequency / 1000);
 
 out:
