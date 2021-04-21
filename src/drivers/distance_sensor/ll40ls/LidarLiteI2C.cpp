@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2019, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -83,7 +83,7 @@ LidarLiteI2C::print_status()
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_sensor_resets);
 	perf_print_counter(_sensor_zero_resets);
-	printf("poll interval:  %u \n", get_measure_interval());
+	printf("poll interval:  %" PRIu32 "\n", get_measure_interval());
 }
 
 int
@@ -152,12 +152,12 @@ LidarLiteI2C::probe()
 
 				if (_unit_id > 0) {
 					// v2
-					PX4_INFO("probe success - hw: %u, sw:%u, id: %u", _hw_version, _sw_version, _unit_id);
+					PX4_INFO("probe success - hw: %" PRIu8 ", sw:%" PRIu8 ", id: %" PRIu16, _hw_version, _sw_version, _unit_id);
 					_px4_rangefinder.set_max_distance(LL40LS_MAX_DISTANCE_V2);
 
 				} else {
 					// v1 and v3
-					PX4_INFO("probe success - hw: %u, sw:%u", _hw_version, _sw_version);
+					PX4_INFO("probe success - hw: %" PRIu8 ", sw:%" PRIu8, _hw_version, _sw_version);
 				}
 
 			} else {
@@ -165,7 +165,7 @@ LidarLiteI2C::probe()
 				if (_unit_id > 0) {
 					// v3hp
 					_is_v3hp = true;
-					PX4_INFO("probe success - id: %u", _unit_id);
+					PX4_INFO("probe success - id: %" PRIu16, _unit_id);
 				}
 			}
 
@@ -173,10 +173,8 @@ LidarLiteI2C::probe()
 			return OK;
 		}
 
-		PX4_DEBUG("probe failed unit_id=0x%02x hw_version=0x%02x sw_version=0x%02x",
-			  (unsigned)_unit_id,
-			  (unsigned)_hw_version,
-			  (unsigned)_sw_version);
+		PX4_DEBUG("probe failed unit_id=0x%02" PRIx16 " hw_version=0x%02" PRIu8 " sw_version=0x%02" PRIu8,
+			  _unit_id,  _hw_version, _sw_version);
 
 	}
 
@@ -273,10 +271,10 @@ LidarLiteI2C::print_registers()
 		int ret = lidar_transfer(&reg, 1, &val, 1);
 
 		if (ret != OK) {
-			printf("%02x:XX ", (unsigned)reg);
+			printf("%02" PRIx8 ":XX ", reg);
 
 		} else {
-			printf("%02x:%02x ", (unsigned)reg, (unsigned)val);
+			printf("%02" PRIx8 ":%02" PRIu8, reg, val);
 		}
 
 		if (reg % 16 == 15) {
