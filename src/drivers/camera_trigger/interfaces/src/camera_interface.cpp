@@ -44,7 +44,7 @@ void CameraInterface::get_pins()
 		return;
 	}
 
-	int pin_list;
+	int32_t pin_list;
 	param_get(_p_pin, &pin_list);
 
 	// Set all pins as invalid
