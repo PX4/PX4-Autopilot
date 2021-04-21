@@ -226,7 +226,7 @@ private:
 	void update_rx_stats(const mavlink_message_t &message);
 
 	px4::atomic_bool 	_should_exit{false};
-	pthread_t		*_thread {};
+	pthread_t		_thread {};
 
 	Mavlink				*_mavlink;
 
