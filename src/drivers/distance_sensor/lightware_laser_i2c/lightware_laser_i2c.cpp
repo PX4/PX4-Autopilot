@@ -200,7 +200,7 @@ int LightwareLaser::init()
 		break;
 
 	default:
-		PX4_ERR("invalid HW model %d.", hw_model);
+		PX4_ERR("invalid HW model %" PRId32 ".", hw_model);
 		return ret;
 	}
 
@@ -265,7 +265,7 @@ int LightwareLaser::enableI2CBinaryProtocol()
 		return ret;
 	}
 
-	PX4_DEBUG("protocol values: 0x%x 0x%x", value[0], value[1]);
+	PX4_DEBUG("protocol values: 0x%" PRIx8 " 0x%" PRIx8, value[0], value[1]);
 
 	return (value[0] == 0xcc && value[1] == 0x00) ? 0 : -1;
 }
@@ -348,7 +348,7 @@ int LightwareLaser::collect()
 		perf_end(_sample_perf);
 
 		// compare different outputs (median filter adds about 25ms delay)
-		PX4_DEBUG("fm: %4i, fs: %2i%%, lm: %4i, lr: %4i, fs: %2i%%, n: %i",
+		PX4_DEBUG("fm: %4" PRIi16 ", fs: %2" PRIi16 "%%, lm: %4" PRIi16 ", lr: %4" PRIi16 ", fs: %2" PRIi16 "%%, n: %" PRIi16,
 			  data.first_return_median, data.first_return_strength, data.last_return_median, data.last_return_raw,
 			  data.last_return_strength, data.background_noise);
 
