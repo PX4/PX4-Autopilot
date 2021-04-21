@@ -94,7 +94,8 @@ hrt_abstime Mavlink::_first_start_time = {0};
 bool Mavlink::_boot_complete = false;
 
 Mavlink::Mavlink() :
-	ModuleParams(nullptr)
+	ModuleParams(nullptr),
+	_receiver(this)
 {
 	// initialise parameter cache
 	mavlink_update_parameters();
@@ -2229,8 +2230,7 @@ Mavlink::task_main(int argc, char *argv[])
 		send_autopilot_capabilities();
 	}
 
-	/* start the MAVLink receiver last to avoid a race */
-	MavlinkReceiver::receive_start(&_receive_thread, this);
+	_receiver.start();
 
 	_mavlink_start_time = hrt_absolute_time();
 
@@ -2513,8 +2513,7 @@ Mavlink::task_main(int argc, char *argv[])
 		perf_end(_loop_perf);
 	}
 
-	/* first wait for threads to complete before tearing down anything */
-	pthread_join(_receive_thread, nullptr);
+	_receiver.stop();
 
 	delete _subscribe_to_stream;
 	_subscribe_to_stream = nullptr;
