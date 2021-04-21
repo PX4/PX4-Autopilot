@@ -245,7 +245,7 @@ SRF05::print_status()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_sensor_resets);
-	printf("poll interval:  %u \n", get_measure_interval());
+	printf("poll interval:  %" PRIu32 " \n", get_measure_interval());
 	return 0;
 }
 
