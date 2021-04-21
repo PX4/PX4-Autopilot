@@ -2417,10 +2417,10 @@ Mavlink::task_main(int argc, char *argv[])
 
 		/* check for ulog streaming messages */
 		if (_mavlink_ulog) {
-			if (_mavlink_ulog_stop_requested) {
+			if (_mavlink_ulog_stop_requested.load()) {
 				_mavlink_ulog->stop();
 				_mavlink_ulog = nullptr;
-				_mavlink_ulog_stop_requested = false;
+				_mavlink_ulog_stop_requested.store(false);
 
 			} else {
 				if (cmd_logging_start_acknowledgement) {
