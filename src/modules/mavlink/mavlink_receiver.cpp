@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,43 +70,6 @@
 #else
 #define MAVLINK_RECEIVER_NET_ADDED_STACK 0
 #endif
-
-const uint8_t MavlinkReceiver::supported_component_map[COMP_ID_MAX] = {
-	[COMP_ID_ALL]                      = MAV_COMP_ID_ALL,
-	[COMP_ID_AUTOPILOT1]               = MAV_COMP_ID_AUTOPILOT1,
-
-	[COMP_ID_TELEMETRY_RADIO]          = MAV_COMP_ID_TELEMETRY_RADIO,
-
-	[COMP_ID_CAMERA]                   = MAV_COMP_ID_CAMERA,
-	[COMP_ID_CAMERA2]                  = MAV_COMP_ID_CAMERA2,
-
-	[COMP_ID_GIMBAL]                   = MAV_COMP_ID_GIMBAL,
-	[COMP_ID_LOG]                      = MAV_COMP_ID_LOG,
-	[COMP_ID_ADSB]                     = MAV_COMP_ID_ADSB,
-	[COMP_ID_OSD]                      = MAV_COMP_ID_OSD,
-	[COMP_ID_PERIPHERAL]               = MAV_COMP_ID_PERIPHERAL,
-
-	[COMP_ID_FLARM]                    = MAV_COMP_ID_FLARM,
-
-	[COMP_ID_GIMBAL2]                  = MAV_COMP_ID_GIMBAL2,
-
-	[COMP_ID_MISSIONPLANNER]           = MAV_COMP_ID_MISSIONPLANNER,
-	[COMP_ID_ONBOARD_COMPUTER]         = MAV_COMP_ID_ONBOARD_COMPUTER,
-
-	[COMP_ID_PATHPLANNER]              = MAV_COMP_ID_PATHPLANNER,
-	[COMP_ID_OBSTACLE_AVOIDANCE]       = MAV_COMP_ID_OBSTACLE_AVOIDANCE,
-	[COMP_ID_VISUAL_INERTIAL_ODOMETRY] = MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY,
-	[COMP_ID_PAIRING_MANAGER]          = MAV_COMP_ID_PAIRING_MANAGER,
-
-	[COMP_ID_IMU]                      = MAV_COMP_ID_IMU,
-
-	[COMP_ID_GPS]                      = MAV_COMP_ID_GPS,
-	[COMP_ID_GPS2]                     = MAV_COMP_ID_GPS2,
-
-	[COMP_ID_UDP_BRIDGE]               = MAV_COMP_ID_UDP_BRIDGE,
-	[COMP_ID_UART_BRIDGE]              = MAV_COMP_ID_UART_BRIDGE,
-	[COMP_ID_TUNNEL_NODE]              = MAV_COMP_ID_TUNNEL_NODE,
-};
 
 MavlinkReceiver::~MavlinkReceiver()
 {
@@ -3045,7 +3008,6 @@ MavlinkReceiver::Run()
 				/* if read failed, this loop won't execute */
 				for (ssize_t i = 0; i < nread; i++) {
 					if (mavlink_parse_char(_mavlink->get_channel(), buf[i], &msg, &_status)) {
-						_total_received_counter++;
 
 						/* check if we received version 2 and request a switch. */
 						if (!(_mavlink->get_status()->flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1)) {
@@ -3077,99 +3039,7 @@ MavlinkReceiver::Run()
 						/* handle packet with parent object */
 						_mavlink->handle_message(&msg);
 
-
-						// calculate lost messages for this system id
-						bool px4_sysid_index_found = false;
-						int px4_sysid_index = 0;
-
-						if (msg.sysid != mavlink_system.sysid) {
-							for (int sys_id = 1; sys_id < MAX_REMOTE_SYSTEM_IDS; sys_id++) {
-								if (_system_id_map[sys_id] == msg.sysid) {
-									// slot found
-									px4_sysid_index_found = true;
-									px4_sysid_index = sys_id;
-									break;
-								}
-							}
-
-							// otherwise record newly seen system id in first available slot
-							if (!px4_sysid_index_found) {
-								for (int sys_id = 1; sys_id < MAX_REMOTE_SYSTEM_IDS; sys_id++) {
-									if (_system_id_map[sys_id] == 0) {
-										// slot available
-										px4_sysid_index_found = true;
-										px4_sysid_index = sys_id;
-										_system_id_map[sys_id] = msg.sysid;
-										break;
-									}
-								}
-							}
-
-							if (!px4_sysid_index_found) {
-								PX4_ERR("not enough system id slots (%d)", MAX_REMOTE_SYSTEM_IDS);
-							}
-
-						} else {
-							px4_sysid_index_found = true;
-						}
-
-						// find PX4 component id
-						uint8_t px4_comp_id = 0;
-						bool px4_comp_id_found = false;
-
-						for (int id = 0; id < COMP_ID_MAX; id++) {
-							if (supported_component_map[id] == msg.compid) {
-								px4_comp_id = id;
-								px4_comp_id_found = true;
-								break;
-							}
-						}
-
-						if (!px4_comp_id_found && !_reported_unsupported_comp_id) {
-							PX4_WARN("unsupported component id, msgid: %d, sysid: %d compid: %d", msg.msgid, msg.sysid, msg.compid);
-							_reported_unsupported_comp_id = true;
-						}
-
-						if (px4_comp_id_found && px4_sysid_index_found) {
-							// Increase receive counter
-							_total_received_supported_counter++;
-
-							uint8_t last_seq = _last_index[px4_sysid_index][px4_comp_id];
-							uint8_t expected_seq = last_seq + 1;
-
-							// Determine what the next expected sequence number is, accounting for
-							// never having seen a message for this system/component pair.
-							if (!_sys_comp_present[px4_sysid_index][px4_comp_id]) {
-								_sys_comp_present[px4_sysid_index][px4_comp_id] = true;
-								last_seq = msg.seq;
-								expected_seq = msg.seq;
-							}
-
-							// And if we didn't encounter that sequence number, record the error
-							if (msg.seq != expected_seq) {
-								int lost_messages = 0;
-
-								// Account for overflow during packet loss
-								if (msg.seq < expected_seq) {
-									lost_messages = (msg.seq + 255) - expected_seq;
-
-								} else {
-									lost_messages = msg.seq - expected_seq;
-								}
-
-								// Log how many were lost
-								_total_lost_counter += lost_messages;
-							}
-
-							// And update the last sequence number for this system/component pair
-							_last_index[px4_sysid_index][px4_comp_id] = msg.seq;
-
-							// Calculate new loss ratio
-							const float total_sent = _total_received_supported_counter + _total_lost_counter;
-							float rx_loss_percent = (_total_lost_counter / total_sent) * 100.f;
-
-							_running_loss_percent = (rx_loss_percent * 0.5f) + (_running_loss_percent * 0.5f);
-						}
+						update_rx_stats(msg);
 					}
 				}
 
@@ -3179,9 +3049,8 @@ MavlinkReceiver::Run()
 
 					telemetry_status_s &tstatus = _mavlink->telemetry_status();
 					tstatus.rx_message_count = _total_received_counter;
-					tstatus.rx_message_count_supported = _total_received_supported_counter;
 					tstatus.rx_message_lost_count = _total_lost_counter;
-					tstatus.rx_message_lost_rate = _running_loss_percent;
+					tstatus.rx_message_lost_rate = static_cast<float>(_total_lost_counter) / static_cast<float>(_total_received_counter);
 
 					if (_mavlink_status_last_buffer_overrun != _status.buffer_overrun) {
 						tstatus.rx_buffer_overruns++;
@@ -3229,6 +3098,59 @@ MavlinkReceiver::Run()
 		if (_tune_publisher != nullptr) {
 			_tune_publisher->publish_next_tune(t);
 		}
+	}
+}
+
+void MavlinkReceiver::update_rx_stats(const mavlink_message_t &message)
+{
+	const bool component_states_has_still_space = [this, &message]() {
+		for (unsigned i = 0; i < MAX_REMOTE_COMPONENTS; ++i) {
+			if (_component_states[i].system_id == message.sysid && _component_states[i].component_id == message.compid) {
+
+				int lost_messages = 0;
+				const uint8_t expected_seq = _component_states[i].last_sequence + 1;
+
+				// Account for overflow during packet loss
+				if (message.seq < expected_seq) {
+					lost_messages = (message.seq + 255) - expected_seq;
+
+				} else {
+					lost_messages = message.seq - expected_seq;
+				}
+
+				_component_states[i].missed_messages += lost_messages;
+
+				++_component_states[i].received_messages;
+				_component_states[i].last_time_received_ms = hrt_absolute_time() / 1000;
+				_component_states[i].last_sequence = message.seq;
+
+				// Also update overall stats
+				++_total_received_counter;
+				_total_lost_counter += lost_messages;
+
+				return true;
+
+			} else if (_component_states[i].system_id == 0 && _component_states[i].component_id == 0) {
+				_component_states[i].system_id = message.sysid;
+				_component_states[i].component_id = message.compid;
+
+				++_component_states[i].received_messages;
+				_component_states[i].last_time_received_ms = hrt_absolute_time() / 1000;
+				_component_states[i].last_sequence = message.seq;
+
+				// Also update overall stats
+				++_total_received_counter;
+
+				return true;
+			}
+		}
+
+		return false;
+	}();
+
+	if (!component_states_has_still_space && !_warned_component_states_full_once) {
+		PX4_WARN("Max remote components of %u used up", MAX_REMOTE_COMPONENTS);
+		_warned_component_states_full_once = true;
 	}
 }
 
