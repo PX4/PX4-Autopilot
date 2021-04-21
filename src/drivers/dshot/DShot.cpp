@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -299,7 +299,8 @@ void DShot::capture_trampoline(void *context, const uint32_t channel_index, cons
 void DShot::capture_callback(const uint32_t channel_index, const hrt_abstime edge_time,
 			     const uint32_t edge_state, const uint32_t overflow)
 {
-	fprintf(stdout, "DShot: Capture chan:%d time:%lld state:%d overflow:%d\n", channel_index, edge_time, edge_state,
+	fprintf(stdout, "DShot: Capture chan:%" PRId32 " time:%" PRId64 " state:%" PRId32 " overflow:%" PRId32 "\n",
+		channel_index, edge_time, edge_state,
 		overflow);
 }
 
