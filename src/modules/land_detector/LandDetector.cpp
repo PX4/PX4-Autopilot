@@ -100,16 +100,14 @@ void LandDetector::Run()
 		// we consider the distance to the ground observable if the system is using a range sensor
 		_dist_bottom_is_observable = _vehicle_local_position.dist_bottom_sensor_bitfield &
 					     vehicle_local_position_s::DIST_BOTTOM_SENSOR_RANGE;
+	}
+
+	// Increase land detection time if not close to ground
+	if (_dist_bottom_is_observable && !_vehicle_local_position.dist_bottom_valid) {
+		_set_hysteresis_factor(3);
 
 	} else {
-		if (!_high_hysteresis_active && !_vehicle_local_position.dist_bottom_valid) {
-			_set_hysteresis_factor(3);
-			_high_hysteresis_active = true;
-
-		} else if (_high_hysteresis_active && _vehicle_local_position.dist_bottom_valid) {
-			_set_hysteresis_factor(1);
-			_high_hysteresis_active = false;
-		}
+		_set_hysteresis_factor(1);
 	}
 
 	const hrt_abstime now_us = hrt_absolute_time();

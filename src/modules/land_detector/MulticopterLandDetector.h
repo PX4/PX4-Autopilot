@@ -87,15 +87,6 @@ private:
 	/** Time in us that freefall has to hold before triggering freefall */
 	static constexpr hrt_abstime FREEFALL_TRIGGER_TIME_US = 300_ms;
 
-	/** Time in us that ground contact condition have to hold before triggering contact ground */
-	static constexpr hrt_abstime GROUND_CONTACT_TRIGGER_TIME_US = 350_ms;
-
-	/** Time in us that almost landing conditions have to hold before triggering almost landed . */
-	static constexpr hrt_abstime MAYBE_LAND_DETECTOR_TRIGGER_TIME_US = 250_ms;
-
-	/** Time in us that landing conditions have to hold before triggering a land. */
-	static constexpr hrt_abstime LAND_DETECTOR_TRIGGER_TIME_US = 300_ms;
-
 	/** Time interval in us in which wider acceptance thresholds are used after landed. */
 	static constexpr hrt_abstime LAND_DETECTOR_LAND_PHASE_TIME_US = 2_s;
 
@@ -148,6 +139,7 @@ private:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		LandDetector,
+		(ParamFloat<px4::params::LNDMC_TRIG_TIME>)   _param_lndmc_trig_time,
 		(ParamFloat<px4::params::LNDMC_ALT_MAX>)    _param_lndmc_alt_max,
 		(ParamFloat<px4::params::LNDMC_ROT_MAX>)    _param_lndmc_rot_max,
 		(ParamFloat<px4::params::LNDMC_XY_VEL_MAX>) _param_lndmc_xy_vel_max,
