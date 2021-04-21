@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -225,6 +225,7 @@ private:
 
 	void schedule_tune(const char *tune);
 
+	void update_rx_stats(const mavlink_message_t &message);
 
 	Mavlink				*_mavlink;
 
@@ -238,60 +239,20 @@ private:
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
-	// subset of MAV_COMPONENTs we support
-	enum SUPPORTED_COMPONENTS : uint8_t {
-		COMP_ID_ALL,
-		COMP_ID_AUTOPILOT1,
-
-		COMP_ID_TELEMETRY_RADIO,
-
-		COMP_ID_CAMERA,
-		COMP_ID_CAMERA2,
-
-		COMP_ID_GIMBAL,
-		COMP_ID_LOG,
-		COMP_ID_ADSB,
-		COMP_ID_OSD,
-		COMP_ID_PERIPHERAL,
-
-		COMP_ID_FLARM,
-
-		COMP_ID_GIMBAL2,
-
-		COMP_ID_MISSIONPLANNER,
-		COMP_ID_ONBOARD_COMPUTER,
-
-		COMP_ID_PATHPLANNER,
-		COMP_ID_OBSTACLE_AVOIDANCE,
-		COMP_ID_VISUAL_INERTIAL_ODOMETRY,
-		COMP_ID_PAIRING_MANAGER,
-
-		COMP_ID_IMU,
-
-		COMP_ID_GPS,
-		COMP_ID_GPS2,
-
-		COMP_ID_UDP_BRIDGE,
-		COMP_ID_UART_BRIDGE,
-		COMP_ID_TUNNEL_NODE,
-
-		COMP_ID_MAX
+	static constexpr int MAX_REMOTE_COMPONENTS{8};
+	struct ComponentState {
+		uint32_t last_time_received_ms{0};
+		uint32_t received_messages{0};
+		uint32_t missed_messages{0};
+		uint8_t system_id{0};
+		uint8_t component_id{0};
+		uint8_t last_sequence{0};
 	};
+	ComponentState _component_states[MAX_REMOTE_COMPONENTS] {};
+	bool _warned_component_states_full_once{false};
 
-	// map of supported component IDs to MAV_COMP value
-	static const uint8_t supported_component_map[COMP_ID_MAX];
-
-	bool _reported_unsupported_comp_id{false};
-
-	static constexpr int MAX_REMOTE_SYSTEM_IDS{8};
-	uint8_t _system_id_map[MAX_REMOTE_SYSTEM_IDS] {};
-
-	uint8_t  _last_index[MAX_REMOTE_SYSTEM_IDS][COMP_ID_MAX] {};    ///< Store the last received sequence ID for each system/componenet pair
-	uint8_t  _sys_comp_present[MAX_REMOTE_SYSTEM_IDS][COMP_ID_MAX] {}; ///< First message flag
 	uint64_t _total_received_counter{0};                            ///< The total number of successfully received messages
-	uint64_t _total_received_supported_counter{0};                  ///< The total number of successfully received messages
 	uint64_t _total_lost_counter{0};                                ///< Total messages lost during transmission.
-	float    _running_loss_percent{0};                              ///< Loss rate
 
 	uint8_t _mavlink_status_last_buffer_overrun{0};
 	uint8_t _mavlink_status_last_parse_error{0};

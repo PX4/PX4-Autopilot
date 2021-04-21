@@ -28,7 +28,6 @@ uint32 tx_buffer_overruns               # number of TX buffer overruns
 
 float32 rx_rate_avg                     # transmit rate average (Bytes/s)
 uint32 rx_message_count                 # count of total messages received
-uint32 rx_message_count_supported       # count of total messages received from supported systems and components (for loss statistics)
 uint32 rx_message_lost_count
 uint32 rx_buffer_overruns               # number of RX buffer overruns
 uint32 rx_parse_errors                  # number of parse errors
