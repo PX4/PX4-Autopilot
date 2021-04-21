@@ -20,7 +20,7 @@ bool FlightTask::activate(const vehicle_local_position_setpoint_s &last_setpoint
 
 void FlightTask::reActivate()
 {
-	activate(getPositionSetpoint());
+	activate(empty_setpoint);
 }
 
 bool FlightTask::updateInitialize()
