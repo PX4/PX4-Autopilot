@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -172,7 +172,7 @@ MavlinkLogHandler::_log_request_list(const mavlink_message_t *msg)
 			      _log_count - 1;
 	}
 
-	PX4LOG_WARN("\nMavlinkLogHandler::_log_request_list: start: %u last: %u count: %u",
+	PX4LOG_WARN("\nMavlinkLogHandler::_log_request_list: start: %d last: %d count: %d",
 		    _next_entry,
 		    _last_entry,
 		    _log_count);
@@ -195,7 +195,7 @@ MavlinkLogHandler::_log_request_data(const mavlink_message_t *msg)
 
 	//-- Does the requested log exist?
 	if (request.id >= _log_count) {
-		PX4LOG_WARN("MavlinkLogHandler::_log_request_data Requested log %u but we only have %u.", request.id,
+		PX4LOG_WARN("MavlinkLogHandler::_log_request_data Requested log %" PRIu16 " but we only have %u.", request.id,
 			    _log_count);
 		return;
 	}
@@ -282,7 +282,8 @@ MavlinkLogHandler::_log_send_listing()
 		_next_entry++;
 	}
 
-	PX4LOG_WARN("MavlinkLogHandler::_log_send_listing id: %u count: %u last: %u size: %u date: %u status: %d",
+	PX4LOG_WARN("MavlinkLogHandler::_log_send_listing id: %" PRIu16 " count: %" PRIu16 " last: %" PRIu16 " size: %" PRIu32
+		    " date: %" PRIu32 " status: %" PRIu32,
 		    response.id,
 		    response.num_logs,
 		    response.last_log_num,
@@ -353,7 +354,7 @@ MavlinkLogHandler::_get_entry(int idx, uint32_t &size, uint32_t &date, char *fil
 			if (count++ == idx) {
 				char file[160];
 
-				if (sscanf(line, "%u %u %s", &date, &size, file) == 3) {
+				if (sscanf(line, "%" PRIu32 " %" PRIu32 " %s", &date, &size, file) == 3) {
 					if (filename && filename_len > 0) {
 						strncpy(filename, file, filename_len);
 						filename[filename_len - 1] = 0; // ensure null-termination
