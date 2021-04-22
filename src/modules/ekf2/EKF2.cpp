@@ -1533,14 +1533,14 @@ void EKF2::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
 		// check if magnetometer has changed
 		if (magnetometer.device_id != _device_id_mag) {
 			if (_device_id_mag != 0) {
-				PX4_WARN("%d - mag sensor ID changed %d -> %d", _instance, _device_id_mag, magnetometer.device_id);
+				PX4_WARN("%d - mag sensor ID changed %" PRIu32 " -> %" PRIu32, _instance, _device_id_mag, magnetometer.device_id);
 			}
 
 			reset = true;
 
 		} else if (magnetometer.calibration_count > _mag_calibration_count) {
 			// existing calibration has changed, reset saved mag bias
-			PX4_DEBUG("%d - mag %d calibration updated, resetting bias", _instance, _device_id_mag);
+			PX4_DEBUG("%d - mag %" PRIu32 " calibration updated, resetting bias", _instance, _device_id_mag);
 			reset = true;
 		}
 
@@ -1699,8 +1699,8 @@ int EKF2::task_spawn(int argc, char *argv[])
 		param_get(param_find("EKF2_MULTI_IMU"), &imu_instances);
 
 		if (imu_instances < 1 || imu_instances > 4) {
-			const int32_t imu_instances_limited = math::constrain(imu_instances, 1, 4);
-			PX4_WARN("EKF2_MULTI_IMU limited %d -> %d", imu_instances, imu_instances_limited);
+			const int32_t imu_instances_limited = math::constrain(imu_instances, static_cast<int32_t>(1), static_cast<int32_t>(4));
+			PX4_WARN("EKF2_MULTI_IMU limited %" PRId32 " -> %" PRId32, imu_instances, imu_instances_limited);
 			param_set_no_notification(param_find("EKF2_MULTI_IMU"), &imu_instances_limited);
 			imu_instances = imu_instances_limited;
 		}
@@ -1713,8 +1713,8 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 			// Mags (1 - 4 supported)
 			if (mag_instances < 1 || mag_instances > 4) {
-				const int32_t mag_instances_limited = math::constrain(mag_instances, 1, 4);
-				PX4_WARN("EKF2_MULTI_MAG limited %d -> %d", mag_instances, mag_instances_limited);
+				const int32_t mag_instances_limited = math::constrain(mag_instances, static_cast<int32_t>(1), static_cast<int32_t>(4));
+				PX4_WARN("EKF2_MULTI_MAG limited %" PRId32 " -> %" PRId32, mag_instances, mag_instances_limited);
 				param_set_no_notification(param_find("EKF2_MULTI_MAG"), &mag_instances_limited);
 				mag_instances = mag_instances_limited;
 			}
@@ -1739,7 +1739,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 		}
 
 		const hrt_abstime time_started = hrt_absolute_time();
-		const int multi_instances = math::min(imu_instances * mag_instances, (int)EKF2_MAX_INSTANCES);
+		const int multi_instances = math::min(imu_instances * mag_instances, static_cast<int32_t>(EKF2_MAX_INSTANCES));
 		int multi_instances_allocated = 0;
 
 		// allocate EKF2 instances until all found or arming
@@ -1784,7 +1784,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 										_ekf2_selector.load()->ScheduleNow();
 									}
 
-									PX4_INFO("starting instance %d, IMU:%d (%d), MAG:%d (%d)", actual_instance,
+									PX4_INFO("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 ")", actual_instance,
 										 imu, vehicle_imu_sub.get().accel_device_id,
 										 mag, vehicle_mag_sub.get().device_id);
 
@@ -1798,7 +1798,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 								}
 
 							} else {
-								PX4_ERR("alloc and init failed imu: %d mag:%d", imu, mag);
+								PX4_ERR("alloc and init failed imu: %" PRIu8 " mag:%" PRIu8, imu, mag);
 								px4_usleep(1000000);
 								break;
 							}

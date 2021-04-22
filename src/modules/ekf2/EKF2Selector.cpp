@@ -99,7 +99,7 @@ bool EKF2Selector::SelectInstance(uint8_t ekf_instance)
 				}
 
 				if (reason) {
-					PX4_WARN("primary EKF changed %d (%s) -> %d", _selected_instance, reason, ekf_instance);
+					PX4_WARN("primary EKF changed %" PRIu8 " (%s) -> %" PRIu8, _selected_instance, reason, ekf_instance);
 				}
 			}
 		}
@@ -768,7 +768,7 @@ void EKF2Selector::PublishEstimatorSelectorStatus()
 
 void EKF2Selector::PrintStatus()
 {
-	PX4_INFO("available instances: %d", _available_instances);
+	PX4_INFO("available instances: %" PRIu8, _available_instances);
 
 	if (_selected_instance == INVALID_INSTANCE) {
 		PX4_WARN("selected instance: None");
@@ -777,7 +777,7 @@ void EKF2Selector::PrintStatus()
 	for (int i = 0; i < _available_instances; i++) {
 		const EstimatorInstance &inst = _instance[i];
 
-		PX4_INFO("%d: ACC: %d, GYRO: %d, MAG: %d, %s, test ratio: %.7f (%.5f) %s",
+		PX4_INFO("%" PRIu8 ": ACC: %" PRIu32 ", GYRO: %" PRIu32 ", MAG: %" PRIu32 ", %s, test ratio: %.7f (%.5f) %s",
 			 inst.instance, inst.accel_device_id, inst.gyro_device_id, inst.mag_device_id,
 			 inst.healthy ? "healthy" : "unhealthy",
 			 (double)inst.combined_test_ratio, (double)inst.relative_test_ratio,
