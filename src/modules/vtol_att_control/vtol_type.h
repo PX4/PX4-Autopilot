@@ -187,6 +187,7 @@ public:
 	 */
 	float pusher_assist();
 
+	virtual void blendThrottleAfterFrontTransition(float scale) {};
 
 	mode get_mode() {return _vtol_mode;}
 
@@ -194,7 +195,6 @@ public:
 
 	virtual void parameters_update() = 0;
 
-protected:
 	VtolAttitudeControl *_attc;
 	mode _vtol_mode;
 
@@ -228,6 +228,7 @@ protected:
 
 	// motors spinning up or cutting too fast when doing transitions.
 	float _thrust_transition = 0.0f;	// thrust value applied during a front transition (tailsitter & tiltrotor only)
+	float _last_thr_in_fw_mode = 0.0f;
 
 	float _ra_hrate = 0.0f;			// rolling average on height rate for quadchute condition
 	float _ra_hrate_sp = 0.0f;		// rolling average on height rate setpoint for quadchute condition
@@ -277,6 +278,8 @@ protected:
 private:
 
 
+	hrt_abstime _throttle_blend_start_ts{0};	// time at which we start blending between transition throttle and fixed wing throttle
+
 	/**
 	 * @brief      Stores the max pwm values given by the system.
 	 */
@@ -315,6 +318,9 @@ private:
 	bool set_motor_state(const motor_state target_state, const int32_t channel_bitmap,  const int value);
 
 	void resetAccelToPitchPitchIntegrator() { _accel_to_pitch_integ = 0.f; }
+	bool shouldBlendThrottleAfterFrontTransition() { return _throttle_blend_start_ts != 0; };
+
+	void stopBlendingThrottleAfterFrontTransition() { _throttle_blend_start_ts = 0; }
 
 };
 
