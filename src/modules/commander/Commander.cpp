@@ -2442,7 +2442,7 @@ Commander::run()
 
 			if (_cmd_sub.copy(&cmd)) {
 				if (_cmd_sub.get_last_generation() != last_generation + 1) {
-					PX4_ERR("vehicle_command lost, generation %d -> %d", last_generation, _cmd_sub.get_last_generation());
+					PX4_ERR("vehicle_command lost, generation %u -> %u", last_generation, _cmd_sub.get_last_generation());
 				}
 
 				if (handle_command(cmd)) {
@@ -3441,7 +3441,8 @@ void Commander::mission_init()
 	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
 		if (mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 || mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1) {
 			if (mission.count > 0) {
-				PX4_INFO("Mission #%d loaded, %u WPs, curr: %d", mission.dataman_id, mission.count, mission.current_seq);
+				PX4_INFO("Mission #%" PRIu8 " loaded, %" PRIu16 " WPs, curr: %" PRId32, mission.dataman_id, mission.count,
+					 mission.current_seq);
 			}
 
 		} else {
