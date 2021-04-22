@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -338,9 +338,6 @@ void AutopilotTester::load_qgc_mission_raw_and_move_here(const std::string &plan
 
 void AutopilotTester::execute_mission_raw()
 {
-	std::promise<void> prom;
-	auto fut = prom.get_future();
-
 	REQUIRE(_mission->start_mission() == Mission::Result::Success);
 
 	// TODO: Adapt time limit based on mission size, flight speed, sim speed factor, etc.
@@ -663,7 +660,7 @@ void AutopilotTester::move_mission_raw_here(std::vector<MissionRaw::MissionItem>
 	REQUIRE(std::isfinite(position.longitude_deg));
 
 	auto offset_x = mission_items[0].x - static_cast<int32_t>(1e7 * position.latitude_deg);
-	auto offset_y = mission_items[1].y - static_cast<int32_t>(1e7 * position.longitude_deg);
+	auto offset_y = mission_items[0].y - static_cast<int32_t>(1e7 * position.longitude_deg);
 
 	for (auto &item : mission_items) {
 		if (item.frame == 3) { // MAV_FRAME_GLOBAL_RELATIVE_ALT
