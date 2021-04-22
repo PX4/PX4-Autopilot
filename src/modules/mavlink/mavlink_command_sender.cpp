@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -73,7 +73,7 @@ int MavlinkCommandSender::handle_vehicle_command(const vehicle_command_s &comman
 	}
 
 	lock();
-	CMD_DEBUG("new command: %d (channel: %d)", command.command, channel);
+	CMD_DEBUG("new command: %" PRIu32 " (channel: %d)", command.command, channel);
 
 	mavlink_command_long_t msg = {};
 	msg.target_system = command.target_system;
@@ -119,7 +119,7 @@ int MavlinkCommandSender::handle_vehicle_command(const vehicle_command_s &comman
 void MavlinkCommandSender::handle_mavlink_command_ack(const mavlink_command_ack_t &ack,
 		uint8_t from_sysid, uint8_t from_compid, uint8_t channel)
 {
-	CMD_DEBUG("handling result %d for command %d (from %d:%d)",
+	CMD_DEBUG("handling result %" PRIu8 " for command %" PRIu16 " (from %" PRIu8 ":%" PRIu8 ")",
 		  ack.result, ack.command, from_sysid, from_compid);
 	lock();
 
@@ -197,7 +197,7 @@ void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 			item->command.confirmation = ++item->num_sent_per_channel[channel];
 			mavlink_msg_command_long_send_struct(channel, &item->command);
 
-			CMD_DEBUG("command %d sent (not first, retries: %d/%d, channel: %d)",
+			CMD_DEBUG("command %" PRIu16 " sent (not first, retries: %" PRIu8 "/%" PRIi8 ", channel: %d)",
 				  item->command.command,
 				  item->num_sent_per_channel[channel],
 				  max_sent,
@@ -209,7 +209,7 @@ void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 			// If the next retry would be above the needed retries anyway, we can
 			// drop the item, and continue with other items.
 			if (item->num_sent_per_channel[channel] + 1 > RETRIES) {
-				CMD_DEBUG("command %d dropped", item->command.command);
+				CMD_DEBUG("command %" PRIu16 " dropped", item->command.command);
 				_commands.drop_current();
 				continue;
 			}
@@ -220,7 +220,7 @@ void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 			// Therefore, we are the ones setting the timestamp of this retry round.
 			item->last_time_sent_us = hrt_absolute_time();
 
-			CMD_DEBUG("command %d sent (first, retries: %d/%d, channel: %d)",
+			CMD_DEBUG("command %" PRIu16 " sent (first, retries: %" PRId8 "/%" PRId8 ", channel: %d)",
 				  item->command.command,
 				  item->num_sent_per_channel[channel],
 				  max_sent,
