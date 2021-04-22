@@ -66,7 +66,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -99,7 +99,7 @@ public:
 private:
 	void Run() override;
 
-	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
