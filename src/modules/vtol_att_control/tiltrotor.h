@@ -59,6 +59,7 @@ public:
 	void update_fw_state() override;
 	void waiting_on_tecs() override;
 	float thrust_compensation_for_tilt();
+	void blendThrottleAfterFrontTransition(float scale) override;
 
 private:
 
@@ -101,6 +102,12 @@ private:
 	float _tilt_control{0.0f};		/**< actuator value for the tilt servo */
 
 	void parameters_update() override;
+	float timeUntilMotorsAreUp();
+	float moveLinear(float start, float stop, float progress);
+
+	void blendThrottleDuringBacktransition(const float scale, const float target_throttle);
+
+
 	hrt_abstime _last_timestamp_disarmed{0}; /**< used for calculating time since arming */
 	bool _tilt_motors_for_startup{false};
 
