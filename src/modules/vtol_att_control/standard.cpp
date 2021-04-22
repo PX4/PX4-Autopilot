@@ -420,3 +420,9 @@ Standard::waiting_on_tecs()
 	// keep thrust from transition
 	_v_att_sp->thrust_body[0] = _pusher_throttle;
 };
+
+void Standard::blendThrottleAfterFrontTransition(float scale)
+{
+	const float tecs_throttle = _v_att_sp->thrust_body[0];
+	_v_att_sp->thrust_body[0] = scale * tecs_throttle + (1.0f - scale) * _pusher_throttle;
+}
