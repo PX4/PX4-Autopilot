@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2018, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1481,7 +1481,7 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 	const int current_index = _current_mission_index;
 	int index_to_read = current_index + offset;
 
-	int *mission_index_ptr = (offset == 0) ? &_current_mission_index : &index_to_read;
+	int *mission_index_ptr = (offset == 0) ? (int *) &_current_mission_index : &index_to_read;
 	const dm_item_t dm_item = (dm_item_t)_mission.dataman_id;
 
 	/* do not work on empty missions */
@@ -1495,7 +1495,7 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 		if (*mission_index_ptr < 0 || *mission_index_ptr >= (int)_mission.count) {
 			/* mission item index out of bounds - if they are equal, we just reached the end */
 			if ((*mission_index_ptr != (int)_mission.count) && (*mission_index_ptr != -1)) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission item index out of bound, index: %d, max: %d.",
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission item index out of bound, index: %d, max: %" PRIu16 ".",
 						     *mission_index_ptr, _mission.count);
 			}
 
