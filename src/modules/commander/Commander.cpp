@@ -1961,14 +1961,24 @@ Commander::run()
 			/* ESCs status changed */
 			esc_status_check();
 
-		} else if (hrt_elapsed_time(&_last_esc_status_updated) > 700_ms) {
-			// Some DShot ESCs are unresponsive for ~550ms during their initialization, so we use a timeout higher than that
+		} else if (_param_escs_checks_required.get() != 0) {
 
 			if (!_status_flags.condition_escs_error) {
-				mavlink_log_critical(&_mavlink_log_pub, "ESCs telemetry timeout");
-			}
 
-			_status_flags.condition_escs_error = true;
+				if ((_last_esc_status_updated != 0) && (hrt_elapsed_time(&_last_esc_status_updated) > 700_ms)) {
+					/* Detect timeout after first telemetry packet received
+					 * Some DShot ESCs are unresponsive for ~550ms during their initialization, so we use a timeout higher than that
+					 */
+
+					mavlink_log_critical(&_mavlink_log_pub, "ESCs telemetry timeout");
+					_status_flags.condition_escs_error = true;
+
+				} else if (_last_esc_status_updated == 0 && hrt_elapsed_time(&_boot_timestamp) > 5000_ms) {
+					/* Detect if esc telemetry is not connected after reboot */
+					mavlink_log_critical(&_mavlink_log_pub, "ESCs telemetry not connected ");
+					_status_flags.condition_escs_error = true;
+				}
+			}
 		}
 
 		estimator_check();

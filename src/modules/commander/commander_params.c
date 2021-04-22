@@ -904,12 +904,12 @@ PARAM_DEFINE_INT32(COM_FLT_PROFILE, 0);
  * Enable checks on ESCs that report telemetry.
  *
  * If this parameter is set, the system will check ESC's online status and failures.
- * This param is specific for ESCs reporting status. Normal ESCs configurations are not affected by the change of this param.
+ * This param is specific for ESCs reporting status. It shall be used only if ESCs support telemetry.
  *
  * @group Commander
  * @boolean
  */
-PARAM_DEFINE_INT32(COM_ARM_CHK_ESCS, 1);
+PARAM_DEFINE_INT32(COM_ARM_CHK_ESCS, 0);
 
 /**
  * Condition to enter prearmed mode
