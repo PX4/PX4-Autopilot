@@ -141,3 +141,18 @@ PARAM_DEFINE_INT32(FD_EXT_ATS_TRIG, 1900);
  * @group Failure Detector
  */
 PARAM_DEFINE_INT32(FD_ESCS_EN, 1);
+
+/**
+ * Imbalanced propeller check threshold
+ *
+ * Value at which the imbalanced propeller metric (based on horizontal and
+ * vertical acceleration variance) triggers a failure
+ *
+ * Setting this value to 0 disables the feature.
+ *
+ * @min 0
+ * @max 1000
+ * @increment 1
+ * @group Failure Detector
+ */
+PARAM_DEFINE_INT32(FD_IMB_PROP_THR, 30);
