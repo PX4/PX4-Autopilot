@@ -271,7 +271,7 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(bool force)
 				}
 			}
 
-			PX4_ERR("unable to find or subscribe to selected sensor (%d)", sensor_selection.gyro_device_id);
+			PX4_ERR("unable to find or subscribe to selected sensor (%" PRIu32 ")", sensor_selection.gyro_device_id);
 			_selected_sensor_device_id = 0;
 		}
 	}
@@ -741,7 +741,7 @@ void VehicleAngularVelocity::CalibrateAndPublish(bool publish, const hrt_abstime
 
 void VehicleAngularVelocity::PrintStatus()
 {
-	PX4_INFO("selected sensor: %d, rate: %.1f Hz %s",
+	PX4_INFO("selected sensor: %" PRIu32 ", rate: %.1f Hz %s",
 		 _selected_sensor_device_id, (double)_filter_sample_rate_hz, _fifo_available ? "FIFO" : "");
 	PX4_INFO("estimated bias: [%.4f %.4f %.4f]", (double)_bias(0), (double)_bias(1), (double)_bias(2));
 

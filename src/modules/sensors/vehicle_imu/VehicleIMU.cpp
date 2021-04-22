@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -125,10 +125,10 @@ void VehicleIMU::ParametersUpdate(bool force)
 
 		// constrain IMU integration time 1-10 milliseconds (100-1000 Hz)
 		int32_t imu_integration_rate_hz = constrain(_param_imu_integ_rate.get(),
-						  100, math::max(_param_imu_gyro_ratemax.get(), 1000));
+						  (int32_t)100, math::max(_param_imu_gyro_ratemax.get(), (int32_t) 1000));
 
 		if (imu_integration_rate_hz != _param_imu_integ_rate.get()) {
-			PX4_WARN("IMU_INTEG_RATE updated %d -> %d", _param_imu_integ_rate.get(), imu_integration_rate_hz);
+			PX4_WARN("IMU_INTEG_RATE updated %" PRId32 " -> %" PRIu32, _param_imu_integ_rate.get(), imu_integration_rate_hz);
 			_param_imu_integ_rate.set(imu_integration_rate_hz);
 			_param_imu_integ_rate.commit_no_notification();
 		}
@@ -333,7 +333,7 @@ void VehicleIMU::Run()
 				const uint64_t clipping_total = _status.accel_clipping[0] + _status.accel_clipping[1] + _status.accel_clipping[2];
 
 				if (clipping_total > _last_clipping_notify_total_count + 1000) {
-					mavlink_log_critical(&_mavlink_log_pub, "Accel %d clipping, not safe to fly!", _instance);
+					mavlink_log_critical(&_mavlink_log_pub, "Accel %" PRIu8 " clipping, not safe to fly!", _instance);
 					_last_clipping_notify_time = accel.timestamp_sample;
 					_last_clipping_notify_total_count = clipping_total;
 				}
@@ -470,7 +470,8 @@ void VehicleIMU::UpdateIntegratorConfiguration()
 
 				_intervals_configured = true; // stop monitoring topic publication rates
 
-				PX4_DEBUG("accel (%d), gyro (%d), accel samples: %d, gyro samples: %d, accel interval: %.1f, gyro interval: %.1f sub samples: %d",
+				PX4_DEBUG("accel (%" PRIu32 "), gyro (%" PRIu32 "), accel samples: %" PRIu8 ", gyro samples: %" PRIu8
+					  ", accel interval: %.1f, gyro interval: %.1f sub samples: %d",
 					  _accel_calibration.device_id(), _gyro_calibration.device_id(), accel_integral_samples, gyro_integral_samples,
 					  (double)_accel_interval.update_interval, (double)_gyro_interval.update_interval, n);
 
@@ -505,11 +506,12 @@ void VehicleIMU::UpdateGyroVibrationMetrics(const Vector3f &delta_angle)
 void VehicleIMU::PrintStatus()
 {
 	if (_accel_calibration.device_id() == _gyro_calibration.device_id()) {
-		PX4_INFO("%d - IMU ID: %d, accel interval: %.1f us, gyro interval: %.1f us", _instance, _accel_calibration.device_id(),
+		PX4_INFO("%" PRIu8 " - IMU ID: %" PRIu32 ", accel interval: %.1f us, gyro interval: %.1f us", _instance,
+			 _accel_calibration.device_id(),
 			 (double)_accel_interval.update_interval, (double)_gyro_interval.update_interval);
 
 	} else {
-		PX4_INFO("%d - Accel ID: %d, interval: %.1f us, Gyro ID: %d, interval: %.1f us", _instance,
+		PX4_INFO("%" PRIu8 " - Accel ID: %" PRIu32 ", interval: %.1f us, Gyro ID: %" PRIu32 ", interval: %.1f us", _instance,
 			 _accel_calibration.device_id(),
 			 (double)_accel_interval.update_interval, _gyro_calibration.device_id(), (double)_gyro_interval.update_interval);
 	}

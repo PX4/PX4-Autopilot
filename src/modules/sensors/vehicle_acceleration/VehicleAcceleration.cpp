@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -164,7 +164,7 @@ bool VehicleAcceleration::SensorSelectionUpdate(bool force)
 				if ((device_id != 0) && (device_id == sensor_selection.accel_device_id)) {
 
 					if (_sensor_sub.ChangeInstance(i) && _sensor_sub.registerCallback()) {
-						PX4_DEBUG("selected sensor changed %d -> %d", _calibration.device_id(), device_id);
+						PX4_DEBUG("selected sensor changed %" PRIu32 " -> %" PRIu32 "", _calibration.device_id(), device_id);
 
 						// clear bias and corrections
 						_bias.zero();
@@ -178,7 +178,7 @@ bool VehicleAcceleration::SensorSelectionUpdate(bool force)
 				}
 			}
 
-			PX4_ERR("unable to find or subscribe to selected sensor (%d)", sensor_selection.accel_device_id);
+			PX4_ERR("unable to find or subscribe to selected sensor (%" PRIu32 ")", sensor_selection.accel_device_id);
 			_calibration.set_device_id(0);
 		}
 	}
@@ -253,7 +253,7 @@ void VehicleAcceleration::Run()
 
 void VehicleAcceleration::PrintStatus()
 {
-	PX4_INFO("selected sensor: %d, rate: %.1f Hz, estimated bias: [%.4f %.4f %.4f]",
+	PX4_INFO("selected sensor: %" PRIu32 ", rate: %.1f Hz, estimated bias: [%.4f %.4f %.4f]",
 		 _calibration.device_id(), (double)_filter_sample_rate,
 		 (double)_bias(0), (double)_bias(1), (double)_bias(2));
 
