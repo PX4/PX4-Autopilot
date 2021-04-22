@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2020, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -433,38 +433,38 @@ int TemperatureCompensation::update_offsets_baro(int topic_instance, float tempe
 void TemperatureCompensation::print_status()
 {
 	PX4_INFO("Temperature Compensation:");
-	PX4_INFO(" gyro: enabled: %i", _parameters.gyro_tc_enable);
+	PX4_INFO(" gyro: enabled: %" PRId32, _parameters.gyro_tc_enable);
 
 	if (_parameters.gyro_tc_enable == 1) {
 		for (int i = 0; i < GYRO_COUNT_MAX; ++i) {
 			uint8_t mapping = _gyro_data.device_mapping[i];
 
 			if (_gyro_data.device_mapping[i] != 255) {
-				PX4_INFO("  using device ID %i for topic instance %i", _parameters.gyro_cal_data[mapping].ID, i);
+				PX4_INFO("  using device ID %" PRId32 " for topic instance %i", _parameters.gyro_cal_data[mapping].ID, i);
 			}
 		}
 	}
 
-	PX4_INFO(" accel: enabled: %i", _parameters.accel_tc_enable);
+	PX4_INFO(" accel: enabled: %" PRId32, _parameters.accel_tc_enable);
 
 	if (_parameters.accel_tc_enable == 1) {
 		for (int i = 0; i < ACCEL_COUNT_MAX; ++i) {
 			uint8_t mapping = _accel_data.device_mapping[i];
 
 			if (_accel_data.device_mapping[i] != 255) {
-				PX4_INFO("  using device ID %i for topic instance %i", _parameters.accel_cal_data[mapping].ID, i);
+				PX4_INFO("  using device ID %" PRId32 " for topic instance %i", _parameters.accel_cal_data[mapping].ID, i);
 			}
 		}
 	}
 
-	PX4_INFO(" baro: enabled: %i", _parameters.baro_tc_enable);
+	PX4_INFO(" baro: enabled: %" PRId32, _parameters.baro_tc_enable);
 
 	if (_parameters.baro_tc_enable == 1) {
 		for (int i = 0; i < BARO_COUNT_MAX; ++i) {
 			uint8_t mapping = _baro_data.device_mapping[i];
 
 			if (_baro_data.device_mapping[i] != 255) {
-				PX4_INFO("  using device ID %i for topic instance %i", _parameters.baro_cal_data[mapping].ID, i);
+				PX4_INFO("  using device ID %" PRId32 " for topic instance %i", _parameters.baro_cal_data[mapping].ID, i);
 			}
 		}
 	}
