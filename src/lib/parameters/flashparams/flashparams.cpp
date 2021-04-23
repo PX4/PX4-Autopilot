@@ -72,11 +72,10 @@
 struct param_wbuf_s {
 	union param_value_u     val;
 	param_t                 param;
-	bool                    unsaved;
 };
 
 static int
-param_export_internal(bool only_unsaved, param_filter_func filter)
+param_export_internal(param_filter_func filter)
 {
 	struct param_wbuf_s *s = nullptr;
 	bson_encoder_s encoder{};
@@ -97,19 +96,9 @@ param_export_internal(bool only_unsaved, param_filter_func filter)
 		int32_t i;
 		float   f;
 
-		/*
-		 * If we are only saving values changed since last save, and this
-		 * one hasn't, then skip it
-		 */
-		if (only_unsaved && !s->unsaved) {
-			continue;
-		}
-
 		if (filter && !filter(s->param)) {
 			continue;
 		}
-
-		s->unsaved = false;
 
 		/* append the appropriate BSON type object */
 
@@ -310,9 +299,9 @@ out:
 	return result;
 }
 
-int flash_param_save(bool only_unsaved, param_filter_func filter)
+int flash_param_save(param_filter_func filter)
 {
-	return param_export_internal(only_unsaved, filter);
+	return param_export_internal(filter);
 }
 
 int flash_param_load()
