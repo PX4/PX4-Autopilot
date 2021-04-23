@@ -115,11 +115,10 @@ read_double(bson_decoder_t decoder, double *d)
 }
 
 int
-bson_decoder_init_file(bson_decoder_t decoder, int fd, bson_decoder_callback callback, void *priv)
+bson_decoder_init_file(bson_decoder_t decoder, int fd, bson_decoder_callback callback)
 {
 	decoder->fd = fd;
 	decoder->callback = callback;
-	decoder->priv = priv;
 	decoder->nesting = 1;
 	decoder->node.type = BSON_UNDEFINED;
 
@@ -135,8 +134,7 @@ bson_decoder_init_file(bson_decoder_t decoder, int fd, bson_decoder_callback cal
 }
 
 int
-bson_decoder_init_buf(bson_decoder_t decoder, void *buf, unsigned bufsize, bson_decoder_callback callback,
-		      void *priv)
+bson_decoder_init_buf(bson_decoder_t decoder, void *buf, unsigned bufsize, bson_decoder_callback callback)
 {
 	/* argument sanity */
 	if ((buf == nullptr) || (callback == nullptr)) {
@@ -157,7 +155,6 @@ bson_decoder_init_buf(bson_decoder_t decoder, void *buf, unsigned bufsize, bson_
 
 	decoder->bufpos = 0;
 	decoder->callback = callback;
-	decoder->priv = priv;
 	decoder->nesting = 1;
 	decoder->pending = 0;
 	decoder->node.type = BSON_UNDEFINED;
@@ -318,7 +315,7 @@ bson_decoder_next(bson_decoder_t decoder)
 	}
 
 	/* call the callback and pass its results back */
-	return decoder->callback(decoder, decoder->priv, &decoder->node);
+	return decoder->callback(decoder, &decoder->node);
 }
 
 int

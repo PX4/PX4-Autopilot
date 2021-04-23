@@ -187,18 +187,14 @@ out:
 	return result;
 }
 
-struct param_import_state {
-	bool mark_saved;
-};
 
 static int
-param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
+param_import_callback(bson_decoder_t decoder, bson_node_t node)
 {
 	float f;
 	int32_t i;
 	void *v = nullptr;
 	int result = -1;
-	struct param_import_state *state = (struct param_import_state *)priv;
 
 	/*
 	 * EOO means the end of the parameter object. (Currently not supporting
@@ -255,7 +251,7 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 		goto out;
 	}
 
-	if (param_set_external(param, v, state->mark_saved, true)) {
+	if (param_set_external(param, v, true, true)) {
 		debug("error setting value for '%s'", node->name);
 		goto out;
 	}
@@ -268,22 +264,19 @@ out:
 }
 
 static int
-param_import_internal(bool mark_saved)
+param_import_internal()
 {
 	bson_decoder_s decoder{};
 	int result = -1;
-	struct param_import_state state;
 
 	uint8_t *buffer = 0;
 	size_t buf_size;
 	parameter_flashfs_read(parameters_token, &buffer, &buf_size);
 
-	if (bson_decoder_init_buf(&decoder, buffer, buf_size, param_import_callback, &state)) {
+	if (bson_decoder_init_buf(&decoder, buffer, buf_size, param_import_callback)) {
 		debug("decoder init failed");
 		goto out;
 	}
-
-	state.mark_saved = mark_saved;
 
 	do {
 		result = bson_decoder_next(&decoder);
@@ -307,10 +300,10 @@ int flash_param_save(param_filter_func filter)
 int flash_param_load()
 {
 	param_reset_all();
-	return param_import_internal(true);
+	return param_import_internal();
 }
 
 int flash_param_import()
 {
-	return param_import_internal(true);
+	return param_import_internal();
 }
