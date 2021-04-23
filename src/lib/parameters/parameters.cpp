@@ -493,8 +493,20 @@ param_get(param_t param, void *val)
 	int result = PX4_ERROR;
 
 	if (val) {
-		param_lock_reader();
+		if (!params_changed[param] && !params_custom_default[param]) {
+			// if parameter is unchanged (static default value) copy immediately and avoid locking
+			switch (param_type(param)) {
+			case PARAM_TYPE_INT32:
+				memcpy(val, &px4::parameters[param].val.i, sizeof(px4::parameters[param].val.i));
+				return PX4_OK;
 
+			case PARAM_TYPE_FLOAT:
+				memcpy(val, &px4::parameters[param].val.f, sizeof(px4::parameters[param].val.f));
+				return PX4_OK;
+			}
+		}
+
+		param_lock_reader();
 		const void *v = param_get_value_ptr(param);
 
 		if (v) {
