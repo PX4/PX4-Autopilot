@@ -2776,7 +2776,7 @@ Commander::run()
 			_failsafe_old = _status.failsafe;
 		}
 
-		/* publish states (armed, control_mode, vehicle_status, commander_state, vehicle_status_flags) at 2 Hz or immediately when changed */
+		/* publish states (armed, control_mode, vehicle_status, commander_state, vehicle_status_flags, failure_detector_status) at 2 Hz or immediately when changed */
 		if (hrt_elapsed_time(&_status.timestamp) >= 500_ms || _status_changed || nav_state_changed) {
 
 			update_control_mode();
@@ -2839,6 +2839,13 @@ Commander::run()
 			/* publish vehicle_status_flags */
 			_status_flags.timestamp = hrt_absolute_time();
 			_vehicle_status_flags_pub.publish(_status_flags);
+
+			/* publish failure_detector data */
+			failure_detector_status_s fd_status{};
+			fd_status.timestamp = hrt_absolute_time();
+			fd_status.failure_status = _failure_detector.getStatus();
+			fd_status.imbalanced_prop_metric = _failure_detector.getImbalancedPropMetric();
+			_failure_detector_status_pub.publish(fd_status);
 		}
 
 		/* play arming and battery warning tunes */
