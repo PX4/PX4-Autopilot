@@ -588,9 +588,17 @@ param_get_default_value(param_t param, void *default_val)
 
 bool param_value_is_default(param_t param)
 {
-	// the param_values dynamic array might carry things that have been set
-	// back to default, so we don't rely on the params_changed bitset here
-	if (handle_in_range(param)) {
+	if (!handle_in_range(param)) {
+		return true;
+	}
+
+	if (!params_changed[param] && !params_custom_default[param]) {
+		// no value saved and no custom default
+		return true;
+
+	} else {
+		// the param_values dynamic array might carry things that have been set
+		// back to default, so we don't rely on the params_changed bitset here
 		switch (param_type(param)) {
 		case PARAM_TYPE_INT32: {
 				param_lock_reader();
@@ -600,10 +608,9 @@ bool param_value_is_default(param_t param)
 					const void *v = param_get_value_ptr(param);
 
 					if (v) {
-						int32_t current_value;
-						memcpy(&current_value, v, param_size(param));
+						bool unchanged = (*static_cast<const int32_t *>(v) == default_value);
 						param_unlock_reader();
-						return (current_value == default_value);
+						return unchanged;
 					}
 				}
 
@@ -619,10 +626,9 @@ bool param_value_is_default(param_t param)
 					const void *v = param_get_value_ptr(param);
 
 					if (v) {
-						float current_value;
-						memcpy(&current_value, v, param_size(param));
+						bool unchanged = (fabsf(*static_cast<const float *>(v) - default_value) <= FLT_EPSILON);
 						param_unlock_reader();
-						return (fabsf(current_value - default_value) <= FLT_EPSILON);
+						return unchanged;
 					}
 				}
 
@@ -632,7 +638,7 @@ bool param_value_is_default(param_t param)
 		}
 	}
 
-	return false;
+	return true;
 }
 
 int
