@@ -549,12 +549,12 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 		board_booted_by_px4() &&
 #endif
 		(node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast())) {
-		PX4_ERR("Invalid Node ID %i", node_id);
+		PX4_ERR("Invalid Node ID %" PRId32, node_id);
 		return 1;
 	}
 
 	// Start
-	PX4_INFO("Node ID %u, bitrate %u", node_id, bitrate);
+	PX4_INFO("Node ID %" PRId32 ", bitrate %" PRId32, node_id, bitrate);
 	int rv = uavcannode::UavcanNode::start(node_id, bitrate);
 
 	return rv;
