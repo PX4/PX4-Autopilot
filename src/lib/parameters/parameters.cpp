@@ -559,9 +559,30 @@ param_get_default_value_internal(param_t param, void *default_val)
 int
 param_get_default_value(param_t param, void *default_val)
 {
-	param_lock_reader();
-	int ret = param_get_default_value_internal(param, default_val);
-	param_unlock_reader();
+	if (!handle_in_range(param)) {
+		return PX4_ERROR;
+	}
+
+	int ret = 0;
+
+	if (!params_custom_default[param]) {
+		// return static default value
+		switch (param_type(param)) {
+		case PARAM_TYPE_INT32:
+			memcpy(default_val, &px4::parameters[param].val.i, sizeof(px4::parameters[param].val.i));
+			return PX4_OK;
+
+		case PARAM_TYPE_FLOAT:
+			memcpy(default_val, &px4::parameters[param].val.f, sizeof(px4::parameters[param].val.f));
+			return PX4_OK;
+		}
+
+	} else {
+		param_lock_reader();
+		ret = param_get_default_value_internal(param, default_val);
+		param_unlock_reader();
+	}
+
 	return ret;
 }
 
