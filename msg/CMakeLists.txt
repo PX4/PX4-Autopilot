@@ -75,6 +75,7 @@ set(msg_files
 	estimator_status_flags.msg
 	event.msg
 	follow_target.msg
+	failure_detector_status.msg
 	generator_status.msg
 	geofence_result.msg
 	gimbal_device_attitude_status.msg
