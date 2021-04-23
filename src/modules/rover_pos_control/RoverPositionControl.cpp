@@ -187,6 +187,14 @@ RoverPositionControl::attitude_setpoint_poll()
 	}
 }
 
+void
+RoverPositionControl::vehicle_attitude_poll()
+{
+	if (_att_sub.updated()) {
+		_att_sub.copy(&_vehicle_att);
+	}
+}
+
 bool
 RoverPositionControl::control_position(const matrix::Vector2d &current_position,
 				       const matrix::Vector3f &ground_speed, const position_setpoint_triplet_s &pos_sp_triplet)
@@ -393,6 +401,7 @@ RoverPositionControl::Run()
 		/* check vehicle control mode for changes to publication state */
 		vehicle_control_mode_poll();
 		attitude_setpoint_poll();
+		vehicle_attitude_poll();
 		manual_control_setpoint_poll();
 
 		_vehicle_acceleration_sub.update();
