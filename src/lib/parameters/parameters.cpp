@@ -284,7 +284,6 @@ static param_t param_find_internal(const char *name, bool notification)
 				param_set_used(middle);
 			}
 
-			perf_end(param_find_perf);
 			return middle;
 
 		} else if (middle == front) {
