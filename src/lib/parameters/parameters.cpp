@@ -502,7 +502,7 @@ param_get(param_t param, void *val)
 	}
 
 	if (!params_active[param]) {
-		PX4_WARN("get: param %d (%s) not active", param, param_name(param));
+		PX4_DEBUG("get: param %d (%s) not active", param, param_name(param));
 	}
 
 	int result = PX4_ERROR;
