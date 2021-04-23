@@ -1415,25 +1415,36 @@ out:
 static int
 param_import_internal(int fd, bool mark_saved)
 {
-	bson_decoder_s decoder;
-	param_import_state state;
-	int result = -1;
+	for (int attempt = 1; attempt < 5; attempt++) {
+		bson_decoder_s decoder;
+		param_import_state state;
 
-	if (bson_decoder_init_file(&decoder, fd, param_import_callback, &state)) {
-		PX4_ERR("decoder init failed");
-		return PX4_ERROR;
+		if (bson_decoder_init_file(&decoder, fd, param_import_callback, &state) == 0) {
+			state.mark_saved = mark_saved;
+
+			int result = -1;
+
+			do {
+				result = bson_decoder_next(&decoder);
+
+			} while (result > 0);
+
+			if (result == 0) {
+				PX4_INFO("BSON document size %d bytes, decoded %d bytes", decoder.total_document_size, decoder.total_decoded_size);
+				return 0;
+
+			} else {
+				PX4_ERR("param import failed (%d) attempt %d, retrying", result, attempt);
+			}
+
+		} else {
+			PX4_ERR("param import bson decoder init failed attempt %d, retrying", attempt);
+		}
+
+		lseek(fd, 0, SEEK_SET);
 	}
 
-	state.mark_saved = mark_saved;
-
-	do {
-		result = bson_decoder_next(&decoder);
-
-	} while (result > 0);
-
-	PX4_INFO("BSON document size %d bytes, decoded %d bytes", decoder.total_document_size, decoder.total_decoded_size);
-
-	return result;
+	return -1;
 }
 
 int
