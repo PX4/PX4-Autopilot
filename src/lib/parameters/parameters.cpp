@@ -625,7 +625,6 @@ param_get_system_default_value(param_t param, void *default_val)
 	}
 
 	int ret = PX4_OK;
-	param_lock_reader();
 
 	switch (param_type(param)) {
 	case PARAM_TYPE_INT32:
@@ -641,7 +640,6 @@ param_get_system_default_value(param_t param, void *default_val)
 		break;
 	}
 
-	param_unlock_reader();
 	return ret;
 }
 
