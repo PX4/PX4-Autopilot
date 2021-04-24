@@ -31,8 +31,6 @@
  *
  ****************************************************************************/
 
-#define DEBUG_BUILD
-
 #include "RCInput.hpp"
 
 #include "crsf_telemetry.h"
@@ -326,35 +324,59 @@ void RCInput::Run()
 			if (vcmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) {
 
 				uint8_t cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+
+				if (input_rc_s::RC_INPUT_SOURCE_PX4FMU_SRXL == _rc_in.input_source) {
+					cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+
+					if (_rc_scan_locked && !_armed) {
+						// WARNING:  SRXL uses a different bind mechanism and values than legacy receivers
+						//  -- until the upstream code accomodates the difference...
+						//     Override the values here:
+						// const uint8_t srxl_bind_mode = (int)vcmd.param2;
+						const uint8_t srxl_bind_mode =
+							0xB2;  // === DSMx 11ms; some documentation claims this mode will auto-select 11ms or 22ms mode
+						// const uint8_t srxl_bind_mode = 0xA2;  // === DSMX 22ms  // desired bind-mode
+
+						if (0 < _srxl.request_bind_receiver(srxl_bind_mode)) {
+							cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+						}
+					}
+
 #if defined(SPEKTRUM_POWER)
 
-				if (!_rc_scan_locked && !_armed) {
-					if ((int)vcmd.param1 == 0) {
-						// DSM binding command
-						int dsm_bind_mode = (int)vcmd.param2;
+				} else if (input_rc_s::RC_INPUT_SOURCE_PX4FMU_DSM == _rc_in.input_source) {
+					if (!_rc_scan_locked && !_armed) {
+						if ((int)vcmd.param1 == 0) {
+							// DSM binding command
+							int dsm_bind_mode = (int)vcmd.param2;
 
-						int dsm_bind_pulses = 0;
+							int dsm_bind_pulses = 0;
 
-						if (dsm_bind_mode == 0) {
-							dsm_bind_pulses = DSM2_BIND_PULSES;
+							if (dsm_bind_mode == 0) {
+								dsm_bind_pulses = DSM2_BIND_PULSES;
 
-						} else if (dsm_bind_mode == 1) {
-							dsm_bind_pulses = DSMX_BIND_PULSES;
+							} else if (dsm_bind_mode == 1) {
+								dsm_bind_pulses = DSMX_BIND_PULSES;
 
-						} else {
-							dsm_bind_pulses = DSMX8_BIND_PULSES;
+							} else {
+								dsm_bind_pulses = DSMX8_BIND_PULSES;
+							}
+
+							bind_spektrum(dsm_bind_pulses);
+
+							cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 						}
 
-						bind_spektrum(dsm_bind_pulses);
-
-						cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+					} else {
+						cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 					}
+
+#endif // SPEKTRUM_POWER
 
 				} else {
 					cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 				}
 
-#endif // SPEKTRUM_POWER
 
 				// publish acknowledgement
 				vehicle_command_ack_s command_ack{};
@@ -725,38 +747,28 @@ void RCInput::Run()
 
 		case RC_SCAN_SRXL:
 			if (_rc_scan_begin == 0) {
-				// _rc_scan_begin = cycle_timestamp;
+				_rc_scan_begin = cycle_timestamp;
+				// Configure serial port for SRXL
+				_srxl.configure(_rcs_fd);
 
-				// // Configure serial port for DSM
-				// // SRXLCodec::config(_rcs_fd);
+			} else if (_rc_scan_locked || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+				if (newBytes > 0) {
+					rc_updated = _srxl.parse(cycle_timestamp, &_rcs_buf[0], newBytes);
 
-				// rc_io_invert(false);
+					if (rc_updated) {
+						_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SRXL;
 
-			} else if ( _rc_scan_locked
-					|| ((cycle_timestamp - _rc_scan_begin) < rc_scan_max) )
-			{
-
-				//                             // parse new data
-				//                             // NYI -- this block is probably broken
-
-				//                             if (newBytes > 0) {
-				//                                     int8_t dsm_rssi = 0;
-				//                                     bool dsm_11_bit = false;
-
-				//                                     // parse new data
-				//                                     // rc_updated = SRXLCodec::Parse( cycle_timestamp, &_rcs_buf[0], newBytes, &_raw_rc_values[0], &_raw_rc_count,
-				//                                     //                              &dsm_11_bit, &frame_drops, &dsm_rssi, input_rc_s::RC_INPUT_MAX_CHANNELS);
-
-				//                                     if (rc_updated) {
-				//                                             // we have a new SRXL frame. Publish it.
-				//                                             _rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SRXL;
-				//                                             // not sure what this call does, either
-				//                                             fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
-				//                                                        false, false, frame_drops, dsm_rssi);
-				//                                             _rc_scan_locked = true;
-				//                                     }
-				//                             }
-				printf("RCScan: SCAN-SRXL Failed. NYI\n");
+						// we have a new SRXL frame. Publish it.
+						fill_rc_in(_srxl.channel_count(), _srxl.channels(),   // need to verify channel units
+							   cycle_timestamp,
+							   false,  // bool frame_drop,
+							   false,  // bool failsafe,
+							   _srxl.frame_drops(),
+							   _srxl.rssi_percentage());
+						_rc_in.rc_ppm_frame_length = 0;
+						_rc_scan_locked = true;
+					}
+				}
 
 			} else {
 				// Scan the next protocol
@@ -764,6 +776,14 @@ void RCInput::Run()
 			}
 
 			break;
+		}
+
+		perf_end(_cycle_perf);
+
+		if (rc_updated) {
+			perf_count(_publish_interval_perf);
+
+			_to_input_rc.publish(_rc_in);
 
 		} else if (!rc_updated && !_armed && (hrt_elapsed_time(&_rc_in.timestamp_last_signal) > 1_s)) {
 			_rc_scan_locked = false;
@@ -773,19 +793,8 @@ void RCInput::Run()
 			_report_lock = false;
 			PX4_INFO("RC scan: %s RC input locked", RC_SCAN_STRING[_rc_scan_state]);
 		}
+
 	}
-
-	perf_end(_cycle_perf);
-
-	if (rc_updated) {
-		perf_count(_publish_interval_perf);
-
-		_to_input_rc.publish(_rc_in);
-
-	} else if (!rc_updated && ((hrt_absolute_time() - _rc_in.timestamp_last_signal) > 1_s)) {
-		_rc_scan_locked = false;
-	}
-}
 }
 
 #if defined(SPEKTRUM_POWER)
@@ -951,8 +960,9 @@ This module does the RC input parsing and auto-selecting the method. Supported m
 - PPM
 - SBUS
 - DSM
-- SUMD
+- SRXL
 - ST24
+- SUMD
 - TBS Crossfire (CRSF)
 
 )DESCR_STR");

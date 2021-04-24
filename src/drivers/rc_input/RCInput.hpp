@@ -43,6 +43,7 @@
 #include <lib/rc/ghst.hpp>
 #include <lib/rc/dsm.h>
 #include <lib/rc/sbus.h>
+#include <lib/rc/srxl.hpp>
 #include <lib/rc/st24.h>
 #include <lib/rc/sumd.h>
 #include <px4_platform_common/px4_config.h>
@@ -163,9 +164,8 @@ private:
 	CRSFTelemetry *_crsf_telemetry{nullptr};
 	GHSTTelemetry *_ghst_telemetry{nullptr};
 
-	// these are not defined in this module...  but ... should be?
-	// how is this accessed, otherwise?
-	//SRXLTelemetry * _srxl_telemetry{nullptr};
+	// defined in `src/lib/rc/srxl.hpp`
+	SRXLCodec _srxl;
 
 	perf_counter_t	_cycle_perf;
 	perf_counter_t	_publish_interval_perf;
