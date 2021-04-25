@@ -55,7 +55,7 @@ public:
 	void set_error_count(uint32_t error_count) { _error_count = error_count; }
 	void increase_error_count() { _error_count++; }
 	void set_range(float range) { _range = range; }
-	void set_scale(float scale) { _scale = scale; }
+	void set_scale(float scale);
 	void set_temperature(float temperature) { _temperature = temperature; }
 
 	void update(const hrt_abstime &timestamp_sample, float x, float y, float z);
