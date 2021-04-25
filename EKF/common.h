@@ -408,7 +408,7 @@ union fault_status_u {
 		bool bad_acc_vertical: 1; ///< 16 - true if bad vertical accelerometer data has been detected
 		bool bad_acc_clipping: 1; ///< 17 - true if delta velocity data contains clipping (asymmetric railing)
 	} flags;
-	uint16_t value;
+	uint32_t value;
 
 };
 
