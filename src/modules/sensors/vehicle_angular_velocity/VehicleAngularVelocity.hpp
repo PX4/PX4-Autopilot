@@ -79,7 +79,6 @@ private:
 				 const matrix::Vector3f &angular_acceleration, float scale = 1.f);
 
 	float FilterAngularVelocity(int axis, float data[], int N = 1);
-	float FilterAngularAcceleration(int axis, float dt_s, float data[], int N = 1);
 
 	void DisableDynamicNotchEscRpm();
 	void DisableDynamicNotchFFT();
@@ -93,7 +92,7 @@ private:
 	bool UpdateSampleRate();
 
 	// scaled appropriately for current FIFO mode
-	matrix::Vector3f GetResetAngularVelocity(float new_scale = 1.f) const;
+	matrix::Vector3f GetResetAngularVelocity(const matrix::Vector3f &angular_velocity, float new_scale = 1.f) const;
 	matrix::Vector3f GetResetAngularAcceleration(float new_scale = 1.f) const;
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
@@ -119,9 +118,11 @@ private:
 	matrix::Vector3f _bias{};
 
 	matrix::Vector3f _angular_velocity{};
+	matrix::Vector3f _angular_velocity_prev{};
 	matrix::Vector3f _angular_acceleration{};
 
-	matrix::Vector3f _angular_velocity_prev{};
+	matrix::Vector3f _angular_velocity_raw_prev{};
+	matrix::Vector3f _angular_velocity_raw_prev_prev{};
 	hrt_abstime _timestamp_sample_last{0};
 
 	hrt_abstime _publish_interval_min_us{0};
