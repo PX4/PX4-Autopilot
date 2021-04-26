@@ -140,6 +140,8 @@ void VtolType::update_mc_state()
 		_flag_idle_mc = set_idle_mc();
 	}
 
+	resetAccelToPitchPitchIntegrator();
+
 	VtolType::set_all_motor_state(motor_state::ENABLED);
 
 	// copy virtual attitude setpoint to real attitude setpoint
@@ -156,6 +158,8 @@ void VtolType::update_fw_state()
 	if (_flag_idle_mc) {
 		_flag_idle_mc = !set_idle_fw();
 	}
+
+	resetAccelToPitchPitchIntegrator();
 
 	VtolType::set_alternate_motor_state(motor_state::DISABLED);
 
