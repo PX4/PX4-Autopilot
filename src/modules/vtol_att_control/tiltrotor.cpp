@@ -289,10 +289,18 @@ void Tiltrotor::update_transition_state()
 {
 	VtolType::update_transition_state();
 
-	// copy virtual attitude setpoint to real attitude setpoint (we use multicopter att sp)
-	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+	// we get attitude setpoint from a multirotor flighttask if altitude is controlled.
+	// in any other case the fixed wing attitude controller publishes attitude setpoint from manual stick input.
+	if (_v_control_mode->flag_control_climb_rate_enabled) {
+		memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+		_v_att_sp->roll_body = _fw_virtual_att_sp->roll_body;
+		_thrust_transition = -_mc_virtual_att_sp->thrust_body[2];
 
-	_v_att_sp->roll_body = _fw_virtual_att_sp->roll_body;
+	} else {
+		memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+		_v_att_sp->thrust_body[2] = -_fw_virtual_att_sp->thrust_body[0];
+		_thrust_transition = _fw_virtual_att_sp->thrust_body[0];
+	}
 
 	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
 
@@ -339,13 +347,6 @@ void Tiltrotor::update_transition_state()
 			_mc_yaw_weight = _mc_roll_weight;
 		}
 
-		_thrust_transition = -_mc_virtual_att_sp->thrust_body[2];
-
-		// in stabilized, acro or manual mode, set the MC thrust to the throttle stick position (coming from the FW attitude setpoint)
-		if (!_v_control_mode->flag_control_climb_rate_enabled) {
-			_v_att_sp->thrust_body[2] = -_fw_virtual_att_sp->thrust_body[0];
-		}
-
 	} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_FRONT_P2) {
 		// the plane is ready to go into fixed wing mode, tilt the rotors forward completely
 		_tilt_control = _params_tiltrotor.tilt_transition +
@@ -359,21 +360,11 @@ void Tiltrotor::update_transition_state()
 		int ramp_down_value = (1.0f - time_since_trans_start / _params_tiltrotor.front_trans_dur_p2) *
 				      (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) + PWM_DEFAULT_MIN;
 
-
 		set_alternate_motor_state(motor_state::VALUE, ramp_down_value);
-
-
-		_thrust_transition = -_mc_virtual_att_sp->thrust_body[2];
-
-		// in stabilized, acro or manual mode, set the MC thrust to the throttle stick position (coming from the FW attitude setpoint)
-		if (!_v_control_mode->flag_control_climb_rate_enabled) {
-			_v_att_sp->thrust_body[2] = -_fw_virtual_att_sp->thrust_body[0];
-		}
 
 	} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_BACK) {
 		// turn on all MC motors
 		set_all_motor_state(motor_state::ENABLED);
-
 
 		// set idle speed for rotary wing mode
 		if (!_flag_idle_mc) {
@@ -404,11 +395,6 @@ void Tiltrotor::update_transition_state()
 			_mc_pitch_weight = 1.0f;
 			// slowly ramp up throttle to avoid step inputs
 			_mc_throttle_weight = (time_since_trans_start - 1.0f) / 1.0f;
-		}
-
-		// in stabilized, acro or manual mode, set the MC thrust to the throttle stick position (coming from the FW attitude setpoint)
-		if (!_v_control_mode->flag_control_climb_rate_enabled) {
-			_v_att_sp->thrust_body[2] = -_fw_virtual_att_sp->thrust_body[0];
 		}
 	}
 

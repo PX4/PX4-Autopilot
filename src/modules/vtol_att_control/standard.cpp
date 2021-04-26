@@ -230,8 +230,16 @@ void Standard::update_transition_state()
 
 	VtolType::update_transition_state();
 
-	// copy virtual attitude setpoint to real attitude setpoint
-	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+	// we get attitude setpoint from a multirotor flighttask if altitude is controlled.
+	// in any other case the fixed wing attitude controller publishes attitude setpoint from manual stick input.
+	if (_v_control_mode->flag_control_climb_rate_enabled) {
+		memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+		_v_att_sp->roll_body = _fw_virtual_att_sp->roll_body;
+
+	} else {
+		memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+		_v_att_sp->thrust_body[2] = -_fw_virtual_att_sp->thrust_body[0];
+	}
 
 	if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_FW) {
 		if (_params_standard.pusher_ramp_dt <= 0.0f) {
@@ -263,13 +271,6 @@ void Standard::update_transition_state()
 		// ramp up FW_PSP_OFF
 		_v_att_sp->pitch_body = _params_standard.pitch_setpoint_offset * (1.0f - mc_weight);
 
-		_v_att_sp->roll_body = _fw_virtual_att_sp->roll_body;
-
-		// in stabilized, acro or manual mode, set the MC thrust to the throttle stick position (coming from the FW attitude setpoint)
-		if (!_v_control_mode->flag_control_climb_rate_enabled) {
-			_v_att_sp->thrust_body[2] = -_fw_virtual_att_sp->thrust_body[0];
-		}
-
 		const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
 		q_sp.copyTo(_v_att_sp->q_d);
 
@@ -283,16 +284,9 @@ void Standard::update_transition_state()
 
 	} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_MC) {
 
-		_v_att_sp->roll_body = _fw_virtual_att_sp->roll_body;
-
 		if (_v_control_mode->flag_control_climb_rate_enabled) {
 			// control backtransition deceleration using pitch.
 			_v_att_sp->pitch_body = update_and_get_backtransition_pitch_sp();
-		}
-
-		// in stabilized, acro or manual mode, set the MC thrust to the throttle stick position (coming from the FW attitude setpoint)
-		if (!_v_control_mode->flag_control_climb_rate_enabled) {
-			_v_att_sp->thrust_body[2] = -_fw_virtual_att_sp->thrust_body[0];
 		}
 
 		const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
