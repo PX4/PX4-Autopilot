@@ -72,8 +72,8 @@ RoverPositionControl::~RoverPositionControl()
 bool
 RoverPositionControl::init()
 {
-	if (!_vehicle_attitude_sub.registerCallback()) {
-		PX4_ERR("vehicle attitude callback registration failed!");
+	if (!_vehicle_angular_velocity_sub.registerCallback()) {
+		PX4_ERR("vehicle angular velocity callback registration failed!");
 		return false;
 	}
 
@@ -184,6 +184,14 @@ RoverPositionControl::attitude_setpoint_poll()
 {
 	if (_att_sp_sub.updated()) {
 		_att_sp_sub.copy(&_att_sp);
+	}
+}
+
+void
+RoverPositionControl::vehicle_attitude_poll()
+{
+	if (_att_sub.updated()) {
+		_att_sub.copy(&_vehicle_att);
 	}
 }
 
@@ -385,11 +393,15 @@ RoverPositionControl::Run()
 {
 	parameters_update(true);
 
-	if (_vehicle_attitude_sub.update(&_vehicle_att)) {
+	/* run controller on gyro changes */
+	vehicle_angular_velocity_s angular_velocity;
+
+	if (_vehicle_angular_velocity_sub.update(&angular_velocity)) {
 
 		/* check vehicle control mode for changes to publication state */
 		vehicle_control_mode_poll();
 		attitude_setpoint_poll();
+		vehicle_attitude_poll();
 		manual_control_setpoint_poll();
 
 		_vehicle_acceleration_sub.update();
@@ -527,7 +539,7 @@ int RoverPositionControl::print_usage(const char *reason)
 ### Description
 Controls the position of a ground rover using an L1 controller.
 
-Publishes `actuator_controls_0` messages at a constant 250Hz.
+Publishes `actuator_controls_0` messages at IMU_GYRO_RATEMAX.
 
 ### Implementation
 Currently, this implementation supports only a few modes:
