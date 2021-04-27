@@ -51,7 +51,7 @@ float ECL_LimitCycleDetector::calculate_gain_factor(const float input, const flo
 	}
 
 	// Calculate a low pass filtered slew rate
-	slew_filter.setAlpha(1.0f - fminf(dt, DERIVATIVE_CUTOFF_TCONST) / DERIVATIVE_CUTOFF_TCONST);
+	slew_filter.setParameters(dt, DERIVATIVE_CUTOFF_TCONST);
 	const float slew_rate = slew_filter.update((input - _last_input) / dt);
 	_last_input = input;
 
