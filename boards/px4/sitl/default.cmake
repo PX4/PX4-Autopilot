@@ -90,7 +90,7 @@ px4_add_board(
 		fake_gps
 		fake_gyro
 		fake_magnetometer
-		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		#hwtest # Hardware test
 		#matlab_csv_serial
@@ -99,6 +99,7 @@ px4_add_board(
 		rover_steering_control # Rover example app
 		uuv_example_app
 		work_item
+		fixedwing_custom_control
 	)
 
 set(config_sitl_viewer jmavsim CACHE STRING "viewer for sitl")

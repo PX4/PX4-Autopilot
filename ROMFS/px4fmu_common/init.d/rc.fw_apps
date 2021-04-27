@@ -15,6 +15,10 @@ ekf2 start &
 #
 fw_att_control start
 fw_pos_control_l1 start
+
+#custom controller
+#ex_fixedwing_custom_control start
+
 airspeed_selector start
 #
 # Start Land Detector.

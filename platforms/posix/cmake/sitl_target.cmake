@@ -121,6 +121,7 @@ set(models
 	plane_cam
 	plane_catapult
 	plane_lidar
+	plane4
 	r1_rover
 	rover
 	shell
