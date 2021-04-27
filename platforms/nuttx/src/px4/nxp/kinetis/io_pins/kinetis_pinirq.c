@@ -71,8 +71,7 @@ int kinetis_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge,
 
 	} else {
 		ret = kinetis_pinirqattach(pinset, func, arg);
-		pinset &= ~_PIN_INT_MASK
-			  DEBUGASSERT(port < KINETIS_NPORTS);
+		pinset &= ~_PIN_INT_MASK;
 
 		if (risingedge) {
 			pinset |= PIN_INT_RISING;
