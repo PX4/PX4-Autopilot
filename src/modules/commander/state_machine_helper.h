@@ -145,4 +145,17 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 		      const vehicle_status_flags_s &status_flags, commander_state_s &internal_state, const uint8_t battery_warning,
 		      const low_battery_action_t low_bat_action);
 
+
+// COM_IMB_PROP_ACT parameter values
+enum class imbalanced_propeller_action_t {
+	DISABLED = -1,
+	WARNING = 0,
+	RETURN = 1,
+	LAND = 2
+};
+
+void imbalanced_prop_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status,
+			      const vehicle_status_flags_s &status_flags, commander_state_s *internal_state,
+			      const imbalanced_propeller_action_t failsafe_action);
+
 #endif /* STATE_MACHINE_HELPER_H_ */

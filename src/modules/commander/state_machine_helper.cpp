@@ -1256,3 +1256,52 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 		break;
 	}
 }
+
+void imbalanced_prop_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status,
+			      const vehicle_status_flags_s &status_flags, commander_state_s *internal_state,
+			      const imbalanced_propeller_action_t failsafe_action)
+{
+	static constexpr char failure_msg[] = "Imbalanced propeller detected";
+
+	switch (failsafe_action) {
+	case imbalanced_propeller_action_t::DISABLED:
+		break;
+
+	case imbalanced_propeller_action_t::WARNING:
+		mavlink_log_warning(mavlink_log_pub, "%s, landing advised", failure_msg);
+		break;
+
+	case imbalanced_propeller_action_t::RETURN:
+
+		if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
+			if (!(internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_RTL ||
+			      internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
+			      internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
+
+				internal_state->main_state = commander_state_s::MAIN_STATE_AUTO_RTL;
+				internal_state->timestamp = hrt_absolute_time();
+				mavlink_log_warning(mavlink_log_pub, "%s, executing RTL", failure_msg);
+			}
+
+		} else {
+			if (!(internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
+			      internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
+				internal_state->main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
+				internal_state->timestamp = hrt_absolute_time();
+				mavlink_log_warning(mavlink_log_pub, "%s, can't execute RTL, landing instead", failure_msg);
+			}
+		}
+
+		break;
+
+	case imbalanced_propeller_action_t::LAND:
+		if (!(internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
+		      internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
+			internal_state->main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
+			internal_state->timestamp = hrt_absolute_time();
+			mavlink_log_warning(mavlink_log_pub, "%s, landing", failure_msg);
+		}
+
+		break;
+	}
+}
