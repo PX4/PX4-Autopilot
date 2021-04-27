@@ -194,12 +194,11 @@ bool EKF2::multi_init(int imu, int mag)
 	_estimator_visual_odometry_aligned_pub.advertised();
 	_yaw_est_pub.advertise();
 
-	_vehicle_imu_sub.ChangeInstance(imu);
-	_magnetometer_sub.ChangeInstance(mag);
+	bool changed_instance = _vehicle_imu_sub.ChangeInstance(imu) && _magnetometer_sub.ChangeInstance(mag);
 
 	const int status_instance = _estimator_states_pub.get_instance();
 
-	if ((status_instance >= 0)
+	if ((status_instance >= 0) && changed_instance
 	    && (_attitude_pub.get_instance() == status_instance)
 	    && (_local_position_pub.get_instance() == status_instance)
 	    && (_global_position_pub.get_instance() == status_instance)) {
