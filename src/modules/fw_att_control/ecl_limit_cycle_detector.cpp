@@ -58,7 +58,7 @@ float ECL_LimitCycleDetector::calculate_gain_factor(const float input, const flo
 	const float decay_alpha = fminf(dt, _slew_rate_tau) / _slew_rate_tau;
 
 	// Store a series of positive slew rate exceedance events
-	uint32_t now_us = hrt_absolute_time();
+	uint64_t now_us = hrt_absolute_time();
 
 	if (!_pos_event_stored && slew_rate > _slew_rate_max) {
 		if (_pos_event_index >= N_EVENTS) {
@@ -84,7 +84,7 @@ float ECL_LimitCycleDetector::calculate_gain_factor(const float input, const flo
 	}
 
 	// Find the oldest event time
-	uint32_t oldest_us = now_us;
+	uint64_t oldest_us = now_us;
 
 	for (uint8_t index = 0; index < N_EVENTS; index++) {
 		if (_pos_event_us[index] < oldest_us) {
