@@ -2660,6 +2660,14 @@ Commander::run()
 						send_parachute_command();
 					}
 				}
+
+				if ((_status.failure_detector_status & vehicle_status_s::FAILURE_IMBALANCED_PROP)
+				    && !_imbalanced_propeller_check_triggered) {
+					_status_changed = true;
+					_imbalanced_propeller_check_triggered = true;
+					imbalanced_prop_failsafe(&_mavlink_log_pub, _status, _status_flags, &_internal_state,
+								 (imbalanced_propeller_action_t)_param_com_imb_prop_act.get());
+				}
 			}
 		}
 
@@ -2729,6 +2737,7 @@ Commander::run()
 		if (!_armed.armed) {
 			/* Reset the flag if disarmed. */
 			_have_taken_off_since_arming = false;
+			_imbalanced_propeller_check_triggered = false;
 		}
 
 		/* now set navigation state according to failsafe and main state */
