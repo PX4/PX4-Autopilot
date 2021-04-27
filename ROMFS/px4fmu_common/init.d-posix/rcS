@@ -5,7 +5,8 @@
 # shellcheck disable=SC1091
 . px4-alias.sh
 
-SCRIPT_DIR="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
+#search path for sourcing px4-rc.*
+PATH="$PATH:${R}etc/init.d-posix"
 
 #
 # Main SITL startup script
@@ -45,9 +46,9 @@ else
 	# Find the matching Autostart ID (file name has the form: [0-9]+_${PX4_SIM_MODEL})
 	# TODO: unify with rc.autostart generation
 	# shellcheck disable=SC2012
-	REQUESTED_AUTOSTART=$(ls "$SCRIPT_DIR/airframes" | sed -n 's/^\([0-9][0-9]*\)_'${PX4_SIM_MODEL}'$/\1/p')
+	REQUESTED_AUTOSTART=$(ls "${R}etc/init.d-posix/airframes" | sed -n 's/^\([0-9][0-9]*\)_'${PX4_SIM_MODEL}'$/\1/p')
 	if [ -z "$REQUESTED_AUTOSTART" ]; then
-		echo "Error: Unknown model $PX4_SIM_MODEL (not found by name on $SCRIPT_DIR/airframes)"
+		echo "Error: Unknown model $PX4_SIM_MODEL (not found by name on ${R}etc/init.d-posix/airframes)"
 		exit 1
 	else
 		echo "Info: found model autostart file as SYS_AUTOSTART=$REQUESTED_AUTOSTART"
@@ -104,15 +105,6 @@ fi
 # multi-instance setup
 # shellcheck disable=SC2154
 param set MAV_SYS_ID $((px4_instance+1))
-simulator_tcp_port=$((4560+px4_instance))
-udp_offboard_port_local=$((14580+px4_instance))
-udp_offboard_port_remote=$((14540+px4_instance))
-[ $px4_instance -gt 9 ] && udp_offboard_port_remote=14549 # use the same ports for more than 10 instances to avoid port overlaps
-udp_onboard_payload_port_local=$((14280+px4_instance))
-udp_onboard_payload_port_remote=$((14030+px4_instance))
-udp_onboard_gimbal_port_local=$((13030+px4_instance))
-udp_onboard_gimbal_port_remote=$((13280+px4_instance))
-udp_gcs_port_local=$((18570+px4_instance))
 
 if [ $AUTOCNF = yes ]
 then
@@ -216,25 +208,14 @@ fi
 # Simulator IMU data provided at 250 Hz
 param set IMU_INTEG_RATE 250
 
+#user defined params for instances can be in PATH
+. px4-rc.params
+
 dataman start
 # only start the simulator if not in replay mode, as both control the lockstep time
 if ! replay tryapplyparams
 then
-  # Check if PX4_SIM_HOSTNAME environment variable is empty
-  # If empty check if PX4_SIM_HOST_ADDR environment variable is empty
-  # If both are empty use localhost for simulator
-  if [ -z "${PX4_SIM_HOSTNAME}" ]; then
-    if [ -z "${PX4_SIM_HOST_ADDR}" ]; then
-      echo "PX4 SIM HOST: localhost"
-      simulator start -c $simulator_tcp_port
-    else
-      echo "PX4 SIM HOST: $PX4_SIM_HOST_ADDR"
-      simulator start -t $PX4_SIM_HOST_ADDR $simulator_tcp_port 
-    fi
-  else
-    echo "PX4 SIM HOST: $PX4_SIM_HOSTNAME"
-    simulator start -h $PX4_SIM_HOSTNAME $simulator_tcp_port 
-  fi
+  . px4-rc.simulator
 fi
 load_mon start
 battery_simulator start
@@ -272,32 +253,8 @@ fi
 #
 . ${R}etc/init.d/rc.vehicle_setup
 
-if [ -e etc/init.d-posix/rc.mavlink_override ]
-then
-	echo "Running non-default mavlink config rc.mavlink_override"
-	. ${R}etc/init.d-posix/rc.mavlink_override
-else
-	# GCS link
-	mavlink start -x -u $udp_gcs_port_local -r 4000000 -f
-	mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u $udp_gcs_port_local
-	mavlink stream -r 50 -s LOCAL_POSITION_NED -u $udp_gcs_port_local
-	mavlink stream -r 50 -s GLOBAL_POSITION_INT -u $udp_gcs_port_local
-	mavlink stream -r 50 -s ATTITUDE -u $udp_gcs_port_local
-	mavlink stream -r 50 -s ATTITUDE_QUATERNION -u $udp_gcs_port_local
-	mavlink stream -r 50 -s ATTITUDE_TARGET -u $udp_gcs_port_local
-	mavlink stream -r 50 -s SERVO_OUTPUT_RAW_0 -u $udp_gcs_port_local
-	mavlink stream -r 20 -s RC_CHANNELS -u $udp_gcs_port_local
-	mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u $udp_gcs_port_local
-
-	# API/Offboard link
-	mavlink start -x -u $udp_offboard_port_local -r 4000000 -f -m onboard -o $udp_offboard_port_remote
-
-	# Onboard link to camera
-	mavlink start -x -u $udp_onboard_payload_port_local -r 4000 -f -m onboard -o $udp_onboard_payload_port_remote
-
-	# Onboard link to gimbal
-	mavlink start -x -u $udp_onboard_gimbal_port_local -r 400000 -m gimbal -o $udp_onboard_gimbal_port_remote
-fi
+#user defined mavlink streams for instances can be in PATH
+. px4-rc.mavlink
 
 # execute autostart post script if any
 [ -e "$autostart_file".post ] && . "$autostart_file".post
