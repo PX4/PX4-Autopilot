@@ -48,7 +48,7 @@
 #include <lib/ecl/AlphaFilter/AlphaFilter.hpp>
 
 #define N_EVENTS 2
-#define WINDOW_MS 300
+#define WINDOW_US 300000
 #define COMPRESSOR_GAIN 1.5f
 #define DERIVATIVE_CUTOFF_TCONST 0.02f
 

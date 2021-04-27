@@ -102,7 +102,7 @@ float ECL_LimitCycleDetector::calculate_gain_factor(const float input, const flo
 		_max_pos_slew_rate = fminf(slew_rate, (4.0f / COMPRESSOR_GAIN) * _slew_rate_max);
 		_max_pos_slew_event_us = now_us;
 
-	} else if (now_us - _max_pos_slew_event_us > WINDOW_MS) {
+	} else if (now_us - _max_pos_slew_event_us > WINDOW_US) {
 		_max_pos_slew_rate *= (1.0f - decay_alpha);
 	}
 
@@ -110,7 +110,7 @@ float ECL_LimitCycleDetector::calculate_gain_factor(const float input, const flo
 		_max_neg_slew_rate = fminf(-slew_rate, (4.0f / COMPRESSOR_GAIN) * _slew_rate_max);
 		_max_neg_slew_event_us = now_us;
 
-	} else if (now_us - _max_neg_slew_event_us > WINDOW_MS) {
+	} else if (now_us - _max_neg_slew_event_us > WINDOW_US) {
 		_max_neg_slew_rate *= (1.0f - decay_alpha);
 	}
 
@@ -121,8 +121,8 @@ float ECL_LimitCycleDetector::calculate_gain_factor(const float input, const flo
 	// only done to the slew rate used for the gain reduction calculation
 	float modifier_input = raw_slew_rate;
 
-	if (now_us - oldest_us > (N_EVENTS + 1) * WINDOW_MS) {
-		const float oldest_time_from_window = 0.001f * (float)(now_us - oldest_us - (N_EVENTS + 1) * WINDOW_MS);
+	if (now_us - oldest_us > (N_EVENTS + 1) * WINDOW_US) {
+		const float oldest_time_from_window = 0.001f * (float)(now_us - oldest_us - (N_EVENTS + 1) * WINDOW_US);
 		modifier_input *= expf(-oldest_time_from_window / _slew_rate_tau);
 	}
 
