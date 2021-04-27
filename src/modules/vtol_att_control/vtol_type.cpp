@@ -332,7 +332,7 @@ bool VtolType::set_idle_fw()
 
 	for (int i = 0; i < num_outputs_max; i++) {
 		if (is_channel_set(i, generate_bitmap_from_channel_numbers(_params->vtol_motor_id))) {
-			pwm_values.values[i] = PWM_MOTOR_OFF;
+			pwm_values.values[i] = PWM_DEFAULT_MIN;
 
 		} else {
 			pwm_values.values[i] = _min_mc_pwm_values.values[i];
