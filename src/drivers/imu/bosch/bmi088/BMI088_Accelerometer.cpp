@@ -278,22 +278,22 @@ void BMI088_Accelerometer::ConfigureAccel()
 	switch (ACC_RANGE) {
 	case acc_range_3g:
 		_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f);
-		_px4_accel.set_range(3.f);
+		_px4_accel.set_range(3.f * CONSTANTS_ONE_G);
 		break;
 
 	case acc_range_6g:
 		_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f);
-		_px4_accel.set_range(6.f);
+		_px4_accel.set_range(6.f * CONSTANTS_ONE_G);
 		break;
 
 	case acc_range_12g:
 		_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f);
-		_px4_accel.set_range(12.f);
+		_px4_accel.set_range(12.f * CONSTANTS_ONE_G);
 		break;
 
 	case acc_range_24g:
 		_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f);
-		_px4_accel.set_range(24.f);
+		_px4_accel.set_range(24.f * CONSTANTS_ONE_G);
 		break;
 	}
 }
