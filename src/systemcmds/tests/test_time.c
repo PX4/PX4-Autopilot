@@ -123,7 +123,7 @@ int test_time(int argc, char *argv[])
 		}
 	}
 
-	printf("Maximum jitter %" PRId64 "us\n", maxdelta);
+	printf("Maximum jitter %dus\n", maxdelta);
 
 	return 0;
 }
