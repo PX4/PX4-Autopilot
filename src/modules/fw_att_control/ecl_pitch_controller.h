@@ -81,14 +81,15 @@ public:
 		_bodyrate_setpoint = math::constrain(rate, -_max_rate_neg, _max_rate);
 	}
 
-	float get_gain_compression_factor() const { return _gain_compression_factor; }
+	float get_gain_compression_factor() const { return _rate_error_gain_factor; }
 
 protected:
 	float _max_rate_neg{0.0f};
 	float _roll_ff{0.0f};
 
 private:
-	ECL_LimitCycleDetector _limit_cycle_detector;
+	ECL_LimitCycleDetector _fb_limit_cycle_detector; // limit cycle detector applied to rate feedback
+	ECL_LimitCycleDetector _ff_limit_cycle_detector; // limit cycle detector applied to rate feed-forward
 };
 
 #endif // ECL_PITCH_CONTROLLER_H

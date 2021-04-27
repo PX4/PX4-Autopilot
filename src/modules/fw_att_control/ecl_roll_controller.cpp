@@ -58,7 +58,7 @@ float ECL_RollController::control_attitude(const float dt, const ECL_ControlData
 	/*  Apply P controller: rate setpoint from current error and time constant */
 	_rate_setpoint = roll_error / _tc;
 
-	return _rate_setpoint;
+	return _rate_setpoint * _angle_error_gain_factor;
 }
 
 float ECL_RollController::control_bodyrate(const float dt, const ECL_ControlData &ctl_data)
@@ -99,49 +99,34 @@ float ECL_RollController::control_bodyrate(const float dt, const ECL_ControlData
 		_integrator = math::constrain(_integrator + id * _k_i, -_integrator_max, _integrator_max);
 	}
 
-	// Calculate the contribution of the rate gyro to the actuator demand and high pass filter
-	// The high pass filter reduces the contribution of the attitude control loop to the slew rate
-	// metric and reduces the likelihood that a loss of stability caused by a too small value of
-	// _tc would result in a an undesirable reduction in gyro rate feedback
-	// Note: high pass filter is implemented as HPF_output = input - LPF_output
-	const float p_term = _rate_error * _k_p * ctl_data.scaler * ctl_data.scaler;
-	float filter_input;
-
-	if (_k_ff > 0.0f) {
-		// If feed forward is being used then we can monitor the rate error term
-		// because the feed forward should be doing most of the work
-		filter_input = p_term;
-
-	} else {
-		// Some users will use a zero feed forward gain and rely on the rate error term
-		// to do all the work, resulting in large rate error tranisents. In this scenario
-		// it is better to monitor the gyro feedback contribution only
-		filter_input = ctl_data.body_y_rate * _k_p * ctl_data.scaler * ctl_data.scaler;
-	}
-
-	const float filt_tconst = _tc / 2.0f;
-	_gyro_contribution_lpf.setAlpha(fminf(dt, filt_tconst) / filt_tconst);
-	const float gyro_term_hpf = filter_input - _gyro_contribution_lpf.update(filter_input);;
-
-	// Calculate the actuator slew rate due to gyro feedback
-	const float gyro_term_slew_rate = (gyro_term_hpf - _last_gyro_term_hpf) / dt;
-	_last_gyro_term_hpf = gyro_term_hpf;
+	const float rate_gain = _k_p * ctl_data.scaler * ctl_data.scaler;
+	const float rate_feed_forward = _bodyrate_setpoint * rate_gain;
+	const float rate_feed_back =  - ctl_data.body_x_rate * rate_gain;
+	const float p_term = rate_feed_forward + rate_feed_back;
 
 	/* calculate gain compression factor required to prevent the rate feedback */
-	/*  term exceeding the actuator slew rate limit */
+	/* term exceeding the actuator slew rate limit */
 	if (_output_slew_rate_limit > 0.0f) {
 		const float decay_tconst = _tc * 2.0f;
-		_limit_cycle_detector.set_parameters(_output_slew_rate_limit, decay_tconst);
-		_gain_compression_factor = _limit_cycle_detector.calculate_gain_factor(gyro_term_slew_rate, dt);
+		_fb_limit_cycle_detector.set_parameters(_output_slew_rate_limit, decay_tconst);
+		_ff_limit_cycle_detector.set_parameters(_output_slew_rate_limit, decay_tconst);
+		const float fb_gain_factor = _fb_limit_cycle_detector.calculate_gain_factor(rate_feed_back, dt);
+		const float ff_gain_factor = _ff_limit_cycle_detector.calculate_gain_factor(rate_feed_forward, dt);
+		// If limit cycle is occurring in the demanded rate, then it is likely the root cause is
+		// insufficient bandwidth in the rate controller so we should reduce rate demand and not
+		// rate feedback.
+		_rate_error_gain_factor = fb_gain_factor / ff_gain_factor;
+		_angle_error_gain_factor = ff_gain_factor;
 
 	} else {
-		_gain_compression_factor = 1.0f;
+		_rate_error_gain_factor = 1.0f;
+		_angle_error_gain_factor = 1.0f;
 	}
 
 	/* Apply PI rate controller and store non-limited output */
 	/* FF terms scales with 1/TAS and P,I with 1/IAS^2 */
 	_last_output = _bodyrate_setpoint * _k_ff * ctl_data.scaler +
-		       p_term * _gain_compression_factor +
+		       p_term * _rate_error_gain_factor +
 		       _integrator;
 
 	return math::constrain(_last_output, -1.0f, 1.0f);

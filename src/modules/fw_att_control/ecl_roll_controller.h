@@ -64,7 +64,8 @@ public:
 	float control_bodyrate(const float dt, const ECL_ControlData &ctl_data) override;
 
 private:
-	ECL_LimitCycleDetector _limit_cycle_detector;
+	ECL_LimitCycleDetector _fb_limit_cycle_detector; // limit cycle detector applied to rate feedback
+	ECL_LimitCycleDetector _ff_limit_cycle_detector; // limit cycle detector applied to rate feed-forward
 };
 
 #endif // ECL_ROLL_CONTROLLER_H

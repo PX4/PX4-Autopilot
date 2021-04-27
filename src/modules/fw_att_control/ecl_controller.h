@@ -123,5 +123,6 @@ protected:
 	_gyro_contribution_lpf;	// contribution of the gyro feedback to the actuator demand after low pass filtering
 	float _max_pos_slew_rate{0.0f}; // peak slew rate of the gyro induced actuator demand in the positive direction
 	float _max_neg_slew_rate{0.0f}; // peak slew rate of the gyro induced actuator demand in the negative direction
-	float _gain_compression_factor{1.0f}; // factor applied to the rate error control gain _k_p
+	float _rate_error_gain_factor{1.0f}; // factor applied to the rate error control gain _k_p
+	float _angle_error_gain_factor{1.0f}; // factor applied to the angle error control gain
 };
