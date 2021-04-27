@@ -91,7 +91,7 @@ bool Subscription::ChangeInstance(uint8_t instance)
 		DeviceMaster *device_master = uORB::Manager::get_instance()->get_device_master();
 
 		if (device_master != nullptr) {
-			if (!device_master->deviceNodeExists(_orb_id, _instance)) {
+			if (!device_master->deviceNodeExists(_orb_id, instance)) {
 				return false;
 			}
 
