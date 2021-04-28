@@ -243,6 +243,7 @@ Sensors::Sensors(bool hil_enabled) :
 
 	_airspeed_validator.set_timeout(300000);
 	_airspeed_validator.set_equal_value_threshold(100);
+	_airspeed_validator.set_equal_value_threshold(100);
 
 	_vehicle_acceleration.Start();
 	_vehicle_angular_velocity.Start();
