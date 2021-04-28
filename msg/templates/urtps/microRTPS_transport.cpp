@@ -150,9 +150,9 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 	// Start not found
 	if (msg_start_pos > (rx_buff_pos - header_size)) {
 #ifndef PX4_DEBUG
-		if (debug) printf("\033[1;33m[ micrortps_transport ]\t                                (↓↓ %u)\033[0m\n", msg_start_pos);
+		if (debug) printf("\033[1;33m[ micrortps_transport ]\t                                (↓↓ %" PRIu32 ")\033[0m\n", msg_start_pos);
 #else
-		if (debug) PX4_DEBUG("                               (↓↓ %u)", msg_start_pos);
+		if (debug) PX4_DEBUG("                               (↓↓ %" PRIu32 ")", msg_start_pos);
 #endif /* PX4_DEBUG */
 
 		// All we've checked so far is garbage, drop it - but save unchecked bytes
@@ -178,9 +178,9 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 		// If there's garbage at the beginning, drop it
 		if (msg_start_pos > 0) {
 #ifndef PX4_DEBUG
-			if (debug) printf("\033[1;33m[ micrortps_transport ]\t                                (↓ %u)\033[0m\n", msg_start_pos);
+			if (debug) printf("\033[1;33m[ micrortps_transport ]\t                                (↓ %" PRIu32 ")\033[0m\n", msg_start_pos);
 #else
-			if (debug) PX4_DEBUG("                             (↓ %u)", msg_start_pos);
+			if (debug) PX4_DEBUG("                             (↓ %" PRIu32 ")", msg_start_pos);
 #endif /* PX4_DEBUG */
 			memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
 			rx_buff_pos -= msg_start_pos;
@@ -194,7 +194,7 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 
 	if (read_crc != calc_crc) {
 #ifndef PX4_DEBUG
-		if (debug) printf("\033[0;31m[ micrortps_transport ]\tBad CRC %u != %u\t\t(↓ %lu)\033[0m\n", read_crc, calc_crc, (unsigned long)(header_size + payload_len));
+		if (debug) printf("\033[0;31m[ micrortps_transport ]\tBad CRC %" PRIu16 " != %" PRIu16 "\t\t(↓ %lu)\033[0m\n", read_crc, calc_crc, (unsigned long)(header_size + payload_len));
 #else
 		if (debug) PX4_DEBUG("Bad CRC %u != %u\t\t(↓ %lu)", read_crc, calc_crc, (unsigned long)(header_size + payload_len));
 #endif /* PX4_DEBUG */
@@ -339,7 +339,7 @@ int UART_node::init()
 		printf("\033[0;31m[ micrortps_transport ]\tUART transport: ERR SET BAUD %s: Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600, 115200, 230400, 460800, 500000, 921600, 1000000\033[0m\n",
 			uart_name, baudrate);
 #else
-		PX4_ERR("UART transport: ERR SET BAUD %s: Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600, 115200, 230400, 460800, 500000, 921600, 1000000\n",
+		PX4_ERR("UART transport: ERR SET BAUD %s: Unsupported baudrate: %" PRIu32 "\n\tsupported examples:\n\t9600, 19200, 38400, 57600, 115200, 230400, 460800, 500000, 921600, 1000000\n",
 			uart_name, baudrate);
 #endif /* PX4_ERR */
 		close();
