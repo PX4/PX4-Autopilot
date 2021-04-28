@@ -103,14 +103,14 @@ float ECL_PitchController::control_bodyrate(const float dt, const ECL_ControlDat
 	}
 
 	const float rate_gain = _k_p * ctl_data.scaler * ctl_data.scaler;
-	const float rate_feed_forward = _bodyrate_setpoint * rate_gain;
+	const float rate_feed_forward = _bodyrate_setpoint * (rate_gain + _k_ff * ctl_data.scaler);
 	const float rate_feed_back =  - ctl_data.body_x_rate * rate_gain;
-	const float p_term = rate_feed_forward + rate_feed_back;
+	const float p_term = _bodyrate_setpoint * rate_gain + rate_feed_back;
 
 	/* calculate gain compression factor required to prevent the rate feedback */
 	/* term exceeding the actuator slew rate limit */
 	if (_output_slew_rate_limit > 0.0f) {
-		const float decay_tconst = _tc * 2.0f;
+		const float decay_tconst = _tc * 3.0f;
 		_fb_limit_cycle_detector.set_parameters(_output_slew_rate_limit, decay_tconst);
 		_ff_limit_cycle_detector.set_parameters(_output_slew_rate_limit, decay_tconst);
 		const float fb_gain_factor = _fb_limit_cycle_detector.calculate_gain_factor(rate_feed_back, dt);
