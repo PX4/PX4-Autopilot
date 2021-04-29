@@ -631,7 +631,10 @@ void FixedwingAttitudeControl::Run()
 			rate_ctrl_status.timestamp = hrt_absolute_time();
 			rate_ctrl_status.rollspeed_integ = _roll_ctrl.get_integrator();
 			rate_ctrl_status.pitchspeed_integ = _pitch_ctrl.get_integrator();
-			rate_ctrl_status.pitch_gcf = _pitch_ctrl.get_gain_compression_factor();
+			rate_ctrl_status.roll_rate_gcf = _roll_ctrl.get_rate_gain_factor();
+			rate_ctrl_status.roll_angle_gcf = _roll_ctrl.get_angle_gain_factor();
+			rate_ctrl_status.pitch_rate_gcf = _pitch_ctrl.get_rate_gain_factor();
+			rate_ctrl_status.pitch_angle_gcf = _pitch_ctrl.get_angle_gain_factor();
 
 			if (wheel_control) {
 				rate_ctrl_status.additional_integ1 = _wheel_ctrl.get_integrator();
