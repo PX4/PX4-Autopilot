@@ -778,7 +778,7 @@ GPS::run()
 			break;
 
 		case GPS_DRIVER_MODE_FEMTOMES:
-			_helper = new GPSDriverFemto(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
+			_helper = new GPSDriverFemto(&GPS::callback, this, &_report_gps_pos/*, _p_report_sat_info*/);
 			set_device_type(DRV_GPS_DEVTYPE_FEMTOMES);
 			break;
 #endif // CONSTRAINED_FLASH
