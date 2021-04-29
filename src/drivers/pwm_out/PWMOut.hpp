@@ -151,7 +151,7 @@ public:
 	/** change the FMU mode of the running module */
 	static int fmu_new_mode(PortMode new_mode);
 
-	static int test();
+	static int test(const char *dev);
 
 	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
 
@@ -182,6 +182,9 @@ private:
 
 	const int _instance;
 	const uint32_t _output_base;
+	uint32_t _output_mask;
+
+	static const int MAX_PER_INSTANCE{8};
 
 	MixingOutput _mixing_output{FMU_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
 
