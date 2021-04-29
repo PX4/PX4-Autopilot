@@ -776,6 +776,7 @@ GPS::run()
 			_helper = new GPSDriverEmlidReach(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
 			set_device_type(DRV_GPS_DEVTYPE_EMLID_REACH);
 			break;
+
 		case GPS_DRIVER_MODE_FEMTOMES:
 			_helper = new GPSDriverFemto(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
 			set_device_type(DRV_GPS_DEVTYPE_FEMTOMES);
