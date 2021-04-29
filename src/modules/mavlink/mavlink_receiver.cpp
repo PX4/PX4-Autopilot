@@ -3158,7 +3158,7 @@ void MavlinkReceiver::print_detailed_rx_stats() const
 	// TODO: add mutex around shared data.
 	for (unsigned i = 0; i < MAX_REMOTE_COMPONENTS; ++i) {
 		if (_component_states[i].received_messages > 0) {
-			printf("\t  received from %u/%u: %lu, lost: %u, last %u ms ago\n",
+			printf("\t  received from sysid: %u compid: %u: %u, lost: %u, last %u ms ago\n",
 			       _component_states[i].system_id,
 			       _component_states[i].component_id,
 			       _component_states[i].received_messages,
