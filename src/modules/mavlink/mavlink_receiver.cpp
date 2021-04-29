@@ -2178,8 +2178,8 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		battery_status_s hil_battery_status{};
 
 		hil_battery_status.timestamp = timestamp;
-		hil_battery_status.voltage_v = 12.0f;
-		hil_battery_status.voltage_filtered_v = 12.0f;
+		hil_battery_status.voltage_v = 16.0f;
+		hil_battery_status.voltage_filtered_v = 16.0f;
 		hil_battery_status.current_a = 10.0f;
 		hil_battery_status.discharged_mah = -1.0f;
 		hil_battery_status.connected = true;
