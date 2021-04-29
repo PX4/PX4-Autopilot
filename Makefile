@@ -326,7 +326,7 @@ parameters_metadata:
 	@$(MAKE) --no-print-directory px4_sitl_default metadata_parameters ver_gen
 
 airframe_metadata:
-	@$(MAKE) --no-print-directory px4_sitl_default metadata_airframes
+	@$(MAKE) --no-print-directory px4_sitl_default metadata_airframes ver_gen
 
 module_documentation:
 	@$(MAKE) --no-print-directory px4_sitl_default metadata_module_documentation

@@ -21,8 +21,19 @@ jobs:
       run: |
         make airframe_metadata
         cd build/px4_sitl_default/docs
-        ls -ls *
-      # TODO: deploy to userguide gitbook and s3
+        ./src/lib/version/get_git_tag_or_branch_version.sh build/px4_sitl_default >> $GITHUB_ENV
+      # TODO: deploy to userguide gitbook
+
+    - uses: jakejarvis/s3-sync-action@master
+      with:
+        args: --acl public-read
+      env:
+        AWS_S3_BUCKET: 'px4-travis'
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: 'us-west-1'
+        SOURCE_DIR: 'build/px4_sitl_default/docs/'
+        DEST_DIR: 'Firmware/${{ env.version }}/_general/'
 
   module:
     runs-on: ubuntu-latest
