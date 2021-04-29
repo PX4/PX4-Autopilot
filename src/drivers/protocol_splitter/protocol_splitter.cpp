@@ -56,8 +56,6 @@ class ReadBuffer;
 extern "C" __EXPORT int protocol_splitter_main(int argc, char *argv[]);
 
 /*
-
-
 MessageType is in MSB of header[1]
 		|
 		v
@@ -81,8 +79,8 @@ header[3] - |   Checksum    |
 typedef struct __attribute__((packed))
 {
 	char magic;                // 'S'
-	uint8_t len_h: 7,          // Length MSB
-		type: 1;          // 0=MAVLINK, 1=RTPS
+	uint8_t len_h:	7,         // Length MSB
+		 type:	1;         // 0=MAVLINK, 1=RTPS
 	uint8_t len_l;             // Length LSB
 	uint8_t checksum;          // XOR of two above bytes
 } Sp2Header_t;
@@ -290,12 +288,11 @@ Mavlink2Dev::Mavlink2Dev(ReadBuffer *read_buffer)
 	: DevCommon("/dev/mavlink")
 	, _read_buffer{read_buffer}
 {
-	_header.magic = Sp2HeaderMagic;
-	_header.len_h = 0;
-	_header.len_l = 0;
-	_header.checksum = 0;
-	_header.type = MessageType::Mavlink;
-
+	_header.magic 		= Sp2HeaderMagic;
+	_header.len_h 		= 0;
+	_header.len_l 		= 0;
+	_header.checksum	= 0;
+	_header.type		= MessageType::Mavlink;
 }
 
 ssize_t Mavlink2Dev::read(struct file *filp, char *buffer, size_t buflen)
@@ -478,11 +475,11 @@ RtpsDev::RtpsDev(ReadBuffer *read_buffer)
 	: DevCommon("/dev/rtps")
 	, _read_buffer{read_buffer}
 {
-	_header.magic = Sp2HeaderMagic;
-	_header.len_h = 0;
-	_header.len_l = 0;
-	_header.checksum = 0;
-	_header.type = MessageType::Rtps;
+	_header.magic		= Sp2HeaderMagic;
+	_header.len_h		= 0;
+	_header.len_l		= 0;
+	_header.checksum	= 0;
+	_header.type		= MessageType::Rtps;
 }
 
 ssize_t RtpsDev::read(struct file *filp, char *buffer, size_t buflen)
