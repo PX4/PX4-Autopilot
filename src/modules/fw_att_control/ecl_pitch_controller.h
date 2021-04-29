@@ -64,6 +64,9 @@ public:
 	float control_attitude(const float dt, const ECL_ControlData &ctl_data) override;
 	float control_euler_rate(const float dt, const ECL_ControlData &ctl_data, float bodyrate_ff) override;
 	float control_bodyrate(const float dt, const ECL_ControlData &ctl_data) override;
+	float get_rate_gain_factor() const { return _rate_error_gain_factor; }
+	float get_angle_gain_factor() const { return _angle_gain_factor; }
+
 
 	/* Additional Setters */
 	void set_max_rate_pos(float max_rate_pos)
@@ -81,8 +84,6 @@ public:
 		_bodyrate_setpoint = math::constrain(rate, -_max_rate_neg, _max_rate);
 	}
 
-	float get_gain_compression_factor() const { return _rate_error_gain_factor; }
-
 protected:
 	float _max_rate_neg{0.0f};
 	float _roll_ff{0.0f};
@@ -90,6 +91,8 @@ protected:
 private:
 	ECL_LimitCycleDetector _fb_limit_cycle_detector; // limit cycle detector applied to rate feedback
 	ECL_LimitCycleDetector _ff_limit_cycle_detector; // limit cycle detector applied to rate feed-forward
+	float _rate_gain_factor = 1.0f;
+	float _angle_gain_factor = 1.0f;
 };
 
 #endif // ECL_PITCH_CONTROLLER_H

@@ -113,13 +113,13 @@ float ECL_PitchController::control_bodyrate(const float dt, const ECL_ControlDat
 		const float decay_tconst = _tc * 3.0f;
 		_fb_limit_cycle_detector.set_parameters(_output_slew_rate_limit, decay_tconst);
 		_ff_limit_cycle_detector.set_parameters(_output_slew_rate_limit, decay_tconst);
-		const float fb_gain_factor = _fb_limit_cycle_detector.calculate_gain_factor(rate_feed_back, dt);
-		const float ff_gain_factor = _ff_limit_cycle_detector.calculate_gain_factor(rate_feed_forward, dt);
+		_rate_gain_factor = _fb_limit_cycle_detector.calculate_gain_factor(rate_feed_back, dt);
+		_angle_gain_factor = _ff_limit_cycle_detector.calculate_gain_factor(rate_feed_forward, dt);
 		// If limit cycle is occurring in the demanded rate, then it is likely the root cause is
 		// insufficient bandwidth in the rate controller so we should reduce rate demand and not
 		// rate feedback.
-		_rate_error_gain_factor = fb_gain_factor / ff_gain_factor;
-		_angle_error_gain_factor = ff_gain_factor;
+		_rate_error_gain_factor = _angle_gain_factor / _rate_gain_factor;
+		_angle_error_gain_factor = _angle_gain_factor;
 
 	} else {
 		_rate_error_gain_factor = 1.0f;
