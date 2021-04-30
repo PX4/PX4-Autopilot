@@ -402,7 +402,6 @@ int PWMOut::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_
 				continue;
 			}
 
-			printf("group:%d  mask %x\n", group, mask);
 			// all channels in the group must be either default or alt-rate
 			uint32_t alt = rate_map & mask;
 
@@ -1266,7 +1265,7 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_RATEGROUP(12):
 	case PWM_SERVO_GET_RATEGROUP(13):
 #endif
-		*(uint32_t *)arg = up_pwm_servo_get_rate_group(cmd - PWM_SERVO_GET_RATEGROUP(0) + _output_base);
+		*(uint32_t *)arg = _output_mask & up_pwm_servo_get_rate_group(cmd - PWM_SERVO_GET_RATEGROUP(0));
 		break;
 
 	case PWM_SERVO_GET_COUNT:
