@@ -452,18 +452,6 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 {
 	_current_task.task->setYawHandler(_wv_controller);
 
-	// Inform FlightTask about the input and output of the velocity controller
-	// This is used to properly initialize the velocity setpoint when onpening the position loop (position unlock)
-	if (_vehicle_local_position_setpoint_sub.updated()) {
-		vehicle_local_position_setpoint_s vehicle_local_position_setpoint;
-
-		if (_vehicle_local_position_setpoint_sub.copy(&vehicle_local_position_setpoint)) {
-			const Vector3f vel_sp{vehicle_local_position_setpoint.vx, vehicle_local_position_setpoint.vy, vehicle_local_position_setpoint.vz};
-			const Vector3f acc_sp{vehicle_local_position_setpoint.acceleration};
-			_current_task.task->updateVelocityControllerFeedback(vel_sp, acc_sp);
-		}
-	}
-
 	// If the task fails sned out empty NAN setpoints and the controller will emergency failsafe
 	vehicle_local_position_setpoint_s setpoint = FlightTask::empty_setpoint;
 	vehicle_constraints_s constraints = FlightTask::empty_constraints;
