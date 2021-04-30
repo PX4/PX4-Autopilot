@@ -37,6 +37,9 @@ __BEGIN_DECLS
 
 #define MAX_MTD_INSTANCES 5u
 
+// Forward decalarations
+FAR struct i2c_master_s;
+
 // The data needed to interface with mtd device's
 
 typedef struct {
