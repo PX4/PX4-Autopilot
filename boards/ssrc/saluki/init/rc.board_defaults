@@ -1,0 +1,9 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+set OUTPUT_MODE pwm_esc
+set AUX_MODE none
+
+pwm_esc start
