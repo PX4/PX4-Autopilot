@@ -36,6 +36,8 @@ px4_add_git_submodule(TARGET git_mavlink_v2 PATH "${PX4_SOURCE_DIR}/mavlink/incl
 px4_add_module(
 	MODULE modules__mavlink
 	MAIN mavlink
+	STACK_MAIN 4096
+	STACK_MAX 2500
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
 		-Wno-address-of-packed-member # TODO: fix in c_library_v2
