@@ -139,8 +139,8 @@ private:
 	bool _terrain_follow{false}; /**< true when the vehicle is following the terrain height */
 	bool _terrain_hold{false}; /**< true when vehicle is controlling height above a static ground position */
 
-	float _min_distance_to_ground{-INFINITY}; /**< min distance to ground constraint */
-	float _max_distance_to_ground{INFINITY};  /**< max distance to ground constraint */
+	float _min_distance_to_ground{(float)(-INFINITY)}; /**< min distance to ground constraint */
+	float _max_distance_to_ground{(float)INFINITY};  /**< max distance to ground constraint */
 
 	/**
 	 * Distance to ground during terrain following.
