@@ -57,8 +57,8 @@ parameters:
                     When the actuator_output is between DSHOT_3D_DEAD_L and DSHOT_3D_DEAD_H, motor will not spin.
                     This value is with respect to the mixer_module range (0-1999), not the DSHOT values.
             type: int32
-            low: 1000
-            high: 1999
+            min: 1000
+            max: 1999
             default: 1000
         DSHOT_3D_DEAD_L:
             description:
@@ -67,8 +67,8 @@ parameters:
                     When the actuator_output is between DSHOT_3D_DEAD_L and DSHOT_3D_DEAD_H, motor will not spin.
                     This value is with respect to the mixer_module range (0-1999), not the DSHOT values.
             type: int32
-            low: 0
-            high: 1000
+            min: 0
+            max: 1000
             default: 1000
         MOT_POLE_COUNT: # only used by dshot so far, so keep it under the dshot group
             description:
