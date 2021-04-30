@@ -77,7 +77,7 @@ private:
 
 			vehicle_local_position_s lpos{};
 			_local_pos_sub.copy(&lpos);
-			msg.wind_alt = (lpos.z_valid && lpos.z_global) ? (-lpos.z + lpos.ref_alt) : NAN;
+			msg.wind_alt = (lpos.z_valid && lpos.z_global) ? (-lpos.z + lpos.ref_alt) : (float)NAN;
 
 			msg.horiz_accuracy = 0.0f;
 			msg.vert_accuracy = 0.0f;
