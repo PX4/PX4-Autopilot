@@ -63,3 +63,6 @@
 [submodule "src/drivers/uavcannode_gps_demo/libcanard"]
 	path = src/drivers/uavcannode_gps_demo/libcanard
 	url = https://github.com/UAVCAN/libcanard
+[submodule "Tools/rotors_simulator"]
+	path = Tools/rotors_simulator
+	url = https://github.com/ethz-asl/rotors_simulator.git

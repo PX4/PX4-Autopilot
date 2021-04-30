@@ -1,0 +1,55 @@
+name: RotorS PX4 Build Test
+
+on:
+  push:
+    branches:
+    - 'master'
+  pull_request:
+    branches:
+    - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        container:
+        - 'px4io/px4-dev-simulation-bionic:2020-11-18' # Gazebo 9
+    container:
+      image: ${{ matrix.container }}
+      options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        token: ${{ secrets.ACCESS_TOKEN }}
+    - name: Prepare ccache timestamp
+      id: ccache_cache_timestamp
+      shell: cmake -P {0}
+      run: |
+        string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
+        message("::set-output name=timestamp::${current_date}")
+    - name: ccache cache files
+      uses: actions/cache@v2
+      with:
+        path: ~/.ccache
+        key: rotors_tests-RelWithDebInfo-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
+        restore-keys: rotors_tests-RelWithDebInfo-ccache-
+    - name: setup ccache
+      run: |
+          mkdir -p ~/.ccache
+          echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+          echo "compression = true" >> ~/.ccache/ccache.conf
+          echo "compression_level = 5" >> ~/.ccache/ccache.conf
+          echo "max_size = 100M" >> ~/.ccache/ccache.conf
+          ccache -s
+          ccache -z
+    - name: Install glog
+      run: apt update && apt install -y libgoogle-glog-dev libyaml-cpp-dev
+    - name: Build PX4 RotorS
+      env:
+        PX4_CMAKE_BUILD_TYPE: RelWithDebInfo
+        DONT_RUN: 1
+      run: make px4_sitl rotors
+    - name: ccache post-run px4/firmware
+      run: ccache -s
