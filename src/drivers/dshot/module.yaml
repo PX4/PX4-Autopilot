@@ -14,7 +14,7 @@ parameters:
                 long: |
                     This enables/disables DShot. The different modes define different
                     speeds, for example DShot150 = 150kb/s. Not all ESCs support all modes.
-                    
+
                     Note: this enables DShot on the FMU outputs. For boards with an IO it is the
                     AUX outputs.
             type: enum
@@ -40,6 +40,36 @@ parameters:
             decimal: 2
             increment: 0.01
             default: 0.055
+        DSHOT_3D_ENABLE:
+            description:
+                short: Allows for 3d mode when using DShot and suitable mixer
+                long: |
+                    This splits the throttle ranges in two.
+                    Direction 1) 48 is the slowest, 1047 is the fastest.
+                    Direction 2) 1049 is the slowest, 2047 is the fastest.
+                    When mixer outputs 1000 or value inside DSHOT 3D deadband, DShot 0 is sent.
+            type: boolean
+            default: 0
+        DSHOT_3D_DEAD_H:
+            description:
+                short: DSHOT 3D deadband high
+                long: |
+                    When the actuator_output is between DSHOT_3D_DEAD_L and DSHOT_3D_DEAD_H, motor will not spin.
+                    This value is with respect to the mixer_module range (0-1999), not the DSHOT values.
+            type: int32
+            low: 1000
+            high: 1999
+            default: 1000
+        DSHOT_3D_DEAD_L:
+            description:
+                short: DSHOT 3D deadband low
+                long: |
+                    When the actuator_output is between DSHOT_3D_DEAD_L and DSHOT_3D_DEAD_H, motor will not spin.
+                    This value is with respect to the mixer_module range (0-1999), not the DSHOT values.
+            type: int32
+            low: 0
+            high: 1000
+            default: 1000
         MOT_POLE_COUNT: # only used by dshot so far, so keep it under the dshot group
             description:
                 short: Number of magnetic poles of the motors
