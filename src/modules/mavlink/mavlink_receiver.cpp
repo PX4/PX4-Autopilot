@@ -2230,7 +2230,8 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
 	gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
 	gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
-	gps.cog_rad = ((hil_gps.cog == 65535) ? (float)NAN : matrix::wrap_2pi(math::radians(hil_gps.cog * 1e-2f))); // cdeg -> rad
+	gps.cog_rad = ((hil_gps.cog == 65535) ? (float)NAN : matrix::wrap_2pi(math::radians(
+				hil_gps.cog * 1e-2f))); // cdeg -> rad
 	gps.vel_ned_valid = true;
 
 	gps.timestamp_time_relative = 0;
