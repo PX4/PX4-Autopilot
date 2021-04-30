@@ -287,7 +287,17 @@ private:
 
 using atomic_int = atomic<int>;
 using atomic_int32_t = atomic<int32_t>;
+
+/* On riscv64-unknown-elf atomic<bool> is  not quaranteed to be lock-free
+ * It is unclear whether it is really required.
+ * An optimal solution could be atomic_flag, but it doesn't seem to be available
+ * Just use atomic ints for now, to be safe
+*/
+#if !defined(CONFIG_ARCH_RISCV)
 using atomic_bool = atomic<bool>;
+#else
+using atomic_bool = atomic<int>;
+#endif
 
 } /* namespace px4 */
 
