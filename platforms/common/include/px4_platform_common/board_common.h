@@ -340,6 +340,8 @@ typedef enum PX4_SOC_ARCH_ID_t {
 
 	PX4_SOC_ARCH_ID_BBBLUE         =  0x1008,
 
+	PX4_SOC_ARCH_ID_MPFS           =  0x2000,
+
 } PX4_SOC_ARCH_ID_t;
 
 
