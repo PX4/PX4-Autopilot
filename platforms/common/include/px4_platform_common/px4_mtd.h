@@ -35,6 +35,9 @@
 
 __BEGIN_DECLS
 
+// Forward decalarations
+FAR struct i2c_master_s;
+
 // The data needed to interface with mtd device's
 
 typedef struct {
