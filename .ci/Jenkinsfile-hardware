@@ -667,6 +667,79 @@ pipeline {
           }
         }
 
+        stage("modalai_fc-v2_default") {
+          stages {
+            stage("build modalai_fc-v2_default") {
+              agent {
+                docker {
+                  image 'px4io/px4-dev-nuttx-bionic:2020-04-01'
+                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                }
+              }
+              steps {
+                sh 'export'
+                sh 'make distclean'
+                sh 'ccache -s'
+                sh 'git fetch --tags'
+                sh 'make modalai_fc-v2_default'
+                sh 'make sizes'
+                sh 'ccache -s'
+                stash includes: 'build/modalai_fc-v2_default/modalai_fc-v2_default.elf', name: 'modalai_fc-v2_default'
+              }
+              post {
+                always {
+                    sh 'make distclean'
+                }
+              }
+            } // stage build
+            stage("test") {
+              agent {
+                label 'modalai_fc-v2'
+              }
+              stages {
+                stage("flash") {
+                  steps {
+                    sh 'export'
+                    sh 'find /dev/serial'
+                    unstash 'modalai_fc-v2_default'
+                    // flash board and watch bootup
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/modalai_fc-v2_default/modalai_fc-v2_default.elf'
+                    sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-SEGGER_*` --baudrate 57600'
+                  }
+                }
+                stage("configure") {
+                  steps {
+                    // configure
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "param set CBRK_BUZZER 782097"'  // disable buzzer
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "param set SYS_AUTOSTART 4001"' // generic vtol standardulticopter
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "param save"'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "reboot"'                        // reboot to apply
+                  }
+                }
+                stage("status") {
+                  steps {
+                    statusSEGGER()
+                  }
+                }
+                stage("tests") {
+                  steps {
+                    // run tests
+                    sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-SEGGER_*`'
+                  }
+                }
+                stage("reset") {
+                  steps {
+                    cleanupSEGGER()
+                  }
+                }
+              }
+              options {
+                timeout(time: 60, unit: 'MINUTES')
+              }
+            } // stage test
+          }
+        }
+
         stage("holybro_durandal-v1_default") {
           stages {
             stage("build holybro_durandal-v1_default") {

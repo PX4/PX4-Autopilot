@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+# ModalAI FC-v2 specific board defaults
+#------------------------------------------------------------------------------
+
+
+if [ $AUTOCNF = yes ]
+then
+
+fi
+
+set LOGGER_BUF 64
+
+safety_button start
