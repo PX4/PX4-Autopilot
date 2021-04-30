@@ -114,10 +114,21 @@ __END_DECLS
 #define M_LOG10E_F		0.43429448f
 #define M_LN2_F			0.69314718f
 #define M_LN10_F		2.30258509f
+
+#ifndef M_PI_F
 #define M_PI_F			3.14159265f
+#endif
+
 #define M_TWOPI_F		6.28318531f
+
+#ifndef M_PI_2_F
 #define M_PI_2_F		1.57079632f
+#endif
+
+#ifndef M_PI_4_F
 #define M_PI_4_F		0.78539816f
+#endif
+
 #define M_3PI_4_F		2.35619449f
 #define M_SQRTPI_F		1.77245385f
 #define M_1_PI_F		0.31830989f
