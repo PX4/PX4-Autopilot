@@ -282,6 +282,11 @@ else
 		fi
 	fi
 
+	if param greater -s VESC_PORT 0
+	then
+		set OUTPUT_MODE vesc
+	fi
+
 	#
 	# Check if PX4IO present and update firmware if needed.
 	# Assumption IOFW set to firmware file and IO_PRESENT = no

@@ -38,24 +38,36 @@
  */
 
 #include "VescDriver/VescDriver.hpp"
+#include <drivers/device/device.h>
+#include <drivers/drv_mixer.h>
+#include <lib/cdev/CDev.hpp>
+#include <lib/mixer_module/mixer_module.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-class VescDevice : public px4::ScheduledWorkItem, public VescWritableInterface
+class VescDevice : public VescWritableInterface, public cdev::CDev, public OutputModuleInterface
 {
 public:
 	VescDevice(const char *port);
 	~VescDevice();
 	int init();
-	void print_info();
+	void printStatus();
+	int ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 private:
 	void Run();
 	size_t writeCallback(const uint8_t *buffer, const uint16_t length) override;
 	int setBaudrate(const unsigned baudrate);
+	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+			   unsigned num_control_groups_updated) override;
 
 	static constexpr size_t READ_BUFFER_SIZE{256};
+	static constexpr int DISARM_VALUE = 0;
+	static constexpr int MIN_THROTTLE = 100;
+	static constexpr int MAX_THROTTLE = 1000;
+
 	char _port[20] {};
 	int _serial_fd{-1};
 	VescDriver _vesc_driver;
+	MixingOutput _mixing_output{4, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 };

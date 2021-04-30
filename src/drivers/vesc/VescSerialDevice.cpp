@@ -44,7 +44,8 @@
 using namespace time_literals;
 
 VescDevice::VescDevice(const char *port) :
-	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
+	CDev("/dev/vesc"),
+	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
 	_vesc_driver(*this)
 {
 	// Store port name
@@ -52,6 +53,10 @@ VescDevice::VescDevice(const char *port) :
 
 	// Enforce null termination
 	_port[sizeof(_port) - 1] = '\0';
+
+	_mixing_output.setAllDisarmedValues(DISARM_VALUE);
+	_mixing_output.setAllMinValues(MIN_THROTTLE);
+	_mixing_output.setAllMaxValues(MAX_THROTTLE);
 }
 
 VescDevice::~VescDevice()
@@ -61,20 +66,55 @@ VescDevice::~VescDevice()
 
 int VescDevice::init()
 {
-	int ret = setBaudrate(115200);
+	// Do regular cdev init
+	int ret = CDev::init();
 
-	if (ret >= 0) {
-		ScheduleOnInterval(10_ms);
+	if (ret != OK) {
+		return ret;
 	}
 
+	// Set Baudrate and schedule for the first time
+	ret = setBaudrate(115200);
+
+	if (ret != OK) {
+		return ret;
+	}
+
+	ScheduleNow();
 	return OK;
 }
 
-void VescDevice::print_info()
+void VescDevice::printStatus()
 {
 	printf("Using port '%s'\n", _port);
 	printf("VESC version: %d.%d\n", _vesc_driver.getVersionMajor(), _vesc_driver.getVersionMinor());
+	_mixing_output.printStatus();
 	perf_print_counter(_cycle_perf);
+}
+
+bool VescDevice::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+			       unsigned num_control_groups_updated)
+{
+	// for (unsigned i = 0; i < num_outputs; i++) {
+	// 	if (!stop_motors && outputs[i] != DISARM_VALUE) {
+	// 		_vesc_driver.commandDutyCycle(static_cast<float>(outputs[i]) / 1e3f);
+	// 	}
+	// }
+
+	if (!stop_motors) {
+		_vesc_driver.commandDutyCycle(static_cast<float>(outputs[0]) / 1e3f);
+		_vesc_driver.commandDutyCycle(static_cast<float>(outputs[1]) / 1e3f, 11);
+		_vesc_driver.commandDutyCycle(static_cast<float>(outputs[2]) / 1e3f, 7);
+		_vesc_driver.commandDutyCycle(static_cast<float>(outputs[3]) / 1e3f, 107);
+
+	} else {
+		_vesc_driver.commandDutyCycle(0.f);
+		_vesc_driver.commandDutyCycle(0.f, 11);
+		_vesc_driver.commandDutyCycle(0.f, 7);
+		_vesc_driver.commandDutyCycle(0.f, 107);
+	}
+
+	return true;
 }
 
 void VescDevice::Run()
@@ -87,12 +127,11 @@ void VescDevice::Run()
 		_vesc_driver.requestFirmwareVersion();
 	}
 
-	_vesc_driver.commandDutyCycle(.05f);
+	_mixing_output.update();
 
 	// Check the number of bytes available in the buffer
 	int bytes_available{0};
 	int ret = ::ioctl(_serial_fd, FIONREAD, (unsigned long)&bytes_available);
-	printf("ioctl: %d %d\n", ret, _serial_fd);
 
 	while (ret >= 0 && bytes_available > 0) {
 		printf("read: ");
@@ -114,7 +153,8 @@ void VescDevice::Run()
 		bytes_available -= ret;
 	}
 
-	// TODO: ::close(_serial_fd); on exit
+	_mixing_output.updateSubscriptions(true);
+
 	perf_end(_cycle_perf);
 }
 
@@ -225,5 +265,39 @@ size_t VescDevice::writeCallback(const uint8_t *buffer, const uint16_t length)
 	printf("\n");
 	int ret = ::write(_serial_fd, buffer, length);
 	printf("write result: %d %d\n", ret, _serial_fd);
+	return ret;
+}
+
+int VescDevice::ioctl(device::file_t *filp, int cmd, unsigned long arg)
+{
+	int ret = OK;
+
+	PX4_DEBUG("ioctl cmd: %d, arg: %ld", cmd, arg);
+
+	lock();
+
+	switch (cmd) {
+	case MIXERIOCRESET:
+		_mixing_output.resetMixerThreadSafe();
+		break;
+
+	case MIXERIOCLOADBUF: {
+			const char *buf = (const char *)arg;
+			unsigned buflen = strlen(buf);
+			ret = _mixing_output.loadMixerThreadSafe(buf, buflen);
+			break;
+		}
+
+	default:
+		ret = -ENOTTY;
+		break;
+	}
+
+	unlock();
+
+	if (ret == -ENOTTY) {
+		ret = CDev::ioctl(filp, cmd, arg);
+	}
+
 	return ret;
 }

@@ -83,7 +83,7 @@ status()
 	}
 
 	printf("state @ %p\n", g_dev);
-	g_dev->print_info();
+	g_dev->printStatus();
 
 	return 0;
 }

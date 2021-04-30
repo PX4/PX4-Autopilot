@@ -439,8 +439,7 @@ bool MixingOutput::update()
 	return true;
 }
 
-void
-MixingOutput::setAndPublishActuatorOutputs(unsigned num_outputs, actuator_outputs_s &actuator_outputs)
+void MixingOutput::setAndPublishActuatorOutputs(unsigned num_outputs, actuator_outputs_s &actuator_outputs)
 {
 	actuator_outputs.noutputs = num_outputs;
 
@@ -452,8 +451,7 @@ MixingOutput::setAndPublishActuatorOutputs(unsigned num_outputs, actuator_output
 	_outputs_pub.publish(actuator_outputs);
 }
 
-void
-MixingOutput::publishMixerStatus(const actuator_outputs_s &actuator_outputs)
+void MixingOutput::publishMixerStatus(const actuator_outputs_s &actuator_outputs)
 {
 	MultirotorMixer::saturation_status saturation_status;
 	saturation_status.value = _mixers->get_saturation_status();
@@ -467,8 +465,7 @@ MixingOutput::publishMixerStatus(const actuator_outputs_s &actuator_outputs)
 	}
 }
 
-void
-MixingOutput::updateLatencyPerfCounter(const actuator_outputs_s &actuator_outputs)
+void MixingOutput::updateLatencyPerfCounter(const actuator_outputs_s &actuator_outputs)
 {
 	// use first valid timestamp_sample for latency tracking
 	for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
@@ -482,37 +479,27 @@ MixingOutput::updateLatencyPerfCounter(const actuator_outputs_s &actuator_output
 	}
 }
 
-void
-MixingOutput::reorderOutputs(uint16_t values[MAX_ACTUATORS])
+void MixingOutput::reorderOutputs(uint16_t values[MAX_ACTUATORS])
 {
 	if (MAX_ACTUATORS < 4) {
 		return;
 	}
 
-	if ((MotorOrdering)_param_mot_ordering.get() == MotorOrdering::Betaflight) {
-		/*
-		 * Betaflight default motor ordering:
-		 * 4     2
-		 *    ^
-		 * 3     1
-		 */
-		const uint16_t value_tmp[4] = {values[0], values[1], values[2], values[3] };
-		values[0] = value_tmp[3];
-		values[1] = value_tmp[0];
-		values[2] = value_tmp[1];
-		values[3] = value_tmp[2];
-	}
-
-	/* else: PX4, no need to reorder
-	 * 3     1
-	 *    ^
-	 * 2     4
-	 */
+	const uint16_t value_tmp[4] = {values[0], values[1], values[2], values[3]};
+	values[reorderedMotorIndex(0)] = value_tmp[0];
+	values[reorderedMotorIndex(1)] = value_tmp[1];
+	values[reorderedMotorIndex(2)] = value_tmp[2];
+	values[reorderedMotorIndex(3)] = value_tmp[3];
 }
 
 int MixingOutput::reorderedMotorIndex(int index) const
 {
 	if ((MotorOrdering)_param_mot_ordering.get() == MotorOrdering::Betaflight) {
+		/* Betaflight default motor ordering:
+		 * 4     2
+		 *    ^
+		 * 3     1
+		 */
 		switch (index) {
 		case 0: return 1;
 
@@ -523,6 +510,29 @@ int MixingOutput::reorderedMotorIndex(int index) const
 		case 3: return 0;
 		}
 	}
+
+	if ((MotorOrdering)_param_mot_ordering.get() == MotorOrdering::Clockwise) {
+		/* Clockwise motor ordering:
+		 * 4     1
+		 *    ^
+		 * 3     2
+		 */
+		switch (index) {
+		case 0: return 0;
+
+		case 1: return 2;
+
+		case 2: return 3;
+
+		case 3: return 1;
+		}
+	}
+
+	/* else: PX4, no need to reorder
+	 * 3     1
+	 *    ^
+	 * 2     4
+	 */
 
 	return index;
 }

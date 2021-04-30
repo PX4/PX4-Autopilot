@@ -29,6 +29,7 @@ PARAM_DEFINE_INT32(MC_AIRMODE, 0);
  *
  * @value 0 PX4
  * @value 1 Betaflight / Cleanflight
+ * @value 2 Clockwise
  *
  * @group Mixer Output
  */

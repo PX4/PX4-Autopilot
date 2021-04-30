@@ -144,6 +144,11 @@ then
 		set OUTPUT_DEV /dev/uavcan/esc
 	fi
 
+	if [ $OUTPUT_MODE = vesc ]
+	then
+		set OUTPUT_DEV /dev/vesc
+	fi
+
 	if mixer load ${OUTPUT_DEV} ${MIXER_FILE}
 	then
 		echo "INFO  [init] Mixer: ${MIXER_FILE} on ${OUTPUT_DEV}"

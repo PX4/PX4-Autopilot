@@ -203,7 +203,8 @@ private:
 
 	enum class MotorOrdering : int32_t {
 		PX4 = 0,
-		Betaflight = 1
+		Betaflight = 1,
+		Clockwise = 2
 	};
 
 	struct Command {
@@ -281,6 +282,5 @@ private:
 		(ParamFloat<px4::params::MOT_SLEW_MAX>) _param_mot_slew_max,
 		(ParamFloat<px4::params::THR_MDL_FAC>) _param_thr_mdl_fac, ///< thrust to motor control signal modelling factor
 		(ParamInt<px4::params::MOT_ORDERING>) _param_mot_ordering
-
 	)
 };
