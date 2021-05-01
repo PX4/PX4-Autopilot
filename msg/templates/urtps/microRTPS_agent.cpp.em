@@ -22,7 +22,7 @@ recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumer
 /****************************************************************************
  *
  * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
- * Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -229,6 +229,11 @@ int main(int argc, char** argv)
 
     printf("\033[0;37m--- MicroRTPS Agent ---\033[0m\n");
     printf("[   micrortps_agent   ]\tStarting link...\n");
+
+    const char* localhost_only = std::getenv("ROS_LOCALHOST_ONLY");
+    if (localhost_only && strcmp(localhost_only, "1") == 0) {
+        printf("[   micrortps_agent   ]\tUsing only the localhost network for data sharing...\n");
+    }
 
     switch (_options.transport)
     {
