@@ -62,15 +62,20 @@ except AttributeError:
  * This file was adapted from the fastcdrgen tool.
  */
 
+#include "@(topic)_Subscriber.h"
+
+#include <fastrtps/Domain.h>
 #include <fastrtps/participant/Participant.h>
 #include <fastrtps/attributes/ParticipantAttributes.h>
 #include <fastrtps/subscriber/Subscriber.h>
 #include <fastrtps/attributes/SubscriberAttributes.h>
 #include <fastrtps/transport/UDPv4TransportDescriptor.h>
+@[if version.parse(fastrtps_version) >= version.parse('2.0')]@
+#include <fastdds/rtps/transport/shared_mem/SharedMemTransportDescriptor.h>
 
-#include <fastrtps/Domain.h>
+using SharedMemTransportDescriptor = eprosima::fastdds::rtps::SharedMemTransportDescriptor;
+@[end if]@
 
-#include "@(topic)_Subscriber.h"
 
 @(topic)_Subscriber::@(topic)_Subscriber()
 	: mp_participant(nullptr),
@@ -107,19 +112,26 @@ bool @(topic)_Subscriber::init(uint8_t topic_ID, std::condition_variable *t_send
 	PParam.rtps.setName(nodeName.c_str());
 
 	// Check if ROS_LOCALHOST_ONLY is set. This means that one wants to use
-	// only the localhost network for data sharing
-	const char *localhost_only = std::getenv("ROS_LOCALHOST_ONLY");
-
+	// only the localhost network for data sharing. If FastRTPS/DDS >= 2.0
+	// then the Shared Memory transport is used
+	const char* localhost_only = std::getenv("ROS_LOCALHOST_ONLY");
 	if (localhost_only && strcmp(localhost_only, "1") == 0) {
-		// Create a custom network transport descriptor to whitelist the localhost
-		auto localhostDescriptor = std::make_shared<UDPv4TransportDescriptor>();
-		localhostDescriptor->interfaceWhiteList.emplace_back("127.0.0.1");
+		// Create a custom network UDPv4 transport descriptor
+		// to whitelist the localhost
+		auto localhostUdpTransport = std::make_shared<UDPv4TransportDescriptor>();
+		localhostUdpTransport->interfaceWhiteList.emplace_back("127.0.0.1");
 
 		// Disable the built-in Transport Layer
 		PParam.rtps.useBuiltinTransports = false;
 
 		// Add the descriptor as a custom user transport
-		PParam.rtps.userTransports.push_back(localhostDescriptor);
+		PParam.rtps.userTransports.push_back(localhostUdpTransport);
+
+@[if version.parse(fastrtps_version) >= version.parse('2.0')]@
+		// Add shared memory transport when available
+		auto shmTransport = std::make_shared<SharedMemTransportDescriptor>();
+		PParam.rtps.userTransports.push_back(shmTransport);
+@[end if]@
 	}
 
 	mp_participant = Domain::createParticipant(PParam);
