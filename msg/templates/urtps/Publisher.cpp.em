@@ -74,107 +74,115 @@ except AttributeError:
 #include "@(topic)_Publisher.h"
 
 @(topic)_Publisher::@(topic)_Publisher()
-    : mp_participant(nullptr),
-      mp_publisher(nullptr)
+	: mp_participant(nullptr),
+	  mp_publisher(nullptr)
 { }
 
 @(topic)_Publisher::~@(topic)_Publisher()
 {
-    Domain::removeParticipant(mp_participant);
+	Domain::removeParticipant(mp_participant);
 }
 
-bool @(topic)_Publisher::init(const std::string& ns)
+bool @(topic)_Publisher::init(const std::string &ns)
 {
-    // Create RTPSParticipant
-    ParticipantAttributes PParam;
+	// Create RTPSParticipant
+	ParticipantAttributes PParam;
 @[if version.parse(fastrtps_version) < version.parse('2.0')]@
-    PParam.rtps.builtin.domainId = 0;
+	PParam.rtps.builtin.domainId = 0;
 @[else]@
-    PParam.domainId = 0;
+	PParam.domainId = 0;
 @[end if]@
 @[if version.parse(fastrtps_version) <= version.parse('1.8.4')]@
-    PParam.rtps.builtin.leaseDuration = c_TimeInfinite;
+	PParam.rtps.builtin.leaseDuration = c_TimeInfinite;
 @[else]@
-    PParam.rtps.builtin.discovery_config.leaseDuration = c_TimeInfinite;
+	PParam.rtps.builtin.discovery_config.leaseDuration = c_TimeInfinite;
 @[end if]@
-    std::string nodeName = ns;
-    nodeName.append("@(topic)_publisher");
-    PParam.rtps.setName(nodeName.c_str());
+	std::string nodeName = ns;
+	nodeName.append("@(topic)_publisher");
+	PParam.rtps.setName(nodeName.c_str());
 
-    // Check if ROS_LOCALHOST_ONLY is set. This means that one wants to use
-    // only the localhost network for data sharing
-    const char* localhost_only = std::getenv("ROS_LOCALHOST_ONLY");
-    if (localhost_only && strcmp(localhost_only, "1") == 0) {
-        // Create a custom network transport descriptor to whitelist the localhost
-        auto localhostDescriptor = std::make_shared<UDPv4TransportDescriptor>();
-        localhostDescriptor->interfaceWhiteList.emplace_back("127.0.0.1");
+	// Check if ROS_LOCALHOST_ONLY is set. This means that one wants to use
+	// only the localhost network for data sharing
+	const char *localhost_only = std::getenv("ROS_LOCALHOST_ONLY");
 
-        // Disable the built-in Transport Layer
-        PParam.rtps.useBuiltinTransports = false;
+	if (localhost_only && strcmp(localhost_only, "1") == 0) {
+		// Create a custom network transport descriptor to whitelist the localhost
+		auto localhostDescriptor = std::make_shared<UDPv4TransportDescriptor>();
+		localhostDescriptor->interfaceWhiteList.emplace_back("127.0.0.1");
 
-        // Add the descriptor as a custom user transport
-        PParam.rtps.userTransports.push_back(localhostDescriptor);
-    }
+		// Disable the built-in Transport Layer
+		PParam.rtps.useBuiltinTransports = false;
 
-    mp_participant = Domain::createParticipant(PParam);
-    if(mp_participant == nullptr)
-        return false;
+		// Add the descriptor as a custom user transport
+		PParam.rtps.userTransports.push_back(localhostDescriptor);
+	}
 
-    // Register the type
-    Domain::registerType(mp_participant, static_cast<TopicDataType*>(&@(topic)DataType));
+	mp_participant = Domain::createParticipant(PParam);
 
-    // Create Publisher
-    PublisherAttributes Wparam;
-    Wparam.topic.topicKind = NO_KEY;
-    Wparam.topic.topicDataType = @(topic)DataType.getName();
+	if (mp_participant == nullptr) {
+		return false;
+	}
+
+	// Register the type
+	Domain::registerType(mp_participant, static_cast<TopicDataType *>(&@(topic)DataType));
+
+	// Create Publisher
+	PublisherAttributes Wparam;
+	Wparam.topic.topicKind = NO_KEY;
+	Wparam.topic.topicDataType = @(topic)DataType.getName();
 @[if ros2_distro]@
 @[    if ros2_distro == "ardent"]@
-    Wparam.qos.m_partition.push_back("rt");
-    std::string topicName = ns;
-    topicName.append("@(topic)_PubSubTopic");
-    Wparam.topic.topicName = topicName;
+	Wparam.qos.m_partition.push_back("rt");
+	std::string topicName = ns;
+	topicName.append("@(topic)_PubSubTopic");
+	Wparam.topic.topicName = topicName;
 @[    else]@
-    std::string topicName = "rt/";
-    topicName.append(ns);
-    topicName.append("@(topic)_PubSubTopic");
-    Wparam.topic.topicName = topicName;
+	std::string topicName = "rt/";
+	topicName.append(ns);
+	topicName.append("@(topic)_PubSubTopic");
+	Wparam.topic.topicName = topicName;
 @[    end if]@
 @[else]@
-    std::string topicName = ns;
-    topicName.append("@(topic)PubSubTopic");
-    Wparam.topic.topicName = topicName;
+	std::string topicName = ns;
+	topicName.append("@(topic)PubSubTopic");
+	Wparam.topic.topicName = topicName;
 @[end if]@
-    mp_publisher = Domain::createPublisher(mp_participant, Wparam, static_cast<PublisherListener*>(&m_listener));
-    if(mp_publisher == nullptr)
-        return false;
-    return true;
+	mp_publisher = Domain::createPublisher(mp_participant, Wparam, static_cast<PublisherListener *>(&m_listener));
+
+	if (mp_publisher == nullptr) {
+		return false;
+	}
+
+	return true;
 }
 
-void @(topic)_Publisher::PubListener::onPublicationMatched(Publisher* pub, MatchingInfo& info)
+void @(topic)_Publisher::PubListener::onPublicationMatched(Publisher *pub, MatchingInfo &info)
 {
-    // The first 6 values of the ID guidPrefix of an entity in a DDS-RTPS Domain
-    // are the same for all its subcomponents (publishers, subscribers)
-    bool is_different_endpoint = false;
-    for (size_t i = 0; i < 6; i++) {
-        if (pub->getGuid().guidPrefix.value[i] != info.remoteEndpointGuid.guidPrefix.value[i]) {
-            is_different_endpoint = true;
-            break;
-        }
-    }
+	// The first 6 values of the ID guidPrefix of an entity in a DDS-RTPS Domain
+	// are the same for all its subcomponents (publishers, subscribers)
+	bool is_different_endpoint = false;
 
-    // If the matching happens for the same entity, do not make a match
-    if (is_different_endpoint) {
-        if (info.status == MATCHED_MATCHING) {
-            n_matched++;
-            std::cout << "\033[0;37m[   micrortps_agent   ]\t@(topic) publisher matched\033[0m" << std::endl;
-        } else {
-            n_matched--;
-            std::cout << "\033[0;37m[   micrortps_agent   ]\t@(topic) publisher unmatched\033[0m" << std::endl;
-        }
-    }
+	for (size_t i = 0; i < 6; i++) {
+		if (pub->getGuid().guidPrefix.value[i] != info.remoteEndpointGuid.guidPrefix.value[i]) {
+			is_different_endpoint = true;
+			break;
+		}
+	}
+
+	// If the matching happens for the same entity, do not make a match
+	if (is_different_endpoint) {
+		if (info.status == MATCHED_MATCHING) {
+			n_matched++;
+			std::cout << "\033[0;37m[   micrortps_agent   ]\t@(topic) publisher matched\033[0m" << std::endl;
+
+		} else {
+			n_matched--;
+			std::cout << "\033[0;37m[   micrortps_agent   ]\t@(topic) publisher unmatched\033[0m" << std::endl;
+		}
+	}
 }
 
-void @(topic)_Publisher::publish(@(topic)_msg_t* st)
+void @(topic)_Publisher::publish(@(topic)_msg_t *st)
 {
-    mp_publisher->write(st);
+	mp_publisher->write(st);
 }

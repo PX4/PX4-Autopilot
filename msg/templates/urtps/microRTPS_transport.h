@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
- * Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -97,8 +97,8 @@ class UART_node: public Transport_node
 {
 public:
 	UART_node(const char *_uart_name, const uint32_t _baudrate,
-			  const uint32_t _poll_ms, const bool _hw_flow_control,
-			  const bool _sw_flow_control, const bool _debug);
+		  const uint32_t _poll_ms, const bool _hw_flow_control,
+		  const bool _sw_flow_control, const bool _debug);
 	virtual ~UART_node();
 
 	int init();
@@ -122,8 +122,8 @@ protected:
 class UDP_node: public Transport_node
 {
 public:
-	UDP_node(const char* _udp_ip, uint16_t udp_port_recv, uint16_t udp_port_send,
-			 const bool _debug);
+	UDP_node(const char *_udp_ip, uint16_t udp_port_recv, uint16_t udp_port_send,
+		 const bool _debug);
 	virtual ~UDP_node();
 
 	int init();

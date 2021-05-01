@@ -25,7 +25,7 @@ except AttributeError:
 /****************************************************************************
  *
  * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
- * Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -99,24 +99,24 @@ using @(topic)_msg_datatype = @(topic)PubSubType;
 class @(topic)_Publisher
 {
 public:
-    @(topic)_Publisher();
-    virtual ~@(topic)_Publisher();
-    bool init(const std::string& ns);
-    void run();
-    void publish(@(topic)_msg_t* st);
+	@(topic)_Publisher();
+	virtual ~@(topic)_Publisher();
+	bool init(const std::string &ns);
+	void run();
+	void publish(@(topic)_msg_t *st);
 private:
-    Participant *mp_participant;
-    Publisher *mp_publisher;
+	Participant *mp_participant;
+	Publisher *mp_publisher;
 
-    class PubListener : public PublisherListener
-    {
-    public:
-        PubListener() : n_matched(0){};
-        ~PubListener(){};
-        void onPublicationMatched(Publisher* pub, MatchingInfo& info);
-        int n_matched;
-    } m_listener;
-    @(topic)_msg_datatype @(topic)DataType;
+	class PubListener : public PublisherListener
+	{
+	public:
+		PubListener() : n_matched(0) {};
+		~PubListener() {};
+		void onPublicationMatched(Publisher *pub, MatchingInfo &info);
+		int n_matched;
+	} m_listener;
+	@(topic)_msg_datatype @(topic)DataType;
 };
 
 #endif // _@(topic)__PUBLISHER_H_
