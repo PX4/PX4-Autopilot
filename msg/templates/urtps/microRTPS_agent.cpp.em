@@ -237,10 +237,10 @@ int main(int argc, char **argv)
 	printf("\033[0;37m--- MicroRTPS Agent ---\033[0m\n");
 	printf("[   micrortps_agent   ]\tStarting link...\n");
 
-	const char *localhost_only = std::getenv("ROS_LOCALHOST_ONLY");
+	const char* localhost_only = std::getenv("ROS_LOCALHOST_ONLY");
 
 	if (localhost_only && strcmp(localhost_only, "1") == 0) {
-		printf("[   micrortps_agent   ]\tUsing only the localhost network for data sharing...\n");
+		printf("[   micrortps_agent   ]\tUsing only the localhost network...\n");
 	}
 
 	switch (_options.transport) {
