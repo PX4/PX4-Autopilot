@@ -25,7 +25,7 @@ except AttributeError:
 /****************************************************************************
  *
  * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
- * Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -67,6 +67,7 @@ except AttributeError:
 #include <fastrtps/attributes/ParticipantAttributes.h>
 #include <fastrtps/publisher/Publisher.h>
 #include <fastrtps/attributes/PublisherAttributes.h>
+#include <fastrtps/transport/UDPv4TransportDescriptor.h>
 
 #include <fastrtps/Domain.h>
 
@@ -99,6 +100,22 @@ bool @(topic)_Publisher::init(const std::string& ns)
     std::string nodeName = ns;
     nodeName.append("@(topic)_publisher");
     PParam.rtps.setName(nodeName.c_str());
+
+    // Check if ROS_LOCALHOST_ONLY is set. This means that one wants to use
+    // only the localhost network for data sharing
+    const char* localhost_only = std::getenv("ROS_LOCALHOST_ONLY");
+    if (localhost_only && strcmp(localhost_only, "1") == 0) {
+        // Create a custom network transport descriptor to whitelist the localhost
+        auto localhostDescriptor = std::make_shared<UDPv4TransportDescriptor>();
+        localhostDescriptor->interfaceWhiteList.emplace_back("127.0.0.1");
+
+        // Disable the built-in Transport Layer
+        PParam.rtps.useBuiltinTransports = false;
+
+        // Add the descriptor as a custom user transport
+        PParam.rtps.userTransports.push_back(localhostDescriptor);
+    }
+
     mp_participant = Domain::createParticipant(PParam);
     if(mp_participant == nullptr)
         return false;
