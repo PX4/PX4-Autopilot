@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
- * Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -80,8 +80,8 @@ uint16_t const crc16_table[256] = {
 };
 
 Transport_node::Transport_node(const bool _debug):
-    rx_buff_pos(0),
-    debug(_debug)
+	rx_buff_pos(0),
+	debug(_debug)
 {
 }
 
@@ -120,9 +120,13 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 
 		if (errsv && EAGAIN != errsv && ETIMEDOUT != errsv) {
 #ifndef PX4_DEBUG
-			if (debug) printf("\033[0;31m[ micrortps_transport ]\tRead fail %d\033[0m\n", errsv);
+
+			if (debug) { printf("\033[0;31m[ micrortps_transport ]\tRead fail %d\033[0m\n", errsv); }
+
 #else
-			if (debug) PX4_DEBUG("Read fail %d", errsv);
+
+			if (debug) { PX4_DEBUG("Read fail %d", errsv); }
+
 #endif /* PX4_DEBUG */
 		}
 
@@ -150,9 +154,13 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 	// Start not found
 	if (msg_start_pos > (rx_buff_pos - header_size)) {
 #ifndef PX4_DEBUG
-		if (debug) printf("\033[1;33m[ micrortps_transport ]\t                                (↓↓ %" PRIu32 ")\033[0m\n", msg_start_pos);
+
+		if (debug) { printf("\033[1;33m[ micrortps_transport ]\t                                (↓↓ %" PRIu32 ")\033[0m\n", msg_start_pos); }
+
 #else
-		if (debug) PX4_DEBUG("                               (↓↓ %" PRIu32 ")", msg_start_pos);
+
+		if (debug) { PX4_DEBUG("                               (↓↓ %" PRIu32 ")", msg_start_pos); }
+
 #endif /* PX4_DEBUG */
 
 		// All we've checked so far is garbage, drop it - but save unchecked bytes
@@ -178,9 +186,13 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 		// If there's garbage at the beginning, drop it
 		if (msg_start_pos > 0) {
 #ifndef PX4_DEBUG
-			if (debug) printf("\033[1;33m[ micrortps_transport ]\t                                (↓ %" PRIu32 ")\033[0m\n", msg_start_pos);
+
+			if (debug) { printf("\033[1;33m[ micrortps_transport ]\t                                (↓ %" PRIu32 ")\033[0m\n", msg_start_pos); }
+
 #else
-			if (debug) PX4_DEBUG("                             (↓ %" PRIu32 ")", msg_start_pos);
+
+			if (debug) { PX4_DEBUG("                             (↓ %" PRIu32 ")", msg_start_pos); }
+
 #endif /* PX4_DEBUG */
 			memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
 			rx_buff_pos -= msg_start_pos;
@@ -194,9 +206,13 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 
 	if (read_crc != calc_crc) {
 #ifndef PX4_DEBUG
-		if (debug) printf("\033[0;31m[ micrortps_transport ]\tBad CRC %" PRIu16 " != %" PRIu16 "\t\t(↓ %lu)\033[0m\n", read_crc, calc_crc, (unsigned long)(header_size + payload_len));
+
+		if (debug) { printf("\033[0;31m[ micrortps_transport ]\tBad CRC %" PRIu16 " != %" PRIu16 "\t\t(↓ %lu)\033[0m\n", read_crc, calc_crc, (unsigned long)(header_size + payload_len)); }
+
 #else
-		if (debug) PX4_DEBUG("Bad CRC %u != %u\t\t(↓ %lu)", read_crc, calc_crc, (unsigned long)(header_size + payload_len));
+
+		if (debug) { PX4_DEBUG("Bad CRC %u != %u\t\t(↓ %lu)", read_crc, calc_crc, (unsigned long)(header_size + payload_len)); }
+
 #endif /* PX4_DEBUG */
 
 		// Drop garbage up just beyond the start of the message
@@ -223,7 +239,7 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 
 size_t Transport_node::get_header_length()
 {
-    return sizeof(struct Header);
+	return sizeof(struct Header);
 }
 
 ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t length)
@@ -248,15 +264,17 @@ ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t leng
 	/* Fill in the header in the same payload buffer to call a single node_write */
 	memcpy(buffer, &header, sizeof(header));
 	ssize_t len = node_write(buffer, length + sizeof(header));
+
 	if (len != ssize_t(length + sizeof(header))) {
 		return len;
 	}
+
 	return len + sizeof(header);
 }
 
 UART_node::UART_node(const char *_uart_name, const uint32_t _baudrate,
-					 const uint32_t _poll_ms, const bool _hw_flow_control,
-					 const bool _sw_flow_control, const bool _debug):
+		     const uint32_t _poll_ms, const bool _hw_flow_control,
+		     const bool _sw_flow_control, const bool _debug):
 	Transport_node(_debug),
 	uart_fd(-1),
 	baudrate(_baudrate),
@@ -302,7 +320,8 @@ int UART_node::init()
 	if ((termios_state = tcgetattr(uart_fd, &uart_config)) < 0) {
 		int errno_bkp = errno;
 #ifndef PX4_ERR
-		printf("\033[0;31m[ micrortps_transport ]\tUART transport: ERR GET CONF %s: %d (%d)\n\033[0m", uart_name, termios_state, errno);
+		printf("\033[0;31m[ micrortps_transport ]\tUART transport: ERR GET CONF %s: %d (%d)\n\033[0m", uart_name, termios_state,
+		       errno);
 #else
 		PX4_ERR("UART transport: ERR GET CONF %s: %d (%d)", uart_name, termios_state, errno);
 #endif /* PX4_ERR */
@@ -326,6 +345,7 @@ int UART_node::init()
 	if (hw_flow_control) {
 		// HW flow control
 		uart_config.c_lflag |= CRTSCTS;
+
 	} else if (sw_flow_control) {
 		// SW flow control
 		uart_config.c_lflag |= (IXON | IXOFF | IXANY);
@@ -337,7 +357,7 @@ int UART_node::init()
 	if (!baudrate_to_speed(baudrate, &speed)) {
 #ifndef PX4_ERR
 		printf("\033[0;31m[ micrortps_transport ]\tUART transport: ERR SET BAUD %s: Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600, 115200, 230400, 460800, 500000, 921600, 1000000\033[0m\n",
-			uart_name, baudrate);
+		       uart_name, baudrate);
 #else
 		PX4_ERR("UART transport: ERR SET BAUD %s: Unsupported baudrate: %" PRIu32 "\n\tsupported examples:\n\t9600, 19200, 38400, 57600, 115200, 230400, 460800, 500000, 921600, 1000000\n",
 			uart_name, baudrate);
@@ -349,7 +369,8 @@ int UART_node::init()
 	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
 		int errno_bkp = errno;
 #ifndef PX4_ERR
-		printf("\033[0;31m[ micrortps_transport ]\tUART transport: ERR SET BAUD %s: %d (%d)\033[0m\n", uart_name, termios_state, errno);
+		printf("\033[0;31m[ micrortps_transport ]\tUART transport: ERR SET BAUD %s: %d (%d)\033[0m\n", uart_name, termios_state,
+		       errno);
 #else
 		PX4_ERR("ERR SET BAUD %s: %d (%d)", uart_name, termios_state, errno);
 #endif /* PX4_ERR */
@@ -373,10 +394,10 @@ int UART_node::init()
 
 	while (0 < ::read(uart_fd, (void *)&aux, 64)) {
 		flush = true;
-/**
- * According to px4_time.h, px4_usleep() is only defined when lockstep is set
- * to be used
- */
+		/**
+		 * According to px4_time.h, px4_usleep() is only defined when lockstep is set
+		 * to be used
+		 */
 #ifndef px4_usleep
 		usleep(1000);
 #else
@@ -386,15 +407,24 @@ int UART_node::init()
 
 	if (flush) {
 #ifndef PX4_DEBUG
-		if (debug) printf("[ micrortps_transport ]\tUART transport: Flush\n");
+
+		if (debug) { printf("[ micrortps_transport ]\tUART transport: Flush\n"); }
+
 #else
-		if (debug) PX4_DEBUG("UART transport: Flush");
+
+		if (debug) { PX4_DEBUG("UART transport: Flush"); }
+
 #endif /* PX4_DEBUG */
+
 	} else {
 #ifndef PX4_DEBUG
-		if (debug) printf("[ micrortps_transport ]\tUART transport: No flush\n");
+
+		if (debug) { printf("[ micrortps_transport ]\tUART transport: No flush\n"); }
+
 #else
-		if (debug) PX4_DEBUG("UART transport: No flush");
+
+		if (debug) { PX4_DEBUG("UART transport: No flush"); }
+
 #endif /* PX4_INFO */
 	}
 
@@ -549,17 +579,17 @@ bool UART_node::baudrate_to_speed(uint32_t bauds, speed_t *speed)
 	return true;
 }
 
-UDP_node::UDP_node(const char* _udp_ip, uint16_t _udp_port_recv,
-				   uint16_t _udp_port_send, const bool _debug):
+UDP_node::UDP_node(const char *_udp_ip, uint16_t _udp_port_recv,
+		   uint16_t _udp_port_send, const bool _debug):
 	Transport_node(_debug),
 	sender_fd(-1),
 	receiver_fd(-1),
 	udp_port_recv(_udp_port_recv),
 	udp_port_send(_udp_port_send)
 {
-    if (nullptr != _udp_ip) {
-            strcpy(udp_ip, _udp_ip);
-    }
+	if (nullptr != _udp_ip) {
+		strcpy(udp_ip, _udp_ip);
+	}
 }
 
 UDP_node::~UDP_node()
@@ -598,6 +628,7 @@ int UDP_node::init_receiver(uint16_t udp_port)
 #endif /* PX4_ERR */
 		return -1;
 	}
+
 #ifndef PX4_INFO
 	printf("[ micrortps_transport ]\tUDP transport: Trying to connect...");
 #else
@@ -612,6 +643,7 @@ int UDP_node::init_receiver(uint16_t udp_port)
 #endif /* PX4_ERR */
 		return -1;
 	}
+
 #ifndef PX4_INFO
 	printf("[ micrortps_transport ]\tUDP transport: Connected to server!\n\n");
 #else
