@@ -179,11 +179,12 @@ static int launch_send_thread(pthread_t &sender_thread)
 	param.sched_priority = SCHED_PRIORITY_DEFAULT;
 	(void)pthread_attr_setschedparam(&sender_thread_attr, &param);
 	pthread_create(&sender_thread, &sender_thread_attr, send, nullptr);
-
-	if (pthread_setname_np(sender_thread, "micrortps_client_send")) {
+	int rc = pthread_setname_np(sender_thread, "urtpsclient_snd");
+	if (rc != 0)
+	{
+		errno = rc;
 		PX4_ERR("Could not set pthread name (%d)", errno);
 	}
-
 	pthread_attr_destroy(&sender_thread_attr);
 
 	return 0;
@@ -198,9 +199,9 @@ void micrortps_start_topics(struct timespec &begin, uint64_t &total_read, uint64
 	uint8_t topic_ID = 255;
 	RcvTopicsPubs *pubs = new RcvTopicsPubs();
 
-	// Set the main task name to 'micrortps_client_rcv' in case there is
+	// Set the main task name to 'urtpsclient_rcv' in case there is
 	// data to receive
-	px4_prctl(PR_SET_NAME, "micrortps_client_rcv", px4_getpid());
+	px4_prctl(PR_SET_NAME, "urtpsclient_rcv", px4_getpid());
 
 	// ucdrBuffer to deserialize using the user defined buffer
 	ucdrBuffer reader;
