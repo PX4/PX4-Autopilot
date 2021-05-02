@@ -105,8 +105,8 @@ bool GpsBlending::blend_gps_data(uint64_t hrt_now_us)
 	_np_gps_suitable_for_blending = 0;
 
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
-		const float raw_dt = 1e-6f * (float)(_gps_state[i].timestamp - _time_prev_us[i]);
-		const float present_dt = 1e-6f * (float)(hrt_now_us - _gps_state[i].timestamp);
+		const float raw_dt = 1e-6f * ((float)_gps_state[i].timestamp - (float)_time_prev_us[i]);
+		const float present_dt = 1e-6f * ((float)hrt_now_us - (float)_gps_state[i].timestamp);
 
 		if (raw_dt > 0.0f && raw_dt < GPS_TIMEOUT_S) {
 			_gps_dt[i] = 0.1f * raw_dt + 0.9f * _gps_dt[i];
