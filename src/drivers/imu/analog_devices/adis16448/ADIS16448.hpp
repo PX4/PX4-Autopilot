@@ -105,9 +105,9 @@ private:
 	PX4Magnetometer _px4_mag;
 
 	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
-	perf_counter_t _perf_crc_bad{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": CRC16 bad"))};
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
+	perf_counter_t _perf_crc_bad{nullptr};
 
 	hrt_abstime _reset_timestamp{0};
 	hrt_abstime _last_config_check_timestamp{0};
@@ -118,6 +118,9 @@ private:
 
 	bool _self_test_passed{false};
 
+	int16_t _accel_prev[3] {};
+	int16_t _gyro_prev[3] {};
+
 	enum class STATE : uint8_t {
 		RESET,
 		WAIT_FOR_RESET,
@@ -127,12 +130,11 @@ private:
 	} _state{STATE::RESET};
 
 	uint8_t _checked_register{0};
-	static constexpr uint8_t size_register_cfg{4};
+	static constexpr uint8_t size_register_cfg{3};
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register               | Set bits, Clear bits
 		{ Register::MSC_CTRL,     MSC_CTRL_BIT::CRC16_for_burst, 0 },
 		{ Register::SMPL_PRD,     SMPL_PRD_BIT::internal_sampling_clock, SMPL_PRD_BIT::decimation_rate },
-		{ Register::SENS_AVG,     SENS_AVG_BIT::Measurement_range_1000_set, SENS_AVG_BIT::Measurement_range_1000_clear | SENS_AVG_BIT::Filter_Size_Variable_B },
-		{ Register::GPIO_CTRL,    GPIO_CTRL_BIT::GPIO2_DIRECTION | GPIO_CTRL_BIT::GPIO1_DIRECTION, 0},
+		{ Register::SENS_AVG,     SENS_AVG_BIT::Measurement_range_1000_set | SENS_AVG_BIT::Filter_Size_Variable_B_set, SENS_AVG_BIT::Measurement_range_1000_clear | SENS_AVG_BIT::Filter_Size_Variable_B_clear },
 	};
 };
