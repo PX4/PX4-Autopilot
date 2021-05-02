@@ -225,6 +225,12 @@ sensors start
 commander start
 navigator start
 
+# Try to start the micrortps_client with UDP transport if module exists
+if px4-micrortps_client status > /dev/null 2>&1
+then
+	# shellcheck disable=SC2154
+	micrortps_client start -t UDP $((2019+2*px4_instance)) -s $((2020+2*px4_instance))
+fi
 
 if param greater -s MNT_MODE_IN -1
 then
