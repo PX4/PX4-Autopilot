@@ -207,16 +207,7 @@
 #define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5, 6, 7};
 
 /* Power supply control and monitoring GPIOs */
-
-#define GPIO_nPOWER_IN_A                /* PG1  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN1)
-#define GPIO_nPOWER_IN_B                /* PG2  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN2)
-#define GPIO_nPOWER_IN_C                /* PG3  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN3)
-
-#define GPIO_nVDD_BRICK1_VALID          GPIO_nPOWER_IN_A /* Brick 1 Is Chosen */
-#define GPIO_nVDD_BRICK2_VALID          GPIO_nPOWER_IN_B /* Brick 2 Is Chosen  */
-#define BOARD_NUMBER_BRICKS             2
-#define BOARD_NUMBER_DIGITAL_BRICKS     2
-#define GPIO_nVDD_USB_VALID             GPIO_nPOWER_IN_C /* USB     Is Chosen */
+//#define GPIO_nVDD_USB_VALID             GPIO_nPOWER_IN_C /* USB     Is Chosen */
 
 #define GPIO_VDD_5V_PERIPH_nEN          /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN4)
 #define GPIO_VDD_5V_PERIPH_nOC          /* PE15 */ (GPIO_INPUT |GPIO_FLOAT|GPIO_PORTE|GPIO_PIN15)
@@ -341,7 +332,7 @@
  * provides the true logic GPIO BOARD_ADC_xxxx macros.
  */
 #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
-#define BOARD_ADC_USB_VALID     (!px4_arch_gpioread(GPIO_nVDD_USB_VALID))
+//#define BOARD_ADC_USB_VALID     (!px4_arch_gpioread(GPIO_nVDD_USB_VALID))
 
 /* ModalAI FC v2 never powers off the Servo rail */
 
@@ -388,9 +379,6 @@
 		GPIO_CAN1_RX,                     \
 		GPIO_CAN2_TX,                     \
 		GPIO_CAN2_RX,                     \
-		GPIO_nPOWER_IN_A,                 \
-		GPIO_nPOWER_IN_B,                 \
-		GPIO_nPOWER_IN_C,                 \
 		GPIO_VDD_5V_PERIPH_nEN,           \
 		GPIO_VDD_5V_PERIPH_nOC,           \
 		GPIO_VDD_5V_HIPOWER_nEN,          \
