@@ -361,8 +361,8 @@ void Ekf::controlOpticalFlowFusion()
 		const bool is_magnitude_good = !_flow_sample_delayed.flow_xy_rad.longerThan(_flow_sample_delayed.dt * _flow_max_rate);
 		const bool is_tilt_good = (_R_to_earth(2, 2) > _params.range_cos_max_tilt);
 
-		const float delta_time_min = fmaxf(0.8f * _delta_time_of, 0.001f);
-		const float delta_time_max = fminf(1.2f * _delta_time_of, 0.2f);
+		const float delta_time_min = fmaxf(0.7f * _delta_time_of, 0.001f);
+		const float delta_time_max = fminf(1.3f * _delta_time_of, 0.2f);
 		const bool is_delta_time_good = _flow_sample_delayed.dt >= delta_time_min
 		                                && _flow_sample_delayed.dt <= delta_time_max;
 		const bool is_body_rate_comp_available = calcOptFlowBodyRateComp();
