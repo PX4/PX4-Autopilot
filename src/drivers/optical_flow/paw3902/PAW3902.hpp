@@ -90,8 +90,6 @@ private:
 	void RegisterWrite(uint8_t reg, uint8_t data);
 	bool RegisterWriteVerified(uint8_t reg, uint8_t data, int retries = 5);
 
-	bool Reset();
-
 	void EnableLed();
 
 	void ModeBright();
@@ -123,6 +121,8 @@ private:
 	uint16_t _flow_quality_sum{0};
 
 	matrix::Dcmf	_rotation;
+
+	int             _discard_reading{3};
 
 	int		_flow_sum_x{0};
 	int		_flow_sum_y{0};
