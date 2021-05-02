@@ -150,35 +150,23 @@
 /* Define GPIO pins used as ADC N.B. Channel numbers must match below  */
 
 #define PX4_ADC_GPIO  \
-	/* PA0  */  GPIO_ADC1_INP16,   \
-	/* PA4  */  GPIO_ADC12_INP18,  \
-	/* PB0  */  GPIO_ADC12_INP9,   \
 	/* PB1  */  GPIO_ADC12_INP5,   \
 	/* PC2  */  GPIO_ADC123_INP12, \
 	/* PC3  */  GPIO_ADC12_INP13,  \
-	/* PF12 */  GPIO_ADC1_INP6,    \
 	/* PH3  */  GPIO_ADC3_INP14,   \
 	/* PH4  */  GPIO_ADC3_INP15
 
 /* Define Channel numbers must match above GPIO pin IN(n)*/
-#define ADC_SCALED_VDD_3V3_SENSORS1_CHANNEL     /* PA0  */  ADC1_CH(16)
-#define ADC_SCALED_VDD_3V3_SENSORS2_CHANNEL     /* PA4  */  ADC1_CH(18)
-#define ADC_SCALED_VDD_3V3_SENSORS3_CHANNEL     /* PB0  */  ADC1_CH(9)
 #define ADC_SCALED_V5_CHANNEL                   /* PB1  */  ADC1_CH(5)
 #define ADC_ADC3_6V6_CHANNEL                    /* PC2  */  ADC3_CH(12)
 #define ADC_ADC3_3V3_CHANNEL                    /* PC3  */  ADC3_CH(13)
-#define ADC_SCALED_VDD_3V3_SENSORS4_CHANNEL     /* PF12 */  ADC1_CH(6)
 #define ADC_HW_VER_SENSE_CHANNEL                /* PH3  */  ADC3_CH(14)
 #define ADC_HW_REV_SENSE_CHANNEL                /* PH4  */  ADC3_CH(15)
 
 #define ADC_CHANNELS \
-	((1 << ADC_SCALED_VDD_3V3_SENSORS1_CHANNEL) | \
-	 (1 << ADC_SCALED_VDD_3V3_SENSORS2_CHANNEL) | \
-	 (1 << ADC_SCALED_VDD_3V3_SENSORS3_CHANNEL) | \
-	 (1 << ADC_SCALED_V5_CHANNEL)               | \
+	((1 << ADC_SCALED_V5_CHANNEL)               | \
 	 (1 << ADC_ADC3_6V6_CHANNEL)                | \
-	 (1 << ADC_ADC3_3V3_CHANNEL))               | \
-	(1 << ADC_SCALED_VDD_3V3_SENSORS4_CHANNEL)
+	 (1 << ADC_ADC3_3V3_CHANNEL))
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
 
