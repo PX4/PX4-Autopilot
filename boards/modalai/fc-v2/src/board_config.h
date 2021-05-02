@@ -199,15 +199,6 @@
  */
 #define DIRECT_PWM_CAPTURE_CHANNELS  0
 
-/* PE6 is nARMED
- *  The GPIO will be set as input while not armed HW will have external HW Pull UP.
- *  While armed it shall be configured at a GPIO OUT set LOW
- */
-#define GPIO_nARMED_INIT     /* PE6 */  (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN6)
-#define GPIO_nARMED          /* PE6 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN6)
-
-#define BOARD_INDICATE_ARMED_STATE(on_armed)  px4_arch_configgpio((on_armed) ? GPIO_nARMED : GPIO_nARMED_INIT)
-
 /* PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   8
@@ -416,7 +407,6 @@
 		GPIO_nSAFETY_SWITCH_LED_OUT_INIT, \
 		GPIO_SAFETY_SWITCH_IN,            \
 		GPIO_PG6,                         \
-		GPIO_nARMED_INIT                  \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
