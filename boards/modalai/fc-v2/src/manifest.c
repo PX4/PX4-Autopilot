@@ -71,16 +71,17 @@ static const px4_hw_mft_item_t device_unsupported = {0, 0, 0};
 // List of components on a specific board configuration
 // The index of those components is given by the enum (px4_hw_mft_item_id_t)
 // declared in board_common.h
-static const px4_hw_mft_item_t hw_mft_list_v0600[] = {
+// M0079
+static const px4_hw_mft_item_t hw_mft_list_fc0200[] = {
 	{
-		.present     = 1,
-		.mandatory   = 1,
-		.connection  = px4_hw_con_onboard,
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_unknown,
 	},
 };
 
 static px4_hw_mft_list_entry_t mft_lists[] = {
-	{0x0000, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)},
+	{0x0300, hw_mft_list_fc0200, arraySize(hw_mft_list_fc0200)},
 };
 
 /************************************************************************************
