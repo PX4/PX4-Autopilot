@@ -195,19 +195,9 @@
 #define HW_INFO_INIT_VER       3 /* Offset in above string of the VER */
 #define HW_INFO_INIT_REV       4 /* Offset in above string of the REV */
 
-/* PWM Capture
- *
- * 1  PWM Capture inputs are configured.
- *
- * Pins:
- *
- * FMU_CAP1 : PE11  : TIM1_CH2
+/* PWM Capture - not routed
  */
-
-#define GPIO_TIM1_CH2IN      /* PE11  T1C2   FMU_CAP1 */ GPIO_TIM1_CH2IN_2
-#define GPIO_TIM1_CH2OUT     /* PE11  T1C2   FMU_CAP1 */ GPIO_TIM1_CH2OUT_2
-
-#define DIRECT_PWM_CAPTURE_CHANNELS  1
+#define DIRECT_PWM_CAPTURE_CHANNELS  0
 
 /* PE6 is nARMED
  *  The GPIO will be set as input while not armed HW will have external HW Pull UP.
@@ -407,7 +397,6 @@
 		GPIO_CAN1_RX,                     \
 		GPIO_CAN2_TX,                     \
 		GPIO_CAN2_RX,                     \
-		GPIO_HEATER_OUTPUT,               \
 		GPIO_nPOWER_IN_A,                 \
 		GPIO_nPOWER_IN_B,                 \
 		GPIO_nPOWER_IN_C,                 \
