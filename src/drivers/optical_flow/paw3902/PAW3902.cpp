@@ -84,8 +84,6 @@ int PAW3902::init()
 		return PX4_ERROR;
 	}
 
-	Reset();
-
 	// force to low light mode (1) initially
 	ChangeMode(Mode::LowLight, true);
 
@@ -150,24 +148,6 @@ bool PAW3902::DataReadyInterruptDisable()
 	return px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr) == 0;
 }
 
-bool PAW3902::Reset()
-{
-	DataReadyInterruptDisable();
-
-	// Power on reset
-	RegisterWrite(Register::Power_Up_Reset, 0x5A);
-	usleep(1000);
-
-	// Read from registers 0x02, 0x03, 0x04, 0x05 and 0x06 one time regardless of the motion state
-	RegisterRead(Register::Motion);
-	RegisterRead(Register::Delta_X_L);
-	RegisterRead(Register::Delta_X_H);
-	RegisterRead(Register::Delta_Y_L);
-	RegisterRead(Register::Delta_Y_H);
-
-	return true;
-}
-
 void PAW3902::exit_and_cleanup()
 {
 	DataReadyInterruptDisable();
@@ -183,6 +163,7 @@ bool PAW3902::ChangeMode(Mode newMode, bool force)
 
 		// Issue a soft reset
 		RegisterWrite(Register::Power_Up_Reset, 0x5A);
+		px4_usleep(1000);
 
 		uint32_t interval_us = 0;
 
@@ -206,6 +187,10 @@ bool PAW3902::ChangeMode(Mode newMode, bool force)
 			break;
 		}
 
+		EnableLed();
+
+		_discard_reading = 3;
+
 		if (DataReadyInterruptConfigure()) {
 			// backup schedule as a watchdog timeout
 			ScheduleDelayed(500_ms);
@@ -214,17 +199,6 @@ bool PAW3902::ChangeMode(Mode newMode, bool force)
 			ScheduleOnInterval(interval_us);
 		}
 
-		// Discard the first three motion data.
-		for (int i = 0; i < 3; i++) {
-			RegisterRead(Register::Motion);
-			RegisterRead(Register::Delta_X_L);
-			RegisterRead(Register::Delta_X_H);
-			RegisterRead(Register::Delta_Y_L);
-			RegisterRead(Register::Delta_Y_H);
-		}
-
-		EnableLed();
-
 		_mode = newMode;
 	}
 
@@ -232,11 +206,6 @@ bool PAW3902::ChangeMode(Mode newMode, bool force)
 	_low_to_superlow_counter = 0;
 	_low_to_bright_counter = 0;
 	_superlow_to_low_counter = 0;
-	// Approximate Resolution = (Register Value + 1) * (50 / 8450) ≈ 0.6% of data point in Figure 19
-	// The maximum register value is 0xA8. The minimum register value is 0.
-	uint8_t resolution = RegisterRead(Register::Resolution);
-	PX4_DEBUG("Resolution: %X", resolution);
-	PX4_DEBUG("Resolution is approx: %.3f", (double)((resolution + 1.0f) * (50.0f / 8450.0f)));
 
 	return true;
 }
@@ -582,9 +551,9 @@ void PAW3902::ModeSuperLowLight()
 void PAW3902::EnableLed()
 {
 	// Enable LED_N controls
-	RegisterWriteVerified(0x7F, 0x14);
-	RegisterWriteVerified(0x6F, 0x1c);
-	RegisterWriteVerified(0x7F, 0x00);
+	RegisterWrite(0x7F, 0x14);
+	RegisterWrite(0x6F, 0x1c);
+	RegisterWrite(0x7F, 0x00);
 }
 
 uint8_t PAW3902::RegisterRead(uint8_t reg, int retries)
@@ -663,11 +632,17 @@ void PAW3902::RunImpl()
 	// update for next iteration
 	_previous_collect_timestamp = timestamp_sample;
 
+	if (_discard_reading > 0) {
+		_discard_reading--;
+		ResetAccumulatedData();
+		return;
+	}
+
 	// check SQUAL & Shutter values
 	// To suppress false motion reports, discard Delta X and Delta Y values if the SQUAL and Shutter values meet the condition
-	// Bright Mode,			SQUAL < 0x19, Shutter ≥ 0x1FF0
-	// Low Light Mode,		SQUAL < 0x46, Shutter ≥ 0x1FF0
-	// Super Low Light Mode,	SQUAL < 0x55, Shutter ≥ 0x0BC0
+	// Bright Mode,          SQUAL < 0x19, Shutter ≥ 0x1FF0
+	// Low Light Mode,       SQUAL < 0x46, Shutter ≥ 0x1FF0
+	// Super Low Light Mode, SQUAL < 0x55, Shutter ≥ 0x0BC0
 	const uint16_t shutter = (buf.data.Shutter_Upper << 8) | buf.data.Shutter_Lower;
 
 	bool data_valid = true;
@@ -677,7 +652,6 @@ void PAW3902::RunImpl()
 		if ((buf.data.SQUAL < 0x19) && (shutter >= 0x1FF0)) {
 			// false motion report, discarding
 			perf_count(_false_motion_perf);
-			ResetAccumulatedData();
 			data_valid = false;
 		}
 
@@ -699,7 +673,6 @@ void PAW3902::RunImpl()
 		if ((buf.data.SQUAL < 0x46) && (shutter >= 0x1FF0)) {
 			// false motion report, discarding
 			perf_count(_false_motion_perf);
-			ResetAccumulatedData();
 			data_valid = false;
 		}
 
@@ -732,11 +705,14 @@ void PAW3902::RunImpl()
 		if ((buf.data.SQUAL < 0x55) && (shutter >= 0x0BC0)) {
 			// false motion report, discarding
 			perf_count(_false_motion_perf);
-			ResetAccumulatedData();
 			data_valid = false;
 		}
 
-		if (shutter < 0x03E8) {
+		if (shutter < 0x01F4) {
+			// should not operate with Shutter < 0x01F4 in Mode 2
+			ChangeMode(Mode::LowLight);
+
+		} else if (shutter < 0x03E8) {
 			// SuperLowLight -> LowLight
 			_superlow_to_low_counter++;
 
