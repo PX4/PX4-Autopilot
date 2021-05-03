@@ -1,5 +1,3 @@
-menuconfig DRIVERS_IMU_INVENSENSE
-	bool "invensense"
-	default n
-	---help---
-		Enable support for invensense
+menu "Invensense"
+rsource "*/Kconfig"
+endmenu #Invensense
