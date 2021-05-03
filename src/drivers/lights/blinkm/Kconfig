@@ -1,5 +1,0 @@
-menuconfig DRIVERS_LIGHTS_BLINKM
-	bool "blinkm"
-	default n
-	---help---
-		Enable support for blinkm
