@@ -210,7 +210,6 @@
 #define GPIO_nVDD_USB_VALID             /* PF13 */ (GPIO_INPUT |GPIO_FLOAT|GPIO_PORTF|GPIO_PIN13) /* Low for USB power, High for DC power */
 
 #define GPIO_VDD_3V3_SPEKTRUM_POWER_EN  /* PH2  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN2)
-#define GPIO_VDD_3V3_SD_CARD_EN         /* PC13 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN13)
 
 /* Spare GPIO */
 
@@ -220,8 +219,6 @@
 
 #define VDD_3V3_SPEKTRUM_POWER_EN(on_true) px4_arch_gpiowrite(GPIO_VDD_3V3_SPEKTRUM_POWER_EN, (on_true))
 #define READ_VDD_3V3_SPEKTRUM_POWER_EN()   px4_arch_gpioread(GPIO_VDD_3V3_SPEKTRUM_POWER_EN)
-#define VDD_3V3_SD_CARD_EN(on_true)        px4_arch_gpiowrite(GPIO_VDD_3V3_SD_CARD_EN, (on_true))
-
 
 /* Tone alarm output */
 
@@ -358,7 +355,6 @@
 		GPIO_CAN2_TX,                     \
 		GPIO_CAN2_RX,                     \
 		GPIO_VDD_3V3_SPEKTRUM_POWER_EN,   \
-		GPIO_VDD_3V3_SD_CARD_EN,          \
 		CAN1_SILENT,                      \
 		GPIO_SYNC,                        \
 		SPI6_nRESET_EXTERNAL1,            \

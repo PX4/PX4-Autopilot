@@ -207,7 +207,6 @@ stm32_boardinitialize(void)
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	/* Power on Interfaces */
-	VDD_3V3_SD_CARD_EN(true);
 	board_spi_reset(10, 0xffff);
 	VDD_3V3_SPEKTRUM_POWER_EN(true);
 
@@ -259,11 +258,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (board_hardfault_init(2, true) != 0) {
 		led_on(LED_RED);
 	}
-
-	// Ensure Power is off for > 10 mS
-	usleep(15 * 1000);
-	VDD_3V3_SD_CARD_EN(true);
-	usleep(500 * 1000);
 
 #ifdef CONFIG_MMCSD
 	int ret = stm32_sdio_initialize();
