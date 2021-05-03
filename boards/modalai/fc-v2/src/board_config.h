@@ -220,15 +220,15 @@
 #define VDD_3V3_SPEKTRUM_POWER_EN(on_true) px4_arch_gpiowrite(GPIO_VDD_3V3_SPEKTRUM_POWER_EN, (on_true))
 #define READ_VDD_3V3_SPEKTRUM_POWER_EN()   px4_arch_gpioread(GPIO_VDD_3V3_SPEKTRUM_POWER_EN)
 
-/* Tone alarm output */
+/* Future Use - IMU FSYNC */
 
-#define TONE_ALARM_TIMER        14  /* Timer 14 */
-#define TONE_ALARM_CHANNEL      1  /* PF9 GPIO_TIM14_CH1OUT_2 */
+#define IMU_FYSNC_TIMER        14  /* Timer 14 */
+#define IMU_FYSNC_CHANNEL      1   /* PF9 GPIO_TIM14_CH1OUT_2 */
 
-#define GPIO_BUZZER_1           /* PF9 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTF|GPIO_PIN9)
+#define GPIO_IMU_FYSNC_1           /* PF9 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTF|GPIO_PIN9)
 
-#define GPIO_TONE_ALARM_IDLE    GPIO_BUZZER_1
-#define GPIO_TONE_ALARM         GPIO_TIM14_CH1OUT_2
+#define GPIO_IMU_FYSNC_IDLE    GPIO_IMU_FYSNC_1
+#define GPIO_IMU_FYSNC         GPIO_TIM14_CH1OUT_2
 
 /* USB OTG FS
  *
@@ -358,9 +358,10 @@
 		CAN1_SILENT,                      \
 		GPIO_SYNC,                        \
 		SPI6_nRESET_EXTERNAL1,            \
-		GPIO_TONE_ALARM_IDLE,             \
 		GPIO_nSAFETY_SWITCH_LED_OUT_INIT, \
 		GPIO_SAFETY_SWITCH_IN,            \
+		GPIO_IMU_FYSNC_IDLE,              \
+		GPIO_IMU_FYSNC,                   \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
