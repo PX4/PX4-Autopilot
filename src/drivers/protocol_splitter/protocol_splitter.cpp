@@ -294,7 +294,7 @@ Mavlink2Dev::Mavlink2Dev(ReadBuffer *read_buffer)
 	_header.fields.magic 		= Sp2HeaderMagic;
 	_header.fields.len_h 		= 0;
 	_header.fields.len_l 		= 0;
-	_header.fields.checksum	= 0;
+	_header.fields.checksum		= 0;
 	_header.fields.type		= MessageType::Mavlink;
 }
 
@@ -346,7 +346,7 @@ ssize_t Mavlink2Dev::read(struct file *filp, char *buffer, size_t buflen)
 
 	while ((unsigned)i < (_read_buffer->buf_size - Sp2HeaderSize) &&
 	       (((Sp2Header_t *) &_read_buffer->buffer[i])->fields.magic != Sp2HeaderMagic
-		|| ((Sp2Header_t *) &_read_buffer->buffer[i])->fields.type != (uint8_t) MessageType::Mavlink
+		|| ((Sp2Header_t *) &_read_buffer->buffer[i])->fields.type != (uint8_t)MessageType::Mavlink
 		|| ((Sp2Header_t *) &_read_buffer->buffer[i])->fields.checksum !=
 		(_read_buffer->buffer[i + 1] ^ _read_buffer->buffer[i + 2])
 	       )) {
@@ -481,7 +481,7 @@ RtpsDev::RtpsDev(ReadBuffer *read_buffer)
 	_header.fields.magic		= Sp2HeaderMagic;
 	_header.fields.len_h		= 0;
 	_header.fields.len_l		= 0;
-	_header.fields.checksum	= 0;
+	_header.fields.checksum		= 0;
 	_header.fields.type		= MessageType::Rtps;
 }
 
@@ -513,7 +513,7 @@ ssize_t RtpsDev::read(struct file *filp, char *buffer, size_t buflen)
 
 	while ((unsigned)i < (_read_buffer->buf_size - Sp2HeaderSize) &&
 	       (((Sp2Header_t *) &_read_buffer->buffer[i])->fields.magic != Sp2HeaderMagic
-		|| ((Sp2Header_t *) &_read_buffer->buffer[i])->fields.type != (uint8_t) MessageType::Rtps
+		|| ((Sp2Header_t *) &_read_buffer->buffer[i])->fields.type != (uint8_t)MessageType::Rtps
 		|| ((Sp2Header_t *) &_read_buffer->buffer[i])->fields.checksum !=
 		(_read_buffer->buffer[i + 1] ^ _read_buffer->buffer[i + 2])
 	       )) {
