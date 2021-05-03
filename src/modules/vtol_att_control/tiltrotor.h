@@ -60,6 +60,11 @@ public:
 	void waiting_on_tecs() override;
 	float thrust_compensation_for_tilt();
 
+	//-----------------------------------RHOMAN CODE / below----------------------------------------//
+	float rhoman_thrust_compensation_for_tilt();
+	double estimate_cl(double);
+
+
 private:
 
 	struct {

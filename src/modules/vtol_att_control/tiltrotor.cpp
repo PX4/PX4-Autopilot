@@ -42,6 +42,9 @@
 #include "tiltrotor.h"
 #include "vtol_att_control_main.h"
 
+#include <map>
+#include <iostream>
+
 using namespace matrix;
 using namespace time_literals;
 
@@ -349,16 +352,39 @@ void Tiltrotor::update_transition_state()
 		int ramp_down_value = (1.0f - time_since_trans_start / _params_tiltrotor.front_trans_dur_p2) *
 				      (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) + PWM_DEFAULT_MIN;
 
+		//print old ramp_down_value
+		PX4_INFO("OLD ramp_down_value: %i", ramp_down_value);
+
 
 		set_alternate_motor_state(motor_state::VALUE, ramp_down_value);
-
-
 		_thrust_transition = -_mc_virtual_att_sp->thrust_body[2];
+		PX4_INFO("OLD thrust: %f\n", (double)_thrust_transition);
 
 		// in stabilized, acro or manual mode, set the MC thrust to the throttle stick position (coming from the FW attitude setpoint)
 		if (!_v_control_mode->flag_control_climb_rate_enabled) {
 			_v_att_sp->thrust_body[2] = -_fw_virtual_att_sp->thrust_body[0];
 		}
+
+		//-----------------------------------RHOMAN CODE / below----------------------------------------//
+		double scalar= rhoman_thrust_compensation_for_tilt() / abs(_v_att_sp->thrust_body[2]);
+		//print scalar
+
+		//calculate new ramp_down value
+		double new_ramp_down_value = ramp_down_value * scalar;
+
+		PX4_INFO("NEW ramp_down_value: %f", new_ramp_down_value);
+
+		//update motor state
+		if(new_ramp_down_value < ramp_down_value){
+
+			set_alternate_motor_state(motor_state::VALUE, new_ramp_down_value);
+			_thrust_transition = -_mc_virtual_att_sp->thrust_body[2];
+			PX4_INFO("THRUST ADJUSTED:\n");
+			PX4_INFO("NEW thrust: %f\n\n", (double)_thrust_transition);
+
+		}
+
+		//-----------------------------------RHOMAN CODE / above----------------------------------------//
 
 	} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_BACK) {
 		// turn on all MC motors
@@ -475,4 +501,183 @@ float Tiltrotor::thrust_compensation_for_tilt()
 
 	// increase vertical thrust by 1/cos(tilt), limmit to [-1,0]
 	return math::constrain(_v_att_sp->thrust_body[2] / cosf(compensated_tilt * M_PI_2_F), -1.0f, 0.0f);
+}
+
+
+float Tiltrotor::rhoman_thrust_compensation_for_tilt()
+{
+	//parameters
+	double currr_thrust = _v_att_sp->thrust_body[2];
+	double v_x = _airspeed_validated->calibrated_airspeed_m_s;
+	double x_r = 1.0;
+	double x_f = 2.0;
+	double theta = _tilt_control; //TODO: check the unit, probably rad
+
+	double rho = 1.14;
+	float weight = 88.0;
+
+	float Tfmax = (float)1.5 * weight ;
+
+	double s = 5.8; //airfoil surface area function of aileron angle (PWM)
+	//float c_l = weight /(0.5 * rho * std::pow(v_x, 2) * s ); //variable with s ( surface area )
+	double c_l = estimate_cl(theta);
+
+	float rhoman_comp_thrust = currr_thrust * (x_r / x_f) * std::sin(theta) - 0.5 * rho * std::pow(v_x,2) * c_l * s;
+	rhoman_comp_thrust = std::max ( std::min ( rhoman_comp_thrust, Tfmax ) , (float )0.0 );
+
+	return rhoman_comp_thrust;
+}
+
+double Tiltrotor::estimate_cl(double angle_of_attack){
+
+	double cl=0;
+	double AOA = angle_of_attack;
+	double delta = FLT_MAX;
+	double the_key;
+	double diff;
+
+	//interpolation params
+	double x1;
+	double x2 = AOA;
+	double x3;
+	double y1;
+	double y3;
+
+	std::map<double, double> cl_lookup_table {
+	    	{-8.5,-0.4088},
+		{-8.25,-0.4231},
+		{-8,-0.4442},
+		{-7.75,-0.4937},
+		{-7.5,-0.4712},
+		{-7.25,-0.4535},
+		{-7,-0.4231},
+		{-6.75,-0.3952},
+		{-6.5,-0.3582},
+		{-6.25,-0.3204},
+		{-6,-0.293},
+		{-5.75,-0.2544},
+		{-5.5,-0.2129},
+		{-5.25,-0.1843},
+		{-5,-0.1466},
+		{-4.75,-0.1047},
+		{-4.5,-0.0618},
+		{-4.25,-0.0351},
+		{-4,0.003},
+		{-3.75,0.0426},
+		{-3.5,0.0687},
+		{-3.25,0.1047},
+		{-3,0.1342},
+		{-2.75,0.1659},
+		{-2.5,0.1964},
+		{-2.25,0.2255},
+		{-2,0.2541},
+		{-1.75,0.2836},
+		{-1.5,0.3098},
+		{-1.25,0.3373},
+		{-1,0.3583},
+		{-0.5,0.4431},
+		{-0.25,0.4683},
+		{0,0.4938},
+		{0.25,0.5198},
+		{0.5,0.5464},
+		{0.75,0.5733},
+		{1,0.5988},
+		{1.25,0.6247},
+		{1.5,0.651},
+		{1.75,0.6778},
+		{2,0.7038},
+		{2.25,0.7297},
+		{2.5,0.7561},
+		{2.75,0.7828},
+		{3,0.8084},
+		{3.25,0.8345},
+		{3.5,0.8613},
+		{3.75,0.8865},
+		{4,0.9127},
+		{4.25,0.939},
+		{4.5,0.9643},
+		{4.75,0.9905},
+		{5,1.0156},
+		{5.25,1.0396},
+		{5.5,1.0639},
+		{5.75,1.0888},
+		{6,1.1122},
+		{6.25,1.1342},
+		{6.5,1.1562},
+		{6.75,1.1783},
+		{7,1.2002},
+		{7.25,1.2215},
+		{7.5,1.242},
+		{7.75,1.2616},
+		{8,1.2799},
+		{8.25,1.2967},
+		{8.5,1.311},
+		{8.75,1.3218},
+		{9,1.3267},
+		{9.25,1.3283},
+		{9.5,1.3275},
+		{9.75,1.3266},
+		{10,1.3275},
+		{10.25,1.3289},
+		{10.5,1.3326},
+		{10.75,1.3366},
+		{11,1.3429},
+		{11.25,1.3438},
+		{11.5,1.353},
+		{11.75,1.3601},
+		{12,1.3641},
+		{12.25,1.3713},
+		{12.5,1.379},
+		{12.75,1.3857},
+		{13,1.3923},
+		{13.25,1.4001},
+		{13.5,1.4059},
+		{13.75,1.4115},
+		{14,1.418},
+		{14.25,1.4266},
+		{14.5,1.4286},
+		{14.75,1.4308},
+		{15,1.4342},
+		{15.25,1.4467},
+		{15.5,1.4416},
+		{15.75,1.4385},
+		{16,1.4362},
+		{16.25,1.4351},
+		{16.5,1.4392},
+		{16.75,1.4401},
+		{17,1.4274},
+		{17.25,1.4151}
+    	};
+
+	if ( cl_lookup_table.find(AOA) == cl_lookup_table.end() ) {
+	// entry not found
+		for (const auto& kv: cl_lookup_table) {
+			diff = fabsf(kv.first-AOA);
+
+			if (diff<delta){
+				delta = diff;
+				the_key = kv.first;
+
+				if(kv.first > the_key){
+					//interpolate with next
+					x1 = the_key - 0.250;
+					x3 = the_key;
+				}
+				x1 = the_key;
+				x3 = the_key + 0.250;
+			}
+		}
+
+		y1 = cl_lookup_table[x1];
+		y3 = cl_lookup_table[x3];
+
+		cl = ( (x2 - x1) * (y3 - y1) ) / (x3 - x1) + y1 ;
+
+
+	} else {
+	// entry found
+		cl = cl_lookup_table[AOA];
+	}
+
+	return cl;
 }
