@@ -314,7 +314,7 @@ AirspeedModule::Run()
 		// for fixed-wing landings.
 		const bool in_air_fixed_wing = !_vehicle_land_detected.landed &&
 					       _position_setpoint.type != position_setpoint_s::SETPOINT_TYPE_LAND &&
-					       _vehicle_status.system_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+					       _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 
 		// Prepare data for airspeed_validator
 		struct airspeed_validator_update_data input_data = {};
@@ -348,8 +348,9 @@ AirspeedModule::Run()
 				input_data.air_temperature_celsius = airspeed_raw.air_temperature_celsius;
 
 				// takeoff situation is active from start till one of the sensors' IAS or groundspeed_CAS is above stall speed
-				if (airspeed_raw.indicated_airspeed_m_s > _param_fw_airspd_stall.get()
-				    || _ground_minus_wind_CAS > _param_fw_airspd_stall.get()) {
+				if (_in_takeoff_situation &&
+				    (airspeed_raw.indicated_airspeed_m_s > _param_fw_airspd_stall.get() ||
+				     _ground_minus_wind_CAS > _param_fw_airspd_stall.get())) {
 					_in_takeoff_situation = false;
 				}
 
