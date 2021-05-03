@@ -509,12 +509,13 @@ void Ekf::controlGpsFusion()
 	// Check for new GPS data that has fallen behind the fusion time horizon
 	if (_gps_data_ready) {
 
-		controlGpsYawFusion();
+		const bool gps_checks_passing = isTimedOut(_last_gps_fail_us, (uint64_t)5e6);
+		const bool gps_checks_failing = isTimedOut(_last_gps_pass_us, (uint64_t)5e6);
+
+		controlGpsYawFusion(gps_checks_passing, gps_checks_failing);
 
 		// Determine if we should use GPS aiding for velocity and horizontal position
 		// To start using GPS we need angular alignment completed, the local NED origin set and GPS data that has not failed checks recently
-		const bool gps_checks_passing = isTimedOut(_last_gps_fail_us, (uint64_t)5e6);
-		const bool gps_checks_failing = isTimedOut(_last_gps_pass_us, (uint64_t)5e6);
 		if ((_params.fusion_mode & MASK_USE_GPS) && !_control_status.flags.gps) {
 			if (_control_status.flags.tilt_align && _NED_origin_initialised && gps_checks_passing) {
 				// If the heading is not aligned, reset the yaw and magnetic field states
@@ -724,18 +725,20 @@ void Ekf::controlGpsFusion()
 
 	} else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)10e6)) {
 		stopGpsFusion();
+		stopGpsYawFusion();
 		_warning_events.flags.gps_data_stopped = true;
 		ECL_WARN("GPS data stopped");
 	}  else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)1e6) && isOtherSourceOfHorizontalAidingThan(_control_status.flags.gps)) {
 		// Handle the case where we are fusing another position source along GPS,
 		// stop waiting for GPS after 1 s of lost signal
 		stopGpsFusion();
+		stopGpsYawFusion();
 		_warning_events.flags.gps_data_stopped_using_alternate = true;
 		ECL_WARN("GPS data stopped, using only EV, OF or air data" );
 	}
 }
 
-void Ekf::controlGpsYawFusion()
+void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 {
 	if (!(_params.fusion_mode & MASK_USE_GPSYAW)
 	    || _is_gps_yaw_faulty) {
@@ -744,30 +747,69 @@ void Ekf::controlGpsYawFusion()
 		return;
 	}
 
-	if (ISFINITE(_gps_sample_delayed.yaw)) {
+	const bool is_new_data_available = ISFINITE(_gps_sample_delayed.yaw);
+
+	if (is_new_data_available) {
+
+		const bool continuing_conditions_passing = !gps_checks_failing;
+
+		const bool is_gps_yaw_data_intermittent = !isRecent(_time_last_gps_yaw_data, 2 * GPS_MAX_INTERVAL);
+
+		const bool starting_conditions_passing = continuing_conditions_passing
+		                                         && _control_status.flags.tilt_align
+		                                         && gps_checks_passing
+							 && !is_gps_yaw_data_intermittent
+		                                         && !_gps_hgt_intermittent;
+
+		_time_last_gps_yaw_data = _time_last_imu;
 
 		if (_control_status.flags.gps_yaw) {
-			fuseGpsYaw();
+
+			if (continuing_conditions_passing) {
+
+				fuseGpsYaw();
+
+				const bool is_fusion_failing = isTimedOut(_time_last_gps_yaw_fuse, _params.reset_timeout_max);
+
+				if (is_fusion_failing) {
+					if (_nb_gps_yaw_reset_available > 0) {
+						// Data seems good, attempt a reset
+						resetYawToGps();
+						_nb_gps_yaw_reset_available--;
+
+					} else if (starting_conditions_passing) {
+						// Data seems good, but previous reset did not fix the issue
+						// something else must be wrong, declare the sensor faulty and stop the fusion
+						_is_gps_yaw_faulty = true;
+						stopGpsYawFusion();
+
+					} else {
+						// A reset did not fix the issue but all the starting checks are not passing
+						// This could be a temporary issue, stop the fusion without declaring the sensor faulty
+						stopGpsYawFusion();
+					}
+					// TODO: should we give a new reset credit when the fusion does not fail for some time?
+				}
+
+			} else {
+				// Stop GPS yaw fusion but do not declare it faulty
+				stopGpsYawFusion();
+			}
 
 		} else {
-			// Try to activate GPS yaw fusion
-			if (_control_status.flags.tilt_align
-			    && !_gps_hgt_intermittent) {
-
+		        if (starting_conditions_passing) {
+				// Try to activate GPS yaw fusion
 				if (resetYawToGps()) {
 					_control_status.flags.yaw_align = true;
+					_nb_gps_yaw_reset_available = 1;
 					startGpsYawFusion();
 				}
 			}
 		}
-	}
 
-	// Check if the data is constantly fused by the estimator,
-	// if not, declare the sensor faulty and stop the fusion
-	// By doing this, another source of yaw aiding is allowed to start
-	if (_control_status.flags.gps_yaw
-	    && isTimedOut(_time_last_gps_yaw_fuse, (uint64_t)5e6)) {
-		_is_gps_yaw_faulty = true;
+	} else if (_control_status.flags.gps_yaw
+	           && isTimedOut(_time_last_gps_yaw_data, _params.reset_timeout_max)) {
+		// No yaw data in the message anymore. Stop until it comes back.
 		stopGpsYawFusion();
 	}
 }

@@ -367,6 +367,9 @@ private:
 	uint64_t _time_last_fake_pos{0};	///< last time we faked position measurements to constrain tilt errors during operation without external aiding (uSec)
 
 	uint64_t _time_last_gps_yaw_fuse{0};	///< time the last fusion of GPS yaw measurements were performed (uSec)
+	uint64_t _time_last_gps_yaw_data{0};	///< time the last GPS yaw measurement was available (uSec)
+	uint8_t _nb_gps_yaw_reset_available{0}; ///< remaining number of resets allowed before switching to another aiding source
+
 
 	Vector2f _last_known_posNE;		///< last known local NE position vector (m)
 	float _imu_collection_time_adj{0.0f};	///< the amount of time the IMU collection needs to be advanced to meet the target set by FILTER_UPDATE_PERIOD_MS (sec)
@@ -786,7 +789,7 @@ private:
 
 	// control fusion of GPS observations
 	void controlGpsFusion();
-	void controlGpsYawFusion();
+	void controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing);
 
 	// control fusion of magnetometer observations
 	void controlMagFusion();
