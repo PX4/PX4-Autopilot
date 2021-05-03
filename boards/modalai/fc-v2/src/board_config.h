@@ -214,13 +214,7 @@
 
 /* Spare GPIO */
 
-#define GPIO_PG6                        /* PG6  */  (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN6)
-#define GPIO_PD15                       /* PD15 */  (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTD|GPIO_PIN15)
-
-/* NFC GPIO */
-
-#define GPIO_NFC_GPIO                   /* PC0 */ (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTC|GPIO_PIN0)
-
+#define CAN1_SILENT                       /* PD15 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN15)
 
 /* Define True logic Power Control in arch agnostic form */
 
@@ -365,14 +359,12 @@
 		GPIO_CAN2_RX,                     \
 		GPIO_VDD_3V3_SPEKTRUM_POWER_EN,   \
 		GPIO_VDD_3V3_SD_CARD_EN,          \
-		GPIO_PD15,                        \
+		CAN1_SILENT,                      \
 		GPIO_SYNC,                        \
 		SPI6_nRESET_EXTERNAL1,            \
-		GPIO_NFC_GPIO,                    \
 		GPIO_TONE_ALARM_IDLE,             \
 		GPIO_nSAFETY_SWITCH_LED_OUT_INIT, \
 		GPIO_SAFETY_SWITCH_IN,            \
-		GPIO_PG6,                         \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
