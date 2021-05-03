@@ -247,7 +247,7 @@ protected:
 
 	float _accel_to_pitch_integ = 0;
 
-	bool _quadchute_command_treated = 0;
+	bool _quadchute_command_treated{false};
 
 
 	/**
