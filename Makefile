@@ -469,8 +469,8 @@ validate_module_configs:
 
 clean:
 	@rm -rf "$(SRC_DIR)"/build
-	@git clean -dfX -e ".project" -e ".cproject" -e ".idea" -e ".settings" -e ".vscode"
-	@git submodule foreach git clean -dfX -e ".project" -e ".cproject" -e ".idea" -e ".settings" -e ".vscode"
+	@git clean -df -e ".project" -e ".cproject" -e ".idea" -e ".project" -e ".settings" -e ".vscode"
+	@git submodule foreach git clean -dfX
 
 submodulesclean:
 	@git submodule foreach --quiet --recursive git clean -ff -x -d
@@ -488,7 +488,7 @@ gazeboclean:
 
 distclean: gazeboclean
 	@git submodule deinit -f .
-	@git clean -ff -x -d -e ".project" -e ".cproject" -e ".idea" -e ".settings" -e ".vscode"
+	@git clean -ff -x -d -e ".cproject" -e ".idea" -e ".project" -e ".settings" -e ".vscode"
 
 # Help / Error
 # --------------------------------------------------------------------
