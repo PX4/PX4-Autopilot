@@ -129,7 +129,7 @@ Vector2f StickAccelerationXY::calculateDrag(Vector2f drag_coefficient, const flo
 	_brake_boost_filter.setParameters(dt, .8f);
 
 	if (stick_xy.norm_squared() < FLT_EPSILON) {
-		_brake_boost_filter.update(math::max(2.f, sqrtf(_param_mpc_vel_manual.get())));
+		_brake_boost_filter.update(_param_mpc_brake_factor.get());
 
 	} else {
 		_brake_boost_filter.update(1.f);

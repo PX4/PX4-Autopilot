@@ -508,8 +508,21 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-
 PARAM_DEFINE_FLOAT(MPC_ACC_HOR, 3.0f);
+
+/**
+ * Factor for faster braking than accelerating in position mode
+ *
+ * Note: In manual, this parameter is only used in MPC_POS_MODE 1.
+ *
+ * @unit m/s^2
+ * @min 2.0
+ * @max 15.0
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_BRAKE_FACTOR, 2.0f);
 
 /**
  * Maximum vertical acceleration in velocity controlled modes upward
