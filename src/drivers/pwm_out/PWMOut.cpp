@@ -35,6 +35,7 @@
 
 pthread_mutex_t pwm_out_module_mutex = PTHREAD_MUTEX_INITIALIZER;
 static px4::atomic<PWMOut *> _objects[PWM_OUT_MAX_INSTANCES] {};
+static px4::atomic<int> _all_instances_ready {0};
 
 static bool is_running()
 {
@@ -114,6 +115,7 @@ int PWMOut::init()
 int PWMOut::set_mode(Mode mode)
 {
 	unsigned old_mask = _pwm_mask;
+	bool old_pwm_initialized = _pwm_initialized;
 
 	/*
 	 * Configure for PWM output.
@@ -343,6 +345,10 @@ int PWMOut::set_mode(Mode mode)
 			up_pwm_servo_deinit(old_mask);
 			_pwm_on = false;
 		}
+
+		if (old_pwm_initialized != _pwm_initialized) {
+			_all_instances_ready.fetch_sub(1);
+		}
 	}
 
 	_mode = mode;
@@ -537,7 +543,7 @@ void PWMOut::capture_callback(uint32_t chan_index,
 	fprintf(stdout, "FMU: Capture chan:%d time:%lld state:%d overflow:%d\n", chan_index, edge_time, edge_state, overflow);
 }
 
-void PWMOut::update_pwm_out_state(bool on)
+bool PWMOut::update_pwm_out_state(bool on)
 {
 	if (on && !_pwm_initialized && _pwm_mask != 0) {
 
@@ -551,7 +557,6 @@ void PWMOut::update_pwm_out_state(bool on)
 
 				pwm_mask_new |= _objects[i].load()->get_pwm_mask();
 				pwm_alt_rate_channels_new |= _objects[i].load()->get_alt_rate_channels();
-
 			}
 		}
 
@@ -562,10 +567,13 @@ void PWMOut::update_pwm_out_state(bool on)
 		// Set rate is not affecting non-masked channels, so can be called
 		// individually
 		set_pwm_rate(get_alt_rate_channels(), get_default_rate(), get_alt_rate());
+
 		_pwm_initialized = true;
+		_all_instances_ready.fetch_add(1);
 	}
 
 	up_pwm_servo_arm(on, _pwm_mask);
+	return _all_instances_ready.load() == PWM_OUT_MAX_INSTANCES;
 }
 
 bool PWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
@@ -619,8 +627,10 @@ void PWMOut::Run()
 	bool pwm_on = _mixing_output.armed().armed || (_num_disarmed_set > 0) || _mixing_output.armed().in_esc_calibration_mode;
 
 	if (_pwm_on != pwm_on) {
-		_pwm_on = pwm_on;
-		update_pwm_out_state(pwm_on);
+
+		if (update_pwm_out_state(pwm_on)) {
+			_pwm_on = pwm_on;
+		}
 	}
 
 	// check for parameter updates

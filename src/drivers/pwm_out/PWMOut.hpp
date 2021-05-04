@@ -221,7 +221,7 @@ private:
 	int			set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
 	int			pwm_ioctl(file *filp, int cmd, unsigned long arg);
 
-	void		update_pwm_out_state(bool on);
+	bool		update_pwm_out_state(bool on);
 
 	void		update_params();
 
