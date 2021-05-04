@@ -37,7 +37,7 @@ px4_add_board(
 		imu/invensense/icm20602
 		imu/invensense/icm20689
 		imu/invensense/icm20948 # required for ak09916 mag
-		irlock
+		#irlock
 		lights # all available light drivers
 		#lights/rgbled_pwm
 		#magnetometer # all available magnetometer drivers
@@ -91,7 +91,7 @@ px4_add_board(
 		#rover_pos_control
 		sensors
 		#sih
-		temperature_compensation
+		#temperature_compensation
 		#uuv_att_control
 		#uuv_pos_control
 		#vmount
