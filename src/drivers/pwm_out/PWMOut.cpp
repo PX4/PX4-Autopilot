@@ -69,7 +69,7 @@ PWMOut::PWMOut(int instance, uint8_t output_base) :
 PWMOut::~PWMOut()
 {
 	/* make sure servos are off */
-	up_pwm_servo_deinit(); // TODO: review for multi
+	up_pwm_servo_deinit(_pwm_mask);
 
 	/* clean up the alternate device node */
 	unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
@@ -331,16 +331,18 @@ int PWMOut::set_mode(Mode mode)
 		_num_outputs = 0;
 		_mixing_output.setMaxNumOutputs(_num_outputs);
 		update_params();
-
-		if (old_mask != _pwm_mask) {
-			/* disable servo outputs - no need to set rates */
-			up_pwm_servo_deinit(); // TODO: review for multi
-		}
-
 		break;
 
 	default:
 		return -EINVAL;
+	}
+
+	if (old_mask != _pwm_mask) {
+		/* disable servo outputs - no need to set rates */
+		if (old_mask != 0) {
+			up_pwm_servo_deinit(old_mask);
+			_pwm_on = false;
+		}
 	}
 
 	_mode = mode;
@@ -563,7 +565,7 @@ void PWMOut::update_pwm_out_state(bool on)
 		_pwm_initialized = true;
 	}
 
-	up_pwm_servo_arm(on);
+	up_pwm_servo_arm(on, _pwm_mask);
 }
 
 bool PWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],

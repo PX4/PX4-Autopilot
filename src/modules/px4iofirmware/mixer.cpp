@@ -353,14 +353,14 @@ mixer_tick()
 
 	if (needs_to_arm && !mixer_servos_armed) {
 		/* need to arm, but not armed */
-		up_pwm_servo_arm(true);
+		up_pwm_servo_arm(true, 0);
 		mixer_servos_armed = true;
 		atomic_modify_or(&r_status_flags, PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED);
 		isr_debug(5, "> PWM enabled");
 
 	} else if (!needs_to_arm && mixer_servos_armed) {
 		/* armed but need to disarm */
-		up_pwm_servo_arm(false);
+		up_pwm_servo_arm(false, 0);
 		mixer_servos_armed = false;
 		atomic_modify_clear(&r_status_flags, (PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED));
 		isr_debug(5, "> PWM disabled");
