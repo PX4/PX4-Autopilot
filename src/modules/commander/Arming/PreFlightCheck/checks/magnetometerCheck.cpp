@@ -66,7 +66,12 @@ bool PreFlightCheck::magnetometerCheck(orb_advert_t *mavlink_log_pub, vehicle_st
 
 		device_id = magnetometer.get().device_id;
 
-		calibration_valid = (calibration::FindCalibrationIndex("MAG", device_id) >= 0);
+		if (status.hil_state == vehicle_status_s::HIL_STATE_ON) {
+			calibration_valid = true;
+
+		} else {
+			calibration_valid = (calibration::FindCalibrationIndex("MAG", device_id) >= 0);
+		}
 
 		if (!calibration_valid) {
 			if (report_fail) {
