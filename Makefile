@@ -469,7 +469,6 @@ validate_module_configs:
 
 clean:
 	@rm -rf "$(SRC_DIR)"/build
-	@git submodule foreach git clean -df
 
 submodulesclean:
 	@git submodule foreach --quiet --recursive git clean -ff -x -d
