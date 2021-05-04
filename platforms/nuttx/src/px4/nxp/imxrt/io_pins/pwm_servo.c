@@ -104,10 +104,10 @@ int up_pwm_servo_init(uint32_t channel_mask)
 	return OK;
 }
 
-void up_pwm_servo_deinit(void)
+void up_pwm_servo_deinit(uint32_t channel_mask)
 {
 	/* disable the timers */
-	up_pwm_servo_arm(false);
+	up_pwm_servo_arm(false, channel_mask);
 }
 
 int up_pwm_servo_set_rate_group_update(unsigned channel, unsigned rate)
@@ -154,8 +154,8 @@ uint32_t up_pwm_servo_get_rate_group(unsigned group)
 }
 
 void
-up_pwm_servo_arm(bool armed)
+up_pwm_servo_arm(bool armed, uint32_t channel_mask)
 {
-	io_timer_set_enable(armed, IOTimerChanMode_OneShot, IO_TIMER_ALL_MODES_CHANNELS);
-	io_timer_set_enable(armed, IOTimerChanMode_PWMOut, IO_TIMER_ALL_MODES_CHANNELS);
+	io_timer_set_enable(armed, IOTimerChanMode_OneShot, channel_mask);
+	io_timer_set_enable(armed, IOTimerChanMode_PWMOut, channel_mask);
 }
