@@ -76,13 +76,16 @@ header[1] - |T|   LenH      |
 header[2] - |     LenL      |
 header[3] - |   Checksum    |
 */
-typedef struct __attribute__((packed))
+typedef union __attribute__((packed))
 {
-	char magic;                // 'S'
-	uint8_t len_h:	7,         // Length MSB
-		 type:	1;         // 0=MAVLINK, 1=RTPS
-	uint8_t len_l;             // Length LSB
-	uint8_t checksum;          // XOR of two above bytes
+	uint8_t bytes[4];
+	struct {
+		char magic;                // 'S'
+		uint8_t len_h:	7,         // Length MSB
+			 type:	1;         // 0=MAVLINK, 1=RTPS
+		uint8_t len_l;             // Length LSB
+		uint8_t checksum;          // XOR of two above bytes
+	} fields;
 } Sp2Header_t;
 
 struct StaticData {
@@ -288,11 +291,11 @@ Mavlink2Dev::Mavlink2Dev(ReadBuffer *read_buffer)
 	: DevCommon("/dev/mavlink")
 	, _read_buffer{read_buffer}
 {
-	_header.magic 		= Sp2HeaderMagic;
-	_header.len_h 		= 0;
-	_header.len_l 		= 0;
-	_header.checksum	= 0;
-	_header.type		= MessageType::Mavlink;
+	_header.fields.magic 		= Sp2HeaderMagic;
+	_header.fields.len_h 		= 0;
+	_header.fields.len_l 		= 0;
+	_header.fields.checksum		= 0;
+	_header.fields.type		= MessageType::Mavlink;
 }
 
 ssize_t Mavlink2Dev::read(struct file *filp, char *buffer, size_t buflen)
@@ -342,9 +345,10 @@ ssize_t Mavlink2Dev::read(struct file *filp, char *buffer, size_t buflen)
 	i = 0;
 
 	while ((unsigned)i < (_read_buffer->buf_size - Sp2HeaderSize) &&
-	       (((Sp2Header_t *) &_read_buffer->buffer[i])->magic != Sp2HeaderMagic
-		|| ((Sp2Header_t *) &_read_buffer->buffer[i])->type != (uint8_t) MessageType::Mavlink
-		|| ((Sp2Header_t *) &_read_buffer->buffer[i])->checksum != (_read_buffer->buffer[i + 1] ^ _read_buffer->buffer[i + 2])
+	       (((Sp2Header_t *) &_read_buffer->buffer[i])->fields.magic != Sp2HeaderMagic
+		|| ((Sp2Header_t *) &_read_buffer->buffer[i])->fields.type != (uint8_t)MessageType::Mavlink
+		|| ((Sp2Header_t *) &_read_buffer->buffer[i])->fields.checksum !=
+		(_read_buffer->buffer[i + 1] ^ _read_buffer->buffer[i + 2])
 	       )) {
 		i++;
 	}
@@ -355,7 +359,7 @@ ssize_t Mavlink2Dev::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	header = (Sp2Header_t *)&_read_buffer->buffer[i];
-	payload_len = ((uint16_t)header->len_h << 8) | header->len_l;
+	payload_len = ((uint16_t)header->fields.len_h << 8) | header->fields.len_l;
 	packet_len = payload_len + Sp2HeaderSize;
 
 	// packet is bigger than what we've read, better luck next time
@@ -436,11 +440,10 @@ ssize_t Mavlink2Dev::write(struct file *filp, const char *buffer, size_t buflen)
 				ret = -1;
 
 			} else {
-				uint8_t *bytes = (uint8_t *) &_header;
-				_header.len_h = (buflen >> 8) & 0x7f;
-				_header.len_l = buflen & 0xff;
-				_header.checksum = bytes[1] ^ bytes[2];
-				::write(_fd, bytes, 4);
+				_header.fields.len_h = (buflen >> 8) & 0x7f;
+				_header.fields.len_l = buflen & 0xff;
+				_header.fields.checksum = _header.bytes[1] ^ _header.bytes[2];
+				::write(_fd, _header.bytes, 4);
 				ret = ::write(_fd, buffer, buflen);
 			}
 
@@ -475,11 +478,11 @@ RtpsDev::RtpsDev(ReadBuffer *read_buffer)
 	: DevCommon("/dev/rtps")
 	, _read_buffer{read_buffer}
 {
-	_header.magic		= Sp2HeaderMagic;
-	_header.len_h		= 0;
-	_header.len_l		= 0;
-	_header.checksum	= 0;
-	_header.type		= MessageType::Rtps;
+	_header.fields.magic		= Sp2HeaderMagic;
+	_header.fields.len_h		= 0;
+	_header.fields.len_l		= 0;
+	_header.fields.checksum		= 0;
+	_header.fields.type		= MessageType::Rtps;
 }
 
 ssize_t RtpsDev::read(struct file *filp, char *buffer, size_t buflen)
@@ -509,9 +512,10 @@ ssize_t RtpsDev::read(struct file *filp, char *buffer, size_t buflen)
 	i = 0;
 
 	while ((unsigned)i < (_read_buffer->buf_size - Sp2HeaderSize) &&
-	       (((Sp2Header_t *) &_read_buffer->buffer[i])->magic != Sp2HeaderMagic
-		|| ((Sp2Header_t *) &_read_buffer->buffer[i])->type != (uint8_t) MessageType::Rtps
-		|| ((Sp2Header_t *) &_read_buffer->buffer[i])->checksum != (_read_buffer->buffer[i + 1] ^ _read_buffer->buffer[i + 2])
+	       (((Sp2Header_t *) &_read_buffer->buffer[i])->fields.magic != Sp2HeaderMagic
+		|| ((Sp2Header_t *) &_read_buffer->buffer[i])->fields.type != (uint8_t)MessageType::Rtps
+		|| ((Sp2Header_t *) &_read_buffer->buffer[i])->fields.checksum !=
+		(_read_buffer->buffer[i + 1] ^ _read_buffer->buffer[i + 2])
 	       )) {
 		i++;
 	}
@@ -522,7 +526,7 @@ ssize_t RtpsDev::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	header = (Sp2Header_t *)&_read_buffer->buffer[i];
-	payload_len = ((uint16_t)header->len_h << 8) | header->len_l;
+	payload_len = ((uint16_t)header->fields.len_h << 8) | header->fields.len_l;
 	packet_len = payload_len + Sp2HeaderSize;
 
 	// packet is bigger than what we've read, better luck next time
@@ -585,11 +589,10 @@ ssize_t RtpsDev::write(struct file *filp, const char *buffer, size_t buflen)
 				ret = -1;
 
 			} else {
-				uint8_t *bytes = (uint8_t *) &_header;
-				_header.len_h = (buflen >> 8) & 0x7f;
-				_header.len_l = buflen & 0xff;
-				_header.checksum = bytes[1] ^ bytes[2];
-				::write(_fd, bytes, 4);
+				_header.fields.len_h = (buflen >> 8) & 0x7f;
+				_header.fields.len_l = buflen & 0xff;
+				_header.fields.checksum = _header.bytes[1] ^ _header.bytes[2];
+				::write(_fd, _header.bytes, 4);
 				ret = ::write(_fd, buffer, buflen);
 			}
 
