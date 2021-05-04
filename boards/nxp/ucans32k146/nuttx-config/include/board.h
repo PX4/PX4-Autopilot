@@ -90,6 +90,12 @@
 #define BOARD_LED_G_BIT   (1 << BOARD_LED_G)
 #define BOARD_LED_B_BIT   (1 << BOARD_LED_B)
 
+/* Board revision detection pin
+ * 0 equals UCANS32K146-01
+ * 1 equals UCANS32K146B
+ */
+#define BOARD_REVISION_DETECT_PIN  (GPIO_INPUT | PIN_PORTA | PIN10 )
+
 /* If CONFIG_ARCH_LEDs is defined, then NuttX will control the LEDs on board
  * the UCANS32K146.  The following definitions describe how NuttX
  * controls the LEDs:
@@ -152,11 +158,9 @@
 /* CAN selections ***********************************************************/
 #define PIN_CAN0_TX      PIN_CAN0_TX_4      /* PTE5 */
 #define PIN_CAN0_RX      PIN_CAN0_RX_4      /* PTE4 */
-#define PIN_CAN0_ENABLE  (GPIO_OUTPUT | PIN_PORTE | PIN11 )
-#define CAN0_ENABLE_OUT  0
+#define PIN_CAN0_STB     (GPIO_OUTPUT | PIN_PORTE | PIN11 )
 #define PIN_CAN1_TX      PIN_CAN1_TX_1      /* PTA13 */
 #define PIN_CAN1_RX      PIN_CAN1_RX_1      /* PTA12 */
-#define PIN_CAN1_ENABLE  (GPIO_OUTPUT | PIN_PORTE | PIN10 )
-#define CAN1_ENABLE_OUT  0
+#define PIN_CAN1_STB     (GPIO_OUTPUT | PIN_PORTE | PIN10 )
 
 #endif  /* __BOARDS_ARM_RDDRONE_UAVCAN146_INCLUDE_BOARD_H */

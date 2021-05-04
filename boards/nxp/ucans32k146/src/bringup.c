@@ -151,5 +151,20 @@ int s32k1xx_bringup(void)
 
 #endif
 #endif
+
+#ifdef CONFIG_S32K1XX_FLEXCAN
+	s32k1xx_pinconfig(BOARD_REVISION_DETECT_PIN);
+
+	if (s32k1xx_gpioread(BOARD_REVISION_DETECT_PIN)) {
+		/* STB high -> active CAN phy */
+		s32k1xx_pinconfig(PIN_CAN0_STB  | GPIO_OUTPUT_ONE);
+
+	} else {
+		/* STB low -> active CAN phy */
+		s32k1xx_pinconfig(PIN_CAN0_STB  | GPIO_OUTPUT_ZERO);
+	}
+
+#endif
+
 	return ret;
 }
