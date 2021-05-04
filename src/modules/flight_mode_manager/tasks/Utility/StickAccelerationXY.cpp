@@ -126,7 +126,7 @@ void StickAccelerationXY::applyJerkLimit(const float dt)
 Vector2f StickAccelerationXY::calculateDrag(Vector2f drag_coefficient, const float dt, const Vector2f &stick_xy,
 		const Vector2f &vel_sp)
 {
-	_brake_boost_filter.setParameters(dt, .8f);
+	_brake_boost_filter.setParameters(dt, _param_mpc_brake_filter.get());
 
 	if (stick_xy.norm_squared() < FLT_EPSILON) {
 		_brake_boost_filter.update(_param_mpc_brake_factor.get());
