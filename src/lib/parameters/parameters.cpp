@@ -93,7 +93,7 @@ static char *param_user_file = nullptr;
 /* autosaving variables */
 static hrt_abstime last_autosave_timestamp = 0;
 static struct work_s autosave_work {};
-static px4::atomic<bool> autosave_scheduled{false};
+static px4::atomic_bool autosave_scheduled{false};
 static bool autosave_disabled = false;
 
 static constexpr uint16_t param_info_count = sizeof(px4::parameters) / sizeof(param_info_s);
