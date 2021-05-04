@@ -317,8 +317,14 @@ __EXPORT extern int	up_pwm_servo_init(uint32_t channel_mask);
 
 /**
  * De-initialise the PWM servo outputs.
+ *
+ * @param channel_mask  Bitmask of channels (LSB = channel 0) to enable.
+ *      This allows some of the channels to remain configured
+ *      as GPIOs or as another function.
+ *      A value of 0 is ALL channels
+ *
  */
-__EXPORT extern void	up_pwm_servo_deinit(void);
+__EXPORT extern void	up_pwm_servo_deinit(uint32_t channel_mask);
 
 /**
  * Arm or disarm servo outputs.
@@ -330,8 +336,14 @@ __EXPORT extern void	up_pwm_servo_deinit(void);
  *
  * @param armed		If true, outputs are armed; if false they
  *			are disarmed.
+ *
+ * @param channel_mask  Bitmask of channels (LSB = channel 0) to enable.
+ *      This allows some of the channels to remain configured
+ *      as GPIOs or as another function.
+ *      A value of 0 is ALL channels
+ *
  */
-__EXPORT extern void	up_pwm_servo_arm(bool armed);
+__EXPORT extern void	up_pwm_servo_arm(bool armed, uint32_t channel_mask);
 
 /**
  * Set the servo update rate for all rate groups.
