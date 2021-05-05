@@ -58,8 +58,9 @@
 #define DEFAULT_RECV_PORT 2019
 #define DEFAULT_SEND_PORT 2020
 
-void *send(void *data);
-void micrortps_start_topics(struct timespec &begin, uint64_t &total_read, uint64_t &received, int &loop);
+void *send(void *args);
+void micrortps_start_topics(struct timespec &begin, uint64_t &total_read, uint64_t &total_sent, uint64_t &received,
+			    uint64_t &sent, int &rcvd_loop, int &sent_loop);
 
 struct baudtype {
 	speed_t code;
