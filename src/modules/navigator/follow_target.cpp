@@ -97,8 +97,8 @@ void FollowTarget::on_active()
 	struct map_projection_reference_s target_ref;
 	follow_target_s target_motion_with_offset = {};
 	uint64_t current_time = hrt_absolute_time();
-	bool _radius_entered = false;
-	bool _radius_exited = false;
+	bool radius_entered = false;
+	bool radius_exited = false;
 	bool updated = false;
 	float dt_ms = 0;
 
@@ -166,8 +166,8 @@ void FollowTarget::on_active()
 			// give a buffer to exit/enter the radius to give the velocity controller
 			// a chance to catch up
 
-			_radius_exited = ((_target_position_offset + _target_distance).length() > (float) TARGET_ACCEPTANCE_RADIUS_M * 1.5f);
-			_radius_entered = ((_target_position_offset + _target_distance).length() < (float) TARGET_ACCEPTANCE_RADIUS_M);
+			radius_exited = ((_target_position_offset + _target_distance).length() > (float) TARGET_ACCEPTANCE_RADIUS_M * 1.5f);
+			radius_entered = ((_target_position_offset + _target_distance).length() < (float) TARGET_ACCEPTANCE_RADIUS_M);
 
 			// to keep the velocity increase/decrease smooth
 			// calculate how many velocity increments/decrements
@@ -240,7 +240,7 @@ void FollowTarget::on_active()
 
 	case TRACK_POSITION: {
 
-			if (_radius_entered) {
+			if (radius_entered) {
 				_follow_target_state = TRACK_VELOCITY;
 
 			} else if (target_velocity_valid()) {
@@ -259,7 +259,7 @@ void FollowTarget::on_active()
 
 	case TRACK_VELOCITY: {
 
-			if (_radius_exited) {
+			if (radius_exited) {
 				_follow_target_state = TRACK_POSITION;
 
 			} else if (target_velocity_valid()) {
