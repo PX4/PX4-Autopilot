@@ -617,8 +617,8 @@ void Ekf::controlGpsFusion()
 				const float vel_obs_xy_norm_sq = _last_vel_obs.xy().norm_squared();
 				const float vel_state_xy_norm_sq = _state.vel.xy().norm_squared();
 
-				const float vel_obs_threshold_sq = fmaxf(sq(4.f) * (_last_vel_obs_var(0) + _last_vel_obs_var(1)), 1.f);
-				const float vel_state_threshold_sq = fmaxf(sq(4.f) * (P(4, 4) + P(5, 5)), 1.f);
+				const float vel_obs_threshold_sq = fmaxf(sq(4.f) * (_last_vel_obs_var(0) + _last_vel_obs_var(1)), sq(0.4f));
+				const float vel_state_threshold_sq = fmaxf(sq(4.f) * (P(4, 4) + P(5, 5)), sq(0.4f));
 
 				if (vel_obs_xy_norm_sq > vel_obs_threshold_sq && vel_state_xy_norm_sq > vel_state_threshold_sq) {
 					const float obs_dot_vel = Vector2f(_last_vel_obs).dot(_state.vel.xy());
