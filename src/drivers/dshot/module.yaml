@@ -44,7 +44,7 @@ parameters:
             description:
                 short: Allows for 3d mode when using DShot and suitable mixer
                 long: |
-                    WARNING: ESC must be configured for 3D mode, and DSHOT_MIN set to 0
+                    WARNING: ESC must be configured for 3D mode, and DSHOT_MIN set to 0.
                     This splits the throttle ranges in two.
                     Direction 1) 48 is the slowest, 1047 is the fastest.
                     Direction 2) 1049 is the slowest, 2047 is the fastest.
@@ -82,4 +82,3 @@ parameters:
                     Typical motors for 5 inch props have 14 poles.
             type: int32
             default: 14
-
