@@ -25,7 +25,7 @@ jobs:
           #- {vehicle: "tiltrotor",     mission: "VTOL_mission_1",  build_type: "RelWithDebInfo"}
 
     container:
-      image: px4io/px4-dev-ros-melodic:2021-04-29
+      image: px4io/px4-dev-ros-melodic:2021-05-04
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     steps:
     - uses: actions/checkout@v1
