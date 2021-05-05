@@ -1,3 +1,4 @@
+# @board px4_fmu-v2 exclude
 
 # Roll channel for mount
 M: 1

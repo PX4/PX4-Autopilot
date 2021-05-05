@@ -1,5 +1,7 @@
 # Generic quadplane tiltrotor servo mixer
 
+# @board px4_fmu-v2 exclude
+
 # Tilt mechanism servo mixer
 ---------------------------
 # front left up:2000 down:1000
