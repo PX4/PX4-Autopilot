@@ -50,7 +50,6 @@ px4_add_board(
 		pwm_out
 		px4io
 		rc_input
-		roboclaw
 		rpm
 		safety_button
 		telemetry # all available telemetry drivers
@@ -95,7 +94,6 @@ px4_add_board(
 	SYSTEMCMDS
 		bl_update
 		dmesg
-		dumpfile
 		esc_calib
 		gpio
 		hardfault_log
@@ -103,7 +101,6 @@ px4_add_board(
 		led_control
 		mft
 		mixer
-		motor_ramp
 		motor_test
 		mtd
 		nshterm
@@ -112,7 +109,6 @@ px4_add_board(
 		perf
 		pwm
 		reboot
-		reflect
 		sd_bench
 		serial_test
 		system_time
