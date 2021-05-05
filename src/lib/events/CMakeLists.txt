@@ -49,6 +49,7 @@ add_custom_command(OUTPUT ${generated_events_px4_file}
 		${PX4_SOURCE_DIR}/Tools/px4events/jsonout.py
 		${PX4_SOURCE_DIR}/Tools/px4events/srcparser.py
 		${PX4_SOURCE_DIR}/Tools/px4events/srcscanner.py
+		prebuild_targets # ensure all generated source files exist
 	COMMENT "Generating px4 event json file from source"
 )
 add_custom_target(events_px4_json DEPENDS ${generated_events_px4_file})
