@@ -26,6 +26,7 @@ px4_add_board(
 		imu/invensense/mpu9250
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
+		magnetometer/hmc6343
 		pca9685_pwm_out
 		pwm_out_sim
 		rc_input
