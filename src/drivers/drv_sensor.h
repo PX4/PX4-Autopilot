@@ -196,4 +196,6 @@
 
 #define DRV_DEVTYPE_UNUSED		0xff
 
+#define DRV_MAG_DEVTYPE_HMC6343		0x9d
+
 #endif /* _DRV_SENSOR_H */
