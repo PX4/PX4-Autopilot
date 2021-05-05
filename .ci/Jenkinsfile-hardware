@@ -12,7 +12,7 @@ pipeline {
             stage("build cubepilot_cubeorange_test") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx-focal:2021-04-29'
+                  image 'px4io/px4-dev-nuttx-focal:2021-05-04'
                   args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -86,7 +86,7 @@ pipeline {
             stage("build cuav_x7pro_test") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx-focal:2021-04-29'
+                  image 'px4io/px4-dev-nuttx-focal:2021-05-04'
                   args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -159,7 +159,7 @@ pipeline {
             stage("build px4_fmu-v3_test") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx-focal:2021-04-29'
+                  image 'px4io/px4-dev-nuttx-focal:2021-05-04'
                   args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -232,7 +232,7 @@ pipeline {
             stage("build px4_fmu-v4_test") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx-focal:2021-04-29'
+                  image 'px4io/px4-dev-nuttx-focal:2021-05-04'
                   args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -305,7 +305,7 @@ pipeline {
             stage("build px4_fmu-v4pro_test") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx-focal:2021-04-29'
+                  image 'px4io/px4-dev-nuttx-focal:2021-05-04'
                   args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -378,7 +378,7 @@ pipeline {
             stage("build px4_fmu-v5_test") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx-focal:2021-04-29'
+                  image 'px4io/px4-dev-nuttx-focal:2021-05-04'
                   args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -451,7 +451,7 @@ pipeline {
             stage("build px4_fmu-v5_debug") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx-focal:2021-04-29'
+                  image 'px4io/px4-dev-nuttx-focal:2021-05-04'
                   args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -528,7 +528,7 @@ pipeline {
             stage("build px4_fmu-v5_optimized") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx-focal:2021-04-29'
+                  image 'px4io/px4-dev-nuttx-focal:2021-05-04'
                   args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -601,7 +601,7 @@ pipeline {
             stage("build px4_fmu-v5_stackcheck") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx-focal:2021-04-29'
+                  image 'px4io/px4-dev-nuttx-focal:2021-05-04'
                   args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -678,7 +678,7 @@ pipeline {
             stage("build modalai_fc-v1_test") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx-focal:2021-04-29'
+                  image 'px4io/px4-dev-nuttx-focal:2021-05-04'
                   args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -751,7 +751,7 @@ pipeline {
             stage("build holybro_durandal-v1_test") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx-focal:2021-04-29'
+                  image 'px4io/px4-dev-nuttx-focal:2021-05-04'
                   args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -825,7 +825,7 @@ pipeline {
             stage("build nxp_fmuk66-v3_test") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx-focal:2021-04-29'
+                  image 'px4io/px4-dev-nuttx-focal:2021-05-04'
                   args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
