@@ -119,34 +119,36 @@ void *send(void * /*unused*/)
 
 	while (!_should_exit_task) {
 @[    for idx, topic in enumerate(send_topics)]@
-		@(send_base_types[idx])_s @(topic)_data;
-
-		if (subs->@(topic)_sub.update(&@(topic)_data))
 		{
+			@(send_base_types[idx])_s @(topic)_data;
+
+			if (subs->@(topic)_sub.update(&@(topic)_data))
+			{
 @[        if topic == 'Timesync' or topic == 'timesync']@
-			if (@(topic)_data.sys_id == 0 && @(topic)_data.seq != last_remote_msg_seq && @(topic)_data.tc1 == 0) {
-				last_remote_msg_seq = @(topic)_data.seq;
+				if (@(topic)_data.sys_id == 0 && @(topic)_data.seq != last_remote_msg_seq && @(topic)_data.tc1 == 0) {
+					last_remote_msg_seq = @(topic)_data.seq;
 
-				@(topic)_data.timestamp = hrt_absolute_time();
-				@(topic)_data.sys_id = 1;
-				@(topic)_data.seq = last_msg_seq;
-				@(topic)_data.tc1 = hrt_absolute_time() * 1000ULL;
-				@(topic)_data.ts1 = @(topic)_data.ts1;
+					@(topic)_data.timestamp = hrt_absolute_time();
+					@(topic)_data.sys_id = 1;
+					@(topic)_data.seq = last_msg_seq;
+					@(topic)_data.tc1 = hrt_absolute_time() * 1000ULL;
+					@(topic)_data.ts1 = @(topic)_data.ts1;
 
-				last_msg_seq++;
+					last_msg_seq++;
 @[        end if]@
-			// copy raw data into local buffer. Payload is shifted by header length to make room for header
-			serialize_@(send_base_types[idx])(&writer, &@(topic)_data, &data_buffer[header_length], &length);
+					// copy raw data into local buffer. Payload is shifted by header length to make room for header
+					serialize_@(send_base_types[idx])(&writer, &@(topic)_data, &data_buffer[header_length], &length);
 
-			if (0 < (read = transport_node->write(static_cast<char>(@(rtps_message_id(ids, topic))), data_buffer, length))) {
-				total_sent += read;
-				++sent;
-			}
+					if (0 < (read = transport_node->write(static_cast<char>(@(rtps_message_id(ids, topic))), data_buffer, length))) {
+						total_sent += read;
+						++sent;
+					}
 
 @[        if topic == 'Timesync' or topic == 'timesync']@
-			}
+				}
 
 @[        end if]@
+			}
 		}
 @[    end for]@
 		px4_usleep(_options.sleep_ms * 1000);
