@@ -161,6 +161,7 @@ void FollowTarget::on_active()
 				_est_target_vel(0) = _current_target_motion.vx;
 				_est_target_vel(1) = _current_target_motion.vy;
 				_est_target_vel(2) = 0.0f;
+
 			} else {
 				_est_target_vel = _target_position_delta / (dt_ms / 1000.0f);
 			}
