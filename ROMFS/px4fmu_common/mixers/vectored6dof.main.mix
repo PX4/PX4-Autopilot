@@ -1,3 +1,5 @@
+# @board px4_fmu-v2 exclude
+
 # Motor 1
 M: 3
 S: 0 2  -4000  -4000  0   -4000  +4000
