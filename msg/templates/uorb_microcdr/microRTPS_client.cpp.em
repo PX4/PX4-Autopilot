@@ -76,8 +76,6 @@ receive_base_types = [s.short_name for idx, s in enumerate(spec) if scope[idx] =
 #include <uORB_microcdr/topics/@(topic).h>
 @[end for]@
 
-void *send(void *data);
-
 uint8_t last_remote_msg_seq = 0;
 uint8_t last_msg_seq = 0;
 
@@ -100,22 +98,30 @@ struct SendTopicsSubs {
 @[end if]@
 
 @[if send_topics]@
-void *send(void * /*unused*/)
+
+struct SendThreadArgs {
+	uint64_t &total_sent;
+	uint64_t &sent;
+	int &sent_loop;
+	SendThreadArgs(uint64_t &total_sent_, uint64_t &sent_, int &sent_loop_)
+		: total_sent(total_sent_),
+		  sent(sent_),
+		  sent_loop(sent_loop_) {}
+};
+
+void *send(void *args)
 {
 	char data_buffer[BUFFER_SIZE] = {};
-	uint64_t sent = 0, total_sent = 0;
-	int loop = 0, read = 0;
+	int read = 0;
 	uint32_t length = 0;
 	size_t header_length = 0;
+	struct SendThreadArgs *data = reinterpret_cast<struct SendThreadArgs *>(args);
 	SendTopicsSubs *subs = new SendTopicsSubs();
 
 	// ucdrBuffer to serialize using the user defined buffer
 	ucdrBuffer writer;
 	header_length = transport_node->get_header_length();
 	ucdr_init_buffer(&writer, reinterpret_cast<uint8_t *>(&data_buffer[header_length]), BUFFER_SIZE - header_length);
-
-	struct timespec begin;
-	px4_clock_gettime(CLOCK_REALTIME, &begin);
 
 	while (!_should_exit_task) {
 @[    for idx, topic in enumerate(send_topics)]@
@@ -140,8 +146,8 @@ void *send(void * /*unused*/)
 					serialize_@(send_base_types[idx])(&writer, &@(topic)_data, &data_buffer[header_length], &length);
 
 					if (0 < (read = transport_node->write(static_cast<char>(@(rtps_message_id(ids, topic))), data_buffer, length))) {
-						total_sent += read;
-						++sent;
+						data->total_sent += read;
+						++data->sent;
 					}
 
 @[        if topic == 'Timesync' or topic == 'timesync']@
@@ -152,24 +158,15 @@ void *send(void * /*unused*/)
 		}
 @[    end for]@
 		px4_usleep(_options.sleep_ms * 1000);
-		++loop;
+		++data->sent_loop;
 	}
-
-	struct timespec end;
-
-	px4_clock_gettime(CLOCK_REALTIME, &end);
-
-	double elapsed_secs = end.tv_sec - begin.tv_sec + (end.tv_nsec - begin.tv_nsec) / 1e9;
-
-	PX4_INFO("SENT: %" PRIu64 " messages in %d LOOPS, %" PRIu64 " bytes in %.03f seconds - %.02fKB/s",
-		 sent, loop, total_sent, elapsed_secs, total_sent / (1e3 * elapsed_secs));
 
 	delete subs;
 
 	return nullptr;
 }
 
-static int launch_send_thread(pthread_t &sender_thread)
+static int launch_send_thread(pthread_t &sender_thread, struct SendThreadArgs &args)
 {
 	pthread_attr_t sender_thread_attr;
 	pthread_attr_init(&sender_thread_attr);
@@ -178,12 +175,16 @@ static int launch_send_thread(pthread_t &sender_thread)
 	(void)pthread_attr_getschedparam(&sender_thread_attr, &param);
 	param.sched_priority = SCHED_PRIORITY_DEFAULT;
 	(void)pthread_attr_setschedparam(&sender_thread_attr, &param);
-	pthread_create(&sender_thread, &sender_thread_attr, send, nullptr);
-	int rc = pthread_setname_np(sender_thread, "urtpsclient_snd");
-	if (rc != 0)
-	{
+	int rc = pthread_create(&sender_thread, &sender_thread_attr, &send, (void *)&args);
+	if (rc != 0) {
 		errno = rc;
-		PX4_ERR("Could not set pthread name (%d)", errno);
+		PX4_ERR("Could not create send thread (%d)", errno);
+		return -1;
+	}
+	rc = pthread_setname_np(sender_thread, "micrortps_client_send");
+	if (pthread_setname_np(sender_thread, "micrortps_client_send")) {
+		errno = rc;
+		PX4_ERR("Could not set pthread name for the send thread (%d)", errno);
 	}
 	pthread_attr_destroy(&sender_thread_attr);
 
@@ -191,7 +192,8 @@ static int launch_send_thread(pthread_t &sender_thread)
 }
 @[end if]@
 
-void micrortps_start_topics(struct timespec &begin, uint64_t &total_read, uint64_t &received, int &loop)
+void micrortps_start_topics(struct timespec &begin, uint64_t &total_read, uint64_t &total_sent, uint64_t &received,
+			    uint64_t &sent, int &rcvd_loop, int &sent_loop)
 {
 @[if recv_topics]@
 	char data_buffer[BUFFER_SIZE] = {};
@@ -211,10 +213,12 @@ void micrortps_start_topics(struct timespec &begin, uint64_t &total_read, uint64
 	px4_clock_gettime(CLOCK_REALTIME, &begin);
 	_should_exit_task = false;
 @[if send_topics]@
+	// var struct to be updated on the thread
+	SendThreadArgs *sender_thread_args = new SendThreadArgs(total_sent, sent, sent_loop);
 
-	// create a thread for sending data to the simulator
+	// create a thread for sending data
 	pthread_t sender_thread;
-	launch_send_thread(sender_thread);
+	launch_send_thread(sender_thread, (*sender_thread_args));
 @[end if]@
 
 	while (!_should_exit_task) {
@@ -248,16 +252,17 @@ void micrortps_start_topics(struct timespec &begin, uint64_t &total_read, uint64
 @[end if]@
 
 		// loop forever if informed loop number is negative
-		if (_options.loops >= 0 && loop >= _options.loops) { break; }
+		if (_options.loops >= 0 && rcvd_loop >= _options.loops) { break; }
 
 		px4_usleep(_options.sleep_ms * 1000);
-		++loop;
+		++rcvd_loop;
 	}
 
 @[if recv_topics]@
 	delete pubs;
 @[end if]@
 @[if send_topics]@
+	delete sender_thread_args;
 	_should_exit_task = true;
 	pthread_join(sender_thread, nullptr);
 @[end if]@
