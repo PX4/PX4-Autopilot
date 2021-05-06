@@ -2384,9 +2384,11 @@ Commander::run()
 
 			_status.rc_signal_lost = false;
 
-			// abort autonomous mode and switch to position mode if sticks are moved significantly
+			// Abort autonomous mode and switch to position mode if sticks are moved significantly
+			// but only if actually in air.
 			if ((_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
 			    && !in_low_battery_failsafe && !_geofence_warning_action_on
+			    && _armed.armed
 			    && _manual_control.wantsOverride(_vehicle_control_mode, _status)) {
 				const transition_result_t posctl_result =
 					main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags, _internal_state);
