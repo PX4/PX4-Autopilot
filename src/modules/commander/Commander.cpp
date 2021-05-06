@@ -788,36 +788,33 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			uint8_t custom_main_mode = (uint8_t)cmd.param2;
 			uint8_t custom_sub_mode = (uint8_t)cmd.param3;
 
+			uint8_t desired_main_state = commander_state_s::MAIN_STATE_MAX;
 			transition_result_t main_ret = TRANSITION_NOT_CHANGED;
 
 			if (base_mode & VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED) {
 				/* use autopilot-specific mode */
 				if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_MANUAL) {
-					/* MANUAL */
-					main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_MANUAL, _status_flags, _internal_state);
+					desired_main_state = commander_state_s::MAIN_STATE_MANUAL;
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_ALTCTL) {
-					/* ALTCTL */
-					main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_ALTCTL, _status_flags, _internal_state);
+					desired_main_state = commander_state_s::MAIN_STATE_ALTCTL;
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_POSCTL) {
-					/* POSCTL */
 					reset_posvel_validity();
-					main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags, _internal_state);
+					desired_main_state = commander_state_s::MAIN_STATE_POSCTL;
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
-					/* AUTO */
 					if (custom_sub_mode > 0) {
 						reset_posvel_validity();
 
 						switch (custom_sub_mode) {
 						case PX4_CUSTOM_SUB_MODE_AUTO_LOITER:
-							main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _status_flags, _internal_state);
+							desired_main_state = commander_state_s::MAIN_STATE_AUTO_LOITER;
 							break;
 
 						case PX4_CUSTOM_SUB_MODE_AUTO_MISSION:
 							if (_status_flags.condition_auto_mission_available) {
-								main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_MISSION, _status_flags, _internal_state);
+								desired_main_state = commander_state_s::MAIN_STATE_AUTO_MISSION;
 
 							} else {
 								main_ret = TRANSITION_DENIED;
@@ -826,24 +823,23 @@ Commander::handle_command(const vehicle_command_s &cmd)
 							break;
 
 						case PX4_CUSTOM_SUB_MODE_AUTO_RTL:
-							main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_RTL, _status_flags, _internal_state);
+							desired_main_state = commander_state_s::MAIN_STATE_AUTO_RTL;
 							break;
 
 						case PX4_CUSTOM_SUB_MODE_AUTO_TAKEOFF:
-							main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_TAKEOFF, _status_flags, _internal_state);
+							desired_main_state = commander_state_s::MAIN_STATE_AUTO_TAKEOFF;
 							break;
 
 						case PX4_CUSTOM_SUB_MODE_AUTO_LAND:
-							main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LAND, _status_flags, _internal_state);
+							desired_main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
 							break;
 
 						case PX4_CUSTOM_SUB_MODE_AUTO_FOLLOW_TARGET:
-							main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET, _status_flags,
-											 _internal_state);
+							desired_main_state = commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET;
 							break;
 
 						case PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND:
-							main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_PRECLAND, _status_flags, _internal_state);
+							desired_main_state = commander_state_s::MAIN_STATE_AUTO_PRECLAND;
 							break;
 
 						default:
@@ -855,44 +851,40 @@ Commander::handle_command(const vehicle_command_s &cmd)
 						}
 
 					} else {
-						main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_MISSION, _status_flags, _internal_state);
+						desired_main_state = commander_state_s::MAIN_STATE_AUTO_MISSION;
 					}
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_ACRO) {
-					/* ACRO */
-					main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_ACRO, _status_flags, _internal_state);
+					desired_main_state = commander_state_s::MAIN_STATE_ACRO;
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_STABILIZED) {
-					/* STABILIZED */
-					main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_STAB, _status_flags, _internal_state);
+					desired_main_state = commander_state_s::MAIN_STATE_STAB;
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_OFFBOARD) {
 					reset_posvel_validity();
-
-					/* OFFBOARD */
-					main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_OFFBOARD, _status_flags, _internal_state);
+					desired_main_state = commander_state_s::MAIN_STATE_OFFBOARD;
 				}
 
 			} else {
 				/* use base mode */
 				if (base_mode & VEHICLE_MODE_FLAG_AUTO_ENABLED) {
-					/* AUTO */
-					main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_MISSION, _status_flags, _internal_state);
+					desired_main_state = commander_state_s::MAIN_STATE_AUTO_MISSION;
 
 				} else if (base_mode & VEHICLE_MODE_FLAG_MANUAL_INPUT_ENABLED) {
 					if (base_mode & VEHICLE_MODE_FLAG_GUIDED_ENABLED) {
-						/* POSCTL */
-						main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags, _internal_state);
+						desired_main_state = commander_state_s::MAIN_STATE_POSCTL;
 
 					} else if (base_mode & VEHICLE_MODE_FLAG_STABILIZE_ENABLED) {
-						/* STABILIZED */
-						main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_STAB, _status_flags, _internal_state);
+						desired_main_state = commander_state_s::MAIN_STATE_STAB;
 
 					} else {
-						/* MANUAL */
-						main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_MANUAL, _status_flags, _internal_state);
+						desired_main_state = commander_state_s::MAIN_STATE_MANUAL;
 					}
 				}
+			}
+
+			if (desired_main_state != commander_state_s::MAIN_STATE_MAX) {
+				main_ret = main_state_transition(_status, desired_main_state, _status_flags, _internal_state);
 			}
 
 			if (main_ret != TRANSITION_DENIED) {
