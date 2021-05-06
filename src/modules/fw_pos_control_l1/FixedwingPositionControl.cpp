@@ -641,13 +641,13 @@ FixedwingPositionControl::update_desired_altitude(float dt)
 	if (_manual_control_setpoint_altitude > deadBand) {
 		/* pitching down */
 		float pitch = -(_manual_control_setpoint_altitude - deadBand) / factor;
-		_hold_alt += (_param_fw_t_sink_max.get() * dt) * pitch;
+		_hold_alt += (_param_sinkrate_target.get() * dt) * pitch;
 		_was_in_deadband = false;
 
 	} else if (_manual_control_setpoint_altitude < - deadBand) {
 		/* pitching up */
 		float pitch = -(_manual_control_setpoint_altitude + deadBand) / factor;
-		_hold_alt += (_param_fw_t_clmb_max.get() * dt) * pitch;
+		_hold_alt += (_param_climbrate_target.get() * dt) * pitch;
 		_was_in_deadband = false;
 
 	} else if (!_was_in_deadband) {
