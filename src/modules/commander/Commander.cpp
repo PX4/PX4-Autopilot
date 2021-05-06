@@ -800,12 +800,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					desired_main_state = commander_state_s::MAIN_STATE_ALTCTL;
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_POSCTL) {
-					reset_posvel_validity();
 					desired_main_state = commander_state_s::MAIN_STATE_POSCTL;
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
 					if (custom_sub_mode > 0) {
-						reset_posvel_validity();
 
 						switch (custom_sub_mode) {
 						case PX4_CUSTOM_SUB_MODE_AUTO_LOITER:
@@ -855,7 +853,6 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					desired_main_state = commander_state_s::MAIN_STATE_STAB;
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_OFFBOARD) {
-					reset_posvel_validity();
 					desired_main_state = commander_state_s::MAIN_STATE_OFFBOARD;
 				}
 
@@ -878,6 +875,9 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			}
 
 			if (desired_main_state != commander_state_s::MAIN_STATE_MAX) {
+
+				reset_posvel_validity();
+
 				main_ret = main_state_transition(_status, desired_main_state, _status_flags, _internal_state);
 			}
 
