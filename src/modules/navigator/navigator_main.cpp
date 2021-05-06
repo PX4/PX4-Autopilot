@@ -767,8 +767,8 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 			/* inform other apps via the mission result */
 			_geofence_result.geofence_violated = true;
 
-			/* Issue a warning about the geofence violation once */
-			if (!_geofence_violation_warning_sent) {
+			/* Issue a warning about the geofence violation once and only if we are armed */
+			if (!_geofence_violation_warning_sent && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 				mavlink_log_critical(&_mavlink_log_pub, "Approaching on Geofence");
 
 				// we have predicted a geofence violation and if the action is to loiter then
