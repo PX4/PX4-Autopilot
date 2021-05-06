@@ -813,13 +813,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 							break;
 
 						case PX4_CUSTOM_SUB_MODE_AUTO_MISSION:
-							if (_status_flags.condition_auto_mission_available) {
-								desired_main_state = commander_state_s::MAIN_STATE_AUTO_MISSION;
-
-							} else {
-								main_ret = TRANSITION_DENIED;
-							}
-
+							desired_main_state = commander_state_s::MAIN_STATE_AUTO_MISSION;
 							break;
 
 						case PX4_CUSTOM_SUB_MODE_AUTO_RTL:
