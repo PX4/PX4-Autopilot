@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
- * Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -58,9 +58,13 @@
 #define DEFAULT_RECV_PORT 2019
 #define DEFAULT_SEND_PORT 2020
 
+
 void *send(void *args);
-void micrortps_start_topics(struct timespec &begin, uint64_t &total_read, uint64_t &total_sent, uint64_t &received,
-			    uint64_t &sent, int &rcvd_loop, int &sent_loop);
+void *tx_per_second(void *sent_last_sec);
+void *rx_per_second(void *rcvd_last_sec);
+
+void micrortps_start_topics(struct timespec &begin, uint64_t &total_rcvd, uint64_t &total_sent, uint64_t &sent_last_sec,
+			    uint64_t &rcvd_last_sec, uint64_t &received, uint64_t &sent, int &rcvd_loop, int &sent_loop);
 
 struct baudtype {
 	speed_t code;

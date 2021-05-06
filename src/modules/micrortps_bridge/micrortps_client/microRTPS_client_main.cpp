@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
- * Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -58,8 +58,10 @@ struct options _options;
 struct timespec begin;
 struct timespec end;
 
-uint64_t total_read{0};
+uint64_t total_rcvd{0};
 uint64_t total_sent{0};
+uint64_t rcvd_last_sec{0};
+uint64_t sent_last_sec{0};
 uint64_t received{0};
 uint64_t sent{0};
 int rcv_loop{0};
@@ -189,14 +191,15 @@ static int micrortps_start(int argc, char *argv[])
 		return -1;
 	}
 
-	micrortps_start_topics(begin, total_read, total_sent, received, sent, rcv_loop, send_loop);
+	micrortps_start_topics(begin, total_rcvd, total_sent, sent_last_sec, rcvd_last_sec, received, sent, rcv_loop,
+			       send_loop);
 
 	px4_clock_gettime(CLOCK_REALTIME, &end);
 
 	const double elapsed_secs = static_cast<double>(end.tv_sec - begin.tv_sec + (end.tv_nsec - begin.tv_nsec) / 1e9);
 
 	PX4_INFO("RECEIVED: %" PRIu64 " messages in %d LOOPS, %" PRIu64 " bytes in %.03f seconds - avg %.02fKB/s",
-		 received, rcv_loop, total_read, elapsed_secs, static_cast<double>(total_read / (1e3 * elapsed_secs)));
+		 received, rcv_loop, total_rcvd, elapsed_secs, static_cast<double>(total_rcvd / (1e3 * elapsed_secs)));
 	PX4_INFO("SENT: %" PRIu64 " messages in %d LOOPS, %" PRIu64 " bytes in %.03f seconds - avg %.02fKB/s",
 		 sent, send_loop, total_sent, elapsed_secs, total_sent / (1e3 * elapsed_secs));
 
@@ -254,10 +257,12 @@ int micrortps_client_main(int argc, char *argv[])
 			printf("\tup and running for %.03f seconds\n", elapsed_secs);
 			printf("\tnr. of messages received: %" PRIu64 "\n", received);
 			printf("\tnr. of messages sent: %" PRIu64 "\n", sent);
-			printf("\ttotal data read: %" PRIu64 " bytes\n", total_read);
+			printf("\ttotal data read: %" PRIu64 " bytes\n", total_rcvd);
 			printf("\ttotal data sent: %" PRIu64 " bytes\n", total_sent);
 			printf("\trates:\n");
-			printf("\t  avg rx: %.3f kB/s\n", static_cast<double>(total_read / (1e3 * elapsed_secs)));
+			printf("\t  rx: %.3f kB/s\n", rcvd_last_sec / 1E3);
+			printf("\t  tx: %.3f kB/s\n", sent_last_sec / 1E3);
+			printf("\t  avg rx: %.3f kB/s\n", static_cast<double>(total_rcvd / (1e3 * elapsed_secs)));
 			printf("\t  avg tx: %.3f kB/s\n", static_cast<double>(total_sent / (1e3 * elapsed_secs)));
 		}
 
