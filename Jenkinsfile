@@ -85,7 +85,7 @@ pipeline {
 
         stage('Airframe') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-04-29' }
+            docker { image 'ghcr.io/px4/px4-dev:2021-05-06' }
           }
           steps {
             sh 'make distclean'
@@ -105,7 +105,7 @@ pipeline {
 
         stage('Parameter') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-04-29' }
+            docker { image 'ghcr.io/px4/px4-dev:2021-05-06' }
           }
           steps {
             sh 'make distclean'
@@ -125,7 +125,7 @@ pipeline {
 
         stage('Module') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-04-29' }
+            docker { image 'ghcr.io/px4/px4-dev:2021-05-06' }
           }
           steps {
             sh 'make distclean'
@@ -176,7 +176,7 @@ pipeline {
 
         stage('Userguide') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-04-29' }
+            docker { image 'ghcr.io/px4/px4-dev:2021-05-06' }
           }
           steps {
             sh('export')
@@ -206,7 +206,7 @@ pipeline {
 
         stage('QGroundControl') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-04-29' }
+            docker { image 'ghcr.io/px4/px4-dev:2021-05-06' }
           }
           steps {
             sh('export')
@@ -234,7 +234,7 @@ pipeline {
 
         stage('microRTPS agent') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-04-29' }
+            docker { image 'ghcr.io/px4/px4-dev:2021-05-06' }
           }
           steps {
             sh('export')
@@ -264,7 +264,7 @@ pipeline {
 
         stage('PX4 ROS msgs') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-04-29' }
+            docker { image 'ghcr.io/px4/px4-dev:2021-05-06' }
           }
           steps {
             sh('export')
@@ -293,7 +293,7 @@ pipeline {
 
         stage('PX4 ROS2 bridge') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-04-29' }
+            docker { image 'ghcr.io/px4/px4-dev:2021-05-06' }
           }
           steps {
             sh('export')
@@ -336,7 +336,7 @@ pipeline {
 
         stage('S3') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-04-29' }
+            docker { image 'ghcr.io/px4/px4-dev:2021-05-06' }
           }
           steps {
             sh('export')

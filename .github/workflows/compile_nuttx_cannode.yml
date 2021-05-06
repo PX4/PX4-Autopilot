@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-nuttx-focal:2021-04-29
+    container: ghcr.io/px4/px4-dev:2021-05-06
     strategy:
       matrix:
         config: [

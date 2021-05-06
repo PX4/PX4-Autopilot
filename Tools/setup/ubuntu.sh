@@ -31,10 +31,9 @@ done
 # detect if running in docker
 if [ -f /.dockerenv ]; then
 	echo "Running within docker, installing initial dependencies";
-	apt-get --quiet -y update && DEBIAN_FRONTEND=noninteractive apt-get --quiet -y install \
+	apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get -q -y --no-install-recommends install \
 		ca-certificates \
-		gnupg \
-		lsb-core \
+		gosu \
 		sudo \
 		wget \
 		;
@@ -53,7 +52,7 @@ fi
 
 # check ubuntu version
 # otherwise warn and point to docker?
-UBUNTU_RELEASE="`lsb_release -rs`"
+UBUNTU_RELEASE=$(cat /etc/os-release | grep VERSION_ID | cut -d "\"" -f 2)
 
 if [[ "${UBUNTU_RELEASE}" == "14.04" ]]; then
 	echo "Ubuntu 14.04 is no longer supported"
@@ -63,16 +62,18 @@ elif [[ "${UBUNTU_RELEASE}" == "16.04" ]]; then
 	exit 1
 elif [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
 	echo "Ubuntu 18.04"
+
 elif [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
 	echo "Ubuntu 20.04"
+
 fi
 
 
 echo
 echo "Installing PX4 general dependencies"
 
-sudo apt-get update -y --quiet
-sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+sudo apt-get -qq update
+sudo DEBIAN_FRONTEND=noninteractive apt-get -q -y --no-install-recommends install \
 	astyle \
 	build-essential \
 	ccache \
@@ -93,20 +94,23 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends i
 	python3-wheel \
 	rsync \
 	shellcheck \
-	unzip \
-	zip \
 	;
 
 if [[ "${UBUNTU_RELEASE}" == "16.04" ]]; then
 	echo "Installing Ubuntu 16.04 PX4-compatible ccache version"
-	wget -O /tmp/ccache_3.4.1-1_amd64.deb http://launchpadlibrarian.net/356662933/ccache_3.4.1-1_amd64.deb
+	wget -q -O /tmp/ccache_3.4.1-1_amd64.deb http://launchpadlibrarian.net/356662933/ccache_3.4.1-1_amd64.deb
 	sudo dpkg -i /tmp/ccache_3.4.1-1_amd64.deb
 fi
 
 # Python3 dependencies
 echo
 echo "Installing PX4 Python3 dependencies"
-python3 -m pip install --user -r ${DIR}/requirements.txt
+if [ -f /.dockerenv ]; then
+	# system wide for docker
+	python3 -m pip install -r ${DIR}/requirements.txt
+else
+	python3 -m pip install --user --quiet -r ${DIR}/requirements.txt
+fi
 
 # NuttX toolchain (arm-none-eabi-gcc)
 if [[ $INSTALL_NUTTX == "true" ]]; then
@@ -114,33 +118,13 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 	echo
 	echo "Installing NuttX dependencies"
 
-	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
-		automake \
-		binutils-dev \
-		bison \
-		build-essential \
-		flex \
+	sudo DEBIAN_FRONTEND=noninteractive apt-get -q -y --no-install-recommends install \
 		g++-multilib \
 		gcc-multilib \
 		gdb-multiarch \
 		genromfs \
-		gettext \
-		gperf \
-		kconfig-frontends \
-		libelf-dev \
-		libexpat-dev \
-		libgmp-dev \
-		libisl-dev \
-		libmpc-dev \
-		libmpfr-dev \
-		libncurses5-dev \
-		libncursesw5-dev \
-		libtool \
 		pkg-config \
 		screen \
-		texinfo \
-		u-boot-tools \
-		util-linux \
 		vim-common \
 		;
 
@@ -164,7 +148,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 
 	else
 		echo "Installing arm-none-eabi-gcc-${NUTTX_GCC_VERSION}";
-		wget -O /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/${NUTTX_GCC_VERSION_SHORT}/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-${INSTALL_ARCH}-linux.tar.bz2 && \
+		wget -q -O /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/${NUTTX_GCC_VERSION_SHORT}/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-${INSTALL_ARCH}-linux.tar.bz2 && \
 			sudo tar -jxf /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 -C /opt/;
 
 		# add arm-none-eabi-gcc to user's PATH
@@ -185,37 +169,36 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	echo "Installing PX4 simulation dependencies"
 
 	# General simulation dependencies
-	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+	sudo DEBIAN_FRONTEND=noninteractive apt-get -q -y --no-install-recommends install \
 		bc \
 		;
 
 	if [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
-		java_version=11
 		gazebo_version=9
+		MAVSDK_VERSION=0.39.0
+		wget -q "https://github.com/mavlink/MAVSDK/releases/download/v${MAVSDK_VERSION}/mavsdk_{MAVSDK_VERSION})_ubuntu18.04_amd64.deb" -O /tmp/mavsdk.deb && sudo dpkg -i /tmp/mavsdk.deb
 	elif [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
-		java_version=14
 		gazebo_version=11
+		MAVSDK_VERSION=0.39.0
+		wget -q "https://github.com/mavlink/MAVSDK/releases/download/v{MAVSDK_VERSION}/mavsdk_{MAVSDK_VERSION}_ubuntu20.04_amd64.deb" -O /tmp/mavsdk.deb && sudo dpkg -i /tmp/mavsdk.deb
 	else
-		java_version=14
 		gazebo_version=11
 	fi
+
 	# Java (jmavsim or fastrtps)
-	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+	sudo DEBIAN_FRONTEND=noninteractive apt-get -q -y --no-install-recommends install \
 		ant \
-		openjdk-$java_version-jre \
-		openjdk-$java_version-jdk \
+		default-jre-headless \
+		default-jdk-headless \
 		libvecmath-java \
 		;
 
-	# Set Java 11 as default
-	sudo update-alternatives --set java $(update-alternatives --list java | grep "java-$java_version")
-
 	# Gazebo
 	sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
-	wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
+	wget -q http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
 	# Update list, since new gazebo-stable.list has been added
-	sudo apt-get update -y --quiet
-	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+	sudo apt-get update -qq
+	sudo DEBIAN_FRONTEND=noninteractive apt-get -q -y --no-install-recommends install \
 		dmidecode \
 		gazebo$gazebo_version \
 		gstreamer1.0-plugins-bad \

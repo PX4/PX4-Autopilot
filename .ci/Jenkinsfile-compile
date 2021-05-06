@@ -130,7 +130,7 @@ pipeline {
     // TODO: actually upload artifacts to S3
     // stage('S3 Upload') {
     //   agent {
-    //     docker { image 'px4io/px4-dev-base-focal:2021-04-29' }
+    //     docker { image 'ghcr.io/px4/px4-dev:2021-05-06' }
     //   }
     //   options {
     //         skipDefaultCheckout()
