@@ -733,6 +733,8 @@ Commander::Commander() :
 	// default for vtol is rotary wing
 	_vtol_status.vtol_in_rw_mode = true;
 
+	_internal_state.desired_main_state = commander_state_s::MAIN_STATE_MAX;
+
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
 	mission_init();
 }
@@ -879,6 +881,17 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				reset_posvel_validity();
 
 				main_ret = main_state_transition(_status, desired_main_state, _status_flags, _internal_state);
+
+				// If the command is internal (e.g. sent by RC), and we were not (yet) able to switch
+				// to it, we will try again later. However, we only do that for ALTCTL and POSCTL.
+				if (!cmd.from_external && main_ret == TRANSITION_DENIED &&
+				    (desired_main_state == commander_state_s::MAIN_STATE_ALTCTL ||
+				     desired_main_state == commander_state_s::MAIN_STATE_POSCTL)) {
+					_internal_state.desired_main_state = desired_main_state;
+
+				} else {
+					_internal_state.desired_main_state = commander_state_s::MAIN_STATE_MAX;
+				}
 			}
 
 			if (main_ret != TRANSITION_DENIED) {
@@ -2708,6 +2721,22 @@ Commander::run()
 			/* Reset the flag if disarmed. */
 			_have_taken_off_since_arming = false;
 			_imbalanced_propeller_check_triggered = false;
+		}
+
+		// If we have an desired state, we should try to reach it but only when still disarmed.
+		if (_internal_state.desired_main_state != commander_state_s::commander_state_s::MAIN_STATE_MAX &&
+		    !_armed.armed) {
+			const transition_result_t desired_ret = main_state_transition(_status, _internal_state.desired_main_state,
+								_status_flags, _internal_state);
+
+			if (desired_ret == TRANSITION_CHANGED) {
+				// Reset it for next time.
+				_internal_state.desired_main_state = commander_state_s::MAIN_STATE_MAX;
+			}
+
+		} else if (_armed.armed) {
+			// Once armed we reset it.
+			_internal_state.desired_main_state = commander_state_s::MAIN_STATE_MAX;
 		}
 
 		/* now set navigation state according to failsafe and main state */
