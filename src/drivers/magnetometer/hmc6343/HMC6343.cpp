@@ -87,6 +87,13 @@ void HMC6343::print_status()
 int HMC6343::probe()
 {
 	ScheduleDelayed(500_ms); // Reset Recovery Time 500 ms
+	
+	uint8_t i2c_address = ReadEEPROM(Register::SLAVE_ADDR);
+
+	if (i2c_address != (I2C_ADDRESS_DEFAULT << 1)) {
+		DEVICE_DEBUG("unexpected I2C slave address 0x%02x", i2c_address);
+		return PX4_ERROR;
+	}
 		
 	// Power-On Start-Up Time 500 ms
 	if (hrt_absolute_time() < 500_ms) {
@@ -102,7 +109,7 @@ int HMC6343::probe()
 	uint8_t date_code_ww = ReadEEPROM(Register::DATE_CODE_WW);
 	uint8_t date_code_yy = ReadEEPROM(Register::DATE_CODE_YY);
 
-	PX4_INFO("Serial Number: 0x%X, Firmware Version: 0x%X, Date (WW): %X, (YY): %X", serial_num, sw_version, date_code_ww, date_code_yy);
+	PX4_INFO("Serial Number: 0x%X, Firmware Version: 0x%X, Date (WW): 0x%X, (YY): 0x%X", serial_num, sw_version, date_code_ww, date_code_yy);
 
 	return PX4_OK;
 }
