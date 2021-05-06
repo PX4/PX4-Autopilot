@@ -84,6 +84,7 @@ private:
 
 	void Run() override;
 
+	void evaluate_mode_slot(uint8_t mode_slot);
 	void send_mode_command(int32_t commander_main_state);
 	void send_arm_command(bool should_arm, ArmingOrigin origin);
 	void send_rtl_command();

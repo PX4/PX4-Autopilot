@@ -164,44 +164,7 @@ void ManualControl::Run()
 			if (_selector.setpoint().data_source == manual_control_input_s::SOURCE_RC) {
 				if (_previous_switches_initialized) {
 					if (switches.mode_slot != _previous_switches.mode_slot) {
-
-						switch (switches.mode_slot) {
-						case manual_control_switches_s::MODE_SLOT_NONE:
-							_last_mode_slot_flt = -1;
-							break;
-
-						case manual_control_switches_s::MODE_SLOT_1:
-							_last_mode_slot_flt = _param_fltmode_1.get();
-							break;
-
-						case manual_control_switches_s::MODE_SLOT_2:
-							_last_mode_slot_flt = _param_fltmode_2.get();
-							break;
-
-						case manual_control_switches_s::MODE_SLOT_3:
-							_last_mode_slot_flt = _param_fltmode_3.get();
-							break;
-
-						case manual_control_switches_s::MODE_SLOT_4:
-							_last_mode_slot_flt = _param_fltmode_4.get();
-							break;
-
-						case manual_control_switches_s::MODE_SLOT_5:
-							_last_mode_slot_flt = _param_fltmode_5.get();
-							break;
-
-						case manual_control_switches_s::MODE_SLOT_6:
-							_last_mode_slot_flt = _param_fltmode_6.get();
-							break;
-
-						default:
-							_last_mode_slot_flt = -1;
-							PX4_WARN("mode slot overflow");
-							break;
-
-						}
-
-						send_mode_command(_last_mode_slot_flt);
+						evaluate_mode_slot(switches.mode_slot);
 					}
 
 					if (switches.arm_switch != _previous_switches.arm_switch) {
@@ -268,10 +231,14 @@ void ManualControl::Run()
 							send_vtol_transition_command(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
 						}
 					}
+
+				} else {
+					// Send an initial command to switch to the mode requested by R
+					evaluate_mode_slot(switches.mode_slot);
 				}
 
-				_previous_switches = switches;
 				_previous_switches_initialized = true;
+				_previous_switches = switches;
 
 			} else {
 				_previous_switches = {};
@@ -310,6 +277,48 @@ void ManualControl::Run()
 	ScheduleDelayed(200_ms);
 
 	perf_end(_loop_perf);
+}
+
+void ManualControl::evaluate_mode_slot(uint8_t mode_slot)
+{
+	switch (mode_slot) {
+	case manual_control_switches_s::MODE_SLOT_NONE:
+		_last_mode_slot_flt = -1;
+		break;
+
+	case manual_control_switches_s::MODE_SLOT_1:
+		_last_mode_slot_flt = _param_fltmode_1.get();
+		break;
+
+	case manual_control_switches_s::MODE_SLOT_2:
+		_last_mode_slot_flt = _param_fltmode_2.get();
+		break;
+
+	case manual_control_switches_s::MODE_SLOT_3:
+		_last_mode_slot_flt = _param_fltmode_3.get();
+		break;
+
+	case manual_control_switches_s::MODE_SLOT_4:
+		_last_mode_slot_flt = _param_fltmode_4.get();
+		break;
+
+	case manual_control_switches_s::MODE_SLOT_5:
+		_last_mode_slot_flt = _param_fltmode_5.get();
+		break;
+
+	case manual_control_switches_s::MODE_SLOT_6:
+		_last_mode_slot_flt = _param_fltmode_6.get();
+		break;
+
+	default:
+		_last_mode_slot_flt = -1;
+		PX4_WARN("mode slot overflow");
+		break;
+
+	}
+
+	PX4_WARN("send mode slot: %d", _last_mode_slot_flt);
+	send_mode_command(_last_mode_slot_flt);
 }
 
 void ManualControl::send_mode_command(int32_t commander_main_state)
