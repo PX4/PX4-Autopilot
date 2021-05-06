@@ -257,21 +257,6 @@
 #define PWMIN_TIMER_CHANNEL    /* T4C2 */ 2
 #define GPIO_PWM_IN            /* PD13 */ GPIO_TIM4_CH2IN_2
 
-/* Safety Switch is HW version dependent on having an PX4IO
- * So we init to a benign state with the _INIT definition
- * and provide the the non _INIT one for the driver to make a run time
- * decision to use it.
- */
-#define GPIO_nSAFETY_SWITCH_LED_OUT_INIT   /* PD10 */ (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTD|GPIO_PIN10)
-#define GPIO_nSAFETY_SWITCH_LED_OUT        /* PD10 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN10)
-
-/* Enable the FMU to control it if there is no px4io fixme:This should be BOARD_SAFETY_LED(__ontrue) */
-#define GPIO_LED_SAFETY GPIO_nSAFETY_SWITCH_LED_OUT
-
-#define GPIO_SAFETY_SWITCH_IN              /* PF5 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTF|GPIO_PIN5)
-/* Enable the FMU to use the switch it if there is no px4io fixme:This should be BOARD_SAFTY_BUTTON() */
-#define GPIO_BTN_SAFETY GPIO_SAFETY_SWITCH_IN /* Enable the FMU to control it if there is no px4io */
-
 /* Power switch controls ******************************************************/
 
 #define SPEKTRUM_POWER(_on_true)           VDD_3V3_SPEKTRUM_POWER_EN(_on_true)
@@ -355,8 +340,6 @@
 		GPIO_VDD_3V3_SPEKTRUM_POWER_EN,   \
 		CAN1_SILENT,                      \
 		GPIO_SYNC,                        \
-		GPIO_nSAFETY_SWITCH_LED_OUT_INIT, \
-		GPIO_SAFETY_SWITCH_IN,            \
 		GPIO_IMU_FYSNC_IDLE,              \
 		GPIO_IMU_FYSNC,                   \
 	}
