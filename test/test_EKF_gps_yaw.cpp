@@ -239,3 +239,22 @@ TEST_F(EkfGpsHeadingTest, yaw_jump)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
 }
+
+TEST_F(EkfGpsHeadingTest, stop_on_ground)
+{
+	// GIVEN: the GPS yaw fusion activated and there is no mag data
+	_sensor_simulator._mag.stop();
+	float gps_heading = _ekf_wrapper.getYawAngle();
+	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator.runSeconds(5);
+
+	// WHEN: the measurement stops
+	gps_heading = NAN;
+	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator.runSeconds(7.5);
+
+	// THEN: the fusion should stop and the GPS pos/vel aiding
+	// should stop as well because the yaw is not aligned anymore
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
+}

@@ -524,27 +524,20 @@ void Ekf::controlGpsFusion()
 				const bool want_to_reset_mag_heading = !_control_status.flags.yaw_align ||
 								       _control_status.flags.ev_yaw ||
 								       _mag_inhibit_yaw_reset_req;
-				if (want_to_reset_mag_heading && canResetMagHeading()) {
-					_control_status.flags.ev_yaw = false;
-					_control_status.flags.yaw_align = resetMagHeading(_mag_lpf.getState());
-					// Handle the special case where we have not been constraining yaw drift or learning yaw bias due
-					// to assumed invalid mag field associated with indoor operation with a downwards looking flow sensor.
-					if (_mag_inhibit_yaw_reset_req) {
-						_mag_inhibit_yaw_reset_req = false;
-						// Zero the yaw bias covariance and set the variance to the initial alignment uncertainty
-						P.uncorrelateCovarianceSetVariance<1>(12, sq(_params.switch_on_gyro_bias * FILTER_UPDATE_PERIOD_S));
-					}
-				}
 
-				// If the heading is valid start using gps aiding
-				if (_control_status.flags.yaw_align) {
+				if (want_to_reset_mag_heading) {
+					_mag_yaw_reset_req = true;
+					_control_status.flags.ev_yaw = false;
+
+				} else {
+					// If the heading is valid start using gps aiding
 					startGpsFusion();
 				}
 			}
 
-		}  else if (!(_params.fusion_mode & MASK_USE_GPS)) {
-			_control_status.flags.gps = false;
-
+		}  else if (_control_status.flags.gps
+		            && (!(_params.fusion_mode & MASK_USE_GPS) || !_control_status.flags.yaw_align)) {
+			stopGpsFusion();
 		}
 
 		// Handle the case where we are using GPS and another source of aiding and GPS is failing checks
@@ -725,14 +718,12 @@ void Ekf::controlGpsFusion()
 
 	} else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)10e6)) {
 		stopGpsFusion();
-		stopGpsYawFusion();
 		_warning_events.flags.gps_data_stopped = true;
 		ECL_WARN("GPS data stopped");
 	}  else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)1e6) && isOtherSourceOfHorizontalAidingThan(_control_status.flags.gps)) {
 		// Handle the case where we are fusing another position source along GPS,
 		// stop waiting for GPS after 1 s of lost signal
 		stopGpsFusion();
-		stopGpsYawFusion();
 		_warning_events.flags.gps_data_stopped_using_alternate = true;
 		ECL_WARN("GPS data stopped, using only EV, OF or air data" );
 	}
@@ -811,6 +802,14 @@ void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 	           && isTimedOut(_time_last_gps_yaw_data, _params.reset_timeout_max)) {
 		// No yaw data in the message anymore. Stop until it comes back.
 		stopGpsYawFusion();
+	}
+
+	// Before takeoff, we do not want to continue to rely on the current heading
+	// if we had to stop the fusion
+	if (!_control_status.flags.in_air
+	    && !_control_status.flags.gps_yaw
+	    && _control_status_prev.flags.gps_yaw) {
+		_control_status.flags.yaw_align = false;
 	}
 }
 
