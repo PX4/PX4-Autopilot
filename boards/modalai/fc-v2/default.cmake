@@ -25,7 +25,6 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		dshot
 		gps
-		#imu # all available imu drivers
 		imu/invensense/icm42688p
 		irlock
 		lights/blinkm

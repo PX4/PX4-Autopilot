@@ -15,8 +15,8 @@ px4_add_board(
 		GPS1:/dev/ttyS0
 		TEL1:/dev/ttyS6
 		TEL2:/dev/ttyS4
-		TEL3:/dev/ttyS1
-		GPS2:/dev/ttyS7
+		#TEL3:/dev/ttyS1
+		#GPS2:/dev/ttyS7
 	DRIVERS
 		adc
 		barometer # all available barometer drivers
@@ -28,13 +28,7 @@ px4_add_board(
 		dshot
 		gps
 		heater
-		#imu # all available imu drivers
-		imu/adis16448
-		imu/adis16477
-		imu/adis16497
-		imu/bosch/bmi088
-		imu/invensense/icm20649
-		imu/st/ism330dlc
+		imu/invensense/icm42688p
 		irlock
 		lights/blinkm
 		lights/rgbled
