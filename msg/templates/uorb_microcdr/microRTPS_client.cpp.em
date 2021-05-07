@@ -57,8 +57,8 @@ receive_base_types = [s.short_name for idx, s in enumerate(spec) if scope[idx] =
  *
  ****************************************************************************/
 
-#include "microRTPS_transport.h"
-#include "microRTPS_client.h"
+#include <microRTPS_transport.h>
+#include <microRTPS_client.h>
 
 #include <inttypes.h>
 #include <cstdio>
@@ -76,14 +76,7 @@ receive_base_types = [s.short_name for idx, s in enumerate(spec) if scope[idx] =
 #include <uORB_microcdr/topics/@(topic).h>
 @[end for]@
 
-uint8_t last_remote_msg_seq = 0;
-uint8_t last_msg_seq = 0;
-
-uint64_t tx_last_sec_read = 0;
-uint64_t rx_last_sec_read = 0;
-
-pthread_mutex_t tx_lock;
-pthread_mutex_t rx_lock;
+using namespace time_literals;
 
 @[if recv_topics]@
 // Publishers for received messages
@@ -101,17 +94,17 @@ struct SendTopicsSubs {
 	uORB::Subscription @(topic)_sub{ORB_ID(@(topic))};
 @[    end for]@
 };
-@[end if]@
-
-@[if send_topics]@
 
 struct SendThreadArgs {
+	const uint32_t &datarate;
 	uint64_t &total_sent;
 	uint64_t &sent_last_sec;
 	uint64_t &sent;
 	int &sent_loop;
-	SendThreadArgs(uint64_t &total_sent_, uint64_t &sent_last_sec_, uint64_t &sent_, int &sent_loop_)
-		: total_sent(total_sent_),
+	SendThreadArgs(const uint32_t &datarate_, uint64_t &total_sent_,
+                    uint64_t &sent_last_sec_, uint64_t &sent_, int &sent_loop_)
+		: datarate(datarate_),
+		  total_sent(total_sent_),
 		  sent_last_sec(sent_last_sec_),
 		  sent(sent_),
 		  sent_loop(sent_loop_) {}
@@ -119,25 +112,25 @@ struct SendThreadArgs {
 
 void *send(void *args)
 {
-	char data_buffer[BUFFER_SIZE] = {};
-	int read = 0;
-	uint32_t length = 0;
-	size_t header_length = 0;
+	char data_buffer[BUFFER_SIZE]{};
+	int read{0};
+	uint32_t length{0};
+	size_t header_length{0};
+	uint8_t last_msg_seq{0};
+	uint8_t last_remote_msg_seq{0};
+
 	struct SendThreadArgs *data = reinterpret_cast<struct SendThreadArgs *>(args);
 	SendTopicsSubs *subs = new SendTopicsSubs();
+
+	float bandwidth_mult{0};
+	float tx_interval{1.f};
+	uint64_t tx_last_sec_read{0};
+	hrt_abstime last_stats_update{0};
 
 	// ucdrBuffer to serialize using the user defined buffer
 	ucdrBuffer writer;
 	header_length = transport_node->get_header_length();
 	ucdr_init_buffer(&writer, reinterpret_cast<uint8_t *>(&data_buffer[header_length]), BUFFER_SIZE - header_length);
-
-	pthread_t tx_per_second_thread;
-	int rc = pthread_create(&tx_per_second_thread, nullptr, &tx_per_second, (void *)&data->sent_last_sec);
-	if (rc != 0) {
-		errno = rc;
-		PX4_ERR("Could not create tx counter thread (%d)", errno);
-		return nullptr;
-	}
 
 	while (!_should_exit_task) {
 @[    for idx, topic in enumerate(send_topics)]@
@@ -163,9 +156,7 @@ void *send(void *args)
 
 					if (0 < (read = transport_node->write(static_cast<char>(@(rtps_message_id(ids, topic))), data_buffer, length))) {
 						data->total_sent += read;
-						pthread_mutex_lock(&tx_lock);
 						tx_last_sec_read += read;
-						pthread_mutex_unlock(&tx_lock);
 						++data->sent;
 					}
 
@@ -176,37 +167,28 @@ void *send(void *args)
 			}
 		}
 @[    end for]@
-		px4_usleep(_options.sleep_us);
+
+		if (hrt_absolute_time() - last_stats_update >= 1_s) {
+			data->sent_last_sec = tx_last_sec_read;
+			if (data->datarate > 0) {
+				bandwidth_mult = static_cast<float>(data->datarate) / static_cast<float>(tx_last_sec_read);
+				// Apply a low-pass filter to determine the new TX interval
+				tx_interval += 0.5f * (tx_interval / bandwidth_mult - tx_interval);
+				// Clamp the interval between 1 and 1000 ms
+				tx_interval = math::constrain(tx_interval, MIN_TX_INTERVAL_US, MAX_TX_INTERVAL_US);
+			}
+			tx_last_sec_read = 0;
+			last_stats_update = hrt_absolute_time();
+		}
+
+		px4_usleep(tx_interval);
+
 		++data->sent_loop;
 	}
 
-	pthread_join(tx_per_second_thread, nullptr);
-	delete subs;
+	delete(data);
+	delete(subs);
 
-	return nullptr;
-}
-
-void *tx_per_second(void *sent_last_sec)
-{
-	while (!_should_exit_task) {
-		pthread_mutex_lock(&tx_lock);
-		*((uint64_t *) sent_last_sec) = tx_last_sec_read;
-		tx_last_sec_read = 0;
-		pthread_mutex_unlock(&tx_lock);
-		px4_sleep(1);
-	}
-	return nullptr;
-}
-
-void *rx_per_second(void *rcvd_last_sec)
-{
-	while (!_should_exit_task) {
-		pthread_mutex_lock(&rx_lock);
-		*((uint64_t *) rcvd_last_sec) = rx_last_sec_read;
-		rx_last_sec_read = 0;
-		pthread_mutex_unlock(&rx_lock);
-		px4_sleep(1);
-	}
 	return nullptr;
 }
 
@@ -225,8 +207,8 @@ static int launch_send_thread(pthread_t &sender_thread, struct SendThreadArgs &a
 		PX4_ERR("Could not create send thread (%d)", errno);
 		return -1;
 	}
-	rc = pthread_setname_np(sender_thread, "micrortps_client_send");
-	if (pthread_setname_np(sender_thread, "micrortps_client_send")) {
+	rc = pthread_setname_np(sender_thread, "urtpsclient_snd");
+	if (pthread_setname_np(sender_thread, "urtpsclient_snd")) {
 		errno = rc;
 		PX4_ERR("Could not set pthread name for the send thread (%d)", errno);
 	}
@@ -236,13 +218,21 @@ static int launch_send_thread(pthread_t &sender_thread, struct SendThreadArgs &a
 }
 @[end if]@
 
-void micrortps_start_topics(struct timespec &begin, uint64_t &total_rcvd, uint64_t &total_sent, uint64_t &sent_last_sec,
+void micrortps_start_topics(const uint32_t &datarate, struct timespec &begin, uint64_t &total_rcvd,
+			    uint64_t &total_sent, uint64_t &sent_last_sec,
 			    uint64_t &rcvd_last_sec, uint64_t &received, uint64_t &sent, int &rcvd_loop, int &sent_loop)
 {
+	px4_clock_gettime(CLOCK_REALTIME, &begin);
+	_should_exit_task = false;
+
 @[if recv_topics]@
-	char data_buffer[BUFFER_SIZE] = {};
-	int read = 0;
-	uint8_t topic_ID = 255;
+	char data_buffer[BUFFER_SIZE]{};
+	int read{0};
+	uint8_t topic_ID{255};
+
+	uint64_t rx_last_sec_read{0};
+	hrt_abstime last_stats_update{0};
+
 	RcvTopicsPubs *pubs = new RcvTopicsPubs();
 
 	// Set the main task name to 'urtpsclient_rcv' in case there is
@@ -252,21 +242,11 @@ void micrortps_start_topics(struct timespec &begin, uint64_t &total_rcvd, uint64
 	// ucdrBuffer to deserialize using the user defined buffer
 	ucdrBuffer reader;
 	ucdr_init_buffer(&reader, reinterpret_cast<uint8_t *>(data_buffer), BUFFER_SIZE);
-
-	pthread_t rx_per_second_thread;
-	int rc = pthread_create(&rx_per_second_thread, nullptr, &rx_per_second, (void *)&rcvd_last_sec);
-	if (rc != 0) {
-		errno = rc;
-		PX4_ERR("Could not create rx counter thread (%d)", errno);
-		return;
-	}
 @[end if]@
 
-	px4_clock_gettime(CLOCK_REALTIME, &begin);
-	_should_exit_task = false;
 @[if send_topics]@
 	// var struct to be updated on the thread
-	SendThreadArgs *sender_thread_args = new SendThreadArgs(total_sent, sent_last_sec, sent, sent_loop);
+	SendThreadArgs *sender_thread_args = new SendThreadArgs(datarate, total_sent, sent_last_sec, sent, sent_loop);
 
 	// create a thread for sending data
 	pthread_t sender_thread;
@@ -275,11 +255,9 @@ void micrortps_start_topics(struct timespec &begin, uint64_t &total_rcvd, uint64
 
 	while (!_should_exit_task) {
 @[if recv_topics]@
-		while (0 < (read = transport_node->read(&topic_ID, data_buffer, BUFFER_SIZE))) {
+		if (0 < (read = transport_node->read(&topic_ID, data_buffer, BUFFER_SIZE))) {
 			total_rcvd += read;
-			pthread_mutex_lock(&rx_lock);
-			rcvd_last_sec += read;
-			pthread_mutex_unlock(&rx_lock);
+			rx_last_sec_read += read;
 
 			uint64_t read_time = hrt_absolute_time();
 
@@ -307,6 +285,12 @@ void micrortps_start_topics(struct timespec &begin, uint64_t &total_rcvd, uint64
 		}
 @[end if]@
 
+		if (hrt_absolute_time() - last_stats_update >= 1_s) {
+			rcvd_last_sec = rx_last_sec_read;
+			rx_last_sec_read = 0;
+			last_stats_update = hrt_absolute_time();
+		}
+
 		// loop forever if informed loop number is negative
 		if (_options.loops >= 0 && rcvd_loop >= _options.loops) { break; }
 
@@ -315,12 +299,10 @@ void micrortps_start_topics(struct timespec &begin, uint64_t &total_rcvd, uint64
 	}
 
 @[if send_topics]@
-	delete sender_thread_args;
 	_should_exit_task = true;
 	pthread_join(sender_thread, nullptr);
 @[end if]@
 @[if recv_topics]@
-	pthread_join(rx_per_second_thread, nullptr);
-	delete pubs;
+	delete(pubs);
 @[end if]@
 }
