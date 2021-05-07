@@ -57,7 +57,7 @@ __BEGIN_DECLS
 __EXPORT int dataman_main(int argc, char *argv[]);
 __END_DECLS
 
-static constexpr int TASK_STACK_SIZE = 1220;
+static constexpr int TASK_STACK_SIZE = 2048;
 
 /* Private File based Operations */
 static ssize_t _file_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void *buf,
