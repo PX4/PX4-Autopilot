@@ -28,12 +28,7 @@ px4_add_board(
 		dshot
 		gps
 		#imu # all available imu drivers
-		imu/adis16448
-		imu/adis16477
-		imu/adis16497
-		imu/bosch/bmi088
-		imu/invensense/icm20649
-		imu/st/ism330dlc
+		imu/invensense/icm42688p
 		irlock
 		lights/blinkm
 		lights/rgbled
