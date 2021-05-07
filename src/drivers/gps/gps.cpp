@@ -75,7 +75,8 @@
 #include <linux/spi/spidev.h>
 #endif /* __PX4_LINUX */
 
-#define TIMEOUT_5HZ 500
+#define TIMEOUT_1HZ		1300	//!< Timeout time in mS, 1000 mS (1Hz) + 300 mS delta for error
+#define TIMEOUT_5HZ		500		//!< Timeout time in mS,  200 mS (5Hz) + 300 mS delta for error
 #define RATE_MEASUREMENT_PERIOD 5000000
 
 typedef enum {
@@ -837,8 +838,15 @@ GPS::run()
 			}
 
 			int helper_ret;
+			unsigned receive_timeout = TIMEOUT_5HZ;
 
-			while ((helper_ret = _helper->receive(TIMEOUT_5HZ)) > 0 && !should_exit()) {
+			if (ubx_mode == GPSDriverUBX::UBXMode::RoverWithMovingBase) {
+				/* The MB rover will wait as long as possible to compute a navigation solution,
+				 * possibly lowering the navigation rate all the way to 1 Hz while doing so. */
+				receive_timeout = TIMEOUT_1HZ;
+			}
+
+			while ((helper_ret = _helper->receive(receive_timeout)) > 0 && !should_exit()) {
 
 				if (helper_ret & 1) {
 					publish();
