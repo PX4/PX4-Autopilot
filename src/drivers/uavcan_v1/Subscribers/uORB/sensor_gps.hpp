@@ -32,63 +32,52 @@
  ****************************************************************************/
 
 /**
- * @file NodeManager.hpp
+ * @file sensor_gps.hpp
  *
- * Defines basic implementation of UAVCAN PNP for dynamic Node ID
+ * Defines uORB over UAVCANv1 sensor_gps subscriber
  *
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
 
 #pragma once
 
+#include <uORB/topics/sensor_gps.h>
+#include <uORB/PublicationMulti.hpp>
 
-#include <px4_platform_common/defines.h>
-#include <drivers/drv_hrt.h>
+#include "../DynamicPortSubscriber.hpp"
 
-#include "CanardInterface.hpp"
-
-#include <uavcan/node/ID_1_0.h>
-#include <uavcan/pnp/NodeIDAllocationData_1_0.h>
-#include <uavcan/pnp/NodeIDAllocationData_2_0.h>
-
-
-class NodeManager;
-
-#include "Services/AccessRequest.hpp"
-#include "Services/ListRequest.hpp"
-
-//TODO make this an object instead?
-typedef struct {
-	uint8_t   node_id;
-	uint8_t   unique_id[16];
-	bool      register_setup;
-	uint16_t  register_index;
-	uint16_t  retry_count;
-} UavcanNodeEntry;
-
-class NodeManager
+class UORB_over_UAVCAN_sensor_gps_Subscriber : public UavcanDynamicPortSubscriber
 {
 public:
-	NodeManager(CanardInstance &ins, UavcanParamManager &pmgr) : _canard_instance(ins), _access_request(ins, pmgr),
-		_list_request(ins) { };
+	UORB_over_UAVCAN_sensor_gps_Subscriber(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
+		UavcanDynamicPortSubscriber(ins, pmgr, "uorb.sensor_gps", instance) { };
 
-	bool HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg);
-	bool HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_2_0 &msg);
+	void subscribe() override
+	{
+		// Subscribe to messages uORB sensor_gps payload over UAVCAN
+		canardRxSubscribe(&_canard_instance,
+				  CanardTransferKindMessage,
+				  _subj_sub._canard_sub._port_id,
+				  sizeof(struct sensor_gps_s),
+				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC * 10000,
+				  &_subj_sub._canard_sub);
+	};
 
+	void callback(const CanardTransfer &receive) override
+	{
+		//PX4_INFO("uORB sensor_gps Callback");
 
-	void HandleListResponse(CanardNodeID node_id, uavcan_register_List_Response_1_0 &msg);
+		if (receive.payload_size == sizeof(struct sensor_gps_s)) {
+			sensor_gps_s *gps_msg = (sensor_gps_s *)receive.payload;
+			_sensor_gps_pub.publish(*gps_msg);
 
-	void update();
+		} else {
+			PX4_ERR("uORB over UAVCAN %s playload size mismatch got %d expected %d",
+				_subj_sub._subject_name, receive.payload_size, sizeof(struct sensor_gps_s));
+		}
+	};
 
 private:
-	CanardInstance &_canard_instance;
-	CanardTransferID _uavcan_pnp_nodeidallocation_v1_transfer_id{0};
-	UavcanNodeEntry nodeid_registry[16] {0}; //TODO configurable or just rewrite
+	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
 
-	UavcanAccessServiceRequest _access_request;
-	UavcanListServiceRequest _list_request;
-
-	bool nodeRegisterSetup = 0;
-
-	hrt_abstime _register_request_last{0};
 };

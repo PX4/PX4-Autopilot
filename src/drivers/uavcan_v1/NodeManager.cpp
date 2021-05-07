@@ -39,16 +39,20 @@
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
 
+#define RETRY_COUNT 10
+
 #include "NodeManager.hpp"
 
 bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg)
 {
 	if (msg.allocated_node_id.count == 0) {
+		uint32_t i;
+
 		msg.allocated_node_id.count = 1;
 		msg.allocated_node_id.elements[0].value = CANARD_NODE_ID_UNSET;
 
 		/* Search for an available NodeID to assign */
-		for (uint32_t i = 1; i < sizeof(nodeid_registry) / sizeof(nodeid_registry[0]); i++) {
+		for (i = 1; i < sizeof(nodeid_registry) / sizeof(nodeid_registry[0]); i++) {
 			if (i == _canard_instance.node_id) {
 				continue; // Don't give our NodeID to a node
 
@@ -62,6 +66,10 @@ bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg)
 				break;
 			}
 		}
+
+		nodeid_registry[i].register_setup = false; // Re-instantiate register setup
+		nodeid_registry[i].register_index = 0;
+		nodeid_registry[i].retry_count = 0;
 
 		if (msg.allocated_node_id.elements[0].value != CANARD_NODE_ID_UNSET) {
 
@@ -120,17 +128,15 @@ void NodeManager::HandleListResponse(CanardNodeID node_id, uavcan_register_List_
 			if (nodeid_registry[i].node_id == node_id) {
 				nodeid_registry[i].register_index++; // Increment index counter for next update()
 				nodeid_registry[i].register_setup = false;
+				nodeid_registry[i].retry_count = 0;
 			}
 		}
 
+		if (_access_request.setPortId(node_id, msg.name)) {
+			PX4_INFO("Set portID succesfull");
 
-		if (strncmp((char *)msg.name.name.elements, gps_uorb_register_name,
-			    msg.name.name.count) == 0) {
-			_access_request.setPortId(node_id, gps_uorb_register_name, 1235); //TODO configurable and combine with ParamManager.
-
-		} else if (strncmp((char *)msg.name.name.elements, bms_status_register_name,
-				   msg.name.name.count) == 0) { //Battery status publisher
-			_access_request.setPortId(node_id, bms_status_register_name, 1234); //TODO configurable and combine with ParamManager.
+		} else {
+			PX4_INFO("Register not found %.*s", msg.name.name.count, msg.name.name.elements);
 		}
 	}
 }
@@ -142,7 +148,11 @@ void NodeManager::update()
 			if (nodeid_registry[i].node_id != 0 && nodeid_registry[i].register_setup == false) {
 				//Setting up registers
 				_list_request.request(nodeid_registry[i].node_id, nodeid_registry[i].register_index);
-				nodeid_registry[i].register_setup = true;
+				nodeid_registry[i].retry_count++;
+
+				if (nodeid_registry[i].retry_count > RETRY_COUNT) {
+					nodeid_registry[i].register_setup = true; // Don't update anymore
+				}
 			}
 		}
 
