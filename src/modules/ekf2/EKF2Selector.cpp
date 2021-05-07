@@ -315,6 +315,11 @@ bool EKF2Selector::UpdateErrorScores()
 				if (error_delta > 0 || error_delta < -threshold) {
 					_instance[i].relative_test_ratio += error_delta;
 					_instance[i].relative_test_ratio = constrain(_instance[i].relative_test_ratio, -_rel_err_score_lim, _rel_err_score_lim);
+
+					if ((error_delta < -threshold) && (_instance[i].relative_test_ratio < 1.f)) {
+						// increase status publication rate if there's movement towards a potential instance change
+						_selector_status_publish = true;
+					}
 				}
 			}
 		}
@@ -650,7 +655,6 @@ void EKF2Selector::Run()
 	}
 
 	if (updated) {
-
 		const uint8_t available_instances_prev = _available_instances;
 		const uint8_t selected_instance_prev = _selected_instance;
 		const uint32_t instance_changed_count_prev = _instance_changed_count;
@@ -719,32 +723,7 @@ void EKF2Selector::Run()
 		    || (last_instance_change_prev != _last_instance_change)
 		    || _accel_fault_detected || _gyro_fault_detected) {
 
-			estimator_selector_status_s selector_status{};
-			selector_status.primary_instance = _selected_instance;
-			selector_status.instances_available = _available_instances;
-			selector_status.instance_changed_count = _instance_changed_count;
-			selector_status.last_instance_change = _last_instance_change;
-			selector_status.accel_device_id = _instance[_selected_instance].accel_device_id;
-			selector_status.baro_device_id = _instance[_selected_instance].baro_device_id;
-			selector_status.gyro_device_id = _instance[_selected_instance].gyro_device_id;
-			selector_status.mag_device_id = _instance[_selected_instance].mag_device_id;
-			selector_status.gyro_fault_detected = _gyro_fault_detected;
-			selector_status.accel_fault_detected = _accel_fault_detected;
-
-			for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
-				selector_status.combined_test_ratio[i] = _instance[i].combined_test_ratio;
-				selector_status.relative_test_ratio[i] = _instance[i].relative_test_ratio;
-				selector_status.healthy[i] = _instance[i].healthy;
-			}
-
-			for (int i = 0; i < IMU_STATUS_SIZE; i++) {
-				selector_status.accumulated_gyro_error[i] = _accumulated_gyro_error[i];
-				selector_status.accumulated_accel_error[i] = _accumulated_accel_error[i];
-			}
-
-			selector_status.timestamp = hrt_absolute_time();
-			_estimator_selector_status_pub.publish(selector_status);
-			_last_status_publish = selector_status.timestamp;
+			PublishEstimatorSelectorStatus();
 			_selector_status_publish = false;
 		}
 	}
@@ -755,6 +734,36 @@ void EKF2Selector::Run()
 	PublishVehicleGlobalPosition();
 	PublishVehicleOdometry();
 	PublishWindEstimate();
+}
+
+void EKF2Selector::PublishEstimatorSelectorStatus()
+{
+	estimator_selector_status_s selector_status{};
+	selector_status.primary_instance = _selected_instance;
+	selector_status.instances_available = _available_instances;
+	selector_status.instance_changed_count = _instance_changed_count;
+	selector_status.last_instance_change = _last_instance_change;
+	selector_status.accel_device_id = _instance[_selected_instance].accel_device_id;
+	selector_status.baro_device_id = _instance[_selected_instance].baro_device_id;
+	selector_status.gyro_device_id = _instance[_selected_instance].gyro_device_id;
+	selector_status.mag_device_id = _instance[_selected_instance].mag_device_id;
+	selector_status.gyro_fault_detected = _gyro_fault_detected;
+	selector_status.accel_fault_detected = _accel_fault_detected;
+
+	for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
+		selector_status.combined_test_ratio[i] = _instance[i].combined_test_ratio;
+		selector_status.relative_test_ratio[i] = _instance[i].relative_test_ratio;
+		selector_status.healthy[i] = _instance[i].healthy;
+	}
+
+	for (int i = 0; i < IMU_STATUS_SIZE; i++) {
+		selector_status.accumulated_gyro_error[i] = _accumulated_gyro_error[i];
+		selector_status.accumulated_accel_error[i] = _accumulated_accel_error[i];
+	}
+
+	selector_status.timestamp = hrt_absolute_time();
+	_estimator_selector_status_pub.publish(selector_status);
+	_last_status_publish = selector_status.timestamp;
 }
 
 void EKF2Selector::PrintStatus()
