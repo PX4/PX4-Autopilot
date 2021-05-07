@@ -39,6 +39,7 @@ px4_add_board(
 		#osd
 		pca9685
 		power_monitor/ina226
+		power_monitor/voxlpm
 		#protocol_splitter
 #		pwm_input  - Need to create arch/stm32 arch/stm32h7 arch/kinetis and reloacate
 #					   all arch dependant code there
