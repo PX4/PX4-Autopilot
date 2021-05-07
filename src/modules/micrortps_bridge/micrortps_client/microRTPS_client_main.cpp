@@ -78,7 +78,7 @@ static void usage(const char *name)
 	PRINT_MODULE_USAGE_PARAM_INT('p', -1, 1, 1000, "Poll timeout for UART in ms", true);
 	PRINT_MODULE_USAGE_PARAM_INT('l', 10000, -1, 100000, "Limit number of iterations until the program exits (-1=infinite)",
 				     true);
-	PRINT_MODULE_USAGE_PARAM_INT('w', 1, 1, 1000, "Time in ms for which each iteration sleeps", true);
+	PRINT_MODULE_USAGE_PARAM_INT('w', 1, 1, 1000000, "Time in us for which each iteration sleeps", true);
 	PRINT_MODULE_USAGE_PARAM_INT('r', 2019, 0, 65536, "Select UDP Network Port for receiving (local)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('s', 2020, 0, 65536, "Select UDP Network Port for sending (remote)", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('i', "127.0.0.1", "<x.x.x.x>", "Select IP address (remote)", true);
@@ -106,7 +106,7 @@ static int parse_options(int argc, char *argv[])
 
 		case 'l': _options.loops           =  strtol(myoptarg, nullptr, 10);    break;
 
-		case 'w': _options.sleep_ms        = strtoul(myoptarg, nullptr, 10);    break;
+		case 'w': _options.sleep_us        = strtoul(myoptarg, nullptr, 10);    break;
 
 		case 'b': {
 				int baudrate = 0;
@@ -119,6 +119,8 @@ static int parse_options(int argc, char *argv[])
 
 				break;
 			}
+
+		case 'p': _options.poll_ms         = strtoul(myoptarg, nullptr, 10);    break;
 
 		case 'r': _options.recv_port       = strtoul(myoptarg, nullptr, 10);    break;
 
@@ -165,7 +167,7 @@ static int micrortps_start(int argc, char *argv[])
 						       _options.sw_flow_control, _options.hw_flow_control, _options.verbose_debug);
 			PX4_INFO("UART transport: device: %s; baudrate: %" PRIu32 "; sleep: %" PRIu32 "ms; poll: %" PRIu32
 				 "ms; flow_control: %s",
-				 _options.device, _options.baudrate, _options.sleep_ms, _options.poll_ms,
+				 _options.device, _options.baudrate, _options.sleep_us, _options.poll_ms,
 				 _options.sw_flow_control ? "SW enabled" : (_options.hw_flow_control ? "HW enabled" : "No"));
 		}
 		break;
@@ -173,8 +175,8 @@ static int micrortps_start(int argc, char *argv[])
 	case options::eTransports::UDP: {
 			transport_node = new UDP_node(_options.ip, _options.recv_port, _options.send_port,
 						      _options.verbose_debug);
-			PX4_INFO("UDP transport: ip address: %s; recv port: %" PRIu16 "; send port: %" PRIu16 "; sleep: %" PRIu32 "ms",
-				 _options.ip, _options.recv_port, _options.send_port, _options.sleep_ms);
+			PX4_INFO("UDP transport: ip address: %s; recv port: %" PRIu16 "; send port: %" PRIu16 "; sleep: %" PRIu32 "us",
+				 _options.ip, _options.recv_port, _options.send_port, _options.sleep_us);
 
 		}
 		break;
