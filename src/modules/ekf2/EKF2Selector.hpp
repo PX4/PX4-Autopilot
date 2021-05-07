@@ -78,6 +78,7 @@ private:
 	static constexpr uint64_t FILTER_UPDATE_PERIOD{10_ms};
 
 	void Run() override;
+	void PublishEstimatorSelectorStatus();
 	void PublishVehicleAttitude();
 	void PublishVehicleLocalPosition();
 	void PublishVehicleGlobalPosition();
