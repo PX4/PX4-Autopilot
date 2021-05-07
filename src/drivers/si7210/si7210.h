@@ -41,55 +41,18 @@
 #ifndef SI7210_HPP_
 #define SI7210_HPP_
 
-#include <px4_config.h>
-#include <parameters/param.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-#include <getopt.h>
-#include <px4_log.h>
-
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
-#include <nuttx/wqueue.h>
-#include <systemlib/conversions.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/clock.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/parameter_update.h>
-
-#include <board_config.h>
-#include <drivers/drv_hrt.h>
-
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/integrator.h>
-#include <drivers/device/i2c.h>
 #include <drivers/drv_hall.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <drivers/vane/vane.h>
+#include <math.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+#include <uORB/topics/sensor_hall.h>
 
-#include "parameters.h"
-
-using namespace si7210;
-
-#define SI7210_BUS				PX4_I2C_BUS_EXPANSION
-
-#define SI7210_SLAVE_ADDRESS_0   0x30    /* SI7210 I2C address */
-#define SI7210_SLAVE_ADDRESS_1   0x31    /* SI7210 I2C address */
-#define SI7210_SLAVE_ADDRESS_2   0x32    /* SI7210 I2C address */
-#define SI7210_SLAVE_ADDRESS_3   0x33    /* SI7210 I2C address */
+#define I2C_ADDRESS_0_SI7210   0x30    /* SI7210 I2C address */
+#define I2C_ADDRESS_1_SI7210   0x31    /* SI7210 I2C address */
+#define I2C_ADDRESS_2_SI7210   0x32    /* SI7210 I2C address */
+#define I2C_ADDRESS_3_SI7210   0x33    /* SI7210 I2C address */
 
 #define SI7210_MAX_DATA_RATE     50
 
@@ -149,104 +112,40 @@ using namespace si7210;
 #define MAG_BIAS         0xC000
 #define MAG_CONV         0.00125F
 
-class SI7210 : public device::I2C
+class SI7210 : public Vane, public I2CSPIDriver<SI7210>
 {
 public:
-	enum Instance : int8_t {
-		INVALID = -1,
-		ID_0 = 0,
-		ID_1 = 1,
-		ID_2 = 2,
-		ID_3 = 3,
-	};
+	SI7210(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS_0_SI7210,
+	       bool keep_retrying = false) :
+		Vane(bus, bus_frequency, address, SI7210_CONVERSION_INTERVAL),
+		I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address),
+		_keep_retrying{keep_retrying}
+	{
+	}
 
-	SI7210(int bus, SI7210::Instance instance, const char *path);
-	virtual ~SI7210();
+	virtual ~SI7210() = default;
 
-	virtual int       init();
-	virtual ssize_t   read(struct file *filp, char *buffer, size_t buflen);
-	virtual int       ioctl(struct file *filp, int cmd, unsigned long arg);
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
 
-	/**
-	 * Stop automatic measurement.
-	 */
-	void              stop();
+	void	RunImpl();
 
-	/**
-	  * Diagnostics - print some basic information about the driver.
-	  */
-	void              print_info();
-
-protected:
-	virtual int       probe();
+	void start();
 
 private:
-	work_s            _work{};
+	enum class State {
+		RequireConfig,
+		Configuring,
+		Running
+	};
 
-	bool 			  _running;
+	int	measure() override { return 0; }
+	int	collect() override;
+	int	probe() override;
+	int	configure();
 
-	/* altitude conversion calibration */
-	unsigned         _call_interval;
-
-	si7210_report 	 _report {};
-	ringbuffer::RingBuffer  *_reports;
-
-	bool            	_collect_phase;
-
-	orb_advert_t        _hall_topic;
-	int					_orb_class_instance;
-
-	perf_counter_t      _sample_perf;
-	perf_counter_t      _bad_transfers;
-	perf_counter_t      _good_transfers;
-	perf_counter_t      _measure_perf;
-	perf_counter_t      _comms_errors;
-	perf_counter_t      _duplicates;
-
-	bool            	_got_duplicate;
-
-	Instance			_instance;				/**< index of the i2c address and publisher instance */
-
-	int   		    	_params_sub{-1};		/**< notification of parameter updates */
-
-	si7210_report   	_last_report {};        /**< used for info() */
-
-	Parameters			_parameters{};			/**< local copies of interesting parameters */
-	ParameterHandles	_parameter_handles{};	/**< handles for interesting parameters */
-
-	/**
-	 * Start automatic measurement.
-	 */
-	void            start();
-
-	int     		measure(); 			 //start measure
-	int     		collect(); 			 //get results and publish
-	int				parameters_update(); // update parameters
-
-	static void     cycle_trampoline(void *arg);
-	void            cycle(); //main execution
-
-	/**
-	 * Read the specified number of bytes from SI7210.
-	 *
-	 * @param reg       The register to read.
-	 * @param data      Pointer to buffer for bytes read.
-	 * @param len       Number of bytes to read
-	 * @return          OK if the transfer was successful, -errno otherwise.
-	 */
-	int             get_data(uint8_t reg, uint8_t *data, unsigned len);
-
-	/**
-	 * Resets the chip.
-	 */
-	int             reset();
-
-	/**
-	 * Measurement self test
-	 *
-	 * @return 0 on success, 1 on failure
-	 */
-	int             self_test();
+	bool init_si7210();
 
 	/**
 	 * Get registers values
@@ -276,9 +175,19 @@ private:
 	 */
 	int				get_sensor_data(uint8_t otpAddr, int8_t *data);
 
-	/* do not allow to copy this class due to pointer data members */
-	SI7210(const SI7210 &);
-	SI7210 operator=(const SI7210 &);
+	/**
+	 * Calculate the CRC8 for the sensor payload data
+	 */
+	bool crc(const uint8_t data[], unsigned size, uint8_t checksum);
+
+	/**
+	 * Write a command in Sensirion specific logic
+	 */
+	int write_command(uint16_t command);
+
+	uint16_t _scale{0};
+	const bool _keep_retrying;
+	State _state{State::RequireConfig};
 };
 
 #endif /* SI7210_HPP_ */
