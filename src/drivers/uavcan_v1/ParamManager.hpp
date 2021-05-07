@@ -63,7 +63,7 @@ public:
 
 private:
 
-	const UavcanParamBinder _uavcan_params[10] {
+	const UavcanParamBinder _uavcan_params[11] {
 		{"uavcan.pub.esc.0.id",              "UCAN1_ESC_PUB"},
 		{"uavcan.pub.servo.0.id",            "UCAN1_SERVO_PUB"},
 		{"uavcan.pub.gps.0.id",              "UCAN1_GPS_PUB"},
@@ -74,6 +74,7 @@ private:
 		{"uavcan.sub.battery_status.0.id",     "UCAN1_BMS_BS_PID"},
 		{"uavcan.sub.battery_parameters.0.id", "UCAN1_BMS_BP_PID"},
 		{"uavcan.sub.legacy_bms.0.id",         "UCAN1_LG_BMS_PID"},
+		{"uavcan.sub.uorb.sensor_gps.0.id",    "UCAN1_UORB_GPS"},
 		//{"uavcan.sub.bms.0.id",   "UCAN1_BMS0_PID"}, //FIXME instancing
 		//{"uavcan.sub.bms.1.id",   "UCAN1_BMS1_PID"},
 	};
