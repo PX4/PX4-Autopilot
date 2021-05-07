@@ -6,7 +6,7 @@
 # VOXL ESC
 if param greater UART_ESC_CONFIG 0
 then
-	modalai_esc -d /dev/ttyS1 start
+	modalai_esc -d /dev/ttyS4 start
 fi
 
 adc start
