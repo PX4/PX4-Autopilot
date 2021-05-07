@@ -200,6 +200,7 @@ void HMC6343::RunImpl()
 
 				// sensor's frame is +x forward, +y right, +z up
 				mag_z = (mag_z == INT16_MIN) ? INT16_MAX : -mag_z; // flip z
+				mag_y = (mag_y == INT16_MIN) ? INT16_MAX : -mag_y; // flip y
 
 				_px4_mag.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf));
 				_px4_mag.update(now, mag_x, mag_y, mag_z);
