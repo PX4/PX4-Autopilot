@@ -86,7 +86,6 @@ void HMC6343::print_status()
 
 int HMC6343::probe()
 {
-	ScheduleDelayed(500_ms); // Reset Recovery Time 500 ms
 	
 	uint8_t i2c_address = ReadEEPROM(Register::SLAVE_ADDR);
 
