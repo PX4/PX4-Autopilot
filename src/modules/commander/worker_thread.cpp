@@ -41,6 +41,7 @@
 #include "mag_calibration.h"
 #include "rc_calibration.h"
 
+#include <px4_platform_common/events.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/shutdown.h>
 #include <parameters/param.h>
@@ -147,7 +148,8 @@ void WorkerThread::threadEntry()
 		_ret_value = param_load_default();
 
 		if (_ret_value != 0) {
-			mavlink_log_critical(&_mavlink_log_pub, "Error loading settings");
+			mavlink_log_critical(&_mavlink_log_pub, "Error loading settings\t");
+			events::send(events::ID("commander_load_param_failed"), events::Log::Critical, "Error loading settings");
 		}
 
 		break;
@@ -156,7 +158,8 @@ void WorkerThread::threadEntry()
 		_ret_value = param_save_default();
 
 		if (_ret_value != 0) {
-			mavlink_log_critical(&_mavlink_log_pub, "Error saving settings");
+			mavlink_log_critical(&_mavlink_log_pub, "Error saving settings\t");
+			events::send(events::ID("commander_save_param_failed"), events::Log::Critical, "Error saving settings");
 		}
 
 		break;
