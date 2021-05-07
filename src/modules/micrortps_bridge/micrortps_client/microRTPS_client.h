@@ -50,7 +50,7 @@
 #include <uORB/uORB.h>
 
 #define LOOPS -1
-#define SLEEP_MS 1
+#define SLEEP_US 1
 #define BAUDRATE 460800
 #define DEVICE "/dev/ttyACM0"
 #define POLL_MS 1
@@ -81,7 +81,7 @@ struct options {
 	char ip[16] = IP;
 	uint16_t recv_port = DEFAULT_RECV_PORT;
 	uint16_t send_port = DEFAULT_SEND_PORT;
-	uint32_t sleep_ms = SLEEP_MS;
+	uint32_t sleep_us = SLEEP_US;
 	uint32_t baudrate = BAUDRATE;
 	uint32_t poll_ms = POLL_MS;
 	int loops = LOOPS;
