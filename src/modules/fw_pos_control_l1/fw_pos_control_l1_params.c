@@ -461,11 +461,12 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
 PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
 
 /**
- * Cruise Airspeed (CAS)
+ * Trim/ Cruise Airspeed (CAS)
  *
- * The trim CAS (calibrated airspeed) of the vehicle. If an airspeed controller is active,
- * this is the default airspeed setpoint that the controller will try to achieve if
- * no other airspeed setpoint sources are present (e.g. through non-centered RC sticks).
+ * This is the default cruise airspeed setpoint (calibrated airspeed) used by the system in assisted
+ * and autonomous control modes if no other airspeed setpoint is given.
+ * It is also used for control surface effectiveness scaling.
+ * (scaling = FW_AIRSPD_TRIM / calibrated_airspeed).
  *
  * @unit m/s
  * @min 0.5
