@@ -158,7 +158,7 @@ void HMC6343::RunImpl()
 
 		if (Configure()) {
 			// if configure succeeded then start read cycle
-			_state = STATE::READ;
+			_state = STATE::COMMAND;
 			ScheduleDelayed(200_ms);
 
 		} else {
@@ -175,6 +175,17 @@ void HMC6343::RunImpl()
 		}
 
 		break;
+			
+	case STATE::COMMAND: {
+
+		uint8_t cmd = static_cast<uint8_t>(Command::POST_MAG);
+
+		transfer(&cmd, 1, nullptr, 0);
+		_state = STATE::READ;
+		ScheduleDelayed(1_ms); // response delay 1 ms	
+		}
+
+		break;
 
 	case STATE::READ: {
 
@@ -188,10 +199,7 @@ void HMC6343::RunImpl()
 			} buffer{};
 
 			bool success = false;
-			uint8_t cmd = static_cast<uint8_t>(Command::POST_MAG);
 
-			transfer(&cmd, 1, nullptr, 0);
-			ScheduleDelayed(1_ms); // response delay 1 ms
 			if (transfer(nullptr, 0, (uint8_t *)&buffer, sizeof(buffer)) == PX4_OK) {
 
 				int16_t mag_x = combine(buffer.MxMSB, buffer.MxLSB);
