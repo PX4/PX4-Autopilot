@@ -67,12 +67,14 @@ void Ekf::controlMagFusion()
 		_num_bad_flight_yaw_events = 0;
 	}
 
-	if (_control_status.flags.mag_fault || !_control_status.flags.yaw_align) {
+	if (_control_status.flags.mag_fault || !_control_status.flags.tilt_align) {
 		stopMagFusion();
 		return;
 	}
 
 	_mag_yaw_reset_req |= otherHeadingSourcesHaveStopped();
+	_mag_yaw_reset_req |= !_control_status.flags.yaw_align;
+	_mag_yaw_reset_req |= _mag_inhibit_yaw_reset_req;
 
 	if (noOtherYawAidingThanMag() && _mag_data_ready) {
 		if (_control_status.flags.in_air) {
@@ -82,6 +84,11 @@ void Ekf::controlMagFusion()
 
 		} else {
 			runOnGroundYawReset();
+		}
+
+		if (!_control_status.flags.yaw_align) {
+			// Having the yaw aligned is mandatory to continue
+			return;
 		}
 
 		// Determine if we should use simple magnetic heading fusion which works better when
@@ -139,7 +146,18 @@ void Ekf::runOnGroundYawReset()
 					       ? resetMagHeading(_mag_lpf.getState())
 					       : false;
 
-		_mag_yaw_reset_req = !has_realigned_yaw;
+		if (has_realigned_yaw) {
+			_mag_yaw_reset_req = false;
+			_control_status.flags.yaw_align = true;
+
+			// Handle the special case where we have not been constraining yaw drift or learning yaw bias due
+			// to assumed invalid mag field associated with indoor operation with a downwards looking flow sensor.
+			if (_mag_inhibit_yaw_reset_req) {
+				_mag_inhibit_yaw_reset_req = false;
+				// Zero the yaw bias covariance and set the variance to the initial alignment uncertainty
+				P.uncorrelateCovarianceSetVariance<1>(12, sq(_params.switch_on_gyro_bias * FILTER_UPDATE_PERIOD_S));
+			}
+		}
 	}
 }
 
@@ -156,8 +174,20 @@ void Ekf::runInAirYawReset()
 		if (canRealignYawUsingGps()) { has_realigned_yaw = realignYawGPS(); }
 		else if (canResetMagHeading()) { has_realigned_yaw = resetMagHeading(_mag_lpf.getState()); }
 
-		_mag_yaw_reset_req = !has_realigned_yaw;
-		_control_status.flags.mag_aligned_in_flight = has_realigned_yaw;
+		if (has_realigned_yaw) {
+			_mag_yaw_reset_req = false;
+			_control_status.flags.yaw_align = true;
+			_control_status.flags.mag_aligned_in_flight = true;
+
+			// Handle the special case where we have not been constraining yaw drift or learning yaw bias due
+			// to assumed invalid mag field associated with indoor operation with a downwards looking flow sensor.
+			if (_mag_inhibit_yaw_reset_req) {
+				_mag_inhibit_yaw_reset_req = false;
+				// Zero the yaw bias covariance and set the variance to the initial alignment uncertainty
+				P.uncorrelateCovarianceSetVariance<1>(12, sq(_params.switch_on_gyro_bias * FILTER_UPDATE_PERIOD_S));
+			}
+		}
+
 	}
 }
 
