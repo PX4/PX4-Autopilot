@@ -467,6 +467,18 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 
 calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_mask)
 {
+	// We should not try to subscribe if the topic doesn't actually exist and can be counted.
+	const unsigned orb_mag_count = orb_group_count(ORB_ID(sensor_mag));
+
+	// Warn that we will not calibrate more than MAX_GYROS gyroscopes
+	if (orb_mag_count > MAX_MAGS) {
+		calibration_log_critical(mavlink_log_pub, "Detected %u mags, but will calibrate only %u", orb_mag_count, MAX_MAGS);
+
+	} else if (orb_mag_count < 1) {
+		calibration_log_critical(mavlink_log_pub, "No mags found");
+		return calibrate_return_error;
+	}
+
 	calibrate_return result = calibrate_return_ok;
 
 	mag_worker_data_t worker_data{};
