@@ -101,6 +101,7 @@ private:
 		RESET,
 		WAIT_FOR_RESET,
 		CONFIGURE,
+		COMMAND,
 		READ,
 	} _state{STATE::RESET};
 
