@@ -52,6 +52,7 @@ px4_add_board(
 		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm
+		uart_esc/modalai_esc
 #		uavcan - No H7 or FD can support in UAVCAN yet
 	MODULES
 		airspeed_selector
