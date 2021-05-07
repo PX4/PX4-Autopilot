@@ -40,6 +40,7 @@
  */
 
 #include "ParamManager.hpp"
+#include <px4_platform_common/defines.h>
 
 bool UavcanParamManager::GetParamByName(const char *param_name, uavcan_register_Value_1_0 &value)
 {
@@ -56,8 +57,16 @@ bool UavcanParamManager::GetParamByName(const char *param_name, uavcan_register_
 			case PARAM_TYPE_INT32: {
 					int32_t out_val {};
 					param_get(param_handle, &out_val);
-					value.integer32.value.elements[0] = out_val;
-					uavcan_register_Value_1_0_select_integer32_(&value);
+
+					if (uavcan_register_Value_1_0_is_natural16_(&value)) { //FIXME param rewrite
+						value.natural16.value.elements[0] = (uint16_t)out_val;
+						uavcan_register_Value_1_0_select_natural16_(&value);
+
+					} else {
+						value.integer32.value.elements[0] = out_val;
+						uavcan_register_Value_1_0_select_integer32_(&value);
+					}
+
 					break;
 				}
 
@@ -91,15 +100,23 @@ bool UavcanParamManager::GetParamByName(const uavcan_register_Name_1_0 &name, ua
 			switch (param_type(param_handle)) {
 			case PARAM_TYPE_INT32: {
 					int32_t out_val {};
-					param_set(param_handle, &out_val);
-					value.integer32.value.elements[0] = out_val;
-					uavcan_register_Value_1_0_select_integer32_(&value);
+					param_get(param_handle, &out_val);
+
+					if (uavcan_register_Value_1_0_is_natural16_(&value)) { //FIXME param rewrite
+						value.natural16.value.elements[0] = (uint16_t)out_val;
+						uavcan_register_Value_1_0_select_natural16_(&value);
+
+					} else {
+						value.integer32.value.elements[0] = out_val;
+						uavcan_register_Value_1_0_select_integer32_(&value);
+					}
+
 					break;
 				}
 
 			case PARAM_TYPE_FLOAT: {
 					float out_val {};
-					param_set(param_handle, &out_val);
+					param_get(param_handle, &out_val);
 					value.real32.value.elements[0] = out_val;
 					uavcan_register_Value_1_0_select_real32_(&value);
 					break;

@@ -68,25 +68,27 @@ public:
 
 			// Set _port_id from _uavcan_param
 			uavcan_register_Value_1_0 value;
-			_param_manager.GetParamByName(uavcan_param, value);
-			int32_t new_id = value.integer32.value.elements[0];
 
-			/* FIXME how about partial subscribing */
-			if (curSubj->_canard_sub._port_id != new_id) {
-				if (new_id == CANARD_PORT_ID_UNSET) {
-					// Cancel subscription
-					unsubscribe();
+			if (_param_manager.GetParamByName(uavcan_param, value)) {
+				int32_t new_id = value.integer32.value.elements[0];
 
-				} else {
-					if (curSubj->_canard_sub._port_id != CANARD_PORT_ID_UNSET) {
-						// Already active; unsubscribe first
+				/* FIXME how about partial subscribing */
+				if (curSubj->_canard_sub._port_id != new_id) {
+					if (new_id == CANARD_PORT_ID_UNSET) {
+						// Cancel subscription
 						unsubscribe();
-					}
 
-					// Subscribe on the new port ID
-					curSubj->_canard_sub._port_id = (CanardPortID)new_id;
-					PX4_INFO("Subscribing %s.%d on port %d", curSubj->_subject_name, _instance, curSubj->_canard_sub._port_id);
-					subscribe();
+					} else {
+						if (curSubj->_canard_sub._port_id != CANARD_PORT_ID_UNSET) {
+							// Already active; unsubscribe first
+							unsubscribe();
+						}
+
+						// Subscribe on the new port ID
+						curSubj->_canard_sub._port_id = (CanardPortID)new_id;
+						PX4_INFO("Subscribing %s.%d on port %d", curSubj->_subject_name, _instance, curSubj->_canard_sub._port_id);
+						subscribe();
+					}
 				}
 			}
 

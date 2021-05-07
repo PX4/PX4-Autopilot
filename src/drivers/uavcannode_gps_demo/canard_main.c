@@ -381,7 +381,7 @@ static int canard_daemon(int argc, char *argv[])
 	/* Init UAVCAN register interfaces */
 	uavcan_node_GetInfo_Response_1_0 node_information; // TODO ADD INFO
 	uavcan_register_interface_init(&ins, &node_information);
-	uavcan_register_interface_add_entry("gnss_uorb", set_gps_uorb_port_id, get_gps_uorb_port_id);
+	uavcan_register_interface_add_entry("uorb.sensor_gps.0", set_gps_uorb_port_id, get_gps_uorb_port_id);
 	uavcan_register_interface_add_entry("gnss_fix", set_gps_fix_port_id, get_gps_fix_port_id);
 	uavcan_register_interface_add_entry("gnss_aux", set_gps_aux_port_id, get_gps_aux_port_id);
 
