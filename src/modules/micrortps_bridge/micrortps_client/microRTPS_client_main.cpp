@@ -31,8 +31,8 @@
  *
  ****************************************************************************/
 
-#include "microRTPS_transport.h"
-#include "microRTPS_client.h"
+#include <microRTPS_transport.h>
+#include <microRTPS_client.h>
 
 #include <inttypes.h>
 #include <cstdio>
@@ -75,10 +75,11 @@ static void usage(const char *name)
 	PRINT_MODULE_USAGE_PARAM_STRING('t', "UART", "UART|UDP", "Transport protocol", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyACM0", "<file:dev>", "Select Serial Device", true);
 	PRINT_MODULE_USAGE_PARAM_INT('b', 460800, 9600, 3000000, "Baudrate (can also be p:<param_name>)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('m', 0, 10, 10000000, "Maximum sending data rate in B/s", true);
 	PRINT_MODULE_USAGE_PARAM_INT('p', -1, 1, 1000, "Poll timeout for UART in ms", true);
 	PRINT_MODULE_USAGE_PARAM_INT('l', 10000, -1, 100000, "Limit number of iterations until the program exits (-1=infinite)",
 				     true);
-	PRINT_MODULE_USAGE_PARAM_INT('w', 1, 1, 1000000, "Time in us for which each iteration sleeps", true);
+	PRINT_MODULE_USAGE_PARAM_INT('w', 1, 1, 1000000, "Time in us for which each read from the link iteration sleeps", true);
 	PRINT_MODULE_USAGE_PARAM_INT('r', 2019, 0, 65536, "Select UDP Network Port for receiving (local)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('s', 2020, 0, 65536, "Select UDP Network Port for sending (remote)", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('i', "127.0.0.1", "<x.x.x.x>", "Select IP address (remote)", true);
@@ -96,7 +97,7 @@ static int parse_options(int argc, char *argv[])
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "t:d:l:w:b:p:r:s:i:fhv", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "t:d:l:w:b:m:p:r:s:i:fhv", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 't': _options.transport      = strcmp(myoptarg, "UDP") == 0 ?
 							    options::eTransports::UDP
@@ -120,6 +121,8 @@ static int parse_options(int argc, char *argv[])
 				break;
 			}
 
+		case 'm': _options.datarate        = strtoul(myoptarg, nullptr, 10);    break;
+
 		case 'p': _options.poll_ms         = strtoul(myoptarg, nullptr, 10);    break;
 
 		case 'r': _options.recv_port       = strtoul(myoptarg, nullptr, 10);    break;
@@ -140,9 +143,13 @@ static int parse_options(int argc, char *argv[])
 		}
 	}
 
+	if (_options.datarate > MAX_DATA_RATE) {
+		_options.datarate = MAX_DATA_RATE;
+		PX4_WARN("Invalid data rate. Using max datarate of %ul B/s", MAX_DATA_RATE);
+	}
+
 	if (_options.poll_ms < 1) {
-		_options.poll_ms = 1;
-		PX4_ERR("poll timeout too low, using 1 ms");
+		PX4_WARN("Poll timeout too low, using %ul ms", POLL_MS);
 	}
 
 	if (_options.hw_flow_control && _options.sw_flow_control) {
@@ -193,7 +200,8 @@ static int micrortps_start(int argc, char *argv[])
 		return -1;
 	}
 
-	micrortps_start_topics(begin, total_rcvd, total_sent, sent_last_sec, rcvd_last_sec, received, sent, rcv_loop,
+	micrortps_start_topics(_options.datarate, begin, total_rcvd, total_sent, sent_last_sec, rcvd_last_sec, received, sent,
+			       rcv_loop,
 			       send_loop);
 
 	px4_clock_gettime(CLOCK_REALTIME, &end);
@@ -262,10 +270,18 @@ int micrortps_client_main(int argc, char *argv[])
 			printf("\ttotal data read: %" PRIu64 " bytes\n", total_rcvd);
 			printf("\ttotal data sent: %" PRIu64 " bytes\n", total_sent);
 			printf("\trates:\n");
-			printf("\t  rx: %.3f kB/s\n", rcvd_last_sec / 1E3);
-			printf("\t  tx: %.3f kB/s\n", sent_last_sec / 1E3);
-			printf("\t  avg rx: %.3f kB/s\n", static_cast<double>(total_rcvd / (1e3 * elapsed_secs)));
-			printf("\t  avg tx: %.3f kB/s\n", static_cast<double>(total_sent / (1e3 * elapsed_secs)));
+			printf("\t  rx: %.3f kB/s\n", rcvd_last_sec / 1e3);
+			printf("\t  tx: %.3f kB/s\n", sent_last_sec / 1e3);
+			printf("\t  avg rx: %.3f kB/s\n", total_rcvd / (1e3 * elapsed_secs));
+			printf("\t  avg tx: %.3f kB/s\n", total_sent / (1e3 * elapsed_secs));
+			printf("\t  tx rate max:");
+
+			if (_options.datarate != 0) {
+				printf(" %.1f kB/s\n", _options.datarate / 1e3);
+
+			} else {
+				printf(" Unlimited\n");
+			}
 		}
 
 		return 0;
