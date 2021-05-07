@@ -3,28 +3,26 @@
 # ModalAI FC-v2 specific board sensors init
 #------------------------------------------------------------------------------
 
+# VOXL ESC
+if param greater UART_ESC_CONFIG 0
+then
+	modalai_esc -d /dev/ttyS1 start
+fi
+
 adc start
 
-# Start Digital power monitors
-ina226 -X -b 1 -t 1 -k start
-ina226 -X -b 2 -t 2 -k start
+# VOXL Power Module
+voxlpm -X -b 3 -K -T VBATT start
+voxlpm -X -b 3 -T P5VDC start
 
-# Internal SPI bus ICM-20649
-icm20649 -R 2 -s start
+# Internal SPI1 ICM-42688
+icm42688p -s -b 1 -R 12 start
 
-# Internal SPI bus ISM300DLC
-ism330dlc -s start
+# Internal SPI2 ICM-42688
+icm42688p -s -b 2 -R 12 start
 
-# Internal SPI bus BMI088 accel/gyro
-bmi088 -A -R 12 -s start
-bmi088 -G -R 12 -s start
-
-# Possible internal compass
+# Internal I2C mag
 bmm150 -I start
 
-# Possible internal Baro
+# Internal I2C baro
 bmp388 -I start
-bmp388 -I -a 0x77 start
-
-# Baro on I2C3
-ms5611 -X start
