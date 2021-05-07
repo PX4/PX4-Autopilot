@@ -190,6 +190,10 @@ void Ekf::controlExternalVisionFusion()
 	// Check for new external vision data
 	if (_ev_data_ready) {
 
+		if (_inhibit_ev_yaw_use) {
+			stopEvYawFusion();
+		}
+
 		// if the ev data is not in a NED reference frame, then the transformation between EV and EKF navigation frames
 		// needs to be calculated and the observations rotated into the EKF frame of reference
 		if ((_params.fusion_mode & MASK_ROTATE_EV) && ((_params.fusion_mode & MASK_USE_EVPOS) || (_params.fusion_mode & MASK_USE_EVVEL)) && !_control_status.flags.ev_yaw) {
@@ -215,7 +219,7 @@ void Ekf::controlExternalVisionFusion()
 		}
 
 		// external vision yaw aiding selection logic
-		if (!_control_status.flags.gps && (_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.flags.ev_yaw && _control_status.flags.tilt_align) {
+		if (!_inhibit_ev_yaw_use && (_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.flags.ev_yaw && _control_status.flags.tilt_align) {
 			// don't start using EV data unless data is arriving frequently
 			if (isRecent(_time_last_ext_vision, 2 * EV_MAX_INTERVAL)) {
 				startEvYawFusion();
@@ -521,13 +525,16 @@ void Ekf::controlGpsFusion()
 				// If the heading is not aligned, reset the yaw and magnetic field states
 				// Do not use external vision for yaw if using GPS because yaw needs to be
 				// defined relative to an NED reference frame
-				const bool want_to_reset_mag_heading = !_control_status.flags.yaw_align ||
-								       _control_status.flags.ev_yaw ||
-								       _mag_inhibit_yaw_reset_req;
+				if (!_control_status.flags.yaw_align
+				    || _control_status.flags.ev_yaw
+				    || _mag_inhibit_yaw_reset_req
+				    || _mag_yaw_reset_req) {
 
-				if (want_to_reset_mag_heading) {
 					_mag_yaw_reset_req = true;
-					_control_status.flags.ev_yaw = false;
+
+					// Stop the vision for yaw fusion and do not allow it to start again
+					stopEvYawFusion();
+					_inhibit_ev_yaw_use = true;
 
 				} else {
 					// If the heading is valid start using gps aiding
