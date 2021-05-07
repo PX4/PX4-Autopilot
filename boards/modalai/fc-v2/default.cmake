@@ -12,9 +12,11 @@ px4_add_board(
 	TESTING
 #	UAVCAN_INTERFACES 2  - No H7 or FD can support in UAVCAN
 	SERIAL_PORTS
-		GPS1:/dev/ttyS0 # UART1 / J10
-		TEL1:/dev/ttyS6 # UART7 / J1
-		TEL2:/dev/ttyS4 # UART5 / J5
+		GPS1:/dev/ttyS0             # USART1 / J10
+		TEL1:/dev/ttyS6             # UART7  / J1
+		TEL2:/dev/ttyS4             # UART5  / J5
+		# CONSOLE:/dev/ttyS2        # USART3 / J2
+		# SPEKTRUM/PX4IO:/dev/ttyS5 # USART6 / J12
 	DRIVERS
 		adc
 		barometer # all available barometer drivers
