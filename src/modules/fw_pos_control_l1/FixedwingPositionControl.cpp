@@ -141,19 +141,26 @@ FixedwingPositionControl::parameters_update()
 
 	landing_status_publish();
 
+	int check_ret = PX4_OK;
+
 	// sanity check parameters
-	if ((_param_fw_airspd_max.get() < _param_fw_airspd_min.get()) ||
-	    (_param_fw_airspd_max.get() < 5.0f) ||
-	    (_param_fw_airspd_min.get() > 100.0f) ||
-	    (_param_fw_airspd_trim.get() < _param_fw_airspd_min.get()) ||
-	    (_param_fw_airspd_trim.get() > _param_fw_airspd_max.get())) {
-
-		mavlink_log_critical(&_mavlink_log_pub, "Airspeed parameters invalid");
-
-		return PX4_ERROR;
+	if (_param_fw_airspd_max.get() < _param_fw_airspd_min.get()) {
+		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Airspeed max smaller than min");
+		check_ret = PX4_ERROR;
 	}
 
-	return PX4_OK;
+	if (_param_fw_airspd_max.get() < 5.0f || _param_fw_airspd_min.get() > 100.0f) {
+		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Airspeed max < 5 m/s or min > 100 m/s");
+		check_ret = PX4_ERROR;
+	}
+
+	if (_param_fw_airspd_trim.get() < _param_fw_airspd_min.get() ||
+	    _param_fw_airspd_trim.get() > _param_fw_airspd_max.get()) {
+		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Airspeed cruise out of min or max bounds");
+		check_ret = PX4_ERROR;
+	}
+
+	return check_ret;
 }
 
 void
