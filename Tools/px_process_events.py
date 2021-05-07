@@ -79,9 +79,14 @@ def main():
 
     # Scan directories, and parse the files
     if args.verbose:
-        print("Scanning source path " + str(args.src_path))
+        print("Scanning source path/files " + str(args.src_path))
 
-    if not scanner.ScanDir(args.src_path, parser):
+    # canonicalize + remove duplicates
+    src_paths = set()
+    for path in args.src_path:
+        src_paths.add(os.path.realpath(path))
+
+    if not scanner.ScanDir(src_paths, parser):
         sys.exit(1)
 
     events = parser.events
