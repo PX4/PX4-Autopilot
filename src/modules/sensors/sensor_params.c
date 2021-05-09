@@ -47,6 +47,7 @@
  * @value 0 Model with Pitot
  * @value 1 Model without Pitot (1.5 mm tubes)
  * @value 2 Tube Pressure Drop
+ * @value 3 TFSLOT - NACAxxxx (Venturi based airspeed sensor)
  *
  * @group Sensors
  */
