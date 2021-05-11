@@ -58,12 +58,27 @@ private:
 
 	uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _att_rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};
+	hrt_abstime _last_att_sp_update{0};
 
 	bool send() override
 	{
 		vehicle_attitude_setpoint_s att_sp;
 
+		bool updated = false;
+
 		if (_att_sp_sub.update(&att_sp)) {
+			_last_att_sp_update = att_sp.timestamp;
+			updated = true;
+
+		} else if (hrt_elapsed_time(&_last_att_sp_update) > 500_ms) {
+			if (!_att_sp_sub.copy(&att_sp)) {
+				att_sp = {};
+			}
+
+			updated = _att_rates_sp_sub.updated();
+		}
+
+		if (updated) {
 			mavlink_attitude_target_t msg{};
 
 			msg.time_boot_ms = att_sp.timestamp / 1000;
