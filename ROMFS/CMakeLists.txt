@@ -115,6 +115,7 @@ add_custom_command(
 set(romfs_extract_stamp ${CMAKE_CURRENT_BINARY_DIR}/romfs_extract.stamp)
 add_custom_command(
 	OUTPUT ${romfs_extract_stamp}
+	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}/*
 	COMMAND ${CMAKE_COMMAND} -E tar xf ${romfs_tar_file}
 	COMMAND ${CMAKE_COMMAND} -E touch ${romfs_extract_stamp}
 	WORKING_DIRECTORY ${romfs_gen_root_dir}
