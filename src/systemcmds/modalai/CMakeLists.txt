@@ -34,6 +34,8 @@ px4_add_module(
 	MODULE systemcmds__modalai
 	MAIN modalai
 	SRCS
+		modalai_fc-v2.c
+		modalai_fc-v1.c
 		modalai.c
 	DEPENDS
 )
