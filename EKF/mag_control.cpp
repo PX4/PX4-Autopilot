@@ -77,23 +77,11 @@ void Ekf::controlMagFusion()
 	_mag_yaw_reset_req |= _mag_inhibit_yaw_reset_req;
 
 	if (noOtherYawAidingThanMag() && _mag_data_ready) {
-		if (_control_status.flags.in_air) {
-			checkHaglYawResetReq();
-			runInAirYawReset();
-			runVelPosReset();
-
-		} else {
-			runOnGroundYawReset();
-		}
-
-		if (!_control_status.flags.yaw_align) {
-			// Having the yaw aligned is mandatory to continue
-			return;
-		}
-
 		// Determine if we should use simple magnetic heading fusion which works better when
 		// there are large external disturbances or the more accurate 3-axis fusion
 		switch (_params.mag_fusion_type) {
+		default:
+		/* fallthrough */
 		case MAG_FUSE_TYPE_AUTO:
 			selectMagAuto();
 			break;
@@ -107,10 +95,20 @@ void Ekf::controlMagFusion()
 		case MAG_FUSE_TYPE_3D:
 			startMag3DFusion();
 			break;
+		}
 
-		default:
-			selectMagAuto();
-			break;
+		if (_control_status.flags.in_air) {
+			checkHaglYawResetReq();
+			runInAirYawReset();
+			runVelPosReset(); // TODO: review this; a vel/pos reset can be requested from COG reset (for fixedwing) only
+
+		} else {
+			runOnGroundYawReset();
+		}
+
+		if (!_control_status.flags.yaw_align) {
+			// Having the yaw aligned is mandatory to continue
+			return;
 		}
 
 		checkMagDeclRequired();
