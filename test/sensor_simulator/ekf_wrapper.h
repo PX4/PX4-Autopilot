@@ -87,6 +87,7 @@ public:
 
 	bool isIntendingMagHeadingFusion() const;
 	bool isIntendingMag3DFusion() const;
+	void setMagFuseTypeNone();
 
 	void enableExternalVisionAlignment();
 	void disableExternalVisionAlignment();
