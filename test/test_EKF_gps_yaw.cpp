@@ -257,4 +257,15 @@ TEST_F(EkfGpsHeadingTest, stop_on_ground)
 	// should stop as well because the yaw is not aligned anymore
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
+
+	// AND IF: the mag fusion type is set to NONE
+	_ekf_wrapper.setMagFuseTypeNone();
+
+	// WHEN: running without yaw aiding
+	const matrix::Vector<float, 4> quat_variance_before = _ekf_wrapper.getQuaternionVariance();
+	_sensor_simulator.runSeconds(20.0);
+	const matrix::Vector<float, 4> quat_variance_after = _ekf_wrapper.getQuaternionVariance();
+
+	// THEN: the yaw variance is constrained by fusing constant data
+	EXPECT_LT(quat_variance_after(3), quat_variance_before(3));
 }
