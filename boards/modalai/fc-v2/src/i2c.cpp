@@ -34,7 +34,8 @@
 #include <px4_arch/i2c_hw_description.h>
 
 constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
-	initI2CBusExternal(1), // External magnetometer, suggested
-	initI2CBusExternal(3), // External Aviator Expanion
-	initI2CBusInternal(4), // Internal Barometer
+	initI2CBusExternal(1), // External GPS/Mag, suggested
+	initI2CBusExternal(2), // External Aviator
+	initI2CBusExternal(3), // External VOXL PM
+	initI2CBusInternal(4), // Internal Barometer, Internal Mag
 };
