@@ -203,7 +203,9 @@ bool Ekf::initialiseFilter()
 	}
 
 	// calculate the initial magnetic field and yaw alignment
-	_control_status.flags.yaw_align = resetMagHeading(_mag_lpf.getState(), false, false);
+	// but do not mark the yaw alignement complete as it needs to be
+	// reset once the leveling phase is done
+	resetMagHeading(_mag_lpf.getState(), false, false);
 
 	// initialise the state covariance matrix now we have starting values for all the states
 	initialiseCovariance();

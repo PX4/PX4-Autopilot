@@ -53,11 +53,10 @@ void Ekf::controlFusionModes()
 		// whilst we are aligning the tilt, monitor the variances
 		const Vector3f angle_err_var_vec = calcRotVecVariances();
 
-		// Once the tilt variances have reduced to equivalent of 3deg uncertainty, re-set the yaw and magnetic field states
+		// Once the tilt variances have reduced to equivalent of 3deg uncertainty
 		// and declare the tilt alignment complete
 		if ((angle_err_var_vec(0) + angle_err_var_vec(1)) < sq(math::radians(3.0f))) {
 			_control_status.flags.tilt_align = true;
-			_control_status.flags.yaw_align = resetMagHeading(_mag_lpf.getState()); // TODO: is this needed?
 
 			// send alignment status message to the console
 			const char* height_source = nullptr;
@@ -435,12 +434,6 @@ void Ekf::controlOpticalFlowFusion()
 			&& !_control_status.flags.opt_flow // we are not yet using flow data
 			&& !_inhibit_flow_use)
 		{
-			// If the heading is not aligned, reset the yaw and magnetic field states
-			// TODO: ekf2 should always try to align itself if not already aligned
-			if (!_control_status.flags.yaw_align) {
-				_control_status.flags.yaw_align = resetMagHeading(_mag_lpf.getState());
-			}
-
 			// If the heading is valid and use is not inhibited , start using optical flow aiding
 			if (_control_status.flags.yaw_align) {
 				// set the flag and reset the fusion timeout
