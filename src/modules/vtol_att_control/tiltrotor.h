@@ -44,6 +44,18 @@
 #include <parameters/param.h>
 #include <drivers/drv_hrt.h>
 
+//-----------------------------------RHOMAN CODE / below----------------------------------------//
+#define SIZE 103
+
+struct DataItem {
+   double data;
+   double key;
+};
+
+
+//-----------------------------------RHOMAN CODE / above----------------------------------------//
+
+
 class Tiltrotor : public VtolType
 {
 
@@ -63,6 +75,13 @@ public:
 	//-----------------------------------RHOMAN CODE / below----------------------------------------//
 	float rhoman_thrust_compensation_for_tilt();
 	double estimate_cl(double);
+	int max(float, float);
+	int min(float, float);
+	int hashCode(double);
+	struct DataItem* search_table(double);
+	void insert_table(double, double);
+	void construct_table();
+
 
 
 private:

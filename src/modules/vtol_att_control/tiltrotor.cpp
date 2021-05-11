@@ -42,8 +42,15 @@
 #include "tiltrotor.h"
 #include "vtol_att_control_main.h"
 
-#include <map>
-#include <iostream>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+//#include <stdbool.h>
+#include <math.h>
+
+struct DataItem* hashArray[SIZE];
+
+struct DataItem *closest_entry;
 
 using namespace matrix;
 using namespace time_literals;
@@ -504,6 +511,27 @@ float Tiltrotor::thrust_compensation_for_tilt()
 }
 
 
+/**
+ * Find maximum between two numbers.
+ */
+int Tiltrotor::max(float num1, float num2)
+{
+	return (num1 > num2 ) ? num1 : num2;
+}
+
+/**
+ * Find minimum between two numbers.
+ */
+int Tiltrotor::min(float num1, float num2)
+{
+	return (num1 > num2 ) ? num2 : num1;
+}
+
+int Tiltrotor::hashCode(double key) {
+   return (int)key % SIZE;
+}
+
+
 float Tiltrotor::rhoman_thrust_compensation_for_tilt()
 {
 	//parameters
@@ -523,131 +551,199 @@ float Tiltrotor::rhoman_thrust_compensation_for_tilt()
 	double c_l = estimate_cl(theta);
 
 	float rhoman_comp_thrust = currr_thrust * (x_r / x_f) * std::sin(theta) - 0.5 * rho * std::pow(v_x,2) * c_l * s;
-	rhoman_comp_thrust = std::max ( std::min ( rhoman_comp_thrust, Tfmax ) , (float )0.0 );
+	rhoman_comp_thrust = max ( min ( rhoman_comp_thrust, Tfmax ) , (float )0.0 );
+
 
 	return rhoman_comp_thrust;
 }
 
+struct DataItem* Tiltrotor::search_table(double key) {
+
+	//get the hash
+	int hashIndex = hashCode(key);
+
+	//move in array until an empty
+	while(hashArray[hashIndex] != NULL) {
+
+		double diff = (double)(key - hashArray[hashIndex]->key );
+
+		if(abs(diff) < 0.0001){
+			return hashArray[hashIndex];
+		}
+
+		closest_entry = hashArray[hashIndex];
+
+		//go to next cell
+		++hashIndex;
+
+		//wrap around the table
+		hashIndex %= SIZE;
+	}
+
+	return NULL;
+}
+
+void Tiltrotor::insert_table(double key,double data) {
+
+	struct DataItem *item = (struct DataItem*) malloc(sizeof(struct DataItem));
+	item->data = data;
+	item->key = key;
+
+	//get the hash
+	int hashIndex = hashCode(key);
+
+	double diff = hashArray[hashIndex]->key +1;
+
+	//move in array until an empty or deleted cell
+	while(hashArray[hashIndex] != NULL && abs(diff)>0.0001) {
+		//go to next cell
+		++hashIndex;
+
+		//wrap around the table
+		hashIndex %= SIZE;
+	}
+
+	hashArray[hashIndex] = item;
+}
+
+void Tiltrotor::construct_table(){
+
+	insert_table(-8.5,-0.4088);
+	insert_table(-8.25,-0.4231);
+	insert_table(-8,-0.4442);
+	insert_table(-7.75,-0.4937);
+	insert_table(-7.5,-0.4712);
+	insert_table(-7.25,-0.4535);
+	insert_table(-7,-0.4231);
+	insert_table(-6.75,-0.3952);
+	insert_table(-6.5,-0.3582);
+	insert_table(-6.25,-0.3204);
+	insert_table(-6,-0.293);
+	insert_table(-5.75,-0.2544);
+	insert_table(-5.5,-0.2129);
+	insert_table(-5.25,-0.1843);
+	insert_table(-5,-0.1466);
+	insert_table(-4.75,-0.1047);
+	insert_table(-4.5,-0.0618);
+	insert_table(-4.25,-0.0351);
+	insert_table(-4,0.003);
+	insert_table(-3.75,0.0426);
+	insert_table(-3.5,0.0687);
+	insert_table(-3.25,0.1047);
+	insert_table(-3,0.1342);
+	insert_table(-2.75,0.1659);
+	insert_table(-2.5,0.1964);
+	insert_table(-2.25,0.2255);
+	insert_table(-2,0.2541);
+	insert_table(-1.75,0.2836);
+	insert_table(-1.5,0.3098);
+	insert_table(-1.25,0.3373);
+	insert_table(-1,0.3583);
+	insert_table(-0.5,0.4431);
+	insert_table(-0.25,0.4683);
+	insert_table(0,0.4938);
+	insert_table(0.25,0.5198);
+	insert_table(0.5,0.5464);
+	insert_table(0.75,0.5733);
+	insert_table(1,0.5988);
+	insert_table(1.25,0.6247);
+	insert_table(1.5,0.651);
+	insert_table(1.75,0.6778);
+	insert_table(2,0.7038);
+	insert_table(2.25,0.7297);
+	insert_table(2.5,0.7561);
+	insert_table(2.75,0.7828);
+	insert_table(3,0.8084);
+	insert_table(3.25,0.8345);
+	insert_table(3.5,0.8613);
+	insert_table(3.75,0.8865);
+	insert_table(4,0.9127);
+	insert_table(4.25,0.939);
+	insert_table(4.5,0.9643);
+	insert_table(4.75,0.9905);
+	insert_table(5,1.0156);
+	insert_table(5.25,1.0396);
+	insert_table(5.5,1.0639);
+	insert_table(5.75,1.0888);
+	insert_table(6,1.1122);
+	insert_table(6.25,1.1342);
+	insert_table(6.5,1.1562);
+	insert_table(6.75,1.1783);
+	insert_table(7,1.2002);
+	insert_table(7.25,1.2215);
+	insert_table(7.5,1.242);
+	insert_table(7.75,1.2616);
+	insert_table(8,1.2799);
+	insert_table(8.25,1.2967);
+	insert_table(8.5,1.311);
+	insert_table(8.75,1.3218);
+	insert_table(9,1.3267);
+	insert_table(9.25,1.3283);
+	insert_table(9.5,1.3275);
+	insert_table(9.75,1.3266);
+	insert_table(10,1.3275);
+	insert_table(10.25,1.3289);
+	insert_table(10.5,1.3326);
+	insert_table(10.75,1.3366);
+	insert_table(11,1.3429);
+	insert_table(11.25,1.3438);
+	insert_table(11.5,1.353);
+	insert_table(11.75,1.3601);
+	insert_table(12,1.3641);
+	insert_table(12.25,1.3713);
+	insert_table(12.5,1.379);
+	insert_table(12.75,1.3857);
+	insert_table(13,1.3923);
+	insert_table(13.25,1.4001);
+	insert_table(13.5,1.4059);
+	insert_table(13.75,1.4115);
+	insert_table(14,1.418);
+	insert_table(14.25,1.4266);
+	insert_table(14.5,1.4286);
+	insert_table(14.75,1.4308);
+	insert_table(15,1.4342);
+	insert_table(15.25,1.4467);
+	insert_table(15.5,1.4416);
+	insert_table(15.75,1.4385);
+	insert_table(16,1.4362);
+	insert_table(16.25,1.4351);
+	insert_table(16.5,1.4392);
+	insert_table(16.75,1.4401);
+	insert_table(17,1.4274);
+	insert_table(17.25,1.4151);
+
+}
+
 double Tiltrotor::estimate_cl(double angle_of_attack){
 
-	double cl=0;
-	double AOA = angle_of_attack;
-	double delta = FLT_MAX;
-	double the_key;
-	double diff;
+	//double cl=0;
+	//double AOA = angle_of_attack;
+	//double delta = FLT_MAX;
+	//double the_key;
+	//double diff;
 
 	//interpolation params
-	double x1;
-	double x2 = AOA;
-	double x3;
-	double y1;
-	double y3;
+	//double x1;
+	//double x2 = AOA;
+	//double x3;
+	//double y1;
+	//double y3;
 
-	std::map<double, double> cl_lookup_table {
-	    	{-8.5,-0.4088},
-		{-8.25,-0.4231},
-		{-8,-0.4442},
-		{-7.75,-0.4937},
-		{-7.5,-0.4712},
-		{-7.25,-0.4535},
-		{-7,-0.4231},
-		{-6.75,-0.3952},
-		{-6.5,-0.3582},
-		{-6.25,-0.3204},
-		{-6,-0.293},
-		{-5.75,-0.2544},
-		{-5.5,-0.2129},
-		{-5.25,-0.1843},
-		{-5,-0.1466},
-		{-4.75,-0.1047},
-		{-4.5,-0.0618},
-		{-4.25,-0.0351},
-		{-4,0.003},
-		{-3.75,0.0426},
-		{-3.5,0.0687},
-		{-3.25,0.1047},
-		{-3,0.1342},
-		{-2.75,0.1659},
-		{-2.5,0.1964},
-		{-2.25,0.2255},
-		{-2,0.2541},
-		{-1.75,0.2836},
-		{-1.5,0.3098},
-		{-1.25,0.3373},
-		{-1,0.3583},
-		{-0.5,0.4431},
-		{-0.25,0.4683},
-		{0,0.4938},
-		{0.25,0.5198},
-		{0.5,0.5464},
-		{0.75,0.5733},
-		{1,0.5988},
-		{1.25,0.6247},
-		{1.5,0.651},
-		{1.75,0.6778},
-		{2,0.7038},
-		{2.25,0.7297},
-		{2.5,0.7561},
-		{2.75,0.7828},
-		{3,0.8084},
-		{3.25,0.8345},
-		{3.5,0.8613},
-		{3.75,0.8865},
-		{4,0.9127},
-		{4.25,0.939},
-		{4.5,0.9643},
-		{4.75,0.9905},
-		{5,1.0156},
-		{5.25,1.0396},
-		{5.5,1.0639},
-		{5.75,1.0888},
-		{6,1.1122},
-		{6.25,1.1342},
-		{6.5,1.1562},
-		{6.75,1.1783},
-		{7,1.2002},
-		{7.25,1.2215},
-		{7.5,1.242},
-		{7.75,1.2616},
-		{8,1.2799},
-		{8.25,1.2967},
-		{8.5,1.311},
-		{8.75,1.3218},
-		{9,1.3267},
-		{9.25,1.3283},
-		{9.5,1.3275},
-		{9.75,1.3266},
-		{10,1.3275},
-		{10.25,1.3289},
-		{10.5,1.3326},
-		{10.75,1.3366},
-		{11,1.3429},
-		{11.25,1.3438},
-		{11.5,1.353},
-		{11.75,1.3601},
-		{12,1.3641},
-		{12.25,1.3713},
-		{12.5,1.379},
-		{12.75,1.3857},
-		{13,1.3923},
-		{13.25,1.4001},
-		{13.5,1.4059},
-		{13.75,1.4115},
-		{14,1.418},
-		{14.25,1.4266},
-		{14.5,1.4286},
-		{14.75,1.4308},
-		{15,1.4342},
-		{15.25,1.4467},
-		{15.5,1.4416},
-		{15.75,1.4385},
-		{16,1.4362},
-		{16.25,1.4351},
-		{16.5,1.4392},
-		{16.75,1.4401},
-		{17,1.4274},
-		{17.25,1.4151}
-    	};
+	construct_table();
+
+	struct DataItem* item = search_table(angle_of_attack);
+
+	if(item != NULL){
+		return item->data;
+
+	}
+	else{
+		// entry not found
+		return closest_entry->data;
+
+	}
+
+	/*
 
 	if ( cl_lookup_table.find(AOA) == cl_lookup_table.end() ) {
 	// entry not found
@@ -679,5 +775,5 @@ double Tiltrotor::estimate_cl(double angle_of_attack){
 		cl = cl_lookup_table[AOA];
 	}
 
-	return cl;
+	*/
 }
