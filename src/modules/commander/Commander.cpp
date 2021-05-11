@@ -556,7 +556,8 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 
 	if (run_preflight_checks) {
 		if (_vehicle_control_mode.flag_control_manual_enabled) {
-			if (_vehicle_control_mode.flag_control_climb_rate_enabled && _manual_control.isThrottleAboveCenter()) {
+			if (_vehicle_control_mode.flag_control_climb_rate_enabled &&
+			    !_status.rc_signal_lost && _is_throttle_above_center) {
 				mavlink_log_critical(&_mavlink_log_pub, "Arming denied: throttle above center\t");
 				events::send(events::ID("commander_arm_denied_throttle_center"),
 				{events::Log::Critical, events::LogInternal::Info},
@@ -566,7 +567,8 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 
 			}
 
-			if (!_vehicle_control_mode.flag_control_climb_rate_enabled && !_manual_control.isThrottleLow()) {
+			if (!_vehicle_control_mode.flag_control_climb_rate_enabled &&
+			    !_status.rc_signal_lost && !_is_throttle_low) {
 				mavlink_log_critical(&_mavlink_log_pub, "Arming denied: high throttle\t");
 				events::send(events::ID("commander_arm_denied_throttle_high"),
 				{events::Log::Critical, events::LogInternal::Info},
@@ -2307,18 +2309,16 @@ Commander::run()
 
 			// reset if no longer in LOITER or if manually switched to LOITER
 			const bool in_loiter_mode = _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER;
-			const bool manual_loiter_switch_on = _manual_control_switches.loiter_switch == manual_control_switches_s::SWITCH_POS_ON;
 
-			if (!in_loiter_mode || manual_loiter_switch_on) {
+			if (!in_loiter_mode) {
 				_geofence_loiter_on = false;
 			}
 
 
 			// reset if no longer in RTL or if manually switched to RTL
 			const bool in_rtl_mode = _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL;
-			const bool manual_return_switch_on = _manual_control_switches.return_switch == manual_control_switches_s::SWITCH_POS_ON;
 
-			if (!in_rtl_mode || manual_return_switch_on) {
+			if (!in_rtl_mode) {
 				_geofence_rtl_on = false;
 			}
 
@@ -2364,39 +2364,56 @@ Commander::run()
 			}
 		}
 
-		// Manual control input handling
-		_manual_control.setRCAllowed(!_status_flags.rc_input_blocked);
+		manual_control_setpoint_s manual_control_setpoint;
 
-		if (_manual_control.update()) {
+		if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
+			if (manual_control_setpoint.valid) {
+				if (!_status_flags.rc_signal_found_once) {
+					_status_flags.rc_signal_found_once = true;
+					set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true,
+							 _status_flags.rc_calibration_valid, _status);
+					_status_changed = true;
 
-			/* handle the case where RC signal was regained */
-			if (!_status_flags.rc_signal_found_once) {
-				_status_flags.rc_signal_found_once = true;
-				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, _status_flags.rc_calibration_valid, _status);
-				_status_changed = true;
+				} else {
+					if (_status.rc_signal_lost) {
+						if (_last_valid_manual_control_setpoint > 0) {
+							float elapsed = hrt_elapsed_time(&_last_valid_manual_control_setpoint) * 1e-6f;
+							mavlink_log_info(&_mavlink_log_pub, "Manual control regained after %.1fs\t", (double)elapsed);
+							events::send<float>(events::ID("commander_rc_regained"), events::Log::Info,
+									    "Manual control regained after {1:.1} s", elapsed);
+						}
+
+						set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true,
+								 _status_flags.rc_calibration_valid, _status);
+						_status_changed = true;
+					}
+				}
+
+				_status.rc_signal_lost = false;
+				_is_throttle_above_center = manual_control_setpoint.z > 0.6f;
+				_is_throttle_low = manual_control_setpoint.z < 0.1f;
+				_last_valid_manual_control_setpoint = manual_control_setpoint.timestamp;
 
 			} else {
-				if (_status.rc_signal_lost) {
-					if (_rc_signal_lost_timestamp > 0) {
-						float elapsed = hrt_elapsed_time(&_rc_signal_lost_timestamp) * 1e-6f;
-						mavlink_log_info(&_mavlink_log_pub, "Manual control regained after %.1fs\t", (double)elapsed);
-						events::send<float>(events::ID("commander_rc_regained"), events::Log::Info,
-								    "Manual control regained after {1:.1} s", elapsed);
+				if (_status_flags.rc_signal_found_once && !_status.rc_signal_lost) {
+					if (!_status_flags.condition_calibration_enabled && !_status_flags.rc_input_blocked) {
+						mavlink_log_critical(&_mavlink_log_pub, "Manual control lost");
+						_status.rc_signal_lost = true;
+						set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true,
+								 false, _status);
+						_status_changed = true;
 					}
-
-					set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, _status_flags.rc_calibration_valid, _status);
-					_status_changed = true;
 				}
 			}
 
-			_status.rc_signal_lost = false;
 
 			// Abort autonomous mode and switch to position mode if sticks are moved significantly
 			// but only if actually in air.
 			if ((_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
 			    && !in_low_battery_failsafe && !_geofence_warning_action_on
 			    && _armed.armed
-			    && _manual_control.wantsOverride(_vehicle_control_mode, _status)) {
+			    && !_status_flags.rc_input_blocked
+			    && manual_control_setpoint.user_override) {
 				const transition_result_t posctl_result =
 					main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags, _internal_state);
 
@@ -2419,93 +2436,6 @@ Commander::run()
 							     "Pilot took over altitude control using sticks");
 						_status_changed = true;
 					}
-				}
-			}
-
-			if (!_armed.armed && _manual_control.isModeInitializationRequired() && (_internal_state.main_state_changes == 0)) {
-				// if there's never been a mode change force position control as initial state
-				_internal_state.main_state = commander_state_s::MAIN_STATE_POSCTL;
-			}
-
-			if (_manual_control_switches_sub.update(&_manual_control_switches) || safety_updated) {
-
-				// handle landing gear switch if configured and in a manual mode
-				if ((_vehicle_control_mode.flag_control_manual_enabled) &&
-				    (_manual_control_switches.gear_switch != manual_control_switches_s::SWITCH_POS_NONE) &&
-				    (_last_manual_control_switches.gear_switch != manual_control_switches_s::SWITCH_POS_NONE) &&
-				    (_manual_control_switches.gear_switch != _last_manual_control_switches.gear_switch)) {
-					// Only switch the landing gear up if the user switched from gear down to gear up.
-					int8_t gear = landing_gear_s::GEAR_KEEP;
-
-					if (_manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-						gear = landing_gear_s::GEAR_DOWN;
-
-					} else if (_manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_ON) {
-						// gear up ignored unless flying
-						if (!_land_detector.landed && !_land_detector.maybe_landed) {
-							gear = landing_gear_s::GEAR_UP;
-
-						} else {
-							mavlink_log_critical(&_mavlink_log_pub, "Landed, unable to retract landing gear\t")
-							events::send(events::ID("commander_landed_landing_gear_error"), events::Log::Critical,
-								     "Landed, unable to retract landing gear");
-						}
-					}
-
-					if (gear != landing_gear_s::GEAR_KEEP) {
-						landing_gear_s landing_gear{};
-						landing_gear.landing_gear = gear;
-						landing_gear.timestamp = hrt_absolute_time();
-						_landing_gear_pub.publish(landing_gear);
-					}
-				}
-			}
-
-			/* check throttle kill switch */
-			if (_manual_control_switches.kill_switch == manual_control_switches_s::SWITCH_POS_ON) {
-				/* set lockdown flag */
-				if (!_armed.manual_lockdown) {
-					const char kill_switch_string[] = "Kill-switch engaged\t";
-					events::LogLevels log_levels{events::Log::Info};
-
-					if (_land_detector.landed) {
-						mavlink_log_info(&_mavlink_log_pub, kill_switch_string);
-
-					} else {
-						mavlink_log_critical(&_mavlink_log_pub, kill_switch_string);
-						log_levels.external = events::Log::Critical;
-					}
-
-					events::send(events::ID("commander_kill_sw_engaged"), log_levels, "Kill-switch engaged");
-
-					_status_changed = true;
-					_armed.manual_lockdown = true;
-				}
-
-			} else if (_manual_control_switches.kill_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-				if (_armed.manual_lockdown) {
-					mavlink_log_info(&_mavlink_log_pub, "Kill-switch disengaged\t");
-					events::send(events::ID("commander_kill_sw_disengaged"), events::Log::Info, "Kill-switch disengaged");
-					_status_changed = true;
-					_armed.manual_lockdown = false;
-				}
-			}
-
-			/* no else case: do not change lockdown flag in unconfigured case */
-		}
-
-		if (!_manual_control.isRCAvailable()) {
-			// set RC lost
-			if (_status_flags.rc_signal_found_once && !_status.rc_signal_lost) {
-				// ignore RC lost during calibration
-				if (!_status_flags.condition_calibration_enabled && !_status_flags.rc_input_blocked) {
-					mavlink_log_critical(&_mavlink_log_pub, "Manual control lost\t");
-					events::send(events::ID("commander_rc_lost"), {events::Log::Critical, events::LogInternal::Info},
-						     "Manual control lost");
-					_status.rc_signal_lost = true;
-					_rc_signal_lost_timestamp = _manual_control.getLastRcTimestamp();
-					set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, false, _status);
-					_status_changed = true;
 				}
 			}
 		}
@@ -2732,6 +2662,9 @@ Commander::run()
 			if (desired_ret == TRANSITION_CHANGED) {
 				// Reset it for next time.
 				_internal_state.desired_main_state = commander_state_s::MAIN_STATE_MAX;
+
+				tune_positive(_armed.armed);
+				_status_changed = true;
 			}
 
 		} else if (_armed.armed) {

@@ -215,6 +215,7 @@ void ManualControl::Run()
 					}
 
 					if (switches.gear_switch != _previous_switches.gear_switch) {
+
 						if (switches.gear_switch == manual_control_switches_s::SWITCH_POS_ON) {
 							publish_landing_gear(landing_gear_s::GEAR_UP);
 
