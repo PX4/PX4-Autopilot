@@ -7,7 +7,7 @@ add_definitions(
 )
 
 set(uavcanblid_hw_version_major 0)
-set(uavcanblid_hw_version_minor 80)
+set(uavcanblid_hw_version_minor 85)
 set(uavcanblid_name "\"org.freefly.can-rtk-gps\"")
 
 add_definitions(

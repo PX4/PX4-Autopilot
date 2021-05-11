@@ -85,7 +85,7 @@
 
 /* Highest SYSCLK with USB OTG FS clock = 48 MHz
  *
- * PLL_VCO = (8,000,000 / 8) * 432 = 432 MHz
+ * PLL_VCO = (16,000,000 / 8) * 216 = 432 MHz
  * SYSCLK  = 432 MHz / 2 = 216 MHz
  * USB OTG FS, SDMMC and RNG Clock = 432 MHz / 9 = 48 MHz
  */
@@ -100,6 +100,7 @@
 #define STM32_OTGFS_FREQUENCY   (STM32_VCO_FREQUENCY / 9)
 
 /* Configure factors for  PLLSAI clock */
+
 #define CONFIG_STM32F7_PLLSAI 1
 #define STM32_RCC_PLLSAICFGR_PLLSAIN    RCC_PLLSAICFGR_PLLSAIN(192)
 #define STM32_RCC_PLLSAICFGR_PLLSAIP    RCC_PLLSAICFGR_PLLSAIP(8)
@@ -107,6 +108,7 @@
 #define STM32_RCC_PLLSAICFGR_PLLSAIR    RCC_PLLSAICFGR_PLLSAIR(2)
 
 /* Configure Dedicated Clock Configuration Register */
+
 #define STM32_RCC_DCKCFGR1_PLLI2SDIVQ  RCC_DCKCFGR1_PLLI2SDIVQ(1)
 #define STM32_RCC_DCKCFGR1_PLLSAIDIVQ  RCC_DCKCFGR1_PLLSAIDIVQ(1)
 #define STM32_RCC_DCKCFGR1_PLLSAIDIVR  RCC_DCKCFGR1_PLLSAIDIVR(0)
@@ -119,6 +121,7 @@
 
 
 /* Configure factors for  PLLI2S clock */
+
 #define CONFIG_STM32F7_PLLI2S 1
 #define STM32_RCC_PLLI2SCFGR_PLLI2SN   RCC_PLLI2SCFGR_PLLI2SN(192)
 #define STM32_RCC_PLLI2SCFGR_PLLI2SP   RCC_PLLI2SCFGR_PLLI2SP(2)
@@ -126,6 +129,7 @@
 #define STM32_RCC_PLLI2SCFGR_PLLI2SR   RCC_PLLI2SCFGR_PLLI2SR(2)
 
 /* Configure Dedicated Clock Configuration Register 2 */
+
 #define STM32_RCC_DCKCFGR2_USART1SRC  RCC_DCKCFGR2_USART1SEL_APB
 #define STM32_RCC_DCKCFGR2_USART2SRC  RCC_DCKCFGR2_USART2SEL_APB
 #define STM32_RCC_DCKCFGR2_UART4SRC   RCC_DCKCFGR2_UART4SEL_APB
@@ -161,9 +165,10 @@
 /* APB1 clock (PCLK1) is HCLK/4 (54 MHz) */
 
 #define STM32_RCC_CFGR_PPRE1    RCC_CFGR_PPRE1_HCLKd4     /* PCLK1 = HCLK / 4 */
-#define STM32_PCLK1_FREQUENCY   (STM32_HCLK_FREQUENCY/6)
+#define STM32_PCLK1_FREQUENCY   (STM32_HCLK_FREQUENCY/4)
 
 /* Timers driven from APB1 will be twice PCLK1 */
+
 #define STM32_APB1_TIM2_CLKIN   (2*STM32_PCLK1_FREQUENCY)
 #define STM32_APB1_TIM3_CLKIN   (2*STM32_PCLK1_FREQUENCY)
 #define STM32_APB1_TIM4_CLKIN   (2*STM32_PCLK1_FREQUENCY)
@@ -175,10 +180,12 @@
 #define STM32_APB1_TIM14_CLKIN  (2*STM32_PCLK1_FREQUENCY)
 
 /* APB2 clock (PCLK2) is HCLK/2 (108MHz) */
+
 #define STM32_RCC_CFGR_PPRE2    RCC_CFGR_PPRE2_HCLKd2     /* PCLK2 = HCLK / 2 */
 #define STM32_PCLK2_FREQUENCY   (STM32_HCLK_FREQUENCY/2)
 
 /* Timers driven from APB2 will be twice PCLK2 */
+
 #define STM32_APB2_TIM1_CLKIN   (2*STM32_PCLK2_FREQUENCY)
 #define STM32_APB2_TIM8_CLKIN   (2*STM32_PCLK2_FREQUENCY)
 #define STM32_APB2_TIM9_CLKIN   (2*STM32_PCLK2_FREQUENCY)
@@ -200,8 +207,36 @@
 
 #define BOARD_FLASH_WAITSTATES 7
 
+/* LED definitions ******************************************************************/
+/* The board has numerous LEDs but 1, RED LED
+
+ * If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in any way.
+ * The following definitions are used to access individual LEDs.
+ */
+
+
+/* If CONFIG_ARCH_LEDS is defined, the usage by the board port is defined in
+ * include/board.h and src/stm32_leds.c. The LEDs are used to encode OS-related
+ * events as follows:
+ *
+ *
+ *   SYMBOL                     Meaning                      LED state
+ *                                                        Red
+ *   ----------------------  --------------------------  ------ */
+
+#define LED_STARTED        0 /* NuttX has been started   OFF    */
+#define LED_HEAPALLOCATE   1 /* Heap has been allocated  OFF    */
+#define LED_IRQSENABLED    2 /* Interrupts enabled       OFF    */
+#define LED_STACKCREATED   3 /* Idle stack created       OFF    */
+#define LED_INIRQ          4 /* In an interrupt          N/C    */
+#define LED_SIGNAL         5 /* In a signal handler      N/C    */
+#define LED_ASSERTION      6 /* An assertion failed      GLOW   N/C   GLOW */
+#define LED_PANIC          7 /* The system has crashed   Blink  OFF   N/C  */
+#define LED_IDLE           8 /* MCU is is sleep mode     ON     OFF   OFF  */
+
 
 /* UARTs */
+
 #define GPIO_USART2_TX   GPIO_USART2_TX_1   /* PA2  */
 #define GPIO_USART2_RX   GPIO_USART2_RX_1   /* PA3  */
 
@@ -210,11 +245,13 @@
 
 
 /* CAN */
+
 #define GPIO_CAN1_RX	GPIO_CAN1_RX_2      /* PB8  */
 #define GPIO_CAN1_TX	GPIO_CAN1_TX_2      /* PB9  */
 
 
 /* I2C */
+
 #define GPIO_I2C1_SCL	GPIO_I2C1_SCL_1     /* PB6  */
 #define GPIO_I2C1_SDA	GPIO_I2C1_SDA_1     /* PB7  */
 
@@ -223,6 +260,7 @@
 
 
 /* SPI */
+
 #define GPIO_SPI3_MISO  GPIO_SPI3_MISO_2    /* PC11 */
 #define GPIO_SPI3_MOSI  GPIO_SPI3_MOSI_3    /* PC12 */
 #define GPIO_SPI3_SCK   GPIO_SPI3_SCK_1     /* PB3  */

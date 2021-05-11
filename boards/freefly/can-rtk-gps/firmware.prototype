@@ -1,10 +1,10 @@
 {
-    "board_id": 80,
+    "board_id": 85,
     "magic": "PX4FWv1",
-    "description": "Firmware for the ARK flow board",
+    "description": "Firmware for the FreeFly RTK GPS",
     "image": "",
     "build_time": 0,
-    "summary": "ARFFLOW",
+    "summary": "FFRTK",
     "version": "0.1",
     "image_size": 0,
     "image_maxsize": 2080768,

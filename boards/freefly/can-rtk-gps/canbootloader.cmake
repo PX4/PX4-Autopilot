@@ -10,4 +10,5 @@ px4_add_board(
 	CONSTRAINED_MEMORY
 	DRIVERS
 		bootloaders
+		lights/rgbled_ncp5623c
 )

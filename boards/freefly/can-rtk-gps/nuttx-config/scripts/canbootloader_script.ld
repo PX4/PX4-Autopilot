@@ -40,7 +40,7 @@
  * Additional information, including the option bytes, is available at at
  * FLASH at address 0x1ff0:0000 (AXIM) or 0x0010:0000 (ITCM).
  *
- * In the STM32F722ZE, two different boot spaces can be selected through
+ * In the STM32F32RE, two different boot spaces can be selected through
  * the BOOT pin and the boot base address programmed in the BOOT_ADD0 and
  * BOOT_ADD1 option bytes:
  *
@@ -50,10 +50,10 @@
  *      ST programmed value: System bootloader at 0x0010:0000
  *
  * NuttX does not modify these option bytes.  On the unmodified NUCLEO-144
- * board, the BOOT0 pin is at ground so by default, the STM32F722ZE will
+ * board, the BOOT0 pin is at ground so by default, the STM32F32RE will
  * boot from address 0x0020:0000 in ITCM FLASH.
  *
- * The STM32F722ZE also has 256 KiB of data SRAM (in addition to ITCM SRAM).
+ * The STM32F32RE also has 256 KiB of data SRAM (in addition to ITCM SRAM).
  * SRAM is split up into three blocks:
  *
  *   1)  64 KiB of DTCM SRM beginning at address 0x2000:0000
@@ -98,7 +98,6 @@ SECTIONS
 		*(.gcc_except_table)
 		*(.gnu.linkonce.r.*)
 		_etext = ABSOLUTE(.);
-
 	} > flash
 
 	/*

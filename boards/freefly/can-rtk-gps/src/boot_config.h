@@ -124,7 +124,11 @@
 
 #define OPT_USE_YIELD
 
+/* I2C LED needs 8 bytes */
+
+#define OPT_SIMPLE_MALLOC_HEAP_SIZE               8
+
 /* Bootloader Option*****************************************************************
  *
  */
-#define GPIO_GETNODEINFO_JUMPER (BUTTON_SAFETY & ~GPIO_EXTI)
+#define GPIO_GETNODEINFO_JUMPER GPIO_BTN_SAFETY
