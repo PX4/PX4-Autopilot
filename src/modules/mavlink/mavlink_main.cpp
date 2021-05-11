@@ -1213,9 +1213,12 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 	}
 
 	/* if we reach here, the stream list does not contain the stream */
+#if defined(CONSTRAINED_FLASH) // flash constrained target's don't include all streams
+	return PX4_OK;
+#else
 	PX4_WARN("stream %s not found", stream_name);
-
 	return PX4_ERROR;
+#endif
 }
 
 void
