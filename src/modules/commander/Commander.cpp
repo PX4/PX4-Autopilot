@@ -150,7 +150,7 @@ static bool send_vehicle_command(const uint32_t cmd, const float param1 = NAN, c
 	vcmd.source_system = vehicle_status_sub.get().system_id;
 	vcmd.target_system = vehicle_status_sub.get().system_id;
 	vcmd.source_component = vehicle_status_sub.get().component_id;
-	vcmd.target_component = vehicle_status_sub.get().component_id;
+	vcmd.target_component = 161; // MAV_COMP_ID_PARACHUTE
 
 	uORB::Publication<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
 	vcmd.timestamp = hrt_absolute_time();
@@ -927,6 +927,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					_armed.force_failsafe = true;
 					_flight_termination_triggered = true;
 					PX4_WARN("forcing failsafe (termination)");
+					send_parachute_command();
 				}
 
 				if ((int)cmd.param2 <= 0) {
@@ -2173,6 +2174,7 @@ Commander::run()
 						mavlink_log_critical(&_mavlink_log_pub, "Geofence violation! Flight terminated");
 						_armed.force_failsafe = true;
 						_status_changed = true;
+						send_parachute_command();
 						break;
 					}
 				}
@@ -2226,6 +2228,7 @@ Commander::run()
 			if (!_flight_termination_printed) {
 				mavlink_log_critical(&_mavlink_log_pub, "Geofence violation! Flight terminated");
 				_flight_termination_printed = true;
+				send_parachute_command();
 			}
 
 			if (_counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
@@ -4040,6 +4043,13 @@ void Commander::esc_status_check()
 	}
 
 	_last_esc_status_updated = esc_status.timestamp;
+}
+
+void Commander::send_parachute_command()
+{
+	send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_PARACHUTE,
+			     static_cast<float>(vehicle_command_s::PARACHUTE_ACTION_RELEASE),
+			     0.f, 0.f, 0.f, 0.0, 0.0, 0.f);
 }
 
 int Commander::print_usage(const char *reason)

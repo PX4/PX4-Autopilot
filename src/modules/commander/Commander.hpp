@@ -187,6 +187,8 @@ private:
 
 	bool stabilization_required();
 
+	void send_parachute_command();
+
 	DEFINE_PARAMETERS(
 
 		(ParamInt<px4::params::NAV_DLL_ACT>) _param_nav_dll_act,
