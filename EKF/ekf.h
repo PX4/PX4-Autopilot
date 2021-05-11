@@ -673,9 +673,13 @@ private:
 	// update the terrain vertical position estimate using an optical flow measurement
 	void fuseFlowForTerrain();
 
-	// reset the heading and magnetic field states using the declination and magnetometer/external vision measurements
+	// reset the heading and magnetic field states using the declination and magnetometer measurements
 	// return true if successful
 	bool resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var = true, bool update_buffer = true);
+
+	// reset the heading using the external vision measurements
+	// return true if successful
+	bool resetYawToEv();
 
 	// Do a forced re-alignment of the yaw angle to align with the horizontal velocity vector from the GPS.
 	// It is used to align the yaw angle after launch or takeoff for fixed wing vehicle.

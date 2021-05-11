@@ -222,11 +222,12 @@ void Ekf::controlExternalVisionFusion()
 		if (!_inhibit_ev_yaw_use && (_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.flags.ev_yaw && _control_status.flags.tilt_align) {
 			// don't start using EV data unless data is arriving frequently
 			if (isRecent(_time_last_ext_vision, 2 * EV_MAX_INTERVAL)) {
-				startEvYawFusion();
+				if (resetYawToEv()) {
+					_control_status.flags.yaw_align = true;
+					startEvYawFusion();
+				}
 			}
 		}
-
-
 
 		// determine if we should use the horizontal position observations
 		if (_control_status.flags.ev_pos) {
@@ -342,7 +343,6 @@ void Ekf::controlExternalVisionFusion()
 		stopEvFusion();
 		_warning_events.flags.vision_data_stopped = true;
 		ECL_WARN("vision data stopped");
-
 	}
 }
 

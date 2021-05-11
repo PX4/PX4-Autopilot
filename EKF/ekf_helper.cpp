@@ -496,14 +496,7 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 	float yaw_new;
 	float yaw_new_variance = 0.0f;
 
-	if (_control_status.flags.ev_yaw) {
-		yaw_new = getEuler312Yaw(_ev_sample_delayed.quat);
-
-		if (increase_yaw_var) {
-			yaw_new_variance = fmaxf(_ev_sample_delayed.angVar, sq(1.0e-2f));
-		}
-
-	} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
+	if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
 		// rotate the magnetometer measurements into earth frame using a zero yaw angle
 		const Dcmf R_to_earth = updateYawInRotMat(0.f, _R_to_earth);
 
@@ -520,7 +513,7 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 		return true;
 
 	} else {
-		// there is no yaw observation
+		// there is no magnetic yaw observation
 		return false;
 	}
 
@@ -534,6 +527,16 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 
 	// record the time for the magnetic field alignment event
 	_flt_mag_align_start_time = _imu_sample_delayed.time_us;
+
+	return true;
+}
+
+bool Ekf::resetYawToEv()
+{
+	const float yaw_new = getEuler312Yaw(_ev_sample_delayed.quat);
+	const float yaw_new_variance = fmaxf(_ev_sample_delayed.angVar, sq(1.0e-2f));
+
+	resetQuatStateYaw(yaw_new, yaw_new_variance, true);
 
 	return true;
 }
@@ -1512,15 +1515,6 @@ void Ekf::startEvVelFusion()
 
 void Ekf::startEvYawFusion()
 {
-	// reset the yaw angle to the value from the vision quaternion
-	const float yaw = getEuler321Yaw(_ev_sample_delayed.quat);
-	const float yaw_variance = fmaxf(_ev_sample_delayed.angVar, sq(1.0e-2f));
-
-	resetQuatStateYaw(yaw, yaw_variance, true);
-
-	// flag the yaw as aligned
-	_control_status.flags.yaw_align = true;
-
 	// turn on fusion of external vision yaw measurements and disable all magnetometer fusion
 	_control_status.flags.ev_yaw = true;
 	_control_status.flags.mag_dec = false;
