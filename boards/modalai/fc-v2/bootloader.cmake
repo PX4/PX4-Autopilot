@@ -5,7 +5,7 @@ px4_add_board(
 	MODEL fc-v2
 	LABEL bootloader
 	TOOLCHAIN arm-none-eabi
-    ARCHITECTURE cortex-m7
+	ARCHITECTURE cortex-m7
 
 
 	DRIVERS
