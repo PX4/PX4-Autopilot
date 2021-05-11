@@ -82,6 +82,12 @@ int main(int argc, char **argv);
  *
  ****************************************************************************/
 
+int __wrap_nxsem_wait_uninterruptible(void *sem)
+{
+	return 0;
+
+}
+
 int __wrap_nxsem_wait(void *sem)
 {
 	return 0;

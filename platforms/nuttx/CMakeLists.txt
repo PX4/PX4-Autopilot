@@ -72,6 +72,7 @@ elseif("${PX4_BOARD_LABEL}" STREQUAL "canbootloader")
 		-Wl,-wrap,nxsched_process_timer
 		-Wl,-wrap,nxsem_post
 		-Wl,-wrap,nxsem_wait
+		-Wl,-wrap,nxsem_wait_uninterruptible
 		-Wl,-wrap,arm_svcall
 		-Wl,-wrap,nx_start
 		-Wl,-wrap,exit
