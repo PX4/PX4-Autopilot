@@ -40,6 +40,7 @@ __BEGIN_DECLS
 #define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_STM32F7
 #include <chip.h>
 #include <stm32_gpio.h>
+#include <stm32_can.h>
 #include <hardware/stm32_flash.h>
 #include <arm_internal.h> //include up_systemreset() which is included on stm32.h
 #if defined(CONFIG_STM32F7_BKPSRAM)
