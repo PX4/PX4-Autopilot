@@ -547,7 +547,6 @@ float Tiltrotor::rhoman_thrust_compensation_for_tilt()
 	float Tfmax = (float)1.5 * weight ;
 
 	double s = 5.8; //airfoil surface area function of aileron angle (PWM)
-	//float c_l = weight /(0.5 * rho * std::pow(v_x, 2) * s ); //variable with s ( surface area )
 	double c_l = estimate_cl(theta);
 
 	float rhoman_comp_thrust = currr_thrust * (x_r / x_f) * std::sin(theta) - 0.5 * rho * std::pow(v_x,2) * c_l * s;
@@ -716,19 +715,6 @@ void Tiltrotor::construct_table(){
 
 double Tiltrotor::estimate_cl(double angle_of_attack){
 
-	//double cl=0;
-	//double AOA = angle_of_attack;
-	//double delta = FLT_MAX;
-	//double the_key;
-	//double diff;
-
-	//interpolation params
-	//double x1;
-	//double x2 = AOA;
-	//double x3;
-	//double y1;
-	//double y3;
-
 	construct_table();
 
 	struct DataItem* item = search_table(angle_of_attack);
@@ -743,37 +729,4 @@ double Tiltrotor::estimate_cl(double angle_of_attack){
 
 	}
 
-	/*
-
-	if ( cl_lookup_table.find(AOA) == cl_lookup_table.end() ) {
-	// entry not found
-		for (const auto& kv: cl_lookup_table) {
-			diff = fabsf(kv.first-AOA);
-
-			if (diff<delta){
-				delta = diff;
-				the_key = kv.first;
-
-				if(kv.first > the_key){
-					//interpolate with next
-					x1 = the_key - 0.250;
-					x3 = the_key;
-				}
-				x1 = the_key;
-				x3 = the_key + 0.250;
-			}
-		}
-
-		y1 = cl_lookup_table[x1];
-		y3 = cl_lookup_table[x3];
-
-		cl = ( (x2 - x1) * (y3 - y1) ) / (x3 - x1) + y1 ;
-
-
-	} else {
-	// entry found
-		cl = cl_lookup_table[AOA];
-	}
-
-	*/
 }
