@@ -401,7 +401,7 @@ LogWriterFile::LogFileBuffer::~LogFileBuffer()
 		close(_fd);
 	}
 
-	delete[] _buffer;
+	free(_buffer);
 
 	perf_free(_perf_write);
 	perf_free(_perf_fsync);
