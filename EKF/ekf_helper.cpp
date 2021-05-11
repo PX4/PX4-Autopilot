@@ -487,11 +487,6 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 		return true;
 	}
 
-	if (_params.mag_fusion_type >= MAG_FUSE_TYPE_NONE) {
-		stopMagFusion();
-		return false;
-	}
-
 	// calculate the observed yaw angle and yaw variance
 	float yaw_new;
 	float yaw_new_variance = 0.0f;
