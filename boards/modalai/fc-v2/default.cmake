@@ -8,7 +8,7 @@ px4_add_board(
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
 	BUILD_BOOTLOADER
-	IO px4_io-v2_default
+#	IO px4_io-v2_default
 	TESTING
 #	UAVCAN_INTERFACES 2  - No H7 or FD can support in UAVCAN
 	SERIAL_PORTS
@@ -44,7 +44,7 @@ px4_add_board(
 #					   all arch dependant code there
 		pwm_out_sim
 		pwm_out
-		px4io
+#		px4io
 		rc_input
 		roboclaw
 		rpm
