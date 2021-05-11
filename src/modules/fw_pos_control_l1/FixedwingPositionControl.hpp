@@ -174,6 +174,7 @@ private:
 	float	_global_local_alt0{NAN};
 
 	float	_hold_alt{0.0f};				///< hold altitude for altitude mode
+	float 	_manual_height_rate_setpoint_m_s{NAN};
 	float	_takeoff_ground_alt{0.0f};			///< ground altitude at which plane was launched
 	float	_hdg_hold_yaw{0.0f};				///< hold heading for velocity mode
 	bool	_hdg_hold_enabled{false};			///< heading hold enabled
