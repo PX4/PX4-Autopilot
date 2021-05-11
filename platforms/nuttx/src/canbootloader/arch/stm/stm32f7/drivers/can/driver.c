@@ -69,7 +69,12 @@
 #define FILTER_ID             1
 #define FILTER_MASK           2
 
-#if STM32_PCLK1_FREQUENCY == 48000000
+#if STM32_PCLK1_FREQUENCY == 54000000
+/* Sample 85.7 % */
+# define QUANTA 18
+# define BS1_VALUE 14
+# define BS2_VALUE 1
+#elif STM32_PCLK1_FREQUENCY == 48000000
 /* Sample 85.7 % */
 # define QUANTA 16
 # define BS1_VALUE 12
