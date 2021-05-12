@@ -16,7 +16,7 @@ px4_add_board(
 		barometer/bmp388
 		bootloaders
 		gps
-		imu/bosch/bmi088
+		imu/invensense/icm20649
 		lights/rgbled_ncp5623c
 		magnetometer/bosch/bmm150
 		uavcannode
