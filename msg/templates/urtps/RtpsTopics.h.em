@@ -120,10 +120,13 @@ private:
     // SFINAE
     template<typename T> struct hasTimestampSample{
     private:
-      static void detect(...);
-      template<typename U> static decltype(std::declval<U>().timestamp_sample()) detect(const U&);
+        template<typename U,
+                typename = decltype(std::declval<U>().timestamp_sample(int64_t()))>
+        static std::true_type detect(int);
+        template<typename U>
+        static std::false_type detect(...);
     public:
-      static constexpr bool value = std::is_same<uint64_t, decltype(detect(std::declval<T>()))>::value;
+        static constexpr bool value = decltype(detect<T>(0))::value;
     };
 
     template<typename T>
