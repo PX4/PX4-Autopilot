@@ -109,8 +109,11 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
 @[    end if]@
             // apply timestamp offset
             uint64_t timestamp = getMsgTimestamp(&st);
+            uint64_t timestamp_sample = getMsgTimestampSample(&st);
             _timesync->subtractOffset(timestamp);
             setMsgTimestamp(&st, timestamp);
+            _timesync->subtractOffset(timestamp_sample);
+            setMsgTimestampSample(&st, timestamp_sample);
             _@(topic)_pub.publish(&st);
 @[    if topic == 'Timesync' or topic == 'timesync']@
             }
