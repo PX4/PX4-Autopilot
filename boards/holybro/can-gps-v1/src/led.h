@@ -34,5 +34,4 @@
 
 __BEGIN_DECLS
 void rgb_led(int r, int g, int b, int freqs);
-__EXPORT void led_init(void);
 __END_DECLS

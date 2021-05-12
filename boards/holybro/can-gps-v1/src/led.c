@@ -48,107 +48,17 @@
 #include <nuttx/board.h>
 #include <arch/board/board.h>
 
-// TODO:This needs a complete rewrite We need to change the HW
-// Swap PB0/PB2 and use timer for all LEDS
+#include "led.h"
 
 #define TMR_BASE        STM32_TIM1_BASE
 #define TMR_FREQUENCY   STM32_APB2_TIM1_CLKIN
 #define TMR_REG(o)      (TMR_BASE+(o))
 
-static  uint8_t _off[] =  {0, 0, 0};
-static  uint8_t _rgb[] =  {0, 0, 0};
-
-/*
- * Ideally we'd be able to get these from arm_internal.h,
- * but since we want to be able to disable the NuttX use
- * of leds for system indication at will and there is no
- * separate switch, we need to build independent of the
- * CONFIG_ARCH_LEDS configuration switch.
- */
-__BEGIN_DECLS
-extern void led_init(void);
-extern void led_on(int led);
-extern void led_off(int led);
-extern void led_toggle(int led);
-__END_DECLS
-
-#define LED_RED     1
-#define LED_BLUE    0
-#define LED_GREEN   3
-
-#define xlat(p) (p)
-static uint32_t g_ledmap[] = {
-	GPIO_MCU_NLED_BLUE,                 // Indexed by LED_BLUE
-	GPIO_MCU_NLED_RED,                  // Indexed by LED_RED, LED_AMBER
-	0,                                  // Indexed by LED_SAFETY (defaulted to an input)
-	GPIO_MCU_NLED_GREEN                 // Indexed by LED_GREEN
-};
-
-__EXPORT void led_init(void)
-{
-	for (size_t l = 0; l < (sizeof(g_ledmap) / sizeof(g_ledmap[0])); l++) {
-		if (g_ledmap[l] != 0) {
-			stm32_configgpio(g_ledmap[l]);
-		}
-	}
-}
-
-static void phy_set_led(int led, bool state)
-{
-	/* Drive Low to switch on */
-
-	if (g_ledmap[led] != 0) {
-		stm32_gpiowrite(g_ledmap[led], !state);
-	}
-}
-
-static bool phy_get_led(int led)
-{
-	/* If Low it is on */
-	if (g_ledmap[led] != 0) {
-		return !stm32_gpioread(g_ledmap[led]);
-	}
-
-	return false;
-}
-
-__EXPORT void led_on(int led)
-{
-	phy_set_led(xlat(led), true);
-}
-
-__EXPORT void led_off(int led)
-{
-	phy_set_led(xlat(led), false);
-}
-
-__EXPORT void led_toggle(int led)
-{
-	phy_set_led(xlat(led), !phy_get_led(xlat(led)));
-}
-
-
-static void setled(uint8_t *rgb)
-{
-	phy_set_led(LED_RED,   _rgb[0]);
-	phy_set_led(LED_GREEN, _rgb[1]);
-	phy_set_led(LED_BLUE,  _rgb[2]);
-}
-
-
-static int timerInterrupt(int irq, void *context, void *arg)
-{
-	putreg16(~getreg16(TMR_REG(STM32_GTIM_SR_OFFSET)), TMR_REG(STM32_GTIM_SR_OFFSET));
-
-	static int d2 = 1;
-	setled((d2++ & 1) ? _rgb : _off);
-	return 0;
-}
-
 void rgb_led(int r, int g, int b, int freqs)
 {
+
 	long fosc = TMR_FREQUENCY;
-	long prescale = 1536;
+	long prescale = 9600;
 	long p1s = fosc / prescale;
 	long p0p5s  = p1s / 2;
 	uint16_t val;
@@ -156,38 +66,49 @@ void rgb_led(int r, int g, int b, int freqs)
 
 	if (!once) {
 		once = 1;
-		setled(_off);
 
 		/* Enable Clock to Block */
 
 		modifyreg32(STM32_RCC_APB2ENR, 0, RCC_APB2ENR_TIM1EN);
 
 		/* Reload */
+
 		val = getreg16(TMR_REG(STM32_BTIM_EGR_OFFSET));
 		val |= ATIM_EGR_UG;
 		putreg16(val, TMR_REG(STM32_BTIM_EGR_OFFSET));
 
 		/* Set Prescaler STM32_TIM_SETCLOCK */
+
 		putreg16(prescale, TMR_REG(STM32_BTIM_PSC_OFFSET));
 
 		/* Enable STM32_TIM_SETMODE*/
+
 		putreg16(ATIM_CR1_CEN | ATIM_CR1_ARPE, TMR_REG(STM32_BTIM_CR1_OFFSET));
 
-		putreg32(p0p5s + 1, TMR_REG(STM32_BTIM_ARR_OFFSET));
+		putreg16((ATIM_CCMR_MODE_PWM1 << ATIM_CCMR1_OC1M_SHIFT) | ATIM_CCMR1_OC1PE |
+			 (ATIM_CCMR_MODE_PWM1 << ATIM_CCMR1_OC2M_SHIFT) | ATIM_CCMR1_OC2PE, TMR_REG(STM32_GTIM_CCMR1_OFFSET));
+		putreg16((ATIM_CCMR_MODE_PWM1 << ATIM_CCMR2_OC3M_SHIFT) | ATIM_CCMR2_OC3PE, TMR_REG(STM32_GTIM_CCMR2_OFFSET));
+		putreg16(ATIM_CCER_CC3NE | ATIM_CCER_CC3NP | ATIM_CCER_CC2NE | ATIM_CCER_CC2NP | ATIM_CCER_CC1NE | ATIM_CCER_CC1NP,
+			 TMR_REG(STM32_GTIM_CCER_OFFSET));
 
 
-		irq_attach(STM32_IRQ_TIM1CC, timerInterrupt, NULL);
-		up_enable_irq(STM32_IRQ_TIM1CC);
-		putreg16(GTIM_DIER_CC1IE, TMR_REG(STM32_GTIM_DIER_OFFSET));
+		stm32_configgpio(GPIO_TIM1_CH1N);
+		stm32_configgpio(GPIO_TIM1_CH2N);
+		stm32_configgpio(GPIO_TIM1_CH3N);
+
+		/* master output enable = on */
+
+		putreg16(ATIM_BDTR_MOE, (TMR_REG(STM32_ATIM_BDTR_OFFSET)));
 	}
 
-	long p  = freqs == 0 ? p1s + 1 : p0p5s / freqs;
-	putreg32(p + 1, TMR_REG(STM32_BTIM_ARR_OFFSET));
-	putreg32(p, TMR_REG(STM32_GTIM_CCR1_OFFSET));
-	_rgb[0] = g;
-	_rgb[1] = r;
-	_rgb[2] = b;
-	setled(_rgb);
+	long p  = freqs == 0 ? p1s : p1s / freqs;
+	putreg32(p, TMR_REG(STM32_BTIM_ARR_OFFSET));
+
+	p  = freqs == 0 ? p1s + 1 : p0p5s / freqs;
+
+	putreg32((r * p) / 255, TMR_REG(STM32_GTIM_CCR1_OFFSET));
+	putreg32((g * p) / 255, TMR_REG(STM32_GTIM_CCR2_OFFSET));
+	putreg32((b * p) / 255, TMR_REG(STM32_GTIM_CCR3_OFFSET));
 
 	val = getreg16(TMR_REG(STM32_BTIM_CR1_OFFSET));
 
@@ -199,4 +120,5 @@ void rgb_led(int r, int g, int b, int freqs)
 	}
 
 	putreg16(val, TMR_REG(STM32_BTIM_CR1_OFFSET));
+
 }
