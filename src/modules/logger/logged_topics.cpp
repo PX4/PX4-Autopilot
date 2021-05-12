@@ -68,10 +68,8 @@ void LoggedTopics::add_default_topics()
 	add_topic("hover_thrust_estimate", 100);
 	add_topic("input_rc", 500);
 	add_topic("internal_combustion_engine_status", 10);
-	add_topic("mag_worker_data");
 	add_topic("manual_control_setpoint", 200);
 	add_topic("manual_control_switches");
-	add_topic("mission");
 	add_topic("mission_result");
 	add_topic("navigator_mission_item");
 	add_topic("offboard_control_mode", 100);
@@ -87,13 +85,11 @@ void LoggedTopics::add_default_topics()
 	add_topic("sensor_combined");
 	add_topic("sensor_correction");
 	add_topic("sensor_gyro_fft", 50);
-	add_topic("sensor_preflight_mag", 500);
 	add_topic("sensor_selection");
 	add_topic("sensors_status_imu", 200);
 	add_topic("system_power", 500);
 	add_topic("takeoff_status", 1000);
 	add_topic("tecs_status", 200);
-	add_topic("test_motor", 500);
 	add_topic("trajectory_setpoint", 200);
 	add_topic("transponder_report");
 	add_topic("vehicle_acceleration", 50);
@@ -127,7 +123,6 @@ void LoggedTopics::add_default_topics()
 	// multi topics
 	add_topic_multi("actuator_outputs", 100, 3);
 	add_topic_multi("airspeed_wind", 1000);
-	add_topic_multi("logger_status", 0, 2);
 	add_topic_multi("multirotor_motor_limits", 1000, 2);
 	add_topic_multi("rate_ctrl_status", 200, 2);
 	add_topic_multi("telemetry_status", 1000, 4);
@@ -215,6 +210,9 @@ void LoggedTopics::add_debug_topics()
 	add_topic("debug_value");
 	add_topic("debug_vect");
 	add_topic_multi("satellite_info", 1000, 2);
+	add_topic("mag_worker_data");
+	add_topic("sensor_preflight_mag", 500);
+	add_topic("test_motor", 500);
 }
 
 void LoggedTopics::add_estimator_replay_topics()
