@@ -93,7 +93,6 @@ px4_add_board(
 	SYSTEMCMDS
 		bl_update
 		dmesg
-		dumpfile
 		esc_calib
 		gpio
 		hardfault_log
