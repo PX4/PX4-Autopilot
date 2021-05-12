@@ -243,7 +243,6 @@
 /* RC Serial port */
 
 #define RC_SERIAL_PORT                     "/dev/ttyS5"
-#define RC_SERIAL_SINGLEWIRE
 
 /* Input Capture Channels. */
 #define INPUT_CAP1_TIMER                  1
