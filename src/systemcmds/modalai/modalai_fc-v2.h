@@ -14,13 +14,13 @@ typedef enum {
 // TELEM1
 //   M0079- J1
 //             PF6   PIN2 - out
-//             PE8   PIN3 - out
-//	       PF8   PIN4 - in
+//             PE8   PIN3 - in
+//	       PF8   PIN4 - out
 //	       PE10  PIN4 - in
 //
 #define M0079_J1_PIN_2_OUT             _MK_GPIO_OUTPUT(GPIO_PORTF|GPIO_PIN6)
-#define M0079_J1_PIN_3_OUT             _MK_GPIO_OUTPUT(GPIO_PORTE|GPIO_PIN8)
-#define M0079_J1_PIN_4_IN              _MK_GPIO_INPUT(GPIO_PORTF|GPIO_PIN8)
+#define M0079_J1_PIN_3_IN              _MK_GPIO_INPUT(GPIO_PORTE|GPIO_PIN8)
+#define M0079_J1_PIN_4_OUT             _MK_GPIO_OUTPUT(GPIO_PORTF|GPIO_PIN8)
 #define M0079_J1_PIN_5_IN              _MK_GPIO_INPUT(GPIO_PORTE|GPIO_PIN10)
 
 //

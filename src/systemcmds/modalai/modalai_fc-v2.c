@@ -100,23 +100,23 @@ int modalai_buzz_test_v2(eHW_TYPE hw_type)
 		//
 		//
 		PX4_INFO(">> Testing J1");
-		stm32_configgpio(M0079_J1_PIN_2_OUT); // 2-4
-		stm32_configgpio(M0079_J1_PIN_2_OUT); // 3-5
-		stm32_configgpio(M0079_J1_PIN_4_IN);  // 4-2
-		stm32_configgpio(M0079_J1_PIN_5_IN);  // 5-3
+		stm32_configgpio(M0079_J1_PIN_2_OUT); // 2-3
+		stm32_configgpio(M0079_J1_PIN_3_IN);  // 3-2
+		stm32_configgpio(M0079_J1_PIN_4_OUT); // 4-5
+		stm32_configgpio(M0079_J1_PIN_5_IN);  // 5-4
 
-		if (test_pair(M0079_J1_PIN_2_OUT, M0079_J1_PIN_4_IN)) {
-			PX4_INFO("PASS: M0079_J1_PIN_2_OUT M0079_J1_PIN_4_IN");
+		if (test_pair(M0079_J1_PIN_2_OUT, M0079_J1_PIN_3_IN)) {
+			PX4_INFO("PASS: M0079_J1_PIN_2_OUT M0079_J1_PIN_3_IN");
 
 		} else {
-			PX4_ERR("FAIL: M0079_J1_PIN_2_OUT M0079_J1_PIN_4_IN");
+			PX4_ERR("FAIL: M0079_J1_PIN_2_OUT M0079_J1_PIN_3_IN");
 		}
 
-		if (test_pair(M0079_J1_PIN_2_OUT, M0079_J1_PIN_5_IN)) {
-			PX4_INFO("PASS: M0079_J1_PIN_2_OUT M0079_J1_PIN_5_IN");
+		if (test_pair(M0079_J1_PIN_4_OUT, M0079_J1_PIN_5_IN)) {
+			PX4_INFO("PASS: M0079_J1_PIN_4_OUT M0079_J1_PIN_5_IN");
 
 		} else {
-			PX4_ERR("FAIL: M0079_J1_PIN_2_OUT M0079_J1_PIN_5_IN");
+			PX4_ERR("FAIL: M0079_J1_PIN_4_OUT M0079_J1_PIN_5_IN");
 		}
 
 		//
