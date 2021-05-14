@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017, 2021 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,13 +31,16 @@
 #
 ############################################################################
 
-add_subdirectory(akm)
-add_subdirectory(bosch)
-add_subdirectory(hmc5883)
-add_subdirectory(qmc5883l)
-add_subdirectory(isentek)
-add_subdirectory(lis2mdl)
-add_subdirectory(lis3mdl)
-add_subdirectory(lsm303agr)
-add_subdirectory(rm3100)
-add_subdirectory(vtrantech)
+px4_add_module(
+	MODULE drivers__magnetometer__vcm5883
+	MAIN vcm5883
+	COMPILE_FLAGS
+	SRCS
+		VCM5883.cpp
+		VCM5883.hpp
+		vcm5883_main.cpp
+		VTT_VCM5883_registers.hpp
+	DEPENDS
+		drivers_magnetometer
+		px4_work_queue
+	)
