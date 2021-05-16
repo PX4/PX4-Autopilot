@@ -59,6 +59,11 @@ void Accelerometer::set_device_id(uint32_t device_id, bool external)
 	if (_device_id != device_id || _external != external) {
 		set_external(external);
 		_device_id = device_id;
+
+		if (_device_id != 0) {
+			_calibration_index = FindCalibrationIndex(SensorString(), _device_id);
+		}
+
 		ParametersUpdate();
 		SensorCorrectionsUpdate(true);
 	}
@@ -161,13 +166,6 @@ void Accelerometer::set_rotation(Rotation rotation)
 
 void Accelerometer::ParametersUpdate()
 {
-	if (_device_id == 0) {
-		Reset();
-		return;
-	}
-
-	_calibration_index = FindCalibrationIndex(SensorString(), _device_id);
-
 	if (_calibration_index >= 0) {
 
 		// CAL_ACCx_ROT
@@ -234,6 +232,7 @@ void Accelerometer::Reset()
 
 	_offset.zero();
 	_scale = Vector3f{1.f, 1.f, 1.f};
+
 	_thermal_offset.zero();
 
 	_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
