@@ -66,6 +66,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_can-flow_canbootloader
+    ark_can-gps_default:
+      short: ark_can-gps_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_can-gps_default
+    ark_can-gps_canbootloader:
+      short: ark_can-gps_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_can-gps_canbootloader
     av_x-v1_default:
       short: av_x-v1
       buildType: MinSizeRel
