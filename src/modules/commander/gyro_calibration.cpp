@@ -260,22 +260,19 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 			if (calibration.device_id() != 0) {
 				calibration.set_offset(worker_data.offset[uorb_index]);
 
+				calibration.set_calibration_index(uorb_index);
+
 				calibration.PrintStatus();
 
-			} else {
-				calibration.Reset();
-			}
+				if (calibration.ParametersSave()) {
+					param_save = true;
+					failed = false;
 
-			calibration.set_calibration_index(uorb_index);
-
-			if (calibration.ParametersSave()) {
-				param_save = true;
-				failed = false;
-
-			} else {
-				failed = true;
-				calibration_log_critical(mavlink_log_pub, "calibration save failed");
-				break;
+				} else {
+					failed = true;
+					calibration_log_critical(mavlink_log_pub, "calibration save failed");
+					break;
+				}
 			}
 		}
 

@@ -897,22 +897,19 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 					current_cal.set_offdiagonal(offdiag[cur_mag]);
 				}
 
+				current_cal.set_calibration_index(cur_mag);
+
 				current_cal.PrintStatus();
 
-			} else {
-				current_cal.Reset();
-			}
+				if (current_cal.ParametersSave()) {
+					param_save = true;
+					failed = false;
 
-			current_cal.set_calibration_index(cur_mag);
-
-			if (current_cal.ParametersSave()) {
-				param_save = true;
-				failed = false;
-
-			} else {
-				failed = true;
-				calibration_log_critical(mavlink_log_pub, "calibration save failed");
-				break;
+				} else {
+					failed = true;
+					calibration_log_critical(mavlink_log_pub, "calibration save failed");
+					break;
+				}
 			}
 		}
 
@@ -1000,7 +997,7 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 			sensor_mag_s mag{};
 			mag_sub.copy(&mag);
 
-			if (mag_sub.advertised() && (mag.timestamp != 0)) {
+			if (mag_sub.advertised() && (mag.timestamp != 0) && (mag.device_id != 0)) {
 
 				calibration::Magnetometer cal{mag.device_id, mag.is_external};
 
