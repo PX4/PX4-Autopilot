@@ -21,7 +21,7 @@ px4_add_board(
 		uavcannode
 	MODULES
 		#ekf2
-		load_mon
+		#load_mon
 		#sensors
 	SYSTEMCMDS
 		i2cdetect
