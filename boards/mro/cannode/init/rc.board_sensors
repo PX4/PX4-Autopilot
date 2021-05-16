@@ -2,9 +2,6 @@
 #
 # board sensors init
 #------------------------------------------------------------------------------
+rm3100 -s start
 
-#rm3100 -s start
-
-#dps310 -I start
-
-vl53l1x -X start
+vl53l1x -I start

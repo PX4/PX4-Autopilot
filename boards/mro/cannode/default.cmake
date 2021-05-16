@@ -13,12 +13,14 @@ px4_add_board(
 	UAVCAN_INTERFACES 1
 	UAVCAN_TIMER_OVERRIDE 3
 	DRIVERS
-		#barometer/dps310
+		barometer/dps310
 		bootloaders
 		#gps
 		#lights/rgbled_ncp5623c
 		#magnetometer/rm3100
+		#distance_sensor/tfmini
 		distance_sensor/vl53l1x
+		#differential_pressure/ms5525/
 		uavcannode
 	MODULES
 	SYSTEMCMDS
