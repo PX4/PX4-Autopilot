@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *       Author: David Sidrane <david.sidrane@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,32 +31,74 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#pragma once
 
+#include <nuttx/config.h>
+#include "arm_internal.h"
+#include "arm_arch.h"
+#include "chip.h"
 
-#include "../../../stm32_common/include/px4_arch/micro_hal.h"
+#include "nvic.h"
 
-__BEGIN_DECLS
+#include "stm32_wdg.h"
 
-#define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_STM32F7
-#include <chip.h>
-#include <stm32_gpio.h>
-#include <stm32_can.h>
-#include <hardware/stm32_flash.h>
-#include <arm_internal.h> //include up_systemreset() which is included on stm32.h
-#if defined(CONFIG_STM32F7_BKPSRAM)
-# include <stm32_bbsram.h>
-# define PX4_BBSRAM_SIZE STM32F7_BBSRAM_SIZE
-# define PX4_BBSRAM_GETDESC_IOCTL STM32F7_BBSRAM_GETDESC_IOCTL
-#endif // CONFIG_STM32F7_BKPSRAM
-#define PX4_FLASH_BASE  0x08000000
-#define PX4_NUMBER_I2C_BUSES STM32F7_NI2C
-#define PX4_ADC_INTERNAL_TEMP_SENSOR_CHANNEL 18
+/****************************************************************************
+ * Name: watchdog_pet()
+ *
+ * Description:
+ *   This function resets the Independent watchdog (IWDG)
+ *
+ *
+ * Input Parameters:
+ *   none.
+ *
+ * Returned value:
+ *   none.
+ *
+ ****************************************************************************/
 
+void watchdog_pet(void)
+{
+	putreg32(IWDG_KR_KEY_RELOAD, STM32_IWDG_KR);
+}
 
-int stm32_flash_lock(void);
-int stm32_flash_unlock(void);
-int stm32_flash_writeprotect(size_t page, bool enabled);
+/****************************************************************************
+ * Name: watchdog_init()
+ *
+ * Description:
+ *   This function initialize the Independent watchdog (IWDG)
+ *
+ *
+ * Input Parameters:
+ *   none.
+ *
+ * Returned value:
+ *   none.
+ *
+ ****************************************************************************/
 
-__END_DECLS
+void watchdog_init(void)
+{
+#if defined(CONFIG_STM32F7_JTAG_FULL_ENABLE) || \
+    defined(CONFIG_STM32F7_JTAG_NOJNTRST_ENABLE) || \
+    defined(CONFIG_STM32F7_JTAG_SW_ENABLE)
+	putreg32(getreg32(STM32_DBGMCU_APB1_FZ) | DBGMCU_APB1_IWDGSTOP, STM32_DBGMCU_APB1_FZ);
+#endif
 
+	/* unlock */
+
+	putreg32(IWDG_KR_KEY_ENABLE, STM32_IWDG_KR);
+
+	/* Set the prescale value */
+
+	putreg32(IWDG_PR_DIV16, STM32_IWDG_PR);
+
+	/* Set the reload value */
+
+	putreg32(IWDG_RLR_MAX, STM32_IWDG_RLR);
+
+	/* Start the watch dog */
+
+	putreg32(IWDG_KR_KEY_START, STM32_IWDG_KR);
+
+	watchdog_pet();
+}

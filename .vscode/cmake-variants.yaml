@@ -106,6 +106,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: emlid_navio2_default
+    freefly_can-rtk-gps_default:
+      short: freefly_can-rtk-gps_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: freefly_can-rtk-gps_default
+    freefly_can-rtk-gps_canbootloader:
+      short: freefly_can-rtk-gps_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: freefly_can-rtk-gps_canbootloader
     holybro_can-gps-v1_canbootloader:
       short: holybro_can-gps-v1_canbootloader
       buildType: MinSizeRel
