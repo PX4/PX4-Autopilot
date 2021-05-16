@@ -247,6 +247,7 @@ protected:
 
 	float _accel_to_pitch_integ = 0;
 
+	bool _quadchute_command_treated{false};
 
 
 	/**
@@ -312,6 +313,8 @@ private:
 	int generate_bitmap_from_channel_numbers(const int channels);
 
 	bool set_motor_state(const motor_state target_state, const int32_t channel_bitmap,  const int value);
+
+	void resetAccelToPitchPitchIntegrator() { _accel_to_pitch_integ = 0.f; }
 
 };
 

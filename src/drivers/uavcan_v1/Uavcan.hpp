@@ -76,6 +76,10 @@
 #include "Subscribers/Esc.hpp"
 #include "Subscribers/Gnss.hpp"
 #include "Subscribers/NodeIDAllocationData.hpp"
+#include "Subscribers/LegacyBatteryInfo.hpp"
+
+// uORB over UAVCAN subscribers
+#include "Subscribers/uORB/sensor_gps.hpp"
 
 #include "ServiceClients/GetInfo.hpp"
 #include "ServiceClients/Access.hpp"
@@ -161,14 +165,10 @@ private:
 	void Run() override;
 	void fill_node_info();
 
+	void transmit();
+
 	// Sends a heartbeat at 1s intervals
 	void sendHeartbeat();
-
-	int handlePnpNodeIDAllocationData(const CanardTransfer &receive);
-	int handleRegisterList(const CanardTransfer &receive);
-	int handleRegisterAccess(const CanardTransfer &receive);
-	int handleBMSStatus(const CanardTransfer &receive);
-	int handleUORBSensorGPS(const CanardTransfer &receive);
 
 	void *_uavcan_heap{nullptr};
 
@@ -185,17 +185,8 @@ private:
 	pthread_mutex_t _node_mutex;
 
 	CanardRxSubscription _heartbeat_subscription;
-	CanardRxSubscription _pnp_v1_subscription;
-	CanardRxSubscription _drone_srv_battery_subscription;
-	CanardRxSubscription _drone_srv_gps_subscription;
-	CanardRxSubscription _register_access_subscription;
-	CanardRxSubscription _register_list_subscription;
 
-	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
-
-	uORB::Publication<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
-	uORB::Publication<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
 	perf_counter_t _interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
@@ -204,21 +195,6 @@ private:
 	uint8_t _uavcan_node_heartbeat_buffer[uavcan_node_Heartbeat_1_0_EXTENT_BYTES_];
 	hrt_abstime _uavcan_node_heartbeat_last{0};
 	CanardTransferID _uavcan_node_heartbeat_transfer_id{0};
-
-	/* Temporary hardcoded port IDs used by the register interface
-	* for demo purposes untill we have nice interface (QGC or latter)
-	* to configure the nodes
-	*/
-	const uint16_t bms_port_id = 1234;
-	const uint16_t gps_port_id = 1235;
-
-	CanardTransferID _uavcan_register_list_request_transfer_id{0};
-	CanardTransferID _uavcan_register_access_request_transfer_id{0};
-
-	// regulated::drone::sensor::BMSStatus_1_0
-	uint8_t _regulated_drone_sensor_bmsstatus_buffer[reg_drone_service_battery_Status_0_1_EXTENT_BYTES_];
-	hrt_abstime _regulated_drone_sensor_bmsstatus_last{0};
-	CanardTransferID _regulated_drone_sensor_bmsstatus_transfer_id{0};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::UAVCAN_V1_ENABLE>) _param_uavcan_v1_enable,
@@ -230,7 +206,7 @@ private:
 
 	UavcanParamManager _param_manager;
 
-	NodeManager _node_manager {_canard_instance};
+	NodeManager _node_manager {_canard_instance, _param_manager};
 
 	UavcanGnssPublisher _gps_pub {_canard_instance, _param_manager};
 
@@ -243,9 +219,12 @@ private:
 	UavcanGnssSubscriber _gps0_sub {_canard_instance, _param_manager, 0};
 	UavcanGnssSubscriber _gps1_sub {_canard_instance, _param_manager, 1};
 	UavcanBmsSubscriber  _bms0_sub {_canard_instance, _param_manager, 0};
-	UavcanBmsSubscriber  _bms1_sub {_canard_instance, _param_manager, 1};
+	//UavcanBmsSubscriber  _bms1_sub {_canard_instance, _param_manager, 1};
 	UavcanEscSubscriber  _esc_sub  {_canard_instance, _param_manager, 0};
+	UavcanLegacyBatteryInfoSubscriber  _legacybms_sub {_canard_instance, _param_manager, 0};
 	UavcanNodeIDAllocationDataSubscriber _nodeid_sub {_canard_instance, _node_manager};
+
+	UORB_over_UAVCAN_sensor_gps_Subscriber _sensor_gps_sub {_canard_instance, _param_manager, 0};
 
 	UavcanGetInfoResponse _getinfo_rsp {_canard_instance};
 	UavcanAccessResponse  _access_rsp {_canard_instance, _param_manager};
@@ -254,7 +233,7 @@ private:
 	UavcanListServiceReply   _list_service {_canard_instance, _node_manager};
 
 	// Subscriber objects: Any object used to bridge a UAVCAN message to a uORB message
-	UavcanDynamicPortSubscriber *_dynsubscribers[5] {&_gps0_sub, &_gps1_sub, &_bms0_sub, &_bms1_sub, &_esc_sub}; /// TODO: turn into List<UavcanSubscription*>
+	UavcanDynamicPortSubscriber *_dynsubscribers[6] {&_gps0_sub, &_gps1_sub, &_bms0_sub, &_esc_sub, &_legacybms_sub, &_sensor_gps_sub}; /// TODO: turn into List<UavcanSubscription*>
 	UavcanBaseSubscriber *_subscribers[5] {&_nodeid_sub, &_getinfo_rsp, &_access_rsp, &_access_service, &_list_service}; /// TODO: turn into List<UavcanSubscription*>
 
 	UavcanMixingInterface _mixing_output {_node_mutex, _esc_controller};

@@ -164,6 +164,14 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2021-04-30: translate ASPD_STALL to FW_AIRSPD_STALL
+	{
+		if (strcmp("ASPD_STALL", node->name) == 0) {
+			strcpy(node->name, "FW_AIRSPD_STALL");
+			PX4_INFO("copying %s -> %s", "ASPD_STALL", "FW_AIRSPD_STALL");
+		}
+	}
+
 	// translate (SPI) calibration ID parameters. This can be removed after the next release (current release=1.10)
 
 	if (node->type != BSON_INT32) {

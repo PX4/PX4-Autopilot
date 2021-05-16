@@ -149,7 +149,6 @@ protected:
 	bool _waypoint_position_reached{false};
 	bool _waypoint_yaw_reached{false};
 
-	hrt_abstime _action_start{0};
 	hrt_abstime _time_wp_reached{0};
 
 	uORB::Publication<actuator_controls_s>	_actuator_pub{ORB_ID(actuator_controls_2)};

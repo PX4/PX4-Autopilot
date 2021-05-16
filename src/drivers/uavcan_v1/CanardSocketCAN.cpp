@@ -162,12 +162,12 @@ int16_t CanardSocketCAN::transmit(const CanardFrame &txf, int timeout_ms)
 	_send_tv->tv_usec = txf.timestamp_usec % 1000000ULL;
 	_send_tv->tv_sec = (txf.timestamp_usec - _send_tv->tv_usec) / 1000000ULL;
 
-	return sendmsg(_fd, &_send_msg, 1000);
+	return sendmsg(_fd, &_send_msg, 0);
 }
 
 int16_t CanardSocketCAN::receive(CanardFrame *rxf)
 {
-	int32_t result = recvmsg(_fd, &_recv_msg, 1000);
+	int32_t result = recvmsg(_fd, &_recv_msg, MSG_DONTWAIT);
 
 	if (result < 0) {
 		return result;

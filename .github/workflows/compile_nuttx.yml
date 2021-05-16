@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-nuttx-focal:2021-02-04
+    container: px4io/px4-dev-nuttx-focal:2021-04-29
     strategy:
       matrix:
         config: [
@@ -123,6 +123,8 @@ jobs:
       run: make ${{matrix.config}} bloaty_symbols || true
     - name: make ${{matrix.config}} bloaty_templates
       run: make ${{matrix.config}} bloaty_templates || true
+    - name: make ${{matrix.config}} bloaty_ram
+      run: make ${{matrix.config}} bloaty_ram || true
     - name: make ${{matrix.config}} bloaty_compare_master
       run: make ${{matrix.config}} bloaty_compare_master || true
     - name: ccache post-run

@@ -17,6 +17,7 @@ bool condition_home_position_valid		# indicates a valid home position (a valid h
 bool condition_power_input_valid                # set if input power is valid
 bool condition_battery_healthy                # set if battery is available and not low
 bool condition_escs_error		      # set to true if one or more ESCs reporting esc_status are offline
+bool condition_escs_failure		      # set to true if one or more ESCs reporting esc_status has a failure
 
 bool circuit_breaker_engaged_power_check
 bool circuit_breaker_engaged_airspd_check

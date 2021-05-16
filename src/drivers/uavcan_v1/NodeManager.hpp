@@ -63,12 +63,14 @@ typedef struct {
 	uint8_t   unique_id[16];
 	bool      register_setup;
 	uint16_t  register_index;
+	uint16_t  retry_count;
 } UavcanNodeEntry;
 
 class NodeManager
 {
 public:
-	NodeManager(CanardInstance &ins) : _canard_instance(ins), _access_request(ins), _list_request(ins) { };
+	NodeManager(CanardInstance &ins, UavcanParamManager &pmgr) : _canard_instance(ins), _access_request(ins, pmgr),
+		_list_request(ins) { };
 
 	bool HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg);
 	bool HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_2_0 &msg);
@@ -89,8 +91,4 @@ private:
 	bool nodeRegisterSetup = 0;
 
 	hrt_abstime _register_request_last{0};
-
-	//TODO work this out
-	const char *gps_uorb_register_name = "uavcan.pub.gnss_uorb.id";
-	const char *bms_status_register_name = "uavcan.pub.battery_status.id";
 };

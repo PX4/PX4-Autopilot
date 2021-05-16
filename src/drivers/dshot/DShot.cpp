@@ -530,11 +530,27 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 
 	} else {
 		for (int i = 0; i < (int)num_outputs; i++) {
-			if (outputs[i] == DSHOT_DISARM_VALUE) {
+
+			uint16_t output = outputs[i];
+
+			// DShot 3D splits the throttle ranges in two.
+			// This is in terms of DShot values, code below is in terms of actuator_output
+			// Direction 1) 48 is the slowest, 1047 is the fastest.
+			// Direction 2) 1049 is the slowest, 2047 is the fastest.
+			if (_param_dshot_3d_enable.get()) {
+				if (output >= _param_dshot_3d_dead_l.get() && output <= _param_dshot_3d_dead_h.get()) {
+					output = DSHOT_DISARM_VALUE;
+
+				} else if (output < 1000 && output > 0) { //Todo: allow actuator 0 or dshot 48 to be used
+					output = 999 - output;
+				}
+			}
+
+			if (output == DSHOT_DISARM_VALUE) {
 				up_dshot_motor_command(i, DShot_cmd_motor_stop, i == requested_telemetry_index);
 
 			} else {
-				up_dshot_motor_data_set(i, math::min(outputs[i], static_cast<uint16_t>(DSHOT_MAX_THROTTLE)),
+				up_dshot_motor_data_set(i, math::min(output, static_cast<uint16_t>(DSHOT_MAX_THROTTLE)),
 							i == requested_telemetry_index);
 			}
 		}

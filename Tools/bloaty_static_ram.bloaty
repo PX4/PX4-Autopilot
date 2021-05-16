@@ -1,0 +1,13 @@
+custom_data_source: {
+  name: "bloaty_static_ram"
+  base_data_source: "sections"
+
+  rewrite: {
+    pattern: "^\\.bss"
+    replacement: "ram"
+  }
+  rewrite: {
+    pattern: "^\\.data"
+    replacement: "ram"
+  }
+}

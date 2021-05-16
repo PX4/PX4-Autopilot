@@ -66,9 +66,7 @@ public:
 				  uavcan_node_GetInfo_1_0_FIXED_PORT_ID_,
 				  uavcan_node_GetInfo_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_,
 				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-				  &_canard_sub);
-
-		_port_id = uavcan_node_GetInfo_1_0_FIXED_PORT_ID_;
+				  &_subj_sub._canard_sub);
 
 	};
 
@@ -109,10 +107,8 @@ public:
 
 		uint8_t response_payload_buffer[uavcan_node_GetInfo_Response_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
 
-		CanardMicrosecond transmission_deadline = hrt_absolute_time() + 1000 * 100;
-
 		CanardTransfer response = {
-			.timestamp_usec = transmission_deadline, // Zero if transmission deadline is not limited.
+			.timestamp_usec = hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
 			.priority       = CanardPriorityNominal,
 			.transfer_kind  = CanardTransferKindResponse,
 			.port_id        = uavcan_node_GetInfo_1_0_FIXED_PORT_ID_, // This is the subject-ID.

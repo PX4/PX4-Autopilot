@@ -80,6 +80,7 @@
 
 #include "mavlink_command_sender.h"
 #include "mavlink_messages.h"
+#include "mavlink_receiver.h"
 #include "mavlink_shell.h"
 #include "mavlink_ulog.h"
 
@@ -496,7 +497,7 @@ public:
 	}
 	void			request_stop_ulog_streaming()
 	{
-		if (_mavlink_ulog) { _mavlink_ulog_stop_requested = true; }
+		if (_mavlink_ulog) { _mavlink_ulog_stop_requested.store(true); }
 	}
 
 	bool ftp_enabled() const { return _ftp_on; }
@@ -527,6 +528,7 @@ public:
 	bool radio_status_critical() const { return _radio_status_critical; }
 
 private:
+	MavlinkReceiver 	_receiver;
 	int			_instance_id{0};
 
 	bool			_transmitting_enabled{true};
@@ -567,13 +569,11 @@ private:
 	MavlinkShell		*_mavlink_shell{nullptr};
 	MavlinkULog		*_mavlink_ulog{nullptr};
 
-	volatile bool		_mavlink_ulog_stop_requested{false};
+	px4::atomic_bool	_mavlink_ulog_stop_requested{false};
 
 	MAVLINK_MODE 		_mode{MAVLINK_MODE_NORMAL};
 
 	mavlink_channel_t	_channel{MAVLINK_COMM_0};
-
-	pthread_t		_receive_thread {};
 
 	bool			_forwarding_on{false};
 	bool			_ftp_on{false};

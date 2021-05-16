@@ -20,7 +20,7 @@ bool FlightTask::activate(const vehicle_local_position_setpoint_s &last_setpoint
 
 void FlightTask::reActivate()
 {
-	activate(getPositionSetpoint());
+	activate(empty_setpoint);
 }
 
 bool FlightTask::updateInitialize()
@@ -34,6 +34,7 @@ bool FlightTask::updateInitialize()
 	_sub_home_position.update();
 
 	_evaluateVehicleLocalPosition();
+	_evaluateVehicleLocalPositionSetpoint();
 	_evaluateDistanceToGround();
 	return true;
 }
@@ -87,10 +88,11 @@ const vehicle_local_position_setpoint_s FlightTask::getPositionSetpoint()
 	vehicle_local_position_setpoint.vy = _velocity_setpoint(1);
 	vehicle_local_position_setpoint.vz = _velocity_setpoint(2);
 
-	_acceleration_setpoint.copyTo(vehicle_local_position_setpoint.acceleration);
-	_jerk_setpoint.copyTo(vehicle_local_position_setpoint.jerk);
 	vehicle_local_position_setpoint.yaw = _yaw_setpoint;
 	vehicle_local_position_setpoint.yawspeed = _yawspeed_setpoint;
+
+	_acceleration_setpoint.copyTo(vehicle_local_position_setpoint.acceleration);
+	_jerk_setpoint.copyTo(vehicle_local_position_setpoint.jerk);
 
 	// deprecated, only kept for output logging
 	matrix::Vector3f(NAN, NAN, NAN).copyTo(vehicle_local_position_setpoint.thrust);
@@ -104,7 +106,8 @@ void FlightTask::_resetSetpoints()
 	_velocity_setpoint.setNaN();
 	_acceleration_setpoint.setNaN();
 	_jerk_setpoint.setNaN();
-	_yaw_setpoint = _yawspeed_setpoint = NAN;
+	_yaw_setpoint = NAN;
+	_yawspeed_setpoint = NAN;
 }
 
 void FlightTask::_evaluateVehicleLocalPosition()
@@ -158,6 +161,25 @@ void FlightTask::_evaluateVehicleLocalPosition()
 				_global_local_alt0 = _sub_vehicle_local_position.get().ref_alt;
 			}
 		}
+	}
+}
+
+void FlightTask::_evaluateVehicleLocalPositionSetpoint()
+{
+	vehicle_local_position_setpoint_s vehicle_local_position_setpoint;
+
+	// Only use data that is received within a certain timestamp
+	if (_vehicle_local_position_setpoint_sub.copy(&vehicle_local_position_setpoint)
+	    && (_time_stamp_current - vehicle_local_position_setpoint.timestamp) < _timeout) {
+		// Inform about the input and output of the velocity controller
+		// This is used to properly initialize the velocity setpoint when onpening the position loop (position unlock)
+		_velocity_setpoint_feedback = matrix::Vector3f(vehicle_local_position_setpoint.vx, vehicle_local_position_setpoint.vy,
+					      vehicle_local_position_setpoint.vz);
+		_acceleration_setpoint_feedback = matrix::Vector3f(vehicle_local_position_setpoint.acceleration);
+
+	} else {
+		_velocity_setpoint_feedback.setAll(NAN);
+		_acceleration_setpoint_feedback.setAll(NAN);
 	}
 }
 

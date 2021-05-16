@@ -33,7 +33,7 @@
 [submodule "src/modules/micrortps_bridge/micro-CDR"]
 	path = src/modules/micrortps_bridge/micro-CDR
 	url = https://github.com/PX4/Micro-CDR.git
-	branch = px4
+	branch = master
 [submodule "platforms/nuttx/NuttX/nuttx"]
 	path = platforms/nuttx/NuttX/nuttx
 	url = https://github.com/PX4/NuttX.git
@@ -63,3 +63,7 @@
 [submodule "src/drivers/uavcannode_gps_demo/libcanard"]
 	path = src/drivers/uavcannode_gps_demo/libcanard
 	url = https://github.com/UAVCAN/libcanard.git
+[submodule "src/drivers/uavcan_v1/legacy_data_types"]
+	path = src/drivers/uavcan_v1/legacy_data_types
+	url = https://github.com/px4/public_regulated_data_types/
+	branch = legacy

@@ -111,15 +111,18 @@ static const px4_hw_mft_item_t hw_mft_list_v0509[] = {
 };
 
 static px4_hw_mft_list_entry_t mft_lists[] = {
-	{0x0000, hw_mft_list_v0500, arraySize(hw_mft_list_v0500)},
-	{0x0001, hw_mft_list_v0500, arraySize(hw_mft_list_v0500)},
-	{0x0100, hw_mft_list_v0510, arraySize(hw_mft_list_v0510)},
-	{0x0900, hw_mft_list_v0509, arraySize(hw_mft_list_v0509)},
-	{0x0901, hw_mft_list_v0509, arraySize(hw_mft_list_v0509)},
-	{0x0a00, hw_mft_list_v0509, arraySize(hw_mft_list_v0509)},
-	{0x0a01, hw_mft_list_v0509, arraySize(hw_mft_list_v0509)},
+//  ver_rev
+	{V5X00, hw_mft_list_v0500, arraySize(hw_mft_list_v0500)}, // FMUV5X,                 Rev 0
+	{V5X01, hw_mft_list_v0500, arraySize(hw_mft_list_v0500)}, // FMUV5X,                 Rev 1
+	{V5X02, hw_mft_list_v0500, arraySize(hw_mft_list_v0500)}, // FMUV5X,                 Rev 2
+	{V5X10, hw_mft_list_v0510, arraySize(hw_mft_list_v0510)}, // NO PX4IO,               Rev 0
+	{V5X90, hw_mft_list_v0509, arraySize(hw_mft_list_v0509)}, // NO USB,                 Rev 0
+	{V5X91, hw_mft_list_v0509, arraySize(hw_mft_list_v0509)}, // NO USB I2C2 BMP388,     Rev 1
+	{V5X92, hw_mft_list_v0509, arraySize(hw_mft_list_v0509)}, // NO USB I2C2 BMP388,     Rev 2
+	{V5Xa0, hw_mft_list_v0509, arraySize(hw_mft_list_v0509)}, // NO USB (Q),             Rev 0
+	{V5Xa1, hw_mft_list_v0509, arraySize(hw_mft_list_v0509)}, // NO USB (Q) I2C2 BMP388, Rev 1
+	{V5Xa2, hw_mft_list_v0509, arraySize(hw_mft_list_v0509)}, // NO USB (Q) I2C2 BMP388, Rev 2
 };
-
 
 /************************************************************************************
  * Name: board_query_manifest
