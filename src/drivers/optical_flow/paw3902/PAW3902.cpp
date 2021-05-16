@@ -190,6 +190,7 @@ bool PAW3902::ChangeMode(Mode newMode, bool force)
 		EnableLed();
 
 		_discard_reading = 3;
+		_valid_count = 0;
 
 		if (DataReadyInterruptConfigure()) {
 			// backup schedule as a watchdog timeout
@@ -635,6 +636,7 @@ void PAW3902::RunImpl()
 	if (_discard_reading > 0) {
 		_discard_reading--;
 		ResetAccumulatedData();
+		_valid_count = 0;
 		return;
 	}
 
@@ -645,21 +647,24 @@ void PAW3902::RunImpl()
 	// Super Low Light Mode, SQUAL < 0x55, Shutter ≥ 0x0BC0
 	const uint16_t shutter = (buf.data.Shutter_Upper << 8) | buf.data.Shutter_Lower;
 
-	bool data_valid = true;
+	bool data_valid = (buf.data.SQUAL > 0);
 
 	switch (_mode) {
 	case Mode::Bright:
+
+		// quality < 25 (0x19) and shutter >= 8176 (0x1FF0)
 		if ((buf.data.SQUAL < 0x19) && (shutter >= 0x1FF0)) {
 			// false motion report, discarding
 			perf_count(_false_motion_perf);
 			data_valid = false;
 		}
 
-		if ((shutter >= 0x1FFE) && (buf.data.RawData_Sum < 0x3C)) {
+		// shutter >= 8190 (0x1FFE), raw data sum <= 60 (0x3C)
+		if (data_valid && (_valid_count >= 10) && (shutter >= 0x1FFE) && (buf.data.RawData_Sum <= 0x3C)) {
 			// Bright -> LowLight
 			_bright_to_low_counter++;
 
-			if (_bright_to_low_counter >= 10) { // AND valid for 10 consecutive frames
+			if (_bright_to_low_counter >= 10) {
 				ChangeMode(Mode::LowLight);
 			}
 
@@ -670,27 +675,31 @@ void PAW3902::RunImpl()
 		break;
 
 	case Mode::LowLight:
+
+		// quality < 70 (0x46) and shutter >= 8176 (0x1FF0)
 		if ((buf.data.SQUAL < 0x46) && (shutter >= 0x1FF0)) {
 			// false motion report, discarding
 			perf_count(_false_motion_perf);
 			data_valid = false;
 		}
 
-		if ((shutter >= 0x1FFE) && (buf.data.RawData_Sum < 0x5A)) {
+		// shutter >= 8190 (0x1FFE) and raw data sum <= 90 (0x5A)
+		if (data_valid && (_valid_count >= 10) && (shutter >= 0x1FFE) && (buf.data.RawData_Sum <= 0x5A)) {
 			// LowLight -> SuperLowLight
 			_low_to_bright_counter = 0;
 			_low_to_superlow_counter++;
 
-			if (_low_to_superlow_counter >= 10) { // AND valid for 10 consecutive frames
+			if (_low_to_superlow_counter >= 10) {
 				ChangeMode(Mode::SuperLowLight);
 			}
 
-		} else if (shutter < 0x0BB8) {
+		} else if (data_valid && (_valid_count >= 10) && (shutter < 0x0BB8)) {
 			// LowLight -> Bright
+			//  shutter < 0x0BB8 (3000)
 			_low_to_bright_counter++;
 			_low_to_superlow_counter = 0;
 
-			if (_low_to_bright_counter >= 10) { // AND valid for 10 consecutive frames
+			if (_low_to_bright_counter >= 10) {
 				ChangeMode(Mode::Bright);
 			}
 
@@ -702,21 +711,29 @@ void PAW3902::RunImpl()
 		break;
 
 	case Mode::SuperLowLight:
+
+		// quality < 85 (0x55) and shutter >= 3008 (0x0BC0)
 		if ((buf.data.SQUAL < 0x55) && (shutter >= 0x0BC0)) {
 			// false motion report, discarding
 			perf_count(_false_motion_perf);
 			data_valid = false;
 		}
 
-		if (shutter < 0x01F4) {
+		// shutter < 500 (0x01F4)
+		if (data_valid && (_valid_count >= 10) && (shutter < 0x01F4)) {
 			// should not operate with Shutter < 0x01F4 in Mode 2
-			ChangeMode(Mode::LowLight);
-
-		} else if (shutter < 0x03E8) {
-			// SuperLowLight -> LowLight
 			_superlow_to_low_counter++;
 
-			if (_superlow_to_low_counter >= 10) { // AND valid for 10 consecutive frames
+			if (_superlow_to_low_counter >= 10) {
+				ChangeMode(Mode::LowLight);
+			}
+
+		} else if (data_valid && (_valid_count >= 10) && (shutter < 0x03E8)) {
+			// SuperLowLight -> LowLight
+			//  shutter < 1000 (0x03E8)
+			_superlow_to_low_counter++;
+
+			if (_superlow_to_low_counter >= 10) {
 				ChangeMode(Mode::LowLight);
 			}
 
@@ -727,7 +744,7 @@ void PAW3902::RunImpl()
 		break;
 	}
 
-	if (data_valid && (buf.data.SQUAL > 0)) {
+	if (data_valid) {
 		const int16_t delta_x_raw = combine(buf.data.Delta_X_H, buf.data.Delta_X_L);
 		const int16_t delta_y_raw = combine(buf.data.Delta_Y_H, buf.data.Delta_Y_L);
 
@@ -737,7 +754,10 @@ void PAW3902::RunImpl()
 		_flow_sample_counter++;
 		_flow_quality_sum += buf.data.SQUAL;
 
+		_valid_count++;
+
 	} else {
+		_valid_count = 0;
 		ResetAccumulatedData();
 		return;
 	}
