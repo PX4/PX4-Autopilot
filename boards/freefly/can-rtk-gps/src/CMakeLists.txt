@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,26 +31,37 @@
 #
 ############################################################################
 
-add_subdirectory(arch/${PX4_CHIP_MANUFACTURER})
+if("${PX4_BOARD_LABEL}" STREQUAL  "canbootloader")
 
-px4_add_library(canbootloader
-	common/nuttx_stubs.c
-	fs/flash.c
-	protocol/uavcan.c
-	sched/timer.c
-	uavcan/main.c
-	util/random.c
-	util/cxx_init.c
-)
+	add_library(drivers_board
+		boot_config.h
+		boot.c
+		i2c.cpp
+		led.cpp
+	)
+	target_link_libraries(drivers_board
+		PRIVATE
+			nuttx_arch
+			nuttx_drivers
+			canbootloader
+	)
+	target_include_directories(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/canbootloader)
 
-include_directories(include)
-target_include_directories(canbootloader INTERFACE include)
+else()
+	add_library(drivers_board
+		can.c
+		i2c.cpp
+		init.c
+		spi.cpp
+		usb.c
+	)
 
-target_compile_options(canbootloader PRIVATE -Wno-error)
-target_compile_options(arch_canbootloader PRIVATE -Wno-error)
-
-target_link_libraries(canbootloader
-	PRIVATE
-		drivers_bootloaders
-		arch_canbootloader
-)
+	target_link_libraries(drivers_board
+		PRIVATE
+			arch_spi
+			nuttx_arch
+			nuttx_drivers
+			px4_layer
+			arch_io_pins
+	)
+endif()

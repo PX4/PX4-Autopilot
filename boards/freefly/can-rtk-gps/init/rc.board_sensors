@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+# board sensors init
+#------------------------------------------------------------------------------
+
+rgbled_ncp5623c -I -b 1 -a 0x39 start
+
+ist8310 start -I -b 1 -a 0x0E
+
+bmp388 start -I -b b -a 0x77
+
+safety_button start
+
+gps start -d /dev/ttyS0 -g 115200 -p ubx

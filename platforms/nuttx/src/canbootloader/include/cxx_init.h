@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *       Author: David Sidrane <David.Sidrnae@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,32 +31,21 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 #pragma once
 
-
-#include "../../../stm32_common/include/px4_arch/micro_hal.h"
-
-__BEGIN_DECLS
-
-#define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_STM32F7
-#include <chip.h>
-#include <stm32_gpio.h>
-#include <stm32_can.h>
-#include <hardware/stm32_flash.h>
-#include <arm_internal.h> //include up_systemreset() which is included on stm32.h
-#if defined(CONFIG_STM32F7_BKPSRAM)
-# include <stm32_bbsram.h>
-# define PX4_BBSRAM_SIZE STM32F7_BBSRAM_SIZE
-# define PX4_BBSRAM_GETDESC_IOCTL STM32F7_BBSRAM_GETDESC_IOCTL
-#endif // CONFIG_STM32F7_BKPSRAM
-#define PX4_FLASH_BASE  0x08000000
-#define PX4_NUMBER_I2C_BUSES STM32F7_NI2C
-#define PX4_ADC_INTERNAL_TEMP_SENSOR_CHANNEL 18
-
-
-int stm32_flash_lock(void);
-int stm32_flash_unlock(void);
-int stm32_flash_writeprotect(size_t page, bool enabled);
-
-__END_DECLS
-
+/****************************************************************************
+ * Name: cxx_initialize
+ *
+ * Description:
+ *   This function initialises static C++N objects
+ *
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned value:
+ *   None
+ *
+ ****************************************************************************/
+void cxx_initialize(void);

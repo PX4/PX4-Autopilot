@@ -48,6 +48,8 @@ pipeline {
                      "cuav_x7pro_default",
                      "cubepilot_cubeorange_default",
                      "cubepilot_cubeyellow_default",
+                     "freefly_can-rtk-gps_canbootloader",
+                     "freefly_can-rtk-gps_default",
                      "holybro_can-gps-v1_canbootloader",
                      "holybro_can-gps-v1_default",
                      "holybro_durandal-v1_default",

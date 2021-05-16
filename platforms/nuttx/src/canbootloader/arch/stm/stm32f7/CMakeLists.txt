@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,26 +31,14 @@
 #
 ############################################################################
 
-add_subdirectory(arch/${PX4_CHIP_MANUFACTURER})
+include_directories(../../../include)
 
-px4_add_library(canbootloader
-	common/nuttx_stubs.c
-	fs/flash.c
-	protocol/uavcan.c
-	sched/timer.c
-	uavcan/main.c
-	util/random.c
-	util/cxx_init.c
+px4_add_library(arch_canbootloader
+	board_identity.c
+	drivers/can/driver.c
 )
 
-include_directories(include)
-target_include_directories(canbootloader INTERFACE include)
-
-target_compile_options(canbootloader PRIVATE -Wno-error)
-target_compile_options(arch_canbootloader PRIVATE -Wno-error)
-
-target_link_libraries(canbootloader
+target_link_libraries(arch_canbootloader
 	PRIVATE
-		drivers_bootloaders
-		arch_canbootloader
+		arch_watchdog_iwdg
 )
