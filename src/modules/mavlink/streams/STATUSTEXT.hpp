@@ -61,18 +61,17 @@ private:
 
 	bool send() override
 	{
-		if (_mavlink->is_connected() && (_mavlink->get_free_tx_buf() >= get_size())) {
+		const unsigned last_generation = _mavlink_log_sub.get_last_generation();
 
-			const unsigned last_generation = _mavlink_log_sub.get_last_generation();
+		mavlink_log_s mavlink_log;
 
-			mavlink_log_s mavlink_log;
+		if (_mavlink_log_sub.update(&mavlink_log)) {
+			if (_mavlink_log_sub.get_last_generation() != (last_generation + 1)) {
+				_missed_msg_count++;
+				PX4_ERR("channel %d has missed %d mavlink log messages", _mavlink->get_channel(), _missed_msg_count);
+			}
 
-			if (_mavlink_log_sub.update(&mavlink_log)) {
-				if (_mavlink_log_sub.get_last_generation() != (last_generation + 1)) {
-					_missed_msg_count++;
-					PX4_ERR("channel %d has missed %d mavlink log messages", _mavlink->get_channel(), _missed_msg_count);
-				}
-
+			if (_mavlink->is_connected() && (_mavlink->get_free_tx_buf() >= get_size())) {
 				mavlink_statustext_t msg{};
 				const char *text = mavlink_log.text;
 				constexpr unsigned max_chunk_size = sizeof(msg.text);
