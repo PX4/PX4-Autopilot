@@ -936,6 +936,9 @@ static void application_run(size_t fw_image_size, bootloader_app_shared_t *commo
 
 		/* kill the systick interrupt */
 		putreg32(0, NVIC_SYSTICK_CTRL);
+		__asm volatile("dsb");
+		__asm volatile("isb");
+		putreg32(NVIC_INTCTRL_PENDSTCLR, NVIC_INTCTRL);
 
 		/* and set a specific LED pattern */
 		board_indicate(jump_to_app);
