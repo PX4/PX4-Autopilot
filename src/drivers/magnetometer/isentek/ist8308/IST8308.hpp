@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -103,13 +103,14 @@ private:
 	} _state{STATE::RESET};
 
 	uint8_t _checked_register{0};
-	static constexpr uint8_t size_register_cfg{5};
+	static constexpr uint8_t size_register_cfg{6};
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register               | Set bits, Clear bits
 		{ Register::ACTR,         0, ACTR_BIT::SUSPEND_EN },
-		{ Register::CNTL1,        CNTL1_BIT::NSF_Low, 0 },
-		{ Register::CNTL2,        CNTL2_BIT::MODE_ODR_50Hz, 0 },
+		{ Register::CNTL1,        0, CNTL1_BIT::NSF_DISABLE },
+		{ Register::CNTL2,        CNTL2_BIT::MODE_ODR_50HZ_SET, CNTL2_BIT::MODE_ODR_50HZ_CLEAR },
 		{ Register::CNTL3,        0, CNTL3_BIT::SRST },
-		{ Register::OSRCNTL,      OSRCNTL_BIT::OSR_y_32 | OSRCNTL_BIT::OSR_xz_32, 0 },
+		{ Register::CNTL4,        CNTL4_BIT::DR_200UT_SET, CNTL4_BIT::DR_200UT_CLEAR },
+		{ Register::OSRCNTL,      OSRCNTL_BIT::OSR_Y_32_SET | OSRCNTL_BIT::OSR_XZ_32_SET, OSRCNTL_BIT::OSR_Y_32_CLEAR | OSRCNTL_BIT::OSR_XZ_32_CLEAR },
 	};
 };
