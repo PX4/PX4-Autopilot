@@ -7,14 +7,26 @@ build:
   stage: build
   script:
     - make modalai_fc-v1
+    - make modalai_fc-v2_bootloader
+    - make modalai_fc-v2
     - BUILD=$(git describe --tags)
     - DATE=$(date +"%Y-%m-%d--%H-%M")
     - DEST_DIR=/tank/modalai/public/px4/firmware/
     - BUILD_DIR=$DATE-$BUILD
-    - mkdir -p $DEST_DIR/v1.11/$BUILD_DIR/
-    - cp build/modalai_fc-v1_default/modalai_fc-v1.bin $DEST_DIR/v1.11/$BUILD_DIR/
-    - cp build/modalai_fc-v1_default/modalai_fc-v1_default.elf $DEST_DIR/v1.11/$BUILD_DIR/
-    - cp build/modalai_fc-v1_default/modalai_fc-v1_default.px4 $DEST_DIR/v1.11/$BUILD_DIR/
+    - mkdir -p $DEST_DIR/v1.11/$BUILD_DIR/fc-v1/
+    - mkdir -p $DEST_DIR/v1.11/$BUILD_DIR/fc-v2/app/
+    - mkdir -p $DEST_DIR/v1.11/$BUILD_DIR/fc-v2/bl/
+    - cp build/modalai_fc-v1_default/modalai_fc-v1.bin $DEST_DIR/v1.11/$BUILD_DIR/fc-v1/
+    - cp build/modalai_fc-v1_default/modalai_fc-v1_default.elf $DEST_DIR/v1.11/$BUILD_DIR/fc-v1/
+    - cp build/modalai_fc-v1_default/modalai_fc-v1_default.px4 $DEST_DIR/v1.11/$BUILD_DIR/fc-v1/
+    - cp build/modalai_fc-v2_default/modalai_fc-v2.bin $DEST_DIR/v1.11/$BUILD_DIR/fc-v2/app/
+    - cp build/modalai_fc-v2_default/modalai_fc-v2_default.elf $DEST_DIR/v1.11/$BUILD_DIR/fc-v2/app/
+    - cp build/modalai_fc-v2_default/modalai_fc-v2_default.map $DEST_DIR/v1.11/$BUILD_DIR/fc-v2/app/
+    - cp build/modalai_fc-v2_default/modalai_fc-v2_default.px4 $DEST_DIR/v1.11/$BUILD_DIR/fc-v2/app/
+    - cp build/modalai_fc-v2_bootloader/modalai_fc-v2.bin $DEST_DIR/v1.11/$BUILD_DIR/fc-v2/bl/
+    - cp build/modalai_fc-v2_bootloader/modalai_fc-v2_bootloader.elf $DEST_DIR/v1.11/$BUILD_DIR/fc-v2/bl/
+    - cp build/modalai_fc-v2_bootloader/modalai_fc-v2_bootloader.map $DEST_DIR/v1.11/$BUILD_DIR/fc-v2/bl/
+    - cp build/modalai_fc-v2_bootloader/modalai_fc-v2_bootloader.px4 $DEST_DIR/v1.11/$BUILD_DIR/fc-v2/bl/
     - chmod -R 777 $DEST_DIR/v1.11/$BUILD_DIR/
   only:
     - modalai-1.11
