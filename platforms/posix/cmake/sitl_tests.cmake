@@ -96,6 +96,20 @@ set_tests_properties(sitl-mavlink PROPERTIES PASS_REGULAR_EXPRESSION "ALL TESTS 
 sanitizer_fail_test_on_error(sitl-mavlink)
 
 
+# IMU filtering
+add_test(NAME sitl-imu_filtering
+	COMMAND $<TARGET_FILE:px4>
+		-s ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_imu_filtering
+		-t ${PX4_SOURCE_DIR}/test_data
+		${PX4_SOURCE_DIR}/ROMFS/px4fmu_test
+	WORKING_DIRECTORY ${SITL_WORKING_DIR}
+)
+
+set_tests_properties(sitl-imu_filtering PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL")
+set_tests_properties(sitl-imu_filtering PROPERTIES PASS_REGULAR_EXPRESSION "ALL TESTS PASSED")
+sanitizer_fail_test_on_error(sitl-imu_filtering)
+
+
 
 # # Shutdown test
 # add_test(NAME sitl-shutdown

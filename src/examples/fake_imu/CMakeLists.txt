@@ -32,14 +32,15 @@
 ############################################################################
 
 px4_add_module(
-	MODULE modules__fake_gyro
-	MAIN fake_gyro
+	MODULE modules__fake_imu
+	MAIN fake_imu
 	COMPILE_FLAGS
 		${MAX_CUSTOM_OPT_LEVEL}
 	SRCS
-		FakeGyro.cpp
-		FakeGyro.hpp
+		FakeImu.cpp
+		FakeImu.hpp
 	DEPENDS
+		drivers_accelerometer
 		drivers_gyroscope
 		px4_work_queue
 )
