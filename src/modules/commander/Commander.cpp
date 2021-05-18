@@ -928,7 +928,13 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				const bool cmd_from_io = (static_cast<int>(roundf(cmd.param3)) == 1234);
 
 				if (cmd_from_manual_stick && !_vehicle_control_mode.flag_control_manual_enabled) {
-					mavlink_log_critical(&_mavlink_log_pub, "Not arming! Switch to a manual mode first");
+					if (param1_arm == 1) {
+						mavlink_log_critical(&_mavlink_log_pub, "Not arming! Switch to a manual mode first");
+
+					} else if (param1_arm == 0) {
+						mavlink_log_critical(&_mavlink_log_pub, "Not disarming! Switch to a manual mode first");
+					}
+
 					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
 					break;
 				}
