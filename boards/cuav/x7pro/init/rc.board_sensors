@@ -19,7 +19,10 @@ bmi088 -s -b 4 -G -R 2 start
 ms5611 -s -b 4 start
 
 # SPI6
-icm20649 -s -b 6 -R 2 start
+if ! icm20649 -s -b 6 -R 2 start
+then
+	icm20689 -s -b 6 -R 2 start
+fi
 ms5611 -s -b 6 start
 
 # External compass on GPS1/I2C1: standard CUAV GPS/compass puck (with lights, safety button, and buzzer)
