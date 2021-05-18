@@ -127,7 +127,7 @@ void ManualControl::Run()
 
 		if (_selector.setpoint().arm_gesture && !_previous_arm_gesture) {
 			_previous_arm_gesture = true;
-			send_arm_command(true, ArmingOrigin::GESTURE);
+			send_arm_command(ArmingAction::ARM, ArmingOrigin::GESTURE);
 
 		} else if (!_selector.setpoint().arm_gesture) {
 			_previous_arm_gesture = false;
@@ -135,7 +135,7 @@ void ManualControl::Run()
 
 		if (_selector.setpoint().disarm_gesture && !_previous_disarm_gesture) {
 			_previous_disarm_gesture = true;
-			send_arm_command(false, ArmingOrigin::GESTURE);
+			send_arm_command(ArmingAction::DISARM, ArmingOrigin::GESTURE);
 
 		} else if (!_selector.setpoint().disarm_gesture) {
 			_previous_disarm_gesture = false;
@@ -167,15 +167,22 @@ void ManualControl::Run()
 					}
 
 					if (switches.arm_switch != _previous_switches.arm_switch) {
-						if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							send_arm_command(true, ArmingOrigin::SWITCH);
+						if (_param_com_arm_swisbtn.get()) {
+							// Arming button
+							if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON) {
+								send_arm_command(ArmingAction::TOGGLE, ArmingOrigin::BUTTON);
+							}
 
-						} else if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-							send_arm_command(false, ArmingOrigin::SWITCH);
+						} else {
+							// Arming switch
+							if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON) {
+								send_arm_command(ArmingAction::ARM, ArmingOrigin::SWITCH);
+
+							} else if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_OFF) {
+								send_arm_command(ArmingAction::DISARM, ArmingOrigin::SWITCH);
+							}
 						}
 					}
-
-					// TODO: handle case with arming switch as button
 
 					if (switches.return_switch != _previous_switches.return_switch) {
 						if (switches.return_switch == manual_control_switches_s::SWITCH_POS_ON) {
@@ -413,12 +420,11 @@ void ManualControl::send_mode_command(int32_t commander_main_state)
 	command_pub.publish(command);
 }
 
-void ManualControl::send_arm_command(bool should_arm, ArmingOrigin origin)
+void ManualControl::send_arm_command(ArmingAction action, ArmingOrigin origin)
 {
 	vehicle_command_s command{};
 	command.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
-	command.param1 = should_arm ? 1.0f : 0.0f;
-
+	command.param1 = static_cast<float>(action);
 	command.param3 = static_cast<float>(origin); // We use param3 to signal the origin.
 
 	command.target_system = 1;

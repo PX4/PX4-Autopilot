@@ -105,6 +105,12 @@ public:
 private:
 	static constexpr int MAX_MANUAL_INPUT_COUNT = 3;
 
+	enum class ArmingAction {
+		TOGGLE = -1,
+		DISARM = 0,
+		ARM = 1,
+	};
+
 	enum class ArmingOrigin {
 		GESTURE = 1,
 		SWITCH = 2,
@@ -115,7 +121,7 @@ private:
 
 	void evaluate_mode_slot(uint8_t mode_slot);
 	void send_mode_command(int32_t commander_main_state);
-	void send_arm_command(bool should_arm, ArmingOrigin origin);
+	void send_arm_command(ArmingAction action, ArmingOrigin origin);
 	void send_rtl_command();
 	void send_loiter_command();
 	void send_offboard_command();
@@ -162,6 +168,7 @@ private:
 		(ParamFloat<px4::params::COM_RC_LOSS_T>) _param_com_rc_loss_t,
 		(ParamFloat<px4::params::COM_RC_STICK_OV>) _param_com_rc_stick_ov,
 		(ParamInt<px4::params::COM_RC_ARM_HYST>) _param_rc_arm_hyst,
+		(ParamBool<px4::params::COM_ARM_SWISBTN>) _param_com_arm_swisbtn,
 		(ParamInt<px4::params::COM_FLTMODE1>) _param_fltmode_1,
 		(ParamInt<px4::params::COM_FLTMODE2>) _param_fltmode_2,
 		(ParamInt<px4::params::COM_FLTMODE3>) _param_fltmode_3,
