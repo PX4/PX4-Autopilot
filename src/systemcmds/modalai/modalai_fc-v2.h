@@ -13,13 +13,13 @@ typedef enum {
 //
 // TELEM1
 //   M0079- J1
-//             PF6   PIN2 - out
-//             PE8   PIN3 - in
+//             PE8   PIN2 - in
+//             PF6   PIN3 - out
 //	       PF8   PIN4 - out
 //	       PE10  PIN4 - in
 //
-#define M0079_J1_PIN_2_OUT             _MK_GPIO_OUTPUT(GPIO_PORTF|GPIO_PIN6)
-#define M0079_J1_PIN_3_IN              _MK_GPIO_INPUT(GPIO_PORTE|GPIO_PIN8)
+#define M0079_J1_PIN_2_OUT             _MK_GPIO_OUTPUT(GPIO_PORTE|GPIO_PIN8)
+#define M0079_J1_PIN_3_IN              _MK_GPIO_INPUT(GPIO_PORTF|GPIO_PIN6)
 #define M0079_J1_PIN_4_OUT             _MK_GPIO_OUTPUT(GPIO_PORTF|GPIO_PIN8)
 #define M0079_J1_PIN_5_IN              _MK_GPIO_INPUT(GPIO_PORTE|GPIO_PIN10)
 
@@ -79,6 +79,34 @@ typedef enum {
 //
 #define M0079_J12_PIN_2_OUT             _MK_GPIO_OUTPUT(GPIO_PORTC|GPIO_PIN6)
 #define M0079_J12_PIN_3_IN              _MK_GPIO_INPUT(GPIO_PORTC|GPIO_PIN7)
+
+//
+// Expansion Connector
+//   M0079- J14
+//                  PIN1  - 3.3VDC
+//             PA6  PIN2  -
+//             PG14 PIN3  -
+//             PB3  PIN4  -
+//             PI10 PIN5  -
+//             PH8  PIN6  -
+//             PA8  PIN7  -
+//             PF12 PIN8  -
+//             PB0  PIN9  -
+//             PA0  PIN10 -
+//             PA4  PIN11 -
+//                  PIN12 - GND
+//
+#define M0079_J15_PIN_2_OUT            _MK_GPIO_OUTPUT(GPIO_PORTA|GPIO_PIN6)
+#define M0079_J15_PIN_3_IN             _MK_GPIO_INPUT(GPIO_PORTG|GPIO_PIN14)
+#define M0079_J15_PIN_4_OUT            _MK_GPIO_OUTPUT(GPIO_PORTB|GPIO_PIN3)
+#define M0079_J15_PIN_5_IN             _MK_GPIO_INPUT(GPIO_PORTI|GPIO_PIN10)
+#define M0079_J15_PIN_6_OUT            _MK_GPIO_OUTPUT(GPIO_PORTH|GPIO_PIN8)
+#define M0079_J15_PIN_7_IN             _MK_GPIO_INPUT(GPIO_PORTA|GPIO_PIN8)
+#define M0079_J15_PIN_8_OUT            _MK_GPIO_OUTPUT(GPIO_PORTF|GPIO_PIN12)
+#define M0079_J15_PIN_9_IN             _MK_GPIO_INPUT(GPIO_PORTB|GPIO_PIN0)
+#define M0079_J15_PIN_10_OUT           _MK_GPIO_OUTPUT(GPIO_PORTA|GPIO_PIN0)
+#define M0079_J15_PIN_11_IN            _MK_GPIO_INPUT(GPIO_PORTA|GPIO_PIN4)
+
 
 void	modalai_print_usage_v2(void);
 void	modalai_print_usage_con_gpio_test_v2(void);

@@ -97,7 +97,7 @@ int modalai_buzz_test_v2(eHW_TYPE hw_type)
 
 	if (hw_type == eM0079) {
 		//
-		//
+		// J1
 		//
 		PX4_INFO(">> Testing J1");
 		stm32_configgpio(M0079_J1_PIN_2_OUT); // 2-3
@@ -120,7 +120,7 @@ int modalai_buzz_test_v2(eHW_TYPE hw_type)
 		}
 
 		//
-		//
+		// J5
 		//
 		PX4_INFO(">> Testing J5");
 		stm32_configgpio(M0079_J5_PIN_2_OUT); // 2-4
@@ -143,7 +143,7 @@ int modalai_buzz_test_v2(eHW_TYPE hw_type)
 		}
 
 		//
-		//
+		// J7
 		//
 		PX4_INFO(">> Testing J7");
 		stm32_configgpio(M0079_J7_PIN_2_OUT); // 2-6
@@ -184,7 +184,7 @@ int modalai_buzz_test_v2(eHW_TYPE hw_type)
 		}
 
 		//
-		//
+		// J10
 		//
 		PX4_INFO(">> Testing J10");
 		stm32_configgpio(M0079_J10_PIN_2_OUT); // 2-4
@@ -208,7 +208,7 @@ int modalai_buzz_test_v2(eHW_TYPE hw_type)
 
 
 		//
-		//
+		// J13
 		//
 		PX4_INFO(">> Testing J13");
 		stm32_configgpio(M0079_J12_PIN_2_OUT); // 2-3
@@ -221,7 +221,55 @@ int modalai_buzz_test_v2(eHW_TYPE hw_type)
 			PX4_ERR("FAIL: M0079_J12_PIN_2 M0079_J12_PIN_3");
 		}
 
+		//
+		// J14
+		//
+		/*
+		PX4_INFO(">> Testing J14");
+		stm32_configgpio(M0079_J15_PIN_2_OUT);  // 2-3
+		stm32_configgpio(M0079_J15_PIN_3_IN);   // 3-2
+		stm32_configgpio(M0079_J15_PIN_4_OUT);  // 4-5
+		stm32_configgpio(M0079_J15_PIN_5_IN);   // 5-4
+		stm32_configgpio(M0079_J15_PIN_6_OUT);  // 6-7
 
+		// ADCs
+		//stm32_configgpio(M0079_J15_PIN_7_IN);   // 7-6
+		//stm32_configgpio(M0079_J15_PIN_8_OUT);  // 8-9
+		//stm32_configgpio(M0079_J15_PIN_9_IN);   // 9-8
+		//stm32_configgpio(M0079_J15_PIN_10_OUT); // 10-11
+		//stm32_configgpio(M0079_J15_PIN_11_IN);  // 11-10
+
+		if (test_pair(M0079_J15_PIN_2_OUT, M0079_J15_PIN_3_IN)) {
+			PX4_INFO("PASS: M0079_J15_PIN_2_OUT M0079_J15_PIN_3_IN");
+
+		} else {
+			PX4_ERR("FAIL: M0079_J15_PIN_2_OUT M0079_J15_PIN_3_IN");
+		}
+		if (test_pair(M0079_J15_PIN_4_OUT, M0079_J15_PIN_5_IN)) {
+			PX4_INFO("PASS: M0079_J15_PIN_4_OUT M0079_J15_PIN_5_IN");
+
+		} else {
+			PX4_ERR("FAIL: M0079_J15_PIN_4_OUT M0079_J15_PIN_5_IN");
+		}
+		if (test_pair(M0079_J15_PIN_6_OUT, M0079_J15_PIN_7_IN)) {
+			PX4_INFO("PASS: M0079_J15_PIN_6_OUT M0079_J15_PIN_7_IN");
+
+		} else {
+			PX4_ERR("FAIL: M0079_J15_PIN_6_OUT M0079_J15_PIN_7_IN");
+		}
+		if (test_pair(M0079_J15_PIN_8_OUT, M0079_J15_PIN_9_IN)) {
+			PX4_INFO("PASS: M0079_J15_PIN_8_OUT M0079_J15_PIN_9_IN");
+
+		} else {
+			PX4_ERR("FAIL: M0079_J15_PIN_8_OUT M0079_J15_PIN_9_IN");
+		}
+		if (test_pair(M0079_J15_PIN_10_OUT, M0079_J15_PIN_11_IN)) {
+			PX4_INFO("PASS: M0079_J15_PIN_10_OUT M0079_J15_PIN_11_IN");
+
+		} else {
+			PX4_ERR("FAIL: M0079_J15_PIN_10_OUT M0079_J15_PIN_11_IN");
+		}
+		*/
 	}
 
 	return 0;
