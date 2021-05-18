@@ -31,15 +31,56 @@
  *
  ****************************************************************************/
 
+/**
+ * @file AFBRS50.hpp
+ *
+ * Driver for the Broadcom AFBR-S50 connected via SPI.
+ *
+ */
 #pragma once
 
-// DMA1 Channel/Stream Selections
-//--------------------------------------------//---------------------------//----------------
+#include "argus.h"
 
+#include <drivers/drv_hrt.h>
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-//  DMA2 Channel/Stream Selections
-//--------------------------------------------//---------------------------//----------------
-#define DMACHAN_SPI1_RX    DMAMAP_SPI1_RX_2   // DMA2, Stream 2, Channel 3
-#define DMACHAN_SPI2_RX    DMAMAP_SPI2_RX     // DMA1, Stream 3, Channel 0
-#define DMACHAN_SPI2_TX    DMAMAP_SPI2_TX     // DMA1, Stream 4, Channel 0
-#define DMACHAN_SPI1_TX    DMAMAP_SPI1_TX_1   // DMA2, Stream 5, Channel 3
+using namespace time_literals;
+
+class AFBRS50 : public px4::ScheduledWorkItem
+{
+public:
+	AFBRS50(const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	~AFBRS50() override;
+
+	int init();
+
+	/**
+	 * Diagnostics - print some basic information about the driver.
+	 */
+	void print_info();
+
+	/**
+	 * Stop the automatic measurement state machine.
+	 */
+	void stop();
+
+private:
+	void Run() override;
+
+	enum class STATE : uint8_t {
+		CONFIGURE,
+		MEASURE,
+		COLLECT,
+	} _state{STATE::CONFIGURE};
+
+	PX4Rangefinder _px4_rangefinder;
+
+	hrt_abstime _measurement_time{0};
+
+	perf_counter_t _comms_error{perf_alloc(PC_COUNT, MODULE_NAME": comms_error")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": sample")};
+};

@@ -12,6 +12,7 @@ px4_add_board(
 	UAVCAN_INTERFACES 1
 	DRIVERS
 		bootloaders
+		distance_sensor/broadcom/AFBR
 		imu/bosch/bmi088
 		optical_flow/paw3902
 		uavcannode
@@ -27,7 +28,7 @@ px4_add_board(
 		reboot
 		system_time
 		top
-		topic_listener
+		#topic_listener
 		ver
 		work_queue
 )
