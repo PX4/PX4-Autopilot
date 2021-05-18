@@ -2407,13 +2407,20 @@ Commander::run()
 			}
 
 
+			const bool override_enabled =
+				((_param_com_rc_override.get() & static_cast<int32_t>(RcOverrideBits::AUTO_MODE_BIT))
+				 && _vehicle_control_mode.flag_control_auto_enabled)
+				|| ((_param_com_rc_override.get() & static_cast<int32_t>(RcOverrideBits::OFFBOARD_MODE_BIT))
+				    && _vehicle_control_mode.flag_control_offboard_enabled);
+
 			// Abort autonomous mode and switch to position mode if sticks are moved significantly
 			// but only if actually in air.
 			if ((_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
 			    && !in_low_battery_failsafe && !_geofence_warning_action_on
 			    && _armed.armed
 			    && !_status_flags.rc_input_blocked
-			    && manual_control_setpoint.user_override) {
+			    && manual_control_setpoint.user_override
+			    && override_enabled) {
 				const transition_result_t posctl_result =
 					main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags, _internal_state);
 
