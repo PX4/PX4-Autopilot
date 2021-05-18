@@ -207,7 +207,7 @@ void ADIS16448::RunImpl()
 				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
 					PX4_DEBUG("Reset failed, retrying");
 					_state = STATE::RESET;
-					ScheduleDelayed(1000_ms);
+					ScheduleDelayed(100_ms);
 
 				} else {
 					PX4_DEBUG("Reset not complete, check again in 100 ms");
