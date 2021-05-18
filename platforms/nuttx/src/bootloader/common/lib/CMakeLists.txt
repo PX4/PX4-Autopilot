@@ -31,7 +31,10 @@
 #
 ############################################################################
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/common)
+add_library(bootloader_lib
+	cdcacm.c
+	uart.c
+	flash_cache.c
+)
 
-add_subdirectory(common)
-add_subdirectory(${PX4_CHIP_MANUFACTURER})
+add_dependencies(bootloader_lib prebuild_targets)
