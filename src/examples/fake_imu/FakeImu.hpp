@@ -38,16 +38,17 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_gyro_fifo.h>
 
-class FakeGyro : public ModuleBase<FakeGyro>, public ModuleParams, public px4::ScheduledWorkItem
+class FakeImu : public ModuleBase<FakeImu>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	FakeGyro();
-	~FakeGyro() override = default;
+	FakeImu();
+	~FakeImu() override = default;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -61,12 +62,14 @@ public:
 	bool init();
 
 private:
-	static constexpr uint32_t SENSOR_RATE = 1250;
-	static constexpr float GYRO_RATE = 8000;
+	static constexpr double IMU_RATE_HZ = 8000;
 
 	void Run() override;
 
+	PX4Accelerometer _px4_accel;
 	PX4Gyroscope _px4_gyro;
 
-	float _time{0.f};
+	hrt_abstime _time_start_us{0};
+
+	uint32_t _sensor_interval_us{1250};
 };

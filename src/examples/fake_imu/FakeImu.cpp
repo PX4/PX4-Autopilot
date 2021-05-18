@@ -31,25 +31,32 @@
  *
  ****************************************************************************/
 
-#include "FakeGyro.hpp"
+#include "FakeImu.hpp"
 
 using namespace time_literals;
 
-FakeGyro::FakeGyro() :
+FakeImu::FakeImu() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
-	_px4_gyro(1310988) // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	_px4_accel(1310988), // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	_px4_gyro(1310988)   // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 {
+	_sensor_interval_us = roundf(1.e6f / _px4_gyro.get_max_rate_hz());
+
+	PX4_INFO("Rate %.3f, Interval: %d us", (double)_px4_gyro.get_max_rate_hz(), _sensor_interval_us);
+
+	_px4_accel.set_range(2000.f); // don't care
+
 	_px4_gyro.set_scale(math::radians(2000.f) / static_cast<float>(INT16_MAX - 1)); // 2000 degrees/second max
 }
 
-bool FakeGyro::init()
+bool FakeImu::init()
 {
-	ScheduleOnInterval(SENSOR_RATE, SENSOR_RATE);
+	ScheduleOnInterval(_sensor_interval_us);
 	return true;
 }
 
-void FakeGyro::Run()
+void FakeImu::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
@@ -59,29 +66,60 @@ void FakeGyro::Run()
 
 	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = hrt_absolute_time();
-	gyro.samples = GYRO_RATE / (1e6f / SENSOR_RATE);
-	gyro.dt = 1e6f / GYRO_RATE; // 8 kHz fake gyro;
+	gyro.samples = roundf(IMU_RATE_HZ / (1e6 / _sensor_interval_us));
+	gyro.dt = 1e6 / IMU_RATE_HZ;
 
-	const float dt_s = gyro.dt * 1e-6f;
-	const float x_freq = 15.f;  //  15,0 Hz X frequency
-	const float y_freq = 63.5f; //  63.5 Hz Y frequency
-	const float z_freq = 135.f; // 135.0 Hz Z frequency
+	const double dt_s = 1 / IMU_RATE_HZ;
+
+	const double x_f0 = 0.0;    //    0 Hz X frequency start
+	const double x_f1 = 10.0;   //   10 Hz X frequency stop
+
+	const double y_f0 = 0.0;    //   10 Hz Y frequency start
+	const double y_f1 = 100.0;  // 1000 Hz Y frequency stop
+
+	const double z_f0 = 0.0;    //  100 Hz Z frequency start
+	const double z_f1 = 1000.0; // 1000 Hz Z frequency stop
+
+	// amplitude
+	static constexpr double A = (INT16_MAX - 1);
+
+	if (_time_start_us == 0) {
+		_time_start_us = gyro.timestamp_sample;
+	}
+
+	// 10 second sweep
+	const double T = 10.0;
+
+	const double timestamp_sample_s = static_cast<double>(gyro.timestamp_sample - _time_start_us) / 1e6;
 
 	for (int n = 0; n < gyro.samples; n++) {
-		_time += dt_s;
-		const float k = 2.f * M_PI_F * _time;
+		// timestamp_sample corresponds to last sample
+		const double t = timestamp_sample_s - (gyro.samples - n - 1) * dt_s;
 
-		gyro.x[n] = (INT16_MAX - 1) * sinf(k * x_freq);
-		gyro.y[n] = (INT16_MAX - 1) / 2 * sinf(k * y_freq);
-		gyro.z[n] = (INT16_MAX - 1) * cosf(k * z_freq);
+		// linear-frequency chirp, see https://en.wikipedia.org/wiki/Chirp
+		const double x_F = x_f0 + (x_f1 - x_f0) * t / (2 * T);
+		const double y_F = y_f0 + (y_f1 - y_f0) * t / (2 * T);
+		const double z_F = z_f0 + (z_f1 - z_f0) * t / (2 * T);
+
+		gyro.x[n] = roundf(A * sin(2 * M_PI * x_F * t));
+		gyro.y[n] = roundf(A * sin(2 * M_PI * y_F * t));
+		gyro.z[n] = roundf(A * sin(2 * M_PI * z_F * t));
+
+		if (n == 0) {
+			float x_freq = (x_f1 - x_f0) * (t / T) + x_f0;
+			float y_freq = (y_f1 - y_f0) * (t / T) + y_f0;
+			float z_freq = (z_f1 - z_f0) * (t / T) + z_f0;
+
+			_px4_accel.update(gyro.timestamp_sample, x_freq, y_freq, z_freq);
+		}
 	}
 
 	_px4_gyro.updateFIFO(gyro);
 }
 
-int FakeGyro::task_spawn(int argc, char *argv[])
+int FakeImu::task_spawn(int argc, char *argv[])
 {
-	FakeGyro *instance = new FakeGyro();
+	FakeImu *instance = new FakeImu();
 
 	if (instance) {
 		_object.store(instance);
@@ -102,12 +140,12 @@ int FakeGyro::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int FakeGyro::custom_command(int argc, char *argv[])
+int FakeImu::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
 }
 
-int FakeGyro::print_usage(const char *reason)
+int FakeImu::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -119,13 +157,13 @@ int FakeGyro::print_usage(const char *reason)
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("fake_gyro", "driver");
+	PRINT_MODULE_USAGE_NAME("fake_imu", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	return 0;
 }
 
-extern "C" __EXPORT int fake_gyro_main(int argc, char *argv[])
+extern "C" __EXPORT int fake_imu_main(int argc, char *argv[])
 {
-	return FakeGyro::main(argc, argv);
+	return FakeImu::main(argc, argv);
 }
