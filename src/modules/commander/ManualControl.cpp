@@ -73,10 +73,10 @@ bool ManualControl::wantsOverride(const vehicle_control_mode_s &vehicle_control_
 
 		const bool rpy_moved = (fabsf(_manual_control_setpoint.x - _last_manual_control_setpoint.x) > minimum_stick_change)
 				       || (fabsf(_manual_control_setpoint.y - _last_manual_control_setpoint.y) > minimum_stick_change)
-				       || (fabsf(_manual_control_setpoint.r - _last_manual_control_setpoint.r) > minimum_stick_change);
+				       || (fabsf(_manual_control_setpoint.z - _last_manual_control_setpoint.z) > minimum_stick_change);
 		// Throttle change value doubled to achieve the same scaling even though the range is [0,1] instead of [-1,1]
 		const bool throttle_moved =
-			(fabsf(_manual_control_setpoint.z - _last_manual_control_setpoint.z) * 2.f > minimum_stick_change);
+			(fabsf(_manual_control_setpoint.r - _last_manual_control_setpoint.r) * 2.f > minimum_stick_change);
 		const bool use_throttle = !(_param_rc_override.get() & OverrideBits::OVERRIDE_IGNORE_THROTTLE_BIT);
 
 		if (rpy_moved || (use_throttle && throttle_moved)) {
