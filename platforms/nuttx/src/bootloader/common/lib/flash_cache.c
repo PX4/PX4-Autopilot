@@ -38,6 +38,7 @@
 
 #include <nuttx/progmem.h>
 
+extern ssize_t arch_flash_write(size_t address, const void *buffer, size_t buflen);
 
 flash_cache_line_t flash_cache[FC_NUMBER_LINES];
 
@@ -76,7 +77,7 @@ inline int fc_is_dirty(flash_cache_line_t *fl)
 int fc_flush(flash_cache_line_t *fl)
 {
 	size_t bytes = (fl->index + 1) * sizeof(fl->words[0]);
-	size_t rv = up_progmem_write(fl->start_address, fl->words, bytes);
+	size_t rv = arch_flash_write(fl->start_address, fl->words, bytes);
 
 	if (rv == bytes) {
 		rv = 0;

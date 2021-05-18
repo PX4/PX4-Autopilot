@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 #include "arm_arch.h"
-#include "systick.h"
+#include "lib/systick.h"
 #include <nvic.h>
 
 uint8_t systick_get_countflag(void)

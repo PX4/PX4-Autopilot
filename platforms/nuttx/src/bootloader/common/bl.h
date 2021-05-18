@@ -112,7 +112,8 @@ extern uint32_t flash_func_read_otp(uint32_t address);
 extern uint32_t flash_func_read_sn(uint32_t address);
 extern void arch_flash_lock(void);
 extern void arch_flash_unlock(void);
-extern void arch_setvtor(uint32_t address);
+extern void arch_setvtor(const uint32_t *address);
+extern void arch_do_jump(const uint32_t *app_base);
 void arch_systic_init(void);
 void arch_systic_deinit(void);
 
