@@ -172,6 +172,10 @@
                         "13": {
                             "name": "unit_test",
                             "description": "unit tests"
+                        },
+                        "14": {
+                            "name": "rc_button",
+                            "description": "RC (button)"
                         }
                     }
                 },
