@@ -468,6 +468,8 @@ static constexpr const char *arm_disarm_reason_str(arm_disarm_reason_t calling_r
 	case arm_disarm_reason_t::shutdown: return "shutdown request";
 
 	case arm_disarm_reason_t::unit_test: return "unit tests";
+
+	case arm_disarm_reason_t::rc_button: return "RC (button)";
 	}
 
 	return "";
@@ -911,18 +913,18 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			// for logic state parameters
 			const int param1_arm = static_cast<int>(roundf(cmd.param1));
 
-			if (param1_arm != 0 && param1_arm != 1) {
+			if (param1_arm != 0 && param1_arm != 1 && param1_arm != -1) {
 				mavlink_log_critical(&_mavlink_log_pub, "Unsupported ARM_DISARM param: %.3f\t", (double)cmd.param1);
 				events::send<float>(events::ID("commander_unsupported_arm_disarm_param"), events::Log::Error,
 						    "Unsupported ARM_DISARM param: {1:.3}", cmd.param1);
 
 			} else {
-				const bool cmd_arms = (param1_arm == 1);
-
 				// Arm is forced (checks skipped) when param2 is set to a magic number.
 				const bool forced = (static_cast<int>(roundf(cmd.param2)) == 21196);
 
 				const bool cmd_from_manual_stick = (static_cast<int>(roundf(cmd.param3)) == 1);
+				const bool cmd_from_manual_switch = (static_cast<int>(roundf(cmd.param3)) == 2);
+				const bool cmd_from_manual_button = (static_cast<int>(roundf(cmd.param3)) == 3);
 				const bool cmd_from_io = (static_cast<int>(roundf(cmd.param3)) == 1234);
 
 				if (cmd_from_manual_stick && !_vehicle_control_mode.flag_control_manual_enabled) {
@@ -933,7 +935,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				if (!forced) {
 					if (!(_land_detector.landed || _land_detector.maybe_landed) && !is_ground_rover(_status)) {
-						if (cmd_arms) {
+						if (param1_arm == 1) {
 							if (_armed.armed) {
 								mavlink_log_warning(&_mavlink_log_pub, "Arming denied! Already armed\t");
 								events::send(events::ID("commander_arming_denied_already_armed"),
@@ -960,14 +962,14 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 					// Flick to in-air restore first if this comes from an onboard system and from IO
 					if (cmd.source_system == _status.system_id && cmd.source_component == _status.component_id
-					    && cmd_from_io && cmd_arms) {
+					    && cmd_from_io && (param1_arm == 1)) {
 						_status.arming_state = vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE;
 					}
 				}
 
 				transition_result_t arming_res = TRANSITION_DENIED;
 
-				if (cmd_arms) {
+				if (param1_arm == 1) {
 					if (cmd.from_external) {
 						arming_res = arm(arm_disarm_reason_t::command_external);
 
@@ -975,12 +977,15 @@ Commander::handle_command(const vehicle_command_s &cmd)
 						if (cmd_from_manual_stick) {
 							arming_res = arm(arm_disarm_reason_t::rc_stick, !forced);
 
+						} else if (cmd_from_manual_switch) {
+							arming_res = arm(arm_disarm_reason_t::rc_switch, !forced);
+
 						} else {
 							arming_res = arm(arm_disarm_reason_t::command_internal, !forced);
 						}
 					}
 
-				} else {
+				} else if (param1_arm == 0) {
 					if (cmd.from_external) {
 						arming_res = disarm(arm_disarm_reason_t::command_external);
 
@@ -988,10 +993,29 @@ Commander::handle_command(const vehicle_command_s &cmd)
 						if (cmd_from_manual_stick) {
 							arming_res = disarm(arm_disarm_reason_t::rc_stick);
 
+						} else if (cmd_from_manual_switch) {
+							arming_res = disarm(arm_disarm_reason_t::rc_switch);
+
 						} else {
 							arming_res = disarm(arm_disarm_reason_t::command_internal);
 						}
 					}
+
+				} else if (param1_arm == -1) {
+					// -1 means toggle by a button
+					// This should come from an arming button internally, otherwise something is wrong.
+					if (!cmd.from_external && cmd_from_manual_button) {
+						if (_armed.armed) {
+							arming_res = disarm(arm_disarm_reason_t::rc_button);
+
+						} else {
+							arming_res = arm(arm_disarm_reason_t::rc_button);
+						}
+
+					} else {
+						PX4_WARN("ARM_DISARM toggle command ignored");
+					}
+
 				}
 
 				if (arming_res == TRANSITION_DENIED) {
@@ -1001,7 +1025,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 					/* update home position on arming if at least 500 ms from commander start spent to avoid setting home on in-air restart */
-					if (cmd_arms && (arming_res == TRANSITION_CHANGED) &&
+					if ((param1_arm == 1) && (arming_res == TRANSITION_CHANGED) &&
 					    (hrt_absolute_time() > (_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL)) && !_home_pub.get().manual_home) {
 
 						set_home_position();
