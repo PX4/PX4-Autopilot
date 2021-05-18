@@ -424,22 +424,27 @@ clock_deinit(void)
 
 }
 
-inline void arch_flash_lock(void)
+void arch_flash_lock(void)
 {
 	stm32h7_flash_lock(STM32_FLASH_BANK1);
 	stm32h7_flash_lock(STM32_FLASH_BANK2);
 }
 
-inline void arch_flash_unlock(void)
+void arch_flash_unlock(void)
 {
 	fc_reset();
 	stm32h7_flash_unlock(STM32_FLASH_BANK1);
 	stm32h7_flash_unlock(STM32_FLASH_BANK2);
 }
 
-inline void arch_setvtor(uint32_t address)
+ssize_t arch_flash_write(size_t address, const void *buffer, size_t buflen)
 {
-	putreg32(address, NVIC_VECTAB);
+	return up_progmem_write(address, buffer, buflen);
+}
+
+inline void arch_setvtor(const uint32_t *address)
+{
+	putreg32((uint32_t)address, NVIC_VECTAB);
 }
 
 uint32_t
@@ -610,6 +615,23 @@ led_toggle(unsigned led)
 #ifndef SCB_CPACR
 # define SCB_CPACR (*((volatile uint32_t *) (((0xE000E000UL) + 0x0D00UL) + 0x088)))
 #endif
+
+/* Make the actual jump to app */
+void
+arch_do_jump(const uint32_t *app_base)
+{
+	/* extract the stack and entrypoint from the app vector table and go */
+	uint32_t stacktop = app_base[0];
+	uint32_t entrypoint = app_base[1];
+
+	asm volatile(
+		"msr msp, %0  \n"
+		"bx %1  \n"
+		: : "r"(stacktop), "r"(entrypoint) :);
+
+	// just to keep noreturn happy
+	for (;;) ;
+}
 
 int
 bootloader_main(void)

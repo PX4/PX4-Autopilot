@@ -43,8 +43,11 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "bl.h"
+#include "image_toc.h"
+#include "crypto.h"
 #include "cdcacm.h"
 #include "uart.h"
 
@@ -246,7 +249,7 @@ inline void cout(uint8_t *buf, unsigned len)
 #define arch_flash_lock flash_lock
 #define arch_flash_unlock flash_unlock
 
-#define arch_setvtor(address) SCB_VTOR = address;
+#define arch_setvtor(address) SCB_VTOR = (uint32_t)address;
 
 #endif
 
@@ -283,22 +286,11 @@ buf_get(void)
 	return ret;
 }
 
-static void
-do_jump(uint32_t stacktop, uint32_t entrypoint)
-{
-	asm volatile(
-		"msr msp, %0  \n"
-		"bx %1  \n"
-		: : "r"(stacktop), "r"(entrypoint) :);
-
-	// just to keep noreturn happy
-	for (;;) ;
-}
-
 void
 jump_to_app()
 {
 	const uint32_t *app_base = (const uint32_t *)APP_LOAD_ADDRESS;
+	const uint32_t *vec_base = (const uint32_t *)app_base;
 
 	/*
 	 * We refuse to program the first word of the app until the upload is marked
@@ -307,6 +299,75 @@ jump_to_app()
 	if (app_base[0] == 0xffffffff) {
 		return;
 	}
+
+#ifdef BOOTLOADER_USE_TOC
+	const image_toc_entry_t *toc_entries;
+	uint8_t len;
+	uint8_t i = 0;
+
+	/* When secure btl is used, the address comes from the TOC */
+	app_base = (const uint32_t *)0;
+	vec_base = (const uint32_t *)0;
+
+	/* TOC not found or empty, stay in btl */
+	if (!find_toc(&toc_entries, &len)) {
+		return;
+	}
+
+	/* Verify the first entry, containing the TOC itself */
+	if (!verify_app(0, toc_entries)) {
+		/* Image verification failed, stay in btl */
+		return;
+	}
+
+	/* TOC is verified, loop through all the apps and perform crypto ops */
+	for (i = 0; i < len; i++) {
+		/* Verify app, if needed. i == 0 is already verified */
+		if (i != 0 &&
+		    toc_entries[i].flags1 & TOC_FLAG1_CHECK_SIGNATURE &&
+		    !verify_app(i, toc_entries)) {
+			/* Signature check failed, don't process this app */
+			continue;
+		}
+
+		/* Check if this app needs decryption */
+		if (toc_entries[i].flags1 & TOC_FLAG1_DECRYPT &&
+		    !decrypt_app(i, toc_entries)) {
+			/* Decryption / authenticated decryption failed, skip this app */
+			continue;
+		}
+
+		/* Check if this app needs to be copied to RAM */
+		if (toc_entries[i].flags1 & TOC_FLAG1_COPY) {
+			/* TOC is verified, so we assume that the addresses are good */
+			memcpy(toc_entries[i].target, toc_entries[i].start,
+			       (uintptr_t)toc_entries[i].end - (uintptr_t)toc_entries[i].start);
+		}
+
+		/* Check if this app is bootable, if so set the app_base */
+		if (toc_entries[i].flags1 & TOC_FLAG1_BOOT) {
+			app_base = get_base_addr(&toc_entries[i]);
+		}
+
+		/* Check if this app has vectors, if so set the vec_base */
+		if (toc_entries[i].flags1 & TOC_FLAG1_VTORS) {
+			vec_base = get_base_addr(&toc_entries[i]);
+		}
+	}
+
+	if (app_base == 0) {
+		/* No bootable app found in TOC, bail out */
+		return;
+	}
+
+	if (vec_base == 0) {
+		/* No separate vectors block, vectors come along with the app */
+		vec_base = app_base;
+	}
+
+#else
+
+	/* These checks are arm specific, and not needed when using TOC */
 
 	/*
 	 * The second word of the app is the entrypoint; it must point within the
@@ -319,6 +380,8 @@ jump_to_app()
 	if (app_base[1] >= (APP_LOAD_ADDRESS + board_info.fw_size)) {
 		return;
 	}
+
+#endif
 
 	/* just for paranoia's sake */
 	arch_flash_lock();
@@ -336,10 +399,10 @@ jump_to_app()
 	board_deinit();
 
 	/* switch exception handlers to the application */
-	arch_setvtor(APP_LOAD_ADDRESS);
+	arch_setvtor(vec_base);
 
-	/* extract the stack and entrypoint from the app vector table and go */
-	do_jump(app_base[0], app_base[1]);
+	/* make arch specific jump to app */
+	arch_do_jump(app_base);
 }
 
 volatile unsigned timer[NTIMERS];
