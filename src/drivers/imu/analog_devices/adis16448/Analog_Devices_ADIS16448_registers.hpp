@@ -65,7 +65,7 @@ namespace Analog_Devices_ADIS16448
 static constexpr uint32_t SPI_SPEED = 2 * 1000 * 1000;       // 2 MHz SPI serial interface
 static constexpr uint32_t SPI_SPEED_BURST = 1 * 1000 * 1000; // 1 MHz SPI serial interface for burst read
 
-static constexpr uint32_t SPI_STALL_PERIOD = 9; // 9 us Stall period between data
+static constexpr uint32_t SPI_STALL_PERIOD = 10; // 9 us Stall period between data
 
 static constexpr uint16_t DIR_WRITE = 0x80;
 
@@ -128,8 +128,8 @@ enum GLOB_CMD_BIT : uint16_t {
 
 // SMPL_PRD
 enum SMPL_PRD_BIT : uint16_t {
-	// [12:8] D, decimation rate setting, binomial,
-	decimation_rate = Bit12 | Bit11 | Bit10 | Bit9, // disable
+	// [12:8] D, decimation rate setting, binomial
+	decimation_rate = Bit12 | Bit11 | Bit10 | Bit9 | Bit8, // disable
 
 	internal_sampling_clock = Bit0, // 1 = internal sampling clock, 819.2 SPS
 };
@@ -141,8 +141,8 @@ enum SENS_AVG_BIT : uint16_t {
 	Measurement_range_1000_clear = Bit9 | Bit8,
 
 	// [2:0] Filter Size Variable B
-	Filter_Size_Variable_B = Bit2 | Bit1 | Bit0, // disable
-
+	Filter_Size_Variable_B_set   = Bit1,
+	Filter_Size_Variable_B_clear = Bit2 | Bit0,
 };
 
 // GPIO_CTRL
