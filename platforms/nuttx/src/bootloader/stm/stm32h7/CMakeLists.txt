@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2021 Technology Innovation Institute. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,11 +31,4 @@
 #
 ############################################################################
 
-add_library(bootloader_lib
-	systick.c
-	cdcacm.c
-	uart.c
-	flash_cache.c
-)
-
-add_dependencies(bootloader_lib prebuild_targets)
+add_subdirectory(../stm32_common arch_bootloader)
