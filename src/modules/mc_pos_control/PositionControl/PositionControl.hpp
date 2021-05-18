@@ -40,6 +40,7 @@
 #pragma once
 
 #include <matrix/matrix/math.hpp>
+#include <mathlib/mathlib.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_constraints.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
@@ -353,6 +354,9 @@ private:
 	matrix::Vector3f _thr_sp; /**< desired thrust */
 	float _yaw_sp{}; /**< desired heading */
 	float _yawspeed_sp{}; /** desired yaw-speed */
+
+	// New RCAC_Class_Variables
+	RCAC pos_RCAC;
 
 	// RCAC
 	int ii_Pr_R = 0;
