@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,13 +31,16 @@
 #
 ############################################################################
 
-add_subdirectory(akm)
-add_subdirectory(bosch)
-add_subdirectory(hmc5883)
-add_subdirectory(qmc5883l)
-add_subdirectory(isentek)
-add_subdirectory(lis2mdl)
-add_subdirectory(lis3mdl)
-add_subdirectory(lsm303agr)
-add_subdirectory(rm3100)
-add_subdirectory(hmc6343)
+px4_add_module(
+	MODULE drivers__magnetometer__hmc6343
+	MAIN hmc6343
+	COMPILE_FLAGS
+	SRCS
+		HMC6343.cpp
+		HMC6343.hpp
+		hmc6343_main.cpp
+		Honeywell_HMC6343_registers.hpp
+	DEPENDS
+		drivers_magnetometer
+		px4_work_queue
+	)
