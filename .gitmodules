@@ -66,3 +66,6 @@
 [submodule "src/drivers/uavcannode_gps_demo/libcanard"]
 	path = src/drivers/uavcannode_gps_demo/libcanard
 	url = https://github.com/UAVCAN/libcanard
+[submodule "set-branch"]
+	path = set-branch
+	url = https://github.com/ankgoel8188/RCAC_cpp_light.git
