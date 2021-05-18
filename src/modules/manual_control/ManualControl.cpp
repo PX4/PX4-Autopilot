@@ -391,15 +391,11 @@ void ManualControl::send_mode_command(int32_t commander_main_state)
 		break;
 
 	case commander_state_s::MAIN_STATE_AUTO_PRECLAND:
-		command.param2 = PX4_CUSTOM_MAIN_MODE_AUTO;
-		command.param3 = PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND;
-		break;
 
+	// FALLTHROUGH
 	case commander_state_s::MAIN_STATE_ORBIT:
-		// TODO: check if this works without the DO_ORBIT command
-		command.param2 = PX4_CUSTOM_MAIN_MODE_POSCTL;
-		command.param3 = PX4_CUSTOM_SUB_MODE_POSCTL_ORBIT;
-		break;
+		PX4_WARN("Unhandled main_state");
+		return;
 
 	case commander_state_s::MAIN_STATE_MAX:
 
