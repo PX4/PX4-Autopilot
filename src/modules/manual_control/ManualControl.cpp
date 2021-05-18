@@ -89,6 +89,7 @@ void ManualControl::Run()
 
 	bool found_at_least_one = false;
 	const hrt_abstime now = hrt_absolute_time();
+	const float dt_s = now - _last_time;
 
 	for (int i = 0; i < MAX_MANUAL_INPUT_COUNT; i++) {
 		manual_control_input_s manual_control_input;
@@ -143,21 +144,19 @@ void ManualControl::Run()
 		// user wants override
 		const float minimum_stick_change = 0.01f * _param_com_rc_stick_ov.get();
 
-		// TODO: look at least at 3 samples in a specific time
-
-		const bool rpy_moved = (fabsf(_selector.setpoint().x - _previous_x) > minimum_stick_change)
-				       || (fabsf(_selector.setpoint().y - _previous_y) > minimum_stick_change)
-				       || (fabsf(_selector.setpoint().r - _previous_r) > minimum_stick_change);
+		const bool rpy_moved = (fabsf(_x_diff.diff()) > minimum_stick_change)
+				       || (fabsf(_y_diff.diff()) > minimum_stick_change)
+				       || (fabsf(_r_diff.diff()) > minimum_stick_change);
 
 		// Throttle change value doubled to achieve the same scaling even though the range is [0,1] instead of [-1,1]
-		const bool throttle_moved = (fabsf(_selector.setpoint().z - _previous_z) * 2.f > minimum_stick_change);
+		const bool throttle_moved = (fabsf(_z_diff.diff()) * 2.f > minimum_stick_change);
 
 		_selector.setpoint().user_override = rpy_moved || throttle_moved;
 
-		_previous_x = _selector.setpoint().x;
-		_previous_y = _selector.setpoint().y;
-		_previous_z = _selector.setpoint().z;
-		_previous_r = _selector.setpoint().r;
+		_x_diff.update(_selector.setpoint().x, dt_s);
+		_y_diff.update(_selector.setpoint().y, dt_s);
+		_z_diff.update(_selector.setpoint().z, dt_s);
+		_r_diff.update(_selector.setpoint().r, dt_s);
 
 		if (switches_updated) {
 			// Only use switches if current source is RC as well.
@@ -268,11 +267,13 @@ void ManualControl::Run()
 			_manual_control_setpoint_pub.publish(_selector.setpoint());
 		}
 
-		_previous_x = NAN;
-		_previous_y = NAN;
-		_previous_z = NAN;
-		_previous_r = NAN;
+		_x_diff.update(0.0f, dt_s);
+		_y_diff.update(0.0f, dt_s);
+		_z_diff.update(0.0f, dt_s);
+		_r_diff.update(0.0f, dt_s);
 	}
+
+	_last_time = now;
 
 	// reschedule timeout
 	ScheduleDelayed(200_ms);

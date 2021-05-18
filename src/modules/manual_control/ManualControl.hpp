@@ -54,6 +54,35 @@ using namespace time_literals;
 namespace manual_control
 {
 
+class MovingDiff
+{
+public:
+	void update(float value, float dt_s)
+	{
+		if (dt_s < 0.0f) {
+			dt_s = 0.0f;
+
+		} else if (dt_s > _time_period_s) {
+			dt_s = _time_period_s;
+		}
+
+		const float new_diff = value - _last_value;
+		_diff = new_diff * dt_s + _diff * (_time_period_s - dt_s);
+		_last_value = value;
+	}
+
+	float diff() const
+	{
+		return _diff;
+	}
+
+private:
+	float _diff{0.0f};
+	float _last_value{0.0f};
+	const float _time_period_s{1.0f};
+};
+
+
 class ManualControl : public ModuleBase<ManualControl>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
@@ -114,14 +143,16 @@ private:
 	bool _previous_arm_gesture{false};
 	bool _previous_disarm_gesture{false};
 
-	float _previous_x{NAN};
-	float _previous_y{NAN};
-	float _previous_z{NAN};
-	float _previous_r{NAN};
+	MovingDiff _x_diff{};
+	MovingDiff _y_diff{};
+	MovingDiff _z_diff{};
+	MovingDiff _r_diff{};
 
 	manual_control_switches_s _previous_switches{};
 	bool _previous_switches_initialized{false};
 	int32_t _last_mode_slot_flt{-1};
+
+	hrt_abstime _last_time{0};
 
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
