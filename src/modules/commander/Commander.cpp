@@ -2089,7 +2089,7 @@ Commander::run()
 
 					} else if (mission_result.warning) {
 						/* the mission has a warning */
-						tune_mission_fail(true);
+						tune_mission_warn(true);
 
 					} else {
 						/* the mission is valid */
