@@ -240,7 +240,8 @@ void UavcanNode::Run()
 
 	while (_can_interface->receive(&received_frame) > 0) {
 		CanardTransfer receive{};
-		int32_t result = canardRxAccept(&_canard_instance, &received_frame, 0, &receive);
+		CanardRxSubscription *subscription = NULL;
+		int32_t result = canardRxAccept2(&_canard_instance, &received_frame, 0, &receive, &subscription);
 
 		if (result < 0) {
 			// An error has occurred: either an argument is invalid or we've ran out of memory.
@@ -253,19 +254,12 @@ void UavcanNode::Run()
 			// A transfer has been received, process it.
 			// PX4_INFO("received Port ID: %d", receive.port_id);
 
-			if (receive.port_id > 0) {
-				// If not a fixed port ID, check any subscribers which may have registered it
-				for (auto &subscriber : _subscribers) {
-					if (subscriber->hasPortID(receive.port_id)) {
-						subscriber->callback(receive);
-					}
-				}
+			if (subscription != NULL) {
+				UavcanBaseSubscriber *sub_instance = (UavcanBaseSubscriber *)subscription->user_reference;
+				sub_instance->callback(receive);
 
-				for (auto &subscriber : _dynsubscribers) {
-					if (subscriber->hasPortID(receive.port_id)) {
-						subscriber->callback(receive);
-					}
-				}
+			} else {
+				PX4_ERR("No matching sub for %d", receive.port_id);
 			}
 
 			// Deallocate the dynamic memory afterwards.

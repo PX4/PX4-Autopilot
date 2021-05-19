@@ -56,6 +56,7 @@ public:
 		_canard_instance(ins), _instance(instance)
 	{
 		_subj_sub._subject_name = subject_name;
+		_subj_sub._canard_sub.user_reference = this;
 	}
 
 	virtual void subscribe() = 0;

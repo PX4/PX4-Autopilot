@@ -47,7 +47,7 @@
 // Legacy message from UAVCANv0
 #include <legacy/equipment/power/BatteryInfo_1_0.h>
 
-#include "DynamicPortSubscriber.hpp"
+#include "../DynamicPortSubscriber.hpp"
 
 class UavcanLegacyBatteryInfoSubscriber : public UavcanDynamicPortSubscriber
 {

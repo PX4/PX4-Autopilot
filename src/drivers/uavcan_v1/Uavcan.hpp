@@ -72,11 +72,11 @@
 #include "Publishers/Gnss.hpp"
 
 #include "Subscribers/BaseSubscriber.hpp"
-#include "Subscribers/Battery.hpp"
-#include "Subscribers/Esc.hpp"
-#include "Subscribers/Gnss.hpp"
+#include "Subscribers/DS-015/Battery.hpp"
+#include "Subscribers/DS-015/Esc.hpp"
+#include "Subscribers/DS-015/Gnss.hpp"
 #include "Subscribers/NodeIDAllocationData.hpp"
-#include "Subscribers/LegacyBatteryInfo.hpp"
+#include "Subscribers/legacy/LegacyBatteryInfo.hpp"
 
 // uORB over UAVCAN subscribers
 #include "Subscribers/uORB/sensor_gps.hpp"
