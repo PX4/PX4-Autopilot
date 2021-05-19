@@ -49,7 +49,7 @@
 #include <reg/drone/service/battery/Parameters_0_3.h>
 #include <reg/drone/service/battery/Status_0_2.h>
 
-#include "DynamicPortSubscriber.hpp"
+#include "../DynamicPortSubscriber.hpp"
 
 #define KELVIN_OFFSET 273.15f
 #define WH_TO_JOULE   3600
@@ -61,9 +61,13 @@ public:
 		UavcanDynamicPortSubscriber(ins, pmgr, "energy_source", instance)
 	{
 		_subj_sub.next = &_status_sub;
+
 		_status_sub._subject_name = _status_name;
+		_status_sub._canard_sub.user_reference = this;
 		_status_sub.next = &_parameters_sub;
+
 		_parameters_sub._subject_name = _parameters_name;
+		_parameters_sub._canard_sub.user_reference = this;
 		_parameters_sub.next = NULL;
 	}
 

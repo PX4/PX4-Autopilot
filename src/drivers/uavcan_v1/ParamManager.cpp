@@ -52,34 +52,7 @@ bool UavcanParamManager::GetParamByName(const char *param_name, uavcan_register_
 				return false;
 			}
 
-			/// TODO: What will be our approach for handling other UAVCAN data-value types?
-			switch (param_type(param_handle)) {
-			case PARAM_TYPE_INT32: {
-					int32_t out_val {};
-					param_get(param_handle, &out_val);
-
-					if (uavcan_register_Value_1_0_is_natural16_(&value)) { //FIXME param rewrite
-						value.natural16.value.elements[0] = (uint16_t)out_val;
-						uavcan_register_Value_1_0_select_natural16_(&value);
-
-					} else {
-						value.integer32.value.elements[0] = out_val;
-						uavcan_register_Value_1_0_select_integer32_(&value);
-					}
-
-					break;
-				}
-
-			case PARAM_TYPE_FLOAT: {
-					float out_val {};
-					param_get(param_handle, &out_val);
-					value.real32.value.elements[0] = out_val;
-					uavcan_register_Value_1_0_select_real32_(&value);
-					break;
-				}
-			}
-
-			return true;
+			return param.px4_param_to_register_value(param_handle, value);
 		}
 	}
 
@@ -96,34 +69,7 @@ bool UavcanParamManager::GetParamByName(const uavcan_register_Name_1_0 &name, ua
 				return false;
 			}
 
-			/// TODO: What will be our approach for handling other UAVCAN data-value types?
-			switch (param_type(param_handle)) {
-			case PARAM_TYPE_INT32: {
-					int32_t out_val {};
-					param_get(param_handle, &out_val);
-
-					if (uavcan_register_Value_1_0_is_natural16_(&value)) { //FIXME param rewrite
-						value.natural16.value.elements[0] = (uint16_t)out_val;
-						uavcan_register_Value_1_0_select_natural16_(&value);
-
-					} else {
-						value.integer32.value.elements[0] = out_val;
-						uavcan_register_Value_1_0_select_integer32_(&value);
-					}
-
-					break;
-				}
-
-			case PARAM_TYPE_FLOAT: {
-					float out_val {};
-					param_get(param_handle, &out_val);
-					value.real32.value.elements[0] = out_val;
-					uavcan_register_Value_1_0_select_real32_(&value);
-					break;
-				}
-			}
-
-			return true;
+			return param.px4_param_to_register_value(param_handle, value);
 		}
 	}
 
@@ -140,21 +86,7 @@ bool UavcanParamManager::SetParamByName(const uavcan_register_Name_1_0 &name, co
 				return false;
 			}
 
-			switch (param_type(param_handle)) {
-			case PARAM_TYPE_INT32: {
-					int32_t in_val = value.integer32.value.elements[0];
-					param_set(param_handle, &in_val);
-					break;
-				}
-
-			case PARAM_TYPE_FLOAT: {
-					float in_val = value.natural32.value.elements[0];
-					param_set(param_handle, &in_val);
-					break;
-				}
-			}
-
-			return true;
+			return param.register_value_to_px4_param(value, param_handle);
 		}
 	}
 
