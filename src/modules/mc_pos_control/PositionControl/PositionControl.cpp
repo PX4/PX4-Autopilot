@@ -131,6 +131,7 @@ void PositionControl::_positionControl()
 
 	z_k_Pr_R = (_pos_sp - _pos);
 	u_k_Pr_R.setZero();
+	_rcac_pos_x.compute_uk(0, 0, 0, 0);
 	if (RCAC_Pr_ON)
 	{
 	        ii_Pr_R += 1;
@@ -148,11 +149,16 @@ void PositionControl::_positionControl()
 		u_km1_Pr_R 	= u_k_Pr_R;
 		phi_km1_Pr_R 	= phi_k_Pr_R;
 
-
 		// PX4_INFO("Pos Control u :\t%8.6f\t%8.6f\t%8.6f", (double)P_Pr_R(0,0), (double)P_Pr_R(1,1), (double)P_Pr_R(2,2));
 		// PX4_INFO("Pos Control u :\t%8.6f\t%8.6f\t%8.6f", (double)N1_vel(0), (double)N1_vel(1), (double)N1_vel(2));
 		// PX4_INFO("Pos Control P0:\t%8.6f\t%8.6f", (double)_param_mpc_rcac_pos_p0.get(), (double)P_Pr_R(0,0) );
 	}
+
+	// if (RCAC_Pr_ON)
+	// {
+	// 	// Not sure what the z_int is.
+	// 	u_k_Pr_R = _rcac_pos_x.compute_uk(z_k_Pr_R, ii_Pr_R, z_k_Pr_R - z_km1_Pr_R, u_km1_Pr_R);
+	// }
 	//vel_sp_position = alpha_PID*vel_sp_position + u_k_Pr_R;
 	vel_sp_position = alpha_PID_pos*vel_sp_position + u_k_Pr_R;
 
@@ -224,6 +230,11 @@ void PositionControl::_velocityControl(const float dt)
 			phi_km1_vel_x = phi_k_vel_x;
 			phi_km1_vel_y = phi_k_vel_y;
 			phi_km1_vel_z = phi_k_vel_z;
+
+	}
+
+	if (RCAC_Pv_ON)
+	{
 
 	}
 

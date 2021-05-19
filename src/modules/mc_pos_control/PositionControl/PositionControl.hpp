@@ -356,7 +356,10 @@ private:
 	float _yawspeed_sp{}; /** desired yaw-speed */
 
 	// New RCAC_Class_Variables
-	RCAC pos_RCAC;
+	RCAC _rcac_pos_x;
+	RCAC _rcac_pos_y;
+	RCAC _rcac_pos_z;
+	//RCAC vel_RCAC;
 
 	// RCAC
 	int ii_Pr_R = 0;

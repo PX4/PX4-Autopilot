@@ -45,6 +45,6 @@
 #include "math/Functions.hpp"
 #include "math/SearchMin.hpp"
 #include "math/TrajMath.hpp"
-#include "math/RCAC/RCAC_V4.hpp"
+#include "math/RCAC/src/RCAC.h"
 
 #endif
