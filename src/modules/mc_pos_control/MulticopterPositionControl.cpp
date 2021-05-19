@@ -75,6 +75,7 @@ bool MulticopterPositionControl::init()
 
 	_control.init_RCAC(_param_mpc_rcac_pos_p0.get(), _param_mpc_rcac_vel_p0.get());
 
+
 	return true;
 }
 
@@ -266,7 +267,7 @@ void MulticopterPositionControl::Run()
 
 		poll_subscriptions();
 
-		
+
 		float RCAC_switch = _rc_channels_switch.channels[14];
 		// SITL 1
 		RCAC_switch = 1.0f;

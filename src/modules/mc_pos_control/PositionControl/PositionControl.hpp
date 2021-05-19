@@ -44,6 +44,7 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_constraints.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include "vector"
 
 struct PositionControlStates {
 	matrix::Vector3f position;
@@ -359,6 +360,11 @@ private:
 	RCAC _rcac_pos_x;
 	RCAC _rcac_pos_y;
 	RCAC _rcac_pos_z;
+	RCAC _rcac_vel_x;
+	RCAC _rcac_vel_y;
+	RCAC _rcac_vel_z;
+	// std::vector<RCAC> _rcac_pos;
+	// std::vector<RCAC> _rcac_vel;
 	//RCAC vel_RCAC;
 
 	// RCAC

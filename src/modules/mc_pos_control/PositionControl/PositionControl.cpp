@@ -131,34 +131,37 @@ void PositionControl::_positionControl()
 
 	z_k_Pr_R = (_pos_sp - _pos);
 	u_k_Pr_R.setZero();
-	_rcac_pos_x.compute_uk(0, 0, 0, 0);
-	if (RCAC_Pr_ON)
-	{
-	        ii_Pr_R += 1;
-
-		// Regressor
-		for (int i=0; i<3; i++) {
-			phi_k_Pr_R(i, i) = z_k_Pr_R(i,0);
-		}
-		Gamma_Pr_R 	= phi_km1_Pr_R * P_Pr_R * phi_km1_Pr_R.T() + I3;
-		Gamma_Pr_R 	= Gamma_Pr_R.I();
-		P_Pr_R 	-= (P_Pr_R * phi_km1_Pr_R.T()) * Gamma_Pr_R * (phi_km1_Pr_R * P_Pr_R);
-		theta_k_Pr_R += (P_Pr_R * phi_km1_Pr_R.T()) * N1_Pr *
-					(z_k_Pr_R + N1_Pr*(phi_km1_Pr_R * theta_k_Pr_R - u_km1_Pr_R) );
-		u_k_Pr_R 	= phi_k_Pr_R * theta_k_Pr_R;
-		u_km1_Pr_R 	= u_k_Pr_R;
-		phi_km1_Pr_R 	= phi_k_Pr_R;
-
-		// PX4_INFO("Pos Control u :\t%8.6f\t%8.6f\t%8.6f", (double)P_Pr_R(0,0), (double)P_Pr_R(1,1), (double)P_Pr_R(2,2));
-		// PX4_INFO("Pos Control u :\t%8.6f\t%8.6f\t%8.6f", (double)N1_vel(0), (double)N1_vel(1), (double)N1_vel(2));
-		// PX4_INFO("Pos Control P0:\t%8.6f\t%8.6f", (double)_param_mpc_rcac_pos_p0.get(), (double)P_Pr_R(0,0) );
-	}
-
 	// if (RCAC_Pr_ON)
 	// {
-	// 	// Not sure what the z_int is.
-	// 	u_k_Pr_R = _rcac_pos_x.compute_uk(z_k_Pr_R, ii_Pr_R, z_k_Pr_R - z_km1_Pr_R, u_km1_Pr_R);
+	//         ii_Pr_R += 1;
+
+	// 	// Regressor
+	// 	for (int i=0; i<3; i++) {
+	// 		phi_k_Pr_R(i, i) = z_k_Pr_R(i,0);
+	// 	}
+	// 	Gamma_Pr_R 	= phi_km1_Pr_R * P_Pr_R * phi_km1_Pr_R.T() + I3;
+	// 	Gamma_Pr_R 	= Gamma_Pr_R.I();
+	// 	P_Pr_R 	-= (P_Pr_R * phi_km1_Pr_R.T()) * Gamma_Pr_R * (phi_km1_Pr_R * P_Pr_R);
+	// 	theta_k_Pr_R += (P_Pr_R * phi_km1_Pr_R.T()) * N1_Pr *
+	// 				(z_k_Pr_R + N1_Pr*(phi_km1_Pr_R * theta_k_Pr_R - u_km1_Pr_R) );
+	// 	u_k_Pr_R 	= phi_k_Pr_R * theta_k_Pr_R;
+	// 	u_km1_Pr_R 	= u_k_Pr_R;
+	// 	phi_km1_Pr_R 	= phi_k_Pr_R;
+
+	// 	// PX4_INFO("Pos Control u :\t%8.6f\t%8.6f\t%8.6f", (double)P_Pr_R(0,0), (double)P_Pr_R(1,1), (double)P_Pr_R(2,2));
+	// 	// PX4_INFO("Pos Control u :\t%8.6f\t%8.6f\t%8.6f", (double)N1_vel(0), (double)N1_vel(1), (double)N1_vel(2));
+	// 	// PX4_INFO("Pos Control P0:\t%8.6f\t%8.6f", (double)_param_mpc_rcac_pos_p0.get(), (double)P_Pr_R(0,0) );
 	// }
+
+	if (RCAC_Pr_ON)
+	{
+		// Not sure what the z_int is.
+		Vector3f pos_error_ = _pos_sp - _pos;
+		u_k_Pr_R(0, 0) = _rcac_pos_x.compute_uk(-pos_error_(0), 0, 0, _rcac_pos_x.get_rcac_uk());
+		u_k_Pr_R(1, 0) = _rcac_pos_y.compute_uk(-pos_error_(1), 0, 0, _rcac_pos_y.get_rcac_uk());
+		u_k_Pr_R(2, 0) = _rcac_pos_z.compute_uk(-pos_error_(2), 0, 0, _rcac_pos_z.get_rcac_uk());
+	}
+
 	//vel_sp_position = alpha_PID*vel_sp_position + u_k_Pr_R;
 	vel_sp_position = alpha_PID_pos*vel_sp_position + u_k_Pr_R;
 
@@ -182,60 +185,62 @@ void PositionControl::_velocityControl(const float dt)
 
 	z_k_vel = vel_error;
 	u_k_vel.setZero();
+	// if (RCAC_Pv_ON)
+	// {
+	// 	ii_Pv_R += 1;
+	// 		// Ankit 01 30 2020:New SISO implementation
+	// 		z_k_vel = vel_error;
+
+	// 		phi_k_vel_x(0,0) = vel_error(0);
+	// 		phi_k_vel_x(0,1) = _vel_int(0);
+	// 		phi_k_vel_x(0,2) = _vel_dot(0) * 0;
+
+	// 		phi_k_vel_y(0,0) = vel_error(1);
+	// 		phi_k_vel_y(0,1) = _vel_int(1);
+	// 		phi_k_vel_y(0,2) = _vel_dot(1) * 0;
+
+	// 		phi_k_vel_z(0,0) = vel_error(2);
+	// 		phi_k_vel_z(0,1) = _vel_int(2);
+	// 		phi_k_vel_z(0,2) = _vel_dot(2) * 0;
+
+	// 		dummy1 = phi_km1_vel_x * P_vel_x * phi_km1_vel_x.T() + 1.0f;
+	// 		dummy2 = phi_km1_vel_y * P_vel_y * phi_km1_vel_y.T() + 1.0f;
+	// 		dummy3 = phi_km1_vel_z * P_vel_z * phi_km1_vel_z.T() + 1.0f;
+	// 		Gamma_vel(0) 	= dummy1(0,0);
+	// 		Gamma_vel(1) 	= dummy2(0,0);
+	// 		Gamma_vel(2) 	= dummy3(0,0);
+
+	// 		P_vel_x = P_vel_x - (P_vel_x * phi_km1_vel_x.T()) * (phi_km1_vel_x * P_vel_x) / Gamma_vel(0);
+	// 		P_vel_y = P_vel_y - (P_vel_y * phi_km1_vel_y.T()) * (phi_km1_vel_y * P_vel_y) / Gamma_vel(1);
+	// 		P_vel_z = P_vel_z - (P_vel_z * phi_km1_vel_z.T()) * (phi_km1_vel_z * P_vel_z) / Gamma_vel(2);
+
+	// 		dummy1 = N1_vel(0)*(phi_km1_vel_x * theta_k_vel_x - u_km1_vel(0));
+	// 		dummy2 = N1_vel(1)*(phi_km1_vel_y * theta_k_vel_y - u_km1_vel(1));
+	// 		dummy3 = N1_vel(2)*(phi_km1_vel_z * theta_k_vel_z - u_km1_vel(2));
+	// 		theta_k_vel_x 	= theta_k_vel_x + (P_vel_x * phi_km1_vel_x.T()) * N1_vel(0) *(z_k_vel(0) + dummy1(0,0));
+	// 		theta_k_vel_y 	= theta_k_vel_y + (P_vel_y * phi_km1_vel_y.T()) * N1_vel(1) *(z_k_vel(1) + dummy2(0,0));
+	// 		theta_k_vel_z 	= theta_k_vel_z + (P_vel_z * phi_km1_vel_z.T()) * N1_vel(2) *(z_k_vel(2) + dummy3(0,0));
+
+	// 		dummy1 = phi_k_vel_x * theta_k_vel_x;
+	// 		dummy2 = phi_k_vel_y * theta_k_vel_y;
+	// 		dummy3 = phi_k_vel_z * theta_k_vel_z;
+	// 		u_k_vel(0) = dummy1(0,0);
+	// 		u_k_vel(1) = dummy2(0,0);
+	// 		u_k_vel(2) = dummy3(0,0);
+
+	// 		u_km1_vel = u_k_vel;
+
+	// 		phi_km1_vel_x = phi_k_vel_x;
+	// 		phi_km1_vel_y = phi_k_vel_y;
+	// 		phi_km1_vel_z = phi_k_vel_z;
+
+	// }
+
 	if (RCAC_Pv_ON)
 	{
-		ii_Pv_R += 1;
-			// Ankit 01 30 2020:New SISO implementation
-			z_k_vel = vel_error;
-
-			phi_k_vel_x(0,0) = vel_error(0);
-			phi_k_vel_x(0,1) = _vel_int(0);
-			phi_k_vel_x(0,2) = _vel_dot(0) * 0;
-
-			phi_k_vel_y(0,0) = vel_error(1);
-			phi_k_vel_y(0,1) = _vel_int(1);
-			phi_k_vel_y(0,2) = _vel_dot(1) * 0;
-
-			phi_k_vel_z(0,0) = vel_error(2);
-			phi_k_vel_z(0,1) = _vel_int(2);
-			phi_k_vel_z(0,2) = _vel_dot(2) * 0;
-
-			dummy1 = phi_km1_vel_x * P_vel_x * phi_km1_vel_x.T() + 1.0f;
-			dummy2 = phi_km1_vel_y * P_vel_y * phi_km1_vel_y.T() + 1.0f;
-			dummy3 = phi_km1_vel_z * P_vel_z * phi_km1_vel_z.T() + 1.0f;
-			Gamma_vel(0) 	= dummy1(0,0);
-			Gamma_vel(1) 	= dummy2(0,0);
-			Gamma_vel(2) 	= dummy3(0,0);
-
-			P_vel_x = P_vel_x - (P_vel_x * phi_km1_vel_x.T()) * (phi_km1_vel_x * P_vel_x) / Gamma_vel(0);
-			P_vel_y = P_vel_y - (P_vel_y * phi_km1_vel_y.T()) * (phi_km1_vel_y * P_vel_y) / Gamma_vel(1);
-			P_vel_z = P_vel_z - (P_vel_z * phi_km1_vel_z.T()) * (phi_km1_vel_z * P_vel_z) / Gamma_vel(2);
-
-			dummy1 = N1_vel(0)*(phi_km1_vel_x * theta_k_vel_x - u_km1_vel(0));
-			dummy2 = N1_vel(1)*(phi_km1_vel_y * theta_k_vel_y - u_km1_vel(1));
-			dummy3 = N1_vel(2)*(phi_km1_vel_z * theta_k_vel_z - u_km1_vel(2));
-			theta_k_vel_x 	= theta_k_vel_x + (P_vel_x * phi_km1_vel_x.T()) * N1_vel(0) *(z_k_vel(0) + dummy1(0,0));
-			theta_k_vel_y 	= theta_k_vel_y + (P_vel_y * phi_km1_vel_y.T()) * N1_vel(1) *(z_k_vel(1) + dummy2(0,0));
-			theta_k_vel_z 	= theta_k_vel_z + (P_vel_z * phi_km1_vel_z.T()) * N1_vel(2) *(z_k_vel(2) + dummy3(0,0));
-
-			dummy1 = phi_k_vel_x * theta_k_vel_x;
-			dummy2 = phi_k_vel_y * theta_k_vel_y;
-			dummy3 = phi_k_vel_z * theta_k_vel_z;
-			u_k_vel(0) = dummy1(0,0);
-			u_k_vel(1) = dummy2(0,0);
-			u_k_vel(2) = dummy3(0,0);
-
-			u_km1_vel = u_k_vel;
-
-			phi_km1_vel_x = phi_k_vel_x;
-			phi_km1_vel_y = phi_k_vel_y;
-			phi_km1_vel_z = phi_k_vel_z;
-
-	}
-
-	if (RCAC_Pv_ON)
-	{
-
+		u_k_vel(0) = _rcac_vel_x.compute_uk(-vel_error(0), _vel_int(0), _vel_dot(0), _rcac_vel_x.get_rcac_uk());
+		u_k_vel(1) = _rcac_vel_y.compute_uk(-vel_error(1), _vel_int(1), _vel_dot(1), _rcac_vel_y.get_rcac_uk());
+		u_k_vel(2) = _rcac_vel_z.compute_uk(-vel_error(2), _vel_int(2), _vel_dot(2), _rcac_vel_z.get_rcac_uk());
 	}
 
 	acc_sp_velocity = alpha_PID_vel*acc_sp_velocity + u_k_vel;
@@ -469,42 +474,48 @@ void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_
 	}
 
 void PositionControl::init_RCAC(float rcac_pos_p0, float rcac_vel_p0) {
-	I3 = eye<float, 3>();
-	N1_Pr = eye<float, 3>() * (1.0f);
+	// I3 = eye<float, 3>();
+	// N1_Pr = eye<float, 3>() * (1.0f);
 
-	for (int i = 0; i <= 2; i++) {
-		N1_vel(i) = 1;
-	}
-	P_Pr_R = eye<float, 3>() * 0.010 ;
+	// for (int i = 0; i <= 2; i++) {
+	// 	N1_vel(i) = 1;
+	// }
+	// P_Pr_R = eye<float, 3>() * 0.010 ;
 
-	phi_k_Pr_R.setZero();
-	phi_km1_Pr_R.setZero();
-	theta_k_Pr_R.setZero();
-	z_k_Pr_R.setZero();
-	z_km1_Pr_R.setZero();
-	u_k_Pr_R.setZero();
-	u_km1_Pr_R.setZero();
-	Gamma_Pr_R.setZero();
+	// phi_k_Pr_R.setZero();
+	// phi_km1_Pr_R.setZero();
+	// theta_k_Pr_R.setZero();
+	// z_k_Pr_R.setZero();
+	// z_km1_Pr_R.setZero();
+	// u_k_Pr_R.setZero();
+	// u_km1_Pr_R.setZero();
+	// Gamma_Pr_R.setZero();
 
-	P_vel_x = eye<float, 3>() * 0.0010;
-	P_vel_y = eye<float, 3>() * 0.0010;
-	P_vel_z = eye<float, 3>() * 0.0010;
-	phi_k_vel_x.setZero();
-	phi_k_vel_y.setZero();
-	phi_k_vel_z.setZero();
-	phi_km1_vel_x.setZero();
-	phi_km1_vel_y.setZero();
-	phi_km1_vel_z.setZero();
-	theta_k_vel_x.setZero();
-	theta_k_vel_y.setZero();
-	theta_k_vel_z.setZero();
-	u_k_vel.setZero();
-	z_k_vel.setZero();
+	// P_vel_x = eye<float, 3>() * 0.0010;
+	// P_vel_y = eye<float, 3>() * 0.0010;
+	// P_vel_z = eye<float, 3>() * 0.0010;
+	// phi_k_vel_x.setZero();
+	// phi_k_vel_y.setZero();
+	// phi_k_vel_z.setZero();
+	// phi_km1_vel_x.setZero();
+	// phi_km1_vel_y.setZero();
+	// phi_km1_vel_z.setZero();
+	// theta_k_vel_x.setZero();
+	// theta_k_vel_y.setZero();
+	// theta_k_vel_z.setZero();
+	// u_k_vel.setZero();
+	// z_k_vel.setZero();
 
-	P_Pr_R = eye<float, 3>() * rcac_pos_p0;
-	P_vel_x = eye<float, 3>() * rcac_vel_p0;
-	P_vel_y = eye<float, 3>() * rcac_vel_p0;
-	P_vel_z = eye<float, 3>() * rcac_vel_p0;
+	// P_Pr_R = eye<float, 3>() * rcac_pos_p0;
+	// P_vel_x = eye<float, 3>() * rcac_vel_p0;
+	// P_vel_y = eye<float, 3>() * rcac_vel_p0;
+	// P_vel_z = eye<float, 3>() * rcac_vel_p0;
+	_rcac_pos_x = RCAC(rcac_pos_p0);
+	_rcac_pos_y = RCAC(rcac_pos_p0);
+	_rcac_pos_z = RCAC(rcac_pos_p0);
+	_rcac_vel_x = RCAC(rcac_vel_p0);
+	_rcac_vel_y = RCAC(rcac_vel_p0);
+	_rcac_vel_z = RCAC(rcac_vel_p0);
 
 	PX4_INFO("Pos Control P0:\t%8.6f", (double)rcac_pos_p0);
 	PX4_INFO("Vel Control P0:\t%8.6f", (double)rcac_vel_p0);
