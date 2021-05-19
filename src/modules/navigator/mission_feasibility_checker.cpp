@@ -58,6 +58,9 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 		float max_distance_to_1st_waypoint, float max_distance_between_waypoints,
 		bool land_start_req)
 {
+	// Reset warning flag
+	_navigator->get_mission_result()->warning = false;
+
 	// trivial case: A mission with length zero cannot be valid
 	if ((int)mission.count <= 0) {
 		return false;
