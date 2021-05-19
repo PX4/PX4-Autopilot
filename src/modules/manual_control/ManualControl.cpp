@@ -258,8 +258,6 @@ void ManualControl::Run()
 		_manual_control_setpoint_pub.publish(_selector.setpoint());
 
 		if (_last_selected_input != _selector.instance()) {
-
-			PX4_INFO("selected manual_control_input changed %d -> %d", _last_selected_input, _selector.instance());
 			_last_selected_input = _selector.instance();
 		}
 
@@ -326,7 +324,6 @@ void ManualControl::evaluate_mode_slot(uint8_t mode_slot)
 
 	}
 
-	PX4_WARN("send mode slot: %d", _last_mode_slot_flt);
 	send_mode_command(_last_mode_slot_flt);
 }
 
