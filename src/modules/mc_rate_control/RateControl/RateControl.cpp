@@ -76,77 +76,81 @@ Vector3f RateControl::update(const Vector3f &rate, const Vector3f &rate_sp, cons
 	z_k_rate = rate_error;
 	u_k_rate.setZero();
 	if (!landed && RCAC_Aw_ON)
-		{
-			ii_AC_R = ii_AC_R + 1;
-			if (ii_AC_R == 1)
-			{
-				init_RCAC_rate();
-				/*theta_k_Ac_PID(0,0) = _gain_p(0);
-				theta_k_Ac_PID(1,0) = _gain_i(0);
-				theta_k_Ac_PID(2,0) = _gain_d(0);
-				theta_k_Ac_PID(3,0) = _gain_ff(0);
-				theta_k_Ac_PID(4,0) = _gain_p(1);
-				theta_k_Ac_PID(5,0) = _gain_i(1);
-				theta_k_Ac_PID(6,0) = _gain_d(1);
-				theta_k_Ac_PID(7,0) = _gain_ff(1);
-				theta_k_Ac_PID(8,0) = _gain_p(2);
-				theta_k_Ac_PID(9,0) = _gain_i(2);
-				theta_k_Ac_PID(10,0) = _gain_d(2);
-				theta_k_Ac_PID(11,0) = _gain_ff(2);*/
+	{
+		// TODO: DERIV IS NOT IMPLMENTED PROPERLY. 0 IS PLACED AS PLACEHOLDER
+		u_k_rate(0) = _rcac_rate_x.compute_uk(z_k_rate(0), _rate_int(0), 0, _rcac_rate_x.get_rcac_uk());
+		u_k_rate(1) = _rcac_rate_y.compute_uk(z_k_rate(1), _rate_int(1), 0, _rcac_rate_y.get_rcac_uk());
+		u_k_rate(2) = _rcac_rate_z.compute_uk(z_k_rate(2), _rate_int(2), 0, _rcac_rate_z.get_rcac_uk());
+		// ii_AC_R = ii_AC_R + 1;
+		// if (ii_AC_R == 1)
+		// {
+		// 	init_RCAC_rate();
+		// 	/*theta_k_Ac_PID(0,0) = _gain_p(0);
+		// 	theta_k_Ac_PID(1,0) = _gain_i(0);
+		// 	theta_k_Ac_PID(2,0) = _gain_d(0);
+		// 	theta_k_Ac_PID(3,0) = _gain_ff(0);
+		// 	theta_k_Ac_PID(4,0) = _gain_p(1);
+		// 	theta_k_Ac_PID(5,0) = _gain_i(1);
+		// 	theta_k_Ac_PID(6,0) = _gain_d(1);
+		// 	theta_k_Ac_PID(7,0) = _gain_ff(1);
+		// 	theta_k_Ac_PID(8,0) = _gain_p(2);
+		// 	theta_k_Ac_PID(9,0) = _gain_i(2);
+		// 	theta_k_Ac_PID(10,0) = _gain_d(2);
+		// 	theta_k_Ac_PID(11,0) = _gain_ff(2);*/
 
-			}
+		// }
 
-			// Ankit 01 30 2020:New SISO implementation
-			z_k_rate = rate_error;
+		// // Ankit 01 30 2020:New SISO implementation
+		// z_k_rate = rate_error;
 
-			phi_k_rate_x(0,0) = rate_error(0)*0; //Ankit: Disable P rate
-			phi_k_rate_x(0,1) = _rate_int(0);
-			phi_k_rate_x(0,2) = angular_accel(0) * 0;
-			phi_k_rate_x(0,3) = rate_sp(0) * 0;
+		// phi_k_rate_x(0,0) = rate_error(0)*0; //Ankit: Disable P rate
+		// phi_k_rate_x(0,1) = _rate_int(0);
+		// phi_k_rate_x(0,2) = angular_accel(0) * 0;
+		// phi_k_rate_x(0,3) = rate_sp(0) * 0;
 
-			phi_k_rate_y(0,0) = rate_error(1);
-			phi_k_rate_y(0,1) = _rate_int(1);
-			phi_k_rate_y(0,2) = angular_accel(1) * 0;
-			phi_k_rate_y(0,3) = rate_sp(1) * 0;
+		// phi_k_rate_y(0,0) = rate_error(1);
+		// phi_k_rate_y(0,1) = _rate_int(1);
+		// phi_k_rate_y(0,2) = angular_accel(1) * 0;
+		// phi_k_rate_y(0,3) = rate_sp(1) * 0;
 
-			phi_k_rate_z(0,0) = rate_error(2);
-			phi_k_rate_z(0,1) = _rate_int(2);
-			phi_k_rate_z(0,2) = angular_accel(2) * 0;
-			phi_k_rate_z(0,3) = rate_sp(2) * 0;
+		// phi_k_rate_z(0,0) = rate_error(2);
+		// phi_k_rate_z(0,1) = _rate_int(2);
+		// phi_k_rate_z(0,2) = angular_accel(2) * 0;
+		// phi_k_rate_z(0,3) = rate_sp(2) * 0;
 
-			dummy1 = phi_km1_rate_x * P_rate_x * phi_km1_rate_x.T() + 1.0f;
-			dummy2 = phi_km1_rate_y * P_rate_y * phi_km1_rate_y.T() + 1.0f;
-			dummy3 = phi_km1_rate_z * P_rate_z * phi_km1_rate_z.T() + 1.0f;
-			Gamma_rate(0) 	= dummy1(0,0);
-			Gamma_rate(1) 	= dummy2(0,0);
-			Gamma_rate(2) 	= dummy3(0,0);
+		// dummy1 = phi_km1_rate_x * P_rate_x * phi_km1_rate_x.T() + 1.0f;
+		// dummy2 = phi_km1_rate_y * P_rate_y * phi_km1_rate_y.T() + 1.0f;
+		// dummy3 = phi_km1_rate_z * P_rate_z * phi_km1_rate_z.T() + 1.0f;
+		// Gamma_rate(0) 	= dummy1(0,0);
+		// Gamma_rate(1) 	= dummy2(0,0);
+		// Gamma_rate(2) 	= dummy3(0,0);
 
-			P_rate_x = P_rate_x - (P_rate_x * phi_km1_rate_x.T()) * (phi_km1_rate_x * P_rate_x) / Gamma_rate(0);
-			P_rate_y = P_rate_y - (P_rate_y * phi_km1_rate_y.T()) * (phi_km1_rate_y * P_rate_y) / Gamma_rate(1);
-			P_rate_z = P_rate_z - (P_rate_z * phi_km1_rate_z.T()) * (phi_km1_rate_z * P_rate_z) / Gamma_rate(2);
+		// P_rate_x = P_rate_x - (P_rate_x * phi_km1_rate_x.T()) * (phi_km1_rate_x * P_rate_x) / Gamma_rate(0);
+		// P_rate_y = P_rate_y - (P_rate_y * phi_km1_rate_y.T()) * (phi_km1_rate_y * P_rate_y) / Gamma_rate(1);
+		// P_rate_z = P_rate_z - (P_rate_z * phi_km1_rate_z.T()) * (phi_km1_rate_z * P_rate_z) / Gamma_rate(2);
 
-			dummy1 = N1_rate(0)*(phi_km1_rate_x * theta_k_rate_x - u_km1_rate(0));
-			dummy2 = N1_rate(1)*(phi_km1_rate_y * theta_k_rate_y - u_km1_rate(1));
-			dummy3 = N1_rate(2)*(phi_km1_rate_z * theta_k_rate_z - u_km1_rate(2));
-			theta_k_rate_x 	= theta_k_rate_x + (P_rate_x * phi_km1_rate_x.T()) * N1_rate(0) *(z_k_rate(0) + dummy1(0,0));
-			theta_k_rate_y 	= theta_k_rate_y + (P_rate_y * phi_km1_rate_y.T()) * N1_rate(1) *(z_k_rate(1) + dummy2(0,0));
-			theta_k_rate_z 	= theta_k_rate_z + (P_rate_z * phi_km1_rate_z.T()) * N1_rate(2) *(z_k_rate(2) + dummy3(0,0));
+		// dummy1 = N1_rate(0)*(phi_km1_rate_x * theta_k_rate_x - u_km1_rate(0));
+		// dummy2 = N1_rate(1)*(phi_km1_rate_y * theta_k_rate_y - u_km1_rate(1));
+		// dummy3 = N1_rate(2)*(phi_km1_rate_z * theta_k_rate_z - u_km1_rate(2));
+		// theta_k_rate_x 	= theta_k_rate_x + (P_rate_x * phi_km1_rate_x.T()) * N1_rate(0) *(z_k_rate(0) + dummy1(0,0));
+		// theta_k_rate_y 	= theta_k_rate_y + (P_rate_y * phi_km1_rate_y.T()) * N1_rate(1) *(z_k_rate(1) + dummy2(0,0));
+		// theta_k_rate_z 	= theta_k_rate_z + (P_rate_z * phi_km1_rate_z.T()) * N1_rate(2) *(z_k_rate(2) + dummy3(0,0));
 
-			dummy1 = phi_k_rate_x * theta_k_rate_x;
-			dummy2 = phi_k_rate_y * theta_k_rate_y;
-			dummy3 = phi_k_rate_z * theta_k_rate_z;
-			u_k_rate(0) = dummy1(0,0);
-			u_k_rate(1) = dummy2(0,0);
-			u_k_rate(2) = dummy3(0,0);
+		// dummy1 = phi_k_rate_x * theta_k_rate_x;
+		// dummy2 = phi_k_rate_y * theta_k_rate_y;
+		// dummy3 = phi_k_rate_z * theta_k_rate_z;
+		// u_k_rate(0) = dummy1(0,0);
+		// u_k_rate(1) = dummy2(0,0);
+		// u_k_rate(2) = dummy3(0,0);
 
-			u_km1_rate = u_k_rate;
+		// u_km1_rate = u_k_rate;
 
-			phi_km1_rate_x = phi_k_rate_x;
-			phi_km1_rate_y = phi_k_rate_y;
-			phi_km1_rate_z = phi_k_rate_z;
-		}
-		//torque = alpha_PID*torque+u_k_rate;
-		torque = alpha_PID_rate*torque+u_k_rate;
+		// phi_km1_rate_x = phi_k_rate_x;
+		// phi_km1_rate_y = phi_k_rate_y;
+		// phi_km1_rate_z = phi_k_rate_z;
+	}
+	//torque = alpha_PID*torque+u_k_rate;
+	torque = alpha_PID_rate*torque+u_k_rate;
 
 	// update integral only if we are not landed
 	if (!landed) {
