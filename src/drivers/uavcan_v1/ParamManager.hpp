@@ -47,7 +47,7 @@
 #include <uavcan/_register/Name_1_0.h>
 #include <uavcan/_register/Value_1_0.h>
 
-static auto get_uavcan_port_id = [](param_t &in, uavcan_register_Value_1_0 &out) -> bool
+static bool px4_param_to_uavcan_port_id(param_t &in, uavcan_register_Value_1_0 &out)
 {
 	if (param_type(in) == PARAM_TYPE_INT32) {
 		int32_t out_val {};
@@ -61,7 +61,7 @@ static auto get_uavcan_port_id = [](param_t &in, uavcan_register_Value_1_0 &out)
 	return false;
 };
 
-static auto set_uavcan_port_id = [](const uavcan_register_Value_1_0 &in, param_t &out) -> bool
+static bool uavcan_port_id_to_px4_param(const uavcan_register_Value_1_0 &in, param_t &out)
 {
 	if (uavcan_register_Value_1_0_is_natural16_(&in) && in.natural16.value.count == 1) {
 		if (param_type(out) == PARAM_TYPE_INT32) {
@@ -74,12 +74,15 @@ static auto set_uavcan_port_id = [](const uavcan_register_Value_1_0 &in, param_t
 	return false;
 };
 
+typedef bool (*param_2_reg_t)(param_t &in, uavcan_register_Value_1_0 &out);
+typedef bool (*reg_2_param_t)(const uavcan_register_Value_1_0 &in, param_t &out);
+
 
 typedef struct {
 	const char *uavcan_name;
 	const char *px4_name;
-	bool (*px4_param_to_register_value)(param_t &in, uavcan_register_Value_1_0 &out) {};
-	bool (*register_value_to_px4_param)(const uavcan_register_Value_1_0 &in, param_t &out) {};
+	param_2_reg_t px4_param_to_register_value;
+	reg_2_param_t register_value_to_px4_param;
 	bool is_mutable {true};
 	bool is_persistent {true};
 } UavcanParamBinder;
@@ -97,17 +100,17 @@ private:
 
 
 	const UavcanParamBinder _uavcan_params[11] {
-		{"uavcan.pub.esc.0.id",                "UCAN1_ESC_PUB",		    get_uavcan_port_id, set_uavcan_port_id},
-		{"uavcan.pub.servo.0.id",              "UCAN1_SERVO_PUB",		get_uavcan_port_id, set_uavcan_port_id},
-		{"uavcan.pub.gps.0.id",                "UCAN1_GPS_PUB",		    get_uavcan_port_id, set_uavcan_port_id},
-		{"uavcan.sub.esc.0.id",                "UCAN1_ESC0_PID",		get_uavcan_port_id, set_uavcan_port_id},
-		{"uavcan.sub.gps.0.id",                "UCAN1_GPS0_PID",		get_uavcan_port_id, set_uavcan_port_id},
-		{"uavcan.sub.gps.1.id",                "UCAN1_GPS1_PID",		get_uavcan_port_id, set_uavcan_port_id},
-		{"uavcan.sub.energy_source.0.id",      "UCAN1_BMS_ES_PID",		get_uavcan_port_id, set_uavcan_port_id},
-		{"uavcan.sub.battery_status.0.id",     "UCAN1_BMS_BS_PID",		get_uavcan_port_id, set_uavcan_port_id},
-		{"uavcan.sub.battery_parameters.0.id", "UCAN1_BMS_BP_PID",		get_uavcan_port_id, set_uavcan_port_id},
-		{"uavcan.sub.legacy_bms.0.id",         "UCAN1_LG_BMS_PID",		get_uavcan_port_id, set_uavcan_port_id},
-		{"uavcan.sub.uorb.sensor_gps.0.id",    "UCAN1_UORB_GPS",		get_uavcan_port_id, set_uavcan_port_id},
+		{"uavcan.pub.esc.0.id",                "UCAN1_ESC_PUB",		    px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.pub.servo.0.id",              "UCAN1_SERVO_PUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.pub.gps.0.id",                "UCAN1_GPS_PUB",		    px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.esc.0.id",                "UCAN1_ESC0_PID",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.gps.0.id",                "UCAN1_GPS0_PID",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.gps.1.id",                "UCAN1_GPS1_PID",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.energy_source.0.id",      "UCAN1_BMS_ES_PID",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.battery_status.0.id",     "UCAN1_BMS_BS_PID",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.battery_parameters.0.id", "UCAN1_BMS_BP_PID",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.legacy_bms.0.id",         "UCAN1_LG_BMS_PID",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.uorb.sensor_gps.0.id",    "UCAN1_UORB_GPS",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
 		//{"uavcan.sub.bms.0.id",   "UCAN1_BMS0_PID"}, //FIXME instancing
 		//{"uavcan.sub.bms.1.id",   "UCAN1_BMS1_PID"},
 	};
