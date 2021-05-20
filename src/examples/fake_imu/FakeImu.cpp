@@ -43,7 +43,7 @@ FakeImu::FakeImu() :
 {
 	_sensor_interval_us = roundf(1.e6f / _px4_gyro.get_max_rate_hz());
 
-	PX4_INFO("Rate %.3f, Interval: %d us", (double)_px4_gyro.get_max_rate_hz(), _sensor_interval_us);
+	PX4_INFO("Rate %.3f, Interval: %" PRId32 " us", (double)_px4_gyro.get_max_rate_hz(), _sensor_interval_us);
 
 	_px4_accel.set_range(2000.f); // don't care
 
