@@ -123,7 +123,7 @@ public:
 
 private:
 
-	void check_mission_result();
+	void check_mission_result(bool should_include_regular_check);
 
 	void answer_command(const vehicle_command_s &cmd, uint8_t result);
 
@@ -443,4 +443,7 @@ private:
 	uORB::Publication<vehicle_command_ack_s>		_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	orb_advert_t _mavlink_log_pub{nullptr};
+
+	unsigned _mission_result_generation{0};
+	unsigned _previous_mission_instance_count{0};
 };

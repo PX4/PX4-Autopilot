@@ -749,6 +749,9 @@ Commander::handle_command(const vehicle_command_s &cmd)
 							break;
 
 						case PX4_CUSTOM_SUB_MODE_AUTO_MISSION:
+							// Quick update before we check for mission available.
+							check_mission_result(false);
+
 							if (_status_flags.condition_auto_mission_available) {
 								main_ret = main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_MISSION, _status_flags, _internal_state);
 
@@ -1061,6 +1064,9 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_MISSION_START: {
 
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+
+			// Quick update before we check for mission available.
+			check_mission_result(false);
 
 			// check if current mission and first item are valid
 			if (_status_flags.condition_auto_mission_available) {
@@ -2056,8 +2062,7 @@ Commander::run()
 						arm_disarm_reason_t::TRANSITION_TO_STANDBY);
 		}
 
-		/* start mission result check */
-		check_mission_result();
+		check_mission_result(true);
 
 		/* start geofence result check */
 		_geofence_result_sub.update(&_geofence_result);
@@ -2718,19 +2723,21 @@ Commander::get_circuit_breaker_params()
 }
 
 void
-Commander::check_mission_result()
+Commander::check_mission_result(bool should_include_regular_check)
 {
-	if (_mission_result_sub.updated()) {
-		const mission_result_s &mission_result = _mission_result_sub.get();
+	_mission_result_sub.update();
+	const mission_result_s &mission_result = _mission_result_sub.get();
 
-		const auto prev_mission_instance_count = mission_result.instance_count;
-		_mission_result_sub.update();
+	// if mission_result is valid for the current mission
+	const bool mission_result_ok = (mission_result.timestamp > _boot_timestamp)
+				       && (mission_result.instance_count > 0);
 
-		// if mission_result is valid for the current mission
-		const bool mission_result_ok = (mission_result.timestamp > _boot_timestamp)
-					       && (mission_result.instance_count > 0);
+	_status_flags.condition_auto_mission_available = mission_result_ok && mission_result.valid;
 
-		_status_flags.condition_auto_mission_available = mission_result_ok && mission_result.valid;
+	// We only do the regular check as part of the usual interval check but when we only need
+	// to update the mission_available flag. In order not to miss any updates, we have to check the
+	// generation.
+	if (should_include_regular_check && _mission_result_generation != _mission_result_sub.get_last_generation()) {
 
 		if (mission_result_ok) {
 			if (_status.mission_failure != mission_result.failure) {
@@ -2742,9 +2749,8 @@ Commander::check_mission_result()
 				}
 			}
 
-			/* Only evaluate mission state if home is set */
 			if (_status_flags.condition_home_position_valid &&
-			    (prev_mission_instance_count != mission_result.instance_count)) {
+			    (_previous_mission_instance_count != mission_result.instance_count)) {
 
 				if (!_status_flags.condition_auto_mission_available) {
 					/* the mission is invalid */
@@ -2758,6 +2764,8 @@ Commander::check_mission_result()
 					/* the mission is valid */
 					tune_mission_ok(true);
 				}
+
+				_previous_mission_instance_count = mission_result.instance_count;
 			}
 		}
 
@@ -2767,13 +2775,18 @@ Commander::check_mission_result()
 		    && (mission_result.timestamp >= _status.nav_state_timestamp)
 		    && mission_result.finished) {
 
-			if ((_param_takeoff_finished_action.get() == 1) && _status_flags.condition_auto_mission_available) {
-				main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_MISSION, _status_flags, &_internal_state);
+			if ((_param_takeoff_finished_action.get() == 1)
+			    && _status_flags.condition_auto_mission_available) {
+				main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_MISSION,
+						      _status_flags, _internal_state);
 
 			} else {
-				main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _status_flags, &_internal_state);
+				main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LOITER,
+						      _status_flags, _internal_state);
 			}
 		}
+
+		_mission_result_generation = _mission_result_sub.get_last_generation();
 	}
 }
 
