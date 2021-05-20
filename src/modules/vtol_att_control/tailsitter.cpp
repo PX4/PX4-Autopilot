@@ -244,10 +244,6 @@ void Tailsitter::update_transition_state()
 
 		const float trans_pitch_rate = M_PI_2_F / _params->back_trans_duration;
 
-		if (!_flag_idle_mc) {
-			_flag_idle_mc = set_idle_mc();
-		}
-
 		if (tilt > 0.01f) {
 			_q_trans_sp = Quatf(AxisAnglef(_trans_rot_axis,
 						       time_since_trans_start * trans_pitch_rate)) * _q_trans_start;

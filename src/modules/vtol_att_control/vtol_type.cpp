@@ -136,9 +136,7 @@ bool VtolType::init()
 
 void VtolType::update_mc_state()
 {
-	if (!_flag_idle_mc) {
-		_flag_idle_mc = set_idle_mc();
-	}
+	set_idle_mc();
 
 	resetAccelToPitchPitchIntegrator();
 
@@ -155,9 +153,7 @@ void VtolType::update_mc_state()
 
 void VtolType::update_fw_state()
 {
-	if (_flag_idle_mc) {
-		_flag_idle_mc = !set_idle_fw();
-	}
+	set_idle_fw();
 
 	resetAccelToPitchPitchIntegrator();
 

@@ -218,8 +218,6 @@ protected:
 
 	struct Params 					*_params;
 
-	bool _flag_idle_mc = false;		//false = "idle is set for fixed wing mode"; true = "idle is set for multicopter mode"
-
 	bool _pusher_active = false;
 	float _mc_roll_weight = 1.0f;	// weight for multicopter attitude controller roll output
 	float _mc_pitch_weight = 1.0f;	// weight for multicopter attitude controller pitch output

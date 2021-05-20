@@ -366,12 +366,6 @@ void Tiltrotor::update_transition_state()
 		// turn on all MC motors
 		set_all_motor_state(motor_state::ENABLED);
 
-
-		// set idle speed for rotary wing mode
-		if (!_flag_idle_mc) {
-			_flag_idle_mc = set_idle_mc();
-		}
-
 		// tilt rotors back
 		if (_tilt_control > _params_tiltrotor.tilt_mc) {
 			_tilt_control = _params_tiltrotor.tilt_fw -
