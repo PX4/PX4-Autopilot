@@ -3,7 +3,6 @@
 
 #include <termios.h>
 
-#include "crc16.h"
 
 #include "srxl.hpp"
 
@@ -69,6 +68,32 @@ int SRXLCodec::channel_count() const
 	return _updated_channel_count;
 }
 
+
+// Compute SRXL CRC over packet buffer (assumes length is correctly set)
+uint16_t SRXLCodec::srxlCrc16(const uint8_t *const packet)
+{
+	uint16_t crc = 0;                // Seed with 0
+	const uint8_t data_length = packet[2] - 2;  // Exclude 2 CRC bytes at end of packet from the length
+
+	if (data_length <= SRXL2_MAX_LENGTH - 2) {
+		// Use bitwise method
+		for (uint8_t i = 0; i < data_length; ++i) {
+			crc = crc ^ ((uint16_t)packet[i] << 8);
+
+			for (int b = 0; b < 8; b++) {
+				if (crc & 0x8000) {
+					crc = (crc << 1) ^ 0x1021;
+
+				} else {
+					crc = crc << 1;
+				}
+			}
+		}
+	}
+
+	return crc;
+}
+
 uint16_t SRXLCodec::decode_channel(const uint16_t raw_value)
 {
 	// The data for the channels is as follows:
@@ -113,7 +138,7 @@ void SRXLCodec::handle_bind_frame(const uint8_t *const frame)
 
 	} else if (0xDB == request_type) {
 		// Bind Data Report
-		print_frame("    ::Bind-Report: ", frame, FRAME_LENGTH_BIND);
+		print_frame("    ::Bind-Report: ", frame);
 
 		const uint8_t src_id = frame[4];
 		printf("        ::Bind::  from: %02x(=?=%02x)", src_id, _receiver_id);
@@ -147,6 +172,16 @@ void SRXLCodec::handle_bind_frame(const uint8_t *const frame)
 
 void SRXLCodec::handle_control_frame(const uint8_t *const frame)
 {
+	// if a valid frame, start extracting fields
+	// const uint8_t frame_length = frame[2];
+	// const uint8_t frame_command = frame[3];
+	// const uint8_t reply_id = frame[4];
+
+	// if( 0 == frame_command ){
+	// }
+
+	// If no reply is desired, set this to 0x00 (no device).
+	// const bool should_reply = ( _fc_id == reply_id );
 
 	const int8_t rssi_report = frame[5];
 
@@ -219,9 +254,6 @@ void SRXLCodec::handle_handshake_frame(const uint8_t *const request)
 		//   - Used to set baud rate; we only support 115200 baud, so make no changes
 		SRXL_DEBUG("    >> Handshake complete: 0xFF\n");
 		return;
-
-	} else if (_fc_id == dest_id) {
-		SRXL_DEBUG("    >> Handshake Probe: %02x => %02x\n", request[3], request[4]);
 	}
 
 	const uint8_t source_id = request[3];
@@ -251,7 +283,7 @@ void SRXLCodec::handle_handshake_frame(const uint8_t *const request)
 	reply[10] = static_cast<uint8_t>(FLIGHT_CONTROLLER_UUID >> 8);
 	reply[11] = static_cast<uint8_t>(FLIGHT_CONTROLLER_UUID);
 
-	pack(reply, FRAME_LENGTH_HANDSHAKE);
+	pack(reply);
 
 	// send reply
 	::write(_fd, &reply, FRAME_LENGTH_HANDSHAKE);
@@ -261,11 +293,12 @@ void SRXLCodec::handle_signal_quality(const uint8_t *const request)
 {
 }
 
-void SRXLCodec::pack(uint8_t *const frame, uint8_t frame_length)
+void SRXLCodec::pack(uint8_t *const frame)
 {
-	uint16_t crc = crc16(reinterpret_cast<const uint8_t *>(frame), frame_length - 2);
-	frame[frame_length - 2] = static_cast<uint8_t>(crc >> 8);   // MSB
-	frame[frame_length - 1] = static_cast<uint8_t>(crc & 0xFF); // LSB
+	const uint8_t frame_length = frame[2] - 2;
+	const uint16_t crc = srxlCrc16(frame);
+	frame[frame_length + 0] = static_cast<uint8_t>(crc >> 8);   // MSB
+	frame[frame_length + 1] = static_cast<uint8_t>(crc & 0xFF); // LSB
 }
 
 
@@ -298,7 +331,7 @@ bool SRXLCodec::parse(const uint64_t now, const uint8_t *source, const uint8_t s
 	}
 
 	// check 4: verify checksum
-	if (! validate_checksum(cursor, frame_length)) {
+	if (! validate_checksum(cursor)) {
 		return false;
 	}
 
@@ -339,8 +372,9 @@ bool SRXLCodec::parse(const uint64_t now, const uint8_t *source, const uint8_t s
 }
 
 #if SRXL_DEBUG_LEVEL > 1
-void SRXLCodec::print_frame(const char *const preamble, const uint8_t *cursor, uint8_t frame_length)
+void SRXLCodec::print_frame(const char *const preamble, const uint8_t *cursor)
 {
+	const uint8_t frame_length = cursor[2];
 	printf("%s %d: [", preamble, frame_length);
 
 	for (int i = 0; i < frame_length; ++i, ++cursor) {
@@ -402,7 +436,7 @@ int SRXLCodec::request_bind_receiver(uint8_t bind_mode)
 	// // UID field:
 	// memset(reply+15, 0, 4);
 
-	pack(reply, FRAME_LENGTH_BIND);
+	pack(reply);
 
 	// send reply
 	return ::write(_fd, &reply, FRAME_LENGTH_BIND);
@@ -410,6 +444,7 @@ int SRXLCodec::request_bind_receiver(uint8_t bind_mode)
 
 bool SRXLCodec::set_single_wire(bool single_wire)
 {
+#ifdef SER_SINGLEWIRE_ENABLED
 	auto flags  = single_wire ? (SER_SINGLEWIRE_ENABLED | SER_SINGLEWIRE_PUSHPULL | SER_SINGLEWIRE_PULLDOWN) : 0 ;
 
 	if (0 > ioctl(_fd, TIOCSSINGLEWIRE, flags)) {
@@ -418,6 +453,9 @@ bool SRXLCodec::set_single_wire(bool single_wire)
 	}
 
 	return true;
+#else
+	return false;
+#endif
 }
 
 bool SRXLCodec::supports_telemetry() const
@@ -425,8 +463,9 @@ bool SRXLCodec::supports_telemetry() const
 	return (1 & _receiver_options);
 }
 
-bool SRXLCodec::validate_checksum(const uint8_t *const frame, uint8_t frame_length)
+bool SRXLCodec::validate_checksum(const uint8_t *const frame)
 {
+	const uint8_t frame_length = frame[2];
 	const uint16_t found_checksum = (frame[frame_length - 2] << 8) | frame[frame_length - 1];
 
 	if (0 == found_checksum) {
@@ -434,7 +473,7 @@ bool SRXLCodec::validate_checksum(const uint8_t *const frame, uint8_t frame_leng
 		return false;
 	}
 
-	const uint16_t calculated_checksum = crc16(reinterpret_cast<const uint8_t *>(frame), frame_length - 2);
+	const uint16_t calculated_checksum = srxlCrc16(frame);
 
 	if (found_checksum == calculated_checksum) {
 		return true;

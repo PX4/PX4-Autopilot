@@ -123,6 +123,8 @@ private:
 
 private:
 // ====== ====== ====== ====== Private API ====== ====== ====== ======
+	static uint16_t srxlCrc16(const uint8_t *const packet);
+
 	uint16_t decode_channel(const uint16_t raw_value);
 
 	void handle_bind_frame(const uint8_t *const frame);
@@ -133,9 +135,9 @@ private:
 
 	void handle_signal_quality(const uint8_t *const frame);
 
-	void pack(uint8_t *const frame, uint8_t frame_length);
+	void pack(uint8_t *const frame);
 
-	void print_frame(const char *const preamble, const uint8_t *frame, uint8_t frame_length);
+	void print_frame(const char *const preamble, const uint8_t *frame);
 
 	void reset();
 
@@ -144,7 +146,7 @@ private:
 
 	// void set_payload( uint8_t *payload, size_t length, srxl_frame_t* dest);
 
-	bool validate_checksum(const uint8_t *const frame, uint8_t frame_length);
+	bool validate_checksum(const uint8_t *const frame);
 
 private:
 	// size_t _bytes_received;
