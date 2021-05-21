@@ -32,49 +32,57 @@
  ****************************************************************************/
 
 /**
- * @file Access.hpp
+ * @file SubscriptionManager.cpp
  *
- * Defines a Access Service invoker and process Access responses
+ * Manages the UAVCAN subscriptions
  *
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
 
-#pragma once
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/module.h>
-#include <version/version.h>
+#include "SubscriptionManager.hpp"
 
-#include "../NodeManager.hpp"
 
-#include <uavcan/_register/Access_1_0.h>
 
-#include "../Subscribers/BaseSubscriber.hpp"
-
-class UavcanAccessServiceReply : public UavcanBaseSubscriber
+void SubscriptionManager::subscribe()
 {
-public:
-	UavcanAccessServiceReply(CanardInstance &ins, NodeManager &nmgr) :
-		UavcanBaseSubscriber(ins, "Access", 0), _nmgr(nmgr) { };
+	_heartbeat_sub.subscribe();
+	_getinfo_rsp.subscribe();
+	_access_rsp.subscribe();
 
-	void subscribe() override
-	{
-		// Subscribe to requests uavcan.pnp.NodeIDAllocationData
-		canardRxSubscribe(&_canard_instance,
-				  CanardTransferKindResponse,
-				  uavcan_register_Access_1_0_FIXED_PORT_ID_,
-				  uavcan_register_Access_Response_1_0_EXTENT_BYTES_,
-				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-				  &_subj_sub._canard_sub);
+	for (auto &sub : _uavcan_subs) {
+		PX4_INFO("Param %s ", sub.px4_name);
+		param_t param_handle = param_find(sub.px4_name);
 
-	};
+		if (param_handle == PARAM_INVALID) {
+			PX4_ERR("Param %s not found", sub.px4_name);
+			break;
+		}
 
-	void callback(const CanardTransfer &receive) override
-	{
-		PX4_INFO("Access response");
-	};
+		if ((param_type(param_handle) == PARAM_TYPE_INT32)) {
+			int32_t port_id {};
+			param_get(param_handle, &port_id);
 
-private:
-	NodeManager &_nmgr;
+			if (port_id != 0) { // PortID is set create subscriber
+				UavcanDynamicPortSubscriber *dynsub = sub.create_sub(_canard_instance, _param_manager);
 
-};
+				if (_dynsubscribers != NULL) {
+					_dynsubscribers->setNext(dynsub);
+				}
+
+				_dynsubscribers = dynsub;
+				dynsub->updateParam();
+			}
+		}
+	}
+}
+
+void SubscriptionManager::printInfo()
+{
+
+}
+
+void SubscriptionManager::updateParams()
+{
+	//TODO dynamically update params and unsubscribe
+}

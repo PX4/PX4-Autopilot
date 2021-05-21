@@ -57,7 +57,7 @@ public:
 		// Subscribe to messages uORB sensor_gps payload over UAVCAN
 		canardRxSubscribe(&_canard_instance,
 				  CanardTransferKindMessage,
-				  _subj_sub._canard_sub._port_id,
+				  _subj_sub._canard_sub.port_id,
 				  sizeof(struct sensor_gps_s),
 				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC * 10000,
 				  &_subj_sub._canard_sub);

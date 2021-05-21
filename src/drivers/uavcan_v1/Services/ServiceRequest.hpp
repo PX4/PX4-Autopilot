@@ -51,38 +51,54 @@
 
 #include "../Subscribers/BaseSubscriber.hpp"
 
-class UavcanListServiceReply : public UavcanBaseSubscriber
+
+class UavcanServiceRequestInterface
 {
 public:
-	UavcanListServiceReply(CanardInstance &ins, NodeManager &nmgr) :
-		UavcanBaseSubscriber(ins, "List", 0), _nmgr(nmgr) { };
+	virtual void response_callback(const CanardTransfer &receive) = 0;
+};
+
+class UavcanServiceRequest : public UavcanBaseSubscriber
+{
+public:
+	UavcanServiceRequest(CanardInstance &ins, const char *subject_name, CanardPortID portID, size_t extent) :
+		UavcanBaseSubscriber(ins, subject_name, 0), _portID(portID), _extent(extent) { };
+
 
 	void subscribe() override
 	{
-		// Subscribe to requests uavcan.pnp.NodeIDAllocationData
+		// Subscribe to requests response
 		canardRxSubscribe(&_canard_instance,
 				  CanardTransferKindResponse,
-				  uavcan_register_List_1_0_FIXED_PORT_ID_,
-				  uavcan_register_List_Response_1_0_EXTENT_BYTES_,
+				  _portID,
+				  _extent,
 				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
 				  &_subj_sub._canard_sub);
-
 	};
+
+	bool request(CanardTransfer *transfer, UavcanServiceRequestInterface *handler)
+	{
+		_response_callback = handler;
+		++request_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
+		return canardTxPush(&_canard_instance, transfer) > 0;
+	}
 
 	void callback(const CanardTransfer &receive) override
 	{
-		PX4_INFO("List response");
+		PX4_INFO("Response");
 
-		uavcan_register_List_Response_1_0 msg;
-
-		size_t register_in_size_bits = receive.payload_size;
-		uavcan_register_List_Response_1_0_deserialize_(&msg, (const uint8_t *)receive.payload, &register_in_size_bits);
-
-		// Pass msg.name.name.elements to NodeManager
-		_nmgr.HandleListResponse(receive.remote_node_id, msg);
+		if (_response_callback != NULL) {
+			_response_callback->response_callback(receive);
+		}
 	};
 
-private:
-	NodeManager &_nmgr;
+
+
+protected:
+	CanardTransferID request_transfer_id = 0;
+
+	const CanardPortID _portID;
+	const size_t _extent;
+	UavcanServiceRequestInterface *_response_callback = NULL;
 
 };

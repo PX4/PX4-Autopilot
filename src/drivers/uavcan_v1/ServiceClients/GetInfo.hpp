@@ -45,12 +45,11 @@
 #include <px4_platform_common/module.h>
 #include <version/version.h>
 
-#include "../NodeManager.hpp"
-
 #include <uavcan/node/ID_1_0.h>
 #include <uavcan/node/GetInfo_1_0.h>
 
 #include "../Subscribers/BaseSubscriber.hpp"
+#include "../Publishers/Publisher.hpp"
 
 class UavcanGetInfoResponse : public UavcanBaseSubscriber
 {

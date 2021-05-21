@@ -47,44 +47,43 @@
 
 #include <uavcan/_register/List_1_0.h>
 
+#include "ServiceRequest.hpp"
+#include "../ParamManager.hpp"
 #include "../Publishers/Publisher.hpp"
 
-class UavcanListServiceRequest
+class UavcanListServiceRequest : public UavcanServiceRequest
 {
 public:
 	UavcanListServiceRequest(CanardInstance &ins) :
-		_canard_instance(ins) { };
+		UavcanServiceRequest(ins, "List", uavcan_register_List_1_0_FIXED_PORT_ID_,
+				     uavcan_register_List_Response_1_0_EXTENT_BYTES_) { };
 
 
-	void request(CanardNodeID node_id, uint16_t index)
+	bool getIndex(CanardNodeID node_id, uint16_t index, UavcanServiceRequestInterface *handler)
 	{
 		uavcan_register_List_Request_1_0 msg;
 		msg.index = index;
 
 		uint8_t request_payload_buffer[uavcan_register_List_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
 
-		CanardTransfer request = {
+		CanardTransfer transfer = {
 			.timestamp_usec = hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
 			.priority       = CanardPriorityNominal,
 			.transfer_kind  = CanardTransferKindRequest,
 			.port_id        = uavcan_register_List_1_0_FIXED_PORT_ID_, // This is the subject-ID.
 			.remote_node_id = node_id,
-			.transfer_id    = list_request_transfer_id,
+			.transfer_id    = request_transfer_id,
 			.payload_size   = uavcan_register_List_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_,
 			.payload        = &request_payload_buffer,
 		};
 
-		int32_t result = uavcan_register_List_Request_1_0_serialize_(&msg, request_payload_buffer, &request.payload_size);
+		if (uavcan_register_List_Request_1_0_serialize_(&msg, request_payload_buffer, &transfer.payload_size) == 0) {
+			return request(&transfer, handler);
 
-		if (result == 0) {
-			// set the data ready in the buffer and chop if needed
-			++list_request_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
-			result = canardTxPush(&_canard_instance, &request);
+		} else {
+			return false;
 		}
 	};
 
-private:
-	CanardInstance &_canard_instance;
-	CanardTransferID list_request_transfer_id = 0;
 
 };

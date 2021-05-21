@@ -74,8 +74,8 @@ static bool uavcan_port_id_to_px4_param(const uavcan_register_Value_1_0 &in, par
 	return false;
 };
 
-typedef bool (*param_2_reg_t)(param_t &in, uavcan_register_Value_1_0 &out);
-typedef bool (*reg_2_param_t)(const uavcan_register_Value_1_0 &in, param_t &out);
+using param_2_reg_t = bool(*)(param_t &in, uavcan_register_Value_1_0 &out);
+using reg_2_param_t = bool(*)(const uavcan_register_Value_1_0 &in, param_t &out);
 
 
 typedef struct {

@@ -82,13 +82,13 @@ UavcanNode::UavcanNode(CanardInterface *interface, uint32_t node_id) :
 
 	PX4_INFO("main _canard_instance = %p", &_canard_instance);
 
+	_node_manager.subscribe();
+
 	for (auto &publisher : _publishers) {
 		publisher->updateParam();
 	}
 
-	for (auto &subscriber : _dynsubscribers) {
-		subscriber->updateParam();
-	}
+	_sub_manager.subscribe();
 
 	_mixing_output.mixingOutput().updateSubscriptions(false, false);
 }
@@ -156,21 +156,6 @@ void UavcanNode::init()
 	// interface init
 	if (_can_interface) {
 		if (_can_interface->init() == PX4_OK) {
-
-			// We can't accept just any message; we must fist subscribe to specific IDs
-
-			// Subscribe to messages uavcan.node.Heartbeat.
-			canardRxSubscribe(&_canard_instance,
-					  CanardTransferKindMessage,
-					  uavcan_node_Heartbeat_1_0_FIXED_PORT_ID_,
-					  uavcan_node_Heartbeat_1_0_EXTENT_BYTES_,
-					  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-					  &_heartbeat_subscription);
-
-			for (auto &subscriber : _subscribers) {
-				subscriber->subscribe();
-			}
-
 			_initialized = true;
 		}
 	}
@@ -205,12 +190,7 @@ void UavcanNode::Run()
 			publisher->updateParam();
 		}
 
-		for (auto &subscriber : _dynsubscribers) {
-			// Have the subscriber update its associated port-id parameter
-			// If the port-id changes, (re)start the subscription
-			// Setting the port-id to 0 disables the subscription
-			subscriber->updateParam();
-		}
+		_sub_manager.updateParams();
 
 		_mixing_output.updateParams();
 
@@ -336,12 +316,43 @@ void UavcanNode::print_info()
 		publisher->printInfo();
 	}
 
-	for (auto &subscriber : _subscribers) {
-		subscriber->printInfo();
+	CanardRxSubscription *rxs = _canard_instance.rx_subscriptions[CanardTransferKindMessage];
+
+	while (rxs != NULL) {
+		if (rxs->user_reference == NULL) {
+			PX4_INFO("Message port id %d", rxs->port_id);
+
+		} else {
+			((UavcanBaseSubscriber *)rxs->user_reference)->printInfo();
+		}
+
+		rxs = rxs->next;
 	}
 
-	for (auto &subscriber : _dynsubscribers) {
-		subscriber->printInfo();
+	rxs = _canard_instance.rx_subscriptions[CanardTransferKindRequest];
+
+	while (rxs != NULL) {
+		if (rxs->user_reference == NULL) {
+			PX4_INFO("Service response port id %d", rxs->port_id);
+
+		} else {
+			((UavcanBaseSubscriber *)rxs->user_reference)->printInfo();
+		}
+
+		rxs = rxs->next;
+	}
+
+	rxs = _canard_instance.rx_subscriptions[CanardTransferKindResponse];
+
+	while (rxs != NULL) {
+		if (rxs->user_reference == NULL) {
+			PX4_INFO("Service request port id %d", rxs->port_id);
+
+		} else {
+			((UavcanBaseSubscriber *)rxs->user_reference)->printInfo();
+		}
+
+		rxs = rxs->next;
 	}
 
 	_mixing_output.printInfo();
