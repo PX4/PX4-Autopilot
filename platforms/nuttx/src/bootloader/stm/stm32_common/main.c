@@ -437,7 +437,7 @@ void arch_flash_unlock(void)
 	stm32h7_flash_unlock(STM32_FLASH_BANK2);
 }
 
-ssize_t arch_flash_write(size_t address, const void *buffer, size_t buflen)
+ssize_t arch_flash_write(uintptr_t address, const void *buffer, size_t buflen)
 {
 	return up_progmem_write(address, buffer, buflen);
 }
@@ -475,13 +475,13 @@ flash_func_erase_sector(unsigned sector)
 }
 
 void
-flash_func_write_word(uint32_t address, uint32_t word)
+flash_func_write_word(uintptr_t address, uint32_t word)
 {
 	address += APP_LOAD_ADDRESS;
 	fc_write(address, word);
 }
 
-uint32_t flash_func_read_word(uint32_t address)
+uint32_t flash_func_read_word(uintptr_t address)
 {
 
 	if (address & 3) {
@@ -494,7 +494,7 @@ uint32_t flash_func_read_word(uint32_t address)
 
 
 uint32_t
-flash_func_read_otp(uint32_t address)
+flash_func_read_otp(uintptr_t address)
 {
 	return 0;
 }
@@ -550,7 +550,7 @@ int check_silicon(void)
 }
 
 uint32_t
-flash_func_read_sn(uint32_t address)
+flash_func_read_sn(uintptr_t address)
 {
 	// read a byte out from unique chip ID area
 	// it's 12 bytes, or 3 words.
