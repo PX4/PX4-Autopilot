@@ -38,7 +38,7 @@
 
 #include <nuttx/progmem.h>
 
-extern ssize_t arch_flash_write(size_t address, const void *buffer, size_t buflen);
+extern ssize_t arch_flash_write(uintptr_t address, const void *buffer, size_t buflen);
 
 flash_cache_line_t flash_cache[FC_NUMBER_LINES];
 
@@ -57,7 +57,7 @@ inline void fc_reset(void)
 	flash_cache[0].start_address = APP_LOAD_ADDRESS;
 }
 
-static inline flash_cache_line_t *fc_line_select(uint32_t address)
+static inline flash_cache_line_t *fc_line_select(uintptr_t address)
 {
 	for (unsigned w = 0; w < FC_NUMBER_LINES; w++) {
 		if (flash_cache[w].start_address == (address & FC_ADDRESS_MASK)) {
@@ -86,7 +86,7 @@ int fc_flush(flash_cache_line_t *fl)
 	return rv;
 }
 
-int fc_write(uint32_t address, uint32_t word)
+int fc_write(uintptr_t address, uint32_t word)
 {
 	flash_cache_line_t *fc = fc_line_select(address);
 	flash_cache_line_t *fc1 = &flash_cache[1];
@@ -129,7 +129,7 @@ int fc_write(uint32_t address, uint32_t word)
 	return rv;
 }
 
-uint32_t fc_read(uint32_t address)
+uint32_t fc_read(uintptr_t address)
 {
 	// Assume a cache miss read from FLASH memory
 
