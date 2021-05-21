@@ -51,7 +51,6 @@ void SubscriptionManager::subscribe()
 	_access_rsp.subscribe();
 
 	for (auto &sub : _uavcan_subs) {
-		PX4_INFO("Param %s ", sub.px4_name);
 		param_t param_handle = param_find(sub.px4_name);
 
 		if (param_handle == PARAM_INVALID) {
@@ -63,7 +62,7 @@ void SubscriptionManager::subscribe()
 			int32_t port_id {};
 			param_get(param_handle, &port_id);
 
-			if (port_id != 0) { // PortID is set create subscriber
+			if (port_id != UavcanBaseSubscriber::CANARD_PORT_ID_UNSET) { // PortID is set create subscriber
 				UavcanDynamicPortSubscriber *dynsub = sub.create_sub(_canard_instance, _param_manager);
 
 				if (_dynsubscribers != NULL) {
