@@ -58,12 +58,12 @@
 // Cache line
 typedef struct flash_cache_line_t {
 	uint32_t index;                   // Index of word written
-	uint32_t start_address;           // cache tag (address in FLASH this is buffering)
+	uintptr_t start_address;          // cache tag (address in FLASH this is buffering)
 	uint32_t words[FC_NUMBER_WORDS];  // Buffered data
 } flash_cache_line_t;
 
 // Resets the cache - all lines flashed and cache_line[0] start_address == APP_LOAD_ADDRESS
 void fc_reset(void);
 // Cache operations
-uint32_t fc_read(uint32_t address);
-int fc_write(uint32_t address, uint32_t word);
+uint32_t fc_read(uintptr_t address);
+int fc_write(uintptr_t address, uint32_t word);
