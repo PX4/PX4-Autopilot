@@ -110,9 +110,11 @@ uint16_t SRXLCodec::decode_channel(const uint16_t raw_value)
 
 	// The channel value must be bit-shifted to the right to match the application’s accepted resolution.
 	// For example, to match DSMX 2048 data (11-bit), shift each value 5 bits to the right. -- SXRL2 Specification p15
-	auto shifted_value = raw_value >> 5;
+	auto shifted_value = raw_value >> 6;
 
-	return shifted_value;
+	auto offset_value = shifted_value + 1000;
+
+	return offset_value;
 }
 
 uint16_t SRXLCodec::frame_drops() const
