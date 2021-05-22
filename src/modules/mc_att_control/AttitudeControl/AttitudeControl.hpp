@@ -267,10 +267,10 @@ private:
   	matrix::Vector3f z_k_Pq_R, z_km1_Pq_R,u_k_Pq_R, u_km1_Pq_R;
 	matrix::SquareMatrix<float, 3> Gamma_Pq_R, I3, N1_Pq;
 
-	// New RCAC_Class_Variables
-	RCAC _rcac_att_x;
-	RCAC _rcac_att_y;
-	RCAC _rcac_att_z;
+	// // New RCAC_Class_Variables
+	// RCAC _rcac_att_x;
+	// RCAC _rcac_att_y;
+	// RCAC _rcac_att_z;
 
 	//float alpha_PID = 1.0f;
 	float alpha_PID_att = 1.0f;

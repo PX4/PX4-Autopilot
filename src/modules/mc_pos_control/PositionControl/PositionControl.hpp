@@ -300,14 +300,14 @@ public:
 	 * 	@see P_Pr_R
 	 * 	@return RCAC P(1,1) of the Position controller
 	 */
-	const float &get_RCAC_P11_Pos() { return P_Pr_R(0,0); }
+	const float &get_RCAC_P11_Pos() { return P_11_r; }
 
 	/**
 	 * 	Get the
 	 * 	@see P_vel_x
 	 * 	@return RCAC P(1,1) of the Velcity x controller
 	 */
-	const float &get_RCAC_P11_Velx() { return P_vel_x(0,0); }
+	const float &get_RCAC_P11_Velx() { return P_11_vx; }
 
 	/**
 	 * 	Reset RCAC variables
@@ -357,12 +357,12 @@ private:
 	float _yawspeed_sp{}; /** desired yaw-speed */
 
 	// New RCAC_Class_Variables
-	RCAC _rcac_pos_x;
-	RCAC _rcac_pos_y;
-	RCAC _rcac_pos_z;
-	RCAC _rcac_vel_x;
-	RCAC _rcac_vel_y;
-	RCAC _rcac_vel_z;
+	// RCAC _rcac_pos_x;
+	// RCAC _rcac_pos_y;
+	// RCAC _rcac_pos_z;
+	// RCAC _rcac_vel_x;
+	// RCAC _rcac_vel_y;
+	// RCAC _rcac_vel_z;
 	// std::vector<RCAC> _rcac_pos;
 	// std::vector<RCAC> _rcac_vel;
 	//RCAC vel_RCAC;
@@ -370,11 +370,18 @@ private:
 	// RCAC
 	int ii_Pr_R = 0;
 	bool RCAC_Pr_ON=1;
-	matrix::SquareMatrix<float, 3> P_Pr_R;
-	matrix::Matrix<float, 3,3> phi_k_Pr_R, phi_km1_Pr_R;
-	matrix::Matrix<float, 3,1> theta_k_Pr_R;
-  	matrix::Matrix<float, 3,1> z_k_Pr_R, z_km1_Pr_R,u_k_Pr_R, u_km1_Pr_R;
-	matrix::SquareMatrix<float, 3> Gamma_Pr_R;
+
+	matrix::Matrix<RCAC, 1, 3> _rcac_r;
+	matrix::Matrix<RCAC, 1, 3> _rcac_v;
+
+	float P_11_r;	// spjohn -- P_11_r, P_11_vx are necessary for proper referencing in get_RCAC_P11_Pos()
+	float P_11_vx;	//	     and get_RCAC_P11_Velx() -- fix later
+
+	// matrix::SquareMatrix<float, 3> P_Pr_R;
+	// matrix::Matrix<float, 3,3> phi_k_Pr_R, phi_km1_Pr_R;
+	// matrix::Matrix<float, 3,1> theta_k_Pr_R;
+  	// matrix::Matrix<float, 3,1> z_k_Pr_R, z_km1_Pr_R,u_k_Pr_R, u_km1_Pr_R;
+	// matrix::SquareMatrix<float, 3> Gamma_Pr_R;
 
 	// const TODO: make really const.
 	matrix::SquareMatrix<float, 3> I3, N1_Pr;
@@ -389,14 +396,14 @@ private:
   	// matrix::Matrix<float, 3,1> z_k_Pv_R, z_km1_Pv_R,u_k_Pv_R, u_km1_Pv_R;
 	// matrix::SquareMatrix<float, 3> Gamma_Pv_R, N1_Pv;
 
-	matrix::SquareMatrix<float, 3> P_vel_x,P_vel_y,P_vel_z;
-	matrix::Matrix<float, 1,3> phi_k_vel_x, phi_km1_vel_x;
-	matrix::Matrix<float, 1,3> phi_k_vel_y, phi_km1_vel_y;
-	matrix::Matrix<float, 1,3> phi_k_vel_z, phi_km1_vel_z;
-	matrix::Vector3f theta_k_vel_x, theta_k_vel_y, theta_k_vel_z;
-  	matrix::Vector3f z_k_vel, z_km1_vel, u_k_vel, u_km1_vel;
-	matrix::Vector3f N1_vel, Gamma_vel;
-	matrix::Matrix<float, 1,1> dummy1,dummy2,dummy3;
+	// matrix::SquareMatrix<float, 3> P_vel_x,P_vel_y,P_vel_z;
+	// matrix::Matrix<float, 1,3> phi_k_vel_x, phi_km1_vel_x;
+	// matrix::Matrix<float, 1,3> phi_k_vel_y, phi_km1_vel_y;
+	// matrix::Matrix<float, 1,3> phi_k_vel_z, phi_km1_vel_z;
+	// matrix::Vector3f theta_k_vel_x, theta_k_vel_y, theta_k_vel_z;
+  	// matrix::Vector3f z_k_vel, z_km1_vel, u_k_vel, u_km1_vel;
+	// matrix::Vector3f N1_vel, Gamma_vel;
+	// matrix::Matrix<float, 1,1> dummy1,dummy2,dummy3;
 
 	//float alpha_PID = 1.0f;
 	float alpha_PID_pos = 1.0f;
