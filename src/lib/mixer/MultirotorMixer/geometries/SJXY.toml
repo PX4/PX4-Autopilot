@@ -1,0 +1,61 @@
+#SJXy nonsense
+
+
+[info]
+key = "sjxy"
+description = "4 summed forward positions, 2 contra rotating coaxial rear rotors"
+
+[rotor_default]
+direction = "CW"
+axis      = [0.0, 0.0, -1.0]
+Ct        = 1.0
+Cm        = 0.05
+
+
+[[rotors]]
+name      = "Motor_1"
+position  = [0.24191694323324328, -0.4400452861441465, 0.0]
+axis      = [0.0, 0.0, -1.0]
+direction = "CCW"
+Ct        = 1.0
+Cm        = 0.50
+
+[[rotors]]
+name      = "Motor_2"
+position  = [0.24191694323324328, 0.4400452861441465, 0.0]
+axis      = [0.0, 0.0, -1.0]
+direction = "CW"
+Ct        = 1.0
+Cm        = 0.50
+
+[[rotors]]
+name      = "Motor_3"
+position  = [0.24191694323324328, -0.4400452861441465, 0.0]
+axis      = [0.0, 0.0, -1.0]
+direction = "CW"
+Ct        = 1.0
+Cm        = 0.50
+
+[[rotors]]
+name      = "Motor_4"
+position  = [0.24191694323324328, 0.4400452861441465, 0.0]
+axis      = [0.0, 0.0, -1.0]
+direction = "CCW"
+Ct        = 1.0
+Cm        = 0.50
+
+[[rotors]]
+name     = "Motor_5"
+position = [-0.644, 0.0, 0.333]
+axis      = [0.0, 0.0, -1.0]
+direction = "CCW"
+Ct        = 0.648
+Cm        = 0.75
+
+[[rotors]]
+name     = "Motor_6"
+position = [-0.644, 0.0, 0.241]
+axis      = [0.0, 0.0, -1.0]
+direction = "CW"
+Ct        = 0.648
+Cm        = 0.65

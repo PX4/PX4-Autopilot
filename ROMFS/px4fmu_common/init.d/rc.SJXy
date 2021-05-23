@@ -1,0 +1,171 @@
+#!/bin/sh
+#
+# @name SJXy
+#
+#
+# @type VTOL Tiltrotor
+# @class VTOL
+#
+# @maintainer Luke Wilson <lukewilson@windcraftaviation.com>
+#
+# @output MAIN1 motor 1
+# @output MAIN2 motor 2
+# @output MAIN3 motor 3
+# @output MAIN4 motor 4
+# @output MAIN5 motor 5
+# @output MAIN6 motor 6
+# @output AUX1 FWD Left Elevon
+# @output AUX2 FWD Right Elevon
+# @output AUX3 REAR Left Elevon
+# @output AUX4 REAR Right Elevon
+# @output AUX5 Rudder
+# @output AUX6 Tilt Servo
+# @output AUX7 Tilt Servo
+
+
+. ${R}etc/init.d/rc.vtol_defaults
+
+if [ $AUTOCNF == yes ]
+then
+	param set BAT1_A_PER_V  36.36751556
+	param set BAT1_N_CELLS  6
+	param set BAT1_V_DIV  18.10000038
+	param set BAT_A_PER_V  36.36751556
+	param set BAT_N_CELLS  6
+	param set BAT_V_DIV  18.10000038
+	param set CBRK_IO_SAFETY  22027
+	param set CBRK_USB_CHK  197848
+	param set COM_ARM_EKF_AB  0.00173
+	param set COM_ARM_EKF_GB  0.00087
+	param set COM_ARM_MAG_ANG  30
+	param set COM_DISARM_LAND  0
+	param set COM_DISARM_PRFLT  0
+	param set COM_FLIGHT_UUID  295
+	param set COM_FLTMODE1  0
+	param set COM_FLTMODE2  0
+	param set COM_FLTMODE3  0
+	param set COM_FLTMODE4  8
+	param set COM_FLTMODE5  0
+	param set COM_FLTMODE6  8
+	param set FW_P_TC  0.460000008
+	param set FW_R_TC  0.460000008
+	param set FW_THR_CRUISE  0.579999983
+	param set FW_T_HRATE_FF  0.800000012
+	param set FW_T_HRATE_P  0.050000001
+	param set FW_T_INTEG_GAIN  0.100000001
+	param set FW_T_PTCH_DAMP  0
+	param set FW_T_SRATE_P  0.02
+	param set FW_T_THRO_CONST  8
+	param set FW_T_THR_DAMP  0.5
+	param set FW_T_TIME_CONST  5
+	param set HTE_HT_NOISE  0.0005
+	param set IMU_GYRO_RATEMAX  400
+	param set LNDFW_AIRSPD_MAX  8
+	param set LND_FLIGHT_T_HI  1
+	param set LND_FLIGHT_T_LO  1917014776
+	param set MAV_TYPE  21
+	param set MC_PITCHRATE_D  0.006
+	param set MC_PITCHRATE_I  0.25
+	param set MC_PITCHRATE_MAX  100
+	param set MC_PITCHRATE_P  2.700000048
+	param set MC_PITCH_P  3
+	param set MC_PR_INT_LIM  0.400000006
+	param set MC_ROLLRATE_D  0.0035
+	param set MC_ROLLRATE_I  0
+	param set MC_ROLLRATE_P  0.899999976
+	param set MC_YAWRATE_D  0.001
+	param set MC_YAWRATE_I  0
+	param set MC_YAWRATE_MAX  80
+	param set MC_YAWRATE_P  0.100000001
+	param set MPC_JERK_AUTO  8
+	param set MPC_JERK_MAX  20
+	param set MPC_LAND_VEL_XY  2
+	param set MPC_MANTHR_MIN  0.02
+	param set MPC_MAN_Y_MAX  80
+	param set MPC_POS_MODE  0
+	param set MPC_THR_CURVE  1
+	param set MPC_THR_HOVER  0.150000006
+	param set MPC_TKO_SPEED  5
+	param set MPC_VEL_MANUAL  4
+	param set MPC_XY_CRUISE  4
+	param set MPC_Z_MAN_EXPO  0.5
+	param set PWM_AUX_DIS6  900
+	param set PWM_AUX_MAX6  1965
+	param set PWM_AUX_MIN6  900
+	param set PWM_AUX_REV6  -1
+	param set PWM_RATE  50
+	param set RC1_MAX  1830
+	param set RC1_MIN  1162
+	param set RC1_TRIM  1496
+	param set RC2_MAX  1830
+	param set RC2_MIN  1162
+	param set RC2_TRIM  1501
+	param set RC3_MAX  2008
+	param set RC3_MIN  983
+	param set RC3_TRIM  983
+	param set RC4_MAX  1830
+	param set RC4_MIN  1162
+	param set RC4_TRIM  1492
+	param set RC5_MAX  1830
+	param set RC5_MIN  1162
+	param set RC5_TRIM  1496
+	param set RC6_MAX  1830
+	param set RC6_MIN  1162
+	param set RC6_TRIM  1496
+	param set RC7_MAX  2008
+	param set RC7_MIN  983
+	param set RC7_TRIM  1495
+	param set RC8_MAX  2008
+	param set RC8_MIN  983
+	param set RC8_TRIM  1495
+	param set RC_ACRO_TH  0.5
+	param set RC_ARMSWITCH_TH  0.25
+	param set RC_CHAN_CNT  18
+	param set RC_GEAR_TH  0.25
+	param set RC_KILLSWITCH_TH  0.25
+	param set RC_LOITER_TH  0.5
+	param set RC_MAN_TH  0.5
+	param set RC_MAP_ARM_SW  7
+	param set RC_MAP_FLTMODE  6
+	param set RC_MAP_PITCH  2
+	param set RC_MAP_ROLL  1
+	param set RC_MAP_THROTTLE  3
+	param set RC_MAP_TRANS_SW  5
+	param set RC_MAP_YAW  4
+	param set RC_OFFB_TH  0.5
+	param set RC_POSCTL_TH  0.5
+	param set RC_RATT_TH  0.5
+	param set RC_RETURN_TH  0.5
+	param set RTL_CONE_ANG  0
+	param set RTL_MIN_DIST  5
+	param set RTL_TYPE  1
+	param set SDLOG_MISSION  1
+	param set SDLOG_PROFILE  49
+	param set SYS_AUTOSTART  13015
+	param set SYS_RESTART_TYPE  0
+	param set VT_FWD_THRUST_SC  0
+	param set VT_FW_MOT_OFFID  123456
+	param set VT_F_TRANS_DUR  10
+	param set VT_F_TR_OL_TM  2.200000048
+	param set VT_IDLE_PWM_MC  1000
+	param set VT_MOT_ID  12345678
+	param set VT_TILT_FW  0.899999976
+	param set VT_TILT_MC  0.150000006
+	param set VT_TILT_TRANS  0.5
+	param set VT_TRANS_MIN_TM  1
+	param set VT_TYPE  1
+	param set WV_EN  1
+
+fi
+
+# Configure this as plane
+set MAV_TYPE 21
+
+# Set mixer
+set MIXER SJXy
+set MIXER_AUX SJXy
+
+
+
+# PWM settings
+set PWM_OUT 123456
