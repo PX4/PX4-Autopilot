@@ -243,7 +243,7 @@ void ICM42605::RunImpl()
 			}
 
 			if (!success) {
-				_failure_count++;
+				_failure_count += 2;
 
 				// full reset if things are failing consistently
 				if (_failure_count > 10) {

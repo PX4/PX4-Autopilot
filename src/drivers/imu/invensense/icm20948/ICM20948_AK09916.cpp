@@ -152,7 +152,7 @@ void ICM20948_AK09916::Run()
 
 			if (!success) {
 				perf_count(_bad_transfer_perf);
-				_failure_count++;
+				_failure_count += 2;
 
 				if (_failure_count > 10) {
 					Reset();
