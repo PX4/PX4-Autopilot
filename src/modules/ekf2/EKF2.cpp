@@ -170,6 +170,7 @@ EKF2::~EKF2()
 	perf_free(_ecl_ekf_update_perf);
 	perf_free(_ecl_ekf_update_full_perf);
 	perf_free(_imu_missed_perf);
+	perf_free(_mag_missed_perf);
 }
 
 bool EKF2::multi_init(int imu, int mag)
@@ -222,6 +223,11 @@ int EKF2::print_status()
 	perf_print_counter(_ecl_ekf_update_perf);
 	perf_print_counter(_ecl_ekf_update_full_perf);
 	perf_print_counter(_imu_missed_perf);
+
+	if (_device_id_mag != 0) {
+		perf_print_counter(_mag_missed_perf);
+	}
+
 	return 0;
 }
 
@@ -1517,8 +1523,9 @@ void EKF2::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
 	if (_magnetometer_sub.update(&magnetometer)) {
 
 		if (_magnetometer_sub.get_last_generation() != last_generation + 1) {
-			PX4_ERR("%d - vehicle_magnetometer lost, generation %d -> %d", _instance, last_generation,
-				_magnetometer_sub.get_last_generation());
+			perf_count(_mag_missed_perf);
+			PX4_DEBUG("%d - vehicle_magnetometer lost, generation %d -> %d", _instance, last_generation,
+				  _magnetometer_sub.get_last_generation());
 		}
 
 		bool reset = false;
