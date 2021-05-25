@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
+ *   Author: >
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,73 +32,9 @@
  *
  ****************************************************************************/
 
-/**
- * @file led.c
- *
- * board LED backend.
- */
-
-#include <px4_platform_common/px4_config.h>
-
-#include <stdbool.h>
-
-#include "stm32.h"
-#include "board_config.h"
-#include "led.h"
-
-#include <arch/board/board.h>
-
-/*
- * Ideally we'd be able to get these from up_internal.h,
- * but since we want to be able to disable the NuttX use
- * of leds for system indication at will and there is no
- * separate switch, we need to build independent of the
- * CONFIG_ARCH_LEDS configuration switch.
- */
-/*__BEGIN_DECLS
-extern void led_init(void);
-extern void led_on(int led);
-extern void led_off(int led);
-extern void led_toggle(int led);
+__BEGIN_DECLS
+void led_init(void);
+void led_on(int led);
+void led_off(int led);
+void led_toggle(int led);
 __END_DECLS
-*/
-static uint32_t g_ledmap[] = {
-	//GPIO_LED_RED,
-	GPIO_LED_BLUE,
-};
-
-__EXPORT void led_init(void)
-{
-	/* Configure LED GPIOs for output */
-	for (size_t l = 0; l < (sizeof(g_ledmap) / sizeof(g_ledmap[0])); l++) {
-		stm32_configgpio(g_ledmap[l]);
-		stm32_gpiowrite(g_ledmap[l], true);
-	}
-}
-
-static void phy_set_led(int led, bool state)
-{
-	/* Pull Down to switch on */
-	stm32_gpiowrite(g_ledmap[led], !state);
-}
-
-static bool phy_get_led(int led)
-{
-
-	return !stm32_gpioread(g_ledmap[led]);
-}
-
-__EXPORT void led_on(int led)
-{
-	phy_set_led(led, true);
-}
-
-__EXPORT void led_off(int led)
-{
-	phy_set_led(led, false);
-}
-
-__EXPORT void led_toggle(int led)
-{
-	phy_set_led(led, !phy_get_led(led));
-}

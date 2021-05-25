@@ -33,13 +33,8 @@
  *
  ****************************************************************************/
 
-/* The STM32F412 has 512Kb of FLASH beginning at address 0x0800:0000 and
- * 256Kb of SRAM. SRAM is split up into three blocks:
- *
- * 1) 112Kb of SRAM beginning at address 0x2000:0000
- * 2)  16Kb of SRAM beginning at address 0x2001:c000
- * 3)  64Kb of SRAM beginning at address 0x2002:0000
- * 4)  64Kb of TCM SRAM beginning at address 0x1000:0000
+/* The STM32F303 has 256Kb of FLASH beginning at address 0x0800:0000 and
+ * 40Kb of SRAM beginning at address 0x2000:0000
  *
  * When booting from FLASH, FLASH memory is aliased to address 0x0000:0000
  * where the code expects to begin execution by jumping to the entry point in
@@ -47,11 +42,10 @@
  *
  * The first 0x10000 of flash is reserved for the bootloader.
  */
-
 MEMORY
 {
-    flash (rx)   : ORIGIN = 0x08000000, LENGTH = 32K
-    sram (rwx)   : ORIGIN = 0x20000000, LENGTH = 192K
+    flash (rx)   : ORIGIN = 0x08000000, LENGTH = 256K
+    sram (rwx)   : ORIGIN = 0x20000000, LENGTH = 40K
 }
 
 OUTPUT_ARCH(arm)

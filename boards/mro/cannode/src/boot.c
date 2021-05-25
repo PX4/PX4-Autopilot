@@ -1,9 +1,9 @@
 /****************************************************************************
  *
  *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
- *       Author: Ben Dyer <ben_dyer@mac.com>
- *               Pavel Kirienko <pavel.kirienko@zubax.com>
- *               David Sidrane <david_s5@nscdg.com>
+ *	 Author: Ben Dyer <ben_dyer@mac.com>
+ *		 Pavel Kirienko <pavel.kirienko@zubax.com>
+ *		 David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,7 +42,7 @@
 #include <stdint.h>
 #include "boot_config.h"
 #include "board.h"
-
+#include "led.h"
 #include <debug.h>
 #include <string.h>
 #include <arch/board/board.h>
@@ -97,7 +97,7 @@ void board_deinitialize(void)
  *
  * Input Parameters:
  *    product_name - A pointer to a buffer to write the name.
- *    maxlen       - The maximum number of charter that can be written
+ *    maxlen	   - The maximum number of charter that can be written
  *
  * Returned Value:
  *   The length of characters written to the buffer.
@@ -141,7 +141,7 @@ size_t board_get_hardware_version(uavcan_HardwareVersion_t *hw_version)
  *
  * Description:
  *   Provides User feedback to indicate the state of the bootloader
- *   on board specific  hardware.
+ *   on board specific	hardware.
  *
  * Input Parameters:
  *    indication - A member of the uiindication_t
@@ -150,48 +150,51 @@ size_t board_get_hardware_version(uavcan_HardwareVersion_t *hw_version)
  *   None
  *
  ****************************************************************************/
-// #define led(n, code, r , g , b, h) {.red = (r),.green = (g), .blue = (b),.hz = (h)}
+/*#define led(n, code, r , g , b, h) {.red = (r),.green = (g), .blue = (b),.hz = (h)}
 
-// typedef begin_packed_struct struct led_t {
-// 	uint8_t red;
-// 	uint8_t green;
-// 	uint8_t blue;
-// 	uint8_t hz;
-// } end_packed_struct led_t;
+ typedef begin_packed_struct struct led_t {
+	uint8_t red;
+	uint8_t green;
+	uint8_t blue;
+	uint8_t hz;
+ } end_packed_struct led_t;
 
-// static const  led_t i2l[] = {
+ static const  led_t i2l[] = {
 
-// 	led(0, off,                             0,     0,     0,     0),
-// 	led(1, reset,                          128,   128,   128,   30),
-// 	led(2, autobaud_start,                  0,   128,     0,     1),
-// 	led(3, autobaud_end,                    0,   128,     0,     2),
-// 	led(4, allocation_start,                0,     0,    64,     2),
-// 	led(5, allocation_end,                  0,   128,    64,     3),
-// 	led(6, fw_update_start,                32,   128,    64,     3),
-// 	led(7, fw_update_erase_fail,           32,   128,    32,     3),
-// 	led(8, fw_update_invalid_response,     64,     0,     0,     1),
-// 	led(9, fw_update_timeout,              64,     0,     0,     2),
-// 	led(a, fw_update_invalid_crc,          64,     0,     0,     4),
-// 	led(b, jump_to_app,                     0,   128,     0,    10),
+	led(0, off,				0,     0,     0,     0),
+	led(1, reset,			       128,   128,   128,   30),
+	led(2, autobaud_start,			0,   128,     0,     1),
+	led(3, autobaud_end,			0,   128,     0,     2),
+	led(4, allocation_start,		0,     0,    64,     2),
+	led(5, allocation_end,			0,   128,    64,     3),
+	led(6, fw_update_start,		       32,   128,    64,     3),
+	led(7, fw_update_erase_fail,	       32,   128,    32,     3),
+	led(8, fw_update_invalid_response,     64,     0,     0,     1),
+	led(9, fw_update_timeout,	       64,     0,     0,     2),
+	led(a, fw_update_invalid_crc,	       64,     0,     0,     4),
+	led(b, jump_to_app,			0,   128,     0,    10),
 
-// };
-
+ };
+*/
 void board_indicate(uiindication_t indication)
 {
-	// switch(indication) {
-	// 	case off:
-	// 		led_off(GPIO_nLED_RED);
-	// 		led_off(GPIO_nLED_BLUE);
-	// 		break;
-	// 	case reset:
-	// 		led_on(GPIO_nLED_RED);
-	// 		led_on(GPIO_nLED_BLUE);
-	// 		break;
-	// 	case jump_to_app:
-	// 		led_on(GPIO_nLED_RED);
-	// 		led_off(GPIO_nLED_BLUE);
-	// 		break;
-	// 	default:
-	// 		break;
-	// }
+	switch (indication) {
+	case off:
+		// led_off(GPIO_nLED_RED);
+		led_off(GPIO_LED_BLUE);
+		break;
+
+	case reset:
+		// led_on(GPIO_nLED_RED);
+		led_off(GPIO_LED_BLUE);
+		break;
+
+	case jump_to_app:
+		// led_on(GPIO_nLED_RED);
+		led_on(GPIO_LED_BLUE);
+		break;
+
+	default:
+		break;
+	}
 }

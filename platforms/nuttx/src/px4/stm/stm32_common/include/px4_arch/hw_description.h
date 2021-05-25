@@ -115,6 +115,7 @@ static inline constexpr uint32_t timerBaseRegister(Timer::Timer timer)
 
 	case Timer::Timer4: return STM32_TIM4_BASE;
 #ifdef STM32_TIM5_BASE
+
 	case Timer::Timer5: return STM32_TIM5_BASE;
 #endif
 
