@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 namespace px4
 {
 
