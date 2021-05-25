@@ -94,7 +94,7 @@ private:
 	matrix::Vector3f _acceleration_prev{};
 
 	static constexpr const float kInitialRateHz{1000.f}; /**< sensor update rate used for initialization */
-	float _filter_sample_rate{kInitialRateHz};
+	float _filter_sample_rate{NAN};
 
 	math::LowPassFilter2pVector3f _lp_filter{kInitialRateHz, 30.f};
 

@@ -94,7 +94,7 @@ void VehicleAcceleration::CheckAndUpdateFilters()
 		if ((imu_status.get().accel_device_id != 0) && (imu_status.get().accel_device_id == _calibration.device_id())
 		    && PX4_ISFINITE(sample_rate_hz) && (sample_rate_hz > 0)) {
 			// check if sample rate error is greater than 1%
-			if ((fabsf(sample_rate_hz - _filter_sample_rate) / _filter_sample_rate) > 0.01f) {
+			if (!PX4_ISFINITE(_filter_sample_rate) || (fabsf(sample_rate_hz - _filter_sample_rate) / _filter_sample_rate) > 0.01f) {
 				PX4_DEBUG("sample rate changed: %.3f Hz -> %.3f Hz", (double)_filter_sample_rate, (double)sample_rate_hz);
 				_filter_sample_rate = sample_rate_hz;
 				sample_rate_changed = true;
@@ -213,6 +213,15 @@ void VehicleAcceleration::Run()
 	_calibration.SensorCorrectionsUpdate(selection_updated);
 	SensorBiasUpdate(selection_updated);
 	ParametersUpdate();
+
+	// require valid sensor sample rate to run
+	if (!PX4_ISFINITE(_filter_sample_rate)) {
+		CheckAndUpdateFilters();
+
+		if (!PX4_ISFINITE(_filter_sample_rate)) {
+			return;
+		}
+	}
 
 	// process all outstanding messages
 	sensor_accel_s sensor_data;
