@@ -103,7 +103,7 @@ px4_add_board(
 		motor_test
 		mtd
 		nshterm
-		netman
+		#netman
 		param
 		perf
 		pwm
