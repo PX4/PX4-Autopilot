@@ -545,7 +545,7 @@ float VehicleAngularVelocity::FilterAngularVelocity(int axis, float data[], int 
 		for (auto &dnf : _dynamic_notch_filter_esc_rpm) {
 			for (int harmonic = 0; harmonic < MAX_NUM_ESC_RPM_HARMONICS; harmonic++) {
 				if (dnf[harmonic][axis].getNotchFreq() > 0.f) {
-					dnf[harmonic][axis].applyDF1(data, N);
+					dnf[harmonic][axis].applyArray(data, N);
 
 				} else {
 					break;
@@ -562,7 +562,7 @@ float VehicleAngularVelocity::FilterAngularVelocity(int axis, float data[], int 
 
 		for (auto &dnf : _dynamic_notch_filter_fft) {
 			if (dnf[axis].getNotchFreq() > 0.f) {
-				dnf[axis].applyDF1(data, N);
+				dnf[axis].applyArray(data, N);
 			}
 		}
 
@@ -573,7 +573,7 @@ float VehicleAngularVelocity::FilterAngularVelocity(int axis, float data[], int 
 
 	// Apply general notch filter (IMU_GYRO_NF_FREQ)
 	if (_notch_filter_velocity[axis].getNotchFreq() > 0.f) {
-		_notch_filter_velocity[axis].apply(data, N);
+		_notch_filter_velocity[axis].applyArray(data, N);
 	}
 
 	// Apply general low-pass filter (IMU_GYRO_CUTOFF)
