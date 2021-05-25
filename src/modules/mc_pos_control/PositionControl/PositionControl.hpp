@@ -300,7 +300,7 @@ public:
 	 * 	@see P_Pr_R
 	 * 	@return RCAC P(1,1) of the Position controller
 	 */
-	const float &get_RCAC_P11_Pos() { return _rcac_r(0,0).get_rcac_P(0,0); }
+	const float  &get_RCAC_P11_Pos() { return _rcac_r(0,0).get_rcac_P(0,0); }
 
 	/**
 	 * 	Get the
