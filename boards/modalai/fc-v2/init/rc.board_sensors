@@ -9,10 +9,10 @@
 #	modalai_esc -d /dev/ttyS4 start
 #fi
 
-adc start
+board_adc start
 
 # VOXL Power Module
-voxlpm -X -b 3 -K -T VBATT start
+voxlpm -X -b 3 -k -T VBATT start
 voxlpm -X -b 3 -T P5VDC start
 
 # Internal SPI1 ICM-42688
