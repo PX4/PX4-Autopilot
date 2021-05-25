@@ -54,3 +54,7 @@ target_compile_options(cdev PRIVATE ${MAX_CUSTOM_OPT_LEVEL} -D__KERNEL__)
 if(PX4_TESTING)
 	add_subdirectory(test)
 endif()
+
+if(CONFIG_BUILD_FLAT) # Only defined for NuttX
+	target_link_libraries(cdev PRIVATE nuttx_fs)
+endif()
