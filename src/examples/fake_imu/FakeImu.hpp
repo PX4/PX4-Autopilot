@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,6 +44,13 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_gyro_fifo.h>
 
+// fake ESC RPM for testing dynamic notch filtering
+//#define FAKE_IMU_FAKE_ESC_STATUS
+
+#if defined(FAKE_IMU_FAKE_ESC_STATUS)
+# include <uORB/topics/esc_status.h>
+#endif // FAKE_IMU_FAKE_ESC_STATUS
+
 class FakeImu : public ModuleBase<FakeImu>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
@@ -72,4 +79,8 @@ private:
 	hrt_abstime _time_start_us{0};
 
 	uint32_t _sensor_interval_us{1250};
+
+#if defined(FAKE_IMU_FAKE_ESC_STATUS)
+	uORB::PublicationData<esc_status_s> _esc_status_pub {ORB_ID(esc_status)};
+#endif // FAKE_IMU_FAKE_ESC_STATUS
 };
