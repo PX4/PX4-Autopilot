@@ -92,7 +92,7 @@ protected:
 	int	measure() override;
 	int	collect() override;
 
-	math::LowPassFilter2p	_filter{MEAS_RATE, MEAS_DRIVER_FILTER_FREQ};
+	math::LowPassFilter2p<float> _filter{MEAS_RATE, MEAS_DRIVER_FILTER_FREQ};
 };
 
 /*
@@ -196,16 +196,18 @@ MEASAirspeed::collect()
 	  and bottom port is used as the static port
 	 */
 
-	differential_pressure_s report{};
+	if (PX4_ISFINITE(diff_press_pa_raw)) {
+		differential_pressure_s report{};
 
-	report.timestamp = hrt_absolute_time();
-	report.error_count = perf_event_count(_comms_errors);
-	report.temperature = temperature;
-	report.differential_pressure_filtered_pa =  _filter.apply(diff_press_pa_raw) - _diff_pres_offset;
-	report.differential_pressure_raw_pa = diff_press_pa_raw - _diff_pres_offset;
-	report.device_id = _device_id.devid;
+		report.error_count = perf_event_count(_comms_errors);
+		report.temperature = temperature;
+		report.differential_pressure_filtered_pa = _filter.apply(diff_press_pa_raw) - _diff_pres_offset;
+		report.differential_pressure_raw_pa = diff_press_pa_raw - _diff_pres_offset;
+		report.device_id = _device_id.devid;
+		report.timestamp = hrt_absolute_time();
 
-	_airspeed_pub.publish(report);
+		_airspeed_pub.publish(report);
+	}
 
 	ret = OK;
 

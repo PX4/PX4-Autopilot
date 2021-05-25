@@ -38,7 +38,6 @@
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
-#include <lib/mathlib/math/filter/LowPassFilter2pArray.hpp>
 #include <lib/mathlib/math/filter/NotchFilter.hpp>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
@@ -134,7 +133,7 @@ private:
 	static constexpr const float kInitialRateHz{1000.f}; /**< sensor update rate used for initialization */
 
 	// angular velocity filters
-	math::LowPassFilter2pArray _lp_filter_velocity[3] {{kInitialRateHz, 30.f}, {kInitialRateHz, 30.f}, {kInitialRateHz, 30.f}};
+	math::LowPassFilter2p<float> _lp_filter_velocity[3] {{kInitialRateHz, 30.f}, {kInitialRateHz, 30.f}, {kInitialRateHz, 30.f}};
 	math::NotchFilter<float> _notch_filter_velocity[3] {};
 
 #if !defined(CONSTRAINED_FLASH)
@@ -168,7 +167,7 @@ private:
 #endif // !CONSTRAINED_FLASH
 
 	// angular acceleration filter
-	math::LowPassFilter2p _lp_filter_acceleration[3] {{kInitialRateHz, 30.f}, {kInitialRateHz, 30.f}, {kInitialRateHz, 30.f}};
+	math::LowPassFilter2p<float> _lp_filter_acceleration[3] {{kInitialRateHz, 30.f}, {kInitialRateHz, 30.f}, {kInitialRateHz, 30.f}};
 
 	uint32_t _selected_sensor_device_id{0};
 

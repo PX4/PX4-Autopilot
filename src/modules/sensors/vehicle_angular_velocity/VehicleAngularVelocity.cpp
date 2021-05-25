@@ -617,7 +617,7 @@ float VehicleAngularVelocity::FilterAngularVelocity(int axis, float data[], int 
 	}
 
 	// Apply general low-pass filter (IMU_GYRO_CUTOFF)
-	_lp_filter_velocity[axis].apply(data, N);
+	_lp_filter_velocity[axis].applyArray(data, N);
 
 	// return last filtered sample
 	return data[N - 1];
@@ -709,40 +709,43 @@ void VehicleAngularVelocity::Run()
 		sensor_gyro_s sensor_data;
 
 		while (_sensor_sub.update(&sensor_data)) {
-			if (_timestamp_sample_last == 0 || (sensor_data.timestamp_sample <= _timestamp_sample_last)) {
-				_timestamp_sample_last = sensor_data.timestamp_sample - 1e6f / _filter_sample_rate_hz;
-			}
+			if (PX4_ISFINITE(sensor_data.x) && PX4_ISFINITE(sensor_data.y) && PX4_ISFINITE(sensor_data.z)) {
 
-			const float dt_s = math::constrain(((sensor_data.timestamp_sample - _timestamp_sample_last) * 1e-6f), 0.00002f, 0.02f);
-			_timestamp_sample_last = sensor_data.timestamp_sample;
+				if (_timestamp_sample_last == 0 || (sensor_data.timestamp_sample <= _timestamp_sample_last)) {
+					_timestamp_sample_last = sensor_data.timestamp_sample - 1e6f / _filter_sample_rate_hz;
+				}
 
-			if (_reset_filters) {
-				ResetFilters();
+				const float dt_s = math::constrain(((sensor_data.timestamp_sample - _timestamp_sample_last) * 1e-6f), 0.00002f, 0.02f);
+				_timestamp_sample_last = sensor_data.timestamp_sample;
 
 				if (_reset_filters) {
-					continue; // not safe to run until filters configured
+					ResetFilters();
+
+					if (_reset_filters) {
+						continue; // not safe to run until filters configured
+					}
 				}
+
+				UpdateDynamicNotchEscRpm();
+				UpdateDynamicNotchFFT();
+
+				Vector3f angular_velocity;
+				Vector3f angular_acceleration;
+
+				float raw_data_array[] {sensor_data.x, sensor_data.y, sensor_data.z};
+
+				for (int axis = 0; axis < 3; axis++) {
+					// copy sensor sample to float array for filtering
+					float data[1] {raw_data_array[axis]};
+
+					// save last filtered sample
+					angular_velocity(axis) = FilterAngularVelocity(axis, data);
+					angular_acceleration(axis) = FilterAngularAcceleration(axis, dt_s, data);
+				}
+
+				// Publish
+				CalibrateAndPublish(!_sensor_sub.updated(), sensor_data.timestamp_sample, angular_velocity, angular_acceleration);
 			}
-
-			UpdateDynamicNotchEscRpm();
-			UpdateDynamicNotchFFT();
-
-			Vector3f angular_velocity;
-			Vector3f angular_acceleration;
-
-			float raw_data_array[] {sensor_data.x, sensor_data.y, sensor_data.z};
-
-			for (int axis = 0; axis < 3; axis++) {
-				// copy sensor sample to float array for filtering
-				float data[1] {raw_data_array[axis]};
-
-				// save last filtered sample
-				angular_velocity(axis) = FilterAngularVelocity(axis, data);
-				angular_acceleration(axis) = FilterAngularAcceleration(axis, dt_s, data);
-			}
-
-			// Publish
-			CalibrateAndPublish(!_sensor_sub.updated(), sensor_data.timestamp_sample, angular_velocity, angular_acceleration);
 		}
 	}
 }

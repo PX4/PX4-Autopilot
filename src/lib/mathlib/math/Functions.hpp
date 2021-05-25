@@ -41,6 +41,7 @@
 
 #include "Limits.hpp"
 
+#include <px4_platform_common/defines.h>
 #include <matrix/matrix/math.hpp>
 
 namespace math
@@ -221,6 +222,16 @@ template<>
 constexpr int16_t negate<int16_t>(int16_t value)
 {
 	return (value == INT16_MIN) ? INT16_MAX : -value;
+}
+
+inline bool isFinite(const float &value)
+{
+	return PX4_ISFINITE(value);
+}
+
+inline bool isFinite(const matrix::Vector3f &value)
+{
+	return PX4_ISFINITE(value(0)) && PX4_ISFINITE(value(1)) && PX4_ISFINITE(value(2));
 }
 
 } /* namespace math */

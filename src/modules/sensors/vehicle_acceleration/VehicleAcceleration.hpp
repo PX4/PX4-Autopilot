@@ -36,7 +36,7 @@
 #include <lib/sensor_calibration/Accelerometer.hpp>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
-#include <lib/mathlib/math/filter/LowPassFilter2pVector3f.hpp>
+#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
@@ -96,7 +96,7 @@ private:
 	static constexpr const float kInitialRateHz{1000.f}; /**< sensor update rate used for initialization */
 	float _filter_sample_rate{NAN};
 
-	math::LowPassFilter2pVector3f _lp_filter{kInitialRateHz, 30.f};
+	math::LowPassFilter2p<matrix::Vector3f> _lp_filter{kInitialRateHz, 30.f};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::IMU_ACCEL_CUTOFF>) _param_imu_accel_cutoff,

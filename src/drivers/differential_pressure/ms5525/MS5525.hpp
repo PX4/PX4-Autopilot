@@ -71,7 +71,7 @@ private:
 	int collect() override;
 
 	// temperature is read once every 10 cycles
-	math::LowPassFilter2p _filter{MEAS_RATE * 0.9, MEAS_DRIVER_FILTER_FREQ};
+	math::LowPassFilter2p<float> _filter{MEAS_RATE * 0.9, MEAS_DRIVER_FILTER_FREQ};
 
 	static constexpr uint8_t CMD_RESET = 0x1E; // ADC reset command
 	static constexpr uint8_t CMD_ADC_READ = 0x00; // ADC read command
