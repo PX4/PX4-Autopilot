@@ -397,18 +397,15 @@
 /* CAN
  *
  * CAN1 is routed to transceiver.
- * CAN2 is routed to transceiver.
  */
 #define GPIO_CAN1_RX     GPIO_CAN1_RX_3     /* PD0  */
 #define GPIO_CAN1_TX     GPIO_CAN1_TX_3     /* PD1  */
-#define GPIO_CAN2_RX     GPIO_CAN2_RX_1     /* PB12 */
-#define GPIO_CAN2_TX     GPIO_CAN2_TX_1     /* PB13  */
 
 /* SPI
- * SPI1 is sensors1
- * SPI2 is sensors2
- * SPI3 is sensors3
- * SPI4 is Not Used
+ * SPI1 is IMU1
+ * SPI2 is IMU2
+ * SPI3 is Not Used
+ * SPI4 is Magnetometer
  * SPI5 is FRAM
  * SPI6 is EXTERNAL1
  *
@@ -424,9 +421,9 @@
 #define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_4               /* PI3  */
 #define GPIO_SPI2_SCK    ADJ_SLEW_RATE(GPIO_SPI2_SCK_6) /* PI1  */
 
-#define GPIO_SPI3_MISO   GPIO_SPI3_MISO_2               /* PC11 */
-#define GPIO_SPI3_MOSI   GPIO_SPI3_MOSI_3               /* PB2  */
-#define GPIO_SPI3_SCK    ADJ_SLEW_RATE(GPIO_SPI3_SCK_2) /* PC10 */
+#define GPIO_SPI4_MISO   GPIO_SPI4_MISO_2               /* PE13 */
+#define GPIO_SPI4_MOSI   GPIO_SPI4_MOSI_2               /* PE14  */
+#define GPIO_SPI4_SCK    ADJ_SLEW_RATE(GPIO_SPI4_SCK_2) /* PE12 */
 
 #define GPIO_SPI5_MISO   GPIO_SPI5_MISO_2               /* PH7  */
 #define GPIO_SPI5_MOSI   GPIO_SPI5_MOSI_1               /* PF11 */

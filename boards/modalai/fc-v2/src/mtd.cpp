@@ -38,15 +38,6 @@ static const px4_mft_device_t spi5 = {             // FM25V02A on FMUM 32K 512 X
 	.bus_type = px4_mft_device_t::SPI,
 	.devid    = SPIDEV_FLASH(0)
 };
-static const px4_mft_device_t i2c3 = {             // 24LC64T on Base  8K 32 X 256
-	.bus_type = px4_mft_device_t::I2C,
-	.devid    = PX4_MK_I2C_DEVID(3, 0x51)
-};
-static const px4_mft_device_t i2c4 = {             // 24LC64T on IMU   8K 32 X 256
-	.bus_type =  px4_mft_device_t::I2C,
-	.devid    =  PX4_MK_I2C_DEVID(4, 0x50)
-};
-
 
 static const px4_mtd_entry_t fmum_fram = {
 	.device = &spi5,
@@ -66,47 +57,10 @@ static const px4_mtd_entry_t fmum_fram = {
 	},
 };
 
-static const px4_mtd_entry_t base_eeprom = {
-	.device = &i2c3,
-	.npart = 2,
-	.partd = {
-		{
-			.type = MTD_MFT,
-			.path = "/fs/mtd_mft",
-			.nblocks = 248
-		},
-		{
-			.type = MTD_NET,
-			.path = "/fs/mtd_net",
-			.nblocks = 8 // 256 = 32 * 8
-
-		}
-	},
-};
-
-static const px4_mtd_entry_t imu_eeprom = {
-	.device = &i2c4,
-	.npart = 2,
-	.partd = {
-		{
-			.type = MTD_CALDATA,
-			.path = "/fs/mtd_caldata",
-			.nblocks = 248
-		},
-		{
-			.type = MTD_ID,
-			.path = "/fs/mtd_id",
-			.nblocks = 8 // 256 = 32 * 8
-		}
-	},
-};
-
 static const px4_mtd_manifest_t board_mtd_config = {
-	.nconfigs   = 3,
+	.nconfigs   = 1,
 	.entries = {
-		&fmum_fram,
-		&base_eeprom,
-		&imu_eeprom
+		&fmum_fram
 	}
 };
 

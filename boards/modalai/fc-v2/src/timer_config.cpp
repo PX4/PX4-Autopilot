@@ -46,14 +46,6 @@
  * TIM12_CH1 T FMU_CH7
  * TIM12_CH2 T FMU_CH8
  *
- * TIM1_CH2  T FMU_CAP1               < Capture
- * TIM1_CH3  T SPI2_DRDY2_ISM330_INT2 < Capture or GPIO INT
- * TIM1_CH1  T SPIX_SYNC              > Pulse or GPIO strobe
- *
- * TIM2_CH3  T HEATER                 > PWM OUT or GPIO
- *
- * TIM14_CH1 T BUZZER_1              - Driven by other driver
- * TIM8_CH1_IN T FMU_PPM_INPUT       - Sampled byt HRT by other driver
  */
 
 constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {

@@ -103,10 +103,7 @@ __END_DECLS
 __EXPORT void board_peripheral_reset(int ms)
 {
 	/* set the peripheral rails off */
-
-	VDD_5V_PERIPH_EN(false);
 	board_control_spi_sensors_power(false, 0xffff);
-	VDD_3V3_SENSORS4_EN(false);
 
 	bool last = READ_VDD_3V3_SPEKTRUM_POWER_EN();
 	/* Keep Spektum on to discharge rail*/
@@ -121,8 +118,6 @@ __EXPORT void board_peripheral_reset(int ms)
 	/* switch the peripheral rail back on */
 	VDD_3V3_SPEKTRUM_POWER_EN(last);
 	board_control_spi_sensors_power(true, 0xffff);
-	VDD_3V3_SENSORS4_EN(true);
-	VDD_5V_PERIPH_EN(true);
 
 }
 
@@ -182,8 +177,6 @@ stm32_boardinitialize(void)
 
 	stm32_usbinitialize();
 
-	VDD_3V3_ETH_POWER_EN(true);
-
 }
 
 /****************************************************************************
@@ -215,11 +208,7 @@ stm32_boardinitialize(void)
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	/* Power on Interfaces */
-	VDD_3V3_SD_CARD_EN(true);
-	VDD_5V_PERIPH_EN(true);
-	VDD_5V_HIPOWER_EN(true);
 	board_spi_reset(10, 0xffff);
-	VDD_3V3_SENSORS4_EN(true);
 	VDD_3V3_SPEKTRUM_POWER_EN(true);
 
 	/* Need hrt running before using the ADC */
@@ -270,11 +259,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (board_hardfault_init(2, true) != 0) {
 		led_on(LED_RED);
 	}
-
-	// Ensure Power is off for > 10 mS
-	usleep(15 * 1000);
-	VDD_3V3_SD_CARD_EN(true);
-	usleep(500 * 1000);
 
 #ifdef CONFIG_MMCSD
 	int ret = stm32_sdio_initialize();

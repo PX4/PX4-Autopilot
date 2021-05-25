@@ -27,7 +27,7 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		dshot
 		gps
-		heater
+		#heater
 		#imu # all available imu drivers
 		imu/bosch/bmi088
 		imu/invensense/icm20602
@@ -50,9 +50,9 @@ px4_add_board(
 		rc_input
 		roboclaw
 		rpm
-		safety_button
+		#safety_button
 		telemetry # all available telemetry drivers
-		tone_alarm
+		#tone_alarm
 		uavcan
 	MODULES
 		airspeed_selector
