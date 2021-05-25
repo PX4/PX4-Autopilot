@@ -42,7 +42,7 @@
 
 #pragma once
 
-#include <px4_platform_common/defines.h>
+#include <mathlib/math/Functions.hpp>
 #include <cmath>
 #include <float.h>
 #include <matrix/math.hpp>
@@ -50,23 +50,12 @@
 namespace math
 {
 
-inline bool isFinite(const float &value)
-{
-	return PX4_ISFINITE(value);
-}
-
-inline bool isFinite(const matrix::Vector3f &value)
-{
-	return PX4_ISFINITE(value(0)) && PX4_ISFINITE(value(1)) && PX4_ISFINITE(value(2));
-}
-
 template<typename T>
 class NotchFilter
 {
 public:
 	NotchFilter() = default;
 	~NotchFilter() = default;
-
 
 	void setParameters(float sample_freq, float notch_freq, float bandwidth);
 

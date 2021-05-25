@@ -40,7 +40,7 @@
 #include <matrix/matrix/math.hpp>
 #include <px4_platform_common/defines.h>
 
-#include "LowPassFilter2pVector3f.hpp"
+#include "LowPassFilter2p.hpp"
 
 using matrix::Vector3f;
 
@@ -49,7 +49,7 @@ class LowPassFilter2pVector3fTest : public ::testing::Test
 public:
 	void runSimulatedFilter(const Vector3f &signal_freq_hz, const Vector3f &phase_delay_deg, const Vector3f &gain_db);
 
-	math::LowPassFilter2pVector3f _lpf{800.f, 30.f};
+	math::LowPassFilter2p<Vector3f> _lpf{800.f, 30.f};
 
 	const float _epsilon_near = 0.08f;
 };
