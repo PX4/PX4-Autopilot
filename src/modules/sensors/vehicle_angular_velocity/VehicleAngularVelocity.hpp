@@ -38,7 +38,7 @@
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/mathlib/math/filter/LowPassFilter2pArray.hpp>
-#include <lib/mathlib/math/filter/NotchFilterArray.hpp>
+#include <lib/mathlib/math/filter/NotchFilter.hpp>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
@@ -133,7 +133,7 @@ private:
 
 	// angular velocity filters
 	math::LowPassFilter2pArray _lp_filter_velocity[3] {{kInitialRateHz, 30.f}, {kInitialRateHz, 30.f}, {kInitialRateHz, 30.f}};
-	math::NotchFilterArray<float> _notch_filter_velocity[3] {};
+	math::NotchFilter<float> _notch_filter_velocity[3] {};
 
 #if !defined(CONSTRAINED_FLASH)
 
@@ -148,8 +148,8 @@ private:
 	static constexpr int MAX_NUM_FFT_PEAKS = sizeof(sensor_gyro_fft_s::peak_frequencies_x) / sizeof(
 				sensor_gyro_fft_s::peak_frequencies_x[0]);
 
-	math::NotchFilterArray<float> _dynamic_notch_filter_esc_rpm[MAX_NUM_ESC_RPM][MAX_NUM_ESC_RPM_HARMONICS][3] {};
-	math::NotchFilterArray<float> _dynamic_notch_filter_fft[MAX_NUM_FFT_PEAKS][3] {};
+	math::NotchFilter<float> _dynamic_notch_filter_esc_rpm[MAX_NUM_ESC_RPM][MAX_NUM_ESC_RPM_HARMONICS][3] {};
+	math::NotchFilter<float> _dynamic_notch_filter_fft[MAX_NUM_FFT_PEAKS][3] {};
 
 	perf_counter_t _dynamic_notch_filter_esc_rpm_update_perf{nullptr};
 	perf_counter_t _dynamic_notch_filter_fft_update_perf{nullptr};
