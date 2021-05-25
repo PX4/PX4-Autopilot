@@ -441,7 +441,8 @@ void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_
 
 	const matrix::Matrix<float, 9,1> PositionControl::get_RCAC_vel_theta()
 	{
-		matrix::Matrix<float, 9,1> RCAC_theta{};
+		// matrix::Matrix<float, 9,1> RCAC_theta{};
+		RCAC_vel_theta.setZero();
 
 		for (int i = 0; i <= 2; i++)
 		{
@@ -450,12 +451,12 @@ void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_
 			// RCAC_theta(i+3,0) = theta_k_vel_y(i);
 			// RCAC_theta(i+6,0) = theta_k_vel_z(i);
 
-			RCAC_theta(i,0) = _rcac_v(0,0).get_rcac_theta(i);
-			RCAC_theta(i+3,0) = _rcac_v(0,1).get_rcac_theta(i);
-			RCAC_theta(i+6,0) = _rcac_v(0,2).get_rcac_theta(i);
+			RCAC_vel_theta(i,0) = _rcac_v(0,0).get_rcac_theta(i);
+			RCAC_vel_theta(i+3,0) = _rcac_v(0,1).get_rcac_theta(i);
+			RCAC_vel_theta(i+6,0) = _rcac_v(0,2).get_rcac_theta(i);
 		}
 
-		return RCAC_theta;
+		return RCAC_vel_theta;
 	}
 
 	void PositionControl::set_RCAC_pos_switch(float switch_RCAC)

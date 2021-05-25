@@ -300,7 +300,7 @@ public:
 	 * 	@see P_Pr_R
 	 * 	@return RCAC P(1,1) of the Position controller
 	 */
-	const float &get_RCAC_P11_Pos() { return P_11_r; }
+	const float &get_RCAC_P11_Pos() { return _rcac_r(0,0).get_rcac_P(0,0); }
 
 	/**
 	 * 	Get the
@@ -373,6 +373,7 @@ private:
 
 	matrix::Matrix<RCAC, 1, 3> _rcac_r;
 	matrix::Matrix<RCAC, 1, 3> _rcac_v;
+	matrix::Matrix<float, 9,1> RCAC_vel_theta{};	// spjohn -- attempt to fix NaN
 
 	float P_11_r;	// spjohn -- P_11_r, P_11_vx are necessary for proper referencing in get_RCAC_P11_Pos()
 	float P_11_vx;	//	     and get_RCAC_P11_Velx() -- fix later
