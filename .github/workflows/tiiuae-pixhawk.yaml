@@ -74,8 +74,9 @@ jobs:
           jfrog rt bpr "$BUILD_NAME_PX4" "$GITHUB_SHA" "$ARTIFACTORY_GEN_REPO" \
                        --status dev \
                        --comment "development build"
-          jfrog rt cp "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/pixhawk/$pkg_name" \
-                      "$ARTIFACTORY_GEN_REPO/px4_fmu-v5_ssrc-LATEST.px4"
+          jfrog rt cp --flat \
+                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/pixhawk/$pkg_name" \
+                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/pixhawk/latest/px4_fmu-v5_ssrc-LATEST.px4"
 
       - name: Upload px4-fwupdater build to Artifactory
         env:
