@@ -67,5 +67,6 @@ jobs:
           jfrog rt bpr "$BUILD_NAME" "$GITHUB_SHA" "$ARTIFACTORY_GEN_REPO" \
                        --status dev \
                        --comment "development build"
-          jfrog rt cp "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/sitl/$pkg_name" \
-                      "$ARTIFACTORY_GEN_REPO/px4_sitl_build-LATEST.tar.gz"
+          jfrog rt cp --flat \
+                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/sitl/$pkg_name" \
+                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/sitl/latest/px4_sitl_build.tar.gz"
