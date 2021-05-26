@@ -32,15 +32,15 @@
  ****************************************************************************/
 
 /**
- * @file VCM5883.hpp
+ * @file VCM1193L.hpp
  *
- * Driver for the VCM5883 connected via I2C.
+ * Driver for the VCM1193L connected via I2C.
  *
  */
 
 #pragma once
 
-#include "VTT_VCM5883_registers.hpp"
+#include "VTT_VCM1193L_registers.hpp"
 
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/i2c.h>
@@ -48,13 +48,13 @@
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 
-using namespace VTT_VCM5883;
+using namespace VTT_VCM1193L;
 
-class VCM5883 : public device::I2C, public I2CSPIDriver<VCM5883>
+class VCM1193L : public device::I2C, public I2CSPIDriver<VCM1193L>
 {
 public:
-	VCM5883(I2CSPIBusOption bus_option, int bus, int bus_frequency, enum Rotation rotation = ROTATION_NONE);
-	~VCM5883() override;
+	VCM1193L(I2CSPIBusOption bus_option, int bus, int bus_frequency, enum Rotation rotation = ROTATION_NONE);
+	~VCM1193L() override;
 
 	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 					     int runtime_instance);

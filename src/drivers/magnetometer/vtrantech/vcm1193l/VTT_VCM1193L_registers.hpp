@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file VTT_VCM5883_registers.hpp
+ * @file VTT_VCM1193L_registers.hpp
  *
- * QST VCM5883 registers.
+ * QST VCM1193L registers.
  *
  */
 
@@ -42,7 +42,7 @@
 
 #include <cstdint>
 
-namespace VTT_VCM5883
+namespace VTT_VCM1193L
 {
 
 // TODO: move to a central header
@@ -98,4 +98,4 @@ enum CNTL1_BIT : uint8_t {
 	SET_RESET       = Bit1 | Bit0,  // Set Reset (Cleared)
 };
 
-} // namespace VCM5883
+} // namespace VCM1193L
