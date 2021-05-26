@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include "VCM5883.hpp"
+#include "VCM1193L.hpp"
 
 using namespace time_literals;
 
@@ -40,22 +40,22 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 	return (msb << 8u) | lsb;
 }
 
-VCM5883::VCM5883(I2CSPIBusOption bus_option, int bus, int bus_frequency, enum Rotation rotation) :
-	I2C(DRV_MAG_DEVTYPE_VCM5883, MODULE_NAME, bus, I2C_ADDRESS_DEFAULT, bus_frequency),
+VCM1193L::VCM1193L(I2CSPIBusOption bus_option, int bus, int bus_frequency, enum Rotation rotation) :
+	I2C(DRV_MAG_DEVTYPE_VCM1193L, MODULE_NAME, bus, I2C_ADDRESS_DEFAULT, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_px4_mag(get_device_id(), rotation)
 {
 	_px4_mag.set_external(external());
 }
 
-VCM5883::~VCM5883()
+VCM1193L::~VCM1193L()
 {
 	perf_free(_reset_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 }
 
-int VCM5883::init()
+int VCM1193L::init()
 {
 	int ret = I2C::init();
 
@@ -67,7 +67,7 @@ int VCM5883::init()
 	return Reset() ? 0 : -1;
 }
 
-bool VCM5883::Reset()
+bool VCM1193L::Reset()
 {
 	_state = STATE::RESET;
 	ScheduleClear();
@@ -75,7 +75,7 @@ bool VCM5883::Reset()
 	return true;
 }
 
-void VCM5883::print_status()
+void VCM1193L::print_status()
 {
 	I2CSPIDriverBase::print_status();
 
@@ -84,7 +84,7 @@ void VCM5883::print_status()
 	perf_print_counter(_bad_transfer_perf);
 }
 
-int VCM5883::probe()
+int VCM1193L::probe()
 {
 	_retries = 1;
 
@@ -105,7 +105,7 @@ int VCM5883::probe()
 	return PX4_ERROR;
 }
 
-void VCM5883::RunImpl()
+void VCM1193L::RunImpl()
 {
 	const hrt_abstime now = hrt_absolute_time();
 
@@ -233,7 +233,7 @@ void VCM5883::RunImpl()
 	}
 }
 
-bool VCM5883::Configure()
+bool VCM1193L::Configure()
 {
 	// first set and clear all configured register bits
 
@@ -255,7 +255,7 @@ bool VCM5883::Configure()
 	return success;
 }
 
-bool VCM5883::RegisterCheck(const register_config_t &reg_cfg)
+bool VCM1193L::RegisterCheck(const register_config_t &reg_cfg)
 {
 	bool success = true;
 
@@ -275,7 +275,7 @@ bool VCM5883::RegisterCheck(const register_config_t &reg_cfg)
 	return success;
 }
 
-uint8_t VCM5883::RegisterRead(Register reg)
+uint8_t VCM1193L::RegisterRead(Register reg)
 {
 	const uint8_t cmd = static_cast<uint8_t>(reg);
 	uint8_t buffer{};
@@ -283,13 +283,13 @@ uint8_t VCM5883::RegisterRead(Register reg)
 	return buffer;
 }
 
-void VCM5883::RegisterWrite(Register reg, uint8_t value)
+void VCM1193L::RegisterWrite(Register reg, uint8_t value)
 {
 	uint8_t buffer[2] { (uint8_t)reg, value };
 	transfer(buffer, sizeof(buffer), nullptr, 0);
 }
 
-void VCM5883::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits)
+void VCM1193L::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits)
 {
 	const uint8_t orig_val = RegisterRead(reg);
 	uint8_t val = (orig_val & ~clearbits) | setbits;
