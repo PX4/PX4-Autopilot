@@ -398,6 +398,8 @@ FixedwingPositionControl::tecs_status_publish()
 	t.equivalent_airspeed_sp = _tecs.get_EAS_setpoint();
 	t.true_airspeed_derivative_sp = _tecs.TAS_rate_setpoint();
 	t.true_airspeed_derivative = _tecs.speed_derivative();
+	t.true_airspeed_derivative_raw = _tecs.speed_derivative_raw();
+	t.true_airspeed_innovation = _tecs.getTASInnovation();
 
 	t.total_energy_error = _tecs.STE_error();
 	t.total_energy_rate_error = _tecs.STE_rate_error();
@@ -419,6 +421,7 @@ FixedwingPositionControl::tecs_status_publish()
 	t.pitch_integ = _tecs.pitch_integ_state();
 
 	t.throttle_sp = _tecs.get_throttle_setpoint();
+	t.pitch_sp_rad = _tecs.get_pitch_setpoint();
 
 	t.timestamp = hrt_absolute_time();
 

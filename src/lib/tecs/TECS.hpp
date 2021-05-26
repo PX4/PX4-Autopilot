@@ -144,6 +144,7 @@ public:
 
 	float TAS_setpoint_adj() { return _TAS_setpoint_adj; }
 	float tas_state() { return _tas_state; }
+	float getTASInnovation() { return _tas_innov; }
 
 	float hgt_rate_setpoint() { return _hgt_rate_setpoint; }
 	float vert_vel_state() { return _vert_vel_state; }
@@ -151,6 +152,7 @@ public:
 	float get_EAS_setpoint() { return _EAS_setpoint; };
 	float TAS_rate_setpoint() { return _TAS_rate_setpoint; }
 	float speed_derivative() { return _tas_rate_filtered; }
+	float speed_derivative_raw() { return _tas_rate_raw; }
 
 	float STE_error() { return _STE_error; }
 	float STE_rate_error() { return _STE_rate_error; }
@@ -235,6 +237,7 @@ private:
 	float _vert_pos_state{0.0f};					///< complimentary filter state - height (m)
 	float _tas_rate_state{0.0f};					///< complimentary filter state - true airspeed first derivative (m/sec**2)
 	float _tas_state{0.0f};						///< complimentary filter state - true airspeed (m/sec)
+	float _tas_innov{0.0f};						///< complimentary filter true airspeed innovation (m/sec)
 
 	// controller states
 	float _throttle_integ_state{0.0f};				///< throttle integrator state
