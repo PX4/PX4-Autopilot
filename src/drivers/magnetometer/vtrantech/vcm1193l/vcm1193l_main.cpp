@@ -33,12 +33,12 @@
 
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
-#include "VCM5883.hpp"
+#include "VCM1193L.hpp"
 
 I2CSPIDriverBase *
-VCM5883::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator, int runtime_instance)
+VCM1193L::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator, int runtime_instance)
 {
-	VCM5883 *instance = new VCM5883(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.rotation);
+	VCM1193L *instance = new VCM1193L(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.rotation);
 
 	if (!instance) {
 		PX4_ERR("alloc failed");
@@ -54,9 +54,9 @@ VCM5883::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iter
 	return instance;
 }
 
-void VCM5883::print_usage()
+void VCM1193L::print_usage()
 {
-	PRINT_MODULE_USAGE_NAME("vcm5883", "driver");
+	PRINT_MODULE_USAGE_NAME("vcm1193l", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
@@ -64,10 +64,10 @@ void VCM5883::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int vcm5883_main(int argc, char *argv[])
+extern "C" int vcm1193l_main(int argc, char *argv[])
 {
 	int ch;
-	using ThisDriver = VCM5883;
+	using ThisDriver = VCM1193L;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = I2C_SPEED;
 
@@ -86,7 +86,7 @@ extern "C" int vcm5883_main(int argc, char *argv[])
 		return -1;
 	}
 
-	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_MAG_DEVTYPE_VCM5883);
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_MAG_DEVTYPE_VCM1193L);
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);
