@@ -54,13 +54,6 @@
  * separate switch, we need to build independent of the
  * CONFIG_ARCH_LEDS configuration switch.
  */
-/*__BEGIN_DECLS
-extern void led_init(void);
-extern void led_on(int led);
-extern void led_off(int led);
-extern void led_toggle(int led);
-__END_DECLS
-*/
 static uint32_t g_ledmap[] = {
 	//GPIO_LED_RED,
 	GPIO_LED_BLUE,
