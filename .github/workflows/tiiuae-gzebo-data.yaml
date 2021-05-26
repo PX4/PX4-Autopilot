@@ -1,0 +1,76 @@
+name: tiiuea-gazebo-data
+
+on:
+  push:
+    branches: [ master ]
+    #    paths:
+    #     - Tools/sitl_gazebo/**
+  pull_request:
+    branches: [ master ]
+    #    paths:
+    #      - Tools/sitl_gazebo/**
+
+jobs:
+  gazebo-data:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout px4-firmware
+        uses: actions/checkout@v2
+        with:
+          path: px4-firmware
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Checkout gen-gazebo-data scripts
+        uses: actions/checkout@v2
+        with:
+          repository: tiiuae/gen-gazebo-data
+          path: gen-gazebo-data
+
+      # Run docker build
+      - name: Run gazebo-data docker build
+        run: |
+          set -eux
+          mkdir bin
+          pushd gen-gazebo-data
+          ./gen-gazebo-data.sh ../px4-firmware ../bin
+          popd
+
+      - name: Install jfrog CLI tool
+        env:
+          JFROG_CLI_URL: https://artifactory.ssrc.fi/artifactory/gen-public-local/tools/jfrog/jfrog-1.45.2.tar.gz
+        if: github.event_name == 'push'
+        run: |
+          set -exu
+          mkdir -p "$GITHUB_WORKSPACE/.jfrog/bin"
+          curl -L "$JFROG_CLI_URL" -o "$GITHUB_WORKSPACE/.jfrog/jfrog.tar.gz"
+          tar -C "$GITHUB_WORKSPACE/.jfrog/bin" -zxf "$GITHUB_WORKSPACE/.jfrog/jfrog.tar.gz"
+          echo "$GITHUB_WORKSPACE/.jfrog/bin" >> "$GITHUB_PATH"
+          echo "JFROG_CLI_HOME_DIR=$GITHUB_WORKSPACE/.jfrog" >> "$GITHUB_ENV"
+
+      - name: Upload to Artifactory
+        env:
+          ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
+          ARTIFACTORY_GEN_REPO: gen-public-local
+          BUILD_NAME: gazebo-data
+          CI: true
+        if: github.event_name == 'push'
+        run: |
+          set -exu
+          jfrog rt c import "$ARTIFACTORY_TOKEN"
+          jfrog rt ping
+          pkg=$(find bin -name 'gazebo-data*.tar.gz')
+          pkg_name=$(basename $pkg)
+          jfrog rt u --target-props COMMIT="$GITHUB_SHA" \
+                     --build-name "$BUILD_NAME" \
+                     --build-number "$GITHUB_SHA" \
+                     "$pkg" \
+                     "$ARTIFACTORY_GEN_REPO/builds/gazebo-data/$pkg_name"
+          jfrog rt build-publish "$BUILD_NAME" "$GITHUB_SHA"
+          jfrog rt bpr "$BUILD_NAME" "$GITHUB_SHA" "$ARTIFACTORY_GEN_REPO" \
+                       --status dev \
+                       --comment "development build"
+          jfrog rt cp --flat \
+                      "$ARTIFACTORY_GEN_REPO/builds/gazebo-data/$pkg_name" \
+                      "$ARTIFACTORY_GEN_REPO/builds/gazebo-data/latest/gazebo-data.tar.gz"
