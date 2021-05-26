@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -61,10 +61,6 @@ execute_process(
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-# setup custom command to copy changes later
-file(GLOB_RECURSE copy_nuttx_files LIST_DIRECTORIES false ${NUTTX_SRC_DIR}/nuttx/*)
-list(REMOVE_ITEM copy_nuttx_files ${NUTTX_SRC_DIR}/nuttx/.git)
-
 add_custom_command(
 	OUTPUT ${PX4_BINARY_DIR}/NuttX/nuttx_copy.stamp
 	COMMAND ${NUTTX_COPY_CMD} ${NUTTX_COPY_CMD_OPTS} ${CP_SRC} ${CP_DST}
@@ -73,7 +69,6 @@ add_custom_command(
 	COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/nuttx_copy.stamp
 	DEPENDS
 		git_nuttx
-		${copy_nuttx_files}
 	COMMENT "Copying NuttX/nuttx to ${CP_DST}"
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
@@ -85,14 +80,12 @@ file(RELATIVE_PATH CP_SRC ${CMAKE_SOURCE_DIR} ${NUTTX_SRC_DIR}/apps)
 file(RELATIVE_PATH CP_DST ${CMAKE_SOURCE_DIR} ${PX4_BINARY_DIR}/NuttX)
 
 # setup custom command to copy changes later
-file(GLOB_RECURSE copy_apps_files LIST_DIRECTORIES false ${NUTTX_SRC_DIR}/apps/*)
 add_custom_command(
 	OUTPUT ${PX4_BINARY_DIR}/NuttX/apps_copy.stamp
 	COMMAND ${NUTTX_COPY_CMD} ${NUTTX_COPY_CMD_OPTS} ${CP_SRC} ${CP_DST}
 	COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/apps_copy.stamp
 	DEPENDS
 		git_nuttx_apps
-		${copy_apps_files}
 	COMMENT "Copying NuttX/apps to ${CP_DST}"
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
