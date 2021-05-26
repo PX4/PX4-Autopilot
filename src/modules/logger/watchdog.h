@@ -36,7 +36,7 @@
 #include <drivers/drv_hrt.h>
 
 #ifdef __PX4_NUTTX
-#include <sched.h>
+#include <nuttx/sched.h>
 #include <px4_platform/cpuload.h>
 #endif /* __PX4_NUTTX */
 
