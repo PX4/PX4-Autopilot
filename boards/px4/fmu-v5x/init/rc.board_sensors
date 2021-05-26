@@ -20,7 +20,6 @@ then
 	else
 		# Internal SPI bus ICM20649
 		icm20649 -s -R 4 start
-		vcm1193l -I -b 4 -R 6 start
 	fi
 
 	# Internal SPI bus ICM42688p
@@ -43,7 +42,6 @@ else
 	else
 		# Internal SPI bus ICM20649
 		icm20649 -s -R 6 start
-		vcm1193l -I -b 4 start
 	fi
 
 	# Internal SPI bus ICM42688p
