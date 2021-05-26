@@ -133,8 +133,8 @@ void TECS::_update_speed_states(float equivalent_airspeed_setpoint, float equiva
 	// Obtain a smoothed TAS estimate using a second order complementary filter
 
 	// Update TAS rate state
-	float tas_error = (_EAS * EAS2TAS) - _tas_state;
-	float tas_rate_state_input = tas_error * _tas_estimate_freq * _tas_estimate_freq;
+	_tas_innov = (_EAS * EAS2TAS) - _tas_state;
+	float tas_rate_state_input = _tas_innov * _tas_estimate_freq * _tas_estimate_freq;
 
 	// limit integrator input to prevent windup
 	if (_tas_state < 3.1f) {
@@ -143,7 +143,7 @@ void TECS::_update_speed_states(float equivalent_airspeed_setpoint, float equiva
 
 	// Update TAS state
 	_tas_rate_state = _tas_rate_state + tas_rate_state_input * dt;
-	float tas_state_input = _tas_rate_state + _tas_rate_raw + tas_error * _tas_estimate_freq * 1.4142f;
+	float tas_state_input = _tas_rate_state + _tas_rate_raw + _tas_innov * _tas_estimate_freq * 1.4142f;
 	_tas_state = _tas_state + tas_state_input * dt;
 
 	// Limit the TAS state to a minimum of 3 m/s
