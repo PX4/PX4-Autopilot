@@ -915,6 +915,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 	case vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION: {
 			if (cmd.param1 > 1.5f) {
+				// Test termination command triggers lockdown but not actual termination.
 				if (!_lockdown_triggered) {
 					_armed.lockdown = true;
 					_lockdown_triggered = true;
@@ -922,17 +923,12 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				}
 
 			} else if (cmd.param1 > 0.5f) {
-				//XXX update state machine?
+				// Trigger real termination.
 				if (!_flight_termination_triggered) {
 					_armed.force_failsafe = true;
 					_flight_termination_triggered = true;
 					PX4_WARN("forcing failsafe (termination)");
 					send_parachute_command();
-				}
-
-				if ((int)cmd.param2 <= 0) {
-					/* reset all commanded failure modes */
-					PX4_WARN("reset all non-flighttermination failsafe commands");
 				}
 
 			} else {
