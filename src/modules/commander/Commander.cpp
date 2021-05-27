@@ -2486,7 +2486,7 @@ Commander::run()
 						_armed.force_failsafe = true;
 						_flight_termination_triggered = true;
 						mavlink_log_emergency(&_mavlink_log_pub, "Critical failure detected: terminate flight");
-						set_tune_override(tune_control_s::TUNE_ID_PARACHUTE_RELEASE);
+						send_parachute_command();
 					}
 				}
 			}
@@ -4051,6 +4051,8 @@ void Commander::send_parachute_command()
 	send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_PARACHUTE,
 			     static_cast<float>(vehicle_command_s::PARACHUTE_ACTION_RELEASE),
 			     0.f, 0.f, 0.f, 0.0, 0.0, 0.f);
+
+	set_tune_override(tune_control_s::TUNE_ID_PARACHUTE_RELEASE);
 }
 
 int Commander::print_usage(const char *reason)
