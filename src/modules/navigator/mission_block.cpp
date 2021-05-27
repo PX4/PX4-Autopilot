@@ -277,9 +277,15 @@ MissionBlock::is_mission_item_reached()
 			_time_wp_reached = now;
 
 		} else {
-			/*normal mission items */
 
-			float mission_acceptance_radius = _navigator->get_acceptance_radius();
+			float acceptance_radius = _navigator->get_acceptance_radius();
+
+			// We use the acceptance radius of the mission item if it has been set (not NAN)
+			// but only for multicopter.
+			if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+			    && PX4_ISFINITE(_mission_item.acceptance_radius)) {
+				acceptance_radius = _mission_item.acceptance_radius;
+			}
 
 			/* for vtol back transition calculate acceptance radius based on time and ground speed */
 			if (_mission_item.vtol_back_transition
@@ -292,13 +298,13 @@ MissionBlock::is_mission_item_reached()
 				const float reverse_delay = _navigator->get_vtol_reverse_delay();
 
 				if (back_trans_dec > FLT_EPSILON && velocity > FLT_EPSILON) {
-					mission_acceptance_radius = ((velocity / back_trans_dec / 2) * velocity) + reverse_delay * velocity;
+					acceptance_radius = ((velocity / back_trans_dec / 2) * velocity) + reverse_delay * velocity;
 
 				}
 
 			}
 
-			if (dist_xy >= 0.0f && dist_xy <= mission_acceptance_radius
+			if (dist_xy >= 0.0f && dist_xy <= acceptance_radius
 			    && dist_z <= _navigator->get_altitude_acceptance_radius()) {
 				_waypoint_position_reached = true;
 			}
