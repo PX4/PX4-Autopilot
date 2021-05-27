@@ -48,6 +48,7 @@ px4_add_board(
 		px4io
 		rc_input
 		roboclaw
+		smart_battery/batmon
 		rpm
 		safety_button
 		telemetry # all available telemetry drivers

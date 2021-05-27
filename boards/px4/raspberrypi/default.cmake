@@ -30,6 +30,7 @@ px4_add_board(
 		pwm_out_sim
 		rc_input
 		rpi_rc_in
+		smart_battery/batmon
 		#telemetry # all available telemetry drivers
 	MODULES
 		airspeed_selector

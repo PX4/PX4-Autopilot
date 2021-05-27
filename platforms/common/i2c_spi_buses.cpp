@@ -625,7 +625,13 @@ int I2CSPIDriverBase::module_custom_method(const BusCLIArguments &cli, BusInstan
 void I2CSPIDriverBase::print_status()
 {
 	bool is_i2c_bus = _bus_option == I2CSPIBusOption::I2CExternal || _bus_option == I2CSPIBusOption::I2CInternal;
-	PX4_INFO("Running on %s Bus %i", is_i2c_bus ? "I2C" : "SPI", _bus);
+
+	if (is_i2c_bus) {
+		PX4_INFO("Running on I2C Bus %i, Address 0x%02X", _bus, _i2c_address);
+
+	} else {
+		PX4_INFO("Running on SPI Bus %i", _bus);
+	}
 }
 
 void I2CSPIDriverBase::request_stop_and_wait()

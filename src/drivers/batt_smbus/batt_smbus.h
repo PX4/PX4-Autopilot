@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -118,11 +118,10 @@ using namespace time_literals;
 #define BATT_SMBUS_ENABLED_PROTECTIONS_A_DEFAULT        0xcf
 #define BATT_SMBUS_ENABLED_PROTECTIONS_A_CUV_DISABLED   0xce
 
-
 enum class SMBUS_DEVICE_TYPE {
-	UNDEFINED  = 0,
-	BQ40Z50    = 1,
-	BQ40Z80    = 2,
+	UNDEFINED     = 0,
+	BQ40Z50       = 1,
+	BQ40Z80       = 2,
 };
 
 class BATT_SMBUS : public I2CSPIDriver<BATT_SMBUS>
