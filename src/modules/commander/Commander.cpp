@@ -2167,10 +2167,15 @@ Commander::run()
 
 				case (geofence_result_s::GF_ACTION_TERMINATE) : {
 						PX4_WARN("Flight termination because of geofence");
-						mavlink_log_critical(&_mavlink_log_pub, "Geofence violation! Flight terminated");
-						_armed.force_failsafe = true;
-						_status_changed = true;
-						send_parachute_command();
+
+						if (!_flight_termination_triggered && !_lockdown_triggered) {
+							_flight_termination_triggered = true;
+							mavlink_log_critical(&_mavlink_log_pub, "Geofence violation! Flight terminated");
+							_armed.force_failsafe = true;
+							_status_changed = true;
+							send_parachute_command();
+						}
+
 						break;
 					}
 				}
@@ -2218,12 +2223,12 @@ Commander::run()
 		if (_armed.armed && _mission_result_sub.get().flight_termination &&
 		    !_status_flags.circuit_breaker_flight_termination_disabled) {
 
-			_armed.force_failsafe = true;
-			_status_changed = true;
 
-			if (!_flight_termination_printed) {
+			if (!_flight_termination_triggered && !_lockdown_triggered) {
 				mavlink_log_critical(&_mavlink_log_pub, "Geofence violation! Flight terminated");
-				_flight_termination_printed = true;
+				_flight_termination_triggered = true;
+				_armed.force_failsafe = true;
+				_status_changed = true;
 				send_parachute_command();
 			}
 
