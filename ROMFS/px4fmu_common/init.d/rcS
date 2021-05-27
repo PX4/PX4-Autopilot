@@ -248,7 +248,8 @@ else
 	if param greater SYS_AUTOCONFIG 0
 	then
 		# Reset parameters except airframe, parameter version, sensor calibration, total flight time, flight UUID
-		param reset_all SYS_AUTOSTART SYS_PARAM_VER CAL_* LND_FLIGHT* TC_* COM_FLIGHT*
+		# DQ custom: do not reset ASPD_SCALE, INA238_SHUNT and MAV_SYS_ID params
+		param reset_all SYS_AUTOSTART SYS_PARAM_VER CAL_* LND_FLIGHT* TC_* COM_FLIGHT* ASPD_SCALE* INA238_SH* MAV_SYS_*
 	fi
 
 	#
