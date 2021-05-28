@@ -69,6 +69,10 @@ public:
 
 		if (receive.payload_size == sizeof(struct sensor_gps_s)) {
 			sensor_gps_s *gps_msg = (sensor_gps_s *)receive.payload;
+			gps_msg->timestamp = hrt_absolute_time();
+
+			/* As long as we don't have timesync between nodes we set the timestamp to the current time */
+
 			_sensor_gps_pub.publish(*gps_msg);
 
 		} else {
