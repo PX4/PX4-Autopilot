@@ -52,7 +52,7 @@
 * @value 3 MAVLINK_DO_MOUNT (protocol v1)
 * @value 4 MAVlink gimbal protocol v2
 * @min -1
-* @max 3
+* @max 4
 * @group Mount
 * @reboot_required true
 */
