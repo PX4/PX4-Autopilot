@@ -178,13 +178,6 @@ static int parse_options(int argc, char **argv)
 	return 0;
 }
 
-void signal_handler(int signum)
-{
-	printf("\033[1;33m[   micrortps_agent   ]\tInterrupt signal (%d) received.\033[0m\n", signum);
-	running = 0;
-	transport_node->close();
-}
-
 @[if recv_topics]@
 std::atomic<bool> exit_sender_thread(false);
 std::condition_variable t_send_queue_cv;
@@ -195,15 +188,16 @@ void t_send(void *)
 {
 	char data_buffer[BUFFER_SIZE] = {};
 	uint32_t length = 0;
+	uint8_t topic_ID = 255;
 
-	while (running && !exit_sender_thread.load()) {
+	while (running && !exit_sender_thread) {
 		std::unique_lock<std::mutex> lk(t_send_queue_mutex);
 
-		while (t_send_queue.empty() && !exit_sender_thread.load()) {
+		while (t_send_queue.empty() && !exit_sender_thread) {
 			t_send_queue_cv.wait(lk);
 		}
 
-		uint8_t topic_ID = t_send_queue.front();
+		topic_ID = t_send_queue.front();
 		t_send_queue.pop();
 		lk.unlock();
 
@@ -212,17 +206,26 @@ void t_send(void *)
 		eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[header_length], sizeof(data_buffer) - header_length);
 		eprosima::fastcdr::Cdr scdr(cdrbuffer);
 
-		if (topics.getMsg(topic_ID, scdr)) {
-			length = scdr.getSerializedDataLength();
+		if (!exit_sender_thread) {
+			if (topics.getMsg(topic_ID, scdr)) {
+				length = scdr.getSerializedDataLength();
 
-			if (0 < (length = transport_node->write(topic_ID, data_buffer, length))) {
-				total_sent += length;
-				++sent;
+				if (0 < (length = transport_node->write(topic_ID, data_buffer, length))) {
+					total_sent += length;
+					++sent;
+				}
 			}
 		}
 	}
 }
 @[end if]@
+
+void signal_handler(int signum)
+{
+	printf("\n\033[1;33m[   micrortps_agent   ]\tInterrupt signal (%d) received.\033[0m\n", signum);
+	running = 0;
+	transport_node->close();
+}
 
 int main(int argc, char **argv)
 {
@@ -282,9 +285,7 @@ int main(int argc, char **argv)
 @[end if]@
 
 	// Init timesync
-	std::shared_ptr<TimeSync> timeSync = std::make_shared<TimeSync>(_options.verbose_debug);
-
-	topics.set_timesync(timeSync);
+	topics.set_timesync(std::make_shared<TimeSync>(_options.verbose_debug));
 
 @[if recv_topics]@
 	topics.init(&t_send_queue_cv, &t_send_queue_mutex, &t_send_queue, _options.ns);
@@ -298,28 +299,16 @@ int main(int argc, char **argv)
 	while (running) {
 @[if send_topics]@
 		++loop;
-
 		if (!receiving) { start = std::chrono::steady_clock::now(); }
 
 		// Publish messages received from UART
-		while (0 < (length = transport_node->read(&topic_ID, data_buffer, BUFFER_SIZE))) {
+		if (0 < (length = transport_node->read(&topic_ID, data_buffer, BUFFER_SIZE))) {
 			topics.publish(topic_ID, data_buffer, sizeof(data_buffer));
 			++received;
 			total_read += length;
 			receiving = true;
 			end = std::chrono::steady_clock::now();
 		}
-
-		if ((receiving && std::chrono::duration<double>(std::chrono::steady_clock::now() - end).count() > WAIT_CNST) ||
-		    (!running  && loop > 1)) {
-			std::chrono::duration<double>  elapsed_secs = end - start;
-			printf("[   micrortps_agent   ]\tSENT:     %lumessages \t- %lubytes\n", (unsigned long)sent, (unsigned long)total_sent);
-			printf("[   micrortps_agent   ]\tRECEIVED: %dmessages \t- %dbytes; %d LOOPS - %.03f seconds - %.02fKB/s\n",
-			       received, total_read, loop, elapsed_secs.count(), (double)total_read / (1000 * elapsed_secs.count()));
-			received = sent = total_read = total_sent = 0;
-			receiving = false;
-		}
-
 @[else]@
 		usleep(_options.sleep_us);
 @[end if]@
@@ -329,12 +318,22 @@ int main(int argc, char **argv)
 	exit_sender_thread = true;
 	t_send_queue_cv.notify_one();
 	sender_thread.join();
+
+	std::chrono::duration<double> elapsed_secs = end - start;
+	if (received > 0) {
+		printf("[   micrortps_agent   ]\tRECEIVED: %d messages - %d bytes; %d LOOPS - %.03f seconds - %.02fKB/s\n",
+		       received, total_read, loop, elapsed_secs.count(), static_cast<double>(total_read) / (1000 * elapsed_secs.count()));
+	}
 @[end if]@
+@[if recv_topics]@
+	if (sent > 0) {
+		printf("[   micrortps_agent   ]\tSENT:     %lu messages - %lu bytes\n", static_cast<unsigned long>(sent),
+		       static_cast<unsigned long>(total_sent));
+	}
+@[end if]@
+
 	delete transport_node;
 	transport_node = nullptr;
-
-	timeSync->stop();
-	timeSync->reset();
 
 	return 0;
 }

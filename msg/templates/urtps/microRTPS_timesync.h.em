@@ -71,10 +71,8 @@ except AttributeError:
 
 @[if ros2_distro]@
 #include "Timesync_Publisher.h"
-#include "Timesync_Subscriber.h"
 @[else]@
 #include "timesync_Publisher.h"
-#include "timesync_Subscriber.h"
 @[end if]@
 
 static constexpr double ALPHA_INITIAL = 0.05;
@@ -117,7 +115,7 @@ public:
 	 * @@brief Starts the timesync publishing thread
 	 * @@param[in] pub The timesync publisher entity to use
 	 */
-	void start(const TimesyncPublisher *pub);
+	void start(TimesyncPublisher *pub);
 
 	/**
 	 * @@brief Resets the filter
@@ -154,7 +152,7 @@ public:
 	 * @@brief Processes DDS timesync message
 	 * @@param[in,out] msg The timestamp msg to be processed
 	 */
-	void processTimesyncMsg(timesync_msg_t *msg);
+	void processTimesyncMsg(timesync_msg_t *msg, TimesyncPublisher *pub);
 
 	/**
 	 * @@brief Creates a new timesync DDS message to be sent from the agent to the client
@@ -190,14 +188,6 @@ private:
 	uint8_t _last_remote_msg_seq;
 
 	bool _debug;
-
-@[if ros2_distro]@
-	Timesync_Publisher _timesync_pub;
-	Timesync_Subscriber _timesync_sub;
-@[else]@
-	timesync_Publisher _timesync_pub;
-	timesync_Subscriber _timesync_sub;
-@[end if]@
 
 	std::unique_ptr<std::thread> _send_timesync_thread;
 	std::atomic<bool> _request_stop{false};

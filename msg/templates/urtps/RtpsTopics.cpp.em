@@ -98,7 +98,7 @@ bool RtpsTopics::init(std::condition_variable *t_send_queue_cv, std::mutex *t_se
 }
 
 @[if send_topics]@
-void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
+void RtpsTopics::publish(const uint8_t topic_ID, char data_buffer[], size_t len)
 {
 	switch (topic_ID) {
 @[for topic in send_topics]@
@@ -109,7 +109,7 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
 		eprosima::fastcdr::Cdr cdr_des(cdrbuffer);
 		st.deserialize(cdr_des);
 @[    if topic == 'Timesync' or topic == 'timesync']@
-		_timesync->processTimesyncMsg(&st);
+		_timesync->processTimesyncMsg(&st, &_@(topic)_pub);
 
 		if (getMsgSysID(&st) == 1) {
 @[    end if]@
@@ -130,7 +130,7 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
 @[end for]@
 
 	default:
-		printf("\033[1;33m[   micrortps_agent   ]\tUnexpected topic ID '%hhu' to publish Please make sure the agent is capable of parsing the message associated to the topic ID '%hhu'\033[0m\n",
+		printf("\033[1;33m[   micrortps_agent   ]\tUnexpected topic ID '%hhu' to publish. Please make sure the agent is capable of parsing the message associated to the topic ID '%hhu'\033[0m\n",
 		       topic_ID, topic_ID);
 		break;
 	}
