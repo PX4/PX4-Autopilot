@@ -81,7 +81,8 @@ def sign(bin_file_path, key_file_path=None, generated_key_file=None):
         # Align to 4 bytes. Signature always starts at
         # 4 byte aligned address, but the signee size
         # might not be aligned
-        signee_bin += bytearray(b'\xff')*(4-len(signee_bin)%4)
+        if len(signee_bin)%4 != 0:
+            signee_bin += bytearray(b'\xff')*(4-len(signee_bin)%4)
 
     try:
         with open(key_file_path,mode='r') as f:
