@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 Technology Innovation Institute. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,40 +31,39 @@
  *
  ****************************************************************************/
 
-/**
- * @file crypto.h
- *
- * Wrapper for the crypto stuff
- *
- */
-
-#pragma once
-
-/* Using security always needs TOC (but TOC could be used without security) */
-#if defined(BOOTLOADER_USE_SECURITY)
-# define BOOTLOADER_USE_TOC
-
-#include <stdlib.h>
-
-#include "hw_config.h"
+#include <stdbool.h>
 #include "image_toc.h"
+#include "hw_config.h"
 
-bool verify_app(uint16_t idx, const image_toc_entry_t *toc_entries);
+#ifdef BOOTLOADER_USE_SECURITY
 
-bool decrypt_app(uint16_t idx, const image_toc_entry_t *toc_entries);
+#include <px4_platform_common/crypto_backend.h>
 
-#else
+bool verify_app(uint16_t idx, const image_toc_entry_t *toc_entries)
+{
+	volatile uint8_t *app_signature_ptr = NULL;
+	volatile size_t len = 0;
+	bool ret;
 
-# if defined(BOOTLOADER_USE_TOC)
+	uint8_t sig_idx = toc_entries[idx].signature_idx;
+	uint8_t sig_key = toc_entries[idx].signature_key;
+	crypto_session_handle_t handle = crypto_open(BOOTLOADER_SIGNING_ALGORITHM);
+	app_signature_ptr = (volatile uint8_t *)toc_entries[sig_idx].start;
+	len = (size_t)toc_entries[idx].end - (size_t)toc_entries[idx].start;
 
-/* No security, application verification passes always */
+	ret =  crypto_signature_check(handle, sig_key, (const uint8_t *)app_signature_ptr,
+				      (const uint8_t *)toc_entries[idx].start, len);
 
-static inline bool verify_app(uint16_t idx, const image_toc_entry_t *toc_entries) {return true;}
+	crypto_close(&handle);
+	return ret;
+}
 
-/* No security, decrypting is not possible */
+bool decrypt_app(uint16_t idx, const image_toc_entry_t *toc_entries)
+{
+	/*
+	 * Not implemented yet.
+	 */
+	return false;
+}
 
-static inline bool decrypt_app(uint16_t idx, const image_toc_entry_t *toc_entries) {return false;}
-
-# endif
-
-#endif // BOOTLOADER_USE_SECURITY
+#endif //BOOTLOADER_USE_SECURITY

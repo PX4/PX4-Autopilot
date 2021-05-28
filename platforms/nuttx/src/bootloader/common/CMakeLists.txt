@@ -34,12 +34,20 @@
 add_library(bootloader
 	bl.c
 	image_toc.c
+	crypto.c
 )
 
 target_link_libraries(bootloader
 	PRIVATE
 		arch_bootloader
 )
+
+if (DEFINED PX4_CRYPTO)
+	target_link_libraries(bootloader
+		PRIVATE
+			crypto_backend
+	)
+endif()
 
 add_dependencies(bootloader prebuild_targets)
 
