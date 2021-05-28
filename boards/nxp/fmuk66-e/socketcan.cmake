@@ -8,7 +8,6 @@ px4_add_board(
 	ARCHITECTURE cortex-m4
 	CONSTRAINED_MEMORY
 	ROMFSROOT px4fmu_common
-	UAVCAN_INTERFACES 2
 	SERIAL_PORTS
 		GPS1:/dev/ttyS3
 		TEL1:/dev/ttyS4
@@ -47,7 +46,7 @@ px4_add_board(
 		safety_button
 		telemetry # all available telemetry drivers
 		tone_alarm
-		#uavcannode_v1
+		uavcan_v1
 	MODULES
 		airspeed_selector
 		attitude_estimator_q
