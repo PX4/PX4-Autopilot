@@ -78,17 +78,15 @@ TimeSync::TimeSync(bool debug)
 
 TimeSync::~TimeSync() { stop(); }
 
-void TimeSync::start(const TimesyncPublisher *pub)
+void TimeSync::start(TimesyncPublisher *pub)
 {
 	stop();
 
-	_timesync_pub = (*pub);
-
-	auto run = [this]() {
+	auto run = [this, pub]() {
 		while (!_request_stop) {
 			timesync_msg_t msg = newTimesyncMsg();
 
-			_timesync_pub.publish(&msg);
+			pub->publish(&msg);
 
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
@@ -102,8 +100,6 @@ void TimeSync::stop()
 	_request_stop = true;
 
 	if (_send_timesync_thread && _send_timesync_thread->joinable()) { _send_timesync_thread->join(); }
-
-	_send_timesync_thread.reset();
 }
 
 void TimeSync::reset()
@@ -185,7 +181,7 @@ bool TimeSync::addMeasurement(int64_t local_t1_ns, int64_t remote_t2_ns, int64_t
 	return true;
 }
 
-void TimeSync::processTimesyncMsg(timesync_msg_t *msg)
+void TimeSync::processTimesyncMsg(timesync_msg_t *msg, TimesyncPublisher *pub)
 {
 	if (getMsgSysID(msg) == 1 && getMsgSeq(msg) != _last_remote_msg_seq) {
 		_last_remote_msg_seq = getMsgSeq(msg);
@@ -201,7 +197,7 @@ void TimeSync::processTimesyncMsg(timesync_msg_t *msg)
 			setMsgSeq(msg, getMsgSeq(msg) + 1);
 			setMsgTC1(msg, getTimeNSec());
 
-			_timesync_pub.publish(msg);
+			pub->publish(msg);
 		}
 	}
 }

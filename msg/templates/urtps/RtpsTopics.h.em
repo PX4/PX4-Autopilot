@@ -98,7 +98,7 @@ public:
 		  const std::string &ns);
 	void set_timesync(const std::shared_ptr<TimeSync> &timesync) { _timesync = timesync; };
 @[if send_topics]@
-	void publish(uint8_t topic_ID, char data_buffer[], size_t len);
+	void publish(const uint8_t topic_ID, char data_buffer[], size_t len);
 @[end if]@
 @[if recv_topics]@
 	bool getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr);
