@@ -1,6 +1,7 @@
+
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2021 Technology Innoavation Institute. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,33 +32,17 @@
 #
 ############################################################################
 
-set(SRCS)
+px4_add_library(crypto_backend crypto.c)
 
-if (NOT "${PX4_PLATFORM}" MATCHES "qurt" AND NOT "${PX4_BOARD}" MATCHES "io-v2" AND NOT "${PX4_BOARD_LABEL}" MATCHES "bootloader")
-	list(APPEND SRCS
-		px4_log.cpp
-	)
-endif()
-
-add_library(px4_platform
-	board_identity.c
-	external_reset_lockout.cpp
-	i2c.cpp
-	i2c_spi_buses.cpp
-	module.cpp
-	px4_getopt.c
-	px4_cli.cpp
-	shutdown.cpp
-	spi.cpp
-	${SRCS}
+target_link_libraries(crypto_backend
+	PUBLIC
+		keystore_backend
 )
-add_dependencies(px4_platform prebuild_targets)
 
-if (NOT "${PX4_BOARD}" MATCHES "io-v2")
-	add_subdirectory(uORB)
-	target_link_libraries(px4_platform PRIVATE uORB)
-endif()
+target_link_libraries(crypto_backend
+	PRIVATE
+		monocypher
+)
 
-add_subdirectory(px4_work_queue)
-add_subdirectory(work_queue)
-add_subdirectory(px4_sw_crypto)
+target_include_directories(crypto_backend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
