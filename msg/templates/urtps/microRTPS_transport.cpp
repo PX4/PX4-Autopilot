@@ -630,7 +630,7 @@ int UDP_node::init_receiver(uint16_t udp_port)
 	}
 
 #ifndef PX4_INFO
-	printf("[ micrortps_transport ]\tUDP transport: Trying to connect...");
+	printf("[ micrortps_transport ]\tUDP transport: Trying to connect...\n");
 #else
 	PX4_INFO("UDP transport: Trying to connect...");
 #endif /* PX4_INFO */
@@ -720,12 +720,12 @@ ssize_t UDP_node::node_read(void *buffer, size_t len)
 		return -1;
 	}
 
-	int ret = 0;
+	ssize_t ret = 0;
 #if !defined (__PX4_NUTTX) || (defined (CONFIG_NET) && defined (__PX4_NUTTX))
 	// Blocking call
 	static socklen_t addrlen = sizeof(receiver_outaddr);
-	ret = recvfrom(receiver_fd, buffer, len, 0, (struct sockaddr *) &receiver_outaddr, &addrlen);
-#endif /* __PX4_NUTTX */
+	ret = recvfrom(receiver_fd, buffer, len, 0, (struct sockaddr *)&receiver_outaddr, &addrlen);
+#endif /* !defined (__PX4_NUTTX) || (defined (CONFIG_NET) && defined (__PX4_NUTTX)) */
 	return ret;
 }
 
@@ -735,9 +735,9 @@ ssize_t UDP_node::node_write(void *buffer, size_t len)
 		return -1;
 	}
 
-	int ret = 0;
+	ssize_t ret = 0;
 #if !defined (__PX4_NUTTX) || (defined (CONFIG_NET) && defined (__PX4_NUTTX))
 	ret = sendto(sender_fd, buffer, len, 0, (struct sockaddr *)&sender_outaddr, sizeof(sender_outaddr));
-#endif /* __PX4_NUTTX */
+#endif /* !defined (__PX4_NUTTX) || (defined (CONFIG_NET) && defined (__PX4_NUTTX)) */
 	return ret;
 }
