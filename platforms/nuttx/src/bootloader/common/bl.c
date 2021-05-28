@@ -51,6 +51,10 @@
 #include "cdcacm.h"
 #include "uart.h"
 
+#ifdef BOOTLOADER_USE_SECURITY
+#include <px4_platform_common/arch_crypto.h>
+#endif
+
 // bootloader flash update protocol.
 //
 // Command format:
@@ -301,6 +305,11 @@ jump_to_app()
 	}
 
 #ifdef BOOTLOADER_USE_TOC
+
+#ifdef BOOTLOADER_USE_SECURITY
+	arch_crypto_init();
+#endif
+
 	const image_toc_entry_t *toc_entries;
 	uint8_t len;
 	uint8_t i = 0;
