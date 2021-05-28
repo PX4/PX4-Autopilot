@@ -32,14 +32,14 @@
 ############################################################################
 
 px4_add_module(
-	MODULE drivers__magnetometer__vcm5883
-	MAIN vcm5883
+	MODULE drivers__magnetometer__vcm1193l
+	MAIN vcm1193l
 	COMPILE_FLAGS
 	SRCS
-		VCM5883.cpp
-		VCM5883.hpp
-		vcm5883_main.cpp
-		VTT_VCM5883_registers.hpp
+		VCM1193L.cpp
+		VCM1193L.hpp
+		vcm1193l_main.cpp
+		VTT_VCM1193L_registers.hpp
 	DEPENDS
 		drivers_magnetometer
 		px4_work_queue

@@ -291,7 +291,7 @@ PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
  *
  * A non-zero, positive value specifies the time in seconds, within which the
  * vehicle is expected to take off after arming. In case the vehicle didn't takeoff
- * within the timout it disamrs again.
+ * within the timeout it disarms again.
  *
  * A negative value disables autmoatic disarming triggered by a pre-takeoff timeout.
  *
@@ -300,7 +300,6 @@ PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
-
 
 /**
  * Allow arming without GPS
