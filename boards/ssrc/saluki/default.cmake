@@ -7,6 +7,8 @@ px4_add_board(
 	TOOLCHAIN riscv64-unknown-elf
 	ARCHITECTURE rv64gc
 	ROMFSROOT px4fmu_common
+#	CRYPTO sw_crypto
+#	KEYSTORE stub_keystore
 	UAVCAN_INTERFACES 2
 	SERIAL_PORTS
 		GPS1:/dev/ttyS4
