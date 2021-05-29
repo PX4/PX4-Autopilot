@@ -316,6 +316,11 @@ public:
 	 */
 	void resetRCAC();
 	void init_RCAC();
+	void set_RCAC_r_v_P0(float r_P0, float v_P0)
+	{
+		_rcac_r_p0 = r_P0;
+		_rcac_v_p0 = v_P0;
+	}
 
 private:
 	bool _updateSuccessful();
