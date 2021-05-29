@@ -1,0 +1,28 @@
+#!/bin/sh
+#
+# ModalAI FC-v2 specific board sensors init
+#------------------------------------------------------------------------------
+
+# VOXL ESC - TODO
+#if param greater UART_ESC_CONFIG 0
+#then
+#	modalai_esc -d /dev/ttyS4 start
+#fi
+
+board_adc start
+
+# VOXL Power Module
+voxlpm -X -b 3 -k -T VBATT start
+voxlpm -X -b 3 -T P5VDC start
+
+# Internal SPI1 ICM-42688
+icm42688p -s -b 1 -R 12 start
+
+# Internal SPI2 ICM-42688
+icm42688p -s -b 2 -R 12 start
+
+# Internal I2C mag
+bmm150 -I start
+
+# Internal I2C baro
+bmp388 -I start
