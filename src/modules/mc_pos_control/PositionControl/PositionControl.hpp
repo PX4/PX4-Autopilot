@@ -139,7 +139,7 @@ public:
 	 * Note: NAN value means no feed forward/leave state uncontrolled if there's no higher order setpoint.
 	 * @param setpoint a vehicle_local_position_setpoint_s structure
 	 */
-	void setInputSetpoint(const vehicle_local_position_setpoint_s &setpoint);
+	void setInputSetpoint(vehicle_local_position_setpoint_s setpoint);
 
 	/**
 	 * Pass constraints that are stricter than the global limits
@@ -194,6 +194,7 @@ public:
 	 * 	@return The u variable computed by RCAC in the P controller
 	 */
 	const matrix::Vector3f get_RCAC_pos_u();
+
 	/**
 	 * 	Get the
 	 * 	@see theta_k_Pr_R
@@ -300,21 +301,21 @@ public:
 	 * 	@see P_Pr_R
 	 * 	@return RCAC P(1,1) of the Position controller
 	 */
-	const float  &get_RCAC_P11_Pos() { return _rcac_r(0,0).get_rcac_P(0,0); }
+	float get_RCAC_P11_Pos() { return _rcac_r(0,0).get_rcac_P(0,0); }
 
 	/**
 	 * 	Get the
 	 * 	@see P_vel_x
 	 * 	@return RCAC P(1,1) of the Velcity x controller
 	 */
-	const float &get_RCAC_P11_Velx() { return P_11_vx; }
+	float get_RCAC_P11_Velx() { return _rcac_v(0,0).get_rcac_P(0,0); }
 
 	/**
 	 * 	Reset RCAC variables
 	 * 	@see _thr_int
 	 */
-	void resetRCAC(float rcac_pos_p0, float rcac_vel_p0);
-	void init_RCAC(float rcac_pos_p0, float rcac_vel_p0);
+	void resetRCAC();
+	void init_RCAC();
 
 private:
 	bool _updateSuccessful();
@@ -369,14 +370,17 @@ private:
 
 	// RCAC
 	int ii_Pr_R = 0;
-	bool RCAC_Pr_ON=1;
+	bool RCAC_Pr_ON = 1;
+	float _rcac_r_p0 = 0.005f;
+	float _rcac_v_p0 = 0.001f;
+	int xyz;
+	bool islanded = true;
 
 	matrix::Matrix<RCAC, 1, 3> _rcac_r;
-	matrix::Matrix<RCAC, 1, 3> _rcac_v;
-	matrix::Matrix<float, 9,1> RCAC_vel_theta{};	// spjohn -- attempt to fix NaN
+	matrix::Vector3f z_k_r, z_km1_r,u_k_r, u_km1_r;
 
-	float P_11_r;	// spjohn -- P_11_r, P_11_vx are necessary for proper referencing in get_RCAC_P11_Pos()
-	float P_11_vx;	//	     and get_RCAC_P11_Velx() -- fix later
+	matrix::Matrix<RCAC, 1, 3> _rcac_v;
+	matrix::Vector3f z_k_v, z_km1_v,u_k_v, u_km1_v;
 
 	// matrix::SquareMatrix<float, 3> P_Pr_R;
 	// matrix::Matrix<float, 3,3> phi_k_Pr_R, phi_km1_Pr_R;

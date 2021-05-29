@@ -78,13 +78,23 @@ void PositionControl::setState(const PositionControlStates &states)
 	_vel_dot = states.acceleration;
 }
 
-void PositionControl::setInputSetpoint(const vehicle_local_position_setpoint_s &setpoint)
+void PositionControl::setInputSetpoint(vehicle_local_position_setpoint_s setpoint)
 {
 	_pos_sp = Vector3f(setpoint.x, setpoint.y, setpoint.z);
 	_vel_sp = Vector3f(setpoint.vx, setpoint.vy, setpoint.vz);
 	_acc_sp = Vector3f(setpoint.acceleration);
 	_yaw_sp = setpoint.yaw;
 	_yawspeed_sp = setpoint.yawspeed;
+
+	// kcc ++;
+
+	// if (kcc >= 50){
+	// 	kcc = 0;
+	// 	for (int i = 0; i <= 2; i++) {
+	// 		// PX4_INFO("_pos(%d) = \t%8.6f", i, (double)_pos(i));
+	// 		PX4_INFO("_vel_sp(%d) = \t%8.6f", i, (double)_vel_sp(i));
+	// 	}
+	// }
 }
 
 void PositionControl::setConstraints(const vehicle_constraints_s &constraints)
@@ -128,8 +138,40 @@ void PositionControl::_positionControl()
 {
 	// P-position controller
 	Vector3f vel_sp_position = (_pos_sp - _pos).emult(_gain_pos_p);
-	Vector3f pos_error_ = _pos_sp - _pos;
-	Vector3f u_k_pos;
+	// PX4_INFO("vel_sp_ff = \t%8.6f \t%8.6f \t%8.6f", (double)vel_sp_position(0), (double)vel_sp_position(1), (double)vel_sp_position(2));
+	// Vector3f pos_error_ = _pos_sp - _pos;
+	// Vector3f u_k_pos;
+	islanded = isnan(_pos_sp(0));
+
+	z_k_r = _pos_sp - _pos;
+	u_k_r.setZero();
+
+	if (islanded)
+	{
+		xyz = 0;
+	}
+
+	if ((RCAC_Pr_ON) && (!islanded))
+	{
+		ii_Pr_R += 1;
+		xyz += 1;
+
+		if (xyz == 1)
+		{
+			init_RCAC();
+		}
+
+		for (int i = 0; i <= 2; i++)
+		{
+			u_k_r(i) = _rcac_r(0,i).compute_uk(z_k_r(i), 0, 0, u_km1_r(i));
+		}
+		u_km1_r = u_k_r;
+	}
+
+	// for (int i = 0; i <= 2; i++) {
+	// 	// PX4_INFO("_pos(%d) = \t%8.6f", i, (double)_pos(i));
+	// 	PX4_INFO("_pos_sp(%d) = \t%8.6f", i, (double)_pos_sp(i));
+	// }
 
 	// z_k_Pr_R = (_pos_sp - _pos);
 	// u_k_Pr_R.setZero();
@@ -155,17 +197,9 @@ void PositionControl::_positionControl()
 	// 	// PX4_INFO("Pos Control P0:\t%8.6f\t%8.6f", (double)_param_mpc_rcac_pos_p0.get(), (double)P_Pr_R(0,0) );
 	// }
 
-	if (RCAC_Pr_ON)
-	{
-		for (int i = 0; i <= 2; i++) {
-			u_k_pos(i) = _rcac_r(0,i).compute_uk(-pos_error_(i), 0, 0, _rcac_r(0,i).get_rcac_uk());
-		}
-	}
-
-	P_11_r = _rcac_r(0,0).get_rcac_P(0,0);
-
 	//vel_sp_position = alpha_PID*vel_sp_position + u_k_Pr_R;
-	vel_sp_position = alpha_PID_pos*vel_sp_position + u_k_pos;
+	vel_sp_position = alpha_PID_pos*vel_sp_position + u_k_r;
+	// PX4_INFO("vel_sp_ff = \t%8.6f \t%8.6f \t%8.6f", (double)vel_sp_position(0), (double)vel_sp_position(1), (double)vel_sp_position(2));
 
 	// Position and feed-forward velocity setpoints or position states being NAN results in them not having an influence
 	ControlMath::addIfNotNanVector3f(_vel_sp, vel_sp_position);
@@ -184,7 +218,20 @@ void PositionControl::_velocityControl(const float dt)
 	// PID velocity control
 	Vector3f vel_error = _vel_sp - _vel;
 	Vector3f acc_sp_velocity = vel_error.emult(_gain_vel_p) + _vel_int - _vel_dot.emult(_gain_vel_d);
-	Vector3f u_k_vel;
+	// Vector3f u_k_vel;
+
+	z_k_v = _vel_sp - _vel;
+	u_k_v.setZero();
+
+	if ((RCAC_Pv_ON) && (!islanded))
+	{
+		ii_Pv_R += 1;
+		for (int i = 0; i <= 2; i++)
+		{
+			u_k_v(i) = _rcac_v(0,i).compute_uk(z_k_v(i), _vel_int(i), _vel_dot(i), u_km1_v(i));
+		}
+		u_km1_v = u_k_v;
+	}
 
 	// z_k_vel = vel_error;
 	//u_k_vel.setZero();
@@ -239,16 +286,7 @@ void PositionControl::_velocityControl(const float dt)
 
 	// }
 
-	if (RCAC_Pv_ON)
-	{
-		for (int i = 0; i <= 2; i++) {
-			u_k_vel(i) = _rcac_v(0,i).compute_uk(-vel_error(i), _vel_int(i), _vel_dot(i), _rcac_v(0,i).get_rcac_uk());
-		}
-	}
-
-	P_11_vx = _rcac_v(0,0).get_rcac_P(0,0);
-
-	acc_sp_velocity = alpha_PID_vel*acc_sp_velocity + u_k_vel;
+	acc_sp_velocity = alpha_PID_vel*acc_sp_velocity + u_k_v;
 
 	// No control input from setpoints or corresponding states which are NAN
 	ControlMath::addIfNotNanVector3f(_acc_sp, acc_sp_velocity);
@@ -352,146 +390,166 @@ void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_
 	attitude_setpoint.yaw_sp_move_rate = _yawspeed_sp;
 }
 
-	const matrix::Vector3f PositionControl::get_RCAC_pos_z()
-	{
-		matrix::Vector3f RCAC_z{};
+const matrix::Vector3f PositionControl::get_RCAC_pos_z()
+{
+	matrix::Vector3f RCAC_z{};
 
-		for (int i = 0; i <= 2; i++) {
-			// RCAC_z(i) = z_k_Pr_R(i,0);			// spjohn -- sub in rcac class
-			RCAC_z(i) = _rcac_r(0,i).get_rcac_Phi(1);
-		}
-
-		return RCAC_z;
+	for (int i = 0; i <= 2; i++) {
+		// RCAC_z(i) = z_k_Pr_R(i,0);			// spjohn -- sub in rcac class
+		RCAC_z(i) = _rcac_r(0,i).get_rcac_Phi(0);
 	}
 
-	const matrix::Vector3f PositionControl::get_RCAC_pos_u()
-	{
-		matrix::Vector3f RCAC_u{};
+	return RCAC_z;
+}
 
-		for (int i = 0; i <= 2; i++) {
-			// RCAC_u(i) = u_k_Pr_R(i,0);			// spjohn -- sub in rcac class
-			RCAC_u(i) = _rcac_r(0,i).get_rcac_uk();
-		}
+const matrix::Vector3f PositionControl::get_RCAC_pos_u()
+{
+	matrix::Vector3f RCAC_u{};
 
-		return RCAC_u;
+	for (int i = 0; i <= 2; i++) {
+		// RCAC_u(i) = u_k_Pr_R(i,0);			// spjohn -- sub in rcac class
+		RCAC_u(i) = _rcac_r(0,i).get_rcac_uk();
 	}
 
-	const matrix::Vector3f PositionControl::get_RCAC_pos_theta()
-	{
-		matrix::Vector3f RCAC_theta{};
+	return RCAC_u;
+}
 
-		for (int i = 0; i <= 2; i++) {
-			// RCAC_theta(i) = theta_k_Pr_R(i,0);		// spjohn -- sub in rcac class
-			RCAC_theta(i) = _rcac_r(0,i).get_rcac_theta(0);
-		}
+const matrix::Vector3f PositionControl::get_RCAC_pos_theta()
+{
+	matrix::Vector3f RCAC_theta{};
 
-		return RCAC_theta;
+	for (int i = 0; i <= 2; i++) {
+		// RCAC_theta(i) = theta_k_Pr_R(i,0);		// spjohn -- sub in rcac class
+		RCAC_theta(i) = _rcac_r(0,i).get_rcac_theta(0);
+
+		// for (int j = 0; j <= 2; j++){
+		// 	PX4_INFO("RCAC_theta(%d):\t%8.6f", i, (double)_rcac_r(0,i).get_rcac_theta(j));
+		// }
 	}
 
-	const matrix::Vector3f PositionControl::get_PX4_pos_theta()
-	{
-		matrix::Vector3f PX4_theta{};
-		PX4_theta(0) = _gain_pos_p(0);
-		PX4_theta(1) = _gain_pos_p(1);
-		PX4_theta(2) = _gain_pos_p(2);
-		return PX4_theta;
+	return RCAC_theta;
+}
+
+const matrix::Vector3f PositionControl::get_PX4_pos_theta()
+{
+	matrix::Vector3f PX4_theta{};
+	PX4_theta(0) = _gain_pos_p(0);
+	PX4_theta(1) = _gain_pos_p(1);
+	PX4_theta(2) = _gain_pos_p(2);
+	return PX4_theta;
+}
+
+const matrix::Matrix<float, 9,1> PositionControl::get_PX4_ol_theta()
+{
+	matrix::Matrix<float, 9,1> PX4_theta{};
+	PX4_theta(0,0) = _gain_vel_p(0);
+	PX4_theta(1,0) = _gain_vel_i(0);
+	PX4_theta(2,0) = _gain_vel_d(0);
+
+	PX4_theta(3,0) = _gain_vel_p(1);
+	PX4_theta(4,0) = _gain_vel_i(1);
+	PX4_theta(5,0) = _gain_vel_d(1);
+
+	PX4_theta(6,0) = _gain_vel_p(2);
+	PX4_theta(7,0) = _gain_vel_i(2);
+	PX4_theta(8,0) = _gain_vel_d(2);
+
+	return PX4_theta;
+}
+
+const matrix::Vector3f PositionControl::get_RCAC_vel_z()
+{
+	matrix::Vector3f RCAC_z{};
+
+	for (int i = 0; i <= 2; i++) {
+		// RCAC_z(i) = z_k_vel(i); //z_k_Pv_R(i,0);	// spjohn -- sub in rcac class
+		RCAC_z(i) = _rcac_v(0,i).get_rcac_Phi(0);
 	}
 
-	const matrix::Matrix<float, 9,1> PositionControl::get_PX4_ol_theta()
-	{
-		matrix::Matrix<float, 9,1> PX4_theta{};
-		PX4_theta(0,0) = _gain_pos_p(0);
-		PX4_theta(1,0) = _gain_pos_p(1);
-		PX4_theta(2,0) = _gain_pos_p(2);
+	return RCAC_z;
+}
 
-		PX4_theta(3,0) = _gain_vel_p(0);
-		PX4_theta(4,0) = _gain_vel_i(0);
-		PX4_theta(5,0) = _gain_vel_d(0);
+const matrix::Vector3f PositionControl::get_RCAC_vel_u()
+{
+	matrix::Vector3f RCAC_u{};
 
-		PX4_theta(6,0) = _gain_vel_p(2);
-		PX4_theta(7,0) = _gain_vel_i(2);
-		PX4_theta(8,0) = _gain_vel_d(2);
-
-		return PX4_theta;
+	for (int i = 0; i <= 2; i++) {
+		// RCAC_u(i) = u_k_vel(i); //u_k_Pv_R(i,0);	// spjohn -- sub in rcac class
+		RCAC_u(i) = _rcac_v(0,i).get_rcac_uk();
 	}
 
-	const matrix::Vector3f PositionControl::get_RCAC_vel_z()
+	return RCAC_u;
+}
+
+const matrix::Matrix<float, 9,1> PositionControl::get_RCAC_vel_theta()
+{
+	matrix::Matrix<float, 9,1> RCAC_vel_theta{};
+	RCAC_vel_theta.setZero();
+
+	for (int i = 0; i <= 2; i++)
 	{
-		matrix::Vector3f RCAC_z{};
+		// //RCAC_theta(i,0) = theta_k_Pv_R(i,0);	// spjohn -- sub in rcac class
+		// RCAC_theta(i,0) = theta_k_vel_x(i);
+		// RCAC_theta(i+3,0) = theta_k_vel_y(i);
+		// RCAC_theta(i+6,0) = theta_k_vel_z(i);
 
-		for (int i = 0; i <= 2; i++) {
-			// RCAC_z(i) = z_k_vel(i); //z_k_Pv_R(i,0);	// spjohn -- sub in rcac class
-			RCAC_z(i) = _rcac_v(0,i).get_rcac_Phi(1);
-		}
-
-		return RCAC_z;
+		RCAC_vel_theta(i,0) = _rcac_v(0,0).get_rcac_theta(i);
+		RCAC_vel_theta(i+3,0) = _rcac_v(0,1).get_rcac_theta(i);
+		RCAC_vel_theta(i+6,0) = _rcac_v(0,2).get_rcac_theta(i);
 	}
 
-	const matrix::Vector3f PositionControl::get_RCAC_vel_u()
-	{
-		matrix::Vector3f RCAC_u{};
+	return RCAC_vel_theta;
+}
 
-		for (int i = 0; i <= 2; i++) {
-			// RCAC_u(i) = u_k_vel(i); //u_k_Pv_R(i,0);	// spjohn -- sub in rcac class
-			RCAC_u(i) = _rcac_v(0,i).get_rcac_uk();
-		}
+void PositionControl::set_RCAC_pos_switch(float switch_RCAC)
+{
+	RCAC_Pr_ON = 1;
+	if (switch_RCAC<0.0f) {
+		RCAC_Pr_ON = 0;
+	}
+}
 
-		return RCAC_u;
+void PositionControl::set_RCAC_vel_switch(float switch_RCAC)
+{
+	RCAC_Pv_ON = 1;
+	if (switch_RCAC<0.0f) {
+		RCAC_Pv_ON = 0;
+	}
+}
+
+void PositionControl::set_PID_pv_factor(float PID_factor, float pos_alpha, float vel_alpha)
+{
+	alpha_PID_pos = 1.0f;
+	alpha_PID_vel = 1.0f;
+	//alpha_PID = 1.0f;
+
+	if (PID_factor<0.0f) {
+		//alpha_PID = 0.5;
+		alpha_PID_pos = pos_alpha;
+		alpha_PID_vel = vel_alpha;
 	}
 
-	const matrix::Matrix<float, 9,1> PositionControl::get_RCAC_vel_theta()
-	{
-		// matrix::Matrix<float, 9,1> RCAC_theta{};
-		RCAC_vel_theta.setZero();
+}
 
-		for (int i = 0; i <= 2; i++)
-		{
-			// //RCAC_theta(i,0) = theta_k_Pv_R(i,0);	// spjohn -- sub in rcac class
-			// RCAC_theta(i,0) = theta_k_vel_x(i);
-			// RCAC_theta(i+3,0) = theta_k_vel_y(i);
-			// RCAC_theta(i+6,0) = theta_k_vel_z(i);
-
-			RCAC_vel_theta(i,0) = _rcac_v(0,0).get_rcac_theta(i);
-			RCAC_vel_theta(i+3,0) = _rcac_v(0,1).get_rcac_theta(i);
-			RCAC_vel_theta(i+6,0) = _rcac_v(0,2).get_rcac_theta(i);
-		}
-
-		return RCAC_vel_theta;
-	}
-
-	void PositionControl::set_RCAC_pos_switch(float switch_RCAC)
-	{
-		RCAC_Pr_ON = 1;
-		if (switch_RCAC<0.0f) {
-			RCAC_Pr_ON = 0;
-		}
-	}
-
-	void PositionControl::set_RCAC_vel_switch(float switch_RCAC)
-	{
-		RCAC_Pv_ON = 1;
-		if (switch_RCAC<0.0f) {
-			RCAC_Pv_ON = 0;
-		}
-	}
-
-	void PositionControl::set_PID_pv_factor(float PID_factor, float pos_alpha, float vel_alpha)
-	{
-		alpha_PID_pos = 1.0f;
-		alpha_PID_vel = 1.0f;
-		//alpha_PID = 1.0f;
-
-		if (PID_factor<0.0f) {
-			//alpha_PID = 0.5;
-			alpha_PID_pos = pos_alpha;
-			alpha_PID_vel = vel_alpha;
-		}
-
-	}
-
-void PositionControl::init_RCAC(float rcac_pos_p0, float rcac_vel_p0) {
+void PositionControl::init_RCAC()
+{
 	I3 = eye<float, 3>();
 	N1_Pr = eye<float, 3>() * (1.0f);
+
+	u_k_r.setZero();
+	u_km1_r.setZero();
+	z_k_r.setZero();
+	z_km1_r.setZero();
+
+	u_k_v.setZero();
+	u_km1_v.setZero();
+	z_k_v.setZero();
+	z_km1_v.setZero();
+
+	for (int i = 0; i <= 2; i++) {
+		_rcac_r(0,i) = RCAC(_rcac_r_p0);
+		_rcac_v(0,i) = RCAC(_rcac_v_p0);
+	}
 
 	// for (int i = 0; i <= 2; i++) {
 	// 	N1_vel(i) = 1;
@@ -533,66 +591,72 @@ void PositionControl::init_RCAC(float rcac_pos_p0, float rcac_vel_p0) {
 	// _rcac_vel_y = RCAC(rcac_vel_p0);
 	// _rcac_vel_z = RCAC(rcac_vel_p0);
 
-	for (int i = 0; i <= 2; i++) {
-		_rcac_r(0,i).reset_RCAC(rcac_pos_p0);
-		_rcac_v(0,i).reset_RCAC(rcac_vel_p0);
-	}
 
-	P_11_r = rcac_pos_p0;
-	P_11_vx = rcac_vel_p0;
+	// P_11_r = rcac_pos_p0;
+	// P_11_vx = rcac_vel_p0;
 
-	PX4_INFO("Pos Control P0:\t%8.6f", (double)rcac_pos_p0);
-	PX4_INFO("Vel Control P0:\t%8.6f", (double)rcac_vel_p0);
+	PX4_INFO("Pos Control P0:\t%8.6f", (double)_rcac_r_p0);
+	PX4_INFO("Vel Control P0:\t%8.6f", (double)_rcac_v_p0);
 }
 
-	void PositionControl::resetRCAC(float rcac_pos_p0, float rcac_vel_p0)
-	{
-		// P_vel_x = eye<float, 3>() * 0.0010;
-		// P_vel_y = eye<float, 3>() * 0.0010;
-		// P_vel_z = eye<float, 3>() * 0.0010;
-		// P_Pr_R = eye<float, 3>() * 0.010 * alpha_P;
+void PositionControl::resetRCAC()
+{
+	u_k_r.setZero();
+	u_km1_r.setZero();
+	z_k_r.setZero();
+	z_km1_r.setZero();
 
-		// P_vel_x.setZero();
-		// P_vel_y.setZero();
-		// P_vel_z.setZero();
-		// P_Pr_R.setZero();
-		// for (int i = 0; i <= 2; i++) {
-		// 	P_vel_x(i,i) = 0.001;
-		// 	P_vel_y(i,i) = 0.001;
-		// 	P_vel_z(i,i) = 0.001;
-		// 	P_Pr_R(i,i) = 0.01;
-		// 	P_vel_x(i,i) = rcac_vel_p0;
-		// 	P_vel_y(i,i) = rcac_vel_p0;
-		// 	P_vel_z(i,i) = rcac_vel_p0;
-		// 	P_Pr_R(i,i) = rcac_pos_p0;
-		// }
-		// phi_k_vel_x.setZero();
-		// phi_k_vel_y.setZero();
-		// phi_k_vel_z.setZero();
-		// phi_km1_vel_x.setZero();
-		// phi_km1_vel_y.setZero();
-		// phi_km1_vel_z.setZero();
-		// theta_k_vel_x.setZero();
-		// theta_k_vel_y.setZero();
-		// theta_k_vel_z.setZero();
-		// u_k_vel.setZero();
-		// z_k_vel.setZero();
+	u_k_v.setZero();
+	u_km1_v.setZero();
+	z_k_v.setZero();
+	z_km1_v.setZero();
 
-		// phi_km1_Pr_R.setZero();
-		// theta_k_Pr_R.setZero();
-		// z_k_Pr_R.setZero();
-		// z_km1_Pr_R.setZero();
-		// u_k_Pr_R.setZero();
-		// u_km1_Pr_R.setZero();
-
-		for (int i = 0; i <= 2; i++) {
-			_rcac_r(0,i).reset_RCAC(rcac_pos_p0);
-			_rcac_v(0,i).reset_RCAC(rcac_vel_p0);
-		}
-
-		P_11_r = rcac_pos_p0;
-		P_11_vx = rcac_vel_p0;
-
-		ii_Pr_R = 0;
-		ii_Pv_R = 0;
+	for (int i = 0; i <= 2; i++) {
+		_rcac_r(0,i) = RCAC(_rcac_r_p0);
+		_rcac_v(0,i) = RCAC(_rcac_v_p0);
 	}
+
+	// P_vel_x = eye<float, 3>() * 0.0010;
+	// P_vel_y = eye<float, 3>() * 0.0010;
+	// P_vel_z = eye<float, 3>() * 0.0010;
+	// P_Pr_R = eye<float, 3>() * 0.010 * alpha_P;
+
+	// P_vel_x.setZero();
+	// P_vel_y.setZero();
+	// P_vel_z.setZero();
+	// P_Pr_R.setZero();
+	// for (int i = 0; i <= 2; i++) {
+	// 	P_vel_x(i,i) = 0.001;
+	// 	P_vel_y(i,i) = 0.001;
+	// 	P_vel_z(i,i) = 0.001;
+	// 	P_Pr_R(i,i) = 0.01;
+	// 	P_vel_x(i,i) = rcac_vel_p0;
+	// 	P_vel_y(i,i) = rcac_vel_p0;
+	// 	P_vel_z(i,i) = rcac_vel_p0;
+	// 	P_Pr_R(i,i) = rcac_pos_p0;
+	// }
+	// phi_k_vel_x.setZero();
+	// phi_k_vel_y.setZero();
+	// phi_k_vel_z.setZero();
+	// phi_km1_vel_x.setZero();
+	// phi_km1_vel_y.setZero();
+	// phi_km1_vel_z.setZero();
+	// theta_k_vel_x.setZero();
+	// theta_k_vel_y.setZero();
+	// theta_k_vel_z.setZero();
+	// u_k_vel.setZero();
+	// z_k_vel.setZero();
+
+	// phi_km1_Pr_R.setZero();
+	// theta_k_Pr_R.setZero();
+	// z_k_Pr_R.setZero();
+	// z_km1_Pr_R.setZero();
+	// u_k_Pr_R.setZero();
+	// u_km1_Pr_R.setZero();
+
+	// P_11_r = rcac_pos_p0;
+	// P_11_vx = rcac_vel_p0;
+
+	ii_Pr_R = 0;
+	ii_Pv_R = 0;
+}
