@@ -6,15 +6,4 @@ px4_add_board(
 	LABEL bootloader
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
-
-
-	DRIVERS
-#	bootloader
-
-	MODULES
-
-	SYSTEMCMDS
-
-	EXAMPLES
-
-	)
+)
