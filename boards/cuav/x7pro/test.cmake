@@ -59,7 +59,7 @@ px4_add_board(
 		uavcan
 	MODULES
 		airspeed_selector
-		attitude_estimator_q
+		#attitude_estimator_q
 		battery_status
 		camera_feedback
 		commander
@@ -75,7 +75,7 @@ px4_add_board(
 		land_detector
 		landing_target_estimator
 		load_mon
-		local_position_estimator
+		#local_position_estimator
 		logger
 		mavlink
 		mc_att_control
