@@ -49,6 +49,8 @@ template<typename T>
 class LowPassFilter2p
 {
 public:
+	LowPassFilter2p() = default;
+
 	LowPassFilter2p(float sample_freq, float cutoff_freq)
 	{
 		// set initial parameters
