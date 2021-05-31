@@ -91,6 +91,7 @@ px4_add_board(
 		#gpio
 		i2cdetect
 		led_control
+		manual_control
 		mft
 		mixer
 		motor_ramp

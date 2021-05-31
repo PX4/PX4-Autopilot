@@ -24,6 +24,7 @@ px4_add_board(
 		sensors
 	SYSTEMCMDS
 		led_control
+		manual_control
 		mft
 		mtd
 		param
