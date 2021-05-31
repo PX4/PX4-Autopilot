@@ -93,10 +93,9 @@ private:
 
 	matrix::Vector3f _acceleration_prev{};
 
-	static constexpr const float kInitialRateHz{1000.f}; /**< sensor update rate used for initialization */
 	float _filter_sample_rate{NAN};
 
-	math::LowPassFilter2p<matrix::Vector3f> _lp_filter{kInitialRateHz, 30.f};
+	math::LowPassFilter2p<matrix::Vector3f> _lp_filter{};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::IMU_ACCEL_CUTOFF>) _param_imu_accel_cutoff,
