@@ -201,8 +201,8 @@ void NotchFilter<T>::setParameters(float sample_freq, float notch_freq, float ba
 	_bandwidth = math::constrain(bandwidth, 5.f, sample_freq / 2);
 	_sample_freq = sample_freq;
 
-	const float alpha = tanf(M_PI_F * bandwidth / sample_freq);
-	const float beta = -cosf(2.f * M_PI_F * notch_freq / sample_freq);
+	const float alpha = tanf(M_PI_F * _bandwidth / _sample_freq);
+	const float beta = -cosf(2.f * M_PI_F * _notch_freq / _sample_freq);
 	const float a0_inv = 1.f / (alpha + 1.f);
 
 	_b0 = a0_inv;
