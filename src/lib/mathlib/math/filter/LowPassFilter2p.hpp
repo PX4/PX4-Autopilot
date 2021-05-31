@@ -72,7 +72,7 @@ public:
 		_cutoff_freq = math::constrain(cutoff_freq, 5.f, sample_freq / 2); // TODO: min based on actual numerical limit
 		_sample_freq = sample_freq;
 
-		const float fr = sample_freq / _cutoff_freq;
+		const float fr = _sample_freq / _cutoff_freq;
 		const float ohm = tanf(M_PI_F / fr);
 		const float c = 1.f + 2.f * cosf(M_PI_F / 4.f) * ohm + ohm * ohm;
 
