@@ -93,16 +93,26 @@ void VehicleMagnetometer::ParametersUpdate(bool force)
 
 		if (mag_comp_typ != _mag_comp_type) {
 			// check mag power compensation type (change battery current subscription instance if necessary)
-			if (mag_comp_typ == MagCompensationType::Current_inst0 && _mag_comp_type != MagCompensationType::Current_inst0) {
-				_battery_status_sub = uORB::Subscription{ORB_ID(battery_status), 0};
-			}
+			switch (mag_comp_typ) {
+			case MagCompensationType::Current_inst0:
+				_battery_status_sub.ChangeInstance(0);
+				break;
 
-			if (mag_comp_typ == MagCompensationType::Current_inst1 && _mag_comp_type != MagCompensationType::Current_inst1) {
-				_battery_status_sub = uORB::Subscription{ORB_ID(battery_status), 1};
-			}
+			case MagCompensationType::Current_inst1:
+				_battery_status_sub.ChangeInstance(1);
+				break;
 
-			if (mag_comp_typ == MagCompensationType::Throttle) {
-				_actuator_controls_0_sub = uORB::Subscription{ORB_ID(actuator_controls_0)};
+			case MagCompensationType::Throttle:
+				break;
+
+			default:
+
+				// ensure power compensation is disabled
+				for (auto &cal : _calibration) {
+					cal.UpdatePower(0.f);
+				}
+
+				break;
 			}
 		}
 
@@ -253,27 +263,25 @@ void VehicleMagnetometer::Run()
 
 	if (_mag_comp_type != MagCompensationType::Disabled) {
 		// update power signal for mag compensation
-		if (_armed) {
-			if (_mag_comp_type == MagCompensationType::Throttle) {
-				actuator_controls_s controls;
+		if (_armed && (_mag_comp_type == MagCompensationType::Throttle)) {
+			actuator_controls_s controls;
 
-				if (_actuator_controls_0_sub.update(&controls)) {
-					for (auto &cal : _calibration) {
-						cal.UpdatePower(controls.control[actuator_controls_s::INDEX_THROTTLE]);
-					}
+			if (_actuator_controls_0_sub.update(&controls)) {
+				for (auto &cal : _calibration) {
+					cal.UpdatePower(controls.control[actuator_controls_s::INDEX_THROTTLE]);
 				}
+			}
 
-			} else if (_mag_comp_type == MagCompensationType::Current_inst0
-				   || _mag_comp_type == MagCompensationType::Current_inst1) {
+		} else if ((_mag_comp_type == MagCompensationType::Current_inst0)
+			   || (_mag_comp_type == MagCompensationType::Current_inst1)) {
 
-				battery_status_s bat_stat;
+			battery_status_s bat_stat;
 
-				if (_battery_status_sub.update(&bat_stat)) {
-					float power = bat_stat.current_a * 0.001f; //current in [kA]
+			if (_battery_status_sub.update(&bat_stat)) {
+				float power = bat_stat.current_a * 0.001f; // current in [kA]
 
-					for (auto &cal : _calibration) {
-						cal.UpdatePower(power);
-					}
+				for (auto &cal : _calibration) {
+					cal.UpdatePower(power);
 				}
 			}
 
