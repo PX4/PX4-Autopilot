@@ -62,7 +62,7 @@ void SubscriptionManager::subscribe()
 			int32_t port_id {};
 			param_get(param_handle, &port_id);
 
-			if (port_id != UavcanBaseSubscriber::CANARD_PORT_ID_UNSET) { // PortID is set create subscriber
+			if (port_id >= 0) { // PortID is set create a subscriber
 				UavcanDynamicPortSubscriber *dynsub = sub.create_sub(_canard_instance, _param_manager);
 
 				if (_dynsubscribers != NULL) {

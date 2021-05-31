@@ -172,9 +172,7 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::UAVCAN_V1_ENABLE>) _param_uavcan_v1_enable,
 		(ParamInt<px4::params::UAVCAN_V1_ID>) _param_uavcan_v1_id,
-		(ParamInt<px4::params::UAVCAN_V1_BAUD>) _param_uavcan_v1_baud,
-		(ParamInt<px4::params::UAVCAN_V1_BAT_MD>) _param_uavcan_v1_bat_md,
-		(ParamInt<px4::params::UAVCAN_V1_BAT_ID>) _param_uavcan_v1_bat_id
+		(ParamInt<px4::params::UAVCAN_V1_BAUD>) _param_uavcan_v1_baud
 	)
 
 	UavcanParamManager _param_manager;
