@@ -166,7 +166,7 @@ protected:
 	float _a1{0.f};
 	float _a2{0.f};
 
-	float _b0{0.f};
+	float _b0{1.f};
 	float _b1{0.f};
 	float _b2{0.f};
 
