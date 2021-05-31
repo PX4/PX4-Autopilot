@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2021 Technology Innoavation Institute. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,43 +31,15 @@
 #
 ############################################################################
 
-px4_add_git_submodule(TARGET git_ecl PATH "ecl")
-px4_add_git_submodule(TARGET git_matrix PATH "matrix")
-px4_add_git_submodule(TARGET git_monocypher PATH "crypto/monocypher")
+px4_add_library(monocypher
+	monocypher/src/monocypher.c
+	monocypher/src/optional/monocypher-ed25519.c
+)
 
-add_subdirectory(airspeed)
-add_subdirectory(airspeed_validator)
-add_subdirectory(avoidance)
-add_subdirectory(battery)
-add_subdirectory(bezier)
-add_subdirectory(cdev)
-add_subdirectory(circuit_breaker)
-add_subdirectory(collision_prevention)
-add_subdirectory(controllib)
-add_subdirectory(component_information)
-add_subdirectory(conversion)
-add_subdirectory(crypto)
-add_subdirectory(drivers)
-add_subdirectory(ecl)
-add_subdirectory(hysteresis)
-add_subdirectory(l1)
-add_subdirectory(landing_slope)
-add_subdirectory(led)
-add_subdirectory(magnetometer_bias_estimator)
-add_subdirectory(mathlib)
-add_subdirectory(mixer)
-add_subdirectory(mixer_module)
-add_subdirectory(motion_planning)
-add_subdirectory(output_limit)
-add_subdirectory(perf)
-add_subdirectory(pid)
-add_subdirectory(pwm)
-add_subdirectory(rc)
-add_subdirectory(sensor_calibration)
-add_subdirectory(slew_rate)
-add_subdirectory(systemlib)
-add_subdirectory(tecs)
-add_subdirectory(terrain_estimation)
-add_subdirectory(tunes)
-add_subdirectory(version)
-add_subdirectory(weather_vane)
+target_include_directories(monocypher
+	PUBLIC
+		${CMAKE_CURRENT_SOURCE_DIR}/monocypher/src
+)
+
+# There is a one shadow warning in monocypher 3.1.2, ignore it
+target_compile_options(monocypher PRIVATE -Wno-shadow)
