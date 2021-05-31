@@ -67,3 +67,6 @@
 	path = src/drivers/uavcan_v1/legacy_data_types
 	url = https://github.com/PX4/public_regulated_data_types.git
 	branch = legacy
+[submodule "src/lib/crypto/monocypher"]
+	path = src/lib/crypto/monocypher
+	url = https://github.com/PX4/Monocypher.git
