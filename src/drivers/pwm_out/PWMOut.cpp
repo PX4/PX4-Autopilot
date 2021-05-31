@@ -640,7 +640,7 @@ void PWMOut::Run()
 		_parameter_update_sub.copy(&pupdate);
 
 		// update parameters from storage
-		update_params();
+		// update_params(); // do not update PWM params for now (was interfering with VTOL PWM settings)
 	}
 
 	if (_current_update_rate == 0) {
