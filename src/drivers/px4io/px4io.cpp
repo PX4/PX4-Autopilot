@@ -284,6 +284,12 @@ private:
 	MotorTest _motor_test;
 	bool                    _hitl_mode;     ///< Hardware-in-the-loop simulation mode - don't publish actuator_outputs
 
+	bool _pwm_min_configured{false};
+	bool _pwm_max_configured{false};
+	bool _pwm_fail_configured{false};
+	bool _pwm_dis_configured{false};
+	bool _pwm_rev_configured{false};
+
 	/**
 	 * Trampoline to the worker task
 	 */
@@ -1215,7 +1221,7 @@ void PX4IO::update_params()
 
 
 	// PWM_MAIN_MINx
-	{
+	if (!_pwm_min_configured) {
 		pwm_output_values pwm{};
 		pwm.channel_count = _max_actuators;
 
@@ -1238,11 +1244,13 @@ void PX4IO::update_params()
 			}
 		}
 
-		io_reg_set(PX4IO_PAGE_CONTROL_MIN_PWM, 0, pwm.values, pwm.channel_count);
+		if (io_reg_set(PX4IO_PAGE_CONTROL_MIN_PWM, 0, pwm.values, pwm.channel_count) == OK) {
+			_pwm_min_configured = true;
+		}
 	}
 
 	// PWM_MAIN_MAXx
-	{
+	if (!_pwm_max_configured) {
 		pwm_output_values pwm{};
 		pwm.channel_count = _max_actuators;
 
@@ -1265,11 +1273,13 @@ void PX4IO::update_params()
 			}
 		}
 
-		io_reg_set(PX4IO_PAGE_CONTROL_MAX_PWM, 0, pwm.values, pwm.channel_count);
+		if (io_reg_set(PX4IO_PAGE_CONTROL_MAX_PWM, 0, pwm.values, pwm.channel_count) == OK) {
+			_pwm_max_configured = true;
+		}
 	}
 
 	// PWM_MAIN_FAILx
-	{
+	if (!_pwm_fail_configured) {
 		pwm_output_values pwm{};
 		pwm.channel_count = _max_actuators;
 
@@ -1289,11 +1299,13 @@ void PX4IO::update_params()
 			}
 		}
 
-		io_reg_set(PX4IO_PAGE_FAILSAFE_PWM, 0, pwm.values, pwm.channel_count);
+		if (io_reg_set(PX4IO_PAGE_FAILSAFE_PWM, 0, pwm.values, pwm.channel_count) == OK) {
+			_pwm_fail_configured = true;
+		}
 	}
 
 	// PWM_MAIN_DISx
-	{
+	if (!_pwm_dis_configured) {
 		pwm_output_values pwm{};
 		pwm.channel_count = _max_actuators;
 
@@ -1316,11 +1328,13 @@ void PX4IO::update_params()
 			}
 		}
 
-		io_reg_set(PX4IO_PAGE_DISARMED_PWM, 0, pwm.values, pwm.channel_count);
+		if (io_reg_set(PX4IO_PAGE_DISARMED_PWM, 0, pwm.values, pwm.channel_count) == OK) {
+			_pwm_dis_configured = true;
+		}
 	}
 
 	// PWM_MAIN_REVx
-	{
+	if (!_pwm_rev_configured) {
 		int16_t reverse_pwm_mask = 0;
 
 		for (unsigned i = 0; i < _max_actuators; i++) {
@@ -1335,7 +1349,9 @@ void PX4IO::update_params()
 			}
 		}
 
-		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_REVERSE, reverse_pwm_mask);
+		if (io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_REVERSE, reverse_pwm_mask) == OK) {
+			_pwm_rev_configured = true;
+		}
 	}
 
 	// PWM_MAIN_TRIMx
