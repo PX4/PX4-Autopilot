@@ -1031,30 +1031,6 @@ Mission::set_mission_items()
 					generate_waypoint_from_heading(&pos_sp_triplet->current, pos_sp_triplet->current.yaw);
 				}
 
-				/* don't advance mission after FW to MC command */
-				if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
-				    && _work_item_type == WORK_ITEM_TYPE_DEFAULT
-				    && new_work_item_type == WORK_ITEM_TYPE_DEFAULT
-				    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
-				    && !_navigator->get_land_detected()->landed
-				    && pos_sp_triplet->current.valid) {
-
-					new_work_item_type = WORK_ITEM_TYPE_CMD_BEFORE_MOVE;
-				}
-
-				/* after FW to MC transition finish moving to the waypoint */
-				if (_work_item_type == WORK_ITEM_TYPE_CMD_BEFORE_MOVE &&
-				    new_work_item_type == WORK_ITEM_TYPE_DEFAULT
-				    && pos_sp_triplet->current.valid) {
-
-					new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
-
-					_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-					copy_position_if_valid(&_mission_item, &pos_sp_triplet->current);
-					_mission_item.autocontinue = true;
-					_mission_item.time_inside = 0.0f;
-				}
-
 				// ignore certain commands in mission fast forward
 				if ((_mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD) &&
 				    (_mission_item.nav_cmd == NAV_CMD_DELAY)) {
@@ -1838,10 +1814,6 @@ bool Mission::position_setpoint_equal(const position_setpoint_s *p1, const posit
 {
 	return ((p1->valid == p2->valid) &&
 		(p1->type == p2->type) &&
-		(fabsf(p1->x - p2->x) < FLT_EPSILON) &&
-		(fabsf(p1->y - p2->y) < FLT_EPSILON) &&
-		(fabsf(p1->z - p2->z) < FLT_EPSILON) &&
-		(p1->position_valid == p2->position_valid) &&
 		(fabsf(p1->vx - p2->vx) < FLT_EPSILON) &&
 		(fabsf(p1->vy - p2->vy) < FLT_EPSILON) &&
 		(fabsf(p1->vz - p2->vz) < FLT_EPSILON) &&

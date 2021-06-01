@@ -109,6 +109,7 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_max_climb_rate(_param_fw_t_clmb_max.get());
 	_tecs.set_max_sink_rate(_param_fw_t_sink_max.get());
 	_tecs.set_speed_weight(_param_fw_t_spdweight.get());
+	_tecs.set_equivalent_airspeed_cruise(_param_fw_airspd_trim.get());
 	_tecs.set_equivalent_airspeed_min(_param_fw_airspd_min.get());
 	_tecs.set_equivalent_airspeed_max(_param_fw_airspd_max.get());
 	_tecs.set_min_sink_rate(_param_fw_t_sink_min.get());
@@ -125,6 +126,7 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_airspeed_error_time_constant(_param_fw_t_tas_error_tc.get());
 	_tecs.set_ste_rate_time_const(_param_ste_rate_time_const.get());
 	_tecs.set_speed_derivative_time_constant(_param_tas_rate_time_const.get());
+	_tecs.set_seb_rate_ff_gain(_param_seb_rate_ff.get());
 
 
 	// Landing slope
@@ -140,19 +142,31 @@ FixedwingPositionControl::parameters_update()
 
 	landing_status_publish();
 
+	int check_ret = PX4_OK;
+
 	// sanity check parameters
-	if ((_param_fw_airspd_max.get() < _param_fw_airspd_min.get()) ||
-	    (_param_fw_airspd_max.get() < 5.0f) ||
-	    (_param_fw_airspd_min.get() > 100.0f) ||
-	    (_param_fw_airspd_trim.get() < _param_fw_airspd_min.get()) ||
-	    (_param_fw_airspd_trim.get() > _param_fw_airspd_max.get())) {
-
-		mavlink_log_critical(&_mavlink_log_pub, "Airspeed parameters invalid");
-
-		return PX4_ERROR;
+	if (_param_fw_airspd_max.get() < _param_fw_airspd_min.get()) {
+		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Airspeed max smaller than min");
+		check_ret = PX4_ERROR;
 	}
 
-	return PX4_OK;
+	if (_param_fw_airspd_max.get() < 5.0f || _param_fw_airspd_min.get() > 100.0f) {
+		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Airspeed max < 5 m/s or min > 100 m/s");
+		check_ret = PX4_ERROR;
+	}
+
+	if (_param_fw_airspd_trim.get() < _param_fw_airspd_min.get() ||
+	    _param_fw_airspd_trim.get() > _param_fw_airspd_max.get()) {
+		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Airspeed cruise out of min or max bounds");
+		check_ret = PX4_ERROR;
+	}
+
+	if (_param_fw_airspd_stall.get() > _param_fw_airspd_min.get() * 0.9f) {
+		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Stall airspeed higher than 0.9 of min");
+		check_ret = PX4_ERROR;
+	}
+
+	return check_ret;
 }
 
 void
@@ -384,6 +398,8 @@ FixedwingPositionControl::tecs_status_publish()
 	t.equivalent_airspeed_sp = _tecs.get_EAS_setpoint();
 	t.true_airspeed_derivative_sp = _tecs.TAS_rate_setpoint();
 	t.true_airspeed_derivative = _tecs.speed_derivative();
+	t.true_airspeed_derivative_raw = _tecs.speed_derivative_raw();
+	t.true_airspeed_innovation = _tecs.getTASInnovation();
 
 	t.total_energy_error = _tecs.STE_error();
 	t.total_energy_rate_error = _tecs.STE_rate_error();
@@ -405,6 +421,7 @@ FixedwingPositionControl::tecs_status_publish()
 	t.pitch_integ = _tecs.pitch_integ_state();
 
 	t.throttle_sp = _tecs.get_throttle_setpoint();
+	t.pitch_sp_rad = _tecs.get_pitch_setpoint();
 
 	t.timestamp = hrt_absolute_time();
 
@@ -1686,9 +1703,48 @@ FixedwingPositionControl::Run()
 		_alt_reset_counter = _local_pos.vz_reset_counter;
 		_pos_reset_counter = _local_pos.vxy_reset_counter;
 
-		if (_pos_sp_triplet_sub.update(&_pos_sp_triplet)) {
-			// reset the altitude foh (first order hold) logic
-			_min_current_sp_distance_xy = FLT_MAX;
+
+		if (_control_mode.flag_control_offboard_enabled) {
+			// Convert Local setpoints to global setpoints
+			if (!map_projection_initialized(&_global_local_proj_ref)
+			    || (_global_local_proj_ref.timestamp != _local_pos.ref_timestamp)) {
+
+				map_projection_init_timestamped(&_global_local_proj_ref, _local_pos.ref_lat, _local_pos.ref_lon,
+								_local_pos.ref_timestamp);
+				_global_local_alt0 = _local_pos.ref_alt;
+			}
+
+			vehicle_local_position_setpoint_s trajectory_setpoint;
+
+			if (_trajectory_setpoint_sub.update(&trajectory_setpoint)) {
+				if (PX4_ISFINITE(trajectory_setpoint.x) && PX4_ISFINITE(trajectory_setpoint.y) && PX4_ISFINITE(trajectory_setpoint.z)) {
+					double lat;
+					double lon;
+
+					if (map_projection_reproject(&_global_local_proj_ref, trajectory_setpoint.x, trajectory_setpoint.y, &lat, &lon) == 0) {
+						_pos_sp_triplet = {}; // clear any existing
+
+						_pos_sp_triplet.timestamp = trajectory_setpoint.timestamp;
+						_pos_sp_triplet.current.timestamp = trajectory_setpoint.timestamp;
+						_pos_sp_triplet.current.valid = true;
+						_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+						_pos_sp_triplet.current.lat = lat;
+						_pos_sp_triplet.current.lon = lon;
+						_pos_sp_triplet.current.alt = _global_local_alt0 - trajectory_setpoint.z;
+						_pos_sp_triplet.current.cruising_speed = NAN; // ignored
+						_pos_sp_triplet.current.cruising_throttle = NAN; // ignored
+					}
+
+				} else {
+					mavlink_log_critical(&_mavlink_log_pub, "Invalid offboard setpoint");
+				}
+			}
+
+		} else {
+			if (_pos_sp_triplet_sub.update(&_pos_sp_triplet)) {
+				// reset the altitude foh (first order hold) logic
+				_min_current_sp_distance_xy = FLT_MAX;
+			}
 		}
 
 		airspeed_poll();
@@ -1709,28 +1765,6 @@ FixedwingPositionControl::Run()
 
 		Vector2d curr_pos(_current_latitude, _current_longitude);
 		Vector2f ground_speed(_local_pos.vx, _local_pos.vy);
-
-		// Convert Local setpoints to global setpoints
-		if (_control_mode.flag_control_offboard_enabled) {
-			if (!map_projection_initialized(&_global_local_proj_ref)
-			    || (_global_local_proj_ref.timestamp != _local_pos.ref_timestamp)) {
-
-				map_projection_init_timestamped(&_global_local_proj_ref, _local_pos.ref_lat, _local_pos.ref_lon,
-								_local_pos.ref_timestamp);
-				_global_local_alt0 = _local_pos.ref_alt;
-			}
-
-			vehicle_local_position_setpoint_s trajectory_setpoint;
-
-			if (_trajectory_setpoint_sub.update(&trajectory_setpoint)) {
-				map_projection_reproject(&_global_local_proj_ref,
-							 trajectory_setpoint.x, trajectory_setpoint.y,
-							 &_pos_sp_triplet.current.lat, &_pos_sp_triplet.current.lon);
-
-				_pos_sp_triplet.current.alt = _global_local_alt0 - trajectory_setpoint.z;
-				_pos_sp_triplet.current.valid = true;
-			}
-		}
 
 		/*
 		 * Attempt to control position, on success (= sensors present and not in manual mode),

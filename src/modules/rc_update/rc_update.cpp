@@ -50,7 +50,6 @@ static bool operator ==(const manual_control_switches_s &a, const manual_control
 	return (a.mode_slot == b.mode_slot &&
 		a.mode_switch == b.mode_switch &&
 		a.return_switch == b.return_switch &&
-		a.rattitude_switch == b.rattitude_switch &&
 		a.posctl_switch == b.posctl_switch &&
 		a.loiter_switch == b.loiter_switch &&
 		a.acro_switch == b.acro_switch &&
@@ -156,6 +155,18 @@ void RCUpdate::parameters_updated()
 	}
 
 	update_rc_functions();
+
+	// deprecated parameters, will be removed post v1.12 once QGC is updated
+	{
+		int32_t rc_map_value = 0;
+
+		if (param_get(param_find("RC_MAP_RATT_SW"), &rc_map_value) == PX4_OK) {
+			if (rc_map_value != 0) {
+				PX4_WARN("RC_MAP_RATT_SW deprecated");
+				param_reset(param_find("RC_MAP_RATT_SW"));
+			}
+		}
+	}
 }
 
 void RCUpdate::update_rc_functions()
@@ -168,7 +179,6 @@ void RCUpdate::update_rc_functions()
 
 	_rc.function[rc_channels_s::FUNCTION_MODE] = _param_rc_map_mode_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_RETURN] = _param_rc_map_return_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_RATTITUDE] = _param_rc_map_ratt_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_POSCTL] = _param_rc_map_posctl_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_LOITER] = _param_rc_map_loiter_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_ACRO] = _param_rc_map_acro_sw.get() - 1;
@@ -426,35 +436,39 @@ void RCUpdate::Run()
 		/* publish rc_channels topic even if signal is invalid, for debug */
 		_rc_channels_pub.publish(_rc);
 
-		/* only publish manual control if the signal is present */
-		if (input_source_stable && channel_count_stable && !signal_lost
-		    && (input_rc.timestamp_last_signal > _last_timestamp_signal)) {
+		// only publish manual control if the signal is present and regularly updating
+		if (input_source_stable && channel_count_stable && !signal_lost) {
 
-			_last_timestamp_signal = input_rc.timestamp_last_signal;
-			perf_count(_valid_data_interval_perf);
+			if ((input_rc.timestamp_last_signal > _last_timestamp_signal)
+			    && (input_rc.timestamp_last_signal - _last_timestamp_signal < 1_s)) {
 
-			// check if channels actually updated
-			bool rc_updated = false;
+				perf_count(_valid_data_interval_perf);
 
-			for (unsigned i = 0; i < channel_count_limited; i++) {
-				if (_rc_values_previous[i] != input_rc.values[i]) {
-					rc_updated = true;
-					break;
+				// check if channels actually updated
+				bool rc_updated = false;
+
+				for (unsigned i = 0; i < channel_count_limited; i++) {
+					if (_rc_values_previous[i] != input_rc.values[i]) {
+						rc_updated = true;
+						break;
+					}
+				}
+
+				// limit processing if there's no update
+				if (rc_updated || (hrt_elapsed_time(&_last_manual_control_setpoint_publish) > 300_ms)) {
+					UpdateManualSetpoint(input_rc.timestamp_last_signal);
+				}
+
+				UpdateManualSwitches(input_rc.timestamp_last_signal);
+
+				/* Update parameters from RC Channels (tuning with RC) if activated */
+				if (hrt_elapsed_time(&_last_rc_to_param_map_time) > 1_s) {
+					set_params_from_rc();
+					_last_rc_to_param_map_time = hrt_absolute_time();
 				}
 			}
 
-			// limit processing if there's no update
-			if (rc_updated || (hrt_elapsed_time(&_last_manual_control_setpoint_publish) > 300_ms)) {
-				UpdateManualSetpoint(input_rc.timestamp_last_signal);
-			}
-
-			UpdateManualSwitches(input_rc.timestamp_last_signal);
-
-			/* Update parameters from RC Channels (tuning with RC) if activated */
-			if (hrt_elapsed_time(&_last_rc_to_param_map_time) > 1_s) {
-				set_params_from_rc();
-				_last_rc_to_param_map_time = hrt_absolute_time();
-			}
+			_last_timestamp_signal = input_rc.timestamp_last_signal;
 		}
 
 		memcpy(_rc_values_previous, input_rc.values, sizeof(input_rc.values[0]) * channel_count_limited);
@@ -541,7 +555,6 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 		// only used with legacy mode switch
 		switches.man_switch       = get_rc_sw2pos_position(rc_channels_s::FUNCTION_MAN,       _param_rc_man_th.get());
 		switches.acro_switch      = get_rc_sw2pos_position(rc_channels_s::FUNCTION_ACRO,      _param_rc_acro_th.get());
-		switches.rattitude_switch = get_rc_sw2pos_position(rc_channels_s::FUNCTION_RATTITUDE, _param_rc_ratt_th.get());
 		switches.stab_switch      = get_rc_sw2pos_position(rc_channels_s::FUNCTION_STAB,      _param_rc_stab_th.get());
 		switches.posctl_switch    = get_rc_sw2pos_position(rc_channels_s::FUNCTION_POSCTL,    _param_rc_posctl_th.get());
 	}

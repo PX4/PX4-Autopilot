@@ -37,7 +37,7 @@ uint8 NAVIGATION_STATE_DESCEND = 12		# Descend mode (no position control)
 uint8 NAVIGATION_STATE_TERMINATION = 13		# Termination mode
 uint8 NAVIGATION_STATE_OFFBOARD = 14
 uint8 NAVIGATION_STATE_STAB = 15		# Stabilized mode
-uint8 NAVIGATION_STATE_RATTITUDE = 16		# Rattitude (aka "flip") mode
+uint8 NAVIGATION_STATE_UNUSED2 = 16		# Free slot
 uint8 NAVIGATION_STATE_AUTO_TAKEOFF = 17	# Takeoff
 uint8 NAVIGATION_STATE_AUTO_LAND = 18		# Land
 uint8 NAVIGATION_STATE_AUTO_FOLLOW_TARGET = 19	# Auto Follow
@@ -89,6 +89,7 @@ bool high_latency_data_link_lost 			# Set to true if the high latency data link 
 
 bool engine_failure				# Set to true if an engine failure is detected
 bool mission_failure				# Set to true if mission could not continue/finish
+bool geofence_violated
 
 uint8 failure_detector_status			# Bitmask containing FailureDetector status [0, 0, 0, 0, 0, FAILURE_ALT, FAILURE_PITCH, FAILURE_ROLL]
 

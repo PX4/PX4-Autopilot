@@ -46,8 +46,14 @@ void PAW3902::print_usage()
 I2CSPIDriverBase *PAW3902::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 				       int runtime_instance)
 {
+	float yaw_rotation_degrees = NAN;
+
+	if (cli.custom1 >= 0) {
+		yaw_rotation_degrees = cli.custom1;
+	}
+
 	PAW3902 *instance = new PAW3902(iterator.configuredBusOption(), iterator.bus(), iterator.devid(), cli.bus_frequency,
-					cli.spi_mode, cli.custom1);
+					cli.spi_mode, iterator.DRDYGPIO(), yaw_rotation_degrees);
 
 	if (!instance) {
 		PX4_ERR("alloc failed");
@@ -67,6 +73,7 @@ extern "C" __EXPORT int paw3902_main(int argc, char *argv[])
 	int ch = 0;
 	using ThisDriver = PAW3902;
 	BusCLIArguments cli{false, true};
+	cli.custom1 = -1;
 	cli.spi_mode = SPIDEV_MODE0;
 	cli.default_spi_frequency = SPI_SPEED;
 

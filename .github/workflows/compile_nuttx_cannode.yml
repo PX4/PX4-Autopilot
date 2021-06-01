@@ -11,12 +11,13 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-nuttx-focal:2021-02-04
+    container: px4io/px4-dev-nuttx-focal:2021-04-29
     strategy:
       matrix:
         config: [
           ark_can-flow_default,
           cuav_can-gps-v1_default,
+          freefly_can-rtk-gps_default,
           holybro_can-gps-v1_default,
           #nxp_ucans32k146_default,
           px4_fmu-v4_cannode

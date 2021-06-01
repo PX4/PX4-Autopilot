@@ -8,7 +8,6 @@ px4_add_board(
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
 	IO px4_io-v2_default
-	#TESTING
 	UAVCAN_INTERFACES 2
 	UAVCAN_PERIPHERALS
 		cuav_can-gps-v1_default
@@ -36,10 +35,9 @@ px4_add_board(
 		imu/bosch/bmi055
 		imu/invensense/icm20602
 		imu/invensense/icm20689
+		#imu/invensense/icm20948 # required for ak09916 mag
 		#irlock
-		#lights/blinkm
-		lights/rgbled
-		lights/rgbled_ncp5623c
+		lights # all available light drivers
 		lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		optical_flow # all available optical flow drivers
@@ -57,7 +55,6 @@ px4_add_board(
 		#rpm
 		safety_button
 		telemetry # all available telemetry drivers
-		#test_ppm
 		tone_alarm
 		uavcan
 	MODULES
@@ -73,6 +70,7 @@ px4_add_board(
 		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
+		gyro_calibration
 		#gyro_fft
 		land_detector
 		landing_target_estimator
@@ -117,7 +115,6 @@ px4_add_board(
 		reflect
 		sd_bench
 		system_time
-		#tests # tests and test runner
 		top
 		topic_listener
 		tune_control
@@ -126,10 +123,10 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
-		#fake_gyro
+		fake_gps
+		#fake_imu
 		#fake_magnetometer
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
-		#gyro_fft
 		#hello
 		#hwtest # Hardware test
 		#matlab_csv_serial

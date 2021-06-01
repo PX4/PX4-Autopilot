@@ -16,11 +16,6 @@ uint8 VELOCITY_FRAME_BODY_NED = 8 # MAV_FRAME_BODY_NED
 bool valid			# true if setpoint is valid
 uint8 type			# setpoint type to adjust behavior of position controller
 
-float32 x			# local position setpoint in m in NED
-float32 y			# local position setpoint in m in NED
-float32 z			# local position setpoint in m in NED
-bool position_valid		# true if local position setpoint valid
-
 float32 vx			# local velocity setpoint in m/s in NED
 float32 vy			# local velocity setpoint in m/s in NED
 float32 vz			# local velocity setpoint in m/s in NED

@@ -126,12 +126,13 @@ private:
 
 	transition_result_t arm(arm_disarm_reason_t calling_reason, bool run_preflight_checks = true);
 	transition_result_t disarm(arm_disarm_reason_t calling_reason);
+	transition_result_t try_mode_change(main_state_t desired_mode);
 
 	void battery_status_check();
 
 	bool check_posvel_validity(const bool data_valid, const float data_accuracy, const float required_accuracy,
 				   const hrt_abstime &data_timestamp_us, hrt_abstime *last_fail_time_us, hrt_abstime *probation_time_us,
-				   bool *valid_state);
+				   const bool was_valid);
 
 	void control_status_leds(bool changed, const uint8_t battery_warning);
 
@@ -142,7 +143,7 @@ private:
 
 	void avoidance_check();
 
-	void esc_status_check(const esc_status_s &esc_status);
+	void esc_status_check();
 
 	void estimator_check();
 
@@ -154,7 +155,7 @@ private:
 
 	void offboard_control_update();
 
-	void print_reject_mode(const char *msg);
+	void print_reject_mode(uint8_t main_state);
 
 	void reset_posvel_validity();
 
@@ -174,10 +175,10 @@ private:
 	void UpdateEstimateValidity();
 
 	// Set the main system state based on RC and override device inputs
-	transition_result_t set_main_state(bool *changed);
+	transition_result_t set_main_state(bool &changed);
 
 	// Enable override (manual reversion mode) on the system
-	transition_result_t set_main_state_override_on(bool *changed);
+	transition_result_t set_main_state_override_on(bool &changed);
 
 	// Set the system main state based on the current RC inputs
 	transition_result_t set_main_state_rc();
@@ -217,6 +218,8 @@ private:
 		(ParamBool<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid,
 
 		(ParamInt<px4::params::COM_FLT_PROFILE>) _param_com_flt_profile,
+
+		(ParamFloat<px4::params::COM_OBC_LOSS_T>) _param_com_obc_loss_t,
 
 		// Offboard
 		(ParamFloat<px4::params::COM_OF_LOSS_T>) _param_com_of_loss_t,
@@ -285,7 +288,6 @@ private:
 	static constexpr uint64_t COMMANDER_MONITORING_INTERVAL{10_ms};
 
 	static constexpr uint64_t HOTPLUG_SENS_TIMEOUT{8_s};	/**< wait for hotplug sensors to come online for upto 8 seconds */
-	static constexpr uint64_t PRINT_MODE_REJECT_INTERVAL{500_ms};
 	static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL{500_ms};
 
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
@@ -331,6 +333,8 @@ private:
 	hrt_abstime	_high_latency_datalink_lost{0};
 
 	int		_last_esc_online_flags{-1};
+	int		_last_esc_failure[esc_status_s::CONNECTED_ESC_MAX] {};
+	hrt_abstime	_last_esc_status_updated{0};
 
 	uint8_t		_battery_warning{battery_status_s::BATTERY_WARNING_NONE};
 	float		_battery_current{0.0f};

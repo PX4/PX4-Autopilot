@@ -8,7 +8,6 @@ px4_add_board(
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
 	IO px4_io-v2_default
-	#TESTING
 	UAVCAN_INTERFACES 2
 	SERIAL_PORTS
 		GPS1:/dev/ttyS0
@@ -16,8 +15,8 @@ px4_add_board(
 		TEL2:/dev/ttyS2
 		TEL4:/dev/ttyS3
 	DRIVERS
-		adc/board_adc
 		adc/ads1115
+		adc/board_adc
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
@@ -29,15 +28,12 @@ px4_add_board(
 		#heater
 		#imu # all available imu drivers
 		imu/analog_devices/adis16448
-		imu/adis16477
-		imu/adis16497
 		imu/bosch/bmi055
 		imu/invensense/icm20602
 		imu/invensense/icm20689
+		imu/invensense/icm20948 # required for ak09916 mag
 		irlock
-		lights/blinkm
-		lights/rgbled
-		lights/rgbled_ncp5623c
+		lights # all available light drivers
 		lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		optical_flow # all available optical flow drivers
@@ -55,7 +51,6 @@ px4_add_board(
 		rpm
 		safety_button
 		telemetry # all available telemetry drivers
-		#test_ppm
 		tone_alarm
 		#uavcan # legacy v0
 		uavcan_v1
@@ -72,6 +67,7 @@ px4_add_board(
 		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
+		gyro_calibration
 		gyro_fft
 		land_detector
 		landing_target_estimator
@@ -115,8 +111,8 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
+		serial_test
 		system_time
-		#tests # tests and test runner
 		top
 		topic_listener
 		tune_control
@@ -125,11 +121,10 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
-		#fake_gps
-		#fake_gyro
+		fake_gps
+		#fake_imu
 		#fake_magnetometer
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
-		#gyro_fft
 		#hello
 		#hwtest # Hardware test
 		#matlab_csv_serial

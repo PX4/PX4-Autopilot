@@ -99,6 +99,7 @@ set(DSDLC_INPUTS
 	"${DSDLC_DIR}/com"
 	"${DSDLC_DIR}/ardupilot"
 	"${LIBUAVCAN_DIR}/dsdl/uavcan"
+	"${DSDLC_DIR}/cuav"
 )
 set(DSDLC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/include/dsdlc_generated")
 
@@ -151,6 +152,9 @@ px4_add_module(
 		sensors/gnss.cpp
 		sensors/mag.cpp
 		sensors/rangefinder.cpp
+		sensors/accel.cpp
+		sensors/gyro.cpp
+		sensors/cbat.cpp
 
 	DEPENDS
 		px4_uavcan_dsdlc

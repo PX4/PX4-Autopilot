@@ -49,28 +49,28 @@
 #include <reg/drone/service/actuator/common/sp/Vector8_0_1.h>
 #include <reg/drone/service/common/Readiness_0_1.h>
 
-#include "Subscriber.hpp"
+#include "DynamicPortSubscriber.hpp"
 
-class UavcanEscSubscriber : public UavcanSubscriber
+class UavcanEscSubscriber : public UavcanDynamicPortSubscriber
 {
 public:
 	UavcanEscSubscriber(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanSubscriber(ins, pmgr, "esc", instance) { };
+		UavcanDynamicPortSubscriber(ins, pmgr, "esc", instance) { };
 
 	void subscribe() override
 	{
 		// Subscribe to messages reg.drone.service.actuator.common.sp.Vector8.0.1
 		canardRxSubscribe(&_canard_instance,
 				  CanardTransferKindMessage,
-				  _port_id,
+				  _subj_sub._canard_sub._port_id,
 				  reg_drone_service_actuator_common_sp_Vector8_0_1_EXTENT_BYTES_,
 				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-				  &_canard_sub);
+				  &_subj_sub._canard_sub);
 
 		// Subscribe to messages reg.drone.service.common.Readiness.0.1
 		canardRxSubscribe(&_canard_instance,
 				  CanardTransferKindMessage,
-				  static_cast<CanardPortID>(static_cast<uint32_t>(_port_id) + 1),
+				  static_cast<CanardPortID>(static_cast<uint32_t>(_subj_sub._canard_sub._port_id) + 1),
 				  reg_drone_service_common_Readiness_0_1_EXTENT_BYTES_,
 				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
 				  &_canard_sub_readiness);

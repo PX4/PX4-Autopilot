@@ -46,6 +46,7 @@
 #include <px4_platform_common/log.h>
 
 #include <drivers/drv_pwm_output.h>         // to get PWM flags
+#include <lib/drivers/device/Device.hpp>
 
 using namespace math;
 using namespace matrix;
@@ -66,7 +67,7 @@ Sih::Sih() :
 	const hrt_abstime task_start = hrt_absolute_time();
 	_last_run = task_start;
 	_gps_time = task_start;
-	_serial_time = task_start;
+	_gt_time = task_start;
 	_dist_snsr_time = task_start;
 }
 
@@ -142,7 +143,6 @@ void Sih::Run()
 		_px4_baro.update(_now, _baro_p_mBar);
 	}
 
-
 	// gps published at 20Hz
 	if (_now - _gps_time >= 50_ms) {
 		_gps_time = _now;
@@ -156,9 +156,9 @@ void Sih::Run()
 		send_dist_snsr();
 	}
 
-	// send uart message every 40 ms
-	if (_now - _serial_time >= 40_ms) {
-		_serial_time = _now;
+	// send groundtruth message every 40 ms
+	if (_now - _gt_time >= 40_ms) {
+		_gt_time = _now;
 
 		publish_sih();  // publish _sih message for debug purpose
 	}
@@ -203,6 +203,8 @@ void Sih::parameters_updated()
 	_distance_snsr_min = _sih_distance_snsr_min.get();
 	_distance_snsr_max = _sih_distance_snsr_max.get();
 	_distance_snsr_override = _sih_distance_snsr_override.get();
+
+	_T_TAU = _sih_thrust_tau.get();
 }
 
 // initialization of the variables for the simulator
@@ -254,7 +256,8 @@ void Sih::read_motors()
 
 	if (_actuator_out_sub.update(&actuators_out)) {
 		for (int i = 0; i < NB_MOTORS; i++) { // saturate the motor signals
-			_u[i] = constrain((actuators_out.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN), 0.0f, 1.0f);
+			float u_sp = constrain((actuators_out.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN), 0.0f, 1.0f);
+			_u[i] = _u[i] + _dt / _T_TAU * (u_sp - _u[i]); // first order transfer function with time constant tau
 		}
 	}
 }
@@ -362,6 +365,14 @@ void Sih::send_gps()
 		gps_no_fix();
 	}
 
+	// device id
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	device_id.devid_s.bus = 0;
+	device_id.devid_s.address = 0;
+	device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+	_sensor_gps.device_id = device_id.devid;
+
 	_sensor_gps_pub.publish(_sensor_gps);
 }
 
@@ -382,7 +393,7 @@ void Sih::send_dist_snsr()
 		_distance_snsr.current_distance = -_p_I(2) / _C_IB(2, 2);
 
 		if (_distance_snsr.current_distance > _distance_snsr_max) {
-			// this is based on lightware lw20 behavior
+			// this is based on lightware lw20 behaviour
 			_distance_snsr.current_distance = UINT16_MAX / 100.f;
 
 		}
@@ -410,6 +421,7 @@ void Sih::publish_sih()
 
 	_att_gt_pub.publish(_att_gt);
 
+	// publish position groundtruth
 	_gpos_gt.timestamp = hrt_absolute_time();
 	_gpos_gt.lat = _gps_lat_noiseless;
 	_gpos_gt.lon = _gps_lon_noiseless;

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,6 +36,7 @@
 #include "Integrator.hpp"
 
 #include <lib/mathlib/math/Limits.hpp>
+#include <lib/mathlib/math/WelfordMean.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
 #include <lib/sensor_calibration/Accelerometer.hpp>
@@ -73,47 +74,49 @@ public:
 
 private:
 	void ParametersUpdate(bool force = false);
+	bool Publish();
 	void Run() override;
 
-	struct IntervalAverage {
-		hrt_abstime timestamp_sample_last{0};
-		uint32_t interval_sum{0};
-		uint32_t interval_samples{0};
-		uint32_t interval_count{0};
-		float update_interval{0.f};
-		float update_interval_raw{0.f};
-	};
+	bool UpdateAccel();
+	bool UpdateGyro();
 
-	bool UpdateIntervalAverage(IntervalAverage &intavg, const hrt_abstime &timestamp_sample, uint8_t samples = 1);
 	void UpdateIntegratorConfiguration();
-	void UpdateGyroVibrationMetrics(const matrix::Vector3f &delta_angle);
 	void UpdateAccelVibrationMetrics(const matrix::Vector3f &delta_velocity);
+	void UpdateGyroVibrationMetrics(const matrix::Vector3f &delta_angle);
 
 	uORB::PublicationMulti<vehicle_imu_s> _vehicle_imu_pub{ORB_ID(vehicle_imu)};
 	uORB::PublicationMulti<vehicle_imu_status_s> _vehicle_imu_status_pub{ORB_ID(vehicle_imu_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::SubscriptionCallbackWorkItem _sensor_accel_sub;
+	uORB::Subscription _sensor_accel_sub;
 	uORB::SubscriptionCallbackWorkItem _sensor_gyro_sub;
 
 	calibration::Accelerometer _accel_calibration{};
 	calibration::Gyroscope _gyro_calibration{};
 
-	Integrator _accel_integrator{}; // 200 Hz default
-	Integrator _gyro_integrator{true};   // 200 Hz default, coning compensation enabled
+	Integrator       _accel_integrator{};
+	IntegratorConing _gyro_integrator{};
 
-	hrt_abstime _last_timestamp_sample_accel{0};
-	hrt_abstime _last_timestamp_sample_gyro{0};
+	uint32_t _imu_integration_interval_us{5000};
 
-	uint32_t _imu_integration_interval_us{4000};
+	hrt_abstime _accel_timestamp_sample_last{0};
+	hrt_abstime _gyro_timestamp_sample_last{0};
+	hrt_abstime _gyro_timestamp_last{0};
 
-	IntervalAverage _accel_interval{};
-	IntervalAverage _gyro_interval{};
+	math::WelfordMean<matrix::Vector2f> _accel_interval_mean{};
+	math::WelfordMean<matrix::Vector2f> _gyro_interval_mean{};
+
+	math::WelfordMean<matrix::Vector2f> _gyro_update_latency_mean{};
+
+	float _accel_interval_best_variance{INFINITY};
+	float _gyro_interval_best_variance{INFINITY};
+
+	float _accel_interval_us{NAN};
+	float _gyro_interval_us{NAN};
 
 	unsigned _accel_last_generation{0};
 	unsigned _gyro_last_generation{0};
-	unsigned _consecutive_data_gap{0};
 
 	matrix::Vector3f _accel_sum{};
 	matrix::Vector3f _gyro_sum{};
@@ -129,13 +132,20 @@ private:
 
 	uint8_t _delta_velocity_clipping{0};
 
+	hrt_abstime _last_clipping_notify_time{0};
+	uint64_t _last_clipping_notify_total_count{0};
+	orb_advert_t _mavlink_log_pub{nullptr};
+
+	uint32_t _backup_schedule_timeout_us{20000};
+
+	bool _data_gap{false};
+	bool _update_integrator_config{true};
 	bool _intervals_configured{false};
+	bool _publish_status{false};
 
 	const uint8_t _instance;
 
-	perf_counter_t _accel_update_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": accel update interval")};
 	perf_counter_t _accel_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": accel data gap")};
-	perf_counter_t _gyro_update_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": gyro update interval")};
 	perf_counter_t _gyro_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro data gap")};
 
 	DEFINE_PARAMETERS(

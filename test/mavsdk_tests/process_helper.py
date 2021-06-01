@@ -279,10 +279,13 @@ class TestRunner(Runner):
                  model: str,
                  case: str,
                  mavlink_connection: str,
+                 speed_factor: float,
                  verbose: bool):
         super().__init__(log_dir, model, case, verbose)
         self.name = "mavsdk_tests"
         self.cwd = workspace_dir
         self.cmd = workspace_dir + \
             "/build/px4_sitl_default/mavsdk_tests/mavsdk_tests"
-        self.args = ["--url", mavlink_connection, case]
+        self.args = ["--url", mavlink_connection,
+                     "--speed-factor", str(speed_factor),
+                     case]

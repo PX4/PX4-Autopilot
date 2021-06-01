@@ -160,6 +160,7 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 
 			} else {
 				_transition_command = int(vehicle_command.param1 + 0.5f);
+				_immediate_transition = int(vehicle_command.param2 + 0.5f);
 			}
 
 			if (vehicle_command.from_external) {
@@ -424,7 +425,7 @@ VtolAttitudeControl::Run()
 
 			_fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
 
-			if (mc_att_sp_updated || fw_att_sp_updated) {
+			if (!_vtol_type->was_in_trans_mode() || mc_att_sp_updated || fw_att_sp_updated) {
 				_vtol_type->update_transition_state();
 				_v_att_sp_pub.publish(_v_att_sp);
 			}

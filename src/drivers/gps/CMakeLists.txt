@@ -47,8 +47,10 @@ px4_add_module(
 		devices/src/ubx.cpp
 		devices/src/rtcm.cpp
 		devices/src/emlid_reach.cpp
+		devices/src/femtomes.cpp
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS
 		git_gps_devices
 	)
+target_link_libraries(drivers__gps PRIVATE m)

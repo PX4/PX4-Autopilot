@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -93,7 +93,10 @@ enum PortMode {
 // TODO: keep in sync with drivers/camera_capture
 #define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
 
-class PWMOut : public cdev::CDev, public ModuleBase<PWMOut>, public OutputModuleInterface
+static constexpr int PWM_OUT_MAX_INSTANCES{(DIRECT_PWM_OUTPUT_CHANNELS > 8) ? 2 : 1};
+extern pthread_mutex_t pwm_out_module_mutex;
+
+class PWMOut : public cdev::CDev, public OutputModuleInterface
 {
 public:
 	enum Mode {
@@ -115,8 +118,13 @@ public:
 		MODE_4CAP,
 		MODE_5CAP,
 		MODE_6CAP,
+
+		MODE_NO_REQUEST
 	};
-	PWMOut();
+
+	PWMOut() = delete;
+	explicit PWMOut(int instance = 0, uint8_t output_base = 0);
+
 	virtual ~PWMOut();
 
 	/** @see ModuleBase */
@@ -131,12 +139,19 @@ public:
 	void Run() override;
 
 	/** @see ModuleBase::print_status() */
-	int print_status() override;
+	int print_status();
+
+	bool should_exit() const { return _task_should_exit.load(); }
+	void request_stop() { _task_should_exit.store(true); }
+
+	static void lock_module() { pthread_mutex_lock(&pwm_out_module_mutex); }
+	static bool trylock_module() { return (pthread_mutex_trylock(&pwm_out_module_mutex) == 0); }
+	static void unlock_module() { pthread_mutex_unlock(&pwm_out_module_mutex); }
 
 	/** change the FMU mode of the running module */
 	static int fmu_new_mode(PortMode new_mode);
 
-	static int test();
+	static int test(const char *dev);
 
 	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
 
@@ -144,6 +159,11 @@ public:
 
 	int		set_mode(Mode mode);
 	Mode		get_mode() { return _mode; }
+	uint32_t	get_pwm_mask() { return _pwm_mask; }
+	uint32_t	get_alt_rate_channels() { return _pwm_alt_rate_channels; }
+	unsigned	get_alt_rate() { return _pwm_alt_rate; }
+	unsigned	get_default_rate() { return _pwm_default_rate; }
+	void		request_mode(Mode new_mode);
 
 	static int	set_i2c_bus_clock(unsigned bus, unsigned clock_hz);
 
@@ -158,9 +178,19 @@ private:
 	static constexpr int FMU_MAX_ACTUATORS = DIRECT_PWM_OUTPUT_CHANNELS;
 	static_assert(FMU_MAX_ACTUATORS <= MAX_ACTUATORS, "Increase MAX_ACTUATORS if this fails");
 
+	px4::atomic_bool _task_should_exit{false};
+
+	const int _instance;
+	const uint32_t _output_base;
+	uint32_t _output_mask;
+
+	static const int MAX_PER_INSTANCE{8};
+
 	MixingOutput _mixing_output{FMU_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
 
 	Mode		_mode{MODE_NONE};
+
+	px4::atomic<Mode> _new_mode_request{MODE_NO_REQUEST};
 
 	uint32_t	_backup_schedule_interval_us{1_s};
 
@@ -168,7 +198,7 @@ private:
 	unsigned	_pwm_alt_rate{50};
 	uint32_t	_pwm_alt_rate_channels{0};
 
-	unsigned	_current_update_rate{0};
+	int		_current_update_rate{0};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -191,7 +221,7 @@ private:
 	int			set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
 	int			pwm_ioctl(file *filp, int cmd, unsigned long arg);
 
-	void		update_pwm_out_state(bool on);
+	bool		update_pwm_out_state(bool on);
 
 	void		update_params();
 

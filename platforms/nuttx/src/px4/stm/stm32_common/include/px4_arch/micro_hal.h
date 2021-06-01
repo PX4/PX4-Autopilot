@@ -103,6 +103,7 @@ __BEGIN_DECLS
 #define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)  stm32_gpiosetevent(pinset,r,f,e,fp,a)
 
 #define PX4_MAKE_GPIO_INPUT(gpio) (((gpio) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT|GPIO_PULLUP))
+#define PX4_MAKE_GPIO_INPUT_PULL_DOWN(gpio) (((gpio) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT|GPIO_PULLDOWN))
 #define PX4_MAKE_GPIO_OUTPUT(gpio) (((gpio) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR))
 
 #define PX4_GPIO_PIN_OFF(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_2MHz))
@@ -124,6 +125,15 @@ __BEGIN_DECLS
 #define signature_LOC   STM32_CAN1_FIR(3,1)
 #define bus_speed_LOC   STM32_CAN1_FIR(3,2)
 #define node_id_LOC     STM32_CAN1_FIR(4,1)
+
+#if defined(CONFIG_ARMV7M_DCACHE)
+#  define PX4_ARCH_DCACHE_ALIGNMENT ARMV7M_DCACHE_LINESIZE
+#  define px4_cache_aligned_data() aligned_data(ARMV7M_DCACHE_LINESIZE)
+#  define px4_cache_aligned_alloc(s) memalign(ARMV7M_DCACHE_LINESIZE,(s))
+#else
+#  define px4_cache_aligned_data()
+#  define px4_cache_aligned_alloc malloc
+#endif
 
 
 __END_DECLS

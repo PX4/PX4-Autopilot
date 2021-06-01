@@ -8,8 +8,8 @@ px4_add_board(
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
 	IO px4_io-v2_default
-	TESTING
 	UAVCAN_INTERFACES 2
+	ETHERNET
 	SERIAL_PORTS
 		GPS1:/dev/ttyS0
 		TEL1:/dev/ttyS6
@@ -17,6 +17,7 @@ px4_add_board(
 		TEL3:/dev/ttyS1
 		GPS2:/dev/ttyS7
 	DRIVERS
+		adc/ads1115
 		adc/board_adc
 		barometer # all available barometer drivers
 		batt_smbus
@@ -26,22 +27,20 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		dshot
 		gps
-		#heater
+		heater
 		#imu # all available imu drivers
 		imu/analog_devices/adis16448
-		imu/adis16477
-		imu/adis16497
 		imu/bosch/bmi088
 		imu/invensense/icm20602
+		imu/invensense/icm20948 # required for ak09916 mag
 		imu/invensense/icm42688p
 		irlock
-		lights/blinkm
-		lights/rgbled
-		lights/rgbled_ncp5623c
+		lights # all available light drivers
 		magnetometer # all available magnetometer drivers
 		optical_flow # all available optical flow drivers
-		#osd
+		osd
 		pca9685
+		pca9685_pwm_out
 		power_monitor/ina226
 		#protocol_splitter
 		pwm_input
@@ -53,7 +52,6 @@ px4_add_board(
 		rpm
 		safety_button
 		telemetry # all available telemetry drivers
-		test_ppm
 		tone_alarm
 		uavcan
 	MODULES
@@ -63,10 +61,12 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
+		esc_battery
 		events
 		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
+		gyro_calibration
 		gyro_fft
 		land_detector
 		landing_target_estimator
@@ -85,6 +85,8 @@ px4_add_board(
 		sensors
 		sih
 		temperature_compensation
+		#uuv_att_control
+		#uuv_pos_control
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
@@ -102,14 +104,15 @@ px4_add_board(
 		motor_test
 		mtd
 		nshterm
+		netman
 		param
 		perf
 		pwm
 		reboot
 		reflect
 		sd_bench
+		serial_test
 		system_time
-		tests # tests and test runner
 		top
 		topic_listener
 		tune_control
@@ -117,16 +120,17 @@ px4_add_board(
 		usb_connected
 		ver
 		work_queue
-		serial_test
 	EXAMPLES
 		fake_gps
-		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
-		hello
-		hwtest # Hardware test
+		#fake_imu
+		#fake_magnetometer
+		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		#hello
+		#hwtest # Hardware test
 		#matlab_csv_serial
-		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
-		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
-		rover_steering_control # Rover example app
-		uuv_example_app
-		work_item
+		#px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
+		#px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
+		#rover_steering_control # Rover example app
+		#uuv_example_app
+		#work_item
 	)

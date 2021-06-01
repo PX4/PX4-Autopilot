@@ -22,17 +22,17 @@ px4_add_board(
 		tone_alarm
 		uavcannode
 	MODULES
-		load_mon
+		#load_mon
 	SYSTEMCMDS
-		i2cdetect
-		led_control
+		#i2cdetect
+		#led_control
 		param
-		perf
-		reboot
-		top
-		topic_listener
-		tune_control
-		uorb
-		ver
-		work_queue
+		#perf
+		#reboot
+		#top
+		#topic_listener
+		#tune_control
+		#uorb
+		#ver
+		#work_queue
 )

@@ -43,6 +43,7 @@
 
 
 #include <px4_platform_common/defines.h>
+#include <drivers/drv_hrt.h>
 
 #include "CanardInterface.hpp"
 
@@ -50,30 +51,44 @@
 #include <uavcan/pnp/NodeIDAllocationData_1_0.h>
 #include <uavcan/pnp/NodeIDAllocationData_2_0.h>
 
+
+class NodeManager;
+
+#include "Services/AccessRequest.hpp"
+#include "Services/ListRequest.hpp"
+
+//TODO make this an object instead?
 typedef struct {
-	uint8_t  node_id;
-	uint8_t  unique_id[16];
-} UavcanNodeUniqueID;
+	uint8_t   node_id;
+	uint8_t   unique_id[16];
+	bool      register_setup;
+	uint16_t  register_index;
+	uint16_t  retry_count;
+} UavcanNodeEntry;
 
 class NodeManager
 {
 public:
-	NodeManager(CanardInstance &ins) : _canard_instance(ins) { };
+	NodeManager(CanardInstance &ins, UavcanParamManager &pmgr) : _canard_instance(ins), _access_request(ins, pmgr),
+		_list_request(ins) { };
 
 	bool HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg);
 	bool HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_2_0 &msg);
 
 
-	/* TODO temporary store variables here to not break the existing code
-	 * Ideally we implement service/request classes as well and put the logic
-	 * to set registers in here as well */
-	uint8_t _node_register_setup = CANARD_NODE_ID_UNSET;
-	int32_t _node_register_request_index = 0;
-	int32_t _node_register_last_received_index = -1;
-	hrt_abstime _uavcan_pnp_nodeidallocation_last{0};
+	void HandleListResponse(CanardNodeID node_id, uavcan_register_List_Response_1_0 &msg);
+
+	void update();
 
 private:
 	CanardInstance &_canard_instance;
 	CanardTransferID _uavcan_pnp_nodeidallocation_v1_transfer_id{0};
-	UavcanNodeUniqueID nodeid_registry[16] {0}; //TODO configurable or just rewrite
+	UavcanNodeEntry nodeid_registry[16] {0}; //TODO configurable or just rewrite
+
+	UavcanAccessServiceRequest _access_request;
+	UavcanListServiceRequest _list_request;
+
+	bool nodeRegisterSetup = 0;
+
+	hrt_abstime _register_request_last{0};
 };

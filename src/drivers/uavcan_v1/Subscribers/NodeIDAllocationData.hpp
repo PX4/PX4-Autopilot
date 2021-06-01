@@ -53,13 +53,13 @@
 #define PNP2_PORT_ID                                 uavcan_pnp_NodeIDAllocationData_2_0_FIXED_PORT_ID_
 #define PNP2_PAYLOAD_SIZE                            uavcan_pnp_NodeIDAllocationData_2_0_SERIALIZATION_BUFFER_SIZE_BYTES_
 
-#include "Subscriber.hpp"
+#include "BaseSubscriber.hpp"
 
-class UavcanNodeIDAllocationDataSubscriber : public UavcanSubscriber
+class UavcanNodeIDAllocationDataSubscriber : public UavcanBaseSubscriber
 {
 public:
-	UavcanNodeIDAllocationDataSubscriber(CanardInstance &ins, UavcanParamManager &pmgr, NodeManager &nmgr) :
-		UavcanSubscriber(ins, pmgr, "NodeIDAllocationData", 0), _nmgr(nmgr) { };
+	UavcanNodeIDAllocationDataSubscriber(CanardInstance &ins, NodeManager &nmgr) :
+		UavcanBaseSubscriber(ins, "NodeIDAllocationData", 0), _nmgr(nmgr) { };
 
 	void subscribe() override
 	{
@@ -69,9 +69,7 @@ public:
 				  (_canard_instance.mtu_bytes == CANARD_MTU_CAN_FD ? PNP2_PORT_ID : PNP1_PORT_ID),  // The fixed Subject-ID
 				  (_canard_instance.mtu_bytes == CANARD_MTU_CAN_FD ? PNP2_PAYLOAD_SIZE : PNP1_PAYLOAD_SIZE),
 				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-				  &_canard_sub);
-
-		_port_id = _canard_instance.mtu_bytes == CANARD_MTU_CAN_FD ? PNP2_PORT_ID : PNP1_PORT_ID;
+				  &_subj_sub._canard_sub);
 
 	};
 

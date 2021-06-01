@@ -20,7 +20,7 @@ jobs:
           - {latitude:  "29.660316", longitude:  "-82.316658", altitude:  "30", build_type: "RelWithDebInfo", model: "tailsitter"    } # Florida
           - {latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "Coverage",       model: "standard_vtol" } # Zurich
     container:
-      image: px4io/px4-dev-simulation-focal:2021-02-04
+      image: px4io/px4-dev-simulation-focal:2021-04-29
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     steps:
     - uses: actions/checkout@v1
@@ -28,9 +28,9 @@ jobs:
         token: ${{ secrets.ACCESS_TOKEN }}
 
     - name: Download MAVSDK
-      run: wget https://github.com/mavlink/MAVSDK/releases/download/v0.36.0/mavsdk_0.36.0_ubuntu20.04_amd64.deb
+      run: wget "https://github.com/mavlink/MAVSDK/releases/download/v$(cat test/mavsdk_tests/MAVSDK_VERSION)/mavsdk_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu20.04_amd64.deb"
     - name: Install MAVSDK
-      run: dpkg -i mavsdk_0.36.0_ubuntu20.04_amd64.deb
+      run: dpkg -i "mavsdk_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu20.04_amd64.deb"
 
     - name: Prepare ccache timestamp
       id: ccache_cache_timestamp

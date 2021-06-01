@@ -42,7 +42,6 @@ px4_add_board(
 		#imu/invensense/mpu9250
 		#iridiumsbd
 		#irlock
-		#lights/blinkm
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883

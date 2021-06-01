@@ -169,6 +169,8 @@ EKF2::~EKF2()
 {
 	perf_free(_ecl_ekf_update_perf);
 	perf_free(_ecl_ekf_update_full_perf);
+	perf_free(_imu_missed_perf);
+	perf_free(_mag_missed_perf);
 }
 
 bool EKF2::multi_init(int imu, int mag)
@@ -193,17 +195,18 @@ bool EKF2::multi_init(int imu, int mag)
 	_estimator_visual_odometry_aligned_pub.advertised();
 	_yaw_est_pub.advertise();
 
-	_vehicle_imu_sub.ChangeInstance(imu);
-	_magnetometer_sub.ChangeInstance(mag);
+	bool changed_instance = _vehicle_imu_sub.ChangeInstance(imu) && _magnetometer_sub.ChangeInstance(mag);
 
 	const int status_instance = _estimator_states_pub.get_instance();
 
-	if ((status_instance >= 0)
+	if ((status_instance >= 0) && changed_instance
 	    && (_attitude_pub.get_instance() == status_instance)
 	    && (_local_position_pub.get_instance() == status_instance)
 	    && (_global_position_pub.get_instance() == status_instance)) {
 
 		_instance = status_instance;
+
+		ScheduleNow();
 		return true;
 	}
 
@@ -219,6 +222,12 @@ int EKF2::print_status()
 		     _ekf.local_position_is_valid(), _ekf.global_position_is_valid());
 	perf_print_counter(_ecl_ekf_update_perf);
 	perf_print_counter(_ecl_ekf_update_full_perf);
+	perf_print_counter(_imu_missed_perf);
+
+	if (_device_id_mag != 0) {
+		perf_print_counter(_mag_missed_perf);
+	}
+
 	return 0;
 }
 
@@ -298,8 +307,9 @@ void EKF2::Run()
 		imu_updated = _vehicle_imu_sub.update(&imu);
 
 		if (imu_updated && (_vehicle_imu_sub.get_last_generation() != last_generation + 1)) {
-			PX4_ERR("%d - vehicle_imu lost, generation %d -> %d", _instance, last_generation,
-				_vehicle_imu_sub.get_last_generation());
+			perf_count(_imu_missed_perf);
+			PX4_DEBUG("%d - vehicle_imu lost, generation %d -> %d", _instance, last_generation,
+				  _vehicle_imu_sub.get_last_generation());
 		}
 
 		imu_sample_new.time_us = imu.timestamp_sample;
@@ -1513,8 +1523,9 @@ void EKF2::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
 	if (_magnetometer_sub.update(&magnetometer)) {
 
 		if (_magnetometer_sub.get_last_generation() != last_generation + 1) {
-			PX4_ERR("%d - vehicle_magnetometer lost, generation %d -> %d", _instance, last_generation,
-				_magnetometer_sub.get_last_generation());
+			perf_count(_mag_missed_perf);
+			PX4_DEBUG("%d - vehicle_magnetometer lost, generation %d -> %d", _instance, last_generation,
+				  _magnetometer_sub.get_last_generation());
 		}
 
 		bool reset = false;
@@ -1738,7 +1749,8 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 		while ((multi_instances_allocated < multi_instances)
 		       && (vehicle_status_sub.get().arming_state != vehicle_status_s::ARMING_STATE_ARMED)
-		       && (hrt_elapsed_time(&time_started) < 30_s)) {
+		       && ((hrt_elapsed_time(&time_started) < 30_s)
+			   || (vehicle_status_sub.get().hil_state == vehicle_status_s::HIL_STATE_ON))) {
 
 			vehicle_status_sub.update();
 
@@ -1763,16 +1775,21 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 								if ((actual_instance >= 0) && (_objects[actual_instance].load() == nullptr)) {
 									_objects[actual_instance].store(ekf2_inst);
-									ekf2_inst->ScheduleNow();
 									success = true;
 									multi_instances_allocated++;
 									ekf2_instance_created[imu][mag] = true;
+
+									if (actual_instance == 0) {
+										// force selector to run immediately if first instance started
+										_ekf2_selector.load()->ScheduleNow();
+									}
 
 									PX4_INFO("starting instance %d, IMU:%d (%d), MAG:%d (%d)", actual_instance,
 										 imu, vehicle_imu_sub.get().accel_device_id,
 										 mag, vehicle_mag_sub.get().device_id);
 
-									_ekf2_selector.load()->ScheduleNow();
+									// sleep briefly before starting more instances
+									px4_usleep(10000);
 
 								} else {
 									PX4_ERR("instance numbering problem instance: %d", actual_instance);

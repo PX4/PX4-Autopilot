@@ -72,8 +72,8 @@ RoverPositionControl::~RoverPositionControl()
 bool
 RoverPositionControl::init()
 {
-	if (!_vehicle_attitude_sub.registerCallback()) {
-		PX4_ERR("vehicle attitude callback registration failed!");
+	if (!_vehicle_angular_velocity_sub.registerCallback()) {
+		PX4_ERR("vehicle angular velocity callback registration failed!");
 		return false;
 	}
 
@@ -184,6 +184,14 @@ RoverPositionControl::attitude_setpoint_poll()
 {
 	if (_att_sp_sub.updated()) {
 		_att_sp_sub.copy(&_att_sp);
+	}
+}
+
+void
+RoverPositionControl::vehicle_attitude_poll()
+{
+	if (_att_sub.updated()) {
+		_att_sub.copy(&_vehicle_att);
 	}
 }
 
@@ -319,18 +327,15 @@ RoverPositionControl::control_position(const matrix::Vector2d &current_position,
 }
 
 void
-RoverPositionControl::control_velocity(const matrix::Vector3f &current_velocity,
-				       const position_setpoint_triplet_s &pos_sp_triplet)
+RoverPositionControl::control_velocity(const matrix::Vector3f &current_velocity)
 {
-
+	const Vector3f desired_velocity{_trajectory_setpoint.vx, _trajectory_setpoint.vy, _trajectory_setpoint.vz};
 	float dt = 0.01; // Using non zero value to a avoid division by zero
 
 	const float mission_throttle = _param_throttle_cruise.get();
-	const matrix::Vector3f desired_velocity{pos_sp_triplet.current.vx, pos_sp_triplet.current.vy, pos_sp_triplet.current.vz};
 	const float desired_speed = desired_velocity.norm();
 
 	if (desired_speed > 0.01f) {
-
 		const Dcmf R_to_body(Quatf(_vehicle_att.q).inversed());
 		const Vector3f vel = R_to_body * Vector3f(current_velocity(0), current_velocity(1), current_velocity(2));
 
@@ -344,13 +349,12 @@ RoverPositionControl::control_velocity(const matrix::Vector3f &current_velocity,
 
 		Vector3f desired_body_velocity;
 
-		if (pos_sp_triplet.current.velocity_frame == position_setpoint_s::VELOCITY_FRAME_BODY_NED) {
+		if (_velocity_frame == VelocityFrame::NED) {
 			desired_body_velocity = desired_velocity;
 
 		} else {
 			// If the frame of the velocity setpoint is unknown, assume it is in local frame
 			desired_body_velocity = R_to_body * desired_velocity;
-
 		}
 
 		const float desired_theta = atan2f(desired_body_velocity(1), desired_body_velocity(0));
@@ -363,7 +367,6 @@ RoverPositionControl::control_velocity(const matrix::Vector3f &current_velocity,
 
 		_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = 0.0f;
 		_act_controls.control[actuator_controls_s::INDEX_YAW] = 0.0f;
-
 	}
 }
 
@@ -390,11 +393,15 @@ RoverPositionControl::Run()
 {
 	parameters_update(true);
 
-	if (_vehicle_attitude_sub.update(&_vehicle_att)) {
+	/* run controller on gyro changes */
+	vehicle_angular_velocity_s angular_velocity;
+
+	if (_vehicle_angular_velocity_sub.update(&angular_velocity)) {
 
 		/* check vehicle control mode for changes to publication state */
 		vehicle_control_mode_poll();
 		attitude_setpoint_poll();
+		vehicle_attitude_poll();
 		manual_control_setpoint_poll();
 
 		_vehicle_acceleration_sub.update();
@@ -421,12 +428,14 @@ RoverPositionControl::Run()
 					_global_local_alt0 = _local_pos.ref_alt;
 				}
 
+				_trajectory_setpoint_sub.update(&_trajectory_setpoint);
+
 				// local -> global
 				map_projection_reproject(&_global_local_proj_ref,
-							 _pos_sp_triplet.current.x, _pos_sp_triplet.current.y,
+							 _trajectory_setpoint.x, _trajectory_setpoint.y,
 							 &_pos_sp_triplet.current.lat, &_pos_sp_triplet.current.lon);
 
-				_pos_sp_triplet.current.alt = _global_local_alt0 - _pos_sp_triplet.current.z;
+				_pos_sp_triplet.current.alt = _global_local_alt0 - _trajectory_setpoint.z;
 				_pos_sp_triplet.current.valid = true;
 			}
 
@@ -445,7 +454,7 @@ RoverPositionControl::Run()
 					float turn_distance = _param_l1_distance.get(); //_gnd_control.switch_distance(100.0f);
 
 					// publish status
-					position_controller_status_s pos_ctrl_status = {};
+					position_controller_status_s pos_ctrl_status{};
 
 					pos_ctrl_status.nav_roll = 0.0f;
 					pos_ctrl_status.nav_pitch = 0.0f;
@@ -463,14 +472,11 @@ RoverPositionControl::Run()
 					pos_ctrl_status.timestamp = hrt_absolute_time();
 
 					_pos_ctrl_status_pub.publish(pos_ctrl_status);
-
-
 				}
 
 			} else if (!_control_mode.flag_control_manual_enabled && _control_mode.flag_control_velocity_enabled) {
-
-				control_velocity(current_velocity, _pos_sp_triplet);
-
+				_trajectory_setpoint_sub.update(&_trajectory_setpoint);
+				control_velocity(current_velocity);
 			}
 		}
 
@@ -533,7 +539,7 @@ int RoverPositionControl::print_usage(const char *reason)
 ### Description
 Controls the position of a ground rover using an L1 controller.
 
-Publishes `actuator_controls_0` messages at a constant 250Hz.
+Publishes `actuator_controls_0` messages at IMU_GYRO_RATEMAX.
 
 ### Implementation
 Currently, this implementation supports only a few modes:

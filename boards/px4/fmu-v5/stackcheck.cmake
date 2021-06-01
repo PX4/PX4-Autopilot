@@ -35,10 +35,9 @@ px4_add_board(
 		#imu/bosch/bmi055
 		#imu/invensense/icm20602
 		imu/invensense/icm20689
+		#imu/invensense/icm20948 # required for ak09916 mag
 		#irlock
-		#lights/blinkm
-		lights/rgbled
-		#lights/rgbled_ncp5623c
+		lights # all available light drivers
 		lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		optical_flow # all available optical flow drivers
@@ -71,7 +70,8 @@ px4_add_board(
 		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
-		#gyro_fft
+		gyro_calibration
+		gyro_fft
 		land_detector
 		#landing_target_estimator
 		load_mon
@@ -122,7 +122,8 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
-		#fake_gps
+		fake_gps
+		#fake_imu
 		#fake_magnetometer
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hello

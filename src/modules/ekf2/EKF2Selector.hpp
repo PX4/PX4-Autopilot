@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -78,10 +78,12 @@ private:
 	static constexpr uint64_t FILTER_UPDATE_PERIOD{10_ms};
 
 	void Run() override;
-	void PublishVehicleAttitude(bool reset = false);
-	void PublishVehicleLocalPosition(bool reset = false);
-	void PublishVehicleGlobalPosition(bool reset = false);
-	void PublishWindEstimate(bool reset = false);
+	void PublishEstimatorSelectorStatus();
+	void PublishVehicleAttitude();
+	void PublishVehicleLocalPosition();
+	void PublishVehicleGlobalPosition();
+	void PublishVehicleOdometry();
+	void PublishWindEstimate();
 	bool SelectInstance(uint8_t instance);
 
 	// Update the error scores for all available instances
@@ -191,6 +193,9 @@ private:
 	uint8_t _vz_reset_counter{0};
 	uint8_t _heading_reset_counter{0};
 
+	// vehicle_odometry
+	vehicle_odometry_s _odometry_last{};
+
 	// vehicle_global_position: reset counters
 	vehicle_global_position_s _global_position_last{};
 	double _delta_lat_reset{0};
@@ -201,6 +206,10 @@ private:
 
 	// wind estimate
 	wind_s _wind_last{};
+
+	uint8_t _attitude_instance_prev{INVALID_INSTANCE};
+	uint8_t _local_position_instance_prev{INVALID_INSTANCE};
+	uint8_t _global_position_instance_prev{INVALID_INSTANCE};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _sensors_status_imu{ORB_ID(sensors_status_imu)};

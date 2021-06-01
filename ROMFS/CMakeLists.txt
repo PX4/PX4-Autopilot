@@ -31,10 +31,11 @@
 #
 ############################################################################
 
-message(STATUS "ROMFS: ${config_romfs_root}")
-
 set(romfs_src_dir ${PX4_SOURCE_DIR}/ROMFS/${config_romfs_root})
 set(romfs_gen_root_dir ${PX4_BINARY_DIR}/etc)
+
+file(RELATIVE_PATH romfs_path_relative ${PX4_SOURCE_DIR} ${romfs_src_dir})
+message(STATUS "ROMFS: ${romfs_path_relative}")
 
 set_property(GLOBAL PROPERTY PX4_ROMFS_FILES)
 set_property(GLOBAL PROPERTY PX4_ROMFS_CMAKE_FILES)
@@ -83,7 +84,7 @@ if (px4_constrained_flash_build)
 endif()
 if(PX4_ETHERNET)
 	set(added_arguments ${added_arguments} --ethernet)
-endif()	
+endif()
 # create list of relative romfs file names
 set(romfs_copy_files_relative)
 foreach(romfs_file IN LISTS romfs_copy_files)
@@ -114,6 +115,7 @@ add_custom_command(
 set(romfs_extract_stamp ${CMAKE_CURRENT_BINARY_DIR}/romfs_extract.stamp)
 add_custom_command(
 	OUTPUT ${romfs_extract_stamp}
+	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}/*
 	COMMAND ${CMAKE_COMMAND} -E tar xf ${romfs_tar_file}
 	COMMAND ${CMAKE_COMMAND} -E touch ${romfs_extract_stamp}
 	WORKING_DIRECTORY ${romfs_gen_root_dir}
@@ -149,14 +151,52 @@ if(config_io_board)
 		copy_px4io_bin
 		${fw_io_bin}
 	)
+	file(RELATIVE_PATH iofw_file_relative ${PX4_SOURCE_DIR} ${fw_io_bin})
+	message(STATUS "ROMFS:  Adding ${iofw_file_relative} -> /etc/extras/${config_io_board}.bin")
 endif()
 
-if(config_build_bootloader)
+
+# board bootloader (built or included)
+if(TARGET copy_bootloader_bin)
+
+	if(board_bootloader_firmware)
+		file(RELATIVE_PATH bl_file_relative ${PX4_SOURCE_DIR} ${board_bootloader_firmware})
+		message(STATUS "ROMFS:  Adding ${bl_file_relative} -> /etc/extras/bootloader.bin")
+	else()
+		file(RELATIVE_PATH bl_file_relative ${PX4_SOURCE_DIR} ${bootloader_bin})
+		message(STATUS "ROMFS:  Adding ${bl_file_relative} -> /etc/extras/bootloader.bin")
+	endif()
+
 	list(APPEND extras_dependencies
 		copy_bootloader_bin
 		${bootloader_bin}
 	)
 endif()
+
+
+# optional board architecture defaults
+set(board_arch_rc_file "rc.board_arch_defaults")
+if(EXISTS "${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/init/${CONFIG_ARCH_CHIP}/${board_arch_rc_file}")
+	file(RELATIVE_PATH rc_file_relative ${PX4_SOURCE_DIR} ${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/init/${CONFIG_ARCH_CHIP}/${board_arch_rc_file})
+	message(STATUS "ROMFS:  Adding ${rc_file_relative} -> /etc/init.d/${board_arch_rc_file}")
+
+	add_custom_command(
+		OUTPUT
+			${romfs_gen_root_dir}/init.d/${board_arch_rc_file}
+			${board_arch_rc_file}.stamp
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/init/${CONFIG_ARCH_CHIP}/${board_arch_rc_file} ${romfs_gen_root_dir}/init.d/${board_arch_rc_file}
+		COMMAND ${CMAKE_COMMAND} -E touch ${board_arch_rc_file}.stamp
+		DEPENDS
+			${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/init/${CONFIG_ARCH_CHIP}/${board_arch_rc_file}
+			romfs_copy.stamp
+		COMMENT "ROMFS: copying ${board_arch_rc_file}"
+	)
+
+	list(APPEND extras_dependencies
+		${board_arch_rc_file}.stamp
+	)
+endif()
+
 
 set(OPTIONAL_BOARD_RC)
 list(APPEND OPTIONAL_BOARD_RC
@@ -169,7 +209,8 @@ list(APPEND OPTIONAL_BOARD_RC
 foreach(board_rc_file ${OPTIONAL_BOARD_RC})
 
 	if(EXISTS "${PX4_BOARD_DIR}/init/${board_rc_file}")
-		message(STATUS "ROMFS: Adding ${board_rc_file}")
+		file(RELATIVE_PATH rc_file_relative ${PX4_SOURCE_DIR} ${PX4_BOARD_DIR}/init/${board_rc_file})
+		message(STATUS "ROMFS:  Adding ${rc_file_relative} -> /etc/init.d/${board_rc_file}")
 
 		add_custom_command(
 			OUTPUT
@@ -197,7 +238,7 @@ if(config_uavcan_peripheral_firmware)
 
 	foreach(uavcan_peripheral_config ${config_uavcan_peripheral_firmware})
 		# include the px4io binary in ROMFS
-		message(STATUS "ROMFS: Building and including UAVCAN peripheral ${uavcan_peripheral_config}")
+		message(STATUS "ROMFS:  Adding UAVCAN peripheral ${uavcan_peripheral_config} -> /etc/uavcan/fw/")
 		ExternalProject_Add(build_${uavcan_peripheral_config}
 			SOURCE_DIR ${CMAKE_SOURCE_DIR}
 			DOWNLOAD_COMMAND ""

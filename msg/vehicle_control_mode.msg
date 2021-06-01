@@ -8,7 +8,6 @@ bool flag_control_auto_enabled			# true if onboard autopilot should act
 bool flag_control_offboard_enabled		# true if offboard control should be used
 bool flag_control_rates_enabled			# true if rates are stabilized
 bool flag_control_attitude_enabled		# true if attitude stabilization is mixed in
-bool flag_control_rattitude_enabled		# true if rate/attitude stabilization is enabled
 bool flag_control_acceleration_enabled		# true if acceleration is controlled
 bool flag_control_velocity_enabled		# true if horizontal velocity (implies direction) is controlled
 bool flag_control_position_enabled		# true if position is controlled

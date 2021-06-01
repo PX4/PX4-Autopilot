@@ -45,6 +45,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/sensor_gyro_fft.h>
 #include <uORB/topics/sensor_gyro_fifo.h>
 #include <uORB/topics/sensor_selection.h>
@@ -76,13 +77,14 @@ public:
 	bool init();
 
 private:
-	float EstimatePeakFrequency(q15_t fft[], uint8_t peak_index);
+	float EstimatePeakFrequency(q15_t fft[], int peak_index);
 	void Run() override;
 	bool SensorSelectionUpdate(bool force = false);
-	void VehicleIMUStatusUpdate();
+	void Update(const hrt_abstime &timestamp_sample, int16_t *input[], uint8_t N);
+	void VehicleIMUStatusUpdate(bool force = false);
 
 	template<size_t N>
-	void AllocateBuffers()
+	bool AllocateBuffers()
 	{
 		_gyro_data_buffer_x = new q15_t[N];
 		_gyro_data_buffer_y = new q15_t[N];
@@ -90,6 +92,11 @@ private:
 		_hanning_window = new q15_t[N];
 		_fft_input_buffer = new q15_t[N];
 		_fft_outupt_buffer = new q15_t[N * 2];
+
+		return (_gyro_data_buffer_x && _gyro_data_buffer_y && _gyro_data_buffer_z
+			&& _hanning_window
+			&& _fft_input_buffer
+			&& _fft_outupt_buffer);
 	}
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
@@ -104,14 +111,18 @@ private:
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status)};
 
+	uORB::SubscriptionCallbackWorkItem _sensor_gyro_sub{this, ORB_ID(sensor_gyro)};
 	uORB::SubscriptionCallbackWorkItem _sensor_gyro_fifo_sub{this, ORB_ID(sensor_gyro_fifo)};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t _cycle_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
 	perf_counter_t _fft_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": FFT")};
+	perf_counter_t _gyro_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro data gap")};
 	perf_counter_t _gyro_fifo_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro FIFO data gap")};
 
 	uint32_t _selected_sensor_device_id{0};
+
+	bool _gyro_fifo{false};
 
 	arm_rfft_instance_q15 _rfft_q15;
 
@@ -131,6 +142,8 @@ private:
 	unsigned _gyro_last_generation{0};
 
 	sensor_gyro_fft_s _sensor_gyro_fft{};
+
+	int32_t _imu_gyro_fft_len{256};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::IMU_GYRO_FFT_LEN>) _param_imu_gyro_fft_len,

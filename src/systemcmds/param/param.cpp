@@ -289,7 +289,7 @@ param_main(int argc, char *argv[])
 				return do_set(argv[2], argv[3], false);
 
 			} else {
-				PX4_ERR("not enough arguments.\nTry 'param set PARAM_NAME 3 [fail]'");
+				PX4_ERR("not enough arguments.\nTry 'param set %s 3 [fail]'", (argc > 2) ? argv[2] : "PARAM_NAME");
 				return 1;
 			}
 		}
@@ -299,7 +299,7 @@ param_main(int argc, char *argv[])
 				return do_set_custom_default(argv[2], argv[3]);
 
 			} else {
-				PX4_ERR("not enough arguments.\nTry 'param set-default PARAM_NAME 3'");
+				PX4_ERR("not enough arguments.\nTry 'param set-default %s 3'", (argc > 2) ? argv[2] : "PARAM_NAME");
 				return 1;
 			}
 		}
@@ -312,7 +312,7 @@ param_main(int argc, char *argv[])
 				return do_compare(argv[2], &argv[3], argc - 3, COMPARE_OPERATOR::EQUAL, COMPARE_ERROR_LEVEL::DO_ERROR);
 
 			} else {
-				PX4_ERR("not enough arguments.\nTry 'param compare PARAM_NAME 3'");
+				PX4_ERR("not enough arguments.\nTry 'param compare %s 3'", (argc > 2) ? argv[2] : "PARAM_NAME");
 				return 1;
 			}
 		}
@@ -325,7 +325,7 @@ param_main(int argc, char *argv[])
 				return do_compare(argv[2], &argv[3], argc - 3, COMPARE_OPERATOR::GREATER, COMPARE_ERROR_LEVEL::DO_ERROR);
 
 			} else {
-				PX4_ERR("not enough arguments.\nTry 'param greater PARAM_NAME 3'");
+				PX4_ERR("not enough arguments.\nTry 'param greater %s 3'", (argc > 2) ? argv[2] : "PARAM_NAME");
 				return 1;
 			}
 		}
@@ -384,7 +384,7 @@ param_main(int argc, char *argv[])
 				return do_find(argv[2]);
 
 			} else {
-				PX4_ERR("not enough arguments.\nTry 'param find PARAM_NAME'");
+				PX4_ERR("not enough arguments.\nTry 'param find %s'", (argc > 2) ? argv[2] : "PARAM_NAME");
 				return 1;
 			}
 		}
@@ -514,10 +514,12 @@ do_show(const char *search_string, bool only_changed)
 static int
 do_show_for_airframe()
 {
-	PARAM_PRINT("if [ $AUTOCNF = yes ]\n");
-	PARAM_PRINT("then\n");
 	param_foreach(do_show_print_for_airframe, nullptr, true, true);
-	PARAM_PRINT("fi\n");
+	int32_t sys_autostart = 0;
+	param_get(param_find("SYS_AUTOSTART"), &sys_autostart);
+	if (sys_autostart != 0) {
+		PARAM_PRINT("# Make sure to add all params from the current airframe (ID=%i) as well\n", sys_autostart);
+	}
 	return 0;
 }
 
@@ -725,7 +727,7 @@ do_show_print_for_airframe(void *arg, param_t param)
 
 	int32_t i;
 	float f;
-	PARAM_PRINT("\tparam set %s ", p_name);
+	PARAM_PRINT("param set-default %s ", p_name);
 
 	switch (param_type(param)) {
 	case PARAM_TYPE_INT32:
@@ -843,7 +845,7 @@ do_set_custom_default(const char *name, const char *val)
 				int32_t newval = strtol(val, &end, 10);
 
 				if ((i != newval) && (param_set_default_value(param, &newval) == PX4_OK)) {
-					PARAM_PRINT(" parameter default: %s %d -> %d\n", param_name(param), i, newval);
+					PX4_DEBUG(" parameter default: %s %d -> %d", param_name(param), i, newval);
 				}
 			}
 		}
@@ -859,7 +861,7 @@ do_set_custom_default(const char *name, const char *val)
 				float newval = strtod(val, &end);
 
 				if ((fabsf(f - newval) > FLT_EPSILON) && (param_set_default_value(param, &newval) == PX4_OK)) {
-					PARAM_PRINT(" parameter default: %s %4.2f -> %4.2f\n", param_name(param), (double)f, (double)newval);
+					PX4_DEBUG(" parameter default: %s %4.2f -> %4.2f", param_name(param), (double)f, (double)newval);
 				}
 			}
 		}

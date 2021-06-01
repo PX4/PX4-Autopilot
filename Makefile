@@ -174,6 +174,8 @@ define cmake-build
 	@$(call cmake-cache-check)
 	@# make sure to start from scratch when switching from GNU Make to Ninja
 	@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
+	@# make sure to start from scratch if ninja build file is missing
+	@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ ! -f $(BUILD_DIR)/build.ninja ]; then rm -rf $(BUILD_DIR); fi
 	@# only excplicitly configure the first build, if cache file already exists the makefile will rerun cmake automatically if necessary
 	@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ] || [ $(CMAKE_CACHE_CHECK) ]; then \
 		mkdir -p $(BUILD_DIR) \
@@ -301,8 +303,7 @@ check_%:
 	@echo
 
 uorb_graphs:
-	@./Tools/uorb_graph/create_from_startupscript.sh
-	@./Tools/uorb_graph/create.py --src-path src --exclude-path src/examples --file Tools/uorb_graph/graph_full
+	@./Tools/uorb_graph/create.py --src-path src --exclude-path src/examples --exclude-path src/lib --file Tools/uorb_graph/graph_full
 	@$(MAKE) --no-print-directory px4_fmu-v2_default uorb_graph
 	@$(MAKE) --no-print-directory px4_fmu-v4_default uorb_graph
 	@$(MAKE) --no-print-directory px4_sitl_default uorb_graph
@@ -317,7 +318,7 @@ coverity_scan: px4_sitl_default
 .PHONY: parameters_metadata airframe_metadata module_documentation px4_metadata doxygen
 
 parameters_metadata:
-	@$(MAKE) --no-print-directory px4_sitl_default metadata_parameters
+	@$(MAKE) --no-print-directory px4_sitl_default metadata_parameters ver_gen
 
 airframe_metadata:
 	@$(MAKE) --no-print-directory px4_sitl_default metadata_airframes
@@ -467,25 +468,27 @@ validate_module_configs:
 .PHONY: clean submodulesclean submodulesupdate gazeboclean distclean
 
 clean:
-	@rm -rf "$(SRC_DIR)"/build
+	@[ ! -d "$(SRC_DIR)/build" ] || find "$(SRC_DIR)/build" -mindepth 1 -maxdepth 1 -type d -exec sh -c "echo {}; cmake --build {} -- clean || rm -rf {}" \; # use generated build system to clean, wipe build directory if it fails
+	@git submodule foreach git clean -dX --force # some submodules generate build artifacts in source
 
 submodulesclean:
 	@git submodule foreach --quiet --recursive git clean -ff -x -d
 	@git submodule update --quiet --init --recursive --force || true
 	@git submodule sync --recursive
-	@git submodule update --init --recursive --force
+	@git submodule update --init --recursive --force --jobs 4
 
 submodulesupdate:
-	@git submodule update --quiet --init --recursive || true
+	@git submodule update --quiet --init --recursive --jobs 4 || true
 	@git submodule sync --recursive
-	@git submodule update --init --recursive
+	@git submodule update --init --recursive --jobs 4
 
 gazeboclean:
 	@rm -rf ~/.gazebo/*
 
 distclean: gazeboclean
-	@git submodule deinit -f .
-	@git clean -ff -x -d -e ".project" -e ".cproject" -e ".idea" -e ".settings" -e ".vscode"
+	@git submodule deinit --force $(SRC_DIR)
+	@rm -rf "$(SRC_DIR)/build"
+	@git clean --force -X "$(SRC_DIR)/msg/" "$(SRC_DIR)/platforms/" "$(SRC_DIR)/posix-configs/" "$(SRC_DIR)/ROMFS/" "$(SRC_DIR)/src/" "$(SRC_DIR)/test/" "$(SRC_DIR)/Tools/"
 
 # Help / Error
 # --------------------------------------------------------------------

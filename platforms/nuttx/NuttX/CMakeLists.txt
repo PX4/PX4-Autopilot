@@ -310,7 +310,7 @@ function(add_nuttx_dir nuttx_lib nuttx_lib_dir kernel extra)
 endfunction()
 
 # add_nuttx_dir(NAME DIRECTORY KERNEL EXTRA)
-add_nuttx_dir(arch arch/arm/src y -D__KERNEL__)
+add_nuttx_dir(arch arch/${CONFIG_ARCH}/src y -D__KERNEL__)
 add_nuttx_dir(binfmt binfmt y -D__KERNEL__)
 add_nuttx_dir(boards boards y -D__KERNEL__)
 add_nuttx_dir(drivers drivers y -D__KERNEL__)

@@ -36,7 +36,7 @@
 
 #include "../mavlink_stream.h"
 
-#include <component_information/hashes.h>
+#include <component_information/checksums.h>
 
 #include <px4_platform_common/defines.h>
 
@@ -61,34 +61,17 @@ public:
 	bool request_message(float param2, float param3, float param4,
 			     float param5, float param6, float param7) override
 	{
-		int type = (int)roundf(param2);
 		mavlink_component_information_t component_info{};
-		bool handled = false;
-		PX4_DEBUG("COMPONENT_INFORMATION request type %i", type);
+		PX4_DEBUG("COMPONENT_INFORMATION request");
 
-		switch (type) {
-		case COMP_METADATA_TYPE_VERSION:
-			component_info.metadata_uid = component_information::component_version_hash;
-			handled = get_component_information("component_version.json.xz", component_info);
-			break;
+		strncpy(component_info.general_metadata_uri, "mftp://etc/extras/component_general.json.xz",
+			sizeof(component_info.general_metadata_uri) - 1);
+		component_info.general_metadata_file_crc = component_information::component_general_crc;
 
-		case COMP_METADATA_TYPE_PARAMETER:
-			component_info.metadata_uid = component_information::params_hash;
-			handled = get_component_information("params.json.xz", component_info);
-			break;
+		component_info.time_boot_ms = hrt_absolute_time() / 1000;
+		mavlink_msg_component_information_send_struct(_mavlink->get_channel(), &component_info);
 
-		case COMP_METADATA_TYPE_COMMANDS:
-			// TODO
-			break;
-		}
-
-		if (handled) {
-			component_info.metadata_type = type;
-			component_info.time_boot_ms = hrt_absolute_time() / 1000;
-			mavlink_msg_component_information_send_struct(_mavlink->get_channel(), &component_info);
-		}
-
-		return handled;
+		return true;
 	}
 private:
 	explicit MavlinkStreamComponentInformation(Mavlink *mavlink) : MavlinkStream(mavlink) {}
@@ -96,40 +79,6 @@ private:
 	bool send() override
 	{
 		return false;
-	}
-
-	bool get_component_information(const char *file, mavlink_component_information_t &component_info)
-	{
-		char full_path[64];
-		snprintf(full_path, sizeof(full_path), "%s/etc/extras/%s", PX4_ROOTFSDIR, file);
-		full_path[sizeof(full_path) - 1] = '\0';
-
-		if (file_exist(full_path)) {
-			if (snprintf(component_info.metadata_uri, sizeof(component_info.metadata_uri), "mftp://etc/extras/%s", file)
-			    >= (int)sizeof(component_info.metadata_uri)) {
-				PX4_ERR("path too long (%s)", file);
-				return false;
-			}
-
-		} else {
-			// TODO:
-			// - check for tagged version, use per-version files
-			// - generate & use board-specific file
-			if (snprintf(component_info.metadata_uri, sizeof(component_info.metadata_uri),
-				     "https://px4-travis.s3.amazonaws.com/Firmware/master/%s", file)
-			    >= (int)sizeof(component_info.metadata_uri)) {
-				PX4_ERR("url too long (%s)", file);
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	bool file_exist(const char *filename)
-	{
-		struct stat buffer;
-		return stat(filename, &buffer) == 0;
 	}
 };
 

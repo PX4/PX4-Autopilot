@@ -13,6 +13,7 @@
 
 INSTALL_NUTTX="true"
 INSTALL_SIM="true"
+INSTALL_ARCH=`uname -m`
 
 # Parse arguments
 for arg in "$@"
@@ -114,18 +115,32 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 	echo "Installing NuttX dependencies"
 
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
-		autoconf \
 		automake \
+		binutils-dev \
 		bison \
-		bzip2 \
-		file \
+		build-essential \
 		flex \
+		g++-multilib \
+		gcc-multilib \
 		gdb-multiarch \
+		genromfs \
+		gettext \
 		gperf \
-		libncurses-dev \
+		kconfig-frontends \
+		libelf-dev \
+		libexpat-dev \
+		libgmp-dev \
+		libisl-dev \
+		libmpc-dev \
+		libmpfr-dev \
+		libncurses5-dev \
+		libncursesw5-dev \
 		libtool \
 		pkg-config \
 		screen \
+		texinfo \
+		u-boot-tools \
+		util-linux \
 		vim-common \
 		;
 
@@ -149,7 +164,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 
 	else
 		echo "Installing arm-none-eabi-gcc-${NUTTX_GCC_VERSION}";
-		wget -O /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/${NUTTX_GCC_VERSION_SHORT}/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-x86_64-linux.tar.bz2 && \
+		wget -O /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/${NUTTX_GCC_VERSION_SHORT}/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-${INSTALL_ARCH}-linux.tar.bz2 && \
 			sudo tar -jxf /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 -C /opt/;
 
 		# add arm-none-eabi-gcc to user's PATH

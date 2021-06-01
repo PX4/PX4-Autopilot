@@ -147,21 +147,8 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_MAX, 220.0f);
 PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 200.0f);
 
 /**
- * Threshold for Rattitude mode
- *
- * Manual input needed in order to override attitude control rate setpoints
- * and instead pass manual stick inputs as rate setpoints
- *
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_RATT_TH, 0.8f);
-
-/**
  * Manual tilt input filter time constant
+ *
  * Setting this parameter to 0 disables the filter
  *
  * @unit s

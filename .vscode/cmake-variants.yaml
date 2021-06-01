@@ -66,6 +66,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_can-flow_canbootloader
+    ark_can-gps_default:
+      short: ark_can-gps_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_can-gps_default
+    ark_can-gps_canbootloader:
+      short: ark_can-gps_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_can-gps_canbootloader
     av_x-v1_default:
       short: av_x-v1
       buildType: MinSizeRel
@@ -96,21 +106,36 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: cuav_x7pro_default
-    cubepilot_cubeorange_default:
+    cubepilot_cubeorange_test:
       short: cubepilot_cubeorange
       buildType: MinSizeRel
       settings:
-        CONFIG: cubepilot_orange_default
-    cubepilot_cubeyellow_default:
-      short: cubepilot_cubeyellow
-      buildType: MinSizeRel
-      settings:
-        CONFIG: cubepilot_cubeyellow_default
+        CONFIG: cubepilot_orange_test
     emlid_navio2_default:
       short: emlid_navio2
       buildType: MinSizeRel
       settings:
         CONFIG: emlid_navio2_default
+    freefly_can-rtk-gps_default:
+      short: freefly_can-rtk-gps_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: freefly_can-rtk-gps_default
+    freefly_can-rtk-gps_canbootloader:
+      short: freefly_can-rtk-gps_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: freefly_can-rtk-gps_canbootloader
+    holybro_can-gps-v1_canbootloader:
+      short: holybro_can-gps-v1_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: holybro_can-gps-v1_canbootloader
+    holybro_can-gps-v1_default:
+      short: holybro_can-gps-v1_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: holybro_can-gps-v1_default
     holybro_durandal-v1_default:
       short: holybro_durandal-v1
       buildType: MinSizeRel
@@ -121,6 +146,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: modalai_fc-v1_default
+    modalai_fc-v2_default:
+      short: modalai_fc-v2
+      buildType: MinSizeRel
+      settings:
+        CONFIG: modalai_fc-v2_default
     mro_ctrl-zero-f7_default:
       short: mro_ctrl-zero-f7
       buildType: MinSizeRel

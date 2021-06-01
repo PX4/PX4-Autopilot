@@ -52,7 +52,7 @@
 * @value 3 MAVLINK_DO_MOUNT (protocol v1)
 * @value 4 MAVlink gimbal protocol v2
 * @min -1
-* @max 3
+* @max 4
 * @group Mount
 * @reboot_required true
 */
@@ -94,6 +94,7 @@ PARAM_DEFINE_INT32(MNT_MAV_COMPID, 154);
 
 /**
 * Mixer value for selecting normal mode
+*
 * if required by the gimbal (only in AUX output mode)
 *
 * @min -1.0
@@ -105,6 +106,7 @@ PARAM_DEFINE_FLOAT(MNT_OB_NORM_MODE, -1.0f);
 
 /**
 * Mixer value for selecting a locking mode
+*
 * if required for the gimbal (only in AUX output mode)
 *
 * @min -1.0
@@ -163,9 +165,11 @@ PARAM_DEFINE_INT32(MNT_MAN_PITCH, 0);
 PARAM_DEFINE_INT32(MNT_MAN_YAW, 0);
 
 /**
-* Stabilize the mount (set to true for servo gimbal, false for passthrough).
-* (This is required for a gimbal which is not capable of stabilizing itself
-* and relies on the IMU's attitude estimation.)
+* Stabilize the mount
+*
+* Set to true for servo gimbal, false for passthrough.
+* This is required for a gimbal which is not capable of stabilizing itself
+* and relies on the IMU's attitude estimation.
 *
 * @value 0 Disable
 * @value 1 Stabilize all axis
@@ -238,6 +242,7 @@ PARAM_DEFINE_FLOAT(MNT_OFF_YAW, 0.0f);
 
 /**
  * Angular pitch rate for manual input in degrees/second.
+ *
  * Full stick input [-1..1] translats to [-pitch rate..pitch rate].
  *
  * @min 1.0
@@ -248,6 +253,7 @@ PARAM_DEFINE_FLOAT(MNT_RATE_PITCH, 30.0f);
 
 /**
  * Angular yaw rate for manual input in degrees/second.
+ *
  * Full stick input [-1..1] translats to [-yaw rate..yaw rate].
  *
  * @min 1.0

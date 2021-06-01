@@ -147,7 +147,7 @@ private:
 		(ParamFloat<px4::params::FW_ACRO_Z_MAX>) _param_fw_acro_z_max,
 
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
-		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
+		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall,
 		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim,
 		(ParamInt<px4::params::FW_ARSP_MODE>) _param_fw_arsp_mode,
 
@@ -183,8 +183,6 @@ private:
 		(ParamFloat<px4::params::FW_PR_IMAX>) _param_fw_pr_imax,
 		(ParamFloat<px4::params::FW_PR_P>) _param_fw_pr_p,
 		(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
-
-		(ParamFloat<px4::params::FW_RATT_TH>) _param_fw_ratt_th,
 
 		(ParamFloat<px4::params::FW_R_RMAX>) _param_fw_r_rmax,
 		(ParamFloat<px4::params::FW_R_TC>) _param_fw_r_tc,

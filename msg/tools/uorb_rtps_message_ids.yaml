@@ -160,6 +160,7 @@ rtps:
     id: 75
   - msg: telemetry_status
     id: 76
+    receive: true
   - msg: test_motor
     id: 77
   - msg: timesync
@@ -169,6 +170,7 @@ rtps:
   - msg: trajectory_waypoint
     id: 79
     receive: true
+    send: true
   - msg: transponder_report
     id: 80
   - msg: tune_control
@@ -185,6 +187,7 @@ rtps:
     id: 86
   - msg: vehicle_attitude
     id: 87
+    send: true
   - msg: vehicle_attitude_setpoint
     id: 88
   - msg: vehicle_command
@@ -205,8 +208,10 @@ rtps:
     id: 95
   - msg: vehicle_local_position
     id: 96
+    send: true
   - msg: vehicle_local_position_setpoint
     id: 97
+    receive: true
   - msg: vehicle_magnetometer
     id: 98
   - msg: vehicle_odometry
@@ -218,6 +223,7 @@ rtps:
     id: 101
   - msg: vehicle_status
     id: 102
+    send: true
   - msg: vehicle_status_flags
     id: 103
   - msg: vehicle_trajectory_waypoint
@@ -240,6 +246,7 @@ rtps:
     id: 111
   - msg: vehicle_angular_velocity
     id: 112
+    send: true
   - msg: vehicle_acceleration
     id: 113
   - msg: airspeed_validated
@@ -267,8 +274,10 @@ rtps:
     id: 125
   - msg: trajectory_bezier
     id: 126
+    receive: true
   - msg: vehicle_trajectory_bezier
     id: 127
+    receive: true
   - msg: timesync_status
     id: 128
   - msg: orb_test
@@ -380,6 +389,7 @@ rtps:
   - msg: vehicle_trajectory_waypoint_desired
     id: 183
     alias: vehicle_trajectory_waypoint
+    send: true
   - msg: obstacle_distance_fused
     id: 184
     alias: obstacle_distance
@@ -389,6 +399,7 @@ rtps:
   - msg: trajectory_setpoint
     id: 186
     alias: vehicle_local_position_setpoint
+    receive: true
   - msg: camera_trigger_secondary
     id: 187
     alias: camera_trigger

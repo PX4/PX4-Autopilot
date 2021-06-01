@@ -39,16 +39,20 @@
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
 
+#define RETRY_COUNT 10
+
 #include "NodeManager.hpp"
 
 bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg)
 {
 	if (msg.allocated_node_id.count == 0) {
+		uint32_t i;
+
 		msg.allocated_node_id.count = 1;
 		msg.allocated_node_id.elements[0].value = CANARD_NODE_ID_UNSET;
 
 		/* Search for an available NodeID to assign */
-		for (uint32_t i = 1; i < 16; i++) {
+		for (i = 1; i < sizeof(nodeid_registry) / sizeof(nodeid_registry[0]); i++) {
 			if (i == _canard_instance.node_id) {
 				continue; // Don't give our NodeID to a node
 
@@ -63,19 +67,18 @@ bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg)
 			}
 		}
 
-		if (msg.allocated_node_id.elements[0].value != CANARD_NODE_ID_UNSET) {
+		nodeid_registry[i].register_setup = false; // Re-instantiate register setup
+		nodeid_registry[i].register_index = 0;
+		nodeid_registry[i].retry_count = 0;
 
-			_uavcan_pnp_nodeidallocation_last = hrt_absolute_time();
-			_node_register_request_index = 0;
-			_node_register_last_received_index = -1;
-			_node_register_setup = msg.allocated_node_id.elements[0].value; // This nodeID has to be configured
+		if (msg.allocated_node_id.elements[0].value != CANARD_NODE_ID_UNSET) {
 
 			PX4_INFO("Received NodeID allocation request assigning %i", msg.allocated_node_id.elements[0].value);
 
 			uint8_t node_id_alloc_payload_buffer[uavcan_pnp_NodeIDAllocationData_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
 
 			CanardTransfer transfer = {
-				.timestamp_usec = hrt_absolute_time(),      // Zero if transmission deadline is not limited.
+				.timestamp_usec = hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
 				.priority       = CanardPriorityNominal,
 				.transfer_kind  = CanardTransferKindMessage,
 				.port_id        = uavcan_pnp_NodeIDAllocationData_1_0_FIXED_PORT_ID_, // This is the subject-ID.
@@ -93,6 +96,8 @@ bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg)
 				result = canardTxPush(&_canard_instance, &transfer);
 			}
 
+			_register_request_last = hrt_absolute_time();
+
 			return result >= 0;
 		}
 	}
@@ -105,4 +110,52 @@ bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_2_0 &msg)
 {
 	//TODO V2 CAN FD implementation
 	return false;
+}
+
+
+void NodeManager::HandleListResponse(CanardNodeID node_id, uavcan_register_List_Response_1_0 &msg)
+{
+	if (msg.name.name.count == 0) {
+		// Index doesn't exist, we've parsed through all registers
+		for (uint32_t i = 0; i < sizeof(nodeid_registry) / sizeof(nodeid_registry[0]); i++) {
+			if (nodeid_registry[i].node_id == node_id) {
+				nodeid_registry[i].register_setup = true; // Don't update anymore
+			}
+		}
+
+	} else {
+		for (uint32_t i = 0; i < sizeof(nodeid_registry) / sizeof(nodeid_registry[0]); i++) {
+			if (nodeid_registry[i].node_id == node_id) {
+				nodeid_registry[i].register_index++; // Increment index counter for next update()
+				nodeid_registry[i].register_setup = false;
+				nodeid_registry[i].retry_count = 0;
+			}
+		}
+
+		if (_access_request.setPortId(node_id, msg.name)) {
+			PX4_INFO("Set portID succesfull");
+
+		} else {
+			PX4_INFO("Register not found %.*s", msg.name.name.count, msg.name.name.elements);
+		}
+	}
+}
+void NodeManager::update()
+{
+	if (hrt_elapsed_time(&_register_request_last) >= hrt_abstime(2 *
+			1000000ULL)) { // Compiler hates me here, some 1_s doesn't work
+		for (uint32_t i = 0; i < sizeof(nodeid_registry) / sizeof(nodeid_registry[0]); i++) {
+			if (nodeid_registry[i].node_id != 0 && nodeid_registry[i].register_setup == false) {
+				//Setting up registers
+				_list_request.request(nodeid_registry[i].node_id, nodeid_registry[i].register_index);
+				nodeid_registry[i].retry_count++;
+
+				if (nodeid_registry[i].retry_count > RETRY_COUNT) {
+					nodeid_registry[i].register_setup = true; // Don't update anymore
+				}
+			}
+		}
+
+		_register_request_last = hrt_absolute_time();
+	}
 }

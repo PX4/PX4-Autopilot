@@ -4,8 +4,8 @@
 #include <stdint.h>
 
 #include "crsf.h"
-#include "ghst.h"
 #include "dsm.h"
+#include "ghst.hpp"
 #include "sbus.h"
 #include "st24.h"
 #include "sumd.h"

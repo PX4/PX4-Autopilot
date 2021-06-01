@@ -63,6 +63,11 @@ bool PreFlightCheck::powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_sta
 		return true;
 	}
 
+	if (status.hil_state == vehicle_status_s::HIL_STATE_ON) {
+		// Ignore power check in HITL.
+		return true;
+	}
+
 	uORB::SubscriptionData<system_power_s> system_power_sub{ORB_ID(system_power)};
 	system_power_sub.update();
 	const system_power_s &system_power = system_power_sub.get();

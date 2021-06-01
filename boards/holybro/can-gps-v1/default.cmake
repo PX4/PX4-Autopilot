@@ -8,26 +8,28 @@ px4_add_board(
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	CONSTRAINED_MEMORY
+	CONSTRAINED_FLASH
 	ROMFSROOT cannode
-	UAVCAN_INTERFACES 2
+	UAVCAN_INTERFACES 1
 	DRIVERS
 		adc/board_adc
 		barometer/bmp388
 		bootloaders
 		gps
-		imu/bosch/bmi088
+		imu/invensense/icm20649
 		lights/rgbled_ncp5623c
 		magnetometer/bosch/bmm150
 		uavcannode
 	MODULES
-		load_mon
+		#ekf2
+		sensors
 	SYSTEMCMDS
-		i2cdetect
+		#i2cdetect
 		param
-		perf
-		reboot
-		top
-		topic_listener
-		ver
-		work_queue
+		#perf
+		#top
+		#topic_listener
+		#uorb
+		#ver
+		#work_queue
 )

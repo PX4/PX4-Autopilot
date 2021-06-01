@@ -11,12 +11,12 @@ px4_add_board(
 	ROMFSROOT px4fmu_common
 	CONSTRAINED_FLASH
 	DRIVERS
+		barometer/bmp388
 		distance_sensor/vl53l1x
 		gps
+		imu/bosch/bmi088/bmi088_i2c
 		optical_flow/pmw3901
 		pwm_out
-		imu/bosch/bmi088/bmi088_i2c
-		barometer/bmp388
 	MODULES
 		attitude_estimator_q
 		#camera_feedback
@@ -24,7 +24,8 @@ px4_add_board(
 		dataman
 		ekf2
 		events
-		gyro_fft
+		flight_mode_manager
+		#gyro_fft
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -40,10 +41,10 @@ px4_add_board(
 		sensors
 		#temperature_compensation
 	SYSTEMCMDS
-		bl_update
+		#bl_update
 		dmesg
 		dumpfile
-		esc_calib
+		#esc_calib
 		hardfault_log
 		i2cdetect
 		led_control

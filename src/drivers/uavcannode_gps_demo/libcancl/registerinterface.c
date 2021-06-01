@@ -238,10 +238,13 @@ int32_t uavcan_register_interface_list_response(CanardInstance *ins, CanardTrans
 
 	// Reponse magic start
 
-	if (msg.index <= register_list_size) {
+	if (msg.index < register_list_size) {
 		response_msg.name.name.count = sprintf(response_msg.name.name.elements,
 						       "uavcan.pub.%s.id",
 						       register_list[msg.index].name);
+
+	} else {
+		response_msg.name.name.count = 0;
 	}
 
 	//TODO more option then pub (sub rate
