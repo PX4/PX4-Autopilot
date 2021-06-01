@@ -94,7 +94,7 @@ void VehicleAcceleration::CheckAndUpdateFilters()
 		if ((imu_status.get().accel_device_id != 0) && (imu_status.get().accel_device_id == _calibration.device_id())
 		    && PX4_ISFINITE(sample_rate_hz) && (sample_rate_hz > 0)) {
 			// check if sample rate error is greater than 1%
-			if ((fabsf(sample_rate_hz - _filter_sample_rate) / _filter_sample_rate) > 0.01f) {
+			if (!PX4_ISFINITE(_filter_sample_rate) || (fabsf(sample_rate_hz - _filter_sample_rate) / _filter_sample_rate) > 0.01f) {
 				PX4_DEBUG("sample rate changed: %.3f Hz -> %.3f Hz", (double)_filter_sample_rate, (double)sample_rate_hz);
 				_filter_sample_rate = sample_rate_hz;
 				sample_rate_changed = true;
@@ -214,30 +214,42 @@ void VehicleAcceleration::Run()
 	SensorBiasUpdate(selection_updated);
 	ParametersUpdate();
 
+	// require valid sensor sample rate to run
+	if (!PX4_ISFINITE(_filter_sample_rate)) {
+		CheckAndUpdateFilters();
+
+		if (!PX4_ISFINITE(_filter_sample_rate)) {
+			return;
+		}
+	}
+
 	// process all outstanding messages
 	sensor_accel_s sensor_data;
 
 	while (_sensor_sub.update(&sensor_data)) {
+		const Vector3f accel_raw{sensor_data.x, sensor_data.y, sensor_data.z};
 
-		// Apply calibration and filter
-		//  - calibration offsets, scale factors, and thermal scale (if available)
-		//  - estimated in run bias (if available)
-		//  - biquad low-pass filter
-		const Vector3f accel_corrected = _calibration.Correct(Vector3f{sensor_data.x, sensor_data.y, sensor_data.z}) - _bias;
-		const Vector3f accel_filtered = _lp_filter.apply(accel_corrected);
+		if (math::isFinite(accel_raw)) {
+			// Apply calibration and filter
+			//  - calibration offsets, scale factors, and thermal scale (if available)
+			//  - estimated in run bias (if available)
+			//  - biquad low-pass filter
+			const Vector3f accel_corrected = _calibration.Correct(accel_raw) - _bias;
+			const Vector3f accel_filtered = _lp_filter.apply(accel_corrected);
 
-		_acceleration_prev = accel_corrected;
+			_acceleration_prev = accel_corrected;
 
-		// publish once all new samples are processed
-		if (!_sensor_sub.updated()) {
-			// Publish vehicle_acceleration
-			vehicle_acceleration_s v_acceleration;
-			v_acceleration.timestamp_sample = sensor_data.timestamp_sample;
-			accel_filtered.copyTo(v_acceleration.xyz);
-			v_acceleration.timestamp = hrt_absolute_time();
-			_vehicle_acceleration_pub.publish(v_acceleration);
+			// publish once all new samples are processed
+			if (!_sensor_sub.updated()) {
+				// Publish vehicle_acceleration
+				vehicle_acceleration_s v_acceleration;
+				v_acceleration.timestamp_sample = sensor_data.timestamp_sample;
+				accel_filtered.copyTo(v_acceleration.xyz);
+				v_acceleration.timestamp = hrt_absolute_time();
+				_vehicle_acceleration_pub.publish(v_acceleration);
 
-			return;
+				return;
+			}
 		}
 	}
 }

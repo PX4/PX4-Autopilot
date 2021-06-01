@@ -38,7 +38,6 @@
 #include <parameters/param.h>
 
 using namespace matrix;
-using Vector2d = matrix::Vector2<double>;
 
 class GeofenceBreachAvoidanceTest : public ::testing::Test
 {

@@ -15,7 +15,7 @@ pygments
 wheel>=0.31.1
 pymavlink
 pyros-genmsg
-pyserial>=3.0
+pyserial
 pyulog>=0.5.0
 pyyaml
 requests

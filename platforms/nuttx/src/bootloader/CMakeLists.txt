@@ -31,11 +31,7 @@
 #
 ############################################################################
 
-add_library(bootloader
-	bl.c
-	${PX4_CHIP}/main.c
-)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/common)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-add_subdirectory(lib)
-add_dependencies(bootloader prebuild_targets)
+add_subdirectory(common)
+add_subdirectory(${PX4_CHIP_MANUFACTURER})

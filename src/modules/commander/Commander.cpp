@@ -1875,6 +1875,7 @@ Commander::run()
 		const bool safety_updated = _safety_sub.updated();
 
 		if (safety_updated) {
+			const bool previous_safety_valid = (_safety.timestamp != 0);
 			const bool previous_safety_off = _safety.safety_off;
 
 			if (_safety_sub.copy(&_safety)) {
@@ -1899,7 +1900,7 @@ Commander::run()
 				}
 
 				// Notify the user if the status of the safety switch changes
-				if (_safety.safety_switch_available && previous_safety_off != _safety.safety_off) {
+				if (previous_safety_valid && _safety.safety_switch_available && previous_safety_off != _safety.safety_off) {
 
 					if (_safety.safety_off) {
 						set_tune(tune_control_s::TUNE_ID_NOTIFY_POSITIVE);
@@ -2089,7 +2090,7 @@ Commander::run()
 
 					} else if (mission_result.warning) {
 						/* the mission has a warning */
-						tune_mission_fail(true);
+						tune_mission_warn(true);
 
 					} else {
 						/* the mission is valid */

@@ -48,6 +48,8 @@ pipeline {
                      "cuav_x7pro_default",
                      "cubepilot_cubeorange_default",
                      "cubepilot_cubeyellow_default",
+                     "freefly_can-rtk-gps_canbootloader",
+                     "freefly_can-rtk-gps_default",
                      "holybro_can-gps-v1_canbootloader",
                      "holybro_can-gps-v1_default",
                      "holybro_durandal-v1_default",
@@ -55,6 +57,7 @@ pipeline {
                      "holybro_pix32v5_default",
                      "modalai_fc-v1_default",
                      "modalai_fc-v1_rtps",
+                     "modalai_fc-v2_default",
                      "mro_ctrl-zero-f7_default",
                      "mro_ctrl-zero-f7-oem_default",
                      "mro_ctrl-zero-h7_default",
@@ -155,7 +158,7 @@ pipeline {
   }
   options {
     buildDiscarder(logRotator(numToKeepStr: '5', artifactDaysToKeepStr: '14'))
-    timeout(time: 60, unit: 'MINUTES')
+    timeout(time: 90, unit: 'MINUTES')
   }
 }
 

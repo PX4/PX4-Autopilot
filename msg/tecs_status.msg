@@ -17,6 +17,8 @@ float32 true_airspeed_sp
 float32 true_airspeed_filtered
 float32 true_airspeed_derivative_sp
 float32 true_airspeed_derivative
+float32 true_airspeed_derivative_raw
+float32 true_airspeed_innovation
 
 float32 total_energy_error
 float32 energy_distribution_error
@@ -37,5 +39,6 @@ float32 throttle_integ
 float32 pitch_integ
 
 float32 throttle_sp
+float32 pitch_sp_rad
 
 uint8 mode

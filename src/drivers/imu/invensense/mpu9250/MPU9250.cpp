@@ -496,6 +496,11 @@ uint16_t MPU9250::FIFOReadCount()
 	return combine(fifo_count_buf[1], fifo_count_buf[2]);
 }
 
+static bool fifo_accel_equal(const FIFO::DATA &f0, const FIFO::DATA &f1)
+{
+	return (memcmp(&f0.ACCEL_XOUT_H, &f1.ACCEL_XOUT_H, 6) == 0);
+}
+
 bool MPU9250::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 {
 	FIFOTransferBuffer buffer{};
@@ -507,9 +512,42 @@ bool MPU9250::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 		return false;
 	}
 
+	uint8_t first_sample = 0;
 
-	ProcessGyro(timestamp_sample, buffer.f, samples);
-	return ProcessAccel(timestamp_sample, buffer.f, samples);
+	if (samples >= 4) {
+		if (fifo_accel_equal(buffer.f[0], buffer.f[1]) && fifo_accel_equal(buffer.f[2], buffer.f[3])) {
+			// [A0, A1, A2, A3]
+			//  A0==A1, A2==A3
+			first_sample = 1;
+
+		} else if (fifo_accel_equal(buffer.f[1], buffer.f[2])) {
+			// [A0, A1, A2, A3]
+			//  A0, A1==A2, A3
+			first_sample = 0;
+
+		} else if (_slave_ak8963_magnetometer && fifo_accel_equal(buffer.f[2], buffer.f[3])) {
+			// if the slave I2C magnetometer is active we tolerate these missing samples, but only if intermittant
+			// [A0, A1, A2, A3]
+			//  A0, A1, A2 == A3
+			first_sample = 2;
+			samples -= 2; // skip first 2 samples
+
+		} else {
+			// no matching accel samples is an error
+			if (!_slave_ak8963_magnetometer) {
+				// if the slave I2C magnetometer is active we tolerate these missing samples, but only if intermittant
+				// consecutive errors will still trigger a full sensor reset
+				perf_count(_bad_transfer_perf);
+			}
+
+			return false;
+		}
+	}
+
+	ProcessGyro(timestamp_sample, &buffer.f[first_sample], samples);
+	ProcessAccel(timestamp_sample, &buffer.f[first_sample], samples);
+
+	return true;
 }
 
 void MPU9250::FIFOReset()
@@ -535,42 +573,14 @@ void MPU9250::FIFOReset()
 	}
 }
 
-static bool fifo_accel_equal(const FIFO::DATA &f0, const FIFO::DATA &f1)
-{
-	return (memcmp(&f0.ACCEL_XOUT_H, &f1.ACCEL_XOUT_H, 6) == 0);
-}
-
-bool MPU9250::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
+void MPU9250::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
 {
 	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
 	accel.samples = 0;
 	accel.dt = FIFO_SAMPLE_DT * SAMPLES_PER_TRANSFER;
 
-	bool bad_data = false;
-
-	// accel data is doubled in FIFO, but might be shifted
-	int accel_first_sample = 1;
-
-	if (samples >= 4) {
-		if (fifo_accel_equal(fifo[0], fifo[1]) && fifo_accel_equal(fifo[2], fifo[3])) {
-			// [A0, A1, A2, A3]
-			//  A0==A1, A2==A3
-			accel_first_sample = 1;
-
-		} else if (fifo_accel_equal(fifo[1], fifo[2])) {
-			// [A0, A1, A2, A3]
-			//  A0, A1==A2, A3
-			accel_first_sample = 0;
-
-		} else {
-			// no matching accel samples is an error
-			bad_data = true;
-			perf_count(_bad_transfer_perf);
-		}
-	}
-
-	for (int i = accel_first_sample; i < samples; i = i + SAMPLES_PER_TRANSFER) {
+	for (int i = 0; i < samples; i = i + SAMPLES_PER_TRANSFER) {
 		int16_t accel_x = combine(fifo[i].ACCEL_XOUT_H, fifo[i].ACCEL_XOUT_L);
 		int16_t accel_y = combine(fifo[i].ACCEL_YOUT_H, fifo[i].ACCEL_YOUT_L);
 		int16_t accel_z = combine(fifo[i].ACCEL_ZOUT_H, fifo[i].ACCEL_ZOUT_L);
@@ -589,8 +599,6 @@ bool MPU9250::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA
 	if (accel.samples > 0) {
 		_px4_accel.updateFIFO(accel);
 	}
-
-	return !bad_data;
 }
 
 void MPU9250::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)

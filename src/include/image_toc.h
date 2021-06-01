@@ -34,6 +34,11 @@
 #ifndef _IMAGE_TOC_H
 #define _IMAGE_TOC_H
 
+#include <stdbool.h>
+
+/* Max number of TOC entries */
+#define MAX_TOC_ENTRIES 32
+
 /* Table of contents entry flags, describing what to
    do with the image
 */
@@ -41,6 +46,7 @@
 #define TOC_FLAG1_VTORS 0x2
 #define TOC_FLAG1_CHECK_SIGNATURE 0x4
 #define TOC_FLAG1_DECRYPT 0x8
+#define TOC_FLAG1_COPY 0x10
 
 #define TOC_FLAG1_RDCT 0x80
 
@@ -53,7 +59,6 @@
 #else
 #define TOC_VERSION BOARD_IMAGE_TOC_VERSION
 #endif
-
 
 /* Markers for TOC start and end in the image */
 
@@ -68,7 +73,7 @@ typedef struct __attribute__((__packed__)) image_toc_entry {
 	unsigned char name[4];  /* Name of the section */
 	const void *start;      /* Start address of the section in flash */
 	const void *end;        /* End of the section */
-	const void *target;     /* Copy target address of the section */
+	void *target;           /* Copy target address of the section */
 	uint8_t signature_idx;  /* Index to the signature in the TOC */
 	uint8_t signature_key;  /* Key index for the signature */
 	uint8_t encryption_key; /* Key index for encryption */
@@ -101,5 +106,16 @@ typedef struct __attribute__((__packed__))
 	uint64_t valid_until;
 	uint8_t signature[];
 } image_cert_t;
+
+extern bool find_toc(const image_toc_entry_t **toc_entries, uint8_t *len);
+
+/* If decrypt or copy flags are defined, this returns the target address.
+ * Otherwise, return the start address.
+ */
+inline static const void *get_base_addr(const image_toc_entry_t *e)
+{
+	return (e->flags1 & TOC_FLAG1_DECRYPT) || (e->flags1 & TOC_FLAG1_COPY) ?
+	       e->target : e->start;
+}
 
 #endif

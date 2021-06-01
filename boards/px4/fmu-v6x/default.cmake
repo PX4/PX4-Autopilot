@@ -93,7 +93,6 @@ px4_add_board(
 	SYSTEMCMDS
 		bl_update
 		dmesg
-		dumpfile
 		esc_calib
 		gpio
 		hardfault_log
@@ -110,20 +109,20 @@ px4_add_board(
 		perf
 		pwm
 		reboot
-		reflect
+		#reflect
 		sd_bench
-		serial_test
+		#serial_test
 		system_time
-#		top
+		top
 		topic_listener
 		tune_control
 		uorb
-		usb_connected
+		#usb_connected
 		ver
 		work_queue
 	EXAMPLES
 		fake_gps
-		#fake_gyro
+		#fake_imu
 		#fake_magnetometer
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hello

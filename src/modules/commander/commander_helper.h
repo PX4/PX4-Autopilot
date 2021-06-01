@@ -64,6 +64,7 @@ void set_tune_override(int tune);
 void set_tune(int tune);
 void tune_home_set(bool use_buzzer);
 void tune_mission_ok(bool use_buzzer);
+void tune_mission_warn(bool use_buzzer);
 void tune_mission_fail(bool use_buzzer);
 void tune_positive(bool use_buzzer);
 void tune_neutral(bool use_buzzer);
