@@ -51,6 +51,7 @@
 
 #include <inttypes.h>
 #include <stdbool.h>
+#include <syslog.h>
 
 #include "systemlib/px4_macros.h"
 
