@@ -6,7 +6,7 @@ px4_add_board(
 	LABEL minimal
 	TOOLCHAIN riscv64-unknown-elf
 	ARCHITECTURE rv64gc
-	ROMFSROOT px4fmu_common
+	ROMFSROOT minimal_romfs
 	DRIVERS
 
 	MODULES
