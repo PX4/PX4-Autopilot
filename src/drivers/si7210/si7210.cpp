@@ -276,7 +276,7 @@ int SI7210::collect()
 
 	/* generate a new report */
 	report.timestamp = hrt_absolute_time();
-	report.instance = 0; //TODO: _instance
+	report.instance = _i2c_address;
 	report.mag_t = (float)(magRawData - MAG_BIAS) * MAG_CONV;
 	report.temp_c = (float)((tempRawData & ~0x8000) >> 3);
 	report.temp_c = _tempGain * (TEMP_CONV_A2 * report.temp_c * report.temp_c + TEMP_CONV_A1 * report.temp_c + TEMP_CONV_A0

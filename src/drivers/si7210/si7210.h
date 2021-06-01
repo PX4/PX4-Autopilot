@@ -49,10 +49,7 @@
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <uORB/topics/sensor_hall.h>
 
-#define I2C_ADDRESS_0_SI7210   0x30    /* SI7210 I2C address */
-#define I2C_ADDRESS_1_SI7210   0x31    /* SI7210 I2C address */
-#define I2C_ADDRESS_2_SI7210   0x32    /* SI7210 I2C address */
-#define I2C_ADDRESS_3_SI7210   0x33    /* SI7210 I2C address */
+#define I2C_ADDRESS_SI7210   0x30    /* Default SI7210 I2C address */
 
 #define SI7210_MAX_DATA_RATE     50
 
@@ -115,11 +112,12 @@
 class SI7210 : public Vane, public I2CSPIDriver<SI7210>
 {
 public:
-	SI7210(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS_0_SI7210,
+	SI7210(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS_SI7210,
 	       bool keep_retrying = false) :
 		Vane(bus, bus_frequency, address, SI7210_CONVERSION_INTERVAL),
 		I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address),
-		_keep_retrying{keep_retrying}
+		_keep_retrying{keep_retrying},
+		_i2c_address{address}
 	{
 	}
 
@@ -188,6 +186,7 @@ private:
 	uint16_t _scale{0};
 	const bool _keep_retrying;
 	State _state{State::RequireConfig};
+	int _i2c_address;
 };
 
 #endif /* SI7210_HPP_ */

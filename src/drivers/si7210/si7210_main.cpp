@@ -70,7 +70,7 @@ SI7210::print_usage()
 	PRINT_MODULE_USAGE_SUBCATEGORY("airspeed_sensor");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
-	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x30);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(I2C_ADDRESS_SI7210);
 	PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG();
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
@@ -81,8 +81,11 @@ si7210_main(int argc, char *argv[])
 	using ThisDriver = SI7210;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 100000;
-	cli.i2c_address = I2C_ADDRESS_2_SI7210;
+	cli.i2c_address = I2C_ADDRESS_SI7210;
 	cli.support_keep_running = true;
+
+	int ch;
+  while ((ch = cli.getopt(argc, argv, "")) != EOF) {}
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
 
