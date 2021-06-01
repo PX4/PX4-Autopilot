@@ -41,6 +41,7 @@
 #include <nuttx/usb/usbdev.h>
 #include <nuttx/usb/usbdev_trace.h>
 #include <stm32_otg.h>
+#include <debug.h>
 
 /************************************************************************************
  * Name:  stm32_usbsuspend

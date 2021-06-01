@@ -48,6 +48,8 @@
 
 #include <px4_platform_common/px4_config.h>
 #include <stdbool.h>
+#include <syslog.h>
+
 #include "systemlib/px4_macros.h"
 #include "px4_log.h"
 

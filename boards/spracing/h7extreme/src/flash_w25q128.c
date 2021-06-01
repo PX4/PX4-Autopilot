@@ -41,6 +41,7 @@
 #include "board_config.h"
 #include "qspi.h"
 #include "arm_internal.h"
+#include <debug.h>
 
 
 /************************************************************************************

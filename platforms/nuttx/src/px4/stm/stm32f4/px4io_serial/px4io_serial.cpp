@@ -36,6 +36,7 @@
  *
  * Serial interface for PX4IO on STM32F4
  */
+#include <syslog.h>
 
 #include <px4_arch/px4io_serial.h>
 
