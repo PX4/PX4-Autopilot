@@ -338,6 +338,10 @@ Sensors::~Sensors()
 		sub.unregisterCallback();
 	}
 
+  for (auto &sub : _sensor_hall_subs) {
+    sub.unregisterCallback();
+  }
+
 	_vehicle_acceleration.Stop();
 	_vehicle_angular_velocity.Stop();
 
@@ -815,6 +819,7 @@ void Sensors::Run()
 	adc_poll();
 
 	diff_pres_poll();
+	hall_poll();
 
 	if (_sensor_combined.timestamp != _sensor_combined_prev_timestamp) {
 
