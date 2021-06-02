@@ -63,6 +63,7 @@ protected:
 
 	void _generateSetpoints() override; /**< Generate setpoints along line. */
 	void _generateHeading();
+	void _checkEmergencyBraking();
 	void _updateTurningCheck();
 	bool _generateHeadingAlongTraj(); /**< Generates heading along trajectory. */
 
@@ -79,6 +80,8 @@ protected:
 
 	float _max_speed_prev{};
 	bool _is_turning{false};
+
+	bool _is_emergency_braking_active{false};
 
 	void _prepareSetpoints(); /**< Generate velocity target points for the trajectory generator. */
 	void _updateTrajConstraints();
