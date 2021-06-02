@@ -233,9 +233,9 @@
 // Was the N complementary timer output was used
 
 #if defined(S_RGB_LED_CHANNELN)
-#  define CCER_CCnxE GTIM_CCER_CC1NE
+#  define CCER_CCnxE ATIM_CCER_CC1NE
 #else
-#  define CCER_CCnxE GTIM_CCER_CC1E
+#  define CCER_CCnxE ATIM_CCER_CC1E
 #endif
 
 #if S_RGB_LED_CHANNEL == 1
