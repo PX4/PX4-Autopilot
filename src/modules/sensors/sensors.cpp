@@ -61,10 +61,13 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/airflow_aoa.h>
+#include <uORB/topics/airflow_slip.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensors_status_imu.h>
+#include <uORB/topics/sensor_hall.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_imu.h>
@@ -129,9 +132,20 @@ private:
 	uORB::Subscription _diff_pres_sub{ORB_ID(differential_pressure)};
 	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
+  uORB::Subscription _sensor_hall_subs[MAX_SENSOR_COUNT] { // could be set to ORB_MULTI_MAX_INSTANCES if needed
+	  {ORB_ID(sensor_hall), 0},
+	  {ORB_ID(sensor_hall), 1},
+	  {ORB_ID(sensor_hall), 2},
+	  {ORB_ID(sensor_hall), 3},
+  };
+
+  int _av_aoa_hall_sub_index = -1; // AoA vane index for hall effect subscription
+  int _av_slip_hall_sub_index = -1; // Slip vane index for hall effect subscription
 
 	uORB::Publication<airspeed_s>             _airspeed_pub{ORB_ID(airspeed)};
 	uORB::Publication<sensor_combined_s>      _sensor_pub{ORB_ID(sensor_combined)};
+	uORB::Publication<airflow_aoa_s>          _airflow_aoa_pub{ORB_ID(airflow_aoa)};
+	uORB::Publication<airflow_slip_s>         _airflow_slip_pub{ORB_ID(airflow_slip)};
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -156,6 +170,26 @@ private:
 		int32_t air_cmodel;
 		float air_tube_length;
 		float air_tube_diameter_mm;
+
+		int32_t CAL_AV_AOA_ID;
+		float CAL_AV_AOA_OFF;
+		float CAL_AV_AOA_MIN;
+		float CAL_AV_AOA_MAX;
+		float CAL_AV_AOA_REV;
+		float CAL_AV_AOA_P0;
+		float CAL_AV_AOA_P1;
+		float CAL_AV_AOA_P2;
+		float CAL_AV_AOA_P3;
+
+		int32_t CAL_AV_SLIP_ID;
+		float CAL_AV_SLIP_OFF;
+		float CAL_AV_SLIP_MIN;
+		float CAL_AV_SLIP_MAX;
+		float CAL_AV_SLIP_REV;
+		float CAL_AV_SLIP_P0;
+		float CAL_AV_SLIP_P1;
+		float CAL_AV_SLIP_P2;
+		float CAL_AV_SLIP_P3;
 	} _parameters{}; /**< local copies of interesting parameters */
 
 	struct ParameterHandles {
@@ -167,6 +201,26 @@ private:
 		param_t air_cmodel;
 		param_t air_tube_length;
 		param_t air_tube_diameter_mm;
+
+		param_t CAL_AV_AOA_ID;
+		param_t CAL_AV_AOA_OFF;
+		param_t CAL_AV_AOA_MIN;
+		param_t CAL_AV_AOA_MAX;
+		param_t CAL_AV_AOA_REV;
+		param_t CAL_AV_AOA_P0;
+		param_t CAL_AV_AOA_P1;
+		param_t CAL_AV_AOA_P2;
+		param_t CAL_AV_AOA_P3;
+
+		param_t CAL_AV_SLIP_ID;
+		param_t CAL_AV_SLIP_OFF;
+		param_t CAL_AV_SLIP_MIN;
+		param_t CAL_AV_SLIP_MAX;
+		param_t CAL_AV_SLIP_REV;
+		param_t CAL_AV_SLIP_P0;
+		param_t CAL_AV_SLIP_P1;
+		param_t CAL_AV_SLIP_P2;
+		param_t CAL_AV_SLIP_P3;
 	} _parameter_handles{};		/**< handles for interesting parameters */
 
 	VotedSensorsUpdate _voted_sensors_update;
@@ -205,6 +259,16 @@ private:
 	 */
 	void		adc_poll();
 
+	/**
+	 * Poll the hall effect sensor for updated data.
+	 */
+	void    hall_poll();
+
+	/**
+	 * Get the hall sensor subscription index for a given driver id.
+	 */
+	int   getHallSubIndex(const int av_driver_id);
+
 	void		InitializeVehicleAirData();
 	void		InitializeVehicleGPSPosition();
 	void		InitializeVehicleIMU();
@@ -233,6 +297,25 @@ Sensors::Sensors(bool hil_enabled) :
 	_parameter_handles.air_cmodel = param_find("CAL_AIR_CMODEL");
 	_parameter_handles.air_tube_length = param_find("CAL_AIR_TUBELEN");
 	_parameter_handles.air_tube_diameter_mm = param_find("CAL_AIR_TUBED_MM");
+	_parameter_handles.CAL_AV_AOA_ID = param_find("CAL_AV_AOA_ID");
+	_parameter_handles.CAL_AV_AOA_OFF = param_find("CAL_AV_AOA_OFF");
+	_parameter_handles.CAL_AV_AOA_MIN = param_find("CAL_AV_AOA_MIN");
+	_parameter_handles.CAL_AV_AOA_MAX = param_find("CAL_AV_AOA_MAX");
+	_parameter_handles.CAL_AV_AOA_REV = param_find("CAL_AV_AOA_REV");
+	_parameter_handles.CAL_AV_AOA_P0 = param_find("CAL_AV_AOA_P0");
+	_parameter_handles.CAL_AV_AOA_P1 = param_find("CAL_AV_AOA_P1");
+	_parameter_handles.CAL_AV_AOA_P2 = param_find("CAL_AV_AOA_P2");
+	_parameter_handles.CAL_AV_AOA_P3 = param_find("CAL_AV_AOA_P3");
+
+	_parameter_handles.CAL_AV_SLIP_ID = param_find("CAL_AV_SLIP_ID");
+	_parameter_handles.CAL_AV_SLIP_OFF = param_find("CAL_AV_SLIP_OFF");
+	_parameter_handles.CAL_AV_SLIP_MIN = param_find("CAL_AV_SLIP_MIN");
+	_parameter_handles.CAL_AV_SLIP_MAX = param_find("CAL_AV_SLIP_MAX");
+	_parameter_handles.CAL_AV_SLIP_REV = param_find("CAL_AV_SLIP_REV");
+	_parameter_handles.CAL_AV_SLIP_P0 = param_find("CAL_AV_SLIP_P0");
+	_parameter_handles.CAL_AV_SLIP_P1 = param_find("CAL_AV_SLIP_P1");
+	_parameter_handles.CAL_AV_SLIP_P2 = param_find("CAL_AV_SLIP_P2");
+	_parameter_handles.CAL_AV_SLIP_P3 = param_find("CAL_AV_SLIP_P3");
 
 	param_find("SYS_FAC_CAL_MODE");
 
@@ -306,6 +389,35 @@ int Sensors::parameters_update()
 	param_get(_parameter_handles.air_tube_length, &_parameters.air_tube_length);
 	param_get(_parameter_handles.air_tube_diameter_mm, &_parameters.air_tube_diameter_mm);
 
+	param_get(_parameter_handles.CAL_AV_AOA_ID, &_parameters.CAL_AV_AOA_ID);
+	param_get(_parameter_handles.CAL_AV_AOA_OFF, &_parameters.CAL_AV_AOA_OFF);
+	param_get(_parameter_handles.CAL_AV_AOA_MIN, &_parameters.CAL_AV_AOA_MIN);
+	param_get(_parameter_handles.CAL_AV_AOA_MAX, &_parameters.CAL_AV_AOA_MAX);
+	param_get(_parameter_handles.CAL_AV_AOA_REV, &_parameters.CAL_AV_AOA_REV);
+	int32_t temp_param{0};
+	param_get(_parameter_handles.CAL_AV_AOA_P0, &temp_param);
+	_parameters.CAL_AV_AOA_P0 = float(temp_param) * 1e-7f;
+	param_get(_parameter_handles.CAL_AV_AOA_P1, &temp_param);
+	_parameters.CAL_AV_AOA_P1 = float(temp_param) * 1e-7f;
+	param_get(_parameter_handles.CAL_AV_AOA_P2, &temp_param);
+	_parameters.CAL_AV_AOA_P2 = float(temp_param) * 1e-7f;
+	param_get(_parameter_handles.CAL_AV_AOA_P3, &temp_param);
+	_parameters.CAL_AV_AOA_P3 = float(temp_param) * 1e-7f;
+
+	param_get(_parameter_handles.CAL_AV_SLIP_ID, &_parameters.CAL_AV_SLIP_ID);
+	param_get(_parameter_handles.CAL_AV_SLIP_OFF, &_parameters.CAL_AV_SLIP_OFF);
+	param_get(_parameter_handles.CAL_AV_SLIP_MIN, &_parameters.CAL_AV_SLIP_MIN);
+	param_get(_parameter_handles.CAL_AV_SLIP_MAX, &_parameters.CAL_AV_SLIP_MAX);
+	param_get(_parameter_handles.CAL_AV_SLIP_REV, &_parameters.CAL_AV_SLIP_REV);
+	param_get(_parameter_handles.CAL_AV_SLIP_P0, &temp_param);
+	_parameters.CAL_AV_SLIP_P0 = float(temp_param) * 1e-7f;
+	param_get(_parameter_handles.CAL_AV_SLIP_P1, &temp_param);
+	_parameters.CAL_AV_SLIP_P1 = float(temp_param) * 1e-7f;
+	param_get(_parameter_handles.CAL_AV_SLIP_P2, &temp_param);
+	_parameters.CAL_AV_SLIP_P2 = float(temp_param) * 1e-7f;
+	param_get(_parameter_handles.CAL_AV_SLIP_P3, &temp_param);
+	_parameters.CAL_AV_SLIP_P3 = float(temp_param) * 1e-7f;
+
 	_voted_sensors_update.parametersUpdate();
 
 	return PX4_OK;
@@ -330,7 +442,7 @@ void Sensors::diff_pres_poll()
 		} else {
 			// differential pressure temperature invalid, check barometer
 			if ((air_data.timestamp != 0) && PX4_ISFINITE(air_data.baro_temp_celcius)
-			    && (air_data.baro_temp_celcius >= -40.f) && (air_data.baro_temp_celcius <= 125.f)) {
+                           && (air_data.baro_temp_celcius >= -40.f) && (air_data.baro_temp_celcius <= 125.f)) {
 
 				// TODO: review PCB_TEMP_ESTIMATE_DEG, ignore for external baro
 				air_temperature_celsius = air_data.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG;
@@ -368,13 +480,13 @@ void Sensors::diff_pres_poll()
 
 		/* don't risk to feed negative airspeed into the system */
 		airspeed.indicated_airspeed_m_s = calc_IAS_corrected((enum AIRSPEED_COMPENSATION_MODEL)
-						  _parameters.air_cmodel,
-						  smodel, _parameters.air_tube_length, _parameters.air_tube_diameter_mm,
-						  diff_pres.differential_pressure_filtered_pa, air_data.baro_pressure_pa,
-						  air_temperature_celsius);
+                                                 _parameters.air_cmodel,
+                                                 smodel, _parameters.air_tube_length, _parameters.air_tube_diameter_mm,
+                                                 diff_pres.differential_pressure_filtered_pa, air_data.baro_pressure_pa,
+                                                 air_temperature_celsius);
 
 		airspeed.true_airspeed_m_s = calc_TAS_from_CAS(airspeed.indicated_airspeed_m_s, air_data.baro_pressure_pa,
-					     air_temperature_celsius); // assume that CAS = IAS as we don't have an CAS-scale here
+                                            air_temperature_celsius); // assume that CAS = IAS as we don't have an CAS-scale here
 
 		airspeed.air_temperature_celsius = air_temperature_celsius;
 
@@ -473,6 +585,109 @@ void Sensors::adc_poll()
 	}
 
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
+}
+
+void Sensors::hall_poll()
+{
+	// process aoa measurements if enabled and valid
+	if ((_av_aoa_hall_sub_index >= 0) && (_av_aoa_hall_sub_index < MAX_SENSOR_COUNT)) {
+		// A hall sensor with selected driver ID for the AoA vane has been found/set
+		struct sensor_hall_s sensor_hall;
+		if (_sensor_hall_subs[_av_aoa_hall_sub_index].update(&sensor_hall)) {
+			airflow_aoa_s airflow_aoa;
+			airflow_aoa.timestamp = hrt_absolute_time();
+			airflow_aoa.valid = false;
+
+			float aoa_deg = _parameters.CAL_AV_AOA_REV * (_parameters.CAL_AV_AOA_P0
+					+ _parameters.CAL_AV_AOA_P1 * sensor_hall.mag_t
+					+ _parameters.CAL_AV_AOA_P2 * sensor_hall.mag_t * sensor_hall.mag_t
+					+ _parameters.CAL_AV_AOA_P3 * sensor_hall.mag_t * sensor_hall.mag_t * sensor_hall.mag_t);
+
+			// check if aoa measurement is in sensor/calibration range
+			if (aoa_deg > _parameters.CAL_AV_AOA_MAX) {
+				airflow_aoa.aoa_rad = math::radians(_parameters.CAL_AV_AOA_MAX);
+
+			} else if (aoa_deg >= _parameters.CAL_AV_AOA_MIN) {
+				airflow_aoa.aoa_rad = math::radians(aoa_deg - _parameters.CAL_AV_AOA_OFF);
+				airflow_aoa.valid = true;
+
+			} else {
+				airflow_aoa.aoa_rad = math::radians(_parameters.CAL_AV_AOA_MIN);
+			}
+
+			_airflow_aoa_pub.publish(airflow_aoa);
+		}
+	}
+
+
+	// process sideslip measurements if enabled and valid
+	if ((_av_slip_hall_sub_index >= 0) && (_av_slip_hall_sub_index < MAX_SENSOR_COUNT)) {
+		// A hall sensor with selected driver ID for the slip vane has been found/set
+		struct sensor_hall_s sensor_hall;
+		if (_sensor_hall_subs[_av_slip_hall_sub_index].update(&sensor_hall)) {
+			airflow_slip_s airflow_slip;
+			airflow_slip.timestamp = hrt_absolute_time();
+			airflow_slip.valid = false;
+
+			float slip_deg = _parameters.CAL_AV_SLIP_REV * (_parameters.CAL_AV_SLIP_P0
+					 + _parameters.CAL_AV_SLIP_P1 * sensor_hall.mag_t
+					 + _parameters.CAL_AV_SLIP_P2 * sensor_hall.mag_t * sensor_hall.mag_t
+					 + _parameters.CAL_AV_SLIP_P3 * sensor_hall.mag_t * sensor_hall.mag_t * sensor_hall.mag_t);
+
+			/* check if slip measurement is in sensor/calibration range */
+			if (slip_deg > _parameters.CAL_AV_SLIP_MAX) {
+				airflow_slip.slip_rad = math::radians(_parameters.CAL_AV_SLIP_MAX);
+
+			} else if (slip_deg >= _parameters.CAL_AV_SLIP_MIN) {
+				airflow_slip.slip_rad = math::radians(slip_deg - _parameters.CAL_AV_SLIP_OFF);
+				airflow_slip.valid = true;
+
+			} else {
+				airflow_slip.slip_rad = math::radians(_parameters.CAL_AV_SLIP_MIN);
+			}
+
+			_airflow_slip_pub.publish(airflow_slip);
+		}
+	}
+
+	// finding the indices needs to be done after processing the measurements since we are copying the
+	// messages and that would mess with the updated flags of the subscribers
+
+	// find the AoA hall sensor index if not set yet
+	if ((_parameters.CAL_AV_AOA_ID >= 0) && (_parameters.CAL_AV_AOA_ID < MAX_SENSOR_COUNT) &&
+			((_av_aoa_hall_sub_index < 0) || (_av_aoa_hall_sub_index >= MAX_SENSOR_COUNT))) {
+
+		_av_aoa_hall_sub_index = getHallSubIndex(_parameters.CAL_AV_AOA_ID);
+
+		if (_av_aoa_hall_sub_index >= 0) {
+			PX4_INFO("AoA vane using hall sensor with driver ID %d", _parameters.CAL_AV_AOA_ID);
+		}
+	}
+
+	// find the Slip hall sensor index if not set yet
+	if ((_parameters.CAL_AV_SLIP_ID >= 0) && (_parameters.CAL_AV_SLIP_ID < MAX_SENSOR_COUNT) &&
+			((_av_slip_hall_sub_index < 0) || (_av_slip_hall_sub_index >= MAX_SENSOR_COUNT))) {
+
+		_av_slip_hall_sub_index = getHallSubIndex(_parameters.CAL_AV_SLIP_ID);
+
+		if (_av_slip_hall_sub_index >= 0) {
+			PX4_INFO("Slip vane using hall sensor with driver ID %d", _parameters.CAL_AV_SLIP_ID);
+		}
+	}
+}
+
+int Sensors::getHallSubIndex(const int av_driver_id)
+{
+	for (unsigned i = 0; i < MAX_SENSOR_COUNT; i++) {
+		sensor_hall_s sensor_hall;
+		if (_sensor_hall_subs[i].copy(&sensor_hall)) {
+			if (sensor_hall.instance == av_driver_id) {
+				return i;
+			}
+		}
+	}
+
+	return -1;
 }
 
 void Sensors::InitializeVehicleAirData()
