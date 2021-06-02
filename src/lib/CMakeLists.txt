@@ -32,7 +32,6 @@
 ############################################################################
 
 px4_add_git_submodule(TARGET git_matrix PATH "matrix")
-px4_add_git_submodule(TARGET git_monocypher PATH "crypto/monocypher")
 
 add_subdirectory(airspeed)
 add_subdirectory(avoidance)
