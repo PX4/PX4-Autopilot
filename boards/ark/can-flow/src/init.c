@@ -60,6 +60,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
+#include <drivers/drv_watchdog.h>
 
 #include <systemlib/px4_macros.h>
 
@@ -87,6 +88,8 @@ __END_DECLS
 
 __EXPORT void stm32_boardinitialize(void)
 {
+	watchdog_init();
+
 	// Configure CAN interface
 	stm32_configgpio(GPIO_CAN1_RX);
 	stm32_configgpio(GPIO_CAN1_TX);
