@@ -141,22 +141,31 @@ void PositionControl::_positionControl()
 	// PX4_INFO("vel_sp_ff = \t%8.6f \t%8.6f \t%8.6f", (double)vel_sp_position(0), (double)vel_sp_position(1), (double)vel_sp_position(2));
 	// Vector3f pos_error_ = _pos_sp - _pos;
 	// Vector3f u_k_pos;
-	islanded = isnan(_pos_sp(0));
+
+
+	for (int i = 0; i <=2; i++)
+	{
+		if (isnan(_pos_sp(i)) && isnan(_vel_sp(i)))
+		{
+			islanded = true;
+			since_takeoff = 0;
+			break;
+		}
+		else
+		{
+			islanded = false;
+		}
+	}
 
 	z_k_r = _pos_sp - _pos;
 	u_k_r.setZero();
 
-	if (islanded)
-	{
-		xyz = 0;
-	}
-
 	if ((RCAC_Pr_ON) && (!islanded))
 	{
 		ii_Pr_R += 1;
-		xyz += 1;
+		since_takeoff += 1;
 
-		if (xyz == 1)
+		if (since_takeoff == 1)
 		{
 			init_RCAC();
 		}
@@ -547,8 +556,8 @@ void PositionControl::init_RCAC()
 	z_km1_v.setZero();
 
 	for (int i = 0; i <= 2; i++) {
-		_rcac_r(0,i) = RCAC(_rcac_r_p0);
-		_rcac_v(0,i) = RCAC(_rcac_v_p0);
+		_rcac_r(0,i) = RCAC(p0_r);
+		_rcac_v(0,i) = RCAC(p0_v);
 	}
 
 	// for (int i = 0; i <= 2; i++) {
@@ -595,8 +604,8 @@ void PositionControl::init_RCAC()
 	// P_11_r = rcac_pos_p0;
 	// P_11_vx = rcac_vel_p0;
 
-	PX4_INFO("Pos Control P0:\t%8.6f", (double)_rcac_r_p0);
-	PX4_INFO("Vel Control P0:\t%8.6f", (double)_rcac_v_p0);
+	PX4_INFO("Pos Control P0:\t%8.6f", (double)p0_r);
+	PX4_INFO("Vel Control P0:\t%8.6f", (double)p0_v);
 }
 
 void PositionControl::resetRCAC()
@@ -612,8 +621,8 @@ void PositionControl::resetRCAC()
 	z_km1_v.setZero();
 
 	for (int i = 0; i <= 2; i++) {
-		_rcac_r(0,i) = RCAC(_rcac_r_p0);
-		_rcac_v(0,i) = RCAC(_rcac_v_p0);
+		_rcac_r(0,i) = RCAC(p0_r);
+		_rcac_v(0,i) = RCAC(p0_v);
 	}
 
 	// P_vel_x = eye<float, 3>() * 0.0010;

@@ -141,7 +141,7 @@ int MulticopterPositionControl::parameters_update(bool force)
 		// initialize vectors from params and enforce constraints
 		_param_mpc_tko_speed.set(math::min(_param_mpc_tko_speed.get(), _param_mpc_z_vel_max_up.get()));
 		_param_mpc_land_speed.set(math::min(_param_mpc_land_speed.get(), _param_mpc_z_vel_max_dn.get()));
-		_control.set_RCAC_r_v_P0(_param_mpc_rcac_pos_p0.get(),_param_mpc_rcac_vel_p0.get());
+		// _control.set_RCAC_r_v_P0(_param_mpc_rcac_pos_p0.get(),_param_mpc_rcac_vel_p0.get());
 	}
 
 	// _control.resetRCAC(_param_mpc_rcac_pos_p0.get(), _param_mpc_rcac_vel_p0.get());
