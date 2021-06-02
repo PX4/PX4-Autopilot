@@ -66,3 +66,11 @@
 [submodule "Tools/simulation-ignition"]
 	path = Tools/simulation-ignition
 	url = https://github.com/Auterion/px4-simulation-ignition.git
+[submodule "src/lib/crypto/libtomcrypt"]
+	path = src/lib/crypto/libtomcrypt
+	url = https://github.com/PX4/libtomcrypt.git
+	branch = px4
+[submodule "src/lib/crypto/libtommath"]
+	path = src/lib/crypto/libtommath
+	url = https://github.com/PX4/libtommath.git
+	branch = px4
