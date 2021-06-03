@@ -429,7 +429,7 @@ void MulticopterPositionControl::Run()
 			_control.setVelocityLimits(
 				math::constrain(speed_horizontal, 0.f, _param_mpc_xy_vel_max.get()),
 				math::min(speed_up, _param_mpc_z_vel_max_up.get()), // takeoff ramp starts with negative velocity limit
-				math::constrain(speed_down, 0.f, _param_mpc_z_vel_max_dn.get()));
+				math::max(speed_down, 0.f));
 
 			_control.setInputSetpoint(_setpoint);
 
