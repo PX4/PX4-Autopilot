@@ -568,7 +568,7 @@ void RoboClaw::_parameters_update()
 		orb_set_interval(_actuatorsSub, _parameters.actuator_write_period_ms);
 	}
 
-	long baudRate;
+	int32_t baudRate;
 	param_get(_param_handles.serial_baud_rate, &baudRate);
 
 	switch (baudRate) {
