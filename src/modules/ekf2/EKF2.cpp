@@ -1856,7 +1856,10 @@ timestamps from the sensor topics.
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_FLAG('r', "Enable replay mode", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-
+#if !defined(CONSTRAINED_FLASH)
+	PRINT_MODULE_USAGE_COMMAND_DESCR("select_instance", "Request switch to new estimator instance");
+	PRINT_MODULE_USAGE_ARG("<instance>", "Specify desired estimator instance", false);
+#endif // !CONSTRAINED_FLASH
 	return 0;
 }
 
@@ -1879,6 +1882,31 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 		EKF2::unlock_module();
 		return ret;
 
+#if !defined(CONSTRAINED_FLASH)
+	} else if (strcmp(argv[1], "select_instance") == 0) {
+
+		if (EKF2::trylock_module()) {
+			if (_ekf2_selector.load()) {
+				if (argc > 2) {
+					int instance = atoi(argv[2]);
+					_ekf2_selector.load()->RequestInstance(instance);
+				} else {
+					EKF2::unlock_module();
+					return EKF2::print_usage("instance required");
+				}
+
+			} else {
+				PX4_ERR("multi-EKF not active, unable to select instance");
+			}
+
+			EKF2::unlock_module();
+
+		} else {
+			PX4_WARN("module locked, try again later");
+		}
+
+		return 0;
+#endif // !CONSTRAINED_FLASH
 	} else if (strcmp(argv[1], "status") == 0) {
 		if (EKF2::trylock_module()) {
 #if !defined(CONSTRAINED_FLASH)
