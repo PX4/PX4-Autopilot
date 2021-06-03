@@ -118,7 +118,7 @@ Mavlink::Mavlink() :
 	}
 
 	// ensure topic exists, otherwise we might lose first queued commands
-	if (!orb_exists(ORB_ID(vehicle_command), 0)) {
+	if (orb_exists(ORB_ID(vehicle_command), 0) == PX4_ERROR) {
 		orb_advertise_queue(ORB_ID(vehicle_command), nullptr, vehicle_command_s::ORB_QUEUE_LENGTH);
 	}
 
