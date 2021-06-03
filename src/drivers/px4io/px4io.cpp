@@ -1129,7 +1129,7 @@ PX4IO::task_main()
 				}
 
 				/* S.BUS output */
-				long sbus_mode;
+				int32_t sbus_mode;
 				parm_handle = param_find("PWM_SBUS_MODE");
 
 				if (parm_handle != PARAM_INVALID) {
