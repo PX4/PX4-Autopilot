@@ -435,6 +435,11 @@ void FlightTaskAutoLineSmoothVel::_updateTrajConstraints()
 		_trajectory[2].setMaxAccel(9.81f);
 		_trajectory[2].setMaxJerk(9.81f);
 
+		// If the current velocity is beyond the usual constraints, tell
+		// the controller to exceptionally increase its saturations to avoid
+		// cutting out the feedforward
+		_constraints.speed_down = math::max(fabsf(_trajectory[2].getCurrentVelocity()), _param_mpc_z_vel_max_dn.get());
+
 	} else if (_velocity_setpoint(2) < 0.f) { // up
 		float z_accel_constraint = _param_mpc_acc_up_max.get();
 		float z_vel_constraint = _param_mpc_z_vel_max_up.get();
