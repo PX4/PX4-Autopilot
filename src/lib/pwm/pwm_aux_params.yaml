@@ -89,11 +89,11 @@ parameters:
                     is a motor (900us) or a servo (1500us)
             type: int32
             unit: us
-            min: 0
+            min: -1
             max: 2150
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: 0
+            default: -1
 
         PWM_AUX_DIS${i}:
             description:
@@ -107,7 +107,7 @@ parameters:
             max: 2150
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: 0
+            default: -1
 
         PWM_AUX_TRIM${i}:
             description:
