@@ -299,9 +299,10 @@ void usage(const char *reason)
 		R"DESCR_STR(
 ### Description
 This command is used to read and write GPIOs
-
+```
 gpio read <PORT><PIN>/<DEVICE> [PULLDOWN|PULLUP] [--force]
 gpio write <PORT><PIN>/<DEVICE> <VALUE> [PUSHPULL|OPENDRAIN] [--force]
+```
 
 ### Examples
 Read the value on port H pin 4 configured as pullup, and it is high
