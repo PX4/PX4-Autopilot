@@ -262,18 +262,23 @@ bool EKF2Selector::UpdateErrorScores()
 				primary_updated = true;
 			}
 
-			const bool tilt_align = status.control_mode_flags & (1 << estimator_status_s::CS_TILT_ALIGN);
-			const bool yaw_align = status.control_mode_flags & (1 << estimator_status_s::CS_YAW_ALIGN);
-
-			float combined_test_ratio = 0;
-
-			if (tilt_align && yaw_align) {
-				combined_test_ratio = fmaxf(0.f, 0.5f * (status.vel_test_ratio + status.pos_test_ratio));
-				combined_test_ratio = fmaxf(combined_test_ratio, status.hgt_test_ratio);
+			// test ratios are invalid when 0, >= 1 is a failure
+			if (status.vel_test_ratio <= 0.f) {
+				status.vel_test_ratio = 1.f;
 			}
 
+			if (status.pos_test_ratio <= 0.f) {
+				status.pos_test_ratio = 1.f;
+			}
+
+			if (status.hgt_test_ratio <= 0.f) {
+				status.hgt_test_ratio = 1.f;
+			}
+
+			float combined_test_ratio = fmaxf(0.5f * (status.vel_test_ratio + status.pos_test_ratio), status.hgt_test_ratio);
+
 			_instance[i].combined_test_ratio = combined_test_ratio;
-			_instance[i].healthy = tilt_align && yaw_align && (status.filter_fault_flags == 0);
+			_instance[i].healthy = (status.filter_fault_flags == 0) && (combined_test_ratio > 0.f);
 			_instance[i].filter_fault = (status.filter_fault_flags != 0);
 			_instance[i].timeout = false;
 
