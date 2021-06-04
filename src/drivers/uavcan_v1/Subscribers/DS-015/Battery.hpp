@@ -49,7 +49,7 @@
 #include <reg/drone/service/battery/Parameters_0_3.h>
 #include <reg/drone/service/battery/Status_0_2.h>
 
-#include "DynamicPortSubscriber.hpp"
+#include "../DynamicPortSubscriber.hpp"
 
 #define KELVIN_OFFSET 273.15f
 #define WH_TO_JOULE   3600
@@ -61,9 +61,13 @@ public:
 		UavcanDynamicPortSubscriber(ins, pmgr, "energy_source", instance)
 	{
 		_subj_sub.next = &_status_sub;
+
 		_status_sub._subject_name = _status_name;
+		_status_sub._canard_sub.user_reference = this;
 		_status_sub.next = &_parameters_sub;
+
 		_parameters_sub._subject_name = _parameters_name;
+		_parameters_sub._canard_sub.user_reference = this;
 		_parameters_sub.next = NULL;
 	}
 
@@ -72,7 +76,7 @@ public:
 		// Subscribe to messages reg.drone.physics.electricity.SourceTs.0.1
 		canardRxSubscribe(&_canard_instance,
 				  CanardTransferKindMessage,
-				  _subj_sub._canard_sub._port_id,
+				  _subj_sub._canard_sub.port_id,
 				  reg_drone_physics_electricity_SourceTs_0_1_EXTENT_BYTES_,
 				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
 				  &_subj_sub._canard_sub);
@@ -80,7 +84,7 @@ public:
 		// Subscribe to messages reg.drone.service.battery.Status.0.2
 		canardRxSubscribe(&_canard_instance,
 				  CanardTransferKindMessage,
-				  _status_sub._canard_sub._port_id,
+				  _status_sub._canard_sub.port_id,
 				  reg_drone_service_battery_Status_0_2_EXTENT_BYTES_,
 				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
 				  &_status_sub._canard_sub);
@@ -88,7 +92,7 @@ public:
 		// Subscribe to messages reg.drone.service.battery.Parameters.0.3
 		canardRxSubscribe(&_canard_instance,
 				  CanardTransferKindMessage,
-				  _parameters_sub._canard_sub._port_id,
+				  _parameters_sub._canard_sub.port_id,
 				  reg_drone_service_battery_Parameters_0_3_EXTENT_BYTES_,
 				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
 				  &_parameters_sub._canard_sub);
@@ -98,7 +102,7 @@ public:
 	{
 		PX4_INFO("BmsCallback");
 
-		if (receive.port_id == _subj_sub._canard_sub._port_id) {
+		if (receive.port_id == _subj_sub._canard_sub.port_id) {
 			reg_drone_physics_electricity_SourceTs_0_1 source_ts {};
 			size_t source_ts_size_in_bytes = receive.payload_size;
 			reg_drone_physics_electricity_SourceTs_0_1_deserialize_(&source_ts,
@@ -123,7 +127,7 @@ public:
 			print_message(bat_status);
 
 
-		} else if (receive.port_id == _status_sub._canard_sub._port_id) {
+		} else if (receive.port_id == _status_sub._canard_sub.port_id) {
 			reg_drone_service_battery_Status_0_2 bat {};
 			size_t bat_size_in_bytes = receive.payload_size;
 			reg_drone_service_battery_Status_0_2_deserialize_(&bat, (const uint8_t *)receive.payload, &bat_size_in_bytes);
@@ -157,7 +161,7 @@ public:
 
 			bat_status.max_cell_voltage_delta = voltage_cell_max - voltage_cell_min; // Current delta or max delta over time?
 
-		} else if (receive.port_id == _parameters_sub._canard_sub._port_id) {
+		} else if (receive.port_id == _parameters_sub._canard_sub.port_id) {
 			reg_drone_service_battery_Parameters_0_3 parameters {};
 			size_t parameters_size_in_bytes = receive.payload_size;
 			reg_drone_service_battery_Parameters_0_3_deserialize_(&parameters,

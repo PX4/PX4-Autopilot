@@ -32,68 +32,82 @@
  ****************************************************************************/
 
 /**
- * @file Gnss.hpp
+ * @file Esc.hpp
  *
- * Defines basic functionality of UAVCAN v1 GNSS subscription
+ * Defines basic functionality of UAVCAN v1 ESC setpoint subscription
+ * (For use on a CAN-->PWM node)
  *
  * @author Jacob Crabill <jacob@flyvoly.com>
  */
 
 #pragma once
 
+/// For use with PR-16808 once merged
+// #include <uORB/topics/output_control.h>
+
 // DS-15 Specification Messages
-#include <reg/drone/physics/kinematics/geodetic/Point_0_1.h>
+#include <reg/drone/service/actuator/common/sp/Vector8_0_1.h>
+#include <reg/drone/service/common/Readiness_0_1.h>
 
-#include "DynamicPortSubscriber.hpp"
+#include "../DynamicPortSubscriber.hpp"
 
-class UavcanGnssSubscriber : public UavcanDynamicPortSubscriber
+class UavcanEscSubscriber : public UavcanDynamicPortSubscriber
 {
 public:
-	UavcanGnssSubscriber(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanDynamicPortSubscriber(ins, pmgr, "gps", instance) { };
+	UavcanEscSubscriber(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
+		UavcanDynamicPortSubscriber(ins, pmgr, "esc", instance) { };
 
 	void subscribe() override
 	{
-		// Subscribe to messages reg.drone.physics.kinematics.geodetic.Point.0.1
+		// Subscribe to messages reg.drone.service.actuator.common.sp.Vector8.0.1
 		canardRxSubscribe(&_canard_instance,
 				  CanardTransferKindMessage,
-				  _subj_sub._canard_sub._port_id,
-				  reg_drone_physics_kinematics_geodetic_Point_0_1_EXTENT_BYTES_,
+				  _subj_sub._canard_sub.port_id,
+				  reg_drone_service_actuator_common_sp_Vector8_0_1_EXTENT_BYTES_,
 				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
 				  &_subj_sub._canard_sub);
 
-		/** TODO: Add additional GPS-data messages: (reg.drone.service.gnss._.0.1.uavcan):
-		 * # A compliant implementation of this service should publish the following subjects:
-		 * #
-		 * #   PUBLISHED SUBJECT NAME      SUBJECT TYPE                                            TYP. RATE [Hz]
-		 * #   point_kinematics            reg.drone.physics.kinematics.geodetic.PointStateVarTs   1...100
-		 * #   time                        reg.drone.service.gnss.Time                             1...10
-		 * #   heartbeat                   reg.drone.service.gnss.Heartbeat                        ~1
-		 * #   sensor_status               reg.drone.service.sensor.Status                         ~1
-		 *
-		 * Not mentioned, but should also be included: Dilution of Precision
-		 *   (reg.drone.service.gnss.DilutionOfPrecision.0.1.uavcan)
-		 * For PX4, only the PointStateVarTs, DilutionOfPrecision, and perhaps Time would be needed
-		 * to publish 'sensor_gps'
-		 */
+		// Subscribe to messages reg.drone.service.common.Readiness.0.1
+		canardRxSubscribe(&_canard_instance,
+				  CanardTransferKindMessage,
+				  static_cast<CanardPortID>(static_cast<uint32_t>(_subj_sub._canard_sub.port_id) + 1),
+				  reg_drone_service_common_Readiness_0_1_EXTENT_BYTES_,
+				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
+				  &_canard_sub_readiness);
 	};
 
 	void callback(const CanardTransfer &receive) override
 	{
 		// Test with Yakut:
 		// export YAKUT_TRANSPORT="pyuavcan.transport.can.CANTransport(pyuavcan.transport.can.media.slcan.SLCANMedia('/dev/serial/by-id/usb-Zubax_Robotics_Zubax_Babel_23002B000E514E413431302000000000-if00', 8, 115200), 42)"
-		// yakut pub 1500.reg.drone.physics.kinematics.geodetic.Point.0.1 '{latitude: 1.234, longitude: 2.34, altitude: {meter: 0.5}}'
-		PX4_INFO("GpsCallback");
+		// yakut pub 22.reg.drone.service.actuator.common.sp.Vector8.0.1 '{value: [1000, 2000, 3000, 4000, 0, 0, 0, 0]}'
+		PX4_INFO("EscCallback");
 
-		reg_drone_physics_kinematics_geodetic_Point_0_1 geo {};
-		size_t geo_size_in_bits = receive.payload_size;
-		reg_drone_physics_kinematics_geodetic_Point_0_1_deserialize_(&geo, (const uint8_t *)receive.payload, &geo_size_in_bits);
+		reg_drone_service_actuator_common_sp_Vector8_0_1 esc {};
+		size_t esc_size_in_bits = receive.payload_size;
+		reg_drone_service_actuator_common_sp_Vector8_0_1_deserialize_(&esc, (const uint8_t *)receive.payload,
+				&esc_size_in_bits);
 
-		double lat = geo.latitude;
-		double lon = geo.longitude;
-		double alt = geo.altitude.meter;
-		PX4_INFO("Latitude: %f, Longitude: %f, Altitude: %f", lat, lon, alt);
+		double val1 = static_cast<double>(esc.value[0]);
+		double val2 = static_cast<double>(esc.value[1]);
+		double val3 = static_cast<double>(esc.value[2]);
+		double val4 = static_cast<double>(esc.value[3]);
+		PX4_INFO("values[0-3] = {%f, %f, %f, %f}", val1, val2, val3, val4);
 		/// do something with the data
+
+		/// For use with PR-16808 once merged
+		// output_control_s outputs;
+
+		// for (uint8_t i = 0; i < 8; i++) {
+		// 	outputs.value[i] = 2.f * (esc.value[i] / 8191.f) - 1.f;
+		// }
+
+		// _output_pub.publish(outputs);
 	};
 
+private:
+	/// For use with PR-16808 once merged
+	// uORB::Publication<output_control_s> _output_pub{ORB_ID(output_control_mc)};
+
+	CanardRxSubscription _canard_sub_readiness;
 };

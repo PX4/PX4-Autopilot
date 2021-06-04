@@ -76,6 +76,8 @@ px4_add_module(
 		${LIBCANARD_DIR}/libcanard/
 		${CMAKE_CURRENT_BINARY_DIR}/dsdlc_generated
 	SRCS
+		SubscriptionManager.cpp
+		SubscriptionManager.hpp
 		ParamManager.hpp
 		ParamManager.cpp
 		NodeManager.hpp
