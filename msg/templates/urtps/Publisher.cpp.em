@@ -101,13 +101,17 @@ bool @(topic)_Publisher::init(const std::string &ns)
 @[else]@
 	PParam.rtps.builtin.discovery_config.leaseDuration = c_TimeInfinite;
 @[end if]@
+@[if ros2_distro]@
+	// ROS2 default memory management policy
+	PParam.rtps.builtin.writerHistoryMemoryPolicy = PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
+@[end if]@
 	std::string nodeName = ns;
 	nodeName.append("@(topic)_publisher");
 	PParam.rtps.setName(nodeName.c_str());
 
-	// Check if ROS_LOCALHOST_ONLY is set. This means that one wants to use
-	// only the localhost network for data sharing. If FastRTPS/DDS >= 2.0
-	// then the Shared Memory transport is used
+	// Check if ROS_LOCALHOST_ONLY is set. This means that one wants to use only
+	// the localhost network for data sharing. If FastRTPS/DDS >= 2.0 and
+	// RMW_IMPLEMENTATION is FastDDS then the Shared Memory transport is used
 	const char* localhost_only = std::getenv("ROS_LOCALHOST_ONLY");
 	if (localhost_only && strcmp(localhost_only, "1") == 0) {
 		// Create a custom network UDPv4 transport descriptor
@@ -122,11 +126,16 @@ bool @(topic)_Publisher::init(const std::string &ns)
 		PParam.rtps.userTransports.push_back(localhostUdpTransport);
 
 @[if version.parse(fastrtps_version) >= version.parse('2.0')]@
-		// Add shared memory transport when available
-		auto shmTransport = std::make_shared<SharedMemTransportDescriptor>();
-		PParam.rtps.userTransports.push_back(shmTransport);
+		const char* rmw_implementation = std::getenv("RMW_IMPLEMENTATION");
+		const char* ros_distro = std::getenv("RMW_IMPLEMENTATION");
+		if (((rmw_implementation && (strcmp(rmw_implementation, "rmw_fastrtps_cpp") == 0)) || (strcmp(rmw_implementation, "rmw_fastrtps_dynamic_cpp") == 0)) ||
+		    (!rmw_implementation && strcmp(ros_distro, "foxy") == 0)) {
+			// Add shared memory transport when available
+			auto shmTransport = std::make_shared<SharedMemTransportDescriptor>();
+			PParam.rtps.userTransports.push_back(shmTransport);
+		}
 @[end if]@
-    }
+	}
 
 	mp_participant = Domain::createParticipant(PParam);
 
@@ -153,6 +162,8 @@ bool @(topic)_Publisher::init(const std::string &ns)
 	topicName.append("@(topic)_PubSubTopic");
 	Wparam.topic.topicName = topicName;
 @[    end if]@
+	// ROS2 default publish mode QoS policy
+	Wparam.qos.m_publishMode.kind = ASYNCHRONOUS_PUBLISH_MODE;
 @[else]@
 	std::string topicName = ns;
 	topicName.append("@(topic)PubSubTopic");
