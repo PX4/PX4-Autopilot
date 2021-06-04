@@ -59,6 +59,7 @@ public:
 private:
 	explicit MavlinkStreamHeartbeat(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
+	uORB::Subscription _acturator_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_status_flags_sub{ORB_ID(vehicle_status_flags)};
@@ -76,6 +77,8 @@ private:
 			vehicle_control_mode_s vehicle_control_mode{};
 			_vehicle_control_mode_sub.copy(&vehicle_control_mode);
 
+			actuator_armed_s actuator_armed{};
+			_acturator_armed_sub.copy(&actuator_armed);
 
 			// uint8_t base_mode (MAV_MODE_FLAG) - System mode bitmap.
 			uint8_t base_mode = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
@@ -123,7 +126,8 @@ private:
 			}
 
 			// system_status overrides
-			if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TERMINATION) {
+			if (actuator_armed.force_failsafe || actuator_armed.lockdown || actuator_armed.manual_lockdown
+				|| vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TERMINATION) {
 				system_status = MAV_STATE_FLIGHT_TERMINATION;
 
 			} else if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL) {
