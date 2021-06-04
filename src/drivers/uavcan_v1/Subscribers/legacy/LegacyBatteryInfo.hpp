@@ -47,7 +47,7 @@
 // Legacy message from UAVCANv0
 #include <legacy/equipment/power/BatteryInfo_1_0.h>
 
-#include "DynamicPortSubscriber.hpp"
+#include "../DynamicPortSubscriber.hpp"
 
 class UavcanLegacyBatteryInfoSubscriber : public UavcanDynamicPortSubscriber
 {
@@ -60,7 +60,7 @@ public:
 		// Subscribe to messages reg.drone.service.battery.Status.0.1
 		canardRxSubscribe(&_canard_instance,
 				  CanardTransferKindMessage,
-				  _subj_sub._canard_sub._port_id,
+				  _subj_sub._canard_sub.port_id,
 				  legacy_equipment_power_BatteryInfo_1_0_EXTENT_BYTES_,
 				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC * 100, //FIXME timeout caused by scheduler
 				  &_subj_sub._canard_sub);

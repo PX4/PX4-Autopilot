@@ -56,6 +56,12 @@ public:
 		_canard_instance(ins), _instance(instance)
 	{
 		_subj_sub._subject_name = subject_name;
+		_subj_sub._canard_sub.user_reference = this;
+	}
+
+	~UavcanBaseSubscriber()
+	{
+		unsubscribe();
 	}
 
 	virtual void subscribe() = 0;
@@ -64,7 +70,7 @@ public:
 		SubjectSubscription *curSubj = &_subj_sub;
 
 		while (curSubj != NULL) {
-			canardRxUnsubscribe(&_canard_instance, CanardTransferKindMessage, curSubj->_canard_sub._port_id);
+			canardRxUnsubscribe(&_canard_instance, CanardTransferKindMessage, curSubj->_canard_sub.port_id);
 			curSubj = curSubj->next;
 		}
 	};
@@ -78,7 +84,7 @@ public:
 
 		while (curSubj != NULL) {
 			if (instance == i) {
-				return curSubj->_canard_sub._port_id;
+				return curSubj->_canard_sub.port_id;
 			}
 
 			curSubj = curSubj->next;
@@ -93,7 +99,7 @@ public:
 		SubjectSubscription *curSubj = &_subj_sub;
 
 		while (curSubj != NULL) {
-			if (port_id == curSubj->_canard_sub._port_id) {
+			if (port_id == curSubj->_canard_sub.port_id) {
 				return true;
 			}
 
@@ -108,8 +114,8 @@ public:
 		SubjectSubscription *curSubj = &_subj_sub;
 
 		while (curSubj != NULL) {
-			if (curSubj->_canard_sub._port_id != CANARD_PORT_ID_UNSET) {
-				PX4_INFO("Subscribed %s.%d on port %d", curSubj->_subject_name, _instance, curSubj->_canard_sub._port_id);
+			if (curSubj->_canard_sub.port_id != CANARD_PORT_ID_UNSET) {
+				PX4_INFO("Subscribed %s.%d on port %d", curSubj->_subject_name, _instance, curSubj->_canard_sub.port_id);
 			}
 
 			curSubj = curSubj->next;
