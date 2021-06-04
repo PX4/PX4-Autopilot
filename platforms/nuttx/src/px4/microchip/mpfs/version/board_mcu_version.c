@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2021 Technology Innovation Institute. All rights reserved.
- *   Author: @author Jukka Laitinen <jukkax@ssrc.tii.ae>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,17 +33,40 @@
 
 /**
  * @file usr_mcu_version.c
- * Implementation of generic user-space version API
+ * Implementation of MPFS version API
  */
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
+#include <stdint.h>
 
 #include "board_config.h"
 
-static int hw_version = HW_INFO_INIT_VER;
-static int hw_revision = HW_INFO_INIT_REV;
+#define MPFS_SYS_SERVICE_CR        0x37020050
+#define MPFS_SYS_SERVICE_SR        0x37020054
+#define MPFS_SYS_SERVICE_MAILBOX   0x37020800
+#define SERVICE_CR_REQ             (1 << 0)
+#define SERVICE_SR_BUSY            (1 << 1)
+
+#define getreg8(a)                 (*(volatile uint8_t *)(a))
+#define getreg32(a)                (*(volatile uint32_t *)(a))
+#define putreg32(v,a)              (*(volatile uint32_t *)(a) = (v))
+
+#define MPFS_ICICLE                0x0
+#define SALUKI_VERSION_1	   0x1
+#define SALUKI_VERSION_2	   0x2
+// ...
+
+static int hw_version = 0;
+static int hw_revision = 0;
 static char hw_info[] = HW_INFO_INIT;
+
+static uint8_t device_serial_number[PX4_CPU_UUID_BYTE_LENGTH] = { 0 };
+
+static void read_dsn(uint8_t *retval);
+static void determine_hw(void);
+
+static const uint16_t soc_arch_id = PX4_SOC_ARCH_ID_MPFS;
 
 __EXPORT const char *board_get_hw_type_name(void)
 {
@@ -63,9 +85,9 @@ __EXPORT int board_get_hw_revision()
 
 __EXPORT void board_get_uuid32(uuid_uint32_t uuid_words)
 {
-	/* TODO: This is a stub for userspace build. Use some proper interface
-	 * to fetch the uuid32 from the kernel
-	 */
+
+	/* DEPRECATED. Use board_get_px4_guid() */
+
 	uint32_t chip_uuid[PX4_CPU_UUID_WORD32_LENGTH];
 	memset((uint8_t *)chip_uuid, 0, PX4_CPU_UUID_WORD32_LENGTH * 4);
 
@@ -76,23 +98,33 @@ __EXPORT void board_get_uuid32(uuid_uint32_t uuid_words)
 
 int board_mcu_version(char *rev, const char **revstr, const char **errata)
 {
-	/* TODO: This is a stub for userspace build. Use some proper interface
-	 * to fetch the version from the kernel
-	 */
-	const char *str = "PolarFire MPFS250T";
-	*rev = '1';
-	*revstr = str;
-	*errata = 0;
-	return 0;
+	const struct  {
+		const char *revstr;
+		char rev;
+		const char *errata;
+	} hw_version_table[] = BOARD_REVISIONS;
+
+	int len = sizeof(hw_version_table) / sizeof(hw_version_table[0]);
+
+	if (hw_version < len) {
+		*rev = hw_version_table[hw_version].rev;
+		*revstr = hw_version_table[hw_version].revstr;
+		*errata = hw_version_table[hw_version].errata;
+	}
+
+	return hw_version;
 }
 
 int board_get_px4_guid(px4_guid_t px4_guid)
 {
-	/* TODO: This is a stub for userspace build. Use some proper interface
-	 * to fetch the guid from the kernel
-	 */
-	uint8_t  *pb = (uint8_t *) &px4_guid[0];
+	uint8_t *pb = (uint8_t *) &px4_guid[0];
+
 	memset(pb, 0, PX4_GUID_BYTE_LENGTH);
+
+	*pb++ = (soc_arch_id >> 8) & 0xff;
+	*pb++ = (soc_arch_id & 0xff);
+
+	memcpy(pb, device_serial_number, PX4_CPU_UUID_BYTE_LENGTH);
 
 	return PX4_GUID_BYTE_LENGTH;
 }
@@ -132,8 +164,58 @@ int board_get_px4_guid_formated(char *format_buffer, int size)
  *   3) hw_info is populated
  *
  ************************************************************************************/
-
 int board_determine_hw_info(void)
 {
+	determine_hw();
+
+	hw_info[HW_INFO_INIT_REV] = board_get_hw_revision() + '0';
+	hw_info[HW_INFO_INIT_VER] = board_get_hw_version() + '0';
+
 	return OK;
+}
+
+void determine_hw(void)
+{
+	uint8_t pin1, pin2, pin3;
+
+	/* read device serial number */
+	read_dsn(device_serial_number);
+
+	/* determine hw version number */
+	px4_arch_configgpio(GPIO_HW_VERSION_PIN1);
+	px4_arch_configgpio(GPIO_HW_VERSION_PIN2);
+	px4_arch_configgpio(GPIO_HW_VERSION_PIN3);
+	pin1 = px4_arch_gpioread(GPIO_HW_VERSION_PIN1);
+	pin2 = px4_arch_gpioread(GPIO_HW_VERSION_PIN2);
+	pin3 = px4_arch_gpioread(GPIO_HW_VERSION_PIN3);
+
+	hw_version = (pin3 << 2) | (pin2 << 1) | pin1;
+
+}
+
+void read_dsn(uint8_t *retval)
+{
+	unsigned int reg;
+	uint8_t *serial;
+
+	serial = retval;
+
+	putreg32(SERVICE_CR_REQ, MPFS_SYS_SERVICE_CR);
+
+	/* Need to wait that request is ready and not busy anymore */
+	do {
+		reg = getreg32(MPFS_SYS_SERVICE_CR);
+	} while (SERVICE_CR_REQ == (reg & SERVICE_CR_REQ));
+
+	do {
+		reg = getreg32(MPFS_SYS_SERVICE_SR);
+	} while (SERVICE_SR_BUSY == (reg & SERVICE_SR_BUSY));
+
+	/* Read serial from service mailbox */
+	uint8_t *p = (uint8_t *)MPFS_SYS_SERVICE_MAILBOX;
+
+	for (uint8_t i = 0; i < PX4_CPU_UUID_BYTE_LENGTH; i++) {
+		p = p + i;
+		serial[i] = getreg8(p);
+	}
 }
