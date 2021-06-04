@@ -51,15 +51,20 @@
  * Definitions
  ****************************************************************************************************/
 
+#define BOARD_REVISIONS {{"PolarFire MPFS250T", '1', NULL}, \
+		{"PolarFire MPFS250T", '1', NULL}}
+
 /* Configuration ************************************************************************************/
 
 /* Saluki GPIOs ***********************************************************************************/
 
 #define BOARD_HAS_HW_VERSIONING
-// TODO: Add info for hw version detection (e.g. GPIOS) here
-#define HW_INFO_INIT         {'S','a','l','u','k','i',' ',' ',0}
-#define HW_INFO_INIT_VER     1
-#define HW_INFO_INIT_REV     0
+#define GPIO_HW_VERSION_PIN1    (GPIO_BANK2 | GPIO_PIN20 | GPIO_INPUT)
+#define GPIO_HW_VERSION_PIN2    (GPIO_BANK2 | GPIO_PIN21 | GPIO_INPUT)
+#define GPIO_HW_VERSION_PIN3    (GPIO_BANK2 | GPIO_PIN22 | GPIO_INPUT)
+#define HW_INFO_INIT            {'S','a','l','u','k','i',' ',' ','.',' ',0}
+#define HW_INFO_INIT_VER        7 // Offset in above string
+#define HW_INFO_INIT_REV        9 // Offset in above string
 
 /* LEDS */
 
