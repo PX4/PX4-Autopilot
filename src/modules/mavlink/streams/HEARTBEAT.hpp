@@ -74,7 +74,7 @@ private:
 			_vehicle_status_flags_sub.copy(&vehicle_status_flags);
 
 			vehicle_control_mode_s vehicle_control_mode{};
-			_vehicle_status_sub.copy(&vehicle_control_mode);
+			_vehicle_control_mode_sub.copy(&vehicle_control_mode);
 
 
 			// uint8_t base_mode (MAV_MODE_FLAG) - System mode bitmap.
