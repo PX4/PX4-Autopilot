@@ -39,9 +39,9 @@
 typedef struct {
 	int handle;
 	px4_crypto_algorithm_t algorithm;
-	uint8_t *nonce;
 	keystore_session_handle_t keystore_handle;
+	void *context;
 } crypto_session_handle_t;
 
 static inline void crypto_session_handle_init(crypto_session_handle_t *handle) {handle->handle = 0;}
-static inline bool crypto_session_handle_valid(crypto_session_handle_t handle) {return handle.handle > 0;}
+static inline bool crypto_session_handle_valid(crypto_session_handle_t handle) {return handle.handle > 0 && keystore_session_handle_valid(handle.keystore_handle);}
