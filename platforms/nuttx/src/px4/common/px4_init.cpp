@@ -52,6 +52,10 @@
 # include <nuttx/i2c/i2c_master.h>
 #endif // CONFIG_I2C
 
+#if defined(PX4_CRYPTO)
+#include <px4_platform_common/crypto.h>
+#endif
+
 int px4_platform_init()
 {
 
@@ -69,6 +73,10 @@ int px4_platform_init()
 		// keep stderr(2) untouched: the buffered console will use it to output to the original console
 		close(fd_buf);
 	}
+
+#if defined(PX4_CRYPTO)
+	PX4Crypto::px4_crypto_init();
+#endif
 
 	hrt_init();
 
