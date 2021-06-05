@@ -32,9 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file srxl.h
- *
- * RC protocol definition for Spektrum SRXL
+ * Serial protocol definition for Spektrum SRXL
  *
  * @author Kurt Kiefer <kekiefer@gmail.com>
  * @author Daniel Williams <equipoise@gmail.com>
