@@ -1033,6 +1033,32 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		}
 		break;
 
+	case vehicle_command_s::VEHICLE_CMD_DO_SET_ACTUATOR: {
+
+			if (cmd.param7 > 0) {
+				// Param 7 doesn't make any sense if non-zero
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+				break;
+			}
+
+			output_control_s controls {};
+			controls.timestamp = hrt_absolute_time();
+
+			controls.value[0] = cmd.param1;
+			controls.value[1] = cmd.param2;
+			controls.value[2] = cmd.param3;
+			controls.value[3] = cmd.param4;
+			controls.value[4] = cmd.param5;
+			controls.value[5] = cmd.param6;
+			controls.value[6] = NAN;
+			controls.value[7] = NAN;
+
+			_output_control_pub.publish(controls);
+
+			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+		}
+		break;
+
 	case vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH: {
 			/* switch to RTL which ends the mission */
 			if (TRANSITION_CHANGED == main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_RTL, _status_flags,
@@ -4147,14 +4173,11 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_COMMAND("pair");
 	PRINT_MODULE_USAGE_COMMAND("lockdown");
 	PRINT_MODULE_USAGE_ARG("off", "Turn lockdown off", true);
-<<<<<<< HEAD
 	PRINT_MODULE_USAGE_COMMAND("set_ekf_origin");
 	PRINT_MODULE_USAGE_ARG("lat, lon, alt", "Origin Latitude, Longitude, Altitude", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("lat|lon|alt", "Origin latitude longitude altitude");
-=======
 	PRINT_MODULE_USAGE_COMMAND_DESCR("servo", "Command a MAVLink servo");
 	PRINT_MODULE_USAGE_ARG("{id} {value}", "Set servo {id} to a normalized {value} in range [-1,1]", false);
->>>>>>> Commander: Add "servo" arg to control MAVLink servo
 #endif
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
