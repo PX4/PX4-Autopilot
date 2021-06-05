@@ -8,7 +8,7 @@ add_definitions(
 
 set(uavcanblid_hw_version_major 3)
 set(uavcanblid_hw_version_minor 236)
-set(uavcanblid_name "\"org.ardupilot.mro_f303\"")
+set(uavcanblid_name "\"org.ardupilot.mro_fX03\"")
 
 add_definitions(
 	-DHW_UAVCAN_NAME=${uavcanblid_name}
