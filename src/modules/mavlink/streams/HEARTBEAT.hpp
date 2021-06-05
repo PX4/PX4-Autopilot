@@ -127,7 +127,7 @@ private:
 
 			// system_status overrides
 			if (actuator_armed.force_failsafe || actuator_armed.lockdown || actuator_armed.manual_lockdown
-				|| vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TERMINATION) {
+			    || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TERMINATION) {
 				system_status = MAV_STATE_FLIGHT_TERMINATION;
 
 			} else if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL) {
