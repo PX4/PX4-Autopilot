@@ -999,6 +999,29 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		}
 		break;
 
+	case vehicle_command_s::VEHICLE_CMD_DO_SET_SERVO: {
+			output_control_s controls {};
+
+			// Initialize all values to NAN [denotes 'not set']
+			for (unsigned i = 0; i < output_control_s::MAX_ACTUATORS; i++) {
+				controls.value[i] = NAN;
+			}
+
+			controls.timestamp = hrt_absolute_time();
+			int index = cmd.param1;
+
+			if (index >= 0 && index < output_control_s::MAX_ACTUATORS) {
+				controls.value[index] = cmd.param2;
+
+				_output_control_pub.publish(controls);
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+			} else {
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+			}
+		}
+		break;
+
 	case vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH: {
 			/* switch to RTL which ends the mission */
 			if (TRANSITION_CHANGED == main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_RTL, _status_flags,
