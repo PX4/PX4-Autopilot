@@ -33,6 +33,9 @@ typedef struct {
 	void *IrqCallbackData;
 
 	struct spi_dev_s *spidev;
+	uint8_t *spi_tx_data;
+	uint8_t *spi_rx_data;
+	size_t spi_frame_size;
 
 	/*! The mapping of the GPIO blocks and pins for this device. */
 	const uint32_t GPIOs[ S2PI_IRQ + 1 ];
@@ -46,6 +49,9 @@ s2pi_handle_t s2pi_ = { .GPIOs = { [ S2PI_CLK ]  = GPIO_SPI2_AFBR_CLK,
 				   [ S2PI_IRQ ]  = GPIO_SPI2_AFBR_IRQ_N
 				 }
 		      };
+
+static struct work_s broadcom_s2pi_transfer_work = {};
+static struct work_s broadcom_s2pi_transfer_finished_work = {};
 
 /*!***************************************************************************
 * @brief Initialize the S2PI module.
@@ -292,17 +298,10 @@ status_t S2PI_CycleCsPin(s2pi_slave_t slave)
 * was not started.
 *****************************************************************************/
 
-static struct work_s broadcom_s2pi_transfer_work = {};
-static struct work_s broadcom_s2pi_transfer_finished_work = {};
-
-static uint8_t *broadcom_txData = NULL;
-static uint8_t *broadcom_rxData = NULL;
-static size_t broadcom_framesize = 0;
-
 static void broadcom_s2pi_transfer_callout(void *arg)
 {
 	px4_arch_gpiowrite(s2pi_.GPIOs[S2PI_CS], 0);
-	SPI_EXCHANGE(s2pi_.spidev, broadcom_txData, broadcom_rxData, broadcom_framesize);
+	SPI_EXCHANGE(s2pi_.spidev, s2pi_.spi_tx_data, s2pi_.spi_rx_data, s2pi_.spi_frame_size);
 	s2pi_.Status = STATUS_IDLE;
 	px4_arch_gpiowrite(s2pi_.GPIOs[S2PI_CS], 1);
 
@@ -341,9 +340,10 @@ status_t S2PI_TransferFrame(s2pi_slave_t spi_slave, uint8_t const *txData, uint8
 	/* Set the callback information */
 	s2pi_.Callback = callback;
 	s2pi_.CallbackData = callbackData;
-	broadcom_txData = (uint8_t *)txData;
-	broadcom_rxData = rxData;
-	broadcom_framesize = frameSize;
+
+	s2pi_.spi_tx_data = (uint8_t *)txData;
+	s2pi_.spi_rx_data = rxData;
+	s2pi_.spi_frame_size = frameSize;
 	work_queue(HPWORK, &broadcom_s2pi_transfer_work, broadcom_s2pi_transfer_callout, NULL, 0);
 
 	IRQ_UNLOCK();

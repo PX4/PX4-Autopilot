@@ -73,7 +73,6 @@ private:
 
 	enum class STATE : uint8_t {
 		CONFIGURE,
-		MEASURE,
 		COLLECT,
 	} _state{STATE::CONFIGURE};
 

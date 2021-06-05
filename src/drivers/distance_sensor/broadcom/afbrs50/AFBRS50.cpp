@@ -36,9 +36,6 @@
 
 #include <lib/drivers/device/Device.hpp>
 
-#define AFBRS50_FIELD_OF_VIEW        (0.105f) // 6 deg cone angle.
-#define AFBRS50_MAX_DISTANCE         30.0f
-#define AFBRS50_MIN_DISTANCE         0.01f
 #define AFBRS50_MEASURE_INTERVAL     (1000000 / 100) // 10Hz
 
 /*! Define the SPI slave (to be used in the SPI module). */
@@ -53,24 +50,15 @@ static argus_hnd_t *_hnd{nullptr};
 static volatile void *_myData{nullptr};
 
 AFBRS50::AFBRS50(uint8_t device_orientation):
-	ScheduledWorkItem(MODULE_NAME, px4::ins_instance_to_wq(0)),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 	_px4_rangefinder(0, device_orientation)
 {
-	device::Device::DeviceId device_id;
+	device::Device::DeviceId device_id{};
 	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SPI;
-
-	uint8_t bus_num = 0;
-
-	if (bus_num < 10) {
-		device_id.devid_s.bus = bus_num;
-	}
+	device_id.devid_s.bus = SPI_SLAVE;
+	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_AFBRS50;
 
 	_px4_rangefinder.set_device_id(device_id.devid);
-	_px4_rangefinder.set_device_type(DRV_DIST_DEVTYPE_AFBRS50);
-
-	_px4_rangefinder.set_max_distance(AFBRS50_MAX_DISTANCE);
-	_px4_rangefinder.set_min_distance(AFBRS50_MIN_DISTANCE);
-	_px4_rangefinder.set_fov(AFBRS50_FIELD_OF_VIEW);
 }
 
 AFBRS50::~AFBRS50()
@@ -123,63 +111,77 @@ int AFBRS50::init()
 		return PX4_ERROR;
 	}
 
-	// Schedule the driver at regular intervals.
-	ScheduleOnInterval(AFBRS50_MEASURE_INTERVAL, AFBRS50_MEASURE_INTERVAL);
+	uint32_t value = Argus_GetAPIVersion();
+	PX4_INFO_RAW("AFBR API Version %d\n", value);
+
+	uint8_t a = (value >> 24) & 0xFFU;
+	uint8_t b = (value >> 16) & 0xFFU;
+	uint8_t c = value & 0xFFFFU;
+	PX4_INFO_RAW("AFBR API Version: v%d.%d.%d\n", a, b, c);
+
+	uint32_t id = Argus_GetChipID(_hnd);
+	PX4_INFO_RAW("Chip ID: %d\n", id);
+
+	argus_module_version_t mv = Argus_GetModuleVersion(_hnd);
+
+	switch (mv) {
+	case AFBR_S50MV85G_V1:
+
+	// FALLTHROUGH
+	case AFBR_S50MV85G_V2:
+
+	// FALLTHROUGH
+	case AFBR_S50MV85G_V3:
+		_px4_rangefinder.set_min_distance(0.08f);
+		_px4_rangefinder.set_max_distance(10.f);
+		_px4_rangefinder.set_fov(math::radians(6.f));
+		PX4_INFO_RAW("AFBR-S50MV85G\n");
+		break;
+
+	case AFBR_S50LV85D_V1:
+		_px4_rangefinder.set_min_distance(0.08f);
+		_px4_rangefinder.set_max_distance(30.f);
+		_px4_rangefinder.set_fov(math::radians(6.f));
+		PX4_INFO_RAW("AFBR-S50LV85D (v1)\n");
+		break;
+
+	case AFBR_S50MV68B_V1:
+		_px4_rangefinder.set_min_distance(0.08f);
+		_px4_rangefinder.set_max_distance(10.f);
+		_px4_rangefinder.set_fov(math::radians(1.f));
+		PX4_INFO_RAW("AFBR-S50MV68B (v1)\n");
+		break;
+
+	case AFBR_S50MV85I_V1:
+		_px4_rangefinder.set_min_distance(0.08f);
+		_px4_rangefinder.set_max_distance(5.f);
+		_px4_rangefinder.set_fov(math::radians(6.f));
+		PX4_INFO_RAW("AFBR-S50MV85I (v1)\n");
+		break;
+
+	case AFBR_S50SV85K_V1:
+		_px4_rangefinder.set_min_distance(0.08f);
+		_px4_rangefinder.set_max_distance(10.f);
+		_px4_rangefinder.set_fov(math::radians(4.f));
+		PX4_INFO_RAW("AFBR-S50SV85K (v1)\n");
+		break;
+
+	default:
+		break;
+	}
+
+	ScheduleDelayed(AFBRS50_MEASURE_INTERVAL);
 
 	return PX4_OK;
 }
 
 void AFBRS50::Run()
 {
+	// backup schedule
+	ScheduleDelayed(100_ms);
+
 	switch (_state) {
 	case STATE::CONFIGURE: {
-			uint32_t value = Argus_GetAPIVersion();
-			PX4_INFO_RAW("AFBR API Version %d\n", value);
-
-			uint8_t a = (value >> 24) & 0xFFU;
-			uint8_t b = (value >> 16) & 0xFFU;
-			uint8_t c = value & 0xFFFFU;
-			PX4_INFO_RAW("AFBR API Version: v%d.%d.%d\n", a, b, c);
-
-			uint32_t id = Argus_GetChipID(_hnd);
-			PX4_INFO_RAW("Chip ID: %d\n", id);
-
-			argus_module_version_t mv = Argus_GetModuleVersion(_hnd);
-
-			switch (mv) {
-			case AFBR_S50MV85G_V1:
-				PX4_INFO_RAW("AFBR-S50MV85G (v1)\n");
-				break;
-
-			case AFBR_S50MV85G_V2:
-				PX4_INFO_RAW("AFBR-S50MV85G (v2)\n");
-				break;
-
-			case AFBR_S50MV85G_V3:
-				PX4_INFO_RAW("AFBR-S50MV85G (v3)\n");
-				break;
-
-			case AFBR_S50LV85D_V1:
-				PX4_INFO_RAW("AFBR-S50LV85D (v1)\n");
-				break;
-
-			case AFBR_S50MV68B_V1:
-				PX4_INFO_RAW("AFBR-S50MV68B (v1)\n");
-				break;
-
-			case AFBR_S50MV85I_V1:
-				PX4_INFO_RAW("AFBR-S50MV85I (v1)\n");
-				break;
-
-			case AFBR_S50SV85K_V1:
-				PX4_INFO_RAW("AFBR-S50SV85K (v1)\n");
-				break;
-
-			default:
-				//"unknown";
-				break;
-			}
-
 			Argus_SetConfigurationFrameTime(_hnd, AFBRS50_MEASURE_INTERVAL);
 
 			status_t status = Argus_StartMeasurementTimer(_hnd, measurement_ready_callback);
@@ -208,27 +210,24 @@ void AFBRS50::Run()
 
 				if (status == STATUS_OK) {
 					if (res.Status == 0) {
-						float result = res.Bin.Range / (Q9_22_ONE / 1000);
-						result = result / 1000.0f;
-
-						//fprintf(stderr, "result = %.3f m\n", (double)result);
-
-						_px4_rangefinder.update(((res.TimeStamp.sec * 1000000ULL) + res.TimeStamp.usec), result);
+						uint32_t result_mm = res.Bin.Range / (Q9_22_ONE / 1000);
+						float result_m = static_cast<float>(result_mm) / 1000.f;
+						_px4_rangefinder.update(((res.TimeStamp.sec * 1000000ULL) + res.TimeStamp.usec), result_m);
 					}
 
 					_state = STATE::COLLECT;
-					ScheduleDelayed(1_ms);
+					ScheduleDelayed(AFBRS50_MEASURE_INTERVAL);
 					break;
 
 				} else {
 					// check again
-					ScheduleDelayed(1_ms);
+					ScheduleDelayed(10_ms);
 				}
 
 			} else {
 				// retry
 				_state = STATE::COLLECT;
-				ScheduleDelayed(1_ms);
+				ScheduleDelayed(10_ms);
 			}
 		}
 		break;
