@@ -1,0 +1,180 @@
+__max_num_config_instances: &max_num_config_instances 16
+
+module_name: uavcan_v1
+
+parameters:
+    - group: UAVCAN
+      definitions:
+
+        # UCAN1_ACT_RATE:
+        #     description:
+        #         short: UAVCAN v1 actuator output frequency
+        #     type: int32
+        #     unit: Hz
+        #     min: -1
+        #     max: 400
+        #     default: 100
+
+        UCAN1_ACT_MIN:
+            description:
+                short: UAVCAN v1 actuator minimum value
+                long: |
+                    Set to 1000 for industry default or 900 to increase servo travel.
+            type: int32
+            unit: us
+            min: 0
+            max: 8191
+            default: 1000
+
+        UCAN1_ACT_MAX:
+            description:
+                short: UAVCAN v1 actuator maximum value
+                long: |
+                    Set to 2000 for industry default or 2100 to increase servo travel.
+            type: int32
+            unit: us
+            min: 1600
+            max: 8191
+            default: 2000
+
+        UCAN1_ACT_DISARM:
+            description:
+                short: UAVCAN v1 actuator disarmed value
+                long: |
+                    This is the PWM pulse the autopilot is outputting if not armed.
+                    The main use of this parameter is to silence ESCs when they are disarmed.
+            type: int32
+            unit: us
+            min: 0
+            max: 8191
+            default: 900
+
+        UCAN1_ACT_FUNC${i}:
+            description:
+                short: UAVCAN v1 actuator ${i} output function
+                long: |
+                    This is the function to be output on each pin
+            type: enum
+            values:
+                0: None/Disabled
+                1: Mixer file output (default)
+                100: MAVLink-controlled servo 0
+                101: MAVLink-controlled servo 1
+                102: MAVLink-controlled servo 2
+                103: MAVLink-controlled servo 3
+                104: MAVLink-controlled servo 4
+                105: MAVLink-controlled servo 5
+                106: MAVLink-controlled servo 6
+                107: MAVLink-controlled servo 7
+                1000: Control Allocator output 0
+                1001: Control Allocator output 1
+                1002: Control Allocator output 2
+                1003: Control Allocator output 3
+                1004: Control Allocator output 4
+                1005: Control Allocator output 5
+                1006: Control Allocator output 6
+                1007: Control Allocator output 7
+                1008: Control Allocator output 8
+                1009: Control Allocator output 9
+                1010: Control Allocator output 10
+                1011: Control Allocator output 11
+                1012: Control Allocator output 12
+                1013: Control Allocator output 13
+                1014: Control Allocator output 14
+                1015: Control Allocator output 15
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: 1
+
+        UCAN1_ACT_MIN${i}:
+            description:
+                short: UAVCAN v1 actuator ${i} minimum value
+                long: |
+                    This is the minimum PWM pulse the autopilot is allowed to output.
+                    When set to -1 the value for PWM_MIN will be used
+            type: int32
+            unit: us
+            min: -1
+            max: 8191
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: -1
+
+        UCAN1_ACT_MAX${i}:
+            description:
+                short: UAVCAN v1 actuator ${i} maximum value
+                long: |
+                    This is the maximum PWM pulse the autopilot is allowed to output.
+                    When set to -1 the value for PWM_MAX will be used
+            type: int32
+            unit: us
+            min: -1
+            max: 8191
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: -1
+
+        UCAN1_ACT_FAIL${i}:
+            description:
+                short: UAVCAN v1 actuator ${i} failsafe value
+                long: |
+                    This is the PWM pulse the autopilot is outputting if in failsafe mode.
+                    When set to -1 the value is set automatically depending if the actuator
+                    is a motor (900us) or a servo (1500us)
+            type: int32
+            unit: us
+            min: 0
+            max: 8191
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: 0
+
+        UCAN1_ACT_DIS${i}:
+            description:
+                short: UAVCAN v1 actuator ${i} disarmed value
+                long: |
+                    This is the PWM pulse the autopilot is outputting if not armed.
+                    When set to -1 the value for PWM_DISARMED will be used
+            type: int32
+            unit: us
+            min: -1
+            max: 8191
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: -1
+
+        UCAN1_ACT_TRIM${i}:
+            description:
+                short: UAVCAN v1 actuator ${i} trim value
+                long: |
+                    Set to normalized offset
+            type: float
+            min: -0.2
+            max:  0.2
+            decimal: 2
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: 0
+
+        UCAN1_ACT_REV${i}:
+            description:
+                short: UAVCAN v1 actuator ${i} reverse value
+                long: |
+                    Enable to invert the channel.
+                    Warning: Use this parameter when connected to a servo only.
+                    For a brushless motor, invert manually two phases to reverse the direction.
+            type: boolean
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: 0
+
+        # UCAN1_ACT_RATE${i}:
+        #     description:
+        #         short: UAVCAN v1 actuator ${i} rate
+        #     type: int32
+        #     unit: Hz
+        #     min: 0
+        #     max: 400
+        #     instance_start: 1
+        #     default: 50

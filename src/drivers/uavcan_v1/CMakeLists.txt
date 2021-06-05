@@ -95,3 +95,5 @@ px4_add_module(
 		git_legacy_data_types
 		version
 	)
+
+set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/uavcan_v1_act_params.yaml)
