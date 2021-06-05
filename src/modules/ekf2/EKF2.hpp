@@ -176,8 +176,15 @@ private:
 
 	perf_counter_t _ecl_ekf_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL update")};
 	perf_counter_t _ecl_ekf_update_full_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL full update")};
-	perf_counter_t _imu_missed_perf{perf_alloc(PC_COUNT, MODULE_NAME": IMU message missed")};
-	perf_counter_t _mag_missed_perf{perf_alloc(PC_COUNT, MODULE_NAME": mag message missed")};
+	perf_counter_t _msg_missed_imu_perf{perf_alloc(PC_COUNT, MODULE_NAME": IMU message missed")};
+	perf_counter_t _msg_missed_air_data_perf{nullptr};
+	perf_counter_t _msg_missed_airspeed_perf{nullptr};
+	perf_counter_t _msg_missed_distance_sensor_perf{nullptr};
+	perf_counter_t _msg_missed_gps_perf{nullptr};
+	perf_counter_t _msg_missed_landing_target_pose_perf{nullptr};
+	perf_counter_t _msg_missed_magnetometer_perf{nullptr};
+	perf_counter_t _msg_missed_odometry_perf{nullptr};
+	perf_counter_t _msg_missed_optical_flow_perf{nullptr};
 
 	// Used to check, save and use learned magnetometer biases
 	hrt_abstime _mag_cal_last_us{0};	///< last time the EKF was operating a mode that estimates magnetomer biases (uSec)
