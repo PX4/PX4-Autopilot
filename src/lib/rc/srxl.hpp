@@ -42,12 +42,8 @@
 
 #pragma once
 
-// "Cannot find the standard library!?"
-// #include <array>
-
 #include <cstdint>
 #include <px4_platform_common/defines.h>
-// #include <px4_platform_common/px4_config.h>
 
 class SRXLCodec
 {
@@ -175,6 +171,7 @@ private:
 	// id of the paired spektrum receiver
 	uint8_t _receiver_id = 0;
 	uint8_t _receiver_bind_type = 0;  // 0 == not bound
+
 	// Options: A byte with 3 RF enable bits:
 	//	bit 0:	enable Telemetry transmission over RF for the device
 	//	bit 1:	allow Bind reply over RF
