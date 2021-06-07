@@ -145,7 +145,7 @@ void PositionControl::_positionControl()
 
 	for (int i = 0; i <=2; i++)
 	{
-		if (isnan(_pos_sp(i)) && isnan(_vel_sp(i)))
+		if (isnan(_pos_sp(i)) || isnan(_vel_sp(i)))
 		{
 			islanded = true;
 			since_takeoff = 0;
@@ -162,10 +162,7 @@ void PositionControl::_positionControl()
 
 	if ((RCAC_Pr_ON) && (!islanded))
 	{
-		ii_Pr_R += 1;
-		since_takeoff += 1;
-
-		if (since_takeoff == 1)
+		if (since_takeoff == 0)
 		{
 			init_RCAC();
 		}
@@ -175,6 +172,9 @@ void PositionControl::_positionControl()
 			u_k_r(i) = _rcac_r(0,i).compute_uk(z_k_r(i), 0, 0, u_km1_r(i));
 		}
 		u_km1_r = u_k_r;
+
+		ii_Pr_R++;
+		since_takeoff++;
 	}
 
 	// for (int i = 0; i <= 2; i++) {
@@ -405,7 +405,7 @@ const matrix::Vector3f PositionControl::get_RCAC_pos_z()
 
 	for (int i = 0; i <= 2; i++) {
 		// RCAC_z(i) = z_k_Pr_R(i,0);			// spjohn -- sub in rcac class
-		RCAC_z(i) = _rcac_r(0,i).get_rcac_Phi(0);
+		RCAC_z(i) = _rcac_r(0,i).get_rcac_zk();
 	}
 
 	return RCAC_z;
@@ -472,7 +472,7 @@ const matrix::Vector3f PositionControl::get_RCAC_vel_z()
 
 	for (int i = 0; i <= 2; i++) {
 		// RCAC_z(i) = z_k_vel(i); //z_k_Pv_R(i,0);	// spjohn -- sub in rcac class
-		RCAC_z(i) = _rcac_v(0,i).get_rcac_Phi(0);
+		RCAC_z(i) = _rcac_v(0,i).get_rcac_zk();
 	}
 
 	return RCAC_z;
@@ -512,7 +512,7 @@ const matrix::Matrix<float, 9,1> PositionControl::get_RCAC_vel_theta()
 
 void PositionControl::set_RCAC_pos_switch(float switch_RCAC)
 {
-	RCAC_Pr_ON = 1;
+	// RCAC_Pr_ON = 1;
 	if (switch_RCAC<0.0f) {
 		RCAC_Pr_ON = 0;
 	}
@@ -520,7 +520,7 @@ void PositionControl::set_RCAC_pos_switch(float switch_RCAC)
 
 void PositionControl::set_RCAC_vel_switch(float switch_RCAC)
 {
-	RCAC_Pv_ON = 1;
+	// RCAC_Pv_ON = 1;
 	if (switch_RCAC<0.0f) {
 		RCAC_Pv_ON = 0;
 	}
@@ -528,8 +528,8 @@ void PositionControl::set_RCAC_vel_switch(float switch_RCAC)
 
 void PositionControl::set_PID_pv_factor(float PID_factor, float pos_alpha, float vel_alpha)
 {
-	alpha_PID_pos = 1.0f;
-	alpha_PID_vel = 1.0f;
+	// alpha_PID_pos = 1.0f;
+	// alpha_PID_vel = 1.0f;
 	//alpha_PID = 1.0f;
 
 	if (PID_factor<0.0f) {
