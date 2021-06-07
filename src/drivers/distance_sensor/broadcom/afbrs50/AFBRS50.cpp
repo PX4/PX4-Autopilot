@@ -71,6 +71,10 @@ AFBRS50::~AFBRS50()
 
 static status_t measurement_ready_callback(status_t status, void *data)
 {
+	if (up_interrupt_context()) {
+		fprintf(stderr, "measurement_ready_callback is interrupt context");
+	}
+
 	if (status != STATUS_OK) {
 		/* Error Handling ...*/
 		_myData = nullptr;

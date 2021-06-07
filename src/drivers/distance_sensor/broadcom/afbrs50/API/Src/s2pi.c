@@ -42,11 +42,11 @@ typedef struct {
 }
 s2pi_handle_t;
 
-s2pi_handle_t s2pi_ = { .GPIOs = { [ S2PI_CLK ]  = GPIO_SPI2_AFBR_CLK,
-				   [ S2PI_CS ]   = GPIO_SPI2_AFBR_CS_N,
-				   [ S2PI_MOSI ] = GPIO_SPI2_AFBR_MOSI,
-				   [ S2PI_MISO ] = GPIO_SPI2_AFBR_MISO,
-				   [ S2PI_IRQ ]  = GPIO_SPI2_AFBR_IRQ_N
+s2pi_handle_t s2pi_ = { .GPIOs = { [ S2PI_CLK ]  = BROADCOM_AFBR_S50_S2PI_CLK,
+				   [ S2PI_CS ]   = BROADCOM_AFBR_S50_S2PI_CS,
+				   [ S2PI_MOSI ] = BROADCOM_AFBR_S50_S2PI_MOSI,
+				   [ S2PI_MISO ] = BROADCOM_AFBR_S50_S2PI_MISO,
+				   [ S2PI_IRQ ]  = BROADCOM_AFBR_S50_S2PI_IRQ
 				 }
 		      };
 
@@ -78,12 +78,12 @@ static int gpio_falling_edge(int irq, void *context, void *arg)
 
 status_t S2PI_Init(s2pi_slave_t defaultSlave, uint32_t baudRate_Bps)
 {
-	px4_arch_configgpio(GPIO_SPI2_AFBR_CS_N);
-	px4_arch_gpiowrite(s2pi_.GPIOs[S2PI_CS], 1);
-	s2pi_.spidev = px4_spibus_initialize(2);
+	px4_arch_configgpio(BROADCOM_AFBR_S50_S2PI_CS);
 
-	px4_arch_configgpio(GPIO_SPI2_AFBR_IRQ_N);
-	px4_arch_gpiosetevent(GPIO_SPI2_AFBR_IRQ_N, false, true, false, &gpio_falling_edge, NULL);
+	s2pi_.spidev = px4_spibus_initialize(BROADCOM_AFBR_S50_S2PI_SPI_BUS);
+
+	px4_arch_configgpio(BROADCOM_AFBR_S50_S2PI_IRQ);
+	px4_arch_gpiosetevent(BROADCOM_AFBR_S50_S2PI_IRQ, false, true, false, &gpio_falling_edge, NULL);
 
 	return S2PI_SetBaudRate(baudRate_Bps);
 }
@@ -138,13 +138,10 @@ status_t S2PI_CaptureGpioControl(void)
 	s2pi_.Status = STATUS_S2PI_GPIO_MODE;
 	IRQ_UNLOCK();
 
-	/* Note: Clock must be HI after capturing */
-	px4_arch_gpiowrite(GPIO_SPI2_AFBR_CLK, 1);
-
 	// GPIO mode (output push pull)
-	px4_arch_configgpio(GPIO_SPI2_AFBR_CLK);
-	px4_arch_configgpio(GPIO_SPI2_AFBR_MOSI);
-	px4_arch_configgpio(GPIO_SPI2_AFBR_MISO);
+	px4_arch_configgpio(PX4_MAKE_GPIO_OUTPUT_SET(s2pi_.GPIOs[S2PI_CLK]));
+	px4_arch_configgpio(PX4_MAKE_GPIO_OUTPUT_SET(s2pi_.GPIOs[S2PI_MISO]));
+	px4_arch_configgpio(PX4_MAKE_GPIO_OUTPUT_SET(s2pi_.GPIOs[S2PI_MOSI]));
 
 	return STATUS_OK;
 }
@@ -171,12 +168,12 @@ status_t S2PI_ReleaseGpioControl(void)
 	IRQ_UNLOCK();
 
 	// SPI alternate
-	stm32_configgpio(GPIO_SPI2_SCK);
-	stm32_configgpio(GPIO_SPI2_MISO);
-	stm32_configgpio(GPIO_SPI2_MOSI);
+	stm32_configgpio(s2pi_.GPIOs[S2PI_CLK]);
+	stm32_configgpio(s2pi_.GPIOs[S2PI_MISO]);
+	stm32_configgpio(s2pi_.GPIOs[S2PI_MOSI]);
 
 	// probably not necessary
-	stm32_spibus_initialize(2);
+	stm32_spibus_initialize(BROADCOM_AFBR_S50_S2PI_SPI_BUS);
 
 	return STATUS_OK;
 }
