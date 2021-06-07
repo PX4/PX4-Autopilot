@@ -147,6 +147,10 @@ Mavlink::~Mavlink()
 		} while (_task_running);
 	}
 
+	if (_instance_id >= 0) {
+		mavlink_module_instances[_instance_id] = nullptr;
+	}
+
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
 	perf_free(_send_byte_error_perf);
@@ -2545,6 +2549,8 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	pthread_mutex_destroy(&_send_mutex);
+
+	_task_running = false;
 
 	PX4_INFO("exiting channel %i", (int)_channel);
 
