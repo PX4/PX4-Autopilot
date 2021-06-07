@@ -34,6 +34,7 @@
 #ifndef HEARTBEAT_HPP
 #define HEARTBEAT_HPP
 
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
