@@ -217,7 +217,6 @@ private:
 
 	uORB::Subscription _airdata_sub{ORB_ID(vehicle_air_data)};
 	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
-	uORB::Subscription _distance_sensor_sub{ORB_ID(distance_sensor)};
 	uORB::Subscription _ev_odom_sub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Subscription _landing_target_pose_sub{ORB_ID(landing_target_pose)};
 	uORB::Subscription _magnetometer_sub{ORB_ID(vehicle_magnetometer)};
@@ -231,9 +230,12 @@ private:
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
 
+	uORB::SubscriptionMultiArray<distance_sensor_s> _distance_sensor_subs{ORB_ID::distance_sensor};
+	int32_t _distance_max_distance{0};
+	int8_t  _distance_sensor_selected_instance{0};
+
 	bool _callback_registered{false};
 
-	bool _distance_sensor_selected{false}; // because we can have several distance sensor instances with different orientations
 	bool _armed{false};
 	bool _standby{false}; // standby arming state
 
