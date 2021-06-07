@@ -11,7 +11,8 @@ udp_onboard_gimbal_port_remote=$((13280+px4_instance))
 udp_gcs_port_local=$((18570+px4_instance))
 
 # GCS link
-mavlink start -x -u $udp_gcs_port_local -r 4000000 -f
+#mavlink start -x -u $udp_gcs_port_local -r 4000000 -f
+mavlink start -t 192.168.YOUR.IP -u 14557 -r 2000000 -m onboard -o 14540
 mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u $udp_gcs_port_local
 mavlink stream -r 50 -s LOCAL_POSITION_NED -u $udp_gcs_port_local
 mavlink stream -r 50 -s GLOBAL_POSITION_INT -u $udp_gcs_port_local
