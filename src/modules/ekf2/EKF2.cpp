@@ -152,6 +152,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_drag_noise(_params->drag_noise),
 	_param_ekf2_bcoef_x(_params->bcoef_x),
 	_param_ekf2_bcoef_y(_params->bcoef_y),
+	_param_ekf2_mcoef(_params->mcoef),
 	_param_ekf2_aspd_max(_params->max_correction_airspeed),
 	_param_ekf2_pcoef_xp(_params->static_pressure_coef_xp),
 	_param_ekf2_pcoef_xn(_params->static_pressure_coef_xn),
