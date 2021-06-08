@@ -45,6 +45,7 @@
 #include <px4_platform_common/log.h>
 
 #include <sys/ioctl.h>
+#include <assert.h>
 #include <unistd.h>
 #include <cstdint>
 #include <string.h>
