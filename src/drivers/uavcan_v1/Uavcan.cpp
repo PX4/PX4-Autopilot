@@ -423,10 +423,10 @@ void UavcanNode::sendHeartbeat()
 		heartbeat.uptime = _uavcan_node_heartbeat_transfer_id; // TODO: use real uptime
 		heartbeat.health.value = uavcan_node_Health_1_0_NOMINAL;
 		heartbeat.mode.value = uavcan_node_Mode_1_0_OPERATIONAL;
-
+		const hrt_abstime now = hrt_absolute_time();
 
 		CanardTransfer transfer = {
-			.timestamp_usec = hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
+			.timestamp_usec = now + PUBLISHER_DEFAULT_TIMEOUT_USEC,
 			.priority       = CanardPriorityNominal,
 			.transfer_kind  = CanardTransferKindMessage,
 			.port_id        = uavcan_node_Heartbeat_1_0_FIXED_PORT_ID_,
@@ -447,7 +447,7 @@ void UavcanNode::sendHeartbeat()
 			PX4_ERR("Heartbeat transmit error %d", result);
 		}
 
-		_uavcan_node_heartbeat_last = transfer.timestamp_usec;
+		_uavcan_node_heartbeat_last = now;
 	}
 }
 
