@@ -338,10 +338,6 @@ Sensors::~Sensors()
 		sub.unregisterCallback();
 	}
 
-  for (auto &sub : _sensor_hall_subs) {
-    sub.unregisterCallback();
-  }
-
 	_vehicle_acceleration.Stop();
 	_vehicle_angular_velocity.Stop();
 
@@ -658,9 +654,7 @@ void Sensors::hall_poll()
 	// messages and that would mess with the updated flags of the subscribers
 
 	// find the AoA hall sensor index if not set yet
-	if ((_parameters.CAL_AV_AOA_ID >= 0) && (_parameters.CAL_AV_AOA_ID < MAX_SENSOR_COUNT) &&
-			((_av_aoa_hall_sub_index < 0) || (_av_aoa_hall_sub_index >= MAX_SENSOR_COUNT))) {
-
+	if (_parameters.CAL_AV_AOA_ID >= 0 && _av_aoa_hall_sub_index < 0) {
 		_av_aoa_hall_sub_index = getHallSubIndex(_parameters.CAL_AV_AOA_ID);
 
 		if (_av_aoa_hall_sub_index >= 0) {
@@ -669,9 +663,7 @@ void Sensors::hall_poll()
 	}
 
 	// find the Slip hall sensor index if not set yet
-	if ((_parameters.CAL_AV_SLIP_ID >= 0) && (_parameters.CAL_AV_SLIP_ID < MAX_SENSOR_COUNT) &&
-			((_av_slip_hall_sub_index < 0) || (_av_slip_hall_sub_index >= MAX_SENSOR_COUNT))) {
-
+	if (_parameters.CAL_AV_SLIP_ID >= 0&& _av_slip_hall_sub_index < 0) {
 		_av_slip_hall_sub_index = getHallSubIndex(_parameters.CAL_AV_SLIP_ID);
 
 		if (_av_slip_hall_sub_index >= 0) {
