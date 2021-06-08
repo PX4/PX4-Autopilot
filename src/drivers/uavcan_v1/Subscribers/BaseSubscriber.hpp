@@ -51,6 +51,7 @@ class UavcanBaseSubscriber
 {
 public:
 	static constexpr uint16_t CANARD_PORT_ID_UNSET = 65535U;
+	static constexpr uint16_t CANARD_PORT_ID_MAX   = 32767U;
 
 	UavcanBaseSubscriber(CanardInstance &ins, const char *subject_name, uint8_t instance = 0) :
 		_canard_instance(ins), _instance(instance)
@@ -63,6 +64,8 @@ public:
 	{
 		unsubscribe();
 	}
+
+	bool isValidPortId(int32_t id) const { return id >= 0 && id <= CANARD_PORT_ID_MAX; }
 
 	virtual void subscribe() = 0;
 	virtual void unsubscribe()
@@ -96,6 +99,10 @@ public:
 
 	bool hasPortID(CanardPortID port_id)
 	{
+		if (!isValidPortId((int32_t)port_id)) {
+			return false;
+		}
+
 		SubjectSubscription *curSubj = &_subj_sub;
 
 		while (curSubj != NULL) {
