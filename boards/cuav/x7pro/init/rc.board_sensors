@@ -15,7 +15,7 @@ rm3100 -s -b 2 start
 
 # SPI4
 bmi088 -s -b 4 -A -R 2 start
-if !bmi088 -s -b 4 -G -R 2 start
+if ! bmi088 -s -b 4 -G -R 2 start
 then
 	icm42688p -R 2 -s start
 fi
