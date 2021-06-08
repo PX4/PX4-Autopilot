@@ -114,6 +114,57 @@ then
 	adis16448 -S start
 fi
 
+# Hall effect sensors si7210
+# Potentially remove the -k option if possible and improve the startup if possible
+if param greater CAL_AV_AOA_ID -1
+then
+	set AOA_I2C_ID 0
+	if param compare CAL_AV_AOA_ID 48
+	then
+		set AOA_I2C_ID 48
+	fi
+	if param compare CAL_AV_AOA_ID 49
+	then
+		set AOA_I2C_ID 49
+	fi
+	if param compare CAL_AV_AOA_ID 50
+	then
+		set AOA_I2C_ID 50
+	fi
+	if param compare CAL_AV_AOA_ID 51
+	then
+		set AOA_I2C_ID 51
+	fi
+
+	si7210 start -X -k -a ${AOA_I2C_ID}
+	unset AOA_I2C_ID
+fi
+
+if param greater CAL_AV_SLIP_ID -1
+then
+	set SLIP_I2C_ID 0
+	if param compare CAL_AV_SLIP_ID 48
+	then
+		set SLIP_I2C_ID 48
+	fi
+	if param compare CAL_AV_SLIP_ID 49
+	then
+		set SLIP_I2C_ID 49
+	fi
+	if param compare CAL_AV_SLIP_ID 50
+	then
+		set SLIP_I2C_ID 50
+	fi
+	if param compare CAL_AV_SLIP_ID 51
+	then
+		set SLIP_I2C_ID 51
+	fi
+
+	si7210 start -X -k -a ${SLIP_I2C_ID}
+	unset SLIP_I2C_ID
+fi
+
+
 # probe for optional external I2C devices
 if param compare SENS_EXT_I2C_PRB 1
 then
