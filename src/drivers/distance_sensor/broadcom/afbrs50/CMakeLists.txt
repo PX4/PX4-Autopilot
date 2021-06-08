@@ -38,6 +38,7 @@ px4_add_module(
 	MODULE drivers__distance_sensor__afbrs50
 	MAIN afbrs50
 	COMPILE_FLAGS
+		-Wno-error
 	STACK_MAIN
 		8192
 	INCLUDES
@@ -46,10 +47,10 @@ px4_add_module(
 	SRCS
 		AFBRS50.cpp
 		AFBRS50.hpp
-		afbrs50_main.cpp
 		API/Src/irq.c
 		API/Src/s2pi.c
 		API/Src/timer.c
+		argus_hal_test.c
 	DEPENDS
 		px4_work_queue
 		drivers_rangefinder

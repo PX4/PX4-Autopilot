@@ -71,9 +71,18 @@ public:
 private:
 	void Run() override;
 
+	void ProcessMeasurement(void *data);
+
+	static status_t measurement_ready_callback(status_t status, void *data);
+
+	argus_hnd_t *_hnd{nullptr};
+
 	enum class STATE : uint8_t {
+		INIT,
+		TEST,
 		CONFIGURE,
 		COLLECT,
+		STOP
 	} _state{STATE::CONFIGURE};
 
 	PX4Rangefinder _px4_rangefinder;

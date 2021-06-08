@@ -37,6 +37,8 @@
 #ifndef ARGUS_HAL_TEST_H
 #define ARGUS_HAL_TEST_H
 
+__BEGIN_DECLS
+
 /*!***************************************************************************
  * @addtogroup 	argustest
  * @{
@@ -157,6 +159,8 @@
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
 status_t Argus_VerifyHALImplementation(s2pi_slave_t spi_slave);
+
+__END_DECLS
 
 /*! @} */
 #endif /* ARGUS_CAL_API_H */
