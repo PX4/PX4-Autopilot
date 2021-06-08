@@ -42,6 +42,7 @@
 
 #pragma once
 
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/output_control.h>
 
 // DS-15 Specification Messages
@@ -54,20 +55,19 @@ class UavcanEscSubscriber : public UavcanDynamicPortSubscriber
 {
 public:
 	UavcanEscSubscriber(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanDynamicPortSubscriber(ins, pmgr, "esc", instance) { };
+		UavcanDynamicPortSubscriber(ins, pmgr, "esc", instance)
 	{
+		_subj_sub.next = &_readiness_sub;
+
+		_readiness_sub._subject_name = _readiness_name;
+		_readiness_sub._canard_sub.user_reference = this;
+		_readiness_sub.next = NULL;
+
 		_arming_pub.get().prearmed = false;
 		_arming_pub.get().armed = false;
 		_arming_pub.get().timestamp = hrt_absolute_time();
 		_arming_pub.update();
 	};
-
-	/*
-	bool handlesID(const CanardPortID &id)
-	{
-		return (id == _port_id) || (id == _arming_id);
-	}
-	*/
 
 	void subscribe() override
 	{
@@ -80,18 +80,17 @@ public:
 				  &_subj_sub._canard_sub);
 
 		// Subscribe to messages reg.drone.service.common.Readiness.0.1
-		_arming_id = static_cast<CanardPortID>(static_cast<uint32_t>(_port_id) + 1);
 		canardRxSubscribe(&_canard_instance,
 				  CanardTransferKindMessage,
-				  static_cast<CanardPortID>(static_cast<uint32_t>(_subj_sub._canard_sub.port_id) + 1),
+				  _readiness_sub._canard_sub.port_id,
 				  reg_drone_service_common_Readiness_0_1_EXTENT_BYTES_,
 				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-				  &_canard_sub_readiness);
+				  &_readiness_sub._canard_sub);
 	};
 
 	void callback(const CanardTransfer &receive) override
 	{
-		if (receive.port_id == _port_id) {
+		if (receive.port_id == _subj_sub._canard_sub.port_id) {
 			// Test with Yakut:
 			// export YAKUT_TRANSPORT="pyuavcan.transport.can.CANTransport(pyuavcan.transport.can.media.slcan.SLCANMedia('/dev/serial/by-id/usb-Zubax_Robotics_Zubax_Babel_23002B000E514E413431302000000000-if00', 8, 115200), 42)"
 			// yakut pub 22.reg.drone.service.actuator.common.sp.Vector8.0.1 '{value: [1000, 2000, 3000, 4000, 0, 0, 0, 0]}'
@@ -120,7 +119,7 @@ public:
 
 			_output_pub.publish(outputs);
 
-		} else if (receive.port_id == _arming_id) {
+		} else if (receive.port_id == _readiness_sub._canard_sub.port_id) {
 			reg_drone_service_common_Readiness_0_1 arm {};
 			size_t arm_size = receive.payload_size;
 			reg_drone_service_common_Readiness_0_1_deserialize_(&arm, (const uint8_t *)receive.payload,
@@ -155,10 +154,10 @@ public:
 	};
 
 private:
+	SubjectSubscription _readiness_sub;
+
+	const char *_readiness_name = "esc_readiness";
+
 	uORB::Publication<output_control_s> _output_pub{ORB_ID(output_control_mc)};
-
-	CanardRxSubscription _canard_sub_readiness;
-	CanardPortID _arming_id {CANARD_PORT_ID_UNSET};
-
 	uORB::PublicationData<actuator_armed_s> _arming_pub{ORB_ID(actuator_armed)};
 };
