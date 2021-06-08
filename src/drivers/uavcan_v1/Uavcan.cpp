@@ -184,7 +184,7 @@ void UavcanNode::Run()
 
 		for (auto &publisher : _publishers) {
 			// Have the publisher update its associated port-id parameter
-			// Setting to 0 disable publication
+			// Setting to -1 disable publication
 			publisher->updateParam();
 		}
 
