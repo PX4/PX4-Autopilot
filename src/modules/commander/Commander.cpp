@@ -3328,6 +3328,14 @@ Commander::update_control_mode()
 		break;
 	}
 
+	_vehicle_control_mode.flag_multicopter_position_control_enabled =
+		(_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
+		&& (_vehicle_control_mode.flag_control_altitude_enabled
+		    || _vehicle_control_mode.flag_control_climb_rate_enabled
+		    || _vehicle_control_mode.flag_control_position_enabled
+		    || _vehicle_control_mode.flag_control_velocity_enabled
+		    || _vehicle_control_mode.flag_control_acceleration_enabled);
+
 	_vehicle_control_mode.timestamp = hrt_absolute_time();
 	_control_mode_pub.publish(_vehicle_control_mode);
 }
