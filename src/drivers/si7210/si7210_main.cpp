@@ -85,7 +85,8 @@ si7210_main(int argc, char *argv[])
 	cli.support_keep_running = true;
 
 	int ch;
-  while ((ch = cli.getopt(argc, argv, "")) != EOF) {}
+
+	while ((ch = cli.getopt(argc, argv, "")) != EOF) {}
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
 

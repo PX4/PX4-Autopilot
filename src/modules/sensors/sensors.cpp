@@ -132,15 +132,15 @@ private:
 	uORB::Subscription _diff_pres_sub{ORB_ID(differential_pressure)};
 	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
-  uORB::Subscription _sensor_hall_subs[MAX_SENSOR_COUNT] { // could be set to ORB_MULTI_MAX_INSTANCES if needed
-	  {ORB_ID(sensor_hall), 0},
-	  {ORB_ID(sensor_hall), 1},
-	  {ORB_ID(sensor_hall), 2},
-	  {ORB_ID(sensor_hall), 3},
-  };
+	uORB::Subscription _sensor_hall_subs[MAX_SENSOR_COUNT] { // could be set to ORB_MULTI_MAX_INSTANCES if needed
+		{ORB_ID(sensor_hall), 0},
+		{ORB_ID(sensor_hall), 1},
+		{ORB_ID(sensor_hall), 2},
+		{ORB_ID(sensor_hall), 3},
+	};
 
-  int _av_aoa_hall_sub_index = -1; // AoA vane index for hall effect subscription
-  int _av_slip_hall_sub_index = -1; // Slip vane index for hall effect subscription
+	int _av_aoa_hall_sub_index = -1; // AoA vane index for hall effect subscription
+	int _av_slip_hall_sub_index = -1; // Slip vane index for hall effect subscription
 
 	uORB::Publication<airspeed_s>             _airspeed_pub{ORB_ID(airspeed)};
 	uORB::Publication<sensor_combined_s>      _sensor_pub{ORB_ID(sensor_combined)};
@@ -442,7 +442,7 @@ void Sensors::diff_pres_poll()
 		} else {
 			// differential pressure temperature invalid, check barometer
 			if ((air_data.timestamp != 0) && PX4_ISFINITE(air_data.baro_temp_celcius)
-                           && (air_data.baro_temp_celcius >= -40.f) && (air_data.baro_temp_celcius <= 125.f)) {
+			    && (air_data.baro_temp_celcius >= -40.f) && (air_data.baro_temp_celcius <= 125.f)) {
 
 				// TODO: review PCB_TEMP_ESTIMATE_DEG, ignore for external baro
 				air_temperature_celsius = air_data.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG;
@@ -480,13 +480,13 @@ void Sensors::diff_pres_poll()
 
 		/* don't risk to feed negative airspeed into the system */
 		airspeed.indicated_airspeed_m_s = calc_IAS_corrected((enum AIRSPEED_COMPENSATION_MODEL)
-                                                 _parameters.air_cmodel,
-                                                 smodel, _parameters.air_tube_length, _parameters.air_tube_diameter_mm,
-                                                 diff_pres.differential_pressure_filtered_pa, air_data.baro_pressure_pa,
-                                                 air_temperature_celsius);
+						  _parameters.air_cmodel,
+						  smodel, _parameters.air_tube_length, _parameters.air_tube_diameter_mm,
+						  diff_pres.differential_pressure_filtered_pa, air_data.baro_pressure_pa,
+						  air_temperature_celsius);
 
 		airspeed.true_airspeed_m_s = calc_TAS_from_CAS(airspeed.indicated_airspeed_m_s, air_data.baro_pressure_pa,
-                                            air_temperature_celsius); // assume that CAS = IAS as we don't have an CAS-scale here
+					     air_temperature_celsius); // assume that CAS = IAS as we don't have an CAS-scale here
 
 		airspeed.air_temperature_celsius = air_temperature_celsius;
 
@@ -593,6 +593,7 @@ void Sensors::hall_poll()
 	if ((_av_aoa_hall_sub_index >= 0) && (_av_aoa_hall_sub_index < MAX_SENSOR_COUNT)) {
 		// A hall sensor with selected driver ID for the AoA vane has been found/set
 		struct sensor_hall_s sensor_hall;
+
 		if (_sensor_hall_subs[_av_aoa_hall_sub_index].update(&sensor_hall)) {
 			airflow_aoa_s airflow_aoa;
 			airflow_aoa.timestamp = hrt_absolute_time();
@@ -624,6 +625,7 @@ void Sensors::hall_poll()
 	if ((_av_slip_hall_sub_index >= 0) && (_av_slip_hall_sub_index < MAX_SENSOR_COUNT)) {
 		// A hall sensor with selected driver ID for the slip vane has been found/set
 		struct sensor_hall_s sensor_hall;
+
 		if (_sensor_hall_subs[_av_slip_hall_sub_index].update(&sensor_hall)) {
 			airflow_slip_s airflow_slip;
 			airflow_slip.timestamp = hrt_absolute_time();
@@ -663,7 +665,7 @@ void Sensors::hall_poll()
 	}
 
 	// find the Slip hall sensor index if not set yet
-	if (_parameters.CAL_AV_SLIP_ID >= 0&& _av_slip_hall_sub_index < 0) {
+	if (_parameters.CAL_AV_SLIP_ID >= 0 && _av_slip_hall_sub_index < 0) {
 		_av_slip_hall_sub_index = getHallSubIndex(_parameters.CAL_AV_SLIP_ID);
 
 		if (_av_slip_hall_sub_index >= 0) {
@@ -676,6 +678,7 @@ int Sensors::getHallSubIndex(const int av_driver_id)
 {
 	for (unsigned i = 0; i < MAX_SENSOR_COUNT; i++) {
 		sensor_hall_s sensor_hall;
+
 		if (_sensor_hall_subs[i].copy(&sensor_hall)) {
 			if (sensor_hall.instance == av_driver_id) {
 				return i;

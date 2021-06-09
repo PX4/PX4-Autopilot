@@ -348,7 +348,7 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamScaledPressure3>(),
 #endif // SCALED_PRESSURE3
 #if defined(SENSOR_AIRFLOW_ANGLES_HPP)
-  create_stream_list_item<MavlinkStreamSensorAirflowAngles>(),
+	create_stream_list_item<MavlinkStreamSensorAirflowAngles>(),
 #endif // SENSOR_AIRFLOW_ANGLES
 #if defined(ACTUATOR_OUTPUT_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamActuatorOutputStatus>(),

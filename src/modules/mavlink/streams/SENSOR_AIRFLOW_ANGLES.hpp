@@ -50,11 +50,11 @@ public:
 
 	unsigned get_size() override
 	{
-    if (_airflow_aoa_sub.advertised() || _airflow_slip_sub.advertised()) {
-      return MAVLINK_MSG_ID_SENSOR_AIRFLOW_ANGLES_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-    }
+		if (_airflow_aoa_sub.advertised() || _airflow_slip_sub.advertised()) {
+			return MAVLINK_MSG_ID_SENSOR_AIRFLOW_ANGLES_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		}
 
-    return 0;
+		return 0;
 	}
 
 private:
@@ -66,34 +66,40 @@ private:
 	bool send() override
 	{
 		if (_airflow_aoa_sub.updated() || _airflow_slip_sub.updated()) {
-		  mavlink_sensor_airflow_angles_t msg{};
+			mavlink_sensor_airflow_angles_t msg{};
 
-	    struct airflow_aoa_s airflow_aoa;
-      if (_airflow_aoa_sub.copy(&airflow_aoa)) {
-        msg.timestamp = airflow_aoa.timestamp / 1000;
-        msg.angleofattack = math::degrees(airflow_aoa.aoa_rad);
-        msg.angleofattack_valid = airflow_aoa.valid;
-      } else {
-        msg.timestamp = 0;
-        msg.angleofattack = 0.0;
-        msg.angleofattack_valid = false;
-      }
+			struct airflow_aoa_s airflow_aoa;
 
-      struct airflow_slip_s airflow_slip;
-      if (_airflow_slip_sub.copy(&airflow_slip)) {
-        const uint64_t timestamp = airflow_slip.timestamp / 1000;
-        if (timestamp > msg.timestamp) {
-          msg.timestamp = timestamp;
-        }
-        msg.sideslip = math::degrees(airflow_slip.slip_rad);
-        msg.sideslip_valid = airflow_slip.valid;
-      } else {
-        msg.timestamp = 0;
-        msg.sideslip = 0.0;
-        msg.sideslip_valid = false;
-      }
+			if (_airflow_aoa_sub.copy(&airflow_aoa)) {
+				msg.timestamp = airflow_aoa.timestamp / 1000;
+				msg.angleofattack = math::degrees(airflow_aoa.aoa_rad);
+				msg.angleofattack_valid = airflow_aoa.valid;
 
-      mavlink_msg_sensor_airflow_angles_send_struct(_mavlink->get_channel(), &msg);
+			} else {
+				msg.timestamp = 0;
+				msg.angleofattack = 0.0;
+				msg.angleofattack_valid = false;
+			}
+
+			struct airflow_slip_s airflow_slip;
+
+			if (_airflow_slip_sub.copy(&airflow_slip)) {
+				const uint64_t timestamp = airflow_slip.timestamp / 1000;
+
+				if (timestamp > msg.timestamp) {
+					msg.timestamp = timestamp;
+				}
+
+				msg.sideslip = math::degrees(airflow_slip.slip_rad);
+				msg.sideslip_valid = airflow_slip.valid;
+
+			} else {
+				msg.timestamp = 0;
+				msg.sideslip = 0.0;
+				msg.sideslip_valid = false;
+			}
+
+			mavlink_msg_sensor_airflow_angles_send_struct(_mavlink->get_channel(), &msg);
 
 			return true;
 		}
