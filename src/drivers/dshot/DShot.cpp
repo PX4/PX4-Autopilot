@@ -242,9 +242,18 @@ int DShot::send_command_thread_safe(const dshot_command_t command, const int num
 	cmd.num_repetitions = num_repetitions;
 	_new_command.store(&cmd);
 
+	hrt_abstime timestamp_for_timeout = hrt_absolute_time();
+
 	// wait until main thread processed it
 	while (_new_command.load()) {
-		px4_usleep(1000);
+
+		if (hrt_elapsed_time(&timestamp_for_timeout) < 2_s) {
+			px4_usleep(1000);
+
+		} else {
+			_new_command.store(nullptr);
+			PX4_WARN("DShot command timeout!");
+		}
 	}
 
 	return 0;
