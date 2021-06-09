@@ -26,6 +26,12 @@ then
 	batt_smbus start -X
 fi
 
+# Start batmon driver if enabled using BATMON_DRIVER_EN
+if param compare -s BATMON_DRIVER_EN 1
+then
+	batmon start -X  #start on external bus
+fi
+
 # Sensors on the PWM interface bank
 if param compare -s SENS_EN_LL40LS 1
 then

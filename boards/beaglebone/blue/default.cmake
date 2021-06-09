@@ -33,6 +33,7 @@ px4_add_board(
 		magnetometer/hmc5883
 		pwm_out_sim
 		rc_input
+		smart_battery/batmon
 		#telemetry # all available telemetry drivers
 	MODULES
 		airspeed_selector

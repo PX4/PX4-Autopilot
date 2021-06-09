@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,13 +31,4 @@
 #
 ############################################################################
 
-add_subdirectory(accelerometer)
-add_subdirectory(airspeed)
-add_subdirectory(barometer)
-add_subdirectory(device)
-add_subdirectory(gyroscope)
-add_subdirectory(led)
-add_subdirectory(magnetometer)
-add_subdirectory(rangefinder)
-add_subdirectory(smbus)
-add_subdirectory(smbus_sbs)
+px4_add_library(drivers__smbus_sbs SBS.hpp)
