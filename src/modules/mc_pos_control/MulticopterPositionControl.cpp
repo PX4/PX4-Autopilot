@@ -289,7 +289,7 @@ void MulticopterPositionControl::Run()
 
 		PositionControlStates states{set_vehicle_states(local_pos)};
 
-		if (_control_mode.flag_control_acceleration_enabled || _control_mode.flag_control_climb_rate_enabled) {
+		if (_control_mode.flag_multicopter_position_control_enabled) {
 
 			_trajectory_setpoint_sub.update(&_setpoint);
 
