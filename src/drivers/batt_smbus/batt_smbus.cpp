@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -537,7 +537,7 @@ $ batt_smbus -X write_flash 19069 2 27 0
 I2CSPIDriverBase *BATT_SMBUS::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 				      int runtime_instance)
 {
-	SMBus *interface = new SMBus(iterator.bus(), cli.i2c_address);
+	SMBus *interface = new SMBus(DRV_BAT_DEVTYPE_SMBUS, iterator.bus(), cli.i2c_address);
 	if (interface == nullptr) {
 		PX4_ERR("alloc failed");
 		return nullptr;

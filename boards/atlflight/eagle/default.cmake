@@ -54,6 +54,7 @@ px4_add_board(
 		pwm_out_sim
 		qshell/posix
 		rc_input
+		smart_battery/batmon
 		#telemetry # all available telemetry drivers
 	MODULES
 		airspeed_selector
