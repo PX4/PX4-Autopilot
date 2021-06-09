@@ -393,11 +393,15 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 			if (meta) {
 				// Extract target system and target component if set
 				if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_SYSTEM) {
-					target_system_id = (_MAV_PAYLOAD(msg))[meta->target_system_ofs];
+					if (meta->target_system_ofs < msg->len) {
+						target_system_id = (_MAV_PAYLOAD(msg))[meta->target_system_ofs];
+					}
 				}
 
 				if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT) {
-					target_component_id = (_MAV_PAYLOAD(msg))[meta->target_component_ofs];
+					if (meta->target_component_ofs < msg->len) {
+						target_component_id = (_MAV_PAYLOAD(msg))[meta->target_component_ofs];
+					}
 				}
 			}
 
