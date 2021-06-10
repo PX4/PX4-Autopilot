@@ -116,9 +116,12 @@ void ManualControl::Run()
 		_published_invalid_once = false;
 
 		// user arm/disarm gesture
-		const bool right_stick_centered = (fabsf(_selector.setpoint().x) < 0.1f) && (fabsf(_selector.setpoint().y) < 0.1f);
-		const bool stick_lower_left = (_selector.setpoint().z < 0.1f) && (_selector.setpoint().r < -0.9f);
-		const bool stick_lower_right = (_selector.setpoint().z < 0.1f) && (_selector.setpoint().r > 0.9f);
+		const bool right_stick_centered = (fabsf(_selector.setpoint().chosen_input.x) < 0.1f)
+						  && (fabsf(_selector.setpoint().chosen_input.y) < 0.1f);
+		const bool stick_lower_left = (_selector.setpoint().chosen_input.z < 0.1f)
+					      && (_selector.setpoint().chosen_input.r < -0.9f);
+		const bool stick_lower_right = (_selector.setpoint().chosen_input.z < 0.1f)
+					       && (_selector.setpoint().chosen_input.r > 0.9f);
 
 		_stick_arm_hysteresis.set_state_and_update(stick_lower_right && right_stick_centered, _selector.setpoint().timestamp);
 		_stick_disarm_hysteresis.set_state_and_update(stick_lower_left && right_stick_centered, _selector.setpoint().timestamp);
@@ -153,14 +156,14 @@ void ManualControl::Run()
 
 		_selector.setpoint().user_override = rpy_moved || throttle_moved;
 
-		_x_diff.update(_selector.setpoint().x, dt_s);
-		_y_diff.update(_selector.setpoint().y, dt_s);
-		_z_diff.update(_selector.setpoint().z, dt_s);
-		_r_diff.update(_selector.setpoint().r, dt_s);
+		_x_diff.update(_selector.setpoint().chosen_input.x, dt_s);
+		_y_diff.update(_selector.setpoint().chosen_input.y, dt_s);
+		_z_diff.update(_selector.setpoint().chosen_input.z, dt_s);
+		_r_diff.update(_selector.setpoint().chosen_input.r, dt_s);
 
 		if (switches_updated) {
 			// Only use switches if current source is RC as well.
-			if (_selector.setpoint().data_source == manual_control_input_s::SOURCE_RC) {
+			if (_selector.setpoint().chosen_input.data_source == manual_control_input_s::SOURCE_RC) {
 				if (_previous_switches_initialized) {
 					if (switches.mode_slot != _previous_switches.mode_slot) {
 						evaluate_mode_slot(switches.mode_slot);
