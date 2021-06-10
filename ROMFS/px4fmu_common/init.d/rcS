@@ -325,7 +325,6 @@ else
 	#  start before commander
 	#
 	rc_update start
-
 	manual_control start
 
 	#
