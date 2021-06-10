@@ -144,6 +144,11 @@ void ManualControl::Run()
 			_previous_disarm_gesture = false;
 		}
 
+		_x_diff.update(_selector.setpoint().chosen_input.x, dt_s);
+		_y_diff.update(_selector.setpoint().chosen_input.y, dt_s);
+		_z_diff.update(_selector.setpoint().chosen_input.z, dt_s);
+		_r_diff.update(_selector.setpoint().chosen_input.r, dt_s);
+
 		// user wants override
 		const float minimum_stick_change = 0.01f * _param_com_rc_stick_ov.get();
 
@@ -155,11 +160,6 @@ void ManualControl::Run()
 		const bool throttle_moved = (fabsf(_z_diff.diff()) * 2.f > minimum_stick_change);
 
 		_selector.setpoint().user_override = rpy_moved || throttle_moved;
-
-		_x_diff.update(_selector.setpoint().chosen_input.x, dt_s);
-		_y_diff.update(_selector.setpoint().chosen_input.y, dt_s);
-		_z_diff.update(_selector.setpoint().chosen_input.z, dt_s);
-		_r_diff.update(_selector.setpoint().chosen_input.r, dt_s);
 
 		if (switches_updated) {
 			// Only use switches if current source is RC as well.
