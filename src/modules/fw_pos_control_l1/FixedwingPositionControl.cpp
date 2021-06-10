@@ -280,15 +280,15 @@ FixedwingPositionControl::manual_control_setpoint_poll()
 {
 	_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 
-	_manual_control_setpoint_altitude = _manual_control_setpoint.x;
-	_manual_control_setpoint_airspeed = math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f);
+	_manual_control_setpoint_altitude = _manual_control_setpoint.chosen_input.x;
+	_manual_control_setpoint_airspeed = math::constrain(_manual_control_setpoint.chosen_input.z, 0.0f, 1.0f);
 
 	if (_param_fw_posctl_inv_st.get()) {
 		/* Alternate stick allocation (similar concept as for multirotor systems:
 		 * demanding up/down with the throttle stick, and move faster/break with the pitch one.
 		 */
-		_manual_control_setpoint_altitude = -(math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f) * 2.f - 1.f);
-		_manual_control_setpoint_airspeed = math::constrain(_manual_control_setpoint.x, -1.0f, 1.0f) / 2.f + 0.5f;
+		_manual_control_setpoint_altitude = -(math::constrain(_manual_control_setpoint.chosen_input.z, 0.0f, 1.0f) * 2.f - 1.f);
+		_manual_control_setpoint_airspeed = math::constrain(_manual_control_setpoint.chosen_input.x, -1.0f, 1.0f) / 2.f + 0.5f;
 	}
 }
 
@@ -680,7 +680,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now, bool 
 
 			/* reset setpoints from other modes (auto) otherwise we won't
 			 * level out without new manual input */
-			_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
+			_att_sp.roll_body = _manual_control_setpoint.chosen_input.y * radians(_param_fw_man_r_max.get());
 			_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 		}
 
@@ -1728,7 +1728,7 @@ FixedwingPositionControl::control_manual_altitude(const hrt_abstime &now, const 
 				   tecs_status_s::TECS_MODE_NORMAL,
 				   height_rate_sp);
 
-	_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
+	_att_sp.roll_body = _manual_control_setpoint.chosen_input.y * radians(_param_fw_man_r_max.get());
 	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 
 	/* Copy thrust and pitch values from tecs */
@@ -1788,8 +1788,8 @@ FixedwingPositionControl::control_manual_position(const hrt_abstime &now, const 
 				   height_rate_sp);
 
 	/* heading control */
-	if (fabsf(_manual_control_setpoint.y) < HDG_HOLD_MAN_INPUT_THRESH &&
-	    fabsf(_manual_control_setpoint.r) < HDG_HOLD_MAN_INPUT_THRESH) {
+	if (fabsf(_manual_control_setpoint.chosen_input.y) < HDG_HOLD_MAN_INPUT_THRESH &&
+	    fabsf(_manual_control_setpoint.chosen_input.r) < HDG_HOLD_MAN_INPUT_THRESH) {
 
 		/* heading / roll is zero, lock onto current heading */
 		if (fabsf(_yawrate) < HDG_HOLD_YAWRATE_THRESH && !_yaw_lock_engaged) {
@@ -1839,14 +1839,14 @@ FixedwingPositionControl::control_manual_position(const hrt_abstime &now, const 
 		}
 	}
 
-	if (!_yaw_lock_engaged || fabsf(_manual_control_setpoint.y) >= HDG_HOLD_MAN_INPUT_THRESH ||
-	    fabsf(_manual_control_setpoint.r) >= HDG_HOLD_MAN_INPUT_THRESH) {
+	if (!_yaw_lock_engaged || fabsf(_manual_control_setpoint.chosen_input.y) >= HDG_HOLD_MAN_INPUT_THRESH ||
+	    fabsf(_manual_control_setpoint.chosen_input.r) >= HDG_HOLD_MAN_INPUT_THRESH) {
 
 		_hdg_hold_enabled = false;
 		_yaw_lock_engaged = false;
 
 		// do slew rate limiting on roll if enabled
-		float roll_sp_new = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
+		float roll_sp_new = _manual_control_setpoint.chosen_input.y * radians(_param_fw_man_r_max.get());
 		const float roll_rate_slew_rad = radians(_param_fw_l1_r_slew_max.get());
 
 		if (dt > 0.f && roll_rate_slew_rad > 0.f) {
