@@ -119,17 +119,17 @@ void FunctionManualRC::update()
 	manual_control_setpoint_s manual_control_setpoint;
 
 	if (_topic.update(&manual_control_setpoint)) {
-		_data[0] = manual_control_setpoint.y; // roll
-		_data[1] = manual_control_setpoint.x; // pitch
-		_data[2] = manual_control_setpoint.z * 2.f - 1.f; // throttle
-		_data[3] = manual_control_setpoint.r; // yaw
-		_data[4] = manual_control_setpoint.flaps;
-		_data[5] = manual_control_setpoint.aux1;
-		_data[6] = manual_control_setpoint.aux2;
-		_data[7] = manual_control_setpoint.aux3;
-		_data[8] = manual_control_setpoint.aux4;
-		_data[9] = manual_control_setpoint.aux5;
-		_data[10] = manual_control_setpoint.aux6;
+		_data[0] = manual_control_setpoint.chosen_input.y; // roll
+		_data[1] = manual_control_setpoint.chosen_input.x; // pitch
+		_data[2] = manual_control_setpoint.chosen_input.z * 2.f - 1.f; // throttle
+		_data[3] = manual_control_setpoint.chosen_input.r; // yaw
+		_data[4] = manual_control_setpoint.chosen_input.flaps;
+		_data[5] = manual_control_setpoint.chosen_input.aux1;
+		_data[6] = manual_control_setpoint.chosen_input.aux2;
+		_data[7] = manual_control_setpoint.chosen_input.aux3;
+		_data[8] = manual_control_setpoint.chosen_input.aux4;
+		_data[9] = manual_control_setpoint.chosen_input.aux5;
+		_data[10] = manual_control_setpoint.chosen_input.aux6;
 	}
 }
 

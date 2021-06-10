@@ -39,7 +39,7 @@ namespace manual_control
 
 void ManualControlSelector::update_time_only(uint64_t now)
 {
-	if (_setpoint.timestamp_sample + _timeout < now) {
+	if (_setpoint.chosen_input.timestamp_sample + _timeout < now) {
 		_setpoint.valid = false;
 		_instance = -1;
 	}
@@ -66,7 +66,7 @@ void ManualControlSelector::update_manual_control_input(uint64_t now, const manu
 					|| input.data_source == manual_control_input_s::SOURCE_MAVLINK_5)) {
 
 		// We only stick to the first discovered mavlink channel.
-		if (_setpoint.data_source == input.data_source || !_setpoint.valid) {
+		if (_setpoint.chosen_input.data_source == input.data_source || !_setpoint.valid) {
 			_setpoint = setpoint_from_input(input);
 			_setpoint.valid = true;
 			_instance = instance;
@@ -77,7 +77,7 @@ void ManualControlSelector::update_manual_control_input(uint64_t now, const manu
 	} else if (_rc_in_mode == 3) {
 
 		// We only stick to the first discovered mavlink channel.
-		if (_setpoint.data_source == input.data_source || !_setpoint.valid) {
+		if (_setpoint.chosen_input.data_source == input.data_source || !_setpoint.valid) {
 			_setpoint = setpoint_from_input(input);
 			_setpoint.valid = true;
 			_instance = instance;
@@ -91,24 +91,24 @@ void ManualControlSelector::update_manual_control_input(uint64_t now, const manu
 manual_control_setpoint_s ManualControlSelector::setpoint_from_input(const manual_control_input_s &input)
 {
 	manual_control_setpoint_s setpoint;
-	setpoint.timestamp_sample = input.timestamp_sample;
-	setpoint.x = input.x;
-	setpoint.y = input.y;
-	setpoint.z = input.z;
-	setpoint.r = input.r;
+	setpoint.chosen_input.timestamp_sample = input.timestamp_sample;
+	setpoint.chosen_input.x = input.x;
+	setpoint.chosen_input.y = input.y;
+	setpoint.chosen_input.z = input.z;
+	setpoint.chosen_input.r = input.r;
 	// FIXME: what's that?
-	//setpoint.vx = (input.x - _manual_control_input[i].x) * dt_inv;
-	//setpoint.vy = (input.y - _manual_control_input[i].y) * dt_inv;
-	//setpoint.vz = (input.z - _manual_control_input[i].z) * dt_inv;
-	//setpoint.vr = (input.r - _manual_control_input[i].r) * dt_inv;
-	setpoint.flaps = input.flaps;
-	setpoint.aux1 = input.aux1;
-	setpoint.aux2 = input.aux2;
-	setpoint.aux3 = input.aux3;
-	setpoint.aux4 = input.aux4;
-	setpoint.aux5 = input.aux5;
-	setpoint.aux6 = input.aux6;
-	setpoint.data_source = input.data_source;
+	//setpoint.chosen_input.vx = (input.x - _manual_control_input[i].x) * dt_inv;
+	//setpoint.chosen_input.vy = (input.y - _manual_control_input[i].y) * dt_inv;
+	//setpoint.chosen_input.vz = (input.z - _manual_control_input[i].z) * dt_inv;
+	//setpoint.chosen_input.vr = (input.r - _manual_control_input[i].r) * dt_inv;
+	setpoint.chosen_input.flaps = input.flaps;
+	setpoint.chosen_input.aux1 = input.aux1;
+	setpoint.chosen_input.aux2 = input.aux2;
+	setpoint.chosen_input.aux3 = input.aux3;
+	setpoint.chosen_input.aux4 = input.aux4;
+	setpoint.chosen_input.aux5 = input.aux5;
+	setpoint.chosen_input.aux6 = input.aux6;
+	setpoint.chosen_input.data_source = input.data_source;
 
 	return setpoint;
 }

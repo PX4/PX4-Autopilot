@@ -2420,8 +2420,8 @@ Commander::run()
 				}
 
 				_status.rc_signal_lost = false;
-				_is_throttle_above_center = manual_control_setpoint.z > 0.6f;
-				_is_throttle_low = manual_control_setpoint.z < 0.1f;
+				_is_throttle_above_center = manual_control_setpoint.chosen_input.z > 0.6f;
+				_is_throttle_low = manual_control_setpoint.chosen_input.z < 0.1f;
 				_last_valid_manual_control_setpoint = manual_control_setpoint.timestamp;
 
 			} else {

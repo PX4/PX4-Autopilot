@@ -68,10 +68,10 @@ private:
 			mavlink_manual_control_t msg{};
 
 			msg.target = mavlink_system.sysid;
-			msg.x = manual_control_setpoint.x * 1000;
-			msg.y = manual_control_setpoint.y * 1000;
-			msg.z = manual_control_setpoint.z * 1000;
-			msg.r = manual_control_setpoint.r * 1000;
+			msg.x = manual_control_setpoint.chosen_input.x * 1000;
+			msg.y = manual_control_setpoint.chosen_input.y * 1000;
+			msg.z = manual_control_setpoint.chosen_input.z * 1000;
+			msg.r = manual_control_setpoint.chosen_input.r * 1000;
 
 			manual_control_switches_s manual_control_switches{};
 
