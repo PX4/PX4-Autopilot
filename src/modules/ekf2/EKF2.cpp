@@ -628,47 +628,42 @@ void EKF2::PublishEventFlags(const hrt_abstime &timestamp)
 void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 {
 	if (_ekf.global_position_is_valid() && !_preflt_checker.hasFailed()) {
-		// only publish if position has changed by at least 1 mm (map_projection_reproject is relatively expensive)
 		const Vector3f position{_ekf.getPosition()};
 
-		if ((_last_local_position_for_gpos - position).longerThan(0.001f)) {
-			// generate and publish global position data
-			vehicle_global_position_s global_pos;
-			global_pos.timestamp_sample = timestamp;
+		// generate and publish global position data
+		vehicle_global_position_s global_pos;
+		global_pos.timestamp_sample = timestamp;
 
-			// Position of local NED origin in GPS / WGS84 frame
-			map_projection_reproject(&_ekf.global_origin(), position(0), position(1), &global_pos.lat, &global_pos.lon);
+		// Position of local NED origin in GPS / WGS84 frame
+		map_projection_reproject(&_ekf.global_origin(), position(0), position(1), &global_pos.lat, &global_pos.lon);
 
-			float delta_xy[2];
-			_ekf.get_posNE_reset(delta_xy, &global_pos.lat_lon_reset_counter);
+		float delta_xy[2];
+		_ekf.get_posNE_reset(delta_xy, &global_pos.lat_lon_reset_counter);
 
-			global_pos.alt = -position(2) + _ekf.getEkfGlobalOriginAltitude(); // Altitude AMSL in meters
-			global_pos.alt_ellipsoid = filter_altitude_ellipsoid(global_pos.alt);
+		global_pos.alt = -position(2) + _ekf.getEkfGlobalOriginAltitude(); // Altitude AMSL in meters
+		global_pos.alt_ellipsoid = filter_altitude_ellipsoid(global_pos.alt);
 
-			// global altitude has opposite sign of local down position
-			float delta_z;
-			uint8_t z_reset_counter;
-			_ekf.get_posD_reset(&delta_z, &z_reset_counter);
-			global_pos.delta_alt = -delta_z;
+		// global altitude has opposite sign of local down position
+		float delta_z;
+		uint8_t z_reset_counter;
+		_ekf.get_posD_reset(&delta_z, &z_reset_counter);
+		global_pos.delta_alt = -delta_z;
 
-			_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
+		_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
 
-			if (_ekf.isTerrainEstimateValid()) {
-				// Terrain altitude in m, WGS84
-				global_pos.terrain_alt = _ekf.getEkfGlobalOriginAltitude() - _ekf.getTerrainVertPos();
-				global_pos.terrain_alt_valid = true;
+		if (_ekf.isTerrainEstimateValid()) {
+			// Terrain altitude in m, WGS84
+			global_pos.terrain_alt = _ekf.getEkfGlobalOriginAltitude() - _ekf.getTerrainVertPos();
+			global_pos.terrain_alt_valid = true;
 
-			} else {
-				global_pos.terrain_alt = NAN;
-				global_pos.terrain_alt_valid = false;
-			}
-
-			global_pos.dead_reckoning = _ekf.inertial_dead_reckoning(); // True if this position is estimated through dead-reckoning
-			global_pos.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-			_global_position_pub.publish(global_pos);
-
-			_last_local_position_for_gpos = position;
+		} else {
+			global_pos.terrain_alt = NAN;
+			global_pos.terrain_alt_valid = false;
 		}
+
+		global_pos.dead_reckoning = _ekf.inertial_dead_reckoning(); // True if this position is estimated through dead-reckoning
+		global_pos.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+		_global_position_pub.publish(global_pos);
 	}
 }
 

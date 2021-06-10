@@ -212,8 +212,6 @@ private:
 	uint32_t _device_id_gyro{0};
 	uint32_t _device_id_mag{0};
 
-	Vector3f _last_local_position_for_gpos{};
-
 	Vector3f _last_accel_bias_published{};
 	Vector3f _last_gyro_bias_published{};
 	Vector3f _last_mag_bias_published{};
