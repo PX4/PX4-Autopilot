@@ -33,6 +33,7 @@
 
 #include "camera_interface.h"
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/px4_config.h>
 
 void CameraInterface::get_pins()
 {
@@ -59,6 +60,14 @@ void CameraInterface::get_pins()
 	while ((single_pin = pin_list % 10)) {
 
 		_pins[i] = single_pin - 1;
+
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 14
+
+		if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO)) {
+			_pins[i] += 8;
+		}
+
+#endif
 
 		if (_pins[i] < 0) {
 			_pins[i] = -1;
