@@ -66,8 +66,12 @@ public:
 			dt_s = _time_period_s;
 		}
 
-		const float new_diff = value - _last_value;
-		_diff = new_diff * dt_s + _diff * (_time_period_s - dt_s);
+		// Leave _diff at 0.0f if we don't have a _last_value yet.
+		if (PX4_ISFINITE(_last_value)) {
+			const float new_diff = value - _last_value;
+			_diff = new_diff * dt_s + _diff * (_time_period_s - dt_s);
+		}
+
 		_last_value = value;
 	}
 
@@ -76,10 +80,17 @@ public:
 		return _diff;
 	}
 
+	void reset()
+	{
+		_diff = 0.0f;
+		_last_value = NAN;
+	}
+
 private:
+	static constexpr float _time_period_s{1.0f};
+
 	float _diff{0.0f};
-	float _last_value{0.0f};
-	const float _time_period_s{1.0f};
+	float _last_value{NAN};
 };
 
 
