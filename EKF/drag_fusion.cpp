@@ -92,7 +92,7 @@ void Ekf::fuseDrag()
 		const float mea_acc = _drag_sample_delayed.accelXY(axis_index)  - _state.delta_vel_bias(axis_index) / _dt_ekf_avg;
 
 		// predicted drag force sign is opposite to predicted wind relative velocity
-		const float drag_sign = (rel_wind_body(axis_index) >= 0.f) ? 1.f : -1.f;
+		const float drag_sign = (rel_wind_body(axis_index) >= 0.f) ? -1.f : 1.f;
 
 		float pred_acc; // predicted drag acceleration
 		if (axis_index == 0) {
