@@ -17,5 +17,8 @@ param set-default BAT2_A_PER_V 24
 # Enable IMU thermal control
 param set-default SENS_EN_THERMAL 1
 
+# Set Camera trigger pins to 13/14
+param set-default TRIG_PINS_EX 12288
+
 rgbled_pwm start
 safety_button start
