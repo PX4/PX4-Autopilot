@@ -59,12 +59,7 @@ class MovingDiff
 public:
 	void update(float value, float dt_s)
 	{
-		if (dt_s < 0.0f) {
-			dt_s = 0.0f;
-
-		} else if (dt_s > _time_period_s) {
-			dt_s = _time_period_s;
-		}
+		math::constrain(dt_s, 0.f, _time_period_s);
 
 		// Leave _diff at 0.0f if we don't have a _last_value yet.
 		if (PX4_ISFINITE(_last_value)) {
