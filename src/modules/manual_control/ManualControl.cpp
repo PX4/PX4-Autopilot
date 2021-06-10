@@ -275,10 +275,10 @@ void ManualControl::Run()
 			_manual_control_setpoint_pub.publish(_selector.setpoint());
 		}
 
-		_x_diff.update(0.0f, dt_s);
-		_y_diff.update(0.0f, dt_s);
-		_z_diff.update(0.0f, dt_s);
-		_r_diff.update(0.0f, dt_s);
+		_x_diff.reset();
+		_y_diff.reset();
+		_z_diff.reset();
+		_r_diff.reset();
 	}
 
 	_last_time = now;
