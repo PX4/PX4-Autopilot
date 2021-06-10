@@ -981,10 +981,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 					} else {
 						if (cmd_from_manual_stick) {
-							arming_res = arm(arm_disarm_reason_t::rc_stick, !forced);
+							arming_res = arm(arm_disarm_reason_t::rc_stick);
 
 						} else if (cmd_from_manual_switch) {
-							arming_res = arm(arm_disarm_reason_t::rc_switch, !forced);
+							arming_res = arm(arm_disarm_reason_t::rc_switch);
 
 						} else {
 							arming_res = arm(arm_disarm_reason_t::command_internal, !forced);
