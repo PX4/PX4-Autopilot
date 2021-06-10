@@ -59,6 +59,11 @@ class MovingDiff
 public:
 	void update(float value, float dt_s)
 	{
+		if (!PX4_ISFINITE(value)) {
+			// Ignore NAN
+			return;
+		}
+
 		math::constrain(dt_s, 0.f, _time_period_s);
 
 		// Leave _diff at 0.0f if we don't have a _last_value yet.
