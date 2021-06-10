@@ -91,8 +91,17 @@ void CameraInterfacePWM::trigger(bool trigger_on_true)
 
 void CameraInterfacePWM::info()
 {
-	PX4_INFO("PWM trigger mode (generic), pins enabled : [%d][%d][%d][%d][%d][%d]",
-		 _pins[5], _pins[4], _pins[3], _pins[2], _pins[1], _pins[0]);
+	PX4_INFO_RAW("PWM trigger mode, pins enabled: ");
+
+	for (unsigned i = 0; i < arraySize(_pins); ++i) {
+		if (_pins[i] < 0) {
+			continue;
+		}
+
+		PX4_INFO_RAW("[%d]", _pins[i] + 1);
+	}
+
+	PX4_INFO_RAW("\n");
 }
 
 #endif /* ifdef __PX4_NUTTX */
