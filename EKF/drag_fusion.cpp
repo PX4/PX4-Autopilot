@@ -62,9 +62,6 @@ void Ekf::fuseDrag()
 		return;
 	}
 
-	// calculate inverse of ballistic coefficient
-	const Vector2f ballistic_coef_inv_xy(1.f / _params.bcoef_x, 1.f / _params.bcoef_y);
-
 	// get latest estimated orientation
 	const float &q0 = _state.quat_nominal(0);
 	const float &q1 = _state.quat_nominal(1);
@@ -101,9 +98,10 @@ void Ekf::fuseDrag()
 			float Kacc; // Derivative of specific force wrt airspeed
 			if (using_mcoef && using_bcoef_x) {
 				// bluff body and propeller momentum drag
-				const float airspeed = (_params.bcoef_x  / rho) * (- _params.mcoef  + sqrtf(sq(_params.mcoef ) + 2.0f * (rho / _params.bcoef_x ) * fabsf(mea_acc)));
-				Kacc = fmaxf(1e-1f, (rho / _params.bcoef_x) * airspeed + _params.mcoef  * density_ratio);
-				pred_acc = (0.5f / _params.bcoef_x ) * rho * sq(rel_wind_body(0)) * drag_sign - rel_wind_body(0) * _params.mcoef  * density_ratio;
+				const float bcoef_inv = 1.0f / _params.bcoef_x;
+				const float airspeed = (_params.bcoef_x  / rho) * (- _params.mcoef  + sqrtf(sq(_params.mcoef) + 2.0f * rho * bcoef_inv * fabsf(mea_acc)));
+				Kacc = fmaxf(1e-1f, rho * bcoef_inv * airspeed + _params.mcoef  * density_ratio);
+				pred_acc = 0.5f * bcoef_inv * rho * sq(rel_wind_body(0)) * drag_sign - rel_wind_body(0) * _params.mcoef  * density_ratio;
 			} else if (using_mcoef) {
 				// propeller momentum drag only
 				Kacc = fmaxf(1e-1f, _params.mcoef  * density_ratio);
@@ -111,8 +109,9 @@ void Ekf::fuseDrag()
 			} else if (using_bcoef_x) {
 				// bluff body drag only
 				const float airspeed = sqrtf((2.0f * _params.bcoef_x  * fabsf(mea_acc)) / rho);
-				Kacc = fmaxf(1e-1f, (rho / _params.bcoef_x ) * airspeed);
-				pred_acc = (0.5f / _params.bcoef_x ) * rho * sq(rel_wind_body(0)) * drag_sign;
+				const float bcoef_inv = 1.0f / _params.bcoef_x;
+				Kacc = fmaxf(1e-1f, rho * bcoef_inv * airspeed);
+				pred_acc = 0.5f * bcoef_inv * rho * sq(rel_wind_body(0)) * drag_sign;
 			} else {
 				// skip this axis
 				continue;
@@ -205,9 +204,10 @@ void Ekf::fuseDrag()
 			float Kacc; // Derivative of specific force wrt airspeed
 			if (using_mcoef && using_bcoef_y) {
 				// bluff body and propeller momentum drag
-				const float airspeed = (_params.bcoef_y / rho) * (- _params.mcoef  + sqrtf(sq(_params.mcoef ) + 2.0f * (rho / _params.bcoef_y) * fabsf(mea_acc)));
-				Kacc = fmaxf(1e-1f, (rho / _params.bcoef_y) * airspeed + _params.mcoef  * density_ratio);
-				pred_acc = (0.5f / _params.bcoef_y) * rho * sq(rel_wind_body(1)) * drag_sign - rel_wind_body(1) * _params.mcoef  * density_ratio;
+				const float bcoef_inv = 1.0f / _params.bcoef_y;
+				const float airspeed = (_params.bcoef_y / rho) * (- _params.mcoef  + sqrtf(sq(_params.mcoef) + 2.0f * rho * bcoef_inv * fabsf(mea_acc)));
+				Kacc = fmaxf(1e-1f, rho * bcoef_inv * airspeed + _params.mcoef  * density_ratio);
+				pred_acc = 0.5f * bcoef_inv * rho * sq(rel_wind_body(1)) * drag_sign - rel_wind_body(1) * _params.mcoef  * density_ratio;
 			} else if (using_mcoef) {
 				// propeller momentum drag only
 				Kacc = fmaxf(1e-1f, _params.mcoef  * density_ratio);
@@ -215,8 +215,9 @@ void Ekf::fuseDrag()
 			} else if (using_bcoef_y) {
 				// bluff body drag only
 				const float airspeed = sqrtf((2.0f * _params.bcoef_y * fabsf(mea_acc)) / rho);
-				Kacc = fmaxf(1e-1f, (rho / _params.bcoef_y) * airspeed);
-				pred_acc = (0.5f / _params.bcoef_y) * rho * sq(rel_wind_body(1)) * drag_sign;
+				const float bcoef_inv = 1.0f / _params.bcoef_y;
+				Kacc = fmaxf(1e-1f, rho * bcoef_inv * airspeed);
+				pred_acc = 0.5f * bcoef_inv * rho * sq(rel_wind_body(1)) * drag_sign;
 			} else {
 				// nothing more to do
 				return;
