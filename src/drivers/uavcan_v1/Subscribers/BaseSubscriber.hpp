@@ -58,9 +58,10 @@ public:
 	{
 		_subj_sub._subject_name = subject_name;
 		_subj_sub._canard_sub.user_reference = this;
+		_subj_sub._canard_sub.port_id = CANARD_PORT_ID_UNSET;
 	}
 
-	~UavcanBaseSubscriber()
+	virtual ~UavcanBaseSubscriber()
 	{
 		unsubscribe();
 	}
