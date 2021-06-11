@@ -95,8 +95,6 @@ UavcanNode::UavcanNode(CanardInterface *interface, uint32_t node_id) :
 
 UavcanNode::~UavcanNode()
 {
-	delete _can_interface;
-
 	if (_instance) {
 		/* tell the task we want it to go away */
 		_task_should_exit.store(true);
@@ -114,6 +112,8 @@ UavcanNode::~UavcanNode()
 
 		} while (_instance);
 	}
+
+	delete _can_interface;
 
 	perf_free(_cycle_perf);
 	perf_free(_interval_perf);

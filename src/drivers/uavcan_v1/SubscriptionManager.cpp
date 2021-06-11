@@ -42,6 +42,16 @@
 
 #include "SubscriptionManager.hpp"
 
+SubscriptionManager::~SubscriptionManager()
+{
+	UavcanDynamicPortSubscriber *dynsub;
+
+	while (_dynsubscribers != NULL) {
+		dynsub = _dynsubscribers;
+		_dynsubscribers = dynsub->next();
+		delete dynsub;
+	}
+}
 
 
 void SubscriptionManager::subscribe()
