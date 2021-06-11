@@ -603,7 +603,8 @@ void AirspeedModule::select_airspeed_and_publish()
 		airspeed_validated.true_airspeed_m_s = _airspeed_validator[_valid_airspeed_index - 1].get_TAS();
 		airspeed_validated.calibrated_ground_minus_wind_m_s = _ground_minus_wind_CAS;
 		airspeed_validated.true_ground_minus_wind_m_s = _ground_minus_wind_TAS;
-		airspeed_validated.airspeed_sensor_measurement_valid = true;
+		airspeed_validated.airspeed_sensor_measurement_valid =
+			_airspeed_validator[_valid_airspeed_index - 1].get_airspeed_valid();
 		break;
 	}
 
