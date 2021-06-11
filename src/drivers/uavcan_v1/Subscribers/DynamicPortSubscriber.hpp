@@ -70,13 +70,7 @@ public:
 			uavcan_register_Value_1_0 value;
 
 			if (_param_manager.GetParamByName(uavcan_param, value)) {
-				int32_t new_id = value.integer32.value.elements[0];
-
-				// Allow, for example, a default PX4 param value of '-1' to disable subscription
-				if (!isValidPortId(new_id)) {
-					// but always use the standard 'unset' value for comparison
-					new_id = CANARD_PORT_ID_UNSET;
-				}
+				uint16_t new_id = value.natural16.value.elements[0];
 
 				/* FIXME how about partial subscribing */
 				if (curSubj->_canard_sub.port_id != new_id) {
@@ -96,6 +90,10 @@ public:
 						subscribe();
 					}
 				}
+
+			} else if (curSubj->_canard_sub.port_id != CANARD_PORT_ID_UNSET) { // No valid sub id unsubscribe when neccesary
+				// Already active; unsubscribe first
+				unsubscribe();
 			}
 
 			curSubj = curSubj->next;

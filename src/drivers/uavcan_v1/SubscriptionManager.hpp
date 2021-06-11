@@ -66,6 +66,7 @@ class SubscriptionManager
 {
 public:
 	SubscriptionManager(CanardInstance &ins, UavcanParamManager &pmgr) : _canard_instance(ins), _param_manager(pmgr) {}
+	~SubscriptionManager();
 
 	void subscribe();
 	void printInfo();
