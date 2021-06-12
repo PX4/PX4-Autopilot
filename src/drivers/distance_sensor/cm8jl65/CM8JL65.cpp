@@ -136,56 +136,56 @@ CM8JL65::collect()
 {
 	perf_begin(_sample_perf);
 
-	int bytes_processed = 0;
-	int distance_mm = -1;
-	int index = 0;
+	// int bytes_processed = 0;
+	// int distance_mm = -1;
+	// int index = 0;
 
-	bool crc_valid = false;
+	// bool crc_valid = false;
 
-	// Read from the sensor UART buffer.
-	const hrt_abstime timestamp_sample = hrt_absolute_time();
-	int bytes_read = ::read(_file_descriptor, &_linebuf[0], sizeof(_linebuf));
+	// // Read from the sensor UART buffer.
+	 const hrt_abstime timestamp_sample = hrt_absolute_time();
+	// int bytes_read = ::read(_file_descriptor, &_linebuf[0], sizeof(_linebuf));
 
-	if (bytes_read > 0) {
-		index = bytes_read - 6 ;
+	// if (bytes_read > 0) {
+	// 	index = bytes_read - 6 ;
 
-		while (index >= 0 && !crc_valid) {
-			if (_linebuf[index] == START_FRAME_DIGIT1) {
-				bytes_processed = index;
+	// 	while (index >= 0 && !crc_valid) {
+	// 		if (_linebuf[index] == START_FRAME_DIGIT1) {
+	// 			bytes_processed = index;
 
-				while (bytes_processed < bytes_read && !crc_valid) {
-					if (data_parser(_linebuf[bytes_processed], _frame_data, _parse_state, _crc16, distance_mm) == PX4_OK) {
-						crc_valid = true;
-					}
+	// 			while (bytes_processed < bytes_read && !crc_valid) {
+	// 				if (data_parser(_linebuf[bytes_processed], _frame_data, _parse_state, _crc16, distance_mm) == PX4_OK) {
+	// 					crc_valid = true;
+	// 				}
 
-					bytes_processed++;
-				}
+	// 				bytes_processed++;
+	// 			}
 
-				_parse_state = PARSE_STATE::WAITING_FRAME;
-			}
+	// 			_parse_state = PARSE_STATE::WAITING_FRAME;
+	// 		}
 
-			index--;
-		}
+	// 		index--;
+	// 	}
 
-	} else if (bytes_read == -1 && errno == EAGAIN) {
-		return -EAGAIN;
+	// } else if (bytes_read == -1 && errno == EAGAIN) {
+	// 	return -EAGAIN;
 
-	} else {
+	// } else {
 
-		PX4_ERR("read error: %i, errno: %i", bytes_read, errno);
-		perf_count(_comms_errors);
-		perf_end(_sample_perf);
-		return PX4_ERROR;
-	}
+	// 	PX4_ERR("read error: %i, errno: %i", bytes_read, errno);
+	// 	perf_count(_comms_errors);
+	// 	perf_end(_sample_perf);
+	// 	return PX4_ERROR;
+	// }
 
-	if (!crc_valid) {
-		return -EAGAIN;
-	}
+	// if (!crc_valid) {
+	// 	return -EAGAIN;
+	// }
 
-	bytes_read = OK;
+	// bytes_read = OK;
 
-	const float current_distance = static_cast<float>(distance_mm) / 1000.0f;
-
+	// const float current_distance = static_cast<float>(distance_mm) / 1000.0f;
+	const float current_distance = 1.234f;
 	_px4_rangefinder.update(timestamp_sample, current_distance);
 
 	perf_end(_sample_perf);
@@ -338,8 +338,10 @@ CM8JL65::print_info()
 void
 CM8JL65::Run()
 {
+	//PX4_INFO("run in CM8JL65");
+	//mavlink_log_critical(&_mavlink_log_pub, "MR72 Loop in read/pub");
 	// Ensure the serial port is open.
-	open_serial_port();
+	//open_serial_port();
 
 	// Perform collection.
 	collect();

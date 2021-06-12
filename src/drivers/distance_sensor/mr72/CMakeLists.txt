@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2017-2019 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,14 +31,14 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__mr72
+	MODULE drivers__distance_sensor__mr72
 	MAIN mr72
+	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		MR72.cpp
 		MR72.hpp
 		mr72_main.cpp
 	MODULE_CONFIG
 		module.yaml
-	DEPENDS
-		drivers_rangefinder
 	)

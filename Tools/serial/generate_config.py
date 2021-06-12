@@ -93,7 +93,7 @@ serial_ports = {
     "TEL2": { # companion port
         "label": "TELEM 2",
         "index": 102,
-        "default_baudrate": 921600,
+        "default_baudrate": 115200,
         },
     "TEL3": {
         "label": "TELEM 3",

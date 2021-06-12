@@ -50,7 +50,7 @@
 #include <perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-
+#include <systemlib/mavlink_log.h>
 
 using namespace time_literals;
 
@@ -97,6 +97,7 @@ public:
 	void print_info();
 
 private:
+	orb_advert_t _mavlink_log_pub = nullptr;
 
 	enum class PARSE_STATE {
 		WAITING_FRAME = 0,

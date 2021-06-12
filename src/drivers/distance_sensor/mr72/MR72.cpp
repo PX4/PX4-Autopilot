@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2017-2019 Intel Corporation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,35 +34,36 @@
 #include "MR72.hpp"
 
 #include <fcntl.h>
+#include <stdlib.h>
+#include <string.h>
 
-MR72::MR72(const char *port, uint8_t rotation) :
-	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
-	_px4_rangefinder(0 /* TODO: device ids */, ORB_PRIO_HIGH, rotation)
+MR72::MR72(const char *serial_port, uint8_t device_orientation):
+	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(serial_port)),
+	_px4_rangefinder(0 /* device id not yet used */, ORB_PRIO_DEFAULT, device_orientation)
 {
-	// Store the port name.
-	strncpy(_port, port, sizeof(_port) - 1);
+	_serial_port = strdup(serial_port);
 
-	// Enforce null termination.
-	_port[sizeof(_port) - 1] = '\0';
-
-	// Use conservative distance bounds, to make sure we don't fuse garbage data
-	_px4_rangefinder.set_min_distance(0.1f);	// Datasheet: 0.1m
-	_px4_rangefinder.set_max_distance(100.0f);	// Datasheet: 100.0m
+	_px4_rangefinder.set_max_distance(ULANDING_MAX_DISTANCE);
+	_px4_rangefinder.set_min_distance(ULANDING_MIN_DISTANCE);
 	_px4_rangefinder.set_fov(0.0488692f);
+
 	_last_value = 0;
 	_valid_orign_distance = 0;
 	_keep_valid_time = 0;
 	_mf_cycle_counter = 0;
 	_var_cycle_couter = 0;
+
+
+
 }
 
 MR72::~MR72()
 {
-	// Ensure we are truly inactive.
 	stop();
 
+	free((char *)_serial_port);
+	perf_free(_comms_error);
 	perf_free(_sample_perf);
-	perf_free(_comms_errors);
 }
 
 
@@ -70,37 +71,34 @@ int
 MR72::collect()
 {
 	perf_begin(_sample_perf);
-	mavlink_log_critical(&_mavlink_log_pub, "MR72 Loop in read/pub");
-	read_uart_data(_file_descriptor, &_uartbuf);
 
+	read_uart_data(_file_descriptor, &_uartbuf);
 	parse_uart_data(&_uartbuf, &_packet);
 
 	uint16_t packet_message_id;
 	packet_message_id = _packet.message_id2 * 256 + _packet.message_id1;
-
 	public_distance_sensor(packet_message_id);
 
-
-
-
 	perf_end(_sample_perf);
-
-	return PX4_OK;
+	return true;
 }
-
 
 int
 MR72::init()
 {
-	start();
+	if (open_serial_port() != PX4_OK) {
+		return PX4_ERROR;
+	}
+
 
 	return PX4_OK;
 }
 
+
 int
 MR72::open_serial_port(const speed_t speed)
 {
-	// File descriptor initialized?
+	// File descriptor already initialized?
 	if (_file_descriptor > 0) {
 		// PX4_INFO("serial port already open");
 		return PX4_OK;
@@ -110,7 +108,7 @@ MR72::open_serial_port(const speed_t speed)
 	int flags = (O_RDWR | O_NOCTTY | O_NONBLOCK);
 
 	// Open the serial port.
-	_file_descriptor = ::open(_port, flags);
+	_file_descriptor = ::open(_serial_port, flags);
 
 	if (_file_descriptor < 0) {
 		PX4_ERR("open failed (%i)", errno);
@@ -120,13 +118,24 @@ MR72::open_serial_port(const speed_t speed)
 	termios uart_config = {};
 
 	// Store the current port configuration. attributes.
-	tcgetattr(_file_descriptor, &uart_config);
+	if (tcgetattr(_file_descriptor, &uart_config)) {
+		PX4_ERR("Unable to get termios from %s.", _serial_port);
+		::close(_file_descriptor);
+		_file_descriptor = -1;
+		return PX4_ERROR;
+	}
+
+	// Clear: data bit size, two stop bits, parity, hardware flow control.
+	uart_config.c_cflag &= ~(CSIZE | CSTOPB | PARENB | CRTSCTS);
+
+	// Set: 8 data bits, enable receiver, ignore modem status lines.
+	uart_config.c_cflag |= (CS8 | CREAD | CLOCAL);
+
+	// Clear: echo, echo new line, canonical input and extended input.
+	uart_config.c_lflag &= (ECHO | ECHONL | ICANON | IEXTEN);
 
 	// Clear ONLCR flag (which appends a CR for every LF).
 	uart_config.c_oflag &= ~ONLCR;
-
-	// No parity, one stop bit.
-	uart_config.c_cflag &= ~(CSTOPB | PARENB);
 
 	// Set the input baud rate in the uart_config struct.
 	int termios_state = cfsetispeed(&uart_config, speed);
@@ -155,9 +164,18 @@ MR72::open_serial_port(const speed_t speed)
 		return PX4_ERROR;
 	}
 
-	PX4_INFO("successfully opened UART port %s", _port);
+	// Flush the hardware buffers.
+	tcflush(_file_descriptor, TCIOFLUSH);
+
+	PX4_DEBUG("opened UART port %s", _serial_port);
+
 	return PX4_OK;
 }
+
+
+
+
+
 
 
 int
@@ -405,19 +423,17 @@ MR72::public_distance_sensor(uint16_t message_id)
 void
 MR72::print_info()
 {
+	perf_print_counter(_comms_error);
 	perf_print_counter(_sample_perf);
-	perf_print_counter(_comms_errors);
 }
 
 void
 MR72::Run()
 {
-	//PX4_INFO("driver Run");
-	mavlink_log_critical(&_mavlink_log_pub, "MR72 Loop RUN ");
+
 	// Ensure the serial port is open.
 	open_serial_port();
 
-	// Perform collection.
 	collect();
 }
 
@@ -425,17 +441,16 @@ void
 MR72::start()
 {
 	// Schedule the driver at regular intervals.
-	ScheduleOnInterval(MR72_MEASURE_INTERVAL);
-
-	PX4_INFO("driver started");
+	ScheduleOnInterval(MR72_MEASURE_INTERVAL, MR72_MEASURE_INTERVAL);
 }
 
 void
 MR72::stop()
 {
-	// Clear the work queue schedule.
-	ScheduleClear();
-
 	// Ensure the serial port is closed.
 	::close(_file_descriptor);
+	_file_descriptor = -1;
+
+	// Clear the work queue schedule.
+	ScheduleClear();
 }

@@ -41,7 +41,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-
+#include <systemlib/mavlink_log.h>
 using namespace time_literals;
 
 #define LEDDAR_ONE_FIELD_OF_VIEW        (0.105f) // 6 deg cone angle.
@@ -49,7 +49,7 @@ using namespace time_literals;
 #define LEDDAR_ONE_MAX_DISTANCE         40.0f
 #define LEDDAR_ONE_MIN_DISTANCE         0.01f
 
-#define LEDDAR_ONE_MEASURE_INTERVAL     100_ms // 10Hz
+#define LEDDAR_ONE_MEASURE_INTERVAL     10_ms // 10Hz
 
 #define MODBUS_SLAVE_ADDRESS            0x01
 #define MODBUS_READING_FUNCTION         0x04
@@ -118,7 +118,7 @@ public:
 	void stop();
 
 private:
-
+	orb_advert_t _mavlink_log_pub = nullptr;
 	/**
 	 * Calculates the 16 byte crc value for the data frame.
 	 * @param data_frame The data frame to compute a checksum for.

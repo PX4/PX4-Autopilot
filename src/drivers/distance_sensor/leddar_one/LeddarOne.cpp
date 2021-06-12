@@ -83,6 +83,8 @@ LeddarOne::collect()
 {
 	perf_begin(_sample_perf);
 
+
+
 	const int buffer_size = sizeof(_buffer);
 	const int message_size = sizeof(reading_msg);
 
@@ -121,8 +123,9 @@ LeddarOne::collect()
 		return measure();
 	}
 
-	// NOTE: little-endian support only.
+	//NOTE: little-endian support only.
 	uint16_t distance_mm = (msg->first_dist_high_byte << 8 | msg->first_dist_low_byte);
+
 	float distance_m = static_cast<float>(distance_mm) / 1000.0f;
 
 	// @TODO - implement a meaningful signal quality value.
@@ -132,8 +135,9 @@ LeddarOne::collect()
 
 	perf_end(_sample_perf);
 
-	// Trigger the next measurement.
+	//Trigger the next measurement.
 	return measure();
+	//return true;
 }
 
 int
@@ -165,6 +169,7 @@ LeddarOne::init()
 
 	PX4_ERR("No readings from LeddarOne");
 	return PX4_ERROR;
+	//return PX4_OK;
 }
 
 int
@@ -272,8 +277,10 @@ LeddarOne::print_info()
 void
 LeddarOne::Run()
 {
-	// Ensure the serial port is open.
+	//PX4_INFO("LeddarOne::Run()");
+	//Ensure the serial port is open.
 	open_serial_port();
+	//mavlink_log_critical(&_mavlink_log_pub, "MR72 Loop in read/pub");
 
 	collect();
 }

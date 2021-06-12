@@ -19,6 +19,8 @@
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/uORB.h>
 #include <board_config.h>
 
@@ -61,28 +63,20 @@ private:
 		{ORB_ID(input_rc), 3},
 	};
 
-	uORB::Subscription _sub_distance_sensor[2] {
-		{ORB_ID(distance_sensor), 0},
-		{ORB_ID(distance_sensor), 1},
+	uORB::Subscription _sub_distance_sensor {ORB_ID(distance_sensor), 0};
 
-	};
 
 	uORB::Subscription _sub_man {ORB_ID(manual_control_setpoint)};
 	manual_control_setpoint_s man;
 	//int _sub_rc_input[4];
-	void set_signal_validity(const input_rc_s &input);
-	void set_slave_signal_validity(const input_rc_s &slave_rc_input);
-	bool input_signal_valid = false;
-	bool slave_input_signal_valid = false;
-
 
 	struct InputRC {
 		input_rc_s input = {};
 	} _inputs_rc[4];
 
-	struct Distance {
-		distance_sensor_s distance_sensor = {};
-	} _distance_sensor[2];
+
+	distance_sensor_s distance_sensor = {};
+
 
 };
 
@@ -122,7 +116,7 @@ bool Loop::init()
 void Loop::Run()
 {
 	//bool rc_input_flag = false;
-	bool _sub_distance_sensor_flag = false;
+
 
 	//bool updated = false;
 	//bool slave_rc_input_flag = false;
@@ -133,7 +127,7 @@ void Loop::Run()
 	// backup schedule as a watchdog timeout
 	ScheduleDelayed(10);
 
-	for (unsigned i = 0; i < 2 ; i++) {
+
 	// if (_sub_rc_input[i].updated()) {
 	// 	rc_input_flag = _sub_rc_input[i].copy(&_inputs_rc[i].input);
 	// 	if(rc_input_flag){
@@ -147,19 +141,21 @@ void Loop::Run()
 	// }
 
 
-		if (_sub_distance_sensor[i].updated()) {
-		_sub_distance_sensor_flag = _sub_distance_sensor[i].copy(&_inputs_rc[i].input);
-		if(_sub_distance_sensor_flag){
-		mavlink_log_critical(&_mavlink_log_pub,"Loop RUN %f ", (double)_distance_sensor[i].distance_sensor.current_distance);
-	}
-	}
+		if (_sub_distance_sensor.updated()) {
+		_sub_distance_sensor.copy(&distance_sensor);
+		mavlink_log_critical(&_mavlink_log_pub,"Loop RUN %f ", (double)distance_sensor.current_distance);
+	 }//else
+	//  {
+	// 	 mavlink_log_critical(&_mavlink_log_pub, "not update ");
+
+	//  }
 	// if(_sub_man.updated()){
 	// 	_sub_man.copy(&man);
 	// 	mavlink_log_critical(&_mavlink_log_pub,"Loop manual %d ", man.mode_slot);
 
 	// }
 
-	}
+
 
 	// if (_sub_slave_rc_input.update(&slave_rc_input)) {
 	// 	slave_rc_input_flag = true;
@@ -237,50 +233,4 @@ It runs in its own thread and polls on the currently selected gyro topic.
 extern "C" __EXPORT int loop_main(int argc, char *argv[])
 {
 	return Loop::main(argc, argv);
-}
-
-
-void
-Loop::set_signal_validity(const input_rc_s &input)
-{
-	// detect RC signal loss
-	input_signal_valid = true;
-
-	const bool rc_timeout = (hrt_absolute_time() - input.timestamp_last_signal) > hrt_abstime(
-					0.5f* 1e6f);
-
-	// check flags and require at least four channels to consider the signal valid
-	if (input.rc_lost || input.rc_failsafe || input.channel_count < 4 || rc_timeout) {
-		// signal is lost or not enough channels
-		int aaa,bbb,ccc,ddd,eee;
-		aaa = input.rc_lost;
-		bbb = input.rc_failsafe;
-		ccc= input.channel_count;
-		ddd = rc_timeout;
-		eee = input.values[0];
-		input_signal_valid = false;
-		mavlink_log_critical(&_mavlink_log_pub, "input_set.signal_valid = false;");
-		mavlink_log_emergency(&_mavlink_log_pub, "%d %d %d %d %d", aaa, bbb, ccc,ddd,eee);
-
-	}
-}
-
-
-void
-Loop::set_slave_signal_validity(const input_rc_s &slave_rc_input)
-{	mavlink_log_critical(&_mavlink_log_pub, "set_slave_signal_validity");
- 	//PX4_INFO("set_slave_signal_validity(InputSlaveRCset &input_slave_set)");
-	// detect RC signal loss
-	slave_input_signal_valid = true;
-
-	const bool rc_timeout = (hrt_absolute_time() - slave_rc_input.timestamp_last_signal) > hrt_abstime(
-					0.5f * 1e6f);
-
-	// check flags and require at least four channels to consider the signal valid
-	if (slave_rc_input.rc_lost || slave_rc_input.rc_failsafe
-	    || slave_rc_input.channel_count < 4 || rc_timeout) {
-		// signal is lost or not enough channels
-		slave_input_signal_valid = false;
-		mavlink_log_critical(&_mavlink_log_pub, "slave_input_signal_valid = false;");
-	}
 }

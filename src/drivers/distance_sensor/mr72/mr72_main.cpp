@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2017-2019 Intel Corporation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,55 +31,23 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/cli.h>
-#include <px4_platform_common/getopt.h>
-
 #include "MR72.hpp"
 
-/**
- * Local functions in support of the shell command.
- */
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
+
 namespace mr72
 {
 
-MR72 *g_dev;
+MR72 *g_dev{nullptr};
 
-int reset(const char *port);
-int start(const char *port, const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
-int status();
-int stop();
-int usage();
-
-/**
- * Reset the driver.
- */
-int
-reset(const char *port)
+static int start(const char *port, const uint8_t rotation)
 {
-	if (stop() == PX4_OK) {
-		return start(port);
-	}
-
-	return PX4_ERROR;
-}
-
-/**
- * Start the driver.
- */
-int
-start(const char *port, const uint8_t rotation)
-{
-	if (port == nullptr) {
-		PX4_ERR("invalid port");
+	if (g_dev != nullptr) {
+		PX4_ERR("already started");
 		return PX4_ERROR;
 	}
 
-	if (g_dev != nullptr) {
-		PX4_INFO("already started");
-		return PX4_OK;
-	}
-
-	// Instantiate the driver.
 	g_dev = new MR72(port, rotation);
 
 	if (g_dev == nullptr) {
@@ -87,6 +55,7 @@ start(const char *port, const uint8_t rotation)
 		return PX4_ERROR;
 	}
 
+	// Initialize the sensor.
 	if (g_dev->init() != PX4_OK) {
 		PX4_ERR("driver start failed");
 		delete g_dev;
@@ -94,14 +63,13 @@ start(const char *port, const uint8_t rotation)
 		return PX4_ERROR;
 	}
 
+	// Start the driver.
+	g_dev->start();
+
 	return PX4_OK;
 }
 
-/**
- * Print the driver status.
- */
-int
-status()
+static int status()
 {
 	if (g_dev == nullptr) {
 		PX4_ERR("driver not running");
@@ -113,65 +81,69 @@ status()
 	return PX4_OK;
 }
 
-/**
- * Stop the driver
- */
-int stop()
+static int stop()
 {
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
+
 	}
 
-	return PX4_ERROR;
-}
-
-int
-usage()
-{
-	PX4_INFO("usage: mr72 command [options]");
-	PX4_INFO("command:");
-	PX4_INFO("\treset|start|status|stop");
-	PX4_INFO("options:");
-	PX4_INFO("\t-R --rotation (%d)", distance_sensor_s::ROTATION_DOWNWARD_FACING);
-	PX4_INFO("\t-d --device_path");
+	PX4_INFO("driver stopped");
 	return PX4_OK;
 }
 
-} // namespace mr72
+static int usage()
+{
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
 
+Serial bus driver for the MR72 LiDAR.
 
-/**
- * Driver 'main' command.
- */
+Most boards are configured to enable/start the driver on a specified UART using the SENS_LEDDAR1_CFG parameter.
+
+### Examples
+
+Attempt to start driver on a specified serial device.
+$ mr72 start -d /dev/ttyS1
+Stop driver
+$ mr72 stop
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("mr72", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
+	PRINT_MODULE_USAGE_PARAM_INT('r', 25, 1, 25, "Sensor rotation - downward facing by default", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
+	return PX4_OK;
+}
+
+} // namespace
+
 extern "C" __EXPORT int mr72_main(int argc, char *argv[])
 {
-	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-	const char *device_path = nullptr;
-	int ch;
-	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "R:d:", &myoptind, &myoptarg)) != EOF) {
+	int ch = 0;
+	int myoptind = 1;
+
+	const char *port = nullptr;
+	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+
+	while ((ch = px4_getopt(argc, argv, "d:r", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'R': {
-				int rot = -1;
-
-				if (px4_get_parameter_value(myoptarg, rot) != 0) {
-					PX4_ERR("rotation parsing failed");
-					return -1;
-				}
-
-				rotation = (uint8_t)rot;
-				break;
-			}
-
 		case 'd':
-			device_path = myoptarg;
+			port = myoptarg;
+			break;
+
+		case 'r':
+			rotation = (uint8_t)atoi(myoptarg);
 			break;
 
 		default:
-			PX4_WARN("Unknown option!");
+			PX4_WARN("Unknown option");
 			return mr72::usage();
 		}
 	}
@@ -180,24 +152,13 @@ extern "C" __EXPORT int mr72_main(int argc, char *argv[])
 		return mr72::usage();
 	}
 
-	// Reset the driver.
-	if (!strcmp(argv[myoptind], "reset")) {
-		return mr72::reset(device_path);
-	}
-
-	// Start/load the driver.
 	if (!strcmp(argv[myoptind], "start")) {
-		PX4_INFO("successfully start");
-		return mr72::start(device_path, rotation);
-	}
+		return mr72::start(port, rotation);
 
-	// Print driver information.
-	if (!strcmp(argv[myoptind], "status")) {
+	} else if (!strcmp(argv[myoptind], "status")) {
 		return mr72::status();
-	}
 
-	// Stop the driver
-	if (!strcmp(argv[myoptind], "stop")) {
+	} else if (!strcmp(argv[myoptind], "stop")) {
 		return mr72::stop();
 	}
 

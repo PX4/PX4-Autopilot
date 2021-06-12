@@ -30,6 +30,7 @@ px4_add_board(
 		#distance_sensor/ll40ls
 		distance_sensor/mr72
 		distance_sensor/cm8jl65
+		distance_sensor/leddar_one
 		#dshot
 		gps
 		#heater
