@@ -1,0 +1,16 @@
+# This type is a part of the Raft consensus algorithm. Please refer to the type AppendEntries for details.
+
+uint32 term
+uint32 last_log_term
+uint16 last_log_index
+# Refer to the Raft paper for explanation.
+
+@extent 48 * 8
+
+---
+
+uint32 term
+bool vote_granted
+# Refer to the Raft paper for explanation.
+
+@extent 48 * 8

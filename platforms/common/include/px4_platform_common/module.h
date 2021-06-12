@@ -46,6 +46,8 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/tasks.h>
 #include <systemlib/px4_macros.h>
+//mx3g-jh
+#include <systemlib/mavlink_log.h>
 
 #ifdef __cplusplus
 
@@ -138,6 +140,7 @@ public:
 		if (strcmp(argv[1], "start") == 0) {
 			// Pass the 'start' argument too, because later on px4_getopt() will ignore the first argument.
 			return start_command_base(argc - 1, argv + 1);
+
 		}
 
 		if (strcmp(argv[1], "status") == 0) {
@@ -320,6 +323,8 @@ public:
 	}
 
 protected:
+
+	orb_advert_t _mavlink_log_pub = nullptr;
 
 	/**
 	 * @brief Tells the module to stop (used from outside or inside the module thread).

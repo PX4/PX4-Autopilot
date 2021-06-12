@@ -1,0 +1,23 @@
+# This is a collection of weakly-typed primitives used to control groups of actuators synchronously.
+#
+# Actuators are expected to subscribe using the largest array type. Publishers would choose the array type
+# depending on the number of actuators in the group. The actuators would be expecting the largest array type,
+# where the missing elements will be zero-filled automatically by the protocol stack thanks to the
+# Implicit Zero Extension Rule (refer to the UAVCAN Specification for details).
+#
+# The physical meaning of the values contained in the array is defined by the respective actuator service specification.
+# If ratiometric control is used, then the range should be [-1, +1].
+#
+# It follows that a standalone actuator (that is not a member of any group) is just a special case of a group of 1,
+# where the setpoint type is a single scalar.
+#
+# The UAVCAN Specification might benefit from supporting flexible array fields to avoid having to deal with redundant
+# similar types: https://en.wikipedia.org/wiki/Flexible_array_member, so that instead of having multiple types that
+# differ only in size of the array fields, one could just say `float16[0] value` such that the size of zero indicates
+# that the array is a flex array.
+
+float16 EPSILON = 2 ** -11
+# The float epsilon defined for convenience.
+# See https://en.wikipedia.org/wiki/Machine_epsilon.
+
+@extent 0  # This type is not intended for runtime use.

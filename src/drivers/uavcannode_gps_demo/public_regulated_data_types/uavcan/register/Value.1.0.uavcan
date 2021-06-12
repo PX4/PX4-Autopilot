@@ -1,0 +1,27 @@
+# This union contains all possible value types supported by the register protocol.
+# Numeric types can be either scalars or arrays; the former is a special case of the latter.
+
+@union
+
+uavcan.primitive.Empty.1.0        empty         # Tag 0     Used to represent an undefined value
+uavcan.primitive.String.1.0       string        # Tag 1     UTF-8 encoded text
+uavcan.primitive.Unstructured.1.0 unstructured  # Tag 2     Raw unstructured binary image
+uavcan.primitive.array.Bit.1.0    bit           # Tag 3     Bit array
+
+uavcan.primitive.array.Integer64.1.0 integer64  # Tag 4
+uavcan.primitive.array.Integer32.1.0 integer32  # Tag 5
+uavcan.primitive.array.Integer16.1.0 integer16  # Tag 6
+uavcan.primitive.array.Integer8.1.0  integer8   # Tag 7
+
+uavcan.primitive.array.Natural64.1.0 natural64  # Tag 8
+uavcan.primitive.array.Natural32.1.0 natural32  # Tag 9
+uavcan.primitive.array.Natural16.1.0 natural16  # Tag 10
+uavcan.primitive.array.Natural8.1.0  natural8   # Tag 11
+
+uavcan.primitive.array.Real64.1.0 real64        # Tag 12    Exactly representable integers: [-2**53,    +2**53]
+uavcan.primitive.array.Real32.1.0 real32        # Tag 13    Exactly representable integers: [-16777216, +16777216]
+uavcan.primitive.array.Real16.1.0 real16        # Tag 14    Exactly representable integers: [-2048,     +2048]
+
+@sealed
+@assert _offset_.min == 8                       # Empty and the tag
+@assert _offset_.max == 258 * 8 + 8             # 258 bytes per field max and the tag

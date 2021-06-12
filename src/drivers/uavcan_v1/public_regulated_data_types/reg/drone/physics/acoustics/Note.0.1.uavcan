@@ -1,0 +1,9 @@
+# Description of a generic musical note in terms of basic physical quantities.
+#
+# This type may be used to control sound notification emitters assuming the best effort policy:
+# if the requested parameters exceed the capabilities of the emitter, the closest possible values should be assumed.
+
+uavcan.si.unit.frequency.Scalar.1.0 frequency
+uavcan.si.unit.duration.Scalar.1.0 duration
+uavcan.si.unit.power.Scalar.1.0 acoustic_power
+@sealed

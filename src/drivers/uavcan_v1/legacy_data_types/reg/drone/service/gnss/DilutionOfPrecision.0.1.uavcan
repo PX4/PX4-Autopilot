@@ -1,0 +1,19 @@
+# The standard DOP estimates (https://en.wikipedia.org/wiki/Dilution_of_precision).
+# DOP values should not be confused with accuracy estimates -- those are expressed through the covariance matrices.
+#
+# Applicable relations:
+#   gdop = (ndop^2 + edop^2 + vdop^2 + tdop^2)^0.5
+#   pdop = (ndop^2 + edop^2 + vdop^2)^0.5
+#   hdop = (ndop^2 + edop^2)^0.5
+#
+# Fields whose values are unknown should be set to NaN.
+
+float16 geometric   # GDOP
+float16 position    # PDOP
+float16 horizontal  # HDOP
+float16 vertical    # VDOP
+float16 time        # TDOP
+float16 northing    # NDOP
+float16 easting     # EDOP
+
+@sealed

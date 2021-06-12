@@ -1,0 +1,7 @@
+# Subject-ID. The ranges are defined by the specification.
+
+uint13 MAX = 8191
+
+uint13 value
+
+@sealed

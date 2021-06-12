@@ -1,0 +1,42 @@
+# Generic message severity representation.
+
+uint3 value
+# The severity level ranging from 0 to 7, where low values represent low-severity (unimportant) messages, and
+# high values represent high-severity (important) messages. Several mnemonics for the severity levels are
+# defined below. Nodes are advised to implement output filtering mechanisms, allowing users to select
+# the minimal severity for emitted messages; messages of the selected and higher severity levels will
+# be published, and messages of lower severity will be suppressed (discarded).
+
+uint3 TRACE = 0
+# Messages of this severity can be used only during development.
+# They shall not be used in a fielded operational system.
+
+uint3 DEBUG = 1
+# Messages that can aid in troubleshooting.
+# Messages of this severity and lower should be disabled by default.
+
+uint3 INFO = 2
+# General informational messages of low importance.
+# Messages of this severity and lower should be disabled by default.
+
+uint3 NOTICE = 3
+# General informational messages of high importance.
+# Messages of this severity and lower should be disabled by default.
+
+uint3 WARNING = 4
+# Messages reporting abnormalities and warning conditions.
+# Messages of this severity and higher should be enabled by default.
+
+uint3 ERROR = 5
+# Messages reporting problems and error conditions.
+# Messages of this severity and higher should be enabled by default.
+
+uint3 CRITICAL = 6
+# Messages reporting serious problems and critical conditions.
+# Messages of this severity and higher should be always enabled.
+
+uint3 ALERT = 7
+# Notifications of dangerous circumstances that demand immediate attention.
+# Messages of this severity should be always enabled.
+
+@sealed

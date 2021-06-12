@@ -1,0 +1,46 @@
+# Battery chemistry type and its form-factor.
+# Observe that there is no item to represent unknown technology because it is required to be known.
+# This information may be used by charging systems to select the appropriate charging strategy.
+# If the battery is of an uncommon type, it may be preferred to report the closest-matching type listed here
+# instead of OTHER.
+
+uint8 value
+
+uint8 OTHER = 0             # The technology is not specified in this enumeration. Please submit a pull request.
+
+# NON-RECHARGEABLE
+
+uint8 LI_SOCL2 = 10         # Lithium-thionyl chloride (Li-SOCl2)
+uint8 LI_BCX   = 11         # Lithium-thionyl chloride + bromine chloride (Li-BCX)
+uint8 LI_MNO2  = 12         # Lithium-manganese dioxide (Li-MnO2) (e.g., lithium coin cell, lithium 9V)
+
+uint8 ZN_O2 = 20            # Zinc-Air
+uint8 AL_O2 = 21            # Aluminum-Air
+
+uint8 ZN_MNO2_NH4CL = 30    # Zinc-manganese dioxide - ammonium chloride electrolyte (aka zinc-carbon)
+uint8 ZN_MNO2_ZNCL2 = 31    # Zinc-manganese dioxide - zinc chloride electrolyte (aka heavy duty zinc-carbon)
+uint8 ZN_MNO2_KOH   = 32    # Zinc-manganese dioxide - potassium hydroxide electrolyte (aka alkaline)
+
+# RECHARGEABLE
+
+uint8 LI_LCO = 100          # Lithium cobalt oxide (commonly known as just "lithium-ion")
+uint8 LI_LFP = 101          # Lithium iron phosphate (LiFePO4)
+uint8 LI_NMC = 102          # Lithium nickel manganese cobalt oxide
+uint8 LI_NCA = 103          # Lithium nickel cobalt aluminium oxide
+uint8 LI_LMO = 104          # Lithium manganese oxide
+uint8 LI_S   = 105          # Lithium-sulfur (LiS)
+
+uint8 LI_LCO_POUCH = 110    # LiCoO2 in pouch form factor, commonly known as "lithium-ion polymer" or "LiPo".
+uint8 LI_LFP_POUCH = 111    # LiFePO4 in pouch form factor, commonly known as "LiFePO4 polymer".
+
+uint8 NI_MH = 120           # Nickel-metal hydride
+uint8 NI_CD = 121           # Nickel-cadmium
+uint8 NI_ZN = 122           # Nickel-zinc
+uint8 NI_FE = 123           # Nickel-iron
+
+uint8 PB_AC        = 130    # Lead acid
+uint8 PB_AC_SEALED = 131    # Also known as SLA
+
+uint8 EDLC = 200            # Electrostatic double-layer capacitor
+
+@sealed

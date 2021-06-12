@@ -1,0 +1,7 @@
+# See State for details. This type extends it with covariance matrices.
+
+PoseVar.0.1  pose
+TwistVar.0.1 twist
+
+@sealed
+@assert _offset_.count == 1  # This is a fixed-length type.

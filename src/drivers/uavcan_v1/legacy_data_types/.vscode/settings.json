@@ -1,0 +1,35 @@
+{
+    "editor.wordWrapColumn": 120,
+    "editor.rulers": [
+        120
+    ],
+    "files.eol": "\n",
+    "files.insertFinalNewline": true,
+    "files.trimFinalNewlines": true,
+    "files.trimTrailingWhitespace": true,
+    "spellright.documentTypes": [
+        "markdown",
+        "plaintext",
+        "dsdl"
+    ],
+    "spellright.ignoreFiles": [
+        "**/.gitignore",
+        "**/.spellignore"
+    ],
+    "spellright.language": [
+        "en_US"
+    ],
+    "spellright.parserByClass": {
+        "dsdl": {
+            "parser": "code"
+        }
+    },
+    "auto-comment-next-line.list": [
+        {
+            "char": "#",
+            "languages": [
+                "dsdl"
+            ]
+        }
+    ]
+}

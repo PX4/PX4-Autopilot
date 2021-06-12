@@ -1,0 +1,8 @@
+# A UTF8-encoded string of text.
+# Since the string is represented as a dynamic array of bytes, it is not null-terminated. Like Pascal string.
+
+uint8[<=256] value
+
+@sealed
+@assert _offset_ % 8 == {0}
+@assert _offset_.max / 8 == 258

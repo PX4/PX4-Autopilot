@@ -1,0 +1,13 @@
+# A chunk of raw bytes exchanged over a serial transport. Serial links do not support framing natively.
+# The chunk may be of arbitrary size.
+
+@deprecated  # See next version.
+
+uavcan.time.SynchronizedTimestamp.1.0 timestamp
+
+uint9 CAPACITY_BYTES = 256
+uint8[<=CAPACITY_BYTES] data
+
+@sealed
+@assert _offset_ % 8 == {0}
+@assert _offset_.max / 8 <= 313

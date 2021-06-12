@@ -1,0 +1,4 @@
+uavcan.time.SynchronizedTimestamp.1.0 timestamp
+TAI64Var.0.1 value
+
+@sealed

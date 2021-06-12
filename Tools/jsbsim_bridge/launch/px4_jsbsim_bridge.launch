@@ -1,0 +1,41 @@
+<launch>
+  <arg name="est" default="ekf2"/>
+  <arg name="vehicle" default="rascal"/>
+  <arg name="fcu_url" default="udp://:14540@127.0.0.1:14557"/>
+  <arg name="gcs_url" default="" />
+  <arg name="tgt_system" default="1" />
+  <arg name="tgt_component" default="1" />
+  <arg name="command_input" default="2" />
+  <arg name="gazebo_simulation" default="true" />
+  <arg name="visualization" default="true"/>
+  <arg name="log_output" default="screen" />
+  <arg name="fcu_protocol" default="v2.0" />
+  <arg name="respawn_mavros" default="false" />
+  <env name="PX4_SIM_MODEL" value="$(arg vehicle)" />
+  <env name="PX4_ESTIMATOR" value="$(arg est)" />
+
+  <include file="$(find mavros)/launch/node.launch">
+      <arg name="pluginlists_yaml" value="$(find mavros)/launch/px4_pluginlists.yaml" />
+      <arg name="config_yaml" value="$(find mavros)/launch/px4_config.yaml" />
+
+      <arg name="fcu_url" value="$(arg fcu_url)" />
+      <arg name="gcs_url" value="$(arg gcs_url)" />
+      <arg name="tgt_system" value="$(arg tgt_system)" />
+      <arg name="tgt_component" value="$(arg tgt_component)" />
+      <arg name="log_output" value="$(arg log_output)" />
+      <arg name="fcu_protocol" value="$(arg fcu_protocol)" />
+      <arg name="respawn_mavros" default="$(arg respawn_mavros)" />
+  </include>
+
+  <!-- PX4 configs -->
+  <arg name="interactive" default="true"/>
+  <!-- PX4 SITL -->
+  <arg unless="$(arg interactive)" name="px4_command_arg1" value="-d"/>
+  <arg     if="$(arg interactive)" name="px4_command_arg1" value=""/>
+  <node name="sitl" pkg="px4" type="px4" output="screen"
+      args="$(find px4)/build/px4_sitl_default/etc -s etc/init.d-posix/rcS $(arg px4_command_arg1)" required="true"/>
+
+  <node pkg="jsbsim_bridge" type="jsbsim_bridge_node" name="jsbsim_bridge" output="screen">
+  </node>
+
+</launch>

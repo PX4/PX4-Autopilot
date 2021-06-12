@@ -1,0 +1,181 @@
+# Network-wide time synchronization message.
+# Any node that publishes timestamped data should use this time reference.
+#
+# The time synchronization algorithm is based on the work
+# "Implementing a Distributed High-Resolution Real-Time Clock using the CAN-Bus" by M. Gergeleit and H. Streich.
+# The general idea of the algorithm is to have one or more nodes that periodically publish a message of this type
+# containing the exact timestamp of the PREVIOUS transmission of this message.
+# A node that publishes this message periodically is referred to as a "time synchronization master",
+# whereas nodes that synchronize their clocks with the master are referred to as "time synchronization slaves".
+#
+# Once a time base is chosen, it cannot be changed as long as at least one node on the network is running.
+# In other words, the time base cannot be changed while the network is operating.
+# An implication of this is that if there are redundant time synchronization masters, they all shall
+# use the same time base.
+#
+# The resolution is dependent on the transport and its physical layer, but generally it can be assumed
+# to be close to one bit time but not better than one microsecond (e.g., for a 500 kbps CAN bus,
+# the resolution is two microseconds). The maximum accuracy is achievable only if the transport layer
+# supports precise timestamping in hardware; otherwise, the accuracy may be degraded.
+#
+# This algorithm allows the slaves to precisely estimate the difference (i.e., phase error) between their
+# local time and the master clock they are synchronized with. The algorithm for clock rate adjustment
+# is entirely implementation-defined (for example, a simple phase-locked loop or a PID rate controller can be used).
+#
+# The network can accommodate more than one time synchronization master for purposes of increased reliability:
+# if one master fails, the others will continue to provide the network with accurate and consistent time information.
+# The risk of undesirable transients while the masters are swapped is mitigated by the requirement that all masters
+# use the same time base at all times, as described above.
+#
+# The master with the lowest node-ID is called the "dominant master". The current dominant master ceases to be one
+# if its last synchronization message was published more than 3X seconds ago, where X is the time interval
+# between the last and the previous messages published by it. In this case, the master with the next-higher node-ID
+# will take over as the new dominant master. The current dominant master will be displaced immediately as soon as
+# the first message from a new master with a lower node-ID is seen on the bus.
+#
+# In the presence of multiple masters, they all publish their time synchronization messages concurrently at all times.
+# The slaves shall listen to the master with the lowest node-ID and ignore the messages published by masters with
+# higher node-ID values.
+#
+# Currently, there is a work underway to develop and validate a highly robust fault-operational time synchronization
+# algorithm where the slaves select the median time base among all available masters rather than using only the
+# one with the lowest node-ID value. Follow the work at https://forum.uavcan.org. When complete, this algorithm
+# will be added in a backward-compatible way as an option for high-reliability systems.
+#
+# For networks with redundant transports, the timestamp value published on different interfaces is likely to be
+# different, since different transports are generally not expected to be synchronized. Synchronization slaves
+# are allowed to use any of the available redundant interfaces for synchronization at their discretion.
+#
+# The following pseudocode shows the logic of a time synchronization master. This example assumes that the master
+# does not need to synchronize its own clock with other masters on the bus, which is the case if the current master
+# is the only master, or if all masters synchronize their clocks with a robust external source, e.g., a GNSS system.
+# If several masters need to synchronize their clock through the bus, their logic will be extended with the
+# slave-side behavior explained later.
+#
+#       // State variables
+#       transfer_id := 0;
+#       previous_tx_timestamp_per_iface[NUM_IFACES] := {0};
+#
+#       // This function publishes a message with a specified transfer-ID using only one transport interface.
+#       function publishMessage(transfer_id, iface_index, msg);
+#
+#       // This callback is invoked when the transport layer completes the transmission of a time sync message.
+#       // Observe that the time sync message is always a single-frame message by virtue of its small size.
+#       // The tx_timestamp argument contains the exact timestamp when the transport frame was delivered to the bus.
+#       function messageTxTimestampCallback(iface_index, tx_timestamp)
+#       {
+#           previous_tx_timestamp_per_iface[iface_index] := tx_timestamp;
+#       }
+#
+#       // Publishes messages of type uavcan.time.Synchronization to each available transport interface.
+#       // It is assumed that this function is invoked with a fixed frequency not lower than 1 hertz.
+#       function publishTimeSync()
+#       {
+#           for (i := 0; i < NUM_IFACES; i++)
+#           {
+#               message := uavcan.time.Synchronization();
+#               message.previous_transmission_timestamp_usec := previous_tx_timestamp_per_iface[i];
+#               previous_tx_timestamp_per_iface[i] := 0;
+#               publishMessage(transfer_id, i, message);
+#           }
+#           transfer_id++; // Overflow shall be handled correctly
+#       }
+#
+# (end of the master-side logic pseudocode)
+# The following pseudocode describes the logic of a time synchronization slave.
+#
+#       // State variables:
+#       previous_rx_real_timestamp := 0;            // This clock is being synchronized
+#       previous_rx_monotonic_timestamp := 0;       // Monotonic time -- doesn't leap or change rate
+#       previous_transfer_id := 0;
+#       state := STATE_UPDATE;                      // Variants: STATE_UPDATE, STATE_ADJUST
+#       master_node_id := -1;                       // Invalid value
+#       iface_index := -1;                          // Invalid value
+#
+#       // This function adjusts the local clock by the specified amount
+#       function adjustLocalTime(phase_error);
+#
+#       function adjust(message)
+#       {
+#           // Clock adjustment will be performed every second message
+#           local_time_phase_error := previous_rx_real_timestamp - msg.previous_transmission_timestamp_microsecond;
+#           adjustLocalTime(local_time_phase_error);
+#           state := STATE_UPDATE;
+#       }
+#
+#       function update(message)
+#       {
+#           // A message is assumed to have two timestamps:
+#           //   Real      - sampled from the clock that is being synchronized
+#           //   Monotonic - clock that never leaps and never changes rate
+#           previous_rx_real_timestamp := message.rx_real_timestamp;
+#           previous_rx_monotonic_timestamp := message.rx_monotonic_timestamp;
+#           master_node_id := message.source_node_id;
+#           iface_index := message.iface_index;
+#           previous_transfer_id := message.transfer_id;
+#           state := STATE_ADJUST;
+#       }
+#
+#       // Accepts the message of type uavcan.time.Synchronization
+#       function handleReceivedTimeSyncMessage(message)
+#       {
+#           time_since_previous_msg := message.monotonic_timestamp - previous_rx_monotonic_timestamp;
+#
+#           needs_init := (master_node_id < 0) or (iface_index < 0);
+#           switch_master := message.source_node_id < master_node_id;
+#
+#           // The value publisher_timeout is computed as described in the specification (3x interval)
+#           publisher_timed_out := time_since_previous_msg > publisher_timeout;
+#
+#           if (needs_init or switch_master or publisher_timed_out)
+#           {
+#               update(message);
+#           }
+#           else if ((message.iface_index == iface_index) and (message.source_node_id == master_node_id))
+#           {
+#               // Revert the state to STATE_UPDATE if needed
+#               if (state == STATE_ADJUST)
+#               {
+#                   msg_invalid := message.previous_transmission_timestamp_microsecond == 0;
+#                   // Overflow shall be handled correctly
+#                   wrong_tid := message.transfer_id != (previous_transfer_id + 1);
+#                   wrong_timing := time_since_previous_msg > MAX_PUBLICATION_PERIOD;
+#                   if (msg_invalid or wrong_tid or wrong_timing)
+#                   {
+#                       state := STATE_UPDATE;
+#                   }
+#               }
+#               // Handle the current state
+#               if (state == STATE_ADJUST)
+#               {
+#                   adjust(message);
+#               }
+#               else
+#               {
+#                   update(message);
+#               }
+#           }   // else ignore
+#       }
+#
+# (end of the slave-side logic pseudocode)
+
+uint8 MAX_PUBLICATION_PERIOD = 1                 # [second]
+# Publication period limits.
+# A master should not change its publication period while running.
+
+uint8 PUBLISHER_TIMEOUT_PERIOD_MULTIPLIER = 3
+# Synchronization slaves should normally switch to a new master if the current master was silent
+# for thrice the interval between the reception of the last two messages published by it.
+# For example, imagine that the last message was received at the time X, and the previous message
+# was received at the time (X - 0.5 seconds); the period is 0.5 seconds, and therefore the publisher
+# timeout is (0.5 seconds * 3) = 1.5 seconds. If there was no message from the current master in
+# this amount of time, all slaves will synchronize with another master with the next-higher node-ID.
+
+truncated uint56 previous_transmission_timestamp_microsecond
+# The time when the PREVIOUS message was transmitted from the current publisher, in microseconds.
+# If this message is published for the first time, or if the previous transmission was more than
+# one second ago, this field shall be zero.
+
+@sealed
+@assert _offset_ % 8 == {0}
+@assert _offset_.max <= 56    # Shall fit into one CAN 2.0 frame (least capable transport, smallest MTU)

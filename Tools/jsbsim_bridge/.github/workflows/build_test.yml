@@ -1,0 +1,30 @@
+name: Build Tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        container:
+        - 'px4io/px4-dev-simulation-focal:2020-09-14'
+        - 'px4io/px4-dev-simulation-bionic:2020-09-14'
+    container: ${{ matrix.container }}
+    steps:
+    - uses: actions/checkout@v1
+    - name: submodule update
+      run: git submodule update --init --recursive
+    - name: Cmake Build
+      run: |
+        mkdir build
+        cd build
+        cmake ..
+        make

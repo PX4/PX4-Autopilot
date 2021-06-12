@@ -1,0 +1,102 @@
+dist: focal
+env:
+  - CTEST_OUTPUT_ON_FAILURE=1
+
+matrix:
+  include:
+    # -------------------- GCC + SonarCloud --------------------
+    - language: cpp
+      addons:
+        sonarcloud:
+          organization: uavcan
+          token:
+            secure: "LbaAOcguJspiraxAb9RNkwtGvWDh1aMTEPdz2MCbeICxIIiJ6LRoabD58rLvPsrNSWsR3AAep9Q551dDzT8c04UX+C67N3CZ/oof4DwBT+XQCSfB8FMj2QpbglJqwFPclYUorROjH31VwGcgIq3kfQq3Cw8G+nsL8vRaaJXsJb/KPp6MU698NGzHJIgRyn29VW76dW0NSxOv4ub3e6aKOnwfI+h1Ctx4p3hCdzd402PaZspv1VgEmirf5sVUJvE67PVIzlwov+CF+2PlrIpGUWI98Gl6HqYHv3hkvSP+4iLvCMD99Zmee4yLnCFY3xcJuZ8zKCRBBoquuUxdzK0f/4l9TZXePDXDMhaj3cXLlaAPWDw+emqTcm+hzP1mt/DaIqopAf54bQojVWELbL6QcjBNkphSvWBeIoyKWuUWU2LWJcJNPXFNUug//D99uXNurkzAIWR+lcsx6zO+cr4EN00N92W6hPt7mhKCF0prs7SvMleEi9mAbxvd4lOHFT56RvcB5ny6IapX9/q1+xm5iSoAzLhbvU1aUCnX74S/yFFejvClxxhW+P0bXYNtZ9RRfl8BdSgENTgA9RSnqdtIJGA4cU3OxIHDyJIC2cgmsE38u7QaMO49r1liJFH+xmDPa6bkGGHiPoHaPu9+g+wYFttK9FNt5ozyHY+VpjwTrY4="
+      env:
+        - CC=gcc-10
+        - CXX=g++-10
+      script:
+        - sudo apt-get update ; sudo apt-get -y upgrade ; sudo apt-get -y autoremove
+        - sudo apt-get -yf install  # fix missing
+        - sudo apt-get update ; sudo apt-get -y upgrade ; sudo apt-get -y autoremove
+        - sudo apt-get -yf --allow-downgrades install libc6=2.31-0ubuntu9.2  # https://bugs.launchpad.net/ubuntu/+source/glibc/+bug/1926918
+        - sudo apt-get -yfq install g++-10 g++-10-multilib gcc-10-multilib linux-libc-dev:i386
+
+        # ANALYSIS
+        # Using the build wrapper from Sonar and collecting the code coverage.
+        # Define NDEBUG=1 to avoid assertion checks being reported as uncovered statements.
+        - cmake tests -DCMAKE_BUILD_TYPE=Debug -DNO_STATIC_ANALYSIS=1 -DCMAKE_C_FLAGS='-DNDEBUG=1'
+        - build-wrapper-linux-x86-64 --out-dir sonar-dump make all
+        - make test
+        - gcov-10 --preserve-paths --long-file-names $(find CMakeFiles/test_private_cov.dir    -name '*.gcno')
+        - gcov-10 --preserve-paths --long-file-names $(find CMakeFiles/test_private_le_cov.dir -name '*.gcno')
+        - gcov-10 --preserve-paths --long-file-names $(find CMakeFiles/test_public_cov.dir     -name '*.gcno')
+        - 'sonar-scanner -Dsonar.projectKey=libcanard
+                         -Dsonar.organization=uavcan
+                         -Dsonar.sources=libcanard
+                         -Dsonar.cfamily.gcov.reportsPath=.
+                         -Dsonar.cfamily.build-wrapper-output=sonar-dump
+                         -Dsonar.cfamily.cache.enabled=false
+                         -Dsonar.cfamily.threads=1'
+        - make clean
+
+        # DEBUG
+        - cmake tests -DCMAKE_BUILD_TYPE=Debug -DNO_STATIC_ANALYSIS=1
+        - make all VERBOSE=1 && make test
+        - make clean
+
+        # RELEASE
+        - cmake tests -DCMAKE_BUILD_TYPE=Release -DNO_STATIC_ANALYSIS=1
+        - make all VERBOSE=1 && make test
+        - make clean
+
+    # -------------------- Clang --------------------
+    - language: cpp
+      script:
+        - echo 'APT::Get::AllowUnauthenticated "true";' | sudo tee /etc/apt/apt.conf.d/99insecure
+        - sudo apt-get update ; sudo apt-get -y upgrade ; sudo apt-get -y autoremove
+        - sudo apt-get -yf install  # fix missing
+        - sudo apt-get update ; sudo apt-get -y upgrade ; sudo apt-get -y autoremove
+        - sudo apt-get -yf --allow-downgrades install libc6=2.31-0ubuntu9.2  # https://bugs.launchpad.net/ubuntu/+source/glibc/+bug/1926918
+        - sudo apt-get -yfq install g++-10 g++-10-multilib gcc-10-multilib linux-libc-dev:i386
+
+        # Set up the toolchain.
+        - wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh 11
+        - sudo apt install clang-tidy-11 clang-format-11
+        - clang++-11 -E -x c++ - -v < /dev/null    # Print the Clang configuration for troubleshooting purposes.
+
+        # DEBUG + format check
+        - cmake -DCMAKE_C_COMPILER=clang-11 -DCMAKE_CXX_COMPILER=clang++-11 tests -DCMAKE_BUILD_TYPE=Debug
+        - make VERBOSE=1 && make test
+        - make format VERBOSE=1
+        - 'modified="$(git status --porcelain --untracked-files=no)"'
+        - echo "${modified}"
+        - 'if [ -n "$modified" ]; then echo "Run make format to reformat the code properly."; exit 1; fi'
+        - make clean
+
+        # RELEASE (skip static analysis because it is done in the DEBUG configuration)
+        - cmake -DCMAKE_C_COMPILER=clang-11 -DCMAKE_CXX_COMPILER=clang++-11 tests -DCMAKE_BUILD_TYPE=Release -DNO_STATIC_ANALYSIS=1
+        - make VERBOSE=1 && make test
+        - make clean
+
+        # MINSIZEREL (skip static analysis because it is done in the DEBUG configuration)
+        - cmake -DCMAKE_C_COMPILER=clang-11 -DCMAKE_CXX_COMPILER=clang++-11 tests -DCMAKE_BUILD_TYPE=MinSizeRel -DNO_STATIC_ANALYSIS=1
+        - make VERBOSE=1 && make test
+        - make clean
+
+    # -------------------- AVR GCC --------------------
+    - language: c
+      addons:
+        apt:
+          packages:
+            - gcc-avr
+            - avr-libc
+      script:
+        # This is a trivial test where we only check whether it compiles at all with all warnings enabled.
+        # TODO: Write unit tests and run them on an emulator.
+        - avr-gcc libcanard/*.c -c -std=c99 -mmcu=at90can64 -Wall -Wextra -Werror -pedantic -Wconversion -Wtype-limits
+        - avr-gcc libcanard/*.c -c -std=c11 -mmcu=at90can64 -Wall -Wextra -Werror -pedantic -Wconversion -Wtype-limits
+        - avr-gcc libcanard/*.c -c -std=gnu99 -mmcu=at90can64 -Wall -Wextra -Werror -pedantic -Wconversion -Wtype-limits
+        - avr-gcc libcanard/*.c -c -std=gnu11 -mmcu=at90can64 -Wall -Wextra -Werror -pedantic -Wconversion -Wtype-limits
+
+git:
+  depth: false  # Disable shallow clone because it is incompatible with SonarCloud

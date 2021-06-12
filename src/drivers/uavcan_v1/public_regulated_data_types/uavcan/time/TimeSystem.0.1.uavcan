@@ -1,0 +1,21 @@
+# Time system enumeration.
+# The time system shall be the same for all masters in the network.
+# It cannot be changed while the network is running.
+
+truncated uint4 value
+
+uint4 MONOTONIC_SINCE_BOOT = 0
+# Monotonic time since boot.
+# Monotonic time is a time reference that doesn't change rate or make leaps.
+
+uint4 TAI = 1
+# International Atomic Time; https://en.wikipedia.org/wiki/International_Atomic_Time.
+# The timestamp value contains the number of microseconds elapsed since 1970-01-01T00:00:00Z TAI.
+# TAI is always a fixed integer number of seconds ahead of GPS time.
+# Systems that use GPS time as a reference should convert that to TAI by adding the fixed difference.
+# GPS time is not supported for reasons of consistency across different positioning systems and applications.
+
+uint4 APPLICATION_SPECIFIC = 15
+# Application-specific time system of unknown properties.
+
+@sealed

@@ -1,0 +1,20 @@
+# Nested type.
+# A file system path encoded in UTF8. The only valid separator is the forward slash "/".
+# A single slash ("/") refers to the root directory (the location of which is defined by the server).
+# Relative references (e.g. "..") are not defined and not permitted (although this may change in the future).
+# Conventions (not enforced):
+#   - A path pointing to a file or a link to file should not end with a separator.
+#   - A path pointing to a directory or to a link to directory should end with a separator.
+#
+# The maximum path length limit is chosen as a trade-off between compatibility with deep directory structures and
+# the worst-case transfer length. The limit is 112 bytes, which allows all transfers containing a single instance
+# of path and no other large data chunks to fit into two CAN FD frames.
+
+@deprecated
+
+uint8 SEPARATOR = '/'
+uint8 MAX_LENGTH = 112
+
+uint8[<=MAX_LENGTH] path
+
+@sealed

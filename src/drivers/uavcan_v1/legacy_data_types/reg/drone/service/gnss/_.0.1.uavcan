@@ -1,0 +1,61 @@
+# A generic GNSS location sensor device. This service is designed to model any navigation equipment that leverages
+# global navigation satellite systems (GNSS) to obtain the final estimates, such as plain standalone GNSS receivers,
+# integrated GNSS-IMU units, GNSS-VIO, RTK, PPP, etc. The entirety of the application-layer data provided by this
+# sensor is modeled under the physics namespace. This namespace only adds an asbtract documentation and provides
+# optional auxiliary types for diagnostic purposes.
+#
+# Consumers that require global positioning data without the associated diagnostics should not depend
+# on this service directly, using the plain physics types instead. This allows the designer to uphold the
+# interface segregation principle, resulting in a more composable system that is easier to understand, verify,
+# simulate, and maintain.
+#
+# A compliant implementation of this service should publish the following subjects:
+#
+#   PUBLISHED SUBJECT NAME      SUBJECT TYPE                                            TYP. RATE [Hz]
+#   point_kinematics            reg.drone.physics.kinematics.geodetic.PointStateVarTs   1...100
+#   time                        reg.drone.service.gnss.Time                             1...10
+#   heartbeat                   reg.drone.service.gnss.Heartbeat                        ~1
+#   sensor_status               reg.drone.service.sensor.Status                         ~1
+#
+# The contents and related contracts are defined in the documentation for the referenced data types.
+# Time messages should be published synchronously with their kinematic counterparts using the same timestamp value
+# unless the ratio of their publication frequencies is not an integer.
+#
+# The location data along with the accuracy information is published via "point_kinematics".
+# Sensors that are able to estimate orientation (e.g., those equipped with IMU, VIO, multi-antenna RTK, etc.)
+# should also publish the following in addition to the above:
+#
+#   PUBLISHED SUBJECT NAME      SUBJECT TYPE                                            TYP. RATE [Hz]
+#   kinematics                  reg.drone.physics.kinematics.geodetic.StateVarTs        1...100
+#
+# A GNSS sensor may be well-equipped to act as a time synchronization master, in which case the standard policies
+# set out under uavcan.time.Synchronization apply. If the sensor is not a time sync master, then it should
+# synchronize itself with the network time and use it for timestamping its estimates. In this case, the estimated
+# GNSS time can be obtained via the "time" subject irrespective of which node is the active time sync master.
+# If the sensor does not support time synchronization at all, then published timestamp values shall be zero.
+#
+# A GNSS service is generally a non-interactive publish-only service: when activated, it keeps publishing
+# data at a fixed rate until deactivated. The activation/deactivation, if supported (e.g., for reasons of
+# energy conservation), is managed via the standard readiness control service.
+# The data update rates and other parameters are controlled via the Register API using implementation-defined
+# register names.
+#
+#   SUBSCRIBED SUBJECT NAME     SUBJECT TYPE                                    NOTE
+#   readiness                   reg.drone.service.common.Readiness              optional
+#
+# A GNSS sensor whose readiness state is SLEEP is allowed to cease all network activity.
+#
+# The published readiness value (part of the heartbeat) should not be conditional on the availability of
+# navigational data; rather, it is to reflect the general status of the sensor itself:
+# if the GNSS unit is operational, then it is to report itself as ENGAGED even if no fix is available at the moment.
+# This is because the sensor status and its outputs are semantically independent entities.
+#
+# Sensors that rely on externally provided RTCM data (e.g., RTK-enabled units) or emit such data should
+# subscribe and/or publish as follows:
+#
+#   SUBJECT NAME                SUBJECT TYPE                                    NOTE
+#   rtcm                        uavcan.primitive.Unstructured                   optional
+#
+# The contents and temporal parameters of the encapsulated RTCM stream are implementation-defined.
+
+@extent 0  # This type is not intended for runtime use.

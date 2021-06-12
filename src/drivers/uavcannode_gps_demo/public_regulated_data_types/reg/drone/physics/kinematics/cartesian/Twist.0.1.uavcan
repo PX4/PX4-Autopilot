@@ -1,0 +1,9 @@
+# Motion of a rigid body in 3D space defined in the body frame.
+
+uavcan.si.unit.velocity.Vector3.1.0 linear
+# Linear velocity in the body frame.
+
+uavcan.si.unit.angular_velocity.Vector3.1.0 angular
+# Angular velocity about the fixed axes of the body frame (extrinsic).
+
+@sealed

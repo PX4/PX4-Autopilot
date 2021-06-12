@@ -1,0 +1,20 @@
+# A generic sensor status information.
+# This data should be published at a low rate but not lower than the specified limit.
+
+uint8 MAX_PUBLICATION_PERIOD = 1  # [second]
+
+uavcan.si.unit.duration.Scalar.1.0 data_validity_period
+# Data samples obtained at time Ts are valid at time Tr if: (Tr - Ts) < data_validity_period
+# Expired data should be discarded.
+
+uint32 error_count
+# Incremented once per occurrence. Reset to zero when the sensor is ENGAGED.
+# The exact definition of what constitutes an error is implementation-dependent.
+
+uavcan.si.unit.temperature.Scalar.1.0 sensor_temperature
+# The temperature of the sensing element.
+# If there are multiple sensing elements or multiple temperature probes per sensor,
+# the reduction is implementation-defined.
+# In a later revision this field may be moved into a separate type.
+
+@extent 63 * 8  # Single-frame transfer over CAN FD.

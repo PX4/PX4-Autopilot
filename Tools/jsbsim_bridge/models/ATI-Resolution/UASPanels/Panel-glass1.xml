@@ -1,0 +1,26 @@
+<!--
+Glass panel
+Curt Olson, June 2010
+-->
+
+<PropertyList>
+  <name>Glass Panel</name>
+  <background>Aircraft/NTPS/Panels/panel-bg2.rgb</background>
+  <!-- <background>Aircraft/Generic/Panels/Textures/panel-trans-mini-bg.rgb</background> -->
+  <w>1024</w>
+  <h>768</h>
+  <y-offset>0</y-offset>
+  <view-height>1</view-height>
+
+  <instruments>
+
+    <instrument include="Instruments/Glass-PFD.xml">
+      <name>Glass PFD</name>
+      <x>512</x>
+      <y>384</y>
+      <w>1024</w>
+      <h>512</h>
+    </instrument>
+
+  </instruments>
+</PropertyList>

@@ -1,0 +1,5 @@
+# Cartesian coordinates of a point in space.
+
+uavcan.si.unit.length.WideVector3.1.0 value
+
+@sealed

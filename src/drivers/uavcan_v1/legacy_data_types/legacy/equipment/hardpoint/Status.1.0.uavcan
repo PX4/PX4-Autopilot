@@ -1,0 +1,15 @@
+#
+# Generic cargo holder/hardpoint status.
+#
+
+uint8 hardpoint_id
+
+float16 payload_weight           # Newton
+float16 payload_weight_variance
+
+#
+# Meaning is the same as for the command field in the Command message
+#
+uint16 status
+
+@extent 64 * 8

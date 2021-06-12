@@ -1,0 +1,244 @@
+<?xml version="1.0"?>
+<!--
+************************************************************************
+Rascal 110 R/C airplane config. This files ties together all the components
+used by FGFS to represent the Rascal 110 (by Sig Mfg) including the flight
+dynamics model, and external 3D model.
+************************************************************************
+-->
+
+<PropertyList>
+ <sim>
+
+  <description>Rascal 110 Electric YASim</description>
+  <author>Lee Elliot (3D) Dave Culp (JSBsim dynamics) and Curt Olson, ThunderFly s.r.o.</author>
+  <status>advanced production</status>
+  <aircraft-version>0.2</aircraft-version>
+  <minimum-fg-version>2019.2.0</minimum-fg-version>
+  <rating>
+      <FDM type="int">4</FDM>
+      <systems type="int">5</systems>
+      <model type="int">5</model>
+      <cockpit type="int">2</cockpit>
+  </rating>
+  <variant-of>Rascal110-YASim</variant-of>
+
+  <startup>
+    <splash-texture>Aircraft/Rascal/Rascal110-splash.rgb</splash-texture>
+  </startup>
+
+  <flight-model>yasim</flight-model>
+  <aero>Rascal110-Electric-YASim</aero>
+  <fuel-fraction>0.8</fuel-fraction>
+
+  <systems>
+   <autopilot>
+    <path>Aircraft/Rascal/Systems/110-autopilot.xml</path>
+   </autopilot>
+   <electrical>
+    <path>Aircraft/Rascal/Systems/electrical.xml</path>
+   </electrical>
+  </systems>
+
+  <sound>
+   <path>Aircraft/Generic/generic-sound.xml</path>
+  </sound>
+
+  <panel>
+   <visibility archive="n">false</visibility>
+  </panel>
+
+  <model>
+   <path archive="y">Aircraft/Rascal/Models/Rascal110.xml</path>
+  </model>
+
+  <hud>
+   <visibility n="1">true</visibility>
+   <enable3d n="1">false</enable3d>
+   <path n="2">Huds/NTPS.xml</path>
+   <visibility n="2">true</visibility>
+   <enable3d n="2">true</enable3d>
+   <color>
+    <transparent type="bool">true</transparent>
+    <antialiased type="bool">true</antialiased>
+    <brightness type="float">0.85</brightness>
+    <alpha type="float">0.85</alpha>
+   </color>
+   <palette>
+    <color n="0">
+     <red type="float">0.38</red>
+     <green type="float">1.0</green>
+     <blue type="float">0.22</blue>
+    </color>
+    <color n="1">
+     <red type="float">1.0</red>
+     <green type="float">0.0</green>
+     <blue type="float">0.0</blue>
+    </color>
+   </palette>
+  </hud>
+
+  <current-view>
+    <view-number type="int">2</view-number>
+  </current-view>
+
+  <view>
+   <internal archive="y">true</internal>
+   <config>
+     <x-offset-m archive="y">0.0</x-offset-m>
+     <y-offset-m archive="y">-0.15</y-offset-m>
+     <z-offset-m archive="y">0.9</z-offset-m>
+     <pitch-offset-deg>-8</pitch-offset-deg>
+   </config>
+  </view>
+
+  <submodels>
+    <serviceable type="bool">1</serviceable>
+    <path>Aircraft/Rascal/Rascal-submodels.xml</path>
+  </submodels>
+
+  <view n="1">
+   <config>
+    <target-z-offset-m archive="y" type="double">0.5</target-z-offset-m>
+   </config>
+  </view>
+
+  <view n="2">
+   <config>
+    <target-z-offset-m archive="y" type="double">0.5</target-z-offset-m>
+   </config>
+  </view>
+
+  <view n="3">
+   <config>
+    <target-z-offset-m archive="y" type="double">0.5</target-z-offset-m>
+   </config>
+  </view>
+
+  <view n="4">
+   <config>
+    <target-z-offset-m archive="y" type="double">0.5</target-z-offset-m>
+   </config>
+  </view>
+
+  <view n="5">
+   <config>
+    <target-z-offset-m archive="y" type="double">0.5</target-z-offset-m>
+   </config>
+  </view>
+
+  <view n="6">
+   <config>
+    <target-z-offset-m archive="y" type="double">0.5</target-z-offset-m>
+   </config>
+  </view>
+
+  <view n="101">
+    <name>News Camera</name>
+    <type>lookat</type>
+    <internal type="bool">true</internal>
+    <config>
+      <eye-lat-deg-path>/position/latitude-deg</eye-lat-deg-path>
+      <eye-lon-deg-path>/position/longitude-deg</eye-lon-deg-path>
+      <eye-alt-ft-path>/position/altitude-ft</eye-alt-ft-path>
+      <eye-heading-deg-path>/orientation/heading-deg</eye-heading-deg-path>
+      <eye-pitch-deg-path>/orientation/pitch-deg</eye-pitch-deg-path>
+      <eye-roll-deg-path>/orientation/roll-deg</eye-roll-deg-path>
+      <x-offset-m>0.0</x-offset-m>
+      <y-offset-m>-0.35</y-offset-m>
+      <z-offset-m>-0.4</z-offset-m>
+
+      <target-lat-deg-path>/sim/input/click/latitude-deg</target-lat-deg-path>
+      <target-lon-deg-path>/sim/input/click/longitude-deg</target-lon-deg-path>
+      <target-alt-ft-path>/sim/input/click/elevation-ft</target-alt-ft-path>
+    </config>
+  </view>
+
+  <view n="102">
+    <name>Camera View</name>
+    <enabled type="bool" userarchive="y">true</enabled>
+    <type>lookfrom</type>
+    <internal type="bool">false</internal>
+    <config>
+      <from-model type="bool">true</from-model>
+      <from-model-idx type="int">0</from-model-idx>
+      <ground-level-nearplane-m type="double">0.5f</ground-level-nearplane-m>
+      <default-field-of-view-deg type="double">55.0</default-field-of-view-deg>
+    </config>
+  </view>
+
+  <multiplay>
+    <chat_display>1</chat_display>
+    <generic>
+      <int type="bool">0</int>  <!-- smoke -->
+      <int type="bool">0</int>  <!-- trajectory markers -->
+    </generic>
+  </multiplay>
+
+  <help>
+    <title>Rascal 110 (Sig Mfg)</title>
+    <line>Cruise speed: 30 kts</line>
+    <line>Never-exceed (Vne): 85 kts</line>
+    <line>Best Glide (Vglide): 20 kts</line>
+    <line>Maneuvering (Va): 50 kts</line>
+    <line>Approach speed: 18 kts</line>
+    <line>Stall speed (Vs): 10 kts</line>
+  </help>
+
+ </sim>
+
+ <nasal>
+  <rascal>
+   <file>Aircraft/Rascal/Systems/main.nas</file>
+   <file>Aircraft/Rascal/Systems/airdata.nas</file>
+   <file>Aircraft/Rascal/Systems/aura.nas</file>
+  </rascal>
+ </nasal>
+
+
+ <input>
+   <keyboard include="Rascal-keyboard.xml"/>
+ </input>
+
+ <controls>
+  <flight>
+   <aileron-trim>-0.01</aileron-trim>   <!-- fixed -->
+   <elevator-trim>0.00</elevator-trim> <!-- controllable -->
+   <rudder-trim>0.00</rudder-trim>     <!-- fixed -->
+  </flight>
+  <engines>
+   <engine n="0">
+    <magnetos>3</magnetos>
+   </engine>
+  </engines>
+  <smoke alias="/sim/multiplay/generic/int[0]"/>
+  <trajectory-markers alias="/sim/multiplay/generic/int[1]"/>
+ </controls>
+
+ <engines>
+  <engine>
+   <rpm type="double">700</rpm>
+  </engine>
+ </engines>
+
+ <aura-uas>
+   <settings>
+     <ap-enable type="bool">false</ap-enable>
+   </settings>
+ </aura-uas>
+
+ <!-- An autopilot on a Cub??? -->
+ <autopilot>
+   <config>
+     <min-climb-speed-kt type="float">48.0</min-climb-speed-kt>
+     <best-climb-speed-kt type="float">56.0</best-climb-speed-kt>
+     <target-climb-rate-fpm type="float">400.0</target-climb-rate-fpm>
+     <target-descent-rate-fpm type="float">1000.0</target-descent-rate-fpm>
+     <elevator-adj-factor type="float">6000.0</elevator-adj-factor>
+     <integral-contribution type="float">0.008</integral-contribution>
+     <zero-pitch-throttle type="float">0.35</zero-pitch-throttle>
+     <zero-pitch-trim-full-throttle type="float">0.001</zero-pitch-trim-full-throttle>
+   </config>
+ </autopilot>
+
+</PropertyList>

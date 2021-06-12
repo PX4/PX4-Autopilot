@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<!--
+************************************************************************
+Quadrotor X UAV Model
+************************************************************************
+-->
+
+<PropertyList>
+  <sim>
+    <description>Quadrotor X</description>
+    <author>Matt Vacanti</author>
+    <aircraft-version>0.0</aircraft-version>
+    <status>experimental</status>
+    <flight-model>jsb</flight-model>
+    <aero>quadrotor_x</aero>
+    <model-hz>50</model-hz>
+    <sound>
+      <path>Aircraft/Generic/generic-sound.xml</path>
+    </sound>
+    <panel>
+      <visibility archive="n">false</visibility>
+    </panel>
+    <model>
+      <path archive="y">Aircraft/quadrotor_x/Models/quadrotor_x.xml</path>
+    </model>
+    <view>
+      <internal archive="y">true</internal>
+      <config>
+        <x-offset-m archive="y">0.0</x-offset-m>
+        <y-offset-m archive="y">0.0</y-offset-m>
+        <z-offset-m archive="y">-0.345</z-offset-m>
+        <pitch-offset-deg>0</pitch-offset-deg>
+      </config>
+    </view>
+    <chase-distance-m archive="y" type="double">-10.5</chase-distance-m>
+    <help>
+      <title>Quadrotor X</title>
+      <line>Cruise speed: ? mph</line>
+      <line>Never-exceed (Vne): ? mph</line>
+      <line>Best Glide (Vglide): ? mph</line>
+      <line>Maneuvering (Va): ? mph</line>
+      <line>Approach speed: ? mph</line>
+      <line>Stall speed (Vs): ? mph</line>
+    </help>
+
+  </sim>
+  <controls>
+    <flight>
+      <aileron-trim>0.00</aileron-trim>
+      <!-- fixed -->
+      <elevator-trim>0.00</elevator-trim>
+      <!-- controllable -->
+    </flight>
+  </controls>
+  <consumables>
+    <fuel>
+      <tank n="0">
+        <level-gal_us>0</level-gal_us>
+      </tank>
+    </fuel>
+  </consumables>
+  <payload>
+    <weight>
+      <name type="string">Payload</name>
+      <weight-lb alias="/fdm/jsbsim/inertia/pointmass-weight-lbs[0]"/>
+      <min-lb type="double">0.0</min-lb>
+      <max-lb type="double">1.0</max-lb>
+    </weight>
+  </payload>
+</PropertyList>

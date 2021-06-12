@@ -1,0 +1,10 @@
+#
+# This enumeration specifies the encapsulated protocol.
+# New protocols are likely to be added in the future.
+#
+
+uint8 MAVLINK                   = 0     # MAVLink
+
+uint8 protocol
+
+@extent 64 * 8

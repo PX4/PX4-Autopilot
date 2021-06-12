@@ -161,6 +161,10 @@
 
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
 
+//mx3g-jh
+#define YUNEEC_INPUT_RC_MAP_MANUAL_CONTROL
+
+
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
 

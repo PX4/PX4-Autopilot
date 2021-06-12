@@ -1,0 +1,161 @@
+<?xml version="1.0"?>
+<system name="PX4 IMU Sensor">
+<!--  =================================================================
+This is a generic JSBSim system file to simulate the IMU behavior for PX4.
+  =================================================================  -->
+
+    <!-- Enable Individual Component Failure -->
+    <property value="1">px4/acc_x/on</property>
+    <property value="1">px4/acc_y/on</property>
+    <property value="1">px4/acc_z/on</property>
+
+    <property value="1">px4/gyro_x/on</property>
+    <property value="1">px4/gyro_y/on</property>
+    <property value="1">px4/gyro_z/on</property>
+
+    <channel name="Accelerometer-X" execute="px4/acc_x/on">
+        <accelerometer name="Default-ACC-X">
+            <location unit="M">
+                <x> 0 </x>
+                <y> 0 </y>
+                <z> 0.345 </z>
+            </location>
+            <!--
+            <orientation unit="DEG">
+                <pitch> 0 </pitch>
+                <roll>  0 </roll>
+                <yaw>   0 </yaw>
+            </orientation>
+            <lag> 0 </lag>
+            <noise variation="PERCENT|ABSOLUTE"> number </noise>
+            <quantization name="name">
+                <bits> number </bits>
+                <min> number </min>
+                <max> number </max>
+            </quantization>
+            <drift_rate> number </drift_rate>
+            <gain> number </gain>
+            <bias> number </bias>
+            -->
+            <axis> X </axis>
+            <output> px4/acc-x </output>
+        </accelerometer>
+    </channel>
+
+    <channel name="Accelerometer-Y" execute="px4/acc_y/on">
+        <accelerometer name="Default-ACC-Y">
+            <location unit="M">
+                <x> 0 </x>
+                <y> 0 </y>
+                <z> 0.345 </z>
+            </location>
+            <!--
+            <orientation unit="DEG">
+                <pitch> 0 </pitch>
+                <roll>  0 </roll>
+                <yaw>   0 </yaw>
+            </orientation>
+            <lag> 0 </lag>
+            <noise variation="PERCENT|ABSOLUTE"> number </noise>
+            <quantization name="name">
+                <bits> number </bits>
+                <min> number </min>
+                <max> number </max>
+            </quantization>
+            <drift_rate> number </drift_rate>
+            <gain> number </gain>
+            <bias> number </bias>
+            -->
+            <axis> Y </axis>
+            <output> px4/acc-y </output>
+        </accelerometer>
+    </channel>
+
+    <channel name="Accelerometer-Z" execute="px4/acc_z/on">
+        <accelerometer name="Default-ACC-Z">
+            <location unit="M">
+                <x> 0 </x>
+                <y> 0 </y>
+                <z> 0.345 </z>
+            </location>
+            <!--
+            <orientation unit="DEG">
+                <pitch> 0 </pitch>
+                <roll>  0 </roll>
+                <yaw>   0 </yaw>
+            </orientation>
+            <lag> 0 </lag>
+            <noise variation="PERCENT|ABSOLUTE"> number </noise>
+            <quantization name="name">
+                <bits> number </bits>
+                <min> number </min>
+                <max> number </max>
+            </quantization>
+            <drift_rate> number </drift_rate>
+            <gain> number </gain>
+            <bias> number </bias>
+            -->
+            <axis> Z </axis>
+            <output> px4/acc-z </output>
+        </accelerometer>
+    </channel>
+
+    <channel name="Gyro-X" execute="px4/gyro_x/on">
+        <sensor name="px4/gyro-x">
+            <input>velocities/p-rad_sec</input>
+            <lag> 0 </lag>
+            <!--Adjust as required
+            <noise variation="PERCENT|ABSOLUTE"> number </noise>
+            <quantization name="name">
+                <bits> number </bits>
+                <min> number </min>
+                <max> number </max>
+            </quantization>
+            <drift_rate> number </drift_rate>
+            <gain> number </gain>
+            <bias> number </bias>
+            <delay [type="time|frames"]> number < /delay>
+            -->
+        </sensor>
+    </channel>
+
+    <channel name="Gyro-Y" execute="px4/gyro_y/on">
+        <sensor name="px4/gyro-y">
+            <input>velocities/q-rad_sec</input>
+            <lag> 0 </lag>
+            <!--Adjust as required
+            <noise variation="PERCENT|ABSOLUTE"> number </noise>
+            <quantization name="name">
+                <bits> number </bits>
+                <min> number </min>
+                <max> number </max>
+            </quantization>
+            <drift_rate> number </drift_rate>
+            <gain> number </gain>
+            <bias> number </bias>
+            <delay [type="time|frames"]> number < /delay>
+            -->
+        </sensor>
+    </channel>
+
+    <channel name="Gyro-Z" execute="px4/gyro_z/on">
+        <sensor name="px4/gyro-z">
+            <input>velocities/r-rad_sec</input>
+            <lag> 0 </lag>
+            <!--Adjust as required
+            <noise variation="PERCENT|ABSOLUTE"> number </noise>
+            <quantization name="name">
+                <bits> number </bits>
+                <min> number </min>
+                <max> number </max>
+            </quantization>
+            <drift_rate> number </drift_rate>
+            <gain> number </gain>
+            <bias> number </bias>
+            <delay [type="time|frames"]> number < /delay>
+            -->
+        </sensor>
+    </channel>
+
+</system>
+

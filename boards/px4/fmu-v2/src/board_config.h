@@ -133,6 +133,10 @@
 #define DIRECT_PWM_OUTPUT_CHANNELS	6
 #define DIRECT_INPUT_TIMER_CHANNELS  6
 
+//mx3g-jh
+#define YUNEEC_INPUT_RC_MAP_MANUAL_CONTROL
+
+
 /* USB OTG FS
  *
  * PA9  OTG_FS_VBUS VBUS sensing (also connected to the green LED)

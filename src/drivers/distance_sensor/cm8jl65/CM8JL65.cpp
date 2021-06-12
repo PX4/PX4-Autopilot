@@ -89,6 +89,7 @@ CM8JL65::CM8JL65(const char *port, uint8_t rotation) :
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
 	_px4_rangefinder(0 /* TODO: device ids */, ORB_PRIO_DEFAULT, rotation)
 {
+	PX4_INFO("gouzao");
 	// Store the port name.
 	strncpy(_port, port, sizeof(_port) - 1);
 
@@ -267,6 +268,7 @@ CM8JL65::init()
 int
 CM8JL65::open_serial_port(const speed_t speed)
 {
+	PX4_INFO("driver Run");
 	// File descriptor initialized?
 	if (_file_descriptor > 0) {
 		// PX4_INFO("serial port already open");

@@ -1,0 +1,20 @@
+# Standard TAI64N time label (https://cr.yp.to/libtai/tai64.html). Quote from the source:
+#
+#   TAI stands for Temps Atomique International, the current international real-time standard.
+#   One TAI second is defined as the duration of 9192631770 periods of the radiation corresponding
+#   to the transition between the two hyperfine levels of the ground state of the cesium atom.
+#   TAI also specifies a frame of reference. Further discussion of special relativity is outside
+#   the scope of this document.
+#
+#   A TAI64 label is an integer between 0 and 2^64 referring to a particular second of real time. Integer s refers to:
+#
+#       - the TAI second beginning exactly 2^62 - s seconds before the beginning of 1970 TAI,
+#         if s is between 0 inclusive and 2^62 exclusive; or
+#
+#       - the TAI second beginning exactly s - 2^62 seconds after the beginning of 1970 TAI,
+#         if s is between 2^62 inclusive and 2^63 exclusive.
+#
+
+int64 tai64n    # [nanosecond] Nanoseconds elapsed since 1970-01-01T00:00:00Z TAI.
+
+@sealed

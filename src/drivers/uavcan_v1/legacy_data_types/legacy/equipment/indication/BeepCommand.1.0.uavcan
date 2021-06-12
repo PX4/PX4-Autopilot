@@ -1,0 +1,8 @@
+#
+# Nodes that are capable of producing sounds should obey.
+#
+
+float16 frequency  # Hz
+float16 duration   # Sec
+
+@extent 64 * 8

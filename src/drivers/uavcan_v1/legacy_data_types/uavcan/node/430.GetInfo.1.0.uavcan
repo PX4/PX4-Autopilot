@@ -1,0 +1,66 @@
+# Full node info request.
+# All of the returned information shall be static (unchanged) while the node is running.
+# It is highly recommended to support this service on all nodes.
+
+@sealed
+
+---
+
+Version.1.0 protocol_version
+# The UAVCAN protocol version implemented on this node, both major and minor.
+# Not to be changed while the node is running.
+
+Version.1.0 hardware_version
+Version.1.0 software_version
+# The version information shall not be changed while the node is running.
+# The correct hardware version shall be reported at all times, excepting software-only nodes, in which
+# case it should be set to zeros.
+# If the node is equipped with a UAVCAN-capable bootloader, the bootloader should report the software
+# version of the installed application, if there is any; if no application is found, zeros should be reported.
+
+uint64 software_vcs_revision_id
+# A version control system (VCS) revision number or hash. Not to be changed while the node is running.
+# For example, this field can be used for reporting the short git commit hash of the current
+# software revision.
+# Set to zero if not used.
+
+uint8[16] unique_id
+# The unique-ID (UID) is a 128-bit long sequence that is likely to be globally unique per node.
+# The vendor shall ensure that the probability of a collision with any other node UID globally is negligibly low.
+# UID is defined once per hardware unit and should never be changed.
+# All zeros is not a valid UID.
+# If the node is equipped with a UAVCAN-capable bootloader, the bootloader shall use the same UID.
+
+@assert _offset_ == {30 * 8}
+# Manual serialization note: only fixed-size fields up to this point. The following fields are dynamically sized.
+
+uint8[<=50] name
+# Human-readable non-empty ASCII node name. An empty name is not permitted.
+# The name shall not be changed while the node is running.
+# Allowed characters are: a-z (lowercase ASCII letters) 0-9 (decimal digits) . (dot) - (dash) _ (underscore).
+# Node name is a reversed Internet domain name (like Java packages), e.g. "com.manufacturer.project.product".
+
+uint64[<=1] software_image_crc
+# The value of an arbitrary hash function applied to the software image. Not to be changed while the node is running.
+# This field can be used to detect whether the software or firmware running on the node is an exact
+# same version as a certain specific revision. This field provides a very strong identity guarantee,
+# unlike the version fields above, which can be the same for different builds of the software.
+# As can be seen from its definition, this field is optional.
+#
+# The exact hash function and the methods of its application are implementation-defined.
+# However, implementations are recommended to adhere to the following guidelines, fully or partially:
+#   - The hash function should be CRC-64-WE.
+#   - The hash function should be applied to the entire application image padded to 8 bytes.
+#   - If the computed image CRC is stored within the software image itself, the value of
+#     the hash function becomes ill-defined, because it becomes recursively dependent on itself.
+#     In order to circumvent this issue, while computing or checking the CRC, its value stored
+#     within the image should be zeroed out.
+
+uint8[<=222] certificate_of_authenticity
+# The certificate of authenticity (COA) of the node, 222 bytes max, optional. This field can be used for
+# reporting digital signatures (e.g., RSA-1776, or ECDSA if a higher degree of cryptographic strength is desired).
+# Leave empty if not used. Not to be changed while the node is running.
+
+@assert _offset_ % 8 == {0}
+@assert _offset_.max == (313 * 8)     # At most five CAN FD frames
+@extent 448 * 8

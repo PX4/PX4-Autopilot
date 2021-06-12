@@ -1,0 +1,10 @@
+# A chunk of raw bytes exchanged over a serial transport. Serial links do not support framing natively.
+# The chunk may be of arbitrary size.
+#
+# If this data type is used to encapsulate UAVCAN/serial, then it is recommended to ensure that each message
+# contains at most one UAVCAN/serial transport frame (frames are separated by zero-valued delimiter bytes).
+
+uint12 CAPACITY_BYTES = 2048
+uint8[<=CAPACITY_BYTES] data
+
+@sealed

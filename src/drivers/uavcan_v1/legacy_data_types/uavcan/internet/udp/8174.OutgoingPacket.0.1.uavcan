@@ -1,0 +1,139 @@
+# This message carries UDP packets from a node on the local bus to a remote host on the Internet or a LAN.
+#
+# Any node can broadcast a message of this type.
+#
+# All nodes that are capable of communication with the Internet or a LAN should subscribe to messages
+# of this type and forward the payload to the indicated host and port using exactly one UDP datagram
+# per message (i.e. additional fragmentation is to be avoided). Such nodes will be referred to as
+# "modem nodes".
+#
+# It is expected that some systems will have more than one modem node available.
+# Each modem node is supposed to forward every message it sees, which will naturally create
+# some degree of modular redundancy and fault tolerance. The remote host should therefore be able to
+# properly handle possibly duplicated messages from different source addresses, in addition to
+# possible duplications introduced by the UDP/IP protocol itself. There are at least two obvious
+# strategies that can be employed by the remote host:
+#
+#   - Accept only the first message, ignore duplicates. This approach requires that the UDP stream
+#     should contain some metadata necessary for the remote host to determine the source and ordering
+#     of each received datum. This approach works best for periodic data, such as telemetry, where
+#     the sender does not expect any responses.
+#
+#   - Process all messages, including duplicates. This approach assumes that the remote host acts
+#     as a server, processing all received requests and providing responses to each. This arrangement
+#     implies that the client may receive duplicated responses. It is therefore the client's
+#     responsibility to resolve the possible ambiguity. An obvious solution is to accept the first
+#     arrived response and ignore the later ones.
+#
+# Applications are free to choose whatever redundancy management strategy works best for them.
+#
+# If the source node expects that the remote host will send some data back, it shall explicitly notify
+# the modem nodes about this, so that they could prepare to perform reverse forwarding when the
+# expected data arrives from the remote host. The technique of reverse forwarding is known in
+# networking as IP Masquerading, or (in general) Network Address Translation (NAT). The notification
+# is performed by means of setting one of the corresponding flags defined below.
+#
+# In order to be able to match datagrams received from remote hosts and the local nodes they should
+# be forwarded to, modem nodes are required to keep certain metadata about outgoing datagrams. Such
+# metadata is stored in a data structure referred to as "NAT table", where every entry would normally
+# contain at least the following fields:
+#   - The local UDP port number that was used to send the outgoing datagram from.
+#     Per RFC 4787, the port number is chosen by the modem node automatically.
+#   - The node-ID of the local node that has sent the outgoing datagram.
+#   - Value of the field session_id defined below.
+#   - Possibly some other data, depending on the implementation.
+#
+# The modem nodes are required to keep each NAT table entry for at least NAT_ENTRY_MIN_TTL seconds
+# since the last reverse forwarding action was performed. Should the memory resources of the modem node
+# be exhausted, it is allowed to remove old NAT entries earlier, following the policy of least recent use.
+#
+# Having received a UDP packet from a remote host, the modem node would check the NAT table in order
+# to determine where on the UAVCAN bus the received data should be forwarded to. If the NAT table
+# contains no matches, the received data should be silently dropped. If a match is found, the
+# modem node will forward the data to the recipient node using the service HandleIncomingPacket.
+# If the service invocation times out, the modem node is permitted to remove the corresponding entry from
+# the NAT table immediately (but it is not required). This will ensure that the modem nodes will not be
+# tasked with translations for client nodes that are no longer online or are unreachable.
+# Additionally, client nodes will be able to hint the modem nodes to remove translation entries they no
+# longer need by simply refusing to respond to the corresponding service invocation. Please refer to
+# the definition of that service data type for a more in-depth review of the reverse forwarding process.
+#
+# Modem nodes can also perform traffic shaping, if needed, by means of delaying or dropping UDP
+# datagrams that exceed the quota.
+#
+# To summarize, a typical data exchange occurrence should amount to the following actions:
+#
+#   - A local UAVCAN node broadcasts a message of type OutgoingPacket with the payload it needs
+#     to forward. If the node expects the remote host to send any data back, it sets the masquerading flag.
+#
+#   - Every modem node on the bus receives the message and performs the following actions:
+#
+#       - The domain name is resolved, unless the destination address provided in the message
+#         is already an IP address, in which case this step should be skipped.
+#
+#       - The domain name to IP address mapping is added to the local DNS cache, although this
+#         part is entirely implementation defined and is not required.
+#
+#       - The masquerading flag is checked. If it is set, a new entry is added to the NAT table.
+#         If such entry already existed, its expiration timeout is reset. If no such entry existed
+#         and a new one cannot be added because of memory limitations, the least recently used
+#         (i.e. oldest) entry of the NAT table is replaced with the new one.
+#
+#       - The payload is forwarded to the determined IP address.
+#
+#   - At this point, direct forwarding is complete. Should any of the modem nodes receive an incoming
+#     packet, they would attempt to perform a reverse forwarding according to the above provided algorithm.
+#
+# It is recommended to use the lowest transport priority level when broadcasting messages of this type,
+# in order to avoid interference with a real-time traffic on the bus. Usage of higher priority levels is
+# unlikely to be practical because the latency and throughput limitations introduced by the on-board radio
+# communication equipment are likely to vastly exceed those of the local CAN bus.
+
+@deprecated
+
+uint32 NAT_ENTRY_MIN_TTL = 24 * 60 * 60  # [second]
+# Modem nodes are required to keep the NAT table entries alive for at least this amount of time, unless the
+# table is overflowed, in which case they are allowed to remove least recently used entries in favor of
+# newer ones. Modem nodes are required to be able to accommodate at least 100 entries in the NAT table.
+
+uint16 session_id
+# This field is set to an arbitrary value by the transmitting node in order to be able to match the response
+# with the locally kept context. The function of this field is virtually identical to that of UDP/IP port
+# numbers. This value can be set to zero safely if the sending node does not have multiple contexts to
+# distinguish between.
+
+uint16 destination_port
+# UDP destination port number.
+
+uint8[<=45] destination_address
+# Domain name or IP address where the payload should be forwarded to.
+# Note that broadcast addresses are allowed here, for example, 255.255.255.255.
+# Broadcasting with masquerading enabled works the same way as unicasting with masquerading enabled: the modem
+# node should take care to channel all traffic arriving at the opened port from any source to the node that
+# requested masquerading.
+# The full domain name length may not exceed 253 octets, according to the DNS specification.
+# UAVCAN imposes a stricter length limit in order to reduce the memory and traffic burden on the bus: 45 characters.
+# 45 characters is the amount of space that is required to represent the longest possible form of an IPv6 address
+# (an IPv4-mapped IPv6 address). Examples:
+#   "forum.uavcan.org"                              - domain name
+#   "192.168.1.1"                                   - IPv4 address
+#   "2001:0db8:85a3:0000:0000:8a2e:0370:7334"       - IPv6 address, full form
+#   "2001:db8:85a3::8a2e:370:7334"                  - IPv6 address, same as above, short form (preferred)
+#   "ABCD:ABCD:ABCD:ABCD:ABCD:ABCD:192.168.158.190" - IPv4-mapped IPv6, full form (length limit, 45 characters)
+
+@assert _offset_ % 8 == {0}
+
+bool use_masquerading   # Expect data back (i.e., instruct the modem to use the NAT table).
+bool use_dtls           # Use Datagram Transport Layer Security. Drop the packet if DTLS is not supported.
+# Option flags.
+void6
+
+uint8[<=260] payload
+# Effective payload. This data will be forwarded to the remote host verbatim.
+# UDP packets that contain more than 508 bytes of payload may be dropped by some types of
+# communication equipment. Refer to RFC 791 and 2460 for an in-depth review.
+# UAVCAN further limits the maximum packet size to reduce the memory and traffic burden on the nodes.
+
+@extent 600 * 8
+@assert _offset_ % 8 == {0}
+@assert _offset_.max / 8 == 313

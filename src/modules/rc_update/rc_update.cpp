@@ -38,6 +38,10 @@
  */
 
 #include "rc_update.h"
+#include <px4_platform_common/log.h>
+#include <systemlib/mavlink_log.h>
+#include <uORB/topics/mavlink_log.h>
+#include <uORB/uORB.h>
 
 using namespace time_literals;
 
@@ -46,8 +50,8 @@ namespace RCUpdate
 
 RCUpdate::RCUpdate() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
-	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME))
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
+	_loop_perf(perf_alloc(PC_ELAPSED, "rc_update"))
 {
 	// initialize parameter handles
 	for (unsigned i = 0; i < RC_MAX_CHAN_COUNT; i++) {
@@ -81,31 +85,61 @@ RCUpdate::RCUpdate() :
 		snprintf(name, rc_parameter_map_s::PARAM_ID_LEN, "RC_MAP_PARAM%d", i + 1);
 		_parameter_handles.rc_map_param[i] = param_find(name);
 	}
-
+//	mavlink_log_critical(&_mavlink_log_pub, " rc_update creat");
 	rc_parameter_map_poll(true /* forced */);
 
 	parameters_updated();
+
 }
 
 RCUpdate::~RCUpdate()
 {
+//mx3g-jh
+#ifdef YUNEEC_INPUT_RC_MAP_MANUAL_CONTROL
+	mavlink_log_critical(&_mavlink_log_pub, " rc_update quiet");
+	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		//orb_unsubscribe(_sub_rc_input[i]);
+		_sub_rc_input[i].unsubscribe();
+
+		//_inputs_rc[i].sub = -1;
+	}
+
+	orb_unsubscribe(_slave_rc.slave_rc_sub);
+#endif
 	perf_free(_loop_perf);
 }
 
 bool
 RCUpdate::init()
 {
-	if (!_input_rc_sub.registerCallback()) {
-		PX4_ERR("input_rc callback registration failed!");
-		return false;
-	}
 
+//mx3g-jh
+#ifdef YUNEEC_INPUT_RC_MAP_MANUAL_CONTROL
+	ScheduleDelayed(10);
+		mavlink_log_critical(&_mavlink_log_pub, " init start");
+	// for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+	// 	mavlink_log_critical(&_mavlink_log_pub, " subscribe input_rc %d",i);
+	// 	_inputs_rc[i].sub = orb_subscribe_multi(ORB_ID(input_rc), i);
+	// }
+
+	_slave_rc.slave_rc_sub = orb_subscribe(ORB_ID(slave_rc));
+
+#endif
+
+
+
+	// if (!_input_rc_sub.registerCallback()) {
+	// 	PX4_ERR("input_rc callback registration failed!");
+	// 	return false;
+	// }
+	mavlink_log_critical(&_mavlink_log_pub, "init over");
 	return true;
 }
 
 void
 RCUpdate::parameters_updated()
-{
+{	//mavlink_log_critical(&_mavlink_log_pub, "parameters_updated()");
+
 	// rc values
 	for (unsigned int i = 0; i < RC_MAX_CHAN_COUNT; i++) {
 
@@ -139,7 +173,8 @@ RCUpdate::parameters_updated()
 
 void
 RCUpdate::update_rc_functions()
-{
+{	//mavlink_log_critical(&_mavlink_log_pub, "update_rc_functions()");
+	//PX4_INFO("update_rc_functions()");
 	/* update RC function mappings */
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE] = _param_rc_map_throttle.get() - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_ROLL] = _param_rc_map_roll.get() - 1;
@@ -174,6 +209,488 @@ RCUpdate::update_rc_functions()
 	}
 }
 
+
+//mx3g-jh
+#ifdef YUNEEC_INPUT_RC_MAP_MANUAL_CONTROL
+
+bool
+RCUpdate::map_to_control_setpoint(const int32_t desired_priority)
+{
+	//mavlink_log_critical(&_mavlink_log_pub, "map_to_control_setpoint()");
+	//PX4_INFO("map_to_control_setpoint()");
+
+	bool success = false;
+
+	// RC only is required. Search for a valid RC signal
+	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+
+		// Get priority
+		ORB_PRIO priority = ORB_PRIO_UNINITIALIZED;
+		priority = _sub_rc_input[i].get_priority();
+		//orb_priority(_sub_rc_input[i], &priority);
+		//mavlink_log_critical(&_mavlink_log_pub, "map_to_control_setpoint() 11");
+		// Search for default priorities
+		if (_inputs_rc[i].signal_valid && priority == desired_priority) {
+			//mavlink_log_critical(&_mavlink_log_pub, "map_to_control_setpoint() 22");
+			if (_param_rc_type.get() == 0) {
+				// map based on rc_channel functions
+
+				scale_raw_channels(_inputs_rc[i]); //scale raw channels
+
+				if (map_from_rc_channel_functions(_inputs_rc[i])) {
+					// Update parameters from RC Channels (tuning with RC) if activated
+					if (hrt_elapsed_time(&_last_rc_to_param_map_time) > 1e6) {
+						set_params_from_rc();
+						_last_rc_to_param_map_time = hrt_absolute_time();
+					}
+
+					success = true;
+
+				}
+
+			} else if (_param_rc_type.get() == 1) {
+				int32_t rc_mode;
+				rc_mode = _param_rc_mode.get();
+				// map predefined remotes
+				//mavlink_log_critical(&_mavlink_log_pub, "in rcmapping");
+				int failure = _rcmapping.map(_manual_sp, _inputs_rc[i].input, rc_mode);
+
+				if (failure == (int)RCMap::Error::Version) {
+					// inform user that version does not match
+					print_rc_error_message("Old remote control version, please update!");
+
+				} else {
+					success = true;
+				}
+			}
+
+			// return if mapping succeeded, otherwise continue loop
+			if (success) {
+				return true;
+			}
+		}
+	}
+
+	return success;
+}
+
+bool
+RCUpdate::map_from_team_mode()
+{
+	if (_param_rc_type.get() != 1) {
+		print_rc_error_message("Team-mode not supported");
+		return false;
+	}
+
+	if (_slave_rc.signal_valid) {
+		int32_t rc_mode;
+		rc_mode = _param_rc_mode.get();
+
+		// overwrite stick inputs with st16 gimbal mapping
+		if (_rcmapping.mapSlave(_manual_sp, _slave_rc.slave_rc, rc_mode)) {
+			// inform user that version does not match
+			print_rc_error_message("Old slave remote control version, please update!");
+			return false;
+		}
+
+	} else {
+		// no slave link available
+		return false;
+	}
+
+	return true;
+}
+
+void
+RCUpdate::print_rc_error_message(const char *str)
+{
+	static hrt_abstime _last_msg = 0;
+	hrt_abstime now = hrt_absolute_time();
+
+	// print every 15 seconds
+	if (now - _last_msg > 15_s) {
+		_last_msg = now;
+		mavlink_log_critical(&_mavlink_log_pub, "%s", str);
+	}
+}
+
+void
+RCUpdate::set_signal_validity(InputRCset &input_set)
+{	//mavlink_log_critical(&_mavlink_log_pub, "set_signal_validity");
+	//PX4_INFO("set_signal_validity(InputRCset &input_set)");
+	// detect RC signal loss
+	input_set.signal_valid = true;
+
+	const bool rc_timeout = (hrt_absolute_time() - input_set.input.timestamp_last_signal) > hrt_abstime(
+					_param_rc_lost_t.get() * 1e6f);
+
+	// check flags and require at least four channels to consider the signal valid
+	if (input_set.input.rc_lost || input_set.input.rc_failsafe || input_set.input.channel_count < 4 || rc_timeout) {
+		// signal is lost or not enough channels
+		// int aaa,bbb,ccc,ddd,eee;
+		// aaa = input_set.input.rc_lost;
+		// bbb = input_set.input.rc_failsafe;
+		// ccc= input_set.input.channel_count;
+		// ddd = rc_timeout;
+		// eee = input_set.input.values[0];
+		input_set.signal_valid = false;
+		// mavlink_log_critical(&_mavlink_log_pub, "input_set.signal_valid = false;");
+		// mavlink_log_emergency(&_mavlink_log_pub, "%d %d %d %d %d", aaa, bbb, ccc,ddd,eee);
+
+	}
+}
+
+void
+RCUpdate::set_slave_signal_validity(InputSlaveRCset &input_slave_set)
+{	//mavlink_log_critical(&_mavlink_log_pub, "set_slave_signal_validity(InputSlaveRCset &input_slave_set)");
+ 	//PX4_INFO("set_slave_signal_validity(InputSlaveRCset &input_slave_set)");
+	// detect RC signal loss
+	input_slave_set.signal_valid = true;
+
+	const bool rc_timeout = (hrt_absolute_time() - input_slave_set.slave_rc.timestamp_last_signal) > hrt_abstime(
+					_param_rc_lost_t.get() * 1e6f);
+
+	// check flags and require at least four channels to consider the signal valid
+	if (input_slave_set.slave_rc.rc_lost || input_slave_set.slave_rc.rc_failsafe
+	    || input_slave_set.slave_rc.channel_count < 4 || rc_timeout) {
+		// signal is lost or not enough channels
+		input_slave_set.signal_valid = false;
+
+	}
+}
+
+void
+RCUpdate::process_failsafe_channel(InputRCset &input_set, const rc_channels_s &channels)
+{
+	// check failsafe
+	int8_t fs_ch = channels.function[_param_rc_map_failsafe.get()]; // get channel mapped to throttle
+
+	if (_param_rc_map_failsafe.get() > 0) { // if not 0, use channel number instead of rc.function mapping
+		fs_ch = _param_rc_map_failsafe.get() - 1;
+	}
+
+	if (_param_rc_fails_thr.get() > 0 && fs_ch >= 0) {
+		// failsafe configured
+		if ((_param_rc_fails_thr.get() < _parameters.min[fs_ch] && input_set.input.values[fs_ch] < _param_rc_fails_thr.get()) ||
+		    (_param_rc_fails_thr.get() > _parameters.max[fs_ch] && input_set.input.values[fs_ch] > _param_rc_fails_thr.get())) {
+			// failsafe triggered, signal is lost by receiver
+			input_set.signal_valid = false;
+		}
+	}
+}
+
+void
+RCUpdate::scale_raw_channels(InputRCset &input_set)
+{
+	unsigned channel_limit = input_set.input.channel_count;
+
+	if (channel_limit > RC_MAX_CHAN_COUNT) {
+		channel_limit = RC_MAX_CHAN_COUNT;
+	}
+
+	/* read out and scale values from raw message even if signal is invalid */
+	for (unsigned int i = 0; i < channel_limit; i++) {
+
+		/*
+		 * 1) Constrain to min/max values, as later processing depends on bounds.
+		 */
+		if (input_set.input.values[i] < _parameters.min[i]) {
+			input_set.input.values[i] = _parameters.min[i];
+		}
+
+		if (input_set.input.values[i] > _parameters.max[i]) {
+			input_set.input.values[i] = _parameters.max[i];
+		}
+
+		/*
+		 * 2) Scale around the mid point differently for lower and upper range.
+		 *
+		 * This is necessary as they don't share the same endpoints and slope.
+		 *
+		 * First normalize to 0..1 range with correct sign (below or above center),
+		 * the total range is 2 (-1..1).
+		 * If center (trim) == min, scale to 0..1, if center (trim) == max,
+		 * scale to -1..0.
+		 *
+		 * As the min and max bounds were enforced in step 1), division by zero
+		 * cannot occur, as for the case of center == min or center == max the if
+		 * statement is mutually exclusive with the arithmetic NaN case.
+		 *
+		 * DO NOT REMOVE OR ALTER STEP 1!
+		 */
+		if (input_set.input.values[i] > (_parameters.trim[i] + _parameters.dz[i])) {
+			_rc.channels[i] = (input_set.input.values[i] - _parameters.trim[i] - _parameters.dz[i]) / (float)(
+						  _parameters.max[i] - _parameters.trim[i] - _parameters.dz[i]);
+
+		} else if (input_set.input.values[i] < (_parameters.trim[i] - _parameters.dz[i])) {
+			_rc.channels[i] = (input_set.input.values[i] - _parameters.trim[i] + _parameters.dz[i]) / (float)(
+						  _parameters.trim[i] - _parameters.min[i] - _parameters.dz[i]);
+
+		} else {
+			/* in the configured dead zone, output zero */
+			_rc.channels[i] = 0.0f;
+		}
+
+		_rc.channels[i] *= _parameters.rev[i];
+
+		/* handle any parameter-induced blowups */
+		if (!PX4_ISFINITE(_rc.channels[i])) {
+			_rc.channels[i] = 0.0f;
+		}
+	}
+
+	_rc.channel_count = input_set.input.channel_count;
+	_rc.rssi = input_set.input.rssi;
+	_rc.signal_lost = !input_set.signal_valid;
+	_rc.timestamp = input_set.input.timestamp_last_signal;
+	_rc.frame_drop_count = input_set.input.rc_lost_frame_count;
+}
+
+
+bool
+RCUpdate::map_from_rc_channel_functions(InputRCset &input_set)
+{
+	/* only publish manual control if the signal is still present and was present once */
+	if (!(input_set.signal_valid && input_set.input.timestamp_last_signal > 0)) {
+		return false;
+	}
+
+	_manual_sp.timestamp = input_set.input.timestamp_last_signal;
+
+	/* set mode slot to unassigned */
+	_manual_sp.mode_slot = manual_control_setpoint_s::MODE_SLOT_NONE;
+
+	/* limit controls */
+	_manual_sp.y = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_ROLL, -1.0, 1.0);
+	_manual_sp.x = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_PITCH, -1.0, 1.0);
+	_manual_sp.r = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_YAW, -1.0, 1.0);
+	_manual_sp.z = (get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE, -1.0, 1.0) + 1.f) / 2.f;
+	_manual_sp.flaps = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_FLAPS, -1.0, 1.0);
+	_manual_sp.aux1 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_1, -1.0, 1.0);
+	_manual_sp.aux2 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_2, -1.0, 1.0);
+	_manual_sp.aux3 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_3, -1.0, 1.0);
+	_manual_sp.aux4 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_4, -1.0, 1.0);
+	_manual_sp.aux5 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_5, -1.0, 1.0);
+
+	/* filter controls */
+	_manual_sp.y = math::constrain(_filter_roll.apply(_manual_sp.y), -1.f, 1.f);
+	_manual_sp.x = math::constrain(_filter_pitch.apply(_manual_sp.x), -1.f, 1.f);
+	_manual_sp.r = math::constrain(_filter_yaw.apply(_manual_sp.r), -1.f, 1.f);
+	_manual_sp.z = math::constrain(_filter_throttle.apply(_manual_sp.z), 0.f, 1.f);
+
+	if (_param_rc_map_fltmode.get() > 0) {
+
+		/* the number of valid slots equals the index of the max marker minus one */
+		const int num_slots = manual_control_setpoint_s::MODE_SLOT_NUM;
+
+		/* the half width of the range of a slot is the total range
+		 * divided by the number of slots, again divided by two
+		 */
+		const float slot_width_half = 2.0f / num_slots / 2.0f;
+
+		/* min is -1, max is +1, range is 2. We offset below min and max */
+		const float slot_min = -1.0f - 0.05f;
+		const float slot_max = 1.0f + 0.05f;
+
+		/* the slot gets mapped by first normalizing into a 0..1 interval using min
+		 * and max. Then the right slot is obtained by multiplying with the number of
+		 * slots. And finally we add half a slot width to ensure that integer rounding
+		 * will take us to the correct final index.
+		 */
+		_manual_sp.mode_slot = (((((_rc.channels[_param_rc_map_fltmode.get() - 1] - slot_min) * num_slots) +
+					  slot_width_half) /
+					 (slot_max - slot_min)) + (1.0f / num_slots));
+
+		if (_manual_sp.mode_slot >= num_slots) {
+			_manual_sp.mode_slot = num_slots - 1;
+		}
+	}
+
+	/* mode switches */
+	_manual_sp.mode_switch = get_rc_sw3pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_MODE,
+				 _param_rc_auto_th.get(), _param_rc_auto_th.get() < 0.f,
+				 _param_rc_assist_th.get(), _param_rc_assist_th.get() < 0.f);
+	_manual_sp.rattitude_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_RATTITUDE,
+				      _param_rc_ratt_th.get(), _param_rc_ratt_th.get() < 0.f);
+	_manual_sp.posctl_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_POSCTL,
+				   _param_rc_posctl_th.get(), _param_rc_posctl_th.get() < 0.f);
+	_manual_sp.return_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_RETURN,
+				   _param_rc_return_th.get(), _param_rc_return_th.get() < 0.f);
+	_manual_sp.loiter_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_LOITER,
+				   _param_rc_loiter_th.get(), _param_rc_loiter_th.get() < 0.f);
+	_manual_sp.acro_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_ACRO,
+				 _param_rc_acro_th.get(), _param_rc_acro_th.get() < 0.f);
+	_manual_sp.offboard_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_OFFBOARD,
+				     _param_rc_offb_th.get(), _param_rc_offb_th.get() < 0.f);
+	_manual_sp.kill_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_KILLSWITCH,
+				 _param_rc_killswitch_th.get(), _param_rc_killswitch_th.get() < 0.f);
+	_manual_sp.arm_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_ARMSWITCH,
+				_param_rc_armswitch_th.get(), _param_rc_armswitch_th.get() < 0.f);
+	_manual_sp.transition_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_TRANSITION,
+				       _param_rc_trans_th.get(), _param_rc_trans_th.get() < 0.f);
+	_manual_sp.gear_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_GEAR,
+				 _param_rc_gear_th.get(), _param_rc_gear_th.get() < 0.f);
+	_manual_sp.stab_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_STAB,
+				 _param_rc_stab_th.get(), _param_rc_stab_th.get() < 0.f);
+	_manual_sp.man_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_MAN,
+				_param_rc_man_th.get(), _param_rc_man_th.get() < 0.f);
+	_manual_sp.obsavoid_switch = get_rc_sw3pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_OBSAVOIDSWITCH,
+				     _param_rc_obsavoid_th.get(), _param_rc_obsavoid_th.get() < 0,
+				     _param_rc_obsavoid_mid_th.get(), _param_rc_obsavoid_mid_th.get() < 0);
+
+	return true;
+}
+
+void
+RCUpdate::publish_manual_inputs()
+{	//mavlink_log_critical(&_mavlink_log_pub, "publish_manual_inputs");
+	//PX4_INFO("publish_manual_inputs");
+	/* publish manual_control_setpoint topic */
+	_manual_control_setpoint_pub.publish(_manual_sp);
+
+	/* copy from mapped manual control to control group 3 */
+	struct actuator_controls_s actuator_group_3 = {};
+
+	actuator_group_3.timestamp = _manual_sp.timestamp;
+	actuator_group_3.control[0] = _manual_sp.y;
+	actuator_group_3.control[1] = _manual_sp.x;
+	actuator_group_3.control[2] = _manual_sp.r;
+	actuator_group_3.control[3] = _manual_sp.z;
+	actuator_group_3.control[4] = _manual_sp.flaps;
+	actuator_group_3.control[5] = _manual_sp.aux1;
+	actuator_group_3.control[6] = _manual_sp.aux2;
+	actuator_group_3.control[7] = _manual_sp.aux3;
+
+	/* publish actuator_controls_3 topic */
+	_actuator_group_3_pub.publish(actuator_group_3);
+}
+
+void
+RCUpdate::publish_rc_channels()
+{	//mavlink_log_critical(&_mavlink_log_pub, "rc pub");
+	//PX4_INFO("rc pub");
+	/* publish rc_channels topic even if signal is invalid, for debug */
+	_rc_pub.publish(_rc);
+}
+
+void
+RCUpdate::yuneec_rc_map()
+{	//mavlink_log_critical(&_mavlink_log_pub, "in yuneec rc map");
+   	//PX4_INFO("in yuneec rc map");
+	bool rc_updated = false;
+
+	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		// check if subscriber has updated
+		//mavlink_log_critical(&_mavlink_log_pub, "input_rc updated %d",i);
+		// copy message into struct
+		if (_sub_rc_input[i].updated()) {
+			//mavlink_log_critical(&_mavlink_log_pub, "orb_check(_inputs_rc[i].sub, &rc_updated);");
+			//PX4_INFO("input_rc updated");
+			_sub_rc_input[i].copy(&_inputs_rc[i].input);
+			// Get priority
+			ORB_PRIO priority = ORB_PRIO_UNINITIALIZED;
+			priority = _sub_rc_input[i].get_priority();
+
+			if (priority == ORB_PRIO_DEFAULT) {
+				//mavlink_log_critical(&_mavlink_log_pub, "ORB_PRIO_DEFAULT");
+				//PX4_INFO("ORB_PRIO_DEFAULT");
+				// handle special failsafe channel for receivers
+				process_failsafe_channel(_inputs_rc[i], _rc);
+			}
+		}
+
+		// check signal validity
+		set_signal_validity(_inputs_rc[i]);
+	}
+
+	// check if subscriber has updated
+	orb_check(_slave_rc.slave_rc_sub, &rc_updated);
+
+	if (rc_updated) {
+		mavlink_log_critical(&_mavlink_log_pub, "slave_rc updated");
+		//PX4_INFO("slave_rc updated");
+		orb_copy(ORB_ID(slave_rc), _slave_rc.slave_rc_sub, &_slave_rc.slave_rc);
+
+	}
+
+	// check slave rc validity
+	set_slave_signal_validity(_slave_rc);
+
+	// generate manual setpoints based on link mode
+	if (_param_rc_link_mode.get() == 0) {
+			//mavlink_log_critical(&_mavlink_log_pub, "link mode = 0");
+			//PX4_INFO("link mode = 0");
+		// rc only mapping is required
+		if (map_to_control_setpoint(ORB_PRIO_HIGH)) {
+			_manual_sp.data_source = manual_control_setpoint_s::SOURCE_RC;
+			publish_manual_inputs();
+			//always publish rc_channels
+			publish_rc_channels();
+
+		}
+
+	} else if (_param_rc_link_mode.get() == 1) {
+			//mavlink_log_critical(&_mavlink_log_pub, "link mode = 1");
+		// mavlink override is required
+		// check if there is input data with high priority
+		if (map_to_control_setpoint(ORB_PRIO_HIGH)) {
+		//	mavlink_log_critical(&_mavlink_log_pub, "link mode = 1  && priority HIGH");
+			_manual_sp.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0;
+			publish_manual_inputs();
+			//publish_rc_channels();
+
+		} else if (map_to_control_setpoint(ORB_PRIO_DEFAULT)) {
+			// No mavlink message. Re-use RC if available
+			_manual_sp.data_source = manual_control_setpoint_s::SOURCE_RC;
+			publish_manual_inputs();
+			//always publish rc_channels
+			publish_rc_channels();
+		}
+
+	} else if (_param_rc_link_mode.get() == 2) {
+			//mavlink_log_critical(&_mavlink_log_pub, "link mode = 2");
+		// use mavlink as backup in case rc is lost
+		if (map_to_control_setpoint(ORB_PRIO_DEFAULT)) {
+			_manual_sp.data_source = manual_control_setpoint_s::SOURCE_RC;
+			publish_manual_inputs();
+			//always publish rc_channels
+			publish_rc_channels();
+
+		} else if (map_to_control_setpoint(ORB_PRIO_HIGH)) {
+			_manual_sp.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0;
+			publish_manual_inputs();
+		}
+
+	} else if (_param_rc_link_mode.get() == 3) {
+			//mavlink_log_critical(&_mavlink_log_pub, "link mode = 3");
+		// use zigbee as backup in case rc is lost
+		if (map_to_control_setpoint(ORB_PRIO_HIGH)) {
+			_manual_sp.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0;
+
+			// team mode slave control
+			if (map_from_team_mode()) {
+				// Team mode did not succeed, but nothing to do.
+			}
+
+			publish_manual_inputs();
+			//always publish rc_channels
+			publish_rc_channels();
+
+		} else if (map_to_control_setpoint(ORB_PRIO_DEFAULT)) {
+			_manual_sp.data_source = manual_control_setpoint_s::SOURCE_RC;
+
+			// team mode slave control
+			if (map_from_team_mode()) {
+				// Team mode did not succeed, but nothing to do.
+			}
+
+			publish_manual_inputs();
+		}
+	}
+}
+#endif
+
+
 void
 RCUpdate::rc_parameter_map_poll(bool forced)
 {
@@ -200,7 +717,8 @@ RCUpdate::rc_parameter_map_poll(bool forced)
 		}
 
 		PX4_DEBUG("rc to parameter map updated");
-
+		//mavlink_log_critical(&_mavlink_log_pub, "rc to parameter map updated!!");
+			//PX4_INFO("rc to parameter map updated!!");
 		for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 			PX4_DEBUG("\ti %d param_id %s scale %.3f value0 %.3f, min %.3f, max %.3f",
 				  i,
@@ -294,16 +812,18 @@ RCUpdate::set_params_from_rc()
 void
 RCUpdate::Run()
 {
+
 	if (should_exit()) {
-		_input_rc_sub.unregisterCallback();
+		//_input_rc_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
 
 	perf_begin(_loop_perf);
-
+	ScheduleDelayed(10);
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
+			//mavlink_log_critical(&_mavlink_log_pub, "RUN  _parameter_update_sub.updated()");
 		// clear update
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
@@ -314,6 +834,14 @@ RCUpdate::Run()
 	}
 
 	rc_parameter_map_poll();
+
+//mx3g-jh
+#ifdef YUNEEC_INPUT_RC_MAP_MANUAL_CONTROL
+	//mavlink_log_critical(&_mavlink_log_pub, "rc_update RUN");
+	//PX4_INFO("rc_update RUN");
+	yuneec_rc_map();
+
+#else
 
 	/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
 	input_rc_s rc_input;
@@ -550,6 +1078,8 @@ RCUpdate::Run()
 		}
 	}
 
+//mx3g-jh
+#endif
 	perf_end(_loop_perf);
 }
 
@@ -563,6 +1093,9 @@ RCUpdate::task_spawn(int argc, char *argv[])
 		_task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
+			//mavlink_log_critical(&_mavlink_log_pub, "task_spawn return PX4_OK");
+			PX4_INFO("task_spawn rc_update return PX4_OK");
+
 			return PX4_OK;
 		}
 
@@ -573,8 +1106,10 @@ RCUpdate::task_spawn(int argc, char *argv[])
 	delete instance;
 	_object.store(nullptr);
 	_task_id = -1;
-
+	//mavlink_log_critical(&_mavlink_log_pub, "task_spawn return PX4_ERROR");
+	PX4_INFO("task_spawn return PX4_ERROR");
 	return PX4_ERROR;
+
 }
 
 int

@@ -59,7 +59,7 @@ public:
 
 	void set_max_distance(const float distance) { _distance_sensor_pub.get().max_distance = distance; }
 	void set_min_distance(const float distance) { _distance_sensor_pub.get().min_distance = distance; }
-
+	void set_covariance(const float covariance) { _distance_sensor_pub.get().covariance = covariance; }
 	void set_orientation(const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 
 	void update(const hrt_abstime &timestamp_sample, const float distance, const int8_t quality = -1);

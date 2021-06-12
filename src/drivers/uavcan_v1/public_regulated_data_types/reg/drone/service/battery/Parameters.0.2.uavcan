@@ -1,0 +1,69 @@
+# Smart battery parameter message. It is mostly intended for automated battery charging and maintenance systems.
+# This message is modeled after the Smart Battery Data Specification (SBS) and the MAVLink battery status messages.
+#
+# The values carried by this message are either constant or slow-changing, so, generally, the publishing frequency
+# should not be higher than 0.2 Hz, and the priority should be either OPTIONAL or SLOW.
+#
+# All parameters are required unless specifically stated otherwise.
+# For non-rechargeable batteries all "charge_*" parameters should be NaN.
+@deprecated
+
+truncated uint64 unique_id
+# A statistically unique number that can be used to identify this exact battery for logging and diagnostic purposes.
+# This value should be invariant to the identity of the reporting node unless it is an integral part of the battery.
+# If the battery supports SBS, the recommended way to populate this field is from two CRC-32C (Castagnoli) values as:
+#   - 32 most significant bits identify the vendor as:   CRC32C(ManufacturerName)
+#   - 32 least significant bits identify the battery as: CRC32C(DeviceName + ManufactureDate + SerialNumber)
+# If the battery does not support SBS, the vendor may choose arbitrary random numbers.
+# Note that these are mere recommendations. The only hard requirement for this field is to be statistically unique.
+
+uavcan.si.unit.mass.Scalar.1.0 mass
+# The total mass of the battery, including the packaging, electronics, cabling, and all auxiliary items, if any.
+# May be used for predicting the kinematic parameters of the vehicle.
+# NaN if unknown.
+
+uavcan.si.unit.electric_charge.Scalar.1.0 design_capacity
+# The maximum total charge of the pack, at 100% SoH, specified by the manufacturer.
+
+uavcan.si.unit.voltage.Scalar.1.0[2] design_cell_voltage_min_max
+# The minimum (end of discharge) and the maximum (end of charge) resting cell voltage specified by the manufacturer
+# at 100% SoH. Example: {2.8, 4.2} V. These voltages correspond to resting voltages; i.e., the stabilized voltages after
+# the discharge/charge has been terminated. Voltage below the min may be observed during discharge due to the cell's
+# internal resistance. Voltage above the max voltage may be observed during regenerative braking/charging etc due to
+# the cell's internal resistance.
+
+uavcan.si.unit.electric_current.Scalar.1.0 discharge_current
+# Recommended continuous discharge current of the battery.
+
+uavcan.si.unit.electric_current.Scalar.1.0 discharge_current_burst
+# Maximum current that may be safely discharged at least for 5 seconds.
+
+uavcan.si.unit.electric_current.Scalar.1.0 charge_current
+# Recommended continuous charge current of the battery.
+
+uavcan.si.unit.electric_current.Scalar.1.0 charge_current_fast
+# Recommended safest highest continuous charge current for the battery.
+# This may cause accelerated aging of the battery.
+
+uavcan.si.unit.electric_current.Scalar.1.0 charge_termination_threshold
+# End-of-charging current threshold. Charging may be terminated when the current falls below this threshold.
+
+uavcan.si.unit.voltage.Scalar.1.0 charge_voltage
+# The total voltage(not per-cell) that may be used by the charger to charge the battery pack.
+
+uint16 cycle_count
+# The number of charge-discharge cycles. Zero if the battery is new. May increase at runtime.
+# What constitutes a charge-discharge cycle is implementation-defined.
+
+void16
+# Was used in v0.1 for cell_count. It is now deducible from cell_voltages in Status.0.2.
+
+uint7 state_of_health_pct  # [percent]
+# The SoH of the battery, or best guess thereof; ranges from 0 (unusable) to 100 (new).
+void1
+
+Technology.0.1 technology
+# The battery technology information may be leveraged by the charger to choose the appropriate charging strategy.
+
+@assert _offset_.count == 1     # It is intended to be a fixed-size type (although it's not required).
+@extent 8 * 63                  # Limit to a single-frame transfer over CAN FD.

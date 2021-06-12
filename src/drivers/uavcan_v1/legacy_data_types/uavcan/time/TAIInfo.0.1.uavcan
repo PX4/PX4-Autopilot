@@ -1,0 +1,63 @@
+# This data types defines constants and runtime values pertaining to the International Atomic Time, also known as TAI.
+# See https://en.wikipedia.org/wiki/International_Atomic_Time.
+#
+# The relationship between the three major time systems -- TAI, GPS, and UTC -- is as follows:
+#
+#   TAI = GPS + 19 seconds
+#   TAI = UTC + LS + 10 seconds
+#
+# Where "LS" is the current number of leap seconds: https://en.wikipedia.org/wiki/Leap_second.
+#
+# UAVCAN applications should only rely on TAI whenever a global time system is needed.
+# GPS time is strongly discouraged for reasons of consistency across different positioning systems and applications.
+
+uint8 DIFFERENCE_TAI_MINUS_GPS = 19    # [second]
+# The fixed difference, in seconds, between TAI and GPS time. Does not change ever.
+# Systems that use GPS time as a reference should convert that to TAI by adding this difference.
+
+uint10 DIFFERENCE_TAI_MINUS_UTC_UNKNOWN = 0
+uint10 difference_tai_minus_utc
+# The current difference between TAI and UTC, if known. If unknown, set to zero.
+#
+# This value may change states between known and unknown while the master is running,
+# depending on its ability to obtain robust values from external sources.
+#
+# This value may change twice a year, possibly while the system is running; https://en.wikipedia.org/wiki/Leap_second.
+# Since the rotation of Earth is decelerating, this value may only be positive. Do not use outside Earth.
+#
+# For reference, here is the full list of recorded TAI-UTC difference values, valid at the time of writing:
+#
+#     Date     | TAI-UTC difference [second]
+#    ----------|-----------------------------
+#     Jan 1972 | 10
+#     Jul 1972 | 11
+#     Jan 1973 | 12
+#     Jan 1974 | 13
+#     Jan 1975 | 14
+#     Jan 1976 | 15
+#     Jan 1977 | 16
+#     Jan 1978 | 17
+#     Jan 1979 | 18
+#     Jan 1980 | 19
+#     Jul 1981 | 20
+#     Jul 1982 | 21
+#     Jul 1983 | 22
+#     Jul 1985 | 23
+#     Jan 1988 | 24
+#     Jan 1990 | 25
+#     Jan 1991 | 26
+#     Jul 1992 | 27
+#     Jul 1993 | 28
+#     Jul 1994 | 29
+#     Jan 1996 | 30
+#     Jul 1997 | 31
+#     Jan 1999 | 32
+#     Jan 2006 | 33
+#     Jan 2009 | 34
+#     Jul 2012 | 35
+#     Jul 2015 | 36
+#     Jan 2017 | 37
+#
+# As of 2020, the future of the leap second and the relation between UTC and TAI remains uncertain.
+
+@sealed

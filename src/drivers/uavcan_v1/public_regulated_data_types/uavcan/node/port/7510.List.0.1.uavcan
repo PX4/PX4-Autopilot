@@ -1,0 +1,20 @@
+# A list of ports that this node is using:
+# - Subjects published by this node (whether periodically or ad-hoc).
+# - Subjects that this node is subscribed to (a datalogger or a debugger would typically subscribe to all subjects).
+# - RPC services consumed by this node (i.e., service clients).
+# - RPC services provided by this node (i.e., service servers).
+#
+# All nodes should implement this capability to provide network introspection and diagnostic capabilities.
+# This message should be published using the fixed subject-ID as follows:
+# - At the OPTIONAL priority level at least every MAX_PUBLICATION_PERIOD seconds.
+# - At the OPTIONAL or SLOW priority level within MAX_PUBLICATION_PERIOD after the port configuration is changed.
+
+uint8 MAX_PUBLICATION_PERIOD = 10  # [seconds]
+# If the port configuration is not updated in this amount of time, the node should publish this message anyway.
+
+SubjectIDList.0.1 publishers
+SubjectIDList.0.1 subscribers
+ServiceIDList.0.1 clients
+ServiceIDList.0.1 servers
+
+@sealed

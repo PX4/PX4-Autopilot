@@ -1,0 +1,12 @@
+# CAN 2.0 or CAN FD frame representation. This is the top-level data type in its namespace.
+
+@deprecated  # See next version.
+
+uavcan.time.SynchronizedTimestamp.1.0 timestamp
+
+Manifestation.0.1 manifestation
+
+@sealed                         # Sealed because the structure is rigidly dictated by an external standard.
+@assert _offset_ % 8 == {0}
+@assert _offset_.min == 12 * 8
+@assert _offset_.max == 78 * 8

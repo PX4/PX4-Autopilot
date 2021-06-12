@@ -1,0 +1,220 @@
+<?xml version="1.0"?>
+
+<PropertyList>
+  <name>UAS Operations</name>
+  <layout>vbox</layout>
+  <x>-10</x>
+  <y>10</y>
+
+  <group>
+    <layout>hbox</layout>
+
+    <empty><stretch>true</stretch></empty>
+
+    <text>
+      <label>UAS Operator Interface</label>
+    </text>
+
+    <empty><stretch>true</stretch></empty>
+
+    <button>
+      <pref-width>16</pref-width>
+      <pref-height>16</pref-height>
+      <legend></legend>
+      <default>1</default>
+      <keynum>27</keynum>
+      <border>2</border>
+
+      <binding>
+        <command>nasal</command>
+        <script>uas.nasal_ap_dialog.close()</script>
+      </binding>
+    </button>
+  </group>
+
+  <hrule/>
+
+  <group>
+    <layout>table</layout>
+
+    <!-- row zero -->
+    <text>
+      <row>0</row> <col>0</col>
+      <label>View</label>
+    </text>
+
+    <combo>
+      <row>0</row> <col>1</col>
+      <halign>fill</halign>
+      <stretch>true</stretch>
+      <!-- <width>250</width> -->
+      <!-- <height>25</height> -->
+      <property>/uas/view-mode</property>
+      <value>Gyro Camera</value>
+      <value>Cockpit</value>
+      <value>External</value>
+      <value>Fly By</value>
+      <value>PLAT Camera</value>
+      <live>true</live>
+      <binding>
+        <command>dialog-apply</command>
+      </binding>
+    </combo>
+
+   <!-- row one -->
+    <text>
+      <row>1</row> <col>0</col>
+      <label>Camera Target</label>
+    </text>
+
+    <combo>
+      <row>1</row> <col>1</col>
+      <halign>fill</halign>
+      <stretch>true</stretch>
+      <!-- <width>250</width> -->
+      <!-- <height>25</height> -->
+      <property>/uas/camera-target</property>
+      <value>Operator (Mouse Click on Target)</value>
+      <value>Next Waypoint</value>
+      <value>Carrier</value>
+      <value>Refueling Tanker</value>
+      <live>true</live>
+      <binding>
+        <command>dialog-apply</command>
+      </binding>
+    </combo>
+
+   <!-- row two -->
+    <text>
+      <row>2</row> <col>0</col>
+      <label>Camera Zoom</label>
+    </text>
+
+    <combo>
+      <row>2</row> <col>1</col>
+      <halign>fill</halign>
+      <stretch>true</stretch>
+      <!-- <width>250</width> -->
+      <!-- <height>25</height> -->
+      <property>/uas/camera-zoom</property>
+      <value>0.75</value>
+      <value>1.0</value>
+      <value>2.5</value>
+      <value>5.0</value>
+      <value>10.0</value>
+      <value>20.0</value>
+      <binding>
+        <command>dialog-apply</command>
+      </binding>
+    </combo>
+
+    <!-- row three -->
+    <text>
+      <row>3</row> <col>0</col>
+      <label>Flight Altitude (MSL):</label>
+    </text>
+
+    <input>
+      <row>3</row>
+      <col>1</col>
+      <halign>left</halign>
+      <property>/uas/flight-altitude-ft</property>
+      <live>true</live>
+      <binding>
+        <command>dialog-apply</command>
+      </binding>
+    </input>
+
+    <!-- row four -->
+    <text>
+      <row>4</row> <col>0</col>
+      <label>Flight Task:</label>
+    </text>
+
+    <input>
+      <row>4</row>
+      <col>1</col>
+      <halign>left</halign>
+      <property>/uas/state</property>
+      <live>true</live>
+      <enable>0</enable>
+    </input>
+  </group>
+
+  <hrule/>
+
+  <group>
+    <layout>hbox</layout>
+
+    <checkbox>
+      <row>0</row> <col>0</col>
+      <halign>center</halign>
+      <label>HUD</label>
+      <property>/sim/hud/visibility[1]</property>
+      <live>true</live>
+      <binding>
+        <command>dialog-apply</command>
+      </binding>
+    </checkbox>
+
+    <checkbox>
+      <row>0</row> <col>1</col>
+      <halign>center</halign>
+      <label>Smoke</label>
+      <property>/sim/multiplay/generic/int[0]</property>
+      <live>true</live>
+      <binding>
+        <command>dialog-apply</command>
+      </binding>
+    </checkbox>
+
+    <checkbox>
+      <row>0</row> <col>2</col>
+      <halign>center</halign>
+      <label>Trajectory Markers</label>
+      <property>/sim/multiplay/generic/int[1]</property>
+      <live>true</live>
+      <binding>
+        <command>dialog-apply</command>
+      </binding>
+    </checkbox>
+
+  </group>
+
+  <hrule/>
+
+  <group>
+    <layout>hbox</layout>
+
+    <button>
+      <halign>left</halign>
+      <legend>Launch!!!</legend>
+      <live>true</live>
+      <binding>
+        <command>nasal</command>
+	<script>uas.task_nasal_launch();</script>
+      </binding>
+    </button>
+
+    <button>
+      <row>3</row> <col>1</col>
+      <halign>right</halign>
+      <legend>Return to Base</legend>
+      <live>true</live>
+      <binding>
+        <command>nasal</command>
+	<script>uas.task_go_home();</script>
+      </binding>
+    </button>
+
+    <button>
+      <halign>left</halign>
+      <legend>Reset</legend>
+      <live>true</live>
+      <binding>
+        <command>reset</command>
+      </binding>
+    </button>
+  </group>
+
+</PropertyList>

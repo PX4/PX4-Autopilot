@@ -1,0 +1,7 @@
+language: python
+python:
+  - "3.8"
+before_install:
+  - pip install pydsdl
+script:
+  - ./verify

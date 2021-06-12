@@ -1,0 +1,16 @@
+# This service allows the caller to discover the names of all registers available on the server
+# by iterating the index field from zero until an empty name is returned.
+#
+# The ordering of the registers shall remain constant while the server is running.
+# The ordering is not guaranteed to remain unchanged when the server node is restarted.
+
+uint16 index
+
+@sealed
+
+---
+
+Name.1.0 name
+# Empty name in response means that the index is out of bounds, i.e., discovery is finished.
+
+@sealed

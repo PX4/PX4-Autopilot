@@ -1,0 +1,16 @@
+Twist.0.1 value
+
+float16[21] covariance_urt
+# Upper-right triangle of the covariance matrix:
+#
+#                     translation along axis    rotation about axis
+#                        X       Y       Z       X       Y       Z
+#                     +----------------------------------------------
+# X velocity          |
+# Y velocity          |      (m/s)^2                (m*rad)/s^2
+# Z velocity          |
+# X angular velocity  |
+# Y angular velocity  |                              (rad/s)^2
+# Z angular velocity  |
+
+@sealed

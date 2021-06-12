@@ -1,0 +1,43 @@
+<model name="rascal">
+    <jsbsimbridge>
+        <aircraft_directory>models/Rascal</aircraft_directory>
+        <aircraft_model>Rascal110-JSBSim</aircraft_model>
+    </jsbsimbridge>
+    <mavlink_interface>
+        <tcp_port>4560</tcp_port>
+    </mavlink_interface>
+    <sensors>
+        <imu>
+        </imu>
+        <gps>
+        </gps>
+        <barometer>
+        </barometer>
+        <magnetometer>
+        </magnetometer>
+        <airspeed>
+        </airspeed>
+    </sensors>
+    <actuators>
+        <channel name="rudder">
+            <index>2</index>
+            <scale>-1</scale>
+            <property>fcs/rudder-cmd-norm</property>
+        </channel>
+        <channel name="aileron">
+            <index>5</index>
+            <scale>-1</scale>
+            <property>fcs/aileron-cmd-norm</property>
+        </channel>
+        <channel name="elevator">
+            <index>7</index>
+            <scale>-1</scale>
+            <property>fcs/elevator-cmd-norm</property>
+        </channel>
+        <channel name="throttle">
+            <index>4</index>
+            <scale>1</scale>
+            <property>fcs/throttle-cmd-norm</property>
+        </channel>
+    </actuators>
+</model>

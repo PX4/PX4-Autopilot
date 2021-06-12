@@ -1,0 +1,9 @@
+# First-order kinematic state of a body near the surface of a planet.
+# The pose defines a coordinate system transformation from the parent frame to the child frame.
+# The twist is specified in the child frame (body frame).
+
+Pose.0.1 pose
+reg.drone.physics.kinematics.cartesian.Twist.0.1 twist
+
+@sealed
+@assert _offset_ == reg.drone.physics.kinematics.cartesian.State.0.1._bit_length_

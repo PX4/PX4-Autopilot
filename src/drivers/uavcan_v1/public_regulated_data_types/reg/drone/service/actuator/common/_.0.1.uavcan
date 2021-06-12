@@ -1,0 +1,16 @@
+# An actuator is a device that actuates a mechanical load using electric energy from the high-voltage DC power bus.
+# There are multiple kinds of actuators with a dedicated namespace for each; additionally, this "common" namespace
+# hosts certain elements shared between several (or all) kinds.
+
+float32 CONTROL_TIMEOUT = 1.0  # [seconds]
+# The actuator is allowed to enter a safe state (e.g., stop the controlled mechanism, disconnect itself from
+# the load, etc. depending on the specifics of the application at hand) if no setpoint or readiness control messages
+# have been received in this amount of time. Implementations are allowed to reduce this value, but never increase it.
+
+uint8 MAX_PUBLICATION_PERIOD = 1  # [second]
+# This is the maximum publication period (minimum frequency) for all subjects described in this service.
+# Subjects that are clocked by the setpoint should continue being published at least at this rate when setpoint is not
+# being updated, unless the actuator is in the SLEEP state.
+# The publication periods should be consistent across the group.
+
+@extent 0

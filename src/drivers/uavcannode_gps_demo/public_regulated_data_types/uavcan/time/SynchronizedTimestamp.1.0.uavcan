@@ -1,0 +1,19 @@
+# Nested data type used for representing a network-wide synchronized timestamp with microsecond resolution.
+# This data type is highly recommended for use both in standard and vendor-specific messages alike.
+
+uint56 UNKNOWN = 0  # Zero means that the time is not known.
+
+truncated uint56 microsecond
+# The number of microseconds that have passed since some arbitrary moment in the past.
+# The moment of origin (i.e., the time base) is defined per-application. The current time base in use
+# can be requested from the time synchronization master, see the corresponding service definition.
+#
+# This value is to never overflow. The value is 56-bit wide because:
+#
+#   - 2^56 microseconds is about 2285 years, which is plenty. A 64-bit microsecond counter would be
+#     unnecessarily wide and its overflow interval of 585 thousand years induces a mild existential crisis.
+#
+#   - Classic-CAN (not FD) transports carry up to 7 bytes of payload per frame.
+#     Time sync messages shall use single-frame transfers, which means that the value can't be wider than 56 bits.
+
+@sealed

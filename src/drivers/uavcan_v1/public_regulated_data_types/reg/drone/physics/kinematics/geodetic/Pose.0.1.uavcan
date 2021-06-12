@@ -1,0 +1,8 @@
+# Zero rotation is the state where the axes of the body frame are aligned with the axes of the local NED frame:
+# X points north, Y points east, Z points down.
+
+Point.0.1                           position
+uavcan.si.unit.angle.Quaternion.1.0 orientation
+
+@sealed
+@assert _offset_ == reg.drone.physics.kinematics.cartesian.Pose.0.1._bit_length_

@@ -1,0 +1,37 @@
+# A collection of detailed fault flags indicating problems detected by the service provider.
+# A fault flag is set when the corresponding parameter exceeds its safe operating area (SOA) as defined by the vendor;
+# see https://en.wikipedia.org/wiki/Safe_operating_area.
+# As long as at least one flag is set, the service health should not be NOMINAL.
+
+bool overload
+# The load is above SOA or regeneration below the SOA.
+
+bool voltage
+# Supply voltage is above or below the SOA.
+
+bool motor_temperature
+bool controller_temperature
+# Temperature is above or below the SOA.
+
+bool velocity
+# The absolute velocity of the load is above the SOA.
+
+bool mechanical
+# The load cannot be driven due to a mechanical failure.
+
+bool vibration
+# The mechanical vibration level exceeds the SOA.
+
+bool configuration
+# Configuration is missing or invalid.
+
+bool control_mode
+# The requested control mode is not supported by the actuator.
+
+void6
+
+bool other
+# None of the above (vendor-specific).
+
+@assert _offset_ == {16}
+@sealed

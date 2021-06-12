@@ -1,0 +1,17 @@
+Pose.0.1 value
+
+float16[21] covariance_urt
+# Upper-right triangle of the covariance matrix:
+#
+#                    [parent frame]        [child (body) frame]
+#                translation along axis    rotation about axis
+#                   X       Y       Z       X       Y       Z
+#               +-----------------------------------------------
+# X position    |
+# Y position    |          m^2                     m*rad
+# Z position    |
+# X rotation    |
+# Y rotation    |                                  rad^2
+# Z rotation    |
+
+@sealed

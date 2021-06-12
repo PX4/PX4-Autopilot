@@ -1,0 +1,9 @@
+# Linear velocity with timestamp and covariance.
+# Observe that this is a structural subtype of uavcan.si.sample.velocity.Scalar.1.0.
+# For a non-timestamped estimate without covariance use the raw SI type directly.
+
+uavcan.si.sample.velocity.Scalar.1.0 value
+
+float16 error_variance  # [(meter/second)^2]
+
+@sealed

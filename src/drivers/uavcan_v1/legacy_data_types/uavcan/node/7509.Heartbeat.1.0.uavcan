@@ -1,0 +1,37 @@
+# Abstract node status information.
+# This is the only high-level function that shall be implemented by all nodes.
+#
+# All UAVCAN nodes that have a node-ID are required to publish this message to its fixed subject periodically.
+# Nodes that do not have a node-ID (also known as "anonymous nodes") shall not publish to this subject.
+#
+# The default subject-ID 7509 is 1110101010101 in binary. The alternating bit pattern at the end helps transceiver
+# synchronization (e.g., on CAN-based networks) and on some transports permits automatic bit rate detection.
+#
+# Network-wide health monitoring can be implemented by subscribing to the fixed subject.
+
+uint16 MAX_PUBLICATION_PERIOD = 1   # [second]
+# The publication period shall not exceed this limit.
+# The period should not change while the node is running.
+
+uint16 OFFLINE_TIMEOUT = 3          # [second]
+# If the last message from the node was received more than this amount of time ago, it should be considered offline.
+
+uint32 uptime                       # [second]
+# The uptime seconds counter should never overflow. The counter will reach the upper limit in ~136 years,
+# upon which time it should stay at 0xFFFFFFFF until the node is restarted.
+# Other nodes may detect that a remote node has restarted when this value leaps backwards.
+
+Health.1.0 health
+# The abstract health status of this node.
+
+Mode.1.0 mode
+# The abstract operating mode of the publishing node.
+# This field indicates the general level of readiness that can be further elaborated on a per-activity basis
+# using various specialized interfaces.
+
+uint8 vendor_specific_status_code
+# Optional, vendor-specific node status code, e.g. a fault code or a status bitmask.
+
+@assert _offset_ % 8 == {0}
+@assert _offset_ == {56}  # Fits into a single-frame Classic CAN transfer (least capable transport, smallest MTU).
+@extent 12 * 8

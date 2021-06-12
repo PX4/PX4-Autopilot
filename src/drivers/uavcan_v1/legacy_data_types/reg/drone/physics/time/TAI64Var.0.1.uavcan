@@ -1,0 +1,8 @@
+TAI64.0.1 value
+
+float32 error_variance      # [second^2]
+# Error variance, in second squared, of the time estimate.
+# Infinity indicates that the time estimates are not yet available.
+# A non-positive value indicates that the error variance is unknown.
+
+@sealed

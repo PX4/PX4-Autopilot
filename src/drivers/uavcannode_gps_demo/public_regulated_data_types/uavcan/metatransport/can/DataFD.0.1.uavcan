@@ -1,0 +1,8 @@
+# CAN FD data frame payload.
+
+ArbitrationID.0.1 arbitration_id
+uint8[<=64] data
+
+@sealed
+@assert _offset_.min == 48
+@assert _offset_ % 8 == {0}

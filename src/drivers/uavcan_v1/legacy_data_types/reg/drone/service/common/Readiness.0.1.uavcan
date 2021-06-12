@@ -1,0 +1,57 @@
+# The readiness state is used to command or report the availability status of a networked service (subsystem).
+#
+# Any system shall have at least one readiness command subject that acts as a global power switch.
+# Every subsystem controlled in such way would usually report its readiness status back to account for the fact that
+# the transition between different readiness states may not be instantaneous.
+# The readiness status reporting is done by means of the service heartbeat type that is also defined in this namespace;
+# the service heartbeat type is a structural subtype of this type.
+#
+#   +------------+
+#   | Controller |----------+----------------+----------------+---------...     readiness command subject
+#   +------------+          |                |                |
+#     ^   ^   ^             v                v                v
+#     |   |   |        +---------+      +---------+      +---------+
+#     |   |   |        | Service |      | Service |      | Service |    ...
+#     |   |   |        +---------+      +---------+      +---------+
+#     |   |   |             |                |                |
+#     |   |   +-------------+                |                |
+#     |   +----------------------------------+                |                 service heartbeat subjects
+#     +-------------------------------------------------------+
+#
+# In a less trivial use case there may be an arbitrary number of such readiness command subjects (local power switches)
+# controlling various systems within the vehicle (e.g., propulsion, perception sensors, communication, etc).
+#
+# The publication rate is defined on a per-service basis, but it should never be lower than 1 Hz,
+# excepting services that are in the SLEEP state, in which case it is permitted to cease all network activity.
+
+truncated uint2 value
+
+uint2 SLEEP = 0
+# The long-term state of minimal power consumption.
+# Typically, most subsystems are switched into the SLEEP mode when the vehicle is parked and powered off.
+# Subsystems that do not support the SLEEP state should treat it as an equivalent of STANDBY.
+#
+# A subsystem may require a substantial amount of time to exit the sleep mode (for example, time may be needed to
+# boot the operating system and run the self test procedures).
+#
+# While in the SLEEP mode, the subsystem is allowed to cease service provision and stop all network activity
+# regardless of other requirements, except that it shall be able to reactivate itself if a Readiness message is
+# received commanding any state other than SLEEP.
+
+# Value 1 is invalid and shall never be commanded.
+# Implementations receiving this value should interpret it either as SLEEP or STANDBY.
+
+uint2 STANDBY = 2
+# The state of being ready to enter the normal operating mode in a short order.
+# A subsystem that is in STANDBY state should be able to participate in the normal network activity.
+# This is the default state that the subsystem should reside in after power-on until explicitly commanded otherwise.
+
+uint2 ENGAGED = 3
+# When ENGAGED, the subsystem is performing its main intended function at the nominal performance characteristics.
+# A subsystem may require a short amount of time, possibly under a few seconds, to switch between the ENGAGED and
+# STANDBY states (in any direction).
+# Some subsystems may not differentiate between STANDBY and ENGAGED (e.g., offboard communication hardware).
+# The subsystem may disengage itself autonomously in the event of a fatal malfunction, in which case
+# the reported service health status should be WARNING.
+
+@sealed

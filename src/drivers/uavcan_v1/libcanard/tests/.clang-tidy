@@ -1,0 +1,35 @@
+---
+# The tests are held to somewhat lower quality standards than production code.
+# The tests are also written in somewhat non-idiomatic C++ because they are tightly related to the C codebase.
+Checks: >-
+  boost-*,
+  bugprone-*,
+  cert-*,
+  clang-analyzer-*,
+  cppcoreguidelines-*,
+  google-*,
+  hicpp-*,
+  llvm-*,
+  misc-*,
+  modernize-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  -hicpp-function-size,
+  -google-readability-todo,
+  -google-runtime-references,
+  -google-readability-function-size,
+  -readability-avoid-const-params-in-decls,
+  -readability-magic-numbers,
+  -readability-function-size,
+  -llvm-header-guard,
+  -misc-non-private-member-variables-in-classes,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-type-union-access,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*\.hpp'
+AnalyzeTemporaryDtors: false
+FormatStyle: file
+...

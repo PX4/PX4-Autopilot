@@ -1,0 +1,8 @@
+#
+# TAS.
+#
+
+float16 true_airspeed           # m/s
+float16 true_airspeed_variance  # (m/s)^2
+
+@extent 64 * 8

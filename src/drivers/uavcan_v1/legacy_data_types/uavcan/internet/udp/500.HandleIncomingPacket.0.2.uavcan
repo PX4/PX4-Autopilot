@@ -1,0 +1,45 @@
+# This message carries UDP packets sent from a remote host on the Internet or a LAN to a node on the local UAVCAN bus.
+# Please refer to the definition of the message type OutgoingPacket for a general overview of the packet forwarding
+# logic.
+#
+# This data type has been made a service type rather than a message type in order to make its transfers addressable,
+# allowing nodes to employ hardware acceptance filters for filtering out forwarded datagrams that are not addressed
+# to them. Additionally, requiring the destination nodes to always respond upon reception of the forwarded datagram
+# opens interesting opportunities for future extensions of the forwarding protocol. If the service invocation times
+# out, the modem node is permitted to remove the corresponding entry from the NAT table immediately, not waiting
+# for its TTL to expire.
+#
+# It should be noted that this data type definition intentionally leaves out the source address. This is done in
+# order to simplify the implementation, reduce the bus traffic overhead, and because the nature of the
+# communication patterns proposed by this set of messages does not provide a valid way to implement server hosts
+# on the local UAVCAN bus. It is assumed that local nodes can be only clients, and therefore, they will be able to
+# determine the address of the sender simply by mapping the field session_id to their internally maintained states.
+# Furthermore, it is uncertain what is the optimal way of representing the source address for
+# client nodes: it is assumed that the local nodes will mostly use DNS names rather than IP addresses, so if there
+# was a source address field, modem nodes would have to perform reverse mapping from the IP address they received
+# the datagram from to the corresponding DNS name that was used by the local node with the outgoing message. This
+# approach creates a number of troubling corner cases and adds a fair amount of hidden complexities to the
+# implementation of modem nodes.
+#
+# It is recommended to perform service invocations at the same transfer priority level as was used for broadcasting
+# the latest matching message of type OutgoingPacket. However, meeting this recommendation would require the modem
+# node to implement additional logic, which may be undesirable. Therefore, implementers are free to deviate from
+# this recommendation and resort to a fixed priority level instead. In the case of a fixed priority level, it is
+# advised to use the lowest transfer priority level.
+
+uint16 session_id
+# This field shall contain the same value that was used by the local node when sending the corresponding outgoing
+# packet using the message type OutgoingPacket. This value will be used by the local node to match the response
+# with its local context.
+
+uint8[<=508] payload
+# Effective payload. This data will be forwarded from the remote host verbatim.
+# UDP packets that contain more than 508 bytes of payload may be dropped by some types of
+# communication equipment. Refer to RFC 791 and 2460 for an in-depth review.
+# Datagrams that exceed the capacity of this field should be discarded by the modem node.
+
+@extent 600 * 8
+
+---
+
+@extent 63 * 8

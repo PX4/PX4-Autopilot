@@ -39,5 +39,5 @@ px4_add_module(
 		rc_update.h
 	DEPENDS
 		mathlib
-		px4_work_queue
+
 	)

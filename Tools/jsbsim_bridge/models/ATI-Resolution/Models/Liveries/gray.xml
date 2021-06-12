@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+
+<PropertyList>
+  <sim>
+    <model>
+      <livery>
+        <name type="string">Gray</name>
+        <material>
+         <v_tail>
+          <texture>Liveries/gray/resolution3-vstab-gray.png</texture>
+         </v_tail>
+         <hull>
+          <texture>Liveries/gray/resolution3-fuse-gray.png</texture>
+         </hull>
+         <tips>
+          <texture>Liveries/gray/resolution3-wingtips-gray.png</texture>
+         </tips>
+         <wings>
+          <texture>Liveries/gray/resolution3-wings-gray.png</texture>
+         </wings>
+        </material>
+      </livery>
+    </model>
+  </sim>
+</PropertyList>

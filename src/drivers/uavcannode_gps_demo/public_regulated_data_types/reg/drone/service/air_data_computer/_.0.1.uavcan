@@ -1,0 +1,50 @@
+# A generic air data computer service.
+#
+# An air data computer service is generally a non-interactive publish-only service: when activated,
+# it keeps publishing its measurements at a fixed rate over several subjects until deactivated.
+# The activation/deactivation, if supported, is managed via the standard readiness control service.
+# The data update rates and other parameters are controlled via the Register API using implementation-defined
+# register names.
+#
+# An air data computer whose readiness state is SLEEP is allowed to cease all network activity.
+#
+# An air data computer whose readiness state is STANDBY is recommended to behave as if its state was ENGAGED;
+# implementations are recommended to leverage this state to perform any necessary maintenance activities
+# such as calibration, self-heating, etc. The service should not report its own status as ENGAGED until said
+# maintenance activities have been completed. Therefore, the high-level controler (e.g., the flight
+# management unit) may delay the take-off until the service is ready.
+#
+# An air data computer whose readiness state is ENGAGED is required to comply with the requirements set out below.
+#
+# An ENGAGED service should publish the following data subjects synchronously at the same configurable rate
+# which should not be lower than the specified limit. The measurements should be low-pass filtered
+# to avoid frequency aliasing effects.
+#
+#   PUBLISHED SUBJECT NAME  SUBJECT TYPE                                            NOTE
+#   calibrated_airspeed     reg.drone.physics.kinematics.translation.Velocity1VarTs
+#   true_airspeed           reg.drone.physics.kinematics.translation.Velocity1VarTs optional
+#   pressure_altitude       reg.drone.physics.kinematics.translation.LinearVarTs    assume ISA; NED frame (+down, -up)
+#   static_air_data         reg.drone.physics.thermodynamics.PressureTempVarTs      pressure and OAT
+#
+# Observe that there is no subject for indicated airspeed. This is because per the principles of service-oriented
+# design, the air data computer is responsible for applying the necessary transformations on its data to render it
+# ready for consumption by clients. If desired, indicated airspeed may be reported over an implementation-defined
+# subject.
+#
+# In addition to the above, an ENGAGED service should publish the following service subjects at an
+# implementation-defined rate:
+#
+#   PUBLISHED SUBJECT NAME      SUBJECT TYPE
+#   heartbeat                   reg.drone.service.common.Heartbeat
+#   sensor_status               reg.drone.service.sensor.Status
+#
+# Despite being a non-interactive service, it is recommended to subscribe to the readiness command subject.
+# This recommendation may be omitted if the service does not support readiness state selection, in which case it should
+# always report itself as being ENGAGED.
+#
+#   SUBSCRIBED SUBJECT NAME     SUBJECT TYPE
+#   readiness                   reg.drone.service.common.Readiness
+
+float32 MAX_PUBLICATION_PERIOD = 0.1  # [second]
+
+@extent 0

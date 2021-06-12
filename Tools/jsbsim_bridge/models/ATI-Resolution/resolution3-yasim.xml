@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+  <!-- Resolution - blended body flying wing : 2011 Curtis L. Olson -->
+
+  <airplane mass="12">
+
+  <approach speed="25" aoa="7.5" fuel="0.5" > 
+    <control-setting axis="/controls/engines/engine[0]/throttle" value="0.0"/>
+    <control-setting axis="/controls/gear/gear-down" value="1"/>
+  </approach>
+
+  <cruise speed="45" alt="1000" fuel="0.5"> 
+    <control-setting axis="/controls/engines/engine[0]/throttle" value="0.75"/>
+    <control-setting axis="/controls/gear/gear-down" value="1"/>
+  </cruise>
+
+  <cockpit x="0.0" y="0.0" z="0.0"/>
+
+  <fuselage ax="0.0" ay="0.0" az="0.0" bx="-0.622" by="0.0" bz="0.0" width="0.26" taper="0.4" midpoint="0.415"/>
+
+  <wing x="-0.304" y="0.0" z="0.0"
+        chord="0.418"
+        length="0.921"
+        taper="0.614"
+        sweep="17.84"
+        dihedral="0.0"
+	incidence="0.0"
+	twist="-3.0"
+        camber="0.0">
+    <stall aoa="13" width="5" peak="1.5"/>
+    <flap0 start="0.29" end="1.0" lift="1.15" drag="1.2"/> 
+    <control-input axis="/controls/flight/aileron" control="FLAP0"
+		   split="true"/>
+    <control-input axis="/controls/flight/elevator" control="FLAP0"/>
+    <control-input axis="/controls/flight/elevator-trim" control="FLAP0"/>
+    <control-output control="FLAP0" side="left"
+		    prop="/surface-positions/left-aileron-pos-norm"/>
+    <control-output control="FLAP0" side="right"
+		    prop="/surface-positions/right-aileron-pos-norm"/>
+  </wing>
+
+  <hstab x="-0.586" y="0.876" z="0.0"
+	 chord="0.257"
+	 length="0.307"
+	 taper="0.791"
+	 sweep="17.84"
+         dihedral="0.0"
+	 incidence="-3.0"
+	 twist="-1.0"
+         camber="0.0"
+	 effectiveness="1.0"> 
+    <stall aoa="13" width="5" peak="1.5"/>
+    <flap0 start="0.0" end="0.826" lift="1.3" drag="1.2"/>
+    <control-input axis="/controls/flight/aileron" control="FLAP0"
+		   split="true"/>
+    <control-input axis="/controls/flight/elevator" control="FLAP0"/>
+    <control-input axis="/controls/flight/elevator-trim" control="FLAP0"/>
+    <control-output control="FLAP0" side="left"
+		    prop="/surface-positions/left-aileron-pos-norm"/>
+    <control-output control="FLAP0" side="right"
+		    prop="/surface-positions/right-aileron-pos-norm"/>
+  </hstab>
+
+  <!-- y=1.17 is at the wingtip, y=0.20 is at the wing root, x=-0.68 -->
+  <vstab x="-0.68" y="0.20" z="0.0"
+         chord="0.1"
+         length="0.2"
+         taper="0.75"
+	 sweep="17.84"> 
+    <stall aoa="14" width="2" peak="1.5"/>
+    <flap0 start="0.1" end="0.95" lift="1.25" drag="1.25"/>
+    <control-input axis="/controls/flight/rudder" control="FLAP0"
+		   invert="true"/>
+    <control-output control="FLAP0" prop="/surface-positions/rudder-pos-norm"/>
+  </vstab>
+
+  <!-- y=1.17 is at the wingtip, y=0.20 is at the wing root -->
+  <vstab x="-0.68" y="-0.20" z="0.0"
+         chord="0.1"
+         length="0.2"
+         taper="0.75"
+	 sweep="17.84"> 
+    <stall aoa="14" width="2" peak="1.5"/>
+    <flap0 start="0.1" end="0.95" lift="1.25" drag="1.25"/>
+    <control-input axis="/controls/flight/rudder" control="FLAP0"
+		   invert="true"/>
+    <control-output control="FLAP0" prop="/surface-positions/rudder-pos-norm"/>
+  </vstab>
+
+  <!-- simple thruster for testing -->
+  <thruster thrust="2.5"
+	    x="-0.622" y="0.0" z="0.0"
+	    vx="1.0" vy="0.0" vz="0.0">
+    <control-input axis="/controls/engines/engine[0]/throttle"
+		   control="THROTTLE"/>
+  </thruster>
+
+  <!-- Landing Gear -->
+  <!-- front -->
+  <gear x="-0.1" y="0.0" z="-0.254"
+        compression="0.05">
+    <control-input axis="/controls/gear/gear-down" control="EXTEND"/>
+    <control-input axis="/controls/flight/rudder" control="STEER"
+		   square="true"/>
+    <control-speed control="EXTEND" transition-time="7"/>
+    <control-output control="EXTEND" prop="/gear/gear[0]/position-norm"/>
+  </gear>
+
+  <!-- rear left -->
+  <gear x="-0.5" y="0.2" z="-0.244"
+        compression="0.1">
+    <control-input axis="/controls/gear/gear-down" control="EXTEND"/>
+    <control-input axis="/controls/gear/brake-left" control="BRAKE"/>
+    <control-input axis="/controls/gear/brake-parking" control="BRAKE"/>
+    <control-speed control="EXTEND" transition-time="7"/>
+    <control-output control="EXTEND" prop="/gear/gear[1]/position-norm"/>
+  </gear>
+
+  <!-- rear right -->
+  <gear x="-0.5" y="-0.2" z="-0.244"
+        compression="0.1">
+    <control-input axis="/controls/gear/gear-down" control="EXTEND"/>
+    <control-input axis="/controls/gear/brake-right" control="BRAKE"/>
+    <control-input axis="/controls/gear/brake-parking" control="BRAKE"/>
+    <control-speed control="EXTEND" transition-time="7"/>
+    <control-output control="EXTEND" prop="/gear/gear[2]/position-norm"/>
+  </gear>
+
+  <!-- goal: CG at -0.374 -->
+  <ballast x="0.0" y="0.0" z="0.0" mass="1.6"/>
+
+  <hitch name="winch" x="0.0" y="0" z="-0.1">
+    <!-- goal is to model a 30m hi-start bungee -->
+    <tow length="400" weight-per-meter="0.05" elastic-constant="10000"  break-force="10000"/>
+    <winch max-tow-length="400" min-tow-length="1" initial-tow-length="400" max-winch-speed="25" power="15" max-force="600" />
+    <control-input axis="/controls/winch/place" control="PLACEWINCH"/>
+  </hitch>
+
+</airplane>

@@ -2228,3 +2228,140 @@ PARAM_DEFINE_FLOAT(RC_STAB_TH, 0.5f);
  * @group Radio Switches
  */
 PARAM_DEFINE_FLOAT(RC_MAN_TH, 0.75f);
+
+
+//mx3g-jh
+/**
+ * Set landing-gear state
+ *
+ * If set to 0 (default), then AUX has no effect
+ * If set to 1, then AUX is mapped to mission/loiter.
+ * If set to 2, TODO
+ *
+ * @value 0 Nothin
+ * @value 1 Mission/loiter
+ * @min 0
+ * @max 1
+ * @group RCMAP
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(RCMAP_AUX, 0);
+
+
+/**
+ * Threshold for detecting the obstacle avoidance switch on position
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+ *
+ *
+ */
+PARAM_DEFINE_FLOAT(RC_AVOID_TH, 0.25f);
+
+/**
+ * Threshold for detecting the obstacle avoidance switch middle position
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+ *
+ *
+ */
+PARAM_DEFINE_FLOAT(RC_AVOID_MID_TH, 0.75f);
+
+/**
+ * RC Data link mode
+ *
+ * RC input data can enter the system over different datalinks such as input over Mavlink or RC.
+ * The RC_LINK_MODE defines how the different links are handled.
+ * RC only: only remote control inputs over RC is considered.
+ * Mavlink override: remote control inputs over Mavlink as precedence
+ * Mavlink backup: Mavlink data will replace the remote control inputs over RC if lost
+ * Team Mode: Primary remote controller controls vehicle, secondary controls gimbal
+ *
+ * @min 0
+ * @max 3
+ * @value 0 RC only
+ * @value 1 Mavlink override
+ * @value 2 Mavlink backup
+ * @value 3 Team Mode
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_LINK_MODE, 0);
+
+/**
+ * Remote Control station type
+ *
+ * Depending on the type of the remote control station, the remote control signals
+ * need to be calibrated and mapped according to the RC_CHANNELS_FUNCTION (see rc_channels.msg), or
+ * the remote control station has a predefined channel mapping. A remote control station with a predefined
+ * mapping is considered as supported if the mapping is known to the firmware.
+ *
+ * @min 0
+ * @max 1
+ * @value 0 Calibration
+ * @value 1 Predefined Mapping
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_TYPE, 0);
+
+/**
+ * Obstacle avoidance switch channel
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Switches
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
+ */
+PARAM_DEFINE_INT32(RC_MAP_AVOID_SW, 0);
+
+/**
+ * RC mode for the stick mapping
+ *
+ * RC mode is the widespread way to which way the joysticks of the remote are mapped.
+ * When setting this parameter it's assumed that the parameters
+ * RC_MAP_ROLL, RC_MAP_PITCH, RC_MAP_YAW, RC_MAP_THROTTLE are configured
+ * for default mode 2 and the mapping can conveniently be switched using this parameter.
+ *
+ * @min 1
+ * @max 4
+ * @value 1 Mode 1
+ * @value 2 Mode 2
+ * @value 3 Mode 3
+ * @value 4 Mode 4
+ * @group Radio Calibration
+ */
+PARAM_DEFINE_INT32(RC_MODE, 2);

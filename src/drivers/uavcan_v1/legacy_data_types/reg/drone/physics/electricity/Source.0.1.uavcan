@@ -1,0 +1,27 @@
+# A generic source or sink of electric power (battery, turbogenerator, braking resistor, etc.).
+# Low-pass filtering should be applied to avoid aliasing effects (as is the case everywhere else).
+
+Power.0.1 power
+# Total instant load power.
+# Positive current flows into the source (power sinking).
+# Negative current flows from the source to the power supply network (power sourcing).
+
+uavcan.si.unit.energy.Scalar.1.0 energy
+# A pessimistic estimate of the amount of energy that can be reclaimed from the source in its current state.
+# This may be dependent on the state of charge/health (for batteries), temperature, load profile, humidity, etc.
+# Negative values may be reported to indicate overdischarge or depletion of the reserve energy.
+#
+# This value approximates (full_energy + int(load_power dt)) plus the environmental influences on the source.
+#
+# Having the instant power, the time to depletion is estimated as (energy/-power).
+# When charging (for batteries), the remaining time to full charge can be found similarly as
+# ((full_energy-energy)/power).
+#
+# For the sake of illustration, if this type was used to represent the state of a braking resistor,
+# then this value would be negative indicating the amount of dissipated energy.
+
+uavcan.si.unit.energy.Scalar.1.0 full_energy
+# A pessimistic estimate of the amount of energy that can be reclaimed from a fresh source (fully fueled generator
+# or a fully charged battery) under the current conditions (SoH, temperature, load profile, etc).
+
+@sealed

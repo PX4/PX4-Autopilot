@@ -1,0 +1,45 @@
+# Generic error codes reported by the service provider.
+# An error is reported when the corresponding parameter exceeds its safe operating area (SOA) as defined by the vendor;
+# see https://en.wikipedia.org/wiki/Safe_operating_area.
+# As long as an error condition is present, the service health should not be NOMINAL.
+#
+# If there are multiple error conditions present, the most severe one should be reported. The severity ordering
+# is implementation-defined. Barring special requirements, it is recommended to give preference to errors whose
+# code is smaller (e.g., BAD_BATTERY trumps TEMPERATURE_COLD).
+
+uint8 value
+
+uint8 NONE = 0
+# Normal operation.
+
+uint8 BAD_BATTERY = 10
+# The battery should not be used anymore. Detection criteria are implementation-defined.
+
+uint8 NEEDS_SERVICE = 11
+# The battery requires offline maintenance.
+
+uint8 BMS_ERROR = 20
+# An internal error in the battery management system, not related to the battery itself.
+
+uint8 CONFIGURATION = 30
+# The battery/BMS/node/service configuration is missing or invalid.
+
+uint8 OVERDISCHARGE = 50
+# The battery is discharged beyond the design limits and may have incurred damage.
+
+uint8 OVERLOAD = 51
+# The charge or discharge rate exceeds the safe operating limits.
+
+uint8 CELL_OVERVOLTAGE  = 60
+uint8 CELL_UNDERVOLTAGE = 61
+# Voltage of one of the battery cells exceeds its SOA.
+
+uint8 CELL_COUNT = 62
+# The sum of cell voltages is far from the total pack voltage.
+# The threshold is implementation-defined.
+
+uint8 TEMPERATURE_HOT  = 100
+uint8 TEMPERATURE_COLD = 101
+# At least one cell is above/below the temperature SOA.
+
+@sealed

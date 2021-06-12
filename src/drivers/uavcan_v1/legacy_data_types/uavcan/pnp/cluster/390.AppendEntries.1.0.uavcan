@@ -1,0 +1,98 @@
+# This type is a part of the Raft consensus algorithm. The Raft consensus is used for the maintenance of the
+# distributed allocation table between redundant allocators. The following description is focused on the exchanges
+# between redundant PnP node-ID allocators. It does not apply to the case of non-redundant allocators, because
+# in that case the allocation table is stored locally and the process of node-ID allocation is trivial and fully local.
+# Exchanges between allocatees and allocators are documented in the appropriate message type definition.
+#
+# The algorithm used for replication of the allocation table across redundant allocators is a fairly direct
+# implementation of the Raft consensus algorithm, as published in the paper
+# "In Search of an Understandable Consensus Algorithm (Extended Version)" by Diego Ongaro and John Ousterhout.
+# The following text assumes that the reader is familiar with the paper.
+#
+# The Raft log contains entries of type Entry (in the same namespace), where every entry contains the Raft term
+# number, the unique-ID, and the corresponding node-ID value (or zeros if it could not be requested from a static
+# node). Therefore, the Raft log is the allocation table itself.
+#
+# Since the maximum number of entries in the allocation table is limited by the range of node-ID values, the log
+# capacity is bounded. Therefore, the snapshot transfer and log compaction functions are not required,
+# so they are not used in this implementation of the Raft algorithm.
+#
+# When an allocator becomes the leader of the Raft cluster, it checks if the Raft log contains an entry for its own
+# node-ID, and if it doesn't, the leader adds its own allocation entry to the log (the unique-ID can be replaced with
+# zeros at the discretion of the implementer). This behavior guarantees that the Raft log always contains at least
+# one entry, therefore it is not necessary to support negative log indices, as proposed by the Raft paper.
+#
+# Since the log is write-only and limited in growth, all allocations are permanent. This restriction is acceptable,
+# since UAVCAN is a vehicle bus, and configuration of vehicle's components is not expected to change frequently.
+# Old allocations can be removed in order to free node-IDs for new allocations by clearing the Raft log on all
+# allocators; such clearing shall be performed simultaneously while the network is down, otherwise the Raft cluster
+# will automatically attempt to restore the lost state on the allocators where the table was cleared.
+#
+# The allocators need to be aware of each other's node-ID in order to form a cluster. In order to learn each other's
+# node-ID values, the allocators broadcast messages of type Discovery (in the same namespace) until the cluster is
+# fully discovered and all allocators know of each other's node-ID. This extension to the Raft algorithm makes the
+# cluster almost configuration-free - the only parameter that shall be configured on all allocators of the cluster
+# is the number of nodes in the cluster (everything else will be auto-detected).
+#
+# Runtime cluster membership changes are not supported, since they are not needed for a vehicle bus.
+#
+# As has been explained in the general description of the PnP node-ID allocation feature, allocators shall watch for
+# unknown static nodes appearing on the bus. In the case of a non-redundant allocator, the task is trivial, since the
+# allocation table can be updated locally. In the case of a Raft cluster, however, the network monitoring task shall
+# be performed by the leader only, since other cluster members cannot commit to the shared allocation table (i.e.,
+# the Raft log) anyway. Redundant allocators should not attempt to obtain the true unique-ID of the newly detected
+# static nodes (use zeros instead), because the allocation table is write-only: if the unique-ID of a static node
+# ever changes (e.g., a replacement unit is installed, or network configuration is changed manually), the change
+# will be impossible to reflect in the allocation table.
+#
+# Only the current Raft leader can process allocation requests and engage in communication with allocatees.
+# An allocator is allowed to send allocation responses only if both conditions are met:
+#
+#   - The allocator is currently the Raft leader.
+#   - Its replica of the Raft log does not contain uncommitted entries (i.e. the last allocation request has been
+#     completed successfully).
+#
+# All cluster maintenance traffic should normally use either the lowest or the next-to-lowest transfer priority level.
+
+uint8 DEFAULT_MIN_ELECTION_TIMEOUT = 2      # [second]
+uint8 DEFAULT_MAX_ELECTION_TIMEOUT = 4      # [second]
+# Given the minimum election timeout and the cluster size,
+# the maximum recommended request interval can be derived as follows:
+#
+#   max recommended request interval = (min election timeout) / 2 requests / (cluster size - 1)
+#
+# The equation assumes that the Leader requests one Follower at a time, so that there's at most one pending call
+# at any moment. Such behavior is optimal as it creates a uniform bus load, although it is implementation-specific.
+# Obviously, the request interval can be lower than that if needed, but higher values are not recommended as they may
+# cause Followers to initiate premature elections in case of frame losses or delays.
+#
+# The timeout value is randomized in the range (MIN, MAX], according to the Raft paper. The randomization granularity
+# should be at least one millisecond or higher.
+
+uint32 term
+uint32 prev_log_term
+uint16 prev_log_index
+uint16 leader_commit
+# Refer to the Raft paper for explanation.
+
+Entry.1.0[<=1] entries
+# Worst case replication time per Follower can be computed as:
+#
+#   worst replication time = (node-ID capacity) * (2 trips of next_index) * (request interval per Follower)
+#
+# E.g., given the request interval of 0.5 seconds, the worst case replication time for CAN bus is:
+#
+#   128 nodes * 2 trips * 0.5 seconds = 128 seconds.
+#
+# This is the amount of time it will take for a new Follower to reconstruct a full replica of the distributed log.
+
+@assert _offset_ % 8 == {0}
+@extent 96 * 8
+
+---
+
+uint32 term
+bool success
+# Refer to the Raft paper for explanation.
+
+@extent 48 * 8

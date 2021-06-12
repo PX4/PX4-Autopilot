@@ -1,0 +1,30 @@
+# Every node that acts as a time synchronization master, or is capable of acting as such,
+# should support this service.
+# Its objective is to provide information about which time system is currently used in the network.
+#
+# Once a time system is chosen, it cannot be changed as long as at least one node on the network is running.
+# In other words, the time system cannot be changed while the network is operating.
+# An implication of this is that if there are redundant time synchronization masters, they all shall
+# use the same time system always.
+
+@extent 48 * 8
+
+---
+
+float32 error_variance      # [second^2]
+# Error variance, in second^2, of the time value reported by this master.
+# This value is allowed to change freely while the master is running.
+# For example, if the master's own clock is synchronized with a GNSS, the error variance is expected to increase
+# as signal reception deteriorates. If the signal is lost, this value is expected to grow steadily, the rate of
+# growth would be dependent on the quality of the time keeping hardware available locally (bad hardware yields
+# faster growth). Once the signal is regained, this value would drop back to nominal.
+
+TimeSystem.0.1 time_system
+# Time system currently in use by the master.
+# Cannot be changed while the network is operating.
+
+TAIInfo.0.1 tai_info
+# Actual information about TAI provided by this master, if supported.
+# The fields in this data type are optional.
+
+@extent 192 * 8

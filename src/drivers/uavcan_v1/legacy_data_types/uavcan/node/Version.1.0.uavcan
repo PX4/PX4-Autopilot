@@ -1,0 +1,7 @@
+# A shortened semantic version representation: only major and minor.
+# The protocol generally does not concern itself with the patch version.
+
+uint8 major
+uint8 minor
+
+@sealed

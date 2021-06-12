@@ -1,0 +1,47 @@
+<model name="hexarotor_x">
+    <mavlink_interface>
+        <tcp_port>4560</tcp_port>
+    </mavlink_interface>
+    <sensors>
+        <imu>
+        </imu>
+        <gps>
+        </gps>
+        <barometer>
+        </barometer>
+        <magnetometer>
+        </magnetometer>
+    </sensors>
+    <actuators>
+        <channel name="rotor0">
+            <index>0</index>
+            <scale>1</scale>
+            <property>fcs/esc-cmd-norm[0]</property>
+        </channel>
+        <channel name="rotor1">
+            <index>1</index>
+            <scale>1</scale>
+            <property>fcs/esc-cmd-norm[1]</property>
+        </channel>
+        <channel name="rotor2">
+            <index>2</index>
+            <scale>1</scale>
+            <property>fcs/esc-cmd-norm[2]</property>
+        </channel>
+        <channel name="rotor3">
+            <index>3</index>
+            <scale>1</scale>
+            <property>fcs/esc-cmd-norm[3]</property>
+        </channel>
+        <channel name="rotor4">
+            <index>4</index>
+            <scale>1</scale>
+            <property>fcs/esc-cmd-norm[4]</property>
+        </channel>
+        <channel name="rotor5">
+            <index>5</index>
+            <scale>1</scale>
+            <property>fcs/esc-cmd-norm[5]</property>
+        </channel>
+    </actuators>
+</model>

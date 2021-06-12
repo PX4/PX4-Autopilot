@@ -1,0 +1,19 @@
+# A list of subject identifiers.
+# The range of subject-ID is large, so using a fixed-size bitmask would make this type difficult to handle on
+# resource-constrained systems. To address that, we provide two extra options: a simple variable-length list,
+# and a special case that indicates that every subject-ID is in use.
+
+@union
+
+uint16 CAPACITY = SubjectID.1.0.MAX + 1
+
+bool[CAPACITY] mask
+# The index represents the identifier value. True -- present/used. False -- absent/unused.
+
+SubjectID.1.0[<256] sparse_list
+# A list of identifiers that can be used instead of the mask if most of the identifiers are unused.
+
+uavcan.primitive.Empty.1.0 total
+# A special case indicating that all identifiers are in use.
+
+@extent 8 + 2 ** 15  # Reserve space in case the range is extended in the future.

@@ -1,0 +1,9 @@
+# Defines a node-ID.
+# The maximum valid value is dependent on the underlying transport layer.
+# Values lower than 128 are always valid for all transports.
+# Refer to the specification for more info.
+
+uint16 value
+
+@sealed
+@assert _offset_ == {16}

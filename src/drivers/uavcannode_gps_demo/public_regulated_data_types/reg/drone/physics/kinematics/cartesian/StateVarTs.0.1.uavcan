@@ -1,0 +1,5 @@
+uavcan.time.SynchronizedTimestamp.1.0 timestamp
+StateVar.0.1 value
+
+@sealed
+@assert _offset_.count == 1  # This is a fixed-length type.

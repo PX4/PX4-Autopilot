@@ -1,0 +1,7 @@
+# The kinematic state of a point, as opposed to that of a body, is devoid of rotation information.
+# Therefore, the velocity is specified in the parent coordinate frame.
+
+Point.0.1 position
+uavcan.si.unit.velocity.Vector3.1.0 velocity
+
+@sealed

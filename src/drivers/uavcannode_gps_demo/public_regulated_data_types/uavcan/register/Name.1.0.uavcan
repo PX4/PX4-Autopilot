@@ -1,0 +1,5 @@
+# An UTF8-encoded register name.
+
+uint8[<256] name
+
+@sealed

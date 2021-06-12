@@ -25,6 +25,7 @@ px4_add_board(
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
+		#distance_sensor/mr72
 		dshot
 		gps
 		#heater
@@ -91,6 +92,8 @@ px4_add_board(
 		temperature_compensation
 		vmount
 		vtol_att_control
+		my_test
+		loop
 	SYSTEMCMDS
 		bl_update
 		#dmesg

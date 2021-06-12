@@ -1,0 +1,3 @@
+uavcan.time.SynchronizedTimestamp.1.0 timestamp
+Power.0.1 value
+@sealed

@@ -1,0 +1,9 @@
+Point.0.1 value
+
+float16[6] covariance_urt   # [meter^2]
+# Upper-right triangle of the covariance matrix.
+# The position covariance is defined relative to a tangential plane through the specified latitude/longitude.
+# Element ordering: latitude, longitude, altitude. It is chosen to match the axis ordering of the NED frame.
+
+@sealed
+@assert _offset_ == reg.drone.physics.kinematics.cartesian.PointVar.0.1._bit_length_

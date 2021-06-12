@@ -1,0 +1,4 @@
+Point.0.1 value
+float16[6] covariance_urt   # [meter^2]  Upper-right triangle of the covariance matrix.
+
+@sealed

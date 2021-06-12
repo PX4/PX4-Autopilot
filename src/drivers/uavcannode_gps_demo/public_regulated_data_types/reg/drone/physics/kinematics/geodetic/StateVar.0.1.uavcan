@@ -1,0 +1,7 @@
+# See State for details. This type extends it with covariance matrices.
+
+PoseVar.0.1 pose
+reg.drone.physics.kinematics.cartesian.TwistVar.0.1 twist
+
+@sealed
+@assert _offset_ == reg.drone.physics.kinematics.cartesian.StateVar.0.1._bit_length_

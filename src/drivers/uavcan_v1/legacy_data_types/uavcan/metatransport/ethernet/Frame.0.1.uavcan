@@ -1,0 +1,11 @@
+# IEEE 802.3 Ethernet frame encapsulation.
+# In terms of libpcap/tcpdump, the corresponding link type is LINKTYPE_ETHERNET/DLT_EN10MB.
+
+uint8[6] destination
+uint8[6] source
+
+EtherType.0.1 ethertype
+
+uint8[<=9216] payload  # Supports conventional jumbo frames (up to 9 KiB).
+
+@sealed  # Sealed because the format is defined by external specifications.

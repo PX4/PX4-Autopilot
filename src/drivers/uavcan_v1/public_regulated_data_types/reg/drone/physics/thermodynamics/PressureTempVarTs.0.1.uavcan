@@ -1,0 +1,15 @@
+# Timestamped fluid pressure and temperature (sampled synchronously) with covariance.
+# Observe that this is a structural subtype of uavcan.si.sample.pressure.Scalar.1.0.
+
+uavcan.time.SynchronizedTimestamp.1.0 timestamp
+
+uavcan.si.unit.pressure.Scalar.1.0    pressure
+uavcan.si.unit.temperature.Scalar.1.0 temperature
+
+float16[3] covariance_urt
+# The upper-right triangle of the covariance matrix (following the matrix packing rules defined in Specification).
+#   0 -- pascal^2
+#   1 -- pascal*kelvin
+#   2 -- kelvin^2
+
+@sealed

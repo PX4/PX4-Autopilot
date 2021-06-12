@@ -1,0 +1,163 @@
+<?xml version="1.0"?>
+
+<PropertyList>
+
+ <path>resolution3.ac</path>
+
+ <nasal>
+  <load>
+    var livery_update = aircraft.livery_update.new("Aircraft/ATI-Resolution/Models/Liveries");
+  </load>
+  <unload>
+   livery_update.stop();
+  </unload>
+ </nasal>
+ 
+ <offsets>
+   <!--<heading-deg>90</heading-deg>-->
+   <!-- <pitch-deg>90</pitch-deg> -->
+   <!-- <roll-deg>90</roll-deg> -->
+   <z-m>0.144</z-m>
+ </offsets>
+
+ <model>
+   <path>Aircraft/ATI-Resolution/Models/smokeW.xml</path>
+   <offsets>
+     <x-m> 1.2</x-m>
+     <y-m> 0.0</y-m>
+     <z-m> 0.0</z-m>
+     <roll-deg>   0</roll-deg>
+     <pitch-deg>  0</pitch-deg>
+     <heading-deg>0</heading-deg>
+   </offsets>
+ </model>
+
+ <animation>
+  <type>rotate</type>
+  <object-name>rhelevon</object-name>
+  <property>controls/flight/elevator</property>
+  <factor>20</factor>
+  <offset-deg>0</offset-deg>   
+  <center>
+   <x-m> 0.629 </x-m>
+   <y-m> 0.7   </y-m>
+   <z-m>-0.0035</z-m>
+  </center>
+  <axis>
+   <x> 0.221</x>
+   <y> 0.975</y>
+   <z> 0.002</z>
+  </axis>
+ </animation>
+
+ <animation>
+  <type>rotate</type>
+  <object-name>rhelevon</object-name>
+  <property>controls/flight/aileron</property>
+  <factor>-20</factor>
+  <offset-deg>0</offset-deg>   
+  <center>
+   <x-m> 0.629 </x-m>
+   <y-m> 0.7   </y-m>
+   <z-m> 0.0035</z-m>
+  </center>
+  <axis>
+   <x>0.221</x>
+   <y>0.975</y>
+   <z>0.002</z>
+  </axis>
+ </animation>
+
+ <animation>
+  <type>rotate</type>
+  <object-name>lhelevon</object-name>
+  <property>controls/flight/elevator</property>
+  <factor>-20</factor>
+  <offset-deg>0</offset-deg>   
+  <center>
+   <x-m> 0.629 </x-m>
+   <y-m>-0.7   </y-m>
+   <z-m> 0.0035</z-m>
+  </center>
+  <axis>
+   <x>0.221</x>
+   <y>-0.975</y>
+   <z>-0.002</z>
+  </axis>
+ </animation>
+
+ <animation>
+  <type>rotate</type>
+  <object-name>lhelevon</object-name>
+  <property>controls/flight/aileron</property>
+  <factor>-20</factor>
+  <offset-deg>0</offset-deg>   
+  <center>
+   <x-m> 0.629 </x-m>
+   <y-m>-0.7   </y-m>
+   <z-m> 0.0035</z-m>
+  </center>
+  <axis>
+   <x> 0.221</x>
+   <y>-0.975</y>
+   <z>-0.002</z>
+  </axis>
+ </animation>
+
+
+ <animation>
+  <type>spin</type>
+  <object-name>prop2</object-name>
+  <property>engines/engine/rpm</property>
+  <factor>1.0</factor>   
+  <center>
+   <x-m> 0.697976</x-m>
+   <y-m> 0.000082</y-m>
+   <z-m>-0.000013</z-m>
+  </center>
+  <axis>
+   <x>1</x>
+   <y>0</y>
+   <z>0</z>
+  </axis>
+ </animation>
+
+<!-- Liveries start here -->
+ <animation>
+  <type>material</type>
+  <object-name>V_tails</object-name>
+  <property-base>sim/model/livery/material/v_tail</property-base>
+  <texture-prop>texture</texture-prop>
+ </animation>
+  
+ <animation>
+  <object-name>Hull</object-name>
+  <type>material</type>
+  <property-base>sim/model/livery/material/hull</property-base>
+  <texture-prop>texture</texture-prop>
+ </animation>
+
+ <animation>
+  <object-name>WingTips</object-name>
+  <type>material</type>
+  <property-base>sim/model/livery/material/tips</property-base>
+  <texture-prop>texture</texture-prop>
+ </animation>
+
+ <animation>
+  <object-name>prop2</object-name>
+  <type>material</type>
+  <property-base>sim/model/livery/material/prop</property-base>
+  <texture-prop>texture</texture-prop>
+ </animation>
+
+ <animation>
+  <object-name>rhelevon</object-name>
+  <object-name>Wings</object-name>
+  <object-name>lhelevon</object-name>
+  <type>material</type>
+  <property-base>sim/model/livery/material/wings</property-base>
+  <texture-prop>texture</texture-prop>
+ </animation>
+
+</PropertyList>

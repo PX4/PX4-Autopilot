@@ -1,0 +1,42 @@
+# Read file from a remote node.
+#
+# There are two possible outcomes of a successful call:
+#  1. Data array size equals its capacity. This means that the end of the file is not reached yet.
+#  2. Data array size is less than its capacity, possibly zero. This means that the end of the file is reached.
+#
+# Thus, if the client needs to fetch the entire file, it should repeatedly call this service while increasing the
+# offset, until a non-full data array is returned.
+#
+# If the object pointed by 'path' cannot be read (e.g. it is a directory or it does not exist), an appropriate error
+# code will be returned, and the data array will be empty.
+#
+# It is easy to see that this protocol is prone to race conditions because the remote file can be modified
+# between read operations which might result in the client obtaining a damaged file. To combat this,
+# application designers are recommended to adhere to the following convention. Let every file whose integrity
+# is of interest have a hash or a digital signature, which is stored in an adjacent file under the same name
+# suffixed with the appropriate extension according to the type of hash or digital signature used.
+# For example, let there be file "image.bin", integrity of which shall be ensured by the client upon downloading.
+# Suppose that the file is hashed using SHA-256, so the appropriate file extension for the hash would be
+# ".sha256". Following this convention, the hash of "image.bin" would be stored in "image.bin.sha256".
+# After downloading the file, the client would read the hash (being small, the hash can be read in a single
+# request) and check it against a locally computed value. Some servers may opt to generate such hash files
+# automatically as necessary; for example, if such file is requested but it does not exist, the server would
+# compute the necessary signature or hash (the type of hash/signature can be deduced from the requested file
+# extension) and return it as if the file existed. Obviously, this would be impractical for very large files;
+# in that case, hash/signature should be pre-computed and stored in a real file. If this approach is followed,
+# implementers are advised to use only SHA-256 for hashing, in order to reduce the number of fielded
+# incompatible implementations.
+
+truncated uint40 offset
+
+Path.2.0 path
+
+@extent 300 * 8
+
+---
+
+Error.1.0 error
+
+uavcan.primitive.Unstructured.1.0 data
+
+@extent 300 * 8

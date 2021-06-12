@@ -1,0 +1,23 @@
+# Optional, extended information on the performance of the GNSS sensor.
+
+reg.drone.service.common.Heartbeat.0.1 heartbeat
+
+Sources.0.1 sources
+
+DilutionOfPrecision.0.1 dop
+
+uint8 num_visible_satellites  # The number of space vehicles visible when the solution was computed.
+uint8 num_used_satellites     # The number of space vehicles whose signals have been utilized to derive the solution.
+
+bool fix
+# True if a GNSS fix is established (of any dimensionality, e.g., time-only).
+# Data consumers should not use this flag and rely on the error estimates reported via covariance matrices instead.
+# If the sensor is equipped with other means of deriving the navigation solution (dead reckoning, VIO, UWB, etc.),
+# then this flag may not be representative of the actual status of the solution (only matrices are).
+
+bool rtk_fix
+# True if the current mode is RTK and an RTK fix has been established.
+# This flag should not be set unless `fix` is also set.
+# The availability of base station data is indicated using a separate (orthogonal) flag defined in Sources.
+
+@extent 8 * 124

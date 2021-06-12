@@ -27,6 +27,9 @@ uint8 RC_CHANNELS_FUNCTION_ARMSWITCH=23
 uint8 RC_CHANNELS_FUNCTION_STAB=24
 uint8 RC_CHANNELS_FUNCTION_AUX_6=25
 uint8 RC_CHANNELS_FUNCTION_MAN=26
+#mx3g-jh
+uint8 RC_CHANNELS_FUNCTION_OBSAVOIDSWITCH = 27
+
 
 uint64 timestamp_last_valid					# Timestamp of last valid RC signal
 float32[18] channels						# Scaled to -1..1 (throttle: 0..1)

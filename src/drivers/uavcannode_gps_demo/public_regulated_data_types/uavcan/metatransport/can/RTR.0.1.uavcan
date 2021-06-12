@@ -1,0 +1,6 @@
+# Classic remote transmission request (not defined for CAN FD).
+
+ArbitrationID.0.1 arbitration_id
+
+@sealed
+@assert _offset_ == {40}

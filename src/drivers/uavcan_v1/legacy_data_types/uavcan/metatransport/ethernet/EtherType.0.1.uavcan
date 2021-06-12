@@ -1,0 +1,10 @@
+# Standard EtherType constants as defined by IEEE Registration Authority and IANA.
+# This list is only a small subset of constants that are considered to be relevant for UAVCAN.
+
+uint16 value
+
+uint16 IP_V4 = 0x0800
+uint16 ARP   = 0x0806
+uint16 IP_V6 = 0x86DD
+
+@sealed

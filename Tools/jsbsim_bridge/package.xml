@@ -1,0 +1,30 @@
+<package>
+  <name>jsbsim_bridge</name>
+  <version>0.0.1</version>
+  <description>Ros interface for px4-jsbsim-bridge</description>
+
+  <maintainer email="jaeyoung@auterion.com">Jaeyoung Lim</maintainer>
+
+  <author>Jaeyoung Lim</author>
+
+  <license>BSD-3</license>
+
+  <url type="website">https://github.com/Auterion/px4-jsbsim-bridge.git</url>
+  <url type="bugtracker">https://github.com/Auterion/px4-jsbsim-bridge.git</url>
+
+  <!-- Dependencies which this package needs to build itself. -->
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>mavlink</build_depend>
+
+  <!-- Dependencies needed after this package is compiled. -->
+  <run_depend>roscpp</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>mavros</run_depend>
+
+  <export>
+  </export>
+</package>

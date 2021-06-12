@@ -1,0 +1,84 @@
+# Instructs the server node to execute or commence execution of a simple predefined command.
+# All standard commands are optional; i.e., not guaranteed to be supported by all nodes.
+
+uint16 command
+# Standard pre-defined commands are at the top of the range (defined below).
+# Vendors can define arbitrary, vendor-specific commands in the bottom part of the range (starting from zero).
+# Vendor-specific commands shall not use identifiers above 32767.
+
+uint16 COMMAND_RESTART = 65535
+# Reboot the node.
+# Note that some standard commands may or may not require a restart in order to take effect; e.g., factory reset.
+
+uint16 COMMAND_POWER_OFF = 65534
+# Shut down the node; further access will not be possible until the power is turned back on.
+
+uint16 COMMAND_BEGIN_SOFTWARE_UPDATE = 65533
+# Begin the software update process using uavcan.file.Read. This command makes use of the "parameter" field below.
+# The parameter contains the path to the new software image file to be downloaded by the server from the client
+# using the standard service uavcan.file.Read. Observe that this operation swaps the roles of the client and
+# the server.
+#
+# Upon reception of this command, the server (updatee) will evaluate whether it is possible to begin the
+# software update process. If that is deemed impossible, the command will be rejected with one of the
+# error codes defined in the response section of this definition (e.g., BAD_STATE if the node is currently
+# on-duty and a sudden interruption of its activities is considered unsafe, and so on).
+# If an update process is already underway, the updatee should abort the process and restart with the new file,
+# unless the updatee can determine that the specified file is the same file that is already being downloaded,
+# in which case it is allowed to respond SUCCESS and continue the old update process.
+# If there are no other conditions precluding the requested update, the updatee will return a SUCCESS and
+# initiate the file transfer process by invoking the standard service uavcan.file.Read repeatedly until the file
+# is transferred fully (please refer to the documentation for that data type for more information about its usage).
+#
+# While the software is being updated, the updatee should set its mode (the field "mode" in uavcan.node.Heartbeat)
+# to MODE_SOFTWARE_UPDATE. Please refer to the documentation for uavcan.node.Heartbeat for more information.
+#
+# It is recognized that most systems will have to interrupt their normal services to perform the software update
+# (unless some form of software hot swapping is implemented, as is the case in some high-availability systems).
+#
+# Microcontrollers that are requested to update their firmware may need to stop execution of their current firmware
+# and start the embedded bootloader (although other approaches are possible as well). In that case,
+# while the embedded bootloader is running, the mode reported via the message uavcan.node.Heartbeat should be
+# MODE_SOFTWARE_UPDATE as long as the bootloader is runing, even if no update-related activities
+# are currently underway. For example, if the update process failed and the bootloader cannot load the software,
+# the same mode MODE_SOFTWARE_UPDATE will be reported.
+# It is also recognized that in a microcontroller setting, the application that served the update request will have
+# to pass the update-related metadata (such as the node-ID of the server and the firmware image file path) to
+# the embedded bootloader. The tactics of that transaction lie outside of the scope of this specification.
+
+uint16 COMMAND_FACTORY_RESET = 65532
+# Return the node's configuration back to the factory default settings (may require restart).
+# Due to the uncertainty whether a restart is required, generic interfaces should always force a restart.
+
+uint16 COMMAND_EMERGENCY_STOP = 65531
+# Cease activities immediately, enter a safe state until restarted.
+# Further operation may no longer be possible until a restart command is executed.
+
+uint16 COMMAND_STORE_PERSISTENT_STATES = 65530
+# This command instructs the node to store the current configuration parameter values and other persistent states
+# to the non-volatile storage. Nodes are allowed to manage persistent states automatically, obviating the need for
+# this command by committing all such data to the non-volatile memory automatically as necessary. However, some
+# nodes may lack this functionality, in which case this parameter should be used. Generic interfaces should always
+# invoke this command in order to ensure that the data is stored even if the node doesn't implement automatic
+# persistence management.
+
+uint8[<=uavcan.file.Path.2.0.MAX_LENGTH] parameter
+# A string parameter supplied to the command. The format and interpretation is command-specific.
+# The standard commands do not use this field (ignore it), excepting the following:
+#   - COMMAND_BEGIN_SOFTWARE_UPDATE
+
+@extent 300 * 8
+
+---
+
+uint8 STATUS_SUCCESS        = 0     # Started or executed successfully
+uint8 STATUS_FAILURE        = 1     # Could not start or the desired outcome could not be reached
+uint8 STATUS_NOT_AUTHORIZED = 2     # Denied due to lack of authorization
+uint8 STATUS_BAD_COMMAND    = 3     # The requested command is not known or not supported
+uint8 STATUS_BAD_PARAMETER  = 4     # The supplied parameter cannot be used with the selected command
+uint8 STATUS_BAD_STATE      = 5     # The current state of the node does not permit execution of this command
+uint8 STATUS_INTERNAL_ERROR = 6     # The operation should have succeeded but an unexpected failure occurred
+uint8 status
+# The result of the request.
+
+@extent 48 * 8

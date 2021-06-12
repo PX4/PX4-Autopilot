@@ -1,0 +1,26 @@
+# This message is used by redundant allocators to find each other's node-ID.
+# Please refer to the type AppendEntries for details.
+#
+# An allocator should stop publishing this message as soon as it has discovered all other allocators in the cluster.
+#
+# An exception applies: when an allocator receives a Discovery message where the list of known nodes is incomplete
+# (i.e. len(known_nodes) < configured_cluster_size), it shall publish a Discovery message once. This condition
+# allows other allocators to quickly re-discover the cluster after a restart.
+
+uint8 BROADCASTING_PERIOD = 1      # [second]
+# This message should be broadcasted by the allocator at this interval until all other allocators are discovered.
+
+uint3 MAX_CLUSTER_SIZE = 5
+# The redundant allocator cluster cannot contain more than 5 allocators.
+
+uint3 configured_cluster_size
+# The number of allocators in the cluster as configured on the sender.
+# This value shall be the same across all allocators.
+
+void5
+
+uavcan.node.ID.1.0[<=5] known_nodes
+# Node-IDs of the allocators that are known to the publishing allocator, including the publishing allocator itself.
+
+@assert _offset_ % 8 == {0}
+@extent 96 * 8

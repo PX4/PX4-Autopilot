@@ -1,0 +1,599 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="http://jsbsim.sourceforge.net/JSBSim.xsl"?>
+<fdm_config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="dflyer" version="2.0" release="ALPHA" xsi:noNamespaceSchemaLocation="http://jsbsim.sourceforge.net/JSBSim.xsd">
+  <fileheader>
+    <author>Matt Vacanti</author>
+    <filecreationdate> 2020-01-04 </filecreationdate>
+    <version>0.0 </version>
+    <description> Hexarotor X</description>
+      <note>
+        This model was created using publicly available data, publicly available technical 
+        reports, textbooks, testing, and guesses. It contains no proprietary or restricted data. 
+        If this model has been validated at all, it would be only to the extent that it seems to fly, 
+        bounce, or roll, in a plausible way, and that it possibly complies with published, publicly known, 
+        performance data. Thus, this model is meant for educational and entertainment purposes only. 
+        This simulation model has no bearing to a real vehicle. This model is not to be sold.
+      </note>
+  </fileheader>
+  <metrics>
+    <wingarea unit="M2">   0.017</wingarea>
+    <wingspan unit="M">   0.13 </wingspan>
+    <chord unit="FT">  0.0 </chord>
+    <htailarea unit="FT2">  0.0 </htailarea>
+    <htailarm unit="FT">  0.0 </htailarm>
+    <vtailarea unit="FT2">  0.0 </vtailarea>
+    <vtailarm unit="FT">  0.0 </vtailarm>
+    <location name="AERORP" unit="M">
+      <x>   0.00 </x>
+      <y>   0.00 </y>
+      <z>   0.345 </z>
+    </location>
+    <location name="EYEPOINT" unit="M">
+      <x>  0.0 </x>
+      <y>  0.0 </y>
+      <z>  0.345 </z>
+    </location>
+    <location name="VRP" unit="M">
+      <x>0</x>
+      <y>0</y>
+      <z>0.345</z>
+    </location>
+  </metrics>
+  <mass_balance>
+    <!--roughtly approximating this as a solid sphere with correct mass-->
+    <ixx unit="KG*M2"> 0.985 </ixx>
+    <iyy unit="KG*M2"> 0.985 </iyy>
+    <izz unit="KG*M2"> 1.969 </izz>
+    <emptywt unit="KG"> 11.632 </emptywt>
+    <location name="CG" unit="M">
+      <x>  0.0 </x>
+      <y>  0.0 </y>
+      <z>  0.345 </z>
+    </location>
+    <pointmass name="Payload">
+      <weight unit="KG"> 0.0 </weight>
+      <location unit="IN">
+        <x>  0.0 </x>
+        <y>  0.0 </y>
+        <z>  0.345 </z>
+      </location>
+    </pointmass>
+  </mass_balance>
+  <ground_reactions>
+    <contact type="STRUCTURE" name="frontbase">
+      <location unit="M">
+        <x>  -0.283 </x>
+        <y>   0.00 </y>
+        <z>  -0.033</z>
+      </location>
+      <static_friction>  5 </static_friction>
+      <dynamic_friction> 5 </dynamic_friction>
+      <spring_coeff unit="N/M">420</spring_coeff>
+      <damping_coeff unit="N/M/SEC">140</damping_coeff>
+    </contact>
+    <contact type="STRUCTURE" name="rearbase">
+      <location unit="M">
+        <x>   0.283 </x>
+        <y>   0.00 </y>
+        <z>  -0.033</z>
+      </location>
+      <static_friction>  5 </static_friction>
+      <dynamic_friction> 5 </dynamic_friction>
+      <spring_coeff unit="N/M">420</spring_coeff>
+      <damping_coeff unit="N/M/SEC">140</damping_coeff>
+    </contact>
+    <contact type="STRUCTURE" name="leftbase">
+      <location unit="M">
+        <x>   0.00 </x>
+        <y>   0.283 </y>
+        <z>  -0.033</z>
+      </location>
+      <static_friction>  5 </static_friction>
+      <dynamic_friction> 5 </dynamic_friction>
+      <spring_coeff unit="N/M">420</spring_coeff>
+      <damping_coeff unit="N/M/SEC">140</damping_coeff>
+    </contact>
+    <contact type="STRUCTURE" name="rightbase">
+      <location unit="M">
+        <x>   0.00 </x>
+        <y>  -0.283 </y>
+        <z>  -0.033</z>
+      </location>
+      <static_friction>  5 </static_friction>
+      <dynamic_friction> 5 </dynamic_friction>
+      <spring_coeff unit="N/M">420</spring_coeff>
+      <damping_coeff unit="N/M/SEC">140</damping_coeff>
+    </contact>
+  </ground_reactions>
+  <!-- the front and rear motors spin clockwise, and the left and right motors spin counter-clockwise. -->
+<system name="engine-control-jsbsim">
+
+ <property value="0.0">fcs/esc-cmd-norm[0]</property>
+ <property value="0.0">fcs/esc-cmd-norm[1]</property>
+ <property value="0.0">fcs/esc-cmd-norm[2]</property>
+ <property value="0.0">fcs/esc-cmd-norm[3]</property>
+ <property value="0.0">fcs/esc-cmd-norm[4]</property>
+ <property value="0.0">fcs/esc-cmd-norm[5]</property>
+
+ <channel name="Motor_0">
+   <actuator name="fcs/etc/esc_0">
+   <input>fcs/esc-cmd-norm[0]</input>
+   <!-- lag> number </lag -->
+   <!-- rate_limit> number </rate_limit -->
+   <!-- bias> number </bias -->
+   <!-- deadband_width> number </deadband_width -->
+   <!-- hysteresis_width> number </hysteresis_width -->
+   <clipto>
+    <min>0.0</min>
+    <max>1.0</max>
+   </clipto>
+   <output>fcs/esc-out[0]</output>
+  </actuator>
+ </channel>
+
+ <channel name="Motor_1">
+   <actuator name="fcs/etc/esc_1">
+   <input>fcs/esc-cmd-norm[1]</input>
+   <!-- lag> number </lag -->
+   <!-- rate_limit> number </rate_limit -->
+   <!-- bias> number </bias -->
+   <!-- deadband_width> number </deadband_width -->
+   <!-- hysteresis_width> number </hysteresis_width -->
+   <clipto>
+    <min>0.0</min>
+    <max>1.0</max>
+   </clipto>
+   <output>fcs/esc-out[1]</output>
+  </actuator>
+ </channel>
+
+ <channel name="Motor_2">
+   <actuator name="fcs/etc/esc_2">
+   <input>fcs/esc-cmd-norm[2]</input>
+   <!-- lag> number </lag -->
+   <!-- rate_limit> number </rate_limit -->
+   <!-- bias> number </bias -->
+   <!-- deadband_width> number </deadband_width -->
+   <!-- hysteresis_width> number </hysteresis_width -->
+   <clipto>
+    <min>0.0</min>
+    <max>1.0</max>
+   </clipto>
+   <output>fcs/esc-out[2]</output>
+  </actuator>
+ </channel>
+
+ <channel name="Motor_3">
+   <actuator name="fcs/etc/esc_3">
+   <input>fcs/esc-cmd-norm[3]</input>
+   <!-- lag> number </lag -->
+   <!-- rate_limit> number </rate_limit -->
+   <!-- bias> number </bias -->
+   <!-- deadband_width> number </deadband_width -->
+   <!-- hysteresis_width> number </hysteresis_width -->
+   <clipto>
+    <min>0.0</min>
+    <max>1.0</max>
+   </clipto>
+   <output>fcs/esc-out[3]</output>
+  </actuator>
+ </channel>
+
+ <channel name="Motor_4">
+   <actuator name="fcs/etc/esc_4">
+   <input>fcs/esc-cmd-norm[4]</input>
+   <!-- lag> number </lag -->
+   <!-- rate_limit> number </rate_limit -->
+   <!-- bias> number </bias -->
+   <!-- deadband_width> number </deadband_width -->
+   <!-- hysteresis_width> number </hysteresis_width -->
+   <clipto>
+    <min>0.0</min>
+    <max>1.0</max>
+   </clipto>
+   <output>fcs/esc-out[4]</output>
+  </actuator>
+ </channel>
+
+  <channel name="Motor_5">
+   <actuator name="fcs/etc/esc_5">
+   <input>fcs/esc-cmd-norm[5]</input>
+   <!-- lag> number </lag -->
+   <!-- rate_limit> number </rate_limit -->
+   <!-- bias> number </bias -->
+   <!-- deadband_width> number </deadband_width -->
+   <!-- hysteresis_width> number </hysteresis_width -->
+   <clipto>
+    <min>0.0</min>
+    <max>1.0</max>
+   </clipto>
+   <output>fcs/esc-out[5]</output>
+  </actuator>
+ </channel>
+</system>
+
+<system name="torque-gen">
+  <property value="0.0">fcs/torque_bypass</property>
+  <property value="0.0">fcs/motor_torque[0]</property>
+  <channel name="Motor_0_Torque">
+  <fcs_function>
+      <function>
+      <product>
+        <table>
+            <independentVar>fcs/esc-out[0]</independentVar>
+            <tableData>
+              0.0   0.0
+              0.33  0.188
+              0.67  0.916
+              1.0   3.229
+            </tableData>
+        </table>
+        <!--<value>-1</value> --> <!--Set to -1 clockwise, 1 counterclockwise, 0 to remove PX4 control outputs to JSBSim -->
+        <value>-1</value>
+      </product>
+     </function>
+    <output>fcs/motor_torque[0]</output>
+  </fcs_function>
+  </channel>
+
+  <property value="0.0">fcs/motor_torque[1]</property>
+  <channel name="Motor_1_Torque">
+  <fcs_function>
+      <function>
+      <product>
+        <table>
+            <independentVar>fcs/esc-out[1]</independentVar>
+            <tableData>
+              0.0   0.0
+              0.33  0.188
+              0.67  0.916
+              1.0   3.229
+            </tableData>
+        </table>
+        <!--<value>1</value> --> <!--Set to -1 clockwise, 1 counterclockwise, 0 to remove PX4 control outputs to JSBSim -->
+        <value>1</value>
+      </product>
+     </function>
+    <output>fcs/motor_torque[1]</output>
+  </fcs_function>
+  </channel>
+
+  <property value="0.0">fcs/motor_torque[2]</property>
+  <channel name="Motor_2_Torque">
+  <fcs_function>
+      <function>
+      <product>
+        <table>
+            <independentVar>fcs/esc-out[2]</independentVar>
+            <tableData>
+              0.0   0.0
+              0.33  0.188
+              0.67  0.916
+              1.0   3.229
+            </tableData>
+        </table>
+        <!--<value>-1</value> --> <!--Set to -1 clockwise, 1 counterclockwise, 0 to remove PX4 control outputs to JSBSim -->
+        <value>-1</value>
+      </product>
+     </function>
+    <output>fcs/motor_torque[2]</output>
+  </fcs_function>
+  </channel>
+
+  <property value="0.0">fcs/motor_torque[3]</property>
+  <channel name="Motor_0_Torque">
+  <fcs_function>
+      <function>
+      <product>
+        <table>
+            <independentVar>fcs/esc-out[3]</independentVar>
+            <tableData>
+              0.0   0.0
+              0.33  0.188
+              0.67  0.916
+              1.0   3.229
+            </tableData>
+        </table>
+        <!--<value>1</value> --> <!--Set to -1 clockwise, 1 counterclockwise, 0 to remove PX4 control outputs to JSBSim -->
+        <value>1</value>
+      </product>
+     </function>
+    <output>fcs/motor_torque[3]</output>
+  </fcs_function>
+  </channel>
+
+  <property value="0.0">fcs/motor_torque[4]</property>
+  <channel name="Motor_4_Torque">
+  <fcs_function>
+      <function>
+      <product>
+        <table>
+            <independentVar>fcs/esc-out[4]</independentVar>
+            <tableData>
+              0.0   0.0
+              0.33  0.188
+              0.67  0.916
+              1.0   3.229
+            </tableData>
+        </table>
+        <!--<value>1</value> --> <!--Set to -1 clockwise, 1 counterclockwise, 0 to remove PX4 control outputs to JSBSim -->
+        <value>1</value>
+      </product>
+     </function>
+    <output>fcs/motor_torque[4]</output>
+  </fcs_function>
+  </channel>
+
+  <property value="0.0">fcs/motor_torque[5]</property>
+  <channel name="Motor_5_Torque">
+  <fcs_function>
+      <function>
+      <product>
+        <table>
+            <independentVar>fcs/esc-out[5]</independentVar>
+            <tableData>
+              0.0   0.0
+              0.33  0.188
+              0.67  0.916
+              1.0   3.229
+            </tableData>
+        </table>
+        <!--<value>-1</value> --> <!--Set to -1 clockwise, 1 counterclockwise, 0 to remove PX4 control outputs to JSBSim -->
+        <value>-1</value>
+      </product>
+     </function>
+    <output>fcs/motor_torque[5]</output>
+  </fcs_function>
+  </channel>
+
+  <property value="0.0">fcs/net_torque</property>
+  <channel name="Motor_Net_Torque">
+  <fcs_function>
+      <function>
+          <sum>
+            <property>fcs/motor_torque[0]</property>
+            <property>fcs/motor_torque[1]</property>
+            <property>fcs/motor_torque[2]</property>
+            <property>fcs/motor_torque[3]</property>
+            <property>fcs/motor_torque[4]</property>
+            <property>fcs/motor_torque[5]</property>
+          </sum>
+     </function>
+    <output>fcs/net_torque</output>
+  </fcs_function>
+  </channel>
+
+
+</system>
+
+    <external_reactions>
+
+     <property value="0.0">fcs/esc-out[0]</property>
+     <property value="0.0">fcs/esc-out[1]</property>
+     <property value="0.0">fcs/esc-out[2]</property>
+     <property value="0.0">fcs/esc-out[3]</property>
+     <property value="0.0">fcs/esc-out[4]</property>
+     <property value="0.0">fcs/esc-out[5]</property>
+
+     <property value="0.0">fcs/lift_bypass[0]</property>
+     <property value="0.0">fcs/lift_bypass[1]</property>
+     <property value="0.0">fcs/lift_bypass[2]</property>
+     <property value="0.0">fcs/lift_bypass[3]</property>
+     <property value="0.0">fcs/lift_bypass[4]</property>
+     <property value="0.0">fcs/lift_bypass[5]</property>
+
+      <force name="MOTOR_0_LIFT" frame="BODY">
+        <function>
+          <sum>
+          <product>
+            <table>
+                <independentVar>fcs/esc-out[0]</independentVar>
+                <tableData>
+                  0.0   0.0
+                  0.33  1.348
+                  0.67  5.46
+                  1.0   12.691
+                </tableData>
+            </table>
+            <value>1</value> <!--Set to 0 remove PX4 control outputs to JSBSim -->
+          </product>
+          <property>fcs/lift_bypass[0]</property>
+          </sum>
+        </function>
+        <location unit="M">
+          <x>   0.0 </x>
+          <y>   0.772 </y>
+          <z>   0.345 </z>
+        </location>
+        <direction>
+          <x> 0.0 </x>
+          <y> 0.0 </y>
+          <z>-1.0 </z>
+        </direction>
+      </force>
+
+      <force name="MOTOR_1_LIFT" frame="BODY">
+        <function>
+          <sum>
+          <product>
+            <table>
+                <independentVar>fcs/esc-out[1]</independentVar>
+                <tableData>
+                  0.0   0.0
+                  0.33  1.348
+                  0.67  5.46
+                  1.0   12.691
+                </tableData>
+            </table>
+            <value>1</value> <!--Set to 0 remove PX4 control outputs to JSBSim -->
+          </product>
+          <property>fcs/lift_bypass[1]</property>
+          </sum>
+        </function>
+        <location unit="M">
+          <x>   0.0   </x>
+          <y>  -0.772 </y>
+          <z>   0.345 </z>
+        </location>
+        <direction>
+          <x> 0.0 </x>
+          <y> 0.0 </y>
+          <z>-1.0 </z>
+        </direction>
+      </force>
+
+      <force name="MOTOR_2_LIFT" frame="BODY">
+        <function>
+          <sum>
+          <product>
+            <table>
+                <independentVar>fcs/esc-out[2]</independentVar>
+                <tableData>
+                  0.0   0.0
+                  0.33  1.348
+                  0.67  5.46
+                  1.0   12.691
+                </tableData>
+            </table>
+            <value>1</value> <!--Set to 0 remove PX4 control outputs to JSBSim -->
+          </product>
+          <property>fcs/lift_bypass[2]</property>
+          </sum>
+        </function>
+        <location unit="M">
+          <x>  -0.669</x>
+          <y>  -0.386 </y>
+          <z>   0.345 </z>
+        </location>
+        <direction>
+          <x> 0.0 </x>
+          <y> 0.0 </y>
+          <z>-1.0 </z>
+        </direction>
+      </force>
+
+      <force name="MOTOR_3_LIFT" frame="BODY">
+        <function>
+          <sum>
+          <product>
+            <table>
+                <independentVar>fcs/esc-out[3]</independentVar>
+                <tableData>
+                  0.0   0.0
+                  0.33  1.348
+                  0.67  5.46
+                  1.0   12.691
+                </tableData>
+            </table>
+            <value>1</value> <!--Set to 0 remove PX4 control outputs to JSBSim -->
+          </product>
+          <property>fcs/lift_bypass[3]</property>
+          </sum>
+        </function>
+        <location unit="M">
+          <x>   0.669 </x>
+          <y>   0.386 </y>
+          <z>   0.345 </z>
+        </location>
+        <direction>
+          <x> 0.0 </x>
+          <y> 0.0 </y>
+          <z>-1.0 </z>
+        </direction>
+      </force>
+
+      <force name="MOTOR_4_LIFT" frame="BODY">
+        <function>
+          <sum>
+          <product>
+            <table>
+                <independentVar>fcs/esc-out[4]</independentVar>
+                <tableData>
+                  0.0   0.0
+                  0.33  1.348
+                  0.67  5.46
+                  1.0   12.691
+                </tableData>
+            </table>
+            <value>1</value> <!--Set to 0 remove PX4 control outputs to JSBSim -->
+          </product>
+          <property>fcs/lift_bypass[4]</property>
+          </sum>
+        </function>
+        <location unit="M">
+          <x>  -0.669 </x>
+          <y>   0.386 </y>
+          <z>   0.345 </z>
+        </location>
+        <direction>
+          <x> 0.0 </x>
+          <y> 0.0 </y>
+          <z>-1.0 </z>
+        </direction>
+      </force>
+
+      <force name="MOTOR_5_LIFT" frame="BODY">
+        <function>
+          <sum>
+          <product>
+            <table>
+                <independentVar>fcs/esc-out[5]</independentVar>
+                <tableData>
+                  0.0   0.0
+                  0.33  1.348
+                  0.67  5.46
+                  1.0   12.691
+                </tableData>
+            </table>
+            <value>1</value> <!--Set to 0 remove PX4 control outputs to JSBSim -->
+          </product>
+          <property>fcs/lift_bypass[5]</property>
+          </sum>
+        </function>
+        <location unit="M">
+          <x>   0.669 </x>
+          <y>  -0.386 </y>
+          <z>   0.345 </z>
+        </location>
+        <direction>
+          <x> 0.0 </x>
+          <y> 0.0 </y>
+          <z>-1.0 </z>
+        </direction>
+      </force>
+
+</external_reactions>
+
+  <aerodynamics>
+    <axis name="LIFT">
+        </axis>
+    <axis name="DRAG">
+      <function name="aero/coefficient/CD0">
+        <description>Overall Drag</description>
+        <product>
+          <property>aero/qbar-psf</property>
+          <property>metrics/Sw-sqft</property>
+          <value>1</value>
+        </product>
+      </function>
+    </axis>
+    <axis name="SIDE">
+        </axis>
+    <axis name="ROLL">
+        </axis>
+    <axis name="PITCH">
+        </axis>
+    <axis name="YAW">
+        <function name="aero/test_yaw">
+        <description>Test Yaw</description>
+        <sum>
+            <product>
+              <property>fcs/net_torque</property>
+              <value>2.53</value><!-- Moment arm in feet -->
+            </product>
+            <property>fcs/torque_bypass</property>
+        </sum>
+      </function>
+    </axis>
+  </aerodynamics>
+</fdm_config>

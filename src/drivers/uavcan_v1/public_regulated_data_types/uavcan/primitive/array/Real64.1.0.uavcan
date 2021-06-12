@@ -1,0 +1,7 @@
+# Exactly representable integers: [-2**53, +2**53]
+
+float64[<=32] value
+
+@sealed
+@assert _offset_ % 8 == {0}
+@assert _offset_.max / 8 == 257

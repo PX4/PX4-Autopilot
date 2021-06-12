@@ -1,0 +1,5 @@
+uavcan.time.SynchronizedTimestamp.1.0 timestamp
+PointStateVar.0.1 value
+
+@sealed
+@assert _offset_ == reg.drone.physics.kinematics.cartesian.PointStateVarTs.0.1._bit_length_

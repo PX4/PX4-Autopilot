@@ -1,0 +1,22 @@
+# Abstract component health information. If the node performs multiple activities (provides multiple network services),
+# its health status should reflect the status of the worst-performing activity (network service).
+# Follows:
+#   https://www.law.cornell.edu/cfr/text/14/23.1322
+#   https://www.faa.gov/documentLibrary/media/Advisory_Circular/AC_25.1322-1.pdf section 6
+
+uint2 value
+
+uint2 NOMINAL = 0
+# The component is functioning properly (nominal).
+
+uint2 ADVISORY = 1
+# A critical parameter went out of range or the component encountered a minor failure that does not prevent
+# the subsystem from performing any of its real-time functions.
+
+uint2 CAUTION = 2
+# The component encountered a major failure and is performing in a degraded mode or outside of its designed limitations.
+
+uint2 WARNING = 3
+# The component suffered a fatal malfunction and is unable to perform its intended function.
+
+@sealed

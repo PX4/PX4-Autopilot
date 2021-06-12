@@ -1,0 +1,17 @@
+# The current time estimated by a GNSS receiver. See TAI64 for details, of which this one is a structural subtype.
+#
+# TAI is short for International Atomic Time: https://en.wikipedia.org/wiki/International_Atomic_Time.
+# TAI is always a fixed integer number of seconds ahead of GPS time.
+# Systems that use GPS time as a reference shall convert that to TAI by adding the fixed difference.
+# GPS time is not supported for reasons of consistency across different positioning systems and applications.
+#
+# The error variance is expected to increase if the GNSS signal deteriorates.
+# If the signal is lost, this value is expected to grow steadily, the rate of growth dependent on the quality of
+# the time keeping hardware available locally (bad hardware yields faster growth).
+# Once the signal is regained, this value would drop back to nominal.
+
+reg.drone.physics.time.TAI64VarTs.0.1 value  # Supertype.
+
+uavcan.time.TAIInfo.0.1 info  # Actual information about TAI. This information can be used to convert TAI into UTC.
+
+@extent 8 * 63

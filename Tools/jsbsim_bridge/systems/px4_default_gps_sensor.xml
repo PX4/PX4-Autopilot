@@ -1,0 +1,179 @@
+<?xml version="1.0"?>
+<system name="PX4 GPS Sensor">
+<!--  =================================================================
+
+This is a generic JSBSim system file to simulate the GPS behavior for PX4.
+
+  =================================================================  -->
+
+    <property value="1">px4/gps-eph-static-default</property>
+    <property value="2">px4/gps-epv-static-default</property>
+
+    <property value="3">px4/gps-fix-type</property>
+    <property value="16">px4/gps-satellites-visible</property>
+
+    <channel name="GPS-LAT">
+        <sensor name="px4/gps-lat">
+            <input>position/lat-geod-deg</input>
+            <lag> 0 </lag>
+            <noise variation="ABSOLUTE" distribution="GAUSSIAN"> 0.00000001 </noise>
+            <!--Adjust as required
+            <quantization name="name">
+                <bits> number </bits>
+                <min> number </min>
+                <max> number </max>
+            </quantization>
+            <drift_rate> number </drift_rate>
+            <gain> number </gain>
+            <bias> number </bias>
+            <delay [type="time|frames"]> number < /delay>
+            -->
+        </sensor>
+    </channel>
+
+    <channel name="GPS-LON">
+        <sensor name="px4/gps-lon">
+            <input>position/long-gc-deg</input>
+            <lag> 0 </lag>
+            <noise variation="ABSOLUTE" distribution="GAUSSIAN"> 0.00000001</noise>
+            <!--Adjust as required
+            <quantization name="name">
+                <bits> number </bits>
+                <min> number </min>
+                <max> number </max>
+            </quantization>
+            <drift_rate> number </drift_rate>
+            <gain> number </gain>
+            <bias> number </bias>
+            <delay [type="time|frames"]> number < /delay>
+            -->
+        </sensor>
+    </channel>
+
+    <channel name="GPS-ALT">
+        <sensor name="px4/gps-alt">
+            <input>position/h-sl-meters</input>
+            <lag> 0 </lag>
+            <noise variation="ABSOLUTE" distribution="GAUSSIAN"> 0.3 </noise>
+            <!--Adjust as required
+            <quantization name="name">
+                <bits> number </bits>
+                <min> number </min>
+                <max> number </max>
+            </quantization>
+            <drift_rate> number </drift_rate>
+            <gain> number </gain>
+            <bias> number </bias>
+            <delay [type="time|frames"]> number < /delay>
+            -->
+        </sensor>
+    </channel>
+
+    <channel name="GPS-EPH">
+        <sensor name="px4/gps-eph">
+            <input>px4/gps-eph-static-default</input>
+            <lag> 0 </lag>
+            <noise variation="ABSOLUTE" distribution="GAUSSIAN"> 0.1 </noise>
+            <quantization name="px4/quantized/gps-eph">
+                <bits> 24 </bits>
+                <min> 0 </min>
+                <max> 10000 </max>
+            </quantization>
+            <drift_rate> 0 </drift_rate>
+            <gain> 0 </gain>
+            <bias> 0 </bias>
+            <delay type="frames"> 0 </delay>
+        </sensor>
+    </channel>
+
+    <channel name="GPS-EPV">
+        <sensor name="px4/gps-epv">
+            <input>px4/gps-epv-static-default</input>
+            <lag> 0 </lag>
+            <noise variation="ABSOLUTE" distribution="GAUSSIAN"> 0.1 </noise>
+            <quantization name="px4/quantized/gps-epv">
+                <bits> 24 </bits>
+                <min> 0 </min>
+                <max> 10000 </max>
+            </quantization>
+            <drift_rate> 0 </drift_rate>
+            <gain> 0 </gain>
+            <bias> 0 </bias>
+            <delay type="frames"> 0 </delay>
+        </sensor>
+    </channel>
+
+    <channel name="GPS-V-NORTH">
+        <sensor name="px4/gps-v-north">
+            <input>velocities/v-north-fps</input>
+            <lag> 0 </lag>
+            <noise variation="ABSOLUTE" distribution="GAUSSIAN"> 0.05 </noise>
+            <!--Adjust as required
+            <quantization name="name">
+                <bits> number </bits>
+                <min> number </min>
+                <max> number </max>
+            </quantization>
+            <drift_rate> number </drift_rate>
+            <gain> number </gain>
+            <bias> number </bias>
+            <delay [type="time|frames"]> number < /delay>
+            -->
+        </sensor>
+    </channel>
+
+    <channel name="GPS-V-EAST">
+        <sensor name="px4/gps-v-east">
+            <input>velocities/v-east-fps</input>
+            <lag> 0 </lag>
+            <noise variation="ABSOLUTE" distribution="GAUSSIAN"> 0.05 </noise>
+            <!--Adjust as required
+            <quantization name="name">
+                <bits> number </bits>
+                <min> number </min>
+                <max> number </max>
+            </quantization>
+            <drift_rate> number </drift_rate>
+            <gain> number </gain>
+            <bias> number </bias>
+            <delay [type="time|frames"]> number < /delay>
+            -->
+        </sensor>
+    </channel>
+
+    <channel name="GPS-V-DOWN">
+        <sensor name="px4/gps-v-down">
+            <input>velocities/v-down-fps</input>
+            <lag> 0 </lag>
+            <noise variation="ABSOLUTE" distribution="GAUSSIAN"> 0.05 </noise>
+            <!--Adjust as required
+            <quantization name="name">
+                <bits> number </bits>
+                <min> number </min>
+                <max> number </max>
+            </quantization>
+            <drift_rate> number </drift_rate>
+            <gain> number </gain>
+            <bias> number </bias>
+            <delay [type="time|frames"]> number < /delay>
+            -->
+        </sensor>
+    </channel>
+
+    <channel name="GPS-VELOCITY">
+        <sensor name="px4/gps-velocity">
+            <input>velocities/ned-velocity-mag-fps</input>
+            <lag> 0 </lag>
+            <noise variation="ABSOLUTE" distribution="GAUSSIAN"> 0.05 </noise>
+            <quantization name="px4/quantized/gps-velocity">
+                <bits> 24 </bits>
+                <min> 0 </min>
+                <max> 10000 </max>
+            </quantization>
+            <drift_rate> 0 </drift_rate>
+            <gain> 0 </gain>
+            <bias> 0 </bias>
+            <delay type="frames"> 0 </delay>
+        </sensor>
+    </channel>
+</system>

@@ -1,0 +1,38 @@
+
+name: Catkin Build Test
+on:
+  push:
+    branches:
+    - 'master'
+  pull_request:
+    branches:
+    - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {rosdistro: 'melodic', container: 'px4io/px4-dev-ros-melodic:2020-11-02'}
+          - {rosdistro: 'noetic', container: 'px4io/px4-dev-ros-noetic:2020-11-02'}
+    container: ${{ matrix.config.container }}
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        token: ${{ secrets.ACCESS_TOKEN }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+    - name: release_build_test
+      working-directory: 
+      run: |
+        mkdir -p $HOME/catkin_ws/src;
+        cd $HOME/catkin_ws
+        catkin init
+        catkin config --extend "/opt/ros/${{matrix.config.rosdistro}}"
+        catkin config --merge-devel
+        cd $HOME/catkin_ws/src
+        ln -s $GITHUB_WORKSPACE
+        cd $HOME/catkin_ws
+        catkin config --cmake-args -DCMAKE_BUILD_TYPE=Release -DCATKIN_ENABLE_TESTING=False
+        catkin build -j$(nproc) -l$(nproc) jsbsim_bridge

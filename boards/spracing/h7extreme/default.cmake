@@ -8,14 +8,14 @@ px4_add_board(
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
 	SERIAL_PORTS
-#		GPS1:/dev/ttyS0
-#		RC:/dev/ttyS1
-#		TEL2:/dev/ttyS2
-#		TEL4:/dev/ttyS3
+		GPS1:/dev/ttyS0
+		RC:/dev/ttyS1
+		TEL2:/dev/ttyS2
+		TEL4:/dev/ttyS3
 	DRIVERS
 		adc
 		barometer # all available barometer drivers
-		#batt_smbus
+		batt_smbus
 		camera_capture
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
@@ -60,14 +60,14 @@ px4_add_board(
 		#camera_feedback
 		commander
 		dataman
-		#ekf2
+		ekf2
 		events
-		#fw_att_control
-		#fw_pos_control_l1
+		fw_att_control
+		fw_pos_control_l1
 		land_detector
-		#landing_target_estimator
+		landing_target_estimator
 		load_mon
-		#local_position_estimator
+		local_position_estimator
 		logger
 		mavlink
 		mc_att_control
@@ -76,14 +76,14 @@ px4_add_board(
 		mc_rate_control
 		navigator
 		rc_update
-		#rover_pos_control
+		rover_pos_control
 		sensors
-		#sih
+		sih
 		temperature_compensation
 		vmount
-		#vtol_att_control
+		vtol_att_control
 	SYSTEMCMDS
-		#bl_update
+		bl_update
 		dmesg
 		dumpfile
 		esc_calib
@@ -91,7 +91,7 @@ px4_add_board(
 		i2cdetect
 		led_control
 		mixer
-		#motor_ramp
+		motor_ramp
 		motor_test
 		#mtd
 		nshterm

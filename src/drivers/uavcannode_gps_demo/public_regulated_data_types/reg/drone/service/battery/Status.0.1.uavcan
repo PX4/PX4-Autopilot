@@ -1,0 +1,39 @@
+# This low-rate battery status should be published at least once per second.
+@deprecated
+
+reg.drone.service.common.Heartbeat.0.1 heartbeat
+# Note that the health code generally should not reflect the battery charge unless the service provider knows
+# that the availability of energy in the battery is critical for the safe operation of the vehicle, which is usually
+# not the case. For example, if the vehicle is equipped with several batteries that are discharged in series, one
+# after another, the depletion of energy in the first battery is not a fault condition and it should not be reported
+# as such. This follows from the good service design principles reviewed in https://uavcan.org/guide.
+#
+# The readiness state depicts the ability of the battery (or its power electronics) to deliver full rated power
+# and whether the overdischarge protections are active.
+# When the battery is not ENGAGED, it may limit the output power below the nominal rated value and disconnect the load
+# should the charge level fall below the critical level.
+# When the battery is ENGAGED, it is not permitted to limit the output power or energy regardless of the risk of damage.
+# If the adaptive protection is not supported, the battery should always report its status as ENGAGED.
+
+uavcan.si.unit.temperature.Scalar.1.0[2] temperature_min_max
+# The minimum and maximum readings of the pack temperature sensors.
+# For example, if the pack is equipped with three distributed temperature sensors that read {288, 258.15, 360.5} K,
+# the reported array value would be {258.15, 360.5} K.
+# If there is only one temperature sensor, both elements shall be of the same value.
+
+uavcan.si.unit.voltage.Scalar.1.0[2] cell_voltage_min_max
+# If v(i) is the voltage of cell number i (or a group of cells connected in parallel), and there are N cells,
+# then the first array element is: min(v(x) for x in [0, N))
+# and the second array element is: max(v(x) for x in [0, N))
+# This information is used for gauging the degree of cell disbalance.
+# Note that the average cell voltage can be obtained by dividing the battery voltage by the number of cells.
+
+uavcan.si.unit.electric_charge.Scalar.1.0 available_charge
+# The estimated electric charge currently stored in the battery. This is intended for charging and maintenance only.
+# Do not use this parameter for endurance prediction! Instead, use the correct energy type from the physics namespace.
+# The depth of discharge (DoD), or the state of charge (SoC), can be derived by dividing this value by the
+# nominal battery capacity reported in the Parameters message.
+
+Error.0.1 error
+
+@extent 63 * 8  # Single-frame transfer over CAN FD.

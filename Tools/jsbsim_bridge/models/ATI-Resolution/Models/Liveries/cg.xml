@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+
+<PropertyList>
+  <sim>
+    <model>
+      <livery>
+        <name type="string">Coast Guard</name>
+        <material>
+         <v_tail>
+          <texture>Liveries/cg/resolution3-vstab-cg.png</texture>
+         </v_tail>
+         <hull>
+          <texture>Liveries/cg/resolution3-fuse-cg.png</texture>
+         </hull>
+         <tips>
+          <texture>Liveries/cg/resolution3-wingtips-cg.png</texture>
+         </tips>
+         <wings>
+          <texture>Liveries/cg/resolution3-wings-cg.png</texture>
+         </wings>
+         <prop>
+          <texture>Liveries/cg/resolution3-propeller.png</texture>
+         </prop>
+        </material>
+      </livery>
+    </model>
+  </sim>
+</PropertyList>

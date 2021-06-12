@@ -1,0 +1,131 @@
+# A servo can actuate either a translational or rotary load using electric power from the high-voltage DC bus.
+#
+# The type of load (translational or rotational) dictates which type is used for commanding the setpoint and reporting
+# the status:
+#   - reg.drone.physics.dynamics.rotation.Planar[Ts]
+#   - reg.drone.physics.dynamics.translation.Linear[Ts]
+# For generality, either or both of these types are referred to as "timestamped dynamics" or "non-timestamped dynamics".
+#
+# The default readiness state is STANDBY. While in this state, the servo is not allowed to apply force to the load,
+# and the setpoint subject is ignored. The servo shall enter the STANDBY state automatically if the readiness subject
+# is not updated for CONTROL_TIMEOUT.
+#
+# The subjects defined by this service are shown on the following canvas. Implementers are encouraged to add
+# custom subjects with additional data. Notice that the physics subjects are timestamped.
+#
+#                    SUBJECT NAME                       SUBJECT TYPE                                    RATE
+#
+#   +------------+   setpoint       +------------+      (non-timestamped dynamics) (see below)          R
+#   |            |----------------->|            |
+#   |            |   readiness      |            |      reg.drone.service.common.Readiness              any
+#   |            |----------------->|            |
+#   |            |   feedback       |            |      reg.drone.service.actuator.common.Feedback      R
+#   |            |<-----------------|            |
+#   | Controller |   status         |   Servo    |      reg.drone.service.actuator.common.Status        any
+#   |            |<-----------------|            |
+#   |            |   power          |            |      reg.drone.physics.electricity.PowerTs           R
+#   |            |<-----------------|            |
+#   |            |   dynamics       |            |      (timestamped dynamics)                          R
+#   |            |<-----------------|            |
+#   +------------+                  +------------+
+#
+# Should it be necessary to control a group of servos in lockstep, an arbitrary number of them may subscribe
+# to the same setpoint subject (their published subjects would be different of course).
+#
+# If the servo is ENGAGED, setpoint messages are processed as follows: the first field of the kinematic setpoint type
+# that contains a finite value is taken as the commanded setpoint. The following non-negative finite fields define
+# the motion profile, where negative and non-finite values are ignored.
+#
+# For example, a translational dynamics message containing the following values:
+#   position     = +0.35
+#   velocity     = NaN
+#   acceleration = NaN
+#   force        = 30
+# ...is interpreted as follows: position the load at 0.35 meters relative to the neutral, limit the force to 30 newton,
+# do not limit the velocity and acceleration. Here is another example:
+#   angular position     = NaN
+#   angular velocity     = +400
+#   angular acceleration = NaN
+#   torque               = 50
+# which is interpreted as follows: reach the angular velocity of 400 radian/second in the forward direction,
+# limit the torque to 50 newton*meters, do not limit the acceleration.
+#
+# The motion profile parameters that are not supported are to be silently ignored by the servo. If the commanded
+# parameter cannot be controlled by the servo, the setpoint is to be ignored. For example, in the second example above,
+# if the servo does not support angular velocity control, the setpoint message would be discarded.
+#
+# The above describes the typical use case where each servo is controlled over a dedicated setpoint
+# subject independently (or a group of servos are controlled in lockstep using the same setpoint subject).
+# Some applications may require synchronous independent control of multiple servos in a group, similar to ESC.
+# To address this, a compliant servo should support another operating mode where the controlled quantity
+# (position, velocity, force, etc.) is selected statically along with the motion profile (using the register API),
+# and the servo subscribes to the setpoint subject of type "reg.drone.service.actuator.common.sp.*".
+# Having its index in the group configured statically, the servo fetches the setpoint from the appropriate
+# index in the setpoint array.
+# The resulting topology closely resembles that of the ESC service:
+#
+#                                                   SUBJECT
+#                                                   NAME        SUBJECT TYPE
+#  +----------------+
+#  |   Controller   |---------+------------+----... setpoint    reg.drone.service.actuator.common.sp.*
+#  |                |-------+-)----------+-)----... readiness   reg.drone.service.common.Readiness
+#  +----------------+       | |          | |
+#   ^ ^ ^ ^  ^ ^ ^ ^        v v          v v
+#   | | | |  | | | |   +---------+  +---------+
+#   | | | |  | | | |   |Servo i=0|  |Servo i=1| ...
+#   | | | |  | | | |   +---------+  +---------+
+#   | | | |  | | | |     | | | |      | | | |
+#   | | | |  | | | +-----+ | | |      | | | |       feedback    reg.drone.service.actuator.common.Feedback
+#   | | | |  | | +---------+ | |      | | | |       status      reg.drone.service.actuator.common.Status
+#   | | | |  | +-------------+ |      | | | |       power       reg.drone.physics.electricity.PowerTs
+#   | | | |  +-----------------+      | | | |       dynamics    (timestamped dynamics)
+#   | | | |                           | | | |
+#   | | | +---------------------------+ | | |
+#   | | +-------------------------------+ | |
+#   | +-----------------------------------+ |
+#   +---------------------------------------+
+#
+# If the selected readiness state is SLEEP, the behavior is implementation-defined. Implementations are recommended to
+# power off the high-voltage circuitry and all non-essential components (e.g., LED indication, sensors, etc.)
+# to minimize the power consumption. The publication rate requirements do not apply if the state is SLEEP.
+#
+# The worst-case readiness state transition latency is not defined.
+#
+# The following subjects shall be published immediately after a new setpoint is applied even if the servo is STANDBY:
+#
+#   SUBJECT NAME        RECOMMENDED PRIORITY
+#   ---------------------------------------------
+#   feedback            same as the setpoint
+#   power               second to the setpoint
+#   dynamics            second to the setpoint
+#
+# If no setpoint is being published, these subjects should continue being updated at least at 1/MAX_PUBLICATION_PERIOD.
+#
+# If the setpoint publication rate exceeds 50 Hz, implementations are allowed (but not required) to throttle these
+# subjects by dropping some of the messages such that the publication rate of each subject does not exceed 50 Hz.
+# Implementations operating over Classic CAN are recommended to do this.
+#
+# The other subjects may be published at an implementation-defined rate and priority,
+# which should be consistent across the group.
+#
+# The measurements carried by the published messages should be low-pass filtered with an adequate cutoff frequency to
+# avoid aliasing effects. Implementations should strive to sample all parameters simultaneously.
+#
+# It is assumed that the servo is powered from a DC electric power supply network. A positive electric current
+# represents current flowing from the DC network into the servo (negative represents regeneration).
+#
+# Excepting edge cases and transients, torque/force and current are generally of the same sign (barring the difference
+# introduced by the power dissipated by the servo itself).
+#
+#                                   +velocity
+#                                       ^
+#                               braking,| forward,
+#                               negative| positive
+#                               power   | power
+#                            -----------+---------->  +torque/force/current
+#                               reverse,| braking,
+#                               positive| negative
+#                               power   | power
+#
+
+@extent 0

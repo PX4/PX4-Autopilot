@@ -69,6 +69,8 @@ void PX4Rangefinder::set_orientation(const uint8_t device_orientation)
 	_distance_sensor_pub.get().orientation = device_orientation;
 }
 
+
+
 void PX4Rangefinder::update(const hrt_abstime &timestamp_sample, const float distance, const int8_t quality)
 {
 	distance_sensor_s &report = _distance_sensor_pub.get();

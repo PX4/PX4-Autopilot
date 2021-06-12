@@ -1,0 +1,6 @@
+# See PointState for details.
+
+PointVar.0.1 position
+reg.drone.physics.kinematics.translation.Velocity3Var.0.2 velocity
+
+@sealed

@@ -1,0 +1,20 @@
+# This high-rate feedback should be published once immediately after a setpoint is applied.
+# It follows that the publication rate of these messages equals that of the setpoint messages.
+# When setpoint messages are not being emitted, the publication rate is implementation-defined, but it should not
+# be lower than the defined limit.
+# The priority of this message should be the same as that of the corresponding setpoint message.
+
+reg.drone.service.common.Heartbeat.0.1 heartbeat
+# If ENGAGED, the actuator provides service according to its nominal performance characteristics.
+# Otherwise, no availability guarantees are provided.
+# Notice that the feedback type is a structural subtype of the heartbeat type, so one can subscribe to a
+# feedback subject using the heartbeat type. Similarly, the heartbeat type is a structural subtype of the
+# Readiness type, meaning that one can use the Readiness type as well.
+
+int8 demand_factor_pct  # [percent]
+# Percentage of the maximum rated output intensity. May exceed +-100% in case of overload.
+# Positive value indicates that power is applied to the load; negative indicates that power is being sunk from the
+# load into the actuator power source.
+# The consumer of this message may leverage this information to manage the control loop saturation.
+
+@extent 63 * 8  # Single-frame transfer over CAN FD.

@@ -1,0 +1,5 @@
+# Movement along an axis.
+uavcan.si.unit.length.Scalar.1.0       position
+uavcan.si.unit.velocity.Scalar.1.0     velocity
+uavcan.si.unit.acceleration.Scalar.1.0 acceleration
+@sealed

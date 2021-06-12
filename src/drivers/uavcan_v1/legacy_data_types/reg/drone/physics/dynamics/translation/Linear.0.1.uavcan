@@ -1,0 +1,5 @@
+# Positive force is co-directed with positive position/velocity/acceleration.
+# Provided kinetic states may allow the consumer to deduce certain hidden states such as the mass of the load.
+reg.drone.physics.kinematics.translation.Linear.0.1 kinematics
+uavcan.si.unit.force.Scalar.1.0 force  # NaN if unknown
+@sealed

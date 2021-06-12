@@ -1,0 +1,23 @@
+# Returns a set of general low-level transport statistical counters.
+# Servers are encouraged but not required to sample the data atomically.
+
+@sealed
+
+---
+
+uint8 MAX_NETWORK_INTERFACES = 3
+# UAVCAN supports up to triply modular redundant interfaces.
+
+IOStatistics.0.1 transfer_statistics
+# UAVCAN transfer performance statistics:
+# the number of UAVCAN transfers successfully sent, successfully received, and failed.
+# The methods of error counting are implementation-defined.
+
+IOStatistics.0.1[<=MAX_NETWORK_INTERFACES] network_interface_statistics
+# Network interface statistics, separate per interface.
+# E.g., for a doubly redundant transport, this array would contain two elements,
+# the one at the index zero would apply to the first interface, the other to the second interface.
+# The methods of counting are implementation-defined.
+
+@assert _offset_.max <= (63 * 8)      # One CAN FD frame
+@extent 192 * 8

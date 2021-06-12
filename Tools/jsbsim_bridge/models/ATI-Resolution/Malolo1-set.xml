@@ -1,0 +1,116 @@
+<?xml version="1.0"?>
+<!--
+************************************************************************
+Rascal 110 R/C airplane config. This files ties together all the components
+used by FGFS to represent the Rascal 110 (by Sig Mfg) including the flight
+dynamics model, and external 3D model.
+************************************************************************
+-->
+
+<PropertyList>
+ <sim>
+
+  <description>Malolo1(R/C)</description>
+  <author>Innis Cunningham, Josh Wilson</author>
+  <aircraft-version>0.0</aircraft-version>
+  <variant-of>Resolution3</variant-of>
+
+  <tags>
+    <tag>delta-wing</tag>
+    <tag>tricycle</tag>
+    <tag>fixed-gear</tag>
+    <tag>castering</tag>
+    <tag>single-engine</tag>
+    <tag>electric</tag>
+    <tag>fixed-pitch</tag>
+    <tag>reconnaissance</tag>
+    <tag>uav</tag>
+  </tags>
+
+  <startup>
+    <splash-texture>Aircraft/ATI-Resolution/Malolo1-splash.rgb</splash-texture>
+  </startup>
+
+  <flight-model>jsb</flight-model>
+  <aero>Malolo1</aero>
+  <fuel-fraction>0.5</fuel-fraction>
+  <!--
+  <systems>
+   <autopilot>
+    <path>Aircraft/ATI-Resolution/Systems/110-autopilot.xml</path>
+   </autopilot>
+   <electrical>
+    <path>Aircraft/ATI-Resolution/Systems/electrical.xml</path>
+   </electrical>
+  </systems> -->
+
+  <sound>
+   <path>Aircraft/Generic/generic-sound.xml</path>
+  </sound>
+
+  <panel>
+   <visibility archive="n">false</visibility>
+  </panel>
+
+  <model>
+   <path archive="y">Aircraft/ATI-Resolution/Models/Malolo1.xml</path>
+  </model>
+  
+  <view>
+   <internal archive="y">true</internal>
+   <config>
+     <x-offset-m archive="y">0.0</x-offset-m>
+     <y-offset-m archive="y">0.26</y-offset-m>
+     <z-offset-m archive="y">0.34</z-offset-m>
+     <pitch-offset-deg>-8</pitch-offset-deg>
+   </config>
+  </view>
+
+        <chase-distance-m archive="y" type="double">-15.0</chase-distance-m>
+  <help>
+    <title>YardStik 110 (Sig Mfg)</title>
+    <line>Cruise speed: 60 mph</line>
+    <line>Never-exceed (Vne): 85 mph</line>
+    <line>Best Glide (Vglide): 20 mph</line>
+    <line>Maneuvering (Va): 50 mph</line>
+    <line>Approach speed: 15-25 mph</line>
+    <line>Stall speed (Vs): 10 mph</line>
+  </help>
+
+ </sim>
+
+ <controls>
+  <flight>
+   <aileron-trim>-0.01</aileron-trim>   <!-- fixed -->
+   <elevator-trim>0.00</elevator-trim> <!-- controllable -->
+   <rudder-trim>0.00</rudder-trim>     <!-- fixed -->
+  </flight>
+  <engines>
+   <engine n="0">
+    <magnetos>3</magnetos>
+   </engine>
+  </engines>
+  <door>1.0</door>
+ </controls>
+
+ <engines>
+  <engine>
+   <rpm type="double">700</rpm>
+  </engine>
+ </engines>
+  
+ <!-- An autopilot on a Cub??? -->  
+ <autopilot>
+   <config>
+     <min-climb-speed-kt type="float">48.0</min-climb-speed-kt>
+     <best-climb-speed-kt type="float">56.0</best-climb-speed-kt>
+     <target-climb-rate-fpm type="float">400.0</target-climb-rate-fpm>
+     <target-descent-rate-fpm type="float">1000.0</target-descent-rate-fpm>
+     <elevator-adj-factor type="float">6000.0</elevator-adj-factor>
+     <integral-contribution type="float">0.008</integral-contribution> 
+     <zero-pitch-throttle type="float">0.35</zero-pitch-throttle>
+     <zero-pitch-trim-full-throttle type="float">0.001</zero-pitch-trim-full-throttle>
+   </config>
+ </autopilot>
+
+</PropertyList>

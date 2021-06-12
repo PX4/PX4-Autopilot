@@ -25,10 +25,11 @@ px4_add_board(
 		#camera_capture
 		#camera_trigger
 		#differential_pressure # all available differential pressure drivers
-		differential_pressure/ms4525
+		#differential_pressure/ms4525
 		#distance_sensor # all available distance sensor drivers
 		#distance_sensor/ll40ls
-		#distance_sensor/sf0x
+		distance_sensor/mr72
+		distance_sensor/cm8jl65
 		#dshot
 		gps
 		#heater
@@ -48,7 +49,7 @@ px4_add_board(
 		#lights/blinkm
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
-		magnetometer/hmc5883
+		#magnetometer/hmc5883
 		#mkblctrl
 		#optical_flow # all available optical flow drivers
 		#optical_flow/px4flow
@@ -68,12 +69,12 @@ px4_add_board(
 		#uavcan
 	MODULES
 		airspeed_selector
-		#attitude_estimator_q
+		attitude_estimator_q
 		battery_status
 		#camera_feedback
 		commander
 		dataman
-		ekf2
+		#ekf2
 		#esc_battery
 		#events
 		fw_att_control
@@ -97,6 +98,8 @@ px4_add_board(
 		#temperature_compensation
 		vmount
 		#vtol_att_control
+		my_test
+		loop
 	SYSTEMCMDS
 		bl_update
 		#dmesg
@@ -119,11 +122,11 @@ px4_add_board(
 		#shutdown
 		#tests # tests and test runner
 		top
-		#topic_listener
+		topic_listener
 		tune_control
 		#usb_connected
 		ver
-		#work_queue
+		work_queue
 	EXAMPLES
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hello

@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<initialize name="Zurich">
+  <latitude type="geodetic" unit="DEG"> 47.458159 </latitude>
+  <longitude unit="DEG"> 8.548004 </longitude>
+  <altitude unit="M"> 0.5 </altitude>
+  <elevation unit="M"> 419.2 </elevation>
+  <vt unit="FT/SEC">      0 </vt>
+  <gamma unit="DEG">      0.0 </gamma>
+  <phi unit="DEG">        0.0 </phi>
+  <theta unit="DEG">      0.0 </theta>
+  <psi unit="DEG">        0.0 </psi>
+</initialize>

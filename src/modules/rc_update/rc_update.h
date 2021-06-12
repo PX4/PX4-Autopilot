@@ -44,10 +44,10 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
-#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+//#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/mathlib.h>
-#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/perf/perf_counter.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -60,6 +60,15 @@
 #include <uORB/topics/rc_parameter_map.h>
 #include <uORB/topics/parameter_update.h>
 
+
+//mx3g-jh
+#include "RCMapping/RCMapping.hpp"
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <systemlib/mavlink_log.h>
+#include <uORB/uORB.h>
+using namespace sensors;
+using namespace time_literals;
+
 namespace RCUpdate
 {
 
@@ -68,7 +77,7 @@ namespace RCUpdate
  *
  * Handling of RC updates
  */
-class RCUpdate : public ModuleBase<RCUpdate>, public ModuleParams, public px4::WorkItem
+class RCUpdate : public ModuleBase<RCUpdate>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	RCUpdate();
@@ -149,7 +158,106 @@ private:
 								because these parameters are never read. */
 	} _parameter_handles{};
 
-	uORB::SubscriptionCallbackWorkItem _input_rc_sub{this, ORB_ID(input_rc)};
+	//uORB::SubscriptionCallbackWorkItem _input_rc_sub{this, ORB_ID(input_rc)};
+	uORB::Subscription _sub_rc_input[4] {
+		{ORB_ID(input_rc), 0},
+		{ORB_ID(input_rc), 1},
+		{ORB_ID(input_rc), 2},
+		{ORB_ID(input_rc), 3},
+	};
+//mx3g-jh
+#define YUNEEC_INPUT_RC_MAP_MANUAL_CONTROL
+#ifdef YUNEEC_INPUT_RC_MAP_MANUAL_CONTROL
+static int px4_rc_public;
+	struct InputRCset {
+		//int sub = -1; //input_rc_s subscription
+		input_rc_s input = {}; //input_rc_s data
+
+		bool signal_valid = false; // indicates if requirements are met for a valid signal
+	} _inputs_rc[ORB_MULTI_MAX_INSTANCES];
+
+	// struct InputRCset {
+	// 	int sub = -1; //input_rc_s subscription
+	// 	input_rc_s input = {}; //input_rc_s data
+
+	// 	bool signal_valid = false; // indicates if requirements are met for a valid signal
+	// } _inputs_rc;
+
+
+
+	struct InputSlaveRCset {
+		int slave_rc_sub = -1;	// slave rc subscripton
+		input_rc_s slave_rc = {};	// slave_rc_s data
+		bool signal_valid = false; // indicates if requirements are met for a valid signal
+	} _slave_rc;
+
+	math::LowPassFilter2p _filter_roll{50, 10}; /**< filters for the main 4 stick inputs */
+	math::LowPassFilter2p _filter_pitch{50, 10}; /** we want smooth setpoints as inputs to the controllers */
+	math::LowPassFilter2p _filter_yaw{50, 10};
+	math::LowPassFilter2p _filter_throttle{50, 10};
+
+	/**
+	 * Publish setpoints
+	 */
+	void publish_manual_inputs();
+
+	/**
+	 * Publish rc_channels
+	 */
+	void publish_rc_channels();
+
+	/**
+	 * The mapping is based on rc_channels_s structure
+	 */
+	bool map_from_rc_channel_functions(InputRCset &input_set);
+
+	/**
+	 * Check and set validity of signal
+	 */
+	void set_signal_validity(InputRCset &input_set);
+
+	/**
+	 * Check and set validity of slave rc
+	 */
+	void set_slave_signal_validity(InputSlaveRCset &input_slave_set);
+
+	/**
+	 * Adjust validity of signal based on failsafe channel.
+	 */
+	void process_failsafe_channel(InputRCset &input_set, const rc_channels_s &channels);
+
+	/**
+	 * Map input_rc to manual_control_setpoints.
+	 *
+	 * @param parameter_handles used for update channel functions from rc
+	 * @param priority defines ORB priority request
+	 */
+	bool map_to_control_setpoint(int priority);
+
+	/**
+	 * For RC data source, scale rc_channels based on max and min
+	 */
+	void scale_raw_channels(InputRCset &input_set);
+
+	/**
+	 * Print error message every 15 seconds over mavlink
+	 */
+	void print_rc_error_message(const char *str);
+
+	/**
+	 * Map rc-inputs to team-mode
+	 */
+	bool map_from_team_mode();
+
+	void yuneec_rc_map();
+
+	RCMapping _rcmapping {};
+
+	orb_advert_t _mavlink_log_pub = nullptr; /**< mavlink message publication topic to send out error messages */
+
+	struct manual_control_setpoint_s _manual_sp {};
+#endif
+
 
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};	/**< notification of parameter updates */
 	uORB::Subscription	_rc_parameter_map_sub{ORB_ID(rc_parameter_map)};	/**< rc parameter map subscription */
@@ -220,7 +328,22 @@ private:
 		(ParamFloat<px4::params::RC_MAN_TH>) _param_rc_man_th,
 		(ParamFloat<px4::params::RC_RETURN_TH>) _param_rc_return_th,
 
-		(ParamInt<px4::params::RC_CHAN_CNT>) _param_rc_chan_cnt
+		(ParamInt<px4::params::RC_CHAN_CNT>) _param_rc_chan_cnt,
+
+		//mx3g-jh
+		//yuneec
+		(ParamFloat<px4::params::COM_RC_LOSS_T>) _param_rc_lost_t,
+		(ParamFloat<px4::params::RC_AVOID_TH>) _param_rc_obsavoid_th,
+		(ParamFloat<px4::params::RC_AVOID_MID_TH>) _param_rc_obsavoid_mid_th,
+		(ParamInt<px4::params::RC_LINK_MODE>) _param_rc_link_mode,
+		(ParamInt<px4::params::RC_TYPE>) _param_rc_type,
+		(ParamInt<px4::params::RC_MAP_AVOID_SW>) _param_rc_map_obsavoid_sw,
+		(ParamInt<px4::params::RC_MODE>) _param_rc_mode
+
+
+
+
+
 	)
 
 };

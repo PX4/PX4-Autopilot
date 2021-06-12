@@ -1,0 +1,9 @@
+# First-order kinematic state of a body in space: pose and twist.
+# The pose defines a coordinate system transformation from the parent frame to the child frame.
+# The twist is specified in the child frame (body frame).
+
+Pose.0.1  pose
+Twist.0.1 twist
+
+@sealed
+@assert _offset_.count == 1  # This is a fixed-length type.

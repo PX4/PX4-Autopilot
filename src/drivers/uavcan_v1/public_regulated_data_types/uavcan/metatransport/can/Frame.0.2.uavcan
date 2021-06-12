@@ -1,0 +1,12 @@
+# Classic CAN or CAN FD frame representation. This is the top-level data type in its namespace.
+
+@union
+
+Error.0.1       error                        # CAN error (intentional or disturbance)
+DataFD.0.1      data_fd                      # Bit rate switch flag active
+DataClassic.0.1 data_classic                 # Bit rate switch flag not active
+RTR.0.1         remote_transmission_request  # Bit rate switch flag not active
+
+@sealed                         # Sealed because the structure is rigidly dictated by an external standard.
+@assert _offset_.min == 8 + 32
+@assert _offset_.max == 8 + 8 + 32 + 8 + 64 * 8

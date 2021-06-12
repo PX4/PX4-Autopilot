@@ -1,0 +1,5 @@
+# Rotation about an axis.
+uavcan.si.unit.angle.Scalar.1.0                angular_position
+uavcan.si.unit.angular_velocity.Scalar.1.0     angular_velocity
+uavcan.si.unit.angular_acceleration.Scalar.1.0 angular_acceleration
+@sealed

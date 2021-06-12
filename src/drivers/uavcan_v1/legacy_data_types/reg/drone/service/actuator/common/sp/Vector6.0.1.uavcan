@@ -1,0 +1,2 @@
+float16[6] value
+@extent 16 * 256

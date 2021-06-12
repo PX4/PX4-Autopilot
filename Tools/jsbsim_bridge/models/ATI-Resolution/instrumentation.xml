@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+
+<!--
+**********************************************************************
+generic-instrumentation.xml
+
+Generic instrumentation configuration. This file selects the
+instrumentation modules that should be available.
+
+You can have several instances of the same instrument type.
+The value inside the name tag becomes the node in the property tree.
+If two instruments have the same name you must use the number tag
+to separate them. They become name[number] in the property tree.
+Some instruments have additional configuration tags like static-port
+and pitot-port. The static- and pitot-ports (and any other system that
+an instrument depend on) have to be configured in the systems
+configuration file: generic-systems.xml
+
+The values in this file are the default values. If any configuration
+tags are omitted in an aircraft specific version of this configuration
+file, these values will be used (they are hardcoded).
+
+**********************************************************************
+-->
+
+<PropertyList>
+
+  <airspeed-indicator>
+    <name>airspeed-indicator</name>
+    <number>0</number>
+    <total-pressure>/systems/pitot/total-pressure-inhg</total-pressure>
+    <static-pressure>/systems/static/pressure-inhg</static-pressure>
+  </airspeed-indicator>
+
+  <altimeter>
+    <name>altimeter</name>
+    <number>0</number>
+    <static-pressure>/systems/static/pressure-inhg</static-pressure>
+    <quantum>0</quantum>
+    <tau>0</tau>
+  </altimeter>
+
+  <attitude-indicator>
+    <name>attitude-indicator</name>
+    <number>0</number>
+    <suction>/systems/vacuum/suction-inhg</suction>
+  </attitude-indicator>
+
+  <clock>
+    <name>clock</name>
+    <number>0</number>
+  </clock>
+
+  <altimeter>
+    <name>encoder</name>
+    <number>0</number>
+    <static-pressure>/systems/static/pressure-inhg</static-pressure>
+    <quantum>10</quantum>
+    <tau>0.1</tau>
+  </altimeter>
+
+  <heading-indicator>
+    <name>heading-indicator</name>
+    <number>0</number>
+    <suction>/systems/vacuum/suction-inhg</suction>
+  </heading-indicator>
+
+  <magnetic-compass>
+    <name>magnetic-compass</name>
+    <number>0</number>
+  </magnetic-compass>
+
+  <slip-skid-ball>
+    <name>slip-skid-ball</name>
+    <number>0</number>
+  </slip-skid-ball>
+
+  <turn-indicator>
+    <name>turn-indicator</name>
+    <number>0</number>
+  </turn-indicator>
+
+  <vertical-speed-indicator>
+    <name>vertical-speed-indicator</name>
+    <number>0</number>
+    <static-pressure>/systems/static/pressure-inhg</static-pressure>
+  </vertical-speed-indicator>
+
+</PropertyList>

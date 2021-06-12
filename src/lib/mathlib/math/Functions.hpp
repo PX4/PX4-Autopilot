@@ -147,6 +147,37 @@ const T gradual(const T &value, const T &x_low, const T &x_high, const T &y_low,
 	}
 }
 
+
+
+//mx3g-jh
+/*
+ * Map from default mode 2 to 1,3,4
+ * it's basically switching values
+ *
+ * @param mode {1,3,4} to which rc mode should be converted
+ * @param roll, pitch, yaw, throttle references to values to swap in place
+ */
+template<typename T>
+void convertRcMode(int mode, T &roll, T &pitch, T &yaw, T &throttle)
+{
+	T tmp;
+
+	if (mode == 1 || mode == 3) {
+		tmp = throttle;
+		throttle = pitch;
+		pitch = tmp;
+	}
+
+	if (mode == 4 || mode == 3) {
+		tmp = roll;
+		roll = yaw;
+		yaw = tmp;
+	}
+}
+
+
+
+
 /*
  * Constant, linear, linear, constant function with the three corner points as parameters
  *  y_high               -------

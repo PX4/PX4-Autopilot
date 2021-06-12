@@ -1,0 +1,48 @@
+# Manipulate a remote file system entry. Applies to files, directories, and links alike.
+# If the remote entry is a directory, all nested entries will be affected, too.
+#
+# The server should perform all operations atomically, unless atomicity is not supported by
+# the underlying file system.
+#
+# Atomic copying can be effectively employed by remote nodes before reading or after writing
+# the file to minimize the possibility of race conditions.
+# For example, before reading a large file from the server, the cilent might opt to create
+# a temporary copy of it first, then read the copy, and delete it upon completion. Likewise,
+# a similar strategy can be employed for writing, where the file is first written at a
+# temporary location, and then moved to its final destination. These approaches, however,
+# may lead to creation of dangling temporary files if the client failed to dispose of them
+# properly, so that risk should be taken into account.
+#
+# Move/Copy
+#   Specify the source path and the destination path.
+#   If the source does not exist, the operation will fail.
+#   Set the preserve_source flag to copy rather than move.
+#   If the destination exists and overwrite_destination is not set, the operation will fail.
+#   If the target path includes non-existent directories, they will be created (like "mkdir -p").
+#
+# Touch
+#   Specify the destination path and make the source path empty.
+#   If the path exists (file/directory/link), its modification time will be updated.
+#   If the path does not exist, an empty file will be created.
+#   If the target path includes non-existent directories, they will be created (like "mkdir -p").
+#   Flags are ignored.
+#
+# Remove
+#   Specify the source path (file/directory/link) and make the destination path empty.
+#   Fails if the path does not exist.
+#   Flags are ignored.
+
+bool preserve_source            # Do not remove the source. Used to copy instead of moving.
+bool overwrite_destination      # If the destination exists, remove it beforehand.
+void30
+
+Path.2.0 source
+Path.2.0 destination
+
+@extent 600 * 8
+
+---
+
+Error.1.0 error
+
+@extent 48 * 8

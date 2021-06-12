@@ -1,0 +1,56 @@
+<model name="quadrotor_x">
+    <mavlink_interface>
+        <tcp_port>4560</tcp_port>
+    </mavlink_interface>
+    <sensors>
+        <imu>
+            <jsb_acc_x>px4/acc-x</jsb_acc_x>
+            <jsb_acc_y>px4/acc-y</jsb_acc_y>
+            <jsb_acc_z>px4/acc-z</jsb_acc_z>
+            <jsb_gyro_x>px4/gyro-x</jsb_gyro_x>
+            <jsb_gyro_y>px4/gyro-y</jsb_gyro_y>
+            <jsb_gyro_z>px4/gyro-z</jsb_gyro_z>
+        </imu>
+        <gps>
+            <jsb_gps_fix_type>px4/gps-fix-type</jsb_gps_fix_type>
+            <jsb_gps_lat>px4/gps-lat</jsb_gps_lat>
+            <jsb_gps_lon>px4/gps-lon</jsb_gps_lon>
+            <jsb_gps_alt>px4/gps-alt</jsb_gps_alt>
+            <jsb_gps_eph>px4/gps-eph</jsb_gps_eph>
+            <jsb_gps_epv>px4/gps-epv</jsb_gps_epv>
+            <jsb_gps_v_north>px4/gps-v-north</jsb_gps_v_north>
+            <jsb_gps_v_east>px4/gps-v-east</jsb_gps_v_east>
+            <jsb_gps_v_down>px4/gps-v-down</jsb_gps_v_down>
+            <jsb_gps_velocity>px4/gps-velocity</jsb_gps_velocity>
+            <jsb_gps_satellites>px4/gps-satellites-visible</jsb_gps_satellites>
+        </gps>
+        <barometer>
+            <jsb_baro_temp>px4/baro-temp</jsb_baro_temp>
+            <jsb_baro_air_pressure>px4/baro-abs-pressure</jsb_baro_air_pressure>
+        </barometer>
+        <magnetometer>
+        </magnetometer>
+    </sensors>
+    <actuators>
+        <channel name="rotor0">
+            <index>0</index>
+            <scale>1</scale>
+            <property>fcs/esc-cmd-norm[0]</property>
+        </channel>
+        <channel name="rotor1">
+            <index>1</index>
+            <scale>1</scale>
+            <property>fcs/esc-cmd-norm[1]</property>
+        </channel>
+        <channel name="rotor2">
+            <index>2</index>
+            <scale>1</scale>
+            <property>fcs/esc-cmd-norm[2]</property>
+        </channel>
+        <channel name="rotor3">
+            <index>3</index>
+            <scale>1</scale>
+            <property>fcs/esc-cmd-norm[3]</property>
+        </channel>
+    </actuators>
+</model>

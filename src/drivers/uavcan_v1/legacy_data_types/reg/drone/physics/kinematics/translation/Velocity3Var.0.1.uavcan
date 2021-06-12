@@ -1,0 +1,7 @@
+# Linear velocity with covariance.
+# Observe that this is a structural subtype of uavcan.si.unit.velocity.Scalar.1.0.
+
+uavcan.si.sample.velocity.Vector3.1.0 value
+float16[6] covariance_urt  # [(meter/second)^2] Upper-right triangle of the covariance matrix.
+
+@sealed

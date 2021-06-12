@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<system name="PX4 Airspeed Sensor">
+<!--  =================================================================
+
+This is a generic JSBSim system file to simulate the Airspeed sensor behavior for PX4.
+
+  =================================================================  -->
+    <!-- Enable component failure -->
+    <property value="1">px4/qbar-psf/on</property>
+
+    <!-- Absolute value of alpha -->
+    <channel name="ALPHA-MAG-RAD">
+        <fcs_function>
+            <function>
+                <abs>
+                <property>aero/alpha-rad</property>
+                </abs>
+            </function>
+        <output>px4/alpha-mag-rad</output>
+        </fcs_function>
+    </channel>
+
+    <channel name="PITOT-BIAS">
+        <fcs_function>
+            <function>
+                <!-- https://www.unitedsensorcorp.com/pitot-properties.html -->
+                <!-- Simulate sensor bias based on angle of attack/side slip -->
+                <max>
+                    <table> <!-- X = Angle of attack (alpha), Y = Error% -->
+                        <independentVar>px4/alpha-mag-rad</independentVar>
+                        <tableData>
+                            0.0000  1.0000
+                            0.0873	1.0075
+                            0.1745	1.0220
+                            0.2618  1.0370
+                            0.3491	1.0300
+                            0.4363  1.0180
+                            0.5236  0.9800
+                        </tableData>
+                    </table>
+
+                    <table> <!-- X = Side slip (beta), Y = Error% -->
+                        <independentVar>aero/mag-beta-rad</independentVar>
+                        <tableData>
+                            0.0000  1.0000
+                            0.0873	1.0075
+                            0.1745	1.0220
+                            0.2618  1.0370
+                            0.3491	1.0300
+                            0.4363  1.0180
+                            0.5236  0.9800
+                        </tableData>
+                    </table>
+                </max>
+            </function>
+            <output>px4/pitot-bias</output>
+        </fcs_function>
+    </channel>
+
+    <!-- Pressure sensor without alpha or beta bias. -->
+    <channel name="PX4-DIFF-PRESSURE" execute="px4/qbar-psf/on">
+        <sensor name="px4/qbar-psf">
+            <input>aero/qbar-psf</input>
+            <lag> 0 </lag>
+            <!--Adjust as required
+            <noise variation="ABSOLUTE" distribution="GAUSSIAN"> 0.01 </noise>
+            <quantization name="name">
+                <bits> number </bits>
+                <min> number </min>
+                <max> number </max>
+            </quantization>
+            <drift_rate> number </drift_rate>
+            <gain> number </gain>
+            <bias> number </bias>
+            <delay [type="time|frames"]> number < /delay>
+            -->
+        </sensor>
+    </channel>
+
+    <!-- Pressure sensor with pitot bias -->
+    <channel name="BIASED-DIFF-PRESSURE">
+        <fcs_function>
+            <function>
+                <product>
+                    <property>px4/qbar-psf</property>
+                    <property>px4/pitot-bias</property>
+                </product>
+            </function>
+            <output>px4/biased-qbar-psf</output>
+        </fcs_function>
+    </channel>
+</system>

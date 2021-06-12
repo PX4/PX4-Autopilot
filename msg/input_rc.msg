@@ -33,3 +33,5 @@ uint16 rc_ppm_frame_length		# Length of a single PPM frame. Zero for non-PPM sys
 
 uint8 input_source			# Input source
 uint16[18] values			# measured pulse widths for each of the supported channels
+
+# TOPICS input_rc slave_rc

@@ -1,0 +1,4 @@
+Point.0.1 position
+uavcan.si.unit.angle.Quaternion.1.0 orientation
+
+@sealed

@@ -1,0 +1,16 @@
+# The function of the service heartbeat is similar to that of the node heartbeat defined in the standard namespace,
+# except that it is used on a per-service basis, meaning that there may be more than one publisher per node.
+#
+# The service heartbeat should be published either on a separate subject, or as a structural supertype of a
+# service-specific status subject. The publication rate is service-specific but it should not be lower than 1 Hz.
+#
+# This is a structural subtype of the Readiness type.
+
+uint8 MAX_PUBLICATION_PERIOD = 1
+# Any service that is not in the SLEEP state should publish its heartbeat (or a derived status) at least at this rate.
+
+Readiness.0.1 readiness
+uavcan.node.Health.1.0 health
+
+@sealed
+@assert _offset_ / 8 == {2}

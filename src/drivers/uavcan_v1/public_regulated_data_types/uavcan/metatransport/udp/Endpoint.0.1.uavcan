@@ -1,0 +1,19 @@
+# A UDP/IP endpoint address specification.
+
+@deprecated  # Replaced by uavcan.metatransport.ethernet
+
+uint8[16] ip_address
+# The IP address of the host in the network byte order (big endian).
+# IPv6 addresses are represented as-is.
+# IPv4 addresses are represented using IPv4-mapped IPv6 addresses.
+
+uint8[6] mac_address
+# MAC address of the host in the network byte order (big endian).
+
+uint16 port
+# The UDP port number.
+
+void64
+
+@sealed
+@assert _offset_ == {32} * 8

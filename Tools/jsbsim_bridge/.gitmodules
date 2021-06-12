@@ -1,0 +1,6 @@
+[submodule "models/Rascal"]
+	path = models/Rascal
+	url = https://github.com/Auterion/FlightGear-Rascal.git
+[submodule "models/ATI-Resolution"]
+	path = models/ATI-Resolution
+	url = https://github.com/FGMEMBERS/ATI-Resolution.git

@@ -1,0 +1,29 @@
+name: Style Checks
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        container:
+        - 'px4io/px4-dev-simulation-focal:2020-09-14'
+    container: ${{ matrix.container }}
+    steps:
+    - uses: actions/checkout@v1
+    - name: submodule update
+      run: git submodule update --init --recursive
+    - name: Install clang-format
+      run: apt update && apt install -y clang-format-6.0
+    - name: Check Code format
+      working-directory: scripts
+      run: |
+        ./check_code_format.sh ..

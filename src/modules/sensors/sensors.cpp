@@ -79,6 +79,9 @@
 #include "vehicle_air_data/VehicleAirData.hpp"
 #include "vehicle_imu/VehicleIMU.hpp"
 
+//mx3g-jh
+#include <systemlib/mavlink_log.h>
+
 using namespace sensors;
 using namespace time_literals;
 
@@ -113,6 +116,8 @@ public:
 private:
 	const bool	_hil_enabled;			/**< if true, HIL is active */
 	bool		_armed{false};				/**< arming status of the vehicle */
+	//mx3g-jh
+	orb_advert_t _mavlink_log_pub = nullptr;
 
 	hrt_abstime     _last_config_update{0};
 	hrt_abstime     _sensor_combined_prev_timestamp{0};
@@ -476,6 +481,8 @@ void Sensors::InitializeVehicleIMU()
 
 void Sensors::Run()
 {
+
+	//mavlink_log_critical(&_mavlink_log_pub, "sensor RUN ");
 	if (should_exit()) {
 		// clear all registered callbacks
 		for (auto &sub : _vehicle_imu_sub) {
@@ -626,6 +633,7 @@ int Sensors::task_spawn(int argc, char *argv[])
 		_task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
+			PX4_INFO("task_spawn sensor !return PX4_OK");
 			return PX4_OK;
 		}
 

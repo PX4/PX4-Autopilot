@@ -1,0 +1,142 @@
+<?xml version="1.0"?>
+
+<!--
+************************************************************************
+YASim aerodynamic model for a Rascal 110 (R/C airplane by Sig Mfg.)
+Started December 19, 2005 by Curtis Olson.
+
+This aerodynamic model is based on three-views, self captured
+performance data, and few guesses.  These sites provided particularly
+useful information or were simply fun to visit:
+http://gallinazo.flightgear.org/uas/rascal-1/sig-rascal-110-1-construction/
+
+The reference datum for measurements is the tip of the nose.
+************************************************************************
+-->
+
+<!-- 12 lb aircraft weight includes engine, but not fuel (empty weight) -->
+<airplane version="YASIM_VERSION_CURRENT" mass-kg="5.4" mtow-kg="25">
+
+<!-- Approach configuration -->
+<approach speed="18" aoa="4">
+  <control-setting axis="/controls/engines/engine[0]/throttle" value="0.10"/>
+</approach>
+
+<!-- Cruise configuration -->
+<cruise speed="30" alt="1000">
+  <control-setting axis="/controls/engines/engine[0]/throttle" value="1.00"/>
+  <control-setting axis="/controls/engines/engine[0]/mixture" value="1.00"/>
+  <control-setting axis="/controls/flight/elevator-trim" value="0.4"/>
+</cruise>
+
+<!-- pilot's eyepoint -->
+<cockpit x="-0.48" y="0" z="0.30"/>
+
+<fuselage ax="0.00" ay="0.00" az="-0.05" bx="-1.93" by="0.00" bz="-0.05"
+          width="0.30" taper="0.47" midpoint="0.58"/>
+
+<!--
+  The Rascal has an eliptical wing, but we'll model it as a straight
+  tapered wing with the equivalent wing area.
+  Note that the dihedral is exaggerated to simulate hull-interference effects
+  on a high-wing aircraft; once YASim models that properly, the
+  angle should be reduced to something like 2 degrees.
+
+  Note that the Rascal has no flaps.  With a stall speed of 10kt, who
+  needs them?
+-->
+
+
+
+<wing x="-0.66" y="0.07" z="0.11" taper="0.73" incidence="0" twist="-3"
+      length="1.33" chord="0.41" sweep="0" dihedral="5" camber="0.0">
+  <stall aoa="15" width="4" peak="1.5"/>
+  <flap0 start="0.40" end="0.95" lift="1.1" drag="1.2"/>
+  <control-input axis="/controls/flight/aileron" control="FLAP0" split="true"/>
+  <control-input axis="/controls/flight/aileron-trim" control="FLAP0" split="true"/>
+  <control-output control="FLAP0" side="left" prop="/surface-positions/left-aileron-pos-norm"/>
+  <control-output control="FLAP0" side="right" prop="/surface-positions/right-aileron-pos-norm"/>
+</wing>
+
+
+
+
+<hstab x="-1.80" y="0.03" z="0.00" taper="0.6" effectiveness="1.0"
+       length="0.43" chord="0.18" sweep="0" incidence="0.00">
+  <stall aoa="16" width="4" peak="1.5"/>
+  <flap0 start="0" end="1" lift="1.3" drag="1.2"/>
+  <control-input axis="/controls/flight/elevator" control="FLAP0"/>
+  <control-input axis="/controls/flight/elevator-trim" control="FLAP0"/>
+  <control-output control="FLAP0" prop="/surface-positions/elevator-pos-norm"/>
+</hstab>
+
+<!--
+
+-->
+
+<!-- rudder has to be able to counteract aileron drag -->
+<vstab x="-1.80" y="0.00" z="0.00" taper="0.38" effectiveness="1.0"
+       length="0.37" chord="0.33" sweep="0" incidence="0.00">
+  <stall aoa="16" width="4" peak="1.5"/>
+  <flap0 start="0" end="1" lift="2.0" drag="1.2"/>
+  <control-input axis="/controls/flight/rudder" control="FLAP0" invert="true"/>
+  <control-input axis="/controls/flight/rudder-trim" control="FLAP0" invert="true"/>
+  <control-output control="FLAP0" prop="/surface-positions/rudder-pos-norm"
+		  min="1" max="-1"/>
+</vstab>
+
+<!-- motor is reported to do 2.4 bhp but this way over powers the aircraft -->
+<propeller radius="0.23"
+           x="-0.10" y="0.00" z="0.00"
+           mass="3.5" moment="0.001"
+	         cruise-speed="30" cruise-rpm="7000"
+           cruise-alt="2000" cruise-power="1.3"
+           takeoff-power="1.5" takeoff-rpm="8000"
+           contra="0"
+           >
+  <actionpt x="0.00" y="0.00" z="0.00"/>
+  <electric-engine Kv="750" voltage="15" Rm="0.02" >
+    <control-input axis="/controls/engines/engine[0]/throttle" control="THROTTLE"/>
+  </electric-engine>
+</propeller>
+
+<!-- tail gear -->
+<gear x="-1.93" y="0.00" z="-0.13"
+  sfric="1.6"
+  dfric="1.3"
+  compression="0.01"
+  >
+  <control-input axis="/controls/flight/rudder" control="STEER"
+                 src0="-1.0" src1="1.0"
+                 dst0="0.5" dst1="-0.5"/>
+</gear>
+
+<!-- left main -->
+<gear x="-0.48" y="0.27" z="-0.39"
+  sfric="1.2"
+  dfric="1.1"
+  compression="0.03"
+  >
+  <control-input axis="/controls/gear/brake-left" control="BRAKE" split="true"/>
+  <control-input axis="/controls/gear/brake-parking" control="BRAKE" split="true"/>
+</gear>
+
+<!-- right main -->
+<gear x="-0.48" y="-0.27" z="-0.39"
+  sfric="1.2"
+  dfric="1.1"
+  compression="0.03"
+  >
+  <control-input axis="/controls/gear/brake-right" control="BRAKE" split="true"/>
+  <control-input axis="/controls/gear/brake-parking" control="BRAKE" split="true"/>
+</gear>
+
+<!-- There's just one 20 oz tank, right behind the engine (!!!) -->
+<tank x="-0.23" y="0.0" z="-0.08" capacity="1.00"/>
+
+<!--
+<ballast x="0.0" y="00" z="0.0" mass="1.2"/>
+-->
+
+
+</airplane>

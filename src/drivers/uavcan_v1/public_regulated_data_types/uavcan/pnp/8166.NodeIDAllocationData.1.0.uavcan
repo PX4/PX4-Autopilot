@@ -1,0 +1,60 @@
+# This definition of the allocation message is intended for use with transports where anonymous transfers are limited
+# to 7 bytes of payload, such as Classic CAN. The definition is carried over from the original UAVCAN v0 specification
+# with some modifications. For transports other than Classic CAN (e.g., CAN FD, serial, etc.) there is a more
+# general, more capable definition NodeIDAllocationData v2.0. The PnP protocol itself is described in the documentation
+# for the v2 definition. The documentation provided here builds upon the general case, so read that first please.
+#
+# The full 128-bit unique-ID can't be accommodated in a single-frame anonymous message transfer over Classic CAN, so
+# this definition substitutes the full 128-bit ID with a smaller 48-bit hash of it. The 48-bit hash is obtained by
+# applying an arbitrary hash function to the unique-ID that outputs at least 48 bit of data. The recommended hash
+# function is the standard CRC-64WE where only the lowest 48 bit of the result are used.
+#
+# Allocators that support allocation messages of different versions should maintain a shared allocation table for all.
+# Requests received via the v1 message obviously do not contain the full unique-ID; the allocators are recommended
+# to left-zero-pad the small 48-bit hash in order to obtain a "pseudo unique-ID", and use this value in the
+# allocation table as a substitute for the real unique-ID. It is recognized that this behavior will have certain
+# side effects, such as the same allocatee obtaining different allocated node-ID values depending on which version
+# of the message is used, but they are considered tolerable.
+#
+# Allocatees that may need to operate over Classic CAN along with high-MTU transports may choose to use
+# only this constrained method of allocation for consistency and simplification.
+#
+# In order to save space for the hash, the preferred node-ID is removed from the request. The allocated node-ID
+# is provided in the response, however; this is achieved by means of an optional field that is not populated in
+# the request but is populated in the response. This implies that the response may be a multi-frame transfer,
+# which is acceptable since responses are sent by allocators, which are regular nodes, and therefore they are
+# allowed to use regular message transfers rather than being limited to anonymous message transfers as allocatees are.
+#
+# On the allocatee's side the protocol is defined through the following set of rules:
+#
+#   Rule A. On initialization:
+#     1. The allocatee subscribes to this message.
+#     2. The allocatee starts the Request Timer with a random interval of Trequest.
+#
+#   Rule B. On expiration of the Request Timer (started as per rules A, B, or C):
+#     1. Request Timer restarts with a random interval of Trequest (chosen anew).
+#     2. The allocatee broadcasts an allocation request message, where the fields are populated as follows:
+#        unique_id_hash    - a 48-bit hash of the unique-ID of the allocatee.
+#        allocated_node_id - empty (not populated).
+#
+#   Rule C. On any allocation message, even if other rules also match:
+#     1. Request Timer restarts with a random interval of Trequest (chosen anew).
+#
+#   Rule D. On an allocation message WHERE (source node-ID is non-anonymous, i.e., regular allocation response)
+#                                    AND   (the field unique_id_hash matches the allocatee's 48-bit unique-ID hash)
+#                                    AND   (the field allocated_node_id is populated):
+#     1. Request Timer stops.
+#     2. The allocatee initializes its node-ID with the received value.
+#     3. The allocatee terminates its subscription to allocation messages.
+#     4. Exit.
+
+truncated uint48 unique_id_hash
+# An arbitrary 48-bit hash of the unique-ID of the local node.
+
+uavcan.node.ID.1.0[<=1] allocated_node_id
+# Shall be empty in request messages.
+# Shall be populated in response messages.
+
+@sealed
+@assert _offset_.min / 8 == 7        # This is for requests only.
+@assert _offset_.max / 8 == 9        # Responses are non-anonymous, so they can be multi-frame.

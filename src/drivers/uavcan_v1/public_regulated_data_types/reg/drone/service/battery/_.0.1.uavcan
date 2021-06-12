@@ -1,0 +1,49 @@
+# This is the smart battery monitoring service. A smart battery is required to publish the following subjects:
+#
+#   SUBJECT                 TYPE                                            TYP. RATE [Hz]
+#   energy_source           reg.drone.physics.electricity.SourceTs          1...100
+#   battery_status          reg.drone.service.battery.Status                ~1
+#   battery_parameters      reg.drone.service.battery.Parameters            ~0.2
+#
+# Observe that only the first subject can be used for estimating the endurance of the power source. The other subjects
+# are designed for monitoring, diagnostics, and maintenance.
+#
+# Optionally, the battery service can subscribe to a readiness control subject (see reg.drone.service.common.Readiness),
+# which enables the following two optional capabilities:
+#
+#   - SLEEP mode: when the readiness subject commands the sleep state, the battery management system may enter a
+#     low power consumption state, possibly deactivating some of its capabilities.
+#
+#   - STANDBY mode: the battery management system may implement additional safety protections that may otherwise
+#     interfere with the normal operation of the vehicle. For example, the traction battery may limit the maximum
+#     load current and the depth of discharge unless the commanded state is ENGAGED. By doing so, the battery can
+#     protect itself and the supplied high-voltage DC network from accidental damage while the vehicle is parked.
+#     Limiting the output power or discharge of the traction battery might lead to catastrophic consequences in
+#     an aerial vehicle, hence such safety checks are to be disabled once the battery is commanded into the ENGAGED
+#     state.
+#
+# If readiness state selection is not supported, the battery may not subscribe to the readiness control subject,
+# in which case it should permanently report its state as ENGAGED unless the battery is unfit for use (e.g., due
+# to degradation of a failure).
+#
+# By convention, positive power (current) flows from the DC network into the battery. Therefore, the current is
+# negative when the battery powers the system, and positive when it is being charged.
+#
+# Systems that leverage multiple battery packs simultaneously should be configured to publish the status of each
+# pack on a separate subject.
+#
+# Published quantities should be low-pass filtered to avoid aliasing effects.
+# Publishers should strive to sample all parameters atomically.
+#
+# The reported quantities are focused on the amount of energy that can be reclaimed from the battery. In a
+# simplified view, this can be seen as the amount of energy that is "stored" in the battery; however, this
+# interpretation is not strictly correct because the amount of retrievable energy may be dependent on external
+# factors such as the temperature of the battery or the load current. Energy estimation is hard and requires
+# accurate modeling of the state of the battery, which may be impossible to do without precise tracking of each
+# charging cycle. Despite the complications, this is considered to be a superior approach compared to the commonly
+# used alternative where the state estimation is focused on the electric charge, because the latter cannot be used
+# directly to predict the endurance of the system.
+#
+# The methods of energy estimation are implementation-defined.
+
+@extent 0  # This type is not intended for runtime use.

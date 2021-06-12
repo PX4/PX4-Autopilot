@@ -1,0 +1,18 @@
+# The operating mode of a node.
+# Reserved values can be used in future revisions of the specification.
+
+uint3 value
+
+uint3 OPERATIONAL = 0
+# Normal operating mode.
+
+uint3 INITIALIZATION = 1
+# Initialization is in progress; this mode is entered immediately after startup.
+
+uint3 MAINTENANCE = 2
+# E.g., calibration, self-test, etc.
+
+uint3 SOFTWARE_UPDATE = 3
+# New software/firmware is being loaded or the bootloader is running.
+
+@sealed

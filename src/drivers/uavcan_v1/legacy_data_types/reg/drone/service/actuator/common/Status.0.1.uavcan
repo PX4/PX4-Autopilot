@@ -1,0 +1,18 @@
+# Auxiliary actuator status information published at a low rate asynchronously, usually at 1 Hz.
+# It is mostly intended for diagnostics and logging purposes.
+# In this revision this type is common for all kinds of actuators, but in the future it may be replaced
+# with per-kind specializations.
+
+uavcan.si.unit.temperature.Scalar.1.0 motor_temperature
+uavcan.si.unit.temperature.Scalar.1.0 controller_temperature
+# Sampled temperatures. If multiple values are available, reduction is implementation-defined.
+
+uint32 error_count
+# Incremented once per occurrence. Reset to zero when ENGAGED.
+# The exact definition of what constitutes an error is implementation-dependent.
+
+FaultFlags.0.1 fault_flags
+
+# TODO: add vibration
+
+@extent 63 * 8  # Single-frame transfer over CAN FD.

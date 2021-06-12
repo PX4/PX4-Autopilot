@@ -554,6 +554,9 @@ else
 		sh /etc/init.d/rc.autostart.post
 	fi
 
+	#mx3g-jh
+		#my_test start
+
 	if ! param compare SYS_PARAM_VER ${PARAM_DEFAULTS_VER}
 	then
 		echo "Switched to different parameter version. Resetting parameters."

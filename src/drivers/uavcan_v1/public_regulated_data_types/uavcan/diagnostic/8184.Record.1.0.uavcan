@@ -1,0 +1,17 @@
+# Generic human-readable text message for logging and displaying purposes.
+# Generally, it should be published at the lowest priority level.
+
+@deprecated
+
+uavcan.time.SynchronizedTimestamp.1.0 timestamp
+# Optional timestamp in the network-synchronized time system; zero if undefined.
+# The timestamp value conveys the exact moment when the reported event took place.
+
+Severity.1.0 severity
+
+uint8[<=112] text
+# Message text.
+# Normally, messages should be kept as short as possible, especially those of high severity.
+
+@extent 300 * 8
+@assert _offset_.max <= (124 * 8)     # Two CAN FD frames max

@@ -1,0 +1,40 @@
+# This service can be used to list a remote directory, one entry per request.
+#
+# The client should query each entry independently, iterating 'entry_index' from 0 until the last entry.
+# When the index reaches the number of elements in the directory, the server will report that there is
+# no such entry by returning an empty name.
+#
+# The field entry_index shall be applied to an ordered list of directory entries (e.g. alphabetically ordered).
+# The exact sorting criteria does not matter as long as it provides the same ordering for subsequent service calls.
+#
+# Observe that this listing operation is fundamentally non-atomic. The caller shall beware of possible race conditions
+# and is responsible for handling them properly. Particularly, consider what happens if a new item is inserted into
+# the directory between two subsequent calls: if the item happened to be inserted at the index that is lower than the
+# index of the next request, the next returned item (or several, if more items were inserted) will repeat the ones
+# that were listed earlier. The caller should handle that properly, either by ignoring the repeated items or by
+# restarting the listing operation from the beginning (index 0).
+
+@deprecated
+
+uint32 entry_index
+
+void32                  # Reserved for future use.
+
+Path.1.0 directory_path
+
+@extent 300 * 8
+
+---
+
+void32                  # Reserved for future use.
+
+Path.1.0 entry_base_name
+# The base name of the referenced entry, i.e., relative to the outer directory.
+# The outer directory path is not included to conserve bandwidth.
+# Empty if such entry does not exist.
+#
+# For example, suppose there is a file "/foo/bar/baz.bin". Listing the directory with the path "/foo/bar/" (the slash
+# at the end is optional) at the index 0 will return "baz.bin". Listing the same directory at the index 1 (or any
+# higher) will return an empty name "", indicating that the caller has reached the end of the list.
+
+@extent 300 * 8

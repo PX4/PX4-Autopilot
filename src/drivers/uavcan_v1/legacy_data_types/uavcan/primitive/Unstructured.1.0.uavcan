@@ -1,0 +1,7 @@
+# An unstructured collection of bytes, e.g., raw binary image.
+
+uint8[<=256] value
+
+@sealed
+@assert _offset_ % 8 == {0}
+@assert _offset_.max / 8 == 258

@@ -1,0 +1,5 @@
+# CAN bus error report: either an intentionally generated error frame or a disturbance.
+
+void32
+
+@sealed

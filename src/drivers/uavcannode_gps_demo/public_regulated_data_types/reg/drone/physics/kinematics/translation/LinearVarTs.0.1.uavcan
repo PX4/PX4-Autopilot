@@ -1,0 +1,10 @@
+# This is a structural subtype of LinearTs.
+# Use best guess if the error variance is unknown.
+
+LinearTs.0.1 value
+
+float16 position_error_variance         # [meter^2]
+float16 velocity_error_variance         # [(meter/second)^2]
+float16 acceleration_error_variance     # [(meter/second^2)^2]
+
+@sealed

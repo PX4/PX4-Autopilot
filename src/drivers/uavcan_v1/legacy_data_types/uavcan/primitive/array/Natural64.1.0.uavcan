@@ -1,0 +1,4 @@
+uint64[<=32] value
+@assert _offset_ % 8 == {0}
+@assert _offset_.max / 8 == 257
+@sealed

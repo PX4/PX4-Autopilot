@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<system name="PX4 Baro Sensor">
+<!--  =================================================================
+
+This is a generic JSBSim system file to simulate the Baro sensor behavior for PX4.
+
+  =================================================================  -->
+
+    <!-- Enable Individual Component Failure -->
+    <property value="1">px4/baro/on</property>
+    <property value="1">px4/temp/on</property>
+
+    <channel name="Abs-Pressure" execute="px4/baro/on">
+        <sensor name="px4/baro-abs-pressure">
+            <input>atmosphere/P-psf</input>
+            <lag> 0 </lag>
+            <!--Adjust as required
+            <noise variation="ABSOLUTE" distribution="GAUSSIAN"> 0.00000001 </noise>
+            <quantization name="name">
+                <bits> number </bits>
+                <min> number </min>
+                <max> number </max>
+            </quantization>
+            <drift_rate> number </drift_rate>
+            <gain> number </gain>
+            <bias> number </bias>
+            <delay [type="time|frames"]> number < /delay>
+            -->
+        </sensor>
+    </channel>
+
+    <channel name="Temperature" execute="px4/temp/on">
+        <sensor name="px4/baro-temp">
+            <input>atmosphere/T-R</input>
+            <lag> 0 </lag>
+            <!--Adjust as required
+            <noise variation="ABSOLUTE" distribution="GAUSSIAN"> 0.00000001</noise>
+            <quantization name="name">
+                <bits> number </bits>
+                <min> number </min>
+                <max> number </max>
+            </quantization>
+            <drift_rate> number </drift_rate>
+            <gain> number </gain>
+            <bias> number </bias>
+            <delay [type="time|frames"]> number < /delay>
+            -->
+        </sensor>
+    </channel>
+</system>

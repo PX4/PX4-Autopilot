@@ -129,7 +129,8 @@ typedef struct {
 // on a high priority ensures that they are the first process to be run
 // when the estimator updates.
 #define SCHED_PRIORITY_POSITION_CONTROL		(PX4_WQ_HP_BASE - 7)
-
+//mx3g-jh
+#define SCHED_PRIORITY_RC_HUB		(SCHED_PRIORITY_MAX - 6)
 // The log capture (which stores log data into RAM) should run faster
 // than other components, but should not run before the control pipeline
 #define SCHED_PRIORITY_LOG_CAPTURE		(PX4_WQ_HP_BASE - 10)

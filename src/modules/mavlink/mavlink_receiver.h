@@ -180,7 +180,9 @@ private:
 	void handle_message_vision_position_estimate(mavlink_message_t *msg);
 	void handle_message_onboard_computer_status(mavlink_message_t *msg);
 
-
+	//mx3g-jh
+	void handle_message_rc_channels(mavlink_message_t *msg);
+	void handle_message_rc_slave_channels(mavlink_message_t *msg);
 	void Run();
 
 	/**
@@ -261,10 +263,16 @@ private:
 	uORB::Publication<vehicle_trajectory_bezier_s>	_trajectory_bezier_pub{ORB_ID(vehicle_trajectory_bezier)};
 	uORB::Publication<vehicle_trajectory_waypoint_s>	_trajectory_waypoint_pub{ORB_ID(vehicle_trajectory_waypoint)};
 
+	uORB::Publication<input_rc_s>			_slave_rc_pub{ORB_ID(slave_rc)};
 	// ORB publications (multi)
 	uORB::PublicationMulti<distance_sensor_s>		_distance_sensor_pub{ORB_ID(distance_sensor), ORB_PRIO_LOW};
 	uORB::PublicationMulti<distance_sensor_s>		_flow_distance_sensor_pub{ORB_ID(distance_sensor), ORB_PRIO_LOW};
-	uORB::PublicationMulti<input_rc_s>			_rc_pub{ORB_ID(input_rc), ORB_PRIO_LOW};
+	//mx3g-jh
+	//orb_advert_t _rc_pub;
+	//orb_advert_t _slave_rc_pub;
+	uORB::PublicationMulti<input_rc_s>			_rc_pub{ORB_ID(input_rc), ORB_PRIO_HIGH};
+	//uORB::PublicationMulti<input_rc_s>			_slave_rc_pub{ORB_ID(slave_rc), ORB_PRIO_HIGH};
+
 	uORB::PublicationMulti<manual_control_setpoint_s>	_manual_control_setpoint_pub{ORB_ID(manual_control_setpoint), ORB_PRIO_LOW};
 	uORB::PublicationMulti<ping_s>				_ping_pub{ORB_ID(ping), ORB_PRIO_LOW};
 	uORB::PublicationMulti<radio_status_s>			_radio_status_pub{ORB_ID(radio_status), ORB_PRIO_LOW};

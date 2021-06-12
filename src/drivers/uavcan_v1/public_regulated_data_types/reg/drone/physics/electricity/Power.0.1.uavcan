@@ -1,0 +1,10 @@
+# DC or AC line electric power quantities. Generally, the following current sign convention applies:
+#
+#   - Positive current flows from the electric power supply network to the load (e.g., an actuator).
+#
+#   - If the electric network is the load itself powered from a source (e.g., battery), the current is negative.
+
+uavcan.si.unit.electric_current.Scalar.1.0 current
+uavcan.si.unit.voltage.Scalar.1.0 voltage
+
+@sealed

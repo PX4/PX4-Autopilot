@@ -1,0 +1,51 @@
+# There are multiple satellite networks and other data sources which provide autonomous geo-spatial positioning
+# with global coverage. These flags are used for identifying which of those data sources
+# are the source of the location data provided by the GNSS sensor node.
+#
+# Note that these fields convey no information about the status the navigation solution. Here is a specific example:
+#
+# - Heartbeat.fix     - indicates that a standalone navigation solution is available.
+#
+# - Heartbeat.rtk_fix - indicates that an RTK fix is established and the integer wavelength ambiguity is resolved.
+#
+# - Sources.rtk_base  - indicates that base station data (usually encapsulated into RTCM stream) is available
+#                       to the receiver, but it says nothing about the status of the navigation solution.
+
+bool gps_l1             # 1575.42 MHz
+bool gps_l2             # 1227.60 MHz
+bool gps_l5             # 1176.45 MHz
+
+bool glonass_l1         # 1602 + k 0.5625 MHz, k in [-7,6]
+bool glonass_l2         # 1246 + k 0.4375 MHz, k in [-7,6]
+bool glonass_l3         # TBA
+
+bool galileo_e1         # 1575.42 MHz
+bool galileo_e5a        # 1176.45 MHz
+bool galileo_e5b        # 1207.14 MHz
+bool galileo_e6         # 1278.75 MHz
+
+bool beidou_b1          # 1531.098 MHz
+bool beidou_b2          # 1207.140 MHz
+
+void5                   # Reserved for other constellations.
+
+bool sbas               # Satellite-Based Augmentation System (WAAS, EGNOS, GAGAN, QZSS, etc.)
+bool gbas               # Ground-Based Augmentation System, DGPS (IMES, etc.)
+
+bool rtk_base           # Real-Time Kinematics base station data
+void3                   # Reserved for other RTK-related sources.
+
+bool imu                # Inertial Measurement Unit
+bool visual_odometry
+bool dead_reckoning     # Any dead reckoning equipment (e.g., wheel odometry)
+bool uwb                # Ultra-wideband positioning
+void4
+
+bool magnetic_compass
+bool gyro_compass
+bool other_compass
+
+void14  # Add new items here to ensure backward compatibility.
+
+@assert _offset_ == {48}
+@sealed

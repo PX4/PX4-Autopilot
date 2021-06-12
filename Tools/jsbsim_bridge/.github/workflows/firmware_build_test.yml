@@ -1,0 +1,66 @@
+name: Firmware Build Tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  Firmware-build:
+    runs-on: ubuntu-latest
+    container: px4io/px4-dev-simulation-focal:2020-09-14
+    steps:
+    - name: Checkout Firmware master
+      uses: actions/checkout@v2.3.1
+      with:
+        repository: PX4/Firmware
+        ref: master
+        path: Firmware
+        fetch-depth: 0
+        submodules: recurvise
+    - name: Download MAVSDK
+      run: wget https://github.com/mavlink/MAVSDK/releases/download/v0.27.0/mavsdk_0.27.0_ubuntu18.04_amd64.deb
+    - name: Install MAVSDK
+      run: dpkg -i mavsdk_0.27.0_ubuntu18.04_amd64.deb
+    - name: Checkout matching branch on PX4/Firmware if possible
+      run: |
+        git checkout ${{github.head_ref}} || echo "Firmware branch: ${{github.head_ref}} not found, using master instead"
+        git submodule update --init --recursive
+      working-directory: Firmware
+    - name: Configure Firmware to include current jsbsim_bridge version
+      working-directory: Firmware/Tools/jsbsim_bridge
+      run: |
+        git fetch origin pull/${{github.event.pull_request.number}}/head:${{github.head_ref}} || echo "Couldn't find the feature branch of the pull request, using default branch"
+        git checkout ${{github.head_ref}}
+    - name: Prepare ccache timestamp
+      id: ccache_cache_timestamp
+      shell: cmake -P {0}
+      run: |
+        string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
+        message("::set-output name=timestamp::${current_date}")
+    - name: ccache cache files
+      uses: actions/cache@v2
+      with:
+        path: ~/.ccache
+        key: sitl_tests-${{matrix.config.build_type}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
+        restore-keys: sitl_tests-${{matrix.config.build_type}}-ccache-
+    - name: setup ccache
+      run: |
+          mkdir -p ~/.ccache
+          echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+          echo "compression = true" >> ~/.ccache/ccache.conf
+          echo "compression_level = 6" >> ~/.ccache/ccache.conf
+          echo "max_size = 400M" >> ~/.ccache/ccache.conf
+          ccache -s
+          ccache -z
+    - name: Build Firmware
+      working-directory: Firmware
+      env:
+        DONT_RUN: 1
+        GIT_SUBMODULES_ARE_EVIL: 1
+      run: make px4_sitl_default jsbsim
+    - name: ccache post-run mavsdk_tests
+      run: ccache -s

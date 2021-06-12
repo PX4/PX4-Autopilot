@@ -1,0 +1,12 @@
+# Geodetic position: latitude, longitude, and altitude.
+# The order is chosen to match the axis ordering of the NED frame.
+# The size and layout of this structure is equal to the Cartesian pose type.
+
+float64 latitude   # [radian]
+float64 longitude  # [radian]
+
+uavcan.si.unit.length.WideScalar.1.0 altitude
+# Distance between the local mean sea level (MSL) and the focal point of the antenna. Positive altitude above the MSL.
+
+@sealed
+@assert _offset_ == reg.drone.physics.kinematics.cartesian.Point.0.1._bit_length_
