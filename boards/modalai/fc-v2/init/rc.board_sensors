@@ -22,7 +22,7 @@ icm42688p -s -b 1 -R 12 start
 icm42688p -s -b 2 -R 12 start
 
 # Internal I2C mag
-bmm150 -I start
+bmm150 -I -R 0 start
 
 # Internal I2C baro
 bmp388 -I start
