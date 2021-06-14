@@ -64,6 +64,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/mount_orientation.h>
 
 using namespace time_literals;
 
@@ -105,6 +106,7 @@ private:
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_constraints_sub{ORB_ID(vehicle_constraints)};
+	uORB::Subscription _mount_orientation_sub{ORB_ID(mount_orientation)};
 
 	hrt_abstime	_time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
 
@@ -128,6 +130,7 @@ private:
 		.maybe_landed = true,
 		.landed = true,
 	};
+	mount_orientation_s		_mount_orientation {};
 
 	DEFINE_PARAMETERS(
 		// Position Control

@@ -276,6 +276,7 @@ void MulticopterPositionControl::Run()
 
 		_control_mode_sub.update(&_control_mode);
 		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
+		_mount_orientation_sub.update(&_mount_orientation);
 
 		if (_param_mpc_use_hte.get()) {
 			hover_thrust_estimate_s hte;
@@ -400,6 +401,12 @@ void MulticopterPositionControl::Run()
 				math::constrain(speed_horizontal, 0.f, _param_mpc_xy_vel_max.get()),
 				math::min(speed_up, _param_mpc_z_vel_max_up.get()), // takeoff ramp starts with negative velocity limit
 				math::constrain(speed_down, 0.f, _param_mpc_z_vel_max_dn.get()));
+
+
+			if (true /*And parameter enable vmount yaw control*/)
+			{
+				_setpoint.yaw = _mount_orientation.attitude_euler_angle[2];
+			}
 
 			_control.setInputSetpoint(_setpoint);
 
