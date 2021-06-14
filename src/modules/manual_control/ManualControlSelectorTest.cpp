@@ -64,7 +64,7 @@ TEST(ManualControlSelector, RcInputOnly)
 	selector.update_manual_control_input(timestamp, input, 1);
 
 	EXPECT_TRUE(selector.setpoint().valid);
-	EXPECT_TRUE(selector.setpoint().data_source == manual_control_setpoint_s::SOURCE_RC);
+	EXPECT_TRUE(selector.setpoint().chosen_input.data_source == manual_control_input_s::SOURCE_RC);
 	EXPECT_EQ(selector.instance(), 1);
 }
 
@@ -91,7 +91,7 @@ TEST(ManualControlSelector, MavlinkInputOnly)
 	selector.update_manual_control_input(timestamp, input, 1);
 
 	EXPECT_TRUE(selector.setpoint().valid);
-	EXPECT_TRUE(selector.setpoint().data_source == manual_control_setpoint_s::SOURCE_MAVLINK_3);
+	EXPECT_TRUE(selector.setpoint().chosen_input.data_source == manual_control_input_s::SOURCE_MAVLINK_3);
 	EXPECT_EQ(selector.instance(), 1);
 
 	// But only the first MAVLink source wins, others are too late.
@@ -104,7 +104,7 @@ TEST(ManualControlSelector, MavlinkInputOnly)
 	selector.update_manual_control_input(timestamp, input, 1);
 
 	EXPECT_TRUE(selector.setpoint().valid);
-	EXPECT_TRUE(selector.setpoint().data_source == manual_control_setpoint_s::SOURCE_MAVLINK_3);
+	EXPECT_TRUE(selector.setpoint().chosen_input.data_source == manual_control_input_s::SOURCE_MAVLINK_3);
 	EXPECT_EQ(selector.instance(), 1);
 }
 
@@ -122,7 +122,7 @@ TEST(ManualControlSelector, AutoInput)
 	selector.update_manual_control_input(timestamp, input, 0);
 
 	EXPECT_TRUE(selector.setpoint().valid);
-	EXPECT_TRUE(selector.setpoint().data_source == manual_control_setpoint_s::SOURCE_RC);
+	EXPECT_TRUE(selector.setpoint().chosen_input.data_source == manual_control_input_s::SOURCE_RC);
 	EXPECT_EQ(selector.instance(), 0);
 
 	timestamp += 100_ms;
@@ -133,7 +133,7 @@ TEST(ManualControlSelector, AutoInput)
 	selector.update_manual_control_input(timestamp, input, 1);
 
 	EXPECT_TRUE(selector.setpoint().valid);
-	EXPECT_TRUE(selector.setpoint().data_source == manual_control_setpoint_s::SOURCE_RC);
+	EXPECT_TRUE(selector.setpoint().chosen_input.data_source == manual_control_input_s::SOURCE_RC);
 	EXPECT_EQ(selector.instance(), 0);
 
 	timestamp += 500_ms;
@@ -144,7 +144,7 @@ TEST(ManualControlSelector, AutoInput)
 	selector.update_manual_control_input(timestamp, input, 1);
 
 	EXPECT_TRUE(selector.setpoint().valid);
-	EXPECT_TRUE(selector.setpoint().data_source == manual_control_setpoint_s::SOURCE_MAVLINK_0);
+	EXPECT_TRUE(selector.setpoint().chosen_input.data_source == manual_control_input_s::SOURCE_MAVLINK_0);
 	EXPECT_EQ(selector.instance(), 1);
 }
 
@@ -162,7 +162,7 @@ TEST(ManualControlSelector, RcTimeout)
 	selector.update_manual_control_input(timestamp, input, 0);
 
 	EXPECT_TRUE(selector.setpoint().valid);
-	EXPECT_TRUE(selector.setpoint().data_source == manual_control_setpoint_s::SOURCE_RC);
+	EXPECT_TRUE(selector.setpoint().chosen_input.data_source == manual_control_input_s::SOURCE_RC);
 	EXPECT_EQ(selector.instance(), 0);
 
 	timestamp += 600_ms;
