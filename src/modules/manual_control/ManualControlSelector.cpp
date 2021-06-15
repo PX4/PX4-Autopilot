@@ -96,11 +96,6 @@ manual_control_setpoint_s ManualControlSelector::setpoint_from_input(const manua
 	setpoint.chosen_input.y = input.y;
 	setpoint.chosen_input.z = input.z;
 	setpoint.chosen_input.r = input.r;
-	// FIXME: what's that?
-	//setpoint.chosen_input.vx = (input.x - _manual_control_input[i].x) * dt_inv;
-	//setpoint.chosen_input.vy = (input.y - _manual_control_input[i].y) * dt_inv;
-	//setpoint.chosen_input.vz = (input.z - _manual_control_input[i].z) * dt_inv;
-	//setpoint.chosen_input.vr = (input.r - _manual_control_input[i].r) * dt_inv;
 	setpoint.chosen_input.flaps = input.flaps;
 	setpoint.chosen_input.aux1 = input.aux1;
 	setpoint.chosen_input.aux2 = input.aux2;
