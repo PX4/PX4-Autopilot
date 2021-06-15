@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,39 +31,62 @@
  *
  ****************************************************************************/
 
+/**
+ * @file AFBRS50.hpp
+ *
+ * Driver for the Broadcom AFBR-S50 connected via SPI.
+ *
+ */
 #pragma once
 
-#include <drivers/drv_hrt.h>
-#include <lib/conversion/rotation.h>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/distance_sensor.h>
+#include "argus.h"
 
-class PX4Rangefinder
+#include <drivers/drv_hrt.h>
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+
+using namespace time_literals;
+
+class AFBRS50 : public px4::ScheduledWorkItem
 {
 public:
-	PX4Rangefinder(const uint32_t device_id,
-		       const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
-	~PX4Rangefinder();
+	AFBRS50(const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	~AFBRS50() override;
 
-	// Set the MAV_DISTANCE_SENSOR type (LASER, ULTRASOUND, INFRARED, RADAR)
-	void set_rangefinder_type(uint8_t rangefinder_type) { _distance_sensor_pub.get().type = rangefinder_type; };
+	int init();
 
-	void set_device_id(const uint32_t device_id) { _distance_sensor_pub.get().device_id = device_id; };
-	void set_device_type(const uint8_t device_type);
+	/**
+	 * Diagnostics - print some basic information about the driver.
+	 */
+	void print_info();
 
-	void set_fov(const float fov) { set_hfov(fov); set_vfov(fov); }
-	void set_hfov(const float fov) { _distance_sensor_pub.get().h_fov = fov; }
-	void set_vfov(const float fov) { _distance_sensor_pub.get().v_fov = fov; }
-
-	void set_max_distance(const float distance) { _distance_sensor_pub.get().max_distance = distance; }
-	void set_min_distance(const float distance) { _distance_sensor_pub.get().min_distance = distance; }
-
-	void set_orientation(const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
-
-	void update(const hrt_abstime &timestamp_sample, const float distance, const int8_t quality = -1);
-
-	int get_instance() { return _distance_sensor_pub.get_instance(); };
+	/**
+	 * Stop the automatic measurement state machine.
+	 */
+	void stop();
 
 private:
-	uORB::PublicationMultiData<distance_sensor_s> _distance_sensor_pub{ORB_ID(distance_sensor)};
+	void Run() override;
+
+	void ProcessMeasurement(void *data);
+
+	static status_t measurement_ready_callback(status_t status, void *data);
+
+	argus_hnd_t *_hnd{nullptr};
+
+	enum class STATE : uint8_t {
+		TEST,
+		CONFIGURE,
+		COLLECT,
+		STOP
+	} _state{STATE::CONFIGURE};
+
+	PX4Rangefinder _px4_rangefinder;
+
+	hrt_abstime _measurement_time{0};
+
+	perf_counter_t _sample_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": sample interval")};
 };
