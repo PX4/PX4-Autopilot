@@ -248,8 +248,12 @@ def body_frame_accel_observation(P,state,R_to_body,vx,vy,vz,wx,wy):
 
     # Use this nonlinear model for the prediction in the implementation only
     # It uses a ballistic coefficient for each axis and a propeller momentum drag coefficient
-    # accXpred = -sign(vrel[0]) * 0.5*rho*vrel[0]*(vrel[0]/BCoefX + MCoef) # predicted acceleration measured along X body axis
-    # accYpred = -sign(vrel[1]) * 0.5*rho*vrel[1]*(vrel[1]/BCoefY + MCoef) # predicted acceleration measured along Y body axis
+    #
+    # accXpred = -sign(vrel[0]) * vrel[0]*(0.5*rho*vrel[0]/BCoefX + MCoef) # predicted acceleration measured along X body axis
+    # accYpred = -sign(vrel[1]) * vrel[1]*(0.5*rho*vrel[1]/BCoefY + MCoef) # predicted acceleration measured along Y body axis
+    #
+    # BcoefX and BcoefY have units of Kg/m^2
+    # Mcoef has units of 1/s
 
     # Use a simple viscous drag model for the linear estimator equations
     # Use the the derivative from speed to acceleration averaged across the
