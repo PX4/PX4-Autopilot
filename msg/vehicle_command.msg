@@ -120,6 +120,10 @@ uint8 VEHICLE_CAMERA_ZOOM_TYPE_CONTINUOUS = 1      # Continuous zoom up/down unt
 uint8 VEHICLE_CAMERA_ZOOM_TYPE_RANGE = 2           # Zoom value as proportion of full camera range
 uint8 VEHICLE_CAMERA_ZOOM_TYPE_FOCAL_LENGTH = 3    # Zoom to a focal length
 
+uint8 PARACHUTE_ACTION_DISABLE = 0
+uint8 PARACHUTE_ACTION_ENABLE = 1
+uint8 PARACHUTE_ACTION_RELEASE = 2
+
 uint8 FAILURE_UNIT_SENSOR_GYRO = 0
 uint8 FAILURE_UNIT_SENSOR_ACCEL = 1
 uint8 FAILURE_UNIT_SENSOR_MAG = 2

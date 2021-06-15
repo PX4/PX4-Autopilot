@@ -187,6 +187,8 @@ private:
 
 	bool stabilization_required();
 
+	void send_parachute_command();
+
 	DEFINE_PARAMETERS(
 
 		(ParamInt<px4::params::NAV_DLL_ACT>) _param_nav_dll_act,
@@ -373,7 +375,6 @@ private:
 	bool		_failsafe_old{false};	///< check which state machines for changes, clear "changed" flag
 	bool		_have_taken_off_since_arming{false};
 	bool		_should_set_home_on_takeoff{true};
-	bool		_flight_termination_printed{false};
 	bool		_system_power_usb_connected{false};
 
 	cpuload_s		_cpuload{};
