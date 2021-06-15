@@ -173,3 +173,26 @@ TEST(ManualControlSelector, RcTimeout)
 	EXPECT_FALSE(selector.setpoint().valid);
 	EXPECT_EQ(selector.instance(), -1);
 }
+
+TEST(ManualControlSelector, RcOutdated)
+{
+	ManualControlSelector selector;
+	selector.set_rc_in_mode(0);
+	selector.set_timeout(500_ms);
+
+	uint64_t timestamp = some_time;
+
+	manual_control_input_s input {};
+	input.data_source = manual_control_input_s::SOURCE_RC;
+	input.timestamp_sample = timestamp - 600_ms; // First sample is already outdated
+	selector.update_manual_control_input(timestamp, input, 0);
+
+	EXPECT_FALSE(selector.setpoint().valid);
+	EXPECT_EQ(selector.instance(), -1);
+
+	// If we update again it should still not get accepted
+	selector.update_manual_control_input(timestamp, input, 0);
+
+	EXPECT_FALSE(selector.setpoint().valid);
+	EXPECT_EQ(selector.instance(), -1);
+}
