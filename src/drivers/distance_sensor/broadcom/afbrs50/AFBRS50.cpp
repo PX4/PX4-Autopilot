@@ -66,7 +66,6 @@ AFBRS50::~AFBRS50()
 {
 	stop();
 
-	perf_free(_comms_error);
 	perf_free(_sample_perf);
 }
 
@@ -86,6 +85,8 @@ status_t AFBRS50::measurement_ready_callback(status_t status, void *data)
 void AFBRS50::ProcessMeasurement(void *data)
 {
 	if (data != nullptr) {
+		perf_count(_sample_perf);
+
 		argus_results_t res{};
 		status_t evaluate_status = Argus_EvaluateData(_hnd, &res, data);
 
@@ -99,10 +100,87 @@ void AFBRS50::ProcessMeasurement(void *data)
 
 int AFBRS50::init()
 {
-	_state = STATE::INIT;
-	ScheduleNow();
+	if (_hnd != nullptr) {
+		// retry
+		Argus_Deinit(_hnd);
+		Argus_DestroyHandle(_hnd);
+		_hnd = nullptr;
+	}
 
-	return PX4_OK;
+	_hnd = Argus_CreateHandle();
+
+	if (_hnd == nullptr) {
+		PX4_ERR("Handle not initialized");
+		return PX4_ERROR;
+	}
+
+	// Initialize the S2PI hardware required by the API.
+	S2PI_Init(BROADCOM_AFBR_S50_S2PI_SPI_BUS, SPI_BAUD_RATE);
+
+	status_t status = Argus_Init(_hnd, BROADCOM_AFBR_S50_S2PI_SPI_BUS);
+
+	if (status == STATUS_OK) {
+		uint32_t id = Argus_GetChipID(_hnd);
+		uint32_t value = Argus_GetAPIVersion();
+		uint8_t a = (value >> 24) & 0xFFU;
+		uint8_t b = (value >> 16) & 0xFFU;
+		uint8_t c = value & 0xFFFFU;
+		PX4_INFO_RAW("AFBR-S50 Chip ID: %d, API Version: %d v%d.%d.%d\n", id, value, a, b, c);
+
+		argus_module_version_t mv = Argus_GetModuleVersion(_hnd);
+
+		switch (mv) {
+		case AFBR_S50MV85G_V1:
+
+		// FALLTHROUGH
+		case AFBR_S50MV85G_V2:
+
+		// FALLTHROUGH
+		case AFBR_S50MV85G_V3:
+			_px4_rangefinder.set_min_distance(0.08f);
+			_px4_rangefinder.set_max_distance(10.f);
+			_px4_rangefinder.set_fov(math::radians(6.f));
+			PX4_INFO_RAW("AFBR-S50MV85G\n");
+			break;
+
+		case AFBR_S50LV85D_V1:
+			_px4_rangefinder.set_min_distance(0.08f);
+			_px4_rangefinder.set_max_distance(30.f);
+			_px4_rangefinder.set_fov(math::radians(6.f));
+			PX4_INFO_RAW("AFBR-S50LV85D (v1)\n");
+			break;
+
+		case AFBR_S50MV68B_V1:
+			_px4_rangefinder.set_min_distance(0.08f);
+			_px4_rangefinder.set_max_distance(10.f);
+			_px4_rangefinder.set_fov(math::radians(1.f));
+			PX4_INFO_RAW("AFBR-S50MV68B (v1)\n");
+			break;
+
+		case AFBR_S50MV85I_V1:
+			_px4_rangefinder.set_min_distance(0.08f);
+			_px4_rangefinder.set_max_distance(5.f);
+			_px4_rangefinder.set_fov(math::radians(6.f));
+			PX4_INFO_RAW("AFBR-S50MV85I (v1)\n");
+			break;
+
+		case AFBR_S50SV85K_V1:
+			_px4_rangefinder.set_min_distance(0.08f);
+			_px4_rangefinder.set_max_distance(10.f);
+			_px4_rangefinder.set_fov(math::radians(4.f));
+			PX4_INFO_RAW("AFBR-S50SV85K (v1)\n");
+			break;
+
+		default:
+			break;
+		}
+
+		_state = STATE::CONFIGURE;
+		ScheduleDelayed(AFBRS50_MEASURE_INTERVAL);
+		return PX4_OK;
+	}
+
+	return PX4_ERROR;
 }
 
 void AFBRS50::Run()
@@ -111,92 +189,6 @@ void AFBRS50::Run()
 	ScheduleDelayed(100_ms);
 
 	switch (_state) {
-	case STATE::INIT: {
-			if (_hnd == nullptr) {
-				_hnd = Argus_CreateHandle();
-			}
-
-			if (_hnd == nullptr) {
-				PX4_ERR("Handle not initialized");
-				ScheduleDelayed(100_ms);
-				return;
-			}
-
-			// Initialize the S2PI hardware required by the API.
-			S2PI_Init(BROADCOM_AFBR_S50_S2PI_SPI_BUS, SPI_BAUD_RATE);
-
-			status_t status = Argus_Init(_hnd, BROADCOM_AFBR_S50_S2PI_SPI_BUS);
-
-			if (status == STATUS_OK) {
-				uint32_t id = Argus_GetChipID(_hnd);
-				uint32_t value = Argus_GetAPIVersion();
-				uint8_t a = (value >> 24) & 0xFFU;
-				uint8_t b = (value >> 16) & 0xFFU;
-				uint8_t c = value & 0xFFFFU;
-				PX4_INFO_RAW("AFBR-S50 Chip ID: %d, API Version: %d v%d.%d.%d\n", id, value, a, b, c);
-
-				argus_module_version_t mv = Argus_GetModuleVersion(_hnd);
-
-				switch (mv) {
-				case AFBR_S50MV85G_V1:
-
-				// FALLTHROUGH
-				case AFBR_S50MV85G_V2:
-
-				// FALLTHROUGH
-				case AFBR_S50MV85G_V3:
-					_px4_rangefinder.set_min_distance(0.08f);
-					_px4_rangefinder.set_max_distance(10.f);
-					_px4_rangefinder.set_fov(math::radians(6.f));
-					PX4_INFO_RAW("AFBR-S50MV85G\n");
-					break;
-
-				case AFBR_S50LV85D_V1:
-					_px4_rangefinder.set_min_distance(0.08f);
-					_px4_rangefinder.set_max_distance(30.f);
-					_px4_rangefinder.set_fov(math::radians(6.f));
-					PX4_INFO_RAW("AFBR-S50LV85D (v1)\n");
-					break;
-
-				case AFBR_S50MV68B_V1:
-					_px4_rangefinder.set_min_distance(0.08f);
-					_px4_rangefinder.set_max_distance(10.f);
-					_px4_rangefinder.set_fov(math::radians(1.f));
-					PX4_INFO_RAW("AFBR-S50MV68B (v1)\n");
-					break;
-
-				case AFBR_S50MV85I_V1:
-					_px4_rangefinder.set_min_distance(0.08f);
-					_px4_rangefinder.set_max_distance(5.f);
-					_px4_rangefinder.set_fov(math::radians(6.f));
-					PX4_INFO_RAW("AFBR-S50MV85I (v1)\n");
-					break;
-
-				case AFBR_S50SV85K_V1:
-					_px4_rangefinder.set_min_distance(0.08f);
-					_px4_rangefinder.set_max_distance(10.f);
-					_px4_rangefinder.set_fov(math::radians(4.f));
-					PX4_INFO_RAW("AFBR-S50SV85K (v1)\n");
-					break;
-
-				default:
-					break;
-				}
-
-				_state = STATE::CONFIGURE;
-				ScheduleDelayed(AFBRS50_MEASURE_INTERVAL);
-
-			} else {
-				// retry
-				Argus_Deinit(_hnd);
-				Argus_DestroyHandle(_hnd);
-
-				_state = STATE::INIT;
-				ScheduleDelayed(100_ms);
-			}
-		}
-		break;
-
 	case STATE::TEST: {
 			Argus_VerifyHALImplementation(Argus_GetSPISlave(_hnd));
 
@@ -247,7 +239,6 @@ void AFBRS50::stop()
 
 void AFBRS50::print_info()
 {
-	perf_print_counter(_comms_error);
 	perf_print_counter(_sample_perf);
 }
 

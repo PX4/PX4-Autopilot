@@ -78,7 +78,6 @@ private:
 	argus_hnd_t *_hnd{nullptr};
 
 	enum class STATE : uint8_t {
-		INIT,
 		TEST,
 		CONFIGURE,
 		COLLECT,
@@ -89,6 +88,5 @@ private:
 
 	hrt_abstime _measurement_time{0};
 
-	perf_counter_t _comms_error{perf_alloc(PC_COUNT, MODULE_NAME": comms_error")};
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": sample")};
+	perf_counter_t _sample_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": sample interval")};
 };

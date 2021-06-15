@@ -12,6 +12,8 @@
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/workqueue.h>
 
+#include <lib/perf/perf_counter.h>
+
 /*! A structure to hold all internal data required by the S2PI module. */
 typedef struct {
 	/*! Determines the current driver status. */
@@ -51,7 +53,10 @@ s2pi_handle_t s2pi_ = { .GPIOs = { [ S2PI_CLK ]  = BROADCOM_AFBR_S50_S2PI_CLK,
 		      };
 
 static struct work_s broadcom_s2pi_transfer_work = {};
-static struct work_s broadcom_s2pi_transfer_finished_work = {};
+
+static perf_counter_t s2pi_transfer_perf = NULL;
+static perf_counter_t s2pi_transfer_callback_perf = NULL;
+static perf_counter_t s2pi_irq_callback_perf = NULL;
 
 /*!***************************************************************************
 * @brief Initialize the S2PI module.
@@ -70,7 +75,9 @@ static struct work_s broadcom_s2pi_transfer_finished_work = {};
 static int gpio_falling_edge(int irq, void *context, void *arg)
 {
 	if (s2pi_.IrqCallback != 0) {
+		perf_begin(s2pi_irq_callback_perf);
 		s2pi_.IrqCallback(s2pi_.IrqCallbackData);
+		perf_end(s2pi_irq_callback_perf);
 	}
 
 	return 0;
@@ -84,6 +91,10 @@ status_t S2PI_Init(s2pi_slave_t defaultSlave, uint32_t baudRate_Bps)
 
 	px4_arch_configgpio(BROADCOM_AFBR_S50_S2PI_IRQ);
 	px4_arch_gpiosetevent(BROADCOM_AFBR_S50_S2PI_IRQ, false, true, false, &gpio_falling_edge, NULL);
+
+	s2pi_transfer_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": transfer");
+	s2pi_transfer_callback_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": transfer callback");
+	s2pi_irq_callback_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": irq callback");
 
 	return S2PI_SetBaudRate(baudRate_Bps);
 }
@@ -297,16 +308,20 @@ status_t S2PI_CycleCsPin(s2pi_slave_t slave)
 
 static void broadcom_s2pi_transfer_callout(void *arg)
 {
+	perf_begin(s2pi_transfer_perf);
 	px4_arch_gpiowrite(s2pi_.GPIOs[S2PI_CS], 0);
 	SPI_EXCHANGE(s2pi_.spidev, s2pi_.spi_tx_data, s2pi_.spi_rx_data, s2pi_.spi_frame_size);
 	s2pi_.Status = STATUS_IDLE;
 	px4_arch_gpiowrite(s2pi_.GPIOs[S2PI_CS], 1);
+	perf_end(s2pi_transfer_perf);
 
 	/* Invoke callback if there is one */
 	if (s2pi_.Callback != 0) {
+		perf_begin(s2pi_transfer_callback_perf);
 		s2pi_callback_t callback = s2pi_.Callback;
 		s2pi_.Callback = 0;
 		callback(STATUS_OK, s2pi_.CallbackData);
+		perf_end(s2pi_transfer_callback_perf);
 	}
 }
 
@@ -366,7 +381,6 @@ status_t S2PI_Abort(void)
 	/* Abort SPI transfer. */
 	if (status == STATUS_BUSY) {
 		work_cancel(HPWORK, &broadcom_s2pi_transfer_work);
-		work_cancel(HPWORK, &broadcom_s2pi_transfer_finished_work);
 	}
 
 	return STATUS_OK;

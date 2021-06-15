@@ -38,9 +38,8 @@ px4_add_module(
 	MODULE drivers__distance_sensor__afbrs50
 	MAIN afbrs50
 	COMPILE_FLAGS
-		-Wno-error
 	STACK_MAIN
-		8192
+		4096
 	INCLUDES
 		API/Inc
 		Inc
