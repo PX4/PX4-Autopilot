@@ -2279,11 +2279,17 @@ Commander::run()
 			// abort autonomous mode and switch to position mode if sticks are moved significantly
 			if ((_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
 			    && !in_low_battery_failsafe && !_geofence_warning_action_on
-			    && _manual_control.wantsOverride(_vehicle_control_mode)) {
+			    && _manual_control.wantsOverride(_vehicle_control_mode, _status)) {
 				if (main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags,
 							  _internal_state) == TRANSITION_CHANGED) {
 					tune_positive(true);
-					mavlink_log_info(&_mavlink_log_pub, "Pilot took over control using sticks");
+					mavlink_log_info(&_mavlink_log_pub, "Pilot took over position control using sticks");
+					_status_changed = true;
+
+				} else if (main_state_transition(_status, commander_state_s::MAIN_STATE_ALTCTL, _status_flags,
+								 _internal_state) == TRANSITION_CHANGED) {
+					tune_positive(true);
+					mavlink_log_info(&_mavlink_log_pub, "Pilot took over altitude control using sticks");
 					_status_changed = true;
 				}
 			}
