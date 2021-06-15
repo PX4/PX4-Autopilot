@@ -51,7 +51,10 @@ void Ekf::fuseDrag()
 
 	const float R_ACC = fmaxf(_params.drag_noise, 0.5f); // observation noise variance in specific force drag (m/sec**2)**2
 	const float rho = fmaxf(_air_density, 0.1f); // air density (kg/m**3)
-	const float density_ratio = rho / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C;
+
+	// correct rotor momentum drag for increase in required rotor mass flow with altitude
+	// obtained from momentum disc theory
+	const float mcoef_corrrected = _params.mcoef * sqrtf(rho / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
 
 	// drag model parameters
 	const bool using_bcoef_x = _params.bcoef_x > 1.0f;
@@ -91,23 +94,28 @@ void Ekf::fuseDrag()
 		// predicted drag force sign is opposite to predicted wind relative velocity
 		const float drag_sign = (rel_wind_body(axis_index) >= 0.f) ? -1.f : 1.f;
 
+		// Drag is modelled as an arbitrary combination of bluff body drag that proportional to
+		// equivalent airspeed squared, and rotor momentum drag that is proportional to true airspeed
+		// parallel to the rotor disc and mass flow through the rotor disc.
 		float pred_acc; // predicted drag acceleration
 		if (axis_index == 0) {
-			// drag can be modelled as an arbitrary  combination of bluff body drag that proportional to
-			// speed squared, and rotor momentum drag that is proportional to speed.
 			float Kacc; // Derivative of specific force wrt airspeed
 			if (using_mcoef && using_bcoef_x) {
-				// bluff body and propeller momentum drag
+				// Use a combination of bluff body and propeller momentum drag
 				const float bcoef_inv = 1.0f / _params.bcoef_x;
-				const float airspeed = (_params.bcoef_x  / rho) * (- _params.mcoef  + sqrtf(sq(_params.mcoef) + 2.0f * rho * bcoef_inv * fabsf(mea_acc)));
-				Kacc = fmaxf(1e-1f, rho * bcoef_inv * airspeed + _params.mcoef  * density_ratio);
-				pred_acc = 0.5f * bcoef_inv * rho * sq(rel_wind_body(0)) * drag_sign - rel_wind_body(0) * _params.mcoef  * density_ratio;
+				// The airspeed used for linearisation is calculated from the measured acceleration by solving the following quadratic
+				// mea_acc = 0.5 * rho * bcoef_inv * airspeed**2 + mcoef_corrrected * airspeed
+				const float airspeed = (_params.bcoef_x  / rho) * (- mcoef_corrrected  + sqrtf(sq(mcoef_corrrected) + 2.0f * rho * bcoef_inv * fabsf(mea_acc)));
+				Kacc = fmaxf(1e-1f, rho * bcoef_inv * airspeed + mcoef_corrrected);
+				pred_acc = 0.5f * bcoef_inv * rho * sq(rel_wind_body(0)) * drag_sign - rel_wind_body(0) * mcoef_corrrected;
 			} else if (using_mcoef) {
-				// propeller momentum drag only
-				Kacc = fmaxf(1e-1f, _params.mcoef  * density_ratio);
-				pred_acc = - rel_wind_body(0) * _params.mcoef  * density_ratio;
+				// Use propeller momentum drag only
+				Kacc = fmaxf(1e-1f, mcoef_corrrected);
+				pred_acc = - rel_wind_body(0) * mcoef_corrrected;
 			} else if (using_bcoef_x) {
-				// bluff body drag only
+				// Use bluff body drag only
+				// The airspeed used for linearisation is calculated from the measured acceleration by solving the following quadratic
+				// mea_acc = (0.5 * rho / _params.bcoef_x) * airspeed**2
 				const float airspeed = sqrtf((2.0f * _params.bcoef_x  * fabsf(mea_acc)) / rho);
 				const float bcoef_inv = 1.0f / _params.bcoef_x;
 				Kacc = fmaxf(1e-1f, rho * bcoef_inv * airspeed);
@@ -199,21 +207,23 @@ void Ekf::fuseDrag()
 
 
 		} else if (axis_index == 1) {
-			// drag is a combination of bluff body drag proportional to speed squared
-			// and rotor momentum drag that is proportional to speed.
 			float Kacc; // Derivative of specific force wrt airspeed
 			if (using_mcoef && using_bcoef_y) {
-				// bluff body and propeller momentum drag
+				// Use a combination of bluff body and propeller momentum drag
 				const float bcoef_inv = 1.0f / _params.bcoef_y;
-				const float airspeed = (_params.bcoef_y / rho) * (- _params.mcoef  + sqrtf(sq(_params.mcoef) + 2.0f * rho * bcoef_inv * fabsf(mea_acc)));
-				Kacc = fmaxf(1e-1f, rho * bcoef_inv * airspeed + _params.mcoef  * density_ratio);
-				pred_acc = 0.5f * bcoef_inv * rho * sq(rel_wind_body(1)) * drag_sign - rel_wind_body(1) * _params.mcoef  * density_ratio;
+				// The airspeed used for linearisation is calculated from the measured acceleration by solving the following quadratic
+				// mea_acc = 0.5 * rho * bcoef_inv * airspeed**2 + mcoef_corrrected * airspeed
+				const float airspeed = (_params.bcoef_y  / rho) * (- mcoef_corrrected  + sqrtf(sq(mcoef_corrrected) + 2.0f * rho * bcoef_inv * fabsf(mea_acc)));
+				Kacc = fmaxf(1e-1f, rho * bcoef_inv * airspeed + mcoef_corrrected);
+				pred_acc = 0.5f * bcoef_inv * rho * sq(rel_wind_body(1)) * drag_sign - rel_wind_body(1) * mcoef_corrrected;
 			} else if (using_mcoef) {
-				// propeller momentum drag only
-				Kacc = fmaxf(1e-1f, _params.mcoef  * density_ratio);
-				pred_acc = - rel_wind_body(1) * _params.mcoef  * density_ratio;
+				// Use propeller momentum drag only
+				Kacc = fmaxf(1e-1f, mcoef_corrrected);
+				pred_acc = - rel_wind_body(1) * mcoef_corrrected;
 			} else if (using_bcoef_y) {
-				// bluff body drag only
+				// Use bluff body drag only
+				// The airspeed used for linearisation is calculated from the measured acceleration by solving the following quadratic
+				// mea_acc = (0.5 * rho / _params.bcoef_y) * airspeed**2
 				const float airspeed = sqrtf((2.0f * _params.bcoef_y * fabsf(mea_acc)) / rho);
 				const float bcoef_inv = 1.0f / _params.bcoef_y;
 				Kacc = fmaxf(1e-1f, rho * bcoef_inv * airspeed);
