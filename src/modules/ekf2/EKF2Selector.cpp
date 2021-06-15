@@ -66,10 +66,49 @@ void EKF2Selector::Stop()
 	ScheduleClear();
 }
 
+void EKF2Selector::PrintInstanceChange(const uint8_t old_instance, uint8_t new_instance)
+{
+	const char *old_reason = nullptr;
+
+	if (_instance[old_instance].filter_fault) {
+		old_reason = " (filter fault)";
+
+	} else if (_instance[old_instance].timeout) {
+		old_reason = " (timeout)";
+
+	} else if (_gyro_fault_detected) {
+		old_reason = " (gyro fault)";
+
+	} else if (_accel_fault_detected) {
+		old_reason = " (accel fault)";
+
+	} else if (!_instance[_selected_instance].healthy && (_instance[_selected_instance].healthy_count > 0)) {
+		// skipped if previous instance was never healthy in the first place (eg initialization)
+		old_reason = " (unhealthy)";
+	}
+
+	const char *new_reason = nullptr;
+
+	if (_request_instance.load() == new_instance) {
+		new_reason = " (user selected)";
+	}
+
+	if (old_reason || new_reason) {
+		if (old_reason == nullptr) {
+			old_reason = "";
+		}
+
+		if (new_reason == nullptr) {
+			new_reason = "";
+		}
+
+		PX4_WARN("primary EKF changed %d%s -> %d%s", old_instance, old_reason, new_instance, new_reason);
+	}
+}
+
 bool EKF2Selector::SelectInstance(uint8_t ekf_instance)
 {
-	if ((ekf_instance != INVALID_INSTANCE) && (ekf_instance != _selected_instance)) {
-
+	if ((ekf_instance != _selected_instance) && (ekf_instance < _available_instances)) {
 		// update sensor_selection immediately
 		sensor_selection_s sensor_selection{};
 		sensor_selection.accel_device_id = _instance[ekf_instance].accel_device_id;
@@ -82,26 +121,7 @@ bool EKF2Selector::SelectInstance(uint8_t ekf_instance)
 			_instance[_selected_instance].estimator_attitude_sub.unregisterCallback();
 			_instance[_selected_instance].estimator_status_sub.unregisterCallback();
 
-			if (!_instance[_selected_instance].healthy) {
-				const char *reason = nullptr;
-
-				if (_instance[_selected_instance].filter_fault) {
-					reason = "filter fault";
-
-				} else if (_instance[_selected_instance].timeout) {
-					reason = "timeout";
-
-				} else if (_gyro_fault_detected) {
-					reason = "gyro fault";
-
-				} else if (_accel_fault_detected) {
-					reason = "accel fault";
-				}
-
-				if (reason) {
-					PX4_WARN("primary EKF changed %d (%s) -> %d", _selected_instance, reason, ekf_instance);
-				}
-			}
+			PrintInstanceChange(_selected_instance, ekf_instance);
 		}
 
 		_instance[ekf_instance].estimator_attitude_sub.registerCallback();
@@ -262,18 +282,23 @@ bool EKF2Selector::UpdateErrorScores()
 				primary_updated = true;
 			}
 
-			const bool tilt_align = status.control_mode_flags & (1 << estimator_status_s::CS_TILT_ALIGN);
-			const bool yaw_align = status.control_mode_flags & (1 << estimator_status_s::CS_YAW_ALIGN);
-
-			float combined_test_ratio = 0;
-
-			if (tilt_align && yaw_align) {
-				combined_test_ratio = fmaxf(0.f, 0.5f * (status.vel_test_ratio + status.pos_test_ratio));
-				combined_test_ratio = fmaxf(combined_test_ratio, status.hgt_test_ratio);
+			// test ratios are invalid when 0, >= 1 is a failure
+			if (status.vel_test_ratio <= 0.f) {
+				status.vel_test_ratio = 1.f;
 			}
 
+			if (status.pos_test_ratio <= 0.f) {
+				status.pos_test_ratio = 1.f;
+			}
+
+			if (status.hgt_test_ratio <= 0.f) {
+				status.hgt_test_ratio = 1.f;
+			}
+
+			float combined_test_ratio = fmaxf(0.5f * (status.vel_test_ratio + status.pos_test_ratio), status.hgt_test_ratio);
+
 			_instance[i].combined_test_ratio = combined_test_ratio;
-			_instance[i].healthy = tilt_align && yaw_align && (status.filter_fault_flags == 0);
+			_instance[i].healthy = (status.filter_fault_flags == 0) && (combined_test_ratio > 0.f);
 			_instance[i].filter_fault = (status.filter_fault_flags != 0);
 			_instance[i].timeout = false;
 
@@ -299,6 +324,10 @@ bool EKF2Selector::UpdateErrorScores()
 		if (prev_healthy != _instance[i].healthy) {
 			updated = true;
 			_selector_status_publish = true;
+
+			if (!prev_healthy) {
+				_instance[i].healthy_count++;
+			}
 		}
 	}
 
@@ -713,6 +742,18 @@ void EKF2Selector::Run()
 			// if this instance has a significantly lower relative error to the active primary, we consider it as a
 			// better instance and would like to switch to it even if the current primary is healthy
 			SelectInstance(best_ekf_alternate);
+
+		} else if (_request_instance.load() != INVALID_INSTANCE) {
+
+			const uint8_t new_instance = _request_instance.load();
+
+			// attempt to switch to user manually selected instance
+			if (!SelectInstance(new_instance)) {
+				PX4_ERR("unable to switch to user selected instance %d", new_instance);
+			}
+
+			// reset
+			_request_instance.store(INVALID_INSTANCE);
 		}
 
 		// publish selector status at ~1 Hz or immediately on any change

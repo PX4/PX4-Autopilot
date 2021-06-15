@@ -147,6 +147,10 @@ Mavlink::~Mavlink()
 		} while (_task_running);
 	}
 
+	if (_instance_id >= 0) {
+		mavlink_module_instances[_instance_id] = nullptr;
+	}
+
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
 	perf_free(_send_byte_error_perf);
@@ -389,11 +393,15 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 			if (meta) {
 				// Extract target system and target component if set
 				if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_SYSTEM) {
-					target_system_id = (_MAV_PAYLOAD(msg))[meta->target_system_ofs];
+					if (meta->target_system_ofs < msg->len) {
+						target_system_id = (_MAV_PAYLOAD(msg))[meta->target_system_ofs];
+					}
 				}
 
 				if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT) {
-					target_component_id = (_MAV_PAYLOAD(msg))[meta->target_component_ofs];
+					if (meta->target_component_ofs < msg->len) {
+						target_component_id = (_MAV_PAYLOAD(msg))[meta->target_component_ofs];
+					}
 				}
 			}
 
@@ -2546,6 +2554,8 @@ Mavlink::task_main(int argc, char *argv[])
 
 	pthread_mutex_destroy(&_send_mutex);
 
+	_task_running = false;
+
 	PX4_INFO("exiting channel %i", (int)_channel);
 
 	return OK;
@@ -3087,8 +3097,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_FLAG('p', "Enable Broadcast", true);
 	PRINT_MODULE_USAGE_PARAM_INT('u', 14556, 0, 65536, "Select UDP Network Port (local)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('o', 14550, 0, 65536, "Select UDP Network Port (remote)", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('t', "127.0.0.1", nullptr,
-					"Partner IP (broadcasting can be enabled via MAV_{i}_BROADCAST param)", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('t', "127.0.0.1", nullptr, "Partner IP (broadcasting can be enabled via -p flag)", true);
 #endif
 	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvision|extvisionmin|gimbal",
 					"Mode: sets default streams and rates", true);

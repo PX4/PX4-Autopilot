@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -178,7 +178,8 @@
 #define DRV_DIST_DEVTYPE_SRF05         0x9B
 #define DRV_DIST_DEVTYPE_GY_US42       0x9C
 
-#define DRV_GPIO_DEVTYPE_MCP23009 0x9F
+#define DRV_BAT_DEVTYPE_BATMON_SMBUS   0x9d
+#define DRV_GPIO_DEVTYPE_MCP23009      0x9F
 
 #define DRV_GPS_DEVTYPE_ASHTECH 0xA0
 #define DRV_GPS_DEVTYPE_EMLID_REACH 0xA1

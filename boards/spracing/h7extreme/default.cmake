@@ -43,6 +43,7 @@ px4_add_board(
 		pwm_out
 		#roboclaw
 		rc_input
+		#smart_battery/batmon
 		telemetry # all available telemetry drivers
 		tone_alarm
 	MODULES

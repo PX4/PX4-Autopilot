@@ -529,7 +529,7 @@ public:
 
 private:
 	MavlinkReceiver 	_receiver;
-	int			_instance_id{0};
+	int			_instance_id{-1};
 
 	bool			_transmitting_enabled{true};
 	bool			_transmitting_enabled_commanded{false};

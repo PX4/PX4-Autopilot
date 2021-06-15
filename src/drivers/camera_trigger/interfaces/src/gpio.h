@@ -56,7 +56,7 @@ public:
 	void info();
 
 private:
-	static const int num_gpios = DIRECT_PWM_OUTPUT_CHANNELS > 6 ? 6 : DIRECT_PWM_OUTPUT_CHANNELS;
+	static const int num_gpios = 32;
 
 	void setup();
 
