@@ -413,8 +413,8 @@ void ManualControl::send_mode_command(int32_t commander_main_state)
 		return;
 	}
 
-	command.target_system = 1;
-	command.target_component = 1;
+	command.target_system = _param_mav_sys_id.get();
+	command.target_component = _param_mav_comp_id.get();
 
 	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
 	command.timestamp = hrt_absolute_time();
@@ -427,9 +427,8 @@ void ManualControl::send_arm_command(ArmingAction action, ArmingOrigin origin)
 	command.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
 	command.param1 = static_cast<float>(action);
 	command.param3 = static_cast<float>(origin); // We use param3 to signal the origin.
-
-	command.target_system = 1;
-	command.target_component = 1;
+	command.target_system = _param_mav_sys_id.get();
+	command.target_component = _param_mav_comp_id.get();
 
 	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
 	command.timestamp = hrt_absolute_time();
@@ -443,8 +442,8 @@ void ManualControl::send_rtl_command()
 	command.param1 = 1.0f;
 	command.param2 = PX4_CUSTOM_MAIN_MODE_AUTO;
 	command.param3 = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
-	command.target_system = 1;
-	command.target_component = 1;
+	command.target_system = _param_mav_sys_id.get();
+	command.target_component = _param_mav_comp_id.get();
 
 	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
 	command.timestamp = hrt_absolute_time();
@@ -458,8 +457,8 @@ void ManualControl::send_loiter_command()
 	command.param1 = 1.0f;
 	command.param2 = PX4_CUSTOM_MAIN_MODE_AUTO;
 	command.param3 = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
-	command.target_system = 1;
-	command.target_component = 1;
+	command.target_system = _param_mav_sys_id.get();
+	command.target_component = _param_mav_comp_id.get();
 
 	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
 	command.timestamp = hrt_absolute_time();
@@ -472,9 +471,8 @@ void ManualControl::send_offboard_command()
 	command.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
 	command.param1 = 1.0f;
 	command.param2 = PX4_CUSTOM_MAIN_MODE_OFFBOARD;
-	command.target_system = 1;
-	command.target_system = 1;
-	command.target_component = 1;
+	command.target_system = _param_mav_sys_id.get();
+	command.target_component = _param_mav_comp_id.get();
 
 	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
 	command.timestamp = hrt_absolute_time();
@@ -486,8 +484,8 @@ void ManualControl::send_termination_command(bool should_terminate)
 	vehicle_command_s command{};
 	command.command = vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION;
 	command.param1 = should_terminate ? 1.0f : 0.0f;
-	command.target_system = 1;
-	command.target_component = 1;
+	command.target_system = _param_mav_sys_id.get();
+	command.target_component = _param_mav_comp_id.get();
 
 	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
 	command.timestamp = hrt_absolute_time();
@@ -508,8 +506,8 @@ void ManualControl::send_vtol_transition_command(uint8_t action)
 	vehicle_command_s command{};
 	command.command = vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION;
 	command.param1 = action;
-	command.target_system = 1;
-	command.target_component = 1;
+	command.target_system = _param_mav_sys_id.get();
+	command.target_component = _param_mav_comp_id.get();
 
 	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
 	command.timestamp = hrt_absolute_time();
