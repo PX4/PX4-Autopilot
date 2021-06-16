@@ -132,7 +132,9 @@ void ManualControl::Run()
 			_previous_arm_gesture = true;
 			send_arm_command(ArmingAction::ARM, ArmingOrigin::GESTURE);
 
-		} else if (!_selector.setpoint().arm_gesture) {
+		}
+
+		if (!_selector.setpoint().arm_gesture) {
 			_previous_arm_gesture = false;
 		}
 
@@ -140,7 +142,9 @@ void ManualControl::Run()
 			_previous_disarm_gesture = true;
 			send_arm_command(ArmingAction::DISARM, ArmingOrigin::GESTURE);
 
-		} else if (!_selector.setpoint().disarm_gesture) {
+		}
+
+		if (!_selector.setpoint().disarm_gesture) {
 			_previous_disarm_gesture = false;
 		}
 
@@ -157,7 +161,7 @@ void ManualControl::Run()
 				       || (fabsf(_r_diff.diff()) > minimum_stick_change);
 
 		// Throttle change value doubled to achieve the same scaling even though the range is [0,1] instead of [-1,1]
-		const bool throttle_moved = (fabsf(_z_diff.diff()) * 2.f > minimum_stick_change);
+		const bool throttle_moved = (fabsf(_z_diff.diff()) * 2.f) > minimum_stick_change;
 
 		_selector.setpoint().user_override = rpy_moved || throttle_moved;
 
@@ -243,7 +247,7 @@ void ManualControl::Run()
 					}
 
 				} else {
-					// Send an initial command to switch to the mode requested by R
+					// Send an initial command to switch to the mode requested by RC
 					evaluate_mode_slot(switches.mode_slot);
 				}
 
@@ -251,7 +255,6 @@ void ManualControl::Run()
 				_previous_switches = switches;
 
 			} else {
-				_previous_switches = {};
 				_previous_switches_initialized = false;
 				_last_mode_slot_flt = -1;
 			}
@@ -260,16 +263,10 @@ void ManualControl::Run()
 		_selector.setpoint().timestamp = now;
 		_manual_control_setpoint_pub.publish(_selector.setpoint());
 
-		if (_last_selected_input != _selector.instance()) {
-			_last_selected_input = _selector.instance();
-		}
-
 		_manual_control_input_subs[_selector.instance()].registerCallback();
 		_manual_control_switches_sub.registerCallback();
 
 	} else {
-		_last_selected_input = -1;
-
 		if (!_published_invalid_once) {
 			_published_invalid_once = true;
 			_manual_control_setpoint_pub.publish(_selector.setpoint());
