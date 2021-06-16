@@ -72,8 +72,6 @@ void ManualControlSelector::update_manual_control_input(uint64_t now, const manu
 			_instance = instance;
 		}
 
-	} else if (_rc_in_mode == 2) {
-		// FIXME: what to do in the legacy case?
 	} else if (_rc_in_mode == 3) {
 
 		// We only stick to the first discovered mavlink channel.
@@ -84,7 +82,8 @@ void ManualControlSelector::update_manual_control_input(uint64_t now, const manu
 		}
 
 	} else {
-		// FIXME: param value unknown, what to do?
+		_setpoint.valid = false;
+		_instance = -1;
 	}
 }
 
