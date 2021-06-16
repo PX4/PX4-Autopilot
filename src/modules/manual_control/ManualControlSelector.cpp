@@ -47,8 +47,14 @@ void ManualControlSelector::update_time_only(uint64_t now)
 
 void ManualControlSelector::update_manual_control_input(uint64_t now, const manual_control_input_s &input, int instance)
 {
-	// This method requires the current timestamp explicitly in order to prevent weird cases
-	// if the timestamp_sample of some source is invalid/wrong.
+	// This method requires the current timestamp explicitly in order to prevent the case
+	// where the timestamp_sample of some source is already outdated.
+
+	if (now >= input.timestamp_sample && now - input.timestamp_sample > _timeout) {
+		_setpoint.valid = false;
+		_instance = -1;
+		return;
+	}
 
 	// If previous setpoint is timed out, set it invalid, so it can get replaced below.
 	update_time_only(now);
