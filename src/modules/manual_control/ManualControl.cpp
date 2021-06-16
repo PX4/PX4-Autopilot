@@ -82,6 +82,7 @@ void ManualControl::Run()
 
 		_stick_arm_hysteresis.set_hysteresis_time_from(false, _param_rc_arm_hyst.get() * 1_ms);
 		_stick_disarm_hysteresis.set_hysteresis_time_from(false, _param_rc_arm_hyst.get() * 1_ms);
+		_button_hysteresis.set_hysteresis_time_from(false, _param_rc_arm_hyst.get() * 1_ms);
 
 		_selector.set_rc_in_mode(_param_com_rc_in_mode.get());
 		_selector.set_timeout(_param_com_rc_loss_t.get() * 1_s);
@@ -176,7 +177,9 @@ void ManualControl::Run()
 					if (switches.arm_switch != _previous_switches.arm_switch) {
 						if (_param_com_arm_swisbtn.get()) {
 							// Arming button
-							if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON) {
+							_button_hysteresis.set_state_and_update(switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON, now);
+
+							if (_button_hysteresis.get_state()) {
 								send_arm_command(ArmingAction::TOGGLE, ArmingOrigin::BUTTON);
 							}
 
