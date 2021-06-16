@@ -38,8 +38,7 @@
 using namespace time_literals;
 using namespace manual_control;
 
-static constexpr uint64_t some_time = 1234568;
-
+static constexpr uint64_t some_time = 12345678;
 
 TEST(ManualControlSelector, RcInputOnly)
 {
