@@ -267,7 +267,13 @@ void ManualControl::Run()
 		_selector.setpoint().timestamp = now;
 		_manual_control_setpoint_pub.publish(_selector.setpoint());
 
-		_manual_control_input_subs[_selector.instance()].registerCallback();
+		// If it's valid, this should really be valid but better safe than sorry.
+		const int instance = _selector.instance();
+
+		if (instance >= 0 && instance < MAX_MANUAL_INPUT_COUNT) {
+			_manual_control_input_subs[instance].registerCallback();
+		}
+
 		_manual_control_switches_sub.registerCallback();
 
 	} else {
