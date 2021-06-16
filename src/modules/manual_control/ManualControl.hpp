@@ -155,7 +155,6 @@ private:
 
 	ManualControlSelector _selector;
 	bool _published_invalid_once{false};
-	int _last_selected_input{-1};
 
 	bool _previous_arm_gesture{false};
 	bool _previous_disarm_gesture{false};
