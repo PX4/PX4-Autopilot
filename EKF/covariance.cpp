@@ -1084,6 +1084,13 @@ void Ekf::zeroMagCov()
 	P.uncorrelateCovarianceSetVariance<3>(19, 0.0f);
 }
 
+void Ekf::resetZDeltaAngBiasCov()
+{
+	const float init_delta_ang_bias_var = sq(_params.switch_on_gyro_bias * _dt_ekf_avg);
+
+	P.uncorrelateCovarianceSetVariance<1>(12, init_delta_ang_bias_var);
+}
+
 void Ekf::resetWindCovariance()
 {
 	if (_tas_data_ready && (_imu_sample_delayed.time_us - _airspeed_sample_delayed.time_us < (uint64_t)5e5)) {

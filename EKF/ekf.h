@@ -926,6 +926,8 @@ private:
 	void clearMagCov();
 	void zeroMagCov();
 
+	void resetZDeltaAngBiasCov();
+
 	// uncorrelate quaternion states from other states
 	void uncorrelateQuatFromOtherStates();
 

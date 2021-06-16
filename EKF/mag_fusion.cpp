@@ -653,6 +653,10 @@ void Ekf::updateQuaternion(const float innovation, const float variance, const f
 			float gate_limit = sqrtf((sq(gate_sigma) * _heading_innov_var));
 			_heading_innov = math::constrain(innovation, -gate_limit, gate_limit);
 
+			// also reset the yaw gyro variance to converge faster and avoid
+			// being stuck on a previous bad estimate
+			resetZDeltaAngBiasCov();
+
 		} else {
 			return;
 		}
