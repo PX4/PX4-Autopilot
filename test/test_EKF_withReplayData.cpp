@@ -83,7 +83,6 @@ TEST_F(EkfReplayTest, ekfGsfReset)
 	auto params = _ekf->getParamHandle();
 	params->gps_vel_innov_gate = 1.f;
 	params->gps_pos_innov_gate = 1.f;
-	params->EKFGSF_reset_delay = 500000;
 
 	uint8_t logging_rate_hz = 10;
 	for(int i = 0; i < 39 * logging_rate_hz; ++i)
