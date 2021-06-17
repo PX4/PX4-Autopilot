@@ -665,7 +665,7 @@ void Sensors::Run()
 
 	// keep adding sensors as long as we are not armed,
 	// when not adding sensors poll for param updates
-	if (!_armed && hrt_elapsed_time(&_last_config_update) > 500_ms) {
+	if (!_armed && hrt_elapsed_time(&_last_config_update) > 1000_ms) {
 
 		const int n_accel = orb_group_count(ORB_ID(sensor_accel));
 		const int n_baro  = orb_group_count(ORB_ID(sensor_baro));
