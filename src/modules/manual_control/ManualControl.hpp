@@ -116,23 +116,11 @@ public:
 private:
 	static constexpr int MAX_MANUAL_INPUT_COUNT = 3;
 
-	enum class ArmingAction {
-		TOGGLE = -1,
-		DISARM = 0,
-		ARM = 1,
-	};
-
-	enum class ArmingOrigin {
-		GESTURE = 1,
-		SWITCH = 2,
-		BUTTON = 3,
-	};
-
 	void Run() override;
 
 	void evaluate_mode_slot(uint8_t mode_slot);
 	void send_mode_command(int32_t commander_main_state);
-	void send_arm_command(ArmingAction action, ArmingOrigin origin);
+	void send_arm_command(int8_t action, int8_t origin);
 	void send_rtl_command();
 	void send_loiter_command();
 	void send_offboard_command();

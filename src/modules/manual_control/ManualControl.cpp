@@ -131,7 +131,8 @@ void ManualControl::Run()
 
 		if (_selector.setpoint().arm_gesture && !_previous_arm_gesture) {
 			_previous_arm_gesture = true;
-			send_arm_command(ArmingAction::ARM, ArmingOrigin::GESTURE);
+			send_arm_command(vehicle_command_s::ARM_DISARM_ARMING_ACTION_ARM,
+					 vehicle_command_s::ARM_DISARM_ARMING_ORIGIN_GESTURE);
 
 		}
 
@@ -141,7 +142,8 @@ void ManualControl::Run()
 
 		if (_selector.setpoint().disarm_gesture && !_previous_disarm_gesture) {
 			_previous_disarm_gesture = true;
-			send_arm_command(ArmingAction::DISARM, ArmingOrigin::GESTURE);
+			send_arm_command(vehicle_command_s::ARM_DISARM_ARMING_ACTION_DISARM,
+					 vehicle_command_s::ARM_DISARM_ARMING_ORIGIN_GESTURE);
 
 		}
 
@@ -180,16 +182,19 @@ void ManualControl::Run()
 							_button_hysteresis.set_state_and_update(switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON, now);
 
 							if (_button_hysteresis.get_state()) {
-								send_arm_command(ArmingAction::TOGGLE, ArmingOrigin::BUTTON);
+								send_arm_command(vehicle_command_s::ARM_DISARM_ARMING_ACTION_TOGGLE,
+										 vehicle_command_s::ARM_DISARM_ARMING_ORIGIN_BUTTON);
 							}
 
 						} else {
 							// Arming switch
 							if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON) {
-								send_arm_command(ArmingAction::ARM, ArmingOrigin::SWITCH);
+								send_arm_command(vehicle_command_s::ARM_DISARM_ARMING_ACTION_ARM,
+										 vehicle_command_s::ARM_DISARM_ARMING_ORIGIN_SWITCH);
 
 							} else if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-								send_arm_command(ArmingAction::DISARM, ArmingOrigin::SWITCH);
+								send_arm_command(vehicle_command_s::ARM_DISARM_ARMING_ACTION_DISARM,
+										 vehicle_command_s::ARM_DISARM_ARMING_ORIGIN_SWITCH);
 							}
 						}
 					}
@@ -427,7 +432,7 @@ void ManualControl::send_mode_command(int32_t commander_main_state)
 	command_pub.publish(command);
 }
 
-void ManualControl::send_arm_command(ArmingAction action, ArmingOrigin origin)
+void ManualControl::send_arm_command(int8_t action, int8_t origin)
 {
 	vehicle_command_s command{};
 	command.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
