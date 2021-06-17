@@ -13,7 +13,6 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
-
 param set-default BAT_N_CELLS 3
 
 param set-default COM_RC_IN_MODE 1
@@ -78,5 +77,3 @@ param set-default CBRK_IO_SAFETY 22027
 set MAV_TYPE 22
 
 set MIXER standard_vtol_hitl
-
-set PWM_OUT 1234

@@ -16,15 +16,14 @@
 # @board bitcraze_crazyflie exclude
 #
 
-. ${R}etc/init.d/rc.mc_defaults
-
+. ${R}etc/init.d/rc.mc_quad_defaults
 
 # tuning
 param set-default MC_PITCHRATE_P    0.11
 param set-default MC_ROLLRATE_P     0.11
 param set-default MPC_MANTHR_MIN    0.08
 param set-default MPC_XY_VEL_MAX    3
-param set-default MPC_Z_VEL_MAX_DN     2
+param set-default MPC_Z_VEL_MAX_DN  2
 
 # takeoff, land and RTL settings
 param set-default MIS_TAKEOFF_ALT   4
@@ -84,7 +83,3 @@ param set-default RC5_TRIM          1500
 param set-default MAV_0_RATE 80000
 param set-default MAV_0_MODE 2
 param set-default SER_TEL1_BAUD 921600
-set MIXER quad_x
-
-set PWM_OUT 1234
-set MIXER_AUX none

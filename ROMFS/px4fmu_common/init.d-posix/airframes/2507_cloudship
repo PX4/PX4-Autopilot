@@ -12,4 +12,3 @@
 . ${R}etc/init.d/rc.airship_defaults
 
 set MIXER cloudship
-set PWM_OUT 1234

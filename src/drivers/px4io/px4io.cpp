@@ -1205,20 +1205,9 @@ void PX4IO::update_params()
 		return;
 	}
 
-	int32_t pwm_min_default = PWM_DEFAULT_MIN;
-	int32_t pwm_max_default = PWM_DEFAULT_MAX;
-	int32_t pwm_disarmed_default = 0;
-	int32_t pwm_rate_default = 50;
-
 	const char *prefix = "PWM_MAIN";
 
-	param_get(param_find("PWM_MAIN_MIN"), &pwm_min_default);
-	param_get(param_find("PWM_MAIN_MAX"), &pwm_max_default);
-	param_get(param_find("PWM_MAIN_DISARM"), &pwm_disarmed_default);
-	param_get(param_find("PWM_MAIN_RATE"), &pwm_rate_default);
-
 	char str[17];
-
 
 	// PWM_MAIN_MINx
 	if (!_pwm_min_configured) {
@@ -1227,19 +1216,14 @@ void PX4IO::update_params()
 
 		for (unsigned i = 0; i < _max_actuators; i++) {
 			sprintf(str, "%s_MIN%u", prefix, i + 1);
-			int32_t pwm_min = -1;
+			int32_t pwm_min = PWM_DEFAULT_MIN;
 
 			if (param_get(param_find(str), &pwm_min) == PX4_OK) {
-				if (pwm_min >= 0) {
-					pwm.values[i] = math::constrain(pwm_min, static_cast<int32_t>(PWM_LOWEST_MIN), static_cast<int32_t>(PWM_HIGHEST_MIN));
+				pwm.values[i] = math::constrain(pwm_min, PWM_LOWEST_MIN, PWM_HIGHEST_MIN);
 
-					if (pwm_min != pwm.values[i]) {
-						int32_t pwm_min_new = pwm.values[i];
-						param_set(param_find(str), &pwm_min_new);
-					}
-
-				} else {
-					pwm.values[i] = pwm_min_default;
+				if (pwm_min != pwm.values[i]) {
+					int32_t pwm_min_new = pwm.values[i];
+					param_set(param_find(str), &pwm_min_new);
 				}
 			}
 		}
@@ -1256,19 +1240,14 @@ void PX4IO::update_params()
 
 		for (unsigned i = 0; i < _max_actuators; i++) {
 			sprintf(str, "%s_MAX%u", prefix, i + 1);
-			int32_t pwm_max = -1;
+			int32_t pwm_max = PWM_DEFAULT_MAX;
 
 			if (param_get(param_find(str), &pwm_max) == PX4_OK) {
-				if (pwm_max >= 0) {
-					pwm.values[i] = math::constrain(pwm_max, static_cast<int32_t>(PWM_LOWEST_MAX), static_cast<int32_t>(PWM_HIGHEST_MAX));
+				pwm.values[i] = math::constrain(pwm_max, PWM_LOWEST_MAX, PWM_HIGHEST_MAX);
 
-					if (pwm_max != pwm.values[i]) {
-						int32_t pwm_max_new = pwm.values[i];
-						param_set(param_find(str), &pwm_max_new);
-					}
-
-				} else {
-					pwm.values[i] = pwm_max_default;
+				if (pwm_max != pwm.values[i]) {
+					int32_t pwm_max_new = pwm.values[i];
+					param_set(param_find(str), &pwm_max_new);
 				}
 			}
 		}
@@ -1285,16 +1264,14 @@ void PX4IO::update_params()
 
 		for (unsigned i = 0; i < _max_actuators; i++) {
 			sprintf(str, "%s_FAIL%u", prefix, i + 1);
-			int32_t pwm_fail = -1;
+			int32_t pwm_fail = 0;
 
 			if (param_get(param_find(str), &pwm_fail) == PX4_OK) {
-				if (pwm_fail >= 0) {
-					pwm.values[i] = math::constrain(pwm_fail, static_cast<int32_t>(0), static_cast<int32_t>(PWM_HIGHEST_MAX));
+				pwm.values[i] = math::constrain(pwm_fail, 0, PWM_HIGHEST_MAX);
 
-					if (pwm_fail != pwm.values[i]) {
-						int32_t pwm_fail_new = pwm.values[i];
-						param_set(param_find(str), &pwm_fail_new);
-					}
+				if (pwm_fail != pwm.values[i]) {
+					int32_t pwm_fail_new = pwm.values[i];
+					param_set(param_find(str), &pwm_fail_new);
 				}
 			}
 		}
@@ -1311,19 +1288,14 @@ void PX4IO::update_params()
 
 		for (unsigned i = 0; i < _max_actuators; i++) {
 			sprintf(str, "%s_DIS%u", prefix, i + 1);
-			int32_t pwm_dis = -1;
+			int32_t pwm_dis = 0;
 
 			if (param_get(param_find(str), &pwm_dis) == PX4_OK) {
-				if (pwm_dis >= 0) {
-					pwm.values[i] = math::constrain(pwm_dis, static_cast<int32_t>(0), static_cast<int32_t>(PWM_HIGHEST_MAX));
+				pwm.values[i] = math::constrain(pwm_dis, 0, PWM_HIGHEST_MAX);
 
-					if (pwm_dis != pwm.values[i]) {
-						int32_t pwm_dis_new = pwm.values[i];
-						param_set(param_find(str), &pwm_dis_new);
-					}
-
-				} else {
-					pwm.values[i] = pwm_disarmed_default;
+				if (pwm_dis != pwm.values[i]) {
+					int32_t pwm_dis_new = pwm.values[i];
+					param_set(param_find(str), &pwm_dis_new);
 				}
 			}
 		}

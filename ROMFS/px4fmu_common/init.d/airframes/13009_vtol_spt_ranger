@@ -11,8 +11,10 @@
 # @board bitcraze_crazyflie exclude
 #
 
+. ${R}etc/init.d/rc.mc_quad_defaults
 . ${R}etc/init.d/rc.vtol_defaults
 
+set MAV_TYPE 22
 
 param set-default FW_AIRSPD_MAX   22
 param set-default FW_AIRSPD_MIN   14
@@ -61,15 +63,6 @@ param set-default MPC_YAWRAUTO_MAX 40
 
 param set-default NAV_ACC_RAD 3
 
-param set-default PWM_AUX_REV1    1
-param set-default PWM_AUX_REV2    1
-param set-default PWM_AUX_REV3    1
-param set-default PWM_AUX_REV4    1
-
-param set-default PWM_AUX_DIS5 950
-
-param set-default PWM_MAIN_RATE 400
-
 param set-default VT_ARSP_TRANS   15
 param set-default VT_B_TRANS_DUR  4
 param set-default VT_F_TRANS_THR    0.6
@@ -80,9 +73,17 @@ param set-default VT_TRANS_MIN_TM 5
 param set-default VT_TRANS_TIMEOUT    30
 param set-default VT_TYPE 2
 
-set MAV_TYPE 22
+# MAIN set by rc.mc_quad_defaults
 
-set MIXER quad_x
+# AUX
 set MIXER_AUX vtol_AAERT
+param set-default PWM_AUX_DIS1 1500
+param set-default PWM_AUX_DIS2 1500
+param set-default PWM_AUX_DIS3 1500
+param set-default PWM_AUX_DIS4 1500
+param set-default PWM_AUX_DIS5 900 # throttle
 
-set PWM_OUT 1234
+param set-default PWM_AUX_REV1 1
+param set-default PWM_AUX_REV2 1
+param set-default PWM_AUX_REV3 1
+param set-default PWM_AUX_REV4 1

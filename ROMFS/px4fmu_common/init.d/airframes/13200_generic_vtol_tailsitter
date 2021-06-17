@@ -18,13 +18,26 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
-
 param set-default VT_ELEV_MC_LOCK 0
 param set-default VT_MOT_COUNT 2
 param set-default VT_TYPE 0
 
 param set-default MAV_TYPE 19
+
+param set-default PWM_MAIN_MIN1 1100
+param set-default PWM_MAIN_MIN2 1100
+
+param set-default PWM_MAIN_MAX1 1900
+param set-default PWM_MAIN_MAX2 1900
+
+param set-default PWM_MAIN_RATE1 400
+param set-default PWM_MAIN_RATE2 400
+
+param set-default PWM_MAIN_DIS1 900
+param set-default PWM_MAIN_DIS2 900
+param set-default PWM_MAIN_DIS5 1500 # right elevon
+param set-default PWM_MAIN_DIS6 1500 # left elevon
+
+
 set MAV_TYPE 19
 set MIXER vtol_tailsitter_duo
-
-set PWM_OUT 1234

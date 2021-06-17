@@ -27,9 +27,6 @@ param set-default MPC_YAW_MODE 4
 
 param set-default NAV_ACC_RAD 3
 
-param set-default PWM_AUX_RATE 50
-param set-default PWM_MAIN_RATE 400
-
 param set-default RTL_TYPE 1
 
 param set-default WV_EN 1

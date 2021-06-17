@@ -38,12 +38,6 @@ set MIXER_FILE none
 set MIXER_EXTRA none
 set OUTPUT_MODE none
 set PARAM_FILE /fs/microsd/params
-set PWM_OUT none
-set PWM_MAIN_RATE p:PWM_MAIN_RATE
-set PWM_AUX_OUT none
-set PWM_AUX_RATE p:PWM_AUX_RATE
-set PWM_EXTRA_OUT none
-set PWM_EXTRA_RATE p:PWM_EXTRA_RATE
 set EXTRA_MIXER_MODE none
 set RC_INPUT_ARGS ""
 set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
@@ -561,12 +555,6 @@ unset MIXER_AUX
 unset MIXER_FILE
 unset OUTPUT_MODE
 unset PARAM_FILE
-unset PWM_AUX_OUT
-unset PWM_AUX_RATE
-unset PWM_MAIN_RATE
-unset PWM_OUT
-unset PWM_EXTRA_OUT
-unset PWM_EXTRA_RATE
 unset RC_INPUT_ARGS
 unset SDCARD_MIXERS_PATH
 unset STARTUP_TUNE

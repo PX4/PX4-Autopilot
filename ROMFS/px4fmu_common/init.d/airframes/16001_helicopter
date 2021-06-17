@@ -24,11 +24,6 @@ set MAV_TYPE 4
 
 set MIXER blade130
 
-#set PWM_OUT 1234
-
-
-param set-default ATT_BIAS_MAX 0
-
 param set-default CBRK_IO_SAFETY 22027
 
 param set-default MC_ROLL_P 5
@@ -53,5 +48,3 @@ param set-default MC_ACRO_P_MAX 360
 
 param set-default MPC_THR_MIN 0.06
 param set-default MPC_MANTHR_MIN 0.06
-
-param set-default PWM_MAIN_MIN 1075

@@ -22,8 +22,6 @@
 # @board bitcraze_crazyflie exclude
 #
 
-. ${R}etc/init.d/rc.mc_defaults
+. ${R}etc/init.d/rc.mc_quad_defaults
 
 set MIXER quad_+
-
-set PWM_OUT 1234

@@ -22,7 +22,7 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
-
+set MAV_TYPE 22
 
 param set-default BAT_N_CELLS 6
 
@@ -105,11 +105,28 @@ param set-default VT_PSHER_RMP_DT 2
 param set-default VT_TRANS_MIN_TM 4
 param set-default VT_TYPE 2
 
-set MAV_TYPE 22
-
+# MAIN
 set MIXER babyshark
-set MIXER_AUX pass
+param set-default PWM_MAIN_MIN5 1100
+param set-default PWM_MAIN_MIN6 1100
+param set-default PWM_MAIN_MIN7 1120
+param set-default PWM_MAIN_MIN8 1100
 
-# Mark outputs for the alternate rate
-# or D-Shot
-set PWM_OUT 5678
+param set-default PWM_MAIN_MAX5 1900
+param set-default PWM_MAIN_MAX6 1900
+param set-default PWM_MAIN_MAX7 1900
+param set-default PWM_MAIN_MAX8 1900
+
+param set-default PWM_MAIN_RATE5 400
+param set-default PWM_MAIN_RATE6 400
+param set-default PWM_MAIN_RATE7 400
+param set-default PWM_MAIN_RATE8 400
+
+param set-default PWM_MAIN_DIS1 1500
+param set-default PWM_MAIN_DIS2 1500
+param set-default PWM_MAIN_DIS3 900 # pusher
+param set-default PWM_MAIN_DIS4 1500
+param set-default PWM_MAIN_DIS5 900
+param set-default PWM_MAIN_DIS6 900
+param set-default PWM_MAIN_DIS7 900
+param set-default PWM_MAIN_DIS8 900

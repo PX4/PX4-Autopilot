@@ -10,7 +10,7 @@
 # @board px4_fmu-v2 exclude
 #
 
-. ${R}etc/init.d/rc.mc_defaults
+. ${R}etc/init.d/rc.mc_hex_defaults
 . ${R}etc/init.d/rc.ctrlalloc
 
 
@@ -67,8 +67,8 @@ param set-default CA_MC_R5_PY -0.1375
 param set-default CA_MC_R5_CT 6.5
 param set-default CA_MC_R5_KM -0.05
 
+# MAIN
 set MIXER direct
-set PWM_OUT 123456
 
+# AUX
 set MIXER_AUX direct_aux
-set PWM_AUX_OUT 123456

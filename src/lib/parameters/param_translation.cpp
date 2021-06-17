@@ -142,29 +142,6 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
-	// 2021-01-31 (v1.12 alpha): translate PWM_MIN/PWM_MAX/PWM_DISARMED to PWM_MAIN
-	{
-		if (strcmp("PWM_MIN", node->name) == 0) {
-			strcpy(node->name, "PWM_MAIN_MIN");
-			PX4_INFO("copying %s -> %s", "PWM_MIN", "PWM_MAIN_MIN");
-		}
-
-		if (strcmp("PWM_MAX", node->name) == 0) {
-			strcpy(node->name, "PWM_MAIN_MAX");
-			PX4_INFO("copying %s -> %s", "PWM_MAX", "PWM_MAIN_MAX");
-		}
-
-		if (strcmp("PWM_RATE", node->name) == 0) {
-			strcpy(node->name, "PWM_MAIN_RATE");
-			PX4_INFO("copying %s -> %s", "PWM_RATE", "PWM_MAIN_RATE");
-		}
-
-		if (strcmp("PWM_DISARMED", node->name) == 0) {
-			strcpy(node->name, "PWM_MAIN_DISARM");
-			PX4_INFO("copying %s -> %s", "PWM_DISARMED", "PWM_MAIN_DISARM");
-		}
-	}
-
 	// 2021-04-30: translate ASPD_STALL to FW_AIRSPD_STALL
 	{
 		if (strcmp("ASPD_STALL", node->name) == 0) {

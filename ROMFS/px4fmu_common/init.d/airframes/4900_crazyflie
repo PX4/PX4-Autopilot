@@ -17,7 +17,6 @@
 . ${R}etc/init.d/rc.mc_defaults
 
 set MIXER quad_x_cw
-set PWM_OUT 1234
 
 param set-default BAT_N_CELLS 1
 param set-default BAT_CAPACITY 240
@@ -58,20 +57,30 @@ param set-default MPC_MAX_FLOW_HGT 3
 
 param set-default NAV_RCL_ACT 3
 
-param set-default PWM_MAIN_DISARM 0
-param set-default PWM_MAIN_MIN 0
-param set-default PWM_MAIN_MAX 255
+param set-default PWM_MAIN_MIN1 0
+param set-default PWM_MAIN_MIN2 0
+param set-default PWM_MAIN_MIN3 0
+param set-default PWM_MAIN_MIN4 0
+
+param set-default PWM_MAIN_MAX1 255
+param set-default PWM_MAIN_MAX2 255
+param set-default PWM_MAIN_MAX3 255
+param set-default PWM_MAIN_MAX4 255
 
 # Run the motors at 328.125 kHz (recommended)
-param set-default PWM_MAIN_RATE 3921
+param set-default PWM_MAIN_RATE1 3921
+param set-default PWM_MAIN_RATE2 3921
+param set-default PWM_MAIN_RATE3 3921
+param set-default PWM_MAIN_RATE4 3921
+
+param set-default PWM_MAIN_DIS1 0
+param set-default PWM_MAIN_DIS2 0
+param set-default PWM_MAIN_DIS3 0
+param set-default PWM_MAIN_DIS4 0
 
 param set-default SDLOG_PROFILE 1
 
 param set-default SENS_FLOW_MINRNG 0.05
-
-set PWM_MAIN_DISARM none
-set PWM_MAIN_MAX none
-set PWM_MAIN_MIN none
 
 syslink start
 mavlink start -d /dev/bridge0 -b 57600 -m osd -r 40000

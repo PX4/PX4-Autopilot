@@ -21,9 +21,6 @@
 # @board bitcraze_crazyflie exclude
 #
 
-. ${R}etc/init.d/rc.mc_defaults
+. ${R}etc/init.d/rc.mc_hex_defaults
 
 set MIXER hexa_cox
-
-# Need to set all 8 channels
-set PWM_OUT 12345678

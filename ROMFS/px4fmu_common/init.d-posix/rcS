@@ -30,7 +30,6 @@ set MIXER_AUX                   none
 set MIXER_FILE                  none
 set OUTPUT_MODE                 sim
 set EXTRA_MIXER_MODE            none
-set PWM_OUT                     none
 set SDCARD_MIXERS_PATH          etc/mixers
 set USE_IO                      no
 set VEHICLE_TYPE                none

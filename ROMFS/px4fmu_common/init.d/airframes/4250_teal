@@ -20,16 +20,7 @@
 # @board bitcraze_crazyflie exclude
 #
 
-echo "Executing 4250_teal script."
-
-. ${R}etc/init.d/rc.mc_defaults
-
-set MIXER quad_x
-set PWM_OUT 1234
-
-
-# First thing, reset all params to default... EXCEPT THIS LIST
-param reset_all SYS_AUTOSTART SYS_AUTOCONFIG RC* COM_FLTMODE* LND_FLIGHT_T_* TC_* CAL_ACC* CAL_GYRO* CAL_MAG* SENS_BOARD* EKF2_MAGBIAS*
+. ${R}etc/init.d/rc.mc_quad_defaults
 
 # battery
 param set-default BAT_CAPACITY 2750
@@ -43,10 +34,6 @@ param set-default BAT_V_CHARGED 4.15
 param set-default BAT_V_DIV 11.1625
 param set-default BAT_V_EMPTY 3.65
 param set-default BAT_V_OFFS_CURR -0.0045
-
-# sensor calibration
-param set-default CAL_MAG_SIDES 63
-param set-default SENS_BOARD_ROT 0
 
 # circuit breakers
 param set-default CBRK_IO_SAFETY 22027
@@ -169,11 +156,21 @@ param set-default NAV_ACC_RAD 2.5
 param set-default NAV_RCL_ACT 1
 
 # pwm control
-param set-default PWM_MAIN_DISARM 900
-param set-default PWM_MAIN_MAX 1850
-param set-default PWM_MAIN_MIN 1075
+param set-default PWM_MAIN_MIN1 1075
+param set-default PWM_MAIN_MIN2 1075
+param set-default PWM_MAIN_MIN3 1075
+param set-default PWM_MAIN_MIN4 1075
+
+param set-default PWM_MAIN_MAX1 1850
+param set-default PWM_MAIN_MAX2 1850
+param set-default PWM_MAIN_MAX3 1850
+param set-default PWM_MAIN_MAX4 1850
+
 # Oneshot125
-param set-default PWM_MAIN_RATE 0
+param set-default PWM_MAIN_RATE1 0
+param set-default PWM_MAIN_RATE2 0
+param set-default PWM_MAIN_RATE3 0
+param set-default PWM_MAIN_RATE4 0
 
 # rtl
 param set-default RTL_DESCEND_ALT 5

@@ -19,8 +19,7 @@
 # @board bitcraze_crazyflie exclude
 #
 
-. ${R}etc/init.d/rc.mc_defaults
+. ${R}etc/init.d/rc.mc_octo_defaults
 
+# MAIN set by rc.mc_octo_defaults
 set MIXER octo_cox
-
-set PWM_OUT 12345678

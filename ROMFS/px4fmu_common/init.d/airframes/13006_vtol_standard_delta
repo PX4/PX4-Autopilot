@@ -19,8 +19,10 @@
 # @board bitcraze_crazyflie exclude
 #
 
+. ${R}etc/init.d/rc.mc_quad_defaults
 . ${R}etc/init.d/rc.vtol_defaults
 
+set MAV_TYPE 22
 
 param set-default MC_ROLL_P 6.5
 param set-default MC_ROLLRATE_P 0.15
@@ -44,17 +46,17 @@ param set-default MPC_XY_VEL_P_ACC 2
 param set-default MPC_ACC_HOR_MAX 2
 param set-default MPC_YAWRAUTO_MAX 20
 
-param set-default PWM_AUX_DIS3 950
-param set-default PWM_MAIN_RATE 400
-
 param set-default VT_MOT_ID 1234
 param set-default VT_FW_MOT_OFFID 1234
 param set-default VT_F_TRANS_THR 0.75
 param set-default VT_IDLE_PWM_MC 1080
 param set-default VT_TYPE 2
-set MAV_TYPE 22
 
-set MIXER quad_x
+# MAIN set by rc.mc_quad_defaults
+
+# AUX
 set MIXER_AUX vtol_delta
-
-set PWM_OUT 1234
+param set-default PWM_AUX_DIS1 1500
+param set-default PWM_AUX_DIS2 1500
+param set-default PWM_AUX_DIS3 900 # throttle
+param set-default PWM_AUX_DIS4 900 # throttle reverse

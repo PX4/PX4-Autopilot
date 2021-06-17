@@ -22,6 +22,7 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
+set MAV_TYPE 21
 
 param set-default CBRK_AIRSPD_CHK 162128
 
@@ -59,8 +60,6 @@ param set-default MPC_LAND_SPEED 1.2
 param set-default MPC_TKO_SPEED 2.5
 param set-default MPC_Z_VEL_MAX_UP 3
 
-param set-default PWM_MAIN_RATE 400
-
 param set-default SENS_BOARD_ROT 8
 
 param set-default VT_B_TRANS_DUR  1
@@ -79,8 +78,26 @@ param set-default VT_TRANS_MIN_TM 1.2
 param set-default VT_TRANS_P2_DUR 1.3
 param set-default VT_ELEV_MC_LOCK 0
 param set-default VT_TYPE 1
-set MAV_TYPE 21
 
+
+# MAIN
 set MIXER vtol_convergence
+param set-default PWM_MAIN_MIN1 1100
+param set-default PWM_MAIN_MIN2 1100
+param set-default PWM_MAIN_MIN3 1100
 
-set PWM_OUT 1234
+param set-default PWM_MAIN_MAX1 1900
+param set-default PWM_MAIN_MAX2 1900
+param set-default PWM_MAIN_MAX3 1900
+
+param set-default PWM_MAIN_RATE1 400
+param set-default PWM_MAIN_RATE2 400
+param set-default PWM_MAIN_RATE3 400
+
+param set-default PWM_MAIN_DIS1 900
+param set-default PWM_MAIN_DIS2 900
+param set-default PWM_MAIN_DIS3 900
+param set-default PWM_MAIN_DIS5 2000 # tilt right servo (2000 up)
+param set-default PWM_MAIN_DIS6 1000 # tilt left servo (1000 up)
+param set-default PWM_MAIN_DIS7 1500 # elevon
+param set-default PWM_MAIN_DIS8 1500 # elevon

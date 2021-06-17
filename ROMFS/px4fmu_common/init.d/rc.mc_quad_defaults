@@ -1,40 +1,30 @@
 #!/bin/sh
 #
-# @name Generic Tricopter Y- Geometry
+# Multicopter default parameters.
 #
-# @type Tricopter Y-
-# @class Copter
-#
-# @output MAIN1 motor 1
-# @output MAIN2 motor 2
-# @output MAIN3 motor 3
-# @output MAIN4 yaw servo
-#
-# @maintainer Trent Lukaczyk <aerialhedgehog@gmail.com>
-#
-# @board bitcraze_crazyflie exclude
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
 . ${R}etc/init.d/rc.mc_defaults
 
-set MIXER tri_y_yaw-
-
+# MAIN
+set MIXER quad_x
 param set-default PWM_MAIN_MIN1 1100
 param set-default PWM_MAIN_MIN2 1100
 param set-default PWM_MAIN_MIN3 1100
-param set-default PWM_MAIN_MIN4 1000
+param set-default PWM_MAIN_MIN4 1100
 
 param set-default PWM_MAIN_MAX1 1900
 param set-default PWM_MAIN_MAX2 1900
 param set-default PWM_MAIN_MAX3 1900
-param set-default PWM_MAIN_MAX4 2000
+param set-default PWM_MAIN_MAX4 1900
 
 param set-default PWM_MAIN_RATE1 400
 param set-default PWM_MAIN_RATE2 400
 param set-default PWM_MAIN_RATE3 400
-param set-default PWM_MAIN_RATE4 50
+param set-default PWM_MAIN_RATE4 400
 
 param set-default PWM_MAIN_DIS1 900
 param set-default PWM_MAIN_DIS2 900
 param set-default PWM_MAIN_DIS3 900
-param set-default PWM_MAIN_DIS4 1500
+param set-default PWM_MAIN_DIS4 900

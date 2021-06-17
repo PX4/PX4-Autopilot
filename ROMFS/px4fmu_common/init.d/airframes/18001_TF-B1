@@ -15,7 +15,6 @@
 
 . ${R}etc/init.d/rc.balloon_defaults
 
-
 param set-default COM_PREARM_MODE 2  # always in prearm state
 param set-default CBRK_IO_SAFETY 22027
 param set-default SDLOG_PROFILE 17
@@ -26,8 +25,8 @@ param set-default GPS_UBX_DYNMODEL 8
 param set-default SER_TEL2_BAUD 9600
 
 param set-default SENS_BOARD_ROT 0
-        param set MAV_TYPE 8  # MAV_TYPE_FREE_BALLOON
 
+param set-default MAV_TYPE 8  # MAV_TYPE_FREE_BALLOON
 
 set MIXER IO_pass
 set MIXER_AUX pass

@@ -18,8 +18,6 @@
 . ${R}etc/init.d/rc.mc_defaults
 
 set MIXER quad_x
-set PWM_OUT 1234
-
 
 param set-default BAT_N_CELLS 1
 
@@ -36,6 +34,17 @@ param set-default MC_YAWRATE_P 0.2
 param set-default MC_YAWRATE_I 0.1
 param set-default MC_YAWRATE_D 0
 
-param set-default PWM_MAIN_DISARM 0
-param set-default PWM_MAIN_MIN 500
-param set-default PWM_MAIN_MAX 2200
+param set-default PWM_MAIN_DIS1 0
+param set-default PWM_MAIN_DIS2 0
+param set-default PWM_MAIN_DIS3 0
+param set-default PWM_MAIN_DIS4 0
+
+param set-default PWM_MAIN_MIN1 500
+param set-default PWM_MAIN_MIN2 500
+param set-default PWM_MAIN_MIN3 500
+param set-default PWM_MAIN_MIN4 500
+
+param set-default PWM_MAIN_MAX1 2200
+param set-default PWM_MAIN_MAX2 2200
+param set-default PWM_MAIN_MAX3 2200
+param set-default PWM_MAIN_MAX4 2200

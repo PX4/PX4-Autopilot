@@ -21,10 +21,7 @@
 # @maintainer Hyon Lim <lim@uvify.com>
 #
 
-set VEHICLE_TYPE mc
-set MIXER quad_x
-set PWM_OUT 1234
-
+. ${R}etc/init.d/rc.mc_quad_defaults
 
 # Attitude & rate gains
 #param set MC_ROLL_P 7
@@ -59,11 +56,6 @@ param set-default IMU_GYRO_CUTOFF 100
 
 # Thrust curve (avoids the need for TPA)
 #param set THR_MDL_FAC 0.25
-
-# Obsolete
-#param set PWM_MAIN_MAX 1950
-#param set PWM_MAIN_MIN 1100
-#param set PWM_MAIN_RATE 0
 
 # Sensors
 param set-default SENS_BOARD_ROT 10

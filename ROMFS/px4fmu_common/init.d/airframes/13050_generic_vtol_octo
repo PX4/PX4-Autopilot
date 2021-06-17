@@ -23,18 +23,21 @@
 # @board bitcraze_crazyflie exclude
 #
 
+. ${R}etc/init.d/rc.mc_octo_defaults
 . ${R}etc/init.d/rc.vtol_defaults
 
-
-param set-default PWM_AUX_DIS5 950
-param set-default PWM_MAIN_RATE 400
+set MAV_TYPE 22
 
 param set-default VT_TYPE 2
 param set-default VT_MOT_ID 12345678
 param set-default VT_FW_MOT_OFFID 12345678
-set MAV_TYPE 22
 
-set MIXER octo_cox
+# MAIN set by rc.mc_octo_defaults
+
+# AUX
 set MIXER_AUX vtol_AAERT
-
-set PWM_OUT 12345678
+param set-default PWM_AUX_DIS1 1500
+param set-default PWM_AUX_DIS2 1500
+param set-default PWM_AUX_DIS3 1500
+param set-default PWM_AUX_DIS4 1500
+param set-default PWM_AUX_DIS5 900 # throttle

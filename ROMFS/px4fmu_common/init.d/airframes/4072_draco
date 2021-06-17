@@ -20,11 +20,7 @@
 # @board bitcraze_crazyflie exclude
 #
 
-. ${R}etc/init.d/rc.mc_defaults
-
-set MIXER quad_x
-set PWM_OUT 1234
-
+. ${R}etc/init.d/rc.mc_quad_defaults
 
 # use the Q attitude estimator, it works w/o mag or GPS.
 param set-default SYS_MC_EST_GROUP 3
@@ -65,11 +61,16 @@ param set-default MPC_THR_HOVER 0.25
 param set-default THR_MDL_FAC 0.3
 
 # System
-param set-default PWM_MAIN_MAX 1950
-param set-default PWM_MAIN_MIN 1180
+param set-default PWM_MAIN_MIN1 1180
+param set-default PWM_MAIN_MIN2 1180
+param set-default PWM_MAIN_MIN3 1180
+param set-default PWM_MAIN_MIN4 1180
 
 # enable one-shot
-param set-default PWM_MAIN_RATE 0
+param set-default PWM_MAIN_RATE1 0
+param set-default PWM_MAIN_RATE2 0
+param set-default PWM_MAIN_RATE3 0
+param set-default PWM_MAIN_RATE4 0
 
 param set-default SENS_BOARD_ROT 2
 

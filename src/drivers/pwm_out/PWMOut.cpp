@@ -659,36 +659,16 @@ void PWMOut::update_params()
 {
 	updateParams();
 
-	int32_t pwm_min_default = PWM_DEFAULT_MIN;
-	int32_t pwm_max_default = PWM_DEFAULT_MAX;
-	int32_t pwm_disarmed_default = 0;
-	int32_t pwm_rate_default = 50;
-
 	const char *prefix;
 
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		prefix = "PWM_MAIN";
 
-		param_get(param_find("PWM_MAIN_MIN"), &pwm_min_default);
-		param_get(param_find("PWM_MAIN_MAX"), &pwm_max_default);
-		param_get(param_find("PWM_MAIN_DISARM"), &pwm_disarmed_default);
-		param_get(param_find("PWM_MAIN_RATE"), &pwm_rate_default);
-
 	} else if (_class_instance == CLASS_DEVICE_SECONDARY) {
 		prefix = "PWM_AUX";
 
-		param_get(param_find("PWM_AUX_MIN"), &pwm_min_default);
-		param_get(param_find("PWM_AUX_MAX"), &pwm_max_default);
-		param_get(param_find("PWM_AUX_DISARM"), &pwm_disarmed_default);
-		param_get(param_find("PWM_AUX_RATE"), &pwm_rate_default);
-
 	} else if (_class_instance == CLASS_DEVICE_TERTIARY) {
 		prefix = "PWM_EXTRA";
-
-		param_get(param_find("PWM_EXTRA_MIN"), &pwm_min_default);
-		param_get(param_find("PWM_EXTRA_MAX"), &pwm_max_default);
-		param_get(param_find("PWM_EXTRA_DISARM"), &pwm_disarmed_default);
-		param_get(param_find("PWM_EXTRA_RATE"), &pwm_rate_default);
 
 	} else {
 		PX4_ERR("invalid class instance %d", _class_instance);
@@ -705,19 +685,14 @@ void PWMOut::update_params()
 		// PWM_MAIN_MINx
 		{
 			sprintf(str, "%s_MIN%u", prefix, i + 1);
-			int32_t pwm_min = -1;
+			int32_t pwm_min = PWM_DEFAULT_MIN;
 
 			if (param_get(param_find(str), &pwm_min) == PX4_OK) {
-				if (pwm_min >= 0) {
-					_mixing_output.minValue(i) = math::constrain(pwm_min, (int32_t) PWM_LOWEST_MIN, (int32_t) PWM_HIGHEST_MIN);
+				_mixing_output.minValue(i) = math::constrain(pwm_min, PWM_LOWEST_MIN, PWM_HIGHEST_MIN);
 
-					if (pwm_min != _mixing_output.minValue(i)) {
-						int32_t pwm_min_new = _mixing_output.minValue(i);
-						param_set(param_find(str), &pwm_min_new);
-					}
-
-				} else {
-					_mixing_output.minValue(i) = pwm_min_default;
+				if (pwm_min != _mixing_output.minValue(i)) {
+					int32_t pwm_min_new = _mixing_output.minValue(i);
+					param_set(param_find(str), &pwm_min_new);
 				}
 			}
 		}
@@ -725,19 +700,14 @@ void PWMOut::update_params()
 		// PWM_MAIN_MAXx
 		{
 			sprintf(str, "%s_MAX%u", prefix, i + 1);
-			int32_t pwm_max = -1;
+			int32_t pwm_max = PWM_DEFAULT_MAX;
 
 			if (param_get(param_find(str), &pwm_max) == PX4_OK) {
-				if (pwm_max >= 0) {
-					_mixing_output.maxValue(i) = math::constrain(pwm_max, (int32_t) PWM_LOWEST_MAX, (int32_t) PWM_HIGHEST_MAX);
+				_mixing_output.maxValue(i) = math::constrain(pwm_max, PWM_LOWEST_MAX, PWM_HIGHEST_MAX);
 
-					if (pwm_max != _mixing_output.maxValue(i)) {
-						int32_t pwm_max_new = _mixing_output.maxValue(i);
-						param_set(param_find(str), &pwm_max_new);
-					}
-
-				} else {
-					_mixing_output.maxValue(i) = pwm_max_default;
+				if (pwm_max != _mixing_output.maxValue(i)) {
+					int32_t pwm_max_new = _mixing_output.maxValue(i);
+					param_set(param_find(str), &pwm_max_new);
 				}
 			}
 		}
@@ -745,16 +715,14 @@ void PWMOut::update_params()
 		// PWM_MAIN_FAILx
 		{
 			sprintf(str, "%s_FAIL%u", prefix, i + 1);
-			int32_t pwm_failsafe = -1;
+			int32_t pwm_failsafe = 0;
 
 			if (param_get(param_find(str), &pwm_failsafe) == PX4_OK) {
-				if (pwm_failsafe >= 0) {
-					_mixing_output.failsafeValue(i) = math::constrain(pwm_failsafe, (int32_t) 0, (int32_t) PWM_HIGHEST_MAX);
+				_mixing_output.failsafeValue(i) = math::constrain(pwm_failsafe, 0, PWM_HIGHEST_MAX);
 
-					if (pwm_failsafe != _mixing_output.failsafeValue(i)) {
-						int32_t pwm_fail_new = _mixing_output.failsafeValue(i);
-						param_set(param_find(str), &pwm_fail_new);
-					}
+				if (pwm_failsafe != _mixing_output.failsafeValue(i)) {
+					int32_t pwm_fail_new = _mixing_output.failsafeValue(i);
+					param_set(param_find(str), &pwm_fail_new);
 				}
 			}
 		}
@@ -762,19 +730,14 @@ void PWMOut::update_params()
 		// PWM_MAIN_DISx
 		{
 			sprintf(str, "%s_DIS%u", prefix, i + 1);
-			int32_t pwm_dis = -1;
+			int32_t pwm_dis = 0;
 
 			if (param_get(param_find(str), &pwm_dis) == PX4_OK) {
-				if (pwm_dis >= 0) {
-					_mixing_output.disarmedValue(i) = math::constrain(pwm_dis, (int32_t) 0, (int32_t) PWM_HIGHEST_MAX);
+				_mixing_output.disarmedValue(i) = math::constrain(pwm_dis, 0, PWM_HIGHEST_MAX);
 
-					if (pwm_dis != _mixing_output.disarmedValue(i)) {
-						int32_t pwm_dis_new = _mixing_output.disarmedValue(i);
-						param_set(param_find(str), &pwm_dis_new);
-					}
-
-				} else {
-					_mixing_output.disarmedValue(i) = pwm_disarmed_default;
+				if (pwm_dis != _mixing_output.disarmedValue(i)) {
+					int32_t pwm_dis_new = _mixing_output.disarmedValue(i);
+					param_set(param_find(str), &pwm_dis_new);
 				}
 			}
 
@@ -799,6 +762,24 @@ void PWMOut::update_params()
 				}
 			}
 		}
+	}
+
+
+	// PWM_MAIN_RATEx
+	{
+		//uint32_t rate_map = 0;
+
+		for (unsigned i = 0; i < _num_outputs; i++) {
+			sprintf(str, "%s_RATE%u", prefix, i + 1);
+			int32_t pwm_rate = 50;
+
+			if (param_get(param_find(str), &pwm_rate) == PX4_OK) {
+				//rate_map |=
+			}
+		}
+
+
+		// set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate)
 	}
 
 	if (_mixing_output.mixers()) {

@@ -21,20 +21,6 @@ param set-default NAV_LOITER_RAD 2
 param set-default NAV_FW_ALT_RAD 1000
 
 #
-# Enable servo output on pins 3 and 4 (steering and thrust)
-# but also include 1+2 as they form together one output group
-# and need to be set together.
-#
-set PWM_OUT 1234
-
-#
-# PWM Hz - 50 Hz is the normal rate in RC cars, higher rates
-# may damage analog servos.
-#
-set PWM_MAIN_RATE 50
-
-#
 # This is the gimbal pass mixer.
 #
 set MIXER_AUX pass
-set PWM_AUX_OUT 1234

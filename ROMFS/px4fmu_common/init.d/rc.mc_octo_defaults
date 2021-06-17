@@ -1,0 +1,46 @@
+#!/bin/sh
+#
+# Multicopter default parameters.
+#
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+# MAIN
+set MIXER octo_x
+param set-default PWM_MAIN_MIN1 1100
+param set-default PWM_MAIN_MIN2 1100
+param set-default PWM_MAIN_MIN3 1100
+param set-default PWM_MAIN_MIN4 1100
+param set-default PWM_MAIN_MIN5 1100
+param set-default PWM_MAIN_MIN6 1100
+param set-default PWM_MAIN_MIN7 1100
+param set-default PWM_MAIN_MIN8 1100
+
+param set-default PWM_MAIN_MAX1 1900
+param set-default PWM_MAIN_MAX2 1900
+param set-default PWM_MAIN_MAX3 1900
+param set-default PWM_MAIN_MAX4 1900
+param set-default PWM_MAIN_MAX5 1900
+param set-default PWM_MAIN_MAX6 1900
+param set-default PWM_MAIN_MAX7 1900
+param set-default PWM_MAIN_MAX8 1900
+
+param set-default PWM_MAIN_RATE1 400
+param set-default PWM_MAIN_RATE2 400
+param set-default PWM_MAIN_RATE3 400
+param set-default PWM_MAIN_RATE4 400
+param set-default PWM_MAIN_RATE5 400
+param set-default PWM_MAIN_RATE6 400
+param set-default PWM_MAIN_RATE7 400
+param set-default PWM_MAIN_RATE8 400
+
+param set-default PWM_MAIN_DIS1 900
+param set-default PWM_MAIN_DIS2 900
+param set-default PWM_MAIN_DIS3 900
+param set-default PWM_MAIN_DIS4 900
+param set-default PWM_MAIN_DIS5 900
+param set-default PWM_MAIN_DIS6 900
+param set-default PWM_MAIN_DIS7 900
+param set-default PWM_MAIN_DIS8 900

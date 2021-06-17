@@ -27,23 +27,68 @@
 
 set VEHICLE_TYPE mc
 
-
 param set-default NAV_ACC_RAD 2
-
-param set-default PWM_AUX_RATE 400
-param set-default PWM_AUX_DISARM 900
-param set-default PWM_AUX_MIN 1075
-param set-default PWM_AUX_MAX 1950
-
-param set-default PWM_MAIN_MIN 1075
-param set-default PWM_MAIN_MAX 1950
-param set-default PWM_MAIN_RATE 400
 
 param set-default RTL_DESCEND_ALT 10
 param set-default RTL_RETURN_ALT 30
+
+# MAIN
+param set-default PWM_MAIN_MIN1 1100
+param set-default PWM_MAIN_MIN2 1100
+param set-default PWM_MAIN_MIN3 1100
+param set-default PWM_MAIN_MIN4 1100
+param set-default PWM_MAIN_MIN5 1100
+param set-default PWM_MAIN_MIN6 1100
+
+param set-default PWM_MAIN_MAX1 1900
+param set-default PWM_MAIN_MAX2 1900
+param set-default PWM_MAIN_MAX3 1900
+param set-default PWM_MAIN_MAX4 1900
+param set-default PWM_MAIN_MAX5 1900
+param set-default PWM_MAIN_MAX6 1900
+
+param set-default PWM_MAIN_RATE1 400
+param set-default PWM_MAIN_RATE2 400
+param set-default PWM_MAIN_RATE3 400
+param set-default PWM_MAIN_RATE4 400
+param set-default PWM_MAIN_RATE5 400
+param set-default PWM_MAIN_RATE6 400
+
+param set-default PWM_MAIN_DIS1 900
+param set-default PWM_MAIN_DIS2 900
+param set-default PWM_MAIN_DIS3 900
+param set-default PWM_MAIN_DIS4 900
+param set-default PWM_MAIN_DIS5 900
+param set-default PWM_MAIN_DIS6 900
+
+# AUX
+param set-default PWM_AUX_MIN1 1100
+param set-default PWM_AUX_MIN2 1100
+param set-default PWM_AUX_MIN3 1100
+param set-default PWM_AUX_MIN4 1100
+param set-default PWM_AUX_MIN5 1100
+param set-default PWM_AUX_MIN6 1100
+
+param set-default PWM_AUX_MAX1 1900
+param set-default PWM_AUX_MAX2 1900
+param set-default PWM_AUX_MAX3 1900
+param set-default PWM_AUX_MAX4 1900
+param set-default PWM_AUX_MAX5 1900
+param set-default PWM_AUX_MAX6 1900
+
+param set-default PWM_AUX_RATE1 400
+param set-default PWM_AUX_RATE2 400
+param set-default PWM_AUX_RATE3 400
+param set-default PWM_AUX_RATE4 400
+param set-default PWM_AUX_RATE5 400
+param set-default PWM_AUX_RATE6 400
+
+param set-default PWM_AUX_DIS1 900
+param set-default PWM_AUX_DIS2 900
+param set-default PWM_AUX_DIS3 900
+param set-default PWM_AUX_DIS4 900
+param set-default PWM_AUX_DIS5 900
+param set-default PWM_AUX_DIS6 900
+
 set MIXER dodeca_top_cox
 set MIXER_AUX dodeca_bottom_cox
-
-# Need to set all 8 channels
-set PWM_OUT 12345678
-set PWM_AUX_OUT 123456

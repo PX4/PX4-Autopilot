@@ -18,6 +18,4 @@
 param set-default COM_PREARM_MODE 2
 param set-default CBRK_IO_SAFETY 22027
 
-
 set MIXER cloudship
-set PWM_OUT 1234

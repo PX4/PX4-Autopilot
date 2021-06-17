@@ -11,11 +11,7 @@
 # @board bitcraze_crazyflie exclude
 #
 
-. ${R}etc/init.d/rc.mc_defaults
-
-set MIXER quad_x
-set PWM_OUT 1234
-
+. ${R}etc/init.d/rc.mc_quad_defaults
 
 param set-default CBRK_IO_SAFETY 22027
 
@@ -37,9 +33,3 @@ param set-default MC_YAWRATE_D 0
 param set-default MC_ACRO_R_MAX 1000
 param set-default MC_ACRO_P_MAX 1000
 param set-default MC_ACRO_Y_MAX 1000
-
-# param set NAV_RCL_ACT 6 # Lockdown
-
-param set-default PWM_MAIN_MIN 1075
-param set-default PWM_MAIN_RATE 400
-param set-default PWM_MAIN_DISARM 900

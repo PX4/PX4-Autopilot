@@ -17,8 +17,8 @@
 #
 
 . ${R}etc/init.d/rc.mc_defaults
-set MIXER coax
 
+set MIXER coax
 
 param set-default MC_ROLL_P 6.5
 param set-default MC_ROLLRATE_P 0.17
@@ -38,17 +38,5 @@ param set-default MC_YAWRATE_FF 0
 
 param set-default NAV_ACC_RAD 2
 
-param set-default PWM_AUX_RATE 50
-param set-default PWM_MAIN_DISARM 900
-param set-default PWM_MAIN_MIN 1075
-param set-default PWM_MAIN_MAX 1950
-param set-default PWM_MAIN_RATE 400
-
 param set-default RTL_RETURN_ALT 30
 param set-default RTL_DESCEND_ALT 10
-# This is the gimbal pass mixer
-set MIXER_AUX pass
-
-# use PWM parameters for throttle channel
-set PWM_AUX_OUT 1234
-set PWM_OUT 34

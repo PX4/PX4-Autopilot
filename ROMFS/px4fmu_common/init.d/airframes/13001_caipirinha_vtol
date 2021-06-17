@@ -18,8 +18,7 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
-
-param set-default MAV_TYPE 19
+set MAV_TYPE 19
 
 param set-default MC_ROLL_P 6
 param set-default MC_ROLLRATE_P 0.12
@@ -43,8 +42,20 @@ param set-default VT_IDLE_PWM_MC  1080
 param set-default VT_ELEV_MC_LOCK 0
 param set-default VT_MOT_ID 12
 param set-default VT_TYPE 0
-set MAV_TYPE 19
 
+
+# MAIN
 set MIXER vtol_tailsitter_duo
+param set-default PWM_MAIN_MIN1 1100
+param set-default PWM_MAIN_MIN2 1100
 
-set PWM_OUT 123456
+param set-default PWM_MAIN_MAX1 1900
+param set-default PWM_MAIN_MAX2 1900
+
+param set-default PWM_MAIN_RATE1 400
+param set-default PWM_MAIN_RATE2 400
+
+param set-default PWM_MAIN_DIS1 900
+param set-default PWM_MAIN_DIS2 900
+param set-default PWM_MAIN_DIS3 1500 # right (starboard) elevon
+param set-default PWM_MAIN_DIS4 1500 # left (port) elevon.

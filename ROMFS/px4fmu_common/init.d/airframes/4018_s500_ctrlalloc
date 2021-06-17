@@ -10,7 +10,7 @@
 # @board px4_fmu-v2 exclude
 #
 
-. ${R}etc/init.d/rc.mc_defaults
+. ${R}etc/init.d/rc.mc_quad_defaults
 . ${R}etc/init.d/rc.ctrlalloc
 
 
@@ -50,7 +50,5 @@ param set-default CA_MC_R3_CT 6.5
 param set-default CA_MC_R3_KM -0.05
 
 set MIXER direct
-set PWM_OUT 1234
 
 set MIXER_AUX direct_aux
-set PWM_AUX_OUT 1234

@@ -20,8 +20,9 @@
 # @board bitcraze_crazyflie exclude
 #
 
-. ${R}etc/init.d/rc.mc_defaults
+. ${R}etc/init.d/rc.mc_octo_defaults
 
+set MIXER octo_cox_w
 
 param set-default MC_PITCH_P 4
 param set-default MC_PITCHRATE_P 0.24
@@ -45,6 +46,3 @@ param set-default MPC_THR_MIN 0.15
 param set-default MPC_Z_VEL_MAX_DN 2
 
 param set-default BAT_N_CELLS 4
-set MIXER octo_cox_w
-
-set PWM_OUT 12345678

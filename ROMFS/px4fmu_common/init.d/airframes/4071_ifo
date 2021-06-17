@@ -21,10 +21,7 @@
 # @board cuav_x7pro exclude
 #
 
-set VEHICLE_TYPE mc
-set MIXER quad_x
-set PWM_OUT 1234
-
+. ${R}etc/init.d/rc.mc_quad_defaults
 
 # Attitude & rate gains
 #param set MC_ROLL_P 7
@@ -64,11 +61,11 @@ param set-default IMU_GYRO_CUTOFF 100
 #param set THR_MDL_FAC 0.25
 
 # System
-param set-default PWM_MAIN_MAX 1950
-param set-default PWM_MAIN_MIN 1100
-param set-default PWM_MAIN_RATE 0
+param set-default PWM_MAIN_RATE1 0
+param set-default PWM_MAIN_RATE2 0
+param set-default PWM_MAIN_RATE3 0
+param set-default PWM_MAIN_RATE4 0
 
-#param set SYS_FMU_TASK 1
 param set-default SENS_BOARD_ROT 10
 
 # EKF2

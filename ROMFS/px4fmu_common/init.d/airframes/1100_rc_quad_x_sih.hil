@@ -13,7 +13,6 @@
 . ${R}etc/init.d/rc.mc_defaults
 
 set MIXER quad_x
-set PWM_OUT 1234
 
 # set SYS_HITL to 2 to start the SIH and avoid sensors startup
 param set SYS_HITL 2

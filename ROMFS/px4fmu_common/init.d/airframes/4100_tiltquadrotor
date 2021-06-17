@@ -27,12 +27,9 @@
 #Parameters here:
 param set LED_RGB_MAXBRT 8
 
-
 # Configure this as Quadrotor
 # set MAV_TYPE 14
 
 # Set mixer
 set MIXER tilt_quad
 set MIXER_AUX tilt_quad
-
-set PWM_OUT 1234

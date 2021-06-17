@@ -11,10 +11,6 @@
 # @output MAIN2 right aileron
 # @output MAIN4 throttle
 #
-# @output AUX1 feed-through of RC AUX1 channel
-# @output AUX2 feed-through of RC AUX2 channel
-# @output AUX3 feed-through of RC AUX3 channel
-#
 # @maintainer Simon Wilks <simon@uaventure.com>
 #
 # @board px4_fmu-v2 exclude
@@ -42,8 +38,6 @@ param set-default FW_RR_P 0.08
 param set-default FW_R_LIM 50
 param set-default FW_R_RMAX 50
 
-param set-default PWM_MAIN_DISARM 1000
-
 # Bottom of bay and nominal zero-pitch attitude differ
 # the payload bay is pitched up about 7 degrees
 param set-default SENS_BOARD_Y_OFF 7
@@ -51,5 +45,5 @@ param set-default SENS_BOARD_Y_OFF 7
 
 set MIXER phantom
 
-# Provide ESC a constant 1000 us pulse
-set PWM_OUT 4
+# Provide ESC a constant 1000 us pulse while disarmed
+param set-default PWM_MAIN_DIS4 1000

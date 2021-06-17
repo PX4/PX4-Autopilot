@@ -20,13 +20,10 @@
 # @board bitcraze_crazyflie exclude
 #
 
-. ${R}etc/init.d/rc.mc_defaults
+. ${R}etc/init.d/rc.mc_quad_defaults
 
 set MIXER quad_s250aq
 set MAV_TYPE 2
-
-set PWM_OUT 1234
-
 
 param set-default ATT_BIAS_MAX 0
 
@@ -52,5 +49,3 @@ param set-default MC_ACRO_P_MAX 360
 
 param set-default MPC_THR_MIN 0.06
 param set-default MPC_MANTHR_MIN 0.06
-
-param set-default PWM_MAIN_MIN 1075
