@@ -99,7 +99,7 @@ Navigator::Navigator() :
 	_handle_back_trans_dec_mss = param_find("VT_B_DEC_MSS");
 	_handle_reverse_delay = param_find("VT_B_REV_DEL");
 
-	_handle_mpc_jerk_max = param_find("MPC_JERK_MAX");
+	_handle_mpc_jerk_auto = param_find("MPC_JERK_AUTO");
 	_handle_mpc_acc_hor = param_find("MPC_ACC_HOR");
 
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
@@ -130,8 +130,8 @@ Navigator::params_update()
 		param_get(_handle_reverse_delay, &_param_reverse_delay);
 	}
 
-	if (_handle_mpc_jerk_max != PARAM_INVALID) {
-		param_get(_handle_mpc_jerk_max, &_param_mpc_jerk_max);
+	if (_handle_mpc_jerk_auto != PARAM_INVALID) {
+		param_get(_handle_mpc_jerk_auto, &_param_mpc_jerk_auto);
 	}
 
 	if (_handle_mpc_acc_hor != PARAM_INVALID) {
@@ -337,7 +337,7 @@ Navigator::run()
 							const float velocity_hor_abs = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
 
 							float multirotor_braking_distance = math::trajectory::computeBrakingDistanceFromVelocity(velocity_hor_abs,
-											    _param_mpc_jerk_max, _param_mpc_acc_hor, 0.6f * _param_mpc_jerk_max);
+											    _param_mpc_jerk_auto, _param_mpc_acc_hor, 0.6f * _param_mpc_jerk_auto);
 
 							waypoint_from_heading_and_distance(get_global_position()->lat, get_global_position()->lon, course_over_ground,
 											   multirotor_braking_distance, &lat, &lon);
