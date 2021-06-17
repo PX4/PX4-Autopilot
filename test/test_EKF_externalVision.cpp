@@ -322,3 +322,44 @@ TEST_F(EkfExternalVisionTest, velocityFrameLocal)
 	EXPECT_NEAR(vel_earth_est(0), 1.0f, 0.1f);
 	EXPECT_NEAR(vel_earth_est(1), 0.0f, 0.1f);
 }
+
+TEST_F(EkfExternalVisionTest, positionFrameLocal)
+{
+	// GIVEN: Drone is turned 90 degrees
+	const Quatf quat_sim(Eulerf(0.0f, 0.0f, math::radians(90.0f)));
+	_sensor_simulator.simulateOrientation(quat_sim);
+	_sensor_simulator.runSeconds(_tilt_align_time);
+
+	// WHEN: using EV yaw fusion and rotate EV is set
+	Quatf vision_to_ekf(Eulerf(0.0f, 0.0f, 0.f));
+	_sensor_simulator._vio.setOrientation(vision_to_ekf.inversed());
+	_ekf_wrapper.enableExternalVisionAlignment(); // ROTATE_EV
+	_ekf_wrapper.enableExternalVisionHeadingFusion(); // EV_YAW
+
+	// AND WHEN: using EV position aiding
+	const Vector3f pos_var_earth(0.01f, 0.01f, 0.01f);
+	Vector3f pos_earth(0.0f, 0.0f, 0.0f);
+	_sensor_simulator._vio.setPositionVariance(pos_var_earth);
+	_sensor_simulator._vio.setPosition(pos_earth);
+	_ekf_wrapper.enableExternalVisionPositionFusion(); // EV_POS
+	_sensor_simulator.startExternalVision();
+	_sensor_simulator.runSeconds(4);
+
+	// THEN: the fusions should start and the position should not drift
+	EXPECT_TRUE(_ekf_wrapper.isIntendingExternalVisionHeadingFusion());
+	Vector3f pos_earth_est = _ekf->getPosition();
+	EXPECT_NEAR(pos_earth_est(0), pos_earth(0), 0.01f);
+	EXPECT_NEAR(pos_earth_est(1), pos_earth(1), 0.01f);
+
+	// WHEN: the measurement in EV FRD frame changes
+	pos_earth = Vector3f(0.3f, 0.0f, 0.0f);
+	_sensor_simulator._vio.setPosition(pos_earth);
+	_sensor_simulator.runSeconds(4);
+
+	// THEN: the position should converge to the EV position
+	// Note that the estimate is now in the EV frame because it is
+	// the reference frame
+	pos_earth_est = _ekf->getPosition();
+	EXPECT_NEAR(pos_earth_est(0), pos_earth(0), 0.1f);
+	EXPECT_NEAR(pos_earth_est(1), pos_earth(1), 0.1f);
+}
