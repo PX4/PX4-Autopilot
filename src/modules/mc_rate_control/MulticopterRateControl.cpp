@@ -153,8 +153,7 @@ MulticopterRateControl::Run()
 			landing_gear_s landing_gear;
 
 			if (_landing_gear_sub.copy(&landing_gear)) {
-				if (landing_gear.landing_gear != landing_gear_s::GEAR_KEEP &&
-				    _v_control_mode.flag_control_manual_enabled) {
+				if (landing_gear.landing_gear != landing_gear_s::GEAR_KEEP) {
 					if (landing_gear_s::GEAR_UP && (_landed || _maybe_landed)) {
 						mavlink_log_critical(&_mavlink_log_pub, "Landed, unable to retract landing gear")
 
