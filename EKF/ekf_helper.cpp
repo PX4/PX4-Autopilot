@@ -532,6 +532,7 @@ bool Ekf::resetYawToEv()
 	const float yaw_new_variance = fmaxf(_ev_sample_delayed.angVar, sq(1.0e-2f));
 
 	resetQuatStateYaw(yaw_new, yaw_new_variance, true);
+	_R_ev_to_ekf.setIdentity();
 
 	return true;
 }
