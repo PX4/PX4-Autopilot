@@ -125,7 +125,6 @@ private:
 
 	transition_result_t arm(arm_disarm_reason_t calling_reason, bool run_preflight_checks = true);
 	transition_result_t disarm(arm_disarm_reason_t calling_reason);
-	transition_result_t try_mode_change(main_state_t desired_mode);
 
 	void battery_status_check();
 
