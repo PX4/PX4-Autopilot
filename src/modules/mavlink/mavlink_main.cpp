@@ -324,12 +324,9 @@ Mavlink::destroy_all_instances()
 		}
 	}
 
-	//we know all threads have exited, so it's safe to manipulate the linked list and delete objects.
+	//we know all threads have exited, so it's safe to delete objects.
 	for (Mavlink *inst_to_del : mavlink_module_instances) {
-		if (inst_to_del != nullptr) {
-			delete inst_to_del;
-			inst_to_del = nullptr;
-		}
+		delete inst_to_del;
 	}
 
 	printf("\n");
@@ -2533,6 +2530,8 @@ Mavlink::task_main(int argc, char *argv[])
 	_streams.clear();
 
 	if (_uart_fd >= 0 && !_is_usb_uart) {
+		/* discard all pending data, as close() might block otherwise on NuttX with flow control enabled */
+		tcflush(_uart_fd, TCIOFLUSH);
 		/* close UART */
 		::close(_uart_fd);
 	}
