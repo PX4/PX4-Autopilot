@@ -115,6 +115,12 @@ enum class arm_disarm_reason_t {
 	UNIT_TEST = 13
 };
 
+enum RCLossExceptionBits {
+	RCL_EXCEPT_MISSION = (1 << 0),
+	RCL_EXCEPT_HOLD = (1 << 1),
+	RCL_EXCEPT_OFFBOARD = (1 << 2)
+};
+
 transition_result_t
 arming_state_transition(vehicle_status_s &status, const safety_s &safety, const arming_state_t new_arming_state,
 			actuator_armed_s &armed, const bool fRunPreArmChecks, orb_advert_t *mavlink_log_pub,
@@ -133,7 +139,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		   const link_loss_actions_t rc_loss_act, const offboard_loss_actions_t offb_loss_act,
 		   const offboard_loss_rc_actions_t offb_loss_rc_act,
 		   const position_nav_loss_actions_t posctl_nav_loss_act,
-		   const float param_com_rcl_act_t);
+		   const float param_com_rcl_act_t, const int param_com_rcl_except);
 
 /*
  * Checks the validty of position data against the requirements of the current navigation
