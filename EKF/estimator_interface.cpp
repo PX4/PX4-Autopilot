@@ -478,9 +478,14 @@ void EstimatorInterface::setDragData(const imuSample &imu)
 bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 {
 	// find the maximum time delay the buffers are required to handle
-	float max_time_delay_ms = math::max(_params.baro_delay_ms,
-					math::max(_params.auxvel_delay_ms,
-						_params.airspeed_delay_ms));
+	// it's reasonable to assume that barometer is always used, and its delay is low
+	// it's reasonable to assume that aux velocity device has low delay. TODO: check the delay only if the aux device is used
+	float max_time_delay_ms = math::max(_params.baro_delay_ms, _params.auxvel_delay_ms);
+
+	// using airspeed
+	if (_params.arsp_thr > FLT_EPSILON) {
+		max_time_delay_ms = math::max(_params.airspeed_delay_ms, max_time_delay_ms);
+	}
 
 	// mag mode
 	if (_params.mag_fusion_type != MAG_FUSE_TYPE_NONE) {
