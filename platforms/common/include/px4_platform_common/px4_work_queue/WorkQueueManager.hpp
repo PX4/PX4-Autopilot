@@ -48,16 +48,16 @@ struct wq_config_t {
 
 namespace wq_configurations
 {
-static constexpr wq_config_t rate_ctrl{"wq:rate_ctrl", 1952, 0}; // PX4 inner loop highest priority
+static constexpr wq_config_t rate_ctrl{"wq:rate_ctrl", 2552, 0}; // PX4 inner loop highest priority
 static constexpr wq_config_t ctrl_alloc{"wq:ctrl_alloc", 9500, 0}; // PX4 control allocation, same priority as rate_ctrl
 
-static constexpr wq_config_t SPI0{"wq:SPI0", 2336, -1};
-static constexpr wq_config_t SPI1{"wq:SPI1", 2336, -2};
-static constexpr wq_config_t SPI2{"wq:SPI2", 2336, -3};
-static constexpr wq_config_t SPI3{"wq:SPI3", 2336, -4};
-static constexpr wq_config_t SPI4{"wq:SPI4", 2336, -5};
-static constexpr wq_config_t SPI5{"wq:SPI5", 2336, -6};
-static constexpr wq_config_t SPI6{"wq:SPI6", 2336, -7};
+static constexpr wq_config_t SPI0{"wq:SPI0", 2936, -1};
+static constexpr wq_config_t SPI1{"wq:SPI1", 2936, -2};
+static constexpr wq_config_t SPI2{"wq:SPI2", 2936, -3};
+static constexpr wq_config_t SPI3{"wq:SPI3", 2936, -4};
+static constexpr wq_config_t SPI4{"wq:SPI4", 2936, -5};
+static constexpr wq_config_t SPI5{"wq:SPI5", 2936, -6};
+static constexpr wq_config_t SPI6{"wq:SPI6", 2936, -7};
 
 static constexpr wq_config_t I2C0{"wq:I2C0", 2336, -8};
 static constexpr wq_config_t I2C1{"wq:I2C1", 2336, -9};
@@ -66,7 +66,7 @@ static constexpr wq_config_t I2C3{"wq:I2C3", 2336, -11};
 static constexpr wq_config_t I2C4{"wq:I2C4", 2336, -12};
 
 // PX4 att/pos controllers, highest priority after sensors.
-static constexpr wq_config_t nav_and_controllers{"wq:nav_and_controllers", 2240, -13};
+static constexpr wq_config_t nav_and_controllers{"wq:nav_and_controllers", 2340, -13};
 
 static constexpr wq_config_t INS0{"wq:INS0", 6000, -14};
 static constexpr wq_config_t INS1{"wq:INS1", 6000, -15};
@@ -77,18 +77,18 @@ static constexpr wq_config_t hp_default{"wq:hp_default", 1900, -18};
 
 static constexpr wq_config_t uavcan{"wq:uavcan", 3624, -19};
 
-static constexpr wq_config_t UART0{"wq:UART0", 1504, -21};
-static constexpr wq_config_t UART1{"wq:UART1", 1504, -22};
-static constexpr wq_config_t UART2{"wq:UART2", 1504, -23};
-static constexpr wq_config_t UART3{"wq:UART3", 1504, -24};
-static constexpr wq_config_t UART4{"wq:UART4", 1504, -25};
-static constexpr wq_config_t UART5{"wq:UART5", 1504, -26};
-static constexpr wq_config_t UART6{"wq:UART6", 1504, -27};
-static constexpr wq_config_t UART7{"wq:UART7", 1504, -28};
-static constexpr wq_config_t UART8{"wq:UART8", 1504, -29};
+static constexpr wq_config_t UART0{"wq:UART0", 1732, -21};
+static constexpr wq_config_t UART1{"wq:UART1", 1732, -22};
+static constexpr wq_config_t UART2{"wq:UART2", 1732, -23};
+static constexpr wq_config_t UART3{"wq:UART3", 1732, -24};
+static constexpr wq_config_t UART4{"wq:UART4", 1732, -25};
+static constexpr wq_config_t UART5{"wq:UART5", 1732, -26};
+static constexpr wq_config_t UART6{"wq:UART6", 1732, -27};
+static constexpr wq_config_t UART7{"wq:UART7", 1732, -28};
+static constexpr wq_config_t UART8{"wq:UART8", 1732, -29};
 static constexpr wq_config_t UART_UNKNOWN{"wq:UART_UNKNOWN", 1504, -30};
 
-static constexpr wq_config_t lp_default{"wq:lp_default", 1920, -50};
+static constexpr wq_config_t lp_default{"wq:lp_default", 2220, -50};
 
 static constexpr wq_config_t test1{"wq:test1", 2000, 0};
 static constexpr wq_config_t test2{"wq:test2", 2000, 0};
