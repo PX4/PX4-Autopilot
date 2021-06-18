@@ -2566,15 +2566,15 @@ Commander::run()
 						       _armed,
 						       _internal_state,
 						       &_mavlink_log_pub,
-						       (link_loss_actions_t)_param_nav_dll_act.get(),
+						       static_cast<link_loss_actions_t>(_param_nav_dll_act.get()),
 						       _mission_result_sub.get().finished,
 						       _mission_result_sub.get().stay_in_failsafe,
 						       _status_flags,
 						       _land_detector.landed,
-						       (link_loss_actions_t)_param_nav_rcl_act.get(),
-						       (offboard_loss_actions_t)_param_com_obl_act.get(),
-						       (offboard_loss_rc_actions_t)_param_com_obl_rc_act.get(),
-						       (position_nav_loss_actions_t)_param_com_posctl_navl.get(),
+						       static_cast<link_loss_actions_t>(_param_nav_rcl_act.get()),
+						       static_cast<offboard_loss_actions_t>(_param_com_obl_act.get()),
+						       static_cast<offboard_loss_rc_actions_t>(_param_com_obl_rc_act.get()),
+						       static_cast<position_nav_loss_actions_t>(_param_com_posctl_navl.get()),
 						       _param_com_rcl_act_t.get());
 
 		if (nav_state_changed) {
