@@ -43,6 +43,26 @@
 
 #include "NodeManager.hpp"
 
+void NodeManager::callback(const CanardTransfer &receive)
+{
+	if (_canard_instance.mtu_bytes == CANARD_MTU_CAN_FD) {
+		uavcan_pnp_NodeIDAllocationData_2_0 node_id_alloc_msg {};
+		size_t msg_size_in_bytes = receive.payload_size;
+		uavcan_pnp_NodeIDAllocationData_2_0_deserialize_(&node_id_alloc_msg, (const uint8_t *)receive.payload,
+				&msg_size_in_bytes);
+		/// do something with the data
+		HandleNodeIDRequest(node_id_alloc_msg);
+
+	} else {
+		uavcan_pnp_NodeIDAllocationData_1_0 node_id_alloc_msg {};
+		size_t msg_size_in_bytes = receive.payload_size;
+		uavcan_pnp_NodeIDAllocationData_1_0_deserialize_(&node_id_alloc_msg, (const uint8_t *)receive.payload,
+				&msg_size_in_bytes);
+		/// do something with the data
+		HandleNodeIDRequest(node_id_alloc_msg);
+	}
+}
+
 bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg)
 {
 	if (msg.allocated_node_id.count == 0) {
@@ -105,34 +125,38 @@ bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg)
 	return false;
 }
 
-
 bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_2_0 &msg)
 {
-	//TODO V2 CAN FD implementation
+	//TODO v2 node id
 	return false;
 }
 
 
-void NodeManager::HandleListResponse(CanardNodeID node_id, uavcan_register_List_Response_1_0 &msg)
+void NodeManager::HandleListResponse(const CanardTransfer &receive)
 {
+	uavcan_register_List_Response_1_0 msg;
+
+	size_t register_in_size_bits = receive.payload_size;
+	uavcan_register_List_Response_1_0_deserialize_(&msg, (const uint8_t *)receive.payload, &register_in_size_bits);
+
 	if (msg.name.name.count == 0) {
 		// Index doesn't exist, we've parsed through all registers
 		for (uint32_t i = 0; i < sizeof(nodeid_registry) / sizeof(nodeid_registry[0]); i++) {
-			if (nodeid_registry[i].node_id == node_id) {
+			if (nodeid_registry[i].node_id == receive.remote_node_id) {
 				nodeid_registry[i].register_setup = true; // Don't update anymore
 			}
 		}
 
 	} else {
 		for (uint32_t i = 0; i < sizeof(nodeid_registry) / sizeof(nodeid_registry[0]); i++) {
-			if (nodeid_registry[i].node_id == node_id) {
+			if (nodeid_registry[i].node_id == receive.remote_node_id) {
 				nodeid_registry[i].register_index++; // Increment index counter for next update()
 				nodeid_registry[i].register_setup = false;
 				nodeid_registry[i].retry_count = 0;
 			}
 		}
 
-		if (_access_request.setPortId(node_id, msg.name)) {
+		if (_access_request.setPortId(receive.remote_node_id, msg.name, NULL)) { //FIXME confirm handler
 			PX4_INFO("Set portID succesfull");
 
 		} else {
@@ -147,7 +171,7 @@ void NodeManager::update()
 		for (uint32_t i = 0; i < sizeof(nodeid_registry) / sizeof(nodeid_registry[0]); i++) {
 			if (nodeid_registry[i].node_id != 0 && nodeid_registry[i].register_setup == false) {
 				//Setting up registers
-				_list_request.request(nodeid_registry[i].node_id, nodeid_registry[i].register_index);
+				_list_request.getIndex(nodeid_registry[i].node_id, nodeid_registry[i].register_index, this);
 				nodeid_registry[i].retry_count++;
 
 				if (nodeid_registry[i].retry_count > RETRY_COUNT) {

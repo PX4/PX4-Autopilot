@@ -151,7 +151,8 @@ static int micrortps_start(int argc, char *argv[])
 	case options::eTransports::UART: {
 			transport_node = new UART_node(_options.device, _options.baudrate, _options.poll_ms,
 						       _options.sw_flow_control, _options.hw_flow_control, _options.verbose_debug);
-			PX4_INFO("UART transport: device: %s; baudrate: %d; sleep: %dms; poll: %dms; flow_control: %s",
+			PX4_INFO("UART transport: device: %s; baudrate: %" PRIu32 "; sleep: %" PRIu32 "ms; poll: %" PRIu32
+				 "ms; flow_control: %s",
 				 _options.device, _options.baudrate, _options.sleep_ms, _options.poll_ms,
 				 _options.sw_flow_control ? "SW enabled" : (_options.hw_flow_control ? "HW enabled" : "No"));
 		}
@@ -160,7 +161,7 @@ static int micrortps_start(int argc, char *argv[])
 	case options::eTransports::UDP: {
 			transport_node = new UDP_node(_options.ip, _options.recv_port, _options.send_port,
 						      _options.verbose_debug);
-			PX4_INFO("UDP transport: ip address: %s; recv port: %u; send port: %u; sleep: %dms",
+			PX4_INFO("UDP transport: ip address: %s; recv port: %" PRIu16 "; send port: %" PRIu16 "; sleep: %" PRIu32 "ms",
 				 _options.ip, _options.recv_port, _options.send_port, _options.sleep_ms);
 
 		}

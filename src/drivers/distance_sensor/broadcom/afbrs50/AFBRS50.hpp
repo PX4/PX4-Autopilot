@@ -32,49 +32,61 @@
  ****************************************************************************/
 
 /**
- * @file Access.hpp
+ * @file AFBRS50.hpp
  *
- * Defines a Access Service invoker and process Access responses
+ * Driver for the Broadcom AFBR-S50 connected via SPI.
  *
- * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
-
 #pragma once
 
+#include "argus.h"
+
+#include <drivers/drv_hrt.h>
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/module.h>
-#include <version/version.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-#include "../NodeManager.hpp"
+using namespace time_literals;
 
-#include <uavcan/_register/Access_1_0.h>
-
-#include "../Subscribers/BaseSubscriber.hpp"
-
-class UavcanAccessServiceReply : public UavcanBaseSubscriber
+class AFBRS50 : public px4::ScheduledWorkItem
 {
 public:
-	UavcanAccessServiceReply(CanardInstance &ins, NodeManager &nmgr) :
-		UavcanBaseSubscriber(ins, "Access", 0), _nmgr(nmgr) { };
+	AFBRS50(const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	~AFBRS50() override;
 
-	void subscribe() override
-	{
-		// Subscribe to requests uavcan.pnp.NodeIDAllocationData
-		canardRxSubscribe(&_canard_instance,
-				  CanardTransferKindResponse,
-				  uavcan_register_Access_1_0_FIXED_PORT_ID_,
-				  uavcan_register_Access_Response_1_0_EXTENT_BYTES_,
-				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-				  &_subj_sub._canard_sub);
+	int init();
 
-	};
+	/**
+	 * Diagnostics - print some basic information about the driver.
+	 */
+	void print_info();
 
-	void callback(const CanardTransfer &receive) override
-	{
-		PX4_INFO("Access response");
-	};
+	/**
+	 * Stop the automatic measurement state machine.
+	 */
+	void stop();
 
 private:
-	NodeManager &_nmgr;
+	void Run() override;
 
+	void ProcessMeasurement(void *data);
+
+	static status_t measurement_ready_callback(status_t status, void *data);
+
+	argus_hnd_t *_hnd{nullptr};
+
+	enum class STATE : uint8_t {
+		TEST,
+		CONFIGURE,
+		COLLECT,
+		STOP
+	} _state{STATE::CONFIGURE};
+
+	PX4Rangefinder _px4_rangefinder;
+
+	hrt_abstime _measurement_time{0};
+
+	perf_counter_t _sample_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": sample interval")};
 };

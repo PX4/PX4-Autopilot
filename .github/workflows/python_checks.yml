@@ -18,7 +18,7 @@ jobs:
     - name: Install Python3
       run: sudo apt-get install python3 python3-setuptools python3-pip -y
     - name: Install tools
-      run: pip3 install --user mypy flake8
+      run: pip3 install --user mypy types-requests flake8
     - name: Check MAVSDK test scripts with mypy
       run: $HOME/.local/bin/mypy --strict test/mavsdk_tests/*.py
     - name: Check MAVSDK test scripts with flake8

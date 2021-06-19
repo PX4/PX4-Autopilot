@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2020 PX4 Development Team. All rights reserved.
+ * Copyright (C) 2020, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,15 +51,15 @@ static pthread_mutex_t i2c_spi_module_instances_mutex = PTHREAD_MUTEX_INITIALIZE
 
 const char *BusCLIArguments::parseDefaultArguments(int argc, char *argv[])
 {
-	if (getopt(argc, argv, "") == EOF) {
-		return optarg();
+	if (getOpt(argc, argv, "") == EOF) {
+		return optArg();
 	}
 
 	// unexpected arguments
 	return nullptr;
 }
 
-int BusCLIArguments::getopt(int argc, char *argv[], const char *options)
+int BusCLIArguments::getOpt(int argc, char *argv[], const char *options)
 {
 	if (_options[0] == 0) { // need to initialize
 		if (!validateConfiguration()) {
@@ -516,21 +516,36 @@ int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterat
 		// print some info that we are running
 		switch (iterator.busType()) {
 		case BOARD_I2C_BUS:
-			PX4_INFO_RAW("%s #%i on I2C bus %d%s\n", instance->ItemName(), runtime_instance, iterator.bus(),
-				     iterator.external() ? " (external)" : "");
+			PX4_INFO_RAW("%s #%i on I2C bus %d", instance->ItemName(), runtime_instance, iterator.bus());
+
+			if (iterator.external()) {
+				PX4_INFO_RAW(" (external)");
+			}
+
+			if (cli.i2c_address != 0) {
+				PX4_INFO_RAW(" address 0x%X", cli.i2c_address);
+			}
+
+			if (cli.rotation != 0) {
+				PX4_INFO_RAW(" rotation %d", cli.rotation);
+			}
+
+			PX4_INFO_RAW("\n");
 
 			break;
 
 		case BOARD_SPI_BUS:
-			PX4_INFO_RAW("%s #%i on SPI bus %d (devid=0x%x)",
-				     instance->ItemName(), runtime_instance, iterator.bus(), PX4_SPI_DEV_ID(iterator.devid()));
+			PX4_INFO_RAW("%s #%i on SPI bus %d", instance->ItemName(), runtime_instance, iterator.bus());
 
 			if (iterator.external()) {
-				PX4_INFO_RAW(" (external, equal to '-b %i')\n", iterator.externalBusIndex());
-
-			} else {
-				PX4_INFO_RAW("\n");
+				PX4_INFO_RAW(" (external, equal to '-b %i')", iterator.externalBusIndex());
 			}
+
+			if (cli.rotation != 0) {
+				PX4_INFO_RAW(" rotation %d", cli.rotation);
+			}
+
+			PX4_INFO_RAW("\n");
 
 			break;
 
@@ -625,7 +640,13 @@ int I2CSPIDriverBase::module_custom_method(const BusCLIArguments &cli, BusInstan
 void I2CSPIDriverBase::print_status()
 {
 	bool is_i2c_bus = _bus_option == I2CSPIBusOption::I2CExternal || _bus_option == I2CSPIBusOption::I2CInternal;
-	PX4_INFO("Running on %s Bus %i", is_i2c_bus ? "I2C" : "SPI", _bus);
+
+	if (is_i2c_bus) {
+		PX4_INFO("Running on I2C Bus %i, Address 0x%02X", _bus, _i2c_address);
+
+	} else {
+		PX4_INFO("Running on SPI Bus %i", _bus);
+	}
 }
 
 void I2CSPIDriverBase::request_stop_and_wait()

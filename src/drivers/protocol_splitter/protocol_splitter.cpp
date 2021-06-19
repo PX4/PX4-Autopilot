@@ -45,7 +45,9 @@
 #include <px4_platform_common/log.h>
 
 #include <sys/ioctl.h>
+#include <assert.h>
 #include <unistd.h>
+#include <termios.h>
 #include <cstdint>
 #include <string.h>
 
@@ -219,6 +221,8 @@ DevCommon::DevCommon(const char *device_path)
 DevCommon::~DevCommon()
 {
 	if (_fd >= 0) {
+		/* discard all pending data, as close() might block otherwise on NuttX with flow control enabled */
+		tcflush(_fd, TCIOFLUSH);
 		::close(_fd);
 	}
 }

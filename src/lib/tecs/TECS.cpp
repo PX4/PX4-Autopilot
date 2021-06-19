@@ -174,51 +174,38 @@ void TECS::_update_speed_setpoint()
 
 }
 
-void TECS::_update_height_setpoint(float desired, float state)
+void TECS::updateHeightRateSetpoint(float alt_sp_amsl_m, float target_climbrate_m_s, float target_sinkrate_m_s,
+				    float alt_amsl)
 {
-	// Detect first time through and initialize previous value to demand
-	if (PX4_ISFINITE(desired) && fabsf(_hgt_setpoint_in_prev) < 0.1f) {
-		_hgt_setpoint_in_prev = desired;
+	target_climbrate_m_s = math::min(target_climbrate_m_s, _max_climb_rate);
+	target_sinkrate_m_s = math::min(target_sinkrate_m_s, _max_sink_rate);
+
+	float feedforward_height_rate = 0.0f;
+
+	if (fabsf(alt_sp_amsl_m - _hgt_setpoint) < math::max(target_sinkrate_m_s, target_climbrate_m_s) * _dt) {
+		_hgt_setpoint = alt_sp_amsl_m;
+
+	} else if (alt_sp_amsl_m > _hgt_setpoint) {
+		_hgt_setpoint += target_climbrate_m_s * _dt;
+		feedforward_height_rate = target_climbrate_m_s;
+
+	} else if (alt_sp_amsl_m < _hgt_setpoint) {
+		_hgt_setpoint -= target_sinkrate_m_s * _dt;
+		feedforward_height_rate = -target_sinkrate_m_s;
 	}
-
-	// Apply a 2 point moving average to demanded height to reduce
-	// intersampling noise effects.
-	if (PX4_ISFINITE(desired)) {
-		_hgt_setpoint = 0.5f * (desired + _hgt_setpoint_in_prev);
-
-	} else {
-		_hgt_setpoint = _hgt_setpoint_in_prev;
-	}
-
-	_hgt_setpoint_in_prev = _hgt_setpoint;
-
-	// Apply a rate limit to respect vehicle performance limitations
-	if ((_hgt_setpoint - _hgt_setpoint_prev) > (_max_climb_rate * _dt)) {
-		_hgt_setpoint = _hgt_setpoint_prev + _max_climb_rate * _dt;
-
-	} else if ((_hgt_setpoint - _hgt_setpoint_prev) < (-_max_sink_rate * _dt)) {
-		_hgt_setpoint = _hgt_setpoint_prev - _max_sink_rate * _dt;
-	}
-
-	_hgt_setpoint_prev = _hgt_setpoint;
-
-	// Apply a first order noise filter
-	_hgt_setpoint_adj = 0.1f * _hgt_setpoint + 0.9f * _hgt_setpoint_adj_prev;
 
 	// Use a first order system to calculate a height rate setpoint from the current height error.
 	// Additionally, allow to add feedforward from heigh setpoint change
-	_hgt_rate_setpoint = (_hgt_setpoint_adj - state) * _height_error_gain + _height_setpoint_gain_ff *
-			     (_hgt_setpoint_adj - _hgt_setpoint_adj_prev) / _dt;
+	_hgt_rate_setpoint = (_hgt_setpoint - alt_amsl) * _height_error_gain + _height_setpoint_gain_ff *
+			     feedforward_height_rate;
+	_hgt_rate_setpoint = math::constrain(_hgt_rate_setpoint, -_max_sink_rate, _max_climb_rate);
+}
 
-	_hgt_setpoint_adj_prev = _hgt_setpoint_adj;
-
+void TECS::_update_height_rate_setpoint(float hgt_rate_sp)
+{
 	// Limit the rate of change of height demand to respect vehicle performance limits
-	if (_hgt_rate_setpoint > _max_climb_rate) {
-		_hgt_rate_setpoint = _max_climb_rate;
-
-	} else if (_hgt_rate_setpoint < -_max_sink_rate) {
-		_hgt_rate_setpoint = -_max_sink_rate;
-	}
+	_hgt_rate_setpoint = math::constrain(hgt_rate_sp, -_max_sink_rate, _max_climb_rate);
+	_hgt_setpoint = _vert_pos_state;
 }
 
 void TECS::_detect_underspeed()
@@ -229,7 +216,7 @@ void TECS::_detect_underspeed()
 	}
 
 	if (((_tas_state < _TAS_min * 0.9f) && (_last_throttle_setpoint >= _throttle_setpoint_max * 0.95f))
-	    || ((_vert_pos_state < _hgt_setpoint_adj) && _underspeed_detected)) {
+	    || ((_vert_pos_state < _hgt_setpoint) && _underspeed_detected)) {
 
 		_underspeed_detected = true;
 
@@ -241,7 +228,7 @@ void TECS::_detect_underspeed()
 void TECS::_update_energy_estimates()
 {
 	// Calculate specific energy demands in units of (m**2/sec**2)
-	_SPE_setpoint = _hgt_setpoint_adj * CONSTANTS_ONE_G; // potential energy
+	_SPE_setpoint = _hgt_setpoint * CONSTANTS_ONE_G; // potential energy
 	_SKE_setpoint = 0.5f * _TAS_setpoint_adj * _TAS_setpoint_adj; // kinetic energy
 
 	// Calculate total energy error
@@ -477,10 +464,7 @@ void TECS::_initialize_states(float pitch, float throttle_cruise, float baro_alt
 		_last_throttle_setpoint = (_in_air ? throttle_cruise : 0.0f);;
 		_last_pitch_setpoint = constrain(pitch, _pitch_setpoint_min, _pitch_setpoint_max);
 		_pitch_setpoint_unc = _last_pitch_setpoint;
-		_hgt_setpoint_adj_prev = baro_altitude;
-		_hgt_setpoint_adj = _hgt_setpoint_adj_prev;
-		_hgt_setpoint_prev = _hgt_setpoint_adj_prev;
-		_hgt_setpoint_in_prev = _hgt_setpoint_adj_prev;
+		_hgt_setpoint = baro_altitude;
 		_TAS_setpoint_last = _EAS * EAS2TAS;
 		_TAS_setpoint_adj = _TAS_setpoint_last;
 		_underspeed_detected = false;
@@ -499,14 +483,11 @@ void TECS::_initialize_states(float pitch, float throttle_cruise, float baro_alt
 		// throttle lower limit is set to a value that prevents throttle reduction
 		_throttle_setpoint_min  = _throttle_setpoint_max - 0.01f;
 
-		// height demand and associated states are set to track the measured height
-		_hgt_setpoint_adj_prev  = baro_altitude;
-		_hgt_setpoint_adj       = _hgt_setpoint_adj_prev;
-		_hgt_setpoint_prev      = _hgt_setpoint_adj_prev;
-
 		// airspeed demand states are set to track the measured airspeed
 		_TAS_setpoint_last      = _EAS * EAS2TAS;
 		_TAS_setpoint_adj       = _EAS * EAS2TAS;
+
+		_hgt_setpoint = baro_altitude;
 
 		// disable speed and decent error condition checks
 		_underspeed_detected = false;
@@ -535,7 +516,8 @@ void TECS::_update_STE_rate_lim()
 
 void TECS::update_pitch_throttle(float pitch, float baro_altitude, float hgt_setpoint,
 				 float EAS_setpoint, float equivalent_airspeed, float eas_to_tas, bool climb_out_setpoint, float pitch_min_climbout,
-				 float throttle_min, float throttle_max, float throttle_cruise, float pitch_limit_min, float pitch_limit_max)
+				 float throttle_min, float throttle_max, float throttle_cruise, float pitch_limit_min, float pitch_limit_max,
+				 float target_climbrate, float target_sinkrate, float hgt_rate_sp)
 {
 	// Calculate the time since last update (seconds)
 	uint64_t now = hrt_absolute_time();
@@ -573,8 +555,14 @@ void TECS::update_pitch_throttle(float pitch, float baro_altitude, float hgt_set
 	// Calculate the demanded true airspeed
 	_update_speed_setpoint();
 
-	// Calculate the demanded height
-	_update_height_setpoint(hgt_setpoint, baro_altitude);
+	if (PX4_ISFINITE(hgt_rate_sp)) {
+		// use the provided height rate setpoint instead of the height setpoint
+		_update_height_rate_setpoint(hgt_rate_sp);
+
+	} else {
+		// calculate heigh rate setpoint based on altitude demand
+		updateHeightRateSetpoint(hgt_setpoint, target_climbrate, target_sinkrate, baro_altitude);
+	}
 
 	// Calculate the specific energy values required by the control loop
 	_update_energy_estimates();

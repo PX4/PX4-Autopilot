@@ -51,12 +51,22 @@ class UavcanBaseSubscriber
 {
 public:
 	static constexpr uint16_t CANARD_PORT_ID_UNSET = 65535U;
+	static constexpr uint16_t CANARD_PORT_ID_MAX   = 32767U;
 
 	UavcanBaseSubscriber(CanardInstance &ins, const char *subject_name, uint8_t instance = 0) :
 		_canard_instance(ins), _instance(instance)
 	{
 		_subj_sub._subject_name = subject_name;
+		_subj_sub._canard_sub.user_reference = this;
+		_subj_sub._canard_sub.port_id = CANARD_PORT_ID_UNSET;
 	}
+
+	virtual ~UavcanBaseSubscriber()
+	{
+		unsubscribe();
+	}
+
+	bool isValidPortId(int32_t id) const { return id >= 0 && id <= CANARD_PORT_ID_MAX; }
 
 	virtual void subscribe() = 0;
 	virtual void unsubscribe()
@@ -64,7 +74,7 @@ public:
 		SubjectSubscription *curSubj = &_subj_sub;
 
 		while (curSubj != NULL) {
-			canardRxUnsubscribe(&_canard_instance, CanardTransferKindMessage, curSubj->_canard_sub._port_id);
+			canardRxUnsubscribe(&_canard_instance, CanardTransferKindMessage, curSubj->_canard_sub.port_id);
 			curSubj = curSubj->next;
 		}
 	};
@@ -78,7 +88,7 @@ public:
 
 		while (curSubj != NULL) {
 			if (instance == i) {
-				return curSubj->_canard_sub._port_id;
+				return curSubj->_canard_sub.port_id;
 			}
 
 			curSubj = curSubj->next;
@@ -90,10 +100,14 @@ public:
 
 	bool hasPortID(CanardPortID port_id)
 	{
+		if (!isValidPortId((int32_t)port_id)) {
+			return false;
+		}
+
 		SubjectSubscription *curSubj = &_subj_sub;
 
 		while (curSubj != NULL) {
-			if (port_id == curSubj->_canard_sub._port_id) {
+			if (port_id == curSubj->_canard_sub.port_id) {
 				return true;
 			}
 
@@ -108,8 +122,8 @@ public:
 		SubjectSubscription *curSubj = &_subj_sub;
 
 		while (curSubj != NULL) {
-			if (curSubj->_canard_sub._port_id != CANARD_PORT_ID_UNSET) {
-				PX4_INFO("Subscribed %s.%d on port %d", curSubj->_subject_name, _instance, curSubj->_canard_sub._port_id);
+			if (curSubj->_canard_sub.port_id != CANARD_PORT_ID_UNSET) {
+				PX4_INFO("Subscribed %s.%d on port %d", curSubj->_subject_name, _instance, curSubj->_canard_sub.port_id);
 			}
 
 			curSubj = curSubj->next;

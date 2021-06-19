@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,6 @@
  ****************************************************************************/
 
 #pragma once
-
 
 /*   Helper classes  */
 #include "Arming/PreFlightCheck/PreFlightCheck.hpp"
@@ -186,6 +185,8 @@ private:
 	bool shutdown_if_allowed();
 
 	bool stabilization_required();
+
+	void send_parachute_command();
 
 	DEFINE_PARAMETERS(
 
@@ -373,7 +374,6 @@ private:
 	bool		_failsafe_old{false};	///< check which state machines for changes, clear "changed" flag
 	bool		_have_taken_off_since_arming{false};
 	bool		_should_set_home_on_takeoff{true};
-	bool		_flight_termination_printed{false};
 	bool		_system_power_usb_connected{false};
 
 	cpuload_s		_cpuload{};

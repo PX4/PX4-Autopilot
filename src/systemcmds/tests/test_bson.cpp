@@ -36,9 +36,8 @@
  * Tests for the bson en/decoder
  */
 
-#include <inttypes.h>
-
 #include <px4_platform_common/defines.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -125,7 +124,7 @@ decode_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 		}
 
 		if (node->i != sample_small_int) {
-			PX4_ERR("FAIL: decoder: int1 value %" PRIu64 ", expected %d", node->i, sample_small_int);
+			PX4_ERR("FAIL: decoder: int1 value %" PRIu64 ", expected %" PRIi32 "", node->i, sample_small_int);
 			return 1;
 		}
 

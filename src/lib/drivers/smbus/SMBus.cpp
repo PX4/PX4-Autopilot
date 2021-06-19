@@ -47,8 +47,8 @@
 #include "SMBus.hpp"
 #include <mathlib/mathlib.h>
 
-SMBus::SMBus(int bus_num, uint16_t address) :
-	I2C(DRV_BAT_DEVTYPE_SMBUS, MODULE_NAME, bus_num, address, 100000)
+SMBus::SMBus(uint8_t device_id, int bus_num, uint16_t address) :
+	I2C(device_id, MODULE_NAME, bus_num, address, 100000)
 {
 }
 

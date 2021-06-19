@@ -125,6 +125,17 @@ private:
 					}
 				}
 
+				static constexpr int mavlink_cells_ext_max = (sizeof(bat_msg.voltages_ext) / sizeof(bat_msg.voltages_ext[0]));
+
+				for (int cell = mavlink_cells_max; cell < mavlink_cells_max + mavlink_cells_ext_max; cell++) {
+					if (battery_status.connected && (cell < battery_status.cell_count) && (cell < uorb_cells_max)) {
+						bat_msg.voltages_ext[cell - mavlink_cells_max] = battery_status.voltage_cell_v[cell] * 1000.0f;
+
+					} else {
+						bat_msg.voltages_ext[cell - mavlink_cells_max] = UINT16_MAX;
+					}
+				}
+
 				mavlink_msg_battery_status_send_struct(_mavlink->get_channel(), &bat_msg);
 				updated = true;
 			}

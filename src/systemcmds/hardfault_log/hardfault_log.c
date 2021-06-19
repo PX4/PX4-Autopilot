@@ -44,6 +44,7 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -254,16 +255,16 @@ static int write_stack_detail(bool inValid, _stack_s *si, char *sp_name,
 	int n = 0;
 	uint32_t sbot = si->top - si->size;
 	n =   snprintf(&buffer[n], max - n, " %s stack: \n", sp_name);
-	n +=  snprintf(&buffer[n], max - n, "  top:    0x%08x\n", si->top);
-	n +=  snprintf(&buffer[n], max - n, "  sp:     0x%08x %s\n", si->sp, (inValid ? "Invalid" : "Valid"));
+	n +=  snprintf(&buffer[n], max - n, "  top:    0x%08" PRIu32 "\n", si->top);
+	n +=  snprintf(&buffer[n], max - n, "  sp:     0x%08" PRIu32 " %s\n", si->sp, (inValid ? "Invalid" : "Valid"));
 
 	if (n != write(fd, buffer, n)) {
 		return -EIO;
 	}
 
 	n = 0;
-	n +=  snprintf(&buffer[n], max - n, "  bottom: 0x%08x\n", sbot);
-	n +=  snprintf(&buffer[n], max - n, "  size:   0x%08x\n",  si->size);
+	n +=  snprintf(&buffer[n], max - n, "  bottom: 0x%08" PRIu32 "\n", sbot);
+	n +=  snprintf(&buffer[n], max - n, "  size:   0x%08" PRIu32 "\n",  si->size);
 
 	if (n != write(fd, buffer, n)) {
 		return -EIO;
@@ -275,10 +276,11 @@ static int write_stack_detail(bool inValid, _stack_s *si, char *sp_name,
 	tcb.adj_stack_size = si->size;
 
 	if (verify_ram_address(sbot, si->size)) {
-		n = snprintf(buffer, max,         "  used:   %08x\n", up_check_tcbstack(&tcb));
+		n = snprintf(buffer, max,         "  used:   %08zu\n", up_check_tcbstack(&tcb));
 
 	} else {
-		n = snprintf(buffer, max,         "Invalid Stack! (Corrupted TCB)  Stack base:  %08x Stack size:  %08x\n", sbot,
+		n = snprintf(buffer, max,         "Invalid Stack! (Corrupted TCB)  Stack base:  %08" PRIu32 " Stack size:  %08" PRIu32
+			     "\n", sbot,
 			     si->size);
 	}
 
@@ -348,7 +350,7 @@ static int  write_stack(bool inValid, int winsize, uint32_t wtopaddr,
 						marker[0] = '\0';
 					}
 
-					n = snprintf(buffer, max, "0x%08x 0x%08x%s\n", wtopaddr, stack[i], marker);
+					n = snprintf(buffer, max, "0x%08" PRIu32 " 0x%08" PRIu32 "%s\n", wtopaddr, stack[i], marker);
 
 					if (n != write(outfd, buffer, n)) {
 						ret = -EIO;
@@ -368,7 +370,9 @@ static int  write_stack(bool inValid, int winsize, uint32_t wtopaddr,
  ****************************************************************************/
 static int write_registers(uint32_t regs[], char *buffer, int max, int fd)
 {
-	int n = snprintf(buffer, max, " r0:0x%08x r1:0x%08x  r2:0x%08x  r3:0x%08x  r4:0x%08x  r5:0x%08x r6:0x%08x r7:0x%08x\n",
+	int n = snprintf(buffer, max,
+			 " r0:0x%08" PRIu32 " r1:0x%08" PRIu32 "  r2:0x%08" PRIu32 "  r3:0x%08" PRIu32 "  r4:0x%08" PRIu32 "  r5:0x%08" PRIu32
+			 " r6:0x%08" PRIu32 " r7:0x%08" PRIu32 "\n",
 			 regs[REG_R0],  regs[REG_R1],
 			 regs[REG_R2],  regs[REG_R3],
 			 regs[REG_R4],  regs[REG_R5],
@@ -378,7 +382,9 @@ static int write_registers(uint32_t regs[], char *buffer, int max, int fd)
 		return -EIO;
 	}
 
-	n  = snprintf(buffer, max, " r8:0x%08x r9:0x%08x r10:0x%08x r11:0x%08x r12:0x%08x  sp:0x%08x lr:0x%08x pc:0x%08x\n",
+	n  = snprintf(buffer, max,
+		      " r8:0x%08" PRIu32 " r9:0x%08" PRIu32 " r10:0x%08" PRIu32 " r11:0x%08" PRIu32 " r12:0x%08" PRIu32 "  sp:0x%08" PRIu32
+		      " lr:0x%08" PRIu32 " pc:0x%08" PRIu32 "\n",
 		      regs[REG_R8],  regs[REG_R9],
 		      regs[REG_R10], regs[REG_R11],
 		      regs[REG_R12], regs[REG_R13],
@@ -389,11 +395,11 @@ static int write_registers(uint32_t regs[], char *buffer, int max, int fd)
 	}
 
 #ifdef CONFIG_ARMV7M_USEBASEPRI
-	n = snprintf(buffer, max, " xpsr:0x%08x basepri:0x%08x control:0x%08x\n",
+	n = snprintf(buffer, max, " xpsr:0x%08" PRIu32 " basepri:0x%08" PRIu32 " control:0x%08" PRIu32 "\n",
 		     regs[REG_XPSR],  regs[REG_BASEPRI],
 		     getcontrol());
 #else
-	n = snprintf(buffer, max, " xpsr:0x%08x primask:0x%08x control:0x%08x\n",
+	n = snprintf(buffer, max, " xpsr:0x%08" PRIu32 " primask:0x%08" PRIu32 " control:0x%08" PRIu32 "\n",
 		     regs[REG_XPSR],  regs[REG_PRIMASK],
 		     getcontrol());
 #endif
@@ -403,7 +409,7 @@ static int write_registers(uint32_t regs[], char *buffer, int max, int fd)
 	}
 
 #ifdef REG_EXC_RETURN
-	n = snprintf(buffer, max, " exe return:0x%08x\n", regs[REG_EXC_RETURN]);
+	n = snprintf(buffer, max, " exe return:0x%08" PRIu32 "\n", regs[REG_EXC_RETURN]);
 
 	if (n != write(fd, buffer, n)) {
 		return -EIO;
@@ -419,9 +425,12 @@ static int write_registers(uint32_t regs[], char *buffer, int max, int fd)
 static int write_fault_registers(fault_regs_s *fault_regs, char *buffer, int max, int fd)
 {
 #if defined(CONFIG_ARCH_CORTEXM7)
-	const char fmt[] =  " cfsr:0x%08x hfsr:0x%08x  dfsr:0x%08x  mmfsr:0x%08x  bfsr:0x%08x afsr:0x%08x abfsr:0x%08x \n";
+	const char fmt[] =
+		" cfsr:0x%08" PRIu32 " hfsr:0x%08" PRIu32 "  dfsr:0x%08" PRIu32 "  mmfsr:0x%08" PRIu32 "  bfsr:0x%08" PRIu32
+		" afsr:0x%08" PRIu32 " abfsr:0x%08" PRIu32 " \n";
 #else
-	const char fmt[] =  " cfsr:0x%08x hfsr:0x%08x  dfsr:0x%08x  mmfsr:0x%08x  bfsr:0x%08x afsr:0x%08x\n";
+	const char fmt[] =  " cfsr:0x%08" PRIu32 " hfsr:0x%08" PRIu32 "  dfsr:0x%08" PRIu32 "  mmfsr:0x%08" PRIu32
+			    "  bfsr:0x%08" PRIu32 " afsr:0x%08" PRIu32 "\n";
 #endif
 	int n = snprintf(buffer, max, fmt,
 			 fault_regs->cfsr, fault_regs->hfsr, fault_regs->dfsr,
@@ -861,7 +870,7 @@ static int hardfault_commit(char *caller)
 
 			if (state != OK) {
 				identify(caller);
-				syslog(LOG_INFO, "Nothing to save\n", path);
+				syslog(LOG_INFO, "Nothing to save\n");
 				ret = -ENOENT;
 
 			} else {
@@ -1065,8 +1074,8 @@ __EXPORT int hardfault_check_status(char *caller)
 		} else {
 			ret = state;
 			identify(caller);
-			syslog(LOG_INFO, "Fault Log info File No %d Length %d flags:0x%02x state:%d\n",
-			       (unsigned int)desc.fileno, (unsigned int) desc.len, (unsigned int)desc.flags, state);
+			syslog(LOG_INFO, "Fault Log info File No %" PRIu8 " Length %" PRIu8 " flags:0x%02" PRIu16 " state:%d\n",
+			       desc.fileno, desc.len, desc.flags, state);
 
 			if (state == OK) {
 				char buf[TIME_FMT_LEN + 1];

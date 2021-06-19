@@ -108,3 +108,5 @@ src/systemcmds/topic_listener/listener_generated.cpp
 # SITL
 dataman
 eeprom/
+
+!src/drivers/distance_sensor/broadcom/afbrs50/Lib/*

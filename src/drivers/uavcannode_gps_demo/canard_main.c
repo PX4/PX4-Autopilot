@@ -42,6 +42,7 @@
 
 #include <sched.h>
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -299,7 +300,7 @@ void processTxRxOnce(CanardInstance *ins, CanardSocketInstance *sock_ins, int ti
 		// It is possible to statically prove that an out-of-memory will never occur for a given application if
 		// the heap is sized correctly; for background, refer to the Robson's Proof and the documentation for O1Heap.
 		// Reception of an invalid frame is NOT an error.
-		fprintf(stderr, "Receive error %d\n", result);
+		fprintf(stderr, "Receive error %" PRId32 "\n", result);
 
 	} else if (result == 1) {
 		printf("Receive portId %i\n", receive.port_id);

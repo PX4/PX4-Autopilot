@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020,2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -80,7 +80,7 @@ int32_t GetCalibrationParam(const char *sensor_type, const char *cal_type, uint8
 {
 	// eg CAL_MAGn_ID/CAL_MAGn_ROT
 	char str[20] {};
-	sprintf(str, "CAL_%s%u_%s", sensor_type, instance, cal_type);
+	sprintf(str, "CAL_%s%" PRIu8 "_%s", sensor_type, instance, cal_type);
 
 	int32_t value = 0;
 
@@ -96,12 +96,12 @@ bool SetCalibrationParam(const char *sensor_type, const char *cal_type, uint8_t 
 	char str[20] {};
 
 	// eg CAL_MAGn_ID/CAL_MAGn_ROT
-	sprintf(str, "CAL_%s%u_%s", sensor_type, instance, cal_type);
+	sprintf(str, "CAL_%s%" PRIu8 "_%s", sensor_type, instance, cal_type);
 
 	int ret = param_set_no_notification(param_find(str), &value);
 
 	if (ret != PX4_OK) {
-		PX4_ERR("failed to set %s = %d", str, value);
+		PX4_ERR("failed to set %s = %" PRId32, str, value);
 	}
 
 	return ret == PX4_OK;
@@ -117,7 +117,7 @@ Vector3f GetCalibrationParamsVector3f(const char *sensor_type, const char *cal_t
 		char axis_char = 'X' + axis;
 
 		// eg CAL_MAGn_{X,Y,Z}OFF
-		sprintf(str, "CAL_%s%u_%c%s", sensor_type, instance, axis_char, cal_type);
+		sprintf(str, "CAL_%s%" PRIu8 "_%c%s", sensor_type, instance, axis_char, cal_type);
 
 		if (param_get(param_find(str), &values(axis)) != 0) {
 			PX4_ERR("failed to get %s", str);
@@ -136,7 +136,7 @@ bool SetCalibrationParamsVector3f(const char *sensor_type, const char *cal_type,
 		char axis_char = 'X' + axis;
 
 		// eg CAL_MAGn_{X,Y,Z}OFF
-		sprintf(str, "CAL_%s%u_%c%s", sensor_type, instance, axis_char, cal_type);
+		sprintf(str, "CAL_%s%" PRIu8 "_%c%s", sensor_type, instance, axis_char, cal_type);
 
 		if (param_set_no_notification(param_find(str), &values(axis)) != 0) {
 			PX4_ERR("failed to set %s = %.4f", str, (double)values(axis));
@@ -169,7 +169,7 @@ enum Rotation GetBoardRotation()
 		return static_cast<enum Rotation>(board_rot);
 
 	} else {
-		PX4_ERR("invalid SENS_BOARD_ROT: %d", board_rot);
+		PX4_ERR("invalid SENS_BOARD_ROT: %" PRId32, board_rot);
 	}
 
 	return Rotation::ROTATION_NONE;
