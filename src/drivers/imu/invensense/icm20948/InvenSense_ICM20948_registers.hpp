@@ -54,8 +54,8 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
-static constexpr uint32_t I2C_SPEED = 400 * 1000; // 400 kHz I2C serial interface
-static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0b1101001;
+static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interface
+static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x69; // 0b1101001
 
 static constexpr uint32_t SPI_SPEED = 7 * 1000 * 1000; // 7 MHz SPI
 static constexpr uint8_t DIR_READ = 0x80;
