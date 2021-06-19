@@ -73,20 +73,20 @@ public:
 				int32_t new_id = value.integer32.value.elements[0];
 
 				/* FIXME how about partial subscribing */
-				if (curSubj->_canard_sub._port_id != new_id) {
+				if (curSubj->_canard_sub.port_id != new_id) {
 					if (new_id == CANARD_PORT_ID_UNSET) {
 						// Cancel subscription
 						unsubscribe();
 
 					} else {
-						if (curSubj->_canard_sub._port_id != CANARD_PORT_ID_UNSET) {
+						if (curSubj->_canard_sub.port_id != CANARD_PORT_ID_UNSET) {
 							// Already active; unsubscribe first
 							unsubscribe();
 						}
 
 						// Subscribe on the new port ID
-						curSubj->_canard_sub._port_id = (CanardPortID)new_id;
-						PX4_INFO("Subscribing %s.%d on port %d", curSubj->_subject_name, _instance, curSubj->_canard_sub._port_id);
+						curSubj->_canard_sub.port_id = (CanardPortID)new_id;
+						PX4_INFO("Subscribing %s.%d on port %d", curSubj->_subject_name, _instance, curSubj->_canard_sub.port_id);
 						subscribe();
 					}
 				}

@@ -57,7 +57,7 @@ public:
 		// Subscribe to messages reg.drone.physics.kinematics.geodetic.Point.0.1
 		canardRxSubscribe(&_canard_instance,
 				  CanardTransferKindMessage,
-				  _subj_sub._canard_sub._port_id,
+				  _subj_sub._canard_sub.port_id,
 				  reg_drone_physics_kinematics_geodetic_Point_0_1_EXTENT_BYTES_,
 				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
 				  &_subj_sub._canard_sub);
