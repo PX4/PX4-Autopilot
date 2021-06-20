@@ -23,6 +23,7 @@ jobs:
           "shellcheck_all",
           "NO_NINJA_BUILD=1 px4_fmu-v5_default",
           "NO_NINJA_BUILD=1 px4_sitl_default",
+          "BUILD_MICRORTPS_AGENT=1 px4_sitl_rtps",
           "airframe_metadata",
           "module_documentation",
           "parameters_metadata",
