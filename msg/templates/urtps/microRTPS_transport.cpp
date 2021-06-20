@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <sys/socket.h>
 #include <cstdlib>
+#include <inttypes.h>
 #if __has_include("px4_platform_common/log.h") && __has_include("px4_platform_common/time.h")
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/time.h>
