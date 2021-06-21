@@ -93,8 +93,7 @@ struct GPS_Sat_Info {
 	satellite_info_s _data;
 };
 
-static constexpr int TASK_STACK_SIZE = 1760;
-
+static constexpr int TASK_STACK_SIZE = 2304;
 
 class GPS : public ModuleBase<GPS>, public device::Device
 {
