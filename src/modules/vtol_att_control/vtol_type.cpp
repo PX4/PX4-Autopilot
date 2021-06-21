@@ -381,7 +381,7 @@ void VtolType::set_all_motor_state(const motor_state target_state, const int val
 
 void VtolType::set_main_motor_state(const motor_state target_state, const int value)
 {
-	if (_main_motor_state != target_state) {
+	if (_main_motor_state != target_state || target_state == motor_state::VALUE) {
 
 		if (set_motor_state(target_state, _main_motor_channel_bitmap, value)) {
 			_main_motor_state = target_state;
@@ -391,7 +391,7 @@ void VtolType::set_main_motor_state(const motor_state target_state, const int va
 
 void VtolType::set_alternate_motor_state(const motor_state target_state, const int value)
 {
-	if (_alternate_motor_state != target_state) {
+	if (_alternate_motor_state != target_state || target_state == motor_state::VALUE) {
 
 		if (set_motor_state(target_state, _alternate_motor_channel_bitmap, value)) {
 			_alternate_motor_state = target_state;
