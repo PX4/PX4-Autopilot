@@ -277,7 +277,7 @@ struct parameters {
 	// airspeed fusion
 	float tas_innov_gate{5.0f};		///< True Airspeed innovation consistency gate size (STD)
 	float eas_noise{1.4f};			///< EAS measurement noise standard deviation used for airspeed fusion (m/s)
-	float arsp_thr{0.0f};			///< Airspeed fusion threshold. A value of zero will deactivate airspeed fusion
+	float arsp_thr{2.0f};			///< Airspeed fusion threshold. A value of zero will deactivate airspeed fusion
 
 	// synthetic sideslip fusion
 	float beta_innov_gate{5.0f};		///< synthetic sideslip innovation consistency gate size in standard deviation (STD)
