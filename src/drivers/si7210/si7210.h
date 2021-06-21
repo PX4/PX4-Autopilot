@@ -174,11 +174,6 @@ private:
 	int				get_sensor_data(uint8_t otpAddr, int8_t *data);
 
 	/**
-	 * Calculate the CRC8 for the sensor payload data
-	 */
-	bool crc(const uint8_t data[], unsigned size, uint8_t checksum);
-
-	/**
 	 * Write a command in Sensirion specific logic
 	 */
 	int write_command(uint16_t command);

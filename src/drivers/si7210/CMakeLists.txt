@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__si7210
 	MAIN si7210
 	COMPILE_FLAGS
-		# -DDEBUG_BUILD
 	SRCS
 		si7210_main.cpp
 		si7210.cpp

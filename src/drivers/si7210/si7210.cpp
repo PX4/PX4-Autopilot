@@ -207,7 +207,6 @@ int SI7210::collect()
 	perf_begin(_sample_perf);
 
 	_collect_phase = false;
-	// bool si7210_notify = true;
 
 	uint8_t     reg;
 
@@ -324,26 +323,4 @@ SI7210::RunImpl()
 		ScheduleDelayed(SI7210_CONVERSION_INTERVAL);
 		break;
 	}
-}
-
-bool SI7210::crc(const uint8_t data[], unsigned size, uint8_t checksum)
-{
-	uint8_t crc_value = 0xff;
-
-	// calculate 8-bit checksum with polynomial 0x31 (x^8 + x^5 + x^4 + 1)
-	for (unsigned i = 0; i < size; i++) {
-		crc_value ^= (data[i]);
-
-		for (int bit = 8; bit > 0; --bit) {
-			if (crc_value & 0x80) {
-				crc_value = (crc_value << 1) ^ 0x31;
-
-			} else {
-				crc_value = (crc_value << 1);
-			}
-		}
-	}
-
-	// verify checksum
-	return (crc_value == checksum);
 }
