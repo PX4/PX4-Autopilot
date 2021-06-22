@@ -49,7 +49,7 @@ class Classifier():
         self.msg_folder = msg_folder
         self.all_msgs_list = self.set_all_msgs()
         self.msg_id_map = self.parse_yaml_msg_id_file(yaml_file)
-        self.alias_space_init_id = 170
+        self.alias_space_init_id = 180
 
         # Checkers
         self.check_if_listed(yaml_file)
