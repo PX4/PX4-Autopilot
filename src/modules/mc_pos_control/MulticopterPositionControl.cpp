@@ -277,6 +277,7 @@ void MulticopterPositionControl::Run()
 		_control_mode_sub.update(&_control_mode);
 		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
 		_mount_orientation_sub.update(&_mount_orientation);
+		_vehicle_status_sub.update(&_vehicle_status);
 
 		if (_param_mpc_use_hte.get()) {
 			hover_thrust_estimate_s hte;
@@ -403,7 +404,12 @@ void MulticopterPositionControl::Run()
 				math::constrain(speed_down, 0.f, _param_mpc_z_vel_max_dn.get()));
 
 
-			if (true /*And parameter enable vmount yaw control*/)
+			if (_param_mnt_uav_yaw.get() == 1 &&
+				_vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_LAND &&
+				_vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_TAKEOFF &&
+				_vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_PRECLAND &&
+				_vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_LANDENGFAIL &&
+				_vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_LANDGPSFAIL )
 			{
 				_setpoint.yaw = _mount_orientation.attitude_euler_angle[2];
 			}

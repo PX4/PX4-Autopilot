@@ -64,6 +64,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/mount_orientation.h>
 
 using namespace time_literals;
@@ -106,6 +107,7 @@ private:
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_constraints_sub{ORB_ID(vehicle_constraints)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _mount_orientation_sub{ORB_ID(mount_orientation)};
 
 	hrt_abstime	_time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
@@ -130,6 +132,7 @@ private:
 		.maybe_landed = true,
 		.landed = true,
 	};
+	vehicle_status_s		_vehicle_status {};
 	mount_orientation_s		_mount_orientation {};
 
 	DEFINE_PARAMETERS(
@@ -176,7 +179,9 @@ private:
 
 		(ParamFloat<px4::params::MPC_XY_VEL_ALL>) _param_mpc_xy_vel_all,
 		(ParamFloat<px4::params::MPC_Z_VEL_ALL>) _param_mpc_z_vel_all,
-		(ParamFloat<px4::params::MPC_LAND_VEL_XY>) _param_mpc_land_vel_xy
+		(ParamFloat<px4::params::MPC_LAND_VEL_XY>) _param_mpc_land_vel_xy,
+
+		(ParamInt<px4::params::MNT_UAV_YAW>) _param_mnt_uav_yaw
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
