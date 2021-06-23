@@ -711,9 +711,8 @@ unknown_cmd:
 				poll_interval_usec = 3000000;
 				_turning_on = true;
 			}
+		}
 
-		} 
-		
 		if ((!_trigger_enabled || _trigger_paused) && !_one_shot) { // Just got disabled/paused via a command
 
 			// Power off the camera if we are disabled
