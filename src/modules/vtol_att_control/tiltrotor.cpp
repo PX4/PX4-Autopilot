@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -180,6 +180,14 @@ void Tiltrotor::update_vtol_state()
 				if (transition_to_p2) {
 					_vtol_schedule.flight_mode = vtol_mode::TRANSITION_FRONT_P2;
 					_vtol_schedule.transition_start = hrt_absolute_time();
+				}
+
+				// check front transition timeout
+				if (_params->front_trans_timeout > FLT_EPSILON) {
+					if (time_since_trans_start > _params->front_trans_timeout) {
+						// transition timeout occured, abort transition
+						_attc->quadchute(VtolAttitudeControl::QuadchuteReason::TransitionTimeout);
+					}
 				}
 
 				break;
