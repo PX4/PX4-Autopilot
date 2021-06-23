@@ -59,6 +59,7 @@
 
 #include "Publishers/Publisher.hpp"
 #include "Publishers/Gnss.hpp"
+#include "Publishers/uORB/actuator_outputs.hpp"
 
 #include "NodeManager.hpp"
 
@@ -183,11 +184,13 @@ private:
 
 	UavcanGnssPublisher _gps_pub {_canard_instance, _param_manager};
 
+	UORB_over_UAVCAN_actuator_outputs_Publisher _actuator_pub {_canard_instance, _param_manager}; // uORB
+
 	UavcanEscController _esc_controller {_canard_instance, _param_manager};
 
 	// Publication objects: Any object used to bridge a uORB message to a UAVCAN message
 	/// TODO: For some service implementations, it makes sense to have them be both Publishers and Subscribers
-	UavcanPublisher *_publishers[2] {&_gps_pub, &_esc_controller};
+	UavcanPublisher *_publishers[3] {&_gps_pub, &_esc_controller, &_actuator_pub};
 
 	UavcanMixingInterface _mixing_output {_node_mutex, _esc_controller};
 
