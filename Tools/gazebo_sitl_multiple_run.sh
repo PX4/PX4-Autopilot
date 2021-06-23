@@ -20,7 +20,7 @@ function spawn_model() {
 	X=${X:=0.0}
 	Y=${Y:=$((3*${N}))}
 
-	SUPPORTED_MODELS=("iris" "iris_rtps" "plane" "standard_vtol" "rover" "r1_rover" "typhoon_h480")
+	SUPPORTED_MODELS=("iris" "plane" "standard_vtol" "rover" "r1_rover" "typhoon_h480")
 	if [[ " ${SUPPORTED_MODELS[*]} " != *"$MODEL"* ]];
 	then
 		echo "ERROR: Currently only vehicle model $MODEL is not supported!"

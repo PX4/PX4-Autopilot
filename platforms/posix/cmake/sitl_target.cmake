@@ -114,13 +114,13 @@ set(models
 	iris_opt_flow
 	iris_opt_flow_mockup
 	iris_rplidar
-	iris_rtps px4vision
 	iris_vision
 	nxp_cupcar
 	plane
 	plane_cam
 	plane_catapult
 	plane_lidar
+	px4vision
 	r1_rover
 	rover
 	shell

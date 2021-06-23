@@ -165,6 +165,11 @@ ifdef PYTHON_EXECUTABLE
 	CMAKE_ARGS += -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
 endif
 
+# Check if the microRTPS agent is to be built
+ifdef BUILD_MICRORTPS_AGENT
+  CMAKE_ARGS += -DBUILD_MICRORTPS_AGENT=ON
+endif
+
 # Functions
 # --------------------------------------------------------------------
 # describe how to build a cmake config

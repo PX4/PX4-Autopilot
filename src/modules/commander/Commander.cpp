@@ -304,7 +304,7 @@ int Commander::custom_command(int argc, char *argv[])
 		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION,
 				     (float)(vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING ?
 					     vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW :
-					     vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC));
+					     vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC), 0.0f);
 
 		return 0;
 	}
