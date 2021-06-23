@@ -58,6 +58,7 @@ static constexpr const char reason_no_rc_and_no_offboard[] = "no RC and no offbo
 static constexpr const char reason_no_local_position[] = "no local position";
 static constexpr const char reason_no_global_position[] = "no global position";
 static constexpr const char reason_no_datalink[] = "no datalink";
+static constexpr const char reason_no_rc_and_no_datalink[] = "no RC and no datalink";
 
 // This array defines the arming state transitions. The rows are the new state, and the columns
 // are the current state. Using new state and current state you can index into the array which
@@ -558,7 +559,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 			   && mission_finished) {
 			// All links lost, all link loss reactions disabled -> return after mission finished
 			// Pilot disabled all reactions, finish mission but then return to avoid lost vehicle
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc_and_no_datalink);
 			set_link_loss_nav_state(status, armed, status_flags, internal_state, link_loss_actions_t::AUTO_RTL, 0);
 
 		} else if (!stay_in_failsafe) {
@@ -602,7 +603,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 			   && is_armed && !landed) {
 			// All links lost, all link loss reactions disabled -> return
 			// Pilot disabled all reactions, return to avoid lost vehicle
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc_and_no_datalink);
 			set_link_loss_nav_state(status, armed, status_flags, internal_state, link_loss_actions_t::AUTO_RTL, 0);
 
 		} else {
@@ -720,7 +721,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 			   && is_armed && !landed) {
 			// All links lost, all link loss reactions disabled -> return
 			// Pilot disabled all reactions, return to avoid lost vehicle
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc_and_no_datalink);
 			set_link_loss_nav_state(status, armed, status_flags, internal_state, link_loss_actions_t::AUTO_RTL, 0);
 
 		} else {
