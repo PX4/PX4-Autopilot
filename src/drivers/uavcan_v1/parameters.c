@@ -169,3 +169,12 @@ PARAM_DEFINE_INT32(UCAN1_GPS_PUB, -1);
  * @group UAVCAN v1
  */
 PARAM_DEFINE_INT32(UCAN1_SERVO_PUB, -1);
+
+/**
+ * actuator_outputs uORB over UAVCAN v1 port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group UAVCAN v1
+ */
+PARAM_DEFINE_INT32(UCAN1_ACTR_PUB, -1);
