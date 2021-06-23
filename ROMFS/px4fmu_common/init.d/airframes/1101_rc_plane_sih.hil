@@ -1,0 +1,37 @@
+#!/bin/sh
+#
+# @name SIH plane AERT
+#
+# @type Simulation
+# @class Plane
+#
+# @maintainer Romain Chiappinelli <romain.chiap@gmail.com>
+#
+# @board px4_fmu-v2 exclude
+#
+
+. ${R}etc/init.d/rc.fw_defaults
+
+set MIXER AERT
+set PWM_OUT 1234
+
+# set SYS_HITL to 2 to start the SIH and avoid sensors startup
+param set SYS_HITL 2
+
+# disable some checks to allow to fly:
+# - with usb
+param set-default CBRK_USB_CHK 197848
+# - without real battery
+param set-default CBRK_SUPPLY_CHK 894281
+# - without safety switch
+param set-default COM_PREARM_MODE 0
+param set-default CBRK_IO_SAFETY 22027
+
+param set-default BAT_N_CELLS 3
+
+param set SIH_T_MAX 10.0
+param set SIH_MASS 0.576
+param set SIH_IXX 0.00402
+param set SIH_IYY 0.0144
+param set SIH_IZZ 0.0177
+param set SIH_IXZ 0.00046

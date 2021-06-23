@@ -31,6 +31,13 @@
 *
 ****************************************************************************/
 
+// The sensor signals reconstruction and noise levels are from [1]
+// [1] Bulka, Eitan, and Meyer Nahon. "Autonomous fixed-wing aerobatics: from theory to flight."
+//     In 2018 IEEE International Conference on Robotics and Automation (ICRA), pp. 6573-6580. IEEE, 2018.
+// The aerodynamic model is from [2]
+// [2] Khan, Waqas, supervised by Meyer Nahon "Dynamics modeling of agile fixed-wing unmanned aerial vehicles."
+//     McGill University, PhD thesis, 2016.
+
 #pragma once
 
 #include <px4_platform_common/module.h>
@@ -121,6 +128,17 @@ private:
 	static constexpr float T1_C = 15.0f;                        // ground temperature in celcius
 	static constexpr float T1_K = T1_C - CONSTANTS_ABSOLUTE_NULL_CELSIUS;   // ground temperature in Kelvin
 	static constexpr float TEMP_GRADIENT  = -6.5f / 1000.0f;    // temperature gradient in degrees per metre
+	// Aerodynamic coefficients
+	static constexpr float RHO = 1.225f; 		// air density at sea level [kg/m^3]
+	static constexpr float CD0 = 0.04f; 		// no lift drag coefficient
+	static constexpr float CD90 = 1.98f; 		// 90 deg angle of attack drag coefficient
+	static constexpr float AOA_BLEND=20.0f*M_PI_F/180.0f;    // blending angle width [rad]
+	static constexpr float CLa=5.8015f; 				// CL/rad
+	static constexpr float K0=0.87f;     	// Oswald factor
+	static constexpr float CMa=-0.1f;     	// pitching moment lift curve slope
+	static constexpr float SPAN=0.86f; 	// wing span [m]
+	static constexpr float MAC=0.21f; 	// wing mean aerodynamic chord [m]
+
 
 	void init_variables();
 	void gps_fix();
@@ -132,6 +150,14 @@ private:
 	void send_gps();
 	void send_dist_snsr();
 	void publish_sih();
+	void generate_aerodynamics();
+	void low_aoa_coeff(float alpha, float AR, float &CL, float &CD, float &CM);
+	void high_aoa_coeff(float alpha, float AR, float &CL, float &CD, float &CM);
+	// Aerodynamic forces and moments for a flat plate wing segment as described in [2]
+	void aero_fm(float span, float mac, float AR, bool vertical, matrix::Vector3f vel, matrix::Vector3f &force, matrix::Vector3f &moments);
+	float lin_interp(const float x0, const float y0, const float x1, const float y1, float x);
+	matrix::Vector3f flap_moments();
+
 
 	perf_counter_t  _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t  _loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
@@ -160,7 +186,14 @@ private:
 	matrix::Vector3f    _w_B;           // body rates in body frame [rad/s]
 	matrix::Quatf       _q_dot;         // quaternion differential
 	matrix::Vector3f    _w_B_dot;       // body rates differential
-	float       _u[NB_MOTORS];  // thruster signals
+	float       _u[NB_MOTORS];          // thruster signals
+
+	enum Vtype {MC, FW}; 	// vehicle type
+	Vtype _vehicle=FW;
+
+	// fixed wing aerodynamic components
+	matrix::Vector3f 	_r_fin=matrix::Vector3f(-0.4f, 0.0f, -0.1f);	// fin position from CM [m]
+	matrix::Vector3f 	_r_tp=matrix::Vector3f(-0.4f, 0.0f, 0.0f);	// tailplane position from CM [m]
 
 
 	// sensors reconstruction

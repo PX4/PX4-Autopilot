@@ -435,3 +435,4 @@ PARAM_DEFINE_FLOAT(SIH_DISTSNSR_OVR, -1.0f);
  * @group Simulation In Hardware
  */
 PARAM_DEFINE_FLOAT(SIH_T_TAU, 0.05f);
+
