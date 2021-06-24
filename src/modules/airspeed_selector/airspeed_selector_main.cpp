@@ -330,7 +330,9 @@ AirspeedModule::Run()
 		input_data.att_q[2] = _vehicle_attitude.q[2];
 		input_data.att_q[3] = _vehicle_attitude.q[3];
 		input_data.air_pressure_pa = _vehicle_air_data.baro_pressure_pa;
-		input_data.accel_z = _accel.xyz[2];
+		input_data.accel[0] = _accel.xyz[0];
+		input_data.accel[1] = _accel.xyz[1];
+		input_data.accel[2] = _accel.xyz[2];
 		input_data.vel_test_ratio = _estimator_status.vel_test_ratio;
 		input_data.mag_test_ratio = _estimator_status.mag_test_ratio;
 
