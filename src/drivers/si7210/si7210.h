@@ -140,7 +140,6 @@ private:
 
 	int	measure() override { return 0; }
 	int	collect() override;
-	int	probe() override;
 	int	configure();
 
 	bool init_si7210();

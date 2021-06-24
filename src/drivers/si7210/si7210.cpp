@@ -42,19 +42,6 @@
 
 using namespace time_literals;
 
-int
-SI7210::probe()
-{
-	bool require_initialization = !init_si7210();
-
-	if (require_initialization && _keep_retrying) {
-		PX4_INFO("no sensor found, but will keep retrying");
-		return 0;
-	}
-
-	return require_initialization ? -1 : 0;
-}
-
 /* Get registers value */
 int
 SI7210::get_regs(uint8_t ptr, uint8_t *regs)
