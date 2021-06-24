@@ -15,6 +15,7 @@ px4_add_board(
 		bootloaders
 		distance_sensor/broadcom/afbrs50
 		imu/bosch/bmi088
+		imu/invensense/icm42688p
 		optical_flow/paw3902
 		uavcannode
 	MODULES
