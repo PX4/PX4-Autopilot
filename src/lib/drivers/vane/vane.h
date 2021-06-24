@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,26 +31,54 @@
  *
  ****************************************************************************/
 
-/**
- * @file drv_hall.h
- *
- * Hall Effect Magnetic Sensor driver interface.
- */
+#pragma once
 
-#ifndef _DRV_HALL_H
-#define _DRV_HALL_H
+#include <string.h>
+#include <drivers/device/i2c.h>
+#include <drivers/drv_hall.h>
+#include <drivers/drv_hrt.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <perf/perf_counter.h>
+#include <uORB/topics/sensor_hall.h>
+#include <uORB/PublicationMulti.hpp>
 
-#include <stdint.h>
-#include <sys/ioctl.h>
+class __EXPORT Vane : public device::I2C
+{
+public:
+	Vane(int bus, int bus_frequency, int address, unsigned conversion_interval);
+	virtual ~Vane();
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
+	int	init() override;
 
-#define HALL_BASE_DEVICE_PATH	"/dev/hall"
-#define HALL0_DEVICE_PATH		"/dev/hall0"
-#define HALL1_DEVICE_PATH		"/dev/hall1"
-#define HALL2_DEVICE_PATH		"/dev/hall2"
-#define HALL3_DEVICE_PATH		"/dev/hall3"
+	int	ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
 
+private:
+	Vane(const Vane &) = delete;
+	Vane &operator=(const Vane &) = delete;
 
-#endif /* _DRV_HALL_H */
+protected:
+	int	probe() override;
+
+	/**
+	* Perform a poll cycle; collect from the previous measurement
+	* and start a new one.
+	*/
+	virtual int	measure() = 0;
+	virtual int	collect() = 0;
+
+	bool			_sensor_ok;
+	int			_measure_interval;
+	bool			_collect_phase;
+
+	uORB::PublicationMulti<sensor_hall_s>	_vane_pub{ORB_ID(sensor_hall)};
+
+	int			_vane_orb_class_instance;
+
+	int			_class_instance;
+
+	unsigned		_conversion_interval;
+
+	perf_counter_t		_sample_perf;
+	perf_counter_t		_comms_errors;
+};
