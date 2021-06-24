@@ -520,8 +520,8 @@ CameraTrigger::Run()
 	_turning_on = false;
 
 	// these flags are used to detect state changes in the command loop
-	bool main_state = _trigger_enabled;
-	bool pause_state = _trigger_paused;
+	bool previous_trigger_state = _trigger_enabled;
+	bool previous_trigger_paused = _trigger_paused;
 
 	bool updated = _command_sub.update(&cmd);
 
@@ -694,8 +694,8 @@ CameraTrigger::Run()
 unknown_cmd:
 
 	// State change handling
-	if ((main_state != _trigger_enabled) ||
-	    (pause_state != _trigger_paused) ||
+	if ((previous_trigger_state != _trigger_enabled) ||
+	    (previous_trigger_paused != _trigger_paused) ||
 	    _one_shot) {
 
 		if (_trigger_enabled || _one_shot) { // Just got enabled via a command
@@ -711,8 +711,9 @@ unknown_cmd:
 				poll_interval_usec = 3000000;
 				_turning_on = true;
 			}
+		}
 
-		} else if (!_trigger_enabled || _trigger_paused) { // Just got disabled/paused via a command
+		if ((!_trigger_enabled || _trigger_paused) && !_one_shot) { // Just got disabled/paused via a command
 
 			// Power off the camera if we are disabled
 			if (_camera_interface->is_powered_on() &&
@@ -896,8 +897,8 @@ CameraTrigger::keep_alive_down(void *arg)
 void
 CameraTrigger::status()
 {
-	PX4_INFO("main state : %s", _trigger_enabled ? "enabled" : "disabled");
-	PX4_INFO("pause state : %s", _trigger_paused ? "paused" : "active");
+	PX4_INFO("trigger enabled : %s", _trigger_enabled ? "enabled" : "disabled");
+	PX4_INFO("trigger paused : %s", _trigger_paused ? "paused" : "active");
 	PX4_INFO("mode : %d", static_cast<int>(_trigger_mode));
 
 	if (_trigger_mode == TRIGGER_MODE_INTERVAL_ALWAYS_ON ||
