@@ -342,6 +342,8 @@ rtps:
     id: 158
   - msg: estimator_event_flags
     id: 159
+  - msg: sensor_hall
+    id: 160
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 170

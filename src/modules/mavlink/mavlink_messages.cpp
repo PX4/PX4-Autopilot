@@ -99,6 +99,7 @@
 #include "streams/RC_CHANNELS.hpp"
 #include "streams/SCALED_IMU.hpp"
 #include "streams/SCALED_PRESSURE.hpp"
+#include "streams/SENSOR_AIRFLOW_ANGLES.hpp"
 #include "streams/SERVO_OUTPUT_RAW.hpp"
 #include "streams/STATUSTEXT.hpp"
 #include "streams/STORAGE_INFORMATION.hpp"
@@ -346,6 +347,9 @@ static const StreamListItem streams_list[] = {
 #if defined(SCALED_PRESSURE3)
 	create_stream_list_item<MavlinkStreamScaledPressure3>(),
 #endif // SCALED_PRESSURE3
+#if defined(SENSOR_AIRFLOW_ANGLES_HPP)
+	create_stream_list_item<MavlinkStreamSensorAirflowAngles>(),
+#endif // SENSOR_AIRFLOW_ANGLES
 #if defined(ACTUATOR_OUTPUT_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamActuatorOutputStatus>(),
 #endif // ACTUATOR_OUTPUT_STATUS_HPP

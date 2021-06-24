@@ -39,6 +39,8 @@ set(msg_files
 	actuator_controls.msg
 	actuator_outputs.msg
 	adc_report.msg
+	airflow_aoa.msg
+	airflow_slip.msg
 	airspeed.msg
 	airspeed_validated.msg
 	airspeed_wind.msg
@@ -128,6 +130,7 @@ set(msg_files
 	sensor_baro.msg
 	sensor_combined.msg
 	sensor_correction.msg
+	sensor_hall.msg
 	sensor_gps.msg
 	sensor_gyro.msg
 	sensor_gyro_fft.msg
