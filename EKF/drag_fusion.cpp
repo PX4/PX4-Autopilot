@@ -97,7 +97,7 @@ void Ekf::fuseDrag()
 		// Drag is modelled as an arbitrary combination of bluff body drag that proportional to
 		// equivalent airspeed squared, and rotor momentum drag that is proportional to true airspeed
 		// parallel to the rotor disc and mass flow through the rotor disc.
-		float pred_acc; // predicted drag acceleration
+		float pred_acc = 0.0f; // predicted drag acceleration
 		if (axis_index == 0) {
 			float Kacc; // Derivative of specific force wrt airspeed
 			if (using_mcoef && using_bcoef_x) {
