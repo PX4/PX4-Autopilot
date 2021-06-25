@@ -121,7 +121,6 @@ int MulticopterPositionControl::parameters_update(bool force)
 			num_changed += _param_mpc_vel_manual.commit_no_notification(xy_vel);
 			num_changed += _param_mpc_xy_cruise.commit_no_notification(xy_vel);
 			num_changed += _param_mpc_xy_vel_max.commit_no_notification(xy_vel);
-			num_changed += _param_mpc_land_vel_xy.commit_no_notification(xy_vel * 0.75f);
 		}
 
 		if (_param_mpc_z_vel_all.get() >= 0.f) {

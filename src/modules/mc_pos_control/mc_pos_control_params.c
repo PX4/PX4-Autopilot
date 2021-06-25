@@ -364,18 +364,6 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 12.0f);
 PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.7f);
 
 /**
- * Maximum horizontal position mode velocity when close to ground/home altitude
- *
- * Set the value higher than the otherwise expected maximum to disable any slowdown.
- *
- * @unit m/s
- * @min 0
- * @decimal 1
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_LAND_VEL_XY, 10.0f);
-
-/**
  * Enable user assisted descent speed for autonomous land routine.
  *
  * When enabled, descent speed will be:
@@ -659,12 +647,8 @@ PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_MAX, 45.0f);
 /**
  * Altitude for 1. step of slow landing (descend)
  *
- * Below this altitude:
- * - descending velocity gets limited to a value
+ * Below this altitude descending velocity gets limited to a value
  * between "MPC_Z_VEL_MAX_DN" and "MPC_LAND_SPEED"
- * - horizontal velocity gets limited to a value
- * between "MPC_VEL_MANUAL" and "MPC_LAND_VEL_XY"
- * for a smooth descent and landing experience.
  * Value needs to be higher than "MPC_LAND_ALT2"
  *
  * @unit m
@@ -678,8 +662,8 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT1, 10.0f);
 /**
  * Altitude for 2. step of slow landing (landing)
  *
- * Below this altitude descending and horizontal velocities get
- * limited to "MPC_LAND_SPEED" and "MPC_LAND_VEL_XY", respectively.
+ * Below this altitude descending velocity gets
+ * limited to "MPC_LAND_SPEED".
  * Value needs to be lower than "MPC_LAND_ALT1"
  *
  * @unit m
