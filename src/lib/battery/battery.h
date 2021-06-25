@@ -156,11 +156,6 @@ protected:
 	void updateParams() override;
 
 	/**
-	 * Publishes the uORB battery_status message with the most recently-updated data.
-	 */
-	void publish();
-
-	/**
 	 * This function helps migrating and syncing from/to deprecated parameters. BAT_* BAT1_*
 	 * @tparam T Type of the parameter (int or float)
 	 * @param old_param Handle to the old deprecated parameter (for example, param_find("BAT_N_CELLS"))
