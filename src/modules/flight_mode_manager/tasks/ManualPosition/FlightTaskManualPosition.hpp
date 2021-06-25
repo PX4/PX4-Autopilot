@@ -65,12 +65,10 @@ protected:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualAltitude,
 					(ParamFloat<px4::params::MPC_VEL_MANUAL>) _param_mpc_vel_manual,
-					(ParamFloat<px4::params::MPC_LAND_VEL_XY>) _param_mpc_land_vel_xy,
 					(ParamFloat<px4::params::MPC_ACC_HOR_MAX>) _param_mpc_acc_hor_max,
 					(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) _param_mpc_hold_max_xy
 				       )
 private:
-	float _computeVelXYGroundDist();
 	float _velocity_scale{0.0f}; //scales the stick input to velocity
 	uint8_t _reset_counter{0}; /**< counter for estimator resets in xy-direction */
 
