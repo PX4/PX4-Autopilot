@@ -853,6 +853,9 @@ PX4IO::init()
 		_primary_pwm_device = true;
 	}
 
+	/* ensure PWM limits are applied before any other module starts */
+	update_params();
+
 	/* start the IO interface task */
 	_task = px4_task_spawn_cmd("px4io",
 				   SCHED_DEFAULT,
