@@ -169,7 +169,7 @@ void Batmon::RunImpl()
 
 	float average_current = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f);
 
-	new_report.average_current_a = average_current;
+	new_report.current_average_a = average_current;
 
 	// Read run time to empty (minutes).
 	ret |= _interface->read_word(BATT_SMBUS_RUN_TIME_TO_EMPTY, result);
