@@ -197,7 +197,7 @@ protected:
 private:
 	void sumDischarged(const hrt_abstime &timestamp, float current_a);
 	void estimateStateOfCharge(const float voltage_v, const float current_a, const float throttle);
-	void determineWarning(bool connected);
+	void determineWarning();
 	void computeScale();
 
 	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
