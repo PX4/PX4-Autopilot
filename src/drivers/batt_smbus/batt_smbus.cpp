@@ -129,7 +129,7 @@ void BATT_SMBUS::RunImpl()
 
 	float average_current = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f) * _c_mult;
 
-	new_report.average_current_a = average_current;
+	new_report.current_average_a = average_current;
 
 	// If current is high, turn under voltage protection off. This is neccessary to prevent
 	// a battery from cutting off while flying with high current near the end of the packs capacity.
