@@ -77,8 +77,6 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	for (auto &pwm_disarmed : _disarmed_pwm_values.values) {
 		pwm_disarmed = PWM_MOTOR_OFF;
 	}
-
-	_current_max_pwm_values = _max_mc_pwm_values;
 }
 
 bool VtolType::init()
@@ -93,7 +91,7 @@ bool VtolType::init()
 	}
 
 	int ret = px4_ioctl(fd, PWM_SERVO_GET_MAX_PWM, (long unsigned int)&_max_mc_pwm_values);
-
+	_current_max_pwm_values = _max_mc_pwm_values;
 
 	if (ret != PX4_OK) {
 		PX4_ERR("failed getting max values");
