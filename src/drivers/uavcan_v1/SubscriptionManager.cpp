@@ -88,10 +88,20 @@ void SubscriptionManager::subscribe()
 
 void SubscriptionManager::printInfo()
 {
+	UavcanDynamicPortSubscriber *dynsub = _dynsubscribers;
 
+	while (dynsub != NULL) {
+		dynsub->printInfo();
+		dynsub = dynsub->next();
+	}
 }
 
 void SubscriptionManager::updateParams()
 {
-	//TODO dynamically update params and unsubscribe
+	UavcanDynamicPortSubscriber *dynsub = _dynsubscribers;
+
+	while (dynsub != NULL) {
+		dynsub->updateParam();
+		dynsub = dynsub->next();
+	}
 }
