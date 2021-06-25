@@ -271,7 +271,9 @@ void UavcanNode::transmit()
 	for (const CanardFrame *txf = nullptr; (txf = canardTxPeek(&_canard_instance)) != nullptr;) {
 		// Attempt transmission only if the frame is not yet timed out while waiting in the TX queue.
 		// Otherwise just drop it and move on to the next one.
-		if (txf->timestamp_usec == 0 || txf->timestamp_usec > hrt_absolute_time()) {
+		const hrt_abstime now = hrt_absolute_time();
+
+		if (txf->timestamp_usec == 0 || txf->timestamp_usec > now) {
 			// Send the frame. Redundant interfaces may be used here.
 			const int tx_res = _can_interface->transmit(*txf);
 
@@ -294,6 +296,12 @@ void UavcanNode::transmit()
 				// Timeout - just exit and try again later
 				break;
 			}
+
+		} else if (txf->timestamp_usec <= now) {
+			// Transmission timed out -- remove from queue and deallocate its memory
+			canardTxPop(&_canard_instance);
+
+			_canard_instance.memory_free(&_canard_instance, (CanardFrame *)txf);
 		}
 	}
 }
