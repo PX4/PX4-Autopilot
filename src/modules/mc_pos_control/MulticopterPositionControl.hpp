@@ -172,8 +172,7 @@ private:
 		(ParamFloat<px4::params::MPC_MAN_Y_TAU>) _param_mpc_man_y_tau,
 
 		(ParamFloat<px4::params::MPC_XY_VEL_ALL>) _param_mpc_xy_vel_all,
-		(ParamFloat<px4::params::MPC_Z_VEL_ALL>) _param_mpc_z_vel_all,
-		(ParamFloat<px4::params::MPC_LAND_VEL_XY>) _param_mpc_land_vel_xy
+		(ParamFloat<px4::params::MPC_Z_VEL_ALL>) _param_mpc_z_vel_all
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
