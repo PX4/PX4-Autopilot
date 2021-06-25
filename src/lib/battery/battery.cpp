@@ -167,14 +167,9 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v,
 	}
 
 	if (source == _params.source) {
-		publish();
+		_battery_status.timestamp = hrt_absolute_time();
+		_battery_status_pub.publish(_battery_status);
 	}
-}
-
-void Battery::publish()
-{
-	_battery_status.timestamp = hrt_absolute_time();
-	_battery_status_pub.publish(_battery_status);
 }
 
 void Battery::sumDischarged(const hrt_abstime &timestamp, float current_a)
