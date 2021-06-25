@@ -49,8 +49,7 @@ bool Subscription::subscribe()
 		return true;
 	}
 
-	if (_orb_id != ORB_ID::INVALID) {
-
+	if ((_orb_id != ORB_ID::INVALID) && uORB::Manager::get_instance()) {
 		DeviceMaster *device_master = uORB::Manager::get_instance()->get_device_master();
 
 		if (device_master != nullptr) {

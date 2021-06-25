@@ -50,7 +50,7 @@ class SMBus : public device::I2C
 public:
 	static constexpr uint8_t MAX_BLOCK_LEN = 34;
 
-	SMBus(int bus_num, uint16_t address);
+	SMBus(uint8_t device_id, int bus_num, uint16_t address);
 	~SMBus() override;
 
 	/**

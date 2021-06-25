@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -59,6 +59,11 @@ void Gyroscope::set_device_id(uint32_t device_id, bool external)
 	if (_device_id != device_id || _external != external) {
 		set_external(external);
 		_device_id = device_id;
+
+		if (_device_id != 0) {
+			_calibration_index = FindCalibrationIndex(SensorString(), _device_id);
+		}
+
 		ParametersUpdate();
 		SensorCorrectionsUpdate(true);
 	}
@@ -146,13 +151,6 @@ void Gyroscope::set_rotation(Rotation rotation)
 
 void Gyroscope::ParametersUpdate()
 {
-	if (_device_id == 0) {
-		Reset();
-		return;
-	}
-
-	_calibration_index = FindCalibrationIndex(SensorString(), _device_id);
-
 	if (_calibration_index >= 0) {
 
 		// CAL_GYROx_ROT
@@ -160,7 +158,7 @@ void Gyroscope::ParametersUpdate()
 
 		if (_external) {
 			if ((rotation_value >= ROTATION_MAX) || (rotation_value < 0)) {
-				PX4_ERR("External %s %d (%d) invalid rotation %d, resetting to rotation none",
+				PX4_ERR("External %s %" PRIu32 " (%" PRId8 ") invalid rotation %" PRId32 ", resetting to rotation none",
 					SensorString(), _device_id, _calibration_index, rotation_value);
 				rotation_value = ROTATION_NONE;
 				SetCalibrationParam(SensorString(), "ROT", _calibration_index, rotation_value);
@@ -171,7 +169,7 @@ void Gyroscope::ParametersUpdate()
 		} else {
 			// internal, CAL_GYROx_ROT -1
 			if (rotation_value != -1) {
-				PX4_ERR("Internal %s %d (%d) invalid rotation %d, resetting",
+				PX4_ERR("Internal %s %" PRIu32 " (%" PRId8 ") invalid rotation %" PRId32 " resetting",
 					SensorString(), _device_id, _calibration_index, rotation_value);
 				SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1);
 			}
@@ -188,8 +186,8 @@ void Gyroscope::ParametersUpdate()
 			int32_t new_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
 
 			if (_priority != -1) {
-				PX4_ERR("%s %d (%d) invalid priority %d, resetting to %d", SensorString(), _device_id, _calibration_index, _priority,
-					new_priority);
+				PX4_ERR("%s %" PRIu32 " (%" PRId8 ") invalid priority %" PRId32 ", resetting to %" PRId32, SensorString(), _device_id,
+					_calibration_index, _priority, new_priority);
 			}
 
 			SetCalibrationParam(SensorString(), "PRIO", _calibration_index, new_priority);
@@ -215,6 +213,7 @@ void Gyroscope::Reset()
 	}
 
 	_offset.zero();
+
 	_thermal_offset.zero();
 
 	_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
@@ -248,11 +247,11 @@ bool Gyroscope::ParametersSave()
 
 void Gyroscope::PrintStatus()
 {
-	PX4_INFO("%s %d EN: %d, offset: [%.4f %.4f %.4f]", SensorString(), device_id(), enabled(),
+	PX4_INFO("%s %" PRIu32 " EN: %d, offset: [%.4f %.4f %.4f]", SensorString(), device_id(), enabled(),
 		 (double)_offset(0), (double)_offset(1), (double)_offset(2));
 
 	if (_thermal_offset.norm() > 0.f) {
-		PX4_INFO("%s %d temperature offset: [%.4f %.4f %.4f]", SensorString(), _device_id,
+		PX4_INFO("%s %" PRIu32 " temperature offset: [%.4f %.4f %.4f]", SensorString(), _device_id,
 			 (double)_thermal_offset(0), (double)_thermal_offset(1), (double)_thermal_offset(2));
 	}
 }

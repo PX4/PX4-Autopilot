@@ -172,8 +172,13 @@ void MulticopterHoverThrustEstimator::Run()
 					_hover_thrust_ekf.fuseAccZ(-local_pos.az, -local_pos_sp.thrust[2]);
 				}
 
-				const bool valid = (_hover_thrust_ekf.getHoverThrustEstimateVar() < 0.001f)
-						   && (_hover_thrust_ekf.getInnovationTestRatio() < 1.f);
+				bool valid = (_hover_thrust_ekf.getHoverThrustEstimateVar() < 0.001f);
+
+				// The test ratio does not need to pass all the time to have a valid estimate
+				if (!_valid) {
+					valid = valid && (_hover_thrust_ekf.getInnovationTestRatio() < 1.f);
+				}
+
 				_valid_hysteresis.set_state_and_update(valid, local_pos.timestamp);
 				_valid = _valid_hysteresis.get_state();
 

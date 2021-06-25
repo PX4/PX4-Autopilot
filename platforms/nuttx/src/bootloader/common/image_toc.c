@@ -33,8 +33,6 @@
 
 #include "hw_config.h"
 
-#ifdef BOOTLOADER_USE_TOC
-
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -102,5 +100,3 @@ bool find_toc(const image_toc_entry_t **toc_entries, uint8_t *len)
 	*len = 0;
 	return false;
 }
-
-#endif

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 Andrew Tridgell. All rights reserved.
+ *   Copyright (c) 2014, 2021 Andrew Tridgell. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,7 @@
  */
 
 #include <px4_platform_common/px4_config.h>
+#include <inttypes.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
@@ -76,7 +77,7 @@ static uint32_t allocate_blocks(struct block **blocks)
 		nblocks++;
 	}
 
-	printf("Allocated %u blocks\n", nblocks);
+	printf("Allocated %" PRIu32 " blocks\n", nblocks);
 
 	return nblocks;
 }

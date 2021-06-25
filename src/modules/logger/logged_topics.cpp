@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -315,7 +315,7 @@ int LoggedTopics::add_topics_from_file(const char *fname)
 		char topic_name[80];
 		uint32_t interval_ms = 0;
 		uint32_t instance = 0;
-		int nfields = sscanf(line, "%s %u %u", topic_name, &interval_ms, &instance);
+		int nfields = sscanf(line, "%s %" PRIu32 " %" PRIu32, topic_name, &interval_ms, &instance);
 
 		if (nfields > 0) {
 			int name_len = strlen(topic_name);
@@ -371,7 +371,7 @@ bool LoggedTopics::add_topic(const orb_metadata *topic, uint16_t interval_ms, ui
 	}
 
 	if (_subscriptions.count >= MAX_TOPICS_NUM) {
-		PX4_WARN("Too many subscriptions, failed to add: %s %d", topic->o_name, instance);
+		PX4_WARN("Too many subscriptions, failed to add: %s %" PRIu8, topic->o_name, instance);
 		return false;
 	}
 
@@ -396,7 +396,7 @@ bool LoggedTopics::add_topic(const char *name, uint16_t interval_ms, uint8_t ins
 				if (_subscriptions.sub[j].id == static_cast<ORB_ID>(topics[i]->o_id) &&
 				    _subscriptions.sub[j].instance == instance) {
 
-					PX4_DEBUG("logging topic %s(%d), interval: %i, already added, only setting interval",
+					PX4_DEBUG("logging topic %s(%" PRUu8 "), interval: %" PRUu16 ", already added, only setting interval",
 						  topics[i]->o_name, instance, interval_ms);
 
 					_subscriptions.sub[j].interval_ms = interval_ms;
@@ -408,7 +408,7 @@ bool LoggedTopics::add_topic(const char *name, uint16_t interval_ms, uint8_t ins
 
 			if (!already_added) {
 				success = add_topic(topics[i], interval_ms, instance);
-				PX4_DEBUG("logging topic: %s(%d), interval: %i", topics[i]->o_name, instance, interval_ms);
+				PX4_DEBUG("logging topic: %s(%" PRUu8 "), interval: %" PRUu16, topics[i]->o_name, instance, interval_ms);
 				break;
 			}
 		}

@@ -84,7 +84,7 @@ public:
 	void update_pitch_throttle(float pitch, float baro_altitude, float hgt_setpoint,
 				   float EAS_setpoint, float equivalent_airspeed, float eas_to_tas, bool climb_out_setpoint, float pitch_min_climbout,
 				   float throttle_min, float throttle_setpoint_max, float throttle_cruise,
-				   float pitch_limit_min, float pitch_limit_max);
+				   float pitch_limit_min, float pitch_limit_max, float target_climbrate, float target_sinkrate, float hgt_rate_sp = NAN);
 
 	float get_throttle_setpoint() { return _last_throttle_setpoint; }
 	float get_pitch_setpoint() { return _last_pitch_setpoint; }
@@ -139,7 +139,7 @@ public:
 	uint64_t timestamp() { return _pitch_update_timestamp; }
 	ECL_TECS_MODE tecs_mode() { return _tecs_mode; }
 
-	float hgt_setpoint_adj() { return _hgt_setpoint_adj; }
+	float hgt_setpoint() { return _hgt_setpoint; }
 	float vert_pos_state() { return _vert_pos_state; }
 
 	float TAS_setpoint_adj() { return _TAS_setpoint_adj; }
@@ -188,11 +188,7 @@ public:
 	 */
 	void handle_alt_step(float delta_alt, float altitude)
 	{
-		// add height reset delta to all variables involved
-		// in filtering the demanded height
-		_hgt_setpoint_in_prev += delta_alt;
-		_hgt_setpoint_prev += delta_alt;
-		_hgt_setpoint_adj_prev += delta_alt;
+		_hgt_setpoint += delta_alt;
 
 		// reset height states
 		_vert_pos_state = altitude;
@@ -259,10 +255,6 @@ private:
 
 	// height demand calculations
 	float _hgt_setpoint{0.0f};					///< demanded height tracked by the TECS algorithm (m)
-	float _hgt_setpoint_in_prev{0.0f};				///< previous value of _hgt_setpoint after noise filtering (m)
-	float _hgt_setpoint_prev{0.0f};					///< previous value of _hgt_setpoint after noise filtering and rate limiting (m)
-	float _hgt_setpoint_adj{0.0f};					///< demanded height used by the control loops after all filtering has been applied (m)
-	float _hgt_setpoint_adj_prev{0.0f};				///< value of _hgt_setpoint_adj from previous frame (m)
 	float _hgt_rate_setpoint{0.0f};					///< demanded climb rate tracked by the TECS algorithm
 
 	// vehicle physical limits
@@ -318,9 +310,16 @@ private:
 	void _update_speed_setpoint();
 
 	/**
-	 * Update the desired height
+	 * Calculate desired height rate from altitude demand
 	 */
-	void _update_height_setpoint(float desired, float state);
+	void updateHeightRateSetpoint(float alt_sp_amsl_m, float target_climbrate_m_s, float target_sinkrate_m_s,
+				      float alt_amsl);
+
+
+	/**
+	 * Update the desired height rate setpoint
+	 */
+	void _update_height_rate_setpoint(float hgt_rate_sp);
 
 	/**
 	 * Detect if the system is not capable of maintaining airspeed

@@ -71,7 +71,6 @@ param set-default MPC_JERK_AUTO 4
 param set-default MPC_LAND_SPEED 1
 param set-default MPC_MAN_TILT_MAX 25
 param set-default MPC_MAN_Y_MAX 40
-param set-default MPC_POS_MODE 3
 param set-default MPC_SPOOLUP_TIME 1.5
 param set-default MPC_THR_HOVER 0.45
 param set-default MPC_TILTMAX_AIR 25

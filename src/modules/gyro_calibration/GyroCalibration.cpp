@@ -189,7 +189,7 @@ void GyroCalibration::Run()
 		if (_gyro_calibration[gyro].device_id() != 0) {
 			// periodically check variance
 			if ((_gyro_mean[gyro].count() % 100 == 0)) {
-				PX4_DEBUG("gyro %d (%d) variance, [%.9f, %.9f, %.9f] %.9f", gyro, _gyro_calibration[gyro].device_id(),
+				PX4_DEBUG("gyro %d (%" PRIu32 ") variance, [%.9f, %.9f, %.9f] %.9f", gyro, _gyro_calibration[gyro].device_id(),
 					  (double)_gyro_mean[gyro].variance()(0), (double)_gyro_mean[gyro].variance()(1), (double)_gyro_mean[gyro].variance()(2),
 					  (double)_gyro_mean[gyro].variance().length());
 
@@ -224,7 +224,7 @@ void GyroCalibration::Run()
 				if (_gyro_calibration[gyro].set_offset(_gyro_mean[gyro].mean())) {
 					calibration_updated = true;
 
-					PX4_INFO("gyro %d (%d) updating calibration, [%.4f, %.4f, %.4f] -> [%.4f, %.4f, %.4f] %.1f°C",
+					PX4_INFO("gyro %d (%" PRIu32 ") updating calibration, [%.4f, %.4f, %.4f] -> [%.4f, %.4f, %.4f] %.1f°C",
 						 gyro, _gyro_calibration[gyro].device_id(),
 						 (double)old_offset(0), (double)old_offset(1), (double)old_offset(2),
 						 (double)_gyro_mean[gyro].mean()(0), (double)_gyro_mean[gyro].mean()(1), (double)_gyro_mean[gyro].mean()(2),
@@ -284,7 +284,7 @@ int GyroCalibration::print_status()
 {
 	for (int gyro = 0; gyro < _sensor_gyro_subs.size(); gyro++) {
 		if (_gyro_calibration[gyro].device_id() != 0) {
-			PX4_INFO_RAW("gyro %d (%d), [%.5f, %.5f, %.5f] var: [%.9f, %.9f, %.9f] %.1f°C (count %d)\n",
+			PX4_INFO_RAW("gyro %d (%" PRIu32 "), [%.5f, %.5f, %.5f] var: [%.9f, %.9f, %.9f] %.1f°C (count %d)\n",
 				     gyro, _gyro_calibration[gyro].device_id(),
 				     (double)_gyro_mean[gyro].mean()(0), (double)_gyro_mean[gyro].mean()(1), (double)_gyro_mean[gyro].mean()(2),
 				     (double)_gyro_mean[gyro].variance()(0), (double)_gyro_mean[gyro].variance()(1), (double)_gyro_mean[gyro].variance()(2),

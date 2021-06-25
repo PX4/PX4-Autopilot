@@ -31,6 +31,7 @@
 #
 ############################################################################
 
+add_subdirectory(broadcom)
 add_subdirectory(cm8jl65)
 add_subdirectory(leddar_one)
 add_subdirectory(ll40ls)

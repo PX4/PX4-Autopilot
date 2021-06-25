@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 Technology Innovation Institute. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,58 +31,39 @@
  *
  ****************************************************************************/
 
-/**
- * @file List.hpp
- *
- * Defines a List Service invoker and process List responses
- *
- * @author Peter van der Perk <peter.vanderperk@nxp.com>
- */
+#include <stdbool.h>
+#include "image_toc.h"
+#include "hw_config.h"
 
-#pragma once
+#ifdef BOOTLOADER_USE_SECURITY
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/module.h>
-#include <version/version.h>
+#include <px4_platform_common/crypto_backend.h>
 
-#include "../NodeManager.hpp"
-
-#include <uavcan/_register/List_1_0.h>
-
-#include "../Subscribers/BaseSubscriber.hpp"
-
-class UavcanListServiceReply : public UavcanBaseSubscriber
+bool verify_app(uint16_t idx, const image_toc_entry_t *toc_entries)
 {
-public:
-	UavcanListServiceReply(CanardInstance &ins, NodeManager &nmgr) :
-		UavcanBaseSubscriber(ins, "List", 0), _nmgr(nmgr) { };
+	volatile uint8_t *app_signature_ptr = NULL;
+	volatile size_t len = 0;
+	bool ret;
 
-	void subscribe() override
-	{
-		// Subscribe to requests uavcan.pnp.NodeIDAllocationData
-		canardRxSubscribe(&_canard_instance,
-				  CanardTransferKindResponse,
-				  uavcan_register_List_1_0_FIXED_PORT_ID_,
-				  uavcan_register_List_Response_1_0_EXTENT_BYTES_,
-				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-				  &_subj_sub._canard_sub);
+	uint8_t sig_idx = toc_entries[idx].signature_idx;
+	uint8_t sig_key = toc_entries[idx].signature_key;
+	crypto_session_handle_t handle = crypto_open(BOOTLOADER_SIGNING_ALGORITHM);
+	app_signature_ptr = (volatile uint8_t *)toc_entries[sig_idx].start;
+	len = (size_t)toc_entries[idx].end - (size_t)toc_entries[idx].start;
 
-	};
+	ret =  crypto_signature_check(handle, sig_key, (const uint8_t *)app_signature_ptr,
+				      (const uint8_t *)toc_entries[idx].start, len);
 
-	void callback(const CanardTransfer &receive) override
-	{
-		PX4_INFO("List response");
+	crypto_close(&handle);
+	return ret;
+}
 
-		uavcan_register_List_Response_1_0 msg;
+bool decrypt_app(uint16_t idx, const image_toc_entry_t *toc_entries)
+{
+	/*
+	 * Not implemented yet.
+	 */
+	return false;
+}
 
-		size_t register_in_size_bits = receive.payload_size;
-		uavcan_register_List_Response_1_0_deserialize_(&msg, (const uint8_t *)receive.payload, &register_in_size_bits);
-
-		// Pass msg.name.name.elements to NodeManager
-		_nmgr.HandleListResponse(receive.remote_node_id, msg);
-	};
-
-private:
-	NodeManager &_nmgr;
-
-};
+#endif //BOOTLOADER_USE_SECURITY

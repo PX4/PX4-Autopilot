@@ -497,12 +497,12 @@ param_get(param_t param, void *val)
 	perf_count(param_get_perf);
 
 	if (!handle_in_range(param)) {
-		PX4_ERR("get: param %d invalid", param);
+		PX4_ERR("get: param %" PRId16 " invalid", param);
 		return PX4_ERROR;
 	}
 
 	if (!params_active[param]) {
-		PX4_DEBUG("get: param %d (%s) not active", param, param_name(param));
+		PX4_DEBUG("get: param %" PRId16 " (%s) not active", param, param_name(param));
 	}
 
 	int result = PX4_ERROR;
@@ -1430,7 +1430,8 @@ param_import_internal(int fd, bool mark_saved)
 			} while (result > 0);
 
 			if (result == 0) {
-				PX4_INFO("BSON document size %d bytes, decoded %d bytes", decoder.total_document_size, decoder.total_decoded_size);
+				PX4_INFO("BSON document size %" PRId32 " bytes, decoded %" PRId32 " bytes", decoder.total_document_size,
+					 decoder.total_decoded_size);
 				return 0;
 
 			} else {

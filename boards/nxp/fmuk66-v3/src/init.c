@@ -53,6 +53,7 @@
 #include <string.h>
 #include <debug.h>
 #include <errno.h>
+#include <syslog.h>
 
 #include <nuttx/board.h>
 #include <nuttx/spi/spi.h>
@@ -117,7 +118,7 @@ __END_DECLS
 void board_on_reset(int status)
 {
 	for (int i = 0; i < 6; ++i) {
-		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT_PULL_DOWN(io_timer_channel_get_as_pwm_input(i)));
+		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_as_pwm_input(i)));
 	}
 
 	if (status >= 0) {

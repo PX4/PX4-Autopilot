@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 Technology Innovation Institute. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,50 +31,16 @@
  *
  ****************************************************************************/
 
-/**
- * @file Access.hpp
- *
- * Defines a Access Service invoker and process Access responses
- *
- * @author Peter van der Perk <peter.vanderperk@nxp.com>
- */
-
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/module.h>
-#include <version/version.h>
+#include <stdint.h>
 
-#include "../NodeManager.hpp"
+/* List of all the supported crypto algorithms in PX4 */
 
-#include <uavcan/_register/Access_1_0.h>
-
-#include "../Subscribers/BaseSubscriber.hpp"
-
-class UavcanAccessServiceReply : public UavcanBaseSubscriber
-{
-public:
-	UavcanAccessServiceReply(CanardInstance &ins, NodeManager &nmgr) :
-		UavcanBaseSubscriber(ins, "Access", 0), _nmgr(nmgr) { };
-
-	void subscribe() override
-	{
-		// Subscribe to requests uavcan.pnp.NodeIDAllocationData
-		canardRxSubscribe(&_canard_instance,
-				  CanardTransferKindResponse,
-				  uavcan_register_Access_1_0_FIXED_PORT_ID_,
-				  uavcan_register_Access_Response_1_0_EXTENT_BYTES_,
-				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-				  &_subj_sub._canard_sub);
-
-	};
-
-	void callback(const CanardTransfer &receive) override
-	{
-		PX4_INFO("Access response");
-	};
-
-private:
-	NodeManager &_nmgr;
-
-};
+typedef enum {
+	CRYPTO_NONE = 0,
+	CRYPTO_ED25519 = 1,
+	CRYPTO_XCHACHA20 = 2,
+	CRYPTO_AES = 3,
+	CRYPTO_RSA_OAEP = 4,
+} px4_crypto_algorithm_t;

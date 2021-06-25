@@ -121,7 +121,6 @@ int MulticopterPositionControl::parameters_update(bool force)
 			num_changed += _param_mpc_vel_manual.commit_no_notification(xy_vel);
 			num_changed += _param_mpc_xy_cruise.commit_no_notification(xy_vel);
 			num_changed += _param_mpc_xy_vel_max.commit_no_notification(xy_vel);
-			num_changed += _param_mpc_land_vel_xy.commit_no_notification(xy_vel * 0.75f);
 		}
 
 		if (_param_mpc_z_vel_all.get() >= 0.f) {
@@ -289,7 +288,7 @@ void MulticopterPositionControl::Run()
 
 		PositionControlStates states{set_vehicle_states(local_pos)};
 
-		if (_control_mode.flag_control_acceleration_enabled || _control_mode.flag_control_climb_rate_enabled) {
+		if (_control_mode.flag_multicopter_position_control_enabled) {
 
 			_trajectory_setpoint_sub.update(&_setpoint);
 
@@ -404,9 +403,11 @@ void MulticopterPositionControl::Run()
 			_control.setInputSetpoint(_setpoint);
 
 			// update states
-			if (PX4_ISFINITE(_setpoint.vz) && (fabsf(_setpoint.vz) > FLT_EPSILON)
+			if (!PX4_ISFINITE(_setpoint.z)
+			    && PX4_ISFINITE(_setpoint.vz) && (fabsf(_setpoint.vz) > FLT_EPSILON)
 			    && PX4_ISFINITE(local_pos.z_deriv) && local_pos.z_valid && local_pos.v_z_valid) {
-				// A change in velocity is demanded. Set velocity to the derivative of position
+				// A change in velocity is demanded and the altitude is not controlled.
+				// Set velocity to the derivative of position
 				// because it has less bias but blend it in across the landing speed range
 				//  <  MPC_LAND_SPEED: ramp up using altitude derivative without a step
 				//  >= MPC_LAND_SPEED: use altitude derivative
@@ -422,7 +423,7 @@ void MulticopterPositionControl::Run()
 
 			} else {
 				// Failsafe
-				if ((time_stamp_now - _last_warn) > 2_s) {
+				if ((time_stamp_now - _last_warn) > 2_s && _last_warn > 0) {
 					PX4_WARN("invalid setpoints");
 					_last_warn = time_stamp_now;
 				}

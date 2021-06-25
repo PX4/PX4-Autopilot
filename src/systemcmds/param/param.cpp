@@ -518,7 +518,7 @@ do_show_for_airframe()
 	int32_t sys_autostart = 0;
 	param_get(param_find("SYS_AUTOSTART"), &sys_autostart);
 	if (sys_autostart != 0) {
-		PARAM_PRINT("# Make sure to add all params from the current airframe (ID=%i) as well\n", sys_autostart);
+		PARAM_PRINT("# Make sure to add all params from the current airframe (ID=%" PRId32 ") as well\n", sys_autostart);
 	}
 	return 0;
 }

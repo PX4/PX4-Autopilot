@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ * Copyright (C) 2019, 2021 PX4 Development Team. All rights reserved.
  * Author: Igor Misic <igy1000mb@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -234,7 +234,7 @@ static void dshot_motor_data_set(uint32_t motor_number, uint16_t throttle, bool 
 	motor_buffer[motor_number * ONE_MOTOR_BUFF_SIZE + DSHOT_END_OF_STREAM] = 0;
 }
 
-void up_dshot_motor_data_set(uint32_t motor_number, uint16_t throttle, bool telemetry)
+void up_dshot_motor_data_set(unsigned motor_number, uint16_t throttle, bool telemetry)
 {
 	dshot_motor_data_set(motor_number, throttle + DShot_cmd_MIN_throttle, telemetry);
 }

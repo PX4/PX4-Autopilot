@@ -543,7 +543,7 @@ PARAM_DEFINE_FLOAT(EKF2_BARO_GATE, 5.0f);
  * @unit m
  * @decimal 1
  */
-PARAM_DEFINE_FLOAT(EKF2_GND_EFF_DZ, 0.0f);
+PARAM_DEFINE_FLOAT(EKF2_GND_EFF_DZ, 4.0f);
 
 /**
  * Height above ground level for ground effect zone

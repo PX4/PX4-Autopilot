@@ -52,12 +52,12 @@ int test_adc(int argc, char *argv[])
 	px4_usleep(50000);	// sleep 50ms and wait for adc report
 
 	if (_adc_sub.update(&adc)) {
-		PX4_INFO_RAW("DeviceID: %d\n", adc.device_id);
-		PX4_INFO_RAW("Resolution: %d\n", adc.resolution);
+		PX4_INFO_RAW("DeviceID: %" PRIu32 "\n", adc.device_id);
+		PX4_INFO_RAW("Resolution: %" PRIu32 "\n", adc.resolution);
 		PX4_INFO_RAW("Voltage Reference: %f\n", adc.v_ref);
 
 		for (int i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
-			PX4_INFO_RAW("%d: %d  ", adc.channel_id[i], adc.raw_data[i]);
+			PX4_INFO_RAW("%" PRIu16 ": %" PRIi32 "  ", adc.channel_id[i], adc.raw_data[i]);
 		}
 
 		PX4_INFO_RAW("\n");

@@ -45,7 +45,9 @@
 #include <px4_platform_common/log.h>
 
 #include <sys/ioctl.h>
+#include <assert.h>
 #include <unistd.h>
+#include <termios.h>
 #include <cstdint>
 #include <string.h>
 
@@ -84,7 +86,7 @@ typedef union __attribute__((packed))
 		uint8_t len_h:	7,         // Length MSB
 			 type:	1;         // 0=MAVLINK, 1=RTPS
 		uint8_t len_l;             // Length LSB
-		uint8_t checksum;          // XOR of two above bytes
+		uint8_t checksum;          // XOR of the three bytes above
 	} fields;
 } Sp2Header_t;
 
@@ -219,6 +221,8 @@ DevCommon::DevCommon(const char *device_path)
 DevCommon::~DevCommon()
 {
 	if (_fd >= 0) {
+		/* discard all pending data, as close() might block otherwise on NuttX with flow control enabled */
+		tcflush(_fd, TCIOFLUSH);
 		::close(_fd);
 	}
 }
@@ -348,7 +352,7 @@ ssize_t Mavlink2Dev::read(struct file *filp, char *buffer, size_t buflen)
 	       (((Sp2Header_t *) &_read_buffer->buffer[i])->fields.magic != Sp2HeaderMagic
 		|| ((Sp2Header_t *) &_read_buffer->buffer[i])->fields.type != (uint8_t)MessageType::Mavlink
 		|| ((Sp2Header_t *) &_read_buffer->buffer[i])->fields.checksum !=
-		(_read_buffer->buffer[i + 1] ^ _read_buffer->buffer[i + 2])
+		(_read_buffer->buffer[i] ^ _read_buffer->buffer[i + 1] ^ _read_buffer->buffer[i + 2])
 	       )) {
 		i++;
 	}
@@ -442,7 +446,7 @@ ssize_t Mavlink2Dev::write(struct file *filp, const char *buffer, size_t buflen)
 			} else {
 				_header.fields.len_h = (buflen >> 8) & 0x7f;
 				_header.fields.len_l = buflen & 0xff;
-				_header.fields.checksum = _header.bytes[1] ^ _header.bytes[2];
+				_header.fields.checksum = _header.bytes[0] ^ _header.bytes[1] ^ _header.bytes[2];
 				::write(_fd, _header.bytes, 4);
 				ret = ::write(_fd, buffer, buflen);
 			}
@@ -515,7 +519,7 @@ ssize_t RtpsDev::read(struct file *filp, char *buffer, size_t buflen)
 	       (((Sp2Header_t *) &_read_buffer->buffer[i])->fields.magic != Sp2HeaderMagic
 		|| ((Sp2Header_t *) &_read_buffer->buffer[i])->fields.type != (uint8_t)MessageType::Rtps
 		|| ((Sp2Header_t *) &_read_buffer->buffer[i])->fields.checksum !=
-		(_read_buffer->buffer[i + 1] ^ _read_buffer->buffer[i + 2])
+		(_read_buffer->buffer[i] ^ _read_buffer->buffer[i + 1] ^ _read_buffer->buffer[i + 2])
 	       )) {
 		i++;
 	}
@@ -591,7 +595,7 @@ ssize_t RtpsDev::write(struct file *filp, const char *buffer, size_t buflen)
 			} else {
 				_header.fields.len_h = (buflen >> 8) & 0x7f;
 				_header.fields.len_l = buflen & 0xff;
-				_header.fields.checksum = _header.bytes[1] ^ _header.bytes[2];
+				_header.fields.checksum = _header.bytes[0] ^ _header.bytes[1] ^ _header.bytes[2];
 				::write(_fd, _header.bytes, 4);
 				ret = ::write(_fd, buffer, buflen);
 			}

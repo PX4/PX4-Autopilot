@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2018, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -153,12 +153,12 @@ void IridiumSBD::status()
 	PX4_INFO("state: %s", satcom_state_string[instance->_state]);
 
 	PX4_INFO("TX buf written:               %d", instance->_tx_buf_write_idx);
-	PX4_INFO("Signal quality:               %d", instance->_signal_quality);
+	PX4_INFO("Signal quality:               %" PRId8, instance->_signal_quality);
 	PX4_INFO("TX session pending:           %d", instance->_tx_session_pending);
 	PX4_INFO("RX session pending:           %d", instance->_rx_session_pending);
 	PX4_INFO("RX read pending:              %d", instance->_rx_read_pending);
-	PX4_INFO("Time since last signal check: %lld", hrt_absolute_time() - instance->_last_signal_check);
-	PX4_INFO("Last heartbeat:               %lld", instance->_last_heartbeat);
+	PX4_INFO("Time since last signal check: %" PRId64, hrt_absolute_time() - instance->_last_signal_check);
+	PX4_INFO("Last heartbeat:               %" PRId64, instance->_last_heartbeat);
 }
 
 void IridiumSBD::test(int argc, char *argv[])
@@ -334,9 +334,9 @@ void IridiumSBD::main_loop(int argc, char *argv[])
 		_param_stacking_time_ms = 0;
 	}
 
-	VERBOSE_INFO("read interval: %d s", _param_read_interval_s);
-	VERBOSE_INFO("SBD session timeout: %d s", _param_session_timeout_s);
-	VERBOSE_INFO("SBD stack time: %d ms", _param_stacking_time_ms);
+	VERBOSE_INFO("read interval: %" PRId32 " s", _param_read_interval_s);
+	VERBOSE_INFO("SBD session timeout: %" PRId32 " s", _param_session_timeout_s);
+	VERBOSE_INFO("SBD stack time: %" PRId32 " ms", _param_stacking_time_ms);
 
 	_start_completed = true;
 
@@ -462,7 +462,7 @@ void IridiumSBD::csq_loop(void)
 
 	_signal_quality = _rx_command_buf[5] - 48;
 
-	VERBOSE_INFO("SIGNAL QUALITY: %d", _signal_quality);
+	VERBOSE_INFO("SIGNAL QUALITY: %" PRId8, _signal_quality);
 
 	_new_state = SATCOM_STATE_STANDBY;
 }
@@ -585,13 +585,13 @@ void IridiumSBD::test_loop(void)
 
 	if (res != SATCOM_RESULT_NA) {
 		PX4_INFO("TEST RESULT: %d, LENGTH %d\nDATA:\n%s", res, _rx_command_len, _rx_command_buf);
-		PX4_INFO("TEST DONE, TOOK %lld MS", (hrt_absolute_time() - _test_timer) / 1000);
+		PX4_INFO("TEST DONE, TOOK %" PRId64 " MS", (hrt_absolute_time() - _test_timer) / 1000);
 		_new_state = SATCOM_STATE_STANDBY;
 	}
 
 	// timeout after 60 s in the test state
 	if ((hrt_absolute_time() - _test_timer) > 60000000) {
-		PX4_WARN("TEST TIMEOUT AFTER %lld S", (hrt_absolute_time() - _test_timer) / 1000000);
+		PX4_WARN("TEST TIMEOUT AFTER %" PRId64 " S", (hrt_absolute_time() - _test_timer) / 1000000);
 		_new_state = SATCOM_STATE_STANDBY;
 	}
 }
@@ -660,7 +660,7 @@ void IridiumSBD::start_test(void)
 		printf("TEST RESULT: %d, LENGTH %d\nDATA:\n%s\nRAW DATA:\n", res, _rx_command_len, _rx_command_buf);
 
 		for (int i = 0; i < _rx_command_len; i++) {
-			printf("%d ", _rx_command_buf[i]);
+			printf("%" PRId8, _rx_command_buf[i]);
 		}
 
 		printf("\n");
@@ -734,7 +734,7 @@ ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
 		_writing_mavlink_packet = false;
 	}
 
-	VERBOSE_INFO("WRITE: LEN %d, TX WRITTEN: %d", buflen, _tx_buf_write_idx);
+	VERBOSE_INFO("WRITE: LEN %zu, TX WRITTEN: %d", buflen, _tx_buf_write_idx);
 
 	memcpy(_tx_buf + _tx_buf_write_idx, buffer, buflen);
 
@@ -750,7 +750,7 @@ ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
 ssize_t IridiumSBD::read(struct file *filp, char *buffer, size_t buflen)
 {
 	pthread_mutex_lock(&_rx_buf_mutex);
-	VERBOSE_INFO("READ: LEN %d, RX: %d RX END: %d", buflen, _rx_msg_read_idx, _rx_msg_end_idx);
+	VERBOSE_INFO("READ: LEN %zu, RX: %d RX END: %d", buflen, _rx_msg_read_idx, _rx_msg_end_idx);
 
 	if (_rx_msg_read_idx < _rx_msg_end_idx) {
 		size_t bytes_to_copy = _rx_msg_end_idx - _rx_msg_read_idx;
@@ -807,7 +807,7 @@ void IridiumSBD::write_tx_buf()
 	::write(uart_fd, checksum, 2);
 
 
-	VERBOSE_INFO("SEND SBD: CHECKSUM %d %d", checksum[0], checksum[1]);
+	VERBOSE_INFO("SEND SBD: CHECKSUM %" PRId8 " %" PRId8, checksum[0], checksum[1]);
 
 	if (read_at_command(250) != SATCOM_RESULT_OK) {
 		VERBOSE_INFO("WRITE SBD: ERROR WHILE WRITING DATA TO MODEM!");
@@ -818,7 +818,7 @@ void IridiumSBD::write_tx_buf()
 
 	if (_rx_command_buf[0] != '0') {
 
-		VERBOSE_INFO("WRITE SBD: ERROR WHILE WRITING DATA TO MODEM! (%d)", _rx_command_buf[0] - '0');
+		VERBOSE_INFO("WRITE SBD: ERROR WHILE WRITING DATA TO MODEM! (%" PRId8 ")", _rx_command_buf[0] - '0');
 
 		pthread_mutex_unlock(&_tx_buf_mutex);
 		return;

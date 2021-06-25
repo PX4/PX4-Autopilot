@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file NodeIDAllocationData.hpp
+ * @file Heartbeat.hpp
  *
- * Defines basic functionality of UAVCAN NodeIDAllocationData.1.0 subscription
+ * Defines basic functionality of UAVCAN Heartbeat.1.0 subscription
  *
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
@@ -43,31 +43,23 @@
 
 #include "../NodeManager.hpp"
 
-//Quick and Dirty PNP imlementation only V1 for now as well
-#include <uavcan/node/ID_1_0.h>
-#include <uavcan/pnp/NodeIDAllocationData_1_0.h>
-#include <uavcan/pnp/NodeIDAllocationData_2_0.h>
-
-#define PNP1_PORT_ID                                 uavcan_pnp_NodeIDAllocationData_1_0_FIXED_PORT_ID_
-#define PNP1_PAYLOAD_SIZE                            uavcan_pnp_NodeIDAllocationData_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_
-#define PNP2_PORT_ID                                 uavcan_pnp_NodeIDAllocationData_2_0_FIXED_PORT_ID_
-#define PNP2_PAYLOAD_SIZE                            uavcan_pnp_NodeIDAllocationData_2_0_SERIALIZATION_BUFFER_SIZE_BYTES_
+#include <uavcan/node/Heartbeat_1_0.h>
 
 #include "BaseSubscriber.hpp"
 
-class UavcanNodeIDAllocationDataSubscriber : public UavcanBaseSubscriber
+class UavcanHeartbeatSubscriber : public UavcanBaseSubscriber
 {
 public:
-	UavcanNodeIDAllocationDataSubscriber(CanardInstance &ins, NodeManager &nmgr) :
-		UavcanBaseSubscriber(ins, "NodeIDAllocationData", 0), _nmgr(nmgr) { };
+	UavcanHeartbeatSubscriber(CanardInstance &ins) :
+		UavcanBaseSubscriber(ins, "Heartbeat", 0) { };
 
 	void subscribe() override
 	{
-		// Subscribe to messages uavcan.pnp.NodeIDAllocationData
+		// Subscribe to heartbeat messages
 		canardRxSubscribe(&_canard_instance,
 				  CanardTransferKindMessage,
-				  (_canard_instance.mtu_bytes == CANARD_MTU_CAN_FD ? PNP2_PORT_ID : PNP1_PORT_ID),  // The fixed Subject-ID
-				  (_canard_instance.mtu_bytes == CANARD_MTU_CAN_FD ? PNP2_PAYLOAD_SIZE : PNP1_PAYLOAD_SIZE),
+				  uavcan_node_Heartbeat_1_0_FIXED_PORT_ID_,  // The fixed Subject-ID
+				  uavcan_node_Heartbeat_1_0_EXTENT_BYTES_,
 				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
 				  &_subj_sub._canard_sub);
 
@@ -75,28 +67,7 @@ public:
 
 	void callback(const CanardTransfer &receive) override
 	{
-		PX4_INFO("NodeIDAllocationData");
-
-		if (_canard_instance.mtu_bytes == CANARD_MTU_CAN_FD) {
-			uavcan_pnp_NodeIDAllocationData_2_0 node_id_alloc_msg {};
-			size_t msg_size_in_bytes = receive.payload_size;
-			uavcan_pnp_NodeIDAllocationData_2_0_deserialize_(&node_id_alloc_msg, (const uint8_t *)receive.payload,
-					&msg_size_in_bytes);
-			/// do something with the data
-			_nmgr.HandleNodeIDRequest(node_id_alloc_msg);
-
-		} else {
-			uavcan_pnp_NodeIDAllocationData_1_0 node_id_alloc_msg {};
-			size_t msg_size_in_bytes = receive.payload_size;
-			uavcan_pnp_NodeIDAllocationData_1_0_deserialize_(&node_id_alloc_msg, (const uint8_t *)receive.payload,
-					&msg_size_in_bytes);
-			/// do something with the data
-			_nmgr.HandleNodeIDRequest(node_id_alloc_msg);
-		}
-
+		//TODO heartbeat management
 	};
-
-private:
-	NodeManager &_nmgr;
 
 };

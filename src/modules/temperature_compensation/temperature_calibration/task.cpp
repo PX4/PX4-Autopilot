@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -116,7 +116,7 @@ void TemperatureCalibration::task_main()
 
 	int32_t min_temp_rise = 24;
 	param_get(param_find("SYS_CAL_TDEL"), &min_temp_rise);
-	PX4_INFO("Waiting for %i degrees difference in sensor temperature", min_temp_rise);
+	PX4_INFO("Waiting for %" PRId32 " degrees difference in sensor temperature", min_temp_rise);
 
 	int32_t min_start_temp = 5;
 	param_get(param_find("SYS_CAL_TMIN"), &min_start_temp);

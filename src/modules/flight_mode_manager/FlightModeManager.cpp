@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -275,7 +275,7 @@ void FlightModeManager::start_flight_task()
 		case 4:
 		default:
 			if (_param_mpc_pos_mode.get() != 4) {
-				PX4_ERR("MPC_POS_MODE %d invalid, resetting", _param_mpc_pos_mode.get());
+				PX4_ERR("MPC_POS_MODE %" PRId32 " invalid, resetting", _param_mpc_pos_mode.get());
 				_param_mpc_pos_mode.set(4);
 				_param_mpc_pos_mode.commit();
 			}
@@ -359,7 +359,7 @@ void FlightModeManager::check_failure(bool task_failure, uint8_t nav_state)
 
 	} else if (_task_failure_count > NUM_FAILURE_TRIES) {
 		// tell commander to switch mode
-		PX4_WARN("Previous flight task failed, switching to mode %d", nav_state);
+		PX4_WARN("Previous flight task failed, switching to mode %" PRIu8, nav_state);
 		send_vehicle_cmd_do(nav_state);
 		_task_failure_count = 0; // avoid immediate resending of a vehicle command in the next iteration
 	}
@@ -612,7 +612,7 @@ int FlightModeManager::custom_command(int argc, char *argv[])
 int FlightModeManager::print_status()
 {
 	if (isAnyTaskActive()) {
-		PX4_INFO("Running, active flight task: %i", static_cast<uint32_t>(_current_task.index));
+		PX4_INFO("Running, active flight task: %" PRIu32, static_cast<uint32_t>(_current_task.index));
 
 	} else {
 		PX4_INFO("Running, no flight task active");

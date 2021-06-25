@@ -34,6 +34,7 @@ px4_add_board(
 		optical_flow/px4flow
 		pwm_out
 		px4io
+		smart_battery/batmon
 		tone_alarm
 
 	MODULES
