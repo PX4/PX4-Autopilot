@@ -78,6 +78,7 @@ private:
 	UavcanDynamicPortSubscriber *_dynsubscribers {NULL};
 
 	UavcanHeartbeatSubscriber _heartbeat_sub {_canard_instance};
+
 	// GetInfo response
 	UavcanGetInfoResponse _getinfo_rsp {_canard_instance};
 
