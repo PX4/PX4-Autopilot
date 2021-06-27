@@ -78,13 +78,17 @@ public:
 	void			RunImpl();
 
 private:
+	int			send_led_rgb();
+	void			update_params();
+
+	int			write(uint8_t reg, uint8_t data);
 
 	float			_brightness{1.0f};
 	float			_max_brightness{1.0f};
 
-	uint8_t			_r{0};
-	uint8_t			_g{0};
-	uint8_t			_b{0};
+	uint8_t		_r{0};
+	uint8_t		_g{0};
+	uint8_t		_b{0};
 	volatile bool		_running{false};
 	volatile bool		_should_run{true};
 	bool			_leds_enabled{true};
@@ -93,22 +97,14 @@ private:
 
 	LedController		_led_controller;
 
-	int			send_led_rgb();
-	void			update_params();
-
-	int			write(uint8_t reg, uint8_t data);
-
-	uint8_t			red;
-	uint8_t			green;
-	uint8_t			blue;
+	uint8_t		_red{NCP5623_LED_PWM0};
+	uint8_t		_green{NCP5623_LED_PWM1};
+	uint8_t		_blue{NCP5623_LED_PWM2};
 };
 
 RGBLED_NCP5623C::RGBLED_NCP5623C(const I2CSPIDriverConfig &config) :
 	I2C(config),
-	I2CSPIDriver(config),
-	red(NCP5623_LED_PWM0),
-	green(NCP5623_LED_PWM1),
-	blue(NCP5623_LED_PWM2)
+	I2CSPIDriver(config)
 {
 }
 
@@ -144,17 +140,15 @@ RGBLED_NCP5623C::init()
 int
 RGBLED_NCP5623C::probe()
 {
-	int status = PX4_ERROR;
-	_retries = 4;
-	status = write(NCP5623_LED_CURRENT, NCP5623_LED_OFF);
+	int status = write(NCP5623_LED_CURRENT, NCP5623_LED_OFF);
 
 	if (status == PX4_ERROR) {
 		set_device_address(ALT_ADDR);
 		status = write(NCP5623_LED_CURRENT, NCP5623_LED_OFF);
 
 		if (status == PX4_OK) {
-			red = NCP5623_LED_PWM2;
-			blue = NCP5623_LED_PWM0;
+			_red = NCP5623_LED_PWM2;
+			_blue = NCP5623_LED_PWM0;
 		}
 	}
 
@@ -230,14 +224,13 @@ RGBLED_NCP5623C::RunImpl()
 int
 RGBLED_NCP5623C::send_led_rgb()
 {
-
 	uint8_t msg[7] = {0x20, 0x70, 0x40, 0x70, 0x60, 0x70, 0x80};
 	uint8_t brightness = 0x1f * _max_brightness;
 
 	msg[0] = NCP5623_LED_CURRENT | (brightness & 0x1f);
-	msg[2] = red | (uint8_t(_r * _brightness) & 0x1f);
-	msg[4] = green | (uint8_t(_g * _brightness) & 0x1f);
-	msg[6] = blue | (uint8_t(_b * _brightness) & 0x1f);
+	msg[2] = _red | (uint8_t(_r * _brightness) & 0x1f);
+	msg[4] = _green | (uint8_t(_g * _brightness) & 0x1f);
+	msg[6] = _blue | (uint8_t(_b * _brightness) & 0x1f);
 
 	return transfer(&msg[0], 7, nullptr, 0);
 }
