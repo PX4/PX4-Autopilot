@@ -111,7 +111,14 @@ fi
 # ADIS16448 spi external IMU
 if param compare -s SENS_EN_ADIS164X 1
 then
-	adis16448 -S start
+	if param compare -s SENS_OR_ADIS164X 0
+	then
+		adis16448 -S start
+	fi
+	if param compare -s SENS_OR_ADIS164X 4
+	then
+		adis16448 -S start -R 4
+	fi
 fi
 
 # Hall effect sensors si7210

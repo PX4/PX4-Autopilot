@@ -45,6 +45,7 @@ then
     param set PWM_DISARMED 1000
 
     param set-default SENS_EN_ADIS164X 1
+    param set SENS_EN_ADIS164X 4
 fi
 
 set MIXER asl_easyglider
