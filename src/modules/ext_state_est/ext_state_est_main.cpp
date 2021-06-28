@@ -189,12 +189,21 @@ void ExtStateEst::Run() {
     position.hagl_min = INFINITY;
     position.hagl_max = INFINITY;
 
+    position.ax = INFINITY;
+    position.ay = INFINITY;
+    position.az = INFINITY;
+
+    const matrix::Quatf q_att(ext_state_in.q_wi);
+
+    position.heading = matrix::Eulerf(q_att).psi();
+    position.delta_heading = 0;
+    position.heading_reset_counter = 0;
+
     // Attitude for control
     vehicle_attitude_s attitude;
     attitude.timestamp = timestamp;
     attitude.quat_reset_counter = 0;
     _unitq.copyTo(attitude.delta_q_reset);
-    const matrix::Quatf q_att(ext_state_in.q_wi);
     q_att.copyTo(attitude.q);
 
     _vehicle_local_position_pub.update();
