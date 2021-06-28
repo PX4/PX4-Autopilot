@@ -1,8 +1,8 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR omnibus
-	MODEL f4sd
+	VENDOR mamba
+	MODEL f4mk2
 	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
@@ -82,11 +82,11 @@ px4_add_board(
 		hardfault_log
 		i2cdetect
 		led_control
-		#mft
+		mft
 		mixer
 		#motor_ramp
 		motor_test
-		#mtd
+		mtd
 		nshterm
 		param
 		perf
