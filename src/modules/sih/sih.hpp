@@ -79,6 +79,9 @@ public:
 	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
 
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
+
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
@@ -139,6 +142,47 @@ private:
 	static constexpr float SPAN=0.86f; 	// wing span [m]
 	static constexpr float MAC=0.21f; 	// wing mean aerodynamic chord [m]
 
+	// class States for Runge-Kutta integration ------------------------------------------------------------------------
+	class States
+	{
+	public:
+		matrix::Vector3f p_I;
+		matrix::Vector3f v_I;
+		matrix::Quatf    q;
+		matrix::Vector3f w_B;
+
+		// Constructors
+		States() = default;
+
+		explicit States(matrix::Vector3f p, matrix::Vector3f v, matrix::Quatf q_, matrix::Vector3f w) {
+			p_I=p;
+			v_I=v;
+			q=q_;
+			w_B=w;
+		}
+
+		States operator*(const float k) const {
+			return States(p_I*k, v_I*k, q*k, w_B*k);
+		}
+
+		States operator+(const States other) const {
+			return States(p_I+other.p_I, v_I+other.v_I, q+other.q, w_B+other.w_B);
+		}
+
+		void unwrap_states(matrix::Vector3f &p, matrix::Vector3f &v, matrix::Quatf &q_, matrix::Vector3f &w) {
+			p=p_I;
+			v=v_I;
+			q_=q;
+			w=w_B;
+		}
+
+		void normalize_quat() {
+			q.normalize();
+		}
+
+	}; // ---------------------------------------------------------------------------------------------------------
+
+	States _x={}, _k1, _k2, _k3, _k4; 	// states for Runge-Kutta integration
 
 	void init_variables();
 	void gps_fix();
@@ -157,6 +201,8 @@ private:
 	void aero_fm(float span, float mac, float AR, bool vertical, matrix::Vector3f vel, matrix::Vector3f &force, matrix::Vector3f &moments);
 	float lin_interp(const float x0, const float y0, const float x1, const float y1, float x);
 	matrix::Vector3f flap_moments();
+	void rk4_update(matrix::Vector3f &p_I, matrix::Vector3f &v_I, matrix::Quatf &q, matrix::Vector3f &w_B); 	// Runge-Kutta integration
+	States eom_f(States); 	// equations of motion f: x'=f(x)
 
 
 	perf_counter_t  _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
@@ -194,7 +240,6 @@ private:
 	// fixed wing aerodynamic components
 	matrix::Vector3f 	_r_fin=matrix::Vector3f(-0.4f, 0.0f, -0.1f);	// fin position from CM [m]
 	matrix::Vector3f 	_r_tp=matrix::Vector3f(-0.4f, 0.0f, 0.0f);	// tailplane position from CM [m]
-
 
 	// sensors reconstruction
 	matrix::Vector3f    _acc;

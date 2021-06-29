@@ -298,7 +298,8 @@ void Sih::generate_force_and_torques()
 		_Ma_B = -_KDW * _w_B;   // first order angular damper
 	} else if (_vehicle==Vtype::FW) {
 		_T_B = Vector3f(_T_MAX*_u[3],0.0f,0.0f); 	// forward thruster
-		_Mt_B = Vector3f(_Q_MAX*_u[3], 0.0f,0.0f); 	// thruster torque
+		// _Mt_B = Vector3f(_Q_MAX*_u[3], 0.0f,0.0f); 	// thruster torque
+		_Mt_B = Vector3f();
 		generate_aerodynamics();
 	}
 
@@ -367,7 +368,7 @@ void Sih::generate_aerodynamics()
 	Vector3f Fa_w, Ma_w, Fa_tp, Ma_tp, Fa_fin, Ma_fin;
 	aero_fm(SPAN, MAC, -1.0f, false, _v_B, Fa_w, Ma_w); 	// wing aerodynamic
 	aero_fm(0.3f, 0.12f, -1.0f, false, _v_B+_w_B%_r_tp, Fa_tp, Ma_tp);  // tail plane aerodynamic
-	aero_fm(0.25f, 0.15f, -1.0f, false, _v_B+_w_B%_r_fin, Fa_fin, Ma_fin);  // fin aerodynamic
+	aero_fm(0.25f, 0.15f, -1.0f, true, _v_B+_w_B%_r_fin, Fa_fin, Ma_fin);  // fin aerodynamic
 	_Fa_I = _C_IB*(Fa_w+Fa_tp+Fa_fin) -_KDV * _v_I; 	// sum of aerodynamic forces
 	_Ma_B = Ma_w + Ma_tp + Ma_fin + _r_tp%Fa_tp + _r_fin%Fa_fin + flap_moments() -_KDW * _w_B; 	// aerodynamic moments
 }
@@ -375,12 +376,12 @@ void Sih::generate_aerodynamics()
 Vector3f Sih::flap_moments()
 {
 	// control derivative coefficients from Levin thesis
-	const float flap_max=30.0f;	// maximum flap deflection (deg)
-	const float clda=0.000678f, cldr=-0.000931f, cmde=0.0118f, cndr=0.00357f;
+	const float flap_max=10.0f;	// maximum flap deflection (deg)
+	const float clda=0.000678f, cldr=-0.0000931f*0.0f, cmde=-0.0118f, cndr=0.00357f; // 1/deg
 	float v2=_v_B.length()*_v_B.length();	// vel squared
-	return 0.5f*RHO*v2*SPAN*MAC*Vector3f(SPAN*(clda*_u[0]+cldr*_u[2]),
-					MAC*cmde*_u[1],
-					SPAN*cndr*_u[2])*flap_max;
+	return 0.5f*RHO*v2*SPAN*MAC*flap_max*Vector3f(SPAN*(clda*_u[0]+cldr*_u[2]),
+							MAC*cmde*_u[1],
+							SPAN*cndr*_u[2]);
 }
 
 // aerodynamic force of a generic flate plate wing segment
@@ -437,8 +438,9 @@ void Sih::low_aoa_coeff(float alpha, float AR, float &CL, float &CD, float &CM)
 	CD = CD0+CL*fabsf(tanf(alpha));
 	// float xp=0.25f; 	// quarter chord location of center of pressure
 	// CM = -(0.42f-0.25f)*kv*fabsf(sinf(alpha))*sinf(alpha)-(xp-0.25f)*kp*sinf(alpha)*cosf(alpha); // low alpha pitching moment coefficient
-	CM = -0.25f*(1.0f+sqrtf(fte))*(1.0f+sqrtf(fte))*0.0625f*(-1.0f+6.0f*sqrtf(fte)-5.0f*fte)*kp*sinf(alpha)*cosf(alpha)
-	     +0.17f*fle*fle*kv*fabsf(sinf(alpha))*sinf(alpha);
+	CM =0.0f;
+	// CM = -0.25f*(1.0f+sqrtf(fte))*(1.0f+sqrtf(fte))*0.0625f*(-1.0f+6.0f*sqrtf(fte)-5.0f*fte)*kp*sinf(alpha)*cosf(alpha)
+	//      +0.17f*fle*fle*kv*fabsf(sinf(alpha))*sinf(alpha);
 }
 
 // high angle of attack coefficient based on flat plate
@@ -482,30 +484,76 @@ void Sih::equations_of_motion()
 				// for the accelerometer, compute the acceleration that will stop the vehicle in one time step
 				_v_I_dot(2) = -_v_I(2) / _dt;
 			} else {
-				_v_I_dot(2)=0.0f;
+				// we only allow negative acceleration in order to takeoff
+				_v_I_dot(2)=fminf(_v_I_dot(2), 0.0f);
 			}
 			// integration: Euler forward
 			_p_I = _p_I + _p_I_dot * _dt;
 			_v_I = _v_I + _v_I_dot * _dt;
-			_q = _q + _q_dot * _dt; // as given in attitude_estimator_q_main.cpp
-			_q.normalize();
 			Eulerf RPY=Eulerf(_q);
-			RPY(2)=0.0f; 	// the yaw is free to move, but the pitch and roll act as spring due to the ground
-			_w_B_dot -=0.1f*RPY;
-			_w_B = _w_B + _w_B_dot * _dt;
+			RPY(0)=0.0f;	// no roll
+			RPY(1)=M_PI_F/18.0f; 	// pitch slightly up to get some lift
+			_q=Quatf(RPY);
+			_w_B.setZero();
 			_grounded = true;
 		}
-
-
 	} else {
 		// integration: Euler forward
-		_p_I = _p_I + _p_I_dot * _dt;
-		_v_I = _v_I + _v_I_dot * _dt;
-		_q = _q + _q_dot * _dt; // as given in attitude_estimator_q_main.cpp
-		_q.normalize();
-		_w_B = _w_B + _w_B_dot * _dt;
+		// _p_I = _p_I + _p_I_dot * _dt;
+		// _v_I = _v_I + _v_I_dot * _dt;
+		// _q = _q + _q_dot * _dt; // as given in attitude_estimator_q_main.cpp
+		// _q.normalize();
+		// integration Runge-Kutta 4
+		rk4_update(_p_I, _v_I, _q, _w_B);
+		_w_B = constrain(_w_B + _w_B_dot * _dt, -4.0f*M_PI_F, 4.0f*M_PI_F);
 		_grounded = false;
 	}
+	// if (_grounded && _u[3]>0.9f){
+	// 	_p_I(2)=-100.0f;
+	// }
+}
+
+// Runge-Kutta integration
+void Sih::rk4_update(matrix::Vector3f &p_I, matrix::Vector3f &v_I, matrix::Quatf &q, matrix::Vector3f &w_B)
+{
+	// wrap the states
+	_x = States(p_I, v_I, q, w_B);
+	// _x.p_I=p_I;
+	// _x.v_I=v_I;
+	// _x.q=q;
+	// _x.w_B=w_B;
+
+	// compute RK4 coefficients
+	_k1=eom_f(_x);
+	_k2=eom_f(_x+_k1*0.5f*_dt);
+	_k3=eom_f(_x+_k2*0.5f*_dt);
+	_k4=eom_f(_x+_k3*1.0f*_dt);
+
+	// compute RK update
+	_x=_x+(_k1+(_k2+_k3)*2.0f+_k4)*(_dt/6.0f);
+	_x.normalize_quat();
+
+	// unwrap and update the states
+	_x.unwrap_states(p_I, v_I, q, w_B);
+	// p_I=_x.p_I;
+	// v_I=_x.v_I;
+	// _x.q.normalize();
+	// q=_x.q;
+	// w_B=_x.w_B;
+}
+
+Sih::States Sih::eom_f(States x) 	// equations of motion f: x'=f(x)
+{
+	States x_dot{}; 	// dx/dt
+
+	Dcmf C_IB = matrix::Dcm<float>(x.q); // body to inertial transformation
+	// Equations of motion of a rigid body
+	x_dot.p_I = x.v_I;                        // position differential
+	x_dot.v_I = (_W_I + _Fa_I + C_IB * _T_B) / _MASS;   // conservation of linear momentum
+	x_dot.q = x.q.derivative1(x.w_B);              // attitude differential
+	x_dot.w_B = _Im1 * (_Mt_B + _Ma_B - x.w_B.cross(_I * x.w_B)); // conservation of angular momentum
+
+	return x_dot;
 }
 
 // reconstruct the noisy sensor signals
@@ -672,6 +720,30 @@ float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1
 Vector3f Sih::noiseGauss3f(float stdx, float stdy, float stdz)
 {
 	return Vector3f(generate_wgn() * stdx, generate_wgn() * stdy, generate_wgn() * stdz);
+}
+
+int Sih::print_status()
+{
+        PX4_INFO("Running");
+        PX4_INFO("vehicle landed: %d",_grounded);
+        PX4_INFO("inertial position NED (m)");
+        _p_I.print();
+        PX4_INFO("inertial velocity NED (m/s)");
+        _v_I.print();
+        PX4_INFO("attitude roll-pitch-yaw (deg)");
+        (Eulerf(_q)*180.0f/M_PI_F).print();
+        PX4_INFO("angular acceleration roll-pitch-yaw (deg/s)");
+        (_w_B*180.0f/M_PI_F).print();
+	PX4_INFO("actuator signals");
+	Vector<float, 8> u = Vector<float, 8>(_u);
+	u.transpose().print();
+	PX4_INFO("Aerodynamic forces NED inertial (N)");
+	_Fa_I.print();
+	PX4_INFO("Aerodynamic moments body frame (Nm)");
+	_Ma_B.print();
+	PX4_INFO("v_I.z: %f", (double)_v_I(2));
+	PX4_INFO("v_I_dot.z: %f", (double)_v_I_dot(2));
+        return 0;
 }
 
 int Sih::task_spawn(int argc, char *argv[])
