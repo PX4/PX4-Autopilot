@@ -395,13 +395,10 @@ int UART_node::init()
 
 	while (0 < ::read(uart_fd, (void *)&aux, 64)) {
 		flush = true;
-		/**
-		 * According to px4_time.h, px4_usleep() is only defined when lockstep is set
-		 * to be used
-		 */
 #ifndef px4_usleep
 		usleep(1000);
 #else
+		/* With PX4 px4_usleep() should be used. */
 		px4_usleep(1000);
 #endif /* px4_usleep */
 	}
