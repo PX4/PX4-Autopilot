@@ -138,16 +138,16 @@ status_t S2PI_SetBaudRate(uint32_t baudRate_Bps)
 status_t S2PI_CaptureGpioControl(void)
 {
 	/* Check if something is ongoing. */
-	IRQ_LOCK();
+	irqstate_t irqstate_flags = px4_enter_critical_section();
 	status_t status = s2pi_.Status;
 
 	if (status != STATUS_IDLE) {
-		IRQ_UNLOCK();
+		px4_leave_critical_section(irqstate_flags);
 		return status;
 	}
 
 	s2pi_.Status = STATUS_S2PI_GPIO_MODE;
-	IRQ_UNLOCK();
+	px4_leave_critical_section(irqstate_flags);
 
 	// GPIO mode (output push pull)
 	px4_arch_configgpio(PX4_MAKE_GPIO_OUTPUT_SET(s2pi_.GPIOs[S2PI_CLK]));
@@ -167,16 +167,16 @@ status_t S2PI_CaptureGpioControl(void)
 status_t S2PI_ReleaseGpioControl(void)
 {
 	/* Check if something is ongoing. */
-	IRQ_LOCK();
+	irqstate_t irqstate_flags = px4_enter_critical_section();
 	status_t status = s2pi_.Status;
 
 	if (status != STATUS_S2PI_GPIO_MODE) {
-		IRQ_UNLOCK();
+		px4_leave_critical_section(irqstate_flags);
 		return status;
 	}
 
 	s2pi_.Status = STATUS_IDLE;
-	IRQ_UNLOCK();
+	px4_leave_critical_section(irqstate_flags);
 
 	// SPI alternate
 	stm32_configgpio(s2pi_.GPIOs[S2PI_CLK]);
@@ -254,16 +254,16 @@ status_t S2PI_ReadGpioPin(s2pi_slave_t slave, s2pi_pin_t pin, uint32_t *value)
 status_t S2PI_CycleCsPin(s2pi_slave_t slave)
 {
 	/* Check the driver status. */
-	IRQ_LOCK();
+	irqstate_t irqstate_flags = px4_enter_critical_section();
 	status_t status = s2pi_.Status;
 
 	if (status != STATUS_IDLE) {
-		IRQ_UNLOCK();
+		px4_leave_critical_section(irqstate_flags);
 		return status;
 	}
 
 	s2pi_.Status = STATUS_BUSY;
-	IRQ_UNLOCK();
+	px4_leave_critical_section(irqstate_flags);
 
 	px4_arch_gpiowrite(s2pi_.GPIOs[S2PI_CS], 0);
 	px4_arch_gpiowrite(s2pi_.GPIOs[S2PI_CS], 1);
@@ -339,11 +339,11 @@ status_t S2PI_TransferFrame(s2pi_slave_t spi_slave, uint8_t const *txData, uint8
 	}
 
 	/* Check the driver status, lock if idle. */
-	IRQ_LOCK();
+	irqstate_t irqstate_flags = px4_enter_critical_section();
 	status_t status = s2pi_.Status;
 
 	if (status != STATUS_IDLE) {
-		IRQ_UNLOCK();
+		px4_leave_critical_section(irqstate_flags);
 		return status;
 	}
 
@@ -358,7 +358,7 @@ status_t S2PI_TransferFrame(s2pi_slave_t spi_slave, uint8_t const *txData, uint8
 	s2pi_.spi_frame_size = frameSize;
 	work_queue(HPWORK, &broadcom_s2pi_transfer_work, broadcom_s2pi_transfer_callout, NULL, 0);
 
-	IRQ_UNLOCK();
+	px4_leave_critical_section(irqstate_flags);
 
 	return STATUS_OK;
 }
