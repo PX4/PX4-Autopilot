@@ -103,27 +103,9 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us) 
 	updateParams();
 }
 
-void Battery::reset()
-{
-	memset(&_battery_status, 0, sizeof(_battery_status));
-	_battery_status.current_a = -1.f;
-	_battery_status.remaining = 1.f;
-	_battery_status.scale = 1.f;
-	// Publish at least one cell such that the total voltage gets into MAVLink BATTERY_STATUS
-	_battery_status.cell_count = math::max(_params.n_cells, static_cast<int32_t>(1));
-	// TODO: check if it is sane to reset warning to NONE
-	_battery_status.warning = battery_status_s::BATTERY_WARNING_NONE;
-	_battery_status.connected = false;
-	_battery_status.capacity = _params.capacity > 0.0f ? (uint16_t)_params.capacity : 0;
-	_battery_status.temperature = NAN;
-	_battery_status.id = (uint8_t) _index;
-}
-
 void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v, float current_a, bool connected,
 				  int source, int priority, float throttle_normalized)
 {
-	reset();
-
 	if (!_battery_initialized) {
 		_voltage_filter_v.reset(voltage_v);
 		_current_filter_a.reset(current_a);
@@ -145,15 +127,21 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v,
 		_battery_initialized = true;
 		_battery_status.voltage_v = voltage_v;
 		_battery_status.voltage_filtered_v = _voltage_filter_v.getState();
-		_battery_status.scale = _scale;
 		_battery_status.current_a = current_a;
 		_battery_status.current_filtered_a = _current_filter_a.getState();
+		_battery_status.current_average_a = -1.f; // support will follow
 		_battery_status.discharged_mah = _discharged_mah;
-		_battery_status.warning = _warning;
 		_battery_status.remaining = _state_of_charge;
+		_battery_status.scale = _scale;
+		_battery_status.temperature = NAN;
+		// Publish at least one cell such that the total voltage gets into MAVLink BATTERY_STATUS
+		_battery_status.cell_count = math::max(_params.n_cells, static_cast<int32_t>(1));
 		_battery_status.connected = connected;
 		_battery_status.source = source;
 		_battery_status.priority = priority;
+		_battery_status.capacity = _params.capacity > 0.f ? static_cast<uint16_t>(_params.capacity) : 0;
+		_battery_status.id = (uint8_t) _index;
+		_battery_status.warning = _warning;
 
 		static constexpr int32_t uorb_max_cells = sizeof(_battery_status.voltage_cell_v) / sizeof(
 					_battery_status.voltage_cell_v[0]);
@@ -164,6 +152,17 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v,
 		for (int i = 0; i < max_cells; i++) {
 			_battery_status.voltage_cell_v[i] = _battery_status.voltage_filtered_v / max_cells;
 		}
+
+	} else {
+		_battery_status.current_a = -1.f;
+		_battery_status.remaining = 1.f;
+		_battery_status.scale = 1.f;
+		// TODO: check if it is sane to reset warning to NONE
+		_battery_status.warning = battery_status_s::BATTERY_WARNING_NONE;
+		_battery_status.connected = false;
+		_battery_status.capacity = _params.capacity > 0.0f ? (uint16_t)_params.capacity : 0;
+		_battery_status.temperature = NAN;
+		_battery_status.id = (uint8_t) _index;
 	}
 
 	if (source == _params.source) {
