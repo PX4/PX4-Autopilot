@@ -283,15 +283,15 @@ bool EKF2Selector::UpdateErrorScores()
 			}
 
 			// test ratios are invalid when 0, >= 1 is a failure
-			if (status.vel_test_ratio <= 0.f) {
+			if (!PX4_ISFINITE(status.vel_test_ratio) || (status.vel_test_ratio <= 0.f)) {
 				status.vel_test_ratio = 1.f;
 			}
 
-			if (status.pos_test_ratio <= 0.f) {
+			if (!PX4_ISFINITE(status.pos_test_ratio) || (status.pos_test_ratio <= 0.f)) {
 				status.pos_test_ratio = 1.f;
 			}
 
-			if (status.hgt_test_ratio <= 0.f) {
+			if (!PX4_ISFINITE(status.hgt_test_ratio) || (status.hgt_test_ratio <= 0.f)) {
 				status.hgt_test_ratio = 1.f;
 			}
 
@@ -306,7 +306,7 @@ bool EKF2Selector::UpdateErrorScores()
 				_instance[i].relative_test_ratio = 0;
 			}
 
-		} else if (hrt_elapsed_time(&_instance[i].timestamp_sample_last) > status_timeout) {
+		} else if (!_instance[i].timeout && (hrt_elapsed_time(&_instance[i].timestamp_sample_last) > status_timeout)) {
 			_instance[i].healthy = false;
 			_instance[i].timeout = true;
 		}
