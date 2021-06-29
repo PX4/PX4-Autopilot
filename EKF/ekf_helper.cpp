@@ -945,30 +945,47 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 	mag = sqrtf(math::max(_yaw_test_ratio, _mag_test_ratio.max()));
 
 	// return the largest velocity and position innovation test ratio
+	vel = NAN;
+	pos = NAN;
+
 	if (_control_status.flags.gps) {
-		vel = sqrtf(math::max(_gps_vel_test_ratio(0), _gps_vel_test_ratio(1)));
-		pos = sqrtf(_gps_pos_test_ratio(0));
+		float gps_vel = sqrtf(math::max(_gps_vel_test_ratio(0), _gps_vel_test_ratio(1)));
+		vel = math::max(gps_vel, FLT_MIN);
+
+		float gps_pos = sqrtf(_gps_pos_test_ratio(0));
+		pos = math::max(gps_pos, FLT_MIN);
 	}
+
 	if (_control_status.flags.ev_vel) {
-		vel = math::max(vel, sqrtf(math::max(_ev_vel_test_ratio(0), _ev_vel_test_ratio(1))));
-		pos = math::max(pos, sqrtf(_ev_pos_test_ratio(0)));
+		float ev_vel = sqrtf(math::max(_ev_vel_test_ratio(0), _ev_vel_test_ratio(1)));
+		vel = math::max(math::max(vel, ev_vel), FLT_MIN);
 	}
+
+	if (_control_status.flags.ev_pos) {
+		float ev_pos = sqrtf(_ev_pos_test_ratio(0));
+		pos = math::max(math::max(pos, ev_pos), FLT_MIN);
+	}
+
 	if (isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow)) {
-		vel = sqrtf(_optflow_test_ratio);
+		float of_vel = sqrtf(_optflow_test_ratio);
+		vel = math::max(of_vel, FLT_MIN);
 	}
 
 	// return the vertical position innovation test ratio
 	if (_control_status.flags.baro_hgt) {
-		hgt = sqrtf(_baro_hgt_test_ratio(1));
+		hgt = math::max(sqrtf(_baro_hgt_test_ratio(1)), FLT_MIN);
 
 	} else if (_control_status.flags.gps_hgt) {
-		hgt = sqrtf(_gps_pos_test_ratio(1));
+		hgt = math::max(sqrtf(_gps_pos_test_ratio(1)), FLT_MIN);
 
 	} else if (_control_status.flags.rng_hgt) {
-		hgt = sqrtf(_rng_hgt_test_ratio(1));
+		hgt = math::max(sqrtf(_rng_hgt_test_ratio(1)), FLT_MIN);
 
 	} else if (_control_status.flags.ev_hgt) {
-		hgt = sqrtf(_ev_pos_test_ratio(1));
+		hgt = math::max(sqrtf(_ev_pos_test_ratio(1)), FLT_MIN);
+
+	} else {
+		hgt = NAN;
 	}
 
 	// return the airspeed fusion innovation test ratio
