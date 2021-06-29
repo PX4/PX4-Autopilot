@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -113,6 +113,7 @@ private:
 	bool DataReadyInterruptDisable();
 
 	bool RegisterCheck(const register_config_t &reg_cfg);
+	bool StoreCheckedRegisterValue(Register reg);
 
 	uint8_t RegisterRead(Register reg);
 	void RegisterWrite(Register reg, uint8_t value);
@@ -150,15 +151,13 @@ private:
 		WAIT_FOR_RESET,
 		CONFIGURE,
 		FIFO_READ,
-	};
-
-	STATE _state{STATE::RESET};
+	} _state{STATE::RESET};
 
 	uint16_t _fifo_empty_interval_us{1250}; // default 1250 us / 800 Hz transfer interval
 	uint32_t _fifo_gyro_samples{static_cast<uint32_t>(_fifo_empty_interval_us / (1000000 / GYRO_RATE))};
 
 	uint8_t _checked_register{0};
-	static constexpr uint8_t size_register_cfg{12};
+	static constexpr uint8_t size_register_cfg{24};
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register               | Set bits, Clear bits
 		{ Register::CONFIG,        CONFIG_BIT::FIFO_MODE | CONFIG_BIT::DLPF_CFG_BYPASS_DLPF_8KHZ, 0 },
@@ -173,5 +172,17 @@ private:
 		{ Register::USER_CTRL,     USER_CTRL_BIT::FIFO_EN, 0 },
 		{ Register::PWR_MGMT_1,    PWR_MGMT_1_BIT::CLKSEL_0, PWR_MGMT_1_BIT::SLEEP },
 		{ Register::I2C_IF,        I2C_IF_BIT::I2C_IF_DIS, 0 },
+		{ Register::XG_OFFS_TC_H,  0, 0 },
+		{ Register::XG_OFFS_TC_L,  0, 0 },
+		{ Register::YG_OFFS_TC_H,  0, 0 },
+		{ Register::YG_OFFS_TC_L,  0, 0 },
+		{ Register::ZG_OFFS_TC_H,  0, 0 },
+		{ Register::ZG_OFFS_TC_L,  0, 0 },
+		{ Register::XA_OFFSET_H,   0, 0 },
+		{ Register::XA_OFFSET_L,   0, 0 },
+		{ Register::YA_OFFSET_H,   0, 0 },
+		{ Register::YA_OFFSET_L,   0, 0 },
+		{ Register::ZA_OFFSET_H,   0, 0 },
+		{ Register::ZA_OFFSET_L,   0, 0 },
 	};
 };
