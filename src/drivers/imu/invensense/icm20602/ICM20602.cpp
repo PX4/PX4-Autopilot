@@ -238,7 +238,8 @@ void ICM20602::RunImpl()
 		break;
 
 	case STATE::FIFO_READ: {
-			uint32_t samples = 0;
+			hrt_abstime timestamp_sample = now;
+			int32_t samples = 0;
 
 			if (_data_ready_interrupt_enabled) {
 				// scheduled from interrupt if _drdy_fifo_read_samples was set as expected
@@ -266,7 +267,13 @@ void ICM20602::RunImpl()
 
 				} else {
 					// FIFO count (size in bytes) should be a multiple of the FIFO::DATA structure
-					samples = (fifo_count / sizeof(FIFO::DATA) / SAMPLES_PER_TRANSFER) * SAMPLES_PER_TRANSFER; // round down to nearest
+					samples = fifo_count / sizeof(FIFO::DATA);
+
+					// tolerate minor jitter, leave sample to next iteration if behind by only 1
+					if (samples == _fifo_gyro_samples + 1) {
+						timestamp_sample -= FIFO_SAMPLE_DT;
+						samples--;
+					}
 
 					if (samples > FIFO_MAX_SAMPLES) {
 						// not technically an overflow, but more samples than we expected or can publish
@@ -280,7 +287,7 @@ void ICM20602::RunImpl()
 			bool success = false;
 
 			if (samples >= SAMPLES_PER_TRANSFER) {
-				if (FIFORead(now, samples)) {
+				if (FIFORead(timestamp_sample, samples)) {
 					success = true;
 
 					if (_failure_count > 0) {
@@ -436,7 +443,7 @@ int ICM20602::DataReadyInterruptCallback(int irq, void *context, void *arg)
 
 void ICM20602::DataReady()
 {
-	uint32_t expected = 0;
+	int32_t expected = 0;
 
 	if (_drdy_fifo_read_samples.compare_exchange(&expected, _fifo_gyro_samples)) {
 		ScheduleNow();

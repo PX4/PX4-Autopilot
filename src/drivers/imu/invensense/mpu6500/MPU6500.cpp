@@ -230,6 +230,8 @@ void MPU6500::RunImpl()
 		break;
 
 	case STATE::FIFO_READ: {
+			hrt_abstime timestamp_sample = now;
+
 			if (_data_ready_interrupt_enabled) {
 				// scheduled from interrupt if _drdy_fifo_read_samples was set
 				if (_drdy_fifo_read_samples.fetch_and(0) != _fifo_gyro_samples) {
@@ -253,16 +255,21 @@ void MPU6500::RunImpl()
 
 			} else {
 				// FIFO count (size in bytes) should be a multiple of the FIFO::DATA structure
-				const uint8_t samples = (fifo_count / sizeof(FIFO::DATA) / SAMPLES_PER_TRANSFER) *
-							SAMPLES_PER_TRANSFER; // round down to nearest
+				uint8_t samples = fifo_count / sizeof(FIFO::DATA);
+
+				// tolerate minor jitter, leave sample to next iteration if behind by only 1
+				if (samples == _fifo_gyro_samples + 1) {
+					timestamp_sample -= FIFO_SAMPLE_DT;
+					samples--;
+				}
 
 				if (samples > FIFO_MAX_SAMPLES) {
 					// not technically an overflow, but more samples than we expected or can publish
 					FIFOReset();
 					perf_count(_fifo_overflow_perf);
 
-				} else if (samples >= 1) {
-					if (FIFORead(now, samples)) {
+				} else if (samples >= SAMPLES_PER_TRANSFER) {
+					if (FIFORead(timestamp_sample, samples)) {
 						success = true;
 
 						if (_failure_count > 0) {
@@ -404,14 +411,14 @@ int MPU6500::DataReadyInterruptCallback(int irq, void *context, void *arg)
 
 void MPU6500::DataReady()
 {
-	uint32_t expected = 0;
+	int32_t expected = 0;
 
 	// at least the required number of samples in the FIFO
 	if (((_drdy_count.fetch_add(1) + 1) >= _fifo_gyro_samples)
 	    && _drdy_fifo_read_samples.compare_exchange(&expected, _fifo_gyro_samples)) {
 
-		_drdy_count.store(0);
 		ScheduleNow();
+		_drdy_count.fetch_sub(_fifo_gyro_samples);
 	}
 }
 

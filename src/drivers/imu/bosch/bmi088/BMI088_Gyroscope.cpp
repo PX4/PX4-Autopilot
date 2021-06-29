@@ -164,6 +164,8 @@ void BMI088_Gyroscope::RunImpl()
 		break;
 
 	case STATE::FIFO_READ: {
+			hrt_abstime timestamp_sample = now;
+
 			if (_data_ready_interrupt_enabled) {
 				// scheduled from interrupt if _drdy_fifo_read_samples was set
 				if (_drdy_fifo_read_samples.fetch_and(0) != _fifo_samples) {
@@ -194,7 +196,16 @@ void BMI088_Gyroscope::RunImpl()
 					perf_count(_fifo_empty_perf);
 
 				} else if (fifo_frame_counter >= 1) {
-					if (FIFORead(now, fifo_frame_counter)) {
+
+					uint8_t samples = fifo_frame_counter;
+
+					// tolerate minor jitter, leave sample to next iteration if behind by only 1
+					if (samples == _fifo_samples + 1) {
+						timestamp_sample -= FIFO_SAMPLE_DT;
+						samples--;
+					}
+
+					if (FIFORead(timestamp_sample, samples)) {
 						success = true;
 
 						if (_failure_count > 0) {
@@ -318,7 +329,7 @@ int BMI088_Gyroscope::DataReadyInterruptCallback(int irq, void *context, void *a
 
 void BMI088_Gyroscope::DataReady()
 {
-	uint32_t expected = 0;
+	int32_t expected = 0;
 
 	if (_drdy_fifo_read_samples.compare_exchange(&expected, _fifo_samples)) {
 		ScheduleNow();
