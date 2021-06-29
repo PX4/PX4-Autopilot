@@ -184,7 +184,7 @@ void IST8308::RunImpl()
 					int16_t z = combine(buffer.DATAZH, buffer.DATAZL);
 
 					// sensor's frame is +x forward, +y right, +z up
-					z = (z == INT16_MIN) ? INT16_MAX : -z; // flip z
+					z = math::negate(z); // flip z
 
 					_px4_mag.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf));
 					_px4_mag.update(now, x, y, z);

@@ -175,8 +175,8 @@ void LSM9DS1_MAG::RunImpl()
 
 					// sensor Z is up (RHC), flip z for publication
 					// sensor X is aligned with -X of lsm9ds1 accel/gyro
-					x = (x == INT16_MIN) ? INT16_MAX : -x;
-					z = (z == INT16_MIN) ? INT16_MAX : -z;
+					x = math::negate(x);
+					z = math::negate(z);
 
 					_px4_mag.update(now, x, y, z);
 

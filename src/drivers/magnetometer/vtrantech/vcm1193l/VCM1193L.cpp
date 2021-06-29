@@ -190,7 +190,7 @@ void VCM1193L::RunImpl()
 					_prev_data[2] = z;
 
 					// Data Sheet is incorrect
-					y = (y == INT16_MIN) ? INT16_MAX : -y; // -y
+					y = math::negate(y); // -y
 
 					_px4_mag.update(now, x, y, z);
 
