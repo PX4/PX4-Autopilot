@@ -69,11 +69,6 @@ public:
 	~Battery() = default;
 
 	/**
-	 * Reset all battery stats and report invalid/nothing.
-	 */
-	void reset();
-
-	/**
 	 * Get the battery cell count
 	 */
 	int cell_count() { return _params.n_cells; }
