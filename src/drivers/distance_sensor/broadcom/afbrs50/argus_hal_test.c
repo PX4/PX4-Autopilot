@@ -46,6 +46,8 @@
 #include "platform/argus_nvm.h"
 #include "platform/argus_irq.h"
 
+#include <px4_platform_common/micro_hal.h>
+
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
@@ -466,9 +468,9 @@ static status_t SpiConnectionTest(s2pi_slave_t slave)
  *****************************************************************************/
 static void DataReadyCallback(void *param)
 {
-	IRQ_LOCK();
+	irqstate_t irqstate_flags = px4_enter_critical_section();
 	*((bool *) param) = true;
-	IRQ_UNLOCK();
+	px4_leave_critical_section(irqstate_flags);
 }
 
 /*!***************************************************************************
