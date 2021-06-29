@@ -51,6 +51,9 @@ public:
 	Integrator() = default;
 	~Integrator() = default;
 
+	static constexpr float DT_MIN{FLT_MIN};
+	static constexpr float DT_MAX{static_cast<float>(UINT16_MAX) * 1e-6f};
+
 	/**
 	 * Put an item into the integral.
 	 *
@@ -60,7 +63,7 @@ public:
 	 */
 	inline void put(const matrix::Vector3f &val, const float dt)
 	{
-		if (dt > 0.f && dt <= (_reset_interval_min * 2.f)) {
+		if ((dt > DT_MIN) && (_integral_dt + dt < DT_MAX)) {
 			_alpha += integrate(val, dt);
 
 		} else {
@@ -103,7 +106,7 @@ public:
 	 * @param integral_dt	Get the dt in us of the current integration.
 	 * @return		true if integral valid
 	 */
-	bool reset(matrix::Vector3f &integral, uint32_t &integral_dt)
+	bool reset(matrix::Vector3f &integral, uint16_t &integral_dt)
 	{
 		if (integral_ready()) {
 			integral = _alpha;
@@ -155,7 +158,7 @@ public:
 	 */
 	inline void put(const matrix::Vector3f &val, const float dt)
 	{
-		if (dt > 0.f && dt <= (_reset_interval_min * 2.f)) {
+		if ((dt > DT_MIN) && (_integral_dt + dt < DT_MAX)) {
 			// Use trapezoidal integration to calculate the delta integral
 			const matrix::Vector3f delta_alpha{integrate(val, dt)};
 
@@ -190,7 +193,7 @@ public:
 	 * @param integral_dt	Get the dt in us of the current integration.
 	 * @return		true if integral valid
 	 */
-	bool reset(matrix::Vector3f &integral, uint32_t &integral_dt)
+	bool reset(matrix::Vector3f &integral, uint16_t &integral_dt)
 	{
 		if (Integrator::reset(integral, integral_dt)) {
 			// apply coning corrections
