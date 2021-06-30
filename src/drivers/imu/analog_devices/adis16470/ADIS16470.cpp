@@ -48,7 +48,6 @@ ADIS16470::ADIS16470(I2CSPIBusOption bus_option, int bus, uint32_t device, enum 
 	_px4_accel(get_device_id(), rotation),
 	_px4_gyro(get_device_id(), rotation)
 {
-	_debug_enabled = true;
 }
 
 ADIS16470::~ADIS16470()
