@@ -56,7 +56,7 @@ public:
 	virtual void update() override
 	{
 		// Not sure if actuator_armed is a good indication of readiness but seems close to it
-		if (_sensor_gps_sub.updated() && _port_id != CANARD_PORT_ID_UNSET && _port_id != 0) {
+		if (_sensor_gps_sub.updated() && _port_id != CANARD_PORT_ID_UNSET) {
 			sensor_gps_s gps_msg {};
 			_sensor_gps_sub.update(&gps_msg);
 

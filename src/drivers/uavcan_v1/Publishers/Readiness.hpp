@@ -60,7 +60,7 @@ public:
 	virtual void update() override
 	{
 		// Not sure if actuator_armed is a good indication of readiness but seems close to it
-		if (_actuator_armed_sub.updated() && _port_id != CANARD_PORT_ID_UNSET && _port_id != 0) {
+		if (_actuator_armed_sub.updated() && _port_id != CANARD_PORT_ID_UNSET) {
 			actuator_armed_s armed {};
 			_actuator_armed_sub.update(&armed);
 

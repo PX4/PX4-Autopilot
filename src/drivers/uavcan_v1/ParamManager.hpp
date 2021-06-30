@@ -47,23 +47,31 @@
 #include <uavcan/_register/Name_1_0.h>
 #include <uavcan/_register/Value_1_0.h>
 
+static constexpr uint16_t CANARD_PORT_ID_UNSET = 65535U;
 static constexpr uint16_t CANARD_PORT_ID_MAX   = 32767U;
 
 static bool px4_param_to_uavcan_port_id(param_t &in, uavcan_register_Value_1_0 &out)
 {
 	if (param_type(in) == PARAM_TYPE_INT32) {
 		int32_t out_val {};
-		param_get(in, &out_val);
+		const int res = param_get(in, &out_val);
+
+		if (res != PX4_OK) {
+			// Parameter not found / internal error
+			return false;
+		}
 
 		if (out_val >= 0 && out_val <= CANARD_PORT_ID_MAX) {
 			out.natural16.value.elements[0] = (uint16_t)out_val;
-			out.natural16.value.count = 1;
-			uavcan_register_Value_1_0_select_natural16_(&out);
-			return true;
 
 		} else {
-			return false;
+			// "Invalid" value -- set to "UNSET"
+			out.natural16.value.elements[0] = CANARD_PORT_ID_UNSET;
 		}
+
+		out.natural16.value.count = 1;
+		uavcan_register_Value_1_0_select_natural16_(&out);
+		return true;
 	}
 
 	return false;
