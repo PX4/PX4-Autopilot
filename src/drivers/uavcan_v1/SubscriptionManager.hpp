@@ -74,6 +74,8 @@ public:
 	void updateParams();
 
 private:
+	void updateDynamicSubscriptions();
+
 	CanardInstance &_canard_instance;
 	UavcanParamManager &_param_manager;
 	UavcanDynamicPortSubscriber *_dynsubscribers {NULL};
