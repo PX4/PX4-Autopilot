@@ -58,6 +58,8 @@ private:
 	float alpha_0;		// zero lift angle of attack [rad]
 	float kp, kn;
 	float ate, ale, afte, afle, afs_rad;	// semi empirical coefficients for flat plates function of AR
+	float eta;		// flap effectiveness
+	float def_a;		// absolute value of the deflection angle
 
 	// Table 3.1 SEMI-EMPIRICAL COEFFICIENTS FOR RECTANGULAR FLAT PLATES
 	static constexpr const int N_TAB=12;
@@ -67,6 +69,9 @@ private:
 	static constexpr const float afle_tab[N_TAB] = {59.00f,58.60f,58.20f,50.00f,41.53f,26.70f,23.44f,21.00f,18.63f,14.28f,11.60f,10.00f};
 	static constexpr const float afte_tab[N_TAB] = {59.00f,58.60f,58.20f,51.85f,41.46f,28.09f,39.40f,35.86f,26.76f,19.76f,16.43f,14.00f};
 	static constexpr const float afs_tab[N_TAB] = {49.00f,54.00f,56.00f,48.00f,40.00f,29.00f,27.00f,25.00f,24.00f,22.00f,22.00f,20.00f};
+
+	// deflection effectiveness curve fitted as second order
+	static constexpr const float eta_poly[] = {0.000016309523810f, -0.004691666666667f, 0.581666666666667f};
 
 	// aerodynamic constants
 	static constexpr const float RHO=1.225f;	// air density [kg/m^3]
@@ -94,49 +99,56 @@ public:
 		alpha_old=0.0f;
 		kp=2.0f*M_PI_F/(1.0f+2.0f*(ar+4.0f)/(ar*(ar+2.0f)));
 		kn=0.41f * (1.0f - expf(-17.0f / ar));
-		ale = lin_interp_lkt(AR_tab, ale_tab, ar);
-		ate = lin_interp_lkt(AR_tab, ate_tab, ar);
-		afle = lin_interp_lkt(AR_tab, afle_tab, ar);
-		afte = lin_interp_lkt(AR_tab, afte_tab, ar);
-		afs_rad = math::radians(lin_interp_lkt(AR_tab, afs_tab, ar));
+		ale = lin_interp_lkt(AR_tab, ale_tab, ar, N_TAB);
+		ate = lin_interp_lkt(AR_tab, ate_tab, ar, N_TAB);
+		afle = lin_interp_lkt(AR_tab, afle_tab, ar, N_TAB);
+		afte = lin_interp_lkt(AR_tab, afte_tab, ar, N_TAB);
+		afs_rad = math::radians(lin_interp_lkt(AR_tab, afs_tab, ar, N_TAB));
 	}
 
 	// aerodynamic force and moments of a generic flate plate segment
-	void update_aero(const matrix::Vector3f v_B, const matrix::Vector3f w_B, const float dt)
+	void update_aero(const matrix::Vector3f v_B, const matrix::Vector3f w_B, const float dt, const float def_deg=0.0f)
 	{
 		matrix::Vector3f vel =v_B+w_B%p_B;
-		if (horizontal) { // horizontal segment? like wing and elevators
-			float vxz2=vel(0)*vel(0)+vel(2)*vel(2);
-			if (vxz2<0.01f) {
-				Fa=matrix::Vector3f();
-				Ma=matrix::Vector3f();
-				return;
-			}
-			float alpha = atan2f(vel(2), vel(0))-alpha_0;
-			float alpha_dot=math::constrain((alpha-alpha_old)/dt,-AF_DOT_MAX,AF_DOT_MAX);
-			alpha_old=alpha;
-			aoa_coeff(alpha, alpha_dot, sqrtf(vxz2));
-			Fa=0.5f*RHO*vxz2*span*mac*matrix::Vector3f(CL*sinf(alpha)-CD*cosf(alpha),
-									0.0f,
-									-CL*cosf(alpha)-CD*sinf(alpha));
-			Ma=0.5f*RHO*vxz2*span*mac*mac*matrix::Vector3f(0.0f,CM,0.0f) + p_B%Fa; 	// computed at vehicle CM
-		} else { 	// vertical segment? like rudder and fin
+		if (fabsf(def_deg)<0.0001f) {
+			if (horizontal) { // horizontal segment? like wing and elevators
+				float vxz2=vel(0)*vel(0)+vel(2)*vel(2);
+				if (vxz2<0.01f) {
+					Fa=matrix::Vector3f();
+					Ma=matrix::Vector3f();
+					return;
+				}
+				float alpha = atan2f(vel(2), vel(0))-alpha_0;
+				float alpha_dot=math::constrain((alpha-alpha_old)/dt,-AF_DOT_MAX,AF_DOT_MAX);
+				alpha_old=alpha;
+				aoa_coeff(alpha, alpha_dot, sqrtf(vxz2));
+				Fa=0.5f*RHO*vxz2*span*mac*matrix::Vector3f(CL*sinf(alpha)-CD*cosf(alpha),
+										0.0f,
+										-CL*cosf(alpha)-CD*sinf(alpha));
+				Ma=0.5f*RHO*vxz2*span*mac*mac*matrix::Vector3f(0.0f,CM,0.0f) + p_B%Fa; 	// computed at vehicle CM
+			} else { 	// vertical segment? like rudder and fin
 
-			float vxy2=vel(0)*vel(0)+vel(1)*vel(1);
-			if (vxy2<0.01f) {
-				Fa=matrix::Vector3f();
-				Ma=matrix::Vector3f();
-				return;
+				float vxy2=vel(0)*vel(0)+vel(1)*vel(1);
+				if (vxy2<0.01f) {
+					Fa=matrix::Vector3f();
+					Ma=matrix::Vector3f();
+					return;
+				}
+				float alpha = atan2f(vel(1), vel(0))-alpha_0;	// this is in fact beta
+				float alpha_dot=math::constrain((alpha-alpha_old)/dt,-AF_DOT_MAX,AF_DOT_MAX);
+				alpha_old=alpha;
+				aoa_coeff(alpha, alpha_dot, sqrtf(vxy2));
+				Fa=0.5f*RHO*vxy2*span*mac*matrix::Vector3f(  CL*sinf(alpha)-CD*cosf(alpha),
+									-CL*cosf(alpha)-CD*sinf(alpha),
+									0.0f);
+				Ma=0.5f*RHO*vxy2*span*mac*mac*matrix::Vector3f(0.0f,0.0f,-CM) + p_B%Fa;	// computed at vehicle CM
 			}
-			float alpha = atan2f(vel(1), vel(0))-alpha_0;	// this is in fact beta
-			float alpha_dot=math::constrain((alpha-alpha_old)/dt,-AF_DOT_MAX,AF_DOT_MAX);
-			alpha_old=alpha;
-			aoa_coeff(alpha, alpha_dot, sqrtf(vxy2));
-			Fa=0.5f*RHO*vxy2*span*mac*matrix::Vector3f(  CL*sinf(alpha)-CD*cosf(alpha),
-								-CL*cosf(alpha)-CD*sinf(alpha),
-								0.0f);
-			Ma=0.5f*RHO*vxy2*span*mac*mac*matrix::Vector3f(0.0f,0.0f,-CM) + p_B%Fa;	// computed at vehicle CM
+		} else { 	// treat the control surface deflection
+			def_a=fminf(fabsf(def_deg),70.0f);
+			eta=def_a*def_a*eta_poly[0]+def_a*eta_poly[1]+eta_poly[2];	// second order fit
+
 		}
+
 	}
 
 	// low angle of attack and stalling region coefficient based on flat plate
@@ -186,19 +198,20 @@ public:
 	}
 
 	// lookup table linear interpolation
-	static float lin_interp_lkt(const float x_tab [N_TAB], const float y_tab [N_TAB], const float x) {
+	static float lin_interp_lkt(const float x_tab [], const float y_tab [], const float x, const int length) {
 		if (x<x_tab[0]) {
 			return y_tab[0];
 		}
-		if (x>x_tab[N_TAB-1]) {
-			return y_tab [N_TAB-1];
+		if (x>x_tab[length-1]) {
+			return y_tab [length-1];
 		}
-		int i=N_TAB-2;
+		int i=length-2;
 		while(x_tab[i]>x) {
 			i--;
 		}
 		return lin_interp(x_tab[i], y_tab[i], x_tab[i+1], y_tab[i+1], x);
 	}
+
 	// AeroSeg operator*(const float k) const {
 	// 	return AeroSeg(p_I*k, v_I*k, q*k, w_B*k);
 	// }
