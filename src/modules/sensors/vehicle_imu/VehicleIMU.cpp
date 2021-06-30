@@ -192,7 +192,7 @@ void VehicleIMU::Run()
 		}
 
 		// check for additional updates and that we're fully caught up before publishing
-		if (consume_all_gyro && _sensor_gyro_sub.updated()) {
+		if ((consume_all_gyro || _data_gap) && _sensor_gyro_sub.updated()) {
 			continue;
 		}
 
