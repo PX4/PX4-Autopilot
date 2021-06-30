@@ -60,6 +60,11 @@ void SubscriptionManager::subscribe()
 	_getinfo_rsp.subscribe();
 	_access_rsp.subscribe();
 
+	updateDynamicSubscriptions();
+}
+
+void SubscriptionManager::updateDynamicSubscriptions()
+{
 	for (auto &sub : _uavcan_subs) {
 		if (sub.instance == NULL) {
 			param_t param_handle = param_find(sub.px4_name);
@@ -124,5 +129,5 @@ void SubscriptionManager::updateParams()
 	}
 
 	// Check for any newly-enabled subscriptions
-	subscribe();
+	updateDynamicSubscriptions();
 }
