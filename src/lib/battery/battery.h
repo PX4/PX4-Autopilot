@@ -143,8 +143,6 @@ protected:
 		int32_t source_old;
 	} _params{};
 
-	battery_status_s _battery_status{};
-
 	const int _index;
 
 	bool _first_parameter_update{true};
