@@ -1,4 +1,5 @@
 uint64 timestamp			# time since system start (microseconds)
+bool connected				# Whether or not a battery is connected, based on a voltage threshold
 float32 voltage_v			# Battery voltage in volts, 0 if unknown
 float32 voltage_filtered_v	# Battery voltage in volts, filtered, 0 if unknown
 float32 current_a			# Battery current in amperes, -1 if unknown
@@ -9,7 +10,6 @@ float32 remaining			# From 1 to 0, -1 if unknown
 float32 scale				# Power scaling factor, >= 1, or -1 if unknown
 float32 temperature			# temperature of the battery. NaN if unknown
 int32 cell_count			# Number of cells
-bool connected				# Whether or not a battery is connected, based on a voltage threshold
 
 uint8 BATTERY_SOURCE_POWER_MODULE = 0
 uint8 BATTERY_SOURCE_EXTERNAL = 1
