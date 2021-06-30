@@ -130,37 +130,38 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v,
 		connected = false;
 	}
 
-	_battery_status.voltage_v = voltage_v;
-	_battery_status.voltage_filtered_v = _voltage_filter_v.getState();
-	_battery_status.current_a = current_a;
-	_battery_status.current_filtered_a = _current_filter_a.getState();
-	_battery_status.current_average_a = -1.f; // support will follow
-	_battery_status.discharged_mah = _discharged_mah;
-	_battery_status.remaining = _state_of_charge;
-	_battery_status.scale = _scale;
-	_battery_status.temperature = NAN;
+	battery_status_s battery_status{};
+	battery_status.voltage_v = voltage_v;
+	battery_status.voltage_filtered_v = _voltage_filter_v.getState();
+	battery_status.current_a = current_a;
+	battery_status.current_filtered_a = _current_filter_a.getState();
+	battery_status.current_average_a = -1.f; // support will follow
+	battery_status.discharged_mah = _discharged_mah;
+	battery_status.remaining = _state_of_charge;
+	battery_status.scale = _scale;
+	battery_status.temperature = NAN;
 	// Publish at least one cell such that the total voltage gets into MAVLink BATTERY_STATUS
-	_battery_status.cell_count = math::max(_params.n_cells, static_cast<int32_t>(1));
-	_battery_status.connected = connected;
-	_battery_status.source = source;
-	_battery_status.priority = priority;
-	_battery_status.capacity = _params.capacity > 0.f ? static_cast<uint16_t>(_params.capacity) : 0;
-	_battery_status.id = static_cast<uint8_t>(_index);
-	_battery_status.warning = _warning;
+	battery_status.cell_count = math::max(_params.n_cells, static_cast<int32_t>(1));
+	battery_status.connected = connected;
+	battery_status.source = source;
+	battery_status.priority = priority;
+	battery_status.capacity = _params.capacity > 0.f ? static_cast<uint16_t>(_params.capacity) : 0;
+	battery_status.id = static_cast<uint8_t>(_index);
+	battery_status.warning = _warning;
 
-	static constexpr int32_t uorb_max_cells = sizeof(_battery_status.voltage_cell_v) / sizeof(
-				_battery_status.voltage_cell_v[0]);
+	static constexpr int32_t uorb_max_cells = sizeof(battery_status.voltage_cell_v) / sizeof(
+				battery_status.voltage_cell_v[0]);
 
-	int max_cells = math::min(_battery_status.cell_count, uorb_max_cells);
+	int max_cells = math::min(battery_status.cell_count, uorb_max_cells);
 
 	// Fill cell voltages with average values to work around MAVLink BATTERY_STATUS not allowing to report just total voltage
 	for (int i = 0; i < max_cells; i++) {
-		_battery_status.voltage_cell_v[i] = _battery_status.voltage_filtered_v / max_cells;
+		battery_status.voltage_cell_v[i] = battery_status.voltage_filtered_v / max_cells;
 	}
 
 	if (source == _params.source) {
-		_battery_status.timestamp = hrt_absolute_time();
-		_battery_status_pub.publish(_battery_status);
+		battery_status.timestamp = hrt_absolute_time();
+		_battery_status_pub.publish(battery_status);
 	}
 }
 
