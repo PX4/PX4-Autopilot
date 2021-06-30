@@ -195,11 +195,6 @@ private:
 	void send_dist_snsr();
 	void publish_sih();
 	void generate_aerodynamics();
-	void low_aoa_coeff(float alpha, float AR, float &CL, float &CD, float &CM);
-	void high_aoa_coeff(float alpha, float AR, float &CL, float &CD, float &CM);
-	// Aerodynamic forces and moments for a flat plate wing segment as described in [2]
-	void aero_fm(float span, float mac, float AR, bool vertical, matrix::Vector3f vel, matrix::Vector3f &force, matrix::Vector3f &moments);
-	float lin_interp(const float x0, const float y0, const float x1, const float y1, float x);
 	matrix::Vector3f flap_moments();
 	void rk4_update(matrix::Vector3f &p_I, matrix::Vector3f &v_I, matrix::Quatf &q, matrix::Vector3f &w_B); 	// Runge-Kutta integration
 	States eom_f(States); 	// equations of motion f: x'=f(x)
@@ -237,9 +232,10 @@ private:
 	enum Vtype {MC, FW}; 	// vehicle type
 	Vtype _vehicle=FW;
 
-	// fixed wing aerodynamic components
-	matrix::Vector3f 	_r_fin=matrix::Vector3f(-0.4f, 0.0f, -0.1f);	// fin position from CM [m]
-	matrix::Vector3f 	_r_tp=matrix::Vector3f(-0.4f, 0.0f, 0.0f);	// tailplane position from CM [m]
+	// aerodynamic segments for the fixedwing
+	AeroSeg wing=AeroSeg(SPAN, MAC, math::radians(-3.0f), matrix::Vector3f());
+	AeroSeg tailplane=AeroSeg(0.3, 0.1, 0.0f, matrix::Vector3f(-0.4f, 0.0f, 0.0f));
+	AeroSeg fin=AeroSeg(0.25, 0.15, 0.0f, matrix::Vector3f(-0.4f, 0.0f, -0.1f), false);
 
 	// sensors reconstruction
 	matrix::Vector3f    _acc;

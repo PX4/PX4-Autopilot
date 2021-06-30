@@ -40,6 +40,7 @@
  * Coriolis g Corporation - January 2019
  */
 
+#include "aero.hpp"
 #include "sih.hpp"
 
 #include <px4_platform_common/getopt.h>
@@ -205,24 +206,6 @@ void Sih::parameters_updated()
 	_distance_snsr_override = _sih_distance_snsr_override.get();
 
 	_T_TAU = _sih_thrust_tau.get();
-
-	// // FW aerodynamic
-	// _WING_SPAN = _sih_wing_span.get();	// [m]
-	// _WING_AREA = _sih_wing_area.get(); 	// [m^2]
-	// _AR = _WING_SPAN * _WING_SPAN / _WING_AREA; 	// wing aspect ratio
-	// _MAC = _WING_AREA / _WING_SPAN; 	// mean aerodynamic chord [m]
-
-	// high_aoa_coeffs(AOA_MAX+AOA_BLEND, _AR, CL_P, CD_P, CM_P);
-	// high_aoa_coeffs(AOA_MIN-AOA_BLEND, _AR, CL_N, CD_N, CM_N);
-
-	// CL_MAX=CL_ALPHA*(AOA_MAX-AOA_0);
-	// CL_MIN=CL_ALPHA*(AOA_MIN-AOA_0);
-
-	// CD_MAX = CD0 + CD_K*CL_MAX*CL_MAX;
-	// CD_MIN = CD0 + CD_K*CL_MIN*CL_MIN;
-
-	// CM_MAX = CM_ALPHA* (AOA_MAX-AOA_0);
-	// CM_MIN = CM_ALPHA* (AOA_MIN-AOA_0);
 }
 
 // initialization of the variables for the simulator
@@ -236,6 +219,8 @@ void Sih::init_variables()
 	_w_B = Vector3f(0.0f, 0.0f, 0.0f);
 
 	_u[0] = _u[1] = _u[2] = _u[3] = 0.0f;
+
+	// wing=AeroSeg(float span_, float mac_, float alpha_0_, matrix::Vector3f p_B_, bool horizontal_=true, float AR=-1.0f);
 }
 
 void Sih::gps_fix()
@@ -307,153 +292,23 @@ void Sih::generate_force_and_torques()
 
 void Sih::generate_aerodynamics()
 {
-	// _v_B = _C_IB.transpose() * _v_I; 	// velocity in body frame [m/s]
-	// // _v_T = _C_WB * _v_B; 			// velocity in tail frame [m/s]
-	// // float vxz2 = _v_W(0) * _v_W(0) + _v_W(2) * _v_W(2); 	// vxz^2
-
-	// if (vxz2 > 0.01f) {
-	// 	_alpha = atan2f(_v_B(2), _v_B(0));
-	// 	if (_alpha>=AOA_MIN && _alpha <= AOA_MAX){
-	// 		_CL = CL_ALPHA * (_alpha - AOA_0);
-	// 		_CD = CD0 + CD_K*_CL*_CL;
-	// 		_CM = CM_ALPHA* (_alpha-AOA_0);
-	// 	} else if (_alpha>AOA_MAX && _alpha <= AOA_MAX+AOA_BLEND){
-	//         _CL=lin_interp(AOA_MAX,CL_MAX,AOA_MAX+AOA_BLEND,CL_P,_alpha);
-	//         _CD=lin_interp(AOA_MAX,CD_MAX,AOA_MAX+AOA_BLEND,CD_P,_alpha);
-	//         _CM=lin_interp(AOA_MAX,CM_MAX,AOA_MAX+AOA_BLEND,CM_P,_alpha);
-	// 	} else if (_alpha>=AOA_MIN-AOA_BLEND && _alpha<AOA_MIN) {
-	// 		_CL=lin_interp(AOA_MIN-AOA_BLEND,CL_N,AOA_MIN,CL_MIN,_alpha);
-        // 	_CD=lin_interp(AOA_MIN-AOA_BLEND,CD_N,AOA_MIN,CD_MIN,_alpha);
-        // 	_CM=lin_interp(AOA_MIN-AOA_BLEND,CM_N,AOA_MIN,CM_MIN,_alpha);
-	// 	} else {
-	// 		high_aoa_coeffs(_alpha, _AR, _CL, _CD, _CM);
-	// 	}
-
-	// } else {
-	// 	_CL = _CD = _CM = 0.0f;
-	// 	_alpha = 0.0f;
-	// }
-
-	// // float v2=_v_W.norm_squared();
-	// float v2 = vxz2;
-	// float L = 0.5f * RHO * v2 * _WING_AREA * _CL;
-	// float D = 0.5f * RHO * v2 * _WING_AREA * _CD;
-	// float MY = 0.5f * RHO * v2 * _WING_AREA * _MAC * _CM;
-	// float aileron_surf = 2.0f * _sih_main_radius.get() * _sih_aileron_chord.get();
-	// float MZ = _L_ROLL * RHO * v2 * aileron_surf * CL_ALPHA_AILERONS * _MAX_AILRN_DEF * _u[INDEX_AILERONS];
-	// // aerodynamic forces in the wing frame
-	// Vector3f Fa_W = Vector3f(-D * cosf(_alpha) + L * sinf(_alpha),
-	// 			 0.0f,
-	// 			 -D * sinf(_alpha) - L * cosf(_alpha));
-	// // aerodynamic moment in the wing frame
-	// Vector3f Ma_W = Vector3f(0.0f, MY, MZ);
-
-	// // the aerodynamic force is a first order drag + wing aerodynamics
-	// _Fa_B = -_KDV * _v_B + _C_WB.transpose() * Fa_W;
-	// _Fa_I = _C_IB * _Fa_B;
-	// // the aerodynamic moment is a first order angular damper + wing aerodynamics
-	// _Ma_B = -_KDW * _w_B + _C_WB.transpose() * Ma_W;
-	// // Vector3f _Fa_I=_C_IB*_Fa_B;
-	// // _debug.y=-Fa_I(2); 	// vertical force
-
-
-	// // compute and add the tail aerodynamic
-	// tail_aerodynamics();
-	// _Fa_B += _C_BR*_Fa_R + _C_BL*_Fa_L;
-	// _Ma_B += _C_BR*_Ma_R + _C_BL*_Ma_L
-	// 	+ Vector3f(-TX,TY,-TZ).cross( _C_BR*_Fa_R)
-	// 	+ Vector3f(-TX,-TY,-TZ).cross(_C_BL*_Fa_L);
-
 	_v_B = _C_IB.transpose() * _v_I; 	// velocity in body frame [m/s]
-	Vector3f Fa_w, Ma_w, Fa_tp, Ma_tp, Fa_fin, Ma_fin;
-	aero_fm(SPAN, MAC, -1.0f, false, _v_B, Fa_w, Ma_w); 	// wing aerodynamic
-	aero_fm(0.3f, 0.12f, -1.0f, false, _v_B+_w_B%_r_tp, Fa_tp, Ma_tp);  // tail plane aerodynamic
-	aero_fm(0.25f, 0.15f, -1.0f, true, _v_B+_w_B%_r_fin, Fa_fin, Ma_fin);  // fin aerodynamic
-	_Fa_I = _C_IB*(Fa_w+Fa_tp+Fa_fin) -_KDV * _v_I; 	// sum of aerodynamic forces
-	_Ma_B = Ma_w + Ma_tp + Ma_fin + _r_tp%Fa_tp + _r_fin%Fa_fin + flap_moments() -_KDW * _w_B; 	// aerodynamic moments
+	wing.update_aero(_v_B, _w_B, _dt);
+	tailplane.update_aero(_v_B, _w_B, _dt);
+	fin.update_aero(_v_B, _w_B, _dt);
+	_Fa_I = _C_IB*(wing.Fa+tailplane.Fa+fin.Fa) -_KDV * _v_I; 	// sum of aerodynamic forces
+	_Ma_B = wing.Ma + tailplane.Ma + fin.Ma + flap_moments() -_KDW * _w_B; 	// aerodynamic moments
 }
 
 Vector3f Sih::flap_moments()
 {
 	// control derivative coefficients from Levin thesis
 	const float flap_max=10.0f;	// maximum flap deflection (deg)
-	const float clda=0.000678f, cldr=-0.0000931f*0.0f, cmde=-0.0118f, cndr=0.00357f; // 1/deg
+	const float clda=0.000678f, cldr=-0.0000931f, cmde=-0.0118f, cndr=0.00357f; // 1/deg
 	float v2=_v_B.length()*_v_B.length();	// vel squared
 	return 0.5f*RHO*v2*SPAN*MAC*flap_max*Vector3f(SPAN*(clda*_u[0]+cldr*_u[2]),
 							MAC*cmde*_u[1],
 							SPAN*cndr*_u[2]);
-}
-
-// aerodynamic force of a generic flate plate wing segment
-void Sih::aero_fm(float span, float mac, float AR, bool vertical, matrix::Vector3f vel, matrix::Vector3f &force, matrix::Vector3f &moments)
-{
-	AR=(AR<0.0f)? span/mac : AR; // setting AR<0 is computed from span and mac
-	if (vertical){ // vertical segment? like rudder and fin
-		float vxy2=vel(0)*vel(0)+vel(1)*vel(1);
-		if (vxy2<0.01f) {
-			force=Vector3f();
-			moments=Vector3f();
-			return;
-		}
-		float beta = atan2f(vel(1), vel(0));
-		float CL, CD, CM;
-		low_aoa_coeff(beta, AR, CL, CD, CM);
-		force=0.5f*RHO*vxy2*span*mac*Vector3f(  CL*sinf(beta)-CD*cosf(beta),
-							-CL*cosf(beta)-CD*sinf(beta),
-							0.0f);
-		moments=0.5f*RHO*vxy2*span*mac*mac*Vector3f(0.0f,0.0f,-CM);
-	} else { // horizontal segment? like wing and elevators
-		float vxz2=vel(0)*vel(0)+vel(2)*vel(2);
-		if (vxz2<0.01f) {
-			force=Vector3f();
-			moments=Vector3f();
-			return;
-		}
-		float alpha = atan2f(vel(2), vel(0));
-		float CL, CD, CM;
-		low_aoa_coeff(alpha, AR, CL, CD, CM);
-		force=0.5f*RHO*vxz2*span*mac*Vector3f(  CL*sinf(alpha)-CD*cosf(alpha),
-							0.0f,
-							-CL*cosf(alpha)-CD*sinf(alpha));
-		moments=0.5f*RHO*vxz2*span*mac*mac*Vector3f(0.0f,CM,0.0f);
-	}
-
-}
-
-// low angle of attack and stalling region coefficient based on flat plate
-void Sih::low_aoa_coeff(float alpha, float AR, float &CL, float &CD, float &CM)
-{
-	float kp=2.0f*M_PI_F/(1.0f+2.0f*(AR+4.0f)/(AR*(AR+2.0f)));
-	float kv=M_PI_F;
-
-	float alpha_dot=0.0f, mac=0.0f, vel=0.0f;	// let's assume no hysteresis for now
-	float tau_te=(vel>0.01f) ? 4.5f*mac/vel : 0.0f;
-	float tau_le=(vel>0.01f) ? 0.5f*mac/vel : 0.0f;
-	float ate=21.0f, ale=15.0f, alpha_te=40.0f, alpha_le=24.0f;
-	float fte=0.5f*(1.0f-tanhf(ate*(alpha-tau_te*alpha_dot-alpha_te)));	// normalized trailing edge separation
-	float fle=0.5f*(1.0f-tanhf(ale*(alpha-tau_le*alpha_dot-alpha_le))); 	// normalized leading edge separation
-
-	CL = 0.25f*(1.0f+sqrtf(fte))*(1.0f+sqrtf(fte))*(kp*sinf(alpha)*cosf(alpha)*cosf(alpha)
-			+fle*fle*kv*fabsf(sinf(alpha))*sinf(alpha)*cosf(alpha));
-	CD = CD0+CL*fabsf(tanf(alpha));
-	// float xp=0.25f; 	// quarter chord location of center of pressure
-	// CM = -(0.42f-0.25f)*kv*fabsf(sinf(alpha))*sinf(alpha)-(xp-0.25f)*kp*sinf(alpha)*cosf(alpha); // low alpha pitching moment coefficient
-	CM =0.0f;
-	// CM = -0.25f*(1.0f+sqrtf(fte))*(1.0f+sqrtf(fte))*0.0625f*(-1.0f+6.0f*sqrtf(fte)-5.0f*fte)*kp*sinf(alpha)*cosf(alpha)
-	//      +0.17f*fle*fle*kv*fabsf(sinf(alpha))*sinf(alpha);
-}
-
-// high angle of attack coefficient based on flat plate
-void Sih::high_aoa_coeff(float alpha, float AR, float &CL, float &CD, float &CM)
-{
-	// normal coeff
-	float CN = CD90 * sinf(alpha) * (1.0f / (0.56f + 0.44f * sinf(fabsf(alpha)))
-				     - 0.41f * (1.0f - expf(-17.0f / AR)));
-	// tengential coeff
-	float CT = 0.5f * CD0 * cosf(alpha);
-	CL = CN * cosf(alpha) - CT * sinf(alpha);
-	CD = CN * sinf(alpha) + CT * cosf(alpha);
-	CM = -CN * (0.25f - 7.0f / 40.0f * (1.0f - 2.0f / M_PI_F * fabsf(alpha)));
 }
 
 // apply the equations of motion of a rigid body and integrate one step
@@ -674,17 +529,6 @@ void Sih::publish_sih()
 	_gpos_gt.alt = _gps_alt_noiseless;
 
 	_gpos_gt_pub.publish(_gpos_gt);
-}
-
-// linear interpolation
-float Sih::lin_interp(const float x0, const float y0, const float x1, const float y1, float x)
-{
-	if (x<x0)
-		return y0;
-	if (x>x1)
-		return y1;
-	float slope=(y1-y0)/(x1-x0);
-	return y0+slope*(x-x0);
 }
 
 float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1
