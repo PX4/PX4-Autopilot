@@ -120,7 +120,7 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v,
 	computeScale();
 
 	if (connected && _battery_initialized) {
-		determineWarning();
+		_warning = determineWarning(_state_of_charge);
 	}
 
 	if (_voltage_filter_v.getState() > 2.1f) {
@@ -219,20 +219,19 @@ void Battery::estimateStateOfCharge(const float voltage_v, const float current_a
 	}
 }
 
-void Battery::determineWarning()
+uint8_t Battery::determineWarning(float state_of_charge)
 {
-	// propagate warning state only if the state is higher, otherwise remain in current warning state
-	if (_battery_status.remaining < _params.emergen_thr) {
-		_warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+	if (state_of_charge < _params.emergen_thr) {
+		return battery_status_s::BATTERY_WARNING_EMERGENCY;
 
-	} else if (_battery_status.remaining < _params.crit_thr) {
-		_warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+	} else if (state_of_charge < _params.crit_thr) {
+		return battery_status_s::BATTERY_WARNING_CRITICAL;
 
-	} else if (_battery_status.remaining < _params.low_thr) {
-		_warning = battery_status_s::BATTERY_WARNING_LOW;
+	} else if (state_of_charge < _params.low_thr) {
+		return battery_status_s::BATTERY_WARNING_LOW;
 
 	} else {
-		_warning = battery_status_s::BATTERY_WARNING_NONE;
+		return battery_status_s::BATTERY_WARNING_NONE;
 	}
 }
 
