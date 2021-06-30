@@ -364,7 +364,6 @@ void UavcanNode::print_info()
 	}
 
 	_mixing_output.printInfo();
-	_esc_controller.printInfo();
 
 	pthread_mutex_unlock(&_node_mutex);
 }
