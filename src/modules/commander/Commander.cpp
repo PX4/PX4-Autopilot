@@ -2134,7 +2134,9 @@ Commander::run()
 
 		_cpuload_sub.update(&_cpuload);
 
-		battery_status_check();
+		if (_battery_status_subs.updated()) {
+			battery_status_check();
+		}
 
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!_status_flags.condition_calibration_enabled && _status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
@@ -3523,13 +3525,6 @@ void Commander::avoidance_check()
 
 void Commander::battery_status_check()
 {
-	// We need to update the status flag if ANY battery is updated, because the system source might have
-	// changed, or might be nothing (if there is no battery connected)
-	if (!_battery_status_subs.updated()) {
-		// Nothing has changed since the last time this function was called, so nothing needs to be done now.
-		return;
-	}
-
 	battery_status_s batteries[_battery_status_subs.size()];
 	size_t num_connected_batteries = 0;
 
