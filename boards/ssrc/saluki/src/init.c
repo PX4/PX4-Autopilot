@@ -180,9 +180,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] Failed to read HW revision and version\n");
 	}
 
-	/* configure SPI interfaces (after we determined the HW version) */
-
-	/* mpfs_spiinitialize(); */
+	/* configure SPI interfaces and devices (after we determined the HW version) */
+	board_spidev_initialize();
+	board_spibus_initialize();
 
 	/* configure the DMA allocator */
 	/*

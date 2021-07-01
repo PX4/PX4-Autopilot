@@ -35,7 +35,7 @@ add_custom_command(
     OUTPUT  ${NUTTX_DIR}/arch/risc-v/src/mpfs_vectors.o
     DEPENDS nuttx_arch
 )
-  
+
 add_library(mpfs_head
   ${NUTTX_DIR}/arch/risc-v/src/mpfs_vectors.o
 )
@@ -61,12 +61,13 @@ else()
 		init.c
 		led.c
 		toc.c
+		i2c.cpp
+		spi.cpp
 	)
 
 	target_link_libraries(drivers_board
 		PRIVATE
 			mpfs_head
-#			arch_spi
 			drivers__led # drv_led_start
 			nuttx_arch
 			nuttx_drivers
