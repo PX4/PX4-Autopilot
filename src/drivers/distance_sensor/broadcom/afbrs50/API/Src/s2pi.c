@@ -308,12 +308,14 @@ status_t S2PI_CycleCsPin(s2pi_slave_t slave)
 
 static void broadcom_s2pi_transfer_callout(void *arg)
 {
+	SPI_LOCK(s2pi_.spidev, true);
 	perf_begin(s2pi_transfer_perf);
 	px4_arch_gpiowrite(s2pi_.GPIOs[S2PI_CS], 0);
 	SPI_EXCHANGE(s2pi_.spidev, s2pi_.spi_tx_data, s2pi_.spi_rx_data, s2pi_.spi_frame_size);
 	s2pi_.Status = STATUS_IDLE;
 	px4_arch_gpiowrite(s2pi_.GPIOs[S2PI_CS], 1);
 	perf_end(s2pi_transfer_perf);
+	SPI_LOCK(s2pi_.spidev, false);
 
 	/* Invoke callback if there is one */
 	if (s2pi_.Callback != 0) {
@@ -338,12 +340,13 @@ status_t S2PI_TransferFrame(s2pi_slave_t spi_slave, uint8_t const *txData, uint8
 		return ERROR_S2PI_INVALID_SLAVE;
 	}
 
+	SPI_LOCK(s2pi_.spidev, true);
+
 	/* Check the driver status, lock if idle. */
-	irqstate_t irqstate_flags = px4_enter_critical_section();
 	status_t status = s2pi_.Status;
 
 	if (status != STATUS_IDLE) {
-		px4_leave_critical_section(irqstate_flags);
+		SPI_LOCK(s2pi_.spidev, false);
 		return status;
 	}
 
@@ -358,7 +361,7 @@ status_t S2PI_TransferFrame(s2pi_slave_t spi_slave, uint8_t const *txData, uint8
 	s2pi_.spi_frame_size = frameSize;
 	work_queue(HPWORK, &broadcom_s2pi_transfer_work, broadcom_s2pi_transfer_callout, NULL, 0);
 
-	px4_leave_critical_section(irqstate_flags);
+	SPI_LOCK(s2pi_.spidev, false);
 
 	return STATUS_OK;
 }

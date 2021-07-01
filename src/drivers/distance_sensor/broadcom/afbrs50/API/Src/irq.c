@@ -1,4 +1,4 @@
-
+#include <nuttx/arch.h>
 #include <nuttx/irq.h>
 
 static volatile irqstate_t irqstate_flags;
@@ -10,7 +10,9 @@ static volatile irqstate_t irqstate_flags;
 *****************************************************************************/
 void IRQ_UNLOCK(void)
 {
-	leave_critical_section(irqstate_flags);
+	if (!up_interrupt_context()) {
+		leave_critical_section(irqstate_flags);
+	}
 }
 
 /*!***************************************************************************
@@ -20,5 +22,7 @@ void IRQ_UNLOCK(void)
 *****************************************************************************/
 void IRQ_LOCK(void)
 {
-	irqstate_flags = enter_critical_section();
+	if (!up_interrupt_context()) {
+		irqstate_flags = enter_critical_section();
+	}
 }
