@@ -114,7 +114,7 @@ class UavcanNode : public ModuleParams, public px4::ScheduledWorkItem
 	* Current size of 8192 bytes is arbitrary, should be optimized further
 	* when more nodes and messages are on the CAN bus
 	*/
-	static constexpr unsigned HeapSize = 2 * 8192;
+	static constexpr unsigned HeapSize = 8192;
 
 	/*
 	 * Base interval, has to be complemented with events from the CAN driver
