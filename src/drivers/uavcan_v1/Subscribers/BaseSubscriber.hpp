@@ -117,6 +117,16 @@ public:
 		return false;
 	}
 
+	const char *getSubjectName()
+	{
+		return _subj_sub._subject_name;
+	}
+
+	uint8_t getInstance()
+	{
+		return _instance;
+	}
+
 	void printInfo()
 	{
 		SubjectSubscription *curSubj = &_subj_sub;
