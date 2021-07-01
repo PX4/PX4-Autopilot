@@ -226,6 +226,8 @@ then
 	fi
 fi
 
+param set PWM_AUX_OUT ${PWM_AUX_OUT}
+
 if [ $MIXER_AUX != none -a $AUX_MODE = none -a -e $OUTPUT_AUX_DEV ]
 then
 	#
@@ -267,6 +269,8 @@ then
 		fi
 	fi
 fi
+
+param set PWM_MAIN_OUT ${PWM_OUT}
 
 if [ $EXTRA_MIXER_MODE != none ]
 then
