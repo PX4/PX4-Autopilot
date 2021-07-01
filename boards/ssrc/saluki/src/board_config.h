@@ -63,15 +63,20 @@
 
 /* LEDS */
 
-#define GPIO_nSAFETY_SWITCH_LED_OUT (GPIO_BANK2 | GPIO_PIN16 | GPIO_OUTPUT) // ICICLE LED 1
-#define GPIO_nLED_RED        (GPIO_BANK2 | GPIO_PIN17 | GPIO_OUTPUT) // ICICLE LED 2
+#define GPIO_nSAFETY_SWITCH_LED_OUT (GPIO_BANK2 | GPIO_PIN16 | GPIO_OUTPUT | GPIO_BUFFER_ENABLE) // ICICLE LED 1
+#define GPIO_nLED_RED        (GPIO_BANK2 | GPIO_PIN17 | GPIO_OUTPUT | GPIO_BUFFER_ENABLE) // ICICLE LED 2
 // NB: These are both yellow on Icicle board:
-#define GPIO_nLED_GREEN      (GPIO_BANK2 | GPIO_PIN18 | GPIO_OUTPUT) // ICICLE LED 3
-#define GPIO_nLED_BLUE       (GPIO_BANK2 | GPIO_PIN19 | GPIO_OUTPUT) // ICICLE LED 4
+#define GPIO_nLED_GREEN      (GPIO_BANK2 | GPIO_PIN18 | GPIO_OUTPUT | GPIO_BUFFER_ENABLE) // ICICLE LED 3
+#define GPIO_nLED_BLUE       (GPIO_BANK2 | GPIO_PIN19 | GPIO_OUTPUT | GPIO_BUFFER_ENABLE) // ICICLE LED 4
 
 //#define BOARD_HAS_CONTROL_STATUS_LEDS      1
 //#define BOARD_OVERLOAD_LED     LED_RED
 //#define BOARD_ARMED_STATE_LED  LED_BLUE
+
+/* I2C */
+#define SALUKI_I2C_BUS0_HZ      400000
+#define SALUKI_I2C_BUS1_HZ      400000
+#define BOARD_I2C_BUS_CLOCK_INIT {SALUKI_I2C_BUS0_HZ, SALUKI_I2C_BUS1_HZ}
 
 /* RC Serial port */
 
@@ -113,6 +118,8 @@ __BEGIN_DECLS
 extern void board_peripheral_reset(int ms);
 extern int mpfs_board_emmcsd_init(void);
 extern int mpfs_pwm_setup(void);
+extern void board_spidev_initialize(void);
+extern int board_spibus_initialize(void);
 
 #include <px4_platform_common/board_common.h>
 

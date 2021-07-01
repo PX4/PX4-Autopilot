@@ -39,12 +39,14 @@ __BEGIN_DECLS
 
 #define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_MPFS
 
-#define PX4_NUMBER_I2C_BUSES        1 // TODO: MPFS_NI2C
+#define PX4_NUMBER_I2C_BUSES        2
 
 #define GPIO_OUTPUT_SET             GPIO_OUTPUT_ONE
 #define GPIO_OUTPUT_CLEAR           GPIO_OUTPUT_ZERO
 
 #include <chip.h>
+#include <mpfs_i2c.h>
+#include <mpfs_spi.h>
 
 /*
  *  PX4 uses the words in bigendian order MSB to LSB
@@ -86,18 +88,20 @@ __BEGIN_DECLS
 #define PX4_CPU_UUID_WORD32_UNIQUE_L            1 /* Middle Low significant digits */
 #define PX4_CPU_UUID_WORD32_UNIQUE_N            0 /* Most significant digits change the least */
 
-#define PX4_BUS_OFFSET       0                  /* MPFS buses are 1 based no adjustment needed */
+#define PX4_BUS_OFFSET       1                  /* MPFS buses are 0 based, so adjustment needed */
 #define px4_savepanic(fileno, context, length)  mpfs_bbsram_savepanic(fileno, context, length)
-#define px4_spibus_initialize(bus_num_1based)   mpfs_spibus_initialize(bus_num_1based)
+#define px4_spibus_initialize(bus_num_1based)   mpfs_spibus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
 
-#define px4_i2cbus_initialize(bus_num_1based)   mpfs_i2cbus_initialize(bus_num_1based)
+#define px4_i2cbus_initialize(bus_num_1based)   mpfs_i2cbus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
 #define px4_i2cbus_uninitialize(pdev)           mpfs_i2cbus_uninitialize(pdev)
 
 #define px4_arch_configgpio(pinset)             mpfs_configgpio(pinset)
 #define px4_arch_unconfiggpio(pinset)           mpfs_unconfiggpio(pinset)
 #define px4_arch_gpioread(pinset)               mpfs_gpioread(pinset)
 #define px4_arch_gpiowrite(pinset, value)       mpfs_gpiowrite(pinset, value)
-#define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)  mpfs_gpiosetevent(pinset,r,f,e,fp,a)
+//#define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)  mpfs_gpiosetevent(pinset,r,f,e,fp,a)
+// TODO: remove this if/when mpfs_gpiosetevent is implemented
+#define px4_arch_gpiosetevent(...)		0
 
 #define PX4_MAKE_GPIO_INPUT(gpio) (((gpio) & (~GPIO_OUTPUT | GPIO_BANK_MASK | GPIO_PIN_MASK | GPIO_BUFFER_MASK)) | GPIO_INPUT)
 
@@ -108,6 +112,5 @@ __BEGIN_DECLS
 // TODO!
 #  define px4_cache_aligned_data()
 #  define px4_cache_aligned_alloc malloc
-
 
 __END_DECLS
