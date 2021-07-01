@@ -60,7 +60,8 @@
 typedef struct {
 	const char *px4_name;
 	UavcanDynamicPortSubscriber *(*create_sub)(CanardInstance &ins, UavcanParamManager &pmgr) {};
-	UavcanDynamicPortSubscriber *instance {nullptr};
+	const char *subject_name;
+	const uint8_t instance;
 } UavcanDynSubBinder;
 
 class SubscriptionManager
@@ -88,14 +89,15 @@ private:
 	// Process register requests
 	UavcanAccessResponse  _access_rsp {_canard_instance, _param_manager};
 
-	UavcanDynSubBinder _uavcan_subs[6] {
+	const UavcanDynSubBinder _uavcan_subs[6] {
 		{
 			"UCAN1_ESC0_PID",
 			[](CanardInstance & ins, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
 			{
 				return new UavcanEscSubscriber(ins, pmgr, 0);
 			},
-			nullptr
+			"esc",
+			0
 		},
 		{
 			"UCAN1_GPS0_PID",
@@ -103,7 +105,8 @@ private:
 			{
 				return new UavcanGnssSubscriber(ins, pmgr, 0);
 			},
-			nullptr
+			"gps",
+			0
 		},
 		{
 			"UCAN1_GPS1_PID",
@@ -111,7 +114,8 @@ private:
 			{
 				return new UavcanGnssSubscriber(ins, pmgr, 1);
 			},
-			nullptr
+			"gps",
+			1
 		},
 		{
 			"UCAN1_BMS_ES_PID",
@@ -119,7 +123,8 @@ private:
 			{
 				return new UavcanBmsSubscriber(ins, pmgr, 0);
 			},
-			nullptr
+			"energy_source",
+			0
 		},
 		{
 			"UCAN1_LG_BMS_PID",
@@ -127,7 +132,8 @@ private:
 			{
 				return new UavcanLegacyBatteryInfoSubscriber(ins, pmgr, 0);
 			},
-			nullptr
+			"legacy_bms",
+			0
 		},
 		{
 			"UCAN1_UORB_GPS",
@@ -135,7 +141,8 @@ private:
 			{
 				return new UORB_over_UAVCAN_sensor_gps_Subscriber(ins, pmgr, 0);
 			},
-			nullptr
+			"uorb.sensor_gps",
+			0
 		},
 	};
 };

@@ -66,44 +66,61 @@ void SubscriptionManager::subscribe()
 void SubscriptionManager::updateDynamicSubscriptions()
 {
 	for (auto &sub : _uavcan_subs) {
-		if (sub.instance == NULL) {
-			param_t param_handle = param_find(sub.px4_name);
+		param_t param_handle = param_find(sub.px4_name);
 
-			if (param_handle == PARAM_INVALID) {
-				PX4_ERR("Param %s not found", sub.px4_name);
+		if (param_handle == PARAM_INVALID) {
+			PX4_ERR("Param %s not found", sub.px4_name);
+			break;
+		}
+
+		bool found_subscriber = false;
+		UavcanDynamicPortSubscriber *dynsub = _dynsubscribers;
+
+		while (dynsub != NULL) {
+			// Check if subscriber has already been created
+			const char *subj_name = dynsub->getSubjectName();
+			const uint8_t instance = dynsub->getInstance();
+
+			if (strcmp(subj_name, sub.subject_name) == 0 && instance == sub.instance) {
+				found_subscriber = true;
 				break;
 			}
 
-			if ((param_type(param_handle) == PARAM_TYPE_INT32)) {
-				int32_t port_id {};
-				param_get(param_handle, &port_id);
+			dynsub = dynsub->next();
+		}
 
-				if (port_id >= 0) { // PortID is set create a subscriber
-					UavcanDynamicPortSubscriber *dynsub = sub.create_sub(_canard_instance, _param_manager);
+		if (found_subscriber) {
+			continue;
+		}
 
-					if (dynsub == NULL) {
-						PX4_ERR("Out of memory");
-						return;
-					}
+		if ((param_type(param_handle) == PARAM_TYPE_INT32)) {
+			int32_t port_id {};
+			param_get(param_handle, &port_id);
 
-					if (_dynsubscribers == NULL) {
-						// Set the head of our linked list
-						_dynsubscribers = dynsub;
+			if (port_id >= 0) { // PortID is set create a subscriber
+				dynsub = sub.create_sub(_canard_instance, _param_manager);
 
-					} else {
-						// Append the new subscriber to our linked list
-						UavcanDynamicPortSubscriber *tmp = _dynsubscribers;
-
-						while (tmp->next() != NULL) {
-							tmp = tmp->next();
-						}
-
-						tmp->setNext(dynsub);
-					}
-
-					sub.instance = dynsub;
-					dynsub->updateParam();
+				if (dynsub == NULL) {
+					PX4_ERR("Out of memory");
+					return;
 				}
+
+				if (_dynsubscribers == NULL) {
+					// Set the head of our linked list
+					_dynsubscribers = dynsub;
+
+				} else {
+					// Append the new subscriber to our linked list
+					UavcanDynamicPortSubscriber *tmp = _dynsubscribers;
+
+					while (tmp->next() != NULL) {
+						tmp = tmp->next();
+					}
+
+					tmp->setNext(dynsub);
+				}
+
+				dynsub->updateParam();
 			}
 		}
 	}
