@@ -6,6 +6,17 @@ parameters:
     - group: PWM Outputs
       definitions:
 
+        PWM_MAIN_OUT:
+            description:
+                short: PWM channels used as ESC outputs
+                long: |
+                    Number representing the channels e.g. 134 - Channel 1, 3 and 4.
+                    Global e.g. PWM_MAIN_MIN/MAX/DISARM limits only apply to these channels.
+            type: int32
+            min: 0
+            max: 123456789
+            default: 0
+
         PWM_MAIN_RATE:
             description:
                 short: PWM main output frequency
