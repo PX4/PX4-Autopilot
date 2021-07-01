@@ -205,8 +205,8 @@ public:
 		} else {
 			CL = fCL(alpha_eff);
 			CD = CD0+CL*fabsf(tanf(alpha_eff));
-			CM = fCM(alpha_eff);
-			// CM =0.0f;
+			// CM = fCM(alpha_eff);
+			CM = 0.0f; 	// debug
 		}
 	}
 
