@@ -59,9 +59,6 @@
 class UavcanPublisher
 {
 public:
-	static constexpr uint16_t CANARD_PORT_ID_UNSET = 65535U;
-	static constexpr uint16_t CANARD_PORT_ID_MAX   = 32767U;
-
 	UavcanPublisher(CanardInstance &ins, UavcanParamManager &pmgr, const char *subject_name, uint8_t instance = 0) :
 		_canard_instance(ins), _param_manager(pmgr), _subject_name(subject_name), _instance(instance) { };
 
