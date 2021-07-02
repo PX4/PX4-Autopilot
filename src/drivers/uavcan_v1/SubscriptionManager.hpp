@@ -91,7 +91,7 @@ private:
 
 	const UavcanDynSubBinder _uavcan_subs[6] {
 		{
-			"UCAN1_ESC0_PID",
+			"UCAN1_ESC0_SUB",
 			[](CanardInstance & ins, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
 			{
 				return new UavcanEscSubscriber(ins, pmgr, 0);
@@ -100,7 +100,7 @@ private:
 			0
 		},
 		{
-			"UCAN1_GPS0_PID",
+			"UCAN1_GPS0_SUB",
 			[](CanardInstance & ins, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
 			{
 				return new UavcanGnssSubscriber(ins, pmgr, 0);
@@ -109,7 +109,7 @@ private:
 			0
 		},
 		{
-			"UCAN1_GPS1_PID",
+			"UCAN1_GPS1_SUB",
 			[](CanardInstance & ins, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
 			{
 				return new UavcanGnssSubscriber(ins, pmgr, 1);
@@ -118,7 +118,7 @@ private:
 			1
 		},
 		{
-			"UCAN1_BMS_ES_PID",
+			"UCAN1_BMS_ES_SUB",
 			[](CanardInstance & ins, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
 			{
 				return new UavcanBmsSubscriber(ins, pmgr, 0);
@@ -127,7 +127,7 @@ private:
 			0
 		},
 		{
-			"UCAN1_LG_BMS_PID",
+			"UCAN1_LG_BMS_SUB",
 			[](CanardInstance & ins, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
 			{
 				return new UavcanLegacyBatteryInfoSubscriber(ins, pmgr, 0);
