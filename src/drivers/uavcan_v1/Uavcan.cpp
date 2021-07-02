@@ -80,8 +80,6 @@ UavcanNode::UavcanNode(CanardInterface *interface, uint32_t node_id) :
 		_canard_instance.mtu_bytes = CANARD_MTU_CAN_CLASSIC;
 	}
 
-	PX4_INFO("main _canard_instance = %p", &_canard_instance);
-
 	_node_manager.subscribe();
 
 	for (auto &publisher : _publishers) {
