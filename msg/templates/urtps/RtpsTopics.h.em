@@ -94,7 +94,7 @@ class RtpsTopics
 {
 public:
 	bool init(std::condition_variable *t_send_queue_cv, std::mutex *t_send_queue_mutex, std::queue<uint8_t> *t_send_queue,
-		  const std::string &ns);
+		  const std::string &ns, const uint32_t transmission_speed_bytes_per_sec);
 	void set_timesync(const std::shared_ptr<TimeSync> &timesync) { _timesync = timesync; };
 @[if send_topics]@
 	template <typename T>
@@ -217,4 +217,12 @@ private:
 	 *         messages timestamps.
 	 */
 	std::shared_ptr<TimeSync> _timesync;
+
+	/**
+	 * @@brief Transmission speed.
+	 *         Speed (bytes per second) how fast the data goes through the transmission line
+	 *         This is used for calculating timestamp for received messages
+	 */
+	uint32_t _tr_speed;
+
 };

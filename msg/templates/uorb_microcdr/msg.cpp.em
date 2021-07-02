@@ -62,6 +62,7 @@ topic_name = spec.short_name
 #include <ucdr/microcdr.h>
 #include <uORB/topics/@(topic_name).h>
 #include <uORB_microcdr/topics/@(topic_name).h>
+#include <drivers/drv_hrt.h>
 
 @#################################################
 @# Searching for serialize function per each field
@@ -91,12 +92,31 @@ def get_serialization_type_name(type_name):
     else:
         raise Exception("Type {0} not supported, add to type_serialize_map!".format(type_name))
 
+def serialize_timestamp_delta(field, scope_name, abs_time_exists):
+    if (not abs_time_exists):
+        print("    const hrt_abstime now = hrt_absolute_time();")
+    print("    hrt_abstime " + scope_name+str(field.name) + "__ = now - input->" + scope_name+str(field.name) + ";")
+    print("    ucdr_serialize_" + str(get_serialization_type_name(field.type)) + "(writer, " + scope_name+str(field.name) + "__);")
+    return True
+
+def deserialize_timestamp_delta(field, scope_name, abs_time_exists):
+    if (not abs_time_exists):
+        print("    const hrt_abstime now = hrt_absolute_time();")
+    print("    ucdr_deserialize_" + str(get_serialization_type_name(field.type)) + "(reader, &output->" + scope_name+str(field.name) + ");")
+    print("    output->" + scope_name+str(field.name) + " = now - output->" + scope_name+str(field.name) + ";")
+    return True
+
 def add_serialize_functions(fields, scope_name):
+    hrt_abstime_read = False
     for field in fields:
         if (not field.is_header):
             if (field.is_builtin):
                 if (not field.is_array):
-                    print("    ucdr_serialize_" + str(get_serialization_type_name(field.type)) + "(writer, input->" + scope_name+str(field.name) + ");")
+                    if (topic_name != "timesync" and
+                        (scope_name+str(field.name) == "timestamp")):
+                        hrt_abstime_read = serialize_timestamp_delta(field, scope_name, hrt_abstime_read)
+                    else:
+                        print("    ucdr_serialize_" + str(get_serialization_type_name(field.type)) + "(writer, input->" + scope_name+str(field.name) + ");")
                 else:
                     print("    ucdr_serialize_array_" + str(get_serialization_type_name(field.base_type)) + "(writer, input->" + scope_name+str(field.name) + ", " + str(field.array_len) + ");")
             else:
@@ -110,11 +130,16 @@ def add_serialize_functions(fields, scope_name):
                         add_serialize_functions(children_fields, name + ('[%d].' %i))
 
 def add_deserialize_functions(fields, scope_name):
+    hrt_abstime_read = False
     for field in fields:
         if (not field.is_header):
             if (field.is_builtin):
                 if (not field.is_array):
-                    print("    ucdr_deserialize_" + str(get_serialization_type_name(field.type)) + "(reader, &output->" + scope_name+str(field.name) + ");")
+                    if (topic_name != "timesync" and
+                        (scope_name+str(field.name) == "timestamp")):
+                        hrt_abstime_read = deserialize_timestamp_delta(field, scope_name, hrt_abstime_read)
+                    else:
+                        print("    ucdr_deserialize_" + str(get_serialization_type_name(field.type)) + "(reader, &output->" + scope_name+str(field.name) + ");")
                 else:
                     print("    ucdr_deserialize_array_" + str(get_serialization_type_name(field.base_type)) + "(reader, output->" + scope_name+str(field.name) + ", " + str(field.array_len) + ");")
             else:
