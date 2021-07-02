@@ -108,9 +108,32 @@ int OutputMavlinkV1::update(const ControlData *control_data)
 
 	_vehicle_command_pub.publish(vehicle_command);
 
+	_stream_device_attitude_status();
+
 	_last_update = t;
 
 	return 0;
+}
+
+void OutputMavlinkV1::_stream_device_attitude_status()
+{
+	// This enables the use case where the gimbal v2 protocol is used
+	// between the ground station and the drone, and the gimbal v1 protocol is
+	// used between the drone and the gimbal.
+	gimbal_device_attitude_status_s attitude_status{};
+	attitude_status.timestamp = hrt_absolute_time();
+	attitude_status.target_system = 0;
+	attitude_status.target_component = 0;
+	attitude_status.device_flags = gimbal_device_attitude_status_s::DEVICE_FLAGS_NEUTRAL |
+				       gimbal_device_attitude_status_s::DEVICE_FLAGS_ROLL_LOCK |
+				       gimbal_device_attitude_status_s::DEVICE_FLAGS_PITCH_LOCK;
+
+	matrix::Eulerf euler(_angle_outputs[0], _angle_outputs[1], _angle_outputs[2]);
+	matrix::Quatf q(euler);
+	q.copyTo(attitude_status.q);
+
+	attitude_status.failure_flags = 0;
+	_attitude_status_pub.publish(attitude_status);
 }
 
 void OutputMavlinkV1::print_status()
