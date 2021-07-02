@@ -40,7 +40,6 @@ px4_add_board(
 		imu/lsm303d
 		imu/invensense/mpu6000
 		#imu/invensense/mpu9250
-		#iridiumsbd
 		#irlock
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
