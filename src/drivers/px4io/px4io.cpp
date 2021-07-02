@@ -1212,6 +1212,7 @@ void PX4IO::update_params()
 	int32_t pwm_max_default = PWM_DEFAULT_MAX;
 	int32_t pwm_disarmed_default = 0;
 	int32_t pwm_rate_default = 50;
+	int32_t pwm_default_channels = 0;
 
 	const char *prefix = "PWM_MAIN";
 
@@ -1219,9 +1220,17 @@ void PX4IO::update_params()
 	param_get(param_find("PWM_MAIN_MAX"), &pwm_max_default);
 	param_get(param_find("PWM_MAIN_DISARM"), &pwm_disarmed_default);
 	param_get(param_find("PWM_MAIN_RATE"), &pwm_rate_default);
+	param_get(param_find("PWM_MAIN_OUT"), &pwm_default_channels);
+
+	uint32_t single_ch = 0;
+	uint32_t pwm_default_channel_mask = 0;
+
+	while ((single_ch = pwm_default_channels % 10)) {
+		pwm_default_channel_mask |= 1 << (single_ch - 1);
+		pwm_default_channels /= 10;
+	}
 
 	char str[17];
-
 
 	// PWM_MAIN_MINx
 	if (!_pwm_min_configured) {
@@ -1241,7 +1250,7 @@ void PX4IO::update_params()
 						param_set(param_find(str), &pwm_min_new);
 					}
 
-				} else {
+				} else if (pwm_default_channel_mask & 1 << i) {
 					pwm.values[i] = pwm_min_default;
 				}
 			}
@@ -1270,7 +1279,7 @@ void PX4IO::update_params()
 						param_set(param_find(str), &pwm_max_new);
 					}
 
-				} else {
+				} else if (pwm_default_channel_mask & 1 << i) {
 					pwm.values[i] = pwm_max_default;
 				}
 			}
@@ -1325,7 +1334,7 @@ void PX4IO::update_params()
 						param_set(param_find(str), &pwm_dis_new);
 					}
 
-				} else {
+				} else if (pwm_default_channel_mask & 1 << i) {
 					pwm.values[i] = pwm_disarmed_default;
 				}
 			}
