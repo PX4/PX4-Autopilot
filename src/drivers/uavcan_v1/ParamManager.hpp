@@ -120,15 +120,15 @@ private:
 		{"uavcan.pub.servo.0.id",              "UCAN1_SERVO_PUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
 		{"uavcan.pub.gps.0.id",                "UCAN1_GPS_PUB",		    px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
 		{"uavcan.pub.actuator_outputs.0.id",   "UCAN1_ACTR_PUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
-		{"uavcan.sub.esc.0.id",                "UCAN1_ESC0_PID",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
-		{"uavcan.sub.gps.0.id",                "UCAN1_GPS0_PID",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
-		{"uavcan.sub.gps.1.id",                "UCAN1_GPS1_PID",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
-		{"uavcan.sub.energy_source.0.id",      "UCAN1_BMS_ES_PID",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
-		{"uavcan.sub.battery_status.0.id",     "UCAN1_BMS_BS_PID",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
-		{"uavcan.sub.battery_parameters.0.id", "UCAN1_BMS_BP_PID",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
-		{"uavcan.sub.legacy_bms.0.id",         "UCAN1_LG_BMS_PID",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.esc.0.id",                "UCAN1_ESC0_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.gps.0.id",                "UCAN1_GPS0_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.gps.1.id",                "UCAN1_GPS1_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.energy_source.0.id",      "UCAN1_BMS_ES_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.battery_status.0.id",     "UCAN1_BMS_BS_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.battery_parameters.0.id", "UCAN1_BMS_BP_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.legacy_bms.0.id",         "UCAN1_LG_BMS_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
 		{"uavcan.sub.uorb.sensor_gps.0.id",    "UCAN1_UORB_GPS",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
-		//{"uavcan.sub.bms.0.id",   "UCAN1_BMS0_PID"}, //FIXME instancing
-		//{"uavcan.sub.bms.1.id",   "UCAN1_BMS1_PID"},
+		//{"uavcan.sub.bms.0.id",   "UCAN1_BMS0_SUB"}, //FIXME instancing
+		//{"uavcan.sub.bms.1.id",   "UCAN1_BMS1_SUB"},
 	};
 };
