@@ -35,9 +35,9 @@
 
 using namespace time_literals;
 
-BMM150::BMM150(I2CSPIBusOption bus_option, int bus, int bus_frequency, enum Rotation rotation) :
-	I2C(DRV_MAG_DEVTYPE_BMM150, MODULE_NAME, bus, I2C_ADDRESS_DEFAULT, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
+BMM150::BMM150(I2CSPIBusOption bus_option, int bus, uint8_t address, int bus_frequency, enum Rotation rotation) :
+	I2C(DRV_MAG_DEVTYPE_BMM150, MODULE_NAME, bus, address, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address),
 	_px4_mag(get_device_id(), rotation)
 {
 	_px4_mag.set_external(external());

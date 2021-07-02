@@ -39,7 +39,8 @@
 I2CSPIDriverBase *BMM150::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 				      int runtime_instance)
 {
-	BMM150 *instance = new BMM150(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.rotation);
+	BMM150 *instance = new BMM150(iterator.configuredBusOption(), iterator.bus(), cli.i2c_address, cli.bus_frequency,
+				      cli.rotation);
 
 	if (!instance) {
 		PX4_ERR("alloc failed");
@@ -61,6 +62,7 @@ void BMM150::print_usage()
 	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x10);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
@@ -71,16 +73,24 @@ extern "C" int bmm150_main(int argc, char *argv[])
 	using ThisDriver = BMM150;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = I2C_SPEED;
+	cli.i2c_address = 0x10;
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
 		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
+			const char *rot = cli.optArg();
+
+			if (!rot) {
+				ThisDriver::print_usage();
+				return -1;
+			}
+
+			cli.rotation = (enum Rotation)atoi(rot);
 			break;
 		}
 	}
 
-	const char *verb = cli.optArg();
+	const char *verb = cli.parseDefaultArguments(argc, argv);
 
 	if (!verb) {
 		ThisDriver::print_usage();
