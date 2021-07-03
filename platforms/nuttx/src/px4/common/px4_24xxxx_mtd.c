@@ -567,9 +567,9 @@ FAR struct mtd_dev_s *px4_at24c_initialize(FAR struct i2c_master_s *dev,
 		priv->mtd.ioctl  = at24c_ioctl;
 		priv->dev        = dev;
 
-		priv->perf_transfers = perf_alloc(PC_ELAPSED, "eeprom_trans");
-		priv->perf_resets_retries = perf_alloc(PC_COUNT, "eeprom_rst");
-		priv->perf_errors = perf_alloc(PC_COUNT, "eeprom_errs");
+		priv->perf_transfers = perf_alloc(PC_ELAPSED, "[at24c] eeprom transfer");
+		priv->perf_resets_retries = perf_alloc(PC_COUNT, "[at24c] eeprom reset");
+		priv->perf_errors = perf_alloc(PC_COUNT, "[at24c] eeprom errors");
 	}
 
 	/* attempt to read to validate device is present */
@@ -600,6 +600,14 @@ FAR struct mtd_dev_s *px4_at24c_initialize(FAR struct i2c_master_s *dev,
 	perf_end(priv->perf_transfers);
 
 	if (ret < 0) {
+		perf_free(priv->perf_transfers);
+		perf_free(priv->perf_resets_retries);
+		perf_free(priv->perf_errors);
+
+		priv->perf_transfers = NULL;
+		priv->perf_resets_retries = NULL;
+		priv->perf_errors = NULL;
+
 		return NULL;
 	}
 
