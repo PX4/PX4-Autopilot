@@ -63,11 +63,11 @@ using namespace time_literals;
 #define NCP5623_LED_OFF		0x00	/**< off */
 
 
-class RGBLED_NPC5623C : public device::I2C, public I2CSPIDriver<RGBLED_NPC5623C>
+class RGBLED_NCP5623C : public device::I2C, public I2CSPIDriver<RGBLED_NCP5623C>
 {
 public:
-	RGBLED_NPC5623C(I2CSPIBusOption bus_option, const int bus, int bus_frequency, const int address);
-	virtual ~RGBLED_NPC5623C() = default;
+	RGBLED_NCP5623C(I2CSPIBusOption bus_option, const int bus, int bus_frequency, const int address);
+	virtual ~RGBLED_NCP5623C() = default;
 
 	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 					     int runtime_instance);
@@ -100,14 +100,14 @@ private:
 	int			write(uint8_t reg, uint8_t data);
 };
 
-RGBLED_NPC5623C::RGBLED_NPC5623C(I2CSPIBusOption bus_option, const int bus, int bus_frequency, const int address) :
+RGBLED_NCP5623C::RGBLED_NCP5623C(I2CSPIBusOption bus_option, const int bus, int bus_frequency, const int address) :
 	I2C(DRV_LED_DEVTYPE_RGBLED_NCP5623C, MODULE_NAME, bus, address, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
 {
 }
 
 int
-RGBLED_NPC5623C::write(uint8_t reg, uint8_t data)
+RGBLED_NCP5623C::write(uint8_t reg, uint8_t data)
 {
 	uint8_t msg[1] = { 0x00 };
 	msg[0] = ((reg & 0xe0) | (data & 0x1f));
@@ -118,7 +118,7 @@ RGBLED_NPC5623C::write(uint8_t reg, uint8_t data)
 }
 
 int
-RGBLED_NPC5623C::init()
+RGBLED_NCP5623C::init()
 {
 	int ret = I2C::init();
 
@@ -136,7 +136,7 @@ RGBLED_NPC5623C::init()
 }
 
 int
-RGBLED_NPC5623C::probe()
+RGBLED_NCP5623C::probe()
 {
 	_retries = 4;
 
@@ -144,7 +144,7 @@ RGBLED_NPC5623C::probe()
 }
 
 void
-RGBLED_NPC5623C::RunImpl()
+RGBLED_NCP5623C::RunImpl()
 {
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
@@ -210,7 +210,7 @@ RGBLED_NPC5623C::RunImpl()
  * Send RGB PWM settings to LED driver according to current color and brightness
  */
 int
-RGBLED_NPC5623C::send_led_rgb()
+RGBLED_NCP5623C::send_led_rgb()
 {
 
 	uint8_t msg[7] = {0x20, 0x70, 0x40, 0x70, 0x60, 0x70, 0x80};
@@ -225,7 +225,7 @@ RGBLED_NPC5623C::send_led_rgb()
 }
 
 void
-RGBLED_NPC5623C::update_params()
+RGBLED_NCP5623C::update_params()
 {
 	int32_t maxbrt = 31;
 	param_get(param_find("LED_RGB1_MAXBRT"), &maxbrt);
@@ -240,7 +240,7 @@ RGBLED_NPC5623C::update_params()
 }
 
 void
-RGBLED_NPC5623C::print_usage()
+RGBLED_NCP5623C::print_usage()
 {
 	PRINT_MODULE_USAGE_NAME("rgbled", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -249,10 +249,10 @@ RGBLED_NPC5623C::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *RGBLED_NPC5623C::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+I2CSPIDriverBase *RGBLED_NCP5623C::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 		int runtime_instance)
 {
-	RGBLED_NPC5623C *instance = new RGBLED_NPC5623C(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency,
+	RGBLED_NCP5623C *instance = new RGBLED_NCP5623C(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency,
 			cli.i2c_address);
 
 	if (instance == nullptr) {
@@ -270,7 +270,7 @@ I2CSPIDriverBase *RGBLED_NPC5623C::instantiate(const BusCLIArguments &cli, const
 
 extern "C" __EXPORT int rgbled_ncp5623c_main(int argc, char *argv[])
 {
-	using ThisDriver = RGBLED_NPC5623C;
+	using ThisDriver = RGBLED_NCP5623C;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 100000;
 	cli.i2c_address = ADDR;
