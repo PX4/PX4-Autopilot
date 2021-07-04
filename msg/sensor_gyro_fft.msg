@@ -10,8 +10,6 @@ float32[4] peak_frequencies_x # x axis peak frequencies
 float32[4] peak_frequencies_y # y axis peak frequencies
 float32[4] peak_frequencies_z # z axis peak frequencies
 
-float32[4] peak_magnitude_x   # x axis peak frequencies magnitude
-float32[4] peak_magnitude_y   # y axis peak frequencies magnitude
-float32[4] peak_magnitude_z   # z axis peak frequencies magnitude
-
-float32[3] total_energy
+float32[4] peak_snr_x # x axis peak SNR
+float32[4] peak_snr_y # y axis peak SNR
+float32[4] peak_snr_z # z axis peak SNR
