@@ -3792,6 +3792,24 @@ void Commander::estimator_check()
 		const bool gnss_heading_fault = (estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GPS_YAW_FAULT));
 
 		if (!mag_fault_prev && mag_fault) {
+			switch (static_cast<link_loss_actions_t>(_param_nav_rcl_act.get())) {
+			case link_loss_actions_t::AUTO_RTL:
+				if (_status_flags.condition_global_position_valid && _status_flags.condition_home_position_valid) {
+					main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_RTL, _status_flags, _internal_state);
+					break;
+				}
+
+			// FALLTHROUGH
+			default: // Either RC loss reaction disabled or undefined -> Land
+			case link_loss_actions_t::AUTO_LAND:
+				if (_status_flags.condition_global_position_valid
+				    || (_status_flags.condition_local_position_valid
+					&& _status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)) {
+					main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LAND, _status_flags, _internal_state);
+					break;
+				}
+			}
+
 			mavlink_log_critical(&_mavlink_log_pub, "Compass needs calibration - Land now!\t");
 			events::send(events::ID("commander_stopping_mag_use"), events::Log::Critical,
 				     "Stopping compass use! Land now and calibrate the compass");
