@@ -206,7 +206,6 @@ SECTIONS
 		_sram4_heap_start = ABSOLUTE(.);
 	} > SRAM4
 
-
 	/* Stabs debugging sections. */
 	.stab 0 : { *(.stab) }
 	.stabstr 0 : { *(.stabstr) }
@@ -220,13 +219,4 @@ SECTIONS
 	.debug_line 0 : { *(.debug_line) }
 	.debug_pubnames 0 : { *(.debug_pubnames) }
 	.debug_aranges 0 : { *(.debug_aranges) }
-
-	.ramfunc : {
-		_sramfuncs = .;
-		*(.ramfunc  .ramfunc.*)
-		. = ALIGN(4);
-		_eramfuncs = .;
-	} > ITCM_RAM AT > FLASH
-
-	_framfuncs = LOADADDR(.ramfunc);
 }
