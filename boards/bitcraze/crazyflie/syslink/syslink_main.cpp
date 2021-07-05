@@ -286,9 +286,6 @@ Syslink::task_main()
 	_memory = new SyslinkMemory(this);
 	_memory->init();
 
-	_battery.reset();
-
-
 	//	int ret;
 
 	/* Open serial port */
@@ -441,7 +438,7 @@ Syslink::handle_message(syslink_message_t *msg)
 		px4_sem_post(&memory_sem);
 
 	} else {
-		PX4_INFO("GOT %d", msg->type);
+		PX4_INFO("GOT %" PRIu8, msg->type);
 	}
 
 	//Send queued messages
@@ -609,7 +606,7 @@ Syslink::handle_raw_other(syslink_message_t *sys)
 
 	if (c->port == CRTP_PORT_LOG) {
 
-		PX4_INFO("Log: %d %d", c->channel, c->data[0]);
+		PX4_INFO("Log: %" PRIu8 " %" PRIu8, c->channel, c->data[0]);
 
 		if (c->channel == 0) { // Table of Contents Access
 
@@ -632,7 +629,7 @@ Syslink::handle_raw_other(syslink_message_t *sys)
 
 			uint8_t cmd = c->data[0];
 
-			PX4_INFO("Responding to cmd: %d", cmd);
+			PX4_INFO("Responding to cmd: %" PRIu8, cmd);
 			c->data[2] = 0; // Success
 			c->size = 3 + 1;
 
@@ -673,7 +670,7 @@ Syslink::handle_raw_other(syslink_message_t *sys)
 		}
 
 	} else {
-		PX4_INFO("Got raw: %d", c->port);
+		PX4_INFO("Got raw: %" PRIu8, c->port);
 	}
 }
 
@@ -772,13 +769,13 @@ void status()
 		printf("%i: ROM ID: ", i);
 
 		for (int idi = 0; idi < idlen; idi++) {
-			printf("%02X", id[idi]);
+			printf("%02" PRIX8, id[idi]);
 		}
 
 		deck_descriptor_t desc;
 		read(deckfd, &desc, sizeof(desc));
 
-		printf(", VID: %02X , PID: %02X\n", desc.header, desc.vendorId, desc.productId);
+		printf("HDR:%02" PRIx8 ", VID: %02" PRIx8 " , PID: %02" PRIx8 "\n", desc.header, desc.vendorId, desc.productId);
 
 		// Print pages of memory
 		for (size_t di = 0; di < sizeof(desc); di++) {
@@ -786,7 +783,7 @@ void status()
 				printf("\n");
 			}
 
-			printf("%02X ", ((uint8_t *)&desc)[di]);
+			printf("%02" PRIX8 " ", ((uint8_t *)&desc)[di]);
 
 		}
 

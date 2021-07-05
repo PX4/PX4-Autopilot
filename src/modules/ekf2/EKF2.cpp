@@ -169,7 +169,15 @@ EKF2::~EKF2()
 {
 	perf_free(_ecl_ekf_update_perf);
 	perf_free(_ecl_ekf_update_full_perf);
-	perf_free(_imu_missed_perf);
+	perf_free(_msg_missed_imu_perf);
+	perf_free(_msg_missed_air_data_perf);
+	perf_free(_msg_missed_airspeed_perf);
+	perf_free(_msg_missed_distance_sensor_perf);
+	perf_free(_msg_missed_gps_perf);
+	perf_free(_msg_missed_landing_target_pose_perf);
+	perf_free(_msg_missed_magnetometer_perf);
+	perf_free(_msg_missed_odometry_perf);
+	perf_free(_msg_missed_optical_flow_perf);
 }
 
 bool EKF2::multi_init(int imu, int mag)
@@ -221,7 +229,16 @@ int EKF2::print_status()
 		     _ekf.local_position_is_valid(), _ekf.global_position_is_valid());
 	perf_print_counter(_ecl_ekf_update_perf);
 	perf_print_counter(_ecl_ekf_update_full_perf);
-	perf_print_counter(_imu_missed_perf);
+	perf_print_counter(_msg_missed_imu_perf);
+	perf_print_counter(_msg_missed_air_data_perf);
+	perf_print_counter(_msg_missed_airspeed_perf);
+	perf_print_counter(_msg_missed_distance_sensor_perf);
+	perf_print_counter(_msg_missed_gps_perf);
+	perf_print_counter(_msg_missed_landing_target_pose_perf);
+	perf_print_counter(_msg_missed_magnetometer_perf);
+	perf_print_counter(_msg_missed_odometry_perf);
+	perf_print_counter(_msg_missed_optical_flow_perf);
+
 	return 0;
 }
 
@@ -301,9 +318,7 @@ void EKF2::Run()
 		imu_updated = _vehicle_imu_sub.update(&imu);
 
 		if (imu_updated && (_vehicle_imu_sub.get_last_generation() != last_generation + 1)) {
-			perf_count(_imu_missed_perf);
-			PX4_DEBUG("%d - vehicle_imu lost, generation %d -> %d", _instance, last_generation,
-				  _vehicle_imu_sub.get_last_generation());
+			perf_count(_msg_missed_imu_perf);
 		}
 
 		imu_sample_new.time_us = imu.timestamp_sample;
@@ -338,8 +353,13 @@ void EKF2::Run()
 		}
 
 	} else {
+		const unsigned last_generation = _vehicle_imu_sub.get_last_generation();
 		sensor_combined_s sensor_combined;
 		imu_updated = _sensor_combined_sub.update(&sensor_combined);
+
+		if (imu_updated && (_sensor_combined_sub.get_last_generation() != last_generation + 1)) {
+			perf_count(_msg_missed_imu_perf);
+		}
 
 		imu_sample_new.time_us = sensor_combined.timestamp;
 		imu_sample_new.delta_ang_dt = sensor_combined.gyro_integral_dt * 1.e-6f;
@@ -608,47 +628,42 @@ void EKF2::PublishEventFlags(const hrt_abstime &timestamp)
 void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 {
 	if (_ekf.global_position_is_valid() && !_preflt_checker.hasFailed()) {
-		// only publish if position has changed by at least 1 mm (map_projection_reproject is relatively expensive)
 		const Vector3f position{_ekf.getPosition()};
 
-		if ((_last_local_position_for_gpos - position).longerThan(0.001f)) {
-			// generate and publish global position data
-			vehicle_global_position_s global_pos;
-			global_pos.timestamp_sample = timestamp;
+		// generate and publish global position data
+		vehicle_global_position_s global_pos;
+		global_pos.timestamp_sample = timestamp;
 
-			// Position of local NED origin in GPS / WGS84 frame
-			map_projection_reproject(&_ekf.global_origin(), position(0), position(1), &global_pos.lat, &global_pos.lon);
+		// Position of local NED origin in GPS / WGS84 frame
+		map_projection_reproject(&_ekf.global_origin(), position(0), position(1), &global_pos.lat, &global_pos.lon);
 
-			float delta_xy[2];
-			_ekf.get_posNE_reset(delta_xy, &global_pos.lat_lon_reset_counter);
+		float delta_xy[2];
+		_ekf.get_posNE_reset(delta_xy, &global_pos.lat_lon_reset_counter);
 
-			global_pos.alt = -position(2) + _ekf.getEkfGlobalOriginAltitude(); // Altitude AMSL in meters
-			global_pos.alt_ellipsoid = filter_altitude_ellipsoid(global_pos.alt);
+		global_pos.alt = -position(2) + _ekf.getEkfGlobalOriginAltitude(); // Altitude AMSL in meters
+		global_pos.alt_ellipsoid = filter_altitude_ellipsoid(global_pos.alt);
 
-			// global altitude has opposite sign of local down position
-			float delta_z;
-			uint8_t z_reset_counter;
-			_ekf.get_posD_reset(&delta_z, &z_reset_counter);
-			global_pos.delta_alt = -delta_z;
+		// global altitude has opposite sign of local down position
+		float delta_z;
+		uint8_t z_reset_counter;
+		_ekf.get_posD_reset(&delta_z, &z_reset_counter);
+		global_pos.delta_alt = -delta_z;
 
-			_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
+		_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
 
-			if (_ekf.isTerrainEstimateValid()) {
-				// Terrain altitude in m, WGS84
-				global_pos.terrain_alt = _ekf.getEkfGlobalOriginAltitude() - _ekf.getTerrainVertPos();
-				global_pos.terrain_alt_valid = true;
+		if (_ekf.isTerrainEstimateValid()) {
+			// Terrain altitude in m, WGS84
+			global_pos.terrain_alt = _ekf.getEkfGlobalOriginAltitude() - _ekf.getTerrainVertPos();
+			global_pos.terrain_alt_valid = true;
 
-			} else {
-				global_pos.terrain_alt = NAN;
-				global_pos.terrain_alt_valid = false;
-			}
-
-			global_pos.dead_reckoning = _ekf.inertial_dead_reckoning(); // True if this position is estimated through dead-reckoning
-			global_pos.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-			_global_position_pub.publish(global_pos);
-
-			_last_local_position_for_gpos = position;
+		} else {
+			global_pos.terrain_alt = NAN;
+			global_pos.terrain_alt_valid = false;
 		}
+
+		global_pos.dead_reckoning = _ekf.inertial_dead_reckoning(); // True if this position is estimated through dead-reckoning
+		global_pos.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+		_global_position_pub.publish(global_pos);
 	}
 }
 
@@ -1013,7 +1028,7 @@ void EKF2::PublishStates(const hrt_abstime &timestamp)
 	// publish estimator states
 	estimator_states_s states;
 	states.timestamp_sample = timestamp;
-	states.n_states = 24;
+	states.n_states = Ekf::_k_num_states;
 	_ekf.getStateAtFusionHorizonAsVector().copyTo(states.states);
 	_ekf.covariances_diagonal().copyTo(states.covariances);
 	states.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
@@ -1257,9 +1272,17 @@ float EKF2::filter_altitude_ellipsoid(float amsl_hgt)
 void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 {
 	// EKF airspeed sample
+	const unsigned last_generation = _airspeed_sub.get_last_generation();
 	airspeed_s airspeed;
 
 	if (_airspeed_sub.update(&airspeed)) {
+		if (_msg_missed_airspeed_perf == nullptr) {
+			_msg_missed_airspeed_perf = perf_alloc(PC_COUNT, MODULE_NAME": airspeed messages missed");
+
+		} else if (_airspeed_sub.get_last_generation() != last_generation + 1) {
+			perf_count(_msg_missed_airspeed_perf);
+		}
+
 		// The airspeed measurement received via the airspeed.msg topic has not been corrected
 		// for scale favtor errors and requires the ASPD_SCALE correction to be applied.
 		// This could be avoided if true_airspeed_m_s from the airspeed-validated.msg topic
@@ -1291,10 +1314,11 @@ void EKF2::UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps)
 	landing_target_pose_s landing_target_pose;
 
 	if (_landing_target_pose_sub.update(&landing_target_pose)) {
+		if (_msg_missed_landing_target_pose_perf == nullptr) {
+			_msg_missed_landing_target_pose_perf = perf_alloc(PC_COUNT, MODULE_NAME": landing_target_pose messages missed");
 
-		if (_landing_target_pose_sub.get_last_generation() != last_generation + 1) {
-			PX4_ERR("%d - landing_target_pose lost, generation %d -> %d", _instance, last_generation,
-				_landing_target_pose_sub.get_last_generation());
+		} else if (_landing_target_pose_sub.get_last_generation() != last_generation + 1) {
+			perf_count(_msg_missed_landing_target_pose_perf);
 		}
 
 		// we can only use the landing target if it has a fixed position and  a valid velocity estimate
@@ -1313,9 +1337,17 @@ void EKF2::UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps)
 void EKF2::UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps)
 {
 	// EKF baro sample
+	const unsigned last_generation = _airdata_sub.get_last_generation();
 	vehicle_air_data_s airdata;
 
 	if (_airdata_sub.update(&airdata)) {
+		if (_msg_missed_air_data_perf == nullptr) {
+			_msg_missed_air_data_perf = perf_alloc(PC_COUNT, MODULE_NAME": vehicle_air_data messages missed");
+
+		} else if (_airdata_sub.get_last_generation() != last_generation + 1) {
+			perf_count(_msg_missed_air_data_perf);
+		}
+
 		_ekf.set_air_density(airdata.rho);
 
 		_ekf.setBaroData(baroSample{airdata.timestamp_sample, airdata.baro_alt_meter});
@@ -1329,96 +1361,94 @@ void EKF2::UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps)
 
 bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odometry_s &ev_odom)
 {
+	// EKF external vision sample
 	bool new_ev_odom = false;
 	const unsigned last_generation = _ev_odom_sub.get_last_generation();
 
-	// EKF external vision sample
 	if (_ev_odom_sub.update(&ev_odom)) {
+		if (_msg_missed_odometry_perf == nullptr) {
+			_msg_missed_odometry_perf = perf_alloc(PC_COUNT, MODULE_NAME": vehicle_visual_odometry messages missed");
 
-		if (_ev_odom_sub.get_last_generation() != last_generation + 1) {
-			PX4_ERR("%d - vehicle_visual_odometry lost, generation %d -> %d", _instance, last_generation,
-				_ev_odom_sub.get_last_generation());
+		} else if (_ev_odom_sub.get_last_generation() != last_generation + 1) {
+			perf_count(_msg_missed_odometry_perf);
 		}
 
-		if (_param_ekf2_aid_mask.get() & (MASK_USE_EVPOS | MASK_USE_EVYAW | MASK_USE_EVVEL)) {
+		extVisionSample ev_data{};
 
-			extVisionSample ev_data{};
+		// if error estimates are unavailable, use parameter defined defaults
 
-			// if error estimates are unavailable, use parameter defined defaults
+		// check for valid velocity data
+		if (PX4_ISFINITE(ev_odom.vx) && PX4_ISFINITE(ev_odom.vy) && PX4_ISFINITE(ev_odom.vz)) {
+			ev_data.vel(0) = ev_odom.vx;
+			ev_data.vel(1) = ev_odom.vy;
+			ev_data.vel(2) = ev_odom.vz;
 
-			// check for valid velocity data
-			if (PX4_ISFINITE(ev_odom.vx) && PX4_ISFINITE(ev_odom.vy) && PX4_ISFINITE(ev_odom.vz)) {
-				ev_data.vel(0) = ev_odom.vx;
-				ev_data.vel(1) = ev_odom.vy;
-				ev_data.vel(2) = ev_odom.vz;
+			if (ev_odom.velocity_frame == vehicle_odometry_s::BODY_FRAME_FRD) {
+				ev_data.vel_frame = velocity_frame_t::BODY_FRAME_FRD;
 
-				if (ev_odom.velocity_frame == vehicle_odometry_s::BODY_FRAME_FRD) {
-					ev_data.vel_frame = velocity_frame_t::BODY_FRAME_FRD;
-
-				} else {
-					ev_data.vel_frame = velocity_frame_t::LOCAL_FRAME_FRD;
-				}
-
-				// velocity measurement error from ev_data or parameters
-				float param_evv_noise_var = sq(_param_ekf2_evv_noise.get());
-
-				if (!_param_ekf2_ev_noise_md.get() && PX4_ISFINITE(ev_odom.velocity_covariance[ev_odom.COVARIANCE_MATRIX_VX_VARIANCE])
-				    && PX4_ISFINITE(ev_odom.velocity_covariance[ev_odom.COVARIANCE_MATRIX_VY_VARIANCE])
-				    && PX4_ISFINITE(ev_odom.velocity_covariance[ev_odom.COVARIANCE_MATRIX_VZ_VARIANCE])) {
-					ev_data.velCov(0, 0) = ev_odom.velocity_covariance[ev_odom.COVARIANCE_MATRIX_VX_VARIANCE];
-					ev_data.velCov(0, 1) = ev_data.velCov(1, 0) = ev_odom.velocity_covariance[1];
-					ev_data.velCov(0, 2) = ev_data.velCov(2, 0) = ev_odom.velocity_covariance[2];
-					ev_data.velCov(1, 1) = ev_odom.velocity_covariance[ev_odom.COVARIANCE_MATRIX_VY_VARIANCE];
-					ev_data.velCov(1, 2) = ev_data.velCov(2, 1) = ev_odom.velocity_covariance[7];
-					ev_data.velCov(2, 2) = ev_odom.velocity_covariance[ev_odom.COVARIANCE_MATRIX_VZ_VARIANCE];
-
-				} else {
-					ev_data.velCov = matrix::eye<float, 3>() * param_evv_noise_var;
-				}
+			} else {
+				ev_data.vel_frame = velocity_frame_t::LOCAL_FRAME_FRD;
 			}
 
-			// check for valid position data
-			if (PX4_ISFINITE(ev_odom.x) && PX4_ISFINITE(ev_odom.y) && PX4_ISFINITE(ev_odom.z)) {
-				ev_data.pos(0) = ev_odom.x;
-				ev_data.pos(1) = ev_odom.y;
-				ev_data.pos(2) = ev_odom.z;
+			// velocity measurement error from ev_data or parameters
+			float param_evv_noise_var = sq(_param_ekf2_evv_noise.get());
 
-				float param_evp_noise_var = sq(_param_ekf2_evp_noise.get());
+			if (!_param_ekf2_ev_noise_md.get() && PX4_ISFINITE(ev_odom.velocity_covariance[ev_odom.COVARIANCE_MATRIX_VX_VARIANCE])
+			    && PX4_ISFINITE(ev_odom.velocity_covariance[ev_odom.COVARIANCE_MATRIX_VY_VARIANCE])
+			    && PX4_ISFINITE(ev_odom.velocity_covariance[ev_odom.COVARIANCE_MATRIX_VZ_VARIANCE])) {
+				ev_data.velCov(0, 0) = ev_odom.velocity_covariance[ev_odom.COVARIANCE_MATRIX_VX_VARIANCE];
+				ev_data.velCov(0, 1) = ev_data.velCov(1, 0) = ev_odom.velocity_covariance[1];
+				ev_data.velCov(0, 2) = ev_data.velCov(2, 0) = ev_odom.velocity_covariance[2];
+				ev_data.velCov(1, 1) = ev_odom.velocity_covariance[ev_odom.COVARIANCE_MATRIX_VY_VARIANCE];
+				ev_data.velCov(1, 2) = ev_data.velCov(2, 1) = ev_odom.velocity_covariance[7];
+				ev_data.velCov(2, 2) = ev_odom.velocity_covariance[ev_odom.COVARIANCE_MATRIX_VZ_VARIANCE];
 
-				// position measurement error from ev_data or parameters
-				if (!_param_ekf2_ev_noise_md.get() && PX4_ISFINITE(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_X_VARIANCE])
-				    && PX4_ISFINITE(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_Y_VARIANCE])
-				    && PX4_ISFINITE(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_Z_VARIANCE])) {
-					ev_data.posVar(0) = fmaxf(param_evp_noise_var, ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_X_VARIANCE]);
-					ev_data.posVar(1) = fmaxf(param_evp_noise_var, ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_Y_VARIANCE]);
-					ev_data.posVar(2) = fmaxf(param_evp_noise_var, ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_Z_VARIANCE]);
-
-				} else {
-					ev_data.posVar.setAll(param_evp_noise_var);
-				}
+			} else {
+				ev_data.velCov = matrix::eye<float, 3>() * param_evv_noise_var;
 			}
-
-			// check for valid orientation data
-			if (PX4_ISFINITE(ev_odom.q[0])) {
-				ev_data.quat = Quatf(ev_odom.q);
-
-				// orientation measurement error from ev_data or parameters
-				float param_eva_noise_var = sq(_param_ekf2_eva_noise.get());
-
-				if (!_param_ekf2_ev_noise_md.get() && PX4_ISFINITE(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE])) {
-					ev_data.angVar = fmaxf(param_eva_noise_var, ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE]);
-
-				} else {
-					ev_data.angVar = param_eva_noise_var;
-				}
-			}
-
-			// use timestamp from external computer, clocks are synchronized when using MAVROS
-			ev_data.time_us = ev_odom.timestamp_sample;
-			_ekf.setExtVisionData(ev_data);
-
-			new_ev_odom = true;
 		}
+
+		// check for valid position data
+		if (PX4_ISFINITE(ev_odom.x) && PX4_ISFINITE(ev_odom.y) && PX4_ISFINITE(ev_odom.z)) {
+			ev_data.pos(0) = ev_odom.x;
+			ev_data.pos(1) = ev_odom.y;
+			ev_data.pos(2) = ev_odom.z;
+
+			float param_evp_noise_var = sq(_param_ekf2_evp_noise.get());
+
+			// position measurement error from ev_data or parameters
+			if (!_param_ekf2_ev_noise_md.get() && PX4_ISFINITE(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_X_VARIANCE])
+			    && PX4_ISFINITE(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_Y_VARIANCE])
+			    && PX4_ISFINITE(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_Z_VARIANCE])) {
+				ev_data.posVar(0) = fmaxf(param_evp_noise_var, ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_X_VARIANCE]);
+				ev_data.posVar(1) = fmaxf(param_evp_noise_var, ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_Y_VARIANCE]);
+				ev_data.posVar(2) = fmaxf(param_evp_noise_var, ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_Z_VARIANCE]);
+
+			} else {
+				ev_data.posVar.setAll(param_evp_noise_var);
+			}
+		}
+
+		// check for valid orientation data
+		if (PX4_ISFINITE(ev_odom.q[0])) {
+			ev_data.quat = Quatf(ev_odom.q);
+
+			// orientation measurement error from ev_data or parameters
+			float param_eva_noise_var = sq(_param_ekf2_eva_noise.get());
+
+			if (!_param_ekf2_ev_noise_md.get() && PX4_ISFINITE(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE])) {
+				ev_data.angVar = fmaxf(param_eva_noise_var, ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE]);
+
+			} else {
+				ev_data.angVar = param_eva_noise_var;
+			}
+		}
+
+		// use timestamp from external computer, clocks are synchronized when using MAVROS
+		ev_data.time_us = ev_odom.timestamp_sample;
+		_ekf.setExtVisionData(ev_data);
+
+		new_ev_odom = true;
 
 		ekf2_timestamps.visual_odometry_timestamp_rel = (int16_t)((int64_t)ev_odom.timestamp / 100 -
 				(int64_t)ekf2_timestamps.timestamp / 100);
@@ -1429,40 +1459,39 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 
 bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps, optical_flow_s &optical_flow)
 {
+	// EKF flow sample
 	bool new_optical_flow = false;
 	const unsigned last_generation = _optical_flow_sub.get_last_generation();
 
 	if (_optical_flow_sub.update(&optical_flow)) {
+		if (_msg_missed_optical_flow_perf == nullptr) {
+			_msg_missed_optical_flow_perf = perf_alloc(PC_COUNT, MODULE_NAME": optical_flow messages missed");
 
-		if (_optical_flow_sub.get_last_generation() != last_generation + 1) {
-			PX4_ERR("%d - optical_flow lost, generation %d -> %d", _instance, last_generation,
-				_optical_flow_sub.get_last_generation());
+		} else if (_optical_flow_sub.get_last_generation() != last_generation + 1) {
+			perf_count(_msg_missed_optical_flow_perf);
 		}
 
-		if (_param_ekf2_aid_mask.get() & MASK_USE_OF) {
+		flowSample flow {
+			.time_us = optical_flow.timestamp,
+			// NOTE: the EKF uses the reverse sign convention to the flow sensor. EKF assumes positive LOS rate
+			// is produced by a RH rotation of the image about the sensor axis.
+			.flow_xy_rad = Vector2f{-optical_flow.pixel_flow_x_integral, -optical_flow.pixel_flow_y_integral},
+			.gyro_xyz = Vector3f{-optical_flow.gyro_x_rate_integral, -optical_flow.gyro_y_rate_integral, -optical_flow.gyro_z_rate_integral},
+			.dt = 1e-6f * (float)optical_flow.integration_timespan,
+			.quality = optical_flow.quality,
+		};
 
-			flowSample flow {
-				.time_us = optical_flow.timestamp,
-				// NOTE: the EKF uses the reverse sign convention to the flow sensor. EKF assumes positive LOS rate
-				// is produced by a RH rotation of the image about the sensor axis.
-				.flow_xy_rad = Vector2f{-optical_flow.pixel_flow_x_integral, -optical_flow.pixel_flow_y_integral},
-				.gyro_xyz = Vector3f{-optical_flow.gyro_x_rate_integral, -optical_flow.gyro_y_rate_integral, -optical_flow.gyro_z_rate_integral},
-				.dt = 1e-6f * (float)optical_flow.integration_timespan,
-				.quality = optical_flow.quality,
-			};
+		if (PX4_ISFINITE(optical_flow.pixel_flow_y_integral) &&
+		    PX4_ISFINITE(optical_flow.pixel_flow_x_integral) &&
+		    flow.dt < 1) {
 
-			if (PX4_ISFINITE(optical_flow.pixel_flow_y_integral) &&
-			    PX4_ISFINITE(optical_flow.pixel_flow_x_integral) &&
-			    flow.dt < 1) {
+			// Save sensor limits reported by the optical flow sensor
+			_ekf.set_optical_flow_limits(optical_flow.max_flow_rate, optical_flow.min_ground_distance,
+						     optical_flow.max_ground_distance);
 
-				// Save sensor limits reported by the optical flow sensor
-				_ekf.set_optical_flow_limits(optical_flow.max_flow_rate, optical_flow.min_ground_distance,
-							     optical_flow.max_ground_distance);
+			_ekf.setOpticalFlowData(flow);
 
-				_ekf.setOpticalFlowData(flow);
-
-				new_optical_flow = true;
-			}
+			new_optical_flow = true;
 		}
 
 		ekf2_timestamps.optical_flow_timestamp_rel = (int16_t)((int64_t)optical_flow.timestamp / 100 -
@@ -1475,37 +1504,43 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps, optical_flow_s &
 void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 {
 	// EKF GPS message
-	if (_param_ekf2_aid_mask.get() & MASK_USE_GPS) {
-		vehicle_gps_position_s vehicle_gps_position;
+	const unsigned last_generation = _vehicle_gps_position_sub.get_last_generation();
+	vehicle_gps_position_s vehicle_gps_position;
 
-		if (_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
-			gps_message gps_msg{
-				.time_usec = vehicle_gps_position.timestamp,
-				.lat = vehicle_gps_position.lat,
-				.lon = vehicle_gps_position.lon,
-				.alt = vehicle_gps_position.alt,
-				.yaw = vehicle_gps_position.heading,
-				.yaw_offset = vehicle_gps_position.heading_offset,
-				.fix_type = vehicle_gps_position.fix_type,
-				.eph = vehicle_gps_position.eph,
-				.epv = vehicle_gps_position.epv,
-				.sacc = vehicle_gps_position.s_variance_m_s,
-				.vel_m_s = vehicle_gps_position.vel_m_s,
-				.vel_ned = Vector3f{
-					vehicle_gps_position.vel_n_m_s,
-					vehicle_gps_position.vel_e_m_s,
-					vehicle_gps_position.vel_d_m_s
-				},
-				.vel_ned_valid = vehicle_gps_position.vel_ned_valid,
-				.nsats = vehicle_gps_position.satellites_used,
-				.pdop = sqrtf(vehicle_gps_position.hdop *vehicle_gps_position.hdop
-					      + vehicle_gps_position.vdop * vehicle_gps_position.vdop),
-			};
-			_ekf.setGpsData(gps_msg);
+	if (_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
+		if (_msg_missed_gps_perf == nullptr) {
+			_msg_missed_gps_perf = perf_alloc(PC_COUNT, MODULE_NAME": vehicle_gps_position messages missed");
 
-			_gps_time_usec = gps_msg.time_usec;
-			_gps_alttitude_ellipsoid = vehicle_gps_position.alt_ellipsoid;
+		} else if (_vehicle_gps_position_sub.get_last_generation() != last_generation + 1) {
+			perf_count(_msg_missed_gps_perf);
 		}
+
+		gps_message gps_msg{
+			.time_usec = vehicle_gps_position.timestamp,
+			.lat = vehicle_gps_position.lat,
+			.lon = vehicle_gps_position.lon,
+			.alt = vehicle_gps_position.alt,
+			.yaw = vehicle_gps_position.heading,
+			.yaw_offset = vehicle_gps_position.heading_offset,
+			.fix_type = vehicle_gps_position.fix_type,
+			.eph = vehicle_gps_position.eph,
+			.epv = vehicle_gps_position.epv,
+			.sacc = vehicle_gps_position.s_variance_m_s,
+			.vel_m_s = vehicle_gps_position.vel_m_s,
+			.vel_ned = Vector3f{
+				vehicle_gps_position.vel_n_m_s,
+				vehicle_gps_position.vel_e_m_s,
+				vehicle_gps_position.vel_d_m_s
+			},
+			.vel_ned_valid = vehicle_gps_position.vel_ned_valid,
+			.nsats = vehicle_gps_position.satellites_used,
+			.pdop = sqrtf(vehicle_gps_position.hdop *vehicle_gps_position.hdop
+				      + vehicle_gps_position.vdop * vehicle_gps_position.vdop),
+		};
+		_ekf.setGpsData(gps_msg);
+
+		_gps_time_usec = gps_msg.time_usec;
+		_gps_alttitude_ellipsoid = vehicle_gps_position.alt_ellipsoid;
 	}
 }
 
@@ -1515,10 +1550,11 @@ void EKF2::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
 	vehicle_magnetometer_s magnetometer;
 
 	if (_magnetometer_sub.update(&magnetometer)) {
+		if (_msg_missed_magnetometer_perf == nullptr) {
+			_msg_missed_magnetometer_perf = perf_alloc(PC_COUNT, MODULE_NAME": vehicle_magnetometer messages missed");
 
-		if (_magnetometer_sub.get_last_generation() != last_generation + 1) {
-			PX4_ERR("%d - vehicle_magnetometer lost, generation %d -> %d", _instance, last_generation,
-				_magnetometer_sub.get_last_generation());
+		} else if (_magnetometer_sub.get_last_generation() != last_generation + 1) {
+			perf_count(_msg_missed_magnetometer_perf);
 		}
 
 		bool reset = false;
@@ -1526,14 +1562,14 @@ void EKF2::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
 		// check if magnetometer has changed
 		if (magnetometer.device_id != _device_id_mag) {
 			if (_device_id_mag != 0) {
-				PX4_WARN("%d - mag sensor ID changed %d -> %d", _instance, _device_id_mag, magnetometer.device_id);
+				PX4_WARN("%d - mag sensor ID changed %" PRIu32 " -> %" PRIu32, _instance, _device_id_mag, magnetometer.device_id);
 			}
 
 			reset = true;
 
 		} else if (magnetometer.calibration_count > _mag_calibration_count) {
 			// existing calibration has changed, reset saved mag bias
-			PX4_DEBUG("%d - mag %d calibration updated, resetting bias", _instance, _device_id_mag);
+			PX4_DEBUG("%d - mag %" PRIu32 " calibration updated, resetting bias", _instance, _device_id_mag);
 			reset = true;
 		}
 
@@ -1561,17 +1597,20 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 		// get subscription index of first downward-facing range sensor
 		uORB::SubscriptionMultiArray<distance_sensor_s> distance_sensor_subs{ORB_ID::distance_sensor};
 
-		for (unsigned i = 0; i < distance_sensor_subs.size(); i++) {
-			distance_sensor_s distance_sensor;
+		if (distance_sensor_subs.advertised()) {
+			for (unsigned i = 0; i < distance_sensor_subs.size(); i++) {
+				distance_sensor_s distance_sensor;
 
-			if (distance_sensor_subs[i].copy(&distance_sensor)) {
-				// only use the first instace which has the correct orientation
-				if ((hrt_elapsed_time(&distance_sensor.timestamp) < 100_ms)
-				    && (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING)) {
+				if (distance_sensor_subs[i].copy(&distance_sensor)) {
+					// only use the first instace which has the correct orientation
+					if ((hrt_elapsed_time(&distance_sensor.timestamp) < 100_ms)
+					    && (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING)) {
 
-					if (_distance_sensor_sub.ChangeInstance(i)) {
-						PX4_INFO("%d - selected distance_sensor:%d", _instance, i);
-						_distance_sensor_selected = true;
+						if (_distance_sensor_sub.ChangeInstance(i)) {
+							PX4_INFO("%d - selected distance_sensor:%d", _instance, i);
+							_distance_sensor_selected = true;
+							break;
+						}
 					}
 				}
 			}
@@ -1583,14 +1622,12 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 	distance_sensor_s distance_sensor;
 
 	if (_distance_sensor_sub.update(&distance_sensor)) {
+		if (_msg_missed_distance_sensor_perf == nullptr) {
+			_msg_missed_distance_sensor_perf = perf_alloc(PC_COUNT, MODULE_NAME": distance_sensor messages missed");
 
-		if (_distance_sensor_sub.get_last_generation() != last_generation + 1) {
-			PX4_ERR("%d - distance_sensor lost, generation %d -> %d", _instance, last_generation,
-				_distance_sensor_sub.get_last_generation());
+		} else if (_distance_sensor_sub.get_last_generation() != last_generation + 1) {
+			perf_count(_msg_missed_distance_sensor_perf);
 		}
-
-		ekf2_timestamps.distance_sensor_timestamp_rel = (int16_t)((int64_t)distance_sensor.timestamp / 100 -
-				(int64_t)ekf2_timestamps.timestamp / 100);
 
 		if (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING) {
 			rangeSample range_sample {
@@ -1606,6 +1643,9 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 			_last_range_sensor_update = distance_sensor.timestamp;
 			return;
 		}
+
+		ekf2_timestamps.distance_sensor_timestamp_rel = (int16_t)((int64_t)distance_sensor.timestamp / 100 -
+				(int64_t)ekf2_timestamps.timestamp / 100);
 	}
 
 	if (hrt_elapsed_time(&_last_range_sensor_update) > 1_s) {
@@ -1692,8 +1732,8 @@ int EKF2::task_spawn(int argc, char *argv[])
 		param_get(param_find("EKF2_MULTI_IMU"), &imu_instances);
 
 		if (imu_instances < 1 || imu_instances > 4) {
-			const int32_t imu_instances_limited = math::constrain(imu_instances, 1, 4);
-			PX4_WARN("EKF2_MULTI_IMU limited %d -> %d", imu_instances, imu_instances_limited);
+			const int32_t imu_instances_limited = math::constrain(imu_instances, static_cast<int32_t>(1), static_cast<int32_t>(4));
+			PX4_WARN("EKF2_MULTI_IMU limited %" PRId32 " -> %" PRId32, imu_instances, imu_instances_limited);
 			param_set_no_notification(param_find("EKF2_MULTI_IMU"), &imu_instances_limited);
 			imu_instances = imu_instances_limited;
 		}
@@ -1706,8 +1746,8 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 			// Mags (1 - 4 supported)
 			if (mag_instances < 1 || mag_instances > 4) {
-				const int32_t mag_instances_limited = math::constrain(mag_instances, 1, 4);
-				PX4_WARN("EKF2_MULTI_MAG limited %d -> %d", mag_instances, mag_instances_limited);
+				const int32_t mag_instances_limited = math::constrain(mag_instances, static_cast<int32_t>(1), static_cast<int32_t>(4));
+				PX4_WARN("EKF2_MULTI_MAG limited %" PRId32 " -> %" PRId32, mag_instances, mag_instances_limited);
 				param_set_no_notification(param_find("EKF2_MULTI_MAG"), &mag_instances_limited);
 				mag_instances = mag_instances_limited;
 			}
@@ -1732,7 +1772,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 		}
 
 		const hrt_abstime time_started = hrt_absolute_time();
-		const int multi_instances = math::min(imu_instances * mag_instances, (int)EKF2_MAX_INSTANCES);
+		const int multi_instances = math::min(imu_instances * mag_instances, static_cast<int32_t>(EKF2_MAX_INSTANCES));
 		int multi_instances_allocated = 0;
 
 		// allocate EKF2 instances until all found or arming
@@ -1777,7 +1817,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 										_ekf2_selector.load()->ScheduleNow();
 									}
 
-									PX4_INFO("starting instance %d, IMU:%d (%d), MAG:%d (%d)", actual_instance,
+									PX4_INFO("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 ")", actual_instance,
 										 imu, vehicle_imu_sub.get().accel_device_id,
 										 mag, vehicle_mag_sub.get().device_id);
 
@@ -1791,7 +1831,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 								}
 
 							} else {
-								PX4_ERR("alloc and init failed imu: %d mag:%d", imu, mag);
+								PX4_ERR("alloc and init failed imu: %" PRIu8 " mag:%" PRIu8, imu, mag);
 								px4_usleep(1000000);
 								break;
 							}
@@ -1849,7 +1889,10 @@ timestamps from the sensor topics.
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_FLAG('r', "Enable replay mode", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-
+#if !defined(CONSTRAINED_FLASH)
+	PRINT_MODULE_USAGE_COMMAND_DESCR("select_instance", "Request switch to new estimator instance");
+	PRINT_MODULE_USAGE_ARG("<instance>", "Specify desired estimator instance", false);
+#endif // !CONSTRAINED_FLASH
 	return 0;
 }
 
@@ -1872,6 +1915,31 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 		EKF2::unlock_module();
 		return ret;
 
+#if !defined(CONSTRAINED_FLASH)
+	} else if (strcmp(argv[1], "select_instance") == 0) {
+
+		if (EKF2::trylock_module()) {
+			if (_ekf2_selector.load()) {
+				if (argc > 2) {
+					int instance = atoi(argv[2]);
+					_ekf2_selector.load()->RequestInstance(instance);
+				} else {
+					EKF2::unlock_module();
+					return EKF2::print_usage("instance required");
+				}
+
+			} else {
+				PX4_ERR("multi-EKF not active, unable to select instance");
+			}
+
+			EKF2::unlock_module();
+
+		} else {
+			PX4_WARN("module locked, try again later");
+		}
+
+		return 0;
+#endif // !CONSTRAINED_FLASH
 	} else if (strcmp(argv[1], "status") == 0) {
 		if (EKF2::trylock_module()) {
 #if !defined(CONSTRAINED_FLASH)

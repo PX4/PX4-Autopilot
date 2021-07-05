@@ -51,6 +51,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: px4_fmu-v5x_default
+    px4_fmu-v6x_default:
+      short: px4_fmu-v6x
+      buildType: MinSizeRel
+      settings:
+        CONFIG: px4_fmu-v6x_default
+    px4_fmu-v6x_bootloader:
+      short: px4_fmu-v6x_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: px4_fmu-v6x_bootloader
     airmind_mindpx-v2_default:
       short: airmind_mindpx-v2
       buildType: MinSizeRel
@@ -66,6 +76,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_can-flow_canbootloader
+    ark_can-gps_default:
+      short: ark_can-gps_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_can-gps_default
+    ark_can-gps_canbootloader:
+      short: ark_can-gps_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_can-gps_canbootloader
     av_x-v1_default:
       short: av_x-v1
       buildType: MinSizeRel
@@ -106,6 +126,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: emlid_navio2_default
+    freefly_can-rtk-gps_default:
+      short: freefly_can-rtk-gps_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: freefly_can-rtk-gps_default
+    freefly_can-rtk-gps_canbootloader:
+      short: freefly_can-rtk-gps_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: freefly_can-rtk-gps_canbootloader
     holybro_can-gps-v1_canbootloader:
       short: holybro_can-gps-v1_canbootloader
       buildType: MinSizeRel
@@ -126,6 +156,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: modalai_fc-v1_default
+    modalai_fc-v2_default:
+      short: modalai_fc-v2
+      buildType: MinSizeRel
+      settings:
+        CONFIG: modalai_fc-v2_default
     mro_ctrl-zero-f7_default:
       short: mro_ctrl-zero-f7
       buildType: MinSizeRel

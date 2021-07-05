@@ -40,6 +40,7 @@
 #include "nuttx/arch.h"
 #include "arm_internal.h"
 
+#include "boot_config.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -80,6 +81,12 @@ int main(int argc, char **argv);
  *   sem_wait and sem_post functions.
  *
  ****************************************************************************/
+
+int __wrap_nxsem_wait_uninterruptible(void *sem)
+{
+	return 0;
+
+}
 
 int __wrap_nxsem_wait(void *sem)
 {
@@ -174,13 +181,27 @@ void __wrap_nx_start(void)
  * Name: malloc
  *
  * Description:
- *   This function hijacks the OS's malloc and provides no allocation
+ *   This function hijacks the OS's malloc and provides no or small
+ *   allocation
  *
  ****************************************************************************/
 
 FAR void *malloc(size_t size)
 {
+#if defined(OPT_SIMPLE_MALLOC_HEAP_SIZE)
+	static int aloc = 0;
+	static uint8_t mem[OPT_SIMPLE_MALLOC_HEAP_SIZE];
+	void *rv = &mem[aloc];
+	aloc += size;
+
+	if (aloc > OPT_SIMPLE_MALLOC_HEAP_SIZE) {
+		PANIC();
+	}
+
+	return rv;
+#else
 	return NULL;
+#endif
 }
 
 /****************************************************************************

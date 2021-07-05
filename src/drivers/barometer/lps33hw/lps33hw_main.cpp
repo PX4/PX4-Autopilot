@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -69,13 +69,13 @@ I2CSPIDriverBase *LPS33HW::instantiate(const BusCLIArguments &cli, const BusInst
 	}
 
 	if (interface == nullptr) {
-		PX4_ERR("failed creating interface for bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
+		PX4_ERR("failed creating interface for bus %i (devid 0x%" PRIx32 ")", iterator.bus(), iterator.devid());
 		return nullptr;
 	}
 
 	if (interface->init() != OK) {
 		delete interface;
-		PX4_DEBUG("no device on bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
+		PX4_DEBUG("no device on bus %i (devid 0x%" PRIx32 ")", iterator.bus(), iterator.devid());
 		return nullptr;
 	}
 

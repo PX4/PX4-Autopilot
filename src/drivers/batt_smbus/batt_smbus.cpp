@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,8 +52,8 @@ BATT_SMBUS::BATT_SMBUS(I2CSPIBusOption bus_option, const int bus, SMBus *interfa
 		     interface->get_device_address()),
 	_interface(interface)
 {
-	int battsource = 1;
-	int batt_device_type = (int)SMBUS_DEVICE_TYPE::UNDEFINED;
+	int32_t battsource = 1;
+	int32_t batt_device_type = static_cast<int32_t>(SMBUS_DEVICE_TYPE::UNDEFINED);
 
 	param_set(param_find("BAT_SOURCE"), &battsource);
 	param_get(param_find("BAT_SMBUS_MODEL"), &batt_device_type);
@@ -84,7 +84,7 @@ BATT_SMBUS::~BATT_SMBUS()
 		delete _interface;
 	}
 
-	int battsource = 0;
+	int32_t battsource = 0;
 	param_set(param_find("BAT_SOURCE"), &battsource);
 }
 
@@ -129,7 +129,7 @@ void BATT_SMBUS::RunImpl()
 
 	float average_current = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f) * _c_mult;
 
-	new_report.average_current_a = average_current;
+	new_report.current_average_a = average_current;
 
 	// If current is high, turn under voltage protection off. This is neccessary to prevent
 	// a battery from cutting off while flying with high current near the end of the packs capacity.
@@ -537,7 +537,7 @@ $ batt_smbus -X write_flash 19069 2 27 0
 I2CSPIDriverBase *BATT_SMBUS::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 				      int runtime_instance)
 {
-	SMBus *interface = new SMBus(iterator.bus(), cli.i2c_address);
+	SMBus *interface = new SMBus(DRV_BAT_DEVTYPE_SMBUS, iterator.bus(), cli.i2c_address);
 	if (interface == nullptr) {
 		PX4_ERR("alloc failed");
 		return nullptr;
@@ -567,8 +567,8 @@ BATT_SMBUS::custom_method(const BusCLIArguments &cli)
 	switch(cli.custom1) {
 		case 1: {
 			PX4_INFO("The manufacturer name: %s", _manufacturer_name);
-			PX4_INFO("The manufacturer date: %d", _manufacture_date);
-			PX4_INFO("The serial number: %d", _serial_number);
+			PX4_INFO("The manufacturer date: %" PRId16, _manufacture_date);
+			PX4_INFO("The serial number: %d" PRId16, _serial_number);
 		}
 			break;
 		case 2:
@@ -590,7 +590,7 @@ BATT_SMBUS::custom_method(const BusCLIArguments &cli)
 				unsigned length = tx_buf[0];
 
 				if (PX4_OK != dataflash_write(address, tx_buf+1, length)) {
-					PX4_ERR("Dataflash write failed: %d", address);
+					PX4_ERR("Dataflash write failed: %u", address);
 				}
 				px4_usleep(100_ms);
 			}

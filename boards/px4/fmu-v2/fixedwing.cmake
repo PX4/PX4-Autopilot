@@ -38,7 +38,7 @@ px4_add_board(
 		pwm_out
 		px4io
 		#telemetry # all available telemetry drivers
-		telemetry/iridiumsbd
+		#telemetry/iridiumsbd
 		tone_alarm
 		#uavcan
 	MODULES

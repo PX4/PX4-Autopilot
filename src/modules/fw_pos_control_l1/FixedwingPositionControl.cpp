@@ -109,6 +109,7 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_max_climb_rate(_param_fw_t_clmb_max.get());
 	_tecs.set_max_sink_rate(_param_fw_t_sink_max.get());
 	_tecs.set_speed_weight(_param_fw_t_spdweight.get());
+	_tecs.set_equivalent_airspeed_cruise(_param_fw_airspd_trim.get());
 	_tecs.set_equivalent_airspeed_min(_param_fw_airspd_min.get());
 	_tecs.set_equivalent_airspeed_max(_param_fw_airspd_max.get());
 	_tecs.set_min_sink_rate(_param_fw_t_sink_min.get());
@@ -141,19 +142,31 @@ FixedwingPositionControl::parameters_update()
 
 	landing_status_publish();
 
+	int check_ret = PX4_OK;
+
 	// sanity check parameters
-	if ((_param_fw_airspd_max.get() < _param_fw_airspd_min.get()) ||
-	    (_param_fw_airspd_max.get() < 5.0f) ||
-	    (_param_fw_airspd_min.get() > 100.0f) ||
-	    (_param_fw_airspd_trim.get() < _param_fw_airspd_min.get()) ||
-	    (_param_fw_airspd_trim.get() > _param_fw_airspd_max.get())) {
-
-		mavlink_log_critical(&_mavlink_log_pub, "Airspeed parameters invalid");
-
-		return PX4_ERROR;
+	if (_param_fw_airspd_max.get() < _param_fw_airspd_min.get()) {
+		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Airspeed max smaller than min");
+		check_ret = PX4_ERROR;
 	}
 
-	return PX4_OK;
+	if (_param_fw_airspd_max.get() < 5.0f || _param_fw_airspd_min.get() > 100.0f) {
+		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Airspeed max < 5 m/s or min > 100 m/s");
+		check_ret = PX4_ERROR;
+	}
+
+	if (_param_fw_airspd_trim.get() < _param_fw_airspd_min.get() ||
+	    _param_fw_airspd_trim.get() > _param_fw_airspd_max.get()) {
+		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Airspeed cruise out of min or max bounds");
+		check_ret = PX4_ERROR;
+	}
+
+	if (_param_fw_airspd_stall.get() > _param_fw_airspd_min.get() * 0.9f) {
+		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Stall airspeed higher than 0.9 of min");
+		check_ret = PX4_ERROR;
+	}
+
+	return check_ret;
 }
 
 void
@@ -241,7 +254,7 @@ FixedwingPositionControl::manual_control_setpoint_poll()
 		 * demanding up/down with the throttle stick, and move faster/break with the pitch one.
 		 */
 		_manual_control_setpoint_altitude = -(math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f) * 2.f - 1.f);
-		_manual_control_setpoint_airspeed = math::constrain(_manual_control_setpoint.x, 0.0f, 1.0f) / 2.f + 0.5f;
+		_manual_control_setpoint_airspeed = math::constrain(_manual_control_setpoint.x, -1.0f, 1.0f) / 2.f + 0.5f;
 	}
 }
 
@@ -373,7 +386,7 @@ FixedwingPositionControl::tecs_status_publish()
 		break;
 	}
 
-	t.altitude_sp = _tecs.hgt_setpoint_adj();
+	t.altitude_sp = _tecs.hgt_setpoint();
 	t.altitude_filtered = _tecs.vert_pos_state();
 
 	t.true_airspeed_sp = _tecs.TAS_setpoint_adj();
@@ -385,6 +398,8 @@ FixedwingPositionControl::tecs_status_publish()
 	t.equivalent_airspeed_sp = _tecs.get_EAS_setpoint();
 	t.true_airspeed_derivative_sp = _tecs.TAS_rate_setpoint();
 	t.true_airspeed_derivative = _tecs.speed_derivative();
+	t.true_airspeed_derivative_raw = _tecs.speed_derivative_raw();
+	t.true_airspeed_innovation = _tecs.getTASInnovation();
 
 	t.total_energy_error = _tecs.STE_error();
 	t.total_energy_rate_error = _tecs.STE_rate_error();
@@ -406,6 +421,7 @@ FixedwingPositionControl::tecs_status_publish()
 	t.pitch_integ = _tecs.pitch_integ_state();
 
 	t.throttle_sp = _tecs.get_throttle_setpoint();
+	t.pitch_sp_rad = _tecs.get_pitch_setpoint();
 
 	t.timestamp = hrt_absolute_time();
 
@@ -551,14 +567,22 @@ FixedwingPositionControl::update_desired_altitude(float dt)
 	if (_manual_control_setpoint_altitude > deadBand) {
 		/* pitching down */
 		float pitch = -(_manual_control_setpoint_altitude - deadBand) / factor;
-		_hold_alt += (_param_fw_t_sink_max.get() * dt) * pitch;
-		_was_in_deadband = false;
+
+		if (pitch * _param_sinkrate_target.get() < _tecs.hgt_rate_setpoint()) {
+			_hold_alt += (_param_sinkrate_target.get() * dt) * pitch;
+			_manual_height_rate_setpoint_m_s = pitch * _param_sinkrate_target.get();
+			_was_in_deadband = false;
+		}
 
 	} else if (_manual_control_setpoint_altitude < - deadBand) {
 		/* pitching up */
 		float pitch = -(_manual_control_setpoint_altitude + deadBand) / factor;
-		_hold_alt += (_param_fw_t_clmb_max.get() * dt) * pitch;
-		_was_in_deadband = false;
+
+		if (pitch * _param_climbrate_target.get() > _tecs.hgt_rate_setpoint()) {
+			_hold_alt += (_param_climbrate_target.get() * dt) * pitch;
+			_manual_height_rate_setpoint_m_s = pitch * _param_climbrate_target.get();
+			_was_in_deadband = false;
+		}
 
 	} else if (!_was_in_deadband) {
 		/* store altitude at which manual.x was inside deadBand
@@ -567,6 +591,7 @@ FixedwingPositionControl::update_desired_altitude(float dt)
 		_hold_alt = _current_altitude;
 		_althold_epv = _local_pos.epv;
 		_was_in_deadband = true;
+		_manual_height_rate_setpoint_m_s = NAN;
 	}
 
 	if (_vehicle_status.is_vtol) {
@@ -983,7 +1008,8 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 					   _param_fw_thr_cruise.get(),
 					   false,
 					   pitch_limit_min,
-					   tecs_status_s::TECS_MODE_NORMAL);
+					   tecs_status_s::TECS_MODE_NORMAL,
+					   _manual_height_rate_setpoint_m_s);
 
 		/* heading control */
 		if (fabsf(_manual_control_setpoint.y) < HDG_HOLD_MAN_INPUT_THRESH &&
@@ -1085,7 +1111,8 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 					   _param_fw_thr_cruise.get(),
 					   false,
 					   pitch_limit_min,
-					   tecs_status_s::TECS_MODE_NORMAL);
+					   tecs_status_s::TECS_MODE_NORMAL,
+					   _manual_height_rate_setpoint_m_s);
 
 		_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
 		_att_sp.yaw_body = 0;
@@ -1831,7 +1858,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 		float pitch_min_rad, float pitch_max_rad,
 		float throttle_min, float throttle_max, float throttle_cruise,
 		bool climbout_mode, float climbout_pitch_min_rad,
-		uint8_t mode)
+		uint8_t mode, float hgt_rate_sp)
 {
 	const float dt = math::constrain((now - _last_tecs_update) * 1e-6f, 0.01f, 0.05f);
 	_last_tecs_update = now;
@@ -1931,7 +1958,8 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 				    climbout_pitch_min_rad - radians(_param_fw_psp_off.get()),
 				    throttle_min, throttle_max, throttle_cruise,
 				    pitch_min_rad - radians(_param_fw_psp_off.get()),
-				    pitch_max_rad - radians(_param_fw_psp_off.get()));
+				    pitch_max_rad - radians(_param_fw_psp_off.get()),
+				    _param_climbrate_target.get(), _param_sinkrate_target.get(), hgt_rate_sp);
 
 	tecs_status_publish();
 }

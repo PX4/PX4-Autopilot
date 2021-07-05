@@ -69,7 +69,6 @@ __EXPORT void stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_CAN2_TX);
 	stm32_configgpio(GPIO_MCU_CAN1_SILENT);
 	stm32_configgpio(GPIO_MCU_CAN2_SILENT);
-	led_init(); // todo:Remove with creation of proper LED driver
 	putreg32(getreg32(STM32_RCC_APB1RSTR) | RCC_APB1RSTR_CAN1RST | RCC_APB1RSTR_CAN2RST, STM32_RCC_APB1RSTR);
 	putreg32(getreg32(STM32_RCC_APB1RSTR) & ~(RCC_APB1RSTR_CAN1RST | RCC_APB1RSTR_CAN2RST), STM32_RCC_APB1RSTR);
 
@@ -168,17 +167,17 @@ typedef begin_packed_struct struct led_t {
 static const  led_t i2l[] = {
 
 	led(0, off,                             0,     0,     0,     0),
-	led(1, reset,                          128,   128,   128,   30),
-	led(2, autobaud_start,                  0,   128,     0,     1),
-	led(3, autobaud_end,                    0,   128,     0,     2),
-	led(4, allocation_start,                0,     0,    64,     2),
-	led(5, allocation_end,                  0,   128,    64,     3),
-	led(6, fw_update_start,                32,   128,    64,     3),
-	led(7, fw_update_erase_fail,           32,   128,    32,     3),
-	led(8, fw_update_invalid_response,     64,     0,     0,     1),
-	led(9, fw_update_timeout,              64,     0,     0,     2),
-	led(a, fw_update_invalid_crc,          64,     0,     0,     4),
-	led(b, jump_to_app,                     0,   128,     0,    10),
+	led(1, reset,                          255,  255,   255,   30),
+	led(2, autobaud_start,                  0,   255,     0,     1),
+	led(3, autobaud_end,                    0,   255,     0,     2),
+	led(4, allocation_start,                0,     0,    128,     2),
+	led(5, allocation_end,                  0,   255,   128,     3),
+	led(6, fw_update_start,                64,   255,   128,     3),
+	led(7, fw_update_erase_fail,           64,   255,    64,     3),
+	led(8, fw_update_invalid_response,     128,    0,     0,     1),
+	led(9, fw_update_timeout,              128,    0,     0,     2),
+	led(a, fw_update_invalid_crc,          128,    0,     0,     4),
+	led(b, jump_to_app,                     0,   255,     0,    10),
 
 };
 

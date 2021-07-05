@@ -168,6 +168,14 @@ bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_st
 		}
 	}
 
+	if (arm_requirements.geofence && status.geofence_violated) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Arming denied, vehicle outside geofence");
+		}
+
+		prearm_ok = false;
+	}
+
 	// Arm Requirements: authorization
 	// check last, and only if everything else has passed
 	if (arm_requirements.arm_authorization && prearm_ok) {

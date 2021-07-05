@@ -80,7 +80,7 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_NF_BW, 20.0f);
 * @reboot_required true
 * @group Sensors
 */
-PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
+PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 40.0f);
 
 /**
 * Gyro control data maximum publication rate (inner loop rate)
@@ -122,7 +122,7 @@ PARAM_DEFINE_INT32(IMU_GYRO_RATEMAX, 400);
 * @reboot_required true
 * @group Sensors
 */
-PARAM_DEFINE_FLOAT(IMU_DGYRO_CUTOFF, 20.0f);
+PARAM_DEFINE_FLOAT(IMU_DGYRO_CUTOFF, 30.0f);
 
 /**
 * IMU gyro dynamic notch filtering
@@ -130,6 +130,7 @@ PARAM_DEFINE_FLOAT(IMU_DGYRO_CUTOFF, 20.0f);
 * Enable bank of dynamically updating notch filters.
 * Requires ESC RPM feedback or onboard FFT (IMU_GYRO_FFT_EN).
 * @group Sensors
+* @category Developer
 * @min 0
 * @max 3
 * @bit 0 ESC RPM

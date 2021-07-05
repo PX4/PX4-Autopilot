@@ -99,7 +99,7 @@ struct pwm_output_values {
 /**
  * Highest maximum PWM in us
  */
-#define PWM_HIGHEST_MAX 2150
+#define PWM_HIGHEST_MAX 2500
 
 /**
  * Default maximum PWM in us

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -100,10 +100,10 @@ extern "C" int ms5611_main(int argc, char *argv[])
 	cli.default_spi_frequency = 20 * 1000 * 1000;
 	uint16_t dev_type_driver = DRV_BARO_DEVTYPE_MS5611;
 
-	while ((ch = cli.getopt(argc, argv, "T:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "T:")) != EOF) {
 		switch (ch) {
 		case 'T': {
-				int val = atoi(cli.optarg());
+				int val = atoi(cli.optArg());
 
 				if (val == 5611) {
 					cli.type = MS5611_DEVICE;
@@ -118,7 +118,7 @@ extern "C" int ms5611_main(int argc, char *argv[])
 		}
 	}
 
-	const char *verb = cli.optarg();
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();

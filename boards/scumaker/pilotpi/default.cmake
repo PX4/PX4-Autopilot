@@ -31,6 +31,7 @@ px4_add_board(
 		pca9685_pwm_out
 		pwm_out_sim
 		rc_input
+		smart_battery/batmon
 		#telemetry # all available telemetry drivers
 	MODULES
 		airspeed_selector

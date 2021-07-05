@@ -77,7 +77,7 @@ public:
 	bool init();
 
 private:
-	float EstimatePeakFrequency(q15_t fft[], uint8_t peak_index);
+	float EstimatePeakFrequency(q15_t fft[], int peak_index);
 	void Run() override;
 	bool SensorSelectionUpdate(bool force = false);
 	void Update(const hrt_abstime &timestamp_sample, int16_t *input[], uint8_t N);

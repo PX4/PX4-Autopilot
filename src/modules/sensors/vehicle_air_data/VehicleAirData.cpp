@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -110,6 +110,22 @@ void VehicleAirData::SensorCorrectionsUpdate(bool force)
 	}
 }
 
+void VehicleAirData::AirTemperatureUpdate()
+{
+	differential_pressure_s differential_pressure;
+
+	static constexpr float temperature_min_celsius = -20.f;
+	static constexpr float temperature_max_celsius = 35.f;
+
+	// update air temperature if data from differential pressure sensor is finite and not exactly 0
+	// limit the range to max 35°C to limt the error due to heated up airspeed sensors prior flight
+	if (_differential_pressure_sub.update(&differential_pressure) && PX4_ISFINITE(differential_pressure.temperature)
+	    && fabsf(differential_pressure.temperature) > FLT_EPSILON) {
+		_air_temperature_celsius = math::constrain(differential_pressure.temperature, temperature_min_celsius,
+					   temperature_max_celsius);
+	}
+}
+
 void VehicleAirData::ParametersUpdate()
 {
 	// Check if parameters have changed
@@ -129,6 +145,8 @@ void VehicleAirData::Run()
 	ParametersUpdate();
 
 	SensorCorrectionsUpdate();
+
+	AirTemperatureUpdate();
 
 	bool updated[MAX_SENSOR_COUNT] {};
 
@@ -189,7 +207,7 @@ void VehicleAirData::Run()
 			}
 
 			if (_selected_sensor_sub_index >= 0) {
-				PX4_INFO("%s switch from #%u -> #%d", "BARO", _selected_sensor_sub_index, best_index);
+				PX4_INFO("%s switch from #%" PRIu8 " -> #%d", "BARO", _selected_sensor_sub_index, best_index);
 			}
 
 			_selected_sensor_sub_index = best_index;
@@ -250,12 +268,8 @@ void VehicleAirData::Run()
 			out.baro_alt_meter = (((powf((p / p1), (-(a * CONSTANTS_AIR_GAS_CONST) / CONSTANTS_ONE_G))) * T1) - T1) / a;
 
 			// calculate air density
-			// estimate air density assuming typical 20degC ambient temperature
-			// TODO: use air temperature if available (differential pressure sensors)
-			static constexpr float pressure_to_density = 1.0f / (CONSTANTS_AIR_GAS_CONST * (20.0f -
-					CONSTANTS_ABSOLUTE_NULL_CELSIUS));
-
-			out.rho = pressure_to_density * out.baro_pressure_pa;
+			out.rho = out.baro_pressure_pa  / (CONSTANTS_AIR_GAS_CONST * (_air_temperature_celsius -
+							   CONSTANTS_ABSOLUTE_NULL_CELSIUS));
 
 			out.timestamp = hrt_absolute_time();
 			_vehicle_air_data_pub.publish(out);
@@ -302,10 +316,11 @@ void VehicleAirData::Run()
 void VehicleAirData::PrintStatus()
 {
 	if (_selected_sensor_sub_index >= 0) {
-		PX4_INFO("selected barometer: %d (%d)", _last_data[_selected_sensor_sub_index].device_id, _selected_sensor_sub_index);
+		PX4_INFO("selected barometer: %" PRIu32 " (%" PRId8 ")", _last_data[_selected_sensor_sub_index].device_id,
+			 _selected_sensor_sub_index);
 
 		if (fabsf(_thermal_offset[_selected_sensor_sub_index]) > 0.f) {
-			PX4_INFO("%d temperature offset: %.4f", _last_data[_selected_sensor_sub_index].device_id,
+			PX4_INFO("%" PRIu32 " temperature offset: %.4f", _last_data[_selected_sensor_sub_index].device_id,
 				 (double)_thermal_offset[_selected_sensor_sub_index]);
 		}
 	}

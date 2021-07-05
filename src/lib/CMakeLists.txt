@@ -33,6 +33,7 @@
 
 px4_add_git_submodule(TARGET git_ecl PATH "ecl")
 px4_add_git_submodule(TARGET git_matrix PATH "matrix")
+px4_add_git_submodule(TARGET git_monocypher PATH "crypto/monocypher")
 
 add_subdirectory(airspeed)
 add_subdirectory(airspeed_validator)
@@ -45,6 +46,7 @@ add_subdirectory(collision_prevention)
 add_subdirectory(controllib)
 add_subdirectory(component_information)
 add_subdirectory(conversion)
+add_subdirectory(crypto)
 add_subdirectory(drivers)
 add_subdirectory(ecl)
 add_subdirectory(hysteresis)

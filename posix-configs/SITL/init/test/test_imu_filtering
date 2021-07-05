@@ -1,0 +1,57 @@
+#!/bin/sh
+# PX4 commands need the 'px4-' prefix in bash.
+# (px4-alias.sh is expected to be in the PATH)
+. px4-alias.sh
+
+param load
+param set CBRK_SUPPLY_CHK 894281
+param set SYS_RESTART_TYPE 0
+
+dataman start
+
+tone_alarm start
+
+ver all
+
+param set IMU_GYRO_RATEMAX 1000
+
+param set IMU_GYRO_FFT_EN 1
+param set IMU_GYRO_FFT_MIN 10
+param set IMU_GYRO_FFT_MAX 1000
+param set IMU_GYRO_FFT_LEN 1024
+
+# dynamic notches ESC/FFT/both
+#param set IMU_GYRO_DYN_NF 1
+#param set IMU_GYRO_DYN_NF 2
+#param set IMU_GYRO_DYN_NF 3
+
+# test values
+param set IMU_GYRO_CUTOFF 60
+param set IMU_DGYRO_CUTOFF 40
+#param set IMU_GYRO_NF_FREQ 60
+#param set IMU_GYRO_NF_BW 5
+
+# log nearly everything
+param set SDLOG_PROFILE 859
+
+fake_imu start
+
+sensors start
+gyro_fft start
+
+logger start -f -t -b 10000 -p sensor_gyro
+logger on
+
+echo "Running for 10 seconds"
+sleep 10
+
+logger off
+
+sensors status
+listener sensor_gyro
+listener sensor_gyro_fifo
+perf
+
+echo "ALL TESTS PASSED"
+
+shutdown

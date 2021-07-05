@@ -291,7 +291,7 @@ PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
  *
  * A non-zero, positive value specifies the time in seconds, within which the
  * vehicle is expected to take off after arming. In case the vehicle didn't takeoff
- * within the timout it disamrs again.
+ * within the timeout it disarms again.
  *
  * A negative value disables autmoatic disarming triggered by a pre-takeoff timeout.
  *
@@ -300,7 +300,6 @@ PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
-
 
 /**
  * Allow arming without GPS
@@ -834,7 +833,7 @@ PARAM_DEFINE_INT32(COM_FLIGHT_UUID, 0);
  *
  * @value 0 Hold
  * @value 1 Mission (if valid)
- * @group Mission
+ * @group Commander
  */
 PARAM_DEFINE_INT32(COM_TAKEOFF_ACT, 0);
 
@@ -851,8 +850,10 @@ PARAM_DEFINE_INT32(COM_TAKEOFF_ACT, 0);
  * @value 3 Land mode
  * @value 5 Terminate
  * @value 6 Lockdown
+ * @min 0
+ * @max 6
  *
- * @group Mission
+ * @group Commander
  */
 PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
 
@@ -863,22 +864,37 @@ PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
  * set by COM_RC_LOSS_T in seconds. If RC input checks have been disabled
  * by setting the COM_RC_IN_MODE param it will not be triggered.
  *
- * @value 0 Disabled
  * @value 1 Hold mode
  * @value 2 Return mode
  * @value 3 Land mode
  * @value 5 Terminate
  * @value 6 Lockdown
+ * @min 1
+ * @max 6
  *
- * @group Mission
+ * @group Commander
  */
 PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
+
+/**
+ * RC loss exceptions
+ *
+ * Specify modes in which RC loss is ignored and the failsafe action not triggered.
+ *
+ * @min 0
+ * @max 31
+ * @bit 0 Mission
+ * @bit 1 Hold
+ * @bit 2 Offboard
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
 
 /**
  * Flag to enable obstacle avoidance.
  *
  * @boolean
- * @group Mission
+ * @group Commander
  */
 PARAM_DEFINE_INT32(COM_OBS_AVOID, 0);
 
@@ -989,7 +1005,7 @@ PARAM_DEFINE_FLOAT(COM_LKDOWN_TKO, 3.0f);
 /**
 * Enable preflight check for maximal allowed airspeed when arming.
 *
-* Deny arming if the current airspeed measurement is greater than half the stall speed (ASPD_STALL).
+* Deny arming if the current airspeed measurement is greater than half the cruise airspeed (FW_AIRSPD_TRIM).
 * Excessive airspeed measurements on ground are either caused by wind or bad airspeed calibration.
 *
 * @group Commander

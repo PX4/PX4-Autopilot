@@ -41,7 +41,7 @@ if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
 			nuttx_drivers # sdio
 			bootloader
 	)
-	target_include_directories(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/bootloader)
+	target_include_directories(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/bootloader/common)
 
 else()
 	add_library(drivers_board

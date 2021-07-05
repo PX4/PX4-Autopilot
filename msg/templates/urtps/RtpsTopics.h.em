@@ -30,7 +30,7 @@ except AttributeError:
 /****************************************************************************
  *
  * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
- * Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -91,117 +91,122 @@ using @(topic)_msg_t = @(topic);
 @[    end if]@
 @[end for]@
 
-class RtpsTopics {
+class RtpsTopics
+{
 public:
-    bool init(std::condition_variable* t_send_queue_cv, std::mutex* t_send_queue_mutex, std::queue<uint8_t>* t_send_queue, const std::string& ns);
-    void set_timesync(const std::shared_ptr<TimeSync>& timesync) { _timesync = timesync; };
+	bool init(std::condition_variable *t_send_queue_cv, std::mutex *t_send_queue_mutex, std::queue<uint8_t> *t_send_queue,
+		  const std::string &ns);
+	void set_timesync(const std::shared_ptr<TimeSync> &timesync) { _timesync = timesync; };
 @[if send_topics]@
-    void publish(uint8_t topic_ID, char data_buffer[], size_t len);
+	void publish(const uint8_t topic_ID, char data_buffer[], size_t len);
 @[end if]@
 @[if recv_topics]@
-    bool getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr);
+	bool getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr);
 @[end if]@
 
 private:
 @[if send_topics]@
-    /** Publishers **/
+	/** Publishers **/
 @[for topic in send_topics]@
-    @(topic)_Publisher _@(topic)_pub;
+	@(topic)_Publisher _@(topic)_pub;
 @[end for]@
 @[end if]@
 
 @[if recv_topics]@
-    /** Subscribers **/
+	/** Subscribers **/
 @[for topic in recv_topics]@
-    @(topic)_Subscriber _@(topic)_sub;
+	@(topic)_Subscriber _@(topic)_sub;
 @[end for]@
 @[end if]@
 
-    // SFINAE
-    template<typename T> struct hasTimestampSample{
-    private:
-      static void detect(...);
-      template<typename U> static decltype(std::declval<U>().timestamp_sample()) detect(const U&);
-    public:
-      static constexpr bool value = std::is_same<uint64_t, decltype(detect(std::declval<T>()))>::value;
-    };
+	// SFINAE
+	template<typename T> struct hasTimestampSample{
+	private:
+		template<typename U,
+            typename = decltype(std::declval<U>().timestamp_sample(int64_t()))>
+		static std::true_type detect(int);
+		template<typename U>
+		static std::false_type detect(...);
+	public:
+		static constexpr bool value = decltype(detect<T>(0))::value;
+  };
 
-    template<typename T>
-    inline typename std::enable_if<!hasTimestampSample<T>::value, uint64_t>::type
-    getMsgTimestampSample_impl(const T*) { return 0; }
+	template<typename T>
+	inline typename std::enable_if < !hasTimestampSample<T>::value, uint64_t >::type
+	getMsgTimestampSample_impl(const T *) { return 0; }
 
-    /** Msg metada Getters **/
+	/** Msg metada Getters **/
 @[if version.parse(fastrtps_version) <= version.parse('1.7.2') or not ros2_distro]@
-    template <class T>
-    inline uint64_t getMsgTimestamp(const T* msg) { return msg->timestamp_(); }
+	template <class T>
+	inline uint64_t getMsgTimestamp(const T *msg) { return msg->timestamp_(); }
 
-    template<typename T>
-    inline typename std::enable_if<hasTimestampSample<T>::value, uint64_t>::type
-    getMsgTimestampSample_impl(const T* msg) { return msg->timestamp_sample_(); }
+	template<typename T>
+	inline typename std::enable_if<hasTimestampSample<T>::value, uint64_t>::type
+	getMsgTimestampSample_impl(const T *msg) { return msg->timestamp_sample_(); }
 
-    template <class T>
-    inline uint8_t getMsgSysID(const T* msg) { return msg->sys_id_(); }
+	template <class T>
+	inline uint8_t getMsgSysID(const T *msg) { return msg->sys_id_(); }
 
-    template <class T>
-    inline uint8_t getMsgSeq(const T* msg) { return msg->seq_(); }
+	template <class T>
+	inline uint8_t getMsgSeq(const T *msg) { return msg->seq_(); }
 @[elif ros2_distro]@
-    template <class T>
-    inline uint64_t getMsgTimestamp(const T* msg) { return msg->timestamp(); }
+	template <class T>
+	inline uint64_t getMsgTimestamp(const T *msg) { return msg->timestamp(); }
 
-    template<typename T>
-    inline typename std::enable_if<hasTimestampSample<T>::value, uint64_t>::type
-    getMsgTimestampSample_impl(const T* msg) { return msg->timestamp_sample(); }
+	template<typename T>
+	inline typename std::enable_if<hasTimestampSample<T>::value, uint64_t>::type
+	getMsgTimestampSample_impl(const T *msg) { return msg->timestamp_sample(); }
 
-    template <class T>
-    inline uint8_t getMsgSysID(const T* msg) { return msg->sys_id(); }
+	template <class T>
+	inline uint8_t getMsgSysID(const T *msg) { return msg->sys_id(); }
 
-    template <class T>
-    inline uint8_t getMsgSeq(const T* msg) { return msg->seq(); }
+	template <class T>
+	inline uint8_t getMsgSeq(const T *msg) { return msg->seq(); }
 @[end if]@
 
-    template <class T>
-    inline uint64_t getMsgTimestampSample(const T* msg) { return getMsgTimestampSample_impl(msg); }
+	template <class T>
+	inline uint64_t getMsgTimestampSample(const T *msg) { return getMsgTimestampSample_impl(msg); }
 
-    template<typename T>
-    inline typename std::enable_if<!hasTimestampSample<T>::value, void>::type
-    setMsgTimestampSample_impl(T*, const uint64_t&) {}
+	template<typename T>
+	inline typename std::enable_if <!hasTimestampSample<T>::value, void>::type
+	setMsgTimestampSample_impl(T *, const uint64_t &) {}
 
-    /** Msg metadata Setters **/
+	/** Msg metadata Setters **/
 @[if version.parse(fastrtps_version) <= version.parse('1.7.2') or not ros2_distro]@
-    template <class T>
-    inline void setMsgTimestamp(T* msg, const uint64_t& timestamp) { msg->timestamp_() = timestamp; }
+	template <class T>
+	inline void setMsgTimestamp(T *msg, const uint64_t &timestamp) { msg->timestamp_() = timestamp; }
 
-    template <class T>
-    inline typename std::enable_if<hasTimestampSample<T>::value, void>::type
-    setMsgTimestampSample_impl(T* msg, const uint64_t& timestamp_sample) { msg->timestamp_sample_() = timestamp_sample; }
+	template <class T>
+	inline typename std::enable_if<hasTimestampSample<T>::value, void>::type
+	setMsgTimestampSample_impl(T *msg, const uint64_t &timestamp_sample) { msg->timestamp_sample_() = timestamp_sample; }
 
-    template <class T>
-    inline void setMsgSysID(T* msg, const uint8_t& sys_id) { msg->sys_id_() = sys_id; }
+	template <class T>
+	inline void setMsgSysID(T *msg, const uint8_t &sys_id) { msg->sys_id_() = sys_id; }
 
-    template <class T>
-    inline void setMsgSeq(T* msg, const uint8_t& seq) { msg->seq_() = seq; }
+	template <class T>
+	inline void setMsgSeq(T *msg, const uint8_t &seq) { msg->seq_() = seq; }
 @[elif ros2_distro]@
-    template <class T>
-    inline void setMsgTimestamp(T* msg, const uint64_t& timestamp) { msg->timestamp() = timestamp; }
+	template <class T>
+	inline void setMsgTimestamp(T *msg, const uint64_t &timestamp) { msg->timestamp() = timestamp; }
 
-    template <class T>
-    inline typename std::enable_if<hasTimestampSample<T>::value, void>::type
-    setMsgTimestampSample_impl(T* msg, const uint64_t& timestamp_sample) { msg->timestamp_sample() = timestamp_sample; }
+	template <class T>
+	inline typename std::enable_if<hasTimestampSample<T>::value, void>::type
+	setMsgTimestampSample_impl(T *msg, const uint64_t &timestamp_sample) { msg->timestamp_sample() = timestamp_sample; }
 
-    template <class T>
-    inline void setMsgSysID(T* msg, const uint8_t& sys_id) { msg->sys_id() = sys_id; }
+	template <class T>
+	inline void setMsgSysID(T *msg, const uint8_t &sys_id) { msg->sys_id() = sys_id; }
 
-    template <class T>
-    inline void setMsgSeq(T* msg, const uint8_t& seq) { msg->seq() = seq; }
+	template <class T>
+	inline void setMsgSeq(T *msg, const uint8_t &seq) { msg->seq() = seq; }
 @[end if]@
 
-    template <class T>
-    inline void setMsgTimestampSample(T* msg, const uint64_t& timestamp_sample) { setMsgTimestampSample_impl(msg, timestamp_sample); }
+	template <class T>
+	inline void setMsgTimestampSample(T *msg, const uint64_t &timestamp_sample) { setMsgTimestampSample_impl(msg, timestamp_sample); }
 
-    /**
-     * @@brief Timesync object ptr.
-     *         This object is used to compuyte and apply the time offsets to the
-     *         messages timestamps.
-     */
-    std::shared_ptr<TimeSync> _timesync;
+	/**
+	 * @@brief Timesync object ptr.
+	 *         This object is used to compuyte and apply the time offsets to the
+	 *         messages timestamps.
+	 */
+	std::shared_ptr<TimeSync> _timesync;
 };

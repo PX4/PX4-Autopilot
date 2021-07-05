@@ -117,7 +117,7 @@ TEST_F(NotchFilterTest, filteringLowSideDF1)
 	for (int i = 0; i < 1000; i++) {
 		float input = sinf(omega * t);
 		float output_expected = sinf(omega * t - phase_delay);
-		out = _notch_float.applyDF1(input);
+		out = _notch_float.apply(input);
 		t = i * dt;
 
 		// Let some time for the filter to settle
@@ -167,7 +167,7 @@ TEST_F(NotchFilterTest, filteringHighSideDF1)
 	for (int i = 0; i < 1000; i++) {
 		float input = sinf(omega * t);
 		float output_expected = sinf(omega * t + phase_delay);
-		out = _notch_float.applyDF1(input);
+		out = _notch_float.apply(input);
 		t = i * dt;
 
 		// Let some time for the filter to settle
@@ -213,7 +213,7 @@ TEST_F(NotchFilterTest, filterOnNotchDF1)
 
 	for (int i = 0; i < 1000; i++) {
 		float input = sinf(omega * t);
-		out = _notch_float.applyDF1(input);
+		out = _notch_float.apply(input);
 		t = i * dt;
 
 		// Let some time for the filter to settle
@@ -282,7 +282,7 @@ TEST_F(NotchFilterTest, filterVector3fDF1)
 		const Vector3f input(sinf(omega(0) * t), sinf(omega(1) * t), sinf(omega(2) * t));
 		const Vector3f arg = omega * t + phase_delay;
 		const Vector3f output_expected(sinf(arg(0)), 0.f, sinf(arg(2)));
-		out = _notch_vector3f.applyDF1(input);
+		out = _notch_vector3f.apply(input);
 		t = i * dt;
 
 		// Let some time for the filter to settle

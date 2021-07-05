@@ -126,7 +126,7 @@ int16_t CanardNuttXCDev::receive(CanardFrame *received_frame)
 	// Any recieved CAN messages will cause the poll statement to unblock and run
 	// This way CAN read runs with minimal latency.
 	// Note that multiple messages may be received in a short time, so this will try to read any availible in a loop
-	::poll(&fds, 1, 10);
+	::poll(&fds, 1, 0);
 
 	// Only execute this part if can0 is changed.
 	if (fds.revents & POLLIN) {

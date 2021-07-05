@@ -81,7 +81,8 @@ def sign(bin_file_path, key_file_path=None, generated_key_file=None):
         # Align to 4 bytes. Signature always starts at
         # 4 byte aligned address, but the signee size
         # might not be aligned
-        signee_bin += bytearray(b'\xff')*(4-len(signee_bin)%4)
+        if len(signee_bin)%4 != 0:
+            signee_bin += bytearray(b'\xff')*(4-len(signee_bin)%4)
 
     try:
         with open(key_file_path,mode='r') as f:
@@ -133,7 +134,7 @@ if(__name__ == "__main__"):
     parser.add_argument("signee", help=".bin file to add signature", nargs='?', default=None)
     parser.add_argument("signed", help="signed output .bin", nargs='?', default=None)
 
-    parser.add_argument("--key", help="key.json file", default="Tools/test_keys.json")
+    parser.add_argument("--key", help="key.json file", default="Tools/test_keys/test_keys.json")
     parser.add_argument("--rdct", help="binary R&D certificate file", default=None)
     parser.add_argument("--genkey", help="new generated key", default=None)
     args = parser.parse_args()
@@ -152,7 +153,7 @@ if(__name__ == "__main__"):
         sys.exit(1)
 
     # Issue a warning when signing with testing key
-    if args.key=='Tools/test_keys.json':
+    if args.key=='Tools/test_keys/test_keys.json':
         print("WARNING: Signing with PX4 test key")
 
     # Sign the binary

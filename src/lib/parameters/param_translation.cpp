@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -63,7 +63,8 @@ bool param_modify_on_import(bson_node_t node)
 			strcpy(node->name, "COM_ARM_AUTH_ID");
 			node->i = old_param.struct_value.authorizer_system_id;
 
-			PX4_INFO("migrating COM_ARM_AUTH: %d -> COM_ARM_AUTH_ID:%d, COM_ARM_AUTH_MET: %d and COM_ARM_AUTH_TO: %f",
+			PX4_INFO("migrating COM_ARM_AUTH: %" PRId32 " -> COM_ARM_AUTH_ID:%" PRId8 ", COM_ARM_AUTH_MET: %" PRId32
+				 " and COM_ARM_AUTH_TO: %f",
 				 old_param.param_value,
 				 old_param.struct_value.authorizer_system_id,
 				 method,
@@ -164,6 +165,14 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2021-04-30: translate ASPD_STALL to FW_AIRSPD_STALL
+	{
+		if (strcmp("ASPD_STALL", node->name) == 0) {
+			strcpy(node->name, "FW_AIRSPD_STALL");
+			PX4_INFO("copying %s -> %s", "ASPD_STALL", "FW_AIRSPD_STALL");
+		}
+	}
+
 	// translate (SPI) calibration ID parameters. This can be removed after the next release (current release=1.10)
 
 	if (node->type != BSON_INT32) {
@@ -250,7 +259,7 @@ bool param_modify_on_import(bson_node_t node)
 	int32_t new_value = (int32_t)device_id.devid;
 
 	if (new_value != *ivalue) {
-		PX4_INFO("param modify: %s, value=0x%x (old=0x%x)", node->name, new_value, (int32_t)*ivalue);
+		PX4_INFO("param modify: %s, value=0x%" PRId32 " (old=0x%" PRId32 ")", node->name, new_value, (int32_t)*ivalue);
 		*ivalue = new_value;
 		return true;
 	}

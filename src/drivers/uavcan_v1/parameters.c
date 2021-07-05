@@ -66,40 +66,115 @@ PARAM_DEFINE_INT32(UAVCAN_V1_ID, 1);
  */
 PARAM_DEFINE_INT32(UAVCAN_V1_BAUD, 1000000);
 
-/**
- * UAVCAN v1 battery mode.
- *
- * @value 0 Disable
- * @value 1 Receive BMSStatus
- * @value 2 Send BMSStatus
- * @reboot_required true
- * @group UAVCAN v1
- */
-PARAM_DEFINE_INT32(UAVCAN_V1_BAT_MD, 0);
+/* Subscription port ID, -1 will be treated as unset */
 
 /**
- * UAVCAN v1 battery port ID.
+ * ESC0 port ID.
  *
- * @min 1
- * @max 32767
+ * @min -1
+ * @max 6143
  * @group UAVCAN v1
  */
-PARAM_DEFINE_INT32(UAVCAN_V1_BAT_ID, 4242);
+PARAM_DEFINE_INT32(UCAN1_ESC0_PID, -1);
 
-// Subscription Port IDs
-PARAM_DEFINE_INT32(UCAN1_ESC0_PID, 0);
-PARAM_DEFINE_INT32(UCAN1_GPS0_PID, 0);
-PARAM_DEFINE_INT32(UCAN1_GPS1_PID, 0);
-//PARAM_DEFINE_INT32(UCAN1_BMS0_PID, 0);
-//PARAM_DEFINE_INT32(UCAN1_BMS1_PID, 0);
+/**
+ * GPS 0 port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group UAVCAN v1
+ */
+PARAM_DEFINE_INT32(UCAN1_GPS0_PID, -1);
 
-PARAM_DEFINE_INT32(UCAN1_BMS_ES_PID, 0);
-PARAM_DEFINE_INT32(UCAN1_BMS_BS_PID, 0);
-PARAM_DEFINE_INT32(UCAN1_BMS_BP_PID, 0);
+/**
+ * GPS 1 port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group UAVCAN v1
+ */
+PARAM_DEFINE_INT32(UCAN1_GPS1_PID, -1);
 
-PARAM_DEFINE_INT32(UCAN1_LG_BMS_PID, 0);
+/**
+ * DS-015 battery energy source port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group UAVCAN v1
+ */
+PARAM_DEFINE_INT32(UCAN1_BMS_ES_PID, -1);
+
+/**
+ * DS-015 battery status port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group UAVCAN v1
+ */
+PARAM_DEFINE_INT32(UCAN1_BMS_BS_PID, -1);
+
+/**
+ * DS-015 battery parameters port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group UAVCAN v1
+ */
+PARAM_DEFINE_INT32(UCAN1_BMS_BP_PID, -1);
+
+/**
+ * UAVCAN v1 leagcy battery port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group UAVCAN v1
+ */
+PARAM_DEFINE_INT32(UCAN1_LG_BMS_PID, -1);
+
+
+/**
+ * sensor_gps uORB over UAVCAN v1 port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group UAVCAN v1
+ */
+PARAM_DEFINE_INT32(UCAN1_UORB_GPS, -1);
 
 // Publication Port IDs
-PARAM_DEFINE_INT32(UCAN1_ESC_PUB, 0);
-PARAM_DEFINE_INT32(UCAN1_GPS_PUB, 0);
-PARAM_DEFINE_INT32(UCAN1_SERVO_PUB, 0);
+
+/**
+ * UAVCAN v1 ESC port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group UAVCAN v1
+ */
+PARAM_DEFINE_INT32(UCAN1_ESC_PUB, -1);
+
+/**
+ * UAVCAN v1 GPS port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group UAVCAN v1
+ */
+PARAM_DEFINE_INT32(UCAN1_GPS_PUB, -1);
+
+/**
+ * UAVCAN v1 Servo port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group UAVCAN v1
+ */
+PARAM_DEFINE_INT32(UCAN1_SERVO_PUB, -1);
+
+/**
+ * actuator_outputs uORB over UAVCAN v1 port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group UAVCAN v1
+ */
+PARAM_DEFINE_INT32(UCAN1_ACTR_PUB, -1);

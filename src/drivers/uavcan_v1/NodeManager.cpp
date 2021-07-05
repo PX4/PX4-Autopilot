@@ -39,16 +39,40 @@
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
 
+#define RETRY_COUNT 10
+
 #include "NodeManager.hpp"
+
+void NodeManager::callback(const CanardTransfer &receive)
+{
+	if (_canard_instance.mtu_bytes == CANARD_MTU_CAN_FD) {
+		uavcan_pnp_NodeIDAllocationData_2_0 node_id_alloc_msg {};
+		size_t msg_size_in_bytes = receive.payload_size;
+		uavcan_pnp_NodeIDAllocationData_2_0_deserialize_(&node_id_alloc_msg, (const uint8_t *)receive.payload,
+				&msg_size_in_bytes);
+		/// do something with the data
+		HandleNodeIDRequest(node_id_alloc_msg);
+
+	} else {
+		uavcan_pnp_NodeIDAllocationData_1_0 node_id_alloc_msg {};
+		size_t msg_size_in_bytes = receive.payload_size;
+		uavcan_pnp_NodeIDAllocationData_1_0_deserialize_(&node_id_alloc_msg, (const uint8_t *)receive.payload,
+				&msg_size_in_bytes);
+		/// do something with the data
+		HandleNodeIDRequest(node_id_alloc_msg);
+	}
+}
 
 bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg)
 {
 	if (msg.allocated_node_id.count == 0) {
+		uint32_t i;
+
 		msg.allocated_node_id.count = 1;
 		msg.allocated_node_id.elements[0].value = CANARD_NODE_ID_UNSET;
 
 		/* Search for an available NodeID to assign */
-		for (uint32_t i = 1; i < sizeof(nodeid_registry) / sizeof(nodeid_registry[0]); i++) {
+		for (i = 1; i < sizeof(nodeid_registry) / sizeof(nodeid_registry[0]); i++) {
 			if (i == _canard_instance.node_id) {
 				continue; // Don't give our NodeID to a node
 
@@ -62,6 +86,10 @@ bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg)
 				break;
 			}
 		}
+
+		nodeid_registry[i].register_setup = false; // Re-instantiate register setup
+		nodeid_registry[i].register_index = 0;
+		nodeid_registry[i].retry_count = 0;
 
 		if (msg.allocated_node_id.elements[0].value != CANARD_NODE_ID_UNSET) {
 
@@ -97,40 +125,42 @@ bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg)
 	return false;
 }
 
-
 bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_2_0 &msg)
 {
-	//TODO V2 CAN FD implementation
+	//TODO v2 node id
 	return false;
 }
 
 
-void NodeManager::HandleListResponse(CanardNodeID node_id, uavcan_register_List_Response_1_0 &msg)
+void NodeManager::HandleListResponse(const CanardTransfer &receive)
 {
+	uavcan_register_List_Response_1_0 msg;
+
+	size_t register_in_size_bits = receive.payload_size;
+	uavcan_register_List_Response_1_0_deserialize_(&msg, (const uint8_t *)receive.payload, &register_in_size_bits);
+
 	if (msg.name.name.count == 0) {
 		// Index doesn't exist, we've parsed through all registers
 		for (uint32_t i = 0; i < sizeof(nodeid_registry) / sizeof(nodeid_registry[0]); i++) {
-			if (nodeid_registry[i].node_id == node_id) {
+			if (nodeid_registry[i].node_id == receive.remote_node_id) {
 				nodeid_registry[i].register_setup = true; // Don't update anymore
 			}
 		}
 
 	} else {
 		for (uint32_t i = 0; i < sizeof(nodeid_registry) / sizeof(nodeid_registry[0]); i++) {
-			if (nodeid_registry[i].node_id == node_id) {
+			if (nodeid_registry[i].node_id == receive.remote_node_id) {
 				nodeid_registry[i].register_index++; // Increment index counter for next update()
 				nodeid_registry[i].register_setup = false;
+				nodeid_registry[i].retry_count = 0;
 			}
 		}
 
+		if (_access_request.setPortId(receive.remote_node_id, msg.name, NULL)) { //FIXME confirm handler
+			PX4_INFO("Set portID succesfull");
 
-		if (strncmp((char *)msg.name.name.elements, gps_uorb_register_name,
-			    msg.name.name.count) == 0) {
-			_access_request.setPortId(node_id, gps_uorb_register_name, 1235); //TODO configurable and combine with ParamManager.
-
-		} else if (strncmp((char *)msg.name.name.elements, bms_status_register_name,
-				   msg.name.name.count) == 0) { //Battery status publisher
-			_access_request.setPortId(node_id, bms_status_register_name, 1234); //TODO configurable and combine with ParamManager.
+		} else {
+			PX4_INFO("Register not found %.*s", msg.name.name.count, msg.name.name.elements);
 		}
 	}
 }
@@ -141,8 +171,12 @@ void NodeManager::update()
 		for (uint32_t i = 0; i < sizeof(nodeid_registry) / sizeof(nodeid_registry[0]); i++) {
 			if (nodeid_registry[i].node_id != 0 && nodeid_registry[i].register_setup == false) {
 				//Setting up registers
-				_list_request.request(nodeid_registry[i].node_id, nodeid_registry[i].register_index);
-				nodeid_registry[i].register_setup = true;
+				_list_request.getIndex(nodeid_registry[i].node_id, nodeid_registry[i].register_index, this);
+				nodeid_registry[i].retry_count++;
+
+				if (nodeid_registry[i].retry_count > RETRY_COUNT) {
+					nodeid_registry[i].register_setup = true; // Don't update anymore
+				}
 			}
 		}
 

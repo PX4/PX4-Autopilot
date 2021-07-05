@@ -40,9 +40,10 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 	return (msb << 8u) | lsb;
 }
 
-ICM20948_I2C_Passthrough::ICM20948_I2C_Passthrough(I2CSPIBusOption bus_option, int bus, int bus_frequency) :
-	I2C(DRV_IMU_DEVTYPE_ICM20948, MODULE_NAME, bus, I2C_ADDRESS_DEFAULT, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus)
+ICM20948_I2C_Passthrough::ICM20948_I2C_Passthrough(I2CSPIBusOption bus_option, int bus, int bus_frequency,
+		const int address) :
+	I2C(DRV_IMU_DEVTYPE_ICM20948, MODULE_NAME, bus, address, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
 {
 }
 

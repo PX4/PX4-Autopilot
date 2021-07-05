@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,23 +42,13 @@
 
 #pragma once
 
-#include <px4_platform_common/defines.h>
+#include <mathlib/math/Functions.hpp>
 #include <cmath>
 #include <float.h>
 #include <matrix/math.hpp>
 
 namespace math
 {
-
-inline bool isFinite(const float &value)
-{
-	return PX4_ISFINITE(value);
-}
-
-inline bool isFinite(const matrix::Vector3f &value)
-{
-	return PX4_ISFINITE(value(0)) && PX4_ISFINITE(value(1)) && PX4_ISFINITE(value(2));
-}
 
 template<typename T>
 class NotchFilter
@@ -67,36 +57,18 @@ public:
 	NotchFilter() = default;
 	~NotchFilter() = default;
 
-
 	void setParameters(float sample_freq, float notch_freq, float bandwidth);
-
-	/**
-	 * Add a new raw value to the filter using the Direct form II
-	 *
-	 * @return retrieve the filtered result
-	 */
-	inline T apply(const T &sample)
-	{
-		// Direct Form II implementation
-		const T delay_element_0{sample - _delay_element_1 *_a1 - _delay_element_2 * _a2};
-		const T output{delay_element_0 *_b0 + _delay_element_1 *_b1 + _delay_element_2 * _b2};
-
-		_delay_element_2 = _delay_element_1;
-		_delay_element_1 = delay_element_0;
-
-		return output;
-	}
 
 	/**
 	 * Add a new raw value to the filter using the Direct Form I
 	 *
 	 * @return retrieve the filtered result
 	 */
-	inline T applyDF1(const T &sample)
+	inline T apply(const T &sample)
 	{
 		// Direct Form I implementation
-		const T output = _b0 * sample + _b1 * _delay_element_1 + _b2 * _delay_element_2 - _a1 * _delay_element_output_1 - _a2 *
-				 _delay_element_output_2;
+		T output = _b0 * sample + _b1 * _delay_element_1 + _b2 * _delay_element_2 - _a1 * _delay_element_output_1 - _a2 *
+			   _delay_element_output_2;
 
 		// shift inputs
 		_delay_element_2 = _delay_element_1;
@@ -107,6 +79,14 @@ public:
 		_delay_element_output_1 = output;
 
 		return output;
+	}
+
+	// Filter array of samples in place using the direct form I
+	inline void applyArray(T samples[], int num_samples)
+	{
+		for (int n = 0; n < num_samples; n++) {
+			samples[n] = apply(samples[n]);
+		}
 	}
 
 	float getNotchFreq() const { return _notch_freq; }
@@ -150,55 +130,79 @@ public:
 		_b2 = b[2];
 	}
 
+	void reset(const T &sample)
+	{
+		const T input = isFinite(sample) ? sample : T{};
 
-	T reset(const T &sample);
+		_delay_element_1 = _delay_element_2 = input;
+		_delay_element_output_1 = _delay_element_output_2 = input * (_b0 + _b1 + _b2) / (1 + _a1 + _a2);
+
+		if (!isFinite(_delay_element_1) || !isFinite(_delay_element_2)) {
+			_delay_element_output_1 = _delay_element_output_2 = {};
+		}
+	}
+
+	void disable()
+	{
+		// no filtering
+		_notch_freq = 0.f;
+		_bandwidth = 0.f;
+		_sample_freq = 0.f;
+
+		_delay_element_1 = {};
+		_delay_element_2 = {};
+		_delay_element_output_1 = {};
+		_delay_element_output_2 = {};
+
+		_b0 = 1.f;
+		_b1 = 0.f;
+		_b2 = 0.f;
+
+		_a1 = 0.f;
+		_a2 = 0.f;
+	}
 
 protected:
+	T _delay_element_1{};
+	T _delay_element_2{};
+	T _delay_element_output_1{};
+	T _delay_element_output_2{};
+
+	// All the coefficients are normalized by a0, so a0 becomes 1 here
+	float _a1{0.f};
+	float _a2{0.f};
+
+	float _b0{1.f};
+	float _b1{0.f};
+	float _b2{0.f};
+
 	float _notch_freq{};
 	float _bandwidth{};
 	float _sample_freq{};
-
-	// All the coefficients are normalized by a0, so a0 becomes 1 here
-	float _a1{};
-	float _a2{};
-
-	float _b0{};
-	float _b1{};
-	float _b2{};
-
-	T _delay_element_1;
-	T _delay_element_2;
-	T _delay_element_output_1;
-	T _delay_element_output_2;
 };
 
 /**
  * Initialises the filter by setting its parameters and coefficients.
- * If using the direct form I (applyDF1) method, allows to dynamically
+ * Using the direct form I method, allows to dynamically
  * update the filtered frequency, refresh rate and quality factor while
  * conserving the filter's history
  */
 template<typename T>
 void NotchFilter<T>::setParameters(float sample_freq, float notch_freq, float bandwidth)
 {
-	_notch_freq = notch_freq;
-	_bandwidth = bandwidth;
-	_sample_freq = sample_freq;
+	if ((sample_freq <= 0.f) || (notch_freq <= 0.f) || (bandwidth <= 0.f) || (notch_freq >= sample_freq / 2)
+	    || !isFinite(sample_freq) || !isFinite(notch_freq) || !isFinite(bandwidth)) {
 
-	if (notch_freq <= 0.f) {
-		// no filtering
-		_b0 = 1.0f;
-		_b1 = 0.0f;
-		_b2 = 0.0f;
-
-		_a1 = 0.0f;
-		_a2 = 0.0f;
-
+		disable();
 		return;
 	}
 
-	const float alpha = tanf(M_PI_F * bandwidth / sample_freq);
-	const float beta = -cosf(2.f * M_PI_F * notch_freq / sample_freq);
+	_notch_freq = math::constrain(notch_freq, 5.f, sample_freq / 2); // TODO: min based on actual numerical limit
+	_bandwidth = math::constrain(bandwidth, 5.f, sample_freq / 2);
+	_sample_freq = sample_freq;
+
+	const float alpha = tanf(M_PI_F * _bandwidth / _sample_freq);
+	const float beta = -cosf(2.f * M_PI_F * _notch_freq / _sample_freq);
 	const float a0_inv = 1.f / (alpha + 1.f);
 
 	_b0 = a0_inv;
@@ -207,23 +211,10 @@ void NotchFilter<T>::setParameters(float sample_freq, float notch_freq, float ba
 
 	_a1 = _b1;
 	_a2 = (1.f - alpha) * a0_inv;
-}
 
-template<typename T>
-T NotchFilter<T>::reset(const T &sample)
-{
-	T dval = sample;
-
-	if (fabsf(_b0 + _b1 + _b2) > FLT_EPSILON) {
-		dval = dval / (_b0 + _b1 + _b2);
+	if (!isFinite(_b0) || !isFinite(_b1) || !isFinite(_b2) || !isFinite(_a1) || !isFinite(_a2)) {
+		disable();
 	}
-
-	_delay_element_1 = dval;
-	_delay_element_2 = dval;
-	_delay_element_output_1 = {};
-	_delay_element_output_2 = {};
-
-	return apply(sample);
 }
 
 } // namespace math

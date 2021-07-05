@@ -56,8 +56,7 @@ static void memFree(CanardInstance *const ins, void *const pointer) { o1heapFree
 UavcanNode::UavcanNode(CanardInterface *interface, uint32_t node_id) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
-	_can_interface(interface)//,
-	// _subscribers{&_gps0_sub, &_gps1_sub, &_bms0_sub, &_bms1_sub}
+	_can_interface(interface)
 {
 	pthread_mutex_init(&_node_mutex, nullptr);
 
@@ -65,7 +64,7 @@ UavcanNode::UavcanNode(CanardInterface *interface, uint32_t node_id) :
 	uavcan_allocator = o1heapInit(_uavcan_heap, HeapSize, nullptr, nullptr);
 
 	if (uavcan_allocator == nullptr) {
-		PX4_ERR("o1heapInit failed with size %d", HeapSize);
+		PX4_ERR("o1heapInit failed with size %u", HeapSize);
 	}
 
 	_canard_instance = canardInit(&memAllocate, &memFree);
@@ -83,21 +82,19 @@ UavcanNode::UavcanNode(CanardInterface *interface, uint32_t node_id) :
 
 	PX4_INFO("main _canard_instance = %p", &_canard_instance);
 
+	_node_manager.subscribe();
+
 	for (auto &publisher : _publishers) {
 		publisher->updateParam();
 	}
 
-	for (auto &subscriber : _dynsubscribers) {
-		subscriber->updateParam();
-	}
+	_sub_manager.subscribe();
 
 	_mixing_output.mixingOutput().updateSubscriptions(false, false);
 }
 
 UavcanNode::~UavcanNode()
 {
-	delete _can_interface;
-
 	if (_instance) {
 		/* tell the task we want it to go away */
 		_task_should_exit.store(true);
@@ -115,6 +112,8 @@ UavcanNode::~UavcanNode()
 
 		} while (_instance);
 	}
+
+	delete _can_interface;
 
 	perf_free(_cycle_perf);
 	perf_free(_interval_perf);
@@ -157,28 +156,6 @@ void UavcanNode::init()
 	// interface init
 	if (_can_interface) {
 		if (_can_interface->init() == PX4_OK) {
-
-			// We can't accept just any message; we must fist subscribe to specific IDs
-
-			// Subscribe to messages uavcan.node.Heartbeat.
-			canardRxSubscribe(&_canard_instance,
-					  CanardTransferKindMessage,
-					  uavcan_node_Heartbeat_1_0_FIXED_PORT_ID_,
-					  uavcan_node_Heartbeat_1_0_EXTENT_BYTES_,
-					  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-					  &_heartbeat_subscription);
-
-			canardRxSubscribe(&_canard_instance, // uORB over UAVCAN GPS message
-					  CanardTransferKindMessage,
-					  gps_port_id,
-					  sizeof(struct sensor_gps_s),
-					  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-					  &_drone_srv_gps_subscription);
-
-			for (auto &subscriber : _subscribers) {
-				subscriber->subscribe();
-			}
-
 			_initialized = true;
 		}
 	}
@@ -213,12 +190,7 @@ void UavcanNode::Run()
 			publisher->updateParam();
 		}
 
-		for (auto &subscriber : _dynsubscribers) {
-			// Have the subscriber update its associated port-id parameter
-			// If the port-id changes, (re)start the subscription
-			// Setting the port-id to 0 disables the subscription
-			subscriber->updateParam();
-		}
+		_sub_manager.updateParams();
 
 		_mixing_output.updateParams();
 
@@ -238,12 +210,68 @@ void UavcanNode::Run()
 
 	_node_manager.update();
 
-	// Transmitting
+	transmit();
+
+	/* Process received messages */
+
+	uint8_t data[64] {};
+	CanardFrame received_frame{};
+	received_frame.payload = &data;
+
+	while (_can_interface->receive(&received_frame) > 0) {
+		CanardTransfer receive{};
+		CanardRxSubscription *subscription = NULL;
+		int32_t result = canardRxAccept2(&_canard_instance, &received_frame, 0, &receive, &subscription);
+
+		if (result < 0) {
+			// An error has occurred: either an argument is invalid or we've ran out of memory.
+			// It is possible to statically prove that an out-of-memory will never occur for a given application if
+			// the heap is sized correctly; for background, refer to the Robson's Proof and the documentation for O1Heap.
+			// Reception of an invalid frame is NOT an error.
+			PX4_ERR("Receive error %" PRId32" \n", result);
+
+		} else if (result == 1) {
+			// A transfer has been received, process it.
+			// PX4_INFO("received Port ID: %d", receive.port_id);
+
+			if (subscription != NULL) {
+				UavcanBaseSubscriber *sub_instance = (UavcanBaseSubscriber *)subscription->user_reference;
+				sub_instance->callback(receive);
+
+			} else {
+				PX4_ERR("No matching sub for %d", receive.port_id);
+			}
+
+			// Deallocate the dynamic memory afterwards.
+			_canard_instance.memory_free(&_canard_instance, (void *)receive.payload);
+
+		} else {
+			//PX4_INFO("RX canard %d", result);
+		}
+	}
+
+	// Pop canardTx queue to send out responses to requets
+	transmit();
+
+	perf_end(_cycle_perf);
+
+	if (_task_should_exit.load()) {
+		_can_interface->close();
+
+		ScheduleClear();
+		_instance = nullptr;
+	}
+
+	pthread_mutex_unlock(&_node_mutex);
+}
+
+void UavcanNode::transmit()
+{
 	// Look at the top of the TX queue.
 	for (const CanardFrame *txf = nullptr; (txf = canardTxPeek(&_canard_instance)) != nullptr;) {
 		// Attempt transmission only if the frame is not yet timed out while waiting in the TX queue.
 		// Otherwise just drop it and move on to the next one.
-		if (txf->timestamp_usec == 0 || hrt_absolute_time() > txf->timestamp_usec) {
+		if (txf->timestamp_usec == 0 || txf->timestamp_usec > hrt_absolute_time()) {
 			// Send the frame. Redundant interfaces may be used here.
 			const int tx_res = _can_interface->transmit(*txf);
 
@@ -268,67 +296,6 @@ void UavcanNode::Run()
 			}
 		}
 	}
-
-	/* Process received messages */
-
-	uint8_t data[64] {};
-	CanardFrame received_frame{};
-	received_frame.payload = &data;
-
-	/* FIXME this flawed we've to go through the whole loop to get the next frame in the buffer  */
-
-	if (_can_interface->receive(&received_frame) > 0) {
-
-		CanardTransfer receive{};
-		int32_t result = canardRxAccept(&_canard_instance, &received_frame, 0, &receive);
-
-		if (result < 0) {
-			// An error has occurred: either an argument is invalid or we've ran out of memory.
-			// It is possible to statically prove that an out-of-memory will never occur for a given application if
-			// the heap is sized correctly; for background, refer to the Robson's Proof and the documentation for O1Heap.
-			// Reception of an invalid frame is NOT an error.
-			PX4_ERR("Receive error %d\n", result);
-
-		} else if (result == 1) {
-			// A transfer has been received, process it.
-			// PX4_INFO("received Port ID: %d", receive.port_id);
-
-			if (receive.port_id == gps_port_id) {
-				result = handleUORBSensorGPS(receive);
-
-			} else if (receive.port_id > 0) {
-				// If not a fixed port ID, check any subscribers which may have registered it
-				for (auto &subscriber : _subscribers) {
-					if (subscriber->hasPortID(receive.port_id)) {
-						subscriber->callback(receive);
-					}
-				}
-
-				for (auto &subscriber : _dynsubscribers) {
-					if (subscriber->hasPortID(receive.port_id)) {
-						subscriber->callback(receive);
-					}
-				}
-			}
-
-			// Deallocate the dynamic memory afterwards.
-			_canard_instance.memory_free(&_canard_instance, (void *)receive.payload);
-
-		} else {
-			//PX4_INFO("RX canard %d\r\n", result);
-		}
-	}
-
-	perf_end(_cycle_perf);
-
-	if (_task_should_exit.load()) {
-		_can_interface->close();
-
-		ScheduleClear();
-		_instance = nullptr;
-	}
-
-	pthread_mutex_unlock(&_node_mutex);
 }
 
 void UavcanNode::print_info()
@@ -338,12 +305,54 @@ void UavcanNode::print_info()
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_interval_perf);
 
+	O1HeapDiagnostics heap_diagnostics = o1heapGetDiagnostics(uavcan_allocator);
+
+	PX4_INFO("Heap status %zu/%zu Peak alloc %zu Peak req %zu OOM count %" PRIu64,
+		 heap_diagnostics.allocated, heap_diagnostics.capacity,
+		 heap_diagnostics.peak_allocated, heap_diagnostics.peak_request_size,
+		 heap_diagnostics.oom_count);
+
 	for (auto &publisher : _publishers) {
 		publisher->printInfo();
 	}
 
-	for (auto &subscriber : _subscribers) {
-		subscriber->printInfo();
+	CanardRxSubscription *rxs = _canard_instance.rx_subscriptions[CanardTransferKindMessage];
+
+	while (rxs != NULL) {
+		if (rxs->user_reference == NULL) {
+			PX4_INFO("Message port id %d", rxs->port_id);
+
+		} else {
+			((UavcanBaseSubscriber *)rxs->user_reference)->printInfo();
+		}
+
+		rxs = rxs->next;
+	}
+
+	rxs = _canard_instance.rx_subscriptions[CanardTransferKindRequest];
+
+	while (rxs != NULL) {
+		if (rxs->user_reference == NULL) {
+			PX4_INFO("Service response port id %d", rxs->port_id);
+
+		} else {
+			((UavcanBaseSubscriber *)rxs->user_reference)->printInfo();
+		}
+
+		rxs = rxs->next;
+	}
+
+	rxs = _canard_instance.rx_subscriptions[CanardTransferKindResponse];
+
+	while (rxs != NULL) {
+		if (rxs->user_reference == NULL) {
+			PX4_INFO("Service request port id %d", rxs->port_id);
+
+		} else {
+			((UavcanBaseSubscriber *)rxs->user_reference)->printInfo();
+		}
+
+		rxs = rxs->next;
 	}
 
 	_mixing_output.printInfo();
@@ -380,7 +389,7 @@ extern "C" __EXPORT int uavcan_v1_main(int argc, char *argv[])
 		param_get(param_find("UAVCAN_V1_ID"), &node_id);
 
 		// Start
-		PX4_INFO("Node ID %u, bitrate %u", node_id, bitrate);
+		PX4_INFO("Node ID %" PRIu32 ", bitrate %" PRIu32, node_id, bitrate);
 		return UavcanNode::start(node_id, bitrate);
 	}
 
@@ -414,10 +423,10 @@ void UavcanNode::sendHeartbeat()
 		heartbeat.uptime = _uavcan_node_heartbeat_transfer_id; // TODO: use real uptime
 		heartbeat.health.value = uavcan_node_Health_1_0_NOMINAL;
 		heartbeat.mode.value = uavcan_node_Mode_1_0_OPERATIONAL;
-
+		const hrt_abstime now = hrt_absolute_time();
 
 		CanardTransfer transfer = {
-			.timestamp_usec = hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
+			.timestamp_usec = now + PUBLISHER_DEFAULT_TIMEOUT_USEC,
 			.priority       = CanardPriorityNominal,
 			.transfer_kind  = CanardTransferKindMessage,
 			.port_id        = uavcan_node_Heartbeat_1_0_FIXED_PORT_ID_,
@@ -435,22 +444,12 @@ void UavcanNode::sendHeartbeat()
 			// An error has occurred: either an argument is invalid or we've ran out of memory.
 			// It is possible to statically prove that an out-of-memory will never occur for a given application if the
 			// heap is sized correctly; for background, refer to the Robson's Proof and the documentation for O1Heap.
-			PX4_ERR("Heartbeat transmit error %d", result);
+			PX4_ERR("Heartbeat transmit error %" PRId32 "", result);
 		}
 
-		_uavcan_node_heartbeat_last = transfer.timestamp_usec;
+		_uavcan_node_heartbeat_last = now;
 	}
 }
-
-int UavcanNode::handleUORBSensorGPS(const CanardTransfer &receive)
-{
-	PX4_INFO("NodeID %i GPS sensor msg", receive.remote_node_id);
-
-	sensor_gps_s *gps_msg = (sensor_gps_s *)receive.payload;
-
-	return _sensor_gps_pub.publish(*gps_msg) ? 0 : -1;
-}
-
 
 bool UavcanMixingInterface::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)

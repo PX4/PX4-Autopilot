@@ -26,6 +26,12 @@ then
 	batt_smbus start -X
 fi
 
+# Start batmon driver if enabled using BATMON_DRIVER_EN
+if param compare -s BATMON_DRIVER_EN 1
+then
+	batmon start -X  #start on external bus
+fi
+
 # Sensors on the PWM interface bank
 if param compare -s SENS_EN_LL40LS 1
 then
@@ -111,7 +117,14 @@ fi
 # ADIS16448 spi external IMU
 if param compare -s SENS_EN_ADIS164X 1
 then
-	adis16448 -S start
+	if param compare -s SENS_OR_ADIS164X 0
+	then
+		adis16448 -S start
+	fi
+	if param compare -s SENS_OR_ADIS164X 4
+	then
+		adis16448 -S start -R 4
+	fi
 fi
 
 # probe for optional external I2C devices

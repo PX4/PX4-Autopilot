@@ -39,6 +39,15 @@
 
 #include <px4_platform_common/log.h>
 
+uint64_t getMonotonicTimestampUSec(void)
+{
+	struct timespec ts {};
+
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+
+	return ts.tv_sec * 1000000ULL + ts.tv_nsec / 1000ULL;
+}
+
 int CanardSocketCAN::init()
 {
 	const char *const can_iface_name = "can0";
@@ -120,7 +129,7 @@ int CanardSocketCAN::init()
 	_send_cmsg->cmsg_level = SOL_CAN_RAW;
 	_send_cmsg->cmsg_type = CAN_RAW_TX_DEADLINE;
 	_send_cmsg->cmsg_len = sizeof(struct timeval);
-	_send_tv = (struct timeval *)CMSG_DATA(&_send_cmsg);
+	_send_tv = (struct timeval *)CMSG_DATA(_send_cmsg);
 
 	// Setup RX msg
 	_recv_iov.iov_base = &_recv_frame;
@@ -158,16 +167,19 @@ int16_t CanardSocketCAN::transmit(const CanardFrame &txf, int timeout_ms)
 		memcpy(&frame->data, txf.payload, txf.payload_size);
 	}
 
-	/* Set CAN_RAW_TX_DEADLINE timestamp  */
-	_send_tv->tv_usec = txf.timestamp_usec % 1000000ULL;
-	_send_tv->tv_sec = (txf.timestamp_usec - _send_tv->tv_usec) / 1000000ULL;
+	uint64_t deadline_systick = getMonotonicTimestampUSec() + (txf.timestamp_usec - hrt_absolute_time()) +
+				    CONFIG_USEC_PER_TICK; // Compensate for precision loss when converting hrt to systick
 
-	return sendmsg(_fd, &_send_msg, 1000);
+	/* Set CAN_RAW_TX_DEADLINE timestamp  */
+	_send_tv->tv_usec = deadline_systick % 1000000ULL;
+	_send_tv->tv_sec = (deadline_systick - _send_tv->tv_usec) / 1000000ULL;
+
+	return sendmsg(_fd, &_send_msg, 0);
 }
 
 int16_t CanardSocketCAN::receive(CanardFrame *rxf)
 {
-	int32_t result = recvmsg(_fd, &_recv_msg, 1000);
+	int32_t result = recvmsg(_fd, &_recv_msg, MSG_DONTWAIT);
 
 	if (result < 0) {
 		return result;

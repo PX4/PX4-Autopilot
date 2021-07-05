@@ -43,6 +43,7 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -295,7 +296,7 @@ CameraTrigger::CameraTrigger() :
 		break;
 
 	default:
-		PX4_ERR("unknown camera interface mode: %i", (int)_camera_interface_mode);
+		PX4_ERR("unknown camera interface mode: %d", static_cast<int>(_camera_interface_mode));
 		break;
 	}
 
@@ -519,8 +520,8 @@ CameraTrigger::Run()
 	_turning_on = false;
 
 	// these flags are used to detect state changes in the command loop
-	bool main_state = _trigger_enabled;
-	bool pause_state = _trigger_paused;
+	bool previous_trigger_state = _trigger_enabled;
+	bool previous_trigger_paused = _trigger_paused;
 
 	bool updated = _command_sub.update(&cmd);
 
@@ -693,8 +694,8 @@ CameraTrigger::Run()
 unknown_cmd:
 
 	// State change handling
-	if ((main_state != _trigger_enabled) ||
-	    (pause_state != _trigger_paused) ||
+	if ((previous_trigger_state != _trigger_enabled) ||
+	    (previous_trigger_paused != _trigger_paused) ||
 	    _one_shot) {
 
 		if (_trigger_enabled || _one_shot) { // Just got enabled via a command
@@ -710,8 +711,9 @@ unknown_cmd:
 				poll_interval_usec = 3000000;
 				_turning_on = true;
 			}
+		}
 
-		} else if (!_trigger_enabled || _trigger_paused) { // Just got disabled/paused via a command
+		if ((!_trigger_enabled || _trigger_paused) && !_one_shot) { // Just got disabled/paused via a command
 
 			// Power off the camera if we are disabled
 			if (_camera_interface->is_powered_on() &&
@@ -769,7 +771,7 @@ unknown_cmd:
 
 	// Command ACK handling
 	if (updated && need_ack) {
-		PX4_DEBUG("acknowledging command %d, result=%d", cmd.command, cmd_result);
+		PX4_DEBUG("acknowledging command %" PRId32 ", result=%u", cmd.command, cmd_result);
 		vehicle_command_ack_s command_ack{};
 		command_ack.command = cmd.command;
 		command_ack.result = (uint8_t)cmd_result;
@@ -895,9 +897,9 @@ CameraTrigger::keep_alive_down(void *arg)
 void
 CameraTrigger::status()
 {
-	PX4_INFO("main state : %s", _trigger_enabled ? "enabled" : "disabled");
-	PX4_INFO("pause state : %s", _trigger_paused ? "paused" : "active");
-	PX4_INFO("mode : %i", _trigger_mode);
+	PX4_INFO("trigger enabled : %s", _trigger_enabled ? "enabled" : "disabled");
+	PX4_INFO("trigger paused : %s", _trigger_paused ? "paused" : "active");
+	PX4_INFO("mode : %d", static_cast<int>(_trigger_mode));
 
 	if (_trigger_mode == TRIGGER_MODE_INTERVAL_ALWAYS_ON ||
 	    _trigger_mode == TRIGGER_MODE_INTERVAL_ON_CMD) {

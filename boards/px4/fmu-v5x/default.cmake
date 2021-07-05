@@ -33,6 +33,7 @@ px4_add_board(
 		imu/bosch/bmi088
 		imu/invensense/icm20602
 		imu/invensense/icm20948 # required for ak09916 mag
+		imu/invensense/icm20649
 		imu/invensense/icm42688p
 		irlock
 		lights # all available light drivers
@@ -51,6 +52,7 @@ px4_add_board(
 		roboclaw
 		rpm
 		safety_button
+		smart_battery/batmon
 		telemetry # all available telemetry drivers
 		tone_alarm
 		uavcan
@@ -122,7 +124,7 @@ px4_add_board(
 		work_queue
 	EXAMPLES
 		fake_gps
-		#fake_gyro
+		#fake_imu
 		#fake_magnetometer
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hello

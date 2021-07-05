@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,6 +46,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_correction.h>
@@ -72,6 +73,7 @@ private:
 
 	void ParametersUpdate();
 	void SensorCorrectionsUpdate(bool force = false);
+	void AirTemperatureUpdate();
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
@@ -80,6 +82,7 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _sensor_correction_sub{ORB_ID(sensor_correction)};
+	uORB::Subscription _differential_pressure_sub{ORB_ID(differential_pressure)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_sub[MAX_SENSOR_COUNT] {
 		{this, ORB_ID(sensor_baro), 0},
@@ -109,6 +112,8 @@ private:
 	uint8_t _priority[MAX_SENSOR_COUNT] {};
 
 	int8_t _selected_sensor_sub_index{-1};
+
+	float _air_temperature_celsius{20.f}; // initialize with typical 20degC ambient temperature
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SENS_BARO_QNH>) _param_sens_baro_qnh,

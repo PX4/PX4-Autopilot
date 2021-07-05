@@ -42,8 +42,7 @@ void ICM20948_I2C_Passthrough::print_usage()
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
-	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x39);
-	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x69);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -51,7 +50,7 @@ I2CSPIDriverBase *ICM20948_I2C_Passthrough::instantiate(const BusCLIArguments &c
 		int runtime_instance)
 {
 	ICM20948_I2C_Passthrough *instance = new ICM20948_I2C_Passthrough(iterator.configuredBusOption(), iterator.bus(),
-			cli.bus_frequency);
+			cli.bus_frequency, cli.i2c_address);
 
 	if (!instance) {
 		PX4_ERR("alloc failed");
@@ -71,6 +70,7 @@ extern "C" int icm20948_i2c_passthrough_main(int argc, char *argv[])
 	using ThisDriver = ICM20948_I2C_Passthrough;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = I2C_SPEED;
+	cli.i2c_address = I2C_ADDRESS_DEFAULT;
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
 

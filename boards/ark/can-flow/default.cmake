@@ -13,7 +13,9 @@ px4_add_board(
 	UAVCAN_INTERFACES 1
 	DRIVERS
 		bootloaders
+		distance_sensor/broadcom/afbrs50
 		imu/bosch/bmi088
+		imu/invensense/icm42688p
 		optical_flow/paw3902
 		uavcannode
 	MODULES
@@ -21,14 +23,13 @@ px4_add_board(
 		#load_mon
 		#sensors
 	SYSTEMCMDS
-		mft
-		mtd
 		param
 		#perf
 		#reboot
 		#system_time
 		#top
 		#topic_listener
+		#uorb
 		#ver
 		#work_queue
 )

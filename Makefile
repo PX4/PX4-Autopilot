@@ -63,7 +63,7 @@ all: px4_sitl_default
 space := $(subst ,, )
 
 define make_list
-     $(shell cat .github/workflows/compile_${1}.yml | sed -E 's|[[:space:]]+(.*),|check_\1|g' | grep check_${2})
+     $(shell [ -f .github/workflows/compile_${1}.yml ] && cat .github/workflows/compile_${1}.yml | sed -E 's|[[:space:]]+(.*),|check_\1|g' | grep check_${2})
 endef
 
 # Parsing
@@ -163,6 +163,11 @@ endif
 # Pick up specific Python path if set
 ifdef PYTHON_EXECUTABLE
 	CMAKE_ARGS += -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
+endif
+
+# Check if the microRTPS agent is to be built
+ifdef BUILD_MICRORTPS_AGENT
+  CMAKE_ARGS += -DBUILD_MICRORTPS_AGENT=ON
 endif
 
 # Functions
@@ -468,26 +473,27 @@ validate_module_configs:
 .PHONY: clean submodulesclean submodulesupdate gazeboclean distclean
 
 clean:
-	@rm -rf "$(SRC_DIR)"/build
-	@git submodule foreach git clean -df
+	@[ ! -d "$(SRC_DIR)/build" ] || find "$(SRC_DIR)/build" -mindepth 1 -maxdepth 1 -type d -exec sh -c "echo {}; cmake --build {} -- clean || rm -rf {}" \; # use generated build system to clean, wipe build directory if it fails
+	@git submodule foreach git clean -dX --force # some submodules generate build artifacts in source
 
 submodulesclean:
 	@git submodule foreach --quiet --recursive git clean -ff -x -d
 	@git submodule update --quiet --init --recursive --force || true
 	@git submodule sync --recursive
-	@git submodule update --init --recursive --force
+	@git submodule update --init --recursive --force --jobs 4
 
 submodulesupdate:
-	@git submodule update --quiet --init --recursive || true
+	@git submodule update --quiet --init --recursive --jobs 4 || true
 	@git submodule sync --recursive
-	@git submodule update --init --recursive
+	@git submodule update --init --recursive --jobs 4
 
 gazeboclean:
 	@rm -rf ~/.gazebo/*
 
 distclean: gazeboclean
-	@git submodule deinit -f .
-	@git clean -ff -x -d -e ".cproject" -e ".idea" -e ".project" -e ".settings" -e ".vscode"
+	@git submodule deinit --force $(SRC_DIR)
+	@rm -rf "$(SRC_DIR)/build"
+	@git clean --force -X "$(SRC_DIR)/msg/" "$(SRC_DIR)/platforms/" "$(SRC_DIR)/posix-configs/" "$(SRC_DIR)/ROMFS/" "$(SRC_DIR)/src/" "$(SRC_DIR)/test/" "$(SRC_DIR)/Tools/"
 
 # Help / Error
 # --------------------------------------------------------------------
