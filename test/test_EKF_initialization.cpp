@@ -120,13 +120,15 @@ class EkfInitializationTest : public ::testing::Test {
 	{
 		const Dcmf R_to_earth = Dcmf(_ekf->getQuaternion());
 		const Vector3f dvel_bias_var = _ekf_wrapper.getDeltaVelBiasVariance();
+		const Vector3f accel_bias = _ekf->getAccelBias();
 
 		for (int i = 0; i < 3; i++){
 			if (fabsf(R_to_earth(2, i)) > 0.8f) {
 				// Highly observable, the variance decreases
 				EXPECT_LT(dvel_bias_var(i), 4.0e-6f) << "axis " << i;
-
 			}
+
+			EXPECT_LT(accel_bias(i), 4.0e-6f) << "axis " << i;
 		}
 	}
 };
