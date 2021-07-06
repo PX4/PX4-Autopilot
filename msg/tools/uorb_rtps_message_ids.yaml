@@ -344,6 +344,10 @@ rtps:
     id: 159
   - msg: sensor_hall
     id: 160
+  - msg: airflow_aoa
+    id: 161
+  - msg: airflow_slip
+    id: 162
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 170
