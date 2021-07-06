@@ -39,7 +39,7 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-#define AFBRS50_MEASURE_INTERVAL     (1000000 / 100) // 10Hz
+#define AFBRS50_MEASURE_INTERVAL     (1000000 / 100) // 100Hz
 
 /*! Define the SPI baud rate (to be used in the SPI module). */
 #define SPI_BAUD_RATE 5000000
