@@ -699,6 +699,10 @@ Navigator::run()
 
 void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 {
+	if (_last_grofence_action != _geofence.getGeofenceAction()) {
+		_geofence_violation_warning_sent = false;
+		_last_grofence_action = _geofence.getGeofenceAction();
+	}
 
 	if (have_geofence_position_data &&
 	    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&

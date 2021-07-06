@@ -379,6 +379,7 @@ private:
 	bool		_geofence_violation_warning_sent{false}; /**< prevents spaming to mavlink */
 	GeofenceBreachAvoidance _gf_breach_avoidance;
 	hrt_abstime _last_geofence_check = 0;
+	int _last_grofence_action = geofence_result_s::GF_ACTION_NONE;
 
 	bool		_can_loiter_at_sp{false};			/**< flags if current position SP can be used to loiter */
 	bool		_pos_sp_triplet_updated{false};		/**< flags if position SP triplet needs to be published */

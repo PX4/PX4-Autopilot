@@ -704,6 +704,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				if ((main_ret != TRANSITION_DENIED)) {
 					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+					_geofence_violated_prev = false;
 
 				} else {
 					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
