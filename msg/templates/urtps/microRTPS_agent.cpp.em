@@ -16,6 +16,11 @@ import genmsg.msgs
 from px_generate_uorb_topic_helper import * # this is in Tools/
 from px_generate_uorb_topic_files import MsgScope # this is in Tools/
 
+try:
+    ros2_distro = ros2_distro[0].decode("utf-8")
+except AttributeError:
+    ros2_distro = ros2_distro[0]
+
 send_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND]
 recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.RECEIVE]
 }@
@@ -54,6 +59,7 @@ recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumer
 
 #include <thread>
 #include <atomic>
+#include <getopt.h>
 #include <unistd.h>
 #include <poll.h>
 #include <chrono>
@@ -72,6 +78,10 @@ recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumer
 #include "microRTPS_timesync.h"
 #include "RtpsTopics.h"
 
+@[if ros2_distro]@
+#include <rclcpp/rclcpp.hpp>
+@[end if]@
+
 // Default values
 #define DEVICE "/dev/ttyACM0"
 #define SLEEP_US 1
@@ -86,8 +96,8 @@ using namespace eprosima;
 using namespace eprosima::fastrtps;
 
 volatile sig_atomic_t running = 1;
-Transport_node *transport_node = nullptr;
-RtpsTopics topics;
+std::unique_ptr<Transport_node> transport_node;
+std::unique_ptr<RtpsTopics> topics;
 uint32_t total_sent = 0, sent = 0;
 
 struct options {
@@ -129,13 +139,30 @@ static void usage(const char *name)
 
 static int parse_options(int argc, char **argv)
 {
+	static const struct option options[] = {
+		{"baudrate", required_argument, NULL, 'b'},
+		{"device", required_argument, NULL, 'd'},
+		{"sw-flow-control", no_argument, NULL, 'f'},
+		{"hw-flow-control", no_argument, NULL, 'g'},
+		{"ip-address", required_argument, NULL, 'i'},
+		{"namespace", required_argument, NULL, 'n'},
+		{"poll-ms", required_argument, NULL, 'p'},
+		{"reception-port", required_argument, NULL, 'r'},
+		{"sending-port", required_argument, NULL, 's'},
+		{"transport", required_argument, NULL, 't'},
+		{"increase-verbosity", no_argument, NULL, 'v'},
+		{"sleep-time-us", required_argument, NULL, 'w'},
+		{"ros-args", required_argument, NULL, 0},
+		{"help", no_argument, NULL, 'h'},
+		{NULL, 0, NULL, 0}};
+
 	int ch;
 
-	while ((ch = getopt(argc, argv, "t:d:w:b:p:r:s:i:fhvn:")) != EOF) {
+	while ((ch = getopt_long(argc, argv, "t:d:w:b:o:r:s:i:fhvn:", options, nullptr)) >= 0) {
 		switch (ch) {
 		case 't': _options.transport      = strcmp(optarg, "UDP") == 0 ?
-							    options::eTransports::UDP
-							    : options::eTransports::UART;    break;
+                                                  options::eTransports::UDP
+                                                  : options::eTransports::UART;    break;
 
 		case 'd': if (nullptr != optarg) strcpy(_options.device, optarg);   break;
 
@@ -143,7 +170,7 @@ static int parse_options(int argc, char **argv)
 
 		case 'b': _options.baudrate        = strtoul(optarg, nullptr, 10);  break;
 
-		case 'p': _options.poll_ms         = strtol(optarg, nullptr, 10);   break;
+		case 'o': _options.poll_ms         = strtol(optarg, nullptr, 10);   break;
 
 		case 'r': _options.recv_port       = strtoul(optarg, nullptr, 10);  break;
 
@@ -153,15 +180,21 @@ static int parse_options(int argc, char **argv)
 
 		case 'f': _options.sw_flow_control = true;                          break;
 
-		case 'h': _options.hw_flow_control = true;                          break;
+		case 'g': _options.hw_flow_control = true;                          break;
+
+		case 'h': usage(argv[0]); exit(0);                            	    break;
 
 		case 'v': _options.verbose_debug = true;                            break;
 
 		case 'n': if (nullptr != optarg) _options.ns = std::string(optarg) + "/"; break;
 
 		default:
+@[if ros2_distro]@
+			break;
+@[else]@
 			usage(argv[0]);
 			return -1;
+@[end if]@
 		}
 	}
 
@@ -207,7 +240,7 @@ void t_send(void *)
 		eprosima::fastcdr::Cdr scdr(cdrbuffer);
 
 		if (!exit_sender_thread) {
-			if (topics.getMsg(topic_ID, scdr)) {
+			if (topics->getMsg(topic_ID, scdr)) {
 				length = scdr.getSerializedDataLength();
 
 				if (0 < (length = transport_node->write(topic_ID, data_buffer, length))) {
@@ -234,6 +267,13 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
+	topics = std::make_unique<RtpsTopics>();
+
+@[if ros2_distro]@
+	// Initialize communications via the rmw implementation and set up a global signal handler.
+	rclcpp::init(argc, argv, rclcpp::InitOptions());
+@[end if]@
+
 	// register signal SIGINT and signal handler
 	signal(SIGINT, signal_handler);
 
@@ -248,7 +288,7 @@ int main(int argc, char **argv)
 
 	switch (_options.transport) {
 	case options::eTransports::UART: {
-			transport_node = new UART_node(_options.device, _options.baudrate, _options.poll_ms,
+			transport_node = std::make_unique<UART_node>(_options.device, _options.baudrate, _options.poll_ms,
 						       _options.sw_flow_control, _options.hw_flow_control, _options.verbose_debug);
 			printf("[   micrortps_agent   ]\tUART transport: device: %s; baudrate: %d; sleep: %dus; poll: %dms; flow_control: %s\n",
 			       _options.device, _options.baudrate, _options.sleep_us, _options.poll_ms,
@@ -257,7 +297,7 @@ int main(int argc, char **argv)
 		break;
 
 	case options::eTransports::UDP: {
-			transport_node = new UDP_node(_options.ip, _options.recv_port, _options.send_port, _options.verbose_debug);
+			transport_node = std::make_unique<UDP_node>(_options.ip, _options.recv_port, _options.send_port, _options.verbose_debug);
 			printf("[   micrortps_agent   ]\tUDP transport: ip address: %s; recv port: %u; send port: %u; sleep: %dus\n",
 			       _options.ip, _options.recv_port, _options.send_port, _options.sleep_us);
 		}
@@ -285,10 +325,10 @@ int main(int argc, char **argv)
 @[end if]@
 
 	// Init timesync
-	topics.set_timesync(std::make_shared<TimeSync>(_options.verbose_debug));
+	topics->set_timesync(std::make_shared<TimeSync>(_options.verbose_debug));
 
 @[if recv_topics]@
-	topics.init(&t_send_queue_cv, &t_send_queue_mutex, &t_send_queue, _options.ns);
+	topics->init(&t_send_queue_cv, &t_send_queue_mutex, &t_send_queue, _options.ns);
 @[end if]@
 
 	running = true;
@@ -303,7 +343,7 @@ int main(int argc, char **argv)
 
 		// Publish messages received from UART
 		if (0 < (length = transport_node->read(&topic_ID, data_buffer, BUFFER_SIZE))) {
-			topics.publish(topic_ID, data_buffer, sizeof(data_buffer));
+			topics->publish(topic_ID, data_buffer, sizeof(data_buffer));
 			++received;
 			total_read += length;
 			receiving = true;
@@ -332,8 +372,11 @@ int main(int argc, char **argv)
 	}
 @[end if]@
 
-	delete transport_node;
-	transport_node = nullptr;
+@[if ros2_distro]@
+	rclcpp::shutdown();
+@[end if]@
+	transport_node.reset();
+	topics.reset();
 
 	return 0;
 }
