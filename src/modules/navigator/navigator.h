@@ -412,6 +412,7 @@ private:
 
 	float _loiter_altitude_amsl{0};
 	matrix::Vector2<double> _lointer_center_lat_lon{};
+	float _bearing{0};
 
 	// if mission mode is inactive, this flag will be cleared after 2 seconds
 

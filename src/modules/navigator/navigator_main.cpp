@@ -779,6 +779,7 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 				// demand a reposition to a location which is inside the geofence
 				if (_geofence.getGeofenceAction() == geofence_result_s::GF_ACTION_LOITER) {
 					matrix::Vector2<double> current_pos_lat_lon(_global_pos.lat, _global_pos.lon);
+					_loiter_altitude_amsl = _global_pos.alt;
 
 
 					if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
@@ -786,13 +787,14 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 						// we set the loiter point to the current position, that will make sure that the vehicle will loiter inside the fence
 						_lointer_center_lat_lon =  _gf_breach_avoidance.generateLoiterPointForMultirotor(gf_violation_type,
 									   &_geofence);
-
-						_loiter_altitude_amsl = _gf_breach_avoidance.generateLoiterAltitudeForMulticopter(gf_violation_type);
+						_loiter_altitude_amsl = _gf_breach_avoidance.generateLoiterAltitudeForMulticopter(gf_violation_type, &_geofence);
+						_bearing = _gf_breach_avoidance.generateBearingForMulticopter(gf_violation_type, get_local_position()->heading);
 
 					} else {
 
 						_lointer_center_lat_lon = _gf_breach_avoidance.generateLoiterPointForFixedWing(gf_violation_type, &_geofence);
 						_loiter_altitude_amsl = _gf_breach_avoidance.generateLoiterAltitudeForFixedWing(gf_violation_type);
+						_bearing =  get_local_position()->heading;
 					}
 				}
 
@@ -803,7 +805,7 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 
 				position_setpoint_triplet_s *rep = get_reposition_triplet();
 				rep->current.timestamp = hrt_absolute_time();
-				rep->current.yaw = get_local_position()->heading;
+				rep->current.yaw = _bearing;
 				rep->current.yaw_valid = true;
 				rep->current.lat = _lointer_center_lat_lon(0);
 				rep->current.lon = _lointer_center_lat_lon(1);
