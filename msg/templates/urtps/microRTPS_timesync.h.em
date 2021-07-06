@@ -71,6 +71,10 @@ except AttributeError:
 
 @[if ros2_distro]@
 #include "Timesync_Publisher.h"
+
+#include <rcl/time.h>
+#include <rclcpp/clock.hpp>
+#include <rclcpp/rclcpp.hpp>
 @[else]@
 #include "timesync_Publisher.h"
 @[end if]@
@@ -127,17 +131,36 @@ public:
 	 */
 	void stop();
 
+@[if ros2_distro]@
 	/**
-	 * @@brief Get clock monotonic time (raw) in nanoseconds
-	 * @@return System CLOCK_MONOTONIC time in nanoseconds
+	 * @@brief Get ROS time in nanoseconds. This will match the system time, which
+	 *         corresponds to the system-wide real time since epoch. If use_sim_time
+	 *         is set, the simulation time is grabbed by the node and used instead
+	 *         More info about ROS2 clock and time in:
+	 *         https://design.ros2.org/articles/clock_and_time.html
+	 * @@return ROS time in nanoseconds
 	 */
-	static int64_t getTimeNSec();
+	int64_t getROSTimeNSec();
 
 	/**
-	 * @@brief Get system monotonic time in microseconds
-	 * @@return System CLOCK_MONOTONIC time in microseconds
+	 * @@brief Get ROS time in microseconds. Fetches the time from getROSTimeNSec()
+	 *         and converts it to microseconds
+	 * @@return ROS time in microseconds
 	 */
-	static int64_t getTimeUSec();
+	int64_t getROSTimeUSec();
+@[else]@
+	/**
+	 * @@brief Get clock monotonic time (raw) in nanoseconds
+	 * @@return Steady CLOCK_MONOTONIC time in nanoseconds
+	 */
+	int64_t getSteadyTimeNSec();
+
+	/**
+	 * @@brief Get clock monotonic time (raw) in microseconds
+	 * @@return Steady CLOCK_MONOTONIC time in microseconds
+	 */
+	int64_t getSteadyTimeUSec();
+@[end if]@
 
 	/**
 	 * @@brief Adds a time offset measurement to be filtered
@@ -180,6 +203,14 @@ public:
 
 private:
 	std::atomic<int64_t> _offset_ns;
+
+@[if ros2_distro]@
+	/**
+	 * @@brief A ROS2 node to fetch the ROS time to be used for timesync
+	 */
+	std::shared_ptr<rclcpp::Node> _timesync_node;
+@[end if]@
+
 	int64_t _skew_ns_per_sync;
 	int64_t _num_samples;
 
@@ -190,6 +221,9 @@ private:
 	bool _debug;
 
 	std::unique_ptr<std::thread> _send_timesync_thread;
+@[if ros2_distro]@
+	std::unique_ptr<std::thread> _timesync_node_thread;
+@[end if]@
 	std::atomic<bool> _request_stop{false};
 
 	/**
