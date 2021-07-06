@@ -24,10 +24,10 @@ px4_add_board(
 		#sensors
 	SYSTEMCMDS
 		param
-		#perf
+		perf
 		#reboot
 		#system_time
-		#top
+		top
 		#topic_listener
 		#uorb
 		#ver
