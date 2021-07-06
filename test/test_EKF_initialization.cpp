@@ -150,6 +150,56 @@ TEST_F(EkfInitializationTest, initializeWithZeroTilt)
 	learningCorrectAccelBias();
 }
 
+TEST_F(EkfInitializationTest, gyroBias)
+{
+	// GIVEN: a healthy filter
+	_sensor_simulator.runSeconds(20);
+
+	// WHEN: there is a yaw gyro bias after initial convergence of the filter
+	_sensor_simulator._imu.setGyroData(Vector3f(0.f, 0.f, 0.1f));
+
+	// THEN: the vertical accel bias should not be affected
+	Vector3f accel_bias;
+	for (int i = 0; i < 100; i++) {
+		_sensor_simulator.runSeconds(0.5);
+		accel_bias = _ekf->getAccelBias();
+		if (fabsf(accel_bias(2)) > 0.3f) {
+
+			// Print state covariance and correlation matrices for debugging
+			const matrix::SquareMatrix<float, 24> P = _ekf->covariances();
+
+			printf("State covariance:\n");
+			for (int i = 0; i <= 15; i++) {
+				for (int j = 0; j <= 15; j++) {
+					printf("%.3fe-9  ", ((double)P(i, j))*1e9);
+				}
+				printf("\n");
+			}
+
+			printf("State correlation:\n");
+			printf("\t0\t1\t2\t3\t4\t5\t6\t7\t8\t9\t10\t11\t12\t13\t14\t15\n");
+			for (uint8_t i = 0; i <= 15; i++) {
+				printf("%d|  ", i);
+				for (uint8_t j = 0; j <= 15; j++) {
+				double corr = sqrt(abs(P(i, i) * P(j, j)));
+
+				if (corr > 0.0) corr = double(abs(P(i, j))) / corr;
+					printf("%.3f\t", corr);
+				}
+				printf("\n");
+			}
+
+			printf("Accel bias = (%f, %f, %f)\n", (double)accel_bias(0), (double)accel_bias(1), (double)accel_bias(2));
+
+			Vector3f gyro_bias = _ekf->getGyroBias();
+			printf("Gyro bias = (%f, %f, %f)\n", (double)gyro_bias(0), (double)gyro_bias(1), (double)gyro_bias(2));
+
+			EXPECT_TRUE(false);
+			break;
+		}
+	}
+}
+
 TEST_F(EkfInitializationTest, initializeHeadingWithZeroTilt)
 {
 	const float pitch = math::radians(0.0f);
