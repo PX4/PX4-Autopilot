@@ -2648,6 +2648,11 @@ Commander::run()
 			}
 		}
 
+		// Publish wind speed warning if enabled via parameter
+		if (_param_com_wind_warn.get() > FLT_EPSILON && !_land_detector.landed) {
+			checkWindAndWarn();
+		}
+
 		/* Get current timestamp */
 		const hrt_abstime now = hrt_absolute_time();
 
@@ -4172,6 +4177,27 @@ void Commander::send_parachute_command()
 	vcmd_pub.publish(vcmd);
 
 	set_tune_override(tune_control_s::TUNE_ID_PARACHUTE_RELEASE);
+}
+
+void Commander::checkWindAndWarn()
+{
+	wind_s wind_estimate;
+
+	if (_wind_sub.update(&wind_estimate)) {
+		const matrix::Vector2f wind(wind_estimate.windspeed_north, wind_estimate.windspeed_east);
+
+		// publish a warning if it's the first since in air or 60s have passed since the last warning
+		const bool warning_timeout_passed = _last_wind_warning == 0 || hrt_elapsed_time(&_last_wind_warning) > 60_s;
+
+		if (wind.longerThan(_param_com_wind_warn.get()) && warning_timeout_passed) {
+			mavlink_log_critical(&_mavlink_log_pub, "High wind speed detected (%.1f m/s), landing advised\t", (double)wind.norm());
+
+			events::send<float>(events::ID("commander_high_wind_warning"),
+			{events::Log::Warning, events::LogInternal::Info},
+			"High wind speed detected ({1:.1m/s}), landing advised", wind.norm());
+			_last_wind_warning = hrt_absolute_time();
+		}
+	}
 }
 
 int Commander::print_usage(const char *reason)
