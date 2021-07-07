@@ -91,12 +91,12 @@ bool GyroFFT::init()
 		_rfft_q15.pCfft = &arm_cfft_sR_q15_len128;
 		break;
 
-	// case 512:
-	// 	buffers_allocated = AllocateBuffers<512>();
-	// 	_rfft_q15.fftLenReal = 512;
-	// 	_rfft_q15.twidCoefRModifier = 16U;
-	// 	_rfft_q15.pCfft = &arm_cfft_sR_q15_len256;
-	// 	break;
+	case 512:
+		buffers_allocated = AllocateBuffers<512>();
+		_rfft_q15.fftLenReal = 512;
+		_rfft_q15.twidCoefRModifier = 16U;
+		_rfft_q15.pCfft = &arm_cfft_sR_q15_len256;
+		break;
 
 	case 1024:
 		buffers_allocated = AllocateBuffers<1024>();
@@ -381,7 +381,7 @@ void GyroFFT::Update(const hrt_abstime &timestamp_sample, int16_t *input[], uint
 	const float resolution_hz = _gyro_sample_rate_hz / _imu_gyro_fft_len;
 	q15_t *gyro_data_buffer[] {_gyro_data_buffer_x, _gyro_data_buffer_y, _gyro_data_buffer_z};
 
-	static constexpr float MIN_SNR_PUBLISH = 15.f; // TODO: configurable?
+	static constexpr float MIN_SNR_PUBLISH = 10.f; // TODO: configurable?
 
 	for (int axis = 0; axis < 3; axis++) {
 		int &buffer_index = _fft_buffer_index[axis];
