@@ -1106,7 +1106,17 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 
 			_hdg_hold_enabled = false;
 			_yaw_lock_engaged = false;
-			_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
+
+			// do slew rate limiting on roll if enabled
+			float roll_sp_new = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
+			const float roll_rate_slew_rad = radians(_param_fw_l1_r_slew_max.get());
+
+			if (dt > 0.f && roll_rate_slew_rad > 0.f) {
+				roll_sp_new = constrain(roll_sp_new, _att_sp.roll_body - roll_rate_slew_rad * dt,
+							_att_sp.roll_body + roll_rate_slew_rad * dt);
+			}
+
+			_att_sp.roll_body = roll_sp_new;
 			_att_sp.yaw_body = 0;
 		}
 
