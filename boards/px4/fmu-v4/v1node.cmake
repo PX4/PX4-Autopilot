@@ -56,7 +56,6 @@ px4_add_board(
 		imu/invensense/mpu6500
 		imu/invensense/mpu9250
 		irlock
-		lights/blinkm
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		magnetometer # all available magnetometer drivers
@@ -71,13 +70,11 @@ px4_add_board(
 		#rc_input
 		#roboclaw
 		safety_button
-		#tap_esc
 		telemetry # all available telemetry drivers
-		#test_ppm
 		#tone_alarm
 		uavcan_v1
 	MODULES
-		airspeed_selector
+		# airspeed_selector
 		attitude_estimator_q
 		battery_status
 		camera_feedback
@@ -86,7 +83,7 @@ px4_add_board(
 		ekf2
 		esc_battery
 		events
-		flight_mode_manager
+		# flight_mode_manager
 		# fw_att_control
 		# fw_pos_control_l1
 		# land_detector
@@ -95,10 +92,10 @@ px4_add_board(
 		# local_position_estimator
 		logger
 		mavlink
-		mc_att_control
-		mc_hover_thrust_estimator
+		# mc_att_control
+		# mc_hover_thrust_estimator
 		mc_pos_control
-		mc_rate_control
+		# mc_rate_control
 		#micrortps_bridge
 		navigator
 		rc_update
