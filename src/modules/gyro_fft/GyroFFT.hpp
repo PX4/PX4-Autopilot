@@ -143,7 +143,7 @@ private:
 	unsigned _gyro_last_generation{0};
 
 	float _peak_frequencies_prev[3][MAX_NUM_PEAKS] {};
-	math::MedianFilter<float, 3> _median_filter[3][MAX_NUM_PEAKS] {};
+	math::MedianFilter<float, 5> _median_filter[3][MAX_NUM_PEAKS] {};
 
 	sensor_gyro_fft_s _sensor_gyro_fft{};
 
