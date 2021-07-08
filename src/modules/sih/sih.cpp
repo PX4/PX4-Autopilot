@@ -317,7 +317,8 @@ void Sih::equations_of_motion()
 	// Equations of motion of a rigid body
 	_p_I_dot = _v_I;                        // position differential
 	_v_I_dot = (_W_I + _Fa_I + _C_IB * _T_B) / _MASS;   // conservation of linear momentum
-	_q_dot = _q.derivative1(_w_B);              // attitude differential
+	// _q_dot = _q.derivative1(_w_B);              // attitude differential
+	_dq = expq(0.5f*_dt*_w_B);
 	_w_B_dot = _Im1 * (_Mt_B + _Ma_B - _w_B.cross(_I * _w_B)); // conservation of angular momentum
 
 	// fake ground, avoid free fall
@@ -352,13 +353,13 @@ void Sih::equations_of_motion()
 		}
 	} else {
 		// integration: Euler forward
-		// _p_I = _p_I + _p_I_dot * _dt;
-		// _v_I = _v_I + _v_I_dot * _dt;
-		// _q = _q + _q_dot * _dt; // as given in attitude_estimator_q_main.cpp
-		// _q.normalize();
+		_p_I = _p_I + _p_I_dot * _dt;
+		_v_I = _v_I + _v_I_dot * _dt;
+		_q = _q*_dq; // as given in attitude_estimator_q_main.cpp
+		_q.normalize();
 		// integration Runge-Kutta 4
-		rk4_update(_p_I, _v_I, _q, _w_B);
-		_w_B = constrain(_w_B + _w_B_dot * _dt, -4.0f*M_PI_F, 4.0f*M_PI_F);
+		// rk4_update(_p_I, _v_I, _q, _w_B);
+		_w_B = constrain(_w_B + _w_B_dot * _dt, -5.0f*M_PI_F, 5.0f*M_PI_F);
 		_grounded = false;
 	}
 	// if (_grounded && _u[3]>0.9f){
@@ -529,6 +530,37 @@ void Sih::publish_sih()
 	_gpos_gt_pub.publish(_gpos_gt);
 }
 
+// quaternion exponential as defined in [3]
+Quatf Sih::expq(matrix::Vector3f u)  {
+	Vector3f v=sincf(u.norm())*u;
+	return Quatf(cosf(u.norm()), v(0), v(1), v(2));
+}
+
+// sin Cardinal sinc(x) = sin(x)/x
+float Sih::sincf(float x)
+{
+	// Move x to [-pi, pi)
+	x = fmodf(x, 2 * M_PI_F);
+	if (x >= M_PI_F) {
+		x -= 2 * M_PI_F;
+	}
+	if (x < -M_PI_F) {
+		x += 2 * M_PI_F;
+	}
+
+	// Move x to [-pi/2, pi/2)
+	if (x >= M_PI_2_F) {
+		x = M_PI_F - x;
+	}
+	if (x < -M_PI_2_F) {
+		x = -M_PI_F - x;
+	}
+	if (fabsf(x)<0.01f) {
+		return 1.0f-x*x/6.0f; 	// first taylor serie term of sin(x)/x
+	}
+	return sinf(x)/x;
+}
+
 float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1
 {
 	// algorithm 1:
@@ -572,6 +604,7 @@ int Sih::print_status()
 		PX4_INFO("Running FW");
 	}
         PX4_INFO("vehicle landed: %d",_grounded);
+	PX4_INFO("dt [us]: %d",(int)(_dt*1e6f));
         PX4_INFO("inertial position NED (m)");
         _p_I.print();
         PX4_INFO("inertial velocity NED (m/s)");

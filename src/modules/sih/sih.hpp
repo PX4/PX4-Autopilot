@@ -32,11 +32,14 @@
 ****************************************************************************/
 
 // The sensor signals reconstruction and noise levels are from [1]
-// [1] Bulka, Eitan, and Meyer Nahon. "Autonomous fixed-wing aerobatics: from theory to flight."
+// [1] Bulka E, and Nahon M, "Autonomous fixed-wing aerobatics: from theory to flight."
 //     In 2018 IEEE International Conference on Robotics and Automation (ICRA), pp. 6573-6580. IEEE, 2018.
 // The aerodynamic model is from [2]
-// [2] Khan, Waqas, supervised by Meyer Nahon "Dynamics modeling of agile fixed-wing unmanned aerial vehicles."
+// [2] Khan W, supervised by Nahon M, "Dynamics modeling of agile fixed-wing unmanned aerial vehicles."
 //     McGill University, PhD thesis, 2016.
+// The quaternion integration are from [3]
+// [3] Sveier A, Sjøberg AM, Egeland O. "Applied Runge–Kutta–Munthe-Kaas Integration for the Quaternion Kinematics."
+//     Journal of Guidance, Control, and Dynamics. 2019 Dec;42(12):2747-54.
 
 #pragma once
 
@@ -195,6 +198,8 @@ private:
 	void send_dist_snsr();
 	void publish_sih();
 	void generate_aerodynamics();
+	float sincf(float x);	// sin cardinal = sin(x)/x
+	matrix::Quatf expq(matrix::Vector3f u);  // quaternion exponential as defined in [3]
 	matrix::Vector3f flap_moments();
 	void rk4_update(matrix::Vector3f &p_I, matrix::Vector3f &v_I, matrix::Quatf &q, matrix::Vector3f &w_B); 	// Runge-Kutta integration
 	States eom_f(States); 	// equations of motion f: x'=f(x)
@@ -225,7 +230,7 @@ private:
 	matrix::Quatf       _q;             // quaternion attitude
 	matrix::Dcmf        _C_IB;          // body to inertial transformation
 	matrix::Vector3f    _w_B;           // body rates in body frame [rad/s]
-	matrix::Quatf       _q_dot;         // quaternion differential
+	matrix::Quatf       _dq;            // quaternion differential
 	matrix::Vector3f    _w_B_dot;       // body rates differential
 	float       _u[NB_MOTORS];          // thruster signals
 
@@ -233,7 +238,7 @@ private:
 	Vtype _vehicle=MC;
 
 	// aerodynamic segments for the fixedwing
-	AeroSeg wing=AeroSeg(SPAN, MAC, math::radians(-3.0f), matrix::Vector3f());
+	AeroSeg wing=AeroSeg(SPAN, MAC, math::radians(-4.0f), matrix::Vector3f());
 	AeroSeg tailplane=AeroSeg(0.3, 0.1, 0.0f, matrix::Vector3f(-0.4f, 0.0f, 0.0f));
 	AeroSeg fin=AeroSeg(0.25, 0.15, 0.0f, matrix::Vector3f(-0.4f, 0.0f, -0.1f), false);
 
