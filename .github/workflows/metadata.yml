@@ -20,8 +20,8 @@ jobs:
     - name: airframe metadata
       run: |
         make airframe_metadata
-        cd build/px4_sitl_default/docs
         ./src/lib/version/get_git_tag_or_branch_version.sh build/px4_sitl_default >> $GITHUB_ENV
+        cd build/px4_sitl_default/docs
       # TODO: deploy to userguide gitbook
 
     - uses: jakejarvis/s3-sync-action@master
