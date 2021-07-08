@@ -137,7 +137,13 @@ bool PAW3902::DataReadyInterruptConfigure()
 	}
 
 	// Setup data ready on falling edge
-	return px4_arch_gpiosetevent(_drdy_gpio, false, true, true, &DataReadyInterruptCallback, this) == 0;
+	if (px4_arch_gpiosetevent(_drdy_gpio, false, true, true, &DataReadyInterruptCallback, this) == 0) {
+		_data_ready_interrupt_enabled = true;
+		return true;
+	}
+
+	_data_ready_interrupt_enabled = false;
+	return false;
 }
 
 bool PAW3902::DataReadyInterruptDisable()
@@ -145,6 +151,8 @@ bool PAW3902::DataReadyInterruptDisable()
 	if (_drdy_gpio == 0) {
 		return false;
 	}
+
+	_data_ready_interrupt_enabled = false;
 
 	return px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr) == 0;
 }
@@ -165,25 +173,24 @@ bool PAW3902::ChangeMode(Mode newMode, bool force)
 		// Issue a soft reset
 		RegisterWrite(Register::Power_Up_Reset, 0x5A);
 		px4_usleep(1000);
-
-		uint32_t interval_us = 0;
+		_last_reset = hrt_absolute_time();
 
 		switch (newMode) {
 		case Mode::Bright:
 			ModeBright();
-			interval_us = SAMPLE_INTERVAL_MODE_0;
+			_scheduled_interval_us = SAMPLE_INTERVAL_MODE_0;
 			perf_count(_mode_change_bright_perf);
 			break;
 
 		case Mode::LowLight:
 			ModeLowLight();
-			interval_us = SAMPLE_INTERVAL_MODE_1;
+			_scheduled_interval_us = SAMPLE_INTERVAL_MODE_1;
 			perf_count(_mode_change_low_light_perf);
 			break;
 
 		case Mode::SuperLowLight:
 			ModeSuperLowLight();
-			interval_us = SAMPLE_INTERVAL_MODE_2;
+			_scheduled_interval_us = SAMPLE_INTERVAL_MODE_2;
 			perf_count(_mode_change_super_low_light_perf);
 			break;
 		}
@@ -195,10 +202,10 @@ bool PAW3902::ChangeMode(Mode newMode, bool force)
 
 		if (DataReadyInterruptConfigure()) {
 			// backup schedule as a watchdog timeout
-			ScheduleDelayed(500_ms);
+			ScheduleDelayed(_scheduled_interval_us * 2);
 
 		} else {
-			ScheduleOnInterval(interval_us);
+			ScheduleOnInterval(_scheduled_interval_us);
 		}
 
 		_mode = newMode;
@@ -610,6 +617,19 @@ bool PAW3902::RegisterWriteVerified(uint8_t reg, uint8_t data, int retries)
 
 void PAW3902::RunImpl()
 {
+	// backup schedule
+	if (_data_ready_interrupt_enabled) {
+		ScheduleDelayed(_scheduled_interval_us * 2);
+	}
+
+	// force reset if there hasn't been valid data for an extended period (sensor could be in a bad state)
+	static constexpr hrt_abstime RESET_TIMEOUT_US = 5_s;
+
+	if ((hrt_elapsed_time(&_last_good_publish) > RESET_TIMEOUT_US) && (hrt_elapsed_time(&_last_reset) > RESET_TIMEOUT_US)) {
+		ChangeMode(Mode::LowLight, true);
+		return;
+	}
+
 	perf_begin(_sample_perf);
 	perf_count(_interval_perf);
 
@@ -660,8 +680,8 @@ void PAW3902::RunImpl()
 			data_valid = false;
 		}
 
-		// shutter >= 8190 (0x1FFE), raw data sum <= 60 (0x3C)
-		if (data_valid && (_valid_count >= 10) && (shutter >= 0x1FFE) && (buf.data.RawData_Sum <= 0x3C)) {
+		// shutter >= 8190 (0x1FFE), raw data sum < 60 (0x3C)
+		if ((shutter >= 0x1FFE) && (buf.data.RawData_Sum < 0x3C)) {
 			// Bright -> LowLight
 			_bright_to_low_counter++;
 
@@ -684,8 +704,8 @@ void PAW3902::RunImpl()
 			data_valid = false;
 		}
 
-		// shutter >= 8190 (0x1FFE) and raw data sum <= 90 (0x5A)
-		if (data_valid && (_valid_count >= 10) && (shutter >= 0x1FFE) && (buf.data.RawData_Sum <= 0x5A)) {
+		// shutter >= 8190 (0x1FFE) and raw data sum < 90 (0x5A)
+		if ((shutter >= 0x1FFE) && (buf.data.RawData_Sum < 0x5A)) {
 			// LowLight -> SuperLowLight
 			_low_to_bright_counter = 0;
 			_low_to_superlow_counter++;
@@ -694,7 +714,7 @@ void PAW3902::RunImpl()
 				ChangeMode(Mode::SuperLowLight);
 			}
 
-		} else if (data_valid && (_valid_count >= 10) && (shutter < 0x0BB8)) {
+		} else if (shutter < 0x0BB8) {
 			// LowLight -> Bright
 			//  shutter < 0x0BB8 (3000)
 			_low_to_bright_counter++;
@@ -721,7 +741,7 @@ void PAW3902::RunImpl()
 		}
 
 		// shutter < 500 (0x01F4)
-		if (data_valid && (_valid_count >= 10) && (shutter < 0x01F4)) {
+		if (shutter < 0x01F4) {
 			// should not operate with Shutter < 0x01F4 in Mode 2
 			_superlow_to_low_counter++;
 
@@ -729,7 +749,7 @@ void PAW3902::RunImpl()
 				ChangeMode(Mode::LowLight);
 			}
 
-		} else if (data_valid && (_valid_count >= 10) && (shutter < 0x03E8)) {
+		} else if (shutter < 0x03E8) {
 			// SuperLowLight -> LowLight
 			//  shutter < 1000 (0x03E8)
 			_superlow_to_low_counter++;
@@ -783,7 +803,7 @@ void PAW3902::RunImpl()
 	report.frame_count_since_last_readout = _flow_sample_counter; // number of frames
 	report.integration_timespan = _flow_dt_sum_usec;              // microseconds
 
-	report.quality = _flow_sample_counter > 0 ? _flow_quality_sum / _flow_sample_counter : 0;
+	report.quality = _flow_quality_sum / _flow_sample_counter;
 
 	// No gyro on this board
 	report.gyro_x_rate_integral = NAN;
@@ -812,6 +832,10 @@ void PAW3902::RunImpl()
 
 	report.timestamp = hrt_absolute_time();
 	_optical_flow_pub.publish(report);
+
+	if (report.quality > 10) {
+		_last_good_publish = report.timestamp;
+	}
 
 	ResetAccumulatedData();
 }
