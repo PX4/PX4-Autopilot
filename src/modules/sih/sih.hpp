@@ -230,7 +230,7 @@ private:
 	float       _u[NB_MOTORS];          // thruster signals
 
 	enum Vtype {MC, FW}; 	// vehicle type
-	Vtype _vehicle=FW;
+	Vtype _vehicle=MC;
 
 	// aerodynamic segments for the fixedwing
 	AeroSeg wing=AeroSeg(SPAN, MAC, math::radians(-3.0f), matrix::Vector3f());
@@ -291,6 +291,7 @@ private:
 		(ParamFloat<px4::params::SIH_DISTSNSR_MIN>) _sih_distance_snsr_min,
 		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
 		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override,
-		(ParamFloat<px4::params::SIH_T_TAU>) _sih_thrust_tau
+		(ParamFloat<px4::params::SIH_T_TAU>) _sih_thrust_tau,
+		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype
 	)
 };

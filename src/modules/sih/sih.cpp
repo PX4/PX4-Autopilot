@@ -70,6 +70,7 @@ Sih::Sih() :
 	_gps_time = task_start;
 	_gt_time = task_start;
 	_dist_snsr_time = task_start;
+	_vehicle=(Vtype)constrain(_sih_vtype.get(),0,1);
 }
 
 Sih::~Sih()
@@ -219,8 +220,6 @@ void Sih::init_variables()
 	_w_B = Vector3f(0.0f, 0.0f, 0.0f);
 
 	_u[0] = _u[1] = _u[2] = _u[3] = 0.0f;
-
-	// wing=AeroSeg(float span_, float mac_, float alpha_0_, matrix::Vector3f p_B_, bool horizontal_=true, float AR=-1.0f);
 }
 
 void Sih::gps_fix()
@@ -567,7 +566,11 @@ Vector3f Sih::noiseGauss3f(float stdx, float stdy, float stdz)
 
 int Sih::print_status()
 {
-        PX4_INFO("Running");
+	if (_vehicle==Vtype::MC) {
+		PX4_INFO("Running MC");
+	} else {
+		PX4_INFO("Running FW");
+	}
         PX4_INFO("vehicle landed: %d",_grounded);
         PX4_INFO("inertial position NED (m)");
         _p_I.print();

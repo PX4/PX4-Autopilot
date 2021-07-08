@@ -436,3 +436,12 @@ PARAM_DEFINE_FLOAT(SIH_DISTSNSR_OVR, -1.0f);
  */
 PARAM_DEFINE_FLOAT(SIH_T_TAU, 0.05f);
 
+/**
+ * Vehicle type (0 for MC, 1 for FW)
+ *
+ * @min 0
+ * @max  1
+ * @reboot_required true
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_INT32(SIH_VEHICLE_TYPE, 0);
