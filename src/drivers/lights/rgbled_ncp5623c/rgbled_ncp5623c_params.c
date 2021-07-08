@@ -54,3 +54,15 @@
  */
 PARAM_DEFINE_INT32(LED_RGB1_MAXBRT, 31);
 
+/**
+ * MRO GPS Reciever LED settings
+ *
+ * Set to true for when using an mRobotics GPS reciever for the RGB led to work
+ *
+ * @min 0
+ * @max 1
+ * @group System
+ * @value 0 False
+ * @value 1 True
+ */
+PARAM_DEFINE_INT32(MRO_GPS_RECIEVER, 0);

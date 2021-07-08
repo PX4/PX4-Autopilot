@@ -62,6 +62,11 @@ using namespace time_literals;
 #define NCP5623_LED_BRIGHT	0x1f	/**< full brightness */
 #define NCP5623_LED_OFF		0x00	/**< off */
 
+#define MRO_ADDR		0x38	/**< I2C adress of NCP5623C */
+#define MRO_PRESENT		1
+
+#define MRO_NCP5623_LED_PWM0	0x80	/**< pwm0 register */
+#define MRO_NCP5623_LED_PWM2	0x40	/**< pwm2 register */
 
 class RGBLED_NCP5623C : public device::I2C, public I2CSPIDriver<RGBLED_NCP5623C>
 {
@@ -98,6 +103,8 @@ private:
 	void			update_params();
 
 	int			write(uint8_t reg, uint8_t data);
+
+	bool			isMRO;
 };
 
 RGBLED_NCP5623C::RGBLED_NCP5623C(I2CSPIBusOption bus_option, const int bus, int bus_frequency, const int address) :
@@ -125,6 +132,10 @@ RGBLED_NCP5623C::init()
 	if (ret != OK) {
 		return ret;
 	}
+
+	int32_t tempMRO;
+	param_get(param_find("MRO_GPS_RECIEVER"), &tempMRO);
+	isMRO = tempMRO == MRO_PRESENT;
 
 	update_params();
 
@@ -217,9 +228,15 @@ RGBLED_NCP5623C::send_led_rgb()
 	uint8_t brightness = 0x1f * _max_brightness;
 
 	msg[0] = NCP5623_LED_CURRENT | (brightness & 0x1f);
-	msg[2] = NCP5623_LED_PWM0 | (uint8_t(_r * _brightness) & 0x1f);
 	msg[4] = NCP5623_LED_PWM1 | (uint8_t(_g * _brightness) & 0x1f);
-	msg[6] = NCP5623_LED_PWM2 | (uint8_t(_b * _brightness) & 0x1f);
+
+	if (isMRO){
+		msg[2] = MRO_NCP5623_LED_PWM0 | (uint8_t(_r * _brightness) & 0x1f);
+		msg[6] = MRO_NCP5623_LED_PWM2 | (uint8_t(_b * _brightness) & 0x1f);
+	} else {
+		msg[2] = NCP5623_LED_PWM0 | (uint8_t(_r * _brightness) & 0x1f);
+		msg[6] = NCP5623_LED_PWM2 | (uint8_t(_b * _brightness) & 0x1f);
+	}
 
 	return transfer(&msg[0], 7, nullptr, 0);
 }
@@ -273,7 +290,13 @@ extern "C" __EXPORT int rgbled_ncp5623c_main(int argc, char *argv[])
 	using ThisDriver = RGBLED_NCP5623C;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 100000;
-	cli.i2c_address = ADDR;
+	int32_t MRO;
+	param_get(param_find("MRO_GPS_RECIEVER"), &MRO);
+	if (MRO==MRO_PRESENT) {
+		cli.i2c_address = MRO_ADDR;
+	} else {
+		cli.i2c_address = ADDR;
+	}
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
 
