@@ -58,6 +58,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#if defined(__PX4_NUTTX)
+# include <nuttx/irq.h>
+#endif // __PX4_NUTTX
+
 namespace px4
 {
 
@@ -66,11 +70,11 @@ class atomic
 {
 public:
 
-#ifdef __PX4_NUTTX
+#if defined(__PX4_POSIX)
 	// Ensure that all operations are lock-free, so that 'atomic' can be used from
 	// IRQ handlers. This might not be required everywhere though.
 	static_assert(__atomic_always_lock_free(sizeof(T), 0), "atomic is not lock-free for the given type T");
-#endif
+#endif // __PX4_POSIX
 
 	atomic() = default;
 	explicit atomic(T value) : _value(value) {}
@@ -83,7 +87,21 @@ public:
 #ifdef __PX4_QURT
 		return _value;
 #else
-		return __atomic_load_n(&_value, __ATOMIC_SEQ_CST);
+
+#if defined(__PX4_NUTTX)
+
+		if (!__atomic_always_lock_free(sizeof(T), 0)) {
+			irqstate_t flags = enter_critical_section();
+			T val = _value;
+			leave_critical_section(flags);
+			return val;
+
+		} else
+#endif // __PX4_NUTTX
+		{
+			return __atomic_load_n(&_value, __ATOMIC_SEQ_CST);
+		}
+
 #endif
 	}
 
@@ -95,7 +113,20 @@ public:
 #ifdef __PX4_QURT
 		_value = value;
 #else
-		__atomic_store(&_value, &value, __ATOMIC_SEQ_CST);
+
+#if defined(__PX4_NUTTX)
+
+		if (!__atomic_always_lock_free(sizeof(T), 0)) {
+			irqstate_t flags = enter_critical_section();
+			_value = value;
+			leave_critical_section(flags);
+
+		} else
+#endif // __PX4_NUTTX
+		{
+			__atomic_store(&_value, &value, __ATOMIC_SEQ_CST);
+		}
+
 #endif
 	}
 
@@ -109,7 +140,21 @@ public:
 		// TODO: fix
 		return _value++;
 #else
-		return __atomic_fetch_add(&_value, num, __ATOMIC_SEQ_CST);
+
+#if defined(__PX4_NUTTX)
+
+		if (!__atomic_always_lock_free(sizeof(T), 0)) {
+			irqstate_t flags = enter_critical_section();
+			T ret = _value++;
+			leave_critical_section(flags);
+			return ret;
+
+		} else
+#endif // __PX4_NUTTX
+		{
+			return __atomic_fetch_add(&_value, num, __ATOMIC_SEQ_CST);
+		}
+
 #endif
 	}
 
@@ -119,7 +164,19 @@ public:
 	 */
 	inline T fetch_sub(T num)
 	{
-		return __atomic_fetch_sub(&_value, num, __ATOMIC_SEQ_CST);
+#if defined(__PX4_NUTTX)
+
+		if (!__atomic_always_lock_free(sizeof(T), 0)) {
+			irqstate_t flags = enter_critical_section();
+			T ret = _value--;
+			leave_critical_section(flags);
+			return ret;
+
+		} else
+#endif // __PX4_NUTTX
+		{
+			return __atomic_fetch_sub(&_value, num, __ATOMIC_SEQ_CST);
+		}
 	}
 
 	/**
@@ -128,7 +185,20 @@ public:
 	 */
 	inline T fetch_and(T num)
 	{
-		return __atomic_fetch_and(&_value, num, __ATOMIC_SEQ_CST);
+#if defined(__PX4_NUTTX)
+
+		if (!__atomic_always_lock_free(sizeof(T), 0)) {
+			irqstate_t flags = enter_critical_section();
+			T val = _value;
+			_value &= num;
+			leave_critical_section(flags);
+			return val;
+
+		} else
+#endif // __PX4_NUTTX
+		{
+			return __atomic_fetch_and(&_value, num, __ATOMIC_SEQ_CST);
+		}
 	}
 
 	/**
@@ -137,7 +207,20 @@ public:
 	 */
 	inline T fetch_xor(T num)
 	{
-		return __atomic_fetch_xor(&_value, num, __ATOMIC_SEQ_CST);
+#if defined(__PX4_NUTTX)
+
+		if (!__atomic_always_lock_free(sizeof(T), 0)) {
+			irqstate_t flags = enter_critical_section();
+			T val = _value;
+			_value ^= num;
+			leave_critical_section(flags);
+			return val;
+
+		} else
+#endif // __PX4_NUTTX
+		{
+			return __atomic_fetch_xor(&_value, num, __ATOMIC_SEQ_CST);
+		}
 	}
 
 	/**
@@ -146,7 +229,20 @@ public:
 	 */
 	inline T fetch_or(T num)
 	{
-		return __atomic_fetch_or(&_value, num, __ATOMIC_SEQ_CST);
+#if defined(__PX4_NUTTX)
+
+		if (!__atomic_always_lock_free(sizeof(T), 0)) {
+			irqstate_t flags = enter_critical_section();
+			T val = _value;
+			_value |= num;
+			leave_critical_section(flags);
+			return val;
+
+		} else
+#endif // __PX4_NUTTX
+		{
+			return __atomic_fetch_or(&_value, num, __ATOMIC_SEQ_CST);
+		}
 	}
 
 	/**
@@ -155,7 +251,20 @@ public:
 	 */
 	inline T fetch_nand(T num)
 	{
-		return __atomic_fetch_nand(&_value, num, __ATOMIC_SEQ_CST);
+#if defined(__PX4_NUTTX)
+
+		if (!__atomic_always_lock_free(sizeof(T), 0)) {
+			irqstate_t flags = enter_critical_section();
+			T ret = _value;
+			_value = ~(_value & num);
+			leave_critical_section(flags);
+			return ret;
+
+		} else
+#endif // __PX4_NUTTX
+		{
+			return __atomic_fetch_nand(&_value, num, __ATOMIC_SEQ_CST);
+		}
 	}
 
 	/**
@@ -168,7 +277,27 @@ public:
 	 */
 	inline bool compare_exchange(T *expected, T desired)
 	{
-		return __atomic_compare_exchange(&_value, expected, &desired, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+#if defined(__PX4_NUTTX)
+
+		if (!__atomic_always_lock_free(sizeof(T), 0)) {
+			irqstate_t flags = enter_critical_section();
+
+			if (_value == *expected) {
+				_value = desired;
+				leave_critical_section(flags);
+				return true;
+
+			} else {
+				*expected = _value;
+				leave_critical_section(flags);
+				return false;
+			}
+
+		} else
+#endif // __PX4_NUTTX
+		{
+			return __atomic_compare_exchange(&_value, expected, &desired, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+		}
 	}
 
 private:
