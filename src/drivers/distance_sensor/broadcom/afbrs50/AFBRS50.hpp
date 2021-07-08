@@ -89,4 +89,7 @@ private:
 	hrt_abstime _measurement_time{0};
 
 	perf_counter_t _sample_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": sample interval")};
+
+	float _max_distance;
+	float _min_distance;
 };
