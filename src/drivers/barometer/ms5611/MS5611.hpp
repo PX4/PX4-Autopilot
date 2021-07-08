@@ -87,12 +87,10 @@ enum MS56XX_DEVICE_TYPES {
 class MS5611 : public I2CSPIDriver<MS5611>
 {
 public:
-	MS5611(device::Device *interface, ms5611::prom_u &prom_buf, enum MS56XX_DEVICE_TYPES device_type,
-	       I2CSPIBusOption bus_option, int bus);
+	MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const I2CSPIDriverConfig &config);
 	~MS5611() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
 	int		init();

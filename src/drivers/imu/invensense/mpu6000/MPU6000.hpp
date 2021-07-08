@@ -56,12 +56,9 @@ using namespace InvenSense_MPU6000;
 class MPU6000 : public device::SPI, public I2CSPIDriver<MPU6000>
 {
 public:
-	MPU6000(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-		spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio);
+	MPU6000(const I2CSPIDriverConfig &config);
 	~MPU6000() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void RunImpl();

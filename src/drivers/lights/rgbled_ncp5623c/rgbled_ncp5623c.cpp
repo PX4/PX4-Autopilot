@@ -71,11 +71,9 @@ using namespace time_literals;
 class RGBLED_NCP5623C : public device::I2C, public I2CSPIDriver<RGBLED_NCP5623C>
 {
 public:
-	RGBLED_NCP5623C(I2CSPIBusOption bus_option, const int bus, int bus_frequency, const int address);
+	RGBLED_NCP5623C(const I2CSPIDriverConfig &config);
 	virtual ~RGBLED_NCP5623C() = default;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	int		init() override;
@@ -107,9 +105,9 @@ private:
 	bool			isMRO;
 };
 
-RGBLED_NCP5623C::RGBLED_NCP5623C(I2CSPIBusOption bus_option, const int bus, int bus_frequency, const int address) :
-	I2C(DRV_LED_DEVTYPE_RGBLED_NCP5623C, MODULE_NAME, bus, address, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
+RGBLED_NCP5623C::RGBLED_NCP5623C(const I2CSPIDriverConfig &config) :
+	I2C(config),
+	I2CSPIDriver(config)
 {
 }
 
@@ -264,25 +262,6 @@ RGBLED_NCP5623C::print_usage()
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x39);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-}
-
-I2CSPIDriverBase *RGBLED_NCP5623C::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-		int runtime_instance)
-{
-	RGBLED_NCP5623C *instance = new RGBLED_NCP5623C(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency,
-			cli.i2c_address);
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (instance->init() != PX4_OK) {
-		delete instance;
-		return nullptr;
-	}
-
-	return instance;
 }
 
 extern "C" __EXPORT int rgbled_ncp5623c_main(int argc, char *argv[])

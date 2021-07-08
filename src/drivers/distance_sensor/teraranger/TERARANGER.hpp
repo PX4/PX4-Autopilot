@@ -75,11 +75,9 @@ using namespace time_literals;
 class TERARANGER : public device::I2C, public I2CSPIDriver<TERARANGER>
 {
 public:
-	TERARANGER(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency);
+	TERARANGER(const I2CSPIDriverConfig &config);
 	~TERARANGER() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	virtual int init() override;

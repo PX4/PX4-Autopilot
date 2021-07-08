@@ -46,9 +46,8 @@ static void getTwosComplement(T &raw, uint8_t length)
 	}
 }
 
-DPS310::DPS310(I2CSPIBusOption bus_option, int bus, device::Device *interface) :
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus,
-		     interface->get_device_address()),
+DPS310::DPS310(const I2CSPIDriverConfig &config, device::Device *interface) :
+	I2CSPIDriver(config),
 	_px4_barometer(interface->get_device_id()),
 	_interface(interface),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),

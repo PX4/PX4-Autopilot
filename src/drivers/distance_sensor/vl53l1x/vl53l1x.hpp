@@ -98,29 +98,16 @@
 class VL53L1X : public device::I2C, public I2CSPIDriver<VL53L1X>
 {
 public:
-	VL53L1X(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency,
-		int address = VL53L1X_BASEADDR);
+	VL53L1X(const I2CSPIDriverConfig &config);
 
 	~VL53L1X() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
 	 */
 	void print_status() override;
-
-	/**
-	 * Initialise the automatic measurement state machine and start it.
-	 */
-	void start();
-
-	/**
-	 * Stop the automatic measurement state machine.
-	 */
-	void stop();
 
 	virtual int init() override;
 

@@ -46,25 +46,6 @@ void ICM20689::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *ICM20689::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					int runtime_instance)
-{
-	ICM20689 *instance = new ICM20689(iterator.configuredBusOption(), iterator.bus(), iterator.devid(), cli.rotation,
-					  cli.bus_frequency, cli.spi_mode, iterator.DRDYGPIO());
-
-	if (!instance) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (OK != instance->init()) {
-		delete instance;
-		return nullptr;
-	}
-
-	return instance;
-}
-
 extern "C" int icm20689_main(int argc, char *argv[])
 {
 	int ch;

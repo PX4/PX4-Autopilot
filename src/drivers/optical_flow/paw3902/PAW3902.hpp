@@ -62,12 +62,9 @@ using namespace PixArt_PAW3902JF;
 class PAW3902 : public device::SPI, public I2CSPIDriver<PAW3902>
 {
 public:
-	PAW3902(I2CSPIBusOption bus_option, int bus, int devid, int bus_frequency, spi_mode_e spi_mode,
-		spi_drdy_gpio_t drdy_gpio, float yaw_rotation_degrees = NAN);
+	PAW3902(const I2CSPIDriverConfig &config);
 	virtual ~PAW3902();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	int init() override;

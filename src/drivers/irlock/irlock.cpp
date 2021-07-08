@@ -92,11 +92,9 @@ struct irlock_s {
 class IRLOCK : public device::I2C, public I2CSPIDriver<IRLOCK>
 {
 public:
-	IRLOCK(I2CSPIBusOption bus_option, const int bus, int bus_frequency, const int address);
+	IRLOCK(const I2CSPIDriverConfig &config);
 	~IRLOCK() override = default;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	int init() override;
@@ -119,9 +117,9 @@ private:
 	uORB::Publication<irlock_report_s> _irlock_report_topic{ORB_ID(irlock_report)};
 };
 
-IRLOCK::IRLOCK(I2CSPIBusOption bus_option, const int bus, int bus_frequency, const int address) :
-	I2C(DRV_SENS_DEVTYPE_IRLOCK, MODULE_NAME, bus, address, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
+IRLOCK::IRLOCK(const I2CSPIDriverConfig &config) :
+	I2C(config),
+	I2CSPIDriver(config)
 {
 }
 
@@ -270,24 +268,6 @@ void IRLOCK::print_usage()
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x54);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-}
-
-I2CSPIDriverBase *IRLOCK::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				      int runtime_instance)
-{
-	IRLOCK *instance = new IRLOCK(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.i2c_address);
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (instance->init() != PX4_OK) {
-		delete instance;
-		return nullptr;
-	}
-
-	return instance;
 }
 
 extern "C" __EXPORT int irlock_main(int argc, char *argv[])

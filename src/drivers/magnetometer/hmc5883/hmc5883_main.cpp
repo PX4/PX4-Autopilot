@@ -45,16 +45,15 @@
 
 extern "C" __EXPORT int hmc5883_main(int argc, char *argv[]);
 
-I2CSPIDriverBase *HMC5883::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				       int runtime_instance)
+I2CSPIDriverBase *HMC5883::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
 	device::Device *interface = nullptr;
 
-	if (iterator.busType() == BOARD_I2C_BUS) {
-		interface = HMC5883_I2C_interface(iterator.bus(), cli.bus_frequency);
+	if (config.bus_type == BOARD_I2C_BUS) {
+		interface = HMC5883_I2C_interface(config.bus, config.bus_frequency);
 
-	} else if (iterator.busType() == BOARD_SPI_BUS) {
-		interface = HMC5883_SPI_interface(iterator.bus(), iterator.devid(), cli.bus_frequency, cli.spi_mode);
+	} else if (config.bus_type == BOARD_SPI_BUS) {
+		interface = HMC5883_SPI_interface(config.bus, config.spi_devid, config.bus_frequency, config.spi_mode);
 	}
 
 	if (interface == nullptr) {
@@ -64,11 +63,11 @@ I2CSPIDriverBase *HMC5883::instantiate(const BusCLIArguments &cli, const BusInst
 
 	if (interface->init() != OK) {
 		delete interface;
-		PX4_DEBUG("no device on bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
+		PX4_DEBUG("no device on bus %i (devid 0x%x)", config.bus, config.spi_devid);
 		return nullptr;
 	}
 
-	HMC5883 *dev = new HMC5883(interface, cli.rotation, iterator.configuredBusOption(), iterator.bus());
+	HMC5883 *dev = new HMC5883(interface, config);
 
 	if (dev == nullptr) {
 		delete interface;
@@ -80,7 +79,7 @@ I2CSPIDriverBase *HMC5883::instantiate(const BusCLIArguments &cli, const BusInst
 		return nullptr;
 	}
 
-	bool enable_temp_compensation = cli.custom1 == 1;
+	bool enable_temp_compensation = config.custom1 == 1;
 
 	if (enable_temp_compensation) {
 		dev->set_temperature_compensation(1);
@@ -126,6 +125,8 @@ extern "C" int hmc5883_main(int argc, char *argv[])
 		ThisDriver::print_usage();
 		return -1;
 	}
+
+	cli.i2c_address = HMC5883L_ADDRESS;
 
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_MAG_DEVTYPE_HMC5883);
 

@@ -36,18 +36,15 @@
 #include "BMI055_Accelerometer.hpp"
 #include "BMI055_Gyroscope.hpp"
 
-I2CSPIDriverBase *BMI055::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				      int runtime_instance)
+I2CSPIDriverBase *BMI055::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
 	BMI055 *instance = nullptr;
 
-	if (cli.type == DRV_ACC_DEVTYPE_BMI055) {
-		instance = new Bosch::BMI055::Accelerometer::BMI055_Accelerometer(iterator.configuredBusOption(), iterator.bus(),
-				iterator.devid(), cli.rotation, cli.bus_frequency, cli.spi_mode, iterator.DRDYGPIO());
+	if (config.devid_driver_index == DRV_ACC_DEVTYPE_BMI055) {
+		instance = new Bosch::BMI055::Accelerometer::BMI055_Accelerometer(config);
 
-	} else if (cli.type == DRV_GYR_DEVTYPE_BMI055) {
-		instance = new Bosch::BMI055::Gyroscope::BMI055_Gyroscope(iterator.configuredBusOption(), iterator.bus(),
-				iterator.devid(), cli.rotation, cli.bus_frequency, cli.spi_mode, iterator.DRDYGPIO());
+	} else if (config.devid_driver_index == DRV_GYR_DEVTYPE_BMI055) {
+		instance = new Bosch::BMI055::Gyroscope::BMI055_Gyroscope(config);
 	}
 
 	if (!instance) {
@@ -63,11 +60,10 @@ I2CSPIDriverBase *BMI055::instantiate(const BusCLIArguments &cli, const BusInsta
 	return instance;
 }
 
-BMI055::BMI055(uint8_t devtype, const char *name, I2CSPIBusOption bus_option, int bus, uint32_t device,
-	       enum spi_mode_e mode, uint32_t frequency, spi_drdy_gpio_t drdy_gpio) :
-	SPI(devtype, name, bus, device, mode, frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, devtype),
-	_drdy_gpio(drdy_gpio)
+BMI055::BMI055(const I2CSPIDriverConfig &config) :
+	SPI(config),
+	I2CSPIDriver(config),
+	_drdy_gpio(config.drdy_gpio)
 {
 }
 
