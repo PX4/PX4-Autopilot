@@ -85,6 +85,7 @@ private:
 	bool time_atomic_int32();
 	bool time_atomic_uint32();
 	bool time_atomic_float();
+	bool time_atomic_hrt_abstime();
 
 	void reset();
 
@@ -129,6 +130,10 @@ private:
 	px4::atomic<float> _atomic_float{0};
 	px4::atomic<float> _atomic_float_storage{0};
 	float _test_load_float{};
+
+	px4::atomic<hrt_abstime> _atomic_hrt_abstime{0};
+	px4::atomic<hrt_abstime> _atomic_hrt_abstime_storage{0};
+	hrt_abstime _test_load_hrt_abstime{};
 };
 
 bool MicroBenchAtomic::run_tests()
@@ -139,6 +144,7 @@ bool MicroBenchAtomic::run_tests()
 	ut_run_test(time_atomic_int32);
 	ut_run_test(time_atomic_uint32);
 	ut_run_test(time_atomic_float);
+	ut_run_test(time_atomic_hrt_abstime);
 
 	return (_tests_failed == 0);
 }
@@ -284,6 +290,29 @@ bool MicroBenchAtomic::time_atomic_float()
 	     volatile bool compare_exchange = _atomic_float.compare_exchange(&expected, 42), 100);
 	PERF("atomic float compare exchange (different)",
 	     volatile bool compare_exchange = _atomic_float.compare_exchange(&expected, 0), 100);
+
+	return true;
+}
+
+bool MicroBenchAtomic::time_atomic_hrt_abstime()
+{
+	ut_compare("atomic hrt_abstime load", _atomic_hrt_abstime.load(), 0);
+	PERF("atomic hrt_abstime load", volatile hrt_abstime test_load = _atomic_hrt_abstime.load(), 100);
+
+	_test_load_hrt_abstime = 1;
+	PERF("atomic hrt_abstime store", _atomic_hrt_abstime.store(_test_load_hrt_abstime), 100);
+	ut_compare("atomic hrt_abstime load", _atomic_hrt_abstime.load(), 1);
+
+	PERF("atomic hrt_abstime load and store", _atomic_hrt_abstime_storage.store(_atomic_hrt_abstime.load()), 100);
+
+	hrt_abstime expected = 12345678;
+	PERF("atomic hrt_abstime compare exchange (same)",
+	     volatile bool compare_exchange = _atomic_hrt_abstime.compare_exchange(&expected, 12345678), 100);
+	ut_compare("atomic hrt_abstime load", _atomic_hrt_abstime.compare_exchange(&expected, 12345678) == true, true);
+
+	PERF("atomic hrt_abstime compare exchange (different)",
+	     volatile bool compare_exchange = _atomic_hrt_abstime.compare_exchange(&expected, 0), 100);
+	ut_compare("atomic hrt_abstime load", _atomic_hrt_abstime.compare_exchange(&expected, 0) == false, false);
 
 	return true;
 }
