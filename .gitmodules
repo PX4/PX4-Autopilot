@@ -70,6 +70,7 @@
 [submodule "src/lib/crypto/monocypher"]
 	path = src/lib/crypto/monocypher
 	url = https://github.com/PX4/Monocypher.git
+	branch = px4
 [submodule "src/lib/events/libevents"]
 	path = src/lib/events/libevents
 	url = https://github.com/mavlink/libevents.git
