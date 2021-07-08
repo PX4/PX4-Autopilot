@@ -60,7 +60,7 @@ void SubscriptionManager::subscribe()
 {
 	_heartbeat_sub.subscribe();
 	_getinfo_rsp.subscribe();
-	// _access_rsp.subscribe();
+	_access_rsp.subscribe();
 
 	updateDynamicSubscriptions();
 }
