@@ -1,6 +1,8 @@
 FX-79 Delta-wing mixer for PX4FMU
 =================================
 
+# @board px4_fmu-v2 exclude
+
 Designed for FX-79.
 
 TODO (sjwilks): Add mixers for flaps.
