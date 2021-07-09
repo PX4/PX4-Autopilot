@@ -87,24 +87,24 @@ void FlightTaskAutoLineSmoothVel::reActivate()
  * Those functions are called by the base FlightTask in
  * case of an EKF reset event
  */
-void FlightTaskAutoLineSmoothVel::_ekfResetHandlerPositionXY()
+void FlightTaskAutoLineSmoothVel::_ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy)
 {
 	_trajectory[0].setCurrentPosition(_position(0));
 	_trajectory[1].setCurrentPosition(_position(1));
 }
 
-void FlightTaskAutoLineSmoothVel::_ekfResetHandlerVelocityXY()
+void FlightTaskAutoLineSmoothVel::_ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy)
 {
 	_trajectory[0].setCurrentVelocity(_velocity(0));
 	_trajectory[1].setCurrentVelocity(_velocity(1));
 }
 
-void FlightTaskAutoLineSmoothVel::_ekfResetHandlerPositionZ()
+void FlightTaskAutoLineSmoothVel::_ekfResetHandlerPositionZ(float delta_z)
 {
 	_trajectory[2].setCurrentPosition(_position(2));
 }
 
-void FlightTaskAutoLineSmoothVel::_ekfResetHandlerVelocityZ()
+void FlightTaskAutoLineSmoothVel::_ekfResetHandlerVelocityZ(float delta_vz)
 {
 	_trajectory[2].setCurrentVelocity(_velocity(2));
 }
