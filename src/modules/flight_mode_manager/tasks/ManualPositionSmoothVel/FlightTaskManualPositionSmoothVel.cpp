@@ -73,22 +73,22 @@ void FlightTaskManualPositionSmoothVel::reActivate()
 	_smoothing_z.reset(0.f, 0.f, _position(2));
 }
 
-void FlightTaskManualPositionSmoothVel::_ekfResetHandlerPositionXY()
+void FlightTaskManualPositionSmoothVel::_ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy)
 {
 	_smoothing_xy.setCurrentPosition(_position.xy());
 }
 
-void FlightTaskManualPositionSmoothVel::_ekfResetHandlerVelocityXY()
+void FlightTaskManualPositionSmoothVel::_ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy)
 {
 	_smoothing_xy.setCurrentVelocity(_velocity.xy());
 }
 
-void FlightTaskManualPositionSmoothVel::_ekfResetHandlerPositionZ()
+void FlightTaskManualPositionSmoothVel::_ekfResetHandlerPositionZ(float delta_z)
 {
 	_smoothing_z.setCurrentPosition(_position(2));
 }
 
-void FlightTaskManualPositionSmoothVel::_ekfResetHandlerVelocityZ()
+void FlightTaskManualPositionSmoothVel::_ekfResetHandlerVelocityZ(float delta_vz)
 {
 	_smoothing_z.setCurrentVelocity(_velocity(2));
 }
