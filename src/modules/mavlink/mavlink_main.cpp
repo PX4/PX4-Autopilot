@@ -382,43 +382,38 @@ Mavlink::serial_instance_exists(const char *device_name, Mavlink *self)
 void
 Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 {
+	const mavlink_msg_entry_t *meta = mavlink_get_msg_entry(msg->msgid);
+
+	int target_system_id = 0;
+	int target_component_id = 0;
+
+	// might be nullptr if message is unknown
+	if (meta) {
+		// Extract target system and target component if set
+		if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_SYSTEM) {
+			target_system_id = (_MAV_PAYLOAD(msg))[meta->target_system_ofs];
+		}
+
+		if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT) {
+			target_component_id = (_MAV_PAYLOAD(msg))[meta->target_component_ofs];
+		}
+	}
+
+	// If it's a message only for us, we keep it, otherwise, we forward it.
+	if (target_system_id == self->get_system_id() && target_component_id == self->get_component_id()) {
+		return;
+	}
+
+	// We don't forward heartbeats unless it's specifically enabled.
+	if (msg->msgid == MAVLINK_MSG_ID_HEARTBEAT && !self->forward_heartbeats_enabled()) {
+		return;
+	}
+
 	LockGuard lg{mavlink_module_mutex};
 
 	for (Mavlink *inst : mavlink_module_instances) {
 		if (inst && (inst != self)) {
-			const mavlink_msg_entry_t *meta = mavlink_get_msg_entry(msg->msgid);
-
-			int target_system_id = 0;
-			int target_component_id = 0;
-
-			// might be nullptr if message is unknown
-			if (meta) {
-				// Extract target system and target component if set
-				if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_SYSTEM) {
-					if (meta->target_system_ofs < msg->len) {
-						target_system_id = (_MAV_PAYLOAD(msg))[meta->target_system_ofs];
-					}
-				}
-
-				if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT) {
-					if (meta->target_component_ofs < msg->len) {
-						target_component_id = (_MAV_PAYLOAD(msg))[meta->target_component_ofs];
-					}
-				}
-			}
-
-			// If it's a message only for us, we keep it, otherwise, we forward it.
-			const bool targeted_only_at_us =
-				(target_system_id == self->get_system_id() &&
-				 target_component_id == self->get_component_id());
-
-			// We don't forward heartbeats unless it's specifically enabled.
-			const bool heartbeat_check_ok =
-				(msg->msgid != MAVLINK_MSG_ID_HEARTBEAT || self->forward_heartbeats_enabled());
-
-			if (!targeted_only_at_us && heartbeat_check_ok) {
-				inst->pass_message(msg);
-			}
+			inst->pass_message(msg);
 		}
 	}
 }
