@@ -68,7 +68,7 @@ PARAM_DEFINE_FLOAT(CAL_AIR_TUBELEN, 0.2f);
 /**
  * Airspeed sensor tube diameter. Only used for the Tube Pressure Drop Compensation.
  *
- * @min 0.1
+ * @min 1.5
  * @max 100
  * @unit mm
  *
