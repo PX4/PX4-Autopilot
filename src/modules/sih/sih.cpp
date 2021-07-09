@@ -540,22 +540,7 @@ Quatf Sih::expq(matrix::Vector3f u)  {
 float Sih::sincf(float x)
 {
 	// Move x to [-pi, pi)
-	x = fmodf(x, 2 * M_PI_F);
-	if (x >= M_PI_F) {
-		x -= 2 * M_PI_F;
-	}
-	if (x < -M_PI_F) {
-		x += 2 * M_PI_F;
-	}
-
-	// Move x to [-pi/2, pi/2)
-	if (x >= M_PI_2_F) {
-		x = M_PI_F - x;
-	}
-	if (x < -M_PI_2_F) {
-		x = -M_PI_F - x;
-	}
-	if (fabsf(x)<0.01f) {
+	if (fabsf(x)<1.0e-6f) { 	// error will be smaller than 1e-18
 		return 1.0f-x*x/6.0f; 	// first taylor serie term of sin(x)/x
 	}
 	return sinf(x)/x;
