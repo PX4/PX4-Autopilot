@@ -47,7 +47,7 @@ px4_add_board(
 		#power_monitor/ina226
 		#protocol_splitter
 		#pwm_input
-		pwm_out_sim
+		#pwm_out_sim
 		pwm_out
 		px4io
 		rc_input
@@ -115,7 +115,7 @@ px4_add_board(
 		perf
 		pwm
 		reboot
-		reflect
+		#reflect
 		sd_bench
 		#serial_test
 		system_time
