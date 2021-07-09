@@ -55,7 +55,7 @@ void send(EventType &event)
 	// - we need to ensure ordering of the sequence numbers: the sequence we set here
 	//   has to be the one published next.
 	pthread_mutex_lock(&publish_event_mutex);
-	event.sequence = ++event_sequence; // Set the sequence here so we're able to detect uORB queue overflows
+	event.event_sequence = ++event_sequence; // Set the sequence here so we're able to detect uORB queue overflows
 
 	if (orb_event_pub != nullptr) {
 		orb_publish(ORB_ID(event), orb_event_pub, &event);

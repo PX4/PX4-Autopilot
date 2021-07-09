@@ -947,9 +947,9 @@ bool Logger::handle_event_updates(uint32_t &total_bytes)
 		} else {
 			// adjust sequence number
 			uint16_t updated_sequence;
-			memcpy(&updated_sequence, &orb_event->sequence, sizeof(updated_sequence));
+			memcpy(&updated_sequence, &orb_event->event_sequence, sizeof(updated_sequence));
 			updated_sequence -= _event_sequence_offset;
-			memcpy(&orb_event->sequence, &updated_sequence, sizeof(updated_sequence));
+			memcpy(&orb_event->event_sequence, &updated_sequence, sizeof(updated_sequence));
 
 			size_t msg_size = sizeof(ulog_message_data_header_s) + _event_subscription.get_topic()->o_size_no_padding;
 			uint16_t write_msg_size = static_cast<uint16_t>(msg_size - ULOG_MSG_HEADER_LEN);
@@ -974,9 +974,9 @@ bool Logger::handle_event_updates(uint32_t &total_bytes)
 			// mission log: only warnings or higher
 			if (events::internalLogLevel(orb_event->log_levels) <= events::LogLevelInternal::Warning) {
 				if (_writer.is_started(LogType::Mission)) {
-					memcpy(&updated_sequence, &orb_event->sequence, sizeof(updated_sequence));
+					memcpy(&updated_sequence, &orb_event->event_sequence, sizeof(updated_sequence));
 					updated_sequence -= _event_sequence_offset_mission;
-					memcpy(&orb_event->sequence, &updated_sequence, sizeof(updated_sequence));
+					memcpy(&orb_event->event_sequence, &updated_sequence, sizeof(updated_sequence));
 
 					if (write_message(LogType::Mission, _msg_buffer, msg_size)) {
 						data_written = true;

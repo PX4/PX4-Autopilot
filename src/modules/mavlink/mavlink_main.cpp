@@ -2473,7 +2473,7 @@ Mavlink::task_main(int argc, char *argv[])
 					events::Event e;
 					e.id = orb_event.id;
 					e.timestamp_ms = orb_event.timestamp / 1000;
-					e.sequence = orb_event.sequence - event_sequence_offset;
+					e.sequence = orb_event.event_sequence - event_sequence_offset;
 					e.log_levels = orb_event.log_levels;
 					static_assert(sizeof(e.arguments) == sizeof(orb_event.arguments),
 						      "uorb message event: arguments size mismatch");
