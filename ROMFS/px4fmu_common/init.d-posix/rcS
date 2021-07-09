@@ -228,8 +228,7 @@ navigator start
 # Try to start the micrortps_client with UDP transport if module exists
 if px4-micrortps_client status > /dev/null 2>&1
 then
-	# shellcheck disable=SC2154
-	micrortps_client start -t UDP -r $((2019+2*px4_instance)) -s $((2020+2*px4_instance))
+	. px4-rc.rtps
 fi
 
 if param greater -s MNT_MODE_IN -1
