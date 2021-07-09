@@ -279,7 +279,6 @@ misc_qgc_extra_firmware: \
 	check_bitcraze_crazyflie_default \
 	check_bitcraze_crazyflie21_default \
 	check_airmind_mindpx-v2_default \
-	check_px4_fmu-v2_lpe \
 	sizes
 
 # builds with RTPS
