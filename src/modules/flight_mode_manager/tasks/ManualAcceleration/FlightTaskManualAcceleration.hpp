@@ -56,6 +56,6 @@ private:
 	StickAccelerationXY _stick_acceleration_xy;
 	StickYaw _stick_yaw;
 
-	void _ekfResetHandlerPositionXY() override;
-	void _ekfResetHandlerVelocityXY() override;
+	void _ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy) override;
+	void _ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy) override;
 };

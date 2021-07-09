@@ -49,22 +49,22 @@ void FlightTask::_checkEkfResetCounters()
 {
 	// Check if a reset event has happened
 	if (_sub_vehicle_local_position.get().xy_reset_counter != _reset_counters.xy) {
-		_ekfResetHandlerPositionXY();
+		_ekfResetHandlerPositionXY(matrix::Vector2f{_sub_vehicle_local_position.get().delta_xy});
 		_reset_counters.xy = _sub_vehicle_local_position.get().xy_reset_counter;
 	}
 
 	if (_sub_vehicle_local_position.get().vxy_reset_counter != _reset_counters.vxy) {
-		_ekfResetHandlerVelocityXY();
+		_ekfResetHandlerVelocityXY(matrix::Vector2f{_sub_vehicle_local_position.get().delta_vxy});
 		_reset_counters.vxy = _sub_vehicle_local_position.get().vxy_reset_counter;
 	}
 
 	if (_sub_vehicle_local_position.get().z_reset_counter != _reset_counters.z) {
-		_ekfResetHandlerPositionZ();
+		_ekfResetHandlerPositionZ(_sub_vehicle_local_position.get().delta_z);
 		_reset_counters.z = _sub_vehicle_local_position.get().z_reset_counter;
 	}
 
 	if (_sub_vehicle_local_position.get().vz_reset_counter != _reset_counters.vz) {
-		_ekfResetHandlerVelocityZ();
+		_ekfResetHandlerVelocityZ(_sub_vehicle_local_position.get().delta_vz);
 		_reset_counters.vz = _sub_vehicle_local_position.get().vz_reset_counter;
 	}
 

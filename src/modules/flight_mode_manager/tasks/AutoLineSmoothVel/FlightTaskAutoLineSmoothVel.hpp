@@ -55,10 +55,10 @@ public:
 protected:
 
 	/** Reset position or velocity setpoints in case of EKF reset event */
-	void _ekfResetHandlerPositionXY() override;
-	void _ekfResetHandlerVelocityXY() override;
-	void _ekfResetHandlerPositionZ() override;
-	void _ekfResetHandlerVelocityZ() override;
+	void _ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy) override;
+	void _ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy) override;
+	void _ekfResetHandlerPositionZ(float delta_z) override;
+	void _ekfResetHandlerVelocityZ(float delta_vz) override;
 	void _ekfResetHandlerHeading(float delta_psi) override;
 
 	void _generateSetpoints() override; /**< Generate setpoints along line. */

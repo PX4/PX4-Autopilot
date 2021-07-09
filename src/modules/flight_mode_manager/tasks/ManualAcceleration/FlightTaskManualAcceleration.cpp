@@ -77,12 +77,12 @@ bool FlightTaskManualAcceleration::update()
 	return ret;
 }
 
-void FlightTaskManualAcceleration::_ekfResetHandlerPositionXY()
+void FlightTaskManualAcceleration::_ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy)
 {
 	_stick_acceleration_xy.resetPosition();
 }
 
-void FlightTaskManualAcceleration::_ekfResetHandlerVelocityXY()
+void FlightTaskManualAcceleration::_ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy)
 {
 	_stick_acceleration_xy.resetVelocity(_velocity.xy());
 }
