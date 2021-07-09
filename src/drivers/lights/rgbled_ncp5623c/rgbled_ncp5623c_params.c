@@ -6,9 +6,9 @@
  * modification, are permitted provided that the following conditions
  * are met:
  *
- * 1. Redistributions of source code must retain the above copyright
+ * 1. Redistribution of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
+ * 2. Redistribution in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
@@ -55,15 +55,52 @@
 PARAM_DEFINE_INT32(LED_RGB1_MAXBRT, 31);
 
 /**
- * MRO GPS Receiver LED settings
+ * NCP5634c red LED output
  *
- * Set to true for when using an mRobotics GPS receiver for the RGB led to work
+ * Sets the output for the red LED
  *
- * @min 0
- * @max 1
  * @group System
- * @value 0 False
- * @value 1 True
+ * @value 64 PWM0
+ * @value 96 PWM1
+ * @value 128 PWM2
  * @reboot_required true
  */
-PARAM_DEFINE_INT32(MRO_GPS_RECEIVER, 0);
+PARAM_DEFINE_INT32(LED_RED_ADDR, 64);
+
+/**
+ * NCP5634c green LED output
+ *
+ * Sets the output for the green LED
+ *
+ * @group System
+ * @value 64 PWM0
+ * @value 96 PWM1
+ * @value 128 PWM2
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(LED_GREEN_ADDR, 96);
+
+/**
+ * NCP5634c blue LED output
+ *
+ * Sets the output for the blue LED
+ *
+ * @group System
+ * @value 64 PWM0
+ * @value 96 PWM1
+ * @value 128 PWM2
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(LED_BLUE_ADDR, 128);
+
+/**
+ * NCP5634c I2C address
+ *
+ * Sets the I2C address of the NCP5634c
+ *
+ * @group System
+ * @value 56 0x38
+ * @value 57 0x39
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(LED_ADDR, 57);
