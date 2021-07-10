@@ -325,16 +325,10 @@ void RCInput::Run()
 				if (input_rc_s::RC_INPUT_SOURCE_PX4FMU_SRXL == _rc_in.input_source) {
 					cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 
+					// WARNING:  SRXL uses a different bind mechanism and values than legacy receivers
+					//           It doens't require the power cycling, just sending the correct data frames
 					if (_rc_scan_locked && !_armed) {
-						// WARNING:  SRXL uses a different bind mechanism and values than legacy receivers
-						//  -- until the upstream code accomodates the difference...
-						//     Override the values here:
-						// const uint8_t srxl_bind_mode = (int)vcmd.param2;
-						const uint8_t srxl_bind_mode =
-							0xB2;  // === DSMx 11ms; some documentation claims this mode will auto-select 11ms or 22ms mode
-						// const uint8_t srxl_bind_mode = 0xA2;  // === DSMX 22ms  // desired bind-mode
-
-						if (0 < _srxl.request_bind_receiver(srxl_bind_mode)) {
+						if (0 < _srxl.request_bind_receiver(vcmd.param2)) {
 							cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 						}
 					}

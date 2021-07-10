@@ -450,6 +450,9 @@ int SRXLCodec::rssi_percentage() const
 
 int SRXLCodec::request_bind_receiver(uint8_t bind_mode)
 {
+	// explicitly override bind_mode -- upstream code does not correctly populate this value
+	bind_mode = SRXLCodec::SRXL_BIND_MODE_DSMX_11MS;
+
 	printf("    >> Request Bind as: %02x\n", bind_mode);
 
 	// ==== Construct Reply ====

@@ -114,6 +114,13 @@ private:
 
 	constexpr static const uint32_t FLIGHT_CONTROLLER_UUID = 0x12345678;
 
+	// for complete reference, see SRXL2 Specification, Rev K, page 10
+	//     the other bind types are not implemented in this driver
+	enum bind_type_t {
+		SRXL_BIND_NONE = 0x00,
+		SRXL_BIND_MODE_DSMX_22MS =  0xA2,   // Enforce 22ms ONLY
+		SRXL_BIND_MODE_DSMX_11MS =  0xB2,   // auto-selects 11ms or 22ms based on best available speed.
+	};
 
 private:
 // ====== ====== ====== ====== Private API ====== ====== ====== ======
