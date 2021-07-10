@@ -45,8 +45,6 @@
 
 class SRXLCodec
 {
-
-// ====== ====== ====== ====== Public API ====== ====== ====== ======
 public:
 	SRXLCodec() = default;
 	~SRXLCodec() = default;
@@ -73,7 +71,7 @@ public:
 	/// \brief check if the receiver currently accepts telemetry downlink
 	bool supports_telemetry() const;
 
-// ====== ====== ====== ====== Public Types ====== ====== ====== ======
+
 private:
 	// Version 1 specific
 	constexpr static const uint8_t SRXL1_FRAME_HEADER = 	0xA5;
@@ -123,7 +121,7 @@ private:
 	};
 
 private:
-// ====== ====== ====== ====== Private API ====== ====== ====== ======
+
 	static uint16_t srxlCrc16(const uint8_t *const packet);
 
 	uint16_t decode_channel(const uint16_t raw_value);
