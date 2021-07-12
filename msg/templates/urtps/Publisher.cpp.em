@@ -13,14 +13,27 @@
 @{
 from packaging import version
 import genmsg.msgs
+import re
 
 from px_generate_uorb_topic_helper import * # this is in Tools/
 
 topic = alias if alias else spec.short_name
+
 try:
     ros2_distro = ros2_distro.decode("utf-8")
 except AttributeError:
     pass
+
+topic_name = topic
+
+# For ROS, use the topic pattern convention defined in
+# http://wiki.ros.org/ROS/Patterns/Conventions
+if ros2_distro:
+    topic_name_split = re.sub( r"([A-Z])", r" \1", topic).split()
+    topic_name = topic_name_split[0]
+    for w in topic_name_split[1:]:
+        topic_name += "_" + w
+    topic_name = topic_name.lower()
 }@
 /****************************************************************************
  *
@@ -87,7 +100,7 @@ using SharedMemTransportDescriptor = eprosima::fastdds::rtps::SharedMemTransport
 	Domain::removeParticipant(mp_participant);
 }
 
-bool @(topic)_Publisher::init(const std::string &ns)
+bool @(topic)_Publisher::init(const std::string &ns, std::string topic_name)
 {
 	// Create RTPSParticipant
 	ParticipantAttributes PParam;
@@ -156,21 +169,17 @@ bool @(topic)_Publisher::init(const std::string &ns)
 @[    if ros2_distro == "ardent"]@
 	Wparam.qos.m_partition.push_back("rt");
 	std::string topicName = ns;
-	topicName.append("@(topic)_PubSubTopic");
-	Wparam.topic.topicName = topicName;
 @[    else]@
 	std::string topicName = "rt/";
 	topicName.append(ns);
-	topicName.append("@(topic)_PubSubTopic");
-	Wparam.topic.topicName = topicName;
 @[    end if]@
 	// ROS2 default publish mode QoS policy
 	Wparam.qos.m_publishMode.kind = ASYNCHRONOUS_PUBLISH_MODE;
 @[else]@
 	std::string topicName = ns;
-	topicName.append("@(topic)PubSubTopic");
-	Wparam.topic.topicName = topicName;
 @[end if]@
+	topic_name.empty() ? topicName.append("fmu/@(topic_name)/out") : topicName.append(topic_name);
+	Wparam.topic.topicName = topicName;
 	mp_publisher = Domain::createPublisher(mp_participant, Wparam, static_cast<PublisherListener *>(&m_listener));
 
 	if (mp_publisher == nullptr) {
