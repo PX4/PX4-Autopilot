@@ -18,6 +18,7 @@ px4_add_board(
 #		adc/board_adc
 #		adc/ads1115
 #		barometer # all available barometer drivers
+		barometer/bmp388
 #		batt_smbus
 #		camera_capture
 #		camera_trigger
@@ -31,8 +32,10 @@ px4_add_board(
 #		imu/adis16477
 #		imu/adis16497
 #		imu/bosch/bmi055
+		magnetometer/bosch/bmm150
 #		imu/invensense/icm20602
 #		imu/invensense/icm20689
+		imu/invensense/icm42688p
 		#imu/mpu6000 # legacy icm20602/icm20689 driver
 #		irlock
 #		lights/blinkm
