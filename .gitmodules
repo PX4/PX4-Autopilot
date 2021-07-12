@@ -74,3 +74,6 @@
 [submodule "src/lib/events/libevents"]
 	path = src/lib/events/libevents
 	url = https://github.com/mavlink/libevents.git
+[submodule "Tools/sitl_ign_gazebo"]
+	path = Tools/sitl_ign_gazebo
+	url = https://github.com/Auterion/px4-simulation-ignition.git
