@@ -124,6 +124,7 @@ public:
 	void start();
 	void stop();
 
+	bool component_was_seen(int system_id, int component_id);
 	void print_detailed_rx_stats() const;
 
 private:
@@ -241,7 +242,7 @@ private:
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
-	static constexpr int MAX_REMOTE_COMPONENTS{8};
+	static constexpr unsigned MAX_REMOTE_COMPONENTS{8};
 	struct ComponentState {
 		uint32_t last_time_received_ms{0};
 		uint32_t received_messages{0};
@@ -251,6 +252,7 @@ private:
 		uint8_t last_sequence{0};
 	};
 	ComponentState _component_states[MAX_REMOTE_COMPONENTS] {};
+	unsigned _component_states_count{0};
 	bool _warned_component_states_full_once{false};
 
 	uint64_t _total_received_counter{0};                            ///< The total number of successfully received messages
