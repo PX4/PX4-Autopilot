@@ -69,7 +69,7 @@ receive_base_types = [s.short_name for idx, s in enumerate(spec) if scope[idx] =
 #include <px4_time.h>
 #include <uORB/uORB.h>
 
-#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 @[for topic in list(set(topic_names))]@
 #include <uORB/topics/@(topic).h>
@@ -82,7 +82,7 @@ using namespace time_literals;
 // Publishers for received messages
 struct RcvTopicsPubs {
 @[    for idx, topic in enumerate(recv_topics)]@
-	uORB::Publication <@(receive_base_types[idx])_s> @(topic)_pub{ORB_ID(@(topic))};
+	uORB::PublicationMulti <@(receive_base_types[idx])_s> @(topic)_pub{ORB_ID(@(topic))};
 @[    end for]@
 };
 @[end if]@

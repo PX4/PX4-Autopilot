@@ -71,12 +71,14 @@ except AttributeError:
 
 @[if ros2_distro]@
 #include "Timesync_Publisher.h"
+#include "TimesyncStatus_Publisher.h"
 
 #include <rcl/time.h>
 #include <rclcpp/clock.hpp>
 #include <rclcpp/rclcpp.hpp>
 @[else]@
 #include "timesync_Publisher.h"
+#include "timesync_status_Publisher.h"
 @[end if]@
 
 static constexpr double ALPHA_INITIAL = 0.05;
@@ -92,21 +94,27 @@ static constexpr int REQUEST_RESET_COUNTER_THRESHOLD = 5;
 @[if version.parse(fastrtps_version) <= version.parse('1.7.2')]@
 @[    if ros2_distro]@
 using timesync_msg_t = @(package)::msg::dds_::Timesync_;
+using timesync_status_msg_t = @(package)::msg::dds_::TimesyncStatus_;
 @[    else]@
 using timesync_msg_t = timesync_;
+using timesync_status_msg_t = timesync_status_;
 @[    end if]@
 @[else]@
 @[    if ros2_distro]@
 using timesync_msg_t = @(package)::msg::Timesync;
+using timesync_status_msg_t = @(package)::msg::TimesyncStatus;
 @[    else]@
 using timesync_msg_t = timesync;
+using timesync_status_msg_t = timesync_status;
 @[    end if]@
 @[end if]@
 @# Sets the timesync publisher entity depending on using ROS2 or not
 @[if ros2_distro]@
 using TimesyncPublisher = Timesync_Publisher;
+using TimesyncStatusPublisher = TimesyncStatus_Publisher;
 @[else]@
 using TimesyncPublisher = timesync_Publisher;
+using TimesyncStatusPublisher = timesync_status_Publisher;
 @[end if]@
 
 class TimeSync
@@ -120,6 +128,12 @@ public:
 	 * @@param[in] pub The timesync publisher entity to use
 	 */
 	void start(TimesyncPublisher *pub);
+
+	/**
+	 * @@brief Init and run the timesync status publisher thread
+	 * @@param[in] pub The timesync status publisher entity to use
+	 */
+	void init_status_pub(TimesyncStatusPublisher *status_pub);
 
 	/**
 	 * @@brief Resets the filter
@@ -140,26 +154,26 @@ public:
 	 *         https://design.ros2.org/articles/clock_and_time.html
 	 * @@return ROS time in nanoseconds
 	 */
-	int64_t getROSTimeNSec();
+	uint64_t getROSTimeNSec() const;
 
 	/**
 	 * @@brief Get ROS time in microseconds. Fetches the time from getROSTimeNSec()
 	 *         and converts it to microseconds
 	 * @@return ROS time in microseconds
 	 */
-	int64_t getROSTimeUSec();
+	uint64_t getROSTimeUSec() const;
 @[else]@
 	/**
 	 * @@brief Get clock monotonic time (raw) in nanoseconds
 	 * @@return Steady CLOCK_MONOTONIC time in nanoseconds
 	 */
-	int64_t getSteadyTimeNSec();
+	uint64_t getSteadyTimeNSec() const;
 
 	/**
 	 * @@brief Get clock monotonic time (raw) in microseconds
 	 * @@return Steady CLOCK_MONOTONIC time in microseconds
 	 */
-	int64_t getSteadyTimeUSec();
+	uint64_t getSteadyTimeUSec() const;
 @[end if]@
 
 	/**
@@ -184,6 +198,12 @@ public:
 	timesync_msg_t newTimesyncMsg();
 
 	/**
+	 * @@brief Creates a new timesync status DDS message to be sent from the agent to the client
+	 * @@return A new timesync status message with the origin in the agent and with the agent timestamp
+	 */
+	timesync_status_msg_t newTimesyncStatusMsg();
+
+	/**
 	 * @@brief Get the time sync offset in nanoseconds
 	 * @@return The offset in nanoseconds
 	 */
@@ -203,6 +223,9 @@ public:
 
 private:
 	std::atomic<int64_t> _offset_ns;
+	std::atomic<int64_t> _offset_prev;
+	std::atomic<uint64_t> _remote_time_stamp;
+	std::atomic<uint32_t> _rtti;
 
 @[if ros2_distro]@
 	/**
@@ -221,6 +244,7 @@ private:
 	bool _debug;
 
 	std::unique_ptr<std::thread> _send_timesync_thread;
+	std::unique_ptr<std::thread> _send_timesync_status_thread;
 @[if ros2_distro]@
 	std::unique_ptr<std::thread> _timesync_node_thread;
 @[end if]@
@@ -247,18 +271,40 @@ private:
 	inline int64_t getMsgTS1(const timesync_msg_t *msg) { return msg->ts1(); }
 	@[end if]@
 
+	/** Common timestamp setter **/
+@[if version.parse(fastrtps_version) <= version.parse('1.7.2') or not ros2_distro]@
+	template <typename T>
+	inline void setMsgTimestamp(T *msg, const uint64_t &timestamp) { msg->timestamp_() = timestamp; }
+@[elif ros2_distro]@
+	template <typename T>
+	inline void setMsgTimestamp(T *msg, const uint64_t &timestamp) { msg->timestamp() = timestamp; }
+@[end if]@
+
 	/** Timesync msg Setters **/
 @[if version.parse(fastrtps_version) <= version.parse('1.7.2') or not ros2_distro]@
-	inline void setMsgTimestamp(timesync_msg_t *msg, const uint64_t &timestamp) { msg->timestamp_() = timestamp; }
 	inline void setMsgSysID(timesync_msg_t *msg, const uint8_t &sys_id) { msg->sys_id_() = sys_id; }
 	inline void setMsgSeq(timesync_msg_t *msg, const uint8_t &seq) { msg->seq_() = seq; }
 	inline void setMsgTC1(timesync_msg_t *msg, const int64_t &tc1) { msg->tc1_() = tc1; }
 	inline void setMsgTS1(timesync_msg_t *msg, const int64_t &ts1) { msg->ts1_() = ts1; }
 @[elif ros2_distro]@
-	inline void setMsgTimestamp(timesync_msg_t *msg, const uint64_t &timestamp) { msg->timestamp() = timestamp; }
 	inline void setMsgSysID(timesync_msg_t *msg, const uint8_t &sys_id) { msg->sys_id() = sys_id; }
 	inline void setMsgSeq(timesync_msg_t *msg, const uint8_t &seq) { msg->seq() = seq; }
 	inline void setMsgTC1(timesync_msg_t *msg, const int64_t &tc1) { msg->tc1() = tc1; }
 	inline void setMsgTS1(timesync_msg_t *msg, const int64_t &ts1) { msg->ts1() = ts1; }
+@[end if]@
+
+	/** Timesync Status msg Setters **/
+@[if version.parse(fastrtps_version) <= version.parse('1.7.2') or not ros2_distro]@
+	inline void setMsgSourceProtocol(timesync_status_msg_t *msg, const uint8_t &source_protocol) { msg->source_protocol_() = source_protocol; }
+	inline void setMsgRemoteTimeStamp(timesync_status_msg_t *msg, const uint64_t &remote_timestamp) { msg->remote_timestamp_() = remote_timestamp; }
+	inline void setMsgObservedOffset(timesync_status_msg_t *msg, const int64_t &observed_offset) { msg->observed_offset_() = observed_offset; }
+	inline void setMsgEstimatedOffset(timesync_status_msg_t *msg, const int64_t &estimated_offset) { msg->estimated_offset_() = estimated_offset; }
+	inline void setMsgRoundTripTime(timesync_status_msg_t *msg, const uint32_t &round_trip_time) { msg->round_trip_time_() = round_trip_time; }
+@[elif ros2_distro]@
+	inline void setMsgSourceProtocol(timesync_status_msg_t *msg, const uint8_t &source_protocol) { msg->source_protocol() = source_protocol; }
+	inline void setMsgRemoteTimeStamp(timesync_status_msg_t *msg, const uint64_t &remote_timestamp) { msg->remote_timestamp() = remote_timestamp; }
+	inline void setMsgObservedOffset(timesync_status_msg_t *msg, const int64_t &observed_offset) { msg->observed_offset() = observed_offset; }
+	inline void setMsgEstimatedOffset(timesync_status_msg_t *msg, const int64_t &estimated_offset) { msg->estimated_offset() = estimated_offset; }
+	inline void setMsgRoundTripTime(timesync_status_msg_t *msg, const uint32_t &round_trip_time) { msg->round_trip_time() = round_trip_time; }
 @[end if]@
 };
