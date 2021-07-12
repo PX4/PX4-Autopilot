@@ -144,9 +144,20 @@ RGBLED_NCP5623C::init()
 int
 RGBLED_NCP5623C::probe()
 {
+	int status = PX4_ERROR;
 	_retries = 4;
+	status = write(NCP5623_LED_CURRENT, NCP5623_LED_OFF);
+	if (status == PX4_ERROR) {
+		_retries = 4;
+		set_device_address(ALT_ADDR);
+		status = write(NCP5623_LED_CURRENT, NCP5623_LED_OFF);
+		if (status == PX4_OK) {
+			red = NCP5623_LED_PWM2;
+			blue = NCP5623_LED_PWM0;
+		}
+	}
 
-	return write(NCP5623_LED_CURRENT, 0x00);
+	return status;
 }
 
 void
@@ -243,17 +254,6 @@ RGBLED_NCP5623C::update_params()
 	}
 
 	_max_brightness = maxbrt / 31.0f;
-
-	int32_t tempADDR;
-	param_get(param_find("LED_RED_ADDR"), &tempADDR);
-	red = tempADDR == NCP5623_LED_PWM0 || tempADDR == NCP5623_LED_PWM1
-	|| tempADDR == NCP5623_LED_PWM2 ? tempADDR : NCP5623_LED_PWM0;
-	param_get(param_find("LED_GREEN_ADDR"), &tempADDR);
-	green = tempADDR == NCP5623_LED_PWM0 || tempADDR == NCP5623_LED_PWM1
-	|| tempADDR == NCP5623_LED_PWM2 ? tempADDR : NCP5623_LED_PWM1;
-	param_get(param_find("LED_BLUE_ADDR"), &tempADDR);
-	blue = tempADDR == NCP5623_LED_PWM0 || tempADDR == NCP5623_LED_PWM1
-	|| tempADDR == NCP5623_LED_PWM2 ? tempADDR : NCP5623_LED_PWM2;
 }
 
 void
@@ -271,10 +271,7 @@ extern "C" __EXPORT int rgbled_ncp5623c_main(int argc, char *argv[])
 	using ThisDriver = RGBLED_NCP5623C;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 100000;
-	int32_t address;
-	param_get(param_find("LED_ADDR"), &address);
-	address = address == ADDR || address == ALT_ADDR ? address : ADDR;
-	cli.i2c_address = address;
+	cli.i2c_address = ADDR;
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
 
