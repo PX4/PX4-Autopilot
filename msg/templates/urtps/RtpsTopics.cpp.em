@@ -80,12 +80,19 @@ bool RtpsTopics::init(std::condition_variable *t_send_queue_cv, std::mutex *t_se
 	std::cout << "\033[0;36m----   Publishers  ----\033[0m" << std::endl;
 @[for topic in send_topics]@
 
+@[    if topic == 'Timesync' or topic == 'timesync']@
+	if (_@(topic)_pub.init(ns)) {
+		if (_@(topic)_fmu_in_pub.init(ns, std::string("fmu/timesync/in"))) {
+			_timesync->start(&_@(topic)_fmu_in_pub);
+			std::cout << "- @(topic) publishers started" << std::endl;
+		}
+@[    elif topic == 'TimesyncStatus' or topic == 'timesync_status']@
+	if (_@(topic)_pub.init(ns, std::string("timesync_status"))) {
+		_timesync->init_status_pub(&_@(topic)_pub);
+		std::cout << "- @(topic) publisher started" << std::endl;
+@[    else]@
 	if (_@(topic)_pub.init(ns)) {
 		std::cout << "- @(topic) publisher started" << std::endl;
-@[    if topic == 'Timesync' or topic == 'timesync']@
-		_timesync->start(&_@(topic)_pub);
-@[    elif topic == 'TimesyncStatus' or topic == 'timesync_status']@
-		_timesync->init_status_pub(&_@(topic)_pub);
 @[    end if]@
 
 	} else {

@@ -108,7 +108,12 @@ private:
 @[if send_topics]@
 	/** Publishers **/
 @[for topic in send_topics]@
+@[    if topic == 'Timesync' or topic == 'timesync']@
 	@(topic)_Publisher _@(topic)_pub;
+	@(topic)_Publisher _@(topic)_fmu_in_pub;
+@[    else]@
+	@(topic)_Publisher _@(topic)_pub;
+@[    end if]@
 @[end for]@
 @[end if]@
 
