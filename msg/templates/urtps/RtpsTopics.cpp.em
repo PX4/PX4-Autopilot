@@ -84,6 +84,8 @@ bool RtpsTopics::init(std::condition_variable *t_send_queue_cv, std::mutex *t_se
 		std::cout << "- @(topic) publisher started" << std::endl;
 @[    if topic == 'Timesync' or topic == 'timesync']@
 		_timesync->start(&_@(topic)_pub);
+@[    elif topic == 'TimesyncStatus' or topic == 'timesync_status']@
+		_timesync->init_status_pub(&_@(topic)_pub);
 @[    end if]@
 
 	} else {

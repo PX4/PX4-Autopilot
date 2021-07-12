@@ -279,6 +279,7 @@ rtps:
     receive: true
   - msg: timesync_status
     id: 128
+    send: true
   - msg: orb_test
     id: 129
   - msg: orb_test_medium

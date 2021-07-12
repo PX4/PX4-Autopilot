@@ -188,7 +188,7 @@ void @(topic)_Subscriber::SubListener::onSubscriptionMatched(Subscriber *sub, Ma
 {
 @# Since the time sync runs on the bridge itself, it is required that there is a
 @# match between two topics of the same entity
-@[if topic != 'Timesync' and topic != 'timesync']@
+@[if topic != 'Timesync' and topic != 'timesync' and topic != 'TimesyncStatus' and topic != 'timesync_status']@
 	// The first 6 values of the ID guidPrefix of an entity in a DDS-RTPS Domain
 	// are the same for all its subcomponents (publishers, subscribers)
 	bool is_different_endpoint = false;
