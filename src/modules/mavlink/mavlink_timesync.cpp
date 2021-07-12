@@ -141,6 +141,7 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 				timesync_status_s tsync_status{};
 
 				tsync_status.timestamp = hrt_absolute_time();
+				tsync_status.source_protocol = timesync_status_s::SOURCE_PROTOCOL_MAVLINK;
 				tsync_status.remote_timestamp = tsync.tc1 / 1000ULL;
 				tsync_status.observed_offset = offset_us;
 				tsync_status.estimated_offset = (int64_t)_time_offset;
