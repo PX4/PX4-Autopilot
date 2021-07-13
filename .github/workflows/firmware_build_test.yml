@@ -8,7 +8,7 @@ on:
 jobs:
   Firmware-build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-nuttx-focal:2020-09-14
+    container: px4io/px4-dev-nuttx-focal:2021-05-04
     env:
       GIT_COMMITTER_EMAIL: bot@px4.io
       GIT_COMMITTER_NAME: PX4BuildBot
