@@ -67,7 +67,6 @@ px4_add_module(
 	DEPENDS
 		git_mavlink_v2
 		conversion
-		git_ecl
 		ecl_geo
 		drivers_accelerometer
 		drivers_barometer

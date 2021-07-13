@@ -44,7 +44,6 @@ px4_add_module(
 		output_rc.cpp
 		vmount.cpp
 	DEPENDS
-		git_ecl
 		ecl_geo
 	)
 

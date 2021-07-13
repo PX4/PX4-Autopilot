@@ -44,7 +44,6 @@ px4_add_module(
 		EKF2Selector.cpp
 		EKF2Selector.hpp
 	DEPENDS
-		git_ecl
 		ecl_EKF
 		ecl_geo
 		perf

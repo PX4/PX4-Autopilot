@@ -36,7 +36,6 @@ px4_add_module(
 	SRCS
 		airspeed_selector_main.cpp
 	DEPENDS
-		git_ecl
 		ecl_airdata
 		AirspeedValidator
 )
