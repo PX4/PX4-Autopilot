@@ -120,6 +120,7 @@ set(debuggers
 
 set(models
 	none
+	believer
 	boat
 	cloudship
 	if750a

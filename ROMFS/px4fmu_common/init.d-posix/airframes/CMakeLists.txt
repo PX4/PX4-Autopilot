@@ -62,6 +62,7 @@ px4_add_romfs_files(
 	1034_rascal-electric
 	1035_techpod
 	1036_malolo
+	1037_believer
 	1040_standard_vtol
 	1041_tailsitter
 	1042_tiltrotor
