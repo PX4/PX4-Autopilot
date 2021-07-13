@@ -48,7 +48,7 @@ param set-default PWM_MAIN_DISARM 1000
 set MAV_TYPE 1
 
 # Set mixer.
-set MIXER wingwing
+set MIXER fw_generic_wing
 
 # Provide ESC a constant 1000 us pulse.
 set PWM_OUT 4
