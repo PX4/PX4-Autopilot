@@ -1,4 +1,4 @@
-name: Change Indicator
+name: EKF Change Indicator
 
 on: pull_request
 
@@ -13,7 +13,8 @@ jobs:
         git fetch origin pull/${{github.event.pull_request.number}}/head:${{github.head_ref}}
         git checkout ${GITHUB_HEAD_REF}
     - name: main test
-      run: make test
+      run: cd ${GITHUB_WORKSPACE}/src/lib/ecl; make test
+      working-directory: src/lib/ecl
     - name: Check if there is a functional change
-      run:  git diff --exit-code
-      working-directory: test/change_indication
+      run: git diff --exit-code
+      working-directory: src/lib/ecl/test/change_indication

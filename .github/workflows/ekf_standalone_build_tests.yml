@@ -1,5 +1,5 @@
 
-name: Build Tests
+name: EKF Build Tests
 
 on:
   push:
@@ -17,10 +17,13 @@ jobs:
     - uses: actions/checkout@v1
     - name: main build
       run: make
+      working-directory: src/lib/ecl
     - name: clean build
       run: make clean
+      working-directory: src/lib/ecl
     - name: main test
       run: make test
+      working-directory: src/lib/ecl
   Linux-Clang:
     runs-on: ubuntu-latest
     container: px4io/px4-dev-clang:2021-05-04
@@ -31,17 +34,23 @@ jobs:
       - uses: actions/checkout@v1
       - name: main build
         run: make
+        working-directory: src/lib/ecl
       - name: clean build
         run: make clean
+        working-directory: src/lib/ecl
       - name: main test
         run: make test
+        working-directory: src/lib/ecl
   Mac-OS:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v1
       - name: main build
         run: make
+        working-directory: src/lib/ecl
       - name: clean build
         run: make clean
+        working-directory: src/lib/ecl
       - name: main test
         run: make test
+        working-directory: src/lib/ecl
