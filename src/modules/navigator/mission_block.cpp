@@ -375,6 +375,9 @@ MissionBlock::is_mission_item_reached()
 			struct position_setpoint_s *curr_sp_new = &_navigator->get_position_setpoint_triplet()->current;
 			const position_setpoint_s &next_sp = _navigator->get_position_setpoint_triplet()->next;
 
+			const float dist_current_next = get_distance_to_next_waypoint(curr_sp_new->lat, curr_sp_new->lon, next_sp.lat,
+							next_sp.lon);
+
 			/* enforce exit heading if in FW, the next wp is valid, the vehicle is currently loitering and either having force_heading set,
 			   or if loitering to achieve altitdue at a NAV_CMD_WAYPOINT */
 			const bool enforce_exit_heading = _navigator->get_vstatus()->vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
@@ -383,11 +386,10 @@ MissionBlock::is_mission_item_reached()
 							  curr_sp_new->type == position_setpoint_s::SETPOINT_TYPE_LOITER &&
 							  (_mission_item.force_heading || _mission_item.nav_cmd == NAV_CMD_WAYPOINT);
 
-			if (enforce_exit_heading) {
+			// can only enforce exit heading if next waypoint is not within loiter radius of current waypoint
+			const bool exit_heading_is_reachable = dist_current_next > 1.2f * curr_sp_new->loiter_radius;
 
-
-				const float dist_current_next = get_distance_to_next_waypoint(curr_sp_new->lat, curr_sp_new->lon, next_sp.lat,
-								next_sp.lon);
+			if (enforce_exit_heading && exit_heading_is_reachable) {
 
 				float yaw_err = 0.0f;
 
