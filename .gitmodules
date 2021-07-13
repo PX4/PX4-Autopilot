@@ -18,10 +18,6 @@
 	path = src/lib/matrix
 	url = https://github.com/PX4/PX4-Matrix.git
 	branch = master
-[submodule "src/lib/ecl"]
-	path = src/lib/ecl
-	url = https://github.com/PX4/PX4-ECL.git
-	branch = master
 [submodule "boards/atlflight/cmake_hexagon"]
 	path = boards/atlflight/cmake_hexagon
 	url = https://github.com/PX4/cmake_hexagon.git
