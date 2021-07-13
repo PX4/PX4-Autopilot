@@ -11,7 +11,7 @@ on:
 jobs:
   format_checks:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-clang:2020-08-14
+    container: px4io/px4-dev-clang:2021-05-04
     steps:
     - uses: actions/checkout@v1
     - name: install clang-format-6.0

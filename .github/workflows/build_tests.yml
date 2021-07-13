@@ -12,7 +12,7 @@ on:
 jobs:
   Linux-GCC:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-focal:2020-09-14
+    container: px4io/px4-dev-base-focal:2021-05-04
     steps:
     - uses: actions/checkout@v1
     - name: main build
@@ -23,7 +23,7 @@ jobs:
       run: make test
   Linux-Clang:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-clang:2020-08-14
+    container: px4io/px4-dev-clang:2021-05-04
     env:
       CC: clang
       CXX: clang++
