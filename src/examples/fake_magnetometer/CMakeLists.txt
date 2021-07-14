@@ -41,6 +41,5 @@ px4_add_module(
 	DEPENDS
 		drivers_magnetometer
 		ecl_geo
-		git_ecl
 		px4_work_queue
 )

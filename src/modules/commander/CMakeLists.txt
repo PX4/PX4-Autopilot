@@ -57,7 +57,6 @@ px4_add_module(
 	DEPENDS
 		circuit_breaker
 		failure_detector
-		git_ecl
 		ecl_geo
 		hysteresis
 		PreFlightCheck

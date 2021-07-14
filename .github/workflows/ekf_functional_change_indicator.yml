@@ -1,0 +1,20 @@
+name: EKF Change Indicator
+
+on: pull_request
+
+jobs:
+  unit_tests:
+    runs-on: ubuntu-latest
+    container: px4io/px4-dev-base-focal:2021-05-04
+    steps:
+    - uses: actions/checkout@v2.3.1
+    - name: checkout newest version of branch
+      run: |
+        git fetch origin pull/${{github.event.pull_request.number}}/head:${{github.head_ref}}
+        git checkout ${GITHUB_HEAD_REF}
+    - name: main test
+      run: cd ${GITHUB_WORKSPACE}/src/lib/ecl; make test
+      working-directory: src/lib/ecl
+    - name: Check if there is a functional change
+      run: git diff --exit-code
+      working-directory: src/lib/ecl/test/change_indication

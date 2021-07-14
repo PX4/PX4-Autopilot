@@ -36,5 +36,4 @@ px4_add_library(l1
 	ECL_L1_Pos_Controller.hpp
 )
 
-add_dependencies(l1 git_ecl)
 target_link_libraries(l1 PRIVATE ecl_geo)
