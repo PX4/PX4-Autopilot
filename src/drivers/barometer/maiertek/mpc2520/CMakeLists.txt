@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,14 +31,16 @@
 #
 ############################################################################
 
-add_subdirectory(bmp280)
-add_subdirectory(bmp388)
-add_subdirectory(dps310)
-add_subdirectory(lps22hb)
-#add_subdirectory(lps25h) # not ready for general inclusion
-add_subdirectory(lps33hw)
-#add_subdirectory(mpl3115a2) # not ready for general inclusion
-add_subdirectory(maiertek)
-add_subdirectory(ms5611)
-#add_subdirectory(tcbp001ta) # only for users who really need this
-
+px4_add_module(
+	MODULE drivers__maiertek__mpc2520
+	MAIN mpc2520
+	COMPILE_FLAGS
+	SRCS
+		MaierTek_MPC2520_registers.hpp
+		mpc2520_main.cpp
+		MPC2520.cpp
+		MPC2520.hpp
+	DEPENDS
+		drivers_barometer
+		px4_work_queue
+)
