@@ -64,7 +64,7 @@ struct airspeed_validator_update_data {
 	float att_q[4];
 	float air_pressure_pa;
 	float air_temperature_celsius;
-	float accel_z;
+	float accel[3];
 	float vel_test_ratio;
 	float mag_test_ratio;
 	bool in_fixed_wing_flight;
@@ -160,7 +160,7 @@ private:
 	void update_CAS_TAS(float air_pressure_pa, float air_temperature_celsius);
 	void check_airspeed_innovation(uint64_t timestamp, float estimator_status_vel_test_ratio,
 				       float estimator_status_mag_test_ratio);
-	void check_load_factor(float accel_z);
+	void check_load_factor(const float accel[3]);
 	void update_airspeed_valid_status(const uint64_t timestamp);
 	void reset();
 

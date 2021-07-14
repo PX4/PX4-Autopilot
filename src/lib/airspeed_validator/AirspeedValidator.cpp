@@ -53,7 +53,7 @@ AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_dat
 			      input_data.lpos_vz, input_data.lpos_evh, input_data.lpos_evv, input_data.att_q);
 	update_in_fixed_wing_flight(input_data.in_fixed_wing_flight);
 	check_airspeed_innovation(input_data.timestamp, input_data.vel_test_ratio, input_data.mag_test_ratio);
-	check_load_factor(input_data.accel_z);
+	check_load_factor(input_data.accel);
 	update_airspeed_valid_status(input_data.timestamp);
 }
 
@@ -183,7 +183,7 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 
 
 void
-AirspeedValidator::check_load_factor(float accel_z)
+AirspeedValidator::check_load_factor(const float accel[3])
 {
 	// Check if the airpeed reading is lower than physically possible given the load factor
 
@@ -191,7 +191,8 @@ AirspeedValidator::check_load_factor(float accel_z)
 
 		float max_lift_ratio = fmaxf(_CAS, 0.7f) / fmaxf(_airspeed_stall, 1.0f);
 		max_lift_ratio *= max_lift_ratio;
-		_load_factor_ratio = 0.95f * _load_factor_ratio + 0.05f * (fabsf(accel_z) / 9.81f) / max_lift_ratio;
+		float accel_xz = sqrtf(accel[0] * accel[0] + accel[2] * accel[2]);
+		_load_factor_ratio = 0.95f * _load_factor_ratio + 0.05f * (accel_xz / 9.81f) / max_lift_ratio;
 		_load_factor_ratio = math::constrain(_load_factor_ratio, 0.25f, 2.0f);
 		_load_factor_check_failed = (_load_factor_ratio > 1.1f);
 
