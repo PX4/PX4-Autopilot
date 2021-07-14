@@ -286,10 +286,19 @@ int main(int argc, char **argv)
 		printf("[   micrortps_agent   ]\tUsing only the localhost network...\n");
 	}
 
+	/**
+	 * Set the system ID to Mission Computer, in order to identify the agent side
+	 *
+	 * Note: theoretically a multi-agent system is possible, but this would require
+	 * adjustments in the way the timesync is done (would have to create a timesync
+	 * instance per agent). Keeping it contained for a 1:1 link for now is reasonable.
+	 */
+	const uint8_t sys_id = static_cast<uint8_t>(MicroRtps::System::MISSION_COMPUTER);
+
 	switch (_options.transport) {
 	case options::eTransports::UART: {
 			transport_node = std::make_unique<UART_node>(_options.device, _options.baudrate, _options.poll_ms,
-						       _options.sw_flow_control, _options.hw_flow_control, _options.verbose_debug);
+						       _options.sw_flow_control, _options.hw_flow_control, sys_id, _options.verbose_debug);
 			printf("[   micrortps_agent   ]\tUART transport: device: %s; baudrate: %d; sleep: %dus; poll: %dms; flow_control: %s\n",
 			       _options.device, _options.baudrate, _options.sleep_us, _options.poll_ms,
 			       _options.sw_flow_control ? "SW enabled" : (_options.hw_flow_control ? "HW enabled" : "No"));
@@ -297,7 +306,8 @@ int main(int argc, char **argv)
 		break;
 
 	case options::eTransports::UDP: {
-			transport_node = std::make_unique<UDP_node>(_options.ip, _options.recv_port, _options.send_port, _options.verbose_debug);
+			transport_node = std::make_unique<UDP_node>(_options.ip, _options.recv_port, _options.send_port,
+                                                                   sys_id, _options.verbose_debug);
 			printf("[   micrortps_agent   ]\tUDP transport: ip address: %s; recv port: %u; send port: %u; sleep: %dus\n",
 			       _options.ip, _options.recv_port, _options.send_port, _options.sleep_us);
 		}
