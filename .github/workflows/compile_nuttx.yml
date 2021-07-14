@@ -18,6 +18,7 @@ jobs:
           airmind_mindpx-v2,
           ark_can-flow,
           ark_can-gps,
+          atl_mantis-edu,
           av_x-v1,
           bitcraze_crazyflie,
           bitcraze_crazyflie21,

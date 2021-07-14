@@ -560,9 +560,9 @@ __EXPORT void board_on_reset(int status);
  *
  ****************************************************************************/
 
-#ifdef CONFIG_BOARDCTL_POWEROFF
+#if defined(BOARD_HAS_POWER_CONTROL)
 int board_power_off(int status);
-#endif
+#endif // BOARD_HAS_POWER_CONTROL
 
 /****************************************************************************
  * Name: board_reset

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,27 +31,17 @@
  *
  ****************************************************************************/
 
-/**
- * @file board_shutdown.cpp
- *
- * sitl board shutdown backend.
- */
+#include <px4_arch/spi_hw_description.h>
+#include <drivers/drv_sensor.h>
+#include <nuttx/spi/spi.h>
 
-#include <px4_platform_common/tasks.h>
-#include <board_config.h>
-#include <stdio.h>
+constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
+	initSPIBus(SPI::Bus::SPI1, {
+		initSPIDevice(DRV_IMU_DEVTYPE_ICM20602, SPI::CS{GPIO::PortF, GPIO::Pin3}),
+	}),
+	initSPIBus(SPI::Bus::SPI4, {
+		initSPIDevice(DRV_DEVTYPE_UNUSED, SPI::CS{GPIO::PortF, GPIO::Pin10}),
+	}),
+};
 
-#if defined(BOARD_HAS_POWER_CONTROL)
-int board_register_power_state_notification_cb(power_button_state_notification_t cb)
-{
-	return 0;
-}
-
-int board_power_off(int status)
-{
-	printf("Exiting NOW.\n");
-	fflush(stdout);
-	system_exit(0);
-	return 0;
-}
-#endif // BOARD_HAS_POWER_CONTROL
+static constexpr bool unused = validateSPIConfig(px4_spi_buses);
