@@ -40,7 +40,7 @@
 #include <matrix/matrix/math.hpp>
 #include <px4_platform_common/defines.h>
 
-#include "LowPassFilter2p.hpp"
+#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
 
 using matrix::Vector3f;
 
