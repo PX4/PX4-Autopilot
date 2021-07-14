@@ -60,4 +60,7 @@ then
 
 	# Enable safety switch
 	param set CBRK_IO_SAFETY 0
+
+	# Set default for disarm after land to 4s
+	param set COM_DISARM_LAND 4.0
 fi
