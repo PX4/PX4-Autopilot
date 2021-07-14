@@ -31,8 +31,10 @@
  *
  ****************************************************************************/
 
+#include "AirspeedValidator.hpp"
+
 #include <drivers/drv_hrt.h>
-#include <ecl/airdata/WindEstimator.hpp>
+#include <lib/wind_estimator/WindEstimator.hpp>
 #include <matrix/math.hpp>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
@@ -40,8 +42,7 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/airspeed/airspeed.h>
-#include <AirspeedValidator.hpp>
-#include <systemlib/mavlink_log.h>
+#include <lib/systemlib/mavlink_log.h>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
