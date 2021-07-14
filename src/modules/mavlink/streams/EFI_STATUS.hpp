@@ -34,7 +34,7 @@
 #ifndef EFI_STATUS_HPP
 #define EFI_STATUS_HPP
 
-#include <uORB/topics/ice_status.h>
+#include <uORB/topics/internal_combustion_engine_status.h>
 
 class MavlinkStreamEfiStatus : public MavlinkStream
 {
@@ -55,33 +55,33 @@ public:
 private:
 	explicit MavlinkStreamEfiStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _ice_status_sub{ORB_ID(ice_status)};
+	uORB::Subscription _ice_status_sub{ORB_ID(internal_combustion_engine_status)};
 
 	bool send() override
 	{
-		ice_status_s ice_status;
+		internal_combustion_engine_status_s internal_combustion_engine_status;
 
-		if (_ice_status_sub.update(&ice_status)) {
+		if (_ice_status_sub.update(&internal_combustion_engine_status)) {
 			mavlink_efi_status_t msg{};
 
-			msg.health = ice_status.state;
-			msg.ecu_index = ice_status.ecu_index;
-			msg.rpm = ice_status.engine_speed_rpm;
-			msg.fuel_consumed = ice_status.estimated_consumed_fuel_volume_cm3;
-			msg.fuel_flow = ice_status.fuel_consumption_rate_cm3pm;
-			msg.engine_load = ice_status.engine_load_percent;
-			msg.throttle_position = ice_status.throttle_position_percent;
-			msg.spark_dwell_time = ice_status.spark_dwell_time_ms;
-			msg.barometric_pressure = ice_status.atmospheric_pressure_kpa;
-			msg.intake_manifold_pressure = ice_status.intake_manifold_pressure_kpa;
-			msg.intake_manifold_temperature = ice_status.intake_manifold_temperature;
+			msg.health = internal_combustion_engine_status.state;
+			msg.ecu_index = internal_combustion_engine_status.ecu_index;
+			msg.rpm = internal_combustion_engine_status.engine_speed_rpm;
+			msg.fuel_consumed = internal_combustion_engine_status.estimated_consumed_fuel_volume_cm3;
+			msg.fuel_flow = internal_combustion_engine_status.fuel_consumption_rate_cm3pm;
+			msg.engine_load = internal_combustion_engine_status.engine_load_percent;
+			msg.throttle_position = internal_combustion_engine_status.throttle_position_percent;
+			msg.spark_dwell_time = internal_combustion_engine_status.spark_dwell_time_ms;
+			msg.barometric_pressure = internal_combustion_engine_status.atmospheric_pressure_kpa;
+			msg.intake_manifold_pressure = internal_combustion_engine_status.intake_manifold_pressure_kpa;
+			msg.intake_manifold_temperature = internal_combustion_engine_status.intake_manifold_temperature;
 
-			msg.cylinder_head_temperature = ice_status.cylinder_head_temperature;
-			msg.ignition_timing = ice_status.ignition_timing_deg;
-			msg.injection_time = ice_status.injection_time_ms;
-			msg.exhaust_gas_temperature = ice_status.exhaust_gas_temperature;
-			msg.throttle_out = ice_status.throttle_position_percent;
-			msg.pt_compensation = ice_status.lambda_coefficient;
+			msg.cylinder_head_temperature = internal_combustion_engine_status.cylinder_head_temperature;
+			msg.ignition_timing = internal_combustion_engine_status.ignition_timing_deg;
+			msg.injection_time = internal_combustion_engine_status.injection_time_ms;
+			msg.exhaust_gas_temperature = internal_combustion_engine_status.exhaust_gas_temperature;
+			msg.throttle_out = internal_combustion_engine_status.throttle_position_percent;
+			msg.pt_compensation = internal_combustion_engine_status.lambda_coefficient;
 
 			mavlink_msg_efi_status_send_struct(_mavlink->get_channel(), &msg);
 

@@ -36,12 +36,12 @@
  */
 
 #include "ice_status.hpp"
-#include <uORB/topics/ice_status.h>
+#include <uORB/topics/internal_combustion_engine_status.h>
 
 const char *const UavcanIceStatusBridge::NAME = "ice_status";
 
 UavcanIceStatusBridge::UavcanIceStatusBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_ice_status", ORB_ID(ice_status)),
+	UavcanSensorBridgeBase("uavcan_ice_status", ORB_ID(internal_combustion_engine_status)),
 	_sub_ice_status_data(node)
 { }
 
@@ -60,7 +60,7 @@ int UavcanIceStatusBridge::init()
 void UavcanIceStatusBridge::ice_status_sub_cb(const
 		uavcan::ReceivedDataStructure<uavcan::equipment::ice::reciprocating::Status> &msg)
 {
-	auto report = ::ice_status_s();
+	auto report = ::internal_combustion_engine_status_s();
 	report.timestamp = hrt_absolute_time();
 	report.state = msg.state;
 	report.flags = msg.flags;
