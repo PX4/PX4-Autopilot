@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2020 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2014-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -101,19 +101,23 @@ static constexpr float get_table_data(float lat, float lon, const int16_t table[
 	return lat_scale * (data_max - data_min) + data_min;
 }
 
-float get_mag_declination_radians(float lat, float lon) {
+float get_mag_declination_radians(float lat, float lon)
+{
 	return get_table_data(lat, lon, declination_table) * 1e-4f; // declination table stored as 10^-4 radians
 }
 
-float get_mag_declination_degrees(float lat, float lon) {
+float get_mag_declination_degrees(float lat, float lon)
+{
 	return math::degrees(get_mag_declination_radians(lat, lon));
 }
 
-float get_mag_inclination_radians(float lat, float lon) {
+float get_mag_inclination_radians(float lat, float lon)
+{
 	return get_table_data(lat, lon, inclination_table) * 1e-4f; // inclination table stored as 10^-4 radians
 }
 
-float get_mag_inclination_degrees(float lat, float lon) {
+float get_mag_inclination_degrees(float lat, float lon)
+{
 	return math::degrees(get_mag_inclination_radians(lat, lon));
 }
 

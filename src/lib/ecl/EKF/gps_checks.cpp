@@ -42,7 +42,7 @@
 #include "ekf.h"
 
 #include <ecl.h>
-#include <geo_lookup/geo_mag_declination.h>
+#include <lib/world_magnetic_model/geo_mag_declination.h>
 #include <mathlib/mathlib.h>
 
 // GPS pre-flight check bit locations

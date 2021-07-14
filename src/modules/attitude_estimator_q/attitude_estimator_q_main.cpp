@@ -43,7 +43,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
-#include <lib/ecl/geo_lookup/geo_mag_declination.h>
+#include <lib/world_magnetic_model/geo_mag_declination.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <matrix/math.hpp>
