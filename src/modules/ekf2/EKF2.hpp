@@ -38,7 +38,8 @@
  * @author Roman Bapst
  */
 
-#pragma once
+#ifndef EKF2_HPP
+#define EKF2_HPP
 
 #include "EKF2Selector.hpp"
 
@@ -46,7 +47,7 @@
 
 #include <containers/LockGuard.hpp>
 #include <drivers/drv_hrt.h>
-#include <lib/ecl/EKF/ekf.h>
+#include "EKF/ekf.h"
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
@@ -521,3 +522,4 @@ private:
 
 	)
 };
+#endif // !EKF2_HPP

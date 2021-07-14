@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,14 +30,24 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+add_compile_definitions(TEST_DATA_PATH="${CMAKE_CURRENT_SOURCE_DIR}")
 
-add_library(world_magnetic_model
-	geo_mag_declination.cpp
-	geo_mag_declination.h
-	geo_magnetic_tables.hpp
-)
-add_dependencies(world_magnetic_model prebuild_targets)
-target_compile_options(world_magnetic_model PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
+add_subdirectory(sensor_simulator)
+add_subdirectory(test_helper)
 
-add_compile_options(-Wno-double-promotion)
-px4_add_unit_gtest(SRC test_geo_lookup.cpp LINKLIBS world_magnetic_model)
+px4_add_unit_gtest(SRC test_EKF_airspeed.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
+px4_add_unit_gtest(SRC test_EKF_basics.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
+px4_add_unit_gtest(SRC test_EKF_externalVision.cpp LINKLIBS ecl_EKF ecl_sensor_sim ecl_test_helper)
+px4_add_unit_gtest(SRC test_EKF_flow.cpp LINKLIBS ecl_EKF ecl_sensor_sim ecl_test_helper)
+px4_add_unit_gtest(SRC test_EKF_fusionLogic.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
+px4_add_unit_gtest(SRC test_EKF_gps.cpp LINKLIBS ecl_EKF ecl_sensor_sim ecl_test_helper)
+px4_add_unit_gtest(SRC test_EKF_gps_yaw.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
+px4_add_unit_gtest(SRC test_EKF_imuSampling.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
+px4_add_unit_gtest(SRC test_EKF_initialization.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
+px4_add_unit_gtest(SRC test_EKF_measurementSampling.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
+px4_add_unit_gtest(SRC test_EKF_ringbuffer.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
+px4_add_unit_gtest(SRC test_EKF_terrain_estimator.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
+px4_add_unit_gtest(SRC test_EKF_utils.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
+px4_add_unit_gtest(SRC test_EKF_withReplayData.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
+px4_add_unit_gtest(SRC test_SensorRangeFinder.cpp LINKLIBS ecl_EKF ecl_sensor_sim)

@@ -31,7 +31,8 @@
  *
  ****************************************************************************/
 
-#pragma once
+#ifndef EKF2SELECTOR_HPP
+#define EKF2SELECTOR_HPP
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
@@ -240,3 +241,4 @@ private:
 		(ParamFloat<px4::params::EKF2_SEL_IMU_VEL>) _param_ekf2_sel_imu_velocity
 	)
 };
+#endif // !EKF2SELECTOR_HPP
