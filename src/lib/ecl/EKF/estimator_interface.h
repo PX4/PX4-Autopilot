@@ -44,7 +44,6 @@
 #include <ecl.h>
 #include "common.h"
 #include "RingBuffer.h"
-#include <AlphaFilter/AlphaFilter.hpp>
 #include "imu_down_sampler.hpp"
 #include "sensor_range_finder.hpp"
 #include "utils.hpp"
@@ -52,6 +51,7 @@
 #include <geo/geo.h>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
+#include <mathlib/math/filter/AlphaFilter.hpp>
 
 using namespace estimator;
 

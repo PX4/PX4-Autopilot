@@ -41,7 +41,7 @@
 #include <cmath>
 #include <matrix/math.hpp>
 
-#include "AlphaFilter/AlphaFilter.hpp"
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 
 using matrix::Vector3f;
 
@@ -63,9 +63,11 @@ TEST(AlphaFilterTest, runZero)
 {
 	AlphaFilter<float> filter_float{};
 	const float input = 0.f;
+
 	for (int i = 0; i < 10; i++) {
 		filter_float.update(input);
 	}
+
 	ASSERT_EQ(filter_float.getState(), input);
 }
 
@@ -147,6 +149,7 @@ TEST(AlphaFilterTest, convergenceVector3f)
 
 	// THEN the state of the filter should have converged to the input (1% error allowed)
 	Vector3f output = filter_v3.getState();
+
 	for (int i = 0; i < 3; i++) {
 		ASSERT_NEAR(output(i), input(i), fabsf(0.01f * input(i)));
 	}
@@ -168,6 +171,7 @@ TEST(AlphaFilterTest, convergenceVector3fAlpha)
 
 	// THEN the state of the filter should have reached 65% (2% error allowed)
 	Vector3f output = filter_v3.getState();
+
 	for (int i = 0; i < 3; i++) {
 		ASSERT_NEAR(output(i), 0.63f * input(i), fabsf(0.02f * input(i)));
 	}
@@ -184,12 +188,14 @@ TEST(AlphaFilterTest, convergenceVector3fTauDt)
 
 	// WHEN we run the filter (1 * time constant)
 	const float n = tau / dt;
+
 	for (int i = 0; i < n; i++) {
 		filter_v3.update(input);
 	}
 
 	// THEN the state of the filter should have reached 65% (2% error allowed)
 	Vector3f output = filter_v3.getState();
+
 	for (int i = 0; i < 3; i++) {
 		ASSERT_NEAR(output(i), 0.63f * input(i), fabsf(0.02f * input(i)));
 	}

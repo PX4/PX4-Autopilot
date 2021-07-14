@@ -52,7 +52,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/parameters/param.h>
-#include <lib/ecl/AlphaFilter/AlphaFilter.hpp>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/battery_status.h>
 
