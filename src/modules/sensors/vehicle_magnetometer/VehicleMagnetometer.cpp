@@ -34,7 +34,7 @@
 #include "VehicleMagnetometer.hpp"
 
 #include <px4_platform_common/log.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 
 namespace sensors
 {

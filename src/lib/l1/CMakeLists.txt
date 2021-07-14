@@ -36,4 +36,4 @@ px4_add_library(l1
 	ECL_L1_Pos_Controller.hpp
 )
 
-target_link_libraries(l1 PRIVATE ecl_geo)
+target_link_libraries(l1 PRIVATE geo)

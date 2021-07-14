@@ -45,6 +45,6 @@ px4_add_module(
 		PositionControl
 		Takeoff
 		controllib
-		ecl_geo
+		geo
 		SlewRate
 	)

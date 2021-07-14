@@ -56,7 +56,7 @@ add_library(ecl_EKF
 add_dependencies(ecl_EKF prebuild_targets)
 target_compile_definitions(ecl_EKF PRIVATE -DMODULE_NAME="ecl/EKF")
 target_include_directories(ecl_EKF PUBLIC ${ECL_SOURCE_DIR})
-target_link_libraries(ecl_EKF PRIVATE ecl_geo world_magnetic_model)
+target_link_libraries(ecl_EKF PRIVATE geo world_magnetic_model)
 
 set_target_properties(ecl_EKF PROPERTIES PUBLIC_HEADER "ekf.h")
 

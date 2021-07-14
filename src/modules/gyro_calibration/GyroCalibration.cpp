@@ -33,7 +33,7 @@
 
 #include "GyroCalibration.hpp"
 
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 
 using namespace time_literals;
 using matrix::Vector3f;

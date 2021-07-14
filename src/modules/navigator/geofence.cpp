@@ -45,7 +45,7 @@
 
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <systemlib/mavlink_log.h>
 
 #include "navigator.h"

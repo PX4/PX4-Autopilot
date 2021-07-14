@@ -34,7 +34,7 @@
 #ifndef HIGH_LATENCY2_HPP
 #define HIGH_LATENCY2_HPP
 
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/matrix/matrix/math.hpp>
 

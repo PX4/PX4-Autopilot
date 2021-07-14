@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,7 +52,8 @@ static constexpr float CONSTANTS_ONE_G = 9.80665f;						// m/s^2
 
 static constexpr float CONSTANTS_STD_PRESSURE_PA = 101325.0f;					// pascals (Pa)
 static constexpr float CONSTANTS_STD_PRESSURE_KPA = CONSTANTS_STD_PRESSURE_PA / 1000.0f;	// kilopascals (kPa)
-static constexpr float CONSTANTS_STD_PRESSURE_MBAR = CONSTANTS_STD_PRESSURE_PA / 100.0f;	// Millibar (mbar) (1 mbar = 100 Pa)
+static constexpr float CONSTANTS_STD_PRESSURE_MBAR = CONSTANTS_STD_PRESSURE_PA /
+		100.0f;	// Millibar (mbar) (1 mbar = 100 Pa)
 
 static constexpr float CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C = 1.225f;				// kg/m^3
 static constexpr float CONSTANTS_AIR_GAS_CONST = 287.1f;					// J/(kg * K)
@@ -107,7 +108,8 @@ int map_projection_reference(const struct map_projection_reference_s *ref, doubl
  * @param lat in degrees (47.1234567°, not 471234567°)
  * @param lon in degrees (8.1234567°, not 81234567°)
  */
-int map_projection_init_timestamped(struct map_projection_reference_s *ref, double lat_0, double lon_0, uint64_t timestamp);
+int map_projection_init_timestamped(struct map_projection_reference_s *ref, double lat_0, double lon_0,
+				    uint64_t timestamp);
 
 /**
  * Initializes the map transformation given by the argument and sets the timestamp to now.
@@ -164,7 +166,7 @@ float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_n
  * @param lon_target longitude of target waypoint C in degrees (47.1234567°, not 471234567°)
  */
 void create_waypoint_from_line_and_dist(double lat_A, double lon_A, double lat_B, double lon_B, float dist,
-		double *lat_target, double *lon_target);
+					double *lat_target, double *lon_target);
 
 /**
  * Creates a waypoint from given waypoint, distance and bearing
@@ -178,7 +180,7 @@ void create_waypoint_from_line_and_dist(double lat_A, double lon_A, double lat_B
  * @param lon_target longitude of target waypoint in degrees (47.1234567°, not 471234567°)
  */
 void waypoint_from_heading_and_distance(double lat_start, double lon_start, float bearing, float dist,
-		double *lat_target, double *lon_target);
+					double *lat_target, double *lon_target);
 
 /**
  * Returns the bearing to the next waypoint in radians.
@@ -190,18 +192,21 @@ void waypoint_from_heading_and_distance(double lat_start, double lon_start, floa
  */
 float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);
 
-void get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next, float *v_n, float *v_e);
+void get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next, float *v_n,
+				 float *v_e);
 
-void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next, double lon_next, float *v_n, float *v_e);
+void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next, double lon_next, float *v_n,
+				      float *v_e);
 
-void add_vector_to_global_position(double lat_now, double lon_now, float v_n, float v_e, double *lat_res, double *lon_res);
+void add_vector_to_global_position(double lat_now, double lon_now, float v_n, float v_e, double *lat_res,
+				   double *lon_res);
 
 int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
-				  double lat_start, double lon_start, double lat_end, double lon_end);
+			 double lat_start, double lon_start, double lat_end, double lon_end);
 
 int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
-				 double lat_center, double lon_center,
-				 float radius, float arc_start_bearing, float arc_sweep);
+			double lat_center, double lon_center,
+			float radius, float arc_start_bearing, float arc_sweep);
 
 /*
  * Calculate distance in global frame

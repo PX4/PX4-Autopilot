@@ -47,7 +47,7 @@
 #include <lib/drivers/smbus/SMBus.hpp>
 #include <uORB/topics/battery_status.h>
 #include <px4_platform_common/param.h>
-#include <ecl/geo/geo.h>
+#include <geo/geo.h>
 
 
 using namespace time_literals;

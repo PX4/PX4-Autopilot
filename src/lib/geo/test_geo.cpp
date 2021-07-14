@@ -35,10 +35,11 @@
 #include <math.h>
 #include <mathlib/mathlib.h>
 #include <memory>
-#include <geo/geo.h>
+#include <lib/geo/geo.h>
 
-class GeoTest : public ::testing::Test {
- public:
+class GeoTest : public ::testing::Test
+{
+public:
 	void SetUp() override
 	{
 		origin.timestamp = 0;
@@ -49,7 +50,7 @@ class GeoTest : public ::testing::Test {
 		origin.init_done = true;
 	}
 
- protected:
+protected:
 	map_projection_reference_s origin;
 
 };
@@ -123,7 +124,7 @@ TEST_F(GeoTest, waypoint_from_heading_and_negative_distance)
 	double lon_start = 18;
 	float bearing = 0;
 	float lat_offset = -0.01f;
-	float dist = CONSTANTS_RADIUS_OF_EARTH * M_PI / 180.f * lat_offset;
+	float dist = CONSTANTS_RADIUS_OF_EARTH_F * M_PI_F / 180.f * lat_offset;
 
 	double lat_target = 0;
 	double lon_target = 0;
@@ -132,7 +133,7 @@ TEST_F(GeoTest, waypoint_from_heading_and_negative_distance)
 	waypoint_from_heading_and_distance(lat_start, lon_start, bearing, dist, &lat_target, &lon_target);
 
 	// THEN: it should be the same
-	EXPECT_FLOAT_EQ(lat_start + lat_offset, lat_target);
+	EXPECT_FLOAT_EQ(static_cast<float>(lat_start) + lat_offset, lat_target);
 	EXPECT_DOUBLE_EQ(lon_start, lon_target);
 }
 
@@ -143,7 +144,7 @@ TEST_F(GeoTest, waypoint_from_heading_and_positive_distance)
 	double lon_start = 18;
 	float bearing = 0;
 	float lat_offset = 0.01f;
-	float dist = CONSTANTS_RADIUS_OF_EARTH * M_PI / 180.f * lat_offset;
+	float dist = CONSTANTS_RADIUS_OF_EARTH_F * M_PI_F / 180.f * lat_offset;
 
 	double lat_target = 0;
 	double lon_target = 0;
@@ -152,7 +153,7 @@ TEST_F(GeoTest, waypoint_from_heading_and_positive_distance)
 	waypoint_from_heading_and_distance(lat_start, lon_start, bearing, dist, &lat_target, &lon_target);
 
 	// THEN: it should be the same
-	EXPECT_FLOAT_EQ(lat_start + lat_offset, lat_target);
+	EXPECT_FLOAT_EQ(static_cast<float>(lat_start) + lat_offset, lat_target);
 	EXPECT_DOUBLE_EQ(lon_start, lon_target);
 }
 
@@ -184,7 +185,7 @@ TEST_F(GeoTest, waypoint_from_line_and_positive_distance)
 	double lat_offset = 0.01;
 	double lat_end = lat_start + lat_offset;
 	double lon_end = 18;
-	float dist = CONSTANTS_RADIUS_OF_EARTH * M_PI / 180.f * lat_offset;
+	float dist = CONSTANTS_RADIUS_OF_EARTH_F * M_PI_F / 180.f * static_cast<float>(lat_offset);
 
 	double lat_target = 0;
 	double lon_target = 0;
@@ -206,7 +207,7 @@ TEST_F(GeoTest, waypoint_from_line_and_negative_distance)
 	double lat_offset = 0.01;
 	double lat_end = lat_start + lat_offset;
 	double lon_end = 18;
-	float dist = -CONSTANTS_RADIUS_OF_EARTH * M_PI / 180.f * lat_offset;
+	float dist = -CONSTANTS_RADIUS_OF_EARTH_F * M_PI_F / 180.f * static_cast<float>(lat_offset);
 
 	double lat_target = 0;
 	double lon_target = 0;

@@ -95,14 +95,6 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 
 	add_custom_target(prebuild_targets)
 
-	# temporary
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../mathlib/math/filter/AlphaFilter.hpp ${CMAKE_CURRENT_BINARY_DIR}/mathlib/math/filter/AlphaFilter.hpp COPYONLY)
-	include_directories(${CMAKE_CURRENT_BINARY_DIR})
-
-	include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../world_magnetic_model world_magnetic_model)
-	include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../..)
-
 	if(MSVC)
 		add_compile_options(
 			/W4
@@ -152,6 +144,17 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 	add_dependencies(prebuild_targets matrix)
 	include_directories(${CMAKE_BINARY_DIR}/matrix-prefix/src/matrix)
 
+	# temporary
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../mathlib/math/filter/AlphaFilter.hpp ${CMAKE_CURRENT_BINARY_DIR}/mathlib/math/filter/AlphaFilter.hpp COPYONLY)
+	include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+	include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+	add_definitions(-Dhrt_absolute_time=uint64_t)
+	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../geo geo)
+	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../world_magnetic_model world_magnetic_model)
+	include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../..)
+
+
 endif()
 
 if(NOT (${CMAKE_BUILD_TYPE} MATCHES "Coverage") AND NOT (${CMAKE_BUILD_TYPE} MATCHES "Debug"))
@@ -179,7 +182,6 @@ if(ECL_ASAN)
 endif()
 
 add_subdirectory(EKF)
-add_subdirectory(geo)
 
 if(BUILD_TESTING AND CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 	add_subdirectory(test)

@@ -57,7 +57,7 @@
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <mathlib/mathlib.h>
 #include <navigator/navigation.h>
 #include <px4_platform_common/px4_config.h>

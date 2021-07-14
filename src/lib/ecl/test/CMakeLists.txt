@@ -52,7 +52,6 @@ set(SRCS
 	test_EKF_flow.cpp
 	test_EKF_terrain_estimator.cpp
 	test_SensorRangeFinder.cpp
-	test_geo.cpp
 	test_EKF_utils.cpp
    )
 add_executable(ECL_GTESTS ${SRCS})
