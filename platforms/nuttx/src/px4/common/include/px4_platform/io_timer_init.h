@@ -38,7 +38,7 @@
 #include <px4_arch/io_timer.h>
 #include <board_config.h>
 
-
+#if defined(DIRECT_PWM_OUTPUT_CHANNELS)
 /**
  * Initialize the IO channel mapping from timer and channel configurations.
  * @param io_timers_conf configured timers
@@ -99,3 +99,4 @@ static inline constexpr io_timers_channel_mapping_t initIOTimerChannelMapping(co
 
 	return ret;
 }
+#endif // DIRECT_PWM_OUTPUT_CHANNELS

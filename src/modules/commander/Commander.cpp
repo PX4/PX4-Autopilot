@@ -1128,7 +1128,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 #endif // CONFIG_BOARDCTL_RESET
 
-#if defined(CONFIG_BOARDCTL_POWEROFF)
+#if defined(BOARD_HAS_POWER_CONTROL)
 
 			} else if ((param1 == 2) && shutdown_if_allowed() && (px4_shutdown_request(400_ms) == 0)) {
 				// 2: Shutdown autopilot
@@ -1136,7 +1136,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				while (1) { px4_usleep(1); }
 
-#endif // CONFIG_BOARDCTL_POWEROFF
+#endif // BOARD_HAS_POWER_CONTROL
 
 #if defined(CONFIG_BOARDCTL_RESET)
 
@@ -1770,13 +1770,9 @@ Commander::run()
 
 			if (_power_button_state_sub.copy(&button_state)) {
 				if (button_state.event == power_button_state_s::PWR_BUTTON_STATE_REQUEST_SHUTDOWN) {
-#if defined(CONFIG_BOARDCTL_POWEROFF)
-
 					if (shutdown_if_allowed() && (px4_shutdown_request() == 0)) {
 						while (1) { px4_usleep(1); }
 					}
-
-#endif // CONFIG_BOARDCTL_POWEROFF
 				}
 			}
 		}
