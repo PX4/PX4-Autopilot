@@ -43,4 +43,4 @@ target_link_libraries(vehicle_gps_position
 		px4_work_queue
 )
 
-px4_add_functional_gtest(SRC gps_blending_test.cpp LINKLIBS vehicle_gps_position)
+px4_add_unit_gtest(SRC gps_blending_test.cpp LINKLIBS vehicle_gps_position)

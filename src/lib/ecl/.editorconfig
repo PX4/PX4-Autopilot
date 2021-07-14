@@ -1,5 +1,0 @@
-# EditorConfig https://EditorConfig.org
-root = true
-
-[{Makefile,CMakeLists.txt}]
-indent_style = tab

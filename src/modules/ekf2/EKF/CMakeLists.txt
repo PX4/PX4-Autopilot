@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2018 ECL Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
 #    notice, this list of conditions and the following disclaimer in
 #    the documentation and/or other materials provided with the
 #    distribution.
-# 3. Neither the name PX4 nor the names of its contributors may be
+# 3. Neither the name ECL nor the names of its contributors may be
 #    used to endorse or promote products derived from this software
 #    without specific prior written permission.
 #
@@ -31,13 +31,28 @@
 #
 ############################################################################
 
-add_library(world_magnetic_model
-	geo_mag_declination.cpp
-	geo_mag_declination.h
-	geo_magnetic_tables.hpp
+add_library(ecl_EKF
+	airspeed_fusion.cpp
+	control.cpp
+	covariance.cpp
+	drag_fusion.cpp
+	ekf.cpp
+	ekf_helper.cpp
+	EKFGSF_yaw.cpp
+	estimator_interface.cpp
+	gps_checks.cpp
+	gps_yaw_fusion.cpp
+	imu_down_sampler.cpp
+	mag_control.cpp
+	mag_fusion.cpp
+	optflow_fusion.cpp
+	sensor_range_finder.cpp
+	sideslip_fusion.cpp
+	terrain_estimator.cpp
+	utils.cpp
+	vel_pos_fusion.cpp
 )
-add_dependencies(world_magnetic_model prebuild_targets)
-target_compile_options(world_magnetic_model PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
 
-add_compile_options(-Wno-double-promotion)
-px4_add_unit_gtest(SRC test_geo_lookup.cpp LINKLIBS world_magnetic_model)
+add_dependencies(ecl_EKF prebuild_targets)
+target_link_libraries(ecl_EKF PRIVATE geo world_magnetic_model)
+target_compile_options(ecl_EKF PRIVATE -fno-associative-math)
