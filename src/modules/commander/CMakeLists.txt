@@ -57,7 +57,7 @@ px4_add_module(
 	DEPENDS
 		circuit_breaker
 		failure_detector
-		ecl_geo
+		geo
 		hysteresis
 		PreFlightCheck
 		ArmAuthorization

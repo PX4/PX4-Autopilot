@@ -36,4 +36,4 @@ px4_add_library(geofence_breach_avoidance
 	geofence_breach_avoidance.h
 )
 
-px4_add_functional_gtest(SRC GeofenceBreachAvoidanceTest.cpp LINKLIBS geofence_breach_avoidance modules__navigator ecl_geo motion_planning)
+px4_add_functional_gtest(SRC GeofenceBreachAvoidanceTest.cpp LINKLIBS geofence_breach_avoidance modules__navigator motion_planning)

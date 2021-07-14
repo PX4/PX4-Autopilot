@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,7 +43,6 @@
  */
 
 #include "geo.h"
-#include <ecl.h>
 
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
@@ -52,23 +51,26 @@
 using matrix::wrap_pi;
 using matrix::wrap_2pi;
 
+#ifndef hrt_absolute_time
+# define hrt_absolute_time() (0)
+#endif
+
 /*
  * Azimuthal Equidistant Projection
  * formulas according to: http://mathworld.wolfram.com/AzimuthalEquidistantProjection.html
  */
 
-bool map_projection_initialized(const struct map_projection_reference_s *ref)
+bool map_projection_initialized(const map_projection_reference_s *ref)
 {
 	return ref->init_done;
 }
 
-uint64_t map_projection_timestamp(const struct map_projection_reference_s *ref)
+uint64_t map_projection_timestamp(const map_projection_reference_s *ref)
 {
 	return ref->timestamp;
 }
 
-// lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
-int map_projection_init_timestamped(struct map_projection_reference_s *ref, double lat_0, double lon_0, uint64_t timestamp)
+int map_projection_init_timestamped(map_projection_reference_s *ref, double lat_0, double lon_0, uint64_t timestamp)
 {
 	ref->lat_rad = math::radians(lat_0);
 	ref->lon_rad = math::radians(lon_0);
@@ -81,13 +83,12 @@ int map_projection_init_timestamped(struct map_projection_reference_s *ref, doub
 	return 0;
 }
 
-//lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
-int map_projection_init(struct map_projection_reference_s *ref, double lat_0, double lon_0)
+int map_projection_init(map_projection_reference_s *ref, double lat_0, double lon_0)
 {
-	return map_projection_init_timestamped(ref, lat_0, lon_0, ecl_absolute_time());
+	return map_projection_init_timestamped(ref, lat_0, lon_0, hrt_absolute_time());
 }
 
-int map_projection_reference(const struct map_projection_reference_s *ref, double *ref_lat_rad, double *ref_lon_rad)
+int map_projection_reference(const map_projection_reference_s *ref, double *ref_lat_rad, double *ref_lon_rad)
 {
 	if (!map_projection_initialized(ref)) {
 		return -1;
@@ -99,7 +100,7 @@ int map_projection_reference(const struct map_projection_reference_s *ref, doubl
 	return 0;
 }
 
-int map_projection_project(const struct map_projection_reference_s *ref, double lat, double lon, float *x, float *y)
+int map_projection_project(const map_projection_reference_s *ref, double lat, double lon, float *x, float *y)
 {
 	if (!map_projection_initialized(ref)) {
 		return -1;
@@ -128,7 +129,7 @@ int map_projection_project(const struct map_projection_reference_s *ref, double 
 	return 0;
 }
 
-int map_projection_reproject(const struct map_projection_reference_s *ref, float x, float y, double *lat, double *lon)
+int map_projection_reproject(const map_projection_reference_s *ref, float x, float y, double *lat, double *lon)
 {
 	if (!map_projection_initialized(ref)) {
 		return -1;
@@ -164,7 +165,8 @@ float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_n
 	const double d_lat = lat_next_rad - lat_now_rad;
 	const double d_lon = math::radians(lon_next) - math::radians(lon_now);
 
-	const double a = sin(d_lat / 2.0) * sin(d_lat / 2.0) + sin(d_lon / 2.0) * sin(d_lon / 2.0) * cos(lat_now_rad) * cos(lat_next_rad);
+	const double a = sin(d_lat / 2.0) * sin(d_lat / 2.0) + sin(d_lon / 2.0) * sin(d_lon / 2.0) * cos(lat_now_rad) * cos(
+				 lat_next_rad);
 
 	const double c = atan2(sqrt(a), sqrt(1.0 - a));
 
@@ -177,6 +179,7 @@ void create_waypoint_from_line_and_dist(double lat_A, double lon_A, double lat_B
 	if (fabsf(dist) < FLT_EPSILON) {
 		*lat_target = lat_A;
 		*lon_target = lon_A;
+
 	} else {
 		float heading = get_bearing_to_next_waypoint(lat_A, lon_A, lat_B, lon_B);
 		waypoint_from_heading_and_distance(lat_A, lon_A, heading, dist, lat_target, lon_target);
@@ -192,7 +195,8 @@ void waypoint_from_heading_and_distance(double lat_start, double lon_start, floa
 	double lat_start_rad = math::radians(lat_start);
 	double lon_start_rad = math::radians(lon_start);
 
-	*lat_target = asin(sin(lat_start_rad) * cos(radius_ratio) + cos(lat_start_rad) * sin(radius_ratio) * cos((double)bearing));
+	*lat_target = asin(sin(lat_start_rad) * cos(radius_ratio) + cos(lat_start_rad) * sin(radius_ratio) * cos((
+				   double)bearing));
 	*lon_target = lon_start_rad + atan2(sin((double)bearing) * sin(radius_ratio) * cos(lat_start_rad),
 					    cos(radius_ratio) - sin(lat_start_rad) * sin(*lat_target));
 
@@ -224,12 +228,14 @@ get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next, dou
 	const double d_lon = math::radians(lon_next) - math::radians(lon_now);
 
 	/* conscious mix of double and float trig function to maximize speed and efficiency */
-	*v_n = static_cast<float>(CONSTANTS_RADIUS_OF_EARTH * (cos(lat_now_rad) * sin(lat_next_rad) - sin(lat_now_rad) * cos(lat_next_rad) * cos(d_lon)));
+	*v_n = static_cast<float>(CONSTANTS_RADIUS_OF_EARTH * (cos(lat_now_rad) * sin(lat_next_rad) - sin(lat_now_rad) * cos(
+					  lat_next_rad) * cos(d_lon)));
 	*v_e = static_cast<float>(CONSTANTS_RADIUS_OF_EARTH * sin(d_lon) * cos(lat_next_rad));
 }
 
 void
-get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next, double lon_next, float *v_n, float *v_e)
+get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next, double lon_next, float *v_n,
+				 float *v_e)
 {
 	double lat_now_rad = math::radians(lat_now);
 	double lon_now_rad = math::radians(lon_now);
@@ -244,7 +250,8 @@ get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next
 	*v_e = static_cast<float>(CONSTANTS_RADIUS_OF_EARTH * d_lon * cos(lat_now_rad));
 }
 
-void add_vector_to_global_position(double lat_now, double lon_now, float v_n, float v_e, double *lat_res, double *lon_res)
+void add_vector_to_global_position(double lat_now, double lon_now, float v_n, float v_e, double *lat_res,
+				   double *lon_res)
 {
 	double lat_now_rad = math::radians(lat_now);
 	double lon_now_rad = math::radians(lon_now);

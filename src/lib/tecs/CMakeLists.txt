@@ -36,4 +36,4 @@ px4_add_library(tecs
 	TECS.hpp
 )
 
-target_link_libraries(tecs PRIVATE ecl_geo)
+target_link_libraries(tecs PRIVATE geo)
