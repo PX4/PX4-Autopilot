@@ -39,7 +39,7 @@
 #pragma once
 
 #include <drivers/device/spi.h>
-#include <ecl/geo/geo.h>
+#include <geo/geo.h>
 #include <lib/conversion/rotation.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>

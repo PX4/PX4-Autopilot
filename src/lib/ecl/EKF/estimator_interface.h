@@ -48,7 +48,7 @@
 #include "sensor_range_finder.hpp"
 #include "utils.hpp"
 
-#include <geo/geo.h>
+#include <lib/geo/geo.h>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/AlphaFilter.hpp>

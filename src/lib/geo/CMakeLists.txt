@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018 ECL Development Team. All rights reserved.
+#   Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
 #    notice, this list of conditions and the following disclaimer in
 #    the documentation and/or other materials provided with the
 #    distribution.
-# 3. Neither the name ECL nor the names of its contributors may be
+# 3. Neither the name PX4 nor the names of its contributors may be
 #    used to endorse or promote products derived from this software
 #    without specific prior written permission.
 #
@@ -31,10 +31,14 @@
 #
 ############################################################################
 
-add_library(ecl_geo
+add_library(geo
 	geo.cpp
-	)
-add_dependencies(ecl_geo prebuild_targets)
-target_compile_definitions(ecl_geo PRIVATE -DMODULE_NAME="ecl/geo")
-target_include_directories(ecl_geo PUBLIC ${ECL_SOURCE_DIR})
-target_link_libraries(ecl_geo PRIVATE m)
+	geo.h
+)
+add_dependencies(geo prebuild_targets)
+target_compile_options(geo PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_link_libraries(geo PRIVATE m)
+
+if(CMAKE_PROJECT_NAME MATCHES "px4") # temporary
+	px4_add_unit_gtest(SRC test_geo.cpp LINKLIBS geo)
+endif()

@@ -36,7 +36,7 @@
 #include "ecl_roll_controller.h"
 #include "ecl_wheel_controller.h"
 #include "ecl_yaw_controller.h"
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>

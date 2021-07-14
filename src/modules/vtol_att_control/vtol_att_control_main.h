@@ -51,7 +51,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>

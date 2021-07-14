@@ -36,6 +36,7 @@ add_library(world_magnetic_model
 	geo_mag_declination.h
 	geo_magnetic_tables.hpp
 )
+add_dependencies(world_magnetic_model prebuild_targets)
 target_compile_options(world_magnetic_model PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
 
 if(CMAKE_PROJECT_NAME MATCHES "px4") # temporary

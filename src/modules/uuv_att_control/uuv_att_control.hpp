@@ -46,7 +46,7 @@
 #include <float.h>
 
 #include <drivers/drv_hrt.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/pid/pid.h>

@@ -67,7 +67,7 @@ px4_add_module(
 	DEPENDS
 		git_mavlink_v2
 		conversion
-		ecl_geo
+		geo
 		drivers_accelerometer
 		drivers_barometer
 		drivers_gyroscope

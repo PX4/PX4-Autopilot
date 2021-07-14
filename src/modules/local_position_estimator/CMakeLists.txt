@@ -49,6 +49,6 @@ px4_add_module(
 		sensors/landing_target.cpp
 	DEPENDS
 		controllib
-		ecl_geo
+		geo
 		px4_work_queue
 	)

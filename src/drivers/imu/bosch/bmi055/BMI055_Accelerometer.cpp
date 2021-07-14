@@ -33,7 +33,7 @@
 
 #include "BMI055_Accelerometer.hpp"
 
-#include <ecl/geo/geo.h> // CONSTANTS_ONE_G
+#include <geo/geo.h> // CONSTANTS_ONE_G
 
 using namespace time_literals;
 

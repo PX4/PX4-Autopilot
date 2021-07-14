@@ -1,6 +1,6 @@
 #pragma once
 
-#include <geo/geo.h>
+#include <lib/geo/geo.h>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
 

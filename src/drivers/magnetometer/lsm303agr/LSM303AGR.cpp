@@ -41,7 +41,7 @@
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
-#include <ecl/geo/geo.h>
+#include <geo/geo.h>
 
 /* SPI protocol address bits */
 #define DIR_READ				(1<<7)

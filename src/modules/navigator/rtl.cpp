@@ -45,7 +45,7 @@
 #include <dataman/dataman.h>
 #include <px4_platform_common/events.h>
 
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 
 
 static constexpr float DELAY_SIGMA = 0.01f;
