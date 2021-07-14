@@ -39,6 +39,6 @@ px4_add_module(
 	SRCS
 		attitude_estimator_q_main.cpp
 	DEPENDS
-		ecl_geo_lookup
+		world_magnetic_model
 	)
 
