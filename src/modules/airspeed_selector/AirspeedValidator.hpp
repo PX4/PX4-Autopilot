@@ -39,7 +39,7 @@
 #pragma once
 
 #include <airspeed/airspeed.h>
-#include <ecl/airdata/WindEstimator.hpp>
+#include <lib/wind_estimator/WindEstimator.hpp>
 #include <uORB/topics/airspeed_wind.h>
 
 

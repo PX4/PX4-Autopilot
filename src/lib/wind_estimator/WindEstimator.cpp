@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -163,7 +163,8 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 	const float k_tas = _state(INDEX_TAS_SCALE);
 
 	// compute kalman gain K
-	const float HH0 = sqrtf(v_d * v_d + (v_e - _state(INDEX_W_E)) * (v_e - _state(INDEX_W_E)) + (v_n - _state(INDEX_W_N)) * (v_n - _state(INDEX_W_N)));
+	const float HH0 = sqrtf(v_d * v_d + (v_e - _state(INDEX_W_E)) * (v_e - _state(INDEX_W_E)) + (v_n - _state(
+					INDEX_W_N)) * (v_n - _state(INDEX_W_N)));
 	const float HH1 = k_tas / HH0;
 
 	matrix::Matrix<float, 1, 3> H_tas;
@@ -175,20 +176,22 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 
 	const matrix::Matrix<float, 1, 1> S = H_tas * _P * H_tas.transpose() + _tas_var;
 
-	K /= S(0,0);
+	K /= S(0, 0);
 	// compute innovation
-	const float airspeed_pred = k_tas * sqrtf((v_n - _state(INDEX_W_N)) * (v_n - _state(INDEX_W_N)) + (v_e - _state(INDEX_W_E)) *
+	const float airspeed_pred = k_tas * sqrtf((v_n - _state(INDEX_W_N)) * (v_n - _state(INDEX_W_N)) + (v_e - _state(
+					    INDEX_W_E)) *
 				    (v_e - _state(INDEX_W_E)) + v_d * v_d);
 
 	_tas_innov = true_airspeed - airspeed_pred;
 
 	// innovation variance
-	_tas_innov_var = S(0,0);
+	_tas_innov_var = S(0, 0);
 
 	bool reinit_filter = false;
 	bool meas_is_rejected = false;
 
-	meas_is_rejected = check_if_meas_is_rejected(time_now, _tas_innov, _tas_innov_var, _tas_gate, _time_rejected_tas, reinit_filter);
+	meas_is_rejected = check_if_meas_is_rejected(time_now, _tas_innov, _tas_innov_var, _tas_gate, _time_rejected_tas,
+			   reinit_filter);
 
 	reinit_filter |= _tas_innov_var < 0.0f;
 
@@ -261,7 +264,7 @@ WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const 
 
 	const matrix::Matrix<float, 1, 1> S = H_beta * _P * H_beta.transpose() + _beta_var;
 
-	K /= S(0,0);
+	K /= S(0, 0);
 
 	// compute predicted side slip angle
 	matrix::Vector3f rel_wind(velI(0) - _state(INDEX_W_N), velI(1) - _state(INDEX_W_E), velI(2));
@@ -276,7 +279,7 @@ WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const 
 	const float beta_pred = rel_wind(1) / rel_wind(0);
 
 	_beta_innov = 0.0f - beta_pred;
-	_beta_innov_var = S(0,0);
+	_beta_innov_var = S(0, 0);
 
 	bool reinit_filter = false;
 	bool meas_is_rejected = false;
@@ -325,7 +328,7 @@ WindEstimator::run_sanity_checks()
 		}
 	}
 
-	if (!ISFINITE(_state(INDEX_W_N)) || !ISFINITE(_state(INDEX_W_E)) || !ISFINITE(_state(INDEX_TAS_SCALE))) {
+	if (!PX4_ISFINITE(_state(INDEX_W_N)) || !PX4_ISFINITE(_state(INDEX_W_E)) || !PX4_ISFINITE(_state(INDEX_TAS_SCALE))) {
 		_initialised = false;
 		return;
 	}
@@ -335,6 +338,7 @@ WindEstimator::run_sanity_checks()
 	// to be computed once for a perticular installation.
 	if (_enforced_airspeed_scale < 0) {
 		_state(INDEX_TAS_SCALE) = math::max(0.0f, _state(INDEX_TAS_SCALE));
+
 	} else {
 		_state(INDEX_TAS_SCALE) = _enforced_airspeed_scale;
 	}
