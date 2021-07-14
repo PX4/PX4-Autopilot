@@ -35,7 +35,8 @@ px4_add_module(
 	MAIN airspeed_selector
 	SRCS
 		airspeed_selector_main.cpp
+		AirspeedValidator.cpp
+		AirspeedValidator.hpp
 	DEPENDS
-		ecl_airdata
-		AirspeedValidator
+		wind_estimator
 )

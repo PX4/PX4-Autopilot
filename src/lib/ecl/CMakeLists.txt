@@ -178,7 +178,6 @@ if(ECL_ASAN)
 	set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address)
 endif()
 
-add_subdirectory(airdata)
 add_subdirectory(EKF)
 add_subdirectory(geo)
 
