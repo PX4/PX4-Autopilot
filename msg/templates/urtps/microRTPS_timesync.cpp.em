@@ -227,7 +227,7 @@ bool TimeSync::addMeasurement(int64_t local_t1_ns, int64_t remote_t2_ns, int64_t
 
 void TimeSync::processTimesyncMsg(timesync_msg_t *msg, TimesyncPublisher *pub)
 {
-	if (getMsgSysID(msg) == 1 && getMsgSeq(msg) != _last_remote_msg_seq) {
+	if (getMsgSeq(msg) != _last_remote_msg_seq) {
 		_last_remote_msg_seq = getMsgSeq(msg);
 
 		if (getMsgTC1(msg) > 0) {
@@ -245,7 +245,6 @@ void TimeSync::processTimesyncMsg(timesync_msg_t *msg, TimesyncPublisher *pub)
 @[else]@
 			setMsgTimestamp(msg, getSteadyTimeUSec());
 @[end if]@
-			setMsgSysID(msg, 0);
 			setMsgSeq(msg, getMsgSeq(msg) + 1);
 @[if ros2_distro]@
 			setMsgTC1(msg, getROSTimeNSec());
@@ -267,7 +266,6 @@ timesync_msg_t TimeSync::newTimesyncMsg()
 @[else]@
 	setMsgTimestamp(&msg, getSteadyTimeUSec());
 @[end if]@
-	setMsgSysID(&msg, 0);
 	setMsgSeq(&msg, _last_msg_seq);
 	setMsgTC1(&msg, 0);
 @[if ros2_distro]@
