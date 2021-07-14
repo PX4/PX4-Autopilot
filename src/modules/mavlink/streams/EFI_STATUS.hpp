@@ -49,19 +49,20 @@ public:
 
 	unsigned get_size() override
 	{
-		return _ice_status_sub.advertised() ? MAVLINK_MSG_ID_EFI_STATUS + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		return _internal_combustion_engine_status_sub.advertised() ? MAVLINK_MSG_ID_EFI_STATUS + MAVLINK_NUM_NON_PAYLOAD_BYTES :
+		       0;
 	}
 
 private:
 	explicit MavlinkStreamEfiStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _ice_status_sub{ORB_ID(internal_combustion_engine_status)};
+	uORB::Subscription _internal_combustion_engine_status_sub{ORB_ID(internal_combustion_engine_status)};
 
 	bool send() override
 	{
 		internal_combustion_engine_status_s internal_combustion_engine_status;
 
-		if (_ice_status_sub.update(&internal_combustion_engine_status)) {
+		if (_internal_combustion_engine_status_sub.update(&internal_combustion_engine_status)) {
 			mavlink_efi_status_t msg{};
 
 			msg.health = internal_combustion_engine_status.state;
