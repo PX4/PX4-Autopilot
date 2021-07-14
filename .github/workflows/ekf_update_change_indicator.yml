@@ -11,11 +11,13 @@ jobs:
       GIT_COMMITTER_NAME: PX4BuildBot
     steps:
     - uses: actions/checkout@v2.3.1
+      with:
+        fetch-depth: 0
     - name: main test updates change indication files
-      run: cd ${GITHUB_WORKSPACE}/src/lib/ecl; make test
+      run: make tests TESTFILTER=EKF
     - name: Check if there exists diff and save result in variable
       run: echo "CHANGE_INDICATED=$(git diff --exit-code --output=/dev/null || echo $?)" >> $GITHUB_ENV
-      working-directory: src/lib/ecl/test/change_indication
+      working-directory: src/modules/ekf2/test/change_indication
     - name: auto-commit any changes to change indication
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
