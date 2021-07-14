@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018 ECL Development Team. All rights reserved.
+#   Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
 #    notice, this list of conditions and the following disclaimer in
 #    the documentation and/or other materials provided with the
 #    distribution.
-# 3. Neither the name ECL nor the names of its contributors may be
+# 3. Neither the name PX4 nor the names of its contributors may be
 #    used to endorse or promote products derived from this software
 #    without specific prior written permission.
 #
@@ -31,11 +31,14 @@
 #
 ############################################################################
 
-add_library(ecl_geo_lookup
+add_library(world_magnetic_model
 	geo_mag_declination.cpp
 	geo_mag_declination.h
 	geo_magnetic_tables.hpp
 )
-add_dependencies(ecl_geo_lookup prebuild_targets)
-target_compile_definitions(ecl_geo_lookup PRIVATE -DMODULE_NAME="ecl/geo_lookup")
-target_include_directories(ecl_geo_lookup PUBLIC ${ECL_SOURCE_DIR})
+target_compile_options(world_magnetic_model PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+
+if(CMAKE_PROJECT_NAME MATCHES "px4") # temporary
+	add_compile_options(-Wno-double-promotion)
+	px4_add_unit_gtest(SRC test_geo_lookup.cpp LINKLIBS world_magnetic_model)
+endif()

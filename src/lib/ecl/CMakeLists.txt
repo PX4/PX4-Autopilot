@@ -97,8 +97,11 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 
 	# temporary
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../mathlib/math/filter/AlphaFilter.hpp ${CMAKE_CURRENT_BINARY_DIR}/mathlib/math/filter/AlphaFilter.hpp COPYONLY)
-
 	include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+	include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../world_magnetic_model world_magnetic_model)
+	include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../..)
 
 	if(MSVC)
 		add_compile_options(
@@ -178,7 +181,6 @@ endif()
 add_subdirectory(airdata)
 add_subdirectory(EKF)
 add_subdirectory(geo)
-add_subdirectory(geo_lookup)
 
 if(BUILD_TESTING AND CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 	add_subdirectory(test)
