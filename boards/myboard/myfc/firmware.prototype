@@ -1,0 +1,13 @@
+{
+    "board_id": 42,
+    "magic": "MYBOARDMYFC",
+    "description": "Firmware for the myfc board",
+    "image": "",
+    "build_time": 0,
+    "summary": "PX4/myboard",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 1032192,
+    "git_identity": "",
+    "board_revision": 0
+}
