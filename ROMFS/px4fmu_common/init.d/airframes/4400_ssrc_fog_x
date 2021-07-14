@@ -57,4 +57,7 @@ then
 	# Set battery load drop value to match
 	# the "default" battery used in this drone
 	param set BAT_V_LOAD_DROP 0.1
+
+	# Enable safety switch
+	param set CBRK_IO_SAFETY 0
 fi
