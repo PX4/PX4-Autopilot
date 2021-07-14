@@ -97,9 +97,9 @@ __EXPORT int px4_reboot_request(bool to_bootloader = false, uint32_t delay_us = 
  * @param delay_us optional delay in microseconds
  * @return 0 on success, <0 on error
  */
-#if defined(CONFIG_BOARDCTL_POWEROFF) || defined(__PX4_POSIX)
+#if defined(BOARD_HAS_POWER_CONTROL) || defined(__PX4_POSIX)
 __EXPORT int px4_shutdown_request(uint32_t delay_us = 0);
-#endif // CONFIG_BOARDCTL_POWEROFF
+#endif // BOARD_HAS_POWER_CONTROL
 
 
 /**

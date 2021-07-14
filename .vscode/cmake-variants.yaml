@@ -96,6 +96,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_can-gps_canbootloader
+    atl_mantis-edu_default:
+      short: atl_mantis-edu
+      buildType: MinSizeRel
+      settings:
+        CONFIG: atl_mantis-edu_default
     av_x-v1_default:
       short: av_x-v1
       buildType: MinSizeRel
