@@ -95,6 +95,11 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 
 	add_custom_target(prebuild_targets)
 
+	# temporary
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../mathlib/math/filter/AlphaFilter.hpp ${CMAKE_CURRENT_BINARY_DIR}/mathlib/math/filter/AlphaFilter.hpp COPYONLY)
+
+	include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
 	if(MSVC)
 		add_compile_options(
 			/W4

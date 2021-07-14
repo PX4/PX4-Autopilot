@@ -42,7 +42,6 @@ set(SRCS
 	test_EKF_ringbuffer.cpp
 	test_EKF_measurementSampling.cpp
 	test_EKF_imuSampling.cpp
-	test_AlphaFilter.cpp
 	test_EKF_fusionLogic.cpp
 	test_EKF_initialization.cpp
 	test_EKF_gps_yaw.cpp
