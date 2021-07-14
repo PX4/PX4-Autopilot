@@ -115,6 +115,9 @@
 #define HW_INFO_INIT_VER     2
 #define HW_INFO_INIT_REV     3
 
+#define BOARD_TAP_ESC_MODE 2 // select closed-loop control mode for the esc
+// #define BOARD_USE_ESC_CURRENT_REPORT
+
 /* HEATER */
 #define GPIO_HEATER_OUTPUT   /* PA7  T14CH1 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN7)
 
