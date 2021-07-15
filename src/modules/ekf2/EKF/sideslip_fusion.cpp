@@ -137,7 +137,8 @@ void Ekf::fuseSideslip()
 			_fault_status.flags.bad_sideslip = true;
 
 			// if we are getting aiding from other sources, warn and reset the wind states and covariances only
-			const char* action_string = nullptr;
+			const char *action_string = nullptr;
+
 			if (update_wind_only) {
 				resetWindStates();
 				resetWindCovariance();
@@ -148,12 +149,14 @@ void Ekf::fuseSideslip()
 				_state.wind_vel.setZero();
 				action_string = "full";
 			}
+
 			ECL_ERR("sideslip badly conditioned - %s covariance reset", action_string);
 
 			return;
 		}
+
 		_fault_status.flags.bad_sideslip = false;
-		const float HK52 = HK16/_beta_innov_var;
+		const float HK52 = HK16 / _beta_innov_var;
 
 		// Calculate predicted sideslip angle and innovation using small angle approximation
 		_beta_innov = rel_wind_body(1) / rel_wind_body(0);
@@ -184,6 +187,7 @@ void Ekf::fuseSideslip()
 
 		// Calculate Kalman gains
 		Vector24f Kfusion;
+
 		if (!update_wind_only) {
 
 			Kfusion(0) = HK38*HK52;
