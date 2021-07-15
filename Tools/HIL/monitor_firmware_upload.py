@@ -5,45 +5,35 @@ import subprocess
 from subprocess import call, Popen
 from argparse import ArgumentParser
 import re
+import sys
 
 def monitor_firmware_upload(port, baudrate):
-    databits = serial.EIGHTBITS
-    stopbits = serial.STOPBITS_ONE
-    parity = serial.PARITY_NONE
-    ser = serial.Serial(port, baudrate, databits, parity, stopbits, timeout=1)
+    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1, xonxoff=True, rtscts=False, dsrdtr=False)
 
-    finished = 0
-
-    timeout = 300  # 5 minutes
+    timeout = 180  # 3 minutes
     timeout_start = time.time()
     timeout_newline = time.time()
 
-    while finished == 0:
+    while True:
         serial_line = ser.readline().decode("ascii", errors='ignore')
-        if (len(serial_line) > 0):
-            print(serial_line.replace('\n', ''))
 
         if "NuttShell (NSH)" in serial_line:
-            finished = 1
-            break
-
-        if time.time() - timeout_start > 10:
-            if "nsh>" in serial_line:
-                finished = 1
-                break
+            sys.exit(0)
+        elif "nsh>" in serial_line:
+            sys.exit(0)
+        else:
+            if len(serial_line) > 0:
+                print(serial_line, end='')
 
         if time.time() > timeout_start + timeout:
             print("Error, timeout")
-            finished = 1
-            break
+            sys.exit(-1)
 
         # newline every 10 seconds if still running
         if time.time() - timeout_newline > 10:
             timeout_newline = time.time()
-            ser.write('\n'.encode("ascii"))
+            ser.write("\n".encode("ascii"))
             ser.flush()
-
-    ser.close()
 
 def main():
     parser = ArgumentParser(description=__doc__)
