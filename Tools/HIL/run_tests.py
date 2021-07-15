@@ -10,10 +10,27 @@ import os
 import sys
 
 def do_test(port, baudrate, test_name):
-    databits = serial.EIGHTBITS
-    stopbits = serial.STOPBITS_ONE
-    parity = serial.PARITY_NONE
-    ser = serial.Serial(port, baudrate, databits, parity, stopbits, timeout=1)
+    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1, xonxoff=True, rtscts=False, dsrdtr=False)
+
+    timeout_start = time.time()
+    timeout = 10  # 10 seconds
+
+    # wait for nsh prompt
+    while True:
+        ser.write("\n".encode("ascii"))
+        ser.flush()
+
+        serial_line = ser.readline().decode("ascii", errors='ignore')
+
+        if "nsh>" in serial_line:
+            break
+        else:
+            if len(serial_line) > 0:
+                print(serial_line, end='')
+
+        if time.time() > timeout_start + timeout:
+            print("Error, timeout waiting for prompt")
+            return False
 
     success = False
 
@@ -22,37 +39,26 @@ def do_test(port, baudrate, test_name):
     cmd = 'tests ' + test_name
     print("| Running:", cmd)
     print('|======================================================================')
+
     timeout_start = time.time()
     timeout = 10  # 10 seconds
 
-    # clear
-    ser.write("\n".encode("ascii"))
-    ser.flush()
-    ser.readline()
-
+    # wait for command echo
     serial_cmd = '{0}\n'.format(cmd)
     ser.write(serial_cmd.encode("ascii"))
     ser.flush()
-    ser.readline()
+    while True:
+        serial_line = ser.readline().decode("ascii", errors='ignore')
 
-    # TODO: retry command
-    # while True:
-    #     serial_cmd = '{0}\n'.format(cmd)
-    #     ser.write(serial_cmd.encode("ascii"))
-    #     ser.flush()
+        if cmd in serial_line:
+            break
+        else:
+            if len(serial_line) > 0:
+                print(serial_line, end='')
 
-    #     serial_line = ser.readline().decode("ascii", errors='ignore')
-
-    #     if cmd in serial_line:
-    #         break
-    #     else:
-    #         print(serial_line.replace('\n', ''))
-
-    #     if time.time() > timeout_start + timeout:
-    #         print("Error, unable to write cmd")
-    #         return False
-
-    #     time.sleep(1)
+        if time.time() > timeout_start + timeout:
+            print("Error, timeout waiting for command echo")
+            break
 
 
     # print results, wait for final result (PASSED or FAILED)

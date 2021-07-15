@@ -32,7 +32,8 @@ do
 
 	if [ $gdb_ret -ne 0 ]; then
 		echo "GDB error, retrying"
-		sleep 3
+		killall JLinkGDBServerCLExe
+		sleep 5
 	else
 		exit 0
 	fi
