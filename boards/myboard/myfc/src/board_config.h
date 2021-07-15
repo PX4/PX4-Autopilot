@@ -14,6 +14,8 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
+__BEGIN_DECLS
+
 #ifndef __ASSEMBLY__
 
 #include <px4_platform_common/board_common.h>
