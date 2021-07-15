@@ -672,7 +672,7 @@ public:
 	virtual ssize_t	write(struct file *filp, const char *buffer, size_t buflen);
 
 protected:
-	static const uint8_t HEADER_SIZE = 9;
+	static const uint8_t HEADER_SIZE = 10;
 };
 
 RtpsDev::RtpsDev(ReadBuffer *read_buffer)
@@ -741,7 +741,7 @@ ssize_t RtpsDev::write(struct file *filp, const char *buffer, size_t buflen)
 			return 0;
 		}
 
-		payload_len = ((uint16_t)buffer[5] << 8) | buffer[6];
+		payload_len = ((uint16_t)buffer[6] << 8) | buffer[7];
 		_packet_len = payload_len + HEADER_SIZE;
 		_parser_state = ParserState::GotLength;
 		lock(Write);
