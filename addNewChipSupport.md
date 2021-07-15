@@ -145,3 +145,4 @@ This guide will provide information on porting the nuttx base layer and creating
 * Go ahead and create `rpi` folder in `PX4-Autopilot/platforms/nuttx/src/px4/`. Create a `CMakeLists.txt` file in that folder and copy following lines to that file\
 	`add_subdirectory(${PX4_CHIP})`
 * Now create two more folders with names `rpi_common` and `rp2040` inside `rpi`. Note that `rpi_common` will have files common to all the chips produced by Raspberrypi. While `rp2040` will have files specific to the rp2040 chip.
+* Add an empty `CMakeLists.txt` file in `rp2040` folder for now. The contents of this file will be changed later as the need arises.
