@@ -215,8 +215,8 @@ bool Ekf::gps_is_good(const gps_message &gps)
 
 		// Check the magnitude of the filtered horizontal GPS velocity
 		const Vector2f gps_velNE = matrix::constrain(Vector2f(gps.vel_ned.xy()),
-							     -10.0f * _params.req_hdrift,
-							      10.0f * _params.req_hdrift);
+					   -10.0f * _params.req_hdrift,
+					   10.0f * _params.req_hdrift);
 		_gps_velNE_filt = gps_velNE * filter_coef + _gps_velNE_filt * (1.0f - filter_coef);
 		_gps_drift_metrics[2] = _gps_velNE_filt.norm();
 		_gps_check_fail_status.flags.hspeed = (_gps_drift_metrics[2] > _params.req_hdrift);

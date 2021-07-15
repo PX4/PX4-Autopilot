@@ -66,7 +66,7 @@ void Ekf::fuseGpsYaw()
 	}
 
 	// calculate predicted antenna yaw angle
-	const float predicted_hdg =  atan2f(ant_vec_ef(1),ant_vec_ef(0));
+	const float predicted_hdg = atan2f(ant_vec_ef(1), ant_vec_ef(0));
 
 	// using magnetic heading process noise
 	// TODO extend interface to use yaw uncertainty provided by GPS if available
@@ -83,6 +83,7 @@ void Ekf::fuseGpsYaw()
 	const float HK7 = ecl::powf(q0, 2) - ecl::powf(q3, 2);
 	const float HK8 = HK4*(HK5 - HK6 + HK7);
 	const float HK9 = HK3 - HK8;
+
 	if (fabsf(HK9) < 1e-3f) {
 		return;
 	}
@@ -100,6 +101,7 @@ void Ekf::fuseGpsYaw()
 	const float HK18 = 2/HK17;
 	// const float HK19 = 1.0F/(-HK3 + HK8);
 	const float HK19_inverse = -HK3 + HK8;
+
 	if (fabsf(HK19_inverse) < 1e-6f) {
 		return;
 	}
@@ -122,7 +124,7 @@ void Ekf::fuseGpsYaw()
 	_heading_innov_var = (-HK16*HK27*HK29 - HK24*HK28*HK29 - HK25*HK29*HK30 + HK26*HK29*HK31 + R_YAW);
 
 	if (_heading_innov_var < R_YAW) {
-	// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
+		// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
 		_fault_status.flags.bad_hdg = true;
 
 		// we reinitialise the covariance matrix and abort this fusion step
@@ -132,7 +134,7 @@ void Ekf::fuseGpsYaw()
 	}
 
 	_fault_status.flags.bad_hdg = false;
-	const float HK32 = HK18/_heading_innov_var;
+	const float HK32 = HK18 / _heading_innov_var;
 
 	// calculate the innovation and define the innovation gate
 	const float innov_gate = math::max(_params.heading_innov_gate, 1.0f);

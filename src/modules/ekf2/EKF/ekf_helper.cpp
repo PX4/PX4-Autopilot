@@ -262,12 +262,14 @@ void Ekf::resetHeight()
 	if (_control_status.flags.rng_hgt) {
 
 		// a fallback from any other height source to rangefinder happened
-		if(!_control_status_prev.flags.rng_hgt) {
+		if (!_control_status_prev.flags.rng_hgt) {
 
 			if (_control_status.flags.in_air && isTerrainEstimateValid()) {
-			    _hgt_sensor_offset = _terrain_vpos;
+				_hgt_sensor_offset = _terrain_vpos;
+
 			} else if (_control_status.flags.in_air) {
-				 _hgt_sensor_offset = _range_sensor.getDistBottom() + _state.pos(2);
+				_hgt_sensor_offset = _range_sensor.getDistBottom() + _state.pos(2);
+
 			} else {
 				_hgt_sensor_offset = _params.rng_gnd_clearance;
 			}
@@ -729,6 +731,7 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 			// reset altitude
 			_gps_alt_ref = altitude;
 			resetVerticalPositionTo(_gps_alt_ref - current_alt);
+
 		} else {
 			// reset altitude
 			_gps_alt_ref = altitude;
@@ -1042,9 +1045,9 @@ void Ekf::uncorrelateQuatFromOtherStates()
 void Ekf::update_deadreckoning_status()
 {
 	const bool velPosAiding = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel)
-				&& (isRecent(_time_last_hor_pos_fuse, _params.no_aid_timeout_max)
-				|| isRecent(_time_last_hor_vel_fuse, _params.no_aid_timeout_max)
-				|| isRecent(_time_last_delpos_fuse, _params.no_aid_timeout_max));
+				  && (isRecent(_time_last_hor_pos_fuse, _params.no_aid_timeout_max)
+				      || isRecent(_time_last_hor_vel_fuse, _params.no_aid_timeout_max)
+				      || isRecent(_time_last_delpos_fuse, _params.no_aid_timeout_max));
 	const bool optFlowAiding = _control_status.flags.opt_flow && isRecent(_time_last_of_fuse, _params.no_aid_timeout_max);
 	const bool airDataAiding = _control_status.flags.wind &&
 				   isRecent(_time_last_arsp_fuse, _params.no_aid_timeout_max) &&
@@ -1316,8 +1319,7 @@ void Ekf::updateBaroHgtOffset()
 		const float local_time_step = math::constrain(1e-6f * _delta_time_baro_us, 0.0f, 1.0f);
 
 		// apply a 10 second first order low pass filter to baro offset
-		const float offset_rate_correction =  0.1f * (_baro_sample_delayed.hgt + _state.pos(2) -
-								_baro_hgt_offset);
+		const float offset_rate_correction = 0.1f * (_baro_sample_delayed.hgt + _state.pos(2) - _baro_hgt_offset);
 		_baro_hgt_offset += local_time_step * math::constrain(offset_rate_correction, -0.1f, 0.1f);
 	}
 }
@@ -1340,19 +1342,22 @@ Vector3f Ekf::getVisionVelocityInEkfFrame() const
 	const Vector3f vel_offset_body = _ang_rate_delayed_raw % pos_offset_body;
 
 	// rotate measurement into correct earth frame if required
-	switch(_ev_sample_delayed.vel_frame) {
-		case velocity_frame_t::BODY_FRAME_FRD:
-			vel = _R_to_earth * (_ev_sample_delayed.vel - vel_offset_body);
-			break;
-		case velocity_frame_t::LOCAL_FRAME_FRD:
-			const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
-			if (_params.fusion_mode & MASK_ROTATE_EV)
-			{
-				vel = _R_ev_to_ekf *_ev_sample_delayed.vel - vel_offset_earth;
-			} else {
-				vel = _ev_sample_delayed.vel - vel_offset_earth;
-			}
-			break;
+	switch (_ev_sample_delayed.vel_frame) {
+	case velocity_frame_t::BODY_FRAME_FRD:
+		vel = _R_to_earth * (_ev_sample_delayed.vel - vel_offset_body);
+		break;
+
+	case velocity_frame_t::LOCAL_FRAME_FRD:
+		const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
+
+		if (_params.fusion_mode & MASK_ROTATE_EV) {
+			vel = _R_ev_to_ekf * _ev_sample_delayed.vel - vel_offset_earth;
+
+		} else {
+			vel = _ev_sample_delayed.vel - vel_offset_earth;
+		}
+
+		break;
 	}
 
 	return vel;
@@ -1363,17 +1368,17 @@ Vector3f Ekf::getVisionVelocityVarianceInEkfFrame() const
 	Matrix3f ev_vel_cov = _ev_sample_delayed.velCov;
 
 	// rotate measurement into correct earth frame if required
-	switch(_ev_sample_delayed.vel_frame) {
-		case velocity_frame_t::BODY_FRAME_FRD:
-			ev_vel_cov = _R_to_earth * ev_vel_cov * _R_to_earth.transpose();
-			break;
+	switch (_ev_sample_delayed.vel_frame) {
+	case velocity_frame_t::BODY_FRAME_FRD:
+		ev_vel_cov = _R_to_earth * ev_vel_cov * _R_to_earth.transpose();
+		break;
 
-		case velocity_frame_t::LOCAL_FRAME_FRD:
-			if(_params.fusion_mode & MASK_ROTATE_EV)
-			{
-				ev_vel_cov = _R_ev_to_ekf * ev_vel_cov * _R_ev_to_ekf.transpose();
-			}
-			break;
+	case velocity_frame_t::LOCAL_FRAME_FRD:
+		if (_params.fusion_mode & MASK_ROTATE_EV) {
+			ev_vel_cov = _R_ev_to_ekf * ev_vel_cov * _R_ev_to_ekf.transpose();
+		}
+
+		break;
 	}
 
 	return ev_vel_cov.diag();

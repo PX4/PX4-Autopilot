@@ -113,6 +113,7 @@ public:
 		} else {
 			_time_last_in_air = _time_last_imu;
 		}
+
 		_control_status.flags.in_air = in_air;
 	}
 
@@ -248,8 +249,8 @@ public:
 	// Getter for the baro sample on the delayed time horizon
 	const baroSample &get_baro_sample_delayed() const { return _baro_sample_delayed; }
 
-	const bool& global_origin_valid() const { return _NED_origin_initialised; }
-	const map_projection_reference_s& global_origin() const { return _pos_ref; }
+	const bool &global_origin_valid() const { return _NED_origin_initialised; }
+	const map_projection_reference_s &global_origin() const { return _pos_ref; }
 
 	void print_status();
 

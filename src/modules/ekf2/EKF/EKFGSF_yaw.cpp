@@ -13,7 +13,7 @@ EKFGSF_yaw::EKFGSF_yaw()
 	_ahrs_accel.zero();
 }
 
-void EKFGSF_yaw::update(const imuSample& imu_sample,
+void EKFGSF_yaw::update(const imuSample &imu_sample,
 			bool run_EKF,			// set to true when flying or movement is suitable for yaw estimation
 			float airspeed,			// true airspeed used for centripetal accel compensation - set to 0 when not required.
 			const Vector3f &imu_gyro_bias)  // estimated rate gyro bias (rad/sec)
@@ -39,11 +39,13 @@ void EKFGSF_yaw::update(const imuSample& imu_sample,
 		const float upper_accel_limit = CONSTANTS_ONE_G * 1.1f;
 		const float lower_accel_limit = CONSTANTS_ONE_G * 0.9f;
 		const bool ok_to_align = (accel_norm_sq > sq(lower_accel_limit)) && (accel_norm_sq < sq(upper_accel_limit));
+
 		if (ok_to_align) {
 			initialiseEKFGSF();
 			ahrsAlignTilt();
 			_ahrs_ekf_gsf_tilt_aligned = true;
 		}
+
 		return;
 	}
 
@@ -52,6 +54,7 @@ void EKFGSF_yaw::update(const imuSample& imu_sample,
 
 	// AHRS prediction cycle for each model - this always runs
 	_ahrs_accel_fusion_gain = ahrsCalcAccelGain();
+
 	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
 		predictEKF(model_index);
 	}
@@ -61,14 +64,18 @@ void EKFGSF_yaw::update(const imuSample& imu_sample,
 		if (!_ekf_gsf_vel_fuse_started) {
 			initialiseEKFGSF();
 			ahrsAlignYaw();
+
 			// Initialise to gyro bias estimate from main filter because there could be a large
 			// uncorrected rate gyro bias error about the gravity vector
 			for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
 				_ahrs_ekf_gsf[model_index].gyro_bias = imu_gyro_bias;
 			}
+
 			_ekf_gsf_vel_fuse_started = true;
+
 		} else {
 			bool bad_update = false;
+
 			for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
 				// subsequent measurements are fused as direct state observations
 				if (!updateEKF(model_index)) {
@@ -81,24 +88,29 @@ void EKFGSF_yaw::update(const imuSample& imu_sample,
 				// calculate weighting for each model assuming a normal distribution
 				const float min_weight = 1e-5f;
 				uint8_t n_weight_clips = 0;
+
 				for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
 					_model_weights(model_index) = gaussianDensity(model_index) * _model_weights(model_index);
+
 					if (_model_weights(model_index) < min_weight) {
 						n_weight_clips++;
 						_model_weights(model_index) = min_weight;
 					}
+
 					total_weight += _model_weights(model_index);
 				}
 
 				// normalise the weighting function
 				if (n_weight_clips < N_MODELS_EKFGSF) {
 					_model_weights /= total_weight;
+
 				} else {
 					// all weights have collapsed due to excessive innovation variances so reset filters
 					initialiseEKFGSF();
 				}
 			}
 		}
+
 	} else if (_ekf_gsf_vel_fuse_started && !_run_ekf_gsf) {
 		// wait to fly again
 		_ekf_gsf_vel_fuse_started = false;
@@ -108,18 +120,21 @@ void EKFGSF_yaw::update(const imuSample& imu_sample,
 	// To avoid issues with angle wrapping, the yaw state is converted to a vector with length
 	// equal to the weighting value before it is summed.
 	Vector2f yaw_vector;
+
 	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
 		yaw_vector(0) += _model_weights(model_index) * cosf(_ekf_gsf[model_index].X(2));
 		yaw_vector(1) += _model_weights(model_index) * sinf(_ekf_gsf[model_index].X(2));
 	}
-	_gsf_yaw = atan2f(yaw_vector(1),yaw_vector(0));
+
+	_gsf_yaw = atan2f(yaw_vector(1), yaw_vector(0));
 
 	// calculate a composite variance for the yaw state from a weighted average of the variance for each model
 	// models with larger innovations are weighted less
 	_gsf_yaw_variance = 0.0f;
+
 	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
 		const float yaw_delta = wrap_pi(_ekf_gsf[model_index].X(2) - _gsf_yaw);
-		_gsf_yaw_variance += _model_weights(model_index) * (_ekf_gsf[model_index].P(2,2) + yaw_delta * yaw_delta);
+		_gsf_yaw_variance += _model_weights(model_index) * (_ekf_gsf[model_index].P(2, 2) + yaw_delta * yaw_delta);
 	}
 
 	// prevent the same velocity data being used more than once
@@ -138,6 +153,7 @@ void EKFGSF_yaw::ahrsPredict(const uint8_t model_index)
 	// Perform angular rate correction using accel data and reduce correction as accel magnitude moves away from 1 g (reduces drift when vehicle picked up and moved).
 	// During fixed wing flight, compensate for centripetal acceleration assuming coordinated turns and X axis forward
 	Vector3f tilt_correction;
+
 	if (_ahrs_accel_fusion_gain > 0.0f) {
 
 		Vector3f accel = _ahrs_accel;
@@ -158,13 +174,16 @@ void EKFGSF_yaw::ahrsPredict(const uint8_t model_index)
 	// Gyro bias estimation
 	constexpr float gyro_bias_limit = 0.05f;
 	const float spinRate = ang_rate.length();
+
 	if (spinRate < 0.175f) {
 		_ahrs_ekf_gsf[model_index].gyro_bias -= tilt_correction * (_gyro_bias_gain * _delta_ang_dt);
-		_ahrs_ekf_gsf[model_index].gyro_bias = matrix::constrain(_ahrs_ekf_gsf[model_index].gyro_bias, -gyro_bias_limit, gyro_bias_limit);
+		_ahrs_ekf_gsf[model_index].gyro_bias = matrix::constrain(_ahrs_ekf_gsf[model_index].gyro_bias, -gyro_bias_limit,
+						       gyro_bias_limit);
 	}
 
 	// delta angle from previous to current frame
-	const Vector3f delta_angle_corrected = _delta_ang + (tilt_correction - _ahrs_ekf_gsf[model_index].gyro_bias) * _delta_ang_dt;
+	const Vector3f delta_angle_corrected = _delta_ang + (tilt_correction - _ahrs_ekf_gsf[model_index].gyro_bias) *
+					       _delta_ang_dt;
 
 	// Apply delta angle to rotation matrix
 	_ahrs_ekf_gsf[model_index].R = ahrsPredictRotMat(_ahrs_ekf_gsf[model_index].R, delta_angle_corrected);
@@ -182,7 +201,7 @@ void EKFGSF_yaw::ahrsAlignTilt()
 	const Vector3f down_in_bf = -_delta_vel.normalized();
 
 	// Calculate earth frame North axis unit vector rotated into body frame, orthogonal to 'down_in_bf'
-	const Vector3f i_vec_bf(1.0f,0.0f,0.0f);
+	const Vector3f i_vec_bf(1.0f, 0.0f, 0.0f);
 	Vector3f north_in_bf = i_vec_bf - down_in_bf * (i_vec_bf.dot(down_in_bf));
 	north_in_bf.normalize();
 
@@ -207,7 +226,7 @@ void EKFGSF_yaw::ahrsAlignYaw()
 {
 	// Align yaw angle for each model
 	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index++) {
-		Dcmf& R = _ahrs_ekf_gsf[model_index].R;
+		Dcmf &R = _ahrs_ekf_gsf[model_index].R;
 		const float yaw = wrap_pi(_ekf_gsf[model_index].X(2));
 		R = updateYawInRotMat(yaw, R);
 
@@ -226,10 +245,10 @@ void EKFGSF_yaw::predictEKF(const uint8_t model_index)
 	}
 
 	// Calculate the yaw state using a projection onto the horizontal that avoids gimbal lock
-	const Dcmf& R = _ahrs_ekf_gsf[model_index].R;
+	const Dcmf &R = _ahrs_ekf_gsf[model_index].R;
 	_ekf_gsf[model_index].X(2) = shouldUse321RotationSequence(R) ?
-					getEuler321Yaw(R) :
-					getEuler312Yaw(R);
+				     getEuler321Yaw(R) :
+				     getEuler312Yaw(R);
 
 	// calculate delta velocity in a horizontal front-right frame
 	const Vector3f del_vel_NED = _ahrs_ekf_gsf[model_index].R * _delta_vel;
@@ -284,8 +303,9 @@ void EKFGSF_yaw::predictEKF(const uint8_t model_index)
 
 	// constrain variances
 	const float min_var = 1e-6f;
+
 	for (unsigned index = 0; index < 3; index++) {
-		_ekf_gsf[model_index].P(index,index) = fmaxf(_ekf_gsf[model_index].P(index,index),min_var);
+		_ekf_gsf[model_index].P(index, index) = fmaxf(_ekf_gsf[model_index].P(index, index), min_var);
 	}
 }
 
@@ -374,8 +394,9 @@ bool EKFGSF_yaw::updateEKF(const uint8_t model_index)
 
 	// constrain variances
 	const float min_var = 1e-6f;
+
 	for (unsigned index = 0; index < 3; index++) {
-		_ekf_gsf[model_index].P(index,index) = fmaxf(_ekf_gsf[model_index].P(index,index),min_var);
+		_ekf_gsf[model_index].P(index, index) = fmaxf(_ekf_gsf[model_index].P(index, index), min_var);
 	}
 
 	// test ratio = transpose(innovation) * inverse(innovation variance) * innovation = [1x2] * [2,2] * [2,1] = [1,1]
@@ -421,6 +442,7 @@ void EKFGSF_yaw::initialiseEKFGSF()
 
 	memset(&_ekf_gsf, 0, sizeof(_ekf_gsf));
 	const float yaw_increment = 2.0f * _m_pi / (float)N_MODELS_EKFGSF;
+
 	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index++) {
 		// evenly space initial yaw estimates in the region between +-Pi
 		_ekf_gsf[model_index].X(2) = -_m_pi + (0.5f * yaw_increment) + ((float)model_index * yaw_increment);
@@ -428,11 +450,11 @@ void EKFGSF_yaw::initialiseEKFGSF()
 		// take velocity states and corresponding variance from last measurement
 		_ekf_gsf[model_index].X(0) = _vel_NE(0);
 		_ekf_gsf[model_index].X(1) = _vel_NE(1);
-		_ekf_gsf[model_index].P(0,0) = sq(_vel_accuracy);
-		_ekf_gsf[model_index].P(1,1) = _ekf_gsf[model_index].P(0,0);
+		_ekf_gsf[model_index].P(0, 0) = sq(_vel_accuracy);
+		_ekf_gsf[model_index].P(1, 1) = _ekf_gsf[model_index].P(0, 0);
 
 		// use half yaw interval for yaw uncertainty
-		_ekf_gsf[model_index].P(2,2) = sq(0.5f * yaw_increment);
+		_ekf_gsf[model_index].P(2, 2) = sq(0.5f * yaw_increment);
 	}
 }
 
@@ -444,19 +466,23 @@ float EKFGSF_yaw::gaussianDensity(const uint8_t model_index) const
 	return _m_2pi_inv * sqrtf(_ekf_gsf[model_index].S_det_inverse) * expf(-0.5f * normDist);
 }
 
-bool EKFGSF_yaw::getLogData(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF], float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF]) const
+bool EKFGSF_yaw::getLogData(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF],
+			    float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF]) const
 {
 	if (_ekf_gsf_vel_fuse_started) {
 		*yaw_composite = _gsf_yaw;
 		*yaw_variance = _gsf_yaw_variance;
+
 		for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index++) {
 			yaw[model_index] = _ekf_gsf[model_index].X(2);
 			innov_VN[model_index] = _ekf_gsf[model_index].innov(0);
 			innov_VE[model_index] = _ekf_gsf[model_index].innov(1);
 			weight[model_index] = _model_weights(model_index);
 		}
+
 		return true;
 	}
+
 	return false;
 }
 
@@ -496,23 +522,25 @@ Matrix3f EKFGSF_yaw::ahrsPredictRotMat(const Matrix3f &R, const Vector3f &g)
 	// Renormalise rows
 	for (uint8_t r = 0; r < 3; r++) {
 		const float rowLengthSq = ret.row(r).norm_squared();
+
 		if (rowLengthSq > FLT_EPSILON) {
 			// Use linear approximation for inverse sqrt taking advantage of the row length being close to 1.0
 			const float rowLengthInv = 1.5f - 0.5f * rowLengthSq;
 			ret.row(r) *=  rowLengthInv;
 		}
-        }
+	}
 
 	return ret;
 }
 
 bool EKFGSF_yaw::getYawData(float *yaw, float *yaw_variance) const
 {
-	if(_ekf_gsf_vel_fuse_started) {
+	if (_ekf_gsf_vel_fuse_started) {
 		*yaw = _gsf_yaw;
 		*yaw_variance = _gsf_yaw_variance;
 		return true;
 	}
+
 	return false;
 }
 

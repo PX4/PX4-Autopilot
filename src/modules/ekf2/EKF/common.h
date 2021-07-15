@@ -99,7 +99,7 @@ struct imuSample {
 	Vector3f    delta_vel;		///< delta velocity in body frame (integrated accelerometer measurements) (m/sec)
 	float       delta_ang_dt;	///< delta angle integration period (sec)
 	float       delta_vel_dt;	///< delta velocity integration period (sec)
-	bool        delta_vel_clipping[3]{}; ///< true (per axis) if this sample contained any accelerometer clipping
+	bool        delta_vel_clipping[3] {}; ///< true (per axis) if this sample contained any accelerometer clipping
 };
 
 struct gpsSample {
@@ -300,8 +300,8 @@ struct parameters {
 	float range_cos_max_tilt{0.7071f};	///< cosine of the maximum tilt angle from the vertical that permits use of range finder and flow data
 
 	// vision position fusion
-    float ev_vel_innov_gate{3.0f};		///< vision velocity fusion innovation consistency gate size (STD)
-    float ev_pos_innov_gate{5.0f};		///< vision position fusion innovation consistency gate size (STD)
+	float ev_vel_innov_gate{3.0f};		///< vision velocity fusion innovation consistency gate size (STD)
+	float ev_pos_innov_gate{5.0f};		///< vision position fusion innovation consistency gate size (STD)
 
 	// optical flow fusion
 	float flow_noise{0.15f};		///< observation noise for optical flow LOS rate measurements (rad/sec)
@@ -487,7 +487,7 @@ union filter_control_status_u {
 	uint32_t value;
 };
 
- // Mavlink bitmask containing state of estimator solution
+// Mavlink bitmask containing state of estimator solution
 union ekf_solution_status {
 	struct {
 		uint16_t attitude           : 1; ///< 0 - True if the attitude estimate is good

@@ -55,7 +55,7 @@ void Ekf::fuseAirspeed()
 
 	// Variance for true airspeed measurement - (m/sec)^2
 	const float R_TAS = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) *
-			    math::constrain(_airspeed_sample_delayed.eas2tas, 0.9f, 10.0f));
+			       math::constrain(_airspeed_sample_delayed.eas2tas, 0.9f, 10.0f));
 
 	// determine if we need the sideslip fusion to correct states other than wind
 	const bool update_wind_only = !_is_wind_dead_reckoning;
@@ -65,11 +65,13 @@ void Ekf::fuseAirspeed()
 	const float HK1 = ve - vwe;
 	const float HK2 = ecl::powf(HK0, 2) + ecl::powf(HK1, 2) + ecl::powf(vd, 2);
 	const float v_tas_pred = sqrtf(HK2); // predicted airspeed
+
 	//const float HK3 = powf(HK2, -1.0F/2.0F);
 	if (v_tas_pred < 1.0f) {
 		// calculation can be badly conditioned for very low airspeed values so don't fuse this time
 		return;
 	}
+
 	const float HK3 = 1.0f / v_tas_pred;
 	const float HK4 = HK0*HK3;
 	const float HK5 = HK1*HK3;
@@ -86,11 +88,13 @@ void Ekf::fuseAirspeed()
 	//const float HK16 = HK3/(-HK10*HK14 + HK10*HK9 + HK12*HK13 - HK13*HK15 + HK6*HK7*vd + R_TAS);
 
 	// innovation variance - check for badly conditioned calculation
-	_airspeed_innov_var = (-HK10*HK14 + HK10*HK9 + HK12*HK13 - HK13*HK15 + HK6*HK7*vd + R_TAS);
+	_airspeed_innov_var = (-HK10 * HK14 + HK10 * HK9 + HK12 * HK13 - HK13 * HK15 + HK6 * HK7 * vd + R_TAS);
+
 	if (_airspeed_innov_var < R_TAS) { //
 		// Reset the estimator covariance matrix
 		// if we are getting aiding from other sources, warn and reset the wind states and covariances only
-		const char* action_string = nullptr;
+		const char *action_string = nullptr;
+
 		if (update_wind_only) {
 			resetWindStates();
 			resetWindCovariance();
@@ -101,12 +105,14 @@ void Ekf::fuseAirspeed()
 			_state.wind_vel.setZero();
 			action_string = "full";
 		}
+
 		ECL_ERR("airspeed badly conditioned - %s covariance reset", action_string);
 
 		_fault_status.flags.bad_airspeed = true;
 
 		return;
 	}
+
 	const float HK16 = HK3 / _airspeed_innov_var;
 	_fault_status.flags.bad_airspeed = false;
 
@@ -119,6 +125,7 @@ void Ekf::fuseAirspeed()
 	Hfusion.at<23>() = -HK5;
 
 	Vector24f Kfusion; // Kalman gain vector
+
 	if (!update_wind_only) {
 		// we have no other source of aiding, so use airspeed measurements to correct states
 		for (unsigned row = 0; row <= 3; row++) {
@@ -164,7 +171,8 @@ void Ekf::fuseAirspeed()
 
 void Ekf::get_true_airspeed(float *tas) const
 {
-	const float tempvar = sqrtf(sq(_state.vel(0) - _state.wind_vel(0)) + sq(_state.vel(1) - _state.wind_vel(1)) + sq(_state.vel(2)));
+	const float tempvar = sqrtf(sq(_state.vel(0) - _state.wind_vel(0)) + sq(_state.vel(1) - _state.wind_vel(1)) + sq(
+					    _state.vel(2)));
 	memcpy(tas, &tempvar, sizeof(float));
 }
 
@@ -174,8 +182,8 @@ void Ekf::get_true_airspeed(float *tas) const
 void Ekf::resetWindStates()
 {
 	const float euler_yaw = shouldUse321RotationSequence(_R_to_earth)
-	                        ? getEuler321Yaw(_state.quat_nominal)
-	                        : getEuler312Yaw(_state.quat_nominal);
+				? getEuler321Yaw(_state.quat_nominal)
+				: getEuler312Yaw(_state.quat_nominal);
 
 	if (_tas_data_ready && (_imu_sample_delayed.time_us - _airspeed_sample_delayed.time_us < (uint64_t)5e5)) {
 		// estimate wind using zero sideslip assumption and airspeed measurement if airspeed available
