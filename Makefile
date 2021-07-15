@@ -174,6 +174,7 @@ endif
 # --------------------------------------------------------------------
 # describe how to build a cmake config
 define cmake-build
+	$(eval CMAKE_ARGS += -DCONFIG=$(1))
 	@$(eval BUILD_DIR = "$(SRC_DIR)/build/$(1)")
 	@# check if the desired cmake configuration matches the cache then CMAKE_CACHE_CHECK stays empty
 	@$(call cmake-cache-check)
@@ -221,16 +222,12 @@ ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 ! -name '*comm
 
 # All targets.
 $(ALL_CONFIG_TARGETS):
-	@$(eval PX4_CONFIG = $@)
-	@$(eval CMAKE_ARGS += -DCONFIG=$(PX4_CONFIG))
-	@$(call cmake-build,$(PX4_CONFIG)$(BUILD_DIR_SUFFIX))
+	@$(call cmake-build,$@$(BUILD_DIR_SUFFIX))
 
 # Filter for only default targets to allow omiting the "_default" postfix
 CONFIG_TARGETS_DEFAULT := $(patsubst %_default,%,$(filter %_default,$(ALL_CONFIG_TARGETS)))
 $(CONFIG_TARGETS_DEFAULT):
-	@$(eval PX4_CONFIG = $@_default)
-	@$(eval CMAKE_ARGS += -DCONFIG=$(PX4_CONFIG))
-	@$(call cmake-build,$(PX4_CONFIG)$(BUILD_DIR_SUFFIX))
+	@$(call cmake-build,$@_default$(BUILD_DIR_SUFFIX))
 
 all_config_targets: $(ALL_CONFIG_TARGETS)
 all_default_targets: $(CONFIG_TARGETS_DEFAULT)
@@ -306,6 +303,11 @@ check_%:
 	@$(MAKE) --no-print-directory $(subst check_,,$@)
 	@echo
 
+all_variants_%:
+	@echo 'Building all $(subst all_variants_,,$@) variants:'  $(filter $(subst all_variants_,,$@)_%, $(ALL_CONFIG_TARGETS))
+	@echo
+	$(foreach a,$(filter $(subst all_variants_,,$@)_%, $(ALL_CONFIG_TARGETS)), $(call cmake-build,$(a)$(BUILD_DIR_SUFFIX)))
+
 uorb_graphs:
 	@./Tools/uorb_graph/create.py --src-path src --exclude-path src/examples --exclude-path src/lib --file Tools/uorb_graph/graph_full
 	@$(MAKE) --no-print-directory px4_fmu-v2_default uorb_graph
@@ -360,7 +362,6 @@ format:
 .PHONY: rostest python_coverage
 
 tests:
-	$(eval CMAKE_ARGS += -DCONFIG=px4_sitl_test)
 	$(eval CMAKE_ARGS += -DTESTFILTER=$(TESTFILTER))
 	$(eval ARGS += test_results)
 	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
