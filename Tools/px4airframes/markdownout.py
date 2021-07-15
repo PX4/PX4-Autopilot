@@ -120,8 +120,10 @@ img {
                     if maintainer != '':
                         maintainer_entry = 'Maintainer: %s' % (html.escape(maintainer))
                     url = param.GetFieldValue('url')
-                    name_anchor='id="%s_%s_%s"' % (group.GetClass(),group.GetName(),name)
+                    name_anchor='%s_%s_%s' % (group.GetClass(),group.GetName(),name)
                     name_anchor=name_anchor.replace(' ','_').lower()
+                    name_anchor=name_anchor.replace('"','_').lower()
+                    name_anchor='id="%s"' % name_anchor
                     name_entry = name
                     if url != '':
                         name_entry = '<a href="%s">%s</a>' % (url, name)
