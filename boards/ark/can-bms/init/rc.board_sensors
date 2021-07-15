@@ -1,0 +1,8 @@
+#!/bin/sh
+#
+# board sensors init
+#------------------------------------------------------------------------------
+
+batt_smbus start -X
+
+button_task start
