@@ -2,7 +2,7 @@
 
 killall JLinkGDBServerCLExe
 
-@JLinkGDBServerCLExe_PATH@ -silent -device @DEBUG_DEVICE@ -select usb -if SWD -speed auto -LocalhostOnly 1 -strict -vd -singlerun -timeout 2000 -powertarget 0 -nogui &
+@JLinkGDBServerCLExe_PATH@ -silent -device @DEBUG_DEVICE@ -select usb -if SWD -speed auto -LocalhostOnly 1 -strict -vd -singlerun -timeout 3000 -powertarget 0 -nogui &
 sleep 2
 
 pgrep -i JLinkGDBServer
