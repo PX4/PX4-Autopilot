@@ -179,9 +179,7 @@ function(px4_add_module)
 	endif()
 	set_target_properties(${MODULE} PROPERTIES STACK_MAX ${STACK_MAX})
 
-	if(${PX4_PLATFORM} STREQUAL "qurt")
-		set_property(TARGET ${MODULE} PROPERTY POSITION_INDEPENDENT_CODE TRUE)
-	elseif(${PX4_PLATFORM} STREQUAL "nuttx")
+	if(${PX4_PLATFORM} STREQUAL "nuttx")
 		target_compile_options(${MODULE} PRIVATE -Wframe-larger-than=${STACK_MAX})
 	endif()
 
