@@ -63,6 +63,7 @@ px4_add_module(
 		ArmAuthorization
 		HealthFlags
 		sensor_calibration
+		world_magnetic_model
 	)
 
 if(PX4_TESTING)
