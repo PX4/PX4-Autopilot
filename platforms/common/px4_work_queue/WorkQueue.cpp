@@ -204,6 +204,11 @@ void WorkQueue::Run()
 	PX4_DEBUG("%s: exiting", _config.name);
 }
 
+size_t WorkQueue::count()
+{
+	return _work_items.size();
+}
+
 void WorkQueue::print_status(bool last)
 {
 	const size_t num_items = _work_items.size();
