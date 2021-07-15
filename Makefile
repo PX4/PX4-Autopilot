@@ -213,7 +213,7 @@ define colorecho
 endef
 
 # Get a list of all config targets boards/*/*.cmake
-ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 ! -name '*common*' ! -name '*sdflight*' -name '*.cmake' -print | sed -e 's|boards\/||' | sed -e 's|\.cmake||' | sed -e 's|\/|_|g' | sort)
+ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 -name '*.cmake' -print | sed -e 's|boards\/||' | sed -e 's|\.cmake||' | sed -e 's|\/|_|g' | sort)
 
 # ADD CONFIGS HERE
 # --------------------------------------------------------------------
@@ -242,16 +242,6 @@ endef
 
 # All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
 .PHONY: all px4_sitl_default all_config_targets all_default_targets
-
-# Multi- config targets.
-eagle_default: atlflight_eagle_default atlflight_eagle_qurt
-eagle_rtps: atlflight_eagle_rtps atlflight_eagle_qurt-rtps
-
-excelsior_default: atlflight_excelsior_default atlflight_excelsior_qurt
-excelsior_rtps: atlflight_excelsior_rtps atlflight_excelsior_qurt-rtps
-
-.PHONY: eagle_default eagle_rtps
-.PHONY: excelsior_default excelsior_rtps
 
 # Other targets
 # --------------------------------------------------------------------
@@ -511,7 +501,7 @@ help:
 	@echo "Where <target> is one of:"
 	@$(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | \
 		awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | \
-		egrep -v -e '^[^[:alnum:]]' -e '^($(subst $(space),|,$(ALL_CONFIG_TARGETS)))$$' -e '_default$$' -e '^(posix|eagle|Makefile)'
+		egrep -v -e '^[^[:alnum:]]' -e '^($(subst $(space),|,$(ALL_CONFIG_TARGETS)))$$' -e '_default$$' -e '^(Makefile)'
 	@echo
 	@echo "Or, $(MAKE) <config_target> [<make_target(s)>]"
 	@echo "Use '$(MAKE) list_config_targets' for a list of configuration targets."
