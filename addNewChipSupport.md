@@ -133,7 +133,7 @@ This guide will provide information on porting the nuttx base layer and creating
 			"board_revision": 0
 		}
 	```
-* Create a folder with name `nuttx-config`. This folder will contain everything related to building Nuttx. Two more folders are required here with names `nsh` and `scripts` respectively. The `nsh` folder will contain `defconfig` file for building Nuttx. The `scripts` folder will contain `scripts.ld` file which is the arm linker file defining memory regions and stuff. Both of these files can probably be found in the Nuttx's boards folder for a board using the same chip that you might be using.
+* Create a folder with name `nuttx-config`. This folder will contain everything related to building Nuttx. Two more folders are required here with names `nsh` and `scripts` respectively. The `nsh` folder will contain `defconfig` file for building Nuttx. The `scripts` folder will contain `script.ld` file which is the arm linker file defining memory regions and stuff. Both of these files can probably be found in the Nuttx's boards folder for a board using the same chip that you might be using.
 * Go to folder platforms/nuttx/cmake/Platform. This folder contains necessary compiler flags in different cmake files. If the architecture that you are working with is not available here, then you will have to create a file for your architecture.
 * Now edit platforms/nuttx/cmake/px4_impl_os.cmake file to let the build system know where to look for the px4 base layer for your board. This edit will connect the choice of chip done in `defconfig` file with the respective chip's px4 base layer. Look for something like
 	```
