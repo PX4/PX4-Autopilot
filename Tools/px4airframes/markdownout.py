@@ -5,17 +5,47 @@ import html
 
 class MarkdownTablesOutput():
     def __init__(self, groups, board, image_path):
-        result = ("# Airframes Reference\n"
-                  "> **Note** **This list is [auto-generated](https://github.com/PX4/PX4-Autopilot/blob/master/Tools/px4airframes/markdownout.py) from the source code**.\n"
-                  "> \n"
-                  "> **AUX** channels may not be present on some flight controllers.\n"
-                  "> If present, PWM AUX channels are commonly labelled **AUX OUT**.\n"
-                  "> \n"
-                  "\n")
+        result = """# Airframes Reference
 
-        result += """This page lists all supported airframes and types including
- the motor assignment and numbering. The motors in **green** rotate clockwise,
- the ones in **blue** counterclockwise.\n\n"""
+:::note
+**This list is [auto-generated](https://github.com/PX4/PX4-Autopilot/blob/master/Tools/px4airframes/markdownout.py) from the source code** using the build command: `make airframe_metadata`.
+:::
+
+This page lists all supported airframes and types including the motor assignment and numbering.
+The motors in **green** rotate clockwise, the ones in **blue** counterclockwise.
+
+**AUX** channels may not be present on some flight controllers.
+If present, PWM AUX channels are commonly labelled **AUX OUT**.
+
+<style>
+table {
+   display: table;
+   table-layout: fixed;
+   margin-bottom: 5px;
+}
+table.common {
+   float: right; 
+   width: 70%;
+}
+table.airframes {
+   width: 100%;
+}
+table.airframes th:nth-child(1) {
+  width: 30%;
+  }
+
+tr > * {
+    vertical-align : top;
+}
+td, th {
+  text-align : left;
+  }
+img {
+  max-height: 180px;
+  width: 29%;
+  padding-top: 10px;
+}
+</style>\n\n"""
  
         type_set = set()
         
@@ -33,7 +63,7 @@ class MarkdownTablesOutput():
             image_name = group.GetImageName()
             result += '<div>\n'
             image_name = image_path + image_name
-            result += '<img src="%s.svg" width="29%%" style="max-height: 180px;"/>\n' % (image_name)
+            result += '<img src="%s.svg"/>\n' % (image_name)
 
             # check if all outputs are equal for the group: if so, show them
             # only once
@@ -63,19 +93,17 @@ class MarkdownTablesOutput():
                     outputs_prev[i] = ''
 
             if outputs_match[0] or outputs_match[1]:
-                result += '<table style="float: right; width: 70%; font-size:1.5rem;">\n'
-                result += ' <colgroup><col></colgroup>\n'
+                result += '<table class="common">\n'
                 result += ' <thead>\n'
                 result += '   <tr><th>Common Outputs</th></tr>\n'
                 result += ' </thead>\n'
-                result += '<tbody>\n'
-                result += '<tr>\n <td style="vertical-align: top;"><ul>%s%s</ul></td>\n</tr>\n' % (outputs_prev[0], outputs_prev[1])
+                result += ' <tbody>\n'
+                result += '<tr>\n <td><ul>%s%s</ul></td>\n</tr>\n' % (outputs_prev[0], outputs_prev[1])
                 result += '</tbody></table>\n'
 
             result += '</div>\n\n'
 
-            result += '<table style="width: 100%; table-layout:fixed; font-size:1.5rem;">\n'
-            result += ' <colgroup><col style="width: 30%"><col style="width: 70%"></colgroup>\n'
+            result += '<table class="generic">\n'
             result += ' <thead>\n'
             result += '   <tr><th>Name</th><th></th></tr>\n'
             result += ' </thead>\n'
@@ -90,7 +118,7 @@ class MarkdownTablesOutput():
                     maintainer = param.GetMaintainer()
                     maintainer_entry = ''
                     if maintainer != '':
-                        maintainer_entry = '<p>Maintainer: %s</p>' % (html.escape(maintainer))
+                        maintainer_entry = 'Maintainer: %s' % (html.escape(maintainer))
                     url = param.GetFieldValue('url')
                     name_anchor='id="%s_%s_%s"' % (group.GetClass(),group.GetName(),name)
                     name_anchor=name_anchor.replace(' ','_').lower()
@@ -120,7 +148,7 @@ class MarkdownTablesOutput():
                     else:
                         outputs_entry = ''
 
-                    result += ('<tr %s>\n <td style="vertical-align: top;">%s</td>\n <td style="vertical-align: top;">%s%s%s</td>\n\n</tr>\n' %
+                    result += ('<tr %s>\n <td>%s</td>\n <td>%s%s%s</td>\n</tr>\n' %
                         (name_anchor, name_entry, maintainer_entry, airframe_id_entry,
                         outputs_entry))
 
