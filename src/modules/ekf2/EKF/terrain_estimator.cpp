@@ -142,9 +142,9 @@ void Ekf::fuseHagl()
 	_hagl_innov = pred_hagl - meas_hagl;
 
 	// calculate the observation variance adding the variance of the vehicles own height uncertainty
-	const float obs_variance = fmaxf(P(9,9) * _params.vehicle_variance_scaler, 0.0f)
-			     + sq(_params.range_noise)
-			     + sq(_params.range_noise_scaler * _range_sensor.getRange());
+	const float obs_variance = fmaxf(P(9, 9) * _params.vehicle_variance_scaler, 0.0f)
+				   + sq(_params.range_noise)
+				   + sq(_params.range_noise_scaler * _range_sensor.getRange());
 
 	// calculate the innovation variance - limiting it to prevent a badly conditioned fusion
 	_hagl_innov_var = fmaxf(_terrain_var + obs_variance, obs_variance);
@@ -167,6 +167,7 @@ void Ekf::fuseHagl()
 	} else {
 		// If we have been rejecting range data for too long, reset to measurement
 		const uint64_t timeout = static_cast<uint64_t>(_params.terrain_timeout * 1e6f);
+
 		if (isTimedOut(_time_last_hagl_fuse, timeout)) {
 			_terrain_vpos = _state.pos(2) + meas_hagl;
 			_terrain_var = obs_variance;
@@ -290,8 +291,7 @@ void Ekf::updateTerrainValidity()
 	_hagl_valid = (_terrain_initialised && (recent_range_fusion || recent_flow_for_terrain_fusion));
 
 	_hagl_sensor_status.flags.range_finder = shouldUseRangeFinderForHagl()
-						 && recent_range_fusion
-						 && (_time_last_fake_hagl_fuse != _time_last_hagl_fuse);
+			&& recent_range_fusion && (_time_last_fake_hagl_fuse != _time_last_hagl_fuse);
 
 	_hagl_sensor_status.flags.flow = shouldUseOpticalFlowForHagl() && recent_flow_for_terrain_fusion;
 }

@@ -29,16 +29,16 @@ using namespace estimator;
 class EKFGSF_yaw
 {
 public:
-    	EKFGSF_yaw();
+	EKFGSF_yaw();
 
-    	// Update Filter States - this should be called whenever new IMU data is available
+	// Update Filter States - this should be called whenever new IMU data is available
 	void update(const imuSample &imu_sample,
-			bool run_EKF,  			// set to true when flying or movement is suitable for yaw estimation
-			float airspeed,			// true airspeed used for centripetal accel compensation - set to 0 when not required.
-			const Vector3f &imu_gyro_bias); // estimated rate gyro bias (rad/sec)
+		    bool run_EKF,  			// set to true when flying or movement is suitable for yaw estimation
+		    float airspeed,			// true airspeed used for centripetal accel compensation - set to 0 when not required.
+		    const Vector3f &imu_gyro_bias); // estimated rate gyro bias (rad/sec)
 
 	void setVelocity(const Vector2f &velocity, // NE velocity measurement (m/s)
-			float accuracy);	   // 1-sigma accuracy of velocity measurement (m/s)
+			 float accuracy);	   // 1-sigma accuracy of velocity measurement (m/s)
 
 	// get solution data for logging
 	bool getLogData(float *yaw_composite,
@@ -48,9 +48,9 @@ public:
 			float innov_VE[N_MODELS_EKFGSF],
 			float weight[N_MODELS_EKFGSF]) const;
 
-    	// get yaw estimate and the corresponding variance
-    	// return false if no yaw estimate available
-    	bool getYawData(float *yaw, float *yaw_variance) const;
+	// get yaw estimate and the corresponding variance
+	// return false if no yaw estimate available
+	bool getYawData(float *yaw, float *yaw_variance) const;
 
 private:
 
@@ -68,14 +68,14 @@ private:
 	float _delta_vel_dt{};	// _delta_vel integration time interval (sec)
 	float _true_airspeed{};	// true airspeed used for centripetal accel compensation (m/s)
 
-	struct _ahrs_ekf_gsf_struct{
+	struct _ahrs_ekf_gsf_struct {
 		Dcmf R;			// matrix that rotates a vector from body to earth frame
 		Vector3f gyro_bias;	// gyro bias learned and used by the quaternion calculation
 		bool aligned;		// true when AHRS has been aligned
 		float vel_NE[2];	// NE velocity vector from last GPS measurement (m/s)
 		bool fuse_gps;		// true when GPS should be fused on that frame
 		float accel_dt;		// time step used when generating _simple_accel_FR data (sec)
-	} _ahrs_ekf_gsf[N_MODELS_EKFGSF]{};
+	} _ahrs_ekf_gsf[N_MODELS_EKFGSF] {};
 
 	bool _ahrs_ekf_gsf_tilt_aligned{};	// true the initial tilt alignment has been calculated
 	float _ahrs_accel_fusion_gain{};	// gain from accel vector tilt error to rate gyro correction used by AHRS calculation
@@ -99,13 +99,13 @@ private:
 
 	// Declarations used by a bank of N_MODELS_EKFGSF EKFs
 
-	struct _ekf_gsf_struct{
+	struct _ekf_gsf_struct {
 		matrix::Vector3f X; 				// Vel North (m/s),  Vel East (m/s), yaw (rad)s
 		matrix::SquareMatrix<float, 3> P; 		// covariance matrix
 		matrix::SquareMatrix<float, 2> S_inverse;	// inverse of the innovation covariance matrix
 		float S_det_inverse; 				// inverse of the innovation covariance matrix determinant
 		matrix::Vector2f innov; 			// Velocity N,E innovation (m/s)
-	} _ekf_gsf[N_MODELS_EKFGSF]{};
+	} _ekf_gsf[N_MODELS_EKFGSF] {};
 
 	bool _vel_data_updated{};	// true when velocity data has been updated
 	bool _run_ekf_gsf{};		// true when operating condition is suitable for to run the GSF and EKF models and fuse velocity data

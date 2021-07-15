@@ -520,7 +520,9 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	// limit to be no longer than the IMU buffer (we can't process data faster than the EKF prediction rate)
 	_obs_buffer_length = math::min(_obs_buffer_length, _imu_buffer_length);
 
-	if (!_imu_buffer.allocate(_imu_buffer_length) || !_output_buffer.allocate(_imu_buffer_length) || !_output_vert_buffer.allocate(_imu_buffer_length)) {
+	if (!_imu_buffer.allocate(_imu_buffer_length) || !_output_buffer.allocate(_imu_buffer_length)
+	    || !_output_vert_buffer.allocate(_imu_buffer_length)) {
+
 		printBufferAllocationFailed("IMU and output");
 		return false;
 	}

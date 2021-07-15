@@ -436,6 +436,7 @@ void Ekf::fuseYaw321(float yaw, float yaw_variance, bool zero_innovation)
 	const float SA2 = SA0*q0 + SA1*q1;
 	const float SA3 = sq(q0) + sq(q1) - sq(q2) - sq(q3);
 	float SA4, SA5_inv;
+
 	if (sq(SA3) > 1e-6f) {
 		SA4 = 1.0F/sq(SA3);
 		SA5_inv = sq(SA2)*SA4 + 1;
@@ -448,6 +449,7 @@ void Ekf::fuseYaw321(float yaw, float yaw_variance, bool zero_innovation)
 	const float SB2 = SB0*q3 + SB1*q2;
 	const float SB4 = sq(q0) + sq(q1) - sq(q2) - sq(q3);
 	float SB3, SB5_inv;
+
 	if (sq(SB2) > 1e-6f) {
 		SB3 = 1.0F/sq(SB2);
 		SB5_inv = SB3*sq(SB4) + 1;
@@ -484,8 +486,10 @@ void Ekf::fuseYaw321(float yaw, float yaw_variance, bool zero_innovation)
 
 	// calculate the yaw innovation and wrap to the interval between +-pi
 	float innovation;
+
 	if (zero_innovation) {
 		innovation = 0.0f;
+
 	} else {
 		innovation = wrap_pi(atan2f(_R_to_earth(1, 0), _R_to_earth(0, 0)) - measurement);
 	}
@@ -516,6 +520,7 @@ void Ekf::fuseYaw312(float yaw, float yaw_variance, bool zero_innovation)
 	const float SA2 = SA0*q0 - SA1*q1;
 	const float SA3 = sq(q0) - sq(q1) + sq(q2) - sq(q3);
 	float SA4, SA5_inv;
+
 	if (sq(SA3) > 1e-6f) {
 		SA4 = 1.0F/sq(SA3);
 		SA5_inv = sq(SA2)*SA4 + 1;
@@ -528,6 +533,7 @@ void Ekf::fuseYaw312(float yaw, float yaw_variance, bool zero_innovation)
 	const float SB2 = -SB0*q3 + SB1*q2;
 	const float SB4 = -sq(q0) + sq(q1) - sq(q2) + sq(q3);
 	float SB3, SB5_inv;
+
 	if (sq(SB2) > 1e-6f) {
 		SB3 = 1.0F/sq(SB2);
 		SB5_inv = SB3*sq(SB4) + 1;
@@ -563,8 +569,10 @@ void Ekf::fuseYaw312(float yaw, float yaw_variance, bool zero_innovation)
 	}
 
 	float innovation;
+
 	if (zero_innovation) {
 		innovation = 0.0f;
+
 	} else {
 		// calculate the the innovation and wrap to the interval between +-pi
 		innovation = wrap_pi(atan2f(-_R_to_earth(0, 1), _R_to_earth(1, 1)) - measurement);
@@ -578,16 +586,18 @@ void Ekf::fuseYaw312(float yaw, float yaw_variance, bool zero_innovation)
 }
 
 // update quaternion states and covariances using the yaw innovation, yaw observation variance and yaw Jacobian
-void Ekf::updateQuaternion(const float innovation, const float variance, const float gate_sigma, const Vector4f& yaw_jacobian)
+void Ekf::updateQuaternion(const float innovation, const float variance, const float gate_sigma,
+			   const Vector4f &yaw_jacobian)
 {
 	// Calculate innovation variance and Kalman gains, taking advantage of the fact that only the first 4 elements in H are non zero
 	// calculate the innovation variance
 	_heading_innov_var = variance;
+
 	for (unsigned row = 0; row <= 3; row++) {
 		float tmp = 0.0f;
 
 		for (uint8_t col = 0; col <= 3; col++) {
-			tmp += P(row,col) * yaw_jacobian(col);
+			tmp += P(row, col) * yaw_jacobian(col);
 		}
 
 		_heading_innov_var += yaw_jacobian(row) * tmp;
@@ -617,7 +627,7 @@ void Ekf::updateQuaternion(const float innovation, const float variance, const f
 
 	for (uint8_t row = 0; row <= 15; row++) {
 		for (uint8_t col = 0; col <= 3; col++) {
-			Kfusion(row) += P(row,col) * yaw_jacobian(col);
+			Kfusion(row) += P(row, col) * yaw_jacobian(col);
 		}
 
 		Kfusion(row) *= heading_innov_var_inv;
@@ -626,7 +636,7 @@ void Ekf::updateQuaternion(const float innovation, const float variance, const f
 	if (_control_status.flags.wind) {
 		for (uint8_t row = 22; row <= 23; row++) {
 			for (uint8_t col = 0; col <= 3; col++) {
-				Kfusion(row) += P(row,col) * yaw_jacobian(col);
+				Kfusion(row) += P(row, col) * yaw_jacobian(col);
 			}
 
 			Kfusion(row) *= heading_innov_var_inv;
@@ -680,11 +690,11 @@ void Ekf::updateQuaternion(const float innovation, const float variance, const f
 		KH[3] = Kfusion(row) * yaw_jacobian(3);
 
 		for (unsigned column = 0; column < _k_num_states; column++) {
-			float tmp = KH[0] * P(0,column);
-			tmp += KH[1] * P(1,column);
-			tmp += KH[2] * P(2,column);
-			tmp += KH[3] * P(3,column);
-			KHP(row,column) = tmp;
+			float tmp = KH[0] * P(0, column);
+			tmp += KH[1] * P(1, column);
+			tmp += KH[2] * P(2, column);
+			tmp += KH[3] * P(3, column);
+			KHP(row, column) = tmp;
 		}
 	}
 
@@ -711,6 +721,7 @@ void Ekf::fuseHeading()
 
 	// Calculate the observation variance
 	float R_YAW;
+
 	if (_control_status.flags.mag_hdg) {
 		// using magnetic heading tuning parameter
 		R_YAW = sq(_params.mag_heading_noise);
@@ -747,6 +758,7 @@ void Ekf::fuseHeading()
 
 		// handle special case where yaw measurement is unavailable
 		bool fuse_zero_innov = false;
+
 		if (_is_yaw_fusion_inhibited) {
 			// The yaw measurement cannot be trusted but we need to fuse something to prevent a badly
 			// conditioned covariance matrix developing over time.
@@ -755,12 +767,14 @@ void Ekf::fuseHeading()
 				// unconstrained quaternion variance growth and record the predicted heading
 				// to use as an observation when movement ceases.
 				// TODO a better way of determining when this is necessary
-				const float sumQuatVar = P(0,0) + P(1,1) + P(2,2) + P(3,3);
+				const float sumQuatVar = P(0, 0) + P(1, 1) + P(2, 2) + P(3, 3);
+
 				if (sumQuatVar > _params.quat_max_variance) {
 					fuse_zero_innov = true;
 					R_YAW = 0.25f;
 
 				}
+
 				_last_static_yaw = predicted_hdg;
 
 			} else {
@@ -770,6 +784,7 @@ void Ekf::fuseHeading()
 				measured_hdg = _last_static_yaw;
 
 			}
+
 		} else {
 			_last_static_yaw = predicted_hdg;
 
@@ -798,6 +813,7 @@ void Ekf::fuseHeading()
 
 		// handle special case where yaw measurement is unavailable
 		bool fuse_zero_innov = false;
+
 		if (_is_yaw_fusion_inhibited) {
 			// The yaw measurement cannot be trusted but we need to fuse something to prevent a badly
 			// conditioned covariance matrix developing over time.
@@ -806,12 +822,14 @@ void Ekf::fuseHeading()
 				// unconstrained quaterniion variance growth and record the predicted heading
 				// to use as an observation when movement ceases.
 				// TODO a better way of determining when this is necessary
-				const float sumQuatVar = P(0,0) + P(1,1) + P(2,2) + P(3,3);
+				const float sumQuatVar = P(0, 0) + P(1, 1) + P(2, 2) + P(3, 3);
+
 				if (sumQuatVar > _params.quat_max_variance) {
 					fuse_zero_innov = true;
 					R_YAW = 0.25f;
 
 				}
+
 				_last_static_yaw = predicted_hdg;
 
 			} else {
@@ -821,6 +839,7 @@ void Ekf::fuseHeading()
 				measured_hdg = _last_static_yaw;
 
 			}
+
 		} else {
 			_last_static_yaw = predicted_hdg;
 
@@ -848,6 +867,7 @@ void Ekf::fuseDeclination(float decl_sigma)
 		// calculation is badly conditioned close to +-90 deg declination
 		return;
 	}
+
 	const float HK0 = ecl::powf(magN, -2);
 	const float HK1 = HK0*ecl::powf(magE, 2) + 1.0F;
 	const float HK2 = 1.0F/HK1;
@@ -859,6 +879,7 @@ void Ekf::fuseDeclination(float decl_sigma)
 	const float HK8 = HK5*P(16,16) - P(16,17);
 	const float innovation_variance = -HK0*HK6*HK7 + HK7*HK8*magE/ecl::powf(magN, 3) + R_DECL;
 	float HK9;
+
 	if (innovation_variance > R_DECL) {
 		HK9 = HK4/innovation_variance;
 	} else {
@@ -875,6 +896,7 @@ void Ekf::fuseDeclination(float decl_sigma)
 
 	// Calculate the Kalman gains
 	Vector24f Kfusion;
+
 	for (unsigned row = 0; row <= 15; row++) {
 		Kfusion(row) = -HK9*(HK5*P(row,16) - P(row,17));
 	}
@@ -903,15 +925,17 @@ void Ekf::limitDeclination()
 	// set to 50% of the horizontal strength from geo tables if location is known
 	float decl_reference;
 	float h_field_min = 0.001f;
+
 	if (_params.mag_declination_source & MASK_USE_GEO_DECL) {
 		// use parameter value until GPS is available, then use value returned by geo library
 		if (_NED_origin_initialised || PX4_ISFINITE(_mag_declination_gps)) {
 			decl_reference = _mag_declination_gps;
-			h_field_min = fmaxf(h_field_min , 0.5f * _mag_strength_gps * cosf(_mag_inclination_gps));
+			h_field_min = fmaxf(h_field_min, 0.5f * _mag_strength_gps * cosf(_mag_inclination_gps));
 
 		} else {
 			decl_reference = math::radians(_params.mag_declination_deg);
 		}
+
 	} else {
 		// always use the parameter value
 		decl_reference = math::radians(_params.mag_declination_deg);
@@ -920,18 +944,21 @@ void Ekf::limitDeclination()
 	// do not allow the horizontal field length to collapse - this will make the declination fusion badly conditioned
 	// and can result in a reversal of the NE field states which the filter cannot recover from
 	// apply a circular limit
-	float h_field = sqrtf(_state.mag_I(0)*_state.mag_I(0) + _state.mag_I(1)*_state.mag_I(1));
+	float h_field = sqrtf(_state.mag_I(0) * _state.mag_I(0) + _state.mag_I(1) * _state.mag_I(1));
+
 	if (h_field < h_field_min) {
 		if (h_field > 0.001f * h_field_min) {
 			const float h_scaler = h_field_min / h_field;
 			_state.mag_I(0) *= h_scaler;
 			_state.mag_I(1) *= h_scaler;
+
 		} else {
 			// too small to scale radially so set to expected value
 			const float mag_declination = getMagDeclination();
 			_state.mag_I(0) = 2.0f * h_field_min * cosf(mag_declination);
 			_state.mag_I(1) = 2.0f * h_field_min * sinf(mag_declination);
 		}
+
 		h_field = h_field_min;
 	}
 
@@ -939,17 +966,19 @@ void Ekf::limitDeclination()
 	constexpr float decl_tolerance = 0.5f;
 	const float decl_max = decl_reference + decl_tolerance;
 	const float decl_min = decl_reference - decl_tolerance;
-	const float decl_estimate = atan2f(_state.mag_I(1) , _state.mag_I(0));
+	const float decl_estimate = atan2f(_state.mag_I(1), _state.mag_I(0));
+
 	if (decl_estimate > decl_max)  {
 		_state.mag_I(0) = h_field * cosf(decl_max);
 		_state.mag_I(1) = h_field * sinf(decl_max);
+
 	} else if (decl_estimate < decl_min)  {
 		_state.mag_I(0) = h_field * cosf(decl_min);
 		_state.mag_I(1) = h_field * sinf(decl_min);
 	}
 }
 
-float Ekf::calculate_synthetic_mag_z_measurement(const Vector3f& mag_meas, const Vector3f& mag_earth_predicted)
+float Ekf::calculate_synthetic_mag_z_measurement(const Vector3f &mag_meas, const Vector3f &mag_earth_predicted)
 {
 	// theoretical magnitude of the magnetometer Z component value given X and Y sensor measurement and our knowledge
 	// of the earth magnetic field vector at the current location

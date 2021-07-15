@@ -240,7 +240,7 @@ void Ekf::fuseOptFlow()
 	float test_ratio[2];
 	test_ratio[0] = sq(_flow_innov(0)) / (sq(math::max(_params.flow_innov_gate, 1.0f)) * _flow_innov_var(0));
 	test_ratio[1] = sq(_flow_innov(1)) / (sq(math::max(_params.flow_innov_gate, 1.0f)) * _flow_innov_var(1));
-	_optflow_test_ratio = math::max(test_ratio[0],test_ratio[1]);
+	_optflow_test_ratio = math::max(test_ratio[0], test_ratio[1]);
 
 	for (uint8_t obs_index = 0; obs_index <= 1; obs_index++) {
 		if (test_ratio[obs_index] > 1.0f) {
@@ -262,6 +262,7 @@ void Ekf::fuseOptFlow()
 	// fuse observation axes sequentially
 	SparseVector24f<0,1,2,3,4,5,6> Hfusion; // Optical flow observation Jacobians
 	Vector24f Kfusion; // Optical flow Kalman gains
+
 	for (uint8_t obs_index = 0; obs_index <= 1; obs_index++) {
 
 		// calculate observation Jocobians and Kalman gains
@@ -339,7 +340,7 @@ bool Ekf::calcOptFlowBodyRateComp()
 		return false;
 	}
 
-	const bool use_flow_sensor_gyro =  PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(0)) && PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(1)) && PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(2));
+	const bool use_flow_sensor_gyro = PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(0)) && PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(1)) && PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(2));
 
 	if (use_flow_sensor_gyro) {
 
