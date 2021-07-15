@@ -1,7 +1,5 @@
 #! /bin/sh
 
-set -o xtrace
-
 @JLinkGDBServerExe_PATH@ -device @DEBUG_DEVICE@ -select usb -endian little -if SWD -speed auto -ir -LocalhostOnly 1 -strict -vd -singlerun &
 
 cd @PX4_BINARY_DIR@ && @CMAKE_GDB@ -silent -nh \
@@ -12,3 +10,6 @@ cd @PX4_BINARY_DIR@ && @CMAKE_GDB@ -silent -nh \
 	-ex "monitor reset 0" \
 	-ex "continue" \
 	@PX4_CONFIG@.elf
+
+# exit with status of last command
+exit $?
