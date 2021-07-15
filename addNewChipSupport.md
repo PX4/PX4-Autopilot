@@ -147,7 +147,7 @@ This guide will provide information on porting the nuttx base layer and creating
 * Now create two more folders with names `rpi_common` and `rp2040` inside `rpi`. Note that `rpi_common` will have files common to all the chips produced by Raspberrypi. While `rp2040` will have files specific to the rp2040 chip.
 * Add an empty `CMakeLists.txt` file in `rp2040` folder for now. The contents of this file will be changed later as the need arises.
 * Create `src` folder in `PX4-Autopilot/boards/myboard/myfc` folder. Put a `CMakeLists.txt` file in this `src` folder.
-* Create `include` folder in `PX4-Autopilot/boards/myboard/myfc/nuttx-config` folder. Create a file `board.h` in this folder. This file will basically define all the necessary macros for the hardware. For example, which pin is used for I2c, or what is the timer frequency, etc. For now, add following content to this file
+* Create `include` folder in `PX4-Autopilot/boards/myboard/myfc/nuttx-config` folder. Create a file `board.h` in this folder. This file will basically define all the necessary macros for the hardware for nuttx side of the code. For example, which pin is used for I2c, or what is the timer frequency, etc. For now, add following content to this file
 	```
 		#ifndef __CONFIG_MYBOARDMYFC_INCLUDE_BOARD_H
 		#define __CONFIG_MYBOARDMYFC_INCLUDE_BOARD_H
@@ -164,3 +164,29 @@ This guide will provide information on porting the nuttx base layer and creating
 		#endif  /* __CONFIG_MYBOARDMYFC_INCLUDE_BOARD_H */
 	```
 * Some necessary macros can be copied from `PX4-Autopilot/plateforms/nuttx/NuttX/nuttx/boards/rp2040/raspberrypi-pico/include/board.h` file. This will help compiling the architecture specific files in nuttx.
+* Add `board_config.h` file in `PX4-Autopilot/boards/myboard/myfc/src` folder. The `board_config.h` is similar to `board.h` file. However, it contains the necessary macros for the hardware for the PX4 side of the code. For now, add following content to this file
+	```
+		/**
+		* @file board_config.h
+		*
+		* myboardmyfc internal definitions
+		*/
+
+		#pragma once
+
+		/****************************************************************************************************
+		* Included Files
+		****************************************************************************************************/
+
+		#include <px4_platform_common/px4_config.h>
+		#include <nuttx/compiler.h>
+		#include <stdint.h>
+
+		#ifndef __ASSEMBLY__
+
+		#include <px4_platform_common/board_common.h>
+
+		#endif /* __ASSEMBLY__ */
+
+		__END_DECLS
+	```
