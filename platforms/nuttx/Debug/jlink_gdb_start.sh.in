@@ -1,7 +1,11 @@
 #! /bin/sh
 
-set -o xtrace
-
 killall JLinkGDBServerCLExe
 
-JLinkGDBServerCLExe -silent -device @DEBUG_DEVICE@ -select usb -if SWD -speed auto -LocalhostOnly 1 -strict -vd -singlerun &
+@JLinkGDBServerCLExe_PATH@ -silent -device @DEBUG_DEVICE@ -select usb -if SWD -speed auto -LocalhostOnly 1 -strict -vd -singlerun -timeout 2000 -powertarget 0 -nogui &
+sleep 2
+
+pgrep -i JLinkGDBServer
+
+# exit with status of last command
+exit $?
