@@ -163,3 +163,4 @@ This guide will provide information on porting the nuttx base layer and creating
 
 		#endif  /* __CONFIG_MYBOARDMYFC_INCLUDE_BOARD_H */
 	```
+* Some necessary macros can be copied from `PX4-Autopilot/plateforms/nuttx/NuttX/nuttx/boards/rp2040/raspberrypi-pico/include/board.h` file. This will help compiling the architecture specific files in nuttx.
