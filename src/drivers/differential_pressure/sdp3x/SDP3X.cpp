@@ -72,7 +72,26 @@ SDP3X::init_sdp3x()
 int
 SDP3X::configure()
 {
-	int ret = write_command(SDP3X_CONT_MEAS_AVG_MODE);
+	perf_count(_configure_perf);
+
+	int ret = write_command(SDP3X_CONT_MODE_STOP);
+
+	if (ret != PX4_OK) {
+		perf_count(_comms_errors);
+		DEVICE_DEBUG("stopping continous mode failed %d", ret);
+
+		if (ScheduledWorkItem::alone()) {
+			DEVICE_DEBUG("alone on the bus, issuing general call reset");
+			ResetBus();
+
+		} else {
+			// TODO: temporary
+			DEVICE_DEBUG("forcing bus reset");
+			ResetBus();
+		}
+	}
+
+	ret = write_command(SDP3X_CONT_MEAS_AVG_MODE);
 
 	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
@@ -95,7 +114,7 @@ SDP3X::read_scale()
 
 	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
-		PX4_ERR("get scale failed");
+		DEVICE_DEBUG("get scale failed");
 		return ret;
 	}
 
@@ -124,7 +143,7 @@ SDP3X::read_scale()
 	return PX4_OK;
 }
 
-int	SDP3X::init()
+int SDP3X::init()
 {
 	int ret = Airspeed::init();
 

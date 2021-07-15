@@ -96,6 +96,34 @@ I2C::set_bus_clock(unsigned bus, unsigned clock_hz)
 	return OK;
 }
 
+bool I2C::ResetBus()
+{
+	if (_dev) {
+		px4_i2cbus_uninitialize(_dev);
+		_dev = nullptr;
+	}
+
+	_dev = px4_i2cbus_initialize(get_device_bus());
+
+#if defined(CONFIG_I2C_RESET)
+	I2C_RESET(_dev);
+#endif // CONFIG_I2C_RESET
+
+	// send software reset to all
+	uint8_t buf[1] {};
+	buf[0] = 0x06; // software reset
+
+	i2c_msg_s msg{};
+	msg.frequency = I2C_SPEED_STANDARD;
+	msg.addr = 0x00; // general call address
+	msg.buffer = &buf[0];
+	msg.length = 1;
+
+	int ret_transfer = I2C_TRANSFER(_dev, &msg, 1);
+
+	return (_dev != nullptr) && (ret_transfer == 0);
+}
+
 int
 I2C::init()
 {

@@ -122,6 +122,8 @@ protected:
 	bool Init(const wq_config_t &config);
 	void Deinit();
 
+	bool alone() { return _wq && (_wq->count() <= 1); }
+
 	float elapsed_time() const;
 	float average_rate() const;
 	float average_interval() const;

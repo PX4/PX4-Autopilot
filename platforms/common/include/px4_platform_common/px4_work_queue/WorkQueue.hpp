@@ -73,6 +73,8 @@ public:
 
 	void print_status(bool last = false);
 
+	size_t count();
+
 	// WorkQueues sorted numerically by relative priority (-1 to -255)
 	bool operator<=(const WorkQueue &rhs) const { return _config.relative_priority >= rhs.get_config().relative_priority; }
 

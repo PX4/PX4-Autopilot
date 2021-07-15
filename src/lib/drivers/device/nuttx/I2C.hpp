@@ -72,6 +72,9 @@ public:
 
 	static int	set_bus_clock(unsigned bus, unsigned clock_hz);
 
+
+	bool ResetBus();
+
 protected:
 	/**
 	 * The number of times a read or write operation will be retried on

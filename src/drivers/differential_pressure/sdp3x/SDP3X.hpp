@@ -44,6 +44,7 @@
 #include <drivers/airspeed/airspeed.h>
 #include <math.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/i2c_spi_buses.h>
@@ -56,6 +57,7 @@
 #define SDP3X_RESET_ADDR		0x00
 #define SDP3X_RESET_CMD			0x06
 #define SDP3X_CONT_MEAS_AVG_MODE	0x3615
+#define SDP3X_CONT_MODE_STOP		0x3FF9
 
 #define SDP3X_SCALE_PRESSURE_SDP31	60
 #define SDP3X_SCALE_PRESSURE_SDP32	240
@@ -74,6 +76,8 @@ public:
 		I2CSPIDriver(config),
 		_keep_retrying{config.keep_running}
 	{
+		_debug_enabled = true;
+		_retries = 2;
 	}
 
 	virtual ~SDP3X() = default;
@@ -114,4 +118,6 @@ private:
 	uint16_t _scale{0};
 	const bool _keep_retrying;
 	State _state{State::RequireConfig};
+
+	perf_counter_t _configure_perf{perf_alloc(PC_COUNT, MODULE_NAME": configure")};
 };
