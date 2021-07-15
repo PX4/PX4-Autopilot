@@ -317,15 +317,6 @@ int main(int argc, char **argv)
 			pxh.run_pxh();
 		}
 
-		// When we exit, we need to stop muorb on Snapdragon.
-
-#ifdef __PX4_POSIX_EAGLE
-		// Sending muorb stop is needed if it is running to exit cleanly.
-		// TODO: we should check with px4_task_is_running("muorb") before stopping it.
-		std::string muorb_stop_cmd("muorb stop");
-		px4_daemon::Pxh::process_line(muorb_stop_cmd, true);
-#endif
-
 		std::string cmd("shutdown");
 		px4_daemon::Pxh::process_line(cmd, true);
 
@@ -451,10 +442,7 @@ void sig_int_handler(int sig_num)
 
 void set_cpu_scaling()
 {
-#ifdef __PX4_POSIX_EAGLE
-	// On Snapdragon we miss updates in sdlog2 unless all 4 CPUs are run
-	// at the maximum frequency all the time.
-	// Interestingely, cpu0 and cpu3 set the scaling for all 4 CPUs on Snapdragon.
+#if 0
 	system("echo performance > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor");
 	system("echo performance > /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor");
 

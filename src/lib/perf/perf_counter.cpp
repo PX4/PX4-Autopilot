@@ -49,11 +49,6 @@
 
 #include "perf_counter.h"
 
-#ifdef __PX4_QURT
-// There is presumably no dprintf on QURT. Therefore use the usual output to mini-dm.
-#define dprintf(_fd, _text, ...) ((_fd) == 1 ? PX4_INFO((_text), ##__VA_ARGS__) : (void)(_fd))
-#endif
-
 /**
  * Header common to all counters.
  */

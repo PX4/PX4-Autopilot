@@ -129,17 +129,12 @@ add_custom_command(OUTPUT px4_parameters.hpp
 	)
 
 set(SRCS)
-if ("${CONFIG_SHMEM}" STREQUAL "1")
-	message(STATUS "parameters shared memory enabled")
-	add_definitions(-DCONFIG_SHMEM=1)
-	list(APPEND SRCS parameters_shmem.cpp)
+
+list(APPEND SRCS parameters.cpp)
+if(BUILD_TESTING)
+	list(APPEND SRCS param_translation_unit_tests.cpp)
 else()
-	list(APPEND SRCS parameters.cpp)
-	if(BUILD_TESTING)
-		list(APPEND SRCS param_translation_unit_tests.cpp)
-	else()
-		list(APPEND SRCS param_translation.cpp)
-	endif()
+	list(APPEND SRCS param_translation.cpp)
 endif()
 
 if(${PX4_PLATFORM} STREQUAL "nuttx")
