@@ -7,9 +7,9 @@ This guide will provide information on porting the nuttx base layer and creating
 * Create a folder with the name of the board in it.\
 	`mkdir PX4-Autopilot/boards/myboard/myfc`
 * Create a file called default.cmake in this folder.\
-	`cd PX4-Autopilot/boards/myboard/myfc`\
+	`cd PX4-Autopilot/boards/myboard/myfc`
 	`touch default.cmake`
-* This file lets the PX4 build system know almost everything about how to build PX4 for this board. Copy following content in the default.cmake file. Note that most of the components are commented as they are not required in the initial build.\
+* This file lets the PX4 build system know almost everything about how to build PX4 for this board. Copy following content in the default.cmake file. Note that most of the components are commented as they are not required in the initial build.
 	```
 		px4_add_board(
 		PLATFORM nuttx
@@ -117,7 +117,7 @@ This guide will provide information on porting the nuttx base layer and creating
 		# 	work_queue
 		)
 	```
-* Now create a firmware.prototype file (Not sure bout the use of this file) with following content in it.\
+* Now create a firmware.prototype file (Not sure bout the use of this file) with following content in it.
 	```
 		{
 			"board_id": 42,
@@ -135,7 +135,7 @@ This guide will provide information on porting the nuttx base layer and creating
 	```
 * Create a folder with name `nuttx-config`. This folder will contain everything related to building Nuttx. Two more folders are required here with names `nsh` and `scripts` respectively. The `nsh` folder will contain `defconfig` file for building Nuttx. The `scripts` folder will contain `scripts.ld` file which is the arm linker file defining memory regions and stuff. Both of these files can probably be found in the Nuttx's boards folder for a board using the same chip that you might be using.
 * Go to folder PX4-Autopilot/platforms/nuttx/cmake/Platform. This folder contains necessary compiler flags in different cmake files. If the architecture that you are working with is not available here, then you will have to create a file for your architecture.
-* Now edit PX4-Autopilot/platforms/nuttx/cmake/px4_impl_os.cmake file to let the build system know where to look for the px4 base layer for your board. This edit will connect the choice of chip done in `defconfig` file with the respective chip's px4 base layer. Look for something like\
+* Now edit PX4-Autopilot/platforms/nuttx/cmake/px4_impl_os.cmake file to let the build system know where to look for the px4 base layer for your board. This edit will connect the choice of chip done in `defconfig` file with the respective chip's px4 base layer. Look for something like
 	```
 		elseif(CONFIG_ARCH_CHIP_S32K146)
 			set(CHIP_MANUFACTURER "nxp")
@@ -147,3 +147,19 @@ This guide will provide information on porting the nuttx base layer and creating
 * Now create two more folders with names `rpi_common` and `rp2040` inside `rpi`. Note that `rpi_common` will have files common to all the chips produced by Raspberrypi. While `rp2040` will have files specific to the rp2040 chip.
 * Add an empty `CMakeLists.txt` file in `rp2040` folder for now. The contents of this file will be changed later as the need arises.
 * Create `src` folder in `PX4-Autopilot/boards/myboard/myfc` folder. Put a `CMakeLists.txt` file in this `src` folder.
+* Create `include` folder in `PX4-Autopilot/boards/myboard/myfc/nuttx-config` folder. Create a file `board.h` in this folder. This file will basically define all the necessary macros for the hardware. For example, which pin is used for I2c, or what is the timer frequency, etc. For now, add following content to this file
+	```
+		#ifndef __CONFIG_MYBOARDMYFC_INCLUDE_BOARD_H
+		#define __CONFIG_MYBOARDMYFC_INCLUDE_BOARD_H
+
+		/************************************************************************************
+		* Included Files
+		************************************************************************************/
+		#include <nuttx/config.h>
+
+		#ifndef __ASSEMBLY__
+		# include <stdint.h>
+		#endif
+
+		#endif  /* __CONFIG_MYBOARDMYFC_INCLUDE_BOARD_H */
+	```
