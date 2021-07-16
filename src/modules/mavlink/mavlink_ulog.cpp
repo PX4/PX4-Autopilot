@@ -66,6 +66,11 @@ MavlinkULog::MavlinkULog(int datarate, float max_rate_factor, uint8_t target_sys
 	_next_rate_check = _last_sent_time + _rate_calculation_delta_t * 1.e6f;
 }
 
+MavlinkULog::~MavlinkULog()
+{
+	perf_free(_msg_missed_ulog_stream_perf);
+}
+
 void MavlinkULog::start_ack_received()
 {
 	if (_waiting_for_initial_ack) {
@@ -134,7 +139,7 @@ int MavlinkULog::handle_update(mavlink_channel_t channel)
 		_ulog_stream_sub.update();
 
 		if (_ulog_stream_sub.get_last_generation() != last_generation + 1) {
-			PX4_ERR("ulog_stream lost, generation %d -> %d", last_generation, _ulog_stream_sub.get_last_generation());
+			perf_count(_msg_missed_ulog_stream_perf);
 		}
 
 		const ulog_stream_s &ulog_data = _ulog_stream_sub.get();
