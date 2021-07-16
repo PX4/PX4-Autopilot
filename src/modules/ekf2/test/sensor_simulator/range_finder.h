@@ -55,9 +55,9 @@ public:
 	void setLimits(float min_distance_m, float max_distance_m);
 
 private:
-	rangeSample _range_sample {};
-	float _min_distance {0.2f};
-	float _max_distance {20.0f};
+	rangeSample _range_sample{};
+	float _min_distance{0.2f};
+	float _max_distance{20.0f};
 
 	void send(uint64_t time) override;
 };
