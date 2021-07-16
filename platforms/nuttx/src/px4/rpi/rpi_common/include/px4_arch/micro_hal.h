@@ -75,8 +75,8 @@ __BEGIN_DECLS
 // 25		Output value
 // 26-31	Unused
 // Take a look at k66 in nxp for referance.
-// void rp2040_pinconfig(uint32_t pinset);
-#define px4_arch_configgpio(pinset)             0 // rp2040_pinconfig(pinset)		// Implemented in io_pins/pin_config.c
+void rp2040_pinconfig(uint32_t pinset){}
+#define px4_arch_configgpio(pinset)             rp2040_pinconfig(pinset)		// Implemented in io_pins/pin_config.c
 #define px4_arch_unconfiggpio(pinset)           0					// Needs to be implemented (can be done in io_pins)
 #define px4_arch_gpioread(pinset)               rp2040_gpio_get(pinset)			// Use gpio_get
 #define px4_arch_gpiowrite(pinset, value)       rp2040_gpio_put(pinset, value)		// Use gpio_put
