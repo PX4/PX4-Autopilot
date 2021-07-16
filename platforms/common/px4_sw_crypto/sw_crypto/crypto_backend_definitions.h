@@ -43,4 +43,5 @@ typedef struct {
 	keystore_session_handle_t keystore_handle;
 } crypto_session_handle_t;
 
+static inline void crypto_session_handle_init(crypto_session_handle_t *handle) {handle->handle = 0;}
 static inline bool crypto_session_handle_valid(crypto_session_handle_t handle) {return handle.handle > 0;}
