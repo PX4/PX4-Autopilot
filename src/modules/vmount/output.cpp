@@ -42,7 +42,6 @@
 #include <errno.h>
 
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/mount_orientation.h>
 #include <px4_platform_common/defines.h>
@@ -178,7 +177,9 @@ void OutputBase::_handle_position_update(bool force_update)
 		      _cur_control_data->type_data.lonlat.pitch_fixed_angle :
 		      _calculate_pitch(lon, lat, alt, vehicle_global_position);
 
-	float yaw = get_bearing_to_next_waypoint(vlat, vlon, lat, lon) - vehicle_local_position.heading;
+	float yaw = get_bearing_to_next_waypoint(vlat, vlon, lat, lon);
+	// We set the yaw angle in the absolute frame in this case.
+	_absolute_angle[2] = true;
 
 	// add offsets from VEHICLE_CMD_DO_SET_ROI_WPNEXT_OFFSET
 	pitch += _cur_control_data->type_data.lonlat.pitch_angle_offset;
