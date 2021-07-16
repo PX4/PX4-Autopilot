@@ -227,7 +227,7 @@ void TECS::_update_energy_estimates()
 	// Calculate the specific energy balance demand which specifies how the available total
 	// energy should be allocated to speed (kinetic energy) and height (potential energy)
 	// Calculate the specific energy balance error
-	_SEB_error = SEB_setpoint() - (_SPE_estimate * _SPE_weighting - _SKE_estimate * _SKE_weighting);
+	_SEB_error = get_SEB_setpoint() - (_SPE_estimate * _SPE_weighting - _SKE_estimate * _SKE_weighting);
 
 	// Calculate specific energy rate demands in units of (m**2/sec**3)
 	_SPE_rate_setpoint = _hgt_rate_setpoint * CONSTANTS_ONE_G; // potential energy rate of change
@@ -623,6 +623,7 @@ void TECS::update_pitch_throttle(float pitch, float baro_altitude, float hgt_set
 		_tecs_mode = ECL_TECS_MODE_NORMAL;
 	}
 
+	tecs_status_publish(now);
 }
 
 void TECS::_update_speed_height_weights()
@@ -641,4 +642,60 @@ void TECS::_update_speed_height_weights()
 	// loop time constant and therefore can lead to a destabilization of that control loop
 	_SPE_weighting = constrain(2.0f - _SKE_weighting, 0.f, 1.f);
 	_SKE_weighting = constrain(_SKE_weighting, 0.f, 1.f);
+}
+
+void
+TECS::tecs_status_publish(const hrt_abstime &now)
+{
+	tecs_status_s tecs_status{};
+
+	switch (_tecs_mode) {
+	case TECS::ECL_TECS_MODE_NORMAL:
+		tecs_status.mode = tecs_status_s::TECS_MODE_NORMAL;
+		break;
+
+	case TECS::ECL_TECS_MODE_UNDERSPEED:
+		tecs_status.mode = tecs_status_s::TECS_MODE_UNDERSPEED;
+		break;
+
+	case TECS::ECL_TECS_MODE_BAD_DESCENT:
+		tecs_status.mode = tecs_status_s::TECS_MODE_BAD_DESCENT;
+		break;
+
+	case TECS::ECL_TECS_MODE_CLIMBOUT:
+		tecs_status.mode = tecs_status_s::TECS_MODE_CLIMBOUT;
+		break;
+	}
+
+	tecs_status.altitude_sp = _hgt_setpoint;
+	tecs_status.altitude_filtered = _vert_pos_state;
+	tecs_status.energy_distribution_error = _SEB_error;
+	tecs_status.energy_distribution_rate_error = _SEB_rate_error;
+	tecs_status.equivalent_airspeed_sp = _EAS_setpoint;
+	tecs_status.height_rate_setpoint = _hgt_rate_setpoint;
+	tecs_status.height_rate = _vert_vel_state;
+	tecs_status.pitch_integ = _pitch_integ_state;
+	tecs_status.pitch_sp_rad = get_pitch_setpoint();
+	tecs_status.throttle_integ = _throttle_integ_state;
+	tecs_status.throttle_sp = get_throttle_setpoint();
+	tecs_status.total_energy_balance = get_SEB();
+	tecs_status.total_energy_balance_sp = get_SEB_setpoint();
+	tecs_status.total_energy_balance_rate = get_SEB_rate();
+	tecs_status.total_energy_balance_rate_sp = get_SEB_rate_setpoint();
+	tecs_status.total_energy = get_STE();
+	tecs_status.total_energy_error = _STE_error;
+	tecs_status.total_energy_sp = get_STE_setpoint();
+	tecs_status.total_energy_rate = get_STE_rate();
+	tecs_status.total_energy_rate_error = _STE_rate_error;
+	tecs_status.total_energy_rate_sp = get_STE_rate_setpoint();
+	tecs_status.true_airspeed_sp = _TAS_setpoint_adj;
+	tecs_status.true_airspeed_filtered = _tas_state;
+	tecs_status.true_airspeed_derivative = _tas_rate_filtered;
+	tecs_status.true_airspeed_derivative_raw = _tas_rate_raw;
+	tecs_status.true_airspeed_derivative_sp = _TAS_rate_setpoint;
+	tecs_status.true_airspeed_innovation = _tas_innov;
+
+	tecs_status.timestamp = now;
+
+	_tecs_status_pub.publish(tecs_status);
 }

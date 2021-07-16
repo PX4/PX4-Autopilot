@@ -399,70 +399,6 @@ FixedwingPositionControl::calculate_target_airspeed(float airspeed_demand, const
 	return constrain(airspeed_demand, adjusted_min_airspeed, _param_fw_airspd_max.get());
 }
 
-void
-FixedwingPositionControl::tecs_status_publish()
-{
-	tecs_status_s t{};
-
-	switch (_tecs.tecs_mode()) {
-	case TECS::ECL_TECS_MODE_NORMAL:
-		t.mode = tecs_status_s::TECS_MODE_NORMAL;
-		break;
-
-	case TECS::ECL_TECS_MODE_UNDERSPEED:
-		t.mode = tecs_status_s::TECS_MODE_UNDERSPEED;
-		break;
-
-	case TECS::ECL_TECS_MODE_BAD_DESCENT:
-		t.mode = tecs_status_s::TECS_MODE_BAD_DESCENT;
-		break;
-
-	case TECS::ECL_TECS_MODE_CLIMBOUT:
-		t.mode = tecs_status_s::TECS_MODE_CLIMBOUT;
-		break;
-	}
-
-	t.altitude_sp = _tecs.hgt_setpoint();
-	t.altitude_filtered = _tecs.vert_pos_state();
-
-	t.true_airspeed_sp = _tecs.TAS_setpoint_adj();
-	t.true_airspeed_filtered = _tecs.tas_state();
-
-	t.height_rate_setpoint = _tecs.hgt_rate_setpoint();
-	t.height_rate = _tecs.vert_vel_state();
-
-	t.equivalent_airspeed_sp = _tecs.get_EAS_setpoint();
-	t.true_airspeed_derivative_sp = _tecs.TAS_rate_setpoint();
-	t.true_airspeed_derivative = _tecs.speed_derivative();
-	t.true_airspeed_derivative_raw = _tecs.speed_derivative_raw();
-	t.true_airspeed_innovation = _tecs.getTASInnovation();
-
-	t.total_energy_error = _tecs.STE_error();
-	t.total_energy_rate_error = _tecs.STE_rate_error();
-
-	t.energy_distribution_error = _tecs.SEB_error();
-	t.energy_distribution_rate_error = _tecs.SEB_rate_error();
-
-	t.total_energy = _tecs.STE();
-	t.total_energy_rate = _tecs.STE_rate();
-	t.total_energy_balance = _tecs.SEB();
-	t.total_energy_balance_rate = _tecs.SEB_rate();
-
-	t.total_energy_sp = _tecs.STE_setpoint();
-	t.total_energy_rate_sp = _tecs.STE_rate_setpoint();
-	t.total_energy_balance_sp = _tecs.SEB_setpoint();
-	t.total_energy_balance_rate_sp = _tecs.SEB_rate_setpoint();
-
-	t.throttle_integ = _tecs.throttle_integ_state();
-	t.pitch_integ = _tecs.pitch_integ_state();
-
-	t.throttle_sp = _tecs.get_throttle_setpoint();
-	t.pitch_sp_rad = _tecs.get_pitch_setpoint();
-
-	t.timestamp = hrt_absolute_time();
-
-	_tecs_status_pub.publish(t);
-}
 
 void
 FixedwingPositionControl::status_publish()
@@ -612,7 +548,6 @@ FixedwingPositionControl::getManualHeightRateSetpoint()
 		const float climb_rate_target = _param_climbrate_target.get();
 
 		height_rate_setpoint = pitch * climb_rate_target;
-
 	}
 
 	return height_rate_setpoint;
@@ -2226,8 +2161,6 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 				    pitch_min_rad - radians(_param_fw_psp_off.get()),
 				    pitch_max_rad - radians(_param_fw_psp_off.get()),
 				    _param_climbrate_target.get(), _param_sinkrate_target.get(), hgt_rate_sp);
-
-	tecs_status_publish();
 }
 
 void FixedwingPositionControl::publishOrbitStatus(const position_setpoint_s pos_sp)

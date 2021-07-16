@@ -76,7 +76,6 @@
 #include <uORB/topics/position_controller_landing_status.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/tecs_status.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -284,7 +283,6 @@ private:
 
 	void		status_publish();
 	void		landing_status_publish();
-	void		tecs_status_publish();
 
 	void		abort_landing(bool abort);
 
