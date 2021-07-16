@@ -68,12 +68,6 @@ void Ekf::reset()
 
 	_delta_angle_corr.setZero();
 
-	_imu_updated = false;
-	_NED_origin_initialised = false;
-	_gps_speed_valid = false;
-
-	_filter_initialised = false;
-	_terrain_initialised = false;
 	_range_sensor.setPitchOffset(_params.rng_sens_pitch);
 	_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
 	_range_sensor.setQualityHysteresis(_params.range_valid_quality_s);
@@ -81,18 +75,12 @@ void Ekf::reset()
 	_control_status.value = 0;
 	_control_status_prev.value = 0;
 
-	_dt_ekf_avg = FILTER_UPDATE_PERIOD_S;
-
 	_ang_rate_delayed_raw.zero();
 
 	_fault_status.value = 0;
 	_innov_check_fail_status.value = 0;
 
-	_accel_magnitude_filt = 0.0f;
-	_ang_rate_magnitude_filt = 0.0f;
 	_prev_dvel_bias_var.zero();
-
-	_gps_alt_ref = 0.0f;
 
 	resetGpsDriftCheckFilters();
 }

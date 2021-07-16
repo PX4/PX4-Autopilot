@@ -63,9 +63,9 @@
 using namespace sensor_simulator::sensor;
 
 struct sensor_info {
-	uint64_t timestamp {};
+	uint64_t timestamp{};
 	enum measurement_t {IMU, MAG, BARO, GPS, AIRSPEED, RANGE, FLOW, VISION, LANDING_STATUS} sensor_type = IMU;
-	std::array<double, 10> sensor_data {};
+	std::array<double, 10> sensor_data{};
 };
 
 class SensorSimulator
@@ -120,8 +120,6 @@ public:
 	RangeFinder _rng;
 	Vio         _vio;
 
-protected:
-
 private:
 	void setSensorDataToDefault();
 	void setSensorDataFromReplayData();
@@ -130,14 +128,14 @@ private:
 	void startBasicSensor();
 	void updateSensors();
 
-	std::shared_ptr<Ekf> _ekf {nullptr};
+	std::shared_ptr<Ekf> _ekf{nullptr};
 
-	std::vector<sensor_info> _replay_data {};
+	std::vector<sensor_info> _replay_data{};
 
-	bool _has_replay_data {false};
+	bool _has_replay_data{false};
 
-	uint64_t _current_replay_data_index {0};
-	uint64_t _time {0};	// microseconds
+	uint64_t _current_replay_data_index{0};
+	uint64_t _time{0};	// microseconds
 
 };
 #endif // !EKF_SENSOR_SIMULATOR_H
