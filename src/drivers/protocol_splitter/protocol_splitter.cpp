@@ -46,6 +46,7 @@
 #include <lib/cdev/CDev.hpp>
 #include <px4_platform_common/sem.hpp>
 #include <px4_platform_common/log.h>
+#include <lib/perf/perf_counter.h>
 #include <mathlib/mathlib.h>
 
 #include <sys/ioctl.h>
@@ -111,6 +112,15 @@ namespace
 static StaticData *objects = nullptr;
 }
 
+// Perf counters
+perf_counter_t bytes_received_count;
+perf_counter_t header_bytes_received_count;
+perf_counter_t bytes_lost_count;
+perf_counter_t mavlink_messages_parsed_count;
+perf_counter_t mavlink_bytes_parsed_count;
+perf_counter_t rtps_messages_parsed_count;
+perf_counter_t rtps_bytes_parsed_count;
+
 class ReadBuffer
 {
 public:
@@ -119,6 +129,7 @@ public:
 	void remove(size_t pos, size_t n);
 
 	void print_stats();
+	void update_lost_stats();
 
 	uint8_t buffer[1024] = {};
 	size_t buf_size = 0;
@@ -133,6 +144,7 @@ public:
 	size_t mavlink_parsed = 0;
 	size_t rtps_parsed = 0;
 	size_t bytes_received = 0;
+	size_t bytes_lost = 0;
 	size_t header_bytes_received = 0;
 
 	// To keep track of readers.
@@ -157,6 +169,11 @@ int ReadBuffer::read(int fd)
 	buf_size += r;
 	bytes_received += r;
 
+	// Update the lost/unused bytes count
+	update_lost_stats();
+
+	perf_set_count(bytes_received_count, bytes_received);
+
 	return r;
 }
 
@@ -177,6 +194,21 @@ void ReadBuffer::remove(size_t pos, size_t n)
 
 	memmove(buffer + pos, buffer + (pos + n), buf_size - pos - n);
 	buf_size -= n;
+}
+
+void ReadBuffer::update_lost_stats()
+{
+	bytes_lost = bytes_received - mavlink_parsed - rtps_parsed - header_bytes_received;
+
+	if (end_mavlink > start_mavlink) {
+		bytes_lost -= end_mavlink - start_mavlink;
+	}
+
+	if (end_rtps > start_rtps) {
+		bytes_lost -= end_rtps - start_rtps;
+	}
+
+	perf_set_count(bytes_lost_count, bytes_lost);
 }
 
 void ReadBuffer::print_stats()
@@ -200,18 +232,8 @@ void ReadBuffer::print_stats()
 					 / static_cast<float>(bytes_received - header_bytes_received)
 					 * 100.f));
 
-	size_t lost = bytes_received - mavlink_parsed - rtps_parsed - header_bytes_received;
-
-	if (end_mavlink > start_mavlink) {
-		lost -= end_mavlink - start_mavlink;
-	}
-
-	if (end_rtps > start_rtps) {
-		lost -= end_rtps - start_rtps;
-	}
-
-	PX4_INFO_RAW("\tUnused:  %9zu bytes (%5.1f %%)\n", lost,
-		     static_cast<double>(static_cast<float>(lost)
+	PX4_INFO_RAW("\tUnused:  %9zu bytes (%5.1f %%)\n", bytes_lost,
+		     static_cast<double>(static_cast<float>(bytes_lost)
 					 / static_cast<float>(bytes_received)
 					 * 100.f));
 }
@@ -363,6 +385,16 @@ int DevCommon::try_to_copy_data(char *buffer, size_t buflen, MessageType message
 
 			// Keep track for stats.
 			_read_buffer->mavlink_parsed += len_to_copy;
+
+			// Update the lost/unused bytes count
+			_read_buffer->update_lost_stats();
+
+			// Update the number of MAVLink bytes parsed
+			perf_set_count(mavlink_bytes_parsed_count, _read_buffer->mavlink_parsed);
+
+			// Update the number of MAVLink messages parsed
+			perf_count(mavlink_messages_parsed_count);
+
 			return len_to_copy;
 
 		} else {
@@ -384,6 +416,16 @@ int DevCommon::try_to_copy_data(char *buffer, size_t buflen, MessageType message
 
 			// Keep track for stats.
 			_read_buffer->rtps_parsed += len_to_copy;
+
+			// Update the lost/unused bytes count
+			_read_buffer->update_lost_stats();
+
+			// Update the number of RTPS bytes parsed
+			perf_set_count(rtps_bytes_parsed_count, _read_buffer->rtps_parsed);
+
+			// Update the number of RTPS messages parsed
+			perf_count(rtps_messages_parsed_count);
+
 			return len_to_copy;
 
 		} else {
@@ -481,6 +523,11 @@ void DevCommon::scan_for_packets()
 			// Both have at least one message ready, we can stop now.
 			break;
 		}
+
+		// Update the lost/unused bytes count
+		_read_buffer->update_lost_stats();
+
+		perf_set_count(header_bytes_received_count, _read_buffer->header_bytes_received);
 
 		i += payload_len;
 
@@ -805,6 +852,14 @@ int protocol_splitter_main(int argc, char *argv[])
 			return -1;
 		}
 
+		bytes_received_count = perf_alloc(PC_COUNT, "protocol_splitter: bytes received");
+		bytes_lost_count = perf_alloc(PC_COUNT, "protocol_splitter: bytes unused/lost");
+		header_bytes_received_count = perf_alloc(PC_COUNT, "protocol_splitter: header bytes received");
+		mavlink_messages_parsed_count = perf_alloc(PC_COUNT, "protocol_splitter: MAVLink messages parsed");
+		mavlink_bytes_parsed_count = perf_alloc(PC_COUNT, "protocol_splitter: MAVLink messages bytes parsed");
+		rtps_messages_parsed_count = perf_alloc(PC_COUNT, "protocol_splitter: RTPS messages parsed");
+		rtps_bytes_parsed_count = perf_alloc(PC_COUNT, "protocol_splitter: RTPS messages bytes parsed");
+
 		strncpy(objects->device_name, argv[2], sizeof(objects->device_name));
 		sem_init(&objects->r_lock, 1, 1);
 		sem_init(&objects->w_lock, 1, 1);
@@ -838,6 +893,14 @@ int protocol_splitter_main(int argc, char *argv[])
 			sem_destroy(&objects->w_lock);
 			delete objects;
 			objects = nullptr;
+
+			perf_free(bytes_received_count);
+			perf_free(header_bytes_received_count);
+			perf_free(bytes_lost_count);
+			perf_free(mavlink_messages_parsed_count);
+			perf_free(mavlink_bytes_parsed_count);
+			perf_free(rtps_messages_parsed_count);
+			perf_free(rtps_bytes_parsed_count);
 		}
 	}
 
