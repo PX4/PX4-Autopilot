@@ -9,8 +9,32 @@ import unittest
 import os
 import sys
 
+COLOR_YELLOW = "\x1b[31m"
+COLOR_GREEN  = "\x1b[32m"
+COLOR_RED    = "\x1b[33m"
+COLOR_WHITE  = "\x1b[37m"
+COLOR_RESET  = "\x1b[0m"
+
+def print_line(line):
+    if "WARNING" in line:
+        line = line.replace("WARNING", f"{COLOR_YELLOW}WARNING{COLOR_RESET}", 1)
+    elif "WARN" in line:
+        line = line.replace("WARN", f"{COLOR_YELLOW}WARN{COLOR_RESET}", 1)
+    elif "ERROR" in line:
+        line = line.replace("ERROR", f"{COLOR_RED}ERROR{COLOR_RESET}", 1)
+    elif "INFO" in line:
+        line = line.replace("INFO", f"{COLOR_WHITE}INFO{COLOR_RESET}", 1)
+
+    if "PASSED" in line:
+        line = line.replace("PASSED", f"{COLOR_GREEN}PASSED{COLOR_RESET}", 1)
+
+    if "FAILED" in line:
+        line = line.replace("FAILED", f"{COLOR_RED}FAILED{COLOR_RESET}", 1)
+
+    print(line, end='')
+
 def do_test(port, baudrate, test_name):
-    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1, xonxoff=True, rtscts=False, dsrdtr=False)
+    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0.1, xonxoff=True, rtscts=False, dsrdtr=False)
 
     timeout_start = time.time()
     timeout = 10  # 10 seconds
@@ -31,6 +55,9 @@ def do_test(port, baudrate, test_name):
         if time.time() > timeout_start + timeout:
             print("Error, timeout waiting for prompt")
             return False
+
+    # clear
+    ser.readlines()
 
     success = False
 
@@ -54,7 +81,7 @@ def do_test(port, baudrate, test_name):
             break
         else:
             if len(serial_line) > 0:
-                print(serial_line, end='')
+                print_line(serial_line)
 
         if time.time() > timeout_start + timeout:
             print("Error, timeout waiting for command echo")
@@ -68,8 +95,9 @@ def do_test(port, baudrate, test_name):
 
     while True:
         serial_line = ser.readline().decode("ascii", errors='ignore')
-        if (len(serial_line) > 0):
-            print(serial_line, end='')
+
+        if len(serial_line) > 0:
+            print_line(serial_line)
 
         if test_name + " PASSED" in serial_line:
             success = True
@@ -80,7 +108,7 @@ def do_test(port, baudrate, test_name):
 
         if time.time() > timeout_start + timeout:
             print("Error, timeout")
-            print(test_name + " FAILED")
+            print(test_name + f" {COLOR_RED}FAILED{COLOR_RESET}")
             success = False
             break
 
