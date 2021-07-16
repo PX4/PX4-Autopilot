@@ -76,6 +76,7 @@ px4_add_board(
 		dyn
 		esc_calib
 		led_control
+		manual_control
 		mixer
 		motor_ramp
 		motor_test

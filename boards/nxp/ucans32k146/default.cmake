@@ -44,6 +44,7 @@ px4_add_board(
 		#hardfault_log
 		i2cdetect
 		led_control
+		manual_control
 		mixer
 		mtd
 		mft
