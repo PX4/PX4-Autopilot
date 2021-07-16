@@ -7,6 +7,30 @@ from argparse import ArgumentParser
 import re
 import sys
 
+COLOR_YELLOW = "\x1b[31m"
+COLOR_GREEN  = "\x1b[32m"
+COLOR_RED    = "\x1b[33m"
+COLOR_WHITE  = "\x1b[37m"
+COLOR_RESET  = "\x1b[0m"
+
+def print_line(line):
+    if "WARNING" in line:
+        line = line.replace("WARNING", f"{COLOR_YELLOW}WARNING{COLOR_RESET}", 1)
+    elif "WARN" in line:
+        line = line.replace("WARN", f"{COLOR_YELLOW}WARN{COLOR_RESET}", 1)
+    elif "ERROR" in line:
+        line = line.replace("ERROR", f"{COLOR_RED}ERROR{COLOR_RESET}", 1)
+    elif "INFO" in line:
+        line = line.replace("INFO", f"{COLOR_WHITE}INFO{COLOR_RESET}", 1)
+
+    if "PASSED" in line:
+        line = line.replace("PASSED", f"{COLOR_GREEN}PASSED{COLOR_RESET}", 1)
+
+    if "FAILED" in line:
+        line = line.replace("FAILED", f"{COLOR_RED}FAILED{COLOR_RESET}", 1)
+
+    print(line, end='')
+
 def do_param_set_cmd(port, baudrate, param_name, param_value):
     ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0.1, xonxoff=True, rtscts=False, dsrdtr=False)
 
@@ -24,11 +48,14 @@ def do_param_set_cmd(port, baudrate, param_name, param_value):
             break
         else:
             if len(serial_line) > 0:
-                print(serial_line, end='')
+                print_line(serial_line)
 
         if time.time() > timeout_start + timeout:
             print("Error, timeout waiting for prompt")
             sys.exit(1)
+
+    # clear
+    ser.readlines()
 
     # run command
     timeout_start = time.time()
@@ -44,11 +71,11 @@ def do_param_set_cmd(port, baudrate, param_name, param_value):
         serial_line = ser.readline().decode("ascii", errors='ignore')
 
         if cmd in serial_line:
-            print(serial_line, end='')
+            print_line(serial_line)
             break
         else:
             if len(serial_line) > 0:
-                print(serial_line, end='')
+                print_line(serial_line)
 
         if time.time() > timeout_start + timeout:
             print("Error, timeout waiting for command echo")
@@ -69,9 +96,8 @@ def do_param_set_cmd(port, baudrate, param_name, param_value):
         serial_line = ser.readline().decode("ascii", errors='ignore')
 
         if param_show_response in serial_line:
-            print(serial_line, end='')
+            print_line(serial_line)
             current_param_value = serial_line.split(":")[-1].strip()
-            #print("param value", current_param_value, current_param_value == param_value)
 
             if (current_param_value == param_value):
                 sys.exit(0)
@@ -79,7 +105,7 @@ def do_param_set_cmd(port, baudrate, param_name, param_value):
                 sys.exit(1)
         else:
             if len(serial_line) > 0:
-                print(serial_line, end='')
+                print_line(serial_line)
 
             if time.time() > timeout_start + timeout:
                 if "nsh>" in serial_line:
