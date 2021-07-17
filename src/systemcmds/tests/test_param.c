@@ -98,7 +98,7 @@ test_param(int argc, char *argv[])
 		return 1;
 	}
 
-	warnx("parameter test PASS");
+	PX4_INFO("parameter test PASS");
 
 	return 0;
 }
