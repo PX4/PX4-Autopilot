@@ -218,10 +218,10 @@ def generate_uRTPS_general(filename_send_msgs, filename_alias_send_msgs, filenam
                         for msg in filename_receive_msgs)
 
     alias_send_msgs = list([os.path.join(
-        msg_dir, msg[1] + ".msg"), list(msg[0].keys())[0]] for msg in filename_alias_send_msgs)
+        msg_dir, msg[1] + ".msg"), msg[0]] for msg in filename_alias_send_msgs)
 
     alias_receive_msgs = list([os.path.join(
-        msg_dir, msg[1] + ".msg"), list(msg[0].keys())[0]] for msg in filename_alias_receive_msgs)
+        msg_dir, msg[1] + ".msg"), msg[0]] for msg in filename_alias_receive_msgs)
 
     em_globals_list = []
     if send_msgs:
