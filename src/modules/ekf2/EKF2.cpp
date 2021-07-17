@@ -1818,9 +1818,9 @@ int EKF2::task_spawn(int argc, char *argv[])
 										_ekf2_selector.load()->ScheduleNow();
 									}
 
-									PX4_INFO("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 ")", actual_instance,
-										 imu, vehicle_imu_sub.get().accel_device_id,
-										 mag, vehicle_mag_sub.get().device_id);
+									PX4_DEBUG("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 ")", actual_instance,
+										  imu, vehicle_imu_sub.get().accel_device_id,
+										  mag, vehicle_mag_sub.get().device_id);
 
 									// sleep briefly before starting more instances
 									px4_usleep(10000);
