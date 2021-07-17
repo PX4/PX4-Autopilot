@@ -90,7 +90,7 @@ def do_param_set_cmd(port, baudrate, param_name, param_value):
     param_show_response = param_name + " ["
 
     timeout_start = time.time()
-    timeout = 1  # 1 seconds
+    timeout = 2  # 2 seconds
 
     while True:
         serial_line = ser.readline().decode("ascii", errors='ignore')
