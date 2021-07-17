@@ -23,7 +23,6 @@ pipeline {
                 sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make cubepilot_cubeorange_test'
-                sh 'make sizes'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'cubepilot_cubeorange_test'
               }
@@ -101,7 +100,6 @@ pipeline {
                 sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make cuav_x7pro_test'
-                sh 'make sizes'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'cuav_x7pro_test'
               }
@@ -177,7 +175,6 @@ pipeline {
                 sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v3_test'
-                sh 'make sizes'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'px4_fmu-v3_test'
               }
@@ -253,7 +250,6 @@ pipeline {
                 sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v4_test'
-                sh 'make sizes'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'px4_fmu-v4_test'
               }
@@ -327,7 +323,6 @@ pipeline {
                 sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v4pro_test'
-                sh 'make sizes'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'px4_fmu-v4pro_test'
               }
@@ -403,7 +398,6 @@ pipeline {
                 sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v5_test'
-                sh 'make sizes'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'px4_fmu-v5_test'
               }
@@ -480,7 +474,6 @@ pipeline {
                 sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v5_debug'
-                sh 'make sizes'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'px4_fmu-v5_debug'
               }
@@ -561,7 +554,6 @@ pipeline {
                 sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v5_optimized'
-                sh 'make sizes'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'px4_fmu-v5_optimized'
               }
@@ -638,7 +630,6 @@ pipeline {
                 sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v5_stackcheck'
-                sh 'make sizes'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'px4_fmu-v5_stackcheck'
               }
@@ -719,7 +710,6 @@ pipeline {
                 sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make modalai_fc-v1_test'
-                sh 'make sizes'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'modalai_fc-v1_test'
               }
@@ -794,7 +784,6 @@ pipeline {
                 sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make nxp_fmuk66-v3_test'
-                sh 'make sizes'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'nxp_fmuk66-v3_test'
               }
@@ -857,6 +846,7 @@ pipeline {
   } // stages
   environment {
     CCACHE_DIR = '/tmp/ccache'
+    CCACHE_NOHASHDIR = 1
     CI = true
   }
   options {
