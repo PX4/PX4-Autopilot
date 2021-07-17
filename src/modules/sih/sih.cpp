@@ -346,7 +346,7 @@ void Sih::equations_of_motion()
 			_v_I = _v_I + _v_I_dot * _dt;
 			Eulerf RPY=Eulerf(_q);
 			RPY(0)=0.0f;	// no roll
-			RPY(1)=M_PI_F/18.0f; 	// pitch slightly up to get some lift
+			RPY(1)=radians(5.0f); 	// pitch slightly up to get some lift
 			_q=Quatf(RPY);
 			_w_B.setZero();
 			_grounded = true;
