@@ -6,6 +6,7 @@ from subprocess import call, Popen
 from argparse import ArgumentParser
 import re
 import sys
+import datetime
 
 COLOR_RED    = "\x1b[31m"
 COLOR_GREEN  = "\x1b[32m"
@@ -29,7 +30,8 @@ def print_line(line):
     if "FAILED" in line:
         line = line.replace("FAILED", f"{COLOR_RED}FAILED{COLOR_RESET}", 1)
 
-    print(line, end='')
+    current_time = datetime.datetime.now()
+    print('[{0}] {1}'.format(current_time.isoformat(timespec='milliseconds'), line), end='')
 
 def monitor_firmware_upload(port, baudrate):
     ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1, xonxoff=True, rtscts=False, dsrdtr=False)
@@ -41,13 +43,13 @@ def monitor_firmware_upload(port, baudrate):
     while True:
         serial_line = ser.readline().decode("ascii", errors='ignore')
 
+        if len(serial_line) > 0:
+            print_line(serial_line)
+
         if "NuttShell (NSH)" in serial_line:
             sys.exit(0)
         elif "nsh>" in serial_line:
             sys.exit(0)
-        else:
-            if len(serial_line) > 0:
-                print_line(serial_line)
 
         if time.time() > timeout_start + timeout:
             print("Error, timeout")
