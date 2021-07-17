@@ -11,11 +11,9 @@
 @#  - ids (List) list of all RTPS msg ids
 @###############################################
 @{
-from packaging import version
 import genmsg.msgs
+from packaging import version
 import re
-
-from px_generate_uorb_topic_helper import * # this is in Tools/
 
 topic = alias if alias else spec.short_name
 

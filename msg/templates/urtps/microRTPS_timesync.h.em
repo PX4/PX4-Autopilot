@@ -11,10 +11,8 @@
 @#  - ids (List) list of all RTPS msg ids
 @###############################################
 @{
-from packaging import version
 import genmsg.msgs
-
-from px_generate_uorb_topic_helper import * # this is in Tools/
+from packaging import version
 from px_generate_uorb_topic_files import MsgScope # this is in Tools/
 
 package = package[0]

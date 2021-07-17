@@ -323,7 +323,7 @@ pipeline {
             withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
               sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_ros_com.git -b ${BRANCH_NAME}")
               // deploy uORB RTPS ID map
-              sh('./msg/tools/uorb_to_ros_rtps_ids.py -i msg/tools/uorb_rtps_message_ids.yaml -o px4_ros_com/templates/uorb_rtps_message_ids.yaml')
+              sh('./msg/tools/uorb_to_ros_rtps_ids.py -i msg/tools/urtps_bridge_topics.yaml -o px4_ros_com/templates/urtps_bridge_topics.yaml')
               sh('cd px4_ros_com; git status; git add .; git commit -a -m "Update uORB RTPS ID map `date`" || true')
               sh('cd px4_ros_com; git push origin ${BRANCH_NAME} || true')
               // deploy uORB RTPS required tools
