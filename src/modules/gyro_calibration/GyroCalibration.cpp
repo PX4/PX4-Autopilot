@@ -84,6 +84,7 @@ void GyroCalibration::Run()
 
 				_armed = armed;
 				Reset();
+				return;
 			}
 		}
 	}
@@ -98,14 +99,16 @@ void GyroCalibration::Run()
 
 		if (_vehicle_status_flags_sub.copy(&vehicle_status_flags)) {
 			if (_system_calibrating != vehicle_status_flags.condition_calibration_enabled) {
-				Reset();
 				_system_calibrating = vehicle_status_flags.condition_calibration_enabled;
+				Reset();
+				return;
 			}
 		}
 	}
 
 	if (_system_calibrating) {
 		// do nothing if system is calibrating
+		Reset();
 		return;
 	}
 
@@ -123,6 +126,9 @@ void GyroCalibration::Run()
 		for (auto &cal : _gyro_calibration) {
 			cal.ParametersUpdate();
 		}
+
+		Reset();
+		return;
 	}
 
 
