@@ -10,11 +10,8 @@
 @#  - ids (List) list of all RTPS msg ids
 @###############################################
 @{
-import os
-
 import genmsg.msgs
-
-from px_generate_uorb_topic_helper import * # this is in Tools/
+import os
 from px_generate_uorb_topic_files import MsgScope # this is in Tools/
 
 send_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND]
@@ -64,7 +61,7 @@ bool RtpsTopics::init(std::condition_variable *t_send_queue_cv, std::mutex *t_se
 	std::cout << "\033[0;36m---   Subscribers   ---\033[0m" << std::endl;
 @[for topic in recv_topics]@
 
-	if (_@(topic)_sub.init(@(rtps_message_id(ids, topic)), t_send_queue_cv, t_send_queue_mutex, t_send_queue, ns)) {
+	if (_@(topic)_sub.init(@(ids[0].index(topic) + 1), t_send_queue_cv, t_send_queue_mutex, t_send_queue, ns)) {
 		std::cout << "- @(topic) subscriber started" << std::endl;
 
 	} else {
@@ -76,6 +73,7 @@ bool RtpsTopics::init(std::condition_variable *t_send_queue_cv, std::mutex *t_se
 	std::cout << "\033[0;36m-----------------------\033[0m" << std::endl << std::endl;
 @[end if]@
 @[if send_topics]@
+
 	// Initialise publishers
 	std::cout << "\033[0;36m----   Publishers  ----\033[0m" << std::endl;
 @[for topic in send_topics]@
@@ -107,28 +105,32 @@ bool RtpsTopics::init(std::condition_variable *t_send_queue_cv, std::mutex *t_se
 }
 
 @[if send_topics]@
+template <typename T>
+void RtpsTopics::sync_timestamp_of_incoming_data(T &msg) {
+	uint64_t timestamp = getMsgTimestamp(&msg);
+	uint64_t timestamp_sample = getMsgTimestampSample(&msg);
+	_timesync->subtractOffset(timestamp);
+	setMsgTimestamp(&msg, timestamp);
+	_timesync->subtractOffset(timestamp_sample);
+	setMsgTimestampSample(&msg, timestamp_sample);
+}
+
 void RtpsTopics::publish(const uint8_t topic_ID, char data_buffer[], size_t len)
 {
 	switch (topic_ID) {
 @[for topic in send_topics]@
 
-	case @(rtps_message_id(ids, topic)): { // @(topic)
+	case @(ids[0].index(topic) + 1): { // @(topic) publisher
 		@(topic)_msg_t st;
 		eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, len);
 		eprosima::fastcdr::Cdr cdr_des(cdrbuffer);
 		st.deserialize(cdr_des);
-
 @[    if topic == 'Timesync' or topic == 'timesync']@
 		_timesync->processTimesyncMsg(&st, &_@(topic)_pub);
 @[    end if]@
 
 		// apply timestamp offset
-		uint64_t timestamp = getMsgTimestamp(&st);
-		uint64_t timestamp_sample = getMsgTimestampSample(&st);
-		_timesync->subtractOffset(timestamp);
-		setMsgTimestamp(&st, timestamp);
-		_timesync->subtractOffset(timestamp_sample);
-		setMsgTimestampSample(&st, timestamp_sample);
+		sync_timestamp_of_incoming_data(st);
 
 		_@(topic)_pub.publish(&st);
 	}
@@ -143,6 +145,15 @@ void RtpsTopics::publish(const uint8_t topic_ID, char data_buffer[], size_t len)
 }
 @[end if]@
 @[if recv_topics]@
+template <typename T>
+void RtpsTopics::sync_timestamp_of_outgoing_data(T &msg) {
+	uint64_t timestamp = getMsgTimestamp(&msg);
+	uint64_t timestamp_sample = getMsgTimestampSample(&msg);
+	_timesync->addOffset(timestamp);
+	setMsgTimestamp(&msg, timestamp);
+	_timesync->addOffset(timestamp_sample);
+	setMsgTimestampSample(&msg, timestamp_sample);
+}
 
 bool RtpsTopics::getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr)
 {
@@ -151,17 +162,12 @@ bool RtpsTopics::getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr)
 	switch (topic_ID) {
 @[for topic in recv_topics]@
 
-	case @(rtps_message_id(ids, topic)): // @(topic)
+	case @(ids[0].index(topic) + 1): // @(topic) subscriber
 		if (_@(topic)_sub.hasMsg()) {
 			@(topic)_msg_t msg = _@(topic)_sub.getMsg();
 
-			// apply timestamps offset
-			uint64_t timestamp = getMsgTimestamp(&msg);
-			uint64_t timestamp_sample = getMsgTimestampSample(&msg);
-			_timesync->addOffset(timestamp);
-			setMsgTimestamp(&msg, timestamp);
-			_timesync->addOffset(timestamp_sample);
-			setMsgTimestampSample(&msg, timestamp_sample);
+			// apply timestamp offset
+			sync_timestamp_of_outgoing_data(msg);
 
 			msg.serialize(scdr);
 			ret = true;

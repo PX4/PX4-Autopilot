@@ -37,9 +37,8 @@
 @#
 @################################################################################
 @{
-from packaging import version
 import genmsg.msgs
-
+from packaging import version
 from px_generate_uorb_topic_helper import *  # this is in Tools/
 
 builtin_types = set()

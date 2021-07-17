@@ -1,0 +1,89 @@
+#####
+#
+# This file maps all the topics that are to be used on the microRTPS bridge.
+# When one wants to add a new topic to the bridge, it should add it to this file
+# and mark it to be sent or received from the link.
+# For alias/multi-topic messages (i.e. the ones found on the '#TOPICS' of the
+# uORB messages), these can be also added, requiring an extra entry ('base') to
+# define the base message.
+#
+# IMPORTANT NOTICE: The IDs of the messages sent on the bridge get generated
+# according to the order of the messages in this file. To keep consistency and
+# backwards compatibility, it is recommended that any new message that one wants
+# to be streamed in the bridge gets added to the end of the list. Any changes
+# in the middle of the list (additions, removals, replacements) will change also
+# the current message IDS, which might result with incompatibilities with
+# previous PX4 versions (where the list with this format got introduced or
+# subsisted).
+#
+# Any updates to this file should be mirrored in both sides of the bridge (i.e.,
+# PX4 and px4_ros_com), when using it with ROS2. That can be easily done using
+# the 'msg/tools/uorb_to_ros_urtps_topics.py' script to regenerate this same
+# file under 'px4_ros_com/templates/''. The same is not applicable/required if
+# using this bridge with "raw" RTPS/DDS applications, since the microRTPS agent
+# to be used and stored in 'build/<px4_target>/src/modules/micrortps_bridge/''
+# gets generated using this same list.
+#
+#####
+rtps:
+  # topic ID 1
+  - msg:     debug_array
+    receive: true
+  # topic ID 2
+  - msg:     debug_key_value
+    receive: true
+  # topic ID 3
+  - msg:     debug_value
+    receive: true
+  # ...
+  - msg:     debug_vect
+    receive: true
+  - msg:     offboard_control_mode
+    receive: true
+  - msg:     optical_flow
+    receive: true
+  - msg:     position_setpoint
+    receive: true
+  - msg:     position_setpoint_triplet
+    receive: true
+  - msg:     telemetry_status
+    receive: true
+  - msg:     timesync
+    receive: true
+    send:    true
+  - msg:     trajectory_waypoint
+    send:    true
+  - msg:     vehicle_command
+    receive: true
+  - msg:     vehicle_control_mode
+    send:    true
+  - msg:     vehicle_local_position_setpoint
+    receive: true
+  - msg:     trajectory_setpoint # multi-topic / alias of vehicle_local_position_setpoint
+    base:    vehicle_local_position_setpoint
+    receive: true
+  - msg:     vehicle_odometry
+    send:    true
+  - msg:     vehicle_mocap_odometry # multi-topic / alias of vehicle_odometry
+    base:    vehicle_odometry
+    receive: true
+  - msg:     vehicle_visual_odometry # multi-topic / alias of vehicle_odometry
+    base:    vehicle_odometry
+    receive: true
+  - msg:     vehicle_status
+    send:    true
+  - msg:     vehicle_trajectory_waypoint
+    receive: true
+  - msg:     vehicle_trajectory_waypoint_desired # multi-topic / alias of vehicle_trajectory_waypoint
+    base:    vehicle_trajectory_waypoint
+    send:    true
+  - msg:     collision_constraints
+    send:    true
+  - msg:     onboard_computer_status
+    receive: true
+  - msg:     trajectory_bezier
+    receive: true
+  - msg:     vehicle_trajectory_bezier
+    receive: true
+  - msg:     timesync_status
+    send:    true

@@ -15,7 +15,6 @@ import os
 
 import genmsg.msgs
 
-from px_generate_uorb_topic_helper import * # this is in Tools/
 from px_generate_uorb_topic_files import MsgScope # this is in Tools/
 
 topic_names = [s.short_name for s in spec]
@@ -153,7 +152,7 @@ void *send(void *args)
 					// copy raw data into local buffer. Payload is shifted by header length to make room for header
 					serialize_@(send_base_types[idx])(&writer, &@(topic)_data, &data_buffer[header_length], &length);
 
-					if (0 < (read = transport_node->write(static_cast<char>(@(rtps_message_id(ids, topic))), data_buffer, length))) {
+					if (0 < (read = transport_node->write(static_cast<char>(@(ids[0].index(topic) + 1)), data_buffer, length))) {
 						data->total_sent += read;
 						tx_last_sec_read += read;
 						++data->sent;
@@ -262,7 +261,7 @@ void micrortps_start_topics(const uint32_t &datarate, struct timespec &begin, ui
 
 			switch (topic_ID) {
 @[    for idx, topic in enumerate(recv_topics)]@
-			case @(rtps_message_id(ids, topic)): {
+			case @(ids[0].index(topic) + 1): {
 				@(receive_base_types[idx])_s @(topic)_data;
 				deserialize_@(receive_base_types[idx])(&reader, &@(topic)_data, data_buffer);
 

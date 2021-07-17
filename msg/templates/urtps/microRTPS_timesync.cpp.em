@@ -12,8 +12,6 @@
 @###############################################
 @{
 import genmsg.msgs
-
-from px_generate_uorb_topic_helper import * # this is in Tools/
 from px_generate_uorb_topic_files import MsgScope # this is in Tools/
 
 package = package[0]
