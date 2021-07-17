@@ -18,6 +18,6 @@ BUILD_DIR=$2
 # setup Gazebo env and update package path
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${SRC_DIR}/build/px4_sitl_default/build_ign_gazebo
 export IGN_GAZEBO_SYSTEM_PLUGIN_PATH=$IGN_GAZEBO_SYSTEM_PLUGIN_PATH:${SRC_DIR}/build/px4_sitl_default/build_ign_gazebo
-export IGN_GAZEBO_RESOURCE_PATH=$IGN_GAZEBO_RESOURCE_PATH:${SRC_DIR}/Tools/sitl_ign_gazebo/models
+export IGN_GAZEBO_RESOURCE_PATH=$IGN_GAZEBO_RESOURCE_PATH:${SRC_DIR}/Tools/simulation-ignition/models
 
 echo -e "LD_LIBRARY_PATH $LD_LIBRARY_PATH"
