@@ -357,15 +357,18 @@ def generate_agent(out_dir):
     if ros2_distro and ros2_distro in ['dashing', 'eloquent', 'foxy', 'galactic', 'rolling'] and fastrtpsgen_version >= version.Version("1.0.4"):
         gen_ros2_typename = "-typeros2 "
 
+    idl_files = []
     for idl_file in glob.glob(os.path.join(idl_dir, "*.idl")):
         # Only run the generator for the topics that are actually marked to be
         # used by the bridge
         if os.path.splitext(os.path.basename(idl_file))[0] in classifier.msg_id_map:
-            try:
-                ret = subprocess.check_call(fastrtpsgen_path + " -d " + out_dir +
-                                            "/fastrtpsgen -example x64Linux2.6gcc " + gen_ros2_typename + fastrtpsgen_include + idl_file, shell=True)
-            except OSError:
-                raise
+            idl_files.append(idl_file)
+
+    try:
+        ret = subprocess.check_call(fastrtpsgen_path + " -d " + out_dir +
+                                    "/fastrtpsgen -example x64Linux2.6gcc " + gen_ros2_typename + fastrtpsgen_include + " ".join(str(idl_file) for idl_file in idl_files), shell=True)
+    except OSError:
+        raise
 
     rm_wildcard(os.path.join(out_dir, "fastrtpsgen/*PubSubMain*"))
     rm_wildcard(os.path.join(out_dir, "fastrtpsgen/makefile*"))
