@@ -8,6 +8,7 @@ import re
 import unittest
 import os
 import sys
+import datetime
 
 COLOR_RED    = "\x1b[31m"
 COLOR_GREEN  = "\x1b[32m"
@@ -31,10 +32,11 @@ def print_line(line):
     if "FAILED" in line:
         line = line.replace("FAILED", f"{COLOR_RED}FAILED{COLOR_RESET}", 1)
 
-    print(line, end='')
+    current_time = datetime.datetime.now()
+    print('[{0}] {1}'.format(current_time.isoformat(timespec='milliseconds'), line), end='')
 
 def do_test(port, baudrate, test_name):
-    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0.1, xonxoff=True, rtscts=False, dsrdtr=False)
+    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0.2, xonxoff=True, rtscts=False, dsrdtr=False)
 
     timeout_start = time.time()
     timeout = 10  # 10 seconds
@@ -68,7 +70,7 @@ def do_test(port, baudrate, test_name):
     print('|======================================================================')
 
     timeout_start = time.time()
-    timeout = 10  # 10 seconds
+    timeout = 2  # 2 seconds
 
     # wait for command echo
     serial_cmd = '{0}\n'.format(cmd)
