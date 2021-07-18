@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *  Copyright (C) 2018-2019 PX4 Development Team. All rights reserved.
+ *  Copyright (C) 2018-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file test_microbench_matrix.cpp
- * Tests for the microbench matrix math library.
+ * @file test_microbench_hrt.cpp
+ * Tests for the microbench high resolution timer.
  */
 
 #include <unit_test.h>
@@ -47,9 +47,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/micro_hal.h>
 
-#include <matrix/math.hpp>
-
-namespace MicroBenchMatrix
+namespace MicroBenchHRT
 {
 
 #ifdef __PX4_NUTTX
@@ -88,34 +86,38 @@ void unlock()
 		perf_free(p); \
 	} while (0)
 
-class MicroBenchMatrix : public UnitTest
+class MicroBenchHRT : public UnitTest
 {
 public:
 	virtual bool run_tests();
 
 private:
 
-	bool time_matrix_euler();
-	bool time_matrix_quaternion();
-	bool time_matrix_dcm();
-	bool time_matrix_pseduo_inverse();
+	bool time_px4_hrt();
 
 	void reset();
 
-	matrix::Quatf q;
-	matrix::Eulerf e;
-	matrix::Dcmf d;
-	matrix::Matrix<float, 16, 6> A16;
-	matrix::Matrix<float, 6, 16> B16;
-	matrix::Matrix<float, 6, 16> B16_4;
+	void lock()
+	{
+#ifdef __PX4_NUTTX
+		flags = px4_enter_critical_section();
+#endif
+	}
+
+	void unlock()
+	{
+#ifdef __PX4_NUTTX
+		px4_leave_critical_section(flags);
+#endif
+	}
+
+	uint64_t u_64;
+	uint64_t u_64_out;
 };
 
-bool MicroBenchMatrix::run_tests()
+bool MicroBenchHRT::run_tests()
 {
-	ut_run_test(time_matrix_euler);
-	ut_run_test(time_matrix_quaternion);
-	ut_run_test(time_matrix_dcm);
-	ut_run_test(time_matrix_pseduo_inverse);
+	ut_run_test(time_px4_hrt);
 
 	return (_tests_failed == 0);
 }
@@ -127,54 +129,24 @@ T random(T min, T max)
 	return min + scale * (max - min);      /* [min, max] */
 }
 
-void MicroBenchMatrix::reset()
+void MicroBenchHRT::reset()
 {
 	srand(time(nullptr));
 
 	// initialize with random data
-	q = matrix::Quatf(rand(), rand(), rand(), rand());
-	e = matrix::Eulerf(random(-2.0 * M_PI, 2.0 * M_PI), random(-2.0 * M_PI, 2.0 * M_PI), random(-2.0 * M_PI, 2.0 * M_PI));
-	d = q;
-
-	for (size_t j = 0; j < 6; j++) {
-		for (size_t i = 0; i < 16; i++) {
-			B16(j, i) = random(-10.0, 10.0);
-		}
-
-		for (size_t i = 0; i < 4; i++) {
-			B16_4(j, i) = random(-10.0, 10.0);
-		}
-	}
+	u_64 = rand();
+	u_64_out = rand();
 }
 
-bool MicroBenchMatrix::time_matrix_euler()
+ut_declare_test_c(test_microbench_hrt, MicroBenchHRT)
+
+bool MicroBenchHRT::time_px4_hrt()
 {
-	PERF("matrix Euler from Quaternion", e = q, 100);
-	PERF("matrix Euler from Dcm", e = d, 100);
+	PERF("hrt_absolute_time()", u_64_out = hrt_absolute_time(), 1000);
+	PERF("hrt_elapsed_time()", u_64_out = hrt_elapsed_time(&u_64), 1000);
+	PERF("hrt_elapsed_time_atomic()", u_64_out = hrt_elapsed_time_atomic(&u_64), 1000);
+
 	return true;
 }
 
-bool MicroBenchMatrix::time_matrix_quaternion()
-{
-	PERF("matrix Quaternion from Euler", q = e, 100);
-	PERF("matrix Quaternion from Dcm", q = d, 100);
-	return true;
-}
-
-bool MicroBenchMatrix::time_matrix_dcm()
-{
-	PERF("matrix Dcm from Euler", d = e, 100);
-	PERF("matrix Dcm from Quaternion", d = q, 100);
-	return true;
-}
-
-bool MicroBenchMatrix::time_matrix_pseduo_inverse()
-{
-	PERF("matrix 6x16 pseudo inverse (all non-zero columns)", A16 = matrix::geninv(B16), 100);
-	PERF("matrix 6x16 pseudo inverse (4 non-zero columns)", A16 = matrix::geninv(B16_4), 100);
-	return true;
-}
-
-ut_declare_test_c(test_microbench_matrix, MicroBenchMatrix)
-
-} // namespace MicroBenchMatrix
+} // namespace MicroBenchHRT
