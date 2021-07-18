@@ -17,11 +17,6 @@ SensorSimulator::SensorSimulator(std::shared_ptr<Ekf> ekf):
 	startBasicSensor();
 }
 
-SensorSimulator::~SensorSimulator()
-{
-
-}
-
 void SensorSimulator::loadSensorDataFromFile(std::string file_name)
 {
 	std::ifstream file(file_name);
@@ -281,7 +276,7 @@ void SensorSimulator::setSingleReplaySample(const sensor_info &sample)
 		// _vio.setData((float) sample.sensor_data[0], (float) sample.sensor_data[1]);
 
 	} else if (sample.sensor_type == sensor_info::LANDING_STATUS) {
-		bool landed = fabsf(sample.sensor_data[0]) <= 0.f;
+		bool landed = std::abs(sample.sensor_data[0]) <= 0;
 		_ekf->set_in_air_status(!landed);
 
 	} else {
