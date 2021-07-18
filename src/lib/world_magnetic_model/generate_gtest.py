@@ -43,7 +43,7 @@ SAMPLING_MAX_LON = 180
 
 header = """/****************************************************************************
  *
- *   Copyright (c) 2020 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,7 +55,7 @@ header = """/*******************************************************************
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -78,7 +78,7 @@ header = """/*******************************************************************
 #include <math.h>
 #include <mathlib/mathlib.h>
 
-#include <geo_lookup/geo_mag_declination.h>
+#include "geo_mag_declination.h"
 """
 
 print(header)
@@ -91,7 +91,7 @@ f = urllib.request.urlopen("https://www.ngdc.noaa.gov/geomag-web/calculators/cal
 data = json.loads(f.read())
 
 
-print('TEST(GeoLookupTest, declination) {')
+print('TEST(GeoLookupTest, declination)\n{')
 for latitude in range(SAMPLING_MIN_LAT, SAMPLING_MAX_LAT+1, SAMPLING_RES):
     params = urllib.parse.urlencode({'lat1': latitude, 'lat2': latitude, 'lon1': SAMPLING_MIN_LON, 'lon2': SAMPLING_MAX_LON, 'latStepSize': 1, 'lonStepSize': SAMPLING_RES, 'magneticComponent': 'd', 'resultFormat': 'json'})
     f = urllib.request.urlopen("https://www.ngdc.noaa.gov/geomag-web/calculators/calculateIgrfgrid?%s" % params)
@@ -109,7 +109,7 @@ print('}')
 
 print('')
 
-print('TEST(GeoLookupTest, inclination) {')
+print('TEST(GeoLookupTest, inclination)\n{')
 for latitude in range(SAMPLING_MIN_LAT, SAMPLING_MAX_LAT+1, SAMPLING_RES):
     params = urllib.parse.urlencode({'lat1': latitude, 'lat2': latitude, 'lon1': SAMPLING_MIN_LON, 'lon2': SAMPLING_MAX_LON, 'latStepSize': 1, 'lonStepSize': SAMPLING_RES, 'magneticComponent': 'i', 'resultFormat': 'json'})
     f = urllib.request.urlopen("https://www.ngdc.noaa.gov/geomag-web/calculators/calculateIgrfgrid?%s" % params)
@@ -127,7 +127,7 @@ print('}')
 
 print('')
 
-print('TEST(GeoLookupTest, strength) {')
+print('TEST(GeoLookupTest, strength)\n{')
 for latitude in range(SAMPLING_MIN_LAT, SAMPLING_MAX_LAT+1, SAMPLING_RES):
     params = urllib.parse.urlencode({'lat1': latitude, 'lat2': latitude, 'lon1': SAMPLING_MIN_LON, 'lon2': SAMPLING_MAX_LON, 'latStepSize': 1, 'lonStepSize': SAMPLING_RES, 'magneticComponent': 'f', 'resultFormat': 'json'})
     f = urllib.request.urlopen("https://www.ngdc.noaa.gov/geomag-web/calculators/calculateIgrfgrid?%s" % params)

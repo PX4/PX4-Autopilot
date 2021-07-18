@@ -39,5 +39,7 @@ add_library(world_magnetic_model
 add_dependencies(world_magnetic_model prebuild_targets)
 target_compile_options(world_magnetic_model PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
 
-add_compile_options(-Wno-double-promotion)
-px4_add_unit_gtest(SRC test_geo_lookup.cpp LINKLIBS world_magnetic_model)
+if(BUILD_TESTING)
+	px4_add_unit_gtest(SRC test_geo_lookup.cpp LINKLIBS world_magnetic_model)
+	target_compile_options(unit-test_geo_lookup PRIVATE -O0 -Wno-double-promotion)
+endif()
