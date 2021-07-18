@@ -128,7 +128,6 @@ pipeline {
                     sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_BL_UPDATE" --value "1"'       // update bootloader
                     checkStatus()
                     quickCalibrate()
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "px4io status" || true'
                   }
                 }
                 stage("print topics") {
@@ -374,12 +373,12 @@ pipeline {
                   steps {
                     sh 'export'
                     sh 'find /dev/serial'
+                    unstash 'px4_fmu-v5_debug'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set SYS_AUTOSTART 0" || true'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set IMU_GYRO_RATEMAX 200" || true' // limit cpu usage
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set MAV_0_CONFIG 0" || true'       // limit cpu usage
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set MAV_1_CONFIG 0" || true'       // limit cpu usage
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param save" || true'
-                    unstash 'px4_fmu-v5_debug'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_debug/px4_fmu-v5_debug.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                   }
@@ -515,12 +514,12 @@ pipeline {
                   steps {
                     sh 'export'
                     sh 'find /dev/serial'
+                    unstash 'px4_fmu-v5_stackcheck'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set SYS_AUTOSTART 0" || true'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set IMU_GYRO_RATEMAX 200" || true' // limit cpu usage
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set MAV_0_CONFIG 0" || true'       // limit cpu usage
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set MAV_1_CONFIG 0" || true'       // limit cpu usage
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param save" || true'
-                    unstash 'px4_fmu-v5_stackcheck'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_stackcheck/px4_fmu-v5_stackcheck.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                   }
