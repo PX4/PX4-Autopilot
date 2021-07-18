@@ -20,6 +20,9 @@ __BEGIN_DECLS
 
 #include <px4_platform_common/board_common.h>
 
+#define HRT_TIMER 1
+#define HRT_TIMER_CHANNEL 1
+
 #endif /* __ASSEMBLY__ */
 
 __END_DECLS

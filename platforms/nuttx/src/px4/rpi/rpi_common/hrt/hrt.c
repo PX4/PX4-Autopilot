@@ -63,7 +63,7 @@
 #include <drivers/drv_hrt.h>
 
 
-#include "rp2040_gpio.h"
+// #include "rp2040_gpio.h"
 
 #ifdef CONFIG_DEBUG_HRT
 #  define hrtinfo _info
@@ -71,102 +71,23 @@
 #  define hrtinfo(x...)
 #endif
 
+// RP2040 has a dedicated 64-bit timer which updates at 1MHz. This timer can be used here as hrt.
+// The advantage is that this timer will not overflow as it can run for thousands of years.
+// This timer is activated when the clk_ref is configured for watchdog and TICK is enabled.
+// Fortunately, nuttx by default does this for us in rp2040_clock.c file. Thus, no init required.
+// Four individual interrupts can be configured which are triggered when the lower 32-bits of the timer
+// matches with the value in ALARMx register. This allows for the interrupt to fire at ~72 min in future.
+// Take a look at src/drivers/drv_hrt.h to find all the necessary functions required to be implemented.
+
+#undef HRT_PPM_CHANNEL		// No support for ppm is added so far.
+
 #ifdef HRT_TIMER
 
 /* HRT configuration */
 #if   HRT_TIMER == 1
-# define HRT_TIMER_BASE		STM32_TIM1_BASE
-# define HRT_TIMER_POWER_REG	STM32_RCC_APB2ENR
-# define HRT_TIMER_POWER_BIT	RCC_APB2ENR_TIM1EN
-# define HRT_TIMER_VECTOR	STM32_IRQ_TIM1CC
-# define HRT_TIMER_CLOCK	STM32_APB2_TIM1_CLKIN
-# if CONFIG_STM32_TIM1
-#  error must not set CONFIG_STM32_TIM1=y and HRT_TIMER=1
-# endif
-#elif HRT_TIMER == 2
-# define HRT_TIMER_BASE		STM32_TIM2_BASE
-# define HRT_TIMER_POWER_REG	STM32_RCC_APB1ENR
-# define HRT_TIMER_POWER_BIT	RCC_APB1ENR_TIM2EN
-# define HRT_TIMER_VECTOR	STM32_IRQ_TIM2
-# define HRT_TIMER_CLOCK	STM32_APB1_TIM2_CLKIN
-# if CONFIG_STM32_TIM2
-#  error must not set CONFIG_STM32_TIM2=y and HRT_TIMER=2
-# endif
-#elif HRT_TIMER == 3
-# define HRT_TIMER_BASE		STM32_TIM3_BASE
-# define HRT_TIMER_POWER_REG	STM32_RCC_APB1ENR
-# define HRT_TIMER_POWER_BIT	RCC_APB1ENR_TIM3EN
-# define HRT_TIMER_VECTOR	STM32_IRQ_TIM3
-# define HRT_TIMER_CLOCK	STM32_APB1_TIM3_CLKIN
-# if CONFIG_STM32_TIM3
-#  error must not set CONFIG_STM32_TIM3=y and HRT_TIMER=3
-# endif
-#elif HRT_TIMER == 4
-# define HRT_TIMER_BASE		STM32_TIM4_BASE
-# define HRT_TIMER_POWER_REG	STM32_RCC_APB1ENR
-# define HRT_TIMER_POWER_BIT	RCC_APB1ENR_TIM4EN
-# define HRT_TIMER_VECTOR	STM32_IRQ_TIM4
-# define HRT_TIMER_CLOCK	STM32_APB1_TIM4_CLKIN
-# if CONFIG_STM32_TIM4
-#  error must not set CONFIG_STM32_TIM4=y and HRT_TIMER=4
-# endif
-#elif HRT_TIMER == 5
-# define HRT_TIMER_BASE		STM32_TIM5_BASE
-# define HRT_TIMER_POWER_REG	STM32_RCC_APB1ENR
-# define HRT_TIMER_POWER_BIT	RCC_APB1ENR_TIM5EN
-# define HRT_TIMER_VECTOR	STM32_IRQ_TIM5
-# define HRT_TIMER_CLOCK	STM32_APB1_TIM5_CLKIN
-# if CONFIG_STM32_TIM5
-#  error must not set CONFIG_STM32_TIM5=y and HRT_TIMER=5
-# endif
-#elif HRT_TIMER == 8
-# define HRT_TIMER_BASE		STM32_TIM8_BASE
-# define HRT_TIMER_POWER_REG	STM32_RCC_APB2ENR
-# define HRT_TIMER_POWER_BIT	RCC_APB2ENR_TIM8EN
-# define HRT_TIMER_VECTOR	STM32_IRQ_TIM8CC
-# define HRT_TIMER_CLOCK	STM32_APB2_TIM8_CLKIN
-# if CONFIG_STM32_TIM8
-#  error must not set CONFIG_STM32_TIM8=y and HRT_TIMER=8
-# endif
-#elif HRT_TIMER == 9
-# define HRT_TIMER_BASE		STM32_TIM9_BASE
-# define HRT_TIMER_POWER_REG	STM32_RCC_APB2ENR
-# define HRT_TIMER_POWER_BIT	RCC_APB2ENR_TIM9EN
-# define HRT_TIMER_VECTOR	STM32_IRQ_TIM1BRK
-# define HRT_TIMER_CLOCK	STM32_APB2_TIM9_CLKIN
-# if CONFIG_STM32_TIM9
-#  error must not set CONFIG_STM32_TIM9=y and HRT_TIMER=9
-# endif
-#elif HRT_TIMER == 10
-# define HRT_TIMER_BASE		STM32_TIM10_BASE
-# define HRT_TIMER_POWER_REG	STM32_RCC_APB2ENR
-# define HRT_TIMER_POWER_BIT	RCC_APB2ENR_TIM10EN
-# define HRT_TIMER_VECTOR	STM32_IRQ_TIM1UP
-# define HRT_TIMER_CLOCK	STM32_APB2_TIM10_CLKIN
-# if CONFIG_STM32_TIM10
-#  error must not set CONFIG_STM32_TIM11=y and HRT_TIMER=10
-# endif
-#elif HRT_TIMER == 11
-# define HRT_TIMER_BASE		STM32_TIM11_BASE
-# define HRT_TIMER_POWER_REG	STM32_RCC_APB2ENR
-# define HRT_TIMER_POWER_BIT	RCC_APB2ENR_TIM11EN
-# define HRT_TIMER_VECTOR	STM32_IRQ_TIM1TRGCOM
-# define HRT_TIMER_CLOCK	STM32_APB2_TIM11_CLKIN
-# if CONFIG_STM32_TIM11
-#  error must not set CONFIG_STM32_TIM11=y and HRT_TIMER=11
-# endif
+# define HRT_TIMER_BASE		RP2040_TIMER_BASE
 #else
-# error HRT_TIMER must be a value between 1 and 11
-#endif
-
-/*
- * HRT clock must be a multiple of 1MHz greater than 1MHz
- */
-#if (HRT_TIMER_CLOCK % 1000000) != 0
-# error HRT_TIMER_CLOCK must be a multiple of 1MHz
-#endif
-#if HRT_TIMER_CLOCK <= 1000000
-# error HRT_TIMER_CLOCK must be greater than 1MHz
+# error HRT_TIMER must have a value of 1 because there is only one timer in RP2040
 #endif
 
 /**
@@ -182,12 +103,8 @@
  * result in missing the deadline.
  */
 #define HRT_INTERVAL_MIN	50
-#define HRT_INTERVAL_MAX	50000
-
-/*
- * Period of the free-running counter, in microseconds.
- */
-#define HRT_COUNTER_PERIOD	65536
+// #define HRT_INTERVAL_MAX	50000
+#define HRT_INTERVAL_MAX	4000000000
 
 /*
  * Scaling factor(s) for the free-running counter; convert an input
@@ -200,45 +117,44 @@
  */
 #define REG(_reg)	(*(volatile uint32_t *)(HRT_TIMER_BASE + _reg))
 
-#define rCR1     	REG(STM32_GTIM_CR1_OFFSET)
-#define rCR2     	REG(STM32_GTIM_CR2_OFFSET)
-#define rSMCR    	REG(STM32_GTIM_SMCR_OFFSET)
-#define rDIER    	REG(STM32_GTIM_DIER_OFFSET)
-#define rSR      	REG(STM32_GTIM_SR_OFFSET)
-#define rEGR     	REG(STM32_GTIM_EGR_OFFSET)
-#define rCCMR1   	REG(STM32_GTIM_CCMR1_OFFSET)
-#define rCCMR2   	REG(STM32_GTIM_CCMR2_OFFSET)
-#define rCCER    	REG(STM32_GTIM_CCER_OFFSET)
-#define rCNT     	REG(STM32_GTIM_CNT_OFFSET)
-#define rPSC     	REG(STM32_GTIM_PSC_OFFSET)
-#define rARR     	REG(STM32_GTIM_ARR_OFFSET)
-#define rCCR1    	REG(STM32_GTIM_CCR1_OFFSET)
-#define rCCR2    	REG(STM32_GTIM_CCR2_OFFSET)
-#define rCCR3    	REG(STM32_GTIM_CCR3_OFFSET)
-#define rCCR4    	REG(STM32_GTIM_CCR4_OFFSET)
-#define rDCR     	REG(STM32_GTIM_DCR_OFFSET)
-#define rDMAR    	REG(STM32_GTIM_DMAR_OFFSET)
+#define rTIMEHW		REG(0x0)
+#define rTIMELW		REG(0x4)
+#define rTIMEHR		REG(0x8)
+#define rTIMELR		REG(0xc)
+#define rALARM0		REG(0x10)
+#define rALARM1		REG(0x14)
+#define rALARM2		REG(0x18)
+#define rALARM3		REG(0x1c)
+#define rARMED		REG(0x20)
+#define rTIMERAWH	REG(0x24)
+#define rTIMERAWL	REG(0x28)
+#define rDBGPAUSE	REG(0x2c)
+#define rPAUSE		REG(0x30)
+#define rINTR		REG(0x34)
+#define rINTE		REG(0x38)
+#define rINTF		REG(0x3c)
+#define rINTS		REG(0x40)
 
 /*
  * Specific registers and bits used by HRT sub-functions
  */
 /* FIXME! There is an interaction in the CCMR registers that prevents using Chan 1 as the timer and chan 2 as the PPM*/
 #if HRT_TIMER_CHANNEL == 1
-# define rCCR_HRT	rCCR1			/* compare register for HRT */
-# define DIER_HRT	GTIM_DIER_CC1IE		/* interrupt enable for HRT */
-# define SR_INT_HRT	GTIM_SR_CC1IF		/* interrupt status for HRT */
+# define HRT_TIMER_VECTOR	RP2040_TIMER_IRQ_0	// Timer alarm interrupt vector //
+# define HRT_ALARM_VALUE	rALARM0			// Alarm register for HRT (similar to compare register for other MCUs) //
+# define HRT_ALARM_ENABLE	(1 << 0)		// Bit-0 for alarm 0 //
 #elif HRT_TIMER_CHANNEL == 2
-# define rCCR_HRT	rCCR2			/* compare register for HRT */
-# define DIER_HRT	GTIM_DIER_CC2IE		/* interrupt enable for HRT */
-# define SR_INT_HRT	GTIM_SR_CC2IF		/* interrupt status for HRT */
+# define HRT_TIMER_VECTOR	RP2040_TIMER_IRQ_1	// Timer alarm interrupt vector //
+# define HRT_ALARM_VALUE	rALARM1			// Alarm register for HRT (similar to compare register for other MCUs) //
+# define HRT_ALARM_ENABLE	(1 << 1)		// Bit-1 for alarm 1 //
 #elif HRT_TIMER_CHANNEL == 3
-# define rCCR_HRT	rCCR3			/* compare register for HRT */
-# define DIER_HRT	GTIM_DIER_CC3IE		/* interrupt enable for HRT */
-# define SR_INT_HRT	GTIM_SR_CC3IF		/* interrupt status for HRT */
+# define HRT_TIMER_VECTOR	RP2040_TIMER_IRQ_2	// Timer alarm interrupt vector //
+# define HRT_ALARM_VALUE	rALARM2			// Alarm register for HRT (similar to compare register for other MCUs) //
+# define HRT_ALARM_ENABLE	(1 << 2)		// Bit-2 for alarm 2 //
 #elif HRT_TIMER_CHANNEL == 4
-# define rCCR_HRT	rCCR4			/* compare register for HRT */
-# define DIER_HRT	GTIM_DIER_CC4IE		/* interrupt enable for HRT */
-# define SR_INT_HRT	GTIM_SR_CC4IF		/* interrupt status for HRT */
+# define HRT_TIMER_VECTOR	RP2040_TIMER_IRQ_3	// Timer alarm interrupt vector //
+# define HRT_ALARM_VALUE	rALARM3			// Alarm register for HRT (similar to compare register for other MCUs) //
+# define HRT_ALARM_ENABLE	(1 << 3)		// Bit-3 for alarm 3 //
 #else
 # error HRT_TIMER_CHANNEL must be a value between 1 and 4
 #endif
@@ -249,10 +165,10 @@
 static struct sq_queue_s	callout_queue;
 
 /* latency baseline (last compare value applied) */
-static uint16_t			latency_baseline;
+static uint64_t			latency_baseline;
 
 /* timer count at interrupt (for latency purposes) */
-static uint16_t			latency_actual;
+static uint64_t			latency_actual;
 
 /* latency histogram */
 const uint16_t latency_bucket_count = LATENCY_BUCKET_COUNT;
@@ -409,37 +325,14 @@ hrt_tim_init(void)
 	/* claim our interrupt vector */
 	irq_attach(HRT_TIMER_VECTOR, hrt_tim_isr, NULL);
 
-	/* clock/power on our timer */
-	modifyreg32(HRT_TIMER_POWER_REG, 0, HRT_TIMER_POWER_BIT);
+	/* Enable alarm interrupt */
+	rINTE = HRT_ALARM_ENABLE;
 
-	/* disable and configure the timer */
-	rCR1 = 0;
-	rCR2 = 0;
-	rSMCR = 0;
-	rDIER = DIER_HRT | DIER_PPM;
-	rCCER = 0;		/* unlock CCMR* registers */
-	rCCMR1 = CCMR1_PPM;
-	rCCMR2 = CCMR2_PPM;
-	rCCER = CCER_PPM;
-	rDCR = 0;
-
-	/* configure the timer to free-run at 1MHz */
-	rPSC = (HRT_TIMER_CLOCK / 1000000) - 1;	/* this really only works for whole-MHz clocks */
-
-	/* run the full span of the counter */
-	rARR = 0xffff;
-
-	/* set an initial capture a little ways off */
-	rCCR_HRT = 1000;
-
-	/* generate an update event; reloads the counter, all registers */
-	rEGR = GTIM_EGR_UG;
-
-	/* enable the timer */
-	rCR1 = GTIM_CR1_CEN;
-
-	/* enable interrupts */
+	/* Enable vector interrupt */
 	up_enable_irq(HRT_TIMER_VECTOR);
+
+	/* Set Initial capture a little ways off */
+	HRT_ALARM_VALUE = rTIMERAWL + 1000;
 }
 
 #ifdef HRT_PPM_CHANNEL
@@ -604,16 +497,8 @@ error:
 static int
 hrt_tim_isr(int irq, void *context, void *arg)
 {
-	uint32_t status;
-
 	/* grab the timer for latency tracking purposes */
-	latency_actual = rCNT;
-
-	/* copy interrupt status */
-	status = rSR;
-
-	/* ack the interrupts we just read */
-	rSR = ~status;
+	latency_actual = hrt_absolute_time();
 
 #ifdef HRT_PPM_CHANNEL
 
@@ -629,18 +514,15 @@ hrt_tim_isr(int irq, void *context, void *arg)
 
 #endif
 
-	/* was this a timer tick? */
-	if (status & SR_INT_HRT) {
+	/* It is never a timer tick. It is always triggered by alarm. */
+	/* do latency calculations */
+	hrt_latency_update();
 
-		/* do latency calculations */
-		hrt_latency_update();
+	/* run any callouts that have met their deadline */
+	hrt_call_invoke();
 
-		/* run any callouts that have met their deadline */
-		hrt_call_invoke();
-
-		/* and schedule the next interrupt */
-		hrt_call_reschedule();
-	}
+	/* and schedule the next interrupt */
+	hrt_call_reschedule();
 
 	return OK;
 }
@@ -649,55 +531,26 @@ hrt_tim_isr(int irq, void *context, void *arg)
  * Fetch a never-wrapping absolute time value in microseconds from
  * some arbitrary epoch shortly after system start.
  */
-hrt_abstime
-hrt_absolute_time(void)
+hrt_abstime hrt_absolute_time(void)
 {
-	hrt_abstime	abstime;
-	uint32_t	count;
-	irqstate_t	flags;
+	/* Taken from rp2040 datasheet pg. 558 */
+	uint32_t hi = rTIMERAWH;
+	uint32_t lo;
+	do
+	{
+		lo = rTIMERAWL;
+		uint32_t next_hi = rTIMERAWH;
+		if (hi == next_hi) break;
+		hi = next_hi;
+	} while (true);
 
-	/*
-	 * Counter state.  Marked volatile as they may change
-	 * inside this routine but outside the irqsave/restore
-	 * pair.  Discourage the compiler from moving loads/stores
-	 * to these outside of the protected range.
-	 */
-	static volatile hrt_abstime base_time;
-	static volatile uint32_t last_count;
-
-	/* prevent re-entry */
-	flags = px4_enter_critical_section();
-
-	/* get the current counter value */
-	count = rCNT;
-
-	/*
-	 * Determine whether the counter has wrapped since the
-	 * last time we're called.
-	 *
-	 * This simple test is sufficient due to the guarantee that
-	 * we are always called at least once per counter period.
-	 */
-	if (count < last_count) {
-		base_time += HRT_COUNTER_PERIOD;
-	}
-
-	/* save the count for next time */
-	last_count = count;
-
-	/* compute the current time */
-	abstime = HRT_COUNTER_SCALE(base_time + count);
-
-	px4_leave_critical_section(flags);
-
-	return abstime;
+	return ((uint64_t) hi << 32) | lo;
 }
 
 /**
  * Convert a timespec to absolute time
  */
-hrt_abstime
-ts_to_abstime(const struct timespec *ts)
+hrt_abstime ts_to_abstime(const struct timespec *ts)
 {
 	hrt_abstime	result;
 
@@ -710,8 +563,7 @@ ts_to_abstime(const struct timespec *ts)
 /**
  * Convert absolute time to a timespec.
  */
-void
-abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
+void abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
 {
 	ts->tv_sec = abstime / 1000000;
 	abstime -= ts->tv_sec * 1000000;
@@ -721,8 +573,7 @@ abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
 /**
  * Compare a time value with the current time as atomic operation
  */
-hrt_abstime
-hrt_elapsed_time_atomic(const volatile hrt_abstime *then)
+hrt_abstime hrt_elapsed_time_atomic(const volatile hrt_abstime *then)
 {
 	irqstate_t flags = px4_enter_critical_section();
 
@@ -736,8 +587,7 @@ hrt_elapsed_time_atomic(const volatile hrt_abstime *then)
 /**
  * Store the absolute time in an interrupt-safe fashion
  */
-void
-hrt_store_absolute_time(volatile hrt_abstime *t)
+void hrt_store_absolute_time(volatile hrt_abstime *t)
 {
 	irqstate_t flags = px4_enter_critical_section();
 	*t = hrt_absolute_time();
@@ -969,7 +819,7 @@ hrt_call_reschedule()
 	hrtinfo("schedule for %u at %u\n", (unsigned)(deadline & 0xffffffff), (unsigned)(now & 0xffffffff));
 
 	/* set the new compare value and remember it for latency tracking */
-	rCCR_HRT = latency_baseline = deadline & 0xffff;
+	HRT_ALARM_VALUE = (latency_baseline = deadline) & 0xffffffff;
 }
 
 static void
