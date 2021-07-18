@@ -75,29 +75,25 @@ cycletime(void)
 
 int test_time(int argc, char *argv[])
 {
-	hrt_abstime h, c;
-	int lowdelta, maxdelta = 0;
-	int delta, deltadelta;
+	int maxdelta = 0;
 
 	/* enable the cycle counter */
 	(*(unsigned long *)0xe000edfc) |= (1 << 24);    /* DEMCR |= DEMCR_TRCENA */
 	(*(unsigned long *)0xe0001000) |= 1;    	/* DWT_CTRL |= DWT_CYCCNT_ENA */
 
 	/* get an average delta between the two clocks - this should stay roughly the same */
-	delta = 0;
+	int delta = 0;
 
 	for (unsigned i = 0; i < 100; i++) {
-		uint32_t flags = px4_enter_critical_section();
-
-		h = hrt_absolute_time();
-		c = cycletime();
-
+		irqstate_t flags = px4_enter_critical_section();
+		hrt_abstime h = hrt_absolute_time();
+		hrt_abstime c = cycletime();
 		px4_leave_critical_section(flags);
 
 		delta += h - c;
 	}
 
-	lowdelta = abs(delta / 100);
+	int lowdelta = abs(delta / 100);
 
 	/* loop checking the time */
 	for (unsigned i = 0; i < 100; i++) {
@@ -106,13 +102,13 @@ int test_time(int argc, char *argv[])
 
 		uint32_t flags = px4_enter_critical_section();
 
-		c = cycletime();
-		h = hrt_absolute_time();
+		hrt_abstime c = cycletime();
+		hrt_abstime h = hrt_absolute_time();
 
 		px4_leave_critical_section(flags);
 
 		delta = h - c;
-		deltadelta = abs(delta - lowdelta);
+		int deltadelta = abs(delta - lowdelta);
 
 		if (deltadelta > maxdelta) {
 			maxdelta = deltadelta;
