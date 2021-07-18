@@ -73,7 +73,7 @@ class SensorSimulator
 
 public:
 	SensorSimulator(std::shared_ptr<Ekf> ekf);
-	~SensorSimulator();
+	~SensorSimulator() = default;
 
 	uint64_t getTime() const { return _time; };
 
