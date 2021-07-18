@@ -93,7 +93,7 @@ px4_add_board(
 		#vmount
 		vtol_att_control
 	SYSTEMCMDS
-		bl_update
+		#bl_update
 		dmesg
 		dumpfile
 		esc_calib
