@@ -188,11 +188,13 @@ TEST_F(EkfInitializationTest, gyroBias)
 				printf("%d|  ", i);
 
 				for (uint8_t j = 0; j <= 15; j++) {
-					double corr = sqrt(abs(P(i, i) * P(j, j)));
+					float corr = sqrtf(fabsf(P(i, i) * P(j, j)));
 
-					if (corr > 0.0) { corr = double(abs(P(i, j))) / corr; }
+					if (corr > 0.0f) {
+						corr = fabsf(P(i, j)) / corr;
+					}
 
-					printf("%.3f\t", corr);
+					printf("%.3f\t", (double)corr);
 				}
 
 				printf("\n");
