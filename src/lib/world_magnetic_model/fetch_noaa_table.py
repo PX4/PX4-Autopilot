@@ -47,7 +47,7 @@ def constrain(n, nmin, nmax):
 
 header = """/****************************************************************************
  *
- *   Copyright (c) 2020 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -59,7 +59,7 @@ header = """/*******************************************************************
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -95,6 +95,8 @@ print('static constexpr int LAT_DIM = {}'.format(LAT_DIM) + ';')
 print('static constexpr int LON_DIM = {}'.format(LON_DIM) + ';')
 print('\n')
 
+print('// *INDENT-OFF*')
+
 # Declination
 params = urllib.parse.urlencode({'lat1': 0, 'lat2': 0, 'lon1': 0, 'lon2': 0, 'latStepSize': 1, 'lonStepSize': 1, 'magneticComponent': 'd', 'resultFormat': 'json'})
 f = urllib.request.urlopen("https://www.ngdc.noaa.gov/geomag-web/calculators/calculateIgrfgrid?%s" % params)
@@ -104,7 +106,7 @@ print('// Model: {},'.format(data['model']))
 print('// Version: {},'.format(data['version']))
 print('// Date: {},'.format(data['result'][0]['date']))
 print('static constexpr const int16_t declination_table[{}][{}]'.format(LAT_DIM, LON_DIM) + " {")
-print('//    LONGITUDE: ', end='')
+print('\t//    LONGITUDE: ', end='')
 for l in range(SAMPLING_MIN_LON, SAMPLING_MAX_LON+1, SAMPLING_RES):
     print('{0:6d},'.format(l), end='')
 print('')
@@ -113,7 +115,7 @@ for latitude in range(SAMPLING_MIN_LAT, SAMPLING_MAX_LAT+1, SAMPLING_RES):
     f = urllib.request.urlopen("https://www.ngdc.noaa.gov/geomag-web/calculators/calculateIgrfgrid?%s" % params)
     data = json.loads(f.read())
 
-    print('/* LAT: {0:3d} */'.format(latitude) + ' { ', end='')
+    print('\t/* LAT: {0:3d} */'.format(latitude) + ' { ', end='')
     for p in data['result']:
         # declination in radians * 10^-4
         declination_int = constrain(int(round(math.radians(p['declination'] * 10000))), 32767, -32768)
@@ -131,7 +133,7 @@ print('// Model: {},'.format(data['model']))
 print('// Version: {},'.format(data['version']))
 print('// Date: {},'.format(data['result'][0]['date']))
 print('static constexpr const int16_t inclination_table[{}][{}]'.format(LAT_DIM, LON_DIM) + " {")
-print('//    LONGITUDE: ', end='')
+print('\t//    LONGITUDE: ', end='')
 for l in range(SAMPLING_MIN_LON, SAMPLING_MAX_LON+1, SAMPLING_RES):
     print('{0:6d},'.format(l), end='')
 print('')
@@ -140,7 +142,7 @@ for latitude in range(SAMPLING_MIN_LAT, SAMPLING_MAX_LAT+1, SAMPLING_RES):
     f = urllib.request.urlopen("https://www.ngdc.noaa.gov/geomag-web/calculators/calculateIgrfgrid?%s" % params)
     data = json.loads(f.read())
 
-    print('/* LAT: {0:3d} */'.format(latitude) + ' { ', end='')
+    print('\t/* LAT: {0:3d} */'.format(latitude) + ' { ', end='')
     for p in data['result']:
         # inclination in radians * 10^-4
         inclination_int = constrain(int(round(math.radians(p['inclination'] * 10000))), 32767, -32768)
@@ -158,7 +160,7 @@ print('// Model: {},'.format(data['model']))
 print('// Version: {},'.format(data['version']))
 print('// Date: {},'.format(data['result'][0]['date']))
 print('static constexpr const int16_t strength_table[{}][{}]'.format(LAT_DIM, LON_DIM) + " {")
-print('//    LONGITUDE: ', end='')
+print('\t//    LONGITUDE: ', end='')
 for l in range(SAMPLING_MIN_LON, SAMPLING_MAX_LON+1, SAMPLING_RES):
     print('{0:5d},'.format(l), end='')
 print('')
@@ -167,7 +169,7 @@ for latitude in range(SAMPLING_MIN_LAT, SAMPLING_MAX_LAT+1, SAMPLING_RES):
     f = urllib.request.urlopen("https://www.ngdc.noaa.gov/geomag-web/calculators/calculateIgrfgrid?%s" % params)
     data = json.loads(f.read())
 
-    print('/* LAT: {0:3d} */'.format(latitude) + ' { ', end='')
+    print('\t/* LAT: {0:3d} */'.format(latitude) + ' { ', end='')
     for p in data['result']:
         totalintensity_int = int(round(p['totalintensity']/10))
         print('{0:5d},'.format(totalintensity_int), end='')
