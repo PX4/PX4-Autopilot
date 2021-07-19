@@ -74,6 +74,10 @@ def do_nsh_cmd(port, baudrate, cmd):
 
         if cmd in serial_line:
             break
+        elif serial_line.startswith(success_cmd) and len(serial_line) <= len(success_cmd) + 2:
+            print_line(serial_line)
+            # we missed the echo, but command ran and succeeded
+            sys.exit(0)
         else:
             if len(serial_line) > 0:
                 print_line(serial_line)
