@@ -1608,7 +1608,12 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 					    && (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING)) {
 
 						if (_distance_sensor_sub.ChangeInstance(i)) {
-							PX4_INFO("%d - selected distance_sensor:%d", _instance, i);
+							int ndist = orb_group_count(ORB_ID(distance_sensor));
+
+							if (ndist > 1) {
+								PX4_INFO("%d - selected distance_sensor:%d (%d advertised)", _instance, i, ndist);
+							}
+
 							_distance_sensor_selected = true;
 							break;
 						}
