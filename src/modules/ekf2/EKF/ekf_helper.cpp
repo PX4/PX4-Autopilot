@@ -1319,7 +1319,10 @@ void Ekf::updateBaroHgtOffset()
 		const float local_time_step = math::constrain(1e-6f * _delta_time_baro_us, 0.0f, 1.0f);
 
 		// apply a 10 second first order low pass filter to baro offset
-		const float offset_rate_correction = 0.1f * (_baro_sample_delayed.hgt + _state.pos(2) - _baro_hgt_offset);
+		const float unbiased_baro = _baro_sample_delayed.hgt - _baro_b_est.getBias();
+;
+		const float offset_rate_correction =  0.1f * (unbiased_baro + _state.pos(2) -
+								_baro_hgt_offset);
 		_baro_hgt_offset += local_time_step * math::constrain(offset_rate_correction, -0.1f, 0.1f);
 	}
 }
@@ -1332,6 +1335,37 @@ float Ekf::getGpsHeightVariance()
 	const float upper_limit = fmaxf(1.5f * _params.pos_noaid_noise, lower_limit);
 	const float gps_alt_var = sq(math::constrain(_gps_sample_delayed.vacc, lower_limit, upper_limit));
 	return gps_alt_var;
+}
+
+void Ekf::updateBaroHgtBias()
+{
+	// Baro bias estimation using GPS altitude
+	if (_baro_data_ready) {
+		const float dt = math::constrain(1e-6f * _delta_time_baro_us, 0.0f, 1.0f);
+		_baro_b_est.setMaxStateNoise(_params.baro_noise);
+		_baro_b_est.setProcessNoiseStdDev(_params.baro_drift_rate);
+		_baro_b_est.predict(dt);
+	}
+
+	if (_gps_data_ready && !_gps_hgt_intermittent
+	    && _gps_checks_passed &&_NED_origin_initialised
+	    && !_baro_hgt_faulty) {
+		// Use GPS altitude as a reference to compute the baro bias measurement
+		const float baro_bias = (_baro_sample_delayed.hgt - _baro_hgt_offset)
+					- (_gps_sample_delayed.hgt - _gps_alt_ref);
+		const float baro_bias_var = getGpsHeightVariance() + sq(_params.baro_noise);
+		_baro_b_est.fuseBias(baro_bias, baro_bias_var);
+	}
+}
+
+void Ekf::getBaroBiasEstimatorStatus(float &bias, float &bias_var, float &innov, float &innov_var, float &innov_test_ratio)
+{
+	BaroBiasEstimator::status status = _baro_b_est.getStatus();
+	bias = status.bias;
+	bias_var = status.bias_var;
+	innov = status.innov;
+	innov_var = status.innov_var;
+	innov_test_ratio = status.innov_test_ratio;
 }
 
 Vector3f Ekf::getVisionVelocityInEkfFrame() const
