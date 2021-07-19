@@ -403,7 +403,7 @@ void MulticopterPositionControl::Run()
 				math::constrain(speed_down, 0.f, _param_mpc_z_vel_max_dn.get()));
 
 
-			if (_param_mnt_uav_yaw.get() == 1 &&
+			if (_param_mnt_uav_yaw.get() == 1 && _param_mpc_yaw_mode.get() == 5 &&
 				_vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_LAND &&
 				_vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_TAKEOFF &&
 				_vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_PRECLAND &&
