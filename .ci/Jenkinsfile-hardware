@@ -23,6 +23,7 @@ pipeline {
                 sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make cubepilot_cubeorange_test'
+                sh 'make cubepilot_cubeorange_test bootloader_elf'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'cubepilot_cubeorange_test'
               }
@@ -32,7 +33,7 @@ pipeline {
                 }
               }
             } // stage build
-            stage("test") {
+            stage("hardware") {
               agent {
                 label 'cubepilot_cubeorange'
               }
@@ -42,6 +43,7 @@ pipeline {
                     sh 'export'
                     sh 'find /dev/serial'
                     unstash 'cubepilot_cubeorange_test'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cubepilot_cubeorange_test/cubepilot_cubeorange_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cubepilot_cubeorange_test/cubepilot_cubeorange_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                   }
@@ -91,6 +93,7 @@ pipeline {
                 sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make cuav_x7pro_test'
+                sh 'make cuav_x7pro_test bootloader_elf'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'cuav_x7pro_test'
               }
@@ -100,7 +103,7 @@ pipeline {
                 }
               }
             } // stage build
-            stage("test") {
+            stage("hardware") {
               agent {
                 label 'cuav_x7pro'
               }
@@ -110,6 +113,7 @@ pipeline {
                     sh 'export'
                     sh 'find /dev/serial'
                     unstash 'cuav_x7pro_test'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cuav_x7pro_test/cuav_x7pro_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cuav_x7pro_test/cuav_x7pro_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                   }
@@ -157,6 +161,7 @@ pipeline {
                 sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v3_test'
+                sh 'make px4_fmu-v3_test bootloader_elf'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'px4_fmu-v3_test'
               }
@@ -166,7 +171,7 @@ pipeline {
                 }
               }
             } // stage build
-            stage("test") {
+            stage("hardware") {
               agent {
                 label 'px4_fmu-v3'
               }
@@ -176,6 +181,7 @@ pipeline {
                     sh 'export'
                     sh 'find /dev/serial'
                     unstash 'px4_fmu-v3_test'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v3_test/px4_fmu-v3_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v3_test/px4_fmu-v3_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                   }
@@ -224,6 +230,7 @@ pipeline {
                 sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v4_test'
+                sh 'make px4_fmu-v4_test bootloader_elf'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'px4_fmu-v4_test'
               }
@@ -233,7 +240,7 @@ pipeline {
                 }
               }
             } // stage build
-            stage("test") {
+            stage("hardware") {
               agent {
                 label 'px4_fmu-v4'
               }
@@ -243,6 +250,7 @@ pipeline {
                     sh 'export'
                     sh 'find /dev/serial'
                     unstash 'px4_fmu-v4_test'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v4_test/px4_fmu-v4_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v4_test/px4_fmu-v4_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                   }
@@ -289,6 +297,7 @@ pipeline {
                 sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v4pro_test'
+                sh 'make px4_fmu-v4pro_test bootloader_elf'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'px4_fmu-v4pro_test'
               }
@@ -298,7 +307,7 @@ pipeline {
                 }
               }
             } // stage build
-            stage("test") {
+            stage("hardware") {
               agent {
                 label 'px4_fmu-v4pro'
               }
@@ -308,6 +317,7 @@ pipeline {
                     sh 'export'
                     sh 'find /dev/serial'
                     unstash 'px4_fmu-v4pro_test'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v4pro_test/px4_fmu-v4pro_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v4pro_test/px4_fmu-v4pro_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                   }
@@ -355,6 +365,7 @@ pipeline {
                 sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v5_debug'
+                sh 'make px4_fmu-v5_debug bootloader_elf'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'px4_fmu-v5_debug'
               }
@@ -364,7 +375,7 @@ pipeline {
                 }
               }
             } // stage build
-            stage("test") {
+            stage("hardware") {
               agent {
                 label 'px4_fmu-v5'
               }
@@ -379,6 +390,7 @@ pipeline {
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set MAV_0_CONFIG 0" || true'       // limit cpu usage
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set MAV_1_CONFIG 0" || true'       // limit cpu usage
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param save" || true'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_debug/px4_fmu-v5_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_debug/px4_fmu-v5_debug.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                   }
@@ -430,6 +442,7 @@ pipeline {
                 sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v5_optimized'
+                sh 'make px4_fmu-v5_optimized bootloader_elf'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'px4_fmu-v5_optimized'
               }
@@ -439,7 +452,7 @@ pipeline {
                 }
               }
             } // stage build
-            stage("test") {
+            stage("hardware") {
               agent {
                 label 'px4_fmu-v5'
               }
@@ -449,6 +462,7 @@ pipeline {
                     sh 'export'
                     sh 'find /dev/serial'
                     unstash 'px4_fmu-v5_optimized'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_optimized/px4_fmu-v5_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_optimized/px4_fmu-v5_optimized.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                   }
@@ -496,6 +510,7 @@ pipeline {
                 sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v5_stackcheck'
+                sh 'make px4_fmu-v5_stackcheck bootloader_elf'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'px4_fmu-v5_stackcheck'
               }
@@ -505,7 +520,7 @@ pipeline {
                 }
               }
             } // stage build
-            stage("test") {
+            stage("hardware") {
               agent {
                 label 'px4_fmu-v5'
               }
@@ -520,6 +535,7 @@ pipeline {
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set MAV_0_CONFIG 0" || true'       // limit cpu usage
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set MAV_1_CONFIG 0" || true'       // limit cpu usage
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param save" || true'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_stackcheck/px4_fmu-v5_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_stackcheck/px4_fmu-v5_stackcheck.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                   }
@@ -571,6 +587,7 @@ pipeline {
                 sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v5_test'
+                sh 'make px4_fmu-v5_test bootloader_elf'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'px4_fmu-v5_test'
               }
@@ -580,7 +597,7 @@ pipeline {
                 }
               }
             } // stage build
-            stage("test") {
+            stage("hardware") {
               agent {
                 label 'px4_fmu-v5'
               }
@@ -590,6 +607,7 @@ pipeline {
                     sh 'export'
                     sh 'find /dev/serial'
                     unstash 'px4_fmu-v5_test'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_test/px4_fmu-v5_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_test/px4_fmu-v5_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                   }
@@ -637,6 +655,7 @@ pipeline {
                 sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make modalai_fc-v1_test'
+                sh 'make modalai_fc-v1_test bootloader_elf'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'modalai_fc-v1_test'
               }
@@ -646,7 +665,7 @@ pipeline {
                 }
               }
             } // stage build
-            stage("test") {
+            stage("hardware") {
               agent {
                 label 'modalai_fc-v1'
               }
@@ -656,6 +675,7 @@ pipeline {
                     sh 'export'
                     sh 'find /dev/serial'
                     unstash 'modalai_fc-v1_test'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/modalai_fc-v1_test/modalai_fc-v1_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/modalai_fc-v1_test/modalai_fc-v1_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                   }
@@ -702,6 +722,7 @@ pipeline {
                 sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make nxp_fmuk66-v3_test'
+                //sh 'make nxp_fmuk66-v3_test bootloader_elf'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'nxp_fmuk66-v3_test'
               }
@@ -711,7 +732,7 @@ pipeline {
                 }
               }
             } // stage build
-            stage("test") {
+            stage("hardware") {
               agent {
                 label 'nxp_fmuk66-v3'
               }
@@ -721,6 +742,7 @@ pipeline {
                     sh 'export'
                     sh 'find /dev/serial'
                     unstash 'nxp_fmuk66-v3_test'
+                    //sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/nxp_fmuk66-v3_test/nxp_fmuk66-v3_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/nxp_fmuk66-v3_test/nxp_fmuk66-v3_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                   }
