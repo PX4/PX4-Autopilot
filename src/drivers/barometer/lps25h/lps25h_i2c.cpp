@@ -41,8 +41,6 @@
 
 #include <drivers/device/i2c.h>
 
-#define LPS25H_ADDRESS		0x5D
-
 device::Device *LPS25H_I2C_interface(int bus, int bus_frequency);
 
 class LPS25H_I2C : public device::I2C

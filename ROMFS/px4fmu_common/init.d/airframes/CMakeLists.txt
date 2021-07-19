@@ -71,7 +71,6 @@ px4_add_romfs_files(
 	4016_holybro_px4vision
 	4017_nxp_hovergames
 	4018_s500_ctrlalloc
-	4020_hk_micro_pcb
 	4030_3dr_solo
 	4031_3dr_quad
 	4040_reaper

@@ -1,6 +1,8 @@
 Mixer for an AAERT VTOL
 =======================
 
+# @board px4_fmu-v2 exclude
+
 Aileron 1 mixer
 ---------------
 M: 1

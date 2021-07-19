@@ -18,14 +18,6 @@
 	path = src/lib/matrix
 	url = https://github.com/PX4/PX4-Matrix.git
 	branch = master
-[submodule "src/lib/ecl"]
-	path = src/lib/ecl
-	url = https://github.com/PX4/PX4-ECL.git
-	branch = master
-[submodule "boards/atlflight/cmake_hexagon"]
-	path = boards/atlflight/cmake_hexagon
-	url = https://github.com/PX4/cmake_hexagon.git
-	branch = px4
 [submodule "src/drivers/gps/devices"]
 	path = src/drivers/gps/devices
 	url = https://github.com/PX4/PX4-GPSDrivers.git
@@ -42,9 +34,6 @@
 	path = platforms/nuttx/NuttX/apps
 	url = https://github.com/PX4/NuttX-apps.git
 	branch = px4_firmware_nuttx-10.0.0+
-[submodule "platforms/qurt/dspal"]
-	path = platforms/qurt/dspal
-	url = https://github.com/ATLFlight/dspal.git
 [submodule "Tools/flightgear_bridge"]
 	path = Tools/flightgear_bridge
 	url = https://github.com/PX4/PX4-FlightGear-Bridge.git
@@ -70,3 +59,7 @@
 [submodule "src/lib/crypto/monocypher"]
 	path = src/lib/crypto/monocypher
 	url = https://github.com/PX4/Monocypher.git
+	branch = px4
+[submodule "src/lib/events/libevents"]
+	path = src/lib/events/libevents
+	url = https://github.com/mavlink/libevents.git

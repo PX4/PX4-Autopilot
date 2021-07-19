@@ -37,7 +37,7 @@
 #include "boot_alt_app_shared.h"
 
 #include <drivers/drv_watchdog.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/version/version.h>
 
 #include "Publishers/BatteryInfo.hpp"

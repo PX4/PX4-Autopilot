@@ -73,19 +73,6 @@ FILE *get_stdout(bool *isatty_)
 		return stdout;
 	}
 
-#ifdef __PX4_POSIX_EAGLE
-
-	// XXX FIXME: thread_data_ptr is set to 0x1 in the main thread on Snapdragon
-	// even though the pthread_key has been created.
-	// We can catch this using the check below but we have no clue why this happens.
-	if (thread_data_ptr == (void *)0x1) {
-		if (isatty_) { *isatty_ = isatty(1); }
-
-		return stdout;
-	}
-
-#endif
-
 	if (thread_data_ptr->thread_stdout == nullptr) {
 		if (isatty_) { *isatty_ = isatty(1); }
 

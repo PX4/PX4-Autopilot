@@ -47,25 +47,6 @@ ADIS16477::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *ADIS16477::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-		int runtime_instance)
-{
-	ADIS16477 *instance = new ADIS16477(iterator.configuredBusOption(), iterator.bus(), iterator.devid(), cli.rotation,
-					    cli.bus_frequency, cli.spi_mode, iterator.DRDYGPIO());
-
-	if (!instance) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (OK != instance->init()) {
-		delete instance;
-		return nullptr;
-	}
-
-	return instance;
-}
-
 extern "C" int adis16477_main(int argc, char *argv[])
 {
 	int ch;

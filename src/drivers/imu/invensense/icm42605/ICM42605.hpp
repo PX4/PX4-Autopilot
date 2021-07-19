@@ -46,7 +46,7 @@
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/device/spi.h>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/i2c_spi_buses.h>
@@ -56,12 +56,9 @@ using namespace InvenSense_ICM42605;
 class ICM42605 : public device::SPI, public I2CSPIDriver<ICM42605>
 {
 public:
-	ICM42605(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-		 spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio);
+	ICM42605(const I2CSPIDriverConfig &config);
 	~ICM42605() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void RunImpl();

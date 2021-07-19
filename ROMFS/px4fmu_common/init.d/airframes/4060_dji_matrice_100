@@ -17,7 +17,7 @@ set MIXER quad_x
 set PWM_OUT 1234
 
 
-param set-default BAT_N_CELLS 6
+param set-default BAT1_N_CELLS 6
 
 param set-default MC_ROLL_P 6.5
 param set-default MC_ROLLRATE_P 0.05

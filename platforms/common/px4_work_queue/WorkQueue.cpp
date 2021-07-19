@@ -49,7 +49,7 @@ WorkQueue::WorkQueue(const wq_config_t &config) :
 	// set the threads name
 #ifdef __PX4_DARWIN
 	pthread_setname_np(_config.name);
-#elif !defined(__PX4_QURT)
+#else
 	pthread_setname_np(pthread_self(), _config.name);
 #endif
 

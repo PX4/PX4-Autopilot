@@ -5,45 +5,61 @@ import subprocess
 from subprocess import call, Popen
 from argparse import ArgumentParser
 import re
+import sys
+import datetime
+
+COLOR_RED    = "\x1b[31m"
+COLOR_GREEN  = "\x1b[32m"
+COLOR_YELLOW = "\x1b[33m"
+COLOR_WHITE  = "\x1b[37m"
+COLOR_RESET  = "\x1b[0m"
+
+def print_line(line):
+    if "WARNING" in line:
+        line = line.replace("WARNING", f"{COLOR_YELLOW}WARNING{COLOR_RESET}", 1)
+    elif "WARN" in line:
+        line = line.replace("WARN", f"{COLOR_YELLOW}WARN{COLOR_RESET}", 1)
+    elif "ERROR" in line:
+        line = line.replace("ERROR", f"{COLOR_RED}ERROR{COLOR_RESET}", 1)
+    elif "INFO" in line:
+        line = line.replace("INFO", f"{COLOR_WHITE}INFO{COLOR_RESET}", 1)
+
+    if "PASSED" in line:
+        line = line.replace("PASSED", f"{COLOR_GREEN}PASSED{COLOR_RESET}", 1)
+
+    if "FAILED" in line:
+        line = line.replace("FAILED", f"{COLOR_RED}FAILED{COLOR_RESET}", 1)
+
+    current_time = datetime.datetime.now()
+    print('[{0}] {1}'.format(current_time.isoformat(timespec='milliseconds'), line), end='')
 
 def monitor_firmware_upload(port, baudrate):
-    databits = serial.EIGHTBITS
-    stopbits = serial.STOPBITS_ONE
-    parity = serial.PARITY_NONE
-    ser = serial.Serial(port, baudrate, databits, parity, stopbits, timeout=1)
+    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1, xonxoff=True, rtscts=False, dsrdtr=False)
 
-    finished = 0
-
-    timeout = 300  # 5 minutes
+    timeout = 180  # 3 minutes
     timeout_start = time.time()
     timeout_newline = time.time()
 
-    while finished == 0:
+    while True:
         serial_line = ser.readline().decode("ascii", errors='ignore')
-        if (len(serial_line) > 0):
-            print(serial_line.replace('\n', ''))
+
+        if len(serial_line) > 0:
+            print_line(serial_line)
 
         if "NuttShell (NSH)" in serial_line:
-            finished = 1
-            break
-
-        if time.time() - timeout_start > 10:
-            if "nsh>" in serial_line:
-                finished = 1
-                break
+            sys.exit(0)
+        elif "nsh>" in serial_line:
+            sys.exit(0)
 
         if time.time() > timeout_start + timeout:
             print("Error, timeout")
-            finished = 1
-            break
+            sys.exit(-1)
 
         # newline every 10 seconds if still running
         if time.time() - timeout_newline > 10:
             timeout_newline = time.time()
-            ser.write('\n'.encode("ascii"))
+            ser.write("\n".encode("ascii"))
             ser.flush()
-
-    ser.close()
 
 def main():
     parser = ArgumentParser(description=__doc__)

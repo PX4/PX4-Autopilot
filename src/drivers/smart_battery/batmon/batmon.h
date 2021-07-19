@@ -54,16 +54,16 @@ class Batmon : public SMBUS_SBS_BaseClass<Batmon>
 {
 
 public:
-	Batmon(I2CSPIBusOption bus_option, const int bus, SMBus *interface);
-	~Batmon();
+	Batmon(const I2CSPIDriverConfig &config, SMBus *interface);
+	~Batmon() = default;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 
 	static void print_usage();
 
 	void RunImpl();
-	enum {
+
+	enum BATMON_REGISTERS {
 		BATT_SMBUS_TEMP_EXTERNAL_1		=	0x48,
 		BATT_SMBUS_TEMP_EXTERNAL_2		=	0x49,
 		BATT_SMBUS_CELL_1_VOLTAGE               =       0x3F,
@@ -83,7 +83,7 @@ public:
 		BATT_SMBUS_CELL_15_VOLTAGE              =       0x31,
 		BATT_SMBUS_CELL_16_VOLTAGE              =       0x30,
 		BATT_SMBUS_CELL_COUNT                   =       0x40
-	} BATMON_REGISTERS;
+	};
 
 private:
 

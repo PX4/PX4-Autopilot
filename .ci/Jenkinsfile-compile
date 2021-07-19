@@ -9,11 +9,10 @@ pipeline {
         script {
           def build_nodes = [:]
           def docker_images = [
-            armhf: "px4io/px4-dev-armhf:2021-04-29",
-            arm64: "px4io/px4-dev-aarch64:2021-04-29",
-            base: "px4io/px4-dev-base-bionic:2021-04-29",
-            nuttx: "px4io/px4-dev-nuttx-focal:2021-04-29",
-            snapdragon: "lorenzmeier/px4-dev-snapdragon:2020-04-01"
+            armhf: "px4io/px4-dev-armhf:2021-05-04",
+            arm64: "px4io/px4-dev-aarch64:2021-05-04",
+            base: "px4io/px4-dev-base-bionic:2021-05-04",
+            nuttx: "px4io/px4-dev-nuttx-focal:2021-05-04",
           ]
 
           def armhf_builds = [
@@ -106,14 +105,8 @@ pipeline {
             archive: true
           ]
 
-          def snapdragon_builds = [
-            target: ["atlflight_eagle_qurt", "atlflight_eagle_default"],
-            image: docker_images.snapdragon,
-            archive: false
-          ]
-
           def docker_builds = [
-            armhf_builds, base_builds, nuttx_builds_archive//, snapdragon_builds
+            armhf_builds, base_builds, nuttx_builds_archive
           ]
 
           for (def build_type = 0; build_type < docker_builds.size(); build_type++) {
@@ -133,7 +126,7 @@ pipeline {
     // TODO: actually upload artifacts to S3
     // stage('S3 Upload') {
     //   agent {
-    //     docker { image 'px4io/px4-dev-base-focal:2021-04-29' }
+    //     docker { image 'px4io/px4-dev-base-focal:2021-05-04' }
     //   }
     //   options {
     //         skipDefaultCheckout()
@@ -164,12 +157,6 @@ pipeline {
 
 def createBuildNode(Boolean archive, String docker_image, String target) {
   return {
-
-    // TODO: fix the snapdragon image
-    bypass_entrypoint = ''
-    if (docker_image == 'lorenzmeier/px4-dev-snapdragon:2020-04-01') {
-      bypass_entrypoint = ' --entrypoint=""'
-    }
 
     node {
       docker.withRegistry('https://registry.hub.docker.com', 'docker_hub_dagar') {

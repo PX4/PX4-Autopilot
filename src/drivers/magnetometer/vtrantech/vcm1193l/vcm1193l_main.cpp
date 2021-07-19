@@ -35,25 +35,6 @@
 #include <px4_platform_common/module.h>
 #include "VCM1193L.hpp"
 
-I2CSPIDriverBase *
-VCM1193L::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator, int runtime_instance)
-{
-	VCM1193L *instance = new VCM1193L(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.rotation);
-
-	if (!instance) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (instance->init() != PX4_OK) {
-		delete instance;
-		PX4_DEBUG("no device on bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
-		return nullptr;
-	}
-
-	return instance;
-}
-
 void VCM1193L::print_usage()
 {
 	PRINT_MODULE_USAGE_NAME("vcm1193l", "driver");

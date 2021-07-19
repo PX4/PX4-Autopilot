@@ -56,16 +56,15 @@ FXOS8701CQ::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *FXOS8701CQ::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-		int runtime_instance)
+I2CSPIDriverBase *FXOS8701CQ::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
 	device::Device *interface = nullptr;
 
-	if (iterator.busType() == BOARD_I2C_BUS) {
-		interface = FXOS8701CQ_I2C_interface(iterator.bus(), cli.bus_frequency, cli.i2c_address);
+	if (config.bus_type == BOARD_I2C_BUS) {
+		interface = FXOS8701CQ_I2C_interface(config.bus, config.bus_frequency, config.i2c_address);
 
-	} else if (iterator.busType() == BOARD_SPI_BUS) {
-		interface = FXOS8701CQ_SPI_interface(iterator.bus(), iterator.devid(), cli.bus_frequency, cli.spi_mode);
+	} else if (config.bus_type == BOARD_SPI_BUS) {
+		interface = FXOS8701CQ_SPI_interface(config.bus, config.spi_devid, config.bus_frequency, config.spi_mode);
 	}
 
 	if (interface == nullptr) {
@@ -73,8 +72,7 @@ I2CSPIDriverBase *FXOS8701CQ::instantiate(const BusCLIArguments &cli, const BusI
 		return nullptr;
 	}
 
-	FXOS8701CQ *dev = new FXOS8701CQ(interface, iterator.configuredBusOption(), iterator.bus(), cli.rotation,
-					 cli.i2c_address);
+	FXOS8701CQ *dev = new FXOS8701CQ(interface, config);
 
 	if (dev == nullptr) {
 		delete interface;

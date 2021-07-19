@@ -225,11 +225,10 @@ enum VOXLPM_CH_TYPE {
 class VOXLPM : public device::I2C, public ModuleParams, public I2CSPIDriver<VOXLPM>
 {
 public:
-	VOXLPM(I2CSPIBusOption bus_option, const int bus, int bus_frequency, VOXLPM_CH_TYPE ch_type);
+	VOXLPM(const I2CSPIDriverConfig &config);
 	virtual ~VOXLPM();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
 	virtual int		init();

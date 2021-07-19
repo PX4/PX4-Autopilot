@@ -46,25 +46,6 @@ LSM303AGR::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *LSM303AGR::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-		int runtime_instance)
-{
-	LSM303AGR *instance = new LSM303AGR(iterator.configuredBusOption(), iterator.bus(), iterator.devid(), cli.rotation,
-					    cli.bus_frequency, cli.spi_mode);
-
-	if (!instance) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (OK != instance->init()) {
-		delete instance;
-		return nullptr;
-	}
-
-	return instance;
-}
-
 extern "C" int lsm303agr_main(int argc, char *argv[])
 {
 	int ch;

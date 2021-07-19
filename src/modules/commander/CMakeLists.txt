@@ -57,13 +57,13 @@ px4_add_module(
 	DEPENDS
 		circuit_breaker
 		failure_detector
-		git_ecl
-		ecl_geo
+		geo
 		hysteresis
 		PreFlightCheck
 		ArmAuthorization
 		HealthFlags
 		sensor_calibration
+		world_magnetic_model
 	)
 
 if(PX4_TESTING)

@@ -78,10 +78,6 @@ protected:
 		param_t a_per_v;
 		param_t v_channel;
 		param_t i_channel;
-
-		param_t v_div_old;
-		param_t a_per_v_old;
-		param_t adc_channel_old;
 	} _analog_param_handles;
 
 	struct {
@@ -90,10 +86,6 @@ protected:
 		float a_per_v;
 		int32_t v_channel;
 		int32_t i_channel;
-
-		float v_div_old;
-		float a_per_v_old;
-		int32_t adc_channel_old;
 	} _analog_params;
 
 	virtual void updateParams() override;
