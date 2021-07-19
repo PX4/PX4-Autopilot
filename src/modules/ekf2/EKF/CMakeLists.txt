@@ -33,6 +33,7 @@
 
 add_library(ecl_EKF
 	airspeed_fusion.cpp
+	baro_bias_estimator.cpp
 	control.cpp
 	covariance.cpp
 	drag_fusion.cpp

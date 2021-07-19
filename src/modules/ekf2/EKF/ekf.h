@@ -46,6 +46,7 @@
 #include "estimator_interface.h"
 
 #include "EKFGSF_yaw.h"
+#include "baro_bias_estimator.hpp"
 
 class Ekf final : public EstimatorInterface
 {
@@ -297,6 +298,7 @@ public:
 	// returns false when data is not available
 	bool getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF],
 			   float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF]);
+	void getBaroBiasEstimatorStatus(float &bias, float &bias_var, float &innov, float &innov_var, float &innov_test_ratio);
 
 private:
 
@@ -500,6 +502,8 @@ private:
 	AlphaFilter<Vector3f> _mag_lpf{0.1f};	///< filtered magnetometer measurement for instant reset (Gauss)
 	float _hgt_sensor_offset{0.0f};		///< set as necessary if desired to maintain the same height after a height reset (m)
 	float _baro_hgt_offset{0.0f};		///< baro height reading at the local NED origin (m)
+	float _baro_hgt_bias{0.0f};
+	float _baro_hgt_bias_var{1.f};
 
 	// Variables used to control activation of post takeoff functionality
 	float _last_on_ground_posD{0.0f};	///< last vertical position when the in_air status was false (m)
@@ -890,6 +894,7 @@ private:
 	void startGpsHgtFusion();
 
 	void updateBaroHgtOffset();
+	void updateBaroHgtBias();
 
 	// return an estimation of the GPS altitude variance
 	float getGpsHeightVariance();
@@ -982,6 +987,8 @@ private:
 
 	// yaw estimator instance
 	EKFGSF_yaw _yawEstimator{};
+
+	BaroBiasEstimator _baro_b_est{};
 
 	int64_t _ekfgsf_yaw_reset_time{0};	///< timestamp of last emergency yaw reset (uSec)
 	bool _do_ekfgsf_yaw_reset{false};	// true when an emergency yaw reset has been requested

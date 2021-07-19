@@ -62,6 +62,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/airspeed.h>
+#include <uORB/topics/baro_bias_estimate.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/ekf_gps_drift.h>
@@ -129,6 +130,7 @@ private:
 	void Run() override;
 
 	void PublishAttitude(const hrt_abstime &timestamp);
+	void PublishBaroBiasEstimate(const hrt_abstime &timestamp);
 	void PublishEkfDriftMetrics(const hrt_abstime &timestamp);
 	void PublishEventFlags(const hrt_abstime &timestamp);
 	void PublishGlobalPosition(const hrt_abstime &timestamp);
@@ -256,6 +258,7 @@ private:
 	uint32_t _filter_warning_event_changes{0};
 	uint32_t _filter_information_event_changes{0};
 
+	uORB::PublicationMulti<baro_bias_estimate_s>         _baro_bias_estimate_pub{ORB_ID(baro_bias_estimate)};
 	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
 	uORB::PublicationMulti<ekf_gps_drift_s>              _ekf_gps_drift_pub{ORB_ID(ekf_gps_drift)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};
