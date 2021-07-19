@@ -48,7 +48,7 @@
 namespace math
 {
 
-template<typename T, int WINDOW = 3>
+template<typename T, size_t WINDOW = 3>
 class MedianFilter
 {
 public:
@@ -77,6 +77,8 @@ public:
 		insert(sample);
 		return median();
 	}
+
+	size_t window_size() const { return WINDOW; }
 
 private:
 

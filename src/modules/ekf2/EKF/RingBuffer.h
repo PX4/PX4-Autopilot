@@ -153,6 +153,27 @@ public:
 		return false;
 	}
 
+	bool peek_first_older_than(const uint64_t &timestamp, data_type *sample) const
+	{
+		// start looking from newest observation data
+		for (uint8_t i = 0; i < _size; i++) {
+			int index = (_head - i);
+			index = index < 0 ? _size + index : index;
+
+			if (timestamp >= _buffer[index].time_us && timestamp < _buffer[index].time_us + (uint64_t)1e5) {
+				*sample = _buffer[index];
+				return true;
+			}
+
+			if (index == _tail) {
+				// we have reached the tail and haven't got a match
+				return false;
+			}
+		}
+
+		return false;
+	}
+
 	int get_total_size() const { return sizeof(*this) + sizeof(data_type) * _size; }
 
 private:
