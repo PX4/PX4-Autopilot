@@ -306,8 +306,8 @@ Navigator::run()
 
 					} else if (PX4_ISFINITE(cmd.param7)) {
 						// Received only a request to change altitude, thus we keep the setpoint
-						rep->current.lat = curr->current.lat;
-						rep->current.lon = curr->current.lon;
+						rep->current.lat = PX4_ISFINITE(curr->current.lat) ? curr->current.lat : get_global_position()->lat;
+						rep->current.lon = PX4_ISFINITE(curr->current.lon) ? curr->current.lon : get_global_position()->lon;
 						rep->current.alt = cmd.param7;
 						only_alt_change_requested = true;
 
@@ -343,16 +343,23 @@ Navigator::run()
 						}
 					}
 
-					if (only_alt_change_requested && PX4_ISFINITE(curr->current.loiter_radius) && curr->current.loiter_radius > 0) {
-						rep->current.loiter_radius = curr->current.loiter_radius;
-						rep->current.loiter_direction = curr->current.loiter_direction;
+					if (only_alt_change_requested) {
+						if (PX4_ISFINITE(curr->current.loiter_radius) && curr->current.loiter_radius > 0) {
+							rep->current.loiter_radius = curr->current.loiter_radius;
 
-					} else {
-						rep->current.loiter_radius = get_loiter_radius();
-						rep->current.loiter_direction = 1;
+
+						} else {
+							rep->current.loiter_radius = get_loiter_radius();
+						}
+
+						if (curr->current.loiter_direction == 1 || curr->current.loiter_direction == -1) {
+							rep->current.loiter_direction = curr->current.loiter_direction;
+
+						} else {
+							rep->current.loiter_direction = 1;
+						}
 					}
 
-					rep->previous.valid = true;
 					rep->previous.timestamp = hrt_absolute_time();
 
 					rep->current.valid = true;
