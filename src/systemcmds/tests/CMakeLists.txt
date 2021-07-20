@@ -104,8 +104,6 @@ px4_add_module(
 	SRCS
 		${srcs}
 	DEPENDS
-		git_ecl
-		ecl_geo_lookup # TODO: move this
 		output_limit
 		version
 	)

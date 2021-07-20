@@ -39,7 +39,7 @@
 #pragma once
 
 #include <drivers/device/spi.h>
-#include <ecl/geo/geo.h>
+#include <geo/geo.h>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>

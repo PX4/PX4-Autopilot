@@ -46,7 +46,7 @@
 
 #include <drivers/drv_pwm_output.h>
 #include <lib/conversion/rotation.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/matrix/matrix/math.hpp>
 #include <px4_platform_common/time.h>

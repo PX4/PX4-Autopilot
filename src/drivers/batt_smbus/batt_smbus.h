@@ -44,7 +44,7 @@
 
 #pragma once
 
-#include <ecl/geo/geo.h>
+#include <geo/geo.h>
 #include <lib/drivers/smbus/SMBus.hpp>
 #include <mathlib/mathlib.h>
 #include <perf/perf_counter.h>

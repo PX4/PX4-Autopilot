@@ -345,7 +345,7 @@ void EKF2::Run()
 			   || (imu.accel_device_id != _device_id_accel)
 			   || (imu.gyro_device_id != _device_id_gyro)) {
 
-			PX4_INFO("%d - resetting IMU bias", _instance);
+			PX4_DEBUG("%d - resetting IMU bias", _instance);
 			_device_id_accel = imu.accel_device_id;
 			_device_id_gyro = imu.gyro_device_id;
 

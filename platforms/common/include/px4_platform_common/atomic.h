@@ -84,10 +84,6 @@ public:
 	 */
 	inline T load() const
 	{
-#ifdef __PX4_QURT
-		return _value;
-#else
-
 #if defined(__PX4_NUTTX)
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
@@ -101,8 +97,6 @@ public:
 		{
 			return __atomic_load_n(&_value, __ATOMIC_SEQ_CST);
 		}
-
-#endif
 	}
 
 	/**
@@ -110,10 +104,6 @@ public:
 	 */
 	inline void store(T value)
 	{
-#ifdef __PX4_QURT
-		_value = value;
-#else
-
 #if defined(__PX4_NUTTX)
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
@@ -126,8 +116,6 @@ public:
 		{
 			__atomic_store(&_value, &value, __ATOMIC_SEQ_CST);
 		}
-
-#endif
 	}
 
 	/**
@@ -136,11 +124,6 @@ public:
 	 */
 	inline T fetch_add(T num)
 	{
-#ifdef __PX4_QURT
-		// TODO: fix
-		return _value++;
-#else
-
 #if defined(__PX4_NUTTX)
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
@@ -154,8 +137,6 @@ public:
 		{
 			return __atomic_fetch_add(&_value, num, __ATOMIC_SEQ_CST);
 		}
-
-#endif
 	}
 
 	/**
@@ -301,13 +282,7 @@ public:
 	}
 
 private:
-#ifdef __PX4_QURT
-	// It seems that __atomic_store  and __atomic_load are not supported on Qurt,
-	// so the best that we can do is to use volatile.
-	volatile T _value{};
-#else
 	T _value {};
-#endif
 };
 
 using atomic_int = atomic<int>;
