@@ -142,6 +142,61 @@ __EXPORT void board_on_reset(int status)
 	// }
 }
 
+/****************************************************************************
+ * Name: rp2040_boardearlyinitialize
+ *
+ * Description:
+ *
+ ****************************************************************************/
+
+void rp2040_boardearlyinitialize(void)
+{
+  /* Disable IE on GPIO 26-29 */
+
+  clrbits_reg32(RP2040_PADS_BANK0_GPIO_IE, RP2040_PADS_BANK0_GPIO(26));
+  clrbits_reg32(RP2040_PADS_BANK0_GPIO_IE, RP2040_PADS_BANK0_GPIO(27));
+  clrbits_reg32(RP2040_PADS_BANK0_GPIO_IE, RP2040_PADS_BANK0_GPIO(28));
+  clrbits_reg32(RP2040_PADS_BANK0_GPIO_IE, RP2040_PADS_BANK0_GPIO(29));
+
+  /* Set board LED pin */
+
+//   rp2040_gpio_init(BOARD_GPIO_LED_PIN);
+//   rp2040_gpio_setdir(BOARD_GPIO_LED_PIN, true);
+//   rp2040_gpio_put(BOARD_GPIO_LED_PIN, true);
+
+  /* Set default UART pin */
+
+// #if defined(CONFIG_RP2040_UART0) && CONFIG_RP2040_UART0_GPIO >= 0
+//   rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO,
+//                            RP2040_GPIO_FUNC_UART);      /* TX */
+//   rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO + 1,
+//                            RP2040_GPIO_FUNC_UART);      /* RX */
+// #ifdef CONFIG_SERIAL_OFLOWCONTROL
+//   rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO + 2,
+//                            RP2040_GPIO_FUNC_UART);      /* CTS */
+// #endif
+// #ifdef CONFIG_SERIAL_IFLOWCONTROL
+//   rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO + 3,
+//                            RP2040_GPIO_FUNC_UART);      /* RTS */
+// #endif
+// #endif
+
+// #if defined(CONFIG_RP2040_UART1) && CONFIG_RP2040_UART1_GPIO >= 0
+//   rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO,
+//                            RP2040_GPIO_FUNC_UART);      /* TX */
+//   rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO + 1,
+//                            RP2040_GPIO_FUNC_UART);      /* RX */
+// #ifdef CONFIG_SERIAL_OFLOWCONTROL
+//   rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO + 2,
+//                            RP2040_GPIO_FUNC_UART);      /* CTS */
+// #endif
+// #ifdef CONFIG_SERIAL_IFLOWCONTROL
+//   rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO + 3,
+//                            RP2040_GPIO_FUNC_UART);      /* RTS */
+// #endif
+// #endif
+}
+
 /************************************************************************************
  * Name: stm32_boardinitialize
  *
