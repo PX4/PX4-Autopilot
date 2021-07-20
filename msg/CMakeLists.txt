@@ -81,7 +81,9 @@ set(msg_files
 	estimator_aid_source_2d.msg
 	estimator_aid_source_3d.msg
 	event.msg
+	follow_target_status.msg
 	follow_target.msg
+	follow_target_estimator.msg
 	failure_detector_status.msg
 	generator_status.msg
 	geofence_result.msg
