@@ -17,6 +17,7 @@ if(MAVSDK_FOUND)
         test_main.cpp
         autopilot_tester.cpp
         autopilot_tester_failure.cpp
+        autopilot_tester_follow_me.cpp
         test_multicopter_control_allocation.cpp
         test_multicopter_failure_injection.cpp
         test_multicopter_failsafe.cpp
@@ -24,6 +25,7 @@ if(MAVSDK_FOUND)
         test_multicopter_offboard.cpp
         test_multicopter_manual.cpp
         test_vtol_mission.cpp
+        test_multicopter_follow_me.cpp
     )
 
     target_link_libraries(mavsdk_tests
