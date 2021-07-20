@@ -68,10 +68,19 @@ PARAM_DEFINE_FLOAT(NAV_FT_DST, 8.0f);
 /**
  * Side to follow target from
  *
- * The side to follow the target from (front right = 0, behind = 1, front = 2, front left = 3)
+ * The side to follow the target from
+ * none         = 0
+ * behind       = 1
+ * front        = 2
+ * front right  = 3
+ * front left   = 4
+ * mid right    = 5
+ * mid left     = 6
+ * behind right = 7
+ * behind left  = 8
  *
  * @min 0
- * @max 3
+ * @max 8
  * @group Follow target
  */
 PARAM_DEFINE_INT32(NAV_FT_FS, 1);
@@ -79,7 +88,7 @@ PARAM_DEFINE_INT32(NAV_FT_FS, 1);
 /**
  * Dynamic filtering algorithm responsiveness to target movement
  *
- * lower numbers increase the responsiveness to changing long lat
+ * lower values increase the responsiveness to changing long lat
  * but also ignore less noise
  *
  * @min 0.0
@@ -89,3 +98,16 @@ PARAM_DEFINE_INT32(NAV_FT_FS, 1);
  */
 PARAM_DEFINE_FLOAT(NAV_FT_RS, 0.5f);
 
+/**
+ * Altitude control mode
+ *
+ * Maintain altitude or track target's altitude. When maintaining the altitude,
+ * the drone can crash into terrain when the target moves uphill. When tracking
+ * the target's altitude, the follow altitude NAV_MIN_FT_HT should be high enough
+ * to prevent terrain collisions due to GPS inaccuracies of the target.
+ *
+ * @value 0 Maintain constant altitude and track XY position only (2D tracking)
+ * @value 1 Track target's altitude as well (3D tracking)
+ * @group Follow target
+ */
+PARAM_DEFINE_INT32(NAV_FT_ALT_M, 0);
