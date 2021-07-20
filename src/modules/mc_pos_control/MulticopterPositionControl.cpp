@@ -404,12 +404,11 @@ void MulticopterPositionControl::Run()
 
 
 			if (_param_mnt_uav_yaw.get() == 1 && _param_mpc_yaw_mode.get() == 5 &&
-				_vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_LAND &&
-				_vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_TAKEOFF &&
-				_vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_PRECLAND &&
-				_vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_LANDENGFAIL &&
-				_vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_LANDGPSFAIL )
-			{
+			    _vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_LAND &&
+			    _vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_TAKEOFF &&
+			    _vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_PRECLAND &&
+			    _vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_LANDENGFAIL &&
+			    _vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_LANDGPSFAIL) {
 				_setpoint.yaw = _mount_orientation.attitude_euler_angle[2];
 			}
 

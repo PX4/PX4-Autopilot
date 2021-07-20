@@ -179,6 +179,7 @@ void OutputBase::_handle_position_update(bool force_update)
 		      _calculate_pitch(lon, lat, alt, vehicle_global_position);
 
 	float yaw = get_bearing_to_next_waypoint(vlat, vlon, lat, lon);
+
 	if (!_config.gimbal_as_uav_yaw) {
 		yaw -= vehicle_local_position.heading;
 	}
