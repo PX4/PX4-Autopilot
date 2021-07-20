@@ -41,7 +41,7 @@
 
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
-#include <lib/ecl/AlphaFilter/AlphaFilter.hpp>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 
 class TECS
 {

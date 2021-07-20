@@ -35,20 +35,18 @@
 
 #include "ina226.h"
 
-I2CSPIDriverBase *INA226::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				      int runtime_instance)
+I2CSPIDriverBase *INA226::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
-	INA226 *instance = new INA226(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.i2c_address,
-				      cli.custom2);
+	INA226 *instance = new INA226(config, config.custom1);
 
 	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
 		return nullptr;
 	}
 
-	if (cli.keep_running) {
+	if (config.keep_running) {
 		if (instance->force_init() != PX4_OK) {
-			PX4_INFO("Failed to init INA226 on bus %d, but will try again periodically.", iterator.bus());
+			PX4_INFO("Failed to init INA226 on bus %d, but will try again periodically.", config.bus);
 		}
 
 	} else if (instance->init() != PX4_OK) {
@@ -97,12 +95,12 @@ ina226_main(int argc, char *argv[])
 	cli.i2c_address = INA226_BASEADDR;
 	cli.default_i2c_frequency = 100000;
 	cli.support_keep_running = true;
-	cli.custom2 = 1;
+	cli.custom1 = 1;
 
 	while ((ch = cli.getOpt(argc, argv, "t:")) != EOF) {
 		switch (ch) {
 		case 't': // battery index
-			cli.custom2 = (int)strtol(cli.optArg(), NULL, 0);
+			cli.custom1 = (int)strtol(cli.optArg(), NULL, 0);
 			break;
 		}
 	}

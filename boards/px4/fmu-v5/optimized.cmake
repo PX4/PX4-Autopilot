@@ -96,19 +96,20 @@ px4_add_board(
 		#uuv_att_control
 		#uuv_pos_control
 		#vmount
-		vtol_att_control
+		#vtol_att_control
 	SYSTEMCMDS
-		#bl_update
+		bl_update
 		dmesg
-		dumpfile
+		#dumpfile
 		#esc_calib
 		#gpio
 		hardfault_log
 		i2cdetect
 		led_control
 		mft
+		microbench
 		mixer
-		motor_ramp
+		#motor_ramp
 		motor_test
 		mtd
 		nshterm

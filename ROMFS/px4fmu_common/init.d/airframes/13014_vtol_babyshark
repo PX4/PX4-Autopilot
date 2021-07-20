@@ -23,8 +23,7 @@
 . ${R}etc/init.d/rc.vtol_defaults
 
 
-
-param set-default BAT_N_CELLS 6
+param set-default BAT1_N_CELLS 6
 
 param set-default FW_AIRSPD_MAX 30
 param set-default FW_AIRSPD_MIN 19

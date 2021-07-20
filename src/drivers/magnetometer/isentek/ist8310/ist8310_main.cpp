@@ -36,26 +36,6 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-I2CSPIDriverBase *IST8310::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				       int runtime_instance)
-{
-	IST8310 *instance = new IST8310(iterator.configuredBusOption(), iterator.bus(), cli.i2c_address, cli.bus_frequency,
-					cli.rotation);
-
-	if (!instance) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (instance->init() != PX4_OK) {
-		delete instance;
-		PX4_DEBUG("no device on bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
-		return nullptr;
-	}
-
-	return instance;
-}
-
 void IST8310::print_usage()
 {
 	PRINT_MODULE_USAGE_NAME("ist8310", "driver");

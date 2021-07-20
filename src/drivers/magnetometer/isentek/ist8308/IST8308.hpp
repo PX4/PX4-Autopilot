@@ -53,11 +53,9 @@ using namespace iSentek_IST8308;
 class IST8308 : public device::I2C, public I2CSPIDriver<IST8308>
 {
 public:
-	IST8308(I2CSPIBusOption bus_option, int bus, int bus_frequency, enum Rotation rotation = ROTATION_NONE);
+	IST8308(const I2CSPIDriverConfig &config);
 	~IST8308() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void RunImpl();

@@ -40,7 +40,7 @@
 #include "voted_sensors_update.h"
 
 #include <lib/sensor_calibration/Utilities.hpp>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
 
@@ -216,8 +216,8 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 		_accel.voter.get_best(hrt_absolute_time(), &accel_best_index);
 		_gyro.voter.get_best(hrt_absolute_time(), &gyro_best_index);
 
-		checkFailover(_accel, "Accel");
-		checkFailover(_gyro, "Gyro");
+		checkFailover(_accel, "Accel", events::px4::enums::sensor_type_t::accel);
+		checkFailover(_gyro, "Gyro", events::px4::enums::sensor_type_t::gyro);
 	}
 
 	// write data for the best sensor to output variables
@@ -276,7 +276,8 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 	}
 }
 
-bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_name)
+bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_name,
+				       events::px4::enums::sensor_type_t sensor_type)
 {
 	if (sensor.last_failover_count != sensor.voter.failover_count() && !_hil_enabled) {
 
@@ -295,7 +296,7 @@ bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_na
 				const hrt_abstime now = hrt_absolute_time();
 
 				if (now - _last_error_message > 3_s) {
-					mavlink_log_emergency(&_mavlink_log_pub, "%s #%i fail: %s%s%s%s%s!",
+					mavlink_log_emergency(&_mavlink_log_pub, "%s #%i fail: %s%s%s%s%s!\t",
 							      sensor_name,
 							      failover_index,
 							      ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " OFF" : ""),
@@ -303,6 +304,27 @@ bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_na
 							      ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " TIMEOUT" : ""),
 							      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " ERR CNT" : ""),
 							      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " ERR DNST" : ""));
+
+					events::px4::enums::sensor_failover_reason_t failover_reason{};
+
+					if (flags & DataValidator::ERROR_FLAG_NO_DATA) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::no_data; }
+
+					if (flags & DataValidator::ERROR_FLAG_STALE_DATA) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::stale_data; }
+
+					if (flags & DataValidator::ERROR_FLAG_TIMEOUT) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::timeout; }
+
+					if (flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::high_error_count; }
+
+					if (flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::high_error_density; }
+
+					/* EVENT
+					 * @description
+					 * Land immediately and check the system.
+					 */
+					events::send<events::px4::enums::sensor_type_t, uint8_t, events::px4::enums::sensor_failover_reason_t>(
+						events::ID("sensor_failover"), events::Log::Emergency, "{1} sensor #{2} failure: {3}", sensor_type, failover_index,
+						failover_reason);
+
 					_last_error_message = now;
 				}
 

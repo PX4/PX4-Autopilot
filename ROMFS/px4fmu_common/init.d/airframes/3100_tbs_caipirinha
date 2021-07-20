@@ -63,6 +63,6 @@ param set-default PWM_MAIN_REV2 1
 param set-default PWM_MAIN_MIN 900
 param set-default PWM_MAIN_MAX 2100
 
+set MIXER fw_generic_wing
 
-set MIXER caipi
 set PWM_OUT 1234

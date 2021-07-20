@@ -33,10 +33,10 @@
 
 #include "GY_US42.hpp"
 
-GY_US42::GY_US42(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency, int address) :
-	I2C(DRV_DIST_DEVTYPE_GY_US42, MODULE_NAME, bus, address, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_rangefinder(get_device_id(), rotation)
+GY_US42::GY_US42(const I2CSPIDriverConfig &config) :
+	I2C(config),
+	I2CSPIDriver(config),
+	_px4_rangefinder(get_device_id(), config.rotation)
 {
 	_px4_rangefinder.set_max_distance(GY_US42_MAX_DISTANCE);
 	_px4_rangefinder.set_min_distance(GY_US42_MIN_DISTANCE);

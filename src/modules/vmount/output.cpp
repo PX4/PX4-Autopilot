@@ -46,7 +46,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/mount_orientation.h>
 #include <px4_platform_common/defines.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <math.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>

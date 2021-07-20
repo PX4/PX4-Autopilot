@@ -69,7 +69,7 @@ px4_add_board(
 		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
-		gyro_calibration
+		#gyro_calibration
 		#gyro_fft
 		land_detector
 		#landing_target_estimator

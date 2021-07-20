@@ -53,8 +53,6 @@
 #include "board_config.h"
 #include "rm3100.h"
 
-#define RM3100_ADDRESS		0x20
-
 class RM3100_I2C : public device::I2C
 {
 public:

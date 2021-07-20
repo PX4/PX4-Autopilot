@@ -1,6 +1,8 @@
 Aileron/v-tail/throttle VTOL mixer for PX4FMU
 =======================================================
 
+# @board px4_fmu-v2 exclude
+
 This file defines mixers suitable for controlling a fixed wing aircraft with
 aileron, v-tail (rudder, elevator) and throttle using PX4FMU.
 The configuration assumes the aileron servos are connected to PX4FMU 

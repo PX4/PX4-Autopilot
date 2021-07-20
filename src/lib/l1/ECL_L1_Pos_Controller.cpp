@@ -40,7 +40,7 @@
 
 #include "ECL_L1_Pos_Controller.hpp"
 
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 
 #include <px4_platform_common/defines.h>
 

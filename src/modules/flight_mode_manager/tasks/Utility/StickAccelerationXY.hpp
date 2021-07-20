@@ -40,7 +40,7 @@
 #pragma once
 
 #include <px4_platform_common/module_params.h>
-#include <lib/ecl/AlphaFilter/AlphaFilter.hpp>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <matrix/math.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/takeoff_status.h>

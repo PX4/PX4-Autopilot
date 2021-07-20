@@ -43,7 +43,7 @@
 #include <airspeed/airspeed.h>
 #include <conversion/rotation.h>
 #include <drivers/drv_rc_input.h>
-#include <ecl/geo/geo.h>
+#include <geo/geo.h>
 #include <systemlib/px4_macros.h>
 
 #include <math.h>
@@ -288,6 +288,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_gimbal_device_information(msg);
 		break;
 
+	case MAVLINK_MSG_ID_REQUEST_EVENT:
+		handle_message_request_event(msg);
+		break;
+
 	default:
 		break;
 	}
@@ -458,7 +462,11 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 	uint8_t result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
 
 	if (!target_ok) {
-		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_RESULT_FAILED);
+		if (!_mavlink->get_forwarding_on()) {
+			// Reject alien commands only if there is no forwarding enabled
+			acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_RESULT_FAILED);
+		}
+
 		return;
 	}
 
@@ -2832,6 +2840,11 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 		_mavlink->telemetry_status_updated();
 		_last_heartbeat_check = t;
 	}
+}
+
+void MavlinkReceiver::handle_message_request_event(mavlink_message_t *msg)
+{
+	_mavlink->get_events_protocol().handle_request_event(*msg);
 }
 
 void

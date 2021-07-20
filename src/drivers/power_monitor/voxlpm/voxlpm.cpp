@@ -47,13 +47,13 @@
  * Address 0x44 - measures battery voltage and current with a 0.0005 ohm sense resistor
  * Address 0x45 - measures 5VDC/12VDC ouptut voltage and current with a 0.005 ohm sense resistor
  */
-VOXLPM::VOXLPM(I2CSPIBusOption bus_option, const int bus, int bus_frequency, VOXLPM_CH_TYPE ch_type) :
-	I2C(DRV_POWER_DEVTYPE_VOXLPM, MODULE_NAME, bus, VOXLPM_INA231_ADDR_VBATT, bus_frequency),
+VOXLPM::VOXLPM(const I2CSPIDriverConfig &config) :
+	I2C(config),
 	ModuleParams(nullptr),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
+	I2CSPIDriver(config),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms_errors")),
-	_ch_type(ch_type),
+	_ch_type((VOXLPM_CH_TYPE)config.custom1),
 	_battery(1, this, _meas_interval_us)
 {
 }

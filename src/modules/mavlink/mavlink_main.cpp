@@ -49,11 +49,12 @@
 #endif
 
 #include <containers/LockGuard.hpp>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/version/version.h>
 
+#include <uORB/topics/event.h>
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
 
@@ -78,6 +79,7 @@
 #define MAIN_LOOP_DELAY                10000           ///< 100 Hz @ 1000 bytes/s data rate
 
 static pthread_mutex_t mavlink_module_mutex = PTHREAD_MUTEX_INITIALIZER;
+events::EventBuffer *Mavlink::_event_buffer = nullptr;
 
 Mavlink *mavlink_module_instances[MAVLINK_COMM_NUM_BUFFERS] {};
 
@@ -329,6 +331,9 @@ Mavlink::destroy_all_instances()
 		delete inst_to_del;
 	}
 
+	delete _event_buffer;
+	_event_buffer = nullptr;
+
 	printf("\n");
 	PX4_INFO("all instances stopped");
 	return OK;
@@ -377,43 +382,38 @@ Mavlink::serial_instance_exists(const char *device_name, Mavlink *self)
 void
 Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 {
+	const mavlink_msg_entry_t *meta = mavlink_get_msg_entry(msg->msgid);
+
+	int target_system_id = 0;
+	int target_component_id = 0;
+
+	// might be nullptr if message is unknown
+	if (meta) {
+		// Extract target system and target component if set
+		if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_SYSTEM) {
+			target_system_id = (_MAV_PAYLOAD(msg))[meta->target_system_ofs];
+		}
+
+		if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT) {
+			target_component_id = (_MAV_PAYLOAD(msg))[meta->target_component_ofs];
+		}
+	}
+
+	// If it's a message only for us, we keep it, otherwise, we forward it.
+	if (target_system_id == self->get_system_id() && target_component_id == self->get_component_id()) {
+		return;
+	}
+
+	// We don't forward heartbeats unless it's specifically enabled.
+	if (msg->msgid == MAVLINK_MSG_ID_HEARTBEAT && !self->forward_heartbeats_enabled()) {
+		return;
+	}
+
 	LockGuard lg{mavlink_module_mutex};
 
 	for (Mavlink *inst : mavlink_module_instances) {
 		if (inst && (inst != self)) {
-			const mavlink_msg_entry_t *meta = mavlink_get_msg_entry(msg->msgid);
-
-			int target_system_id = 0;
-			int target_component_id = 0;
-
-			// might be nullptr if message is unknown
-			if (meta) {
-				// Extract target system and target component if set
-				if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_SYSTEM) {
-					if (meta->target_system_ofs < msg->len) {
-						target_system_id = (_MAV_PAYLOAD(msg))[meta->target_system_ofs];
-					}
-				}
-
-				if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT) {
-					if (meta->target_component_ofs < msg->len) {
-						target_component_id = (_MAV_PAYLOAD(msg))[meta->target_component_ofs];
-					}
-				}
-			}
-
-			// If it's a message only for us, we keep it, otherwise, we forward it.
-			const bool targeted_only_at_us =
-				(target_system_id == self->get_system_id() &&
-				 target_component_id == self->get_component_id());
-
-			// We don't forward heartbeats unless it's specifically enabled.
-			const bool heartbeat_check_ok =
-				(msg->msgid != MAVLINK_MSG_ID_HEARTBEAT || self->forward_heartbeats_enabled());
-
-			if (!targeted_only_at_us && heartbeat_check_ok) {
-				inst->pass_message(msg);
-			}
+			inst->pass_message(msg);
 		}
 	}
 }
@@ -2240,6 +2240,14 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_receiver.start();
 
+	/* Events subscription: only the first MAVLink instance should check */
+	uORB::Subscription event_sub{ORB_ID(event)};
+	const bool should_check_events = _instance_id == 0;
+	uint16_t event_sequence_offset = 0; // offset to account for skipped events, not sent via MAVLink
+	// ensure topic exists, otherwise we might lose first queued events
+	orb_advertise_queue(ORB_ID(event), nullptr, event_s::ORB_QUEUE_LENGTH);
+	event_sub.subscribe();
+
 	_mavlink_start_time = hrt_absolute_time();
 
 	while (!_task_should_exit) {
@@ -2447,6 +2455,30 @@ Mavlink::task_main(int argc, char *argv[])
 				}
 			}
 		}
+
+		/* handle new events */
+		if (should_check_events) {
+			event_s orb_event;
+
+			while (event_sub.update(&orb_event)) {
+				if (events::externalLogLevel(orb_event.log_levels) == events::LogLevel::Disabled) {
+					++event_sequence_offset; // skip this event
+
+				} else {
+					events::Event e;
+					e.id = orb_event.id;
+					e.timestamp_ms = orb_event.timestamp / 1000;
+					e.sequence = orb_event.event_sequence - event_sequence_offset;
+					e.log_levels = orb_event.log_levels;
+					static_assert(sizeof(e.arguments) == sizeof(orb_event.arguments),
+						      "uorb message event: arguments size mismatch");
+					memcpy(e.arguments, orb_event.arguments, sizeof(orb_event.arguments));
+					_event_buffer->insert_event(e);
+				}
+			}
+		}
+
+		_events.update(t);
 
 		/* pass messages from other UARTs */
 		if (_forwarding_on) {
@@ -2731,6 +2763,22 @@ Mavlink::start(int argc, char *argv[])
 {
 	MavlinkULog::initialize();
 	MavlinkCommandSender::initialize();
+
+	if (!_event_buffer) {
+		_event_buffer = new events::EventBuffer();
+		int ret;
+
+		if (_event_buffer && (ret = _event_buffer->init()) != 0) {
+			PX4_ERR("EventBuffer init failed (%i)", ret);
+			delete _event_buffer;
+			_event_buffer = nullptr;
+		}
+
+		if (!_event_buffer) {
+			PX4_ERR("EventBuffer alloc failed");
+			return 1;
+		}
+	}
 
 	// Wait for the instance count to go up one
 	// before returning to the shell

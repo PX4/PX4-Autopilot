@@ -46,7 +46,7 @@
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/device/i2c.h>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/i2c_spi_buses.h>
@@ -56,12 +56,9 @@ using namespace InvenSense_MPU9250;
 class MPU9250_I2C : public device::I2C, public I2CSPIDriver<MPU9250_I2C>
 {
 public:
-	MPU9250_I2C(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-		    int address, spi_drdy_gpio_t drdy_gpio);
+	MPU9250_I2C(const I2CSPIDriverConfig &config);
 	~MPU9250_I2C() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void RunImpl();

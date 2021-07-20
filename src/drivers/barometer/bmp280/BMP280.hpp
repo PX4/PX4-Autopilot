@@ -45,11 +45,10 @@
 class BMP280 : public I2CSPIDriver<BMP280>
 {
 public:
-	BMP280(I2CSPIBusOption bus_option, int bus, bmp280::IBMP280 *interface);
+	BMP280(const I2CSPIDriverConfig &config, bmp280::IBMP280 *interface);
 	virtual ~BMP280();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
 	int			init();

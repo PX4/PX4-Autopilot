@@ -56,11 +56,10 @@ using Infineon_DPS310::Register;
 class DPS310 : public I2CSPIDriver<DPS310>
 {
 public:
-	DPS310(I2CSPIBusOption bus_option, int bus, device::Device *interface);
+	DPS310(const I2CSPIDriverConfig &config, device::Device *interface);
 	virtual ~DPS310();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
 	int			init();

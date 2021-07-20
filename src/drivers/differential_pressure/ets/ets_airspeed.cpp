@@ -63,15 +63,15 @@
 class ETSAirspeed : public Airspeed, public I2CSPIDriver<ETSAirspeed>
 {
 public:
-	ETSAirspeed(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS);
+	ETSAirspeed(const I2CSPIDriverConfig &config);
 
 	virtual ~ETSAirspeed() = default;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void	RunImpl();
+
+	int init() override;
 protected:
 	int	measure() override;
 	int	collect() override;
@@ -82,12 +82,24 @@ protected:
  */
 extern "C" __EXPORT int ets_airspeed_main(int argc, char *argv[]);
 
-ETSAirspeed::ETSAirspeed(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address)
-	: Airspeed(bus, bus_frequency, address, CONVERSION_INTERVAL),
-	  I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
+ETSAirspeed::ETSAirspeed(const I2CSPIDriverConfig &config)
+	: Airspeed(config.bus, config.bus_frequency, config.i2c_address, CONVERSION_INTERVAL),
+	  I2CSPIDriver(config)
 {
 	_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_MS4525;
 }
+
+int	ETSAirspeed::init()
+{
+	int ret = Airspeed::init();
+
+	if (ret == PX4_OK) {
+		ScheduleNow();
+	}
+
+	return ret;
+}
+
 
 int
 ETSAirspeed::measure()
@@ -209,26 +221,6 @@ ETSAirspeed::RunImpl()
 	ScheduleDelayed(CONVERSION_INTERVAL);
 }
 
-I2CSPIDriverBase *ETSAirspeed::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-		int runtime_instance)
-{
-	ETSAirspeed *instance = new ETSAirspeed(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency);
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (instance->init() != PX4_OK) {
-		delete instance;
-		return nullptr;
-	}
-
-	instance->ScheduleNow();
-	return instance;
-}
-
-
 void
 ETSAirspeed::print_usage()
 {
@@ -236,6 +228,7 @@ ETSAirspeed::print_usage()
 	PRINT_MODULE_USAGE_SUBCATEGORY("airspeed_sensor");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x75);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -245,6 +238,7 @@ ets_airspeed_main(int argc, char *argv[])
 	using ThisDriver = ETSAirspeed;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 100000;
+	cli.i2c_address = I2C_ADDRESS;
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
 

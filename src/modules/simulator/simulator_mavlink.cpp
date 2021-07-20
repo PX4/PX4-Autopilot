@@ -39,7 +39,7 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/time.h>
 #include <px4_platform_common/tasks.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <drivers/device/Device.hpp>
 #include <drivers/drv_pwm_output.h>
 #include <conversion/rotation.h>

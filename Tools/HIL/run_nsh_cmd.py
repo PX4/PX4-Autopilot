@@ -6,52 +6,85 @@ from subprocess import call, Popen
 from argparse import ArgumentParser
 import re
 import sys
+import datetime
+
+COLOR_RED    = "\x1b[31m"
+COLOR_GREEN  = "\x1b[32m"
+COLOR_YELLOW = "\x1b[33m"
+COLOR_WHITE  = "\x1b[37m"
+COLOR_RESET  = "\x1b[0m"
+
+def print_line(line):
+    if "WARNING" in line:
+        line = line.replace("WARNING", f"{COLOR_YELLOW}WARNING{COLOR_RESET}", 1)
+    elif "WARN" in line:
+        line = line.replace("WARN", f"{COLOR_YELLOW}WARN{COLOR_RESET}", 1)
+    elif "ERROR" in line:
+        line = line.replace("ERROR", f"{COLOR_RED}ERROR{COLOR_RESET}", 1)
+    elif "INFO" in line:
+        line = line.replace("INFO", f"{COLOR_WHITE}INFO{COLOR_RESET}", 1)
+
+    if "PASSED" in line:
+        line = line.replace("PASSED", f"{COLOR_GREEN}PASSED{COLOR_RESET}", 1)
+
+    if "FAILED" in line:
+        line = line.replace("FAILED", f"{COLOR_RED}FAILED{COLOR_RESET}", 1)
+
+    current_time = datetime.datetime.now()
+    print('[{0}] {1}'.format(current_time.isoformat(timespec='milliseconds'), line), end='')
 
 def do_nsh_cmd(port, baudrate, cmd):
-    databits = serial.EIGHTBITS
-    stopbits = serial.STOPBITS_ONE
-    parity = serial.PARITY_NONE
-    ser = serial.Serial(port, baudrate, databits, parity, stopbits, timeout=0.1)
+    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0.1, xonxoff=True, rtscts=False, dsrdtr=False)
 
-    # run command
     timeout_start = time.time()
     timeout = 10  # 10 seconds
 
+    # wait for nsh prompt
+    while True:
+        ser.write("\n".encode("ascii"))
+        ser.flush()
+
+        serial_line = ser.readline().decode("ascii", errors='ignore')
+
+        if "nsh>" in serial_line:
+            break
+        else:
+            if len(serial_line) > 0:
+                print_line(serial_line)
+
+        if time.time() > timeout_start + timeout:
+            print("Error, timeout waiting for prompt")
+            sys.exit(1)
+
     # clear
-    ser.write("\n".encode("ascii"))
-    ser.flush()
-    ser.readline()
+    ser.readlines()
+
+    # run command
+    timeout_start = time.time()
+    timeout = 1  # 1 second
 
     success_cmd = "cmd succeeded!"
 
-    serial_cmd = '{0}; echo "{1}"\n'.format(cmd, success_cmd)
+    # wait for command echo
+    serial_cmd = '{0}; echo "{1}"\r\n'.format(cmd, success_cmd)
     ser.write(serial_cmd.encode("ascii"))
     ser.flush()
-    ser.readline()
+    while True:
+        serial_line = ser.readline().decode("ascii", errors='ignore')
 
-    # TODO: require successful command echo
-    # while True:
-    #     serial_cmd = '{0}; echo "{1}"\n'.format(cmd, success_cmd)
-    #     ser.write(serial_cmd.encode("ascii"))
-    #     ser.flush()
+        if cmd in serial_line:
+            break
+        else:
+            if len(serial_line) > 0:
+                print_line(serial_line)
 
-    #     serial_line = ser.readline().decode("ascii", errors='ignore')
-
-    #     if cmd in serial_line:
-    #         break
-    #     else:
-    #         print(serial_line, end='')
-
-    #     if time.time() > timeout_start + timeout:
-    #         print("Error, timeout")
-    #         sys.exit(-1)
-    #         break
-
-    #     time.sleep(1)
+        if time.time() > timeout_start + timeout:
+            print("Error, timeout waiting for command echo")
+            break
 
 
     timeout_start = time.time()
-    timeout = 30  # 30 seconds
+    timeout = 180 # 3 minutes
 
     while True:
         serial_line = ser.readline().decode("ascii", errors='ignore')
@@ -60,17 +93,15 @@ def do_nsh_cmd(port, baudrate, cmd):
             break
         else:
             if len(serial_line) > 0:
-                print(serial_line, end='')
+                print_line(serial_line)
 
             if "nsh>" in serial_line:
-                #sys.exit(-1) # error, command didn't complete successfully
-                break # TODO: return error on failure
+                sys.exit(1) # error, command didn't complete successfully
             elif "NuttShell (NSH)" in serial_line:
-                #sys.exit(-1) # error, command didn't complete successfully
-                break # TODO: return error on failure
+                sys.exit(1) # error, command didn't complete successfully
 
         if len(serial_line) <= 0:
-            ser.write("\n".encode("ascii"))
+            ser.write("\r\n".encode("ascii"))
             ser.flush()
 
         if time.time() > timeout_start + timeout:

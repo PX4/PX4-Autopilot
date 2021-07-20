@@ -45,8 +45,7 @@ namespace Bosch::BMI055::Accelerometer
 class BMI055_Accelerometer : public BMI055
 {
 public:
-	BMI055_Accelerometer(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-			     spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio);
+	BMI055_Accelerometer(const I2CSPIDriverConfig &config);
 	~BMI055_Accelerometer() override;
 
 	void RunImpl() override;
