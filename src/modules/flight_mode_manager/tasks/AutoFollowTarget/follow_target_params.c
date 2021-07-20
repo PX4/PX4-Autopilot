@@ -68,10 +68,19 @@ PARAM_DEFINE_FLOAT(NAV_FT_DST, 8.0f);
 /**
  * Side to follow target from
  *
- * The side to follow the target from (front right = 0, behind = 1, front = 2, front left = 3)
+ * The side to follow the target from
+ * none         = 0
+ * behind       = 1
+ * front        = 2
+ * front right  = 3
+ * front left   = 4
+ * mid right    = 5
+ * mid left     = 6
+ * behind right = 7
+ * behind left  = 8
  *
  * @min 0
- * @max 3
+ * @max 8
  * @group Follow target
  */
 PARAM_DEFINE_INT32(NAV_FT_FS, 1);
@@ -79,7 +88,7 @@ PARAM_DEFINE_INT32(NAV_FT_FS, 1);
 /**
  * Dynamic filtering algorithm responsiveness to target movement
  *
- * lower numbers increase the responsiveness to changing long lat
+ * lower values increase the responsiveness to changing long lat
  * but also ignore less noise
  *
  * @min 0.0
@@ -87,5 +96,49 @@ PARAM_DEFINE_INT32(NAV_FT_FS, 1);
  * @decimal 2
  * @group Follow target
  */
-PARAM_DEFINE_FLOAT(NAV_FT_RS, 0.5f);
+PARAM_DEFINE_FLOAT(NAV_FT_RS, 0.1f);
 
+/**
+ * Altitude control mode
+ *
+ * Maintain altitude or track target's altitude. When maintaining the altitude,
+ * the drone can crash into terrain when the target moves uphill. When tracking
+ * the target's altitude, the follow altitude NAV_MIN_FT_HT should be high enough
+ * to prevent terrain collisions due to GPS inaccuracies of the target.
+ *
+ * TODO: Add option for 2D tracking + terrain following
+ *
+ * @value 0 Maintain constant altitude and track XY position only (2D tracking)
+ * @value 1 Track target's altitude (3D tracking)
+ * @group Follow target
+ */
+PARAM_DEFINE_INT32(NAV_FT_ALT_M, 0);
+
+/**
+ * Gimbal tracking mode
+ *
+ * @value 0 2D tracking: Point at target XY coordinates, and at ground Z coordinate
+ * @value 1 2D tracking with terrain: Point at target XY coordinates, and at terrain Z coordinate
+ * @value 2 3D tracking: Point at target XYZ coordinates
+ * @group Follow target
+ */
+PARAM_DEFINE_INT32(NAV_FT_GMB_M, 0);
+
+/**
+ * Compensate filter delay
+ *
+ * The follow flight mode is estimating and filtering the target's position
+ * and velocity in order to achieve a smoother tracking behavior. The filtering
+ * introduces some delay which is noticable when the target is moving at higher
+ * speeds, such as the case for bicycles and cars. For this high-speed scenario
+ * the delay compensation can be enabled, which extrapolates the filtered position
+ * in order to compensate for the filter delay.
+ * This setting should not be used when the target is moving slowly, for example
+ * when it's a pedestrian, as it will then emphasize the measurement noise instead
+ * and cause unnecessary movement for the drone.
+ *
+ * @value 0 disabled
+ * @value 1 enabled
+ * @group Follow target
+ */
+PARAM_DEFINE_INT32(NAV_FT_DELC, 0);

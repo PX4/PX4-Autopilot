@@ -200,7 +200,7 @@ void FlightModeManager::start_flight_task()
 	// Auto-follow me
 	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) {
 		should_disable_task = false;
-		FlightTaskError error = switchTask(FlightTaskIndex::AutoFollowMe);
+		FlightTaskError error = switchTask(FlightTaskIndex::AutoFollowTarget);
 
 		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
