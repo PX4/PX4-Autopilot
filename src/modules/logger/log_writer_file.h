@@ -129,6 +129,15 @@ public:
 
 	pthread_t thread_id() const { return _thread; }
 
+#if defined(PX4_CRYPTO)
+	void set_encryption_parameters(px4_crypto_algorithm_t algorithm, uint8_t key_idx,  uint8_t exchange_key_idx)
+	{
+		_algorithm = algorithm;
+		_key_idx = key_idx;
+		_exchange_key_idx = exchange_key_idx;
+	}
+#endif
+
 private:
 	static void *run_helper(void *);
 
@@ -205,6 +214,9 @@ private:
 	bool init_logfile_encryption(const char *filename);
 	PX4Crypto _crypto;
 	int _min_blocksize;
+	px4_crypto_algorithm_t _algorithm;
+	uint8_t _key_idx;
+	uint8_t _exchange_key_idx;
 #endif
 
 };
