@@ -257,8 +257,16 @@ void Navigator::run()
 				bool reposition_valid = true;
 
 				vehicle_global_position_s position_setpoint{};
-				position_setpoint.lat = cmd.param5;
-				position_setpoint.lon = cmd.param6;
+
+				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
+					position_setpoint.lat = cmd.param5;
+					position_setpoint.lon = cmd.param6;
+
+				} else {
+					position_setpoint.lat = get_global_position()->lat;
+					position_setpoint.lon = get_global_position()->lon;
+				}
+
 				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
 
 				if (have_geofence_position_data) {
