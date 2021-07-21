@@ -911,10 +911,12 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					(type_mask & POSITION_TARGET_TYPEMASK_VZ_IGNORE) ? 0.f : target_local_ned.vz
 				};
 
-				const matrix::Vector3f velocity_setpoint{R * velocity_body_sp};
-				setpoint.vx = velocity_setpoint(0);
-				setpoint.vy = velocity_setpoint(1);
-				setpoint.vz = velocity_setpoint(2);
+
+				const float yaw = matrix::Eulerf{R}(2);
+
+				setpoint.vx = cosf(yaw) * velocity_body_sp(0) - sinf(yaw) * velocity_body_sp(1);
+				setpoint.vy = sinf(yaw) * velocity_body_sp(0) + cosf(yaw) * velocity_body_sp(1);
+				setpoint.vz = velocity_body_sp(2);
 
 			} else {
 				setpoint.vx = NAN;
