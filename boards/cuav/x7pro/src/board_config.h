@@ -117,8 +117,8 @@
 #define GPIO_nPOWER_IN_CAN              /* PG2  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN2)
 #define GPIO_nPOWER_IN_C                /* PG0  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN0)
 
-#define GPIO_nVDD_BRICK1_VALID          GPIO_nPOWER_IN_CAN /* Brick 1 is Chosen */
-#define GPIO_nVDD_BRICK2_VALID          GPIO_nPOWER_IN_ADC /* Brick 2 is Chosen  */
+#define GPIO_nVDD_BRICK1_VALID          GPIO_nPOWER_IN_ADC /* Brick 1 is Chosen */
+#define GPIO_nVDD_BRICK2_VALID          GPIO_nPOWER_IN_CAN /* Brick 2 is Chosen  */
 #define GPIO_nVDD_USB_VALID             GPIO_nPOWER_IN_C   /* USB     is Chosen */
 
 #define GPIO_VDD_5V_HIPOWER_EN          /* PD11 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN11)
