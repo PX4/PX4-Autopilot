@@ -37,6 +37,8 @@
  * I2C interface for DPS310
  */
 
+#if defined(CONFIG_I2C)
+
 #include <lib/drivers/device/i2c.h>
 
 namespace dps310
@@ -89,3 +91,5 @@ DPS310_I2C::write(unsigned address, void *data, unsigned count)
 }
 
 } // namespace dps310
+
+#endif // CONFIG_I2C

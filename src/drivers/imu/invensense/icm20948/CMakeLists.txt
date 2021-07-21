@@ -49,15 +49,17 @@ px4_add_module(
 		drivers_magnetometer
 	)
 
-px4_add_module(
-	MODULE drivers__imu__invensense__icm20948_i2c_passthrough
-	MAIN icm20948_i2c_passthrough
-	COMPILE_FLAGS
-	SRCS
-		ICM20948_I2C_Passthrough.cpp
-		ICM20948_I2C_Passthrough.hpp
-		icm20948_i2c_passthrough_main.cpp
-		InvenSense_ICM20948_registers.hpp
-	DEPENDS
-		px4_work_queue
-	)
+if(CONFIG_I2C)
+	px4_add_module(
+		MODULE drivers__imu__invensense__icm20948_i2c_passthrough
+		MAIN icm20948_i2c_passthrough
+		COMPILE_FLAGS
+		SRCS
+			ICM20948_I2C_Passthrough.cpp
+			ICM20948_I2C_Passthrough.hpp
+			icm20948_i2c_passthrough_main.cpp
+			InvenSense_ICM20948_registers.hpp
+		DEPENDS
+			px4_work_queue
+		)
+endif()

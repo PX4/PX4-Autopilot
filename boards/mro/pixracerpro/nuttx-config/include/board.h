@@ -234,9 +234,6 @@
 #define GPIO_USART3_CTS  GPIO_USART3_CTS_NSS_2 /* PD11 */
 #define GPIO_USART3_RTS  GPIO_USART3_RTS_2     /* PD12 */
 
-#define GPIO_UART4_TX    GPIO_UART4_TX_2       /* PA0  */
-#define GPIO_UART4_RX    GPIO_UART4_RX_2       /* PA1  */
-
 #define GPIO_USART6_TX   0                     /* USART6 is RX-only */
 #define GPIO_USART6_RX   GPIO_USART6_RX_1      /* PC7  */
 
@@ -273,8 +270,3 @@
 #define GPIO_SPI6_SCK    ADJ_SLEW_RATE(GPIO_SPI6_SCK_1) /* PG13 */
 #define GPIO_SPI6_MISO   GPIO_SPI6_MISO_1               /* PG12 */
 #define GPIO_SPI6_MOSI   GPIO_SPI6_MOSI_1               /* PG14 */
-
-
-/* I2C */
-#define GPIO_I2C1_SCL GPIO_I2C1_SCL_2       /* PB8  */
-#define GPIO_I2C1_SDA GPIO_I2C1_SDA_2       /* PB9  */

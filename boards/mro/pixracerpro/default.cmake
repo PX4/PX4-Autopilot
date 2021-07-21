@@ -8,68 +8,68 @@ px4_add_board(
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
 	BUILD_BOOTLOADER
-	UAVCAN_INTERFACES 2
+	#UAVCAN_INTERFACES 2
 	SERIAL_PORTS
 		#SPARE:/dev/ttyS0
 		TEL1:/dev/ttyS1
 		TEL2:/dev/ttyS2
-		GPS1:/dev/ttyS3
-		#RC:/dev/ttyS4
-		#CONSOLE:/dev/ttyS5
-		#FRSKY:/dev/ttyS6
+		#RC:/dev/ttyS3
+		#CONSOLE:/dev/ttyS4
+		#FRSKY:/dev/ttyS5
 	DRIVERS
-		adc/ads1115
+		#adc/ads1115
 		adc/board_adc
 		#barometer # all available barometer drivers
 		barometer/dps310
-		batt_smbus
-		camera_capture
-		camera_trigger
-		differential_pressure # all available differential pressure drivers
-		distance_sensor # all available distance sensor drivers
+		#batt_smbus
+		#camera_capture
+		#camera_trigger
+		#differential_pressure # all available differential pressure drivers
+		#distance_sensor # all available distance sensor drivers
+		distance_sensor/tfmini
 		dshot
-		gps
+		#gps
 		#imu # all available imu drivers
 		imu/bosch/bmi088
 		imu/invensense/icm20602
 		imu/invensense/icm20948
-		irlock
-		lights # all available light drivers
-		magnetometer # all available magnetometer drivers
-		optical_flow # all available optical flow drivers
-		osd
-		pca9685
-		pca9685_pwm_out
-		power_monitor/ina226
+		#irlock
+		#lights # all available light drivers
+		#magnetometer # all available magnetometer drivers
+		#optical_flow # all available optical flow drivers
+		#osd
+		#pca9685
+		#pca9685_pwm_out
+		#power_monitor/ina226
 		#protocol_splitter
-		pwm_out_sim
-		pwm_out
+		#pwm_out_sim
+		#pwm_out
 		rc_input
-		roboclaw
-		rpm
-		smart_battery/batmon
-		telemetry # all available telemetry drivers
+		#roboclaw
+		#rpm
+		#smart_battery/batmon
+		#telemetry # all available telemetry drivers
 		tone_alarm
-		uavcan
+		#uavcan
 	MODULES
-		airspeed_selector
-		attitude_estimator_q
+		#airspeed_selector
+		#attitude_estimator_q
 		battery_status
-		camera_feedback
+		#camera_feedback
 		commander
 		dataman
 		ekf2
-		esc_battery
+		#esc_battery
 		events
 		flight_mode_manager
-		fw_att_control
-		fw_pos_control_l1
+		#fw_att_control
+		#fw_pos_control_l1
 		gyro_calibration
 		gyro_fft
 		land_detector
-		landing_target_estimator
+		#landing_target_estimator
 		load_mon
-		local_position_estimator
+		#local_position_estimator
 		logger
 		mavlink
 		mc_att_control
@@ -79,14 +79,14 @@ px4_add_board(
 		#micrortps_bridge
 		navigator
 		rc_update
-		rover_pos_control
+		#rover_pos_control
 		sensors
-		sih
-		temperature_compensation
-		uuv_att_control
-		uuv_pos_control
-		vmount
-		vtol_att_control
+		#sih
+		#temperature_compensation
+		#uuv_att_control
+		#uuv_pos_control
+		#vmount
+		#vtol_att_control
 	SYSTEMCMDS
 		bl_update
 		dmesg
@@ -94,7 +94,7 @@ px4_add_board(
 		esc_calib
 		gpio
 		hardfault_log
-		i2cdetect
+		#i2cdetect
 		led_control
 		mft
 		mixer
@@ -118,7 +118,7 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
-		fake_gps
+		#fake_gps
 		#fake_imu
 		#fake_magnetometer
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control

@@ -43,7 +43,6 @@
 #include "AKM_AK09916_registers.hpp"
 
 #include <drivers/drv_hrt.h>
-#include <lib/drivers/device/i2c.h>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
