@@ -1271,8 +1271,11 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 
 	const char *crypto_suffix = "";
 #if defined(PX4_CRYPTO)
-	// TODO: use parameter to check if logfile crypto is enabled
-	crypto_suffix = "c";
+
+	if (_param_sdlog_crypto_algorithm.get() != 0) {
+		crypto_suffix = "c";
+	}
+
 #endif
 
 	char *log_file_name = _file_name[(int)type].log_file_name;
@@ -1376,9 +1379,17 @@ void Logger::start_log_file(LogType type)
 		return;
 	}
 
+#if defined(PX4_CRYPTO)
+	_writer.set_encryption_parameters(
+		(px4_crypto_algorithm_t)_param_sdlog_crypto_algorithm.get(),
+		_param_sdlog_crypto_key.get(),
+		_param_sdlog_crypto_exchange_key.get());
+#endif
+
 	_writer.start_log_file(type, file_name);
 	_writer.select_write_backend(LogWriter::BackendFile);
 	_writer.set_need_reliable_transfer(true);
+
 	write_header(type);
 	write_version(type);
 	write_formats(type);

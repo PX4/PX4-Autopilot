@@ -45,10 +45,6 @@
 #include <systemlib/hardfault_log.h>
 #endif /* __PX4_NUTTX */
 
-// TODO: how to define the key slots/product?
-// this depends on the keystore as well
-#define LOGGER_CRYPTO_KEY_IDX 2
-
 using namespace time_literals;
 
 
@@ -89,8 +85,12 @@ LogWriterFile::~LogWriterFile()
 #if defined(PX4_CRYPTO)
 bool LogWriterFile::init_logfile_encryption(const char *filename)
 {
-	// open a crypto session // TODO: use a parameter for algorithm
-	if (!_crypto.open(CRYPTO_XCHACHA20)) {
+	if (_algorithm == CRYPTO_NONE) {
+		return true;
+	}
+
+	// open a crypto session
+	if (!_crypto.open(_algorithm)) {
 		return false;
 	}
 
@@ -99,9 +99,7 @@ bool LogWriterFile::init_logfile_encryption(const char *filename)
 
 	// Generate a crypto key and store it to the keystore.
 
-	// TODO: use parameter for alogrithm? Or product specific macro?
-	// TODO: how to define key index to the keystore? Product macro? parameter?
-	if (!_crypto.generate_key(LOGGER_CRYPTO_KEY_IDX, false)) {
+	if (!_crypto.generate_key(_key_idx, false)) {
 		PX4_ERR("Can't generate crypto key");
 		return false;
 	}
@@ -113,17 +111,15 @@ bool LogWriterFile::init_logfile_encryption(const char *filename)
 		return false;
 	}
 
-	// TODO: define the public key used for key exchange. Now hardcoded to 1
-
 	/* Get the size of an encrypted key and nonce */
 
 	size_t key_size;
 	size_t nonce_size;
 
-	if (!rsa_crypto.get_encrypted_key(LOGGER_CRYPTO_KEY_IDX,
+	if (!rsa_crypto.get_encrypted_key(_key_idx,
 					  NULL,
 					  &key_size,
-					  1) ||
+					  _exchange_key_idx) ||
 	    !_crypto.get_nonce(NULL, &nonce_size) ||
 	    key_size == 0) {
 		rsa_crypto.close();
@@ -135,10 +131,10 @@ bool LogWriterFile::init_logfile_encryption(const char *filename)
 
 	if (!key ||
 	    !rsa_crypto.get_encrypted_key(
-		    LOGGER_CRYPTO_KEY_IDX,
+		    _key_idx,
 		    key,
 		    &key_size,
-		    1) ||
+		    _exchange_key_idx) ||
 	    !_crypto.get_nonce(
 		    key + key_size, &nonce_size)) {
 		PX4_ERR("Can't get & encrypt the key");
@@ -223,7 +219,6 @@ void LogWriterFile::start_log(LogType type, const char *filename)
 	}
 
 #if PX4_CRYPTO
-	// TODO: use parameter to check if logfile crypto is enabled
 	bool enc_init = init_logfile_encryption(filename);
 
 	if (!enc_init) {
@@ -391,17 +386,19 @@ void LogWriterFile::run()
 					     by the px4 crypto interfaces
 					 */
 
-					// TODO: use parameter to check if logfile crypto is enabled
 					size_t out = available;
-					_crypto.encrypt_data(
-						LOGGER_CRYPTO_KEY_IDX, // key
-						(uint8_t *)read_ptr,
-						available,
-						(uint8_t *)read_ptr,
-						&out);
 
-					if (out != available) {
-						PX4_ERR("Encryption output size mismatch, logfile corrupted");
+					if (_algorithm != CRYPTO_NONE) {
+						_crypto.encrypt_data(
+							_key_idx,
+							(uint8_t *)read_ptr,
+							available,
+							(uint8_t *)read_ptr,
+							&out);
+
+						if (out != available) {
+							PX4_ERR("Encryption output size mismatch, logfile corrupted");
+						}
 					}
 
 #endif
