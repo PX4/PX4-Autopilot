@@ -320,7 +320,7 @@ MissionBlock::is_mission_item_reached()
 			_waypoint_yaw_reached = true;
 		}
 
-		if (_navigator->get_mnt_uav_yaw() == 1) {
+		if (_navigator->get_nav_ignore_yaw() == 1) {
 			_waypoint_yaw_reached = true;
 		}
 	}
