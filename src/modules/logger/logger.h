@@ -374,6 +374,11 @@ private:
 		(ParamInt<px4::params::SDLOG_MISSION>) _param_sdlog_mission,
 		(ParamBool<px4::params::SDLOG_BOOT_BAT>) _param_sdlog_boot_bat,
 		(ParamBool<px4::params::SDLOG_UUID>) _param_sdlog_uuid
+#if defined(PX4_CRYPTO)
+		, (ParamInt<px4::params::SDLOG_ALGORITHM>) _param_sdlog_crypto_algorithm,
+		(ParamInt<px4::params::SDLOG_KEY>) _param_sdlog_crypto_key,
+		(ParamInt<px4::params::SDLOG_EXCH_KEY>) _param_sdlog_crypto_exchange_key
+#endif
 	)
 };
 
