@@ -92,14 +92,6 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us) 
 	_param_handles.crit_thr = param_find("BAT_CRIT_THR");
 	_param_handles.emergen_thr = param_find("BAT_EMERGEN_THR");
 
-	_param_handles.v_empty_old = param_find("BAT_V_EMPTY");
-	_param_handles.v_charged_old = param_find("BAT_V_CHARGED");
-	_param_handles.n_cells_old = param_find("BAT_N_CELLS");
-	_param_handles.capacity_old = param_find("BAT_CAPACITY");
-	_param_handles.v_load_drop_old = param_find("BAT_V_LOAD_DROP");
-	_param_handles.r_internal_old = param_find("BAT_R_INTERNAL");
-	_param_handles.source_old = param_find("BAT_SOURCE");
-
 	updateParams();
 }
 
@@ -255,32 +247,13 @@ void Battery::computeScale()
 
 void Battery::updateParams()
 {
-	if (_index == 1) {
-		migrateParam<float>(_param_handles.v_empty_old, _param_handles.v_empty, &_params.v_empty_old, &_params.v_empty,
-				    _first_parameter_update);
-		migrateParam<float>(_param_handles.v_charged_old, _param_handles.v_charged, &_params.v_charged_old, &_params.v_charged,
-				    _first_parameter_update);
-		migrateParam<int32_t>(_param_handles.n_cells_old, _param_handles.n_cells, &_params.n_cells_old, &_params.n_cells,
-				      _first_parameter_update);
-		migrateParam<float>(_param_handles.capacity_old, _param_handles.capacity, &_params.capacity_old, &_params.capacity,
-				    _first_parameter_update);
-		migrateParam<float>(_param_handles.v_load_drop_old, _param_handles.v_load_drop, &_params.v_load_drop_old,
-				    &_params.v_load_drop, _first_parameter_update);
-		migrateParam<float>(_param_handles.r_internal_old, _param_handles.r_internal, &_params.r_internal_old,
-				    &_params.r_internal, _first_parameter_update);
-		migrateParam<int32_t>(_param_handles.source_old, _param_handles.source, &_params.source_old, &_params.source,
-				      _first_parameter_update);
-
-	} else {
-		param_get(_param_handles.v_empty, &_params.v_empty);
-		param_get(_param_handles.v_charged, &_params.v_charged);
-		param_get(_param_handles.n_cells, &_params.n_cells);
-		param_get(_param_handles.capacity, &_params.capacity);
-		param_get(_param_handles.v_load_drop, &_params.v_load_drop);
-		param_get(_param_handles.r_internal, &_params.r_internal);
-		param_get(_param_handles.source, &_params.source);
-	}
-
+	param_get(_param_handles.v_empty, &_params.v_empty);
+	param_get(_param_handles.v_charged, &_params.v_charged);
+	param_get(_param_handles.n_cells, &_params.n_cells);
+	param_get(_param_handles.capacity, &_params.capacity);
+	param_get(_param_handles.v_load_drop, &_params.v_load_drop);
+	param_get(_param_handles.r_internal, &_params.r_internal);
+	param_get(_param_handles.source, &_params.source);
 	param_get(_param_handles.low_thr, &_params.low_thr);
 	param_get(_param_handles.crit_thr, &_params.crit_thr);
 	param_get(_param_handles.emergen_thr, &_params.emergen_thr);

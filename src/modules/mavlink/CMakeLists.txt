@@ -72,8 +72,7 @@ px4_add_module(
 		drivers_magnetometer
 		git_mavlink_v2
 		conversion
-		git_ecl
-		ecl_geo
+		geo
 		version
 	UNITY_BUILD
 	)

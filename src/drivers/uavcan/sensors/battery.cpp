@@ -33,7 +33,7 @@
 
 #include "battery.hpp"
 
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <px4_defines.h>
 
 const char *const UavcanBatteryBridge::NAME = "battery";

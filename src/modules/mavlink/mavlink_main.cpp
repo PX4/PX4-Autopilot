@@ -49,7 +49,7 @@
 #endif
 
 #include <containers/LockGuard.hpp>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/version/version.h>
@@ -379,44 +379,56 @@ Mavlink::serial_instance_exists(const char *device_name, Mavlink *self)
 	return false;
 }
 
-void
-Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
+bool
+Mavlink::component_was_seen(int system_id, int component_id, Mavlink *self)
 {
 	LockGuard lg{mavlink_module_mutex};
 
 	for (Mavlink *inst : mavlink_module_instances) {
-		if (inst && (inst != self)) {
-			const mavlink_msg_entry_t *meta = mavlink_get_msg_entry(msg->msgid);
+		if (inst && (inst != self) && (inst->_receiver.component_was_seen(system_id, component_id))) {
+			return true;
+		}
+	}
 
-			int target_system_id = 0;
-			int target_component_id = 0;
+	return false;
+}
 
-			// might be nullptr if message is unknown
-			if (meta) {
-				// Extract target system and target component if set
-				if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_SYSTEM) {
-					if (meta->target_system_ofs < msg->len) {
-						target_system_id = (_MAV_PAYLOAD(msg))[meta->target_system_ofs];
-					}
-				}
+void
+Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
+{
+	const mavlink_msg_entry_t *meta = mavlink_get_msg_entry(msg->msgid);
 
-				if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT) {
-					if (meta->target_component_ofs < msg->len) {
-						target_component_id = (_MAV_PAYLOAD(msg))[meta->target_component_ofs];
-					}
-				}
-			}
+	int target_system_id = 0;
+	int target_component_id = 0;
 
-			// If it's a message only for us, we keep it, otherwise, we forward it.
-			const bool targeted_only_at_us =
-				(target_system_id == self->get_system_id() &&
-				 target_component_id == self->get_component_id());
+	// might be nullptr if message is unknown
+	if (meta) {
+		// Extract target system and target component if set
+		if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_SYSTEM) {
+			target_system_id = (_MAV_PAYLOAD(msg))[meta->target_system_ofs];
+		}
 
-			// We don't forward heartbeats unless it's specifically enabled.
-			const bool heartbeat_check_ok =
-				(msg->msgid != MAVLINK_MSG_ID_HEARTBEAT || self->forward_heartbeats_enabled());
+		if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT) {
+			target_component_id = (_MAV_PAYLOAD(msg))[meta->target_component_ofs];
+		}
+	}
 
-			if (!targeted_only_at_us && heartbeat_check_ok) {
+	// If it's a message only for us, we keep it
+	if (target_system_id == self->get_system_id() && target_component_id == self->get_component_id()) {
+		return;
+	}
+
+	// We don't forward heartbeats unless it's specifically enabled.
+	if (msg->msgid == MAVLINK_MSG_ID_HEARTBEAT && !self->forward_heartbeats_enabled()) {
+		return;
+	}
+
+	LockGuard lg{mavlink_module_mutex};
+
+	for (Mavlink *inst : mavlink_module_instances) {
+		if (inst && (inst != self) && (inst->_forwarding_on)) {
+			// Pass message only if target component was seen before
+			if (inst->_receiver.component_was_seen(target_system_id, target_component_id)) {
 				inst->pass_message(msg);
 			}
 		}
@@ -1367,13 +1379,11 @@ Mavlink::message_buffer_get_ptr(void **ptr, bool *is_part)
 void
 Mavlink::pass_message(const mavlink_message_t *msg)
 {
-	if (_forwarding_on) {
-		/* size is 8 bytes plus variable payload */
-		int size = MAVLINK_NUM_NON_PAYLOAD_BYTES + msg->len;
-		pthread_mutex_lock(&_message_buffer_mutex);
-		message_buffer_write(msg, size);
-		pthread_mutex_unlock(&_message_buffer_mutex);
-	}
+	/* size is 8 bytes plus variable payload */
+	int size = MAVLINK_NUM_NON_PAYLOAD_BYTES + msg->len;
+	pthread_mutex_lock(&_message_buffer_mutex);
+	message_buffer_write(msg, size);
+	pthread_mutex_unlock(&_message_buffer_mutex);
 }
 
 MavlinkShell *
@@ -2473,7 +2483,7 @@ Mavlink::task_main(int argc, char *argv[])
 					events::Event e;
 					e.id = orb_event.id;
 					e.timestamp_ms = orb_event.timestamp / 1000;
-					e.sequence = orb_event.sequence - event_sequence_offset;
+					e.sequence = orb_event.event_sequence - event_sequence_offset;
 					e.log_levels = orb_event.log_levels;
 					static_assert(sizeof(e.arguments) == sizeof(orb_event.arguments),
 						      "uorb message event: arguments size mismatch");

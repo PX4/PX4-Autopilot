@@ -11,9 +11,6 @@ if [ -z ${PX4_DOCKER_REPO+x} ]; then
 	elif [[ $@ =~ .*pilotpi.arm64 ]]; then
 		# scumaker_pilotpi_arm64
 		PX4_DOCKER_REPO="px4io/px4-dev-aarch64:latest"
-	elif [[ $@ =~ .*eagle.* ]] || [[ $@ =~ .*excelsior.* ]]; then
-		# eagle, excelsior
-		PX4_DOCKER_REPO="lorenzmeier/px4-dev-snapdragon:2020-04-01"
 	elif [[ $@ =~ .*navio2.* ]] || [[ $@ =~ .*raspberry.* ]] || [[ $@ =~ .*bebop.* ]]; then
 		# posix_rpi_cross, posix_bebop_default
 		PX4_DOCKER_REPO="px4io/px4-dev-armhf:2021-02-04"

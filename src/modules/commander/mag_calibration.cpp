@@ -53,7 +53,7 @@
 #include <lib/sensor_calibration/Magnetometer.hpp>
 #include <lib/sensor_calibration/Utilities.hpp>
 #include <lib/conversion/rotation.h>
-#include <lib/ecl/geo_lookup/geo_mag_declination.h>
+#include <lib/world_magnetic_model/geo_mag_declination.h>
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/parameters/param.h>
 #include <lib/systemlib/err.h>

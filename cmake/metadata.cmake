@@ -81,12 +81,14 @@ add_custom_target(metadata_module_documentation
 
 set(events_src_path "${PX4_SOURCE_DIR}/src/lib/events")
 add_custom_target(metadata_extract_events
+	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/events
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_events.py
 		--src-path ${PX4_SOURCE_DIR}/src
 		--json ${PX4_BINARY_DIR}/events/px4_full.json #--verbose
 	COMMAND ${PYTHON_EXECUTABLE} ${events_src_path}/libevents/scripts/combine.py
 		${PX4_BINARY_DIR}/events/px4_full.json
 		${events_src_path}/libevents/events/common.json
+		${events_src_path}/enums.json
 		--output ${PX4_BINARY_DIR}/events/all_events_full.json
 	COMMAND ${PYTHON_EXECUTABLE} ${events_src_path}/libevents/scripts/validate.py
 		${PX4_BINARY_DIR}/events/all_events_full.json

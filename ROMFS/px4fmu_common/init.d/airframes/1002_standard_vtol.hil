@@ -14,7 +14,7 @@
 . ${R}etc/init.d/rc.vtol_defaults
 
 
-param set-default BAT_N_CELLS 3
+param set-default BAT1_N_CELLS 3
 
 param set-default COM_RC_IN_MODE 1
 

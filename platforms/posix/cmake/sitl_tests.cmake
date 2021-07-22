@@ -19,17 +19,11 @@ set(tests
 	List
 	mathlib
 	matrix
-	microbench_atomic
-	microbench_hrt
-	microbench_math
-	microbench_matrix
-	microbench_uorb
 	mixer
 	param
 	parameters
 	perf
 	search_min
-	servo
 	sleep
 	versioning
 )

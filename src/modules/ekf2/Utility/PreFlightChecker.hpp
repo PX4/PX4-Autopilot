@@ -39,7 +39,8 @@
  * using the hasXxxFailed() getters
  */
 
-#pragma once
+#ifndef EKF2_PREFLIGHTCHECKER_HPP
+#define EKF2_PREFLIGHTCHECKER_HPP
 
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/estimator_innovations.h>
@@ -176,3 +177,4 @@ private:
 	// Preflight flow innovation spike limit (rad)
 	static constexpr float _flow_innov_spike_lim = 2.0f * _flow_innov_test_lim;
 };
+#endif // !EKF2_PREFLIGHTCHECKER_HPP

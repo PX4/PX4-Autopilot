@@ -38,7 +38,8 @@
  * @author Roman Bapst
  */
 
-#pragma once
+#ifndef EKF2_HPP
+#define EKF2_HPP
 
 #include "EKF2Selector.hpp"
 
@@ -46,7 +47,7 @@
 
 #include <containers/LockGuard.hpp>
 #include <drivers/drv_hrt.h>
-#include <lib/ecl/EKF/ekf.h>
+#include "EKF/ekf.h"
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
@@ -61,6 +62,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/airspeed.h>
+#include <uORB/topics/baro_bias_estimate.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/ekf_gps_drift.h>
@@ -128,6 +130,7 @@ private:
 	void Run() override;
 
 	void PublishAttitude(const hrt_abstime &timestamp);
+	void PublishBaroBiasEstimate(const hrt_abstime &timestamp);
 	void PublishEkfDriftMetrics(const hrt_abstime &timestamp);
 	void PublishEventFlags(const hrt_abstime &timestamp);
 	void PublishGlobalPosition(const hrt_abstime &timestamp);
@@ -255,6 +258,7 @@ private:
 	uint32_t _filter_warning_event_changes{0};
 	uint32_t _filter_information_event_changes{0};
 
+	uORB::PublicationMulti<baro_bias_estimate_s>         _baro_bias_estimate_pub{ORB_ID(baro_bias_estimate)};
 	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
 	uORB::PublicationMulti<ekf_gps_drift_s>              _ekf_gps_drift_pub{ORB_ID(ekf_gps_drift)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};
@@ -489,6 +493,7 @@ private:
 		_param_ekf2_drag_noise,	///< observation noise variance for drag specific force measurements (m/sec**2)**2
 		(ParamExtFloat<px4::params::EKF2_BCOEF_X>) _param_ekf2_bcoef_x,		///< ballistic coefficient along the X-axis (kg/m**2)
 		(ParamExtFloat<px4::params::EKF2_BCOEF_Y>) _param_ekf2_bcoef_y,		///< ballistic coefficient along the Y-axis (kg/m**2)
+		(ParamExtFloat<px4::params::EKF2_MCOEF>) _param_ekf2_mcoef,		///< propeller momentum drag coefficient (1/s)
 
 		// Corrections for static pressure position error where Ps_error = Ps_meas - Ps_truth
 		// Coef = Ps_error / Pdynamic, where Pdynamic = 1/2 * density * TAS**2
@@ -520,3 +525,4 @@ private:
 
 	)
 };
+#endif // !EKF2_HPP

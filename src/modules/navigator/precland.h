@@ -41,7 +41,7 @@
 #pragma once
 
 #include <matrix/math.hpp>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/landing_target_pose.h>

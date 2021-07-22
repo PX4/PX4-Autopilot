@@ -34,7 +34,7 @@
 #ifndef SCALED_IMU2_HPP
 #define SCALED_IMU2_HPP
 
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/matrix/matrix/math.hpp>
 
 #include <uORB/topics/sensor_mag.h>

@@ -76,7 +76,7 @@ jobs:
 
   events:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-focal:2021-02-04
+    container: px4io/px4-dev-base-focal:2021-05-04
     steps:
     - uses: actions/checkout@v1
       with:

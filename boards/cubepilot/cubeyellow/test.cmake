@@ -98,6 +98,7 @@ px4_add_board(
 		i2cdetect
 		led_control
 		mft
+		microbench
 		mixer
 		motor_ramp
 		motor_test

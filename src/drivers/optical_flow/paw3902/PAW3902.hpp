@@ -126,10 +126,17 @@ private:
 
 	Mode		_mode{Mode::LowLight};
 
+	uint32_t _scheduled_interval_us{SAMPLE_INTERVAL_MODE_1};
+
 	int _bright_to_low_counter{0};
 	int _low_to_superlow_counter{0};
 	int _low_to_bright_counter{0};
 	int _superlow_to_low_counter{0};
 
 	int _valid_count{0};
+
+	bool _data_ready_interrupt_enabled{false};
+
+	hrt_abstime _last_good_publish{0};
+	hrt_abstime _last_reset{0};
 };

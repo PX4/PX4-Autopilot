@@ -40,7 +40,7 @@
 #include "voted_sensors_update.h"
 
 #include <lib/sensor_calibration/Utilities.hpp>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
 
