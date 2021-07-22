@@ -41,23 +41,6 @@
 
 void Ekf::controlMagFusion()
 {
-	// handle undefined behaviour
-	if (_params.mag_fusion_type > MAG_FUSE_TYPE_NONE) {
-		return;
-	}
-
-	// When operating without a magnetometer and no other source of yaw aiding is active,
-	// yaw fusion is run selectively to enable yaw gyro bias learning when stationary on
-	// ground and to prevent uncontrolled yaw variance growth
-	if (_params.mag_fusion_type == MAG_FUSE_TYPE_NONE) {
-		if (noOtherYawAidingThanMag()) {
-			_is_yaw_fusion_inhibited = true;
-			fuseHeading();
-		}
-
-		return;
-	}
-
 	checkMagFieldStrength();
 
 	// If we are on ground, reset the flight alignment flag so that the mag fields will be
@@ -67,8 +50,25 @@ void Ekf::controlMagFusion()
 		_num_bad_flight_yaw_events = 0;
 	}
 
-	if (_control_status.flags.mag_fault || !_control_status.flags.tilt_align) {
+	// When operating without a magnetometer and no other source of yaw aiding is active,
+	// yaw fusion is run selectively to enable yaw gyro bias learning when stationary on
+	// ground and to prevent uncontrolled yaw variance growth
+	// Also fuse zero heading innovation during the leveling fine alignment step to keep the yaw variance low
+	if (_params.mag_fusion_type >= MAG_FUSE_TYPE_NONE
+	    || _control_status.flags.mag_fault
+	    || !_control_status.flags.tilt_align) {
+
 		stopMagFusion();
+
+		if (noOtherYawAidingThanMag())
+		{
+			// TODO: setting _is_yaw_fusion_inhibited to true is required to tell
+			// fuseHeading to perform a "zero innovation heading fusion"
+			// We should refactor it to avoid using this flag here
+			_is_yaw_fusion_inhibited = true;
+			fuseHeading();
+			_is_yaw_fusion_inhibited = false;
+		}
 		return;
 	}
 
