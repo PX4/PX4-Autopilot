@@ -6,9 +6,9 @@
 @# Start of Template
 @#
 @# Context:
-@#  - msgs (List) list of all msg files
-@#  - multi_topics (List) list of all multi-topic names
-@#  - ids (List) list of all RTPS msg ids
+@#  - fastrtps_version (str) FastRTPS version installed on the system
+@#  - ros2_distro (str) ROS2 distro name
+@#  - spec (msggen.MsgSpec) Parsed specification of the .msg file
 @###############################################
 @{
 import genmsg.msgs
@@ -70,7 +70,7 @@ if ros2_distro:
  * @@file @(topic)_Publisher.cpp
  * This file contains the implementation of the publisher functions.
  *
- * This file was adapted from the fastcdrgen tool.
+ * This file was adapted from the fastrtpsgen tool.
  */
 
 #include "@(topic)_Publisher.h"
