@@ -6,9 +6,8 @@
 @# Start of Template
 @#
 @# Context:
-@#  - msgs (List) list of all msg files
-@#  - multi_topics (List) list of all multi-topic names
-@#  - ids (List) list of all RTPS msg ids
+@#  - spec (msggen.MsgSpec) Parsed specification of the .msg file
+@#  - ros2_distro (List[str]) ROS2 distro name
 @###############################################
 @{
 import genmsg.msgs

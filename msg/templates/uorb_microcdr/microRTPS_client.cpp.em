@@ -6,9 +6,9 @@
 @# Start of Template
 @#
 @# Context:
-@#  - msgs (List) list of all msg files
+@#  - msgs (List) list of all RTPS messages
 @#  - multi_topics (List) list of all multi-topic names
-@#  - ids (List) list of all RTPS msg ids
+@#  - spec (msggen.MsgSpec) Parsed specification of the .msg file
 @###############################################
 @{
 import os
@@ -152,7 +152,7 @@ void *send(void *args)
 					// copy raw data into local buffer. Payload is shifted by header length to make room for header
 					serialize_@(send_base_types[idx])(&writer, &@(topic)_data, &data_buffer[header_length], &length);
 
-					if (0 < (read = transport_node->write(static_cast<char>(@(ids[0].index(topic) + 1)), data_buffer, length))) {
+					if (0 < (read = transport_node->write(static_cast<char>(@(msgs[0].index(topic) + 1)), data_buffer, length))) {
 						data->total_sent += read;
 						tx_last_sec_read += read;
 						++data->sent;
@@ -261,7 +261,7 @@ void micrortps_start_topics(const uint32_t &datarate, struct timespec &begin, ui
 
 			switch (topic_ID) {
 @[    for idx, topic in enumerate(recv_topics)]@
-			case @(ids[0].index(topic) + 1): {
+			case @(msgs[0].index(topic) + 1): {
 				@(receive_base_types[idx])_s @(topic)_data;
 				deserialize_@(receive_base_types[idx])(&reader, &@(topic)_data, data_buffer);
 

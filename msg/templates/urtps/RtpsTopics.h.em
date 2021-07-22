@@ -6,8 +6,10 @@
 @# Start of Template
 @#
 @# Context:
-@#  - msgs (List) list of all msg files
-@#  - ids (List) list of all RTPS msg ids
+@#  - fastrtps_version (List[str]) FastRTPS version installed on the system
+@#  - package (List[str]) messages package name. Defaulted to 'px4'
+@#  - ros2_distro (List[str]) ROS2 distro name
+@#  - spec (msggen.MsgSpec) Parsed specification of the .msg file
 @###############################################
 @{
 import genmsg.msgs
