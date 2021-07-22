@@ -81,8 +81,8 @@ private:
 	bool UpdateGyro();
 
 	void UpdateIntegratorConfiguration();
-	void UpdateAccelVibrationMetrics(const matrix::Vector3f &delta_velocity);
-	void UpdateGyroVibrationMetrics(const matrix::Vector3f &delta_angle);
+	void UpdateAccelVibrationMetrics(const matrix::Vector3f &acceleration);
+	void UpdateGyroVibrationMetrics(const matrix::Vector3f &angular_velocity);
 
 	uORB::PublicationMulti<vehicle_imu_s> _vehicle_imu_pub{ORB_ID(vehicle_imu)};
 	uORB::PublicationMulti<vehicle_imu_status_s> _vehicle_imu_status_pub{ORB_ID(vehicle_imu_status)};
@@ -125,8 +125,8 @@ private:
 	float _accel_temperature{0};
 	float _gyro_temperature{0};
 
-	matrix::Vector3f _delta_angle_prev{0.f, 0.f, 0.f};	// delta angle from the previous IMU measurement
-	matrix::Vector3f _delta_velocity_prev{0.f, 0.f, 0.f};	// delta velocity from the previous IMU measurement
+	matrix::Vector3f _acceleration_prev{};     // acceleration from the previous IMU measurement for vibration metrics
+	matrix::Vector3f _angular_velocity_prev{}; // angular velocity from the previous IMU measurement for vibration metrics
 
 	vehicle_imu_status_s _status{};
 
