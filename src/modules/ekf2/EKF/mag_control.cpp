@@ -60,8 +60,7 @@ void Ekf::controlMagFusion()
 
 		stopMagFusion();
 
-		if (noOtherYawAidingThanMag())
-		{
+		if (noOtherYawAidingThanMag()) {
 			// TODO: setting _is_yaw_fusion_inhibited to true is required to tell
 			// fuseHeading to perform a "zero innovation heading fusion"
 			// We should refactor it to avoid using this flag here
@@ -69,6 +68,7 @@ void Ekf::controlMagFusion()
 			fuseHeading();
 			_is_yaw_fusion_inhibited = false;
 		}
+
 		return;
 	}
 
