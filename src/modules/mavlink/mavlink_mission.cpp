@@ -1018,8 +1018,13 @@ MavlinkMissionManager::next_transfer_dataman_id()
 		transfer_dataman_id = (_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
 				       DM_KEY_WAYPOINTS_OFFBOARD_0);	// use inactive storage for transmission
 
+	} else if (ret == 0) {
+		//dataman is empty (new or formatted SD card)
+		transfer_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+
 	} else {
-		PX4_ERR("Can't read DM_KEY_MISSION_STATE");
+		PX4_ERR("Dataman can't read DM_KEY_MISSION_STATE. The actual size of readout is %d, expected size is %d.", ret,
+			static_cast<int>(sizeof(mission_s)));
 	}
 
 	return transfer_dataman_id;
