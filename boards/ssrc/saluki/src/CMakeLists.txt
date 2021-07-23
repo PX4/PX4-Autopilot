@@ -45,6 +45,7 @@ set_target_properties(mpfs_head PROPERTIES LINKER_LANGUAGE ASM)
 if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
 	add_library(drivers_board
 		bootloader_main.c
+		mpfs_emmcsd.c
 	)
 	target_link_libraries(drivers_board
 		PRIVATE
@@ -63,6 +64,7 @@ else()
 		toc.c
 		i2c.cpp
 		spi.cpp
+		mpfs_emmcsd.c
 	)
 
 	target_link_libraries(drivers_board

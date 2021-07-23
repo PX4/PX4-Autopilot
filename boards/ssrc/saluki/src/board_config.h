@@ -99,6 +99,11 @@
 
 #define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5, 6, 7};
 
+/* eMMC/SD */
+
+#define SDIO_SLOTNO 0
+#define SDIO_MINOR  0
+
 __BEGIN_DECLS
 
 /****************************************************************************************************
@@ -118,6 +123,7 @@ __BEGIN_DECLS
 extern void board_peripheral_reset(int ms);
 extern void board_spidev_initialize(void);
 extern int board_spibus_initialize(void);
+extern int mpfs_board_emmcsd_init(void);
 
 #include <px4_platform_common/board_common.h>
 

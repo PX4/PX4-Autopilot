@@ -223,7 +223,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	*/
 
 #ifdef CONFIG_MMCSD
-	ret = mpfs_sdio_initialize();
+	ret = mpfs_board_emmcsd_init();
 
 	if (ret != OK) {
 		led_on(LED_RED);
