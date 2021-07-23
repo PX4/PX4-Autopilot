@@ -781,6 +781,11 @@ void Ekf::fuseHeading()
 				// Vehicle is at rest so use the last moving prediction as an observation
 				// to prevent the heading from drifting and to enable yaw gyro bias learning
 				// before takeoff.
+
+				if (!PX4_ISFINITE(_last_static_yaw)) {
+					_last_static_yaw = predicted_hdg;
+				}
+
 				measured_hdg = _last_static_yaw;
 
 			}
@@ -836,6 +841,11 @@ void Ekf::fuseHeading()
 				// Vehicle is at rest so use the last moving prediction as an observation
 				// to prevent the heading from drifting and to enable yaw gyro bias learning
 				// before takeoff.
+
+				if (!PX4_ISFINITE(_last_static_yaw)) {
+					_last_static_yaw = predicted_hdg;
+				}
+
 				measured_hdg = _last_static_yaw;
 
 			}
