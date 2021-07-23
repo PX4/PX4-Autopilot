@@ -70,7 +70,8 @@ if(config_build_bootloader)
 	file(RELATIVE_PATH bootloader_exe_relative ${CMAKE_CURRENT_BINARY_DIR} ${board_bootloader_firmware})
 	file(RELATIVE_PATH bootloader_bin_relative ${CMAKE_CURRENT_BINARY_DIR} ${bootloader_bin})
 
-	add_custom_command(OUTPUT ${bootloader_bin}
+	add_custom_command(
+		OUTPUT ${bootloader_bin}
 		COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/romfs_extras
 		COMMAND ${CMAKE_OBJCOPY} -O binary ${bootloader_exe_relative} ${bootloader_bin_relative}
 		DEPENDS bootloader_firmware
@@ -93,22 +94,14 @@ elseif(EXISTS "${PX4_BOARD_DIR}/bootloader/")
 		set(board_bootloader_firmware ${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin CACHE FILEPATH "bootloader original binary path")
 		set(bootloader_bin "${PX4_BINARY_DIR}/romfs_extras/bootloader.bin" CACHE FILEPATH "bootloader binary path")
 
-		add_custom_command(OUTPUT ${bootloader_bin}
+		add_custom_command(
+			OUTPUT ${bootloader_bin}
 			COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/romfs_extras
 			COMMAND ${CMAKE_COMMAND} -E copy_if_different ${board_bootloader_firmware} ${PX4_BINARY_DIR}/romfs_extras/bootloader.bin
 			DEPENDS ${board_bootloader_firmware}
 			COMMENT "Copying ${board_bootloader_firmware} to ROMFS extras"
 		)
 		add_custom_target(copy_bootloader_bin DEPENDS ${bootloader_bin})
-
-		# generate bootloader.elf and copy to top level build directory
-		add_custom_command(
-			OUTPUT ${PX4_BINARY_DIR}/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.elf
-			COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-little --change-section-address .data=0x08000000 ${board_bootloader_firmware} ${PX4_BINARY_DIR}/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.elf
-			DEPENDS ${board_bootloader_firmware}
-			WORKING_DIRECTORY ${PX4_BINARY_DIR}
-		)
-		add_custom_target(bootloader_elf DEPENDS ${PX4_BINARY_DIR}/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.elf)
 
 	else()
 		file(GLOB bootloader_bin_files ${PX4_BOARD_DIR}/bootloader/*.bin)
