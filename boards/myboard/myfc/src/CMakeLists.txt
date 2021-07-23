@@ -1,5 +1,5 @@
 add_library(drivers_board
-	# i2c.cpp
+	i2c.cpp
 	init.c
 	led.c
 	# spi.cpp
