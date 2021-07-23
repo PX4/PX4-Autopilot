@@ -904,7 +904,9 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 			setpoint.acceleration[1] = (type_mask & POSITION_TARGET_TYPEMASK_AY_IGNORE) ? (float)NAN : target_local_ned.afy;
 			setpoint.acceleration[2] = (type_mask & POSITION_TARGET_TYPEMASK_AZ_IGNORE) ? (float)NAN : target_local_ned.afz;
 
-		} else if (target_local_ned.coordinate_frame == MAV_FRAME_BODY_NED) {
+		} else if (target_local_ned.coordinate_frame == MAV_FRAME_BODY_FRD || // new/correct for body frame
+			   target_local_ned.coordinate_frame == MAV_FRAME_BODY_NED || // deprecated but implemented for compatibility
+			   target_local_ned.coordinate_frame == MAV_FRAME_LOCAL_FRD) { // new/correct instead of BODY_NED
 
 			vehicle_attitude_s vehicle_attitude{};
 			_vehicle_attitude_sub.copy(&vehicle_attitude);
@@ -920,12 +922,18 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					(type_mask & POSITION_TARGET_TYPEMASK_VZ_IGNORE) ? 0.f : target_local_ned.vz
 				};
 
+				if (target_local_ned.coordinate_frame == MAV_FRAME_BODY_FRD) {
+					const matrix::Vector3f velocity_setpoint{R * velocity_body_sp};
+					setpoint.vx = velocity_setpoint(0);
+					setpoint.vy = velocity_setpoint(1);
+					setpoint.vz = velocity_setpoint(2);
 
-				const float yaw = matrix::Eulerf{R}(2);
-
-				setpoint.vx = cosf(yaw) * velocity_body_sp(0) - sinf(yaw) * velocity_body_sp(1);
-				setpoint.vy = sinf(yaw) * velocity_body_sp(0) + cosf(yaw) * velocity_body_sp(1);
-				setpoint.vz = velocity_body_sp(2);
+				} else {
+					const float yaw = matrix::Eulerf{R}(2);
+					setpoint.vx = cosf(yaw) * velocity_body_sp(0) - sinf(yaw) * velocity_body_sp(1);
+					setpoint.vy = sinf(yaw) * velocity_body_sp(0) + cosf(yaw) * velocity_body_sp(1);
+					setpoint.vz = velocity_body_sp(2);
+				}
 
 			} else {
 				setpoint.vx = NAN;
@@ -943,8 +951,16 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					(type_mask & POSITION_TARGET_TYPEMASK_AZ_IGNORE) ? 0.f : target_local_ned.afz
 				};
 
-				const matrix::Vector3f acceleration_setpoint{R * acceleration_body_sp};
-				acceleration_setpoint.copyTo(setpoint.acceleration);
+				if (target_local_ned.coordinate_frame == MAV_FRAME_BODY_FRD) {
+					const matrix::Vector3f acceleration_setpoint{R * acceleration_body_sp};
+					acceleration_setpoint.copyTo(setpoint.acceleration);
+
+				} else {
+					const float yaw = matrix::Eulerf{R}(2);
+					setpoint.acceleration[0] = cosf(yaw) * acceleration_body_sp(0) - sinf(yaw) * acceleration_body_sp(1);
+					setpoint.acceleration[1] = sinf(yaw) * acceleration_body_sp(0) + cosf(yaw) * acceleration_body_sp(1);
+					setpoint.acceleration[2] = acceleration_body_sp(2);
+				}
 
 			} else {
 				setpoint.acceleration[0] = NAN;
