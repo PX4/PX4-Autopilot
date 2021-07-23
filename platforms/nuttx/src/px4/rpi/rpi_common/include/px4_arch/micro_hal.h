@@ -4,15 +4,6 @@
 
 __BEGIN_DECLS
 
-#define	RP2040_GPIO_PAD_MASK	0xff		// GPIO PAD register mask
-#define	RP2040_GPIO_PIN_MASK	0x1f00		// GPIO pin number mask
-#define	RP2040_GPIO_FUN_MASK	0x3e000		// GPIO pin function mask
-#define	RP2040_GPIO_OEN_MASK	0x40000		// GPIO output enable mask
-#define	RP2040_GPIO_OUT_MASK	0x80000		// GPIO output value mask
-
-#define	RP2040_PADS_BANK0_GPIO_RESET	0x56	// GPIO PAD register default value
-#define	RP2040_IO_BANK0_GPIO_CTRL_RESET	0x1f	// GPIO_CTRL register default value
-
 #include <rp2040_spi.h>
 #include <rp2040_i2c.h>
 #include <rp2040_gpio.h>
@@ -62,33 +53,64 @@ __BEGIN_DECLS
 #define px4_i2cbus_initialize(bus_num_0based)   rp2040_i2cbus_initialize(bus_num_0based)
 #define px4_i2cbus_uninitialize(pdev)           rp2040_i2cbus_uninitialize(pdev)
 
-
 // This part of the code is specific to rp2040.
 // RP2040 does not have the gpio configuration process similar to stm or tiva devices.
 // There are multiple different registers which are required to be configured based on the function selection.
-// The pinset below can be defined using a 32-bit value where,
+// However, only four value are required for the most part: Pin number, Pull up/down, direction, set/clear and function
+// The pinset below can be defined using a 16-bit value where,
 // bits		Function
-// 0-7		PADS Bank 0 GPIO register. Take a look at rp2040 datasheet page 321.
-// 8-15		GPIO number. 0-29 is valid.
-// 16-23	GPIO function select
-// 24		Output enable
-// 25		Output value
-// 26-31	Unused
-// Take a look at k66 in nxp for referance.
-// void rp2040_pinconfig(uint32_t pinset){}
-#define px4_arch_configgpio(pinset)             rp2040_gpio_init(pinset)		// Implemented in io_pins/pin_config.c
-#define px4_arch_unconfiggpio(pinset)           0					// Needs to be implemented (can be done in io_pins)
-#define px4_arch_gpioread(pinset)               rp2040_gpio_get(pinset)			// Use gpio_get
-#define px4_arch_gpiowrite(pinset, value)       rp2040_gpio_put(pinset, value)		// Use gpio_put
-#define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)  0					// Needs to be implemented (can be done in io_pins)
+// 0-4		GPIO number. 0-29 is valid.
+// 5		Pull up
+// 6		Pull down
+// 7		Direction
+// 8		Set/clear
+// 9-13		GPIO function select
+// 14-15	Unused
+#define GPIO_PU		(1 << 5)
+#define GPIO_PD		(1 << 6)
+#define GPIO_OUT	(1 << 7)
+#define GPIO_SET	(1 << 8)
+#define GPIO_FUN(func)	(func << 9)
+
+#define GPIO_NUM_MASK	0x1f
+#define	GPIO_PU_MASK	0x20		// GPIO PAD register mask
+#define	GPIO_PD_MASK	0x40		// GPIO pin number mask
+#define	GPIO_OUT_MASK	0x80		// GPIO pin function mask
+#define	GPIO_SET_MASK	0x100		// GPIO pin function mask
+#define	GPIO_FUN_MASK	0x3E00		// GPIO output enable mask
+
+#define px4_arch_configgpio(pinset) {									\
+	rp2040_gpio_set_pulls(pinset & GPIO_NUM_MASK, pinset & GPIO_PU_MASK, pinset & GPIO_PD_MASK);	\
+	if ((pinset & GPIO_FUN_MASK) >> 9 == RP2040_GPIO_FUNC_SIO)					\
+	{												\
+		rp2040_gpio_setdir(pinset & GPIO_NUM_MASK, pinset & GPIO_OUT_MASK);			\
+		rp2040_gpio_put(pinset & GPIO_NUM_MASK, pinset & GPIO_SET_MASK);			\
+	}												\
+	rp2040_gpio_set_function(pinset & GPIO_NUM_MASK, (pinset & GPIO_FUN_MASK) >> 9);		\
+}
+#define px4_arch_unconfiggpio(pinset)           rp2040_gpio_init(pinset & GPIO_NUM_MASK)	// Reset the pin as input SIO
+#define px4_arch_gpioread(pinset)               rp2040_gpio_get(pinset & GPIO_NUM_MASK)		// Use gpio_get
+#define px4_arch_gpiowrite(pinset, value)       rp2040_gpio_put(pinset & GPIO_NUM_MASK, value)	// Use gpio_put
+#define px4_arch_gpiosetevent(pinset,r,f,e,fp,a) {							\
+	rp2040_gpio_disable_irq(pinset & GPIO_NUM_MASK);						\
+	if (f & e & fp)											\
+	{												\
+		rp2040_gpio_irq_attach(pinset & GPIO_NUM_MASK, RP2040_GPIO_INTR_EDGE_LOW, fp, a);	\
+		rp2040_gpio_enable_irq(pinset & GPIO_NUM_MASK);						\
+	}												\
+	if (r & e & fp)											\
+	{												\
+		rp2040_gpio_irq_attach(pinset & GPIO_NUM_MASK, RP2040_GPIO_INTR_EDGE_HIGH, fp, a);	\
+		rp2040_gpio_enable_irq(pinset & GPIO_NUM_MASK);						\
+	}												\
+}
 
 // Following are quick defines to be used with the functions defined above
 // These defines create a bit-mask which is supposed to be used in the
 // functions defined above to set up gpios correctly.
-#define PX4_MAKE_GPIO_INPUT(gpio) (((gpio) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT|GPIO_PULLUP))
-#define PX4_MAKE_GPIO_OUTPUT_CLEAR(gpio) (((gpio) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR))
-#define PX4_MAKE_GPIO_OUTPUT_SET(gpio) (((gpio) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET))
-
-#define PX4_GPIO_PIN_OFF(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_2MHz))
+#define PX4_MAKE_GPIO_INPUT(gpio) (gpio | GPIO_PU | RP2040_GPIO_FUNC_SIO)
+#define PX4_MAKE_GPIO_OUTPUT_CLEAR(gpio) (gpio | GPIO_OUT | RP2040_GPIO_FUNC_SIO)
+#define PX4_MAKE_GPIO_OUTPUT_SET(gpio) (gpio | GPIO_OUT | GPIO_SET | RP2040_GPIO_FUNC_SIO)
+#define PX4_GPIO_PIN_OFF(gpio) (gpio | RP2040_GPIO_FUNC_SIO)
 
 __END_DECLS
