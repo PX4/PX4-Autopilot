@@ -67,6 +67,7 @@
 #include <uORB/topics/vehicle_attitude.h>           // to publish groundtruth
 #include <uORB/topics/vehicle_global_position.h>    // to publish groundtruth
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/airspeed.h>
 
 using namespace time_literals;
 
@@ -126,6 +127,10 @@ private:
 	vehicle_global_position_s			_gpos_gt{};
 	uORB::Publication<vehicle_global_position_s>	_gpos_gt_pub{ORB_ID(vehicle_global_position_groundtruth)};
 
+	// airspeed
+ 	airspeed_s  						_airspeed{};
+	uORB::Publication<airspeed_s>				_airspeed_pub{ORB_ID(airspeed)};
+
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _actuator_out_sub{ORB_ID(actuator_outputs)};
 
@@ -145,48 +150,6 @@ private:
 	static constexpr float SPAN=0.86f; 	// wing span [m]
 	static constexpr float MAC=0.21f; 	// wing mean aerodynamic chord [m]
 
-	// class States for Runge-Kutta integration ------------------------------------------------------------------------
-	class States
-	{
-	public:
-		matrix::Vector3f p_I;
-		matrix::Vector3f v_I;
-		matrix::Quatf    q;
-		matrix::Vector3f w_B;
-
-		// Constructors
-		States() = default;
-
-		explicit States(matrix::Vector3f p, matrix::Vector3f v, matrix::Quatf q_, matrix::Vector3f w) {
-			p_I=p;
-			v_I=v;
-			q=q_;
-			w_B=w;
-		}
-
-		States operator*(const float k) const {
-			return States(p_I*k, v_I*k, q*k, w_B*k);
-		}
-
-		States operator+(const States other) const {
-			return States(p_I+other.p_I, v_I+other.v_I, q+other.q, w_B+other.w_B);
-		}
-
-		void unwrap_states(matrix::Vector3f &p, matrix::Vector3f &v, matrix::Quatf &q_, matrix::Vector3f &w) {
-			p=p_I;
-			v=v_I;
-			q_=q;
-			w=w_B;
-		}
-
-		void normalize_quat() {
-			q.normalize();
-		}
-
-	}; // ---------------------------------------------------------------------------------------------------------
-
-	States _x={}, _k1, _k2, _k3, _k4; 	// states for Runge-Kutta integration
-
 	void init_variables();
 	void gps_fix();
 	void gps_no_fix();
@@ -195,14 +158,13 @@ private:
 	void equations_of_motion();
 	void reconstruct_sensors_signals();
 	void send_gps();
+	void send_airspeed();
 	void send_dist_snsr();
 	void publish_sih();
 	void generate_aerodynamics();
 	float sincf(float x);	// sin cardinal = sin(x)/x
 	matrix::Quatf expq(matrix::Vector3f u);  // quaternion exponential as defined in [3]
-	// matrix::Vector3f flap_moments();
-	void rk4_update(matrix::Vector3f &p_I, matrix::Vector3f &v_I, matrix::Quatf &q, matrix::Vector3f &w_B); 	// Runge-Kutta integration
-	States eom_f(States); 	// equations of motion f: x'=f(x)
+	// States eom_f(States); 	// equations of motion f: x'=f(x)
 
 
 	perf_counter_t  _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
@@ -211,6 +173,7 @@ private:
 	hrt_abstime _last_run{0};
 	hrt_abstime _baro_time{0};
 	hrt_abstime _gps_time{0};
+	hrt_abstime _airspeed_time{0};
 	hrt_abstime _mag_time{0};
 	hrt_abstime _gt_time{0};
 	hrt_abstime _dist_snsr_time{0};
@@ -238,10 +201,10 @@ private:
 	Vtype _vehicle=MC;
 
 	// aerodynamic segments for the fixedwing
-	AeroSeg wing_l=AeroSeg(SPAN/2.0f, MAC, math::radians(-4.0f), matrix::Vector3f(0.0f, -SPAN/4.0f, 0.0f), 3.0f, SPAN/MAC, MAC/3.0f);
-	AeroSeg wing_r=AeroSeg(SPAN/2.0f, MAC, math::radians(-4.0f), matrix::Vector3f(0.0f, SPAN/4.0f, 0.0f), -3.0f, SPAN/MAC, MAC/3.0f);
-	AeroSeg tailplane=AeroSeg(0.3f, 0.1f, 0.0f, matrix::Vector3f(-0.4f, 0.0f, 0.0f), 0.0f, -1.0f, 0.05f);
-	AeroSeg fin=AeroSeg(0.25, 0.15, 0.0f, matrix::Vector3f(-0.45f, 0.0f, -0.1f), -90.0f, -1.0f, 0.08f);
+	AeroSeg _wing_l=AeroSeg(SPAN/2.0f, MAC, math::radians(-4.0f), matrix::Vector3f(0.0f, -SPAN/4.0f, 0.0f), 3.0f, SPAN/MAC, MAC/3.0f);
+	AeroSeg _wing_r=AeroSeg(SPAN/2.0f, MAC, math::radians(-4.0f), matrix::Vector3f(0.0f, SPAN/4.0f, 0.0f), -3.0f, SPAN/MAC, MAC/3.0f);
+	AeroSeg _tailplane=AeroSeg(0.3f, 0.1f, 0.0f, matrix::Vector3f(-0.4f, 0.0f, 0.0f), 0.0f, -1.0f, 0.05f);
+	AeroSeg _fin=AeroSeg(0.25, 0.15, 0.0f, matrix::Vector3f(-0.45f, 0.0f, -0.1f), -90.0f, -1.0f, 0.08f);
 
 	// sensors reconstruction
 	matrix::Vector3f    _acc;

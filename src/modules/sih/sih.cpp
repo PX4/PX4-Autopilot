@@ -68,6 +68,7 @@ Sih::Sih() :
 	const hrt_abstime task_start = hrt_absolute_time();
 	_last_run = task_start;
 	_gps_time = task_start;
+	_airspeed_time = task_start;
 	_gt_time = task_start;
 	_dist_snsr_time = task_start;
 	_vehicle=(Vtype)constrain(_sih_vtype.get(),0,1);
@@ -149,6 +150,11 @@ void Sih::Run()
 	if (_now - _gps_time >= 50_ms) {
 		_gps_time = _now;
 		send_gps();
+	}
+
+	if (_vehicle ==Vtype::FW && _now - _airspeed_time >= 50_ms) {
+		_airspeed_time = _now;
+		send_airspeed();
 	}
 
 	// distance sensor published at 50 Hz
@@ -294,25 +300,14 @@ void Sih::generate_aerodynamics()
 	_v_B = _C_IB.transpose() * _v_I; 	// velocity in body frame [m/s]
 	float altitude = _H0 - _p_I(2);
 	float flap_max=M_PI_F/12.0f; 	// 15 deg
-	wing_l.update_aero(_v_B, _w_B, altitude, _u[0]*flap_max);
-	wing_r.update_aero(_v_B, _w_B, altitude, -_u[0]*flap_max);
-	tailplane.update_aero(_v_B, _w_B, altitude, _u[1]*flap_max);
-	fin.update_aero(_v_B, _w_B, altitude, _u[2]*flap_max);
-	_Fa_I = _C_IB*(wing_l.Fa+wing_r.Fa+tailplane.Fa+fin.Fa) -_KDV * _v_I; 	// sum of aerodynamic forces
+	_wing_l.update_aero(_v_B, _w_B, altitude, _u[0]*flap_max);
+	_wing_r.update_aero(_v_B, _w_B, altitude, -_u[0]*flap_max);
+	_tailplane.update_aero(_v_B, _w_B, altitude, _u[1]*flap_max);
+	_fin.update_aero(_v_B, _w_B, altitude, _u[2]*flap_max);
+	_Fa_I = _C_IB*(_wing_l.Fa+_wing_r.Fa+_tailplane.Fa+_fin.Fa) -_KDV * _v_I; 	// sum of aerodynamic forces
 	// _Ma_B = wing_l.Ma + wing_r.Ma + tailplane.Ma + fin.Ma + flap_moments() -_KDW * _w_B; 	// aerodynamic moments
-	_Ma_B = wing_l.Ma + wing_r.Ma + tailplane.Ma + fin.Ma -_KDW * _w_B; 	// aerodynamic moments
+	_Ma_B =_wing_l.Ma + _wing_r.Ma + _tailplane.Ma + _fin.Ma -_KDW * _w_B; 	// aerodynamic moments
 }
-
-// Vector3f Sih::flap_moments()
-// {
-// 	// control derivative coefficients from Levin thesis
-// 	const float flap_max=10.0f;	// maximum flap deflection (deg)
-// 	const float clda=0.000678f, cldr=-0.0000931f, cmde=-0.0118f, cndr=0.00357f; // 1/deg
-// 	float v2=_v_B.length()*_v_B.length();	// vel squared
-// 	return 0.5f*RHO*v2*SPAN*MAC*flap_max*Vector3f(SPAN*(clda*_u[0]+cldr*_u[2]),
-// 							MAC*cmde*_u[1],
-// 							SPAN*cndr*_u[2]);
-// }
 
 // apply the equations of motion of a rigid body and integrate one step
 void Sih::equations_of_motion()
@@ -367,53 +362,21 @@ void Sih::equations_of_motion()
 		_w_B = constrain(_w_B + _w_B_dot * _dt, -6.0f*M_PI_F, 6.0f*M_PI_F);
 		_grounded = false;
 	}
-	// if (_grounded && _u[3]>0.9f){
-	// 	_p_I(2)=-100.0f;
-	// }
 }
 
-// Runge-Kutta integration
-void Sih::rk4_update(matrix::Vector3f &p_I, matrix::Vector3f &v_I, matrix::Quatf &q, matrix::Vector3f &w_B)
-{
-	// wrap the states
-	_x = States(p_I, v_I, q, w_B);
-	// _x.p_I=p_I;
-	// _x.v_I=v_I;
-	// _x.q=q;
-	// _x.w_B=w_B;
+// Sih::States Sih::eom_f(States x) 	// equations of motion f: x'=f(x)
+// {
+// 	States x_dot{}; 	// dx/dt
 
-	// compute RK4 coefficients
-	_k1=eom_f(_x);
-	_k2=eom_f(_x+_k1*0.5f*_dt);
-	_k3=eom_f(_x+_k2*0.5f*_dt);
-	_k4=eom_f(_x+_k3*1.0f*_dt);
+// 	Dcmf C_IB = matrix::Dcm<float>(x.q); // body to inertial transformation
+// 	// Equations of motion of a rigid body
+// 	x_dot.p_I = x.v_I;                        // position differential
+// 	x_dot.v_I = (_W_I + _Fa_I + C_IB * _T_B) / _MASS;   // conservation of linear momentum
+// 	x_dot.q = x.q.derivative1(x.w_B);              // attitude differential
+// 	x_dot.w_B = _Im1 * (_Mt_B + _Ma_B - x.w_B.cross(_I * x.w_B)); // conservation of angular momentum
 
-	// compute RK update
-	_x=_x+(_k1+(_k2+_k3)*2.0f+_k4)*(_dt/6.0f);
-	_x.normalize_quat();
-
-	// unwrap and update the states
-	_x.unwrap_states(p_I, v_I, q, w_B);
-	// p_I=_x.p_I;
-	// v_I=_x.v_I;
-	// _x.q.normalize();
-	// q=_x.q;
-	// w_B=_x.w_B;
-}
-
-Sih::States Sih::eom_f(States x) 	// equations of motion f: x'=f(x)
-{
-	States x_dot{}; 	// dx/dt
-
-	Dcmf C_IB = matrix::Dcm<float>(x.q); // body to inertial transformation
-	// Equations of motion of a rigid body
-	x_dot.p_I = x.v_I;                        // position differential
-	x_dot.v_I = (_W_I + _Fa_I + C_IB * _T_B) / _MASS;   // conservation of linear momentum
-	x_dot.q = x.q.derivative1(x.w_B);              // attitude differential
-	x_dot.w_B = _Im1 * (_Mt_B + _Ma_B - x.w_B.cross(_I * x.w_B)); // conservation of angular momentum
-
-	return x_dot;
-}
+// 	return x_dot;
+// }
 
 // reconstruct the noisy sensor signals
 void Sih::reconstruct_sensors_signals()
@@ -481,6 +444,16 @@ void Sih::send_gps()
 	_sensor_gps_pub.publish(_sensor_gps);
 }
 
+void Sih::send_airspeed(){
+
+	_airspeed.timestamp = _now;
+	_airspeed.true_airspeed_m_s	= fmaxf(0.1f,_v_B(0)+generate_wgn()*0.2f);
+	_airspeed.indicated_airspeed_m_s = _airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho()/RHO);
+	_airspeed.air_temperature_celsius = _baro_temp_c;
+	_airspeed.confidence = 0.7f;
+ 	_airspeed_pub.publish(_airspeed);
+}
+
 void Sih::send_dist_snsr()
 {
 	_distance_snsr.timestamp = _now;
@@ -537,18 +510,14 @@ void Sih::publish_sih()
 
 // quaternion exponential as defined in [3]
 Quatf Sih::expq(matrix::Vector3f u)  {
-	Vector3f v=sincf(u.norm())*u;
-	return Quatf(cosf(u.norm()), v(0), v(1), v(2));
-}
-
-// sin Cardinal sinc(x) = sin(x)/x
-float Sih::sincf(float x)
-{
-	// Move x to [-pi, pi)
-	if (fabsf(x)<1.0e-6f) { 	// error will be smaller than 1e-18
-		return 1.0f-x*x/6.0f; 	// first taylor serie term of sin(x)/x
+	float u_norm=u.norm();
+	Vector3f v;
+	if (fabsf(u_norm)<1.0e-6f) { 	// error will be smaller than 1e-18
+		v=(1.0f-u_norm*u_norm/6.0f)*u; 	// first taylor serie term of sin(x)/x
+	} else {
+		v=sinf(u_norm)/u_norm*u;
 	}
-	return sinf(x)/x;
+	return Quatf(cosf(u.norm()), v(0), v(1), v(2));
 }
 
 float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1

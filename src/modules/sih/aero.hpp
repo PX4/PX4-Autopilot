@@ -82,7 +82,7 @@ private:
 	float kp, kn;
 	float ate, ale, afte, afle, afs_rad;	// semi empirical coefficients for flat plates function of AR
 	float tau_te, tau_le, fte, fle; 	// leading and trailing edge functions
-	float rho;
+	float rho=1.225f; 	// air density at current altitude [kg/m^3]
 	// variables for flap model
 	float eta_f;		// flap effectiveness
 	float def_a;		// absolute value of the deflection angle
@@ -156,6 +156,11 @@ public:
 								-CL*cosf(alpha)-CD*sinf(alpha));
 		Ma=C_BS*(0.5f*rho*vxz2*span*mac*mac)*matrix::Vector3f(0.0f,CM,0.0f) + p_B%Fa; 	// computed at vehicle CM
 	}
+
+	// return the air density at current altitude, must be called after update_aero()
+	float get_rho() {	return rho; 	}
+
+private:
 
 	// low angle of attack and stalling region coefficient based on flat plate
 	void aoa_coeff(float a, float dt, float vxz, float def)
@@ -270,6 +275,7 @@ public:
 		return -0.25f*(1.0f+sqrtf(fte))*(1.0f+sqrtf(fte))*0.0625f*(-1.0f+6.0f*sqrtf(fte)-5.0f*fte)*kp*sinf(a)*cosf(a)
 		     +0.17f*fle*fle*KV*fabsf(sinf(a))*sinf(a);
 	}
+
 	// AeroSeg operator*(const float k) const {
 	// 	return AeroSeg(p_I*k, v_I*k, q*k, w_B*k);
 	// }
