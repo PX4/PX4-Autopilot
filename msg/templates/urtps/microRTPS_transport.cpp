@@ -570,20 +570,17 @@ bool UART_node::baudrate_to_speed(uint32_t bauds, speed_t *speed)
 	case 2000000: *speed = B2000000;	break;
 
 #ifdef B3000000
+	case 3000000: *speed = B3000000;	break;
 
-	case 3000000: *speed = B3000000;    break;
 #endif
-
 #ifdef B3500000
+	case 3500000: *speed = B3500000;	break;
 
-	case 3500000: *speed = B3500000;    break;
 #endif
-
 #ifdef B4000000
+	case 4000000: *speed = B4000000;	break;
 
-	case 4000000: *speed = B4000000;    break;
 #endif
-
 	default:
 		return false;
 	}
