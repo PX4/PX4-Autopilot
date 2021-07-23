@@ -1161,6 +1161,7 @@ void Ekf::controlHeightFusion()
 		break;
 	}
 
+	updateBaroHgtBias();
 	updateBaroHgtOffset();
 
 	if (_control_status.flags.rng_hgt
@@ -1184,7 +1185,8 @@ void Ekf::controlHeightFusion()
 			Vector3f baro_hgt_obs_var;
 
 			// vertical position innovation - baro measurement has opposite sign to earth z axis
-			_baro_hgt_innov(2) = _state.pos(2) + _baro_sample_delayed.hgt - _baro_hgt_offset;
+			const float unbiased_baro = _baro_sample_delayed.hgt - _baro_b_est.getBias();
+			_baro_hgt_innov(2) = _state.pos(2) + unbiased_baro - _baro_hgt_offset;
 			// observation variance - user parameter defined
 			baro_hgt_obs_var(2) = sq(fmaxf(_params.baro_noise, 0.01f));
 			// innovation gate size

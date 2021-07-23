@@ -202,6 +202,7 @@ bool EKF2::multi_init(int imu, int mag)
 	_estimator_status_flags_pub.advertise();
 	_estimator_visual_odometry_aligned_pub.advertised();
 	_yaw_est_pub.advertise();
+	_baro_bias_estimate_pub.advertise();
 
 	bool changed_instance = _vehicle_imu_sub.ChangeInstance(imu) && _magnetometer_sub.ChangeInstance(mag);
 
@@ -505,6 +506,7 @@ void EKF2::Run()
 			PublishInnovationTestRatios(now);
 			PublishInnovationVariances(now);
 			PublishYawEstimatorStatus(now);
+			PublishBaroBiasEstimate(now);
 
 			UpdateMagCalibration(now);
 
@@ -546,6 +548,21 @@ void EKF2::PublishAttitude(const hrt_abstime &timestamp)
 		vehicle_attitude_s att{};
 		_attitude_pub.publish(att);
 	}
+}
+
+void EKF2::PublishBaroBiasEstimate(const hrt_abstime &timestamp)
+{
+
+	baro_bias_estimate_s bbe{};
+	bbe.timestamp = timestamp;
+	bbe.timestamp_sample = timestamp;
+	bbe.baro_device_id = _device_id_baro;
+	_ekf.getBaroBiasEstimatorStatus(bbe.bias,
+					bbe.bias_var,
+					bbe.innov,
+					bbe.innov_var,
+					bbe.innov_test_ratio);
+	_baro_bias_estimate_pub.publish(bbe);
 }
 
 void EKF2::PublishEkfDriftMetrics(const hrt_abstime &timestamp)
@@ -1608,7 +1625,12 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 					    && (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING)) {
 
 						if (_distance_sensor_sub.ChangeInstance(i)) {
-							PX4_INFO("%d - selected distance_sensor:%d", _instance, i);
+							int ndist = orb_group_count(ORB_ID(distance_sensor));
+
+							if (ndist > 1) {
+								PX4_INFO("%d - selected distance_sensor:%d (%d advertised)", _instance, i, ndist);
+							}
+
 							_distance_sensor_selected = true;
 							break;
 						}
@@ -1818,9 +1840,9 @@ int EKF2::task_spawn(int argc, char *argv[])
 										_ekf2_selector.load()->ScheduleNow();
 									}
 
-									PX4_INFO("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 ")", actual_instance,
-										 imu, vehicle_imu_sub.get().accel_device_id,
-										 mag, vehicle_mag_sub.get().device_id);
+									PX4_DEBUG("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 ")", actual_instance,
+										  imu, vehicle_imu_sub.get().accel_device_id,
+										  mag, vehicle_mag_sub.get().device_id);
 
 									// sleep briefly before starting more instances
 									px4_usleep(10000);

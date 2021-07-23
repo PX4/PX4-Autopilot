@@ -63,3 +63,6 @@
 [submodule "src/lib/events/libevents"]
 	path = src/lib/events/libevents
 	url = https://github.com/mavlink/libevents.git
+[submodule "Tools/simulation-ignition"]
+	path = Tools/simulation-ignition
+	url = https://github.com/Auterion/px4-simulation-ignition.git

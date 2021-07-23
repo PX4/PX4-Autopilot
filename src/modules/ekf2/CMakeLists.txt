@@ -45,6 +45,7 @@ px4_add_module(
 		3500
 	SRCS
 		EKF/airspeed_fusion.cpp
+		EKF/baro_bias_estimator.cpp
 		EKF/control.cpp
 		EKF/covariance.cpp
 		EKF/drag_fusion.cpp

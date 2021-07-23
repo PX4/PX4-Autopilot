@@ -91,7 +91,7 @@ def do_test(port, baudrate, test_name):
 
 
     # print results, wait for final result (PASSED or FAILED)
-    timeout = 180  # 3 minutes
+    timeout = 300  # 5 minutes
     timeout_start = time.time()
     timeout_newline = timeout_start
 
@@ -139,14 +139,29 @@ class TestHardwareMethods(unittest.TestCase):
     def test_bson(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "bson"))
 
-    # def test_dataman(self):
-    #     self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "dataman"))
+    def test_conv(self):
+        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "conv"))
 
-    def floattest_float(self):
+    def test_dataman(self):
+        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "dataman"))
+
+    # def test_file(self):
+    #     self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "file"))
+
+    def test_file2(self):
+        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "file2"))
+
+    def test_float(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "float"))
 
     def test_hrt(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "hrt"))
+
+    def test_int(self):
+        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "int"))
+
+    def test_i2c_spi_cli(self):
+        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "i2c_spi_cli"))
 
     def test_IntrusiveQueue(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "IntrusiveQueue"))
@@ -162,21 +177,6 @@ class TestHardwareMethods(unittest.TestCase):
 
     def test_matrix(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "matrix"))
-
-    def test_microbench_atomic(self):
-        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "microbench_atomic"))
-
-    def test_microbench_hrt(self):
-        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "microbench_hrt"))
-
-    def test_microbench_math(self):
-        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "microbench_math"))
-
-    def test_microbench_matrix(self):
-        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "microbench_matrix"))
-
-    def test_microbench_uorb(self):
-        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "microbench_uorb"))
 
     # def test_mixer(self):
     #     self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "mixer"))
