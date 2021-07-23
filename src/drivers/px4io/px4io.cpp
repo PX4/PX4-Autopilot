@@ -252,7 +252,7 @@ private:
 	bool			_param_update_force;	///< force a parameter update
 
 	/* advertised topics */
-	uORB::PublicationMulti<input_rc_s>			_to_input_rc{ORB_ID(input_rc)};
+	uORB::PublicationMulti<input_rc_s>			_input_rc_pub{ORB_ID(input_rc)};
 	uORB::PublicationMulti<actuator_outputs_s>		_to_outputs{ORB_ID(actuator_outputs)};
 	uORB::PublicationMulti<multirotor_motor_limits_s>	_to_mixer_status{ORB_ID(multirotor_motor_limits)};
 	uORB::Publication<px4io_status_s>			_px4io_status_pub{ORB_ID(px4io_status)};
@@ -2149,11 +2149,10 @@ PX4IO::io_get_raw_rc_input(input_rc_s &input_rc)
 
 	/* get RSSI from input channel */
 	if (_rssi_pwm_chan > 0 && _rssi_pwm_chan <= input_rc_s::RC_INPUT_MAX_CHANNELS && _rssi_pwm_max - _rssi_pwm_min != 0) {
-		int rssi = ((input_rc.values[_rssi_pwm_chan - 1] - _rssi_pwm_min) * 100) /
-			   (_rssi_pwm_max - _rssi_pwm_min);
-		rssi = rssi > 100 ? 100 : rssi;
-		rssi = rssi < 0 ? 0 : rssi;
-		input_rc.rssi = rssi;
+		uint8_t rssi = ((input_rc.values[_rssi_pwm_chan - 1] - _rssi_pwm_min) * 100) /
+			       (_rssi_pwm_max - _rssi_pwm_min);
+
+		input_rc.rssi = math::constrain(rssi, (uint8_t)0, (uint8_t)100);
 	}
 
 	return ret;
@@ -2164,12 +2163,12 @@ PX4IO::io_publish_raw_rc()
 {
 
 	/* fetch values from IO */
-	input_rc_s	rc_val;
+	input_rc_s	input_rc;
 
 	/* set the RC status flag ORDER MATTERS! */
-	rc_val.rc_lost = !(_status & PX4IO_P_STATUS_FLAGS_RC_OK);
+	input_rc.rc_lost = !(_status & PX4IO_P_STATUS_FLAGS_RC_OK);
 
-	int ret = io_get_raw_rc_input(rc_val);
+	int ret = io_get_raw_rc_input(input_rc);
 
 	if (ret != OK) {
 		return ret;
@@ -2177,19 +2176,19 @@ PX4IO::io_publish_raw_rc()
 
 	/* sort out the source of the values */
 	if (_status & PX4IO_P_STATUS_FLAGS_RC_PPM) {
-		rc_val.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_PPM;
+		input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_PPM;
 
 	} else if (_status & PX4IO_P_STATUS_FLAGS_RC_DSM) {
-		rc_val.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_SPEKTRUM;
+		input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_SPEKTRUM;
 
 	} else if (_status & PX4IO_P_STATUS_FLAGS_RC_SBUS) {
-		rc_val.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_SBUS;
+		input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_SBUS;
 
 	} else if (_status & PX4IO_P_STATUS_FLAGS_RC_ST24) {
-		rc_val.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_ST24;
+		input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_ST24;
 
 	} else {
-		rc_val.input_source = input_rc_s::RC_INPUT_SOURCE_UNKNOWN;
+		input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_UNKNOWN;
 
 		/* only keep publishing RC input if we ever got a valid input */
 		if (_rc_last_valid == 0) {
@@ -2198,7 +2197,7 @@ PX4IO::io_publish_raw_rc()
 		}
 	}
 
-	_to_input_rc.publish(rc_val);
+	_input_rc_pub.publish(input_rc);
 
 	return OK;
 }

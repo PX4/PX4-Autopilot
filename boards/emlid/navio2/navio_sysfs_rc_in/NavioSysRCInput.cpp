@@ -114,12 +114,12 @@ void NavioSysRCInput::Run()
 		return;
 	}
 
-	input_rc_s data{};
+	input_rc_s input_rc{};
 
 	connected_buf[sizeof(connected_buf) - 1] = '\0';
 	_connected = (atoi(connected_buf) == 1);
 
-	data.rc_lost = !_connected;
+	input_rc.rc_lost = !_connected;
 
 	uint64_t timestamp_sample = hrt_absolute_time();
 
@@ -133,14 +133,14 @@ void NavioSysRCInput::Run()
 
 		buf[sizeof(buf) - 1] = '\0';
 
-		data.values[i] = atoi(buf);
+		input_rc.values[i] = atoi(buf);
 	}
 
 	// check if all channels are 0
 	bool all_zero = true;
 
 	for (int i = 0; i < CHANNELS; ++i) {
-		if (data.values[i] != 0) {
+		if (input_rc.values[i] != 0) {
 			all_zero = false;
 		}
 	}
@@ -149,12 +149,13 @@ void NavioSysRCInput::Run()
 		return;
 	}
 
-	data.timestamp_last_signal = timestamp_sample;
-	data.channel_count = CHANNELS;
-	data.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
-	data.timestamp = hrt_absolute_time();
+	input_rc.timestamp_last_signal = timestamp_sample;
+	input_rc.channel_count = CHANNELS;
+	input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
+	input_rc.rssi = input_rc_s::RC_RSSI_UNDEFINED;
+	input_rc.timestamp = hrt_absolute_time();
 
-	_input_rc_pub.publish(data);
+	_input_rc_pub.publish(input_rc);
 	perf_count(_publish_interval_perf);
 }
 

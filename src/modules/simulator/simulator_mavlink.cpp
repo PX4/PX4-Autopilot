@@ -617,33 +617,33 @@ void Simulator::handle_message_rc_channels(const mavlink_message_t *msg)
 	mavlink_rc_channels_t rc_channels;
 	mavlink_msg_rc_channels_decode(msg, &rc_channels);
 
-	input_rc_s rc_input{};
-	rc_input.timestamp_last_signal = hrt_absolute_time();
-	rc_input.channel_count = rc_channels.chancount;
-	rc_input.rssi = rc_channels.rssi;
-	rc_input.values[0] = rc_channels.chan1_raw;
-	rc_input.values[1] = rc_channels.chan2_raw;
-	rc_input.values[2] = rc_channels.chan3_raw;
-	rc_input.values[3] = rc_channels.chan4_raw;
-	rc_input.values[4] = rc_channels.chan5_raw;
-	rc_input.values[5] = rc_channels.chan6_raw;
-	rc_input.values[6] = rc_channels.chan7_raw;
-	rc_input.values[7] = rc_channels.chan8_raw;
-	rc_input.values[8] = rc_channels.chan9_raw;
-	rc_input.values[9] = rc_channels.chan10_raw;
-	rc_input.values[10] = rc_channels.chan11_raw;
-	rc_input.values[11] = rc_channels.chan12_raw;
-	rc_input.values[12] = rc_channels.chan13_raw;
-	rc_input.values[13] = rc_channels.chan14_raw;
-	rc_input.values[14] = rc_channels.chan15_raw;
-	rc_input.values[15] = rc_channels.chan16_raw;
-	rc_input.values[16] = rc_channels.chan17_raw;
-	rc_input.values[17] = rc_channels.chan18_raw;
+	input_rc_s input_rc{};
+	input_rc.timestamp_last_signal = hrt_absolute_time();
+	input_rc.channel_count = rc_channels.chancount;
+	input_rc.rssi = rc_channels.rssi;
+	input_rc.values[0] = rc_channels.chan1_raw;
+	input_rc.values[1] = rc_channels.chan2_raw;
+	input_rc.values[2] = rc_channels.chan3_raw;
+	input_rc.values[3] = rc_channels.chan4_raw;
+	input_rc.values[4] = rc_channels.chan5_raw;
+	input_rc.values[5] = rc_channels.chan6_raw;
+	input_rc.values[6] = rc_channels.chan7_raw;
+	input_rc.values[7] = rc_channels.chan8_raw;
+	input_rc.values[8] = rc_channels.chan9_raw;
+	input_rc.values[9] = rc_channels.chan10_raw;
+	input_rc.values[10] = rc_channels.chan11_raw;
+	input_rc.values[11] = rc_channels.chan12_raw;
+	input_rc.values[12] = rc_channels.chan13_raw;
+	input_rc.values[13] = rc_channels.chan14_raw;
+	input_rc.values[14] = rc_channels.chan15_raw;
+	input_rc.values[15] = rc_channels.chan16_raw;
+	input_rc.values[16] = rc_channels.chan17_raw;
+	input_rc.values[17] = rc_channels.chan18_raw;
 
-	rc_input.timestamp = hrt_absolute_time();
+	input_rc.timestamp = hrt_absolute_time();
 
 	// publish message
-	_input_rc_pub.publish(rc_input);
+	_input_rc_pub.publish(input_rc);
 }
 
 void Simulator::handle_message_vision_position_estimate(const mavlink_message_t *msg)

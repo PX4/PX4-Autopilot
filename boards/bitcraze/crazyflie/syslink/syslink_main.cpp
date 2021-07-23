@@ -96,7 +96,7 @@ Syslink::Syslink() :
 	_fd(0),
 	_queue(2, sizeof(syslink_message_t)),
 	_writebuffer(16, sizeof(crtp_message_t)),
-	_rssi(RC_INPUT_RSSI_MAX),
+	_rssi(input_rc_s::RC_RSSI_MAX),
 	_bstate(BAT_DISCHARGING)
 {
 	px4_sem_init(&memory_sem, 0, 0);
@@ -526,30 +526,30 @@ Syslink::handle_raw(syslink_message_t *sys)
 
 		crtp_commander *cmd = (crtp_commander *) &c->data[0];
 
-		input_rc_s rc = {};
+		input_rc_s input_rc = {};
 
-		rc.timestamp = hrt_absolute_time();
-		rc.timestamp_last_signal = rc.timestamp;
-		rc.channel_count = 5;
-		rc.rc_failsafe = false;
-		rc.rc_lost = false;
-		rc.rc_lost_frame_count = 0;
-		rc.rc_total_frame_count = 1;
-		rc.rc_ppm_frame_length = 0;
-		rc.input_source = input_rc_s::RC_INPUT_SOURCE_MAVLINK;
-		rc.rssi = _rssi;
+		input_rc.timestamp = hrt_absolute_time();
+		input_rc.timestamp_last_signal = input_rc.timestamp;
+		input_rc.channel_count = 5;
+		input_rc.rc_failsafe = false;
+		input_rc.rc_lost = false;
+		input_rc.rc_lost_frame_count = 0;
+		input_rc.rc_total_frame_count = 1;
+		input_rc.rc_ppm_frame_length = 0;
+		input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_MAVLINK;
+		input_rc.rssi = _rssi;
 
 
 		double pitch = cmd->pitch, roll = cmd->roll, yaw = cmd->yaw;
 
 		/* channels (scaled to rc limits) */
-		rc.values[0] = pitch * 500 / 20 + 1500;
-		rc.values[1] = roll * 500 / 20 + 1500;
-		rc.values[2] = yaw * 500 / 150 + 1500;
-		rc.values[3] = cmd->thrust * 1000 / USHRT_MAX + 1000;
-		rc.values[4] = 1000; // Dummy channel as px4 needs at least 5
+		input_rc.values[0] = pitch * 500 / 20 + 1500;
+		input_rc.values[1] = roll * 500 / 20 + 1500;
+		input_rc.values[2] = yaw * 500 / 150 + 1500;
+		input_rc.values[3] = cmd->thrust * 1000 / USHRT_MAX + 1000;
+		input_rc.values[4] = 1000; // Dummy channel as px4 needs at least 5
 
-		_rc_pub.publish(rc);
+		_input_rc_pub.publish(input_rc);
 
 	} else if (c->port == CRTP_PORT_MAVLINK) {
 		_count_in++;

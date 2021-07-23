@@ -27,3 +27,7 @@ extern rc_decode_buf_t rc_decode_buf;
 
 uint8_t crc8_dvb_s2(uint8_t crc, uint8_t a);
 uint8_t crc8_dvb_s2_buf(uint8_t *buf, int len);
+
+#define RC_INPUT_RSSI_MAX		100		//should be same as  input_rc_s::RC_RSSI_MAX
+#define RC_INPUT_RSSI_NO_SIGNAL		0	//should be same as  input_rc_s::RC_RSSI_NO_SIGNAL
+#define RC_INPUT_RSSI_UNDEFINED	255		//should be same as  input_rc_s::RC_RSSI_UNDEFINED

@@ -120,7 +120,7 @@ private:
 	void fill_rc_in(uint16_t raw_rc_count_local,
 			uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
 			hrt_abstime now, bool frame_drop, bool failsafe,
-			unsigned frame_drops, int rssi);
+			unsigned frame_drops, uint8_t rssi);
 
 	void set_rc_scan_state(RC_SCAN _rc_scan_state);
 
@@ -136,19 +136,20 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::Subscription	_adc_report_sub{ORB_ID(adc_report)};
 	uORB::Subscription	_vehicle_cmd_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription	_vehicle_status_sub{ORB_ID(vehicle_status)};
+	bool _armed{false};
 
-	input_rc_s	_rc_in{};
+#if defined(ADC_RC_RSSI_CHANNEL)
+	uORB::Subscription	_adc_report_sub {ORB_ID(adc_report)};
 
 	float		_analog_rc_rssi_volt{-1.0f};
 	bool		_analog_rc_rssi_stable{false};
+#endif
 
-	bool _armed{false};
+	input_rc_s	_input_rc{};
 
-
-	uORB::PublicationMulti<input_rc_s>	_to_input_rc{ORB_ID(input_rc)};
+	uORB::PublicationMulti<input_rc_s>	_input_rc_pub{ORB_ID(input_rc)};
 
 	int		_rcs_fd{-1};
 	char		_device[20] {};					///< device / serial port path

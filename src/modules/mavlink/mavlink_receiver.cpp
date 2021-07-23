@@ -1871,57 +1871,57 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 	}
 
 	// fill uORB message
-	input_rc_s rc{};
+	input_rc_s input_rc{};
 
 	// metadata
-	rc.timestamp = hrt_absolute_time();
-	rc.timestamp_last_signal = rc.timestamp;
-	rc.rssi = RC_INPUT_RSSI_MAX;
-	rc.rc_failsafe = false;
-	rc.rc_lost = false;
-	rc.rc_lost_frame_count = 0;
-	rc.rc_total_frame_count = 1;
-	rc.rc_ppm_frame_length = 0;
-	rc.input_source = input_rc_s::RC_INPUT_SOURCE_MAVLINK;
+	input_rc.timestamp = hrt_absolute_time();
+	input_rc.timestamp_last_signal = input_rc.timestamp;
+	input_rc.rssi = input_rc_s::RC_RSSI_UNDEFINED;
+	input_rc.rc_failsafe = false;
+	input_rc.rc_lost = false;
+	input_rc.rc_lost_frame_count = 0;
+	input_rc.rc_total_frame_count = 1;
+	input_rc.rc_ppm_frame_length = 0;
+	input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_MAVLINK;
 
 	// channels
-	rc.values[0] = man.chan1_raw;
-	rc.values[1] = man.chan2_raw;
-	rc.values[2] = man.chan3_raw;
-	rc.values[3] = man.chan4_raw;
-	rc.values[4] = man.chan5_raw;
-	rc.values[5] = man.chan6_raw;
-	rc.values[6] = man.chan7_raw;
-	rc.values[7] = man.chan8_raw;
-	rc.values[8] = man.chan9_raw;
-	rc.values[9] = man.chan10_raw;
-	rc.values[10] = man.chan11_raw;
-	rc.values[11] = man.chan12_raw;
-	rc.values[12] = man.chan13_raw;
-	rc.values[13] = man.chan14_raw;
-	rc.values[14] = man.chan15_raw;
-	rc.values[15] = man.chan16_raw;
-	rc.values[16] = man.chan17_raw;
-	rc.values[17] = man.chan18_raw;
+	input_rc.values[0] = man.chan1_raw;
+	input_rc.values[1] = man.chan2_raw;
+	input_rc.values[2] = man.chan3_raw;
+	input_rc.values[3] = man.chan4_raw;
+	input_rc.values[4] = man.chan5_raw;
+	input_rc.values[5] = man.chan6_raw;
+	input_rc.values[6] = man.chan7_raw;
+	input_rc.values[7] = man.chan8_raw;
+	input_rc.values[8] = man.chan9_raw;
+	input_rc.values[9] = man.chan10_raw;
+	input_rc.values[10] = man.chan11_raw;
+	input_rc.values[11] = man.chan12_raw;
+	input_rc.values[12] = man.chan13_raw;
+	input_rc.values[13] = man.chan14_raw;
+	input_rc.values[14] = man.chan15_raw;
+	input_rc.values[15] = man.chan16_raw;
+	input_rc.values[16] = man.chan17_raw;
+	input_rc.values[17] = man.chan18_raw;
 
 	// check how many channels are valid
 	for (int i = 17; i >= 0; i--) {
-		const bool ignore_max = rc.values[i] == UINT16_MAX; // ignore any channel with value UINT16_MAX
-		const bool ignore_zero = (i > 7) && (rc.values[i] == 0); // ignore channel 8-18 if value is 0
+		const bool ignore_max = input_rc.values[i] == UINT16_MAX; // ignore any channel with value UINT16_MAX
+		const bool ignore_zero = (i > 7) && (input_rc.values[i] == 0); // ignore channel 8-18 if value is 0
 
 		if (ignore_max || ignore_zero) {
 			// set all ignored values to zero
-			rc.values[i] = 0;
+			input_rc.values[i] = 0;
 
 		} else {
 			// first channel to not ignore -> set count considering zero-based index
-			rc.channel_count = i + 1;
+			input_rc.channel_count = i + 1;
 			break;
 		}
 	}
 
 	// publish uORB message
-	_rc_pub.publish(rc);
+	_input_rc_pub.publish(input_rc);
 }
 
 void
@@ -1937,27 +1937,27 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 
 	if (_mavlink->should_generate_virtual_rc_input()) {
 
-		input_rc_s rc{};
-		rc.timestamp = hrt_absolute_time();
-		rc.timestamp_last_signal = rc.timestamp;
+		input_rc_s input_rc{};
+		input_rc.timestamp = hrt_absolute_time();
+		input_rc.timestamp_last_signal = input_rc.timestamp;
 
-		rc.channel_count = 8;
-		rc.rc_failsafe = false;
-		rc.rc_lost = false;
-		rc.rc_lost_frame_count = 0;
-		rc.rc_total_frame_count = 1;
-		rc.rc_ppm_frame_length = 0;
-		rc.input_source = input_rc_s::RC_INPUT_SOURCE_MAVLINK;
-		rc.rssi = RC_INPUT_RSSI_MAX;
+		input_rc.channel_count = 8;
+		input_rc.rc_failsafe = false;
+		input_rc.rc_lost = false;
+		input_rc.rc_lost_frame_count = 0;
+		input_rc.rc_total_frame_count = 1;
+		input_rc.rc_ppm_frame_length = 0;
+		input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_MAVLINK;
+		input_rc.rssi = input_rc_s::RC_RSSI_UNDEFINED;
 
-		rc.values[0] = man.x / 2 + 1500;	// roll
-		rc.values[1] = man.y / 2 + 1500;	// pitch
-		rc.values[2] = man.r / 2 + 1500;	// yaw
-		rc.values[3] = math::constrain(man.z / 0.9f + 800.0f, 1000.0f, 2000.0f);	// throttle
+		input_rc.values[0] = man.x / 2 + 1500;	// roll
+		input_rc.values[1] = man.y / 2 + 1500;	// pitch
+		input_rc.values[2] = man.r / 2 + 1500;	// yaw
+		input_rc.values[3] = math::constrain(man.z / 0.9f + 800.0f, 1000.0f, 2000.0f);	// throttle
 
 		/* decode all switches which fit into the channel mask */
 		unsigned max_switch = (sizeof(man.buttons) * 8);
-		unsigned max_channels = (sizeof(rc.values) / sizeof(rc.values[0]));
+		unsigned max_channels = (sizeof(input_rc.values) / sizeof(input_rc.values[0]));
 
 		if (max_switch > (max_channels - 4)) {
 			max_switch = (max_channels - 4);
@@ -1965,12 +1965,12 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 
 		/* fill all channels */
 		for (unsigned i = 0; i < max_switch; i++) {
-			rc.values[i + 4] = decode_switch_pos_n(man.buttons, i);
+			input_rc.values[i + 4] = decode_switch_pos_n(man.buttons, i);
 		}
 
 		_mom_switch_state = man.buttons;
 
-		_rc_pub.publish(rc);
+		_input_rc_pub.publish(input_rc);
 
 	} else {
 		manual_control_setpoint_s manual{};
