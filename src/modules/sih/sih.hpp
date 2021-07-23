@@ -128,7 +128,7 @@ private:
 	uORB::Publication<vehicle_global_position_s>	_gpos_gt_pub{ORB_ID(vehicle_global_position_groundtruth)};
 
 	// airspeed
- 	airspeed_s  						_airspeed{};
+	airspeed_s  						_airspeed{};
 	uORB::Publication<airspeed_s>				_airspeed_pub{ORB_ID(airspeed)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -143,12 +143,12 @@ private:
 	static constexpr float RHO = 1.225f; 		// air density at sea level [kg/m^3]
 	static constexpr float CD0 = 0.04f; 		// no lift drag coefficient
 	static constexpr float CD90 = 1.98f; 		// 90 deg angle of attack drag coefficient
-	static constexpr float AOA_BLEND=20.0f*M_PI_F/180.0f;    // blending angle width [rad]
-	static constexpr float CLa=5.8015f; 				// CL/rad
-	static constexpr float K0=0.87f;     	// Oswald factor
-	static constexpr float CMa=-0.1f;     	// pitching moment lift curve slope
-	static constexpr float SPAN=0.86f; 	// wing span [m]
-	static constexpr float MAC=0.21f; 	// wing mean aerodynamic chord [m]
+	static constexpr float AOA_BLEND = 20.0f * M_PI_F / 180.0f; // blending angle width [rad]
+	static constexpr float CLa = 5.8015f; 				// CL/rad
+	static constexpr float K0 = 0.87f;     	// Oswald factor
+	static constexpr float CMa = -0.1f;     	// pitching moment lift curve slope
+	static constexpr float SPAN = 0.86f; 	// wing span [m]
+	static constexpr float MAC = 0.21f; 	// wing mean aerodynamic chord [m]
 
 	void init_variables();
 	void gps_fix();
@@ -198,13 +198,15 @@ private:
 	float       _u[NB_MOTORS];          // thruster signals
 
 	enum Vtype {MC, FW}; 	// vehicle type
-	Vtype _vehicle=MC;
+	Vtype _vehicle = MC;
 
 	// aerodynamic segments for the fixedwing
-	AeroSeg _wing_l=AeroSeg(SPAN/2.0f, MAC, math::radians(-4.0f), matrix::Vector3f(0.0f, -SPAN/4.0f, 0.0f), 3.0f, SPAN/MAC, MAC/3.0f);
-	AeroSeg _wing_r=AeroSeg(SPAN/2.0f, MAC, math::radians(-4.0f), matrix::Vector3f(0.0f, SPAN/4.0f, 0.0f), -3.0f, SPAN/MAC, MAC/3.0f);
-	AeroSeg _tailplane=AeroSeg(0.3f, 0.1f, 0.0f, matrix::Vector3f(-0.4f, 0.0f, 0.0f), 0.0f, -1.0f, 0.05f);
-	AeroSeg _fin=AeroSeg(0.25, 0.15, 0.0f, matrix::Vector3f(-0.45f, 0.0f, -0.1f), -90.0f, -1.0f, 0.08f);
+	AeroSeg _wing_l = AeroSeg(SPAN / 2.0f, MAC, math::radians(-4.0f), matrix::Vector3f(0.0f, -SPAN / 4.0f, 0.0f), 3.0f,
+				  SPAN / MAC, MAC / 3.0f);
+	AeroSeg _wing_r = AeroSeg(SPAN / 2.0f, MAC, math::radians(-4.0f), matrix::Vector3f(0.0f, SPAN / 4.0f, 0.0f), -3.0f,
+				  SPAN / MAC, MAC / 3.0f);
+	AeroSeg _tailplane = AeroSeg(0.3f, 0.1f, 0.0f, matrix::Vector3f(-0.4f, 0.0f, 0.0f), 0.0f, -1.0f, 0.05f);
+	AeroSeg _fin = AeroSeg(0.25, 0.15, 0.0f, matrix::Vector3f(-0.45f, 0.0f, -0.1f), -90.0f, -1.0f, 0.08f);
 
 	// sensors reconstruction
 	matrix::Vector3f    _acc;
