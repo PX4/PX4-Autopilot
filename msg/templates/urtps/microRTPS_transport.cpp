@@ -157,11 +157,11 @@ ssize_t Transport_node::read(uint8_t *topic_id, char out_buffer[], size_t buffer
 	if (msg_start_pos > (_rx_buff_pos - header_size)) {
 #ifndef PX4_DEBUG
 
-		if (debug) { printf("\033[1;33m[ micrortps_transport ]\t                                (↓↓ %" PRIu32 ")\033[0m\n", msg_start_pos); }
+		if (_debug) { printf("\033[1;33m[ micrortps_transport ]\t                                (↓↓ %" PRIu32 ")\033[0m\n", msg_start_pos); }
 
 #else
 
-		if (debug) { PX4_DEBUG("                               (↓↓ %" PRIu32 ")", msg_start_pos); }
+		if (_debug) { PX4_DEBUG("                               (↓↓ %" PRIu32 ")", msg_start_pos); }
 
 #endif /* PX4_DEBUG */
 
@@ -200,11 +200,11 @@ ssize_t Transport_node::read(uint8_t *topic_id, char out_buffer[], size_t buffer
 		if (msg_start_pos > 0) {
 #ifndef PX4_DEBUG
 
-			if (debug) { printf("\033[1;33m[ micrortps_transport ]\t                                (↓ %" PRIu32 ")\033[0m\n", msg_start_pos); }
+			if (_debug) { printf("\033[1;33m[ micrortps_transport ]\t                                (↓ %" PRIu32 ")\033[0m\n", msg_start_pos); }
 
 #else
 
-			if (debug) { PX4_DEBUG("                             (↓ %" PRIu32 ")", msg_start_pos); }
+			if (_debug) { PX4_DEBUG("                             (↓ %" PRIu32 ")", msg_start_pos); }
 
 #endif /* PX4_DEBUG */
 			memmove(_rx_buffer, _rx_buffer + msg_start_pos, _rx_buff_pos - msg_start_pos);
@@ -220,7 +220,7 @@ ssize_t Transport_node::read(uint8_t *topic_id, char out_buffer[], size_t buffer
 	if (read_crc != calc_crc) {
 #ifndef PX4_DEBUG
 
-		if (debug) { printf("\033[0;31m[ micrortps_transport ]\tBad CRC %" PRIu16 " != %" PRIu16 "\t\t(↓ %lu)\033[0m\n", read_crc, calc_crc, (unsigned long)(header_size + payload_len)); }
+		if (_debug) { printf("\033[0;31m[ micrortps_transport ]\tBad CRC %" PRIu16 " != %" PRIu16 "\t\t(↓ %lu)\033[0m\n", read_crc, calc_crc, (unsigned long)(header_size + payload_len)); }
 
 #else
 
@@ -375,7 +375,7 @@ int UART_node::init()
 		       _uart_name, _baudrate);
 #else
 		PX4_ERR("UART transport: ERR SET BAUD %s: Unsupported baudrate: %" PRIu32 "\n\tsupported examples:\n\t9600, 19200, 38400, 57600, 115200, 230400, 460800, 500000, 921600, 1000000\n",
-			uart_name, baudrate);
+			_uart_name, _baudrate);
 #endif /* PX4_ERR */
 		close();
 		return -EINVAL;
