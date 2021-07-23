@@ -147,11 +147,12 @@ __EXPORT void board_on_reset(int status)
  *
  * Description:
  *
+ * This function is taken directly from nuttx's rp2040_boardinitialize.c
  ****************************************************************************/
 
 void rp2040_boardearlyinitialize(void)
 {
-  /* Disable IE on GPIO 26-29 */
+  /* Disable IE on GPIO 26-29 (These are ADC Pins)*/
 
   clrbits_reg32(RP2040_PADS_BANK0_GPIO_IE, RP2040_PADS_BANK0_GPIO(26));
   clrbits_reg32(RP2040_PADS_BANK0_GPIO_IE, RP2040_PADS_BANK0_GPIO(27));
@@ -159,7 +160,7 @@ void rp2040_boardearlyinitialize(void)
   clrbits_reg32(RP2040_PADS_BANK0_GPIO_IE, RP2040_PADS_BANK0_GPIO(29));
 
   /* Set board LED pin */
-
+//   Commented out because we don't want nuttx to activate led. Let PX4 do that.
 //   rp2040_gpio_init(BOARD_GPIO_LED_PIN);
 //   rp2040_gpio_setdir(BOARD_GPIO_LED_PIN, true);
 //   rp2040_gpio_put(BOARD_GPIO_LED_PIN, true);
