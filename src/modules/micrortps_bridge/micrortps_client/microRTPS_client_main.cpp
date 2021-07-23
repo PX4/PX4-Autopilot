@@ -75,11 +75,12 @@ static void usage(const char *name)
 	PRINT_MODULE_USAGE_PARAM_STRING('t', "UART", "UART|UDP", "Transport protocol", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyACM0", "<file:dev>", "Select Serial Device", true);
 	PRINT_MODULE_USAGE_PARAM_INT('b', 460800, 9600, 3000000, "Baudrate (can also be p:<param_name>)", true);
-	PRINT_MODULE_USAGE_PARAM_INT('m', 0, 10, 10000000, "Maximum sending data rate in B/s", true);
-	PRINT_MODULE_USAGE_PARAM_INT('p', -1, 1, 1000, "Poll timeout for UART in ms", true);
-	PRINT_MODULE_USAGE_PARAM_INT('l', 10000, -1, 100000, "Limit number of iterations until the program exits (-1=infinite)",
+	PRINT_MODULE_USAGE_PARAM_INT('m', 0, 0, MAX_DATA_RATE, "Maximum sending data rate in B/s (0=not limited)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('p', 1, 1, MAX_POLL_MS, "Poll timeout for UART in milliseconds", true);
+	PRINT_MODULE_USAGE_PARAM_INT('l', -1, -1, INT32_MAX, "Limit number of iterations until the program exits (-1=infinite)",
 				     true);
-	PRINT_MODULE_USAGE_PARAM_INT('w', 1, 1, 1000000, "Time in us for which each read from the link iteration sleeps", true);
+	PRINT_MODULE_USAGE_PARAM_INT('w', 1000, 0, MAX_SLEEP_US,
+				     "Iteration time for data publishing to the uORB side, in microseconds", true);
 	PRINT_MODULE_USAGE_PARAM_INT('r', 2019, 0, 65536, "Select UDP Network Port for receiving (local)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('s', 2020, 0, 65536, "Select UDP Network Port for sending (remote)", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('i', "127.0.0.1", "<x.x.x.x>", "Select IP address (remote)", true);
@@ -145,11 +146,21 @@ static int parse_options(int argc, char *argv[])
 
 	if (_options.datarate > MAX_DATA_RATE) {
 		_options.datarate = MAX_DATA_RATE;
-		PX4_WARN("Invalid data rate. Using max datarate of %ul B/s", MAX_DATA_RATE);
+		PX4_WARN("Data rate too high. Using max datarate of %d B/s instead", MAX_DATA_RATE);
 	}
 
-	if (_options.poll_ms < 1) {
-		PX4_WARN("Poll timeout too low, using %ul ms", POLL_MS);
+	if (_options.poll_ms < POLL_MS) {
+		_options.poll_ms = POLL_MS;
+		PX4_WARN("Poll timeout too low. Using %d ms instead", POLL_MS);
+
+	} else if (_options.poll_ms > MAX_POLL_MS) {
+		_options.poll_ms = MAX_POLL_MS;
+		PX4_WARN("Poll timeout too high. Using %d ms instead", MAX_POLL_MS);
+	}
+
+	if (_options.sleep_us > MAX_SLEEP_US) {
+		_options.sleep_us = MAX_SLEEP_US;
+		PX4_WARN("Publishing iteration cycle too slow. Using %d us instead", MAX_SLEEP_US);
 	}
 
 	if (_options.hw_flow_control && _options.sw_flow_control) {
@@ -176,8 +187,8 @@ static int micrortps_start(int argc, char *argv[])
 			transport_node = new UART_node(_options.device, _options.baudrate, _options.poll_ms,
 						       _options.sw_flow_control, _options.hw_flow_control, sys_id,
 						       _options.verbose_debug);
-			PX4_INFO("UART transport: device: %s; baudrate: %" PRIu32 "; sleep: %" PRIu32 "ms; flow_control: %s",
-				 _options.device, _options.baudrate, _options.sleep_us, _options.poll_ms,
+			PX4_INFO("UART transport: device: %s; baudrate: %" PRIu32 "; poll: %" PRIu32 "ms; flow_control: %s",
+				 _options.device, _options.baudrate, _options.poll_ms,
 				 _options.sw_flow_control ? "SW enabled" : (_options.hw_flow_control ? "HW enabled" : "No"));
 		}
 		break;
@@ -185,8 +196,8 @@ static int micrortps_start(int argc, char *argv[])
 	case options::eTransports::UDP: {
 			transport_node = new UDP_node(_options.ip, _options.recv_port, _options.send_port,
 						      sys_id, _options.verbose_debug);
-			PX4_INFO("UDP transport: ip address: %s; recv port: %" PRIu16 "; send port: %" PRIu16 "; sleep: %" PRIu32 "us",
-				 _options.ip, _options.recv_port, _options.send_port, _options.sleep_us);
+			PX4_INFO("UDP transport: ip address: %s; recv port: %" PRIu16 "; send port: %" PRIu16,
+				 _options.ip, _options.recv_port, _options.send_port);
 
 		}
 		break;
