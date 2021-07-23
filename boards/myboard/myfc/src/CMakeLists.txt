@@ -1,7 +1,7 @@
 add_library(drivers_board
 	# i2c.cpp
 	init.c
-	# led.c
+	led.c
 	# spi.cpp
 	# timer_config.cpp
 	# usb.c
