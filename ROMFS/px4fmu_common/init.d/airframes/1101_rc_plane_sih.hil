@@ -29,11 +29,12 @@ param set-default CBRK_IO_SAFETY 22027
 
 param set-default BAT_N_CELLS 3
 
-param set SIH_T_MAX 10.0
+param set SIH_T_MAX 6.0
 param set SIH_MASS 0.3
 param set SIH_IXX 0.00402
 param set SIH_IYY 0.0144
 param set SIH_IZZ 0.0177
 param set SIH_IXZ 0.00046
+param set SIH_KDV 0.2
 
 param set SIH_VEHICLE_TYPE 1 	# sih as fixed wing

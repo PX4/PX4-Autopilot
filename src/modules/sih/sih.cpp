@@ -290,24 +290,29 @@ void Sih::generate_force_and_torques()
 
 void Sih::generate_aerodynamics()
 {
+	// update_aero(matrix::Vector3f v_B, matrix::Vector3f w_B, float alt=0.0f, float def=0.0f, float dt=-1.0f);
 	_v_B = _C_IB.transpose() * _v_I; 	// velocity in body frame [m/s]
-	wing.update_aero(_v_B, _w_B, _dt);
-	tailplane.update_aero(_v_B, _w_B, _dt);
-	fin.update_aero(_v_B, _w_B, _dt);
-	_Fa_I = _C_IB*(wing.Fa+tailplane.Fa+fin.Fa) -_KDV * _v_I; 	// sum of aerodynamic forces
-	_Ma_B = wing.Ma + tailplane.Ma + fin.Ma + flap_moments() -_KDW * _w_B; 	// aerodynamic moments
+	float altitude = _H0 - _p_I(2);
+	float flap_max=M_PI_F/12.0f; 	// 15 deg
+	wing_l.update_aero(_v_B, _w_B, altitude, _u[0]*flap_max);
+	wing_r.update_aero(_v_B, _w_B, altitude, -_u[0]*flap_max);
+	tailplane.update_aero(_v_B, _w_B, altitude, _u[1]*flap_max);
+	fin.update_aero(_v_B, _w_B, altitude, _u[2]*flap_max);
+	_Fa_I = _C_IB*(wing_l.Fa+wing_r.Fa+tailplane.Fa+fin.Fa) -_KDV * _v_I; 	// sum of aerodynamic forces
+	// _Ma_B = wing_l.Ma + wing_r.Ma + tailplane.Ma + fin.Ma + flap_moments() -_KDW * _w_B; 	// aerodynamic moments
+	_Ma_B = wing_l.Ma + wing_r.Ma + tailplane.Ma + fin.Ma -_KDW * _w_B; 	// aerodynamic moments
 }
 
-Vector3f Sih::flap_moments()
-{
-	// control derivative coefficients from Levin thesis
-	const float flap_max=10.0f;	// maximum flap deflection (deg)
-	const float clda=0.000678f, cldr=-0.0000931f, cmde=-0.0118f, cndr=0.00357f; // 1/deg
-	float v2=_v_B.length()*_v_B.length();	// vel squared
-	return 0.5f*RHO*v2*SPAN*MAC*flap_max*Vector3f(SPAN*(clda*_u[0]+cldr*_u[2]),
-							MAC*cmde*_u[1],
-							SPAN*cndr*_u[2]);
-}
+// Vector3f Sih::flap_moments()
+// {
+// 	// control derivative coefficients from Levin thesis
+// 	const float flap_max=10.0f;	// maximum flap deflection (deg)
+// 	const float clda=0.000678f, cldr=-0.0000931f, cmde=-0.0118f, cndr=0.00357f; // 1/deg
+// 	float v2=_v_B.length()*_v_B.length();	// vel squared
+// 	return 0.5f*RHO*v2*SPAN*MAC*flap_max*Vector3f(SPAN*(clda*_u[0]+cldr*_u[2]),
+// 							MAC*cmde*_u[1],
+// 							SPAN*cndr*_u[2]);
+// }
 
 // apply the equations of motion of a rigid body and integrate one step
 void Sih::equations_of_motion()
@@ -346,7 +351,7 @@ void Sih::equations_of_motion()
 			_v_I = _v_I + _v_I_dot * _dt;
 			Eulerf RPY=Eulerf(_q);
 			RPY(0)=0.0f;	// no roll
-			RPY(1)=radians(5.0f); 	// pitch slightly up to get some lift
+			RPY(1)=radians(0.0f); 	// pitch slightly up to get some lift
 			_q=Quatf(RPY);
 			_w_B.setZero();
 			_grounded = true;
@@ -359,7 +364,7 @@ void Sih::equations_of_motion()
 		_q.normalize();
 		// integration Runge-Kutta 4
 		// rk4_update(_p_I, _v_I, _q, _w_B);
-		_w_B = constrain(_w_B + _w_B_dot * _dt, -5.0f*M_PI_F, 5.0f*M_PI_F);
+		_w_B = constrain(_w_B + _w_B_dot * _dt, -6.0f*M_PI_F, 6.0f*M_PI_F);
 		_grounded = false;
 	}
 	// if (_grounded && _u[3]>0.9f){

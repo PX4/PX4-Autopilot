@@ -33,7 +33,7 @@
 
 // The aerodynamic model is from [2]
 // [2] Khan, Waqas, supervised by Meyer Nahon "Dynamics modeling of agile fixed-wing unmanned aerial vehicles."
-//     McGill University, PhD thesis, 2016.
+//     McGill University, PhD thesis, 2016. Sections 3.1, 3.2, and 3.3
 
 #pragma once
 
@@ -46,12 +46,35 @@
 class AeroSeg
 {
 private:
+	// Table 3.1 SEMI-EMPIRICAL COEFFICIENTS FOR RECTANGULAR FLAT PLATES
+	static constexpr const int N_TAB=12;
+	// static constexpr const float AR_tab[N_TAB] = {0.1666f,0.333f,0.4f,0.5f,1.0f,1.25f, 2.0f, 3.0f, 4.0f, 6.0f};
+	// static constexpr const float ale_tab[N_TAB] = {3.00f,3.64f,4.48f,7.18f,10.20f,13.38f,14.84f,14.49f,9.95f,12.93f,15.00f,15.00f};
+	// static constexpr const float ate_tab[N_TAB] = {5.90f,15.51f,32.57f,39.44f,48.22f,59.29f,21.55f,7.74f,7.05f,5.26f,6.50f,6.50f};
+	// static constexpr const float afle_tab[N_TAB] = {59.00f,58.60f,58.20f,50.00f,41.53f,26.70f,23.44f,21.00f,18.63f,14.28f,11.60f,10.00f};
+	// static constexpr const float afte_tab[N_TAB] = {59.00f,58.60f,58.20f,51.85f,41.46f,28.09f,39.40f,35.86f,26.76f,19.76f,16.43f,14.00f};
+	// static constexpr const float afs_tab[N_TAB] = {49.00f,54.00f,56.00f,48.00f,40.00f,29.00f,27.00f,25.00f,24.00f,22.00f,22.00f,20.00f};
+
+	// deflection effectiveness curve fitted as second order
+	static constexpr const float eta_poly[] = {0.0535f, -0.2688f, 0.5817f}; 	// 1/rad
+
+	// aerodynamic and physical constants
+	static constexpr const float P0=101325.0f;	// pressure at sea level [N/m^2]=[Pa]
+	static constexpr const float R=287.04f;		// real gas constant for air [J/kg/K]
+	static constexpr const float T0_K=288.15f;	// temperature at sea level [K]
+	static constexpr const float TEMP_GRADIENT  = -6.5e-3f;    // temperature gradient in degrees per metre
+
+	static constexpr const float KV=M_PI_F; 	// total vortex lift parameter
+	static constexpr float CD0 = 0.04f; 		// no lift drag coefficient
+	static constexpr float CD90 = 1.98f; 		// 90 deg angle of attack drag coefficient
+	static constexpr float AF_DOT_MAX = M_PI_F/2.0f;
+
 	// here we make the distinction of the plate (i.e. wing, or tailplane, or fin) and the segment
 	// the segment can be a portion of the wing, but the aspect ratio (AR) of the wing needs to be used
 	float alpha; 		// angle of attack [rad]
 	float CL, CD, CM; 	// aerodynamic coefficients
 	matrix::Vector3f p_B; 	// position of the aerodynamic center of the segment from CM in body frame [m]
-	bool horizontal;	// horizontal segment (wing) or vertical segment (fin)
+	matrix::Dcmf C_BS;	// dcm from segment frame to body frame
 	float ar;		// aspect ratio of the plate
 	float span;		// span of the segment
 	float mac;		// mean aerodynamic chord of the segment
@@ -59,6 +82,7 @@ private:
 	float kp, kn;
 	float ate, ale, afte, afle, afs_rad;	// semi empirical coefficients for flat plates function of AR
 	float tau_te, tau_le, fte, fle; 	// leading and trailing edge functions
+	float rho;
 	// variables for flap model
 	float eta_f;		// flap effectiveness
 	float def_a;		// absolute value of the deflection angle
@@ -72,25 +96,8 @@ private:
 	float alpha_eff;	// effectie angle of attack
 	float alpha_eff_dot;	// effectie angle of attack derivative
 	float alpha_eff_old;	// angle of attack [rad]
-
-	// Table 3.1 SEMI-EMPIRICAL COEFFICIENTS FOR RECTANGULAR FLAT PLATES
-	static constexpr const int N_TAB=12;
-	static constexpr const float AR_tab[N_TAB] = {0.1666f,0.333f,0.4f,0.5f,1.0f,1.25f, 2.0f, 3.0f, 4.0f, 6.0f};
-	static constexpr const float ale_tab[N_TAB] = {3.00f,3.64f,4.48f,7.18f,10.20f,13.38f,14.84f,14.49f,9.95f,12.93f,15.00f,15.00f};
-	static constexpr const float ate_tab[N_TAB] = {5.90f,15.51f,32.57f,39.44f,48.22f,59.29f,21.55f,7.74f,7.05f,5.26f,6.50f,6.50f};
-	static constexpr const float afle_tab[N_TAB] = {59.00f,58.60f,58.20f,50.00f,41.53f,26.70f,23.44f,21.00f,18.63f,14.28f,11.60f,10.00f};
-	static constexpr const float afte_tab[N_TAB] = {59.00f,58.60f,58.20f,51.85f,41.46f,28.09f,39.40f,35.86f,26.76f,19.76f,16.43f,14.00f};
-	static constexpr const float afs_tab[N_TAB] = {49.00f,54.00f,56.00f,48.00f,40.00f,29.00f,27.00f,25.00f,24.00f,22.00f,22.00f,20.00f};
-
-	// deflection effectiveness curve fitted as second order
-	static constexpr const float eta_poly[] = {0.0535f, -0.2688f, 0.5817f}; 	// 1/rad
-
-	// aerodynamic constants
-	static constexpr const float RHO=1.225f;	// air density [kg/m^3]
-	static constexpr const float KV=M_PI_F; 	// total vortex lift parameter
-	static constexpr float CD0 = 0.04f; 		// no lift drag coefficient
-	static constexpr float CD90 = 1.98f; 		// 90 deg angle of attack drag coefficient
-	static constexpr float AF_DOT_MAX = M_PI_F/2.0f;
+	float pressure; 	// pressure in Pa at current altitude
+	float temperature;	// temperature in K at current altitude
 
 public:
 
@@ -101,13 +108,19 @@ public:
 
 	// public explicit constructor
 	// if the aspect ratio is negative, the aspect ratio is computed from the span and MAC
-	explicit AeroSeg(float span_, float mac_, float alpha_0_, matrix::Vector3f p_B_, bool horizontal_=true, float AR=-1.0f, float cf_=0.0f) {
+	explicit AeroSeg(float span_, float mac_, float alpha_0_, matrix::Vector3f p_B_, float dihedral_deg=0.0f, float AR=-1.0f, float cf_=0.0f) {
+		static const float AR_tab[N_TAB] = {0.1666f,0.333f,0.4f,0.5f,1.0f,1.25f, 2.0f, 3.0f, 4.0f, 6.0f};
+		static const float ale_tab[N_TAB] = {3.00f,3.64f,4.48f,7.18f,10.20f,13.38f,14.84f,14.49f,9.95f,12.93f,15.00f,15.00f};
+		static const float ate_tab[N_TAB] = {5.90f,15.51f,32.57f,39.44f,48.22f,59.29f,21.55f,7.74f,7.05f,5.26f,6.50f,6.50f};
+		static const float afle_tab[N_TAB] = {59.00f,58.60f,58.20f,50.00f,41.53f,26.70f,23.44f,21.00f,18.63f,14.28f,11.60f,10.00f};
+		static const float afte_tab[N_TAB] = {59.00f,58.60f,58.20f,51.85f,41.46f,28.09f,39.40f,35.86f,26.76f,19.76f,16.43f,14.00f};
+		static const float afs_tab[N_TAB] = {49.00f,54.00f,56.00f,48.00f,40.00f,29.00f,27.00f,25.00f,24.00f,22.00f,22.00f,20.00f};
+
 		span=span_;
 		mac=mac_;
 		alpha_0=alpha_0_;
 		p_B=matrix::Vector3f(p_B_);
-		horizontal=horizontal_;
-		ar=(AR<0.0f)? span/mac : AR; // setting AR<0 will compute it from span and mac
+		ar=(AR<=0.0f)? span/mac : AR; // setting AR<=0 will compute it from span and mac
 		alpha_eff=0.0f;
 		alpha_eff_old=0.0f;
 		kp=2.0f*M_PI_F/(1.0f+2.0f*(ar+4.0f)/(ar*(ar+2.0f)));
@@ -118,44 +131,34 @@ public:
 		afte = lin_interp_lkt(AR_tab, afte_tab, ar, N_TAB);
 		afs_rad = math::radians(lin_interp_lkt(AR_tab, afs_tab, ar, N_TAB));
 		cf=cf_;
+		C_BS = matrix::Dcmf(matrix::Eulerf(math::radians(dihedral_deg),0.0f,0.0f));
 	}
 
 	// aerodynamic force and moments of a generic flate plate segment
-	void update_aero(const matrix::Vector3f v_B, const matrix::Vector3f w_B, const float dt, const float def=0.0f)
+	void update_aero(matrix::Vector3f v_B, matrix::Vector3f w_B, float alt=0.0f, float def=0.0f, float dt=-1.0f)
 	{
-		matrix::Vector3f vel =v_B+w_B%p_B;
-		if (horizontal) { // horizontal segment? like wing and elevators
-			float vxz2=vel(0)*vel(0)+vel(2)*vel(2);
-			if (vxz2<0.01f) {
-				Fa=matrix::Vector3f();
-				Ma=matrix::Vector3f();
-				return;
-			}
-			alpha = atan2f(vel(2), vel(0))-alpha_0;
-			aoa_coeff(alpha, dt, sqrtf(vxz2), def);
-			Fa=0.5f*RHO*vxz2*span*mac*matrix::Vector3f(CL*sinf(alpha)-CD*cosf(alpha),
-									0.0f,
-									-CL*cosf(alpha)-CD*sinf(alpha));
-			Ma=0.5f*RHO*vxz2*span*mac*mac*matrix::Vector3f(0.0f,CM,0.0f) + p_B%Fa; 	// computed at vehicle CM
-		} else { 	// vertical segment? like rudder and fin
+		// ISA model taken from Mustafa Cavcar, Anadolu University, Turkey
+		pressure = P0*powf(1.0f-0.0065f*alt/T0_K, 5.2561f);
+		temperature = T0_K+TEMP_GRADIENT*alt;
+		rho = pressure/R/temperature;
 
-			float vxy2=vel(0)*vel(0)+vel(1)*vel(1);
-			if (vxy2<0.01f) {
-				Fa=matrix::Vector3f();
-				Ma=matrix::Vector3f();
-				return;
-			}
-			alpha = atan2f(vel(1), vel(0))-alpha_0;	// this is in fact beta
-			aoa_coeff(alpha, dt, sqrtf(vxy2), def);
-			Fa=0.5f*RHO*vxy2*span*mac*matrix::Vector3f(  CL*sinf(alpha)-CD*cosf(alpha),
-								-CL*cosf(alpha)-CD*sinf(alpha),
-								0.0f);
-			Ma=0.5f*RHO*vxy2*span*mac*mac*matrix::Vector3f(0.0f,0.0f,-CM) + p_B%Fa;	// computed at vehicle CM
+		matrix::Vector3f vel = C_BS.transpose()*(v_B+w_B%p_B); 	// velocity in segment frame
+		float vxz2=vel(0)*vel(0)+vel(2)*vel(2);
+		if (vxz2<0.01f) {
+			Fa=matrix::Vector3f();
+			Ma=matrix::Vector3f();
+			return;
 		}
+		alpha = atan2f(vel(2), vel(0))-alpha_0;
+		aoa_coeff(alpha, dt, sqrtf(vxz2), def);
+		Fa=C_BS*(0.5f*rho*vxz2*span*mac)*matrix::Vector3f(CL*sinf(alpha)-CD*cosf(alpha),
+								0.0f,
+								-CL*cosf(alpha)-CD*sinf(alpha));
+		Ma=C_BS*(0.5f*rho*vxz2*span*mac*mac)*matrix::Vector3f(0.0f,CM,0.0f) + p_B%Fa; 	// computed at vehicle CM
 	}
 
 	// low angle of attack and stalling region coefficient based on flat plate
-	void aoa_coeff(float a, float dt, float vxz, float def=0.0f)
+	void aoa_coeff(float a, float dt, float vxz, float def)
 	{
 		alpha_eff_old=alpha_eff;
 		tau_te=(vxz>0.01f) ? 4.5f*mac/vxz : 0.0f;
@@ -171,8 +174,11 @@ public:
 			dCLmax = (1.0f-cf/mac)*deltaCL;
 			alf0eff=solve_alpha_eff(kp, KV, deltaCL);
 			alpha_eff = a - alf0eff;
-			alpha_eff_dot=math::constrain((alpha_eff-alpha_eff_old)/dt,-AF_DOT_MAX,AF_DOT_MAX);
-			alpha_eff_dot=0.0f; // DEBUG ==========================
+			if (dt<1e-9f) {
+				alpha_eff_dot=0.0f;
+			} else {
+				alpha_eff_dot=math::constrain((alpha_eff-alpha_eff_old)/dt,-AF_DOT_MAX,AF_DOT_MAX);
+			}
 			fte=0.5f*(1.0f-tanhf(ate*(math::degrees(alpha_eff)-tau_te*math::degrees(alpha_eff_dot)-afte)));	// normalized trailing edge separation
 			fle=0.5f*(1.0f-tanhf(ale*(math::degrees(alpha_eff)-tau_le*math::degrees(alpha_eff_dot)-afle)));	// normalized leading edge separation
 			CLmax = fCL(afs_rad-alpha_0)+dCLmax;
@@ -181,23 +187,16 @@ public:
 			alpha_min=alf0eff-solve_alpha_eff(kp, KV*fle*fle, CLmin/(0.25f*(1.0f+sqrtf(fte))*(1.0f+sqrtf(fte))));
 		} else { 	// this segment is a full flap
 			alpha_eff = a+def;
-			alpha_eff_dot=math::constrain((alpha_eff-alpha_eff_old)/dt,-AF_DOT_MAX,AF_DOT_MAX);
-			alpha_eff_dot=0.0f; // DEBUG ==========================
+			if (dt<1e-9f) {
+				alpha_eff_dot=0.0f;
+			} else {
+				alpha_eff_dot=math::constrain((alpha_eff-alpha_eff_old)/dt,-AF_DOT_MAX,AF_DOT_MAX);
+			}
 			fte=0.5f*(1.0f-tanhf(ate*(math::degrees(alpha_eff)-tau_te*math::degrees(alpha_eff_dot)-afte)));	// normalized trailing edge separation
 			fle=0.5f*(1.0f-tanhf(ale*(math::degrees(alpha_eff)-tau_le*math::degrees(alpha_eff_dot)-afle)));	// normalized leading edge separation
 			alpha_max = afs_rad;
 			alpha_min = -afs_rad;
 		}
-
-		// else { // there is no flap in this segment
-		// 	alpha_eff=a;
-		// 	alpha_eff_dot=math::constrain((alpha_eff-alpha_eff_old)/dt,-AF_DOT_MAX,AF_DOT_MAX);
-		// 	alpha_eff_dot=0.0f; // DEBUG ==========================
-		// 	fte=0.5f*(1.0f-tanhf(ate*(math::degrees(alpha_eff)-tau_te*math::degrees(alpha_eff_dot)-afte)));	// normalized trailing edge separation
-		// 	fle=0.5f*(1.0f-tanhf(ale*(math::degrees(alpha_eff)-tau_le*math::degrees(alpha_eff_dot)-afle)));	// normalized leading edge separation
-		// 	alpha_max = afs_rad;
-		// 	alpha_min = -afs_rad;
-		// }
 
 		// compute the aerodynamic coefficients
 		if (alpha_eff>alpha_max || alpha_eff<-alpha_min) {
@@ -215,7 +214,7 @@ public:
 	{
 		float mac_eff=sqrtf((mac-cf)*(mac-cf) + cf*cf + 2.0f*(mac-cf)*cf*cosf(fabsf(def)));
 		a += asinf(cf/mac_eff*sinf(def));
-		float cd90_eff = CD90+0.21f*def-0.0426f*def*def; 	// this might not be valid for lower
+		float cd90_eff = CD90+0.21f*def-0.0426f*def*def; // this might not be accurate for lower flap chord to chord ratio
 		// normal coeff
 		float CN = cd90_eff * sinf(a) * (1.0f / (0.56f + 0.44f * sinf(fabsf(a))) - kn);
 		// tengential coeff

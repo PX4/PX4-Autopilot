@@ -200,7 +200,7 @@ private:
 	void generate_aerodynamics();
 	float sincf(float x);	// sin cardinal = sin(x)/x
 	matrix::Quatf expq(matrix::Vector3f u);  // quaternion exponential as defined in [3]
-	matrix::Vector3f flap_moments();
+	// matrix::Vector3f flap_moments();
 	void rk4_update(matrix::Vector3f &p_I, matrix::Vector3f &v_I, matrix::Quatf &q, matrix::Vector3f &w_B); 	// Runge-Kutta integration
 	States eom_f(States); 	// equations of motion f: x'=f(x)
 
@@ -238,9 +238,10 @@ private:
 	Vtype _vehicle=MC;
 
 	// aerodynamic segments for the fixedwing
-	AeroSeg wing=AeroSeg(SPAN, MAC, math::radians(-4.0f), matrix::Vector3f());
-	AeroSeg tailplane=AeroSeg(0.3, 0.1, 0.0f, matrix::Vector3f(-0.4f, 0.0f, 0.0f));
-	AeroSeg fin=AeroSeg(0.25, 0.15, 0.0f, matrix::Vector3f(-0.4f, 0.0f, -0.1f), false);
+	AeroSeg wing_l=AeroSeg(SPAN/2.0f, MAC, math::radians(-4.0f), matrix::Vector3f(0.0f, -SPAN/4.0f, 0.0f), 3.0f, SPAN/MAC, MAC/3.0f);
+	AeroSeg wing_r=AeroSeg(SPAN/2.0f, MAC, math::radians(-4.0f), matrix::Vector3f(0.0f, SPAN/4.0f, 0.0f), -3.0f, SPAN/MAC, MAC/3.0f);
+	AeroSeg tailplane=AeroSeg(0.3f, 0.1f, 0.0f, matrix::Vector3f(-0.4f, 0.0f, 0.0f), 0.0f, -1.0f, 0.05f);
+	AeroSeg fin=AeroSeg(0.25, 0.15, 0.0f, matrix::Vector3f(-0.45f, 0.0f, -0.1f), -90.0f, -1.0f, 0.08f);
 
 	// sensors reconstruction
 	matrix::Vector3f    _acc;
