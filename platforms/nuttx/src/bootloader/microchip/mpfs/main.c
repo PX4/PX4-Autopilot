@@ -154,6 +154,11 @@ board_init(void)
 	/* Initialize LEDs */
 	px4_arch_configgpio(BOARD_PIN_LED_BOOTLOADER);
 #endif
+
+#if defined(CONFIG_MMCSD)
+	mpfs_board_emmcsd_init();
+#endif
+
 }
 
 void
@@ -168,6 +173,11 @@ board_deinit(void)
 #if INTERFACE_USB
 	//	px4_arch_configgpio(MK_GPIO_INPUT(GPIO_OTGFS_VBUS));
 	//	putreg32(RCC_AHB1RSTR_OTGFSRST, STM32_RCC_AHB1RSTR);
+#endif
+
+#if defined(CONFIG_MMCSD)
+	/* deinitialise the MMC/SD interrupt */
+	up_disable_irq(MPFS_IRQ_MMC_MAIN);
 #endif
 
 #if defined(BOARD_FORCE_BL_PIN_IN) && defined(BOARD_FORCE_BL_PIN_OUT)
