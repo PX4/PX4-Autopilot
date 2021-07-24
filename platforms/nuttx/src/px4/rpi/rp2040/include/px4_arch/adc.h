@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,20 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#pragma once
 
-#include <px4_arch/spi_hw_description.h>
-#include <drivers/drv_sensor.h>
-#include <nuttx/spi/spi.h>
+#include "../../../rpi_common/include/px4_arch/adc.h"
 
-constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	// Added spi buses for the sake of compilation.
-	// Specify correct sensors once the decision is made on which sensors or devices should be attached.
-	initSPIBus(SPI::Bus::SPI0, {
-		initSPIDevice(DRV_IMU_DEVTYPE_MPU6000, SPI::CS{GPIO::Pin1}),
-	}),
-	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(DRV_BARO_DEVTYPE_BMP280, SPI::CS{GPIO::Pin9}),
-	}),
-};
-
-static constexpr bool unused = validateSPIConfig(px4_spi_buses);

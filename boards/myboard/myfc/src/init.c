@@ -152,8 +152,8 @@ __EXPORT void board_on_reset(int status)
 
 void rp2040_boardearlyinitialize(void)
 {
-  /* Disable IE on GPIO 26-29 (These are ADC Pins)*/
-
+  // Disable IE on GPIO 26-29 (These are ADC Pins)
+  // Do this only for the channels configured in board_config.h
   clrbits_reg32(RP2040_PADS_BANK0_GPIO_IE, RP2040_PADS_BANK0_GPIO(26));
   clrbits_reg32(RP2040_PADS_BANK0_GPIO_IE, RP2040_PADS_BANK0_GPIO(27));
   clrbits_reg32(RP2040_PADS_BANK0_GPIO_IE, RP2040_PADS_BANK0_GPIO(28));

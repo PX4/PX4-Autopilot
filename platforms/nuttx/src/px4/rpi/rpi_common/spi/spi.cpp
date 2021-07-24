@@ -253,18 +253,18 @@ __EXPORT void board_spi_reset(int ms, int bus_mask)
 #if defined(CONFIG_RP2040_SPI0)
 
 		if (px4_spi_buses[bus].bus == 1) {
-			px4_arch_configgpio(PX4_GPIO_PIN_OFF(GPIO_SPI1_SCK));
-			px4_arch_configgpio(PX4_GPIO_PIN_OFF(GPIO_SPI1_MISO));
-			px4_arch_configgpio(PX4_GPIO_PIN_OFF(GPIO_SPI1_MOSI));
+			px4_arch_configgpio(PX4_GPIO_PIN_OFF(GPIO_SPI0_SCK));
+			px4_arch_configgpio(PX4_GPIO_PIN_OFF(GPIO_SPI0_MISO));
+			px4_arch_configgpio(PX4_GPIO_PIN_OFF(GPIO_SPI0_MOSI));
 		}
 
 #endif
 #if defined(CONFIG_RP2040_SPI1)
 
 		if (px4_spi_buses[bus].bus == 2) {
-			px4_arch_configgpio(PX4_GPIO_PIN_OFF(GPIO_SPI2_SCK));
-			px4_arch_configgpio(PX4_GPIO_PIN_OFF(GPIO_SPI2_MISO));
-			px4_arch_configgpio(PX4_GPIO_PIN_OFF(GPIO_SPI2_MOSI));
+			px4_arch_configgpio(PX4_GPIO_PIN_OFF(GPIO_SPI1_SCK));
+			px4_arch_configgpio(PX4_GPIO_PIN_OFF(GPIO_SPI1_MISO));
+			px4_arch_configgpio(PX4_GPIO_PIN_OFF(GPIO_SPI1_MOSI));
 		}
 
 #endif
@@ -314,21 +314,21 @@ __EXPORT void board_spi_reset(int ms, int bus_mask)
 			}
 		}
 
-#if defined(CONFIG_STM32_SPI1)
+#if defined(CONFIG_RP2040_SPI0)
 
 		if (px4_spi_buses[bus].bus == 1) {
-			px4_arch_configgpio(GPIO_SPI1_SCK);
-			px4_arch_configgpio(GPIO_SPI1_MISO);
-			px4_arch_configgpio(GPIO_SPI1_MOSI);
+			px4_arch_configgpio(GPIO_SPI0_SCK);
+			px4_arch_configgpio(GPIO_SPI0_MISO);
+			px4_arch_configgpio(GPIO_SPI0_MOSI);
 		}
 
 #endif
-#if defined(CONFIG_STM32_SPI2)
+#if defined(CONFIG_RP2040_SPI1)
 
 		if (px4_spi_buses[bus].bus == 2) {
-			px4_arch_configgpio(GPIO_SPI2_SCK);
-			px4_arch_configgpio(GPIO_SPI2_MISO);
-			px4_arch_configgpio(GPIO_SPI2_MOSI);
+			px4_arch_configgpio(GPIO_SPI1_SCK);
+			px4_arch_configgpio(GPIO_SPI1_MISO);
+			px4_arch_configgpio(GPIO_SPI1_MOSI);
 		}
 
 #endif

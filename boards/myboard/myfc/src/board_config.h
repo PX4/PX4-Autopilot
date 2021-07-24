@@ -27,6 +27,17 @@ __BEGIN_DECLS
 
 #define BOARD_OVERLOAD_LED     LED_GREEN
 
+/*
+ * ADC channels
+ *
+ * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
+ */
+#define ADC_CHANNELS (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3)	// Change this later based on the adc channels actually used
+
+// #define ADC_BATTERY_VOLTAGE_CHANNEL  12
+// #define ADC_BATTERY_CURRENT_CHANNEL  11
+// #define ADC_RC_RSSI_CHANNEL          0
+
 /* High-resolution timer */
 #define HRT_TIMER 1
 #define HRT_TIMER_CHANNEL 1
