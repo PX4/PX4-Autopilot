@@ -66,11 +66,11 @@ __BEGIN_DECLS
 // 8		Set/clear
 // 9-13		GPIO function select
 // 14-15	Unused
-#define GPIO_PU		(1 << 5)
-#define GPIO_PD		(1 << 6)
-#define GPIO_OUT	(1 << 7)
-#define GPIO_SET	(1 << 8)
-#define GPIO_FUN(func)	(func << 9)
+#define GPIO_PU		(1 << 5)	// Pull-up resistor
+#define GPIO_PD		(1 << 6)	// Pull-down resistor
+#define GPIO_OUT	(1 << 7)	// Output enable
+#define GPIO_SET	(1 << 8)	// Output set
+#define GPIO_FUN(func)	(func << 9)	// Function select
 
 #define GPIO_NUM_MASK	0x1f
 #define	GPIO_PU_MASK	0x20		// GPIO PAD register mask
@@ -111,6 +111,7 @@ __BEGIN_DECLS
 #define PX4_MAKE_GPIO_INPUT(gpio) (gpio | GPIO_PU | RP2040_GPIO_FUNC_SIO)
 #define PX4_MAKE_GPIO_OUTPUT_CLEAR(gpio) (gpio | GPIO_OUT | RP2040_GPIO_FUNC_SIO)
 #define PX4_MAKE_GPIO_OUTPUT_SET(gpio) (gpio | GPIO_OUT | GPIO_SET | RP2040_GPIO_FUNC_SIO)
-#define PX4_GPIO_PIN_OFF(gpio) (gpio | RP2040_GPIO_FUNC_SIO)
+
+#define PX4_GPIO_PIN_OFF(pinset) ((pinset & GPIO_NUM_MASK) | RP2040_GPIO_FUNC_SIO | RP2040_GPIO_PD)
 
 __END_DECLS

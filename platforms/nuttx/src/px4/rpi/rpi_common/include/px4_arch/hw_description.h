@@ -303,7 +303,7 @@ static inline constexpr uint32_t getGPIOPin(GPIO::Pin pin)
 namespace SPI
 {
 enum class Bus {
-	SPI0 = 0,
+	SPI0 = 1,
 	SPI1,
 };
 
