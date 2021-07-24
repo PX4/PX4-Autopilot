@@ -149,6 +149,8 @@ private:
 	static constexpr float CMa = -0.1f;     	// pitching moment lift curve slope
 	static constexpr float SPAN = 0.86f; 	// wing span [m]
 	static constexpr float MAC = 0.21f; 	// wing mean aerodynamic chord [m]
+	static constexpr float RP = 0.1f; 	// radius of the propeller [m]
+	static constexpr float FLAP_MAX = M_PI_F / 12.0f; // 15 deg, maximum control surface deflection
 
 	void init_variables();
 	void gps_fix();
@@ -205,8 +207,8 @@ private:
 				  SPAN / MAC, MAC / 3.0f);
 	AeroSeg _wing_r = AeroSeg(SPAN / 2.0f, MAC, math::radians(-4.0f), matrix::Vector3f(0.0f, SPAN / 4.0f, 0.0f), -3.0f,
 				  SPAN / MAC, MAC / 3.0f);
-	AeroSeg _tailplane = AeroSeg(0.3f, 0.1f, 0.0f, matrix::Vector3f(-0.4f, 0.0f, 0.0f), 0.0f, -1.0f, 0.05f);
-	AeroSeg _fin = AeroSeg(0.25, 0.15, 0.0f, matrix::Vector3f(-0.45f, 0.0f, -0.1f), -90.0f, -1.0f, 0.08f);
+	AeroSeg _tailplane = AeroSeg(0.3f, 0.1f, 0.0f, matrix::Vector3f(-0.4f, 0.0f, 0.0f), 0.0f, -1.0f, 0.05f, RP);
+	AeroSeg _fin = AeroSeg(0.25, 0.15, 0.0f, matrix::Vector3f(-0.45f, 0.0f, -0.1f), -90.0f, -1.0f, 0.08f, RP);
 
 	// sensors reconstruction
 	matrix::Vector3f    _acc;

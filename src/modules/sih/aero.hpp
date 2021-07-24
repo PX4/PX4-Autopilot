@@ -96,20 +96,25 @@ private:
 	float alpha_eff;	// effectie angle of attack
 	float alpha_eff_dot;	// effectie angle of attack derivative
 	float alpha_eff_old;	// angle of attack [rad]
+
 	float pressure; 	// pressure in Pa at current altitude
 	float temperature;	// temperature in K at current altitude
+	float prop_radius;	// propeller radius [m], used to create the slipstream
+	float v_slipstream;	// slipstream velocity [m/s], computed from momentum theory
 
 public:
 
 	matrix::Vector3f Fa;	// aerodynamic force
 	matrix::Vector3f Ma;	// aerodynamic moment computed at CM directly
 
-	AeroSeg() = default;
+	AeroSeg(){
+		AeroSeg(1.0f, 0.2f, 0.0f, matrix::Vector3f());
+	}
 
 	// public explicit constructor
 	// if the aspect ratio is negative, the aspect ratio is computed from the span and MAC
 	explicit AeroSeg(float span_, float mac_, float alpha_0_, matrix::Vector3f p_B_, float dihedral_deg = 0.0f,
-			 float AR = -1.0f, float cf_ = 0.0f)
+			 float AR = -1.0f, float cf_ = 0.0f, float prop_radius_=-1.0f)
 	{
 		static const float AR_tab[N_TAB] = {0.1666f, 0.333f, 0.4f, 0.5f, 1.0f, 1.25f, 2.0f, 3.0f, 4.0f, 6.0f};
 		static const float ale_tab[N_TAB] = {3.00f, 3.64f, 4.48f, 7.18f, 10.20f, 13.38f, 14.84f, 14.49f, 9.95f, 12.93f, 15.00f, 15.00f};
@@ -134,10 +139,11 @@ public:
 		afs_rad = math::radians(lin_interp_lkt(AR_tab, afs_tab, ar, N_TAB));
 		cf = cf_;
 		C_BS = matrix::Dcmf(matrix::Eulerf(math::radians(dihedral_deg), 0.0f, 0.0f));
+		prop_radius=prop_radius_;
 	}
 
 	// aerodynamic force and moments of a generic flate plate segment
-	void update_aero(matrix::Vector3f v_B, matrix::Vector3f w_B, float alt = 0.0f, float def = 0.0f, float dt = -1.0f)
+	void update_aero(matrix::Vector3f v_B, matrix::Vector3f w_B, float alt = 0.0f, float def = 0.0f, float thrust=0.0f, float dt = -1.0f)
 	{
 		// ISA model taken from Mustafa Cavcar, Anadolu University, Turkey
 		pressure = P0 * powf(1.0f - 0.0065f * alt / T0_K, 5.2561f);
@@ -146,7 +152,13 @@ public:
 
 		matrix::Vector3f vel = C_BS.transpose() * (v_B + w_B % p_B); 	// velocity in segment frame
 		float vxz2 = vel(0) * vel(0) + vel(2) * vel(2);
-
+		if (prop_radius>1e-4f) {
+			// Add velocity generated from the propeller and thrust force.
+			// Computed from momentum theory.
+			// For info, the diameter of the slipstream is sqrt(2)*prop_radius,
+			// this should be the width of the segment in the slipstream.
+			vxz2 += 2.0f*thrust/(rho*M_PI_F*prop_radius*prop_radius);
+		}
 		if (vxz2 < 0.01f) {
 			Fa = matrix::Vector3f();
 			Ma = matrix::Vector3f();

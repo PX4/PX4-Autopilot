@@ -299,14 +299,12 @@ void Sih::generate_force_and_torques()
 
 void Sih::generate_aerodynamics()
 {
-	// update_aero(matrix::Vector3f v_B, matrix::Vector3f w_B, float alt=0.0f, float def=0.0f, float dt=-1.0f);
 	_v_B = _C_IB.transpose() * _v_I; 	// velocity in body frame [m/s]
 	float altitude = _H0 - _p_I(2);
-	float flap_max = M_PI_F / 12.0f; 	// 15 deg
-	_wing_l.update_aero(_v_B, _w_B, altitude, _u[0]*flap_max);
-	_wing_r.update_aero(_v_B, _w_B, altitude, -_u[0]*flap_max);
-	_tailplane.update_aero(_v_B, _w_B, altitude, _u[1]*flap_max);
-	_fin.update_aero(_v_B, _w_B, altitude, _u[2]*flap_max);
+	_wing_l.update_aero(_v_B, _w_B, altitude, _u[0]*FLAP_MAX);
+	_wing_r.update_aero(_v_B, _w_B, altitude, -_u[0]*FLAP_MAX);
+	_tailplane.update_aero(_v_B, _w_B, altitude, _u[1]*FLAP_MAX, _T_MAX*_u[3]);
+	_fin.update_aero(_v_B, _w_B, altitude, _u[2]*FLAP_MAX, _T_MAX*_u[3]);
 	_Fa_I = _C_IB * (_wing_l.Fa + _wing_r.Fa + _tailplane.Fa + _fin.Fa) - _KDV * _v_I; 	// sum of aerodynamic forces
 	// _Ma_B = wing_l.Ma + wing_r.Ma + tailplane.Ma + fin.Ma + flap_moments() -_KDW * _w_B; 	// aerodynamic moments
 	_Ma_B = _wing_l.Ma + _wing_r.Ma + _tailplane.Ma + _fin.Ma - _KDW * _w_B; 	// aerodynamic moments
