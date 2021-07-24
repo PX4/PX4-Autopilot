@@ -45,6 +45,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
 #include <systemlib/ppm_decode.h>
+#include <uORB/topics/input_rc.h>
 #include <rc/st24.h>
 #include <rc/sumd.h>
 #include <rc/sbus.h>
@@ -77,9 +78,9 @@ static uint16_t rc_value_override = 0;
 static unsigned _rssi_adc_counts = 0;
 #endif
 
-/* receive signal strenght indicator (RSSI). 0 = no connection, 100 (RC_INPUT_RSSI_MAX): perfect connection */
+/* receive signal strenght indicator (RSSI). 0 = no connection, 100 (INPUT_RC_RC_RSSI_MAX): perfect connection */
 /* Note: this is static because RC-provided telemetry does not occur every tick */
-static uint8_t _rssi = RC_INPUT_RSSI_NO_SIGNAL;
+static uint8_t _rssi = INPUT_RC_RC_RSSI_NO_SIGNAL;
 static unsigned _frame_drops = 0;
 
 bool dsm_port_input(uint8_t *rssi, bool *dsm_updated, bool *st24_updated, bool *sumd_updated)
@@ -114,7 +115,7 @@ bool dsm_port_input(uint8_t *rssi, bool *dsm_updated, bool *st24_updated, bool *
 		_frame_drops = frame_drops;
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 
-		if (spektrum_rssi <= RC_INPUT_RSSI_MAX) {
+		if (spektrum_rssi <= INPUT_RC_RC_RSSI_MAX) {
 
 			/* ensure ADC RSSI is disabled */
 			r_setup_features &= ~(PX4IO_P_SETUP_FEATURES_ADC_RSSI);
@@ -136,7 +137,7 @@ bool dsm_port_input(uint8_t *rssi, bool *dsm_updated, bool *st24_updated, bool *
 	if (!(r_status_flags & (PX4IO_P_STATUS_FLAGS_RC_DSM | PX4IO_P_STATUS_FLAGS_RC_SUMD))) {
 		for (unsigned i = 0; i < n_bytes; i++) {
 			/* set updated flag if one complete packet was parsed */
-			st24_rssi = RC_INPUT_RSSI_MAX;
+			st24_rssi = INPUT_RC_RC_RSSI_MAX;
 			*st24_updated |= (OK == st24_decode(bytes[i], &st24_rssi, &lost_count,
 							    &st24_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS));
 		}
@@ -166,7 +167,7 @@ bool dsm_port_input(uint8_t *rssi, bool *dsm_updated, bool *st24_updated, bool *
 	if (!(r_status_flags & (PX4IO_P_STATUS_FLAGS_RC_DSM | PX4IO_P_STATUS_FLAGS_RC_ST24))) {
 		for (unsigned i = 0; i < n_bytes; i++) {
 			/* set updated flag if one complete packet was parsed */
-			sumd_rssi = RC_INPUT_RSSI_MAX;
+			sumd_rssi = INPUT_RC_RC_RSSI_MAX;
 			*sumd_updated |= (OK == sumd_decode(bytes[i], &sumd_rssi, &sumd_rx_count,
 							    &sumd_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS, &sumd_failsafe_state));
 		}
@@ -247,11 +248,11 @@ controls_tick()
 			_rssi_adc_counts = (_rssi_adc_counts * 0.998f) + (counts * 0.002f);
 			/* use 1:1 scaling on 3.3V, 12-Bit ADC input */
 			unsigned mV = _rssi_adc_counts * 3300 / 4095;
-			/* scale to 0..100 (RC_INPUT_RSSI_MAX == 100) */
-			_rssi = (mV * RC_INPUT_RSSI_MAX / 3300);
+			/* scale to 0..100 (INPUT_RC_RC_RSSI_MAX == 100) */
+			_rssi = (mV * INPUT_RC_RC_RSSI_MAX / 3300);
 
-			if (_rssi > RC_INPUT_RSSI_MAX) {
-				_rssi = RC_INPUT_RSSI_MAX;
+			if (_rssi > INPUT_RC_RC_RSSI_MAX) {
+				_rssi = INPUT_RC_RC_RSSI_MAX;
 			}
 		}
 	}
@@ -260,7 +261,7 @@ controls_tick()
 
 	/* zero RSSI if signal is lost */
 	if (!(r_raw_rc_flags & (PX4IO_P_RAW_RC_FLAGS_RC_OK))) {
-		_rssi = RC_INPUT_RSSI_NO_SIGNAL;
+		_rssi = INPUT_RC_RC_RSSI_NO_SIGNAL;
 	}
 
 #if defined(PX4IO_PERF)
@@ -277,11 +278,11 @@ controls_tick()
 		if (sbus_updated) {
 			atomic_modify_or(&r_status_flags, PX4IO_P_STATUS_FLAGS_RC_SBUS);
 
-			uint8_t sbus_rssi = RC_INPUT_RSSI_MAX;
+			uint8_t sbus_rssi = INPUT_RC_RC_RSSI_MAX;
 
 			if (sbus_frame_drop) {
 				r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FRAME_DROP;
-				sbus_rssi = RC_INPUT_RSSI_MAX / 2;
+				sbus_rssi = INPUT_RC_RC_RSSI_MAX / 2;
 
 			} else {
 				r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);

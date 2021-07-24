@@ -551,15 +551,15 @@ bool dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, 
 			int8_t dbm = (int8_t)dsm_frame[0];
 
 			if (dbm == -128) {
-				*rssi_percent = RC_INPUT_RSSI_NO_SIGNAL;
+				*rssi_percent = input_rc_s::RC_RSSI_NO_SIGNAL;
 
 			} else {
 				*rssi_percent = spek_dbm_to_percent(dbm);
 			}
 
 		} else {
-			/* if we don't know the rssi, anything over 100 will invalidate it */
-			*rssi_percent = RC_INPUT_RSSI_UNDEFINED;
+			/* if we don't know the rssi*/
+			*rssi_percent = input_rc_s::RC_RSSI_UNDEFINED;
 		}
 	}
 
