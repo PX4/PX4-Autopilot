@@ -5,6 +5,7 @@
  * Included Files
  ************************************************************************************/
 #include <nuttx/config.h>
+// #include <px4_arch/micro_hal.h>
 
 #ifndef __ASSEMBLY__
 # include <stdint.h>
@@ -45,5 +46,31 @@
 #define LED_SIGNAL        5  /* LED2 */
 #define LED_ASSERTION     6  /* LED1 + LED2 */
 #define LED_PANIC         7  /* LED1 + LED2 */
+
+/* SPI0:
+ *  Sensor not decided
+ *  CS: not decided -- should be configured in sec/spi.cpp (probably)
+ *  CLK: not decided
+ *  MISO: not decided
+ *  MOSI: not decided
+ * Setup is done on pins 0-3, take a look at rp2040 datasheet pg. 259
+ */
+
+#define GPIO_SPI0_SCK  ( 2 | RP2040_GPIO_FUNC_SPI )
+#define GPIO_SPI0_MISO ( 0 | RP2040_GPIO_FUNC_SPI )
+#define GPIO_SPI0_MOSI ( 3 | RP2040_GPIO_FUNC_SPI )
+
+/* SPI1:
+ *  Sensor not decided
+ *  CS: not decided -- should be configured in sec/spi.cpp (probably)
+ *  CLK: not decided
+ *  MISO: not decided
+ *  MOSI: not decided
+ * Setup is done on pins 8-11, take a look at rp2040 datasheet pg. 259
+ */
+
+#define GPIO_SPI1_SCK	( 10 | RP2040_GPIO_FUNC_SPI )
+#define GPIO_SPI1_MISO	( 8 | RP2040_GPIO_FUNC_SPI )
+#define GPIO_SPI1_MOSI	( 11 | RP2040_GPIO_FUNC_SPI )
 
 #endif  /* __CONFIG_MYBOARDMYFC_INCLUDE_BOARD_H */
