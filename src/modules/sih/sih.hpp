@@ -31,6 +31,15 @@
 *
 ****************************************************************************/
 
+/**
+ * @file sih.hpp
+ * Simulator in Hardware
+ *
+ * @author Romain Chiappinelli      <romain.chiap@gmail.com>
+ *
+ * Coriolis g Corporation - January 2019
+ */
+
 // The sensor signals reconstruction and noise levels are from [1]
 // [1] Bulka E, and Nahon M, "Autonomous fixed-wing aerobatics: from theory to flight."
 //     In 2018 IEEE International Conference on Robotics and Automation (ICRA), pp. 6573-6580. IEEE, 2018.
@@ -203,9 +212,9 @@ private:
 	Vtype _vehicle = MC;
 
 	// aerodynamic segments for the fixedwing
-	AeroSeg _wing_l = AeroSeg(SPAN / 2.0f, MAC, math::radians(-4.0f), matrix::Vector3f(0.0f, -SPAN / 4.0f, 0.0f), 3.0f,
+	AeroSeg _wing_l = AeroSeg(SPAN / 2.0f, MAC, -4.0f, matrix::Vector3f(0.0f, -SPAN / 4.0f, 0.0f), 3.0f,
 				  SPAN / MAC, MAC / 3.0f);
-	AeroSeg _wing_r = AeroSeg(SPAN / 2.0f, MAC, math::radians(-4.0f), matrix::Vector3f(0.0f, SPAN / 4.0f, 0.0f), -3.0f,
+	AeroSeg _wing_r = AeroSeg(SPAN / 2.0f, MAC, -4.0f, matrix::Vector3f(0.0f, SPAN / 4.0f, 0.0f), -3.0f,
 				  SPAN / MAC, MAC / 3.0f);
 	AeroSeg _tailplane = AeroSeg(0.3f, 0.1f, 0.0f, matrix::Vector3f(-0.4f, 0.0f, 0.0f), 0.0f, -1.0f, 0.05f, RP);
 	AeroSeg _fin = AeroSeg(0.25, 0.15, 0.0f, matrix::Vector3f(-0.45f, 0.0f, -0.1f), -90.0f, -1.0f, 0.08f, RP);

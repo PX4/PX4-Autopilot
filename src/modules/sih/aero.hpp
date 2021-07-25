@@ -31,9 +31,33 @@
 *
 ****************************************************************************/
 
-// The aerodynamic model is from [2]
-// [2] Khan, Waqas, supervised by Meyer Nahon "Dynamics modeling of agile fixed-wing unmanned aerial vehicles."
-//     McGill University, PhD thesis, 2016. Sections 3.1, 3.2, and 3.3
+/**
+ * @file aero.hpp
+ * Aerodynamic class for modeling wing, tailaplane, fin.
+ * Captures the effect of partial stall, low aspect ratio, control surfaces deflection,
+ * propeller slipstream.
+ *
+ * @author Romain Chiappinelli      <romain.chiap@gmail.com>
+ *
+ * Altitude R&D inc, Montreal - July 2021
+ *
+ * The aerodynamic model is inspired from [2]
+ * [2] Khan, Waqas, supervised by Meyer Nahon "Dynamics modeling of agile fixed-wing unmanned aerial vehicles."
+ *  McGill University, PhD thesis, 2016. Sections 3.1, 3.2, and 3.3
+ *
+ * Capabilities and limitations
+ * This class can model
+ * - full 360 deg angle of attack lift, drag, and pitching moment.
+ * - wings with aspect ratio from 0.1666 up to 6, (gliders would perform poorly for instance).
+ * - control surface (flap) deflection up to 70 degrees.
+ * - unlimited flap chord, (the elevator could take the entire tailplane).
+ * - stall angle function of the flap deflection.
+ * - effect of the flap deflection on lift, drag, and pitching moment.
+ * - any dihedral angle, the fin is modeled as a wing with dihedral angle of 90 deg.
+ * - slipstream velocity (velocity from the propeller) using momentum theory.
+ */
+
+
 
 #pragma once
 
@@ -111,9 +135,21 @@ public:
 		AeroSeg(1.0f, 0.2f, 0.0f, matrix::Vector3f());
 	}
 
-	// public explicit constructor
-	// if the aspect ratio is negative, the aspect ratio is computed from the span and MAC
-	explicit AeroSeg(float span_, float mac_, float alpha_0_, matrix::Vector3f p_B_, float dihedral_deg = 0.0f,
+	/** public explicit constructor
+	 * AeroSeg(float span_, float mac_, float alpha_0_deg, matrix::Vector3f p_B_, float dihedral_deg = 0.0f,
+	 * float AR = -1.0f, float cf_ = 0.0f, float prop_radius_=-1.0f)
+	 *
+	 * span_: span of the segment [m]
+	 * mac_: mean aerodynamic chord of the segment [m]
+	 * alpha_0_deg: zero lift angle of attack of the segment [deg], negative number represents a segment oriented up
+	 * p_B_: position of the segment (mean aerodynamic center) in the body frame from the center of mass [m,m,m]
+	 * dihedral_deg: dihedral angle of the segment [deg], set to 0 for tailplane, set to -90 for the fin. default is 0.
+	 * AR: Aspect Ratio of the wing, or tailplane, or fin (not the segment).
+	 *     If the aspect ratio is negative, the aspect ratio is computed from the span and MAC
+	 * cf_: flap chord [m], this is the chord length of the control surface, default is zero (no flap).
+	 * prop_radius_: radius of the propeller for slipstream computation. Setting to -1 (default) will assume no slipstream.
+	 */
+	explicit AeroSeg(float span_, float mac_, float alpha_0_deg, matrix::Vector3f p_B_, float dihedral_deg = 0.0f,
 			 float AR = -1.0f, float cf_ = 0.0f, float prop_radius_=-1.0f)
 	{
 		static const float AR_tab[N_TAB] = {0.1666f, 0.333f, 0.4f, 0.5f, 1.0f, 1.25f, 2.0f, 3.0f, 4.0f, 6.0f};
@@ -125,7 +161,7 @@ public:
 
 		span = span_;
 		mac = mac_;
-		alpha_0 = alpha_0_;
+		alpha_0 = math::radians(alpha_0_deg);
 		p_B = matrix::Vector3f(p_B_);
 		ar = (AR <= 0.0f) ? span / mac : AR; // setting AR<=0 will compute it from span and mac
 		alpha_eff = 0.0f;
@@ -137,12 +173,23 @@ public:
 		afle = lin_interp_lkt(AR_tab, afle_tab, ar, N_TAB);
 		afte = lin_interp_lkt(AR_tab, afte_tab, ar, N_TAB);
 		afs_rad = math::radians(lin_interp_lkt(AR_tab, afs_tab, ar, N_TAB));
-		cf = cf_;
+		cf = math::constrain(cf_, 0.0f, mac_);
 		C_BS = matrix::Dcmf(matrix::Eulerf(math::radians(dihedral_deg), 0.0f, 0.0f));
 		prop_radius=prop_radius_;
 	}
 
-	// aerodynamic force and moments of a generic flate plate segment
+	/** aerodynamic force and moments of a generic flate plate segment
+	 * void update_aero(matrix::Vector3f v_B, matrix::Vector3f w_B, float alt = 0.0f,
+	 *                  float def = 0.0f, float thrust=0.0f, float dt = -1.0f)
+	 *
+	 * v_B: 3D velocity in body frame [m/s], (front, right, down FRD frame)
+	 * w_B: 3D body rates in body frame [rad/s], FRD frame.
+	 * alt: altitude above mean sea level for computing air density [m], default is 0.
+	 * def: flap deflection angle [rad], default is 0.
+	 * thrust: thrust force [N] from the propeller to compute the slipstream velocity, default is 0.
+	 * dt: sample time of the simulator between two function call, used to compute the non steady aerodynamic.
+	 *     default is -1 (disabled).
+	 */
 	void update_aero(matrix::Vector3f v_B, matrix::Vector3f w_B, float alt = 0.0f, float def = 0.0f, float thrust=0.0f, float dt = -1.0f)
 	{
 		// ISA model taken from Mustafa Cavcar, Anadolu University, Turkey
