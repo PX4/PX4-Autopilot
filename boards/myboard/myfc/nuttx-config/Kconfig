@@ -1,0 +1,62 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config RP2040_FLASH_BOOT
+	bool "flash boot"
+	default y
+	---help---
+		If y, the built binary can be used for flash boot.
+		If not, the binary is for SRAM boot.
+
+config RP2040_FLASH_CHIP
+	string "flash chip name"
+	default "w25q080"
+	---help---
+		Name of NOR flash device connected to RP2040 SoC.
+		(Used to choose the secondary boot loader.)
+		Basically this option should not be changed.
+
+config RP2040_UF2_BINARY
+	bool "uf2 binary format"
+	default y
+	---help---
+		Create nuttx.uf2 binary format used on RP2040 based arch.
+
+
+# config RP2040_UART0_GPIO
+# 	int "UART0 GPIO pin assign (0,12,16,28 or -1:no assign)"
+# 	default 0
+# 	range -1 29
+# 	depends on RP2040_UART0
+
+# config RP2040_UART1_GPIO
+# 	int "UART1 GPIO pin assign (4,8,20,24 or -1:no assign)"
+# 	default -1
+# 	range -1 29
+# 	depends on RP2040_UART1
+
+# config RP2040_I2C0_GPIO
+# 	int "I2C0 GPIO pin assign (0,4,8,12,16,20,24,28 or -1:no assign)"
+# 	default -1
+# 	range -1 29
+# 	depends on RP2040_I2C0
+
+# config RP2040_I2C1_GPIO
+# 	int "I2C1 GPIO pin assign (2,6,10,14,18,22,26 or -1:no assign)"
+# 	default -1
+# 	range -1 29
+# 	depends on RP2040_I2C1
+
+# config RP2040_SPI0_GPIO
+# 	int "SPI0 GPIO pin assign (0,4,16,20 or -1:no assign)"
+# 	default -1
+# 	range -1 29
+# 	depends on RP2040_SPI0
+
+# config RP2040_SPI1_GPIO
+# 	int "SPI1 GPIO pin assign (8,12,24,28 or -1:no assign)"
+# 	default -1
+# 	range -1 29
+# 	depends on RP2040_SPI1
