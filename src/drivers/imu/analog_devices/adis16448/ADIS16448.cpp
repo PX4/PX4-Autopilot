@@ -164,12 +164,12 @@ int ADIS16448::probe()
 	}
 
 	for (int attempt = 0; attempt < 3; attempt++) {
-		const uint16_t PROD_ID = RegisterRead(Register::PROD_ID);
+		const uint16_t PROD_ID = RegisterReadVerified(Register::PROD_ID);
 
 		if (PROD_ID == Product_identification) {
-			const uint16_t SERIAL_NUM = RegisterRead(Register::SERIAL_NUM);
-			const uint16_t LOT_ID1 = RegisterRead(Register::LOT_ID1);
-			const uint16_t LOT_ID2 = RegisterRead(Register::LOT_ID2);
+			const uint16_t SERIAL_NUM = RegisterReadVerified(Register::SERIAL_NUM);
+			const uint16_t LOT_ID1 = RegisterReadVerified(Register::LOT_ID1);
+			const uint16_t LOT_ID2 = RegisterReadVerified(Register::LOT_ID2);
 
 			PX4_INFO("Serial Number: 0x%02x, Lot ID1: 0x%02x ID2: 0x%02x", SERIAL_NUM, LOT_ID1, LOT_ID2);
 
@@ -201,7 +201,7 @@ void ADIS16448::RunImpl()
 	case STATE::WAIT_FOR_RESET:
 
 		if (_self_test_passed) {
-			if ((RegisterRead(Register::PROD_ID) == Product_identification)) {
+			if ((RegisterReadVerified(Register::PROD_ID) == Product_identification)) {
 				// if reset succeeded then configure
 				_state = STATE::CONFIGURE;
 				ScheduleNow();
@@ -228,7 +228,7 @@ void ADIS16448::RunImpl()
 		break;
 
 	case STATE::SELF_TEST_CHECK: {
-			const uint16_t MSC_CTRL = RegisterRead(Register::MSC_CTRL);
+			const uint16_t MSC_CTRL = RegisterReadVerified(Register::MSC_CTRL);
 
 			if (MSC_CTRL & MSC_CTRL_BIT::Internal_self_test) {
 				// self test not finished, check again
@@ -248,7 +248,7 @@ void ADIS16448::RunImpl()
 
 			bool test_passed = true;
 
-			const uint16_t DIAG_STAT = RegisterRead(Register::DIAG_STAT);
+			const uint16_t DIAG_STAT = RegisterReadVerified(Register::DIAG_STAT);
 
 			if (DIAG_STAT & DIAG_STAT_BIT::Self_test_diagnostic_error_flag) {
 				PX4_ERR("self test failed");
@@ -493,7 +493,7 @@ void ADIS16448::RunImpl()
 
 bool ADIS16448::Configure()
 {
-	const uint16_t LOT_ID1 = RegisterRead(Register::LOT_ID1);
+	const uint16_t LOT_ID1 = RegisterReadVerified(Register::LOT_ID1);
 
 	// Only enable CRC-16 for verified lots (HACK to support older ADIS16448AMLZ with no explicit detection)
 	if (LOT_ID1 == 0x1824) {
@@ -619,7 +619,7 @@ bool ADIS16448::RegisterCheck(const register_config_t &reg_cfg)
 {
 	bool success = true;
 
-	const uint16_t reg_value = RegisterRead(reg_cfg.reg);
+	const uint16_t reg_value = RegisterReadVerified(reg_cfg.reg);
 
 	if (reg_cfg.set_bits && ((reg_value & reg_cfg.set_bits) != reg_cfg.set_bits)) {
 		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not set)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.set_bits);
@@ -644,8 +644,24 @@ uint16_t ADIS16448::RegisterRead(Register reg)
 	transferhword(cmd, nullptr, 1);
 	px4_udelay(SPI_STALL_PERIOD);
 	transferhword(nullptr, cmd, 1);
+	px4_udelay(SPI_STALL_PERIOD);
 
 	return cmd[0];
+}
+
+uint16_t ADIS16448::RegisterReadVerified(Register reg, int retries)
+{
+	for (int attempt = 0; attempt < retries; attempt++) {
+		uint16_t read1 = RegisterRead(reg);
+		uint16_t read2 = RegisterRead(reg);
+
+		if (read1 == read2) {
+			return read1;
+		}
+	}
+
+	// failed
+	return 0;
 }
 
 void ADIS16448::RegisterWrite(Register reg, uint16_t value)
@@ -659,11 +675,12 @@ void ADIS16448::RegisterWrite(Register reg, uint16_t value)
 	transferhword(cmd, nullptr, 1);
 	px4_udelay(SPI_STALL_PERIOD);
 	transferhword(cmd + 1, nullptr, 1);
+	px4_udelay(SPI_STALL_PERIOD);
 }
 
 void ADIS16448::RegisterSetAndClearBits(Register reg, uint16_t setbits, uint16_t clearbits)
 {
-	const uint16_t orig_val = RegisterRead(reg);
+	const uint16_t orig_val = RegisterReadVerified(reg);
 
 	uint16_t val = (orig_val & ~clearbits) | setbits;
 
