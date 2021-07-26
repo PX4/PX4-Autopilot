@@ -94,6 +94,7 @@ private:
 	bool RegisterCheck(const register_config_t &reg_cfg);
 
 	uint16_t RegisterRead(Register reg);
+	uint16_t RegisterReadVerified(Register reg);
 	void RegisterWrite(Register reg, uint16_t value);
 	void RegisterSetAndClearBits(Register reg, uint16_t setbits, uint16_t clearbits);
 
