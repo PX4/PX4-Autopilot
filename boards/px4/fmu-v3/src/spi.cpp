@@ -159,8 +159,8 @@ constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSION
 			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10})
 		}),
 		initSPIBusExternal(SPI::Bus::SPI4, {
-			initSPIConfigExternal(SPI::CS{GPIO::PortC, GPIO::Pin14}),
 			initSPIConfigExternal(SPI::CS{GPIO::PortE, GPIO::Pin4}),
+			initSPIConfigExternal(SPI::CS{GPIO::PortC, GPIO::Pin14}),
 		}),
 	}),
 
