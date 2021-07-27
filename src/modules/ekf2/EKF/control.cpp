@@ -1147,6 +1147,24 @@ void Ekf::controlHeightFusion()
 			}
 		}
 
+		// If no EV is available, switch to RF if possible
+		if (!_control_status.flags.ev_hgt && !_control_status.flags.rng_hgt && _range_sensor.isDataHealthy()) {
+			setControlRangeHeight();
+			fuse_height = true;
+			if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
+			  // we have just switched to using range finder, calculate height sensor offset such that current
+			  // measurement matches our current height estimate
+			  // use the parameter rng_gnd_clearance if on ground to avoid a noisy offset initialization (e.g. sonar)
+				if (_control_status.flags.in_air && isTerrainEstimateValid()) {
+					_hgt_sensor_offset = _terrain_vpos;
+				} else if (_control_status.flags.in_air) {
+					_hgt_sensor_offset = _range_sensor.getDistBottom() + _state.pos(2);
+				} else {
+					_hgt_sensor_offset = _params.rng_gnd_clearance;
+				}
+			}
+		}
+
 		if (_control_status.flags.ev_hgt && _ev_data_ready) {
 			fuse_height = true;
 
