@@ -95,13 +95,12 @@ void Ekf::runTerrainEstimator()
 	if (!_terrain_initialised || !_control_status.flags.in_air) {
 		_terrain_initialised = initHagl();
 
-		// If RF is primary source do not estimate terrain using RF
+	// If RF is primary source do not estimate terrain using RF
 	} else if (_control_status.flags.rng_hgt && shouldUseRangeFinderForHagl()) {
-		// TODO: Switch is too late; Still using RF although primary height source has not timed out yet
-		// works fine if speed in Z direction is low
+	   // TODO: Switch is too late; Continues to use RF until the timeout of the height source is detected
+	   // works fine if speed in Z direction is low during that phase
 		_time_last_hagl_fuse = _time_last_imu;
 		_innov_check_fail_status.flags.reject_hagl = false;
-
 	} else {
 
 		// predict the state variance growth where the state is the vertical position of the terrain underneath the vehicle
