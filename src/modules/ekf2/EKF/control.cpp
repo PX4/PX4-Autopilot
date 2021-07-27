@@ -529,8 +529,7 @@ void Ekf::controlGpsFusion()
 				// If the heading is not aligned, reset the yaw and magnetic field states
 				// Do not use external vision for yaw if using GPS because yaw needs to be
 				// defined relative to an NED reference frame
-				if (!_control_status.flags.yaw_align
-				    || _control_status.flags.ev_yaw
+				if (_control_status.flags.ev_yaw
 				    || _mag_inhibit_yaw_reset_req
 				    || _mag_yaw_reset_req) {
 
@@ -540,7 +539,7 @@ void Ekf::controlGpsFusion()
 					stopEvYawFusion();
 					_inhibit_ev_yaw_use = true;
 
-				} else {
+				} else if (_control_status.flags.yaw_align) {
 					// If the heading is valid start using gps aiding
 					startGpsFusion();
 				}
