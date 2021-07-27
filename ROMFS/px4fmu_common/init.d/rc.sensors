@@ -21,6 +21,23 @@ fi
 #                           Begin Optional drivers                            #
 ###############################################################################
 
+# ADIS16448 spi external IMU
+if param compare -s SENS_EN_ADIS164X 1
+then
+	if param compare -s SENS_OR_ADIS164X 0
+	then
+		adis16448 -S start
+	fi
+	if param compare -s SENS_OR_ADIS164X 4
+	then
+		adis16448 -S start -R 4
+	fi
+
+	# add a sleep to make sure the mag is the priority one
+	usleep 1000000
+fi
+
+
 if param compare -s SENS_EN_BATT 1
 then
 	batt_smbus start -X
@@ -106,19 +123,6 @@ fi
 if param compare -s SENS_EN_VL53L1X 1
 then
 	vl53l1x start -X
-fi
-
-# ADIS16448 spi external IMU
-if param compare -s SENS_EN_ADIS164X 1
-then
-	if param compare -s SENS_OR_ADIS164X 0
-	then
-		adis16448 -S start
-	fi
-	if param compare -s SENS_OR_ADIS164X 4
-	then
-		adis16448 -S start -R 4
-	fi
 fi
 
 # Hall effect sensors si7210
