@@ -167,6 +167,7 @@ private:
 	void UpdateImuStatus();
 
 	void UpdateMagCalibration(const hrt_abstime &timestamp);
+	void UpdateAccelCalibration(const hrt_abstime &timestamp);
 
 	/*
 	 * Calculate filtered WGS84 height from estimated AMSL height
@@ -201,13 +202,19 @@ private:
 	// Used to check, save and use learned magnetometer biases
 	hrt_abstime _mag_cal_last_us{0};	///< last time the EKF was operating a mode that estimates magnetomer biases (uSec)
 	hrt_abstime _mag_cal_total_time_us{0};	///< accumulated calibration time since the last save
-
 	Vector3f _mag_cal_last_bias{};	///< last valid XYZ magnetometer bias estimates (Gauss)
 	Vector3f _mag_cal_last_bias_variance{};	///< variances for the last valid magnetometer XYZ bias estimates (Gauss**2)
 	bool _mag_cal_available{false};	///< true when an unsaved valid calibration for the XYZ magnetometer bias is available
 
 	// Used to control saving of mag declination to be used on next startup
 	bool _mag_decl_saved = false;	///< true when the magnetic declination has been saved
+
+	// Used to check, save and use learned accelerometer biases
+	hrt_abstime _acc_cal_last_us{0};	///< last time the EKF was operating a mode that estimates accelerometer biases (uSec)
+	hrt_abstime _acc_cal_total_time_us{0};	///< accumulated calibration time since the last save
+	Vector3f _acc_cal_last_bias{};		///< last valid XYZ accelerometer bias estimates (Gauss)
+	Vector3f _acc_cal_last_bias_variance{};	///< variances for the last valid accelerometer XYZ bias estimates (m/s**2)**2
+	bool _acc_cal_available{false};		///< true when an unsaved valid calibration for the XYZ accelerometer bias is available
 
 	bool _had_valid_terrain{false};			///< true if at any time there was a valid terrain estimate
 
