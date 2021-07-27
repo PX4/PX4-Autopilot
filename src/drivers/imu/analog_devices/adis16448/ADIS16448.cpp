@@ -106,10 +106,6 @@ ADIS16448::ADIS16448(I2CSPIBusOption bus_option, int bus, uint32_t device, enum 
 	_px4_mag(get_device_id(), rotation)
 {
 	_debug_enabled = true;
-
-	if (_drdy_gpio != 0) {
-		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
-	}
 }
 
 ADIS16448::~ADIS16448()
