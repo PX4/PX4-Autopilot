@@ -516,6 +516,7 @@ void EKF2::Run()
 			PublishYawEstimatorStatus(now);
 
 			UpdateMagCalibration(now);
+			UpdateAccelCalibration(now);
 
 		} else {
 			// ekf no update
@@ -1036,7 +1037,7 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 			accel_bias.copyTo(bias.accel_bias);
 			bias.accel_bias_limit = _params->acc_bias_lim;
 			_ekf.getAccelBiasVariance().copyTo(bias.accel_bias_variance);
-			bias.accel_bias_valid = !_ekf.fault_status_flags().bad_acc_bias;
+			bias.accel_bias_valid = !_ekf.fault_status_flags().bad_acc_bias && _acc_cal_available;
 
 			_last_accel_bias_published = accel_bias;
 		}
@@ -1769,6 +1770,38 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 					_param_ekf2_mag_decl.commit_no_notification();
 				}
 			}
+		}
+	}
+}
+
+void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
+{
+	// Check if conditions are OK for learning of accelerometer bias values
+	// the EKF is operating in the correct mode and there are no filter faults
+	if (_ekf.control_status_flags().in_air && (_ekf.fault_status().value == 0)) {
+
+		if (_acc_cal_last_us != 0) {
+			_acc_cal_total_time_us += timestamp - _acc_cal_last_us;
+
+			// Start checking accel bias estimates when we have accumulated sufficient calibration time
+			if (_acc_cal_total_time_us > 30_s) {
+				_acc_cal_last_bias = _ekf.getAccelBias();
+				_acc_cal_last_bias_variance = _ekf.getAccelBiasVariance();
+				_acc_cal_available = true;
+			}
+		}
+
+		_acc_cal_last_us = timestamp;
+
+	} else {
+		// conditions are NOT OK for learning accelerometer bias, reset timestamp
+		// but keep the accumulated calibration time
+		_acc_cal_last_us = 0;
+
+		if (_ekf.fault_status().value != 0) {
+			// if a filter fault has occurred, assume previous learning was invalid and do not
+			// count it towards total learning time.
+			_acc_cal_total_time_us = 0;
 		}
 	}
 }
