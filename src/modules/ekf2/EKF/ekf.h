@@ -395,7 +395,7 @@ private:
 	uint64_t _time_yaw_started{0};		///< last system time in usec that a yaw rotation manoeuvre was detected
 	uint8_t _num_bad_flight_yaw_events{0};	///< number of times a bad heading has been detected in flight and required a yaw reset
 	uint64_t _mag_use_not_inhibit_us{0};	///< last system time in usec before magnetometer use was inhibited
-	float _last_static_yaw{0.0f};		///< last yaw angle recorded when on ground motion checks were passing (rad)
+	float _last_static_yaw{NAN};		///< last yaw angle recorded when on ground motion checks were passing (rad)
 
 	bool _mag_inhibit_yaw_reset_req{false};	///< true when magnetometer inhibit has been active for long enough to require a yaw reset when conditions improve.
 	bool _mag_yaw_reset_req{false};		///< true when a reset of the yaw using the magnetometer data has been requested
