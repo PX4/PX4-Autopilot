@@ -23,7 +23,7 @@ parser.add_argument('-e', '--exclude-path', action='append',
                     help='Excluded path(s), can be specified multiple times',
                     default=[])
 parser.add_argument('--merge-depends', action='store_true',
-                    help='Merge library topics inte the modules that depend on them.')
+                    help='Merge library topics in the modules that depend on them.')
 parser.add_argument('-v','--verbosity', action='count',
                     help='increase output verbosity; primarily for debugging; repeat for more detail',
                     default=0)
@@ -673,7 +673,7 @@ class OutputJSON(object):
             node['color'] = topic_colors[topic]
             # url is opened when double-clicking on the node
             # TODO: does not work for multi-topics
-            node['url'] = 'https://github.com/PX4/Firmware/blob/master/msg/'+topic+'.msg'
+            node['url'] = 'https://github.com/PX4/PX4-Autopilot/blob/master/msg/'+topic+'.msg'
             nodes.append(node)
 
         data['nodes'] = nodes
