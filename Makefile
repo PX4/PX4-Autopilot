@@ -299,9 +299,11 @@ all_variants_%:
 	$(foreach a,$(filter $(subst all_variants_,,$@)_%, $(ALL_CONFIG_TARGETS)), $(call cmake-build,$(a)$(BUILD_DIR_SUFFIX)))
 
 uorb_graphs:
-	@./Tools/uorb_graph/create.py --src-path src --exclude-path src/examples --exclude-path src/lib --file Tools/uorb_graph/graph_full
+	@./Tools/uorb_graph/create.py --src-path src --exclude-path src/examples --exclude-path src/lib/parameters --merge-depends --file Tools/uorb_graph/graph_full
+	@./Tools/uorb_graph/create.py --src-path src --exclude-path src/examples --exclude-path src/lib/parameters --exclude-path src/modules/mavlink --merge-depends --file Tools/uorb_graph/graph_full_no_mavlink
 	@$(MAKE) --no-print-directory px4_fmu-v2_default uorb_graph
 	@$(MAKE) --no-print-directory px4_fmu-v4_default uorb_graph
+	@$(MAKE) --no-print-directory px4_fmu-v5_default uorb_graph
 	@$(MAKE) --no-print-directory px4_sitl_default uorb_graph
 
 
