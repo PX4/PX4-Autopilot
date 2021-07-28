@@ -59,13 +59,6 @@
 #define	rICR		REG(RP2040_UART_UARTICR_OFFSET)			// Interrupt Clear Register
 #define	rDMACR		REG(RP2040_UART_UARTDMACR_OFFSET)		// DMA Control Register
 
-#define rSR		REG(STM32_USART_SR_OFFSET)
-#define rDR		REG(STM32_USART_DR_OFFSET)
-#define rBRR		REG(STM32_USART_BRR_OFFSET)
-#define rCR1		REG(STM32_USART_CR1_OFFSET)
-#define rCR2		REG(STM32_USART_CR2_OFFSET)
-#define rCR3		REG(STM32_USART_CR3_OFFSET)
-
 uint8_t ArchPX4IOSerial::_io_buffer_storage[sizeof(IOPacket)];
 
 ArchPX4IOSerial::ArchPX4IOSerial() :
