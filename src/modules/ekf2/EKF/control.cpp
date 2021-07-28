@@ -1162,7 +1162,6 @@ void Ekf::controlHeightFusion()
 				} else if (_control_status.flags.in_air) {
 					_hgt_sensor_offset = _range_sensor.getDistBottom() + _state.pos(2);
 
-
 				} else {
 					_hgt_sensor_offset = _params.rng_gnd_clearance;
 				}
