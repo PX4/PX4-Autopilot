@@ -1,0 +1,9 @@
+<sdf version='1.6'>
+  <model name='iris_ctrlalloc'>
+    <include>
+      <uri>model://iris</uri>
+    </include>
+  </model>
+</sdf>
+
+<!-- vim: set et ft=xml fenc=utf-8 ff=unix sts=0 sw=2 ts=2 : -->
