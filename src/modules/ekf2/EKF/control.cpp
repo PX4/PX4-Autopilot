@@ -848,7 +848,7 @@ void Ekf::controlHeightSensorTimeouts()
 	// check if height has been inertial deadreckoning for too long depending on the height source
 	bool hgt_fusion_timeout = false;
 
-	if( _params.vdist_sensor_type == VDIST_SENSOR_BARO) {
+	if(_control_status.flags.baro_hgt) {
 		hgt_fusion_timeout = isTimedOut(_time_last_hgt_fuse, (uint64_t)5e6);
 
 	} else {
