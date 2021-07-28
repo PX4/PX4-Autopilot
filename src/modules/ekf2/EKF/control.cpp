@@ -845,9 +845,16 @@ void Ekf::controlHeightSensorTimeouts()
 	// check if height is continuously failing because of accel errors
 	const bool continuous_bad_accel_hgt = isTimedOut(_time_good_vert_accel, (uint64_t)_params.bad_acc_reset_delay_us);
 
-	// check if height has been inertial deadreckoning for too long
-	// in vision hgt mode check for vision data
-	const bool hgt_fusion_timeout = isTimedOut(_time_last_hgt_fuse, (uint64_t)3e5);
+	// check if height has been inertial deadreckoning for too long depending on the height source
+	bool hgt_fusion_timeout = false;
+
+	if( _params.vdist_sensor_type == VDIST_SENSOR_BARO) {
+		hgt_fusion_timeout = isTimedOut(_time_last_hgt_fuse, (uint64_t)5e6);
+
+	} else {
+		hgt_fusion_timeout = isTimedOut(_time_last_hgt_fuse, (uint64_t)3e5);
+
+	}
 
 	if (hgt_fusion_timeout || continuous_bad_accel_hgt) {
 
