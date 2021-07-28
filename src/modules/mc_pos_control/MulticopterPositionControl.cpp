@@ -427,7 +427,7 @@ void MulticopterPositionControl::Run()
 
 			} else {
 				// Failsafe
-				if ((time_stamp_now - _last_warn) > 2_s && _last_warn > 0) {
+				if ((time_stamp_now - _last_warn) > 2_s) {
 					PX4_WARN("invalid setpoints");
 					_last_warn = time_stamp_now;
 				}
