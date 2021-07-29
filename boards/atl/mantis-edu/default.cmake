@@ -1,9 +1,6 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR atl
-	MODEL mantis-edu
-	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
@@ -14,7 +11,6 @@ px4_add_board(
 		gps
 		#heater
 		imu/invensense/icm20602
-		#lights/rgbled_pwm
 		magnetometer/isentek/ist8310
 		tap_esc
 	MODULES
@@ -45,27 +41,20 @@ px4_add_board(
 		bl_update
 		dmesg
 		dumpfile
-		esc_calib
 		hardfault_log
-		i2cdetect
 		led_control
 		mixer
 		motor_ramp
 		motor_test
-		nshterm
 		param
 		perf
 		reboot
-		reflect
-		sd_bench
-		serial_test
 		shutdown
 		system_time
 		top
 		topic_listener
 		tune_control
 		uorb
-		usb_connected
 		ver
 		work_queue
 	)
