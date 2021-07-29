@@ -92,11 +92,14 @@ private:
 	static constexpr float CD0 = 0.04f; 		// no lift drag coefficient
 	static constexpr float CD90 = 1.98f; 		// 90 deg angle of attack drag coefficient
 	static constexpr float AF_DOT_MAX = M_PI_F / 2.0f;
+	static constexpr float ALPHA_BLEND = M_PI_F / 18.0f; 	// 10 degrees
 
 	// here we make the distinction of the plate (i.e. wing, or tailplane, or fin) and the segment
 	// the segment can be a portion of the wing, but the aspect ratio (AR) of the wing needs to be used
 	float alpha; 		// angle of attack [rad]
 	float CL, CD, CM; 	// aerodynamic coefficients
+	float CL_, CD_, CM_; 	// low aoa coeffs
+	float f_blend;		// blending function
 	matrix::Vector3f p_B; 	// position of the aerodynamic center of the segment from CM in body frame [m]
 	matrix::Dcmf C_BS;	// dcm from segment frame to body frame
 	float ar;		// aspect ratio of the plate
@@ -104,9 +107,11 @@ private:
 	float mac;		// mean aerodynamic chord of the segment
 	float alpha_0;		// zero lift angle of attack [rad]
 	float kp, kn;
-	float ate, ale, afte, afle, afs_rad;	// semi empirical coefficients for flat plates function of AR
+	float ate, ale, afte, afle;	// semi empirical coefficients for flat plates function of AR
 	float tau_te, tau_le, fte, fle; 	// leading and trailing edge functions
 	float rho = 1.225f; 	// air density at current altitude [kg/m^3]
+	float kD;		// for parabolic drag model
+	const float k0=0.87f;	// Oswald efficiency factor
 	// variables for flap model
 	float eta_f;		// flap effectiveness
 	float def_a;		// absolute value of the deflection angle
@@ -114,7 +119,10 @@ private:
 	float theta_f, tau_f;	// check 3.2.3 in [2]
 	float deltaCL, dCLmax;	// increase in lift coefficient
 	float CLmax, CLmin;	// max and min lift value
-	float alpha_min, alpha_max;	// min and max aoa in the low aoa regime
+	float alpha_eff_min; 	// min effective angle of attack
+	float alpha_eff_max;	// max effective angle of attack
+	float alpha_min; 	// min angle of attack (stall angle)
+	float alpha_max;	// min angle of attack (stall angle)
 	float alf0eff;		// effective zero lift angle of attack
 	float alfmeff;		// effective maximum lift angle of attack
 	float alpha_eff;	// effectie angle of attack
@@ -148,9 +156,12 @@ public:
 	 *     If the aspect ratio is negative, the aspect ratio is computed from the span and MAC
 	 * cf_: flap chord [m], this is the chord length of the control surface, default is zero (no flap).
 	 * prop_radius_: radius of the propeller for slipstream computation. Setting to -1 (default) will assume no slipstream.
+	 * cl_alpha: 2D lift curve slope (1/rad), default it 2*pi for a flat plate. This can be computed from http://airfoiltools.com for instance.
+	 * alpha_max_deg: maximum angle of attack before stall. Setting to 0 (default) will compute it from a table for flat plate.
+	 * alpha_min_deg: maximum negative angle of attack before stall. Setting to 0 (default) will compute it from a table for flat plate.
 	 */
 	explicit AeroSeg(float span_, float mac_, float alpha_0_deg, matrix::Vector3f p_B_, float dihedral_deg = 0.0f,
-			 float AR = -1.0f, float cf_ = 0.0f, float prop_radius_=-1.0f)
+			 float AR = -1.0f, float cf_ = 0.0f, float prop_radius_=-1.0f, float cl_alpha=2.0f*M_PI_F, float alpha_max_deg=0.0f, float alpha_min_deg=0.0f)
 	{
 		static const float AR_tab[N_TAB] = {0.1666f, 0.333f, 0.4f, 0.5f, 1.0f, 1.25f, 2.0f, 3.0f, 4.0f, 6.0f};
 		static const float ale_tab[N_TAB] = {3.00f, 3.64f, 4.48f, 7.18f, 10.20f, 13.38f, 14.84f, 14.49f, 9.95f, 12.93f, 15.00f, 15.00f};
@@ -166,16 +177,27 @@ public:
 		ar = (AR <= 0.0f) ? span / mac : AR; // setting AR<=0 will compute it from span and mac
 		alpha_eff = 0.0f;
 		alpha_eff_old = 0.0f;
-		kp = 2.0f * M_PI_F / (1.0f + 2.0f * (ar + 4.0f) / (ar * (ar + 2.0f)));
+		kp = cl_alpha / (1.0f + 2.0f * (ar + 4.0f) / (ar * (ar + 2.0f)));
 		kn = 0.41f * (1.0f - expf(-17.0f / ar));
 		ale = lin_interp_lkt(AR_tab, ale_tab, ar, N_TAB);
 		ate = lin_interp_lkt(AR_tab, ate_tab, ar, N_TAB);
 		afle = lin_interp_lkt(AR_tab, afle_tab, ar, N_TAB);
 		afte = lin_interp_lkt(AR_tab, afte_tab, ar, N_TAB);
-		afs_rad = math::radians(lin_interp_lkt(AR_tab, afs_tab, ar, N_TAB));
+		float afs_rad = math::radians(lin_interp_lkt(AR_tab, afs_tab, ar, N_TAB));
+		if (fabsf(alpha_max_deg)<1.0e-3f) {
+			alpha_max = afs_rad;
+		} else {
+			alpha_max = math::radians(alpha_max_deg);
+		}
+		if (fabsf(alpha_min_deg)<1.0e-3f) {
+			alpha_min = -afs_rad;
+		} else {
+			alpha_min = math::radians(alpha_min_deg);
+		}
 		cf = math::constrain(cf_, 0.0f, mac_);
 		C_BS = matrix::Dcmf(matrix::Eulerf(math::radians(dihedral_deg), 0.0f, 0.0f));
 		prop_radius=prop_radius_;
+		kD = 1.0f/(M_PI_F*k0*ar);
 	}
 
 	/** aerodynamic force and moments of a generic flate plate segment
@@ -187,10 +209,8 @@ public:
 	 * alt: altitude above mean sea level for computing air density [m], default is 0.
 	 * def: flap deflection angle [rad], default is 0.
 	 * thrust: thrust force [N] from the propeller to compute the slipstream velocity, default is 0.
-	 * dt: sample time of the simulator between two function call, used to compute the non steady aerodynamic.
-	 *     default is -1 (disabled).
 	 */
-	void update_aero(matrix::Vector3f v_B, matrix::Vector3f w_B, float alt = 0.0f, float def = 0.0f, float thrust=0.0f, float dt = -1.0f)
+	void update_aero(matrix::Vector3f v_B, matrix::Vector3f w_B, float alt = 0.0f, float def = 0.0f, float thrust=0.0f)
 	{
 		// ISA model taken from Mustafa Cavcar, Anadolu University, Turkey
 		pressure = P0 * powf(1.0f - 0.0065f * alt / T0_K, 5.2561f);
@@ -198,14 +218,14 @@ public:
 		rho = pressure / R / temperature;
 
 		matrix::Vector3f vel = C_BS.transpose() * (v_B + w_B % p_B); 	// velocity in segment frame
-		float vxz2 = vel(0) * vel(0) + vel(2) * vel(2);
 		if (prop_radius>1e-4f) {
 			// Add velocity generated from the propeller and thrust force.
 			// Computed from momentum theory.
 			// For info, the diameter of the slipstream is sqrt(2)*prop_radius,
 			// this should be the width of the segment in the slipstream.
-			vxz2 += 2.0f*thrust/(rho*M_PI_F*prop_radius*prop_radius);
+			vel(0) += sqrtf(2.0f*thrust/(rho*M_PI_F*prop_radius*prop_radius));
 		}
+		float vxz2 = vel(0) * vel(0) + vel(2) * vel(2);
 		if (vxz2 < 0.01f) {
 			Fa = matrix::Vector3f();
 			Ma = matrix::Vector3f();
@@ -213,7 +233,7 @@ public:
 		}
 
 		alpha = atan2f(vel(2), vel(0)) - alpha_0;
-		aoa_coeff(alpha, dt, sqrtf(vxz2), def);
+		aoa_coeff(alpha, sqrtf(vxz2), def);
 		Fa = C_BS * (0.5f * rho * vxz2 * span * mac) * matrix::Vector3f(CL * sinf(alpha) - CD * cosf(alpha),
 				0.0f,
 				-CL * cosf(alpha) - CD * sinf(alpha));
@@ -227,7 +247,7 @@ public:
 private:
 
 	// low angle of attack and stalling region coefficient based on flat plate
-	void aoa_coeff(float a, float dt, float vxz, float def)
+	void aoa_coeff(float a, float vxz, float def)
 	{
 		alpha_eff_old = alpha_eff;
 		tau_te = (vxz > 0.01f) ? 4.5f * mac / vxz : 0.0f;
@@ -241,53 +261,54 @@ private:
 			tau_f = 1.0f - (theta_f - sinf(theta_f)) / M_PI_F;
 			deltaCL = kp * tau_f * eta_f * def;
 			dCLmax = (1.0f - cf / mac) * deltaCL;
-			alf0eff = solve_alpha_eff(kp, KV, deltaCL);
+			alf0eff = solve_alpha_eff(kp, KV, deltaCL, alpha_0);
 			alpha_eff = a - alf0eff;
 
-			if (dt < 1e-9f) {
-				alpha_eff_dot = 0.0f;
+			// this doesn't seem to work, so let's comment it
+			// alpha_eff_dot = math::constrain((alpha_eff - alpha_eff_old) / dt, -AF_DOT_MAX, AF_DOT_MAX);
+			// fte = 0.5f * (1.0f - tanhf(ate * ((alpha_eff) - tau_te * (alpha_eff_dot)
+			// 	- math::radians(afte))));	// normalized trailing edge separation
+			// fle = 0.5f * (1.0f - tanhf(ale * ((alpha_eff) - tau_le * (alpha_eff_dot)
+			// 	- math::radians(afle))));	// normalized leading edge separation
 
-			} else {
-				alpha_eff_dot = math::constrain((alpha_eff - alpha_eff_old) / dt, -AF_DOT_MAX, AF_DOT_MAX);
-			}
-
-			fte = 0.5f * (1.0f - tanhf(ate * (math::degrees(alpha_eff) - tau_te * math::degrees(
-					alpha_eff_dot) - afte)));	// normalized trailing edge separation
-			fle = 0.5f * (1.0f - tanhf(ale * (math::degrees(alpha_eff) - tau_le * math::degrees(
-					alpha_eff_dot) - afle)));	// normalized leading edge separation
-			CLmax = fCL(afs_rad - alpha_0) + dCLmax;
-			alpha_max = alf0eff - solve_alpha_eff(kp, KV * fle * fle, CLmax / (0.25f * (1.0f + sqrtf(fte)) * (1.0f + sqrtf(fte))));
-			CLmin = fCL(-afs_rad - alpha_0) + dCLmax;
-			alpha_min = alf0eff - solve_alpha_eff(kp, KV * fle * fle, CLmin / (0.25f * (1.0f + sqrtf(fte)) * (1.0f + sqrtf(fte))));
+			fte =1.0f;
+			fle=1.0f;
+			CLmax = fCL(alpha_max - alpha_0) + dCLmax;
+			alpha_eff_max = alf0eff - solve_alpha_eff(kp, KV * fle * fle, CLmax / (0.25f * (1.0f + sqrtf(fte)) * (1.0f + sqrtf(fte))), alpha_max - alpha_0);
+			CLmin = fCL(alpha_min - alpha_0) + dCLmax;
+			alpha_eff_min = alf0eff - solve_alpha_eff(kp, KV * fle * fle, CLmin / (0.25f * (1.0f + sqrtf(fte)) * (1.0f + sqrtf(fte))), alpha_min - alpha_0);
 
 		} else { 	// this segment is a full flap
 			alpha_eff = a + def;
 
-			if (dt < 1e-9f) {
-				alpha_eff_dot = 0.0f;
+			// this doesn't seem to work, so let's comment it
+			// alpha_eff_dot = math::constrain((alpha_eff - alpha_eff_old) / dt, -AF_DOT_MAX, AF_DOT_MAX);
+			// fte = 0.5f * (1.0f - tanhf(ate * ((alpha_eff) - tau_te * (alpha_eff_dot)
+			// 	- math::radians(afte))));	// normalized trailing edge separation
+			// fle = 0.5f * (1.0f - tanhf(ale * ((alpha_eff) - tau_le * (alpha_eff_dot)
+			// 	- math::radians(afle))));	// normalized leading edge separation
 
-			} else {
-				alpha_eff_dot = math::constrain((alpha_eff - alpha_eff_old) / dt, -AF_DOT_MAX, AF_DOT_MAX);
-			}
-
-			fte = 0.5f * (1.0f - tanhf(ate * (math::degrees(alpha_eff) - tau_te * math::degrees(
-					alpha_eff_dot) - afte)));	// normalized trailing edge separation
-			fle = 0.5f * (1.0f - tanhf(ale * (math::degrees(alpha_eff) - tau_le * math::degrees(
-					alpha_eff_dot) - afle)));	// normalized leading edge separation
-			alpha_max = afs_rad;
-			alpha_min = -afs_rad;
+			fte=1.0f;
+			fle=1.0f;
+			alpha_eff_max = alpha_max;
+			alpha_eff_min = alpha_min;
 		}
 
 		// compute the aerodynamic coefficients
-		if (alpha_eff > alpha_max || alpha_eff < -alpha_min) {
-			high_aoa_coeff(a, def);
-
+		high_aoa_coeff(alpha_eff, def);
+		CL_ = fCL(alpha_eff);
+		CD_ = CD0 + fabsf(CL*tanf(alpha_eff));
+		// CD_ = CD0 + kD*CL_*CL_; 	// alternative method
+		CM_ = -fCM(alpha_eff);
+		// blending function
+		if (alpha_eff>0.0f) {
+			f_blend=0.5f*(1.0f-tanhf(4.0f*(alpha_eff-alpha_eff_max)/ALPHA_BLEND));
 		} else {
-			CL = fCL(alpha_eff);
-			CD = CD0 + CL * fabsf(tanf(alpha_eff));
-			// CM = fCM(alpha_eff);
-			CM = 0.0f; 	// debug
+			f_blend=0.5f*(1.0f-tanhf(-4.0f*(alpha_eff-alpha_eff_min)/ALPHA_BLEND));
 		}
+		CL=CL_*f_blend+CL*(1.0f-f_blend);
+		CD=CD_*f_blend+CD*(1.0f-f_blend);
+		CM=CM_*f_blend+CM*(1.0f-f_blend);
 	}
 
 	// high angle of attack coefficient based on flat plate
@@ -341,11 +362,10 @@ private:
 		return lin_interp(x_tab[i], y_tab[i], x_tab[i + 1], y_tab[i + 1], x);
 	}
 
-	float solve_alpha_eff(const float Kp, const float Kv, const float dCL)
+	float solve_alpha_eff(const float Kp, const float Kv, const float dCL, const float a0)
 	{
 		// we use here the Newton method with explicit derivative to find the root of equation 3.15
-		// we can remove fTE and fLE since we are at low angle
-		float a = alpha_0; 	// initialized to the zero lift angle of attack
+		float a = a0; 	// init the search
 
 		for (int i = 0; i < 3; i++) {
 			a = a - (-Kp * sinf(a) * cosf(a) * cosf(a) - Kv * fabsf(sinf(a)) * sinf(a) * cosf(a) - dCL) /
