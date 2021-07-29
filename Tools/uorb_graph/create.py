@@ -422,6 +422,7 @@ class Graph(object):
         found_module_def = False
         found_module_depends = False
         found_library_def = False
+        scope_added = False
         for line in datafile:
             if 'px4_add_module' in line: # must contain 'px4_add_module'
                 found_module_def = True
@@ -432,6 +433,7 @@ class Graph(object):
                     library_name = tokens[1].split()[0].strip().rstrip(')')
                     library_scope = LibraryScope(library_name)
                     self._current_scope.append(library_scope)
+                    scope_added = True
                     self._found_libraries[library_name] = library_scope
                     if self._in_scope():
                         log.debug('    >> found library: ' + library_name)
@@ -461,17 +463,21 @@ class Graph(object):
                 module_name = words[1]
                 module_scope = ModuleScope(module_name)
                 self._current_scope.append(module_scope)
+                scope_added = True
                 self._found_modules[module_name] = module_scope
                 if self._in_scope():
                     log.debug('    >> Found module name: ' + module_scope.name)
 
-        return (found_library_def or found_module_def)
+        return scope_added
 
 
     def _process_source_file(self, file_name):
         """ extract information from a single source file """
 
-        log.debug( "        >> extracting topics from file: " + file_name )
+        current_scope = self._get_current_scope()
+        log.debug( "        >> {:}extracting topics from file: {:}"
+            .format(current_scope.name+": " if current_scope is not None else "",
+            file_name))
 
         with codecs.open(file_name, 'r', 'utf-8') as f:
             try:
@@ -481,7 +487,6 @@ class Graph(object):
                 return
 
 
-            current_scope = self._get_current_scope()
             if current_scope:
                 if current_scope.name in self._scope_blacklist:
                     return
