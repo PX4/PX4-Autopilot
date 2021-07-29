@@ -2392,21 +2392,28 @@ Commander::run()
 			if ((_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
 			    && !in_low_battery_failsafe && !_geofence_warning_action_on
 			    && _manual_control.wantsOverride(_vehicle_control_mode, _status)) {
-				if (main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags,
-							  _internal_state) == TRANSITION_CHANGED) {
+				const transition_result_t posctl_result =
+					main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags, _internal_state);
+
+				if (posctl_result == TRANSITION_CHANGED) {
 					tune_positive(true);
 					mavlink_log_info(&_mavlink_log_pub, "Pilot took over position control using sticks\t");
 					events::send(events::ID("commander_rc_override_pos"), events::Log::Info,
 						     "Pilot took over position control using sticks");
 					_status_changed = true;
 
-				} else if (main_state_transition(_status, commander_state_s::MAIN_STATE_ALTCTL, _status_flags,
-								 _internal_state) == TRANSITION_CHANGED) {
-					tune_positive(true);
-					mavlink_log_info(&_mavlink_log_pub, "Pilot took over altitude control using sticks\t");
-					events::send(events::ID("commander_rc_override_alt"), events::Log::Info,
-						     "Pilot took over altitude control using sticks");
-					_status_changed = true;
+				} else if (posctl_result == TRANSITION_DENIED) {
+					// If transition to POSCTL was denied, then we can try again with ALTCTL.
+					const transition_result_t altctl_result =
+						main_state_transition(_status, commander_state_s::MAIN_STATE_ALTCTL, _status_flags, _internal_state);
+
+					if (altctl_result == TRANSITION_CHANGED) {
+						tune_positive(true);
+						mavlink_log_info(&_mavlink_log_pub, "Pilot took over altitude control using sticks\t");
+						events::send(events::ID("commander_rc_override_alt"), events::Log::Info,
+							     "Pilot took over altitude control using sticks");
+						_status_changed = true;
+					}
 				}
 			}
 
