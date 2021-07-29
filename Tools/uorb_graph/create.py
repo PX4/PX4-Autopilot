@@ -445,16 +445,18 @@ class Graph(object):
             elif found_module_depends:
                 # two tabs is a *sketchy* heuristic -- spacing isn't guaranteed by cmake;
                 # ... but the hard-tabs *is* specified by PX4 coding standards, so it's likely to be consistent
-                if line.startswith('\t\t'):
+                if line.startswith('\t\t') and not line.strip().startswith('#'):
                     depends = [dep.strip() for dep in line.split()]
                     for name in depends:
+                        log.debug('        >> {:}: found module dep: {:}'
+                            .format(self._current_scope[-1].name, name))
                         self._current_scope[-1].add_dependency(name)
                         if kwargs['merge_depends']:
                             if (0 < len(self._scope_whitelist)) and self._current_scope[-1].name in self._scope_whitelist:
                                 # if we whitelist a module with dependencies, whitelist the dependencies, too
                                 self._scope_whitelist.add(name)
 
-                else:
+                elif line.strip() != "":
                     found_module_depends = False  ## done with the 'DEPENDS' section.
 
             words = line.split()
