@@ -37,12 +37,18 @@
 #include <sys/socket.h>
 #include <cstdlib>
 #include <inttypes.h>
+#include <sys/ioctl.h>
 #if __has_include("px4_platform_common/log.h") && __has_include("px4_platform_common/time.h")
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/time.h>
 #endif
 
+#if defined(__linux__) || defined(__PX4_LINUX)
+#include <linux/serial.h>
+#endif /* __linux__ */
+
 #include "microRTPS_transport.h"
+
 
 /** CRC table for the CRC-16. The poly is 0x8005 (x^16 + x^15 + x^2 + 1) */
 uint16_t const crc16_table[256] = {
@@ -344,17 +350,25 @@ int UART_node::init()
 		return -errno_bkp;
 	}
 
-	// Set up the UART for non-canonical binary communication: 8 bits, 1 stop bit, no parity.
-	uart_config.c_iflag &= ~(INPCK | ISTRIP | INLCR | IGNCR | ICRNL | IXON | IXANY | IXOFF);
-	uart_config.c_iflag |= IGNBRK | IGNPAR;
+#if defined(__linux__) || defined(__PX4_LINUX)
+	uart_config.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | PARMRK | INPCK | ISTRIP | IXON);
+	uart_config.c_oflag &= ~(OCRNL | ONLCR | ONLRET | ONOCR | OFILL | OPOST);
 
-	uart_config.c_oflag &= ~(OPOST | ONLCR | OCRNL | ONOCR | ONLRET | OFILL | NLDLY | VTDLY);
-	uart_config.c_oflag |= NL0 | VT0;
+	uart_config.c_lflag &= ~(ECHO | ECHOE | ECHOK | ECHOCTL | ECHOKE | ECHONL | ICANON | IEXTEN | ISIG);
 
-	uart_config.c_cflag &= ~(CSIZE | CSTOPB | PARENB);
-	uart_config.c_cflag |= CS8 | CREAD | CLOCAL;
+	// never send SIGTTOU
+	uart_config.c_lflag &= ~(TOSTOP);
 
-	uart_config.c_lflag &= ~(ISIG | ICANON | ECHO | TOSTOP | IEXTEN);
+	// ignore modem control lines
+	uart_config.c_cflag |= CLOCAL;
+
+	// 8 bits
+	uart_config.c_cflag |= CS8;
+#else /* __linux__ */
+
+	// Clear ONLCR flag (which appends a CR for every LF)
+	uart_config.c_oflag &= ~ONLCR;
+#endif
 
 	// Flow control
 	if (_hw_flow_control) {
@@ -403,6 +417,35 @@ int UART_node::init()
 		close();
 		return -errno_bkp;
 	}
+
+#if defined(__linux__) || defined(__PX4_LINUX)
+	// For Linux, set high speed polling at the chip level. Since this routine relies on a USB latency
+	// change at the chip level it may fail on certain chip sets if their driver does not support this
+	// configuration request
+	{
+		struct serial_struct serial_ctl;
+
+		if (ioctl(_uart_fd, TIOCGSERIAL, &serial_ctl) < 0) {
+			printf("\033[0;31m[ micrortps_transport ]\tError while trying to read serial port configuration: %d\033[0m\n", errno);
+
+			if (ioctl(_uart_fd, TCFLSH, TCIOFLUSH) == -1) {
+				int errno_bkp = errno;
+				printf("\033[0;31m[ protocol__splitter ]\tCould not flush terminal\033[0m\n");
+				close();
+				return -errno_bkp;
+			}
+		}
+
+		serial_ctl.flags |= ASYNC_LOW_LATENCY;
+
+		if (ioctl(_uart_fd, TIOCSSERIAL, &serial_ctl) < 0) {
+			int errno_bkp = errno;
+			printf("\033[0;31m[ micrortps_transport ]\tError while trying to write serial port latency: %d\033[0m\n", errno);
+			close();
+			return -errno_bkp;
+		}
+	}
+#endif /* __linux__ */
 
 	char aux[64];
 	bool flush = false;
