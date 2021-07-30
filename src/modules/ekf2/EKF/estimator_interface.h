@@ -81,6 +81,9 @@ public:
 	2 : Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
 	*/
 	const Vector3f &getImuVibrationMetrics() const { return _vibe_metrics; }
+	void setDeltaAngleConingMetric(float delta_angle_coning_metric) { _vibe_metrics(0) = delta_angle_coning_metric; }
+	void setDeltaAngleHighFrequencyVibrationMetric(float delta_angle_vibration_metric) { _vibe_metrics(1) = delta_angle_vibration_metric; }
+	void setDeltaVelocityHighFrequencyVibrationMetric(float delta_velocity_vibration_metric) { _vibe_metrics(2) = delta_velocity_vibration_metric; }
 
 	void setMagData(const magSample &mag_sample);
 
@@ -420,8 +423,6 @@ private:
 	unsigned _min_obs_interval_us{0}; // minimum time interval between observations that will guarantee data is not lost (usec)
 
 	// IMU vibration and movement monitoring
-	Vector3f _delta_ang_prev{};	// delta angle from the previous IMU measurement
-	Vector3f _delta_vel_prev{};	// delta velocity from the previous IMU measurement
 	Vector3f _vibe_metrics{};	// IMU vibration metrics
 					// [0] Level of coning vibration in the IMU delta angles (rad^2)
 					// [1] high frequency vibration level in the IMU delta angle data (rad)
