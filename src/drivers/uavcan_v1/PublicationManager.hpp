@@ -112,7 +112,6 @@ private:
 			"uorb.actuator_outputs",
 			0
 		},
-
 		{
 			[](CanardInstance & ins, UavcanParamManager & pmgr) -> UavcanPublisher *
 			{

@@ -34,9 +34,10 @@
 /**
  * @file uorb_template.hpp
  *
-* Defines generic, templatized uORB over UAVCANv1 publisher
+ * Defines generic, templatized uORB over UAVCANv1 publisher
  *
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
+ * @author Jacob Crabill <jacob@flyvoly.com>
  */
 
 #pragma once
