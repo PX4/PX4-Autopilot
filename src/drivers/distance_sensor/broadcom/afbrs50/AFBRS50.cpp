@@ -157,8 +157,7 @@ int AFBRS50::init()
 
 		case AFBR_S50LV85D_V1:
 			// Start in short range mode
-			argus_mode_t mode; // Long: ARGUS_MODE_A, Short: ARGUS_MODE_B
-			mode = ARGUS_MODE_B;
+			argus_mode_t mode = ARGUS_MODE_B; // Long: ARGUS_MODE_A, Short: ARGUS_MODE_B
 			set_mode(mode);
 			_min_distance = 0.08f;
 			_max_distance = 80.f;	// Long: 80m, Short: 30m
@@ -294,7 +293,6 @@ void AFBRS50::set_mode(argus_mode_t mode)
 {
 	Argus_SetConfigurationMeasurementMode(_hnd, mode);
 	Argus_SetConfigurationDFMMode(_hnd, mode, DFM_MODE_8X);
-
 }
 
 void AFBRS50::get_mode()

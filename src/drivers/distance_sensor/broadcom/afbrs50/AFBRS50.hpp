@@ -96,8 +96,8 @@ private:
 
 	perf_counter_t _sample_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": sample interval")};
 
-	int _measure_interval = (1000000 / 100); // 100Hz
-	float _current_distance;
+	int _measure_interval{1000000 / 100}; // 100Hz
+	float _current_distance{0};
 	const float _short_range_threshold = 4.0; //meters
 	const float _long_range_threshold = 6.0; //meters
 	float _max_distance;
