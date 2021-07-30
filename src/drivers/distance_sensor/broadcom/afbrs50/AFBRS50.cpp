@@ -213,7 +213,6 @@ void AFBRS50::Run()
 	ScheduleDelayed(100_ms);
 
 	UpdateMode();
-	// get_mode();
 
 	switch (_state) {
 	case STATE::TEST: {
@@ -260,20 +259,19 @@ void AFBRS50::Run()
 
 void AFBRS50::UpdateMode()
 {
-	//only update mode if _current_distance is a valid measurement
+	// only update mode if _current_distance is a valid measurement
 	if (_current_distance > 0) {
-		argus_mode_t mode;	// Long: ARGUS_MODE_A, Short: ARGUS_MODE_B
 
 		if (_current_distance >= _long_range_threshold) {
-			//change to long range mode
-			mode = ARGUS_MODE_A;
+			// change to long range mode
+			argus_mode_t mode = ARGUS_MODE_A;
 			set_mode(mode);
 			_measure_interval = (1000000 / LONG_RANGE_MODE_HZ);
 			ScheduleDelayed(100_ms);
 
 		} else if (_current_distance <= _short_range_threshold) {
-			//change to short range mode
-			mode = ARGUS_MODE_B;
+			// change to short range mode
+			argus_mode_t mode = ARGUS_MODE_B;
 			set_mode(mode);
 			_measure_interval = (1000000 / SHORT_RANGE_MODE_HZ);
 			ScheduleDelayed(100_ms);

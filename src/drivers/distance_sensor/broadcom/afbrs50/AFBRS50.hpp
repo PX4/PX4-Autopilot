@@ -63,8 +63,6 @@ public:
 	 */
 	void print_info();
 
-	void print_mode();
-
 	/**
 	 * Stop the automatic measurement state machine.
 	 */
@@ -83,8 +81,7 @@ private:
 	void set_mode(argus_mode_t mode);
 
 	argus_hnd_t *_hnd{nullptr};
-	argus_mode_t _mode = ARGUS_MODE_A;	// Long-Range
-	// argus_mode_t _mode = ARGUS_MODE_B;	// Short-Range
+	argus_mode_t _mode{ARGUS_MODE_A}; // Long-Range
 
 	enum class STATE : uint8_t {
 		TEST,
