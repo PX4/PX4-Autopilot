@@ -298,7 +298,8 @@ public:
 	// returns false when data is not available
 	bool getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF],
 			   float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF]);
-	void getBaroBiasEstimatorStatus(float &bias, float &bias_var, float &innov, float &innov_var, float &innov_test_ratio);
+
+	const BaroBiasEstimator::status &getBaroBiasEstimatorStatus() const { return _baro_b_est.getStatus(); }
 
 private:
 
