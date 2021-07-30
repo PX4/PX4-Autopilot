@@ -124,7 +124,7 @@ static void usage(const char *name)
 	       "  -b <baudrate>           UART device baudrate. Defaults to 460800\n"
 	       "  -d <device>             UART device. Defaults to /dev/ttyACM0\n"
 	       "  -f <sw-flow-control>    Activates UART link SW flow control\n"
-	       "  -h <hw-flow-control>    Activates UART link HW flow control\n"
+	       "  -g <hw-flow-control>    Activates UART link HW flow control\n"
 	       "  -i <ip-address>         Target remote IP address for UDP. Defaults to 127.0.0.1\n"
 	       "  -n <namespace>          Topics namespace. Identifies the vehicle in a multi-agent network\n"
 	       "  -o <poll-ms>            UART polling timeout in milliseconds. Defaults to 1ms\n"
@@ -161,7 +161,7 @@ static int parse_options(int argc, char **argv)
 
 	int ch;
 
-	while ((ch = getopt_long(argc, argv, "t:d:w:b:o:r:s:i:fhvn:", options, nullptr)) >= 0) {
+	while ((ch = getopt_long(argc, argv, "t:d:w:b:o:r:s:i:fghvn:", options, nullptr)) >= 0) {
 		switch (ch) {
 		case 't': _options.transport      = strcmp(optarg, "UDP") == 0 ?
                                                   options::eTransports::UDP
