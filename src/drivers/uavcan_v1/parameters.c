@@ -78,13 +78,13 @@ PARAM_DEFINE_INT32(UAVCAN_V1_BAUD, 1000000);
 PARAM_DEFINE_INT32(UCAN1_ESC0_SUB, -1);
 
 /**
- * ESC Readiness port ID.
+ * ESC Readiness subscription port ID.
  *
  * @min -1
  * @max 6143
  * @group UAVCAN v1
  */
-PARAM_DEFINE_INT32(UCAN1_ESC_RE_PID, -1);
+PARAM_DEFINE_INT32(UCAN1_ESC_RE_SUB, -1);
 
 /**
  * GPS 0 subscription port ID.
@@ -148,7 +148,16 @@ PARAM_DEFINE_INT32(UCAN1_LG_BMS_SUB, -1);
  * @max 6143
  * @group UAVCAN v1
  */
-PARAM_DEFINE_INT32(UCAN1_UORB_GPS, -1);
+PARAM_DEFINE_INT32(UCAN1_UGPS_SUB, -1);
+
+/**
+ * sensor_gps uORB over UAVCAN v1 publication port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group UAVCAN v1
+ */
+PARAM_DEFINE_INT32(UCAN1_UGPS_PUB, -1);
 
 // Publication Port IDs
 
