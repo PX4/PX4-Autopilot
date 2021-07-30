@@ -261,40 +261,59 @@ void UavcanNode::Run()
 
 void UavcanNode::transmit()
 {
-	// Look at the top of the TX queue.
-	for (const CanardFrame *txf = nullptr; (txf = canardTxPeek(&_canard_instance)) != nullptr;) {
+	const CanardFrame *txf = canardTxPeek(&_canard_instance);
+	bool is_more_to_tx = txf != nullptr;
+	int bail_counter = 0;
+
+	while (is_more_to_tx) {
+		// Get top of queue
+		txf = canardTxPeek(&_canard_instance);
+
+		// Nothing there, bail
+		if (txf == nullptr) {
+			break;
+		}
+
 		// Attempt transmission only if the frame is not yet timed out while waiting in the TX queue.
 		// Otherwise just drop it and move on to the next one.
-		const hrt_abstime now = hrt_absolute_time();
+		hrt_abstime now = hrt_absolute_time();
+		hrt_abstime deadline = txf->timestamp_usec;
+		const bool is_first_run = deadline == 0 ;
+		const bool is_timed_out = deadline <= now;
 
-		if (txf->timestamp_usec == 0 || txf->timestamp_usec > now) {
+		bool drop_frame = false;
+
+		if (is_first_run || !is_timed_out) {
 			// Send the frame. Redundant interfaces may be used here.
 			const int tx_res = _can_interface->transmit(*txf);
 
 			if (tx_res < 0) {
-				// Failure - drop the frame and report
-				canardTxPop(&_canard_instance);
-
-				// Deallocate the dynamic memory afterwards.
-				_canard_instance.memory_free(&_canard_instance, (CanardFrame *)txf);
+				// Failure - report and drop the frame
+				drop_frame = true;
 				PX4_ERR("Transmit error %d, frame dropped, errno '%s'", tx_res, strerror(errno));
 
 			} else if (tx_res > 0) {
 				// Success - just drop the frame
-				canardTxPop(&_canard_instance);
-
-				// Deallocate the dynamic memory afterwards.
-				_canard_instance.memory_free(&_canard_instance, (CanardFrame *)txf);
+				drop_frame = true;
 
 			} else {
 				// Timeout - just exit and try again later
-				break;
+
+				if (bail_counter++ > 75) {
+					// Can't send for some reason, bail
+					break;
+				}
 			}
 
-		} else if (txf->timestamp_usec <= now) {
-			// Transmission timed out -- remove from queue and deallocate its memory
+		} else if (is_timed_out) {
+			drop_frame = true;
+		}
+
+		if (drop_frame) {
+			// Drop the frame
 			canardTxPop(&_canard_instance);
 
+			// Deallocate the dynamic memory afterwards.
 			_canard_instance.memory_free(&_canard_instance, (CanardFrame *)txf);
 		}
 	}
