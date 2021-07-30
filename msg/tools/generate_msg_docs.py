@@ -43,11 +43,10 @@ if __name__ == "__main__":
         msg_description = ""
         #Get msg description (first non-empty comment line from top of msg)
         with open(msg_filename, 'r') as lineparser:
-            line = lineparser.readline()
+            line = lineparser.readline().strip()
             while line.startswith('#'):
                 #print('DEBUG: line: %s' % line)
-                line=line.strip('# ')
-                line=line.rstrip('\n')
+                line=line[1:].strip()
                 if line:
                     msg_description=line
                     print('msg_description: Z%sZ' % msg_description)
