@@ -138,7 +138,6 @@ void LoggedTopics::add_default_topics()
 #else
 	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 6; // artificially limited until PlotJuggler fixed
 	add_topic("estimator_selector_status");
-	add_topic_multi("baro_bias_estimate", 500, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_attitude", 500, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_global_position", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_local_position", 500, MAX_ESTIMATOR_INSTANCES);
@@ -146,6 +145,7 @@ void LoggedTopics::add_default_topics()
 #endif
 
 	add_topic_multi("ekf_gps_drift", 1000, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_baro_bias", 500, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_event_flags", 0, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_innovation_test_ratios", 500, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_innovation_variances", 500, MAX_ESTIMATOR_INSTANCES);

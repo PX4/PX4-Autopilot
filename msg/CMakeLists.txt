@@ -44,7 +44,6 @@ set(msg_files
 	airspeed.msg
 	airspeed_validated.msg
 	airspeed_wind.msg
-	baro_bias_estimate.msg
 	battery_status.msg
 	camera_capture.msg
 	camera_status.msg
@@ -59,9 +58,9 @@ set(msg_files
 	distance_sensor.msg
 	ekf2_timestamps.msg
 	ekf_gps_drift.msg
-	event.msg
 	esc_report.msg
 	esc_status.msg
+	estimator_baro_bias.msg
 	estimator_event_flags.msg
 	estimator_innovations.msg
 	estimator_optical_flow_vel.msg
@@ -70,6 +69,7 @@ set(msg_files
 	estimator_states.msg
 	estimator_status.msg
 	estimator_status_flags.msg
+	event.msg
 	follow_target.msg
 	generator_status.msg
 	geofence_result.msg

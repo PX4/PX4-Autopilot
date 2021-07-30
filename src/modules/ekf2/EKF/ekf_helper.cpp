@@ -1320,9 +1320,8 @@ void Ekf::updateBaroHgtOffset()
 
 		// apply a 10 second first order low pass filter to baro offset
 		const float unbiased_baro = _baro_sample_delayed.hgt - _baro_b_est.getBias();
-;
-		const float offset_rate_correction =  0.1f * (unbiased_baro + _state.pos(2) -
-								_baro_hgt_offset);
+
+		const float offset_rate_correction = 0.1f * (unbiased_baro + _state.pos(2) - _baro_hgt_offset);
 		_baro_hgt_offset += local_time_step * math::constrain(offset_rate_correction, -0.1f, 0.1f);
 	}
 }
@@ -1348,7 +1347,7 @@ void Ekf::updateBaroHgtBias()
 	}
 
 	if (_gps_data_ready && !_gps_hgt_intermittent
-	    && _gps_checks_passed &&_NED_origin_initialised
+	    && _gps_checks_passed && _NED_origin_initialised
 	    && !_baro_hgt_faulty) {
 		// Use GPS altitude as a reference to compute the baro bias measurement
 		const float baro_bias = (_baro_sample_delayed.hgt - _baro_hgt_offset)
@@ -1356,16 +1355,6 @@ void Ekf::updateBaroHgtBias()
 		const float baro_bias_var = getGpsHeightVariance() + sq(_params.baro_noise);
 		_baro_b_est.fuseBias(baro_bias, baro_bias_var);
 	}
-}
-
-void Ekf::getBaroBiasEstimatorStatus(float &bias, float &bias_var, float &innov, float &innov_var, float &innov_test_ratio)
-{
-	BaroBiasEstimator::status status = _baro_b_est.getStatus();
-	bias = status.bias;
-	bias_var = status.bias_var;
-	innov = status.innov;
-	innov_var = status.innov_var;
-	innov_test_ratio = status.innov_test_ratio;
 }
 
 Vector3f Ekf::getVisionVelocityInEkfFrame() const

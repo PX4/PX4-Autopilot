@@ -343,7 +343,7 @@ rtps:
     id: 159
   - msg: event
     id: 160
-  - msg: baro_bias_estimate
+  - msg: estimator_baro_bias
     id: 161
   - msg: internal_combustion_engine_status
     id: 162
