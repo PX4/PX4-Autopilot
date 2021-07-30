@@ -86,6 +86,9 @@ UavcanNode::UavcanNode(CanardInterface *interface, uint32_t node_id) :
 
 	_sub_manager.subscribe();
 
+	_esc_controller.updateParam();
+	_mixing_output.updateParams();
+
 	_mixing_output.mixingOutput().updateSubscriptions(false, false);
 }
 
@@ -184,6 +187,7 @@ void UavcanNode::Run()
 		_pub_manager.updateParams();
 		_sub_manager.updateParams();
 
+		_esc_controller.updateParam();
 		_mixing_output.updateParams();
 
 		_mixing_output.mixingOutput().updateSubscriptions(false, false);
