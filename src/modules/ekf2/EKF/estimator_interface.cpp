@@ -63,7 +63,6 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 	_newest_high_rate_imu_sample = imu_sample;
 
 	// Do not change order of computeVibrationMetric and checkIfVehicleAtRest
-	computeVibrationMetric(imu_sample);
 	_control_status.flags.vehicle_at_rest = checkIfVehicleAtRest(dt, imu_sample);
 
 	_imu_updated = _imu_down_sampler.update(imu_sample);
@@ -82,23 +81,6 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 
 		setDragData(imu_sample);
 	}
-}
-
-void EstimatorInterface::computeVibrationMetric(const imuSample &imu)
-{
-	// calculate a metric which indicates the amount of coning vibration
-	Vector3f temp = imu.delta_ang % _delta_ang_prev;
-	_vibe_metrics(0) = 0.99f * _vibe_metrics(0) + 0.01f * temp.norm();
-
-	// calculate a metric which indicates the amount of high frequency gyro vibration
-	temp = imu.delta_ang - _delta_ang_prev;
-	_delta_ang_prev = imu.delta_ang;
-	_vibe_metrics(1) = 0.99f * _vibe_metrics(1) + 0.01f * temp.norm();
-
-	// calculate a metric which indicates the amount of high frequency accelerometer vibration
-	temp = imu.delta_vel - _delta_vel_prev;
-	_delta_vel_prev = imu.delta_vel;
-	_vibe_metrics(2) = 0.99f * _vibe_metrics(2) + 0.01f * temp.norm();
 }
 
 bool EstimatorInterface::checkIfVehicleAtRest(float dt, const imuSample &imu)
