@@ -407,12 +407,14 @@ void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw)
 			status.accel_device_ids[i] = _accel_device_id[i];
 			status.accel_inconsistency_m_s_s[i] = _accel_diff[i].norm();
 			status.accel_healthy[i] = (_accel.voter.get_sensor_state(i) == DataValidator::ERROR_FLAG_NO_ERROR);
+			status.accel_priority[i] = _accel.voter.get_sensor_priority(i);
 		}
 
 		if ((_gyro_device_id[i] != 0) && (_gyro.priority[i] > 0)) {
 			status.gyro_device_ids[i] = _gyro_device_id[i];
 			status.gyro_inconsistency_rad_s[i] = _gyro_diff[i].norm();
 			status.gyro_healthy[i] = (_gyro.voter.get_sensor_state(i) == DataValidator::ERROR_FLAG_NO_ERROR);
+			status.gyro_priority[i] = _gyro.voter.get_sensor_priority(i);
 		}
 	}
 
