@@ -305,3 +305,21 @@ uint32_t DataValidatorGroup::get_sensor_state(unsigned index)
 	// sensor index not found
 	return UINT32_MAX;
 }
+
+uint8_t DataValidatorGroup::get_sensor_priority(unsigned index)
+{
+	DataValidator *next = _first;
+	unsigned i = 0;
+
+	while (next != nullptr) {
+		if (i == index) {
+			return next->priority();
+		}
+
+		next = next->sibling();
+		i++;
+	}
+
+	// sensor index not found
+	return 0;
+}
