@@ -373,11 +373,15 @@ int UART_node::init()
 	// Flow control
 	if (_hw_flow_control) {
 		// HW flow control
-		uart_config.c_lflag |= CRTSCTS;
-
+		uart_config.c_cflag |= CRTSCTS;
+		uart_config.c_iflag &= ~(IXON | IXOFF | IXANY);
 	} else if (_sw_flow_control) {
 		// SW flow control
+		uart_config.c_cflag &= ~CRTSCTS;
 		uart_config.c_lflag |= (IXON | IXOFF | IXANY);
+	} else {
+		uart_config.c_cflag &= ~CRTSCTS;
+		uart_config.c_iflag &= ~(IXON | IXOFF | IXANY);
 	}
 
 	// Set baud rate
