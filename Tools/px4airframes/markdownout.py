@@ -18,32 +18,37 @@ The motors in **green** rotate clockwise, the ones in **blue** counterclockwise.
 If present, PWM AUX channels are commonly labelled **AUX OUT**.
 
 <style>
-table {
+div.frame_common table, div.frame_common table {
    display: table;
    table-layout: fixed;
    margin-bottom: 5px;
 }
-table.common {
+
+div.frame_common table {
    float: right; 
    width: 70%;
 }
-table.airframes {
-   width: 100%;
-}
-table.airframes th:nth-child(1) {
-  width: 30%;
-  }
 
-tr > * {
-    vertical-align : top;
-}
-td, th {
-  text-align : left;
-  }
-img {
+div.frame_common img {
   max-height: 180px;
   width: 29%;
   padding-top: 10px;
+}
+
+div.frame_variant table {
+   width: 100%;
+}
+
+div.frame_variant th:nth-child(1) {
+  width: 30%;
+  }
+
+div.frame_variant tr > * {
+    vertical-align : top;
+}
+
+div.frame_variant td, div.frame_variant th {
+  text-align : left;
 }
 </style>\n\n"""
  
@@ -61,7 +66,7 @@ img {
 
             # Display an image of the frame
             image_name = group.GetImageName()
-            result += '<div>\n'
+            result += '<div class="frame_common">\n'
             image_name = image_path + image_name
             result += '<img src="%s.svg"/>\n' % (image_name)
 
@@ -93,7 +98,7 @@ img {
                     outputs_prev[i] = ''
 
             if outputs_match[0] or outputs_match[1]:
-                result += '<table class="common">\n'
+                result += '<table>\n'
                 result += ' <thead>\n'
                 result += '   <tr><th>Common Outputs</th></tr>\n'
                 result += ' </thead>\n'
@@ -103,7 +108,8 @@ img {
 
             result += '</div>\n\n'
 
-            result += '<table class="generic">\n'
+            result += '<div class="frame_variant">\n'
+            result += '<table>\n'
             result += ' <thead>\n'
             result += '   <tr><th>Name</th><th></th></tr>\n'
             result += ' </thead>\n'
@@ -156,7 +162,7 @@ img {
 
 
             #Close the table.
-            result += '</tbody></table>\n\n'
+            result += '</tbody>\n</table>\n</div>\n\n'
 
         self.output = result
 
