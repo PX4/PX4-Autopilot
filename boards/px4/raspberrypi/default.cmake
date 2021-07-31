@@ -3,9 +3,6 @@ add_definitions(
 )
 
 px4_add_board(
-	VENDOR px4
-	MODEL raspberrypi
-	LABEL default
 	PLATFORM posix
 	ARCHITECTURE cortex-a53
 	ROMFSROOT px4fmu_common

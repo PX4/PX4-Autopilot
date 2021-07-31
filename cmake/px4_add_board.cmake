@@ -40,9 +40,6 @@
 #	Usage:
 #		px4_add_board(
 #			PLATFORM <string>
-#			VENDOR <string>
-#			MODEL <string>
-#			[ LABEL <string> ]
 #			[ TOOLCHAIN <string> ]
 #			[ ARCHITECTURE <string> ]
 #			[ ROMFSROOT <string> ]
@@ -68,9 +65,6 @@
 #
 #	Input:
 #		PLATFORM		: PX4 platform name (posix, nuttx, qurt)
-#		VENDOR			: name of board vendor/manufacturer/brand/etc
-#		MODEL			: name of board model
-#		LABEL			: optional label, set to default if not specified
 #		TOOLCHAIN		: cmake toolchain
 #		ARCHITECTURE		: name of the CPU CMake is building for (used by the toolchain)
 #		ROMFSROOT		: relative path to the ROMFS root directory
@@ -97,8 +91,6 @@
 #	Example:
 #		px4_add_board(
 #			PLATFORM nuttx
-#			VENDOR px4
-#			MODEL fmu-v5
 #			TOOLCHAIN arm-none-eabi
 #			ARCHITECTURE cortex-m7
 #			ROMFSROOT px4fmu_common
@@ -145,9 +137,6 @@ function(px4_add_board)
 		NAME px4_add_board
 		ONE_VALUE
 			PLATFORM
-			VENDOR
-			MODEL
-			LABEL
 			TOOLCHAIN
 			ARCHITECTURE
 			ROMFSROOT
@@ -174,12 +163,16 @@ function(px4_add_board)
 			ETHERNET
 		REQUIRED
 			PLATFORM
-			VENDOR
-			MODEL
 		ARGN ${ARGN})
 
 	set(PX4_BOARD_DIR ${CMAKE_CURRENT_LIST_DIR} CACHE STRING "PX4 board directory" FORCE)
 	include_directories(${PX4_BOARD_DIR}/src)
+
+	# get the VENDOR & MODEL from the caller's directory names
+	get_filename_component(base_dir "${CMAKE_CURRENT_LIST_FILE}" DIRECTORY)
+	get_filename_component(MODEL "${base_dir}" NAME)
+	get_filename_component(base_dir "${base_dir}" DIRECTORY)
+	get_filename_component(VENDOR "${base_dir}" NAME)
 
 	set(PX4_BOARD ${VENDOR}_${MODEL} CACHE STRING "PX4 board" FORCE)
 
@@ -191,11 +184,10 @@ function(px4_add_board)
 	set(PX4_BOARD_VENDOR ${VENDOR} CACHE STRING "PX4 board vendor" FORCE)
 	set(PX4_BOARD_MODEL ${MODEL} CACHE STRING "PX4 board model" FORCE)
 
-	if(LABEL)
-		set(PX4_BOARD_LABEL ${LABEL} CACHE STRING "PX4 board label" FORCE)
-	else()
-		set(PX4_BOARD_LABEL "default" CACHE STRING "PX4 board label" FORCE)
+	if(NOT LABEL)
+		get_filename_component(LABEL "${CMAKE_CURRENT_LIST_FILE}" NAME_WE)
 	endif()
+	set(PX4_BOARD_LABEL ${LABEL} CACHE STRING "PX4 board label" FORCE)
 
 	set(PX4_CONFIG "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}" CACHE STRING "PX4 config" FORCE)
 
