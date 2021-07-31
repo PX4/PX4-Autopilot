@@ -3,9 +3,6 @@ add_definitions(
 )
 
 px4_add_board(
-	VENDOR scumaker
-	MODEL pilotpi
-	LABEL default
 	PLATFORM posix
 	ARCHITECTURE cortex-a53
 	ROMFSROOT px4fmu_common
