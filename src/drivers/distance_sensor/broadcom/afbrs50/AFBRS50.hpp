@@ -71,11 +71,17 @@ public:
 private:
 	void Run() override;
 
+	void UpdateMode();
+
 	void ProcessMeasurement(void *data);
 
 	static status_t measurement_ready_callback(status_t status, void *data);
 
+	void get_mode();
+	void set_mode(argus_mode_t mode);
+
 	argus_hnd_t *_hnd{nullptr};
+	argus_mode_t _mode{ARGUS_MODE_A}; // Long-Range
 
 	enum class STATE : uint8_t {
 		TEST,
@@ -90,6 +96,10 @@ private:
 
 	perf_counter_t _sample_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": sample interval")};
 
+	int _measure_interval{1000000 / 100}; // 100Hz
+	float _current_distance{0};
+	const float _short_range_threshold = 4.0; //meters
+	const float _long_range_threshold = 6.0; //meters
 	float _max_distance;
 	float _min_distance;
 };

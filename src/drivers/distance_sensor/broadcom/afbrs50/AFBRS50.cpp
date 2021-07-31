@@ -39,10 +39,11 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-#define AFBRS50_MEASURE_INTERVAL     (1000000 / 100) // 100Hz
-
 /*! Define the SPI baud rate (to be used in the SPI module). */
 #define SPI_BAUD_RATE 5000000
+
+#define LONG_RANGE_MODE_HZ 25
+#define SHORT_RANGE_MODE_HZ 50
 
 #include "s2pi.h"
 #include "timer.h"
@@ -101,6 +102,7 @@ void AFBRS50::ProcessMeasurement(void *data)
 				quality = 0;
 			}
 
+			_current_distance = result_m;
 			_px4_rangefinder.update(((res.TimeStamp.sec * 1000000ULL) + res.TimeStamp.usec), result_m, quality);
 		}
 	}
@@ -154,8 +156,10 @@ int AFBRS50::init()
 			break;
 
 		case AFBR_S50LV85D_V1:
+			// Start in short range mode
+			set_mode(ARGUS_MODE_B); // Long: ARGUS_MODE_A, Short: ARGUS_MODE_B
 			_min_distance = 0.08f;
-			_max_distance = 30.f;	// Short range mode
+			_max_distance = 80.f;	// Long: 80m, Short: 30m
 			_px4_rangefinder.set_min_distance(_min_distance);
 			_px4_rangefinder.set_max_distance(_max_distance);
 			_px4_rangefinder.set_fov(math::radians(6.f));
@@ -194,7 +198,7 @@ int AFBRS50::init()
 		}
 
 		_state = STATE::CONFIGURE;
-		ScheduleDelayed(AFBRS50_MEASURE_INTERVAL);
+		ScheduleDelayed(_measure_interval);
 		return PX4_OK;
 	}
 
@@ -206,6 +210,8 @@ void AFBRS50::Run()
 	// backup schedule
 	ScheduleDelayed(100_ms);
 
+	UpdateMode();
+
 	switch (_state) {
 	case STATE::TEST: {
 			Argus_VerifyHALImplementation(Argus_GetSPISlave(_hnd));
@@ -216,7 +222,7 @@ void AFBRS50::Run()
 		break;
 
 	case STATE::CONFIGURE: {
-			Argus_SetConfigurationFrameTime(_hnd, AFBRS50_MEASURE_INTERVAL);
+			Argus_SetConfigurationFrameTime(_hnd, _measure_interval);
 
 			status_t status = Argus_StartMeasurementTimer(_hnd, measurement_ready_callback);
 
@@ -227,7 +233,7 @@ void AFBRS50::Run()
 
 			} else {
 				_state = STATE::COLLECT;
-				ScheduleDelayed(AFBRS50_MEASURE_INTERVAL);
+				ScheduleDelayed(_measure_interval);
 			}
 		}
 		break;
@@ -249,6 +255,28 @@ void AFBRS50::Run()
 	}
 }
 
+void AFBRS50::UpdateMode()
+{
+	// only update mode if _current_distance is a valid measurement
+	if (_current_distance > 0) {
+
+		if (_current_distance >= _long_range_threshold) {
+			// change to long range mode
+			argus_mode_t mode = ARGUS_MODE_A;
+			set_mode(mode);
+			_measure_interval = (1000000 / LONG_RANGE_MODE_HZ);
+			ScheduleDelayed(100_ms);
+
+		} else if (_current_distance <= _short_range_threshold) {
+			// change to short range mode
+			argus_mode_t mode = ARGUS_MODE_B;
+			set_mode(mode);
+			_measure_interval = (1000000 / SHORT_RANGE_MODE_HZ);
+			ScheduleDelayed(100_ms);
+		}
+	}
+}
+
 void AFBRS50::stop()
 {
 	_state = STATE::STOP;
@@ -258,6 +286,26 @@ void AFBRS50::stop()
 void AFBRS50::print_info()
 {
 	perf_print_counter(_sample_perf);
+}
+
+void AFBRS50::set_mode(argus_mode_t mode)
+{
+	Argus_SetConfigurationMeasurementMode(_hnd, mode);
+	Argus_SetConfigurationDFMMode(_hnd, mode, DFM_MODE_8X);
+}
+
+void AFBRS50::get_mode()
+{
+	argus_mode_t current_mode;
+	argus_dfm_mode_t dfm_mode;
+	Argus_GetConfigurationMeasurementMode(_hnd, &current_mode);
+	Argus_GetConfigurationDFMMode(_hnd, current_mode, &dfm_mode);
+
+	int dist = _current_distance;
+	PX4_INFO_RAW("distance: %d\n", dist);
+	PX4_INFO_RAW("mode: %d\n", current_mode);
+	// PX4_INFO_RAW("dfm mode: %d\n", dfm_mode);
+	PX4_INFO_RAW("rate: %d Hz\n\n", (1000000 / _measure_interval));
 }
 
 namespace afbrs50
