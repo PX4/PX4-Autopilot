@@ -157,8 +157,7 @@ int AFBRS50::init()
 
 		case AFBR_S50LV85D_V1:
 			// Start in short range mode
-			argus_mode_t mode = ARGUS_MODE_B; // Long: ARGUS_MODE_A, Short: ARGUS_MODE_B
-			set_mode(mode);
+			set_mode(ARGUS_MODE_B); // Long: ARGUS_MODE_A, Short: ARGUS_MODE_B
 			_min_distance = 0.08f;
 			_max_distance = 80.f;	// Long: 80m, Short: 30m
 			_px4_rangefinder.set_min_distance(_min_distance);
