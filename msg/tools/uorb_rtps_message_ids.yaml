@@ -345,6 +345,8 @@ rtps:
     id: 160
   - msg: baro_bias_estimate
     id: 161
+  - msg: internal_combustion_engine_status
+    id: 162
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 180
