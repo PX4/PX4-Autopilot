@@ -265,6 +265,7 @@ MissionFeasibilityChecker::checkMissionItemValidity(const mission_s &mission)
 		case NAV_CMD_SET_CAMERA_FOCUS:
 		case NAV_CMD_DO_VTOL_TRANSITION:
 			break;
+
 		default:
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: item %i: unsupported cmd: %d", (int)(i + 1),
 					     (int)missionitem.nav_cmd);
