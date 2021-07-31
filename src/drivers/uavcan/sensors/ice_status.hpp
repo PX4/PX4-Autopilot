@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 ECL Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,45 +32,36 @@
  ****************************************************************************/
 
 /**
- * Class to write EKF state to file
- * @author Kamil Ritz <ka.ritz@hotmail.com>
+ * @author Dmitry Ponomarev <ponomarevda96@gmail.com>
  */
-#ifndef EKF_EKF_LOGGER_H
-#define EKF_EKF_LOGGER_H
 
-#include "EKF/ekf.h"
-#include "EKF/estimator_interface.h"
-#include "ekf_wrapper.h"
-#include <fstream>
-#include <iostream>
+#pragma once
 
-class EkfLogger
+#include "sensor_bridge.hpp"
+
+#include <uavcan/equipment/ice/reciprocating/Status.hpp>
+
+class UavcanIceStatusBridge : public UavcanSensorBridgeBase
 {
 public:
-	EkfLogger(std::shared_ptr<Ekf> ekf);
-	~EkfLogger() = default;
-	void setFilePath(std::string file_path);
+	static const char *const NAME;
 
-	void enableStateLogging() { _state_logging_enabled = true; };
-	void disableStateLogging() { _state_logging_enabled = false; };
-	void enableVarianceLogging() { _variance_logging_enabled = true; };
-	void disableVarianceLogging() { _variance_logging_enabled = false; };
+	UavcanIceStatusBridge(uavcan::INode &node);
 
-	void writeStateToFile();
+	const char *get_name() const override { return NAME; }
+
+	int init() override;
 
 private:
-	std::shared_ptr<Ekf> _ekf;
-	EkfWrapper _ekf_wrapper;
 
-	std::string _file_path;
-	std::ofstream _file;
+	void ice_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ice::reciprocating::Status> &msg);
+	int init_driver(uavcan_bridge::Channel *channel) override;
 
-	bool _file_opened {false};
+	typedef uavcan::MethodBinder < UavcanIceStatusBridge *,
+		void (UavcanIceStatusBridge::*)
+		(const uavcan::ReceivedDataStructure<uavcan::equipment::ice::reciprocating::Status> &) >
+		IceStatusCbBinder;
 
-	bool _state_logging_enabled {true};
-	bool _variance_logging_enabled {true};
-
-	void writeState();
+	uavcan::Subscriber<uavcan::equipment::ice::reciprocating::Status, IceStatusCbBinder> _sub_ice_status_data;
 
 };
-#endif // !EKF_EKF_LOGGER_H

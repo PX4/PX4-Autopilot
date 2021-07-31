@@ -31,11 +31,11 @@
 #
 ############################################################################
 
-# jlink_upload (flash binary)
 find_program(JLinkGDBServerCLExe_PATH JLinkGDBServerCLExe
 	HINTS /Applications/SEGGER/JLink
 )
 if(JLinkGDBServerCLExe_PATH)
+	# jlink_upload (flash binary)
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink_gdb_start.sh.in ${PX4_BINARY_DIR}/jlink_gdb_start.sh @ONLY)
 	add_custom_target(jlink_upload
 		COMMAND ${PX4_BINARY_DIR}/jlink_gdb_start.sh
@@ -47,6 +47,24 @@ if(JLinkGDBServerCLExe_PATH)
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 		USES_TERMINAL
 	)
+
+
+	# jlink_upload_bootloader
+	#   board directory supplied bootloader.bin
+	if(TARGET bootloader_elf)
+		# jlink_upload_bootloader
+		add_custom_target(jlink_upload_bootloader
+			COMMAND ${PX4_BINARY_DIR}/jlink_gdb_start.sh
+			COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/upload_jlink_gdb.sh ${PX4_BINARY_DIR}/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.elf
+			DEPENDS
+				${PX4_BINARY_DIR}/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.elf
+				${PX4_BINARY_DIR}/jlink_gdb_start.sh
+				${CMAKE_CURRENT_SOURCE_DIR}/Debug/upload_jlink_gdb.sh
+			WORKING_DIRECTORY ${PX4_BINARY_DIR}
+			USES_TERMINAL
+		)
+	endif()
+
 endif()
 
 # jlink_debug_gdb (flash binary and run with gdb attached)
@@ -82,54 +100,47 @@ if(Ozone_PATH)
 	)
 endif()
 
-if(bootloader_bin OR (EXISTS "${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin"))
-
-	if(bootloader_bin)
-		set(BOARD_BL_FIRMWARE_BIN ${bootloader_bin})
-	else()
-		set(BOARD_BL_FIRMWARE_BIN ${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin)
-	endif()
-
-	# jlink_upload_bootloader
-	if(JLinkGDBServerCLExe_PATH)
-		add_custom_target(jlink_upload_bootloader
-			COMMAND ${PX4_BINARY_DIR}/jlink_gdb_start.sh
-			COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/upload_jlink_gdb.sh ${PX4_BINARY_DIR}/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.elf
-			DEPENDS
-				${PX4_BINARY_DIR}/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.elf
-				${PX4_BINARY_DIR}/jlink_gdb_start.sh
-				${CMAKE_CURRENT_SOURCE_DIR}/Debug/upload_jlink_gdb.sh
-			WORKING_DIRECTORY ${PX4_BINARY_DIR}
-			USES_TERMINAL
-		)
-	endif()
+# .bin flashing
+find_program(JLinkExe_PATH JLinkExe)
+if(JLinkExe_PATH)
 
 	# jlink_flash_bootloader_bin
-	find_program(JLinkExe_PATH JLinkExe)
-	if(JLinkExe_PATH)
-		file(RELATIVE_PATH BOARD_BL_FIRMWARE_BIN ${PX4_BINARY_DIR} ${BOARD_BL_FIRMWARE_BIN})
+	if(bootloader_bin OR (EXISTS ${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin))
 
-		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/flash_bootloader.jlink.in ${PX4_BINARY_DIR}/flash_bootloader.jlink @ONLY)
+		set(BOARD_FIRMWARE_BIN "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin")
+		set(BOARD_FIRMWARE_APP_OFFSET "0x08000000")
+		configure_file(${PX4_SOURCE_DIR}/platforms/nuttx/Debug/flash_bin.jlink.in ${PX4_BINARY_DIR}/flash_bootloader_bin.jlink @ONLY)
+
+		if(bootloader_bin)
+			add_custom_command(OUTPUT ${PX4_BINARY_DIR}/${BOARD_FIRMWARE_BIN}
+				COMMAND ${CMAKE_COMMAND} -E copy_if_different ${bootloader_bin} ${PX4_BINARY_DIR}/${BOARD_FIRMWARE_BIN}
+				DEPENDS ${bootloader_bin}
+			)
+		elseif(EXISTS ${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin)
+			add_custom_command(OUTPUT ${PX4_BINARY_DIR}/${BOARD_FIRMWARE_BIN}
+				COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin ${PX4_BINARY_DIR}/${BOARD_FIRMWARE_BIN}
+				DEPENDS ${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin
+			)
+		endif()
+
 		add_custom_target(jlink_flash_bootloader_bin
-			COMMAND ${JLinkExe_PATH} -CommandFile ${PX4_BINARY_DIR}/flash_bootloader.jlink
+			COMMAND ${JLinkExe_PATH} -CommandFile ${PX4_BINARY_DIR}/flash_bootloader_bin.jlink
 			DEPENDS
-				px4
-				${CMAKE_CURRENT_SOURCE_DIR}/Debug/flash_bootloader.jlink.in
+				${PX4_BINARY_DIR}/${BOARD_FIRMWARE_BIN}
+				${PX4_SOURCE_DIR}/platforms/nuttx/Debug/flash_bin.jlink.in
 			WORKING_DIRECTORY ${PX4_BINARY_DIR}
 			USES_TERMINAL
 		)
 	endif()
-endif()
 
-if(uavcan_bl_image_name)
-	# jlink_flash_bootloader
-	find_program(JLinkExe_PATH JLinkExe)
-	if(JLinkExe_PATH)
-		set(BOARD_FIRMWARE_BIN ${PX4_BINARY_DIR}/${uavcan_bl_image_name})
+	# jlink_flash_bin
+	if(uavcan_bl_image_name)
+		# uavcan signed firmware
+		set(BOARD_FIRMWARE_BIN ${uavcan_bl_image_name})
 		set(BOARD_FIRMWARE_APP_OFFSET "0x08010000")
-
 		configure_file(${PX4_SOURCE_DIR}/platforms/nuttx/Debug/flash_bin.jlink.in ${PX4_BINARY_DIR}/flash_bin.jlink @ONLY)
-		add_custom_target(jlink_flash_uavcan_bin
+
+		add_custom_target(jlink_flash_bin
 			COMMAND ${JLinkExe_PATH} -CommandFile ${PX4_BINARY_DIR}/flash_bin.jlink
 			DEPENDS
 				${PX4_SOURCE_DIR}/platforms/nuttx/Debug/flash_bin.jlink.in
@@ -137,5 +148,21 @@ if(uavcan_bl_image_name)
 			WORKING_DIRECTORY ${PX4_BINARY_DIR}
 			USES_TERMINAL
 		)
+	else()
+		# regular firmware ${PX4_BINARY_DIR}/${PX4_BOARD}.bin
+		set(BOARD_FIRMWARE_BIN ${PX4_BOARD}.bin)
+		set(BOARD_FIRMWARE_APP_OFFSET "0x08008000") # TODO: get from board
+		configure_file(${PX4_SOURCE_DIR}/platforms/nuttx/Debug/flash_bin.jlink.in ${PX4_BINARY_DIR}/flash_bin.jlink @ONLY)
+
+		add_custom_target(jlink_flash_bin
+			COMMAND ${CMAKE_COMMAND} -E echo "WARNING jlink_flash_bin currently assumes starting address ${BOARD_FIRMWARE_APP_OFFSET}"
+			COMMAND ${JLinkExe_PATH} -CommandFile ${PX4_BINARY_DIR}/flash_bin.jlink
+			DEPENDS
+				${PX4_SOURCE_DIR}/platforms/nuttx/Debug/flash_bin.jlink.in
+				${PX4_BINARY_DIR}/${PX4_BOARD}.bin
+			WORKING_DIRECTORY ${PX4_BINARY_DIR}
+			USES_TERMINAL
+		)
 	endif()
+
 endif()

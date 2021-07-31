@@ -423,15 +423,16 @@ bool VehicleIMU::Publish()
 			// delta angle: apply offsets, scale, and board rotation
 			_gyro_calibration.SensorCorrectionsUpdate();
 			const float gyro_dt_inv = 1.e6f / imu.delta_angle_dt;
-			const Vector3f delta_angle_corrected{_gyro_calibration.Correct(delta_angle * gyro_dt_inv) / gyro_dt_inv};
+			const Vector3f angular_velocity{_gyro_calibration.Correct(delta_angle * gyro_dt_inv)};
+			UpdateGyroVibrationMetrics(angular_velocity);
+			const Vector3f delta_angle_corrected{angular_velocity / gyro_dt_inv};
 
 			// delta velocity: apply offsets, scale, and board rotation
 			_accel_calibration.SensorCorrectionsUpdate();
 			const float accel_dt_inv = 1.e6f / imu.delta_velocity_dt;
-			Vector3f delta_velocity_corrected{_accel_calibration.Correct(delta_velocity * accel_dt_inv) / accel_dt_inv};
-
-			UpdateAccelVibrationMetrics(delta_velocity_corrected);
-			UpdateGyroVibrationMetrics(delta_angle_corrected);
+			const Vector3f acceleration{_accel_calibration.Correct(delta_velocity * accel_dt_inv)};
+			UpdateAccelVibrationMetrics(acceleration);
+			const Vector3f delta_velocity_corrected{acceleration / accel_dt_inv};
 
 			// vehicle_imu_status
 			//  publish before vehicle_imu so that error counts are available synchronously if needed
@@ -535,26 +536,26 @@ void VehicleIMU::UpdateIntegratorConfiguration()
 	}
 }
 
-void VehicleIMU::UpdateAccelVibrationMetrics(const Vector3f &delta_velocity)
+void VehicleIMU::UpdateAccelVibrationMetrics(const Vector3f &acceleration)
 {
-	// Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
-	const Vector3f delta_velocity_diff = delta_velocity - _delta_velocity_prev;
-	_status.accel_vibration_metric = 0.99f * _status.accel_vibration_metric + 0.01f * delta_velocity_diff.norm();
+	// Accel high frequency vibe = filtered length of (acceleration - acceleration_prev)
+	_status.accel_vibration_metric = 0.99f * _status.accel_vibration_metric
+					 + 0.01f * Vector3f(acceleration - _acceleration_prev).norm();
 
-	_delta_velocity_prev = delta_velocity;
+	_acceleration_prev = acceleration;
 }
 
-void VehicleIMU::UpdateGyroVibrationMetrics(const Vector3f &delta_angle)
+void VehicleIMU::UpdateGyroVibrationMetrics(const Vector3f &angular_velocity)
 {
-	// Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
-	const Vector3f delta_angle_diff = delta_angle - _delta_angle_prev;
-	_status.gyro_vibration_metric = 0.99f * _status.gyro_vibration_metric + 0.01f * delta_angle_diff.norm();
+	// Gyro high frequency vibe = filtered length of (angular_velocity - angular_velocity_prev)
+	_status.gyro_vibration_metric = 0.99f * _status.gyro_vibration_metric
+					+ 0.01f * Vector3f(angular_velocity - _angular_velocity_prev).norm();
 
-	// Gyro delta angle coning metric = filtered length of (delta_angle x prev_delta_angle)
-	const Vector3f coning_metric = delta_angle % _delta_angle_prev;
+	// Gyro delta angle coning metric = filtered length of (angular_velocity x angular_velocity_prev)
+	const Vector3f coning_metric{angular_velocity % _angular_velocity_prev};
 	_status.gyro_coning_vibration = 0.99f * _status.gyro_coning_vibration + 0.01f * coning_metric.norm();
 
-	_delta_angle_prev = delta_angle;
+	_angular_velocity_prev = angular_velocity;
 }
 
 void VehicleIMU::PrintStatus()
