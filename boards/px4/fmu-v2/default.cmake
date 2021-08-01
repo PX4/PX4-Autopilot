@@ -76,7 +76,7 @@ px4_add_board(
 		#gyro_fft
 		land_detector
 		#landing_target_estimator
-		load_mon
+		#load_mon
 		#local_position_estimator
 		logger
 		mavlink
