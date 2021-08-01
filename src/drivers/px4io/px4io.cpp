@@ -704,7 +704,7 @@ PX4IO::init()
 			/* wait 10 ms */
 			px4_usleep(10000);
 
-			/* abort after 5s */
+			/* abort after 3s */
 			if ((hrt_absolute_time() - try_start_time) / 1000 > 3000) {
 				mavlink_log_emergency(&_mavlink_log_pub, "Failed to recover from in-air restart (1), abort\t");
 				events::send(events::ID("px4io_inair_restart_recovery_failed"), events::Log::Emergency,
@@ -757,7 +757,7 @@ PX4IO::init()
 				/* wait 50 ms */
 				px4_usleep(50000);
 
-				/* abort after 5s */
+				/* abort after 2s */
 				if ((hrt_absolute_time() - try_start_time) / 1000 > 2000) {
 					mavlink_log_emergency(&_mavlink_log_pub, "Failed to recover from in-air restart (3), abort\t");
 					events::send(events::ID("px4io_inair_restart_recovery_failed3"), events::Log::Emergency,
@@ -792,7 +792,7 @@ PX4IO::init()
 			/* wait 50 ms */
 			px4_usleep(50000);
 
-			/* abort after 5s */
+			/* abort after 2s */
 			if ((hrt_absolute_time() - try_start_time) / 1000 > 2000) {
 				mavlink_log_emergency(&_mavlink_log_pub, "Failed to recover from in-air restart (2), abort\t");
 				events::send(events::ID("px4io_inair_restart_recovery_failed2"), events::Log::Emergency,
