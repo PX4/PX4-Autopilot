@@ -158,6 +158,8 @@ pipeline {
 def createBuildNode(Boolean archive, String docker_image, String target) {
   return {
 
+    bypass_entrypoint = ''
+
     node {
       docker.withRegistry('https://registry.hub.docker.com', 'docker_hub_dagar') {
         docker.image(docker_image).inside('-e CCACHE_BASEDIR=${WORKSPACE} -v ${CCACHE_DIR}:${CCACHE_DIR}:rw' + bypass_entrypoint) {
