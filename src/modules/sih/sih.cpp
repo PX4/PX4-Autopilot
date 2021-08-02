@@ -522,7 +522,7 @@ Quatf Sih::expq(matrix::Vector3f u)
 	float u_norm = u.norm();
 	Vector3f v;
 
-	if (fabsf(u_norm) < 1.0e-6f) { 	// error will be smaller than 1e-18
+	if (u_norm < 1.0e-6f) { 	// error will be smaller than 1e-18
 		v = (1.0f - u_norm * u_norm / 6.0f) * u; 	// first taylor serie term of sin(x)/x
 
 	} else {
