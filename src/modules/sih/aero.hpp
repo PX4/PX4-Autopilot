@@ -134,10 +134,10 @@ private:
 	float prop_radius;	// propeller radius [m], used to create the slipstream
 	float v_slipstream;	// slipstream velocity [m/s], computed from momentum theory
 
-public:
-
 	matrix::Vector3f Fa;	// aerodynamic force
 	matrix::Vector3f Ma;	// aerodynamic moment computed at CM directly
+
+public:
 
 	AeroSeg(){
 		AeroSeg(1.0f, 0.2f, 0.0f, matrix::Vector3f());
@@ -243,6 +243,14 @@ public:
 
 	// return the air density at current altitude, must be called after update_aero()
 	float get_rho() const { return rho; }
+
+	// return the sum of aerodynamic forces of the segment in the body frame, taken at the CM,
+	// must be called after update_aero()
+	matrix::Vector3f get_Fa() const { return Fa; }
+
+	// return the sum of aerodynamic moments of the segment in the body frame, taken at the CM,
+	// must be called after update_aero()
+	matrix::Vector3f get_Ma() const { return Ma; }
 
 private:
 

@@ -137,7 +137,6 @@ private:
 	uORB::Publication<vehicle_global_position_s>	_gpos_gt_pub{ORB_ID(vehicle_global_position_groundtruth)};
 
 	// airspeed
-	airspeed_s  						_airspeed{};
 	uORB::Publication<airspeed_s>				_airspeed_pub{ORB_ID(airspeed)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -174,7 +173,7 @@ private:
 	void publish_sih();
 	void generate_aerodynamics();
 	float sincf(float x);	// sin cardinal = sin(x)/x
-	matrix::Quatf expq(matrix::Vector3f u);  // quaternion exponential as defined in [3]
+	matrix::Quatf expq(const matrix::Vector3f& u);  // quaternion exponential as defined in [3]
 	// States eom_f(States); 	// equations of motion f: x'=f(x)
 
 
@@ -209,7 +208,7 @@ private:
 	float       _u[NB_MOTORS];          // thruster signals
 
 	enum class VehicleType {MC, FW};
-	Vtype _vehicle = MC;
+	VehicleType _vehicle = VehicleType::MC;
 
 	// aerodynamic segments for the fixedwing
 	AeroSeg _wing_l = AeroSeg(SPAN / 2.0f, MAC, -4.0f, matrix::Vector3f(0.0f, -SPAN / 4.0f, 0.0f), 3.0f,

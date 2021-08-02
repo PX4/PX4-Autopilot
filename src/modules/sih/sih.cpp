@@ -71,7 +71,7 @@ Sih::Sih() :
 	_airspeed_time = task_start;
 	_gt_time = task_start;
 	_dist_snsr_time = task_start;
-	_vehicle = (Vtype)constrain(_sih_vtype.get(), 0, 1);
+	_vehicle = (VehicleType)constrain(_sih_vtype.get(), 0, 1);
 }
 
 Sih::~Sih()
@@ -152,7 +152,7 @@ void Sih::Run()
 		send_gps();
 	}
 
-	if (_vehicle == Vtype::FW && _now - _airspeed_time >= 50_ms) {
+	if (_vehicle == VehicleType::FW && _now - _airspeed_time >= 50_ms) {
 		_airspeed_time = _now;
 		send_airspeed();
 	}
@@ -266,7 +266,7 @@ void Sih::read_motors()
 
 	if (_actuator_out_sub.update(&actuators_out)) {
 		for (int i = 0; i < NB_MOTORS; i++) { // saturate the motor signals
-			if (_vehicle == Vtype::FW && i < 3) { // control surfaces in range [-1,1]
+			if (_vehicle == VehicleType::FW && i < 3) { // control surfaces in range [-1,1]
 				_u[i] = constrain(2.0f * (actuators_out.output[i] - pwm_middle) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN), -1.0f, 1.0f);
 
 			} else { // throttle signals in range [0,1]
@@ -280,7 +280,7 @@ void Sih::read_motors()
 // generate the motors thrust and torque in the body frame
 void Sih::generate_force_and_torques()
 {
-	if (_vehicle == Vtype::MC) {
+	if (_vehicle == VehicleType::MC) {
 		_T_B = Vector3f(0.0f, 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3]));
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-_u[0] + _u[1] + _u[2] - _u[3]),
 				 _L_PITCH * _T_MAX * (+_u[0] - _u[1] + _u[2] - _u[3]),
@@ -288,7 +288,7 @@ void Sih::generate_force_and_torques()
 		_Fa_I = -_KDV * _v_I;   // first order drag to slow down the aircraft
 		_Ma_B = -_KDW * _w_B;   // first order angular damper
 
-	} else if (_vehicle == Vtype::FW) {
+	} else if (_vehicle == VehicleType::FW) {
 		_T_B = Vector3f(_T_MAX * _u[3], 0.0f, 0.0f); 	// forward thruster
 		// _Mt_B = Vector3f(_Q_MAX*_u[3], 0.0f,0.0f); 	// thruster torque
 		_Mt_B = Vector3f();
@@ -305,9 +305,9 @@ void Sih::generate_aerodynamics()
 	_wing_r.update_aero(_v_B, _w_B, altitude, -_u[0]*FLAP_MAX);
 	_tailplane.update_aero(_v_B, _w_B, altitude, _u[1]*FLAP_MAX, _T_MAX*_u[3]);
 	_fin.update_aero(_v_B, _w_B, altitude, _u[2]*FLAP_MAX, _T_MAX*_u[3]);
-	_Fa_I = _C_IB * (_wing_l.Fa + _wing_r.Fa + _tailplane.Fa + _fin.Fa) - _KDV * _v_I; 	// sum of aerodynamic forces
+	_Fa_I = _C_IB * (_wing_l.get_Fa() + _wing_r.get_Fa() + _tailplane.get_Fa() + _fin.get_Fa()) - _KDV * _v_I; 	// sum of aerodynamic forces
 	// _Ma_B = wing_l.Ma + wing_r.Ma + tailplane.Ma + fin.Ma + flap_moments() -_KDW * _w_B; 	// aerodynamic moments
-	_Ma_B = _wing_l.Ma + _wing_r.Ma + _tailplane.Ma + _fin.Ma - _KDW * _w_B; 	// aerodynamic moments
+	_Ma_B = _wing_l.get_Ma() + _wing_r.get_Ma() + _tailplane.get_Ma() + _fin.get_Ma() - _KDW * _w_B; 	// aerodynamic moments
 }
 
 // apply the equations of motion of a rigid body and integrate one step
@@ -324,7 +324,7 @@ void Sih::equations_of_motion()
 
 	// fake ground, avoid free fall
 	if (_p_I(2) > 0.0f && (_v_I_dot(2) > 0.0f || _v_I(2) > 0.0f)) {
-		if (_vehicle == Vtype::MC) {
+		if (_vehicle == VehicleType::MC) {
 			if (!_grounded) {    // if we just hit the floor
 				// for the accelerometer, compute the acceleration that will stop the vehicle in one time step
 				_v_I_dot = -_v_I / _dt;
@@ -337,7 +337,7 @@ void Sih::equations_of_motion()
 			_w_B.setZero();
 			_grounded = true;
 
-		} else if (_vehicle == Vtype::FW) {
+		} else if (_vehicle == VehicleType::FW) {
 			if (!_grounded) {    // if we just hit the floor
 				// for the accelerometer, compute the acceleration that will stop the vehicle in one time step
 				_v_I_dot(2) = -_v_I(2) / _dt;
@@ -453,13 +453,13 @@ void Sih::send_gps()
 
 void Sih::send_airspeed()
 {
-
-	_airspeed.timestamp = _now;
-	_airspeed.true_airspeed_m_s	= fmaxf(0.1f, _v_B(0) + generate_wgn() * 0.2f);
-	_airspeed.indicated_airspeed_m_s = _airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
-	_airspeed.air_temperature_celsius = _baro_temp_c;
-	_airspeed.confidence = 0.7f;
-	_airspeed_pub.publish(_airspeed);
+	airspeed_s  airspeed{};
+	airspeed.timestamp = _now;
+	airspeed.true_airspeed_m_s	= fmaxf(0.1f, _v_B(0) + generate_wgn() * 0.2f);
+	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
+	airspeed.air_temperature_celsius = _baro_temp_c;
+	airspeed.confidence = 0.7f;
+	_airspeed_pub.publish(airspeed);
 }
 
 void Sih::send_dist_snsr()
@@ -569,7 +569,7 @@ Vector3f Sih::noiseGauss3f(float stdx, float stdy, float stdz)
 
 int Sih::print_status()
 {
-	if (_vehicle == Vtype::MC) {
+	if (_vehicle == VehicleType::MC) {
 		PX4_INFO("Running MC");
 
 	} else {
