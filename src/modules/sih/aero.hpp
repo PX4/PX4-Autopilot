@@ -242,7 +242,7 @@ public:
 	}
 
 	// return the air density at current altitude, must be called after update_aero()
-	float get_rho() {	return rho; 	}
+	float get_rho() const { return rho; }
 
 private:
 
