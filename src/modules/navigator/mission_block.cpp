@@ -50,7 +50,6 @@
 #include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 #include <uORB/uORB.h>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
@@ -75,9 +74,6 @@ MissionBlock::is_mission_item_reached()
 	/* handle non-navigation or indefinite waypoints */
 
 	switch (_mission_item.nav_cmd) {
-	case NAV_CMD_DO_SET_SERVO:
-		return true;
-
 	case NAV_CMD_LAND: /* fall through */
 	case NAV_CMD_VTOL_LAND:
 		return _navigator->get_land_detected()->landed;
@@ -102,6 +98,7 @@ MissionBlock::is_mission_item_reached()
 	case NAV_CMD_DO_SET_ROI_LOCATION:
 	case NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET:
 	case NAV_CMD_DO_SET_ROI_NONE:
+	case NAV_CMD_DO_SET_SERVO:
 	case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
 	case NAV_CMD_OBLIQUE_SURVEY:
 	case NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL:
@@ -463,48 +460,32 @@ MissionBlock::issue_command(const mission_item_s &item)
 		return;
 	}
 
-	if (item.nav_cmd == NAV_CMD_DO_SET_SERVO) {
-		PX4_INFO("DO_SET_SERVO command");
+	// This is to support legacy DO_MOUNT_CONTROL as part of a mission.
+	if (item.nav_cmd == NAV_CMD_DO_MOUNT_CONTROL) {
+		_navigator->acquire_gimbal_control();
+	}
 
-		// XXX: we should issue a vehicle command and handle this somewhere else
-		actuator_controls_s actuators = {};
-		actuators.timestamp = hrt_absolute_time();
+	// we're expecting a mission command item here so assign the "raw" inputs to the command
+	// (MAV_FRAME_MISSION mission item)
+	vehicle_command_s vcmd = {};
+	vcmd.command = item.nav_cmd;
+	vcmd.param1 = item.params[0];
+	vcmd.param2 = item.params[1];
+	vcmd.param3 = item.params[2];
+	vcmd.param4 = item.params[3];
 
-		// params[0] actuator number to be set 0..5 (corresponds to AUX outputs 1..6)
-		// params[1] new value for selected actuator in ms 900...2000
-		actuators.control[(int)item.params[0]] = 1.0f / 2000 * -item.params[1];
-
-		_actuator_pub.publish(actuators);
+	if (item.nav_cmd == NAV_CMD_DO_SET_ROI_LOCATION && item.altitude_is_relative) {
+		vcmd.param5 = item.lat;
+		vcmd.param6 = item.lon;
+		vcmd.param7 = item.altitude + _navigator->get_home_position()->alt;
 
 	} else {
-
-		// This is to support legacy DO_MOUNT_CONTROL as part of a mission.
-		if (item.nav_cmd == NAV_CMD_DO_MOUNT_CONTROL) {
-			_navigator->acquire_gimbal_control();
-		}
-
-		// we're expecting a mission command item here so assign the "raw" inputs to the command
-		// (MAV_FRAME_MISSION mission item)
-		vehicle_command_s vcmd = {};
-		vcmd.command = item.nav_cmd;
-		vcmd.param1 = item.params[0];
-		vcmd.param2 = item.params[1];
-		vcmd.param3 = item.params[2];
-		vcmd.param4 = item.params[3];
-
-		if (item.nav_cmd == NAV_CMD_DO_SET_ROI_LOCATION && item.altitude_is_relative) {
-			vcmd.param5 = item.lat;
-			vcmd.param6 = item.lon;
-			vcmd.param7 = item.altitude + _navigator->get_home_position()->alt;
-
-		} else {
-			vcmd.param5 = (double)item.params[4];
-			vcmd.param6 = (double)item.params[5];
-			vcmd.param7 = item.params[6];
-		}
-
-		_navigator->publish_vehicle_cmd(&vcmd);
+		vcmd.param5 = (double)item.params[4];
+		vcmd.param6 = (double)item.params[5];
+		vcmd.param7 = item.params[6];
 	}
+
+	_navigator->publish_vehicle_cmd(&vcmd);
 }
 
 float

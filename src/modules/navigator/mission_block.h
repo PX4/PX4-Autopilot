@@ -151,5 +151,4 @@ protected:
 
 	hrt_abstime _time_wp_reached{0};
 
-	uORB::Publication<actuator_controls_s>	_actuator_pub{ORB_ID(actuator_controls_2)};
 };

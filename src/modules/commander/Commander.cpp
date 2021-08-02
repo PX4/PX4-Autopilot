@@ -1333,6 +1333,30 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			break;
 		}
 
+	case vehicle_command_s::VEHICLE_CMD_DO_SET_SERVO: {
+
+			actuator_controls_s actuators = {};
+			actuators.timestamp = hrt_absolute_time();
+
+			for (size_t i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROLS; i++) {
+				actuators.control[i] = NAN;
+			}
+
+			// params[0] actuator number to be set 0..5 (corresponds to AUX outputs 1..6)
+			// params[1] new value for selected actuator in ms 900...2000
+			if ((int)cmd.param1 >= 0 && (int)cmd.param1 < actuator_controls_s::NUM_ACTUATOR_CONTROLS) {
+				actuators.control[(int)cmd.param1] = 1.0f / 1000 * cmd.param2 - 1.0f;
+				_actuator_pub.publish(actuators);
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+			} else {
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+			}
+
+
+			break;
+		}
+
 	case vehicle_command_s::VEHICLE_CMD_START_RX_PAIR:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_1:
