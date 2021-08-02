@@ -566,10 +566,11 @@ void Ekf::controlGpsFusion()
 
 		// handle case where we are not currently using GPS, but need to align yaw angle using EKF-GSF before
 		// we can start using GPS
-		const bool align_yaw_using_gsf = !_control_status.flags.gps && _do_ekfgsf_yaw_reset
-						 && isTimedOut(_ekfgsf_yaw_reset_time, 5000000);
+		const bool align_yaw_using_gsf = !_control_status.flags.yaw_align
+		                                 && (_params.mag_fusion_type == MAG_FUSE_TYPE_NONE);
 
-		if (align_yaw_using_gsf) {
+		if ((align_yaw_using_gsf || _do_ekfgsf_yaw_reset)
+		    && isTimedOut(_ekfgsf_yaw_reset_time, 5000000)){
 			if (resetYawToEKFGSF()) {
 				_ekfgsf_yaw_reset_time = _time_last_imu;
 				_do_ekfgsf_yaw_reset = false;
