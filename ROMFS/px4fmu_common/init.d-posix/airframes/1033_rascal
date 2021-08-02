@@ -42,14 +42,8 @@ param set-default NAV_LOITER_RAD 50
 
 param set-default RWTO_TKOFF 1
 
-# fix takeoff failure for JSBsim in autonomous mission mode.
-#param set FW_THR_SLEW_MAX 0.3
-
 param set-default RWTO_MAX_PITCH 20
 param set-default RWTO_MAX_ROLL 10
-
-# fix takeoff failure for JSBsim in autonomous mission mode.
-#param set-default RWTO_MAX_THR 0.6
 
 param set-default RWTO_PSP 8
 param set-default RWTO_AIRSPD_SCL 1.8

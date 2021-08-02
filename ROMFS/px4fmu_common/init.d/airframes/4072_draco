@@ -75,23 +75,11 @@ param set-default SENS_BOARD_ROT 2
 
 param set-default BAT1_SOURCE 0
 param set-default CBRK_IO_SAFETY 22027
-#param set COM_DISARM_LAND 3
 
 # Filter settings
 param set-default IMU_GYRO_CUTOFF 90
 param set-default IMU_DGYRO_CUTOFF 100
 
-# Don't try to be intelligent on RC loss: just cut the motors
-#param set NAV_RCL_ACT 6
-
 # enable to use high-rate logging for better rate tracking analysis
 param set-default SDLOG_PROFILE 27
 
-# TELEM1 ttyS1
-#param set MAV_0_CONFIG 101
-#param set MAV_0_MODE 2  # onboard
-#param set MAV_0_RATE 20000
-#param set SER_TEL1_BAUD 921600
-
-# TELEM2 ttyS2
-#param set MAV_1_CONFIG 0
