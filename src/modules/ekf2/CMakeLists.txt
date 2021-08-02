@@ -42,7 +42,7 @@ px4_add_module(
 	INCLUDES
 		EKF
 	STACK_MAX
-		3500
+		3600
 	SRCS
 		EKF/airspeed_fusion.cpp
 		EKF/baro_bias_estimator.cpp
