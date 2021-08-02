@@ -1709,7 +1709,7 @@ bool Ekf::resetYawToEKFGSF()
 			_warning_events.flags.emergency_yaw_reset_mag_stopped = true;
 
 		} else if (_control_status.flags.gps_yaw) {
-			_is_gps_yaw_faulty = true;
+			_control_status.flags.gps_yaw_fault = true;
 			_warning_events.flags.emergency_yaw_reset_gps_yaw_stopped = true;
 
 		} else if (_control_status.flags.ev_yaw) {

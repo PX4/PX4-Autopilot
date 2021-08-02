@@ -634,6 +634,7 @@ void EKF2::PublishEventFlags(const hrt_abstime &timestamp)
 		event_flags.stopping_mag_use                    = _ekf.warning_event_flags().stopping_mag_use;
 		event_flags.vision_data_stopped                 = _ekf.warning_event_flags().vision_data_stopped;
 		event_flags.emergency_yaw_reset_mag_stopped     = _ekf.warning_event_flags().emergency_yaw_reset_mag_stopped;
+		event_flags.emergency_yaw_reset_gps_yaw_stopped = _ekf.warning_event_flags().emergency_yaw_reset_gps_yaw_stopped;
 
 		event_flags.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 		_estimator_event_flags_pub.publish(event_flags);
@@ -1165,6 +1166,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_ev_vel                = _ekf.control_status_flags().ev_vel;
 		status_flags.cs_synthetic_mag_z       = _ekf.control_status_flags().synthetic_mag_z;
 		status_flags.cs_vehicle_at_rest       = _ekf.control_status_flags().vehicle_at_rest;
+		status_flags.cs_gps_yaw_fault         = _ekf.control_status_flags().gps_yaw_fault;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;

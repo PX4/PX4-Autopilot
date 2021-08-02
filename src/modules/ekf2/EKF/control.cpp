@@ -751,7 +751,7 @@ void Ekf::controlGpsFusion()
 void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 {
 	if (!(_params.fusion_mode & MASK_USE_GPSYAW)
-	    || _is_gps_yaw_faulty) {
+	    || _control_status.flags.gps_yaw_fault) {
 
 		stopGpsYawFusion();
 		return;
@@ -793,7 +793,7 @@ void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 					} else if (starting_conditions_passing) {
 						// Data seems good, but previous reset did not fix the issue
 						// something else must be wrong, declare the sensor faulty and stop the fusion
-						_is_gps_yaw_faulty = true;
+						_control_status.flags.gps_yaw_fault = true;
 						stopGpsYawFusion();
 
 					} else {
