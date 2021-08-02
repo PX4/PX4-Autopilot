@@ -529,7 +529,7 @@ Quatf Sih::expq(matrix::Vector3f u)
 		v = sinf(u_norm) / u_norm * u;
 	}
 
-	return Quatf(cosf(u.norm()), v(0), v(1), v(2));
+	return Quatf(cosf(u_norm), v(0), v(1), v(2));
 }
 
 float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1
