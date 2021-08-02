@@ -213,7 +213,26 @@ TEST_F(EkfGpsHeadingTest, fallBackToMag)
 	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
 }
 
-TEST_F(EkfGpsHeadingTest, yaw_jump)
+TEST_F(EkfGpsHeadingTest, yaw_jump_on_ground)
+{
+	// GIVEN: the GPS yaw fusion activated
+	float gps_heading = _ekf_wrapper.getYawAngle();
+	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator.runSeconds(1);
+	_ekf->set_in_air_status(false);
+
+	// WHEN: the measurement suddenly changes
+	const int initial_quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+	gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle() + math::radians(45.f));
+	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator.runSeconds(2);
+
+	// THEN: the fusion should reset
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
+}
+
+TEST_F(EkfGpsHeadingTest, yaw_jump_in_air)
 {
 	// GIVEN: the GPS yaw fusion activated
 	float gps_heading = _ekf_wrapper.getYawAngle();
