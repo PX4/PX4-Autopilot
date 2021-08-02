@@ -53,8 +53,6 @@ param set-default MPC_Z_VEL_P_ACC 8
 param set-default MPC_Z_VEL_I_ACC 6
 param set-default MPC_HOLD_MAX_XY 0.1
 param set-default MPC_MAX_FLOW_HGT 3
-#param set IMU_GYRO_NF_FREQ 10
-#param set IMU_GYRO_NF_BW 20
 
 param set-default NAV_RCL_ACT 3
 

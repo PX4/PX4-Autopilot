@@ -24,8 +24,7 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
-#Parameters here:
-param set LED_RGB_MAXBRT 8
+param set-default LED_RGB_MAXBRT 8
 
 
 # Configure this as Quadrotor
