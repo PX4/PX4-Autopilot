@@ -141,7 +141,7 @@ TEST_F(EkfGpsHeadingTest, yawConvergence)
 	// AND WHEN: the the measurement changes
 	gps_heading += math::radians(2.f);
 	_sensor_simulator._gps.setYaw(gps_heading);
-	_sensor_simulator.runSeconds(10);
+	_sensor_simulator.runSeconds(20);
 
 	// THEN: the estimate slowly converges to the new measurement
 	// Note that the process is slow, because the gyro did not detect any motion
@@ -225,11 +225,12 @@ TEST_F(EkfGpsHeadingTest, yaw_jump_on_ground)
 	const int initial_quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
 	gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle() + math::radians(45.f));
 	_sensor_simulator._gps.setYaw(gps_heading);
-	_sensor_simulator.runSeconds(2);
+	_sensor_simulator.runSeconds(8);
 
 	// THEN: the fusion should reset
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
 	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
+	EXPECT_LT(fabsf(matrix::wrap_pi(_ekf_wrapper.getYawAngle() - gps_heading)), math::radians(1.f));
 }
 
 TEST_F(EkfGpsHeadingTest, yaw_jump_in_air)
