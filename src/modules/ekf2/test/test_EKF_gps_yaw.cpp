@@ -90,10 +90,10 @@ void EkfGpsHeadingTest::runConvergenceScenario(float yaw_offset_rad, float anten
 	checkConvergence(gps_heading, 0.05f);
 }
 
-void EkfGpsHeadingTest::checkConvergence(float truth, float tolerance)
+void EkfGpsHeadingTest::checkConvergence(float truth, float tolerance_deg)
 {
 	const float yaw_est = _ekf_wrapper.getYawAngle();
-	EXPECT_NEAR(yaw_est, truth, math::radians(tolerance))
+	EXPECT_LT(fabsf(matrix::wrap_pi(yaw_est - truth)), math::radians(tolerance_deg))
 			<< "yaw est: " << math::degrees(yaw_est) << "gps yaw: " << math::degrees(truth);
 }
 
@@ -213,7 +213,50 @@ TEST_F(EkfGpsHeadingTest, fallBackToMag)
 	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
 }
 
-TEST_F(EkfGpsHeadingTest, yaw_jump_on_ground)
+TEST_F(EkfGpsHeadingTest, fallBackToYawEmergencyEstimator)
+{
+	// GIVEN: an initial GPS yaw, not aligned with the current one (e.g.: wrong orientation of the antenna array) and no mag.
+	_ekf_wrapper.setMagFuseTypeNone();
+	_sensor_simulator.runSeconds(6);
+
+	float gps_heading = math::radians(90.f);
+	const float true_heading = math::radians(-20.f);
+
+	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator.runSeconds(10);
+
+	const Vector3f accel_frd{-1.0, -1.5f, 0.f};
+	_sensor_simulator._imu.setAccelData(accel_frd + Vector3f(0.f, 0.f, -CONSTANTS_ONE_G));
+	const float dt = 0.5f;
+	const Dcmf R_to_earth{Eulerf(0.f, 0.f, true_heading)};
+
+	// needed to record takeoff time
+	_ekf->set_in_air_status(false);
+	_ekf->set_in_air_status(true);
+
+	// WHEN: The drone starts to accelerate
+	Vector3f simulated_velocity{};
+
+	for (int i = 0; i < 10; i++) {
+		_sensor_simulator.runSeconds(dt);
+
+		const Vector3f accel_ned = R_to_earth * accel_frd;
+
+		simulated_velocity += accel_ned * dt;
+		_sensor_simulator._gps.setVelocity(simulated_velocity);
+	}
+
+	// THEN: the yaw emergency detects the yaw issue,
+	// the GNSS yaw aiding is stopped and the heading
+	// is reset to the emergency yaw estimate
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+
+	checkConvergence(true_heading, 5.f);
+}
+
+TEST_F(EkfGpsHeadingTest, yawJmpOnGround)
 {
 	// GIVEN: the GPS yaw fusion activated
 	float gps_heading = _ekf_wrapper.getYawAngle();
@@ -233,7 +276,7 @@ TEST_F(EkfGpsHeadingTest, yaw_jump_on_ground)
 	EXPECT_LT(fabsf(matrix::wrap_pi(_ekf_wrapper.getYawAngle() - gps_heading)), math::radians(1.f));
 }
 
-TEST_F(EkfGpsHeadingTest, yaw_jump_in_air)
+TEST_F(EkfGpsHeadingTest, yawJumpInAir)
 {
 	// GIVEN: the GPS yaw fusion activated
 	float gps_heading = _ekf_wrapper.getYawAngle();
@@ -261,7 +304,7 @@ TEST_F(EkfGpsHeadingTest, yaw_jump_in_air)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
 }
 
-TEST_F(EkfGpsHeadingTest, stop_on_ground)
+TEST_F(EkfGpsHeadingTest, stopOnGround)
 {
 	// GIVEN: the GPS yaw fusion activated and there is no mag data
 	_sensor_simulator._mag.stop();
