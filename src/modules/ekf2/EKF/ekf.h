@@ -536,7 +536,6 @@ private:
 	// height sensor status
 	bool _baro_hgt_faulty{false};		///< true if valid baro data is unavailable for use
 	bool _gps_hgt_intermittent{false};	///< true if gps height into the buffer is intermittent
-	bool _is_gps_yaw_faulty{false};		///< true if gps yaw data is rejected by the filter for too long
 
 	// imu fault status
 	uint64_t _time_bad_vert_accel{0};	///< last time a bad vertical accel was detected (uSec)

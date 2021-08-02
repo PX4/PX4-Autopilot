@@ -30,3 +30,4 @@ bool bad_yaw_using_gps_course           #  7 - true when the fiter has detected 
 bool stopping_mag_use                   #  8 - true when the filter has detected bad magnetometer data and is stopping further use of the magnetomer data
 bool vision_data_stopped                #  9 - true when the vision system data has stopped for a significant time period
 bool emergency_yaw_reset_mag_stopped    # 10 - true when the filter has detected bad magnetometer data, has reset the yaw to anothter source of data and has stopped further use of the magnetomer data
+bool emergency_yaw_reset_gps_yaw_stopped # 11 - true when the filter has detected bad GNSS yaw data, has reset the yaw to anothter source of data and has stopped further use of the GNSS yaw data
