@@ -1691,16 +1691,32 @@ bool Ekf::resetYawToEKFGSF()
 	_flt_mag_align_start_time = _imu_sample_delayed.time_us;
 	_control_status.flags.yaw_align = true;
 
-	if (_params.mag_fusion_type == MAG_FUSE_TYPE_NONE) {
+	const bool is_mag_fusion_active = _control_status.flags.mag_hdg
+	                                  || _control_status.flags.mag_3D;
+	const bool is_yaw_aiding_active = is_mag_fusion_active
+	                                  || _control_status.flags.gps_yaw
+					  || _control_status.flags.ev_yaw;
+
+	if (!is_yaw_aiding_active) {
 		_information_events.flags.yaw_aligned_to_imu_gps = true;
 		ECL_INFO("Yaw aligned using IMU and GPS");
 
 	} else {
-		// stop using the magnetometer in the main EKF otherwise it's fusion could drag the yaw around
-		// and cause another navigation failure
-		_control_status.flags.mag_fault = true;
-		_warning_events.flags.emergency_yaw_reset_mag_stopped = true;
-		ECL_WARN("Emergency yaw reset - mag use stopped");
+		if (is_mag_fusion_active) {
+			// stop using the magnetometer in the main EKF otherwise it's fusion could drag the yaw around
+			// and cause another navigation failure
+			_control_status.flags.mag_fault = true;
+			_warning_events.flags.emergency_yaw_reset_mag_stopped = true;
+
+		} else if (_control_status.flags.gps_yaw) {
+			_is_gps_yaw_faulty = true;
+			_warning_events.flags.emergency_yaw_reset_gps_yaw_stopped = true;
+
+		} else if (_control_status.flags.ev_yaw) {
+			_inhibit_ev_yaw_use = true;
+		}
+
+		ECL_WARN("Emergency yaw reset");
 	}
 
 	return true;
