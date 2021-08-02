@@ -2538,28 +2538,25 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	mavlink_hil_state_quaternion_t hil_state;
 	mavlink_msg_hil_state_quaternion_decode(msg, &hil_state);
 
-	const uint64_t timestamp = hrt_absolute_time();
+	const uint64_t timestamp_sample = hrt_absolute_time();
 
 	/* airspeed */
 	{
 		airspeed_s airspeed{};
-
-		airspeed.timestamp = timestamp;
 		airspeed.indicated_airspeed_m_s = hil_state.ind_airspeed * 1e-2f;
 		airspeed.true_airspeed_m_s = hil_state.true_airspeed * 1e-2f;
-
+		airspeed.air_temperature_celsius = 15.f;
+		airspeed.timestamp = hrt_absolute_time();
 		_airspeed_pub.publish(airspeed);
 	}
 
 	/* attitude */
 	{
 		vehicle_attitude_s hil_attitude{};
-
-		hil_attitude.timestamp = timestamp;
-
+		hil_attitude.timestamp_sample = timestamp_sample;
 		matrix::Quatf q(hil_state.attitude_quaternion);
 		q.copyTo(hil_attitude.q);
-
+		hil_attitude.timestamp = hrt_absolute_time();
 		_attitude_pub.publish(hil_attitude);
 	}
 
@@ -2567,13 +2564,13 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	{
 		vehicle_global_position_s hil_global_pos{};
 
-		hil_global_pos.timestamp = timestamp;
+		hil_global_pos.timestamp_sample = timestamp_sample;
 		hil_global_pos.lat = hil_state.lat / ((double)1e7);
 		hil_global_pos.lon = hil_state.lon / ((double)1e7);
 		hil_global_pos.alt = hil_state.alt / 1000.0f;
-		hil_global_pos.eph = 2.0f;
-		hil_global_pos.epv = 4.0f;
-
+		hil_global_pos.eph = 2.f;
+		hil_global_pos.epv = 4.f;
+		hil_global_pos.timestamp = hrt_absolute_time();
 		_global_pos_pub.publish(hil_global_pos);
 	}
 
@@ -2582,32 +2579,31 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		const double lat = hil_state.lat * 1e-7;
 		const double lon = hil_state.lon * 1e-7;
 
-		map_projection_reference_s global_local_proj_ref;
-		map_projection_init(&global_local_proj_ref, lat, lon);
+		if (!map_projection_initialized(&_global_local_proj_ref) || !PX4_ISFINITE(_global_local_alt0)) {
+			map_projection_init(&_global_local_proj_ref, lat, lon);
+			_global_local_alt0 = hil_state.alt / 1000.f;
+		}
 
-		float global_local_alt0 = hil_state.alt / 1000.f;
-
-		float x = 0.0f;
-		float y = 0.0f;
-		map_projection_project(&global_local_proj_ref, lat, lon, &x, &y);
+		float x = 0.f;
+		float y = 0.f;
+		map_projection_project(&_global_local_proj_ref, lat, lon, &x, &y);
 
 		vehicle_local_position_s hil_local_pos{};
-		hil_local_pos.timestamp = timestamp;
-
-		hil_local_pos.ref_timestamp = global_local_proj_ref.timestamp;
-		hil_local_pos.ref_lat = math::degrees(global_local_proj_ref.lat_rad);
-		hil_local_pos.ref_lon = math::degrees(global_local_proj_ref.lon_rad);
-		hil_local_pos.ref_alt = global_local_alt0;
+		hil_local_pos.timestamp_sample = timestamp_sample;
+		hil_local_pos.ref_timestamp = _global_local_proj_ref.timestamp;
+		hil_local_pos.ref_lat = math::degrees(_global_local_proj_ref.lat_rad);
+		hil_local_pos.ref_lon = math::degrees(_global_local_proj_ref.lon_rad);
+		hil_local_pos.ref_alt = _global_local_alt0;
 		hil_local_pos.xy_valid = true;
 		hil_local_pos.z_valid = true;
 		hil_local_pos.v_xy_valid = true;
 		hil_local_pos.v_z_valid = true;
 		hil_local_pos.x = x;
 		hil_local_pos.y = y;
-		hil_local_pos.z = global_local_alt0 - hil_state.alt / 1000.0f;
-		hil_local_pos.vx = hil_state.vx / 100.0f;
-		hil_local_pos.vy = hil_state.vy / 100.0f;
-		hil_local_pos.vz = hil_state.vz / 100.0f;
+		hil_local_pos.z = _global_local_alt0 - hil_state.alt / 1000.f;
+		hil_local_pos.vx = hil_state.vx / 100.f;
+		hil_local_pos.vy = hil_state.vy / 100.f;
+		hil_local_pos.vz = hil_state.vz / 100.f;
 
 		matrix::Eulerf euler{matrix::Quatf(hil_state.attitude_quaternion)};
 		hil_local_pos.heading = euler.psi();
@@ -2617,7 +2613,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_local_pos.vz_max = INFINITY;
 		hil_local_pos.hagl_min = INFINITY;
 		hil_local_pos.hagl_max = INFINITY;
-
+		hil_local_pos.timestamp = hrt_absolute_time();
 		_local_pos_pub.publish(hil_local_pos);
 	}
 
@@ -2635,7 +2631,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		if (_px4_accel != nullptr) {
 			// accel in mG
 			_px4_accel->set_scale(CONSTANTS_ONE_G / 1000.0f);
-			_px4_accel->update(timestamp, hil_state.xacc, hil_state.yacc, hil_state.zacc);
+			_px4_accel->update(timestamp_sample, hil_state.xacc, hil_state.yacc, hil_state.zacc);
 		}
 	}
 
@@ -2651,20 +2647,18 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		}
 
 		if (_px4_gyro != nullptr) {
-			_px4_gyro->update(timestamp, hil_state.rollspeed, hil_state.pitchspeed, hil_state.yawspeed);
+			_px4_gyro->update(timestamp_sample, hil_state.rollspeed, hil_state.pitchspeed, hil_state.yawspeed);
 		}
 	}
 
 	/* battery status */
 	{
 		battery_status_s hil_battery_status{};
-
-		hil_battery_status.timestamp = timestamp;
 		hil_battery_status.voltage_v = 11.1f;
 		hil_battery_status.voltage_filtered_v = 11.1f;
 		hil_battery_status.current_a = 10.0f;
 		hil_battery_status.discharged_mah = -1.0f;
-
+		hil_battery_status.timestamp = hrt_absolute_time();
 		_battery_pub.publish(hil_battery_status);
 	}
 }
