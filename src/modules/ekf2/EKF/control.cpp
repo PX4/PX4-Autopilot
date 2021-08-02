@@ -784,7 +784,10 @@ void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 					if (_nb_gps_yaw_reset_available > 0) {
 						// Data seems good, attempt a reset
 						resetYawToGps();
-						_nb_gps_yaw_reset_available--;
+
+						if (_control_status.flags.in_air) {
+							_nb_gps_yaw_reset_available--;
+						}
 
 					} else if (starting_conditions_passing) {
 						// Data seems good, but previous reset did not fix the issue
