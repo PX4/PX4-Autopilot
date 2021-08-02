@@ -16,7 +16,7 @@ set MIXER AERT
 set PWM_OUT 1234
 
 # set SYS_HITL to 2 to start the SIH and avoid sensors startup
-param set SYS_HITL 2
+param set-default SYS_HITL 2
 
 # disable some checks to allow to fly:
 # - with usb
