@@ -517,19 +517,19 @@ void Sih::publish_sih()
 }
 
 // quaternion exponential as defined in [3]
-Quatf Sih::expq(matrix::Vector3f u)
+Quatf Sih::expq(const matrix::Vector3f& u)
 {
 	float u_norm = u.norm();
 	Vector3f v;
 
-	if (fabsf(u_norm) < 1.0e-6f) { 	// error will be smaller than 1e-18
+	if (u_norm < 1.0e-6f) { 	// error will be smaller than 1e-18
 		v = (1.0f - u_norm * u_norm / 6.0f) * u; 	// first taylor serie term of sin(x)/x
 
 	} else {
 		v = sinf(u_norm) / u_norm * u;
 	}
 
-	return Quatf(cosf(u.norm()), v(0), v(1), v(2));
+	return Quatf(cosf(u_norm), v(0), v(1), v(2));
 }
 
 float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1

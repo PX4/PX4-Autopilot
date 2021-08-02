@@ -208,7 +208,7 @@ private:
 	matrix::Vector3f    _w_B_dot;       // body rates differential
 	float       _u[NB_MOTORS];          // thruster signals
 
-	enum Vtype {MC, FW}; 	// vehicle type
+	enum class VehicleType {MC, FW};
 	Vtype _vehicle = MC;
 
 	// aerodynamic segments for the fixedwing
