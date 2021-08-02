@@ -439,8 +439,8 @@ PARAM_DEFINE_FLOAT(SIH_T_TAU, 0.05f);
 /**
  * Vehicle type (0 for MC, 1 for FW)
  *
- * @min 0
- * @max  1
+ * @value 0 MC
+ * @value 1 FW
  * @reboot_required true
  * @group Simulation In Hardware
  */
