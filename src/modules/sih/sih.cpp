@@ -517,7 +517,7 @@ void Sih::publish_sih()
 }
 
 // quaternion exponential as defined in [3]
-Quatf Sih::expq(matrix::Vector3f u)
+Quatf Sih::expq(const matrix::Vector3f& u)
 {
 	float u_norm = u.norm();
 	Vector3f v;
