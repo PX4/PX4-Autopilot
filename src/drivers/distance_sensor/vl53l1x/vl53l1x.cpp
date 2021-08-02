@@ -47,6 +47,17 @@
 #define VL53L1X_ROI_CENTER                    183 // ROI optical center
 #define VL53L1X_ROI_MID_LEFT                  167 // ROI middle left of optical center
 #define VL53L1X_ROI_FAR_LEFT                  151 // ROI far left of optical center
+#define VL53L1X_ROI_FAR_RIGHT_LO               10 // ROI
+#define VL53L1X_ROI_MID_RIGHT_LO               42 // ROI middle right of optical center
+#define VL53L1X_ROI_CENTER_LO                  74 // ROI optical center
+#define VL53L1X_ROI_MID_LEFT_LO                90 // ROI middle left of optical center
+#define VL53L1X_ROI_FAR_LEFT_LO               106 // ROI
+#define VL53L1X_ROI_FAR_RIGHT_HI              243 // ROI
+#define VL53L1X_ROI_MID_RIGHT_HI              211 // ROI middle right of optical center
+#define VL53L1X_ROI_CENTER_HI                 179 // ROI optical center
+#define VL53L1X_ROI_MID_LEFT_HI               163 // ROI middle left of optical center
+#define VL53L1X_ROI_FAR_LEFT_HI               147 // ROI
+
 /* ST */
 const uint8_t VL51L1X_DEFAULT_CONFIGURATION[] = {
 	0x00, /* 0x2d : set bit 2 and 5 to 1 for fast plus mode (1MHz I2C), else don't touch */
@@ -149,54 +160,21 @@ static const uint8_t status_rtn[24] = { 255, 255, 255, 5, 2, 4, 1, 7, 3, 0,
 
 /* end ST */
 
-<<<<<<< HEAD
 VL53L1X::VL53L1X(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
 	_px4_rangefinder(get_device_id(), config.rotation)
 {
-=======
-VL53L1X::VL53L1X(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency, int address) :
-	I2C(DRV_DIST_DEVTYPE_VL53L1X, MODULE_NAME, bus, address, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_rangefinder(get_device_id(), rotation)
-<<<<<<< HEAD
-{
-<<<<<<< HEAD
->>>>>>> cleaned up merge conflicts w/ upstream remote master, added region of interest center setting and size
-	//Set distance mode (1 for ~2m ranging, 2 for ~4m ranging
-	distance_mode = 1;
-=======
-=======
-{
-<<<<<<< HEAD
->>>>>>> format checks passed, ran 'make format'
 	// Set distance mode (1 for ~2m ranging, 2 for ~4m ranging
-	distance_mode = VL53L1X_SHORT_RANGE;
->>>>>>> removed unecessary whitespace in default.cmake, vl53l1x.*, replaced magic #'s with global constants
-
-=======
->>>>>>> Apply suggestions from code review
+	distance_mode = VL53L1X_LONG_RANGE;
 	// VL53L1X typical range 0-4 meters with 27 degree field of view
 	_px4_rangefinder.set_min_distance(0.f);
 
 	if (distance_mode == VL53L1X_SHORT_RANGE) {
-<<<<<<< HEAD
-	    _px4_rangefinder.set_max_distance(2.f);
-<<<<<<< HEAD
-	}
-        else {
-=======
-
-	} else {
->>>>>>> removed unecessary whitespace in default.cmake, vl53l1x.*, replaced magic #'s with global constants
-	    _px4_rangefinder.set_max_distance(4.f);
-=======
 		_px4_rangefinder.set_max_distance(2.f);
 
 	} else {
 		_px4_rangefinder.set_max_distance(4.f);
->>>>>>> format checks passed, ran 'make format'
 	}
 
 	_px4_rangefinder.set_fov(math::radians(27.f));
@@ -272,9 +250,12 @@ int VL53L1X::probe()
 void VL53L1X::RunImpl()
 {
 	uint8_t dataReady = 0;
-
-	uint8_t roiCenter[] = {VL53L1X_ROI_FAR_RIGHT, VL53L1X_ROI_MID_RIGHT, VL53L1X_ROI_CENTER, VL53L1X_ROI_MID_LEFT, VL53L1X_ROI_FAR_LEFT};
+	uint8_t roiCenter[] = {VL53L1X_ROI_FAR_RIGHT, VL53L1X_ROI_MID_RIGHT, VL53L1X_ROI_CENTER, VL53L1X_ROI_MID_LEFT, VL53L1X_ROI_FAR_LEFT, VL53L1X_ROI_FAR_RIGHT_LO, VL53L1X_ROI_MID_RIGHT_LO, VL53L1X_ROI_CENTER_LO, VL53L1X_ROI_MID_LEFT_LO, VL53L1X_ROI_FAR_LEFT_LO, VL53L1X_ROI_FAR_RIGHT_HI, VL53L1X_ROI_MID_RIGHT_HI, VL53L1X_ROI_CENTER_HI, VL53L1X_ROI_MID_LEFT_HI, VL53L1X_ROI_FAR_LEFT_HI};
 	static uint8_t zone = 0;
+	uint8_t zoneLimit = sizeof(roiCenter) / sizeof(uint8_t);
+
+	// Set the ROI center based on zone incrementation
+	VL53L1X_SetROICenter(roiCenter[zone]);
 
 	VL53L1X_CheckForDataReady(&dataReady);
 
@@ -284,23 +265,8 @@ void VL53L1X::RunImpl()
 
 	ScheduleDelayed(VL53L1X_SAMPLE_RATE);
 
-	//zone modulus & change center
-	zone = zone% 5;
-	VL53L1X_SetROICenter(roiCenter[zone]);
-
-        //reset inf. counter check
-	if(zone >= sizeof(roiCenter)){
-	        zone = 0;
-	}
-	VL53L1X_SetROICenter(roiCenter[zone]);
-
-	// increment
-	zone++;
-
-	// reset counter check
-	if (zone > sizeof(roiCenter) - 1) {
-		zone = 0;
-	}
+	// zone modulus increment
+	zone = (zone + 1) % zoneLimit;
 
 }
 
@@ -315,8 +281,8 @@ int VL53L1X::init()
 	}
 
 	// Spad width (x) & height (y)
-	uint8_t x = 4;
-	uint8_t y = 16;
+	uint8_t x = 8;
+	uint8_t y = 8;
 
 	ret |= VL53L1X_SensorInit();
 	ret |= VL53L1X_ConfigBig(distance_mode, VL53L1X_SAMPLE_RATE);
