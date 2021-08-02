@@ -70,7 +70,7 @@ void Ekf::fuseGpsYaw()
 
 	// using magnetic heading process noise
 	// TODO extend interface to use yaw uncertainty provided by GPS if available
-	const float R_YAW = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
+	const float R_YAW = sq(fmaxf(_params.gps_heading_noise, 1.0e-2f));
 
 	// calculate intermediate variables
 	const float HK0 = sinf(_gps_yaw_offset);
@@ -209,7 +209,7 @@ bool Ekf::resetYawToGps()
 	// GPS yaw measurement is alreday compensated for antenna offset in the driver
 	const float measured_yaw = _gps_sample_delayed.yaw;
 
-	const float yaw_variance = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
+	const float yaw_variance = sq(fmaxf(_params.gps_heading_noise, 1.0e-2f));
 	resetQuatStateYaw(measured_yaw, yaw_variance, true);
 
 	_time_last_gps_yaw_fuse = _time_last_imu;
