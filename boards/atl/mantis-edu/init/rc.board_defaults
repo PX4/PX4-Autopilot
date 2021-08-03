@@ -14,6 +14,8 @@ param set-default EKF2_MULTI_MAG 1
 param set-default SENS_IMU_MODE 0
 param set-default SENS_MAG_MODE 0
 
+param set-default EV_TSK_STAT_DIS 1
+
 set LOGGER_ARGS "-m mavlink"
 
 # Start esc
