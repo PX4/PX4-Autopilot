@@ -189,7 +189,7 @@ param set-default CAL_ACC1_PRIO 0
 param set-default CAL_GYRO0_PRIO 255
 param set-default CAL_GYRO1_PRIO 0
 # Logger mode. Default(1) + estimator replay(2) + thermal calibration(4)
-param set SDLOG_PROFILE 6
+param set-default SDLOG_PROFILE 6
 
 # Do not start frsky_telemetry on port ttyS6 by default, PGA460 lives there. 500 is in arbitrary unused number.
 param set TEL_FRSKY_CONFIG 500

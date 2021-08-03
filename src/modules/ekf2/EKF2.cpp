@@ -192,6 +192,7 @@ bool EKF2::multi_init(int imu, int mag)
 
 	_ekf2_timestamps_pub.advertise();
 	_ekf_gps_drift_pub.advertise();
+	_estimator_baro_bias_pub.advertise();
 	_estimator_innovation_test_ratios_pub.advertise();
 	_estimator_innovation_variances_pub.advertise();
 	_estimator_innovations_pub.advertise();
@@ -202,7 +203,6 @@ bool EKF2::multi_init(int imu, int mag)
 	_estimator_status_flags_pub.advertise();
 	_estimator_visual_odometry_aligned_pub.advertised();
 	_yaw_est_pub.advertise();
-	_baro_bias_estimate_pub.advertise();
 
 	bool changed_instance = _vehicle_imu_sub.ChangeInstance(imu) && _magnetometer_sub.ChangeInstance(mag);
 
@@ -497,6 +497,7 @@ void EKF2::Run()
 			PublishWindEstimate(now);
 
 			// publish status/logging messages
+			PublishBaroBias(now);
 			PublishEkfDriftMetrics(now);
 			PublishEventFlags(now);
 			PublishStates(now);
@@ -506,7 +507,6 @@ void EKF2::Run()
 			PublishInnovationTestRatios(now);
 			PublishInnovationVariances(now);
 			PublishYawEstimatorStatus(now);
-			PublishBaroBiasEstimate(now);
 
 			UpdateMagCalibration(now);
 
@@ -550,19 +550,26 @@ void EKF2::PublishAttitude(const hrt_abstime &timestamp)
 	}
 }
 
-void EKF2::PublishBaroBiasEstimate(const hrt_abstime &timestamp)
+void EKF2::PublishBaroBias(const hrt_abstime &timestamp)
 {
+	if (_device_id_baro != 0) {
+		const BaroBiasEstimator::status &status = _ekf.getBaroBiasEstimatorStatus();
 
-	baro_bias_estimate_s bbe{};
-	bbe.timestamp = timestamp;
-	bbe.timestamp_sample = timestamp;
-	bbe.baro_device_id = _device_id_baro;
-	_ekf.getBaroBiasEstimatorStatus(bbe.bias,
-					bbe.bias_var,
-					bbe.innov,
-					bbe.innov_var,
-					bbe.innov_test_ratio);
-	_baro_bias_estimate_pub.publish(bbe);
+		if (fabsf(status.bias - _last_baro_bias_published) > 0.001f) {
+			estimator_baro_bias_s baro_bias{};
+			baro_bias.timestamp_sample = timestamp;
+			baro_bias.baro_device_id = _device_id_baro;
+			baro_bias.bias = status.bias;
+			baro_bias.bias_var = status.bias_var;
+			baro_bias.innov = status.innov;
+			baro_bias.innov_var = status.innov_var;
+			baro_bias.innov_test_ratio = status.innov_test_ratio;
+			baro_bias.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+			_estimator_baro_bias_pub.publish(baro_bias);
+
+			_last_baro_bias_published = status.bias;
+		}
+	}
 }
 
 void EKF2::PublishEkfDriftMetrics(const hrt_abstime &timestamp)

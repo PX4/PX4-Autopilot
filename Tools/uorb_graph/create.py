@@ -23,7 +23,7 @@ parser.add_argument('-e', '--exclude-path', action='append',
                     help='Excluded path(s), can be specified multiple times',
                     default=[])
 parser.add_argument('--merge-depends', action='store_true',
-                    help='Merge library topics inte the modules that depend on them.')
+                    help='Merge library topics in the modules that depend on them.')
 parser.add_argument('-v','--verbosity', action='count',
                     help='increase output verbosity; primarily for debugging; repeat for more detail',
                     default=0)
@@ -422,6 +422,7 @@ class Graph(object):
         found_module_def = False
         found_module_depends = False
         found_library_def = False
+        scope_added = False
         for line in datafile:
             if 'px4_add_module' in line: # must contain 'px4_add_module'
                 found_module_def = True
@@ -432,6 +433,7 @@ class Graph(object):
                     library_name = tokens[1].split()[0].strip().rstrip(')')
                     library_scope = LibraryScope(library_name)
                     self._current_scope.append(library_scope)
+                    scope_added = True
                     self._found_libraries[library_name] = library_scope
                     if self._in_scope():
                         log.debug('    >> found library: ' + library_name)
@@ -443,16 +445,18 @@ class Graph(object):
             elif found_module_depends:
                 # two tabs is a *sketchy* heuristic -- spacing isn't guaranteed by cmake;
                 # ... but the hard-tabs *is* specified by PX4 coding standards, so it's likely to be consistent
-                if line.startswith('\t\t'):
+                if line.startswith('\t\t') and not line.strip().startswith('#'):
                     depends = [dep.strip() for dep in line.split()]
                     for name in depends:
+                        log.debug('        >> {:}: found module dep: {:}'
+                            .format(self._current_scope[-1].name, name))
                         self._current_scope[-1].add_dependency(name)
                         if kwargs['merge_depends']:
                             if (0 < len(self._scope_whitelist)) and self._current_scope[-1].name in self._scope_whitelist:
                                 # if we whitelist a module with dependencies, whitelist the dependencies, too
                                 self._scope_whitelist.add(name)
 
-                else:
+                elif line.strip() != "":
                     found_module_depends = False  ## done with the 'DEPENDS' section.
 
             words = line.split()
@@ -461,17 +465,21 @@ class Graph(object):
                 module_name = words[1]
                 module_scope = ModuleScope(module_name)
                 self._current_scope.append(module_scope)
+                scope_added = True
                 self._found_modules[module_name] = module_scope
                 if self._in_scope():
                     log.debug('    >> Found module name: ' + module_scope.name)
 
-        return (found_library_def or found_module_def)
+        return scope_added
 
 
     def _process_source_file(self, file_name):
         """ extract information from a single source file """
 
-        log.debug( "        >> extracting topics from file: " + file_name )
+        current_scope = self._get_current_scope()
+        log.debug( "        >> {:}extracting topics from file: {:}"
+            .format(current_scope.name+": " if current_scope is not None else "",
+            file_name))
 
         with codecs.open(file_name, 'r', 'utf-8') as f:
             try:
@@ -481,7 +489,6 @@ class Graph(object):
                 return
 
 
-            current_scope = self._get_current_scope()
             if current_scope:
                 if current_scope.name in self._scope_blacklist:
                     return
@@ -673,7 +680,7 @@ class OutputJSON(object):
             node['color'] = topic_colors[topic]
             # url is opened when double-clicking on the node
             # TODO: does not work for multi-topics
-            node['url'] = 'https://github.com/PX4/Firmware/blob/master/msg/'+topic+'.msg'
+            node['url'] = 'https://github.com/PX4/PX4-Autopilot/blob/master/msg/'+topic+'.msg'
             nodes.append(node)
 
         data['nodes'] = nodes

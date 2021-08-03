@@ -1,5 +1,5 @@
 #!/bin/sh
 # shellcheck disable=SC2154
 
-#param set MAV_SYS_ID $((px4_instance+1))
-#param set IMU_INTEG_RATE 250
+#param set-default MAV_SYS_ID $((px4_instance+1))
+#param set-default IMU_INTEG_RATE 250

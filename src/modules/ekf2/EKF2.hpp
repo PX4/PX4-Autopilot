@@ -41,13 +41,15 @@
 #ifndef EKF2_HPP
 #define EKF2_HPP
 
+#include "EKF/ekf.h"
+#include "Utility/PreFlightChecker.hpp"
+
 #include "EKF2Selector.hpp"
 
 #include <float.h>
 
 #include <containers/LockGuard.hpp>
 #include <drivers/drv_hrt.h>
-#include "EKF/ekf.h"
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
@@ -62,10 +64,10 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/airspeed.h>
-#include <uORB/topics/baro_bias_estimate.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/ekf_gps_drift.h>
+#include <uORB/topics/estimator_baro_bias.h>
 #include <uORB/topics/estimator_event_flags.h>
 #include <uORB/topics/estimator_innovations.h>
 #include <uORB/topics/estimator_optical_flow_vel.h>
@@ -92,7 +94,6 @@
 #include <uORB/topics/wind.h>
 #include <uORB/topics/yaw_estimator_status.h>
 
-#include "Utility/PreFlightChecker.hpp"
 
 extern pthread_mutex_t ekf2_module_mutex;
 
@@ -130,7 +131,7 @@ private:
 	void Run() override;
 
 	void PublishAttitude(const hrt_abstime &timestamp);
-	void PublishBaroBiasEstimate(const hrt_abstime &timestamp);
+	void PublishBaroBias(const hrt_abstime &timestamp);
 	void PublishEkfDriftMetrics(const hrt_abstime &timestamp);
 	void PublishEventFlags(const hrt_abstime &timestamp);
 	void PublishGlobalPosition(const hrt_abstime &timestamp);
@@ -218,6 +219,7 @@ private:
 	Vector3f _last_accel_bias_published{};
 	Vector3f _last_gyro_bias_published{};
 	Vector3f _last_mag_bias_published{};
+	float _last_baro_bias_published{};
 
 	float _airspeed_scale_factor{1.0f}; ///< scale factor correction applied to airspeed measurements
 
@@ -258,9 +260,9 @@ private:
 	uint32_t _filter_warning_event_changes{0};
 	uint32_t _filter_information_event_changes{0};
 
-	uORB::PublicationMulti<baro_bias_estimate_s>         _baro_bias_estimate_pub{ORB_ID(baro_bias_estimate)};
 	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
 	uORB::PublicationMulti<ekf_gps_drift_s>              _ekf_gps_drift_pub{ORB_ID(ekf_gps_drift)};
+	uORB::PublicationMulti<estimator_baro_bias_s>        _estimator_baro_bias_pub{ORB_ID(estimator_baro_bias)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_variances_pub{ORB_ID(estimator_innovation_variances)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovations_pub{ORB_ID(estimator_innovations)};

@@ -1,10 +1,7 @@
 
 px4_add_board(
 	PLATFORM posix
-	VENDOR px4
-	MODEL sitl
 	ROMFSROOT px4fmu_common
-	LABEL default
 	TESTING
 	ETHERNET
 	DRIVERS
