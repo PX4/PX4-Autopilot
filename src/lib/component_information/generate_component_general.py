@@ -4,6 +4,7 @@ import argparse
 import json
 import lzma #to create .xz file
 import re
+import os
 
 parser = argparse.ArgumentParser(description="""Generate the COMPONENT_GENERAL json file""")
 parser.add_argument('filename', metavar='component_general.json', help='JSON output file')
@@ -75,5 +76,14 @@ component_general['metadataTypes'] = metadata_types
 with open(filename, 'w') as outfile:
     json.dump(component_general, outfile)
 
+# DEBUG: in some cases writing the compressed file fails with 'No such file or directory'
+# even though it was just written above
+if not os.path.isfile(filename):
+    print('{:} does not exist'.format(filename))
+
 if compress:
-    save_compressed(filename)
+    try:
+        save_compressed(filename)
+    except FileNotFoundError as e:
+        print(os.listdir(os.path.dirname(filename)))
+        raise
