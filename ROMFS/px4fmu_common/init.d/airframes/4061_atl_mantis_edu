@@ -195,3 +195,6 @@ param set-default RC7_MAX           3413
 param set-default RC7_MIN           683
 param set-default RC7_REV           1
 param set-default RC7_TRIM          2048
+
+
+mixer load /dev/tap_esc /etc/mixers/quad_x.main.mix

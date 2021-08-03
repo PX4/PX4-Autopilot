@@ -33,108 +33,26 @@
 
 #include "TAP_ESC.hpp"
 
-const uint8_t TAP_ESC::_device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_POS;
-const uint8_t TAP_ESC::_device_dir_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_DIR;
-
 TAP_ESC::TAP_ESC(char const *const device, uint8_t channels_count):
 	CDev(TAP_ESC_DEVICE_PATH),
-	ModuleParams(nullptr),
+	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(device)),
+	_mixing_output{channels_count, *this, MixingOutput::SchedulingPolicy::Auto, true},
 	_channels_count(channels_count)
 {
-	strncpy(_device, device, sizeof(_device));
+	strncpy(_device, device, sizeof(_device) - 1);
 	_device[sizeof(_device) - 1] = '\0';  // Fix in case of overflow
 
-	_control_topics[0] = ORB_ID(actuator_controls_0);
-	_control_topics[1] = ORB_ID(actuator_controls_1);
-	_control_topics[2] = ORB_ID(actuator_controls_2);
-	_control_topics[3] = ORB_ID(actuator_controls_3);
-
-	for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; ++i) {
-		_control_subs[i] = -1;
-	}
-
-	for (size_t i = 0; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]); i++) {
-		_outputs.output[i] = NAN;
-	}
-
-	_outputs.noutputs = 0;
+	_mixing_output.setAllMinValues(RPMMIN);
+	_mixing_output.setAllMaxValues(RPMMAX);
+	_mixing_output.setAllDisarmedValues(RPMSTOPPED);
+	_mixing_output.setAllFailsafeValues(RPMSTOPPED);
 }
 
 TAP_ESC::~TAP_ESC()
 {
-	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-		if (_control_subs[i] >= 0) {
-			orb_unsubscribe(_control_subs[i]);
-			_control_subs[i] = -1;
-		}
-	}
-
 	tap_esc_common::deinitialise_uart(_uart_fd);
-
-	PX4_INFO("stopping");
-
-	perf_free(_perf_control_latency);
-}
-
-/** @see ModuleBase */
-TAP_ESC *TAP_ESC::instantiate(int argc, char *argv[])
-{
-	/* Parse arguments */
-	const char *device = nullptr;
-	uint8_t channels_count = 0;
-
-	int ch;
-	int myoptind = 1;
-	const char *myoptarg = nullptr;
-
-	if (argc < 2) {
-		print_usage("not enough arguments");
-		return nullptr;
-	}
-
-	while ((ch = px4_getopt(argc, argv, "d:n:", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		case 'd':
-			device = myoptarg;
-			break;
-
-		case 'n':
-			channels_count = atoi(myoptarg);
-			break;
-		}
-	}
-
-	/* Sanity check on arguments */
-	if (channels_count == 0) {
-		print_usage("Channel count is invalid (0)");
-		return nullptr;
-	}
-
-	if (device == nullptr || strlen(device) == 0) {
-		print_usage("no device specified");
-		return nullptr;
-	}
-
-	TAP_ESC *tap_esc = new TAP_ESC(device, channels_count);
-
-	if (tap_esc == nullptr) {
-		PX4_ERR("failed to instantiate module");
-		return nullptr;
-	}
-
-	if (tap_esc->init() != 0) {
-		PX4_ERR("failed to initialize module");
-		delete tap_esc;
-		return nullptr;
-	}
-
-	return tap_esc;
-}
-
-/** @see ModuleBase */
-int TAP_ESC::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
+	perf_free(_cycle_perf);
+	perf_free(_interval_perf);
 }
 
 int TAP_ESC::init()
@@ -235,36 +153,7 @@ int TAP_ESC::init()
 	}
 
 	/* do regular cdev init */
-	ret = CDev::init();
-
-	return ret;
-}
-
-void TAP_ESC::subscribe()
-{
-	/* subscribe/unsubscribe to required actuator control groups */
-	uint32_t sub_groups = _groups_required & ~_groups_subscribed;
-	uint32_t unsub_groups = _groups_subscribed & ~_groups_required;
-	_poll_fds_num = 0;
-
-	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-		if (sub_groups & (1 << i)) {
-			PX4_DEBUG("subscribe to actuator_controls_%d", i);
-			_control_subs[i] = orb_subscribe(_control_topics[i]);
-		}
-
-		if (unsub_groups & (1 << i)) {
-			PX4_DEBUG("unsubscribe from actuator_controls_%d", i);
-			orb_unsubscribe(_control_subs[i]);
-			_control_subs[i] = -1;
-		}
-
-		if (_control_subs[i] >= 0) {
-			_poll_fds[_poll_fds_num].fd = _control_subs[i];
-			_poll_fds[_poll_fds_num].events = POLLIN;
-			_poll_fds_num++;
-		}
-	}
+	return CDev::init();
 }
 
 void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt)
@@ -350,147 +239,35 @@ void TAP_ESC::send_tune_packet(EscbusTunePacket &tune_packet)
 	tap_esc_common::send_packet(_uart_fd, buzzer_packet, -1);
 }
 
-void TAP_ESC::cycle()
+bool TAP_ESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+			    unsigned num_control_groups_updated)
 {
-	if (_groups_subscribed != _groups_required) {
-		subscribe();
-		_groups_subscribed = _groups_required;
-
-		/* Set uorb update rate */
-		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-			if (_control_subs[i] >= 0) {
-				orb_set_interval(_control_subs[i], TAP_ESC_CTRL_UORB_UPDATE_INTERVAL);
-				PX4_DEBUG("New actuator update interval: %ums", TAP_ESC_CTRL_UORB_UPDATE_INTERVAL);
-			}
-		}
-	}
-
-	if (_mixers) {
-		_mixers->set_airmode((Mixer::Airmode)_param_mc_airmode.get());
-	}
-
-	/* check if anything updated */
-	int ret = px4_poll(_poll_fds, _poll_fds_num, 5);
-
-	/* this would be bad... */
-	if (ret < 0) {
-		PX4_ERR("poll error %d", errno);
-
-	} else { /* update even in the case of a timeout, to check for test_motor commands */
-
-		/* get controls for required topics */
-		unsigned poll_id = 0;
-
-		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-			if (_control_subs[i] >= 0) {
-				if (_poll_fds[poll_id].revents & POLLIN) {
-					orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
-
-				}
-
-				poll_id++;
-			}
-		}
-
-		uint8_t num_outputs = _channels_count;
-
-		/* can we mix? */
-		if (_is_armed && _mixers != nullptr) {
-
-			/* do mixing */
-			num_outputs = _mixers->mix(&_outputs.output[0], num_outputs);
-			_outputs.noutputs = num_outputs;
-
-			/* publish mixer status */
-			multirotor_motor_limits_s multirotor_motor_limits{};
-			multirotor_motor_limits.saturation_status = _mixers->get_saturation_status();
-			multirotor_motor_limits.timestamp = hrt_absolute_time();
-			_to_mixer_status.publish(multirotor_motor_limits);
-
-			/* disable unused ports by setting their output to NaN */
-			for (size_t i = num_outputs; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]); i++) {
-				_outputs.output[i] = NAN;
-			}
-
-			/* iterate actuators */
-			for (unsigned i = 0; i < num_outputs; i++) {
-				/* last resort: catch NaN, INF and out-of-band errors */
-				if (i < _outputs.noutputs && PX4_ISFINITE(_outputs.output[i])
-				    && !_armed.lockdown && !_armed.manual_lockdown) {
-					/* scale for PWM output 1200 - 1900us */
-					_outputs.output[i] = (RPMMAX + RPMMIN) / 2 + ((RPMMAX - RPMMIN) / 2) * _outputs.output[i];
-					math::constrain(_outputs.output[i], (float)RPMMIN, (float)RPMMAX);
-
-				} else {
-					/*
-					 * Value is NaN, INF, or we are in lockdown - stop the motor.
-					 * This will be clearly visible on the servo status and will limit the risk of accidentally
-					 * spinning motors. It would be deadly in flight.
-					 */
-					_outputs.output[i] = RPMSTOPPED;
-				}
-			}
-
-		} else {
-			_outputs.noutputs = num_outputs;
-			_outputs.timestamp = hrt_absolute_time();
-
-			/* check for motor test commands */
-			if (_test_motor_sub.updated()) {
-				test_motor_s test_motor;
-
-				if (_test_motor_sub.copy(&test_motor)) {
-					if (test_motor.action == test_motor_s::ACTION_STOP) {
-						_outputs.output[test_motor.motor_number] = RPMSTOPPED;
-
-					} else {
-						_outputs.output[test_motor.motor_number] = RPMSTOPPED + ((RPMMAX - RPMSTOPPED) * test_motor.value);
-					}
-
-					PX4_INFO("setting motor %i to %.1lf", test_motor.motor_number,
-						 (double)_outputs.output[test_motor.motor_number]);
-				}
-			}
-
-			/* set the invalid values to the minimum */
-			for (unsigned i = 0; i < num_outputs; i++) {
-				if (!PX4_ISFINITE(_outputs.output[i])) {
-					_outputs.output[i] = RPMSTOPPED;
-				}
-			}
-
-			/* disable unused ports by setting their output to NaN */
-			for (size_t i = num_outputs; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]); i++) {
-				_outputs.output[i] = NAN;
-			}
-		}
-
+	if (_initialized) {
 		uint16_t motor_out[TAP_ESC_MAX_MOTOR_NUM] {};
 
-		// We need to remap from the system default to what PX4's normal
-		// scheme is
+		// We need to remap from the system default to what PX4's normal scheme is
 		switch (num_outputs) {
 		case 4:
-			motor_out[0] = (uint16_t)_outputs.output[2];
-			motor_out[1] = (uint16_t)_outputs.output[1];
-			motor_out[2] = (uint16_t)_outputs.output[3];
-			motor_out[3] = (uint16_t)_outputs.output[0];
+			motor_out[0] = outputs[2];
+			motor_out[1] = outputs[1];
+			motor_out[2] = outputs[3];
+			motor_out[3] = outputs[0];
 			break;
 
 		case 6:
-			motor_out[0] = (uint16_t)_outputs.output[3];
-			motor_out[1] = (uint16_t)_outputs.output[0];
-			motor_out[2] = (uint16_t)_outputs.output[4];
-			motor_out[3] = (uint16_t)_outputs.output[2];
-			motor_out[4] = (uint16_t)_outputs.output[1];
-			motor_out[5] = (uint16_t)_outputs.output[5];
+			motor_out[0] = outputs[3];
+			motor_out[1] = outputs[0];
+			motor_out[2] = outputs[4];
+			motor_out[3] = outputs[2];
+			motor_out[4] = outputs[1];
+			motor_out[5] = outputs[5];
 			break;
 
 		default:
 
 			// Use the system defaults
 			for (uint8_t i = 0; i < num_outputs; ++i) {
-				motor_out[i] = (uint16_t)_outputs.output[i];
+				motor_out[i] = outputs[i];
 			}
 
 			break;
@@ -501,9 +278,8 @@ void TAP_ESC::cycle()
 			motor_out[i] = RPMSTOPPED;
 		}
 
-		_outputs.timestamp = hrt_absolute_time();
-
 		send_esc_outputs(motor_out, num_outputs);
+
 		tap_esc_common::read_data_from_uart(_uart_fd, &_uartbuf);
 
 		if (!tap_esc_common::parse_tap_esc_feedback(&_uartbuf, &_packet)) {
@@ -541,208 +317,193 @@ void TAP_ESC::cycle()
 			}
 		}
 
-		/* and publish for anyone that cares to see */
-		_outputs_pub.publish(_outputs);
-
-		// use first valid timestamp_sample for latency tracking
-		for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-			const bool required = _groups_required & (1 << i);
-			const hrt_abstime &timestamp_sample = _controls[i].timestamp_sample;
-
-			if (required && (timestamp_sample > 0)) {
-				perf_set_elapsed(_perf_control_latency, _outputs.timestamp - timestamp_sample);
-				break;
-			}
-		}
+		return true;
 	}
 
-	if (_armed_sub.updated()) {
-		_armed_sub.copy(&_armed);
+	return false;
+}
 
-		if (_is_armed != _armed.armed) {
-			/* reset all outputs */
-			for (size_t i = 0; i < sizeof(_outputs.output) / sizeof(_outputs.output[0]); i++) {
-				_outputs.output[i] = NAN;
-			}
-		}
+void TAP_ESC::Run()
+{
+	if (should_exit()) {
+		ScheduleClear();
+		_mixing_output.unregister();
 
-		_is_armed = _armed.armed;
+		exit_and_cleanup();
+		return;
 	}
 
-	// Handle tunes
-	if (_tune_control_sub.updated()) {
-		tune_control_s tune;
+	// push backup schedule
+	ScheduleDelayed(20_ms);
 
-		if (_tune_control_sub.copy(&tune)) {
-			if (tune.timestamp > 0) {
-				Tunes::ControlResult result = _tunes.set_control(tune);
-				_play_tone = (result == Tunes::ControlResult::Success) || (result == Tunes::ControlResult::AlreadyPlaying);
-				PX4_DEBUG("new tune id: %d, result: %d, play: %d", tune.tune_id, (int)result, _play_tone);
-			}
-		}
-	}
-
-	const hrt_abstime timestamp_now = hrt_absolute_time();
-
-	if ((timestamp_now - _interval_timestamp <= _duration) || !_play_tone) {
-		//return;
-	} else {
-		_interval_timestamp = timestamp_now;
-
-		if (_silence_length > 0) {
-			_duration = _silence_length;
-			_silence_length = 0;
-
-		} else if (_play_tone) {
-			uint8_t strength = 0;
-			Tunes::Status parse_ret_val = _tunes.get_next_note(_frequency, _duration, _silence_length, strength);
-
-			if (parse_ret_val == Tunes::Status::Continue) {
-				// Continue playing.
-				_play_tone = true;
-
-				if (_frequency > 0) {
-					// Start playing the note.
-					EscbusTunePacket esc_tune_packet{};
-					esc_tune_packet.frequency = _frequency;
-					esc_tune_packet.duration_ms = (uint16_t)(_duration / 1000); // convert to ms
-					esc_tune_packet.strength = strength;
-					send_tune_packet(esc_tune_packet);
-				}
-
-			} else {
-				_play_tone = false;
-				_silence_length = 0;
-			}
-		}
-	}
+	perf_begin(_cycle_perf);
+	perf_count(_interval_perf);
 
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
-		// clear update
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
-
-		// update parameters from storage
 		updateParams();
 	}
-}
 
-int TAP_ESC::control_callback_trampoline(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input)
-{
-	TAP_ESC *obj = (TAP_ESC *)handle;
-	return obj->control_callback(control_group, control_index, input);
-}
+	if (!_initialized) {
+		if (init() == PX4_OK) {
+			_initialized = true;
 
-int TAP_ESC::control_callback(uint8_t control_group, uint8_t control_index, float &input)
-{
-	input = _controls[control_group].control[control_index];
+		} else {
+			PX4_ERR("init failed");
+			exit_and_cleanup();
+		}
 
-	/* limit control input */
-	if (input > 1.0f) {
-		input = 1.0f;
+	} else {
+		_mixing_output.update();
 
-	} else if (input < -1.0f) {
-		input = -1.0f;
-	}
+		// Handle tunes
+		if (_tune_control_sub.updated()) {
+			tune_control_s tune;
 
-	/* throttle not arming - mark throttle input as invalid */
-	if (_armed.prearmed && !_armed.armed) {
-		if ((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
-		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
-		    control_index == actuator_controls_s::INDEX_THROTTLE) {
-			/* set the throttle to an invalid value */
-			input = NAN;
+			if (_tune_control_sub.copy(&tune)) {
+				if (tune.timestamp > 0) {
+					Tunes::ControlResult result = _tunes.set_control(tune);
+					_play_tone = (result == Tunes::ControlResult::Success) || (result == Tunes::ControlResult::AlreadyPlaying);
+					PX4_DEBUG("new tune id: %d, result: %d, play: %d", tune.tune_id, (int)result, _play_tone);
+				}
+			}
+		}
+
+		const hrt_abstime timestamp_now = hrt_absolute_time();
+
+		if ((timestamp_now - _interval_timestamp <= _duration) || !_play_tone) {
+			//return;
+		} else {
+			_interval_timestamp = timestamp_now;
+
+			if (_silence_length > 0) {
+				_duration = _silence_length;
+				_silence_length = 0;
+
+			} else if (_play_tone) {
+				uint8_t strength = 0;
+				Tunes::Status parse_ret_val = _tunes.get_next_note(_frequency, _duration, _silence_length, strength);
+
+				if (parse_ret_val == Tunes::Status::Continue) {
+					// Continue playing.
+					_play_tone = true;
+
+					if (_frequency > 0) {
+						// Start playing the note.
+						EscbusTunePacket esc_tune_packet{};
+						esc_tune_packet.frequency = _frequency;
+						esc_tune_packet.duration_ms = (uint16_t)(_duration / 1000); // convert to ms
+						esc_tune_packet.strength = strength;
+						send_tune_packet(esc_tune_packet);
+					}
+
+				} else {
+					_play_tone = false;
+					_silence_length = 0;
+				}
+			}
 		}
 	}
 
-	return 0;
+	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
+	_mixing_output.updateSubscriptions(true, true);
+
+	perf_end(_cycle_perf);
 }
 
-int TAP_ESC::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
+int TAP_ESC::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
 
+	lock();
+
 	switch (cmd) {
 	case MIXERIOCRESET:
-		if (_mixers != nullptr) {
-			delete _mixers;
-			_mixers = nullptr;
-			_groups_required = 0;
-		}
-
+		_mixing_output.resetMixerThreadSafe();
 		break;
 
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
 			unsigned buflen = strlen(buf);
-
-			if (_mixers == nullptr) {
-				_mixers = new MixerGroup();
-			}
-
-			if (_mixers == nullptr) {
-				_groups_required = 0;
-				ret = -ENOMEM;
-
-			} else {
-				ret = _mixers->load_from_buf(control_callback_trampoline, (uintptr_t)this, buf, buflen);
-
-				if (ret != 0) {
-					PX4_DEBUG("mixer load failed with %d", ret);
-					delete _mixers;
-					_mixers = nullptr;
-					_groups_required = 0;
-					ret = -EINVAL;
-
-				} else {
-					_mixers->groups_required(_groups_required);
-				}
-			}
-
+			ret = _mixing_output.loadMixerThreadSafe(buf, buflen);
 			break;
 		}
+
 
 	default:
 		ret = -ENOTTY;
 		break;
 	}
 
+	unlock();
+
 	return ret;
 }
 
-/** @see ModuleBase */
-void TAP_ESC::run()
-{
-	// Main loop
-	while (!should_exit()) {
-		cycle();
-	}
-}
-
-/** @see ModuleBase */
 int TAP_ESC::task_spawn(int argc, char *argv[])
 {
-	/* start the task */
-	_task_id = px4_task_spawn_cmd("tap_esc", SCHED_DEFAULT, SCHED_PRIORITY_ACTUATOR_OUTPUTS, 1472,
-				      (px4_main_t)&run_trampoline, argv);
+	/* Parse arguments */
+	const char *device = nullptr;
+	uint8_t channels_count = 0;
 
-	if (_task_id < 0) {
-		PX4_ERR("task start failed");
-		_task_id = -1;
-		return PX4_ERROR;
-	}
+	int ch;
+	int myoptind = 1;
+	const char *myoptarg = nullptr;
 
-	// wait until task is up & running
-	if (wait_until_running() < 0) {
-		_task_id = -1;
+	if (argc < 2) {
+		print_usage("not enough arguments");
 		return -1;
 	}
 
-	return PX4_OK;
+	while ((ch = px4_getopt(argc, argv, "d:n:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'd':
+			device = myoptarg;
+			break;
+
+		case 'n':
+			channels_count = atoi(myoptarg);
+			break;
+		}
+	}
+
+	// Sanity check on arguments
+	if (channels_count == 0) {
+		print_usage("Channel count is invalid (0)");
+		return -1;
+	}
+
+	if (device == nullptr || strlen(device) == 0) {
+		print_usage("no device specified");
+		return -1;
+	}
+
+	TAP_ESC *instance = new TAP_ESC(device, channels_count);
+
+	if (!instance) {
+		PX4_ERR("alloc failed");
+		return -1;
+	}
+
+	_object.store(instance);
+	_task_id = task_id_is_work_queue;
+	instance->ScheduleNow();
+	return 0;
 }
 
-/** @see ModuleBase */
+int TAP_ESC::custom_command(int argc, char *argv[])
+{
+	return print_usage("unknown command");
+}
+
+int TAP_ESC::print_status()
+{
+	_mixing_output.printStatus();
+	return 0;
+}
+
 int TAP_ESC::print_usage(const char *reason)
 {
 	if (reason) {

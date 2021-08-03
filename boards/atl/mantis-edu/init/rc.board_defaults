@@ -20,4 +20,3 @@ set LOGGER_ARGS "-m mavlink"
 
 # Start esc
 tap_esc start -d /dev/ttyS4 -n 4
-mixer load /dev/tap_esc /etc/mixers/quad_x.main.mix

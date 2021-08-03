@@ -41,33 +41,28 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
 
 #include <errno.h>
 
 #include <math.h>	// NAN
 #include <cstring>
 
+#include <lib/drivers/device/device.h>
+#include <lib/mixer_module/mixer_module.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/cdev/CDev.hpp>
 #include <lib/led/led.h>
-#include <lib/perf/perf_counter.h>
 #include <lib/tunes/tunes.h>
 
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/test_motor.h>
-#include <uORB/topics/input_rc.h>
 #include <uORB/topics/esc_status.h>
-#include <uORB/topics/multirotor_motor_limits.h>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/led_control.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
-#include <lib/mixer/MixerGroup.hpp>
 
 #include "tap_esc_common.h"
 
@@ -81,25 +76,19 @@
 #  define DEVICE_ARGUMENT_MAX_LENGTH 32
 #endif
 
-// uorb update rate for control groups in milliseconds
-#if !defined(TAP_ESC_CTRL_UORB_UPDATE_INTERVAL)
-#  define TAP_ESC_CTRL_UORB_UPDATE_INTERVAL 2  // [ms] min: 2, max: 100
-#endif
+using namespace time_literals;
 
 /*
  * This driver connects to TAP ESCs via serial.
  */
-class TAP_ESC : public cdev::CDev, public ModuleBase<TAP_ESC>, public ModuleParams
+class TAP_ESC : public cdev::CDev, public ModuleBase<TAP_ESC>, public OutputModuleInterface
 {
 public:
-	TAP_ESC(char const *const device, uint8_t channels_count);
+	TAP_ESC(const char *device, uint8_t channels_count);
 	virtual ~TAP_ESC();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static TAP_ESC *instantiate(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
@@ -107,54 +96,40 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	/** @see ModuleBase::run() */
-	void run() override;
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
 
-	virtual int init();
-	virtual int ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
-	void cycle();
+	int init() override;
+	int ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
+
+	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:
 
-	void subscribe();
-	void send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt);
+	void Run() override;
+
+	inline void send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt);
 	inline void send_tune_packet(EscbusTunePacket &tune_packet);
-	static int control_callback_trampoline(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input);
-	inline int control_callback(uint8_t control_group, uint8_t control_index, float &input);
 
-	char 			_device[DEVICE_ARGUMENT_MAX_LENGTH] {};
-	int 			_uart_fd{-1};
-	static const uint8_t 	_device_mux_map[TAP_ESC_MAX_MOTOR_NUM];
-	static const uint8_t 	_device_dir_map[TAP_ESC_MAX_MOTOR_NUM];
-	bool 			_is_armed{false};
+	MixingOutput _mixing_output;
 
-	uORB::Subscription	_armed_sub{ORB_ID(actuator_armed)};
-	uORB::Subscription 	_test_motor_sub{ORB_ID(test_motor)};
-	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::PublicationMulti<actuator_outputs_s> _outputs_pub{ORB_ID(actuator_outputs)};
-	actuator_outputs_s      _outputs{};
-	actuator_armed_s	_armed{};
+	bool _initialized{false};
+	char _device[DEVICE_ARGUMENT_MAX_LENGTH] {};
+	int _uart_fd{-1};
 
-	perf_counter_t	_perf_control_latency{perf_alloc(PC_ELAPSED, MODULE_NAME": control latency")};
-
-	int			_control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
-	actuator_controls_s 	_controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS] {};
-	orb_id_t		_control_topics[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS] {};
-	px4_pollfd_struct_t	_poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS] {};
-	unsigned		_poll_fds_num{0};
+	const uint8_t _device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_POS;
+	const uint8_t _device_dir_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_DIR;
 
 	uORB::PublicationMulti<esc_status_s> _esc_feedback_pub{ORB_ID(esc_status)};
-	uORB::PublicationMulti<multirotor_motor_limits_s> _to_mixer_status{ORB_ID(multirotor_motor_limits)}; ///< mixer status flags
 	esc_status_s      _esc_feedback{};
 	uint8_t    	  _channels_count{0}; 		///< number of ESC channels
 	uint8_t 	  _responding_esc{0};
 
-	MixerGroup	*_mixers{nullptr};
-	uint32_t	_groups_required{0};
-	uint32_t	_groups_subscribed{0};
-	ESC_UART_BUF 	_uartbuf{};
-	EscPacket 	_packet{};
+	ESC_UART_BUF _uartbuf{};
+	EscPacket    _packet{};
 
 	Tunes _tunes{};
 	uORB::Subscription _tune_control_sub{ORB_ID(tune_control)};
@@ -164,10 +139,9 @@ private:
 	unsigned int _frequency{0};
 	unsigned int _duration{0};
 
-	LedControlData 	_led_control_data{};
-	LedController 	_led_controller{};
+	LedControlData _led_control_data{};
+	LedController  _led_controller{};
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode   ///< multicopter air-mode
-	)
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	perf_counter_t _interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
 };

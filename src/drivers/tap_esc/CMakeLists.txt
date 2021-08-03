@@ -44,6 +44,8 @@ px4_add_module(
 	DEPENDS
 		led
 		mixer
+		mixer_module
+		output_limit
 		tunes
 	)
 
