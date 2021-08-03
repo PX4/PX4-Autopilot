@@ -173,7 +173,7 @@ private:
 	void publish_sih();
 	void generate_aerodynamics();
 	float sincf(float x);	// sin cardinal = sin(x)/x
-	matrix::Quatf expq(const matrix::Vector3f& u);  // quaternion exponential as defined in [3]
+	matrix::Quatf expq(const matrix::Vector3f &u);  // quaternion exponential as defined in [3]
 	// States eom_f(States); 	// equations of motion f: x'=f(x)
 
 

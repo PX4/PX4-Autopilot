@@ -80,13 +80,13 @@ private:
 	// static constexpr const float afs_tab[N_TAB] = {49.00f,54.00f,56.00f,48.00f,40.00f,29.00f,27.00f,25.00f,24.00f,22.00f,22.00f,20.00f};
 
 	// deflection effectiveness curve fitted as second order
-	static constexpr const float eta_poly[] = {0.0535f, -0.2688f, 0.5817f}; 	// 1/rad
+	static constexpr const float ETA_POLY[] = {0.0535f, -0.2688f, 0.5817f}; 	// 1/rad
 
 	// aerodynamic and physical constants
-	static constexpr const float P0 = 101325.0f;	// pressure at sea level [N/m^2]=[Pa]
+	static constexpr const float P0 = 101325.0f;	// _pressure at sea level [N/m^2]=[Pa]
 	static constexpr const float R = 287.04f;		// real gas constant for air [J/kg/K]
-	static constexpr const float T0_K = 288.15f;	// temperature at sea level [K]
-	static constexpr const float TEMP_GRADIENT  = -6.5e-3f;    // temperature gradient in degrees per metre
+	static constexpr const float T0_K = 288.15f;	// _temperature at sea level [K]
+	static constexpr const float TEMP_GRADIENT  = -6.5e-3f;    // _temperature gradient in degrees per metre
 
 	static constexpr const float KV = M_PI_F; 	// total vortex lift parameter
 	static constexpr float CD0 = 0.04f; 		// no lift drag coefficient
@@ -96,56 +96,57 @@ private:
 
 	// here we make the distinction of the plate (i.e. wing, or tailplane, or fin) and the segment
 	// the segment can be a portion of the wing, but the aspect ratio (AR) of the wing needs to be used
-	float alpha; 		// angle of attack [rad]
-	float CL, CD, CM; 	// aerodynamic coefficients
-	float CL_, CD_, CM_; 	// low aoa coeffs
-	float f_blend;		// blending function
-	matrix::Vector3f p_B; 	// position of the aerodynamic center of the segment from CM in body frame [m]
-	matrix::Dcmf C_BS;	// dcm from segment frame to body frame
-	float ar;		// aspect ratio of the plate
-	float span;		// span of the segment
-	float mac;		// mean aerodynamic chord of the segment
-	float alpha_0;		// zero lift angle of attack [rad]
-	float kp, kn;
-	float ate, ale, afte, afle;	// semi empirical coefficients for flat plates function of AR
-	float tau_te, tau_le, fte, fle; 	// leading and trailing edge functions
-	float rho = 1.225f; 	// air density at current altitude [kg/m^3]
-	float kD;		// for parabolic drag model
-	const float k0=0.87f;	// Oswald efficiency factor
+	float _alpha; 		// angle of attack [rad]
+	float _CL, _CD, _CM; 	// aerodynamic coefficients
+	float _CL_, _CD_, _CM_; 	// low aoa coeffs
+	float _f_blend;		// blending function
+	matrix::Vector3f _p_B; 	// position of the aerodynamic center of the segment from _CM in body frame [m]
+	matrix::Dcmf _C_BS;	// dcm from segment frame to body frame
+	float _ar;		// aspect ratio of the plate
+	float _span;		// _span of the segment
+	float _mac;		// mean aerodynamic chord of the segment
+	float _alpha_0;		// zero lift angle of attack [rad]
+	float _kp, _kn;
+	float _ate, _ale, _afte, _afle;	// semi empirical coefficients for flat plates function of AR
+	float _tau_te, _tau_le, _fte, _fle; 	// leading and trailing edge functions
+	float _rho = 1.225f; 	// air density at current altitude [kg/m^3]
+	float _kD;		// for parabolic drag model
+	const float K0 = 0.87f;	// Oswald efficiency factor
 	// variables for flap model
-	float eta_f;		// flap effectiveness
-	float def_a;		// absolute value of the deflection angle
-	float cf;		// flap chord (control surface chord length)
-	float theta_f, tau_f;	// check 3.2.3 in [2]
-	float deltaCL, dCLmax;	// increase in lift coefficient
-	float CLmax, CLmin;	// max and min lift value
-	float alpha_eff_min; 	// min effective angle of attack
-	float alpha_eff_max;	// max effective angle of attack
-	float alpha_min; 	// min angle of attack (stall angle)
-	float alpha_max;	// min angle of attack (stall angle)
-	float alf0eff;		// effective zero lift angle of attack
-	float alfmeff;		// effective maximum lift angle of attack
-	float alpha_eff;	// effectie angle of attack
-	float alpha_eff_dot;	// effectie angle of attack derivative
-	float alpha_eff_old;	// angle of attack [rad]
+	float _eta_f;		// flap effectiveness
+	float _def_a;		// absolute value of the deflection angle
+	float _cf;		// flap chord (control surface chord length)
+	float _theta_f, _tau_f;	// check 3.2.3 in [2]
+	float _deltaCL, _dCLmax;	// increase in lift coefficient
+	float _CLmax, _CLmin;	// max and min lift value
+	float _alpha_eff_min; 	// min effective angle of attack
+	float _alpha_eff_max;	// max effective angle of attack
+	float _alpha_min; 	// min angle of attack (stall angle)
+	float _alpha_max;	// min angle of attack (stall angle)
+	float _alf0eff;		// effective zero lift angle of attack
+	float _alfmeff;		// effective maximum lift angle of attack
+	float _alpha_eff;	// effectie angle of attack
+	float _alpha_eff_dot;	// effectie angle of attack derivative
+	float _alpha_eff_old;	// angle of attack [rad]
 
-	float pressure; 	// pressure in Pa at current altitude
-	float temperature;	// temperature in K at current altitude
-	float prop_radius;	// propeller radius [m], used to create the slipstream
-	float v_slipstream;	// slipstream velocity [m/s], computed from momentum theory
+	float _pressure; 	// pressure in Pa at current altitude
+	float _temperature;	// temperature in K at current altitude
+	float _prop_radius;	// propeller radius [m], used to create the slipstream
+	float _v_slipstream;	// slipstream velocity [m/s], computed from momentum theory
 
-	matrix::Vector3f Fa;	// aerodynamic force
-	matrix::Vector3f Ma;	// aerodynamic moment computed at CM directly
+	matrix::Vector3f _Fa;	// aerodynamic force
+	matrix::Vector3f _Ma;	// aerodynamic moment computed at _CM directly
 
 public:
 
-	AeroSeg(){
+	AeroSeg()
+	{
 		AeroSeg(1.0f, 0.2f, 0.0f, matrix::Vector3f());
 	}
 
 	/** public explicit constructor
-	 * AeroSeg(float span_, float mac_, float alpha_0_deg, matrix::Vector3f p_B_, float dihedral_deg = 0.0f,
-	 * float AR = -1.0f, float cf_ = 0.0f, float prop_radius_=-1.0f)
+	 * AeroSeg(float span, float mac, float alpha_0_deg, matrix::Vector3f p_B, float dihedral_deg = 0.0f,
+	 * float AR = -1.0f, float cf = 0.0f, float prop_radius=-1.0f, float cl_alpha=2.0f*M_PI_F, float alpha_max_deg=0.0f, float alpha_min_deg=0.0f)
 	 *
 	 * span_: span of the segment [m]
 	 * mac_: mean aerodynamic chord of the segment [m]
@@ -153,15 +154,16 @@ public:
 	 * p_B_: position of the segment (mean aerodynamic center) in the body frame from the center of mass [m,m,m]
 	 * dihedral_deg: dihedral angle of the segment [deg], set to 0 for tailplane, set to -90 for the fin. default is 0.
 	 * AR: Aspect Ratio of the wing, or tailplane, or fin (not the segment).
-	 *     If the aspect ratio is negative, the aspect ratio is computed from the span and MAC
+	 *     If the aspect ratio is negative, the aspect ratio is computed from the _span and MAC
 	 * cf_: flap chord [m], this is the chord length of the control surface, default is zero (no flap).
 	 * prop_radius_: radius of the propeller for slipstream computation. Setting to -1 (default) will assume no slipstream.
 	 * cl_alpha: 2D lift curve slope (1/rad), default it 2*pi for a flat plate. This can be computed from http://airfoiltools.com for instance.
 	 * alpha_max_deg: maximum angle of attack before stall. Setting to 0 (default) will compute it from a table for flat plate.
 	 * alpha_min_deg: maximum negative angle of attack before stall. Setting to 0 (default) will compute it from a table for flat plate.
 	 */
-	explicit AeroSeg(float span_, float mac_, float alpha_0_deg, matrix::Vector3f p_B_, float dihedral_deg = 0.0f,
-			 float AR = -1.0f, float cf_ = 0.0f, float prop_radius_=-1.0f, float cl_alpha=2.0f*M_PI_F, float alpha_max_deg=0.0f, float alpha_min_deg=0.0f)
+	explicit AeroSeg(float span, float mac, float alpha_0_deg, matrix::Vector3f p_B, float dihedral_deg = 0.0f,
+			 float AR = -1.0f, float cf = 0.0f, float prop_radius = -1.0f, float cl_alpha = 2.0f * M_PI_F,
+			 float alpha_max_deg = 0.0f, float alpha_min_deg = 0.0f)
 	{
 		static const float AR_tab[N_TAB] = {0.1666f, 0.333f, 0.4f, 0.5f, 1.0f, 1.25f, 2.0f, 3.0f, 4.0f, 6.0f};
 		static const float ale_tab[N_TAB] = {3.00f, 3.64f, 4.48f, 7.18f, 10.20f, 13.38f, 14.84f, 14.49f, 9.95f, 12.93f, 15.00f, 15.00f};
@@ -170,34 +172,39 @@ public:
 		static const float afte_tab[N_TAB] = {59.00f, 58.60f, 58.20f, 51.85f, 41.46f, 28.09f, 39.40f, 35.86f, 26.76f, 19.76f, 16.43f, 14.00f};
 		static const float afs_tab[N_TAB] = {49.00f, 54.00f, 56.00f, 48.00f, 40.00f, 29.00f, 27.00f, 25.00f, 24.00f, 22.00f, 22.00f, 20.00f};
 
-		span = span_;
-		mac = mac_;
-		alpha_0 = math::radians(alpha_0_deg);
-		p_B = matrix::Vector3f(p_B_);
-		ar = (AR <= 0.0f) ? span / mac : AR; // setting AR<=0 will compute it from span and mac
-		alpha_eff = 0.0f;
-		alpha_eff_old = 0.0f;
-		kp = cl_alpha / (1.0f + 2.0f * (ar + 4.0f) / (ar * (ar + 2.0f)));
-		kn = 0.41f * (1.0f - expf(-17.0f / ar));
-		ale = lin_interp_lkt(AR_tab, ale_tab, ar, N_TAB);
-		ate = lin_interp_lkt(AR_tab, ate_tab, ar, N_TAB);
-		afle = lin_interp_lkt(AR_tab, afle_tab, ar, N_TAB);
-		afte = lin_interp_lkt(AR_tab, afte_tab, ar, N_TAB);
-		float afs_rad = math::radians(lin_interp_lkt(AR_tab, afs_tab, ar, N_TAB));
-		if (fabsf(alpha_max_deg)<1.0e-3f) {
-			alpha_max = afs_rad;
+		_span = span;
+		_mac = mac;
+		_alpha_0 = math::radians(alpha_0_deg);
+		_p_B = matrix::Vector3f(p_B);
+		_ar = (AR <= 0.0f) ? _span / _mac : AR; // setting AR<=0 will compute it from _span and _mac
+		_alpha_eff = 0.0f;
+		_alpha_eff_old = 0.0f;
+		_kp = cl_alpha / (1.0f + 2.0f * (_ar + 4.0f) / (_ar * (_ar + 2.0f)));
+		_kn = 0.41f * (1.0f - expf(-17.0f / _ar));
+		_ale = lin_interp_lkt(AR_tab, ale_tab, _ar, N_TAB);
+		_ate = lin_interp_lkt(AR_tab, ate_tab, _ar, N_TAB);
+		_afle = lin_interp_lkt(AR_tab, afle_tab, _ar, N_TAB);
+		_afte = lin_interp_lkt(AR_tab, afte_tab, _ar, N_TAB);
+		float afs_rad = math::radians(lin_interp_lkt(AR_tab, afs_tab, _ar, N_TAB));
+
+		if (fabsf(alpha_max_deg) < 1.0e-3f) {
+			_alpha_max = afs_rad;
+
 		} else {
-			alpha_max = math::radians(alpha_max_deg);
+			_alpha_max = math::radians(alpha_max_deg);
 		}
-		if (fabsf(alpha_min_deg)<1.0e-3f) {
-			alpha_min = -afs_rad;
+
+		if (fabsf(alpha_min_deg) < 1.0e-3f) {
+			_alpha_min = -afs_rad;
+
 		} else {
-			alpha_min = math::radians(alpha_min_deg);
+			_alpha_min = math::radians(alpha_min_deg);
 		}
-		cf = math::constrain(cf_, 0.0f, mac_);
-		C_BS = matrix::Dcmf(matrix::Eulerf(math::radians(dihedral_deg), 0.0f, 0.0f));
-		prop_radius=prop_radius_;
-		kD = 1.0f/(M_PI_F*k0*ar);
+
+		_cf = math::constrain(cf, 0.0f, mac);
+		_C_BS = matrix::Dcmf(matrix::Eulerf(math::radians(dihedral_deg), 0.0f, 0.0f));
+		_prop_radius = prop_radius;
+		_kD = 1.0f / (M_PI_F * K0 * _ar);
 	}
 
 	/** aerodynamic force and moments of a generic flate plate segment
@@ -210,129 +217,137 @@ public:
 	 * def: flap deflection angle [rad], default is 0.
 	 * thrust: thrust force [N] from the propeller to compute the slipstream velocity, default is 0.
 	 */
-	void update_aero(matrix::Vector3f v_B, matrix::Vector3f w_B, float alt = 0.0f, float def = 0.0f, float thrust=0.0f)
+	void update_aero(matrix::Vector3f v_B, matrix::Vector3f w_B, float alt = 0.0f, float def = 0.0f, float thrust = 0.0f)
 	{
 		// ISA model taken from Mustafa Cavcar, Anadolu University, Turkey
-		pressure = P0 * powf(1.0f - 0.0065f * alt / T0_K, 5.2561f);
-		temperature = T0_K + TEMP_GRADIENT * alt;
-		rho = pressure / R / temperature;
+		_pressure = P0 * powf(1.0f - 0.0065f * alt / T0_K, 5.2561f);
+		_temperature = T0_K + TEMP_GRADIENT * alt;
+		_rho = _pressure / R / _temperature;
 
-		matrix::Vector3f vel = C_BS.transpose() * (v_B + w_B % p_B); 	// velocity in segment frame
-		if (prop_radius>1e-4f) {
+		matrix::Vector3f vel = _C_BS.transpose() * (v_B + w_B % _p_B); 	// velocity in segment frame
+
+		if (_prop_radius > 1e-4f) {
 			// Add velocity generated from the propeller and thrust force.
 			// Computed from momentum theory.
-			// For info, the diameter of the slipstream is sqrt(2)*prop_radius,
+			// For info, the diameter of the slipstream is sqrt(2)*_prop_radius,
 			// this should be the width of the segment in the slipstream.
-			vel(0) += sqrtf(2.0f*thrust/(rho*M_PI_F*prop_radius*prop_radius));
+			vel(0) += sqrtf(2.0f * thrust / (_rho * M_PI_F * _prop_radius * _prop_radius));
 		}
+
 		float vxz2 = vel(0) * vel(0) + vel(2) * vel(2);
+
 		if (vxz2 < 0.01f) {
-			Fa = matrix::Vector3f();
-			Ma = matrix::Vector3f();
+			_Fa = matrix::Vector3f();
+			_Ma = matrix::Vector3f();
 			return;
 		}
 
-		alpha = atan2f(vel(2), vel(0)) - alpha_0;
-		aoa_coeff(alpha, sqrtf(vxz2), def);
-		Fa = C_BS * (0.5f * rho * vxz2 * span * mac) * matrix::Vector3f(CL * sinf(alpha) - CD * cosf(alpha),
+		_alpha = atan2f(vel(2), vel(0)) - _alpha_0;
+		aoa_coeff(_alpha, sqrtf(vxz2), def);
+		_Fa = _C_BS * (0.5f * _rho * vxz2 * _span * _mac) * matrix::Vector3f(_CL * sinf(_alpha) - _CD * cosf(_alpha),
 				0.0f,
-				-CL * cosf(alpha) - CD * sinf(alpha));
-		Ma = C_BS * (0.5f * rho * vxz2 * span * mac * mac) * matrix::Vector3f(0.0f, CM,
-				0.0f) + p_B % Fa; 	// computed at vehicle CM
+				-_CL * cosf(_alpha) - _CD * sinf(_alpha));
+		_Ma = _C_BS * (0.5f * _rho * vxz2 * _span * _mac * _mac) * matrix::Vector3f(0.0f, _CM,
+				0.0f) + _p_B % _Fa; 	// computed at vehicle _CM
 	}
 
 	// return the air density at current altitude, must be called after update_aero()
-	float get_rho() const { return rho; }
+	float get_rho() const { return _rho; }
 
-	// return the sum of aerodynamic forces of the segment in the body frame, taken at the CM,
+	// return the sum of aerodynamic forces of the segment in the body frame, taken at the _CM,
 	// must be called after update_aero()
-	matrix::Vector3f get_Fa() const { return Fa; }
+	matrix::Vector3f get_Fa() const { return _Fa; }
 
-	// return the sum of aerodynamic moments of the segment in the body frame, taken at the CM,
+	// return the sum of aerodynamic moments of the segment in the body frame, taken at the _CM,
 	// must be called after update_aero()
-	matrix::Vector3f get_Ma() const { return Ma; }
+	matrix::Vector3f get_Ma() const { return _Ma; }
 
 private:
 
 	// low angle of attack and stalling region coefficient based on flat plate
 	void aoa_coeff(float a, float vxz, float def)
 	{
-		alpha_eff_old = alpha_eff;
-		tau_te = (vxz > 0.01f) ? 4.5f * mac / vxz : 0.0f;
-		tau_le = (vxz > 0.01f) ? 0.5f * mac / vxz : 0.0f;
+		_alpha_eff_old = _alpha_eff;
+		_tau_te = (vxz > 0.01f) ? 4.5f * _mac / vxz : 0.0f;
+		_tau_le = (vxz > 0.01f) ? 0.5f * _mac / vxz : 0.0f;
 
 		// model for the control surface deflection
-		if (cf / mac < 0.999f) {
-			def_a = fminf(fabsf(def), math::radians(70.0f));
-			eta_f = def_a * def_a * eta_poly[0] + def_a * eta_poly[1] + eta_poly[2];	// second order fit
-			theta_f = acosf(2.0f * cf / mac - 1.0f);
-			tau_f = 1.0f - (theta_f - sinf(theta_f)) / M_PI_F;
-			deltaCL = kp * tau_f * eta_f * def;
-			dCLmax = (1.0f - cf / mac) * deltaCL;
-			alf0eff = solve_alpha_eff(kp, KV, deltaCL, alpha_0);
-			alpha_eff = a - alf0eff;
+		if (_cf / _mac < 0.999f) {
+			_def_a = fminf(fabsf(def), math::radians(70.0f));
+			_eta_f = _def_a * _def_a * ETA_POLY[0] + _def_a * ETA_POLY[1] + ETA_POLY[2];	// second order fit
+			_theta_f = acosf(2.0f * _cf / _mac - 1.0f);
+			_tau_f = 1.0f - (_theta_f - sinf(_theta_f)) / M_PI_F;
+			_deltaCL = _kp * _tau_f * _eta_f * def;
+			_dCLmax = (1.0f - _cf / _mac) * _deltaCL;
+			_alf0eff = solve_alpha_eff(_kp, KV, _deltaCL, _alpha_0);
+			_alpha_eff = a - _alf0eff;
 
 			// this doesn't seem to work, so let's comment it
-			// alpha_eff_dot = math::constrain((alpha_eff - alpha_eff_old) / dt, -AF_DOT_MAX, AF_DOT_MAX);
-			// fte = 0.5f * (1.0f - tanhf(ate * ((alpha_eff) - tau_te * (alpha_eff_dot)
-			// 	- math::radians(afte))));	// normalized trailing edge separation
-			// fle = 0.5f * (1.0f - tanhf(ale * ((alpha_eff) - tau_le * (alpha_eff_dot)
-			// 	- math::radians(afle))));	// normalized leading edge separation
+			// _alpha_eff_dot = math::constrain((_alpha_eff - _alpha_eff_old) / dt, -AF_DOT_MAX, AF_DOT_MAX);
+			// _fte = 0.5f * (1.0f - tanhf(_ate * ((_alpha_eff) - _tau_te * (_alpha_eff_dot)
+			// 	- math::radians(_afte))));	// normalized trailing edge separation
+			// _fle = 0.5f * (1.0f - tanhf(_ale * ((_alpha_eff) - _tau_le * (_alpha_eff_dot)
+			// 	- math::radians(_afle))));	// normalized leading edge separation
 
-			fte =1.0f;
-			fle=1.0f;
-			CLmax = fCL(alpha_max - alpha_0) + dCLmax;
-			alpha_eff_max = alf0eff - solve_alpha_eff(kp, KV * fle * fle, CLmax / (0.25f * (1.0f + sqrtf(fte)) * (1.0f + sqrtf(fte))), alpha_max - alpha_0);
-			CLmin = fCL(alpha_min - alpha_0) + dCLmax;
-			alpha_eff_min = alf0eff - solve_alpha_eff(kp, KV * fle * fle, CLmin / (0.25f * (1.0f + sqrtf(fte)) * (1.0f + sqrtf(fte))), alpha_min - alpha_0);
+			_fte = 1.0f;
+			_fle = 1.0f;
+			_CLmax = fCL(_alpha_max - _alpha_0) + _dCLmax;
+			_alpha_eff_max = _alf0eff - solve_alpha_eff(_kp, KV * _fle * _fle,
+					 _CLmax / (0.25f * (1.0f + sqrtf(_fte)) * (1.0f + sqrtf(_fte))), _alpha_max - _alpha_0);
+			_CLmin = fCL(_alpha_min - _alpha_0) + _dCLmax;
+			_alpha_eff_min = _alf0eff - solve_alpha_eff(_kp, KV * _fle * _fle,
+					 _CLmin / (0.25f * (1.0f + sqrtf(_fte)) * (1.0f + sqrtf(_fte))), _alpha_min - _alpha_0);
 
 		} else { 	// this segment is a full flap
-			alpha_eff = a + def;
+			_alpha_eff = a + def;
 
 			// this doesn't seem to work, so let's comment it
-			// alpha_eff_dot = math::constrain((alpha_eff - alpha_eff_old) / dt, -AF_DOT_MAX, AF_DOT_MAX);
-			// fte = 0.5f * (1.0f - tanhf(ate * ((alpha_eff) - tau_te * (alpha_eff_dot)
-			// 	- math::radians(afte))));	// normalized trailing edge separation
-			// fle = 0.5f * (1.0f - tanhf(ale * ((alpha_eff) - tau_le * (alpha_eff_dot)
-			// 	- math::radians(afle))));	// normalized leading edge separation
+			// _alpha_eff_dot = math::constrain((_alpha_eff - _alpha_eff_old) / dt, -AF_DOT_MAX, AF_DOT_MAX);
+			// _fte = 0.5f * (1.0f - tanhf(_ate * ((_alpha_eff) - _tau_te * (_alpha_eff_dot)
+			// 	- math::radians(_afte))));	// normalized trailing edge separation
+			// _fle = 0.5f * (1.0f - tanhf(_ale * ((_alpha_eff) - _tau_le * (_alpha_eff_dot)
+			// 	- math::radians(_afle))));	// normalized leading edge separation
 
-			fte=1.0f;
-			fle=1.0f;
-			alpha_eff_max = alpha_max;
-			alpha_eff_min = alpha_min;
+			_fte = 1.0f;
+			_fle = 1.0f;
+			_alpha_eff_max = _alpha_max;
+			_alpha_eff_min = _alpha_min;
 		}
 
 		// compute the aerodynamic coefficients
-		high_aoa_coeff(alpha_eff, def);
-		CL_ = fCL(alpha_eff);
-		CD_ = CD0 + fabsf(CL*tanf(alpha_eff));
-		// CD_ = CD0 + kD*CL_*CL_; 	// alternative method
-		CM_ = -fCM(alpha_eff);
+		high_aoa_coeff(_alpha_eff, def);
+		_CL_ = fCL(_alpha_eff);
+		_CD_ = CD0 + fabsf(_CL * tanf(_alpha_eff));
+		// _CD_ = CD0 + _kD*_CL_*_CL_; 	// alternative method
+		_CM_ = -fCM(_alpha_eff);
+
 		// blending function
-		if (alpha_eff>0.0f) {
-			f_blend=0.5f*(1.0f-tanhf(4.0f*(alpha_eff-alpha_eff_max)/ALPHA_BLEND));
+		if (_alpha_eff > 0.0f) {
+			_f_blend = 0.5f * (1.0f - tanhf(4.0f * (_alpha_eff - _alpha_eff_max) / ALPHA_BLEND));
+
 		} else {
-			f_blend=0.5f*(1.0f-tanhf(-4.0f*(alpha_eff-alpha_eff_min)/ALPHA_BLEND));
+			_f_blend = 0.5f * (1.0f - tanhf(-4.0f * (_alpha_eff - _alpha_eff_min) / ALPHA_BLEND));
 		}
-		CL=CL_*f_blend+CL*(1.0f-f_blend);
-		CD=CD_*f_blend+CD*(1.0f-f_blend);
-		CM=CM_*f_blend+CM*(1.0f-f_blend);
+
+		_CL = _CL_ * _f_blend + _CL * (1.0f - _f_blend);
+		_CD = _CD_ * _f_blend + _CD * (1.0f - _f_blend);
+		_CM = _CM_ * _f_blend + _CM * (1.0f - _f_blend);
 	}
 
 	// high angle of attack coefficient based on flat plate
 	void high_aoa_coeff(float a, float def = 0.0f)
 	{
-		float mac_eff = sqrtf((mac - cf) * (mac - cf) + cf * cf + 2.0f * (mac - cf) * cf * cosf(fabsf(def)));
-		a += asinf(cf / mac_eff * sinf(def));
+		float mac_eff = sqrtf((_mac - _cf) * (_mac - _cf) + _cf * _cf + 2.0f * (_mac - _cf) * _cf * cosf(fabsf(def)));
+		a += asinf(_cf / mac_eff * sinf(def));
 		float cd90_eff = CD90 + 0.21f * def - 0.0426f * def *
 				 def; // this might not be accurate for lower flap chord to chord ratio
 		// normal coeff
-		float CN = cd90_eff * sinf(a) * (1.0f / (0.56f + 0.44f * sinf(fabsf(a))) - kn);
+		float CN = cd90_eff * sinf(a) * (1.0f / (0.56f + 0.44f * sinf(fabsf(a))) - _kn);
 		// tengential coeff
 		float CT = 0.5f * CD0 * cosf(a);
-		CL = CN * cosf(a) - CT * sinf(a);
-		CD = CN * sinf(a) + CT * cosf(a);
-		CM = -CN * (0.25f - 7.0f / 40.0f * (1.0f - 2.0f / M_PI_F * fabsf(a)));
+		_CL = CN * cosf(a) - CT * sinf(a);
+		_CD = CN * sinf(a) + CT * cosf(a);
+		_CM = -CN * (0.25f - 7.0f / 40.0f * (1.0f - 2.0f / M_PI_F * fabsf(a)));
 	}
 
 	// linear interpolation between 2 points
@@ -386,15 +401,15 @@ private:
 
 	float fCL(float a)
 	{
-		return 0.25f * (1.0f + sqrtf(fte)) * (1.0f + sqrtf(fte)) * (kp * sinf(a) * cosf(a) * cosf(a)
-				+ fle * fle * KV * fabsf(sinf(a)) * sinf(a) * cosf(a));
+		return 0.25f * (1.0f + sqrtf(_fte)) * (1.0f + sqrtf(_fte)) * (_kp * sinf(a) * cosf(a) * cosf(a)
+				+ _fle * _fle * KV * fabsf(sinf(a)) * sinf(a) * cosf(a));
 	}
 
 	float fCM(float a)
 	{
-		return -0.25f * (1.0f + sqrtf(fte)) * (1.0f + sqrtf(fte)) * 0.0625f * (-1.0f + 6.0f * sqrtf(
-					fte) - 5.0f * fte) * kp * sinf(a) * cosf(a)
-		       + 0.17f * fle * fle * KV * fabsf(sinf(a)) * sinf(a);
+		return -0.25f * (1.0f + sqrtf(_fte)) * (1.0f + sqrtf(_fte)) * 0.0625f * (-1.0f + 6.0f * sqrtf(
+					_fte) - 5.0f * _fte) * _kp * sinf(a) * cosf(a)
+		       + 0.17f * _fle * _fle * KV * fabsf(sinf(a)) * sinf(a);
 	}
 
 	// AeroSeg operator*(const float k) const {
