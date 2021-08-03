@@ -74,7 +74,7 @@ PARAM_DEFINE_FLOAT(LTEST_ACC_UNC, 10.0f);
  * Landing target measurement uncertainty
  *
  * Variance of the landing target measurement from the driver.
- * Higher values results in less agressive following of the measurement and a smoother output as well as fewer rejected measurements.
+ * Higher values result in less aggressive following of the measurement and a smoother output as well as fewer rejected measurements.
  *
  * @unit tan(rad)^2
  * @decimal 4
