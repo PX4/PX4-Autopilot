@@ -148,7 +148,7 @@ private:
 
 	void *_uavcan_heap{nullptr};
 
-	CanardInterface *const _can_interface;
+	CanardInterface *_can_interface;
 
 	CanardInstance _canard_instance;
 
