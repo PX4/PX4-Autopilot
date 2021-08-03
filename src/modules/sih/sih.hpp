@@ -149,12 +149,6 @@ private:
 	static constexpr float TEMP_GRADIENT  = -6.5f / 1000.0f;    // temperature gradient in degrees per metre
 	// Aerodynamic coefficients
 	static constexpr float RHO = 1.225f; 		// air density at sea level [kg/m^3]
-	static constexpr float CD0 = 0.04f; 		// no lift drag coefficient
-	static constexpr float CD90 = 1.98f; 		// 90 deg angle of attack drag coefficient
-	static constexpr float AOA_BLEND = 20.0f * M_PI_F / 180.0f; // blending angle width [rad]
-	static constexpr float CLa = 5.8015f; 				// CL/rad
-	static constexpr float K0 = 0.87f;     	// Oswald factor
-	static constexpr float CMa = -0.1f;     	// pitching moment lift curve slope
 	static constexpr float SPAN = 0.86f; 	// wing span [m]
 	static constexpr float MAC = 0.21f; 	// wing mean aerodynamic chord [m]
 	static constexpr float RP = 0.1f; 	// radius of the propeller [m]
