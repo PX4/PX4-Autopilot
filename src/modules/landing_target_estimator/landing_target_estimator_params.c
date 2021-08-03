@@ -99,7 +99,7 @@ PARAM_DEFINE_FLOAT(LTEST_POS_UNC_IN, 0.1f);
 /**
  * Initial landing target velocity uncertainty
  *
- * Initial variance of the relative landing target velocity in x and y direction
+ * Initial variance of the relative landing target velocity in x and y directions
  *
  * @unit (m/s)^2
  * @min 0.001
