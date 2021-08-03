@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,7 +47,6 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/led_control.h>
-#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
 
@@ -80,25 +79,22 @@ protected:
 	/** publish LED control */
 	void publish();
 
-	// TODO: review if there is a better variant that allocates this in the memory
-	uORB::SubscriptionData<battery_status_s> _battery_status_sub{ORB_ID(battery_status)};
-	uORB::SubscriptionData<cpuload_s> _cpu_load_sub{ORB_ID(cpuload)};
-	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::SubscriptionData<battery_status_s>       _battery_status_sub{ORB_ID(battery_status)};
+	uORB::SubscriptionData<cpuload_s>              _cpu_load_sub{ORB_ID(cpuload)};
+	uORB::SubscriptionData<vehicle_status_s>       _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::SubscriptionData<vehicle_status_flags_s> _vehicle_status_flags_sub{ORB_ID(vehicle_status_flags)};
-	uORB::SubscriptionData<vehicle_attitude_s> _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 
-	struct led_control_s _led_control = {};
+	led_control_s _led_control{};
 
 private:
-	bool _old_gps_lock_valid = false;
-	bool _old_home_position_valid = false;
-	bool _low_battery = false;
-	bool _critical_battery = false;
-	int _old_nav_state = -1;
-	int _old_battery_status_warning = -1;
-
 	uORB::Publication<led_control_s> _led_control_pub{ORB_ID(led_control)};
 
+	bool _old_gps_lock_valid{false};
+	bool _old_home_position_valid{false};
+	bool _low_battery{false};
+	bool _critical_battery{false};
+	int _old_nav_state{-1};
+	int _old_battery_status_warning{-1};
 };
 
 } /* namespace status */
