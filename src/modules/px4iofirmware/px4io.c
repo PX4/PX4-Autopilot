@@ -399,7 +399,7 @@ user_start(int argc, char *argv[])
 	uint64_t last_loop_time = 0;
 
 	for (;;) {
-		dt = (hrt_absolute_time() - last_loop_time) / 1000000.0f;
+		dt = (hrt_absolute_time() - last_loop_time) * 1E-6f;
 		last_loop_time = hrt_absolute_time();
 
 		if (dt < 0.0001f) {

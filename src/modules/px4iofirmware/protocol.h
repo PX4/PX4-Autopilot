@@ -75,7 +75,7 @@
 #define REG_TO_SIGNED(_reg)	((int16_t)(_reg))
 #define SIGNED_TO_REG(_signed)	((uint16_t)(_signed))
 
-#define REG_TO_FLOAT(_reg)	((float)REG_TO_SIGNED(_reg) / 10000.0f)
+#define REG_TO_FLOAT(_reg)	((float)REG_TO_SIGNED(_reg) * 1E-4f)
 #define FLOAT_TO_REG(_float)	SIGNED_TO_REG((int16_t)floorf((_float + 0.00005f) * 10000.0f))
 
 #define REG_TO_BOOL(_reg) 	((bool)(_reg))
