@@ -88,10 +88,7 @@ int MPL3115A2::probe()
 	uint8_t whoami = 0;
 
 	if ((RegisterRead(MPL3115A2_REG_WHO_AM_I, &whoami) > 0) && (whoami == MPL3115A2_WHO_AM_I)) {
-		/*
-		 * Disable retries; we may enable them selectively in some cases,
-		 * but the device gets confused if we retry some of the commands.
-		 */
+
 		return PX4_OK;
 	}
 
@@ -198,10 +195,6 @@ int MPL3115A2::measure()
 	// Send the command to read the ADC for P and T.
 	unsigned addr = (MPL3115A2_CTRL_REG1 << 8) | MPL3115A2_CTRL_TRIGGER;
 
-	/*
-	 * Disable retries on this command; we can't know whether failure
-	 * means the device did or did not see the command.
-	 */
 	int ret = RegisterWrite((addr >> 8) & 0xff, addr & 0xff);
 
 	if (ret == -EIO) {
