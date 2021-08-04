@@ -937,7 +937,7 @@ err_out_no_test:
 
 				printf(" failsafe: %d, disarmed: %" PRIu16 " us, min: %" PRIu16 " us, max: %" PRIu16 " us, trim: %5.2f)",
 				       failsafe_pwm.values[i], disarmed_pwm.values[i], min_pwm.values[i], max_pwm.values[i],
-				       (double)((int16_t)(trim_pwm.values[i]) / 10000.0f));
+				       (double)((int16_t)(trim_pwm.values[i]) * 1E-4f));
 				printf("\n");
 
 			} else {

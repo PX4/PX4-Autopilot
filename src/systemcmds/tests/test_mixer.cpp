@@ -456,7 +456,7 @@ bool MixerTest::mixerTest()
 	for (int j = -jmax; j <= jmax; j++) {
 
 		for (unsigned i = 0; i < output_max; i++) {
-			actuator_controls[i] = j / 10.0f + 0.1f * i;
+			actuator_controls[i] = j * 1E-1f + 0.1f * i;
 			r_page_servo_disarmed[i] = PWM_LOWEST_MIN;
 			r_page_servo_control_min[i] = PWM_DEFAULT_MIN;
 			r_page_servo_control_max[i] = PWM_DEFAULT_MAX;
