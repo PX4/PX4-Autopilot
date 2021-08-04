@@ -80,7 +80,7 @@ public:
 		bat_status.voltage_filtered_v = bat_info.voltage;
 		bat_status.current_filtered_a = bat_info.current;
 		bat_status.current_average_a = bat_info.average_power_10sec;
-		bat_status.remaining = bat_info.state_of_charge_pct / 100.0f;
+		bat_status.remaining = bat_info.state_of_charge_pct * 1E-2f;
 		bat_status.scale = -1;
 
 		if (bat_info.status_flags & legacy_equipment_power_BatteryInfo_1_0_STATUS_FLAG_TEMP_HOT) {
