@@ -234,7 +234,7 @@ bool LSM9DS1_MAG::Configure()
 	}
 
 	// Magnetic FS = ±16 gauss 0.58 mgauss/LSB
-	_px4_mag.set_scale(0.58f / 1000.0f);
+	_px4_mag.set_scale(0.58f * 1E-3f);
 
 	return success;
 }
