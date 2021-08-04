@@ -113,7 +113,7 @@ int VL53L0X::collect()
 	perf_end(_sample_perf);
 
 	uint16_t distance_mm = (val[0] << 8) | val[1];
-	float distance_m = distance_mm / 1000.f;
+	float distance_m = distance_mm * 1E-3f;
 
 	_px4_rangefinder.update(timestamp_sample, distance_m);
 

@@ -108,7 +108,7 @@ int AerotennaULanding::collect()
 						if (checksum_value == checksum_byte) {
 							checksum_passed = true;
 							distance_cm = (_buffer[index + 3] << 8) | _buffer[index + 2];
-							distance_m = static_cast<float>(distance_cm) / 100.f;
+							distance_m = static_cast<float>(distance_cm) * 1E-2f;
 						}
 
 					} else {
