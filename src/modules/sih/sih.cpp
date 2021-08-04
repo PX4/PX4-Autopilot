@@ -394,7 +394,7 @@ void Sih::send_dist_snsr()
 
 		if (_distance_snsr.current_distance > _distance_snsr_max) {
 			// this is based on lightware lw20 behaviour
-			_distance_snsr.current_distance = UINT16_MAX / 100.f;
+			_distance_snsr.current_distance = UINT16_MAX * 1E-2f;
 
 		}
 	}
