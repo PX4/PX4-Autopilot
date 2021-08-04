@@ -455,7 +455,7 @@ void IridiumSBD::sbdsession_loop(void)
 	mt_queued = strtol(*rx_buf_parse, rx_buf_parse, 10);
 
 	VERBOSE_INFO("MO ST: %d, MT ST: %d, MT LEN: %d, MT QUEUED: %d", mo_status, mt_status, mt_len, mt_queued);
-	VERBOSE_INFO("SBD session duration: %.2f", (hrt_absolute_time() - _session_start_time) / 1000000.0);
+	VERBOSE_INFO("SBD session duration: %.2f", (hrt_absolute_time() - _session_start_time) * 1E-6);
 
 	switch (mo_status) {
 	case 0:
