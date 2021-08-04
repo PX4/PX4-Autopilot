@@ -89,6 +89,52 @@ int main()
     q = Quatf();
     TEST(isEqual(q, Quatf(1, 0, 0, 0)));
 
+    // quaternion exponential with v=0
+    v = Vector3f();
+    q = Quatf(1.0f, 0.0f, 0.0f, 0.0f);
+    Dcmf M = Dcmf()*0.5f;
+    TEST(isEqual(q, Quatf::expq(v)));
+    TEST(isEqual(M, Quatf::inv_r_jacobian(v)));
+
+    // quaternion exponential with small v
+    v = Vector3f(0.001f,0.002f,-0.003f);
+    q = Quatf(0.999993000008167f, 0.000999997666668f,
+              0.001999995333337f, -0.002999993000005f);
+    {
+        float M_data[] =  {
+            0.499997833331311f, 0.001500333333644f,  0.000999499999533f,
+            -0.001499666666356f, 0.499998333331778f, -0.000501000000933f,
+            -0.001000500000467f, 0.000498999999067f,  0.499999166665889f
+        };
+        M = Dcmf(M_data);
+    }
+    TEST(isEqual(q, Quatf::expq(v)));
+    TEST(isEqual(M, Quatf::inv_r_jacobian(v)));
+
+    // quaternion exponential with v
+    v = Vector3f(1.0f, -2.0f, 3.0f);
+    q = Quatf(-0.825299062075259f, -0.150921327219964f,
+              0.301842654439929f, -0.452763981659893f);
+    {
+        float M_data[] =  {
+            2.574616981530584f, -1.180828156687602f, -1.478757764968596f,
+            1.819171843312398f,  2.095859216561988f,  0.457515529937193f,
+            0.521242235031404f,  1.457515529937193f,  1.297929608280994f
+        };
+        M = Dcmf(M_data);
+    }
+    TEST(isEqual(q, Quatf::expq(v)));
+    TEST(isEqual(M, Quatf::inv_r_jacobian(v)));
+
+    // quaternion kinematic update
+    q = Quatf();
+    float h=0.001f;    // sampling time [s]
+    Vector3f w_B=Vector3f(0.1f,0.2f,0.3f);     // body rate in body frame
+    Quatf qa=q+0.5f*h*q.derivative1(w_B);
+    qa.normalize();
+    Quatf qb=q*Quatf::expq(0.5f*h*w_B);
+    TEST(isEqual(qa, qb));
+
     // euler to quaternion
     q = Quatf(euler_check);
     TEST(isEqual(q, q_check));
