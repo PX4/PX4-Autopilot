@@ -406,10 +406,10 @@ void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
 		gps.jamming_indicator = 0;
 		gps.jamming_state = 0;
 
-		gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
-		gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
-		gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
-		gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
+		gps.vel_m_s = (float)(hil_gps.vel) * 1E-2f; // cm/s -> m/s
+		gps.vel_n_m_s = (float)(hil_gps.vn) * 1E-2f; // cm/s -> m/s
+		gps.vel_e_m_s = (float)(hil_gps.ve) * 1E-2f; // cm/s -> m/s
+		gps.vel_d_m_s = (float)(hil_gps.vd) * 1E-2f; // cm/s -> m/s
 		gps.cog_rad = ((hil_gps.cog == 65535) ? NAN : matrix::wrap_2pi(math::radians(hil_gps.cog * 1e-2f))); // cdeg -> rad
 		gps.vel_ned_valid = true;
 
@@ -544,7 +544,7 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 
 		if (!map_projection_initialized(&_global_local_proj_ref)) {
 			map_projection_init(&_global_local_proj_ref, lat, lon);
-			_global_local_alt0 = hil_state.alt / 1000.f;
+			_global_local_alt0 = hil_state.alt * 1E-3f;
 		}
 
 		float x;
@@ -557,10 +557,10 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 		hil_lpos.v_z_valid = true;
 		hil_lpos.x = x;
 		hil_lpos.y = y;
-		hil_lpos.z = _global_local_alt0 - hil_state.alt / 1000.0f;
-		hil_lpos.vx = hil_state.vx / 100.0f;
-		hil_lpos.vy = hil_state.vy / 100.0f;
-		hil_lpos.vz = hil_state.vz / 100.0f;
+		hil_lpos.z = _global_local_alt0 - hil_state.alt * 1E-3f;
+		hil_lpos.vx = hil_state.vx * 1E-2f;
+		hil_lpos.vy = hil_state.vy * 1E-2f;
+		hil_lpos.vz = hil_state.vz * 1E-2f;
 		matrix::Eulerf euler = matrix::Quatf(hil_attitude.q);
 		hil_lpos.heading = euler.psi();
 		hil_lpos.xy_global = true;
@@ -1408,9 +1408,9 @@ int Simulator::publish_distance_topic(const mavlink_distance_sensor_t *dist_mavl
 {
 	distance_sensor_s dist{};
 	dist.timestamp = hrt_absolute_time();
-	dist.min_distance = dist_mavlink->min_distance / 100.0f;
-	dist.max_distance = dist_mavlink->max_distance / 100.0f;
-	dist.current_distance = dist_mavlink->current_distance / 100.0f;
+	dist.min_distance = dist_mavlink->min_distance * 1E-2f;
+	dist.max_distance = dist_mavlink->max_distance * 1E-2f;
+	dist.current_distance = dist_mavlink->current_distance * 1E-2f;
 	dist.type = dist_mavlink->type;
 	dist.variance = dist_mavlink->covariance * 1e-4f; // cm^2 to m^2
 

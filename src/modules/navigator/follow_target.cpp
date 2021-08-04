@@ -163,7 +163,7 @@ void FollowTarget::on_active()
 				_est_target_vel(2) = 0.0f;
 
 			} else {
-				_est_target_vel = _target_position_delta / (dt_ms / 1000.0f);
+				_est_target_vel = _target_position_delta / (dt_ms * 1E-3f);
 			}
 
 			// if the target is moving add an offset and rotation
@@ -187,7 +187,7 @@ void FollowTarget::on_active()
 			// get any closer or farther from the target
 
 			_step_vel = (_est_target_vel - _current_vel) + (_target_position_offset + _target_distance) * FF_K;
-			_step_vel /= (dt_ms / 1000.0F * (float) INTERPOLATION_PNTS);
+			_step_vel /= (dt_ms * 1E-3f * (float) INTERPOLATION_PNTS);
 			_step_time_in_ms = (dt_ms / (float) INTERPOLATION_PNTS);
 
 			// if we are less than 1 meter from the target don't worry about trying to yaw
@@ -205,7 +205,7 @@ void FollowTarget::on_active()
 						_current_target_motion.lat,
 						_current_target_motion.lon);
 
-				_yaw_rate = wrap_pi((_yaw_angle - _navigator->get_local_position()->heading) / (dt_ms / 1000.0f));
+				_yaw_rate = wrap_pi((_yaw_angle - _navigator->get_local_position()->heading) / (dt_ms * 1E-3f));
 
 			} else {
 				_yaw_angle = _yaw_rate = NAN;
@@ -273,7 +273,7 @@ void FollowTarget::on_active()
 
 			} else if (target_velocity_valid()) {
 
-				if ((float)(current_time - _last_update_time) / 1000.0f >= _step_time_in_ms) {
+				if ((float)(current_time - _last_update_time) * 1E-3f >= _step_time_in_ms) {
 					_current_vel += _step_vel;
 					_last_update_time = current_time;
 				}
