@@ -114,19 +114,19 @@ void BATT_SMBUS::RunImpl()
 	}
 
 	// Convert millivolts to volts.
-	new_report.voltage_v = ((float)result) / 1000.0f;
+	new_report.voltage_v = ((float)result) * 1E-3f;
 	new_report.voltage_filtered_v = new_report.voltage_v;
 
 	// Read current.
 	ret |= _interface->read_word(BATT_SMBUS_CURRENT, result);
 
-	new_report.current_a = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f) * _c_mult;
+	new_report.current_a = (-1.0f * ((float)(*(int16_t *)&result)) * 1E-3f) * _c_mult;
 	new_report.current_filtered_a = new_report.current_a;
 
 	// Read average current.
 	ret |= _interface->read_word(BATT_SMBUS_AVERAGE_CURRENT, result);
 
-	float average_current = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f) * _c_mult;
+	float average_current = (-1.0f * ((float)(*(int16_t *)&result)) * 1E-3f) * _c_mult;
 
 	new_report.current_average_a = average_current;
 
@@ -152,7 +152,7 @@ void BATT_SMBUS::RunImpl()
 	ret |= _interface->read_word(BATT_SMBUS_RELATIVE_SOC, result);
 
 	// Normalize 0.0 to 1.0
-	new_report.remaining = (float)result / 100.0f;
+	new_report.remaining = (float)result * 1E-2f;
 
 	// Read Max Error
 	ret |= _interface->read_word(BATT_SMBUS_MAX_ERROR, result);
@@ -160,7 +160,7 @@ void BATT_SMBUS::RunImpl()
 
 	// Read battery temperature and covert to Celsius.
 	ret |= _interface->read_word(BATT_SMBUS_TEMP, result);
-	new_report.temperature = ((float)result / 10.0f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+	new_report.temperature = ((float)result * 1E-1f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
 
 	// Only publish if no errors.
 	if (ret == PX4_OK) {
@@ -216,19 +216,19 @@ int BATT_SMBUS::get_cell_voltages()
 	if (_device_type == SMBUS_DEVICE_TYPE::BQ40Z50) {
 		ret |= _interface->read_word(BATT_SMBUS_BQ40Z50_CELL_1_VOLTAGE, result);
 		// Convert millivolts to volts.
-		_cell_voltages[0] = ((float)result) / 1000.0f;
+		_cell_voltages[0] = ((float)result) * 1E-3f;
 
 		ret |= _interface->read_word(BATT_SMBUS_BQ40Z50_CELL_2_VOLTAGE, result);
 		// Convert millivolts to volts.
-		_cell_voltages[1] = ((float)result) / 1000.0f;
+		_cell_voltages[1] = ((float)result) * 1E-3f;
 
 		ret |= _interface->read_word(BATT_SMBUS_BQ40Z50_CELL_3_VOLTAGE, result);
 		// Convert millivolts to volts.
-		_cell_voltages[2] = ((float)result) / 1000.0f;
+		_cell_voltages[2] = ((float)result) * 1E-3f;
 
 		ret |= _interface->read_word(BATT_SMBUS_BQ40Z50_CELL_4_VOLTAGE, result);
 		// Convert millivolts to volts.
-		_cell_voltages[3] = ((float)result) / 1000.0f;
+		_cell_voltages[3] = ((float)result) * 1E-3f;
 		_cell_voltages[4] = 0;
 		_cell_voltages[5] = 0;
 		_cell_voltages[6] = 0;
@@ -242,13 +242,13 @@ int BATT_SMBUS::get_cell_voltages()
 		}
 
 		// Convert millivolts to volts.
-		_cell_voltages[0] = ((float)((DAstatus1[1] << 8) | DAstatus1[0]) / 1000.0f);
-		_cell_voltages[1] = ((float)((DAstatus1[3] << 8) | DAstatus1[2]) / 1000.0f);
-		_cell_voltages[2] = ((float)((DAstatus1[5] << 8) | DAstatus1[4]) / 1000.0f);
-		_cell_voltages[3] = ((float)((DAstatus1[7] << 8) | DAstatus1[6]) / 1000.0f);
+		_cell_voltages[0] = ((float)((DAstatus1[1] << 8) | DAstatus1[0]) * 1E-3f);
+		_cell_voltages[1] = ((float)((DAstatus1[3] << 8) | DAstatus1[2]) * 1E-3f);
+		_cell_voltages[2] = ((float)((DAstatus1[5] << 8) | DAstatus1[4]) * 1E-3f);
+		_cell_voltages[3] = ((float)((DAstatus1[7] << 8) | DAstatus1[6]) * 1E-3f);
 
-		_pack_power = ((float)((DAstatus1[29] << 8) | DAstatus1[28]) / 100.0f); //TODO: decide if both needed
-		_pack_average_power = ((float)((DAstatus1[31] << 8) | DAstatus1[30]) / 100.0f);
+		_pack_power = ((float)((DAstatus1[29] << 8) | DAstatus1[28]) * 1E-2f); //TODO: decide if both needed
+		_pack_average_power = ((float)((DAstatus1[31] << 8) | DAstatus1[30]) * 1E-2f);
 
 		uint8_t DAstatus3[18 + 2] = {}; // 18 bytes of data and 2 bytes of address
 
@@ -257,9 +257,9 @@ int BATT_SMBUS::get_cell_voltages()
 			return PX4_ERROR;
 		}
 
-		_cell_voltages[4] = ((float)((DAstatus3[1] << 8) | DAstatus3[0]) / 1000.0f);
-		_cell_voltages[5] = ((float)((DAstatus3[7] << 8) | DAstatus3[6]) / 1000.0f);
-		_cell_voltages[6] = ((float)((DAstatus3[13] << 8) | DAstatus3[12]) / 1000.0f);
+		_cell_voltages[4] = ((float)((DAstatus3[1] << 8) | DAstatus3[0]) * 1E-3f);
+		_cell_voltages[5] = ((float)((DAstatus3[7] << 8) | DAstatus3[6]) * 1E-3f);
+		_cell_voltages[6] = ((float)((DAstatus3[13] << 8) | DAstatus3[12]) * 1E-3f);
 
 	}
 
@@ -490,11 +490,11 @@ int BATT_SMBUS::lifetime_read_block_one()
 	//Get max cell voltage delta and convert from mV to V.
 	if (_device_type == SMBUS_DEVICE_TYPE::BQ40Z50) {
 
-		_lifetime_max_delta_cell_voltage = (float)(lifetime_block_one[17] << 8 | lifetime_block_one[16]) / 1000.0f;
+		_lifetime_max_delta_cell_voltage = (float)(lifetime_block_one[17] << 8 | lifetime_block_one[16]) * 1E-3f;
 
 	} else if (_device_type == SMBUS_DEVICE_TYPE::BQ40Z80) {
 
-		_lifetime_max_delta_cell_voltage = (float)(lifetime_block_one[29] << 8 | lifetime_block_one[28]) / 1000.0f;
+		_lifetime_max_delta_cell_voltage = (float)(lifetime_block_one[29] << 8 | lifetime_block_one[28]) * 1E-3f;
 	}
 
 	PX4_INFO("Max Cell Delta: %4.2f", (double)_lifetime_max_delta_cell_voltage);
