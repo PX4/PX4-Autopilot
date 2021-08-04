@@ -1,0 +1,52 @@
+#!/bin/sh
+#
+# @name Autonomous Systems Lab, ETH Zurich Believer
+#
+# @type Plane V-Tail
+# @class Plane
+#
+# @output MAIN1 aileron right
+# @output MAIN2 aileron left
+# @output MAIN3 v-tail right
+# @output MAIN4 v-tail left
+# @output MAIN5 throttle
+# @output MAIN6 wheel
+# @output MAIN7 flaps right
+# @output MAIN8 flaps left
+#
+# @output AUX1 feed-through of RC AUX1 channel
+# @output AUX2 feed-through of RC AUX2 channel
+# @output AUX3 feed-through of RC AUX3 channel
+#
+# @maintainer Jaeyoung Lim <jalim@ethz.ch>
+#
+# @board px4_fmu-v2 exclude
+# @board bitcraze_crazyflie exclude
+#
+
+. ${R}etc/init.d/rc.fw_defaults
+
+param set-default FW_AIRSPD_MIN 10
+param set-default FW_AIRSPD_TRIM 15
+param set-default FW_AIRSPD_MAX 20
+
+param set-default FW_MAN_P_MAX 55
+param set-default FW_MAN_R_MAX 55
+param set-default FW_R_LIM 55
+
+param set-default FW_WR_FF 0.2
+param set-default FW_WR_I 0.2
+param set-default FW_WR_IMAX 0.8
+param set-default FW_WR_P 1
+param set-default FW_W_RMAX 0
+
+# set disarmed value for the ESC
+param set-default PWM_MAIN_DISARM 1000
+
+# The Mini Talon does not have a wheel and
+# no flaps. I leave them here because the mixer
+# computes also wheel and flap controls.
+set MIXER AAVVTWFF_vtail
+
+# use PWM parameters for throttle channel
+set PWM_OUT 5
