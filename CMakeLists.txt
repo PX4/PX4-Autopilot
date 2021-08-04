@@ -144,12 +144,10 @@ include(px4_add_module)
 set(config_module_list)
 
 include(px4_config)
-include(px4_add_board)
-include(${PX4_CONFIG_FILE})
+include(kconfig)
 message(STATUS "PX4 config: ${PX4_CONFIG}")
 message(STATUS "PX4 platform: ${PX4_PLATFORM}")
 
-include(kconfig)
 
 if(${PX4_PLATFORM} STREQUAL "posix")
 	if(ENABLE_LOCKSTEP_SCHEDULER)
