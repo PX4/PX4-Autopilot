@@ -325,7 +325,7 @@ CameraCapture::status()
 	}
 
 	if (_camera_capture_mode != 0) {
-		PX4_INFO("Last exposure time : %0.2f ms", double(_last_exposure_time) / 1000.0);
+		PX4_INFO("Last exposure time : %0.2f ms", double(_last_exposure_time) * 1E-3);
 	}
 
 	PX4_INFO("Number of overflows : %" PRIu32, _capture_overflows);
