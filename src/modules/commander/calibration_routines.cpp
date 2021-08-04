@@ -93,7 +93,7 @@ enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,
 
 		if (vehicle_acceleration_sub.updateBlocking(accel, 100000)) {
 			t = hrt_absolute_time();
-			float dt = (t - t_prev) / 1000000.0f;
+			float dt = (t - t_prev) * 1E-6f;
 			t_prev = t;
 			float w = dt / ema_len;
 

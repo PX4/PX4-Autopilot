@@ -1412,7 +1412,7 @@ Commander::handle_command_motor_test(const vehicle_command_s &cmd)
 	}
 
 	test_motor.action = test_motor_s::ACTION_RUN;
-	test_motor.value = math::constrain(cmd.param3 / 100.f, 0.f, 1.f);
+	test_motor.value = math::constrain(cmd.param3 * 1E-2f, 0.f, 1.f);
 
 	if (test_motor.value < FLT_EPSILON) {
 		// the message spec is not clear on whether 0 means stop, but it should be closer to what a user expects
