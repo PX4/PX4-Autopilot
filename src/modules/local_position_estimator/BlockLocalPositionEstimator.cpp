@@ -910,7 +910,7 @@ void BlockLocalPositionEstimator::updateSSParams()
 	// terrain random walk noise ((m/s)/sqrt(hz)), scales with velocity
 	float pn_t_noise_density =
 		_param_lpe_pn_t.get() +
-		(_param_lpe_t_max_grade.get() / 100.0f) * sqrtf(_x(X_vx) * _x(X_vx) + _x(X_vy) * _x(X_vy));
+		(_param_lpe_t_max_grade.get() * 1E-2f) * sqrtf(_x(X_vx) * _x(X_vx) + _x(X_vy) * _x(X_vy));
 	m_Q(X_tz, X_tz) = pn_t_noise_density * pn_t_noise_density;
 }
 
