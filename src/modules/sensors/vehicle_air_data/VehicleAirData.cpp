@@ -248,7 +248,7 @@ void VehicleAirData::Run()
 
 			// calculate altitude using the hypsometric equation
 			static constexpr float T1 = 15.0f - CONSTANTS_ABSOLUTE_NULL_CELSIUS; // temperature at base height in Kelvin
-			static constexpr float a = -6.5f / 1000.0f; // temperature gradient in degrees per metre
+			static constexpr float a = -6.5f * 1E-3f; // temperature gradient in degrees per metre
 
 			// current pressure at MSL in kPa (QNH in hPa)
 			const float p1 = _param_sens_baro_qnh.get() * 0.1f;

@@ -240,7 +240,7 @@ void test_error_tracking()
 
 	// the error density will reduce the confidence by 1 - (error_density / ERROR_DENSITY_WINDOW)
 	// ERROR_DENSITY_WINDOW is currently private, but == 100.0f
-	float reduced_conf = 1.0f - ((float)expected_error_density / 100.0f);
+	float reduced_conf = 1.0f - ((float)expected_error_density * 1E-2f);
 	double diff = fabs(reduced_conf - conf);
 
 	if (reduced_conf != conf) {
