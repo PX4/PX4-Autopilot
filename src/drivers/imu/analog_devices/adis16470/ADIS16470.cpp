@@ -380,7 +380,7 @@ bool ADIS16470::Configure()
 	_px4_gyro.set_scale(math::radians(2000.f / 32768.f));
 	_px4_gyro.set_range(math::radians(2000.f));
 
-	_px4_accel.set_scale(1.25f * CONSTANTS_ONE_G / 1000.0f); // accel 1.25 mg/LSB
+	_px4_accel.set_scale(1.25f * CONSTANTS_ONE_G * 1E-3f); // accel 1.25 mg/LSB
 	_px4_gyro.set_scale(math::radians(0.025f)); // gyro 0.025 °/sec/LSB
 
 	return success;
