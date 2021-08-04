@@ -5,9 +5,18 @@ menuconfig DRIVERS_UAVCAN
 		Enable support for uavcan
 
 if DRIVERS_UAVCAN
-    menuconfig UAVCAN_INTERFACES
+    menuconfig BOARD_UAVCAN_INTERFACES
         int "UAVCANv0 interface count"
         default 0
         ---help---
             Interface count for UAVCANv0
+
+    menuconfig BOARD_UAVCAN_PERIPHERALS
+        string "UAVCAN peripheral firmware"
+        help
+            list of UAVCAN peripheral firmware to build and embed
+
+    menuconfig BOARD_UAVCAN_TIMER_OVERRIDE
+        bool "UAVCAN timer override"
+
 endif #DRIVERS_UAVCAN
