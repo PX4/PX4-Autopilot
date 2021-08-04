@@ -406,7 +406,7 @@ CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint, const Vec
 
 			Vector2f setpoint_dir = setpoint / setpoint_length;
 			float vel_max = setpoint_length;
-			const float min_dist_to_keep = math::max(_obstacle_map_body_frame.min_distance / 100.0f, col_prev_d);
+			const float min_dist_to_keep = math::max(_obstacle_map_body_frame.min_distance * 1E-2f, col_prev_d);
 
 			const float sp_angle_body_frame = atan2f(setpoint_dir(1), setpoint_dir(0)) - vehicle_yaw_angle_rad;
 			const float sp_angle_with_offset_deg = wrap_360(math::degrees(sp_angle_body_frame) -
