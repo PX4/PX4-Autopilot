@@ -46,7 +46,7 @@ param set-default PWM_MAIN_DISARM 1000
 # The Mini Talon does not have a wheel and
 # no flaps. I leave them here because the mixer
 # computes also wheel and flap controls.
-set MIXER AAVVTWFF_vtail
+set MIXER AAVVTTFF_vtail
 
 # use PWM parameters for throttle channel
 set PWM_OUT 5
