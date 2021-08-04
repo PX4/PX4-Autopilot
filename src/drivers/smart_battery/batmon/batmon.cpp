@@ -144,19 +144,19 @@ void Batmon::RunImpl()
 	}
 
 	// Convert millivolts to volts.
-	new_report.voltage_v = ((float)result) / 1000.0f;
+	new_report.voltage_v = ((float)result) * 1E-3f;
 	new_report.voltage_filtered_v = new_report.voltage_v;
 
 	// Read current.
 	ret |= _interface->read_word(BATT_SMBUS_CURRENT, result);
 
-	new_report.current_a = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f);
+	new_report.current_a = (-1.0f * ((float)(*(int16_t *)&result)) * 1E-3f);
 	new_report.current_filtered_a = new_report.current_a;
 
 	// Read average current.
 	ret |= _interface->read_word(BATT_SMBUS_AVERAGE_CURRENT, result);
 
-	float average_current = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f);
+	float average_current = (-1.0f * ((float)(*(int16_t *)&result)) * 1E-3f);
 
 	new_report.current_average_a = average_current;
 
@@ -178,7 +178,7 @@ void Batmon::RunImpl()
 	ret |= _interface->read_word(BATT_SMBUS_RELATIVE_SOC, result);
 
 	// Normalize 0.0 to 1.0
-	new_report.remaining = (float)result / 100.0f;
+	new_report.remaining = (float)result * 1E-2f;
 
 	// Read Max Error
 	//ret |= _interface->read_word(BATT_SMBUS_MAX_ERROR, result); //TODO: to be implemented
@@ -186,7 +186,7 @@ void Batmon::RunImpl()
 
 	// Read battery temperature and covert to Celsius.
 	ret |= _interface->read_word(BATT_SMBUS_TEMP, result);
-	new_report.temperature = ((float)result / 10.0f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+	new_report.temperature = ((float)result * 1E-1f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
 
 	// Only publish if no errors.
 	if (ret == PX4_OK) {
