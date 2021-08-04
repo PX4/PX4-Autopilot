@@ -75,7 +75,7 @@ private:
 
 				msg.id = battery_status.id - 1;
 				msg.capacity_full_specification = battery_status.capacity;
-				msg.capacity_full = (int32_t)((float)(battery_status.state_of_health * battery_status.capacity) / 100.f);
+				msg.capacity_full = (int32_t)((float)(battery_status.state_of_health * battery_status.capacity) * 1E-2f);
 				msg.cycle_count = battery_status.cycle_count;
 
 				if (battery_status.manufacture_date) {
