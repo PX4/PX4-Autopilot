@@ -143,13 +143,11 @@ MS5611_I2C::probe()
 {
 	if ((PX4_OK == _probe_address(MS5611_ADDRESS_1)) ||
 	    (PX4_OK == _probe_address(MS5611_ADDRESS_2))) {
-		/*
-		 * Disable retries; we may enable them selectively in some cases,
-		 * but the device gets confused if we retry some of the commands.
-		 */
-		_retries = 1;
+
 		return PX4_OK;
 	}
+
+	_retries = 1;
 
 	return -EIO;
 }
