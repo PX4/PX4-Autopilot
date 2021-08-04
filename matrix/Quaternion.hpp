@@ -326,6 +326,78 @@ public:
     }
 
     /**
+      * Computes the quaternion exponential of the 3D vector u
+      * as proposed in
+      * [1] Sveier A, Sjøberg AM, Egeland O. "Applied Runge–Kutta–Munthe-Kaas Integration
+      *     for the Quaternion Kinematics".Journal of Guidance, Control, and Dynamics. 2019
+      *
+      * return a quaternion computed as
+      * expq(u)=[cos||u||, sinc||u||*u]
+      * sinc(x)=sin(x)/x in the sin cardinal function
+      *
+      * This can be used to update a quaternion from the body rates
+      * rather than using
+      * qk+1=qk+qk.derivative1(wb)*dt
+      * we can use
+      * qk+1=qk*expq(dt*wb/2)
+      * which is a more robust update.
+      * A re-normalization step might necessary with both methods.
+      *
+      * @param u 3D vector u
+      */
+    static Quaternion expq(const Vector3<Type> &u)
+    {
+        const Type tol = Type(0.2);           // ensures an error < 10^-10
+        const Type c2 = Type(1.0 / 2.0);      // 1 / 2!
+        const Type c3 = Type(1.0 / 6.0);      // 1 / 3!
+        const Type c4 = Type(1.0 / 24.0);     // 1 / 4!
+        const Type c5 = Type(1.0 / 120.0);    // 1 / 5!
+        const Type c6 = Type(1.0 / 720.0);    // 1 / 6!
+        const Type c7 = Type(1.0 / 5040.0);   // 1 / 7!
+
+        Type u_norm = u.norm();
+        Type sinc_u, cos_u;
+
+        if (u_norm < tol) {
+            Type u2 = u_norm * u_norm;
+            Type u4 = u2 * u2;
+            Type u6 = u4 * u2;
+
+            // compute the first 4 terms of the Taylor serie
+            sinc_u = Type(1.0) - u2 * c3 + u4 * c5 - u6 * c7;
+            cos_u = Type(1.0) - u2 * c2 + u4 * c4 - u6 * c6;
+        } else {
+            sinc_u = Type(sin(u_norm) / u_norm);
+            cos_u = Type(cos(u_norm));
+        }
+        Vector<Type, 3> v = sinc_u * u;
+        return Quaternion<Type> (cos_u, v(0), v(1), v(2));
+    }
+
+    /** inverse right Jacobian of the quaternion logarithm u
+      * equation (20) in reference
+      * [1] Sveier A, Sjøberg AM, Egeland O. "Applied Runge–Kutta–Munthe-Kaas Integration
+      *     for the Quaternion Kinematics".Journal of Guidance, Control, and Dynamics. 2019
+      *
+      * This can be used to update a quaternion kinematic cleanly
+      * with higher order integration methods (like RK4) on the quaternion logarithm u.
+      *
+      * @param u 3D vector u
+      */
+    static Dcm<Type> inv_r_jacobian (const Vector3<Type> &u)
+    {
+        const Type tol = Type(1.0e-4);
+        Type u_norm = u.norm();
+        Dcm<Type> u_hat = u.hat();
+
+        if (u_norm < tol) { 	// result smaller than O(||.||^3)
+            return Type(0.5) * (Dcm<Type>() + u_hat + (Type(1.0 / 3.0) + u_norm * u_norm / Type(45.0)) * u_hat * u_hat);
+        } else {
+            return Type(0.5) * (Dcm<Type>() + u_hat + (Type(1.0) - u_norm * Type(cos(u_norm) / sin(u_norm))) / (u_norm * u_norm) * u_hat * u_hat);
+        }
+    }
+
+    /**
      * Invert quaternion in place
      */
     void invert()
