@@ -108,12 +108,12 @@ SimpleMixer::parse_output_scaler(const char *buf, unsigned &buflen, mixer_scaler
 		return -1;
 	}
 
-	scaler.negative_scale	= s[0] / 10000.0f;
-	scaler.positive_scale	= s[1] / 10000.0f;
-	scaler.offset		= s[2] / 10000.0f;
-	scaler.min_output	= s[3] / 10000.0f;
-	scaler.max_output	= s[4] / 10000.0f;
-	slew_rate_rise_time	= s[5] / 10000.0f;
+	scaler.negative_scale	= s[0] * 1E-4f;
+	scaler.positive_scale	= s[1] * 1E-4f;
+	scaler.offset		= s[2] * 1E-4f;
+	scaler.min_output	= s[3] * 1E-4f;
+	scaler.max_output	= s[4] * 1E-4f;
+	slew_rate_rise_time	= s[5] * 1E-4f;
 
 	return 0;
 }
@@ -147,11 +147,11 @@ SimpleMixer::parse_control_scaler(const char *buf, unsigned &buflen, mixer_scale
 
 	control_group		= u[0];
 	control_index		= u[1];
-	scaler.negative_scale	= s[0] / 10000.0f;
-	scaler.positive_scale	= s[1] / 10000.0f;
-	scaler.offset		= s[2] / 10000.0f;
-	scaler.min_output	= s[3] / 10000.0f;
-	scaler.max_output	= s[4] / 10000.0f;
+	scaler.negative_scale	= s[0] * 1E-4f;
+	scaler.positive_scale	= s[1] * 1E-4f;
+	scaler.offset		= s[2] * 1E-4f;
+	scaler.min_output	= s[3] * 1E-4f;
+	scaler.max_output	= s[4] * 1E-4f;
 
 	return 0;
 }

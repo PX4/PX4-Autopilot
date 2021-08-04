@@ -106,7 +106,7 @@ HelicopterMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 	}
 
 	for (unsigned i = 0; i < HELI_CURVES_NR_POINTS; i++) {
-		mixer_info.throttle_curve[i] = ((float) u[i]) / 10000.0f;
+		mixer_info.throttle_curve[i] = ((float) u[i]) * 1E-4f;
 	}
 
 	buf = skipline(buf, buflen);
@@ -130,7 +130,7 @@ HelicopterMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 	}
 
 	for (unsigned i = 0; i < HELI_CURVES_NR_POINTS; i++) {
-		mixer_info.pitch_curve[i] = ((float) s[i]) / 10000.0f;
+		mixer_info.pitch_curve[i] = ((float) s[i]) * 1E-4f;
 	}
 
 	buf = skipline(buf, buflen);
@@ -164,11 +164,11 @@ HelicopterMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 		}
 
 		mixer_info.servos[i].angle = ((float) u[0]) * M_PI_F / 180.0f;
-		mixer_info.servos[i].arm_length = ((float) u[1]) / 10000.0f;
-		mixer_info.servos[i].scale = ((float) s[0]) / 10000.0f;
-		mixer_info.servos[i].offset = ((float) s[1]) / 10000.0f;
-		mixer_info.servos[i].min_output = ((float) s[2]) / 10000.0f;
-		mixer_info.servos[i].max_output = ((float) s[3]) / 10000.0f;
+		mixer_info.servos[i].arm_length = ((float) u[1]) * 1E-4f;
+		mixer_info.servos[i].scale = ((float) s[0]) * 1E-4f;
+		mixer_info.servos[i].offset = ((float) s[1]) * 1E-4f;
+		mixer_info.servos[i].min_output = ((float) s[2]) * 1E-4f;
+		mixer_info.servos[i].max_output = ((float) s[3]) * 1E-4f;
 
 		buf = skipline(buf, buflen);
 
