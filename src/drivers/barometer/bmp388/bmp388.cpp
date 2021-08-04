@@ -167,9 +167,9 @@ BMP388::collect()
 
 	_px4_baro.set_error_count(perf_event_count(_comms_errors));
 
-	float temperature = (float)(data.temperature / 100.0f);
-	float pressure = (float)(data.pressure / 100.0f); // to Pascal
-	pressure = pressure / 100.0f; // to mbar
+	float temperature = (float)(data.temperature * 1E-2f);
+	float pressure = (float)(data.pressure * 1E-2f); // to Pascal
+	pressure = pressure * 1E-2f; // to mbar
 
 	_px4_baro.set_temperature(temperature);
 	_px4_baro.update(timestamp_sample, pressure);

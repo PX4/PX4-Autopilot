@@ -235,7 +235,7 @@ DPS310::RunImpl()
 
 	_px4_barometer.set_error_count(perf_event_count(_comms_errors));
 	_px4_barometer.set_temperature(Tcomp);
-	_px4_barometer.update(timestamp_sample, Pcomp / 100.0f); // Pascals -> Millibar
+	_px4_barometer.update(timestamp_sample, Pcomp * 1E-2f); // Pascals -> Millibar
 
 	perf_end(_sample_perf);
 }

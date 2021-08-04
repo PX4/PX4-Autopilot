@@ -321,14 +321,14 @@ MS5611::collect()
 			}
 		}
 
-		float temperature = TEMP / 100.0f;
+		float temperature = TEMP * 1E-2f;
 		_px4_barometer.set_temperature(temperature);
 
 	} else {
 		/* pressure calculation, result in Pa */
 		int32_t P = (((raw * _SENS) >> 21) - _OFF) >> 15;
 
-		float pressure = P / 100.0f;		/* convert to millibar */
+		float pressure = P * 1E-2f;		/* convert to millibar */
 
 		_px4_barometer.update(timestamp_sample, pressure);
 	}

@@ -270,7 +270,7 @@ int MPL3115A2::collect()
 
 	_px4_barometer.set_error_count(perf_event_count(_comms_errors));
 	_px4_barometer.set_temperature(T);
-	_px4_barometer.update(timestamp_sample, P / 100.0f);
+	_px4_barometer.update(timestamp_sample, P * 1E-2f);
 
 	perf_end(_sample_perf);
 
