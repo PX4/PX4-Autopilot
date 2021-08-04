@@ -3,13 +3,164 @@
 
 mainmenu "PX4 Firmware Configuration"
 
-comment "Platform: $(PLATFORM)"
 comment "Vendor: $(VENDOR)"
 comment "Model: $(MODEL)"
 comment "Label: $(LABEL)"
-comment "Toolchain: $(TOOLCHAIN)"
-comment "Architecture: $(ARCHITECTURE)"
-comment "Romfsroot: $(ROMFSROOT)"
+
+choice
+    prompt "Platform"
+    default PLATFORM_NUTTX
+    config PLATFORM_NUTTX
+        bool "nuttx"
+    config PLATFORM_POSIX
+        bool "posix"
+    config PLATFORM_QURT
+        bool "qurt"
+endchoice
+
+config BOARD_PLATFORM
+    string
+    default "nuttx" if PLATFORM_NUTTX
+    default "posix" if PLATFORM_POSIX
+    default "qurt" if PLATFORM_QURT
+
+choice
+    prompt "Toolchain"
+    default TOOLCHAIN_ARM_NONE_EABI
+    config TOOLCHAIN_ARM_NONE_EABI
+        bool "arm-none-eabi"
+    config TOOLCHAIN_RISV64
+        bool "riscv64-unknown-elf"
+    help
+        cmake toolchain
+endchoice
+
+config BOARD_TOOLCHAIN
+    string
+    default "arm-none-eabi" if TOOLCHAIN_ARM_NONE_EABI
+    default "riscv64-unknown-elf" if TOOLCHAIN_RISV64
+
+choice
+    prompt "Architecture"
+    config ARCHITECTURE_CORTEX_M3
+        bool "cortex-m3"
+    config ARCHITECTURE_CORTEX_M4
+        bool "cortex-m4"
+    config ARCHITECTURE_CORTEX_M7
+        bool "cortex-m7"
+    config ARCHITECTURE_CORTEX_A8
+        bool "cortex-a8"
+    config ARCHITECTURE_CORTEX_A53
+        bool "cortex-a53"
+    help
+        name of the CPU CMake is building for (used by the toolchain)
+endchoice
+
+config BOARD_ARCHITECTURE
+    string
+    default "cortex-m3" if ARCHITECTURE_CORTEX_M3
+    default "cortex-m4" if ARCHITECTURE_CORTEX_M4
+    default "cortex-m7" if ARCHITECTURE_CORTEX_M7
+    default "cortex-a8" if ARCHITECTURE_CORTEX_A8
+    default "cortex-a53" if ARCHITECTURE_CORTEX_A53
+
+config BOARD_ROMFSROOT
+    string "ROMFSROOT"
+    default "px4fmu_common"
+    help
+        relative path to the ROMFS root directory
+
+config BOARD_BUILD_BOOTLOADER
+    bool "Enable bootloader"
+    help
+        flag to enable building and including the bootloader config
+
+config BOARD_IO
+    string "IO board name"
+    help
+        name of IO board to be built and included in the ROMFS (requires a valid ROMFSROOT)
+
+config BOARD_CONSTRAINED_FLASH
+    bool "Contrained flash"
+    help
+        flag to enable constrained flash options (eg limit init script status text)
+
+if BOARD_CONSTRAINED_FLASH
+
+    config BOARD_NO_HELP
+    bool "No help"
+    help
+        optional condition flag to disable help text on constrained flash systems
+
+endif #BOARD_CONSTRAINED_FLASH
+
+config BOARD_CONSTRAINED_MEMORY
+    bool "Contrained memory"
+    help
+        flag to enable constrained memory options (eg limit maximum number of uORB publications)
+
+config BOARD_EXTERNAL_METADATA
+    bool "External metadata"
+    help
+        flag to exclude metadata to reduce flash
+
+config BOARD_TESTING
+    bool "Testing"
+    help
+        flag to enable automatic inclusion of PX4 testing modules
+
+config BOARD_LINKER_PREFIX
+    bool "PX4 board linker prefix"
+    help
+        optional to prefix on the Linker script.
+
+config BOARD_ETHERNET
+    bool "Ethernet"
+    help
+        flag to indicate that ethernet is enabled
+
+config BOARD_CRYPTO
+    string "Crypto"
+    help
+        Crypto implementation selection
+
+config BOARD_KEYSTORE
+    string "Keystore"
+    help
+        Keystore implememntation selection
+
+menu "Serial ports"
+
+    config BOARD_SERIAL_GPS1
+        string "GPS1 tty port"
+
+    config BOARD_SERIAL_GPS2
+        string "GPS2 tty port"
+
+    config BOARD_SERIAL_GPS3
+        string "GPS3 tty port"
+
+    config BOARD_SERIAL_GPS4
+        string "GPS4 tty port"
+
+    config BOARD_SERIAL_GPS5
+        string "GPS5 tty port"
+
+    config BOARD_SERIAL_TEL1
+        string "TEL1 tty port"
+
+    config BOARD_SERIAL_TEL2
+        string "TEL2 tty port"
+
+    config BOARD_SERIAL_TEL3
+        string "TEL3 tty port"
+
+    config BOARD_SERIAL_TEL4
+        string "TEL4 tty port"
+
+    config BOARD_SERIAL_TEL5
+        string "TEL5 tty port"
+endmenu
 
 menu "drivers"
 source "src/drivers/Kconfig"
