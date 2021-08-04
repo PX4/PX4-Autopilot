@@ -95,7 +95,7 @@ void BatterySimulator::Run()
 
 	float ibatt = -1.0f; // no current sensor in simulation
 
-	_battery_percentage = math::max(_battery_percentage, _param_bat_min_pct.get() / 100.f);
+	_battery_percentage = math::max(_battery_percentage, _param_bat_min_pct.get() * 1E-2f);
 	float vbatt = math::gradual(_battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(), _battery.full_cell_voltage());
 	vbatt *= _battery.cell_count();
 
