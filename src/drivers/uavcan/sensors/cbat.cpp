@@ -70,7 +70,7 @@ UavcanCBATBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<cuav::equip
 	battery.current_filtered_a = battery.current_a;
 	battery.current_average_a = msg.average_current;
 	battery.discharged_mah = msg.passed_charge * 1000;
-	battery.remaining = msg.state_of_charge / 100.0f;
+	battery.remaining = msg.state_of_charge * 1E-2f;
 	// battery.scale = msg.; // Power scaling factor, >= 1, or -1 if unknown
 	battery.temperature = msg.temperature + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
 	battery.cell_count = msg.cell_count;

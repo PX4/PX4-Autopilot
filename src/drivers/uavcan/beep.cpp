@@ -99,7 +99,7 @@ void UavcanBeep::periodic_update(const uavcan::TimerEvent &)
 				// Start playing the note.
 				uavcan::equipment::indication::BeepCommand cmd{};
 				cmd.frequency = _frequency;
-				cmd.duration = _duration / 1000000.f;
+				cmd.duration = _duration * 1E-6f;
 				_beep_pub.broadcast(cmd);
 			}
 
