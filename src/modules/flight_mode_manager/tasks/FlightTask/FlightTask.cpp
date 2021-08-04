@@ -20,7 +20,10 @@ bool FlightTask::activate(const vehicle_local_position_setpoint_s &last_setpoint
 
 void FlightTask::reActivate()
 {
-	activate(empty_setpoint);
+	// Preserve vertical velocity while on the ground to allow descending by stick for reliable land detection
+	vehicle_local_position_setpoint_s setpoint_preserve_vertical{empty_setpoint};
+	setpoint_preserve_vertical.vz = _velocity_setpoint(2);
+	activate(setpoint_preserve_vertical);
 }
 
 bool FlightTask::updateInitialize()
