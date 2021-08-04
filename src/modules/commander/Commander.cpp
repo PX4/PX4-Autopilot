@@ -3880,9 +3880,15 @@ void Commander::estimator_check()
 	vehicle_attitude_s attitude{};
 	_vehicle_attitude_sub.copy(&attitude);
 	const matrix::Quatf q{attitude.q};
-	const matrix::Quatf q_norm{q.unit()};
+	const bool no_element_larger_than_one = (fabsf(q(0)) <= 1.f)
+						&& (fabsf(q(1)) <= 1.f)
+						&& (fabsf(q(2)) <= 1.f)
+						&& (fabsf(q(3)) <= 1.f);
+	const bool norm_in_tolerance = (fabsf(1.f - q.norm()) <= FLT_EPSILON);
+
 	_status_flags.condition_attitude_valid = (hrt_elapsed_time(&attitude.timestamp) < 1_s)
-			&& (matrix::Quatf(q - q_norm).length() < FLT_EPSILON);
+			&& norm_in_tolerance
+			&& no_element_larger_than_one;
 
 	// angular velocity
 	vehicle_angular_velocity_s angular_velocity{};
