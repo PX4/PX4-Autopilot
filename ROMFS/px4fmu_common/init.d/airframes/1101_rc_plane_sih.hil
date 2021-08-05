@@ -1,22 +1,22 @@
 #!/bin/sh
 #
-# @name SIH Quadcopter X
+# @name SIH plane AERT
 #
 # @type Simulation
-# @class Copter
+# @class Plane
 #
 # @maintainer Romain Chiappinelli <romain.chiap@gmail.com>
 #
 # @board px4_fmu-v2 exclude
 #
 
-. ${R}etc/init.d/rc.mc_defaults
+. ${R}etc/init.d/rc.fw_defaults
 
-set MIXER quad_x
+set MIXER AERT
 set PWM_OUT 1234
 
 # set SYS_HITL to 2 to start the SIH and avoid sensors startup
-param set SYS_HITL 2
+param set-default SYS_HITL 2
 
 # disable some checks to allow to fly:
 # - with usb
@@ -27,4 +27,14 @@ param set-default CBRK_SUPPLY_CHK 894281
 param set-default COM_PREARM_MODE 0
 param set-default CBRK_IO_SAFETY 22027
 
-param set SIH_VEHICLE_TYPE 0
+param set-default BAT_N_CELLS 3
+
+param set SIH_T_MAX 6.0
+param set SIH_MASS 0.3
+param set SIH_IXX 0.00402
+param set SIH_IYY 0.0144
+param set SIH_IZZ 0.0177
+param set SIH_IXZ 0.00046
+param set SIH_KDV 0.2
+
+param set SIH_VEHICLE_TYPE 1 	# sih as fixed wing
