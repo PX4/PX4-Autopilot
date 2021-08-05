@@ -141,6 +141,7 @@ public:
 			case reg_drone_service_common_Readiness_0_1_ENGAGED:
 				armed.armed = true;
 				armed.prearmed = true;
+				armed.ready_to_arm = true;
 				break;
 			}
 
