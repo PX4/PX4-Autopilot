@@ -81,7 +81,7 @@ private:
 	void set_mode(argus_mode_t mode);
 
 	argus_hnd_t *_hnd{nullptr};
-	argus_mode_t _mode{ARGUS_MODE_A}; // Long-Range
+	argus_mode_t _mode{ARGUS_MODE_B}; // Short-Range
 
 	enum class STATE : uint8_t {
 		TEST,
@@ -96,7 +96,7 @@ private:
 
 	perf_counter_t _sample_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": sample interval")};
 
-	int _measure_interval{1000000 / 100}; // 100Hz
+	int _measure_interval{1000000 / 50}; // 50Hz
 	float _current_distance{0};
 	const float _short_range_threshold = 4.0; //meters
 	const float _long_range_threshold = 6.0; //meters
