@@ -218,7 +218,7 @@ void Logger::print_statistics(LogType type)
 	/* this is only for the file backend */
 	float kibibytes = _writer.get_total_written_file(type) / 1024.0f;
 	float mebibytes = kibibytes / 1024.0f;
-	float seconds = ((float)(hrt_absolute_time() - stats.start_time_file)) / 1000000.0f;
+	float seconds = ((float)(hrt_absolute_time() - stats.start_time_file)) * 1E-6f;
 
 	PX4_INFO("Log file: %s/%s/%s", LOG_ROOT[(int)type], _file_name[(int)type].log_dir, _file_name[(int)type].log_file_name);
 

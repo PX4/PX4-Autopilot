@@ -137,7 +137,7 @@ LeddarOne::collect()
 
 	// NOTE: little-endian support only.
 	uint16_t distance_mm = (msg->first_dist_high_byte << 8 | msg->first_dist_low_byte);
-	float distance_m = static_cast<float>(distance_mm) / 1000.0f;
+	float distance_m = static_cast<float>(distance_mm) * 1E-3f;
 
 	// @TODO - implement a meaningful signal quality value.
 	int8_t signal_quality = -1;

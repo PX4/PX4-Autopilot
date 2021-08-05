@@ -57,7 +57,7 @@ bool param_modify_on_import(bson_node_t node)
 			int32_t method = old_param.struct_value.authentication_method;
 			param_set_no_notification(param_find("COM_ARM_AUTH_MET"), &method);
 
-			float timeout = old_param.struct_value.auth_method_arm_timeout_msec / 1000.f;
+			float timeout = old_param.struct_value.auth_method_arm_timeout_msec * 1E-3f;
 			param_set_no_notification(param_find("COM_ARM_AUTH_TO"), &timeout);
 
 			strcpy(node->name, "COM_ARM_AUTH_ID");

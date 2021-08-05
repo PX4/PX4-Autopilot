@@ -51,7 +51,7 @@
 static constexpr float CONSTANTS_ONE_G = 9.80665f;						// m/s^2
 
 static constexpr float CONSTANTS_STD_PRESSURE_PA = 101325.0f;					// pascals (Pa)
-static constexpr float CONSTANTS_STD_PRESSURE_KPA = CONSTANTS_STD_PRESSURE_PA / 1000.0f;	// kilopascals (kPa)
+static constexpr float CONSTANTS_STD_PRESSURE_KPA = CONSTANTS_STD_PRESSURE_PA * 1E-3f;	// kilopascals (kPa)
 static constexpr float CONSTANTS_STD_PRESSURE_MBAR = CONSTANTS_STD_PRESSURE_PA /
 		100.0f;	// Millibar (mbar) (1 mbar = 100 Pa)
 

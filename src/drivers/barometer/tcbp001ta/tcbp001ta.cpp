@@ -255,7 +255,7 @@ TCBP001TA::collect()
 	_px4_baro.set_error_count(perf_event_count(_comms_errors));
 	_px4_baro.set_temperature(T);
 
-	float pressure = P / 100.0f; // to mbar
+	float pressure = P * 1E-2f; // to mbar
 	// PX4_INFO("press %f", double(pressure));
 	_px4_baro.update(timestamp_sample, pressure);
 

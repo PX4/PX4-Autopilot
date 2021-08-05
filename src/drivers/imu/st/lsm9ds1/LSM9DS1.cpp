@@ -273,11 +273,11 @@ bool LSM9DS1::Configure()
 	}
 
 	// Gyroscope configuration 2000 degrees/second
-	_px4_gyro.set_scale(math::radians(70.f / 1000.f)); // 70 mdps/LSB
+	_px4_gyro.set_scale(math::radians(70.f * 1E-3f)); // 70 mdps/LSB
 	_px4_gyro.set_range(math::radians(2000.f));
 
 	// Accelerometer configuration 16 G range
-	_px4_accel.set_scale(0.732f * (CONSTANTS_ONE_G / 1000.f)); // 0.732 mg/LSB
+	_px4_accel.set_scale(0.732f * (CONSTANTS_ONE_G * 1E-3f)); // 0.732 mg/LSB
 	_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
 
 	return success;

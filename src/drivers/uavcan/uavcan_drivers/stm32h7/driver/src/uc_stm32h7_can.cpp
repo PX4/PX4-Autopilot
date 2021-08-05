@@ -379,7 +379,7 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out
 	}
 
 	UAVCAN_STM32H7_LOG("Timings: quanta/bit: %d, sample point location: %.1f%%",
-			   int(1 + solution.bs1 + solution.bs2), double(solution.sample_point_permill) / 10.);
+			   int(1 + solution.bs1 + solution.bs2), double(solution.sample_point_permill) * 1E-1);
 
 	out_timings.prescaler = uavcan::uint16_t(prescaler - 1U);
 	out_timings.sjw = 0;                                        // Which means one

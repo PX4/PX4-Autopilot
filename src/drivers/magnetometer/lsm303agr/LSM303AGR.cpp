@@ -71,7 +71,7 @@ LSM303AGR::LSM303AGR(const I2CSPIDriverConfig &config) :
 {
 	_px4_mag.set_external(external());
 
-	_px4_mag.set_scale(1.5f / 1000.f); // 1.5 milligauss/LSB
+	_px4_mag.set_scale(1.5f * 1E-3f); // 1.5 milligauss/LSB
 }
 
 LSM303AGR::~LSM303AGR()

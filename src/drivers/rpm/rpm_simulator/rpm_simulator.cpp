@@ -68,7 +68,7 @@ int rpm_simulator_main(int argc, char *argv[])
 	// prpepare RPM data message
 	rpm.timestamp = timestamp_us;
 	rpm.indicated_frequency_rpm = frequency;
-	rpm.estimated_accurancy_rpm = frequency / 100.0f;
+	rpm.estimated_accurancy_rpm = frequency * 1E-2f;
 
 	// Publish data and let the user know what was published
 	rpm_pub.publish(rpm);

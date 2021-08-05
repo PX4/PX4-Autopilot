@@ -863,7 +863,7 @@ GPS::run()
 
 				/* measure update rate every 5 seconds */
 				if (hrt_absolute_time() - last_rate_measurement > RATE_MEASUREMENT_PERIOD) {
-					float dt = (float)((hrt_absolute_time() - last_rate_measurement)) / 1000000.0f;
+					float dt = (float)((hrt_absolute_time() - last_rate_measurement)) * 1E-6f;
 					_rate = last_rate_count / dt;
 					_rate_rtcm_injection = _last_rate_rtcm_injection_count / dt;
 					_rate_reading = _num_bytes_read / dt;

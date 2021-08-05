@@ -308,7 +308,7 @@ ADIS16497::self_test()
 bool
 ADIS16497::set_measurement_range(uint16_t model)
 {
-	_px4_accel.set_scale(1.25f * CONSTANTS_ONE_G / 1000.0f); // 1.25 mg/LSB
+	_px4_accel.set_scale(1.25f * CONSTANTS_ONE_G * 1E-3f); // 1.25 mg/LSB
 	_px4_accel.set_range(40.0f * CONSTANTS_ONE_G); // 40g
 
 	switch (model) {

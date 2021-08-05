@@ -130,7 +130,7 @@ int motor_test_main(int argc, char *argv[])
 				return 1;
 			}
 
-			value = ((float)lval) / 100.f;
+			value = ((float)lval) * 1E-2f;
 			break;
 
 		case 't':

@@ -198,7 +198,7 @@ CM8JL65::collect()
 
 	bytes_read = OK;
 
-	const float current_distance = static_cast<float>(distance_mm) / 1000.0f;
+	const float current_distance = static_cast<float>(distance_mm) * 1E-3f;
 
 	_px4_rangefinder.update(timestamp_sample, current_distance);
 

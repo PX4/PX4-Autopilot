@@ -93,7 +93,7 @@ void AFBRS50::ProcessMeasurement(void *data)
 
 		if ((evaluate_status == STATUS_OK) && (res.Status == 0)) {
 			uint32_t result_mm = res.Bin.Range / (Q9_22_ONE / 1000);
-			float result_m = static_cast<float>(result_mm) / 1000.f;
+			float result_m = static_cast<float>(result_mm) * 1E-3f;
 			int8_t quality = 100;
 
 			// distance quality check

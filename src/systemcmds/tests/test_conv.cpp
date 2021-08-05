@@ -58,7 +58,7 @@ int test_conv(int argc, char *argv[])
 	//PX4_INFO("Testing system conversions");
 
 	for (int i = -10000; i <= 10000; i += 1) {
-		float f = i / 10000.0f;
+		float f = i * 1E-4f;
 		float fres = REG_TO_FLOAT(FLOAT_TO_REG(f));
 
 		if (fabsf(f - fres) > 0.0001f) {

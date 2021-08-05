@@ -1545,7 +1545,7 @@ MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
 		const hrt_abstime now = hrt_absolute_time();
 
 		// Calculate round trip time
-		float rtt_ms = (now - ping.time_usec) / 1000.0f;
+		float rtt_ms = (now - ping.time_usec) * 1E-3f;
 
 		// Update ping statistics
 		struct Mavlink::ping_statistics_s &pstats = _mavlink->get_ping_statistics();
@@ -1609,16 +1609,16 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	uint8_t cell_count = 0;
 
 	while (battery_mavlink.voltages[cell_count] < UINT16_MAX && cell_count < 10) {
-		battery_status.voltage_cell_v[cell_count] = (float)(battery_mavlink.voltages[cell_count]) / 1000.0f;
+		battery_status.voltage_cell_v[cell_count] = (float)(battery_mavlink.voltages[cell_count]) * 1E-3f;
 		voltage_sum += battery_status.voltage_cell_v[cell_count];
 		cell_count++;
 	}
 
 	battery_status.voltage_v = voltage_sum;
 	battery_status.voltage_filtered_v  = voltage_sum;
-	battery_status.current_a = battery_status.current_filtered_a = (float)(battery_mavlink.current_battery) / 100.0f;
+	battery_status.current_a = battery_status.current_filtered_a = (float)(battery_mavlink.current_battery) * 1E-2f;
 	battery_status.current_filtered_a = battery_status.current_a;
-	battery_status.remaining = (float)battery_mavlink.battery_remaining / 100.0f;
+	battery_status.remaining = (float)battery_mavlink.battery_remaining * 1E-2f;
 	battery_status.discharged_mah = (float)battery_mavlink.current_consumed;
 	battery_status.cell_count = cell_count;
 	battery_status.temperature = (float)battery_mavlink.temperature;
@@ -2047,10 +2047,10 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		manual_control_setpoint_s manual{};
 
 		manual.timestamp = hrt_absolute_time();
-		manual.x = man.x / 1000.0f;
-		manual.y = man.y / 1000.0f;
-		manual.r = man.r / 1000.0f;
-		manual.z = man.z / 1000.0f;
+		manual.x = man.x * 1E-3f;
+		manual.y = man.y * 1E-3f;
+		manual.r = man.r * 1E-3f;
+		manual.z = man.z * 1E-3f;
 		manual.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0 + _mavlink->get_instance_id();
 
 		_manual_control_setpoint_pub.publish(manual);
@@ -2344,10 +2344,10 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	gps.jamming_indicator = 0;
 	gps.jamming_state = 0;
 
-	gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
-	gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
-	gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
-	gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
+	gps.vel_m_s = (float)(hil_gps.vel) * 1E-2f; // cm/s -> m/s
+	gps.vel_n_m_s = (float)(hil_gps.vn) * 1E-2f; // cm/s -> m/s
+	gps.vel_e_m_s = (float)(hil_gps.ve) * 1E-2f; // cm/s -> m/s
+	gps.vel_d_m_s = (float)(hil_gps.vd) * 1E-2f; // cm/s -> m/s
 	gps.cog_rad = ((hil_gps.cog == 65535) ? (float)NAN : matrix::wrap_2pi(math::radians(
 				hil_gps.cog * 1e-2f))); // cdeg -> rad
 	gps.vel_ned_valid = true;
@@ -2454,10 +2454,10 @@ MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 	t.lat = adsb.lat * 1e-7;
 	t.lon = adsb.lon * 1e-7;
 	t.altitude_type = adsb.altitude_type;
-	t.altitude = adsb.altitude / 1000.0f;
-	t.heading = adsb.heading / 100.0f / 180.0f * M_PI_F - M_PI_F;
-	t.hor_velocity = adsb.hor_velocity / 100.0f;
-	t.ver_velocity = adsb.ver_velocity / 100.0f;
+	t.altitude = adsb.altitude * 1E-3f;
+	t.heading = adsb.heading * 1E-2f / 180.0f * M_PI_F - M_PI_F;
+	t.hor_velocity = adsb.hor_velocity * 1E-2f;
+	t.ver_velocity = adsb.ver_velocity * 1E-2f;
 	memcpy(&t.callsign[0], &adsb.callsign[0], sizeof(t.callsign));
 	t.emitter_type = adsb.emitter_type;
 	t.tslc = adsb.tslc;
@@ -2508,16 +2508,16 @@ MavlinkReceiver::handle_message_utm_global_position(mavlink_message_t *msg)
 	}
 
 	// Convert cm/s to m/s
-	float vx = utm_pos.vx / 100.0f;
-	float vy = utm_pos.vy / 100.0f;
-	float vz = utm_pos.vz / 100.0f;
+	float vx = utm_pos.vx * 1E-2f;
+	float vy = utm_pos.vy * 1E-2f;
+	float vz = utm_pos.vz * 1E-2f;
 
 	transponder_report_s t{};
 	t.timestamp = hrt_absolute_time();
 	mav_array_memcpy(t.uas_id, utm_pos.uas_id, PX4_GUID_BYTE_LENGTH);
 	t.lat = utm_pos.lat * 1e-7;
 	t.lon = utm_pos.lon * 1e-7;
-	t.altitude = utm_pos.alt / 1000.0f;
+	t.altitude = utm_pos.alt * 1E-3f;
 	t.altitude_type = ADSB_ALTITUDE_TYPE_GEOMETRIC;
 	// UTM_GLOBAL_POSIION uses NED (north, east, down) coordinates for velocity, in cm / s.
 	t.heading = atan2f(vy, vx);
@@ -2638,7 +2638,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_global_pos.timestamp_sample = timestamp_sample;
 		hil_global_pos.lat = hil_state.lat / ((double)1e7);
 		hil_global_pos.lon = hil_state.lon / ((double)1e7);
-		hil_global_pos.alt = hil_state.alt / 1000.0f;
+		hil_global_pos.alt = hil_state.alt * 1E-3f;
 		hil_global_pos.eph = 2.f;
 		hil_global_pos.epv = 4.f;
 		hil_global_pos.timestamp = hrt_absolute_time();
@@ -2652,7 +2652,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 
 		if (!map_projection_initialized(&_global_local_proj_ref) || !PX4_ISFINITE(_global_local_alt0)) {
 			map_projection_init(&_global_local_proj_ref, lat, lon);
-			_global_local_alt0 = hil_state.alt / 1000.f;
+			_global_local_alt0 = hil_state.alt * 1E-3f;
 		}
 
 		float x = 0.f;
@@ -2671,10 +2671,10 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_local_pos.v_z_valid = true;
 		hil_local_pos.x = x;
 		hil_local_pos.y = y;
-		hil_local_pos.z = _global_local_alt0 - hil_state.alt / 1000.f;
-		hil_local_pos.vx = hil_state.vx / 100.f;
-		hil_local_pos.vy = hil_state.vy / 100.f;
-		hil_local_pos.vz = hil_state.vz / 100.f;
+		hil_local_pos.z = _global_local_alt0 - hil_state.alt * 1E-3f;
+		hil_local_pos.vx = hil_state.vx * 1E-2f;
+		hil_local_pos.vy = hil_state.vy * 1E-2f;
+		hil_local_pos.vz = hil_state.vz * 1E-2f;
 
 		matrix::Eulerf euler{matrix::Quatf(hil_state.attitude_quaternion)};
 		hil_local_pos.heading = euler.psi();
@@ -2701,7 +2701,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 
 		if (_px4_accel != nullptr) {
 			// accel in mG
-			_px4_accel->set_scale(CONSTANTS_ONE_G / 1000.0f);
+			_px4_accel->set_scale(CONSTANTS_ONE_G * 1E-3f);
 			_px4_accel->update(timestamp_sample, hil_state.xacc, hil_state.yacc, hil_state.zacc);
 		}
 	}

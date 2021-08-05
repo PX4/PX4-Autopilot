@@ -120,7 +120,7 @@ private:
 	static constexpr uint16_t NB_MOTORS = 4;
 	static constexpr float T1_C = 15.0f;                        // ground temperature in celcius
 	static constexpr float T1_K = T1_C - CONSTANTS_ABSOLUTE_NULL_CELSIUS;   // ground temperature in Kelvin
-	static constexpr float TEMP_GRADIENT  = -6.5f / 1000.0f;    // temperature gradient in degrees per metre
+	static constexpr float TEMP_GRADIENT  = -6.5f * 1E-3f;    // temperature gradient in degrees per metre
 
 	void init_variables();
 	void gps_fix();

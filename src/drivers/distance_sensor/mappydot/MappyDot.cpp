@@ -262,7 +262,7 @@ MappyDot::collect()
 		}
 
 		uint16_t distance_mm = uint16_t(val[0]) << 8 | val[1];
-		float distance_m = static_cast<float>(distance_mm) / 1000.f;
+		float distance_m = static_cast<float>(distance_mm) * 1E-3f;
 
 		distance_sensor_s report {};
 		report.current_distance = distance_m;

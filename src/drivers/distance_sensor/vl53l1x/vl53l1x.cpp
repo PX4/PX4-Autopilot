@@ -192,7 +192,7 @@ int VL53L1X::collect()
 
 	perf_end(_sample_perf);
 
-	float distance_m = distance_mm / 1000.f;
+	float distance_m = distance_mm * 1E-3f;
 
 	_px4_rangefinder.update(timestamp_sample, distance_m);
 

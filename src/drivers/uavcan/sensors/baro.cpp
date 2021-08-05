@@ -93,7 +93,7 @@ void UavcanBarometerBridge::air_pressure_sub_cb(const
 	}
 
 	baro->set_temperature(last_temperature_kelvin + CONSTANTS_ABSOLUTE_NULL_CELSIUS);
-	baro->update(hrt_absolute_time(), msg.static_pressure / 100.0f); // Convert pressure to millibar
+	baro->update(hrt_absolute_time(), msg.static_pressure * 1E-2f); // Convert pressure to millibar
 }
 
 int UavcanBarometerBridge::init_driver(uavcan_bridge::Channel *channel)
