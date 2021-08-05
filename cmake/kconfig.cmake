@@ -11,7 +11,6 @@ if(NOT MENUCONFIG_PATH OR NOT GUICONFIG_PATH OR NOT DEFCONFIG_PATH OR NOT SAVEDE
 endif()
 
 
-
 set(COMMON_KCONFIG_ENV_SETTINGS
 	PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
 	KCONFIG_CONFIG=${BOARD_CONFIG}
@@ -25,8 +24,6 @@ set(COMMON_KCONFIG_ENV_SETTINGS
 	ARCHITECTURE=${CMAKE_SYSTEM_PROCESSOR}
 	ROMFSROOT=${config_romfs_root}
 )
-
-message(STATUS ${PX4_BINARY_DIR})
 
 if(EXISTS ${BOARD_DEFCONFIG})
 
@@ -92,11 +89,18 @@ if(EXISTS ${BOARD_DEFCONFIG})
             string(REGEX REPLACE "(^[a-z]+_[a-z]+)_([a-z0-9]+).*$" "\\1" driver_p2_folder ${driver})
             string(REGEX REPLACE "(^[a-z]+_[a-z]+)_([a-z0-9]+).*$" "\\2" driver_p2_subfolder ${driver})
 
+            # Pattern 3 XXXXXX / XXX_XXX / XXXXXX
+            string(REGEX REPLACE "(^[a-z]+)_([a-z]+_[a-z0-9]+)_([a-z]+[a-z0-9]+).*$" "\\1" driver_p3_folder ${driver})
+            string(REGEX REPLACE "(^[a-z]+)_([a-z]+_[a-z0-9]+)_([a-z]+[a-z0-9]+).*$" "\\2" driver_p3_subfolder ${driver})
+            string(REGEX REPLACE "(^[a-z]+)_([a-z]+_[a-z0-9]+)_([a-z]+[a-z0-9]+).*$" "\\3" driver_p3_subsubfolder ${driver})
+
             # Trick circumvent PX4 src naming problem with underscores and slashes
             if(EXISTS ${PX4_SOURCE_DIR}/src/drivers/${driver})
                 list(APPEND config_module_list drivers/${driver})
             elseif(EXISTS ${PX4_SOURCE_DIR}/src/drivers/${driver_path})
                 list(APPEND config_module_list drivers/${driver_path})
+            elseif(EXISTS ${PX4_SOURCE_DIR}/src/drivers/${driver_p3_folder}/${driver_p3_subfolder}/${driver_p3_subsubfolder})
+                list(APPEND config_module_list drivers/${driver_p3_folder}/${driver_p3_subfolder}/${driver_p3_subsubfolder})
             elseif(EXISTS ${PX4_SOURCE_DIR}/src/drivers/${driver_p1_folder}/${driver_p1_subfolder})
                 list(APPEND config_module_list drivers/${driver_p1_folder}/${driver_p1_subfolder})
             elseif(EXISTS ${PX4_SOURCE_DIR}/src/drivers/${driver_p2_folder}/${driver_p2_subfolder})

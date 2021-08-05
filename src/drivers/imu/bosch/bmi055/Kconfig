@@ -1,0 +1,5 @@
+menuconfig DRIVERS_IMU_BOSCH_BMI055
+	bool "bosch bmi055"
+	default n
+	---help---
+		Enable support for bosch bmi055
