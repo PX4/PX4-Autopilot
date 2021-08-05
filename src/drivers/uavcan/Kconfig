@@ -21,5 +21,6 @@ if DRIVERS_UAVCAN
     menuconfig BOARD_UAVCAN_TIMER_OVERRIDE
 	depends on DRIVERS_UAVCAN
         int "UAVCAN timer override"
+        default 0
 
 endif #DRIVERS_UAVCAN
