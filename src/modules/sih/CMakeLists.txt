@@ -37,6 +37,7 @@ px4_add_module(
 	COMPILE_FLAGS
 		${MAX_CUSTOM_OPT_LEVEL}
 	SRCS
+		aero.hpp
 		sih.cpp
 		sih.hpp
 	DEPENDS
