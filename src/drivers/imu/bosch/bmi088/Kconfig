@@ -1,0 +1,5 @@
+menuconfig DRIVERS_IMU_BOSCH_BMI088
+	bool "bosch bmi088"
+	default n
+	---help---
+		Enable support for bosch bmi088
