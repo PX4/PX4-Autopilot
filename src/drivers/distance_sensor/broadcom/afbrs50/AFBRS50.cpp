@@ -207,11 +207,6 @@ int AFBRS50::init()
 
 void AFBRS50::Run()
 {
-	// backup schedule
-	ScheduleDelayed(100_ms);
-
-	UpdateMode();
-
 	switch (_state) {
 	case STATE::TEST: {
 			Argus_VerifyHALImplementation(Argus_GetSPISlave(_hnd));
@@ -253,6 +248,11 @@ void AFBRS50::Run()
 	default:
 		break;
 	}
+
+	UpdateMode();
+
+	// backup schedule
+	ScheduleDelayed(100_ms);
 }
 
 void AFBRS50::UpdateMode()
@@ -260,19 +260,19 @@ void AFBRS50::UpdateMode()
 	// only update mode if _current_distance is a valid measurement
 	if (_current_distance > 0) {
 
-		if (_current_distance >= _long_range_threshold) {
+		if ((_current_distance >= _long_range_threshold) && (_mode != ARGUS_MODE_A)) {
 			// change to long range mode
-			argus_mode_t mode = ARGUS_MODE_A;
-			set_mode(mode);
+			_mode = ARGUS_MODE_A;
+			set_mode(_mode);
 			_measure_interval = (1000000 / LONG_RANGE_MODE_HZ);
-			ScheduleDelayed(100_ms);
+			ScheduleDelayed(1000_ms); // don't switch again for at least 1 second
 
-		} else if (_current_distance <= _short_range_threshold) {
+		} else if ((_current_distance <= _short_range_threshold) && (_mode != ARGUS_MODE_B)) {
 			// change to short range mode
-			argus_mode_t mode = ARGUS_MODE_B;
-			set_mode(mode);
+			_mode = ARGUS_MODE_B;
+			set_mode(_mode);
 			_measure_interval = (1000000 / SHORT_RANGE_MODE_HZ);
-			ScheduleDelayed(100_ms);
+			ScheduleDelayed(1000_ms); // don't switch again for at least 1 second
 		}
 	}
 }
@@ -286,6 +286,7 @@ void AFBRS50::stop()
 void AFBRS50::print_info()
 {
 	perf_print_counter(_sample_perf);
+	get_mode();
 }
 
 void AFBRS50::set_mode(argus_mode_t mode)
@@ -301,11 +302,10 @@ void AFBRS50::get_mode()
 	Argus_GetConfigurationMeasurementMode(_hnd, &current_mode);
 	Argus_GetConfigurationDFMMode(_hnd, current_mode, &dfm_mode);
 
-	int dist = _current_distance;
-	PX4_INFO_RAW("distance: %d\n", dist);
+	PX4_INFO_RAW("distance: %.3fm\n", (double)_current_distance);
 	PX4_INFO_RAW("mode: %d\n", current_mode);
-	// PX4_INFO_RAW("dfm mode: %d\n", dfm_mode);
-	PX4_INFO_RAW("rate: %d Hz\n\n", (1000000 / _measure_interval));
+	PX4_INFO_RAW("dfm mode: %d\n", dfm_mode);
+	PX4_INFO_RAW("rate: %d Hz\n", (1000000 / _measure_interval));
 }
 
 namespace afbrs50
