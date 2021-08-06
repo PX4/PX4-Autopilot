@@ -245,16 +245,18 @@ ControlAllocator::Run()
 
 	// Check if parameters have changed
 	if (_parameter_update_sub.updated()) {
-		// clear update
-		parameter_update_s param_update;
-		_parameter_update_sub.copy(&param_update);
+		updateParams();
+		parameters_updated();
 
 		if (_control_allocation) {
 			_control_allocation->updateParameters();
 		}
 
-		updateParams();
-		parameters_updated();
+		update_effectiveness_matrix_if_needed();
+
+		// clear update
+		parameter_update_s param_update;
+		_parameter_update_sub.copy(&param_update);
 	}
 
 	if (_control_allocation == nullptr || _actuator_effectiveness == nullptr) {
