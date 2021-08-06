@@ -8,8 +8,8 @@
 #
 # Start angular velocity controller
 #
-angular_velocity_controller start
-mc_rate_control stop
+# angular_velocity_controller start
+# mc_rate_control stop
 
 #
 # Start Control Allocator
