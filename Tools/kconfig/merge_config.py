@@ -72,6 +72,11 @@
 
 from __future__ import print_function
 import sys
+import re
+import pprint
+
+def _re_match(regex):
+    return re.compile(regex, re.ASCII).match
 
 from kconfiglib import Kconfig, BOOL, TRISTATE, TRI_TO_STR
 
@@ -98,6 +103,21 @@ kconf.warn_assign_redun = False
 # load_config() and write_config() returns a message to print.
 for config in sys.argv[3:]:
     print(kconf.load_config(config, replace=False))
+
+# Modification for PX4 unset all symbols (INT,HEX etc) from 2nd config
+
+f = open(sys.argv[4], 'r')
+
+unset_match = re.compile(r"# {}([^ ]+) is not set".format("CONFIG_"), re.ASCII).match
+
+for line in f:
+    match = unset_match(line)
+    pprint.pprint(match)
+    if match is not None:
+        sym_name = match.group(1)
+        kconf.syms[sym_name].unset_value()
+f.close()
+
 
 # Write the merged configuration
 print(kconf.write_config(sys.argv[2]))
