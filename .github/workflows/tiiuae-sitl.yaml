@@ -70,3 +70,14 @@ jobs:
           jfrog rt cp --flat \
                       "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/sitl/$pkg_name" \
                       "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/sitl/latest/px4_sitl_build.tar.gz"
+
+      - name: trigger fog-drone build
+        env:
+          USER: ${{ secrets.DISPATCH_USER }}
+          TOKEN: ${{ secrets.DISPATCH_TOKEN }}
+        if: github.event_name == 'push'
+        run: |
+          curl -X POST https://api.github.com/repos/tiiuae/dronsole-containers/dispatches \
+               -H 'Accept: application/vnd.github.everest-preview+json' \
+               -u $USER:$TOKEN \
+               --data '{"event_type": "rebuild-fog-drone", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'" }}'
