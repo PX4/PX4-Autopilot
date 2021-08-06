@@ -59,6 +59,8 @@ def print_config(op, config, value, new_value):
     if merge_style:
         if op=="-" and value=="y":
             print("CONFIG_%s=n" % (config))
+        elif op=="-" and not new_value:
+            print("# CONFIG_%s is not set" % (config))
         elif new_value:
             if new_value=="n":
                 print("# CONFIG_%s is not set" % config)
