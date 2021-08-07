@@ -76,7 +76,9 @@ void LoggedTopics::add_default_topics()
 	add_topic("offboard_control_mode", 100);
 	add_topic("onboard_computer_status", 10);
 	add_topic("output_control_ca", 50);
+	add_topic("output_control_fw", 50);
 	add_topic("output_control_mavlink", 100);
+	add_topic("output_control_mc", 50);
 	add_topic("parameter_update");
 	add_topic("position_controller_status", 500);
 	add_topic("position_setpoint_triplet", 200);
@@ -199,6 +201,10 @@ void LoggedTopics::add_high_rate_topics()
 	add_topic("actuator_controls_0");
 	add_topic("actuator_outputs");
 	add_topic("manual_control_setpoint");
+	add_topic("output_control_ca");
+	add_topic("output_control_fw");
+	add_topic("output_control_mavlink");
+	add_topic("output_control_mc");
 	add_topic("rate_ctrl_status", 20);
 	add_topic("sensor_combined");
 	add_topic("vehicle_angular_acceleration");
@@ -276,6 +282,9 @@ void LoggedTopics::add_system_identification_topics()
 	// for system id need to log imu and controls at full rate
 	add_topic("actuator_controls_0");
 	add_topic("actuator_controls_1");
+	add_topic("output_control_ca");
+	add_topic("output_control_fw");
+	add_topic("output_control_mc");
 	add_topic("sensor_combined");
 	add_topic("vehicle_angular_acceleration");
 	add_topic("vehicle_angular_acceleration_setpoint");
