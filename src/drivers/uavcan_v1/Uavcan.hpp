@@ -120,7 +120,7 @@ class UavcanNode : public ModuleParams, public px4::ScheduledWorkItem
 	 * Base interval, has to be complemented with events from the CAN driver
 	 * and uORB topics sending data, to decrease response time.
 	 */
-	static constexpr unsigned ScheduleIntervalMs = 10;
+	static constexpr unsigned ScheduleIntervalMs = 4;
 
 public:
 

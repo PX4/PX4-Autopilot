@@ -66,7 +66,7 @@ class UavcanEscController : public UavcanPublisher
 {
 public:
 	static constexpr int MAX_ACTUATORS = MixingOutput::MAX_ACTUATORS;
-	static constexpr hrt_abstime UPDATE_PERIOD_US = 10 * 1000; // Default to 400 Hz setpoint update rate
+	static constexpr hrt_abstime UPDATE_PERIOD_US = 4 * 1000; // Default to 250 Hz setpoint update rate
 
 	UavcanEscController(CanardInstance &ins, UavcanParamManager &pmgr) :
 		UavcanPublisher(ins, pmgr, "esc")
