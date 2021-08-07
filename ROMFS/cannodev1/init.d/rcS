@@ -218,8 +218,42 @@ else
 	# TODO: Allow configuration of PWM input
 	echo "Starting PWMOut"
 	pwm_out mode_pwm
-	# start
-	# pwm_out mode_pwm
+
+	#
+	# Optional board supplied extras: rc.board_extras
+	#
+	set BOARD_RC_EXTRAS ${R}etc/init.d/rc.board_extras
+	if [ -f $BOARD_RC_EXTRAS ]
+	then
+		echo "Board extras: ${BOARD_RC_EXTRAS}"
+		. $BOARD_RC_EXTRAS
+	fi
+	unset BOARD_RC_EXTRAS
+
+	#
+	# Start any custom addons from the sdcard.
+	#
+	if [ -f $FEXTRAS ]
+	then
+		echo "Addons script: ${FEXTRAS}"
+		. $FEXTRAS
+	fi
+
+	#
+	# Start the logger.
+	#
+	. ${R}etc/init.d/rc.logging
+
+	#
+	# Set additional parameters and env variables for selected AUTOSTART.
+	#
+	if ! param compare SYS_AUTOSTART 0
+	then
+		if [ -f ${R}etc/init.d/rc.autostart.post ]
+		then
+			. ${R}etc/init.d/rc.autostart.post
+		fi
+	fi
 fi
 
 uavcan_v1 start
