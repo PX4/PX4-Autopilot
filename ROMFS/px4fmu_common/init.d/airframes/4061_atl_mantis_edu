@@ -197,4 +197,11 @@ param set-default RC7_REV           1
 param set-default RC7_TRIM          2048
 
 
+# optical flow
+param set-default SENS_FLOW_MAXR   7.4
+param set-default SENS_FLOW_MINHGT 0.15
+param set-default SENS_FLOW_MAXHGT 5.0
+param set-default SENS_FLOW_ROT    4
+
+
 mixer load /dev/tap_esc /etc/mixers/quad_x.main.mix
