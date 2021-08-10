@@ -3,6 +3,7 @@ add_library(drivers_board
 	init.c
 	led.c
 	spi.cpp
+	boot_string.c
 	# timer_config.cpp
 	# usb.c
 )
