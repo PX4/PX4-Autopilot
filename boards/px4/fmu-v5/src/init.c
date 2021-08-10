@@ -163,20 +163,31 @@ stm32_boardinitialize(void)
 {
 	board_on_reset(-1); /* Reset PWM first thing */
 
-	/* configure LEDs */
 
+	const uint32_t RCC_CSR = getreg32(STM32_RCC_CSR);
+
+	syslog(LOG_INFO, "[boot] Reset Flags: LSION:%d LSIRDY:%d BOR:%d PIN:%d POR/PDR:%d SFT:%d IWDG:%d WWDG:%d LPWR:%d \n",
+	       (RCC_CSR & RCC_CSR_LSION) != 0,
+	       (RCC_CSR & RCC_CSR_LSIRDY) != 0,
+	       (RCC_CSR & RCC_CSR_BORRSTF) != 0,
+	       (RCC_CSR & RCC_CSR_PINRSTF) != 0,
+	       (RCC_CSR & RCC_CSR_PORRSTF) != 0,
+	       (RCC_CSR & RCC_CSR_SFTRSTF) != 0,
+	       (RCC_CSR & RCC_CSR_IWDGRSTF) != 0,
+	       (RCC_CSR & RCC_CSR_WWDGRSTF) != 0,
+	       (RCC_CSR & RCC_CSR_LPWRRSTF) != 0
+	      );
+
+	/* configure LEDs */
 	board_autoled_initialize();
 
 	/* configure pins */
-
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
 	px4_gpio_init(gpio, arraySize(gpio));
 	board_control_spi_sensors_power_configgpio();
 
 	/* configure USB interfaces */
-
 	stm32_usbinitialize();
-
 }
 
 /****************************************************************************

@@ -62,61 +62,25 @@
 
 #include "chip.h"
 
-
-/****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
-__EXPORT int hardfault_log_main(int argc, char *argv[]);
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
 #define OUT_BUFFER_LEN  200
-
-/****************************************************************************
- * Private Types
- ****************************************************************************/
-
-/****************************************************************************
- * Private Function Prototypes
- ****************************************************************************/
-static int genfault(int fault);
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-/****************************************************************************
- * genfault
- ****************************************************************************/
 
 static int genfault(int fault)
 {
-
 	/* Pointer to System Control Block's  System Control Register */
-
 	uint32_t *pCCR = (uint32_t *)0xE000ED14;
 
 	static volatile int k = 0;
 
 	switch (fault) {
 	case 0:
-
 		/* Enable divide by 0 fault generation */
-
 		*pCCR |= 0x10;
 
-		k =  1 / fault;
+		k = 1 / fault;
 
 		/* This is not going to happen
 		 * Disable divide by 0 fault generation
 		 */
-
 		*pCCR &= ~0x10;
 		break;
 
@@ -141,7 +105,7 @@ bool verify_ram_address(uint32_t bot, uint32_t size)
 {
 	bool ret = true;
 #if defined STM32_IS_SRAM
-	ret =  STM32_IS_SRAM(bot) && STM32_IS_SRAM(bot +  size);
+	ret = STM32_IS_SRAM(bot) && STM32_IS_SRAM(bot + size);
 #endif
 	return ret;
 }
@@ -182,7 +146,6 @@ static int format_fault_file_name(struct timespec *ts, char *buffer, unsigned in
 	int ret = -EINVAL;
 
 	if (buffer) {
-
 		ret = -ENOMEM;
 		unsigned int plen = LOG_PATH_BASE_LEN;
 
@@ -213,7 +176,6 @@ static void identify(const char *caller)
 		syslog(LOG_INFO, "[%s] ", caller);
 	}
 }
-
 
 /****************************************************************************
  * hardfault_get_desc
@@ -1220,9 +1182,6 @@ static void print_usage(void)
 	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reset the reboot counter");
 }
 
-/****************************************************************************
- * Name: hardfault_log_main
- ****************************************************************************/
 __EXPORT int hardfault_log_main(int argc, char *argv[])
 {
 	char *self = "hardfault_log";
