@@ -43,7 +43,6 @@
 #include <airspeed/airspeed.h>
 #include <conversion/rotation.h>
 #include <drivers/drv_rc_input.h>
-#include <geo/geo.h>
 #include <systemlib/px4_macros.h>
 
 #include <math.h>
