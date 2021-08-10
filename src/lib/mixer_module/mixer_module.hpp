@@ -124,9 +124,10 @@ public:
 	 * Check for subscription updates (e.g. after a mixer is loaded).
 	 * Call this at the very end of Run() if allow_wq_switch
 	 * @param allow_wq_switch if true
+	 * @param limit_callbacks_to_primary set to only register callbacks for primary actuator controls (if used)
 	 * @return true if subscriptions got changed
 	 */
-	bool updateSubscriptions(bool allow_wq_switch);
+	bool updateSubscriptions(bool allow_wq_switch, bool limit_callbacks_to_primary = false);
 
 	/**
 	 * unregister uORB subscription callbacks
@@ -177,6 +178,8 @@ public:
 
 	void setIgnoreLockdown(bool ignore_lockdown) { _ignore_lockdown = ignore_lockdown; }
 
+	void setMaxNumOutputs(uint8_t max_num_outputs) { _max_num_outputs = max_num_outputs; }
+
 protected:
 	void updateParams() override;
 
@@ -190,7 +193,8 @@ private:
 
 	unsigned motorTest();
 
-	void updateOutputSlewrate();
+	void updateOutputSlewrateMultirotorMixer();
+	void updateOutputSlewrateSimplemixer();
 	void setAndPublishActuatorOutputs(unsigned num_outputs, actuator_outputs_s &actuator_outputs);
 	void publishMixerStatus(const actuator_outputs_s &actuator_outputs);
 	void updateLatencyPerfCounter(const actuator_outputs_s &actuator_outputs);
@@ -237,13 +241,14 @@ private:
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
 	uORB::SubscriptionCallbackWorkItem _control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
-	uORB::PublicationMulti<actuator_outputs_s> _outputs_pub{ORB_ID(actuator_outputs), ORB_PRIO_DEFAULT};
-	uORB::PublicationMulti<multirotor_motor_limits_s> _to_mixer_status{ORB_ID(multirotor_motor_limits), ORB_PRIO_DEFAULT}; 	///< mixer status flags
+	uORB::PublicationMulti<actuator_outputs_s> _outputs_pub{ORB_ID(actuator_outputs)};
+	uORB::PublicationMulti<multirotor_motor_limits_s> _to_mixer_status{ORB_ID(multirotor_motor_limits)}; 	///< mixer status flags
 
 	actuator_controls_s _controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS] {};
 	actuator_armed_s _armed{};
 
-	hrt_abstime _time_last_mix{0};
+	hrt_abstime _time_last_dt_update_multicopter{0};
+	hrt_abstime _time_last_dt_update_simple_mixer{0};
 	unsigned _max_topic_update_interval_us{0}; ///< max _control_subs topic update interval (0=unlimited)
 
 	bool _throttle_armed{false};
@@ -258,7 +263,7 @@ private:
 
 	bool _wq_switched{false};
 	uint8_t _driver_instance{0}; ///< for boards that supports multiple outputs (e.g. PX4IO + FMU)
-	const uint8_t _max_num_outputs;
+	uint8_t _max_num_outputs;
 
 	struct MotorTest {
 		uORB::Subscription test_motor_sub{ORB_ID(test_motor)};

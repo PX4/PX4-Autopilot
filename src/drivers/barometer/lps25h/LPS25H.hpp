@@ -155,11 +155,10 @@
 class LPS25H : public I2CSPIDriver<LPS25H>
 {
 public:
-	LPS25H(I2CSPIBusOption bus_option, int bus, device::Device *interface);
+	LPS25H(const I2CSPIDriverConfig &config, device::Device *interface);
 	~LPS25H() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
 	int		init();

@@ -50,12 +50,12 @@
 #include <drivers/drv_board_led.h>
 
 
-bool is_multirotor(const struct vehicle_status_s *current_status);
-bool is_rotary_wing(const struct vehicle_status_s *current_status);
-bool is_vtol(const struct vehicle_status_s *current_status);
-bool is_vtol_tailsitter(const struct vehicle_status_s *current_status);
-bool is_fixed_wing(const struct vehicle_status_s *current_status);
-bool is_ground_rover(const struct vehicle_status_s *current_status);
+bool is_multirotor(const vehicle_status_s &current_status);
+bool is_rotary_wing(const vehicle_status_s &current_status);
+bool is_vtol(const vehicle_status_s &current_status);
+bool is_vtol_tailsitter(const vehicle_status_s &current_status);
+bool is_fixed_wing(const vehicle_status_s &current_status);
+bool is_ground_rover(const vehicle_status_s &current_status);
 
 int buzzer_init(void);
 void buzzer_deinit(void);
@@ -64,6 +64,7 @@ void set_tune_override(int tune);
 void set_tune(int tune);
 void tune_home_set(bool use_buzzer);
 void tune_mission_ok(bool use_buzzer);
+void tune_mission_warn(bool use_buzzer);
 void tune_mission_fail(bool use_buzzer);
 void tune_positive(bool use_buzzer);
 void tune_neutral(bool use_buzzer);

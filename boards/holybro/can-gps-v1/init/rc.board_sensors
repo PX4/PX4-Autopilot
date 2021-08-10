@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# board sensors init
+#------------------------------------------------------------------------------
+
+gps start -d /dev/ttyS0 -g 38400 -p ubx
+
+
+# Internal SPI ICM20649
+icm20649 -s -b 1 -R 8 start
+
+# Internal Baro
+bmp388 -I -b 1 -a 0x77 start
+
+# Internal magnetometer on I2c
+bmm150 -I -b 1 -R 2 start

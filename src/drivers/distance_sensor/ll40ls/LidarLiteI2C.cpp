@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2019, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,17 +41,18 @@
 
 #include "LidarLiteI2C.h"
 
-LidarLiteI2C::LidarLiteI2C(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency,
-			   const int address) :
-	I2C(DRV_RNG_DEVTYPE_LL40LS, MODULE_NAME, bus, address, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_rangefinder(get_device_id(), ORB_PRIO_DEFAULT, rotation)
+LidarLiteI2C::LidarLiteI2C(const I2CSPIDriverConfig &config) :
+	I2C(config),
+	I2CSPIDriver(config),
+	_px4_rangefinder(get_device_id(), config.rotation)
 {
 	_px4_rangefinder.set_min_distance(LL40LS_MIN_DISTANCE);
 	_px4_rangefinder.set_max_distance(LL40LS_MAX_DISTANCE);
 	_px4_rangefinder.set_fov(0.008); // Divergence 8 mRadian
 	// up the retries since the device misses the first measure attempts
 	_retries = 3;
+
+	_px4_rangefinder.set_device_type(DRV_DIST_DEVTYPE_LL40LS); /// TODO
 }
 
 LidarLiteI2C::~LidarLiteI2C()
@@ -70,6 +71,7 @@ LidarLiteI2C::init()
 		return PX4_ERROR;
 	}
 
+	start();
 	return PX4_OK;
 }
 
@@ -81,7 +83,7 @@ LidarLiteI2C::print_status()
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_sensor_resets);
 	perf_print_counter(_sensor_zero_resets);
-	printf("poll interval:  %u \n", get_measure_interval());
+	printf("poll interval:  %" PRIu32 "\n", get_measure_interval());
 }
 
 int
@@ -150,12 +152,12 @@ LidarLiteI2C::probe()
 
 				if (_unit_id > 0) {
 					// v2
-					PX4_INFO("probe success - hw: %u, sw:%u, id: %u", _hw_version, _sw_version, _unit_id);
+					PX4_INFO("probe success - hw: %" PRIu8 ", sw:%" PRIu8 ", id: %" PRIu16, _hw_version, _sw_version, _unit_id);
 					_px4_rangefinder.set_max_distance(LL40LS_MAX_DISTANCE_V2);
 
 				} else {
 					// v1 and v3
-					PX4_INFO("probe success - hw: %u, sw:%u", _hw_version, _sw_version);
+					PX4_INFO("probe success - hw: %" PRIu8 ", sw:%" PRIu8, _hw_version, _sw_version);
 				}
 
 			} else {
@@ -163,7 +165,7 @@ LidarLiteI2C::probe()
 				if (_unit_id > 0) {
 					// v3hp
 					_is_v3hp = true;
-					PX4_INFO("probe success - id: %u", _unit_id);
+					PX4_INFO("probe success - id: %" PRIu16, _unit_id);
 				}
 			}
 
@@ -171,10 +173,8 @@ LidarLiteI2C::probe()
 			return OK;
 		}
 
-		PX4_DEBUG("probe failed unit_id=0x%02x hw_version=0x%02x sw_version=0x%02x",
-			  (unsigned)_unit_id,
-			  (unsigned)_hw_version,
-			  (unsigned)_sw_version);
+		PX4_DEBUG("probe failed unit_id=0x%02" PRIx16 " hw_version=0x%02" PRIu8 " sw_version=0x%02" PRIu8,
+			  _unit_id,  _hw_version, _sw_version);
 
 	}
 
@@ -219,7 +219,7 @@ LidarLiteI2C::measure()
 int
 LidarLiteI2C::reset_sensor()
 {
-	px4_usleep(15000);
+	px4_usleep(15_ms);
 
 	int ret = write_reg(LL40LS_SIG_COUNT_VAL_REG, LL40LS_SIG_COUNT_VAL_MAX);
 
@@ -227,14 +227,14 @@ LidarLiteI2C::reset_sensor()
 		return ret;
 	}
 
-	px4_usleep(15000);
+	px4_usleep(15_ms);
 	ret = write_reg(LL40LS_MEASURE_REG, LL40LS_MSRREG_RESET);
 
 
 	if (ret != PX4_OK) {
 		uint8_t sig_cnt;
 
-		px4_usleep(15000);
+		px4_usleep(15_ms);
 		ret = read_reg(LL40LS_SIG_COUNT_VAL_REG, sig_cnt);
 
 		if ((ret != PX4_OK) || (sig_cnt != LL40LS_SIG_COUNT_VAL_DEFAULT)) {
@@ -245,7 +245,7 @@ LidarLiteI2C::reset_sensor()
 	}
 
 	// wait for sensor reset to complete
-	px4_usleep(50000);
+	px4_usleep(50_ms);
 	ret = write_reg(LL40LS_SIG_COUNT_VAL_REG, LL40LS_SIG_COUNT_VAL_MAX);
 
 	if (ret != PX4_OK) {
@@ -253,7 +253,7 @@ LidarLiteI2C::reset_sensor()
 	}
 
 	// wait for register write to complete
-	px4_usleep(1000);
+	px4_usleep(1_ms);
 
 	return OK;
 }
@@ -264,17 +264,17 @@ LidarLiteI2C::print_registers()
 	_pause_measurements = true;
 	PX4_INFO("registers");
 	// wait for a while to ensure the lidar is in a ready state
-	px4_usleep(50000);
+	px4_usleep(50_ms);
 
 	for (uint8_t reg = 0; reg <= 0x67; reg++) {
 		uint8_t val = 0;
 		int ret = lidar_transfer(&reg, 1, &val, 1);
 
 		if (ret != OK) {
-			printf("%02x:XX ", (unsigned)reg);
+			printf("%02" PRIx8 ":XX ", reg);
 
 		} else {
-			printf("%02x:%02x ", (unsigned)reg, (unsigned)val);
+			printf("%02" PRIx8 ":%02" PRIu8, reg, val);
 		}
 
 		if (reg % 16 == 15) {
@@ -380,16 +380,13 @@ LidarLiteI2C::collect()
 	}
 
 	uint8_t ll40ls_signal_strength = val[0];
-
-	uint8_t signal_min = 0;
-	uint8_t signal_max = 0;
-	uint8_t signal_value = 0;
+	uint8_t signal_quality;
 
 	// We detect if V3HP is being used
 	if (_is_v3hp) {
-		signal_min = LL40LS_SIGNAL_STRENGTH_MIN_V3HP;
-		signal_max = LL40LS_SIGNAL_STRENGTH_MAX_V3HP;
-		signal_value = ll40ls_signal_strength;
+		//Normalize signal strength to 0...100 percent using the absolute signal strength.
+		signal_quality = 100 * math::max(ll40ls_signal_strength - LL40LS_SIGNAL_STRENGTH_MIN_V3HP, 0) /
+				 (LL40LS_SIGNAL_STRENGTH_MAX_V3HP - LL40LS_SIGNAL_STRENGTH_MIN_V3HP);
 
 	} else {
 		// Absolute peak strength measurement, i.e. absolute strength of main signal peak.
@@ -422,25 +419,17 @@ LidarLiteI2C::collect()
 		}
 
 		uint8_t ll40ls_peak_strength = val[0];
-		signal_min = LL40LS_PEAK_STRENGTH_LOW;
-		signal_max = LL40LS_PEAK_STRENGTH_HIGH;
 
 		// For v2 and v3 use ll40ls_signal_strength (a relative measure, i.e. peak strength to noise!) to reject potentially ambiguous measurements
-		if (ll40ls_signal_strength <= LL40LS_SIGNAL_STRENGTH_LOW) {
-			signal_value = 0;
+		if (ll40ls_signal_strength <= LL40LS_SIGNAL_STRENGTH_LOW || distance_m < LL40LS_MIN_DISTANCE) {
+			signal_quality = 0;
 
 		} else {
-			signal_value = ll40ls_peak_strength;
+			//Normalize signal strength to 0...100 percent using the absolute signal peak strength.
+			signal_quality = 100 * math::max(ll40ls_peak_strength - LL40LS_PEAK_STRENGTH_LOW, 0) /
+					 (LL40LS_PEAK_STRENGTH_HIGH - LL40LS_PEAK_STRENGTH_LOW);
+
 		}
-	}
-
-	// Final data quality evaluation. This is based on the datasheet and simple heuristics retrieved from experiments
-	// Step 1: Normalize signal strength to 0...100 percent using the absolute signal peak strength.
-	uint8_t signal_quality = 100 * math::max(signal_value - signal_min, 0) / (signal_max - signal_min);
-
-	// Step 2: Filter physically impossible measurements, which removes some crazy outliers that appear on LL40LS.
-	if (distance_m < LL40LS_MIN_DISTANCE) {
-		signal_quality = 0;
 	}
 
 	_px4_rangefinder.update(timestamp_sample, distance_m, signal_quality);

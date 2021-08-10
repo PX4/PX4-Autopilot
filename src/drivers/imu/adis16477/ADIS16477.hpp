@@ -39,7 +39,7 @@
 #pragma once
 
 #include <drivers/device/spi.h>
-#include <ecl/geo/geo.h>
+#include <geo/geo.h>
 #include <lib/conversion/rotation.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
@@ -50,12 +50,9 @@
 class ADIS16477 : public device::SPI, public I2CSPIDriver<ADIS16477>
 {
 public:
-	ADIS16477(I2CSPIBusOption bus_option, int bus, int32_t device, enum Rotation rotation, int bus_frequency,
-		  spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio);
+	ADIS16477(const I2CSPIDriverConfig &config);
 	virtual ~ADIS16477();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	int		init();
@@ -116,7 +113,7 @@ private:
 
 	uint16_t		read_reg16(uint8_t reg);
 
-	void			write_reg(uint8_t reg, uint8_t value);
+	int			write_reg(uint8_t reg, uint8_t value);
 	void			write_reg16(uint8_t reg, uint16_t value);
 
 	// ADIS16477 onboard self test

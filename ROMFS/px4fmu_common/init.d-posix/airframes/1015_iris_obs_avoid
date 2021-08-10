@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# @name 3DR Iris Quadrotor SITL (Obstacle Avoidance)
+#
+# @type Quadrotor Wide
+#
+
+. ${R}etc/init.d-posix/airframes/10016_iris
+
+param set-default COM_OBS_AVOID 1
+param set-default MPC_XY_CRUISE 5.0
+

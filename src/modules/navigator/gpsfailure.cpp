@@ -41,7 +41,7 @@
 #include "navigator.h"
 
 #include <systemlib/mavlink_log.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <navigator/navigation.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
@@ -153,7 +153,7 @@ GpsFailure::advance_gpsf()
 	switch (_gpsf_state) {
 	case GPSF_STATE_NONE:
 		_gpsf_state = GPSF_STATE_LOITER;
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Global position failure: fixed bank loiter");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Global position failure: loitering");
 		break;
 
 	case GPSF_STATE_LOITER:

@@ -1,0 +1,32 @@
+#!/bin/sh
+#
+# board specific sensors init
+#------------------------------------------------------------------------------
+board_adc start
+
+# SPI1
+if ! icm20689 -s -b 1 -R 2 start
+then
+	adis16470 -s -b 1 -R 2 start
+fi
+
+# SPI2
+rm3100 -s -b 2 start
+
+# SPI4
+bmi088 -s -b 4 -A -R 2 start
+if ! bmi088 -s -b 4 -G -R 2 start
+then
+	icm42688p -R 2 -s start
+fi
+ms5611 -s -b 4 start
+
+# SPI6
+if ! icm20649 -s -b 6 -R 2 start
+then
+	icm20689 -s -b 6 -R 2 start
+fi
+ms5611 -s -b 6 start
+
+# External compass on GPS1/I2C1: standard CUAV GPS/compass puck (with lights, safety button, and buzzer)
+ist8310 -X -b 1 -R 10 start

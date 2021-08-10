@@ -48,7 +48,7 @@ namespace px4
 
 class WorkItem;
 
-class WorkQueue : public ListNode<WorkQueue *>
+class WorkQueue : public IntrusiveSortedListNode<WorkQueue *>
 {
 public:
 	explicit WorkQueue(const wq_config_t &wq_config);
@@ -56,7 +56,8 @@ public:
 
 	~WorkQueue();
 
-	const char *get_name() { return _config.name; }
+	const wq_config_t &get_config() const { return _config; }
+	const char *get_name() const { return _config.name; }
 
 	bool Attach(WorkItem *item);
 	void Detach(WorkItem *item);
@@ -72,11 +73,14 @@ public:
 
 	void print_status(bool last = false);
 
+	// WorkQueues sorted numerically by relative priority (-1 to -255)
+	bool operator<=(const WorkQueue &rhs) const { return _config.relative_priority >= rhs.get_config().relative_priority; }
+
 private:
 
 	bool should_exit() const { return _should_exit.load(); }
 
-	inline void signal_worker_thread();
+	inline void SignalWorkerThread();
 
 #ifdef __PX4_NUTTX
 	// In NuttX work can be enqueued from an ISR
@@ -95,6 +99,10 @@ private:
 	const wq_config_t		&_config;
 	BlockingList<WorkItem *>	_work_items;
 	px4::atomic_bool		_should_exit{false};
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	int _lockstep_component {-1};
+#endif // ENABLE_LOCKSTEP_SCHEDULER
 
 };
 

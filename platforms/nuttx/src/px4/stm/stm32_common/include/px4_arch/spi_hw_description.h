@@ -69,16 +69,22 @@ static inline constexpr px4_spi_bus_t initSPIBus(SPI::Bus bus, const px4_spi_bus
 	for (int i = 0; i < SPI_BUS_MAX_DEVICES; ++i) {
 		ret.devices[i] = devices.devices[i];
 
-		// check that the same device is configured only once (the chip-select code depends on that)
-		for (int j = i + 1; j < SPI_BUS_MAX_DEVICES; ++j) {
-			if (ret.devices[j].cs_gpio != 0) {
-				constexpr_assert(ret.devices[i].devid != ret.devices[j].devid, "Same device configured multiple times");
-			}
-		}
 
 		if (ret.devices[i].cs_gpio != 0) {
-			// A bus potentially requires locking if it is accessed by non-PX4 devices (i.e. NuttX drivers)
-			if (PX4_SPI_DEVICE_ID != PX4_SPIDEVID_TYPE(ret.devices[i].devid)) {
+			if (PX4_SPI_DEVICE_ID == PX4_SPIDEVID_TYPE(ret.devices[i].devid)) {
+				int same_devices_count = 0;
+
+				for (int j = 0; j < i; ++j) {
+					if (ret.devices[j].cs_gpio != 0) {
+						same_devices_count += (ret.devices[i].devid & 0xff) == (ret.devices[j].devid & 0xff);
+					}
+				}
+
+				// increment the 2. LSB byte to allow multiple devices of the same type
+				ret.devices[i].devid |= same_devices_count << 8;
+
+			} else {
+				// A bus potentially requires locking if it is accessed by non-PX4 devices (i.e. NuttX drivers)
 				ret.requires_locking = true;
 			}
 		}
@@ -129,7 +135,8 @@ static inline constexpr SPI::bus_device_external_cfg_t initSPIConfigExternal(SPI
 struct px4_spi_bus_array_t {
 	px4_spi_bus_t item[SPI_BUS_MAX_BUS_ITEMS];
 };
-static inline constexpr px4_spi_bus_all_hw_t initSPIHWVersion(int hw_version, const px4_spi_bus_array_t &bus_items)
+static inline constexpr px4_spi_bus_all_hw_t initSPIHWVersion(int hw_version_revision,
+		const px4_spi_bus_array_t &bus_items)
 {
 	px4_spi_bus_all_hw_t ret{};
 
@@ -137,7 +144,7 @@ static inline constexpr px4_spi_bus_all_hw_t initSPIHWVersion(int hw_version, co
 		ret.buses[i] = bus_items.item[i];
 	}
 
-	ret.board_hw_version = hw_version;
+	ret.board_hw_version_revision = hw_version_revision;
 	return ret;
 }
 constexpr bool validateSPIConfig(const px4_spi_bus_t spi_buses_conf[SPI_BUS_MAX_BUS_ITEMS]);

@@ -41,7 +41,6 @@
 
 #include <drivers/device/i2c.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_mag.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/i2c_spi_buses.h>
@@ -98,14 +97,15 @@ enum OPERATING_MODE {
 	SINGLE
 };
 
+#define RM3100_ADDRESS		0x20
+
 class RM3100 : public I2CSPIDriver<RM3100>
 {
 public:
-	RM3100(device::Device *interface, enum Rotation rotation, I2CSPIBusOption bus_option, int bus);
+	RM3100(device::Device *interface, const I2CSPIDriverConfig &config);
 	virtual ~RM3100();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
 	void custom_method(const BusCLIArguments &cli) override;

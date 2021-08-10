@@ -55,7 +55,7 @@ static constexpr uint8_t Bit7 = (1 << 7);
 namespace InvenSense_MPU6000
 {
 static constexpr uint32_t SPI_SPEED = 1 * 1000 * 1000;
-static constexpr uint32_t SPI_SPEED_SENSOR = 10 * 1000 * 1000; // 20MHz for reading sensor and interrupt registers
+static constexpr uint32_t SPI_SPEED_SENSOR = 5 * 1000 * 1000; // 20MHz for reading sensor and interrupt registers
 static constexpr uint8_t DIR_READ = 0x80;
 
 static constexpr uint8_t WHOAMI = 0x68;
@@ -64,30 +64,27 @@ static constexpr float TEMPERATURE_SENSITIVITY = 340.f; // LSB/C
 static constexpr float TEMPERATURE_OFFSET = 36.53f; // C
 
 enum class Register : uint8_t {
-	CONFIG        = 0x1A,
-	GYRO_CONFIG   = 0x1B,
-	ACCEL_CONFIG  = 0x1C,
+	CONFIG            = 0x1A,
+	GYRO_CONFIG       = 0x1B,
+	ACCEL_CONFIG      = 0x1C,
 
-	FIFO_EN       = 0x23,
-	I2C_MST_CTRL  = 0x24,
+	FIFO_EN           = 0x23,
 
-	INT_PIN_CFG   = 0x37,
-	INT_ENABLE    = 0x38,
+	INT_PIN_CFG       = 0x37,
+	INT_ENABLE        = 0x38,
 
-	INT_STATUS    = 0x3A,
-
-	TEMP_OUT_H    = 0x41,
-	TEMP_OUT_L    = 0x42,
+	TEMP_OUT_H        = 0x41,
+	TEMP_OUT_L        = 0x42,
 
 	SIGNAL_PATH_RESET = 0x68,
 
-	USER_CTRL     = 0x6A,
-	PWR_MGMT_1    = 0x6B,
+	USER_CTRL         = 0x6A,
+	PWR_MGMT_1        = 0x6B,
 
-	FIFO_COUNTH   = 0x72,
-	FIFO_COUNTL   = 0x73,
-	FIFO_R_W      = 0x74,
-	WHO_AM_I      = 0x75,
+	FIFO_COUNTH       = 0x72,
+	FIFO_COUNTL       = 0x73,
+	FIFO_R_W          = 0x74,
+	WHO_AM_I          = 0x75,
 };
 
 // CONFIG
@@ -124,22 +121,12 @@ enum FIFO_EN_BIT : uint8_t {
 
 // INT_PIN_CFG
 enum INT_PIN_CFG_BIT : uint8_t {
-	INT_LEVEL    = Bit7,
-
-	INT_RD_CLEAR = Bit4,
-
+	INT_LEVEL = Bit7,
 };
 
 // INT_ENABLE
 enum INT_ENABLE_BIT : uint8_t {
-	FIFO_OFLOW_EN   = Bit4,
-	DATA_RDY_INT_EN = Bit0
-};
-
-// INT_STATUS
-enum INT_STATUS_BIT : uint8_t {
-	FIFO_OFLOW_INT = Bit4,
-	DATA_RDY_INT   = Bit0,
+	DATA_RDY_INT_EN = Bit0,
 };
 
 // SIGNAL_PATH_RESET
@@ -152,11 +139,8 @@ enum SIGNAL_PATH_RESET_BIT : uint8_t {
 // USER_CTRL
 enum USER_CTRL_BIT : uint8_t {
 	FIFO_EN        = Bit6,
-	I2C_MST_EN     = Bit5,
 	I2C_IF_DIS     = Bit4,
-
 	FIFO_RESET     = Bit2,
-
 	SIG_COND_RESET = Bit0,
 };
 
@@ -165,8 +149,7 @@ enum PWR_MGMT_1_BIT : uint8_t {
 	DEVICE_RESET = Bit7,
 	SLEEP        = Bit6,
 
-	CLKSEL_2     = Bit2,
-	CLKSEL_1     = Bit1,
+	// CLKSEL[2:0]
 	CLKSEL_0     = Bit0,
 };
 

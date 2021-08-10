@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +37,8 @@
 
 #include <stdint.h>
 
+#define TAP_ESC_DEVICE_PATH	"/dev/tap_esc"
+
 /* At the moment the only known use is with a current sensor */
 #define ESC_HAVE_CURRENT_SENSOR
 
@@ -44,6 +46,10 @@
 #define TAP_ESC_MAX_MOTOR_NUM 8
 
 #define PACKET_HEAD 0xfe
+
+#define PACKET_ID_MASK    0x55
+
+#define NO_ESC_ID_CONFIG  0x0f
 
 /* ESC_POS maps the values stored in the channelMapTable to reorder the ESC's
  * id so that that match the mux setting, so that the ressonder's data
@@ -62,9 +68,9 @@
  */
 
 // Circular from back right in CCW direction
-#define ESC_POS {0, 1, 4, 3, 2, 5, 7, 8}
+#define ESC_POS {0, 1, 2, 3, 4, 5, 6, 7}
 // 0 is CW, 1 is CCW
-#define ESC_DIR {0, 1, 0, 1, 0, 1, 0, 1}
+#define ESC_DIR {0, 1, 0, 1, 1 ,1, 1, 1}
 
 #define RPMMAX 1900
 #define RPMMIN 1200
@@ -140,6 +146,41 @@ typedef  struct {
 	uint8_t  requestInfoType;
 } InfoRequest;
 
+typedef struct {
+	uint16_t frequency; // 0 - 20kHz
+	uint16_t duration_ms;
+	uint8_t strength;
+} EscbusTunePacket;
+
+/****** InfoRequest ***********/
+
+/****** IdDoCmd ***********/
+// the real packet definition for ESCBUS_MSG_ID_DO_CMD
+// command definition
+typedef enum {
+	DO_RESET = 0,
+	DO_STUDY,
+	DO_ID_ASSIGNMENT,
+	DO_POWER_TEST,
+} ESCBUS_ENUM_COMMAND;
+
+typedef struct {
+	uint8_t channelIDMask;
+	uint8_t command;
+	uint8_t escID;
+} EscbusDoCmdPacket;
+
+typedef struct {
+	uint8_t id_mask;
+	uint8_t child_cmd;
+	uint8_t id;
+} EscbusConfigidPacket;
+
+typedef  struct {
+	uint8_t  escID;
+} AssignedIdResponse;
+/****** IdDoCmd ***********/
+
 /****** InfoRequest ***********/
 
 typedef  struct {
@@ -150,8 +191,11 @@ typedef  struct {
 		InfoRequest 		reqInfo;
 		ConfigInfoBasicRequest 	reqConfigInfoBasic;
 		RunReq			reqRun;
+		EscbusTunePacket	tunePacket;
+		EscbusConfigidPacket    configidPacket;
 		ConfigInfoBasicResponse rspConfigInfoBasic;
 		RunInfoRepsonse		rspRunInfo;
+		AssignedIdResponse      rspAssignedId;
 		uint8_t bytes[100];
 	} d;
 	uint8_t crc_data;
@@ -208,13 +252,13 @@ typedef enum {
 
 
 typedef enum {
-// messages or command to ESC
+	// messages or command to ESC
 	ESCBUS_MSG_ID_CONFIG_BASIC = 0,
 	ESCBUS_MSG_ID_CONFIG_FULL,
 	ESCBUS_MSG_ID_RUN,
 	ESCBUS_MSG_ID_TUNE,
 	ESCBUS_MSG_ID_DO_CMD,
-// messages from ESC
+	// messages from ESC
 	ESCBUS_MSG_ID_REQUEST_INFO,
 	ESCBUS_MSG_ID_CONFIG_INFO_BASIC,	// simple configuration info for request from flight controller
 	ESCBUS_MSG_ID_CONFIG_INFO_FULL,// full configuration info for request from host such as computer
@@ -223,7 +267,7 @@ typedef enum {
 	ESCBUS_MSG_ID_COMM_INFO,	// communication method info
 	ESCBUS_MSG_ID_DEVICE_INFO,// ESC device info
 	ESCBUS_MSG_ID_ASSIGNED_ID,	// never touch ESCBUS_MSG_ID_MAX_NUM
-	//boot loader used
+	// bootloader used
 	PROTO_OK = 0x10, // INSYNC/OK - 'ok' response
 	PROTO_FAILED = 0x11, // INSYNC/FAILED - 'fail' response
 

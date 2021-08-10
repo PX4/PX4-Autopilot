@@ -174,6 +174,7 @@
  * PWM in future
  */
 #define GPIO_HEATER_OUTPUT   /* PA7  T14CH1 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN7)
+#define HEATER_OUTPUT_EN(on_true)              px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
 
 /* PWM Capture
  *
@@ -414,26 +415,6 @@ extern void stm32_spiinitialize(void);
 extern void stm32_usbinitialize(void);
 
 extern void board_peripheral_reset(int ms);
-
-
-/****************************************************************************
- * Name: nsh_archinitialize
- *
- * Description:
- *   Perform architecture specific initialization for NSH.
- *
- *   CONFIG_NSH_ARCHINIT=y :
- *     Called from the NSH library
- *
- *   CONFIG_BOARD_INITIALIZE=y, CONFIG_NSH_LIBRARY=y, &&
- *   CONFIG_NSH_ARCHINIT=n :
- *     Called from board_initialize().
- *
- ****************************************************************************/
-
-#ifdef CONFIG_NSH_LIBRARY
-int nsh_archinitialize(void);
-#endif
 
 #include <px4_platform_common/board_common.h>
 

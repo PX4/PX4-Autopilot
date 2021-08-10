@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,19 +40,85 @@
 PARAM_DEFINE_INT32(CAL_GYRO1_ID, 0);
 
 /**
- * Gyro 1 enabled
+ * Gyro 1 priority.
  *
- * @boolean
+ * @value -1  Uninitialized
+ * @value 0   Disabled
+ * @value 1   Min
+ * @value 25  Low
+ * @value 50  Medium (Default)
+ * @value 75  High
+ * @value 100 Max
+ *
  * @category system
  * @group Sensor Calibration
  */
-PARAM_DEFINE_INT32(CAL_GYRO1_EN, 1);
+PARAM_DEFINE_INT32(CAL_GYRO1_PRIO, -1);
+
+/**
+ * Rotation of gyro 1 relative to airframe.
+ *
+ * An internal sensor will force a value of -1, so a GCS
+ * should only attempt to configure the rotation if the value is
+ * greater than or equal to zero.
+ *
+ * @value -1 Internal
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ * @value 8 Roll 180°
+ * @value 9 Roll 180°, Yaw 45°
+ * @value 10 Roll 180°, Yaw 90°
+ * @value 11 Roll 180°, Yaw 135°
+ * @value 12 Pitch 180°
+ * @value 13 Roll 180°, Yaw 225°
+ * @value 14 Roll 180°, Yaw 270°
+ * @value 15 Roll 180°, Yaw 315°
+ * @value 16 Roll 90°
+ * @value 17 Roll 90°, Yaw 45°
+ * @value 18 Roll 90°, Yaw 90°
+ * @value 19 Roll 90°, Yaw 135°
+ * @value 20 Roll 270°
+ * @value 21 Roll 270°, Yaw 45°
+ * @value 22 Roll 270°, Yaw 90°
+ * @value 23 Roll 270°, Yaw 135°
+ * @value 24 Pitch 90°
+ * @value 25 Pitch 270°
+ * @value 26 Pitch 180°, Yaw 90°
+ * @value 27 Pitch 180°, Yaw 270°
+ * @value 28 Roll 90°, Pitch 90°
+ * @value 29 Roll 180°, Pitch 90°
+ * @value 30 Roll 270°, Pitch 90°
+ * @value 31 Roll 90°, Pitch 180°
+ * @value 32 Roll 270°, Pitch 180°
+ * @value 33 Roll 90°, Pitch 270°
+ * @value 34 Roll 180°, Pitch 270°
+ * @value 35 Roll 270°, Pitch 270°
+ * @value 36 Roll 90°, Pitch 180°, Yaw 90°
+ * @value 37 Roll 90°, Yaw 270°
+ * @value 38 Roll 90°, Pitch 68°, Yaw 293°
+ * @value 39 Pitch 315°
+ * @value 40 Roll 90°, Pitch 315°
+ *
+ * @min -1
+ * @max 40
+ * @reboot_required true
+ * @category system
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(CAL_GYRO1_ROT, -1);
 
 /**
  * Gyro X-axis offset
  *
  * @category system
  * @group Sensor Calibration
+ * @volatile
  */
 PARAM_DEFINE_FLOAT(CAL_GYRO1_XOFF, 0.0f);
 
@@ -61,6 +127,7 @@ PARAM_DEFINE_FLOAT(CAL_GYRO1_XOFF, 0.0f);
  *
  * @category system
  * @group Sensor Calibration
+ * @volatile
  */
 PARAM_DEFINE_FLOAT(CAL_GYRO1_YOFF, 0.0f);
 
@@ -69,5 +136,6 @@ PARAM_DEFINE_FLOAT(CAL_GYRO1_YOFF, 0.0f);
  *
  * @category system
  * @group Sensor Calibration
+ * @volatile
  */
 PARAM_DEFINE_FLOAT(CAL_GYRO1_ZOFF, 0.0f);

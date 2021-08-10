@@ -61,7 +61,7 @@ public:
 protected:
 
 	bool _get_landed_state() override;
-	void _update_topics() override;
+	void _set_hysteresis_factor(const int factor) override {};
 
 private:
 
@@ -70,8 +70,6 @@ private:
 	static constexpr hrt_abstime FLYING_TRIGGER_TIME_US = 0_us;
 
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
-
-	airspeed_validated_s _airspeed_validated{};
 
 	float _airspeed_filtered{0.0f};
 	float _velocity_xy_filtered{0.0f};

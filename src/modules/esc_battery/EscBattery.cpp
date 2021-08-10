@@ -38,7 +38,7 @@ using namespace time_literals;
 EscBattery::EscBattery() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
-	_battery(1, this)
+	_battery(1, this, ESC_BATTERY_INTERVAL_US)
 {
 }
 
@@ -49,6 +49,8 @@ EscBattery::init()
 		PX4_ERR("esc_status callback registration failed!");
 		return false;
 	}
+
+	_esc_status_sub.set_interval_us(ESC_BATTERY_INTERVAL_US);
 
 	return true;
 }
@@ -111,7 +113,6 @@ EscBattery::Run()
 			battery_status_s::BATTERY_SOURCE_ESCS,
 			priority,
 			ctrl.control[actuator_controls_s::INDEX_THROTTLE]);
-		_battery.publish();
 	}
 }
 

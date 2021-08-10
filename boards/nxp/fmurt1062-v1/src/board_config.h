@@ -215,6 +215,7 @@
  */
 #define HEATER_IOMUX (IOMUX_CMOS_OUTPUT | IOMUX_PULL_NONE | IOMUX_DRIVE_50OHM | IOMUX_SPEED_MEDIUM | IOMUX_SLEW_FAST)
 #define GPIO_HEATER_OUTPUT   /* GPIO_B1_09 QTIMER2_TIMER3 GPIO2_IO25 */ (GPIO_QTIMER2_TIMER3_1 | HEATER_IOMUX)
+#define HEATER_OUTPUT_EN(on_true)	px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
 
 /* PWM Capture
  *
@@ -231,7 +232,7 @@
 #define GPIO_nARMED_INIT     /* GPIO_SD_B1_01 GPIO3_IO1 */ (GPIO_PORT3 | GPIO_PIN1 | GPIO_INPUT | nARMED_INPUT_IOMUX)
 #define GPIO_nARMED          /* GPIO_SD_B1_01 GPIO3_IO1 */ (GPIO_PORT3 | GPIO_PIN1 | GPIO_OUTPUT | GPIO_OUTPUT_ZERO | nARMED_OUTPUT_IOMUX)
 
-#define BOARD_INDICATE_ARMED_STATE(on_armed)  px4_arch_configgpio((on_armed) ? GPIO_nARMED : GPIO_nARMED_INIT)
+#define BOARD_INDICATE_EXTERNAL_LOCKOUT_STATE(enabled)  px4_arch_configgpio((enabled) ? GPIO_nARMED : GPIO_nARMED_INIT)
 
 /* PWM
  */
@@ -242,6 +243,7 @@
 
 #define DIRECT_INPUT_TIMER_CHANNELS  0
 
+//#define BOARD_HAS_UI_LED_PWM           1  Not ported yet (Still Kinetis driver)
 #define BOARD_HAS_LED_PWM              1
 #define BOARD_LED_PWM_DRIVE_ACTIVE_LOW 1
 
@@ -269,10 +271,10 @@
 
 #define OC_INPUT_IOMUX  (IOMUX_CMOS_INPUT |  IOMUX_PULL_NONE | IOMUX_DRIVE_HIZ)
 
-#define GPIO_nVDD_5V_PERIPH_EN          /* GPIO_B1_04    GPIO2_IO20 */ (GPIO_PORT2 | GPIO_PIN20 | GPIO_OUTPUT | GPIO_OUTPUT_ZERO | GENERAL_OUTPUT_IOMUX)
-#define GPIO_nVDD_5V_PERIPH_OC          /* GPIO_B1_03    GPIO2_IO19 */ (GPIO_PORT2 | GPIO_PIN19 | GPIO_INPUT  | OC_INPUT_IOMUX)
-#define GPIO_nVDD_5V_HIPOWER_EN         /* GPIO_B1_02    GPIO2_IO18 */ (GPIO_PORT2 | GPIO_PIN18 | GPIO_OUTPUT | GPIO_OUTPUT_ZERO | GENERAL_OUTPUT_IOMUX)
-#define GPIO_nVDD_5V_HIPOWER_OC         /* GPIO_B1_01    GPIO2_IO17 */ (GPIO_PORT2 | GPIO_PIN17 | GPIO_INPUT  | OC_INPUT_IOMUX)
+#define GPIO_nVDD_5V_PERIPH_EN          /* GPIO_B1_03    GPIO2_IO19 */ (GPIO_PORT2 | GPIO_PIN19 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | GENERAL_OUTPUT_IOMUX)
+#define GPIO_nVDD_5V_PERIPH_OC          /* GPIO_B1_04    GPIO2_IO20 */ (GPIO_PORT2 | GPIO_PIN20 | GPIO_INPUT  | OC_INPUT_IOMUX)
+#define GPIO_nVDD_5V_HIPOWER_EN         /* GPIO_B1_01    GPIO2_IO17 */ (GPIO_PORT2 | GPIO_PIN17 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | GENERAL_OUTPUT_IOMUX)
+#define GPIO_nVDD_5V_HIPOWER_OC         /* GPIO_B1_02    GPIO2_IO18 */ (GPIO_PORT2 | GPIO_PIN18 | GPIO_INPUT  | OC_INPUT_IOMUX)
 #define GPIO_VDD_3V3_SENSORS_EN         /* GPIO_EMC_41   GPIO3_IO27 */ (GPIO_PORT3 | GPIO_PIN27 | GPIO_OUTPUT | GPIO_OUTPUT_ZERO | GENERAL_OUTPUT_IOMUX)
 #define GPIO_VDD_3V3_SPEKTRUM_POWER_EN  /* GPIO_AD_B0_00 GPIO1_IO00 */ (GPIO_PORT1 | GPIO_PIN0  | GPIO_OUTPUT | GPIO_OUTPUT_ZERO | GENERAL_OUTPUT_IOMUX)
 #define GPIO_VDD_5V_RC_EN               /* GPIO_AD_B0_08 GPIO1_IO08 */ (GPIO_PORT1 | GPIO_PIN8  | GPIO_OUTPUT | GPIO_OUTPUT_ZERO | GENERAL_OUTPUT_IOMUX)
@@ -313,6 +315,7 @@
 #define GPIO_PPM_IN             /* GPIO_B1_06 GPT1_CAPTURE2 */ (GPIO_GPT1_CAPTURE2_2 | GENERAL_INPUT_IOMUX)
 
 #define RC_SERIAL_PORT          "/dev/ttyS5"
+#define RC_SERIAL_SINGLEWIRE
 
 /* PWM input driver. Use FMU AUX5 pins attached to GPIO_EMC_33 GPIO3_IO19 FLEXPWM3_PWMA2 */
 
@@ -493,24 +496,6 @@ extern void imxrt_usbinitialize(void);
 extern void board_peripheral_reset(int ms);
 
 extern void fmurt1062_timer_initialize(void);
-/****************************************************************************
- * Name: nsh_archinitialize
- *
- * Description:
- *   Perform architecture specific initialization for NSH.
- *
- *   CONFIG_NSH_ARCHINIT=y :
- *     Called from the NSH library
- *
- *   CONFIG_BOARD_INITIALIZE=y, CONFIG_NSH_LIBRARY=y, &&
- *   CONFIG_NSH_ARCHINIT=n :
- *     Called from board_initialize().
- *
- ****************************************************************************/
-
-#ifdef CONFIG_NSH_LIBRARY
-int nsh_archinitialize(void);
-#endif
 
 #include <px4_platform_common/board_common.h>
 

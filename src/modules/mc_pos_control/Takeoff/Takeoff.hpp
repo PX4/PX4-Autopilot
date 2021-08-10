@@ -41,15 +41,16 @@
 
 #include <lib/hysteresis/hysteresis.h>
 #include <drivers/drv_hrt.h>
+#include <uORB/topics/takeoff_status.h>
 
 using namespace time_literals;
 
 enum class TakeoffState {
-	disarmed = 0,
-	spoolup,
-	ready_for_takeoff,
-	rampup,
-	flight
+	disarmed = takeoff_status_s::TAKEOFF_STATE_DISARMED,
+	spoolup = takeoff_status_s::TAKEOFF_STATE_SPOOLUP,
+	ready_for_takeoff = takeoff_status_s::TAKEOFF_STATE_READY_FOR_TAKEOFF,
+	rampup = takeoff_status_s::TAKEOFF_STATE_RAMPUP,
+	flight = takeoff_status_s::TAKEOFF_STATE_FLIGHT
 };
 
 class Takeoff
@@ -59,7 +60,7 @@ public:
 	~Takeoff() = default;
 
 	// initialize parameters
-	void setSpoolupTime(const float seconds) { _spoolup_time_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(seconds * (float)1_s)); }
+	void setSpoolupTime(const float seconds) { _spoolup_time_hysteresis.set_hysteresis_time_from(false, seconds * 1_s); }
 	void setTakeoffRampTime(const float seconds) { _takeoff_ramp_time = seconds; }
 
 	/**
@@ -68,7 +69,7 @@ public:
 	 * @param hover_thrust normalized thrsut value with which the vehicle hovers
 	 * @param velocity_p_gain proportional gain of the velocity controller to calculate the thrust
 	 */
-	void generateInitialRampValue(const float hover_thrust, const float velocity_p_gain);
+	void generateInitialRampValue(const float velocity_p_gain);
 
 	/**
 	 * Update the state for the takeoff.
@@ -93,9 +94,9 @@ public:
 private:
 	TakeoffState _takeoff_state = TakeoffState::disarmed;
 
-	systemlib::Hysteresis _spoolup_time_hysteresis{false}; /**< becomes true MPC_SPOOLUP_TIME seconds after the vehicle was armed */
+	systemlib::Hysteresis _spoolup_time_hysteresis{false}; ///< becomes true MPC_SPOOLUP_TIME seconds after the vehicle was armed
 
-	float _takeoff_ramp_time = 0.f;
-	float _takeoff_ramp_vz_init = 0.f;
-	float _takeoff_ramp_vz = 0.f;
+	float _takeoff_ramp_time{0.f};
+	float _takeoff_ramp_vz_init{0.f}; ///< verticval velocity resulting in zero thrust
+	float _takeoff_ramp_progress{0.f}; ///< asecnding from 0 to 1
 };

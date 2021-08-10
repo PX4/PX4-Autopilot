@@ -49,7 +49,7 @@ WorkQueue::WorkQueue(const wq_config_t &config) :
 	// set the threads name
 #ifdef __PX4_DARWIN
 	pthread_setname_np(_config.name);
-#elif !defined(__PX4_QURT)
+#else
 	pthread_setname_np(pthread_self(), _config.name);
 #endif
 
@@ -72,8 +72,7 @@ WorkQueue::~WorkQueue()
 #endif /* __PX4_NUTTX */
 }
 
-bool
-WorkQueue::Attach(WorkItem *item)
+bool WorkQueue::Attach(WorkItem *item)
 {
 	work_lock();
 
@@ -87,8 +86,7 @@ WorkQueue::Attach(WorkItem *item)
 	return false;
 }
 
-void
-WorkQueue::Detach(WorkItem *item)
+void WorkQueue::Detach(WorkItem *item)
 {
 	work_lock();
 
@@ -99,24 +97,31 @@ WorkQueue::Detach(WorkItem *item)
 		PX4_DEBUG("stopping: %s, last active WorkItem closing", _config.name);
 
 		request_stop();
-		signal_worker_thread();
+		SignalWorkerThread();
 	}
 
 	work_unlock();
 }
 
-void
-WorkQueue::Add(WorkItem *item)
+void WorkQueue::Add(WorkItem *item)
 {
 	work_lock();
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+
+	if (_lockstep_component == -1) {
+		_lockstep_component = px4_lockstep_register_component();
+	}
+
+#endif // ENABLE_LOCKSTEP_SCHEDULER
+
 	_q.push(item);
 	work_unlock();
 
-	signal_worker_thread();
+	SignalWorkerThread();
 }
 
-void
-WorkQueue::signal_worker_thread()
+void WorkQueue::SignalWorkerThread()
 {
 	int sem_val;
 
@@ -125,16 +130,14 @@ WorkQueue::signal_worker_thread()
 	}
 }
 
-void
-WorkQueue::Remove(WorkItem *item)
+void WorkQueue::Remove(WorkItem *item)
 {
 	work_lock();
 	_q.remove(item);
 	work_unlock();
 }
 
-void
-WorkQueue::Clear()
+void WorkQueue::Clear()
 {
 	work_lock();
 
@@ -145,8 +148,7 @@ WorkQueue::Clear()
 	work_unlock();
 }
 
-void
-WorkQueue::Run()
+void WorkQueue::Run()
 {
 	while (!should_exit()) {
 		// loop as the wait may be interrupted by a signal
@@ -165,18 +167,26 @@ WorkQueue::Run()
 			work_lock(); // re-lock
 		}
 
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+
+		if (_q.empty()) {
+			px4_lockstep_unregister_component(_lockstep_component);
+			_lockstep_component = -1;
+		}
+
+#endif // ENABLE_LOCKSTEP_SCHEDULER
+
 		work_unlock();
 	}
 
 	PX4_DEBUG("%s: exiting", _config.name);
 }
 
-void
-WorkQueue::print_status(bool last)
+void WorkQueue::print_status(bool last)
 {
 	const size_t num_items = _work_items.size();
 	PX4_INFO_RAW("%-16s\n", get_name());
-	size_t i = 0;
+	unsigned i = 0;
 
 	for (WorkItem *item : _work_items) {
 		i++;
@@ -189,10 +199,10 @@ WorkQueue::print_status(bool last)
 		}
 
 		if (i < num_items) {
-			PX4_INFO_RAW("|__ %zu) ", i);
+			PX4_INFO_RAW("|__%2d) ", i);
 
 		} else {
-			PX4_INFO_RAW("\\__ %zu) ", i);
+			PX4_INFO_RAW("\\__%2d) ", i);
 		}
 
 		item->print_run_status();

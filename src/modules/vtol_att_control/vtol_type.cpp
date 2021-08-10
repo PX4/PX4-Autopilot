@@ -81,7 +81,8 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 
 bool VtolType::init()
 {
-	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
+	const char *dev = _params->vt_mc_on_fmu ? PWM_OUTPUT1_DEVICE_PATH : PWM_OUTPUT0_DEVICE_PATH;
+
 	int fd = px4_open(dev, 0);
 
 	if (fd < 0) {
@@ -90,7 +91,7 @@ bool VtolType::init()
 	}
 
 	int ret = px4_ioctl(fd, PWM_SERVO_GET_MAX_PWM, (long unsigned int)&_max_mc_pwm_values);
-
+	_current_max_pwm_values = _max_mc_pwm_values;
 
 	if (ret != PX4_OK) {
 		PX4_ERR("failed getting max values");
@@ -116,19 +117,30 @@ bool VtolType::init()
 
 	px4_close(fd);
 
+	_main_motor_channel_bitmap = generate_bitmap_from_channel_numbers(_params->vtol_motor_id);
+	_alternate_motor_channel_bitmap = generate_bitmap_from_channel_numbers(_params->fw_motors_off);
+
+
+	// in order to get the main motors we take all motors and clear the alternate motor bits
+	for (int i = 0; i < 8; i++) {
+		if (_alternate_motor_channel_bitmap & (1 << i)) {
+			_main_motor_channel_bitmap &= ~(1 << i);
+		}
+	}
+
 	return true;
 
 }
 
 void VtolType::update_mc_state()
 {
-	if (!flag_idle_mc) {
-		flag_idle_mc = set_idle_mc();
+	if (!_flag_idle_mc) {
+		_flag_idle_mc = set_idle_mc();
 	}
 
-	if (_motor_state != motor_state::ENABLED) {
-		_motor_state = VtolType::set_motor_state(_motor_state, motor_state::ENABLED);
-	}
+	resetAccelToPitchPitchIntegrator();
+
+	VtolType::set_all_motor_state(motor_state::ENABLED);
 
 	// copy virtual attitude setpoint to real attitude setpoint
 	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
@@ -141,13 +153,13 @@ void VtolType::update_mc_state()
 
 void VtolType::update_fw_state()
 {
-	if (flag_idle_mc) {
-		flag_idle_mc = !set_idle_fw();
+	if (_flag_idle_mc) {
+		_flag_idle_mc = !set_idle_fw();
 	}
 
-	if (_motor_state != motor_state::DISABLED) {
-		_motor_state = VtolType::set_motor_state(_motor_state, motor_state::DISABLED);
-	}
+	resetAccelToPitchPitchIntegrator();
+
+	VtolType::set_alternate_motor_state(motor_state::DISABLED);
 
 	// copy virtual attitude setpoint to real attitude setpoint
 	memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
@@ -221,6 +233,21 @@ bool VtolType::can_transition_on_ground()
 
 void VtolType::check_quadchute_condition()
 {
+	if (_attc->get_transition_command() == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC && _attc->get_immediate_transition()
+	    && !_quadchute_command_treated) {
+		_attc->quadchute("QuadChute by external command");
+		_quadchute_command_treated = true;
+		_attc->reset_immediate_transition();
+
+	} else {
+		_quadchute_command_treated = false;
+	}
+
+	if (!_tecs_running) {
+		// reset the filtered height rate and heigh rate setpoint if TECS is not running
+		_ra_hrate = 0.0f;
+		_ra_hrate_sp = 0.0f;
+	}
 
 	if (_v_control_mode->flag_armed && !_land_detected->landed) {
 		Eulerf euler = Quatf(_v_att->q);
@@ -229,7 +256,7 @@ void VtolType::check_quadchute_condition()
 		if (_params->fw_min_alt > FLT_EPSILON) {
 
 			if (-(_local_pos->z) < _params->fw_min_alt) {
-				_attc->abort_front_transition("QuadChute: Minimum altitude breached");
+				_attc->quadchute("QuadChute: Minimum altitude breached");
 			}
 		}
 
@@ -247,7 +274,7 @@ void VtolType::check_quadchute_condition()
 				    (_ra_hrate < -1.0f) &&
 				    (_ra_hrate_sp > 1.0f)) {
 
-					_attc->abort_front_transition("QuadChute: loss of altitude");
+					_attc->quadchute("QuadChute: loss of altitude");
 				}
 
 			} else {
@@ -255,7 +282,7 @@ void VtolType::check_quadchute_condition()
 				const bool height_rate_error = _local_pos->v_z_valid && (_local_pos->vz > 1.0f) && (_local_pos->z_deriv > 1.0f);
 
 				if (height_error && height_rate_error) {
-					_attc->abort_front_transition("QuadChute: large altitude error");
+					_attc->quadchute("QuadChute: large altitude error");
 				}
 			}
 		}
@@ -264,7 +291,7 @@ void VtolType::check_quadchute_condition()
 		if (_params->fw_qc_max_pitch > 0) {
 
 			if (fabsf(euler.theta()) > fabsf(math::radians(_params->fw_qc_max_pitch))) {
-				_attc->abort_front_transition("Maximum pitch angle exceeded");
+				_attc->quadchute("Maximum pitch angle exceeded");
 			}
 		}
 
@@ -272,7 +299,7 @@ void VtolType::check_quadchute_condition()
 		if (_params->fw_qc_max_roll > 0) {
 
 			if (fabsf(euler.phi()) > fabsf(math::radians(_params->fw_qc_max_roll))) {
-				_attc->abort_front_transition("Maximum roll angle exceeded");
+				_attc->quadchute("Maximum roll angle exceeded");
 			}
 		}
 	}
@@ -284,7 +311,7 @@ bool VtolType::set_idle_mc()
 	struct pwm_output_values pwm_values {};
 
 	for (int i = 0; i < num_outputs_max; i++) {
-		if (is_channel_set(i, _params->vtol_motor_id)) {
+		if (is_channel_set(i, generate_bitmap_from_channel_numbers(_params->vtol_motor_id))) {
 			pwm_values.values[i] = pwm_value;
 
 		} else {
@@ -302,8 +329,8 @@ bool VtolType::set_idle_fw()
 	struct pwm_output_values pwm_values {};
 
 	for (int i = 0; i < num_outputs_max; i++) {
-		if (is_channel_set(i, _params->vtol_motor_id)) {
-			pwm_values.values[i] = PWM_MOTOR_OFF;
+		if (is_channel_set(i, generate_bitmap_from_channel_numbers(_params->vtol_motor_id))) {
+			pwm_values.values[i] = PWM_DEFAULT_MIN;
 
 		} else {
 			pwm_values.values[i] = _min_mc_pwm_values.values[i];
@@ -346,24 +373,48 @@ bool VtolType::apply_pwm_limits(struct pwm_output_values &pwm_values, pwm_limit_
 	return true;
 }
 
-motor_state VtolType::set_motor_state(const motor_state current_state, const motor_state next_state, const int value)
+void VtolType::set_all_motor_state(const motor_state target_state, const int value)
 {
-	struct pwm_output_values pwm_values = {};
-	pwm_values.channel_count = num_outputs_max;
+	set_main_motor_state(target_state, value);
+	set_alternate_motor_state(target_state, value);
+}
 
-	// per default all motors are running
-	for (int i = 0; i < num_outputs_max; i++) {
-		pwm_values.values[i] = _max_mc_pwm_values.values[i];
+void VtolType::set_main_motor_state(const motor_state target_state, const int value)
+{
+	if (_main_motor_state != target_state) {
+
+		if (set_motor_state(target_state, _main_motor_channel_bitmap, value)) {
+			_main_motor_state = target_state;
+		}
 	}
+}
 
-	switch (next_state) {
+void VtolType::set_alternate_motor_state(const motor_state target_state, const int value)
+{
+	if (_alternate_motor_state != target_state) {
+
+		if (set_motor_state(target_state, _alternate_motor_channel_bitmap, value)) {
+			_alternate_motor_state = target_state;
+		}
+	}
+}
+
+bool VtolType::set_motor_state(const motor_state target_state, const int32_t channel_bitmap,  const int value)
+{
+	switch (target_state) {
 	case motor_state::ENABLED:
+		for (int i = 0; i < num_outputs_max; i++) {
+			if (is_channel_set(i, channel_bitmap)) {
+				_current_max_pwm_values.values[i] = _max_mc_pwm_values.values[i];
+			}
+		}
+
 		break;
 
 	case motor_state::DISABLED:
 		for (int i = 0; i < num_outputs_max; i++) {
-			if (is_channel_set(i, _params->fw_motors_off)) {
-				pwm_values.values[i] = _disarmed_pwm_values.values[i];
+			if (is_channel_set(i, channel_bitmap)) {
+				_current_max_pwm_values.values[i] = _disarmed_pwm_values.values[i];
 			}
 		}
 
@@ -372,8 +423,8 @@ motor_state VtolType::set_motor_state(const motor_state current_state, const mot
 	case motor_state::IDLE:
 
 		for (int i = 0; i < num_outputs_max; i++) {
-			if (is_channel_set(i, _params->vtol_motor_id)) {
-				pwm_values.values[i] = _params->idle_pwm_mc;
+			if (is_channel_set(i, channel_bitmap)) {
+				_current_max_pwm_values.values[i] = _params->idle_pwm_mc;
 			}
 		}
 
@@ -381,47 +432,105 @@ motor_state VtolType::set_motor_state(const motor_state current_state, const mot
 
 	case motor_state::VALUE:
 		for (int i = 0; i < num_outputs_max; i++) {
-			if (is_channel_set(i, _params->fw_motors_off)) {
-				pwm_values.values[i] = value;
+			if (is_channel_set(i, channel_bitmap)) {
+				_current_max_pwm_values.values[i] = value;
 			}
 		}
 
 		break;
 	}
 
-	if (apply_pwm_limits(pwm_values, pwm_limit_type::TYPE_MAXIMUM)) {
-		return next_state;
+	_current_max_pwm_values.channel_count = num_outputs_max;
 
-	} else {
-		return current_state;
-	}
+	return apply_pwm_limits(_current_max_pwm_values, pwm_limit_type::TYPE_MAXIMUM);
 }
 
-bool VtolType::is_channel_set(const int channel, const int target)
+int VtolType::generate_bitmap_from_channel_numbers(const int channels)
 {
 	int channel_bitmap = 0;
+	int channel_numbers = channels;
 
 	int tmp;
-	int channels = target;
-
 
 	for (int i = 0; i < num_outputs_max; ++i) {
-		tmp = channels % 10;
+		tmp = channel_numbers % 10;
 
 		if (tmp == 0) {
 			break;
 		}
 
 		channel_bitmap |= 1 << (tmp - 1);
-		channels = channels / 10;
+		channel_numbers = channel_numbers / 10;
 	}
 
-	return (channel_bitmap >> channel) & 1;
+	return channel_bitmap;
+}
+
+bool VtolType::is_channel_set(const int channel, const int bitmap)
+{
+	return bitmap & (1 << channel);
 }
 
 
 float VtolType::pusher_assist()
 {
+	// Altitude above ground is distance sensor altitude if available, otherwise local z-position
+	float dist_to_ground = -_local_pos->z;
+
+	if (_local_pos->dist_bottom_valid) {
+		dist_to_ground = _local_pos->dist_bottom;
+	}
+
+	// disable pusher assist depending on setting of forward_thrust_enable_mode:
+	switch (_params->vt_forward_thrust_enable_mode) {
+	case DISABLE: // disable in all modes
+		return 0.0f;
+		break;
+
+	case ENABLE_WITHOUT_LAND: // disable in land mode
+		if (_attc->get_pos_sp_triplet()->current.valid
+		    && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND
+		    && _v_control_mode->flag_control_auto_enabled) {
+			return 0.0f;
+		}
+
+		break;
+
+	case ENABLE_ABOVE_MPC_LAND_ALT1: // disable if below MPC_LAND_ALT1
+		if (!PX4_ISFINITE(dist_to_ground) || (dist_to_ground < _params->mpc_land_alt1)) {
+			return 0.0f;
+		}
+
+		break;
+
+	case ENABLE_ABOVE_MPC_LAND_ALT2: // disable if below MPC_LAND_ALT2
+		if (!PX4_ISFINITE(dist_to_ground) || (dist_to_ground < _params->mpc_land_alt2)) {
+			return 0.0f;
+		}
+
+		break;
+
+	case ENABLE_ABOVE_MPC_LAND_ALT1_WITHOUT_LAND: // disable if below MPC_LAND_ALT1 or in land mode
+		if ((_attc->get_pos_sp_triplet()->current.valid
+		     && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND
+		     && _v_control_mode->flag_control_auto_enabled) ||
+		    (!PX4_ISFINITE(dist_to_ground) || (dist_to_ground < _params->mpc_land_alt1))) {
+			return 0.0f;
+		}
+
+		break;
+
+	case ENABLE_ABOVE_MPC_LAND_ALT2_WITHOUT_LAND: // disable if below MPC_LAND_ALT2 or in land mode
+		if ((_attc->get_pos_sp_triplet()->current.valid
+		     && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND
+		     && _v_control_mode->flag_control_auto_enabled) ||
+		    (!PX4_ISFINITE(dist_to_ground) || (dist_to_ground < _params->mpc_land_alt2))) {
+			return 0.0f;
+		}
+
+		break;
+	}
+
 	// if the thrust scale param is zero or the drone is not in some position or altitude control mode,
 	// then the pusher-for-pitch strategy is disabled and we can return
 	if (_params->forward_thrust_scale < FLT_EPSILON || !(_v_control_mode->flag_control_position_enabled
@@ -431,12 +540,6 @@ float VtolType::pusher_assist()
 
 	// Do not engage pusher assist during a failsafe event (could be a problem with the fixed wing drive)
 	if (_attc->get_vtol_vehicle_status()->vtol_transition_failsafe) {
-		return 0.0f;
-	}
-
-	// disable pusher assist during landing
-	if (_attc->get_pos_sp_triplet()->current.valid
-	    && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 		return 0.0f;
 	}
 

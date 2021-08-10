@@ -38,29 +38,45 @@
 #include <lib/parameters/param.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/estimator_selector_status.h>
+#include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/estimator_status.h>
-#include <uORB/topics/subsystem_info.h>
+
+using namespace time_literals;
 
 bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_status, const bool optional,
-			       const bool report_fail, const bool enforce_gps_required)
+			       const bool report_fail)
 {
 	bool success = true; // start with a pass and change to a fail if any test fails
-	bool ahrs_present = true;
-	float test_limit = 1.0f; // pass limit re-used for each test
 
 	int32_t mag_strength_check_enabled = 1;
 	param_get(param_find("COM_ARM_MAG_STR"), &mag_strength_check_enabled);
+
+	float hgt_test_ratio_limit = 1.f;
+	param_get(param_find("COM_ARM_EKF_HGT"), &hgt_test_ratio_limit);
+
+	float vel_test_ratio_limit = 1.f;
+	param_get(param_find("COM_ARM_EKF_VEL"), &vel_test_ratio_limit);
+
+	float pos_test_ratio_limit = 1.f;
+	param_get(param_find("COM_ARM_EKF_POS"), &pos_test_ratio_limit);
+
+	float mag_test_ratio_limit = 1.f;
+	param_get(param_find("COM_ARM_EKF_YAW"), &mag_test_ratio_limit);
+
+	int32_t arm_without_gps = 0;
+	param_get(param_find("COM_ARM_WO_GPS"), &arm_without_gps);
 
 	bool gps_success = true;
 	bool gps_present = true;
 
 	// Get estimator status data if available and exit with a fail recorded if not
-	uORB::SubscriptionData<estimator_status_s> status_sub{ORB_ID(estimator_status)};
-	status_sub.update();
+	uORB::SubscriptionData<estimator_selector_status_s> estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
+	uORB::SubscriptionData<estimator_status_s> status_sub{ORB_ID(estimator_status), estimator_selector_status_sub.get().primary_instance};
 	const estimator_status_s &status = status_sub.get();
 
 	if (status.timestamp == 0) {
-		ahrs_present = false;
+		success = false;
 		goto out;
 	}
 
@@ -76,7 +92,7 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 			} else if (status.pre_flt_fail_innov_vel_horiz) {
 				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: horizontal velocity estimate not stable");
 
-			} else if (status.pre_flt_fail_innov_vel_horiz) {
+			} else if (status.pre_flt_fail_innov_vel_vert) {
 				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: vertical velocity estimate not stable");
 
 			} else if (status.pre_flt_fail_innov_height) {
@@ -98,9 +114,7 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	}
 
 	// check vertical position innovation test ratio
-	param_get(param_find("COM_ARM_EKF_HGT"), &test_limit);
-
-	if (status.hgt_test_ratio > test_limit) {
+	if (status.hgt_test_ratio > hgt_test_ratio_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Height estimate error");
 		}
@@ -110,9 +124,7 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	}
 
 	// check velocity innovation test ratio
-	param_get(param_find("COM_ARM_EKF_VEL"), &test_limit);
-
-	if (status.vel_test_ratio > test_limit) {
+	if (status.vel_test_ratio > vel_test_ratio_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Velocity estimate error");
 		}
@@ -122,9 +134,7 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	}
 
 	// check horizontal position innovation test ratio
-	param_get(param_find("COM_ARM_EKF_POS"), &test_limit);
-
-	if (status.pos_test_ratio > test_limit) {
+	if (status.pos_test_ratio > pos_test_ratio_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Position estimate error");
 		}
@@ -134,9 +144,7 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	}
 
 	// check magnetometer innovation test ratio
-	param_get(param_find("COM_ARM_EKF_YAW"), &test_limit);
-
-	if (status.mag_test_ratio > test_limit) {
+	if (status.mag_test_ratio > mag_test_ratio_limit) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Yaw estimate error");
 		}
@@ -145,42 +153,8 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 		goto out;
 	}
 
-	// check accelerometer delta velocity bias estimates
-	param_get(param_find("COM_ARM_EKF_AB"), &test_limit);
-
-	for (uint8_t index = 13; index < 16; index++) {
-		// allow for higher uncertainty in estimates for axes that are less observable to prevent false positives
-		// adjust test threshold by 3-sigma
-		float test_uncertainty = 3.0f * sqrtf(fmaxf(status.covariances[index], 0.0f));
-
-		if (fabsf(status.states[index]) > test_limit + test_uncertainty) {
-
-			if (report_fail) {
-				PX4_ERR("state %d: |%.8f| > %.8f + %.8f", index, (double)status.states[index], (double)test_limit,
-					(double)test_uncertainty);
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: High Accelerometer Bias");
-			}
-
-			success = false;
-			goto out;
-		}
-	}
-
-	// check gyro delta angle bias estimates
-	param_get(param_find("COM_ARM_EKF_GB"), &test_limit);
-
-	if (fabsf(status.states[10]) > test_limit || fabsf(status.states[11]) > test_limit
-	    || fabsf(status.states[12]) > test_limit) {
-		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: High Gyro Bias");
-		}
-
-		success = false;
-		goto out;
-	}
-
 	// If GPS aiding is required, declare fault condition if the required GPS quality checks are failing
-	if (enforce_gps_required || report_fail) {
+	{
 		const bool ekf_gps_fusion = status.control_mode_flags & (1 << estimator_status_s::CS_GPS);
 		const bool ekf_gps_check_fail = status.gps_check_fail_flags > 0;
 
@@ -197,8 +171,8 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT)) {
 					message = "Preflight%s: not enough GPS Satellites";
 
-				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MIN_PDOP)) {
-					message = "Preflight%s: GPS PDOP too low";
+				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_PDOP)) {
+					message = "Preflight%s: GPS PDOP too high";
 
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR)) {
 					message = "Preflight%s: GPS Horizontal Pos Error too high";
@@ -234,7 +208,7 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 				}
 
 				if (message) {
-					if (enforce_gps_required) {
+					if (!arm_without_gps) {
 						mavlink_log_critical(mavlink_log_pub, message, " Fail");
 
 					} else {
@@ -245,7 +219,7 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 
 			gps_success = false;
 
-			if (enforce_gps_required) {
+			if (!arm_without_gps) {
 				success = false;
 				goto out;
 			}
@@ -253,9 +227,61 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	}
 
 out:
-	//PX4_INFO("AHRS CHECK: %s", (success && ahrs_present) ? "OK" : "FAIL");
-	set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, ahrs_present, true, success && ahrs_present, vehicle_status);
-	set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_GPS, gps_present, enforce_gps_required, gps_success, vehicle_status);
-
+	set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_GPS, gps_present, !arm_without_gps, gps_success, vehicle_status);
 	return success;
+}
+
+bool PreFlightCheck::ekf2CheckSensorBias(orb_advert_t *mavlink_log_pub, const bool report_fail)
+{
+	// Get estimator states data if available and exit with a fail recorded if not
+	uORB::SubscriptionData<estimator_selector_status_s> estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
+	uORB::SubscriptionData<estimator_sensor_bias_s> estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias), estimator_selector_status_sub.get().primary_instance};
+	const estimator_sensor_bias_s &bias = estimator_sensor_bias_sub.get();
+
+	if (hrt_elapsed_time(&bias.timestamp) < 30_s) {
+
+		// check accelerometer bias estimates
+		if (bias.accel_bias_valid) {
+			const float ekf_ab_test_limit = 0.75f * bias.accel_bias_limit;
+
+			for (uint8_t axis_index = 0; axis_index < 3; axis_index++) {
+				// allow for higher uncertainty in estimates for axes that are less observable to prevent false positives
+				// adjust test threshold by 3-sigma
+				const float test_uncertainty = 3.0f * sqrtf(fmaxf(bias.accel_bias_variance[axis_index], 0.0f));
+
+				if (fabsf(bias.accel_bias[axis_index]) > ekf_ab_test_limit + test_uncertainty) {
+					if (report_fail) {
+						PX4_ERR("accel bias (axis %d): |%.8f| > %.8f + %.8f", axis_index,
+							(double)bias.accel_bias[axis_index], (double)ekf_ab_test_limit, (double)test_uncertainty);
+						mavlink_log_critical(mavlink_log_pub, "Preflight Fail: High Accelerometer Bias");
+					}
+
+					return false;
+				}
+			}
+		}
+
+		// check gyro bias estimates
+		if (bias.gyro_bias_valid) {
+			const float ekf_gb_test_limit = 0.75f * bias.gyro_bias_limit;
+
+			for (uint8_t axis_index = 0; axis_index < 3; axis_index++) {
+				// allow for higher uncertainty in estimates for axes that are less observable to prevent false positives
+				// adjust test threshold by 3-sigma
+				const float test_uncertainty = 3.0f * sqrtf(fmaxf(bias.gyro_bias_variance[axis_index], 0.0f));
+
+				if (fabsf(bias.gyro_bias[axis_index]) > ekf_gb_test_limit + test_uncertainty) {
+					if (report_fail) {
+						PX4_ERR("gyro bias (axis %d): |%.8f| > %.8f + %.8f", axis_index,
+							(double)bias.gyro_bias[axis_index], (double)ekf_gb_test_limit, (double)test_uncertainty);
+						mavlink_log_critical(mavlink_log_pub, "Preflight Fail: High Gyro Bias");
+					}
+
+					return false;
+				}
+			}
+		}
+	}
+
+	return true;
 }

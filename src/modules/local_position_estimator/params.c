@@ -28,7 +28,7 @@ PARAM_DEFINE_FLOAT(LPE_FLW_SCALE, 1.3f);
  * Optical flow rotation (roll/pitch) noise gain
  *
  * @group Local Position Estimator
- * @unit m/s / (rad)
+ * @unit m/s/rad
  * @min 0.1
  * @max 10.0
  * @decimal 3
@@ -39,7 +39,7 @@ PARAM_DEFINE_FLOAT(LPE_FLW_R, 7.0f);
  * Optical flow angular velocity noise gain
  *
  * @group Local Position Estimator
- * @unit m/s / (rad/s)
+ * @unit m/rad
  * @min 0.0
  * @max 10.0
  * @decimal 3
@@ -143,7 +143,7 @@ PARAM_DEFINE_FLOAT(LPE_BAR_Z, 3.0f);
  * GPS delay compensaton
  *
  * @group Local Position Estimator
- * @unit sec
+ * @unit s
  * @min 0
  * @max 0.4
  * @decimal 2
@@ -175,6 +175,7 @@ PARAM_DEFINE_FLOAT(LPE_GPS_Z, 3.0f);
 
 /**
  * GPS xy velocity standard deviation.
+ *
  * EPV used if greater than this value.
  *
  * @group Local Position Estimator
@@ -219,12 +220,12 @@ PARAM_DEFINE_FLOAT(LPE_EPH_MAX, 3.0f);
 PARAM_DEFINE_FLOAT(LPE_EPV_MAX, 5.0f);
 
 /**
- * Vision delay compensaton.
+ * Vision delay compensation.
  *
  * Set to zero to enable automatic compensation from measurement timestamps
  *
  * @group Local Position Estimator
- * @unit sec
+ * @unit s
  * @min 0
  * @max 0.1
  * @decimal 2
@@ -285,7 +286,7 @@ PARAM_DEFINE_FLOAT(LPE_PN_P, 0.1f);
  * Decrease to trust model more.
  *
  * @group Local Position Estimator
- * @unit (m/s)/s/sqrt(Hz)
+ * @unit m/s^2/sqrt(Hz)
  * @min 0
  * @max 1
  * @decimal 8
@@ -296,7 +297,7 @@ PARAM_DEFINE_FLOAT(LPE_PN_V, 0.1f);
  * Accel bias propagation noise density
  *
  * @group Local Position Estimator
- * @unit (m/s^2)/s/sqrt(Hz)
+ * @unit m/s^3/sqrt(Hz)
  * @min 0
  * @max 1
  * @decimal 8
@@ -307,7 +308,7 @@ PARAM_DEFINE_FLOAT(LPE_PN_B, 1e-3f);
  * Terrain random walk noise density, hilly/outdoor (0.1), flat/Indoor (0.001)
  *
  * @group Local Position Estimator
- * @unit (m/s)/(sqrt(hz))
+ * @unit m/s/sqrt(Hz)
  * @min 0
  * @max 1
  * @decimal 3
@@ -316,6 +317,7 @@ PARAM_DEFINE_FLOAT(LPE_PN_T, 0.001f);
 
 /**
  * Terrain maximum percent grade, hilly/outdoor (100 = 45 deg), flat/Indoor (0 = 0 deg)
+ *
  * Used to calculate increased terrain random walk nosie due to movement.
  *
  * @group Local Position Estimator
@@ -339,7 +341,8 @@ PARAM_DEFINE_FLOAT(LPE_FGYRO_HP, 0.001f);
 
 /**
  * Enable publishing of a fake global position (e.g for AUTO missions using Optical Flow)
- * by initializing the estimator to the LPE_LAT/LON parameters when global information is unavailable
+ *
+ * By initializing the estimator to the LPE_LAT/LON parameters when global information is unavailable
  *
  * @group Local Position Estimator
  * @min 0

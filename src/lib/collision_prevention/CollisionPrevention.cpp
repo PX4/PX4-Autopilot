@@ -200,13 +200,10 @@ CollisionPrevention::_updateObstacleMap()
 	_sub_vehicle_attitude.update();
 
 	// add distance sensor data
-	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+	for (auto &dist_sens_sub : _distance_sensor_subs) {
+		distance_sensor_s distance_sensor;
 
-		// if a new distance sensor message has arrived
-		if (_sub_distance_sensor[i].updated()) {
-			distance_sensor_s distance_sensor {};
-			_sub_distance_sensor[i].copy(&distance_sensor);
-
+		if (dist_sens_sub.update(&distance_sensor)) {
 			// consider only instances with valid data and orientations useful for collision prevention
 			if ((getElapsedTime(&distance_sensor.timestamp) < RANGE_STREAM_TIMEOUT_US) &&
 			    (distance_sensor.orientation != distance_sensor_s::ROTATION_DOWNWARD_FACING) &&
@@ -392,7 +389,7 @@ CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint, const Vec
 	// read parameters
 	const float col_prev_d = _param_cp_dist.get();
 	const float col_prev_dly = _param_cp_delay.get();
-	const bool move_no_data = _param_cp_go_nodata.get() > 0;
+	const bool move_no_data = _param_cp_go_nodata.get();
 	const float xy_p = _param_mpc_xy_p.get();
 	const float max_jerk = _param_mpc_jerk_max.get();
 	const float max_accel = _param_mpc_acc_hor.get();

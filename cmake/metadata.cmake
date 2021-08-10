@@ -50,16 +50,24 @@ file(GLOB_RECURSE yaml_config_files ${PX4_SOURCE_DIR}/src/modules/*.yaml
 add_custom_target(metadata_parameters
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/docs
 	COMMAND ${PYTHON_EXECUTABLE}
-	${PX4_SOURCE_DIR}/Tools/serial/generate_config.py --all-ports --params-file ${PX4_SOURCE_DIR}/src/generated_serial_params.c --config-files ${yaml_config_files}
+	${PX4_SOURCE_DIR}/Tools/serial/generate_config.py --all-ports --ethernet --params-file ${PX4_SOURCE_DIR}/src/generated_serial_params.c --config-files ${yaml_config_files}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/src/lib/parameters/px_process_params.py
 		--src-path `find ${PX4_SOURCE_DIR}/src -maxdepth 4 -type d`
 		--inject-xml ${PX4_SOURCE_DIR}/src/lib/parameters/parameters_injected.xml
 		--markdown ${PX4_BINARY_DIR}/docs/parameters.md
+
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/src/lib/parameters/px_process_params.py
+		--src-path `find ${PX4_SOURCE_DIR}/src -maxdepth 4 -type d`
+		--inject-xml ${PX4_SOURCE_DIR}/src/lib/parameters/parameters_injected.xml
+		--json ${PX4_BINARY_DIR}/docs/parameters.json
+		--compress
+
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/src/lib/parameters/px_process_params.py
 		--src-path `find ${PX4_SOURCE_DIR}/src -maxdepth 4 -type d`
 		--inject-xml ${PX4_SOURCE_DIR}/src/lib/parameters/parameters_injected.xml
 		--xml ${PX4_BINARY_DIR}/docs/parameters.xml
-	COMMENT "Generating full parameter metadata (markdown and xml)"
+
+	COMMENT "Generating full parameter metadata (markdown, xml, and json)"
 	USES_TERMINAL
 )
 
@@ -71,9 +79,29 @@ add_custom_target(metadata_module_documentation
 	USES_TERMINAL
 )
 
+set(events_src_path "${PX4_SOURCE_DIR}/src/lib/events")
+add_custom_target(metadata_extract_events
+	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/events
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_events.py
+		--src-path ${PX4_SOURCE_DIR}/src
+		--json ${PX4_BINARY_DIR}/events/px4_full.json #--verbose
+	COMMAND ${PYTHON_EXECUTABLE} ${events_src_path}/libevents/scripts/combine.py
+		${PX4_BINARY_DIR}/events/px4_full.json
+		${events_src_path}/libevents/events/common.json
+		${events_src_path}/enums.json
+		--output ${PX4_BINARY_DIR}/events/all_events_full.json
+	COMMAND ${PYTHON_EXECUTABLE} ${events_src_path}/libevents/scripts/validate.py
+		${PX4_BINARY_DIR}/events/all_events_full.json
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/compress.py
+		${PX4_BINARY_DIR}/events/all_events_full.json
+	COMMENT "Extracting events from full source"
+	USES_TERMINAL
+)
+
 add_custom_target(all_metadata
 	DEPENDS
 		metadata_airframes
 		metadata_parameters
 		metadata_module_documentation
+		metadata_extract_events
 )

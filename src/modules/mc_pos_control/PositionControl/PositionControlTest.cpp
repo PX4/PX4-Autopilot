@@ -76,16 +76,11 @@ public:
 	PositionControlBasicTest()
 	{
 		_position_control.setPositionGains(Vector3f(1.f, 1.f, 1.f));
-		_position_control.setVelocityGains(Vector3f(1.f, 1.f, 1.f), Vector3f(1.f, 1.f, 1.f), Vector3f(1.f, 1.f, 1.f));
+		_position_control.setVelocityGains(Vector3f(20.f, 20.f, 20.f), Vector3f(20.f, 20.f, 20.f), Vector3f(20.f, 20.f, 20.f));
 		_position_control.setVelocityLimits(1.f, 1.f, 1.f);
 		_position_control.setThrustLimits(0.1f, 0.9f);
 		_position_control.setTiltLimit(1.f);
 		_position_control.setHoverThrust(.5f);
-
-		_contraints.tilt = 1.f;
-		_contraints.speed_xy = NAN;
-		_contraints.speed_up = NAN;
-		_contraints.speed_down = NAN;
 
 		resetInputSetpoint();
 	}
@@ -106,7 +101,6 @@ public:
 
 	bool runController()
 	{
-		_position_control.setConstraints(_contraints);
 		_position_control.setInputSetpoint(_input_setpoint);
 		const bool ret = _position_control.update(.1f);
 		_position_control.getLocalPositionSetpoint(_output_setpoint);
@@ -115,7 +109,6 @@ public:
 	}
 
 	PositionControl _position_control;
-	vehicle_constraints_s _contraints{};
 	vehicle_local_position_setpoint_s _input_setpoint{};
 	vehicle_local_position_setpoint_s _output_setpoint{};
 	vehicle_attitude_setpoint_s _attitude{};
@@ -168,12 +161,14 @@ TEST_F(PositionControlBasicTest, TiltLimit)
 	EXPECT_GT(angle, 0.f);
 	EXPECT_LE(angle, 1.f);
 
-	_contraints.tilt = .5f;
+	_position_control.setTiltLimit(0.5f);
 	EXPECT_TRUE(runController());
 	body_z = Quatf(_attitude.q_d).dcm_z();
 	angle = acosf(body_z.dot(Vector3f(0.f, 0.f, 1.f)));
 	EXPECT_GT(angle, 0.f);
 	EXPECT_LE(angle, .50001f);
+
+	_position_control.setTiltLimit(1.f);  // restore original
 }
 
 TEST_F(PositionControlBasicTest, VelocityLimit)
@@ -387,6 +382,4 @@ TEST_F(PositionControlBasicTest, UpdateHoverThrust)
 	// THEN: the integral is updated to avoid discontinuities and
 	// the output is still the same
 	EXPECT_EQ(_output_setpoint.thrust[2], -hover_thrust);
-	const Vector3f integrator_new(_position_control.getIntegral());
-	EXPECT_EQ(integrator_new(2) - hover_thrust_new, -hover_thrust);
 }

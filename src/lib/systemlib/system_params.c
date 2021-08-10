@@ -57,8 +57,7 @@ PARAM_DEFINE_INT32(SYS_AUTOSTART, 0);
  * RC* parameters are preserved.
  *
  * @value 0 Keep parameters
- * @value 1 Reset parameters
- * @value 2 Reload airframe parameters
+ * @value 1 Reset parameters to airframe defaults
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
@@ -70,6 +69,11 @@ PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
  * or Simulation-In-Hardware (SIH) mode and not enable all sensors and checks.
  * When disabled the same vehicle can be flown normally.
  *
+ * Set to 'external HITL', if the system should perform as if it were a real
+ * vehicle (the only difference to a real system is then only the parameter
+ * value, which can be used for log analysis).
+ *
+ * @value -1 external HITL
  * @value 0 HITL and SIH disabled
  * @value 1 HITL enabled
  * @value 2 SIH enabled
@@ -110,24 +114,11 @@ PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);
 PARAM_DEFINE_INT32(SYS_MC_EST_GROUP, 2);
 
 /**
- * Parameter version
- *
- * This is used internally only: an airframe configuration might set an expected
- * parameter version value via PARAM_DEFAULTS_VER. This is checked on bootup
- * against SYS_PARAM_VER, and if they do not match, parameters from the airframe
- * configuration are reloaded.
- *
- * @min 0
- * @group System
- */
-PARAM_DEFINE_INT32(SYS_PARAM_VER, 1);
-
-/**
  * Enable auto start of rate gyro thermal calibration at the next power up.
  *
  * 0 : Set to 0 to do nothing
  * 1 : Set to 1 to start a calibration at next boot
- * This parameter is reset to zero when the the temperature calibration starts.
+ * This parameter is reset to zero when the temperature calibration starts.
  *
  * default (0, no calibration)
  *
@@ -142,7 +133,7 @@ PARAM_DEFINE_INT32(SYS_CAL_GYRO, 0);
  *
  * 0 : Set to 0 to do nothing
  * 1 : Set to 1 to start a calibration at next boot
- * This parameter is reset to zero when the the temperature calibration starts.
+ * This parameter is reset to zero when the temperature calibration starts.
  *
  * default (0, no calibration)
  *
@@ -157,7 +148,7 @@ PARAM_DEFINE_INT32(SYS_CAL_ACCEL, 0);
  *
  * 0 : Set to 0 to do nothing
  * 1 : Set to 1 to start a calibration at next boot
- * This parameter is reset to zero when the the temperature calibration starts.
+ * This parameter is reset to zero when the temperature calibration starts.
  *
  * default (0, no calibration)
  *
@@ -174,7 +165,7 @@ PARAM_DEFINE_INT32(SYS_CAL_BARO, 0);
  * Calibration will complete for each sensor when the temperature increase above the starting temeprature exceeds the value set by SYS_CAL_TDEL.
  * If the temperature rise is insufficient, the calibration will continue indefinitely and the board will need to be repowered to exit.
  *
- * @unit deg C
+ * @unit celcius
  * @min 10
  * @group System
  */
@@ -185,7 +176,7 @@ PARAM_DEFINE_INT32(SYS_CAL_TDEL, 24);
  *
  * Temperature calibration for each sensor will ignore data if the temperature is lower than the value set by SYS_CAL_TMIN.
  *
- * @unit deg C
+ * @unit celcius
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_CAL_TMIN, 5);
@@ -195,7 +186,7 @@ PARAM_DEFINE_INT32(SYS_CAL_TMIN, 5);
  *
  * Temperature calibration will not start if the temperature of any sensor is higher than the value set by SYS_CAL_TMAX.
  *
- * @unit deg C
+ * @unit celcius
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_CAL_TMAX, 10);
@@ -217,7 +208,7 @@ PARAM_DEFINE_INT32(SYS_HAS_MAG, 1);
 /**
  * Control if the vehicle has a barometer
  *
- * Disable this if the board has no barometer, such as some of the the Omnibus
+ * Disable this if the board has no barometer, such as some of the Omnibus
  * F4 SD variants.
  * If disabled, the preflight checks will not check for the presence of a
  * barometer.
@@ -228,6 +219,19 @@ PARAM_DEFINE_INT32(SYS_HAS_MAG, 1);
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_HAS_BARO, 1);
+
+/**
+ * Enable factory calibration mode
+ *
+ * If enabled, future sensor calibrations will be stored to /fs/mtd_caldata.
+ *
+ * Note: this is only supported on boards with a separate calibration storage
+ * /fs/mtd_caldata.
+ *
+ * @boolean
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_FAC_CAL_MODE, 0);
 
 /**
  * Bootloader update
@@ -250,3 +254,16 @@ PARAM_DEFINE_INT32(SYS_HAS_BARO, 1);
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_BL_UPDATE, 0);
+
+/**
+ * Enable failure injection
+ *
+ * If enabled allows MAVLink INJECT_FAILURE commands.
+ *
+ * WARNING: the failures can easily cause crashes and are to be used with caution!
+ *
+ * @boolean
+ *
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_FAILURE_EN, 0);

@@ -41,9 +41,9 @@
 
 #include "rm3100.h"
 
-RM3100::RM3100(device::Device *interface, enum Rotation rotation, I2CSPIBusOption bus_option, int bus) :
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus),
-	_px4_mag(interface->get_device_id(), interface->external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT, rotation),
+RM3100::RM3100(device::Device *interface, const I2CSPIDriverConfig &config) :
+	I2CSPIDriver(config),
+	_px4_mag(interface->get_device_id(), config.rotation),
 	_interface(interface),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms_errors")),
 	_conf_errors(perf_alloc(PC_COUNT, MODULE_NAME": conf_errors")),
@@ -66,6 +66,8 @@ RM3100::~RM3100()
 	perf_free(_comms_errors);
 	perf_free(_range_errors);
 	perf_free(_conf_errors);
+
+	delete _interface;
 }
 
 int RM3100::self_test()
@@ -149,7 +151,6 @@ int RM3100::collect()
 	if (ret != OK) {
 		perf_end(_sample_perf);
 		perf_count(_comms_errors);
-		PX4_WARN("Register read error.");
 		return ret;
 	}
 
@@ -266,7 +267,6 @@ void RM3100::print_status()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	PX4_INFO("poll interval:  %u", _measure_interval);
-	_px4_mag.print_status();
 }
 
 int RM3100::reset()

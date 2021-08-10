@@ -250,6 +250,12 @@
 
 #define STM32_RCC_D3CCIPR_ADCSEL     RCC_D3CCIPR_ADCSEL_PLL2
 
+/* FDCAN 1 2 clock source */
+
+#define STM32_RCC_D2CCIP1R_FDCANSEL  RCC_D2CCIP1R_FDCANSEL_HSE   /* FDCAN 1 2 clock source */
+
+#define STM32_FDCANCLK               STM32_HSE_FREQUENCY
+
 /* FLASH wait states
  *
  *  ------------ ---------- -----------
@@ -507,40 +513,4 @@
 # define PROBE_MARK(n)
 #endif
 
-/************************************************************************************
- * Public Data
- ************************************************************************************/
-#ifndef __ASSEMBLY__
-
-#undef EXTERN
-#if defined(__cplusplus)
-#define EXTERN extern "C"
-extern "C"
-{
-#else
-#define EXTERN extern
-#endif
-
-/************************************************************************************
- * Public Function Prototypes
- ************************************************************************************/
-
-/************************************************************************************
- * Name: stm32_boardinitialize
- *
- * Description:
- *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the initialization -- after all memory has been configured
- *   and mapped but before any devices have been initialized.
- *
- ************************************************************************************/
-
-void stm32_boardinitialize(void);
-
-#undef EXTERN
-#if defined(__cplusplus)
-}
-#endif
-
-#endif /* __ASSEMBLY__ */
 #endif  /*__NUTTX_CONFIG_HOLYBRO_DURANDAL_V1_INCLUDE_BOARD_H  */

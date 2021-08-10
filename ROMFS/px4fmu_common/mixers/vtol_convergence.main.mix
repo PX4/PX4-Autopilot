@@ -1,7 +1,8 @@
 # E-flite Convergence Tricopter Y-Configuration Mixer
+# @board px4_fmu-v2 exclude
 
 # Motors
-R: 3y 10000 10000 10000 0
+R: 3y
 
 Z:
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,6 +49,12 @@
 #define B250000 250000
 #endif
 
+#if defined(GPIO_CAN1_SILENT_S0)
+#  define ESC_MUX_SELECT0 GPIO_CAN1_SILENT_S0
+#  define ESC_MUX_SELECT1 GPIO_CAN2_SILENT_S1
+#  define ESC_MUX_SELECT2 GPIO_CAN3_SILENT_S2
+#endif
+
 namespace tap_esc_common
 {
 static uint8_t crc8_esc(uint8_t *p, uint8_t len);
@@ -56,10 +62,10 @@ static uint8_t crc_packet(EscPacket &p);
 
 void select_responder(uint8_t sel)
 {
-#if defined(GPIO_S0)
-	px4_arch_gpiowrite(GPIO_S0, sel & 1);
-	px4_arch_gpiowrite(GPIO_S1, sel & 2);
-	px4_arch_gpiowrite(GPIO_S2, sel & 4);
+#if defined(ESC_MUX_SELECT0)
+	px4_arch_gpiowrite(ESC_MUX_SELECT0, sel & 1);
+	px4_arch_gpiowrite(ESC_MUX_SELECT1, sel & 2);
+	px4_arch_gpiowrite(ESC_MUX_SELECT2, sel & 4);
 #endif
 }
 
@@ -277,7 +283,6 @@ static uint8_t crc_packet(EscPacket &p)
 	p.d.bytes[p.len] = crc8_esc(&p.len, p.len + 2);
 	return p.len + offsetof(EscPacket, d) + 1;
 }
-
 
 const uint8_t crc_table[256] = {
 	0x00, 0xE7, 0x29, 0xCE, 0x52, 0xB5, 0x7B, 0x9C, 0xA4, 0x43, 0x8D, 0x6A,

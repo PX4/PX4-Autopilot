@@ -1,0 +1,9 @@
+#!/bin/sh
+#
+# @name Plane SITL with downward facing LIDAR.
+#
+
+. ${R}etc/init.d-posix/airframes/1030_plane
+
+param set-default FW_LND_USETER 1
+

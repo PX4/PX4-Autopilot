@@ -33,9 +33,9 @@
 
 #include "HMC5883.hpp"
 
-HMC5883::HMC5883(device::Device *interface, enum Rotation rotation, I2CSPIBusOption bus_option, int bus) :
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus),
-	_px4_mag(interface->get_device_id(), interface->external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT, rotation),
+HMC5883::HMC5883(device::Device *interface, const I2CSPIDriverConfig &config) :
+	I2CSPIDriver(config),
+	_px4_mag(interface->get_device_id(), config.rotation),
 	_interface(interface),
 	_range_ga(1.9f),
 	_collect_phase(false),
@@ -58,6 +58,8 @@ HMC5883::~HMC5883()
 	perf_free(_comms_errors);
 	perf_free(_range_errors);
 	perf_free(_conf_errors);
+
+	delete _interface;
 }
 
 int HMC5883::init()
@@ -480,5 +482,4 @@ void HMC5883::print_status()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	printf("interval:  %u us\n", _measure_interval);
-	_px4_mag.print_status();
 }

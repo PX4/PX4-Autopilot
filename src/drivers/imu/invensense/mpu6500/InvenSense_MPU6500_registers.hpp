@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -64,6 +64,7 @@ static constexpr float TEMPERATURE_SENSITIVITY = 333.87f; // LSB/C
 static constexpr float TEMPERATURE_OFFSET = 21.f; // C
 
 enum class Register : uint8_t {
+
 	CONFIG             = 0x1A,
 	GYRO_CONFIG        = 0x1B,
 	ACCEL_CONFIG       = 0x1C,
@@ -86,6 +87,15 @@ enum class Register : uint8_t {
 	FIFO_COUNTL        = 0x73,
 	FIFO_R_W           = 0x74,
 	WHO_AM_I           = 0x75,
+
+	XA_OFFSET_H        = 0x77,
+	XA_OFFSET_L        = 0x78,
+
+	YA_OFFSET_H        = 0x7A,
+	YA_OFFSET_L        = 0x7B,
+
+	ZA_OFFSET_H        = 0x7D,
+	ZA_OFFSET_L        = 0x7E,
 };
 
 // CONFIG
@@ -142,16 +152,16 @@ enum INT_ENABLE_BIT : uint8_t {
 
 // SIGNAL_PATH_RESET
 enum SIGNAL_PATH_RESET_BIT : uint8_t {
-	GYRO_RESET  = Bit2,
-	ACCEL_RESET = Bit1,
-	TEMP_RESET  = Bit0,
+	GYRO_RST  = Bit2,
+	ACCEL_RST = Bit1,
+	TEMP_RST  = Bit0,
 };
 
 // USER_CTRL
 enum USER_CTRL_BIT : uint8_t {
 	FIFO_EN      = Bit6,
 	I2C_MST_EN   = Bit5,
-	I2C_IF_DIS   = Bit4,
+	I2C_IF_DIS   = Bit4, // Always write 0 to I2C_IF_DIS.
 
 	FIFO_RST     = Bit2,
 	I2C_MST_RST  = Bit1,
@@ -163,11 +173,9 @@ enum PWR_MGMT_1_BIT : uint8_t {
 	H_RESET    = Bit7,
 	SLEEP      = Bit6,
 
-	CLKSEL_2   = Bit2,
-	CLKSEL_1   = Bit1,
-	CLKSEL_0   = Bit0,
+	// CLKSEL[2:0]
+	CLKSEL_0     = Bit0, // It is required that CLKSEL[2:0] be set to 001 to achieve full gyroscope performance.
 };
-
 
 namespace FIFO
 {

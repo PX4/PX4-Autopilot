@@ -12,11 +12,11 @@
 #
 # @maintainer Trent Lukaczyk <aerialhedgehog@gmail.com>
 #
-# @board intel_aerofc-v1 exclude
 # @board bitcraze_crazyflie exclude
+# @board px4_fmu-v2 exclude
 #
 
-sh /etc/init.d/rc.mc_defaults
+. ${R}etc/init.d/rc.mc_defaults
 
 set MIXER tri_y_yaw-
 

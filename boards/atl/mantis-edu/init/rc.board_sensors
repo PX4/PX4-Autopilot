@@ -1,0 +1,17 @@
+#!/bin/sh
+#
+# board specific sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+# SPI1 icm20602 IMU
+icm20602 start -s -b 1 -R 8
+
+# I2C2 ist8310 magnetometer
+ist8310 start -I -b 2 -R 14
+
+# I2C4 mpc2520 barometer
+mpc2520 start -I -b 4
+
+gps start -d /dev/ttyS0 -p ubx

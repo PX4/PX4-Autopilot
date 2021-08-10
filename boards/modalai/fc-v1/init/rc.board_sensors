@@ -3,10 +3,10 @@
 # ModalAI FC-v1 specific board sensors init
 #------------------------------------------------------------------------------
 
-adc start
+board_adc start
 
 # Start Digital power monitors
-voxlpm -X -b 3 -T VBATT start
+voxlpm -X -b 3 -k -T VBATT start
 voxlpm -X -b 3 -T P5VDC start
 
 # Internal SPI bus ICM-20602
@@ -15,19 +15,9 @@ icm20602 -R 12 -s start
 # Internal SPI bus ICM-42688
 icm42688p -R 12 -s start
 
-# Internal SPI bus BMI088 accel
-bmi088 -A -R 4 -s start
-
-# Internal SPI bus BMI088 gyro
-bmi088 -G -R 4 -s start
-
-# Possible external compasses
-ist8310 -X start
-hmc5883 -T -X start
-qmc5883 -X start
+# Internal SPI4 BMI088
+bmi088 -A -R 12 -s start
+bmi088 -G -R 12 -s start
 
 # Internal I2C Baro
 bmp388 -I start
-
-# External RM3100
-rm3100 -X start

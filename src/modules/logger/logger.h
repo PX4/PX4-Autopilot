@@ -41,7 +41,7 @@
 #include <drivers/drv_hrt.h>
 #include <version/version.h>
 #include <parameters/param.h>
-#include <systemlib/printload.h>
+#include <px4_platform_common/printload.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 
@@ -57,7 +57,9 @@
 
 extern "C" __EXPORT int logger_main(int argc, char *argv[]);
 
-static constexpr hrt_abstime TRY_SUBSCRIBE_INTERVAL{1000 * 1000};	// interval in microseconds at which we try to subscribe to a topic
+using namespace time_literals;
+
+static constexpr hrt_abstime TRY_SUBSCRIBE_INTERVAL{20_ms};	// interval in microseconds at which we try to subscribe to a topic
 // if we haven't succeeded before
 
 namespace px4
@@ -68,14 +70,13 @@ namespace logger
 static constexpr uint8_t MSG_ID_INVALID = UINT8_MAX;
 
 struct LoggerSubscription : public uORB::SubscriptionInterval {
-
-	uint8_t msg_id{MSG_ID_INVALID};
-
 	LoggerSubscription() = default;
 
 	LoggerSubscription(ORB_ID id, uint32_t interval_ms = 0, uint8_t instance = 0) :
 		uORB::SubscriptionInterval(id, interval_ms * 1000, instance)
 	{}
+
+	uint8_t msg_id{MSG_ID_INVALID};
 };
 
 class Logger : public ModuleBase<Logger>, public ModuleParams
@@ -257,6 +258,7 @@ private:
 	void write_info_template(LogType type, const char *name, T value, const char *type_str);
 
 	void write_parameters(LogType type);
+	void write_parameter_defaults(LogType type);
 
 	void write_changed_parameters(LogType type);
 
@@ -309,6 +311,12 @@ private:
 	 */
 	inline void debug_print_buffer(uint32_t &total_bytes, hrt_abstime &timer_start);
 
+	void publish_logger_status();
+
+	/**
+	 * Check for events and log them
+	 */
+	bool handle_event_updates(uint32_t &total_bytes);
 
 	uint8_t						*_msg_buffer{nullptr};
 	int						_msg_buffer_len{0};
@@ -328,6 +336,9 @@ private:
 	int						_num_subscriptions{0};
 	MissionSubscription 				_mission_subscriptions[MAX_MISSION_TOPICS_NUM] {}; ///< additional data for mission subscriptions
 	int						_num_mission_subs{0};
+	LoggerSubscription				_event_subscription; ///< Subscription for the event topic (handled separately)
+	uint16_t 					_event_sequence_offset{0}; ///< event sequence offset to account for skipped (not logged) messages
+	uint16_t 					_event_sequence_offset_mission{0};
 
 	LogWriter					_writer;
 	uint32_t					_log_interval{0};
@@ -341,17 +352,18 @@ private:
 	hrt_abstime					_next_load_print{0}; ///< timestamp when to print the process load
 	PrintLoadReason					_print_load_reason {PrintLoadReason::Preflight};
 
-	uORB::PublicationMulti<logger_status_s>		_logger_status_pub[2] { ORB_ID(logger_status), ORB_ID(logger_status) };
+	uORB::PublicationMulti<logger_status_s>		_logger_status_pub[(int)LogType::Count] { ORB_ID(logger_status), ORB_ID(logger_status) };
 
-#ifndef ORB_USE_PUBLISHER_RULES // don't publish logger_status when building for replay
 	hrt_abstime					_logger_status_last {0};
-#endif
+	int						_lockstep_component{-1};
 
-	uORB::Subscription				_manual_control_sp_sub{ORB_ID(manual_control_setpoint)};
+	uint32_t					_message_gaps{0};
+
+	uORB::Subscription				_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription				_vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription				_vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::SubscriptionInterval		_log_message_sub{ORB_ID(log_message), 20};
-	uORB::Subscription 				_parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::SubscriptionInterval			_log_message_sub{ORB_ID(log_message), 20};
+	uORB::SubscriptionInterval			_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SDLOG_UTC_OFFSET>) _param_sdlog_utc_offset,

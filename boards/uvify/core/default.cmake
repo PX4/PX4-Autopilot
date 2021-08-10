@@ -1,11 +1,9 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR uvify
-	MODEL core
-	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
+	CONSTRAINED_MEMORY
 	ROMFSROOT px4fmu_common
 	UAVCAN_INTERFACES 1
 	SERIAL_PORTS
@@ -14,7 +12,7 @@ px4_add_board(
 		TEL2:/dev/ttyS2
 		TEL3:/dev/ttyS6
 	DRIVERS
-		adc
+		adc/board_adc
 		barometer/ms5611
 		batt_smbus
 		camera_capture
@@ -27,9 +25,9 @@ px4_add_board(
 		imu/invensense/mpu9250
 		irlock
 		lights/rgbled_ncp5623c
-		magnetometer/bmm150
+		magnetometer/bosch/bmm150
 		magnetometer/lis3mdl
-		magnetometer/ist8310
+		magnetometer/isentek/ist8310
 		optical_flow # all available optical flow drivers
 		pca9685
 		pwm_input
@@ -46,6 +44,9 @@ px4_add_board(
 		dataman
 		ekf2
 		events
+		flight_mode_manager
+		gyro_calibration
+		gyro_fft
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -56,6 +57,7 @@ px4_add_board(
 		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
+		#micrortps_bridge
 		navigator
 		rc_update
 		sensors
@@ -67,9 +69,11 @@ px4_add_board(
 		dmesg
 		dumpfile
 		esc_calib
+		gpio
 		hardfault_log
 		i2cdetect
 		led_control
+		mft
 		mixer
 		motor_ramp
 		motor_test
@@ -81,10 +85,12 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
-		shutdown
+		serial_test
+		system_time
 		top
 		topic_listener
 		tune_control
+		uorb
 		usb_connected
 		ver
 		work_queue

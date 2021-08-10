@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# @name IF750A SITL
+# InspiredFlight 750 Auterion edition. Gazebo Only.
+#
+# @type Quadrotor
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+# EKF2: Multi GPS blending (as the model has 2 GPS's)
+param set-default SENS_GPS_MASK 7
+param set-default TRIG_INTERFACE 3
+param set-default TRIG_MODE 4
+param set-default MNT_MODE_IN 4
+param set-default MNT_MODE_OUT 2
+param set-default MNT_DO_STAB 2
+
+set MIXER quad_x

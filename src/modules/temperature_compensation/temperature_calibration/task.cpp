@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,7 +39,7 @@
  * @author Beat Küng <beat-kueng@gmx.net>
  */
 
-#include <uORB/PublicationQueued.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/sensor_gyro.h>
 #include <mathlib/mathlib.h>
 #include <px4_platform_common/atomic.h>
@@ -87,7 +87,7 @@ public:
 private:
 	void publish_led_control(led_control_s &led_control);
 
-	uORB::PublicationQueued<led_control_s> _led_control_pub{ORB_ID(led_control)};
+	uORB::Publication<led_control_s> _led_control_pub{ORB_ID(led_control)};
 
 	bool	_force_task_exit = false;
 	int	_control_task = -1;		// task handle for task
@@ -116,7 +116,7 @@ void TemperatureCalibration::task_main()
 
 	int32_t min_temp_rise = 24;
 	param_get(param_find("SYS_CAL_TDEL"), &min_temp_rise);
-	PX4_INFO("Waiting for %i degrees difference in sensor temperature", min_temp_rise);
+	PX4_INFO("Waiting for %" PRId32 " degrees difference in sensor temperature", min_temp_rise);
 
 	int32_t min_start_temp = 5;
 	param_get(param_find("SYS_CAL_TMIN"), &min_start_temp);
@@ -162,16 +162,6 @@ void TemperatureCalibration::task_main()
 			PX4_ERR("alloc failed");
 		}
 	}
-
-	// reset params
-	for (int i = 0; i < num_calibrators; ++i) {
-		calibrators[i]->reset_calibration();
-	}
-
-	// make sure the system updates the changed parameters
-	param_notify_changes();
-
-	px4_usleep(300000); // wait a bit for the system to apply the parameters
 
 	hrt_abstime next_progress_output = hrt_absolute_time() + 1e6;
 

@@ -46,10 +46,10 @@ using namespace time_literals;
 
 static constexpr uint32_t OSD_UPDATE_RATE{50_ms};	// 20 Hz
 
-OSDatxxxx::OSDatxxxx(I2CSPIBusOption bus_option, int bus, int devid, int bus_frequency, spi_mode_e spi_mode) :
-	SPI(DRV_OSD_DEVTYPE_ATXXXX, MODULE_NAME, bus, devid, spi_mode, bus_frequency),
+OSDatxxxx::OSDatxxxx(const I2CSPIDriverConfig &config) :
+	SPI(config),
 	ModuleParams(nullptr),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus)
+	I2CSPIDriver(config)
 {
 }
 
@@ -82,6 +82,10 @@ OSDatxxxx::init()
 		for (int j = 0; j < num_rows; j++) {
 			add_character_to_screen(' ', i, j);
 		}
+	}
+
+	if (ret == PX4_OK) {
+		start();
 	}
 
 	return ret;
@@ -424,10 +428,6 @@ OSDatxxxx::get_flight_mode(uint8_t nav_state)
 	case vehicle_status_s::NAVIGATION_STATE_STAB:
 		flight_mode = "STABILIZED";
 		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_RATTITUDE:
-		flight_mode = "RATTITUDE";
-		break;
 	}
 
 	return flight_mode;
@@ -505,27 +505,6 @@ It can be enabled with the OSD_ATXXXX_CFG parameter.
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-}
-
-I2CSPIDriverBase *OSDatxxxx::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				       int runtime_instance)
-{
-	OSDatxxxx *instance = new OSDatxxxx(iterator.configuredBusOption(), iterator.bus(), iterator.devid(),
-					cli.bus_frequency, cli.spi_mode);
-
-	if (!instance) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (OK != instance->init()) {
-		delete instance;
-		return nullptr;
-	}
-
-	instance->start();
-
-	return instance;
 }
 
 int

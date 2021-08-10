@@ -59,7 +59,6 @@
 #endif
 
 #include <containers/List.hpp>
-#include <drivers/device/ringbuffer.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/cli.h>
@@ -69,16 +68,20 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
-#include <systemlib/mavlink_log.h>
-#include <systemlib/uthash/utlist.h>
-#include <uORB/PublicationQueued.hpp>
-#include <uORB/topics/mavlink_log.h>
-#include <uORB/topics/mission_result.h>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/radio_status.h>
 #include <uORB/topics/telemetry_status.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include "mavlink_command_sender.h"
+#include "mavlink_events.h"
 #include "mavlink_messages.h"
+#include "mavlink_receiver.h"
 #include "mavlink_shell.h"
 #include "mavlink_ulog.h"
 
@@ -101,7 +104,7 @@ enum class Protocol {
 
 using namespace time_literals;
 
-class Mavlink : public ModuleParams
+class Mavlink final : public ModuleParams
 {
 
 public:
@@ -138,8 +141,6 @@ public:
 
 	static Mavlink		*new_instance();
 
-	static Mavlink		*get_instance(int instance);
-
 	static Mavlink 		*get_instance_for_device(const char *device_name);
 
 	mavlink_message_t 	*get_buffer() { return &_mavlink_buffer; }
@@ -160,6 +161,8 @@ public:
 	static int		get_status_all_instances(bool show_streams_status);
 
 	static bool		serial_instance_exists(const char *device_name, Mavlink *self);
+
+	static bool		component_was_seen(int system_id, int component_id, Mavlink *self = nullptr);
 
 	static void		forward_message(const mavlink_message_t *msg, Mavlink *self);
 
@@ -192,7 +195,8 @@ public:
 		MAVLINK_MODE_MINIMAL,
 		MAVLINK_MODE_EXTVISION,
 		MAVLINK_MODE_EXTVISIONMIN,
-
+		MAVLINK_MODE_GIMBAL,
+		MAVLINK_MODE_ONBOARD_LOW_BANDWIDTH,
 		MAVLINK_MODE_COUNT
 	};
 
@@ -241,6 +245,12 @@ public:
 		case MAVLINK_MODE_EXTVISIONMIN:
 			return "ExtVisionMin";
 
+		case MAVLINK_MODE_GIMBAL:
+			return "Gimbal";
+
+		case MAVLINK_MODE_ONBOARD_LOW_BANDWIDTH:
+			return "OnboardLowBandwidth";
+
 		default:
 			return "Unknown";
 		}
@@ -258,12 +268,14 @@ public:
 
 	bool			get_forwarding_on() { return _forwarding_on; }
 
-	bool			is_connected() { return (hrt_elapsed_time(&_tstatus.heartbeat_time) < 3_s); }
+	bool			is_connected() { return _tstatus.heartbeat_type_gcs; }
 
 #if defined(MAVLINK_UDP)
 	static Mavlink 		*get_instance_for_network_port(unsigned long port);
 
-	bool			broadcast_enabled() { return _param_mav_broadcast.get() == BROADCAST_MODE_ON; }
+	bool			broadcast_enabled() { return _mav_broadcast == BROADCAST_MODE_ON; }
+
+	bool			multicast_enabled() { return _mav_broadcast == BROADCAST_MODE_MULTICAST; }
 #endif // MAVLINK_UDP
 
 	/**
@@ -344,7 +356,7 @@ public:
 	 *
 	 * @param enabled	True if hardware flow control should be enabled
 	 */
-	int			enable_flow_control(enum FLOW_CONTROL_MODE enabled);
+	int			setup_flow_control(enum FLOW_CONTROL_MODE enabled);
 
 	mavlink_channel_t	get_channel() const { return _channel; }
 
@@ -387,7 +399,7 @@ public:
 	/**
 	 * Send the capabilities of this autopilot in terms of the MAVLink spec
 	 */
-	void 			send_autopilot_capabilites();
+	bool 			send_autopilot_capabilities();
 
 	/**
 	 * Send the protocol version of MAVLink
@@ -430,13 +442,12 @@ public:
 	/**
 	 * Get the receive status of this MAVLink link
 	 */
-	telemetry_status_s	&get_telemetry_status() { return _tstatus; }
+	telemetry_status_s	&telemetry_status() { return _tstatus; }
+	void                    telemetry_status_updated() { _tstatus_updated = true; }
 
 	void			set_telemetry_status_type(uint8_t type) { _tstatus.type = type; }
 
 	void			update_radio_status(const radio_status_s &radio_status);
-
-	ringbuffer::RingBuffer	*get_logbuffer() { return &_logbuffer; }
 
 	unsigned		get_system_type() { return _param_mav_type.get(); }
 
@@ -489,17 +500,17 @@ public:
 	}
 	void			request_stop_ulog_streaming()
 	{
-		if (_mavlink_ulog) { _mavlink_ulog_stop_requested = true; }
+		if (_mavlink_ulog) { _mavlink_ulog_stop_requested.store(true); }
 	}
 
-
-	void set_uorb_main_fd(int fd, unsigned int interval);
-
+	const events::SendProtocol &get_events_protocol() const { return _events; };
 	bool ftp_enabled() const { return _ftp_on; }
 
 	bool hash_check_enabled() const { return _param_mav_hash_chk_en.get(); }
 	bool forward_heartbeats_enabled() const { return _param_mav_hb_forw_en.get(); }
 	bool odometry_loopback_enabled() const { return _param_mav_odom_lp.get(); }
+
+	bool failure_injection_enabled() const { return _param_sys_failure_injection_enabled.get(); }
 
 	struct ping_statistics_s {
 		uint64_t last_ping_time;
@@ -518,11 +529,11 @@ public:
 
 	static hrt_abstime &get_first_start_time() { return _first_start_time; }
 
-protected:
-	Mavlink			*next{nullptr};
+	bool radio_status_critical() const { return _radio_status_critical; }
 
 private:
-	int			_instance_id{0};
+	MavlinkReceiver 	_receiver;
+	int			_instance_id{-1};
 
 	bool			_transmitting_enabled{true};
 	bool			_transmitting_enabled_commanded{false};
@@ -530,11 +541,17 @@ private:
 
 	orb_advert_t		_mavlink_log_pub{nullptr};
 
-	uORB::PublicationQueued<telemetry_status_s>	_telem_status_pub{ORB_ID(telemetry_status)};
+	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::PublicationMulti<telemetry_status_s> _telemetry_status_pub{ORB_ID(telemetry_status)};
+
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription _vehicle_command_ack_sub{ORB_ID(vehicle_command_ack)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	bool			_task_running{true};
 	static bool		_boot_complete;
-	static constexpr int	MAVLINK_MAX_INSTANCES{4};
+
 	static constexpr int	MAVLINK_MIN_INTERVAL{1500};
 	static constexpr int	MAVLINK_MAX_INTERVAL{10000};
 	static constexpr float	MAVLINK_MIN_MULTIPLIER{0.0005f};
@@ -555,16 +572,14 @@ private:
 
 	MavlinkShell		*_mavlink_shell{nullptr};
 	MavlinkULog		*_mavlink_ulog{nullptr};
+	static events::EventBuffer	*_event_buffer;
+	events::SendProtocol		_events{*_event_buffer, *this};
 
-	volatile bool		_mavlink_ulog_stop_requested{false};
+	px4::atomic_bool	_mavlink_ulog_stop_requested{false};
 
 	MAVLINK_MODE 		_mode{MAVLINK_MODE_NORMAL};
 
 	mavlink_channel_t	_channel{MAVLINK_COMM_0};
-
-	ringbuffer::RingBuffer	_logbuffer{5, sizeof(mavlink_log_s)};
-
-	pthread_t		_receive_thread {};
 
 	bool			_forwarding_on{false};
 	bool			_ftp_on{false};
@@ -604,9 +619,11 @@ private:
 	unsigned		_bytes_tx{0};
 	unsigned		_bytes_txerr{0};
 	unsigned		_bytes_rx{0};
-	uint64_t		_bytes_timestamp{0};
+	hrt_abstime		_bytes_timestamp{0};
 
 #if defined(MAVLINK_UDP)
+	BROADCAST_MODE		_mav_broadcast {BROADCAST_MODE_OFF};
+
 	sockaddr_in		_myaddr {};
 	sockaddr_in		_src_addr {};
 	sockaddr_in		_bcast_addr {};
@@ -632,6 +649,7 @@ private:
 
 	radio_status_s		_rstatus {};
 	telemetry_status_s	_tstatus {};
+	bool                    _tstatus_updated{false};
 
 	ping_statistics_s	_ping_stats {};
 
@@ -655,26 +673,23 @@ private:
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
 		(ParamBool<px4::params::MAV_USEHILGPS>) _param_mav_usehilgps,
 		(ParamBool<px4::params::MAV_FWDEXTSP>) _param_mav_fwdextsp,
-#if defined(MAVLINK_UDP)
-		(ParamInt<px4::params::MAV_BROADCAST>) _param_mav_broadcast,
-#endif // MAVLINK_UDP
 		(ParamBool<px4::params::MAV_HASH_CHK_EN>) _param_mav_hash_chk_en,
 		(ParamBool<px4::params::MAV_HB_FORW_EN>) _param_mav_hb_forw_en,
 		(ParamBool<px4::params::MAV_ODOM_LP>) _param_mav_odom_lp,
 		(ParamInt<px4::params::MAV_RADIO_TOUT>)      _param_mav_radio_timeout,
-		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl
+		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl,
+		(ParamBool<px4::params::SYS_FAILURE_EN>) _param_sys_failure_injection_enabled
 	)
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": tx run elapsed")};                      /**< loop performance counter */
 	perf_counter_t _loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": tx run interval")};           /**< loop interval performance counter */
 	perf_counter_t _send_byte_error_perf{perf_alloc(PC_COUNT, MODULE_NAME": send_bytes error")};           /**< send bytes error count */
-	perf_counter_t _send_start_tx_buf_low{perf_alloc(PC_COUNT, MODULE_NAME": send_start tx buffer full")}; /**< available tx buffer smaller than message */
 
 	void			mavlink_update_parameters();
 
 	int mavlink_open_uart(const int baudrate = DEFAULT_BAUD_RATE,
 			      const char *uart_name = DEFAULT_DEVICE_NAME,
-			      const bool force_flow_control = false);
+			      const FLOW_CONTROL_MODE flow_control = FLOW_CONTROL_AUTO);
 
 	static constexpr unsigned RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE = 25;
 	static constexpr unsigned RADIO_BUFFER_LOW_PERCENTAGE = 35;
@@ -738,7 +753,7 @@ private:
 
 	void set_channel();
 
-	void set_instance_id();
+	bool set_instance_id();
 
 	/**
 	 * Main mavlink task.

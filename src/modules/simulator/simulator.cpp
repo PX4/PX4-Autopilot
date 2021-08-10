@@ -64,34 +64,36 @@ void Simulator::parameters_update(bool force)
 	}
 }
 
-void Simulator::print_status()
-{
-	PX4_INFO("accelerometer");
-	_px4_accel.print_status();
-
-	PX4_INFO("gyroscope");
-	_px4_gyro.print_status();
-
-	PX4_INFO("magnetometer");
-	_px4_mag.print_status();
-
-	PX4_INFO("barometer");
-	_px4_baro.print_status();
-}
-
 int Simulator::start(int argc, char *argv[])
 {
 	_instance = new Simulator();
 
 	if (_instance) {
-		if (argc == 4 && strcmp(argv[2], "-u") == 0) {
+
+		if (argc == 5 && strcmp(argv[3], "-u") == 0) {
 			_instance->set_ip(InternetProtocol::UDP);
-			_instance->set_port(atoi(argv[3]));
+			_instance->set_port(atoi(argv[4]));
 		}
 
-		if (argc == 4 && strcmp(argv[2], "-c") == 0) {
+		if (argc == 5 && strcmp(argv[3], "-c") == 0) {
 			_instance->set_ip(InternetProtocol::TCP);
-			_instance->set_port(atoi(argv[3]));
+			_instance->set_port(atoi(argv[4]));
+		}
+
+		if (argc == 6 && strcmp(argv[3], "-t") == 0) {
+			PX4_INFO("Simulator using TCP on remote host %s port %s", argv[4], argv[5]);
+			PX4_WARN("Please ensure port %s is not blocked by a firewall.", argv[5]);
+			_instance->set_ip(InternetProtocol::TCP);
+			_instance->set_tcp_remote_ipaddr(argv[4]);
+			_instance->set_port(atoi(argv[5]));
+		}
+
+		if (argc == 6 && strcmp(argv[3], "-h") == 0) {
+			PX4_INFO("Simulator using TCP on remote host %s port %s", argv[4], argv[5]);
+			PX4_WARN("Please ensure port %s is not blocked by a firewall.", argv[5]);
+			_instance->set_ip(InternetProtocol::TCP);
+			_instance->set_hostname(argv[4]);
+			_instance->set_port(atoi(argv[5]));
 		}
 
 		_instance->run();
@@ -110,6 +112,8 @@ static void usage()
 	PX4_INFO("Start simulator:     simulator start");
 	PX4_INFO("Connect using UDP: simulator start -u udp_port");
 	PX4_INFO("Connect using TCP: simulator start -c tcp_port");
+	PX4_INFO("Connect to a remote server using TCP: simulator start -t ip_addr tcp_port");
+	PX4_INFO("Connect to a remote server via hostname using TCP: simulator start -h hostname tcp_port");
 }
 
 __BEGIN_DECLS
@@ -128,7 +132,7 @@ int simulator_main(int argc, char *argv[])
 
 		g_sim_task = px4_task_spawn_cmd("simulator",
 						SCHED_DEFAULT,
-						SCHED_PRIORITY_DEFAULT,
+						SCHED_PRIORITY_MAX,
 						1500,
 						Simulator::start,
 						argv);
@@ -163,7 +167,7 @@ int simulator_main(int argc, char *argv[])
 			return 1;
 
 		} else {
-			Simulator::getInstance()->print_status();
+			PX4_INFO("running");
 		}
 
 	} else {

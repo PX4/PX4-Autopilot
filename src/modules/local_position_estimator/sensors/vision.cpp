@@ -30,26 +30,28 @@ void BlockLocalPositionEstimator::visionInit()
 
 	// increament sums for mean
 	if (_visionStats.getCount() > REQ_VISION_INIT_COUNT) {
-		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] vision position init: "
-					     "%5.2f %5.2f %5.2f m std %5.2f %5.2f %5.2f m",
-					     double(_visionStats.getMean()(0)),
-					     double(_visionStats.getMean()(1)),
-					     double(_visionStats.getMean()(2)),
-					     double(_visionStats.getStdDev()(0)),
-					     double(_visionStats.getStdDev()(1)),
-					     double(_visionStats.getStdDev()(2)));
+		mavlink_log_info(&mavlink_log_pub, "[lpe] vision position init: "
+				 "%5.2f %5.2f %5.2f m std %5.2f %5.2f %5.2f m",
+				 double(_visionStats.getMean()(0)),
+				 double(_visionStats.getMean()(1)),
+				 double(_visionStats.getMean()(2)),
+				 double(_visionStats.getStdDev()(0)),
+				 double(_visionStats.getStdDev()(1)),
+				 double(_visionStats.getStdDev()(2)));
 		_sensorTimeout &= ~SENSOR_VISION;
 		_sensorFault &= ~SENSOR_VISION;
 
 		// get reference for global position
-		globallocalconverter_getref(&_ref_lat, &_ref_lon, &_ref_alt);
-		_global_ref_timestamp = _timeStamp;
-		_is_global_cov_init = globallocalconverter_initialized();
+		_ref_lat = math::degrees(_global_local_proj_ref.lat_rad);
+		_ref_lon = math::degrees(_global_local_proj_ref.lon_rad);
+		_ref_alt = _global_local_alt0;
+
+		_is_global_cov_init = map_projection_initialized(&_global_local_proj_ref);
 
 		if (!_map_ref.init_done && _is_global_cov_init) {
 			// initialize global origin using the visual estimator reference
-			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] global origin init (vision) : lat %6.2f lon %6.2f alt %5.1f m",
-						     double(_ref_lat), double(_ref_lon), double(_ref_alt));
+			mavlink_log_info(&mavlink_log_pub, "[lpe] global origin init (vision) : lat %6.2f lon %6.2f alt %5.1f m",
+					 double(_ref_lat), double(_ref_lon), double(_ref_alt));
 			map_projection_init(&_map_ref, _ref_lat, _ref_lon);
 			// set timestamp when origin was set to current time
 			_time_origin = _timeStamp;
@@ -58,7 +60,7 @@ void BlockLocalPositionEstimator::visionInit()
 		if (!_altOriginInitialized) {
 			_altOriginInitialized = true;
 			_altOriginGlobal = true;
-			_altOrigin = globallocalconverter_initialized() ? _ref_alt : 0.0f;
+			_altOrigin = map_projection_initialized(&_global_local_proj_ref) ? _ref_alt : 0.0f;
 		}
 	}
 }
@@ -84,11 +86,11 @@ int BlockLocalPositionEstimator::visionMeasure(Vector<float, n_y_vision> &y)
 	}
 
 	if (!_vision_xy_valid || !_vision_z_valid) {
-		_time_last_vision_p = _sub_visual_odom.get().timestamp;
+		_time_last_vision_p = _sub_visual_odom.get().timestamp_sample;
 		return -1;
 
 	} else {
-		_time_last_vision_p = _sub_visual_odom.get().timestamp;
+		_time_last_vision_p = _sub_visual_odom.get().timestamp_sample;
 
 		if (PX4_ISFINITE(_sub_visual_odom.get().x)) {
 			y.setZero();
@@ -111,8 +113,8 @@ void BlockLocalPositionEstimator::visionCorrect()
 	Vector<float, n_y_vision> y;
 
 	if (visionMeasure(y) != OK) {
-		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] vision data invalid. eph: %f epv: %f", (double)_vision_eph,
-					     (double)_vision_epv);
+		mavlink_log_info(&mavlink_log_pub, "[lpe] vision data invalid. eph: %f epv: %f", (double)_vision_eph,
+				 (double)_vision_epv);
 		return;
 	}
 
@@ -147,7 +149,7 @@ void BlockLocalPositionEstimator::visionCorrect()
 	// vision delayed x
 	uint8_t i_hist = 0;
 
-	float vision_delay = (_timeStamp - _sub_visual_odom.get().timestamp) * 1e-6f;	// measurement delay in seconds
+	float vision_delay = (_timeStamp - _sub_visual_odom.get().timestamp_sample) * 1e-6f;	// measurement delay in seconds
 
 	if (vision_delay < 0.0f) { vision_delay = 0.0f; }
 
@@ -185,13 +187,13 @@ void BlockLocalPositionEstimator::visionCorrect()
 
 	if (beta > BETA_TABLE[n_y_vision]) {
 		if (!(_sensorFault & SENSOR_VISION)) {
-			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] vision position fault, beta %5.2f", double(beta));
+			mavlink_log_info(&mavlink_log_pub, "[lpe] vision position fault, beta %5.2f", double(beta));
 			_sensorFault |= SENSOR_VISION;
 		}
 
 	} else if (_sensorFault & SENSOR_VISION) {
 		_sensorFault &= ~SENSOR_VISION;
-		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] vision position OK");
+		mavlink_log_info(&mavlink_log_pub, "[lpe] vision position OK");
 	}
 
 	// kalman filter correction if no fault

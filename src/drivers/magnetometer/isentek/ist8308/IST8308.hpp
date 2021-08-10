@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,7 +46,6 @@
 #include <lib/drivers/device/i2c.h>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/perf/perf_counter.h>
-#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 
 using namespace iSentek_IST8308;
@@ -54,25 +53,17 @@ using namespace iSentek_IST8308;
 class IST8308 : public device::I2C, public I2CSPIDriver<IST8308>
 {
 public:
-	IST8308(I2CSPIBusOption bus_option, int bus, enum Rotation rotation, int bus_frequency);
+	IST8308(const I2CSPIDriverConfig &config);
 	~IST8308() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
-	void print_status();
+	void RunImpl();
 
 	int init() override;
-
-	void Start();
-	bool Reset();
-
-	void     RunImpl();
+	void print_status() override;
 
 private:
-	void custom_method(const BusCLIArguments &cli) override;
-
 	// Sensor Configuration
 	struct register_config_t {
 		Register reg;
@@ -82,9 +73,11 @@ private:
 
 	int probe() override;
 
+	bool Reset();
+
 	bool Configure();
 
-	bool RegisterCheck(const register_config_t &reg_cfg, bool notify = false);
+	bool RegisterCheck(const register_config_t &reg_cfg);
 
 	uint8_t RegisterRead(Register reg);
 	void RegisterWrite(Register reg, uint8_t value);
@@ -92,31 +85,30 @@ private:
 
 	PX4Magnetometer _px4_mag;
 
-	perf_counter_t _transfer_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": transfer")};
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
+	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
 
 	hrt_abstime _reset_timestamp{0};
 	hrt_abstime _last_config_check_timestamp{0};
-
-	uint8_t _checked_register{0};
+	int _failure_count{0};
 
 	enum class STATE : uint8_t {
 		RESET,
 		WAIT_FOR_RESET,
 		CONFIGURE,
 		READ,
-	};
+	} _state{STATE::RESET};
 
-	STATE _state{STATE::RESET};
-
-	static constexpr uint8_t size_register_cfg{5};
+	uint8_t _checked_register{0};
+	static constexpr uint8_t size_register_cfg{6};
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register               | Set bits, Clear bits
 		{ Register::ACTR,         0, ACTR_BIT::SUSPEND_EN },
-		{ Register::CNTL1,        CNTL1_BIT::NSF_Low, 0 },
-		{ Register::CNTL2,        CNTL2_BIT::MODE_ODR_50Hz, 0 },
+		{ Register::CNTL1,        0, CNTL1_BIT::NSF_DISABLE },
+		{ Register::CNTL2,        CNTL2_BIT::MODE_ODR_50HZ_SET, CNTL2_BIT::MODE_ODR_50HZ_CLEAR },
 		{ Register::CNTL3,        0, CNTL3_BIT::SRST },
-		{ Register::OSRCNTL,      OSRCNTL_BIT::OSR_y_32 | OSRCNTL_BIT::OSR_xz_32, 0 },
+		{ Register::CNTL4,        CNTL4_BIT::DR_200UT_SET, CNTL4_BIT::DR_200UT_CLEAR },
+		{ Register::OSRCNTL,      OSRCNTL_BIT::OSR_Y_32_SET | OSRCNTL_BIT::OSR_XZ_32_SET, OSRCNTL_BIT::OSR_Y_32_CLEAR | OSRCNTL_BIT::OSR_XZ_32_CLEAR },
 	};
 };

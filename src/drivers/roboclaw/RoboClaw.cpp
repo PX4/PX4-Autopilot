@@ -52,9 +52,7 @@
 #include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
 
-
 #include <uORB/Publication.hpp>
-#include <uORB/topics/debug_key_value.h>
 #include <drivers/drv_hrt.h>
 #include <math.h>
 
@@ -493,7 +491,7 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 	int count = write(_uart, buf, wbytes);
 
 	if (count < (int) wbytes) { // Did not successfully send all bytes.
-		PX4_ERR("Only wrote %d out of %d bytes", count, (int) wbytes);
+		PX4_ERR("Only wrote %d out of %zu bytes", count, wbytes);
 		return -1;
 	}
 
@@ -570,7 +568,7 @@ void RoboClaw::_parameters_update()
 		orb_set_interval(_actuatorsSub, _parameters.actuator_write_period_ms);
 	}
 
-	int baudRate;
+	int32_t baudRate;
 	param_get(_param_handles.serial_baud_rate, &baudRate);
 
 	switch (baudRate) {

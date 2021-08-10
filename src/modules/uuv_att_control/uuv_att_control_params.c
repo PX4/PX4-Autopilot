@@ -54,6 +54,7 @@
  * Roll proportional gain
  *
  * @group UUV Attitude Control
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(UUV_ROLL_P, 4.0f);
 
@@ -61,6 +62,7 @@ PARAM_DEFINE_FLOAT(UUV_ROLL_P, 4.0f);
  * Roll differential gain
  *
  * @group UUV Attitude Control
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(UUV_ROLL_D, 1.5f);
 
@@ -70,6 +72,7 @@ PARAM_DEFINE_FLOAT(UUV_ROLL_D, 1.5f);
  * Pitch proportional gain
  *
  * @group UUV Attitude Control
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(UUV_PITCH_P, 4.0f);
 
@@ -77,6 +80,7 @@ PARAM_DEFINE_FLOAT(UUV_PITCH_P, 4.0f);
  * Pitch differential gain
  *
  * @group UUV Attitude Control
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(UUV_PITCH_D, 2.0f);
 
@@ -86,6 +90,7 @@ PARAM_DEFINE_FLOAT(UUV_PITCH_D, 2.0f);
  * Yawh proportional gain
  *
  * @group UUV Attitude Control
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(UUV_YAW_P, 4.0f);
 
@@ -93,6 +98,7 @@ PARAM_DEFINE_FLOAT(UUV_YAW_P, 4.0f);
  * Yaw differential gain
  *
  * @group UUV Attitude Control
+ * @decimal 2
  */
 PARAM_DEFINE_FLOAT(UUV_YAW_D, 2.0f);
 
@@ -106,6 +112,14 @@ PARAM_DEFINE_FLOAT(UUV_YAW_D, 2.0f);
  * @group UUV Attitude Control
  */
 PARAM_DEFINE_INT32(UUV_INPUT_MODE, 0);
+
+/**
+ * Skip the controller
+ *
+ * @value 0 use the module's controller
+ * @value 1 skip the controller and feedthrough the setpoints
+ */
+PARAM_DEFINE_INT32(UUV_SKIP_CTRL, 0);
 
 /**
  * Direct roll input

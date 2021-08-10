@@ -34,6 +34,11 @@
 add_subdirectory(airframes)
 
 px4_add_romfs_files(
+	rc.airship_apps
+	rc.airship_defaults
+	rc.balloon_apps
+	rc.balloon_defaults
+	rc.boat_defaults
 	rc.fw_apps
 	rc.fw_defaults
 	rc.interface
@@ -51,4 +56,5 @@ px4_add_romfs_files(
 	rc.vehicle_setup
 	rc.vtol_apps
 	rc.vtol_defaults
+	rc.ctrlalloc
 )

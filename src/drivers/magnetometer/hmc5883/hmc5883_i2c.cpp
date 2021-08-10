@@ -39,12 +39,8 @@
 
 #include <px4_platform_common/px4_config.h>
 #include <drivers/device/i2c.h>
-#include <drivers/drv_mag.h>
-#include <drivers/drv_device.h>
 
 #include "hmc5883.h"
-
-#define HMC5883L_ADDRESS		0x1E
 
 device::Device *HMC5883_I2C_interface(int bus, int bus_frequency);
 

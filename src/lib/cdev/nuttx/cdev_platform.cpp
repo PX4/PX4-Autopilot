@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,11 +36,11 @@
  *
  * NuttX Character device functions
  */
+#include <errno.h>
+
 #include "cdev_platform.hpp"
 #include "../CDev.hpp"
 
-#include <px4_platform_common/posix.h>
-#include "drivers/drv_device.h"
 #include <sys/ioctl.h>
 
 #ifdef CONFIG_DISABLE_POLL
@@ -87,6 +87,10 @@ unlink	: nullptr
 static int
 cdev_open(file_t *filp)
 {
+	if ((filp->f_inode->i_flags & FSNODEFLAG_DELETED) != 0) {
+		return -ENODEV;
+	}
+
 	cdev::CDev *cdev = (cdev::CDev *)(filp->f_inode->i_private);
 
 	return cdev->open(filp);
@@ -95,6 +99,10 @@ cdev_open(file_t *filp)
 static int
 cdev_close(file_t *filp)
 {
+	if ((filp->f_inode->i_flags & FSNODEFLAG_DELETED) != 0) {
+		return -ENODEV;
+	}
+
 	cdev::CDev *cdev = (cdev::CDev *)(filp->f_inode->i_private);
 
 	return cdev->close(filp);
@@ -103,6 +111,10 @@ cdev_close(file_t *filp)
 static ssize_t
 cdev_read(file_t *filp, char *buffer, size_t buflen)
 {
+	if ((filp->f_inode->i_flags & FSNODEFLAG_DELETED) != 0) {
+		return -ENODEV;
+	}
+
 	cdev::CDev *cdev = (cdev::CDev *)(filp->f_inode->i_private);
 
 	return cdev->read(filp, buffer, buflen);
@@ -111,6 +123,10 @@ cdev_read(file_t *filp, char *buffer, size_t buflen)
 static ssize_t
 cdev_write(file_t *filp, const char *buffer, size_t buflen)
 {
+	if ((filp->f_inode->i_flags & FSNODEFLAG_DELETED) != 0) {
+		return -ENODEV;
+	}
+
 	cdev::CDev *cdev = (cdev::CDev *)(filp->f_inode->i_private);
 
 	return cdev->write(filp, buffer, buflen);
@@ -119,6 +135,10 @@ cdev_write(file_t *filp, const char *buffer, size_t buflen)
 static off_t
 cdev_seek(file_t *filp, off_t offset, int whence)
 {
+	if ((filp->f_inode->i_flags & FSNODEFLAG_DELETED) != 0) {
+		return -ENODEV;
+	}
+
 	cdev::CDev *cdev = (cdev::CDev *)(filp->f_inode->i_private);
 
 	return cdev->seek(filp, offset, whence);
@@ -127,6 +147,10 @@ cdev_seek(file_t *filp, off_t offset, int whence)
 static int
 cdev_ioctl(file_t *filp, int cmd, unsigned long arg)
 {
+	if ((filp->f_inode->i_flags & FSNODEFLAG_DELETED) != 0) {
+		return -ENODEV;
+	}
+
 	cdev::CDev *cdev = (cdev::CDev *)(filp->f_inode->i_private);
 
 	return cdev->ioctl(filp, cmd, arg);
@@ -135,6 +159,10 @@ cdev_ioctl(file_t *filp, int cmd, unsigned long arg)
 static int
 cdev_poll(file_t *filp, px4_pollfd_struct_t *fds, bool setup)
 {
+	if ((filp->f_inode->i_flags & FSNODEFLAG_DELETED) != 0) {
+		return -ENODEV;
+	}
+
 	cdev::CDev *cdev = (cdev::CDev *)(filp->f_inode->i_private);
 
 	return cdev->poll(filp, fds, setup);

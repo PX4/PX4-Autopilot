@@ -87,7 +87,7 @@ PARAM_DEFINE_FLOAT(MIS_LTRMIN_ALT, -1.0f);
  *
  * Failsafe check to prevent running mission stored from previous flight at a new takeoff location.
  * Set a value of zero or less to disable. The mission will not be started if the current
- * waypoint is more distant than MIS_DIS_1WP from the home position.
+ * waypoint is more distant than MIS_DIST_1WP from the home position.
  *
  * @unit m
  * @min 0
@@ -113,21 +113,6 @@ PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 900);
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_DIST_WPS, 900);
-
-/**
- * Altitude setpoint mode
- *
- * 0: the system will follow a zero order hold altitude setpoint
- * 1: the system will follow a first order hold altitude setpoint
- * values follow the definition in enum mission_altitude_mode
- *
- * @min 0
- * @max 1
- * @value 0 Zero Order Hold
- * @value 1 First Order Hold
- * @group Mission
- */
-PARAM_DEFINE_INT32(MIS_ALTMODE, 1);
 
 /**
 * Enable yaw control of the mount. (Only affects multicopters and ROI mission items)

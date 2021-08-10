@@ -55,18 +55,6 @@ TemperatureCalibrationGyro::TemperatureCalibrationGyro(float min_temperature_ris
 	_num_sensor_instances = num_gyros;
 }
 
-void TemperatureCalibrationGyro::reset_calibration()
-{
-	/* reset all driver level calibrations */
-	float offset = 0.0f;
-
-	for (unsigned s = 0; s < 3; s++) {
-		set_parameter("CAL_GYRO%u_XOFF", s, &offset);
-		set_parameter("CAL_GYRO%u_YOFF", s, &offset);
-		set_parameter("CAL_GYRO%u_ZOFF", s, &offset);
-	}
-}
-
 int TemperatureCalibrationGyro::update_sensor_instance(PerSensorData &data, int sensor_sub)
 {
 	bool finished = data.hot_soaked;
@@ -83,6 +71,13 @@ int TemperatureCalibrationGyro::update_sensor_instance(PerSensorData &data, int 
 
 	if (finished) {
 		// if we're done, return, but we need to return after orb_copy because of poll()
+		return 0;
+	}
+
+	if (PX4_ISFINITE(gyro_data.temperature)) {
+		data.has_valid_temperature = true;
+
+	} else {
 		return 0;
 	}
 
@@ -166,6 +161,15 @@ int TemperatureCalibrationGyro::finish()
 
 int TemperatureCalibrationGyro::finish_sensor_instance(PerSensorData &data, int sensor_index)
 {
+	if (!data.has_valid_temperature) {
+		PX4_WARN("Result Gyro %d does not have a valid temperature sensor", sensor_index);
+		data.tempcal_complete = true;
+
+		uint32_t param = 0;
+		set_parameter("TC_G%d_ID", sensor_index, &param);
+		return 0;
+	}
+
 	if (!data.hot_soaked || data.tempcal_complete) {
 		return 0;
 	}

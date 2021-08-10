@@ -5,6 +5,7 @@ import time
 import os
 import atexit
 import subprocess
+import shutil
 import threading
 import errno
 from typing import Any, Dict, List, TextIO, Optional
@@ -20,7 +21,7 @@ class Runner:
         self.cmd = ""
         self.cwd = ""
         self.args: List[str]
-        self.env: Dict[str, str]
+        self.env: Dict[str, str] = os.environ.copy()
         self.model = model
         self.case = case
         self.log_filename = ""
@@ -63,11 +64,12 @@ class Runner:
 
     def process_output(self) -> None:
         assert self.process.stdout is not None
-        while not self.stop_thread.is_set():
+        while True:
             line = self.process.stdout.readline()
-            if line == "\n":
-                continue
-            if not line:
+            if not line and \
+                    (self.stop_thread.is_set() or self.poll is not None):
+                break
+            if not line or line == "\n":
                 continue
             self.output_queue.put(line)
             self.log_fd.write(line)
@@ -99,8 +101,6 @@ class Runner:
         if not self.stop_thread:
             return 0
 
-        self.stop_thread.set()
-
         returncode = self.process.poll()
         if returncode is None:
 
@@ -123,18 +123,14 @@ class Runner:
             print("{} exited with {}".format(
                 self.cmd, self.process.returncode))
 
+        self.stop_thread.set()
         self.thread.join()
-
         self.log_fd.close()
 
         return self.process.returncode
 
     def time_elapsed_s(self) -> float:
         return time.time() - self.start_time
-
-    def add_to_env_if_set(self, var: str) -> None:
-        if var in os.environ:
-            self.env[var] = os.environ[var]
 
 
 class Px4Runner(Runner):
@@ -144,19 +140,21 @@ class Px4Runner(Runner):
         super().__init__(log_dir, model, case, verbose)
         self.name = "px4"
         self.cmd = workspace_dir + "/build/px4_sitl_default/bin/px4"
-        self.cwd = workspace_dir + "/build/px4_sitl_default/tmp/rootfs"
+        self.cwd = workspace_dir + \
+            "/build/px4_sitl_default/tmp_mavsdk_tests/rootfs"
         self.args = [
-                workspace_dir + "/ROMFS/px4fmu_common",
+                workspace_dir + "/build/px4_sitl_default/etc",
                 "-s",
                 "etc/init.d-posix/rcS",
                 "-t",
                 workspace_dir + "/test_data",
                 "-d"
             ]
-        self.env = {"PATH": str(os.environ['PATH']),
-                    "PX4_SIM_MODEL": self.model,
-                    "PX4_SIM_SPEED_FACTOR": str(speed_factor)}
+        self.env["PX4_SIM_MODEL"] = self.model
+        self.env["PX4_SIM_SPEED_FACTOR"] = str(speed_factor)
         self.debugger = debugger
+        self.clear_rootfs()
+        self.create_rootfs()
 
         if not self.debugger:
             pass
@@ -175,6 +173,29 @@ class Px4Runner(Runner):
             self.args = [self.cmd] + self.args
             self.cmd = self.debugger
 
+    def clear_rootfs(self) -> None:
+        rootfs_path = self.cwd
+        if self.verbose:
+            print("Clearing rootfs (except logs): {}".format(rootfs_path))
+        if os.path.isdir(rootfs_path):
+            for item in os.listdir(rootfs_path):
+                if item == 'log':
+                    continue
+                path = os.path.join(rootfs_path, item)
+                if os.path.isfile(path) or os.path.islink(path):
+                    os.remove(path)
+                else:
+                    shutil.rmtree(path)
+
+    def create_rootfs(self) -> None:
+        rootfs_path = self.cwd
+        if self.verbose:
+            print("Creating rootfs: {}".format(rootfs_path))
+        try:
+            os.makedirs(rootfs_path)
+        except FileExistsError:
+            pass
+
 
 class GzserverRunner(Runner):
     def __init__(self,
@@ -187,19 +208,14 @@ class GzserverRunner(Runner):
         super().__init__(log_dir, model, case, verbose)
         self.name = "gzserver"
         self.cwd = workspace_dir
-        self.env = {"PATH": os.environ['PATH'],
-                    "HOME": os.environ['HOME'],
-                    "GAZEBO_PLUGIN_PATH":
-                    workspace_dir + "/build/px4_sitl_default/build_gazebo",
-                    "GAZEBO_MODEL_PATH":
-                    workspace_dir + "/Tools/sitl_gazebo/models",
-                    "PX4_SIM_SPEED_FACTOR": str(speed_factor)}
-        self.add_to_env_if_set("DISPLAY")
-        self.add_to_env_if_set("PX4_HOME_LAT")
-        self.add_to_env_if_set("PX4_HOME_LON")
-        self.add_to_env_if_set("PX4_HOME_ALT")
-        self.cmd = "gzserver"
-        self.args = ["--verbose",
+        self.env["GAZEBO_PLUGIN_PATH"] = \
+            workspace_dir + "/build/px4_sitl_default/build_gazebo"
+        self.env["GAZEBO_MODEL_PATH"] = \
+            workspace_dir + "/Tools/sitl_gazebo/models"
+        self.env["PX4_SIM_SPEED_FACTOR"] = str(speed_factor)
+        self.cmd = "nice"
+        self.args = ["-n 1",
+                     "gzserver", "--verbose",
                      workspace_dir + "/Tools/sitl_gazebo/worlds/" +
                      "empty.world"]
 
@@ -214,17 +230,28 @@ class GzmodelspawnRunner(Runner):
         super().__init__(log_dir, model, case, verbose)
         self.name = "gzmodelspawn"
         self.cwd = workspace_dir
-        self.env = {"PATH": os.environ['PATH'],
-                    "HOME": os.environ['HOME'],
-                    "GAZEBO_PLUGIN_PATH":
-                    workspace_dir + "/build/px4_sitl_default/build_gazebo",
-                    "GAZEBO_MODEL_PATH":
-                    workspace_dir + "/Tools/sitl_gazebo/models"}
-        self.add_to_env_if_set("DISPLAY")
+        self.env["GAZEBO_PLUGIN_PATH"] = \
+            workspace_dir + "/build/px4_sitl_default/build_gazebo"
+        self.env["GAZEBO_MODEL_PATH"] = \
+            workspace_dir + "/Tools/sitl_gazebo/models"
         self.cmd = "gz"
-        self.args = ["model", "--spawn-file", workspace_dir +
-                     "/Tools/sitl_gazebo/models/" +
-                     self.model + "/" + self.model + ".sdf",
+
+        if os.path.isfile(workspace_dir +
+                          "/Tools/sitl_gazebo/models/" +
+                          self.model + "/" + self.model + ".sdf"):
+            model_path = workspace_dir + \
+                "/Tools/sitl_gazebo/models/" + \
+                self.model + "/" + self.model + ".sdf"
+        elif os.path.isfile(workspace_dir +
+                            "/Tools/sitl_gazebo/models/" +
+                            self.model + "/" + self.model + "-gen.sdf"):
+            model_path = workspace_dir + \
+                "/Tools/sitl_gazebo/models/" + \
+                self.model + "/" + self.model + "-gen.sdf"
+        else:
+            raise Exception("Model not found")
+
+        self.args = ["model", "--spawn-file", model_path,
                      "--model-name", self.model,
                      "-x", "1.01", "-y", "0.98", "-z", "0.83"]
 
@@ -239,11 +266,8 @@ class GzclientRunner(Runner):
         super().__init__(log_dir, model, case, verbose)
         self.name = "gzclient"
         self.cwd = workspace_dir
-        self.env = {"PATH": os.environ['PATH'],
-                    "HOME": os.environ['HOME'],
-                    "GAZEBO_MODEL_PATH":
-                    workspace_dir + "/Tools/sitl_gazebo/models"}
-        self.add_to_env_if_set("DISPLAY")
+        self.env = dict(os.environ, **{
+            "GAZEBO_MODEL_PATH": workspace_dir + "/Tools/sitl_gazebo/models"})
         self.cmd = "gzclient"
         self.args = ["--verbose"]
 
@@ -255,11 +279,13 @@ class TestRunner(Runner):
                  model: str,
                  case: str,
                  mavlink_connection: str,
+                 speed_factor: float,
                  verbose: bool):
         super().__init__(log_dir, model, case, verbose)
         self.name = "mavsdk_tests"
         self.cwd = workspace_dir
-        self.env = {"PATH": os.environ['PATH']}
         self.cmd = workspace_dir + \
             "/build/px4_sitl_default/mavsdk_tests/mavsdk_tests"
-        self.args = ["--url", mavlink_connection, case]
+        self.args = ["--url", mavlink_connection,
+                     "--speed-factor", str(speed_factor),
+                     case]

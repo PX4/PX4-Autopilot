@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file paw3902.cpp
+ * @file PAW3902.hpp
  *
- * Driver for the Pixart PAW3902 optical flow sensor connected via SPI.
+ * Driver for the Pixart PAW3902 & PAW3903 optical flow sensors connected via SPI.
  */
 
 #pragma once
@@ -50,31 +50,21 @@
 #include <lib/perf/perf_counter.h>
 #include <lib/parameters/param.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_range_finder.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/optical_flow.h>
-
-/* Configuration Constants */
-
-#define PAW3902_SPI_BUS_SPEED (2000000L) // 2MHz
-
-#define DIR_WRITE(a) ((a) | (1 << 7))
-#define DIR_READ(a) ((a) & 0x7f)
 
 using namespace time_literals;
 using namespace PixArt_PAW3902JF;
 
-// PAW3902JF-TXQT is PixArt Imaging
+#define DIR_WRITE(a) ((a) | (1 << 7))
+#define DIR_READ(a) ((a) & 0x7f)
 
 class PAW3902 : public device::SPI, public I2CSPIDriver<PAW3902>
 {
 public:
-	PAW3902(I2CSPIBusOption bus_option, int bus, int devid, enum Rotation yaw_rotation, int bus_frequency,
-		spi_mode_e spi_mode);
+	PAW3902(const I2CSPIDriverConfig &config);
 	virtual ~PAW3902();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	int init() override;
@@ -83,41 +73,70 @@ public:
 
 	void RunImpl();
 
-	void start();
+private:
+	void exit_and_cleanup() override;
 
-protected:
 	int probe() override;
 
-private:
+	static int DataReadyInterruptCallback(int irq, void *context, void *arg);
+	void DataReady();
+	bool DataReadyInterruptConfigure();
+	bool DataReadyInterruptDisable();
 
-	uint8_t	registerRead(uint8_t reg);
-	void	registerWrite(uint8_t reg, uint8_t data);
+	uint8_t	RegisterRead(uint8_t reg, int retries = 2);
+	void RegisterWrite(uint8_t reg, uint8_t data);
+	bool RegisterWriteVerified(uint8_t reg, uint8_t data, int retries = 1);
 
-	bool reset();
+	void EnableLed();
 
-	bool modeBright();
-	bool modeLowLight();
-	bool modeSuperLowLight();
+	void ModeBright();
+	void ModeLowLight();
+	void ModeSuperLowLight();
 
-	bool changeMode(Mode newMode);
+	bool ChangeMode(Mode newMode, bool force = false);
+
+	void ResetAccumulatedData();
 
 	uORB::PublicationMulti<optical_flow_s> _optical_flow_pub{ORB_ID(optical_flow)};
 
-	perf_counter_t	_sample_perf;
-	perf_counter_t	_comms_errors;
-	perf_counter_t	_dupe_count_perf;
+	perf_counter_t	_sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+	perf_counter_t	_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
+	perf_counter_t	_comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com err")};
+	perf_counter_t	_false_motion_perf{perf_alloc(PC_COUNT, MODULE_NAME": false motion report")};
+	perf_counter_t	_register_write_fail_perf{perf_alloc(PC_COUNT, MODULE_NAME": verified register write failed")};
+	perf_counter_t	_mode_change_bright_perf{perf_alloc(PC_COUNT, MODULE_NAME": mode change bright (0)")};
+	perf_counter_t	_mode_change_low_light_perf{perf_alloc(PC_COUNT, MODULE_NAME": mode change low light (1)")};
+	perf_counter_t	_mode_change_super_low_light_perf{perf_alloc(PC_COUNT, MODULE_NAME": mode change super low light (2)")};
 
-	static constexpr uint64_t _collect_time{15000}; // 15 milliseconds, optical flow data publish rate
+	static constexpr uint64_t COLLECT_TIME{15000}; // 15 milliseconds, optical flow data publish rate
 
-	uint64_t	_previous_collect_timestamp{0};
-	uint64_t	_flow_dt_sum_usec{0};
-	unsigned	_frame_count_since_last{0};
+	const spi_drdy_gpio_t _drdy_gpio;
 
-	enum Rotation	_yaw_rotation {ROTATION_NONE};
+	uint64_t _previous_collect_timestamp{0};
+	uint64_t _flow_dt_sum_usec{0};
+	uint8_t _flow_sample_counter{0};
+	uint16_t _flow_quality_sum{0};
+
+	matrix::Dcmf	_rotation;
+
+	int             _discard_reading{3};
 
 	int		_flow_sum_x{0};
 	int		_flow_sum_y{0};
 
 	Mode		_mode{Mode::LowLight};
 
+	uint32_t _scheduled_interval_us{SAMPLE_INTERVAL_MODE_1};
+
+	int _bright_to_low_counter{0};
+	int _low_to_superlow_counter{0};
+	int _low_to_bright_counter{0};
+	int _superlow_to_low_counter{0};
+
+	int _valid_count{0};
+
+	bool _data_ready_interrupt_enabled{false};
+
+	hrt_abstime _last_good_publish{0};
+	hrt_abstime _last_reset{0};
 };

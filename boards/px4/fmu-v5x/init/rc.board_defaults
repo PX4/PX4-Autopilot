@@ -1,14 +1,6 @@
 #!/bin/sh
 #
-# PX4 FMUv5X specific board defaults
+# board specific defaults
 #------------------------------------------------------------------------------
-
-
-if [ $AUTOCNF = yes ]
-then
-
-fi
-
-set LOGGER_BUF 64
 
 safety_button start

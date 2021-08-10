@@ -44,6 +44,7 @@
 
 #include "mavlink_parameters.h"
 #include "mavlink_main.h"
+#include <lib/systemlib/mavlink_log.h>
 
 MavlinkParametersManager::MavlinkParametersManager(Mavlink *mavlink) :
 	_mavlink(mavlink)
@@ -245,6 +246,12 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 
 				/* Copy values from msg to uorb using the parameter_rc_channel_index as index */
 				size_t i = map_rc.parameter_rc_channel_index;
+
+				if (i >= sizeof(_rc_param_map.param_index) / sizeof(_rc_param_map.param_index[0])) {
+					mavlink_log_warning(_mavlink->get_mavlink_log_pub(), "parameter_rc_channel_index out of bounds");
+					break;
+				}
+
 				_rc_param_map.param_index[i] = map_rc.param_index;
 				strncpy(&(_rc_param_map.param_id[i * (rc_parameter_map_s::PARAM_ID_LEN + 1)]), map_rc.param_id,
 					MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
@@ -275,8 +282,38 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 }
 
 void
-MavlinkParametersManager::send(const hrt_abstime t)
+MavlinkParametersManager::send()
 {
+	if (!_first_send) {
+		// parameters QGC can't tolerate not finding (2020-11-11)
+		param_find("BAT_CRIT_THR");
+		param_find("BAT_EMERGEN_THR");
+		param_find("BAT_LOW_THR");
+		param_find("BAT_N_CELLS");     // deprecated
+		param_find("BAT_V_CHARGED");   // deprecated
+		param_find("BAT_V_EMPTY");     // deprecated
+		param_find("BAT_V_LOAD_DROP"); // deprecated
+		param_find("CAL_ACC0_ID");
+		param_find("CAL_GYRO0_ID");
+		param_find("CAL_MAG0_ID");
+		param_find("CAL_MAG0_ROT");
+		param_find("CAL_MAG1_ID");
+		param_find("CAL_MAG1_ROT");
+		param_find("CAL_MAG2_ID");
+		param_find("CAL_MAG2_ROT");
+		param_find("CAL_MAG3_ID");
+		param_find("CAL_MAG3_ROT");
+		param_find("SENS_BOARD_ROT");
+		param_find("SENS_BOARD_X_OFF");
+		param_find("SENS_BOARD_Y_OFF");
+		param_find("SENS_BOARD_Z_OFF");
+		param_find("SENS_DPRES_OFF");
+		param_find("TRIG_MODE");
+		param_find("UAVCAN_ENABLE");
+
+		_first_send = true;
+	}
+
 	int max_num_to_send;
 
 	if (_mavlink->get_protocol() == Protocol::SERIAL && !_mavlink->is_usb_uart()) {
@@ -290,7 +327,8 @@ MavlinkParametersManager::send(const hrt_abstime t)
 	int i = 0;
 
 	// Send while burst is not exceeded, we still have buffer space and still something to send
-	while ((i++ < max_num_to_send) && (_mavlink->get_free_tx_buf() >= get_size()) && send_params()) {}
+	while ((i++ < max_num_to_send) && (_mavlink->get_free_tx_buf() >= get_size()) && !_mavlink->radio_status_critical()
+	       && send_params()) {}
 }
 
 bool
@@ -315,14 +353,14 @@ MavlinkParametersManager::send_untransmitted()
 {
 	bool sent_one = false;
 
-	if (_mavlink_parameter_sub.updated()) {
-		// Clear the ready flag
-		parameter_update_s value;
-		_mavlink_parameter_sub.update(&value);
+	if (_parameter_update_sub.updated()) {
+		// clear the update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
 
 		// Schedule an update if not already the case
 		if (_param_update_time == 0) {
-			_param_update_time = value.timestamp;
+			_param_update_time = pupdate.timestamp;
 			_param_update_index = 0;
 		}
 	}
@@ -351,7 +389,8 @@ MavlinkParametersManager::send_untransmitted()
 					break;
 				}
 			}
-		} while ((_mavlink->get_free_tx_buf() >= get_size()) && (_param_update_index < (int) param_count()));
+		} while ((_mavlink->get_free_tx_buf() >= get_size()) && !_mavlink->radio_status_critical()
+			 && (_param_update_index < (int) param_count()));
 
 		// Flag work as done once all params have been sent
 		if (_param_update_index >= (int) param_count()) {

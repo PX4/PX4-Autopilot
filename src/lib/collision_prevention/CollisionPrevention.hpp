@@ -50,8 +50,8 @@
 #include <px4_platform_common/module_params.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/Publication.hpp>
-#include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/collision_constraints.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/mavlink_log.h>
@@ -129,11 +129,11 @@ private:
 
 	uORB::Publication<collision_constraints_s>	_constraints_pub{ORB_ID(collision_constraints)};		/**< constraints publication */
 	uORB::Publication<obstacle_distance_s>		_obstacle_distance_pub{ORB_ID(obstacle_distance_fused)};	/**< obstacle_distance publication */
-	uORB::PublicationQueued<vehicle_command_s>	_vehicle_command_pub{ORB_ID(vehicle_command)};			/**< vehicle command do publication */
+	uORB::Publication<vehicle_command_s>	_vehicle_command_pub{ORB_ID(vehicle_command)};			/**< vehicle command do publication */
 
 	uORB::SubscriptionData<obstacle_distance_s> _sub_obstacle_distance{ORB_ID(obstacle_distance)}; /**< obstacle distances received form a range sensor */
-	uORB::Subscription _sub_distance_sensor[ORB_MULTI_MAX_INSTANCES] {{ORB_ID(distance_sensor), 0}, {ORB_ID(distance_sensor), 1}, {ORB_ID(distance_sensor), 2}, {ORB_ID(distance_sensor), 3}}; /**< distance data received from onboard rangefinders */
 	uORB::SubscriptionData<vehicle_attitude_s> _sub_vehicle_attitude{ORB_ID(vehicle_attitude)};
+	uORB::SubscriptionMultiArray<distance_sensor_s> _distance_sensor_subs{ORB_ID::distance_sensor};
 
 	static constexpr uint64_t RANGE_STREAM_TIMEOUT_US{500_ms};
 	static constexpr uint64_t TIMEOUT_HOLD_US{5_s};
@@ -145,7 +145,7 @@ private:
 		(ParamFloat<px4::params::CP_DIST>) _param_cp_dist, /**< collision prevention keep minimum distance */
 		(ParamFloat<px4::params::CP_DELAY>) _param_cp_delay, /**< delay of the range measurement data*/
 		(ParamFloat<px4::params::CP_GUIDE_ANG>) _param_cp_guide_ang, /**< collision prevention change setpoint angle */
-		(ParamFloat<px4::params::CP_GO_NO_DATA>) _param_cp_go_nodata, /**< movement allowed where no data*/
+		(ParamBool<px4::params::CP_GO_NO_DATA>) _param_cp_go_nodata, /**< movement allowed where no data*/
 		(ParamFloat<px4::params::MPC_XY_P>) _param_mpc_xy_p, /**< p gain from position controller*/
 		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max, /**< vehicle maximum jerk*/
 		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor /**< vehicle maximum horizontal acceleration*/

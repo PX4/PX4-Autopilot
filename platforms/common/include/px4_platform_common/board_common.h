@@ -149,7 +149,7 @@
 #    define BOARD_BATT_V_LIST       {ADC_BATTERY1_VOLTAGE_CHANNEL, ADC_BATTERY2_VOLTAGE_CHANNEL}
 #    define BOARD_BATT_I_LIST       {ADC_BATTERY1_CURRENT_CHANNEL, ADC_BATTERY2_CURRENT_CHANNEL}
 #  endif
-#define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK1_VALID, BOARD_ADC_BRICK2_VALID}
+#  define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK1_VALID, BOARD_ADC_BRICK2_VALID}
 #elif BOARD_NUMBER_BRICKS == 3
 #  define BOARD_BATT_V_LIST       {ADC_BATTERY1_VOLTAGE_CHANNEL, ADC_BATTERY2_VOLTAGE_CHANNEL, ADC_BATTERY3_VOLTAGE_CHANNEL}
 #  define BOARD_BATT_I_LIST       {ADC_BATTERY1_CURRENT_CHANNEL, ADC_BATTERY2_CURRENT_CHANNEL, ADC_BATTERY3_CURRENT_CHANNEL}
@@ -174,7 +174,19 @@
 /* Define the source for ADC_SCALED_V3V3_SENSORS_SENSE */
 
 #if defined(ADC_SCALED_VDD_3V3_SENSORS_CHANNEL)
-#  define ADC_SCALED_V3V3_SENSORS_SENSE ADC_SCALED_VDD_3V3_SENSORS_CHANNEL
+#  define ADC_SCALED_V3V3_SENSORS_SENSE { ADC_SCALED_VDD_3V3_SENSORS_CHANNEL }
+#  define ADC_SCALED_V3V3_SENSORS_COUNT 1
+#elif defined(ADC_SCALED_VDD_3V3_SENSORS4_CHANNEL)
+#  define ADC_SCALED_V3V3_SENSORS_SENSE { ADC_SCALED_VDD_3V3_SENSORS1_CHANNEL, ADC_SCALED_VDD_3V3_SENSORS2_CHANNEL, \
+		ADC_SCALED_VDD_3V3_SENSORS3_CHANNEL, ADC_SCALED_VDD_3V3_SENSORS4_CHANNEL }
+#  define ADC_SCALED_V3V3_SENSORS_COUNT 4
+#elif defined(ADC_SCALED_VDD_3V3_SENSORS3_CHANNEL)
+#  define ADC_SCALED_V3V3_SENSORS_SENSE { ADC_SCALED_VDD_3V3_SENSORS1_CHANNEL, ADC_SCALED_VDD_3V3_SENSORS2_CHANNEL, \
+		ADC_SCALED_VDD_3V3_SENSORS3_CHANNEL }
+#  define ADC_SCALED_V3V3_SENSORS_COUNT 3
+#elif defined(ADC_SCALED_VDD_3V3_SENSORS2_CHANNEL)
+#  define ADC_SCALED_V3V3_SENSORS_SENSE { ADC_SCALED_VDD_3V3_SENSORS1_CHANNEL, ADC_SCALED_VDD_3V3_SENSORS2_CHANNEL }
+#  define ADC_SCALED_V3V3_SENSORS_COUNT 2
 #endif
 
 /* Define an overridable default of 0.0f V for batery v div
@@ -250,6 +262,7 @@
 
 #if defined(BOARD_HAS_HW_VERSIONING)
 #  define BOARD_HAS_VERSIONING 1
+#  define HW_VER_REV(v,r)       ((uint32_t)((v) & 0xff) << 8) | ((uint32_t)(r) & 0xff)
 #endif
 
 /* Default LED logical to color mapping */
@@ -285,29 +298,11 @@
 #  endif
 #endif //
 
-/* Provide an overridable default nop
- * for BOARD_INDICATE_ARMED_STATE
- */
-
-#if !defined(BOARD_INDICATE_ARMED_STATE)
-#  define BOARD_INDICATE_ARMED_STATE(on_armed)
-#endif
-
 /************************************************************************************
  * Public Data
  ************************************************************************************/
 
-/* board reset control */
-
-typedef enum board_reset_e {
-	board_reset_normal           = 0,  /* Perform a normal reset */
-	board_reset_extended         = 1,  /* Perform an extend reset as defined by board */
-	board_reset_power_off        = 2,  /* Reset to the boot loader, signaling a power off */
-	board_reset_enter_bootloader = 3   /* Perform a reset to the boot loader */
-} board_reset_e;
-
 /* board power button state notification */
-
 typedef enum board_power_button_state_notification_e {
 	PWR_BUTTON_IDEL,                       /* Button went up without meeting shutdown button down time */
 	PWR_BUTTON_DOWN,                       /* Button went Down */
@@ -321,7 +316,6 @@ typedef enum board_power_button_state_notification_e {
 } board_power_button_state_notification_e;
 
 /* board call back signature  */
-
 typedef int (*power_button_state_notification_t)(board_power_button_state_notification_e request);
 
 /*  PX4_SOC_ARCH_ID is monotonic ordinal number assigned by PX4 to a chip
@@ -346,11 +340,11 @@ typedef enum PX4_SOC_ARCH_ID_t {
 
 	PX4_SOC_ARCH_ID_EAGLE          =  0x1001,
 	PX4_SOC_ARCH_ID_QURT           =  0x1002,
-	PX4_SOC_ARCH_ID_OCPOC          =  0x1003,
+
 	PX4_SOC_ARCH_ID_RPI            =  0x1004,
 	PX4_SOC_ARCH_ID_SIM            =  0x1005,
 	PX4_SOC_ARCH_ID_SITL           =  0x1006,
-	PX4_SOC_ARCH_ID_BEBOP          =  0x1007,
+
 	PX4_SOC_ARCH_ID_BBBLUE         =  0x1008,
 
 } PX4_SOC_ARCH_ID_t;
@@ -415,10 +409,6 @@ typedef uint8_t mfguid_t[PX4_CPU_MFGUID_BYTE_LENGTH];
  * PX4_CPU_GUID_BYTE_LENGTH-1
  */
 typedef uint8_t px4_guid_t[PX4_GUID_BYTE_LENGTH];
-
-/************************************************************************************
- * Private Functions
- ************************************************************************************/
 
 /************************************************************************************
  * Public Functions
@@ -526,7 +516,7 @@ int board_read_VBUS_state(void);
  * Name: board_on_reset
  *
  * Description:
- * Optionally provided function called on entry to board_system_reset
+ * Optionally provided function called on entry to board_reset
  * It should perform any house keeping prior to the rest.
  * For example setting PWM outputs to the off state to avoid
  * triggering a motor spin.
@@ -547,60 +537,103 @@ int board_read_VBUS_state(void);
  *
  ************************************************************************************/
 
-#if defined(BOARD_HAS_NO_RESET) || !defined(BOARD_HAS_ON_RESET)
-#  define board_on_reset(status)
-#else
+#if defined(BOARD_HAS_ON_RESET)
 __EXPORT void board_on_reset(int status);
-#endif
+#endif // BOARD_HAS_ON_RESET
 
-/************************************************************************************
+/****************************************************************************
+ * Name: board_power_off
+ *
+ * Description:
+ *   Power off the board.  This function may or may not be supported by a
+ *   particular board architecture.
+ *
+ * Input Parameters:
+ *   status - Status information provided with the reset event.  This
+ *     meaning of this status information is board-specific.  If not used by
+ *     a board, the value zero may be provided in calls to board_power_off.
+ *
+ * Returned Value:
+ *   If this function returns, then it was not possible to power-off the
+ *   board due to some constraints.  The return value int this case is a
+ *   board-specific reason for the failure to shutdown.
+ *
+ ****************************************************************************/
+
+#if defined(BOARD_HAS_POWER_CONTROL)
+int board_power_off(int status);
+#endif // BOARD_HAS_POWER_CONTROL
+
+/****************************************************************************
  * Name: board_reset
  *
  * Description:
- *   All boards my optionally provide this API to reset the board
+ *   Reset board.  Support for this function is required by board-level
+ *   logic if CONFIG_BOARDCTL_RESET is selected.
  *
  * Input Parameters:
- *  status - 1 Resetting to boot loader
- *           0 Just resetting CPU
+ *   status - Status information provided with the reset event.  This
+ *            meaning of this status information is board-specific.  If not
+ *            used by a board, the value zero may be provided in calls to
+ *            board_reset().
  *
  * Returned Value:
- *   If function is supported by board it will not return.
- *   If not supported it is a noop.
+ *   If this function returns, then it was not possible to power-off the
+ *   board due to some constraints.  The return value int this case is a
+ *   board-specific reason for the failure to shutdown.
  *
- ************************************************************************************/
-#if defined(BOARD_HAS_NO_RESET)
-#  define board_system_reset(status)
-#else
-__EXPORT void board_system_reset(int status) noreturn_function;
+ ****************************************************************************/
+
+#ifdef CONFIG_BOARDCTL_RESET
+int board_reset(int status);
 #endif
 
-/************************************************************************************
- * Name: board_set_bootload_mode
+/****************************************************************************
+ * Name: board_configure_reset
  *
  * Description:
- *   All boards my optionally provide this API to enter configure the entry to
- *   boot loader mode on the next system reset.
+ *   Configures the device that maintains the state shared by the
+ *   application and boot loader. This is usually an RTC.
  *
  * Input Parameters:
- *   mode -  is an board_reset_e that controls the type of reset.
- *           board_reset_normal  Perform a normal reset
- *           board_reset_extended Perform an extend reset as defined by board
- *           board_reset_power_off Reset to the boot loader, signaling a power off
- *           board_reset_enter_bootloader  Perform a reset to the boot loader
- *
+ *   mode  - The type of reset. See reset_mode_e
  *
  * Returned Value:
- *   Zero (OK) is returned on success; a negated EINVAL value is returned if an
- *             invalid mode is requested.
+ *   0 for Success
+ *   1 if invalid argument
  *
- ************************************************************************************/
+ ****************************************************************************/
 
-#if defined(BOARD_HAS_NO_BOOTLOADER)
-#  define board_set_bootload_mode(mode)
-#else
-__EXPORT int board_set_bootload_mode(board_reset_e mode);
+#ifdef CONFIG_BOARDCTL_RESET
+
+typedef enum  reset_mode_e {
+	BOARD_RESET_MODE_CLEAR             = 0, /* Clear the mode */
+	BOARD_RESET_MODE_BOOT_TO_BL        = 1, /* Reboot and stay in the bootloader */
+	BOARD_RESET_MODE_BOOT_TO_VALID_APP = 2, /* Reboot to a valid app or stay in bootloader */
+	BOARD_RESET_MODE_CAN_BL            = 3, /* Used to pass a node ID and stay in the can bootloader */
+	BOARD_RESET_MODE_RTC_BOOT_FWOK     = 4  /* Set by a a watch dogged application after running > 30 Seconds */
+} reset_mode_e;
+
+int board_configure_reset(reset_mode_e mode, uint32_t arg);
 #endif
 
+#if defined(SUPPORT_ALT_CAN_BOOTLOADER)
+/****************************************************************************
+ * Name: board_booted_by_px4
+ *
+ * Description:
+ *   Determines if the the boot loader was PX4
+ *
+ * Input Parameters:
+ *   none
+ *
+ * Returned Value:
+ *   true if booted byt a PX4 bootloader.
+ *
+ ****************************************************************************/
+
+bool board_booted_by_px4(void);
+#endif
 /************************************************************************************
  * Name: board_query_manifest
  *
@@ -980,23 +1013,6 @@ __EXPORT int board_mcu_version(char *rev, const char **revstr, const char **erra
 
 int board_register_power_state_notification_cb(power_button_state_notification_t cb);
 
-/************************************************************************************
- * Name: board_shutdown
- *
- * Description:
- *   boards may provide a function to power off the board.
- *
- * Input Parameters:
- *   None.
- * Returned Value:
- *    - If supported the function will not return.
- *      OK, or -EINVAL if unsupported.
- */
-int board_shutdown(void);
-
-#else
-static inline int board_register_power_state_notification_cb(power_button_state_notification_t cb) { return 0; }
-static inline int board_shutdown(void) { return -EINVAL; }
 #endif
 
 /************************************************************************************

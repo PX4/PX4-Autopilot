@@ -89,32 +89,33 @@ function(px4_add_common_flags)
 		-Wno-missing-field-initializers
 		-Wno-missing-include-dirs # TODO: fix and enable
 		-Wno-unused-parameter
+
 		)
 
 	# compiler specific flags
 	if (("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang") OR ("${CMAKE_CXX_COMPILER_ID}" MATCHES "AppleClang"))
 
-		# force color for clang (needed for clang + ccache)
-		add_compile_options(-fcolor-diagnostics)
-		# force absolute paths
-		add_compile_options(-fdiagnostics-absolute-paths)
+		add_compile_options(
+			-fcolor-diagnostics # force color for clang (needed for clang + ccache)
+			-fdiagnostics-absolute-paths # force absolute paths
 
-		# QuRT 6.4.X compiler identifies as Clang but does not support this option
-		if (NOT "${PX4_PLATFORM}" STREQUAL "qurt")
-			add_compile_options(
-				-Qunused-arguments
+			-Qunused-arguments
 
-				-Wno-unknown-warning-option
-				-Wno-unused-const-variable
-				-Wno-varargs
-			)
-		endif()
+			-Wno-c99-designator
+			-Wno-unknown-warning-option
+			-Wno-unused-const-variable
+			-Wno-varargs
+		)
 
 	elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 
 		if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.9)
 			# force color for gcc > 4.9
 			add_compile_options(-fdiagnostics-color=always)
+		endif()
+
+		if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 9.3)
+			add_compile_options(-Wno-stringop-truncation)
 		endif()
 
 		add_compile_options(
@@ -175,7 +176,9 @@ function(px4_add_common_flags)
 
 		${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/${PX4_CHIP_MANUFACTURER}/${PX4_CHIP}/include
 		${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/common/include
+		${PX4_SOURCE_DIR}/platforms/common
 		${PX4_SOURCE_DIR}/platforms/common/include
+
 		${PX4_SOURCE_DIR}/src
 		${PX4_SOURCE_DIR}/src/include
 		${PX4_SOURCE_DIR}/src/lib

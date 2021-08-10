@@ -79,6 +79,14 @@ static char hw_info[] = HW_INFO_INIT;
 
 static int dn_to_ordinal(uint16_t dn)
 {
+	/* Table is scaled for 12, so if ADC is in 16 bit mode
+	 * scale the result
+	 */
+
+	if (px4_arch_adc_dn_fullcount() > (1 << 12)) {
+
+		dn /= (px4_arch_adc_dn_fullcount() / (1 << 12));
+	}
 
 	const struct {
 		uint16_t low;  // High(n-1) + 1
@@ -143,6 +151,7 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 {
 	int rv = -EIO;
 	const unsigned int samples  = 16;
+#if GPIO_HW_REV_DRIVE != GPIO_HW_VER_DRIVE
 	/*
 	 * Step one is there resistors?
 	 *
@@ -161,7 +170,7 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 
 	/*  Turn the sense lines to digital outputs LOW */
 
-	stm32_configgpio(PX4_MAKE_GPIO_OUTPUT(gpio_sense));
+	stm32_configgpio(PX4_MAKE_GPIO_OUTPUT_CLEAR(gpio_sense));
 
 
 	up_udelay(100); /* About 10 TC assuming 485 K */
@@ -173,7 +182,7 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 
 	/*  Write the sense lines HIGH */
 
-	stm32_gpiowrite(PX4_MAKE_GPIO_OUTPUT(gpio_sense), 1);
+	stm32_gpiowrite(PX4_MAKE_GPIO_OUTPUT_CLEAR(gpio_sense), 1);
 
 	up_udelay(100); /* About 10 TC assuming 485 K */
 
@@ -198,12 +207,12 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 
 	if ((high ^ low) && low == 0) {
 
-
 		/* Yes - Fire up the ADC (it has once control) */
 
 		if (px4_arch_adc_init(HW_REV_VER_ADC_BASE) == OK) {
 
 			/* Read the value */
+
 			for (unsigned av = 0; av < samples; av++) {
 				dn = px4_arch_adc_sample(HW_REV_VER_ADC_BASE, adc_channel);
 
@@ -226,12 +235,102 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 		rv = OK;
 	}
 
+#else /* GPIO_HW_REV_DRIVE == GPIO_HW_VER_DRIVE */
+
+	/*
+	 * Step one is there resistors?
+	 *
+	 * With the common REV/VER Drive we have to look at the ADC values.
+	 * to determine if the R's are hooked up. This is because the
+	 * the REV and VER pairs will influence each other and not make
+	 * digital thresholds.
+	 *
+	 * I.E
+	 *
+	 *     VDD
+	 *     442K
+	 *       REV is a Float
+	 *     24.9K
+	 *        Drive as input
+	 *     442K
+	 *       VER is 0.
+	 *     24.9K
+	 *     VDD
+	 *
+	 *   This is 466K up and 442K down.
+	 *
+	 *  Driving VER Low and reading DRIVE will result in approximately mid point
+	 *  values not a digital Low.
+	 */
+
+	uint32_t dn_sum = 0;
+	uint16_t dn = 0;
+	uint16_t high = 0;
+	uint16_t low = 0;
+
+	/*  Turn the drive lines to digital outputs High */
+
+	stm32_configgpio(gpio_drive);
+
+	up_udelay(100); /* About 10 TC assuming 485 K */
+
+	for (unsigned av = 0; av < samples; av++) {
+		if (px4_arch_adc_init(HW_REV_VER_ADC_BASE) == OK) {
+			dn = px4_arch_adc_sample(HW_REV_VER_ADC_BASE, adc_channel);
+
+			if (dn == 0xffff) {
+				break;
+			}
+
+			dn_sum  += dn;
+		}
+	}
+
+	if (dn != 0xffff) {
+		high = dn_sum / samples;
+	}
+
+	/*  Turn the drive lines to digital outputs LOW */
+
+	stm32_configgpio(gpio_drive ^ GPIO_OUTPUT_SET);
+
+	up_udelay(100); /* About 10 TC assuming 485 K */
+
+	dn_sum = 0;
+
+	for (unsigned av = 0; av < samples; av++) {
+
+		dn = px4_arch_adc_sample(HW_REV_VER_ADC_BASE, adc_channel);
+
+		if (dn == 0xffff) {
+			break;
+		}
+
+		dn_sum  += dn;
+	}
+
+	if (dn != 0xffff) {
+		low = dn_sum / samples;
+	}
+
+	if ((high > low) && high > px4_arch_adc_dn_fullcount() - 100) {
+
+		*id = low;
+		rv = OK;
+
+	} else {
+		/* No - No Resistors is ID 0 */
+		*id = 0;
+		rv = OK;
+	}
+
+#endif /* GPIO_HW_REV_DRIVE != GPIO_HW_VER_DRIVE */
+
 	/*  Turn the drive lines to digital outputs High */
 
 	stm32_configgpio(gpio_drive);
 	return rv;
 }
-
 
 static int determine_hw_info(int *revision, int *version)
 {
@@ -341,8 +440,13 @@ int board_determine_hw_info()
 	int rv = determine_hw_info(&hw_revision, &hw_version);
 
 	if (rv == OK) {
-		hw_info[HW_INFO_INIT_REV] = board_get_hw_revision() + '0';
-		hw_info[HW_INFO_INIT_VER] = board_get_hw_version() + '0';
+
+		hw_info[HW_INFO_INIT_REV] = board_get_hw_revision() < 10 ?
+					    board_get_hw_revision() + '0' :
+					    board_get_hw_revision() + 'a' - 10;
+		hw_info[HW_INFO_INIT_VER] = board_get_hw_version()  < 10 ?
+					    board_get_hw_version() + '0' :
+					    board_get_hw_version()  + 'a' - 10;
 	}
 
 	return rv;

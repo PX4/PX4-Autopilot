@@ -67,52 +67,66 @@
 
 #include "MulticopterLandDetector.h"
 
+using matrix::Vector2f;
+using matrix::Vector3f;
 
 namespace land_detector
 {
 
 MulticopterLandDetector::MulticopterLandDetector()
 {
-	_paramHandle.landSpeed      = param_find("MPC_LAND_SPEED");
+	_paramHandle.landSpeed = param_find("MPC_LAND_SPEED");
 	_paramHandle.minManThrottle = param_find("MPC_MANTHR_MIN");
-	_paramHandle.minThrottle    = param_find("MPC_THR_MIN");
+	_paramHandle.minThrottle = param_find("MPC_THR_MIN");
 	_paramHandle.useHoverThrustEstimate = param_find("MPC_USE_HTE");
-	_paramHandle.hoverThrottle  = param_find("MPC_THR_HOVER");
-
-	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
-	_ground_contact_hysteresis.set_hysteresis_time_from(false, GROUND_CONTACT_TRIGGER_TIME_US);
-	_landed_hysteresis.set_hysteresis_time_from(false, LAND_DETECTOR_TRIGGER_TIME_US);
-	_maybe_landed_hysteresis.set_hysteresis_time_from(false, MAYBE_LAND_DETECTOR_TRIGGER_TIME_US);
+	_paramHandle.hoverThrottle = param_find("MPC_THR_HOVER");
 }
 
 void MulticopterLandDetector::_update_topics()
 {
-	LandDetector::_update_topics();
+	actuator_controls_s actuator_controls;
 
-	_actuator_controls_sub.update(&_actuator_controls);
-	_battery_sub.update(&_battery_status);
-	_vehicle_angular_velocity_sub.update(&_vehicle_angular_velocity);
-	_vehicle_control_mode_sub.update(&_vehicle_control_mode);
-	_vehicle_local_position_setpoint_sub.update(&_vehicle_local_position_setpoint);
+	if (_actuator_controls_sub.update(&actuator_controls)) {
+		_actuator_controls_throttle = actuator_controls.control[actuator_controls_s::INDEX_THROTTLE];
+	}
+
+	vehicle_control_mode_s vehicle_control_mode;
+
+	if (_vehicle_control_mode_sub.update(&vehicle_control_mode)) {
+		_flag_control_climb_rate_enabled = vehicle_control_mode.flag_control_climb_rate_enabled;
+	}
 
 	if (_params.useHoverThrustEstimate) {
 		hover_thrust_estimate_s hte;
 
 		if (_hover_thrust_estimate_sub.update(&hte)) {
-			_params.hoverThrottle = hte.hover_thrust;
+			if (hte.valid) {
+				_params.hoverThrottle = hte.hover_thrust;
+				_hover_thrust_estimate_last_valid = hte.timestamp;
+			}
 		}
+	}
+
+	takeoff_status_s takeoff_status;
+
+	if (_takeoff_status_sub.update(&takeoff_status)) {
+		_takeoff_state = takeoff_status.takeoff_state;
 	}
 }
 
 void MulticopterLandDetector::_update_params()
 {
-	LandDetector::_update_params();
-
-	_freefall_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1e6f * _param_lndmc_ffall_ttri.get()));
-
 	param_get(_paramHandle.minThrottle, &_params.minThrottle);
 	param_get(_paramHandle.minManThrottle, &_params.minManThrottle);
 	param_get(_paramHandle.landSpeed, &_params.landSpeed);
+
+	if (_param_lndmc_z_vel_max.get() > _params.landSpeed) {
+		PX4_ERR("LNDMC_Z_VEL_MAX > MPC_LAND_SPEED, updating %.3f -> %.3f",
+			(double)_param_lndmc_z_vel_max.get(), (double)_params.landSpeed);
+
+		_param_lndmc_z_vel_max.set(_params.landSpeed);
+		_param_lndmc_z_vel_max.commit_no_notification();
+	}
 
 	int32_t use_hover_thrust_estimate = 0;
 	param_get(_paramHandle.useHoverThrustEstimate, &use_hover_thrust_estimate);
@@ -132,121 +146,176 @@ void MulticopterLandDetector::_update_params()
 
 bool MulticopterLandDetector::_get_freefall_state()
 {
-	if (_param_lndmc_ffall_thr.get() < 0.1f ||
-	    _param_lndmc_ffall_thr.get() > 10.0f) {	//if parameter is set to zero or invalid, disable free-fall detection.
-		return false;
-	}
-
-	if (_vehicle_acceleration.timestamp == 0) {
-		// _sensors is not valid yet, we have to assume we're not falling.
-		return false;
-	}
-
 	// norm of specific force. Should be close to 9.8 m/s^2 when landed.
-	const matrix::Vector3f accel{_vehicle_acceleration.xyz};
-
-	return (accel.norm() < _param_lndmc_ffall_thr.get());	// true if we are currently falling
+	return _acceleration.norm() < 2.f;
 }
 
 bool MulticopterLandDetector::_get_ground_contact_state()
 {
-	// When not armed, consider to have ground-contact
-	if (!_actuator_armed.armed) {
-		return true;
-	}
+	const hrt_abstime time_now_us = hrt_absolute_time();
 
-	// land speed threshold
-	float land_speed_threshold = 0.9f * math::max(_params.landSpeed, 0.1f);
+	const bool lpos_available = ((time_now_us - _vehicle_local_position.timestamp) < 1_s);
 
-	// Check if we are moving vertically - this might see a spike after arming due to
-	// throttle-up vibration. If accelerating fast the throttle thresholds will still give
-	// an accurate in-air indication.
-	bool vertical_movement = false;
+	// land speed threshold, 90% of MPC_LAND_SPEED
+	const float land_speed_threshold = 0.9f * math::max(_params.landSpeed, 0.1f);
 
-	if (hrt_elapsed_time(&_landed_time) < LAND_DETECTOR_LAND_PHASE_TIME_US) {
+	if (lpos_available && _vehicle_local_position.v_z_valid) {
+		// Check if we are moving vertically - this might see a spike after arming due to
+		// throttle-up vibration. If accelerating fast the throttle thresholds will still give
+		// an accurate in-air indication.
+		float max_climb_rate = math::min(land_speed_threshold * 0.5f, _param_lndmc_z_vel_max.get());
 
-		// Widen acceptance thresholds for landed state right after arming
-		// so that motor spool-up and other effects do not trigger false negatives.
-		vertical_movement = fabsf(_vehicle_local_position.vz) > _param_lndmc_z_vel_max.get()  * 2.5f;
+		if ((time_now_us - _landed_time) < LAND_DETECTOR_LAND_PHASE_TIME_US) {
+			// Widen acceptance thresholds for landed state right after arming
+			// so that motor spool-up and other effects do not trigger false negatives.
+			max_climb_rate = _param_lndmc_z_vel_max.get() * 2.5f;
+		}
+
+		_vertical_movement = (fabsf(_vehicle_local_position.vz) > max_climb_rate);
 
 	} else {
-		// Adjust max_climb_rate if land_speed is lower than 2x max_climb_rate
-		float max_climb_rate = ((land_speed_threshold * 0.5f) < _param_lndmc_z_vel_max.get()) ? (0.5f * land_speed_threshold) :
-				       _param_lndmc_z_vel_max.get();
-		vertical_movement = fabsf(_vehicle_local_position.vz) > max_climb_rate;
+		_vertical_movement = true;
 	}
 
+
 	// Check if we are moving horizontally.
-	_horizontal_movement = sqrtf(_vehicle_local_position.vx * _vehicle_local_position.vx
-				     + _vehicle_local_position.vy * _vehicle_local_position.vy) > _param_lndmc_xy_vel_max.get();
+	if (lpos_available && _vehicle_local_position.v_xy_valid) {
+		const Vector2f v_xy{_vehicle_local_position.vx, _vehicle_local_position.vy};
+		_horizontal_movement = v_xy.longerThan(_param_lndmc_xy_vel_max.get());
+
+	} else {
+		_horizontal_movement = false; // not known
+	}
+
+	if (lpos_available && _vehicle_local_position.dist_bottom_valid) {
+		_below_gnd_effect_hgt = _vehicle_local_position.dist_bottom < _get_gnd_effect_altitude();
+
+	} else {
+		_below_gnd_effect_hgt = false;
+	}
+
+	const bool hover_thrust_estimate_valid = ((time_now_us - _hover_thrust_estimate_last_valid) < 1_s);
+
+	if (!_in_descend || hover_thrust_estimate_valid) {
+		// continue using valid hover thrust if it became invalid during descent
+		_hover_thrust_estimate_valid = hover_thrust_estimate_valid;
+	}
+
+	// low thrust: 30% of throttle range between min and hover, relaxed to 60% if hover thrust estimate available
+	const float thr_pct_hover = _hover_thrust_estimate_valid ? 0.6f : 0.3f;
+	const float sys_low_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * thr_pct_hover;
+	_has_low_throttle = (_actuator_controls_throttle <= sys_low_throttle);
+	bool ground_contact = _has_low_throttle;
 
 	// if we have a valid velocity setpoint and the vehicle is demanded to go down but no vertical movement present,
 	// we then can assume that the vehicle hit ground
-	_in_descend = _is_climb_rate_enabled()
-		      && (_vehicle_local_position_setpoint.vz >= land_speed_threshold);
-	bool hit_ground = _in_descend && !vertical_movement;
+	if (_flag_control_climb_rate_enabled) {
+		vehicle_local_position_setpoint_s trajectory_setpoint;
+
+		if (_trajectory_setpoint_sub.update(&trajectory_setpoint)) {
+			// Setpoints can be NAN
+			_in_descend = PX4_ISFINITE(trajectory_setpoint.vz)
+				      && (trajectory_setpoint.vz >= land_speed_threshold);
+		}
+
+		// ground contact requires commanded descent until landed
+		if (!_maybe_landed_hysteresis.get_state() && !_landed_hysteresis.get_state()) {
+			ground_contact &= _in_descend;
+		}
+
+	} else {
+		_in_descend = false;
+	}
+
+	// if there is no distance to ground estimate available then don't enforce using it.
+	// if a distance to the ground estimate is generally available (_dist_bottom_is_observable=true), then
+	// we already increased the hysteresis for the land detection states in order to reduce the chance of false positives.
+	const bool skip_close_to_ground_check = !_dist_bottom_is_observable || !_vehicle_local_position.dist_bottom_valid;
+	_close_to_ground_or_skipped_check = _is_close_to_ground() || skip_close_to_ground_check;
+
+	// When not armed, consider to have ground-contact
+	if (!_armed) {
+		return true;
+	}
 
 	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
-	return (_has_low_thrust() || hit_ground) && (!_horizontal_movement || !_has_position_lock())
-	       && (!vertical_movement || !_has_altitude_lock());
+	return _close_to_ground_or_skipped_check && ground_contact && !_horizontal_movement
+	       && !_vertical_movement;
 }
 
 bool MulticopterLandDetector::_get_maybe_landed_state()
 {
 	// When not armed, consider to be maybe-landed
-	if (!_actuator_armed.armed) {
+	if (!_armed) {
 		return true;
 	}
 
-	if (_has_minimal_thrust()) {
-		if (_min_trust_start == 0) {
-			_min_trust_start = hrt_absolute_time();
+	const hrt_abstime time_now_us = hrt_absolute_time();
+
+	// minimal throttle: initially 10% of throttle range between min and hover
+	float sys_min_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * 0.1f;
+
+	// Determine the system min throttle based on flight mode
+	if (!_flag_control_climb_rate_enabled) {
+		sys_min_throttle = (_params.minManThrottle + 0.01f);
+	}
+
+	// Check if thrust output is less than the minimum throttle.
+	if (_actuator_controls_throttle <= sys_min_throttle) {
+		if (_min_thrust_start == 0) {
+			_min_thrust_start = time_now_us;
 		}
 
 	} else {
-		_min_trust_start = 0;
+		_min_thrust_start = 0;
+		return false;
 	}
 
-	float landThresholdFactor = 1.0f;
+
+	if (_freefall_hysteresis.get_state()) {
+		return false;
+	}
+
+
+	float landThresholdFactor = 1.f;
 
 	// Widen acceptance thresholds for landed state right after landed
-	if (hrt_elapsed_time(&_landed_time) < LAND_DETECTOR_LAND_PHASE_TIME_US) {
+	if ((time_now_us - _landed_time) < LAND_DETECTOR_LAND_PHASE_TIME_US) {
 		landThresholdFactor = 2.5f;
 	}
 
 	// Next look if all rotation angles are not moving.
-	float max_rotation_scaled = math::radians(_param_lndmc_rot_max.get()) * landThresholdFactor;
+	vehicle_angular_velocity_s vehicle_angular_velocity{};
+	_vehicle_angular_velocity_sub.copy(&vehicle_angular_velocity);
+	const Vector2f angular_velocity{vehicle_angular_velocity.xyz[0], vehicle_angular_velocity.xyz[1]};
+	const float max_rotation_scaled = math::radians(_param_lndmc_rot_max.get()) * landThresholdFactor;
 
-	bool rotating = (fabsf(_vehicle_angular_velocity.xyz[0]) > max_rotation_scaled) ||
-			(fabsf(_vehicle_angular_velocity.xyz[1]) > max_rotation_scaled) ||
-			(fabsf(_vehicle_angular_velocity.xyz[2]) > max_rotation_scaled);
-
-	// Return status based on armed state and throttle if no position lock is available.
-	if (!_has_altitude_lock() && !rotating) {
-		// The system has minimum trust set (manual or in failsafe)
-		// if this persists for 8 seconds AND the drone is not
-		// falling consider it to be landed. This should even sustain
-		// quite acrobatic flight.
-		return (_min_trust_start > 0) && (hrt_elapsed_time(&_min_trust_start) > 8_s);
+	if (angular_velocity.norm() > max_rotation_scaled) {
+		return false;
 	}
 
-	// Ground contact, no thrust and no movement -> landed
-	return _ground_contact_hysteresis.get_state() && _has_minimal_thrust() && !rotating;
+	// If vertical velocity is available: ground contact, no thrust, no movement -> landed
+	if (((time_now_us - _vehicle_local_position.timestamp) < 1_s) && _vehicle_local_position.v_z_valid) {
+		return _ground_contact_hysteresis.get_state();
+	}
+
+	// Otherwise, landed if the system has minimum thrust (manual or in failsafe) and no rotation for at least 8 seconds
+	return (_min_thrust_start > 0) && ((time_now_us - _min_thrust_start) > 8_s);
 }
 
 bool MulticopterLandDetector::_get_landed_state()
 {
-	// When not armed, consider to be landed
-	if (!_actuator_armed.armed) {
-		return true;
-	}
-
 	// reset the landed_time
 	if (!_maybe_landed_hysteresis.get_state()) {
 		_landed_time = 0;
 
 	} else if (_landed_time == 0) {
 		_landed_time = hrt_absolute_time();
+	}
+
+	// When not armed, consider to be landed
+	if (!_armed) {
+		return true;
 	}
 
 	// if we have maybe_landed, the mc_pos_control goes into idle (thrust_sp = 0.0)
@@ -256,73 +325,47 @@ bool MulticopterLandDetector::_get_landed_state()
 
 float MulticopterLandDetector::_get_max_altitude()
 {
-	/* TODO: add a meaningful altitude */
-	float valid_altitude_max = _param_lndmc_alt_max.get();
-
-	if (valid_altitude_max < 0.0f) {
+	if (_param_lndmc_alt_max.get() < 0.0f) {
 		return INFINITY;
-	}
 
-	if (_battery_status.warning == battery_status_s::BATTERY_WARNING_LOW) {
-		valid_altitude_max = _param_lndmc_alt_max.get() * 0.75f;
+	} else {
+		return _param_lndmc_alt_max.get();
 	}
-
-	if (_battery_status.warning == battery_status_s::BATTERY_WARNING_CRITICAL) {
-		valid_altitude_max = _param_lndmc_alt_max.get() * 0.5f;
-	}
-
-	if (_battery_status.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
-		valid_altitude_max = _param_lndmc_alt_max.get() * 0.25f;
-	}
-
-	return valid_altitude_max;
 }
 
-bool MulticopterLandDetector::_has_altitude_lock()
+float MulticopterLandDetector::_get_gnd_effect_altitude()
 {
-	return (hrt_elapsed_time(&_vehicle_local_position.timestamp) < 1_s) && _vehicle_local_position.z_valid;
-}
+	if (_param_lndmc_alt_gnd_effect.get() < 0.0f) {
+		return INFINITY;
 
-bool MulticopterLandDetector::_has_position_lock()
-{
-	return _has_altitude_lock() && _vehicle_local_position.xy_valid;
-}
-
-bool MulticopterLandDetector::_is_climb_rate_enabled()
-{
-	bool has_updated = (hrt_elapsed_time(&_vehicle_local_position_setpoint.timestamp) < 1_s);
-
-	return (_vehicle_control_mode.flag_control_climb_rate_enabled && has_updated
-		&& PX4_ISFINITE(_vehicle_local_position_setpoint.vz));
-}
-
-bool MulticopterLandDetector::_has_low_thrust()
-{
-	// 30% of throttle range between min and hover
-	float sys_min_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) *
-				 _param_lndmc_low_t_thr.get();
-
-	// Check if thrust output is less than the minimum auto throttle param.
-	return _actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] <= sys_min_throttle;
-}
-
-bool MulticopterLandDetector::_has_minimal_thrust()
-{
-	// 10% of throttle range between min and hover once we entered ground contact
-	float sys_min_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * 0.1f;
-
-	// Determine the system min throttle based on flight mode
-	if (!_vehicle_control_mode.flag_control_climb_rate_enabled) {
-		sys_min_throttle = (_params.minManThrottle + 0.01f);
+	} else {
+		return _param_lndmc_alt_gnd_effect.get();
 	}
-
-	// Check if thrust output is less than the minimum auto throttle param.
-	return _actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] <= sys_min_throttle;
 }
 
 bool MulticopterLandDetector::_get_ground_effect_state()
 {
-	return _in_descend && !_horizontal_movement;
+	return (_in_descend && !_horizontal_movement) ||
+	       (_below_gnd_effect_hgt && _takeoff_state == takeoff_status_s::TAKEOFF_STATE_FLIGHT) ||
+	       _takeoff_state == takeoff_status_s::TAKEOFF_STATE_RAMPUP;
+}
+
+bool MulticopterLandDetector::_is_close_to_ground()
+{
+	if (_vehicle_local_position.dist_bottom_valid) {
+		return _vehicle_local_position.dist_bottom < DIST_FROM_GROUND_THRESHOLD;
+
+	} else {
+		return false;
+	}
+}
+
+void MulticopterLandDetector::_set_hysteresis_factor(const int factor)
+{
+	_ground_contact_hysteresis.set_hysteresis_time_from(false, _param_lndmc_trig_time.get() * 1_s / 3 * factor);
+	_landed_hysteresis.set_hysteresis_time_from(false, _param_lndmc_trig_time.get() * 1_s / 3 * factor);
+	_maybe_landed_hysteresis.set_hysteresis_time_from(false, _param_lndmc_trig_time.get() * 1_s / 3 * factor);
+	_freefall_hysteresis.set_hysteresis_time_from(false, FREEFALL_TRIGGER_TIME_US);
 }
 
 } // namespace land_detector

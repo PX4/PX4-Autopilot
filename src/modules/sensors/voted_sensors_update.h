@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,36 +39,30 @@
  * @author Beat Kueng <beat-kueng@gmx.net>
  */
 
-#include "parameters.h"
+#include "data_validator/DataValidator.hpp"
+#include "data_validator/DataValidatorGroup.hpp"
 
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
-#include <drivers/drv_mag.h>
+#include <px4_platform_common/events.h>
+#include <px4_platform_common/module_params.h>
 #include <drivers/drv_hrt.h>
-
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
-
-#include <lib/ecl/validation/data_validator.h>
-#include <lib/ecl/validation/data_validator_group.h>
-#include <lib/mag_compensation/MagCompensation.hpp>
-
 #include <uORB/Publication.hpp>
-#include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/sensor_accel_integrated.h>
+#include <uORB/SubscriptionMultiArray.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/sensor_preflight.h>
-#include <uORB/topics/sensor_correction.h>
-#include <uORB/topics/sensor_gyro_integrated.h>
+#include <uORB/topics/sensors_status_imu.h>
 #include <uORB/topics/sensor_selection.h>
-#include <uORB/topics/vehicle_magnetometer.h>
-#include <uORB/topics/subsystem_info.h>
-
-#include "common.h"
+#include <uORB/topics/vehicle_imu.h>
+#include <uORB/topics/vehicle_imu_status.h>
 
 namespace sensors
 {
+
+static constexpr uint8_t MAX_SENSOR_COUNT = 4;
 
 /**
  ** class VotedSensorsUpdate
@@ -82,7 +76,7 @@ public:
 	 * @param parameters parameter values. These do not have to be initialized when constructing this object.
 	 * Only when calling init(), they have to be initialized.
 	 */
-	VotedSensorsUpdate(const Parameters &parameters, bool hil_enabled);
+	VotedSensorsUpdate(bool hil_enabled, uORB::SubscriptionCallbackWorkItem(&vehicle_imu_sub)[MAX_SENSOR_COUNT]);
 
 	/**
 	 * initialize subscriptions etc.
@@ -106,7 +100,7 @@ public:
 	/**
 	 * read new sensor data
 	 */
-	void sensorsPoll(sensor_combined_s &raw, vehicle_magnetometer_s &magnetometer);
+	void sensorsPoll(sensor_combined_s &raw);
 
 	/**
 	 * set the relative timestamps of each sensor timestamp, based on the last sensorsPoll,
@@ -114,131 +108,83 @@ public:
 	 */
 	void setRelativeTimestamps(sensor_combined_s &raw);
 
-	/**
-	 * check if a failover event occured. if so, report it.
-	 */
-	void checkFailover();
-
-	int bestGyroID() const { return _gyro_device_id[_gyro.last_best_vote]; }
-
-	/**
-	 * Calculates the magnitude in m/s/s of the largest difference between the primary and any other accel sensor
-	 */
-	void calcAccelInconsistency(sensor_preflight_s &preflt);
-
-	/**
-	 * Calculates the magnitude in rad/s of the largest difference between the primary and any other gyro sensor
-	 */
-	void calcGyroInconsistency(sensor_preflight_s &preflt);
-
-	/**
-	 * Calculates the magnitude in Gauss of the largest difference between the primary and any other magnetometers
-	 */
-	void calcMagInconsistency(sensor_preflight_s &preflt);
-
-	/**
-	 * Update armed flag for mag compensation.
-	 */
-	void update_mag_comp_armed(bool armed);
-
-	/**
-	 * Update throttle for mag compensation.
-	 */
-	void update_mag_comp_throttle(float throttle);
-
-	/**
-	 * Update current for mag compensation.
-	 */
-	void update_mag_comp_current(float current);
-
 private:
+
+	static constexpr uint8_t DEFAULT_PRIORITY = 50;
 
 	struct SensorData {
 		SensorData() = delete;
 		explicit SensorData(ORB_ID meta) : subscription{{meta, 0}, {meta, 1}, {meta, 2}, {meta, 3}} {}
 
-		uORB::Subscription subscription[SENSOR_COUNT_MAX]; /**< raw sensor data subscription */
+		uORB::Subscription subscription[MAX_SENSOR_COUNT]; /**< raw sensor data subscription */
 		DataValidatorGroup voter{1};
 		unsigned int last_failover_count{0};
-		uint8_t priority[SENSOR_COUNT_MAX] {}; /**< sensor priority */
+		int32_t priority[MAX_SENSOR_COUNT] {};
+		int32_t priority_configured[MAX_SENSOR_COUNT] {};
 		uint8_t last_best_vote{0}; /**< index of the latest best vote */
 		uint8_t subscription_count{0};
-		bool enabled[SENSOR_COUNT_MAX] {true, true, true, true};
-		bool advertised[SENSOR_COUNT_MAX] {false, false, false, false};
-		matrix::Vector3f power_compensation[SENSOR_COUNT_MAX];
+		bool advertised[MAX_SENSOR_COUNT] {false, false, false};
 	};
 
 	void initSensorClass(SensorData &sensor_data, uint8_t sensor_count_max);
 
 	/**
-	 * Poll the accelerometer for updated data.
+	 * Poll IMU for updated data.
 	 *
 	 * @param raw	Combined sensor data structure into which
 	 *		data should be returned.
 	 */
-	void accelPoll(sensor_combined_s &raw);
-
-	/**
-	 * Poll the gyro for updated data.
-	 *
-	 * @param raw	Combined sensor data structure into which
-	 *		data should be returned.
-	 */
-	void gyroPoll(sensor_combined_s &raw);
-
-	/**
-	 * Poll the magnetometer for updated data.
-	 *
-	 * @param raw	Combined sensor data structure into which
-	 *		data should be returned.
-	 */
-	void magPoll(vehicle_magnetometer_s &magnetometer);
+	void imuPoll(sensor_combined_s &raw);
 
 	/**
 	 * Check & handle failover of a sensor
 	 * @return true if a switch occured (could be for a non-critical reason)
 	 */
-	bool checkFailover(SensorData &sensor, const char *sensor_name, const uint64_t type);
+	bool checkFailover(SensorData &sensor, const char *sensor_name, events::px4::enums::sensor_type_t sensor_type);
 
-	SensorData _accel{ORB_ID::sensor_accel_integrated};
-	SensorData _gyro{ORB_ID::sensor_gyro_integrated};
-	SensorData _mag{ORB_ID::sensor_mag};
+	/**
+	 * Calculates the magnitude in m/s/s of the largest difference between each accelerometer vector and the mean of all vectors
+	 */
+	void calcAccelInconsistency();
 
+	/**
+	 * Calculates the magnitude in rad/s of the largest difference between each gyro vector and the mean of all vectors
+	 */
+	void calcGyroInconsistency();
+
+	SensorData _accel{ORB_ID::sensor_accel};
+	SensorData _gyro{ORB_ID::sensor_gyro};
+
+	hrt_abstime _last_error_message{0};
 	orb_advert_t _mavlink_log_pub{nullptr};
 
 	uORB::Publication<sensor_selection_s> _sensor_selection_pub{ORB_ID(sensor_selection)};	/**< handle to the sensor selection uORB topic */
-	uORB::PublicationQueued<subsystem_info_s> _info_pub{ORB_ID(subsystem_info)};	/* subsystem info publication */
+	uORB::Publication<sensors_status_imu_s> _sensors_status_imu_pub{ORB_ID(sensors_status_imu)};
 
-	/* sensor thermal compensation */
-	uORB::Subscription _corrections_sub{ORB_ID(sensor_correction)};
+	uORB::SubscriptionCallbackWorkItem(&_vehicle_imu_sub)[MAX_SENSOR_COUNT];
+	uORB::SubscriptionMultiArray<vehicle_imu_status_s, MAX_SENSOR_COUNT> _vehicle_imu_status_subs{ORB_ID::vehicle_imu_status};
 
-	sensor_combined_s _last_sensor_data[SENSOR_COUNT_MAX] {};	/**< latest sensor data from all sensors instances */
-	vehicle_magnetometer_s _last_magnetometer[SENSOR_COUNT_MAX] {}; /**< latest sensor data from all sensors instances */
+	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 
-	matrix::Dcmf _board_rotation {};		/**< rotation matrix for the orientation that the board is mounted */
-	matrix::Dcmf _mag_rotation[MAG_COUNT_MAX] {};	/**< rotation matrix for the orientation that the external mag0 is mounted */
+	sensor_combined_s _last_sensor_data[MAX_SENSOR_COUNT] {};	/**< latest sensor data from all sensors instances */
 
-	const Parameters &_parameters;
 	const bool _hil_enabled{false};			/**< is hardware-in-the-loop mode enabled? */
 
-	bool _selection_changed{false};			/**< true when a sensor selection has changed and not been published */
+	bool _selection_changed{true};			/**< true when a sensor selection has changed and not been published */
 
-	float _accel_diff[3][2] {};			/**< filtered accel differences between IMU units (m/s/s) */
-	float _gyro_diff[3][2] {};			/**< filtered gyro differences between IMU uinits (rad/s) */
-	float _mag_angle_diff[2] {};			/**< filtered mag angle differences between sensor instances (Ga) */
+	matrix::Vector3f _accel_diff[MAX_SENSOR_COUNT] {};		/**< filtered accel differences between IMU units (m/s/s) */
+	matrix::Vector3f _gyro_diff[MAX_SENSOR_COUNT] {};			/**< filtered gyro differences between IMU uinits (rad/s) */
 
-	/* Magnetometer interference compensation */
-	MagCompensator _mag_compensator;
+	uint32_t _accel_device_id[MAX_SENSOR_COUNT] {};	/**< accel driver device id for each uorb instance */
+	uint32_t _gyro_device_id[MAX_SENSOR_COUNT] {};	/**< gyro driver device id for each uorb instance */
 
-	uint32_t _accel_device_id[SENSOR_COUNT_MAX] {};	/**< accel driver device id for each uorb instance */
-	uint32_t _gyro_device_id[SENSOR_COUNT_MAX] {};	/**< gyro driver device id for each uorb instance */
-	uint32_t _mag_device_id[SENSOR_COUNT_MAX] {};	/**< mag driver device id for each uorb instance */
+	uint64_t _last_accel_timestamp[MAX_SENSOR_COUNT] {};	/**< latest full timestamp */
 
-	uint64_t _last_accel_timestamp[ACCEL_COUNT_MAX] {};	/**< latest full timestamp */
-
-	sensor_correction_s _corrections {};		/**< struct containing the sensor corrections to be published to the uORB */
 	sensor_selection_s _selection {};		/**< struct containing the sensor selection to be published to the uORB */
-	subsystem_info_s _info {};			/**< subsystem info publication */
+
+	DEFINE_PARAMETERS(
+		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
+	)
 };
 
 } /* namespace sensors */

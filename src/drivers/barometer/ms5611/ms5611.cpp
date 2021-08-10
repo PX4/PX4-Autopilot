@@ -41,17 +41,25 @@
 
 #include <cdev/CDev.hpp>
 
-MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, enum MS56XX_DEVICE_TYPES device_type,
-	       I2CSPIBusOption bus_option, int bus) :
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus, 0, device_type),
+MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const I2CSPIDriverConfig &config) :
+	I2CSPIDriver(config),
 	_px4_barometer(interface->get_device_id()),
 	_interface(interface),
 	_prom(prom_buf.s),
-	_device_type(device_type),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
 {
+	switch (config.devid_driver_index) {
+	case DRV_BARO_DEVTYPE_MS5611:
+		_device_type = MS5611_DEVICE;
+		break;
+
+	case DRV_BARO_DEVTYPE_MS5607:
+	default:
+		_device_type = MS5607_DEVICE;
+		break;
+	}
 }
 
 MS5611::~MS5611()
@@ -104,6 +112,11 @@ MS5611::init()
 
 		if (_device_type == MS5607_DEVICE) {
 			if (brp.pressure < 520.0f) {
+				/* This is likely not this device, abort */
+				ret = -EINVAL;
+				break;
+
+			} else if (brp.pressure > 1500.0f) {
 				/* This is likely not this device, abort */
 				ret = -EINVAL;
 				break;
@@ -335,8 +348,6 @@ void MS5611::print_status()
 	perf_print_counter(_comms_errors);
 
 	printf("device:         %s\n", _device_type == MS5611_DEVICE ? "ms5611" : "ms5607");
-
-	_px4_barometer.print_status();
 }
 
 namespace ms5611

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2017, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,6 +45,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
 
+#include <inttypes.h>
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
@@ -82,6 +83,9 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_node(can_driver, system_clock, _pool_allocator),
 	_esc_controller(_node),
 	_hardpoint_controller(_node),
+	_beep_controller(_node),
+	_safety_state_controller(_node),
+	_rgbled_controller(_node),
 	_time_sync_master(_node),
 	_time_sync_slave(_node),
 	_node_status_monitor(_node),
@@ -164,7 +168,7 @@ int
 UavcanNode::print_params(uavcan::protocol::param::GetSet::Response &resp)
 {
 	if (resp.value.is(uavcan::protocol::param::Value::Tag::integer_value)) {
-		return std::printf("name: %s %lld\n", resp.name.c_str(),
+		return std::printf("name: %s %" PRId64 "\n", resp.name.c_str(),
 				   resp.value.to<uavcan::protocol::param::Value::Tag::integer_value>());
 
 	} else if (resp.value.is(uavcan::protocol::param::Value::Tag::real_value)) {
@@ -339,7 +343,7 @@ UavcanNode::set_param(int remote_node_id, const char *name, char *value)
 				req.value.to<uavcan::protocol::param::Value::Tag::integer_value>() = i;
 
 			} else {
-				std::printf("Invalid value for: %s must be between %lld and %lld\n", name, min, max);
+				std::printf("Invalid value for: %s must be between %" PRId64 " and %" PRId64 "\n", name, min, max);
 				rv = -1;
 			}
 
@@ -621,6 +625,24 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 		return ret;
 	}
 
+	ret = _beep_controller.init();
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	ret = _safety_state_controller.init();
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	ret = _rgbled_controller.init();
+
+	if (ret < 0) {
+		return ret;
+	}
+
 	// Sensor bridges
 	IUavcanSensorBridge::make_all(_node, _sensor_bridges);
 
@@ -632,7 +654,7 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 			return ret;
 		}
 
-		PX4_INFO("sensor bridge '%s' init ok", br->get_name());
+		PX4_DEBUG("sensor bridge '%s' init ok", br->get_name());
 	}
 
 	_mixing_interface.mixingOutput().setAllDisarmedValues(UavcanEscController::DISARMED_OUTPUT_VALUE);
@@ -748,6 +770,10 @@ UavcanNode::Run()
 
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
+
+	for (auto &br : _sensor_bridges) {
+		br->update();
+	}
 
 	node_spin_once(); // expected to be non-blocking
 
@@ -915,19 +941,19 @@ UavcanNode::print_info()
 
 	// Memory status
 	printf("Pool allocator status:\n");
-	printf("\tCapacity hard/soft: %u/%u blocks\n",
+	printf("\tCapacity hard/soft: %" PRIu16 "/%" PRIu16 " blocks\n",
 	       _pool_allocator.getBlockCapacityHardLimit(), _pool_allocator.getBlockCapacity());
-	printf("\tReserved:  %u blocks\n", _pool_allocator.getNumReservedBlocks());
-	printf("\tAllocated: %u blocks\n", _pool_allocator.getNumAllocatedBlocks());
+	printf("\tReserved:  %" PRIu16 " blocks\n", _pool_allocator.getNumReservedBlocks());
+	printf("\tAllocated: %" PRIu16 " blocks\n", _pool_allocator.getNumAllocatedBlocks());
 
 	printf("\n");
 
 	// UAVCAN node perfcounters
 	printf("UAVCAN node status:\n");
-	printf("\tInternal failures: %llu\n", _node.getInternalFailureCount());
-	printf("\tTransfer errors:   %llu\n", _node.getDispatcher().getTransferPerfCounter().getErrorCount());
-	printf("\tRX transfers:      %llu\n", _node.getDispatcher().getTransferPerfCounter().getRxTransferCount());
-	printf("\tTX transfers:      %llu\n", _node.getDispatcher().getTransferPerfCounter().getTxTransferCount());
+	printf("\tInternal failures: %" PRIu64 "\n", _node.getInternalFailureCount());
+	printf("\tTransfer errors:   %" PRIu64 "\n", _node.getDispatcher().getTransferPerfCounter().getErrorCount());
+	printf("\tRX transfers:      %" PRIu64 "\n", _node.getDispatcher().getTransferPerfCounter().getRxTransferCount());
+	printf("\tTX transfers:      %" PRIu64 "\n", _node.getDispatcher().getTransferPerfCounter().getTxTransferCount());
 
 	printf("\n");
 
@@ -938,12 +964,12 @@ UavcanNode::print_info()
 		auto iface = _node.getDispatcher().getCanIOManager().getCanDriver().getIface(i);
 
 		if (iface) {
-			printf("\tHW errors: %llu\n", iface->getErrorCount());
+			printf("\tHW errors: %" PRIu64 "\n", iface->getErrorCount());
 
 			auto iface_perf_cnt = _node.getDispatcher().getCanIOManager().getIfacePerfCounters(i);
-			printf("\tIO errors: %llu\n", iface_perf_cnt.errors);
-			printf("\tRX frames: %llu\n", iface_perf_cnt.frames_rx);
-			printf("\tTX frames: %llu\n", iface_perf_cnt.frames_tx);
+			printf("\tIO errors: %" PRIu64 "\n", iface_perf_cnt.errors);
+			printf("\tRX frames: %" PRIu64 "\n", iface_perf_cnt.frames_rx);
+			printf("\tTX frames: %" PRIu64 "\n", iface_perf_cnt.frames_tx);
 		}
 	}
 
@@ -1038,7 +1064,7 @@ int uavcan_main(int argc, char *argv[])
 		(void)param_get(param_find("UAVCAN_NODE_ID"), &node_id);
 
 		if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
-			PX4_ERR("Invalid Node ID %i", node_id);
+			PX4_ERR("Invalid Node ID %" PRId32, node_id);
 			::exit(1);
 		}
 
@@ -1047,7 +1073,7 @@ int uavcan_main(int argc, char *argv[])
 		(void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
 
 		// Start
-		PX4_INFO("Node ID %u, bitrate %u", node_id, bitrate);
+		PX4_INFO("Node ID %" PRIu32 ", bitrate %" PRIu32, node_id, bitrate);
 		return UavcanNode::start(node_id, bitrate);
 	}
 

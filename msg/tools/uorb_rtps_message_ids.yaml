@@ -7,27 +7,20 @@ rtps:
     id: 3
   - msg: adc_report
     id: 4
-    send: true
   - msg: airspeed
     id: 5
-    send: true
   - msg: battery_status
     id: 6
-    send: true
   - msg: camera_capture
     id: 7
-    receive: true
   - msg: camera_trigger
     id: 8
-    receive: true
   - msg: collision_report
     id: 9
-    receive: true
   - msg: commander_state
     id: 10
   - msg: cpuload
     id: 11
-    send: true
   - msg: debug_array
     id: 12
     receive: true
@@ -44,14 +37,13 @@ rtps:
     id: 16
   - msg: distance_sensor
     id: 17
-    send: true
   - msg: estimator_innovations
     id: 18
   - msg: ekf2_timestamps
     id: 19
   - msg: ekf_gps_drift
     id: 20
-  - msg: ekf_gps_position
+  - msg: sensor_gps
     id: 21
   - msg: esc_report
     id: 22
@@ -59,7 +51,6 @@ rtps:
     id: 23
   - msg: estimator_status
     id: 24
-    send: true
   - msg: follow_target
     id: 25
   - msg: geofence_result
@@ -70,12 +61,11 @@ rtps:
     id: 28
   - msg: home_position
     id: 29
-    send: true
   - msg: input_rc
     id: 30
+    send: true
   - msg: iridiumsbd_status
     id: 31
-    send: true
   - msg: irlock_report
     id: 32
   - msg: landing_target_innovations
@@ -100,9 +90,9 @@ rtps:
     id: 42
   - msg: obstacle_distance
     id: 43
-    receive: true
   - msg: offboard_control_mode
     id: 44
+    receive: true
   - msg: optical_flow
     id: 45
     receive: true
@@ -130,7 +120,6 @@ rtps:
     id: 55
   - msg: radio_status
     id: 56
-    send: true
   - msg: rate_ctrl_status
     id: 57
   - msg: rc_channels
@@ -146,7 +135,6 @@ rtps:
     id: 62
   - msg: sensor_baro
     id: 63
-    send: true
   - msg: estimator_sensor_bias
     id: 64
   - msg: sensor_combined
@@ -158,15 +146,12 @@ rtps:
     id: 67
   - msg: sensor_mag
     id: 68
-  - msg: sensor_preflight
+  - msg: sensors_status_imu
     id: 69
   - msg: sensor_selection
     id: 70
-    send: true
-  - msg: servorail_status
+  - msg: px4io_status
     id: 71
-  - msg: subsystem_info
-    id: 72
   - msg: system_power
     id: 73
   - msg: task_stack_info
@@ -175,6 +160,7 @@ rtps:
     id: 75
   - msg: telemetry_status
     id: 76
+    receive: true
   - msg: test_motor
     id: 77
   - msg: timesync
@@ -183,7 +169,7 @@ rtps:
     send: true
   - msg: trajectory_waypoint
     id: 79
-    receive: true
+    send: true
   - msg: transponder_report
     id: 80
   - msg: tune_control
@@ -205,12 +191,14 @@ rtps:
     id: 88
   - msg: vehicle_command
     id: 89
+    receive: true
   - msg: vehicle_command_ack
     id: 90
   - msg: vehicle_constraints
     id: 91
   - msg: vehicle_control_mode
     id: 92
+    send: true
   - msg: vehicle_global_position
     id: 93
   - msg: vehicle_gps_position
@@ -219,8 +207,10 @@ rtps:
     id: 95
   - msg: vehicle_local_position
     id: 96
+    send: true
   - msg: vehicle_local_position_setpoint
     id: 97
+    receive: true
   - msg: vehicle_magnetometer
     id: 98
   - msg: vehicle_odometry
@@ -232,6 +222,7 @@ rtps:
     id: 101
   - msg: vehicle_status
     id: 102
+    send: true
   - msg: vehicle_status_flags
     id: 103
   - msg: vehicle_trajectory_waypoint
@@ -239,10 +230,8 @@ rtps:
     receive: true
   - msg: vtol_vehicle_status
     id: 105
-    send: true
-  - msg: wind_estimate
+  - msg: wind
     id: 106
-    send: true
   - msg: collision_constraints
     id: 107
     send: true
@@ -256,6 +245,7 @@ rtps:
     id: 111
   - msg: vehicle_angular_velocity
     id: 112
+    send: true
   - msg: vehicle_acceleration
     id: 113
   - msg: airspeed_validated
@@ -267,119 +257,203 @@ rtps:
     id: 117
   - msg: sensor_accel_fifo
     id: 118
-  - msg: sensor_accel_status
-    id: 119
   - msg: sensor_gyro_fifo
-    id: 120
-  - msg: sensor_gyro_status
-    id: 121
-  - msg: sensor_accel_integrated
-    id: 122
-  - msg: sensor_gyro_integrated
-    id: 123
+    id: 119
   - msg: vehicle_imu
-    id: 124
+    id: 120
+  - msg: vehicle_imu_status
+    id: 121
   - msg: vehicle_angular_acceleration
-    id: 125
+    id: 122
   - msg: logger_status
-    id: 126
+    id: 123
   - msg: rpm
-    id: 127
+    id: 124
   - msg: hover_thrust_estimate
-    id: 128
+    id: 125
   - msg: trajectory_bezier
-    id: 129
+    id: 126
+    receive: true
   - msg: vehicle_trajectory_bezier
-    id: 130
+    id: 127
+    receive: true
   - msg: timesync_status
-    id: 131
+    id: 128
   - msg: orb_test
-    id: 132
+    id: 129
   - msg: orb_test_medium
-    id: 133
+    id: 130
   - msg: orb_test_large
-    id: 134
+    id: 131
   - msg: yaw_estimator_status
+    id: 132
+  - msg: sensor_preflight_mag
+    id: 133
+  - msg: estimator_states
+    id: 134
+  - msg: generator_status
     id: 135
+  - msg: sensor_gyro_fft
+    id: 136
+  - msg: navigator_mission_item
+    id: 137
+  - msg: estimator_optical_flow_vel
+    id: 138
+  - msg: estimator_selector_status
+    id: 139
+  - msg: manual_control_switches
+    id: 140
+  - msg: estimator_status_flags
+    id: 141
+  - msg: rtl_flight_time
+    id: 142
+  - msg: vehicle_angular_acceleration_setpoint
+    id: 143
+  - msg: vehicle_torque_setpoint
+    id: 144
+  - msg: vehicle_thrust_setpoint
+    id: 145
+  - msg: vehicle_actuator_setpoint
+    id: 146
+  - msg: control_allocator_status
+    id: 147
+  - msg: mag_worker_data
+    id: 148
+  - msg: takeoff_status
+    id: 149
+  - msg: heater_status
+    id: 150
+  - msg: gimbal_device_attitude_status
+    id: 151
+  - msg: gimbal_device_information
+    id: 152
+  - msg: gimbal_device_set_attitude
+    id: 153
+  - msg: gimbal_manager_information
+    id: 154
+  - msg: gimbal_manager_set_attitude
+    id: 155
+  - msg: gimbal_manager_status
+    id: 156
+  - msg: gimbal_manager_set_manual_control
+    id: 157
+  - msg: airspeed_wind
+    id: 158
+  - msg: estimator_event_flags
+    id: 159
+  - msg: event
+    id: 160
+  - msg: estimator_baro_bias
+    id: 161
+  - msg: internal_combustion_engine_status
+    id: 162
+  - msg: camera_status
+    id: 163
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
-    id: 150
+    id: 180
     alias: actuator_controls
   - msg: actuator_controls_1
-    id: 151
+    id: 181
     alias: actuator_controls
   - msg: actuator_controls_2
-    id: 152
+    id: 182
     alias: actuator_controls
   - msg: actuator_controls_3
-    id: 153
+    id: 183
     alias: actuator_controls
   - msg: actuator_controls_virtual_fw
-    id: 154
+    id: 184
     alias: actuator_controls
   - msg: actuator_controls_virtual_mc
-    id: 155
+    id: 185
     alias: actuator_controls
   - msg: mc_virtual_attitude_setpoint
-    id: 156
+    id: 186
     alias: vehicle_attitude_setpoint
   - msg: fw_virtual_attitude_setpoint
-    id: 157
+    id: 187
     alias: vehicle_attitude_setpoint
   - msg: vehicle_attitude_groundtruth
-    id: 158
+    id: 188
     alias: vehicle_attitude
   - msg: vehicle_global_position_groundtruth
-    id: 159
+    id: 189
     alias: vehicle_global_position
   - msg: vehicle_local_position_groundtruth
-    id: 160
+    id: 190
     alias: vehicle_local_position
   - msg: vehicle_mocap_odometry
     alias: vehicle_odometry
-    id: 161
+    id: 191
     receive: true
   - msg: vehicle_visual_odometry
-    id: 162
+    id: 192
     alias: vehicle_odometry
     receive: true
   - msg: vehicle_trajectory_waypoint_desired
-    id: 163
+    id: 193
     alias: vehicle_trajectory_waypoint
+    send: true
   - msg: obstacle_distance_fused
-    id: 164
+    id: 194
     alias: obstacle_distance
   - msg: vehicle_vision_attitude
-    id: 165
+    id: 195
     alias: vehicle_attitude
   - msg: trajectory_setpoint
-    id: 166
+    id: 196
     alias: vehicle_local_position_setpoint
+    receive: true
   - msg: camera_trigger_secondary
-    id: 167
+    id: 197
     alias: camera_trigger
   - msg: vehicle_angular_velocity_groundtruth
-    id: 168
+    id: 198
     alias: vehicle_angular_velocity
-  - msg: vehicle_visual_odometry_aligned
-    id: 169
+  - msg: estimator_visual_odometry_aligned
+    id: 199
     alias: vehicle_odometry
   - msg: estimator_innovation_variances
-    id: 170
+    id: 200
     alias: estimator_innovations
   - msg: estimator_innovation_test_ratios
-    id: 171
+    id: 201
     alias: estimator_innovations
   - msg: orb_multitest
-    id: 172
+    id: 202
     alias: orb_test
   - msg: orb_test_medium_multi
-    id: 173
+    id: 203
     alias: orb_test_medium
   - msg: orb_test_medium_queue
-    id: 174
+    id: 204
     alias: orb_test_medium
   - msg: orb_test_medium_queue_poll
-    id: 175
+    id: 205
     alias: orb_test_medium
+  - msg: orb_test_medium_wrap_around
+    id: 206
+    alias: orb_test_medium
+  - msg: estimator_local_position
+    id: 207
+    alias: vehicle_local_position
+  - msg: estimator_global_position
+    id: 208
+    alias: vehicle_global_position
+  - msg: estimator_attitude
+    id: 209
+    alias: vehicle_attitude
+  - msg: estimator_odometry
+    id: 210
+    alias: vehicle_odometry
+  - msg: actuator_controls_4
+    id: 211
+    alias: actuator_controls
+  - msg: actuator_controls_5
+    id: 212
+    alias: actuator_controls
+  - msg: estimator_wind
+    id: 213
+    alias: wind
   ########## multi topics: end ##########

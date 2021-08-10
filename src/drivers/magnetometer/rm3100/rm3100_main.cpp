@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,16 +41,15 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-I2CSPIDriverBase *RM3100::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				      int runtime_instance)
+I2CSPIDriverBase *RM3100::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
 	device::Device *interface = nullptr;
 
-	if (iterator.busType() == BOARD_I2C_BUS) {
-		interface = RM3100_I2C_interface(iterator.bus(), cli.bus_frequency);
+	if (config.bus_type == BOARD_I2C_BUS) {
+		interface = RM3100_I2C_interface(config.bus, config.bus_frequency);
 
-	} else if (iterator.busType() == BOARD_SPI_BUS) {
-		interface = RM3100_SPI_interface(iterator.bus(), iterator.devid(), cli.bus_frequency, cli.spi_mode);
+	} else if (config.bus_type == BOARD_SPI_BUS) {
+		interface = RM3100_SPI_interface(config.bus, config.spi_devid, config.bus_frequency, config.spi_mode);
 	}
 
 	if (interface == nullptr) {
@@ -60,11 +59,11 @@ I2CSPIDriverBase *RM3100::instantiate(const BusCLIArguments &cli, const BusInsta
 
 	if (interface->init() != OK) {
 		delete interface;
-		PX4_DEBUG("no device on bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
+		PX4_DEBUG("no device on bus %i (devid 0x%x)", config.bus, config.spi_devid);
 		return nullptr;
 	}
 
-	RM3100 *dev = new RM3100(interface, cli.rotation, iterator.configuredBusOption(), iterator.bus());
+	RM3100 *dev = new RM3100(interface, config);
 
 	if (dev == nullptr) {
 		delete interface;
@@ -104,20 +103,22 @@ extern "C" int rm3100_main(int argc, char *argv[])
 	cli.default_i2c_frequency = 400000;
 	cli.default_spi_frequency = 1 * 1000 * 1000;
 
-	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
 		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optarg());
+			cli.rotation = (enum Rotation)atoi(cli.optArg());
 			break;
 		}
 	}
 
-	const char *verb = cli.optarg();
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();
 		return -1;
 	}
+
+	cli.i2c_address = RM3100_ADDRESS;
 
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_MAG_DEVTYPE_RM3100);
 

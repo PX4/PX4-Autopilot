@@ -40,7 +40,6 @@
 #pragma once
 
 #include <matrix/matrix/math.hpp>
-#include <mathlib/math/filter/LowPassFilter2pVector3f.hpp>
 
 #include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
 #include <uORB/topics/rate_ctrl_status.h>

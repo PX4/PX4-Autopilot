@@ -15,7 +15,7 @@
 #
 #------------------------------------------------------------------------------
 
-adc start
+board_adc start
 
 # Internal SPI bus ICM-20602
 icm20602 -R 2 -s start
@@ -23,27 +23,12 @@ icm20602 -R 2 -s start
 # Internal SPI bus ICM-20689
 icm20689 -R 2 -s start
 
-# Internal SPI bus BMI055 accel
-bmi055 -A -R 10 -s start
+# Internal SPI bus BMI055 accel/gyro
+bmi055 -A -R 2 -s start
+bmi055 -G -R 2 -s start
 
-# Internal SPI bus BMI055 gyro
-bmi055 -G -R 10 -s start
-
-# Possible external compasses
-ist8310 -X start
-hmc5883 -T -X start
-qmc5883 -X start
-lis3mdl -X start
-
-# ICM20948 as external magnetometer on I2C (e.g. Here GPS)
-if ! icm20948 -X -R 6 start
-then
-	# external emulated AK09916 (Here2) is rotated 270 degrees yaw
-	ak09916 -X -R 6 start
-fi
-
-# Possible internal compass
-ist8310 -I start
+# internal compass
+ist8310 -I -R 10 start
 
 # Baro on internal SPI
 ms5611 -s start

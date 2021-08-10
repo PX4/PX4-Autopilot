@@ -159,8 +159,8 @@ constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSION
 			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10})
 		}),
 		initSPIBusExternal(SPI::Bus::SPI4, {
-			initSPIConfigExternal(SPI::CS{GPIO::PortC, GPIO::Pin14}),
 			initSPIConfigExternal(SPI::CS{GPIO::PortE, GPIO::Pin4}),
+			initSPIConfigExternal(SPI::CS{GPIO::PortC, GPIO::Pin14}),
 		}),
 	}),
 
@@ -188,6 +188,7 @@ constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSION
 		initSPIBus(SPI::Bus::SPI1, {
 			initSPIDevice(DRV_IMU_DEVTYPE_ICM20608G, SPI::CS{GPIO::PortC, GPIO::Pin15}, SPI::DRDY{GPIO::PortC, GPIO::Pin14}),
 			initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortD, GPIO::Pin7}),
+			initSPIDevice(DRV_DEVTYPE_UNUSED, SPI::CS{GPIO::PortC, GPIO::Pin2}, SPI::DRDY{GPIO::PortD, GPIO::Pin15}), // unused MPU9250
 		}, {GPIO::PortE, GPIO::Pin3}),
 		initSPIBus(SPI::Bus::SPI2, {
 			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10})

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -37,13 +37,49 @@ px4_add_module(
 	MODULE modules__ekf2
 	MAIN ekf2
 	COMPILE_FLAGS
-	STACK_MAX 2400
+		${MAX_CUSTOM_OPT_LEVEL}
+		-fno-associative-math
+	INCLUDES
+		EKF
+	STACK_MAX
+		3600
 	SRCS
-		ekf2_main.cpp
+		EKF/airspeed_fusion.cpp
+		EKF/baro_bias_estimator.cpp
+		EKF/control.cpp
+		EKF/covariance.cpp
+		EKF/drag_fusion.cpp
+		EKF/ekf.cpp
+		EKF/ekf_helper.cpp
+		EKF/EKFGSF_yaw.cpp
+		EKF/estimator_interface.cpp
+		EKF/gps_checks.cpp
+		EKF/gps_yaw_fusion.cpp
+		EKF/imu_down_sampler.cpp
+		EKF/mag_control.cpp
+		EKF/mag_fusion.cpp
+		EKF/optflow_fusion.cpp
+		EKF/sensor_range_finder.cpp
+		EKF/sideslip_fusion.cpp
+		EKF/terrain_estimator.cpp
+		EKF/utils.cpp
+		EKF/vel_pos_fusion.cpp
+
+		EKF2.cpp
+		EKF2.hpp
+		EKF2Selector.cpp
+		EKF2Selector.hpp
+
 	DEPENDS
-		git_ecl
-		ecl_EKF
-		ecl_geo
+		geo
 		perf
-		Ekf2Utility
+		EKF2Utility
+		px4_work_queue
+		world_magnetic_model
+	UNITY_BUILD
 	)
+
+if(BUILD_TESTING)
+	add_subdirectory(EKF)
+	add_subdirectory(test)
+endif()

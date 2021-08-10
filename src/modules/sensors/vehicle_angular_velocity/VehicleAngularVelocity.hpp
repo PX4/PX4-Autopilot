@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,98 +33,156 @@
 
 #pragma once
 
-#include <sensor_corrections/SensorCorrections.hpp>
-
+#include <containers/Bitset.hpp>
+#include <lib/sensor_calibration/Gyroscope.hpp>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
-#include <lib/mathlib/math/filter/LowPassFilter2pVector3f.hpp>
+#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/mathlib/math/filter/NotchFilter.hpp>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/esc_status.h>
+#include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/sensor_gyro_fft.h>
+#include <uORB/topics/sensor_gyro_fifo.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_angular_acceleration.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 
+using namespace time_literals;
+
 namespace sensors
 {
 
-class VehicleAngularVelocity : public ModuleParams, public px4::WorkItem
+class VehicleAngularVelocity : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-
 	VehicleAngularVelocity();
 	~VehicleAngularVelocity() override;
 
+	void PrintStatus();
 	bool Start();
 	void Stop();
-
-	void PrintStatus();
 
 private:
 	void Run() override;
 
-	void CheckFilters();
+	void CalibrateAndPublish(bool publish, const hrt_abstime &timestamp_sample, const matrix::Vector3f &angular_velocity,
+				 const matrix::Vector3f &angular_acceleration);
+
+	inline float FilterAngularVelocity(int axis, float data[], int N = 1);
+	inline float FilterAngularAcceleration(int axis, float dt_s, float data[], int N = 1);
+
+	void DisableDynamicNotchEscRpm();
+	void DisableDynamicNotchFFT();
 	void ParametersUpdate(bool force = false);
+
+	void ResetFilters();
 	void SensorBiasUpdate(bool force = false);
 	bool SensorSelectionUpdate(bool force = false);
+	void UpdateDynamicNotchEscRpm(bool force = false);
+	void UpdateDynamicNotchFFT(bool force = false);
+	bool UpdateSampleRate();
 
-	static constexpr int MAX_SENSOR_COUNT = 3;
+	// scaled appropriately for current sensor
+	matrix::Vector3f GetResetAngularVelocity() const;
+	matrix::Vector3f GetResetAngularAcceleration() const;
+
+	static constexpr int MAX_SENSOR_COUNT = 4;
 
 	uORB::Publication<vehicle_angular_acceleration_s> _vehicle_angular_acceleration_pub{ORB_ID(vehicle_angular_acceleration)};
-	uORB::Publication<vehicle_angular_velocity_s> _vehicle_angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
+	uORB::Publication<vehicle_angular_velocity_s>     _vehicle_angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
 
+	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};
-	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
+#if !defined(CONSTRAINED_FLASH)
+	uORB::Subscription _esc_status_sub {ORB_ID(esc_status)};
+	uORB::Subscription _sensor_gyro_fft_sub {ORB_ID(sensor_gyro_fft)};
+#endif // !CONSTRAINED_FLASH
+
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_selection_sub{this, ORB_ID(sensor_selection)};
-	uORB::SubscriptionCallbackWorkItem _sensor_sub[MAX_SENSOR_COUNT] {
-		{this, ORB_ID(sensor_gyro), 0},
-		{this, ORB_ID(sensor_gyro), 1},
-		{this, ORB_ID(sensor_gyro), 2}
-	};
+	uORB::SubscriptionCallbackWorkItem _sensor_sub{this, ORB_ID(sensor_gyro)};
+	uORB::SubscriptionCallbackWorkItem _sensor_fifo_sub{this, ORB_ID(sensor_gyro_fifo)};
 
-	SensorCorrections _corrections;
+	calibration::Gyroscope _calibration{};
 
-	matrix::Vector3f _bias{0.f, 0.f, 0.f};
+	matrix::Vector3f _bias{};
 
-	matrix::Vector3f _angular_acceleration_prev{0.f, 0.f, 0.f};
-	matrix::Vector3f _angular_velocity_prev{0.f, 0.f, 0.f};
-	hrt_abstime _timestamp_sample_prev{0};
+	matrix::Vector3f _angular_velocity{};
+	matrix::Vector3f _angular_velocity_prev{};
+	matrix::Vector3f _angular_acceleration{};
 
+	matrix::Vector3f _angular_velocity_raw_prev{};
+	hrt_abstime _timestamp_sample_last{0};
+
+	hrt_abstime _publish_interval_min_us{0};
 	hrt_abstime _last_publish{0};
-	static constexpr const float kInitialRateHz{1000.0f}; /**< sensor update rate used for initialization */
-	float _update_rate_hz{kInitialRateHz}; /**< current rate-controller loop update rate in [Hz] */
+
+	float _filter_sample_rate_hz{NAN};
 
 	// angular velocity filters
-	math::LowPassFilter2pVector3f _lp_filter_velocity{kInitialRateHz, 30.0f};
-	math::NotchFilter<matrix::Vector3f> _notch_filter_velocity{};
+	math::LowPassFilter2p<float> _lp_filter_velocity[3] {};
+	math::NotchFilter<float> _notch_filter_velocity[3] {};
+
+#if !defined(CONSTRAINED_FLASH)
+
+	enum DynamicNotch {
+		EscRpm = 1,
+		FFT    = 2,
+	};
+
+	static constexpr hrt_abstime DYNAMIC_NOTCH_FITLER_TIMEOUT = 1_s;
+
+	static constexpr int MAX_NUM_ESC_RPM = sizeof(esc_status_s::esc) / sizeof(esc_status_s::esc[0]);
+	static constexpr int MAX_NUM_ESC_RPM_HARMONICS = 3;
+
+	static constexpr int MAX_NUM_FFT_PEAKS = sizeof(sensor_gyro_fft_s::peak_frequencies_x) / sizeof(
+				sensor_gyro_fft_s::peak_frequencies_x[0]);
+
+	math::NotchFilter<float> _dynamic_notch_filter_esc_rpm[3][MAX_NUM_ESC_RPM][MAX_NUM_ESC_RPM_HARMONICS] {};
+	math::NotchFilter<float> _dynamic_notch_filter_fft[3][MAX_NUM_FFT_PEAKS] {};
+
+	px4::Bitset<MAX_NUM_ESC_RPM> _esc_available{};
+	hrt_abstime _last_esc_rpm_notch_update[MAX_NUM_ESC_RPM] {};
+
+	perf_counter_t _dynamic_notch_filter_esc_rpm_update_perf{nullptr};
+	perf_counter_t _dynamic_notch_filter_fft_update_perf{nullptr};
+	perf_counter_t _dynamic_notch_filter_esc_rpm_perf{nullptr};
+	perf_counter_t _dynamic_notch_filter_fft_perf{nullptr};
+
+	bool _dynamic_notch_esc_rpm_available{false};
+	bool _dynamic_notch_fft_available{false};
+#endif // !CONSTRAINED_FLASH
 
 	// angular acceleration filter
-	math::LowPassFilter2pVector3f _lp_filter_acceleration{kInitialRateHz, 30.0f};
-
-	float _filter_sample_rate{kInitialRateHz};
+	math::LowPassFilter2p<float> _lp_filter_acceleration[3] {};
 
 	uint32_t _selected_sensor_device_id{0};
-	uint8_t _selected_sensor_sub_index{0};
 
-	hrt_abstime _timestamp_sample_last{0};
-	float _interval_sum{0.f};
-	float _interval_count{0.f};
+	bool _reset_filters{true};
+	bool _fifo_available{false};
+
+	perf_counter_t _filter_reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro filter reset")};
+	perf_counter_t _selection_changed_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro selection changed")};
 
 	DEFINE_PARAMETERS(
+#if !defined(CONSTRAINED_FLASH)
+		(ParamInt<px4::params::IMU_GYRO_DYN_NF>) _param_imu_gyro_dyn_nf,
+#endif // !CONSTRAINED_FLASH
 		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,
 		(ParamFloat<px4::params::IMU_GYRO_NF_FREQ>) _param_imu_gyro_nf_freq,
 		(ParamFloat<px4::params::IMU_GYRO_NF_BW>) _param_imu_gyro_nf_bw,
-		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_rate_max,
-
+		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_ratemax,
 		(ParamFloat<px4::params::IMU_DGYRO_CUTOFF>) _param_imu_dgyro_cutoff
 	)
 };

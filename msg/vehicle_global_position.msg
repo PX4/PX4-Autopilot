@@ -6,6 +6,7 @@
 #
 
 uint64 timestamp		# time since system start (microseconds)
+uint64 timestamp_sample         # the timestamp of the raw data (microseconds)
 
 float64 lat			# Latitude, (degrees)
 float64 lon			# Longitude, (degrees)
@@ -16,8 +17,6 @@ float32 delta_alt 	# Reset delta for altitude
 uint8 lat_lon_reset_counter	# Counter for reset events on horizontal position coordinates
 uint8 alt_reset_counter 	# Counter for reset events on altitude
 
-float32 yaw 			# Euler yaw angle relative to NED earth-fixed frame, -PI..+PI, (radians)
-
 float32 eph			# Standard deviation of horizontal position error, (metres)
 float32 epv			# Standard deviation of vertical position error, (metres)
 
@@ -27,3 +26,4 @@ bool terrain_alt_valid		# Terrain altitude estimate is valid
 bool dead_reckoning		# True if this position is estimated through dead-reckoning
 
 # TOPICS vehicle_global_position vehicle_global_position_groundtruth
+# TOPICS estimator_global_position

@@ -36,10 +36,11 @@
 #include <drivers/drv_hrt.h>
 #include <HealthFlags.h>
 #include <px4_defines.h>
-#include <systemlib/mavlink_log.h>
+#include <lib/sensor_calibration/Utilities.hpp>
+#include <lib/systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/estimator_status.h>
 #include <uORB/topics/sensor_mag.h>
-#include <uORB/topics/subsystem_info.h>
 
 using namespace time_literals;
 
@@ -48,37 +49,58 @@ bool PreFlightCheck::magnetometerCheck(orb_advert_t *mavlink_log_pub, vehicle_st
 {
 	const bool exists = (orb_exists(ORB_ID(sensor_mag), instance) == PX4_OK);
 	bool calibration_valid = false;
-	bool mag_valid = false;
+	bool valid = false;
+	bool is_mag_fault = false;
 
 	if (exists) {
 
 		uORB::SubscriptionData<sensor_mag_s> magnetometer{ORB_ID(sensor_mag), instance};
 
-		mag_valid = (hrt_elapsed_time(&magnetometer.get().timestamp) < 1_s);
+		valid = (magnetometer.get().device_id != 0) && (magnetometer.get().timestamp != 0);
 
-		if (!mag_valid) {
+		if (!valid) {
 			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid data from Compass #%u", instance);
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid data from Compass %u", instance);
 			}
 		}
 
 		device_id = magnetometer.get().device_id;
 
-		calibration_valid = check_calibration("CAL_MAG%u_ID", device_id);
+		if (status.hil_state == vehicle_status_s::HIL_STATE_ON) {
+			calibration_valid = true;
+
+		} else {
+			calibration_valid = (calibration::FindCalibrationIndex("MAG", device_id) >= 0);
+		}
 
 		if (!calibration_valid) {
 			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compass #%u %u uncalibrated", instance, device_id);
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compass %u uncalibrated", instance);
 			}
+		}
+
+		for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			uORB::SubscriptionData<estimator_status_s> estimator_status_sub{ORB_ID(estimator_status), i};
+
+			if (estimator_status_sub.get().mag_device_id == static_cast<uint32_t>(device_id)) {
+				if (estimator_status_sub.get().control_mode_flags & (1 << estimator_status_s::CS_MAG_FAULT)) {
+					is_mag_fault = true;
+					break;
+				}
+			}
+		}
+
+		if (is_mag_fault && report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compass #%u fault", instance);
 		}
 
 	} else {
 		if (!optional && report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compass Sensor #%u missing", instance);
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compass Sensor %u missing", instance);
 		}
 	}
 
-	const bool success = calibration_valid && mag_valid;
+	const bool success = calibration_valid && valid && !is_mag_fault;
 
 	if (instance == 0) {
 		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MAG, exists, !optional, success, status);

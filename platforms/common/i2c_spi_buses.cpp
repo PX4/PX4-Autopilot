@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2020 PX4 Development Team. All rights reserved.
+ * Copyright (C) 2020, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,17 +49,42 @@
 static List<I2CSPIInstance *> i2c_spi_module_instances; ///< list of currently running instances
 static pthread_mutex_t i2c_spi_module_instances_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+
+I2CSPIDriverConfig::I2CSPIDriverConfig(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+				       const px4::wq_config_t &wq_config_)
+	: module_name(iterator.moduleName()),
+	  devid_driver_index(iterator.devidDriverIndex()),
+	  bus_option(iterator.configuredBusOption()),
+	  bus_type(iterator.busType()),
+	  bus(iterator.bus()),
+	  i2c_address(cli.i2c_address),
+	  bus_frequency(cli.bus_frequency),
+	  drdy_gpio(iterator.DRDYGPIO()),
+	  spi_mode(cli.spi_mode),
+	  spi_devid(iterator.devid()),
+	  bus_device_index(iterator.busDeviceIndex()),
+	  rotation(cli.rotation),
+	  quiet_start(cli.quiet_start),
+	  keep_running(cli.keep_running),
+	  custom1(cli.custom1),
+	  custom2(cli.custom2),
+	  custom_data(cli.custom_data),
+	  wq_config(wq_config_)
+{
+
+}
+
 const char *BusCLIArguments::parseDefaultArguments(int argc, char *argv[])
 {
-	if (getopt(argc, argv, "") == EOF) {
-		return optarg();
+	if (getOpt(argc, argv, "") == EOF) {
+		return optArg();
 	}
 
 	// unexpected arguments
 	return nullptr;
 }
 
-int BusCLIArguments::getopt(int argc, char *argv[], const char *options)
+int BusCLIArguments::getOpt(int argc, char *argv[], const char *options)
 {
 	if (_options[0] == 0) { // need to initialize
 		if (!validateConfiguration()) {
@@ -84,8 +109,13 @@ int BusCLIArguments::getopt(int argc, char *argv[], const char *options)
 			*(p++) = 'm'; *(p++) = ':'; // spi mode
 		}
 
+		if (support_keep_running) {
+			*(p++) = 'k';
+		}
+
 		*(p++) = 'b'; *(p++) = ':'; // bus
 		*(p++) = 'f'; *(p++) = ':'; // frequency
+		*(p++) = 'q'; // quiet flag
 
 		// copy all options
 		const char *option = options;
@@ -158,6 +188,18 @@ int BusCLIArguments::getopt(int argc, char *argv[], const char *options)
 			spi_mode = (spi_mode_e)atoi(_optarg);
 			break;
 
+		case 'q':
+			quiet_start = true;
+			break;
+
+		case 'k':
+			if (!support_keep_running) {
+				return ch;
+			}
+
+			keep_running = true;
+			break;
+
 		default:
 			if (ch == '?') {
 				// abort further parsing on unknown arguments
@@ -206,7 +248,7 @@ bool BusCLIArguments::validateConfiguration()
 
 BusInstanceIterator::BusInstanceIterator(const char *module_name,
 		const BusCLIArguments &cli_arguments, uint16_t devid_driver_index)
-	: _module_name(module_name), _bus_option(cli_arguments.bus_option), _type(cli_arguments.type),
+	: _module_name(module_name), _bus_option(cli_arguments.bus_option), _devid_driver_index(devid_driver_index),
 	  _i2c_address(cli_arguments.i2c_address),
 	  _spi_bus_iterator(spiFilter(cli_arguments.bus_option),
 			    cli_arguments.bus_option == I2CSPIBusOption::SPIExternal ? cli_arguments.chipselect_index : devid_driver_index,
@@ -239,7 +281,7 @@ bool BusInstanceIterator::next()
 
 		while (_current_instance != i2c_spi_module_instances.end()) {
 			if (strcmp((*_current_instance)->_module_name, _module_name) == 0 &&
-			    _type == (*_current_instance)->_type) {
+			    _devid_driver_index == (*_current_instance)->_devid_driver_index) {
 				return true;
 			}
 
@@ -270,7 +312,8 @@ bool BusInstanceIterator::next()
 			}
 
 			if (_bus_option == (*_current_instance)->_bus_option && bus == (*_current_instance)->_bus &&
-			    _type == (*_current_instance)->_type &&
+			    _devid_driver_index == (*_current_instance)->_devid_driver_index &&
+			    busDeviceIndex() == (*_current_instance)->_bus_device_index &&
 			    (!is_i2c || _i2c_address == (*_current_instance)->_i2c_address)) {
 				break;
 			}
@@ -405,6 +448,15 @@ int BusInstanceIterator::externalBusIndex() const
 	}
 }
 
+int BusInstanceIterator::busDeviceIndex() const
+{
+	if (busType() == BOARD_SPI_BUS) {
+		return _spi_bus_iterator.busDeviceIndex();
+	}
+
+	return -1;
+}
+
 I2CBusIterator::FilterType BusInstanceIterator::i2cFilter(I2CSPIBusOption bus_option)
 {
 	switch (bus_option) {
@@ -434,8 +486,7 @@ SPIBusIterator::FilterType BusInstanceIterator::spiFilter(I2CSPIBusOption bus_op
 }
 
 struct I2CSPIDriverInitializing {
-	const BusCLIArguments &cli;
-	const BusInstanceIterator &iterator;
+	const I2CSPIDriverConfig &config;
 	I2CSPIDriverBase::instantiate_method instantiate;
 	int runtime_instance;
 	I2CSPIDriverBase *instance{nullptr};
@@ -444,7 +495,7 @@ struct I2CSPIDriverInitializing {
 static void initializer_trampoline(void *argument)
 {
 	I2CSPIDriverInitializing *data = (I2CSPIDriverInitializing *)argument;
-	data->instance = data->instantiate(data->cli, data->iterator, data->runtime_instance);
+	data->instance = data->instantiate(data->config, data->runtime_instance);
 }
 
 int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterator &iterator,
@@ -476,10 +527,13 @@ int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterat
 		case BOARD_INVALID_BUS: device_id.devid_s.bus_type = device::Device::DeviceBusType_UNKNOWN; break;
 		}
 
+
+		const px4::wq_config_t &wq_config = px4::device_bus_to_wq(device_id.devid);
+		I2CSPIDriverConfig driver_config{cli, iterator, wq_config};
 		const int runtime_instance = iterator.runningInstancesCount();
-		I2CSPIDriverInitializing initializer_data{cli, iterator, instantiate, runtime_instance};
+		I2CSPIDriverInitializing initializer_data{driver_config, instantiate, runtime_instance};
 		// initialize the object and bus on the work queue thread - this will also probe for the device
-		px4::WorkItemSingleShot initializer(px4::device_bus_to_wq(device_id.devid), initializer_trampoline, &initializer_data);
+		px4::WorkItemSingleShot initializer(wq_config, initializer_trampoline, &initializer_data);
 		initializer.ScheduleNow();
 		initializer.wait();
 		I2CSPIDriverBase *instance = initializer_data.instance;
@@ -502,29 +556,46 @@ int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterat
 			PX4_INFO_RAW("%s #%i on I2C bus %d", instance->ItemName(), runtime_instance, iterator.bus());
 
 			if (iterator.external()) {
-				PX4_INFO_RAW(" (external, equal to '-b %i')\n", iterator.externalBusIndex());
-
-			} else {
-				PX4_INFO_RAW("\n");
+				PX4_INFO_RAW(" (external)");
 			}
+
+			if (cli.i2c_address != 0) {
+				PX4_INFO_RAW(" address 0x%X", cli.i2c_address);
+			}
+
+			if (cli.rotation != 0) {
+				PX4_INFO_RAW(" rotation %d", cli.rotation);
+			}
+
+			PX4_INFO_RAW("\n");
 
 			break;
 
 		case BOARD_SPI_BUS:
-			PX4_INFO_RAW("%s #%i on SPI bus %d (devid=0x%x)",
-				     instance->ItemName(), runtime_instance, iterator.bus(), PX4_SPI_DEV_ID(iterator.devid()));
+			PX4_INFO_RAW("%s #%i on SPI bus %d", instance->ItemName(), runtime_instance, iterator.bus());
 
 			if (iterator.external()) {
-				PX4_INFO_RAW(" (external, equal to '-b %i')\n", iterator.externalBusIndex());
-
-			} else {
-				PX4_INFO_RAW("\n");
+				PX4_INFO_RAW(" (external, equal to '-b %i')", iterator.externalBusIndex());
 			}
+
+			if (cli.rotation != 0) {
+				PX4_INFO_RAW(" rotation %d", cli.rotation);
+			}
+
+			PX4_INFO_RAW("\n");
 
 			break;
 
 		case BOARD_INVALID_BUS:
 			break;
+		}
+	}
+
+	if (!started && !cli.quiet_start) {
+		PX4_WARN("%s: no instance started (no device on bus?)", px4_get_taskname());
+
+		if (iterator.busType() == BOARD_I2C_BUS && cli.i2c_address == 0) {
+			PX4_ERR("%s: driver does not set i2c address", px4_get_taskname());
 		}
 	}
 
@@ -610,7 +681,13 @@ int I2CSPIDriverBase::module_custom_method(const BusCLIArguments &cli, BusInstan
 void I2CSPIDriverBase::print_status()
 {
 	bool is_i2c_bus = _bus_option == I2CSPIBusOption::I2CExternal || _bus_option == I2CSPIBusOption::I2CInternal;
-	PX4_INFO("Running on %s Bus %i", is_i2c_bus ? "I2C" : "SPI", _bus);
+
+	if (is_i2c_bus) {
+		PX4_INFO("Running on I2C Bus %i, Address 0x%02X", _bus, _i2c_address);
+
+	} else {
+		PX4_INFO("Running on SPI Bus %i", _bus);
+	}
 }
 
 void I2CSPIDriverBase::request_stop_and_wait()

@@ -1,6 +1,8 @@
 # mixer for the FireFly6 tilt mechansim servo, elevons and landing gear
 =======================================================================
 
+# @board px4_fmu-v2 exclude
+
 Tilt mechanism servo mixer
 ---------------------------
 M: 1

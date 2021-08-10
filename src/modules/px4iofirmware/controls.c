@@ -80,6 +80,7 @@ static unsigned _rssi_adc_counts = 0;
 /* receive signal strenght indicator (RSSI). 0 = no connection, 100 (RC_INPUT_RSSI_MAX): perfect connection */
 /* Note: this is static because RC-provided telemetry does not occur every tick */
 static uint16_t _rssi = 0;
+static unsigned _frame_drops = 0;
 
 bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool *sumd_updated)
 {
@@ -90,8 +91,9 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 	uint8_t *bytes;
 	bool dsm_11_bit;
 	int8_t spektrum_rssi;
+	unsigned frame_drops;
 	*dsm_updated = dsm_input(_dsm_fd, r_raw_rc_values, &r_raw_rc_count, &dsm_11_bit, &n_bytes, &bytes,
-				 &spektrum_rssi, PX4IO_RC_INPUT_CHANNELS);
+				 &spektrum_rssi, &frame_drops, PX4IO_RC_INPUT_CHANNELS);
 
 	if (*dsm_updated) {
 
@@ -102,7 +104,14 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 			r_raw_rc_flags &= ~PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
 		}
 
-		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
+		if (frame_drops == _frame_drops) {
+			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
+
+		} else {
+			r_raw_rc_flags |= (PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
+		}
+
+		_frame_drops = frame_drops;
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 
 		if (spektrum_rssi >= 0 && spektrum_rssi <= 100) {
@@ -124,11 +133,13 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 
 	*st24_updated = false;
 
-	for (unsigned i = 0; i < n_bytes; i++) {
-		/* set updated flag if one complete packet was parsed */
-		st24_rssi = RC_INPUT_RSSI_MAX;
-		*st24_updated |= (OK == st24_decode(bytes[i], &st24_rssi, &lost_count,
-						    &st24_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS));
+	if (!(r_status_flags & (PX4IO_P_STATUS_FLAGS_RC_DSM | PX4IO_P_STATUS_FLAGS_RC_SUMD))) {
+		for (unsigned i = 0; i < n_bytes; i++) {
+			/* set updated flag if one complete packet was parsed */
+			st24_rssi = RC_INPUT_RSSI_MAX;
+			*st24_updated |= (OK == st24_decode(bytes[i], &st24_rssi, &lost_count,
+							    &st24_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS));
+		}
 	}
 
 	if (*st24_updated && lost_count == 0) {
@@ -152,11 +163,13 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 
 	*sumd_updated = false;
 
-	for (unsigned i = 0; i < n_bytes; i++) {
-		/* set updated flag if one complete packet was parsed */
-		sumd_rssi = RC_INPUT_RSSI_MAX;
-		*sumd_updated |= (OK == sumd_decode(bytes[i], &sumd_rssi, &sumd_rx_count,
-						    &sumd_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS, &sumd_failsafe_state));
+	if (!(r_status_flags & (PX4IO_P_STATUS_FLAGS_RC_DSM | PX4IO_P_STATUS_FLAGS_RC_ST24))) {
+		for (unsigned i = 0; i < n_bytes; i++) {
+			/* set updated flag if one complete packet was parsed */
+			sumd_rssi = RC_INPUT_RSSI_MAX;
+			*sumd_updated |= (OK == sumd_decode(bytes[i], &sumd_rssi, &sumd_rx_count,
+							    &sumd_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS, &sumd_failsafe_state));
+		}
 	}
 
 	if (*sumd_updated) {
@@ -254,35 +267,39 @@ controls_tick()
 	perf_begin(c_gather_sbus);
 #endif
 
-	bool sbus_failsafe, sbus_frame_drop;
-	bool sbus_updated = sbus_input(_sbus_fd, r_raw_rc_values, &r_raw_rc_count, &sbus_failsafe, &sbus_frame_drop,
-				       PX4IO_RC_INPUT_CHANNELS);
+	bool sbus_updated = false;
 
-	if (sbus_updated) {
-		atomic_modify_or(&r_status_flags, PX4IO_P_STATUS_FLAGS_RC_SBUS);
+	if (!(r_status_flags & (PX4IO_P_STATUS_FLAGS_RC_DSM | PX4IO_P_STATUS_FLAGS_RC_ST24 | PX4IO_P_STATUS_FLAGS_RC_SUMD))) {
+		bool sbus_failsafe, sbus_frame_drop;
+		sbus_updated = sbus_input(_sbus_fd, r_raw_rc_values, &r_raw_rc_count, &sbus_failsafe, &sbus_frame_drop,
+					  PX4IO_RC_INPUT_CHANNELS);
 
-		unsigned sbus_rssi = RC_INPUT_RSSI_MAX;
+		if (sbus_updated) {
+			atomic_modify_or(&r_status_flags, PX4IO_P_STATUS_FLAGS_RC_SBUS);
 
-		if (sbus_frame_drop) {
-			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FRAME_DROP;
-			sbus_rssi = RC_INPUT_RSSI_MAX / 2;
+			unsigned sbus_rssi = RC_INPUT_RSSI_MAX;
 
-		} else {
-			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
+			if (sbus_frame_drop) {
+				r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FRAME_DROP;
+				sbus_rssi = RC_INPUT_RSSI_MAX / 2;
+
+			} else {
+				r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
+			}
+
+			if (sbus_failsafe) {
+				r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FAILSAFE;
+
+			} else {
+				r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
+			}
+
+			/* set RSSI to an emulated value if ADC RSSI is off */
+			if (!(r_setup_features & PX4IO_P_SETUP_FEATURES_ADC_RSSI)) {
+				_rssi = sbus_rssi;
+			}
+
 		}
-
-		if (sbus_failsafe) {
-			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_FAILSAFE;
-
-		} else {
-			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
-		}
-
-		/* set RSSI to an emulated value if ADC RSSI is off */
-		if (!(r_setup_features & PX4IO_P_SETUP_FEATURES_ADC_RSSI)) {
-			_rssi = sbus_rssi;
-		}
-
 	}
 
 #if defined(PX4IO_PERF)
@@ -312,7 +329,7 @@ controls_tick()
 
 	bool dsm_updated = false, st24_updated = false, sumd_updated = false;
 
-	if (!((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_SBUS) || (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_PPM))) {
+	if (!(r_status_flags & (PX4IO_P_STATUS_FLAGS_RC_SBUS | PX4IO_P_STATUS_FLAGS_RC_PPM))) {
 #if defined(PX4IO_PERF)
 		perf_begin(c_gather_dsm);
 #endif

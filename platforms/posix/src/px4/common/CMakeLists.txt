@@ -36,17 +36,6 @@ add_subdirectory(px4_daemon)
 add_subdirectory(lockstep_scheduler)
 
 set(EXTRA_DEPENDS)
-if("${CONFIG_SHMEM}" STREQUAL "1")
-	list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/boards/atlflight/cmake_hexagon")
-	include(hexagon_sdk)
-	include_directories(${HEXAGON_SDK_INCLUDES})
-	include_directories(${PX4_BINARY_DIR}/platforms/posix)
-	list(APPEND SHMEM_SRCS
-		shmem_posix.cpp
-	)
-	add_definitions(-DCONFIG_SHMEM=1)
-	set(EXTRA_DEPENDS generate_px4muorb_stubs)
-endif()
 
 add_library(px4_layer
 	px4_posix_impl.cpp
@@ -55,7 +44,8 @@ add_library(px4_layer
 	px4_init.cpp
 	lib_crc32.c
 	drv_hrt.cpp
-	${SHMEM_SRCS}
+	cpuload.cpp
+	print_load.cpp
 )
 target_compile_definitions(px4_layer PRIVATE MODULE_NAME="px4")
 target_compile_options(px4_layer PRIVATE -Wno-cast-align) # TODO: fix and enable

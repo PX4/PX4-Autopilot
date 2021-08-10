@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,22 +40,29 @@
 PARAM_DEFINE_INT32(CAL_MAG1_ID, 0);
 
 /**
- * Mag 1 enabled
+ * Mag 1 priority.
  *
- * @boolean
+ * @value -1  Uninitialized
+ * @value 0   Disabled
+ * @value 1   Min
+ * @value 25  Low
+ * @value 50  Medium (Default)
+ * @value 75  High
+ * @value 100 Max
+ *
  * @category system
  * @group Sensor Calibration
  */
-PARAM_DEFINE_INT32(CAL_MAG1_EN, 1);
+PARAM_DEFINE_INT32(CAL_MAG1_PRIO, -1);
 
 /**
  * Rotation of magnetometer 1 relative to airframe.
  *
- * An internal magnetometer will force a value of -1, so a GCS
+ * An internal sensor will force a value of -1, so a GCS
  * should only attempt to configure the rotation if the value is
  * greater than or equal to zero.
  *
- * @value -1 Internal mag
+ * @value -1 Internal
  * @value 0 No rotation
  * @value 1 Yaw 45°
  * @value 2 Yaw 90°
@@ -82,9 +89,24 @@ PARAM_DEFINE_INT32(CAL_MAG1_EN, 1);
  * @value 23 Roll 270°, Yaw 135°
  * @value 24 Pitch 90°
  * @value 25 Pitch 270°
+ * @value 26 Pitch 180°, Yaw 90°
+ * @value 27 Pitch 180°, Yaw 270°
+ * @value 28 Roll 90°, Pitch 90°
+ * @value 29 Roll 180°, Pitch 90°
+ * @value 30 Roll 270°, Pitch 90°
+ * @value 31 Roll 90°, Pitch 180°
+ * @value 32 Roll 270°, Pitch 180°
+ * @value 33 Roll 90°, Pitch 270°
+ * @value 34 Roll 180°, Pitch 270°
+ * @value 35 Roll 270°, Pitch 270°
+ * @value 36 Roll 90°, Pitch 180°, Yaw 90°
+ * @value 37 Roll 90°, Yaw 270°
+ * @value 38 Roll 90°, Pitch 68°, Yaw 293°
+ * @value 39 Pitch 315°
+ * @value 40 Roll 90°, Pitch 315°
  *
  * @min -1
- * @max 30
+ * @max 40
  * @reboot_required true
  * @category system
  * @group Sensor Calibration
@@ -96,6 +118,7 @@ PARAM_DEFINE_INT32(CAL_MAG1_ROT, -1);
  *
  * @category system
  * @group Sensor Calibration
+ * @volatile
  */
 PARAM_DEFINE_FLOAT(CAL_MAG1_XOFF, 0.0f);
 
@@ -104,6 +127,7 @@ PARAM_DEFINE_FLOAT(CAL_MAG1_XOFF, 0.0f);
  *
  * @category system
  * @group Sensor Calibration
+ * @volatile
  */
 PARAM_DEFINE_FLOAT(CAL_MAG1_YOFF, 0.0f);
 
@@ -112,6 +136,7 @@ PARAM_DEFINE_FLOAT(CAL_MAG1_YOFF, 0.0f);
  *
  * @category system
  * @group Sensor Calibration
+ * @volatile
  */
 PARAM_DEFINE_FLOAT(CAL_MAG1_ZOFF, 0.0f);
 
@@ -120,6 +145,7 @@ PARAM_DEFINE_FLOAT(CAL_MAG1_ZOFF, 0.0f);
  *
  * @category system
  * @group Sensor Calibration
+ * @volatile
  */
 PARAM_DEFINE_FLOAT(CAL_MAG1_XSCALE, 1.0f);
 
@@ -128,6 +154,7 @@ PARAM_DEFINE_FLOAT(CAL_MAG1_XSCALE, 1.0f);
  *
  * @category system
  * @group Sensor Calibration
+ * @volatile
  */
 PARAM_DEFINE_FLOAT(CAL_MAG1_YSCALE, 1.0f);
 
@@ -136,13 +163,43 @@ PARAM_DEFINE_FLOAT(CAL_MAG1_YSCALE, 1.0f);
  *
  * @category system
  * @group Sensor Calibration
+ * @volatile
  */
 PARAM_DEFINE_FLOAT(CAL_MAG1_ZSCALE, 1.0f);
 
 /**
+ * Magnetometer X-axis off diagonal factor
+ *
+ * @category system
+ * @group Sensor Calibration
+ * @volatile
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG1_XODIAG, 0.0f);
+
+/**
+ * Magnetometer Y-axis off diagonal factor
+ *
+ * @category system
+ * @group Sensor Calibration
+ * @volatile
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG1_YODIAG, 0.0f);
+
+/**
+ * Magnetometer Z-axis off diagonal factor
+ *
+ * @category system
+ * @group Sensor Calibration
+ * @volatile
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG1_ZODIAG, 0.0f);
+
+/**
+* X Axis throttle compensation for Mag 1
+*
 * Coefficient describing linear relationship between
 * X component of magnetometer in body frame axis
-* and either current or throttle depending on value of CAL_MAG_COMP_TYP
+* and either current or throttle depending on value of CAL_MAG_COMP_TYP.
 * Unit for throttle-based compensation is [G] and
 * for current-based compensation [G/kA]
 *
@@ -152,9 +209,11 @@ PARAM_DEFINE_FLOAT(CAL_MAG1_ZSCALE, 1.0f);
 PARAM_DEFINE_FLOAT(CAL_MAG1_XCOMP, 0.0f);
 
 /**
+* Y Axis throttle compensation for Mag 1
+*
 * Coefficient describing linear relationship between
 * Y component of magnetometer in body frame axis
-* and either current or throttle depending on value of CAL_MAG_COMP_TYP
+* and either current or throttle depending on value of CAL_MAG_COMP_TYP.
 * Unit for throttle-based compensation is [G] and
 * for current-based compensation [G/kA]
 *
@@ -164,9 +223,11 @@ PARAM_DEFINE_FLOAT(CAL_MAG1_XCOMP, 0.0f);
 PARAM_DEFINE_FLOAT(CAL_MAG1_YCOMP, 0.0f);
 
 /**
+* Z Axis throttle compensation for Mag 1
+*
 * Coefficient describing linear relationship between
 * Z component of magnetometer in body frame axis
-* and either current or throttle depending on value of CAL_MAG_COMP_TYP
+* and either current or throttle depending on value of CAL_MAG_COMP_TYP.
 * Unit for throttle-based compensation is [G] and
 * for current-based compensation [G/kA]
 *

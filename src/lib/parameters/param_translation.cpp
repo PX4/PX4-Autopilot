@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,6 +41,46 @@
 
 bool param_modify_on_import(bson_node_t node)
 {
+	// migrate COM_ARM_AUTH -> COM_ARM_AUTH_ID, COM_ARM_AUTH_MET and COM_ARM_AUTH_TO (2020-11-06). This can be removed after the next release (current release=1.11)
+	if (node->type == BSON_INT32) {
+		if (strcmp("COM_ARM_AUTH", node->name) == 0) {
+			union {
+				struct {
+					uint8_t authorizer_system_id;
+					uint16_t auth_method_arm_timeout_msec;
+					uint8_t authentication_method;
+				} __attribute__((packed)) struct_value;
+				int32_t param_value;
+			} old_param;
+			old_param.param_value = node->i;
+
+			int32_t method = old_param.struct_value.authentication_method;
+			param_set_no_notification(param_find("COM_ARM_AUTH_MET"), &method);
+
+			float timeout = old_param.struct_value.auth_method_arm_timeout_msec / 1000.f;
+			param_set_no_notification(param_find("COM_ARM_AUTH_TO"), &timeout);
+
+			strcpy(node->name, "COM_ARM_AUTH_ID");
+			node->i = old_param.struct_value.authorizer_system_id;
+
+			PX4_INFO("migrating COM_ARM_AUTH: %" PRId32 " -> COM_ARM_AUTH_ID:%" PRId8 ", COM_ARM_AUTH_MET: %" PRId32
+				 " and COM_ARM_AUTH_TO: %f",
+				 old_param.param_value,
+				 old_param.struct_value.authorizer_system_id,
+				 method,
+				 (double)timeout);
+		}
+	}
+
+	// migrate MPC_*_VEL_* -> MPC_*_VEL_*_ACC (2020-04-27). This can be removed after the next release (current release=1.10)
+	if (node->type == BSON_DOUBLE) {
+		param_migrate_velocity_gain(node, "MPC_XY_VEL_P");
+		param_migrate_velocity_gain(node, "MPC_XY_VEL_I");
+		param_migrate_velocity_gain(node, "MPC_XY_VEL_D");
+		param_migrate_velocity_gain(node, "MPC_Z_VEL_P");
+		param_migrate_velocity_gain(node, "MPC_Z_VEL_I");
+		param_migrate_velocity_gain(node, "MPC_Z_VEL_D");
+	}
 
 	// migrate MC_DTERM_CUTOFF -> IMU_DGYRO_CUTOFF (2020-03-12). This can be removed after the next release (current release=1.10)
 	if (node->type == BSON_DOUBLE) {
@@ -51,6 +91,87 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2020-06-29 (v1.11 beta): translate CAL_ACCx_EN/CAL_GYROx_EN/CAL_MAGx_EN -> CAL_ACCx_PRIO/CAL_GYROx_PRIO/CAL_MAGx_PRIO
+	if (node->type == BSON_INT32) {
+
+		const char *cal_sensor_en_params[] = {
+			"CAL_ACC0_EN",
+			"CAL_ACC1_EN",
+			"CAL_ACC2_EN",
+			"CAL_GYRO0_EN",
+			"CAL_GYRO1_EN",
+			"CAL_GYRO2_EN",
+			"CAL_MAG0_EN",
+			"CAL_MAG1_EN",
+			"CAL_MAG2_EN",
+			"CAL_MAG3_EN",
+		};
+
+		for (int i = 0; i < sizeof(cal_sensor_en_params) / sizeof(cal_sensor_en_params[0]); ++i) {
+			if (strcmp(cal_sensor_en_params[i], node->name) == 0) {
+
+				char new_parameter_name[17] {};
+				strcpy(new_parameter_name, cal_sensor_en_params[i]);
+
+				char *str_replace = strstr(new_parameter_name, "_EN");
+
+				if (str_replace != nullptr) {
+					strcpy(str_replace, "_PRIO");
+					PX4_INFO("%s -> %s", cal_sensor_en_params[i], new_parameter_name);
+					strcpy(node->name, new_parameter_name);
+				}
+
+				// if sensor wasn't disabled, reset to -1 so that it can be set to an appropriate default
+				if (node->i != 0) {
+					node->i = -1; // special value to process later
+				}
+			}
+		}
+	}
+
+	// 2020-08-23 (v1.12 alpha): translate GPS blending parameters from EKF2 -> SENS
+	{
+		if (strcmp("EKF2_GPS_MASK", node->name) == 0) {
+			strcpy(node->name, "SENS_GPS_MASK");
+			PX4_INFO("copying %s -> %s", "EKF2_GPS_MASK", "SENS_GPS_MASK");
+		}
+
+		if (strcmp("EKF2_GPS_TAU", node->name) == 0) {
+			strcpy(node->name, "SENS_GPS_TAU");
+			PX4_INFO("copying %s -> %s", "EKF2_GPS_TAU", "SENS_GPS_TAU");
+		}
+	}
+
+	// 2021-01-31 (v1.12 alpha): translate PWM_MIN/PWM_MAX/PWM_DISARMED to PWM_MAIN
+	{
+		if (strcmp("PWM_MIN", node->name) == 0) {
+			strcpy(node->name, "PWM_MAIN_MIN");
+			PX4_INFO("copying %s -> %s", "PWM_MIN", "PWM_MAIN_MIN");
+		}
+
+		if (strcmp("PWM_MAX", node->name) == 0) {
+			strcpy(node->name, "PWM_MAIN_MAX");
+			PX4_INFO("copying %s -> %s", "PWM_MAX", "PWM_MAIN_MAX");
+		}
+
+		if (strcmp("PWM_RATE", node->name) == 0) {
+			strcpy(node->name, "PWM_MAIN_RATE");
+			PX4_INFO("copying %s -> %s", "PWM_RATE", "PWM_MAIN_RATE");
+		}
+
+		if (strcmp("PWM_DISARMED", node->name) == 0) {
+			strcpy(node->name, "PWM_MAIN_DISARM");
+			PX4_INFO("copying %s -> %s", "PWM_DISARMED", "PWM_MAIN_DISARM");
+		}
+	}
+
+	// 2021-04-30: translate ASPD_STALL to FW_AIRSPD_STALL
+	{
+		if (strcmp("ASPD_STALL", node->name) == 0) {
+			strcpy(node->name, "FW_AIRSPD_STALL");
+			PX4_INFO("copying %s -> %s", "ASPD_STALL", "FW_AIRSPD_STALL");
+		}
+	}
 
 	// translate (SPI) calibration ID parameters. This can be removed after the next release (current release=1.10)
 
@@ -78,10 +199,7 @@ bool param_modify_on_import(bson_node_t node)
 		"CAL_MAG2_ID",
 		"TC_A2_ID",
 		"TC_B2_ID",
-		"TC_G2_ID",
-		"CAL_ACC_PRIME",
-		"CAL_GYRO_PRIME",
-		"CAL_MAG_PRIME",
+		"TC_G2_ID"
 	};
 	bool found = false;
 
@@ -141,10 +259,19 @@ bool param_modify_on_import(bson_node_t node)
 	int32_t new_value = (int32_t)device_id.devid;
 
 	if (new_value != *ivalue) {
-		PX4_INFO("param modify: %s, value=0x%x (old=0x%x)", node->name, new_value, (int32_t)*ivalue);
+		PX4_INFO("param modify: %s, value=0x%" PRId32 " (old=0x%" PRId32 ")", node->name, new_value, (int32_t)*ivalue);
 		*ivalue = new_value;
 		return true;
 	}
 
 	return false;
+}
+
+void param_migrate_velocity_gain(bson_node_t node, const char *parameter_name)
+{
+	if (strcmp(parameter_name, node->name) == 0) {
+		strcat(node->name, "_ACC");
+		node->d *= 20.0;
+		PX4_INFO("migrating %s (removed) -> %s: new value=%.3f", parameter_name, node->name, node->d);
+	}
 }

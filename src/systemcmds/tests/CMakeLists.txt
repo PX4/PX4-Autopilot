@@ -32,9 +32,7 @@
 ############################################################################
 
 set(srcs
-	test_adc.cpp
 	test_atomic_bitset.cpp
-	test_autodeclination.cpp
 	test_bezierQuad.cpp
 	test_bitset.cpp
 	test_bson.cpp
@@ -48,17 +46,12 @@ set(srcs
 	test_int.cpp
 	test_i2c_spi_cli.cpp
 	test_IntrusiveQueue.cpp
-	test_jig_voltages.cpp
 	test_led.c
 	test_List.cpp
+	test_IntrusiveSortedList.cpp
 	test_mathlib.cpp
 	test_matrix.cpp
-	test_microbench_hrt.cpp
-	test_microbench_math.cpp
-	test_microbench_matrix.cpp
-	test_microbench_uorb.cpp
 	test_mixer.cpp
-	test_mount.c
 	test_param.c
 	test_parameters.cpp
 	test_perf.c
@@ -66,20 +59,19 @@ set(srcs
 	test_ppm_loopback.c
 	test_rc.c
 	test_search_min.cpp
-	test_servo.c
 	test_sleep.c
-	test_smooth_z.cpp
-	test_tone.cpp
 	test_uart_baudchange.c
 	test_uart_console.c
 	test_uart_loopback.c
 	test_uart_send.c
 	test_versioning.cpp
+	test_cli.c
 	tests_main.c
 	)
 
 if(${PX4_PLATFORM} STREQUAL "nuttx")
 	list(APPEND srcs
+		test_mount.cpp
 		test_time.c
 		test_uart_break.c
 		)
@@ -99,11 +91,11 @@ px4_add_module(
 		-Wno-unused-result
 		-Wno-unused-variable
 		-Wno-vla-larger-than
+		-Wno-unused-but-set-parameter
+		-O2 # optimization needed to keep matrix code size reasonable
 	SRCS
 		${srcs}
 	DEPENDS
-		git_ecl
-		ecl_geo_lookup # TODO: move this
 		output_limit
 		version
 	)

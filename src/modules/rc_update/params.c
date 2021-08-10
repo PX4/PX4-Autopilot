@@ -1202,9 +1202,13 @@ PARAM_DEFINE_INT32(RC_MAP_PITCH, 0);
 /**
  * Failsafe channel mapping.
  *
- * The RC mapping index indicates which channel is used for failsafe
+ * Configures which channel is used by the receiver to indicate the signal was lost.
+ * Futaba receivers do report that way.
  * If 0, whichever channel is mapped to throttle is used
  * otherwise the value indicates the specific RC channel to use
+ *
+ * Use RC_FAILS_THR to set the threshold indicating lost signal. By default it's below
+ * the expected range and hence diabled.
  *
  * @min 0
  * @max 18
@@ -1386,34 +1390,6 @@ PARAM_DEFINE_INT32(RC_MAP_MODE_SW, 0);
  * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_RETURN_SW, 0);
-
-/**
- * Rattitude switch channel
- *
- * @min 0
- * @max 18
- * @group Radio Switches
- * @value 0 Unassigned
- * @value 1 Channel 1
- * @value 2 Channel 2
- * @value 3 Channel 3
- * @value 4 Channel 4
- * @value 5 Channel 5
- * @value 6 Channel 6
- * @value 7 Channel 7
- * @value 8 Channel 8
- * @value 9 Channel 9
- * @value 10 Channel 10
- * @value 11 Channel 11
- * @value 12 Channel 12
- * @value 13 Channel 13
- * @value 14 Channel 14
- * @value 15 Channel 15
- * @value 16 Channel 16
- * @value 17 Channel 17
- * @value 18 Channel 18
- */
-PARAM_DEFINE_INT32(RC_MAP_RATT_SW, 0);
 
 /**
  * Position Control switch channel
@@ -1998,6 +1974,9 @@ PARAM_DEFINE_INT32(RC_MAP_PARAM3, 0);
  * Set to a value slightly above the PWM value assumed by throttle in a failsafe event,
  * but ensure it is below the PWM value assumed by throttle during normal operation.
  *
+ * Use RC_MAP_FAILSAFE to specify which channel is used to check.
+ * Note: The default value of 0 is below the epxed range and hence disables the feature.
+ *
  * @min 0
  * @max 2200
  * @unit us
@@ -2036,22 +2015,6 @@ PARAM_DEFINE_FLOAT(RC_ASSIST_TH, 0.25f);
  * @group Radio Switches
  */
 PARAM_DEFINE_FLOAT(RC_AUTO_TH, 0.75f);
-
-/**
- * Threshold for selecting rattitude mode
- *
- * 0-1 indicate where in the full channel range the threshold sits
- * 		0 : min
- * 		1 : max
- * sign indicates polarity of comparison
- * 		positive : true when channel>th
- * 		negative : true when channel<th
- *
- * @min -1
- * @max 1
- * @group Radio Switches
- */
-PARAM_DEFINE_FLOAT(RC_RATT_TH, 0.75f);
 
 /**
  * Threshold for selecting posctl mode
@@ -2230,24 +2193,59 @@ PARAM_DEFINE_FLOAT(RC_STAB_TH, 0.5f);
 PARAM_DEFINE_FLOAT(RC_MAN_TH, 0.75f);
 
 /**
- * Sample rate of the remote control values for the low pass filter on roll, pitch, yaw and throttle
+ * PWM input channel that provides RSSI.
  *
- * Has an influence on the cutoff frequency precision.
+ * 0: do not read RSSI from input channel
+ * 1-18: read RSSI from specified input channel
  *
- * @min 1.0
- * @unit Hz
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC_FLT_SMP_RATE, 50.0f);
-
-/**
- * Cutoff frequency for the low pass filter on roll, pitch, yaw and throttle
- *
- * Does not get set unless below RC_FLT_SMP_RATE/2 because of filter instability characteristics.
- * Set to 0 to disable the filter.
+ * Specify the range for RSSI input with RC_RSSI_PWM_MIN and RC_RSSI_PWM_MAX parameters.
  *
  * @min 0
- * @unit Hz
+ * @max 18
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
  * @group Radio Calibration
+ *
  */
-PARAM_DEFINE_FLOAT(RC_FLT_CUTOFF, 10.0f);
+PARAM_DEFINE_INT32(RC_RSSI_PWM_CHAN, 0);
+
+/**
+ * Min input value for RSSI reading.
+ *
+ * Only used if RC_RSSI_PWM_CHAN > 0
+ *
+ * @min 0
+ * @max 2000
+ * @group Radio Calibration
+ *
+ */
+PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 1000);
+
+/**
+ * Max input value for RSSI reading.
+ *
+ * Only used if RC_RSSI_PWM_CHAN > 0
+ *
+ * @min 0
+ * @max 2000
+ * @group Radio Calibration
+ *
+ */
+PARAM_DEFINE_INT32(RC_RSSI_PWM_MAX, 2000);

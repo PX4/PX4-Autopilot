@@ -99,7 +99,7 @@ struct pwm_output_values {
 /**
  * Highest maximum PWM in us
  */
-#define PWM_HIGHEST_MAX 2150
+#define PWM_HIGHEST_MAX 2500
 
 /**
  * Default maximum PWM in us
@@ -128,22 +128,6 @@ struct pwm_output_values {
  * width in microseconds.
  */
 typedef uint16_t	servo_position_t;
-
-/**
- * RC config values for a channel
- *
- * This allows for PX4IO_PAGE_RC_CONFIG values to be set without a
- * param_get() dependency
- */
-struct pwm_output_rc_config {
-	uint8_t channel;
-	uint16_t rc_min;
-	uint16_t rc_trim;
-	uint16_t rc_max;
-	uint16_t rc_dz;
-	uint16_t rc_assignment;
-	bool     rc_reverse;
-};
 
 /*
  * ioctl() definitions
@@ -186,9 +170,6 @@ struct pwm_output_rc_config {
 /** start DSM bind */
 #define DSM_BIND_START	_PX4_IOC(_PWM_SERVO_BASE, 10)
 
-/** power up DSM receiver */
-#define DSM_BIND_POWER_UP _PX4_IOC(_PWM_SERVO_BASE, 11)
-
 /** set the PWM value for failsafe */
 #define PWM_SERVO_SET_FAILSAFE_PWM	_PX4_IOC(_PWM_SERVO_BASE, 12)
 
@@ -213,15 +194,8 @@ struct pwm_output_rc_config {
 /** get the maximum PWM value the output will send */
 #define PWM_SERVO_GET_MAX_PWM	_PX4_IOC(_PWM_SERVO_BASE, 19)
 
-/** set the TRIM value the output will send */
-#define PWM_SERVO_SET_TRIM_PWM	_PX4_IOC(_PWM_SERVO_BASE, 20)
-
 /** get the TRIM value the output will send */
 #define PWM_SERVO_GET_TRIM_PWM	_PX4_IOC(_PWM_SERVO_BASE, 21)
-
-/** set the number of servos in (unsigned)arg - allows change of
- * split between servos and GPIO */
-#define PWM_SERVO_SET_COUNT	_PX4_IOC(_PWM_SERVO_BASE, 22)
 
 /** set the lockdown override flag to enable outputs in HIL */
 #define PWM_SERVO_SET_DISABLE_LOCKDOWN		_PX4_IOC(_PWM_SERVO_BASE, 23)
@@ -244,9 +218,6 @@ struct pwm_output_rc_config {
 /** setup OVERRIDE_IMMEDIATE behaviour on FMU fail */
 #define PWM_SERVO_SET_OVERRIDE_IMMEDIATE	_PX4_IOC(_PWM_SERVO_BASE, 32)
 
-/** set SBUS output frame rate in Hz */
-#define PWM_SERVO_SET_SBUS_RATE			_PX4_IOC(_PWM_SERVO_BASE, 33)
-
 /** set auxillary output mode. These correspond to enum Mode in px4fmu/fmu.cpp */
 #define PWM_SERVO_MODE_NONE         0
 #define PWM_SERVO_MODE_1PWM         1
@@ -261,12 +232,13 @@ struct pwm_output_rc_config {
 #define PWM_SERVO_MODE_5PWM1CAP    10
 #define PWM_SERVO_MODE_6PWM        11
 #define PWM_SERVO_MODE_8PWM        12
-#define PWM_SERVO_MODE_14PWM       13
-#define PWM_SERVO_MODE_4CAP        14
-#define PWM_SERVO_MODE_5CAP        15
-#define PWM_SERVO_MODE_6CAP        16
-#define PWM_SERVO_ENTER_TEST_MODE  17
-#define PWM_SERVO_EXIT_TEST_MODE   18
+#define PWM_SERVO_MODE_12PWM       13
+#define PWM_SERVO_MODE_14PWM       14
+#define PWM_SERVO_MODE_4CAP        15
+#define PWM_SERVO_MODE_5CAP        16
+#define PWM_SERVO_MODE_6CAP        17
+#define PWM_SERVO_ENTER_TEST_MODE  18
+#define PWM_SERVO_EXIT_TEST_MODE   19
 #define PWM_SERVO_SET_MODE         _PX4_IOC(_PWM_SERVO_BASE, 34)
 
 /*
@@ -293,14 +265,6 @@ struct pwm_output_rc_config {
 #define	PWM_RATE_LOWER_LIMIT		1u
 #define	PWM_RATE_UPPER_LIMIT		10000u
 
-/** Dshot PWM frequency */
-#define DSHOT1200					1200000u	//Hz
-#define DSHOT600					600000u		//Hz
-#define DSHOT300					300000u		//Hz
-#define DSHOT150					150000u		//Hz
-
-#define DSHOT_MAX_THROTTLE			1999
-
 typedef enum {
 	DShot_cmd_motor_stop = 0,
 	DShot_cmd_beacon1,
@@ -315,23 +279,23 @@ typedef enum {
 	DShot_cmd_3d_mode_on,
 	DShot_cmd_settings_request, // Currently not implemented
 	DShot_cmd_save_settings,
-	DShot_cmd_spin_direction_normal = 20,
+	DShot_cmd_spin_direction_normal   = 20,
 	DShot_cmd_spin_direction_reversed = 21,
-	DShot_cmd_led0_on, // BLHeli32 only
-	DShot_cmd_led1_on, // BLHeli32 only
-	DShot_cmd_led2_on, // BLHeli32 only
-	DShot_cmd_led3_on, // BLHeli32 only
-	DShot_cmd_led0_off, // BLHeli32 only
-	DShot_cmd_led1_off, // BLHeli32 only
-	DShot_cmd_led2_off, // BLHeli32 only
-	DShot_cmd_led4_off, // BLHeli32 only
-	DShot_cmd_audio_stream_mode_on_off = 30, // KISS audio Stream mode on/off
-	DShot_cmd_silent_mode_on_off = 31, // KISS silent Mode on/off
-	DShot_cmd_signal_line_telemeetry_disable = 32,
+	DShot_cmd_led0_on,      // BLHeli32 only
+	DShot_cmd_led1_on,      // BLHeli32 only
+	DShot_cmd_led2_on,      // BLHeli32 only
+	DShot_cmd_led3_on,      // BLHeli32 only
+	DShot_cmd_led0_off,     // BLHeli32 only
+	DShot_cmd_led1_off,     // BLHeli32 only
+	DShot_cmd_led2_off,     // BLHeli32 only
+	DShot_cmd_led4_off,     // BLHeli32 only
+	DShot_cmd_audio_stream_mode_on_off              = 30, // KISS audio Stream mode on/off
+	DShot_cmd_silent_mode_on_off                    = 31, // KISS silent Mode on/off
+	DShot_cmd_signal_line_telemeetry_disable        = 32,
 	DShot_cmd_signal_line_continuous_erpm_telemetry = 33,
-	DShot_cmd_MAX = 47,
-	DShot_cmd_MIN_throttle = 48
-				 // >47 are throttle values
+	DShot_cmd_MAX          = 47,     // >47 are throttle values
+	DShot_cmd_MIN_throttle = 48,
+	DShot_cmd_MAX_throttle = 2047
 } dshot_command_t;
 
 
@@ -353,8 +317,14 @@ __EXPORT extern int	up_pwm_servo_init(uint32_t channel_mask);
 
 /**
  * De-initialise the PWM servo outputs.
+ *
+ * @param channel_mask  Bitmask of channels (LSB = channel 0) to enable.
+ *      This allows some of the channels to remain configured
+ *      as GPIOs or as another function.
+ *      A value of 0 is ALL channels
+ *
  */
-__EXPORT extern void	up_pwm_servo_deinit(void);
+__EXPORT extern void	up_pwm_servo_deinit(uint32_t channel_mask);
 
 /**
  * Arm or disarm servo outputs.
@@ -366,8 +336,14 @@ __EXPORT extern void	up_pwm_servo_deinit(void);
  *
  * @param armed		If true, outputs are armed; if false they
  *			are disarmed.
+ *
+ * @param channel_mask  Bitmask of channels (LSB = channel 0) to enable.
+ *      This allows some of the channels to remain configured
+ *      as GPIOs or as another function.
+ *      A value of 0 is ALL channels
+ *
  */
-__EXPORT extern void	up_pwm_servo_arm(bool armed);
+__EXPORT extern void	up_pwm_servo_arm(bool armed, uint32_t channel_mask);
 
 /**
  * Set the servo update rate for all rate groups.
@@ -424,11 +400,11 @@ __EXPORT extern servo_position_t up_pwm_servo_get(unsigned channel);
 /**
  * Intialise the Dshot outputs using the specified configuration.
  *
- * @param	channel_mask	Bitmask of channels (LSB = channel 0) to enable.
- *			This allows some of the channels to remain configured
- *			as GPIOs or as another function.
- * @param	dshot_pwm_freq is frequency of DSHOT signal. Usually DSHOT1200, DSHOT600, DSHOT300 or DSHOT150
- * @return	OK on success.
+ * @param channel_mask		Bitmask of channels (LSB = channel 0) to enable.
+ *				This allows some of the channels to remain configured
+ *				as GPIOs or as another function.
+ * @param dshot_pwm_freq	Frequency of DSHOT signal. Usually DSHOT150, DSHOT300, DSHOT600 or DSHOT1200
+ * @return OK on success.
  */
 __EXPORT extern int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq);
 
@@ -436,8 +412,8 @@ __EXPORT extern int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq
  * Set the current dshot throttle value for a channel (motor).
  *
  * @param channel	The channel to set.
- * @param throttle	The output dshot throttle value in [0, 1999 = DSHOT_MAX_THROTTLE].
- * @param telemetry If true, request telemetry from that motor
+ * @param throttle	The output dshot throttle value in [0 = DSHOT_DISARM_VALUE, 1 = DSHOT_MIN_THROTTLE, 1999 = DSHOT_MAX_THROTTLE].
+ * @param telemetry	If true, request telemetry from that motor
  */
 __EXPORT extern void up_dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry);
 
@@ -446,7 +422,7 @@ __EXPORT extern void up_dshot_motor_data_set(unsigned channel, uint16_t throttle
  *
  * @param channel	The channel to set.
  * @param command	dshot_command_t
- * @param telemetry If true, request telemetry from that motor
+ * @param telemetry	If true, request telemetry from that motor
  */
 __EXPORT extern void up_dshot_motor_command(unsigned channel, uint16_t command, bool telemetry);
 

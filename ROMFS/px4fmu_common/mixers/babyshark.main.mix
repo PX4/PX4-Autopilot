@@ -2,6 +2,7 @@
 # 1-4 (main): Ailerons (Y-cable), A-tail left, Pusher, A-tail right
 # 5-8 (main): quad motors
 #=============================
+# @board px4_fmu-v2 exclude
 
 
 Aileron mixer (roll)
@@ -35,4 +36,4 @@ S: 1 1  -8000  -8000      0 -10000  10000
 
 Quad motors 1 - 4
 -----------------
-R: 4x 10000 10000 10000 0
+R: 4x

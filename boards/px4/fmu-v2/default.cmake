@@ -1,24 +1,21 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR px4
-	MODEL fmu-v2
-	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
+	CONSTRAINED_MEMORY
 	ROMFSROOT px4fmu_common
-	BOOTLOADER ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/extras/px4fmuv3_bl.bin
 	IO px4_io-v2_default
-	#TESTING
 	#UAVCAN_INTERFACES 2
 	CONSTRAINED_FLASH
+	  NO_HELP
 	SERIAL_PORTS
 		GPS1:/dev/ttyS3
 		TEL1:/dev/ttyS1
 		TEL2:/dev/ttyS2
 		TEL4:/dev/ttyS6
 	DRIVERS
-		adc
+		adc/board_adc
 		#barometer # all available barometer drivers
 		barometer/ms5611
 		#batt_smbus
@@ -28,32 +25,27 @@ px4_add_board(
 		differential_pressure/ms4525
 		#distance_sensor # all available distance sensor drivers
 		#distance_sensor/ll40ls
-		#distance_sensor/sf0x
+		#distance_sensor/lightware_laser_serial
 		#dshot
 		gps
 		#heater
 		#imu # all available imu drivers
-		#imu/adis16448
-		#imu/adis16477
-		#imu/adis16497
+		#imu/analog_devices/adis16448
 		imu/l3gd20
 		imu/lsm303d
 		#imu/invensense/icm20608g
+		#imu/invensense/icm20948
 		imu/invensense/mpu6000
 		#imu/invensense/mpu9250
-		#imu/icm20948
-		#imu/mpu6000 # legacy mpu6000
-		#iridiumsbd
 		#irlock
-		#lights/blinkm
+		#lights # all available light drivers
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
-		#mkblctrl
 		#optical_flow # all available optical flow drivers
-		#optical_flow/px4flow
 		#osd
 		#pca9685
+		#pca9685_pwm_out
 		#power_monitor/ina226
 		#protocol_splitter
 		#pwm_input
@@ -61,9 +53,8 @@ px4_add_board(
 		pwm_out
 		px4io
 		#roboclaw
-		#tap_esc
+		#rpm
 		#telemetry # all available telemetry drivers
-		#test_ppm
 		tone_alarm
 		#uavcan
 	MODULES
@@ -76,8 +67,11 @@ px4_add_board(
 		ekf2
 		#esc_battery
 		#events
+		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
+		#gyro_calibration
+		#gyro_fft
 		land_detector
 		#landing_target_estimator
 		load_mon
@@ -95,17 +89,20 @@ px4_add_board(
 		sensors
 		#sih
 		#temperature_compensation
-		vmount
+		#uuv_att_control
+		#uuv_pos_control
+		#vmount
 		#vtol_att_control
 	SYSTEMCMDS
 		bl_update
-		#config
 		#dmesg
 		#dumpfile
 		#esc_calib
+		#gpio
 		hardfault_log
 		#i2cdetect
 		#led_control
+		mft
 		mixer
 		#motor_ramp
 		#motor_test
@@ -117,15 +114,19 @@ px4_add_board(
 		reboot
 		#reflect
 		#sd_bench
-		#shutdown
-		#tests # tests and test runner
+		#serial_test
+		#system_time
 		top
 		#topic_listener
 		tune_control
+		#uorb
 		#usb_connected
-		ver
+		#ver
 		#work_queue
 	EXAMPLES
+		#fake_gps
+		#fake_imu
+		#fake_magnetometer
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hello
 		#hwtest # Hardware test

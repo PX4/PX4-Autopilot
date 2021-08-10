@@ -38,7 +38,6 @@
 #include <drivers/device/Device.hpp>
 #include <lib/perf/perf_counter.h>
 #include <uORB/Publication.hpp>
-#include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/uavcan_parameter_value.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
@@ -114,7 +113,7 @@ public:
 private:
 	pthread_t         _subnode_thread{-1};
 	pthread_mutex_t   _subnode_mutex{};
-	volatile bool     _subnode_thread_should_exit{false};
+	px4::atomic_bool  _subnode_thread_should_exit{false};
 
 	int		init();
 
@@ -164,7 +163,7 @@ private:
 
 	// uORB topic handle for MAVLink parameter responses
 	uORB::Publication<uavcan_parameter_value_s> _param_response_pub{ORB_ID(uavcan_parameter_value)};
-	uORB::PublicationQueued<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	typedef uavcan::MethodBinder<UavcanServers *,
 		void (UavcanServers::*)(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &)> GetSetCallback;
@@ -221,5 +220,6 @@ private:
 	uavcan::ServiceClient<uavcan::protocol::param::ExecuteOpcode, ExecuteOpcodeCallback> _enumeration_save_client;
 
 	void unpackFwFromROMFS(const char *sd_path, const char *romfs_path);
+	void migrateFWFromRoot(const char *sd_path, const char *sd_root_path);
 	int copyFw(const char *dst, const char *src);
 };

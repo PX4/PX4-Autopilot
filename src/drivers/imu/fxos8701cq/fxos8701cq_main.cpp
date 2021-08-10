@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2019, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,30 +48,43 @@ FXOS8701CQ::print_usage()
 	PRINT_MODULE_USAGE_NAME("fxos8701cq", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, true);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x1E);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
 	PRINT_MODULE_USAGE_COMMAND("regdump");
 	PRINT_MODULE_USAGE_COMMAND("testerror");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *FXOS8701CQ::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-		int runtime_instance)
+I2CSPIDriverBase *FXOS8701CQ::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
-	FXOS8701CQ *instance = new FXOS8701CQ(iterator.configuredBusOption(), iterator.bus(), iterator.devid(), cli.rotation,
-					      cli.bus_frequency, cli.spi_mode);
+	device::Device *interface = nullptr;
 
-	if (!instance) {
+	if (config.bus_type == BOARD_I2C_BUS) {
+		interface = FXOS8701CQ_I2C_interface(config.bus, config.bus_frequency, config.i2c_address);
+
+	} else if (config.bus_type == BOARD_SPI_BUS) {
+		interface = FXOS8701CQ_SPI_interface(config.bus, config.spi_devid, config.bus_frequency, config.spi_mode);
+	}
+
+	if (interface == nullptr) {
 		PX4_ERR("alloc failed");
 		return nullptr;
 	}
 
-	if (OK != instance->init()) {
-		delete instance;
+	FXOS8701CQ *dev = new FXOS8701CQ(interface, config);
+
+	if (dev == nullptr) {
+		delete interface;
 		return nullptr;
 	}
 
-	return instance;
+	if (OK != dev->init()) {
+		delete dev;
+		return nullptr;
+	}
+
+	return dev;
 }
 
 void FXOS8701CQ::custom_method(const BusCLIArguments &cli)
@@ -88,19 +101,21 @@ extern "C" int fxos8701cq_main(int argc, char *argv[])
 {
 	int ch;
 	using ThisDriver = FXOS8701CQ;
-	BusCLIArguments cli{false, true};
+	BusCLIArguments cli{true, true};
+	cli.default_i2c_frequency = 400 * 1000;
 	cli.default_spi_frequency = 1 * 1000 * 1000;
 	cli.spi_mode = SPIDEV_MODE0;
+	cli.i2c_address = 0x1E;
 
-	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
 		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optarg());
+			cli.rotation = (enum Rotation)atoi(cli.optArg());
 			break;
 		}
 	}
 
-	const char *verb = cli.optarg();
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();

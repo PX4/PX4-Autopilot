@@ -38,7 +38,6 @@
 
 #pragma once
 
-#include <drivers/device/ringbuffer.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_input_capture.h>
 #include <drivers/drv_pwm_output.h>
@@ -50,16 +49,12 @@
 #include <px4_platform_common/workqueue.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
-#include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
 #define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
-
-// For AV-X board
-#define GPIO_TRIG_AVX /* PD14 */  (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTD|GPIO_PIN14)
 
 
 class CameraCapture : public px4::ScheduledWorkItem
@@ -105,7 +100,7 @@ public:
 private:
 
 	// Publishers
-	uORB::PublicationQueued<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
 	uORB::Publication<camera_trigger_s>		_trigger_pub{ORB_ID(camera_trigger)};
 
 	// Subscribers
@@ -118,8 +113,6 @@ private:
 		uint32_t edge_state;
 		uint32_t overflow;
 	} _trigger{};
-
-	ringbuffer::RingBuffer	*_trig_buffer{nullptr};
 
 	bool			_capture_enabled{false};
 	bool			_gpio_capture{false};
@@ -142,7 +135,7 @@ private:
 	// Signal capture callback
 	void			capture_callback(uint32_t chan_index, hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
 
-	// GPIO interrupt routine (for AV_X board)
+	// GPIO interrupt routine
 	static int		gpio_interrupt_routine(int irq, void *context, void *arg);
 
 	// Signal capture publish

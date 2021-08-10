@@ -65,6 +65,8 @@ static void feedback_calibration_failed(orb_advert_t *mavlink_log_pub)
 
 int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 {
+	const hrt_abstime calibration_started = hrt_absolute_time();
+
 	int result = PX4_OK;
 	unsigned calibration_counter = 0;
 	const unsigned maxcount = 2400;
@@ -88,7 +90,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 	bool paramreset_successful = false;
 	int  fd = px4_open(AIRSPEED0_DEVICE_PATH, 0);
 
-	if (fd > 0) {
+	if (fd >= 0) {
 		if (PX4_OK == px4_ioctl(fd, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
 			paramreset_successful = true;
 
@@ -98,8 +100,6 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 		px4_close(fd);
 	}
-
-	int cancel_sub = calibrate_cancel_subscribe();
 
 	if (!paramreset_successful) {
 
@@ -124,7 +124,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 	while (calibration_counter < calibration_count) {
 
-		if (calibrate_cancel_check(mavlink_log_pub, cancel_sub)) {
+		if (calibrate_cancel_check(mavlink_log_pub, calibration_started)) {
 			goto error_return;
 		}
 
@@ -168,7 +168,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		int fd_scale = px4_open(AIRSPEED0_DEVICE_PATH, 0);
 		airscale.offset_pa = diff_pres_offset;
 
-		if (fd_scale > 0) {
+		if (fd_scale >= 0) {
 			if (PX4_OK != px4_ioctl(fd_scale, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
 				calibration_log_critical(mavlink_log_pub, "[cal] airspeed offset update failed");
 			}
@@ -199,14 +199,14 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 	/* wait 500 ms to ensure parameter propagated through the system */
 	px4_usleep(500 * 1000);
 
-	calibration_log_critical(mavlink_log_pub, "[cal] Blow across front of pitot without touching");
+	calibration_log_critical(mavlink_log_pub, "[cal] Blow into front of pitot without touching");
 
 	calibration_counter = 0;
 
 	/* just take a few samples and make sure pitot tubes are not reversed, timeout after ~30 seconds */
 	while (calibration_counter < maxcount) {
 
-		if (calibrate_cancel_check(mavlink_log_pub, cancel_sub)) {
+		if (calibrate_cancel_check(mavlink_log_pub, calibration_started)) {
 			goto error_return;
 		}
 
@@ -279,7 +279,6 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 	px4_usleep(2e6);
 
 normal_return:
-	calibrate_cancel_unsubscribe(cancel_sub);
 	px4_close(diff_pres_sub);
 
 	// This give a chance for the log messages to go out of the queue before someone else stomps on then

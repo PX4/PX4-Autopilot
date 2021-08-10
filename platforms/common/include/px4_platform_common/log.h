@@ -122,11 +122,11 @@ __END_DECLS
 #include <stdarg.h>
 
 #include <px4_platform_common/defines.h>
+#include <drivers/drv_hrt.h>
 
 __BEGIN_DECLS
 
 __EXPORT extern const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1];
-__EXPORT extern const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1];
 __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...)
 __attribute__((format(printf, 3, 4)));
 __EXPORT void px4_log_raw(int level, const char *fmt, ...)
@@ -166,15 +166,6 @@ __END_DECLS
 #define __px4__log_file_and_line_fmt 	" (file %s line %u)"
 #define __px4__log_file_and_line_arg 	, __FILE__, __LINE__
 #define __px4__log_end_fmt 		"\n"
-
-#define PX4_ANSI_COLOR_RED     "\x1b[31m"
-#define PX4_ANSI_COLOR_GREEN   "\x1b[32m"
-#define PX4_ANSI_COLOR_YELLOW  "\x1b[33m"
-#define PX4_ANSI_COLOR_BLUE    "\x1b[34m"
-#define PX4_ANSI_COLOR_MAGENTA "\x1b[35m"
-#define PX4_ANSI_COLOR_CYAN    "\x1b[36m"
-#define PX4_ANSI_COLOR_GRAY    "\x1B[37m"
-#define PX4_ANSI_COLOR_RESET   "\x1b[0m"
 
 #ifdef __PX4_POSIX
 #define PX4_LOG_COLORIZED_OUTPUT //if defined and output is a tty, colorize the output according to the log level

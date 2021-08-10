@@ -80,7 +80,16 @@ void Tailsitter::update_vtol_state()
 
 	float pitch = Eulerf(Quatf(_v_att->q)).theta();
 
-	if (!_attc->is_fixed_wing_requested()) {
+	if (_vtol_vehicle_status->vtol_transition_failsafe) {
+		// Failsafe event, switch to MC mode immediately
+		_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
+
+		//reset failsafe when FW is no longer requested
+		if (!_attc->is_fixed_wing_requested()) {
+			_vtol_vehicle_status->vtol_transition_failsafe = false;
+		}
+
+	} else if (!_attc->is_fixed_wing_requested()) {
 
 		switch (_vtol_schedule.flight_mode) { // user switchig to MC mode
 		case vtol_mode::MC_MODE:
@@ -122,14 +131,14 @@ void Tailsitter::update_vtol_state()
 		case vtol_mode::TRANSITION_FRONT_P1: {
 
 
-				const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->equivalent_airspeed_m_s)
+				const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
 						&& !_params->airspeed_disabled;
 
 				bool transition_to_fw = false;
 
 				if (pitch <= PITCH_TRANSITION_FRONT_P1) {
 					if (airspeed_triggers_transition) {
-						transition_to_fw = _airspeed_validated->equivalent_airspeed_m_s >= _params->transition_airspeed;
+						transition_to_fw = _airspeed_validated->calibrated_airspeed_m_s >= _params->transition_airspeed;
 
 					} else {
 						transition_to_fw = true;
@@ -180,7 +189,7 @@ void Tailsitter::update_vtol_state()
 
 void Tailsitter::update_transition_state()
 {
-	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
+	const float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
 
 	if (!_flag_was_in_trans_mode) {
 		_flag_was_in_trans_mode = true;
@@ -212,9 +221,15 @@ void Tailsitter::update_transition_state()
 		_q_trans_sp = _q_trans_start;
 	}
 
+	// ensure input quaternions are exactly normalized because acosf(1.00001) == NaN
+	_q_trans_sp.normalize();
+
 	// tilt angle (zero if vehicle nose points up (hover))
-	float tilt = acosf(_q_trans_sp(0) * _q_trans_sp(0) - _q_trans_sp(1) * _q_trans_sp(1) - _q_trans_sp(2) * _q_trans_sp(
-				   2) + _q_trans_sp(3) * _q_trans_sp(3));
+	float cos_tilt = _q_trans_sp(0) * _q_trans_sp(0) - _q_trans_sp(1) * _q_trans_sp(1) - _q_trans_sp(2) *
+			 _q_trans_sp(2) + _q_trans_sp(3) * _q_trans_sp(3);
+	cos_tilt = cos_tilt >  1.0f ?  1.0f : cos_tilt;
+	cos_tilt = cos_tilt < -1.0f ? -1.0f : cos_tilt;
+	const float tilt = acosf(cos_tilt);
 
 	if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_FRONT_P1) {
 
@@ -229,8 +244,8 @@ void Tailsitter::update_transition_state()
 
 		const float trans_pitch_rate = M_PI_2_F / _params->back_trans_duration;
 
-		if (!flag_idle_mc) {
-			flag_idle_mc = set_idle_mc();
+		if (!_flag_idle_mc) {
+			_flag_idle_mc = set_idle_mc();
 		}
 
 		if (tilt > 0.01f) {
@@ -265,11 +280,6 @@ void Tailsitter::update_fw_state()
 {
 	VtolType::update_fw_state();
 
-	// allow fw yawrate control via multirotor roll actuation. this is useful for vehicles
-	// which don't have a rudder to coordinate turns
-	if (_params->diff_thrust == 1) {
-		_mc_roll_weight = 1.0f;
-	}
 }
 
 /**
@@ -277,36 +287,39 @@ void Tailsitter::update_fw_state()
 */
 void Tailsitter::fill_actuator_outputs()
 {
-	_actuators_out_0->timestamp = hrt_absolute_time();
-	_actuators_out_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
+	auto &mc_in = _actuators_mc_in->control;
+	auto &fw_in = _actuators_fw_in->control;
 
-	_actuators_out_1->timestamp = hrt_absolute_time();
-	_actuators_out_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
+	auto &mc_out = _actuators_out_0->control;
+	auto &fw_out = _actuators_out_1->control;
 
-	_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL]
-			* _mc_roll_weight;
-	_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
-		_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;
-	_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW] *
-			_mc_yaw_weight;
+	mc_out[actuator_controls_s::INDEX_ROLL]  = mc_in[actuator_controls_s::INDEX_ROLL]  * _mc_roll_weight;
+	mc_out[actuator_controls_s::INDEX_PITCH] = mc_in[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;
+	mc_out[actuator_controls_s::INDEX_YAW]   = mc_in[actuator_controls_s::INDEX_YAW]   * _mc_yaw_weight;
 
 	if (_vtol_schedule.flight_mode == vtol_mode::FW_MODE) {
-		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];
+		mc_out[actuator_controls_s::INDEX_THROTTLE] = fw_in[actuator_controls_s::INDEX_THROTTLE];
+
+		/* allow differential thrust if enabled */
+		if (_params->diff_thrust == 1) {
+			mc_out[actuator_controls_s::INDEX_ROLL] = fw_in[actuator_controls_s::INDEX_YAW] * _params->diff_thrust_scale;
+		}
 
 	} else {
-		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
-			_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
+		mc_out[actuator_controls_s::INDEX_THROTTLE] = mc_in[actuator_controls_s::INDEX_THROTTLE];
 	}
 
 	if (_params->elevons_mc_lock && _vtol_schedule.flight_mode == vtol_mode::MC_MODE) {
-		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = 0;
-		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = 0;
+		fw_out[actuator_controls_s::INDEX_ROLL]  = 0;
+		fw_out[actuator_controls_s::INDEX_PITCH] = 0;
 
 	} else {
-		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];
-		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH];
+		fw_out[actuator_controls_s::INDEX_ROLL]  = fw_in[actuator_controls_s::INDEX_ROLL];
+		fw_out[actuator_controls_s::INDEX_PITCH] = fw_in[actuator_controls_s::INDEX_PITCH];
 	}
+
+	_actuators_out_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
+	_actuators_out_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
+
+	_actuators_out_0->timestamp = _actuators_out_1->timestamp = hrt_absolute_time();
 }

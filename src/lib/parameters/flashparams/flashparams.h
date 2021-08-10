@@ -49,7 +49,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <sys/types.h>
-#include "systemlib/uthash/utarray.h"
 
 __BEGIN_DECLS
 
@@ -63,7 +62,7 @@ __EXPORT int param_set_external(param_t param, const void *val, bool mark_saved,
 __EXPORT const void *param_get_value_ptr_external(param_t param);
 
 /* The interface hooks to the Flash based storage. The caller is responsible for locking */
-__EXPORT int flash_param_save(bool only_unsaved);
+__EXPORT int flash_param_save(bool only_unsaved, param_filter_func filter);
 __EXPORT int flash_param_load();
 __EXPORT int flash_param_import();
 

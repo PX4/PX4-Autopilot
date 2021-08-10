@@ -96,30 +96,6 @@ MulticopterRateControl::parameters_updated()
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled_by_val(_param_cbrk_rate_ctrl.get(), CBRK_RATE_CTRL_KEY);
 }
 
-float
-MulticopterRateControl::get_landing_gear_state()
-{
-	// Only switch the landing gear up if we are not landed and if
-	// the user switched from gear down to gear up.
-	// If the user had the switch in the gear up position and took off ignore it
-	// until he toggles the switch to avoid retracting the gear immediately on takeoff.
-	if (_landed) {
-		_gear_state_initialized = false;
-	}
-
-	float landing_gear = landing_gear_s::GEAR_DOWN; // default to down
-
-	if (_manual_control_sp.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON && _gear_state_initialized) {
-		landing_gear = landing_gear_s::GEAR_UP;
-
-	} else if (_manual_control_sp.gear_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
-		// Switching the gear off does put it into a safe defined state
-		_gear_state_initialized = true;
-	}
-
-	return landing_gear;
-}
-
 void
 MulticopterRateControl::Run()
 {
@@ -150,10 +126,10 @@ MulticopterRateControl::Run()
 		vehicle_angular_acceleration_s v_angular_acceleration{};
 		_vehicle_angular_acceleration_sub.copy(&v_angular_acceleration);
 
-		const hrt_abstime now = hrt_absolute_time();
+		const hrt_abstime now = angular_velocity.timestamp_sample;
 
-		// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
-		const float dt = math::constrain(((now - _last_run) / 1e6f), 0.0002f, 0.02f);
+		// Guard against too small (< 0.125ms) and too large (> 20ms) dt's.
+		const float dt = math::constrain(((now - _last_run) * 1e-6f), 0.000125f, 0.02f);
 		_last_run = now;
 
 		const Vector3f angular_accel{v_angular_acceleration.xyz};
@@ -173,51 +149,29 @@ MulticopterRateControl::Run()
 
 		_vehicle_status_sub.update(&_vehicle_status);
 
-		const bool manual_control_updated = _manual_control_sp_sub.update(&_manual_control_sp);
+		if (_landing_gear_sub.updated()) {
+			landing_gear_s landing_gear;
 
-		// generate the rate setpoint from sticks?
-		bool manual_rate_sp = false;
-
-		if (_v_control_mode.flag_control_manual_enabled &&
-		    !_v_control_mode.flag_control_altitude_enabled &&
-		    !_v_control_mode.flag_control_velocity_enabled &&
-		    !_v_control_mode.flag_control_position_enabled) {
-
-			// landing gear controlled from stick inputs if we are in Manual/Stabilized mode
-			//  limit landing gear update rate to 50 Hz
-			if (hrt_elapsed_time(&_landing_gear.timestamp) > 20_ms) {
-				_landing_gear.landing_gear = get_landing_gear_state();
-				_landing_gear.timestamp = hrt_absolute_time();
-				_landing_gear_pub.publish(_landing_gear);
+			if (_landing_gear_sub.copy(&landing_gear)) {
+				if (landing_gear.landing_gear != landing_gear_s::GEAR_KEEP) {
+					_landing_gear = landing_gear.landing_gear;
+				}
 			}
-
-			if (!_v_control_mode.flag_control_attitude_enabled) {
-				manual_rate_sp = true;
-			}
-
-			// Check if we are in rattitude mode and the pilot is within the center threshold on pitch and roll
-			//  if true then use published rate setpoint, otherwise generate from manual_control_setpoint (like acro)
-			if (_v_control_mode.flag_control_rattitude_enabled) {
-				manual_rate_sp =
-					(fabsf(_manual_control_sp.y) > _param_mc_ratt_th.get()) ||
-					(fabsf(_manual_control_sp.x) > _param_mc_ratt_th.get());
-			}
-
-		} else {
-			_landing_gear_sub.update(&_landing_gear);
 		}
 
-		if (manual_rate_sp) {
-			if (manual_control_updated) {
+		if (_v_control_mode.flag_control_manual_enabled && !_v_control_mode.flag_control_attitude_enabled) {
+			// generate the rate setpoint from sticks
+			manual_control_setpoint_s manual_control_setpoint;
 
+			if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
 				// manual rates control - ACRO mode
 				const Vector3f man_rate_sp{
-					math::superexpo(_manual_control_sp.y, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
-					math::superexpo(-_manual_control_sp.x, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
-					math::superexpo(_manual_control_sp.r, _param_mc_acro_expo_y.get(), _param_mc_acro_supexpoy.get())};
+					math::superexpo(manual_control_setpoint.y, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
+					math::superexpo(-manual_control_setpoint.x, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
+					math::superexpo(manual_control_setpoint.r, _param_mc_acro_expo_y.get(), _param_mc_acro_supexpoy.get())};
 
 				_rates_sp = man_rate_sp.emult(_acro_rate_max);
-				_thrust_sp = _manual_control_sp.z;
+				_thrust_sp = math::constrain(manual_control_setpoint.z, 0.0f, 1.0f);
 
 				// publish rate setpoint
 				vehicle_rates_setpoint_s v_rates_sp{};
@@ -237,9 +191,9 @@ MulticopterRateControl::Run()
 			vehicle_rates_setpoint_s v_rates_sp;
 
 			if (_v_rates_sp_sub.update(&v_rates_sp)) {
-				_rates_sp(0) = v_rates_sp.roll;
-				_rates_sp(1) = v_rates_sp.pitch;
-				_rates_sp(2) = v_rates_sp.yaw;
+				_rates_sp(0) = PX4_ISFINITE(v_rates_sp.roll)  ? v_rates_sp.roll  : rates(0);
+				_rates_sp(1) = PX4_ISFINITE(v_rates_sp.pitch) ? v_rates_sp.pitch : rates(1);
+				_rates_sp(2) = PX4_ISFINITE(v_rates_sp.yaw)   ? v_rates_sp.yaw   : rates(2);
 				_thrust_sp = -v_rates_sp.thrust_body[2];
 			}
 		}
@@ -279,7 +233,7 @@ MulticopterRateControl::Run()
 			actuators.control[actuator_controls_s::INDEX_PITCH] = PX4_ISFINITE(att_control(1)) ? att_control(1) : 0.0f;
 			actuators.control[actuator_controls_s::INDEX_YAW] = PX4_ISFINITE(att_control(2)) ? att_control(2) : 0.0f;
 			actuators.control[actuator_controls_s::INDEX_THROTTLE] = PX4_ISFINITE(_thrust_sp) ? _thrust_sp : 0.0f;
-			actuators.control[actuator_controls_s::INDEX_LANDING_GEAR] = (float)_landing_gear.landing_gear;
+			actuators.control[actuator_controls_s::INDEX_LANDING_GEAR] = _landing_gear;
 			actuators.timestamp_sample = angular_velocity.timestamp_sample;
 
 			// scale effort by battery status if enabled
@@ -287,7 +241,7 @@ MulticopterRateControl::Run()
 				if (_battery_status_sub.updated()) {
 					battery_status_s battery_status;
 
-					if (_battery_status_sub.copy(&battery_status)) {
+					if (_battery_status_sub.copy(&battery_status) && battery_status.connected && battery_status.scale > 0.f) {
 						_battery_status_scale = battery_status.scale;
 					}
 				}

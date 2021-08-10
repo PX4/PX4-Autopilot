@@ -39,9 +39,7 @@
 #include <drivers/device/i2c.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <lib/perf/perf_counter.h>
-#include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_device.h>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include "hmc5883.h"
 
@@ -88,11 +86,10 @@
 class HMC5883 : public I2CSPIDriver<HMC5883>
 {
 public:
-	HMC5883(device::Device *interface, enum Rotation rotation, I2CSPIBusOption bus_option, int bus);
+	HMC5883(device::Device *interface, const I2CSPIDriverConfig &config);
 	virtual ~HMC5883();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
 	void			RunImpl();

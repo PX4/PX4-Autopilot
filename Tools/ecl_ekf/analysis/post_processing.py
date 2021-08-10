@@ -125,7 +125,7 @@ def get_gps_check_fail_flags(estimator_status: dict) -> dict:
 
     # 0 : insufficient fix type (no 3D solution)
     # 1 : minimum required sat count fail
-    # 2 : minimum required PDOP fail
+    # 2 : maximum allowed PDOP fail
     # 3 : maximum allowed horizontal position error fail
     # 4 : maximum allowed vertical position error fail
     # 5 : maximum allowed speed error fail
@@ -146,18 +146,18 @@ def get_gps_check_fail_flags(estimator_status: dict) -> dict:
     return gps_fail_flags
 
 
-def magnetic_field_estimates_from_status(estimator_status: dict) -> Tuple[float, float, float]:
+def magnetic_field_estimates_from_states(estimator_states: dict) -> Tuple[float, float, float]:
     """
 
-    :param estimator_status:
+    :param estimator_states:
     :return:
     """
     rad2deg = 57.2958
     field_strength = np.sqrt(
-        estimator_status['states[16]'] ** 2 + estimator_status['states[17]'] ** 2 +
-        estimator_status['states[18]'] ** 2)
-    declination = rad2deg * np.arctan2(estimator_status['states[17]'],
-                                       estimator_status['states[16]'])
+        estimator_states['states[16]'] ** 2 + estimator_states['states[17]'] ** 2 +
+        estimator_states['states[18]'] ** 2)
+    declination = rad2deg * np.arctan2(estimator_states['states[17]'],
+                                       estimator_states['states[16]'])
     inclination = rad2deg * np.arcsin(
-        estimator_status['states[18]'] / np.maximum(field_strength, np.finfo(np.float32).eps))
+        estimator_states['states[18]'] / np.maximum(field_strength, np.finfo(np.float32).eps))
     return declination, field_strength, inclination

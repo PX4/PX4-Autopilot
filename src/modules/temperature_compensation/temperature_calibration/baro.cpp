@@ -68,11 +68,6 @@ TemperatureCalibrationBaro::~TemperatureCalibrationBaro()
 	}
 }
 
-void TemperatureCalibrationBaro::reset_calibration()
-{
-	// nothing to do
-}
-
 int TemperatureCalibrationBaro::update_sensor_instance(PerSensorData &data, int sensor_sub)
 {
 	bool finished = data.hot_soaked;
@@ -89,6 +84,13 @@ int TemperatureCalibrationBaro::update_sensor_instance(PerSensorData &data, int 
 
 	if (finished) {
 		// if we're done, return, but we need to return after orb_copy because of poll()
+		return 0;
+	}
+
+	if (PX4_ISFINITE(baro_data.temperature)) {
+		data.has_valid_temperature = true;
+
+	} else {
 		return 0;
 	}
 
@@ -168,6 +170,14 @@ int TemperatureCalibrationBaro::finish()
 
 int TemperatureCalibrationBaro::finish_sensor_instance(PerSensorData &data, int sensor_index)
 {
+	if (!data.has_valid_temperature) {
+		PX4_WARN("Result baro %d does not have a valid temperature sensor", sensor_index);
+
+		uint32_t param = 0;
+		set_parameter("TC_B%d_ID", sensor_index, &param);
+		return 0;
+	}
+
 	if (!data.hot_soaked || data.tempcal_complete) {
 		return 0;
 	}

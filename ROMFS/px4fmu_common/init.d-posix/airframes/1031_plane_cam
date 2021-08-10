@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# @name Plane SITL with camera
+#
+
+. ${R}etc/init.d-posix/airframes/1030_plane
+
+# Camera trigger interface is MAVLink
+param set-default TRIG_INTERFACE 3
+
+# Distance trigger mode enabled
+param set-default TRIG_MODE 4

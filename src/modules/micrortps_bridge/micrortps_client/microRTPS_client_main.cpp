@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
- * Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -31,8 +31,8 @@
  *
  ****************************************************************************/
 
-#include "microRTPS_transport.h"
-#include "microRTPS_client.h"
+#include <microRTPS_transport.h>
+#include <microRTPS_client.h>
 
 #include <inttypes.h>
 #include <cstdio>
@@ -55,6 +55,18 @@ bool _should_exit_task = false;
 Transport_node *transport_node = nullptr;
 struct options _options;
 
+struct timespec begin;
+struct timespec end;
+
+uint64_t total_rcvd{0};
+uint64_t total_sent{0};
+uint64_t rcvd_last_sec{0};
+uint64_t sent_last_sec{0};
+uint64_t received{0};
+uint64_t sent{0};
+int rcv_loop{0};
+int send_loop{0};
+
 static void usage(const char *name)
 {
 	PRINT_MODULE_USAGE_NAME("micrortps_client", "communication");
@@ -63,13 +75,17 @@ static void usage(const char *name)
 	PRINT_MODULE_USAGE_PARAM_STRING('t', "UART", "UART|UDP", "Transport protocol", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyACM0", "<file:dev>", "Select Serial Device", true);
 	PRINT_MODULE_USAGE_PARAM_INT('b', 460800, 9600, 3000000, "Baudrate (can also be p:<param_name>)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('m', 0, 10, 10000000, "Maximum sending data rate in B/s", true);
 	PRINT_MODULE_USAGE_PARAM_INT('p', -1, 1, 1000, "Poll timeout for UART in ms", true);
 	PRINT_MODULE_USAGE_PARAM_INT('l', 10000, -1, 100000, "Limit number of iterations until the program exits (-1=infinite)",
 				     true);
-	PRINT_MODULE_USAGE_PARAM_INT('w', 1, 1, 1000, "Time in ms for which each iteration sleeps", true);
+	PRINT_MODULE_USAGE_PARAM_INT('w', 1, 1, 1000000, "Time in us for which each read from the link iteration sleeps", true);
 	PRINT_MODULE_USAGE_PARAM_INT('r', 2019, 0, 65536, "Select UDP Network Port for receiving (local)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('s', 2020, 0, 65536, "Select UDP Network Port for sending (remote)", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('i', "127.0.0.1", "<x.x.x.x>", "Select IP address (remote)", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Activate UART link SW flow control", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('h', "Activate UART link HW flow control", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('v', "Add more verbosity", true);
 
 	PRINT_MODULE_USAGE_COMMAND("stop");
 	PRINT_MODULE_USAGE_COMMAND("status");
@@ -81,7 +97,7 @@ static int parse_options(int argc, char *argv[])
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "t:d:l:w:b:p:r:s:i:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "t:d:l:w:b:m:p:r:s:i:fhv", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 't': _options.transport      = strcmp(myoptarg, "UDP") == 0 ?
 							    options::eTransports::UDP
@@ -89,17 +105,37 @@ static int parse_options(int argc, char *argv[])
 
 		case 'd': if (nullptr != myoptarg) strcpy(_options.device, myoptarg);   break;
 
-		case 'l': _options.loops          =  strtol(myoptarg, nullptr, 10);     break;
+		case 'l': _options.loops           =  strtol(myoptarg, nullptr, 10);    break;
 
-		case 'w': _options.sleep_ms       = strtoul(myoptarg, nullptr, 10);     break;
+		case 'w': _options.sleep_us        = strtoul(myoptarg, nullptr, 10);    break;
 
-		case 'b': _options.baudrate       = strtoul(myoptarg, nullptr, 10);     break;
+		case 'b': {
+				int baudrate = 0;
 
-		case 'r': _options.recv_port      = strtoul(myoptarg, nullptr, 10);     break;
+				if (px4_get_parameter_value(myoptarg, baudrate) != 0) {
+					PX4_ERR("baudrate parsing failed");
+				}
 
-		case 's': _options.send_port      = strtoul(myoptarg, nullptr, 10);     break;
+				_options.baudrate = baudrate;
+
+				break;
+			}
+
+		case 'm': _options.datarate        = strtoul(myoptarg, nullptr, 10);    break;
+
+		case 'p': _options.poll_ms         = strtoul(myoptarg, nullptr, 10);    break;
+
+		case 'r': _options.recv_port       = strtoul(myoptarg, nullptr, 10);    break;
+
+		case 's': _options.send_port       = strtoul(myoptarg, nullptr, 10);    break;
 
 		case 'i': if (nullptr != myoptarg) strcpy(_options.ip, myoptarg);       break;
+
+		case 'f': _options.sw_flow_control = true;     				break;
+
+		case 'h': _options.hw_flow_control = true;     				break;
+
+		case 'v': _options.verbose_debug   = true;     				break;
 
 		default:
 			usage(argv[1]);
@@ -107,9 +143,18 @@ static int parse_options(int argc, char *argv[])
 		}
 	}
 
+	if (_options.datarate > MAX_DATA_RATE) {
+		_options.datarate = MAX_DATA_RATE;
+		PX4_WARN("Invalid data rate. Using max datarate of %ul B/s", MAX_DATA_RATE);
+	}
+
 	if (_options.poll_ms < 1) {
-		_options.poll_ms = 1;
-		PX4_ERR("poll timeout too low, using 1 ms");
+		PX4_WARN("Poll timeout too low, using %ul ms", POLL_MS);
+	}
+
+	if (_options.hw_flow_control && _options.sw_flow_control) {
+		PX4_ERR("HW and SW flow control set. Please set only one or another");
+		return -1;
 	}
 
 	return 0;
@@ -125,16 +170,21 @@ static int micrortps_start(int argc, char *argv[])
 
 	switch (_options.transport) {
 	case options::eTransports::UART: {
-			transport_node = new UART_node(_options.device, _options.baudrate, _options.poll_ms);
-			PX4_INFO("UART transport: device: %s; baudrate: %d; sleep: %dms; poll: %dms",
-				 _options.device, _options.baudrate, _options.sleep_ms, _options.poll_ms);
+			transport_node = new UART_node(_options.device, _options.baudrate, _options.poll_ms,
+						       _options.sw_flow_control, _options.hw_flow_control, _options.verbose_debug);
+			PX4_INFO("UART transport: device: %s; baudrate: %" PRIu32 "; sleep: %" PRIu32 "ms; poll: %" PRIu32
+				 "ms; flow_control: %s",
+				 _options.device, _options.baudrate, _options.sleep_us, _options.poll_ms,
+				 _options.sw_flow_control ? "SW enabled" : (_options.hw_flow_control ? "HW enabled" : "No"));
 		}
 		break;
 
 	case options::eTransports::UDP: {
-			transport_node = new UDP_node(_options.ip, _options.recv_port, _options.send_port);
-			PX4_INFO("UDP transport: ip address: %s; recv port: %u; send port: %u; sleep: %dms",
-				 _options.ip, _options.recv_port, _options.send_port, _options.sleep_ms);
+			transport_node = new UDP_node(_options.ip, _options.recv_port, _options.send_port,
+						      _options.verbose_debug);
+			PX4_INFO("UDP transport: ip address: %s; recv port: %" PRIu16 "; send port: %" PRIu16 "; sleep: %" PRIu32 "us",
+				 _options.ip, _options.recv_port, _options.send_port, _options.sleep_us);
+
 		}
 		break;
 
@@ -150,22 +200,18 @@ static int micrortps_start(int argc, char *argv[])
 		return -1;
 	}
 
-	struct timespec begin;
-
-	struct timespec end;
-
-	uint64_t total_read = 0, received = 0;
-
-	int loop = 0;
-
-	micrortps_start_topics(begin, total_read, received, loop);
+	micrortps_start_topics(_options.datarate, begin, total_rcvd, total_sent, sent_last_sec, rcvd_last_sec, received, sent,
+			       rcv_loop,
+			       send_loop);
 
 	px4_clock_gettime(CLOCK_REALTIME, &end);
 
-	double elapsed_secs = static_cast<double>(end.tv_sec - begin.tv_sec + (end.tv_nsec - begin.tv_nsec) / 1e9);
+	const double elapsed_secs = static_cast<double>(end.tv_sec - begin.tv_sec + (end.tv_nsec - begin.tv_nsec) / 1e9);
 
-	PX4_INFO("RECEIVED: %" PRIu64 " messages in %d LOOPS, %" PRIu64 " bytes in %.03f seconds - %.02fKB/s",
-		 received, loop, total_read, elapsed_secs, static_cast<double>(total_read / (1e3 * elapsed_secs)));
+	PX4_INFO("RECEIVED: %" PRIu64 " messages in %d LOOPS, %" PRIu64 " bytes in %.03f seconds - avg %.02fKB/s",
+		 received, rcv_loop, total_rcvd, elapsed_secs, static_cast<double>(total_rcvd / (1e3 * elapsed_secs)));
+	PX4_INFO("SENT: %" PRIu64 " messages in %d LOOPS, %" PRIu64 " bytes in %.03f seconds - avg %.02fKB/s",
+		 sent, send_loop, total_sent, elapsed_secs, total_sent / (1e3 * elapsed_secs));
 
 	delete transport_node;
 
@@ -193,10 +239,10 @@ int micrortps_client_main(int argc, char *argv[])
 			return -1;
 		}
 
-		_rtps_task = px4_task_spawn_cmd("rtps",
+		_rtps_task = px4_task_spawn_cmd("micrortps_client",
 						SCHED_DEFAULT,
 						SCHED_PRIORITY_DEFAULT,
-						4096,
+						2900,
 						(px4_main_t) micrortps_start,
 						(char *const *)argv);
 
@@ -214,7 +260,28 @@ int micrortps_client_main(int argc, char *argv[])
 			PX4_INFO("Not running");
 
 		} else {
-			PX4_INFO("Running");
+			px4_clock_gettime(CLOCK_REALTIME, &end);
+
+			const double elapsed_secs = static_cast<double>(end.tv_sec - begin.tv_sec + (end.tv_nsec - begin.tv_nsec) / 1e9);
+
+			printf("\tup and running for %.03f seconds\n", elapsed_secs);
+			printf("\tnr. of messages received: %" PRIu64 "\n", received);
+			printf("\tnr. of messages sent: %" PRIu64 "\n", sent);
+			printf("\ttotal data read: %" PRIu64 " bytes\n", total_rcvd);
+			printf("\ttotal data sent: %" PRIu64 " bytes\n", total_sent);
+			printf("\trates:\n");
+			printf("\t  rx: %.3f kB/s\n", rcvd_last_sec / 1e3);
+			printf("\t  tx: %.3f kB/s\n", sent_last_sec / 1e3);
+			printf("\t  avg rx: %.3f kB/s\n", total_rcvd / (1e3 * elapsed_secs));
+			printf("\t  avg tx: %.3f kB/s\n", total_sent / (1e3 * elapsed_secs));
+			printf("\t  tx rate max:");
+
+			if (_options.datarate != 0) {
+				printf(" %.1f kB/s\n", _options.datarate / 1e3);
+
+			} else {
+				printf(" Unlimited\n");
+			}
 		}
 
 		return 0;

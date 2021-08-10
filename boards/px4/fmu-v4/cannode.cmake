@@ -20,11 +20,9 @@ add_definitions(
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR px4
-	MODEL fmu-v4
-	LABEL cannode
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
+	CONSTRAINED_MEMORY
 	ROMFSROOT cannode
 	UAVCAN_INTERFACES 1
 	SERIAL_PORTS
@@ -32,20 +30,21 @@ px4_add_board(
 		TEL1:/dev/ttyS1
 		TEL2:/dev/ttyS2
 	DRIVERS
-		adc
+		adc/board_adc
 		#barometer # all available barometer drivers
 		barometer/ms5611
 		bootloaders
 		#differential_pressure # all available differential pressure drivers
-		#distance_sensor # all available distance sensor drivers
+		distance_sensor # all available distance sensor drivers
 		#dshot
 		gps
 		#imu # all available imu drivers
-		#imu/adis16448
+		#imu/analog_devices/adis16448
 		#imu/adis16477
 		#imu/adis16497
 		imu/invensense/icm20602
 		imu/invensense/icm20608g
+		imu/invensense/icm20948 # required for ak09916 mag
 		imu/invensense/mpu9250
 		#lights/rgbled
 		#lights/rgbled_ncp5623c
@@ -67,6 +66,7 @@ px4_add_board(
 		#esc_calib
 		#hardfault_log
 		i2cdetect
+		mft
 		#led_control
 		#mixer
 		#motor_ramp
@@ -79,21 +79,11 @@ px4_add_board(
 		reboot
 		#reflect
 		#sd_bench
+		system_time
 		#shutdown
 		top
 		#topic_listener
 		#tune_control
 		ver
 		work_queue
-)
-
-include(px4_make_uavcan_bootloader)
-px4_make_uavcan_bootloadable(
-	BOARD ${PX4_BOARD}
-	BIN ${PX4_BINARY_DIR}/${PX4_BOARD}.bin
-	HWNAME ${uavcanblid_name}
-	HW_MAJOR ${uavcanblid_hw_version_major}
-	HW_MINOR ${uavcanblid_hw_version_minor}
-	SW_MAJOR ${uavcanblid_sw_version_major}
-	SW_MINOR ${uavcanblid_sw_version_minor}
 )

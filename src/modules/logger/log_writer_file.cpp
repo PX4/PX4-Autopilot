@@ -401,7 +401,7 @@ LogWriterFile::LogFileBuffer::~LogFileBuffer()
 		close(_fd);
 	}
 
-	delete[] _buffer;
+	free(_buffer);
 
 	perf_free(_perf_write);
 	perf_free(_perf_fsync);
@@ -457,7 +457,7 @@ bool LogWriterFile::LogFileBuffer::start_log(const char *filename)
 	}
 
 	if (_buffer == nullptr) {
-		_buffer = new uint8_t[_buffer_size];
+		_buffer = (uint8_t *) px4_cache_aligned_alloc(_buffer_size);
 
 		if (_buffer == nullptr) {
 			PX4_ERR("Can't create log buffer");

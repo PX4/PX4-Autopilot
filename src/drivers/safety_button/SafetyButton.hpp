@@ -43,7 +43,6 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
-#include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/safety.h>
@@ -78,13 +77,13 @@ private:
 	void FlashButton();
 	void CheckPairingRequest(bool button_pressed);
 
-
 	uORB::Subscription		_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Publication<safety_s>	_to_safety{ORB_ID(safety)};
-	uORB::PublicationQueued<vehicle_command_s>	_to_command{ORB_ID(vehicle_command)};
-	uORB::PublicationQueued<led_control_s> _to_led_control{ORB_ID(led_control)};
+	uORB::Publication<vehicle_command_s>	_to_command{ORB_ID(vehicle_command)};
+	uORB::Publication<led_control_s> _to_led_control{ORB_ID(led_control)};
 	uORB::Publication<tune_control_s> _to_tune_control{ORB_ID(tune_control)};
 
+	safety_s _safety{};
 
 	uint8_t				_button_counter{0};
 	uint8_t				_blink_counter{0};

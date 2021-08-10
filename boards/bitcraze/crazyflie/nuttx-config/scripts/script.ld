@@ -64,6 +64,7 @@ EXTERN(_vectors)	/* force the vectors to be included in the output */
  * code pulled in by libgcc.a requires it (and that code cannot be easily avoided).
  */
 EXTERN(abort)
+EXTERN(board_get_manifest)
 
 SECTIONS
 {
@@ -87,11 +88,6 @@ SECTIONS
 		*(.gnu.linkonce.r.*)
 		_etext = ABSOLUTE(.);
 
-		/*
-		 * This is a hack to make the newlib libm __errno() call
-		 * use the NuttX get_errno_ptr() function.
-		 */
-		__errno = get_errno_ptr;
 	} > flash
 
 	/*
@@ -103,14 +99,6 @@ SECTIONS
                 _einit = ABSOLUTE(.);
         } > flash
 
-	/*
-	 * Construction data for parameters.
-	 */
-	__param ALIGN(4): {
-		__param_start = ABSOLUTE(.);
-		KEEP(*(__param*))
-		__param_end = ABSOLUTE(.);
-	} > flash
 
 	.ARM.extab : {
 		*(.ARM.extab*)

@@ -33,13 +33,18 @@
 
 add_library(rc
 	crsf.cpp
+	ghst.cpp
 	st24.cpp
 	sumd.cpp
 	sbus.cpp
 	dsm.cpp
 	common_rc.cpp
 )
-target_compile_options(rc PRIVATE -Wno-unused-result)
+target_compile_options(rc
+	PRIVATE
+		#-DDEBUG_BUILD
+		-Wno-unused-result
+)
 target_link_libraries(rc PRIVATE prebuild_targets)
 
 if(PX4_TESTING AND (${PX4_PLATFORM} MATCHES "posix"))

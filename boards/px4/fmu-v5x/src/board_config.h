@@ -77,13 +77,13 @@
 
 /* PX4FMU GPIOs ***********************************************************************************/
 
-/* Trace Clock and D0-D3 are available on the debug connector and adjacent pads
+/* Trace Clock and D0-D3 are available on the trace connector
  *
- * TRACECLK PE2  - Dedicated  - Debug Connector Pin 7
- * TRACED0  PE3  - nLED_RED   - Debug Connector Pin 8
- * TRACED1  PE4  - nLED_GREEN - Test Point next to Debug Connector
- * TRACED2  PE5  - nLED_BLUE  - Test Point next to Debug Connector
- * TRACED3  PC12 - nARMED     - Test Point next to Debug Connector
+ * TRACECLK PE2  - Dedicated  - Trace Connector Pin 1
+ * TRACED0  PE3  - nLED_RED   - Trace Connector Pin 3
+ * TRACED1  PE4  - nLED_GREEN - Trace Connector Pin 5
+ * TRACED2  PE5  - nLED_BLUE  - Trace Connector Pin 7
+ * TRACED3  PC12 - nARMED     - Trace Connector Pin 8
 
  */
 #undef TRACE_PINS
@@ -111,10 +111,10 @@
  *
  * Note that these are unshifted addresses.
  */
-#define PX4_I2C_OBDEV_A71CH         0x49
+#define PX4_I2C_OBDEV_SE050         0x48
 
 #define GPIO_I2C4_DRDY1_BMP388      /* PG5  */  (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTG|GPIO_PIN5)
-#define GPIO_SE050_nRST             /* PG6  */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN6)
+#define GPIO_PG6                    /* PG6  */  (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN6)
 
 /*
  * ADC channels
@@ -185,11 +185,24 @@
 #define HW_INFO_INIT           {'V','5','X','x', 'x',0}
 #define HW_INFO_INIT_VER       3 /* Offset in above string of the VER */
 #define HW_INFO_INIT_REV       4 /* Offset in above string of the REV */
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 3
+// Base                   FMUM
+#define V5X00   HW_VER_REV(0x0,0x0) // FMUV5X,                 Rev 0
+#define V5X10   HW_VER_REV(0x1,0x0) // NO PX4IO,               Rev 0
+#define V5X01   HW_VER_REV(0x0,0x1) // FMUV5X I2C2 BMP388,     Rev 1
+#define V5X02   HW_VER_REV(0x0,0x2) // FMUV5X,                 Rev 2
+#define V5X90   HW_VER_REV(0x9,0x0) // NO USB,                 Rev 0
+#define V5X91   HW_VER_REV(0x9,0x1) // NO USB I2C2 BMP388,     Rev 1
+#define V5X92   HW_VER_REV(0x9,0x2) // NO USB I2C2 BMP388,     Rev 2
+#define V5Xa0   HW_VER_REV(0xa,0x0) // NO USB (Q),             Rev 0
+#define V5Xa1   HW_VER_REV(0xa,0x1) // NO USB (Q) I2C2 BMP388, Rev 1
+#define V5Xa2   HW_VER_REV(0xa,0x2) // NO USB (Q) I2C2 BMP388, Rev 2
 
 /* HEATER
  * PWM in future
  */
 #define GPIO_HEATER_OUTPUT   /* PB10  T2CH3 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
+#define HEATER_OUTPUT_EN(on_true)	       px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
 
 /* PWM Capture
  *
@@ -213,7 +226,7 @@
 #define GPIO_nARMED          /* PC12 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN12)
 
 #if !defined(TRACE_PINS)
-#  define BOARD_INDICATE_ARMED_STATE(on_armed)  px4_arch_configgpio((on_armed) ? GPIO_nARMED : GPIO_nARMED_INIT)
+#  define BOARD_INDICATE_EXTERNAL_LOCKOUT_STATE(enabled)  px4_arch_configgpio((enabled) ? GPIO_nARMED : GPIO_nARMED_INIT)
 #endif
 /* PWM
  */
@@ -242,9 +255,13 @@
 #define GPIO_VDD_3V3_SPEKTRUM_POWER_EN  /* PH2  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN2)
 #define GPIO_VDD_3V3_SD_CARD_EN         /* PC13 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN13)
 
+/* MCP23009 GPIO expander */
+#define BOARD_GPIO_VDD_5V_COMP_VALID           "/dev/gpin4"
+#define BOARD_GPIO_VDD_5V_CAN1_GPS1_VALID      "/dev/gpin5"
+
 /* Spare GPIO */
 
-#define GPIO_PH11                       /* PH11  */  (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTH|GPIO_PIN1)
+#define GPIO_PH11                       /* PH11  */  (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTH|GPIO_PIN11)
 
 /* ETHERNET GPIO */
 
@@ -264,7 +281,6 @@
 #define READ_VDD_3V3_SPEKTRUM_POWER_EN()   px4_arch_gpioread(GPIO_VDD_3V3_SPEKTRUM_POWER_EN)
 #define VDD_3V3_SD_CARD_EN(on_true)        px4_arch_gpiowrite(GPIO_VDD_3V3_SD_CARD_EN, (on_true))
 #define VDD_3V3_ETH_POWER_EN(on_true)      px4_arch_gpiowrite(GPIO_ETH_POWER_EN, (on_true))
-#define SE050_RESET(reset_true)            px4_arch_gpiowrite(GPIO_SE050_nRST, !(reset_true))
 
 
 /* Tone alarm output */
@@ -298,7 +314,8 @@
 /* Input Capture Channels. */
 #define INPUT_CAP1_TIMER                  5
 #define INPUT_CAP1_CHANNEL     /* T5C4 */ 4
-#define GPIO_INPUT_CAP1        /*  PI0 */ GPIO_TIM5_CH4_IN
+#define GPIO_INPUT_CAP1        /*  PI0 */ GPIO_TIM5_CH4IN
+#define BOARD_CAPTURE_GPIO /* PI0 */  (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTI|GPIO_PIN0)
 
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
 #define PWMIN_TIMER                       4
@@ -422,13 +439,16 @@
 		GPIO_TONE_ALARM_IDLE,             \
 		GPIO_nSAFETY_SWITCH_LED_OUT_INIT, \
 		GPIO_SAFETY_SWITCH_IN,            \
-		GPIO_SE050_nRST,                  \
+		GPIO_PG6,                         \
 		GPIO_nARMED_INIT                  \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
 #define BOARD_NUM_IO_TIMERS 5
+
+
+#define PX4_I2C_BUS_MTD      4,5
 
 __BEGIN_DECLS
 

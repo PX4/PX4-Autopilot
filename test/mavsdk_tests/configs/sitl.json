@@ -6,23 +6,20 @@
     [
         {
             "model": "iris",
+            "vehicle": "iris",
             "test_filter": "[multicopter],[offboard]",
             "timeout_min": 10
         },
         {
-            "model": "iris_opt_flow_mockup",
-            "test_filter": "[multicopter][offboard][nogps]",
+            "model": "standard_vtol",
+            "vehicle": "standard_vtol",
+            "test_filter": "[vtol]",
             "timeout_min": 10
         },
         {
-            "model": "iris_vision",
-            "test_filter": "[multicopter][offboard][nogps]",
-            "timeout_min": 10,
-            "max_speed_factor": 1
-        },
-        {
-            "model": "standard_vtol",
-            "test_filter": "[multicopter][vtol]",
+            "model": "tailsitter",
+            "vehicle": "tailsitter",
+            "test_filter": "[vtol]",
             "timeout_min": 10
         }
     ]

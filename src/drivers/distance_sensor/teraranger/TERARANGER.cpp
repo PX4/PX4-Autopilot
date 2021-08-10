@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -73,13 +73,16 @@ static uint8_t crc8(uint8_t *p, uint8_t len)
 	return crc & 0xFF;
 }
 
-TERARANGER::TERARANGER(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency) :
-	I2C(DRV_DIST_DEVTYPE_TERARANGER, MODULE_NAME, bus, TERARANGER_ONE_BASEADDR, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_rangefinder(get_device_id(), ORB_PRIO_DEFAULT, rotation)
+TERARANGER::TERARANGER(const I2CSPIDriverConfig &config) :
+	I2C(config),
+	I2CSPIDriver(config),
+	_px4_rangefinder(get_device_id(), config.rotation)
 {
 	// up the retries since the device misses the first measure attempts
 	I2C::_retries = 3;
+
+	_px4_rangefinder.set_device_type(DRV_DIST_DEVTYPE_TERARANGER);
+	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
 }
 
 TERARANGER::~TERARANGER()
@@ -205,9 +208,11 @@ int TERARANGER::init()
 		break;
 
 	default:
-		PX4_ERR("invalid HW model %d.", hw_model);
+		PX4_ERR("invalid HW model %" PRId32 ".", hw_model);
 		return PX4_ERROR;
 	}
+
+	start();
 
 	return PX4_OK;
 }
@@ -241,9 +246,8 @@ int TERARANGER::probe()
 		}
 	}
 
-	PX4_DEBUG("WHO_AM_I byte mismatch 0x%02x should be 0x%02x\n",
-		  (unsigned)who_am_i,
-		  TERARANGER_WHO_AM_I_REG_VAL);
+	PX4_DEBUG("WHO_AM_I byte mismatch 0x%02" PRIx8 " should be 0x%02" PRIx8 "\n",
+		  who_am_i, TERARANGER_WHO_AM_I_REG_VAL);
 
 	// Not found on any address.
 	return -EIO;
@@ -268,6 +272,4 @@ void TERARANGER::print_status()
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-
-	_px4_rangefinder.print_status();
 }

@@ -32,8 +32,7 @@
  ****************************************************************************/
 #pragma once
 
-
-#include <px4_platform/micro_hal.h>
+#include "../../../nxp_common/include/px4_arch/micro_hal.h"
 
 __BEGIN_DECLS
 
@@ -101,11 +100,12 @@ __BEGIN_DECLS
 #define px4_arch_gpioread(pinset)               imxrt_gpio_read(pinset)
 #define px4_arch_gpiowrite(pinset, value)       imxrt_gpio_write(pinset, value)
 
-/* imxrt_gpiosetevent is not implemented and will need to be added */
+int imxrt_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge, bool event, xcpt_t func, void *arg);
 
 #define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)  imxrt_gpiosetevent(pinset,r,f,e,fp,a)
 
 #define PX4_MAKE_GPIO_INPUT(gpio) (((gpio) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT | IOMUX_SCHMITT_TRIGGER | IOMUX_PULL_UP_47K | IOMUX_DRIVE_HIZ))
-#define PX4_MAKE_GPIO_OUTPUT(gpio) (((gpio) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_OUTPUT | GPIO_OUTPUT_ZERO | IOMUX_CMOS_OUTPUT | IOMUX_PULL_KEEP | IOMUX_DRIVE_33OHM  | IOMUX_SPEED_MEDIUM | IOMUX_SLEW_FAST))
+#define PX4_MAKE_GPIO_OUTPUT_CLEAR(gpio) (((gpio) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_OUTPUT | GPIO_OUTPUT_ZERO | IOMUX_CMOS_OUTPUT | IOMUX_PULL_KEEP | IOMUX_DRIVE_33OHM  | IOMUX_SPEED_MEDIUM | IOMUX_SLEW_FAST))
+#define PX4_MAKE_GPIO_OUTPUT_SET(gpio) (((gpio) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_OUTPUT | GPIO_OUTPUT_ONE | IOMUX_CMOS_OUTPUT | IOMUX_PULL_KEEP | IOMUX_DRIVE_33OHM  | IOMUX_SPEED_MEDIUM | IOMUX_SLEW_FAST))
 
 __END_DECLS

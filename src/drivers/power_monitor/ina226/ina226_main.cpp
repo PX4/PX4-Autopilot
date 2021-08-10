@@ -1,26 +1,55 @@
-
+/****************************************************************************
+ *
+ *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
 #include "ina226.h"
 
-I2CSPIDriverBase *INA226::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				      int runtime_instance)
+I2CSPIDriverBase *INA226::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
-	INA226 *instance = new INA226(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.i2c_address,
-				      cli.custom2);
+	INA226 *instance = new INA226(config, config.custom1);
 
 	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
 		return nullptr;
 	}
 
-	if (cli.custom1 == 1) {
-		if (instance->force_init() != OK) {
-			PX4_INFO("Failed to init INA226 on bus %d, but will try again periodically.", iterator.bus());
+	if (config.keep_running) {
+		if (instance->force_init() != PX4_OK) {
+			PX4_INFO("Failed to init INA226 on bus %d, but will try again periodically.", config.bus);
 		}
 
-	} else if (OK != instance->init()) {
+	} else if (instance->init() != PX4_OK) {
 		delete instance;
 		return nullptr;
 	}
@@ -52,7 +81,7 @@ this flag set, the battery must be plugged in before starting the driver.
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x41);
-	PRINT_MODULE_USAGE_PARAM_FLAG('k', "if initialization (probing) fails, keep retrying periodically", true);
+	PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG();
 	PRINT_MODULE_USAGE_PARAM_INT('t', 1, 1, 2, "battery index for calibration values (1 or 2)", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
@@ -65,21 +94,18 @@ ina226_main(int argc, char *argv[])
 	BusCLIArguments cli{true, false};
 	cli.i2c_address = INA226_BASEADDR;
 	cli.default_i2c_frequency = 100000;
-	cli.custom2 = 1;
+	cli.support_keep_running = true;
+	cli.custom1 = 1;
 
-	while ((ch = cli.getopt(argc, argv, "kt:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "t:")) != EOF) {
 		switch (ch) {
-		case 'k': // keep retrying
-			cli.custom1 = 1;
-			break;
-
 		case 't': // battery index
-			cli.custom2 = (int)strtol(cli.optarg(), NULL, 0);
+			cli.custom1 = (int)strtol(cli.optArg(), NULL, 0);
 			break;
 		}
 	}
 
-	const char *verb = cli.optarg();
+	const char *verb = cli.optArg();
 	if (!verb) {
 		ThisDriver::print_usage();
 		return -1;

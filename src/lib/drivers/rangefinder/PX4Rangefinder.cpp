@@ -35,51 +35,41 @@
 
 #include <lib/drivers/device/Device.hpp>
 
-PX4Rangefinder::PX4Rangefinder(const uint32_t device_id, const uint8_t priority, const uint8_t device_orientation) :
-	CDev(nullptr),
-	_distance_sensor_pub{ORB_ID(distance_sensor), priority}
+PX4Rangefinder::PX4Rangefinder(const uint32_t device_id, const uint8_t device_orientation)
 {
-	_class_device_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
-
 	set_device_id(device_id);
 	set_orientation(device_orientation);
+	set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER); // Default to type LASER
 }
 
 PX4Rangefinder::~PX4Rangefinder()
 {
-	if (_class_device_instance != -1) {
-		unregister_class_devname(RANGE_FINDER_BASE_DEVICE_PATH, _class_device_instance);
-	}
+	_distance_sensor_pub.unadvertise();
 }
 
-void
-PX4Rangefinder::set_device_type(uint8_t device_type)
+void PX4Rangefinder::set_device_type(uint8_t device_type)
 {
-	// TODO: range finders should have device ids
+	// current DeviceStructure
+	union device::Device::DeviceId device_id;
+	device_id.devid = _distance_sensor_pub.get().device_id;
 
-	// // current DeviceStructure
-	// union device::Device::DeviceId device_id;
-	// device_id.devid = _distance_sensor_pub.get().device_id;
+	// update to new device type
+	device_id.devid_s.devtype = device_type;
 
-	// // update to new device type
-	// device_id.devid_s.devtype = devtype;
-
-	// // copy back to report
-	// _distance_sensor_pub.get().device_id = device_id.devid;
+	// copy back to report
+	_distance_sensor_pub.get().device_id = device_id.devid;
 }
 
-void
-PX4Rangefinder::set_orientation(const uint8_t device_orientation)
+void PX4Rangefinder::set_orientation(const uint8_t device_orientation)
 {
 	_distance_sensor_pub.get().orientation = device_orientation;
 }
 
-void
-PX4Rangefinder::update(const hrt_abstime timestamp, const float distance, const int8_t quality)
+void PX4Rangefinder::update(const hrt_abstime &timestamp_sample, const float distance, const int8_t quality)
 {
 	distance_sensor_s &report = _distance_sensor_pub.get();
 
-	report.timestamp = timestamp;
+	report.timestamp = timestamp_sample;
 	report.current_distance = distance;
 	report.signal_quality = quality;
 
@@ -91,12 +81,4 @@ PX4Rangefinder::update(const hrt_abstime timestamp, const float distance, const 
 	}
 
 	_distance_sensor_pub.update();
-}
-
-void
-PX4Rangefinder::print_status()
-{
-	PX4_INFO(RANGE_FINDER_BASE_DEVICE_PATH " device instance: %d", _class_device_instance);
-
-	print_message(_distance_sensor_pub.get());
 }

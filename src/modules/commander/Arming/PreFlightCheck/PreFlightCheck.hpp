@@ -78,7 +78,7 @@ public:
 	*   true if the system power should be checked
 	**/
 	static bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
-				   vehicle_status_flags_s &status_flags, const bool checkGNSS, bool reportFailures, const bool prearm,
+				   vehicle_status_flags_s &status_flags, bool reportFailures, const bool prearm,
 				   const hrt_abstime &time_since_boot);
 
 	struct arm_requirements_t {
@@ -86,6 +86,7 @@ public:
 		bool esc_check = false;
 		bool global_position = false;
 		bool mission = false;
+		bool geofence = false;
 	};
 
 	static bool preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
@@ -97,23 +98,27 @@ private:
 				      const bool optional, int32_t &device_id, const bool report_fail);
 	static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const bool report_status);
 	static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
-				       const bool optional, const bool dynamic, int32_t &device_id, const bool report_fail);
+				       const bool optional, int32_t &device_id, const bool report_fail);
 	static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
 			      const bool optional, int32_t &device_id, const bool report_fail);
 	static bool baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
 			      const bool optional, int32_t &device_id, const bool report_fail);
 	static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const bool report_status);
 	static bool airspeedCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const bool optional,
-				  const bool report_fail, const bool prearm);
+				  const bool report_fail, const bool prearm, const bool max_airspeed_check_en, const float arming_max_airspeed_allowed);
 	static int rcCalibrationCheck(orb_advert_t *mavlink_log_pub, bool report_fail, bool isVTOL);
 	static bool powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail,
 			       const bool prearm);
 	static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_status, const bool optional,
-			      const bool report_fail, const bool enforce_gps_required);
+			      const bool report_fail);
+
+	static bool ekf2CheckSensorBias(orb_advert_t *mavlink_log_pub, const bool report_fail);
+
 	static bool failureDetectorCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail,
 					 const bool prearm);
-	static bool check_calibration(const char *param_template, const int32_t device_id);
+
 	static bool manualControlCheck(orb_advert_t *mavlink_log_pub, const bool report_fail);
 	static bool airframeCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status);
 	static bool cpuResourceCheck(orb_advert_t *mavlink_log_pub, const bool report_fail);
+	static bool sdcardCheck(orb_advert_t *mavlink_log_pub, bool &sd_card_detected_once, const bool report_fail);
 };

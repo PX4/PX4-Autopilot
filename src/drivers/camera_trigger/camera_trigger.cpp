@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,6 +43,7 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -54,17 +55,13 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/err.h>
 #include <parameters/param.h>
-#include <systemlib/mavlink_log.h>
 
-#include <uORB/PublicationQueued.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/camera_trigger.h>
-#include <uORB/topics/camera_capture.h>
-#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_global_position.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -72,8 +69,6 @@
 #include "interfaces/src/gpio.h"
 #include "interfaces/src/pwm.h"
 #include "interfaces/src/seagull_map2.h"
-
-extern "C" __EXPORT int camera_trigger_main(int argc, char *argv[]);
 
 typedef enum : int32_t {
 	CAMERA_INTERFACE_MODE_NONE = 0,
@@ -151,35 +146,50 @@ public:
 	 */
 	void		test();
 
+	/**
+	 * adjusts pose between triggers in CAMPOS mode
+	 */
+	void		adjust_roll();
+
 private:
 
-	struct hrt_call		_engagecall;
-	struct hrt_call		_disengagecall;
-	struct hrt_call     _engage_turn_on_off_call;
-	struct hrt_call     _disengage_turn_on_off_call;
-	struct hrt_call		_keepalivecall_up;
-	struct hrt_call		_keepalivecall_down;
+	struct hrt_call _engagecall {};
+	struct hrt_call _disengagecall {};
+	struct hrt_call _engage_turn_on_off_call {};
+	struct hrt_call _disengage_turn_on_off_call {};
+	struct hrt_call _keepalivecall_up {};
+	struct hrt_call _keepalivecall_down {};
 
-	float			_activation_time;
-	float			_interval;
-	float			_min_interval;
-	float 			_distance;
-	uint32_t 		_trigger_seq;
-	hrt_abstime		_last_trigger_timestamp;
-	bool			_trigger_enabled;
-	bool			_trigger_paused;
-	bool			_one_shot;
-	bool			_test_shot;
-	bool 			_turning_on;
-	matrix::Vector2f	_last_shoot_position;
-	bool			_valid_position;
+	float			_activation_time{0.5f};
+	float			_interval{100.f};
+	float			_min_interval{1.f};
+	float 			_distance{25.f};
+	uint32_t 		_trigger_seq{0};
+	hrt_abstime		_last_trigger_timestamp{0};
+	bool			_trigger_enabled{false};
+	bool			_trigger_paused{false};
+	bool			_one_shot{false};
+	bool			_test_shot{false};
+	bool 			_turning_on{false};
+	matrix::Vector2f	_last_shoot_position{0.f, 0.f};
+	bool			_valid_position{false};
+
+	//Camera Auto Mount Pivoting Oblique Survey (CAMPOS)
+	uint32_t		_CAMPOS_num_poses{0};
+	uint32_t		_CAMPOS_pose_counter{0};
+	float			_CAMPOS_roll_angle{0.f};
+	float			_CAMPOS_angle_interval{0.f};
+	float			_CAMPOS_pitch_angle{-90.f};
+	bool			_CAMPOS_updated_roll_angle{false};
+	uint32_t		_target_system{0};
+	uint32_t		_target_component{0};
 
 	uORB::Subscription	_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription	_lpos_sub{ORB_ID(vehicle_local_position)};
 
-	orb_advert_t		_trigger_pub;
+	orb_advert_t		_trigger_pub{nullptr};
 
-	uORB::PublicationQueued<vehicle_command_ack_s>	_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_ack_s>	_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	param_t			_p_mode;
 	param_t			_p_activation_time;
@@ -189,11 +199,11 @@ private:
 	param_t			_p_interface;
 	param_t 		_p_cam_cap_fback;
 
-	trigger_mode_t		_trigger_mode;
-	int32_t _cam_cap_fback;
+	trigger_mode_t		_trigger_mode{TRIGGER_MODE_NONE};
+	int32_t _cam_cap_fback{0};
 
-	camera_interface_mode_t	_camera_interface_mode;
-	CameraInterface		*_camera_interface;  ///< instance of camera interface
+	camera_interface_mode_t	_camera_interface_mode{CAMERA_INTERFACE_MODE_GPIO};
+	CameraInterface		*_camera_interface{nullptr};  ///< instance of camera interface
 
 	/**
 	 * Vehicle command handler
@@ -237,31 +247,7 @@ CameraTrigger	*g_camera_trigger;
 }
 
 CameraTrigger::CameraTrigger() :
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
-	_engagecall {},
-	_disengagecall {},
-	_engage_turn_on_off_call {},
-	_disengage_turn_on_off_call {},
-	_keepalivecall_up {},
-	_keepalivecall_down {},
-	_activation_time(0.5f /* ms */),
-	_interval(100.0f /* ms */),
-	_min_interval(1.0f /* ms */),
-	_distance(25.0f /* m */),
-	_trigger_seq(0),
-	_last_trigger_timestamp(0),
-	_trigger_enabled(false),
-	_trigger_paused(false),
-	_one_shot(false),
-	_test_shot(false),
-	_turning_on(false),
-	_last_shoot_position(0.0f, 0.0f),
-	_valid_position(false),
-	_trigger_pub(nullptr),
-	_trigger_mode(TRIGGER_MODE_NONE),
-	_cam_cap_fback(0),
-	_camera_interface_mode(CAMERA_INTERFACE_MODE_GPIO),
-	_camera_interface(nullptr)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
 	// Initiate camera interface based on camera_interface_mode
 	if (_camera_interface != nullptr) {
@@ -310,7 +296,7 @@ CameraTrigger::CameraTrigger() :
 		break;
 
 	default:
-		PX4_ERR("unknown camera interface mode: %i", (int)_camera_interface_mode);
+		PX4_ERR("unknown camera interface mode: %d", static_cast<int>(_camera_interface_mode));
 		break;
 	}
 
@@ -319,13 +305,14 @@ CameraTrigger::CameraTrigger() :
 	if ((_activation_time < 40.0f) &&
 	    (_camera_interface_mode == CAMERA_INTERFACE_MODE_GENERIC_PWM ||
 	     _camera_interface_mode == CAMERA_INTERFACE_MODE_SEAGULL_MAP2_PWM)) {
+
 		_activation_time = 40.0f;
 		PX4_WARN("Trigger interval too low for PWM interface, setting to 40 ms");
 		param_set_no_notification(_p_activation_time, &(_activation_time));
 	}
 
 	// Advertise critical publishers here, because we cannot advertise in interrupt context
-	struct camera_trigger_s trigger = {};
+	camera_trigger_s trigger{};
 
 	if (!_cam_cap_fback) {
 		_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
@@ -351,13 +338,13 @@ CameraTrigger::update_intervalometer()
 	// control_intervalometer once on enabling/disabling trigger to schedule the calls.
 
 	if (_trigger_enabled && !_trigger_paused) {
-		// schedule trigger on and off calls
-		hrt_call_every(&_engagecall, 0, (_interval * 1000),
-			       (hrt_callout)&CameraTrigger::engage, this);
+		PX4_DEBUG("update intervalometer, trigger enabled: %d, trigger paused: %d", _trigger_enabled, _trigger_paused);
 
 		// schedule trigger on and off calls
-		hrt_call_every(&_disengagecall, 0 + (_activation_time * 1000), (_interval * 1000),
-			       (hrt_callout)&CameraTrigger::disengage, this);
+		hrt_call_every(&_engagecall, 0, (_interval * 1000), &CameraTrigger::engage, this);
+
+		// schedule trigger on and off calls
+		hrt_call_every(&_disengagecall, 0 + (_activation_time * 1000), (_interval * 1000), &CameraTrigger::disengage, this);
 
 	}
 }
@@ -373,7 +360,6 @@ CameraTrigger::update_distance()
 	_lpos_sub.copy(&local);
 
 	if (local.xy_valid) {
-
 		// Initialize position if not done yet
 		matrix::Vector2f current_position(local.x, local.y);
 
@@ -387,9 +373,17 @@ CameraTrigger::update_distance()
 			}
 		}
 
+		hrt_abstime now = hrt_absolute_time();
+
+		if (!_CAMPOS_updated_roll_angle && _CAMPOS_num_poses > 0 && (now - _last_trigger_timestamp > _min_interval * 1000)) {
+			adjust_roll();
+			_CAMPOS_updated_roll_angle = true;
+		}
+
 		// Check that distance threshold is exceeded
 		if (matrix::Vector2f(_last_shoot_position - current_position).length() >= _distance) {
 			shoot_once();
+			_CAMPOS_updated_roll_angle = false;
 			_last_shoot_position = current_position;
 		}
 	}
@@ -399,14 +393,15 @@ void
 CameraTrigger::enable_keep_alive(bool on)
 {
 	if (on) {
-		// schedule keep-alive up and down calls
-		hrt_call_every(&_keepalivecall_up, 0, (60000 * 1000),
-			       (hrt_callout)&CameraTrigger::keep_alive_up, this);
+		PX4_DEBUG("keep alive enable");
 
-		hrt_call_every(&_keepalivecall_down, 0 + (30000 * 1000), (60000 * 1000),
-			       (hrt_callout)&CameraTrigger::keep_alive_down, this);
+		// schedule keep-alive up and down calls
+		hrt_call_every(&_keepalivecall_up, 0, (60000 * 1000), &CameraTrigger::keep_alive_up, this);
+
+		hrt_call_every(&_keepalivecall_down, 0 + (30000 * 1000), (60000 * 1000), &CameraTrigger::keep_alive_down, this);
 
 	} else {
+		PX4_DEBUG("keep alive disable");
 		// cancel all calls
 		hrt_cancel(&_keepalivecall_up);
 		hrt_cancel(&_keepalivecall_down);
@@ -416,23 +411,24 @@ CameraTrigger::enable_keep_alive(bool on)
 void
 CameraTrigger::toggle_power()
 {
-	// schedule power toggle calls
-	hrt_call_after(&_engage_turn_on_off_call, 0,
-		       (hrt_callout)&CameraTrigger::engange_turn_on_off, this);
+	PX4_DEBUG("toggle power");
 
-	hrt_call_after(&_disengage_turn_on_off_call, 0 + (200 * 1000),
-		       (hrt_callout)&CameraTrigger::disengage_turn_on_off, this);
+	// schedule power toggle calls
+	hrt_call_after(&_engage_turn_on_off_call, 0, &CameraTrigger::engange_turn_on_off, this);
+
+	hrt_call_after(&_disengage_turn_on_off_call, 0 + (200 * 1000), &CameraTrigger::disengage_turn_on_off, this);
 }
 
 void
 CameraTrigger::shoot_once()
 {
+	PX4_DEBUG("shoot once");
+
 	// schedule trigger on and off calls
 	hrt_call_after(&_engagecall, 0,
 		       (hrt_callout)&CameraTrigger::engage, this);
 
-	hrt_call_after(&_disengagecall, 0 + (_activation_time * 1000),
-		       (hrt_callout)&CameraTrigger::disengage, this);
+	hrt_call_after(&_disengagecall, 0 + (_activation_time * 1000), &CameraTrigger::disengage, this);
 }
 
 bool
@@ -500,11 +496,13 @@ void
 CameraTrigger::test()
 {
 	vehicle_command_s vcmd{};
-	vcmd.timestamp = hrt_absolute_time();
 	vcmd.param5 = 1.0;
 	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL;
+	vcmd.target_system = 1;
+	vcmd.target_component = 1;
 
-	uORB::PublicationQueued<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
+	vcmd.timestamp = hrt_absolute_time();
 	vcmd_pub.publish(vcmd);
 }
 
@@ -522,14 +520,15 @@ CameraTrigger::Run()
 	_turning_on = false;
 
 	// these flags are used to detect state changes in the command loop
-	bool main_state = _trigger_enabled;
-	bool pause_state = _trigger_paused;
+	bool previous_trigger_state = _trigger_enabled;
+	bool previous_trigger_paused = _trigger_paused;
 
 	bool updated = _command_sub.update(&cmd);
 
 	// Command handling
 	if (updated) {
 		if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL) {
+			PX4_DEBUG("received DO_DIGICAM_CONTROL");
 
 			need_ack = true;
 			hrt_abstime now = hrt_absolute_time();
@@ -542,20 +541,18 @@ CameraTrigger::Run()
 				if (commandParamToInt(cmd.param7) == 1) {
 					// test shots are not logged or forwarded to GCS for geotagging
 					_test_shot = true;
-
 				}
 
 				if (commandParamToInt((float)cmd.param5) == 1) {
 					// Schedule shot
 					_one_shot = true;
-
 				}
 
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 			}
 
 		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL) {
-
+			PX4_DEBUG("received DO_TRIGGER_CONTROL");
 			need_ack = true;
 
 			if (commandParamToInt(cmd.param3) == 1) {
@@ -581,13 +578,12 @@ CameraTrigger::Run()
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_DIST) {
-
+			PX4_DEBUG("received DO_SET_CAM_TRIGG_DIST");
 			need_ack = true;
 
 			/*
 			 * TRANSITIONAL SUPPORT ADDED AS OF 11th MAY 2017 (v1.6 RELEASE)
 			 */
-
 			if (cmd.param1 > 0.0f) {
 				_distance = cmd.param1;
 				param_set_no_notification(_p_distance, &_distance);
@@ -620,7 +616,7 @@ CameraTrigger::Run()
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_INTERVAL) {
-
+			PX4_DEBUG("received DO_SET_CAM_TRIGG_INTERVAL");
 			need_ack = true;
 
 			if (cmd.param1 > 0.0f) {
@@ -637,12 +633,69 @@ CameraTrigger::Run()
 			}
 
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_OBLIQUE_SURVEY) {
+			PX4_INFO("received OBLIQUE_SURVEY");
+			// Camera Auto Mount Pivoting Oblique Survey (CAMPOS)
+
+			need_ack = true;
+
+			if (cmd.param1 > 0.0f) {
+				_distance = cmd.param1;
+				param_set_no_notification(_p_distance, &_distance);
+
+				_trigger_enabled = true;
+				_trigger_paused = false;
+				_valid_position = false;
+
+			} else if (commandParamToInt(cmd.param1) == 0) {
+				_trigger_paused = true;
+
+			} else if (commandParamToInt(cmd.param1) == -1) {
+				_trigger_enabled = false;
+			}
+
+			// We can only control the shutter integration time of the camera in GPIO mode (for now)
+			if (cmd.param2 > 0.0f) {
+				if (_camera_interface_mode == CAMERA_INTERFACE_MODE_GPIO) {
+					_activation_time = cmd.param2;
+					param_set_no_notification(_p_activation_time, &(_activation_time));
+				}
+			}
+
+			// Set Param for minimum camera trigger interval
+			if (cmd.param3 > 0.0f) {
+				_min_interval = cmd.param3;
+				param_set_no_notification(_p_min_interval, &(_min_interval));
+			}
+
+			if (cmd.param4 >= 2.0f) {
+				_CAMPOS_num_poses = commandParamToInt(cmd.param4);
+				_CAMPOS_roll_angle = cmd.param5;
+				_CAMPOS_pitch_angle = cmd.param6;
+				_CAMPOS_angle_interval = _CAMPOS_roll_angle * 2 / (_CAMPOS_num_poses - 1);
+				_CAMPOS_pose_counter = 0;
+				_CAMPOS_updated_roll_angle = false;
+
+			} else {
+				_CAMPOS_num_poses = 0;
+			}
+
+			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+		} else {
+			goto unknown_cmd;
 		}
+
+		_target_system = cmd.target_system;
+		_target_component = cmd.target_component;
 	}
 
+unknown_cmd:
+
 	// State change handling
-	if ((main_state != _trigger_enabled) ||
-	    (pause_state != _trigger_paused) ||
+	if ((previous_trigger_state != _trigger_enabled) ||
+	    (previous_trigger_paused != _trigger_paused) ||
 	    _one_shot) {
 
 		if (_trigger_enabled || _one_shot) { // Just got enabled via a command
@@ -658,8 +711,9 @@ CameraTrigger::Run()
 				poll_interval_usec = 3000000;
 				_turning_on = true;
 			}
+		}
 
-		} else if (!_trigger_enabled || _trigger_paused) { // Just got disabled/paused via a command
+		if ((!_trigger_enabled || _trigger_paused) && !_one_shot) { // Just got disabled/paused via a command
 
 			// Power off the camera if we are disabled
 			if (_camera_interface->is_powered_on() &&
@@ -706,7 +760,6 @@ CameraTrigger::Run()
 
 	// One shot command-based capture handling
 	if (_one_shot && !_turning_on) {
-
 		// One-shot trigger
 		shoot_once();
 		_one_shot = false;
@@ -718,18 +771,43 @@ CameraTrigger::Run()
 
 	// Command ACK handling
 	if (updated && need_ack) {
+		PX4_DEBUG("acknowledging command %" PRId32 ", result=%u", cmd.command, cmd_result);
 		vehicle_command_ack_s command_ack{};
-
-		command_ack.timestamp = hrt_absolute_time();
 		command_ack.command = cmd.command;
 		command_ack.result = (uint8_t)cmd_result;
 		command_ack.target_system = cmd.source_system;
 		command_ack.target_component = cmd.source_component;
-
+		command_ack.timestamp = hrt_absolute_time();
 		_cmd_ack_pub.publish(command_ack);
 	}
 
 	ScheduleDelayed(poll_interval_usec);
+}
+
+void
+CameraTrigger::adjust_roll()
+{
+	vehicle_command_s vcmd{};
+
+	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL;
+	vcmd.target_system = _target_system;
+	vcmd.target_component = _target_component;
+
+	//param1 of VEHICLE_CMD_DO_MOUNT_CONTROL in VEHICLE_MOUNT_MODE_MAVLINK_TARGETING mode is pitch
+	vcmd.param1 = _CAMPOS_pitch_angle;
+
+	//param2 of VEHICLE_CMD_DO_MOUNT_CONTROL in VEHICLE_MOUNT_MODE_MAVLINK_TARGETING mode is roll
+	if (++_CAMPOS_pose_counter == _CAMPOS_num_poses) {
+		_CAMPOS_pose_counter = 0;
+	}
+
+	vcmd.param2 = _CAMPOS_angle_interval * _CAMPOS_pose_counter - _CAMPOS_roll_angle;
+
+	vcmd.param7 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
+
+	uORB::Publication<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
+	vcmd.timestamp = hrt_absolute_time();
+	vcmd_pub.publish(vcmd);
 }
 
 void
@@ -755,18 +833,15 @@ CameraTrigger::engage(void *arg)
 
 	// Send camera trigger message. This messages indicates that we sent
 	// the camera trigger request. Does not guarantee capture.
+	camera_trigger_s trigger{};
 
-	struct camera_trigger_s	trigger = {};
-
-	// Set timestamp the instant after the trigger goes off
-	trigger.timestamp = now;
-
-	timespec tv = {};
+	timespec tv{};
 	px4_clock_gettime(CLOCK_REALTIME, &tv);
 	trigger.timestamp_utc = (uint64_t) tv.tv_sec * 1000000 + tv.tv_nsec / 1000;
 
 	trigger.seq = trig->_trigger_seq;
 	trigger.feedback = false;
+	trigger.timestamp = hrt_absolute_time();
 
 	if (!trig->_cam_cap_fback) {
 		orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &trigger);
@@ -822,9 +897,9 @@ CameraTrigger::keep_alive_down(void *arg)
 void
 CameraTrigger::status()
 {
-	PX4_INFO("main state : %s", _trigger_enabled ? "enabled" : "disabled");
-	PX4_INFO("pause state : %s", _trigger_paused ? "paused" : "active");
-	PX4_INFO("mode : %i", _trigger_mode);
+	PX4_INFO("trigger enabled : %s", _trigger_enabled ? "enabled" : "disabled");
+	PX4_INFO("trigger paused : %s", _trigger_paused ? "paused" : "active");
+	PX4_INFO("mode : %d", static_cast<int>(_trigger_mode));
 
 	if (_trigger_mode == TRIGGER_MODE_INTERVAL_ALWAYS_ON ||
 	    _trigger_mode == TRIGGER_MODE_INTERVAL_ON_CMD) {
@@ -849,7 +924,7 @@ static int usage()
 	return 1;
 }
 
-int camera_trigger_main(int argc, char *argv[])
+extern "C" __EXPORT int camera_trigger_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		return usage();

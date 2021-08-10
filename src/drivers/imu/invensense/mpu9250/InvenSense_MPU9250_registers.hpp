@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,6 +54,8 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
+static constexpr uint32_t I2C_ADDRESS_DEFAULT = 0x69; // 0b110100X
+static constexpr uint32_t I2C_SPEED = 400 * 1000;
 
 static constexpr uint32_t SPI_SPEED = 1 * 1000 * 1000;
 static constexpr uint32_t SPI_SPEED_SENSOR = 10 * 1000 * 1000; // 20MHz for reading sensor and interrupt registers
@@ -65,6 +67,7 @@ static constexpr float TEMPERATURE_SENSITIVITY = 333.87f; // LSB/C
 static constexpr float TEMPERATURE_OFFSET = 21.f; // C
 
 enum class Register : uint8_t {
+
 	CONFIG             = 0x1A,
 	GYRO_CONFIG        = 0x1B,
 	ACCEL_CONFIG       = 0x1C,
@@ -78,7 +81,6 @@ enum class Register : uint8_t {
 
 	I2C_SLV4_CTRL      = 0x34,
 
-	I2C_MST_STATUS     = 0x36,
 	INT_PIN_CFG        = 0x37,
 	INT_ENABLE         = 0x38,
 
@@ -101,13 +103,24 @@ enum class Register : uint8_t {
 	FIFO_COUNTL        = 0x73,
 	FIFO_R_W           = 0x74,
 	WHO_AM_I           = 0x75,
+
+	XA_OFFSET_H        = 0x77,
+	XA_OFFSET_L        = 0x78,
+
+	YA_OFFSET_H        = 0x7A,
+	YA_OFFSET_L        = 0x7B,
+
+	ZA_OFFSET_H        = 0x7D,
+	ZA_OFFSET_L        = 0x7E,
 };
 
 // CONFIG
 enum CONFIG_BIT : uint8_t {
 	FIFO_MODE = Bit6, // when the FIFO is full, additional writes will not be written to FIFO
 
-	DLPF_CFG_BYPASS_DLPF_8KHZ = 7, // Rate 8 kHz [2:0]
+	// DLPF_CFG[2:0]
+	DLPF_CFG_Fs_1KHZ          = 1, // Rate 1 kHz,  184 Hz Bandwidth
+	DLPF_CFG_BYPASS_DLPF_8KHZ = 7, // Rate 8 kHz, 3600 Hz Bandwidth
 };
 
 // GYRO_CONFIG
@@ -119,7 +132,7 @@ enum GYRO_CONFIG_BIT : uint8_t {
 	GYRO_FS_SEL_2000_DPS	= Bit4 | Bit3, // 0b11000
 
 	// FCHOICE_B [1:0]
-	FCHOICE_B_8KHZ_BYPASS_DLPF = Bit1 | Bit0, // 0b00 - 3-dB BW: 3281 Noise BW (Hz): 3451.0   8 kHz
+	FCHOICE_B_BYPASS_DLPF  = Bit1 | Bit0, // 0b00 - 3-dB BW: 3281 Noise BW (Hz): 3451.0   8 kHz
 };
 
 // ACCEL_CONFIG
@@ -134,6 +147,9 @@ enum ACCEL_CONFIG_BIT : uint8_t {
 // ACCEL_CONFIG2
 enum ACCEL_CONFIG2_BIT : uint8_t {
 	ACCEL_FCHOICE_B_BYPASS_DLPF = Bit3,
+
+	// [2:0] A_DLPFCFG
+	A_DLPFCFG_BW_218HZ_DLPF = 1, // Rate 1 kHz, 218.1 Hz Bandwidth (DLPF filter Block)
 };
 
 // FIFO_EN
@@ -178,7 +194,8 @@ enum I2C_SLV4_CTRL_BIT : uint8_t {
 
 // INT_PIN_CFG
 enum INT_PIN_CFG_BIT : uint8_t {
-	ACTL = Bit7,
+	ACTL      = Bit7,
+	BYPASS_EN = Bit1, // interface pins(ES_CL and ES_DA) will go into ‘bypass mode’ when the i2c master interface is disabled
 };
 
 // INT_ENABLE
@@ -214,11 +231,9 @@ enum PWR_MGMT_1_BIT : uint8_t {
 	H_RESET    = Bit7,
 	SLEEP      = Bit6,
 
-	CLKSEL_2   = Bit2,
-	CLKSEL_1   = Bit1,
-	CLKSEL_0   = Bit0,
+	// CLKSEL[2:0]
+	CLKSEL_0     = Bit0, // It is required that CLKSEL[2:0] be set to 001 to achieve full gyroscope performance.
 };
-
 
 namespace FIFO
 {

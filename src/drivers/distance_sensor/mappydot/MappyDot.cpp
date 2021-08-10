@@ -43,7 +43,6 @@
 
 #include <containers/Array.hpp>
 #include <drivers/device/i2c.h>
-#include <drivers/drv_range_finder.h>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module_params.h>
@@ -145,11 +144,9 @@ using namespace time_literals;
 class MappyDot : public device::I2C, public ModuleParams, public I2CSPIDriver<MappyDot>
 {
 public:
-	MappyDot(I2CSPIBusOption bus_option, const int bus, int bus_frequency);
+	MappyDot(const I2CSPIDriverConfig &config);
 	virtual ~MappyDot();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	/**
@@ -180,7 +177,7 @@ private:
 	/**
 	 * Sends an i2c measure command to check for presence of a sensor.
 	 */
-	int probe();
+	int probe() override;
 
 	/**
 	 * Collects the most recent sensor measurement data from the i2c bus.
@@ -192,10 +189,12 @@ private:
 	 */
 	int get_sensor_rotation(const size_t index);
 
+	static constexpr int RANGE_FINDER_MAX_SENSORS = 12;
+
 	px4::Array<uint8_t, RANGE_FINDER_MAX_SENSORS> _sensor_addresses {};
 	px4::Array<uint8_t, RANGE_FINDER_MAX_SENSORS> _sensor_rotations {};
 
-	size_t _sensor_count{0};
+	int _sensor_count{0};
 
 	orb_advert_t _distance_sensor_topic{nullptr};
 
@@ -220,11 +219,13 @@ private:
 };
 
 
-MappyDot::MappyDot(I2CSPIBusOption bus_option, const int bus, int bus_frequency) :
-	I2C(DRV_DIST_DEVTYPE_MAPPYDOT, MODULE_NAME, bus, MAPPYDOT_BASE_ADDR, bus_frequency),
+MappyDot::MappyDot(const I2CSPIDriverConfig &config) :
+	I2C(config),
 	ModuleParams(nullptr),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus)
-{}
+	I2CSPIDriver(config)
+{
+	set_device_type(DRV_DIST_DEVTYPE_MAPPYDOT);
+}
 
 MappyDot::~MappyDot()
 {
@@ -245,7 +246,7 @@ MappyDot::collect()
 	perf_begin(_sample_perf);
 
 	// Increment the sensor index, (limited to the number of sensors connected).
-	for (size_t index = 0; index < _sensor_count; index++) {
+	for (int index = 0; index < _sensor_count; index++) {
 
 		// Set address of the current sensor to collect data from.
 		set_device_address(_sensor_addresses[index]);
@@ -265,7 +266,7 @@ MappyDot::collect()
 
 		distance_sensor_s report {};
 		report.current_distance = distance_m;
-		report.id               = _sensor_addresses[index];
+		report.device_id        = get_device_id();
 		report.max_distance     = MAPPYDOT_MAX_DISTANCE;
 		report.min_distance     = MAPPYDOT_MIN_DISTANCE;
 		report.orientation      = _sensor_rotations[index];
@@ -275,8 +276,7 @@ MappyDot::collect()
 		report.variance         = 0;
 
 		int instance_id;
-		orb_publish_auto(ORB_ID(distance_sensor), &_distance_sensor_topic, &report, &instance_id, ORB_PRIO_DEFAULT);
-
+		orb_publish_auto(ORB_ID(distance_sensor), &_distance_sensor_topic, &report, &instance_id);
 	}
 
 	perf_end(_sample_perf);
@@ -332,7 +332,7 @@ MappyDot::init()
 
 	// Check for connected rangefinders on each i2c port,
 	// starting from the base address 0x08 and incrementing
-	for (size_t i = 0; i <= RANGE_FINDER_MAX_SENSORS; i++) {
+	for (int i = 0; i <= RANGE_FINDER_MAX_SENSORS; i++) {
 		set_device_address(MAPPYDOT_BASE_ADDR + i);
 
 		// Check if a sensor is present.
@@ -380,6 +380,7 @@ MappyDot::init()
 
 	PX4_INFO("%i sensors connected", _sensor_count);
 
+	start();
 	return PX4_OK;
 }
 
@@ -415,9 +416,6 @@ MappyDot::RunImpl()
 void
 MappyDot::start()
 {
-	// Fetch parameter values.
-	ModuleParams::updateParams();
-
 	// Schedule the driver to run on a set interval
 	ScheduleOnInterval(MAPPYDOT_MEASUREMENT_INTERVAL_USEC, 10000);
 }
@@ -432,25 +430,6 @@ MappyDot::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *MappyDot::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					int runtime_instance)
-{
-	MappyDot *instance = new MappyDot(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency);
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (instance->init() != PX4_OK) {
-		delete instance;
-		return nullptr;
-	}
-
-	instance->start();
-	return instance;
-}
-
 extern "C" __EXPORT int mappydot_main(int argc, char *argv[])
 {
 	using ThisDriver = MappyDot;
@@ -463,6 +442,8 @@ extern "C" __EXPORT int mappydot_main(int argc, char *argv[])
 		ThisDriver::print_usage();
 		return -1;
 	}
+
+	cli.i2c_address = MAPPYDOT_BASE_ADDR;
 
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_DIST_DEVTYPE_MAPPYDOT);
 

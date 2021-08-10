@@ -2,6 +2,7 @@
 
 import argparse
 import datetime
+import fnmatch
 import json
 import math
 import os
@@ -14,6 +15,16 @@ from logger_helper import color, colorize
 import process_helper as ph
 from typing import Any, Dict, List, NoReturn, TextIO, Optional
 from types import FrameType
+
+try:
+    import requests
+except ImportError as e:
+    print("Failed to import requests: " + str(e))
+    print("")
+    print("You may need to install it using:")
+    print("    pip3 install --user requests")
+    print("")
+    sys.exit(1)
 
 
 def main() -> NoReturn:
@@ -32,9 +43,12 @@ def main() -> NoReturn:
     parser.add_argument("--model", type=str, default='all',
                         help="only run tests for one model")
     parser.add_argument("--case", type=str, default='all',
-                        help="only run tests for one case")
+                        help="only run tests for one case "
+                             "(or multiple cases with wildcard '*')")
     parser.add_argument("--debugger", default="",
                         help="choice from valgrind, callgrind, gdb, lldb")
+    parser.add_argument("--upload", default=False, action='store_true',
+                        help="Upload logs to logs.px4.io")
     parser.add_argument("--verbose", default=False, action='store_true',
                         help="enable more verbose output")
     parser.add_argument("config_file", help="JSON config file to use")
@@ -65,7 +79,8 @@ def main() -> NoReturn:
         args.debugger,
         args.log_dir,
         args.gui,
-        args.verbose
+        args.verbose,
+        args.upload
     )
     signal.signal(signal.SIGINT, tester.sigint_handler)
 
@@ -122,7 +137,8 @@ class Tester:
                  debugger: str,
                  log_dir: str,
                  gui: bool,
-                 verbose: bool):
+                 verbose: bool,
+                 upload: bool):
         self.config = config
         self.active_runners: List[ph.Runner]
         self.iterations = iterations
@@ -133,8 +149,9 @@ class Tester:
         self.log_dir = log_dir
         self.gui = gui
         self.verbose = verbose
+        self.upload = upload
         self.start_time = datetime.datetime.now()
-        self.combined_log_fd = TextIO
+        self.log_fd: Any[TextIO] = None
 
     @classmethod
     def determine_tests(cls,
@@ -148,9 +165,14 @@ class Tester:
             for key in test['cases'].keys():
                 test['cases'][key] = {
                     'selected': (test['selected'] and
-                                 (case == 'all' or case == key))}
+                                 (case == 'all' or
+                                  cls.wildcard_match(case, key)))}
 
         return tests
+
+    @staticmethod
+    def wildcard_match(pattern: str, potential_match: str) -> bool:
+        return fnmatch.fnmatchcase(potential_match, pattern)
 
     @staticmethod
     def query_test_cases(filter: str) -> List[str]:
@@ -269,7 +291,7 @@ class Tester:
 
                 log_dir = self.get_log_dir(iteration, test['model'], key)
                 if self.verbose:
-                    print("creating log directory: {}"
+                    print("Creating log directory: {}"
                           .format(log_dir))
                 os.makedirs(log_dir, exist_ok=True)
 
@@ -341,6 +363,8 @@ class Tester:
             is_success = False
 
         self.stop_runners()
+        # Collect what was left in output buffers.
+        self.collect_runner_output()
         self.stop_combined_log()
 
         result = {'success': is_success,
@@ -355,6 +379,12 @@ class Tester:
             print("  - {}".format(logfile_path))
             for runner in self.active_runners:
                 print("  - {}".format(runner.get_log_filename()))
+
+        if self.upload:
+            ulog_file = self.parse_for_ulog_file(
+                self.get_combined_log(logfile_path))
+            self.upload_log(ulog_file, test['model'], case, is_success)
+
         return is_success
 
     def start_runners(self,
@@ -377,7 +407,7 @@ class Tester:
                 gzserver_runner = ph.GzserverRunner(
                     os.getcwd(),
                     log_dir,
-                    test['model'],
+                    test['vehicle'],
                     case,
                     self.get_max_speed_factor(test),
                     self.verbose)
@@ -386,7 +416,7 @@ class Tester:
                 gzmodelspawn_runner = ph.GzmodelspawnRunner(
                     os.getcwd(),
                     log_dir,
-                    test['model'],
+                    test['vehicle'],
                     case,
                     self.verbose)
                 self.active_runners.append(gzmodelspawn_runner)
@@ -406,6 +436,7 @@ class Tester:
             test['model'],
             case,
             self.config['mavlink_connection'],
+            self.speed_factor,
             self.verbose)
         self.active_runners.append(mavsdk_tests_runner)
 
@@ -422,9 +453,11 @@ class Tester:
                 break
 
             # Workaround to prevent gz not being able to communicate
-            # with gzserver
+            # with gzserver. In CI it tends to take longer.
             if os.getenv("GITHUB_WORKFLOW") and runner.name == "gzserver":
                 time.sleep(10)
+            else:
+                time.sleep(2)
 
         if abort:
             self.stop_runners()
@@ -448,11 +481,71 @@ class Tester:
                 if self.verbose:
                     print(line, end="")
 
+    def parse_for_ulog_file(self, log: str) -> Optional[str]:
+
+        match = "[logger] Opened full log file: ./"
+        for line in log.splitlines():
+            found = line.find(match)
+            if found != -1:
+                return os.getcwd() \
+                    + "/build/px4_sitl_default/tmp_mavsdk_tests/rootfs/" \
+                    + line[found+len(match):]
+        return None
+
+    def upload_log(self, ulog_path: Optional[str],
+                   model: str, case: str, success: bool) -> None:
+        if not ulog_path:
+            print("    Could not find ulog log file to upload")
+            return
+
+        if not os.getenv('GITHUB_RUN_ID'):
+            print("    Upload only implemented for GitHub Actions CI")
+            return
+
+        print("    Uploading logfile '{}' ...".format(ulog_path))
+
+        server = "https://logs.px4.io"
+
+        result_str = "passing" if success else "failing"
+
+        payload = {
+            "type": "flightreport",
+            "description": "SITL integration test - {}: '{}' -> {}"
+            .format(model, case, result_str),
+            "feedback":
+                "{}/{}/actions/runs/{}"
+                .format(os.getenv("GITHUB_SERVER_URL"),
+                        os.getenv("GITHUB_REPOSITORY"),
+                        os.getenv("GITHUB_RUN_ID")),
+            "email": "",
+            "source": "CI",
+            "videoUrl": "",
+            "rating": "notset",
+            "windSpeed": -1,
+            "public": "true"
+        }
+
+        with open(ulog_path, 'rb') as f:
+            r = requests.post(server + "/upload",
+                              data=payload,
+                              files={'filearg': f},
+                              allow_redirects=False)
+            if r.status_code == 302:  # redirect
+                if 'Location' in r.headers:
+                    plot_url = r.headers['Location']
+                    if len(plot_url) > 0 and plot_url[0] == '/':
+                        plot_url = server + plot_url
+                    print("    Uploaded to: " + plot_url)
+            else:
+                print("    Upload failed with status_code: {}"
+                      .format(r.status_code))
+
     def start_combined_log(self, filename: str) -> None:
         self.log_fd = open(filename, 'w')
 
     def stop_combined_log(self) -> None:
-        self.log_fd.close()
+        if self.log_fd:
+            self.log_fd.close()
 
     def add_to_combined_log(self, output: str) -> None:
         self.log_fd.write(output)

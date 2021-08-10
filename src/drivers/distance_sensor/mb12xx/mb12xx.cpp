@@ -56,9 +56,7 @@
 #include <containers/Array.hpp>
 #include <drivers/device/device.h>
 #include <drivers/device/i2c.h>
-#include <drivers/device/ringbuffer.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_range_finder.h>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
@@ -90,14 +88,12 @@ using namespace time_literals;
 class MB12XX : public device::I2C, public ModuleParams, public I2CSPIDriver<MB12XX>
 {
 public:
-	MB12XX(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address);
+	MB12XX(const I2CSPIDriverConfig &config);
 	virtual ~MB12XX();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
-	virtual int init() override;
+	int init() override;
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -145,15 +141,15 @@ private:
 	 */
 	int measure();
 
+	static constexpr uint8_t RANGE_FINDER_MAX_SENSORS = 4;
 	px4::Array<uint8_t, RANGE_FINDER_MAX_SENSORS> _sensor_addresses {};
 	px4::Array<uint8_t, RANGE_FINDER_MAX_SENSORS> _sensor_rotations {};
 
 	int _measure_interval{MB12XX_MEASURE_INTERVAL};	// Initialize the measure interval for a single sensor.
-	int _orb_class_instance{-1};
 
-	size_t _sensor_index{0};	// Initialize counter for cycling i2c adresses to zero.
+	int _sensor_index{0};	// Initialize counter for cycling i2c adresses to zero.
 
-	size_t _sensor_count{0};
+	int _sensor_count{0};
 
 	orb_advert_t _distance_sensor_topic{nullptr};
 
@@ -177,11 +173,12 @@ private:
 	);
 };
 
-MB12XX::MB12XX(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address) :
-	I2C(DRV_DIST_DEVTYPE_MB12XX, MODULE_NAME, bus, address, bus_frequency),
+MB12XX::MB12XX(const I2CSPIDriverConfig &config) :
+	I2C(config),
 	ModuleParams(nullptr),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
+	I2CSPIDriver(config)
 {
+	set_device_type(DRV_DIST_DEVTYPE_MB12XX);
 }
 
 MB12XX::~MB12XX()
@@ -224,7 +221,7 @@ MB12XX::collect()
 
 	distance_sensor_s report;
 	report.current_distance = distance_m;
-	report.id               = _sensor_addresses[_sensor_index];
+	report.device_id        = get_device_id();
 	report.max_distance     = MB12XX_MAX_DISTANCE;
 	report.min_distance     = MB12XX_MIN_DISTANCE;
 	report.orientation      = _sensor_rotations[_sensor_index];
@@ -234,7 +231,7 @@ MB12XX::collect()
 	report.variance         = 0.0f;
 
 	int instance_id;
-	orb_publish_auto(ORB_ID(distance_sensor), &_distance_sensor_topic, &report, &instance_id, ORB_PRIO_DEFAULT);
+	orb_publish_auto(ORB_ID(distance_sensor), &_distance_sensor_topic, &report, &instance_id);
 
 	// Begin the next measurement.
 	if (measure() != PX4_OK) {
@@ -320,12 +317,13 @@ MB12XX::init()
 		return PX4_ERROR;
 	}
 
-	// If more than one sonar is detected, adjust the meaure interval to avoid sensor interference.
+	// If more than one sonar is detected, adjust the measure interval to avoid sensor interference.
 	if (_sensor_count > 1) {
 		_measure_interval = MB12XX_INTERVAL_BETWEEN_SUCCESIVE_FIRES;
 	}
 
 	PX4_INFO("Total sensors connected: %i", _sensor_count);
+	start();
 	return PX4_OK;
 }
 
@@ -347,8 +345,8 @@ MB12XX::print_status()
 	perf_print_counter(_comms_error);
 	PX4_INFO("poll interval:  %ums", _measure_interval / 1000);
 
-	for (size_t i = 0; i < _sensor_count; i++) {
-		PX4_INFO("sensor: %u, address %u", i, _sensor_addresses[i]);
+	for (int i = 0; i < _sensor_count; i++) {
+		PX4_INFO("sensor: %i, address %u", i, _sensor_addresses[i]);
 	}
 }
 
@@ -408,26 +406,6 @@ MB12XX::custom_method(const BusCLIArguments &cli)
 	set_address(cli.i2c_address);
 }
 
-I2CSPIDriverBase *MB12XX::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				      int runtime_instance)
-{
-	MB12XX *instance = new MB12XX(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.i2c_address);
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (instance->init() != PX4_OK) {
-		delete instance;
-		return nullptr;
-	}
-
-	instance->start();
-	return instance;
-}
-
-
 void
 MB12XX::print_usage()
 {
@@ -435,7 +413,6 @@ MB12XX::print_usage()
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
-	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x70);
 	PRINT_MODULE_USAGE_COMMAND("set_address");
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x70);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
@@ -445,7 +422,6 @@ extern "C" __EXPORT int mb12xx_main(int argc, char *argv[])
 {
 	using ThisDriver = MB12XX;
 	BusCLIArguments cli{true, false};
-	cli.i2c_address = MB12XX_BASE_ADDR;
 	cli.default_i2c_frequency = MB12XX_BUS_SPEED;
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
@@ -454,6 +430,8 @@ extern "C" __EXPORT int mb12xx_main(int argc, char *argv[])
 		ThisDriver::print_usage();
 		return -1;
 	}
+
+	cli.i2c_address = MB12XX_BASE_ADDR;
 
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_DIST_DEVTYPE_MB12XX);
 

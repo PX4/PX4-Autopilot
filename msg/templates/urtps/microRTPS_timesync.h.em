@@ -26,7 +26,7 @@ except AttributeError:
 }@
 /****************************************************************************
  *
- * Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -71,10 +71,8 @@ except AttributeError:
 
 @[if ros2_distro]@
 #include "Timesync_Publisher.h"
-#include "Timesync_Subscriber.h"
 @[else]@
 #include "timesync_Publisher.h"
-#include "timesync_Subscriber.h"
 @[end if]@
 
 static constexpr double ALPHA_INITIAL = 0.05;
@@ -107,16 +105,17 @@ using TimesyncPublisher = Timesync_Publisher;
 using TimesyncPublisher = timesync_Publisher;
 @[end if]@
 
-class TimeSync {
+class TimeSync
+{
 public:
-	TimeSync();
+	TimeSync(bool debug);
 	virtual ~TimeSync();
 
 	/**
 	 * @@brief Starts the timesync publishing thread
 	 * @@param[in] pub The timesync publisher entity to use
 	 */
-	void start(const TimesyncPublisher* pub);
+	void start(TimesyncPublisher *pub);
 
 	/**
 	 * @@brief Resets the filter
@@ -130,23 +129,15 @@ public:
 
 	/**
 	 * @@brief Get clock monotonic time (raw) in nanoseconds
-	 * @@return System CLOCK_MONOTONIC_RAW time in nanoseconds
+	 * @@return System CLOCK_MONOTONIC time in nanoseconds
 	 */
-	inline int64_t getMonoRawTimeNSec() {
-		timespec t;
-		clock_gettime(CLOCK_MONOTONIC_RAW, &t);
-		return static_cast<int64_t>(t.tv_sec * 1000000000LL + t.tv_nsec);
-	}
+	static int64_t getTimeNSec();
 
 	/**
 	 * @@brief Get system monotonic time in microseconds
 	 * @@return System CLOCK_MONOTONIC time in microseconds
 	 */
-	inline int64_t getMonoTimeUSec() {
-		timespec t;
-		clock_gettime(CLOCK_MONOTONIC, &t);
-		return static_cast<int64_t>(t.tv_sec * 1000000000LL + t.tv_nsec) / 1000LL;
-	}
+	static int64_t getTimeUSec();
 
 	/**
 	 * @@brief Adds a time offset measurement to be filtered
@@ -161,7 +152,7 @@ public:
 	 * @@brief Processes DDS timesync message
 	 * @@param[in,out] msg The timestamp msg to be processed
 	 */
-	void processTimesyncMsg(timesync_msg_t* msg);
+	void processTimesyncMsg(timesync_msg_t *msg, TimesyncPublisher *pub);
 
 	/**
 	 * @@brief Creates a new timesync DDS message to be sent from the agent to the client
@@ -179,13 +170,13 @@ public:
 	 * @@brief Sums the time sync offset to the timestamp
 	 * @@param[in,out] timestamp The timestamp to add the offset to
 	 */
-	inline void addOffset(uint64_t& timestamp) { timestamp = (timestamp * 1000LL + _offset_ns.load()) / 1000ULL; }
+	inline void addOffset(uint64_t &timestamp) { timestamp = (timestamp * 1000LL + _offset_ns.load()) / 1000ULL; }
 
 	/**
 	 * @@brief Substracts the time sync offset to the timestamp
 	 * @@param[in,out] timestamp The timestamp to subtract the offset of
 	 */
-	inline void subtractOffset(uint64_t& timestamp) { timestamp = (timestamp * 1000LL - _offset_ns.load()) / 1000ULL; }
+	inline void subtractOffset(uint64_t &timestamp) { timestamp = (timestamp * 1000LL - _offset_ns.load()) / 1000ULL; }
 
 private:
 	std::atomic<int64_t> _offset_ns;
@@ -196,13 +187,7 @@ private:
 	uint8_t _last_msg_seq;
 	uint8_t _last_remote_msg_seq;
 
-@[if ros2_distro]@
-	Timesync_Publisher _timesync_pub;
-	Timesync_Subscriber _timesync_sub;
-@[else]@
-	timesync_Publisher _timesync_pub;
-	timesync_Subscriber _timesync_sub;
-@[end if]@
+	bool _debug;
 
 	std::unique_ptr<std::thread> _send_timesync_thread;
 	std::atomic<bool> _request_stop{false};
@@ -211,35 +196,35 @@ private:
 	 * @@brief Updates the offset of the time sync filter
 	 * @@param[in] offset The value of the offset to update to
 	 */
-	inline void updateOffset(const uint64_t& offset) { _offset_ns.store(offset, std::memory_order_relaxed); }
+	inline void updateOffset(const uint64_t &offset) { _offset_ns.store(offset, std::memory_order_relaxed); }
 
 	/** Timesync msg Getters **/
 @[if version.parse(fastrtps_version) <= version.parse('1.7.2') or not ros2_distro]@
-	inline uint64_t getMsgTimestamp(const timesync_msg_t* msg) { return msg->timestamp_(); }
-	inline uint8_t getMsgSysID(const timesync_msg_t* msg) { return msg->sys_id_(); }
-	inline uint8_t getMsgSeq(const timesync_msg_t* msg) { return msg->seq_(); }
-	inline int64_t getMsgTC1(const timesync_msg_t* msg) { return msg->tc1_(); }
-	inline int64_t getMsgTS1(const timesync_msg_t* msg) { return msg->ts1_(); }
+	inline uint64_t getMsgTimestamp(const timesync_msg_t *msg) { return msg->timestamp_(); }
+	inline uint8_t getMsgSysID(const timesync_msg_t *msg) { return msg->sys_id_(); }
+	inline uint8_t getMsgSeq(const timesync_msg_t *msg) { return msg->seq_(); }
+	inline int64_t getMsgTC1(const timesync_msg_t *msg) { return msg->tc1_(); }
+	inline int64_t getMsgTS1(const timesync_msg_t *msg) { return msg->ts1_(); }
 @[elif ros2_distro]@
-	inline uint64_t getMsgTimestamp(const timesync_msg_t* msg) { return msg->timestamp(); }
-	inline uint8_t getMsgSysID(const timesync_msg_t* msg) { return msg->sys_id(); }
-	inline uint8_t getMsgSeq(const timesync_msg_t* msg) { return msg->seq(); }
-	inline int64_t getMsgTC1(const timesync_msg_t* msg) { return msg->tc1(); }
-	inline int64_t getMsgTS1(const timesync_msg_t* msg) { return msg->ts1(); }
-@[end if]@
+	inline uint64_t getMsgTimestamp(const timesync_msg_t *msg) { return msg->timestamp(); }
+	inline uint8_t getMsgSysID(const timesync_msg_t *msg) { return msg->sys_id(); }
+	inline uint8_t getMsgSeq(const timesync_msg_t *msg) { return msg->seq(); }
+	inline int64_t getMsgTC1(const timesync_msg_t *msg) { return msg->tc1(); }
+	inline int64_t getMsgTS1(const timesync_msg_t *msg) { return msg->ts1(); }
+	@[end if]@
 
 	/** Timesync msg Setters **/
 @[if version.parse(fastrtps_version) <= version.parse('1.7.2') or not ros2_distro]@
-	inline uint64_t setMsgTimestamp(timesync_msg_t* msg, const uint64_t& timestamp) { msg->timestamp_() = timestamp; }
-	inline uint8_t setMsgSysID(timesync_msg_t* msg, const uint8_t& sys_id) { msg->sys_id_() = sys_id; }
-	inline uint8_t setMsgSeq(timesync_msg_t* msg, const uint8_t& seq) { msg->seq_() = seq; }
-	inline int64_t setMsgTC1(timesync_msg_t* msg, const int64_t& tc1) { msg->tc1_() = tc1; }
-	inline int64_t setMsgTS1(timesync_msg_t* msg, const int64_t& ts1) { msg->ts1_() = ts1; }
+	inline void setMsgTimestamp(timesync_msg_t *msg, const uint64_t &timestamp) { msg->timestamp_() = timestamp; }
+	inline void setMsgSysID(timesync_msg_t *msg, const uint8_t &sys_id) { msg->sys_id_() = sys_id; }
+	inline void setMsgSeq(timesync_msg_t *msg, const uint8_t &seq) { msg->seq_() = seq; }
+	inline void setMsgTC1(timesync_msg_t *msg, const int64_t &tc1) { msg->tc1_() = tc1; }
+	inline void setMsgTS1(timesync_msg_t *msg, const int64_t &ts1) { msg->ts1_() = ts1; }
 @[elif ros2_distro]@
-	inline uint64_t setMsgTimestamp(timesync_msg_t* msg, const uint64_t& timestamp) { msg->timestamp() = timestamp; }
-	inline uint8_t setMsgSysID(timesync_msg_t* msg, const uint8_t& sys_id) { msg->sys_id() = sys_id; }
-	inline uint8_t setMsgSeq(timesync_msg_t* msg, const uint8_t& seq) { msg->seq() = seq; }
-	inline int64_t setMsgTC1(timesync_msg_t* msg, const int64_t& tc1) { msg->tc1() = tc1; }
-	inline int64_t setMsgTS1(timesync_msg_t* msg, const int64_t& ts1) { msg->ts1() = ts1; }
+	inline void setMsgTimestamp(timesync_msg_t *msg, const uint64_t &timestamp) { msg->timestamp() = timestamp; }
+	inline void setMsgSysID(timesync_msg_t *msg, const uint8_t &sys_id) { msg->sys_id() = sys_id; }
+	inline void setMsgSeq(timesync_msg_t *msg, const uint8_t &seq) { msg->seq() = seq; }
+	inline void setMsgTC1(timesync_msg_t *msg, const int64_t &tc1) { msg->tc1() = tc1; }
+	inline void setMsgTS1(timesync_msg_t *msg, const int64_t &ts1) { msg->ts1() = ts1; }
 @[end if]@
 };

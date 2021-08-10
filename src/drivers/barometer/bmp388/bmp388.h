@@ -39,7 +39,6 @@
 #pragma once
 
 #include <math.h>
-#include <drivers/drv_baro.h>
 #include <drivers/drv_hrt.h>
 #include <lib/cdev/CDev.hpp>
 #include <perf/perf_counter.h>
@@ -114,7 +113,7 @@
 
 /* Macros related to size */
 #define BMP3_CALIB_DATA_LEN               (21)
-#define BMP3_P_T_DATA_LEN                 (6)
+#define BMP3_P_T_DATA_LEN                 (7)
 
 /* Macros to select the which sensor settings are to be set by the user.
  * These values are internal for API implementation. Don't relate this to
@@ -309,11 +308,10 @@ public:
 class BMP388 : public I2CSPIDriver<BMP388>
 {
 public:
-	BMP388(I2CSPIBusOption bus_option, int bus, IBMP388 *interface);
+	BMP388(const I2CSPIDriverConfig &config, IBMP388 *interface);
 	virtual ~BMP388();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
 	virtual int		init();
@@ -322,14 +320,15 @@ public:
 
 	void 			RunImpl();
 private:
+	static constexpr uint8_t			osr_t{BMP3_OVERSAMPLING_2X};		// oversampling rate, temperature
+	static constexpr uint8_t			osr_p{BMP3_OVERSAMPLING_16X};		// oversampling rate, pressure
+	static constexpr uint8_t			odr{BMP3_ODR_50_HZ};			// output data rate (not used)
+	static constexpr uint8_t			iir_coef{BMP3_IIR_FILTER_DISABLE};	// IIR coefficient
+
 	PX4Barometer		_px4_baro;
 	IBMP388			*_interface{nullptr};
 
 	unsigned		_measure_interval{0};			// interval in microseconds needed to measure
-	uint8_t			_osr_t{BMP3_OVERSAMPLING_2X};		// oversampling rate, temperature
-	uint8_t			_osr_p{BMP3_OVERSAMPLING_16X};		// oversampling rate, pressure
-	uint8_t			_odr{BMP3_ODR_50_HZ};			// output data rate
-	uint8_t			_iir_coef{BMP3_IIR_FILTER_DISABLE};	// IIR coefficient
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_measure_perf;
@@ -342,7 +341,7 @@ private:
 	void 			start();
 	int 			measure();
 	int			collect(); //get results and publish
-	uint32_t		get_measurement_time(uint8_t osr_t, uint8_t osr_p);
+	uint32_t		get_measurement_time();
 
 	bool			soft_reset();
 	bool			get_calib_data();

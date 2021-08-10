@@ -40,8 +40,10 @@
 #pragma once
 
 #include "param_macros.h"
+#include <float.h>
+#include <math.h>
 
-#include <parameters/px4_parameters_public.h>
+#include <parameters/px4_parameters.hpp>
 
 /**
  * get the parameter handle from a parameter enum
@@ -112,7 +114,7 @@ class Param<float, p>
 {
 public:
 	// static type-check
-	static_assert(px4::param_types_array[(int)p] == PARAM_TYPE_FLOAT, "parameter type must be float");
+	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_FLOAT, "parameter type must be float");
 
 	Param()
 	{
@@ -130,7 +132,25 @@ public:
 	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
 	bool commit_no_notification() const { return param_set_no_notification(handle(), &_val) == 0; }
 
+	/// Set and commit a new value. Returns true if the value changed.
+	bool commit_no_notification(float val)
+	{
+		if (fabsf(val - _val) > FLT_EPSILON) {
+			set(val);
+			commit_no_notification();
+			return true;
+		}
+
+		return false;
+	}
+
 	void set(float val) { _val = val; }
+
+	void reset()
+	{
+		param_reset_no_notification(handle());
+		update();
+	}
 
 	bool update() { return param_get(handle(), &_val) == 0; }
 
@@ -145,7 +165,7 @@ class Param<float &, p>
 {
 public:
 	// static type-check
-	static_assert(px4::param_types_array[(int)p] == PARAM_TYPE_FLOAT, "parameter type must be float");
+	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_FLOAT, "parameter type must be float");
 
 	Param(float &external_val)
 		: _val(external_val)
@@ -164,7 +184,25 @@ public:
 	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
 	bool commit_no_notification() const { return param_set_no_notification(handle(), &_val) == 0; }
 
+	/// Set and commit a new value. Returns true if the value changed.
+	bool commit_no_notification(float val)
+	{
+		if (fabsf(val - _val) > FLT_EPSILON) {
+			set(val);
+			commit_no_notification();
+			return true;
+		}
+
+		return false;
+	}
+
 	void set(float val) { _val = val; }
+
+	void reset()
+	{
+		param_reset_no_notification(handle());
+		update();
+	}
 
 	bool update() { return param_get(handle(), &_val) == 0; }
 
@@ -178,7 +216,7 @@ class Param<int32_t, p>
 {
 public:
 	// static type-check
-	static_assert(px4::param_types_array[(int)p] == PARAM_TYPE_INT32, "parameter type must be int32_t");
+	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_INT32, "parameter type must be int32_t");
 
 	Param()
 	{
@@ -196,7 +234,25 @@ public:
 	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
 	bool commit_no_notification() const { return param_set_no_notification(handle(), &_val) == 0; }
 
+	/// Set and commit a new value. Returns true if the value changed.
+	bool commit_no_notification(int32_t val)
+	{
+		if (val != _val) {
+			set(val);
+			commit_no_notification();
+			return true;
+		}
+
+		return false;
+	}
+
 	void set(int32_t val) { _val = val; }
+
+	void reset()
+	{
+		param_reset_no_notification(handle());
+		update();
+	}
 
 	bool update() { return param_get(handle(), &_val) == 0; }
 
@@ -211,7 +267,7 @@ class Param<int32_t &, p>
 {
 public:
 	// static type-check
-	static_assert(px4::param_types_array[(int)p] == PARAM_TYPE_INT32, "parameter type must be int32_t");
+	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_INT32, "parameter type must be int32_t");
 
 	Param(int32_t &external_val)
 		: _val(external_val)
@@ -230,7 +286,25 @@ public:
 	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
 	bool commit_no_notification() const { return param_set_no_notification(handle(), &_val) == 0; }
 
+	/// Set and commit a new value. Returns true if the value changed.
+	bool commit_no_notification(int32_t val)
+	{
+		if (val != _val) {
+			set(val);
+			commit_no_notification();
+			return true;
+		}
+
+		return false;
+	}
+
 	void set(int32_t val) { _val = val; }
+
+	void reset()
+	{
+		param_reset_no_notification(handle());
+		update();
+	}
 
 	bool update() { return param_get(handle(), &_val) == 0; }
 
@@ -244,7 +318,7 @@ class Param<bool, p>
 {
 public:
 	// static type-check
-	static_assert(px4::param_types_array[(int)p] == PARAM_TYPE_INT32, "parameter type must be int32_t");
+	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_INT32, "parameter type must be int32_t");
 
 	Param()
 	{
@@ -270,7 +344,25 @@ public:
 		return param_set_no_notification(handle(), &value_int) == 0;
 	}
 
+	/// Set and commit a new value. Returns true if the value changed.
+	bool commit_no_notification(bool val)
+	{
+		if (val != _val) {
+			set(val);
+			commit_no_notification();
+			return true;
+		}
+
+		return false;
+	}
+
 	void set(bool val) { _val = val; }
+
+	void reset()
+	{
+		param_reset_no_notification(handle());
+		update();
+	}
 
 	bool update()
 	{

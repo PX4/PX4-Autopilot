@@ -219,8 +219,6 @@ Syslink::update_params(bool force_set)
 		this->_params_update[2] = t;
 		this->_params_ack[2] = 0;
 	}
-
-
 }
 
 // 1M 8N1 serial connection to NRF51
@@ -287,9 +285,6 @@ Syslink::task_main()
 
 	_memory = new SyslinkMemory(this);
 	_memory->init();
-
-	_battery.reset();
-
 
 	//	int ret;
 
@@ -363,7 +358,7 @@ Syslink::task_main()
 			}
 
 			if (fds[1].revents & POLLIN) {
-				struct parameter_update_s update;
+				parameter_update_s update;
 				orb_copy(ORB_ID(parameter_update), _params_sub, &update);
 				update_params(false);
 			}
@@ -372,7 +367,6 @@ Syslink::task_main()
 	}
 
 	close(_fd);
-
 }
 
 void
@@ -444,7 +438,7 @@ Syslink::handle_message(syslink_message_t *msg)
 		px4_sem_post(&memory_sem);
 
 	} else {
-		PX4_INFO("GOT %d", msg->type);
+		PX4_INFO("GOT %" PRIu8, msg->type);
 	}
 
 	//Send queued messages
@@ -497,7 +491,6 @@ Syslink::handle_message(syslink_message_t *msg)
 	} else if (_params_ack[2] == 0 && t - _params_update[2] > 10000) {
 		set_address(_addr);
 	}
-
 }
 
 void
@@ -515,7 +508,6 @@ Syslink::handle_radio(syslink_message_t *sys)
 	} else if (sys->type == SYSLINK_RADIO_ADDRESS) {
 		_params_ack[2] = t;
 	}
-
 }
 
 void
@@ -602,7 +594,6 @@ Syslink::handle_bootloader(syslink_message_t *sys)
 		c->data[22] = 0x10; // Protocol version
 		send_message(sys);
 	}
-
 }
 
 void
@@ -615,7 +606,7 @@ Syslink::handle_raw_other(syslink_message_t *sys)
 
 	if (c->port == CRTP_PORT_LOG) {
 
-		PX4_INFO("Log: %d %d", c->channel, c->data[0]);
+		PX4_INFO("Log: %" PRIu8 " %" PRIu8, c->channel, c->data[0]);
 
 		if (c->channel == 0) { // Table of Contents Access
 
@@ -638,7 +629,7 @@ Syslink::handle_raw_other(syslink_message_t *sys)
 
 			uint8_t cmd = c->data[0];
 
-			PX4_INFO("Responding to cmd: %d", cmd);
+			PX4_INFO("Responding to cmd: %" PRIu8, cmd);
 			c->data[2] = 0; // Success
 			c->size = 3 + 1;
 
@@ -679,7 +670,7 @@ Syslink::handle_raw_other(syslink_message_t *sys)
 		}
 
 	} else {
-		PX4_INFO("Got raw: %d", c->port);
+		PX4_INFO("Got raw: %" PRIu8, c->port);
 	}
 }
 
@@ -778,13 +769,13 @@ void status()
 		printf("%i: ROM ID: ", i);
 
 		for (int idi = 0; idi < idlen; idi++) {
-			printf("%02X", id[idi]);
+			printf("%02" PRIX8, id[idi]);
 		}
 
 		deck_descriptor_t desc;
 		read(deckfd, &desc, sizeof(desc));
 
-		printf(", VID: %02X , PID: %02X\n", desc.header, desc.vendorId, desc.productId);
+		printf("HDR:%02" PRIx8 ", VID: %02" PRIx8 " , PID: %02" PRIx8 "\n", desc.header, desc.vendorId, desc.productId);
 
 		// Print pages of memory
 		for (size_t di = 0; di < sizeof(desc); di++) {
@@ -792,12 +783,11 @@ void status()
 				printf("\n");
 			}
 
-			printf("%02X ", ((uint8_t *)&desc)[di]);
+			printf("%02" PRIX8 " ", ((uint8_t *)&desc)[di]);
 
 		}
 
 		printf("\n\n");
-
 	}
 
 	close(deckfd);
@@ -827,20 +817,13 @@ void attached(int pid)
 	exit(found ? 1 : 0);
 }
 
-
-
 void test()
 {
 	// TODO: Ensure battery messages are recent
 	// TODO: Read and write from memory to ensure it is working
 }
 
-
-
-
-}
-
-
+} // namespace syslink
 
 int syslink_main(int argc, char *argv[])
 {
@@ -848,7 +831,6 @@ int syslink_main(int argc, char *argv[])
 		syslink::usage();
 		exit(1);
 	}
-
 
 	const char *verb = argv[1];
 
@@ -872,9 +854,6 @@ int syslink_main(int argc, char *argv[])
 	if (!strcmp(verb, "test")) {
 		syslink::test();
 	}
-
-
-
 
 	syslink::usage();
 	exit(1);

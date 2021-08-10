@@ -769,7 +769,7 @@ int io_timer_set_rate(unsigned timer, unsigned rate)
 			int changeOneShot = reallocate_channel_resources(channels, IOTimerChanMode_OneShot, IOTimerChanMode_PWMOut);
 			int changeDshot = reallocate_channel_resources(channels, IOTimerChanMode_Dshot, IOTimerChanMode_PWMOut);
 
-			if (changeOneShot && changeDshot) {
+			if (changeOneShot || changeDshot) {
 				io_timer_set_PWM_mode(timer);
 			}
 

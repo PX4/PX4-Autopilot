@@ -84,7 +84,7 @@ PARAM_DEFINE_INT32(CBRK_RATE_CTRL, 0);
  * @category Developer
  * @group Circuit Breaker
  */
-PARAM_DEFINE_INT32(CBRK_IO_SAFETY, 0);
+PARAM_DEFINE_INT32(CBRK_IO_SAFETY, 22027);
 
 /**
  * Circuit breaker for airspeed sensor
@@ -106,7 +106,8 @@ PARAM_DEFINE_INT32(CBRK_AIRSPD_CHK, 0);
  *
  * Setting this parameter to 121212 will disable the flight termination action if triggered
  * by the FailureDetector logic or if FMU is lost.
- * This circuit breaker does not affect the RC loss, data link loss and geofence safety logic.
+ * This circuit breaker does not affect the RC loss, data link loss, geofence,
+ * and takeoff failure detection safety logic.
  *
  * @reboot_required true
  * @min 0
@@ -152,8 +153,12 @@ PARAM_DEFINE_INT32(CBRK_BUZZER, 0);
  * Circuit breaker for USB link check
  *
  * Setting this parameter to 197848 will disable the USB connected
- * checks in the commander.
- * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+ * checks in the commander, setting it to 0 keeps them enabled (recommended).
+ *
+ * We are generally recommending to not fly with the USB link
+ * connected and production vehicles should set this parameter to
+ * zero to prevent users from flying USB powered. However, for R&D purposes
+ * it has proven over the years to work just fine.
  *
  * @reboot_required true
  * @min 0
@@ -161,7 +166,7 @@ PARAM_DEFINE_INT32(CBRK_BUZZER, 0);
  * @category Developer
  * @group Circuit Breaker
  */
-PARAM_DEFINE_INT32(CBRK_USB_CHK, 0);
+PARAM_DEFINE_INT32(CBRK_USB_CHK, 197848);
 
 /**
  * Circuit breaker for position error check

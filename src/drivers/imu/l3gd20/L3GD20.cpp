@@ -35,11 +35,10 @@
 
 constexpr uint8_t L3GD20::_checked_registers[];
 
-L3GD20::L3GD20(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-	       spi_mode_e spi_mode) :
-	SPI(DRV_GYR_DEVTYPE_L3GD20, MODULE_NAME, bus, device, spi_mode, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_gyro(get_device_id(), ORB_PRIO_DEFAULT, rotation),
+L3GD20::L3GD20(const I2CSPIDriverConfig &config) :
+	SPI(config),
+	I2CSPIDriver(config),
+	_px4_gyro(get_device_id(), config.rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_errors(perf_alloc(PC_COUNT, MODULE_NAME": err")),
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad_reg")),
@@ -117,7 +116,7 @@ L3GD20::read_reg(unsigned reg)
 	return cmd[1];
 }
 
-void
+int
 L3GD20::write_reg(unsigned reg, uint8_t value)
 {
 	uint8_t	cmd[2] {};
@@ -125,7 +124,7 @@ L3GD20::write_reg(unsigned reg, uint8_t value)
 	cmd[0] = reg | DIR_WRITE;
 	cmd[1] = value;
 
-	transfer(cmd, nullptr, sizeof(cmd));
+	return transfer(cmd, nullptr, sizeof(cmd));
 }
 
 void
@@ -414,7 +413,6 @@ L3GD20::print_status()
 		}
 	}
 
-	_px4_gyro.print_status();
 }
 
 void

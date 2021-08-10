@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2019, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,9 +40,7 @@
  */
 
 #include <drivers/device/i2c.h>
-#include <drivers/device/ringbuffer.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_range_finder.h>
 #include <lib/conversion/rotation.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
@@ -77,12 +75,9 @@
 class PX4FLOW: public device::I2C, public I2CSPIDriver<PX4FLOW>
 {
 public:
-	PX4FLOW(I2CSPIBusOption bus_option, int bus, int address, uint8_t sonar_rotation, int bus_frequency,
-		int conversion_interval = PX4FLOW_CONVERSION_INTERVAL_DEFAULT, enum Rotation rotation = ROTATION_NONE);
+	PX4FLOW(const I2CSPIDriverConfig &config);
 	virtual ~PX4FLOW();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	int init() override;
@@ -102,8 +97,6 @@ private:
 	uint8_t _sonar_rotation;
 	bool				_sensor_ok{false};
 	bool				_collect_phase{false};
-	int			_class_instance{-1};
-	int			_orb_class_instance{-1};
 
 	uORB::PublicationMulti<optical_flow_s>		_px4flow_topic{ORB_ID(optical_flow)};
 	uORB::PublicationMulti<distance_sensor_s>	_distance_sensor_topic{ORB_ID(distance_sensor)};
@@ -143,14 +136,13 @@ private:
 
 extern "C" __EXPORT int px4flow_main(int argc, char *argv[]);
 
-PX4FLOW::PX4FLOW(I2CSPIBusOption bus_option, int bus, int address, uint8_t sonar_rotation, int bus_frequency,
-		 int conversion_interval, enum Rotation rotation) :
-	I2C(DRV_FLOW_DEVTYPE_PX4FLOW, MODULE_NAME, bus, address, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address),
-	_sonar_rotation(sonar_rotation),
+PX4FLOW::PX4FLOW(const I2CSPIDriverConfig &config) :
+	I2C(config),
+	I2CSPIDriver(config),
+	_sonar_rotation(config.rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err")),
-	_sensor_rotation(rotation)
+	_sensor_rotation(Rotation::ROTATION_NONE)
 {
 }
 
@@ -169,8 +161,6 @@ PX4FLOW::init()
 	if (I2C::init() != OK) {
 		return ret;
 	}
-
-	_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
@@ -317,8 +307,12 @@ PX4FLOW::collect()
 	_px4flow_topic.publish(report);
 
 	/* publish to the distance_sensor topic as well */
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {
+	if (_distance_sensor_topic.get_instance() == 0) {
 		distance_sensor_s distance_report{};
+		DeviceId device_id;
+		device_id.devid = get_device_id();
+		device_id.devid_s.devtype = DRV_DIST_DEVTYPE_PX4FLOW;
+
 		distance_report.timestamp = report.timestamp;
 		distance_report.min_distance = PX4FLOW_MIN_DISTANCE;
 		distance_report.max_distance = PX4FLOW_MAX_DISTANCE;
@@ -326,8 +320,7 @@ PX4FLOW::collect()
 		distance_report.variance = 0.0f;
 		distance_report.signal_quality = -1;
 		distance_report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
-		/* TODO: the ID needs to be properly set */
-		distance_report.id = 0;
+		distance_report.device_id = device_id.devid;
 		distance_report.orientation = _sonar_rotation;
 
 		_distance_sensor_topic.publish(distance_report);
@@ -385,25 +378,6 @@ PX4FLOW::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *PX4FLOW::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				       int runtime_instance)
-{
-	PX4FLOW *instance = new PX4FLOW(iterator.configuredBusOption(), iterator.bus(), cli.i2c_address, cli.orientation,
-					cli.bus_frequency);
-
-	if (!instance) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (OK != instance->init()) {
-		delete instance;
-		return nullptr;
-	}
-
-	return instance;
-}
-
 int
 px4flow_main(int argc, char *argv[])
 {
@@ -411,18 +385,18 @@ px4flow_main(int argc, char *argv[])
 	using ThisDriver = PX4FLOW;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = PX4FLOW_I2C_MAX_BUS_SPEED;
-	cli.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	cli.rotation = (Rotation)distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	cli.i2c_address = I2C_FLOW_ADDRESS_DEFAULT;
 
-	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
 		case 'R':
-			cli.orientation = atoi(cli.optarg());
+			cli.rotation = (Rotation)atoi(cli.optArg());
 			break;
 		}
 	}
 
-	const char *verb = cli.optarg();
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();

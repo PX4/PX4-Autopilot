@@ -161,12 +161,9 @@
 class L3GD20 : public device::SPI, public I2CSPIDriver<L3GD20>
 {
 public:
-	L3GD20(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-	       spi_mode_e spi_mode);
+	L3GD20(const I2CSPIDriverConfig &config);
 	~L3GD20() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void RunImpl();
@@ -236,15 +233,16 @@ private:
 	 * @param		The register to read.
 	 * @return		The value that was read.
 	 */
-	uint8_t			read_reg(unsigned reg);
+	uint8_t			read_reg(unsigned reg) override;
 
 	/**
 	 * Write a register in the L3GD20
 	 *
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
+	 * @return		OK on success, negative errno otherwise.
 	 */
-	void			write_reg(unsigned reg, uint8_t value);
+	int			write_reg(unsigned reg, uint8_t value) override;
 
 	/**
 	 * Modify a register in the L3GD20

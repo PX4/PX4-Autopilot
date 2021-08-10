@@ -1,0 +1,59 @@
+#!/bin/sh
+#
+# @name ThunderFly TF-G1
+# ThunderFly TF-G1 autogyro airframe. Only for FlightGear simulator
+#
+# @type Autogyro
+# @class Autogyro
+#
+# @url https://github.com/ThunderFly-aerospace/TF-G1/
+#
+#
+
+. ${R}etc/init.d/rc.fw_defaults
+
+param set-default EKF2_ARSP_THR 8
+param set-default EKF2_FUSE_BETA 1
+
+param set-default FW_AIRSPD_STALL 8
+
+param set-default FW_P_RMAX_NEG 20.0
+param set-default FW_P_RMAX_POS 60.0
+param set-default FW_W_RMAX 10
+param set-default FW_W_EN 1
+
+param set-default FW_PR_IMAX 0.4
+param set-default FW_R_TC 0.4
+param set-default FW_RR_FF 0.5
+param set-default FW_RR_I 0.1
+param set-default FW_RR_IMAX 0.2
+param set-default FW_RR_P 0.08
+
+param set-default MIS_LTRMIN_ALT 50
+param set-default MIS_TAKEOFF_ALT 3
+
+param set-default NAV_ACC_RAD 20
+param set-default NAV_DLL_ACT 2
+param set-default NAV_LOITER_RAD 100
+
+param set-default RWTO_TKOFF 1
+
+param set-default FW_ARSP_SCALE_EN 0
+
+param set-default FW_AIRSPD_MAX 35
+param set-default FW_AIRSPD_MIN 7
+param set-default FW_AIRSPD_TRIM 15
+
+param set-default FW_P_LIM_MAX 25
+param set-default FW_P_LIM_MIN -5
+param set-default FW_R_LIM 30
+
+param set-default FW_MAN_P_MAX 30.0
+param set-default FW_MAN_R_MAX 30.0
+
+param set-default FW_THR_CRUISE 0.8
+param set-default FW_THR_IDLE 0
+param set-default COM_DISARM_PRFLT 0
+
+set MIXER_FILE etc/mixers-sitl/autogyro_sitl.main.mix
+set MIXER custom

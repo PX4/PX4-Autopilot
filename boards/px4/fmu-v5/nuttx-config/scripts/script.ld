@@ -90,6 +90,7 @@ ENTRY(_stext)
  */
 EXTERN(abort)
 EXTERN(_bootdelay_signature)
+EXTERN(_main_toc)
 
 SECTIONS
 {
@@ -103,6 +104,7 @@ SECTIONS
 		_bootdelay_signature = ABSOLUTE(.);
 		FILL(0xffecc2925d7d05c5)
 		. += 8;
+		*(.main_toc)
 		*(.text .text.*)
 		*(.fixup)
 		*(.gnu.warning)
@@ -115,11 +117,6 @@ SECTIONS
 		*(.gnu.linkonce.r.*)
 		_etext = ABSOLUTE(.);
 
-		/*
-		 * This is a hack to make the newlib libm __errno() call
-		 * use the NuttX get_errno_ptr() function.
-		 */
-		__errno = get_errno_ptr;
 	} > FLASH_AXIM
 
 	/*
@@ -131,14 +128,6 @@ SECTIONS
 		_einit = ABSOLUTE(.);
 	} > FLASH_AXIM
 
-	/*
-	 * Construction data for parameters.
-	 */
-	__param ALIGN(4): {
-		__param_start = ABSOLUTE(.);
-		KEEP(*(__param*))
-		__param_end = ABSOLUTE(.);
-	} > FLASH_AXIM
 
 	.ARM.extab : {
 		*(.ARM.extab*)
@@ -191,4 +180,11 @@ SECTIONS
 	} > ITCM_RAM AT > FLASH_AXIM
 
 	_framfuncs = LOADADDR(.ramfunc);
+
+    /* Start of the image signature. This
+     *  has to be in the end of the image
+     */
+	.signature : {
+		_boot_signature = ALIGN(4);
+	} > FLASH_AXIM
 }

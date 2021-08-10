@@ -53,7 +53,7 @@
 
 #include <parameters/param.h>
 
-#include "systemlib/uthash/utarray.h"
+#include "../uthash/utarray.h"
 #include <parameters/tinybson/tinybson.h>
 #include "flashparams.h"
 #include "flashfs.h"
@@ -76,7 +76,7 @@ struct param_wbuf_s {
 };
 
 static int
-param_export_internal(bool only_unsaved)
+param_export_internal(bool only_unsaved, param_filter_func filter)
 {
 	struct param_wbuf_s *s = nullptr;
 	struct bson_encoder_s encoder;
@@ -105,12 +105,15 @@ param_export_internal(bool only_unsaved)
 			continue;
 		}
 
+		if (filter && !filter(s->param)) {
+			continue;
+		}
+
 		s->unsaved = false;
 
 		/* append the appropriate BSON type object */
 
 		switch (param_type(s->param)) {
-
 		case PARAM_TYPE_INT32:
 			i = s->val.i;
 
@@ -125,18 +128,6 @@ param_export_internal(bool only_unsaved)
 			f = s->val.f;
 
 			if (bson_encoder_append_double(&encoder, param_name(s->param), f)) {
-				debug("BSON append failed for '%s'", param_name(s->param));
-				goto out;
-			}
-
-			break;
-
-		case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX:
-			if (bson_encoder_append_binary(&encoder,
-						       param_name(s->param),
-						       BSON_BIN_BINARY,
-						       param_size(s->param),
-						       param_get_value_ptr_external(s->param))) {
 				debug("BSON append failed for '%s'", param_name(s->param));
 				goto out;
 			}
@@ -216,7 +207,7 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 {
 	float f;
 	int32_t i;
-	void *v, *tmp = nullptr;
+	void *v = nullptr;
 	int result = -1;
 	struct param_import_state *state = (struct param_import_state *)priv;
 
@@ -269,60 +260,20 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 		v = &f;
 		break;
 
-	case BSON_BINDATA:
-		if (node->subtype != BSON_BIN_BINARY) {
-			PX4_WARN("unexpected type for %s", node->name);
-			result = 1; // just skip this entry
-			goto out;
-		}
-
-		if (bson_decoder_data_pending(decoder) != param_size(param)) {
-			PX4_WARN("bad size for '%s'", node->name);
-			result = 1; // just skip this entry
-			goto out;
-		}
-
-		/* XXX check actual file data size? */
-		tmp = malloc(param_size(param));
-
-		if (tmp == nullptr) {
-			debug("failed allocating for '%s'", node->name);
-			goto out;
-		}
-
-		if (bson_decoder_copy_data(decoder, tmp)) {
-			debug("failed copying data for '%s'", node->name);
-			goto out;
-		}
-
-		v = tmp;
-		break;
-
 	default:
 		debug("unrecognised node type");
 		goto out;
 	}
 
 	if (param_set_external(param, v, state->mark_saved, true)) {
-
 		debug("error setting value for '%s'", node->name);
 		goto out;
-	}
-
-	if (tmp != nullptr) {
-		free(tmp);
-		tmp = nullptr;
 	}
 
 	/* don't return zero, that means EOF */
 	result = 1;
 
 out:
-
-	if (tmp != nullptr) {
-		free(tmp);
-	}
-
 	return result;
 }
 
@@ -358,9 +309,9 @@ out:
 	return result;
 }
 
-int flash_param_save(bool only_unsaved)
+int flash_param_save(bool only_unsaved, param_filter_func filter)
 {
-	return param_export_internal(only_unsaved);
+	return param_export_internal(only_unsaved, filter);
 }
 
 int flash_param_load()
@@ -371,5 +322,5 @@ int flash_param_load()
 
 int flash_param_import()
 {
-	return param_import_internal(false);
+	return param_import_internal(true);
 }

@@ -34,10 +34,7 @@
 /*
  * @file drv_pwm_servo.c
  *
- * Servo driver supporting PWM servos connected to STM32 timer blocks.
- *
- * Works with any of the 'generic' or 'advanced' STM32 timers that
- * have output pins, does not require an interrupt.
+ * Servo driver supporting PWM servos connected to S32K1XX FlexTimer blocks.
  */
 
 #include <px4_platform_common/px4_config.h>
@@ -60,7 +57,7 @@
 
 #include <px4_arch/io_timer.h>
 
-#include <kinetis.h>
+#include "s32k1xx_pin.h"
 
 int up_pwm_servo_set(unsigned channel, servo_position_t value)
 {
@@ -105,10 +102,10 @@ int up_pwm_servo_init(uint32_t channel_mask)
 	return OK;
 }
 
-void up_pwm_servo_deinit(void)
+void up_pwm_servo_deinit(uint32_t channel_mask)
 {
 	/* disable the timers */
-	up_pwm_servo_arm(false);
+	up_pwm_servo_arm(false, channel_mask);
 }
 
 int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
@@ -155,8 +152,8 @@ uint32_t up_pwm_servo_get_rate_group(unsigned group)
 }
 
 void
-up_pwm_servo_arm(bool armed)
+up_pwm_servo_arm(bool armed, uint32_t channel_mask)
 {
-	io_timer_set_enable(armed, IOTimerChanMode_OneShot, IO_TIMER_ALL_MODES_CHANNELS);
-	io_timer_set_enable(armed, IOTimerChanMode_PWMOut, IO_TIMER_ALL_MODES_CHANNELS);
+	io_timer_set_enable(armed, IOTimerChanMode_OneShot, channel_mask);
+	io_timer_set_enable(armed, IOTimerChanMode_PWMOut, channel_mask);
 }

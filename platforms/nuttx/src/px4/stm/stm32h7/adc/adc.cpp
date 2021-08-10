@@ -40,6 +40,14 @@
 #include <stm32_adc.h>
 #include <stm32_gpio.h>
 
+/*
+ *  If there is only one ADC in use in PX4 and it is not
+ *  ADC3 we still need ADC3 for temperature sensing.
+ */
+#if SYSTEM_ADC_COUNT == 1 && SYSTEM_ADC_BASE != STM32_ADC3_BASE
+#  undef SYSTEM_ADC_COUNT
+#  define SYSTEM_ADC_COUNT 2
+#endif
 
 /*
  * Register accessors.
@@ -54,7 +62,7 @@
 #define rPCSEL(base) REG((base), STM32_ADC_PCSEL_OFFSET)
 #define rCFG(base)   REG((base), STM32_ADC_CFGR_OFFSET)
 #define rCFG2(base)  REG((base), STM32_ADC_CFGR2_OFFSET)
-#define rCCR(base)   REG((base), STM32_ADC_CCR_OFFSET)
+#define rCCR()       REG((STM32_ADC1_BASE), (STM32_ADC_CCR_OFFSET))
 #define rSQR1(base)  REG((base), STM32_ADC_SQR1_OFFSET)
 #define rSQR2(base)  REG((base), STM32_ADC_SQR2_OFFSET)
 #define rSQR3(base)  REG((base), STM32_ADC_SQR3_OFFSET)
@@ -116,6 +124,7 @@
 #  error "ADC STM32_PLL2P_FREQUENCY too high - no divisor found "
 #endif
 
+#define ADC3_INTERNAL_TEMP_SENSOR_CHANNEL 18 //define to map the internal temperature channel.
 
 int px4_arch_adc_init(uint32_t base_address)
 {
@@ -159,8 +168,8 @@ int px4_arch_adc_init(uint32_t base_address)
 
 	/* enable the temperature sensor, VREFINT channel and VBAT */
 
-	rCCR(base_address) = (ADC_CCR_VREFEN | ADC_CCR_VSENSEEN | ADC_CCR_VBATEN |
-			      ADC_CCR_CKMODE_ASYCH | ADC_CCR_PRESC_DIV);
+	rCCR() = (ADC_CCR_VREFEN | ADC_CCR_VSENSEEN | ADC_CCR_VBATEN |
+		  ADC_CCR_CKMODE_ASYCH | ADC_CCR_PRESC_DIV);
 
 	/* Enable ADC calibration. ADCALDIF == 0 so this is only for
 	 * single-ended conversions, not for differential ones.
@@ -176,9 +185,9 @@ int px4_arch_adc_init(uint32_t base_address)
 
 	while ((rCR(base_address) & ADC_CR_ADCAL)) {
 
-		/* don't wait for more than 7000us, since that means something broke
+		/* don't wait for more than 15000us, since that means something broke
 		 * should reset here if we see this */
-		if ((hrt_absolute_time() - now) > 7000) {
+		if ((hrt_absolute_time() - now) > 15000) {
 			return -1;
 		}
 	}
@@ -224,7 +233,7 @@ int px4_arch_adc_init(uint32_t base_address)
 	}
 
 
-	/* arbitrarily configure all channels for 810.5 cycle sample time */
+	/* arbitrarily configure all channels for 64.5 cycle sample time */
 
 	rSMPR1(base_address) = ADC_SMPR1_DEFAULT;
 	rSMPR2(base_address) = ADC_SMPR2_DEFAULT;
@@ -260,6 +269,10 @@ int px4_arch_adc_init(uint32_t base_address)
 		}
 	}
 
+	/* Read out result, clear EOC */
+
+	(void) rDR(base_address);
+
 	return OK;
 }
 
@@ -272,13 +285,28 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 {
 	irqstate_t flags = px4_enter_critical_section();
 
+	/* Add a channel mapping for ADC3 on the H7 */
+
+	if (channel == PX4_ADC_INTERNAL_TEMP_SENSOR_CHANNEL) {
+		static bool once = false;
+		channel = ADC3_INTERNAL_TEMP_SENSOR_CHANNEL;
+		base_address = STM32_ADC3_BASE;
+
+		// Init it once (px4_arch_adc_init does this as well, but this is less cycles)
+		if (!once) {
+			once = true;
+			px4_arch_adc_init(base_address);
+		}
+	}
+
+
 	/* clear any previous EOC */
 
 	if (rISR(base_address) & ADC_INT_EOC) {
 		rISR(base_address) &= ~ADC_INT_EOC;
 	}
 
-	/* run a single conversion right now - should take about 810.5 cycles (34 microseconds) max */
+	/* run a single conversion right now - should take about 64.5 cycles (34 microseconds) max */
 
 	rPCSEL(base_address) |= 1 << channel;
 	rSQR1(base_address) = channel << ADC_SQR1_SQ_OFFSET;
@@ -311,7 +339,7 @@ float px4_arch_adc_reference_v()
 
 uint32_t px4_arch_adc_temp_sensor_mask()
 {
-	return 1 << 16;
+	return 1 << PX4_ADC_INTERNAL_TEMP_SENSOR_CHANNEL;
 }
 
 uint32_t px4_arch_adc_dn_fullcount()

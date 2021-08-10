@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# Board specific sensors init
+#------------------------------------------------------------------------------
+board_adc start
+
+# SPI4
+ms5611 -s -b 4 start
+icm20602 -s -b 4 -R 12 start
+icm20948 -s -b 4 -R 10 -M start
+
+# SPI1
+ms5611 -s -b 1 start
+icm20649 -s -b 1 start
+

@@ -5,15 +5,14 @@ add_definitions(
 )
 
 px4_add_board(
-	VENDOR beaglebone
-	MODEL blue
-	LABEL default
 	PLATFORM posix
 	ARCHITECTURE cortex-a8
+	ROMFSROOT px4fmu_common
 	TOOLCHAIN arm-linux-gnueabihf
 	TESTING
 	DRIVERS
-		adc
+		adc/ads1115
+		adc/board_adc
 		#barometer # all available barometer drivers
 		barometer/bmp280
 		batt_smbus
@@ -23,12 +22,15 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		gps
 		#imu # all available imu drivers
-		imu/mpu9250
+		imu/analog_devices/adis16448
+		imu/invensense/icm20948 # required for ak09916 mag
+		imu/invensense/mpu9250
 		linux_pwm_out
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		pwm_out_sim
 		rc_input
+		smart_battery/batmon
 		#telemetry # all available telemetry drivers
 	MODULES
 		airspeed_selector
@@ -38,12 +40,16 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
+		esc_battery
 		events
+		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
+		gyro_calibration
+		gyro_fft
 		land_detector
 		landing_target_estimator
-		#load_mon
+		load_mon
 		local_position_estimator
 		logger
 		mavlink
@@ -59,6 +65,8 @@ px4_add_board(
 		sih
 		#simulator
 		temperature_compensation
+		uuv_att_control
+		uuv_pos_control
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
@@ -67,20 +75,26 @@ px4_add_board(
 		led_control
 		mixer
 		motor_ramp
+		motor_test
 		param
 		perf
 		pwm
-		reboot
 		sd_bench
+		#serial_test
+		system_time
 		shutdown
 		tests # tests and test runner
 		#top
 		topic_listener
 		tune_control
+		uorb
 		ver
 		work_queue
 	EXAMPLES
 		dyn_hello # dynamically loading modules example
+		fake_gps
+		fake_imu
+		fake_magnetometer
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		#hwtest # Hardware test

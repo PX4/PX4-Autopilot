@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# @name 3DR Iris Quadrotor SITL (Dual GPS)
+#
+# @type Quadrotor Wide
+#
+
+. ${R}etc/init.d-posix/airframes/10016_iris
+
+# EKF2: Multi GPS blending
+param set-default SENS_GPS_MASK 7

@@ -46,6 +46,9 @@
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
+#include "beep.hpp"
+#include "rgbled.hpp"
+#include "safety_state.hpp"
 #include "uavcan_driver.hpp"
 #include "uavcan_servers.hpp"
 #include "allocator.hpp"
@@ -66,7 +69,10 @@
 #include <lib/perf/perf_counter.h>
 
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
+
+using namespace time_literals;
 
 class UavcanNode;
 
@@ -200,6 +206,9 @@ private:
 	UavcanEscController		_esc_controller;
 	UavcanMixingInterface 		_mixing_interface{_node_mutex, _esc_controller};
 	UavcanHardpointController	_hardpoint_controller;
+	UavcanBeep			_beep_controller;
+	UavcanSafetyState         	_safety_state_controller;
+	UavcanRGBController             _rgbled_controller;
 	uavcan::GlobalTimeSyncMaster	_time_sync_master;
 	uavcan::GlobalTimeSyncSlave	_time_sync_slave;
 	uavcan::NodeStatusMonitor	_node_status_monitor;
@@ -211,7 +220,7 @@ private:
 	bool 				_idle_throttle_when_armed{false};
 	int32_t 			_idle_throttle_when_armed_param{0};
 
-	uORB::Subscription		_parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::SubscriptionInterval	_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	perf_counter_t			_cycle_perf;
 	perf_counter_t			_interval_perf;
