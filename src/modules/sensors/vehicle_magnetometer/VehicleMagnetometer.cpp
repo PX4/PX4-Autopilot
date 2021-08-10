@@ -297,46 +297,24 @@ void VehicleMagnetometer::Run()
 
 	for (int uorb_index = 0; uorb_index < MAX_SENSOR_COUNT; uorb_index++) {
 
-		if (!_calibration[uorb_index].enabled()) {
-			continue;
-		}
+		const bool was_advertised = _advertised[uorb_index];
 
 		if (!_advertised[uorb_index]) {
 			// use data's timestamp to throttle advertisement checks
 			if ((_last_data[uorb_index].timestamp == 0) || (hrt_elapsed_time(&_last_data[uorb_index].timestamp) > 1_s)) {
 				if (_sensor_sub[uorb_index].advertised()) {
-					if (uorb_index > 0) {
-						/* the first always exists, but for each further sensor, add a new validator */
-						if (!_voter.add_new_validator()) {
-							PX4_ERR("failed to add validator for %s %i", "MAG", uorb_index);
-						}
-					}
-
 					_advertised[uorb_index] = true;
-
-					// advertise outputs in order if publishing all
-					if (!_param_sens_mag_mode.get()) {
-						for (int instance = 0; instance < uorb_index; instance++) {
-							_vehicle_magnetometer_pub[instance].advertise();
-						}
-					}
-
-					if (_selected_sensor_sub_index < 0) {
-						_sensor_sub[uorb_index].registerCallback();
-					}
 
 				} else {
 					_last_data[uorb_index].timestamp = hrt_absolute_time();
 				}
 			}
-
 		}
 
 		if (_advertised[uorb_index]) {
 			sensor_mag_s report;
 
 			while (_sensor_sub[uorb_index].update(&report)) {
-				updated[uorb_index] = true;
 
 				if (_calibration[uorb_index].device_id() != report.device_id) {
 					_calibration[uorb_index].set_device_id(report.device_id, report.is_external);
@@ -344,7 +322,27 @@ void VehicleMagnetometer::Run()
 				}
 
 				if (_calibration[uorb_index].enabled()) {
-					const Vector3f vect = _calibration[uorb_index].Correct(Vector3f{report.x, report.y, report.z});
+					if (!was_advertised) {
+						if (uorb_index > 0) {
+							/* the first always exists, but for each further sensor, add a new validator */
+							if (!_voter.add_new_validator()) {
+								PX4_ERR("failed to add validator for %s %i", "MAG", uorb_index);
+							}
+						}
+
+						// advertise outputs in order if publishing all
+						if (!_param_sens_mag_mode.get()) {
+							for (int instance = 0; instance < uorb_index; instance++) {
+								_vehicle_magnetometer_pub[instance].advertise();
+							}
+						}
+
+						if (_selected_sensor_sub_index < 0) {
+							_sensor_sub[uorb_index].registerCallback();
+						}
+					}
+
+					const Vector3f vect{_calibration[uorb_index].Correct(Vector3f{report.x, report.y, report.z})};
 
 					float mag_array[3] {vect(0), vect(1), vect(2)};
 					_voter.put(uorb_index, report.timestamp, mag_array, report.error_count, _priority[uorb_index]);
@@ -358,6 +356,8 @@ void VehicleMagnetometer::Run()
 					_last_data[uorb_index].x = vect(0);
 					_last_data[uorb_index].y = vect(1);
 					_last_data[uorb_index].z = vect(2);
+
+					updated[uorb_index] = true;
 				}
 			}
 		}
