@@ -35,7 +35,11 @@
 
 #include "Utilities.hpp"
 
+#include <lib/drivers/device/Device.hpp>
 #include <lib/parameters/param.h>
+
+#include <px4_platform_common/i2c.h>
+#include <px4_platform_common/spi.h>
 
 using namespace matrix;
 using namespace time_literals;
@@ -70,6 +74,9 @@ void Magnetometer::set_device_id(uint32_t device_id, bool external)
 
 void Magnetometer::set_external(bool external)
 {
+	bool external_prev = _external;
+	bool priority_prev = _priority;
+
 	// update priority default appropriately if not set
 	if (_calibration_index < 0 || _priority < 0) {
 		if ((_priority < 0) || (_priority > 100)) {
@@ -86,6 +93,18 @@ void Magnetometer::set_external(bool external)
 	}
 
 	_external = external;
+
+	if (_external != external_prev) {
+		ParametersUpdate();
+		PX4_WARN("%d external changed %d -> %d", _device_id, external_prev, _external);
+		PrintStatus();
+	}
+
+	if (_priority != priority_prev) {
+		ParametersUpdate();
+		PX4_WARN("%d priority changed %d -> %d", _device_id, priority_prev, _priority);
+		PrintStatus();
+	}
 }
 
 bool Magnetometer::set_offset(const Vector3f &offset)
@@ -151,7 +170,42 @@ void Magnetometer::set_rotation(Rotation rotation)
 
 void Magnetometer::ParametersUpdate()
 {
-	if (_calibration_index >= 0) {
+	if (_calibration_index >= 0 && (_device_id != 0)) {
+
+
+		{
+			// decode device id to determine if internal or external
+			union device::Device::DeviceId device_id;
+			device_id.devid = _device_id;
+
+			if (device_id.devid_s.bus_type == device::Device::DeviceBusType_SPI) {
+				bool external = px4_spi_bus_external(device_id.devid_s.bus);
+
+				if (external != _external) {
+					char device_id_buffer[80] {};
+					device::Device::device_id_print_buffer(device_id_buffer, sizeof(device_id_buffer), _device_id);
+					PX4_ERR("device_id: %" PRId32 " (%s)", _device_id, device_id_buffer);
+					PX4_ERR("%d SPI%d bus external incorrect px4_spi_bus_external: %d, _external: %d", _device_id, device_id.devid_s.bus,
+						external, _external);
+
+					PrintStatus();
+				}
+
+			} else if (device_id.devid_s.bus_type == device::Device::DeviceBusType_I2C) {
+				bool external = px4_i2c_bus_external(device_id.devid_s.bus);
+
+				if (external != _external) {
+					char device_id_buffer[80] {};
+					device::Device::device_id_print_buffer(device_id_buffer, sizeof(device_id_buffer), _device_id);
+					PX4_ERR("device_id: %" PRId32 " (%s)", _device_id, device_id_buffer);
+					PX4_ERR("%d I2C%d bus external incorrect px4_spi_bus_external: %d, _external: %d", _device_id, device_id.devid_s.bus,
+						external, _external);
+
+					PrintStatus();
+				}
+			}
+		}
+
 
 		// CAL_MAGx_ROT
 		int32_t rotation_value = GetCalibrationParam(SensorString(), "ROT", _calibration_index);

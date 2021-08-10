@@ -337,7 +337,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 			break;
 		}
 
-		if (mag_sub[0].updatedBlocking(1000_ms)) {
+		if (mag_sub[0].updatedBlocking(100_ms)) {
 			bool rejected = false;
 			Vector3f new_samples[MAX_MAGS] {};
 
@@ -347,6 +347,8 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 					sensor_mag_s mag;
 
 					while (mag_sub[cur_mag].update(&mag)) {
+						worker_data->calibration[cur_mag].set_device_id(mag.device_id, mag.is_external);
+
 						if (worker_data->append_to_existing_calibration) {
 							// keep and update the existing calibration when we are not doing a full 6-axis calibration
 							const Matrix3f &scale = worker_data->calibration[cur_mag].scale();
@@ -525,6 +527,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 	for (uint8_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 
 		uORB::SubscriptionData<sensor_mag_s> mag_sub{ORB_ID(sensor_mag), cur_mag};
+		mag_sub.update();
 
 		if (mag_sub.advertised() && (mag_sub.get().device_id != 0) && (mag_sub.get().timestamp > 0)) {
 			worker_data.calibration[cur_mag].set_device_id(mag_sub.get().device_id, mag_sub.get().is_external);
