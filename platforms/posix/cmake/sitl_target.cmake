@@ -21,13 +21,17 @@ px4_add_git_submodule(TARGET git_jmavsim PATH "${PX4_SOURCE_DIR}/Tools/jMAVSim")
 
 # Add support for external project building
 include(ExternalProject)
-include(ProcessorCount)
 
-set(build_cores 1)
-
-ProcessorCount(N)
-if(N GREATER_EQUAL 4)
-	math(EXPR build_cores "${N} - 2")
+# Allow specifying parallelization for sitl_gazebo build
+if(DEFINED ENV{BUILD_CORES})
+	set(build_cores $ENV{BUILD_CORES})
+else()
+	set(build_cores 1)
+	include(ProcessorCount)
+	ProcessorCount(N)
+	if(N GREATER_EQUAL 4)
+		math(EXPR build_cores "${N} - 2")
+	endif()
 endif()
 
 # project to build sitl_gazebo if necessary
