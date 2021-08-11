@@ -1,9 +1,20 @@
-menuconfig DRIVERS_MAGNETOMETER
-	bool "Magnetometer"
-	default n
-	---help---
-		Enable support for all available magnetometer drivers
-		
-if DRIVERS_MAGNETOMETER
-rsource "*/Kconfig"
-endif #DRIVERS_MAGNETOMETER
+menu "Magnetometer"
+    menuconfig COMMON_MAGNETOMETER
+        bool "Common Magnetometer's"
+        default n
+        select DRIVERS_MAGNETOMETER_AKM_AK8963
+        select DRIVERS_MAGNETOMETER_AKM_AK09916
+        select DRIVERS_MAGNETOMETER_BOSCH_BMM150
+        select DRIVERS_MAGNETOMETER_HMC5883
+        select DRIVERS_MAGNETOMETER_QMC5883L
+        select DRIVERS_MAGNETOMETER_ISENTEK_IST8308
+        select DRIVERS_MAGNETOMETER_ISENTEK_IST8310
+        select DRIVERS_MAGNETOMETER_LIS2MDL
+        select DRIVERS_MAGNETOMETER_LIS3MDL
+        select DRIVERS_MAGNETOMETER_LSM303AGR
+        select DRIVERS_MAGNETOMETER_RM3100
+        select DRIVERS_MAGNETOMETER_VTRANTECH_VCM1193L
+        ---help---
+            Enable default set of magnetometer drivers
+    rsource "*/Kconfig"
+endmenu

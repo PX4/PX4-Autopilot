@@ -74,33 +74,10 @@ def print_config(op, config, value, new_value):
         else:
             print(" %s %s -> %s" % (config, value, new_value))
 
-def main():
+def main(merge, configa_filename, configb_filename):
     global merge_style
 
-    # parse command line args
-    if ("-h" in sys.argv or "--help" in sys.argv):
-        usage()
-
-    merge_style = 0
-    if "-m" in sys.argv:
-        merge_style = 1
-        sys.argv.remove("-m")
-
-    argc = len(sys.argv)
-    if not (argc==1 or argc == 3):
-        print("Error: incorrect number of arguments or unrecognized option")
-        usage()
-
-    if argc == 1:
-        # if no filenames given, assume .config and .config.old
-        build_dir=""
-        if "KBUILD_OUTPUT" in os.environ:
-            build_dir = os.environ["KBUILD_OUTPUT"]+"/"
-        configa_filename = build_dir + ".config.old"
-        configb_filename = build_dir + ".config"
-    else:
-        configa_filename = sys.argv[1]
-        configb_filename = sys.argv[2]
+    merge_style = merge
 
     try:
         a = readconfig(open(configa_filename))
@@ -138,4 +115,31 @@ def main():
     for config in new:
         print_config("+", config, None, b[config])
 
-main()
+if __name__ == '__main__':
+
+    # parse command line args
+    if ("-h" in sys.argv or "--help" in sys.argv):
+        usage()
+
+    merge_style = 0
+    if "-m" in sys.argv:
+        merge_style = 1
+        sys.argv.remove("-m")
+
+    argc = len(sys.argv)
+    if not (argc==1 or argc == 3):
+        print("Error: incorrect number of arguments or unrecognized option")
+        usage()
+
+    if argc == 1:
+        # if no filenames given, assume .config and .config.old
+        build_dir=""
+        if "KBUILD_OUTPUT" in os.environ:
+            build_dir = os.environ["KBUILD_OUTPUT"]+"/"
+        configa_filename = build_dir + ".config.old"
+        configb_filename = build_dir + ".config"
+    else:
+        configa_filename = sys.argv[1]
+        configb_filename = sys.argv[2]
+
+    main(merge_style, configa_filename, configb_filename)
