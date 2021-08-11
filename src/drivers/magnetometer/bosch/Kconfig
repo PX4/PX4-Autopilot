@@ -1,5 +1,3 @@
-menuconfig DRIVERS_MAGNETOMETER_BOSCH
-	bool "bosch"
-	default n
-	---help---
-		Enable support for bosch
+menu "Bosch"
+    rsource "*/Kconfig"
+endmenu

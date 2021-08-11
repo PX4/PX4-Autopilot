@@ -1,5 +1,3 @@
-menuconfig DRIVERS_MAGNETOMETER_AKM
-	bool "akm"
-	default n
-	---help---
-		Enable support for akm
+menu "AKM"
+    rsource "*/Kconfig"
+endmenu

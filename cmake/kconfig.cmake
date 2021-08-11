@@ -291,6 +291,10 @@ if(EXISTS ${BOARD_DEFCONFIG})
 		set(PX4_BOARD_LINKER_PREFIX "" CACHE STRING "PX4 board linker prefix" FORCE)
 	endif()
 
+	if(COMPILE_DEFINITIONS)
+        add_definitions( ${COMPILE_DEFINITIONS})
+	endif()
+
 	include(px4_impl_os)
 	px4_os_prebuild_targets(OUT prebuild_targets BOARD ${PX4_BOARD})
 

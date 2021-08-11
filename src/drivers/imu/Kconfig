@@ -1,3 +1,30 @@
 menu "IMU"
-rsource "*/Kconfig"
+    menuconfig COMMON_IMU
+        bool "Common IMU's"
+        default n
+        select DRIVERS_IMU_ADIS16477
+        select DRIVERS_IMU_ADIS16497
+        select DRIVERS_IMU_ANALOG_DEVICES_ADIS16448
+        select DRIVERS_IMU_ANALOG_DEVICES_ADIS16470
+        select DRIVERS_IMU_BOSCH_BMI055
+        select DRIVERS_IMU_BOSCH_BMI088
+        select DRIVERS_IMU_FXAS21002C
+        select DRIVERS_IMU_FXOS8701CQ
+        select DRIVERS_IMU_INVENSENSE_ICM20602
+        select DRIVERS_IMU_INVENSENSE_ICM20608G
+        select DRIVERS_IMU_INVENSENSE_ICM20649
+        select DRIVERS_IMU_INVENSENSE_ICM20689
+        #select DRIVERS_IMU_INVENSENSE_ICM20948
+        select DRIVERS_IMU_INVENSENSE_ICM40609D
+        select DRIVERS_IMU_INVENSENSE_ICM42605
+        select DRIVERS_IMU_INVENSENSE_ICM42688P
+        select DRIVERS_IMU_INVENSENSE_MPU6000
+        select DRIVERS_IMU_INVENSENSE_MPU6500
+        select DRIVERS_IMU_INVENSENSE_MPU9250
+        select DRIVERS_IMU_L3GD20
+        select DRIVERS_IMU_LSM303D
+        select DRIVERS_IMU_ST
+        ---help---
+            Enable default set of IMU drivers
+    rsource "*/Kconfig"
 endmenu
