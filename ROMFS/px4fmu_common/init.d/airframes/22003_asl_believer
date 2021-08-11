@@ -41,7 +41,7 @@ param set-default FW_WR_P 1
 param set-default FW_W_RMAX 0
 
 # set disarmed value for the ESC
-param set-default PWM_MAIN_DISARM 1000
+param set-default PWM_MAIN_DISARM 1500
 
 # The Mini Talon does not have a wheel and
 # no flaps. I leave them here because the mixer
