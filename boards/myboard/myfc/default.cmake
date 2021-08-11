@@ -9,8 +9,8 @@ CONSTRAINED_MEMORY
 ROMFSROOT px4fmu_common
 CONSTRAINED_FLASH
 SERIAL_PORTS
-# 	TEL2:/dev/ttyS1
-# 	URT6:/dev/ttyS2
+	TEL1:/dev/ttyS1
+	GPS1:/dev/ttyS2
 DRIVERS
 # 	adc/board_adc
 # 	#barometer # all available barometer drivers
@@ -20,7 +20,7 @@ DRIVERS
 # 	#differential_pressure # all available differential pressure drivers
 # 	#distance_sensor # all available distance sensor drivers
 # 	dshot
-# 	gps
+	gps
 # 	imu/invensense/icm20602
 # 	imu/invensense/mpu6000
 # 	#irlock
@@ -80,26 +80,26 @@ SYSTEMCMDS
 # 	#gpio
 # 	hardfault_log
 # 	i2cdetect
-# 	led_control
+	led_control
 # 	#mft
 # 	mixer
 # 	#motor_ramp
 # 	motor_test
 # 	#mtd
-# 	nshterm
+	nshterm
 # 	param
 # 	perf
 # 	pwm
 # 	reboot
 # 	reflect
 # 	sd_bench
-# 	#serial_test
+#	# serial_test
 # 	#system_time
-# 	top
+	top
 # 	#topic_listener
 # 	tune_control
 # 	uorb
 # 	usb_connected
-# 	ver
+	ver
 # 	work_queue
 )
