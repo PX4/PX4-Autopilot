@@ -120,6 +120,7 @@ add_custom_command(
 	COMMAND ${CMAKE_COMMAND} -E touch ${romfs_extract_stamp}
 	WORKING_DIRECTORY ${romfs_gen_root_dir}
 	DEPENDS ${romfs_tar_file}
+	VERBATIM
 	)
 
 add_custom_command(
