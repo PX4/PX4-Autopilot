@@ -18,8 +18,21 @@ import genmsg.msgs
 from px_generate_uorb_topic_files import MsgScope # this is in Tools/
 
 topic_names = [s.short_name for s in spec]
-send_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND]
-send_base_types = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND]
+send_topics_all = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND]
+
+send_topics = [topic for idx, topic in enumerate(send_topics_all) if not rtps_message_poll(ids, topic)]
+send_topics_poll = [topic for idx, topic in enumerate(send_topics_all) if rtps_message_poll(ids, topic)]
+
+send_base_types = []
+send_base_types_poll = []
+for idx, s in enumerate(spec):
+	if scope[idx] == MsgScope.SEND:
+		topic = alias[idx] if alias[idx] else s.short_name
+		if rtps_message_poll(ids, topic):
+			send_base_types_poll.append(s.short_name)
+		else:
+			send_base_types.append(s.short_name)
+
 recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.RECEIVE]
 receive_base_types = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.RECEIVE]
 }@
@@ -86,13 +99,25 @@ struct RcvTopicsPubs {
 };
 @[end if]@
 
-@[if send_topics]@
+@[if send_topics or send_topics_poll]@
+@[    if send_topics]@
 // Subscribers for messages to send
 struct SendTopicsSubs {
 @[    for idx, topic in enumerate(send_topics)]@
 	uORB::Subscription @(topic)_sub{ORB_ID(@(topic))};
 @[    end for]@
 };
+@[    end if]@
+
+@[    if send_topics_poll]@
+// Subscribers for messages to send by polling
+struct SendPollTopicsSubs {
+@[         for idx, topic in enumerate(send_topics_poll)]@
+	int @(topic)_sub = orb_subscribe(ORB_ID(@(topic)));
+@[         end for]@
+};
+@[    end if]@
+
 
 struct SendThreadArgs {
 	const uint32_t &datarate;
@@ -119,7 +144,21 @@ void *send(void *args)
 	uint8_t last_remote_msg_seq{0};
 
 	struct SendThreadArgs *data = reinterpret_cast<struct SendThreadArgs *>(args);
+@[    if send_topics]@
 	SendTopicsSubs *subs = new SendTopicsSubs();
+@[    end if]@
+
+@[    if send_topics_poll]@
+	SendPollTopicsSubs *subs_poll = new SendPollTopicsSubs();
+@[         for idx, topic in enumerate(send_topics_poll)]@
+	if (subs_poll->@(topic)_sub < 0) {
+		PX4_ERR("Failed to subscribe (%i)", errno);
+	}
+@[	        if rtps_message_poll_interval(ids, topic)]@
+	orb_set_interval(subs_poll->@(topic)_sub, @(rtps_message_poll_interval(ids, topic)));
+@[	        end if ]@
+@[         end for]@
+@[    end if]@
 
 	float bandwidth_mult{0};
 	float tx_interval{1.f};
@@ -166,6 +205,49 @@ void *send(void *args)
 		}
 @[    end for]@
 
+@[    if send_topics_poll]@
+
+			px4_pollfd_struct_t fds[@(len(send_topics_poll))];
+@[        for idx, topic in enumerate(send_topics_poll)]@
+			fds[@(idx)].fd = subs_poll->@(topic)_sub;
+			fds[@(idx)].events = POLLIN;
+@[        end for]@
+
+			int pret = px4_poll(fds, @(len(send_topics_poll)), 20);
+
+			if (pret < 0) {
+				PX4_ERR("poll failed (%i)", pret);
+			} else if (pret != 0) {
+@[        for idx, topic in enumerate(send_topics_poll[:1])]@
+				if (fds[@(idx)].revents & POLLIN) {
+					@(send_base_types_poll[idx])_s @(topic)_data;
+					orb_copy(ORB_ID(@(topic)), subs_poll->@(topic)_sub, &@(topic)_data);
+					serialize_@(send_base_types_poll[idx])(&writer, &@(topic)_data, &data_buffer[header_length], &length);
+
+					if (0 < (read = transport_node->write(static_cast<char>(@(rtps_message_id(ids, topic))), data_buffer, length))) {
+						data->total_sent += read;
+						tx_last_sec_read += read;
+						++data->sent;
+					}
+				}
+@[        end for]@
+			} else {
+				if (hrt_absolute_time() - last_stats_update >= 1_s) {
+					data->sent_last_sec = tx_last_sec_read;
+					if (data->datarate > 0) {
+						bandwidth_mult = static_cast<float>(data->datarate) / static_cast<float>(tx_last_sec_read);
+						// Apply a low-pass filter to determine the new TX interval
+						tx_interval += 0.5f * (tx_interval / bandwidth_mult - tx_interval);
+						// Clamp the interval between 1 and 1000 ms
+						tx_interval = math::constrain(tx_interval, MIN_TX_INTERVAL_US, MAX_TX_INTERVAL_US);
+					}
+					tx_last_sec_read = 0;
+					last_stats_update = hrt_absolute_time();
+				}
+				px4_usleep(tx_interval);
+			}
+
+@[    else]@
 		if (hrt_absolute_time() - last_stats_update >= 1_s) {
 			data->sent_last_sec = tx_last_sec_read;
 			if (data->datarate > 0) {
@@ -180,6 +262,7 @@ void *send(void *args)
 		}
 
 		px4_usleep(tx_interval);
+@[    end if]@
 
 		++data->sent_loop;
 	}
