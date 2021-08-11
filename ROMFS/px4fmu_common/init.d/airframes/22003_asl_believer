@@ -42,6 +42,8 @@ param set-default FW_W_RMAX 0
 
 # set disarmed value for the ESC
 param set-default PWM_MAIN_DISARM 1500
+param set-default PWM_MAIN_DIS5 900
+param set-default PWM_MAIN_DIS6 900
 
 # The Mini Talon does not have a wheel and
 # no flaps. I leave them here because the mixer
@@ -49,4 +51,4 @@ param set-default PWM_MAIN_DISARM 1500
 set MIXER AAVVTTFF_vtail
 
 # use PWM parameters for throttle channel
-set PWM_OUT 5
+set PWM_OUT 56
