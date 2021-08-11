@@ -18,20 +18,10 @@ import genmsg.msgs
 from px_generate_uorb_topic_files import MsgScope # this is in Tools/
 
 topic_names = [s.short_name for s in spec]
-send_topics_all = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND]
-
-send_topics = [topic for idx, topic in enumerate(send_topics_all) if not rtps_message_poll(ids, topic)]
-send_topics_poll = [topic for idx, topic in enumerate(send_topics_all) if rtps_message_poll(ids, topic)]
-
-send_base_types = []
-send_base_types_poll = []
-for idx, s in enumerate(spec):
-	if scope[idx] == MsgScope.SEND:
-		topic = alias[idx] if alias[idx] else s.short_name
-		if rtps_message_poll(ids, topic):
-			send_base_types_poll.append(s.short_name)
-		else:
-			send_base_types.append(s.short_name)
+send_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND if not rtps_message_poll(ids, alias[idx] if alias[idx] else s.short_name)]
+send_topics_poll = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND if rtps_message_poll(ids, alias[idx] if alias[idx] else s.short_name)]
+send_base_types = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND if not rtps_message_poll(ids, alias[idx] if alias[idx] else s.short_name)]
+send_base_types_poll = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND if rtps_message_poll(ids, alias[idx] if alias[idx] else s.short_name)]
 
 recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.RECEIVE]
 receive_base_types = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.RECEIVE]
@@ -206,7 +196,7 @@ void *send(void *args)
 @[    end for]@
 
 @[    if send_topics_poll]@
-
+		{
 			px4_pollfd_struct_t fds[@(len(send_topics_poll))];
 @[        for idx, topic in enumerate(send_topics_poll)]@
 			fds[@(idx)].fd = subs_poll->@(topic)_sub;
@@ -218,7 +208,7 @@ void *send(void *args)
 			if (pret < 0) {
 				PX4_ERR("poll failed (%i)", pret);
 			} else if (pret != 0) {
-@[        for idx, topic in enumerate(send_topics_poll[:1])]@
+@[        for idx, topic in enumerate(send_topics_poll)]@
 				if (fds[@(idx)].revents & POLLIN) {
 					@(send_base_types_poll[idx])_s @(topic)_data;
 					orb_copy(ORB_ID(@(topic)), subs_poll->@(topic)_sub, &@(topic)_data);
@@ -246,7 +236,7 @@ void *send(void *args)
 				}
 				px4_usleep(tx_interval);
 			}
-
+		}
 @[    else]@
 		if (hrt_absolute_time() - last_stats_update >= 1_s) {
 			data->sent_last_sec = tx_last_sec_read;
