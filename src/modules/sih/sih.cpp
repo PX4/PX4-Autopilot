@@ -71,7 +71,8 @@ Sih::Sih() :
 	_airspeed_time = task_start;
 	_gt_time = task_start;
 	_dist_snsr_time = task_start;
-	_vehicle = (VehicleType)constrain(_sih_vtype.get(), 0, 1);
+	_vehicle = (VehicleType)constrain(_sih_vtype.get(), static_cast<typeof _sih_vtype.get()>(0),
+					  static_cast<typeof _sih_vtype.get()>(1));
 }
 
 Sih::~Sih()
