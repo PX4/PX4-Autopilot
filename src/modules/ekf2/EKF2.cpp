@@ -353,7 +353,7 @@ void EKF2::Run()
 		}
 
 	} else {
-		const unsigned last_generation = _vehicle_imu_sub.get_last_generation();
+		const unsigned last_generation = _sensor_combined_sub.get_last_generation();
 		sensor_combined_s sensor_combined;
 		imu_updated = _sensor_combined_sub.update(&sensor_combined);
 
