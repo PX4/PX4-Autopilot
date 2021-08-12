@@ -13,6 +13,9 @@ param set NAV_MC_ALT_RAD 0.3
 param set EKF2_HGT_MODE 2
 param set SENS_EN_LL40LS 2
 
+# Enable GPS Yaw fusion
+param set EKF2_AID_MASK 129
+
 # RTL altitudes to avoid hitting the roof
 param set RTL_DESCEND_ALT 2
 param set RTL_RETURN_ALT 2
