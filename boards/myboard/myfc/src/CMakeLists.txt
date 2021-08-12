@@ -15,4 +15,5 @@ target_link_libraries(drivers_board
 		nuttx_arch # sdio
 		nuttx_drivers # sdio
 		px4_layer
+		arch_io_pins
 )

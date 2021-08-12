@@ -79,31 +79,14 @@ __BEGIN_DECLS
 #define	GPIO_SET_MASK	0x100		// GPIO pin function mask
 #define	GPIO_FUN_MASK	0x3E00		// GPIO output enable mask
 
-#define px4_arch_configgpio(pinset) {									\
-	rp2040_gpio_set_pulls(pinset & GPIO_NUM_MASK, pinset & GPIO_PU_MASK, pinset & GPIO_PD_MASK);	\
-	if ((pinset & GPIO_FUN_MASK) >> 9 == RP2040_GPIO_FUNC_SIO)					\
-	{												\
-		rp2040_gpio_setdir(pinset & GPIO_NUM_MASK, pinset & GPIO_OUT_MASK);			\
-		rp2040_gpio_put(pinset & GPIO_NUM_MASK, pinset & GPIO_SET_MASK);			\
-	}												\
-	rp2040_gpio_set_function(pinset & GPIO_NUM_MASK, (pinset & GPIO_FUN_MASK) >> 9);		\
-}
+int rp2040_gpioconfig(uint32_t pinset);
+int rp2040_setgpioevent(uint32_t pinset, bool risingedge, bool fallingedge, bool event, xcpt_t func, void *arg);
+
+#define px4_arch_configgpio(pinset)		rp2040_gpioconfig(pinset)			// Defined in io_pins/rp2040_pinset.c
 #define px4_arch_unconfiggpio(pinset)           rp2040_gpio_init(pinset & GPIO_NUM_MASK)	// Reset the pin as input SIO
 #define px4_arch_gpioread(pinset)               rp2040_gpio_get(pinset & GPIO_NUM_MASK)		// Use gpio_get
 #define px4_arch_gpiowrite(pinset, value)       rp2040_gpio_put(pinset & GPIO_NUM_MASK, value)	// Use gpio_put
-#define px4_arch_gpiosetevent(pinset,r,f,e,fp,a) {							\
-	rp2040_gpio_disable_irq(pinset & GPIO_NUM_MASK);						\
-	if (f & e & fp)											\
-	{												\
-		rp2040_gpio_irq_attach(pinset & GPIO_NUM_MASK, RP2040_GPIO_INTR_EDGE_LOW, fp, a);	\
-		rp2040_gpio_enable_irq(pinset & GPIO_NUM_MASK);						\
-	}												\
-	if (r & e & fp)											\
-	{												\
-		rp2040_gpio_irq_attach(pinset & GPIO_NUM_MASK, RP2040_GPIO_INTR_EDGE_HIGH, fp, a);	\
-		rp2040_gpio_enable_irq(pinset & GPIO_NUM_MASK);						\
-	}												\
-}
+#define px4_arch_gpiosetevent(pinset,r,f,e,fp,a) rp2040_setgpioevent(pinset,r,f,e,fp,a)		// Defined in io_pins/rp2040_pinset.c
 
 // Following are quick defines to be used with the functions defined above
 // These defines create a bit-mask which is supposed to be used in the

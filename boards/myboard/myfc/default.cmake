@@ -12,7 +12,7 @@ SERIAL_PORTS
 	TEL1:/dev/ttyS1
 	GPS1:/dev/ttyS2
 DRIVERS
-# 	adc/board_adc
+	adc/board_adc
 # 	#barometer # all available barometer drivers
 # 	barometer/bmp280
 # 	#batt_smbus
@@ -90,7 +90,7 @@ SYSTEMCMDS
 # 	param
 # 	perf
 # 	pwm
-# 	reboot
+	reboot
 # 	reflect
 # 	sd_bench
 #	# serial_test
@@ -98,7 +98,7 @@ SYSTEMCMDS
 	top
 # 	#topic_listener
 # 	tune_control
-# 	uorb
+	uorb
 # 	usb_connected
 	ver
 # 	work_queue
