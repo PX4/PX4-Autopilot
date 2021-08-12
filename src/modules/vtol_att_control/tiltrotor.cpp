@@ -135,12 +135,24 @@ void Tiltrotor::update_vtol_state()
 			break;
 
 		case vtol_mode::TRANSITION_BACK:
-			const float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
-			const float ground_speed = sqrtf(_local_pos->vx * _local_pos->vx + _local_pos->vy * _local_pos->vy);
-			const bool ground_speed_below_cruise = _local_pos->v_xy_valid && (ground_speed <= _params->mpc_xy_cruise);
+			const bool exit_backtransition_tilt_condition = _tilt_control <= (_params_tiltrotor.tilt_mc + 0.01f);
 
-			if (_tilt_control <= _params_tiltrotor.tilt_mc && (time_since_trans_start > _params->back_trans_duration
-					|| ground_speed_below_cruise)) {
+			// speed exit condition: use ground if valid, otherwise airspeed
+			bool exit_backtransition_speed_condition = false;
+
+			if (_local_pos->v_xy_valid) {
+				const Dcmf R_to_body(Quatf(_v_att->q).inversed());
+				const Vector3f vel = R_to_body * Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz);
+				exit_backtransition_speed_condition = vel(0) < _params->mpc_xy_cruise;
+
+			} else if (PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)) {
+				exit_backtransition_speed_condition = _airspeed_validated->calibrated_airspeed_m_s < _params->mpc_xy_cruise;
+			}
+
+			const float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
+			const bool exit_backtransition_time_condition = time_since_trans_start > _params->back_trans_duration;
+
+			if (exit_backtransition_tilt_condition && (exit_backtransition_speed_condition || exit_backtransition_time_condition)) {
 				_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
 			}
 
@@ -509,7 +521,7 @@ void Tiltrotor::blendThrottleAfterFrontTransition(float scale)
 
 void Tiltrotor::blendThrottleDuringBacktransition(float scale, float target_throttle)
 {
-	_thrust_transition = -(scale * target_throttle + (1.0f - scale) * _last_thr_in_fw_mode);
+	_thrust_transition = scale * target_throttle + (1.0f - scale) * _last_thr_in_fw_mode;
 }
 
 
