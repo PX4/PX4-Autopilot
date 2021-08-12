@@ -1229,7 +1229,8 @@ start()
 	px4_sem_setprotocol(&g_init_sema, SEM_PRIO_NONE);
 
 	/* start the worker thread with low priority for disk IO */
-	if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT - 10, TASK_STACK_SIZE, task_main,
+	if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT - 10,
+				       PX4_STACK_ADJUSTED(TASK_STACK_SIZE), task_main,
 				       nullptr)) < 0) {
 		px4_sem_destroy(&g_init_sema);
 		PX4_ERR("task start failed");
