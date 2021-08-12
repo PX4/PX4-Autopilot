@@ -56,3 +56,16 @@ PARAM_DEFINE_INT32(EKF2_MULTI_IMU, 0);
  * @max 4
  */
 PARAM_DEFINE_INT32(EKF2_MULTI_MAG, 0);
+
+/**
+ * Multi-EKF Barometers.
+ *
+ * Maximum number of barometers to use for Multi-EKF. Set 0 to disable.
+ * Requires SENS_BARO_MODE 0.
+ *
+ * @group EKF2
+ * @reboot_required true
+ * @min 0
+ * @max 4
+ */
+PARAM_DEFINE_INT32(EKF2_MULTI_BARO, 0);

@@ -124,7 +124,7 @@ public:
 	static bool trylock_module() { return (pthread_mutex_trylock(&ekf2_module_mutex) == 0); }
 	static void unlock_module() { pthread_mutex_unlock(&ekf2_module_mutex); }
 
-	bool multi_init(int imu, int mag);
+	bool multi_init(int imu, int mag = 0, int baro = 0);
 
 	int instance() const { return _instance; }
 
@@ -132,6 +132,7 @@ private:
 
 	static constexpr uint8_t MAX_NUM_IMUS = 4;
 	static constexpr uint8_t MAX_NUM_MAGS = 4;
+	static constexpr uint8_t MAX_NUM_BAROS = 4;
 
 	void Run() override;
 

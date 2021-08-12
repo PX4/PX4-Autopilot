@@ -38,9 +38,6 @@
  * @max 1500
  * @group Sensors
  * @unit hPa
- *
- * @reboot_required true
- *
  */
 PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
 
@@ -54,8 +51,16 @@ PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
  * @max 200
  * @group Sensors
  * @unit Hz
- *
- * @reboot_required true
- *
  */
 PARAM_DEFINE_FLOAT(SENS_BARO_RATE, 20.0f);
+
+/**
+ * Sensors hub baro mode
+ *
+ * @value 0 Publish all barometers
+ * @value 1 Publish primary barometers
+ *
+ * @category system
+ * @group Sensors
+ */
+PARAM_DEFINE_INT32(SENS_BARO_MODE, 1);

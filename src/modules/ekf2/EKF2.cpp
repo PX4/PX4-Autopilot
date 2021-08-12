@@ -181,7 +181,7 @@ EKF2::~EKF2()
 	perf_free(_msg_missed_optical_flow_perf);
 }
 
-bool EKF2::multi_init(int imu, int mag)
+bool EKF2::multi_init(int imu, int mag, int baro)
 {
 	// advertise immediately to ensure consistent uORB instance numbering
 	_attitude_pub.advertise();
@@ -204,7 +204,9 @@ bool EKF2::multi_init(int imu, int mag)
 	_estimator_visual_odometry_aligned_pub.advertised();
 	_yaw_est_pub.advertise();
 
-	bool changed_instance = _vehicle_imu_sub.ChangeInstance(imu) && _magnetometer_sub.ChangeInstance(mag);
+	bool changed_instance = _vehicle_imu_sub.ChangeInstance(imu)
+				&& _magnetometer_sub.ChangeInstance(mag)
+				&& _airdata_sub.ChangeInstance(baro);
 
 	const int status_instance = _estimator_states_pub.get_instance();
 
@@ -1794,6 +1796,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 	bool multi_mode = false;
 	int32_t imu_instances = 0;
 	int32_t mag_instances = 0;
+	int32_t baro_instances = 0;
 
 	int32_t sens_imu_mode = 1;
 	param_get(param_find("SENS_IMU_MODE"), &sens_imu_mode);
@@ -1806,11 +1809,13 @@ int EKF2::task_spawn(int argc, char *argv[])
 		param_get(param_find("EKF2_MULTI_IMU"), &imu_instances);
 
 		if (imu_instances < 1 || imu_instances > 4) {
-			const int32_t imu_instances_limited = math::constrain(imu_instances, static_cast<int32_t>(1), static_cast<int32_t>(4));
+			const int32_t imu_instances_limited = math::constrain(imu_instances, static_cast<int32_t>(1),
+							      static_cast<int32_t>(MAX_NUM_IMUS));
 			PX4_WARN("EKF2_MULTI_IMU limited %" PRId32 " -> %" PRId32, imu_instances, imu_instances_limited);
 			param_set_no_notification(param_find("EKF2_MULTI_IMU"), &imu_instances_limited);
 			imu_instances = imu_instances_limited;
 		}
+
 
 		int32_t sens_mag_mode = 1;
 		param_get(param_find("SENS_MAG_MODE"), &sens_mag_mode);
@@ -1820,7 +1825,8 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 			// Mags (1 - 4 supported)
 			if (mag_instances < 1 || mag_instances > 4) {
-				const int32_t mag_instances_limited = math::constrain(mag_instances, static_cast<int32_t>(1), static_cast<int32_t>(4));
+				const int32_t mag_instances_limited = math::constrain(mag_instances, static_cast<int32_t>(1),
+								      static_cast<int32_t>(MAX_NUM_MAGS));
 				PX4_WARN("EKF2_MULTI_MAG limited %" PRId32 " -> %" PRId32, mag_instances, mag_instances_limited);
 				param_set_no_notification(param_find("EKF2_MULTI_MAG"), &mag_instances_limited);
 				mag_instances = mag_instances_limited;
@@ -1828,6 +1834,26 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 		} else {
 			mag_instances = 1;
+		}
+
+
+		int32_t sens_baro_mode = 1;
+		param_get(param_find("SENS_BARO_MODE"), &sens_baro_mode);
+
+		if (sens_baro_mode == 0) {
+			param_get(param_find("EKF2_MULTI_BARO"), &baro_instances);
+
+			// Baros (1 - 4 supported)
+			if (baro_instances < 1 || baro_instances > 4) {
+				const int32_t baro_instances_limited = math::constrain(baro_instances, static_cast<int32_t>(1),
+								       static_cast<int32_t>(MAX_NUM_BAROS));
+				PX4_WARN("EKF2_MULTI_BARO limited %" PRId32 " -> %" PRId32, baro_instances, baro_instances_limited);
+				param_set_no_notification(param_find("EKF2_MULTI_BARO"), &baro_instances_limited);
+				baro_instances = baro_instances_limited;
+			}
+
+		} else {
+			baro_instances = 1;
 		}
 	}
 
@@ -1846,13 +1872,14 @@ int EKF2::task_spawn(int argc, char *argv[])
 		}
 
 		const hrt_abstime time_started = hrt_absolute_time();
-		const int multi_instances = math::min(imu_instances * mag_instances, static_cast<int32_t>(EKF2_MAX_INSTANCES));
+		const int multi_instances = math::min(imu_instances * mag_instances * baro_instances,
+						      static_cast<int32_t>(EKF2_MAX_INSTANCES));
 		int multi_instances_allocated = 0;
 
 		// allocate EKF2 instances until all found or arming
 		uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
 
-		bool ekf2_instance_created[MAX_NUM_IMUS][MAX_NUM_MAGS] {}; // IMUs * mags
+		bool ekf2_instance_created[MAX_NUM_IMUS][MAX_NUM_MAGS][MAX_NUM_BAROS] {}; // IMUs * mags * baros
 
 		while ((multi_instances_allocated < multi_instances)
 		       && (vehicle_status_sub.get().arming_state != vehicle_status_s::ARMING_STATE_ARMED)
@@ -1861,59 +1888,67 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 			vehicle_status_sub.update();
 
-			for (uint8_t mag = 0; mag < mag_instances; mag++) {
-				uORB::SubscriptionData<vehicle_magnetometer_s> vehicle_mag_sub{ORB_ID(vehicle_magnetometer), mag};
+			for (uint8_t baro = 0; baro < baro_instances; baro++) {
+				uORB::SubscriptionData<vehicle_air_data_s> vehicle_air_data_sub{ORB_ID(vehicle_air_data), baro};
 
-				for (uint8_t imu = 0; imu < imu_instances; imu++) {
+				for (uint8_t mag = 0; mag < mag_instances; mag++) {
+					uORB::SubscriptionData<vehicle_magnetometer_s> vehicle_mag_sub{ORB_ID(vehicle_magnetometer), mag};
 
-					uORB::SubscriptionData<vehicle_imu_s> vehicle_imu_sub{ORB_ID(vehicle_imu), imu};
-					vehicle_mag_sub.update();
+					for (uint8_t imu = 0; imu < imu_instances; imu++) {
 
-					// Mag & IMU data must be valid, first mag can be ignored initially
-					if ((vehicle_mag_sub.get().device_id != 0 || mag == 0)
-					    && (vehicle_imu_sub.get().accel_device_id != 0)
-					    && (vehicle_imu_sub.get().gyro_device_id != 0)) {
+						uORB::SubscriptionData<vehicle_imu_s> vehicle_imu_sub{ORB_ID(vehicle_imu), imu};
+						vehicle_mag_sub.update();
+						vehicle_air_data_sub.update();
 
-						if (!ekf2_instance_created[imu][mag]) {
-							EKF2 *ekf2_inst = new EKF2(true, px4::ins_instance_to_wq(imu), false);
+						// Mag & IMU data must be valid, first mag/baro can be ignored initially
+						if ((vehicle_air_data_sub.get().baro_device_id != 0 || baro == 0)
+						    && (vehicle_mag_sub.get().device_id != 0 || mag == 0)
+						    && (vehicle_imu_sub.get().accel_device_id != 0)
+						    && (vehicle_imu_sub.get().gyro_device_id != 0)) {
 
-							if (ekf2_inst && ekf2_inst->multi_init(imu, mag)) {
-								int actual_instance = ekf2_inst->instance(); // match uORB instance numbering
+							if (!ekf2_instance_created[imu][mag][baro]) {
+								EKF2 *ekf2_inst = new EKF2(true, px4::ins_instance_to_wq(imu), false);
 
-								if ((actual_instance >= 0) && (_objects[actual_instance].load() == nullptr)) {
-									_objects[actual_instance].store(ekf2_inst);
-									success = true;
-									multi_instances_allocated++;
-									ekf2_instance_created[imu][mag] = true;
+								if (ekf2_inst && ekf2_inst->multi_init(imu, mag, baro)) {
+									int actual_instance = ekf2_inst->instance(); // match uORB instance numbering
 
-									if (actual_instance == 0) {
-										// force selector to run immediately if first instance started
-										_ekf2_selector.load()->ScheduleNow();
+									if ((actual_instance >= 0) && (_objects[actual_instance].load() == nullptr)) {
+										_objects[actual_instance].store(ekf2_inst);
+										success = true;
+										multi_instances_allocated++;
+										ekf2_instance_created[imu][mag][baro] = true;
+
+										if (actual_instance == 0) {
+											// force selector to run immediately if first instance started
+											_ekf2_selector.load()->ScheduleNow();
+										}
+
+										PX4_INFO("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 "), BARO:%" PRIu8 " (%" PRIu32
+											 ")", actual_instance,
+											 imu, vehicle_imu_sub.get().accel_device_id,
+											 baro, vehicle_air_data_sub.get().baro_device_id,
+											 mag, vehicle_mag_sub.get().device_id);
+
+										// sleep briefly before starting more instances
+										px4_usleep(10000);
+
+									} else {
+										PX4_ERR("instance numbering problem instance: %d", actual_instance);
+										delete ekf2_inst;
+										break;
 									}
 
-									PX4_DEBUG("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 ")", actual_instance,
-										  imu, vehicle_imu_sub.get().accel_device_id,
-										  mag, vehicle_mag_sub.get().device_id);
-
-									// sleep briefly before starting more instances
-									px4_usleep(10000);
-
 								} else {
-									PX4_ERR("instance numbering problem instance: %d", actual_instance);
-									delete ekf2_inst;
+									PX4_ERR("alloc and init failed imu:%" PRIu8 " mag:%" PRIu8 " baro:%" PRIu8, imu, mag, baro);
+									px4_usleep(1000000);
 									break;
 								}
-
-							} else {
-								PX4_ERR("alloc and init failed imu: %" PRIu8 " mag:%" PRIu8, imu, mag);
-								px4_usleep(1000000);
-								break;
 							}
-						}
 
-					} else {
-						px4_usleep(50000); // give the sensors extra time to start
-						continue;
+						} else {
+							px4_usleep(50000); // give the sensors extra time to start
+							continue;
+						}
 					}
 				}
 			}
