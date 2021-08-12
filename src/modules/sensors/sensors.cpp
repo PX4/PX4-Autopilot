@@ -66,7 +66,6 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_baro.h>
-#include <uORB/topics/sensors_status_imu.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_imu.h>
@@ -819,7 +818,7 @@ The provided functionality includes:
 - Make sure the sensor drivers get the updated calibration parameters (scale & offset) when the parameters change or
   on startup. The sensor drivers use the ioctl interface for parameter updates. For this to work properly, the
   sensor drivers must already be running when `sensors` is started.
-- Do sensor consistency checks and publish the `sensors_status_imu` topic.
+- Do sensor consistency checks and publish the `sensors_status_accel` and `sensors_status_gyro` topics.
 
 ### Implementation
 It runs in its own thread and polls on the currently selected gyro topic.

@@ -58,7 +58,7 @@ PARAM_DEFINE_FLOAT(SENS_BARO_RATE, 20.0f);
  * Sensors hub baro mode
  *
  * @value 0 Publish all barometers
- * @value 1 Publish primary barometers
+ * @value 1 Publish primary barometer
  *
  * @category system
  * @group Sensors

@@ -54,7 +54,7 @@
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/sensors_status_imu.h>
+#include <uORB/topics/sensors_status.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_imu.h>
 #include <uORB/topics/vehicle_imu_status.h>
@@ -159,7 +159,8 @@ private:
 	orb_advert_t _mavlink_log_pub{nullptr};
 
 	uORB::Publication<sensor_selection_s> _sensor_selection_pub{ORB_ID(sensor_selection)};	/**< handle to the sensor selection uORB topic */
-	uORB::Publication<sensors_status_imu_s> _sensors_status_imu_pub{ORB_ID(sensors_status_imu)};
+	uORB::Publication<sensors_status_s> _sensors_status_accel_pub{ORB_ID(sensors_status_accel)};
+	uORB::Publication<sensors_status_s> _sensors_status_gyro_pub{ORB_ID(sensors_status_gyro)};
 
 	uORB::SubscriptionCallbackWorkItem(&_vehicle_imu_sub)[MAX_SENSOR_COUNT];
 	uORB::SubscriptionMultiArray<vehicle_imu_status_s, MAX_SENSOR_COUNT> _vehicle_imu_status_subs{ORB_ID::vehicle_imu_status};
