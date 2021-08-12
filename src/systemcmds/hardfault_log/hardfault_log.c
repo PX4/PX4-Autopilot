@@ -62,6 +62,12 @@
 
 #include "chip.h"
 
+#if defined(CONSTRAINED_FLASH_NO_HELP)
+#  define hfsyslog(l,format, ...) \
+	do { if (0) syslog(LOG_ERR, format, ##__VA_ARGS__); } while (0)
+#else
+#define hfsyslog(l,format, ...) syslog((l), (format), ##__VA_ARGS__)
+#endif
 
 /****************************************************************************
  * Public Function Prototypes
@@ -226,7 +232,7 @@ static int hardfault_get_desc(char *caller, struct bbsramd_s *desc, bool silent)
 	if (fd < 0) {
 		if (!silent) {
 			identify(caller);
-			syslog(LOG_INFO, "Failed to open Fault Log file [%s] (%d)\n", HARDFAULT_PATH, fd);
+			hfsyslog(LOG_INFO, "Failed to open Fault Log file [%s] (%d)\n", HARDFAULT_PATH, fd);
 		}
 
 	} else {
@@ -238,7 +244,7 @@ static int hardfault_get_desc(char *caller, struct bbsramd_s *desc, bool silent)
 
 		} else {
 			identify(caller);
-			syslog(LOG_INFO, "Failed to get Fault Log descriptor (%d)\n", rv);
+			hfsyslog(LOG_INFO, "Failed to get Fault Log descriptor (%d)\n", rv);
 		}
 	}
 
@@ -718,7 +724,7 @@ static int hardfault_append_to_ulog(const char *caller, int fdin)
 
 	if (read(ulog_fd, chunk, 8) != 8) {
 		identify(caller);
-		syslog(LOG_INFO, "Reading ULog header failed\n");
+		hfsyslog(LOG_INFO, "Reading ULog header failed\n");
 		return -EINVAL;
 	}
 
@@ -773,7 +779,7 @@ static int hardfault_append_to_ulog(const char *caller, int fdin)
 
 	if (!found) {
 		identify(caller);
-		syslog(LOG_ERR, "Cannot append more data to ULog (no offsets left)\n");
+		hfsyslog(LOG_ERR, "Cannot append more data to ULog (no offsets left)\n");
 		ret = -EINVAL;
 		goto out;
 	}
@@ -819,7 +825,7 @@ static int hardfault_append_to_ulog(const char *caller, int fdin)
 
 			if (num_read <= 0) {
 				identify(caller);
-				syslog(LOG_ERR, "read() failed: %i, %i\n", num_read, errno);
+				hfsyslog(LOG_ERR, "read() failed: %i, %i\n", num_read, errno);
 				ret = -1;
 				goto out;
 			}
@@ -864,13 +870,13 @@ static int hardfault_commit(char *caller)
 
 		if (rv < 0) {
 			identify(caller);
-			syslog(LOG_INFO, "Failed to Close Fault Log (%d)\n", rv);
+			hfsyslog(LOG_INFO, "Failed to Close Fault Log (%d)\n", rv);
 
 		} else {
 
 			if (state != OK) {
 				identify(caller);
-				syslog(LOG_INFO, "Nothing to save\n");
+				hfsyslog(LOG_INFO, "Nothing to save\n");
 				ret = -ENOENT;
 
 			} else {
@@ -884,7 +890,7 @@ static int hardfault_commit(char *caller)
 						syslog(LOG_INFO, "Saving Fault Log file %s\n", path);
 						ret = hardfault_write(caller, fdout, HARDFAULT_FILE_FORMAT, true);
 						identify(caller);
-						syslog(LOG_INFO, "Done saving Fault Log file\n");
+						hfsyslog(LOG_INFO, "Done saving Fault Log file\n");
 
 						// now save the same data to the last ulog file by copying from the txt file
 						// (not the fastest, but a simple way to do it). We also want to keep a separate
@@ -895,16 +901,16 @@ static int hardfault_commit(char *caller)
 
 							switch (ret) {
 							case OK:
-								syslog(LOG_INFO, "Successfully appended to ULog\n");
+								hfsyslog(LOG_INFO, "Successfully appended to ULog\n");
 								break;
 
 							case -ENOENT:
-								syslog(LOG_INFO, "No ULog to append to\n");
+								hfsyslog(LOG_INFO, "No ULog to append to\n");
 								ret = OK;
 								break;
 
 							default:
-								syslog(LOG_INFO, "Failed to append to ULog (%i)\n", ret);
+								hfsyslog(LOG_INFO, "Failed to append to ULog (%i)\n", ret);
 								break;
 							}
 						}
@@ -938,7 +944,7 @@ static int hardfault_dowrite(char *caller, int infd, int outfd,
 
 			if (ret < 0) {
 				identify(caller);
-				syslog(LOG_INFO, "Failed to read Fault Log file [%s] (%d)\n", HARDFAULT_PATH, ret);
+				hfsyslog(LOG_INFO, "Failed to read Fault Log file [%s] (%d)\n", HARDFAULT_PATH, ret);
 				ret = -EIO;
 
 			} else {
@@ -1032,7 +1038,7 @@ __EXPORT int hardfault_rearm(char *caller)
 
 	if (rv < 0) {
 		identify(caller);
-		syslog(LOG_INFO, "Failed to re arming Fault Log (%d)\n", rv);
+		hfsyslog(LOG_INFO, "Failed to re arming Fault Log (%d)\n", rv);
 		ret = -EIO;
 
 	} else {
@@ -1056,10 +1062,10 @@ __EXPORT int hardfault_check_status(char *caller)
 		identify(caller);
 
 		if (ret == -ENOENT) {
-			syslog(LOG_INFO, "Fault Log is Armed\n");
+			hfsyslog(LOG_INFO, "Fault Log is Armed\n");
 
 		} else {
-			syslog(LOG_INFO, "Failed to open Fault Log file [%s] (%d)\n", HARDFAULT_PATH, ret);
+			hfsyslog(LOG_INFO, "Failed to open Fault Log file [%s] (%d)\n", HARDFAULT_PATH, ret);
 		}
 
 	} else {
@@ -1069,19 +1075,19 @@ __EXPORT int hardfault_check_status(char *caller)
 
 		if (rv < 0) {
 			identify(caller);
-			syslog(LOG_INFO, "Failed to Close Fault Log (%d)\n", rv);
+			hfsyslog(LOG_INFO, "Failed to Close Fault Log (%d)\n", rv);
 
 		} else {
 			ret = state;
 			identify(caller);
-			syslog(LOG_INFO, "Fault Log info File No %" PRIu8 " Length %" PRIu8 " flags:0x%02" PRIu16 " state:%d\n",
-			       desc.fileno, desc.len, desc.flags, state);
+			hfsyslog(LOG_INFO, "Fault Log info File No %" PRIu8 " Length %" PRIu8 " flags:0x%02" PRIu16 " state:%d\n",
+				 desc.fileno, desc.len, desc.flags, state);
 
 			if (state == OK) {
 				char buf[TIME_FMT_LEN + 1];
 				format_fault_time(HEADER_TIME_FMT, &desc.lastwrite, buf, arraySize(buf));
 				identify(caller);
-				syslog(LOG_INFO, "Fault Logged on %s - Valid\n", buf);
+				hfsyslog(LOG_INFO, "Fault Logged on %s - Valid\n", buf);
 
 			} else {
 				rv = hardfault_rearm(caller);
@@ -1107,7 +1113,7 @@ __EXPORT int hardfault_increment_reboot(char *caller, bool reset)
 
 	if (fd < 0) {
 		identify(caller);
-		syslog(LOG_INFO, "Failed to open Fault reboot count file [%s] (%d)\n", HARDFAULT_REBOOT_PATH, ret);
+		hfsyslog(LOG_INFO, "Failed to open Fault reboot count file [%s] (%d)\n", HARDFAULT_REBOOT_PATH, ret);
 
 	} else {
 
@@ -1172,7 +1178,7 @@ __EXPORT int hardfault_write(char *caller, int fd, int format, bool rearm)
 
 		if (ret < 0) {
 			identify(caller);
-			syslog(LOG_INFO, "Failed to Close Fault Log (%d)\n", ret);
+			hfsyslog(LOG_INFO, "Failed to Close Fault Log (%d)\n", ret);
 
 		}
 
@@ -1181,7 +1187,7 @@ __EXPORT int hardfault_write(char *caller, int fd, int format, bool rearm)
 
 			if (ret < 0) {
 				identify(caller);
-				syslog(LOG_INFO, "Failed to re-arm Fault Log (%d)\n", ret);
+				hfsyslog(LOG_INFO, "Failed to re-arm Fault Log (%d)\n", ret);
 			}
 		}
 
@@ -1191,7 +1197,7 @@ __EXPORT int hardfault_write(char *caller, int fd, int format, bool rearm)
 
 		if (ret != OK) {
 			identify(caller);
-			syslog(LOG_INFO, "Failed to Write Fault Log (%d)\n", ret);
+			hfsyslog(LOG_INFO, "Failed to Write Fault Log (%d)\n", ret);
 		}
 	}
 
