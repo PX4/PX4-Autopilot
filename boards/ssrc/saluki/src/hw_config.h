@@ -103,6 +103,8 @@
 //#define BOOTLOADER_USE_SECURITY
 #define BOOTLOADER_SIGNING_ALGORITHM CRYPTO_ED25519
 
+#define MMCSD_IMAGE_FN "ssrc_saluki.bin"
+
 #if !defined(ARCH_SN_MAX_LENGTH)
 # define ARCH_SN_MAX_LENGTH 16
 #endif

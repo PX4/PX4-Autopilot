@@ -40,3 +40,6 @@ target_link_libraries(arch_bootloader
 	PRIVATE
 		bootloader_lib
 )
+
+target_link_libraries(nuttx_fs INTERFACE nuttx_c)
+target_link_libraries(nuttx_drivers INTERFACE nuttx_fs)

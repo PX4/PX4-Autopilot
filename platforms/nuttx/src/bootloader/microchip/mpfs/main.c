@@ -39,6 +39,11 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_defines.h>
 #include <stdbool.h>
+#include <sys/mount.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <debug.h>
 
 #include "hw_config.h"
 
@@ -61,6 +66,8 @@
 #if INTERFACE_USB
 # define BOARD_INTERFACE_CONFIG_USB  INTERFACE_USB_CONFIG
 #endif
+
+static int mmcsd_fd = -1;
 
 /* board definition */
 struct boardinfo board_info = {
@@ -175,6 +182,11 @@ board_deinit(void)
 	//	putreg32(RCC_AHB1RSTR_OTGFSRST, STM32_RCC_AHB1RSTR);
 #endif
 
+#ifdef MMCSD_IMAGE_FN
+	close(mmcsd_fd);
+	umount("/sdcard");
+#endif
+
 #if defined(CONFIG_MMCSD)
 	/* deinitialise the MMC/SD interrupt */
 	up_disable_irq(MPFS_IRQ_MMC_MAIN);
@@ -230,12 +242,6 @@ void arch_flash_unlock(void)
 {
 }
 
-ssize_t arch_flash_write(uintptr_t address, const void *buffer, size_t buflen)
-{
-	//TODO:
-	memcpy((void *)address, buffer, buflen);
-	return 0;
-}
 inline void arch_setvtor(const uint32_t *address)
 {
 }
@@ -256,31 +262,43 @@ flash_func_sector_size(unsigned sector)
 void
 flash_func_erase_sector(unsigned sector)
 {
-	//TODO
+
+	if (sector == 0) {
+		lseek(mmcsd_fd, 0, SEEK_SET);
+		ftruncate(mmcsd_fd, 0);
+	}
+
 	unsigned ss = flash_func_sector_size(sector);
 	uint64_t *addr = (uint64_t *)((uint64_t)APP_LOAD_ADDRESS + sector * ss);
 	memset(addr, 0xFFFFFFFF, ss);
+
 }
 
 void
 flash_func_write_word(uintptr_t address, uint32_t word)
 {
-	//TODO
+#ifdef MMCSD_IMAGE_FN
+
+	/* Write to file */
+	if (lseek(mmcsd_fd, address, SEEK_SET) >= 0) {
+		write(mmcsd_fd, (void *)&word, 4);
+	}
+
+#endif
+
+	/* Also copy it directly to load address for booting */
 	address += APP_LOAD_ADDRESS;
 	*(uint32_t *)(uintptr_t)address = word;
-	//	fc_write(address, word);
 }
 
 uint32_t flash_func_read_word(uintptr_t address)
 {
-	//TODO
-	if (address & 3) {
-		return 0;
-	}
+	uint32_t word;
 
 	address += APP_LOAD_ADDRESS;
-	return *(uint32_t *)((uintptr_t)address);
-	//	return fc_read(address + APP_LOAD_ADDRESS);
+	word = *(uint32_t *)((uintptr_t)address);
+
+	return word;
 }
 
 
@@ -381,10 +399,14 @@ led_toggle(unsigned led)
 void
 arch_do_jump(const uint32_t *app_base)
 {
+
 	/* Boot PX4 on hart 1 */
 	*(volatile uint32_t *)MPFS_CLINT_MSIP1 = 0x01U;
 
 	// TODO. monitor?
+	while (1) {
+		asm("WFI");
+	}
 }
 
 int
@@ -434,6 +456,36 @@ bootloader_main(void)
 		 */
 		board_set_rtc_signature(0);
 	}
+
+#ifdef MMCSD_IMAGE_FN
+	/*
+	 * Mount the sdcard and check if the image is present
+	 */
+	int ret = mount("/dev/mmcsd0", "/sdcard/", "vfat", 0, NULL);
+
+	if (ret < 0) {
+		_alert("SD card mount failed\n");
+
+	} else {
+		mmcsd_fd = open("/sdcard/boot/" MMCSD_IMAGE_FN, O_RDWR | O_CREAT);
+
+		if (mmcsd_fd > 0) {
+			// Just read everything to load address in 512 byte blocks
+			size_t got = 0;
+
+			do {
+				got += read(mmcsd_fd, (void *)(APP_LOAD_ADDRESS + got), 512);
+			} while (!(got % 512));
+
+		} else {
+			/* Mount succeeded, but file not found. Make sure the "boot" directory is there */
+			ret = mkdir("/sdcard/boot", S_IRWXU | S_IRWXG | S_IRWXO);
+
+			if (ret < 0) { _alert("boot directory creation failed %d\n", ret); }
+		}
+	}
+
+#endif
 
 #ifdef BOOT_DELAY_ADDRESS
 	{
@@ -495,12 +547,10 @@ bootloader_main(void)
 
 	/* Try to boot the app if we think we should just go straight there */
 	if (try_boot) {
-
 		/* set the boot-to-bootloader flag so that if boot fails on reset we will stop here */
 #ifdef BOARD_BOOT_FAIL_DETECT
 		board_set_rtc_signature(BOOT_RTC_SIGNATURE);
 #endif
-
 		/* try to boot immediately */
 		jump_to_app();
 
@@ -533,7 +583,6 @@ bootloader_main(void)
 #ifdef BOARD_BOOT_FAIL_DETECT
 		board_set_rtc_signature(BOOT_RTC_SIGNATURE);
 #endif
-
 		/* look to see if we can boot the app */
 		jump_to_app();
 
