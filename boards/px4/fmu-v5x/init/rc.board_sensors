@@ -55,6 +55,9 @@ else
 
 fi
 
+# External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
+ist8310 -X -b 1 -R 10 start
+
 # Possible internal Baro
 
 # Disable startup of internal baros if param is set to false
