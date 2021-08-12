@@ -1316,7 +1316,8 @@ void EKF2::SelectImuStatus()
 		}
 	}
 
-	PX4_WARN("%d - IMU status not found for accel %d, gyro %d", _instance, _device_id_accel, _device_id_gyro);
+	PX4_WARN("%d - IMU status not found for accel %" PRId32 ", gyro %" PRId32, _instance, _device_id_accel,
+		 _device_id_gyro);
 }
 
 void EKF2::UpdateImuStatus()
