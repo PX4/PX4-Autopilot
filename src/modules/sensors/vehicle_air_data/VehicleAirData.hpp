@@ -35,6 +35,7 @@
 
 #include "data_validator/DataValidatorGroup.hpp"
 
+#include <lib/sensor_calibration/Barometer.hpp>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
@@ -77,7 +78,6 @@ private:
 	void ParametersUpdate(bool force = false);
 	void Publish(uint8_t instance, bool multi = false);
 	void PublishStatus();
-	void SensorCorrectionsUpdate(bool force = false);
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
@@ -92,7 +92,6 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::Subscription _sensor_correction_sub{ORB_ID(sensor_correction)};
 	uORB::Subscription _differential_pressure_sub{ORB_ID(differential_pressure)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_sub[MAX_SENSOR_COUNT] {
@@ -101,6 +100,8 @@ private:
 		{this, ORB_ID(sensor_baro), 2},
 		{this, ORB_ID(sensor_baro), 3},
 	};
+
+	calibration::Barometer _calibration[MAX_SENSOR_COUNT];
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
@@ -111,7 +112,6 @@ private:
 	unsigned _last_failover_count{0};
 
 	uint64_t _timestamp_sample_sum[MAX_SENSOR_COUNT] {0};
-	uint32_t _device_ids[MAX_SENSOR_COUNT] {};
 	float _data_sum[MAX_SENSOR_COUNT] {};
 	float _temperature_sum[MAX_SENSOR_COUNT] {};
 	int _data_sum_count[MAX_SENSOR_COUNT] {};
@@ -119,8 +119,6 @@ private:
 
 	float _last_data[MAX_SENSOR_COUNT] {};
 	bool _advertised[MAX_SENSOR_COUNT] {};
-
-	float _thermal_offset[MAX_SENSOR_COUNT] {};
 
 	float _sensor_diff[MAX_SENSOR_COUNT] {}; // filtered differences between sensor instances
 

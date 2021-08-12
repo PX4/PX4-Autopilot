@@ -1419,6 +1419,29 @@ void EKF2::UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps)
 			perf_count(_msg_missed_air_data_perf);
 		}
 
+		bool reset = false;
+
+		// check if barometer has changed
+		if (airdata.baro_device_id != _device_id_baro) {
+			if (_device_id_baro != 0) {
+				PX4_WARN("%d - baro sensor ID changed %" PRIu32 " -> %" PRIu32, _instance, _device_id_baro, airdata.baro_device_id);
+			}
+
+			reset = true;
+
+		} else if (airdata.calibration_count > _baro_calibration_count) {
+			// existing calibration has changed, reset saved baro bias
+			PX4_DEBUG("%d - baro %" PRIu32 " calibration updated, resetting bias", _instance, _device_id_baro);
+			reset = true;
+		}
+
+		if (reset) {
+			// TODO: implement baro reset?
+			//_ekf.resetMagBias();
+			//_device_id_mag = magnetometer.device_id;
+			//_mag_calibration_count = magnetometer.calibration_count;
+		}
+
 		_ekf.set_air_density(airdata.rho);
 
 		_ekf.setBaroData(baroSample{airdata.timestamp_sample, airdata.baro_alt_meter});

@@ -52,6 +52,7 @@ TCBP001TA::TCBP001TA(tcbp001ta::ITCBP001TA *interface) :
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
 {
 	_px4_baro.set_device_type(DRV_BARO_DEVTYPE_TCBP001TA);
+	_px4_baro.set_external(_interface->external());
 }
 
 TCBP001TA::~TCBP001TA()

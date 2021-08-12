@@ -121,5 +121,7 @@ int UavcanBarometerBridge::init_driver(uavcan_bridge::Channel *channel)
 		return PX4_ERROR;
 	}
 
+	baro->set_external(true);
+
 	return PX4_OK;
 }

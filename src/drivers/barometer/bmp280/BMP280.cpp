@@ -41,6 +41,7 @@ BMP280::BMP280(const I2CSPIDriverConfig &config, bmp280::IBMP280 *interface) :
 	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
 {
+	//_px4_baro.set_external(_interface->external());
 }
 
 BMP280::~BMP280()

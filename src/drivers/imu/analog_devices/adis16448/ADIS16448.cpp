@@ -107,6 +107,8 @@ ADIS16448::ADIS16448(const I2CSPIDriverConfig &config) :
 	if (_drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
 	}
+
+	_px4_baro.set_external(external());
 }
 
 ADIS16448::~ADIS16448()

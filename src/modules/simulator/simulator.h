@@ -288,6 +288,8 @@ private:
 	bool _gps_blocked{false};
 	bool _airspeed_blocked{false};
 
+	float _last_baro{0.0f};
+
 	float _last_magx{0.0f};
 	float _last_magy{0.0f};
 	float _last_magz{0.0f};

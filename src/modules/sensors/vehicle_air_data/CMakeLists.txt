@@ -35,4 +35,8 @@ px4_add_library(vehicle_air_data
 	VehicleAirData.cpp
 	VehicleAirData.hpp
 )
-target_link_libraries(vehicle_air_data PRIVATE px4_work_queue)
+target_link_libraries(vehicle_air_data
+	PRIVATE
+		px4_work_queue
+		sensor_calibration
+)

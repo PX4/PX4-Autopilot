@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,4 +31,35 @@
  *
  ****************************************************************************/
 
-#include "PX4Barometer.hpp"
+/**
+ * ID of the Baro that the calibration is for.
+ *
+ * @category system
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(CAL_BARO0_ID, 0);
+
+/**
+ * Baro 0 priority.
+ *
+ * @value -1  Uninitialized
+ * @value 0   Disabled
+ * @value 1   Min
+ * @value 25  Low
+ * @value 50  Medium (Default)
+ * @value 75  High
+ * @value 100 Max
+ *
+ * @category system
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(CAL_BARO0_PRIO, -1);
+
+/**
+ * Baro 0 offset
+ *
+ * @category system
+ * @group Sensor Calibration
+ * @volatile
+ */
+PARAM_DEFINE_FLOAT(CAL_BARO0_OFF, 0.0f);

@@ -127,6 +127,8 @@ protected:
 	int64_t			_OFF{0};
 	int64_t			_SENS{0};
 
+	float _last_pressure{0};
+
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_measure_perf;
 	perf_counter_t		_comms_errors;

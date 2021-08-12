@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,28 +35,61 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/conversion/rotation.h>
-#include <uORB/uORB.h>
+#include <lib/drivers/device/Device.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_baro.h>
 
 class PX4Barometer
 {
 public:
-	PX4Barometer(uint32_t device_id);
-	~PX4Barometer();
+	PX4Barometer(uint32_t device_id) : _device_id{device_id} {}
+	~PX4Barometer() { _sensor_pub.unadvertise(); }
 
-	const sensor_baro_s &get() { return _sensor_baro_pub.get(); }
+	bool external() { return _external; }
 
-	void set_device_type(uint8_t devtype);
-	void set_error_count(uint64_t error_count) { _sensor_baro_pub.get().error_count = error_count; }
+	void set_device_id(uint32_t device_id) { _device_id = device_id; }
+	void set_device_type(uint8_t devtype)
+	{
+		// current DeviceStructure
+		union device::Device::DeviceId device_id;
+		device_id.devid = _device_id;
 
-	void set_temperature(float temperature) { _sensor_baro_pub.get().temperature = temperature; }
+		// update to new device type
+		device_id.devid_s.devtype = devtype;
 
-	void update(const hrt_abstime &timestamp_sample, float pressure);
+		// copy back
+		_device_id = device_id.devid;
+	}
 
-	int get_instance() { return _sensor_baro_pub.get_instance(); };
+	void set_error_count(uint32_t error_count) { _error_count = error_count; }
+	void increase_error_count() { _error_count++; }
+	void set_temperature(float temperature) { _temperature = temperature; }
+	void set_external(bool external) { _external = external; }
+
+	void update(const hrt_abstime &timestamp_sample, float pressure_pa)
+	{
+		sensor_baro_s report;
+		report.timestamp_sample = timestamp_sample;
+		report.device_id = _device_id;
+		report.pressure = pressure_pa;
+		report.temperature = _temperature;
+		report.error_count = _error_count;
+
+		report.is_external = _external;
+
+		report.timestamp = hrt_absolute_time();
+		_sensor_pub.publish(report);
+	}
+
+	int get_instance() { return _sensor_pub.get_instance(); };
 
 private:
+	uORB::PublicationMulti<sensor_baro_s> _sensor_pub{ORB_ID(sensor_baro)};
 
-	uORB::PublicationMultiData<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
+	uint32_t		_device_id{0};
+
+	float			_temperature{NAN};
+	uint32_t		_error_count{0};
+
+	bool _external{false};
 };

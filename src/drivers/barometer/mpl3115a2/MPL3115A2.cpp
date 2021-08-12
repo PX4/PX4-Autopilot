@@ -60,6 +60,7 @@ MPL3115A2::MPL3115A2(const I2CSPIDriverConfig &config) :
 	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
 {
+	_px4_barometer.set_external(_interface->external());
 }
 
 MPL3115A2::~MPL3115A2()

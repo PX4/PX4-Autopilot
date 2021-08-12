@@ -2275,6 +2275,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 		if (_px4_baro != nullptr) {
 			_px4_baro->set_temperature(hil_sensor.temperature);
+			_px4_baro->set_external(true);
 			_px4_baro->update(timestamp, hil_sensor.abs_pressure);
 		}
 	}

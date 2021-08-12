@@ -55,6 +55,7 @@ LPS33HW::LPS33HW(const I2CSPIDriverConfig &config, device::Device *interface) :
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comm errors")),
 	_keep_retrying(config.keep_running)
 {
+	_px4_barometer.set_external(_interface->external());
 }
 
 LPS33HW::~LPS33HW()

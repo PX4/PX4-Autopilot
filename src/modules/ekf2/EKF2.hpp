@@ -219,6 +219,7 @@ private:
 
 	uint8_t _imu_calibration_count{0};
 	uint8_t _mag_calibration_count{0};
+	uint8_t _baro_calibration_count{0};
 
 	uint32_t _device_id_accel{0};
 	uint32_t _device_id_baro{0};

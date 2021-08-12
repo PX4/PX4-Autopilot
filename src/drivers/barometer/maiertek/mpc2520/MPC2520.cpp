@@ -47,7 +47,7 @@ MPC2520::MPC2520(const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
 	_px4_baro(get_device_id())
 {
-	//_debug_enabled = true;
+	_px4_baro.set_external(external());
 }
 
 MPC2520::~MPC2520()
