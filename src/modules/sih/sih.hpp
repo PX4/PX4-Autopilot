@@ -166,10 +166,6 @@ private:
 	void send_dist_snsr();
 	void publish_sih();
 	void generate_aerodynamics();
-	float sincf(float x);	// sin cardinal = sin(x)/x
-	matrix::Quatf expq(const matrix::Vector3f &u);  // quaternion exponential as defined in [3]
-	// States eom_f(States); 	// equations of motion f: x'=f(x)
-
 
 	perf_counter_t  _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t  _loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
@@ -210,7 +206,8 @@ private:
 	AeroSeg _wing_r = AeroSeg(SPAN / 2.0f, MAC, -4.0f, matrix::Vector3f(0.0f, SPAN / 4.0f, 0.0f), -3.0f,
 				  SPAN / MAC, MAC / 3.0f);
 	AeroSeg _tailplane = AeroSeg(0.3f, 0.1f, 0.0f, matrix::Vector3f(-0.4f, 0.0f, 0.0f), 0.0f, -1.0f, 0.05f, RP);
-	AeroSeg _fin = AeroSeg(0.25, 0.15, 0.0f, matrix::Vector3f(-0.45f, 0.0f, -0.1f), -90.0f, -1.0f, 0.08f, RP);
+	AeroSeg _fin = AeroSeg(0.25, 0.18, 0.0f, matrix::Vector3f(-0.45f, 0.0f, -0.1f), -90.0f, -1.0f, 0.12f, RP);
+	AeroSeg _fuselage = AeroSeg(0.2, 0.8, 0.0f, matrix::Vector3f(0.0f, 0.0f, 0.0f), -90.0f);
 
 	// sensors reconstruction
 	matrix::Vector3f    _acc;
