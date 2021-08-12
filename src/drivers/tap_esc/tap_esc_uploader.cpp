@@ -421,7 +421,7 @@ int TAP_ESC_UPLOADER::checkcrc(const char *filenames[])
 		ret = get_device_info(esc_id, PROTO_GET_DEVICE, PROTO_DEVICE_BOARD_REV, temp_revision);
 
 		if (ret == OK) {
-			mavlink_log_info(&_mavlink_log_pub, "esc_id %1.f found board revision: %02x", test_esc_id, temp_revision);
+			mavlink_log_info(&_mavlink_log_pub, "esc_id %1.f found board revision: %02" PRIx32, test_esc_id, temp_revision);
 
 		}  else {
 			mavlink_log_info(&_mavlink_log_pub, "esc_id %1.f found board revision failed", test_esc_id);
