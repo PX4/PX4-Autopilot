@@ -747,7 +747,6 @@ PARAM_DEFINE_FLOAT(COM_ARM_AUTH_TO, 1);
  * The default value has been optimised for rotary wing applications. For fixed wing applications, a larger value between 5 and 10 should be used.
  *
  * @unit s
- * @reboot_required true
  * @group Commander
  * @min 1
  * @max 100
@@ -764,7 +763,6 @@ PARAM_DEFINE_INT32(COM_POS_FS_DELAY, 1);
  * The default value has been optimised for rotary wing applications. For fixed wing applications, a value of 1 should be used.
  *
  * @unit s
- * @reboot_required true
  * @group Commander
  * @min 1
  * @max 100
