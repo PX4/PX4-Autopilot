@@ -1,0 +1,12 @@
+module_name: PWMESC
+actuator_output:
+  output_groups:
+    - param_prefix: '${PWM_MAIN_OR_AUX}'
+      channel_label: '${PWM_MAIN_OR_AUX}'
+      channel_label_module_name_prefix: false
+      num_channels: 10
+      standard_params:
+        disarmed: { min: 800, max: 2200, default: 900 }
+        min: { min: 800, max: 1400, default: 1000 }
+        max: { min: 1600, max: 2200, default: 2000 }
+        failsafe: { min: 800, max: 2200 }
