@@ -303,11 +303,19 @@ DevCommon::~DevCommon()
 
 int DevCommon::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
-	// pretend we have enough space left to write, so mavlink will not drop data and throw off
-	// our parsing state
 	if (cmd == FIONSPACE) {
-		*(int *)arg = 1024;
-		return 0;
+		int ret = ::ioctl(_fd, FIONSPACE, arg);
+
+		if (ret == 0) {
+			int *buf_free = (int *)arg;
+			*buf_free -= sizeof(_header);
+
+			if (*buf_free < 0) {
+				*buf_free = 0;
+			}
+		}
+
+		return ret;
 	}
 
 	return ::ioctl(_fd, cmd, arg);
