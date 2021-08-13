@@ -41,7 +41,7 @@ using namespace matrix;
 
 GyroFFT::GyroFFT() :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 	for (int i = 0; i < MAX_NUM_PEAKS; i++) {
 		_sensor_gyro_fft.peak_frequencies_x[i] = NAN;
@@ -176,9 +176,14 @@ bool GyroFFT::SensorSelectionUpdate(bool force)
 				if (sensor_gyro_fifo_sub.get().device_id == sensor_selection.gyro_device_id) {
 					if (_sensor_gyro_fifo_sub.ChangeInstance(i) && _sensor_gyro_fifo_sub.registerCallback()) {
 						_sensor_gyro_sub.unregisterCallback();
-						_sensor_gyro_fifo_sub.set_required_updates(sensor_gyro_fifo_s::ORB_QUEUE_LENGTH - 1);
+						_sensor_gyro_fifo_sub.set_required_updates(sensor_gyro_fifo_s::ORB_QUEUE_LENGTH / 2);
 						_selected_sensor_device_id = sensor_selection.gyro_device_id;
 						_gyro_fifo = true;
+
+						if (_gyro_fifo_generation_gap_perf == nullptr) {
+							_gyro_fifo_generation_gap_perf = perf_alloc(PC_COUNT, MODULE_NAME": gyro FIFO data gap");
+						}
+
 						return true;
 					}
 				}
@@ -191,9 +196,14 @@ bool GyroFFT::SensorSelectionUpdate(bool force)
 				if (sensor_gyro_sub.get().device_id == sensor_selection.gyro_device_id) {
 					if (_sensor_gyro_sub.ChangeInstance(i) && _sensor_gyro_sub.registerCallback()) {
 						_sensor_gyro_fifo_sub.unregisterCallback();
-						_sensor_gyro_sub.set_required_updates(sensor_gyro_s::ORB_QUEUE_LENGTH - 1);
+						_sensor_gyro_sub.set_required_updates(sensor_gyro_s::ORB_QUEUE_LENGTH / 2);
 						_selected_sensor_device_id = sensor_selection.gyro_device_id;
 						_gyro_fifo = false;
+
+						if (_gyro_generation_gap_perf == nullptr) {
+							_gyro_generation_gap_perf = perf_alloc(PC_COUNT, MODULE_NAME": gyro data gap");
+						}
+
 						return true;
 					}
 				}
@@ -396,9 +406,9 @@ void GyroFFT::Update(const hrt_abstime &timestamp_sample, int16_t *input[], uint
 			// if we have enough samples begin processing, but only one FFT per cycle
 			if ((buffer_index >= _imu_gyro_fft_len) && !fft_updated) {
 				perf_begin(_fft_perf);
+
 				arm_mult_q15(gyro_data_buffer[axis], _hanning_window, _fft_input_buffer, _imu_gyro_fft_len);
 				arm_rfft_q15(&_rfft_q15, _fft_input_buffer, _fft_outupt_buffer);
-				perf_end(_fft_perf);
 
 				fft_updated = true;
 
@@ -580,6 +590,8 @@ void GyroFFT::Update(const hrt_abstime &timestamp_sample, int16_t *input[], uint
 				const int overlap_start = _imu_gyro_fft_len / 4;
 				memmove(&gyro_data_buffer[axis][0], &gyro_data_buffer[axis][overlap_start], sizeof(q15_t) * overlap_start * 3);
 				buffer_index = overlap_start * 3;
+
+				perf_end(_fft_perf);
 			}
 		}
 	}
