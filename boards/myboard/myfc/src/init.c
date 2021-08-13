@@ -64,7 +64,7 @@
 
 // #include <stm32.h>
 #include "board_config.h"
-// #include <stm32_uart.h>
+#include <rp2040_uart.h>
 
 #include <arch/board/board.h>
 
@@ -75,7 +75,7 @@
 
 // #include <px4_arch/io_timer.h>
 #include <px4_platform_common/init.h>
-// #include <px4_platform/board_dma_alloc.h>
+#include <px4_platform/board_dma_alloc.h>
 
 # if defined(FLASH_BASED_PARAMS)
 #  include <parameters/flashparams/flashfs.h>
@@ -152,50 +152,29 @@ __EXPORT void board_on_reset(int status)
 
 void rp2040_boardearlyinitialize(void)
 {
-  // Disable IE on GPIO 26-29 (These are ADC Pins)
-  // Do this only for the channels configured in board_config.h
-  clrbits_reg32(RP2040_PADS_BANK0_GPIO_IE, RP2040_PADS_BANK0_GPIO(26));
-  clrbits_reg32(RP2040_PADS_BANK0_GPIO_IE, RP2040_PADS_BANK0_GPIO(27));
-  clrbits_reg32(RP2040_PADS_BANK0_GPIO_IE, RP2040_PADS_BANK0_GPIO(28));
-  clrbits_reg32(RP2040_PADS_BANK0_GPIO_IE, RP2040_PADS_BANK0_GPIO(29));
+	/* Set default UART pin */
 
-  /* Set board LED pin */
-//   Commented out because we don't want nuttx to activate led. Let PX4 do that.
-//   rp2040_gpio_init(BOARD_GPIO_LED_PIN);
-//   rp2040_gpio_setdir(BOARD_GPIO_LED_PIN, true);
-//   rp2040_gpio_put(BOARD_GPIO_LED_PIN, true);
+	#if defined(CONFIG_RP2040_UART0) && CONFIG_RP2040_UART0_GPIO >= 0
+	rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO,RP2040_GPIO_FUNC_UART);      /* TX */
+	rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO + 1,RP2040_GPIO_FUNC_UART);      /* RX */
+	#ifdef CONFIG_SERIAL_OFLOWCONTROL
+	rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO + 2,RP2040_GPIO_FUNC_UART);      /* CTS */
+	#endif
+	#ifdef CONFIG_SERIAL_IFLOWCONTROL
+	rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO + 3,RP2040_GPIO_FUNC_UART);      /* RTS */
+	#endif
+	#endif
 
-  /* Set default UART pin */
-
-// #if defined(CONFIG_RP2040_UART0) && CONFIG_RP2040_UART0_GPIO >= 0
-//   rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO,
-//                            RP2040_GPIO_FUNC_UART);      /* TX */
-//   rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO + 1,
-//                            RP2040_GPIO_FUNC_UART);      /* RX */
-// #ifdef CONFIG_SERIAL_OFLOWCONTROL
-//   rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO + 2,
-//                            RP2040_GPIO_FUNC_UART);      /* CTS */
-// #endif
-// #ifdef CONFIG_SERIAL_IFLOWCONTROL
-//   rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO + 3,
-//                            RP2040_GPIO_FUNC_UART);      /* RTS */
-// #endif
-// #endif
-
-// #if defined(CONFIG_RP2040_UART1) && CONFIG_RP2040_UART1_GPIO >= 0
-//   rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO,
-//                            RP2040_GPIO_FUNC_UART);      /* TX */
-//   rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO + 1,
-//                            RP2040_GPIO_FUNC_UART);      /* RX */
-// #ifdef CONFIG_SERIAL_OFLOWCONTROL
-//   rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO + 2,
-//                            RP2040_GPIO_FUNC_UART);      /* CTS */
-// #endif
-// #ifdef CONFIG_SERIAL_IFLOWCONTROL
-//   rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO + 3,
-//                            RP2040_GPIO_FUNC_UART);      /* RTS */
-// #endif
-// #endif
+	#if defined(CONFIG_RP2040_UART1) && CONFIG_RP2040_UART1_GPIO >= 0
+	  rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO,RP2040_GPIO_FUNC_UART);      /* TX */
+	  rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO + 1,RP2040_GPIO_FUNC_UART);      /* RX */
+	#ifdef CONFIG_SERIAL_OFLOWCONTROL
+	  rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO + 2,RP2040_GPIO_FUNC_UART);      /* CTS */
+	#endif
+	#ifdef CONFIG_SERIAL_IFLOWCONTROL
+	  rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO + 3,RP2040_GPIO_FUNC_UART);      /* RTS */
+	#endif
+	#endif
 }
 
 /************************************************************************************
@@ -212,17 +191,34 @@ __EXPORT void
 rp2040_boardinitialize(void)
 {
 	// /* Reset all PWM to Low outputs */
-
 	// board_on_reset(-1);
 
 	// /* configure LEDs */
-	// board_autoled_initialize();
+	board_autoled_initialize();
 
+	// Disable IE and enable OD on GPIO 26-29 (These are ADC Pins)
+	// Do this only for the channels configured in board_config.h
+	rp2040_gpioconfig(27 | GPIO_FUN(RP2040_GPIO_FUNC_NULL));		/* BATT_VOLTAGE_SENS */
+	clrbits_reg32(RP2040_PADS_BANK0_GPIO_IE, RP2040_PADS_BANK0_GPIO(27));	/* BATT_VOLTAGE_SENS */
+	setbits_reg32(RP2040_PADS_BANK0_GPIO_OD, RP2040_PADS_BANK0_GPIO(27));	/* BATT_VOLTAGE_SENS */
+	rp2040_gpioconfig(28 | GPIO_FUN(RP2040_GPIO_FUNC_NULL));		/* BATT_VOLTAGE_SENS */
+	clrbits_reg32(RP2040_PADS_BANK0_GPIO_IE, RP2040_PADS_BANK0_GPIO(28));	/* BATT_CURRENT_SENS */
+	setbits_reg32(RP2040_PADS_BANK0_GPIO_OD, RP2040_PADS_BANK0_GPIO(28));	/* BATT_CURRENT_SENS */
 
-	// /* configure ADC pins */
-	// stm32_configgpio(GPIO_ADC1_IN12);	/* BATT_VOLTAGE_SENS */
-	// stm32_configgpio(GPIO_ADC1_IN11);	/* BATT_CURRENT_SENS */
-	// //stm32_configgpio(GPIO_ADC1_IN0);	/* RSSI analog in (TX of UART4 instead) */
+	/* Set default I2C pin */
+	#if defined(CONFIG_RP2040_I2C0) && CONFIG_RP2040_I2C0_GPIO >= 0
+	rp2040_gpio_set_function(CONFIG_RP2040_I2C0_GPIO,RP2040_GPIO_FUNC_I2C);       /* SDA */
+	rp2040_gpio_set_function(CONFIG_RP2040_I2C0_GPIO + 1,RP2040_GPIO_FUNC_I2C);       /* SCL */
+	rp2040_gpio_set_pulls(CONFIG_RP2040_I2C0_GPIO, true, false);  /* Pull up */
+	rp2040_gpio_set_pulls(CONFIG_RP2040_I2C0_GPIO + 1, true, false);
+	#endif
+
+	#if defined(CONFIG_RP2040_I2C1) &&  CONFIG_RP2040_I2C1_GPIO >= 0
+	rp2040_gpio_set_function(CONFIG_RP2040_I2C1_GPIO,RP2040_GPIO_FUNC_I2C);       /* SDA */
+	rp2040_gpio_set_function(CONFIG_RP2040_I2C1_GPIO + 1,RP2040_GPIO_FUNC_I2C);       /* SCL */
+	rp2040_gpio_set_pulls(CONFIG_RP2040_I2C1_GPIO, true, false);  /* Pull up */
+	rp2040_gpio_set_pulls(CONFIG_RP2040_I2C1_GPIO + 1, true, false);
+	#endif
 
 	// // TODO: power peripherals
 	// ///* configure power supply control/sense pins */
@@ -255,9 +251,8 @@ rp2040_boardinitialize(void)
 
 	// stm32_configgpio(GPIO_PPM_IN);
 
-	// /* configure SPI all interfaces GPIO */
-
-	// stm32_spiinitialize();
+	/* configure SPI all interfaces GPIO */
+	rp2040_spiinitialize();
 
 }
 
@@ -286,21 +281,19 @@ rp2040_boardinitialize(void)
  *
  ****************************************************************************/
 
-// static struct spi_dev_s *spi1;
-// static struct spi_dev_s *spi2;
-// static struct spi_dev_s *spi3;
+static struct spi_dev_s *spi1;
+static struct spi_dev_s *spi2;
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	px4_platform_init();
 
-	// /* configure the DMA allocator */
+	/* configure the DMA allocator */				// Needs to be figured out
+	if (board_dma_alloc_init() < 0) {
+		syslog(LOG_ERR, "DMA alloc FAILED\n");
+	}
 
-	// if (board_dma_alloc_init() < 0) {
-	// 	syslog(LOG_ERR, "DMA alloc FAILED\n");
-	// }
-
-	// /* set up the serial DMA polling */
+	/* set up the serial DMA polling */	// RP2040 nuttx implementation doesn't have serial_dma_poll function yet.
 	// static struct hrt_call serial_dma_call;
 	// struct timespec ts;
 
@@ -317,90 +310,69 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	// 	       (hrt_callout)stm32_serial_dma_poll,
 	// 	       NULL);
 
-	// /* initial LED state */
-	// drv_led_start();
-	// led_off(LED_BLUE);
+	/* initial LED state */
+	drv_led_start();
+	led_off(LED_GREEN);
 
-	// if (board_hardfault_init(2, true) != 0) {
-	// 	led_on(LED_BLUE);
+	// if (board_hardfault_init(2, true) != 0) {		// Needs to be figured out as RP2040 doesn't have BBSRAM.
+	// 	led_on(LED_GREEN);
 	// }
 
 
-	// /* Configure SPI-based devices */
+	/* Configure SPI-based devices */
 
-	// // SPI1: MPU6000
-	// spi1 = stm32_spibus_initialize(1);
+	// // SPI1: SDCard					// Will be configured later
+	// /* Get the SPI port for the microSD slot */
+	// spi1 = rp2040_spibus_initialize(CONFIG_NSH_MMCSDSPIPORTNO);
 
 	// if (!spi1) {
-	// 	syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 1\n");
-	// 	led_on(LED_BLUE);
-	// 	return -ENODEV;
-	// }
-
-	// /* Default SPI1 to 1MHz and de-assert the known chip selects. */
-	// SPI_SETFREQUENCY(spi1, 10000000);
-	// SPI_SETBITS(spi1, 8);
-	// SPI_SETMODE(spi1, SPIDEV_MODE3);
-	// up_udelay(20);
-
-	// // SPI2: SDCard
-	// /* Get the SPI port for the microSD slot */
-	// spi2 = stm32_spibus_initialize(CONFIG_NSH_MMCSDSPIPORTNO);
-
-	// if (!spi2) {
 	// 	syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
-	// 	led_on(LED_BLUE);
+	// 	led_on(LED_GREEN);
 	// 	return -ENODEV;
 	// }
 
 	// /* Now bind the SPI interface to the MMCSD driver */
-	// int result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi2);
+	// int result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi1);
 
 	// if (result != OK) {
-	// 	led_on(LED_BLUE);
-	// 	syslog(LOG_ERR, "[boot] FAILED to bind SPI port 2 to the MMCSD driver\n");
+	// 	led_on(LED_GREEN);
+	// 	syslog(LOG_ERR, "[boot] FAILED to bind SPI port 1 to the MMCSD driver\n");
 	// 	return -ENODEV;
 	// }
 
 	// up_udelay(20);
 
+	// SPI2: MPU9250 and BMP280
+	spi2 = rp2040_spibus_initialize(2);
 
-	// // SPI3: OSD / Baro
-	// spi3 = stm32_spibus_initialize(3);
-
-	// if (!spi3) {
-	// 	syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 3\n");
-	// 	led_on(LED_BLUE);
-	// 	return -ENODEV;
-	// }
-
-	// /* Copied from fmu-v4
-	//  * Default SPI3 to 12MHz and de-assert the known chip selects.
-	//  * MS5611 has max SPI clock speed of 20MHz
-	//  */
-
-	// // BMP280 max SPI speed is 10 MHz
-	// SPI_SETFREQUENCY(spi3, 10 * 1000 * 1000);
-	// SPI_SETBITS(spi3, 8);
-	// SPI_SETMODE(spi3, SPIDEV_MODE3);
-	// up_udelay(20);
-
-#if defined(FLASH_BASED_PARAMS)
-	static sector_descriptor_t params_sector_map[] = {
-		{1, 16 * 1024, 0x08004000},
-		{0, 0, 0},
-	};
-
-	/* Initialize the flashfs layer to use heap allocated memory */
-	result = parameter_flashfs_init(params_sector_map, NULL, 0);
-
-	if (result != OK) {
-		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
-		led_on(LED_AMBER);
+	if (!spi2) {
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 2\n");
+		led_on(LED_GREEN);
 		return -ENODEV;
 	}
 
-#endif
+	/* Default SPI2 to 1MHz and de-assert the known chip selects. */
+	SPI_SETFREQUENCY(spi1, 10000000);
+	SPI_SETBITS(spi1, 8);
+	SPI_SETMODE(spi1, SPIDEV_MODE3);
+	up_udelay(20);
+
+// #if defined(FLASH_BASED_PARAMS)					// This probably doesn't relate to RP2040 right now.
+// 	static sector_descriptor_t params_sector_map[] = {
+// 		{1, 16 * 1024, 0x08004000},
+// 		{0, 0, 0},
+// 	};
+
+// 	/* Initialize the flashfs layer to use heap allocated memory */
+// 	result = parameter_flashfs_init(params_sector_map, NULL, 0);
+
+// 	if (result != OK) {
+// 		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
+// 		led_on(LED_AMBER);
+// 		return -ENODEV;
+// 	}
+
+// #endif
 
 	/* Configure the HW based on the manifest */
 

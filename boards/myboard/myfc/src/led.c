@@ -96,24 +96,24 @@ __EXPORT void led_toggle(int led)
 	}
 }
 
-__EXPORT void board_autoled_initialize()
-{
-	/* Configure LED1 GPIO for output */
-	px4_arch_configgpio(GPIO_LED1);
-}
+// __EXPORT void board_autoled_initialize()
+// {
+// 	/* Configure LED1 GPIO for output */
+// 	px4_arch_configgpio(GPIO_LED1);
+// }
 
-__EXPORT void board_autoled_on(int led)
-{
-	if (led == 1) {
-		/* Pull down to switch on */
-		px4_arch_gpiowrite(GPIO_LED1, false);
-	}
-}
+// __EXPORT void board_autoled_on(int led)
+// {
+// 	if (led == 1) {
+// 		/* Pull down to switch on */
+// 		px4_arch_gpiowrite(GPIO_LED1, false);
+// 	}
+// }
 
-__EXPORT void board_autoled_off(int led)
-{
-	if (led == 1) {
-		/* Pull up to switch off */
-		px4_arch_gpiowrite(GPIO_LED1, true);
-	}
-}
+// __EXPORT void board_autoled_off(int led)
+// {
+// 	if (led == 1) {
+// 		/* Pull up to switch off */
+// 		px4_arch_gpiowrite(GPIO_LED1, true);
+// 	}
+// }

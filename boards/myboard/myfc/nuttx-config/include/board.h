@@ -38,39 +38,63 @@
  * omnibusf4sd.  The following definitions describe how NuttX controls the LEDs:
  */
 
-#define LED_STARTED       0  /* LED1 */
-#define LED_HEAPALLOCATE  1  /* LED2 */
-#define LED_IRQSENABLED   2  /* LED1 */
-#define LED_STACKCREATED  3  /* LED1 + LED2 */
-#define LED_INIRQ         4  /* LED1 */
-#define LED_SIGNAL        5  /* LED2 */
-#define LED_ASSERTION     6  /* LED1 + LED2 */
-#define LED_PANIC         7  /* LED1 + LED2 */
+// #define LED_STARTED       0  /* LED1 */
+// #define LED_HEAPALLOCATE  1  /* LED2 */
+// #define LED_IRQSENABLED   2  /* LED1 */
+// #define LED_STACKCREATED  3  /* LED1 + LED2 */
+// #define LED_INIRQ         4  /* LED1 */
+// #define LED_SIGNAL        5  /* LED2 */
+// #define LED_ASSERTION     6  /* LED1 + LED2 */
+// #define LED_PANIC         7  /* LED1 + LED2 */
+
+/* Alternate function pin selections ************************************************/
+
+/*
+ * UARTs.
+ * UART0TX: GPIO0
+ * UART0RX: GPIO1
+ * UART1TX: GPIO8
+ * UART1RX: GPIO9
+ */
+#define CONFIG_RP2040_UART0_GPIO	0	/* TELEM */
+
+#define CONFIG_RP2040_UART1_GPIO	8	/* GPS */
+
+/*
+ * I2C (external)
+ *
+ * I2C1SCL: GPIO7
+ * I2C1SDA: GPIO6
+ *
+ * TODO:
+ *   The optional _GPIO configurations allow the I2C driver to manually
+ *   reset the bus to clear stuck slaves.  They match the pin configuration,
+ *   but are normally-high GPIOs.
+ */
+#define CONFIG_RP2040_I2C1_GPIO		6
 
 /* SPI0:
- *  Sensor not decided
- *  CS: not decided -- should be configured in sec/spi.cpp (probably)
- *  CLK: not decided
- *  MISO: not decided
- *  MOSI: not decided
- * Setup is done on pins 0-3, take a look at rp2040 datasheet pg. 259
+ *  SPIDEV_FLASH (probably micro sd card)
+ *  CS: GPIO5 -- should be configured in sec/spi.cpp (probably)
+ *  CLK: GPIO2
+ *  MISO: GPIO4
+ *  MOSI: GPIO3
  */
 
 #define GPIO_SPI0_SCK  ( 2 | RP2040_GPIO_FUNC_SPI )
-#define GPIO_SPI0_MISO ( 0 | RP2040_GPIO_FUNC_SPI )
+#define GPIO_SPI0_MISO ( 4 | RP2040_GPIO_FUNC_SPI )
 #define GPIO_SPI0_MOSI ( 3 | RP2040_GPIO_FUNC_SPI )
 
 /* SPI1:
- *  Sensor not decided
- *  CS: not decided -- should be configured in sec/spi.cpp (probably)
- *  CLK: not decided
- *  MISO: not decided
- *  MOSI: not decided
- * Setup is done on pins 8-11, take a look at rp2040 datasheet pg. 259
+ *  MPU9250 and BMP280
+ *  CS: GPIO13 for MPU9250, GPIO14 for BMP280 -- should be configured in sec/spi.cpp (probably)
+ *  CLK: GPIO10
+ *  MISO: GPIO12
+ *  MOSI: GPIO11
  */
 
 #define GPIO_SPI1_SCK	( 10 | RP2040_GPIO_FUNC_SPI )
-#define GPIO_SPI1_MISO	( 8 | RP2040_GPIO_FUNC_SPI )
+#define GPIO_SPI1_MISO	( 12 | RP2040_GPIO_FUNC_SPI )
 #define GPIO_SPI1_MOSI	( 11 | RP2040_GPIO_FUNC_SPI )
 
 #endif  /* __CONFIG_MYBOARDMYFC_INCLUDE_BOARD_H */
