@@ -136,9 +136,8 @@ fi
 # Sensirion SDP3X differential pressure sensor external I2C
 if param compare -s SENS_EN_SDP3X 1
 then
-	if sdp3x_airspeed start -X
+	if ! sdp3x_airspeed start -X
 	then
-	else
 		# try another common address
 		sdp3x_airspeed start -X -a 0x22
 	fi
