@@ -70,6 +70,8 @@ extern "C" int vcm1193l_main(int argc, char *argv[])
 	using ThisDriver = VCM1193L;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = I2C_SPEED;
+	cli.i2c_address = I2C_ADDRESS_DEFAULT;
+
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
