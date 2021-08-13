@@ -160,9 +160,15 @@ int ReadBuffer::read(int fd)
 		PX4_DEBUG("Buffer full: %zu %zu %zu %zu", start_mavlink, end_mavlink, start_rtps, end_rtps);
 	}
 
-	int r = ::read(fd, buffer + buf_size, sizeof(buffer) - buf_size);
+	int bytes_available = 0;
+	int err = ::ioctl(fd, FIONREAD, (unsigned long)&bytes_available);
+	ssize_t r = 0;
 
-	if (r < 0) {
+	if (err != 0 || bytes_available > 0) {
+		r = ::read(fd, buffer + buf_size, sizeof(buffer) - buf_size);
+	}
+
+	if (r <= 0) {
 		return r;
 	}
 
