@@ -366,7 +366,7 @@ pollevent_t DevCommon::poll_state(struct file *filp)
 int DevCommon::try_to_copy_data(char *buffer, size_t buflen, MessageType message_type)
 {
 	if (buflen == 0) {
-		return -1;
+		return 0;
 	}
 
 	switch (message_type) {
@@ -398,7 +398,7 @@ int DevCommon::try_to_copy_data(char *buffer, size_t buflen, MessageType message
 			return len_to_copy;
 
 		} else {
-			return -1;
+			return 0;
 		}
 
 	case MessageType::Rtps:
@@ -429,14 +429,14 @@ int DevCommon::try_to_copy_data(char *buffer, size_t buflen, MessageType message
 			return len_to_copy;
 
 		} else {
-			return -1;
+			return 0;
 		}
 
 		break;
 
 
 	default:
-		return -1;
+		return 0;
 	}
 }
 
