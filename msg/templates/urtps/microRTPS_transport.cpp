@@ -330,6 +330,8 @@ int UART_node::init()
 
 	// If using shared UART, no need to set it up
 	if (_baudrate == 0) {
+		_poll_fd[0].fd = _uart_fd;
+		_poll_fd[0].events = POLLIN;
 		return _uart_fd;
 	}
 
