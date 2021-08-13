@@ -358,7 +358,7 @@ pollevent_t DevCommon::poll_state(struct file *filp)
 	 * the _fd in here or by overriding some other method.
 	 */
 
-	::poll(fds, sizeof(fds) / sizeof(fds[0]), 100);
+	::poll(fds, sizeof(fds) / sizeof(fds[0]), 10);
 
 	return POLLIN;
 }
