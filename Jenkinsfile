@@ -150,8 +150,8 @@ pipeline {
           steps {
             sh './msg/tools/generate_msg_docs.py -d /tmp/msg_docs'
             dir('/tmp') {
-              archiveArtifacts(artifacts: 'msg_docs/*.md')
-              stash includes: 'msg_docs/*.md', name: 'msg_documentation'
+              archiveArtifacts(artifacts: '/tmp/msg_docs/*.md')
+              stash includes: '/tmp/msg_docs/*.md', name: 'msg_documentation'
             }
           }
           post {
