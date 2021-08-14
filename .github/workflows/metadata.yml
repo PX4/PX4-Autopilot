@@ -154,4 +154,4 @@ jobs:
     - name: PX4 ROS2 bridge
       run: |
         git clone https://github.com/PX4/px4_ros_com.git
-        ./msg/tools/uorb_to_ros_rtps_ids.py -i msg/tools/uorb_rtps_message_ids.yaml -o px4_ros_com/templates/uorb_rtps_message_ids.yaml
+        ./msg/tools/uorb_to_ros_urtps_topics.py -i msg/tools/urtps_bridge_topics.yaml -o px4_ros_com/templates/urtps_bridge_topics.yaml
