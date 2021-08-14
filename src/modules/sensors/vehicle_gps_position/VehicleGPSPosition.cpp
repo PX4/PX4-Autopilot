@@ -98,6 +98,14 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 	}
 }
 
+void VehicleGPSPosition::resetGpsDriftCheckFilters()
+{
+	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		_gps_velNE_filt[i].setZero();
+		_gps_pos_deriv_filt[i].setZero();
+	}
+}
+
 void VehicleGPSPosition::Run()
 {
 	perf_begin(_cycle_perf);
@@ -113,21 +121,134 @@ void VehicleGPSPosition::Run()
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		gps_updated = _sensor_gps_sub[i].updated();
 
-		sensor_gps_s gps_data;
+		sensor_gps_s gps;
 
 		if (gps_updated) {
 			any_gps_updated = true;
 
-			_sensor_gps_sub[i].copy(&gps_data);
-			_gps_blending.setGpsData(gps_data, i);
+			_sensor_gps_sub[i].copy(&gps);
+			_gps_blending.setGpsData(gps, i);
 
 			if (!_sensor_gps_sub[i].registered()) {
 				_sensor_gps_sub[i].registerCallback();
 			}
+
+			// update drift metrics
+			if (gps.timestamp > _timestamp_prev[i]) {
+
+				// check if GPS quality is degraded
+				_sensors_status_gps.error_norm[i] = fmaxf((gps.eph / _param_sens_gps_rq_eph.get()),
+								    (gps.epv / _param_sens_gps_rq_epv.get()));
+				_sensors_status_gps.error_norm[i] = fmaxf(_sensors_status_gps.error_norm[i],
+								    (gps.s_variance_m_s / _param_sens_gps_rq_sacc.get()));
+
+				_sensors_status_gps.device_ids[i] = gps.device_id;
+
+				// Check the fix type
+				_sensors_status_gps.fail_fix[i] = (gps.fix_type < 3);
+
+				// Check the number of satellites
+				_sensors_status_gps.fail_nsats[i] = (gps.satellites_used < _param_sens_gps_rq_nsat.get());
+
+				// Check the position dilution of precision
+				float pdop = sqrtf(gps.hdop * gps.hdop + gps.vdop * gps.vdop);
+				_sensors_status_gps.fail_pdop[i] = (pdop > _param_sens_gps_rq_pdop.get());
+
+				// Check the reported horizontal and vertical position accuracy
+				_sensors_status_gps.fail_hacc[i] = (gps.eph > _param_sens_gps_rq_eph.get());
+				_sensors_status_gps.fail_vacc[i] = (gps.epv > _param_sens_gps_rq_epv.get());
+
+				// Check the reported speed accuracy
+				_sensors_status_gps.fail_sacc[i] = (gps.s_variance_m_s > _param_sens_gps_rq_sacc.get());
+
+
+				if (_landed && _at_rest) {
+
+					// The following checks are only valid when the vehicle is at rest
+					const double lat = gps.lat * 1.0e-7;
+					const double lon = gps.lon * 1.0e-7;
+
+					// Calculate position movement since last measurement
+					float delta_pos_n = 0.0f;
+					float delta_pos_e = 0.0f;
+
+					// calculate position movement since last GPS fix
+					if (_gps_pos_prev[i].timestamp > 0) {
+						map_projection_project(&_gps_pos_prev[i], lat, lon, &delta_pos_n, &delta_pos_e);
+
+					} else {
+						// no previous position has been set
+						map_projection_init_timestamped(&_gps_pos_prev[i], lat, lon, gps.timestamp);
+						_gps_alt_prev[i] = 1e-3f * (float)gps.alt;
+					}
+
+					if (_timestamp_prev[i] != 0) {
+						static constexpr float filt_time_const = 10.0f;
+						const float dt = math::constrain((gps.timestamp - _timestamp_prev[i]) * 1e-6f, 0.001f, filt_time_const);
+						const float filter_coef = dt / filt_time_const;
+
+						// Calculate the horizontal and vertical drift velocity components and limit to 10x the threshold
+						const matrix::Vector3f vel_limit{_param_sens_gps_rq_hdrf.get(), _param_sens_gps_rq_hdrf.get(), _param_sens_gps_rq_vdrf.get()};
+						matrix::Vector3f pos_derived{delta_pos_n, delta_pos_e, (_gps_alt_prev[i] - 1e-3f * (float)gps.alt)};
+						pos_derived = matrix::constrain(pos_derived / dt, -10.f * vel_limit, 10.f * vel_limit);
+
+						// Apply a low pass filter
+						_gps_pos_deriv_filt[i] = pos_derived * filter_coef + _gps_pos_deriv_filt[i] * (1.f - filter_coef);
+
+						// Calculate the horizontal drift speed and fail if too high
+						_sensors_status_gps.drift_rate_hpos[i] = Vector2f(_gps_pos_deriv_filt[i].xy()).norm();
+						_sensors_status_gps.fail_hdrift[i] = (_gps_drift_metrics[i][0] > _param_sens_gps_rq_hdrf.get());
+
+						// Fail if the vertical drift speed is too high
+						_sensors_status_gps.drift_rate_vpos[i] = fabsf(_gps_pos_deriv_filt[i](2));
+						_sensors_status_gps.fail_vdrift[i] = (_gps_drift_metrics[i][1] > _param_sens_gps_rq_vdrf.get());
+
+						// Check the magnitude of the filtered horizontal GPS velocity
+
+						// Calculate time lapsed since last update, limit to prevent numerical errors and calculate a lowpass filter coefficient
+						const Vector2f gps_velNE = matrix::constrain(Vector2f{gps.vel_n_m_s, gps.vel_e_m_s},
+									   -10.f * _param_sens_gps_rq_hdrf.get(), 10.f * _param_sens_gps_rq_hdrf.get());
+						_gps_velNE_filt[i] = gps_velNE * filter_coef + _gps_velNE_filt[i] * (1.f - filter_coef);
+						_sensors_status_gps.drift_hspd[i] = _gps_velNE_filt[i].norm();
+						_sensors_status_gps.fail_hspeed[i] = (_gps_drift_metrics[i][2] > _param_sens_gps_rq_hdrf.get());
+					}
+
+				} else if (!_landed) {
+					// These checks are always declared as passed when flying
+					// If on ground and moving, the last result before movement commenced is kept
+					// _gps_check_fail_status.flags.hdrift = false;
+					// _gps_check_fail_status.flags.vdrift = false;
+					// _gps_check_fail_status.flags.hspeed = false;
+					// _gps_drift_updated = false;
+
+					resetGpsDriftCheckFilters();
+
+				} else {
+					// This is the case where the vehicle is on ground and IMU movement is blocking the drift calculation
+					//_gps_drift_updated = true;
+
+					resetGpsDriftCheckFilters();
+				}
+
+				_sensors_status_gps.healthy[i] = (_sensors_status_gps.fail_fix[i] && (_param_sens_gps_checks.get() & MASK_GPS_NSATS))
+								 && (_sensors_status_gps.fail_fix[i] && (_param_sens_gps_checks.get() & MASK_GPS_PDOP))
+								 && (_sensors_status_gps.fail_pdop[i] && (_param_sens_gps_checks.get() & MASK_GPS_HACC))
+								 && (_sensors_status_gps.fail_vacc[i] && (_param_sens_gps_checks.get() & MASK_GPS_VACC))
+								 && (_sensors_status_gps.fail_sacc[i] && (_param_sens_gps_checks.get() & MASK_GPS_SACC))
+								 && (_sensors_status_gps.fail_hdrift[i] && (_param_sens_gps_checks.get() & MASK_GPS_HDRIFT))
+								 && (_sensors_status_gps.fail_vdrift[i] && (_param_sens_gps_checks.get() & MASK_GPS_VDRIFT))
+								 && (_sensors_status_gps.fail_hspeed[i] && (_param_sens_gps_checks.get() & MASK_GPS_HSPD))
+								 && (_sensors_status_gps.fail_vspeed[i] && (_param_sens_gps_checks.get() & MASK_GPS_VSPD));
+			}
+
+			_timestamp_prev[i] = gps.timestamp;
 		}
 	}
 
 	if (any_gps_updated) {
+		_sensors_status_gps.timestamp = hrt_absolute_time();
+		_sensors_status_gps_pub.publish(_sensors_status_gps);
+
 		_gps_blending.update(hrt_absolute_time());
 
 		if (_gps_blending.isNewOutputDataAvailable()) {
@@ -177,6 +298,11 @@ void VehicleGPSPosition::Publish(const sensor_gps_s &gps, uint8_t selected)
 void VehicleGPSPosition::PrintStatus()
 {
 	//PX4_INFO("selected GPS: %d", _gps_select_index);
+	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		if (_timestamp_prev[i] != 0) {
+			PX4_INFO_RAW("GPS %d healthy: %d", i, _sensors_status_gps.healthy[i]);
+		}
+	}
 }
 
 }; // namespace sensors
