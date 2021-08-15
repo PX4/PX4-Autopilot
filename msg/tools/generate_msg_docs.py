@@ -41,18 +41,26 @@ if __name__ == "__main__":
         msg_url="[source file](https://github.com/PX4/PX4-Autopilot/blob/master/msg/%s)" % msg_file
         
         msg_description = ""
+        summary_description = ""
+
         #Get msg description (first non-empty comment line from top of msg)
         with open(msg_filename, 'r') as lineparser:
-            line = lineparser.readline().strip()
-            while line.startswith('#'):
-                #print('DEBUG: line: %s' % line)
-                line=line[1:].strip()
-                if line:
-                    msg_description=line
-                    print('msg_description: Z%sZ' % msg_description)
-                    break
-                line = lineparser.readline()
+            line = lineparser.readline()  
+            while line.startswith('#') or (line.strip() == ''):
+                print('DEBUG: line: %s' % line)
+                line=line[1:].strip()+'\n'
+                stripped_line=line.strip()
+                if msg_description and not summary_description and stripped_line=='':
+                    summary_description = msg_description.strip()
 
+                msg_description+=line
+                line = lineparser.readline()
+            msg_description=msg_description.strip()
+            if not summary_description and msg_description:
+                summary_description = msg_description
+            print('msg_description: Z%sZ' % msg_description)
+            print('summary_description: Z%sZ' % summary_description)
+            summary_description
         msg_contents = ""
         #Get msg contents (read the file)
         with open(msg_filename, 'r') as source_file:
@@ -75,8 +83,8 @@ if __name__ == "__main__":
             content_file.write(markdown_output)
             
         readme_markdown_file_link='- [%s](%s.md)' % (msg_name,msg_name)
-        if msg_description:
-            readme_markdown_file_link+=" — %s" % msg_description
+        if summary_description:
+            readme_markdown_file_link+=" — %s" % summary_description
         filelist_in_markdown+=readme_markdown_file_link+"\n"
         
     # Write out the README.md file
@@ -94,4 +102,3 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
     readme_file = os.path.join(output_dir, 'README.md')
     with open(readme_file, 'w') as content_file:
             content_file.write(readme_text)    
-
