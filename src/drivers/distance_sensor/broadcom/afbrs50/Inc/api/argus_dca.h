@@ -95,23 +95,17 @@
 #define ARGUS_CFG_DCA_DEPTH_MIN 	((uq10_6_t)(1U)) // 1/64, i.e. 1/2 nibble
 
 
-/*! The maximum optical output power, i.e. the maximum VCSEL 1 high current in LSB. */
+/*! The maximum optical output power, i.e. the maximum VCSEL high current in LSB. */
 #define ARGUS_CFG_DCA_POWER_MAX_LSB (ADS_LASET_VCSEL_HC1_MASK >> ADS_LASET_VCSEL_HC1_SHIFT)
 
-/*! The minimum optical output power, i.e. the minimum VCSEL 1 high current in mA. */
+/*! The minimum optical output power, i.e. the minimum VCSEL high current in mA. */
 #define ARGUS_CFG_DCA_POWER_MIN_LSB (1)
 
-/*! The maximum optical output power, i.e. the maximum VCSEL 1 high current in LSB. */
+/*! The maximum optical output power, i.e. the maximum VCSEL high current in LSB. */
 #define ARGUS_CFG_DCA_POWER_MAX		(ADS0032_HIGH_CURRENT_LSB2MA(ARGUS_CFG_DCA_POWER_MAX_LSB + 1))
 
-/*! The minimum optical output power, i.e. the minimum VCSEL 1 high current in mA. */
+/*! The minimum optical output power, i.e. the minimum VCSEL high current in mA. */
 #define ARGUS_CFG_DCA_POWER_MIN 	(1)
-
-
-
-
-
-
 
 
 /*! The dynamic configuration algorithm Pixel Input Gain stage count. */
@@ -129,35 +123,32 @@
 
 
 /*! The dynamic configuration algorithm Optical Output Power stage count. */
-#define ARGUS_DCA_POWER_STAGE_COUNT (4U)
+#define ARGUS_DCA_POWER_STAGE_COUNT (2U)
 
 /*! The dynamic configuration algorithm state mask for the Optical Output Power stage. */
-#define ARGUS_STATE_DCA_POWER_MASK (0x03U)
+#define ARGUS_STATE_DCA_POWER_MASK (0x01U)
 
 /*! The dynamic configuration algorithm state mask for the Optical Output Power stage. */
-#define ARGUS_STATE_DCA_POWER_SHIFT (12U)
+#define ARGUS_STATE_DCA_POWER_SHIFT (13U)
 
 /*! Getter for the dynamic configuration algorithm Optical Output Power stage. */
 #define ARGUS_STATE_DCA_POWER_GET(state) \
 	(((state) >> ARGUS_STATE_DCA_POWER_SHIFT) & ARGUS_STATE_DCA_POWER_MASK)
 
 
-/*! The dynamic configuration algorithm state mask for the Max. Analog Integration Depth shift value. */
-#define ARGUS_STATE_DCA_DEPTH_SHFT_MASK (0x0FU)
-
-/*! The dynamic configuration algorithm state mask for the Max. Analog Integration Depth shift value. */
-#define ARGUS_STATE_DCA_DEPTH_SHFT_SHIFT (8U)
-
-/*! Getter for the dynamic configuration algorithm Max. Analog Integration Depth shift value. */
-#define ARGUS_STATE_DCA_DEPTH_SHFT_GET(state) \
-	(((state) >> ARGUS_STATE_DCA_DEPTH_SHFT_SHIFT) & ARGUS_STATE_DCA_DEPTH_SHFT_MASK)
 
 
 /*!***************************************************************************
  * @brief	The dynamic configuration algorithm enable flags.
  *****************************************************************************/
 typedef enum {
-	/*! DCA is disabled and will be completely skipped. */
+	/*! @internal
+	 *
+	 *  DCA is disabled and will be completely skipped.
+	 *
+	 *  @note This state is for internal/debugging usage only as it also
+	 *        disables laser safety checks of the device configuration.
+	 *        An error will occur when used with the API.*/
 	DCA_ENABLE_OFF = 0,
 
 	/*! DCA is enabled and will dynamically adjust the device configuration. */
@@ -169,20 +160,29 @@ typedef enum {
 } argus_dca_enable_t;
 
 /*!***************************************************************************
+ * @brief	The DCA amplitude evaluation method.
+ *****************************************************************************/
+typedef enum {
+	/*! Evaluate the DCA amplitude as the maximum of all valid amplitudes. */
+	DCA_AMPLITUDE_MAX = 1U,
+
+	/*! Evaluate the DCA amplitude as the average of all valid amplitudes. */
+	DCA_AMPLITUDE_AVG = 2U,
+
+} argus_dca_amplitude_mode_t;
+
+/*!***************************************************************************
  * @brief	The dynamic configuration algorithm Optical Output Power stages enumerator.
  *****************************************************************************/
 typedef enum {
-	/*! Low output power stage. */
+	/*! Use low output power stage. */
 	DCA_POWER_LOW = 0,
 
-	/*! Medium low output power stage. */
-	DCA_POWER_MEDIUM_LOW = 1,
+	/*! Use high output power stage. */
+	DCA_POWER_HIGH = 1,
 
-	/*! Medium high output power stage. */
-	DCA_POWER_MEDIUM_HIGH = 2,
-
-	/*! High output power stage. */
-	DCA_POWER_HIGH = 3
+	/*! Use low and high output power stages automatically. */
+	DCA_POWER_AUTO = 2
 
 } argus_dca_power_t;
 
@@ -208,108 +208,126 @@ typedef enum {
 /*!***************************************************************************
  * @brief	State flags for the current frame.
  * @details	State flags determine the current state of the measurement frame:
- * 			- [0]: #ARGUS_STATE_MEASUREMENT_MODE: Measurement Mode:
- * 				- 0: Mode A
- * 				- 1: Mode B
- * 				.
- * 			- [1]: #ARGUS_STATE_DUAL_FREQ_MODE: Dual Frequency Mode Enabled Flag
- * 				- 0: Disabled, measurements w/ base frequency only
- * 				- 1: Enabled, measurements w/ detuned frequency
- * 				.
- * 			- [2]: #ARGUS_STATE_MEASUREMENT_FREQ: Measurement Frequency for
- * 			       Dual Frequency Mode, (only valid if #ARGUS_STATE_DUAL_FREQ_MODE
- * 			       flag is set)
- * 				- 0: A-Frame w/ detuned frequency
- * 				- 1: B-Frame w/ detuned frequency
- * 				.
+ * 			- [0]: #ARGUS_STATE_MEASUREMENT_MODE
+ * 			- [1]: #ARGUS_STATE_DUAL_FREQ_MODE
+ * 			- [2]: #ARGUS_STATE_MEASUREMENT_FREQ
  * 			- [3]: #ARGUS_STATE_DEBUG_MODE
- * 			- [4]: #ARGUS_STATE_GOLDEN_PIXEL_MODE
+ * 			- [4]: #ARGUS_STATE_WEAK_SIGNAL
  * 			- [5]: #ARGUS_STATE_BGL_WARNING
  * 			- [6]: #ARGUS_STATE_BGL_ERROR
  * 			- [7]: #ARGUS_STATE_PLL_LOCKED
- * 				- 0: PLL_LOCKED bit was not set at start of integration;
- * 				- 0: PLL_LOCKED bit was set at start of integration;
- * 				.
- * 			- [8-11]: Max. Depth Shift Value
- * 			- [12-13]: Power Stages
- * 			- [14-15]: Gain Stages
+ * 			- [8]: #ARGUS_STATE_LASER_WARNING
+ * 			- [9]: #ARGUS_STATE_LASER_ERROR
+ * 			- [10]: #ARGUS_STATE_HAS_DATA
+ * 			- [11]: #ARGUS_STATE_HAS_AUX_DATA
+ * 			- [12]: #ARGUS_STATE_DCA_MAX
+ * 			- [13]: DCA Power Stage
+ * 			- [14-15]: DCA Gain Stages
  * 			.
  *****************************************************************************/
 typedef enum {
 	/*! No state flag set. */
 	ARGUS_STATE_NONE = 0,
 
-	/*! 0x01: Measurement Mode.
-	 *  - 0: Mode A: Long Range / Medium Precision
-	 *  - 1: Mode B: Short Range / High Precision */
+	/*! 0x0001: Measurement Mode.
+	 *  		- 0: Mode A: Long Range / Medium Precision
+	 *  		- 1: Mode B: Short Range / High Precision */
 	ARGUS_STATE_MEASUREMENT_MODE = 1U << 0U,
 
-	/*! 0x02: Dual Frequency Mode Enabled.
-	 *  - 0: Disabled: measurements with base frequency,
-	 *  - 1: Enabled: measurement with detuned frequency. */
+	/*! 0x0002: Dual Frequency Mode Enabled.
+	 *  		- 0: Disabled: measurements with base frequency,
+	 *  		- 1: Enabled: measurement with detuned frequency. */
 	ARGUS_STATE_DUAL_FREQ_MODE = 1U << 1U,
 
-	/*! 0x04: Measurement Frequency for Dual Frequency Mode
-	 *        (only if #ARGUS_STATE_DUAL_FREQ_MODE flag is set).
-	 *  - 0: A-Frame w/ detuned frequency,
-	 *  - 1: B-Frame w/ detuned frequency */
+	/*! 0x0004: Measurement Frequency for Dual Frequency Mode
+	 *          (only if #ARGUS_STATE_DUAL_FREQ_MODE flag is set).
+	 *  		- 0: A-Frame w/ detuned frequency,
+	 *  		- 1: B-Frame w/ detuned frequency */
 	ARGUS_STATE_MEASUREMENT_FREQ = 1U << 2U,
 
-	/*! 0x08: Debug Mode. If set, the range value of erroneous pixels are not
-	 * 		  cleared or reset.
-	 * 	- 0: Disabled (default).
-	 *  - 1: Enabled. */
+	/*! 0x0008: Debug Mode. If set, the range value of erroneous pixels
+	 * 		  	are not cleared or reset.
+	 * 			- 0: Disabled (default).
+	 *  		- 1: Enabled. */
 	ARGUS_STATE_DEBUG_MODE = 1U << 3U,
 
-	/*! 0x10: Golden Pixel Mode Flag.
-	 *  	  Set whenever the Pixel Binning Algorithm is operating in the
-	 *  	  Golden Pixel Mode.
-	 * 	- 0: Normal Pixel Binning Mode.
-	 *  - 1: Golden Pixel Mode. */
-	ARGUS_STATE_GOLDEN_PIXEL_MODE = 1U << 4U,
+	/*! 0x0010: Weak Signal Flag.
+	 * 			Set whenever the Pixel Binning Algorithm is detecting a
+	 * 			weak signal, i.e. if the amplitude dies not reach its
+	 * 			(absolute) threshold. If the Golden Pixel is enabled,
+	 *  	  	this also indicates that the Pixel Binning Algorithm
+	 *  	  	falls back to the Golden Pixel.
+	 * 			- 0: Normal Signal.
+	 *  		- 1: Weak Signal or Golden Pixel Mode. */
+	ARGUS_STATE_WEAK_SIGNAL = 1U << 4U,
 
-	/*! 0x20: Background Light Warning Flag.
-	 *        Set whenever the background light is very high and the
-	 *        measurement data might be unreliable.
-	 *  - 0: No Warning Background Light is within valid range.
-	 *  - 1: Warning: Background Light is very high. */
+	/*! 0x0020: Background Light Warning Flag.
+	 *        	Set whenever the background light is very high and the
+	 *        	measurement data might be unreliable.
+	 *  		- 0: No Warning: Background Light is within valid range.
+	 *  		- 1: Warning: Background Light is very high. */
 	ARGUS_STATE_BGL_WARNING = 1U << 5U,
 
-	/*! 0x40: Background Light Error Flag.
-	 *        Set whenever the background light is too high and the
-	 *        measurement data is unreliable or invalid.
-	 *  - 0: No Error, Background Light is within valid range.
-	 *  - 1: Error: Background Light is too high. */
+	/*! 0x0040: Background Light Error Flag.
+	 *        	Set whenever the background light is too high and the
+	 *        	measurement data is unreliable or invalid.
+	 *  		- 0: No Error: Background Light is within valid range.
+	 *  		- 1: Error: Background Light is too high. */
 	ARGUS_STATE_BGL_ERROR = 1U << 6U,
 
-	/*! 0x80: PLL_LOCKED bit.
-	 *  - 0: PLL not locked at start of integration.
-	 *  - 1: PLL locked at start of integration. */
+	/*! 0x0080: PLL_LOCKED bit.
+	 *  		- 0: PLL not locked at start of integration.
+	 *  		- 1: PLL locked at start of integration. */
 	ARGUS_STATE_PLL_LOCKED = 1U << 7U,
 
-	/*! DCA is in low Optical Output Power stage. */
-	ARGUS_STATE_DCA_POWER_LOW = DCA_GAIN_LOW << ARGUS_STATE_DCA_POWER_SHIFT,
+	/*! 0x0100: Laser Failure Warning Flag.
+	 *        	Set whenever the an invalid system condition is detected.
+	 *        	(i.e. DCA at max state but no amplitude on any (incl. reference)
+	 *        	pixel, not amplitude but any saturated pixel).
+	 *  		- 0: No Warning: Laser is operating properly.
+	 *  		- 1: Warning: Invalid laser conditions detected. If the invalid
+	 *  		     condition stays, a laser malfunction error is raised. */
+	ARGUS_STATE_LASER_WARNING = 1U << 8U,
 
-	/*! DCA is in medium-low Optical Output Power stage. */
-	ARGUS_STATE_DCA_POWER_MED_LOW = DCA_GAIN_MEDIUM_LOW << ARGUS_STATE_DCA_POWER_SHIFT,
+	/*! 0x0200: Laser Failure Error Flag.
+	 * 			Set whenever a laser malfunction error is raised and the
+	 * 			system is put into a safe state.
+	 *  		- 0: No Error: Laser is operating properly.
+	 *  		- 1: Error: Invalid laser conditions are detected for a certain
+	 *  		     soak time and the system is put into a safe state. */
+	ARGUS_STATE_LASER_ERROR = 1U << 9U,
 
-	/*! DCA is in medium-high Optical Output Power stage. */
-	ARGUS_STATE_DCA_POWER_MED_HIGH = DCA_GAIN_MEDIUM_HIGH << ARGUS_STATE_DCA_POWER_SHIFT,
+	/*! 0x0400: Set if current frame has distance measurement data available.
+	 *  		- 0: No measurement data available, all values are 0 or stalled.
+	 *  		- 1: Measurement data is available and correctly evaluated. */
+	ARGUS_STATE_HAS_DATA = 1U << 10U,
 
-	/*! DCA is in high Optical Output Power stage. */
-	ARGUS_STATE_DCA_POWER_HIGH = DCA_GAIN_HIGH << ARGUS_STATE_DCA_POWER_SHIFT,
+	/*! 0x0800: Set if current frame has auxiliary measurement data available.
+	 *  		- 0: No auxiliary data available, all values are 0 or stalled.
+	 *  		- 1: Auxiliary data is available and correctly evaluated. */
+	ARGUS_STATE_HAS_AUX_DATA = 1U << 11U,
 
+	/*! 0x1000: DCA Maximum State Flag.
+	 *  		Set whenever the DCA has extended all its parameters to their
+	 *  		maximum values and can not increase the integration energy any
+	 *  		further.
+	 *  		- 0: DCA has not yet reached its maximum state.
+	 *  		- 1: DCA has reached its maximum state and can not increase any further. */
+	ARGUS_STATE_DCA_MAX = 1U << 12U,
+
+	/*! 0x2000: DCA is in high Optical Output Power stage. */
+	ARGUS_STATE_DCA_POWER_HIGH = DCA_POWER_HIGH << ARGUS_STATE_DCA_POWER_SHIFT,
 
 	/*! DCA is in low Pixel Input Gain stage. */
 	ARGUS_STATE_DCA_GAIN_LOW = DCA_GAIN_LOW << ARGUS_STATE_DCA_GAIN_SHIFT,
 
-	/*! DCA is in medium-low Pixel Input Gain stage. */
+	/*! 0x4000: DCA is in medium-low Pixel Input Gain stage. */
 	ARGUS_STATE_DCA_GAIN_MED_LOW = DCA_GAIN_MEDIUM_LOW << ARGUS_STATE_DCA_GAIN_SHIFT,
 
-	/*! DCA is in medium-high Pixel Input Gain stage. */
+	/*! 0x8000: DCA is in medium-high Pixel Input Gain stage. */
 	ARGUS_STATE_DCA_GAIN_MED_HIGH = DCA_GAIN_MEDIUM_HIGH << ARGUS_STATE_DCA_GAIN_SHIFT,
 
-	/*! DCA is in high Pixel Input Gain stage. */
+	/*! 0xC000: DCA is in high Pixel Input Gain stage. */
 	ARGUS_STATE_DCA_GAIN_HIGH = DCA_GAIN_HIGH << ARGUS_STATE_DCA_GAIN_SHIFT,
 
 } argus_state_t;
@@ -331,9 +349,7 @@ typedef enum {
 typedef struct {
 	/*! Enables the automatic configuration adaption features.
 	 *  Enables the dynamic part if #DCA_ENABLE_DYNAMIC and the static only if
-	 *  #DCA_ENABLE_STATIC. If set to DCA_ENABLE_OFF, the DCA is completely
-	 *  skipped and the static register values are considered which is
-	 *  recommended for advanced debugging only. */
+	 *  #DCA_ENABLE_STATIC. */
 	argus_dca_enable_t Enabled;
 
 	/*! The threshold value of saturated pixels that causes a linear reduction
@@ -373,17 +389,16 @@ typedef struct {
 	 *  1 <= SatPxThLin <= SatPxThExp <= SatPxThRst <= 33 */
 	uint8_t SatPxThRst;
 
-	/*! The amplitude to be targeted from the lower regime. If the amplitude
-	 *  lower than the target value, a linear increase of integration energy
-	 *  will happen in order to optimize for best performance.
+	/*! The DCA amplitude to be targeted from the lower regime. If the DCA
+	 *  amplitude lower than the target value, a linear increase of integration
+	 *  energy will happen in order to optimize for best performance.
 	 *
-	 *  Valid values: #ARGUS_CFG_DCA_ATH_MIN, ... #ARGUS_CFG_DCA_ATH_MAX or 0
-	 *  Set 0 to disable optimization toward the target amplitude.
+	 *  Valid values: #ARGUS_CFG_DCA_ATH_MIN, ... #ARGUS_CFG_DCA_ATH_MAX
 	 *  Note further that the following condition must hold:
 	 *  'MIN' <= AthLow <= Atarget <= AthHigh <= 'MAX' */
 	uq12_4_t Atarget;
 
-	/*! The low threshold value for the max. amplitude. If the max. amplitude
+	/*! The low threshold value for the DCA amplitude. If the DCA amplitude
 	 *  falls below this value, the integration depth will be increases.
 	 *
 	 *  Valid values: #ARGUS_CFG_DCA_ATH_MIN, ... #ARGUS_CFG_DCA_ATH_MAX
@@ -391,7 +406,7 @@ typedef struct {
 	 *  'MIN' <= AthLow <= Atarget <= AthHigh <= 'MAX' */
 	uq12_4_t AthLow;
 
-	/*! The high threshold value for the max. amplitude. If the max. amplitude
+	/*! The high threshold value for the DCA amplitude. If the DCA amplitude
 	 *  exceeds this value, the integration depth will be decreases. Note that
 	 *  also saturated pixels will cause a decrease of the integration depth.
 	 *
@@ -399,6 +414,15 @@ typedef struct {
 	 *  Note further that the following condition must hold:
 	 *  'MIN' <= AthLow <= Atarget <= AthHigh <= 'MAX' */
 	uq12_4_t AthHigh;
+
+	/*! The DCA amplitude calculation algorithm. Either maximum
+	 *  (#DCA_AMPLITUDE_MAX) or average (#DCA_AMPLITUDE_AVG) amplitude can be
+	 *  selected. */
+	argus_dca_amplitude_mode_t AmplitudeMode;
+
+	/*! The power stage selector.
+	 *  Selects the used power stages, i.e. LOW, HIGH or AUTO (LOW+HIGH). */
+	argus_dca_power_t Power;
 
 	/*! The nominal analog integration depth in UQ10.6 format,
 	 *  i.e. the nominal pattern count per sample.
@@ -423,22 +447,6 @@ typedef struct {
 	 *  Note further that the following condition must hold:
 	 *  'MIN' <= DepthMin <= DepthNom <= DepthMax <= 'MAX' */
 	uq10_6_t DepthMax;
-
-	/*! The nominal optical output power in mA,
-	 *  i.e. the nominal VCSEL_HC1 setting.
-	 *
-	 *  Valid values: #ARGUS_CFG_DCA_POWER_MIN, ... #ARGUS_CFG_DCA_POWER_MAX
-	 *  Note further that the following condition must hold:
-	 *  'MIN' <= PowerMin <= PowerNom <= 'MAX' */
-	uq12_4_t PowerNom;
-
-	/*! The minimum optical output power in mA,
-	 *  i.e. the minimum VCSEL_HC1 setting.
-	 *
-	 *  Valid values: #ARGUS_CFG_DCA_POWER_MIN, ... #ARGUS_CFG_DCA_POWER_MAX
-	 *  Note further that the following condition must hold:
-	 *  'MIN' <= PowerMin <= PowerNom <= 'MAX' */
-	uq12_4_t PowerMin;
 
 	/*! The nominal pixel gain setting, i.e. the setting for
 	 *  nominal/default gain stage.
