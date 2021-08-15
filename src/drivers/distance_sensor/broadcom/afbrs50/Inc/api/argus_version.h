@@ -53,13 +53,13 @@
 #define ARGUS_API_VERSION_MAJOR    1
 
 /*! Minor version number of the AFBR-S50 API. */
-#define ARGUS_API_VERSION_MINOR    2
+#define ARGUS_API_VERSION_MINOR    3
 
 /*! Bugfix version number of the AFBR-S50 API. */
-#define ARGUS_API_VERSION_BUGFIX   3
+#define ARGUS_API_VERSION_BUGFIX   5
 
 /*! Build version nunber of the AFBR-S50 API. */
-#define ARGUS_API_VERSION_BUILD    "20201120091253"
+#define ARGUS_API_VERSION_BUILD    "20210812171515"
 
 /*****************************************************************************/
 
