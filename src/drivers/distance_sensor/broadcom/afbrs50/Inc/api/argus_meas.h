@@ -71,8 +71,17 @@
  * 			measurement cycle. I.e. the data that defines a measurement frame.
  *****************************************************************************/
 typedef struct {
-	/*! ADC channel enabled mask for the first
-	 *  channels 0 .. 31 (active pixels channels).
+	/*! Frame integration time in microseconds.
+	 *  The integration time determines the measured time between
+	 *  the start signal and the IRQ. Note that this value will be
+	 *  slightly larger than the actual integration time since the
+	 *  watch is started before the SPI transfer and stopped in the
+	 *  IRQ service routine which also might be delayed due to higher
+	 *  priority tasks. */
+	uint32_t IntegrationTime;
+
+	/*! Pixel enabled mask for the 32 pixels sorted
+	 *  by x-y-indices.
 	 *  See [pixel mapping](@ref argusmap) for more
 	 *  details on the pixel mask. */
 	uint32_t PxEnMask;
@@ -80,28 +89,8 @@ typedef struct {
 	/*! ADS channel enabled mask for the remaining
 	 *  channels 31 .. 63 (miscellaneous values).
 	 *  See [pixel mapping](@ref argusmap) for more
-	 *  details on the channel mask. */
+	 *  details on the ADC channel mask. */
 	uint32_t ChEnMask;
-
-	/*! Pattern count per sample in uq10.6 format.
-	 *  Determines the analog integration depth. */
-	uq10_6_t AnalogIntegrationDepth;
-
-	/*! Sample count per phase/frame.
-	 *  Determines the digital integration depth. */
-	uint16_t DigitalIntegrationDepth;
-
-	/*! Laser current per sample in mA.
-	 *  Determines the optical output power. */
-	uq12_4_t OutputPower;
-
-	/*! Charge pump voltage per sample in LSB.
-	 *  Determines the pixel gain.  */
-	uint8_t PixelGain;
-
-	/*! PLL Frequency Offset, caused by temperature
-	 *  compensation, in PLL_INT_PRD LSBs. */
-	int8_t PllOffset;
 
 	/*! The current state of the measurement frame:
 	 *  - Measurement Mode,
@@ -111,6 +100,35 @@ typedef struct {
 	 *  - DCA State,
 	 *  - ... */
 	argus_state_t State;
+
+	/*! Pattern count per sample in uq10.6 format.
+	 *  Determines the analog integration depth. */
+	uq10_6_t AnalogIntegrationDepth;
+
+	/*! Sample count per phase/frame.
+	 *  Determines the digital integration depth. */
+	uint16_t DigitalIntegrationDepth;
+
+	/*! Laser Modulation Current per sample in mA.
+	 *  Determines the optical output power. */
+	uq12_4_t OutputPower;
+
+	/*! The amplitude that is evaluated and used in the DCA module. */
+	uq12_4_t DCAAmplitude;
+
+	/*! Laser Bias Current Settings in LSB. */
+	uint8_t BiasCurrent;
+
+	/*! Charge pump voltage per sample in LSB.
+	 *  Determines the pixel gain.  */
+	uint8_t PixelGain;
+
+	/*! PLL Frequency Offset, caused by temperature
+	 *  compensation, in PLL_INT_PRD LSBs. */
+	int8_t PllOffset;
+
+	/*! The current PLL_CTRL_CUR value. */
+	uint8_t PllCtrlCur;
 
 } argus_meas_frame_t;
 

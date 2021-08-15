@@ -39,7 +39,7 @@
 
 /*!***************************************************************************
  * @defgroup 	argussnm Shot Noise Monitor
- * @ingroup		argusdev
+ * @ingroup		argusapi
  *
  * @brief		Shot Noise Monitor (SNM) parameter definitions and API functions.
  *
