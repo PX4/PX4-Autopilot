@@ -80,7 +80,7 @@ if __name__ == "__main__":
         filelist_in_markdown+=readme_markdown_file_link+"\n"
         
     # Write out the README.md file
-    readme_text="""# PX4 UORB Messages
+    readme_text="""# uORB Message Reference
 
 :::note
 This list is [auto-generated](https://github.com/PX4/PX4-Autopilot/blob/master/msg/tools/generate_msg_docs.py) from the source code.
