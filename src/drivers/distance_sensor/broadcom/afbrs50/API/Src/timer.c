@@ -9,25 +9,25 @@
 
 static struct hrt_call broadcom_hrt_call = {};
 
-static timer_cb_t timer_callback_; /*! Callback function for PIT timer */
+static timer_cb_t timer_callback_ = 0; /*! Callback function for PIT timer */
 
-static uint32_t period_us_;
+static uint32_t period_us_ = 1000000 / 1000; // 1000Hz
+
+static bool isInitialized_ = false;
 
 /*! Storage for the callback parameter */
 static void *callback_param_;
 
 static void broadcom_hrt_callout(void *arg)
 {
-	if (timer_callback_ != 0) {
+	if ((timer_callback_ != 0) && (period_us_ != 0) && (isInitialized_ == true)) {
 		//timer_callback_(arg);
 		timer_callback_(callback_param_);
 		hrt_call_after(&broadcom_hrt_call, period_us_, broadcom_hrt_callout, callback_param_);
-	}
-}
 
-void Timer_Init(void)
-{
-	hrt_cancel(&broadcom_hrt_call);
+	} else {
+		hrt_cancel(&broadcom_hrt_call);
+	}
 }
 
 /*!***************************************************************************
@@ -72,7 +72,8 @@ status_t Timer_Start(uint32_t period, void *param)
 	period_us_ = period;
 
 	if (period != 0) {
-		hrt_call_after(&broadcom_hrt_call, period, broadcom_hrt_callout, param);
+		hrt_call_after(&broadcom_hrt_call, period_us_, broadcom_hrt_callout, callback_param_);
+		isInitialized_ = true;
 
 	} else {
 		hrt_cancel(&broadcom_hrt_call);
@@ -91,6 +92,7 @@ status_t Timer_Stop(void *param)
 {
 	period_us_ = 0;
 	callback_param_ = 0;
+	isInitialized_ = false;
 	hrt_cancel(&broadcom_hrt_call);
 	return STATUS_OK;
 }
@@ -111,10 +113,15 @@ status_t Timer_SetInterval(uint32_t dt_microseconds, void *param)
 {
 	if (dt_microseconds != 0) {
 		period_us_ = dt_microseconds;
-		hrt_call_after(&broadcom_hrt_call, dt_microseconds, broadcom_hrt_callout, param);
+		callback_param_ = param;
+		isInitialized_ = true;
+		hrt_call_after(&broadcom_hrt_call, period_us_, broadcom_hrt_callout, callback_param_);
 
 	} else {
 		hrt_cancel(&broadcom_hrt_call);
+		callback_param_ = 0;
+		period_us_ = 0;
+		isInitialized_ = false;
 	}
 
 	return STATUS_OK;

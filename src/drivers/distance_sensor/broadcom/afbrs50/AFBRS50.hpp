@@ -63,10 +63,14 @@ public:
 	 */
 	void print_info();
 
-	/**
+	/**50
 	 * Stop the automatic measurement state machine.
 	 */
 	void stop();
+
+	int test();
+
+	bool _testing = false;
 
 private:
 	void Run() override;
@@ -77,8 +81,9 @@ private:
 
 	static status_t measurement_ready_callback(status_t status, void *data);
 
-	void get_mode();
-	void set_mode(argus_mode_t mode);
+	void get_info();
+	status_t set_mode(argus_mode_t mode);
+	status_t set_rate(uint32_t rate_hz);
 
 	argus_hnd_t *_hnd{nullptr};
 	argus_mode_t _mode{ARGUS_MODE_B}; // Short-Range
@@ -96,8 +101,9 @@ private:
 
 	perf_counter_t _sample_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": sample interval")};
 
-	int _measure_interval{1000000 / 50}; // 50Hz
+	uint32_t _measure_interval{1000000 / 50}; // 50Hz
 	float _current_distance{0};
+	int8_t _current_quality{0};
 	const float _short_range_threshold = 4.0; //meters
 	const float _long_range_threshold = 6.0; //meters
 	float _max_distance;
