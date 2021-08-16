@@ -200,7 +200,7 @@ void up_dshot_trigger(void)
 * bit 	12		- dshot telemetry enable/disable
 * bits 	13-16	- XOR checksum
 **/
-static void dshot_motor_data_set(uint32_t motor_number, uint16_t throttle, bool telemetry)
+void dshot_motor_data_set(unsigned motor_number, uint16_t throttle, bool telemetry)
 {
 	uint16_t packet = 0;
 	uint16_t checksum = 0;
@@ -232,16 +232,6 @@ static void dshot_motor_data_set(uint32_t motor_number, uint16_t throttle, bool 
 	}
 
 	motor_buffer[motor_number * ONE_MOTOR_BUFF_SIZE + DSHOT_END_OF_STREAM] = 0;
-}
-
-void up_dshot_motor_data_set(unsigned motor_number, uint16_t throttle, bool telemetry)
-{
-	dshot_motor_data_set(motor_number, throttle + DShot_cmd_MIN_throttle, telemetry);
-}
-
-void up_dshot_motor_command(unsigned channel, uint16_t command, bool telemetry)
-{
-	dshot_motor_data_set(channel, command, telemetry);
 }
 
 void dshot_dmar_data_prepare(uint8_t timer, uint8_t first_motor, uint8_t motors_number)
