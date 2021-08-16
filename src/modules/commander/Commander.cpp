@@ -2298,7 +2298,7 @@ Commander::run()
 				}
 			}
 
-			if (!_armed.armed && _manual_control.isMavlink() && (_internal_state.main_state_changes == 0)) {
+			if (!_armed.armed && _manual_control.isModeInitializationRequired() && (_internal_state.main_state_changes == 0)) {
 				// if there's never been a mode change force position control as initial state
 				_internal_state.main_state = commander_state_s::MAIN_STATE_POSCTL;
 			}

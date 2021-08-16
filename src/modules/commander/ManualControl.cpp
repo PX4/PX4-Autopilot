@@ -177,6 +177,14 @@ bool ManualControl::wantsArm(const vehicle_control_mode_s &vehicle_control_mode,
 	return ret;
 }
 
+bool ManualControl::isModeInitializationRequired()
+{
+	const bool isMavlink = _manual_control_setpoint.data_source > manual_control_setpoint_s::SOURCE_RC;
+	const bool rc_uses_toggle_buttons = !isMavlink && _param_rc_map_flightmode_buttons.get() > 0;
+
+	return (isMavlink || rc_uses_toggle_buttons);
+}
+
 void ManualControl::updateParams()
 {
 	ModuleParams::updateParams();
