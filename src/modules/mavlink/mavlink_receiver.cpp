@@ -40,10 +40,9 @@
  * @author Thomas Gubler <thomas@px4.io>
  */
 
-#include <airspeed/airspeed.h>
-#include <conversion/rotation.h>
-#include <drivers/drv_rc_input.h>
-#include <systemlib/px4_macros.h>
+#include <lib/airspeed/airspeed.h>
+#include <lib/conversion/rotation.h>
+#include <lib/systemlib/px4_macros.h>
 
 #include <math.h>
 #include <poll.h>
@@ -1889,7 +1888,7 @@ MavlinkReceiver::handle_message_rc_channels(mavlink_message_t *msg)
 	input_rc_s rc{};
 
 	rc.timestamp_last_signal = hrt_absolute_time();
-	rc.rssi = RC_INPUT_RSSI_MAX;
+	rc.rssi = input_rc_s::RSSI_MAX;
 
 	// TODO: fake RSSI from dropped messages?
 	// for (auto &component_state : _component_states) {
@@ -1959,7 +1958,7 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 	// metadata
 	rc.timestamp = hrt_absolute_time();
 	rc.timestamp_last_signal = rc.timestamp;
-	rc.rssi = RC_INPUT_RSSI_MAX;
+	rc.rssi = input_rc_s::RSSI_MAX;
 	rc.rc_failsafe = false;
 	rc.rc_lost = false;
 	rc.rc_lost_frame_count = 0;
@@ -2031,7 +2030,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		rc.rc_total_frame_count = 1;
 		rc.rc_ppm_frame_length = 0;
 		rc.input_source = input_rc_s::RC_INPUT_SOURCE_MAVLINK;
-		rc.rssi = RC_INPUT_RSSI_MAX;
+		rc.rssi = input_rc_s::RSSI_MAX;
 
 		rc.values[0] = man.x / 2 + 1500;	// roll
 		rc.values[1] = man.y / 2 + 1500;	// pitch

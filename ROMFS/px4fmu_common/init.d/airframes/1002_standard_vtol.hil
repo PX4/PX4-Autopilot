@@ -56,7 +56,6 @@ param set-default RTL_DESCEND_ALT 10
 param set-default RTL_RETURN_ALT 30
 
 param set-default SDLOG_DIRS_MAX 7
-param set-default SYS_RESTART_TYPE 2
 
 param set-default VT_F_TRANS_THR 0.75
 param set-default VT_MOT_ID 1234
