@@ -122,8 +122,6 @@ then
 
 	param set SENS_BOARD_X_OFF 0.000001
 	param set SENS_DPRES_OFF 0.001
-
-	param set SYS_RESTART_TYPE 2
 fi
 
 param set-default BAT1_N_CELLS 4
