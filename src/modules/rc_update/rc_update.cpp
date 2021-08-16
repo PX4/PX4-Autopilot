@@ -48,18 +48,13 @@ namespace RCUpdate
 static bool operator ==(const manual_control_switches_s &a, const manual_control_switches_s &b)
 {
 	return (a.mode_slot == b.mode_slot &&
-		a.mode_switch == b.mode_switch &&
 		a.return_switch == b.return_switch &&
-		a.posctl_switch == b.posctl_switch &&
 		a.loiter_switch == b.loiter_switch &&
-		a.acro_switch == b.acro_switch &&
 		a.offboard_switch == b.offboard_switch &&
 		a.kill_switch == b.kill_switch &&
 		a.arm_switch == b.arm_switch &&
 		a.transition_switch == b.transition_switch &&
-		a.gear_switch == b.gear_switch &&
-		a.stab_switch == b.stab_switch &&
-		a.man_switch == b.man_switch);
+		a.gear_switch == b.gear_switch);
 }
 
 static bool operator !=(const manual_control_switches_s &a, const manual_control_switches_s &b) { return !(a == b); }
@@ -161,10 +156,45 @@ void RCUpdate::parameters_updated()
 	{
 		int32_t rc_map_value = 0;
 
+		if (param_get(param_find("RC_MAP_MODE_SW"), &rc_map_value) == PX4_OK) {
+			if (rc_map_value != 0) {
+				PX4_WARN("RC_MAP_MODE_SW deprecated");
+				param_reset(param_find("RC_MAP_MODE_SW"));
+			}
+		}
+
 		if (param_get(param_find("RC_MAP_RATT_SW"), &rc_map_value) == PX4_OK) {
 			if (rc_map_value != 0) {
 				PX4_WARN("RC_MAP_RATT_SW deprecated");
 				param_reset(param_find("RC_MAP_RATT_SW"));
+			}
+		}
+
+		if (param_get(param_find("RC_MAP_POSCTL_SW"), &rc_map_value) == PX4_OK) {
+			if (rc_map_value != 0) {
+				PX4_WARN("RC_MAP_POSCTL_SW deprecated");
+				param_reset(param_find("RC_MAP_POSCTL_SW"));
+			}
+		}
+
+		if (param_get(param_find("RC_MAP_ACRO_SW"), &rc_map_value) == PX4_OK) {
+			if (rc_map_value != 0) {
+				PX4_WARN("RC_MAP_ACRO_SW deprecated");
+				param_reset(param_find("RC_MAP_ACRO_SW"));
+			}
+		}
+
+		if (param_get(param_find("RC_MAP_STAB_SW"), &rc_map_value) == PX4_OK) {
+			if (rc_map_value != 0) {
+				PX4_WARN("RC_MAP_STAB_SW deprecated");
+				param_reset(param_find("RC_MAP_STAB_SW"));
+			}
+		}
+
+		if (param_get(param_find("RC_MAP_MAN_SW"), &rc_map_value) == PX4_OK) {
+			if (rc_map_value != 0) {
+				PX4_WARN("RC_MAP_MAN_SW deprecated");
+				param_reset(param_find("RC_MAP_MAN_SW"));
 			}
 		}
 	}
@@ -178,18 +208,13 @@ void RCUpdate::update_rc_functions()
 	_rc.function[rc_channels_s::FUNCTION_PITCH] = _param_rc_map_pitch.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_YAW] = _param_rc_map_yaw.get() - 1;
 
-	_rc.function[rc_channels_s::FUNCTION_MODE] = _param_rc_map_mode_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_RETURN] = _param_rc_map_return_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_POSCTL] = _param_rc_map_posctl_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_LOITER] = _param_rc_map_loiter_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_ACRO] = _param_rc_map_acro_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_OFFBOARD] = _param_rc_map_offb_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_KILLSWITCH] = _param_rc_map_kill_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_ARMSWITCH] = _param_rc_map_arm_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_TRANSITION] = _param_rc_map_trans_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_GEAR] = _param_rc_map_gear_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_STAB] = _param_rc_map_stab_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_MAN] = _param_rc_map_man_sw.get() - 1;
 
 	_rc.function[rc_channels_s::FUNCTION_FLAPS] = _param_rc_map_flaps.get() - 1;
 
@@ -524,28 +549,6 @@ void RCUpdate::Run()
 	perf_end(_loop_perf);
 }
 
-switch_pos_t RCUpdate::get_rc_sw3pos_position(uint8_t func, float on_th, float mid_th) const
-{
-	if (_rc.function[func] >= 0) {
-		const bool on_inv = (on_th < 0.f);
-		const bool mid_inv = (mid_th < 0.f);
-
-		const float value = 0.5f * _rc.channels[_rc.function[func]] + 0.5f;
-
-		if (on_inv ? value < on_th : value > on_th) {
-			return manual_control_switches_s::SWITCH_POS_ON;
-
-		} else if (mid_inv ? value < mid_th : value > mid_th) {
-			return manual_control_switches_s::SWITCH_POS_MIDDLE;
-
-		} else {
-			return manual_control_switches_s::SWITCH_POS_OFF;
-		}
-	}
-
-	return manual_control_switches_s::SWITCH_POS_NONE;
-}
-
 switch_pos_t RCUpdate::get_rc_sw2pos_position(uint8_t func, float on_th) const
 {
 	if (_rc.function[func] >= 0) {
@@ -569,7 +572,7 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 	manual_control_switches_s switches{};
 	switches.timestamp_sample = timestamp_sample;
 
-	// check mode slot (RC_MAP_FLTMODE) or legacy mode switch (RC_MAP_MODE_SW), but not both
+	// check mode slot (RC_MAP_FLTMODE)
 	if (_param_rc_map_fltmode.get() > 0) {
 		// number of valid slots
 		static constexpr int num_slots = manual_control_switches_s::MODE_SLOT_NUM;
@@ -593,16 +596,6 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 		if (switches.mode_slot > num_slots) {
 			switches.mode_slot = num_slots;
 		}
-
-	} else if (_param_rc_map_mode_sw.get() > 0) {
-		switches.mode_switch = get_rc_sw3pos_position(rc_channels_s::FUNCTION_MODE,
-				       _param_rc_auto_th.get(), _param_rc_assist_th.get());
-
-		// only used with legacy mode switch
-		switches.man_switch       = get_rc_sw2pos_position(rc_channels_s::FUNCTION_MAN,       _param_rc_man_th.get());
-		switches.acro_switch      = get_rc_sw2pos_position(rc_channels_s::FUNCTION_ACRO,      _param_rc_acro_th.get());
-		switches.stab_switch      = get_rc_sw2pos_position(rc_channels_s::FUNCTION_STAB,      _param_rc_stab_th.get());
-		switches.posctl_switch    = get_rc_sw2pos_position(rc_channels_s::FUNCTION_POSCTL,    _param_rc_posctl_th.get());
 
 	} else if (_param_rc_map_flightmode_buttons.get() > 0) {
 		switches.mode_slot = manual_control_switches_s::MODE_SLOT_NONE;
@@ -673,17 +666,17 @@ void RCUpdate::UpdateManualSetpoint(const hrt_abstime &timestamp_sample)
 	manual_control_setpoint.data_source = manual_control_setpoint_s::SOURCE_RC;
 
 	// limit controls
-	manual_control_setpoint.y     = get_rc_value(rc_channels_s::FUNCTION_ROLL,    -1.f, 1.f);
-	manual_control_setpoint.x     = get_rc_value(rc_channels_s::FUNCTION_PITCH,   -1.f, 1.f);
-	manual_control_setpoint.r     = get_rc_value(rc_channels_s::FUNCTION_YAW,     -1.f, 1.f);
+	manual_control_setpoint.y     = get_rc_value(rc_channels_s::FUNCTION_ROLL,     -1.f, 1.f);
+	manual_control_setpoint.x     = get_rc_value(rc_channels_s::FUNCTION_PITCH,    -1.f, 1.f);
+	manual_control_setpoint.r     = get_rc_value(rc_channels_s::FUNCTION_YAW,      -1.f, 1.f);
 	manual_control_setpoint.z     = get_rc_value(rc_channels_s::FUNCTION_THROTTLE, -1.f, 1.f);
-	manual_control_setpoint.flaps = get_rc_value(rc_channels_s::FUNCTION_FLAPS,   -1.f, 1.f);
-	manual_control_setpoint.aux1  = get_rc_value(rc_channels_s::FUNCTION_AUX_1,   -1.f, 1.f);
-	manual_control_setpoint.aux2  = get_rc_value(rc_channels_s::FUNCTION_AUX_2,   -1.f, 1.f);
-	manual_control_setpoint.aux3  = get_rc_value(rc_channels_s::FUNCTION_AUX_3,   -1.f, 1.f);
-	manual_control_setpoint.aux4  = get_rc_value(rc_channels_s::FUNCTION_AUX_4,   -1.f, 1.f);
-	manual_control_setpoint.aux5  = get_rc_value(rc_channels_s::FUNCTION_AUX_5,   -1.f, 1.f);
-	manual_control_setpoint.aux6  = get_rc_value(rc_channels_s::FUNCTION_AUX_6,   -1.f, 1.f);
+	manual_control_setpoint.flaps = get_rc_value(rc_channels_s::FUNCTION_FLAPS,    -1.f, 1.f);
+	manual_control_setpoint.aux1  = get_rc_value(rc_channels_s::FUNCTION_AUX_1,    -1.f, 1.f);
+	manual_control_setpoint.aux2  = get_rc_value(rc_channels_s::FUNCTION_AUX_2,    -1.f, 1.f);
+	manual_control_setpoint.aux3  = get_rc_value(rc_channels_s::FUNCTION_AUX_3,    -1.f, 1.f);
+	manual_control_setpoint.aux4  = get_rc_value(rc_channels_s::FUNCTION_AUX_4,    -1.f, 1.f);
+	manual_control_setpoint.aux5  = get_rc_value(rc_channels_s::FUNCTION_AUX_5,    -1.f, 1.f);
+	manual_control_setpoint.aux6  = get_rc_value(rc_channels_s::FUNCTION_AUX_6,    -1.f, 1.f);
 
 	// publish manual_control_setpoint topic
 	manual_control_setpoint.timestamp = hrt_absolute_time();
