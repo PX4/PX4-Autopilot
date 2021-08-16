@@ -17,6 +17,10 @@ set OUTPUT_DEV none
 set OUTPUT_AUX_DEV /dev/pwm_output1
 set OUTPUT_EXTRA_DEV /dev/pwm_output0
 
+# set these before starting the modules
+param set PWM_AUX_OUT ${PWM_AUX_OUT}
+param set PWM_MAIN_OUT ${PWM_OUT}
+
 #
 # If mount (gimbal) control is enabled and output mode is AUX, set the aux
 # mixer to mount (override the airframe-specific MIXER_AUX setting).
@@ -78,9 +82,16 @@ then
 		fi
 	fi
 
-	if [ $OUTPUT_MODE = io ]
+	#
+	# Start IO for PWM output or RC input if needed.
+	#
+	if [ $IO_PRESENT = yes ]
 	then
-		. ${R}etc/init.d/rc.io
+		if ! px4io start
+		then
+			echo "PX4IO start failed"
+			tune_control play -t 18 # PROG_PX4IO_ERR
+		fi
 	fi
 
 	if [ $OUTPUT_MODE = $OUTPUT_CMD -o $OUTPUT_MODE = io ]
@@ -89,17 +100,6 @@ then
 		then
 			echo "$OUTPUT_CMD start failed"
 			tune_control play error
-		fi
-	fi
-
-	#
-	# Start IO for RC input if needed.
-	#
-	if [ $IO_PRESENT = yes ]
-	then
-		if [ $OUTPUT_MODE != io ]
-		then
-			. ${R}etc/init.d/rc.io
 		fi
 	fi
 fi
@@ -212,8 +212,6 @@ then
 	fi
 fi
 
-param set PWM_AUX_OUT ${PWM_AUX_OUT}
-
 if [ $OUTPUT_MODE = pwm_out -o $OUTPUT_MODE = io ]
 then
 	if [ $PWM_OUT != none ]
@@ -225,8 +223,6 @@ then
 		fi
 	fi
 fi
-
-param set PWM_MAIN_OUT ${PWM_OUT}
 
 if [ $EXTRA_MIXER_MODE != none ]
 then

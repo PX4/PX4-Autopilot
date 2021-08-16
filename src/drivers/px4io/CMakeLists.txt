@@ -42,7 +42,7 @@ px4_add_module(
 	DEPENDS
 		arch_px4io_serial
 		circuit_breaker
-		mixer
+		mixer_module
 	)
 
 # include the px4io binary in ROMFS
