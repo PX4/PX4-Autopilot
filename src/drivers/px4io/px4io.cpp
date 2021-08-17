@@ -3468,7 +3468,7 @@ px4io_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "update")) {
 
-		constexpr unsigned MAX_RETRIES = 5;
+		constexpr unsigned MAX_RETRIES = 2;
 		unsigned retries = 0;
 		int ret = PX4_ERROR;
 
