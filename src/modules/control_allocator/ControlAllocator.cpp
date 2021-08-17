@@ -132,6 +132,9 @@ ControlAllocator::parameters_updated()
 	actuator_max(14) = _param_ca_act14_max.get();
 	actuator_max(15) = _param_ca_act15_max.get();
 	_control_allocation->setActuatorMax(actuator_max);
+
+	_control_allocation->updateParameters();
+	update_effectiveness_matrix_if_needed(true);
 }
 
 void
@@ -198,7 +201,7 @@ ControlAllocator::update_effectiveness_source()
 		switch (source) {
 		case EffectivenessSource::NONE:
 		case EffectivenessSource::MULTIROTOR:
-			tmp = new ActuatorEffectivenessMultirotor();
+			tmp = new ActuatorEffectivenessMultirotor(this);
 			break;
 
 		case EffectivenessSource::STANDARD_VTOL:
@@ -245,18 +248,12 @@ ControlAllocator::Run()
 
 	// Check if parameters have changed
 	if (_parameter_update_sub.updated()) {
-		updateParams();
-		parameters_updated();
-
-		if (_control_allocation) {
-			_control_allocation->updateParameters();
-		}
-
-		update_effectiveness_matrix_if_needed();
-
 		// clear update
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);
+
+		updateParams();
+		parameters_updated();
 	}
 
 	if (_control_allocation == nullptr || _actuator_effectiveness == nullptr) {
@@ -351,11 +348,12 @@ ControlAllocator::Run()
 }
 
 void
-ControlAllocator::update_effectiveness_matrix_if_needed()
+ControlAllocator::update_effectiveness_matrix_if_needed(bool force)
 {
 	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> effectiveness;
 
-	if (_actuator_effectiveness->getEffectivenessMatrix(effectiveness)) {
+	if (_actuator_effectiveness->getEffectivenessMatrix(effectiveness, force)) {
+
 		const matrix::Vector<float, NUM_ACTUATORS> &trim = _actuator_effectiveness->getActuatorTrim();
 
 		// Set 0 effectiveness for actuators that are disabled (act_min >= act_max)
