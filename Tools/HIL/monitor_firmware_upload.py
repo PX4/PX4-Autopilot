@@ -40,16 +40,21 @@ def monitor_firmware_upload(port, baudrate):
     timeout_start = time.time()
     timeout_newline = time.time()
 
+    return_code = 0
+
     while True:
         serial_line = ser.readline().decode("ascii", errors='ignore')
 
         if len(serial_line) > 0:
+            if "ERROR" in serial_line:
+                return_code = -1
+
             print_line(serial_line)
 
         if "NuttShell (NSH)" in serial_line:
-            sys.exit(0)
+            sys.exit(return_code)
         elif "nsh>" in serial_line:
-            sys.exit(0)
+            sys.exit(return_code)
 
         if time.time() > timeout_start + timeout:
             print("Error, timeout")
