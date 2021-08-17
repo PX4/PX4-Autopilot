@@ -27,7 +27,8 @@ menu "Toolchain"
 
     choice
         prompt "Toolchain"
-        default TOOLCHAIN_ARM_NONE_EABI
+        depends on PLATFORM_NUTTX
+        default TOOLCHAIN_ARM_NONE_EABI if PLATFORM_NUTTX
         config TOOLCHAIN_ARM_NONE_EABI
             bool "arm-none-eabi"
         config TOOLCHAIN_RISV64
@@ -38,11 +39,13 @@ menu "Toolchain"
 
     config BOARD_TOOLCHAIN
         string
-        default "arm-none-eabi" if TOOLCHAIN_ARM_NONE_EABI
-        default "riscv64-unknown-elf" if TOOLCHAIN_RISV64
+        default "arm-none-eabi" if TOOLCHAIN_ARM_NONE_EABI && PLATFORM_NUTTX
+        default "riscv64-unknown-elf" if TOOLCHAIN_RISV64 && PLATFORM_NUTTX
+        default ""
 
     choice
         prompt "Architecture"
+        depends on PLATFORM_NUTTX
         config ARCHITECTURE_CORTEX_M3
             bool "cortex-m3"
         config ARCHITECTURE_CORTEX_M4
@@ -59,11 +62,12 @@ menu "Toolchain"
 
     config BOARD_ARCHITECTURE
         string
-        default "cortex-m3" if ARCHITECTURE_CORTEX_M3
-        default "cortex-m4" if ARCHITECTURE_CORTEX_M4
-        default "cortex-m7" if ARCHITECTURE_CORTEX_M7
-        default "cortex-a8" if ARCHITECTURE_CORTEX_A8
-        default "cortex-a53" if ARCHITECTURE_CORTEX_A53
+        default "cortex-m3" if ARCHITECTURE_CORTEX_M3 && PLATFORM_NUTTX
+        default "cortex-m4" if ARCHITECTURE_CORTEX_M4 && PLATFORM_NUTTX
+        default "cortex-m7" if ARCHITECTURE_CORTEX_M7 && PLATFORM_NUTTX
+        default "cortex-a8" if ARCHITECTURE_CORTEX_A8 && PLATFORM_NUTTX
+        default "cortex-a53" if ARCHITECTURE_CORTEX_A53 && PLATFORM_NUTTX
+        default ""
 
     config BOARD_ROMFSROOT
         string "ROMFSROOT"
