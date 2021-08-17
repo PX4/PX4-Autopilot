@@ -93,7 +93,7 @@ static int	do_show_index(const char *index, bool used_index);
 static void	do_show_print(void *arg, param_t param);
 static void	do_show_print_for_airframe(void *arg, param_t param);
 static int	do_set(const char *name, const char *val, bool fail_on_not_found);
-static int	do_set_custom_default(const char *name, const char *val);
+static int	do_set_custom_default(const char *name, const char *val, bool silent_fail = false);
 static int	do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OPERATOR cmd_op,
 			   enum COMPARE_ERROR_LEVEL err_level);
 static int 	do_reset_all(const char *excludes[], int num_excludes);
@@ -154,6 +154,7 @@ $ reboot
 	PRINT_MODULE_USAGE_ARG("fail", "If provided, let the command fail if param is not found", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("set-default", "Set parameter default to a value");
+	PRINT_MODULE_USAGE_PARAM_FLAG('s', "If provided, silent errors if parameter doesn't exists", true);
 	PRINT_MODULE_USAGE_ARG("<param_name> <value>", "Parameter name and value to set", false);
 	PRINT_MODULE_USAGE_ARG("fail", "If provided, let the command fail if param is not found", true);
 
@@ -295,7 +296,10 @@ param_main(int argc, char *argv[])
 		}
 
 		if (!strcmp(argv[1], "set-default")) {
-			if (argc == 4) {
+			if (argc >= 5 && !strcmp(argv[2], "-s")) {
+				return do_set_custom_default(argv[3], argv[4], true);
+
+			} else if (argc == 4) {
 				return do_set_custom_default(argv[2], argv[3]);
 
 			} else {
@@ -823,12 +827,12 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 }
 
 static int
-do_set_custom_default(const char *name, const char *val)
+do_set_custom_default(const char *name, const char *val, bool silent_fail)
 {
 	param_t param = param_find_no_notification(name);
 
 	/* set nothing if parameter cannot be found */
-	if (param == PARAM_INVALID) {
+	if (param == PARAM_INVALID && !silent_fail) {
 		/* param not found - fail silenty in scripts as it prevents booting */
 		PX4_ERR("Parameter %s not found.", name);
 		return PX4_ERROR;
@@ -869,7 +873,10 @@ do_set_custom_default(const char *name, const char *val)
 		break;
 
 	default:
-		PX4_ERR("<unknown / unsupported type %d>\n", 0 + param_type(param));
+		if (!silent_fail) {
+			PX4_ERR("<unknown / unsupported type %d>\n", 0 + param_type(param));
+		}
+
 		return 1;
 	}
 
