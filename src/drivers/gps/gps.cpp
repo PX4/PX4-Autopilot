@@ -319,6 +319,8 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 		case 3: _mode = gps_driver_mode_t::ASHTECH; break;
 
 		case 4: _mode = gps_driver_mode_t::EMLIDREACH; break;
+
+		case 5: _mode = gps_driver_mode_t::FEMTOMES; break;
 #endif // CONSTRAINED_FLASH
 		}
 	}
@@ -788,7 +790,7 @@ GPS::run()
 			break;
 
 		case gps_driver_mode_t::FEMTOMES:
-			_helper = new GPSDriverFemto(&GPS::callback, this, &_report_gps_pos/*, _p_report_sat_info*/);
+			_helper = new GPSDriverFemto(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info, heading_offset);
 			set_device_type(DRV_GPS_DEVTYPE_FEMTOMES);
 			break;
 #endif // CONSTRAINED_FLASH
