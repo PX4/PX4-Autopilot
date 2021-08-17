@@ -30,16 +30,16 @@ if(EXISTS ${BOARD_DEFCONFIG})
     # Depend on BOARD_DEFCONFIG so that we reconfigure on config change
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${BOARD_DEFCONFIG})
 
-    if(NOT ${LABEL} MATCHES "default")
-        # Generate boardconfig from default.px4board and {label}.px4board
-        execute_process(COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}
-                        ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/merge_config.py Kconfig ${BOARD_CONFIG} ${PX4_BOARD_DIR}/default.px4board ${BOARD_DEFCONFIG}
-                        WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-                        OUTPUT_VARIABLE DUMMY_RESULTS)
-    else()
+    if(${LABEL} MATCHES "default" OR ${LABEL} MATCHES "bootloader")
         # Generate boardconfig from saved defconfig
         execute_process(COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}
                         ${DEFCONFIG_PATH} ${BOARD_DEFCONFIG}
+                        WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+                        OUTPUT_VARIABLE DUMMY_RESULTS)
+    else()
+        # Generate boardconfig from default.px4board and {label}.px4board
+        execute_process(COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}
+                        ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/merge_config.py Kconfig ${BOARD_CONFIG} ${PX4_BOARD_DIR}/default.px4board ${BOARD_DEFCONFIG}
                         WORKING_DIRECTORY ${PX4_SOURCE_DIR}
                         OUTPUT_VARIABLE DUMMY_RESULTS)
     endif()
@@ -307,13 +307,13 @@ if(EXISTS ${BOARD_DEFCONFIG})
 endif()
 
 
-if(NOT ${LABEL} MATCHES "default")
+if(${LABEL} MATCHES "default" OR ${LABEL} MATCHES "bootloader")
     add_custom_target(boardconfig
         ${CMAKE_COMMAND} -E env
         ${COMMON_KCONFIG_ENV_SETTINGS}
         ${MENUCONFIG_PATH} Kconfig
         COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${SAVEDEFCONFIG_PATH}
-        COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/diffconfig.py -m ${PX4_BOARD_DIR}/default.px4board defconfig > ${BOARD_DEFCONFIG}
+        COMMAND ${CMAKE_COMMAND} -E copy defconfig ${BOARD_DEFCONFIG}
         COMMAND ${CMAKE_COMMAND} -E rm ${PX4_BINARY_DIR}/NuttX/apps_copy.stamp
         WORKING_DIRECTORY ${PX4_SOURCE_DIR}
         USES_TERMINAL
@@ -325,7 +325,7 @@ if(NOT ${LABEL} MATCHES "default")
         ${COMMON_KCONFIG_ENV_SETTINGS}
         ${GUICONFIG_PATH} Kconfig
         COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${SAVEDEFCONFIG_PATH}
-        COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/diffconfig.py -m ${PX4_BOARD_DIR}/default.px4board defconfig > ${BOARD_DEFCONFIG}
+        COMMAND ${CMAKE_COMMAND} -E copy defconfig ${BOARD_DEFCONFIG}
         COMMAND ${CMAKE_COMMAND} -E rm ${PX4_BINARY_DIR}/NuttX/apps_copy.stamp
         WORKING_DIRECTORY ${PX4_SOURCE_DIR}
         USES_TERMINAL
@@ -337,7 +337,7 @@ else()
         ${COMMON_KCONFIG_ENV_SETTINGS}
         ${MENUCONFIG_PATH} Kconfig
         COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${SAVEDEFCONFIG_PATH}
-        COMMAND ${CMAKE_COMMAND} -E copy defconfig ${BOARD_DEFCONFIG}
+        COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/diffconfig.py -m ${PX4_BOARD_DIR}/default.px4board defconfig > ${BOARD_DEFCONFIG}
         COMMAND ${CMAKE_COMMAND} -E rm ${PX4_BINARY_DIR}/NuttX/apps_copy.stamp
         WORKING_DIRECTORY ${PX4_SOURCE_DIR}
         USES_TERMINAL
@@ -349,7 +349,7 @@ else()
         ${COMMON_KCONFIG_ENV_SETTINGS}
         ${GUICONFIG_PATH} Kconfig
         COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${SAVEDEFCONFIG_PATH}
-        COMMAND ${CMAKE_COMMAND} -E copy defconfig ${BOARD_DEFCONFIG}
+        COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/diffconfig.py -m ${PX4_BOARD_DIR}/default.px4board defconfig > ${BOARD_DEFCONFIG}
         COMMAND ${CMAKE_COMMAND} -E rm ${PX4_BINARY_DIR}/NuttX/apps_copy.stamp
         WORKING_DIRECTORY ${PX4_SOURCE_DIR}
         USES_TERMINAL
