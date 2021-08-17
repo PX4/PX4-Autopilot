@@ -41,21 +41,16 @@
 
 #include "ActuatorEffectivenessMultirotor.hpp"
 
-ActuatorEffectivenessMultirotor::ActuatorEffectivenessMultirotor():
-	ModuleParams(nullptr)
+ActuatorEffectivenessMultirotor::ActuatorEffectivenessMultirotor(ModuleParams *parent):
+	ModuleParams(parent)
 {
 }
 
 bool
-ActuatorEffectivenessMultirotor::getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix)
+ActuatorEffectivenessMultirotor::getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix,
+		bool force)
 {
-	// Check if parameters have changed
-	if (_updated || _parameter_update_sub.updated()) {
-		// clear update
-		parameter_update_s param_update;
-		_parameter_update_sub.copy(&param_update);
-
-		updateParams();
+	if (_updated || force) {
 		_updated = false;
 
 		// Get multirotor geometry
@@ -148,6 +143,7 @@ ActuatorEffectivenessMultirotor::computeEffectivenessMatrix(const MultirotorGeom
 	effectiveness.setZero();
 
 	for (size_t i = 0; i < NUM_ROTORS_MAX; i++) {
+
 		// Get rotor axis
 		matrix::Vector3f axis(
 			geometry.rotors[i].axis_x,
