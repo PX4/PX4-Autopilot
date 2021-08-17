@@ -57,8 +57,15 @@ for name in glob.glob(px4_dir + '/boards/*/*/bootloader.px4board'):
     kconf.load_config(name)
     print(kconf.write_min_config(name))
 
+for name in glob.glob(px4_dir + '/boards/*/*/canbootloader.px4board'):
+    kconf = kconfiglib.Kconfig()
+    kconf.load_config(name)
+    print(kconf.write_min_config(name))
+
 for name in glob.glob(px4_dir + '/boards/*/*/*.px4board'):
-    if(os.path.basename(name) != "default.px4board" and os.path.basename(name) != "bootloader.px4board"):
+    if(os.path.basename(name) != "default.px4board" and
+       os.path.basename(name) != "bootloader.px4board" and
+       os.path.basename(name) != "canbootloader.px4board"):
         board_default = os.path.dirname(name) + "/default.px4board";
 
         # Merge with default config
