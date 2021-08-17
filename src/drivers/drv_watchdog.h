@@ -45,5 +45,6 @@
 __BEGIN_DECLS
 
 void watchdog_init(void);
+void watchdog_init_ex(int prescale, int reload); // Optional interface
 void watchdog_pet(void);
 __END_DECLS
