@@ -46,6 +46,7 @@
 #endif
 
 #include <termios.h>
+#include <cstring>
 
 #include <drivers/drv_sensor.h>
 #include <lib/drivers/device/Device.hpp>
@@ -362,7 +363,9 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 
 	switch (type) {
 	case GPSCallbackType::readDeviceData: {
-			int num_read = gps->pollOrRead((uint8_t *)data1, data2, *((int *)data1));
+			int timeout;
+			memcpy(&timeout, data1, sizeof(timeout));
+			int num_read = gps->pollOrRead((uint8_t *)data1, data2, timeout);
 
 			if (num_read > 0) {
 				gps->dumpGpsData((uint8_t *)data1, (size_t)num_read, gps_dump_comm_mode_t::Full, false);
