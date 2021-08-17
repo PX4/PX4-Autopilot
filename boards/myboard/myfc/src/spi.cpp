@@ -39,10 +39,11 @@ constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 	// Added spi buses for the sake of compilation.
 	// Specify correct sensors once the decision is made on which sensors or devices should be attached.
 	initSPIBus(SPI::Bus::SPI0, {
-		initSPIDevice(DRV_IMU_DEVTYPE_MPU6000, SPI::CS{GPIO::Pin1}),
+		initSPIDevice(SPIDEV_MMCSD(0), SPI::CS{GPIO::Pin5}),
 	}),
 	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(DRV_BARO_DEVTYPE_BMP280, SPI::CS{GPIO::Pin9}),
+		initSPIDevice(DRV_IMU_DEVTYPE_MPU9250, SPI::CS{GPIO::Pin13}),
+		initSPIDevice(DRV_BARO_DEVTYPE_BMP280, SPI::CS{GPIO::Pin14}),
 	}),
 };
 

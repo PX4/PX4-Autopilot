@@ -14,7 +14,7 @@ SERIAL_PORTS
 DRIVERS
 	adc/board_adc
 # 	#barometer # all available barometer drivers
-# 	barometer/bmp280
+	barometer/bmp280
 # 	#batt_smbus
 # 	#camera_trigger
 # 	#differential_pressure # all available differential pressure drivers
@@ -22,11 +22,11 @@ DRIVERS
 # 	dshot
 	gps
 # 	imu/invensense/icm20602
-# 	imu/invensense/mpu6000
+	imu/invensense/mpu9250
 # 	#irlock
 # 	lights/rgbled
 # 	#magnetometer # all available magnetometer drivers
-# 	magnetometer/hmc5883
+	magnetometer/hmc5883
 # 	#optical_flow # all available optical flow drivers
 # 	osd
 # 	#pca9685
@@ -42,7 +42,7 @@ MODULES
 # 	battery_status
 # 	#camera_feedback
 # 	commander
-# 	dataman
+	dataman
 # 	ekf2
 # 	#esc_battery
 # 	events
@@ -55,8 +55,8 @@ MODULES
 # 	#landing_target_estimator
 # 	load_mon
 # 	#local_position_estimator
-	logger
-# 	mavlink
+	logger # There was a linker error about "undefined reference to `__aeabi_fcmpun'" when this was activated while led_control, nshterm, reboot, top, uorb, ver, adc/board_adc, gps active and everything else inactive. The error then surprisingly goes away when barometer/bmp280 and imu/invensense/mpu9250 are activated.
+	mavlink
 # 	mc_att_control
 # 	mc_hover_thrust_estimator
 # 	mc_pos_control
@@ -65,7 +65,7 @@ MODULES
 # 	navigator
 # 	rc_update
 # 	#rover_pos_control
-# 	sensors
+	sensors
 # 	#sih
 # 	#temperature_compensation
 # 	#uuv_att_control
@@ -87,7 +87,7 @@ SYSTEMCMDS
 # 	motor_test
 # 	#mtd
 	nshterm
-# 	param
+	param
 # 	perf
 # 	pwm
 	reboot
@@ -97,7 +97,7 @@ SYSTEMCMDS
 # 	#system_time
 	top
 # 	#topic_listener
-# 	tune_control
+	tune_control
 	uorb
 # 	usb_connected
 	ver

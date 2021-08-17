@@ -21,7 +21,7 @@ __BEGIN_DECLS
 // This can be done by defining a macro in the board's board_config.h file as shown below
 // #define BOARD_OVERRIDE_UUID "MYFC2040"	// must be of length 8
 
-#define PX4_CPU_UUID_BYTE_LENGTH                8
+#define PX4_CPU_UUID_BYTE_LENGTH                12
 #define PX4_CPU_UUID_WORD32_LENGTH              (PX4_CPU_UUID_BYTE_LENGTH/sizeof(uint32_t))
 
 /* The mfguid will be an array of bytes with
