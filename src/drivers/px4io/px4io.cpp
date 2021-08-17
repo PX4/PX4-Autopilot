@@ -70,7 +70,6 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_command.h>
@@ -92,8 +91,7 @@
 #define PX4IO_REBOOT_BOOTLOADER		_IOC(0xff00, 1)
 #define PX4IO_CHECK_CRC			_IOC(0xff00, 2)
 
-static constexpr unsigned UPDATE_INTERVAL_MIN{2};	// 2 ms   -> 500 Hz
-static constexpr unsigned UPDATE_INTERVAL_MAX{100};	// 100 ms -> 10 Hz
+static constexpr unsigned MIN_TOPIC_UPDATE_INTERVAL = 2500; // 2.5 ms -> 400 Hz
 
 using namespace time_literals;
 
@@ -102,7 +100,7 @@ using namespace time_literals;
  *
  * Encapsulates PX4FMU to PX4IO communications modeled as file operations.
  */
-class PX4IO : public cdev::CDev, public OutputModuleInterface
+class PX4IO : public cdev::CDev, public ModuleBase<PX4IO>, public OutputModuleInterface
 {
 public:
 	/**
@@ -113,11 +111,6 @@ public:
 	PX4IO() = delete;
 	explicit PX4IO(device::Device *interface);
 
-	/**
-	 * Destructor.
-	 *
-	 * Wait for worker thread to terminate.
-	 */
 	~PX4IO() override;
 
 	/**
@@ -132,7 +125,7 @@ public:
 	 *
 	 * Only validate if there is a PX4IO to talk to.
 	 */
-	virtual int		detect();
+	int		detect();
 
 	/**
 	 * IO Control handler.
@@ -143,16 +136,21 @@ public:
 	 * @param[in] cmd the IOCTL command
 	 * @param[in] the IOCTL command parameter (optional)
 	 */
-	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
+	int		ioctl(file *filp, int cmd, unsigned long arg) override;
 
 	/**
 	 * Print IO status.
 	 *
 	 * Print all relevant IO status information
 	 *
-	 * @param extended_status Shows more verbose information (in particular RC config)
 	 */
-	void			print_status();
+	int			print_status();
+
+	static int custom_command(int argc, char *argv[]);
+
+	static int print_usage(const char *reason = nullptr);
+
+	static int task_spawn(int argc, char *argv[]);
 
 	/**
 	 * Fetch and print debug console output.
@@ -177,9 +175,14 @@ private:
 	void updateDisarmed();
 	void updateFailsafe();
 
+	static int checkcrc(int argc, char *argv[]);
+	static int bind(int argc, char *argv[]);
+	static int lockdown(int argc, char *argv[]);
+	static int monitor();
+
 	static constexpr int PX4IO_MAX_ACTUATORS = 8;
 
-	device::Device		*_interface;
+	device::Device *const _interface;
 
 	unsigned		_hardware{0};		///< Hardware revision
 	unsigned		_max_actuators{0};		///< Maximum # of actuators supported by PX4IO
@@ -190,9 +193,6 @@ private:
 	uint64_t		_rc_last_valid{0};		///< last valid timestamp
 
 	int			_class_instance{-1};
-
-	volatile int		_task{-1};			///< worker task id
-	volatile bool		_task_should_exit{false};	///< worker terminate flag
 
 	hrt_abstime		_poll_last{0};
 
@@ -227,8 +227,6 @@ private:
 	safety_s _safety{};
 
 	bool			_lockdown_override{false};	///< override the safety lockdown
-
-	bool			_disable_flighttermination{true};	///< true if the flight termination circuit breaker is enabled
 
 	int32_t		_thermal_control{-1}; ///< thermal control state
 	bool			_analog_rc_rssi_stable{false}; ///< true when analog RSSI input is stable
@@ -359,11 +357,6 @@ private:
 	)
 };
 
-namespace
-{
-PX4IO *g_dev = nullptr;
-}
-
 #define PX4IO_DEVICE_PATH	"/dev/px4io"
 
 PX4IO::PX4IO(device::Device *interface) :
@@ -371,27 +364,12 @@ PX4IO::PX4IO(device::Device *interface) :
 	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(PX4IO_SERIAL_DEVICE)),
 	_interface(interface)
 {
-	/* we need this potentially before it could be set in task_main */
-	g_dev = this;
-
 	_mixing_output.setAllMinValues(PWM_DEFAULT_MIN);
 	_mixing_output.setAllMaxValues(PWM_DEFAULT_MAX);
-
-	/* Fetch initial flight termination circuit breaker state */
-	_disable_flighttermination = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
 }
 
 PX4IO::~PX4IO()
 {
-	/* tell the task we want it to go away */
-	_task_should_exit = true;
-
-	/* spin waiting for the task to stop */
-	for (unsigned i = 0; (i < 10) && (_task != -1); i++) {
-		/* give it another 100ms */
-		px4_usleep(100000);
-	}
-
 	delete _interface;
 
 	/* clean up the alternate device node */
@@ -404,14 +382,12 @@ PX4IO::~PX4IO()
 	perf_free(_interval_perf);
 	perf_free(_interface_read_perf);
 	perf_free(_interface_write_perf);
-
-	g_dev = nullptr;
 }
 
 int
 PX4IO::detect()
 {
-	if (_task == -1) {
+	if (!is_running()) {
 
 		/* do regular cdev init */
 		int ret = CDev::init();
@@ -450,11 +426,13 @@ bool PX4IO::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 
 	const bool full_update = (hrt_elapsed_time(&_last_full_output_update) >= 200_ms);
 
-	/* output to the servos */
-	for (size_t i = 0; i < num_outputs; i++) {
-		if (_prev_outputs[i] != outputs[i] || full_update) {
-			io_reg_set(PX4IO_PAGE_DIRECT_PWM, i, outputs[i]);
-			_prev_outputs[i] = outputs[i];
+	if (!_test_fmu_fail) {
+		/* output to the servos */
+		for (size_t i = 0; i < num_outputs; i++) {
+			if (_prev_outputs[i] != outputs[i] || full_update) {
+				io_reg_set(PX4IO_PAGE_DIRECT_PWM, i, outputs[i]);
+				_prev_outputs[i] = outputs[i];
+			}
 		}
 	}
 
@@ -505,7 +483,7 @@ int PX4IO::init()
 	_max_transfer  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_MAX_TRANSFER) - 2;
 	_max_rc_input  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RC_INPUT_COUNT);
 
-	if ((_max_actuators < 1) || (_max_actuators > 16) ||
+	if ((_max_actuators < 1) || (_max_actuators > PX4IO_MAX_ACTUATORS) ||
 	    (_max_transfer < 16) || (_max_transfer > 255)  ||
 	    (_max_rc_input < 1)  || (_max_rc_input > 255)) {
 
@@ -568,12 +546,10 @@ int PX4IO::init()
 		_class_instance = register_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH);
 		_mixing_output.setDriverInstance(_class_instance);
 
-		_mixing_output.setMaxTopicUpdateRate(2500);
+		_mixing_output.setMaxTopicUpdateRate(MIN_TOPIC_UPDATE_INTERVAL);
 	}
 
 	update_params();
-
-	_task = 2; // TODO
 
 	ScheduleNow();
 
@@ -604,148 +580,144 @@ void PX4IO::updateFailsafe()
 
 void PX4IO::Run()
 {
-	if (_task_should_exit) {
+	if (should_exit()) {
 		ScheduleClear();
 		_mixing_output.unregister();
 
-		//exit_and_cleanup();
-		_task = -1;
+		exit_and_cleanup();
 		return;
 	}
 
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
 
-	if (!_task_should_exit) {
-		// schedule minimal update rate if there are no actuator controls
-		ScheduleDelayed(20_ms);
+	// schedule minimal update rate if there are no actuator controls
+	ScheduleDelayed(20_ms);
 
-		/* if we have new control data from the ORB, handle it */
-		if (_param_sys_hitl.get() <= 0) {
-			_mixing_output.update();
+	/* if we have new control data from the ORB, handle it */
+	if (_param_sys_hitl.get() <= 0) {
+		_mixing_output.update();
+	}
+
+	SmartLock lock_guard(_lock);
+
+	if (hrt_elapsed_time(&_poll_last) >= 20_ms) {
+		/* run at 50 */
+		_poll_last = hrt_absolute_time();
+
+		/* pull status and alarms from IO */
+		io_get_status();
+
+		/* get raw R/C input from IO */
+		io_publish_raw_rc();
+	}
+
+	if (_param_sys_hitl.get() <= 0) {
+		/* check updates on uORB topics and handle it */
+		if (_t_actuator_armed.updated()) {
+			io_set_arming_state();
+
+			// TODO: throttle
 		}
+	}
 
-		SmartLock lock_guard(_lock);
+	if (!_mixing_output.armed().armed) {
+		/* vehicle command */
+		if (_t_vehicle_command.updated()) {
+			vehicle_command_s cmd{};
+			_t_vehicle_command.copy(&cmd);
 
-		if (hrt_elapsed_time(&_poll_last) >= 20_ms) {
-			/* run at 50 */
-			_poll_last = hrt_absolute_time();
+			// Check for a DSM pairing command
+			if (((unsigned int)cmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
+				int bind_arg;
 
-			/* pull status and alarms from IO */
-			io_get_status();
+				switch ((int)cmd.param2) {
+				case 0:
+					bind_arg = DSM2_BIND_PULSES;
+					break;
 
-			/* get raw R/C input from IO */
-			io_publish_raw_rc();
-		}
+				case 1:
+					bind_arg = DSMX_BIND_PULSES;
+					break;
 
-		if (_param_sys_hitl.get() <= 0) {
-			/* check updates on uORB topics and handle it */
-			if (_t_actuator_armed.updated()) {
-				io_set_arming_state();
-
-				// TODO: throttle
-			}
-		}
-
-		if (!_mixing_output.armed().armed) {
-			/* vehicle command */
-			if (_t_vehicle_command.updated()) {
-				vehicle_command_s cmd{};
-				_t_vehicle_command.copy(&cmd);
-
-				// Check for a DSM pairing command
-				if (((unsigned int)cmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
-					int bind_arg;
-
-					switch ((int)cmd.param2) {
-					case 0:
-						bind_arg = DSM2_BIND_PULSES;
-						break;
-
-					case 1:
-						bind_arg = DSMX_BIND_PULSES;
-						break;
-
-					case 2:
-					default:
-						bind_arg = DSMX8_BIND_PULSES;
-						break;
-					}
-
-					int dsm_ret = dsm_bind_ioctl(bind_arg);
-
-					/* publish ACK */
-					if (dsm_ret == OK) {
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
-
-					} else {
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
-					}
-				}
-			}
-
-			/*
-			 * If parameters have changed, re-send RC mappings to IO
-			 */
-
-			// check for parameter updates
-			if (_parameter_update_sub.updated() || _param_update_force) {
-				// clear update
-				parameter_update_s pupdate;
-				_parameter_update_sub.copy(&pupdate);
-
-				_param_update_force = false;
-
-				ModuleParams::updateParams();
-
-				update_params();
-
-				/* Check if the IO safety circuit breaker has been updated */
-				bool circuit_breaker_io_safety_enabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
-				/* Bypass IO safety switch logic by setting FORCE_SAFETY_OFF */
-				io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, circuit_breaker_io_safety_enabled);
-
-				/* Check if the flight termination circuit breaker has been updated */
-				_disable_flighttermination = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
-				/* Tell IO that it can terminate the flight if FMU is not responding or if a failure has been reported by the FailureDetector logic */
-				io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION, !_disable_flighttermination);
-
-				if (_param_sens_en_themal.get() != _thermal_control || _param_update_force) {
-
-					_thermal_control = _param_sens_en_themal.get();
-					/* set power management state for thermal */
-					uint16_t tctrl;
-
-					if (_thermal_control < 0) {
-						tctrl = PX4IO_THERMAL_IGNORE;
-
-					} else {
-						tctrl = PX4IO_THERMAL_OFF;
-					}
-
-					io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_THERMAL, tctrl);
+				case 2:
+				default:
+					bind_arg = DSMX8_BIND_PULSES;
+					break;
 				}
 
-				/* S.BUS output */
-				if (_param_pwm_sbus_mode.get() == 1) {
-					/* enable S.BUS 1 */
-					io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SBUS1_OUT);
+				int dsm_ret = dsm_bind_ioctl(bind_arg);
 
-				} else if (_param_pwm_sbus_mode.get() == 2) {
-					/* enable S.BUS 2 */
-					io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SBUS2_OUT);
+				/* publish ACK */
+				if (dsm_ret == OK) {
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 				} else {
-					/* disable S.BUS */
-					io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES,
-						      (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT), 0);
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
 				}
 			}
 		}
 
-		// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
-		_mixing_output.updateSubscriptions(false, true);
+		/*
+		 * If parameters have changed, re-send RC mappings to IO
+		 */
+
+		// check for parameter updates
+		if (_parameter_update_sub.updated() || _param_update_force) {
+			// clear update
+			parameter_update_s pupdate;
+			_parameter_update_sub.copy(&pupdate);
+
+			_param_update_force = false;
+
+			ModuleParams::updateParams();
+
+			update_params();
+
+			/* Check if the IO safety circuit breaker has been updated */
+			bool circuit_breaker_io_safety_enabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
+			/* Bypass IO safety switch logic by setting FORCE_SAFETY_OFF */
+			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, circuit_breaker_io_safety_enabled);
+
+			/* Check if the flight termination circuit breaker has been updated */
+			bool disable_flighttermination = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
+			/* Tell IO that it can terminate the flight if FMU is not responding or if a failure has been reported by the FailureDetector logic */
+			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION, !disable_flighttermination);
+
+			if (_param_sens_en_themal.get() != _thermal_control || _param_update_force) {
+
+				_thermal_control = _param_sens_en_themal.get();
+				/* set power management state for thermal */
+				uint16_t tctrl;
+
+				if (_thermal_control < 0) {
+					tctrl = PX4IO_THERMAL_IGNORE;
+
+				} else {
+					tctrl = PX4IO_THERMAL_OFF;
+				}
+
+				io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_THERMAL, tctrl);
+			}
+
+			/* S.BUS output */
+			if (_param_pwm_sbus_mode.get() == 1) {
+				/* enable S.BUS 1 */
+				io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SBUS1_OUT);
+
+			} else if (_param_pwm_sbus_mode.get() == 2) {
+				/* enable S.BUS 2 */
+				io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SBUS2_OUT);
+
+			} else {
+				/* disable S.BUS */
+				io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES,
+					      (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT), 0);
+			}
+		}
 	}
+
+	_mixing_output.updateSubscriptions(false, true);
 
 	perf_end(_cycle_perf);
 }
@@ -882,7 +854,8 @@ void PX4IO::update_params()
 
 	// PWM_MAIN_REVx
 	if (!_pwm_rev_configured) {
-		int16_t reverse_pwm_mask = 0;
+		uint16_t &reverse_pwm_mask = _mixing_output.reverseOutputMask();
+		reverse_pwm_mask = 0;
 
 		for (unsigned i = 0; i < _max_actuators; i++) {
 			sprintf(str, "%s_REV%u", prefix, i + 1);
@@ -1461,7 +1434,7 @@ PX4IO::print_debug()
 
 }
 
-void PX4IO::print_status()
+int PX4IO::print_status()
 {
 	/* basic configuration */
 	printf("protocol %" PRIu32 " hardware %" PRIu32 " bootloader %" PRIu32 " buffer %" PRIu32 "B crc 0x%04" PRIu32 "%04"
@@ -1534,6 +1507,7 @@ void PX4IO::print_status()
 	printf("\n");
 
 	_mixing_output.printStatus();
+	return 0;
 }
 
 int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
@@ -1998,121 +1972,75 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 	return ret;
 }
 
-extern "C" __EXPORT int px4io_main(int argc, char *argv[]);
-
-namespace
-{
-
-device::Device *get_interface()
+static device::Device *get_interface()
 {
 	device::Device *interface = PX4IO_serial_interface();
 
 	if (interface != nullptr) {
-		goto got;
-	}
-
-	errx(1, "cannot alloc interface");
-
-got:
-
-	if (interface->init() != OK) {
-		delete interface;
-		errx(1, "interface init failed");
+		if (interface->init() != OK) {
+			PX4_ERR("interface init failed");
+			delete interface;
+			interface = nullptr;
+		}
 	}
 
 	return interface;
 }
 
-void start(int argc, char *argv[])
+static int detect(int argc, char *argv[])
 {
-	if (g_dev != nullptr) {
-		errx(0, "already loaded");
-	}
-
 	/* allocate the interface */
 	device::Device *interface = get_interface();
 
-	/* create the driver - it will set g_dev */
+	if (interface == nullptr) {
+		PX4_ERR("interface allocation failed");
+		return 1;
+	}
+
 	PX4IO *dev = new PX4IO(interface);
 
-	if (g_dev == nullptr) {
-		delete interface;
-		errx(1, "driver allocation failed");
+	if (dev == nullptr) {
+		PX4_ERR("driver allocation failed");
+		return 1;
 	}
 
-	if (OK != g_dev->init()) {
-		delete g_dev;
-		g_dev = nullptr;
-		errx(1, "driver init failed");
-	}
-
-	exit(0);
+	int ret = dev->detect();
+	delete dev;
+	return ret;
 }
 
-void detect(int argc, char *argv[])
+
+int PX4IO::checkcrc(int argc, char *argv[])
 {
-	if (g_dev != nullptr) {
-		errx(0, "already loaded");
-	}
-
-	/* allocate the interface */
-	device::Device *interface = get_interface();
-
-	/* create the driver - it will set g_dev */
-	(void)new PX4IO(interface);
-
-	if (g_dev == nullptr) {
-		errx(1, "driver allocation failed");
-	}
-
-	int ret = g_dev->detect();
-
-	delete g_dev;
-	g_dev = nullptr;
-
-	if (ret) {
-		/* nonzero, error */
-		exit(1);
-
-	} else {
-		exit(0);
-	}
-}
-
-void checkcrc(int argc, char *argv[])
-{
-	bool keep_running = false;
-
-	if (g_dev == nullptr) {
-		/* allocate the interface */
-		device::Device *interface = get_interface();
-
-		/* create the driver - it will set g_dev */
-		(void)new PX4IO(interface);
-
-		if (g_dev == nullptr) {
-			PX4_ERR("driver allocation failed");
-			exit(1);
-		}
-
-	} else {
-		/* its already running, don't kill the driver */
-		keep_running = true;
-	}
-
 	/*
 	  check IO CRC against CRC of a file
 	 */
-	if (argc < 2) {
+	if (argc < 1) {
 		PX4_WARN("usage: px4io checkcrc filename");
-		exit(1);
+		return 1;
 	}
 
-	int fd = open(argv[1], O_RDONLY);
+	device::Device *interface = get_interface();
+
+	if (interface == nullptr) {
+		PX4_ERR("interface allocation failed");
+		return 1;
+	}
+
+	PX4IO *dev = new PX4IO(interface);
+
+	if (dev == nullptr) {
+		delete interface;
+		PX4_ERR("driver allocation failed");
+		return 1;
+	}
+
+	int fd = ::open(argv[0], O_RDONLY);
 
 	if (fd == -1) {
-		PX4_ERR("open of %s failed: %d", argv[1], errno);
-		exit(1);
+		delete dev;
+		PX4_ERR("open of %s failed: %d", argv[0], errno);
+		return 1;
 	}
 
 	const uint32_t app_size_max = 0xf000;
@@ -2121,7 +2049,7 @@ void checkcrc(int argc, char *argv[])
 
 	while (true) {
 		uint8_t buf[16];
-		int n = read(fd, buf, sizeof(buf));
+		int n = ::read(fd, buf, sizeof(buf));
 
 		if (n <= 0) { break; }
 
@@ -2129,7 +2057,7 @@ void checkcrc(int argc, char *argv[])
 		nbytes += n;
 	}
 
-	close(fd);
+	::close(fd);
 
 	while (nbytes < app_size_max) {
 		uint8_t b = 0xff;
@@ -2137,60 +2065,52 @@ void checkcrc(int argc, char *argv[])
 		nbytes++;
 	}
 
-	int ret = g_dev->ioctl(nullptr, PX4IO_CHECK_CRC, fw_crc);
+	int ret = dev->ioctl(nullptr, PX4IO_CHECK_CRC, fw_crc);
 
-	if (!keep_running) {
-		delete g_dev;
-		g_dev = nullptr;
-	}
+	delete dev;
 
 	if (ret != OK) {
-		PX4_ERR("check CRC failed: %d, CRC: %" PRIu32, ret, fw_crc);
-		exit(1);
-
-	} else {
-		PX4_INFO("IO FW CRC match");
+		PX4_INFO("check CRC failed: %d, CRC: %" PRIu32, ret, fw_crc);
+		return 1;
 	}
 
-	exit(0);
+	PX4_INFO("IO FW CRC match");
+	return 0;
 }
 
-void bind(int argc, char *argv[])
+int PX4IO::bind(int argc, char *argv[])
 {
 	int pulses;
 
-	if (g_dev == nullptr) {
-		errx(1, "px4io must be started first");
+	if (argc < 1) {
+		PX4_ERR("needs argument, use dsm2, dsmx or dsmx8");
+		return 1;
 	}
 
-	if (argc < 3) {
-		errx(0, "needs argument, use dsm2, dsmx or dsmx8");
-	}
-
-	if (!strcmp(argv[2], "dsm2")) {
+	if (!strcmp(argv[0], "dsm2")) {
 		pulses = DSM2_BIND_PULSES;
 
-	} else if (!strcmp(argv[2], "dsmx")) {
+	} else if (!strcmp(argv[0], "dsmx")) {
 		pulses = DSMX_BIND_PULSES;
 
-	} else if (!strcmp(argv[2], "dsmx8")) {
+	} else if (!strcmp(argv[0], "dsmx8")) {
 		pulses = DSMX8_BIND_PULSES;
 
 	} else {
-		errx(1, "unknown parameter %s, use dsm2, dsmx or dsmx8", argv[2]);
+		PX4_ERR("unknown parameter %s, use dsm2, dsmx or dsmx8", argv[0]);
+		return 1;
 	}
 
 	// Test for custom pulse parameter
-	if (argc > 3) {
-		pulses = atoi(argv[3]);
+	if (argc > 1) {
+		pulses = atoi(argv[1]);
 	}
 
-	g_dev->ioctl(nullptr, DSM_BIND_START, pulses);
-
-	exit(0);
+	get_instance()->ioctl(nullptr, DSM_BIND_START, pulses);
+	return 0;
 }
 
-void monitor()
+int PX4IO::monitor()
 {
 	/* clear screen */
 	printf("\033[2J");
@@ -2203,118 +2123,143 @@ void monitor()
 		fds[0].fd = 0;
 		fds[0].events = POLLIN;
 
-		if (poll(fds, 1, 2000) < 0) {
-			errx(1, "poll fail");
+		if (::poll(fds, 1, 2000) < 0) {
+			PX4_ERR("poll fail");
+			return 1;
 		}
 
 		if (fds[0].revents == POLLIN) {
 			/* control logic is to cancel with any key */
 			char c;
-			(void)read(0, &c, 1);
+			::read(0, &c, 1);
 
 			if (cancels-- == 0) {
 				printf("\033[2J\033[H"); /* move cursor home and clear screen */
-				exit(0);
+				return 0;
 			}
 		}
 
-		if (g_dev != nullptr) {
-
-			printf("\033[2J\033[H"); /* move cursor home and clear screen */
-			(void)g_dev->print_status();
-			(void)g_dev->print_debug();
-			printf("\n\n\n[ Use 'px4io debug <N>' for more output. Hit <enter> three times to exit monitor mode ]\n");
-
-		} else {
-			errx(1, "driver not loaded, exiting");
-		}
+		printf("\033[2J\033[H"); /* move cursor home and clear screen */
+		get_instance()->print_status();
+		get_instance()->print_debug();
+		printf("\n\n\n[ Use 'px4io debug <N>' for more output. Hit <enter> three times to exit monitor mode ]\n");
 	}
+
+	return 0;
 }
 
-void lockdown(int argc, char *argv[])
+int PX4IO::lockdown(int argc, char *argv[])
 {
-	if (g_dev != nullptr) {
+	if (argc > 1 && !strcmp(argv[1], "disable")) {
 
-		if (argc > 2 && !strcmp(argv[2], "disable")) {
+		PX4_WARN("WARNING: ACTUATORS WILL BE LIVE IN HIL! PROCEED?");
+		PX4_WARN("Press 'y' to enable, any other key to abort.");
 
-			warnx("WARNING: ACTUATORS WILL BE LIVE IN HIL! PROCEED?");
-			warnx("Press 'y' to enable, any other key to abort.");
+		/* check if user wants to abort */
+		char c;
 
-			/* check if user wants to abort */
-			char c;
+		struct pollfd fds;
+		int ret;
+		hrt_abstime start = hrt_absolute_time();
+		const unsigned long timeout = 5000000;
 
-			struct pollfd fds;
-			int ret;
-			hrt_abstime start = hrt_absolute_time();
-			const unsigned long timeout = 5000000;
+		while (hrt_elapsed_time(&start) < timeout) {
+			fds.fd = 0; /* stdin */
+			fds.events = POLLIN;
+			ret = ::poll(&fds, 1, 0);
 
-			while (hrt_elapsed_time(&start) < timeout) {
-				fds.fd = 0; /* stdin */
-				fds.events = POLLIN;
-				ret = poll(&fds, 1, 0);
+			if (ret > 0) {
 
-				if (ret > 0) {
+				if (::read(0, &c, 1) > 0) {
 
-					if (read(0, &c, 1) > 0) {
+					if (c != 'y') {
+						return 0;
 
-						if (c != 'y') {
-							exit(0);
-
-						} else if (c == 'y') {
-							break;
-						}
+					} else if (c == 'y') {
+						break;
 					}
 				}
-
-				px4_usleep(10000);
 			}
 
-			if (hrt_elapsed_time(&start) > timeout) {
-				errx(1, "TIMEOUT! ABORTED WITHOUT CHANGES.");
-			}
+			px4_usleep(10000);
+		}
 
-			(void)g_dev->ioctl(0, PWM_SERVO_SET_DISABLE_LOCKDOWN, 1);
+		if (hrt_elapsed_time(&start) > timeout) {
+			PX4_ERR("TIMEOUT! ABORTED WITHOUT CHANGES.");
+			return 1;
+		}
 
-			warnx("WARNING: ACTUATORS ARE NOW LIVE IN HIL!");
+		get_instance()->ioctl(0, PWM_SERVO_SET_DISABLE_LOCKDOWN, 1);
 
-		} else {
-			(void)g_dev->ioctl(0, PWM_SERVO_SET_DISABLE_LOCKDOWN, 0);
-			warnx("ACTUATORS ARE NOW SAFE IN HIL.");
+		PX4_WARN("ACTUATORS ARE NOW LIVE IN HIL!");
+
+	} else {
+		get_instance()->ioctl(0, PWM_SERVO_SET_DISABLE_LOCKDOWN, 0);
+		PX4_WARN("ACTUATORS ARE NOW SAFE IN HIL.");
+	}
+
+	return 0;
+}
+
+
+int PX4IO::task_spawn(int argc, char *argv[])
+{
+	device::Device *interface = get_interface();
+
+	if (interface == nullptr) {
+		PX4_ERR("Failed to create interface");
+		return -1;
+	}
+
+	PX4IO *instance = new PX4IO(interface);
+
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+
+		if (instance->init() == PX4_OK) {
+			return PX4_OK;
 		}
 
 	} else {
-		errx(1, "driver not loaded, exiting");
+		PX4_ERR("alloc failed");
 	}
 
-	exit(0);
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
 }
 
-} /* namespace */
-
-int px4io_main(int argc, char *argv[])
+int PX4IO::custom_command(int argc, char *argv[])
 {
-	/* check for sufficient number of arguments */
-	if (argc < 2) {
-		goto out;
+	const char *verb = argv[0];
+
+	if (!strcmp(verb, "detect")) {
+		if (is_running()) {
+			PX4_ERR("io must be stopped");
+			return 1;
+		}
+
+		return ::detect(argc - 1, argv + 1);
 	}
 
-	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO)) {
-		errx(1, "PX4IO Not Supported");
+	if (!strcmp(verb, "checkcrc")) {
+		if (is_running()) {
+			PX4_ERR("io must be stopped");
+			return 1;
+		}
+
+		return checkcrc(argc - 1, argv + 1);
 	}
 
-	if (!strcmp(argv[1], "start")) {
-		start(argc - 1, argv + 1);
-	}
+	if (!strcmp(verb, "update")) {
 
-	if (!strcmp(argv[1], "detect")) {
-		detect(argc - 1, argv + 1);
-	}
-
-	if (!strcmp(argv[1], "checkcrc")) {
-		checkcrc(argc - 1, argv + 1);
-	}
-
-	if (!strcmp(argv[1], "update")) {
+		if (is_running()) {
+			PX4_ERR("io must be stopped");
+			return 1;
+		}
 
 		constexpr unsigned MAX_RETRIES = 5;
 		unsigned retries = 0;
@@ -2322,48 +2267,52 @@ int px4io_main(int argc, char *argv[])
 
 		while (ret != OK && retries < MAX_RETRIES) {
 
+			device::Device *interface = get_interface();
+
+			if (interface == nullptr) {
+				PX4_ERR("interface allocation failed");
+				return 1;
+			}
+
+			PX4IO *dev = new PX4IO(interface);
+
+			if (dev == nullptr) {
+				delete interface;
+				PX4_ERR("driver allocation failed");
+				return 1;
+			}
+
 			retries++;
 			// Sleep 200 ms before the next attempt
 			usleep(200 * 1000);
 
-			if (g_dev == nullptr) {
-				/* allocate the interface */
-				device::Device *interface = get_interface();
-
-				/* create the driver - it will set g_dev */
-				(void)new PX4IO(interface);
-
-				if (g_dev == nullptr) {
-					delete interface;
-					errx(1, "driver allocation failed");
-				}
-			}
-
 			// Try to reboot
-			ret = g_dev->ioctl(nullptr, PX4IO_REBOOT_BOOTLOADER, PX4IO_REBOOT_BL_MAGIC);
-			// tear down the px4io instance
-			delete g_dev;
-			g_dev = nullptr;
+			ret = dev->ioctl(nullptr, PX4IO_REBOOT_BOOTLOADER, PX4IO_REBOOT_BL_MAGIC);
+			delete dev;
 
 			if (ret != OK) {
 				PX4_ERR("reboot failed - %d, still attempting upgrade", ret);
 			}
-
-			PX4IO_Uploader *up;
 
 			/* Assume we are using default paths */
 
 			const char *fn[4] = PX4IO_FW_SEARCH_PATHS;
 
 			/* Override defaults if a path is passed on command line */
-			if (argc > 2) {
-				fn[0] = argv[2];
+			if (argc > 1) {
+				fn[0] = argv[1];
 				fn[1] = nullptr;
 			}
 
-			up = new PX4IO_Uploader;
-			ret = up->upload(&fn[0]);
-			delete up;
+			PX4IO_Uploader *up = new PX4IO_Uploader();
+
+			if (!up) {
+				ret = -ENOMEM;
+
+			} else {
+				ret = up->upload(&fn[0]);
+				delete up;
+			}
 		}
 
 		switch (ret) {
@@ -2395,147 +2344,151 @@ int px4io_main(int argc, char *argv[])
 		return ret;
 	}
 
+
 	/* commands below here require a started driver */
-
-	if (g_dev == nullptr) {
-		errx(1, "not started");
+	if (!is_running()) {
+		PX4_ERR("not running");
+		return 1;
 	}
 
-	if (!strcmp(argv[1], "safety_off")) {
-		int ret = g_dev->ioctl(NULL, PWM_SERVO_SET_FORCE_SAFETY_OFF, 0);
+
+	if (!strcmp(verb, "safety_off")) {
+		int ret = get_instance()->ioctl(NULL, PWM_SERVO_SET_FORCE_SAFETY_OFF, 0);
 
 		if (ret != OK) {
-			warnx("failed to disable safety");
-			exit(1);
+			PX4_ERR("failed to disable safety (%i)", ret);
+			return 1;
 		}
 
-		exit(0);
+		return 0;
 	}
 
-	if (!strcmp(argv[1], "safety_on")) {
-		int ret = g_dev->ioctl(NULL, PWM_SERVO_SET_FORCE_SAFETY_ON, 0);
+	if (!strcmp(verb, "safety_on")) {
+		int ret = get_instance()->ioctl(NULL, PWM_SERVO_SET_FORCE_SAFETY_ON, 0);
 
 		if (ret != OK) {
-			warnx("failed to enable safety");
-			exit(1);
+			PX4_ERR("failed to enable safety (%i)", ret);
+			return 1;
 		}
 
-		exit(0);
+		return 0;
 	}
 
-	if (!strcmp(argv[1], "stop")) {
-
-		/* stop the driver */
-		delete g_dev;
-		g_dev = nullptr;
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "status")) {
-
-		warnx("loaded");
-		g_dev->print_status();
-
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "debug")) {
-		if (argc <= 2) {
-			warnx("usage: px4io debug LEVEL");
-			exit(1);
+	if (!strcmp(verb, "debug")) {
+		if (argc <= 1) {
+			PX4_ERR("usage: px4io debug LEVEL");
+			return 1;
 		}
 
-		if (g_dev == nullptr) {
-			warnx("not started");
-			exit(1);
-		}
-
-		uint8_t level = atoi(argv[2]);
-		/* we can cheat and call the driver directly, as it
-		 * doesn't reference filp in ioctl()
-		 */
-		int ret = g_dev->ioctl(nullptr, PX4IO_SET_DEBUG, level);
+		uint8_t level = atoi(argv[1]);
+		int ret = get_instance()->ioctl(nullptr, PX4IO_SET_DEBUG, level);
 
 		if (ret != 0) {
-			warnx("SET_DEBUG failed: %d", ret);
-			exit(1);
+			PX4_ERR("SET_DEBUG failed: %d", ret);
+			return 1;
 		}
 
-		warnx("SET_DEBUG %" PRIu8 " OK", level);
-		exit(0);
+		PX4_INFO("SET_DEBUG %" PRIu8 " OK", level);
+		return 0;
 	}
 
-	if (!strcmp(argv[1], "rx_dsm") ||
-	    !strcmp(argv[1], "rx_dsm_10bit") ||
-	    !strcmp(argv[1], "rx_dsm_11bit") ||
-	    !strcmp(argv[1], "rx_sbus") ||
-	    !strcmp(argv[1], "rx_ppm")) {
-		errx(0, "receiver type is automatically detected, option '%s' is deprecated", argv[1]);
+	if (!strcmp(verb, "monitor")) {
+		return monitor();
 	}
 
-	if (!strcmp(argv[1], "monitor")) {
-		monitor();
+	if (!strcmp(verb, "bind")) {
+		if (!is_running()) {
+			PX4_ERR("io must be running");
+			return 1;
+		}
+
+		return bind(argc - 1, argv + 1);
 	}
 
-	if (!strcmp(argv[1], "bind")) {
-		bind(argc, argv);
+	if (!strcmp(verb, "lockdown")) {
+		return lockdown(argc, argv);
 	}
 
-	if (!strcmp(argv[1], "lockdown")) {
-		lockdown(argc, argv);
-	}
-
-	if (!strcmp(argv[1], "sbus1_out")) {
-		/* we can cheat and call the driver directly, as it
-		 * doesn't reference filp in ioctl()
-		 */
-		int ret = g_dev->ioctl(nullptr, SBUS_SET_PROTO_VERSION, 1);
+	if (!strcmp(verb, "sbus1_out")) {
+		int ret = get_instance()->ioctl(nullptr, SBUS_SET_PROTO_VERSION, 1);
 
 		if (ret != 0) {
-			errx(ret, "S.BUS v1 failed");
+			PX4_ERR("S.BUS v1 failed (%i)", ret);
+			return 1;
 		}
 
-		exit(0);
+		return 0;
 	}
 
-	if (!strcmp(argv[1], "sbus2_out")) {
-		/* we can cheat and call the driver directly, as it
-		 * doesn't reference filp in ioctl()
-		 */
-		int ret = g_dev->ioctl(nullptr, SBUS_SET_PROTO_VERSION, 2);
+	if (!strcmp(verb, "sbus2_out")) {
+		int ret = get_instance()->ioctl(nullptr, SBUS_SET_PROTO_VERSION, 2);
 
 		if (ret != 0) {
-			errx(ret, "S.BUS v2 failed");
+			PX4_ERR("S.BUS v2 failed (%i)", ret);
+			return 1;
 		}
 
-		exit(0);
+		return 0;
 	}
 
-	if (!strcmp(argv[1], "test_fmu_fail")) {
-		if (g_dev != nullptr) {
-			g_dev->test_fmu_fail(true);
-			exit(0);
-
-		} else {
-
-			errx(1, "px4io must be started first");
-		}
+	if (!strcmp(verb, "test_fmu_fail")) {
+		get_instance()->test_fmu_fail(true);
+		return 0;
 	}
 
-	if (!strcmp(argv[1], "test_fmu_ok")) {
-		if (g_dev != nullptr) {
-			g_dev->test_fmu_fail(false);
-			exit(0);
-
-		} else {
-
-			errx(1, "px4io must be started first");
-		}
+	if (!strcmp(verb, "test_fmu_ok")) {
+		get_instance()->test_fmu_fail(false);
+		return 0;
 	}
 
-out:
-	errx(1, "need a command, try 'start', 'stop', 'status', 'monitor', 'debug <level>',\n"
-	     "bind', 'checkcrc', 'safety_on', 'safety_off',\n"
-	     "'update', 'update', 'sbus1_out', 'sbus2_out',\n"
-	     "'test_fmu_fail', 'test_fmu_ok'");
+	return print_usage("unknown command");
+}
+
+int PX4IO::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Output driver communicating with the IO co-processor.
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("px4io", "driver");
+	PRINT_MODULE_USAGE_COMMAND("start");
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("detect", "Try to detect the presence of an IO");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("checkcrc", "Check CRC for a firmware file against current code on IO");
+	PRINT_MODULE_USAGE_ARG("<filename>", "Firmware file", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("update", "Update IO firmware");
+	PRINT_MODULE_USAGE_ARG("<filename>", "Firmware file", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("safety_off", "Turn off safety (force)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("safety_on", "Turn on safety (force)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("debug", "set IO debug level");
+	PRINT_MODULE_USAGE_ARG("<debug_level>", "0=disabled, 9=max verbosity", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("monitor", "continuously monitor status");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("bind", "DSM bind");
+	PRINT_MODULE_USAGE_ARG("dsm2|dsmx|dsmx8", "protocol", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("lockdown", "enable (or disable) lockdown");
+	PRINT_MODULE_USAGE_ARG("disable", "disable lockdown", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("sbus1_out", "enable sbus1 out");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("sbus2_out", "enable sbus2 out");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test_fmu_fail", "test: turn off IO updates");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test_fmu_ok", "re-enable IO updates");
+
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
+}
+
+
+extern "C" __EXPORT int px4io_main(int argc, char *argv[])
+{
+	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO)) {
+		PX4_ERR("PX4IO Not Supported");
+		return -1;
+	}
+	return PX4IO::main(argc, argv);
 }
