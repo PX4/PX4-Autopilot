@@ -46,14 +46,13 @@
 #include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
-#include <uORB/topics/parameter_update.h>
 
 using namespace time_literals;
 
 class ActuatorEffectivenessMultirotor: public ModuleParams, public ActuatorEffectiveness
 {
 public:
-	ActuatorEffectivenessMultirotor();
+	ActuatorEffectivenessMultirotor(ModuleParams *parent);
 	virtual ~ActuatorEffectivenessMultirotor() = default;
 
 	static constexpr int NUM_ROTORS_MAX = 8;
@@ -76,12 +75,10 @@ public:
 	static int computeEffectivenessMatrix(const MultirotorGeometry &geometry,
 					      matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &effectiveness);
 
-	bool getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix) override;
+	bool getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix, bool force = false) override;
 
 	int numActuators() const override { return _num_actuators; }
 private:
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
 	bool _updated{true};
 	int _num_actuators{0};
 
