@@ -120,6 +120,12 @@ public:
 	// Distance mode member variable
 	uint16_t distance_mode;
 
+	// Zone index member variable
+	uint8_t zone_index;
+
+	// Zone limit member variable
+	uint8_t zone_limit;
+
 private:
 	int probe() override;
 
