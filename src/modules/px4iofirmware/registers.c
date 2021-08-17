@@ -259,6 +259,8 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 				num_values--;
 				values++;
 			}
+
+			r_status_flags |= PX4IO_P_STATUS_FLAGS_INIT_OK;
 		}
 		break;
 
