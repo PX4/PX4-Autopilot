@@ -392,7 +392,7 @@ pipeline {
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param save" || true'
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_debug/px4_fmu-v5_bootloader.elf'
                     // flash board and watch bootup
-                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_debug/px4_fmu-v5_debug.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_debug/px4_fmu-v5_debug.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600 || true'
                   }
                 }
                 stage("tests") {
