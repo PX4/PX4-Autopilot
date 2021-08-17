@@ -8,6 +8,12 @@ __BEGIN_DECLS
 #include <rp2040_i2c.h>
 #include <rp2040_gpio.h>
 
+// RP2040 doesn't have a bbsram. Following two defines are copied from nxp/k66.
+// This will remove the errors of undefined PX4_BBSRAM_SIZE when logger module is activated.
+// Fixme: using ??
+#define PX4_BBSRAM_SIZE             2048
+#define PX4_BBSRAM_GETDESC_IOCTL    0
+
 // RP2040 doesn't really have a cpu register with unique id.
 // However, there is a function in pico-sdk which can provide
 // a device unique id from its flash which is 64 bits in length.
@@ -96,5 +102,8 @@ int rp2040_setgpioevent(uint32_t pinset, bool risingedge, bool fallingedge, bool
 #define PX4_MAKE_GPIO_OUTPUT_SET(gpio) (gpio | GPIO_OUT | GPIO_SET | RP2040_GPIO_FUNC_SIO)
 
 #define PX4_GPIO_PIN_OFF(pinset) ((pinset & GPIO_NUM_MASK) | RP2040_GPIO_FUNC_SIO | GPIO_PD)
+
+#define px4_cache_aligned_data()
+#define px4_cache_aligned_alloc malloc
 
 __END_DECLS
