@@ -34,7 +34,7 @@ def print_line(line):
     print('[{0}] {1}'.format(current_time.isoformat(timespec='milliseconds'), line), end='')
 
 def do_nsh_cmd(port, baudrate, cmd):
-    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0.1, xonxoff=True, rtscts=False, dsrdtr=False)
+    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0.2, xonxoff=True, rtscts=False, dsrdtr=False)
 
     timeout_start = time.time()
     timeout = 10  # 10 seconds
