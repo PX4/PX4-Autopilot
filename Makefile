@@ -232,6 +232,9 @@ $(CONFIG_TARGETS_DEFAULT):
 all_config_targets: $(ALL_CONFIG_TARGETS)
 all_default_targets: $(CONFIG_TARGETS_DEFAULT)
 
+updateconfig:
+	@./Tools/kconfig/updateconfig.py
+
 # board reorganization deprecation warnings (2018-11-22)
 define deprecation_warning
 	$(warning $(1) has been deprecated and will be removed, please use $(2)!)
