@@ -639,72 +639,72 @@ pipeline {
           }
         }
 
-        stage("modalai_fc-v1_test") {
-          stages {
-            stage("build modalai_fc-v1_test") {
-              agent {
-                docker {
-                  image 'px4io/px4-dev-nuttx-focal:2021-05-04'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
-                }
-              }
-              steps {
-                checkout scm
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -s'
-                sh 'git fetch --tags'
-                sh 'make modalai_fc-v1_test'
-                sh 'make modalai_fc-v1_test bootloader_elf'
-                sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'modalai_fc-v1_test'
-              }
-              post {
-                always {
-                    sh 'make distclean'
-                }
-              }
-            } // stage build
-            stage("hardware") {
-              agent {
-                label 'modalai_fc-v1'
-              }
-              stages {
-                stage("flash") {
-                  steps {
-                    sh 'export'
-                    sh 'find /dev/serial'
-                    unstash 'modalai_fc-v1_test'
-                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/modalai_fc-v1_test/modalai_fc-v1_bootloader.elf'
-                    // flash board and watch bootup
-                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/modalai_fc-v1_test/modalai_fc-v1_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
-                  }
-                }
-                stage("tests") {
-                  steps {
-                    runTests()
-                  }
-                }
-                stage("status") {
-                  steps {
-                    // configure
-                    resetParameters()
-                    sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_AUTOSTART" --value "4001"'    // generic quadcopter
-                    sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_BL_UPDATE" --value "1"'       // update bootloader
-                    checkStatus()
-                    quickCalibrate()
-                  }
-                }
-                stage("print topics") {
-                  steps {
-                    printTopics()
-                  }
-                }
+        // stage("modalai_fc-v1_test") {
+        //   stages {
+        //     stage("build modalai_fc-v1_test") {
+        //       agent {
+        //         docker {
+        //           image 'px4io/px4-dev-nuttx-focal:2021-05-04'
+        //           args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+        //         }
+        //       }
+        //       steps {
+        //         checkout scm
+        //         sh 'export'
+        //         sh 'make distclean'
+        //         sh 'ccache -s'
+        //         sh 'git fetch --tags'
+        //         sh 'make modalai_fc-v1_test'
+        //         sh 'make modalai_fc-v1_test bootloader_elf'
+        //         sh 'ccache -s'
+        //         stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'modalai_fc-v1_test'
+        //       }
+        //       post {
+        //         always {
+        //             sh 'make distclean'
+        //         }
+        //       }
+        //     } // stage build
+        //     stage("hardware") {
+        //       agent {
+        //         label 'modalai_fc-v1'
+        //       }
+        //       stages {
+        //         stage("flash") {
+        //           steps {
+        //             sh 'export'
+        //             sh 'find /dev/serial'
+        //             unstash 'modalai_fc-v1_test'
+        //             sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/modalai_fc-v1_test/modalai_fc-v1_bootloader.elf'
+        //             // flash board and watch bootup
+        //             sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/modalai_fc-v1_test/modalai_fc-v1_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
+        //           }
+        //         }
+        //         stage("tests") {
+        //           steps {
+        //             runTests()
+        //           }
+        //         }
+        //         stage("status") {
+        //           steps {
+        //             // configure
+        //             resetParameters()
+        //             sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_AUTOSTART" --value "4001"'    // generic quadcopter
+        //             sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_BL_UPDATE" --value "1"'       // update bootloader
+        //             checkStatus()
+        //             quickCalibrate()
+        //           }
+        //         }
+        //         stage("print topics") {
+        //           steps {
+        //             printTopics()
+        //           }
+        //         }
 
-              }
-            } // stage test
-          }
-        }
+        //       }
+        //     } // stage test
+        //   }
+        // }
 
         stage("nxp_fmuk66-v3_test") {
           stages {
