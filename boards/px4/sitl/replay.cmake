@@ -15,7 +15,4 @@ px4_add_board(
 		work_queue
 	)
 
-message(STATUS "Building with uorb publisher rules support")
-add_definitions(-DORB_USE_PUBLISHER_RULES)
-
 set(ENABLE_LOCKSTEP_SCHEDULER yes)

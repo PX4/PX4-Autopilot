@@ -65,7 +65,6 @@
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/ekf_gps_drift.h>
 #include <uORB/topics/estimator_baro_bias.h>
 #include <uORB/topics/estimator_event_flags.h>
@@ -78,7 +77,6 @@
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -102,7 +100,7 @@ class EKF2 final : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	EKF2() = delete;
-	EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode);
+	EKF2(bool multi_mode, const px4::wq_config_t &config);
 	~EKF2() override;
 
 	/** @see ModuleBase */
@@ -154,16 +152,16 @@ private:
 	void PublishWindEstimate(const hrt_abstime &timestamp);
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 
-	void SelectImuStatus();
+	void SelectImu();
 
-	void UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps);
-	void UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps);
-	void UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps);
-	bool UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odometry_s &ev_odom);
-	bool UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps, optical_flow_s &optical_flow);
-	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
-	void UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps);
-	void UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateAirspeedSample();
+	void UpdateAuxVelSample();
+	void UpdateBaroSample();
+	bool UpdateExtVisionSample(vehicle_odometry_s &ev_odom);
+	bool UpdateFlowSample(optical_flow_s &optical_flow);
+	void UpdateGpsSample();
+	void UpdateMagSample();
+	void UpdateRangeSample();
 	void UpdateImuStatus();
 
 	void UpdateMagCalibration(const hrt_abstime &timestamp);
@@ -175,7 +173,6 @@ private:
 
 	static constexpr float sq(float x) { return x * x; };
 
-	const bool _replay_mode{false};			///< true when we use replay data from a log
 	const bool _multi_mode;
 	int _instance{0};
 
@@ -247,7 +244,6 @@ private:
 	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 
-	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
 
 	bool _callback_registered{false};
@@ -269,7 +265,6 @@ private:
 	uint32_t _filter_warning_event_changes{0};
 	uint32_t _filter_information_event_changes{0};
 
-	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
 	uORB::PublicationMulti<ekf_gps_drift_s>              _ekf_gps_drift_pub{ORB_ID(ekf_gps_drift)};
 	uORB::PublicationMulti<estimator_baro_bias_s>        _estimator_baro_bias_pub{ORB_ID(estimator_baro_bias)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};

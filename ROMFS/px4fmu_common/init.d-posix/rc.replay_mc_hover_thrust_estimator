@@ -10,20 +10,17 @@ fi
 
 if [ ! -f replay_params.txt ]; then
 	echo "Creating $(pwd)/replay_params.txt"
-	ulog_params -i "${replay}" -d ' ' | grep -e '^EKF2' > replay_params.txt
+	ulog_params -i "${replay}" -l ' ' | grep -e '^EKF2' > replay_params.txt
 fi
-
-publisher_rules_file="orb_publisher.rules"
-cat <<EOF > "$publisher_rules_file"
-restrict_topics: sensor_combined, vehicle_gps_position, vehicle_land_detected
-module: replay
-ignore_others: false
-EOF
 
 param set SDLOG_DIRS_MAX 7
 
+# TODO:
+# input:  vehicle_local_position, vehicle_local_position_setpoint
+# output: hover_thrust_estimate
+
 # apply all params before ekf starts, as some params cannot be changed after startup
-replay tryapplyparams
-ekf2 start -r
+#replay tryapplyparams
+mc_hover_thrust_estimator start
 logger start -f -t -b 1000 -p vehicle_attitude
 replay start

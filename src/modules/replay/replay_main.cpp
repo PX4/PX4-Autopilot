@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,8 +35,7 @@
 
 using namespace px4;
 
-extern "C" __EXPORT int
-replay_main(int argc, char *argv[])
+extern "C" __EXPORT int replay_main(int argc, char *argv[])
 {
 	//check for logfile env variable
 	const char *logfile = getenv(replay::ENV_FILENAME);

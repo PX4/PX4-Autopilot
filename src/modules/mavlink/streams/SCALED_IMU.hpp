@@ -84,7 +84,7 @@ private:
 				msg.zacc = (int16_t)accel(2);
 
 				// Gyroscope in mrad/s
-				const float gyro_dt_inv = 1.e6f / (float)imu.delta_velocity_dt;
+				const float gyro_dt_inv = 1.e6f / (float)imu.delta_angle_dt;
 				const Vector3f gyro = Vector3f{imu.delta_angle} * gyro_dt_inv * 1000.0f;
 				msg.xgyro = gyro(0);
 				msg.ygyro = gyro(1);

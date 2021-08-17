@@ -256,7 +256,7 @@ public:
 	 * @param handle  A handle returned from orb_subscribe.
 	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
-	int  orb_unsubscribe(int handle);
+	int orb_unsubscribe(int handle) { return px4_close(handle); }
 
 	/**
 	 * Fetch data from a topic.
@@ -274,7 +274,21 @@ public:
 	 *      using the data.
 	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
-	int  orb_copy(const struct orb_metadata *meta, int handle, void *buffer);
+	int orb_copy(const struct orb_metadata *meta, int handle, void *buffer)
+	{
+		int ret = px4_read(handle, buffer, meta->o_size);
+
+		if (ret < 0) {
+			return PX4_ERROR;
+		}
+
+		if (ret != (int)meta->o_size) {
+			errno = EIO;
+			return PX4_ERROR;
+		}
+
+		return PX4_OK;
+	}
 
 	/**
 	 * Check whether a topic has been published to since the last orb_copy.
@@ -292,7 +306,12 @@ public:
 	 * @return    OK if the check was successful, PX4_ERROR otherwise with
 	 *      errno set accordingly.
 	 */
-	int  orb_check(int handle, bool *updated);
+	int orb_check(int handle, bool *updated)
+	{
+		/* Set to false here so that if `px4_ioctl` fails to false. */
+		*updated = false;
+		return px4_ioctl(handle, ORBIOCUPDATED, (unsigned long)(uintptr_t)updated);
+	}
 
 	/**
 	 * Check if a topic has already been created and published (advertised)
@@ -321,8 +340,7 @@ public:
 	 * @param interval  An interval period in milliseconds.
 	 * @return    OK on success, PX4_ERROR otherwise with ERRNO set accordingly.
 	 */
-	int  orb_set_interval(int handle, unsigned interval);
-
+	int orb_set_interval(int handle, unsigned interval) { return px4_ioctl(handle, ORBIOCSETINTERVAL, interval * 1000); }
 
 	/**
 	 * Get the minimum interval between which updates are seen for a subscription.
@@ -381,9 +399,12 @@ private: // data members
 
 	DeviceMaster *_device_master{nullptr};
 
-private: //class methods
-	Manager();
-	virtual ~Manager();
+private: // class methods
+	Manager() = default;
+	virtual ~Manager()
+	{
+		delete _device_master;
+	}
 
 #ifdef ORB_COMMUNICATOR
 	/**
@@ -442,46 +463,6 @@ private: //class methods
 	 */
 	virtual int16_t process_received_message(const char *messageName, int32_t length, uint8_t *data);
 #endif /* ORB_COMMUNICATOR */
-
-#ifdef ORB_USE_PUBLISHER_RULES
-
-	struct PublisherRule {
-		const char **topics; //null-terminated list of topic names
-		const char *module_name; //only this module is allowed to publish one of the topics
-		bool ignore_other_topics;
-	};
-
-	/**
-	 * test if str starts with pre
-	 */
-	bool startsWith(const char *pre, const char *str);
-
-	/**
-	 * find a topic in a rule
-	 */
-	bool findTopic(const PublisherRule &rule, const char *topic_name);
-
-	/**
-	 * trim whitespace from the beginning of a string
-	 */
-	void strTrim(const char **str);
-
-	/**
-	 * Read publisher rules from a file. It has the format:
-	 *
-	 * restrict_topics: <topic1>, <topic2>, <topic3>
-	 * module: <module_name>
-	 * [ignore_others:true]
-	 *
-	 * @return 0 on success, <0 otherwise
-	 */
-	int readPublisherRulesFromFile(const char *file_name, PublisherRule &rule);
-
-	PublisherRule _publisher_rule;
-	bool _has_publisher_rules = false;
-
-#endif /* ORB_USE_PUBLISHER_RULES */
-
 };
 
 #endif /* _uORBManager_hpp_ */

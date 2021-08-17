@@ -38,7 +38,7 @@ opts.DataLines = [2, Inf];
 opts.Delimiter = ",";
 
 % Specify column names and types
-opts.VariableNames = ["timestamp", "gyro_rad0", "gyro_rad1", "gyro_rad2", "gyro_integral_dt", "accelerometer_timestamp_relative", "accelerometer_m_s20", "accelerometer_m_s21", "accelerometer_m_s22", "accelerometer_integral_dt"];
+opts.VariableNames = ["timestamp", "delta_angle0", "delta_angle1", "delta_angle2", "delta_angle_dt", "delta_velocity0", "delta_velocity1", "delta_velocity2", "delta_velocity_dt"];
 opts.VariableTypes = ["double", "double", "double", "double", "double", "double", "double", "double", "double", "double"];
 opts.ExtraColumnsRule = "ignore";
 opts.EmptyLineRule = "read";
@@ -48,15 +48,14 @@ tbl = readtable(sensors_file, opts);
 
 % Convert to output type
 timestamp = tbl.timestamp;
-gyro_rad0 = tbl.gyro_rad0;
-gyro_rad1 = tbl.gyro_rad1;
-gyro_rad2 = tbl.gyro_rad2;
-gyro_integral_dt = tbl.gyro_integral_dt;
-accelerometer_timestamp_relative = tbl.accelerometer_timestamp_relative;
-accelerometer_m_s20 = tbl.accelerometer_m_s20;
-accelerometer_m_s21 = tbl.accelerometer_m_s21;
-accelerometer_m_s22 = tbl.accelerometer_m_s22;
-accelerometer_integral_dt = tbl.accelerometer_integral_dt;
+delta_angle0 = tbl.delta_angle0;
+delta_angle1 = tbl.delta_angle1;
+delta_angle2 = tbl.delta_angle2;
+gyro_integral_dt = tbl.delta_angle_dt;
+delta_velocity0 = tbl.delta_velocity0;
+delta_velocity1 = tbl.delta_velocity1;
+delta_velocity2 = tbl.delta_velocity2;
+accelerometer_integral_dt = tbl.delta_velocity_dt;
 
 clear opts tbl
 
@@ -166,7 +165,7 @@ cd ../;
 %% ------     SECTION 3: Ground Truth Data (STIL only, optional)     ------
 
 if exist('attitude_file','var') && exist('localpos_file','var') && exist('globalpos_file','var')
-    
+
 %- Import Attitude data from text file
 opts = delimitedTextImportOptions("NumVariables", 13);
 opts.DataLines = [2, Inf];

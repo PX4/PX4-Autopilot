@@ -1,0 +1,29 @@
+#!/bin/sh
+
+# EKF2 replay script
+
+# shellcheck disable=SC2154
+if [ ! -f ${replay} ]; then
+	echo "Invalid replay log file ${replay}"
+	exit 1
+fi
+
+if [ ! -f replay_params.txt ]; then
+	echo "Creating $(pwd)/replay_params.txt"
+	ulog_params -i "${replay}" -l ' ' | grep -e '^EKF2' > replay_params.txt
+fi
+
+param set SDLOG_DIRS_MAX 7
+
+# TODO:
+# input: vehicle_attitude, vehicle_attitude_setpoint
+# output: vehicle_rates_setpoint
+
+# apply all params before ekf starts, as some params cannot be changed after startup
+#replay tryapplyparams
+
+mc_att_control start
+mc_rate_control start
+
+logger start -f -t -b 1000 -p vehicle_attitude
+replay start

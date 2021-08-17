@@ -184,7 +184,7 @@ void BlockLocalPositionEstimator::Run()
 		}
 	}
 
-	sensor_combined_s imu;
+	vehicle_imu_s imu;
 
 	if (!_sensors_sub.update(&imu)) {
 		return;
@@ -914,11 +914,11 @@ void BlockLocalPositionEstimator::updateSSParams()
 	m_Q(X_tz, X_tz) = pn_t_noise_density * pn_t_noise_density;
 }
 
-void BlockLocalPositionEstimator::predict(const sensor_combined_s &imu)
+void BlockLocalPositionEstimator::predict(const vehicle_imu_s &imu)
 {
 	// get acceleration
 	_R_att = matrix::Dcm<float>(matrix::Quatf(_sub_att.get().q));
-	Vector3f a(imu.accelerometer_m_s2);
+	const Vector3f a{Vector3f{imu.delta_velocity} * 1.e6f / (float)imu.delta_velocity_dt};
 	// note, bias is removed in dynamics function
 	_u = _R_att * a;
 	_u(U_az) += CONSTANTS_ONE_G;	// add g

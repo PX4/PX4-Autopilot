@@ -49,10 +49,10 @@ MagnetometerBiasEstimator::MagnetometerBiasEstimator(const matrix::Dcmf &board_r
 	_board_rotation(board_rotation)
 {}
 
-void MagnetometerBiasEstimator::extractBias(vehicle_magnetometer_s &mag_raw, const sensor_combined_s &gyro_raw)
+void MagnetometerBiasEstimator::extractBias(vehicle_magnetometer_s &mag_raw, const vehicle_angular_velocity_s &gyro)
 {
 	// fill in vectors
-	Vector3f gyro(gyro_raw.gyro_rad);
+	Vector3f gyro(gyro.xyz);
 	Vector3f mag(mag_raw.magnetometer_ga);
 
 	// prepare delta time in seconds

@@ -122,13 +122,6 @@ endif
 
 SRC_DIR := $(shell dirname "$(realpath $(lastword $(MAKEFILE_LIST)))")
 
-# check if replay env variable is set & set build dir accordingly
-ifdef replay
-	BUILD_DIR_SUFFIX := _replay
-else
-	BUILD_DIR_SUFFIX :=
-endif
-
 # additional config parameters passed to cmake
 ifdef EXTERNAL_MODULES_LOCATION
 	CMAKE_ARGS += -DEXTERNAL_MODULES_LOCATION:STRING=$(EXTERNAL_MODULES_LOCATION)

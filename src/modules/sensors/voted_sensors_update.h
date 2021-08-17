@@ -53,7 +53,6 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_gyro.h>
-#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensors_status_imu.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_imu.h>
@@ -82,7 +81,7 @@ public:
 	 * initialize subscriptions etc.
 	 * @return 0 on success, <0 otherwise
 	 */
-	int init(sensor_combined_s &raw);
+	int init();
 
 	/**
 	 * This tries to find new sensor instances. This is called from init(), then it can be called periodically.
@@ -100,13 +99,7 @@ public:
 	/**
 	 * read new sensor data
 	 */
-	void sensorsPoll(sensor_combined_s &raw);
-
-	/**
-	 * set the relative timestamps of each sensor timestamp, based on the last sensorsPoll,
-	 * so that the data can be published.
-	 */
-	void setRelativeTimestamps(sensor_combined_s &raw);
+	void sensorsPoll();
 
 private:
 
@@ -134,7 +127,7 @@ private:
 	 * @param raw	Combined sensor data structure into which
 	 *		data should be returned.
 	 */
-	void imuPoll(sensor_combined_s &raw);
+	void imuPoll();
 
 	/**
 	 * Check & handle failover of a sensor
@@ -166,19 +159,18 @@ private:
 
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 
-	sensor_combined_s _last_sensor_data[MAX_SENSOR_COUNT] {};	/**< latest sensor data from all sensors instances */
-
 	const bool _hil_enabled{false};			/**< is hardware-in-the-loop mode enabled? */
 
 	bool _selection_changed{true};			/**< true when a sensor selection has changed and not been published */
 
+	matrix::Vector3f _accel_last[MAX_SENSOR_COUNT] {};
 	matrix::Vector3f _accel_diff[MAX_SENSOR_COUNT] {};		/**< filtered accel differences between IMU units (m/s/s) */
+
+	matrix::Vector3f _gyro_last[MAX_SENSOR_COUNT] {};
 	matrix::Vector3f _gyro_diff[MAX_SENSOR_COUNT] {};			/**< filtered gyro differences between IMU uinits (rad/s) */
 
 	uint32_t _accel_device_id[MAX_SENSOR_COUNT] {};	/**< accel driver device id for each uorb instance */
 	uint32_t _gyro_device_id[MAX_SENSOR_COUNT] {};	/**< gyro driver device id for each uorb instance */
-
-	uint64_t _last_accel_timestamp[MAX_SENSOR_COUNT] {};	/**< latest full timestamp */
 
 	sensor_selection_s _selection {};		/**< struct containing the sensor selection to be published to the uORB */
 

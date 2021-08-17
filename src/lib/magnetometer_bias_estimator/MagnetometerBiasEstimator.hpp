@@ -47,9 +47,9 @@
 #include <drivers/drv_hrt.h>
 
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/vehicle_magnetometer.h>
-#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/vehicle_magnetometer.h>
+#include <uORB/topics/vehicle_angular_velocity_s.h>
 
 #include <FieldSensorBiasEstimator.hpp>
 
@@ -64,7 +64,7 @@ public:
 	 * @param mag_raw struct containing the magnetometer data to operate on (gets adjusted with current estimate)
 	 * @param raw struct containing the gyroscope data to use
 	 */
-	void extractBias(vehicle_magnetometer_s &mag_raw, const sensor_combined_s &gyro_raw);
+	void extractBias(vehicle_magnetometer_s &mag_raw, const vehicle_angular_velocity_s &gyro_raw);
 
 private:
 	void updateEstimate(const matrix::Vector3f &gyro, const matrix::Vector3f &mag, const float dt);

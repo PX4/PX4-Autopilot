@@ -115,9 +115,6 @@ private:
 	bool		_armed{false};				/**< arming status of the vehicle */
 
 	hrt_abstime     _last_config_update{0};
-	hrt_abstime     _sensor_combined_prev_timestamp{0};
-
-	sensor_combined_s _sensor_combined{};
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub[MAX_SENSOR_COUNT] {
 		{this, ORB_ID(vehicle_imu), 0},
@@ -133,7 +130,6 @@ private:
 	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 
 	uORB::Publication<airspeed_s>             _airspeed_pub{ORB_ID(airspeed)};
-	uORB::Publication<sensor_combined_s>      _sensor_pub{ORB_ID(sensor_combined)};
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -632,7 +628,7 @@ void Sensors::Run()
 		InitializeVehicleIMU();
 		InitializeVehicleGPSPosition();
 		InitializeVehicleMagnetometer();
-		_voted_sensors_update.init(_sensor_combined);
+		_voted_sensors_update.init();
 		parameter_update_poll(true);
 	}
 
@@ -650,19 +646,12 @@ void Sensors::Run()
 		}
 	}
 
-	_voted_sensors_update.sensorsPoll(_sensor_combined);
+	_voted_sensors_update.sensorsPoll();
 
 	// check analog airspeed
 	adc_poll();
 
 	diff_pres_poll();
-
-	if (_sensor_combined.timestamp != _sensor_combined_prev_timestamp) {
-
-		_voted_sensors_update.setRelativeTimestamps(_sensor_combined);
-		_sensor_pub.publish(_sensor_combined);
-		_sensor_combined_prev_timestamp = _sensor_combined.timestamp;
-	}
 
 	// keep adding sensors as long as we are not armed,
 	// when not adding sensors poll for param updates
@@ -814,8 +803,7 @@ it into a more usable form, and publishes it for the rest of the system.
 The provided functionality includes:
 - Read the output from the sensor drivers (`sensor_gyro`, etc.).
   If there are multiple of the same type, do voting and failover handling.
-  Then apply the board rotation and temperature calibration (if enabled). And finally publish the data; one of the
-  topics is `sensor_combined`, used by many parts of the system.
+  Then apply the board rotation and temperature calibration (if enabled). And finally publish the selection.
 - Make sure the sensor drivers get the updated calibration parameters (scale & offset) when the parameters change or
   on startup. The sensor drivers use the ioctl interface for parameter updates. For this to work properly, the
   sensor drivers must already be running when `sensors` is started.

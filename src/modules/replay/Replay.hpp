@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,7 +43,6 @@
 
 #include <px4_platform_common/module.h>
 #include <uORB/topics/uORBTopics.hpp>
-#include <uORB/topics/ekf2_timestamps.h>
 
 namespace px4
 {
@@ -95,36 +94,6 @@ public:
 
 protected:
 
-	/**
-	 * @class Compatibility base class to convert topics to an updated format
-	 */
-	class CompatBase
-	{
-	public:
-		virtual ~CompatBase() = default;
-
-		/**
-		 * apply compatibility to a topic
-		 * @param data input topic (can be modified in place)
-		 * @return new topic data
-		 */
-		virtual void *apply(void *data) = 0;
-	};
-
-	class CompatSensorCombinedDtType : public CompatBase
-	{
-	public:
-		CompatSensorCombinedDtType(int gyro_integral_dt_offset_log, int gyro_integral_dt_offset_intern,
-					   int accelerometer_integral_dt_offset_log, int accelerometer_integral_dt_offset_intern);
-
-		void *apply(void *data) override;
-	private:
-		int _gyro_integral_dt_offset_log;
-		int _gyro_integral_dt_offset_intern;
-		int _accelerometer_integral_dt_offset_log;
-		int _accelerometer_integral_dt_offset_intern;
-	};
-
 	struct Subscription {
 
 		const orb_metadata *orb_meta = nullptr; ///< if nullptr, this subscription is invalid
@@ -136,8 +105,6 @@ protected:
 
 		std::streampos next_read_pos;
 		uint64_t next_timestamp; ///< timestamp of the file
-
-		CompatBase *compat = nullptr;
 
 		// statistics
 		int error_counter = 0;
@@ -163,33 +130,15 @@ protected:
 	bool publishTopic(Subscription &sub, void *data);
 
 	/**
-	 * called when entering the main replay loop
-	 */
-	virtual void onEnterMainLoop() {}
-
-	/**
-	 * called when exiting the main replay loop
-	 */
-	virtual void onExitMainLoop() {}
-
-	/**
 	 * called when a new subscription is added
 	 */
-	virtual void onSubscriptionAdded(Subscription &sub, uint16_t msg_id) {}
-
-	/**
-	 * handle delay until topic can be published.
-	 * @param next_file_timestamp timestamp of next message to publish
-	 * @param timestamp_offset offset between file start time and replay start time
-	 * @return timestamp that the message to publish should have
-	 */
-	virtual uint64_t handleTopicDelay(uint64_t next_file_time, uint64_t timestamp_offset);
+	void onSubscriptionAdded(Subscription &sub, uint16_t msg_id) {}
 
 	/**
 	 * handle the publication of a topic update
 	 * @return true if published, false otherwise
 	 */
-	virtual bool handleTopicUpdate(Subscription &sub, void *data, std::ifstream &replay_file);
+	bool handleTopicUpdate(Subscription &sub, void *data, std::ifstream &replay_file);
 
 	/**
 	 * read a topic from the file (offset given by the subscription) into _read_buffer
@@ -206,7 +155,7 @@ protected:
 	 */
 	bool nextDataMessage(std::ifstream &file, Subscription &subscription, int msg_id);
 
-	virtual uint64_t getTimestampOffset()
+	uint64_t getTimestampOffset()
 	{
 		//we update the timestamps from the file by a constant offset to match
 		//the current replay time
@@ -278,6 +227,46 @@ private:
 	void setUserParams(const char *filename);
 
 	static char *_replay_file;
+
+
+
+
+	struct PublisherRule {
+		const char **topics; //null-terminated list of topic names
+		const char *module_name; //only this module is allowed to publish one of the topics
+		bool ignore_other_topics;
+	};
+
+	/**
+	 * test if str starts with pre
+	 */
+	bool startsWith(const char *pre, const char *str);
+
+	/**
+	 * find a topic in a rule
+	 */
+	bool findTopic(const PublisherRule &rule, const char *topic_name);
+
+	/**
+	 * trim whitespace from the beginning of a string
+	 */
+	void strTrim(const char **str);
+
+	/**
+	 * Read publisher rules from a file. It has the format:
+	 *
+	 * restrict_topics: <topic1>, <topic2>, <topic3>
+	 * module: <module_name>
+	 * [ignore_others:true]
+	 *
+	 * @return 0 on success, <0 otherwise
+	 */
+	int readPublisherRulesFromFile(const char *file_name, PublisherRule &rule);
+
+	PublisherRule _publisher_rule;
+	bool _has_publisher_rules = false;
+
+
 };
 
 } //namespace px4

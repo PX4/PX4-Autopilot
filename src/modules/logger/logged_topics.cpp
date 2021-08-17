@@ -82,7 +82,6 @@ void LoggedTopics::add_default_topics()
 	add_topic("rpm", 500);
 	add_topic("rtl_flight_time", 1000);
 	add_topic("safety");
-	add_topic("sensor_combined");
 	add_topic("sensor_correction");
 	add_topic("sensor_gyro_fft", 50);
 	add_topic("sensor_selection");
@@ -92,7 +91,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("tecs_status", 200);
 	add_topic("trajectory_setpoint", 200);
 	add_topic("transponder_report");
-	add_topic("vehicle_acceleration", 50);
+	add_topic("vehicle_acceleration", 20);
 	add_topic("vehicle_air_data", 200);
 	add_topic("vehicle_angular_velocity", 20);
 	add_topic("vehicle_attitude", 50);
@@ -163,7 +162,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("sensor_gps", 1000, 2);
 	add_topic_multi("sensor_gyro", 1000, 4);
 	add_topic_multi("sensor_mag", 1000, 4);
-	add_topic_multi("vehicle_imu", 500, 4);
+	add_topic_multi("vehicle_imu", 10, 4);
 	add_topic_multi("vehicle_imu_status", 1000, 4);
 	add_topic_multi("vehicle_magnetometer", 500, 4);
 
@@ -195,12 +194,12 @@ void LoggedTopics::add_high_rate_topics()
 	add_topic("actuator_outputs");
 	add_topic("manual_control_setpoint");
 	add_topic("rate_ctrl_status", 20);
-	add_topic("sensor_combined");
 	add_topic("vehicle_angular_acceleration");
 	add_topic("vehicle_angular_velocity");
 	add_topic("vehicle_attitude");
 	add_topic("vehicle_attitude_setpoint");
 	add_topic("vehicle_rates_setpoint");
+	add_topic_multi("vehicle_imu", 0, 4);
 }
 
 void LoggedTopics::add_debug_topics()
@@ -217,21 +216,23 @@ void LoggedTopics::add_debug_topics()
 
 void LoggedTopics::add_estimator_replay_topics()
 {
-	// for estimator replay (need to be at full rate)
-	add_topic("ekf2_timestamps");
-
 	// current EKF2 subscriptions
 	add_topic("airspeed");
+	add_topic("landing_target_pose");
 	add_topic("optical_flow");
-	add_topic("sensor_combined");
+	add_topic("parameter_update");
 	add_topic("sensor_selection");
+	add_topic("sensors_status_imu");
 	add_topic("vehicle_air_data");
+	add_topic("vehicle_command");
 	add_topic("vehicle_gps_position");
 	add_topic("vehicle_land_detected");
-	add_topic("vehicle_magnetometer");
 	add_topic("vehicle_status");
 	add_topic("vehicle_visual_odometry");
-	add_topic_multi("distance_sensor");
+	add_topic_multi("distance_sensor", 0, 2);
+	add_topic_multi("vehicle_imu", 0, 4);
+	add_topic_multi("vehicle_imu_status", 0, 4);
+	add_topic_multi("vehicle_magnetometer", 0, 4);
 }
 
 void LoggedTopics::add_thermal_calibration_topics()
@@ -274,9 +275,9 @@ void LoggedTopics::add_system_identification_topics()
 	// for system id need to log imu and controls at full rate
 	add_topic("actuator_controls_0");
 	add_topic("actuator_controls_1");
-	add_topic("sensor_combined");
 	add_topic("vehicle_angular_acceleration");
 	add_topic("vehicle_angular_acceleration_setpoint");
+	add_topic("vehicle_angular_velocity");
 	add_topic("vehicle_torque_setpoint");
 }
 

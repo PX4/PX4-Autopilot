@@ -77,7 +77,7 @@ __EXPORT uint32_t latency_counters[LATENCY_BUCKET_COUNT + 1];
 static px4_sem_t 	_hrt_lock;
 static struct work_s	_hrt_work;
 
-static hrt_abstime px4_timestart_monotonic = 0;
+static hrt_abstime px4_timestart_monotonic = UINT64_MAX;
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 static LockstepScheduler *lockstep_scheduler = new LockstepScheduler();
@@ -90,7 +90,7 @@ static void hrt_call_invoke();
 
 hrt_abstime hrt_absolute_time_offset()
 {
-	return px4_timestart_monotonic;
+	return (px4_timestart_monotonic == UINT64_MAX) ? 0 : px4_timestart_monotonic;
 }
 
 static void hrt_lock()
@@ -136,7 +136,9 @@ hrt_abstime hrt_absolute_time()
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	// optimized case (avoid ts_to_abstime) if lockstep scheduler is used
 	const uint64_t abstime = lockstep_scheduler->get_absolute_time();
-	return abstime - px4_timestart_monotonic;
+	uint64_t timestart_monotonic = (px4_timestart_monotonic == UINT64_MAX) ? 0 : px4_timestart_monotonic;
+	return abstime - timestart_monotonic;
+
 #else // defined(ENABLE_LOCKSTEP_SCHEDULER)
 	struct timespec ts;
 	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -149,9 +151,7 @@ hrt_abstime hrt_absolute_time()
  */
 hrt_abstime ts_to_abstime(const struct timespec *ts)
 {
-	hrt_abstime	result;
-
-	result = (hrt_abstime)(ts->tv_sec) * 1000000;
+	hrt_abstime result = (hrt_abstime)(ts->tv_sec) * 1000000;
 	result += ts->tv_nsec / 1000;
 
 	return result;
@@ -510,7 +510,8 @@ int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 	if (clk_id == CLOCK_MONOTONIC) {
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 		const uint64_t abstime = lockstep_scheduler->get_absolute_time();
-		abstime_to_ts(tp, abstime - px4_timestart_monotonic);
+		uint64_t timestart_monotonic = (px4_timestart_monotonic == UINT64_MAX) ? 0 : px4_timestart_monotonic;
+		abstime_to_ts(tp, abstime - timestart_monotonic);
 		return 0;
 #else // defined(ENABLE_LOCKSTEP_SCHEDULER)
 #if defined(__PX4_DARWIN)
@@ -536,7 +537,7 @@ int px4_clock_settime(clockid_t clk_id, const struct timespec *ts)
 	} else {
 		const uint64_t time_us = ts_to_abstime(ts);
 
-		if (px4_timestart_monotonic == 0) {
+		if (px4_timestart_monotonic == UINT64_MAX) {
 			px4_timestart_monotonic = time_us;
 		}
 
@@ -545,10 +546,9 @@ int px4_clock_settime(clockid_t clk_id, const struct timespec *ts)
 	}
 }
 
-
 int px4_usleep(useconds_t usec)
 {
-	if (px4_timestart_monotonic == 0) {
+	if (px4_timestart_monotonic == UINT64_MAX) {
 		// Until the time is set by the simulator, we fallback to the normal
 		// usleep;
 		return system_usleep(usec);
@@ -561,7 +561,7 @@ int px4_usleep(useconds_t usec)
 
 unsigned int px4_sleep(unsigned int seconds)
 {
-	if (px4_timestart_monotonic == 0) {
+	if (px4_timestart_monotonic == UINT64_MAX) {
 		// Until the time is set by the simulator, we fallback to the normal
 		// sleep;
 		return system_sleep(seconds);
@@ -577,8 +577,10 @@ int px4_pthread_cond_timedwait(pthread_cond_t *cond,
 			       pthread_mutex_t *mutex,
 			       const struct timespec *ts)
 {
+	uint64_t timestart_monotonic = (px4_timestart_monotonic == UINT64_MAX) ? 0 : px4_timestart_monotonic;
+
 	const uint64_t time_us = ts_to_abstime(ts);
-	const uint64_t scheduled = time_us + px4_timestart_monotonic;
+	const uint64_t scheduled = time_us + timestart_monotonic;
 	return lockstep_scheduler->cond_timedwait(cond, mutex, scheduled);
 }
 

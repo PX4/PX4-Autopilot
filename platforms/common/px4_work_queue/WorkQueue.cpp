@@ -111,6 +111,7 @@ void WorkQueue::Add(WorkItem *item)
 
 	if (_lockstep_component == -1) {
 		_lockstep_component = px4_lockstep_register_component();
+		//fprintf(stderr, "WQ %s px4_lockstep_register_component:%d\n", item->ItemName(), _lockstep_component);
 	}
 
 #endif // ENABLE_LOCKSTEP_SCHEDULER
@@ -170,6 +171,10 @@ void WorkQueue::Run()
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 
 		if (_q.empty()) {
+			if (_lockstep_component > 0) {
+				//fprintf(stderr, "WQ px4_lockstep_unregister_component:%d\n", _lockstep_component);
+			}
+
 			px4_lockstep_unregister_component(_lockstep_component);
 			_lockstep_component = -1;
 		}

@@ -39,11 +39,10 @@
 
 #include <lib/mathlib/mathlib.h>
 #include <matrix/math.hpp>
-#include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/distance_sensor.h>
-
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_imu.h>
 
 /*
 * This class can be used to estimate distance to the ground using a laser range finder.
@@ -66,11 +65,10 @@ public:
 	float get_distance_to_ground() {return -_x(0);}
 	float get_velocity() {return _x(1);}
 
-	void predict(float dt, const struct vehicle_attitude_s *attitude, const struct sensor_combined_s *sensor,
-		     const struct distance_sensor_s *distance);
-	void measurement_update(uint64_t time_ref, const struct vehicle_gps_position_s *gps,
-				const struct distance_sensor_s *distance,
-				const struct vehicle_attitude_s *attitude);
+	void predict(float dt, const vehicle_attitude_s *attitude, const vehicle_imu_s *sensor,
+		     const distance_sensor_s *distance);
+	void measurement_update(uint64_t time_ref, const vehicle_gps_position_s *gps, const distance_sensor_s *distance,
+				const vehicle_attitude_s *attitude);
 
 private:
 	enum {n_x = 3};

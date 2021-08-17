@@ -39,6 +39,4 @@ px4_add_module(
 		replay_main.cpp
 		Replay.cpp
 		Replay.hpp
-		ReplayEkf2.cpp
-		ReplayEkf2.hpp
 	)

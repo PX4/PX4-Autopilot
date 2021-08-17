@@ -38,8 +38,6 @@
 #include <px4_platform_common/posix.h>
 
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_combined.h>
-
 
 int TemplateModule::print_status()
 {
@@ -137,11 +135,11 @@ TemplateModule::TemplateModule(int example_param, bool example_flag)
 
 void TemplateModule::run()
 {
-	// Example: run the loop synchronized to the sensor_combined topic publication
-	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
+	// Example: run the loop synchronized to the vehicle_angular_velocity topic publication
+	int vehicle_angular_velocity_sub = orb_subscribe(ORB_ID(vehicle_angular_velocity));
 
 	px4_pollfd_struct_t fds[1];
-	fds[0].fd = sensor_combined_sub;
+	fds[0].fd = vehicle_angular_velocity_sub;
 	fds[0].events = POLLIN;
 
 	// initialize parameters
@@ -163,8 +161,8 @@ void TemplateModule::run()
 
 		} else if (fds[0].revents & POLLIN) {
 
-			struct sensor_combined_s sensor_combined;
-			orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor_combined);
+			vehicle_angular_velocity_s vehicle_angular_velocity;
+			orb_copy(ORB_ID(vehicle_angular_velocity), vehicle_angular_velocity_sub, &vehicle_angular_velocity);
 			// TODO: do something with the data...
 
 		}
@@ -172,7 +170,7 @@ void TemplateModule::run()
 		parameters_update();
 	}
 
-	orb_unsubscribe(sensor_combined_sub);
+	orb_unsubscribe(vehicle_angular_velocity_sub);
 }
 
 void TemplateModule::parameters_update(bool force)

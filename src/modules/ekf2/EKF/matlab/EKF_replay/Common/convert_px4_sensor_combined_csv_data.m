@@ -19,11 +19,11 @@ end
 clear imu_data;
 n_samples = length(timestamp);
 imu_data.time_us = timestamp + accelerometer_timestamp_relative;
-imu_data.gyro_dt = gyro_integral_dt ./ 1e6;
-imu_data.del_ang = [gyro_rad0.*imu_data.gyro_dt, gyro_rad1.*imu_data.gyro_dt, gyro_rad2.*imu_data.gyro_dt];
+imu_data.gyro_dt = delta_angle_dt ./ 1e6;
+imu_data.del_ang = [delta_angle0, delta_angle1, delta_angle2];
 
-imu_data.accel_dt = accelerometer_integral_dt ./ 1e6;
-imu_data.del_vel = [accelerometer_m_s20.*imu_data.accel_dt, accelerometer_m_s21.*imu_data.accel_dt, accelerometer_m_s22.*imu_data.accel_dt];
+imu_data.accel_dt = delta_velocity_dt ./ 1e6;
+imu_data.del_vel = [delta_velocity0, delta_velocity1, delta_velocity2];
 
 %% convert magnetometer data
 clear mag_data;

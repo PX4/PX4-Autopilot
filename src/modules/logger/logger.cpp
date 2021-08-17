@@ -663,6 +663,8 @@ void Logger::run()
 
 	if (polling_topic_sub >= 0) {
 		_lockstep_component = px4_lockstep_register_component();
+
+		fprintf(stderr, "logger: px4_lockstep_register_component:%d\n", _lockstep_component);
 	}
 
 	bool was_started = false;

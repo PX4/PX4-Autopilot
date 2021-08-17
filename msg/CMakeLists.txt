@@ -56,7 +56,6 @@ set(msg_files
 	cpuload.msg
 	differential_pressure.msg
 	distance_sensor.msg
-	ekf2_timestamps.msg
 	ekf_gps_drift.msg
 	esc_report.msg
 	esc_status.msg
@@ -130,7 +129,6 @@ set(msg_files
 	sensor_accel.msg
 	sensor_accel_fifo.msg
 	sensor_baro.msg
-	sensor_combined.msg
 	sensor_correction.msg
 	sensor_gps.msg
 	sensor_gyro.msg

@@ -58,12 +58,11 @@ bool TerrainEstimator::is_distance_valid(float distance)
 	return (distance < 40.0f && distance > 0.00001f);
 }
 
-void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitude,
-			       const struct sensor_combined_s *sensor,
-			       const struct distance_sensor_s *distance)
+void TerrainEstimator::predict(float dt, const vehicle_attitude_s *attitude, const vehicle_imu_s *imu,
+			       const distance_sensor_s *distance)
 {
 	matrix::Dcmf R_att = matrix::Quatf(attitude->q);
-	matrix::Vector3f a{sensor->accelerometer_m_s2[0], sensor->accelerometer_m_s2[1], sensor->accelerometer_m_s2[2]};
+	matrix::Vector3f a{Vector3f{imu->delta_velocity} * 1.e6f / (float)imu->delta_velocity_dt};
 	matrix::Vector<float, 3> u;
 	u = R_att * a;
 	_u_z = u(2) + CONSTANTS_ONE_G; // compensate for gravity
@@ -97,9 +96,8 @@ void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitu
 	       B * R * B.transpose() + Q) * dt;
 }
 
-void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicle_gps_position_s *gps,
-		const struct distance_sensor_s *distance,
-		const struct vehicle_attitude_s *attitude)
+void TerrainEstimator::measurement_update(uint64_t time_ref, const vehicle_gps_position_s *gps,
+		const distance_sensor_s *distance, const vehicle_attitude_s *attitude)
 {
 	// terrain estimate is invalid if we have range sensor timeout
 	if (time_ref - distance->timestamp > DISTANCE_TIMEOUT) {

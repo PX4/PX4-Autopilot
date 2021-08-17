@@ -55,9 +55,9 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_imu.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/vehicle_odometry.h>
@@ -106,7 +106,7 @@ private:
 	const float _dt_min = 0.00001f;
 	const float _dt_max = 0.02f;
 
-	uORB::SubscriptionCallbackWorkItem _sensors_sub{this, ORB_ID(sensor_combined)};
+	uORB::SubscriptionCallbackWorkItem _imu_sub{this, ORB_ID(vehicle_imu)};
 
 	uORB::SubscriptionInterval	_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription		_gps_sub{ORB_ID(vehicle_gps_position)};
@@ -180,7 +180,7 @@ AttitudeEstimatorQ::AttitudeEstimatorQ() :
 bool
 AttitudeEstimatorQ::init()
 {
-	if (!_sensors_sub.registerCallback()) {
+	if (!_imu_sub.registerCallback()) {
 		PX4_ERR("sensor combined callback registration failed!");
 		return false;
 	}
@@ -192,33 +192,26 @@ void
 AttitudeEstimatorQ::Run()
 {
 	if (should_exit()) {
-		_sensors_sub.unregisterCallback();
+		_imu_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
 
-	sensor_combined_s sensors;
+	vehicle_imu_s imu;
 
-	if (_sensors_sub.update(&sensors)) {
+	if (_imu_sub.update(&imu)) {
 
 		update_parameters();
 
-		// Feed validator with recent sensor data
-		if (sensors.timestamp > 0) {
-			_gyro(0) = sensors.gyro_rad[0];
-			_gyro(1) = sensors.gyro_rad[1];
-			_gyro(2) = sensors.gyro_rad[2];
-		}
+		const float accel_dt_inv = 1.e6f / (float)imu.delta_velocity_dt;
+		_accel = Vector3f{imu.delta_velocity} * accel_dt_inv;
 
-		if (sensors.accelerometer_timestamp_relative != sensor_combined_s::RELATIVE_TIMESTAMP_INVALID) {
-			_accel(0) = sensors.accelerometer_m_s2[0];
-			_accel(1) = sensors.accelerometer_m_s2[1];
-			_accel(2) = sensors.accelerometer_m_s2[2];
+		const float gyro_dt_inv = 1.e6f / (float)imu.delta_angle_dt;
+		_gyro = Vector3f{imu.delta_angle} * gyro_dt_inv;
 
-			if (_accel.length() < 0.01f) {
-				PX4_ERR("degenerate accel!");
-				return;
-			}
+		if (_accel.length() < 0.01f) {
+			PX4_ERR("degenerate accel!");
+			return;
 		}
 
 		// Update magnetometer
@@ -348,8 +341,8 @@ AttitudeEstimatorQ::Run()
 		_last_time = now;
 
 		if (update(dt)) {
-			vehicle_attitude_s att = {};
-			att.timestamp_sample = sensors.timestamp;
+			vehicle_attitude_s att{};
+			att.timestamp_sample = imu.timestamp;
 			_q.copyTo(att.q);
 
 			/* the instance count is not used here */

@@ -12,11 +12,10 @@ PATH="$PATH:${R}etc/init.d-posix"
 # Main SITL startup script
 #
 
-# check for ekf2 replay
-# shellcheck disable=SC2154
-if [ "$replay_mode" = "ekf2" ]
-then
-	. ${R}etc/init.d-posix/rc.replay
+# check for replay
+if [ ! -z ${replay_mode+x} ]; then
+	echo "Replay Mode: ${replay_mode}"
+	. ${R}etc/init.d-posix/rc.replay_${replay_mode}
 	exit 0
 fi
 
@@ -265,12 +264,7 @@ fi
 [ -e "$autostart_file".post ] && . "$autostart_file".post
 
 # Run script to start logging
-if param compare SYS_MC_EST_GROUP 2
-then
-	set LOGGER_ARGS "-p ekf2_timestamps"
-else
-	set LOGGER_ARGS "-p vehicle_attitude"
-fi
+set LOGGER_ARGS "-p vehicle_attitude"
 . ${R}etc/init.d/rc.logging
 
 mavlink boot_complete

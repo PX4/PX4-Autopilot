@@ -122,15 +122,15 @@ def getMagnetometerData(ulog: ULog) -> pd.DataFrame:
 
 def getImuData(ulog: ULog) -> pd.DataFrame:
 
-	sensor_combined = ulog.get_dataset("sensor_combined").data
-	imu = pd.DataFrame({'timestamp': sensor_combined['timestamp'],
+	vehicle_imu = ulog.get_dataset("vehicle_imu").data
+	imu = pd.DataFrame({'timestamp': vehicle_imu['timestamp'],
 		'sensor' : 'imu',
-		'accel_m_s2[0]': sensor_combined["accelerometer_m_s2[0]"],
-		'accel_m_s2[1]': sensor_combined["accelerometer_m_s2[1]"],
-		'accel_m_s2[2]': sensor_combined["accelerometer_m_s2[2]"],
-		'gyro_rad[0]': sensor_combined["gyro_rad[0]"],
-		'gyro_rad[1]': sensor_combined["gyro_rad[1]"],
-		'gyro_rad[2]': sensor_combined["gyro_rad[2]"]})
+		'delta_velocity[0]': vehicle_imu["delta_velocity[0]"],
+		'delta_velocity[1]': vehicle_imu["delta_velocity[1]"],
+		'delta_velocity[2]': vehicle_imu["delta_velocity[2]"],
+		'delta_angle[0]': vehicle_imu["delta_angle[0]"],
+		'delta_angle[1]': vehicle_imu["delta_angle[1]"],
+		'delta_angle[2]': vehicle_imu["delta_angle[2]"]})
 	return imu
 
 def getVehicleLandingStatus(ulog: ULog) -> pd.DataFrame:

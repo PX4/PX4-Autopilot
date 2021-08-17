@@ -38,6 +38,14 @@ px4_add_romfs_files(
 	px4-rc.params
 	px4-rc.rtps
 	px4-rc.simulator
-	rc.replay
+
+	rc.replay_controller_mc_attitude
+	rc.replay_controller_mc_position
+	rc.replay_controller_mc_rate
+	rc.replay_ekf2
+	rc.replay_mc_hover_thrust_estimator
+	rc.replay_mixing
+	rc.replay_sensor_calibration
+
 	rcS
 )
