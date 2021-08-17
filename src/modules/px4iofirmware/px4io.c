@@ -53,6 +53,7 @@
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_watchdog.h>
 
 #if defined(PX4IO_PERF)
 # include <lib/perf/perf_counter.h>
@@ -398,7 +399,11 @@ user_start(int argc, char *argv[])
 	uint64_t last_heartbeat_time = 0;
 	uint64_t last_loop_time = 0;
 
+	watchdog_init();
+
 	for (;;) {
+		watchdog_pet();
+
 		dt = (hrt_absolute_time() - last_loop_time) / 1000000.0f;
 		last_loop_time = hrt_absolute_time();
 

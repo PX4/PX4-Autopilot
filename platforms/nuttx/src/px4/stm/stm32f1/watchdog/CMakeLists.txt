@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,32 +31,6 @@
 #
 ############################################################################
 
-option(PX4IO_PERF "Enable px4io perf counters" OFF)
-
-add_library(px4iofirmware
-	adc.c
-	controls.c
-	mixer.cpp
-	px4io.c
-	registers.c
-	safety.c
-	serial.c
+px4_add_library(arch_watchdog_iwdg
+	iwdg.c
 )
-
-set_property(GLOBAL APPEND PROPERTY PX4_MODULE_LIBRARIES px4iofirmware)
-target_link_libraries(px4iofirmware
-	PUBLIC
-		arch_io_pins
-		arch_watchdog_iwdg
-		nuttx_apps
-		nuttx_arch
-		nuttx_c
-		mixer
-		rc
-		output_limit
-)
-
-if(PX4IO_PERF)
-	target_compile_definitions(px4iofirmware PRIVATE PX4IO_PERF)
-	target_link_libraries(px4iofirmware PRIVATE perf)
-endif()
