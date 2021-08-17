@@ -571,9 +571,6 @@ int PX4IO::init()
 		_mixing_output.setMaxTopicUpdateRate(2500);
 	}
 
-	updateDisarmed();
-	updateFailsafe();
-
 	update_params();
 
 	_task = 2; // TODO
@@ -647,8 +644,6 @@ void PX4IO::Run()
 				io_set_arming_state();
 
 				// TODO: throttle
-				updateDisarmed();
-				updateFailsafe();
 			}
 		}
 
@@ -1632,6 +1627,8 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 				}
 			}
 
+			updateFailsafe();
+
 			break;
 		}
 
@@ -1663,6 +1660,8 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 					_mixing_output.disarmedValue(i) = math::constrain(pwm->values[i], (uint16_t)PWM_LOWEST_MIN, (uint16_t)PWM_HIGHEST_MAX);
 				}
 			}
+
+			updateDisarmed();
 
 			break;
 		}
