@@ -199,3 +199,4 @@ px4_simple_app,CONFIG_EXAMPLES_PX4_SIMPLE_APP=y
 rover_steering_control,CONFIG_EXAMPLES_ROVER_STEERING_CONTROL=y
 uuv_example_app,CONFIG_EXAMPLES_UUV_EXAMPLE_APP=y
 work_item,CONFIG_EXAMPLES_WORK_ITEM=y
+add_compile_options(-Wno-narrowing),CONFIG_BOARD_COMPILE_DEFINITIONS="-Wno-narrowing"
