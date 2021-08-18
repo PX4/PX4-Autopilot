@@ -1,0 +1,9 @@
+config BOARD_LOCKSTEP
+    bool "Force enable lockstep"
+    help
+        forces lockstep behaviour, despite REPLAY env variable
+
+config BOARD_NOLOCKSTEP
+    bool "Force disable lockstep"
+    help
+        forces nolockstep behaviour, despite REPLAY env variable
