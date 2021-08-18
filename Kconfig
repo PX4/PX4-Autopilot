@@ -25,48 +25,18 @@ menu "Toolchain"
         default "posix" if PLATFORM_POSIX
         default "qurt" if PLATFORM_QURT
 
-    choice
-        prompt "Toolchain"
-        depends on PLATFORM_NUTTX
-        default TOOLCHAIN_ARM_NONE_EABI if PLATFORM_NUTTX
-        config TOOLCHAIN_ARM_NONE_EABI
-            bool "arm-none-eabi"
-        config TOOLCHAIN_RISV64
-            bool "riscv64-unknown-elf"
+    config BOARD_LINUX
+        bool "Linux OS"
+        depends on PLATFORM_POSIX
         help
-            cmake toolchain
-    endchoice
+            Board Platform is running the Linux operating system
 
     config BOARD_TOOLCHAIN
-        string
-        default "arm-none-eabi" if TOOLCHAIN_ARM_NONE_EABI && PLATFORM_NUTTX
-        default "riscv64-unknown-elf" if TOOLCHAIN_RISV64 && PLATFORM_NUTTX
+        string "Toolchain"
         default ""
 
-    choice
-        prompt "Architecture"
-        depends on PLATFORM_NUTTX
-        config ARCHITECTURE_CORTEX_M3
-            bool "cortex-m3"
-        config ARCHITECTURE_CORTEX_M4
-            bool "cortex-m4"
-        config ARCHITECTURE_CORTEX_M7
-            bool "cortex-m7"
-        config ARCHITECTURE_CORTEX_A8
-            bool "cortex-a8"
-        config ARCHITECTURE_CORTEX_A53
-            bool "cortex-a53"
-        help
-            name of the CPU CMake is building for (used by the toolchain)
-    endchoice
-
     config BOARD_ARCHITECTURE
-        string
-        default "cortex-m3" if ARCHITECTURE_CORTEX_M3 && PLATFORM_NUTTX
-        default "cortex-m4" if ARCHITECTURE_CORTEX_M4 && PLATFORM_NUTTX
-        default "cortex-m7" if ARCHITECTURE_CORTEX_M7 && PLATFORM_NUTTX
-        default "cortex-a8" if ARCHITECTURE_CORTEX_A8 && PLATFORM_NUTTX
-        default "cortex-a53" if ARCHITECTURE_CORTEX_A53 && PLATFORM_NUTTX
+        string "Architecture"
         default ""
 
     config BOARD_ROMFSROOT
