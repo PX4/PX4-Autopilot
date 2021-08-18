@@ -416,11 +416,13 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 	bool timestamp_found = findFieldOffset(orb_meta->o_fields, "timestamp", subscription->timestamp_offset, field_size);
 
 	if (!timestamp_found) {
+		delete subscription;
 		return true;
 	}
 
 	if (field_size != 8) {
 		PX4_ERR("Unsupported timestamp with size %i, ignoring the topic %s", field_size, orb_meta->o_name);
+		delete subscription;
 		return true;
 	}
 
@@ -429,6 +431,7 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 	subscription->next_read_pos = this_message_pos; //this will be skipped
 
 	if (!nextDataMessage(file, *subscription, msg_id)) {
+		delete subscription;
 		return false;
 	}
 
@@ -436,6 +439,7 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 
 	if (!subscription->orb_meta) {
 		//no message found. This is not a fatal error
+		delete subscription;
 		return true;
 	}
 
