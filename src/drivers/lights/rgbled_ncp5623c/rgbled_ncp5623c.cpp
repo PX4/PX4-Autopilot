@@ -144,8 +144,7 @@ RGBLED_NCP5623C::init()
 int
 RGBLED_NCP5623C::probe()
 {
-	_retries = 4;
-
+	_retries = 2;
 	int status = write(NCP5623_LED_CURRENT, NCP5623_LED_OFF);
 
 	if (status == PX4_ERROR) {
