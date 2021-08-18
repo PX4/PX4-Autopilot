@@ -55,7 +55,7 @@ px4_add_board(
 		uavcan
 	MODULES
 		airspeed_selector
-		attitude_estimator_q
+		#attitude_estimator_q
 		camera_feedback
 		commander
 		dataman
