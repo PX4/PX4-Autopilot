@@ -111,3 +111,15 @@ set(PX4_CONFIG "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}" CACHE
 if(EXISTS "${PX4_BOARD_DIR}/uavcan_board_identity")
 include ("${PX4_BOARD_DIR}/uavcan_board_identity")
 endif()
+
+if(EXISTS "${PX4_BOARD_DIR}/sitl.cmake")
+include ("${PX4_BOARD_DIR}/sitl.cmake")
+endif()
+
+set(CUSTOM_BOARD_KCONFIG "${PX4_BOARD_DIR}/Kconfig" CACHE STRING "PX4 board custom config" FORCE)
+
+if(EXISTS ${CUSTOM_BOARD_KCONFIG})
+    set(HAS_CUSTOM_BOARD_KCONFIG "y" CACHE STRING "PX4 board custom config" FORCE)
+else()
+    set(HAS_CUSTOM_BOARD_KCONFIG "n" CACHE STRING "PX4 board custom config" FORCE)
+endif()
