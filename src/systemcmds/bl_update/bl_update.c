@@ -142,7 +142,6 @@ bl_update_main(int argc, char *argv[])
 #endif
 
 	uint8_t *buf = malloc(image_size);
-	memset(buf, 0xff, image_size);
 
 	if (buf == NULL)
 	{
@@ -150,6 +149,8 @@ bl_update_main(int argc, char *argv[])
 		close(fd);
 		return 1;
 	}
+
+	memset(buf, 0xff, image_size);
 
 	if (read(fd, buf, file_size) != file_size)
 	{
