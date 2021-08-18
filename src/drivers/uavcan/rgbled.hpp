@@ -51,8 +51,8 @@ public:
 	int init();
 
 private:
-	// Max update rate to avoid exessive bus traffic
-	static constexpr unsigned MAX_RATE_HZ = 20;
+	// Max update rate to avoid excessive bus traffic
+	static constexpr unsigned MAX_RATE_HZ = 50;
 
 	void periodic_update(const uavcan::TimerEvent &);
 
