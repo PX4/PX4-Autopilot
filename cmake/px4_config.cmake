@@ -91,7 +91,6 @@ endif()
 
 message(STATUS "PX4 config file: ${PX4_CONFIG_FILE}")
 
-
 include_directories(${PX4_BOARD_DIR}/src)
 
 set(PX4_BOARD ${VENDOR}_${MODEL} CACHE STRING "PX4 board" FORCE)
@@ -114,12 +113,4 @@ endif()
 
 if(EXISTS "${PX4_BOARD_DIR}/sitl.cmake")
 include ("${PX4_BOARD_DIR}/sitl.cmake")
-endif()
-
-set(CUSTOM_BOARD_KCONFIG "${PX4_BOARD_DIR}/Kconfig" CACHE STRING "PX4 board custom config" FORCE)
-
-if(EXISTS ${CUSTOM_BOARD_KCONFIG})
-    set(HAS_CUSTOM_BOARD_KCONFIG "y" CACHE STRING "PX4 board custom config" FORCE)
-else()
-    set(HAS_CUSTOM_BOARD_KCONFIG "n" CACHE STRING "PX4 board custom config" FORCE)
 endif()

@@ -7,12 +7,6 @@ comment "Vendor: $(VENDOR)"
 comment "Model: $(MODEL)"
 comment "Label: $(LABEL)"
 
-if $(HAS_CUSTOM_BOARD_KCONFIG)
-    menu "Custom board config"
-        osource "$(CUSTOM_BOARD_KCONFIG)"
-    endmenu
-endif
-
 menu "Toolchain"
     choice
         prompt "Platform"
@@ -30,6 +24,18 @@ menu "Toolchain"
         default "nuttx" if PLATFORM_NUTTX
         default "posix" if PLATFORM_POSIX
         default "qurt" if PLATFORM_QURT
+
+    config BOARD_LOCKSTEP
+        bool "Force enable lockstep"
+        depends on PLATFORM_POSIX
+        help
+            forces lockstep behaviour, despite REPLAY env variable
+
+    config BOARD_NOLOCKSTEP
+        bool "Force disable lockstep"
+        depends on PLATFORM_POSIX
+        help
+            forces nolockstep behaviour, despite REPLAY env variable
 
     config BOARD_LINUX
         bool "Linux OS"

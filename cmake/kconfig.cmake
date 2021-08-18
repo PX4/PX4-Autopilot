@@ -23,8 +23,6 @@ set(COMMON_KCONFIG_ENV_SETTINGS
 	TOOLCHAIN=${CMAKE_TOOLCHAIN_FILE}
 	ARCHITECTURE=${CMAKE_SYSTEM_PROCESSOR}
 	ROMFSROOT=${config_romfs_root}
-	HAS_CUSTOM_BOARD_KCONFIG=${HAS_CUSTOM_BOARD_KCONFIG}
-	CUSTOM_BOARD_KCONFIG=${CUSTOM_BOARD_KCONFIG}
 )
 
 if(EXISTS ${BOARD_DEFCONFIG})
@@ -104,6 +102,10 @@ if(EXISTS ${BOARD_DEFCONFIG})
             string(REGEX REPLACE "(^[a-z]+)_([a-z0-9]+_[a-z0-9]+)_([a-z]+[a-z0-9]+).*$" "\\2" driver_p3_subfolder ${driver})
             string(REGEX REPLACE "(^[a-z]+)_([a-z0-9]+_[a-z0-9]+)_([a-z]+[a-z0-9]+).*$" "\\3" driver_p3_subsubfolder ${driver})
 
+            # Pattern 4 XXX_XXX / XXX_XXX_XXX
+            string(REGEX REPLACE "(^[a-z]+_[a-z0-9]+)_([a-z_0-9]+).*$" "\\1" driver_p4_folder ${driver})
+            string(REGEX REPLACE "(^[a-z]+_[a-z0-9]+)_([a-z_0-9]+).*$" "\\2" driver_p4_subfolder ${driver})
+
             # Trick circumvent PX4 src naming problem with underscores and slashes
             if(EXISTS ${PX4_SOURCE_DIR}/src/drivers/${driver})
                 list(APPEND config_module_list drivers/${driver})
@@ -115,6 +117,8 @@ if(EXISTS ${BOARD_DEFCONFIG})
                 list(APPEND config_module_list drivers/${driver_p1_folder}/${driver_p1_subfolder})
             elseif(EXISTS ${PX4_SOURCE_DIR}/src/drivers/${driver_p2_folder}/${driver_p2_subfolder})
                 list(APPEND config_module_list drivers/${driver_p2_folder}/${driver_p2_subfolder})
+            elseif(EXISTS ${PX4_SOURCE_DIR}/src/drivers/${driver_p4_folder}/${driver_p4_subfolder})
+                list(APPEND config_module_list drivers/${driver_p4_folder}/${driver_p4_subfolder})
             else()
                 message(FATAL_ERROR "Couldn't find path for ${driver}")
             endif()
