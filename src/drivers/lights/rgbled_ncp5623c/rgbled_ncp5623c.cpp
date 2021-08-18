@@ -79,6 +79,7 @@ public:
 	int		probe() override;
 
 	void			RunImpl();
+	virtual int8_t  get_i2c_address() {return get_device_address();}
 
 private:
 	int			send_led_rgb();
