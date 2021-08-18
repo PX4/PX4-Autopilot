@@ -108,6 +108,30 @@ RGBLED_NCP5623C::RGBLED_NCP5623C(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config)
 {
+	int ordering = config.custom1;
+	// ordering is RGB: Hundreds is Red, Tens is green and ones is Blue
+	// 123 would drive the
+	//      R LED from = NCP5623_LED_PWM0
+	//      G LED from = NCP5623_LED_PWM1
+	//      B LED from = NCP5623_LED_PWM2
+	// 321 would drive the
+	//      R LED from = NCP5623_LED_PWM2
+	//      G LED from = NCP5623_LED_PWM1
+	//      B LED from = NCP5623_LED_PWM0
+	const uint8_t sig[] = {NCP5623_LED_PWM0, NCP5623_LED_PWM1, NCP5623_LED_PWM2};
+	// Process ordering in lsd to msd order.(BGR)
+	uint8_t *color[] = {&_blue, &_green, &_red };
+	unsigned int s = 0;
+
+	for (unsigned int i = 0; i < arraySize(color); i++) {
+		s = (ordering % 10) - 1;
+
+		if (s < arraySize(sig)) {
+			*color[i] = sig[s];
+		}
+
+		ordering /= 10;
+	}
 }
 
 int
@@ -148,11 +172,6 @@ RGBLED_NCP5623C::probe()
 	if (status == PX4_ERROR) {
 		set_device_address(NCP5623B_ADDR);
 		status = write(NCP5623_LED_CURRENT, NCP5623_LED_OFF);
-
-		if (status == PX4_OK) {
-			_red = NCP5623_LED_PWM2;
-			_blue = NCP5623_LED_PWM0;
-		}
 	}
 
 	return status;
@@ -260,6 +279,7 @@ RGBLED_NCP5623C::print_usage()
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x39);
+	PRINT_MODULE_USAGE_PARAM_INT('o', 123, 123, 321, "RGB PWM Assignment", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -269,8 +289,18 @@ extern "C" __EXPORT int rgbled_ncp5623c_main(int argc, char *argv[])
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 100000;
 	cli.i2c_address = NCP5623C_ADDR;
+	cli.custom1 = 123;
+	int ch;
 
-	const char *verb = cli.parseDefaultArguments(argc, argv);
+	while ((ch = cli.getOpt(argc, argv, "o:")) != EOF) {
+		switch (ch) {
+		case 'o':
+			cli.custom1 = atoi(cli.optArg());
+			break;
+		}
+	}
+
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();
