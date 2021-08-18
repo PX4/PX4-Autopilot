@@ -163,7 +163,7 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 
 			// date -d @1234567890: Sat Feb 14 02:31:30 MSK 2009
 			bool onb_unix_valid = (unsigned long long)tv.tv_sec > PX4_EPOCH_SECS;
-			bool ofb_unix_valid = time.time_unix_usec > PX4_EPOCH_SECS * 1000ULL;
+			bool ofb_unix_valid = time.time_unix_usec > PX4_EPOCH_SECS * 1000000ULL;
 
 			if (!onb_unix_valid && ofb_unix_valid) {
 				tv.tv_sec = time.time_unix_usec / 1000000ULL;
