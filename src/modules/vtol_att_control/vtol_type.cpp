@@ -231,14 +231,14 @@ float VtolType::update_and_get_backtransition_pitch_sp()
 	float integrator_input = _params->dec_to_pitch_i * accel_error_forward;
 
 	if ((pitch_sp_new >= pitch_lim && accel_error_forward > 0.0f) ||
-	    (pitch_sp_new <= -pitch_lim && accel_error_forward < 0.0f)) {
+	    (pitch_sp_new <= 0.f && accel_error_forward < 0.0f)) {
 		integrator_input = 0.0f;
 	}
 
 	_accel_to_pitch_integ += integrator_input * _transition_dt;
 
-
-	return math::constrain(pitch_sp_new, -pitch_lim, pitch_lim);
+	// only allow positive (pitch up) pitch setpoint
+	return math::constrain(pitch_sp_new, 0.f, pitch_lim);
 }
 
 bool VtolType::can_transition_on_ground()

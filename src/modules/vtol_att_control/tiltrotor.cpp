@@ -372,8 +372,6 @@ void Tiltrotor::update_transition_state()
 		_v_att_sp->thrust_body[0] = _thrust_transition;
 
 	} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_BACK) {
-		// turn on all MC motors
-		set_all_motor_state(motor_state::ENABLED);
 
 		// set idle speed for rotary wing mode
 		if (!_flag_idle_mc) {
@@ -395,13 +393,18 @@ void Tiltrotor::update_transition_state()
 			_v_att_sp->pitch_body = update_and_get_backtransition_pitch_sp();
 		}
 
-		// while we quickly rotate back the motors keep throttle at idle
 		if (time_since_trans_start < BACKTRANS_THROTTLE_DOWNRAMP_DUR_S) {
+			// blend throttle from FW value to 0
 			_mc_throttle_weight = 1.0f;
 			const float target_throttle = 0.0f;
-			blendThrottleDuringBacktransition(time_since_trans_start, target_throttle);
+			const float progress = time_since_trans_start / BACKTRANS_THROTTLE_DOWNRAMP_DUR_S;
+			blendThrottleDuringBacktransition(progress, target_throttle);
 
 		} else if (time_since_trans_start < timeUntilMotorsAreUp()) {
+			// while we quickly rotate back the motors keep throttle at idle
+
+			// turn on all MC motors
+			set_all_motor_state(motor_state::ENABLED);
 			_mc_throttle_weight = 0.0f;
 			_mc_roll_weight = 0.0f;
 			_mc_pitch_weight = 0.0f;
@@ -503,7 +506,7 @@ void Tiltrotor::blendThrottleAfterFrontTransition(float scale)
 
 void Tiltrotor::blendThrottleDuringBacktransition(float scale, float target_throttle)
 {
-	_v_att_sp->thrust_body[2] = -(scale * target_throttle + (1.0f - scale) * _last_thr_in_fw_mode);
+	_thrust_transition = -(scale * target_throttle + (1.0f - scale) * _last_thr_in_fw_mode);
 }
 
 
