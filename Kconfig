@@ -7,6 +7,12 @@ comment "Vendor: $(VENDOR)"
 comment "Model: $(MODEL)"
 comment "Label: $(LABEL)"
 
+if $(HAS_CUSTOM_BOARD_KCONFIG)
+    menu "Custom board config"
+        osource "$(CUSTOM_BOARD_KCONFIG)"
+    endmenu
+endif
+
 menu "Toolchain"
     choice
         prompt "Platform"
