@@ -500,6 +500,9 @@ hrt_tim_isr(int irq, void *context, void *arg)
 	/* grab the timer for latency tracking purposes */
 	latency_actual = hrt_absolute_time();
 
+	/* ack the interrupts we just read */
+	rINTR = rINTR;
+
 #ifdef HRT_PPM_CHANNEL
 
 	/* was this a PPM edge? */
