@@ -12,6 +12,8 @@ __location__ = os.path.realpath(
 serial_regex = r"(\D\D\D\d):(/dev/ttyS\d+)"
 io_regex = r"IO (.*)"
 romfs_regex = r"ROMFSROOT (.*)"
+arch_regex = r"ARCHITECTURE (.*)"
+toolchain_regex = r"TOOLCHAIN (.*)"
 
 
 
@@ -54,6 +56,14 @@ for name in glob.glob(px4_dir + '/boards/*/*/*.cmake'):
                     print("CONFIG_BOARD_ROMFSROOT=\"" + match.groups()[0] + "\"")
                     print("CONFIG_BOARD_ROMFSROOT=\"" + match.groups()[0] + "\"", file=w)
                     romfs_set = True
+                matches = re.finditer(arch_regex, clean_line, re.MULTILINE)
+                for matchNum, match in enumerate(matches, start=1):
+                    print("CONFIG_BOARD_ARCHITECTURE=\"" + match.groups()[0] + "\"")
+                    print("CONFIG_BOARD_ARCHITECTURE=\"" + match.groups()[0] + "\"", file=w)
+                matches = re.finditer(toolchain_regex, clean_line, re.MULTILINE)
+                for matchNum, match in enumerate(matches, start=1):
+                    print("CONFIG_BOARD_TOOLCHAIN=\"" + match.groups()[0] + "\"")
+                    print("CONFIG_BOARD_TOOLCHAIN=\"" + match.groups()[0] + "\"", file=w)
 
     if(romfs_set == False):
         print("CONFIG_BOARD_ROMFSROOT=\"\"", file=w)

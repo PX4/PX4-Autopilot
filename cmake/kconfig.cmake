@@ -90,17 +90,17 @@ if(EXISTS ${BOARD_DEFCONFIG})
             string(REPLACE "_" "/" driver_path ${driver})
 
             # Pattern 1 XXX / XXX_XXX
-            string(REGEX REPLACE "(^[a-z]+)_([a-z]+_[a-z0-9]+).*$" "\\1" driver_p1_folder ${driver})
-            string(REGEX REPLACE "(^[a-z]+)_([a-z]+_[a-z0-9]+).*$" "\\2" driver_p1_subfolder ${driver})
+            string(REGEX REPLACE "(^[a-z]+)_([a-z0-9]+_[a-z0-9]+).*$" "\\1" driver_p1_folder ${driver})
+            string(REGEX REPLACE "(^[a-z]+)_([a-z0-9]+_[a-z0-9]+).*$" "\\2" driver_p1_subfolder ${driver})
 
             # Pattern 2 XXX_XXX / XXXXXX
-            string(REGEX REPLACE "(^[a-z]+_[a-z]+)_([a-z0-9]+).*$" "\\1" driver_p2_folder ${driver})
-            string(REGEX REPLACE "(^[a-z]+_[a-z]+)_([a-z0-9]+).*$" "\\2" driver_p2_subfolder ${driver})
+            string(REGEX REPLACE "(^[a-z]+_[a-z0-9]+)_([a-z0-9]+).*$" "\\1" driver_p2_folder ${driver})
+            string(REGEX REPLACE "(^[a-z]+_[a-z0-9]+)_([a-z0-9]+).*$" "\\2" driver_p2_subfolder ${driver})
 
             # Pattern 3 XXXXXX / XXX_XXX / XXXXXX
-            string(REGEX REPLACE "(^[a-z]+)_([a-z]+_[a-z0-9]+)_([a-z]+[a-z0-9]+).*$" "\\1" driver_p3_folder ${driver})
-            string(REGEX REPLACE "(^[a-z]+)_([a-z]+_[a-z0-9]+)_([a-z]+[a-z0-9]+).*$" "\\2" driver_p3_subfolder ${driver})
-            string(REGEX REPLACE "(^[a-z]+)_([a-z]+_[a-z0-9]+)_([a-z]+[a-z0-9]+).*$" "\\3" driver_p3_subsubfolder ${driver})
+            string(REGEX REPLACE "(^[a-z]+)_([a-z0-9]+_[a-z0-9]+)_([a-z]+[a-z0-9]+).*$" "\\1" driver_p3_folder ${driver})
+            string(REGEX REPLACE "(^[a-z]+)_([a-z0-9]+_[a-z0-9]+)_([a-z]+[a-z0-9]+).*$" "\\2" driver_p3_subfolder ${driver})
+            string(REGEX REPLACE "(^[a-z]+)_([a-z0-9]+_[a-z0-9]+)_([a-z]+[a-z0-9]+).*$" "\\3" driver_p3_subsubfolder ${driver})
 
             # Trick circumvent PX4 src naming problem with underscores and slashes
             if(EXISTS ${PX4_SOURCE_DIR}/src/drivers/${driver})
@@ -293,6 +293,10 @@ if(EXISTS ${BOARD_DEFCONFIG})
 
 	if(COMPILE_DEFINITIONS)
         add_definitions( ${COMPILE_DEFINITIONS})
+	endif()
+
+	if(LINUX)
+        add_definitions( "-D__PX4_LINUX" )
 	endif()
 
 	include(px4_impl_os)
