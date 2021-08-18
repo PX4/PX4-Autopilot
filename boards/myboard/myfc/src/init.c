@@ -281,7 +281,7 @@ rp2040_boardinitialize(void)
  *
  ****************************************************************************/
 
-static struct spi_dev_s *spi1;
+// static struct spi_dev_s *spi1;
 static struct spi_dev_s *spi2;
 
 __EXPORT int board_app_initialize(uintptr_t arg)
@@ -323,7 +323,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	// // SPI1: SDCard					// Will be configured later
 	// /* Get the SPI port for the microSD slot */
-	// spi1 = rp2040_spibus_initialize(CONFIG_NSH_MMCSDSPIPORTNO);
+	// spi1 = rp2040_spibus_initialize(CONFIG_NSH_MMCSDSPIPORTNO); // PX4_BUS_NUMBER_FROM_PX4(1)
 
 	// if (!spi1) {
 	// 	syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
@@ -343,7 +343,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	// up_udelay(20);
 
 	// SPI2: MPU9250 and BMP280
-	spi2 = rp2040_spibus_initialize(2);
+	spi2 = rp2040_spibus_initialize(PX4_BUS_NUMBER_FROM_PX4(2));
 
 	if (!spi2) {
 		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 2\n");
@@ -352,9 +352,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 	/* Default SPI2 to 1MHz and de-assert the known chip selects. */
-	SPI_SETFREQUENCY(spi1, 10000000);
-	SPI_SETBITS(spi1, 8);
-	SPI_SETMODE(spi1, SPIDEV_MODE3);
+	SPI_SETFREQUENCY(spi2, 10000000);
+	SPI_SETBITS(spi2, 8);
+	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	up_udelay(20);
 
 // #if defined(FLASH_BASED_PARAMS)					// This probably doesn't relate to RP2040 right now.
