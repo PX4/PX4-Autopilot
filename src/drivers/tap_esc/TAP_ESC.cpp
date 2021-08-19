@@ -297,7 +297,7 @@ bool TAP_ESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], u
 					_esc_feedback.esc[feed_back_data.channelID].esc_current = feed_back_data.current;
 #endif // ESC_HAVE_CURRENT_SENSOR
 #if defined(ESC_HAVE_TEMPERATURE_SENSOR)
-					_esc_feedback.esc[feed_back_data.channelID].esc_temperature = feed_back_data.temperature;
+					_esc_feedback.esc[feed_back_data.channelID].esc_temperature = static_cast<float>(feed_back_data.temperature);
 #endif // ESC_HAVE_TEMPERATURE_SENSOR
 					_esc_feedback.esc[feed_back_data.channelID].esc_state = feed_back_data.ESCStatus;
 					_esc_feedback.esc[feed_back_data.channelID].failures = 0;

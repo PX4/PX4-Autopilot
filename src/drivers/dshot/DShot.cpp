@@ -203,7 +203,7 @@ void DShot::handle_new_telemetry_data(const int motor_index, const DShotTelemetr
 		esc_status.esc[motor_index].esc_rpm         = (static_cast<int>(data.erpm) * 100) / (_param_mot_pole_count.get() / 2);
 		esc_status.esc[motor_index].esc_voltage     = static_cast<float>(data.voltage) * 0.01f;
 		esc_status.esc[motor_index].esc_current     = static_cast<float>(data.current) * 0.01f;
-		esc_status.esc[motor_index].esc_temperature = data.temperature;
+		esc_status.esc[motor_index].esc_temperature = static_cast<float>(data.temperature);
 		// TODO: accumulate consumption and use for battery estimation
 	}
 
