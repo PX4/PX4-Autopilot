@@ -237,7 +237,7 @@ void Accelerometer::Reset()
 	_scale = Vector3f{1.f, 1.f, 1.f};
 
 	_thermal_offset.zero();
-	_temperature = NAN;
+	_temperature = -1000.f;
 
 	_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
 

@@ -100,7 +100,7 @@ private:
 	matrix::Vector3f _offset;
 	matrix::Vector3f _scale;
 	matrix::Vector3f _thermal_offset;
-	float _temperature{NAN};
+	float _temperature{-1000.f};
 
 	int8_t _calibration_index{-1};
 	uint32_t _device_id{0};
