@@ -35,10 +35,6 @@ px4_add_module(
 	MAIN px4io
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
-		-Wno-error
-		#-DDEBUG_BUILD
-	STACK_MAIN
-		10000
 	SRCS
 		px4io.cpp
 		px4io_serial.cpp

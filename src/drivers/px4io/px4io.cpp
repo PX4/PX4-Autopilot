@@ -233,10 +233,9 @@ private:
 	float			_analog_rc_rssi_volt{-1.f}; ///< analog RSSI voltage
 
 	bool			_test_fmu_fail{false}; ///< To test what happens if IO loses FMU
+	bool			_in_test_mode{false}; ///< true if PWM_SERVO_ENTER_TEST_MODE is active
 
 	MixingOutput _mixing_output{PX4IO_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
-	uint16_t _prev_outputs[MAX_ACTUATORS] {};
-	hrt_abstime _last_full_output_update{0};
 
 	bool _pwm_min_configured{false};
 	bool _pwm_max_configured{false};
@@ -425,20 +424,9 @@ bool PX4IO::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 {
 	SmartLock lock_guard(_lock);
 
-	const bool full_update = (hrt_elapsed_time(&_last_full_output_update) >= 200_ms);
-
-	if (!_test_fmu_fail) {
+	if (!_test_fmu_fail && !_in_test_mode) {
 		/* output to the servos */
-		for (size_t i = 0; i < num_outputs; i++) {
-			if (_prev_outputs[i] != outputs[i] || full_update) {
-				io_reg_set(PX4IO_PAGE_DIRECT_PWM, i, outputs[i]);
-				_prev_outputs[i] = outputs[i];
-			}
-		}
-	}
-
-	if (full_update) {
-		_last_full_output_update = hrt_absolute_time();
+		io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, outputs, num_outputs);
 	}
 
 	return true;
@@ -511,12 +499,6 @@ int PX4IO::init()
 		_max_rc_input = input_rc_s::RC_INPUT_MAX_CHANNELS;
 	}
 
-	/*
-	 * Check for IO flight state - if FMU was flagged to be in
-	 * armed state, FMU is recovering from an in-air reset.
-	 * Read back status and request the commander to arm
-	 * in this case.
-	 */
 	uint16_t reg = 0;
 
 	/* get IO's last seen FMU state */
@@ -1801,7 +1783,7 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 				ret = -EINVAL;
 
 			} else {
-				if (!_test_fmu_fail /*&& _motor_test.in_test_mode*/) {
+				if (!_test_fmu_fail && _in_test_mode) {
 					/* send a direct PWM value */
 					ret = io_reg_set(PX4IO_PAGE_DIRECT_PWM, channel, arg);
 
@@ -1861,7 +1843,7 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 				}
 			}
 
-			//_motor_test.in_test_mode = (arg == PWM_SERVO_ENTER_TEST_MODE);
+			_in_test_mode = (arg == PWM_SERVO_ENTER_TEST_MODE);
 			ret = (arg == PWM_SERVO_ENTER_TEST_MODE || PWM_SERVO_EXIT_TEST_MODE) ? 0 : -EINVAL;
 		}
 		break;
