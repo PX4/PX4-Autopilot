@@ -45,7 +45,6 @@
 using namespace matrix;
 using namespace time_literals;
 
-#define ARSP_YAW_CTRL_DISABLE 7.0f	// airspeed at which we stop controlling yaw during a front transition
 #define  FRONTTRANS_THR_MIN 0.25f
 #define BACKTRANS_THROTTLE_DOWNRAMP_DUR_S 1.0f
 #define BACKTRANS_THROTTLE_UPRAMP_DUR_S 1.0f;
@@ -326,16 +325,12 @@ void Tiltrotor::update_transition_state()
 		_mc_roll_weight = 1.0f;
 		_mc_yaw_weight = 1.0f;
 
-		// reduce MC controls once the plane has picked up speed
-		if (!_params->airspeed_disabled && PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s) &&
-		    _airspeed_validated->calibrated_airspeed_m_s > ARSP_YAW_CTRL_DISABLE) {
-			_mc_yaw_weight = 0.0f;
-		}
-
 		if (!_params->airspeed_disabled && PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s) &&
 		    _airspeed_validated->calibrated_airspeed_m_s >= _params->airspeed_blend) {
-			_mc_roll_weight = 1.0f - (_airspeed_validated->calibrated_airspeed_m_s - _params->airspeed_blend) /
-					  (_params->transition_airspeed - _params->airspeed_blend);
+			const float weight = 1.0f - (_airspeed_validated->calibrated_airspeed_m_s - _params->airspeed_blend) /
+					     (_params->transition_airspeed - _params->airspeed_blend);
+			_mc_roll_weight = weight;
+			_mc_yaw_weight = weight;
 		}
 
 		// without airspeed do timed weight changes
