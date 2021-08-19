@@ -142,9 +142,6 @@ class TestHardwareMethods(unittest.TestCase):
     def test_bson(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "bson"))
 
-    def test_conv(self):
-        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "conv"))
-
     def test_dataman(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "dataman"))
 
