@@ -230,6 +230,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_gps_rtcm_data(msg);
 		break;
 
+	case MAVLINK_MSG_ID_GPS_INJECT_DATA:
+		handle_message_gps_inject_data(msg);
+		break;
+
 	case MAVLINK_MSG_ID_BATTERY_STATUS:
 		handle_message_battery_status(msg);
 		break;
@@ -2693,6 +2697,21 @@ MavlinkReceiver::handle_message_collision(mavlink_message_t *msg)
 	collision_report.horizontal_minimum_delta = collision.horizontal_minimum_delta;
 
 	_collision_report_pub.publish(collision_report);
+}
+
+void
+MavlinkReceiver::handle_message_gps_inject_data(mavlink_message_t *msg)
+{
+	mavlink_gps_inject_data_t gps_inject_msg = {};
+	mavlink_msg_gps_inject_data_decode(msg, &gps_inject_msg);
+
+	gps_inject_data_s gps_inject_data_topic = {};
+	gps_inject_data_topic.len = gps_inject_msg.len;
+	gps_inject_data_topic.flags = 0;
+	memcpy(gps_inject_data_topic.data, gps_inject_msg.data, gps_inject_msg.len);
+
+	gps_inject_data_topic.timestamp = hrt_absolute_time();
+	_gps_inject_data_pub.publish(gps_inject_data_topic);
 }
 
 void

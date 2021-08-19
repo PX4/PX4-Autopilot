@@ -169,6 +169,7 @@ private:
 	void handle_message_generator_status(mavlink_message_t *msg);
 	void handle_message_set_gps_global_origin(mavlink_message_t *msg);
 	void handle_message_gps_rtcm_data(mavlink_message_t *msg);
+	void handle_message_gps_inject_data(mavlink_message_t *msg);
 	void handle_message_heartbeat(mavlink_message_t *msg);
 	void handle_message_hil_gps(mavlink_message_t *msg);
 	void handle_message_hil_optical_flow(mavlink_message_t *msg);
