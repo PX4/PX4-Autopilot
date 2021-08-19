@@ -5,9 +5,10 @@ menu "barometer"
         select DRIVERS_BAROMETER_BMP280
         select DRIVERS_BAROMETER_BMP388
         select DRIVERS_BAROMETER_DPS310
-        select DRIVERS_BAROMETER_LPC22HB
+        select DRIVERS_BAROMETER_LPS22HB
         select DRIVERS_BAROMETER_LPS33HW
         select DRIVERS_BAROMETER_MS5611
+        select DRIVERS_BAROMETER_MAIERTEK_MPC2520
         ---help---
             Enable default set of barometer drivers
     rsource "*/Kconfig"
