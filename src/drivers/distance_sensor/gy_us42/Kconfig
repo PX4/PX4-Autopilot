@@ -1,0 +1,5 @@
+menuconfig DRIVERS_DISTANCE_SENSOR_GY_US42
+	bool "GY_US42"
+	default n
+	---help---
+		Enable support for GY_US42

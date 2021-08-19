@@ -1,0 +1,5 @@
+menuconfig DRIVERS_BAROMETER_MAIERTEK_MPC2520
+	bool "MPC2520"
+	default n
+	---help---
+		Enable support for MPC2520
