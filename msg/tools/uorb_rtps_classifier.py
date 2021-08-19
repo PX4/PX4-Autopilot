@@ -170,6 +170,8 @@ if __name__ == "__main__":
             if args.alias:
                 print((', '.join(str(msg[0])
                                  for msg in sorted(classifier.msgs_to_send)) + (' alias ' + ', '.join(msg[0]
+                                                                                                      for msg in classifier.alias_msgs_to_send) if len(classifier.alias_msgs_to_send) > 0 else '') +
+                                                                               (' alias_base ' + ', '.join(msg[1]
                                                                                                       for msg in classifier.alias_msgs_to_send) if len(classifier.alias_msgs_to_send) > 0 else '') + '\n'))
             else:
                 print((', '.join(str(msg[0])

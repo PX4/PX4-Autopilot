@@ -94,8 +94,9 @@ rtps:
   - msg:     vehicle_local_position
     send:    true
     poll:    true
-    poll_interval: 10
+    # poll_interval: 10
   - msg:     vehicle_angular_velocity
+  - msg:     vehicle_angular_velocity_groundtruth
+    base:    vehicle_angular_velocity
     send:    true
     poll:    true
-    poll_interval: 4
