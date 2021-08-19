@@ -68,7 +68,6 @@ static volatile bool mixer_servos_armed = false;
 static volatile bool should_arm = false;
 static volatile bool should_arm_nothrottle = false;
 static volatile bool should_always_enable_pwm = false;
-static volatile bool in_mixer = false;
 
 static bool new_fmu_data = false;
 static uint64_t last_fmu_update = 0;
