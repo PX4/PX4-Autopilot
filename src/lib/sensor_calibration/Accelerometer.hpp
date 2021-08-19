@@ -92,6 +92,8 @@ public:
 	void SensorCorrectionsUpdate(bool force = false);
 
 private:
+	static constexpr float TEMPERATURE_INVALID = -1000.f;
+
 	uORB::Subscription _sensor_correction_sub{ORB_ID(sensor_correction)};
 
 	Rotation _rotation_enum{ROTATION_NONE};
@@ -100,7 +102,7 @@ private:
 	matrix::Vector3f _offset;
 	matrix::Vector3f _scale;
 	matrix::Vector3f _thermal_offset;
-	float _temperature{-1000.f};
+	float _temperature{NAN};
 
 	int8_t _calibration_index{-1};
 	uint32_t _device_id{0};

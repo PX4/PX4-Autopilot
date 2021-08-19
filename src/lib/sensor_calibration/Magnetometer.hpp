@@ -100,6 +100,8 @@ public:
 	void UpdatePower(float power) { _power = power; }
 
 private:
+	static constexpr float TEMPERATURE_INVALID = -1000.f;
+
 	Rotation _rotation_enum{ROTATION_NONE};
 
 	matrix::Dcmf _rotation;
@@ -107,7 +109,7 @@ private:
 	matrix::Matrix3f _scale;
 	matrix::Vector3f _power_compensation;
 	float _power{0.f};
-	float _temperature{-1000.f};
+	float _temperature{NAN};
 
 	int8_t _calibration_index{-1};
 	uint32_t _device_id{0};

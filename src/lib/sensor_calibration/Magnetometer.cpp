@@ -195,7 +195,14 @@ void Magnetometer::ParametersUpdate()
 		}
 
 		// CAL_MAGx_TEMP
-		set_temperature(GetCalibrationParamFloat(SensorString(), "TEMP", _calibration_index));
+		float cal_temp = GetCalibrationParamFloat(SensorString(), "TEMP", _calibration_index);
+
+		if (cal_temp > TEMPERATURE_INVALID) {
+			set_temperature(cal_temp);
+
+		} else {
+			set_temperature(NAN);
+		}
 
 		// CAL_MAGx_OFF{X,Y,Z}
 		set_offset(GetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index));
@@ -230,7 +237,7 @@ void Magnetometer::Reset()
 	_power_compensation.zero();
 	_power = 0.f;
 
-	_temperature = -1000.f;
+	_temperature = NAN;
 
 	_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
 
@@ -263,7 +270,12 @@ bool Magnetometer::ParametersSave()
 			success &= SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1);
 		}
 
-		success &= SetCalibrationParam(SensorString(), "TEMP", _calibration_index, _temperature);
+		if (PX4_ISFINITE(_temperature)) {
+			success &= SetCalibrationParam(SensorString(), "TEMP", _calibration_index, _temperature);
+
+		} else {
+			success &= SetCalibrationParam(SensorString(), "TEMP", _calibration_index, TEMPERATURE_INVALID);
+		}
 
 		return success;
 	}
