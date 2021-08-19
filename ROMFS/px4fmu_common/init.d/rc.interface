@@ -17,6 +17,10 @@ set OUTPUT_DEV none
 set OUTPUT_AUX_DEV /dev/pwm_output1
 set OUTPUT_EXTRA_DEV /dev/pwm_output0
 
+# set these before starting the modules
+param set PWM_AUX_OUT ${PWM_AUX_OUT}
+param set PWM_MAIN_OUT ${PWM_OUT}
+
 #
 # If mount (gimbal) control is enabled and output mode is AUX, set the aux
 # mixer to mount (override the airframe-specific MIXER_AUX setting).
@@ -222,8 +226,6 @@ then
 	fi
 fi
 
-param set PWM_AUX_OUT ${PWM_AUX_OUT}
-
 if [ $MIXER_AUX != none -a $AUX_MODE = none -a -e $OUTPUT_AUX_DEV ]
 then
 	#
@@ -265,8 +267,6 @@ then
 		fi
 	fi
 fi
-
-param set PWM_MAIN_OUT ${PWM_OUT}
 
 if [ $EXTRA_MIXER_MODE != none ]
 then
