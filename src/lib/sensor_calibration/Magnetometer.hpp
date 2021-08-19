@@ -100,6 +100,8 @@ public:
 	void UpdatePower(float power) { _power = power; }
 
 private:
+	static constexpr float TEMPERATURE_INVALID = -1000.f;
+
 	Rotation _rotation_enum{ROTATION_NONE};
 
 	matrix::Dcmf _rotation;

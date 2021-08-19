@@ -241,8 +241,9 @@ PARAM_DEFINE_FLOAT(CAL_MAG1_ZCOMP, 0.0f);
  *
  * Temperature during last calibration.
  *
+ * @unit celcius
  * @category system
  * @group Sensor Calibration
  * @volatile
  */
-PARAM_DEFINE_FLOAT(CAL_MAG1_TEMP, NAN);
+PARAM_DEFINE_FLOAT(CAL_MAG1_TEMP, -1000.f);

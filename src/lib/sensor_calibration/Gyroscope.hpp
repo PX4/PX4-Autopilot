@@ -96,6 +96,8 @@ public:
 	void SensorCorrectionsUpdate(bool force = false);
 
 private:
+	static constexpr float TEMPERATURE_INVALID = -1000.f;
+
 	uORB::Subscription _sensor_correction_sub{ORB_ID(sensor_correction)};
 
 	Rotation _rotation_enum{ROTATION_NONE};
