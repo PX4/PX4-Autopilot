@@ -94,6 +94,8 @@
 
 /* Configuration Constants */
 #define VL53L1X_BASEADDR                                0x29
+#define VL53L1X_SHORT_RANGE                                 1  // sub-2 meter distance mode
+#define VL53L1X_LONG_RANGE                                  2  // sub-4 meter distance mode
 
 class VL53L1X : public device::I2C, public I2CSPIDriver<VL53L1X>
 {

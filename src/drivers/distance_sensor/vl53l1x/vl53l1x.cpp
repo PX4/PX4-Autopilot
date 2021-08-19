@@ -171,11 +171,11 @@ VL53L1X::VL53L1X(const I2CSPIDriverConfig &config) :
 	_px4_rangefinder(get_device_id(), config.rotation)
 {
 	// Set distance mode (1 for ~2m ranging, 2 for ~4m ranging
-	distance_mode = VL53L1X_LONG_RANGE;
+	_distance_mode = VL53L1X_LONG_RANGE;
 	// VL53L1X typical range 0-4 meters with 27 degree field of view
 	_px4_rangefinder.set_min_distance(0.f);
 
-	if (distance_mode == VL53L1X_SHORT_RANGE) {
+	if (_distance_mode == VL53L1X_SHORT_RANGE) {
 		_px4_rangefinder.set_max_distance(2.f);
 
 	} else {
@@ -185,10 +185,10 @@ VL53L1X::VL53L1X(const I2CSPIDriverConfig &config) :
 	_px4_rangefinder.set_fov(math::radians(27.f));
 
 	// Zone limits
-	zone_limit = sizeof(roi_center) / sizeof(uint8_t);
+	_zone_limit = sizeof(roi_center) / sizeof(uint8_t);
 
 	// Zone index
-	zone_index = 0;
+	_zone_index = 0;
 	// Allow 3 retries as the device typically misses the first measure attempts.
 	I2C::_retries = 3;
 
@@ -269,10 +269,10 @@ void VL53L1X::RunImpl()
 	ScheduleDelayed(VL53L1X_DELAY);
 
 	// zone modulus increment
-	zone_index = (zone_index + 1) % zone_limit;
+	_zone_index = (_zone_index + 1) % _zone_limit;
 
 	// Set the ROI center based on zone incrementation
-	VL53L1X_SetROICenter(roi_center[zone_index]);
+	VL53L1X_SetROICenter(roi_center[_zone_index]);
 }
 
 int VL53L1X::init()
@@ -291,9 +291,9 @@ int VL53L1X::init()
 	uint8_t y = 4;
 
 	ret |= VL53L1X_SensorInit();
-	ret |= VL53L1X_ConfigBig(distance_mode, VL53L1X_SAMPLE_RATE);
+	ret |= VL53L1X_ConfigBig(_distance_mode, VL53L1X_SAMPLE_RATE);
 	ret |= VL53L1X_SetROI(x, y);
-	ret |= VL53L1X_SetROICenter(roi_center[zone_index]);
+	ret |= VL53L1X_SetROICenter(roi_center[_zone_index]);
 	ret |= VL53L1X_SetInterMeasurementInMs(VL53L1X_INTER_MEAS_MS);
 	ret |= VL53L1X_StartRanging();
 
@@ -531,9 +531,9 @@ int8_t VL53L1X::VL53L1X_StopRanging()
 
 int8_t VL53L1X::VL53L1X_SetROI(uint16_t x, uint16_t y)
 {
-	int8_t status = 0;
+	int status = 0;
 
-	int status = VL53L1_WrByte(ROI_CONFIG__USER_ROI_REQUESTED_GLOBAL_XY_SIZE,
+	status = VL53L1_WrByte(ROI_CONFIG__USER_ROI_REQUESTED_GLOBAL_XY_SIZE,
 			       (y - 1) << 4 | (x - 1));     /* set ROI size x and y */
 
 	return status;
@@ -541,9 +541,9 @@ int8_t VL53L1X::VL53L1X_SetROI(uint16_t x, uint16_t y)
 
 int8_t VL53L1X::VL53L1X_SetROICenter(uint8_t zone)
 {
-	int8_t status = 0;
+	int status = 0;
 
-	int status = VL53L1_WrByte(VL53L1_ROI_CONFIG__MODE_ROI_CENTRE_SPAD, zone);    /* Set ROI spad center */
+	status = VL53L1_WrByte(VL53L1_ROI_CONFIG__MODE_ROI_CENTRE_SPAD, zone);    /* Set ROI spad center */
 	return status;
 }
 
