@@ -313,6 +313,10 @@ if(EXISTS ${BOARD_DEFCONFIG})
         set(ENABLE_LOCKSTEP_SCHEDULER no)
 	endif()
 
+	if(FULL_OPTIMIZATION)
+        set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
+	endif()
+
 	include(px4_impl_os)
 	px4_os_prebuild_targets(OUT prebuild_targets BOARD ${PX4_BOARD})
 
