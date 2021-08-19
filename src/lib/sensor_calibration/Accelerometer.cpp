@@ -210,7 +210,14 @@ void Accelerometer::ParametersUpdate()
 		}
 
 		// CAL_ACCx_TEMP
-		set_temperature(GetCalibrationParamFloat(SensorString(), "TEMP", _calibration_index));
+		float cal_temp = GetCalibrationParamFloat(SensorString(), "TEMP", _calibration_index);
+
+		if (cal_temp > TEMPERATURE_INVALID) {
+			set_temperature(cal_temp);
+
+		} else {
+			set_temperature(NAN);
+		}
 
 		// CAL_ACCx_OFF{X,Y,Z}
 		set_offset(GetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index));
@@ -263,7 +270,12 @@ bool Accelerometer::ParametersSave()
 			success &= SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1);
 		}
 
-		success &= SetCalibrationParam(SensorString(), "TEMP", _calibration_index, _temperature);
+		if (PX4_ISFINITE(_temperature)) {
+			success &= SetCalibrationParam(SensorString(), "TEMP", _calibration_index, _temperature);
+
+		} else {
+			success &= SetCalibrationParam(SensorString(), "TEMP", _calibration_index, TEMPERATURE_INVALID);
+		}
 
 		return success;
 	}

@@ -172,8 +172,9 @@ PARAM_DEFINE_FLOAT(CAL_ACC2_ZSCALE, 1.0f);
  *
  * Temperature during last calibration.
  *
+ * @unit celcius
  * @category system
  * @group Sensor Calibration
  * @volatile
  */
-PARAM_DEFINE_FLOAT(CAL_ACC2_TEMP, NAN);
+PARAM_DEFINE_FLOAT(CAL_ACC2_TEMP, -1000.f);

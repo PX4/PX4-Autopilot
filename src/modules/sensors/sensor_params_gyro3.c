@@ -145,8 +145,9 @@ PARAM_DEFINE_FLOAT(CAL_GYRO3_ZOFF, 0.0f);
  *
  * Temperature during last calibration.
  *
+ * @unit celcius
  * @category system
  * @group Sensor Calibration
  * @volatile
  */
-PARAM_DEFINE_FLOAT(CAL_GYRO3_TEMP, NAN);
+PARAM_DEFINE_FLOAT(CAL_GYRO3_TEMP, -1000.f);
