@@ -163,6 +163,7 @@ px4_add_module(
 	DEPENDS
 		px4_uavcan_dsdlc
 
+		drivers_rangefinder
 		led
 		mixer
 		mixer_module
