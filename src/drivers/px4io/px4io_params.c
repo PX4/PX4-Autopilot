@@ -45,12 +45,10 @@
 /**
  * Set usage of IO board
  *
- * Can be used to use a standard startup script but with a FMU only set-up. Set to 0 to force the FMU only set-up.
+ * Can be used to use a configure the use of the IO board.
  *
- * @value 0 IO disabled
- * @value 1 IO default (RC & PWM output)
- * @value 2 RC only
- * @value 3 PWM output only
+ * @value 0 IO PWM disabled (RC only)
+ * @value 1 IO enabled (RC & PWM)
  * @reboot_required true
  * @group System
  */

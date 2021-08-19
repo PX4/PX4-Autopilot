@@ -98,9 +98,9 @@ then
 	fi
 
 	#
-	# Start IO for RC input if needed.
+	# Start IO for PWM output or RC input if needed.
 	#
-	if [ $IO_PRESENT = yes -a $OUTPUT_MODE = io ]
+	if [ $IO_PRESENT = yes ]
 	then
 		if ! px4io start
 		then
