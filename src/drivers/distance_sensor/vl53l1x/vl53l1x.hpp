@@ -118,13 +118,13 @@ public:
 	void RunImpl();
 
 	// Distance mode member variable
-	uint16_t distance_mode;
+	uint16_t _distance_mode{VL53L1X_LONG_RANGE};
 
 	// Zone index member variable
-	uint8_t zone_index;
+	uint8_t _zone_index{0};
 
 	// Zone limit member variable
-	uint8_t zone_limit;
+	uint8_t _zone_limit{0};
 
 private:
 	int probe() override;
