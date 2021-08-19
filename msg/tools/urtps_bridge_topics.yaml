@@ -28,31 +28,31 @@
 rtps:
   # topic ID 1
   - msg:     debug_array
-    # receive: true
+    receive: true
   # topic ID 2
   - msg:     debug_key_value
-    # receive: true
+    receive: true
   # topic ID 3
   - msg:     debug_value
-    # receive: true
+    receive: true
   # ...
   - msg:     debug_vect
-    # receive: true
+    receive: true
   - msg:     offboard_control_mode
     receive: true
   - msg:     optical_flow
-    # receive: true
+    receive: true
   - msg:     position_setpoint
-    # receive: true
+    receive: true
   - msg:     position_setpoint_triplet
-    # receive: true
+    receive: true
   - msg:     telemetry_status
-    # receive: true
+    receive: true
   - msg:     timesync
     receive: true
     send:    true
   - msg:     trajectory_waypoint
-    # send:    true
+    send:    true
   - msg:     vehicle_command
     receive: true
   - msg:     vehicle_control_mode
@@ -63,40 +63,29 @@ rtps:
     base:    vehicle_local_position_setpoint
     receive: true
   - msg:     vehicle_odometry
-    # send:    true
+    send:    true
   - msg:     vehicle_mocap_odometry # multi-topic / alias of vehicle_odometry
     base:    vehicle_odometry
-    # receive: true
+    receive: true
   - msg:     vehicle_visual_odometry # multi-topic / alias of vehicle_odometry
     base:    vehicle_odometry
-    # receive: true
+    receive: true
   - msg:     vehicle_status
-    # send:    true
+    send:    true
   - msg:     vehicle_trajectory_waypoint
-    # receive: true
+    receive: true
   - msg:     vehicle_trajectory_waypoint_desired # multi-topic / alias of vehicle_trajectory_waypoint
     base:    vehicle_trajectory_waypoint
-    # send:    true
+    send:    true
   - msg:     collision_constraints
-    # send:    true
+    send:    true
   - msg:     onboard_computer_status
-    # receive: true
+    receive: true
   - msg:     trajectory_bezier
-    # receive: true
+    receive: true
   - msg:     vehicle_trajectory_bezier
-    # receive: true
+    receive: true
   - msg:     timesync_status
     send:    true
-  - msg:     vehicle_attitude
+  - msg:     sensor_combined
     send:    true
-    poll:    true
-    poll_interval: 4
-  - msg:     vehicle_local_position
-    send:    true
-    poll:    true
-    # poll_interval: 10
-  - msg:     vehicle_angular_velocity
-  - msg:     vehicle_angular_velocity_groundtruth
-    base:    vehicle_angular_velocity
-    send:    true
-    poll:    true
