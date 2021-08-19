@@ -51,6 +51,12 @@ menu "Toolchain"
         string "Architecture"
         default ""
 
+    config BOARD_FULL_OPTIMIZATION
+        bool "Full optmization (O3)"
+        default n
+        help
+            Enables Cmake Release for -O3 optimization
+
     config BOARD_ROMFSROOT
         string "ROMFSROOT"
         default "px4fmu_common"
@@ -104,7 +110,6 @@ endmenu #Toolchain
 
 config BOARD_TESTING
     bool "Testing"
-    select SYSTEMCMDS_MICROBENCH
     select SYSTEMCMDS_TESTS
     help
         flag to enable automatic inclusion of PX4 testing modules
