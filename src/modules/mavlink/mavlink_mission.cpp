@@ -487,6 +487,12 @@ MavlinkMissionManager::send()
 
 	if (_mission_result_sub.update(&mission_result)) {
 
+		/* If an infeasible mission is uploaded and the old feasible mission exists item count could be wrong.
+		 * This is restoring item count from the feasible mission. */
+		if (_count[MAV_MISSION_TYPE_MISSION] != mission_result.seq_total) {
+			_count[MAV_MISSION_TYPE_MISSION] = mission_result.seq_total;
+		}
+
 		if (_current_seq != mission_result.seq_current) {
 			_current_seq = mission_result.seq_current;
 
