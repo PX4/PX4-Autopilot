@@ -1,5 +1,0 @@
-menuconfig DRIVERS_RPM_PCF8583
-	bool "pcf8583"
-	default n
-	---help---
-		Enable support for pcf8583
