@@ -588,7 +588,14 @@ Mission::restore_old_mission()
 	if (valid) {
 		_mission_changed = true;
 		_navigator->get_mission_result()->failure = false;
-		_current_mission_index = _old_mission.current_seq;
+
+		/* For completed old mission reset sequence to the first item. */
+		if (_old_mission.current_seq >= _old_mission.count) {
+			_current_mission_index = 0;
+
+		} else {
+			_current_mission_index = _old_mission.current_seq;
+		}
 
 		/* lock MISSION_STATE item */
 		int dm_lock_ret = dm_lock(DM_KEY_MISSION_STATE);
