@@ -1,5 +1,12 @@
-menuconfig DRIVERS_TELEMETRY
-	bool "telemetry"
-	default n
-	---help---
-		Enable support for telemetry
+menu "Telemetry"
+    menuconfig COMMON_TELEMETRY
+        bool "Common telemetry module's"
+        default n
+        select DRIVERS_TELEMETRY_BST
+        select DRIVERS_TELEMETRY_FRSKY_TELEMETRY
+        select DRIVERS_TELEMETRY_HOTT
+        select DRIVERS_TELEMETRY_IRIDIUMSBD
+        ---help---
+            Enable default set of telemetry drivers
+    rsource "*/Kconfig"
+endmenu
