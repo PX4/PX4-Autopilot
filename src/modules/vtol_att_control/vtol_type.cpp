@@ -235,7 +235,7 @@ void VtolType::check_quadchute_condition()
 {
 	if (_attc->get_transition_command() == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC && _attc->get_immediate_transition()
 	    && !_quadchute_command_treated) {
-		_attc->quadchute("QuadChute by external command");
+		_attc->quadchute("External command");
 		_quadchute_command_treated = true;
 		_attc->reset_immediate_transition();
 
@@ -256,7 +256,7 @@ void VtolType::check_quadchute_condition()
 		if (_params->fw_min_alt > FLT_EPSILON) {
 
 			if (-(_local_pos->z) < _params->fw_min_alt) {
-				_attc->quadchute("QuadChute: Minimum altitude breached");
+				_attc->quadchute("Minimum altitude breached");
 			}
 		}
 
@@ -274,7 +274,7 @@ void VtolType::check_quadchute_condition()
 				    (_ra_hrate < -1.0f) &&
 				    (_ra_hrate_sp > 1.0f)) {
 
-					_attc->quadchute("QuadChute: loss of altitude");
+					_attc->quadchute("Loss of altitude");
 				}
 
 			} else {
@@ -282,7 +282,7 @@ void VtolType::check_quadchute_condition()
 				const bool height_rate_error = _local_pos->v_z_valid && (_local_pos->vz > 1.0f) && (_local_pos->z_deriv > 1.0f);
 
 				if (height_error && height_rate_error) {
-					_attc->quadchute("QuadChute: large altitude error");
+					_attc->quadchute("Large altitude error");
 				}
 			}
 		}
