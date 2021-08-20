@@ -4,9 +4,20 @@
 #------------------------------------------------------------------------------
 board_adc start
 
-# Start Digital power monitors
-ina226 -X -b 1 -t 1 -k start
-ina226 -X -b 2 -t 2 -k start
+
+if param compare SENS_EN_INA226 1
+then
+	# Start Digital power monitors
+	ina226 -X -b 1 -t 1 -k start
+	ina226 -X -b 2 -t 2 -k start
+fi
+
+if param compare SENS_EN_INA228 1
+then
+	# Start Digital power monitors
+	ina228 -X -b 1 -t 1 -k start
+	ina228 -X -b 2 -t 2 -k start
+fi
 
 if ver hwtypecmp V5X90 V5X91 V5X92 V5Xa0 V5Xa1 V5Xa2
 then
