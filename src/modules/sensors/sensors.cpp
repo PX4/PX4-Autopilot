@@ -219,6 +219,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::SYS_HAS_BARO>) _param_sys_has_baro,
+		(ParamBool<px4::params::SYS_HAS_GPS>) _param_sys_has_gps,
 		(ParamBool<px4::params::SYS_HAS_MAG>) _param_sys_has_mag,
 		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
 	)
@@ -534,12 +535,10 @@ void Sensors::InitializeVehicleAirData()
 {
 	if (_param_sys_has_baro.get()) {
 		if (_vehicle_air_data == nullptr) {
-			if (orb_exists(ORB_ID(sensor_baro), 0) == PX4_OK) {
-				_vehicle_air_data = new VehicleAirData();
+			_vehicle_air_data = new VehicleAirData();
 
-				if (_vehicle_air_data) {
-					_vehicle_air_data->Start();
-				}
+			if (_vehicle_air_data) {
+				_vehicle_air_data->Start();
 			}
 		}
 	}
@@ -547,8 +546,8 @@ void Sensors::InitializeVehicleAirData()
 
 void Sensors::InitializeVehicleGPSPosition()
 {
-	if (_vehicle_gps_position == nullptr) {
-		if (orb_exists(ORB_ID(sensor_gps), 0) == PX4_OK) {
+	if (_param_sys_has_gps.get()) {
+		if (_vehicle_gps_position == nullptr) {
 			_vehicle_gps_position = new VehicleGPSPosition();
 
 			if (_vehicle_gps_position) {
@@ -602,12 +601,10 @@ void Sensors::InitializeVehicleMagnetometer()
 {
 	if (_param_sys_has_mag.get()) {
 		if (_vehicle_magnetometer == nullptr) {
-			if (orb_exists(ORB_ID(sensor_mag), 0) == PX4_OK) {
-				_vehicle_magnetometer = new VehicleMagnetometer();
+			_vehicle_magnetometer = new VehicleMagnetometer();
 
-				if (_vehicle_magnetometer) {
-					_vehicle_magnetometer->Start();
-				}
+			if (_vehicle_magnetometer) {
+				_vehicle_magnetometer->Start();
 			}
 		}
 	}
