@@ -31,6 +31,16 @@
  *
  ****************************************************************************/
 
+/**
+ * Enable INA228 Power Monitor
+ *
+ * For systems a INA228 Power Monitor, this should be set to true
+ *
+ * @group Sensors
+ * @boolean
+ * @reboot_required true
+*/
+PARAM_DEFINE_INT32(SENS_EN_INA228, 0);
 
 /**
  * INA228 Power Monitor Config
