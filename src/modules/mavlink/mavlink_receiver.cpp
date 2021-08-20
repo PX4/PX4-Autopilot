@@ -3015,16 +3015,6 @@ MavlinkReceiver::run()
 		px4_prctl(PR_SET_NAME, thread_name, px4_getpid());
 	}
 
-	// make sure mavlink app has booted before we start processing anything (parameter sync, etc)
-	while (!_mavlink->boot_complete()) {
-		if (hrt_elapsed_time(&_mavlink->get_first_start_time()) > 20_s) {
-			PX4_ERR("system boot did not complete in 20 seconds");
-			_mavlink->set_boot_complete();
-		}
-
-		px4_usleep(100000);
-	}
-
 	// poll timeout in ms. Also defines the max update frequency of the mission & param manager, etc.
 	const int timeout = 10;
 
@@ -3136,9 +3126,17 @@ MavlinkReceiver::run()
 						/* handle packet with mission manager */
 						_mission_manager.handle_message(&msg);
 
-
 						/* handle packet with parameter component */
-						_parameters_manager.handle_message(&msg);
+						if (_mavlink->boot_complete()) {
+							// make sure mavlink app has booted before we start processing parameter sync
+							_parameters_manager.handle_message(&msg);
+
+						} else {
+							if (hrt_elapsed_time(&_mavlink->get_first_start_time()) > 20_s) {
+								PX4_ERR("system boot did not complete in 20 seconds");
+								_mavlink->set_boot_complete();
+							}
+						}
 
 						if (_mavlink->ftp_enabled()) {
 							/* handle packet with ftp component */
