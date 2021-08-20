@@ -173,6 +173,8 @@ px4_add_module(
 		git_uavcan
 		uavcan_${UAVCAN_DRIVER}_driver
 
+		drivers_rangefinder # Fix undefined reference when no distance sensors are selected
+
 		# within libuavcan
 		uavcan
 	)
