@@ -3,3 +3,5 @@ menuconfig DRIVERS_RPM
 	default n
 	---help---
 		Enable support for rpm
+
+rsource "*/Kconfig"
