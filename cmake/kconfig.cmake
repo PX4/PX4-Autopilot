@@ -106,6 +106,11 @@ if(EXISTS ${BOARD_DEFCONFIG})
             string(REGEX REPLACE "(^[a-z]+_[a-z0-9]+)_([a-z_0-9]+).*$" "\\1" driver_p4_folder ${driver})
             string(REGEX REPLACE "(^[a-z]+_[a-z0-9]+)_([a-z_0-9]+).*$" "\\2" driver_p4_subfolder ${driver})
 
+            # Pattern 5 XXXXXX / XXXXXX / XXX_XXX
+            string(REGEX REPLACE "(^[a-z]+)_([a-z0-9]+[a-z0-9]+)_([a-z0-9]+_[a-z0-9]+).*$" "\\1" driver_p5_folder ${driver})
+            string(REGEX REPLACE "(^[a-z]+)_([a-z0-9]+[a-z0-9]+)_([a-z0-9]+_[a-z0-9]+).*$" "\\2" driver_p5_subfolder ${driver})
+            string(REGEX REPLACE "(^[a-z]+)_([a-z0-9]+[a-z0-9]+)_([a-z0-9]+_[a-z0-9]+).*$" "\\3" driver_p5_subsubfolder ${driver})
+
             # Trick circumvent PX4 src naming problem with underscores and slashes
             if(EXISTS ${PX4_SOURCE_DIR}/src/drivers/${driver})
                 list(APPEND config_module_list drivers/${driver})
@@ -119,6 +124,8 @@ if(EXISTS ${BOARD_DEFCONFIG})
                 list(APPEND config_module_list drivers/${driver_p4_folder}/${driver_p4_subfolder})
             elseif(EXISTS ${PX4_SOURCE_DIR}/src/drivers/${driver_p2_folder}/${driver_p2_subfolder})
                 list(APPEND config_module_list drivers/${driver_p2_folder}/${driver_p2_subfolder})
+            elseif(EXISTS ${PX4_SOURCE_DIR}/src/drivers/${driver_p5_folder}/${driver_p5_subfolder}/${driver_p5_subsubfolder})
+                list(APPEND config_module_list drivers/${driver_p5_folder}/${driver_p5_subfolder}/${driver_p5_subsubfolder})
             else()
                 message(FATAL_ERROR "Couldn't find path for ${driver}")
             endif()
