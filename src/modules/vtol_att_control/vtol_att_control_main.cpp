@@ -203,7 +203,7 @@ void
 VtolAttitudeControl::quadchute(const char *reason)
 {
 	if (!_vtol_vehicle_status.vtol_transition_failsafe) {
-		mavlink_log_critical(&_mavlink_log_pub, "Abort: %s", reason);
+		mavlink_log_critical(&_mavlink_log_pub, "QuadChute: %s", reason);
 		_vtol_vehicle_status.vtol_transition_failsafe = true;
 	}
 }
