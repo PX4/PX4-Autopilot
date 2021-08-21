@@ -21,7 +21,7 @@ namespace matrix
  * Courrieu, P. (2008). Fast Computation of Moore-Penrose Inverse Matrices, 8(2), 25–29. http://arxiv.org/abs/0804.4809
  */
 template<typename Type, size_t M, size_t N>
-Matrix<Type, N, M> geninv(const Matrix<Type, M, N> & G)
+bool geninv(const Matrix<Type, M, N> & G, Matrix<Type, N, M>& res)
 {
     size_t rank;
     if (M <= N) {
@@ -31,11 +31,12 @@ Matrix<Type, N, M> geninv(const Matrix<Type, M, N> & G)
         A = L.transpose() * L;
         SquareMatrix<Type, M> X;
         if (!inv(A, X, rank)) {
-            return Matrix<Type, N, M>(); // LCOV_EXCL_LINE -- this can only be hit from numerical issues
+            res = Matrix<Type, N, M>();
+            return false; // LCOV_EXCL_LINE -- this can only be hit from numerical issues
         }
         // doing an intermediate assignment reduces stack usage
         A = X * X * L.transpose();
-        return G.transpose() * (L * A);
+        res = G.transpose() * (L * A);
 
     } else {
         SquareMatrix<Type, N> A = G.transpose() * G;
@@ -44,12 +45,14 @@ Matrix<Type, N, M> geninv(const Matrix<Type, M, N> & G)
         A = L.transpose() * L;
         SquareMatrix<Type, N> X;
         if(!inv(A, X, rank)) {
-            return Matrix<Type, N, M>(); // LCOV_EXCL_LINE -- this can only be hit from numerical issues
+            res = Matrix<Type, N, M>();
+            return false; // LCOV_EXCL_LINE -- this can only be hit from numerical issues
         }
         // doing an intermediate assignment reduces stack usage
         A = X * X * L.transpose();
-        return (L * A) * G.transpose();
+        res = (L * A) * G.transpose();
     }
+    return true;
 }
 
 

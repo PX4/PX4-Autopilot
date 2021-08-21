@@ -22,7 +22,9 @@ int main()
     };
 
     Matrix<float, 3, 4> A0(data0);
-    Matrix<float, 4, 3> A0_I = geninv(A0);
+    Matrix<float, 4, 3> A0_I;
+    bool ret = geninv(A0, A0_I);
+    TEST(ret);
     Matrix<float, 4, 3> A0_I_check(data0_check);
 
     TEST((A0_I - A0_I_check).abs().max() < 1e-5);
@@ -42,7 +44,9 @@ int main()
     };
 
     Matrix<float, 4, 3> A1(data1);
-    Matrix<float, 3, 4> A1_I = geninv(A1);
+    Matrix<float, 3, 4> A1_I;
+    ret = geninv(A1, A1_I);
+    TEST(ret);
     Matrix<float, 3, 4> A1_I_check(data1_check);
 
     TEST((A1_I - A1_I_check).abs().max() < 1e-5);
@@ -53,7 +57,8 @@ int main()
     Matrix<float, n_large - 1, n_large> A_large_I;
 
     for (size_t i = 0; i < n_large; i++) {
-        A_large_I = geninv(A_large);
+        ret = geninv(A_large, A_large_I);
+        TEST(ret);
         TEST(isEqual(A_large, A_large_I.T()));
     }
 
@@ -69,13 +74,17 @@ int main()
     };
 
     SquareMatrix<float, 3> A2(data2);
-    SquareMatrix<float, 3> A2_I = geninv(A2);
+    SquareMatrix<float, 3> A2_I;
+    ret = geninv(A2, A2_I);
+    TEST(ret);
     SquareMatrix<float, 3> A2_I_check(data2_check);
     TEST((A2_I - A2_I_check).abs().max() < 1e-3);
 
     // Null matrix test
     Matrix<float, 6, 16> A3;
-    Matrix<float, 16, 6> A3_I = geninv(A3);
+    Matrix<float, 16, 6> A3_I;
+    ret = geninv(A3, A3_I);
+    TEST(ret);
     Matrix<float, 16, 6> A3_I_check;
     TEST((A3_I - A3_I_check).abs().max() < 1e-5);
 
@@ -108,7 +117,9 @@ int main()
         { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}
     };
     Matrix<float, 16, 6> A_check = Matrix<float, 16, 6>(A_quad_w);
-    Matrix<float, 16, 6> A = geninv(B);
+    Matrix<float, 16, 6> A;
+    ret = geninv(B, A);
+    TEST(ret);
     TEST((A - A_check).abs().max() < 1e-5);
 
     // Real-world test case
@@ -120,7 +131,9 @@ int main()
         { 0.607814, -0.607814,  0.607814, -0.607814,  1.0000,  1.0000}
     };
     Matrix<float, 5, 6> real ( real_alloc);
-    Matrix<float, 6, 5> real_pinv = geninv(real);
+    Matrix<float, 6, 5> real_pinv;
+    ret = geninv(real, real_pinv);
+    TEST(ret);
 
     // from SVD-based inverse
     const float real_pinv_expected_alloc[6][5] = {
