@@ -258,16 +258,6 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	if(ROMFSROOT)
 		set(config_romfs_root ${ROMFSROOT} CACHE INTERNAL "ROMFS root" FORCE)
 
-		if(BUILD_BOOTLOADER)
-			set(config_build_bootloader "1" CACHE INTERNAL "build bootloader" FORCE)
-		endif()
-
-		# IO board (placed in ROMFS)
-		if(IO)
-			set(config_io_board ${IO} CACHE INTERNAL "IO" FORCE)
-			add_definitions(-DBOARD_WITH_IO)
-		endif()
-
 		if(UAVCAN_PERIPHERALS)
 			set(config_uavcan_peripheral_firmware ${UAVCAN_PERIPHERALS} CACHE INTERNAL "UAVCAN peripheral firmware" FORCE)
 		endif()

@@ -14,7 +14,6 @@
         "C_Cpp.workspaceParsingPriority": "low",
         "cmake.buildBeforeRun": true,
         "cmake.buildDirectory": "${workspaceFolder}/build/${variant:CONFIG}",
-        "cmake.buildTask": true,
         "cmake.configureOnOpen": true,
         "cmake.ctest.parallelJobs": 1,
         "cmake.skipConfigureIfCachePresent": true,

@@ -507,21 +507,13 @@ else
 		. ${R}etc/init.d/rc.autostart.post
 	fi
 
-	#
-	# Bootloader upgrade
-	#
-	if param compare -s SYS_BL_UPDATE 1
+
+	set BOARD_BOOTLOADER_UPGRADE ${R}etc/init.d/rc.board_bootloader_upgrade
+	if [ -f $BOARD_BOOTLOADER_UPGRADE ]
 	then
-		if [ -f "/etc/extras/bootloader.bin" ]
-		then
-			param set SYS_BL_UPDATE 0
-			param save
-			echo "bootloader update..."
-			bl_update "/etc/extras/bootloader.bin"
-			echo "bootloader update done, rebooting"
-			reboot
-		fi
+		sh $BOARD_BOOTLOADER_UPGRADE
 	fi
+	unset BOARD_BOOTLOADER_UPGRADE
 
 #
 # End of autostart.

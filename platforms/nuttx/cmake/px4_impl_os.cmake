@@ -51,17 +51,17 @@
 function(px4_os_add_flags)
 
 	include_directories(BEFORE SYSTEM
-		${PX4_BINARY_DIR}/NuttX/nuttx/include
-		${PX4_BINARY_DIR}/NuttX/nuttx/include/cxx
+		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/include
+		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/include/cxx
 		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/include/cxx	# custom new
 	)
 
 	include_directories(
-		${PX4_BINARY_DIR}/NuttX/nuttx/arch/${CONFIG_ARCH}/src/${CONFIG_ARCH_FAMILY}
-		${PX4_BINARY_DIR}/NuttX/nuttx/arch/${CONFIG_ARCH}/src/chip
-		${PX4_BINARY_DIR}/NuttX/nuttx/arch/${CONFIG_ARCH}/src/common
+		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/${CONFIG_ARCH}/src/${CONFIG_ARCH_FAMILY}
+		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/${CONFIG_ARCH}/src/chip
+		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/${CONFIG_ARCH}/src/common
 
-		${PX4_BINARY_DIR}/NuttX/apps/include
+		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/apps/include
 	)
 
 	# prevent using the toolchain's std c++ library
@@ -178,6 +178,6 @@ function(px4_os_prebuild_targets)
 
 	add_library(prebuild_targets INTERFACE)
 	target_link_libraries(prebuild_targets INTERFACE nuttx_xx nuttx_c nuttx_fs nuttx_mm nuttx_sched m gcc)
-	add_dependencies(prebuild_targets DEPENDS nuttx_build uorb_headers)
+	add_dependencies(prebuild_targets DEPENDS nuttx_context uorb_headers)
 
 endfunction()
