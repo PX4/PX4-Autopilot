@@ -143,6 +143,27 @@ set(CONFIG "px4_sitl_default" CACHE STRING "desired configuration")
 include(px4_add_module)
 set(config_module_list)
 
+# Find Python
+# If using catkin, Python 2 is found since it points
+# to the Python libs installed with the ROS distro
+if (NOT CATKIN_DEVEL_PREFIX)
+	find_package(PythonInterp 3)
+	# We have a custom error message to tell users how to install python3.
+	if (NOT PYTHONINTERP_FOUND)
+		message(FATAL_ERROR "Python 3 not found. Please install Python 3:\n"
+			"    Ubuntu: sudo apt install python3 python3-dev python3-pip\n"
+			"    macOS: brew install python")
+	endif()
+else()
+	find_package(PythonInterp REQUIRED)
+endif()
+
+option(PYTHON_COVERAGE "Python code coverage" OFF)
+if(PYTHON_COVERAGE)
+	message(STATUS "python coverage enabled")
+	set(PYTHON_EXECUTABLE coverage run -p)
+endif()
+
 include(px4_config)
 include(kconfig)
 message(STATUS "PX4 config: ${PX4_CONFIG}")
@@ -281,27 +302,6 @@ if (CATKIN_DEVEL_PREFIX)
 	else()
 		message(FATAL_ERROR "catkin not found")
 	endif()
-endif()
-
-# Python
-# If using catkin, Python 2 is found since it points
-# to the Python libs installed with the ROS distro
-if (NOT CATKIN_DEVEL_PREFIX)
-	find_package(PythonInterp 3)
-	# We have a custom error message to tell users how to install python3.
-	if (NOT PYTHONINTERP_FOUND)
-		message(FATAL_ERROR "Python 3 not found. Please install Python 3:\n"
-			"    Ubuntu: sudo apt install python3 python3-dev python3-pip\n"
-			"    macOS: brew install python")
-	endif()
-else()
-	find_package(PythonInterp REQUIRED)
-endif()
-
-option(PYTHON_COVERAGE "Python code coverage" OFF)
-if(PYTHON_COVERAGE)
-	message(STATUS "python coverage enabled")
-	set(PYTHON_EXECUTABLE coverage run -p)
 endif()
 
 #=============================================================================
