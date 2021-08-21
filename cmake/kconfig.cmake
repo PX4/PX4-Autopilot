@@ -1,15 +1,16 @@
 set(BOARD_DEFCONFIG ${PX4_CONFIG_FILE} CACHE FILEPATH "path to defconfig" FORCE)
 set(BOARD_CONFIG ${PX4_BINARY_DIR}/boardconfig CACHE FILEPATH "path to config" FORCE)
 
-find_program(MENUCONFIG_PATH menuconfig)
-find_program(GUICONFIG_PATH guiconfig)
-find_program(DEFCONFIG_PATH defconfig)
-find_program(SAVEDEFCONFIG_PATH savedefconfig)
-if(NOT MENUCONFIG_PATH OR NOT GUICONFIG_PATH OR NOT DEFCONFIG_PATH OR NOT SAVEDEFCONFIG_PATH)
-    message(STATUS "kconfiglib is not installed\n"
+execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "import menuconfig" RESULT_VARIABLE ret)
+if(ret EQUAL "1")
+    message(FATAL_ERROR "kconfiglib is not installed or not in PATH\n"
                         "please install using \"pip3 install kconfiglib\"\n")
 endif()
 
+set(MENUCONFIG_PATH ${PYTHON_EXECUTABLE} -m menuconfig CACHE INTERNAL "menuconfig program" FORCE)
+set(GUICONFIG_PATH ${PYTHON_EXECUTABLE} -m guiconfig CACHE INTERNAL "guiconfig program" FORCE)
+set(DEFCONFIG_PATH ${PYTHON_EXECUTABLE} -m defconfig CACHE INTERNAL "defconfig program" FORCE)
+set(SAVEDEFCONFIG_PATH ${PYTHON_EXECUTABLE} -m savedefconfig CACHE INTERNAL "savedefconfig program" FORCE)
 
 set(COMMON_KCONFIG_ENV_SETTINGS
 	PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
