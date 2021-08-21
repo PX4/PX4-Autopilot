@@ -28,23 +28,27 @@ Matrix<Type, N, M> geninv(const Matrix<Type, M, N> & G)
         SquareMatrix<Type, M> A = G * G.transpose();
         SquareMatrix<Type, M> L = fullRankCholesky(A, rank);
 
-        SquareMatrix<Type, M> LtL = L.transpose() * L;
+        A = L.transpose() * L;
         SquareMatrix<Type, M> X;
-        if (!inv(LtL, X, rank)) {
+        if (!inv(A, X, rank)) {
             return Matrix<Type, N, M>(); // LCOV_EXCL_LINE -- this can only be hit from numerical issues
         }
-        return G.transpose() * L * X * X * L.transpose();
+        // doing an intermediate assignment reduces stack usage
+        A = X * X * L.transpose();
+        return G.transpose() * (L * A);
 
     } else {
         SquareMatrix<Type, N> A = G.transpose() * G;
         SquareMatrix<Type, N> L = fullRankCholesky(A, rank);
 
-        SquareMatrix<Type, N> LtL = L.transpose() * L;
+        A = L.transpose() * L;
         SquareMatrix<Type, N> X;
-        if(!inv(LtL, X, rank)) {
+        if(!inv(A, X, rank)) {
             return Matrix<Type, N, M>(); // LCOV_EXCL_LINE -- this can only be hit from numerical issues
         }
-        return L * X * X * L.transpose() * G.transpose();
+        // doing an intermediate assignment reduces stack usage
+        A = X * X * L.transpose();
+        return (L * A) * G.transpose();
     }
 }
 
