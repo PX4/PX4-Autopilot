@@ -1506,7 +1506,7 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 
 		radio_status_s status{};
 
-		status.timestamp = hrt_absolute_time();
+		hrt_store_absolute_time(&status.timestamp);
 		status.rssi = rstatus.rssi;
 		status.remote_rssi = rstatus.remrssi;
 		status.txbuf = rstatus.txbuf;
