@@ -50,7 +50,7 @@ px4_add_board(
 		roboclaw
 		rpm
 		safety_button
-		smart_battery/batmon
+		#smart_battery/batmon
 		telemetry # all available telemetry drivers
 		tone_alarm
 		uavcan
