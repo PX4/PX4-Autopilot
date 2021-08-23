@@ -168,6 +168,7 @@ px4_add_module(
 		sensors/battery.cpp
 		sensors/airspeed.cpp
 		sensors/flow.cpp
+		sensors/fuel_tank_status.cpp
 		sensors/gnss_relative.cpp
 		sensors/gnss.cpp
 		sensors/mag.cpp

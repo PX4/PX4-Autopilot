@@ -293,6 +293,17 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_DPRES, 0);
 PARAM_DEFINE_INT32(UAVCAN_SUB_FLOW, 0);
 
 /**
+ * subscription fuel tank
+ *
+ * Enable UAVCAN fuel tank subscription.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_SUB_FUEL, 0);
+
+/**
  * subscription GPS
  *
  * Enable UAVCAN GPS subscriptions.
