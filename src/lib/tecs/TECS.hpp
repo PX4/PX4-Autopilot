@@ -41,7 +41,13 @@
 
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
-#include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <lib/ecl/AlphaFilter/AlphaFilter.hpp>
+
+#include <uORB/Publication.hpp>
+#include <uORB/topics/tecs_status.h>
+#include <uORB/uORB.h>
+#include <motion_planning/VelocitySmoothing.hpp>
+#include <flight_mode_manager/tasks/Utility/ManualVelocitySmoothingZ.hpp>
 
 class TECS
 {
@@ -312,14 +318,8 @@ private:
 	/**
 	 * Calculate desired height rate from altitude demand
 	 */
-	void updateHeightRateSetpoint(float alt_sp_amsl_m, float target_climbrate_m_s, float target_sinkrate_m_s,
-				      float alt_amsl);
-
-
-	/**
-	 * Update the desired height rate setpoint
-	 */
-	void _update_height_rate_setpoint(float hgt_rate_sp);
+	void runAltitudeControllerSmoothVelocity(float alt_sp_amsl_m, float target_climbrate_m_s, float target_sinkrate_m_s,
+			float alt_amsl);
 
 	/**
 	 * Detect if the system is not capable of maintaining airspeed
@@ -346,6 +346,13 @@ private:
 	 */
 	void _update_pitch_setpoint();
 
+	void _updateTrajectoryGenerationConstraints();
+
+	void _updateFlightPhase(float altitude_sp_amsl, float height_rate_setpoint);
+
+	void _calculateHeightRateSetpoint(float altitude_sp_amsl, float height_rate_sp, float target_climbrate,
+					  float target_sinkrate, float altitude_amsl);
+
 	/**
 	 * Initialize the controller
 	 */
@@ -362,5 +369,10 @@ private:
 	AlphaFilter<float> _STE_rate_error_filter;
 
 	AlphaFilter<float> _TAS_rate_filter;
+
+	VelocitySmoothing
+	_alt_control_traj_generator;	// generates height rate and altitude setpoint trajectory when altitude is commanded
+	ManualVelocitySmoothingZ
+	_velocity_control_traj_generator;	// generates height rate and altitude setpoint trajectory when height rate is commanded
 
 };
