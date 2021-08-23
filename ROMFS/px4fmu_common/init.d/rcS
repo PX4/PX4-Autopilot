@@ -332,6 +332,8 @@ else
 		#
 		# board sensors: rc.sensors
 		#
+		. ${R}etc/init.d/rc.sensors
+
 		set BOARD_RC_SENSORS ${R}etc/init.d/rc.board_sensors
 		if [ -f $BOARD_RC_SENSORS ]
 		then
@@ -340,7 +342,7 @@ else
 		fi
 		unset BOARD_RC_SENSORS
 
-		. ${R}etc/init.d/rc.sensors
+		sensors start
 
 		if param compare -s BAT1_SOURCE 2
 		then
