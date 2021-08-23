@@ -69,8 +69,43 @@ ver all
 #
 # Try to mount the microSD card.
 #
+set SDCARD_AVAILABLE no
 # REBOOTWORK this needs to start after the flight control loop.
 if mount -t vfat /dev/mmcsd0 /fs/microsd
+then
+	set PX4_INIT_TEST_FILE "/fs/microsd/.px4_init_test_file"
+	date >> $PX4_INIT_TEST_FILE
+
+	if [ -f $PX4_INIT_TEST_FILE ]
+	then
+		cat $PX4_INIT_TEST_FILE
+		rm $PX4_INIT_TEST_FILE
+
+		if [ ! -f $PX4_INIT_TEST_FILE ]
+		then
+			set SDCARD_AVAILABLE yes
+		fi
+	fi
+fi
+
+if [ $SDCARD_AVAILABLE = no ]
+then
+	set STARTUP_TUNE 14 # tune 14 = SD_INIT
+	if mkfatfs -F 32 /dev/mmcsd0
+	then
+		if mount -t vfat /dev/mmcsd0 /fs/microsd
+		then
+			set SDCARD_AVAILABLE yes
+			echo "INFO [init] card formatted"
+
+		else
+			set STARTUP_TUNE 15 # tune 15 = SD_ERROR
+			echo "ERROR [init] format failed"
+		fi
+	fi
+fi
+
+if [ $SDCARD_AVAILABLE = yes ]
 then
 	if hardfault_log check
 	then
@@ -81,20 +116,8 @@ then
 			hardfault_log reset
 		fi
 	fi
-else
-	# tune SD_INIT
-	set STARTUP_TUNE 14 # tune 14 = SD_INIT
-	if mkfatfs /dev/mmcsd0
-	then
-		if mount -t vfat /dev/mmcsd0 /fs/microsd
-		then
-			echo "INFO [init] card formatted"
-		else
-			set STARTUP_TUNE 15 # tune 15 = SD_ERROR
-			echo "ERROR [init] format failed"
-		fi
-	fi
 fi
+unset SDCARD_AVAILABLE
 
 #
 # Look for an init script on the microSD card.

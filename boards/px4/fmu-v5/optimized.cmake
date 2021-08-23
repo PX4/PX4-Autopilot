@@ -21,8 +21,8 @@ px4_add_board(
 		adc/ads1115
 		adc/board_adc
 		barometer # all available barometer drivers
-		batt_smbus
-		camera_capture
+		#batt_smbus
+		#camera_capture
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
