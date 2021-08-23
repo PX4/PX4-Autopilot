@@ -173,8 +173,8 @@ void Accelerometer::ParametersUpdate()
 
 		if (_external) {
 			if ((rotation_value >= ROTATION_MAX) || (rotation_value < 0)) {
-				PX4_ERR("External %s %" PRIu32 " (%" PRId8 ") invalid rotation %" PRId32 ", resetting to rotation none",
-					SensorString(), _device_id, _calibration_index, rotation_value);
+				PX4_WARN("External %s %" PRIu32 " (%" PRId8 ") invalid rotation %" PRId32 ", resetting to rotation none",
+					 SensorString(), _device_id, _calibration_index, rotation_value);
 				rotation_value = ROTATION_NONE;
 				SetCalibrationParam(SensorString(), "ROT", _calibration_index, rotation_value);
 			}
