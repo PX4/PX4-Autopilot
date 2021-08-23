@@ -39,7 +39,7 @@ def do_test(port, baudrate, test_name):
     ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0.2, xonxoff=True, rtscts=False, dsrdtr=False)
 
     timeout_start = time.time()
-    timeout = 10  # 10 seconds
+    timeout = 30  # 30 seconds
 
     # wait for nsh prompt
     while True:
