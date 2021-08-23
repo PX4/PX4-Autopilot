@@ -58,6 +58,9 @@
 #  define BL_FILE_SIZE_LIMIT	128*1024
 #  define STM_RAM_BASE        STM32_AXISRAM_BASE
 #  define PAGE_SIZE_MATTERS   1
+#elif defined(CONFIG_ARCH_CHIP_STM32F7)
+#  define BL_FILE_SIZE_LIMIT	32*1024
+#  define STM_RAM_BASE        STM32_SRAM_BASE
 #else
 #  define BL_FILE_SIZE_LIMIT  16384
 #  define STM_RAM_BASE        STM32_SRAM_BASE
