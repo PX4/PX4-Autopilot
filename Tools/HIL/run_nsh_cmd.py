@@ -37,7 +37,7 @@ def do_nsh_cmd(port, baudrate, cmd):
     ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0.2, xonxoff=True, rtscts=False, dsrdtr=False)
 
     timeout_start = time.time()
-    timeout = 10  # 10 seconds
+    timeout = 30  # 30 seconds
 
     # wait for nsh prompt
     while True:
@@ -90,13 +90,19 @@ def do_nsh_cmd(port, baudrate, cmd):
     timeout_start = time.time()
     timeout = 180 # 3 minutes
 
+    return_code = 0
+
     while True:
         serial_line = ser.readline().decode("ascii", errors='ignore')
 
         if success_cmd in serial_line:
+            sys.exit(return_code)
             break
         else:
             if len(serial_line) > 0:
+                if "ERROR " in serial_line:
+                    return_code = -1
+
                 print_line(serial_line)
 
             if "nsh>" in serial_line:

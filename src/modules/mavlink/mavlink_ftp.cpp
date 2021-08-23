@@ -560,7 +560,7 @@ MavlinkFTP::_workRead(PayloadHeader *payload)
 
 	// We have to test seek past EOF ourselves, lseek will allow seek past EOF
 	if (payload->offset >= _session_info.file_size) {
-		PX4_ERR("request past EOF");
+		PX4_WARN("request past EOF");
 		return kErrEOF;
 	}
 
