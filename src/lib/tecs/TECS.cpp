@@ -174,38 +174,27 @@ void TECS::_update_speed_setpoint()
 
 }
 
-void TECS::updateHeightRateSetpoint(float alt_sp_amsl_m, float target_climbrate_m_s, float target_sinkrate_m_s,
-				    float alt_amsl)
+void TECS::runAltitudeControllerSmoothVelocity(float alt_sp_amsl_m, float target_climbrate_m_s,
+		float target_sinkrate_m_s,
+		float alt_amsl)
 {
 	target_climbrate_m_s = math::min(target_climbrate_m_s, _max_climb_rate);
 	target_sinkrate_m_s = math::min(target_sinkrate_m_s, _max_sink_rate);
 
-	float feedforward_height_rate = 0.0f;
+	const float altitude_error_m = alt_sp_amsl_m - _alt_control_traj_generator.getCurrentPosition();
 
-	if (fabsf(alt_sp_amsl_m - _hgt_setpoint) < math::max(target_sinkrate_m_s, target_climbrate_m_s) * _dt) {
-		_hgt_setpoint = alt_sp_amsl_m;
+	float height_rate_target = math::signNoZero<float>(altitude_error_m) * math::trajectory::computeMaxSpeedFromDistance(
+					   1000, _vert_accel_limit, fabsf(altitude_error_m), 0.0f);
 
-	} else if (alt_sp_amsl_m > _hgt_setpoint) {
-		_hgt_setpoint += target_climbrate_m_s * _dt;
-		feedforward_height_rate = target_climbrate_m_s;
+	height_rate_target = math::constrain(height_rate_target, -target_sinkrate_m_s, target_climbrate_m_s);
 
-	} else if (alt_sp_amsl_m < _hgt_setpoint) {
-		_hgt_setpoint -= target_sinkrate_m_s * _dt;
-		feedforward_height_rate = -target_sinkrate_m_s;
-	}
+	_alt_control_traj_generator.updateDurations(height_rate_target);
+	_alt_control_traj_generator.updateTraj(_dt);
 
-	// Use a first order system to calculate a height rate setpoint from the current height error.
-	// Additionally, allow to add feedforward from heigh setpoint change
+	_hgt_setpoint = _alt_control_traj_generator.getCurrentPosition();
 	_hgt_rate_setpoint = (_hgt_setpoint - alt_amsl) * _height_error_gain + _height_setpoint_gain_ff *
-			     feedforward_height_rate;
+			     _alt_control_traj_generator.getCurrentVelocity();
 	_hgt_rate_setpoint = math::constrain(_hgt_rate_setpoint, -_max_sink_rate, _max_climb_rate);
-}
-
-void TECS::_update_height_rate_setpoint(float hgt_rate_sp)
-{
-	// Limit the rate of change of height demand to respect vehicle performance limits
-	_hgt_rate_setpoint = math::constrain(hgt_rate_sp, -_max_sink_rate, _max_climb_rate);
-	_hgt_setpoint = _vert_pos_state;
 }
 
 void TECS::_detect_underspeed()
@@ -449,6 +438,49 @@ void TECS::_update_pitch_setpoint()
 					 _last_pitch_setpoint + ptchRateIncr);
 }
 
+void TECS::_updateTrajectoryGenerationConstraints()
+{
+	_alt_control_traj_generator.setMaxJerk(1000.0f);	// we want infinite jerk, so just set a high value
+	_alt_control_traj_generator.setMaxAccel(_vert_accel_limit);
+	_alt_control_traj_generator.setMaxVel(_max_climb_rate);
+
+	_velocity_control_traj_generator.setMaxJerk(1000.0f);	// we want infinite jerk, so just set a high value
+	_velocity_control_traj_generator.setMaxAccelUp(_vert_accel_limit);
+	_velocity_control_traj_generator.setMaxAccelDown(_vert_accel_limit);
+	_velocity_control_traj_generator.setMaxVelUp(_max_climb_rate);
+	_velocity_control_traj_generator.setMaxVelDown(_max_sink_rate);
+}
+
+void TECS::_calculateHeightRateSetpoint(float altitude_sp_amsl, float height_rate_sp, float target_climbrate,
+					float target_sinkrate, float altitude_amsl)
+{
+	bool control_altitude = true;
+	const bool input_is_height_rate = PX4_ISFINITE(height_rate_sp);
+
+	if (input_is_height_rate) {
+		_velocity_control_traj_generator.setCurrentPositionEstimate(altitude_amsl);
+		_velocity_control_traj_generator.update(_dt, height_rate_sp);
+		_hgt_rate_setpoint = _velocity_control_traj_generator.getCurrentVelocity();
+		altitude_sp_amsl = _velocity_control_traj_generator.getCurrentPosition();
+		control_altitude = PX4_ISFINITE(altitude_sp_amsl);
+
+	} else {
+		_velocity_control_traj_generator.reset(0, _hgt_rate_setpoint, _hgt_setpoint);
+		_velocity_control_traj_generator.setVelSpFeedback(_hgt_rate_setpoint);
+	}
+
+
+	if (control_altitude) {
+		runAltitudeControllerSmoothVelocity(altitude_sp_amsl, target_climbrate, target_sinkrate, altitude_amsl);
+		_velocity_control_traj_generator.setVelSpFeedback(_hgt_rate_setpoint);
+
+	} else {
+		_alt_control_traj_generator.setCurrentVelocity(_hgt_rate_setpoint);
+		_alt_control_traj_generator.setCurrentPosition(altitude_amsl);
+		_hgt_setpoint = altitude_amsl;
+	}
+}
+
 void TECS::_initialize_states(float pitch, float throttle_cruise, float baro_altitude, float pitch_min_climbout,
 			      float EAS2TAS)
 {
@@ -464,16 +496,20 @@ void TECS::_initialize_states(float pitch, float throttle_cruise, float baro_alt
 		_last_throttle_setpoint = (_in_air ? throttle_cruise : 0.0f);;
 		_last_pitch_setpoint = constrain(pitch, _pitch_setpoint_min, _pitch_setpoint_max);
 		_pitch_setpoint_unc = _last_pitch_setpoint;
-		_hgt_setpoint = baro_altitude;
 		_TAS_setpoint_last = _EAS * EAS2TAS;
 		_TAS_setpoint_adj = _TAS_setpoint_last;
 		_underspeed_detected = false;
 		_uncommanded_descent_recovery = false;
 		_STE_rate_error = 0.0f;
+		_hgt_setpoint = baro_altitude;
 
 		if (_dt > DT_MAX || _dt < DT_MIN) {
 			_dt = DT_DEFAULT;
 		}
+
+		_alt_control_traj_generator.reset(0, 0, baro_altitude);
+		_velocity_control_traj_generator.reset(0.0f, 0.0f, baro_altitude);
+
 
 	} else if (_climbout_mode_active) {
 		// During climbout use the lower pitch angle limit specified by the
@@ -538,6 +574,8 @@ void TECS::update_pitch_throttle(float pitch, float baro_altitude, float hgt_set
 		return;
 	}
 
+	_updateTrajectoryGenerationConstraints();
+
 	// Update the true airspeed state estimate
 	_update_speed_states(EAS_setpoint, equivalent_airspeed, eas_to_tas);
 
@@ -555,14 +593,7 @@ void TECS::update_pitch_throttle(float pitch, float baro_altitude, float hgt_set
 	// Calculate the demanded true airspeed
 	_update_speed_setpoint();
 
-	if (PX4_ISFINITE(hgt_rate_sp)) {
-		// use the provided height rate setpoint instead of the height setpoint
-		_update_height_rate_setpoint(hgt_rate_sp);
-
-	} else {
-		// calculate heigh rate setpoint based on altitude demand
-		updateHeightRateSetpoint(hgt_setpoint, target_climbrate, target_sinkrate, baro_altitude);
-	}
+	_calculateHeightRateSetpoint(hgt_setpoint, hgt_rate_sp, target_climbrate, target_sinkrate, baro_altitude);
 
 	// Calculate the specific energy values required by the control loop
 	_update_energy_estimates();
