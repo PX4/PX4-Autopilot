@@ -81,7 +81,7 @@ using namespace time_literals;
 // Publishers for received messages
 struct RcvTopicsPubs {
 @[    for idx, topic in enumerate(recv_topics)]@
-	uORB::PublicationMulti <@(receive_base_types[idx])_s> @(topic)_pub{ORB_ID(@(topic))};
+	uORB::Publication <@(receive_base_types[idx])_s> @(topic)_pub{ORB_ID(@(topic))};
 @[    end for]@
 };
 @[end if]@

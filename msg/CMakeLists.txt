@@ -119,8 +119,6 @@ set(msg_files
 	power_monitor.msg
 	pwm_input.msg
 	px4io_status.msg
-	qshell_req.msg
-	qshell_retval.msg
 	radio_status.msg
 	rate_ctrl_status.msg
 	rc_channels.msg

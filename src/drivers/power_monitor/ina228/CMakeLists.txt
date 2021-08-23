@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016, 2018 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,49 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-if("${PX4_BOARD_LABEL}" STREQUAL  "canbootloader")
-
-	add_library(drivers_board
-		can_boot.c
-		led.cpp
-		clockconfig.c
-		periphclocks.c
-		timer_config.cpp
+px4_add_module(
+	MODULE drivers__ina228
+	MAIN ina228
+	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
+	SRCS
+		ina228_main.cpp
+		ina228.cpp
+	DEPENDS
+		battery
+		px4_work_queue
 	)
-
-	target_link_libraries(drivers_board
-		PRIVATE
-			nuttx_arch
-			nuttx_drivers
-			canbootloader
-			arch_io_pins
-			arch_led_pwm
-	)
-	target_include_directories(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/canbootloader)
-
-else()
-
-	add_library(drivers_board
-		autoleds.c
-		boot.c
-		bringup.c
-		buttons.c
-		clockconfig.c
-		i2c.cpp
-		init.c
-		mtd.cpp
-		periphclocks.c
-		spi.c
-		timer_config.cpp
-		userleds.c
-	)
-
-	target_link_libraries(drivers_board
-		PRIVATE
-			nuttx_arch # sdio
-			nuttx_drivers # sdio
-			drivers__led # drv_led_start
-			px4_layer
-			arch_io_pins
-		)
-endif()

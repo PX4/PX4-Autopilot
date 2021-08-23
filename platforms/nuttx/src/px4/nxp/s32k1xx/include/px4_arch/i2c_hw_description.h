@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,47 +30,23 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#pragma once
 
-/**
- * Enable INA226 Power Monitor
- *
- * For systems a INA226 Power Monitor, this should be set to true
- *
- * @group Sensors
- * @boolean
- * @reboot_required true
-*/
-PARAM_DEFINE_INT32(SENS_EN_INA226, 0);
+#include <px4_arch/hw_description.h>
+#include <px4_platform_common/i2c.h>
 
-/**
- * INA226 Power Monitor Config
- *
- * @group Sensors
- * @min 0
- * @max 65535
- * @decimal 1
- * @increment 1
-*/
-PARAM_DEFINE_INT32(INA226_CONFIG, 18139);
+static inline constexpr px4_i2c_bus_t initI2CBusInternal(int bus)
+{
+	px4_i2c_bus_t ret{};
+	ret.bus = bus;
+	ret.is_external = false;
+	return ret;
+}
 
-/**
- * INA226 Power Monitor Max Current
- *
- * @group Sensors
- * @min 0.1
- * @max 200.0
- * @decimal 2
- * @increment 0.1
- */
-PARAM_DEFINE_FLOAT(INA226_CURRENT, 164.0f);
-
-/**
- * INA226 Power Monitor Shunt
- *
- * @group Sensors
- * @min 0.000000001
- * @max 0.1
- * @decimal 10
- * @increment .000000001
- */
-PARAM_DEFINE_FLOAT(INA226_SHUNT, 0.0005f);
+static inline constexpr px4_i2c_bus_t initI2CBusExternal(int bus)
+{
+	px4_i2c_bus_t ret{};
+	ret.bus = bus;
+	ret.is_external = true;
+	return ret;
+}

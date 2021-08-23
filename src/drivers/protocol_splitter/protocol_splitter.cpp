@@ -160,9 +160,15 @@ int ReadBuffer::read(int fd)
 		PX4_DEBUG("Buffer full: %zu %zu %zu %zu", start_mavlink, end_mavlink, start_rtps, end_rtps);
 	}
 
-	int r = ::read(fd, buffer + buf_size, sizeof(buffer) - buf_size);
+	int bytes_available = 0;
+	int err = ::ioctl(fd, FIONREAD, (unsigned long)&bytes_available);
+	ssize_t r = 0;
 
-	if (r < 0) {
+	if (err != 0 || bytes_available > 0) {
+		r = ::read(fd, buffer + buf_size, sizeof(buffer) - buf_size);
+	}
+
+	if (r <= 0) {
 		return r;
 	}
 
@@ -283,13 +289,6 @@ protected:
 
 	Sp2Header _header;
 
-	uint16_t _packet_len;
-	enum class ParserState : uint8_t {
-		Idle = 0,
-		GotLength
-	};
-	ParserState _parser_state = ParserState::Idle;
-
 	ReadBuffer *_read_buffer;
 };
 
@@ -310,11 +309,19 @@ DevCommon::~DevCommon()
 
 int DevCommon::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
-	// pretend we have enough space left to write, so mavlink will not drop data and throw off
-	// our parsing state
 	if (cmd == FIONSPACE) {
-		*(int *)arg = 1024;
-		return 0;
+		int ret = ::ioctl(_fd, FIONSPACE, arg);
+
+		if (ret == 0) {
+			int *buf_free = (int *)arg;
+			*buf_free -= sizeof(_header);
+
+			if (*buf_free < 0) {
+				*buf_free = 0;
+			}
+		}
+
+		return ret;
 	}
 
 	return ::ioctl(_fd, cmd, arg);
@@ -358,7 +365,7 @@ pollevent_t DevCommon::poll_state(struct file *filp)
 	 * the _fd in here or by overriding some other method.
 	 */
 
-	::poll(fds, sizeof(fds) / sizeof(fds[0]), 100);
+	::poll(fds, sizeof(fds) / sizeof(fds[0]), 10);
 
 	return POLLIN;
 }
@@ -366,7 +373,7 @@ pollevent_t DevCommon::poll_state(struct file *filp)
 int DevCommon::try_to_copy_data(char *buffer, size_t buflen, MessageType message_type)
 {
 	if (buflen == 0) {
-		return -1;
+		return 0;
 	}
 
 	switch (message_type) {
@@ -398,7 +405,7 @@ int DevCommon::try_to_copy_data(char *buffer, size_t buflen, MessageType message
 			return len_to_copy;
 
 		} else {
-			return -1;
+			return 0;
 		}
 
 	case MessageType::Rtps:
@@ -429,14 +436,14 @@ int DevCommon::try_to_copy_data(char *buffer, size_t buflen, MessageType message
 			return len_to_copy;
 
 		} else {
-			return -1;
+			return 0;
 		}
 
 		break;
 
 
 	default:
-		return -1;
+		return 0;
 	}
 }
 
@@ -640,71 +647,23 @@ ssize_t Mavlink2Dev::read(struct file *filp, char *buffer, size_t buflen)
 
 ssize_t Mavlink2Dev::write(struct file *filp, const char *buffer, size_t buflen)
 {
-	/*
-	 * we need to look into the data to make sure the output is locked for the duration
-	 * of a whole packet.
-	 * assumptions:
-	 * - packet header is written all at once (or at least it contains the payload length)
-	 * - a single write call does not contain multiple (or parts of multiple) packets
-	 */
-	ssize_t ret = 0;
+	_header.fields.len_h = (buflen >> 8) & 0x7f;
+	_header.fields.len_l = buflen & 0xff;
+	_header.fields.checksum = _header.bytes[0] ^ _header.bytes[1] ^ _header.bytes[2];
+	lock(Write);
+	int buf_free = 0;
+	::ioctl(_fd, FIONSPACE, (unsigned long)&buf_free);
+	ssize_t ret = -1;
 
-	switch (_parser_state) {
-	case ParserState::Idle:
-		ASSERT(buflen >= 3);
+	if ((size_t)buf_free >= sizeof(_header) + buflen) {
+		ret = ::write(_fd, _header.bytes, sizeof(_header));
 
-		if ((unsigned char)buffer[0] == 253) {
-			uint8_t payload_len = buffer[1];
-			uint8_t incompat_flags = buffer[2];
-			_packet_len = payload_len + 12;
-
-			if (incompat_flags & 0x1) { //signing
-				_packet_len += 13;
-			}
-
-			_parser_state = ParserState::GotLength;
-			lock(Write);
-
-		} else if ((unsigned char)buffer[0] == 254) { // mavlink 1
-			uint8_t payload_len = buffer[1];
-			_packet_len = payload_len + 8;
-
-			_parser_state = ParserState::GotLength;
-			lock(Write);
-
-		} else {
-			PX4_ERR("parser error");
-			return 0;
+		if (ret == sizeof(_header)) {
+			ret = ::write(_fd, buffer, buflen);
 		}
-
-	/* FALLTHROUGH */
-
-	case ParserState::GotLength: {
-			_packet_len -= buflen;
-			int buf_free;
-			::ioctl(_fd, FIONSPACE, (unsigned long)&buf_free);
-
-			if (buf_free < (int)buflen) {
-				//let write fail, to let mavlink know the buffer would overflow
-				//(this is because in the ioctl we pretend there is always enough space)
-				ret = -1;
-
-			} else {
-				_header.fields.len_h = (buflen >> 8) & 0x7f;
-				_header.fields.len_l = buflen & 0xff;
-				_header.fields.checksum = _header.bytes[0] ^ _header.bytes[1] ^ _header.bytes[2];
-				::write(_fd, _header.bytes, 4);
-				ret = ::write(_fd, buffer, buflen);
-			}
-
-			if (_packet_len == 0) {
-				unlock(Write);
-				_parser_state = ParserState::Idle;
-			}
-		}
-
-		break;
 	}
+
+	unlock(Write);
 
 	return ret;
 }
@@ -769,59 +728,23 @@ ssize_t RtpsDev::read(struct file *filp, char *buffer, size_t buflen)
 
 ssize_t RtpsDev::write(struct file *filp, const char *buffer, size_t buflen)
 {
-	/*
-	 * we need to look into the data to make sure the output is locked for the duration
-	 * of a whole packet.
-	 * assumptions:
-	 * - packet header is written all at once (or at least it contains the payload length)
-	 * - a single write call does not contain multiple (or parts of multiple) packets
-	 */
-	ssize_t ret = 0;
-	uint16_t payload_len;
+	_header.fields.len_h = (buflen >> 8) & 0x7f;
+	_header.fields.len_l = buflen & 0xff;
+	_header.fields.checksum = _header.bytes[0] ^ _header.bytes[1] ^ _header.bytes[2];
+	lock(Write);
+	int buf_free = 0;
+	ssize_t ret = -1;
+	::ioctl(_fd, FIONSPACE, (unsigned long)&buf_free);
 
-	switch (_parser_state) {
-	case ParserState::Idle:
-		ASSERT(buflen >= HEADER_SIZE);
+	if ((size_t)buf_free >= sizeof(_header) + buflen) {
+		ret = ::write(_fd, _header.bytes, sizeof(_header));
 
-		if (memcmp(buffer, ">>>", 3) != 0) {
-			PX4_ERR("parser error");
-			return 0;
+		if (ret == sizeof(_header)) {
+			ret = ::write(_fd, buffer, buflen);
 		}
-
-		payload_len = ((uint16_t)buffer[6] << 8) | buffer[7];
-		_packet_len = payload_len + HEADER_SIZE;
-		_parser_state = ParserState::GotLength;
-		lock(Write);
-
-	/* FALLTHROUGH */
-
-	case ParserState::GotLength: {
-			_packet_len -= buflen;
-			int buf_free;
-			::ioctl(_fd, FIONSPACE, (unsigned long)&buf_free);
-
-			// TODO should I care about this for rtps?
-			if ((unsigned)buf_free < buflen) {
-				//let write fail, to let rtps know the buffer would overflow
-				//(this is because in the ioctl we pretend there is always enough space)
-				ret = -1;
-
-			} else {
-				_header.fields.len_h = (buflen >> 8) & 0x7f;
-				_header.fields.len_l = buflen & 0xff;
-				_header.fields.checksum = _header.bytes[0] ^ _header.bytes[1] ^ _header.bytes[2];
-				::write(_fd, _header.bytes, 4);
-				ret = ::write(_fd, buffer, buflen);
-			}
-
-			if (_packet_len == 0) {
-				unlock(Write);
-				_parser_state = ParserState::Idle;
-			}
-		}
-
-		break;
 	}
+
+	unlock(Write);
 
 	return ret;
 }

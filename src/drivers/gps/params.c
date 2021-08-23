@@ -127,6 +127,7 @@ PARAM_DEFINE_FLOAT(GPS_YAW_OFFSET, 0.f);
  * @value 3 Ashtech / Trimble
  * @value 4 Emlid Reach
  * @value 5 Femtomes
+ * @value 6 NMEA (generic)
  *
  * @reboot_required true
  * @group GPS
@@ -148,6 +149,7 @@ PARAM_DEFINE_INT32(GPS_1_PROTOCOL, 1);
  * @value 3 Ashtech / Trimble
  * @value 4 Emlid Reach
  * @value 5 Femtomes
+ * @value 6 NMEA (generic)
  *
  * @reboot_required true
  * @group GPS

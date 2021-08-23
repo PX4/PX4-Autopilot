@@ -1768,7 +1768,7 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 				_param_ekf2_mag_decl.set(declination_deg);
 				_mag_decl_saved = true;
 
-				if (!_multi_mode) {
+				if (!_multi_mode || (_multi_mode && _instance == 0)) {
 					_param_ekf2_mag_decl.commit_no_notification();
 				}
 			}

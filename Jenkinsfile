@@ -143,13 +143,13 @@ pipeline {
           }
         }
 
-        stage('msg files') {
+        stage('msg file docs') {
           agent {
             docker { image 'px4io/px4-dev-base-focal:2021-05-04' }
           }
           steps {
-            sh './msg/tools/generate_msg_docs.py -d /tmp/msg_docs'
-            dir('/tmp') {
+            sh 'mkdir -p build/msg_docs; ./msg/tools/generate_msg_docs.py -d build/msg_docs'
+            dir('build') {
               archiveArtifacts(artifacts: 'msg_docs/*.md')
               stash includes: 'msg_docs/*.md', name: 'msg_documentation'
             }
@@ -323,7 +323,7 @@ pipeline {
             withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
               sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_ros_com.git -b ${BRANCH_NAME}")
               // deploy uORB RTPS ID map
-              sh('./msg/tools/uorb_to_ros_rtps_ids.py -i msg/tools/urtps_bridge_topics.yaml -o px4_ros_com/templates/urtps_bridge_topics.yaml')
+              sh('./msg/tools/uorb_to_ros_urtps_topics.py -i msg/tools/urtps_bridge_topics.yaml -o px4_ros_com/templates/urtps_bridge_topics.yaml')
               sh('cd px4_ros_com; git status; git add .; git commit -a -m "Update uORB RTPS ID map `date`" || true')
               sh('cd px4_ros_com; git push origin ${BRANCH_NAME} || true')
               // deploy uORB RTPS required tools

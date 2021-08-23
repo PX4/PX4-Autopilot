@@ -254,6 +254,8 @@ int VL53L1X::probe()
 		return -EIO;
 	}
 
+	_retries = 1;
+
 	return PX4_OK;
 }
 
@@ -531,20 +533,14 @@ int8_t VL53L1X::VL53L1X_StopRanging()
 
 int8_t VL53L1X::VL53L1X_SetROI(uint16_t x, uint16_t y)
 {
-	int status = 0;
-
-	status = VL53L1_WrByte(ROI_CONFIG__USER_ROI_REQUESTED_GLOBAL_XY_SIZE,
-			       (y - 1) << 4 | (x - 1));     /* set ROI size x and y */
-
-	return status;
+	// set ROI size x and y
+	return VL53L1_WrByte(ROI_CONFIG__USER_ROI_REQUESTED_GLOBAL_XY_SIZE, (y - 1) << 4 | (x - 1));
 }
 
 int8_t VL53L1X::VL53L1X_SetROICenter(uint8_t zone)
 {
-	int status = 0;
-
-	status = VL53L1_WrByte(VL53L1_ROI_CONFIG__MODE_ROI_CENTRE_SPAD, zone);    /* Set ROI spad center */
-	return status;
+	// Set ROI spad center
+	return VL53L1_WrByte(VL53L1_ROI_CONFIG__MODE_ROI_CENTRE_SPAD, zone);
 }
 
 /**

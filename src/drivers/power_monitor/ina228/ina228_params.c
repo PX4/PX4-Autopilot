@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,18 +32,18 @@
  ****************************************************************************/
 
 /**
- * Enable INA226 Power Monitor
+ * Enable INA228 Power Monitor
  *
- * For systems a INA226 Power Monitor, this should be set to true
+ * For systems a INA228 Power Monitor, this should be set to true
  *
  * @group Sensors
  * @boolean
  * @reboot_required true
 */
-PARAM_DEFINE_INT32(SENS_EN_INA226, 0);
+PARAM_DEFINE_INT32(SENS_EN_INA228, 0);
 
 /**
- * INA226 Power Monitor Config
+ * INA228 Power Monitor Config
  *
  * @group Sensors
  * @min 0
@@ -51,21 +51,21 @@ PARAM_DEFINE_INT32(SENS_EN_INA226, 0);
  * @decimal 1
  * @increment 1
 */
-PARAM_DEFINE_INT32(INA226_CONFIG, 18139);
+PARAM_DEFINE_INT32(INA228_CONFIG, 63779);
 
 /**
- * INA226 Power Monitor Max Current
+ * INA228 Power Monitor Max Current
  *
  * @group Sensors
  * @min 0.1
- * @max 200.0
+ * @max 327.68
  * @decimal 2
  * @increment 0.1
  */
-PARAM_DEFINE_FLOAT(INA226_CURRENT, 164.0f);
+PARAM_DEFINE_FLOAT(INA228_CURRENT, 327.68f);
 
 /**
- * INA226 Power Monitor Shunt
+ * INA228 Power Monitor Shunt
  *
  * @group Sensors
  * @min 0.000000001
@@ -73,4 +73,4 @@ PARAM_DEFINE_FLOAT(INA226_CURRENT, 164.0f);
  * @decimal 10
  * @increment .000000001
  */
-PARAM_DEFINE_FLOAT(INA226_SHUNT, 0.0005f);
+PARAM_DEFINE_FLOAT(INA228_SHUNT, 0.0005f);

@@ -46,6 +46,7 @@
 #endif
 
 #include <termios.h>
+#include <cstring>
 
 #include <drivers/drv_sensor.h>
 #include <lib/drivers/device/Device.hpp>
@@ -68,6 +69,7 @@
 # include "devices/src/emlid_reach.h"
 # include "devices/src/mtk.h"
 # include "devices/src/femtomes.h"
+# include "devices/src/nmea.h"
 #endif // CONSTRAINED_FLASH
 #include "devices/src/ubx.h"
 
@@ -85,7 +87,8 @@ enum class gps_driver_mode_t {
 	MTK,
 	ASHTECH,
 	EMLIDREACH,
-	FEMTOMES
+	FEMTOMES,
+	NMEA
 };
 
 enum class gps_dump_comm_mode_t : int32_t {
@@ -319,6 +322,10 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 		case 3: _mode = gps_driver_mode_t::ASHTECH; break;
 
 		case 4: _mode = gps_driver_mode_t::EMLIDREACH; break;
+
+		case 5: _mode = gps_driver_mode_t::FEMTOMES; break;
+
+		case 6: _mode = gps_driver_mode_t::NMEA; break;
 #endif // CONSTRAINED_FLASH
 		}
 	}
@@ -356,7 +363,9 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 
 	switch (type) {
 	case GPSCallbackType::readDeviceData: {
-			int num_read = gps->pollOrRead((uint8_t *)data1, data2, *((int *)data1));
+			int timeout;
+			memcpy(&timeout, data1, sizeof(timeout));
+			int num_read = gps->pollOrRead((uint8_t *)data1, data2, timeout);
 
 			if (num_read > 0) {
 				gps->dumpGpsData((uint8_t *)data1, (size_t)num_read, gps_dump_comm_mode_t::Full, false);
@@ -788,8 +797,13 @@ GPS::run()
 			break;
 
 		case gps_driver_mode_t::FEMTOMES:
-			_helper = new GPSDriverFemto(&GPS::callback, this, &_report_gps_pos/*, _p_report_sat_info*/);
+			_helper = new GPSDriverFemto(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info, heading_offset);
 			set_device_type(DRV_GPS_DEVTYPE_FEMTOMES);
+			break;
+
+		case gps_driver_mode_t::NMEA:
+			_helper = new GPSDriverNMEA(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info, heading_offset);
+			set_device_type(DRV_GPS_DEVTYPE_NMEA);
 			break;
 #endif // CONSTRAINED_FLASH
 
@@ -951,6 +965,7 @@ GPS::run()
 				break;
 
 			case gps_driver_mode_t::FEMTOMES:
+			case gps_driver_mode_t::NMEA: // skip NMEA for auto-detection to avoid false positive matching
 #endif // CONSTRAINED_FLASH
 				_mode = gps_driver_mode_t::UBX;
 				px4_usleep(500000); // tried all possible drivers. Wait a bit before next round
@@ -1006,6 +1021,10 @@ GPS::print_status()
 
 	case gps_driver_mode_t::FEMTOMES:
 		PX4_INFO("protocol: FEMTOMES");
+		break;
+
+	case gps_driver_mode_t::NMEA:
+		PX4_INFO("protocol: NMEA");
 		break;
 #endif // CONSTRAINED_FLASH
 
@@ -1173,7 +1192,7 @@ $ gps reset warm
 
 	PRINT_MODULE_USAGE_PARAM_STRING('i', "uart", "spi|uart", "GPS interface", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('j', "uart", "spi|uart", "secondary GPS interface", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, "ubx|mtk|ash|eml|fem", "GPS Protocol (default=auto select)", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, "ubx|mtk|ash|eml|fem|nmea", "GPS Protocol (default=auto select)", true);
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reset GPS device");
@@ -1317,6 +1336,9 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 
 			} else if (!strcmp(myoptarg, "fem")) {
 				mode = gps_driver_mode_t::FEMTOMES;
+
+			} else if (!strcmp(myoptarg, "nmea")) {
+				mode = gps_driver_mode_t::NMEA;
 #endif // CONSTRAINED_FLASH
 			} else {
 				PX4_ERR("unknown protocol: %s", myoptarg);

@@ -3812,12 +3812,12 @@ void Commander::estimator_check()
 		const bool gnss_heading_fault = (estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GPS_YAW_FAULT));
 
 		if (!mag_fault_prev && mag_fault) {
-			mavlink_log_critical(&_mavlink_log_pub, "Stopping compass use! Check calibration on landing");
+			mavlink_log_critical(&_mavlink_log_pub, "Compass needs calibration - Land now!");
 			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MAG, true, true, false, _status);
 		}
 
 		if (!gnss_heading_fault_prev && gnss_heading_fault) {
-			mavlink_log_critical(&_mavlink_log_pub, "Stopping GNSS heading use! Check configuration on landing");
+			mavlink_log_critical(&_mavlink_log_pub, "GNSS heading not reliable - Land now!");
 			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_GPS, true, true, false, _status);
 		}
 
