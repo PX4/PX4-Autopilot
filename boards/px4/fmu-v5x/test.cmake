@@ -15,7 +15,7 @@ px4_add_board(
 		TEL3:/dev/ttyS1
 		GPS2:/dev/ttyS7
 	DRIVERS
-		adc/ads1115
+		#adc/ads1115
 		adc/board_adc
 		barometer # all available barometer drivers
 		batt_smbus
@@ -93,7 +93,7 @@ px4_add_board(
 	SYSTEMCMDS
 		bl_update
 		dmesg
-		dumpfile
+		#dumpfile
 		esc_calib
 		gpio
 		hardfault_log
