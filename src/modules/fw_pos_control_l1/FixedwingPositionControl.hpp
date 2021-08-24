@@ -112,7 +112,6 @@ static constexpr hrt_abstime T_ALT_TIMEOUT = 1_s; // time after which we abort l
 
 static constexpr float THROTTLE_THRESH =
 	0.05f;	///< max throttle from user which will not lead to motors spinning up in altitude controlled modes
-static constexpr float ALTHOLD_EPV_RESET_THRESH = 5.0f;
 
 class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
 	public px4::WorkItem
@@ -311,13 +310,6 @@ private:
 	 * Check if we are in a takeoff situation
 	 */
 	bool 		in_takeoff_situation();
-
-	/**
-	 * Do takeoff help when in altitude controlled modes
-	 * @param hold_altitude altitude setpoint for controller
-	 * @param pitch_limit_min minimum pitch allowed
-	 */
-	void 		do_takeoff_help(float *hold_altitude, float *pitch_limit_min);
 
 	/**
 	 * Update desired altitude base on user pitch stick input

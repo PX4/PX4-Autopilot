@@ -181,10 +181,11 @@ void TECS::runAltitudeControllerSmoothVelocity(float alt_sp_amsl_m, float target
 	target_climbrate_m_s = math::min(target_climbrate_m_s, _max_climb_rate);
 	target_sinkrate_m_s = math::min(target_sinkrate_m_s, _max_sink_rate);
 
-	const float altitude_error_m = alt_sp_amsl_m - _alt_control_traj_generator.getCurrentPosition();
+	const float delta_trajectory_to_target_m = alt_sp_amsl_m - _alt_control_traj_generator.getCurrentPosition();
 
-	float height_rate_target = math::signNoZero<float>(altitude_error_m) * math::trajectory::computeMaxSpeedFromDistance(
-					   1000, _vert_accel_limit, fabsf(altitude_error_m), 0.0f);
+	float height_rate_target = math::signNoZero<float>(delta_trajectory_to_target_m) *
+				   math::trajectory::computeMaxSpeedFromDistance(
+					   _jerk_max, _vert_accel_limit, fabsf(delta_trajectory_to_target_m), 0.0f);
 
 	height_rate_target = math::constrain(height_rate_target, -target_sinkrate_m_s, target_climbrate_m_s);
 
@@ -440,11 +441,11 @@ void TECS::_update_pitch_setpoint()
 
 void TECS::_updateTrajectoryGenerationConstraints()
 {
-	_alt_control_traj_generator.setMaxJerk(1000.0f);	// we want infinite jerk, so just set a high value
+	_alt_control_traj_generator.setMaxJerk(_jerk_max);
 	_alt_control_traj_generator.setMaxAccel(_vert_accel_limit);
-	_alt_control_traj_generator.setMaxVel(_max_climb_rate);
+	_alt_control_traj_generator.setMaxVel(max(_max_climb_rate, _max_sink_rate));
 
-	_velocity_control_traj_generator.setMaxJerk(1000.0f);	// we want infinite jerk, so just set a high value
+	_velocity_control_traj_generator.setMaxJerk(_jerk_max);
 	_velocity_control_traj_generator.setMaxAccelUp(_vert_accel_limit);
 	_velocity_control_traj_generator.setMaxAccelDown(_vert_accel_limit);
 	_velocity_control_traj_generator.setMaxVelUp(_max_climb_rate);
@@ -457,6 +458,8 @@ void TECS::_calculateHeightRateSetpoint(float altitude_sp_amsl, float height_rat
 	bool control_altitude = true;
 	const bool input_is_height_rate = PX4_ISFINITE(height_rate_sp);
 
+	_velocity_control_traj_generator.setVelSpFeedback(_hgt_rate_setpoint);
+
 	if (input_is_height_rate) {
 		_velocity_control_traj_generator.setCurrentPositionEstimate(altitude_amsl);
 		_velocity_control_traj_generator.update(_dt, height_rate_sp);
@@ -466,13 +469,11 @@ void TECS::_calculateHeightRateSetpoint(float altitude_sp_amsl, float height_rat
 
 	} else {
 		_velocity_control_traj_generator.reset(0, _hgt_rate_setpoint, _hgt_setpoint);
-		_velocity_control_traj_generator.setVelSpFeedback(_hgt_rate_setpoint);
 	}
 
 
 	if (control_altitude) {
 		runAltitudeControllerSmoothVelocity(altitude_sp_amsl, target_climbrate, target_sinkrate, altitude_amsl);
-		_velocity_control_traj_generator.setVelSpFeedback(_hgt_rate_setpoint);
 
 	} else {
 		_alt_control_traj_generator.setCurrentVelocity(_hgt_rate_setpoint);
