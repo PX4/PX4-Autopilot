@@ -54,9 +54,9 @@ __BEGIN_DECLS
 #define px4_savepanic(fileno, context, length)  (0)	// Turn off px4_savepanic for rp2040 as it is not implemented in nuttx
 
 #define PX4_BUS_OFFSET       1                  /* RP2040 buses are 0 based and adjustment is needed */
-#define px4_spibus_initialize(bus_num_0based)   rp2040_spibus_initialize(bus_num_0based)
+#define px4_spibus_initialize(bus_num_1based)   rp2040_spibus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
 
-#define px4_i2cbus_initialize(bus_num_0based)   rp2040_i2cbus_initialize(bus_num_0based)
+#define px4_i2cbus_initialize(bus_num_1based)   rp2040_i2cbus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
 #define px4_i2cbus_uninitialize(pdev)           rp2040_i2cbus_uninitialize(pdev)
 
 // This part of the code is specific to rp2040.

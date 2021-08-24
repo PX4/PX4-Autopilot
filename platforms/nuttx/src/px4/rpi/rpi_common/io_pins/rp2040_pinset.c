@@ -8,7 +8,7 @@
 
 int rp2040_gpioconfig(uint32_t pinset)
 {
-	if ((pinset & GPIO_NUM_MASK) < RP2040_GPIO_NUM)
+	if ((pinset & GPIO_NUM_MASK) > RP2040_GPIO_NUM)
 		return -EINVAL;
 	rp2040_gpio_set_pulls(pinset & GPIO_NUM_MASK, pinset & GPIO_PU_MASK, pinset & GPIO_PD_MASK);
 	if ((pinset & GPIO_FUN_MASK) >> 9 == RP2040_GPIO_FUNC_SIO)
