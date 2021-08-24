@@ -182,7 +182,7 @@ public:
 
 	/*
 	 * @return Feed-forward lateral acceleration command increment for tracking
-	* path curvature [m/s^2]
+	 * path curvature [m/s^2]
 	 */
 	float getLateralAccelFF() const { return lateral_accel_ff_; }
 
@@ -266,28 +266,28 @@ public:
 
 	/*
 	 * Keep the wings level.
-	*
-	* @param[in] heading Heading angle [rad]
+	 *
+	 * @param[in] heading Heading angle [rad]
 	 */
 	void navigateLevelFlight(const float heading);
 
 	/*
-	* [Copied directly from ECL_L1_Pos_Controller]
-	*
+	 * [Copied directly from ECL_L1_Pos_Controller]
+	 *
 	 * Set the maximum roll angle output in radians
 	 */
 	void setRollLimit(float roll_lim_rad) { roll_lim_rad_ = roll_lim_rad; }
 
 	/*
-	* [Copied directly from ECL_L1_Pos_Controller]
-	*
+	 * [Copied directly from ECL_L1_Pos_Controller]
+	 *
 	 * Set roll angle slew rate. Set to zero to deactivate.
 	 */
 	void setRollSlewRate(float roll_slew_rate) { roll_slew_rate_ = roll_slew_rate; }
 
 	/*
-	* [Copied directly from ECL_L1_Pos_Controller]
-	*
+	 * [Copied directly from ECL_L1_Pos_Controller]
+	 *
 	 * Set control loop dt. The value will be used to apply roll angle setpoint slew rate limiting.
 	 */
 	void setDt(const float dt) { dt_ = dt; }
@@ -410,7 +410,7 @@ private:
 
 	/*
 	 * Adapts the controller period considering user defined inputs, current flight
-	* condition, path properties, and stability bounds.
+	 * condition, path properties, and stability bounds.
 	 *
 	 * @param[in] ground_speed Vehicle ground speed [m/s]
 	 * @param[in] airspeed Vehicle airspeed [m/s]
@@ -420,8 +420,8 @@ private:
 	 * @param[in] wind_vel Wind velocity vector in inertial frame [m/s]
 	 * @param[in] unit_path_tangent Unit vector tangent to path at closest point
 	 *            in direction of path
-	* @param[in] feas_on_track Bearing feasibility on track at the closest point
-	* @return Adapted period [s]
+	 * @param[in] feas_on_track Bearing feasibility on track at the closest point
+	 * @return Adapted period [s]
 	 */
 	float adaptPeriod(const float ground_speed, const float airspeed, const float wind_ratio,
 			  const float track_error, const float path_curvature, const matrix::Vector2f &wind_vel,
@@ -484,35 +484,36 @@ private:
 	 * track error vector to that of the path tangent vector.
 	 *
 	 * @param[in] ground_speed Vehicle ground speed [m/s]
-	* ADSFASDFSAFDSF
+	 * @param[in] time_const Controller time constant [s]
 	 * @return Track error boundary [m]
 	 */
 	float trackErrorBound(const float ground_speed, const float time_const) const;
 
 	/*
-	* Calculates the required controller proportional gain to achieve the desired
-	* system period and damping ratio. NOTE: actual period and damping will vary
-	* when following paths with curvature in wind.
+	 * Calculates the required controller proportional gain to achieve the desired
+	 * system period and damping ratio. NOTE: actual period and damping will vary
+	 * when following paths with curvature in wind.
 	 *
 	 * @param[in] period Desired system period [s]
-	* @param[in] damping Desired system damping ratio
-	* @return Proportional gain [rad/s]
+	 * @param[in] damping Desired system damping ratio
+	 * @return Proportional gain [rad/s]
 	 */
 	float pGain(const float period, const float damping) const;
 
 	/*
 	 * Calculates the required controller time constant to achieve the desired
-	* system period and damping ratio. NOTE: actual period and damping will vary
-	* when following paths with curvature in wind.
+	 * system period and damping ratio. NOTE: actual period and damping will vary
+	 * when following paths with curvature in wind.
 	 *
 	 * @param[in] period Desired system period [s]
-	* @param[in] damping Desired system damping ratio
-	* @return Time constant [s]
+	 * @param[in] damping Desired system damping ratio
+	 * @return Time constant [s]
 	 */
 	float timeConst(const float period, const float damping) const;
 
 	/*
-	 * Cacluates the look ahead angle as a function of the normalized track error.
+	 * Cacluates the look ahead angle as a quadratic function of the normalized
+	 * track error.
 	 *
 	 * @param[in] normalized_track_error Normalized track error (track error / track error boundary)
 	 * @return Look ahead angle [rad]
@@ -523,14 +524,12 @@ private:
 	 * Calculates the bearing vector and track proximity transitioning variable
 	 * from the look-ahead angle mapping.
 	 *
-	 * @param[out] track_proximity Smoothing parameter based on vehicle proximity
-	 *             to track with values between 0 (at track error boundary) and 1 (on track)
-	 * @param[in] unit_track_error Unit vector in direction from vehicle to
-	 *            closest point on path
 	 * @param[in] unit_path_tangent Unit vector tangent to path at closest point
 	 *            in direction of path
 	 * @param[in] look_ahead_ang The bearing vector lies at this angle from
 	 *            the path normal vector [rad]
+	 * @param[in] signed_track_error Signed error to track at closest point (sign
+	 *            determined by path normal direction) [m]
 	 * @return Unit bearing vector
 	 */
 	matrix::Vector2f bearingVec(const matrix::Vector2f &unit_path_tangent, const float look_ahead_ang,
@@ -541,7 +540,7 @@ private:
 	 * ground speed maintanence as well as track keeping logic.
 	 *
 	 * @param[in] normalized_track_error Normalized track error (track error / track error boundary)
-	* @param[in] feas Bearing feasibility
+	 * @param[in] feas Bearing feasibility
 	 * @return Minimum forward ground speed demand [m/s]
 	 */
 	float minGroundSpeed(const float normalized_track_error, const float feas);
@@ -626,7 +625,7 @@ private:
 
 	/*
 	 * Calculates an additional feed-forward lateral acceleration demand considering
-	* the path curvature. The full effect of the acceleration increment is smoothly
+	 * the path curvature. The full effect of the acceleration increment is smoothly
 	 * ramped in as the vehicle approaches the track and is further smoothly
 	 * zeroed out as the bearing becomes infeasible.
 	 *
@@ -692,8 +691,8 @@ private:
 	matrix::Vector2f getLocalPlanarVector(const matrix::Vector2d &origin, const matrix::Vector2d &target) const;
 
 	/**
-	* [Copied directly from ECL_L1_Pos_Controller]
-	*
+	 * [Copied directly from ECL_L1_Pos_Controller]
+	 *
 	 * Update roll angle setpoint. This will also apply slew rate limits if set.
 	 */
 	void updateRollSetpoint();
