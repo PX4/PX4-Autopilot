@@ -47,7 +47,7 @@
 #include <uORB/topics/tecs_status.h>
 #include <uORB/uORB.h>
 #include <motion_planning/VelocitySmoothing.hpp>
-#include <flight_mode_manager/tasks/Utility/ManualVelocitySmoothingZ.hpp>
+#include <motion_planning/ManualVelocitySmoothingZ.hpp>
 
 class TECS
 {
