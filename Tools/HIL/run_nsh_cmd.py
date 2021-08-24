@@ -30,8 +30,12 @@ def print_line(line):
     if "FAILED" in line:
         line = line.replace("FAILED", f"{COLOR_RED}FAILED{COLOR_RESET}", 1)
 
-    current_time = datetime.datetime.now()
-    print('[{0}] {1}'.format(current_time.isoformat(timespec='milliseconds'), line), end='')
+    if "\n" in line:
+        current_time = datetime.datetime.now()
+        print('[{0}] {1}'.format(current_time.isoformat(timespec='milliseconds'), line), end='')
+    else:
+        print('{0}'.format(line), end='')
+
 
 def do_nsh_cmd(port, baudrate, cmd):
     ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0.2, xonxoff=True, rtscts=False, dsrdtr=False)
