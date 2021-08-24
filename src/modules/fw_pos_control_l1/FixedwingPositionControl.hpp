@@ -56,6 +56,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
 #include <lib/l1/ECL_L1_Pos_Controller.hpp>
+#include <lib/npfg/npfg.hpp>
 #include <lib/tecs/TECS.hpp>
 #include <lib/landing_slope/Landingslope.hpp>
 #include <lib/mathlib/mathlib.h>
@@ -71,6 +72,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/npfg_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_controller_landing_status.h>
 #include <uORB/topics/position_controller_status.h>
@@ -87,6 +89,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/wind.h>
 #include <uORB/uORB.h>
 #include <vtol_att_control/vtol_type.h>
 
@@ -151,8 +154,10 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _wind_sub{ORB_ID(wind)};
 
 	uORB::Publication<vehicle_attitude_setpoint_s>		_attitude_sp_pub;
+	uORB::Publication<npfg_status_s> _npfg_status_pub{ORB_ID(npfg_status)}; ///< NPFG status publication
 	uORB::Publication<position_controller_status_s>		_pos_ctrl_status_pub{ORB_ID(position_controller_status)};			///< navigation capabilities publication
 	uORB::Publication<position_controller_landing_status_s>	_pos_ctrl_landing_status_pub{ORB_ID(position_controller_landing_status)};	///< landing status publication
 	uORB::Publication<tecs_status_s>			_tecs_status_pub{ORB_ID(tecs_status)};						///< TECS status publication
@@ -228,6 +233,11 @@ private:
 	float _airspeed{0.0f};
 	float _eas2tas{1.0f};
 
+	/* wind estimates */
+	Vector2f _wind_vel{0.0f, 0.0f}; ///< wind velocity vector [m/s]
+	bool _wind_valid{false}; ///< flag if a valid wind estimate exists
+	hrt_abstime _time_wind_last_received{0}; ///< last time wind estimate was received in microseconds. Used to detect timeouts.
+
 	float _pitch{0.0f};
 	float _yaw{0.0f};
 	float _yawrate{0.0f};
@@ -254,6 +264,7 @@ private:
 	float _manual_control_setpoint_airspeed{0.0f};
 
 	ECL_L1_Pos_Controller	_l1_control;
+	NPFG _npfg;
 	TECS			_tecs;
 
 	uint8_t _type{0};
@@ -278,6 +289,7 @@ private:
 	void		vehicle_command_poll();
 	void		vehicle_control_mode_poll();
 	void		vehicle_status_poll();
+	void        wind_poll();
 
 	void		status_publish();
 	void		landing_status_publish();
@@ -362,6 +374,20 @@ private:
 		(ParamFloat<px4::params::FW_L1_PERIOD>) _param_fw_l1_period,
 		(ParamFloat<px4::params::FW_L1_R_SLEW_MAX>) _param_fw_l1_r_slew_max,
 		(ParamFloat<px4::params::FW_R_LIM>) _param_fw_r_lim,
+
+		(ParamBool<px4::params::FW_USE_NPFG>) _param_fw_use_npfg,
+		(ParamFloat<px4::params::NPFG_PERIOD>) _param_npfg_period,
+		(ParamFloat<px4::params::NPFG_DAMPING>) _param_npfg_damping,
+		(ParamBool<px4::params::NPFG_LB_PERIOD>) _param_npfg_en_period_lb,
+		(ParamBool<px4::params::NPFG_UB_PERIOD>) _param_npfg_en_period_ub,
+		(ParamBool<px4::params::NPFG_RAMP_PERIOD>) _param_npfg_ramp_adapted_period,
+		(ParamBool<px4::params::NPFG_TRACK_KEEP>) _param_npfg_en_track_keeping,
+		(ParamBool<px4::params::NPFG_EN_MIN_GSP>) _param_npfg_en_min_gsp,
+		(ParamBool<px4::params::NPFG_WIND_REG>) _param_npfg_en_wind_reg,
+		(ParamFloat<px4::params::NPFG_GSP_MAX_TK>) _param_npfg_track_keeping_gsp_max,
+		(ParamFloat<px4::params::NPFG_NTE_FRAC>) _param_npfg_nte_fraction,
+		(ParamFloat<px4::params::NPFG_ROLL_TC>) _param_npfg_roll_time_const,
+		(ParamFloat<px4::params::NPFG_WR_BUF>) _param_npfg_wind_ratio_buf,
 
 		(ParamFloat<px4::params::FW_LND_AIRSPD_SC>) _param_fw_lnd_airspd_sc,
 		(ParamFloat<px4::params::FW_LND_ANG>) _param_fw_lnd_ang,
