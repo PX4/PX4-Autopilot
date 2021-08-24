@@ -30,15 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-add_subdirectory(icm20602)
-add_subdirectory(icm20608g)
-add_subdirectory(icm20649)
-add_subdirectory(icm20689)
-add_subdirectory(icm40609d)
-add_subdirectory(icm42605)
-add_subdirectory(icm42688p)
-add_subdirectory(mpu6000)
-add_subdirectory(mpu6500)
-add_subdirectory(mpu9250)
-add_subdirectory(icm42670p)
+px4_add_module(
+	MODULE drivers__imu__invensense__icm42670p
+	MAIN icm42670p
+	COMPILE_FLAGS
+	SRCS
+		icm42670p_main.cpp
+		ICM42670P.cpp
+		ICM42670P.hpp
+		InvenSense_ICM42670P_registers.hpp
+	DEPENDS
+		px4_work_queue
+		drivers_accelerometer
+		drivers_gyroscope
+	)
