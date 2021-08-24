@@ -39,7 +39,7 @@
 #include <gtest/gtest.h>
 #include <matrix/matrix/math.hpp>
 
-#include "ManualVelocitySmoothingXY.hpp"
+#include <motion_planning/ManualVelocitySmoothingXY.hpp>
 
 using namespace matrix;
 
