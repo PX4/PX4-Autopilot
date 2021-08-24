@@ -22,8 +22,8 @@ px4_add_board(
 		#load_mon
 		#sensors
 	SYSTEMCMDS
-		i2cdetect
-		led_control
+		#i2cdetect
+		#led_control
 		param
 		perf
 		reboot
