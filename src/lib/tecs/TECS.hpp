@@ -203,6 +203,11 @@ public:
 
 private:
 
+	static constexpr float _jerk_max =
+		1000.0f;	// maximum jerk for creating height rate trajectories, we want infinite jerk so set a high value
+
+	uORB::Publication<tecs_status_s>	_tecs_status_pub{ORB_ID(tecs_status)};	///< TECS status publication
+
 	enum ECL_TECS_MODE _tecs_mode {ECL_TECS_MODE_NORMAL};
 
 	// timestamps

@@ -630,16 +630,6 @@ FixedwingPositionControl::in_takeoff_situation()
 }
 
 void
-FixedwingPositionControl::do_takeoff_help(float *hold_altitude, float *pitch_limit_min)
-{
-	/* demand "climbout_diff" m above ground if user switched into this mode during takeoff */
-	if (in_takeoff_situation()) {
-		*hold_altitude = _takeoff_ground_alt + _param_fw_clmbout_diff.get();
-		*pitch_limit_min = radians(10.0f);
-	}
-}
-
-void
 FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now, bool pos_sp_curr_valid)
 {
 	/* only run position controller in fixed-wing mode and during transitions for VTOL */
