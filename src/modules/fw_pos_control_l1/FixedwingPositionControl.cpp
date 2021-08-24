@@ -515,6 +515,8 @@ FixedwingPositionControl::status_publish()
 		npfg_status.time_const = 0.0f;
 	}
 
+	npfg_status.timestamp = hrt_absolute_time();
+
 	_pos_ctrl_status_pub.publish(pos_ctrl_status);
 	_npfg_status_pub.publish(npfg_status);
 }
