@@ -409,9 +409,8 @@ private:
 		      const matrix::Vector2f &unit_path_tangent, const float signed_track_error, const float path_curvature);
 
 	/*
-	 * Updates the proportional gain and time constant of the controller considering
-	 * user defined inputs, current flight condition, path properties, and stability
-	 * bounds.
+	 * Adapts the controller period considering user defined inputs, current flight
+	* condition, path properties, and stability bounds.
 	 *
 	 * @param[in] ground_speed Vehicle ground speed [m/s]
 	 * @param[in] airspeed Vehicle airspeed [m/s]
@@ -421,11 +420,12 @@ private:
 	 * @param[in] wind_vel Wind velocity vector in inertial frame [m/s]
 	 * @param[in] unit_path_tangent Unit vector tangent to path at closest point
 	 *            in direction of path
+	* @param[in] feas_on_track Bearing feasibility on track at the closest point
+	* @return Adapted period [s]
 	 */
-	void updateControlParams(const float ground_speed, const float airspeed,
-				 const float wind_ratio, const float track_error, const float path_curvature,
-				 const matrix::Vector2f &wind_vel, const matrix::Vector2f &unit_path_tangent,
-				 const float feas_on_track);
+	float adaptPeriod(const float ground_speed, const float airspeed, const float wind_ratio,
+			  const float track_error, const float path_curvature, const matrix::Vector2f &wind_vel,
+			  const matrix::Vector2f &unit_path_tangent, const float feas_on_track) const;
 
 	/*
 	 * Returns normalized (unitless) and constrained track error [0,1].

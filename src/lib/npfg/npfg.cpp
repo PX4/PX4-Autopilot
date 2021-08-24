@@ -78,8 +78,10 @@ void NPFG::evaluate(const Vector2f &ground_vel, const Vector2f &wind_vel,
 
 	// update control parameters considering upper and lower stability bounds (if enabled)
 	// must be called before trackErrorBound() as it updates time_const_
-	updateControlParams(ground_speed, airspeed, wind_ratio, track_error, path_curvature,
-			    wind_vel, unit_path_tangent, feas_on_track_);
+	adapted_period_ = adaptPeriod(ground_speed, airspeed, wind_ratio, track_error,
+				      path_curvature, wind_vel, unit_path_tangent, feas_on_track_);
+	p_gain_ = pGain(adapted_period_, damping_);
+	time_const_ = timeConst(adapted_period_, damping_);
 
 	// track error bound is dynamic depending on ground speed
 	track_error_bound_ = trackErrorBound(ground_speed, time_const_);
@@ -120,9 +122,9 @@ void NPFG::evaluate(const Vector2f &ground_vel, const Vector2f &wind_vel,
 	lateral_accel_ = lateralAccel(air_vel, air_vel_ref_, airspeed) + lateral_accel_ff_;
 } // evaluate
 
-void NPFG::updateControlParams(const float ground_speed, const float airspeed, const float wind_ratio,
-			       const float track_error, const float path_curvature, const Vector2f &wind_vel,
-			       const Vector2f &unit_path_tangent, const float feas_on_track)
+float NPFG::adaptPeriod(const float ground_speed, const float airspeed, const float wind_ratio,
+			const float track_error, const float path_curvature, const Vector2f &wind_vel,
+			const Vector2f &unit_path_tangent, const float feas_on_track) const
 {
 	float period = period_;
 	const float air_turn_rate = fabsf(path_curvature * airspeed);
@@ -164,11 +166,8 @@ void NPFG::updateControlParams(const float ground_speed, const float airspeed, c
 		}
 	}
 
-	// update the control parameters / output the adapted period
-	adapted_period_ = period;
-	p_gain_ = pGain(period, damping_);
-	time_const_ = timeConst(period, damping_);
-} // updateControlParams
+	return period;
+} // adaptPeriod
 
 float NPFG::normalizedTrackError(const float track_error, const float track_error_bound) const
 {
