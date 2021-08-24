@@ -101,5 +101,5 @@ SYSTEMCMDS
 	uorb
 # 	usb_connected
 	ver
-# 	work_queue
+	work_queue
 )
