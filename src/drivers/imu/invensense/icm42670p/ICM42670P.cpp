@@ -374,18 +374,7 @@ void ICM42670P::ConfigureFIFOWatermark(uint8_t samples)
 	}
 }
 
-void ICM42670P::SelectRegisterBank(enum REG_BANK_SEL_BIT bank)
-{
-	// if (bank != _last_register_bank) {
-	// 	// select BANK_0
-	// 	uint8_t cmd_bank_sel[2] {};
-	// 	cmd_bank_sel[0] = static_cast<uint8_t>(Register::BANK_0::REG_BANK_SEL);
-	// 	cmd_bank_sel[1] = bank;
-	// 	transfer(cmd_bank_sel, cmd_bank_sel, sizeof(cmd_bank_sel));
 
-	// 	_last_register_bank = bank;
-	// }
-}
 
 bool ICM42670P::Configure()
 {
@@ -471,7 +460,6 @@ uint8_t ICM42670P::RegisterRead(T reg)
 {
 	uint8_t cmd[2] {};
 	cmd[0] = static_cast<uint8_t>(reg) | DIR_READ;
-	// SelectRegisterBank(reg);
 	transfer(cmd, cmd, sizeof(cmd));
 	return cmd[1];
 }
@@ -480,7 +468,6 @@ template <typename T>
 void ICM42670P::RegisterWrite(T reg, uint8_t value)
 {
 	uint8_t cmd[2] { (uint8_t)reg, value };
-	// SelectRegisterBank(reg);
 
 	transfer(cmd, cmd, sizeof(cmd));
 }
@@ -502,7 +489,6 @@ uint16_t ICM42670P::FIFOReadCount()
 	// read FIFO count
 	uint8_t fifo_count_buf[3] {};
 	fifo_count_buf[0] = static_cast<uint8_t>(Register::BANK_0::FIFO_COUNTH) | DIR_READ;
-	SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0);
 
 	if (transfer(fifo_count_buf, fifo_count_buf, sizeof(fifo_count_buf)) != PX4_OK) {
 		perf_count(_bad_transfer_perf);
@@ -518,7 +504,6 @@ bool ICM42670P::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 {
 	FIFOTransferBuffer buffer{};
 	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 4 + 2, FIFO::SIZE);
-	// SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0);
 
 	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
 		perf_count(_bad_transfer_perf);
@@ -657,7 +642,6 @@ void ICM42670P::UpdateTemperature()
 	// read current temperature
 	uint8_t temperature_buf[3] {};
 	temperature_buf[0] = static_cast<uint8_t>(Register::BANK_0::TEMP_DATA1) | DIR_READ;
-	SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0);
 
 	if (transfer(temperature_buf, temperature_buf, sizeof(temperature_buf)) != PX4_OK) {
 		perf_count(_bad_transfer_perf);
