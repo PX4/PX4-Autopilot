@@ -103,7 +103,7 @@ MavlinkMissionManager::init_offboard_mission()
 			_current_seq = mission_state.current_seq;
 
 		} else if (ret < 0) {
-			PX4_ERR("offboard mission init failed (%i)", ret);
+			PX4_WARN("offboard mission init failed (%i)", ret);
 		}
 
 		load_geofence_stats();
