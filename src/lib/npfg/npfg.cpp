@@ -47,8 +47,9 @@
 using matrix::Vector2d;
 using matrix::Vector2f;
 
-void NPFG::evaluate(const Vector2f &ground_vel, const Vector2f &wind_vel,
-		    const Vector2f &unit_path_tangent, const float signed_track_error, const float path_curvature)
+void NPFG::evaluate(const Vector2f &ground_vel, const Vector2f &wind_vel, Vector2f &unit_path_tangent,
+		    float signed_track_error, const float path_curvature, bool in_front_of_wp /*= false*/,
+		    const Vector2f &bearing_vec_to_point /*= Vector2f{0.0f, 0.0f}*/)
 {
 	const float ground_speed = ground_vel.norm();
 
@@ -62,16 +63,18 @@ void NPFG::evaluate(const Vector2f &ground_vel, const Vector2f &wind_vel,
 		airspeed_ref_ = airspeed_nom_;
 		lateral_accel_ = 0.0f;
 		feas_ = 0.0f;
+		feas_on_track_ = 0.0f;
 		return;
 	}
 
 	const float wind_speed = wind_vel.norm();
 	const float wind_ratio = wind_speed / airspeed;
 
-	const float track_error = fabsf(signed_track_error);
+	float track_error = fabsf(signed_track_error);
 
-	const float wind_cross_upt = cross2D(wind_vel, unit_path_tangent);
-	const float wind_dot_upt = wind_vel.dot(unit_path_tangent);
+	// on-track wind triangle projections
+	float wind_cross_upt = cross2D(wind_vel, unit_path_tangent);
+	float wind_dot_upt = wind_vel.dot(unit_path_tangent);
 
 	// calculate the bearing feasibility on the track at the current closest point
 	feas_on_track_ = bearingFeasibility(wind_cross_upt, wind_dot_upt, wind_speed, wind_ratio);
@@ -85,21 +88,55 @@ void NPFG::evaluate(const Vector2f &ground_vel, const Vector2f &wind_vel,
 
 	// track error bound is dynamic depending on ground speed
 	track_error_bound_ = trackErrorBound(ground_speed, time_const_);
-	const float normalized_track_error = normalizedTrackError(track_error, track_error_bound_);
+	float normalized_track_error = normalizedTrackError(track_error, track_error_bound_);
 
 	// look ahead angle based purely on track proximity
-	const float look_ahead_ang = lookAheadAngle(normalized_track_error);
+	float look_ahead_ang = lookAheadAngle(normalized_track_error);
 
 	bearing_vec_ = bearingVec(unit_path_tangent, look_ahead_ang, signed_track_error);
 
-	float wind_cross_bearing = cross2D(wind_vel, bearing_vec_);
-	float wind_dot_bearing = wind_vel.dot(bearing_vec_);
+	// specific waypoint logic complications... handles case where we are following
+	// waypoints and are in front of the first of the segment.
+	// TODO: find a way to get this out of the main eval method!
+	if (in_front_of_wp && unit_path_tangent.dot(bearing_vec_) < unit_path_tangent.dot(bearing_vec_to_point)) {
+		// we are in front of the first waypoint and the bearing to the point is
+		// shallower than that to the line. reset path params to fly directly to
+		// the first waypoint.
+
+		// TODO: probably better to blend these instead of hard switching (could
+		// effect the adaptive tuning if we switch between these cases with wind
+		// gusts)
+
+		// pretend we are on track, recalculate necessary quantities
+
+		signed_track_error = 0.0f;
+		normalized_track_error = 0.0f;
+		unit_path_tangent = bearing_vec_to_point;
+
+		bearing_vec_ = bearing_vec_to_point;
+		look_ahead_ang = 0.0f;
+
+		wind_cross_upt = cross2D(wind_vel, unit_path_tangent);
+		wind_dot_upt = wind_vel.dot(unit_path_tangent);
+		feas_on_track_ = bearingFeasibility(wind_cross_upt, wind_dot_upt, wind_speed, wind_ratio);
+
+		adapted_period_ = adaptPeriod(ground_speed, airspeed, wind_ratio, track_error,
+					      path_curvature, wind_vel, unit_path_tangent, feas_on_track_);
+		p_gain_ = pGain(adapted_period_, damping_);
+		time_const_ = timeConst(adapted_period_, damping_);
+	}
+
+	track_proximity_ = trackProximity(look_ahead_ang);
+
+	// wind triangle projections
+	const float wind_cross_bearing = cross2D(wind_vel, bearing_vec_);
+	const float wind_dot_bearing = wind_vel.dot(bearing_vec_);
 
 	// continuous representation of the bearing feasibility
 	feas_ = bearingFeasibility(wind_cross_bearing, wind_dot_bearing, wind_speed, wind_ratio);
 
 	// we consider feasibility of both the current bearing as well as that on the track at the current closest point
-	float feas_combined = feas_ * feas_on_track_;
+	const float feas_combined = feas_ * feas_on_track_;
 
 	min_ground_speed_ref_ = minGroundSpeed(normalized_track_error, feas_combined);
 
@@ -110,16 +147,18 @@ void NPFG::evaluate(const Vector2f &ground_vel, const Vector2f &wind_vel,
 				      wind_dot_bearing, wind_speed, min_ground_speed_ref_);
 	airspeed_ref_ = air_vel_ref_.norm();
 
-	track_proximity_ = trackProximity(look_ahead_ang);
+	// lateral acceleration demand based on heading error
+	const float lateral_accel = lateralAccel(air_vel, air_vel_ref_, airspeed);
 
 	// lateral acceleration needed to stay on curved track (assuming no heading error)
-	lateral_accel_ff_ = lateralAccelFF(unit_path_tangent, ground_vel,
-					   wind_dot_upt, wind_cross_upt, airspeed, wind_speed, wind_ratio,
-					   signed_track_error, path_curvature, track_proximity_, feas_combined);
+	lateral_accel_ff_ = lateralAccelFF(unit_path_tangent, ground_vel, wind_dot_upt,
+					   wind_cross_upt, airspeed, wind_speed, wind_ratio, signed_track_error, path_curvature);
 
 	// total lateral acceleration to drive aircaft towards track as well as account
-	// for path curvature
-	lateral_accel_ = lateralAccel(air_vel, air_vel_ref_, airspeed) + lateral_accel_ff_;
+	// for path curvature. The full effect of the feed-forward acceleration is smoothly
+	// ramped in as the vehicle approaches the track and is further smoothly
+	// zeroed out as the bearing becomes infeasible.
+	lateral_accel_ = lateral_accel + feas_combined * track_proximity_ * lateral_accel_ff_;
 } // evaluate
 
 float NPFG::adaptPeriod(const float ground_speed, const float airspeed, const float wind_ratio,
@@ -431,14 +470,14 @@ float NPFG::bearingFeasibility(const float wind_cross_bearing, const float wind_
 float NPFG::lateralAccelFF(const Vector2f &unit_path_tangent, const Vector2f &ground_vel,
 			   const float wind_dot_upt, const float wind_cross_upt, const float airspeed,
 			   const float wind_speed, const float wind_ratio, const float signed_track_error,
-			   const float path_curvature, const float track_proximity, const float feas) const
+			   const float path_curvature) const
 {
 	// NOTE: all calculations within this function take place at the closet point
 	// on the path, as if the aircraft were already tracking the given path at
 	// this point with zero angular error. this allows us to evaluate curvature
 	// induced requirements for lateral acceleration incrementation and ramp them
-	// in with the track proximity. further the bearing feasibility is considered
-	// in excess wind conditions.
+	// in with the track proximity and further consider the bearing feasibility
+	// in excess wind conditions (this is done external to this method).
 
 	// path frame curvature is the instantaneous curvature at our current distance
 	// from the actual path (considering e.g. concentric circles emanating outward/inward)
@@ -457,7 +496,7 @@ float NPFG::lateralAccelFF(const Vector2f &unit_path_tangent, const Vector2f &gr
 	// note the use of airspeed * speed_ratio as oppose to ground_speed^2 here --
 	// the prior considers that we command lateral acceleration in the air mass
 	// relative frame while the latter does not
-	return airspeed * track_proximity * feas * speed_ratio * path_frame_rate;
+	return airspeed * speed_ratio * path_frame_rate;
 } // lateralAccelFF
 
 float NPFG::lateralAccel(const Vector2f &air_vel, const Vector2f &air_vel_ref, const float airspeed) const
@@ -486,26 +525,35 @@ void NPFG::navigateWaypoints(const Vector2d &waypoint_A, const Vector2d &waypoin
 			     const Vector2d &vehicle_pos, const Vector2f &ground_vel, const Vector2f &wind_vel)
 {
 	// similar to logic found in ECL_L1_Pos_Controller method of same name
+	// BUT no arbitrary max approach angle, approach entirely determined by generated
+	// bearing vectors
 
 	path_type_loiter_ = false;
 
 	Vector2f vector_A_to_B = getLocalPlanarVector(waypoint_A, waypoint_B);
 	Vector2f vector_A_to_vehicle = getLocalPlanarVector(waypoint_A, vehicle_pos);
 
-	if (vector_A_to_B.norm() < EPSILON || vector_A_to_B.dot(vector_A_to_vehicle) < 0.0f) {
-		// the waypoints are either on top of each other and should be considered
-		// as single waypoint, or we are in front of waypoint A. in either case,
-		// fly directly to A.
+	if (vector_A_to_B.norm() < EPSILON) {
+		// the waypoints are on top of each other and should be considered as a
+		// single waypoint, fly directly to it
 		unit_path_tangent_ = -vector_A_to_vehicle.normalized();
 		signed_track_error_ = 0.0f;
+		evaluate(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, 0.0f);
+
+	} else if (vector_A_to_B.dot(vector_A_to_vehicle) < 0.0f) {
+		// we are in front of waypoint A, fly directly to it until the bearing generated
+		// to the line segement between A and B is shallower than that from the
+		// bearing to the first waypoint (A).
+		unit_path_tangent_ = vector_A_to_B.normalized();
+		signed_track_error_ = cross2D(unit_path_tangent_, vector_A_to_vehicle);
+		evaluate(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, 0.0f, true, -vector_A_to_vehicle.normalized());
 
 	} else {
 		// track the line segment between A and B
 		unit_path_tangent_ = vector_A_to_B.normalized();
 		signed_track_error_ = cross2D(unit_path_tangent_, vector_A_to_vehicle);
+		evaluate(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, 0.0f);
 	}
-
-	evaluate(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, 0.0f);
 
 	updateRollSetpoint();
 } // navigateWaypoints

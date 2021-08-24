@@ -402,11 +402,17 @@ private:
 	 * @param[in] unit_path_tangent Unit vector tangent to path at closest point
 	 *            in direction of path
 	 * @param[in] signed_track_error Signed error to track at closest point (sign
-	 *             determined by path normal direction) [m]
+	 *            determined by path normal direction) [m]
 	 * @param[in] path_curvature Path curvature at closest point on track [m^-1]
+	 * @param[in] in_front_of_wp True if we are in front of the starting point of
+	 *            a path segment
+	 * @param[in] bearing_vec_to_point Bearing vector to starting point of path
+	 *            segment, if relevant
 	 */
 	void evaluate(const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel,
-		      const matrix::Vector2f &unit_path_tangent, const float signed_track_error, const float path_curvature);
+		      matrix::Vector2f &unit_path_tangent, float signed_track_error,
+		      const float path_curvature, bool in_front_of_wp = false,
+		      const matrix::Vector2f &bearing_vec_to_point = matrix::Vector2f{0.0f, 0.0f});
 
 	/*
 	 * Adapts the controller period considering user defined inputs, current flight
@@ -625,9 +631,7 @@ private:
 
 	/*
 	 * Calculates an additional feed-forward lateral acceleration demand considering
-	 * the path curvature. The full effect of the acceleration increment is smoothly
-	 * ramped in as the vehicle approaches the track and is further smoothly
-	 * zeroed out as the bearing becomes infeasible.
+	 * the path curvature.
 	 *
 	 * @param[in] unit_path_tangent Unit vector tangent to path at closest point
 	 *            in direction of path
@@ -639,15 +643,12 @@ private:
 	 * @param[in] signed_track_error Signed error to track at closest point (sign
 	 *             determined by path normal direction) [m]
 	 * @param[in] path_curvature Path curvature at closest point on track [m^-1]
-	 * @param[in] track_proximity Smoothing parameter based on vehicle proximity
-	 *             to track with values between 0 (at track error boundary) and 1 (on track)
-	 * @param[in] feas Bearing feasibility
 	 * @return Feed-forward lateral acceleration command [m/s^2]
 	 */
 	float lateralAccelFF(const matrix::Vector2f &unit_path_tangent, const matrix::Vector2f &ground_vel,
 			     const float wind_dot_upt, const float wind_cross_upt, const float airspeed,
 			     const float wind_speed, const float wind_ratio, const float signed_track_error,
-			     const float path_curvature, const float track_proximity, const float feas) const;
+			     const float path_curvature) const;
 
 	/*
 	 * Calculates a lateral acceleration demand from the heading error.
