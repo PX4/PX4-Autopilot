@@ -71,7 +71,11 @@ pipeline {
                     printTopics()
                   }
                 }
-
+              }
+              post {
+                always {
+                    resetBoard()
+                }
               }
             } // stage test
           }
@@ -139,7 +143,11 @@ pipeline {
                     printTopics()
                   }
                 }
-
+              }
+              post {
+                always {
+                    resetBoard()
+                }
               }
             } // stage test
           }
@@ -207,7 +215,11 @@ pipeline {
                     printTopics()
                   }
                 }
-
+              }
+              post {
+                always {
+                    resetBoard()
+                }
               }
             } // stage test
           }
@@ -274,7 +286,11 @@ pipeline {
                     printTopics()
                   }
                 }
-
+              }
+              post {
+                always {
+                    resetBoard()
+                }
               }
             } // stage test
           }
@@ -342,7 +358,11 @@ pipeline {
                     printTopics()
                   }
                 }
-
+              }
+              post {
+                always {
+                    resetBoard()
+                }
               }
             } // stage test
           }
@@ -420,7 +440,11 @@ pipeline {
                     printTopics()
                   }
                 }
-
+              }
+              post {
+                always {
+                    resetBoard()
+                }
               }
             } // stage test
           }
@@ -488,7 +512,11 @@ pipeline {
                     printTopics()
                   }
                 }
-
+              }
+              post {
+                always {
+                    resetBoard()
+                }
               }
             } // stage test
           }
@@ -566,7 +594,11 @@ pipeline {
                     printTopics()
                   }
                 }
-
+              }
+              post {
+                always {
+                    resetBoard()
+                }
               }
             } // stage test
           }
@@ -634,7 +666,11 @@ pipeline {
                     printTopics()
                   }
                 }
-
+              }
+              post {
+                always {
+                    resetBoard()
+                }
               }
             } // stage test
           }
@@ -769,7 +805,11 @@ pipeline {
                     printTopics()
                   }
                 }
-
+              }
+              post {
+                always {
+                    resetBoard()
+                }
               }
             } // stage test
           }
@@ -975,4 +1015,38 @@ void printTopics() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "listener vehicle_status_flags"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "listener vtol_vehicle_status"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "listener yaw_estimator_status"'
+}
+
+void resetBoard() {
+  resetParameters()
+
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set SYS_AUTOSTART 0" || true'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set IMU_GYRO_RATEMAX 200" || true' // limit cpu usage
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set MAV_0_CONFIG 0" || true'       // limit cpu usage
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set MAV_1_CONFIG 0" || true'       // limit cpu usage
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set SDLOG_MODE -1" || true'        // limit cpu usage
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "reboot" || true' // reboot to apply
+
+  // check SD card
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "df -h"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ls /fs/microsd"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ls /proc/fs"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "cat /proc/fs/blocks"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "cat /proc/fs/mount"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "cat /proc/fs/usage"'
+  // format
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "dataman stop"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "umount /fs/microsd"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "top once"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "mkfatfs -F 32 /dev/mmcsd0" || true'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "top once"'
+
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "mount -t vfat /dev/mmcsd0 /fs/microsd"'
+  // check SD card
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "df -h"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ls /fs/microsd"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ls /proc/fs"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "cat /proc/fs/blocks"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "cat /proc/fs/mount"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "cat /proc/fs/usage"'
 }
