@@ -69,7 +69,7 @@
 #endif
 
 #ifdef CONFIG_NET
-#define MAVLINK_NET_ADDED_STACK 350
+#define MAVLINK_NET_ADDED_STACK PX4_STACK_ADJUSTED(350)
 #else
 #define MAVLINK_NET_ADDED_STACK 0
 #endif
@@ -2824,7 +2824,7 @@ Mavlink::start(int argc, char *argv[])
 	px4_task_spawn_cmd(buf,
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
-			   2896 + MAVLINK_NET_ADDED_STACK,
+			   PX4_STACK_ADJUSTED(2896) + MAVLINK_NET_ADDED_STACK,
 			   (px4_main_t)&Mavlink::start_helper,
 			   (char *const *)argv);
 
