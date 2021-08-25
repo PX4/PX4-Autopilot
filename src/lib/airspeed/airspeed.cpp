@@ -43,7 +43,7 @@
 #include "airspeed.h"
 
 #include <px4_platform_common/defines.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 
 float calc_IAS_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel, enum AIRSPEED_SENSOR_MODEL smodel,
 			 float tube_len, float tube_dia_mm, float differential_pressure, float pressure_ambient, float temperature_celsius)

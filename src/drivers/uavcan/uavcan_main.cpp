@@ -372,7 +372,11 @@ UavcanNode::set_param(int remote_node_id, const char *name, char *value)
 		if (rv == 0) {
 			rv = get_set_param(remote_node_id, name, req);
 
-			if (rv < 0 || resp.name.empty()) {
+			if (rv == 0) {
+				// commit parameter change
+				save_params(remote_node_id);
+
+			} else if (rv < 0 || resp.name.empty()) {
 				std::printf("Failed to set param: %s\n", name);
 				return -1;
 			}

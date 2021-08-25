@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,6 +31,16 @@
  *
  ****************************************************************************/
 
+/**
+ * Enable INA226 Power Monitor
+ *
+ * For systems a INA226 Power Monitor, this should be set to true
+ *
+ * @group Sensors
+ * @boolean
+ * @reboot_required true
+*/
+PARAM_DEFINE_INT32(SENS_EN_INA226, 0);
 
 /**
  * INA226 Power Monitor Config

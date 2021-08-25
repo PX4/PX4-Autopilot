@@ -48,7 +48,11 @@ else()
 	message(STATUS "${FASTRTPSGEN_VERSION}")
 endif()
 
-if (EXISTS "${PX4_SOURCE_DIR}/msg/tools/uorb_rtps_message_ids.yaml")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+	${PX4_SOURCE_DIR}/msg/tools/urtps_bridge_topics.yaml
+)
+
+if (EXISTS "${PX4_SOURCE_DIR}/msg/tools/urtps_bridge_topics.yaml")
 	set(config_rtps_send_topics)
 	execute_process(
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/msg/tools/uorb_rtps_classifier.py -sa
@@ -106,7 +110,8 @@ if (GENERATE_RTPS_BRIDGE)
 
 	# send topic files
 	STRING(REGEX REPLACE ";" ", " send_list "${config_rtps_send_topics};${config_rtps_send_alias_topics}")
-	message(STATUS "RTPS send: ${send_list}")
+	message(STATUS "microRTPS bridge:")
+	message(STATUS "  Publish to the bridge from: ${send_list}")
 	set(send_topic_files)
 	foreach(topic ${config_rtps_send_topics})
 		list(APPEND send_topic_files ${PX4_SOURCE_DIR}/msg/${topic}.msg)
@@ -116,7 +121,7 @@ if (GENERATE_RTPS_BRIDGE)
 
 	# receive topic files
 	STRING(REGEX REPLACE ";" ", " rcv_list "${config_rtps_receive_topics};${config_rtps_receive_alias_topics}")
-	message(STATUS "RTPS receive: ${rcv_list}")
+	message(STATUS "  Subscribe from the bridge to: ${rcv_list}")
 	set(receive_topic_files)
 	foreach(topic ${config_rtps_receive_topics})
 		list(APPEND receive_topic_files ${PX4_SOURCE_DIR}/msg/${topic}.msg)
@@ -141,6 +146,7 @@ if (GENERATE_RTPS_BRIDGE)
 			${receive_topic_files}
 			${send_topic_files}
 			${PX4_SOURCE_DIR}/msg/tools/px_generate_uorb_topic_files.py
+			${PX4_SOURCE_DIR}/msg/tools/urtps_bridge_topics.yaml
 		COMMENT "Generating uORB microcdr topic headers"
 		VERBATIM
 	)
@@ -160,10 +166,11 @@ if (GENERATE_RTPS_BRIDGE)
 			${receive_topic_files}
 			${send_topic_files}
 			${PX4_SOURCE_DIR}/msg/tools/px_generate_uorb_topic_files.py
+			${PX4_SOURCE_DIR}/msg/tools/urtps_bridge_topics.yaml
 		COMMENT "Generating uORB microcdr topic sources"
 		VERBATIM
 	)
-	px4_add_library(uorb_msgs_microcdr ${uorb_sources_microcdr})
+	px4_add_library(uorb_msgs_microcdr ${uorb_sources_microcdr} ${uorb_headers_microcdr})
 	add_dependencies(uorb_msgs_microcdr
 		uorb_headers_microcdr_gen
 		git_micro_cdr

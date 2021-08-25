@@ -46,25 +46,6 @@ void ICM20948_I2C_Passthrough::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *ICM20948_I2C_Passthrough::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-		int runtime_instance)
-{
-	ICM20948_I2C_Passthrough *instance = new ICM20948_I2C_Passthrough(iterator.configuredBusOption(), iterator.bus(),
-			cli.bus_frequency, cli.i2c_address);
-
-	if (!instance) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (OK != instance->init()) {
-		delete instance;
-		return nullptr;
-	}
-
-	return instance;
-}
-
 extern "C" int icm20948_i2c_passthrough_main(int argc, char *argv[])
 {
 	using ThisDriver = ICM20948_I2C_Passthrough;

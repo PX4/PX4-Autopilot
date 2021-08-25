@@ -38,6 +38,7 @@
  * PX4IO is connected via DMA enabled high-speed UART.
  */
 
+#include <px4_platform_common/events.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/sem.hpp>
@@ -540,7 +541,9 @@ PX4IO::detect()
 
 			} else {
 				PX4_ERR("IO version error");
-				mavlink_log_emergency(&_mavlink_log_pub, "IO VERSION MISMATCH, PLEASE UPGRADE SOFTWARE!");
+				mavlink_log_emergency(&_mavlink_log_pub, "IO VERSION MISMATCH, PLEASE UPGRADE SOFTWARE!\t");
+				events::send(events::ID("px4io_io_ver_mismatch"), events::Log::Emergency,
+					     "IO version mismatch, please upgrade the software");
 			}
 
 			return -1;
@@ -597,12 +600,16 @@ PX4IO::init()
 
 	/* if the error still persists after timing out, we give up */
 	if (protocol == _io_reg_get_error) {
-		mavlink_log_emergency(&_mavlink_log_pub, "Failed to communicate with IO, abort.");
+		mavlink_log_emergency(&_mavlink_log_pub, "Failed to communicate with IO, abort.\t");
+		events::send(events::ID("px4io_comm_failed"), events::Log::Emergency,
+			     "Failed to communicate with IO, aborting initialization");
 		return -1;
 	}
 
 	if (protocol != PX4IO_PROTOCOL_VERSION) {
-		mavlink_log_emergency(&_mavlink_log_pub, "IO protocol/firmware mismatch, abort.");
+		mavlink_log_emergency(&_mavlink_log_pub, "IO protocol/firmware mismatch, abort.\t");
+		events::send(events::ID("px4io_proto_fw_mismatch"), events::Log::Emergency,
+			     "IO protocol/firmware mismatch, aborting initialization");
 		return -1;
 	}
 
@@ -619,7 +626,9 @@ PX4IO::init()
 	    (_max_rc_input < 1)  || (_max_rc_input > 255)) {
 
 		PX4_ERR("config read error");
-		mavlink_log_emergency(&_mavlink_log_pub, "[IO] config read fail, abort.");
+		mavlink_log_emergency(&_mavlink_log_pub, "[IO] config read fail, abort.\t");
+		events::send(events::ID("px4io_config_read_failed"), events::Log::Emergency,
+			     "IO config read failed, aborting initialization");
 
 		// ask IO to reboot into bootloader as the failure may
 		// be due to mismatched firmware versions and we want
@@ -669,7 +678,9 @@ PX4IO::init()
 		/* get a status update from IO */
 		io_get_status();
 
-		mavlink_log_emergency(&_mavlink_log_pub, "RECOVERING FROM FMU IN-AIR RESTART");
+		mavlink_log_emergency(&_mavlink_log_pub, "RECOVERING FROM FMU IN-AIR RESTART\t");
+		events::send(events::ID("px4io_inair_restart_recovery"), events::Log::Alert,
+			     "Recovering from in-air restart");
 
 		/* WARNING: COMMANDER app/vehicle status must be initialized.
 		 * If this fails (or the app is not started), worst-case IO
@@ -693,9 +704,11 @@ PX4IO::init()
 			/* wait 10 ms */
 			px4_usleep(10000);
 
-			/* abort after 5s */
+			/* abort after 3s */
 			if ((hrt_absolute_time() - try_start_time) / 1000 > 3000) {
-				mavlink_log_emergency(&_mavlink_log_pub, "Failed to recover from in-air restart (1), abort");
+				mavlink_log_emergency(&_mavlink_log_pub, "Failed to recover from in-air restart (1), abort\t");
+				events::send(events::ID("px4io_inair_restart_recovery_failed"), events::Log::Emergency,
+					     "Failed to recover from in-air restart, aborting initialization");
 				return 1;
 			}
 
@@ -725,7 +738,9 @@ PX4IO::init()
 		vcmd.confirmation = true; /* ask to confirm command */
 
 		if (reg & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE) {
-			mavlink_log_emergency(&_mavlink_log_pub, "IO is in failsafe, force failsafe");
+			mavlink_log_emergency(&_mavlink_log_pub, "IO is in failsafe, force failsafe\t");
+			events::send(events::ID("px4io_init_in_failsafe"), events::Log::Emergency,
+				     "IO is in failsafe, forcing flight termination");
 			/* send command to terminate flight via command API */
 			vcmd.timestamp = hrt_absolute_time();
 			vcmd.param1 = 1.0f; /* request flight termination */
@@ -742,9 +757,11 @@ PX4IO::init()
 				/* wait 50 ms */
 				px4_usleep(50000);
 
-				/* abort after 5s */
+				/* abort after 2s */
 				if ((hrt_absolute_time() - try_start_time) / 1000 > 2000) {
-					mavlink_log_emergency(&_mavlink_log_pub, "Failed to recover from in-air restart (3), abort");
+					mavlink_log_emergency(&_mavlink_log_pub, "Failed to recover from in-air restart (3), abort\t");
+					events::send(events::ID("px4io_inair_restart_recovery_failed3"), events::Log::Emergency,
+						     "Failed to recover from in-air restart, aborting initialization");
 					return 1;
 				}
 
@@ -775,9 +792,11 @@ PX4IO::init()
 			/* wait 50 ms */
 			px4_usleep(50000);
 
-			/* abort after 5s */
+			/* abort after 2s */
 			if ((hrt_absolute_time() - try_start_time) / 1000 > 2000) {
-				mavlink_log_emergency(&_mavlink_log_pub, "Failed to recover from in-air restart (2), abort");
+				mavlink_log_emergency(&_mavlink_log_pub, "Failed to recover from in-air restart (2), abort\t");
+				events::send(events::ID("px4io_inair_restart_recovery_failed2"), events::Log::Emergency,
+					     "Failed to recover from in-air restart, aborting initialization");
 				return 1;
 			}
 
@@ -824,7 +843,9 @@ PX4IO::init()
 			ret = io_set_rc_config();
 
 			if (ret != OK) {
-				mavlink_log_critical(&_mavlink_log_pub, "IO RC config upload fail");
+				mavlink_log_critical(&_mavlink_log_pub, "IO RC config upload fail\t");
+				events::send(events::ID("px4io_io_rc_config_upload_failed"), events::Log::Critical,
+					     "IO RC config upload failed, aborting initialization");
 				return ret;
 			}
 		}
@@ -852,6 +873,9 @@ PX4IO::init()
 		PX4_INFO("default PWM output device");
 		_primary_pwm_device = true;
 	}
+
+	/* ensure PWM limits are applied before any other module starts */
+	update_params();
 
 	/* start the IO interface task */
 	_task = px4_task_spawn_cmd("px4io",
@@ -1040,7 +1064,9 @@ PX4IO::task_main()
 						int pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RC_THR_FAILSAFE_US, &failsafe_thr, 1);
 
 						if (pret != OK) {
-							mavlink_log_critical(&_mavlink_log_pub, "failsafe upload failed, FS: %" PRId16 " us", failsafe_thr);
+							mavlink_log_critical(&_mavlink_log_pub, "failsafe upload failed, FS: %d us\t", (int)failsafe_thr);
+							events::send<uint16_t>(events::ID("px4io_failsafe_upload_failed"), events::Log::Critical,
+									       "Failsafe upload failed, threshold: {1} us", failsafe_thr);
 						}
 					}
 				}
@@ -1209,6 +1235,7 @@ void PX4IO::update_params()
 	int32_t pwm_max_default = PWM_DEFAULT_MAX;
 	int32_t pwm_disarmed_default = 0;
 	int32_t pwm_rate_default = 50;
+	int32_t pwm_default_channels = 0;
 
 	const char *prefix = "PWM_MAIN";
 
@@ -1216,9 +1243,17 @@ void PX4IO::update_params()
 	param_get(param_find("PWM_MAIN_MAX"), &pwm_max_default);
 	param_get(param_find("PWM_MAIN_DISARM"), &pwm_disarmed_default);
 	param_get(param_find("PWM_MAIN_RATE"), &pwm_rate_default);
+	param_get(param_find("PWM_MAIN_OUT"), &pwm_default_channels);
+
+	uint32_t single_ch = 0;
+	uint32_t pwm_default_channel_mask = 0;
+
+	while ((single_ch = pwm_default_channels % 10)) {
+		pwm_default_channel_mask |= 1 << (single_ch - 1);
+		pwm_default_channels /= 10;
+	}
 
 	char str[17];
-
 
 	// PWM_MAIN_MINx
 	if (!_pwm_min_configured) {
@@ -1238,7 +1273,7 @@ void PX4IO::update_params()
 						param_set(param_find(str), &pwm_min_new);
 					}
 
-				} else {
+				} else if (pwm_default_channel_mask & 1 << i) {
 					pwm.values[i] = pwm_min_default;
 				}
 			}
@@ -1267,7 +1302,7 @@ void PX4IO::update_params()
 						param_set(param_find(str), &pwm_max_new);
 					}
 
-				} else {
+				} else if (pwm_default_channel_mask & 1 << i) {
 					pwm.values[i] = pwm_max_default;
 				}
 			}
@@ -1322,7 +1357,7 @@ void PX4IO::update_params()
 						param_set(param_find(str), &pwm_dis_new);
 					}
 
-				} else {
+				} else if (pwm_default_channel_mask & 1 << i) {
 					pwm.values[i] = pwm_disarmed_default;
 				}
 			}
@@ -1780,7 +1815,9 @@ PX4IO::io_set_rc_config()
 
 		/* check the IO initialisation flag */
 		if (!(io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_INIT_OK)) {
-			mavlink_log_critical(&_mavlink_log_pub, "config for RC%u rejected by IO", i + 1);
+			mavlink_log_critical(&_mavlink_log_pub, "config for RC%u rejected by IO\t", i + 1);
+			events::send<uint16_t>(events::ID("px4io_config_rc_rejected"), events::Log::Error,
+					       "Config for RC{1} rejected by IO", i + 1);
 			break;
 		}
 
@@ -2436,7 +2473,8 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 	} while (retries > 0);
 
 	if (retries == 0) {
-		mavlink_log_info(&_mavlink_log_pub, "[IO] mixer upload fail");
+		mavlink_log_info(&_mavlink_log_pub, "[IO] mixer upload fail\t");
+		events::send(events::ID("px4io_mixer_upload_failed"), events::Log::Error, "IO mixer upload failed");
 		/* load must have failed for some reason */
 		return -EINVAL;
 

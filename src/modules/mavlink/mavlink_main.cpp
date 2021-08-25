@@ -49,11 +49,12 @@
 #endif
 
 #include <containers/LockGuard.hpp>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/version/version.h>
 
+#include <uORB/topics/event.h>
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
 
@@ -68,7 +69,7 @@
 #endif
 
 #ifdef CONFIG_NET
-#define MAVLINK_NET_ADDED_STACK 350
+#define MAVLINK_NET_ADDED_STACK PX4_STACK_ADJUSTED(350)
 #else
 #define MAVLINK_NET_ADDED_STACK 0
 #endif
@@ -78,6 +79,7 @@
 #define MAIN_LOOP_DELAY                10000           ///< 100 Hz @ 1000 bytes/s data rate
 
 static pthread_mutex_t mavlink_module_mutex = PTHREAD_MUTEX_INITIALIZER;
+events::EventBuffer *Mavlink::_event_buffer = nullptr;
 
 Mavlink *mavlink_module_instances[MAVLINK_COMM_NUM_BUFFERS] {};
 
@@ -329,6 +331,9 @@ Mavlink::destroy_all_instances()
 		delete inst_to_del;
 	}
 
+	delete _event_buffer;
+	_event_buffer = nullptr;
+
 	printf("\n");
 	PX4_INFO("all instances stopped");
 	return OK;
@@ -374,44 +379,56 @@ Mavlink::serial_instance_exists(const char *device_name, Mavlink *self)
 	return false;
 }
 
-void
-Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
+bool
+Mavlink::component_was_seen(int system_id, int component_id, Mavlink *self)
 {
 	LockGuard lg{mavlink_module_mutex};
 
 	for (Mavlink *inst : mavlink_module_instances) {
-		if (inst && (inst != self)) {
-			const mavlink_msg_entry_t *meta = mavlink_get_msg_entry(msg->msgid);
+		if (inst && (inst != self) && (inst->_receiver.component_was_seen(system_id, component_id))) {
+			return true;
+		}
+	}
 
-			int target_system_id = 0;
-			int target_component_id = 0;
+	return false;
+}
 
-			// might be nullptr if message is unknown
-			if (meta) {
-				// Extract target system and target component if set
-				if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_SYSTEM) {
-					if (meta->target_system_ofs < msg->len) {
-						target_system_id = (_MAV_PAYLOAD(msg))[meta->target_system_ofs];
-					}
-				}
+void
+Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
+{
+	const mavlink_msg_entry_t *meta = mavlink_get_msg_entry(msg->msgid);
 
-				if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT) {
-					if (meta->target_component_ofs < msg->len) {
-						target_component_id = (_MAV_PAYLOAD(msg))[meta->target_component_ofs];
-					}
-				}
-			}
+	int target_system_id = 0;
+	int target_component_id = 0;
 
-			// If it's a message only for us, we keep it, otherwise, we forward it.
-			const bool targeted_only_at_us =
-				(target_system_id == self->get_system_id() &&
-				 target_component_id == self->get_component_id());
+	// might be nullptr if message is unknown
+	if (meta) {
+		// Extract target system and target component if set
+		if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_SYSTEM) {
+			target_system_id = (_MAV_PAYLOAD(msg))[meta->target_system_ofs];
+		}
 
-			// We don't forward heartbeats unless it's specifically enabled.
-			const bool heartbeat_check_ok =
-				(msg->msgid != MAVLINK_MSG_ID_HEARTBEAT || self->forward_heartbeats_enabled());
+		if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT) {
+			target_component_id = (_MAV_PAYLOAD(msg))[meta->target_component_ofs];
+		}
+	}
 
-			if (!targeted_only_at_us && heartbeat_check_ok) {
+	// If it's a message only for us, we keep it
+	if (target_system_id == self->get_system_id() && target_component_id == self->get_component_id()) {
+		return;
+	}
+
+	// We don't forward heartbeats unless it's specifically enabled.
+	if (msg->msgid == MAVLINK_MSG_ID_HEARTBEAT && !self->forward_heartbeats_enabled()) {
+		return;
+	}
+
+	LockGuard lg{mavlink_module_mutex};
+
+	for (Mavlink *inst : mavlink_module_instances) {
+		if (inst && (inst != self) && (inst->_forwarding_on)) {
+			// Pass message only if target component was seen before
+			if (inst->_receiver.component_was_seen(target_system_id, target_component_id)) {
 				inst->pass_message(msg);
 			}
 		}
@@ -1362,13 +1379,11 @@ Mavlink::message_buffer_get_ptr(void **ptr, bool *is_part)
 void
 Mavlink::pass_message(const mavlink_message_t *msg)
 {
-	if (_forwarding_on) {
-		/* size is 8 bytes plus variable payload */
-		int size = MAVLINK_NUM_NON_PAYLOAD_BYTES + msg->len;
-		pthread_mutex_lock(&_message_buffer_mutex);
-		message_buffer_write(msg, size);
-		pthread_mutex_unlock(&_message_buffer_mutex);
-	}
+	/* size is 8 bytes plus variable payload */
+	int size = MAVLINK_NUM_NON_PAYLOAD_BYTES + msg->len;
+	pthread_mutex_lock(&_message_buffer_mutex);
+	message_buffer_write(msg, size);
+	pthread_mutex_unlock(&_message_buffer_mutex);
 }
 
 MavlinkShell *
@@ -1442,7 +1457,7 @@ Mavlink::update_rate_mult()
 	} else if (_radio_status_available) {
 
 		// check for RADIO_STATUS timeout and reset
-		if (hrt_elapsed_time(&_rstatus.timestamp) > (_param_mav_radio_timeout.get() * 1_s)) {
+		if (hrt_elapsed_time_atomic(&_rstatus.timestamp) > (_param_mav_radio_timeout.get() * 1_s)) {
 			PX4_ERR("instance %d: RADIO_STATUS timeout", _instance_id);
 			_radio_status_available = false;
 
@@ -1522,6 +1537,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
 		configure_stream_local("COLLISION", unlimited_rate);
 		configure_stream_local("DISTANCE_SENSOR", 0.5f);
+		configure_stream_local("EFI_STATUS", 2.0f);
 		configure_stream_local("ESC_INFO", 1.0f);
 		configure_stream_local("ESC_STATUS", 1.0f);
 		configure_stream_local("ESTIMATOR_STATUS", 0.5f);
@@ -1583,6 +1599,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("BATTERY_STATUS", 0.5f);
 		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
 		configure_stream_local("COLLISION", unlimited_rate);
+		configure_stream_local("EFI_STATUS", 2.0f);
 		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
 		configure_stream_local("EXTENDED_SYS_STATE", 5.0f);
 		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 1.0f);
@@ -1724,6 +1741,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("BATTERY_STATUS", 0.5f);
 		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
 		configure_stream_local("COLLISION", unlimited_rate);
+		configure_stream_local("EFI_STATUS", 10.0f);
 		configure_stream_local("ESC_INFO", 10.0f);
 		configure_stream_local("ESC_STATUS", 10.0f);
 		configure_stream_local("ESTIMATOR_STATUS", 5.0f);
@@ -1801,6 +1819,8 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 1.0f);
 		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
 		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
+		configure_stream_local("ESC_INFO", 1.0f);
+		configure_stream_local("ESC_STATUS", 5.0f);
 
 		configure_stream_local("ADSB_VEHICLE", unlimited_rate);
 		configure_stream_local("ATTITUDE_TARGET", 2.0f);
@@ -2240,6 +2260,14 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_receiver.start();
 
+	/* Events subscription: only the first MAVLink instance should check */
+	uORB::Subscription event_sub{ORB_ID(event)};
+	const bool should_check_events = _instance_id == 0;
+	uint16_t event_sequence_offset = 0; // offset to account for skipped events, not sent via MAVLink
+	// ensure topic exists, otherwise we might lose first queued events
+	orb_advertise_queue(ORB_ID(event), nullptr, event_s::ORB_QUEUE_LENGTH);
+	event_sub.subscribe();
+
 	_mavlink_start_time = hrt_absolute_time();
 
 	while (!_task_should_exit) {
@@ -2353,6 +2381,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 		/* send command ACK */
 		bool cmd_logging_start_acknowledgement = false;
+		bool cmd_logging_stop_acknowledgement = false;
 
 		if (_vehicle_command_ack_sub.updated()) {
 			static constexpr size_t COMMAND_ACK_TOTAL_LEN = MAVLINK_MSG_ID_COMMAND_ACK_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
@@ -2384,6 +2413,10 @@ Mavlink::task_main(int argc, char *argv[])
 
 						if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
 							cmd_logging_start_acknowledgement = true;
+
+						} else if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_STOP
+							   && command_ack.result == vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED) {
+							cmd_logging_stop_acknowledgement = true;
 						}
 					}
 				}
@@ -2425,10 +2458,9 @@ Mavlink::task_main(int argc, char *argv[])
 
 		/* check for ulog streaming messages */
 		if (_mavlink_ulog) {
-			if (_mavlink_ulog_stop_requested.load()) {
+			if (cmd_logging_stop_acknowledgement) {
 				_mavlink_ulog->stop();
 				_mavlink_ulog = nullptr;
-				_mavlink_ulog_stop_requested.store(false);
 
 			} else {
 				if (cmd_logging_start_acknowledgement) {
@@ -2447,6 +2479,30 @@ Mavlink::task_main(int argc, char *argv[])
 				}
 			}
 		}
+
+		/* handle new events */
+		if (should_check_events) {
+			event_s orb_event;
+
+			while (event_sub.update(&orb_event)) {
+				if (events::externalLogLevel(orb_event.log_levels) == events::LogLevel::Disabled) {
+					++event_sequence_offset; // skip this event
+
+				} else {
+					events::Event e;
+					e.id = orb_event.id;
+					e.timestamp_ms = orb_event.timestamp / 1000;
+					e.sequence = orb_event.event_sequence - event_sequence_offset;
+					e.log_levels = orb_event.log_levels;
+					static_assert(sizeof(e.arguments) == sizeof(orb_event.arguments),
+						      "uorb message event: arguments size mismatch");
+					memcpy(e.arguments, orb_event.arguments, sizeof(orb_event.arguments));
+					_event_buffer->insert_event(e);
+				}
+			}
+		}
+
+		_events.update(t);
 
 		/* pass messages from other UARTs */
 		if (_forwarding_on) {
@@ -2732,6 +2788,22 @@ Mavlink::start(int argc, char *argv[])
 	MavlinkULog::initialize();
 	MavlinkCommandSender::initialize();
 
+	if (!_event_buffer) {
+		_event_buffer = new events::EventBuffer();
+		int ret;
+
+		if (_event_buffer && (ret = _event_buffer->init()) != 0) {
+			PX4_ERR("EventBuffer init failed (%i)", ret);
+			delete _event_buffer;
+			_event_buffer = nullptr;
+		}
+
+		if (!_event_buffer) {
+			PX4_ERR("EventBuffer alloc failed");
+			return 1;
+		}
+	}
+
 	// Wait for the instance count to go up one
 	// before returning to the shell
 	int ic = Mavlink::instance_count();
@@ -2752,7 +2824,7 @@ Mavlink::start(int argc, char *argv[])
 	px4_task_spawn_cmd(buf,
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
-			   2896 + MAVLINK_NET_ADDED_STACK,
+			   PX4_STACK_ADJUSTED(2896) + MAVLINK_NET_ADDED_STACK,
 			   (px4_main_t)&Mavlink::start_helper,
 			   (char *const *)argv);
 

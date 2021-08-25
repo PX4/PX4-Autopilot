@@ -273,7 +273,7 @@ void MulticopterPositionControl::Run()
 		const bool was_in_failsafe = _in_failsafe;
 		_in_failsafe = false;
 
-		_control_mode_sub.update(&_control_mode);
+		_vehicle_control_mode_sub.update(&_vehicle_control_mode);
 		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
 
 		if (_param_mpc_use_hte.get()) {
@@ -288,9 +288,9 @@ void MulticopterPositionControl::Run()
 
 		PositionControlStates states{set_vehicle_states(local_pos)};
 
-		if (_control_mode.flag_multicopter_position_control_enabled) {
+		if (_vehicle_control_mode.flag_multicopter_position_control_enabled) {
 
-			_trajectory_setpoint_sub.update(&_setpoint);
+			const bool is_trajectory_setpoint_updated = _trajectory_setpoint_sub.update(&_setpoint);
 
 			// adjust existing (or older) setpoint with any EKF reset deltas
 			if (_setpoint.timestamp < local_pos.timestamp) {
@@ -326,9 +326,9 @@ void MulticopterPositionControl::Run()
 				_vehicle_constraints.speed_up = _param_mpc_z_vel_max_up.get();
 			}
 
-			if (_control_mode.flag_control_offboard_enabled) {
+			if (_vehicle_control_mode.flag_control_offboard_enabled) {
 
-				bool want_takeoff = _control_mode.flag_armed && _vehicle_land_detected.landed
+				bool want_takeoff = _vehicle_control_mode.flag_armed && _vehicle_land_detected.landed
 						    && hrt_elapsed_time(&_setpoint.timestamp) < 1_s;
 
 				if (want_takeoff && PX4_ISFINITE(_setpoint.z)
@@ -357,25 +357,29 @@ void MulticopterPositionControl::Run()
 			}
 
 			// handle smooth takeoff
-			_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, _vehicle_constraints.want_takeoff,
+			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _vehicle_land_detected.landed,
+						    _vehicle_constraints.want_takeoff,
 						    _vehicle_constraints.speed_up, false, time_stamp_now);
 
-			const bool not_taken_off = (_takeoff.getTakeoffState() < TakeoffState::rampup);
 			const bool flying = (_takeoff.getTakeoffState() >= TakeoffState::flight);
-			const bool flying_but_ground_contact = (flying && _vehicle_land_detected.ground_contact);
 
-			// make sure takeoff ramp is not amended by acceleration feed-forward
-			if (!flying) {
-				_setpoint.acceleration[2] = NAN;
-			}
+			if (is_trajectory_setpoint_updated) {
+				// make sure takeoff ramp is not amended by acceleration feed-forward
+				if (!flying) {
+					_setpoint.acceleration[2] = NAN;
+				}
 
-			if (not_taken_off || flying_but_ground_contact) {
-				// we are not flying yet and need to avoid any corrections
-				reset_setpoint_to_nan(_setpoint);
-				Vector3f(0.f, 0.f, 100.f).copyTo(_setpoint.acceleration); // High downwards acceleration to make sure there's no thrust
+				const bool not_taken_off             = (_takeoff.getTakeoffState() < TakeoffState::rampup);
+				const bool flying_but_ground_contact = (flying && _vehicle_land_detected.ground_contact);
 
-				// prevent any integrator windup
-				_control.resetIntegral();
+				if (not_taken_off || flying_but_ground_contact) {
+					// we are not flying yet and need to avoid any corrections
+					reset_setpoint_to_nan(_setpoint);
+					Vector3f(0.f, 0.f, 100.f).copyTo(_setpoint.acceleration); // High downwards acceleration to make sure there's no thrust
+
+					// prevent any integrator windup
+					_control.resetIntegral();
+				}
 			}
 
 			// limit tilt during takeoff ramupup
@@ -423,7 +427,7 @@ void MulticopterPositionControl::Run()
 
 			} else {
 				// Failsafe
-				if ((time_stamp_now - _last_warn) > 2_s && _last_warn > 0) {
+				if ((time_stamp_now - _last_warn) > 2_s) {
 					PX4_WARN("invalid setpoints");
 					_last_warn = time_stamp_now;
 				}
@@ -456,7 +460,8 @@ void MulticopterPositionControl::Run()
 
 		} else {
 			// an update is necessary here because otherwise the takeoff state doesn't get skiped with non-altitude-controlled modes
-			_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f, true, time_stamp_now);
+			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f, true,
+						    time_stamp_now);
 		}
 
 		// Publish takeoff status
@@ -485,7 +490,7 @@ void MulticopterPositionControl::failsafe(const hrt_abstime &now, vehicle_local_
 		const PositionControlStates &states, bool warn)
 {
 	// do not warn while we are disarmed, as we might not have valid setpoints yet
-	if (!_control_mode.flag_armed) {
+	if (!_vehicle_control_mode.flag_armed) {
 		warn = false;
 	}
 

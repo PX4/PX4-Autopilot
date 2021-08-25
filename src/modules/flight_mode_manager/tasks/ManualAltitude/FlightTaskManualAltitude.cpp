@@ -38,7 +38,7 @@
 #include "FlightTaskManualAltitude.hpp"
 #include <float.h>
 #include <mathlib/mathlib.h>
-#include <ecl/geo/geo.h>
+#include <geo/geo.h>
 
 using namespace matrix;
 

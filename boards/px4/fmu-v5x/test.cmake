@@ -1,9 +1,6 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR px4
-	MODEL fmu-v5x
-	LABEL test
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
@@ -34,6 +31,7 @@ px4_add_board(
 		imu/bosch/bmi088
 		imu/invensense/icm20602
 		imu/invensense/icm20948 # required for ak09916 mag
+		imu/invensense/icm20649
 		imu/invensense/icm42688p
 		irlock
 		lights # all available light drivers
@@ -41,7 +39,7 @@ px4_add_board(
 		optical_flow # all available optical flow drivers
 		osd
 		pca9685
-		pca9685_pwm_out
+		#pca9685_pwm_out
 		power_monitor/ina226
 		#protocol_splitter
 		pwm_input
@@ -49,9 +47,10 @@ px4_add_board(
 		pwm_out
 		px4io
 		rc_input
-		roboclaw
-		rpm
+		#roboclaw
+		#rpm
 		safety_button
+		#smart_battery/batmon
 		telemetry # all available telemetry drivers
 		test_ppm
 		tone_alarm
@@ -73,7 +72,7 @@ px4_add_board(
 		land_detector
 		landing_target_estimator
 		load_mon
-		local_position_estimator
+		#local_position_estimator
 		logger
 		mavlink
 		mc_att_control
@@ -101,6 +100,7 @@ px4_add_board(
 		i2cdetect
 		led_control
 		mft
+		microbench
 		mixer
 		motor_ramp
 		motor_test

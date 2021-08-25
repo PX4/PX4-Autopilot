@@ -20,7 +20,7 @@ set PWM_OUT 1234
 
 
 # The set does not include a battery, but most people will probably use 4S
-param set-default BAT_N_CELLS 4
+param set-default BAT1_N_CELLS 4
 
 param set-default IMU_GYRO_CUTOFF 120
 param set-default IMU_DGYRO_CUTOFF 45

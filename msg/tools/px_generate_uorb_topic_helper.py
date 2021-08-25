@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #############################################################################
 #
-#   Copyright (C) 2013-2019 PX4 Pro Development Team. All rights reserved.
+#   Copyright (C) 2013-2021 PX4 Pro Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -296,9 +296,10 @@ def print_field(field):
     if field.name == 'timestamp':
         print(("if (message.timestamp != 0) {\n\t\tPX4_INFO_RAW(\"\\t" + field.name +
               ": " + c_type + "  (%.6f seconds ago)\\n\", " + field_name +
-              ", (now - message.timestamp) / 1e6);\n\t} else {\n\t\tPX4_INFO_RAW(\"\\n\");\n\t}"))
+               ", (now - message.timestamp) / 1e6);\n\t} else {\n\t\tPX4_INFO_RAW(\"\\n\");\n\t}"))
     elif field.name == 'timestamp_sample':
-        print(("\n\tPX4_INFO_RAW(\"\\t" + field.name + ": " + c_type + "  (" + c_type + " us before timestamp)\\n\", " + field_name + ", message.timestamp - message.timestamp_sample);\n\t"))
+        print(("\n\tPX4_INFO_RAW(\"\\t" + field.name + ": " + c_type + "  (" + c_type +
+              " us before timestamp)\\n\", " + field_name + ", message.timestamp - message.timestamp_sample);\n\t"))
     elif field.name == 'device_id':
         print("char device_id_buffer[80];")
         print("device::Device::device_id_print_buffer(device_id_buffer, sizeof(device_id_buffer), message.device_id);")
@@ -322,19 +323,25 @@ def print_field(field):
     elif (field.name == 'q' or 'q_' in field.name) and field.type == 'float32[4]':
         # float32[4] q/q_d/q_reset/delta_q_reset
         print("{")
-        print("\t\tmatrix::Eulerf euler{matrix::Quatf{message." + field.name + "}};")
-        print("\t\tPX4_INFO_RAW(\"\\t" + field.name + ": " + c_type + "  (Roll: %.1f deg, Pitch: %.1f deg, Yaw: %.1f deg" ")\\n\", " + field_name + ", (double)math::degrees(euler(0)), (double)math::degrees(euler(1)), (double)math::degrees(euler(2)));\n\t")
+        print(
+            "\t\tmatrix::Eulerf euler{matrix::Quatf{message." + field.name + "}};")
+        print("\t\tPX4_INFO_RAW(\"\\t" + field.name + ": " + c_type + "  (Roll: %.1f deg, Pitch: %.1f deg, Yaw: %.1f deg" ")\\n\", " +
+              field_name + ", (double)math::degrees(euler(0)), (double)math::degrees(euler(1)), (double)math::degrees(euler(2)));\n\t")
         print("\t}")
 
     elif ("flags" in field.name or "bits" in field.name) and "uint" in field.type:
         # print bits of fixed width unsigned integers (uint8, uint16, uint32) if name contains flags or bits
-        print("PX4_INFO_RAW(\"\\t" + field.name + ": " + c_type + " (0b\", " + field_name + ");")
-        print("\tfor (int i = (sizeof(" + field_name + ") * 8) - 1; i >= 0; i--) { PX4_INFO_RAW(\"%lu%s\", (unsigned long) " + field_name + " >> i & 1, ((unsigned)i < (sizeof(" + field_name + ") * 8) - 1 && i % 4 == 0 && i > 0) ? \"'\" : \"\"); }")
+        print("PX4_INFO_RAW(\"\\t" + field.name + ": " +
+              c_type + " (0b\", " + field_name + ");")
+        print("\tfor (int i = (sizeof(" + field_name + ") * 8) - 1; i >= 0; i--) { PX4_INFO_RAW(\"%lu%s\", (unsigned long) "
+              + field_name + " >> i & 1, ((unsigned)i < (sizeof(" + field_name + ") * 8) - 1 && i % 4 == 0 && i > 0) ? \"'\" : \"\"); }")
         print("\tPX4_INFO_RAW(\")\\n\");")
     elif is_array and 'char' in field.type:
-        print(("PX4_INFO_RAW(\"\\t" + field.name + ": \\\"%." + str(array_length) + "s\\\" \\n\", message." + field.name + ");"))
+        print(("PX4_INFO_RAW(\"\\t" + field.name + ": \\\"%." +
+              str(array_length) + "s\\\" \\n\", message." + field.name + ");"))
     else:
-        print(("PX4_INFO_RAW(\"\\t" + field.name + ": " + c_type + "\\n\", " + field_name + ");"))
+        print(("PX4_INFO_RAW(\"\\t" + field.name + ": " +
+              c_type + "\\n\", " + field_name + ");"))
 
 
 def print_field_def(field):
@@ -375,37 +382,4 @@ def print_field_def(field):
         comment = ' // required for logger'
 
     print(('\t%s%s%s %s%s;%s' % (type_prefix, type_px4, type_appendix, field.name,
-                                array_size, comment)))
-
-
-def check_available_ids(used_msg_ids_list):
-    """
-    Checks the available RTPS ID's
-    """
-    return set(list(range(0, 255))) - set(used_msg_ids_list)
-
-
-def rtps_message_id(msg_id_map, message):
-    """
-    Get RTPS ID of uORB message
-    """
-    error_msg = ""
-
-    # check if the message has an ID set
-    for dict in msg_id_map[0]['rtps']:
-        if message in dict['msg']:
-            if dict['id'] is not None:
-                return dict['id']
-            else:
-                error_msg = "ID is None!"
-                break
-
-    # create list of the available IDs if it fails to get an ID
-    used_ids = list()
-    for dict in msg_id_map[0]['rtps']:
-        if dict['id'] is not None:
-            used_ids.append(dict['id'])
-
-    raise AssertionError(
-        "%s %s Please add an ID from the available pool:\n" % (message, error_msg) +
-        ", ".join('%d' % id for id in check_available_ids(used_ids)))
+                                 array_size, comment)))

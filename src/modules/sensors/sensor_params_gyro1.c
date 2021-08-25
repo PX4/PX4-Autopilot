@@ -139,3 +139,15 @@ PARAM_DEFINE_FLOAT(CAL_GYRO1_YOFF, 0.0f);
  * @volatile
  */
 PARAM_DEFINE_FLOAT(CAL_GYRO1_ZOFF, 0.0f);
+
+/**
+ * Gyroscope calibration temperature
+ *
+ * Temperature during last calibration.
+ *
+ * @unit celcius
+ * @category system
+ * @group Sensor Calibration
+ * @volatile
+ */
+PARAM_DEFINE_FLOAT(CAL_GYRO1_TEMP, -1000.f);

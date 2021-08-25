@@ -53,8 +53,6 @@
 #include "board_config.h"
 #include "lis2mdl.h"
 
-#define LIS2MDLL_ADDRESS        0x1e
-
 class LIS2MDL_I2C : public device::I2C
 {
 public:
@@ -88,14 +86,12 @@ LIS2MDL_I2C::probe()
 {
 	uint8_t data = 0;
 
-	_retries = 10;
+	_retries = 1;
 
 	if (read(ADDR_WHO_AM_I, &data, 1)) {
 		DEVICE_DEBUG("read_reg fail");
 		return -EIO;
 	}
-
-	_retries = 2;
 
 	if (data != ID_WHO_AM_I) {
 		DEVICE_DEBUG("LIS2MDL bad ID: %02x", data);

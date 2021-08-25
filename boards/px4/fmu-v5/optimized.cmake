@@ -5,9 +5,6 @@ add_compile_options(-Wno-error=array-bounds)
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR px4
-	MODEL fmu-v5
-	LABEL optimized
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
@@ -42,13 +39,13 @@ px4_add_board(
 		#lights/rgbled_pwm
 		#magnetometer # all available magnetometer drivers
 		magnetometer/isentek/ist8310
-		optical_flow # all available optical flow drivers
+		#optical_flow # all available optical flow drivers
 		#osd
 		#pca9685
 		#pca9685_pwm_out
 		#power_monitor/ina226
 		#protocol_splitter
-		pwm_input
+		#pwm_input
 		pwm_out_sim
 		pwm_out
 		px4io
@@ -96,19 +93,20 @@ px4_add_board(
 		#uuv_att_control
 		#uuv_pos_control
 		#vmount
-		vtol_att_control
+		#vtol_att_control
 	SYSTEMCMDS
-		#bl_update
+		bl_update
 		dmesg
-		dumpfile
+		#dumpfile
 		#esc_calib
 		#gpio
 		hardfault_log
 		i2cdetect
 		led_control
 		mft
+		microbench
 		mixer
-		motor_ramp
+		#motor_ramp
 		motor_test
 		mtd
 		nshterm

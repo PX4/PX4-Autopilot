@@ -5,9 +5,6 @@ add_definitions(
 )
 
 px4_add_board(
-	VENDOR beaglebone
-	MODEL blue
-	LABEL default
 	PLATFORM posix
 	ARCHITECTURE cortex-a8
 	ROMFSROOT px4fmu_common

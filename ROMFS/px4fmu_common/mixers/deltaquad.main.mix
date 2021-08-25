@@ -1,5 +1,6 @@
 # DeltaQuad mixer for PX4FMU
 #=============================
+# @board px4_fmu-v2 exclude
 
 Quad motors 1 - 4
 -------------

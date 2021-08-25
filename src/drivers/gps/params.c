@@ -32,14 +32,19 @@
  ****************************************************************************/
 
 /**
- * Dump GPS communication to a file.
+ * Log GPS communication data
  *
  * If this is set to 1, all GPS communication data will be published via uORB,
  * and written to the log file as gps_dump message.
+ *
+ * If this is set to 2, the main GPS is configured to output RTCM data,
+ * which is then logged as gps_dump and can be used for PPK.
+ *
  * @min 0
- * @max 1
+ * @max 2
  * @value 0 Disable
- * @value 1 Enable
+ * @value 1 Full communication
+ * @value 2 RTCM output (PPK)
  * @group GPS
  */
 PARAM_DEFINE_INT32(GPS_DUMP_COMM, 0);
@@ -122,6 +127,7 @@ PARAM_DEFINE_FLOAT(GPS_YAW_OFFSET, 0.f);
  * @value 3 Ashtech / Trimble
  * @value 4 Emlid Reach
  * @value 5 Femtomes
+ * @value 6 NMEA (generic)
  *
  * @reboot_required true
  * @group GPS
@@ -143,6 +149,7 @@ PARAM_DEFINE_INT32(GPS_1_PROTOCOL, 1);
  * @value 3 Ashtech / Trimble
  * @value 4 Emlid Reach
  * @value 5 Femtomes
+ * @value 6 NMEA (generic)
  *
  * @reboot_required true
  * @group GPS

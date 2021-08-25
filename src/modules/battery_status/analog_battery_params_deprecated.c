@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * This parameter is deprecated. Please use BAT1_ADC_CHANNEL.
+ * This parameter is deprecated. Please use BAT1_I_CHANNEL.
  *
  * @group Battery Calibration
  */

@@ -409,13 +409,21 @@ __EXPORT extern servo_position_t up_pwm_servo_get(unsigned channel);
 __EXPORT extern int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq);
 
 /**
+ * Set Dshot motor data, used by up_dshot_motor_data_set() and up_dshot_motor_command() (internal method)
+ */
+__EXPORT extern void dshot_motor_data_set(unsigned motor_number, uint16_t throttle, bool telemetry);
+
+/**
  * Set the current dshot throttle value for a channel (motor).
  *
  * @param channel	The channel to set.
  * @param throttle	The output dshot throttle value in [0 = DSHOT_DISARM_VALUE, 1 = DSHOT_MIN_THROTTLE, 1999 = DSHOT_MAX_THROTTLE].
  * @param telemetry	If true, request telemetry from that motor
  */
-__EXPORT extern void up_dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry);
+static inline void up_dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry)
+{
+	dshot_motor_data_set(channel, throttle + DShot_cmd_MIN_throttle, telemetry);
+}
 
 /**
  * Send DShot command to a channel (motor).
@@ -424,7 +432,11 @@ __EXPORT extern void up_dshot_motor_data_set(unsigned channel, uint16_t throttle
  * @param command	dshot_command_t
  * @param telemetry	If true, request telemetry from that motor
  */
-__EXPORT extern void up_dshot_motor_command(unsigned channel, uint16_t command, bool telemetry);
+static inline void up_dshot_motor_command(unsigned channel, uint16_t command, bool telemetry)
+{
+	dshot_motor_data_set(channel, command, telemetry);
+}
+
 
 /**
  * Trigger dshot data transfer.

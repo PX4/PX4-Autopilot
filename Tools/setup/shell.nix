@@ -44,6 +44,7 @@ in pkgs.mkShell {
 		coverage
 		empy
 		jinja2
+		jsonschema
 		matplotlib
 		numpy
 		packaging

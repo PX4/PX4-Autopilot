@@ -68,11 +68,9 @@ using namespace time_literals;
 class RGBLED : public device::I2C, public I2CSPIDriver<RGBLED>
 {
 public:
-	RGBLED(I2CSPIBusOption bus_option, const int bus, int bus_frequency, const int address);
+	RGBLED(const I2CSPIDriverConfig &config);
 	virtual ~RGBLED() = default;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	int		init() override;
@@ -102,9 +100,9 @@ private:
 	void			update_params();
 };
 
-RGBLED::RGBLED(I2CSPIBusOption bus_option, const int bus, int bus_frequency, const int address) :
-	I2C(DRV_LED_DEVTYPE_RGBLED, MODULE_NAME, bus, address, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
+RGBLED::RGBLED(const I2CSPIDriverConfig &config) :
+	I2C(config),
+	I2CSPIDriver(config)
 {
 }
 
@@ -136,25 +134,13 @@ RGBLED::probe()
 	bool on, powersave;
 	uint8_t r, g, b;
 
-	/**
-	   this may look strange, but is needed. There is a serial
-	   EEPROM (Microchip-24aa01) that responds to a bunch of I2C
-	   addresses, including the 0x55 used by this LED device. So
-	   we need to do enough operations to be sure we are talking
-	   to the right device. These 3 operations seem to be enough,
-	   as the 3rd one consistently fails if no RGBLED is on the bus.
-	 */
-
-	unsigned prevretries = _retries;
-	_retries = 4;
-
 	if ((ret = get(on, powersave, r, g, b)) != OK ||
 	    (ret = send_led_enable(false) != OK) ||
 	    (ret = send_led_enable(false) != OK)) {
 		return ret;
 	}
 
-	_retries = prevretries;
+	_retries = 1;
 
 	return ret;
 }
@@ -332,24 +318,6 @@ RGBLED::print_usage()
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x55);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-}
-
-I2CSPIDriverBase *RGBLED::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				      int runtime_instance)
-{
-	RGBLED *instance = new RGBLED(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.i2c_address);
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (instance->init() != PX4_OK) {
-		delete instance;
-		return nullptr;
-	}
-
-	return instance;
 }
 
 extern "C" __EXPORT int rgbled_main(int argc, char *argv[])

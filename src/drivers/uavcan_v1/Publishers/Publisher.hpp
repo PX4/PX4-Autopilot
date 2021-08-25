@@ -59,16 +59,11 @@
 class UavcanPublisher
 {
 public:
-	static constexpr uint16_t CANARD_PORT_ID_UNSET = 65535U;
-	static constexpr uint16_t CANARD_PORT_ID_MAX   = 32767U;
-
 	UavcanPublisher(CanardInstance &ins, UavcanParamManager &pmgr, const char *subject_name, uint8_t instance = 0) :
 		_canard_instance(ins), _param_manager(pmgr), _subject_name(subject_name), _instance(instance) { };
 
 	// Update the uORB Subscription and broadcast a UAVCAN message
 	virtual void update() = 0;
-
-	bool isValidPortId(int32_t id) const { return id >= 0 && id <= CANARD_PORT_ID_MAX; }
 
 	CanardPortID id() { return _port_id; };
 
@@ -79,23 +74,19 @@ public:
 
 		// Set _port_id from _uavcan_param
 		uavcan_register_Value_1_0 value;
-		_param_manager.GetParamByName(uavcan_param, value);
-		int32_t new_id = value.integer32.value.elements[0];
 
-		// Allow, for example, a default PX4 param value of '-1' to disable publication
-		if (!isValidPortId(new_id)) {
-			// but always use the standard 'unset' value for comparison
-			new_id = CANARD_PORT_ID_UNSET;
-		}
+		if (_param_manager.GetParamByName(uavcan_param, value)) {
+			uint16_t new_id = value.natural16.value.elements[0];
 
-		if (_port_id != new_id) {
-			if (new_id == CANARD_PORT_ID_UNSET) {
-				PX4_INFO("Disabling publication of subject %s.%d", _subject_name, _instance);
-				_port_id = CANARD_PORT_ID_UNSET;
+			if (_port_id != new_id) {
+				if (new_id == CANARD_PORT_ID_UNSET) {
+					PX4_INFO("Disabling publication of subject %s.%d", _subject_name, _instance);
+					_port_id = CANARD_PORT_ID_UNSET;
 
-			} else {
-				_port_id = (CanardPortID)new_id;
-				PX4_INFO("Enabling subject %s.%d on port %d", _subject_name, _instance, _port_id);
+				} else {
+					_port_id = (CanardPortID)new_id;
+					PX4_INFO("Enabling subject %s.%d on port %d", _subject_name, _instance, _port_id);
+				}
 			}
 		}
 	};
@@ -104,6 +95,9 @@ public:
 	{
 		if (_port_id != CANARD_PORT_ID_UNSET) {
 			PX4_INFO("Enabled subject %s.%d on port %d", _subject_name, _instance, _port_id);
+
+		} else {
+			PX4_INFO("Subject %s.%d disabled", _subject_name, _instance);
 		}
 	}
 

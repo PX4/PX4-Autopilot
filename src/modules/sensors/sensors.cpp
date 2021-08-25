@@ -65,6 +65,7 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensors_status_imu.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -219,6 +220,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::SYS_HAS_BARO>) _param_sys_has_baro,
+		(ParamBool<px4::params::SYS_HAS_GPS>) _param_sys_has_gps,
 		(ParamBool<px4::params::SYS_HAS_MAG>) _param_sys_has_mag,
 		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
 	)
@@ -318,22 +320,22 @@ int Sensors::parameters_update()
 	// mark all existing sensor calibrations active even if sensor is missing
 	// this preserves the calibration in the event of a parameter export while the sensor is missing
 	for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
-		uint32_t device_id_accel = calibration::GetCalibrationParam("ACC",  "ID", i);
-		uint32_t device_id_gyro  = calibration::GetCalibrationParam("GYRO", "ID", i);
-		uint32_t device_id_mag   = calibration::GetCalibrationParam("MAG",  "ID", i);
+		uint32_t device_id_accel = calibration::GetCalibrationParamInt32("ACC",  "ID", i);
+		uint32_t device_id_gyro  = calibration::GetCalibrationParamInt32("GYRO", "ID", i);
+		uint32_t device_id_mag   = calibration::GetCalibrationParamInt32("MAG",  "ID", i);
 
 		if (device_id_accel != 0) {
-			bool external_accel = (calibration::GetCalibrationParam("ACC", "ROT", i) >= 0);
+			bool external_accel = (calibration::GetCalibrationParamInt32("ACC", "ROT", i) >= 0);
 			calibration::Accelerometer accel_cal(device_id_accel, external_accel);
 		}
 
 		if (device_id_gyro != 0) {
-			bool external_gyro = (calibration::GetCalibrationParam("GYRO", "ROT", i) >= 0);
+			bool external_gyro = (calibration::GetCalibrationParamInt32("GYRO", "ROT", i) >= 0);
 			calibration::Gyroscope gyro_cal(device_id_gyro, external_gyro);
 		}
 
 		if (device_id_mag != 0) {
-			bool external_mag = (calibration::GetCalibrationParam("MAG", "ROT", i) >= 0);
+			bool external_mag = (calibration::GetCalibrationParamInt32("MAG", "ROT", i) >= 0);
 			calibration::Magnetometer mag_cal(device_id_mag, external_mag);
 		}
 	}
@@ -342,21 +344,21 @@ int Sensors::parameters_update()
 	// this to done to eliminate differences in the active set of parameters before and after sensor calibration
 	for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
 		if (orb_exists(ORB_ID(sensor_accel), i) == PX4_OK) {
-			bool external = (calibration::GetCalibrationParam("ACC", "ROT", i) >= 0);
+			bool external = (calibration::GetCalibrationParamInt32("ACC", "ROT", i) >= 0);
 			calibration::Accelerometer cal{0, external};
 			cal.set_calibration_index(i);
 			cal.ParametersUpdate();
 		}
 
 		if (orb_exists(ORB_ID(sensor_gyro), i) == PX4_OK) {
-			bool external = (calibration::GetCalibrationParam("GYRO", "ROT", i) >= 0);
+			bool external = (calibration::GetCalibrationParamInt32("GYRO", "ROT", i) >= 0);
 			calibration::Gyroscope cal{0, external};
 			cal.set_calibration_index(i);
 			cal.ParametersUpdate();
 		}
 
 		if (orb_exists(ORB_ID(sensor_mag), i) == PX4_OK) {
-			bool external = (calibration::GetCalibrationParam("MAG", "ROT", i) >= 0);
+			bool external = (calibration::GetCalibrationParamInt32("MAG", "ROT", i) >= 0);
 			calibration::Magnetometer cal{0, external};
 			cal.set_calibration_index(i);
 			cal.ParametersUpdate();
@@ -534,12 +536,10 @@ void Sensors::InitializeVehicleAirData()
 {
 	if (_param_sys_has_baro.get()) {
 		if (_vehicle_air_data == nullptr) {
-			if (orb_exists(ORB_ID(sensor_baro), 0) == PX4_OK) {
-				_vehicle_air_data = new VehicleAirData();
+			_vehicle_air_data = new VehicleAirData();
 
-				if (_vehicle_air_data) {
-					_vehicle_air_data->Start();
-				}
+			if (_vehicle_air_data) {
+				_vehicle_air_data->Start();
 			}
 		}
 	}
@@ -547,8 +547,8 @@ void Sensors::InitializeVehicleAirData()
 
 void Sensors::InitializeVehicleGPSPosition()
 {
-	if (_vehicle_gps_position == nullptr) {
-		if (orb_exists(ORB_ID(sensor_gps), 0) == PX4_OK) {
+	if (_param_sys_has_gps.get()) {
+		if (_vehicle_gps_position == nullptr) {
 			_vehicle_gps_position = new VehicleGPSPosition();
 
 			if (_vehicle_gps_position) {
@@ -602,12 +602,10 @@ void Sensors::InitializeVehicleMagnetometer()
 {
 	if (_param_sys_has_mag.get()) {
 		if (_vehicle_magnetometer == nullptr) {
-			if (orb_exists(ORB_ID(sensor_mag), 0) == PX4_OK) {
-				_vehicle_magnetometer = new VehicleMagnetometer();
+			_vehicle_magnetometer = new VehicleMagnetometer();
 
-				if (_vehicle_magnetometer) {
-					_vehicle_magnetometer->Start();
-				}
+			if (_vehicle_magnetometer) {
+				_vehicle_magnetometer->Start();
 			}
 		}
 	}

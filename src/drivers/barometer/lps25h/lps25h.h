@@ -50,6 +50,8 @@
 
 #define ID_WHO_AM_I		0xBD
 
+#define LPS25H_ADDRESS		0x5D
+
 /* interface factories */
 extern device::Device *LPS25H_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
 extern device::Device *LPS25H_I2C_interface(int bus, int bus_frequency);

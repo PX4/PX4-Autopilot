@@ -33,17 +33,15 @@
 
 #include "PCF8583.hpp"
 
-PCF8583::PCF8583(I2CSPIBusOption bus_option, const int bus, int bus_frequency) :
-	I2C(DRV_SENS_DEVTYPE_PCF8583, MODULE_NAME, bus, PCF8583_BASEADDR_DEFAULT, bus_frequency),
+PCF8583::PCF8583(const I2CSPIDriverConfig &config) :
+	I2C(config),
 	ModuleParams(nullptr),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus)
+	I2CSPIDriver(config)
 {
 }
 
 int PCF8583::init()
 {
-	set_device_address(_param_pcf8583_addr.get());
-
 	if (I2C::init() != PX4_OK) {
 		return PX4_ERROR;
 	}

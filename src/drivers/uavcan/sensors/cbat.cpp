@@ -33,7 +33,7 @@
 
 #include "cbat.hpp"
 
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <px4_defines.h>
 
 const char *const UavcanCBATBridge::NAME = "cbat";
@@ -68,7 +68,7 @@ UavcanCBATBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<cuav::equip
 	battery.voltage_filtered_v = battery.voltage_v;
 	battery.current_a = msg.current;
 	battery.current_filtered_a = battery.current_a;
-	battery.average_current_a = msg.average_current;
+	battery.current_average_a = msg.average_current;
 	battery.discharged_mah = msg.passed_charge * 1000;
 	battery.remaining = msg.state_of_charge / 100.0f;
 	// battery.scale = msg.; // Power scaling factor, >= 1, or -1 if unknown

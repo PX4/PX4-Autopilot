@@ -26,3 +26,5 @@ param set-default CBRK_SUPPLY_CHK 894281
 # - without safety switch
 param set-default COM_PREARM_MODE 0
 param set-default CBRK_IO_SAFETY 22027
+
+param set SIH_VEHICLE_TYPE 0

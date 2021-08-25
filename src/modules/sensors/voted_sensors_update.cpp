@@ -40,7 +40,7 @@
 #include "voted_sensors_update.h"
 
 #include <lib/sensor_calibration/Utilities.hpp>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
 
@@ -96,7 +96,7 @@ void VotedSensorsUpdate::parametersUpdate()
 				// found matching CAL_ACCx_PRIO
 				int32_t accel_priority_old = _accel.priority_configured[uorb_index];
 
-				_accel.priority_configured[uorb_index] = calibration::GetCalibrationParam("ACC", "PRIO", accel_cal_index);
+				_accel.priority_configured[uorb_index] = calibration::GetCalibrationParamInt32("ACC", "PRIO", accel_cal_index);
 
 				if (accel_priority_old != _accel.priority_configured[uorb_index]) {
 					if (_accel.priority_configured[uorb_index] == 0) {
@@ -119,7 +119,7 @@ void VotedSensorsUpdate::parametersUpdate()
 				// found matching CAL_GYROx_PRIO
 				int32_t gyro_priority_old = _gyro.priority_configured[uorb_index];
 
-				_gyro.priority_configured[uorb_index] = calibration::GetCalibrationParam("GYRO", "PRIO", gyro_cal_index);
+				_gyro.priority_configured[uorb_index] = calibration::GetCalibrationParamInt32("GYRO", "PRIO", gyro_cal_index);
 
 				if (gyro_priority_old != _gyro.priority_configured[uorb_index]) {
 					if (_gyro.priority_configured[uorb_index] == 0) {
@@ -187,6 +187,8 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 	// find the best sensor
 	int accel_best_index = -1;
 	int gyro_best_index = -1;
+	_accel.voter.get_best(hrt_absolute_time(), &accel_best_index);
+	_gyro.voter.get_best(hrt_absolute_time(), &gyro_best_index);
 
 	if (!_param_sens_imu_mode.get() && ((_selection.timestamp != 0) || (_sensor_selection_sub.updated()))) {
 		// use sensor_selection to find best
@@ -213,11 +215,8 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 
 	} else {
 		// use sensor voter to find best if SENS_IMU_MODE is enabled or ORB_ID(sensor_selection) has never published
-		_accel.voter.get_best(hrt_absolute_time(), &accel_best_index);
-		_gyro.voter.get_best(hrt_absolute_time(), &gyro_best_index);
-
-		checkFailover(_accel, "Accel");
-		checkFailover(_gyro, "Gyro");
+		checkFailover(_accel, "Accel", events::px4::enums::sensor_type_t::accel);
+		checkFailover(_gyro, "Gyro", events::px4::enums::sensor_type_t::gyro);
 	}
 
 	// write data for the best sensor to output variables
@@ -276,7 +275,8 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 	}
 }
 
-bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_name)
+bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_name,
+				       events::px4::enums::sensor_type_t sensor_type)
 {
 	if (sensor.last_failover_count != sensor.voter.failover_count() && !_hil_enabled) {
 
@@ -295,7 +295,7 @@ bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_na
 				const hrt_abstime now = hrt_absolute_time();
 
 				if (now - _last_error_message > 3_s) {
-					mavlink_log_emergency(&_mavlink_log_pub, "%s #%i fail: %s%s%s%s%s!",
+					mavlink_log_emergency(&_mavlink_log_pub, "%s #%i fail: %s%s%s%s%s!\t",
 							      sensor_name,
 							      failover_index,
 							      ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " OFF" : ""),
@@ -303,6 +303,27 @@ bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_na
 							      ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " TIMEOUT" : ""),
 							      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " ERR CNT" : ""),
 							      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " ERR DNST" : ""));
+
+					events::px4::enums::sensor_failover_reason_t failover_reason{};
+
+					if (flags & DataValidator::ERROR_FLAG_NO_DATA) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::no_data; }
+
+					if (flags & DataValidator::ERROR_FLAG_STALE_DATA) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::stale_data; }
+
+					if (flags & DataValidator::ERROR_FLAG_TIMEOUT) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::timeout; }
+
+					if (flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::high_error_count; }
+
+					if (flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::high_error_density; }
+
+					/* EVENT
+					 * @description
+					 * Land immediately and check the system.
+					 */
+					events::send<events::px4::enums::sensor_type_t, uint8_t, events::px4::enums::sensor_failover_reason_t>(
+						events::ID("sensor_failover"), events::Log::Emergency, "{1} sensor #{2} failure: {3}", sensor_type, failover_index,
+						failover_reason);
+
 					_last_error_message = now;
 				}
 
@@ -386,12 +407,14 @@ void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw)
 			status.accel_device_ids[i] = _accel_device_id[i];
 			status.accel_inconsistency_m_s_s[i] = _accel_diff[i].norm();
 			status.accel_healthy[i] = (_accel.voter.get_sensor_state(i) == DataValidator::ERROR_FLAG_NO_ERROR);
+			status.accel_priority[i] = _accel.voter.get_sensor_priority(i);
 		}
 
 		if ((_gyro_device_id[i] != 0) && (_gyro.priority[i] > 0)) {
 			status.gyro_device_ids[i] = _gyro_device_id[i];
 			status.gyro_inconsistency_rad_s[i] = _gyro_diff[i].norm();
 			status.gyro_healthy[i] = (_gyro.voter.get_sensor_state(i) == DataValidator::ERROR_FLAG_NO_ERROR);
+			status.gyro_priority[i] = _gyro.voter.get_sensor_priority(i);
 		}
 	}
 

@@ -55,6 +55,7 @@
 #include <mathlib/math/Limits.hpp>
 #include <px4_platform/cpuload.h>
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/events.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/sem.h>
@@ -162,7 +163,7 @@ int Logger::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("logger",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_LOG_CAPTURE,
-				      3700,
+				      PX4_STACK_ADJUSTED(3700),
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 
@@ -363,6 +364,7 @@ Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_inte
 	ModuleParams(nullptr),
 	_log_mode(log_mode),
 	_log_name_timestamp(log_name_timestamp),
+	_event_subscription(ORB_ID::event),
 	_writer(backend, buffer_size),
 	_log_interval(log_interval)
 {
@@ -578,6 +580,10 @@ void Logger::run()
 		}
 	}
 
+	if (_event_subscription.get_topic()->o_size > max_msg_size) {
+		max_msg_size = _event_subscription.get_topic()->o_size;
+	}
+
 	max_msg_size += sizeof(ulog_message_data_header_s);
 
 	if (sizeof(ulog_message_logging_s) > (size_t)max_msg_size) {
@@ -659,6 +665,8 @@ void Logger::run()
 		_lockstep_component = px4_lockstep_register_component();
 	}
 
+	bool was_started = false;
+
 	while (!should_exit()) {
 		// Start/stop logging (depending on logging mode, by default when arming/disarming)
 		const bool logging_started = start_stop_logging();
@@ -682,6 +690,10 @@ void Logger::run()
 		const hrt_abstime loop_time = hrt_absolute_time();
 
 		if (_writer.is_started(LogType::Full)) { // mission log only runs when full log is also started
+
+			if (!was_started) {
+				adjust_subscription_updates();
+			}
 
 			/* check if we need to output the process load */
 			if (_next_load_print != 0 && loop_time >= _next_load_print) {
@@ -756,6 +768,9 @@ void Logger::run()
 				}
 			}
 
+			// check for new events
+			handle_event_updates(total_bytes);
+
 			// check for new logging message(s)
 			log_message_s log_message;
 
@@ -826,6 +841,8 @@ void Logger::run()
 
 			debug_print_buffer(total_bytes, timer_start);
 
+			was_started = true;
+
 		} else { // not logging
 
 			// try to subscribe to new topics, even if we don't log, so that:
@@ -844,6 +861,8 @@ void Logger::run()
 			} else if (loop_time > next_subscribe_check) {
 				next_subscribe_topic_index = 0;
 			}
+
+			was_started = false;
 		}
 
 		update_params();
@@ -923,6 +942,66 @@ void Logger::debug_print_buffer(uint32_t &total_bytes, hrt_abstime &timer_start)
 #endif /* DBGPRINT */
 }
 
+bool Logger::handle_event_updates(uint32_t &total_bytes)
+{
+	bool data_written = false;
+
+	while (_event_subscription.updated()) {
+		event_s *orb_event = (event_s *)(_msg_buffer + sizeof(ulog_message_data_header_s));
+		_event_subscription.copy(orb_event);
+
+		// Important: we can only access single-byte values in orb_event (it's not necessarily aligned)
+		if (events::internalLogLevel(orb_event->log_levels) == events::LogLevelInternal::Disabled) {
+			++_event_sequence_offset; // skip this event
+
+		} else {
+			// adjust sequence number
+			uint16_t updated_sequence;
+			memcpy(&updated_sequence, &orb_event->event_sequence, sizeof(updated_sequence));
+			updated_sequence -= _event_sequence_offset;
+			memcpy(&orb_event->event_sequence, &updated_sequence, sizeof(updated_sequence));
+
+			size_t msg_size = sizeof(ulog_message_data_header_s) + _event_subscription.get_topic()->o_size_no_padding;
+			uint16_t write_msg_size = static_cast<uint16_t>(msg_size - ULOG_MSG_HEADER_LEN);
+			uint16_t write_msg_id = _event_subscription.msg_id;
+			//write one byte after another (because of alignment)
+			_msg_buffer[0] = (uint8_t)write_msg_size;
+			_msg_buffer[1] = (uint8_t)(write_msg_size >> 8);
+			_msg_buffer[2] = static_cast<uint8_t>(ULogMessageType::DATA);
+			_msg_buffer[3] = (uint8_t)write_msg_id;
+			_msg_buffer[4] = (uint8_t)(write_msg_id >> 8);
+
+			// full log
+			if (write_message(LogType::Full, _msg_buffer, msg_size)) {
+
+#ifdef DBGPRINT
+				total_bytes += msg_size;
+#endif /* DBGPRINT */
+
+				data_written = true;
+			}
+
+			// mission log: only warnings or higher
+			if (events::internalLogLevel(orb_event->log_levels) <= events::LogLevelInternal::Warning) {
+				if (_writer.is_started(LogType::Mission)) {
+					memcpy(&updated_sequence, &orb_event->event_sequence, sizeof(updated_sequence));
+					updated_sequence -= _event_sequence_offset_mission;
+					memcpy(&orb_event->event_sequence, &updated_sequence, sizeof(updated_sequence));
+
+					if (write_message(LogType::Mission, _msg_buffer, msg_size)) {
+						data_written = true;
+					}
+				}
+
+			} else {
+				++_event_sequence_offset_mission; // skip this event
+			}
+		}
+	}
+
+	return data_written;
+}
+
 void Logger::publish_logger_status()
 {
 	if (hrt_elapsed_time(&_logger_status_last) >= 1_s) {
@@ -953,6 +1032,26 @@ void Logger::publish_logger_status()
 		}
 
 		_logger_status_last = hrt_absolute_time();
+	}
+}
+
+void Logger::adjust_subscription_updates()
+{
+	// we want subscriptions to update evenly distributed over time to avoid
+	// data bursts. This is particularly important for low-rate topics
+	hrt_abstime now = hrt_absolute_time();
+	int j = 0;
+
+	for (int i = 0; i < _num_subscriptions; ++i) {
+		if (_subscriptions[i].get_interval_us() >= 500_ms) {
+			hrt_abstime adjustment = (_log_interval * j) % 500_ms;
+
+			if (adjustment < now) {
+				_subscriptions[i].set_last_update(now - adjustment);
+			}
+
+			++j;
+		}
 	}
 }
 
@@ -1055,7 +1154,11 @@ void Logger::handle_vehicle_command_update()
 			}
 
 		} else if (command.command == vehicle_command_s::VEHICLE_CMD_LOGGING_STOP) {
-			stop_log_mavlink();
+			if (_writer.is_started(LogType::Full, LogWriter::BackendMavlink)) {
+				ack_vehicle_command(&command, vehicle_command_s::VEHICLE_CMD_RESULT_IN_PROGRESS);
+				stop_log_mavlink();
+			}
+
 			ack_vehicle_command(&command, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 		}
 	}
@@ -1294,6 +1397,10 @@ void Logger::start_log_mavlink()
 		return;
 	}
 
+	// mavlink log does not work in combination with lockstep, it leads to dead-locks
+	px4_lockstep_unregister_component(_lockstep_component);
+	_lockstep_component = -1;
+
 	// initialize cpu load as early as possible to get more data
 	initialize_load_output(PrintLoadReason::Preflight);
 
@@ -1313,13 +1420,24 @@ void Logger::start_log_mavlink()
 	_writer.set_need_reliable_transfer(false);
 	_writer.unselect_write_backend();
 	_writer.notify();
+
+	adjust_subscription_updates(); // redistribute updates as sending the header can take some time
 }
 
 void Logger::stop_log_mavlink()
 {
 	// don't write perf data since a client does not expect more data after a stop command
 	PX4_INFO("Stop mavlink log");
-	_writer.stop_log_mavlink();
+
+	if (_writer.is_started(LogType::Full, LogWriter::BackendMavlink)) {
+		_writer.select_write_backend(LogWriter::BackendMavlink);
+		_writer.set_need_reliable_transfer(true);
+		write_perf_data(false);
+		_writer.set_need_reliable_transfer(false);
+		_writer.unselect_write_backend();
+		_writer.notify();
+		_writer.stop_log_mavlink();
+	}
 }
 
 struct perf_callback_data_t {
@@ -1573,6 +1691,8 @@ void Logger::write_formats(LogType type)
 		write_format(type, *sub.get_topic(), written_formats, msg, i);
 	}
 
+	write_format(type, *_event_subscription.get_topic(), written_formats, msg, sub_count);
+
 	_writer.unlock();
 }
 
@@ -1596,6 +1716,8 @@ void Logger::write_all_add_logged_msg(LogType type)
 			added_subscriptions = true;
 		}
 	}
+
+	write_add_logged_msg(type, _event_subscription); // always add, even if not valid
 
 	_writer.unlock();
 

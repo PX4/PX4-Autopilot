@@ -137,7 +137,6 @@ PARAM_DEFINE_INT32(FD_EXT_ATS_TRIG, 1900);
  * Timeout for receiving an acknowledgement from the ESCs is 0.3s, if no feedback is received the failure detector will auto disarm the vehicle.
  *
  * @boolean
- * @reboot_required true
  *
  * @group Failure Detector
  */
