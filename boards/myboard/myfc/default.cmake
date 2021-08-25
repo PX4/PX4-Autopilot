@@ -99,7 +99,7 @@ SYSTEMCMDS
 # 	#topic_listener
 	tune_control
 	uorb
-# 	usb_connected
+	usb_connected
 	ver
 	work_queue
 )

@@ -75,7 +75,7 @@ static void phy_set_led(int led, bool state)
 {
 	/* Pull Down to switch on */
 	if (led == 0) {
-		px4_arch_gpiowrite(g_ledmap[led] & GPIO_NUM_MASK, state);
+		px4_arch_gpiowrite(g_ledmap[led], state);
 	}
 }
 

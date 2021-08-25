@@ -43,6 +43,20 @@
 /* This board provides a DMA pool and APIs */			// Needs to be figured out
 #define BOARD_DMA_ALLOC_POOL_SIZE 2048
 
+/* USB
+ *
+ *  VBUS detection is on 29  ADC_DPM0 and PTE8
+ */
+#define GPIO_USB_VBUS_VALID     (24 | GPIO_FUN(RP2040_GPIO_FUNC_SIO))    // Used in usb.c
+
+/*
+ * By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
+ * this board support the ADC system_power interface, and therefore
+ * provides the true logic GPIO BOARD_ADC_xxxx macros.
+ */
+
+#define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_USB_VBUS_VALID))
+
 __BEGIN_DECLS
 
 /****************************************************************************************************
@@ -78,7 +92,7 @@ extern void rp2040_spiinitialize(void);
  *
  ****************************************************************************************************/
 
-// extern void rp2040_usbinitialize(void);
+extern void rp2040_usbinitialize(void);
 
 // extern void board_peripheral_reset(int ms);
 
