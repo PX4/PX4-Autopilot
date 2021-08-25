@@ -1350,7 +1350,7 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 	param_t param = param_find_no_notification(node->name);
 
 	if (param == PARAM_INVALID) {
-		PX4_ERR("ignoring unrecognised parameter '%s'", node->name);
+		PX4_WARN("ignoring unrecognised parameter '%s'", node->name);
 		return 1;
 	}
 
