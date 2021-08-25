@@ -35,7 +35,6 @@
 
 #include <string.h>
 #include <drivers/device/i2c.h>
-#include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
@@ -50,8 +49,6 @@ public:
 	virtual ~Airspeed();
 
 	int	init() override;
-
-	int	ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
 
 private:
 	Airspeed(const Airspeed &) = delete;
@@ -70,13 +67,8 @@ protected:
 	bool			_sensor_ok;
 	int				_measure_interval;
 	bool			_collect_phase;
-	float			_diff_pres_offset;
 
 	uORB::PublicationMulti<differential_pressure_s>	_airspeed_pub{ORB_ID(differential_pressure)};
-
-	int			_airspeed_orb_class_instance;
-
-	int			_class_instance;
 
 	unsigned		_conversion_interval;
 

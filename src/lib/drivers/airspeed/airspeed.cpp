@@ -47,10 +47,8 @@
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
 
-#include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
 
-#include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>
 
 #include <drivers/airspeed/airspeed.h>
@@ -60,9 +58,6 @@ Airspeed::Airspeed(int bus, int bus_frequency, int address, unsigned conversion_
 	_sensor_ok(false),
 	_measure_interval(conversion_interval),
 	_collect_phase(false),
-	_diff_pres_offset(0.0f),
-	_airspeed_orb_class_instance(-1),
-	_class_instance(-1),
 	_conversion_interval(conversion_interval),
 	_sample_perf(perf_alloc(PC_ELAPSED, "aspd_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "aspd_com_err"))
@@ -71,10 +66,6 @@ Airspeed::Airspeed(int bus, int bus_frequency, int address, unsigned conversion_
 
 Airspeed::~Airspeed()
 {
-	if (_class_instance != -1) {
-		unregister_class_devname(AIRSPEED_BASE_DEVICE_PATH, _class_instance);
-	}
-
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
@@ -87,9 +78,6 @@ Airspeed::init()
 	if (I2C::init() != PX4_OK) {
 		return PX4_ERROR;
 	}
-
-	/* register alternate interfaces if we have to */
-	_class_instance = register_class_devname(AIRSPEED_BASE_DEVICE_PATH);
 
 	/* advertise sensor topic, measure manually to initialize valid report */
 	measure();
@@ -109,20 +97,3 @@ Airspeed::probe()
 
 	return ret;
 }
-
-int
-Airspeed::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-	case AIRSPEEDIOCSSCALE: {
-			struct airspeed_scale *s = (struct airspeed_scale *)arg;
-			_diff_pres_offset = s->offset_pa;
-			return OK;
-		}
-
-	default:
-		/* give it to the superclass */
-		return I2C::ioctl(filp, cmd, arg);
-	}
-}
-
