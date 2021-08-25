@@ -32,48 +32,40 @@
  ****************************************************************************/
 
 /**
- * @file Readiness.hpp
+ * @file uorb_template.hpp
  *
- * Defines the UAVCAN v1 readiness publisher
- * readiness state is used to command or report the availability status
+* Defines generic, templatized uORB over UAVCANv1 publisher
  *
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
 
 #pragma once
 
-// DS-15 Specification Messages
-#include <reg/drone/service/common/Readiness_0_1.h>
+#include "../Publisher.hpp"
 
-#include "Publisher.hpp"
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/actuator_outputs.h>
 
-class UavcanReadinessPublisher : public UavcanPublisher
+template <class T>
+class uORB_over_UAVCAN_Publisher : public UavcanPublisher
 {
 public:
-	UavcanReadinessPublisher(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanPublisher(ins, pmgr, "readiness", instance)
-	{
+	uORB_over_UAVCAN_Publisher(CanardInstance &ins, UavcanParamManager &pmgr, const orb_metadata *meta,
+				   uint8_t instance = 0) :
+		UavcanPublisher(ins, pmgr, meta->o_name, instance),
+		_uorb_meta{meta},
+		_uorb_sub(meta)
+	{};
 
-	};
+	~uORB_over_UAVCAN_Publisher() override = default;
 
 	// Update the uORB Subscription and broadcast a UAVCAN message
 	virtual void update() override
 	{
 		// Not sure if actuator_armed is a good indication of readiness but seems close to it
-		if (_actuator_armed_sub.updated() && _port_id != CANARD_PORT_ID_UNSET) {
-			actuator_armed_s armed {};
-			_actuator_armed_sub.update(&armed);
-
-			reg_drone_service_common_Readiness_0_1 readiness {};
-
-			if (armed.armed) {
-				readiness.value = reg_drone_service_common_Readiness_0_1_ENGAGED;
-
-			} else {
-				readiness.value = reg_drone_service_common_Readiness_0_1_STANDBY;
-			}
-
-			uint8_t readiness_payload_buffer[reg_drone_service_common_Readiness_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_];
+		if (_uorb_sub.updated() && _port_id != CANARD_PORT_ID_UNSET) {
+			T data {};
+			_uorb_sub.update(&data);
 
 			CanardTransfer transfer = {
 				.timestamp_usec = hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
@@ -82,21 +74,30 @@ public:
 				.port_id        = _port_id, // This is the subject-ID.
 				.remote_node_id = CANARD_NODE_ID_UNSET,
 				.transfer_id    = _transfer_id,
-				.payload_size   = reg_drone_service_common_Readiness_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_,
-				.payload        = &readiness_payload_buffer,
+				.payload_size   = get_payload_size(&data),
+				.payload        = &data,
 			};
 
-			int32_t result = reg_drone_service_common_Readiness_0_1_serialize_(&readiness, readiness_payload_buffer,
-					 &transfer.payload_size);
-
-			if (result == 0) {
-				// set the data ready in the buffer and chop if needed
-				++_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
-				result = canardTxPush(&_canard_instance, &transfer);
-			}
+			// set the data ready in the buffer and chop if needed
+			++_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
+			canardTxPush(&_canard_instance, &transfer);
 		}
 	};
 
+protected:
+	// Default payload-size function -- can specialize in derived class
+	size_t get_payload_size(T *msg)
+	{
+		(void)msg;
+		return sizeof(T);
+	}
+
 private:
-	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
+	const orb_metadata *_uorb_meta;
+	uORB::Subscription _uorb_sub;
 };
+
+/* ---- Specializations of get_payload_size() to reduce wasted bandwidth where possible ---- */
+
+template<>
+size_t uORB_over_UAVCAN_Publisher<actuator_outputs_s>::get_payload_size(actuator_outputs_s *msg);

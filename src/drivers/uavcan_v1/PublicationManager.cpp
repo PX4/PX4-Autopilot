@@ -32,122 +32,90 @@
  ****************************************************************************/
 
 /**
- * @file SubscriptionManager.cpp
+ * @file PublicationManager.cpp
  *
- * Manages the UAVCAN subscriptions
+ * Manages the dynamic (run-time configurable) UAVCAN publications
  *
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
+ * @author Jacob Crabill <jacob@flyvoly.com>
  */
 
 
-#include "SubscriptionManager.hpp"
+#include "PublicationManager.hpp"
 
-#include "ParamManager.hpp"
-
-SubscriptionManager::~SubscriptionManager()
+PublicationManager::~PublicationManager()
 {
-	UavcanDynamicPortSubscriber *dynsub;
-
-	while (_dynsubscribers != nullptr) {
-		dynsub = _dynsubscribers;
-		_dynsubscribers = dynsub->next();
-		delete dynsub;
-	}
+	_dynpublishers.clear();
 }
 
-
-void SubscriptionManager::subscribe()
+void PublicationManager::updateDynamicPublications()
 {
-	_heartbeat_sub.subscribe();
-	_getinfo_rsp.subscribe();
-	_access_rsp.subscribe();
+	for (auto &sub : _uavcan_pubs) {
 
-	updateDynamicSubscriptions();
-}
+		bool found_publisher = false;
 
-void SubscriptionManager::updateDynamicSubscriptions()
-{
-	for (auto &sub : _uavcan_subs) {
-
-		bool found_subscriber = false;
-		UavcanDynamicPortSubscriber *dynsub = _dynsubscribers;
-
-		while (dynsub != nullptr) {
+		for (auto &dynpub : _dynpublishers) {
 			// Check if subscriber has already been created
-			const char *subj_name = dynsub->getSubjectName();
-			const uint8_t instance = dynsub->getInstance();
+			const char *subj_name = dynpub->getSubjectName();
+			const uint8_t instance = dynpub->getInstance();
 
 			if (strcmp(subj_name, sub.subject_name) == 0 && instance == sub.instance) {
-				found_subscriber = true;
+				found_publisher = true;
 				break;
 			}
-
-			dynsub = dynsub->next();
 		}
 
-		if (found_subscriber) {
+		if (found_publisher) {
 			continue;
 		}
 
 		char uavcan_param[90];
-		snprintf(uavcan_param, sizeof(uavcan_param), "uavcan.sub.%s.%d.id", sub.subject_name, sub.instance);
+		snprintf(uavcan_param, sizeof(uavcan_param), "uavcan.pub.%s.%d.id", sub.subject_name, sub.instance);
 		uavcan_register_Value_1_0 value;
 
 		if (_param_manager.GetParamByName(uavcan_param, value)) {
 			uint16_t port_id = value.natural16.value.elements[0];
 
 			if (port_id <= CANARD_PORT_ID_MAX) { // PortID is set, create a subscriber
-				dynsub = sub.create_sub(_canard_instance, _param_manager);
+				UavcanPublisher *dynpub = sub.create_pub(_canard_instance, _param_manager);
 
-				if (dynsub == nullptr) {
+				if (dynpub == nullptr) {
 					PX4_ERR("Out of memory");
 					return;
 				}
 
-				if (_dynsubscribers == nullptr) {
-					// Set the head of our linked list
-					_dynsubscribers = dynsub;
+				_dynpublishers.add(dynpub);
 
-				} else {
-					// Append the new subscriber to our linked list
-					UavcanDynamicPortSubscriber *tmp = _dynsubscribers;
-
-					while (tmp->next() != nullptr) {
-						tmp = tmp->next();
-					}
-
-					tmp->setNext(dynsub);
-				}
-
-				dynsub->updateParam();
+				dynpub->updateParam();
 			}
 
 		} else {
-			PX4_ERR("Port ID param for subscriber %s.%u not found", sub.subject_name, sub.instance);
+			PX4_ERR("Port ID param for publisher %s.%u not found", sub.subject_name, sub.instance);
 			return;
 		}
 	}
 }
 
-void SubscriptionManager::printInfo()
+void PublicationManager::printInfo()
 {
-	UavcanDynamicPortSubscriber *dynsub = _dynsubscribers;
-
-	while (dynsub != nullptr) {
-		dynsub->printInfo();
-		dynsub = dynsub->next();
+	for (auto &dynpub : _dynpublishers) {
+		dynpub->printInfo();
 	}
 }
 
-void SubscriptionManager::updateParams()
+void PublicationManager::updateParams()
 {
-	UavcanDynamicPortSubscriber *dynsub = _dynsubscribers;
-
-	while (dynsub != nullptr) {
-		dynsub->updateParam();
-		dynsub = dynsub->next();
+	for (auto &dynpub : _dynpublishers) {
+		dynpub->updateParam();
 	}
 
-	// Check for any newly-enabled subscriptions
-	updateDynamicSubscriptions();
+	// Check for any newly-enabled publication
+	updateDynamicPublications();
+}
+
+void PublicationManager::update()
+{
+	for (auto &dynpub : _dynpublishers) {
+		dynpub->update();
+	}
 }
