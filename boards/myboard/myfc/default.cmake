@@ -79,7 +79,7 @@ SYSTEMCMDS
 # 	esc_calib
 # 	#gpio
 # 	hardfault_log
-# 	i2cdetect
+	i2cdetect
 	led_control
 # 	#mft
 # 	mixer
