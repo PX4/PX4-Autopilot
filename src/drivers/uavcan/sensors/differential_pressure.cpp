@@ -37,7 +37,6 @@
 
 #include "differential_pressure.hpp"
 
-#include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <parameters/param.h>
@@ -53,9 +52,6 @@ UavcanDifferentialPressureBridge::UavcanDifferentialPressureBridge(uavcan::INode
 
 int UavcanDifferentialPressureBridge::init()
 {
-	// Initialize the calibration offset
-	param_get(param_find("SENS_DPRES_OFF"), &_diff_pres_offset);
-
 	int res = _sub_air.start(AirCbBinder(this, &UavcanDifferentialPressureBridge::air_sub_cb));
 
 	if (res < 0) {
@@ -78,8 +74,8 @@ void UavcanDifferentialPressureBridge::air_sub_cb(const
 	if (PX4_ISFINITE(diff_press_pa)) {
 		differential_pressure_s report{};
 
-		report.differential_pressure_raw_pa = diff_press_pa - _diff_pres_offset;
-		report.differential_pressure_filtered_pa = _filter.apply(diff_press_pa) - _diff_pres_offset;
+		report.differential_pressure_raw_pa = diff_press_pa;
+		report.differential_pressure_filtered_pa = _filter.apply(diff_press_pa);
 		report.temperature = temperature_c;
 		report.device_id = _device_id.devid;
 		report.timestamp = hrt_absolute_time();
