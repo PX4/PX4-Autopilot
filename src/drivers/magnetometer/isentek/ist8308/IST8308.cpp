@@ -171,9 +171,9 @@ void IST8308::RunImpl()
 			perf_end(_transfer_perf);
 
 			if (!failure && (buffer.STAT && STAT_BIT::DRDY)) {
-				float x = combine(buffer.DATAXH, buffer.DATAXL);
-				float y = combine(buffer.DATAYH, buffer.DATAYL);
-				float z = combine(buffer.DATAZH, buffer.DATAZL);
+				int16_t x = combine(buffer.DATAXH, buffer.DATAXL);
+				int16_t y = combine(buffer.DATAYH, buffer.DATAYL);
+				int16_t z = combine(buffer.DATAZH, buffer.DATAZL);
 
 				// sensor's frame is +x forward, +y right, +z up
 				z = (z == INT16_MIN) ? INT16_MAX : -z; // flip z
