@@ -56,7 +56,7 @@ public:
 
 	};
 
-	~UavcanReadinessPublisher() override { };
+	~UavcanReadinessPublisher() override = default;
 
 	// Update the uORB Subscription and broadcast a UAVCAN message
 	virtual void update() override

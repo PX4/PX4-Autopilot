@@ -56,7 +56,7 @@ public:
 
 	};
 
-	~UavcanGnssPublisher() override { };
+	~UavcanGnssPublisher() override = default;
 
 	// Update the uORB Subscription and broadcast a UAVCAN message
 	virtual void update() override

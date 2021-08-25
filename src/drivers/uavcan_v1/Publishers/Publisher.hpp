@@ -62,7 +62,7 @@ public:
 	UavcanPublisher(CanardInstance &ins, UavcanParamManager &pmgr, const char *subject_name, uint8_t instance = 0) :
 		_canard_instance(ins), _param_manager(pmgr), _subject_name(subject_name), _instance(instance) { };
 
-	virtual ~UavcanPublisher() { };
+	virtual ~UavcanPublisher() = default;
 
 	// Update the uORB Subscription and broadcast a UAVCAN message
 	virtual void update() = 0;
@@ -132,5 +132,5 @@ protected:
 	CanardPortID _port_id {CANARD_PORT_ID_UNSET};
 	CanardTransferID _transfer_id {0};
 
-	UavcanPublisher *_next_pub {NULL};
+	UavcanPublisher *_next_pub {nullptr};
 };

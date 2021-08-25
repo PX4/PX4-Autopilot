@@ -213,7 +213,7 @@ void UavcanNode::Run()
 
 	while (!_task_should_exit.load() && _can_interface->receive(&received_frame) > 0) {
 		CanardTransfer receive{};
-		CanardRxSubscription *subscription = NULL;
+		CanardRxSubscription *subscription = nullptr;
 		int32_t result = canardRxAccept2(&_canard_instance, &received_frame, 0, &receive, &subscription);
 
 		if (result < 0) {
@@ -227,7 +227,7 @@ void UavcanNode::Run()
 			// A transfer has been received, process it.
 			// PX4_INFO("received Port ID: %d", receive.port_id);
 
-			if (subscription != NULL) {
+			if (subscription != nullptr) {
 				UavcanBaseSubscriber *sub_instance = (UavcanBaseSubscriber *)subscription->user_reference;
 				sub_instance->callback(receive);
 
@@ -321,8 +321,8 @@ void UavcanNode::print_info()
 
 	CanardRxSubscription *rxs = _canard_instance.rx_subscriptions[CanardTransferKindMessage];
 
-	while (rxs != NULL) {
-		if (rxs->user_reference == NULL) {
+	while (rxs != nullptr) {
+		if (rxs->user_reference == nullptr) {
 			PX4_INFO("Message port id %d", rxs->port_id);
 
 		} else {
@@ -334,8 +334,8 @@ void UavcanNode::print_info()
 
 	rxs = _canard_instance.rx_subscriptions[CanardTransferKindRequest];
 
-	while (rxs != NULL) {
-		if (rxs->user_reference == NULL) {
+	while (rxs != nullptr) {
+		if (rxs->user_reference == nullptr) {
 			PX4_INFO("Service response port id %d", rxs->port_id);
 
 		} else {
@@ -347,8 +347,8 @@ void UavcanNode::print_info()
 
 	rxs = _canard_instance.rx_subscriptions[CanardTransferKindResponse];
 
-	while (rxs != NULL) {
-		if (rxs->user_reference == NULL) {
+	while (rxs != nullptr) {
+		if (rxs->user_reference == nullptr) {
 			PX4_INFO("Service request port id %d", rxs->port_id);
 
 		} else {
