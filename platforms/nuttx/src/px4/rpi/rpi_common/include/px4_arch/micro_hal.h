@@ -97,11 +97,11 @@ int rp2040_setgpioevent(uint32_t pinset, bool risingedge, bool fallingedge, bool
 // Following are quick defines to be used with the functions defined above
 // These defines create a bit-mask which is supposed to be used in the
 // functions defined above to set up gpios correctly.
-#define PX4_MAKE_GPIO_INPUT(gpio) (gpio | GPIO_PU | RP2040_GPIO_FUNC_SIO)
-#define PX4_MAKE_GPIO_OUTPUT_CLEAR(gpio) (gpio | GPIO_OUT | RP2040_GPIO_FUNC_SIO)
-#define PX4_MAKE_GPIO_OUTPUT_SET(gpio) (gpio | GPIO_OUT | GPIO_SET | RP2040_GPIO_FUNC_SIO)
+#define PX4_MAKE_GPIO_INPUT(gpio) (gpio | GPIO_PU | GPIO_FUN(RP2040_GPIO_FUNC_SIO))
+#define PX4_MAKE_GPIO_OUTPUT_CLEAR(gpio) (gpio | GPIO_OUT | GPIO_FUN(RP2040_GPIO_FUNC_SIO))
+#define PX4_MAKE_GPIO_OUTPUT_SET(gpio) (gpio | GPIO_OUT | GPIO_SET | GPIO_FUN(RP2040_GPIO_FUNC_SIO))
 
-#define PX4_GPIO_PIN_OFF(pinset) ((pinset & GPIO_NUM_MASK) | RP2040_GPIO_FUNC_SIO | GPIO_PD)
+#define PX4_GPIO_PIN_OFF(pinset) ((pinset & GPIO_NUM_MASK) | GPIO_FUN(RP2040_GPIO_FUNC_SIO) | GPIO_PD)
 
 #define px4_cache_aligned_data()
 #define px4_cache_aligned_alloc malloc

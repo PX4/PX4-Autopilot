@@ -60,7 +60,7 @@ extern void led_toggle(int led);
 __END_DECLS
 
 static uint32_t g_ledmap[] = {
-	GPIO_LED_GREEN,		// Onboard led on raspberrypi pico
+	GPIO_LED_BLUE,		// Onboard led on raspberrypi pico
 };
 
 __EXPORT void led_init(void)
@@ -75,7 +75,7 @@ static void phy_set_led(int led, bool state)
 {
 	/* Pull Down to switch on */
 	if (led == 0) {
-		px4_arch_gpiowrite(g_ledmap[led], !state);
+		px4_arch_gpiowrite(g_ledmap[led] & GPIO_NUM_MASK, state);
 	}
 }
 
