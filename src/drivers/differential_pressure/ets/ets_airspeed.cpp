@@ -150,9 +150,6 @@ ETSAirspeed::collect()
 		diff_pres_pa_raw = 0.001f * (report.timestamp & 0x01);
 	}
 
-	// The raw value still should be compensated for the known offset
-	diff_pres_pa_raw -= _diff_pres_offset;
-
 	report.error_count = perf_event_count(_comms_errors);
 
 	// XXX we may want to smooth out the readings to remove noise.

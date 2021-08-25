@@ -212,8 +212,8 @@ MEASAirspeed::collect()
 
 		report.error_count = perf_event_count(_comms_errors);
 		report.temperature = temperature;
-		report.differential_pressure_filtered_pa = _filter.apply(diff_press_pa_raw) - _diff_pres_offset;
-		report.differential_pressure_raw_pa = diff_press_pa_raw - _diff_pres_offset;
+		report.differential_pressure_filtered_pa = _filter.apply(diff_press_pa_raw);
+		report.differential_pressure_raw_pa = diff_press_pa_raw;
 		report.device_id = _device_id.devid;
 		report.timestamp = hrt_absolute_time();
 

@@ -42,8 +42,8 @@
  */
 
 #include <drivers/drv_adc.h>
-#include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_sensor.h>
 #include <lib/airspeed/airspeed.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
@@ -416,8 +416,13 @@ void Sensors::diff_pres_poll()
 		airspeed_s airspeed{};
 		airspeed.timestamp = diff_pres.timestamp;
 
+		// apply calibration offset (SENS_DPRES_OFF)
+		const float differential_pressure_raw_pa = diff_pres.differential_pressure_raw_pa - _parameters.diff_pres_offset_pa;
+		const float differential_pressure_filtered_pa = diff_pres.differential_pressure_filtered_pa -
+				_parameters.diff_pres_offset_pa;
+
 		/* push data into validator */
-		float airspeed_input[3] = { diff_pres.differential_pressure_raw_pa, diff_pres.temperature, 0.0f };
+		float airspeed_input[3] = { differential_pressure_raw_pa, diff_pres.temperature, 0.0f };
 
 		_airspeed_validator.put(airspeed.timestamp, airspeed_input, diff_pres.error_count, 100); // TODO: real priority?
 
@@ -446,7 +451,7 @@ void Sensors::diff_pres_poll()
 		airspeed.indicated_airspeed_m_s = calc_IAS_corrected((enum AIRSPEED_COMPENSATION_MODEL)
 						  _parameters.air_cmodel,
 						  smodel, _parameters.air_tube_length, _parameters.air_tube_diameter_mm,
-						  diff_pres.differential_pressure_filtered_pa, air_data.baro_pressure_pa,
+						  differential_pressure_filtered_pa, air_data.baro_pressure_pa,
 						  air_temperature_celsius);
 
 		airspeed.true_airspeed_m_s = calc_TAS_from_CAS(airspeed.indicated_airspeed_m_s, air_data.baro_pressure_pa,
@@ -472,23 +477,6 @@ Sensors::parameter_update_poll(bool forced)
 		// update parameters from storage
 		parameters_update();
 		updateParams();
-
-		/* update airspeed scale */
-		int fd = px4_open(AIRSPEED0_DEVICE_PATH, 0);
-
-		/* this sensor is optional, abort without error */
-		if (fd >= 0) {
-			struct airspeed_scale airscale = {
-				_parameters.diff_pres_offset_pa,
-				1.0f,
-			};
-
-			if (OK != px4_ioctl(fd, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
-				warn("WARNING: failed to set scale / offsets for airspeed sensor");
-			}
-
-			px4_close(fd);
-		}
 	}
 }
 
@@ -530,7 +518,7 @@ void Sensors::adc_poll()
 						 * vref. Those devices require no divider at all.
 						 */
 						if (voltage > 0.4f) {
-							const float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
+							const float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale;
 
 							_diff_pres.timestamp = t;
 							_diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
