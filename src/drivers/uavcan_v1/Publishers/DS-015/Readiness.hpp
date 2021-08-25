@@ -32,33 +32,50 @@
  ****************************************************************************/
 
 /**
- * @file sensor_gps.hpp
+ * @file Readiness.hpp
  *
-* Defines uORB over UAVCANv1 sensor_gps publisher
+ * Defines the UAVCAN v1 readiness publisher
+ * readiness state is used to command or report the availability status
  *
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
 
 #pragma once
 
-#include <uORB/topics/sensor_gps.h>
+// DS-15 Specification Messages
+#include <reg/drone/service/common/Readiness_0_1.h>
 
 #include "../Publisher.hpp"
 
-class UORB_over_UAVCAN_sensor_gps_Publisher : public UavcanPublisher
+class UavcanReadinessPublisher : public UavcanPublisher
 {
 public:
-	UORB_over_UAVCAN_sensor_gps_Publisher(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanPublisher(ins, pmgr, "sensor_gps", instance)
-	{};
+	UavcanReadinessPublisher(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
+		UavcanPublisher(ins, pmgr, "readiness", instance)
+	{
+
+	};
+
+	~UavcanReadinessPublisher() override = default;
 
 	// Update the uORB Subscription and broadcast a UAVCAN message
 	virtual void update() override
 	{
 		// Not sure if actuator_armed is a good indication of readiness but seems close to it
-		if (_sensor_gps_sub.updated() && _port_id != CANARD_PORT_ID_UNSET) {
-			sensor_gps_s gps_msg {};
-			_sensor_gps_sub.update(&gps_msg);
+		if (_actuator_armed_sub.updated() && _port_id != CANARD_PORT_ID_UNSET) {
+			actuator_armed_s armed {};
+			_actuator_armed_sub.update(&armed);
+
+			reg_drone_service_common_Readiness_0_1 readiness {};
+
+			if (armed.armed) {
+				readiness.value = reg_drone_service_common_Readiness_0_1_ENGAGED;
+
+			} else {
+				readiness.value = reg_drone_service_common_Readiness_0_1_STANDBY;
+			}
+
+			uint8_t readiness_payload_buffer[reg_drone_service_common_Readiness_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_];
 
 			CanardTransfer transfer = {
 				.timestamp_usec = hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
@@ -67,9 +84,12 @@ public:
 				.port_id        = _port_id, // This is the subject-ID.
 				.remote_node_id = CANARD_NODE_ID_UNSET,
 				.transfer_id    = _transfer_id,
-				.payload_size   = sizeof(struct sensor_gps_s),
-				.payload        = &gps_msg,
+				.payload_size   = reg_drone_service_common_Readiness_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_,
+				.payload        = &readiness_payload_buffer,
 			};
+
+			int32_t result = reg_drone_service_common_Readiness_0_1_serialize_(&readiness, readiness_payload_buffer,
+					 &transfer.payload_size);
 
 			if (result == 0) {
 				// set the data ready in the buffer and chop if needed
@@ -80,5 +100,5 @@ public:
 	};
 
 private:
-	uORB::Subscription _sensor_gps_sub{ORB_ID(sensor_gps)};
+	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 };
