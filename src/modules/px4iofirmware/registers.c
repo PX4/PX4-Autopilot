@@ -461,7 +461,7 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		 * this state defines an active system. This check is done in the
 		 * text handling function.
 		 */
-		return mixer_handle_text(values, num_values * sizeof(*values));
+		return interrupt_mixer_handle_text(values, num_values * sizeof(*values));
 
 	default:
 
@@ -514,9 +514,8 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			}
 
 			if (PX4IO_P_STATUS_FLAGS_MIXER_OK & r_status_flags) {
-
 				/* update failsafe values, now that the mixer is set to ok */
-				mixer_set_failsafe();
+				interrupt_mixer_set_failsafe();
 			}
 
 			break;

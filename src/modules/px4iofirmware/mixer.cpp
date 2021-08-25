@@ -74,7 +74,7 @@ static volatile bool mixer_servos_armed = false;
 static volatile bool should_arm = false;
 static volatile bool should_arm_nothrottle = false;
 static volatile bool should_always_enable_pwm = false;
-static volatile bool in_mixer = false;
+static volatile bool mix_failsafe = false;
 
 static bool new_fmu_data = false;
 static uint64_t last_fmu_update = 0;
@@ -94,30 +94,21 @@ enum mixer_source {
 static volatile mixer_source source;
 
 static int mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &control);
-static int mixer_mix_threadsafe(float *outputs, volatile uint16_t *limits);
+static int mixer_handle_text_create_mixer();
+static void mixer_mix_failsafe();
 
 static MixerGroup mixer_group;
-
-int mixer_mix_threadsafe(float *outputs, volatile uint16_t *limits)
-{
-	/* poor mans mutex */
-	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) == 0) {
-		return 0;
-	}
-
-	in_mixer = true;
-	int mixcount = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT);
-	*limits = mixer_group.get_saturation_status();
-	in_mixer = false;
-
-	return mixcount;
-}
 
 void
 mixer_tick()
 {
 	/* check if the mixer got modified */
 	mixer_handle_text_create_mixer();
+
+	if (mix_failsafe) {
+		mixer_mix_failsafe();
+		mix_failsafe = false;
+	}
 
 	/* check that we are receiving fresh data from the FMU */
 	irqstate_t irq_flags = enter_critical_section();
@@ -314,7 +305,13 @@ mixer_tick()
 		}
 
 		/* mix */
-		mixed = mixer_mix_threadsafe(&outputs[0], &r_mixer_limits);
+		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) != 0) {
+			mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT);
+			r_mixer_limits = mixer_group.get_saturation_status();
+
+		} else {
+			mixed = 0;
+		}
 
 		/* the pwm limit call takes care of out of band errors */
 		output_limit_calc(should_arm, should_arm_nothrottle, mixed, r_setup_pwm_reverse, r_page_servo_disarmed,
@@ -480,12 +477,7 @@ mixer_callback(uintptr_t handle,
 	}
 
 	/* limit output */
-	if (control > 1.0f) {
-		control = 1.0f;
-
-	} else if (control < -1.0f) {
-		control = -1.0f;
-	}
+	control = math::constrain(control, -1.f, 1.f);
 
 	/* motor spinup phase - lock throttle to zero */
 	if ((pwm_limit.state == OUTPUT_LIMIT_STATE_RAMP) || (should_arm_nothrottle && !should_arm)) {
@@ -520,25 +512,26 @@ mixer_callback(uintptr_t handle,
 
 static char mixer_text[PX4IO_MAX_MIXER_LENGTH];		/* large enough for one mixer */
 static unsigned mixer_text_length = 0;
-static bool mixer_update_pending = false;
+static volatile bool mixer_update_pending = false;
+static volatile bool mixer_reset_pending = false;
 
 int
 mixer_handle_text_create_mixer()
 {
-	/* only run on update */
-	if (!mixer_update_pending) {
-		return 0;
-	}
-
 	/* do not allow a mixer change while safety off and FMU armed */
 	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) &&
 	    (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
 		return 1;
 	}
 
-	/* abort if we're in the mixer - it will be tried again in the next iteration */
-	if (in_mixer) {
-		return 1;
+	if (mixer_reset_pending) {
+		mixer_group.reset();
+		mixer_reset_pending = false;
+	}
+
+	/* only run on update */
+	if (!mixer_update_pending || (mixer_text_length == 0)) {
+		return 0;
 	}
 
 	/* process the text buffer, adding new mixers as their descriptions can be parsed */
@@ -562,11 +555,13 @@ mixer_handle_text_create_mixer()
 
 	mixer_update_pending = false;
 
+	update_trims = true;
+	update_mc_thrust_param = true;
+
 	return 0;
 }
 
-int
-mixer_handle_text(const void *buffer, size_t length)
+int interrupt_mixer_handle_text(const void *buffer, size_t length)
 {
 	/* do not allow a mixer change while safety off and FMU armed */
 	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) &&
@@ -577,16 +572,7 @@ mixer_handle_text(const void *buffer, size_t length)
 	/* disable mixing, will be enabled once load is complete */
 	atomic_modify_clear(&r_status_flags, PX4IO_P_STATUS_FLAGS_MIXER_OK);
 
-	/* set the update flags to dirty so we reload those values after a mixer change */
-	update_trims = true;
-	update_mc_thrust_param = true;
-
-	/* abort if we're in the mixer - the caller is expected to retry */
-	if (in_mixer) {
-		return 1;
-	}
-
-	px4io_mixdata	*msg = (px4io_mixdata *)buffer;
+	px4io_mixdata *msg = (px4io_mixdata *)buffer;
 
 	isr_debug(2, "mix txt %u", length);
 
@@ -601,7 +587,7 @@ mixer_handle_text(const void *buffer, size_t length)
 		isr_debug(2, "reset");
 
 		/* THEN actually delete it */
-		mixer_group.reset();
+		mixer_reset_pending = true;
 		mixer_text_length = 0;
 
 	/* FALLTHROUGH */
@@ -634,14 +620,18 @@ mixer_handle_text(const void *buffer, size_t length)
 	return 0;
 }
 
+void interrupt_mixer_set_failsafe()
+{
+	mix_failsafe = true;
+}
+
 void
-mixer_set_failsafe()
+mixer_mix_failsafe()
 {
 	/*
 	 * Check if a custom failsafe value has been written,
 	 * or if the mixer is not ok and bail out.
 	 */
-
 	if ((r_setup_arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM) ||
 	    !(r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)) {
 		return;
@@ -670,19 +660,22 @@ mixer_set_failsafe()
 	}
 
 	/* mix */
-	mixed = mixer_mix_threadsafe(&outputs[0], &r_mixer_limits);
+	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) != 0) {
+		mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT);
+		r_mixer_limits = mixer_group.get_saturation_status();
+
+	} else {
+		mixed = 0;
+	}
 
 	/* scale to PWM and update the servo outputs as required */
 	for (unsigned i = 0; i < mixed; i++) {
-
 		/* scale to servo output */
 		r_page_servo_failsafe[i] = (outputs[i] * 600.0f) + 1500;
-
 	}
 
 	/* disable the rest of the outputs */
 	for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++) {
 		r_page_servo_failsafe[i] = 0;
 	}
-
 }
