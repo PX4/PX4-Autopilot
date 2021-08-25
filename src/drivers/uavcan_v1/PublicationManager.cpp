@@ -45,13 +45,7 @@
 
 PublicationManager::~PublicationManager()
 {
-	UavcanPublisher *dynpub;
-
-	while (_dynpublishers != nullptr) {
-		dynpub = _dynpublishers;
-		_dynpublishers = dynpub->next();
-		delete dynpub;
-	}
+	_dynpublishers.clear();
 }
 
 void PublicationManager::updateDynamicPublications()
@@ -59,9 +53,8 @@ void PublicationManager::updateDynamicPublications()
 	for (auto &sub : _uavcan_pubs) {
 
 		bool found_publisher = false;
-		UavcanPublisher *dynpub = _dynpublishers;
 
-		while (dynpub != nullptr) {
+		for (auto &dynpub : _dynpublishers) {
 			// Check if subscriber has already been created
 			const char *subj_name = dynpub->getSubjectName();
 			const uint8_t instance = dynpub->getInstance();
@@ -70,8 +63,6 @@ void PublicationManager::updateDynamicPublications()
 				found_publisher = true;
 				break;
 			}
-
-			dynpub = dynpub->next();
 		}
 
 		if (found_publisher) {
@@ -86,27 +77,14 @@ void PublicationManager::updateDynamicPublications()
 			uint16_t port_id = value.natural16.value.elements[0];
 
 			if (port_id <= CANARD_PORT_ID_MAX) { // PortID is set, create a subscriber
-				dynpub = sub.create_pub(_canard_instance, _param_manager);
+				UavcanPublisher *dynpub = sub.create_pub(_canard_instance, _param_manager);
 
 				if (dynpub == nullptr) {
 					PX4_ERR("Out of memory");
 					return;
 				}
 
-				if (_dynpublishers == nullptr) {
-					// Set the head of our linked list
-					_dynpublishers = dynpub;
-
-				} else {
-					// Append the new subscriber to our linked list
-					UavcanPublisher *tmp = _dynpublishers;
-
-					while (tmp->next() != nullptr) {
-						tmp = tmp->next();
-					}
-
-					tmp->setNext(dynpub);
-				}
+				_dynpublishers.add(dynpub);
 
 				dynpub->updateParam();
 			}
@@ -120,21 +98,15 @@ void PublicationManager::updateDynamicPublications()
 
 void PublicationManager::printInfo()
 {
-	UavcanPublisher *dynpub = _dynpublishers;
-
-	while (dynpub != nullptr) {
+	for (auto &dynpub : _dynpublishers) {
 		dynpub->printInfo();
-		dynpub = dynpub->next();
 	}
 }
 
 void PublicationManager::updateParams()
 {
-	UavcanPublisher *dynpub = _dynpublishers;
-
-	while (dynpub != nullptr) {
+	for (auto &dynpub : _dynpublishers) {
 		dynpub->updateParam();
-		dynpub = dynpub->next();
 	}
 
 	// Check for any newly-enabled publication
@@ -143,10 +115,7 @@ void PublicationManager::updateParams()
 
 void PublicationManager::update()
 {
-	UavcanPublisher *dynpub = _dynpublishers;
-
-	while (dynpub != nullptr) {
+	for (auto &dynpub : _dynpublishers) {
 		dynpub->update();
-		dynpub = dynpub->next();
 	}
 }

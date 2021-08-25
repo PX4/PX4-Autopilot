@@ -77,7 +77,7 @@ private:
 
 	CanardInstance &_canard_instance;
 	UavcanParamManager &_param_manager;
-	UavcanPublisher *_dynpublishers {nullptr};
+	List<UavcanPublisher *> _dynpublishers;
 
 	const UavcanDynPubBinder _uavcan_pubs[5] {
 		{

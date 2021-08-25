@@ -44,6 +44,7 @@
 #include <px4_platform_common/px4_config.h>
 
 #include <lib/parameters/param.h>
+#include <containers/List.hpp>
 
 #include <uavcan/_register/Access_1_0.h>
 
@@ -56,7 +57,7 @@
  */
 #define PUBLISHER_DEFAULT_TIMEOUT_USEC 100000UL
 
-class UavcanPublisher
+class UavcanPublisher : public ListNode<UavcanPublisher *>
 {
 public:
 	UavcanPublisher(CanardInstance &ins, UavcanParamManager &pmgr, const char *subject_name, uint8_t instance = 0) :
