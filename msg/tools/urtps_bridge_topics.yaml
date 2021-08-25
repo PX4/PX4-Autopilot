@@ -89,3 +89,26 @@ rtps:
     send:    true
   - msg:     sensor_combined
     send:    true
+
+# messages added by ssrc
+
+  - msg: battery_status
+    send: true
+  - msg: distance_sensor
+    send: true
+  - msg: sensor_gps
+    receive: true
+  - msg: mission_result
+    send: true
+  - msg: sensor_baro
+    send: true
+  - msg: sensor_mag
+    send: true
+  - msg: vehicle_global_position
+    send: true
+  - msg: vehicle_gps_position
+    send: true
+  - msg: vehicle_land_detected
+    send: true
+  - msg: vehicle_local_position
+    send: true
