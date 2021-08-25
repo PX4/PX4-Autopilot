@@ -109,8 +109,8 @@ private:
 
 	math::WelfordMean<matrix::Vector2f> _gyro_update_latency_mean{};
 
-	float _accel_interval_best_variance{INFINITY};
-	float _gyro_interval_best_variance{INFINITY};
+	float _accel_interval_best_variance{(float)INFINITY};
+	float _gyro_interval_best_variance{(float)INFINITY};
 
 	float _accel_interval_us{NAN};
 	float _gyro_interval_us{NAN};
