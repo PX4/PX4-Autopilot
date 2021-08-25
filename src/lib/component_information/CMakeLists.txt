@@ -68,12 +68,16 @@ endif()
 list(APPEND comp_metadata_types "--type" "4,${PX4_BINARY_DIR}/events/all_events.json.xz,${comp_metadata_events_uri},${comp_metadata_events_uri_fallback},")
 
 set(component_general_json ${PX4_BINARY_DIR}/component_general.json)
-add_custom_command(OUTPUT ${component_general_json} ${component_general_json}.xz
+set(component_information_header ${CMAKE_CURRENT_BINARY_DIR}/checksums.h)
+add_custom_command(OUTPUT ${component_general_json} ${component_general_json}.xz ${component_information_header}
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_component_general.py
 		${component_general_json}
 		--compress
 		${comp_metadata_types}
 		--version-file ${PX4_BINARY_DIR}/src/lib/version/build_git_version.h
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_crc.py
+		${component_general_json}
+		--output ${component_information_header}
 	DEPENDS
 		generate_component_general.py
 		${PX4_BINARY_DIR}/parameters.json.xz
@@ -81,21 +85,10 @@ add_custom_command(OUTPUT ${component_general_json} ${component_general_json}.xz
 		${PX4_BINARY_DIR}/events/all_events.json.xz
 		events_json
 		ver_gen
-	COMMENT "Generating component_general.json"
+		generate_crc.py
+	COMMENT "Generating component_general.json and checksums.h"
 )
 add_custom_target(component_general_json DEPENDS ${component_general_json})
 
-
-set(component_information_header ${CMAKE_CURRENT_BINARY_DIR}/checksums.h)
-add_custom_command(OUTPUT ${component_information_header}
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_crc.py
-		${component_general_json}
-		--output ${component_information_header}
-	DEPENDS
-		generate_crc.py
-		${component_general_json}
-	COMMENT "Generating component_information/checksums.h"
-)
-add_custom_target(component_information_header DEPENDS ${component_information_header})
 
 
