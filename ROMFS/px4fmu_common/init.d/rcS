@@ -52,11 +52,6 @@ set USE_IO no
 set VEHICLE_TYPE none
 
 #
-# Mount the procfs.
-#
-mount -t procfs /proc
-
-#
 # Start CDC/ACM serial driver.
 #
 sercon
