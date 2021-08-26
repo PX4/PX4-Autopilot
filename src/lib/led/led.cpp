@@ -41,10 +41,17 @@
 int LedController::update(LedControlData &control_data)
 {
 	while (_led_control_sub.updated() || _force_update) {
+		const unsigned last_generation = _led_control_sub.get_last_generation();
+
 		// handle new state
 		led_control_s led_control;
 
 		if (_led_control_sub.copy(&led_control)) {
+
+			if ((_led_control_sub.get_last_generation() != last_generation + 1)
+			    && (_led_control_sub.get_last_generation() != last_generation)) {
+				PX4_ERR("led_control lost, generation %d -> %d", last_generation, _led_control_sub.get_last_generation());
+			}
 
 			// don't apply the new state just yet to avoid interrupting an ongoing blinking state
 			for (int i = 0; i < BOARD_MAX_LEDS; ++i) {
