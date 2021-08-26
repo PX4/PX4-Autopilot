@@ -83,7 +83,7 @@ private:
 					msg.time_boot_ms = differential_pressure.timestamp / 1000;
 				}
 
-				msg.press_diff = differential_pressure.differential_pressure_raw_pa * 100.f; // Pa to hPa
+				msg.press_diff = differential_pressure.differential_pressure_pa * 100.f; // Pa to hPa
 				msg.temperature_press_diff = roundf(differential_pressure.temperature * 100.f); // centidegrees
 			}
 

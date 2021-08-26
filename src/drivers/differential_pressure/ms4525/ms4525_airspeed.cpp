@@ -49,7 +49,6 @@
  *    - Interfacing to MEAS Digital Pressure Modules (http://www.meas-spec.com/downloads/Interfacing_to_MEAS_Digital_Pressure_Modules.pdf)
  */
 
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/i2c_spi_buses.h>
@@ -70,7 +69,6 @@ enum MS_DEVICE_TYPE {
 
 /* Measurement rate is 100Hz */
 #define MEAS_RATE 100
-#define MEAS_DRIVER_FILTER_FREQ 1.2f
 #define CONVERSION_INTERVAL	(1000000 / MEAS_RATE)	/* microseconds */
 
 
@@ -91,8 +89,6 @@ protected:
 
 	int	measure() override;
 	int	collect() override;
-
-	math::LowPassFilter2p<float> _filter{MEAS_RATE, MEAS_DRIVER_FILTER_FREQ};
 };
 
 /*
@@ -136,10 +132,10 @@ int
 MEASAirspeed::collect()
 {
 	/* read from the sensor */
-	uint8_t val[4] = {0, 0, 0, 0};
-
 	perf_begin(_sample_perf);
 
+	const hrt_abstime timestamp_sample = hrt_absolute_time();
+	uint8_t val[4] = {0, 0, 0, 0};
 	int ret = transfer(nullptr, 0, &val[0], 4);
 
 	if (ret < 0) {
@@ -199,32 +195,25 @@ MEASAirspeed::collect()
 	  port on the pitot and top port is used as the dynamic port
 	 */
 	float diff_press_PSI = -((dp_raw - 0.1f * 16383) * (P_max - P_min) / (0.8f * 16383) + P_min);
-	float diff_press_pa_raw = diff_press_PSI * PSI_to_Pa;
+	float diff_press_pa = diff_press_PSI * PSI_to_Pa;
 
 	/*
 	  With the above calculation the MS4525 sensor will produce a
 	  positive number when the top port is used as a dynamic port
 	  and bottom port is used as the static port
 	 */
-
-	if (PX4_ISFINITE(diff_press_pa_raw)) {
-		differential_pressure_s report{};
-
-		report.error_count = perf_event_count(_comms_errors);
-		report.temperature = temperature;
-		report.differential_pressure_filtered_pa = _filter.apply(diff_press_pa_raw);
-		report.differential_pressure_raw_pa = diff_press_pa_raw;
-		report.device_id = _device_id.devid;
-		report.timestamp = hrt_absolute_time();
-
-		_airspeed_pub.publish(report);
-	}
-
-	ret = OK;
+	differential_pressure_s report;
+	report.timestamp_sample = timestamp_sample;
+	report.device_id = get_device_id();
+	report.differential_pressure_pa = diff_press_pa;
+	report.temperature = temperature;
+	report.error_count = perf_event_count(_comms_errors);
+	report.timestamp = hrt_absolute_time();
+	_airspeed_pub.publish(report);
 
 	perf_end(_sample_perf);
 
-	return ret;
+	return PX4_OK;
 }
 
 void

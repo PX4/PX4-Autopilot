@@ -76,38 +76,38 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 	const unsigned calibration_count = (maxcount * 2) / 3;
 
-	uORB::SubscriptionBlocking<differential_pressure_s> diff_pres_sub{ORB_ID(differential_pressure)};
-
 	float diff_pres_offset = 0.0f;
 
 	if (param_set(param_find("SENS_DPRES_OFF"), &diff_pres_offset) != PX4_OK) {
 		calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
-		goto error_return;
+		return PX4_ERROR;
 	}
 
 	calibration_log_critical(mavlink_log_pub, "[cal] Ensure sensor is not measuring wind");
 	px4_usleep(500 * 1000);
 
+	uORB::SubscriptionBlocking<differential_pressure_s> diff_pres_sub{ORB_ID(differential_pressure)};
+
 	while (calibration_counter < calibration_count) {
 
 		if (calibrate_cancel_check(mavlink_log_pub, calibration_started)) {
-			goto error_return;
+			return PX4_ERROR;
 		}
 
 		differential_pressure_s diff_pres;
 
 		if (diff_pres_sub.updateBlocking(diff_pres, 1000000)) {
 
-			diff_pres_offset += diff_pres.differential_pressure_raw_pa;
+			diff_pres_offset += diff_pres.differential_pressure_pa;
 			calibration_counter++;
 
 			/* any differential pressure failure a reason to abort */
 			if (diff_pres.error_count != 0) {
-				calibration_log_critical(mavlink_log_pub, "[cal] Airspeed sensor is reporting errors (%" PRIu64 ")",
+				calibration_log_critical(mavlink_log_pub, "[cal] Airspeed sensor is reporting errors (%" PRIu32 ")",
 							 diff_pres.error_count);
 				calibration_log_critical(mavlink_log_pub, "[cal] Check wiring, reboot vehicle, and try again");
 				feedback_calibration_failed(mavlink_log_pub);
-				goto error_return;
+				return PX4_ERROR;
 			}
 
 			if (calibration_counter % (calibration_count / 20) == 0) {
@@ -117,7 +117,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		} else {
 			/* any poll failure for 1s is a reason to abort */
 			feedback_calibration_failed(mavlink_log_pub);
-			goto error_return;
+			return PX4_ERROR;
 		}
 	}
 
@@ -134,12 +134,12 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 		if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
 			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
-			goto error_return;
+			return PX4_ERROR;
 		}
 
 	} else {
 		feedback_calibration_failed(mavlink_log_pub);
-		goto error_return;
+		return PX4_ERROR;
 	}
 
 	calibration_log_info(mavlink_log_pub, "[cal] Offset of %d Pascal", (int)diff_pres_offset);
@@ -149,28 +149,35 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 	calibration_log_critical(mavlink_log_pub, "[cal] Blow into front of pitot without touching");
 
+	float differential_pressure_sum = 0.f;
+	int differential_pressure_sum_count = 0;
+
 	calibration_counter = 0;
 
 	/* just take a few samples and make sure pitot tubes are not reversed, timeout after ~30 seconds */
 	while (calibration_counter < maxcount) {
 
 		if (calibrate_cancel_check(mavlink_log_pub, calibration_started)) {
-			goto error_return;
+			return PX4_ERROR;
 		}
 
 		differential_pressure_s diff_pres;
 
 		if (diff_pres_sub.updateBlocking(diff_pres, 1000000)) {
-			if (fabsf(diff_pres.differential_pressure_filtered_pa) > 50.0f) {
-				if (diff_pres.differential_pressure_filtered_pa > 0) {
-					calibration_log_info(mavlink_log_pub, "[cal] Positive pressure: OK (%d Pa)",
-							     (int)diff_pres.differential_pressure_filtered_pa);
+			differential_pressure_sum += diff_pres.differential_pressure_pa;
+			differential_pressure_sum_count++;
+
+			const float differential_pressure_pa = (differential_pressure_sum / differential_pressure_sum_count) - diff_pres_offset;
+
+			if ((differential_pressure_sum_count > 10) && (fabsf(differential_pressure_pa) > 50.f)) {
+				if (differential_pressure_pa > 0) {
+					calibration_log_info(mavlink_log_pub, "[cal] Positive pressure: OK (%d Pa)", (int)differential_pressure_pa);
 					break;
 
 				} else {
 					/* do not allow negative values */
 					calibration_log_critical(mavlink_log_pub, "[cal] Negative pressure difference detected (%d Pa)",
-								 (int)diff_pres.differential_pressure_filtered_pa);
+								 (int)differential_pressure_pa);
 					calibration_log_critical(mavlink_log_pub, "[cal] Swap static and dynamic ports!");
 
 					/* the user setup is wrong, wipe the calibration to force a proper re-calibration */
@@ -178,7 +185,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 					if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
 						calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
-						goto error_return;
+						return PX4_ERROR;
 					}
 
 					/* save */
@@ -186,14 +193,18 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 					param_save_default();
 
 					feedback_calibration_failed(mavlink_log_pub);
-					goto error_return;
+					return PX4_ERROR;
 				}
 			}
 
 			if (calibration_counter % 500 == 0) {
 				calibration_log_info(mavlink_log_pub, "[cal] Create air pressure! (got %d, wanted: 50 Pa)",
-						     (int)diff_pres.differential_pressure_filtered_pa);
+						     (int)differential_pressure_pa);
 				tune_neutral(true);
+
+				// reset average
+				differential_pressure_sum = 0.f;
+				differential_pressure_sum_count = 0;
 			}
 
 			calibration_counter++;
@@ -201,13 +212,13 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		} else {
 			/* any poll failure for 1s is a reason to abort */
 			feedback_calibration_failed(mavlink_log_pub);
-			goto error_return;
+			return PX4_ERROR;
 		}
 	}
 
 	if (calibration_counter == maxcount) {
 		feedback_calibration_failed(mavlink_log_pub);
-		goto error_return;
+		return PX4_ERROR;
 	}
 
 	calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 100);
@@ -215,13 +226,8 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 	calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
 	tune_neutral(true);
 
-normal_return:
 	// This give a chance for the log messages to go out of the queue before someone else stomps on then
 	px4_sleep(1);
 
 	return result;
-
-error_return:
-	result = PX4_ERROR;
-	goto normal_return;
 }

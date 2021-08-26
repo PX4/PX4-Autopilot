@@ -43,7 +43,6 @@
 
 #include <drivers/airspeed/airspeed.h>
 #include <math.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/i2c_spi_buses.h>
@@ -64,7 +63,6 @@
 
 // Measurement rate is 20Hz
 #define SPD3X_MEAS_RATE 100
-#define SDP3X_MEAS_DRIVER_FILTER_FREQ 3.0f
 #define CONVERSION_INTERVAL	(1000000 / SPD3X_MEAS_RATE)	/* microseconds */
 
 class SDP3X : public Airspeed, public I2CSPIDriver<SDP3X>
@@ -97,8 +95,6 @@ private:
 	int	probe() override;
 	int	configure();
 	int	read_scale();
-
-	math::LowPassFilter2p<float> _filter{SPD3X_MEAS_RATE, SDP3X_MEAS_DRIVER_FILTER_FREQ};
 
 	bool init_sdp3x();
 
