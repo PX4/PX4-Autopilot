@@ -122,14 +122,12 @@ ETSAirspeed::measure()
 int
 ETSAirspeed::collect()
 {
-	int	ret = -EIO;
-
 	/* read from the sensor */
 	uint8_t val[2] = {0, 0};
 
 	perf_begin(_sample_perf);
-
-	ret = transfer(nullptr, 0, &val[0], 2);
+	const hrt_abstime timestamp_sample = hrt_absolute_time();
+	int ret = transfer(nullptr, 0, &val[0], 2);
 
 	if (ret < 0) {
 		perf_count(_comms_errors);
@@ -138,25 +136,22 @@ ETSAirspeed::collect()
 
 	float diff_pres_pa_raw = (float)(val[1] << 8 | val[0]);
 
-	differential_pressure_s report{};
-	report.timestamp = hrt_absolute_time();
-
 	if (diff_pres_pa_raw < FLT_EPSILON) {
 		// a zero value indicates no measurement
 		// since the noise floor has been arbitrarily killed
 		// it defeats our stuck sensor detection - the best we
 		// can do is to output some numerical noise to show
 		// that we are still correctly sampling.
-		diff_pres_pa_raw = 0.001f * (report.timestamp & 0x01);
+		diff_pres_pa_raw = 0.001f * (timestamp_sample & 0x01);
 	}
 
-	report.error_count = perf_event_count(_comms_errors);
-
-	// XXX we may want to smooth out the readings to remove noise.
-	report.differential_pressure_filtered_pa = diff_pres_pa_raw;
-	report.differential_pressure_raw_pa = diff_pres_pa_raw;
-	report.temperature = -1000.0f;
+	differential_pressure_s report{};
+	report.timestamp_sample = timestamp_sample;
 	report.device_id = _device_id.devid;
+	report.differential_pressure_pa = diff_pres_pa_raw;
+	report.temperature = NAN;
+	report.error_count = perf_event_count(_comms_errors);
+	report.timestamp = hrt_absolute_time();
 
 	_airspeed_pub.publish(report);
 

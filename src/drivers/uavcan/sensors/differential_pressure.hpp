@@ -37,7 +37,6 @@
 
 #pragma once
 
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <uORB/topics/differential_pressure.h>
 
 #include "sensor_bridge.hpp"
@@ -56,8 +55,6 @@ public:
 	int init() override;
 
 private:
-	math::LowPassFilter2p<float> _filter{10.f, 1.1f}; /// Adapted from MS5525 driver
-
 	void air_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::RawAirData> &msg);
 
 	typedef uavcan::MethodBinder < UavcanDifferentialPressureBridge *,
