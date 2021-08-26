@@ -448,8 +448,8 @@ void TECS::_updateTrajectoryGenerationConstraints()
 	_velocity_control_traj_generator.setMaxJerk(_jerk_max);
 	_velocity_control_traj_generator.setMaxAccelUp(_vert_accel_limit);
 	_velocity_control_traj_generator.setMaxAccelDown(_vert_accel_limit);
-	_velocity_control_traj_generator.setMaxVelUp(_max_climb_rate);
-	_velocity_control_traj_generator.setMaxVelDown(_max_sink_rate);
+	_velocity_control_traj_generator.setMaxVelUp(_max_sink_rate); // different convention for FW than for MC
+	_velocity_control_traj_generator.setMaxVelDown(_max_climb_rate); // different convention for FW than for MC
 }
 
 void TECS::_calculateHeightRateSetpoint(float altitude_sp_amsl, float height_rate_sp, float target_climbrate,
