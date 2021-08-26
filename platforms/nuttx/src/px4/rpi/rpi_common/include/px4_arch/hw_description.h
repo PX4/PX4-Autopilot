@@ -35,7 +35,7 @@
 
 #include <stdint.h>
 
-// #include <rp2040_gpio.h>
+#include <hardware/rp2040_memorymap.h>
 // #include <stm32_tim.h>
 // #include <stm32_dma.h>
 
@@ -74,90 +74,52 @@
  * Timers
  */
 
-// namespace Timer
-// {
-// enum Timer {
-// 	Timer1 = 1,
-// 	Timer2,
-// 	Timer3,
-// 	Timer4,
-// 	Timer5,
-// 	Timer6,
-// 	Timer7,
-// 	Timer8,
-// 	Timer9,
-// 	Timer10,
-// 	Timer11,
-// 	Timer12,
-// 	Timer13,
-// 	Timer14,
-// };
-// enum Channel {
-// 	Channel1 = 1,
-// 	Channel2,
-// 	Channel3,
-// 	Channel4,
-// };
-// struct TimerChannel {
-// 	Timer timer;
-// 	Channel channel;
-// };
-// }
+namespace Timer
+{
+enum Timer {
+	Timer0 = 0,
+	Timer1,
+	Timer2,
+	Timer3,
+	Timer4,
+	Timer5,
+	Timer6,
+	Timer7,
+};
+enum Channel {
+	ChannelA = 0,
+	ChannelB,
+};
+struct TimerChannel {
+	Timer timer;
+	Channel channel;
+};
+}
 
-// static inline constexpr uint32_t timerBaseRegister(Timer::Timer timer)
-// {
-// 	switch (timer) {
-// 	case Timer::Timer1: return STM32_TIM1_BASE;
+static inline constexpr uint32_t timerBaseRegister(Timer::Timer timer)
+{
+	switch (timer) {
+	case Timer::Timer0: return RP2040_PWM_BASE + 0x00;
 
-// 	case Timer::Timer2: return STM32_TIM2_BASE;
+	case Timer::Timer1: return RP2040_PWM_BASE + 0x14;
 
-// 	case Timer::Timer3: return STM32_TIM3_BASE;
+	case Timer::Timer2: return RP2040_PWM_BASE + 0x28;
 
-// 	case Timer::Timer4: return STM32_TIM4_BASE;
+	case Timer::Timer3: return RP2040_PWM_BASE + 0x3c;
 
-// 	case Timer::Timer5: return STM32_TIM5_BASE;
+	case Timer::Timer4: return RP2040_PWM_BASE + 0x50;
 
-// 	case Timer::Timer6: return STM32_TIM6_BASE;
+	case Timer::Timer5: return RP2040_PWM_BASE + 0x64;
 
-// 	case Timer::Timer7: return STM32_TIM7_BASE;
+	case Timer::Timer6: return RP2040_PWM_BASE + 0x78;
 
-// 	case Timer::Timer8: return STM32_TIM8_BASE;
+	case Timer::Timer7: return RP2040_PWM_BASE + 0x8c;
 
-// #ifdef STM32_TIM9_BASE // STM32F1 only goes up to TIM8
+	default: break;
+	}
 
-// 	case Timer::Timer9: return STM32_TIM9_BASE;
-// #endif
-
-// #ifdef STM32_TIM10_BASE
-
-// 	case Timer::Timer10: return STM32_TIM10_BASE;
-// #endif
-
-// #ifdef STM32_TIM11_BASE
-
-// 	case Timer::Timer11: return STM32_TIM11_BASE;
-// #endif
-
-// #ifdef STM32_TIM12_BASE
-
-// 	case Timer::Timer12: return STM32_TIM12_BASE;
-// #endif
-
-// #ifdef STM32_TIM13_BASE
-
-// 	case Timer::Timer13: return STM32_TIM13_BASE;
-// #endif
-
-// #ifdef STM32_TIM14_BASE
-
-// 	case Timer::Timer14: return STM32_TIM14_BASE;
-// #endif
-
-// 	default: break;
-// 	}
-
-// 	return 0;
-// }
+	return 0;
+}
 
 
 /*
