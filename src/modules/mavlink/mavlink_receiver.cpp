@@ -2322,11 +2322,11 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	// differential pressure
 	if ((hil_sensor.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS) {
 		differential_pressure_s report{};
-		report.timestamp = timestamp;
+		report.timestamp_sample = timestamp;
+		report.device_id = 0; // TODO
 		report.temperature = hil_sensor.temperature;
-		report.differential_pressure_filtered_pa = hil_sensor.diff_pressure * 100.0f; // convert from millibar to bar;
-		report.differential_pressure_raw_pa = hil_sensor.diff_pressure * 100.0f; // convert from millibar to bar;
-
+		report.differential_pressure_pa = hil_sensor.diff_pressure * 100.0f; // convert from millibar to bar;
+		report.timestamp = hrt_absolute_time();
 		_differential_pressure_pub.publish(report);
 	}
 

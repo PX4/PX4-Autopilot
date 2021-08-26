@@ -146,6 +146,8 @@ SDP3X::collect()
 {
 	perf_begin(_sample_perf);
 
+	const hrt_abstime timestamp_sample = hrt_absolute_time();
+
 	// read 6 bytes from the sensor
 	uint8_t val[6];
 	int ret = transfer(nullptr, 0, &val[0], sizeof(val));
@@ -164,21 +166,17 @@ SDP3X::collect()
 	int16_t P = (((int16_t)val[0]) << 8) | val[1];
 	int16_t temp = (((int16_t)val[3]) << 8) | val[4];
 
-	float diff_press_pa_raw = static_cast<float>(P) / static_cast<float>(_scale);
+	float diff_press_pa = static_cast<float>(P) / static_cast<float>(_scale);
 	float temperature_c = temp / static_cast<float>(SDP3X_SCALE_TEMPERATURE);
 
-	if (PX4_ISFINITE(diff_press_pa_raw)) {
-		differential_pressure_s report{};
-
-		report.error_count = perf_event_count(_comms_errors);
-		report.temperature = temperature_c;
-		report.differential_pressure_filtered_pa = _filter.apply(diff_press_pa_raw);
-		report.differential_pressure_raw_pa = diff_press_pa_raw;
-		report.device_id = _device_id.devid;
-		report.timestamp = hrt_absolute_time();
-
-		_airspeed_pub.publish(report);
-	}
+	differential_pressure_s report;
+	report.device_id = get_device_id();
+	report.timestamp_sample = timestamp_sample;
+	report.differential_pressure_pa = diff_press_pa;
+	report.temperature = temperature_c;
+	report.error_count = perf_event_count(_comms_errors);
+	report.timestamp = hrt_absolute_time();
+	_airspeed_pub.publish(report);
 
 	perf_end(_sample_perf);
 

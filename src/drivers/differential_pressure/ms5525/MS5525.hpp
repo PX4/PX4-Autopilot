@@ -35,7 +35,6 @@
 
 #include <drivers/airspeed/airspeed.h>
 #include <math.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/i2c_spi_buses.h>
@@ -45,7 +44,6 @@ static constexpr uint8_t I2C_ADDRESS_1_MS5525DSO = 0x76;
 
 /* Measurement rate is 100Hz */
 static constexpr unsigned MEAS_RATE = 100;
-static constexpr float MEAS_DRIVER_FILTER_FREQ = 1.2f;
 static constexpr int64_t CONVERSION_INTERVAL = (1000000 / MEAS_RATE); /* microseconds */
 
 class MS5525 : public Airspeed, public I2CSPIDriver<MS5525>
@@ -69,9 +67,6 @@ private:
 
 	int measure() override;
 	int collect() override;
-
-	// temperature is read once every 10 cycles
-	math::LowPassFilter2p<float> _filter{MEAS_RATE * 0.9, MEAS_DRIVER_FILTER_FREQ};
 
 	static constexpr uint8_t CMD_RESET = 0x1E; // ADC reset command
 	static constexpr uint8_t CMD_ADC_READ = 0x00; // ADC read command

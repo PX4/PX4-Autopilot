@@ -184,6 +184,7 @@ MS5525::collect()
 
 	// read ADC
 	uint8_t cmd = CMD_ADC_READ;
+	const hrt_abstime timestamp_sample = hrt_absolute_time();
 	int ret = transfer(&cmd, 1, nullptr, 0);
 
 	if (ret != PX4_OK) {
@@ -257,22 +258,18 @@ MS5525::collect()
 
 	// 1 PSI = 6894.76 Pascals
 	static constexpr float PSI_to_Pa = 6894.757f;
-	const float diff_press_pa_raw = diff_press_PSI * PSI_to_Pa;
+	const float diff_press_pa = diff_press_PSI * PSI_to_Pa;
 
 	const float temperature_c = TEMP * 0.01f;
 
-	if (PX4_ISFINITE(diff_press_pa_raw)) {
-		differential_pressure_s diff_pressure{};
-
-		diff_pressure.error_count = perf_event_count(_comms_errors);
-		diff_pressure.differential_pressure_raw_pa = diff_press_pa_raw;
-		diff_pressure.differential_pressure_filtered_pa = _filter.apply(diff_press_pa_raw);
-		diff_pressure.temperature = temperature_c;
-		diff_pressure.device_id = _device_id.devid;
-		diff_pressure.timestamp = hrt_absolute_time();
-
-		_airspeed_pub.publish(diff_pressure);
-	}
+	differential_pressure_s diff_pressure;
+	diff_pressure.timestamp_sample = timestamp_sample;
+	diff_pressure.device_id = get_device_id();
+	diff_pressure.differential_pressure_pa = diff_press_pa;
+	diff_pressure.temperature = temperature_c;
+	diff_pressure.error_count = perf_event_count(_comms_errors);
+	diff_pressure.timestamp = hrt_absolute_time();
+	_airspeed_pub.publish(diff_pressure);
 
 	ret = OK;
 
