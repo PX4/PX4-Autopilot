@@ -40,17 +40,21 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <lib/drivers/device/device.h>
 
 #include "sensor_bridge.hpp"
 
 #include <uavcan/equipment/air_data/RawAirData.hpp>
 
-class UavcanDifferentialPressureBridge : public UavcanSensorBridgeBase
+
+class UavcanDifferentialPressureBridge : public UavcanSensorBridgeBase, public cdev::CDev
 {
 public:
 	static const char *const NAME;
 
 	UavcanDifferentialPressureBridge(uavcan::INode &node);
+
+	~UavcanDifferentialPressureBridge();
 
 	const char *get_name() const override { return NAME; }
 
@@ -58,6 +62,10 @@ public:
 
 private:
 	float _diff_pres_offset{0.f};
+
+	int _class_instance;
+
+	int ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
 
 	math::LowPassFilter2p<float> _filter{10.f, 1.1f}; /// Adapted from MS5525 driver
 
