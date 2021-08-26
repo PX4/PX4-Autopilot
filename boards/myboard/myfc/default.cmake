@@ -33,7 +33,7 @@ DRIVERS
 # 	#pwm_input
 # 	#pwm_out_sim
 # 	pwm_out
-# 	rc_input
+	rc_input
 # 	#telemetry # all available telemetry drivers
 # 	telemetry/frsky_telemetry
 MODULES
@@ -63,7 +63,7 @@ MODULES
 # 	mc_rate_control
 # 	#micrortps_bridge
 # 	navigator
-# 	rc_update
+	rc_update
 # 	#rover_pos_control
 	sensors
 # 	#sih
