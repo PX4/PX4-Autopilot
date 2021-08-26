@@ -3,8 +3,8 @@
 # MambaF4MK2 specific board MAVLink startup script.
 #------------------------------------------------------------------------------
 
-# Start MAVLink on the USB port if MAV_2 is not used
+# Start MAVLink on the USB port
 if param compare MAV_2_CONFIG 0
 then
-  mavlink start -d /dev/ttyACM0
+	mavlink start -d /dev/ttyACM0
 fi
