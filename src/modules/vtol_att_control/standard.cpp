@@ -141,16 +141,21 @@ void Standard::update_vtol_state()
 			_reverse_output = 0.0f;
 
 		} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_MC) {
-			// transition to MC mode if transition time has passed or forward velocity drops below MPC cruise speed
+			// speed exit condition: use ground if valid, otherwise airspeed
+			bool exit_backtransition_speed_condition = false;
 
-			const Dcmf R_to_body(Quatf(_v_att->q).inversed());
-			const Vector3f vel = R_to_body * Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz);
+			if (_local_pos->v_xy_valid) {
+				const Dcmf R_to_body(Quatf(_v_att->q).inversed());
+				const Vector3f vel = R_to_body * Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz);
+				exit_backtransition_speed_condition = vel(0) < _params->mpc_xy_cruise;
 
-			float x_vel = vel(0);
+			} else if (PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)) {
+				exit_backtransition_speed_condition = _airspeed_validated->calibrated_airspeed_m_s < _params->mpc_xy_cruise;
+			}
 
-			if (time_since_trans_start > _params->back_trans_duration ||
-			    (_local_pos->v_xy_valid && x_vel <= _params->mpc_xy_cruise) ||
-			    can_transition_on_ground()) {
+			const bool exit_backtransition_time_condition = time_since_trans_start > _params->back_trans_duration;
+
+			if (can_transition_on_ground() || exit_backtransition_speed_condition || exit_backtransition_time_condition) {
 				_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
 			}
 		}
