@@ -45,10 +45,13 @@
 //     In 2018 IEEE International Conference on Robotics and Automation (ICRA), pp. 6573-6580. IEEE, 2018.
 // The aerodynamic model is from [2]
 // [2] Khan W, supervised by Nahon M, "Dynamics modeling of agile fixed-wing unmanned aerial vehicles."
-//     McGill University, PhD thesis, 2016.
+//     McGill University (Canada), PhD thesis, 2016.
 // The quaternion integration are from [3]
 // [3] Sveier A, Sjøberg AM, Egeland O. "Applied Runge–Kutta–Munthe-Kaas Integration for the Quaternion Kinematics."
 //     Journal of Guidance, Control, and Dynamics. 2019 Dec;42(12):2747-54.
+// The tailsitter model is from [4]
+// [4] Chiappinelli R, supervised by Nahon M, "Modeling and control of a flying wing tailsitter unmanned aerial vehicle."
+//     McGill University (Canada), Masters Thesis, 2018.
 
 #pragma once
 
