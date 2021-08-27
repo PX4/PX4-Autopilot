@@ -41,7 +41,7 @@
 #define HRT_TIMER_CHANNEL 1
 #define HRT_PPM_CHANNEL 1	// Number really doesn't matter for this board
 #define GPIO_PPM_IN		(16 | GPIO_FUN(RP2040_GPIO_FUNC_SIO))
-#define RC_SERIAL_PORT               "/dev/ttyS0"
+#define RC_SERIAL_PORT               "/dev/ttyS3"
 #define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 /* This board provides a DMA pool and APIs */			// Needs to be figured out

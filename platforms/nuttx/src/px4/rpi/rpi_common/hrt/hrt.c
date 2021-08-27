@@ -194,9 +194,8 @@ static void		hrt_call_invoke(void);
 // edge detection interrupts on the gpio. This way, the value of hrt can be recorded
 // when irq_handler is called and the PPM signal can be decoded. Also, there is no way
 // to check wheter the interrupt was caused by a rising edge or a falling edge. This can
-// be tackled in two ways: (1) Read the GPIO, if it is high then it was rising edge else
-// it was falling edge. (2) Keep changing the interrupt type (rising/falling) every time
-// the interrupt is triggered. For now method (1) is used.
+// be done by changing the interrupt type (rising/falling) every time the interrupt is
+// triggered.
 
 /*
  * Specific registers and bits used by PPM sub-functions
@@ -223,7 +222,7 @@ __EXPORT uint16_t ppm_frame_length = 0;
 __EXPORT unsigned ppm_decoded_channels = 0;
 __EXPORT uint64_t ppm_last_valid_decode = 0;
 
-#define PPM_DEBUG 1
+#define PPM_DEBUG 0
 
 #if PPM_DEBUG
 /* PPM edge history */
@@ -239,9 +238,9 @@ static uint16_t ppm_temp_buffer[PPM_MAX_CHANNELS];
 
 /** PPM decoder state machine */
 struct {
-	hrt_abstime	last_edge;	/**< last capture time */
-	hrt_abstime	last_mark;	/**< last significant edge */
-	hrt_abstime	frame_start;	/**< the frame width */
+	uint16_t	last_edge;	/**< last capture time */
+	uint16_t	last_mark;	/**< last significant edge */
+	uint16_t	frame_start;	/**< the frame width */
 	unsigned	next_channel;	/**< next channel index */
 	enum {
 		UNSYNCH = 0,
@@ -259,7 +258,7 @@ enum edgeType {
 enum edgeType lastEdge = falling;
 
 // PPM specific functions
-static void hrt_ppm_decode(bool pinState);
+static void hrt_ppm_decode(uint16_t counterVal);
 static int hrt_ppm_isr(int irq, void *context, void *arg);
 
 #endif /* HRT_PPM_CHANNEL */
@@ -291,21 +290,16 @@ hrt_tim_init(void)
  * Handle the PPM decoder state machine.
  */
 static void
-hrt_ppm_decode(bool pinState)
+hrt_ppm_decode(uint16_t counterVal)
 {
-	enum edgeType newEdge = pinState ? rising : falling;
-	hrt_abstime count = hrt_absolute_time();
-	hrt_abstime width;
-	hrt_abstime interval;
+	uint16_t count = counterVal;
+	uint16_t width;
+	uint16_t interval;
 	unsigned i;
 
-	/* if we missed an edge, we have to give up */
-	if (lastEdge == newEdge)
-	{
-		lastEdge = newEdge;
-		goto error;
-	}
-	lastEdge = newEdge;
+	// If we miss an edge then we will miss a whole pulse.
+	// So, frame discarding will be taken care of by the
+	// width value.
 
 	/* how long since the last edge? - this handles counter wrapping implicitly. */
 	width = count - ppm.last_edge;
@@ -477,7 +471,14 @@ hrt_tim_isr(int irq, void *context, void *arg)
 static int
 hrt_ppm_isr(int irq, void *context, void *arg)
 {
-	hrt_ppm_decode(px4_arch_gpioread(GPIO_PPM_IN));
+	// Read lower 16 bits of hrt
+	uint16_t counter = rTIMERAWL & 0xffff;
+
+	// Switch the next interrupt type
+	px4_arch_gpiosetevent(GPIO_PPM_IN,lastEdge ? false : true,lastEdge ? true : false,true,hrt_ppm_isr,NULL);
+	lastEdge = !lastEdge;
+
+	hrt_ppm_decode(counter);
 	return OK;
 }
 
@@ -559,7 +560,8 @@ hrt_init(void)
 
 #ifdef HRT_PPM_CHANNEL
 	// Set up edge detection interrupt on the PPM gpio.
-	px4_arch_gpiosetevent(GPIO_PPM_IN,true,true,true,hrt_ppm_isr,NULL);
+	px4_arch_gpiosetevent(GPIO_PPM_IN,lastEdge ? false : true,lastEdge ? true : false,true,hrt_ppm_isr,NULL);
+	lastEdge = !lastEdge;
 
 	/* configure the PPM input pin */
 	px4_arch_configgpio(GPIO_PPM_IN);
