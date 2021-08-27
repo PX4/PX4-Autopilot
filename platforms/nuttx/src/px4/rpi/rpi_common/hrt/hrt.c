@@ -223,7 +223,7 @@ __EXPORT uint16_t ppm_frame_length = 0;
 __EXPORT unsigned ppm_decoded_channels = 0;
 __EXPORT uint64_t ppm_last_valid_decode = 0;
 
-#define PPM_DEBUG 0
+#define PPM_DEBUG 1
 
 #if PPM_DEBUG
 /* PPM edge history */
@@ -258,7 +258,9 @@ enum edgeType {
 };
 enum edgeType lastEdge = falling;
 
-static void hrt_ppm_decode(void);
+// PPM specific functions
+static void hrt_ppm_decode(bool pinState);
+static int hrt_ppm_isr(int irq, void *context, void *arg);
 
 #endif /* HRT_PPM_CHANNEL */
 
@@ -289,19 +291,21 @@ hrt_tim_init(void)
  * Handle the PPM decoder state machine.
  */
 static void
-hrt_ppm_decode()
+hrt_ppm_decode(bool pinState)
 {
-	enum edgeType newEdge = px4_arch_gpioread(GPIO_PPM_IN) ? rising : falling;
-	hrt_abstime count = latency_actual;
+	enum edgeType newEdge = pinState ? rising : falling;
+	hrt_abstime count = hrt_absolute_time();
 	hrt_abstime width;
 	hrt_abstime interval;
 	unsigned i;
 
 	/* if we missed an edge, we have to give up */
 	if (lastEdge == newEdge)
-		goto error;
-	else
+	{
 		lastEdge = newEdge;
+		goto error;
+	}
+	lastEdge = newEdge;
 
 	/* how long since the last edge? - this handles counter wrapping implicitly. */
 	width = count - ppm.last_edge;
@@ -451,15 +455,7 @@ hrt_tim_isr(int irq, void *context, void *arg)
 	/* grab the timer for latency tracking purposes */
 	latency_actual = hrt_absolute_time();
 
-	/* was this a PPM edge? */
-	if (irq != HRT_TIMER_VECTOR)
-	{
-		#ifdef HRT_PPM_CHANNEL
-		hrt_ppm_decode();
-		#endif
-	}
-	else
-		rINTR = rINTR;	// ack the interrupts we just read
+	rINTR = rINTR;	// ack the interrupts we just read
 
 	/* It is never a timer tick. It is always triggered by alarm. */
 	/* do latency calculations */
@@ -471,6 +467,17 @@ hrt_tim_isr(int irq, void *context, void *arg)
 	/* and schedule the next interrupt */
 	hrt_call_reschedule();
 
+	return OK;
+}
+
+/**
+ * Handle the compare interrupt by calling the callout dispatcher
+ * and then re-scheduling the next deadline.
+ */
+static int
+hrt_ppm_isr(int irq, void *context, void *arg)
+{
+	hrt_ppm_decode(px4_arch_gpioread(GPIO_PPM_IN));
 	return OK;
 }
 
@@ -552,7 +559,7 @@ hrt_init(void)
 
 #ifdef HRT_PPM_CHANNEL
 	// Set up edge detection interrupt on the PPM gpio.
-	px4_arch_gpiosetevent(GPIO_PPM_IN,true,true,true,hrt_tim_isr,NULL);
+	px4_arch_gpiosetevent(GPIO_PPM_IN,true,true,true,hrt_ppm_isr,NULL);
 
 	/* configure the PPM input pin */
 	px4_arch_configgpio(GPIO_PPM_IN);
