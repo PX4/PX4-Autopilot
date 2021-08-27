@@ -771,7 +771,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		} else if (status.rc_signal_lost && !(param_com_rcl_except & RCLossExceptionBits::RCL_EXCEPT_OFFBOARD)) {
 			// Only RC is lost
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
-			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, param_com_rcl_act_t);
 
 		} else {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
