@@ -124,18 +124,19 @@ private:
 	float _alpha_min; 	// min angle of attack (stall angle)
 	float _alpha_max;	// min angle of attack (stall angle)
 	float _alf0eff;		// effective zero lift angle of attack
-	float _alfmeff;		// effective maximum lift angle of attack
+	// float _alfmeff;		// effective maximum lift angle of attack
 	float _alpha_eff;	// effectie angle of attack
-	float _alpha_eff_dot;	// effectie angle of attack derivative
+	// float _alpha_eff_dot;	// effectie angle of attack derivative
 	float _alpha_eff_old;	// angle of attack [rad]
 
 	float _pressure; 	// pressure in Pa at current altitude
 	float _temperature;	// temperature in K at current altitude
 	float _prop_radius;	// propeller radius [m], used to create the slipstream
-	float _v_slipstream;	// slipstream velocity [m/s], computed from momentum theory
+	// float _v_slipstream;	// slipstream velocity [m/s], computed from momentum theory
 
 	matrix::Vector3f _Fa;	// aerodynamic force
 	matrix::Vector3f _Ma;	// aerodynamic moment computed at _CM directly
+	matrix::Vector3f _v_S;	// velocity in segment frame
 
 public:
 
@@ -224,17 +225,17 @@ public:
 		_temperature = T0_K + TEMP_GRADIENT * alt;
 		_rho = _pressure / R / _temperature;
 
-		matrix::Vector3f vel = _C_BS.transpose() * (v_B + w_B % _p_B); 	// velocity in segment frame
+		_v_S = _C_BS.transpose() * (v_B + w_B % _p_B); 	// velocity in segment frame
 
 		if (_prop_radius > 1e-4f) {
 			// Add velocity generated from the propeller and thrust force.
 			// Computed from momentum theory.
 			// For info, the diameter of the slipstream is sqrt(2)*_prop_radius,
 			// this should be the width of the segment in the slipstream.
-			vel(0) += sqrtf(2.0f * thrust / (_rho * M_PI_F * _prop_radius * _prop_radius));
+			_v_S(0) += sqrtf(2.0f * thrust / (_rho * M_PI_F * _prop_radius * _prop_radius));
 		}
 
-		float vxz2 = vel(0) * vel(0) + vel(2) * vel(2);
+		float vxz2 = _v_S(0) * _v_S(0) + _v_S(2) * _v_S(2);
 
 		if (vxz2 < 0.01f) {
 			_Fa = matrix::Vector3f();
@@ -243,7 +244,8 @@ public:
 			return;
 		}
 
-		_alpha = matrix::wrap_pi(atan2f(vel(2), vel(0)) - _alpha_0);
+		_alpha = matrix::wrap_pi(atan2f(_v_S(2), _v_S(0)) - _alpha_0);
+		// _alpha = atan2f(_v_S(2), _v_S(0));
 		aoa_coeff(_alpha, sqrtf(vxz2), def);
 		_Fa = _C_BS * (0.5f * _rho * vxz2 * _span * _mac) * matrix::Vector3f(_CL * sinf(_alpha) - _CD * cosf(_alpha),
 				0.0f,
@@ -268,6 +270,9 @@ public:
 	// return the sum of aerodynamic moments of the segment in the body frame, taken at the _CM,
 	// must be called after update_aero()
 	matrix::Vector3f get_Ma() const { return _Ma; }
+
+	// return the velocity in segment frame
+	matrix::Vector3f get_vS() const { return _v_S; }
 
 	// copy assignment operator
 	AeroSeg& operator=(const AeroSeg&){return *this;}

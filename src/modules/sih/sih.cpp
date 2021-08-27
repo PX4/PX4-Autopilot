@@ -325,18 +325,20 @@ void Sih::generate_ts_aerodynamics()
 	_v_B = _C_IB.transpose() * _v_I; // velocity in body frame [m/s]
 	Vector3f Fa_ts=Vector3f();
 	Vector3f Ma_ts=Vector3f();
+	Vector3f v_ts = _C_BS.transpose()*_v_B; // the aerodynamic is resolved in a frame like a standard aircraft (nose-right-belly)
+	Vector3f w_ts = _C_BS.transpose()*_w_B;
 	float altitude = _H0 - _p_I(2);
 	for (int i=0; i<NB_TS_SEG; i++) {
 		if (i<=NB_TS_SEG/2) {
-			_ts[i].update_aero(_v_B, _w_B, altitude, _u[5]*TS_DEF_MAX, _T_MAX*_u[1]);
+			_ts[i].update_aero(v_ts, w_ts, altitude, _u[5]*TS_DEF_MAX, _T_MAX*_u[1]);
 		} else {
-			_ts[i].update_aero(_v_B, _w_B, altitude, -_u[4]*TS_DEF_MAX, _T_MAX*_u[0]);
+			_ts[i].update_aero(v_ts, w_ts, altitude, -_u[4]*TS_DEF_MAX, _T_MAX*_u[0]);
 		}
 		Fa_ts += _ts[i].get_Fa();
 		Ma_ts += _ts[i].get_Ma();
 	}
-	_Fa_I = _C_IB *Fa_ts - _KDV * _v_I; 	// sum of aerodynamic forces
-	_Ma_B = Ma_ts - _KDW * _w_B; 	// aerodynamic moments
+	_Fa_I = _C_IB *_C_BS*Fa_ts - _KDV * _v_I; 	// sum of aerodynamic forces
+	_Ma_B = _C_BS*Ma_ts - _KDW * _w_B; 	// aerodynamic moments
 }
 
 // apply the equations of motion of a rigid body and integrate one step
@@ -590,6 +592,8 @@ int Sih::print_status()
 	} else if (_vehicle == VehicleType::TS) {
 		PX4_INFO("Running TailSitter");
 		PX4_INFO("aoa [deg]: %d", (int)(degrees(_ts[4].get_aoa())));
+		PX4_INFO("v segment (m/s)");
+		_ts[4].get_vS().print();
 	}
 
 	PX4_INFO("vehicle landed: %d", _grounded);
