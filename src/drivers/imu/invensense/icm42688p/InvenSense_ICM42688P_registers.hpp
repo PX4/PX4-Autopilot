@@ -66,36 +66,39 @@ namespace Register
 {
 
 enum class BANK_0 : uint8_t {
-	DEVICE_CONFIG     = 0x11,
+	DEVICE_CONFIG      = 0x11,
 
-	INT_CONFIG        = 0x14,
+	INT_CONFIG         = 0x14,
 
-	FIFO_CONFIG       = 0x16,
+	FIFO_CONFIG        = 0x16,
 
-	TEMP_DATA1        = 0x1D,
-	TEMP_DATA0        = 0x1E,
+	TEMP_DATA1         = 0x1D,
+	TEMP_DATA0         = 0x1E,
 
-	INT_STATUS        = 0x2D,
-	FIFO_COUNTH       = 0x2E,
-	FIFO_COUNTL       = 0x2F,
-	FIFO_DATA         = 0x30,
+	INT_STATUS         = 0x2D,
+	FIFO_COUNTH        = 0x2E,
+	FIFO_COUNTL        = 0x2F,
+	FIFO_DATA          = 0x30,
 
-	SIGNAL_PATH_RESET = 0x4B,
+	SIGNAL_PATH_RESET  = 0x4B,
 
-	PWR_MGMT0         = 0x4E,
-	GYRO_CONFIG0      = 0x4F,
-	ACCEL_CONFIG0     = 0x50,
+	PWR_MGMT0          = 0x4E,
+	GYRO_CONFIG0       = 0x4F,
+	ACCEL_CONFIG0      = 0x50,
+	GYRO_CONFIG1       = 0x51,
+	GYRO_ACCEL_CONFIG0 = 0x52,
+	ACCEL_CONFIG1      = 0x53,
 
-	FIFO_CONFIG1      = 0x5F,
-	FIFO_CONFIG2      = 0x60,
-	FIFO_CONFIG3      = 0x61,
+	FIFO_CONFIG1       = 0x5F,
+	FIFO_CONFIG2       = 0x60,
+	FIFO_CONFIG3       = 0x61,
 
-	INT_CONFIG0       = 0x63,
-	INT_CONFIG1       = 0x64,
-	INT_SOURCE0       = 0x65,
+	INT_CONFIG0        = 0x63,
+	INT_CONFIG1        = 0x64,
+	INT_SOURCE0        = 0x65,
 
-	WHO_AM_I          = 0x75,
-	REG_BANK_SEL      = 0x76,
+	WHO_AM_I           = 0x75,
+	REG_BANK_SEL       = 0x76,
 };
 
 };
@@ -143,43 +146,74 @@ enum PWR_MGMT0_BIT : uint8_t {
 // GYRO_CONFIG0
 enum GYRO_CONFIG0_BIT : uint8_t {
 	// 7:5 GYRO_FS_SEL
-	GYRO_FS_SEL_2000_DPS = 0,            // 0b000 = ±2000dps (default)
+	GYRO_FS_SEL_2000_DPS = 0, // 0b000 = ±2000dps (default)
 	GYRO_FS_SEL_1000_DPS = Bit5,         // 0b001 = ±1000 dps
 	GYRO_FS_SEL_500_DPS  = Bit6,         // 0b010 = ±500 dps
 	GYRO_FS_SEL_250_DPS  = Bit6 | Bit5,  // 0b011 = ±250 dps
 	GYRO_FS_SEL_125_DPS  = Bit7,         // 0b100 = ±125 dps
 
 	// 3:0 GYRO_ODR
-	GYRO_ODR_32kHz       = Bit0,         // 0001: 32kHz
-	GYRO_ODR_16kHz       = Bit1,         // 0010: 16kHz
-	GYRO_ODR_8kHz        = Bit1 | Bit0,  // 0011: 8kHz
-	GYRO_ODR_4kHz        = Bit2,         // 0100: 4kHz
-	GYRO_ODR_2kHz        = Bit2 | Bit0,  // 0101: 2kHz
-	GYRO_ODR_1kHz        = Bit2 | Bit1,  // 0110: 1kHz (default)
+	//  0001: 32kHz
+	GYRO_ODR_32KHZ_SET   = Bit0,
+	GYRO_ODR_32KHZ_CLEAR = Bit3 | Bit2 | Bit0,
+	//  0010: 16kHz
+	GYRO_ODR_16KHZ_SET   = Bit1,
+	GYRO_ODR_16KHZ_CLEAR = Bit3 | Bit2 | Bit0,
+	//  0011: 8kHz
+	GYRO_ODR_8KHZ_SET    = Bit1 | Bit0,
+	GYRO_ODR_8KHZ_CLEAR  = Bit3 | Bit2,
+	//  0110: 1kHz (default)
+	GYRO_ODR_1KHZ_SET    = Bit2 | Bit1,
+	GYRO_ODR_1KHZ_CLEAR  = Bit3 | Bit0,
 };
 
 // ACCEL_CONFIG0
 enum ACCEL_CONFIG0_BIT : uint8_t {
 	// 7:5 ACCEL_FS_SEL
-	ACCEL_FS_SEL_16G = 0,           // 000: ±16g (default)
+	ACCEL_FS_SEL_16G = 0, // 000: ±16g (default)
 	ACCEL_FS_SEL_8G  = Bit5,        // 001: ±8g
 	ACCEL_FS_SEL_4G  = Bit6,        // 010: ±4g
 	ACCEL_FS_SEL_2G  = Bit6 | Bit5, // 011: ±2g
 
 	// 3:0 ACCEL_ODR
-	ACCEL_ODR_32kHz  = Bit0,        // 0001: 32kHz
-	ACCEL_ODR_16kHz  = Bit1,        // 0010: 16kHz
-	ACCEL_ODR_8kHz   = Bit1 | Bit0, // 0011: 8kHz
-	ACCEL_ODR_4kHz   = Bit2,        // 0100: 4kHz
-	ACCEL_ODR_2kHz   = Bit2 | Bit0, // 0101: 2kHz
-	ACCEL_ODR_1kHz   = Bit2 | Bit1, // 0110: 1kHz (default)
+	//  0001: 32kHz
+	ACCEL_ODR_32KHZ_SET   = Bit0,
+	ACCEL_ODR_32KHZ_CLEAR = Bit3 | Bit2 | Bit0,
+	//  0010: 16kHz
+	ACCEL_ODR_16KHZ_SET   = Bit1,
+	ACCEL_ODR_16KHZ_CLEAR = Bit3 | Bit2 | Bit0,
+	//  0011: 8kHz
+	ACCEL_ODR_8KHZ_SET    = Bit1 | Bit0,
+	ACCEL_ODR_8KHZ_CLEAR  = Bit3 | Bit2,
+	//  0110: 1kHz (default)
+	ACCEL_ODR_1KHZ_SET    = Bit2 | Bit1,
+	ACCEL_ODR_1KHZ_CLEAR  = Bit3 | Bit0,
+};
+
+// GYRO_CONFIG1
+enum GYRO_CONFIG1_BIT : uint8_t {
+	GYRO_UI_FILT_ORD = Bit3 | Bit2, // 00: 1st Order
+};
+
+// GYRO_ACCEL_CONFIG0
+enum GYRO_ACCEL_CONFIG0_BIT : uint8_t {
+	// 7:4 ACCEL_UI_FILT_BW
+	ACCEL_UI_FILT_BW = Bit7 | Bit6 | Bit5 | Bit4, // 0: BW=ODR/2
+
+	// 3:0 GYRO_UI_FILT_BW
+	GYRO_UI_FILT_BW  = Bit3 | Bit2 | Bit1 | Bit0, // 0: BW=ODR/2
+};
+
+// ACCEL_CONFIG1
+enum ACCEL_CONFIG1_BIT : uint8_t {
+	ACCEL_UI_FILT_ORD = Bit4 | Bit3, // 00: 1st Order
 };
 
 // FIFO_CONFIG1
 enum FIFO_CONFIG1_BIT : uint8_t {
 	FIFO_RESUME_PARTIAL_RD = Bit6,
 	FIFO_WM_GT_TH          = Bit5,
-
+	FIFO_HIRES_EN          = Bit4,
 	FIFO_TEMP_EN           = Bit2,
 	FIFO_GYRO_EN           = Bit1,
 	FIFO_ACCEL_EN          = Bit0,
