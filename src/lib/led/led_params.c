@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,25 +31,12 @@
  *
  ****************************************************************************/
 
-/*
- * @file rgbled_params.c
- *
- * Parameters defined by the RBG led driver
- *
- * @author Nate Weibley <nate.weibley@prioria.com>
- */
-
-
-#include <px4_platform_common/px4_config.h>
-#include <parameters/param.h>
-
 /**
  * RGB Led brightness limit
  *
- * Set to 0 to disable, 1 for minimum brightness up to 15 (max)
+ * Set to 0 to disable, 1 for maximum brightness
  *
- * @min 0
- * @max 15
+ * @unit %
  * @group System
  */
-PARAM_DEFINE_INT32(LED_RGB_MAXBRT, 15);
+PARAM_DEFINE_FLOAT(SYS_RGB_MAXBRT, 1.f);
