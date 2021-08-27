@@ -211,20 +211,24 @@ private:
 	AeroSeg _fuselage = AeroSeg(0.2, 0.8, 0.0f, matrix::Vector3f(0.0f, 0.0f, 0.0f), -90.0f);
 
 	// aerodynamic segments for the tailsitter
-	static constexpr const int NB_TS_SEG=9;
+	static constexpr const int NB_TS_SEG=11;
 	static constexpr const float TS_AR=3.13f;
-	static constexpr const float TS_CM=0.125f;
+	static constexpr const float TS_CM=0.115f;	// longitudinal position of the CM from trailing edge
 	static constexpr const float TS_RP=0.0625f;	// propeller radius [m]
 	static constexpr const float TS_DEF_MAX=math::radians(39.0f); 	// max deflection
 	matrix::Dcmf _C_BS = matrix::Dcmf(matrix::Eulerf(0.0f, math::radians(90.0f), 0.0f)); // segment to body 90 deg pitch
 	AeroSeg _ts[NB_TS_SEG] = {
 		AeroSeg(0.0225f, 0.110f, 0.0f, matrix::Vector3f(0.083f-TS_CM, -0.239f, 0.0f), 0.0f, TS_AR),
 		AeroSeg(0.0383f, 0.125f, 0.0f, matrix::Vector3f(0.094f-TS_CM, -0.208f, 0.0f), 0.0f, TS_AR, 0.063f),
-		AeroSeg(0.0884f, 0.148f, 0.0f, matrix::Vector3f(0.111f-TS_CM, -0.143f, 0.0f), 0.0f, TS_AR, 0.063f, TS_RP),
+		// AeroSeg(0.0884f, 0.148f, 0.0f, matrix::Vector3f(0.111f-TS_CM, -0.143f, 0.0f), 0.0f, TS_AR, 0.063f, TS_RP),
+		AeroSeg(0.0884f, 0.085f, 0.0f, matrix::Vector3f(0.158f-TS_CM, -0.143f, 0.0f), 0.0f, TS_AR),
+		AeroSeg(0.0884f, 0.063f, 0.0f, matrix::Vector3f(0.047f-TS_CM, -0.143f, 0.0f), 0.0f, TS_AR, 0.063f, TS_RP),
 		AeroSeg(0.0633f, 0.176f, 0.0f, matrix::Vector3f(0.132f-TS_CM, -0.068f, 0.0f), 0.0f, TS_AR, 0.063f),
 		AeroSeg(0.0750f, 0.231f, 0.0f, matrix::Vector3f(0.173f-TS_CM,  0.000f, 0.0f), 0.0f, TS_AR),
 		AeroSeg(0.0633f, 0.176f, 0.0f, matrix::Vector3f(0.132f-TS_CM,  0.068f, 0.0f), 0.0f, TS_AR, 0.063f),
-		AeroSeg(0.0884f, 0.148f, 0.0f, matrix::Vector3f(0.111f-TS_CM,  0.143f, 0.0f), 0.0f, TS_AR, 0.063f, TS_RP),
+		// AeroSeg(0.0884f, 0.148f, 0.0f, matrix::Vector3f(0.111f-TS_CM,  0.143f, 0.0f), 0.0f, TS_AR, 0.063f, TS_RP),
+		AeroSeg(0.0884f, 0.085f, 0.0f, matrix::Vector3f(0.158f-TS_CM,  0.143f, 0.0f), 0.0f, TS_AR),
+		AeroSeg(0.0884f, 0.063f, 0.0f, matrix::Vector3f(0.047f-TS_CM,  0.143f, 0.0f), 0.0f, TS_AR, 0.063f, TS_RP),
 		AeroSeg(0.0383f, 0.125f, 0.0f, matrix::Vector3f(0.094f-TS_CM,  0.208f, 0.0f), 0.0f, TS_AR, 0.063f),
 		AeroSeg(0.0225f, 0.110f, 0.0f, matrix::Vector3f(0.083f-TS_CM,  0.239f, 0.0f), 0.0f, TS_AR)
 		};
