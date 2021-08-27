@@ -48,9 +48,6 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/module.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionInterval.hpp>
-#include <uORB/topics/parameter_update.h>
 
 using namespace time_literals;
 
@@ -78,26 +75,20 @@ public:
 
 	void			RunImpl();
 
-protected:
-	void			print_status() override;
 private:
+	void			print_status() override;
+	int			send_led_enable(bool enable);
+	int			send_led_rgb();
+	int			get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b);
 
 	float			_brightness{1.0f};
-	float			_max_brightness{1.0f};
 
 	uint8_t			_r{0};
 	uint8_t			_g{0};
 	uint8_t			_b{0};
 	bool			_leds_enabled{true};
 
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
 	LedController		_led_controller;
-
-	int			send_led_enable(bool enable);
-	int			send_led_rgb();
-	int			get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b);
-	void			update_params();
 };
 
 RGBLED::RGBLED(const I2CSPIDriverConfig &config) :
@@ -118,8 +109,6 @@ RGBLED::init()
 	/* switch off LED on start */
 	send_led_enable(false);
 	send_led_rgb();
-
-	update_params();
 
 	// kick off work queue
 	ScheduleNow();
@@ -166,19 +155,6 @@ RGBLED::print_status()
 void
 RGBLED::RunImpl()
 {
-	// check for parameter updates
-	if (_parameter_update_sub.updated()) {
-		// clear update
-		parameter_update_s pupdate;
-		_parameter_update_sub.copy(&pupdate);
-
-		// update parameters from storage
-		update_params();
-
-		// Immediately update to change brightness
-		send_led_rgb();
-	}
-
 	LedControlData led_control_data;
 
 	if (_led_controller.update(led_control_data) == 1) {
@@ -267,9 +243,9 @@ RGBLED::send_led_rgb()
 {
 	/* To scale from 0..255 -> 0..15 shift right by 4 bits */
 	const uint8_t msg[6] = {
-		SUB_ADDR_PWM0, static_cast<uint8_t>((_b >> 4) * _brightness * _max_brightness + 0.5f),
-		SUB_ADDR_PWM1, static_cast<uint8_t>((_g >> 4) * _brightness * _max_brightness + 0.5f),
-		SUB_ADDR_PWM2, static_cast<uint8_t>((_r >> 4) * _brightness * _max_brightness + 0.5f)
+		SUB_ADDR_PWM0, static_cast<uint8_t>((_b >> 4) * _brightness + 0.5f),
+		SUB_ADDR_PWM1, static_cast<uint8_t>((_g >> 4) * _brightness + 0.5f),
+		SUB_ADDR_PWM2, static_cast<uint8_t>((_r >> 4) * _brightness + 0.5f)
 	};
 	return transfer(msg, sizeof(msg), nullptr, 0);
 }
@@ -292,22 +268,6 @@ RGBLED::get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b)
 	}
 
 	return ret;
-}
-
-void
-RGBLED::update_params()
-{
-	int32_t maxbrt = 15;
-	param_get(param_find("LED_RGB_MAXBRT"), &maxbrt);
-	maxbrt = maxbrt > 15 ? 15 : maxbrt;
-	maxbrt = maxbrt <  0 ?  0 : maxbrt;
-
-	// A minimum of 2 "on" steps is required for breathe effect
-	if (maxbrt == 1) {
-		maxbrt = 2;
-	}
-
-	_max_brightness = maxbrt / 15.0f;
 }
 
 void
