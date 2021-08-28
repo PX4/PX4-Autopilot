@@ -508,12 +508,12 @@ float NPFG::lateralAccel(const Vector2f &air_vel, const Vector2f &air_vel_ref, c
 
 	if (dot_air_vel_err < 0.0f) {
 		// hold max lateral acceleration command above 90 deg heading error
-		return p_gain_ * ((cross_air_vel_err < 0.0f) ? -airspeed *airspeed : airspeed * airspeed);
+		return p_gain_ * ((cross_air_vel_err < 0.0f) ? -airspeed : airspeed);
 
 	} else {
 		// airspeed/airspeed_ref is used to scale any incremented airspeed reference back to the current airspeed
 		// for acceleration commands in a "feedback" sense (i.e. at the current vehicle airspeed)
-		return p_gain_ * cross_air_vel_err * airspeed / airspeed_ref_;
+		return p_gain_ * cross_air_vel_err / airspeed_ref_;
 	}
 } // lateralAccel
 
