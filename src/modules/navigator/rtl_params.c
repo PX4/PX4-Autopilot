@@ -156,7 +156,7 @@ PARAM_DEFINE_FLOAT(RTL_FLT_TIME, 15);
  * @value 0 No precision landing
  * @value 1 Opportunistic precision landing
  * @value 2 Required precision landing
- * @group Return To Land
+ * @group Return Mode
  */
 PARAM_DEFINE_INT32(RTL_PLD_MD, 0);
 
@@ -173,3 +173,15 @@ PARAM_DEFINE_INT32(RTL_PLD_MD, 0);
  * @group Return Mode
  */
 PARAM_DEFINE_FLOAT(RTL_LOITER_RAD, 50.0f);
+
+/**
+ * RTL heading mode
+ *
+ * Defines the heading behavior during RTL
+ *
+ * @value 0 Towards next waypoint.
+ * @value 1 Heading matches destination.
+ * @value 2 Use current heading.
+ * @group Return Mode
+ */
+PARAM_DEFINE_INT32(RTL_HDG_MD, 0);
