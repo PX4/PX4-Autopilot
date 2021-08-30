@@ -141,8 +141,10 @@ static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
 				}
 			}
 
-			if (update_count % (CALIBRATION_COUNT / 20) == 0) {
-				calibration_log_info(worker_data.mavlink_log_pub, CAL_QGC_PROGRESS_MSG, (update_count * 100) / CALIBRATION_COUNT);
+			const unsigned progress = (update_count * 100) / CALIBRATION_COUNT;
+
+			if (progress % 10 == 0) {
+				calibration_log_info(worker_data.mavlink_log_pub, CAL_QGC_PROGRESS_MSG, progress);
 			}
 
 			// Propagate out the slowest sensor's count
