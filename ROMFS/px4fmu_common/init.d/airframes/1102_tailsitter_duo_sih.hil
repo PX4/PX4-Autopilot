@@ -48,11 +48,13 @@ param set-default BAT_N_CELLS 3
 param set SIH_T_MAX 2.0
 param set SIH_Q_MAX 0.0165
 param set SIH_MASS 0.2
-param set SIH_IXX 0.00354 	# IXX and IZZ are inverted from the thesis as the body frame is pitched by 90 deg
+# IXX and IZZ are inverted from the thesis as the body frame is pitched by 90 deg
+param set SIH_IXX 0.00354
 param set SIH_IYY 0.000625
 param set SIH_IZZ 0.00300
 param set SIH_IXZ 0.0
 param set SIH_KDV 0.2
 param set SIH_L_ROLL 0.145
 
-param set SIH_VEHICLE_TYPE 2 	# sih as tailsitter
+# sih as tailsitter
+param set SIH_VEHICLE_TYPE 2

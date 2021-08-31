@@ -200,7 +200,7 @@ void Sih::parameters_updated()
 	_I(1, 2) = _I(2, 1) = _sih_iyz.get();
 
 	// guards against too small determinants
-	_Im1 = 100.0f*inv(static_cast<typeof _I>(100.0f*_I));
+	_Im1 = 100.0f * inv(static_cast<typeof _I>(100.0f * _I));
 
 	_mu_I = Vector3f(_sih_mu_x.get(), _sih_mu_y.get(), _sih_mu_z.get());
 
@@ -268,7 +268,8 @@ void Sih::read_motors()
 
 	if (_actuator_out_sub.update(&actuators_out)) {
 		for (int i = 0; i < NB_MOTORS; i++) { // saturate the motor signals
-			if ((_vehicle == VehicleType::FW && i < 3) || (_vehicle == VehicleType::TS && i>3)) { // control surfaces in range [-1,1]
+			if ((_vehicle == VehicleType::FW && i < 3) || (_vehicle == VehicleType::TS
+					&& i > 3)) { // control surfaces in range [-1,1]
 				_u[i] = constrain(2.0f * (actuators_out.output[i] - pwm_middle) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN), -1.0f, 1.0f);
 
 			} else { // throttle signals in range [0,1]
@@ -295,6 +296,7 @@ void Sih::generate_force_and_torques()
 		// _Mt_B = Vector3f(_Q_MAX*_u[3], 0.0f,0.0f); 	// thruster torque
 		_Mt_B = Vector3f();
 		generate_fw_aerodynamics();
+
 	} else if (_vehicle == VehicleType::TS) {
 		_T_B = Vector3f(0.0f, 0.0f, -_T_MAX * (_u[0] + _u[1]));
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (_u[1] - _u[0]), 0.0f, _Q_MAX * (_u[1] - _u[0]));
@@ -311,8 +313,8 @@ void Sih::generate_fw_aerodynamics()
 	float altitude = _H0 - _p_I(2);
 	_wing_l.update_aero(_v_B, _w_B, altitude, _u[0]*FLAP_MAX);
 	_wing_r.update_aero(_v_B, _w_B, altitude, -_u[0]*FLAP_MAX);
-	_tailplane.update_aero(_v_B, _w_B, altitude, _u[1]*FLAP_MAX, _T_MAX*_u[3]);
-	_fin.update_aero(_v_B, _w_B, altitude, _u[2]*FLAP_MAX, _T_MAX*_u[3]);
+	_tailplane.update_aero(_v_B, _w_B, altitude, _u[1]*FLAP_MAX, _T_MAX * _u[3]);
+	_fin.update_aero(_v_B, _w_B, altitude, _u[2]*FLAP_MAX, _T_MAX * _u[3]);
 	_fuselage.update_aero(_v_B, _w_B, altitude);
 	_Fa_I = _C_IB * (_wing_l.get_Fa() + _wing_r.get_Fa() + _tailplane.get_Fa() + _fin.get_Fa() + _fuselage.get_Fa())
 		- _KDV * _v_I; 	// sum of aerodynamic forces
@@ -323,22 +325,27 @@ void Sih::generate_fw_aerodynamics()
 void Sih::generate_ts_aerodynamics()
 {
 	_v_B = _C_IB.transpose() * _v_I; // velocity in body frame [m/s]
-	Vector3f Fa_ts=Vector3f();
-	Vector3f Ma_ts=Vector3f();
-	Vector3f v_ts = _C_BS.transpose()*_v_B; // the aerodynamic is resolved in a frame like a standard aircraft (nose-right-belly)
-	Vector3f w_ts = _C_BS.transpose()*_w_B;
+	Vector3f Fa_ts = Vector3f();
+	Vector3f Ma_ts = Vector3f();
+	Vector3f v_ts = _C_BS.transpose() *
+			_v_B; // the aerodynamic is resolved in a frame like a standard aircraft (nose-right-belly)
+	Vector3f w_ts = _C_BS.transpose() * _w_B;
 	float altitude = _H0 - _p_I(2);
-	for (int i=0; i<NB_TS_SEG; i++) {
-		if (i<=NB_TS_SEG/2) {
-			_ts[i].update_aero(v_ts, w_ts, altitude, _u[5]*TS_DEF_MAX, _T_MAX*_u[1]);
+
+	for (int i = 0; i < NB_TS_SEG; i++) {
+		if (i <= NB_TS_SEG / 2) {
+			_ts[i].update_aero(v_ts, w_ts, altitude, _u[5]*TS_DEF_MAX, _T_MAX * _u[1]);
+
 		} else {
-			_ts[i].update_aero(v_ts, w_ts, altitude, -_u[4]*TS_DEF_MAX, _T_MAX*_u[0]);
+			_ts[i].update_aero(v_ts, w_ts, altitude, -_u[4]*TS_DEF_MAX, _T_MAX * _u[0]);
 		}
+
 		Fa_ts += _ts[i].get_Fa();
 		Ma_ts += _ts[i].get_Ma();
 	}
-	_Fa_I = _C_IB *_C_BS*Fa_ts - _KDV * _v_I; 	// sum of aerodynamic forces
-	_Ma_B = _C_BS*Ma_ts - _KDW * _w_B; 	// aerodynamic moments
+
+	_Fa_I = _C_IB * _C_BS * Fa_ts - _KDV * _v_I; 	// sum of aerodynamic forces
+	_Ma_B = _C_BS * Ma_ts - _KDW * _w_B; 	// aerodynamic moments
 }
 
 // apply the equations of motion of a rigid body and integrate one step
@@ -589,6 +596,7 @@ int Sih::print_status()
 
 	} else if (_vehicle == VehicleType::FW) {
 		PX4_INFO("Running Fixed-Wing");
+
 	} else if (_vehicle == VehicleType::TS) {
 		PX4_INFO("Running TailSitter");
 		PX4_INFO("aoa [deg]: %d", (int)(degrees(_ts[4].get_aoa())));
