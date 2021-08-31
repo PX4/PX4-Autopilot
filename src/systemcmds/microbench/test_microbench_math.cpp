@@ -71,14 +71,24 @@ void unlock()
 }
 
 #define PERF(name, op, count) do { \
-		px4_usleep(1000); \
 		reset(); \
 		perf_counter_t p = perf_alloc(PC_ELAPSED, name); \
-		for (int i = 0; i < count; i++) { \
-			px4_usleep(1); \
+		for (int rep = 0; rep < 10; rep++) { \
+			px4_usleep(1000); \
 			lock(); \
 			perf_begin(p); \
-			op; \
+			for (int i = 0; i < (count)/10; i++) { \
+				op; \
+				op; \
+				op; \
+				op; \
+				op; \
+				op; \
+				op; \
+				op; \
+				op; \
+				op; \
+			} \
 			perf_end(p); \
 			unlock(); \
 			reset(); \
@@ -180,50 +190,48 @@ ut_declare_test_c(test_microbench_math, MicroBenchMath)
 
 bool MicroBenchMath::time_single_precision_float()
 {
-	PERF("float add", f32_out += f32, 100);
-	PERF("float sub", f32_out -= f32, 100);
-	PERF("float mul", f32_out *= f32, 100);
-	PERF("float div", f32_out /= f32, 100);
-	PERF("float sqrt", f32_out = sqrtf(f32), 100);
+	PERF("float add (10k ops)", f32_out += f32, 10000);
+	PERF("float sub (10k ops)", f32_out -= f32, 10000);
+	PERF("float mul (10k ops)", f32_out *= f32, 10000);
+	PERF("float div (10k ops)", f32_out /= f32, 10000);
+	PERF("float sqrt (1k ops)", f32_out = sqrtf(f32), 1000);
 
 	return true;
 }
 
 bool MicroBenchMath::time_single_precision_float_trig()
 {
-	PERF("sinf()", f32_out = sinf(f32), 100);
-	PERF("cosf()", f32_out = cosf(f32), 100);
-	PERF("tanf()", f32_out = tanf(f32), 100);
+	PERF("sinf() (1k ops)", f32_out = sinf(f32), 1000);
+	PERF("cosf() (1k ops)", f32_out = cosf(f32), 1000);
+	PERF("tanf() (1k ops)", f32_out = tanf(f32), 1000);
 
-	PERF("acosf()", f32_out = acosf(f32), 100);
-	PERF("asinf()", f32_out = asinf(f32), 100);
-	PERF("atan2f()", f32_out = atan2f(f32, 2.0f * f32), 100);
+	PERF("acosf() (1k ops)", f32_out = acosf(f32), 1000);
+	PERF("asinf() (1k ops)", f32_out = asinf(f32), 1000);
+	PERF("atan2f() (1k ops)", f32_out = atan2f(f32, 2.0f * f32), 1000);
 
 	return true;
 }
 
 bool MicroBenchMath::time_double_precision_float()
 {
-	PERF("double add", f64_out += f64, 100);
-	PERF("double sub", f64_out -= f64, 100);
-	PERF("double mul", f64_out *= f64, 100);
-	PERF("double div", f64_out /= f64, 100);
-	PERF("double sqrt", f64_out = sqrt(f64), 100);
+	PERF("double add (1k ops)", f64_out += f64, 1000);
+	PERF("double sub (1k ops)", f64_out -= f64, 1000);
+	PERF("double mul (1k ops)", f64_out *= f64, 1000);
+	PERF("double div (100 ops)", f64_out /= f64, 100);
+	PERF("double sqrt (100 ops)", f64_out = sqrt(f64), 100);
 
 	return true;
 }
 
 bool MicroBenchMath::time_double_precision_float_trig()
 {
-	PERF("sin()", f64_out = sin(f64), 100);
-	PERF("cos()", f64_out = cos(f64), 100);
-	PERF("tan()", f64_out = tan(f64), 100);
+	PERF("sin() (100 ops)", f64_out = sin(f64), 100);
+	PERF("cos() (100 ops)", f64_out = cos(f64), 100);
+	PERF("tan() (100 ops)", f64_out = tan(f64), 100);
 
-	PERF("acos()", f64_out = acos(f64 * 0.5), 100);
-	PERF("asin()", f64_out = asin(f64 * 0.6), 100);
-	PERF("atan2()", f64_out = atan2(f64 * 0.7, f64 * 0.8), 100);
-
-	PERF("sqrt()", f64_out = sqrt(f64), 100);
+	PERF("acos() (100 ops)", f64_out = acos(f64 * 0.5), 100);
+	PERF("asin() (100 ops)", f64_out = asin(f64 * 0.6), 100);
+	PERF("atan2() (100 ops)", f64_out = atan2(f64 * 0.7, f64 * 0.8), 100);
 
 	return true;
 }
@@ -231,40 +239,40 @@ bool MicroBenchMath::time_double_precision_float_trig()
 
 bool MicroBenchMath::time_8bit_integers()
 {
-	PERF("int8 add", i_8_out += i_8, 100);
-	PERF("int8 sub", i_8_out -= i_8, 100);
-	PERF("int8 mul", i_8_out *= i_8, 100);
-	PERF("int8 div", i_8_out /= i_8, 100);
+	PERF("int8 add (10k ops)", i_8_out += i_8, 10000);
+	PERF("int8 sub (10k ops)", i_8_out -= i_8, 10000);
+	PERF("int8 mul (10k ops)", i_8_out *= i_8, 10000);
+	PERF("int8 div (10k ops)", i_8_out /= i_8, 10000);
 
 	return true;
 }
 
 bool MicroBenchMath::time_16bit_integers()
 {
-	PERF("int16 add", i_16_out += i_16, 100);
-	PERF("int16 sub", i_16_out -= i_16, 100);
-	PERF("int16 mul", i_16_out *= i_16, 100);
-	PERF("int16 div", i_16_out /= i_16, 100);
+	PERF("int16 add (10k ops)", i_16_out += i_16, 10000);
+	PERF("int16 sub (10k ops)", i_16_out -= i_16, 10000);
+	PERF("int16 mul (10k ops)", i_16_out *= i_16, 10000);
+	PERF("int16 div (10k ops)", i_16_out /= i_16, 10000);
 
 	return true;
 }
 
 bool MicroBenchMath::time_32bit_integers()
 {
-	PERF("int32 add", i_32_out += i_32, 100);
-	PERF("int32 sub", i_32_out -= i_32, 100);
-	PERF("int32 mul", i_32_out *= i_32, 100);
-	PERF("int32 div", i_32_out /= i_32, 100);
+	PERF("int32 add (10k ops)", i_32_out += i_32, 10000);
+	PERF("int32 sub (10k ops)", i_32_out -= i_32, 10000);
+	PERF("int32 mul (10k ops)", i_32_out *= i_32, 10000);
+	PERF("int32 div (10k ops)", i_32_out /= i_32, 10000);
 
 	return true;
 }
 
 bool MicroBenchMath::time_64bit_integers()
 {
-	PERF("int64 add", i_64_out += i_64, 100);
-	PERF("int64 sub", i_64_out -= i_64, 100);
-	PERF("int64 mul", i_64_out *= i_64, 100);
-	PERF("int64 div", i_64_out /= i_64, 100);
+	PERF("int64 add (1k ops)", i_64_out += i_64, 1000);
+	PERF("int64 sub (1k ops)", i_64_out -= i_64, 1000);
+	PERF("int64 mul (1k ops)", i_64_out *= i_64, 1000);
+	PERF("int64 div (1k ops)", i_64_out /= i_64, 1000);
 
 	return true;
 }
