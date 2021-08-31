@@ -60,6 +60,8 @@
 #include <px4_platform/gpio.h>
 #include <px4_platform/board_dma_alloc.h>
 
+#include <mpu.h>
+
 __BEGIN_DECLS
 extern void led_init(void);
 extern void led_on(int led);
@@ -118,6 +120,16 @@ __EXPORT void board_on_reset(int status)
  ************************************************************************************/
 __EXPORT void stm32_boardinitialize(void)
 {
+	// clear all existing MPU configuration from bootloader
+	for (int region = 0; region < CONFIG_ARM_MPU_NREGIONS; region++) {
+		putreg32(region, MPU_RNR);
+		putreg32(0, MPU_RBAR);
+		putreg32(0, MPU_RASR);
+
+		// save
+		putreg32(0, MPU_CTRL);
+	}
+
 	/* Reset PWM first thing */
 	board_on_reset(-1);
 
