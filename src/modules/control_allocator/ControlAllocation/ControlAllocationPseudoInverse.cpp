@@ -54,7 +54,7 @@ void
 ControlAllocationPseudoInverse::updatePseudoInverse()
 {
 	if (_mix_update_needed) {
-		_mix = matrix::geninv(_effectiveness);
+		matrix::geninv(_effectiveness, _mix);
 		_mix_update_needed = false;
 	}
 }
