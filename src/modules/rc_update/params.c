@@ -1702,37 +1702,35 @@ PARAM_DEFINE_INT32(RC_MAP_STAB_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_MAN_SW, 0);
 
 /**
- * Enables changing flight modes with multiple toggle buttons.
+ * Button flight mode selection
  *
- * This bitmask allows to specify multiple channels for changing flight modes.
- * Each channel is assigned to a flight mode slot ((lowest channel = slot 1),
- * the behavior of each flight mode is defined by the COM_FLTMODE1,COM_FLTMODE2,...
- * parameters.
+ * This bitmask allows to specify multiple channels for changing flight modes using
+ * momentary buttons. Each channel is assigned to a mode slot ((lowest channel = slot 1).
+ * The resulting modes for each slot X is defined by the COM_FLTMODEX parameters.
  * The functionality can be used only if RC_MAP_FLTMODE is disabled.
  *
- * The maximum number of available slots is 6.
+ * The maximum number of available slots and hence bits set in the mask is 6.
  * @min 0
  * @max 258048
  * @group Radio Switches
- * @bit 0 Enable Channel 1 as toggle button
- * @bit 1 Enable Channel 2 as toggle button
- * @bit 2 Enable Channel 3 as toggle button
- * @bit 3 Enable Channel 4 as toggle button
- * @bit 4 Enable Channel 5 as toggle button
- * @bit 5 Enable Channel 6 as toggle button
- * @bit 6 Enable Channel 7 as toggle button
- * @bit 7 Enable Channel 8 as toggle button
- * @bit 8 Enable Channel 9 as toggle button
- * @bit 9 Enable Channel 10 as toggle button
- * @bit 10 Enable Channel 11 as toggle button
- * @bit 11 Enable Channel 12 as toggle button
- * @bit 12 Enable Channel 13 as toggle button
- * @bit 13 Enable Channel 14 as toggle button
- * @bit 14 Enable Channel 15 as toggle button
- * @bit 15 Enable Channel 16 as toggle button
- * @bit 16 Enable Channel 17 as toggle button
- * @bit 17 Enable Channel 18 as toggle button
- *
+ * @bit 0 Mask Channel 1 as a mode button
+ * @bit 1 Mask Channel 2 as a mode button
+ * @bit 2 Mask Channel 3 as a mode button
+ * @bit 3 Mask Channel 4 as a mode button
+ * @bit 4 Mask Channel 5 as a mode button
+ * @bit 5 Mask Channel 6 as a mode button
+ * @bit 6 Mask Channel 7 as a mode button
+ * @bit 7 Mask Channel 8 as a mode button
+ * @bit 8 Mask Channel 9 as a mode button
+ * @bit 9 Mask Channel 10 as a mode button
+ * @bit 10 Mask Channel 11 as a mode button
+ * @bit 11 Mask Channel 12 as a mode button
+ * @bit 12 Mask Channel 13 as a mode button
+ * @bit 13 Mask Channel 14 as a mode button
+ * @bit 14 Mask Channel 15 as a mode button
+ * @bit 15 Mask Channel 16 as a mode button
+ * @bit 16 Mask Channel 17 as a mode button
+ * @bit 17 Mask Channel 18 as a mode button
  */
 
 PARAM_DEFINE_INT32(RC_MAP_FLTM_BTN, 0);
