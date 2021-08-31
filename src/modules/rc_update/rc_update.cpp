@@ -103,8 +103,9 @@ RCUpdate::RCUpdate() :
 	}
 
 	rc_parameter_map_poll(true /* forced */);
-
 	parameters_updated();
+
+	_button_pressed_hysteresis.set_hysteresis_time_from(false, 50_ms);
 }
 
 RCUpdate::~RCUpdate()
@@ -283,31 +284,31 @@ RCUpdate::map_flight_modes_buttons()
 {
 	static_assert(rc_channels_s::FUNCTION_FLTBTN_SLOT_1 + manual_control_switches_s::MODE_SLOT_NUM <= sizeof(
 			      _rc.function) / sizeof(_rc.function[0]), "Unexpected number of RC functions");
-	static_assert(rc_channels_s::FUNCTION_FLTBTN_NUM_SLOTS == manual_control_switches_s::MODE_SLOT_NUM,
+	static_assert(rc_channels_s::FUNCTION_FLTBTN_SLOT_COUNT == manual_control_switches_s::MODE_SLOT_NUM,
 		      "Unexpected number of Flight Modes slots");
 
 	// Reset all the slots to -1
-	for (uint8_t index = 0; index < manual_control_switches_s::MODE_SLOT_NUM; index++) {
-		_rc.function[rc_channels_s::FUNCTION_FLTBTN_SLOT_1 + index] = -1;
+	for (uint8_t slot = 0; slot < manual_control_switches_s::MODE_SLOT_NUM; slot++) {
+		_rc.function[rc_channels_s::FUNCTION_FLTBTN_SLOT_1 + slot] = -1;
 	}
 
-	// If the functionality is disabled we can early return, no need to map channels
-	int buttons_rc_channels = _param_rc_map_flightmode_buttons.get();
+	// If the functionality is disabled we don't need to map channels
+	const int flightmode_buttons = _param_rc_map_flightmode_buttons.get();
 
-	if (buttons_rc_channels == 0) {
+	if (flightmode_buttons == 0) {
 		return;
 	}
 
-	uint8_t slot_counter = 0;
+	uint8_t slot = 0;
 
-	for (uint8_t index = 0; index < RC_MAX_CHAN_COUNT; index++) {
-		if (buttons_rc_channels & (1 << index)) {
-			PX4_DEBUG("Slot %d assigned to channel %d", slot_counter + 1, index);
-			_rc.function[rc_channels_s::FUNCTION_FLTBTN_SLOT_1 + slot_counter] = index;
-			slot_counter++;
+	for (uint8_t channel = 0; channel < RC_MAX_CHAN_COUNT; channel++) {
+		if (flightmode_buttons & (1 << channel)) {
+			PX4_DEBUG("Slot %d assigned to channel %d", slot + 1, channel);
+			_rc.function[rc_channels_s::FUNCTION_FLTBTN_SLOT_1 + slot] = channel;
+			slot++;
 		}
 
-		if (slot_counter == manual_control_switches_s::MODE_SLOT_NUM) {
+		if (slot >= manual_control_switches_s::MODE_SLOT_NUM) {
 			// we have filled all the available slots
 			break;
 		}
@@ -468,9 +469,7 @@ void RCUpdate::Run()
 		/*
 		 * some RC systems glitch after a reboot, we should ignore the first 100ms of regained signal
 		 * as the glitch might be interpreted as a commanded stick action or a flight mode switch
-		 *
 		 */
-
 		_rc_signal_lost_hysteresis.set_hysteresis_time_from(true, 100_ms);
 		_rc_signal_lost_hysteresis.set_state_and_update(signal_lost, hrt_absolute_time());
 
@@ -609,15 +608,15 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 		switches.mode_slot = manual_control_switches_s::MODE_SLOT_NONE;
 		bool is_consistent_button_press = false;
 
-		for (uint8_t index = 0; index < manual_control_switches_s::MODE_SLOT_NUM; index++) {
+		for (uint8_t slot = 0; slot < manual_control_switches_s::MODE_SLOT_NUM; slot++) {
 
 			// If the slot is not in use (-1), get_rc_value() will return 0
-			float value = get_rc_value(rc_channels_s::FUNCTION_FLTBTN_SLOT_1 + index, -1.0, 1.0);
+			float value = get_rc_value(rc_channels_s::FUNCTION_FLTBTN_SLOT_1 + slot, -1.0, 1.0);
 
 			// The range goes from -1 to 1, checking that value is greater than 0.5f
 			// corresponds to check that the signal is above 75% of the overall range.
 			if (value > 0.5f) {
-				const uint8_t current_button_press_slot = index + 1;
+				const uint8_t current_button_press_slot = slot + 1;
 
 				// The same button stays pressed consistently
 				if (current_button_press_slot == _potential_button_press_slot) {
@@ -629,7 +628,6 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 			}
 		}
 
-		_button_pressed_hysteresis.set_hysteresis_time_from(false, 50_ms);
 		_button_pressed_hysteresis.set_state_and_update(is_consistent_button_press, hrt_absolute_time());
 
 		if (_button_pressed_hysteresis.get_state()) {
