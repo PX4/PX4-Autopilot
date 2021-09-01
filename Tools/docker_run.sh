@@ -7,13 +7,13 @@ if [ -z ${PX4_DOCKER_REPO+x} ]; then
 		PX4_DOCKER_REPO="px4io/px4-dev-nuttx-focal:2021-05-04"
 	elif [[ $@ =~ .*navio2.* ]] || [[ $@ =~ .*raspberry.* ]] || [[ $@ =~ .*beaglebone.* ]] || [[ $@ =~ .*pilotpi.default ]]; then
 		# beaglebone_blue_default, emlid_navio2_default, px4_raspberrypi_default, scumaker_pilotpi_default
-		PX4_DOCKER_REPO="px4io/px4-dev-armhf:2021-02-04"
+		PX4_DOCKER_REPO="px4io/px4-dev-armhf:2021-08-18"
 	elif [[ $@ =~ .*pilotpi.arm64 ]]; then
 		# scumaker_pilotpi_arm64
 		PX4_DOCKER_REPO="px4io/px4-dev-aarch64:latest"
 	elif [[ $@ =~ .*navio2.* ]] || [[ $@ =~ .*raspberry.* ]] || [[ $@ =~ .*bebop.* ]]; then
 		# posix_rpi_cross, posix_bebop_default
-		PX4_DOCKER_REPO="px4io/px4-dev-armhf:2021-02-04"
+		PX4_DOCKER_REPO="px4io/px4-dev-armhf:2021-08-18"
 	elif [[ $@ =~ .*clang.* ]] || [[ $@ =~ .*scan-build.* ]]; then
 		# clang tools
 		PX4_DOCKER_REPO="px4io/px4-dev-clang:2021-02-04"
