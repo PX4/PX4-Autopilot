@@ -1457,3 +1457,46 @@ PARAM_DEFINE_INT32(EKF2_MAG_CHECK, 0);
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_GSF_TAS, 15.0f);
+
+/**
+ * EV Fusion Control Flag.
+ *
+ * Set to enable or disable to use fusion handover logic, 1 to enable, 0 disable.
+ *
+ * @group EKF2
+ * @min 0
+ * @max 1
+ * @value 0 Disable
+ * @value 1 Enable
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(EKF2_USE_IN_OUT, 0);
+
+
+/**
+ * EV Fusion Airspace Flag.
+ *
+ * Set to enable or disable to use VIO airspace logic, 1 to enable, 0 disable.
+ *
+ * @group EKF2
+ * @min 0
+ * @max 1
+ * @value 0 Disable
+ * @value 1 Enable
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(EKF2_USE_EV_AIR, 0);
+
+/**
+ * EV Fusion Control airspace height.
+ *
+ * threshold height on where localization modality airspace starts.
+ *
+ * @group EKF2
+ * @min 0
+ * @max 9999
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(EKF2_EV_AIR_HGT, 9999.0f);
+
+

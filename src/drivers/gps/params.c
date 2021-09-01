@@ -86,3 +86,32 @@ PARAM_DEFINE_INT32(GPS_UBX_DYNMODEL, 7);
  */
 PARAM_DEFINE_FLOAT(GPS_YAW_OFFSET, 0.f);
 
+
+
+/**
+ * minimum satellite elevation.
+ *
+ * Look for sats above this elevation: 0 to 90 degrees
+ *
+ * @group GPS
+ * @min 0
+ * @max 90
+ * @reboot_required true
+ *
+ */
+PARAM_DEFINE_FLOAT(GPS_MIN_EL, 30);
+
+/**
+ * CN0 signal to noise strength.
+ *
+ * Good signal above this threshold 0-90dB.
+ *
+ * @group GPS
+ * @min 0
+ * @max 90
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(GPS_MIN_CNO, 30);
+
+
+

@@ -402,7 +402,11 @@ MulticopterPositionControl::poll_subscriptions()
 {
 	_vehicle_status_sub.update(&_vehicle_status);
 	_vehicle_land_detected_sub.update(&_vehicle_land_detected);
-	_control_mode_sub.update(&_control_mode);
+
+	if (_control_mode_sub.updated()) {
+		_control_mode_sub.copy(&_control_mode);
+	}
+
 	_home_pos_sub.update(&_home_pos);
 
 	if (_param_mpc_use_hte.get()) {
@@ -557,8 +561,18 @@ MulticopterPositionControl::Run()
 		_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f,
 					    !_control_mode.flag_control_climb_rate_enabled, time_stamp_now);
 
-		// switch to the required flighttask
-		start_flight_task();
+		if (_control_mode.flag_control_force_enabled && _control_mode.flag_armed) {
+			FlightTaskError error = FlightTaskError::NoError;
+			error =  _flight_tasks.switchTask(FlightTaskIndex::Descend);
+
+			if (error != FlightTaskError::NoError) {
+				PX4_ERR("Force failsafe. Can't descend!");
+			}
+
+		} else {
+			// switch to the required flighttask
+			start_flight_task();
+		}
 
 		// check if any task is active
 		if (_flight_tasks.isAnyTaskActive()) {
@@ -710,6 +724,7 @@ MulticopterPositionControl::Run()
 		}
 	}
 
+
 	perf_end(_cycle_perf);
 }
 
@@ -834,6 +849,7 @@ MulticopterPositionControl::start_flight_task()
 
 	// manual position control
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL || task_failure) {
+
 		should_disable_task = false;
 		FlightTaskError error = FlightTaskError::NoError;
 

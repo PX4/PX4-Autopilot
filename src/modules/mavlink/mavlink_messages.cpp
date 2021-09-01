@@ -80,6 +80,8 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/gps_metadata.h>
+#include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mavlink_log.h>
@@ -104,7 +106,6 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
@@ -1731,6 +1732,159 @@ protected:
 		return false;
 	}
 };
+
+
+
+class MavlinkStreamGPSMetadata : public MavlinkStream
+{
+public:
+	const char *get_name() const override
+	{
+		return MavlinkStreamGPSMetadata::get_name_static();
+	}
+
+	static constexpr const char *get_name_static()
+	{
+		return "GPS_METADATA";
+	}
+
+	static constexpr uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_GPS_METADATA;
+	}
+
+	uint16_t get_id() override
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamGPSMetadata(mavlink);
+	}
+
+	unsigned get_size() override
+	{
+		return _gps_metasub.advertised() ? MAVLINK_MSG_ID_GPS_METADATA_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
+
+private:
+	uORB::Subscription _gps_metasub{ORB_ID(gps_metadata)};
+
+	/* do not allow top copying this class */
+	MavlinkStreamGPSMetadata(MavlinkStreamGPSMetadata &) = delete;
+	MavlinkStreamGPSMetadata &operator = (const MavlinkStreamGPSMetadata &) = delete;
+
+protected:
+	explicit MavlinkStreamGPSMetadata(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{}
+
+	bool send(const hrt_abstime t) override
+	{
+		gps_metadata_s gps;
+
+
+		if (_gps_metasub.update(&gps)) {
+			mavlink_gps_metadata_t msg = {};
+			msg.time_usec = gps.timestamp;
+			msg.epoch_time_usec = gps.timestamp;
+			msg.avg_cno = gps.avg_cno;
+			msg.use_feature = 1;
+
+			mavlink_msg_gps_metadata_send_struct(_mavlink->get_channel(), &msg);
+			return true;
+		}
+
+		return false;
+	}
+};
+
+class MavlinkStreamVehicleGPSPosition : public MavlinkStream
+{
+public:
+	const char *get_name() const override
+	{
+		return MavlinkStreamVehicleGPSPosition::get_name_static();
+	}
+
+	static constexpr const char *get_name_static()
+	{
+		return "VEHICLE_GPS_POSITION";
+	}
+
+	static constexpr uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_VEHICLE_GPS_POSITION;
+	}
+
+	uint16_t get_id() override
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamVehicleGPSPosition(mavlink);
+	}
+
+	unsigned get_size() override
+	{
+		return _veh_sub.advertised() ? MAVLINK_MSG_ID_VEHICLE_GPS_POSITION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
+
+private:
+	uORB::Subscription _veh_sub{ORB_ID(vehicle_gps_position)};
+
+	/* do not allow top copying this class */
+	MavlinkStreamVehicleGPSPosition(MavlinkStreamVehicleGPSPosition &) = delete;
+	MavlinkStreamVehicleGPSPosition &operator = (const MavlinkStreamVehicleGPSPosition &) = delete;
+
+protected:
+	explicit MavlinkStreamVehicleGPSPosition(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{}
+
+	bool send(const hrt_abstime t) override
+	{
+		vehicle_gps_position_s veh_gps;
+
+		if (_veh_sub.update(&veh_gps)) {
+			mavlink_vehicle_gps_position_t msg = {};
+
+			msg.time_usec = veh_gps.timestamp;
+
+			msg.utc_time_usec = veh_gps.time_utc_usec;
+			msg.time_rel_usec = veh_gps.timestamp_time_relative;
+			msg.lat = veh_gps.lat;
+			msg.lon = veh_gps.lon;
+			msg.alt = veh_gps.alt;
+			msg.speed_accuracy = veh_gps.s_variance_m_s; // already in m/s at ubx level
+			msg.cog_accuracy = veh_gps.c_variance_rad;
+			msg.eph = veh_gps.eph;;
+			msg.epv = veh_gps.epv;;
+			msg.hdop = veh_gps.hdop;
+			msg.vdop = veh_gps.vdop;
+			msg.noise = veh_gps.noise_per_ms;
+			msg.jam = veh_gps.jamming_indicator;
+			msg.vel = veh_gps.vel_m_s;
+			msg.vn = veh_gps.vel_n_m_s;
+			msg.ve = veh_gps.vel_e_m_s;
+			msg.vd = veh_gps.vel_d_m_s;
+			msg.cog = veh_gps.cog_rad;
+
+			msg.fix_type = veh_gps.fix_type;
+			msg.satellites_visible = veh_gps.satellites_used;
+			msg.use_feature = 1; // TBD
+
+			mavlink_msg_vehicle_gps_position_send_struct(_mavlink->get_channel(), &msg);
+
+			return true;
+		}
+
+		return false;
+	}
+};
+
+
 
 class MavlinkStreamSystemTime : public MavlinkStream
 {
@@ -5260,6 +5414,8 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamAttitudeQuaternion>(),
 	create_stream_list_item<MavlinkStreamVFRHUD>(),
 	create_stream_list_item<MavlinkStreamGPSRawInt>(),
+	create_stream_list_item<MavlinkStreamGPSMetadata>(),
+	create_stream_list_item<MavlinkStreamVehicleGPSPosition>(),
 	create_stream_list_item<MavlinkStreamGPS2Raw>(),
 	create_stream_list_item<MavlinkStreamSystemTime>(),
 	create_stream_list_item<MavlinkStreamTimesync>(),

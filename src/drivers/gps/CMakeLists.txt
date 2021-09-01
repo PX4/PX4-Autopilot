@@ -41,6 +41,7 @@ px4_add_module(
 		-Wno-stringop-overflow # due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=91707
 	SRCS
 		gps.cpp
+		gps_metadata_monitor.cpp
 		devices/src/gps_helper.cpp
 		devices/src/mtk.cpp
 		devices/src/ashtech.cpp

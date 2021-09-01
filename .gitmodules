@@ -1,7 +1,6 @@
 [submodule "mavlink/include/mavlink/v2.0"]
 	path = mavlink/include/mavlink/v2.0
-	url = https://github.com/mavlink/c_library_v2.git
-	branch = master
+	url = https://github.com/modalai/c_library_v2
 [submodule "src/drivers/uavcan/libuavcan"]
 	path = src/drivers/uavcan/libuavcan
 	url = https://github.com/PX4/uavcan.git
@@ -21,7 +20,7 @@
 [submodule "src/lib/ecl"]
 	path = src/lib/ecl
 	url = https://github.com/modalai/ecl.git
-	branch = modalai-ecl-1.11
+	branch = modalai-1.11-fusion
 [submodule "boards/atlflight/cmake_hexagon"]
 	path = boards/atlflight/cmake_hexagon
 	url = https://github.com/PX4/cmake_hexagon.git
