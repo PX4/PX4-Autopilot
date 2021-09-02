@@ -264,7 +264,9 @@ void SRXLCodec::handle_control_frame(const uint8_t *const frame)
 
 	if (print_interval < (_last_rx_time - _last_print_time)) {
 		_last_print_time = _last_rx_time;
-		printf("    >>Control-Frame::Channel-Mask:  %08x \n", channel_mask);
+
+		// this is a useful debug printf, but any type-specifier seems to break the format checks
+		// printf("    >>Control-Frame::Channel-Mask:  %08lx \n", channel_mask);
 
 		for (int i = 0; i < 4; ++i) {   // 4 channels are the troublesome ones-- pitch roll, throttle, yaw
 			printf("            [%2d]: %04x \n", i, _control_channels[i]);
