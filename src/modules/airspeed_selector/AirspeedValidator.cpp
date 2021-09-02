@@ -149,6 +149,11 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 		_innovations_check_failed = false;
 		_time_last_tas_pass = time_now;
 
+	} else if (_tas_innov_integ_threshold <= 0.f) {
+		//don't run if ASPD_FS_INTEG < 0
+		_innovations_check_failed = false;
+		_time_last_tas_pass = time_now;
+
 	} else {
 		const float dt_s = math::constrain((time_now - _time_last_aspd_innov_check) / 1e6f, 0.01f, 0.2f); // limit to [100,5] Hz
 
@@ -164,10 +169,6 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 			} else {
 				// reset integrator used to trigger and record pass if integrator check is disabled
 				_apsd_innov_integ_state = 0.f;
-
-				if (_tas_innov_integ_threshold <= 0.f) {
-					_time_last_tas_pass = time_now;
-				}
 			}
 
 			if (_tas_innov_integ_threshold > 0.f && _apsd_innov_integ_state < _tas_innov_integ_threshold) {
