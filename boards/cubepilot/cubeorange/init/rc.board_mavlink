@@ -5,3 +5,6 @@
 
 # Start MAVLink on the USB port
 mavlink start -d /dev/ttyACM0
+
+# Start ADS-B receiver mavlink connection
+mavlink start -d /dev/ttyS4
