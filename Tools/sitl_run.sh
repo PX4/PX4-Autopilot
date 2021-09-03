@@ -187,7 +187,7 @@ elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
 elif [ "$program" == "ignition" ] && [ -z "$no_sim" ]; then
 	echo "Ignition Gazebo"
 	source "$src_path/Tools/setup_ignition.bash" "${src_path}" "${build_path}"
-	ign gazebo -r "${src_path}/Tools/simulation-ignition/worlds/ignition.world"&
+	ign gazebo -r "${src_path}/Tools/simulation-ignition/worlds/${model}.world"&
 elif [ "$program" == "flightgear" ] && [ -z "$no_sim" ]; then
 	echo "FG setup"
 	cd "${src_path}/Tools/flightgear_bridge/"
