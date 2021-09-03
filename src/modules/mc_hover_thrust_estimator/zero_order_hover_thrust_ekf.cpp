@@ -88,7 +88,7 @@ inline float ZeroOrderHoverThrustEkf::computeH(const float thrust) const
 
 inline float ZeroOrderHoverThrustEkf::computeInnovVar(const float H) const
 {
-	const float R = _acc_var;
+	const float R = _acc_var * _acc_var_scale;
 	const float P = _state_var;
 	return math::max(H * P * H + R, R);
 }
