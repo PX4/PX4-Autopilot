@@ -186,8 +186,13 @@ elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
 	fi
 elif [ "$program" == "ignition" ] && [ -z "$no_sim" ]; then
 	echo "Ignition Gazebo"
+	if [[ -n "$HEADLESS" ]]; then
+		ignition_headless="-s"
+	else
+		ignition_headless=""
+	fi
 	source "$src_path/Tools/setup_ignition.bash" "${src_path}" "${build_path}"
-	ign gazebo ${verbose} -r "${src_path}/Tools/simulation-ignition/worlds/${model}.world"&
+	ign gazebo ${verbose} ${ignition_headless} -r "${src_path}/Tools/simulation-ignition/worlds/${model}.world"&
 elif [ "$program" == "flightgear" ] && [ -z "$no_sim" ]; then
 	echo "FG setup"
 	cd "${src_path}/Tools/flightgear_bridge/"
