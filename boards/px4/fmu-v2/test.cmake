@@ -23,7 +23,7 @@ px4_add_board(
 		#camera_capture
 		#camera_trigger
 		#differential_pressure # all available differential pressure drivers
-		differential_pressure/ms4525
+		#differential_pressure/ms4525
 		#distance_sensor # all available distance sensor drivers
 		distance_sensor/ll40ls
 		distance_sensor/lightware_laser_serial
