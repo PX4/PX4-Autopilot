@@ -32,7 +32,7 @@ DRIVERS
 # 	#pca9685
 # 	#pwm_input
 # 	#pwm_out_sim
-# 	pwm_out
+	pwm_out
 	rc_input
 # 	#telemetry # all available telemetry drivers
 # 	telemetry/frsky_telemetry

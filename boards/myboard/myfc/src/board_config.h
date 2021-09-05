@@ -56,6 +56,15 @@
  */
 #define GPIO_USB_VBUS_VALID     (24 | GPIO_FUN(RP2040_GPIO_FUNC_SIO))    // Used in usb.c
 
+/* PWM
+ *
+ * Alternatively CH3/CH4 could be assigned to UART6_TX/RX
+ */
+#define DIRECT_PWM_OUTPUT_CHANNELS      4
+
+// Has pwm outputs
+#define BOARD_HAS_PWM    DIRECT_PWM_OUTPUT_CHANNELS
+
 /*
  * By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
  * this board support the ADC system_power interface, and therefore
@@ -101,7 +110,7 @@ extern void rp2040_spiinitialize(void);
 
 extern void rp2040_usbinitialize(void);
 
-// extern void board_peripheral_reset(int ms);
+extern void board_peripheral_reset(int ms);
 
 #include <px4_platform_common/board_common.h>
 

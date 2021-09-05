@@ -19,7 +19,6 @@
 #include <nuttx/usb/usbdev_trace.h>
 
 #include <arm_arch.h>
-#include <rp2040.h>
 #include "board_config.h"
 
 /************************************************************************************

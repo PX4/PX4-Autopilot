@@ -32,9 +32,11 @@
 ############################################################################
 
 px4_add_library(arch_io_pins
-	# io_timer.c
-	# pwm_servo.c
+	io_timer.c
+	pwm_servo.c
 	# pwm_trigger.c
 	# input_capture.c
 	rp2040_pinset.c
 )
+
+target_compile_options(arch_io_pins PRIVATE ${MAX_CUSTOM_OPT_LEVEL})

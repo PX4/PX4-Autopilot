@@ -39,7 +39,6 @@
 #include <nuttx/irq.h>
 
 #include <drivers/drv_hrt.h>
-#include "dshot.h"
 
 #pragma once
 __BEGIN_DECLS
@@ -52,7 +51,7 @@ __BEGIN_DECLS
 #if DIRECT_PWM_OUTPUT_CHANNELS > 8
 #define MAX_TIMER_IO_CHANNELS	DIRECT_PWM_OUTPUT_CHANNELS
 #else
-#define MAX_TIMER_IO_CHANNELS	8
+#define MAX_TIMER_IO_CHANNELS	16
 #endif
 
 #define MAX_LED_TIMERS			2

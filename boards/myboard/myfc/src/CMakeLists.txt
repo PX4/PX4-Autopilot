@@ -4,8 +4,8 @@ add_library(drivers_board
 	led.c
 	spi.cpp
 	boot_string.c
-	# timer_config.cpp
-	# usb.c
+	timer_config.cpp
+	usb.c
 )
 
 target_link_libraries(drivers_board

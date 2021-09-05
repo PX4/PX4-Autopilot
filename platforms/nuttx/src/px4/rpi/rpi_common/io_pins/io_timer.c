@@ -112,59 +112,59 @@
 
 /* Timer register accessors */
 
-#define rSC(_tmr)         REG(_tmr,KINETIS_FTM_SC_OFFSET)
-#define rCNT(_tmr)        REG(_tmr,KINETIS_FTM_CNT_OFFSET)
-#define rMOD(_tmr)        REG(_tmr,KINETIS_FTM_MOD_OFFSET)
-#define rC0SC(_tmr)       REG(_tmr,KINETIS_FTM_C0SC_OFFSET)
-#define rC0V(_tmr)        REG(_tmr,KINETIS_FTM_C0V_OFFSET)
-#define rC1SC(_tmr)       REG(_tmr,KINETIS_FTM_C1SC_OFFSET)
-#define rC1V(_tmr)        REG(_tmr,KINETIS_FTM_C1V_OFFSET)
-#define rC2SC(_tmr)       REG(_tmr,KINETIS_FTM_C2SC_OFFSET)
-#define rC2V(_tmr)        REG(_tmr,KINETIS_FTM_C2V_OFFSET)
-#define rC3SC(_tmr)       REG(_tmr,KINETIS_FTM_C3SC_OFFSET)
-#define rC3V(_tmr)        REG(_tmr,KINETIS_FTM_C3V_OFFSET)
-#define rC4SC(_tmr)       REG(_tmr,KINETIS_FTM_C4SC_OFFSET)
-#define rC4V(_tmr)        REG(_tmr,KINETIS_FTM_C4V_OFFSET)
-#define rC5SC(_tmr)       REG(_tmr,KINETIS_FTM_C5SC_OFFSET)
-#define rC5V(_tmr)        REG(_tmr,KINETIS_FTM_C5V_OFFSET)
-#define rC6SC(_tmr)       REG(_tmr,KINETIS_FTM_C6SC_OFFSET)
-#define rC6V(_tmr)        REG(_tmr,KINETIS_FTM_C6V_OFFSET)
-#define rC7SC(_tmr)       REG(_tmr,KINETIS_FTM_C7SC_OFFSET)
-#define rC7V(_tmr)        REG(_tmr,KINETIS_FTM_C7V_OFFSET)
+// #define rSC(_tmr)         REG(_tmr,KINETIS_FTM_SC_OFFSET)
+// #define rCNT(_tmr)        REG(_tmr,KINETIS_FTM_CNT_OFFSET)
+// #define rMOD(_tmr)        REG(_tmr,KINETIS_FTM_MOD_OFFSET)
+// #define rC0SC(_tmr)       REG(_tmr,KINETIS_FTM_C0SC_OFFSET)
+// #define rC0V(_tmr)        REG(_tmr,KINETIS_FTM_C0V_OFFSET)
+// #define rC1SC(_tmr)       REG(_tmr,KINETIS_FTM_C1SC_OFFSET)
+// #define rC1V(_tmr)        REG(_tmr,KINETIS_FTM_C1V_OFFSET)
+// #define rC2SC(_tmr)       REG(_tmr,KINETIS_FTM_C2SC_OFFSET)
+// #define rC2V(_tmr)        REG(_tmr,KINETIS_FTM_C2V_OFFSET)
+// #define rC3SC(_tmr)       REG(_tmr,KINETIS_FTM_C3SC_OFFSET)
+// #define rC3V(_tmr)        REG(_tmr,KINETIS_FTM_C3V_OFFSET)
+// #define rC4SC(_tmr)       REG(_tmr,KINETIS_FTM_C4SC_OFFSET)
+// #define rC4V(_tmr)        REG(_tmr,KINETIS_FTM_C4V_OFFSET)
+// #define rC5SC(_tmr)       REG(_tmr,KINETIS_FTM_C5SC_OFFSET)
+// #define rC5V(_tmr)        REG(_tmr,KINETIS_FTM_C5V_OFFSET)
+// #define rC6SC(_tmr)       REG(_tmr,KINETIS_FTM_C6SC_OFFSET)
+// #define rC6V(_tmr)        REG(_tmr,KINETIS_FTM_C6V_OFFSET)
+// #define rC7SC(_tmr)       REG(_tmr,KINETIS_FTM_C7SC_OFFSET)
+// #define rC7V(_tmr)        REG(_tmr,KINETIS_FTM_C7V_OFFSET)
 
-#define rCNTIN(_tmr)      REG(_tmr,KINETIS_FTM_CNTIN_OFFSET)
-#define rSTATUS(_tmr)     REG(_tmr,KINETIS_FTM_STATUS_OFFSET)
-#define rMODE(_tmr)       REG(_tmr,KINETIS_FTM_MODE_OFFSET)
-#define rSYNC(_tmr)       REG(_tmr,KINETIS_FTM_SYNC_OFFSET)
-#define rOUTINIT(_tmr)    REG(_tmr,KINETIS_FTM_OUTINIT_OFFSET)
-#define rOUTMASK(_tmr)    REG(_tmr,KINETIS_FTM_OUTMASK_OFFSET)
-#define rCOMBINE(_tmr)    REG(_tmr,KINETIS_FTM_COMBINE_OFFSET)
-#define rDEADTIME(_tmr)   REG(_tmr,KINETIS_FTM_DEADTIME_OFFSET)
-#define rEXTTRIG(_tmr)    REG(_tmr,KINETIS_FTM_EXTTRIG_OFFSET)
-#define rPOL(_tmr)        REG(_tmr,KINETIS_FTM_POL_OFFSET)
-#define rFMS(_tmr)        REG(_tmr,KINETIS_FTM_FMS_OFFSET)
-#define rFILTER(_tmr)     REG(_tmr,KINETIS_FTM_FILTER_OFFSET)
-#define rFLTCTRL(_tmr)    REG(_tmr,KINETIS_FTM_FLTCTRL_OFFSET)
-#define rQDCTRL(_tmr)     REG(_tmr,KINETIS_FTM_QDCTRL_OFFSET)
-#define rCONF(_tmr)       REG(_tmr,KINETIS_FTM_CONF_OFFSET)
-#define rFLTPOL(_tmr)     REG(_tmr,KINETIS_FTM_FLTPOL_OFFSET)
-#define rSYNCONF(_tmr)    REG(_tmr,KINETIS_FTM_SYNCONF_OFFSET)
-#define rINVCTRL(_tmr)    REG(_tmr,KINETIS_FTM_INVCTRL_OFFSET)
-#define rSWOCTRL(_tmr)    REG(_tmr,KINETIS_FTM_SWOCTRL_OFFSET)
-#define rPWMLOAD(_tmr)    REG(_tmr,KINETIS_FTM_PWMLOAD_OFFSET)
+// #define rCNTIN(_tmr)      REG(_tmr,KINETIS_FTM_CNTIN_OFFSET)
+// #define rSTATUS(_tmr)     REG(_tmr,KINETIS_FTM_STATUS_OFFSET)
+// #define rMODE(_tmr)       REG(_tmr,KINETIS_FTM_MODE_OFFSET)
+// #define rSYNC(_tmr)       REG(_tmr,KINETIS_FTM_SYNC_OFFSET)
+// #define rOUTINIT(_tmr)    REG(_tmr,KINETIS_FTM_OUTINIT_OFFSET)
+// #define rOUTMASK(_tmr)    REG(_tmr,KINETIS_FTM_OUTMASK_OFFSET)
+// #define rCOMBINE(_tmr)    REG(_tmr,KINETIS_FTM_COMBINE_OFFSET)
+// #define rDEADTIME(_tmr)   REG(_tmr,KINETIS_FTM_DEADTIME_OFFSET)
+// #define rEXTTRIG(_tmr)    REG(_tmr,KINETIS_FTM_EXTTRIG_OFFSET)
+// #define rPOL(_tmr)        REG(_tmr,KINETIS_FTM_POL_OFFSET)
+// #define rFMS(_tmr)        REG(_tmr,KINETIS_FTM_FMS_OFFSET)
+// #define rFILTER(_tmr)     REG(_tmr,KINETIS_FTM_FILTER_OFFSET)
+// #define rFLTCTRL(_tmr)    REG(_tmr,KINETIS_FTM_FLTCTRL_OFFSET)
+// #define rQDCTRL(_tmr)     REG(_tmr,KINETIS_FTM_QDCTRL_OFFSET)
+// #define rCONF(_tmr)       REG(_tmr,KINETIS_FTM_CONF_OFFSET)
+// #define rFLTPOL(_tmr)     REG(_tmr,KINETIS_FTM_FLTPOL_OFFSET)
+// #define rSYNCONF(_tmr)    REG(_tmr,KINETIS_FTM_SYNCONF_OFFSET)
+// #define rINVCTRL(_tmr)    REG(_tmr,KINETIS_FTM_INVCTRL_OFFSET)
+// #define rSWOCTRL(_tmr)    REG(_tmr,KINETIS_FTM_SWOCTRL_OFFSET)
+// #define rPWMLOAD(_tmr)    REG(_tmr,KINETIS_FTM_PWMLOAD_OFFSET)
 
-#define CnSC_RESET          (FTM_CSC_CHF|FTM_CSC_CHIE|FTM_CSC_MSB|FTM_CSC_MSA|FTM_CSC_ELSB|FTM_CSC_ELSA|FTM_CSC_DMA)
-#define CnSC_CAPTURE_INIT   (FTM_CSC_CHIE|FTM_CSC_ELSB|FTM_CSC_ELSA) // Both
+// #define CnSC_RESET          (FTM_CSC_CHF|FTM_CSC_CHIE|FTM_CSC_MSB|FTM_CSC_MSA|FTM_CSC_ELSB|FTM_CSC_ELSA|FTM_CSC_DMA)
+// #define CnSC_CAPTURE_INIT   (FTM_CSC_CHIE|FTM_CSC_ELSB|FTM_CSC_ELSA) // Both
 
-#if defined(BOARD_PWM_DRIVE_ACTIVE_LOW)
-#define CnSC_PWMOUT_INIT    (FTM_CSC_MSB|FTM_CSC_ELSA)
-#else
-#define CnSC_PWMOUT_INIT    (FTM_CSC_MSB|FTM_CSC_ELSB)
-#endif
+// #if defined(BOARD_PWM_DRIVE_ACTIVE_LOW)
+// #define CnSC_PWMOUT_INIT    (FTM_CSC_MSB|FTM_CSC_ELSA)
+// #else
+// #define CnSC_PWMOUT_INIT    (FTM_CSC_MSB|FTM_CSC_ELSB)
+// #endif
 
-#define FTM_SYNC (FTM_SYNC_SWSYNC)
+// #define FTM_SYNC (FTM_SYNC_SWSYNC)
 
-#define CnSC_PWMIN_INIT 0 // TBD
+// #define CnSC_PWMIN_INIT 0 // TBD
 
 //												 				  NotUsed   PWMOut  PWMIn Capture OneShot Trigger
 io_timer_channel_allocation_t channel_allocations[IOTimerChanModeSize] = { UINT16_MAX,   0,  0,  0, 0, 0 };
@@ -178,7 +178,7 @@ typedef struct channel_stat_t {
 	uint32_t 			overflows;
 } channel_stat_t;
 
-static channel_stat_t io_timer_channel_stats[MAX_TIMER_IO_CHANNELS];
+// static channel_stat_t io_timer_channel_stats[MAX_TIMER_IO_CHANNELS];
 
 static struct channel_handler_entry {
 	channel_handler_t callback;
@@ -186,57 +186,57 @@ static struct channel_handler_entry {
 } channel_handlers[MAX_TIMER_IO_CHANNELS];
 
 
-static int io_timer_handler(uint16_t timer_index)
+static int io_timer_handler(int irq, void *context, void *arg)//uint16_t timer_index)
 {
 	/* Read the count at the time of the interrupt */
 
-	uint16_t count = rCNT(timer_index);
+	// uint16_t count = rCNT(timer_index);
 
-	/* Read the HRT at the time of the interrupt */
+	// /* Read the HRT at the time of the interrupt */
 
-	hrt_abstime now = hrt_absolute_time();
+	// hrt_abstime now = hrt_absolute_time();
 
-	const io_timers_t *tmr = &io_timers[timer_index];
+	// const io_timers_t *tmr = &io_timers[timer_index];
 
-	/* What is pending */
+	// /* What is pending */
 
-	uint32_t statusr = rSTATUS(timer_index);
+	// uint32_t statusr = rSTATUS(timer_index);
 
-	/* Acknowledge all that are pending */
+	// /* Acknowledge all that are pending */
 
-	rSTATUS(timer_index) = 0;
+	// rSTATUS(timer_index) = 0;
 
-	/* Iterate over the timer_io_channels table */
+	// /* Iterate over the timer_io_channels table */
 
-	uint32_t first_channel_index = io_timers_channel_mapping.element[timer_index].first_channel_index;
-	uint32_t last_channel_index = first_channel_index + io_timers_channel_mapping.element[timer_index].channel_count;
+	// uint32_t first_channel_index = io_timers_channel_mapping.element[timer_index].first_channel_index;
+	// uint32_t last_channel_index = first_channel_index + io_timers_channel_mapping.element[timer_index].channel_count;
 
-	for (unsigned chan_index = first_channel_index; chan_index < last_channel_index; chan_index++) {
+	// for (unsigned chan_index = first_channel_index; chan_index < last_channel_index; chan_index++) {
 
-		uint16_t chan = 1 << chan_index;
+	// 	uint16_t chan = 1 << chan_index;
 
-		if (statusr & chan) {
+	// 	if (statusr & chan) {
 
-			io_timer_channel_stats[chan_index].isr_cout++;
+	// 		io_timer_channel_stats[chan_index].isr_cout++;
 
-			/* Call the client to read the rCnV etc and clear the CHnF */
+	// 		/* Call the client to read the rCnV etc and clear the CHnF */
 
-			if (channel_handlers[chan_index].callback) {
-				channel_handlers[chan_index].callback(channel_handlers[chan_index].context, tmr,
-								      chan_index, &timer_io_channels[chan_index],
-								      now, count, _REG32(tmr->base, KINETIS_FTM_CV_OFFSET(chan_index)));
-			}
-		}
+	// 		if (channel_handlers[chan_index].callback) {
+	// 			channel_handlers[chan_index].callback(channel_handlers[chan_index].context, tmr,
+	// 							      chan_index, &timer_io_channels[chan_index],
+	// 							      now, count, _REG32(tmr->base, KINETIS_FTM_CV_OFFSET(chan_index)));
+	// 		}
+	// 	}
 
-		/* Did it set again during call out ?*/
+	// 	/* Did it set again during call out ?*/
 
-		if (rSTATUS(timer_index) & chan) {
+	// 	if (rSTATUS(timer_index) & chan) {
 
-			/* Error we has a second edge before we serviced the fist */
+	// 		/* Error we has a second edge before we serviced the fist */
 
-			io_timer_channel_stats[chan_index].overflows++;
-		}
-	}
+	// 		io_timer_channel_stats[chan_index].overflows++;
+	// 	}
+	// }
 
 	return 0;
 }
@@ -345,7 +345,8 @@ uint32_t io_timer_channel_get_gpio_output(unsigned channel)
 		return 0;
 	}
 
-	return (timer_io_channels[channel].gpio_out & ~(_PIN_MODE_MASK | _PIN_OPTIONS_MASK)) | GPIO_HIGHDRIVE;
+	// return (timer_io_channels[channel].gpio_out & ~(_PIN_MODE_MASK | _PIN_OPTIONS_MASK)) | GPIO_HIGHDRIVE;
+	return timer_io_channels[channel].gpio_out;
 }
 
 uint32_t io_timer_channel_get_as_pwm_input(unsigned channel)
@@ -468,81 +469,65 @@ static int allocate_channel(unsigned channel, io_timer_channel_mode_t mode)
 
 static int timer_set_rate(unsigned timer, unsigned rate)
 {
-
-	irqstate_t flags = px4_enter_critical_section();
-
-	uint32_t save = rSC(timer);
-	rSC(timer) = save & ~(FTM_SC_CLKS_MASK);
-
-	/* configure the timer to update at the desired rate */
-	rMOD(timer) = (BOARD_PWM_FREQ / rate) - 1;
-	rSC(timer) = save;
-
-	/* generate an update event; reloads the counter and all registers */
-	rSYNC(timer) = FTM_SYNC;
-
-	px4_leave_critical_section(flags);
+	// RP2040 has a buffer for rTOP, so there shouldn't be any need to turn the timer off to change rTOP value
+	rTOP(timer) = (BOARD_PWM_FREQ / rate) - 1;
 
 	return 0;
 }
 
-static inline uint32_t div2psc(int div)
+static inline uint32_t freq2div(uint32_t freq)
 {
-	return 31 - __builtin_clz(div);
+	return (TIM_SRC_CLOCK_FREQ << 4)/freq;
 }
 
 static inline void io_timer_set_oneshot_mode(unsigned timer)
 {
 	/* Ideally, we would want per channel One pulse mode in HW
-	 * Alas The FTM anly support onshot capture)
+	 * Alas OPE stops the Timer not the channel
 	 * todo:We can do this in an ISR later
 	 * But since we do not have that
 	 * We try to get the longest rate we can.
-	 *  On 16 bit timers this is 4.68 Ms.
+	 *  On 16 bit timers this is 8.1 Ms.
 	 */
 
-	irqstate_t flags = px4_enter_critical_section();
-	rSC(timer) &= ~(FTM_SC_CLKS_MASK | FTM_SC_PS_MASK);
-	rMOD(timer) = 0xffff;
-	rSC(timer) |= (FTM_SC_CLKS_EXTCLK | div2psc(FTM_SRC_CLOCK_FREQ / BOARD_ONESHOT_FREQ));
-	px4_leave_critical_section(flags);
+	rTOP(timer) = 0xffff;
+	rDIV(timer) = freq2div(BOARD_ONESHOT_FREQ);
 }
 
 static inline void io_timer_set_PWM_mode(unsigned timer)
 {
-	irqstate_t flags = px4_enter_critical_section();
-	rSC(timer) &= ~(FTM_SC_CLKS_MASK | FTM_SC_PS_MASK);
-	rSC(timer) |= (FTM_SC_CLKS_EXTCLK | div2psc(FTM_SRC_CLOCK_FREQ / BOARD_PWM_FREQ));
-	px4_leave_critical_section(flags);
+	rDIV(timer) = freq2div(BOARD_PWM_FREQ);
 }
 
 void io_timer_trigger(void)
 {
-	int oneshots = io_timer_get_mode_channels(IOTimerChanMode_OneShot);
-	uint32_t action_cache[MAX_IO_TIMERS] = {0};
-	int actions = 0;
+	// This function is probably not important for RP2040 as the buffered registers are updated automatically on the timer wrap.
 
-	/* Pre-calculate the list of timers to Trigger */
+	// int oneshots = io_timer_get_mode_channels(IOTimerChanMode_OneShot);
+	// uint32_t action_cache[MAX_IO_TIMERS] = {0};
+	// int actions = 0;
 
-	for (int timer = 0; timer < MAX_IO_TIMERS; timer++) {
-		if (validate_timer_index(timer) == 0) {
-			int channels = get_timer_channels(timer);
+	// /* Pre-calculate the list of timers to Trigger */
 
-			if (oneshots & channels) {
-				action_cache[actions++] = io_timers[timer].base;
-			}
-		}
-	}
+	// for (int timer = 0; timer < MAX_IO_TIMERS; timer++) {
+	// 	if (validate_timer_index(timer) == 0) {
+	// 		int channels = get_timer_channels(timer);
 
-	/* Now do them all wit the shortest delay in between */
+	// 		if (oneshots & channels) {
+	// 			action_cache[actions++] = io_timers[timer].base;
+	// 		}
+	// 	}
+	// }
 
-	irqstate_t flags = px4_enter_critical_section();
+	// /* Now do them all wit the shortest delay in between */
 
-	for (actions = 0; actions < MAX_IO_TIMERS && action_cache[actions] != 0; actions++) {
-		_REG32(action_cache[actions], KINETIS_FTM_SYNC_OFFSET) |= FTM_SYNC;
-	}
+	// irqstate_t flags = px4_enter_critical_section();
 
-	px4_leave_critical_section(flags);
+	// for (actions = 0; actions < MAX_IO_TIMERS && action_cache[actions] != 0; actions++) {
+	// 	_REG32(action_cache[actions], KINETIS_FTM_SYNC_OFFSET) |= FTM_SYNC;
+	// }
+
+	// px4_leave_critical_section(flags);
 }
 
 int io_timer_init_timer(unsigned timer)
@@ -557,23 +542,10 @@ int io_timer_init_timer(unsigned timer)
 
 		set_timer_initalized(timer);
 
-		/* enable the timer clock before we try to talk to it */
-
-		uint32_t regval = _REG(io_timers[timer].clock_register);
-		regval |= io_timers[timer].clock_bit;
-		_REG(io_timers[timer].clock_register) = regval;
-
 		/* disable and configure the timer */
 
-		rSC(timer)    = FTM_SC_CLKS_NONE;
-		rCNT(timer)   = 0;
-
-		rMODE(timer) = 0;
-		rSYNCONF(timer)   = (FTM_SYNCONF_SYNCMODE | FTM_SYNCONF_SWWRBUF | FTM_SYNCONF_SWRSTCNT);
-
-		/* Set to run in debug mode */
-
-		rCONF(timer)   |= FTM_CONF_BDMMODE_MASK;
+		rCSR(timer) = 0;
+		rCTR(timer) = 0;
 
 		/* enable the timer */
 
@@ -593,8 +565,8 @@ int io_timer_init_timer(unsigned timer)
 		xcpt_t handler = io_timer_handler;
 
 		if (handler) {
-			irq_attach(io_timers[timer].vectorno, handler, NULL);
-			up_enable_irq(io_timers[timer].vectorno);
+			irq_attach(RP2040_PWM_IRQ_WRAP, handler, NULL);
+			up_enable_irq(RP2040_PWM_IRQ_WRAP);
 		}
 
 		px4_leave_critical_section(flags);
@@ -660,27 +632,16 @@ int io_timer_set_rate(unsigned timer, unsigned rate)
 int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 			  channel_handler_t channel_handler, void *context)
 {
-	uint32_t gpio = timer_io_channels[channel].gpio_in;
-	uint32_t clearbits = CnSC_RESET;
-	uint32_t setbits = CnSC_CAPTURE_INIT;
+	// RP2040 doesn't have any specific configuration for each channel except the CCR value.
+	// And RP2040 doesn't really have the hardware capability for input capture.
 
 	/* figure out the GPIO config first */
-
 	switch (mode) {
 
 	case IOTimerChanMode_OneShot:
 	case IOTimerChanMode_PWMOut:
 	case IOTimerChanMode_Trigger:
-		setbits = CnSC_PWMOUT_INIT;
-		gpio = 0;
-		break;
-
-	case IOTimerChanMode_PWMIn:
-	case IOTimerChanMode_Capture:
-		break;
-
 	case IOTimerChanMode_NotUsed:
-		setbits = 0;
 		break;
 
 	default:
@@ -697,31 +658,12 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 
 		io_timer_init_timer(channels_timer(channel));
 
-		irqstate_t flags = px4_enter_critical_section();
+		/* configure the channel */ // Nothing to configure here really.
 
-		/* Set up IO */
-		if (gpio) {
-			px4_arch_configgpio(gpio);
-		}
-
-
-		unsigned timer = channels_timer(channel);
-
-		/* configure the channel */
-
-		uint32_t chan = timer_io_channels[channel].timer_channel - 1;
-
-		uint16_t rvalue = REG(timer, KINETIS_FTM_CSC_OFFSET(chan));
-		rvalue &= ~clearbits;
-		rvalue |=  setbits;
-		REG(timer, KINETIS_FTM_CSC_OFFSET(chan)) = rvalue;
-
-		//if (gpio){ TODO: NEEDED?
-		REG(timer, KINETIS_FTM_CV_OFFSET(0)) = 0;
+		// uint32_t chan = timer_io_channels[channel].timer_channel - 1;
 
 		channel_handlers[channel].callback = channel_handler;
 		channel_handlers[channel].context = context;
-		px4_leave_critical_section(flags);
 	}
 
 	return rv;
@@ -730,8 +672,8 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_channel_allocation_t masks)
 {
 	typedef struct action_cache_rp_t {
-		uint32_t cnsc_offset;
-		uint32_t cnsc_value;
+		// uint32_t cnsc_offset;
+		// uint32_t cnsc_value;
 		uint32_t gpio;
 	} action_cache_rp_t;
 	struct action_cache_t {
@@ -742,21 +684,13 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 
 	memset(action_cache, 0, sizeof(action_cache));
 
-	uint32_t bits =  state ? CnSC_PWMOUT_INIT : 0;
+	// uint32_t bits =  state ? CnSC_PWMOUT_INIT : 0;
 
 	switch (mode) {
 	case IOTimerChanMode_NotUsed:
 	case IOTimerChanMode_PWMOut:
 	case IOTimerChanMode_OneShot:
 	case IOTimerChanMode_Trigger:
-		break;
-
-	case IOTimerChanMode_PWMIn:
-	case IOTimerChanMode_Capture:
-		if (state) {
-			bits |= FTM_CSC_CHIE;
-		}
-
 		break;
 
 	default:
@@ -788,11 +722,11 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 			masks &= ~(1 << chan_index);
 
 			if (io_timer_validate_channel_index(chan_index) == 0) {
-				uint32_t chan = timer_io_channels[chan_index].timer_channel - 1;
+				// uint32_t chan = timer_io_channels[chan_index].timer_channel - 1;
 				uint32_t timer = channels_timer(chan_index);
 				action_cache[timer].base  = io_timers[timer].base;
-				action_cache[timer].cnsc[action_cache[timer].index].cnsc_offset = io_timers[timer].base + KINETIS_FTM_CSC_OFFSET(chan);
-				action_cache[timer].cnsc[action_cache[timer].index].cnsc_value = bits;
+				// action_cache[timer].cnsc[action_cache[timer].index].cnsc_offset = io_timers[timer].base + KINETIS_FTM_CSC_OFFSET(chan);
+				// action_cache[timer].cnsc[action_cache[timer].index].cnsc_value = bits;
 
 				if ((state &&
 				     (mode == IOTimerChanMode_PWMOut ||
@@ -810,7 +744,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 
 
 	for (unsigned actions = 0; actions < arraySize(action_cache); actions++) {
-		uint32_t any_on = 0;
+		// uint32_t any_on = 0;
 
 		if (action_cache[actions].base != 0) {
 			for (unsigned int index = 0; index < action_cache[actions].index; index++) {
@@ -819,26 +753,26 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 					px4_arch_configgpio(action_cache[actions].cnsc[index].gpio);
 				}
 
-				_REG(action_cache[actions].cnsc[index].cnsc_offset) = action_cache[actions].cnsc[index].cnsc_value;
-				any_on |= action_cache[actions].cnsc[index].cnsc_value;
+				// _REG(action_cache[actions].cnsc[index].cnsc_offset) = action_cache[actions].cnsc[index].cnsc_value;
+				// any_on |= action_cache[actions].cnsc[index].cnsc_value;
 			}
 
 			/* Any On ?*/
 
 			/* Assume not */
-			uint32_t regval = _REG32(action_cache[actions].base, KINETIS_FTM_SC_OFFSET);
-			regval &= ~(FTM_SC_CLKS_MASK);
+			// uint32_t regval = _REG32(action_cache[actions].base, KINETIS_FTM_SC_OFFSET);
+			// regval &= ~(FTM_SC_CLKS_MASK);
 
-			if (any_on != 0) {
+			// if (any_on != 0) {
 
-				/* force an update to preload all registers */
-				_REG32(action_cache[actions].base, KINETIS_FTM_SYNC_OFFSET) |= FTM_SYNC;
+			// 	/* force an update to preload all registers */
+			// 	_REG32(action_cache[actions].base, KINETIS_FTM_SYNC_OFFSET) |= FTM_SYNC;
 
-				/* arm requires the timer be enabled */
-				regval |= (FTM_SC_CLKS_EXTCLK);
-			}
+			// 	/* arm requires the timer be enabled */
+			// 	regval |= (FTM_SC_CLKS_EXTCLK);
+			// }
 
-			_REG32(action_cache[actions].base, KINETIS_FTM_SC_OFFSET) = regval;
+			_REG32(action_cache[actions].base,RP2040_PWM_CSR_OFFSET) |= state;
 		}
 	}
 
@@ -862,20 +796,7 @@ int io_timer_set_ccr(unsigned channel, uint16_t value)
 		} else {
 
 			/* configure the channel */
-
-			/* todo:This is a HACK!
-			 * Was getting:
-			 * servo 0 readback error, got 1001 expected 1000
-			 * None of the SW syncs seamed update the CV
-			 * So we stop the counter to get an immediate update.
-			 */
-			uint32_t timer = channels_timer(channel);
-			irqstate_t flags = px4_enter_critical_section();
-			uint32_t save = rSC(timer);
-			rSC(timer) = save & ~(FTM_SC_CLKS_MASK);
-			REG(timer, KINETIS_FTM_CV_OFFSET(timer_io_channels[channel].timer_channel - 1)) = value;
-			rSC(timer) = save;
-			px4_leave_critical_section(flags);
+			modreg32(value,0xffff << (timer_io_channels[channel].timer_channel - 1)*16,rCCR(channels_timer(channel)));
 		}
 	}
 
@@ -892,7 +813,7 @@ uint16_t io_channel_get_ccr(unsigned channel)
 		if ((mode == IOTimerChanMode_PWMOut) ||
 		    (mode == IOTimerChanMode_OneShot) ||
 		    (mode == IOTimerChanMode_Trigger)) {
-			value = REG(channels_timer(channel), KINETIS_FTM_CV_OFFSET(timer_io_channels[channel].timer_channel - 1));
+			value = rCCR(channels_timer(channel)) >> (timer_io_channels[channel].timer_channel - 1)*16;
 		}
 	}
 
