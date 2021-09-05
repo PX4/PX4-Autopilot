@@ -27,17 +27,17 @@ px4_add_board(
 		gps
 		heater
 		#imu # all available imu drivers
-		imu/analog_devices/adis16448
+		#imu/analog_devices/adis16448
 		imu/bosch/bmi088
 		imu/invensense/icm20602
 		imu/invensense/icm20948 # required for ak09916 mag
 		imu/invensense/icm20649
 		imu/invensense/icm42688p
-		irlock
+		#irlock
 		lights # all available light drivers
 		magnetometer # all available magnetometer drivers
 		optical_flow # all available optical flow drivers
-		osd
+		#osd
 		pca9685
 		#pca9685_pwm_out
 		power_monitor/ina226
