@@ -481,6 +481,7 @@ submodulesupdate:
 	@git submodule update --quiet --init --recursive --jobs 4 || true
 	@git submodule sync --recursive
 	@git submodule update --init --recursive --jobs 4
+	@git fetch --all --tags ---recurse-submodules=yes --jobs=4
 
 gazeboclean:
 	@rm -rf ~/.gazebo/*
