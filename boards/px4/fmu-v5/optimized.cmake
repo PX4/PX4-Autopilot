@@ -23,7 +23,8 @@ px4_add_board(
 	DRIVERS
 		adc/ads1115
 		adc/board_adc
-		barometer # all available barometer drivers
+		#barometer # all available barometer drivers
+		barometer/ms5611
 		batt_smbus
 		camera_capture
 		camera_trigger
@@ -116,7 +117,7 @@ px4_add_board(
 		perf
 		pwm
 		reboot
-		reflect
+		#reflect
 		sd_bench
 		#serial_test
 		system_time
