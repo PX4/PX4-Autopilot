@@ -64,6 +64,7 @@ pipeline {
                     checkStatus()
                     quickCalibrate()
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "px4io status"'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "calib_udelay"'
                   }
                 }
                 stage("print topics") {
