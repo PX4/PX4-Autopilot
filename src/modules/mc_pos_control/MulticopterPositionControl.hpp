@@ -161,6 +161,7 @@ private:
 		(ParamFloat<px4::params::MPC_TILTMAX_LND>)  _param_mpc_tiltmax_lnd,  /**< maximum tilt for landing and smooth takeoff */
 		(ParamFloat<px4::params::MPC_THR_MIN>)      _param_mpc_thr_min,
 		(ParamFloat<px4::params::MPC_THR_MAX>)      _param_mpc_thr_max,
+		(ParamFloat<px4::params::MPC_THR_XY_MARG>)  _param_mpc_thr_xy_marg,
 
 		(ParamFloat<px4::params::SYS_VEHICLE_RESP>) _param_sys_vehicle_resp,
 		(ParamFloat<px4::params::MPC_ACC_HOR>)      _param_mpc_acc_hor,
