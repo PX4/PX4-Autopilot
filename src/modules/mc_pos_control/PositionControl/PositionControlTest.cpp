@@ -79,6 +79,7 @@ public:
 		_position_control.setVelocityGains(Vector3f(20.f, 20.f, 20.f), Vector3f(20.f, 20.f, 20.f), Vector3f(20.f, 20.f, 20.f));
 		_position_control.setVelocityLimits(1.f, 1.f, 1.f);
 		_position_control.setThrustLimits(0.1f, 0.9f);
+		_position_control.setHorizontalThrustMargin(0.3f);
 		_position_control.setTiltLimit(1.f);
 		_position_control.setHoverThrust(.5f);
 
@@ -193,11 +194,13 @@ TEST_F(PositionControlBasicTest, PositionControlMaxThrustLimit)
 	Vector3f thrust(_output_setpoint.thrust);
 	EXPECT_FLOAT_EQ(thrust(0), 0.f);
 	EXPECT_FLOAT_EQ(thrust(1), 0.f);
-	EXPECT_FLOAT_EQ(thrust(2), -0.9f);
+	// Expect the remaining vertical thrust after allocating the horizontal margin
+	// sqrt(0.9^2 - 0.3^2) = 0.8485
+	EXPECT_FLOAT_EQ(thrust(2), -0.848528137423857f);
 
 	EXPECT_EQ(_attitude.thrust_body[0], 0.f);
 	EXPECT_EQ(_attitude.thrust_body[1], 0.f);
-	EXPECT_FLOAT_EQ(_attitude.thrust_body[2], -0.9f);
+	EXPECT_FLOAT_EQ(_attitude.thrust_body[2], -0.848528137423857f);
 
 	EXPECT_FLOAT_EQ(_attitude.roll_body, 0.f);
 	EXPECT_FLOAT_EQ(_attitude.pitch_body, 0.f);
