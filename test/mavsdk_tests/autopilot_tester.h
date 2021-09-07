@@ -102,7 +102,7 @@ public:
 	void check_home_not_within(float min_distance_m);
 	void set_takeoff_altitude(const float altitude_m);
 	void set_height_source(HeightSource height_source);
-	void set_rcl_except(RCLExcept mask);
+	void set_rc_loss_exception(RcLossException mask);
 	void arm();
 	void takeoff();
 	void land();
