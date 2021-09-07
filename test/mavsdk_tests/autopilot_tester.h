@@ -85,10 +85,10 @@ public:
 		Gps
 	};
 
-	enum class RCLExcept {
-		Mission,
-		Hold,
-		Offboard
+	enum class RcLossException {
+		Mission = 0,
+		Hold = 1,
+		Offboard = 2
 	};
 
 	AutopilotTester();
