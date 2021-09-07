@@ -54,6 +54,10 @@ add_library(px4_platform
 )
 target_link_libraries(px4_platform prebuild_targets px4_work_queue)
 
+if("${PX4_BOARD}" MATCHES "sitl")
+	target_link_libraries(px4_platform drivers_board)
+endif()
+
 if (NOT "${PX4_BOARD}" MATCHES "io-v2")
 	add_subdirectory(uORB)
 endif()
