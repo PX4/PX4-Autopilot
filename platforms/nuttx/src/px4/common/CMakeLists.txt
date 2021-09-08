@@ -92,6 +92,12 @@ if (NOT DEFINED CONFIG_BUILD_FLAT AND "${PX4_PLATFORM}" MATCHES "nuttx")
 	)
 
 	add_dependencies(${PX4_USER_LAYER} prebuild_targets)
+
+	add_library(px4_userspace_init
+		px4_userspace_init.cpp
+	)
+
+	add_dependencies(px4_userspace_init nuttx_context)
 else()
 	# Build the px4 layer for nuttx flat build
 	list(APPEND KERNEL_LIBS
