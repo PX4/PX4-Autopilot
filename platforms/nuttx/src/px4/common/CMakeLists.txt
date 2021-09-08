@@ -110,6 +110,13 @@ if (NOT DEFINED CONFIG_BUILD_FLAT AND "${PX4_PLATFORM}" MATCHES "nuttx")
 	)
 
 	add_dependencies(px4_board_ctrl nuttx_context nuttx_kernel_builtin_list_target)
+
+	add_library(px4_userspace_init
+		px4_userspace_init.cpp
+	)
+
+	add_dependencies(px4_userspace_init nuttx_context)
+
 	add_dependencies(px4_kernel_layer prebuild_targets)
 else()
 	list(APPEND LIBS
