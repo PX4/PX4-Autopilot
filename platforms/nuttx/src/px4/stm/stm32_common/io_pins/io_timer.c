@@ -156,7 +156,7 @@ typedef uint8_t io_timer_allocation_t; /* big enough to hold MAX_IO_TIMERS */
 
 io_timer_channel_allocation_t timer_allocations[MAX_IO_TIMERS] = { };
 
-#if defined(BOARD_HAS_CAPTURE)
+#if !defined(BOARD_HAS_NO_CAPTURE)
 
 /* Stats and handlers are only useful for Capture */
 
@@ -171,12 +171,12 @@ static struct channel_handler_entry {
 	channel_handler_t callback;
 	void			  *context;
 } channel_handlers[MAX_TIMER_IO_CHANNELS];
-#endif // defined(BOARD_HAS_CAPTURE)
+#endif // !defined(BOARD_HAS_NO_CAPTURE)
 
 
 static int io_timer_handler(uint16_t timer_index)
 {
-#if defined(BOARD_HAS_CAPTURE)
+#if !defined(BOARD_HAS_NO_CAPTURE)
 	/* Read the count at the time of the interrupt */
 
 	uint16_t count = rCNT(timer_index);
@@ -231,7 +231,7 @@ static int io_timer_handler(uint16_t timer_index)
 	/* Clear all the SR bits for interrupt enabled channels only */
 
 	rSR(timer_index) = ~(statusr & (enabled | enabled << 8));
-#endif // defined(BOARD_HAS_CAPTURE)
+#endif // !defined(BOARD_HAS_NO_CAPTURE)
 	return 0;
 }
 
@@ -773,7 +773,7 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 		gpio = timer_io_channels[channel].gpio_in;
 		break;
 
-#if defined(BOARD_HAS_CAPTURE)
+#if !defined(BOARD_HAS_NO_CAPTURE)
 
 	case IOTimerChanMode_Capture:
 		setbits = CCMR_C1_CAPTURE_INIT;
@@ -851,7 +851,7 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 		rvalue |=  setbits;
 		rCCER(timer) = rvalue;
 
-#if !defined(BOARD_HAS_CAPTURE)
+#if defined(BOARD_HAS_NO_CAPTURE)
 		UNUSED(dier_setbits);
 #else
 		channel_handlers[channel].callback = channel_handler;

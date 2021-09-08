@@ -77,7 +77,7 @@
 #include <stm32_gpio.h>
 #include <stm32_tim.h>
 
-#if defined(BOARD_HAS_CAPTURE)
+#if !defined(BOARD_HAS_NO_CAPTURE)
 
 /* Support Input capture  */
 
@@ -497,4 +497,4 @@ int up_input_capture_get_stats(unsigned channel, input_capture_stats_t *stats, b
 
 	return rv;
 }
-#endif // defined(BOARD_HAS_CAPTURE)
+#endif // !defined(BOARD_HAS_NO_CAPTURE)
