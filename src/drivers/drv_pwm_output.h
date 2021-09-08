@@ -310,8 +310,9 @@ typedef enum {
  *
  * @param channel_mask	Bitmask of channels (LSB = channel 0) to enable.
  *			This allows some of the channels to remain configured
- *			as GPIOs or as another function.
- * @return		OK on success.
+ *			as GPIOs or as another function. Already used channels/timers
+ *			will not be configured as PWM.
+ * @return <0 on error, the initialized channels mask.
  */
 __EXPORT extern int	up_pwm_servo_init(uint32_t channel_mask);
 
@@ -402,9 +403,9 @@ __EXPORT extern servo_position_t up_pwm_servo_get(unsigned channel);
  *
  * @param channel_mask		Bitmask of channels (LSB = channel 0) to enable.
  *				This allows some of the channels to remain configured
- *				as GPIOs or as another function.
+ *				as GPIOs or as another function. Already used channels/timers will not be configured as DShot
  * @param dshot_pwm_freq	Frequency of DSHOT signal. Usually DSHOT150, DSHOT300, DSHOT600 or DSHOT1200
- * @return OK on success.
+ * @return <0 on error, the initialized channels mask.
  */
 __EXPORT extern int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq);
 

@@ -49,8 +49,9 @@ __BEGIN_DECLS
  *
  * @param channel_mask	Bitmask of channels (LSB = channel 0) to enable.
  *			This allows some of the channels to remain configured
- *			as GPIOs or as another function.
- * @return		OK on success.
+ *			as GPIOs or as another function. Already used channels/timers
+ *			will not be configured as PWM.
+ * @return <0 on error, the initialized channels mask.
  */
 __EXPORT extern int	up_pwm_trigger_init(uint32_t channel_mask);
 

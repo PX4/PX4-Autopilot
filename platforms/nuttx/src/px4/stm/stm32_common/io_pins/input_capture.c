@@ -162,10 +162,6 @@ int up_input_capture_set(unsigned channel, input_capture_edge edge, capture_filt
 
 		} else {
 
-			if (-EBUSY == io_timer_is_channel_free(channel)) {
-				io_timer_free_channel(channel);
-			}
-
 			input_capture_bind(channel, callback, context);
 
 			rv = io_timer_channel_init(channel, IOTimerChanMode_Capture, input_capture_chan_handler, context);

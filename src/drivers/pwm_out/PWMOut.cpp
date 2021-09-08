@@ -564,14 +564,25 @@ bool PWMOut::update_pwm_out_state(bool on)
 
 		// Initialize the PWM output state for all instances
 		// this is re-done once per instance, but harmless
-		up_pwm_servo_init(pwm_mask_new);
+		int ret = up_pwm_servo_init(pwm_mask_new);
 
-		// Set rate is not affecting non-masked channels, so can be called
-		// individually
-		set_pwm_rate(get_alt_rate_channels(), get_default_rate(), get_alt_rate());
+		if (ret >= 0) {
+			for (int i = 0; i < PWM_OUT_MAX_INSTANCES; i++) {
+				if (_objects[i].load()) {
+					_objects[i].load()->set_pwm_mask(_objects[i].load()->get_pwm_mask() & ret);
+				}
+			}
 
-		_pwm_initialized = true;
-		_all_instances_ready.fetch_add(1);
+			// Set rate is not affecting non-masked channels, so can be called
+			// individually
+			set_pwm_rate(get_alt_rate_channels(), get_default_rate(), get_alt_rate());
+
+			_pwm_initialized = true;
+			_all_instances_ready.fetch_add(1);
+
+		} else {
+			PX4_ERR("up_pwm_servo_init failed (%i)", ret);
+		}
 	}
 
 	up_pwm_servo_arm(on, _pwm_mask);
