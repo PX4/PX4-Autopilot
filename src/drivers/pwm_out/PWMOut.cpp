@@ -837,7 +837,7 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		}
 		break;
 
-#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
+#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 14
 
 	case PWM_SERVO_SET(13):
 	case PWM_SERVO_SET(12):
@@ -846,14 +846,14 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_SET(9):
 	case PWM_SERVO_SET(8):
 #endif
-#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
+#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 8
 	case PWM_SERVO_SET(7):
 	case PWM_SERVO_SET(6):
 #endif
-#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
+#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 6
 	case PWM_SERVO_SET(5):
 #endif
-#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 5
+#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 5
 	case PWM_SERVO_SET(4):
 #endif
 	case PWM_SERVO_SET(3):
@@ -874,7 +874,7 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 		break;
 
-#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
+#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 14
 
 	case PWM_SERVO_GET(13):
 	case PWM_SERVO_GET(12):
@@ -883,14 +883,14 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET(9):
 	case PWM_SERVO_GET(8):
 #endif
-#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
+#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 8
 	case PWM_SERVO_GET(7):
 	case PWM_SERVO_GET(6):
 #endif
-#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
+#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 6
 	case PWM_SERVO_GET(5):
 #endif
-#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 5
+#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 5
 	case PWM_SERVO_GET(4):
 #endif
 	case PWM_SERVO_GET(3):
@@ -909,17 +909,17 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_RATEGROUP(1):
 	case PWM_SERVO_GET_RATEGROUP(2):
 	case PWM_SERVO_GET_RATEGROUP(3):
-#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 5
+#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 5
 	case PWM_SERVO_GET_RATEGROUP(4):
 #endif
-#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
+#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 6
 	case PWM_SERVO_GET_RATEGROUP(5):
 #endif
-#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
+#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 8
 	case PWM_SERVO_GET_RATEGROUP(6):
 	case PWM_SERVO_GET_RATEGROUP(7):
 #endif
-#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
+#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 14
 	case PWM_SERVO_GET_RATEGROUP(8):
 	case PWM_SERVO_GET_RATEGROUP(9):
 	case PWM_SERVO_GET_RATEGROUP(10):

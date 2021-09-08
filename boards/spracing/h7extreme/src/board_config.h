@@ -122,7 +122,6 @@
 #define SDIO_SLOTNO             0  /* Only one slot */
 #define SDIO_MINOR              0
 
-#define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120

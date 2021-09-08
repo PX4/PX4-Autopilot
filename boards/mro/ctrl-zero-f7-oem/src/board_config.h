@@ -178,7 +178,6 @@
 #define BOARD_ADC_SERVO_VALID          (1)	/* never powers off the Servo rail */
 #define BOARD_ADC_BRICK_VALID          (px4_arch_gpioread(GPIO_VDD_BRICK1_VALID))
 
-#define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
