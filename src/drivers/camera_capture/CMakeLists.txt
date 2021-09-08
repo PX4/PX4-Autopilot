@@ -36,5 +36,7 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		camera_capture.cpp
+	DEPENDS
+		arch_io_pins
 	)
 # vim: set noet ft=cmake fenc=utf-8 ff=unix :
