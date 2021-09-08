@@ -5,7 +5,7 @@ on: push
 jobs:
   unit_tests:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-focal:2021-05-04
+    container: px4io/px4-dev-base-focal:2021-09-08
     env:
       GIT_COMMITTER_EMAIL: bot@px4.io
       GIT_COMMITTER_NAME: PX4BuildBot
