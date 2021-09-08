@@ -16,7 +16,6 @@ px4_add_board(
 		#barometer # all available barometer drivers
 		barometer/bmp280
 		batt_smbus
-		camera_capture
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
