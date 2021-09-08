@@ -1850,16 +1850,10 @@ int PWMOut::test(const char *dev)
 {
 	int	 fd;
 	unsigned servo_count = 0;
-	unsigned capture_count = 0;
 	unsigned pwm_value = 1000;
 	int	 direction = 1;
 	int  ret;
 	int   rv = -1;
-	uint32_t rate_limit = 0;
-	struct input_capture_t {
-		bool valid;
-		input_capture_config_t  chan;
-	} capture_conf[INPUT_CAPTURE_MAX_CHANNELS];
 
 	fd = ::open(dev, O_RDWR);
 
@@ -1883,39 +1877,7 @@ int PWMOut::test(const char *dev)
 		goto err_out;
 	}
 
-	if (::ioctl(fd, INPUT_CAP_GET_COUNT, (unsigned long)&capture_count) != 0) {
-		PX4_INFO("Not in a capture mode");
-	}
-
-	PX4_INFO("Testing %u servos and %u input captures", servo_count, capture_count);
-	memset(capture_conf, 0, sizeof(capture_conf));
-
-	if (capture_count != 0) {
-		for (unsigned i = 0; i < capture_count; i++) {
-			// Map to channel number
-			capture_conf[i].chan.channel = i + servo_count;
-
-			/* Save handler */
-			if (::ioctl(fd, INPUT_CAP_GET_CALLBACK, (unsigned long)&capture_conf[i].chan.channel) != 0) {
-				PX4_ERR("Unable to get capture callback for chan %" PRIu8 "\n", capture_conf[i].chan.channel);
-				goto err_out;
-
-			} else {
-				input_capture_config_t conf = capture_conf[i].chan;
-				conf.callback = &PWMOut::capture_trampoline;
-				conf.context = _objects[0].load(); // TODO PWMOut::get_instance();
-
-				if (::ioctl(fd, INPUT_CAP_SET_CALLBACK, (unsigned long)&conf) == 0) {
-					capture_conf[i].valid = true;
-
-				} else {
-					PX4_ERR("Unable to set capture callback for chan %" PRIu8 "\n", capture_conf[i].chan.channel);
-					goto err_out;
-				}
-			}
-
-		}
-	}
+	PX4_INFO("Testing %u servos", servo_count);
 
 	struct pollfd fds;
 
@@ -1972,31 +1934,6 @@ int PWMOut::test(const char *dev)
 			}
 		}
 
-		if (capture_count != 0 && (++rate_limit % 500 == 0)) {
-			for (unsigned i = 0; i < capture_count; i++) {
-				if (capture_conf[i].valid) {
-					input_capture_stats_t stats;
-					stats.chan_in_edges_out = capture_conf[i].chan.channel;
-
-					if (::ioctl(fd, INPUT_CAP_GET_STATS, (unsigned long)&stats) != 0) {
-						PX4_ERR("Unable to get stats for chan %" PRIu8 "\n", capture_conf[i].chan.channel);
-						goto err_out;
-
-					} else {
-						fprintf(stdout, "FMU: Status chan:%" PRIu8 " edges: %" PRIu32 " last time:%" PRIu64 " last state:%" PRIu32
-							" overflows:%" PRIu32 " lantency:%" PRIu16 "\n",
-							capture_conf[i].chan.channel,
-							stats.chan_in_edges_out,
-							stats.last_time,
-							stats.last_edge,
-							stats.overflows,
-							stats.latnecy);
-					}
-				}
-			}
-
-		}
-
 		/* Check if user wants to quit */
 		char c;
 		ret = ::poll(&fds, 1, 0);
@@ -2008,19 +1945,6 @@ int PWMOut::test(const char *dev)
 			if (c == 0x03 || c == 0x63 || c == 'q') {
 				PX4_INFO("User abort");
 				break;
-			}
-		}
-	}
-
-	if (capture_count != 0) {
-		for (unsigned i = 0; i < capture_count; i++) {
-			// Map to channel number
-			if (capture_conf[i].valid) {
-				/* Save handler */
-				if (::ioctl(fd, INPUT_CAP_SET_CALLBACK, (unsigned long)&capture_conf[i].chan) != 0) {
-					PX4_ERR("Unable to set capture callback for chan %" PRIu8 "\n", capture_conf[i].chan.channel);
-					goto err_out;
-				}
 			}
 		}
 	}
