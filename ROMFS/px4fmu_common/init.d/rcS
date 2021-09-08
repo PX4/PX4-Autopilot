@@ -22,10 +22,8 @@ set +e
 #
 set R /
 set AUTOCNF no
-set AUX_MODE pwm
 set FCONFIG /fs/microsd/etc/config.txt
 set FEXTRAS /fs/microsd/etc/extras.txt
-set FMU_MODE pwm
 set FRC /fs/microsd/etc/rc.txt
 set IOFW "/etc/extras/px4_io-v2_default.bin"
 set IO_PRESENT no
@@ -381,52 +379,9 @@ else
 		commander start
 	fi
 
-	# Sensors on the PWM interface bank.
-	if param compare -s SENS_EN_LL40LS 1
-	then
-		# Clear pins 5 and 6.
-		set FMU_MODE pwm4
-		set AUX_MODE pwm4
-	fi
-
-
-	# Check if ATS is enabled
-	if param compare FD_EXT_ATS_EN 1
-	then
-		# Clear pins 5 and 6.
-		set FMU_MODE pwm4
-		set AUX_MODE pwm4
-	fi
 
 	if param greater -s TRIG_MODE 0
 	then
-		if param compare TRIG_PINS_EX 0
-		then
-			# We ONLY support trigger on pins 5+6 or 7+8 when simultanously using AUX for actuator output.
-			if param compare TRIG_PINS 56
-			then
-				# clear pins 5 and 6
-				set FMU_MODE pwm4
-				set AUX_MODE pwm4
-			else
-				if param compare TRIG_PINS 78
-				then
-					# clear pins 7 and 8
-					set FMU_MODE pwm6
-					set AUX_MODE pwm6
-				else
-					set FMU_MODE none
-					set AUX_MODE none
-				fi
-			fi
-		else
-			if param compare TRIG_PINS_EX 12288
-			then
-				set FMU_MODE pwm12
-				set AUX_MODE pwm12
-			fi
-		fi
-
 		camera_trigger start
 		camera_feedback start
 	fi
@@ -454,14 +409,7 @@ else
 		rc_input start $RC_INPUT_ARGS
 	fi
 
-	#
-	# Configure vehicle type specific parameters.
-	# Note: rc.vehicle_setup is the entry point for rc.interface,
-	#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
-	#
-	. ${R}etc/init.d/rc.vehicle_setup
-
-	# Camera capture driver
+	# Camera capture driver (before pwm_out)
 	if param greater -s CAM_CAP_FBACK 0
 	then
 		if camera_capture start
@@ -469,6 +417,13 @@ else
 			camera_capture on
 		fi
 	fi
+
+	#
+	# Configure vehicle type specific parameters.
+	# Note: rc.vehicle_setup is the entry point for rc.interface,
+	#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
+	#
+	. ${R}etc/init.d/rc.vehicle_setup
 
 	#
 	# Start the navigator.
@@ -569,10 +524,8 @@ fi
 #
 unset R
 unset AUTOCNF
-unset AUX_MODE
 unset FCONFIG
 unset FEXTRAS
-unset FMU_MODE
 unset FRC
 unset IO_PRESENT
 unset IOFW
