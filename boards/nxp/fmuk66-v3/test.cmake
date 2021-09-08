@@ -1,9 +1,6 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR nxp
-	MODEL fmuk66-v3
-	LABEL test
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	CONSTRAINED_MEMORY
@@ -94,6 +91,7 @@ px4_add_board(
 		i2cdetect
 		led_control
 		mft
+		microbench
 		mixer
 		motor_ramp
 		motor_test

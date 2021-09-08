@@ -12,14 +12,11 @@
 @# Context:
 @#  - file_name_in (String) Source file
 @#  - spec (msggen.MsgSpec) Parsed specification of the .msg file
-@#  - md5sum (String) MD5Sum of the .msg specification
 @#  - search_path (dict) search paths for genmsg
-@#  - topics (List of String) multi-topic names
-@#  - ids (List) list of all RTPS msg ids
 @###############################################
 /****************************************************************************
  *
- *   Copyright (C) 2013-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions

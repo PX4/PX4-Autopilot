@@ -48,8 +48,7 @@ param set-default PWM_MAIN_DISARM 1000
 # the payload bay is pitched up about 7 degrees
 param set-default SENS_BOARD_Y_OFF 7
 
-
-set MIXER phantom
+set MIXER fw_generic_wing
 
 # Provide ESC a constant 1000 us pulse
 set PWM_OUT 4

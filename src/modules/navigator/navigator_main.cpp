@@ -50,7 +50,7 @@
 
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
@@ -857,7 +857,7 @@ int Navigator::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("navigator",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_NAVIGATION,
-				      1800,
+				      PX4_STACK_ADJUSTED(1800),
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 
@@ -1192,75 +1192,79 @@ void Navigator::check_traffic()
 
 				if (!cr.past_end && (fabsf(cr.distance) < horizontal_separation)) {
 
-					// direction of traffic in human-readable 0..360 degree in earth frame
-					int traffic_direction = math::degrees(tr.heading) + 180;
-					int traffic_seperation = (int)fabsf(cr.distance);
+					bool action_needed = buffer_air_traffic(tr.icao_address);
 
-					switch (_param_nav_traff_avoid.get()) {
+					if (action_needed) {
+						// direction of traffic in human-readable 0..360 degree in earth frame
+						int traffic_direction = math::degrees(tr.heading) + 180;
+						int traffic_seperation = (int)fabsf(cr.distance);
 
-					case 0: {
-							/* Ignore */
-							PX4_WARN("TRAFFIC %s! dst %d, hdg %d",
-								 tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-								 traffic_seperation,
-								 traffic_direction);
-							break;
-						}
+						switch (_param_nav_traff_avoid.get()) {
 
-					case 1: {
-							/* Warn only */
-							mavlink_log_critical(&_mavlink_log_pub, "Warning TRAFFIC %s! dst %d, hdg %d",
-									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-									     traffic_seperation,
-									     traffic_direction);
-							break;
-						}
+						case 0: {
+								/* Ignore */
+								PX4_WARN("TRAFFIC %s! dst %d, hdg %d",
+									 tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
+									 traffic_seperation,
+									 traffic_direction);
+								break;
+							}
 
-					case 2: {
-							/* RTL Mode */
-							mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Returning home! dst %d, hdg %d",
-									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-									     traffic_seperation,
-									     traffic_direction);
+						case 1: {
+								/* Warn only */
+								mavlink_log_critical(&_mavlink_log_pub, "Warning TRAFFIC %s! dst %d, hdg %d",
+										     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
+										     traffic_seperation,
+										     traffic_direction);
+								break;
+							}
 
-							// set the return altitude to minimum
-							_rtl.set_return_alt_min(true);
+						case 2: {
+								/* RTL Mode */
+								mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Returning home! dst %d, hdg %d",
+										     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
+										     traffic_seperation,
+										     traffic_direction);
 
-							// ask the commander to execute an RTL
-							vehicle_command_s vcmd = {};
-							vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH;
-							publish_vehicle_cmd(&vcmd);
-							break;
-						}
+								// set the return altitude to minimum
+								_rtl.set_return_alt_min(true);
 
-					case 3: {
-							/* Land Mode */
-							mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Landing! dst %d, hdg % d",
-									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-									     traffic_seperation,
-									     traffic_direction);
+								// ask the commander to execute an RTL
+								vehicle_command_s vcmd = {};
+								vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH;
+								publish_vehicle_cmd(&vcmd);
+								break;
+							}
 
-							// ask the commander to land
-							vehicle_command_s vcmd = {};
-							vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
-							publish_vehicle_cmd(&vcmd);
-							break;
+						case 3: {
+								/* Land Mode */
+								mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Landing! dst %d, hdg % d",
+										     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
+										     traffic_seperation,
+										     traffic_direction);
 
-						}
+								// ask the commander to land
+								vehicle_command_s vcmd = {};
+								vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
+								publish_vehicle_cmd(&vcmd);
+								break;
 
-					case 4: {
-							/* Position hold */
-							mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Holding position! dst %d, hdg %d",
-									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-									     traffic_seperation,
-									     traffic_direction);
+							}
 
-							// ask the commander to Loiter
-							vehicle_command_s vcmd = {};
-							vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LOITER_UNLIM;
-							publish_vehicle_cmd(&vcmd);
-							break;
+						case 4: {
+								/* Position hold */
+								mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Holding position! dst %d, hdg %d",
+										     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
+										     traffic_seperation,
+										     traffic_direction);
 
+								// ask the commander to Loiter
+								vehicle_command_s vcmd = {};
+								vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LOITER_UNLIM;
+								publish_vehicle_cmd(&vcmd);
+								break;
+
+							}
 						}
 					}
 				}
@@ -1269,6 +1273,28 @@ void Navigator::check_traffic()
 
 		changed = _traffic_sub.updated();
 	}
+}
+
+bool
+Navigator::buffer_air_traffic(uint32_t icao_address)
+{
+	bool action_needed = true;
+
+	if (_traffic_buffer.icao_address == icao_address) {
+
+		if (hrt_elapsed_time(&_traffic_buffer.timestamp) > 60_s) {
+			_traffic_buffer.timestamp = hrt_absolute_time();
+
+		} else {
+			action_needed = false;
+		}
+
+	} else {
+		_traffic_buffer.timestamp = hrt_absolute_time();
+		_traffic_buffer.icao_address = icao_address;
+	}
+
+	return action_needed;
 }
 
 bool

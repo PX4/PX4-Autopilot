@@ -57,7 +57,7 @@
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <mathlib/mathlib.h>
 #include <navigator/navigation.h>
 #include <px4_platform_common/px4_config.h>
@@ -1128,7 +1128,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 #endif // CONFIG_BOARDCTL_RESET
 
-#if defined(CONFIG_BOARDCTL_POWEROFF)
+#if defined(BOARD_HAS_POWER_CONTROL)
 
 			} else if ((param1 == 2) && shutdown_if_allowed() && (px4_shutdown_request(400_ms) == 0)) {
 				// 2: Shutdown autopilot
@@ -1136,7 +1136,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				while (1) { px4_usleep(1); }
 
-#endif // CONFIG_BOARDCTL_POWEROFF
+#endif // BOARD_HAS_POWER_CONTROL
 
 #if defined(CONFIG_BOARDCTL_RESET)
 
@@ -1327,6 +1327,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				} else if (((int)(cmd.param1)) == 2) {
 					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					_worker_thread.startTask(WorkerThread::Request::ParamResetAll);
+
+				} else if (((int)(cmd.param1)) == 3) {
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+					_worker_thread.startTask(WorkerThread::Request::ParamResetSensorFactory);
 				}
 			}
 
@@ -1770,13 +1774,9 @@ Commander::run()
 
 			if (_power_button_state_sub.copy(&button_state)) {
 				if (button_state.event == power_button_state_s::PWR_BUTTON_STATE_REQUEST_SHUTDOWN) {
-#if defined(CONFIG_BOARDCTL_POWEROFF)
-
 					if (shutdown_if_allowed() && (px4_shutdown_request() == 0)) {
 						while (1) { px4_usleep(1); }
 					}
-
-#endif // CONFIG_BOARDCTL_POWEROFF
 				}
 			}
 		}
@@ -3790,6 +3790,8 @@ void Commander::estimator_check()
 	}
 
 	const bool mag_fault_prev = (_estimator_status_sub.get().control_mode_flags & (1 << estimator_status_s::CS_MAG_FAULT));
+	const bool gnss_heading_fault_prev = (_estimator_status_sub.get().control_mode_flags &
+					      (1 << estimator_status_s::CS_GPS_YAW_FAULT));
 
 	// use primary estimator_status
 	if (_estimator_selector_status_sub.updated()) {
@@ -3807,10 +3809,16 @@ void Commander::estimator_check()
 
 		// Check for a magnetomer fault and notify the user
 		const bool mag_fault = (estimator_status.control_mode_flags & (1 << estimator_status_s::CS_MAG_FAULT));
+		const bool gnss_heading_fault = (estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GPS_YAW_FAULT));
 
 		if (!mag_fault_prev && mag_fault) {
-			mavlink_log_critical(&_mavlink_log_pub, "Stopping compass use! Check calibration on landing");
+			mavlink_log_critical(&_mavlink_log_pub, "Compass needs calibration - Land now!");
 			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MAG, true, true, false, _status);
+		}
+
+		if (!gnss_heading_fault_prev && gnss_heading_fault) {
+			mavlink_log_critical(&_mavlink_log_pub, "GNSS heading not reliable - Land now!");
+			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_GPS, true, true, false, _status);
 		}
 
 		/* Check estimator status for signs of bad yaw induced post takeoff navigation failure
@@ -3876,9 +3884,15 @@ void Commander::estimator_check()
 	vehicle_attitude_s attitude{};
 	_vehicle_attitude_sub.copy(&attitude);
 	const matrix::Quatf q{attitude.q};
-	const matrix::Quatf q_norm{q.unit()};
+	const bool no_element_larger_than_one = (fabsf(q(0)) <= 1.f)
+						&& (fabsf(q(1)) <= 1.f)
+						&& (fabsf(q(2)) <= 1.f)
+						&& (fabsf(q(3)) <= 1.f);
+	const bool norm_in_tolerance = (fabsf(1.f - q.norm()) <= FLT_EPSILON);
+
 	_status_flags.condition_attitude_valid = (hrt_elapsed_time(&attitude.timestamp) < 1_s)
-			&& (matrix::Quatf(q - q_norm).length() < FLT_EPSILON);
+			&& norm_in_tolerance
+			&& no_element_larger_than_one;
 
 	// angular velocity
 	vehicle_angular_velocity_s angular_velocity{};

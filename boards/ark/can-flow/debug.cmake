@@ -2,9 +2,6 @@ include (${CMAKE_CURRENT_LIST_DIR}/uavcan_board_identity)
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR ark
-	MODEL can-flow
-	LABEL debug
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	CONSTRAINED_MEMORY
@@ -14,6 +11,7 @@ px4_add_board(
 		bootloaders
 		distance_sensor/broadcom/afbrs50
 		imu/bosch/bmi088
+		imu/invensense/icm42688p
 		optical_flow/paw3902
 		uavcannode
 	MODULES

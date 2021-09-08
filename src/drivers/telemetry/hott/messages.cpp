@@ -42,7 +42,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <unistd.h>
 #include <px4_platform_common/defines.h>
 #include <uORB/topics/airspeed.h>

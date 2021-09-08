@@ -94,33 +94,22 @@
 
 /* Configuration Constants */
 #define VL53L1X_BASEADDR                                0x29
+#define VL53L1X_SHORT_RANGE                                 1  // sub-2 meter distance mode
+#define VL53L1X_LONG_RANGE                                  2  // sub-4 meter distance mode
 
 class VL53L1X : public device::I2C, public I2CSPIDriver<VL53L1X>
 {
 public:
-	VL53L1X(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency,
-		int address = VL53L1X_BASEADDR);
+	VL53L1X(const I2CSPIDriverConfig &config);
 
 	~VL53L1X() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
 	 */
 	void print_status() override;
-
-	/**
-	 * Initialise the automatic measurement state machine and start it.
-	 */
-	void start();
-
-	/**
-	 * Stop the automatic measurement state machine.
-	 */
-	void stop();
 
 	virtual int init() override;
 
@@ -129,6 +118,15 @@ public:
 	 * and start a new one.
 	 */
 	void RunImpl();
+
+	// Distance mode member variable
+	uint16_t _distance_mode{VL53L1X_LONG_RANGE};
+
+	// Zone index member variable
+	uint8_t _zone_index{0};
+
+	// Zone limit member variable
+	uint8_t _zone_limit{0};
 
 private:
 	int probe() override;
@@ -156,7 +154,8 @@ private:
 	// Remove if config store
 	int8_t VL53L1X_ConfigBig(uint16_t DM, uint16_t TimingBudgetInMs);
 	int8_t VL53L1X_SetInterMeasurementInMs(uint32_t InterMeasurementInMs);
-
+	int8_t VL53L1X_SetROICenter(uint8_t data);
+	int8_t VL53L1X_SetROI(uint16_t x, uint16_t y);
 	PX4Rangefinder    _px4_rangefinder;
 
 	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};

@@ -47,7 +47,18 @@ int ADS1115::init()
 	config[0] = CONFIG_HIGH_OS_NOACT | CONFIG_HIGH_MUX_P0NG | CONFIG_HIGH_PGA_6144 | CONFIG_HIGH_MODE_SS;
 	config[1] = CONFIG_LOW_DR_250SPS | CONFIG_LOW_COMP_MODE_TRADITIONAL | CONFIG_LOW_COMP_POL_RESET |
 		    CONFIG_LOW_COMP_LAT_NONE | CONFIG_LOW_COMP_QU_DISABLE;
-	return writeReg(ADDRESSPOINTER_REG_CONFIG, config, 2);
+	ret = writeReg(ADDRESSPOINTER_REG_CONFIG, config, 2);
+
+	if (ret != PX4_OK) {
+		PX4_ERR("writeReg failed (%i)", ret);
+		return ret;
+	}
+
+	setChannel(ADS1115::A0);  // prepare for the first measure.
+
+	ScheduleOnInterval(SAMPLE_INTERVAL / 4, SAMPLE_INTERVAL / 4);
+
+	return PX4_OK;
 }
 
 int ADS1115::setChannel(ADS1115::ChannelSelection ch)

@@ -53,12 +53,11 @@ static constexpr uint8_t _checked_registers[] = {
 	ADDR_CTRL_REG7
 };
 
-LSM303D::LSM303D(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-		 spi_mode_e spi_mode) :
-	SPI(DRV_IMU_DEVTYPE_LSM303D, MODULE_NAME, bus, device, spi_mode, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_accel(get_device_id(), rotation),
-	_px4_mag(get_device_id(), rotation),
+LSM303D::LSM303D(const I2CSPIDriverConfig &config) :
+	SPI(config),
+	I2CSPIDriver(config),
+	_px4_accel(get_device_id(), config.rotation),
+	_px4_mag(get_device_id(), config.rotation),
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d: acc_read")),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d: mag_read")),
 	_bad_registers(perf_alloc(PC_COUNT, "lsm303d: bad_reg")),

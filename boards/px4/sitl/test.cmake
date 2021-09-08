@@ -1,10 +1,7 @@
 
 px4_add_board(
 	PLATFORM posix
-	VENDOR px4
-	MODEL sitl
 	ROMFSROOT px4fmu_common
-	LABEL test
 	TESTING
 	DRIVERS
 		#barometer # all available barometer drivers

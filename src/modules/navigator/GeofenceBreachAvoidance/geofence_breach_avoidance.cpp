@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 #include "geofence_breach_avoidance.h"
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <motion_planning/VelocitySmoothing.hpp>
 
 using Vector2d = matrix::Vector2<double>;
@@ -62,6 +62,7 @@ void GeofenceBreachAvoidance::updateParameters()
 	param_get(_paramHandle.param_mpc_acc_down_max, &_params.param_mpc_acc_down_max);
 
 	updateMinHorDistToFenceMultirotor();
+	updateMinVertDistToFenceMultirotor();
 }
 
 void GeofenceBreachAvoidance::setCurrentPosition(double lat, double lon, float alt)

@@ -33,7 +33,7 @@
 
 #include "GyroCalibration.hpp"
 
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 
 using namespace time_literals;
 using matrix::Vector3f;
@@ -84,6 +84,7 @@ void GyroCalibration::Run()
 
 				_armed = armed;
 				Reset();
+				return;
 			}
 		}
 	}
@@ -98,14 +99,16 @@ void GyroCalibration::Run()
 
 		if (_vehicle_status_flags_sub.copy(&vehicle_status_flags)) {
 			if (_system_calibrating != vehicle_status_flags.condition_calibration_enabled) {
-				Reset();
 				_system_calibrating = vehicle_status_flags.condition_calibration_enabled;
+				Reset();
+				return;
 			}
 		}
 	}
 
 	if (_system_calibrating) {
 		// do nothing if system is calibrating
+		Reset();
 		return;
 	}
 
@@ -123,6 +126,9 @@ void GyroCalibration::Run()
 		for (auto &cal : _gyro_calibration) {
 			cal.ParametersUpdate();
 		}
+
+		Reset();
+		return;
 	}
 
 
@@ -222,6 +228,8 @@ void GyroCalibration::Run()
 				const Vector3f old_offset{_gyro_calibration[gyro].offset()};
 
 				if (_gyro_calibration[gyro].set_offset(_gyro_mean[gyro].mean())) {
+					_gyro_calibration[gyro].set_temperature(_temperature[gyro]);
+
 					calibration_updated = true;
 
 					PX4_INFO("gyro %d (%" PRIu32 ") updating calibration, [%.4f, %.4f, %.4f] -> [%.4f, %.4f, %.4f] %.1f°C",

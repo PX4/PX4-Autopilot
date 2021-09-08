@@ -6,15 +6,13 @@
 @# Start of Template
 @#
 @# Context:
-@#  - msgs (List) list of all msg files
-@#  - multi_topics (List) list of all multi-topic names
-@#  - ids (List) list of all RTPS msg ids
+@#  - ros2_distro (str) ROS2 distro name
+@#  - spec (msggen.MsgSpec) Parsed specification of the .msg file
 @###############################################
 @{
-from packaging import version
 import genmsg.msgs
-
-from px_generate_uorb_topic_helper import * # this is in Tools/
+from packaging import version
+import re
 
 topic = alias if alias else spec.short_name
 try:
@@ -59,7 +57,7 @@ except AttributeError:
  * @@file @(topic)_Publisher.h
  * This header file contains the declaration of the publisher functions.
  *
- * This file was adapted from the fastcdrgen tool.
+ * This file was adapted from the fastrtpsgen tool.
  */
 
 
@@ -101,7 +99,7 @@ class @(topic)_Publisher
 public:
 	@(topic)_Publisher();
 	virtual ~@(topic)_Publisher();
-	bool init(const std::string &ns);
+	bool init(const std::string &ns, std::string topic_name = "");
 	void run();
 	void publish(@(topic)_msg_t *st);
 private:

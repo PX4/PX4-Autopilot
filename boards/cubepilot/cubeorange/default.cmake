@@ -1,9 +1,6 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR cubepilot
-	MODEL cubeorange
-	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
@@ -15,7 +12,7 @@ px4_add_board(
 		TEL2:/dev/ttyS1
 		GPS1:/dev/ttyS2
 		# PX4IO:/dev/ttyS3
-		TEL3:/dev/ttyS4
+		# TEL3:/dev/ttyS4  # connected to ADS-B receiver
 		GPS2:/dev/ttyS5
 	DRIVERS
 		adc/ads1115

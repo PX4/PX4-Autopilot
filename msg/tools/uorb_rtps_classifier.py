@@ -31,143 +31,79 @@
 #
 ################################################################################
 
-import sys
-import os
 import argparse
-import errno
-import yaml
-import re
 import difflib
+import errno
+import os
+from typing import Dict, List, Tuple
+import yaml
 
 
 class Classifier():
-    """
-    Class to classify RTPS msgs as senders, receivers or to be ignored
-    """
+    """Class to classify RTPS msgs as to send, receive and set their IDs."""
 
-    def __init__(self, yaml_file, msg_folder):
+    def __init__(self, yaml_file, msg_folder) -> None:
         self.msg_folder = msg_folder
-        self.all_msgs_list = self.set_all_msgs()
-        self.msg_id_map = self.parse_yaml_msg_id_file(yaml_file)
-        self.alias_space_init_id = 180
+        self.msg_map = self.parse_yaml_msgs_file(yaml_file)
 
-        # Checkers
-        self.check_if_listed(yaml_file)
+        # Check if base types are defined correctly
         self.check_base_type()
-        self.check_id_space()
 
-        self.msgs_to_send, self.alias_msgs_to_send = self.set_msgs_to_send()
-        self.msgs_to_receive, self.alias_msgs_to_receive = self.set_msgs_to_receive()
-        self.msgs_to_ignore, self.alias_msgs_to_ignore = self.set_msgs_to_ignore()
+        # Get messages to send and to receive
+        self.msgs_to_send: Dict[str, int] = dict()
+        self.msgs_to_receive: Dict[str, int] = dict()
+        self.alias_msgs_to_send: List[Tuple[str, str]] = []
+        self.alias_msgs_to_receive: List[Tuple[str, str]] = []
+        self.msg_list: List[str] = []
+
+        # Create message map
+        self.setup_msg_map()
+
         self.msg_files_send = self.set_msg_files_send()
         self.msg_files_receive = self.set_msg_files_receive()
-        self.msg_files_ignore = self.set_msg_files_ignore()
 
-    # setters (for class init)
-    def set_all_msgs(self):
-        msg_list = []
-        for filename in os.listdir(self.msg_folder):
-            if '.msg' in filename:
-                # add base messages
-                msg_list.append(re.sub(".msg", "", filename))
-
-                # add alias / multi-topics messages
-                with open(os.path.join(self.msg_folder, filename), 'r') as f:
-                    alias_msgs = []
-                    lines = f.readlines()
-                    for line in lines:
-                        if '# TOPICS' in line:
-                            fileUpdated = True
-                            alias_msgs += line.split()
-                            alias_msgs.remove('#')
-                            alias_msgs.remove('TOPICS')
-                            for msg in alias_msgs:
-                                if msg not in msg_list:
-                                    msg_list.append(msg)
-        return msg_list
-
-    def set_msgs_to_send(self):
-        send = {}
-        send_alias = []
-        for dict in self.msg_id_map['rtps']:
-            if 'send' in list(dict.keys()):
-                if 'alias' in list(dict.keys()):
-                    send_alias.append(
-                        ({dict['msg']: dict['id']}, dict['alias']))
+    def setup_msg_map(self) -> None:
+        """Setup dictionary with an ID map for the messages."""
+        for topic in self.msg_map['rtps']:
+            if 'send' in list(topic.keys()):
+                if 'base' in list(topic.keys()):
+                    self.alias_msgs_to_send.append(
+                        (topic['msg'], topic['base']))
                 else:
-                    send.update({dict['msg']: dict['id']})
-        return send, send_alias
-
-    def set_msgs_to_receive(self):
-        receive = {}
-        receive_alias = []
-        for dict in self.msg_id_map['rtps']:
-            if 'receive' in list(dict.keys()):
-                if 'alias' in list(dict.keys()):
-                    receive_alias.append(
-                        ({dict['msg']: dict['id']}, dict['alias']))
+                    self.msgs_to_send.update({topic['msg']: 0})
+            if 'receive' in list(topic.keys()):
+                if 'base' in list(topic.keys()):
+                    self.alias_msgs_to_receive.append(
+                        (topic['msg'], topic['base']))
                 else:
-                    receive.update({dict['msg']: dict['id']})
-        return receive, receive_alias
+                    self.msgs_to_receive.update({topic['msg']: 0})
+            self.msg_list.append(topic['msg'])
 
-    def set_msgs_to_ignore(self):
-        ignore = {}
-        ignore_alias = []
-        for dict in self.msg_id_map['rtps']:
-            if (('send' not in list(dict.keys())) and ('receive' not in list(dict.keys()))):
-                if 'alias' in list(dict.keys()):
-                    ignore_alias.append(
-                        ({dict['msg']: dict['id']}, dict['alias']))
-                else:
-                    ignore.update({dict['msg']: dict['id']})
-        return ignore, ignore_alias
-
-    def set_msg_files_send(self):
+    def set_msg_files_send(self) -> list:
+        """
+        Append the path to the files which messages are marked to
+        be sent.
+        """
         return [os.path.join(self.msg_folder, msg + ".msg")
                 for msg in list(self.msgs_to_send.keys())]
 
-    def set_msg_files_receive(self):
+    def set_msg_files_receive(self) -> list:
+        """
+        Append the path to the files which messages are marked to
+        be received.
+        """
         return [os.path.join(self.msg_folder, msg + ".msg")
                 for msg in list(self.msgs_to_receive.keys())]
 
-    def set_msg_files_ignore(self):
-        return [os.path.join(self.msg_folder, msg + ".msg")
-                for msg in list(self.msgs_to_ignore.keys())]
-
-    def check_if_listed(self, yaml_file):
-        """
-        Checks if all msgs are listed under the RTPS ID yaml file
-        """
-        none_listed_msgs = []
-        for msg in self.all_msgs_list:
-            result = not any(
-                dict['msg'] == msg for dict in self.msg_id_map['rtps'])
-            if result:
-                none_listed_msgs.append(msg)
-
-        if len(none_listed_msgs) > 0:
-            if len(none_listed_msgs) == 1:
-                error_msg = "The following message is not listen under "
-            elif len(none_listed_msgs) > 1:
-                error_msg = "The following messages are not listen under "
-
-            raise AssertionError(
-                "\n%s %s: " % (error_msg, yaml_file) + ", ".join('%s' % msg for msg in none_listed_msgs) +
-                "\n\nPlease add them to the yaml file with the respective ID and, if applicable, mark them " +
-                "to be sent or received by the micro-RTPS bridge.\n"
-                "NOTE: If the message is an alias / part of multi-topics (#TOPICS) of a base message, it should be added as well.\n")
-
-    def check_base_type(self):
-        """
-        Check if alias message has correct base type
-        """
+    def check_base_type(self) -> None:
+        """Check if alias message has correct base type."""
         registered_alias_msgs = list(
-            dict['alias'] for dict in self.msg_id_map['rtps'] if 'alias' in list(dict.keys()))
+            topic['base'] for topic in self.msg_map['rtps'] if 'base' in list(topic.keys()))
 
         base_types = []
-        for dict in self.msg_id_map['rtps']:
-            if 'alias' not in list(dict.keys()):
-                base_types.append(dict['msg'])
+        for topic in self.msg_map['rtps']:
+            if 'base' not in list(topic.keys()):
+                base_types.append(topic['msg'])
 
         incorrect_base_types = list(
             set(registered_alias_msgs) - set(base_types))
@@ -181,40 +117,17 @@ class Classifier():
             raise AssertionError(
                 ('\n' + '\n'.join('\t- The multi-topic message base type \'{}\' does not exist.{}'.format(k, (' Did you mean \'' + v[0] + '\'?' if v else '')) for k, v in list(base_types_suggestion.items()))))
 
-    def check_id_space(self):
-        """
-        Check if msg ID is in the correct ID space
-        """
-        incorrect_base_ids = {}
-        incorrect_alias_ids = {}
-        for dict in self.msg_id_map['rtps']:
-            if 'alias' not in list(dict.keys()) and dict['id'] >= self.alias_space_init_id:
-                incorrect_base_ids.update({dict['msg']: dict['id']})
-            elif 'alias' in list(dict.keys()) and dict['id'] < self.alias_space_init_id:
-                incorrect_alias_ids.update({dict['msg']: dict['id']})
-
-        if len(incorrect_base_ids) > 0:
-            raise AssertionError(
-                ('\n' + '\n'.join('\t- The message \'{} with ID \'{}\' is in the wrong ID space. Please use any of the available IDs from 0 to 169'.format(k, v) for k, v in list(incorrect_base_ids.items()))))
-
-        if len(incorrect_alias_ids) > 0:
-            raise AssertionError(
-                ('\n' + '\n'.join('\t- The alias message \'{}\' with ID \'{}\' is in the wrong ID space. Please use any of the available IDs from 170 to 255'.format(k, v) for k, v in list(incorrect_alias_ids.items()))))
-
     @staticmethod
-    def parse_yaml_msg_id_file(yaml_file):
-        """
-        Parses a yaml file into a dict
-        """
+    def parse_yaml_msgs_file(yaml_file) -> dict:
+        """Parses a yaml file into a dict."""
         try:
-            with open(yaml_file, 'r') as f:
-                return yaml.safe_load(f)
-        except OSError as e:
-            if e.errno == errno.ENOENT:
+            with open(yaml_file, 'r') as file:
+                return yaml.safe_load(file)
+        except OSError as err:
+            if err.errno == errno.ENOENT:
                 raise IOError(errno.ENOENT, os.strerror(
                     errno.ENOENT), yaml_file)
-            else:
-                raise
+            raise
 
 
 if __name__ == "__main__":
@@ -233,8 +146,8 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--topic-msg-dir", dest='msgdir', type=str,
                         help="Topics message dir, by default msg/", default="msg")
     parser.add_argument("-y", "--rtps-ids-file", dest='yaml_file', type=str,
-                        help="RTPS msg IDs definition file absolute path, by default use relative path to msg, tools/uorb_rtps_message_ids.yaml",
-                        default='tools/uorb_rtps_message_ids.yaml')
+                        help="RTPS msg IDs definition file absolute path, by default use relative path to msg, tools/urtps_bridge_topics.yaml",
+                        default='tools/urtps_bridge_topics.yaml')
 
     # Parse arguments
     args = parser.parse_args()
@@ -250,36 +163,24 @@ if __name__ == "__main__":
     if args.send:
         if args.path:
             print(('send files: ' + ', '.join(str(msg_file)
-                                              for msg_file in classifier.msgs_files_send) + '\n'))
+                                              for msg_file in classifier.msg_files_send) + '\n'))
         else:
             if args.alias:
                 print((', '.join(str(msg)
-                                 for msg in list(classifier.msgs_to_send.keys())) + (' alias ' + ', '.join(str(list(msg[0].keys())[0])
-                                                                                                         for msg in classifier.alias_msgs_to_send) if len(classifier.alias_msgs_to_send) > 0 else '') + '\n'))
+                                 for msg in sorted(classifier.msgs_to_send)) + (' alias ' + ', '.join(msg[0]
+                                                                                                      for msg in classifier.alias_msgs_to_send) if len(classifier.alias_msgs_to_send) > 0 else '') + '\n'))
             else:
                 print((', '.join(str(msg)
-                                 for msg in list(classifier.msgs_to_send.keys()))))
+                                 for msg in sorted(classifier.msgs_to_send))))
     if args.receive:
         if args.path:
             print(('receive files: ' + ', '.join(str(msg_file)
-                                                 for msg_file in classifier.msgs_files_receive) + '\n'))
+                                                 for msg_file in classifier.msg_files_receive) + '\n'))
         else:
             if args.alias:
                 print((', '.join(str(msg)
-                                 for msg in list(classifier.msgs_to_receive.keys())) + (' alias ' + ', '.join(str(list(msg[0].keys())[0])
-                                                                                                            for msg in classifier.alias_msgs_to_receive) if len(classifier.alias_msgs_to_receive) > 0 else '') + '\n'))
+                                 for msg in sorted(classifier.msgs_to_receive)) + (' alias ' + ', '.join(msg[0]
+                                                                                                         for msg in classifier.alias_msgs_to_receive) if len(classifier.alias_msgs_to_receive) > 0 else '') + '\n'))
             else:
                 print((', '.join(str(msg)
-                                 for msg in list(classifier.msgs_to_receive.keys()))))
-    if args.ignore:
-        if args.path:
-            print(('ignore files: ' + ', '.join(str(msg_file)
-                                                for msg_file in classifier.msgs_files_ignore) + '\n'))
-        else:
-            if args.alias:
-                print((', '.join(str(msg)
-                                 for msg in list(classifier.msgs_to_ignore.keys())) + (' alias ' + ', '.join(str(list(msg[0].keys())[0])
-                                                                                                           for msg in classifier.alias_msgs_to_ignore) if len(classifier.alias_msgs_to_ignore) > 0 else '') + '\n'))
-            else:
-                print((', '.join(str(msg)
-                                 for msg in list(classifier.msgs_to_ignore.keys()))))
+                                 for msg in sorted(classifier.msgs_to_receive))))

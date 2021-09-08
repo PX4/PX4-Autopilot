@@ -193,10 +193,9 @@ void atomic_modify_and(volatile uint16_t *target, uint16_t modification);
  * Mixer
  */
 extern void	mixer_tick(void);
-extern int	mixer_handle_text_create_mixer(void);
-extern int	mixer_handle_text(const void *buffer, size_t length);
+extern int	interrupt_mixer_handle_text(const void *buffer, size_t length);
 /* Set the failsafe values of all mixed channels (based on zero throttle, controls centered) */
-extern void	mixer_set_failsafe(void);
+extern void	interrupt_mixer_set_failsafe(void);
 
 /**
  * Safety switch/LED.

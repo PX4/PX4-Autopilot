@@ -6,21 +6,31 @@
 @# Start of Template
 @#
 @# Context:
-@#  - msgs (List) list of all msg files
-@#  - multi_topics (List) list of all multi-topic names
-@#  - ids (List) list of all RTPS msg ids
+@#  - fastrtps_version (str) FastRTPS version installed on the system
+@#  - ros2_distro (str) ROS2 distro name
+@#  - spec (msggen.MsgSpec) Parsed specification of the .msg file
 @###############################################
 @{
-from packaging import version
 import genmsg.msgs
-
-from px_generate_uorb_topic_helper import * # this is in Tools/
+from packaging import version
+import re
 
 topic = alias if alias else spec.short_name
 try:
     ros2_distro = ros2_distro.decode("utf-8")
 except AttributeError:
     pass
+
+topic_name = topic
+
+# For ROS, use the topic pattern convention defined in
+# http://wiki.ros.org/ROS/Patterns/Conventions
+if ros2_distro:
+    topic_name_split = re.sub( r"([A-Z])", r" \1", topic).split()
+    topic_name = topic_name_split[0]
+    for w in topic_name_split[1:]:
+        topic_name += "_" + w
+    topic_name = topic_name.lower()
 }@
 /****************************************************************************
  *
@@ -59,7 +69,7 @@ except AttributeError:
  * @@file @(topic)_Subscriber.cpp
  * This file contains the implementation of the subscriber functions.
  *
- * This file was adapted from the fastcdrgen tool.
+ * This file was adapted from the fastrtpsgen tool.
  */
 
 #include "@(topic)_Subscriber.h"
@@ -88,7 +98,8 @@ using SharedMemTransportDescriptor = eprosima::fastdds::rtps::SharedMemTransport
 }
 
 bool @(topic)_Subscriber::init(uint8_t topic_ID, std::condition_variable *t_send_queue_cv,
-			       std::mutex *t_send_queue_mutex, std::queue<uint8_t> *t_send_queue, const std::string &ns)
+			       std::mutex *t_send_queue_mutex, std::queue<uint8_t> *t_send_queue, const std::string &ns,
+			       std::string topic_name)
 {
 	m_listener.topic_ID = topic_ID;
 	m_listener.t_send_queue_cv = t_send_queue_cv;
@@ -162,19 +173,15 @@ bool @(topic)_Subscriber::init(uint8_t topic_ID, std::condition_variable *t_send
 @[    if ros2_distro == "ardent"]@
 	Rparam.qos.m_partition.push_back("rt");
 	std::string topicName = ns;
-	topicName.append("@(topic)_PubSubTopic");
-	Rparam.topic.topicName = topicName;
 @[    else]@
 	std::string topicName = "rt/";
 	topicName.append(ns);
-	topicName.append("@(topic)_PubSubTopic");
-	Rparam.topic.topicName = topicName;
 @[    end if]@
 @[else]@
 	std::string topicName = ns;
-	topicName.append("@(topic)PubSubTopic");
-	Rparam.topic.topicName = topicName;
 @[end if]@
+	topic_name.empty() ? topicName.append("fmu/@(topic_name)/in") : topicName.append(topic_name);
+	Rparam.topic.topicName = topicName;
 	mp_subscriber = Domain::createSubscriber(mp_participant, Rparam, static_cast<SubscriberListener *>(&m_listener));
 
 	if (mp_subscriber == nullptr) {
@@ -188,7 +195,7 @@ void @(topic)_Subscriber::SubListener::onSubscriptionMatched(Subscriber *sub, Ma
 {
 @# Since the time sync runs on the bridge itself, it is required that there is a
 @# match between two topics of the same entity
-@[if topic != 'Timesync' and topic != 'timesync']@
+@[if topic != 'Timesync' and topic != 'timesync' and topic != 'TimesyncStatus' and topic != 'timesync_status']@
 	// The first 6 values of the ID guidPrefix of an entity in a DDS-RTPS Domain
 	// are the same for all its subcomponents (publishers, subscribers)
 	bool is_different_endpoint = false;

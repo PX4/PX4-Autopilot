@@ -70,6 +70,8 @@ static constexpr uint8_t PRESS_OUT_H = 0x2A;
 static constexpr uint8_t TEMP_OUT_L = 0x2B;
 static constexpr uint8_t TEMP_OUT_H = 0x2C;
 
+#define LPS22HB_ADDRESS		0x5D
+
 /* interface factories */
 extern device::Device *LPS22HB_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
 extern device::Device *LPS22HB_I2C_interface(int bus, int bus_frequency);
@@ -77,11 +79,10 @@ extern device::Device *LPS22HB_I2C_interface(int bus, int bus_frequency);
 class LPS22HB : public I2CSPIDriver<LPS22HB>
 {
 public:
-	LPS22HB(I2CSPIBusOption bus_option, int bus, device::Device *interface);
+	LPS22HB(const I2CSPIDriverConfig &config, device::Device *interface);
 	virtual ~LPS22HB();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
 	int			init();

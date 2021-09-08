@@ -65,12 +65,9 @@
 class SRF02 : public device::I2C, public I2CSPIDriver<SRF02>
 {
 public:
-	SRF02(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency,
-	      int address = SRF02_BASEADDR);
+	SRF02(const I2CSPIDriverConfig &config);
 	~SRF02() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	int init() override;

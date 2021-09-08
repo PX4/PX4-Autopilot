@@ -46,6 +46,7 @@
 #endif
 
 #include <termios.h>
+#include <cstring>
 
 #include <drivers/drv_sensor.h>
 #include <lib/drivers/device/Device.hpp>
@@ -68,6 +69,7 @@
 # include "devices/src/emlid_reach.h"
 # include "devices/src/mtk.h"
 # include "devices/src/femtomes.h"
+# include "devices/src/nmea.h"
 #endif // CONSTRAINED_FLASH
 #include "devices/src/ubx.h"
 
@@ -79,21 +81,28 @@
 #define TIMEOUT_5HZ		500		//!< Timeout time in mS,  200 mS (5Hz) + 300 mS delta for error
 #define RATE_MEASUREMENT_PERIOD 5000000
 
-typedef enum {
-	GPS_DRIVER_MODE_NONE = 0,
-	GPS_DRIVER_MODE_UBX,
-	GPS_DRIVER_MODE_MTK,
-	GPS_DRIVER_MODE_ASHTECH,
-	GPS_DRIVER_MODE_EMLIDREACH,
-	GPS_DRIVER_MODE_FEMTOMES
-} gps_driver_mode_t;
+enum class gps_driver_mode_t {
+	None = 0,
+	UBX,
+	MTK,
+	ASHTECH,
+	EMLIDREACH,
+	FEMTOMES,
+	NMEA
+};
+
+enum class gps_dump_comm_mode_t : int32_t {
+	Disabled = 0,
+	Full, ///< dump full RX and TX data for all devices
+	RTCM ///< dump received RTCM from Main GPS
+};
 
 /* struct for dynamic allocation of satellite info data */
 struct GPS_Sat_Info {
 	satellite_info_s _data;
 };
 
-static constexpr int TASK_STACK_SIZE = 1760;
+static constexpr int TASK_STACK_SIZE = PX4_STACK_ADJUSTED(1760);
 
 
 class GPS : public ModuleBase<GPS>, public device::Device
@@ -186,7 +195,7 @@ private:
 	uORB::Publication<gps_dump_s>	_dump_communication_pub{ORB_ID(gps_dump)};
 	gps_dump_s			*_dump_to_device{nullptr};
 	gps_dump_s			*_dump_from_device{nullptr};
-	bool				_should_dump_communication{false};			///< if true, dump communication
+	gps_dump_comm_mode_t _dump_communication_mode{gps_dump_comm_mode_t::Disabled};
 
 	static px4::atomic_bool _is_gps_main_advertised; ///< for the second gps we want to make sure that it gets instance 1
 	/// and thus we wait until the first one publishes at least one message.
@@ -245,9 +254,10 @@ private:
 	 * Dump gps communication.
 	 * @param data message
 	 * @param len length of the message
+	 * @param mode calling source
 	 * @param msg_to_gps_device if true, this is a message sent to the gps device, otherwise it's from the device
 	 */
-	void dumpGpsData(uint8_t *data, size_t len, bool msg_to_gps_device);
+	void dumpGpsData(uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool msg_to_gps_device);
 
 	void initializeCommunicationDump();
 
@@ -296,7 +306,7 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 		set_device_bus_type(device::Device::DeviceBusType::DeviceBusType_SPI);
 	}
 
-	if (_mode == GPS_DRIVER_MODE_NONE) {
+	if (_mode == gps_driver_mode_t::None) {
 		// use parameter to select mode if not provided via CLI
 		char protocol_param_name[16];
 		snprintf(protocol_param_name, sizeof(protocol_param_name), "GPS_%i_PROTOCOL", (int)_instance + 1);
@@ -304,19 +314,23 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 		param_get(param_find(protocol_param_name), &protocol);
 
 		switch (protocol) {
-		case 1: _mode = GPS_DRIVER_MODE_UBX; break;
+		case 1: _mode = gps_driver_mode_t::UBX; break;
 #ifndef CONSTRAINED_FLASH
 
-		case 2: _mode = GPS_DRIVER_MODE_MTK; break;
+		case 2: _mode = gps_driver_mode_t::MTK; break;
 
-		case 3: _mode = GPS_DRIVER_MODE_ASHTECH; break;
+		case 3: _mode = gps_driver_mode_t::ASHTECH; break;
 
-		case 4: _mode = GPS_DRIVER_MODE_EMLIDREACH; break;
+		case 4: _mode = gps_driver_mode_t::EMLIDREACH; break;
+
+		case 5: _mode = gps_driver_mode_t::FEMTOMES; break;
+
+		case 6: _mode = gps_driver_mode_t::NMEA; break;
 #endif // CONSTRAINED_FLASH
 		}
 	}
 
-	_mode_auto = _mode == GPS_DRIVER_MODE_NONE;
+	_mode_auto = _mode == gps_driver_mode_t::None;
 }
 
 GPS::~GPS()
@@ -349,17 +363,19 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 
 	switch (type) {
 	case GPSCallbackType::readDeviceData: {
-			int num_read = gps->pollOrRead((uint8_t *)data1, data2, *((int *)data1));
+			int timeout;
+			memcpy(&timeout, data1, sizeof(timeout));
+			int num_read = gps->pollOrRead((uint8_t *)data1, data2, timeout);
 
 			if (num_read > 0) {
-				gps->dumpGpsData((uint8_t *)data1, (size_t)num_read, false);
+				gps->dumpGpsData((uint8_t *)data1, (size_t)num_read, gps_dump_comm_mode_t::Full, false);
 			}
 
 			return num_read;
 		}
 
 	case GPSCallbackType::writeDeviceData:
-		gps->dumpGpsData((uint8_t *)data1, (size_t)data2, true);
+		gps->dumpGpsData((uint8_t *)data1, (size_t)data2, gps_dump_comm_mode_t::Full, true);
 
 		return ::write(gps->_serial_fd, data1, (size_t)data2);
 
@@ -367,7 +383,7 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 		return gps->setBaudrate(data2);
 
 	case GPSCallbackType::gotRTCMMessage:
-		/* not used */
+		gps->dumpGpsData((uint8_t *)data1, (size_t)data2, gps_dump_comm_mode_t::RTCM, false);
 		break;
 
 	case GPSCallbackType::surveyInStatus:
@@ -502,7 +518,7 @@ void GPS::handleInjectDataTopic()
 
 bool GPS::injectData(uint8_t *data, size_t len)
 {
-	dumpGpsData(data, len, true);
+	dumpGpsData(data, len, gps_dump_comm_mode_t::Full, true);
 
 	size_t written = ::write(_serial_fd, data, len);
 	::fsync(_serial_fd);
@@ -608,7 +624,7 @@ void GPS::initializeCommunicationDump()
 		return;
 	}
 
-	if (param_dump_comm != 1) {
+	if (param_dump_comm < 1 || param_dump_comm > 2) {
 		return; //dumping disabled
 	}
 
@@ -625,19 +641,20 @@ void GPS::initializeCommunicationDump()
 
 	//make sure to use a large enough queue size, so that we don't lose messages. You may also want
 	//to increase the logger rate for that.
-	_dump_communication_pub.publish(*_dump_from_device);
+	_dump_communication_pub.advertise();
 
-	_should_dump_communication = true;
+	_dump_communication_mode = (gps_dump_comm_mode_t)param_dump_comm;
 }
 
-void GPS::dumpGpsData(uint8_t *data, size_t len, bool msg_to_gps_device)
+void GPS::dumpGpsData(uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool msg_to_gps_device)
 {
-	if (!_should_dump_communication) {
+	gps_dump_s *dump_data  = msg_to_gps_device ? _dump_to_device : _dump_from_device;
+
+	if (_dump_communication_mode != mode || !dump_data) {
 		return;
 	}
 
-	gps_dump_s *dump_data  = msg_to_gps_device ? _dump_to_device : _dump_from_device;
-	dump_data->instance = (uint8_t) _instance;
+	dump_data->instance = (uint8_t)_instance;
 
 	while (len > 0) {
 		size_t write_len = len;
@@ -666,35 +683,6 @@ void GPS::dumpGpsData(uint8_t *data, size_t len, bool msg_to_gps_device)
 void
 GPS::run()
 {
-	/* open the serial port */
-	_serial_fd = ::open(_port, O_RDWR | O_NOCTTY);
-
-	if (_serial_fd < 0) {
-		PX4_ERR("GPS: failed to open serial port: %s err: %d", _port, errno);
-		return;
-	}
-
-#ifdef __PX4_LINUX
-
-	if (_interface == GPSHelper::Interface::SPI) {
-		int spi_speed = 1000000; // make sure the bus speed is not too high (required on RPi)
-		int status_value = ::ioctl(_serial_fd, SPI_IOC_WR_MAX_SPEED_HZ, &spi_speed);
-
-		if (status_value < 0) {
-			PX4_ERR("SPI_IOC_WR_MAX_SPEED_HZ failed for %s (%d)", _port, errno);
-			return;
-		}
-
-		status_value = ::ioctl(_serial_fd, SPI_IOC_RD_MAX_SPEED_HZ, &spi_speed);
-
-		if (status_value < 0) {
-			PX4_ERR("SPI_IOC_RD_MAX_SPEED_HZ failed for %s (%d)", _port, errno);
-			return;
-		}
-	}
-
-#endif /* __PX4_LINUX */
-
 	param_t handle = param_find("GPS_YAW_OFFSET");
 	float heading_offset = 0.f;
 
@@ -751,36 +739,71 @@ GPS::run()
 			_helper = nullptr;
 		}
 
+		if (_serial_fd < 0) {
+			/* open the serial port */
+			_serial_fd = ::open(_port, O_RDWR | O_NOCTTY);
+
+			if (_serial_fd < 0) {
+				PX4_ERR("failed to open %s err: %d", _port, errno);
+				px4_sleep(1);
+				continue;
+			}
+
+#ifdef __PX4_LINUX
+
+			if (_interface == GPSHelper::Interface::SPI) {
+				int spi_speed = 1000000; // make sure the bus speed is not too high (required on RPi)
+				int status_value = ::ioctl(_serial_fd, SPI_IOC_WR_MAX_SPEED_HZ, &spi_speed);
+
+				if (status_value < 0) {
+					PX4_ERR("SPI_IOC_WR_MAX_SPEED_HZ failed for %s (%d)", _port, errno);
+				}
+
+				status_value = ::ioctl(_serial_fd, SPI_IOC_RD_MAX_SPEED_HZ, &spi_speed);
+
+				if (status_value < 0) {
+					PX4_ERR("SPI_IOC_RD_MAX_SPEED_HZ failed for %s (%d)", _port, errno);
+				}
+			}
+
+#endif /* __PX4_LINUX */
+		}
+
 		switch (_mode) {
-		case GPS_DRIVER_MODE_NONE:
-			_mode = GPS_DRIVER_MODE_UBX;
+		case gps_driver_mode_t::None:
+			_mode = gps_driver_mode_t::UBX;
 
 		/* FALLTHROUGH */
-		case GPS_DRIVER_MODE_UBX:
+		case gps_driver_mode_t::UBX:
 			_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info,
 						   gps_ubx_dynmodel, heading_offset, ubx_mode);
 			set_device_type(DRV_GPS_DEVTYPE_UBX);
 			break;
 #ifndef CONSTRAINED_FLASH
 
-		case GPS_DRIVER_MODE_MTK:
+		case gps_driver_mode_t::MTK:
 			_helper = new GPSDriverMTK(&GPS::callback, this, &_report_gps_pos);
 			set_device_type(DRV_GPS_DEVTYPE_MTK);
 			break;
 
-		case GPS_DRIVER_MODE_ASHTECH:
+		case gps_driver_mode_t::ASHTECH:
 			_helper = new GPSDriverAshtech(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info, heading_offset);
 			set_device_type(DRV_GPS_DEVTYPE_ASHTECH);
 			break;
 
-		case GPS_DRIVER_MODE_EMLIDREACH:
+		case gps_driver_mode_t::EMLIDREACH:
 			_helper = new GPSDriverEmlidReach(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
 			set_device_type(DRV_GPS_DEVTYPE_EMLID_REACH);
 			break;
 
-		case GPS_DRIVER_MODE_FEMTOMES:
-			_helper = new GPSDriverFemto(&GPS::callback, this, &_report_gps_pos/*, _p_report_sat_info*/);
+		case gps_driver_mode_t::FEMTOMES:
+			_helper = new GPSDriverFemto(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info, heading_offset);
 			set_device_type(DRV_GPS_DEVTYPE_FEMTOMES);
+			break;
+
+		case gps_driver_mode_t::NMEA:
+			_helper = new GPSDriverNMEA(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info, heading_offset);
+			set_device_type(DRV_GPS_DEVTYPE_NMEA);
 			break;
 #endif // CONSTRAINED_FLASH
 
@@ -790,8 +813,14 @@ GPS::run()
 
 		_baudrate = _configured_baudrate;
 		GPSHelper::GPSConfig gpsConfig{};
-		gpsConfig.output_mode = GPSHelper::OutputMode::GPS;
 		gpsConfig.gnss_systems = static_cast<GPSHelper::GNSSSystemsMask>(gnssSystemsParam);
+
+		if (_instance == Instance::Main && _dump_communication_mode == gps_dump_comm_mode_t::RTCM) {
+			gpsConfig.output_mode = GPSHelper::OutputMode::GPSAndRTCM;
+
+		} else {
+			gpsConfig.output_mode = GPSHelper::OutputMode::GPS;
+		}
 
 		if (_helper && _helper->configure(_baudrate, gpsConfig) == 0) {
 
@@ -800,7 +829,7 @@ GPS::run()
 			_report_gps_pos.heading = NAN;
 			_report_gps_pos.heading_offset = heading_offset;
 
-			if (_mode == GPS_DRIVER_MODE_UBX) {
+			if (_mode == gps_driver_mode_t::UBX) {
 
 				/* GPS is obviously detected successfully, reset statistics */
 				_helper->resetUpdateRates();
@@ -879,19 +908,19 @@ GPS::run()
 //						const char *mode_str = "unknown";
 //
 //						switch (_mode) {
-//						case GPS_DRIVER_MODE_UBX:
+//						case gps_driver_mode_t::UBX:
 //							mode_str = "UBX";
 //							break;
 //
-//						case GPS_DRIVER_MODE_MTK:
+//						case gps_driver_mode_t::MTK:
 //							mode_str = "MTK";
 //							break;
 //
-//						case GPS_DRIVER_MODE_ASHTECH:
+//						case gps_driver_mode_t::ASHTECH:
 //							mode_str = "ASHTECH";
 //							break;
 //
-//						case GPS_DRIVER_MODE_EMLIDREACH:
+//						case gps_driver_mode_t::EMLIDREACH:
 //							mode_str = "EMLID REACH";
 //							break;
 //
@@ -911,28 +940,34 @@ GPS::run()
 			}
 		}
 
+		if (_serial_fd >= 0) {
+			::close(_serial_fd);
+			_serial_fd = -1;
+		}
+
 		if (_mode_auto) {
 			switch (_mode) {
-			case GPS_DRIVER_MODE_UBX:
+			case gps_driver_mode_t::UBX:
 #ifndef CONSTRAINED_FLASH
-				_mode = GPS_DRIVER_MODE_MTK;
+				_mode = gps_driver_mode_t::MTK;
 				break;
 
-			case GPS_DRIVER_MODE_MTK:
-				_mode = GPS_DRIVER_MODE_ASHTECH;
+			case gps_driver_mode_t::MTK:
+				_mode = gps_driver_mode_t::ASHTECH;
 				break;
 
-			case GPS_DRIVER_MODE_ASHTECH:
-				_mode = GPS_DRIVER_MODE_EMLIDREACH;
+			case gps_driver_mode_t::ASHTECH:
+				_mode = gps_driver_mode_t::EMLIDREACH;
 				break;
 
-			case GPS_DRIVER_MODE_EMLIDREACH:
-				_mode = GPS_DRIVER_MODE_FEMTOMES;
+			case gps_driver_mode_t::EMLIDREACH:
+				_mode = gps_driver_mode_t::FEMTOMES;
 				break;
 
-			case GPS_DRIVER_MODE_FEMTOMES:
+			case gps_driver_mode_t::FEMTOMES:
+			case gps_driver_mode_t::NMEA: // skip NMEA for auto-detection to avoid false positive matching
 #endif // CONSTRAINED_FLASH
-				_mode = GPS_DRIVER_MODE_UBX;
+				_mode = gps_driver_mode_t::UBX;
 				px4_usleep(500000); // tried all possible drivers. Wait a bit before next round
 				break;
 
@@ -946,11 +981,6 @@ GPS::run()
 	}
 
 	PX4_INFO("exiting");
-
-	if (_serial_fd >= 0) {
-		::close(_serial_fd);
-		_serial_fd = -1;
-	}
 }
 
 int
@@ -972,25 +1002,29 @@ GPS::print_status()
 
 	// GPS Mode
 	switch (_mode) {
-	case GPS_DRIVER_MODE_UBX:
+	case gps_driver_mode_t::UBX:
 		PX4_INFO("protocol: UBX");
 		break;
 #ifndef CONSTRAINED_FLASH
 
-	case GPS_DRIVER_MODE_MTK:
+	case gps_driver_mode_t::MTK:
 		PX4_INFO("protocol: MTK");
 		break;
 
-	case GPS_DRIVER_MODE_ASHTECH:
+	case gps_driver_mode_t::ASHTECH:
 		PX4_INFO("protocol: ASHTECH");
 		break;
 
-	case GPS_DRIVER_MODE_EMLIDREACH:
+	case gps_driver_mode_t::EMLIDREACH:
 		PX4_INFO("protocol: EMLIDREACH");
 		break;
 
-	case GPS_DRIVER_MODE_FEMTOMES:
+	case gps_driver_mode_t::FEMTOMES:
 		PX4_INFO("protocol: FEMTOMES");
+		break;
+
+	case gps_driver_mode_t::NMEA:
+		PX4_INFO("protocol: NMEA");
 		break;
 #endif // CONSTRAINED_FLASH
 
@@ -1158,7 +1192,7 @@ $ gps reset warm
 
 	PRINT_MODULE_USAGE_PARAM_STRING('i', "uart", "spi|uart", "GPS interface", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('j', "uart", "spi|uart", "secondary GPS interface", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, "ubx|mtk|ash|eml|fem", "GPS Protocol (default=auto select)", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, "ubx|mtk|ash|eml|fem|nmea", "GPS Protocol (default=auto select)", true);
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reset GPS device");
@@ -1227,7 +1261,7 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 	bool enable_sat_info = false;
 	GPSHelper::Interface interface = GPSHelper::Interface::UART;
 	GPSHelper::Interface interface_secondary = GPSHelper::Interface::UART;
-	gps_driver_mode_t mode = GPS_DRIVER_MODE_NONE;
+	gps_driver_mode_t mode = gps_driver_mode_t::None;
 
 	bool error_flag = false;
 	int myoptind = 1;
@@ -1289,19 +1323,22 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 
 		case 'p':
 			if (!strcmp(myoptarg, "ubx")) {
-				mode = GPS_DRIVER_MODE_UBX;
+				mode = gps_driver_mode_t::UBX;
 #ifndef CONSTRAINED_FLASH
 			} else if (!strcmp(myoptarg, "mtk")) {
-				mode = GPS_DRIVER_MODE_MTK;
+				mode = gps_driver_mode_t::MTK;
 
 			} else if (!strcmp(myoptarg, "ash")) {
-				mode = GPS_DRIVER_MODE_ASHTECH;
+				mode = gps_driver_mode_t::ASHTECH;
 
 			} else if (!strcmp(myoptarg, "eml")) {
-				mode = GPS_DRIVER_MODE_EMLIDREACH;
+				mode = gps_driver_mode_t::EMLIDREACH;
 
 			} else if (!strcmp(myoptarg, "fem")) {
-				mode = GPS_DRIVER_MODE_FEMTOMES;
+				mode = gps_driver_mode_t::FEMTOMES;
+
+			} else if (!strcmp(myoptarg, "nmea")) {
+				mode = gps_driver_mode_t::NMEA;
 #endif // CONSTRAINED_FLASH
 			} else {
 				PX4_ERR("unknown protocol: %s", myoptarg);

@@ -286,9 +286,6 @@ Syslink::task_main()
 	_memory = new SyslinkMemory(this);
 	_memory->init();
 
-	_battery.reset();
-
-
 	//	int ret;
 
 	/* Open serial port */

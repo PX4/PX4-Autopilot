@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,26 +45,6 @@ void MPU9250::print_usage()
 	PRINT_MODULE_USAGE_PARAM_FLAG('M', "Enable Magnetometer (AK8963)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-}
-
-I2CSPIDriverBase *MPU9250::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				       int runtime_instance)
-{
-	bool mag = (cli.custom1 == 1);
-	MPU9250 *instance = new MPU9250(iterator.configuredBusOption(), iterator.bus(), iterator.devid(), cli.rotation,
-					cli.bus_frequency, cli.spi_mode, iterator.DRDYGPIO(), mag);
-
-	if (!instance) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (OK != instance->init()) {
-		delete instance;
-		return nullptr;
-	}
-
-	return instance;
 }
 
 extern "C" int mpu9250_main(int argc, char *argv[])

@@ -159,7 +159,7 @@ PARAM_DEFINE_INT32(TRIG_PINS, 56);
  *
  *
  * @min 0
- * @max 4294967040
+ * @max 2147483647
  * @decimal 0
  * @reboot_required true
  * @group Camera trigger

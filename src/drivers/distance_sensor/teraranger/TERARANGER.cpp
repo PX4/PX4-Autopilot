@@ -73,14 +73,11 @@ static uint8_t crc8(uint8_t *p, uint8_t len)
 	return crc & 0xFF;
 }
 
-TERARANGER::TERARANGER(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency) :
-	I2C(DRV_DIST_DEVTYPE_TERARANGER, MODULE_NAME, bus, TERARANGER_ONE_BASEADDR, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_rangefinder(get_device_id(), rotation)
+TERARANGER::TERARANGER(const I2CSPIDriverConfig &config) :
+	I2C(config),
+	I2CSPIDriver(config),
+	_px4_rangefinder(get_device_id(), config.rotation)
 {
-	// up the retries since the device misses the first measure attempts
-	I2C::_retries = 3;
-
 	_px4_rangefinder.set_device_type(DRV_DIST_DEVTYPE_TERARANGER);
 	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
 }
@@ -212,6 +209,8 @@ int TERARANGER::init()
 		return PX4_ERROR;
 	}
 
+	start();
+
 	return PX4_OK;
 }
 
@@ -240,6 +239,7 @@ int TERARANGER::probe()
 	// Can't use a single transfer as Teraranger needs a bit of time for internal processing.
 	if (transfer(&cmd, 1, nullptr, 0) == OK) {
 		if (transfer(nullptr, 0, &who_am_i, 1) == OK && who_am_i == TERARANGER_WHO_AM_I_REG_VAL) {
+			_retries = 1;
 			return measure();
 		}
 	}

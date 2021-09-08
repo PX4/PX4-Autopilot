@@ -43,7 +43,7 @@
 #include "mavlink_mission.h"
 #include "mavlink_main.h"
 
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/defines.h>
@@ -103,7 +103,7 @@ MavlinkMissionManager::init_offboard_mission()
 			_current_seq = mission_state.current_seq;
 
 		} else if (ret < 0) {
-			PX4_ERR("offboard mission init failed (%i)", ret);
+			PX4_WARN("offboard mission init failed (%i)", ret);
 		}
 
 		load_geofence_stats();
@@ -1017,8 +1017,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 			if (wp.seq != _transfer_seq) {
 				PX4_DEBUG("WPM: MISSION_ITEM ERROR: seq %u was not the expected %u", wp.seq, _transfer_seq);
 
-				/* request next item again */
-				send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
+				/* Item sequence not expected, ignore item */
 				return;
 			}
 

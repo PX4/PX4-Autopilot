@@ -286,14 +286,13 @@ MavlinkParametersManager::send()
 {
 	if (!_first_send) {
 		// parameters QGC can't tolerate not finding (2020-11-11)
-		param_find("BAT_A_PER_V");
 		param_find("BAT_CRIT_THR");
 		param_find("BAT_EMERGEN_THR");
 		param_find("BAT_LOW_THR");
-		param_find("BAT_N_CELLS");
-		param_find("BAT_V_CHARGED");
-		param_find("BAT_V_DIV");
-		param_find("BAT_V_EMPTY");
+		param_find("BAT_N_CELLS");     // deprecated
+		param_find("BAT_V_CHARGED");   // deprecated
+		param_find("BAT_V_EMPTY");     // deprecated
+		param_find("BAT_V_LOAD_DROP"); // deprecated
 		param_find("CAL_ACC0_ID");
 		param_find("CAL_GYRO0_ID");
 		param_find("CAL_MAG0_ID");

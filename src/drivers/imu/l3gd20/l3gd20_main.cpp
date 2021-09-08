@@ -49,25 +49,6 @@ L3GD20::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *L3GD20::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				      int runtime_instance)
-{
-	L3GD20 *instance = new L3GD20(iterator.configuredBusOption(), iterator.bus(), iterator.devid(), cli.rotation,
-				      cli.bus_frequency, cli.spi_mode);
-
-	if (!instance) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (OK != instance->init()) {
-		delete instance;
-		return nullptr;
-	}
-
-	return instance;
-}
-
 void L3GD20::custom_method(const BusCLIArguments &cli)
 {
 	switch (cli.custom1) {

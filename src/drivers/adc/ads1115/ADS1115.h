@@ -105,23 +105,16 @@ using namespace time_literals;
 class ADS1115 : public device::I2C, public I2CSPIDriver<ADS1115>
 {
 public:
-	ADS1115(I2CSPIBusOption bus_option, int bus, int addr, int bus_frequency);
+	ADS1115(const I2CSPIDriverConfig &config);
 	~ADS1115() override;
 
-	int Begin();
-
 	int init() override;
-
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 
 	static void print_usage();
 
 	void RunImpl();
 
 protected:
-
-	adc_report_s _adc_report = {};
 
 	void print_status() override;
 
@@ -133,9 +126,11 @@ private:
 
 	static const hrt_abstime	SAMPLE_INTERVAL{50_ms};
 
+	adc_report_s _adc_report{};
+
 	perf_counter_t			_cycle_perf;
 
-	int     _channel_cycle_count = 0;
+	int     _channel_cycle_count{0};
 
 	// ADS1115 logic part
 	enum ChannelSelection {

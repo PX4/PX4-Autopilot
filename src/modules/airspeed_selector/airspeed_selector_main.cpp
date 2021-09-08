@@ -31,8 +31,10 @@
  *
  ****************************************************************************/
 
+#include "AirspeedValidator.hpp"
+
 #include <drivers/drv_hrt.h>
-#include <ecl/airdata/WindEstimator.hpp>
+#include <lib/wind_estimator/WindEstimator.hpp>
 #include <matrix/math.hpp>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
@@ -40,8 +42,7 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/airspeed/airspeed.h>
-#include <AirspeedValidator.hpp>
-#include <systemlib/mavlink_log.h>
+#include <lib/systemlib/mavlink_log.h>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
@@ -556,8 +557,7 @@ void AirspeedModule::select_airspeed_and_publish()
 	    (_number_of_airspeed_sensors > 0 || !_vehicle_land_detected.landed) &&
 	    _valid_airspeed_index != _prev_airspeed_index) {
 		if (_prev_airspeed_index > 0) {
-			mavlink_log_critical(&_mavlink_log_pub, "Airspeed sensor failure detected (%i, %i)", _prev_airspeed_index,
-					     _valid_airspeed_index);
+			mavlink_log_critical(&_mavlink_log_pub, "Airspeed sensor failure detected. Return to launch (RTL) is advised.");
 
 		} else if (_prev_airspeed_index == 0 && _valid_airspeed_index == -1) {
 			mavlink_log_info(&_mavlink_log_pub, "Airspeed estimation invalid");

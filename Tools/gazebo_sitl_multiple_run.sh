@@ -86,8 +86,15 @@ sleep 1
 
 source ${src_path}/Tools/setup_gazebo.bash ${src_path} ${src_path}/build/${target}
 
+# To use gazebo_ros ROS2 plugins
+if [[ -n "$ROS_VERSION" ]] && [ "$ROS_VERSION" == "2" ]; then
+	ros_args="-s libgazebo_ros_init.so -s libgazebo_ros_factory.so"
+else
+	ros_args=""
+fi
+
 echo "Starting gazebo"
-gzserver ${src_path}/Tools/sitl_gazebo/worlds/${world}.world --verbose &
+gzserver ${src_path}/Tools/sitl_gazebo/worlds/${world}.world --verbose $ros_args &
 sleep 5
 
 n=0

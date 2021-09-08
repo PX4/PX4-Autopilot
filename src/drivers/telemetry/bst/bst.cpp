@@ -111,11 +111,9 @@ struct BSTBattery {
 class BST : public device::I2C, public I2CSPIDriver<BST>
 {
 public:
-	BST(I2CSPIBusOption bus_option, const int bus, int address, int bus_frequency);
+	BST(const I2CSPIDriverConfig &config);
 	~BST() override = default;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	int		init() override;
@@ -179,17 +177,14 @@ private:
 	}
 };
 
-BST::BST(I2CSPIBusOption bus_option, const int bus, int address, int bus_frequency) :
-	I2C(DRV_TEL_DEVTYPE_BST, MODULE_NAME, bus, address, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
+BST::BST(const I2CSPIDriverConfig &config) :
+	I2C(config),
+	I2CSPIDriver(config)
 {
 }
 
 int BST::probe()
 {
-	int retries_prev = _retries;
-	_retries = 3;
-
 	BSTPacket<BSTDeviceInfoRequest> dev_info_req = {};
 	dev_info_req.type = 0x0A;
 	dev_info_req.payload.cmd = 0x04;
@@ -215,7 +210,7 @@ int BST::probe()
 		  (int)swap_uint32(dev_info_reply.payload.hw_id), (int)swap_uint16(dev_info_reply.payload.fw_id),
 		  dev_info_reply.payload.dev_name);
 
-	_retries = retries_prev;
+	_retries = 1;
 
 	return OK;
 }
@@ -315,24 +310,6 @@ BST::print_usage()
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x76);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-}
-
-I2CSPIDriverBase *BST::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				   int runtime_instance)
-{
-	BST *instance = new BST(iterator.configuredBusOption(), iterator.bus(), cli.i2c_address, cli.bus_frequency);
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (instance->init() != PX4_OK) {
-		delete instance;
-		return nullptr;
-	}
-
-	return instance;
 }
 
 extern "C" __EXPORT int bst_main(int argc, char *argv[])

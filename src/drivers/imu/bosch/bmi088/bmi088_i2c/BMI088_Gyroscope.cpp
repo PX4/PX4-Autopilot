@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,12 +40,11 @@ using namespace time_literals;
 namespace Bosch::BMI088::Gyroscope
 {
 
-BMI088_Gyroscope::BMI088_Gyroscope(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation,
-				   int bus_frequency, spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio) :
-	BMI088(DRV_GYR_DEVTYPE_BMI088, "BMI088_Gyroscope", bus_option, bus, device, spi_mode, bus_frequency, drdy_gpio),
-	_px4_gyro(get_device_id(), rotation)
+BMI088_Gyroscope::BMI088_Gyroscope(const I2CSPIDriverConfig &config) :
+	BMI088(config),
+	_px4_gyro(get_device_id(), config.rotation)
 {
-	if (drdy_gpio != 0) {
+	if (config.drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME"_gyro: DRDY missed");
 	}
 
@@ -263,11 +262,8 @@ int BMI088_Gyroscope::DataReadyInterruptCallback(int irq, void *context, void *a
 
 void BMI088_Gyroscope::DataReady()
 {
-	uint32_t expected = 0;
-
-	if (_drdy_fifo_read_samples.compare_exchange(&expected, _fifo_samples)) {
-		ScheduleNow();
-	}
+	_drdy_timestamp_sample.store(hrt_absolute_time());
+	ScheduleNow();
 }
 
 bool BMI088_Gyroscope::DataReadyInterruptConfigure()
@@ -383,7 +379,7 @@ void BMI088_Gyroscope::FIFOReset()
 	RegisterWrite(Register::FIFO_CONFIG_1, 0);
 
 	// reset while FIFO is disabled
-	_drdy_fifo_read_samples.store(0);
+	_drdy_timestamp_sample.store(0);
 
 	// FIFO_CONFIG_0: restore FIFO watermark
 	// FIFO_CONFIG_1: re-enable FIFO

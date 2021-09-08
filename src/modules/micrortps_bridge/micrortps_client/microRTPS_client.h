@@ -51,11 +51,13 @@
 
 #define LOOPS			-1
 #define SLEEP_US		1000
+#define MAX_SLEEP_US		1000000
 #define BAUDRATE		460800
 #define MAX_DATA_RATE		10000000
 #define DEVICE		"/dev/ttyACM0"
 #define POLL_MS		1
-#define IP			"127.0.0.1"
+#define MAX_POLL_MS		1000
+#define DEFAULT_IP		"127.0.0.1"
 #define DEFAULT_RECV_PORT	2019
 #define DEFAULT_SEND_PORT	2020
 #define MIN_TX_INTERVAL_US	1000.f
@@ -79,7 +81,7 @@ struct options {
 	};
 	eTransports transport = options::eTransports::UART;
 	char device[64] = DEVICE;
-	char ip[16] = IP;
+	char ip[16] = DEFAULT_IP;
 	uint16_t recv_port = DEFAULT_RECV_PORT;
 	uint16_t send_port = DEFAULT_SEND_PORT;
 	uint32_t sleep_us = SLEEP_US;

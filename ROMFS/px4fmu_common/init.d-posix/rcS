@@ -48,10 +48,10 @@ else
 	# shellcheck disable=SC2012
 	REQUESTED_AUTOSTART=$(ls "${R}etc/init.d-posix/airframes" | sed -n 's/^\([0-9][0-9]*\)_'${PX4_SIM_MODEL}'$/\1/p')
 	if [ -z "$REQUESTED_AUTOSTART" ]; then
-		echo "Error: Unknown model $PX4_SIM_MODEL (not found by name on ${R}etc/init.d-posix/airframes)"
+		echo "ERROR  [init] Unknown model $PX4_SIM_MODEL (not found by name on ${R}etc/init.d-posix/airframes)"
 		exit 1
 	else
-		echo "Info: found model autostart file as SYS_AUTOSTART=$REQUESTED_AUTOSTART"
+		echo "INFO  [init] found model autostart file as SYS_AUTOSTART=$REQUESTED_AUTOSTART"
 	fi
 fi
 
@@ -126,7 +126,7 @@ then
 	param set SYS_RESTART_TYPE 2
 fi
 
-param set-default BAT_N_CELLS 4
+param set-default BAT1_N_CELLS 4
 
 param set-default CBRK_AIRSPD_CHK 0
 param set-default CBRK_SUPPLY_CHK 894281
@@ -228,8 +228,7 @@ navigator start
 # Try to start the micrortps_client with UDP transport if module exists
 if px4-micrortps_client status > /dev/null 2>&1
 then
-	# shellcheck disable=SC2154
-	micrortps_client start -t UDP $((2019+2*px4_instance)) -s $((2020+2*px4_instance))
+	. px4-rc.rtps
 fi
 
 if param greater -s MNT_MODE_IN -1

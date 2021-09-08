@@ -40,7 +40,6 @@ px4_add_module(
 		FakeMagnetometer.hpp
 	DEPENDS
 		drivers_magnetometer
-		ecl_geo
-		git_ecl
+		geo
 		px4_work_queue
 )

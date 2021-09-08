@@ -33,7 +33,7 @@
 
 set(SRCS)
 
-if (NOT "${PX4_PLATFORM}" MATCHES "qurt" AND NOT "${PX4_BOARD}" MATCHES "io-v2" AND NOT "${PX4_BOARD_LABEL}" MATCHES "bootloader")
+if(NOT "${PX4_BOARD}" MATCHES "io-v2" AND NOT "${PX4_BOARD_LABEL}" MATCHES "bootloader")
 	list(APPEND SRCS
 		px4_log.cpp
 	)
@@ -41,6 +41,7 @@ endif()
 
 add_library(px4_platform
 	board_identity.c
+	events.cpp
 	external_reset_lockout.cpp
 	i2c.cpp
 	i2c_spi_buses.cpp

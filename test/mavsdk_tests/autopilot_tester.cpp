@@ -62,9 +62,9 @@ void AutopilotTester::connect(const std::string uri)
 
 	std::cout << time_str() << "Waiting for system connect" << std::endl;
 	REQUIRE(poll_condition_with_timeout(
-	[this]() { return _mavsdk.is_connected(); }, std::chrono::seconds(25)));
+	[this]() { return _mavsdk.systems().size() > 0; }, std::chrono::seconds(25)));
 
-	auto &system = _mavsdk.system();
+	auto system = _mavsdk.systems().at(0);
 
 	_action.reset(new Action(system));
 	_failure.reset(new Failure(system));
@@ -98,7 +98,6 @@ void AutopilotTester::wait_until_ready_local_position_only()
 			(_telemetry->health().is_gyrometer_calibration_ok &&
 			 _telemetry->health().is_accelerometer_calibration_ok &&
 			 _telemetry->health().is_magnetometer_calibration_ok &&
-			 _telemetry->health().is_level_calibration_ok &&
 			 _telemetry->health().is_local_position_ok);
 	}, std::chrono::seconds(20)));
 }

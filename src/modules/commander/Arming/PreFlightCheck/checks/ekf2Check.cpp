@@ -67,8 +67,11 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	int32_t arm_without_gps = 0;
 	param_get(param_find("COM_ARM_WO_GPS"), &arm_without_gps);
 
-	bool gps_success = true;
-	bool gps_present = true;
+	int32_t sys_has_gps = 1;
+	param_get(param_find("SYS_HAS_GPS"), &sys_has_gps);
+
+	bool gps_success = false;
+	bool gps_present = false;
 
 	// Get estimator status data if available and exit with a fail recorded if not
 	uORB::SubscriptionData<estimator_selector_status_s> estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
@@ -154,10 +157,11 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	}
 
 	// If GPS aiding is required, declare fault condition if the required GPS quality checks are failing
-	{
+	if (sys_has_gps == 1) {
 		const bool ekf_gps_fusion = status.control_mode_flags & (1 << estimator_status_s::CS_GPS);
 		const bool ekf_gps_check_fail = status.gps_check_fail_flags > 0;
 
+		gps_present = true;
 		gps_success = ekf_gps_fusion; // default to success if gps data is fused
 
 		if (ekf_gps_check_fail) {

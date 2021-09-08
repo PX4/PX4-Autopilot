@@ -41,9 +41,8 @@
 
 #include "bmp388.h"
 
-BMP388::BMP388(I2CSPIBusOption bus_option, int bus, IBMP388 *interface) :
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus,
-		     interface->get_device_address()),
+BMP388::BMP388(const I2CSPIDriverConfig &config, IBMP388 *interface) :
+	I2CSPIDriver(config),
 	_px4_baro(interface->get_device_id()),
 	_interface(interface),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),

@@ -158,11 +158,13 @@ public:
 
 	bool external() const { return px4_spi_bus_external(bus()); }
 
+	int busDeviceIndex() const { return _bus_device_index; }
+
 private:
 	const FilterType _filter;
 	const uint16_t _devid_driver_index;
 	const int _bus;
-	int _index{-1};
-	int _external_bus_counter{0};
-	int _bus_device_index{0};
+	int _index{0};
+	int _external_bus_counter{1};
+	int _bus_device_index{-1};
 };

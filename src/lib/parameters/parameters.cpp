@@ -81,14 +81,6 @@ static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";
 
 static char *param_user_file = nullptr;
 
-#ifdef __PX4_QURT
-#define PARAM_OPEN	px4_open
-#define PARAM_CLOSE	px4_close
-#else
-#define PARAM_OPEN	open
-#define PARAM_CLOSE	close
-#endif
-
 #include <px4_platform_common/workqueue.h>
 /* autosaving variables */
 static hrt_abstime last_autosave_timestamp = 0;
@@ -1133,11 +1125,11 @@ int param_save_default()
 
 	while (res != OK && attempts > 0) {
 		// write parameters to file
-		int fd = PARAM_OPEN(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
+		int fd = ::open(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
 
 		if (fd > -1) {
 			res = param_export(fd, false, nullptr);
-			PARAM_CLOSE(fd);
+			::close(fd);
 
 			if (res != PX4_OK) {
 				PX4_ERR("param_export failed, retrying %d", attempts);
@@ -1170,7 +1162,7 @@ param_load_default()
 		return flash_param_load();
 	}
 
-	int fd_load = PARAM_OPEN(filename, O_RDONLY);
+	int fd_load = ::open(filename, O_RDONLY);
 
 	if (fd_load < 0) {
 		/* no parameter file is OK, otherwise this is an error */
@@ -1183,7 +1175,7 @@ param_load_default()
 	}
 
 	int result = param_load(fd_load);
-	PARAM_CLOSE(fd_load);
+	::close(fd_load);
 
 	if (result != 0) {
 		PX4_ERR("error reading parameters from '%s'", filename);
@@ -1358,7 +1350,7 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 	param_t param = param_find_no_notification(node->name);
 
 	if (param == PARAM_INVALID) {
-		PX4_ERR("ignoring unrecognised parameter '%s'", node->name);
+		PX4_WARN("ignoring unrecognised parameter '%s'", node->name);
 		return 1;
 	}
 

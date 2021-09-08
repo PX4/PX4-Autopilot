@@ -48,7 +48,7 @@
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/i2c_spi_buses.h>
@@ -58,12 +58,9 @@ using namespace Analog_Devices_ADIS16448;
 class ADIS16448 : public device::SPI, public I2CSPIDriver<ADIS16448>
 {
 public:
-	ADIS16448(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-		  spi_drdy_gpio_t drdy_gpio);
+	ADIS16448(const I2CSPIDriverConfig &config);
 	~ADIS16448() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void RunImpl();
@@ -94,6 +91,7 @@ private:
 	bool RegisterCheck(const register_config_t &reg_cfg);
 
 	uint16_t RegisterRead(Register reg);
+	uint16_t RegisterReadVerified(Register reg, int retries = 1);
 	void RegisterWrite(Register reg, uint16_t value);
 	void RegisterSetAndClearBits(Register reg, uint16_t setbits, uint16_t clearbits);
 
@@ -108,14 +106,16 @@ private:
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
 	perf_counter_t _perf_crc_bad{nullptr};
+	perf_counter_t _drdy_missed_perf{nullptr};
 
 	hrt_abstime _reset_timestamp{0};
 	hrt_abstime _last_config_check_timestamp{0};
 	int _failure_count{0};
 
-	bool _check_crc{false}; // CRC-16 not supported on earlier models (eg ADIS16448AMLZ)
+	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
 	bool _data_ready_interrupt_enabled{false};
 
+	bool _check_crc{false}; // CRC-16 not supported on earlier models (eg ADIS16448AMLZ)
 	bool _self_test_passed{false};
 
 	int16_t _accel_prev[3] {};

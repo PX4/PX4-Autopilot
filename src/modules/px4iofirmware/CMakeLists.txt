@@ -47,6 +47,7 @@ set_property(GLOBAL APPEND PROPERTY PX4_MODULE_LIBRARIES px4iofirmware)
 target_link_libraries(px4iofirmware
 	PUBLIC
 		arch_io_pins
+		arch_watchdog_iwdg
 		nuttx_apps
 		nuttx_arch
 		nuttx_c

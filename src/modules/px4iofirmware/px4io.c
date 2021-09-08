@@ -53,6 +53,7 @@
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_watchdog.h>
 
 #if defined(PX4IO_PERF)
 # include <lib/perf/perf_counter.h>
@@ -352,41 +353,6 @@ user_start(int argc, char *argv[])
 	/* initialize PWM limit lib */
 	output_limit_init(&pwm_limit);
 
-	/*
-	 *    P O L I C E    L I G H T S
-	 *
-	 * Not enough memory, lock down.
-	 *
-	 * We might need to allocate mixers later, and this will
-	 * ensure that a developer doing a change will notice
-	 * that he just burned the remaining RAM with static
-	 * allocations. We don't want him to be able to
-	 * get past that point. This needs to be clearly
-	 * documented in the dev guide.
-	 *
-	 */
-	if (minfo.mxordblk < 550) {
-
-		syslog(LOG_ERR, "ERR: not enough MEM");
-		bool phase = false;
-
-		while (true) {
-
-			if (phase) {
-				LED_AMBER(true);
-				LED_BLUE(false);
-
-			} else {
-				LED_AMBER(false);
-				LED_BLUE(true);
-			}
-
-			up_udelay(250000);
-
-			phase = !phase;
-		}
-	}
-
 	/* Start the failsafe led init */
 	failsafe_led_init();
 
@@ -398,7 +364,11 @@ user_start(int argc, char *argv[])
 	uint64_t last_heartbeat_time = 0;
 	uint64_t last_loop_time = 0;
 
+	watchdog_init();
+
 	for (;;) {
+		watchdog_pet();
+
 		dt = (hrt_absolute_time() - last_loop_time) / 1000000.0f;
 		last_loop_time = hrt_absolute_time();
 
