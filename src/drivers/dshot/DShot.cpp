@@ -334,11 +334,12 @@ void DShot::enable_dshot_outputs(const bool enabled)
 
 		int ret = up_dshot_init(_output_mask, dshot_frequency);
 
-		if (ret != 0) {
+		if (ret < 0) {
 			PX4_ERR("up_dshot_init failed (%i)", ret);
 			return;
 		}
 
+		_output_mask = ret;
 		_outputs_initialized = true;
 	}
 
@@ -1380,6 +1381,7 @@ int DShot::print_status()
 	}
 
 	PX4_INFO("Outputs initialized: %s", _outputs_initialized ? "yes" : "no");
+	PX4_INFO("Outputs used: 0x%" PRIx32, _output_mask);
 	PX4_INFO("Outputs on: %s", _outputs_on ? "yes" : "no");
 	perf_print_counter(_cycle_perf);
 	_mixing_output.printStatus();

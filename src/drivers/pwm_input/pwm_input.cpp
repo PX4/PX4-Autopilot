@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "pwm_input.h"
+#include <px4_arch/io_timer.h>
 
 int
 PWMIN::task_spawn(int argc, char *argv[])
@@ -65,6 +66,25 @@ PWMIN::start()
 void
 PWMIN::timer_init(void)
 {
+	/* TODO
+	 * - use gpio+irq directly instead of timer (if accurate enough)
+	 * - make pin configurable
+	 */
+
+	/* reserve the pin + timer */
+	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
+		if ((GPIO_PWM_IN & (GPIO_PORT_MASK | GPIO_PIN_MASK)) ==
+		    (timer_io_channels[i].gpio_out & (GPIO_PORT_MASK | GPIO_PIN_MASK))) {
+			int ret1 = io_timer_allocate_channel(i, IOTimerChanMode_PWMIn);
+			int ret2 = io_timer_allocate_timer(timer_io_channels[i].timer_index, IOTimerChanMode_PWMIn);
+
+			if (ret1 != 0 || ret2 != 0) {
+				PX4_ERR("timer/channel alloc failed (%i %i)", ret1, ret2);
+				return;
+			}
+		}
+	}
+
 	/* run with interrupts disabled in case the timer is already
 	 * setup. We don't want it firing while we are doing the setup */
 	irqstate_t flags = px4_enter_critical_section();
