@@ -63,8 +63,8 @@
 
 using namespace time_literals;
 
-#if !defined(BOARD_HAS_PWM)
-#  error "board_config.h needs to define BOARD_HAS_PWM"
+#if !defined(DIRECT_PWM_OUTPUT_CHANNELS)
+#  error "board_config.h needs to define DIRECT_PWM_OUTPUT_CHANNELS"
 #endif
 
 #define PX4FMU_DEVICE_PATH	"/dev/px4fmu"

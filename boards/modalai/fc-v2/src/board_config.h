@@ -328,7 +328,6 @@
 #  error Unsupported BOARD_HAS_LTC44XX_VALIDS value
 #endif
 
-#define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120

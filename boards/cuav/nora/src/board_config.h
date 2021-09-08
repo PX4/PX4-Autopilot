@@ -199,7 +199,6 @@
 /* This board provides the board_on_reset interface */
 #define BOARD_HAS_ON_RESET 1
 
-#define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
