@@ -9,6 +9,7 @@ add_library(px4_layer
 	${PX4_SOURCE_DIR}/platforms/posix/src/px4/common/print_load.cpp
 	${PX4_SOURCE_DIR}/platforms/posix/src/px4/common/cpuload.cpp
 	usr_hrt.cpp
+	px4_userspace_init.cpp
 )
 
 target_link_libraries(px4_layer
