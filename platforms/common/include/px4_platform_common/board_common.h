@@ -241,13 +241,6 @@
 #endif
 
 /*
- * Defined when a board has capture and uses channels.
- */
-#if defined(DIRECT_INPUT_TIMER_CHANNELS) && DIRECT_INPUT_TIMER_CHANNELS > 0
-#define BOARD_HAS_CAPTURE 1
-#endif
-
-/*
  * Defined when a supports version and type API.
  */
 #if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
