@@ -21,8 +21,6 @@ then
 fi
 
 # initialize script variables
-set AUX_MODE                    none
-set AUX_BANK2			none
 set IO_PRESENT                  no
 set MAV_TYPE                    none
 set MIXER                       none
