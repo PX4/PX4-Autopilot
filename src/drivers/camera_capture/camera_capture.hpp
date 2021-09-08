@@ -54,9 +54,6 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
-#define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
-
-
 class CameraCapture : public px4::ScheduledWorkItem
 {
 public:

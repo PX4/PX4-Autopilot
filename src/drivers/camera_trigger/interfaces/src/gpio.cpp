@@ -56,7 +56,7 @@ CameraInterfaceGPIO::~CameraInterfaceGPIO()
 	unsigned channel = 0;
 
 	while (_allocated_channels != 0) {
-		if (((1 << channel) & _allocated_channels)) {
+		if (((1u << channel) & _allocated_channels)) {
 			io_timer_unallocate_channel(channel);
 			_allocated_channels &= ~(1u << channel);
 		}

@@ -83,11 +83,11 @@ typedef struct input_capture_element_t {
 } input_capture_element_t;
 
 typedef struct input_capture_stats_t {
-	uint32_t 		   chan_in_edges_out;
+	uint32_t 		   edges;
 	uint32_t 		   overflows;
 	uint32_t		   last_edge;
 	hrt_abstime		   last_time;
-	uint16_t		   latnecy;
+	uint16_t		   latency;
 } input_capture_stats_t;
 
 /**
