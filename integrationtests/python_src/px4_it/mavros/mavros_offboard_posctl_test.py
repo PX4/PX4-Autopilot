@@ -45,6 +45,7 @@ import rospy
 import math
 import numpy as np
 from geometry_msgs.msg import PoseStamped, Quaternion
+from mavros_msgs.msg import ParamValue
 from mavros_test_common import MavrosTestCommon
 from pymavlink import mavutil
 from six.moves import xrange
@@ -163,6 +164,9 @@ class MavrosOffboardPosctlTest(MavrosTestCommon):
                                    10, -1)
 
         self.log_topic_vars()
+        # exempting failsafe from lost RC to allow offboard
+        rcl_except = ParamValue(1<<2, 0.0)
+        self.set_param("COM_RCL_EXCEPT", rcl_except, 5)
         self.set_mode("OFFBOARD", 5)
         self.set_arm(True, 5)
 
