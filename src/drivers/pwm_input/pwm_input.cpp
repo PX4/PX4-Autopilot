@@ -179,13 +179,14 @@ PWMIN::publish(uint16_t status, uint32_t period, uint32_t pulse_width)
 	_pulses_captured++;
 }
 
-void
-PWMIN::print_info(void)
+int
+PWMIN::print_status()
 {
-	PX4_INFO("count=%u period=%u width=%u\n",
+	PX4_INFO("count=%u period=%u width=%u",
 		 static_cast<unsigned>(_pulses_captured),
 		 static_cast<unsigned>(_last_period),
 		 static_cast<unsigned>(_last_width));
+	return 0;
 }
 
 int
@@ -204,7 +205,6 @@ Measures the PWM input on AUX5 (or MAIN5) via a timer capture ISR and publishes 
 
 	PRINT_MODULE_USAGE_NAME("pwm_input", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "prints PWM capture info.");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return PX4_OK;
@@ -213,21 +213,7 @@ Measures the PWM input on AUX5 (or MAIN5) via a timer capture ISR and publishes 
 int
 PWMIN::custom_command(int argc, char *argv[])
 {
-	const char *input = argv[0];
-	auto *obj = get_instance();
-
-	if (!is_running() || !obj) {
-		PX4_ERR("not running");
-		return PX4_ERROR;
-	}
-
-	if (!strcmp(input, "test")) {
-		obj->print_info();
-		return PX4_OK;
-	}
-
-	print_usage();
-	return PX4_ERROR;
+	return print_usage();
 }
 
 extern "C" __EXPORT int pwm_input_main(int argc, char *argv[])
