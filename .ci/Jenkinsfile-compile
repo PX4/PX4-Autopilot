@@ -9,10 +9,10 @@ pipeline {
         script {
           def build_nodes = [:]
           def docker_images = [
-            armhf: "px4io/px4-dev-armhf:2021-05-04",
-            arm64: "px4io/px4-dev-aarch64:2021-05-04",
-            base: "px4io/px4-dev-base-bionic:2021-05-04",
-            nuttx: "px4io/px4-dev-nuttx-focal:2021-05-04",
+            armhf: "px4io/px4-dev-armhf:2021-09-08",
+            arm64: "px4io/px4-dev-aarch64:2021-09-08",
+            base: "px4io/px4-dev-base-bionic:2021-09-08",
+            nuttx: "px4io/px4-dev-nuttx-focal:2021-09-08",
           ]
 
           def armhf_builds = [
@@ -127,7 +127,7 @@ pipeline {
     // TODO: actually upload artifacts to S3
     // stage('S3 Upload') {
     //   agent {
-    //     docker { image 'px4io/px4-dev-base-focal:2021-05-04' }
+    //     docker { image 'px4io/px4-dev-base-focal:2021-09-08' }
     //   }
     //   options {
     //         skipDefaultCheckout()
