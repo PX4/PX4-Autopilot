@@ -5,7 +5,7 @@ on: pull_request
 jobs:
   unit_tests:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-focal:2021-05-04
+    container: px4io/px4-dev-base-focal:2021-09-08
     steps:
     - uses: actions/checkout@v2.3.1
       with:

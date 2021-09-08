@@ -23,7 +23,7 @@ jobs:
     needs: enumerate_targets
     strategy:
       matrix: ${{fromJson(needs.enumerate_targets.outputs.matrix)}}
-    container: px4io/px4-dev-${{ matrix.container }}:2021-05-04
+    container: px4io/px4-dev-${{ matrix.container }}:2021-09-08
     steps:
     - uses: actions/checkout@v1
       with:
