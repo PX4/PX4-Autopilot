@@ -53,18 +53,11 @@ PWMOut::PWMOut(int instance, uint8_t output_base) :
 	OutputModuleInterface((instance == 0) ? MODULE_NAME"0" : MODULE_NAME"1", px4::wq_configurations::hp_default),
 	_instance(instance),
 	_output_base(output_base),
-	_output_mask(0),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": interval"))
 {
 	_mixing_output.setAllMinValues(PWM_DEFAULT_MIN);
 	_mixing_output.setAllMaxValues(PWM_DEFAULT_MAX);
-
-	for (int i = 0; i < MAX_PER_INSTANCE; i++) {
-		_output_mask |= 1 << i;
-	}
-
-	_output_mask <<= _output_base;
 }
 
 PWMOut::~PWMOut()
@@ -98,9 +91,6 @@ int PWMOut::init()
 	}
 
 	_mixing_output.setDriverInstance(_class_instance);
-
-	/* force a reset of the update rate */
-	_current_update_rate = 0;
 
 	_num_outputs = math::min(FMU_MAX_ACTUATORS - (int)_output_base, MAX_PER_INSTANCE);
 	_pwm_mask = ((1u << _num_outputs) - 1) << _output_base;
@@ -163,7 +153,7 @@ int PWMOut::set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_
 		for (unsigned group = 0; group < FMU_MAX_ACTUATORS; group++) {
 
 			// get the channel mask for this rate group
-			uint32_t mask = _output_mask & up_pwm_servo_get_rate_group(group);
+			uint32_t mask = _pwm_mask & up_pwm_servo_get_rate_group(group);
 
 			if (mask == 0) {
 				continue;
@@ -343,7 +333,9 @@ bool PWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	/* output to the servos */
 	if (_pwm_initialized) {
 		for (size_t i = 0; i < math::min(_num_outputs, num_outputs); i++) {
-			up_pwm_servo_set(_output_base + i, outputs[i]);
+			if (_pwm_mask & (1 << (i + _output_base))) {
+				up_pwm_servo_set(_output_base + i, outputs[i]);
+			}
 		}
 	}
 
@@ -395,7 +387,7 @@ void PWMOut::Run()
 		// update_params(); // do not update PWM params for now (was interfering with VTOL PWM settings)
 	}
 
-	if (_current_update_rate == 0) {
+	if (_pwm_initialized && _current_update_rate == 0) {
 		update_current_rate();
 	}
 
@@ -866,7 +858,11 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		}
 
 		if (arg <= 2100) {
-			up_pwm_servo_set(cmd - PWM_SERVO_SET(0) + _output_base, arg);
+			unsigned channel = cmd - PWM_SERVO_SET(0) + _output_base;
+
+			if (_pwm_mask & (1 << channel)) {
+				up_pwm_servo_set(channel, arg);
+			}
 
 		} else {
 			ret = -EINVAL;
@@ -927,7 +923,7 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_RATEGROUP(12):
 	case PWM_SERVO_GET_RATEGROUP(13):
 #endif
-		*(uint32_t *)arg = _output_mask & up_pwm_servo_get_rate_group(cmd - PWM_SERVO_GET_RATEGROUP(0));
+		*(uint32_t *)arg = _pwm_mask & up_pwm_servo_get_rate_group(cmd - PWM_SERVO_GET_RATEGROUP(0));
 		break;
 
 	case PWM_SERVO_GET_COUNT:

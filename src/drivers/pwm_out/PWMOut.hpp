@@ -126,7 +126,6 @@ private:
 
 	const int _instance;
 	const uint32_t _output_base;
-	uint32_t _output_mask;
 
 	static const int MAX_PER_INSTANCE{8};
 
