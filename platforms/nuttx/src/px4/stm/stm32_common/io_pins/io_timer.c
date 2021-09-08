@@ -437,16 +437,20 @@ static int reallocate_channel_resources(uint32_t channels, io_timer_channel_mode
 
 __EXPORT int io_timer_allocate_channel(unsigned channel, io_timer_channel_mode_t mode)
 {
+	irqstate_t flags = px4_enter_critical_section();
 	int existing_mode = io_timer_get_channel_mode(channel);
+	int ret = -EBUSY;
 
 	if (existing_mode <= IOTimerChanMode_NotUsed || existing_mode == mode) {
 		io_timer_channel_allocation_t bit = 1 << channel;
 		channel_allocations[IOTimerChanMode_NotUsed] &= ~bit;
 		channel_allocations[mode] |= bit;
-		return 0;
+		ret = 0;
 	}
 
-	return -EBUSY;
+	px4_leave_critical_section(flags);
+
+	return ret;
 }
 
 
@@ -785,6 +789,8 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 		return -EINVAL;
 	}
 
+	irqstate_t flags = px4_enter_critical_section(); // atomic channel allocation and hw config
+
 	int previous_mode = io_timer_get_channel_mode(channel);
 	int rv = allocate_channel(channel, mode);
 	unsigned timer = channels_timer(channel);
@@ -803,8 +809,6 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 	/* Valid channel should now be reserved in new mode */
 
 	if (rv == 0) {
-
-		irqstate_t flags = px4_enter_critical_section();
 
 		/* Set up IO */
 		if (gpio) {
@@ -854,8 +858,9 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 		channel_handlers[channel].context = context;
 		rDIER(timer) |= dier_setbits << shifts;
 #endif
-		px4_leave_critical_section(flags);
 	}
+
+	px4_leave_critical_section(flags);
 
 	return rv;
 }
