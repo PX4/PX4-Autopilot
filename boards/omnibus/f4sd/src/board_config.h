@@ -119,7 +119,6 @@
  * Alternatively CH3/CH4 could be assigned to UART6_TX/RX
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS      4
-#define DIRECT_INPUT_TIMER_CHANNELS  4
 
 /* High-resolution timer */
 #define HRT_TIMER                    4 // T4C1

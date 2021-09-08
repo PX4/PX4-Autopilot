@@ -104,7 +104,6 @@
  * Six PWM outputs are configured.
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   6
-#define DIRECT_INPUT_TIMER_CHANNELS  6
 
 /**
  * USB OTG FS:

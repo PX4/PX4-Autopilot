@@ -47,8 +47,6 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-#include <px4_platform_common/board_common.h>
-
 /******************************************************************************
  * Definitions
  ******************************************************************************/
@@ -135,6 +133,7 @@
 #define GPIO_PWM8 (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN1)
 
 #define DIRECT_PWM_OUTPUT_CHANNELS 8
+#define BOARD_HAS_NO_CAPTURE
 
 /* SBUS pins  *************************************************************/
 
@@ -166,3 +165,6 @@
 #define BOARD_NUM_IO_TIMERS 3
 
 #define BOARD_DISABLE_I2C_SPI
+
+
+#include <px4_platform_common/board_common.h>

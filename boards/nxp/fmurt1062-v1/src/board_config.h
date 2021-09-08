@@ -241,7 +241,7 @@
 
 // Input Capture not supported on MVP
 
-#define DIRECT_INPUT_TIMER_CHANNELS  0
+#define BOARD_HAS_NO_CAPTURE
 
 //#define BOARD_HAS_UI_LED_PWM           1  Not ported yet (Still Kinetis driver)
 #define BOARD_HAS_LED_PWM              1
