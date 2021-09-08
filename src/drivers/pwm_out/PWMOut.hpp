@@ -158,11 +158,12 @@ public:
 	virtual int	init();
 
 	int		set_mode(Mode mode);
-	Mode		get_mode() { return _mode; }
-	uint32_t	get_pwm_mask() { return _pwm_mask; }
-	uint32_t	get_alt_rate_channels() { return _pwm_alt_rate_channels; }
-	unsigned	get_alt_rate() { return _pwm_alt_rate; }
-	unsigned	get_default_rate() { return _pwm_default_rate; }
+	Mode		get_mode() const { return _mode; }
+	uint32_t	get_pwm_mask() const { return _pwm_mask; }
+	void		set_pwm_mask(uint32_t mask) { _pwm_mask = mask; }
+	uint32_t	get_alt_rate_channels() const { return _pwm_alt_rate_channels; }
+	unsigned	get_alt_rate() const { return _pwm_alt_rate; }
+	unsigned	get_default_rate() const { return _pwm_default_rate; }
 	void		request_mode(Mode new_mode);
 
 	static int	set_i2c_bus_clock(unsigned bus, unsigned clock_hz);
