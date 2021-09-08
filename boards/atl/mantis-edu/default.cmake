@@ -7,7 +7,6 @@ px4_add_board(
 	DRIVERS
 		adc/board_adc
 		barometer/maiertek/mpc2520
-		camera_capture
 		gps
 		#heater
 		imu/invensense/icm20602
