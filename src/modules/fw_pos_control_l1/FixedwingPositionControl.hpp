@@ -387,7 +387,7 @@ private:
 		(ParamFloat<px4::params::NPFG_GSP_MAX_TK>) _param_npfg_track_keeping_gsp_max,
 		(ParamFloat<px4::params::NPFG_NTE_FRAC>) _param_npfg_nte_fraction,
 		(ParamFloat<px4::params::NPFG_ROLL_TC>) _param_npfg_roll_time_const,
-		(ParamFloat<px4::params::NPFG_WR_BUF>) _param_npfg_wind_ratio_buf,
+		(ParamFloat<px4::params::NPFG_ASPD_BUF>) _param_npfg_airspeed_buffer,
 
 		(ParamFloat<px4::params::FW_LND_AIRSPD_SC>) _param_fw_lnd_airspd_sc,
 		(ParamFloat<px4::params::FW_LND_ANG>) _param_fw_lnd_ang,

@@ -118,7 +118,7 @@ FixedwingPositionControl::parameters_update()
 	_npfg.setMaxTrackKeepingMinGroundSpeed(_param_npfg_track_keeping_gsp_max.get());
 	_npfg.setNormalizedTrackErrorFraction(_param_npfg_nte_fraction.get());
 	_npfg.setRollTimeConst(_param_npfg_roll_time_const.get());
-	_npfg.setWindRatioBuffer(_param_npfg_wind_ratio_buf.get());
+	_npfg.setAirspeedBuffer(_param_npfg_airspeed_buffer.get());
 	_npfg.setRollLimit(radians(_param_fw_r_lim.get()));
 	_npfg.setRollSlewRate(radians(_param_fw_l1_r_slew_max.get()));
 

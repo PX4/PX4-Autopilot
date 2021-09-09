@@ -56,35 +56,9 @@ void NPFG::evaluate(const Vector2f &ground_vel, const Vector2f &wind_vel, Vector
 	Vector2f air_vel = ground_vel - wind_vel;
 	const float airspeed = air_vel.norm();
 
-	if (airspeed < MIN_AIRSPEED) {
-		// this case should only ever happen if we have not launched, the wind
-		// estimator has failed, or the aircraft is legitimately in a very sad
-		// situation
-		airspeed_ref_ = airspeed_nom_;
-		lateral_accel_ = 0.0f;
-		feas_ = 0.0f;
-		feas_on_track_ = 0.0f;
-		return;
-	}
-
 	const float wind_speed = wind_vel.norm();
-	const float wind_ratio = wind_speed / airspeed;
 
 	float track_error = fabsf(signed_track_error);
-
-	// on-track wind triangle projections
-	float wind_cross_upt = cross2D(wind_vel, unit_path_tangent);
-	float wind_dot_upt = wind_vel.dot(unit_path_tangent);
-
-	// calculate the bearing feasibility on the track at the current closest point
-	feas_on_track_ = bearingFeasibility(wind_cross_upt, wind_dot_upt, wind_speed, wind_ratio);
-
-	// update control parameters considering upper and lower stability bounds (if enabled)
-	// must be called before trackErrorBound() as it updates time_const_
-	adapted_period_ = adaptPeriod(ground_speed, airspeed, wind_ratio, track_error,
-				      path_curvature, wind_vel, unit_path_tangent, feas_on_track_);
-	p_gain_ = pGain(adapted_period_, damping_);
-	time_const_ = timeConst(adapted_period_, damping_);
 
 	// track error bound is dynamic depending on ground speed
 	track_error_bound_ = trackErrorBound(ground_speed, time_const_);
@@ -94,6 +68,20 @@ void NPFG::evaluate(const Vector2f &ground_vel, const Vector2f &wind_vel, Vector
 	float look_ahead_ang = lookAheadAngle(normalized_track_error);
 
 	bearing_vec_ = bearingVec(unit_path_tangent, look_ahead_ang, signed_track_error);
+
+	// on-track wind triangle projections
+	float wind_cross_upt = cross2D(wind_vel, unit_path_tangent);
+	float wind_dot_upt = wind_vel.dot(unit_path_tangent);
+
+	// calculate the bearing feasibility on the track at the current closest point
+	feas_on_track_ = bearingFeasibility(wind_cross_upt, wind_dot_upt, airspeed, wind_speed);
+
+	// update control parameters considering upper and lower stability bounds (if enabled)
+	// must be called before trackErrorBound() as it updates time_const_
+	adapted_period_ = adaptPeriod(ground_speed, airspeed, wind_speed, track_error,
+				      path_curvature, wind_vel, unit_path_tangent, feas_on_track_);
+	p_gain_ = pGain(adapted_period_, damping_);
+	time_const_ = timeConst(adapted_period_, damping_);
 
 	// specific waypoint logic complications... handles case where we are following
 	// waypoints and are in front of the first of the segment.
@@ -118,9 +106,9 @@ void NPFG::evaluate(const Vector2f &ground_vel, const Vector2f &wind_vel, Vector
 
 		wind_cross_upt = cross2D(wind_vel, unit_path_tangent);
 		wind_dot_upt = wind_vel.dot(unit_path_tangent);
-		feas_on_track_ = bearingFeasibility(wind_cross_upt, wind_dot_upt, wind_speed, wind_ratio);
+		feas_on_track_ = bearingFeasibility(wind_cross_upt, wind_dot_upt, airspeed, wind_speed);
 
-		adapted_period_ = adaptPeriod(ground_speed, airspeed, wind_ratio, track_error,
+		adapted_period_ = adaptPeriod(ground_speed, airspeed, wind_speed, track_error,
 					      path_curvature, wind_vel, unit_path_tangent, feas_on_track_);
 		p_gain_ = pGain(adapted_period_, damping_);
 		time_const_ = timeConst(adapted_period_, damping_);
@@ -133,7 +121,7 @@ void NPFG::evaluate(const Vector2f &ground_vel, const Vector2f &wind_vel, Vector
 	const float wind_dot_bearing = wind_vel.dot(bearing_vec_);
 
 	// continuous representation of the bearing feasibility
-	feas_ = bearingFeasibility(wind_cross_bearing, wind_dot_bearing, wind_speed, wind_ratio);
+	feas_ = bearingFeasibility(wind_cross_bearing, wind_dot_bearing, airspeed, wind_speed);
 
 	// we consider feasibility of both the current bearing as well as that on the track at the current closest point
 	const float feas_combined = feas_ * feas_on_track_;
@@ -152,7 +140,7 @@ void NPFG::evaluate(const Vector2f &ground_vel, const Vector2f &wind_vel, Vector
 
 	// lateral acceleration needed to stay on curved track (assuming no heading error)
 	lateral_accel_ff_ = lateralAccelFF(unit_path_tangent, ground_vel, wind_dot_upt,
-					   wind_cross_upt, airspeed, wind_speed, wind_ratio, signed_track_error, path_curvature);
+					   wind_cross_upt, airspeed, wind_speed, signed_track_error, path_curvature);
 
 	// total lateral acceleration to drive aircaft towards track as well as account
 	// for path curvature. The full effect of the feed-forward acceleration is smoothly
@@ -161,13 +149,13 @@ void NPFG::evaluate(const Vector2f &ground_vel, const Vector2f &wind_vel, Vector
 	lateral_accel_ = lateral_accel + feas_combined * track_proximity_ * lateral_accel_ff_;
 } // evaluate
 
-float NPFG::adaptPeriod(const float ground_speed, const float airspeed, const float wind_ratio,
+float NPFG::adaptPeriod(const float ground_speed, const float airspeed, const float wind_speed,
 			const float track_error, const float path_curvature, const Vector2f &wind_vel,
 			const Vector2f &unit_path_tangent, const float feas_on_track) const
 {
 	float period = period_;
 	const float air_turn_rate = fabsf(path_curvature * airspeed);
-	const float wind_factor = windFactor(wind_ratio);
+	const float wind_factor = windFactor(airspeed, wind_speed);
 
 	if (en_period_lb_) {
 		// lower bound the period for stability w.r.t. roll time constant and current flight condition
@@ -213,10 +201,15 @@ float NPFG::normalizedTrackError(const float track_error, const float track_erro
 	return math::constrain(track_error / track_error_bound, 0.0f, 1.0f);
 }
 
-float NPFG::windFactor(const float wind_ratio) const
+float NPFG::windFactor(const float airspeed, const float wind_speed) const
 {
 	// See [TODO: include citation] for definition/elaboration of this approximation.
-	return 2.0f * (1.0f - sqrtf(1.0f - math::min(1.0f, wind_ratio)));
+	if (wind_speed > airspeed || airspeed < EPSILON) {
+		return 2.0f;
+
+	} else {
+		return 2.0f * (1.0f - sqrtf(1.0f - math::min(1.0f, wind_speed / airspeed)));
+	}
 } // windFactor
 
 float NPFG::periodUB(const float air_turn_rate, const float wind_factor, const float feas_on_track) const
@@ -419,58 +412,23 @@ Vector2f NPFG::infeasibleAirVelRef(const Vector2f &wind_vel, const Vector2f &bea
 	return air_vel_ref.normalized() * airspeed;
 } // infeasibleAirVelRef
 
-float NPFG::bearingFeasibility(const float wind_cross_bearing, const float wind_dot_bearing, const float wind_speed,
-			       const float wind_ratio) const
+float NPFG::bearingFeasibility(float wind_cross_bearing, const float wind_dot_bearing, const float airspeed,
+			       const float wind_speed) const
 {
-	float sin_cross_wind_ang; // in [0, 1] (constant after 90 deg)
-
-	if (wind_dot_bearing <= 0.0f) {
-		sin_cross_wind_ang = 1.0f;
+	if (wind_dot_bearing < 0.0f) {
+		wind_cross_bearing = wind_speed;
 
 	} else {
-		sin_cross_wind_ang = fabsf(wind_cross_bearing / wind_speed);
+		wind_cross_bearing = fabsf(wind_cross_bearing);
 	}
 
-	// upper and lower feasibility barriers
-	float wind_ratio_ub, wind_ratio_lb;
-
-	if (sin_cross_wind_ang < CROSS_WIND_ANG_CO) { // small angle approx.
-		// linear feasibility function (avoid singularity)
-
-		const float wind_ratio_ub_co = ONE_DIV_SIN_CROSS_WIND_ANG_CO;
-		wind_ratio_ub = wind_ratio_ub_co + CO_SLOPE * (CROSS_WIND_ANG_CO - sin_cross_wind_ang);
-
-		const float wind_ratio_lb_co = (ONE_DIV_SIN_CROSS_WIND_ANG_CO - 2.0f) * wind_ratio_buffer_ + 1.0f;
-		wind_ratio_lb = wind_ratio_lb_co + wind_ratio_buffer_ * CO_SLOPE * (CROSS_WIND_ANG_CO - sin_cross_wind_ang);
-
-	} else {
-		const float one_div_sin_cross_wind_ang = 1.0f / sin_cross_wind_ang;
-		wind_ratio_ub = one_div_sin_cross_wind_ang;
-		wind_ratio_lb = (one_div_sin_cross_wind_ang - 2.0f) * wind_ratio_buffer_ + 1.0f;
-	}
-
-	// calculate bearing feasibility
-	float feas = 1.0f; // feasible
-
-	if (wind_ratio > wind_ratio_ub) {
-		// infeasible
-		feas = 0.0f;
-
-	} else if (wind_ratio > wind_ratio_lb) {
-		// partially feasible
-		// smoothly transition from fully feasible to fully infeasible
-		feas = cosf(M_PI_F * 0.5f * math::constrain((wind_ratio - wind_ratio_lb) / (wind_ratio_ub - wind_ratio_lb), 0.0f,
-				1.0f));
-		feas *= feas;
-	}
-
-	return feas;
+	float sin_arg = sinf(M_PI_F * 0.5f * math::constrain((airspeed - wind_cross_bearing) / airspeed_buffer_, 0.0f, 1.0f));
+	return sin_arg * sin_arg;
 } // bearingFeasibility
 
 float NPFG::lateralAccelFF(const Vector2f &unit_path_tangent, const Vector2f &ground_vel,
 			   const float wind_dot_upt, const float wind_cross_upt, const float airspeed,
-			   const float wind_speed, const float wind_ratio, const float signed_track_error,
-			   const float path_curvature) const
+			   const float wind_speed, const float signed_track_error, const float path_curvature) const
 {
 	// NOTE: all calculations within this function take place at the closet point
 	// on the path, as if the aircraft were already tracking the given path at

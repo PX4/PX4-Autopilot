@@ -222,19 +222,20 @@ PARAM_DEFINE_FLOAT(NPFG_NTE_FRAC, 0.5f);
 PARAM_DEFINE_FLOAT(NPFG_ROLL_TC, 0.5f);
 
 /**
- * NPFG wind ratio buffer
+ * NPFG airspeed buffer
  *
  * The size of the feasibility transition region at cross wind angle >= 90 deg.
  * This must be non-zero to avoid jumpy airspeed incrementation while using wind
- * excess handling logic.
+ * excess handling logic. Similarly used as buffer region around zero airspeed.
  *
- * @min 0.01
- * @max 0.30
- * @decimal 2
- * @increment 0.01
+ * @unit m/s
+ * @min 0.1
+ * @max 5.0
+ * @decimal 1
+ * @increment 0.1
  * @group FW NPFG Control
  */
-PARAM_DEFINE_FLOAT(NPFG_WR_BUF, 0.1f);
+PARAM_DEFINE_FLOAT(NPFG_ASPD_BUF, 1.5f);
 
 /**
  * Cruise throttle
