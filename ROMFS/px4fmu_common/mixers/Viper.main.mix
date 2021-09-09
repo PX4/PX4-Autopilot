@@ -1,5 +1,6 @@
 Viper Delta-wing mixer
 =================================
+# @board px4_fmu-v2 exclude
 
 Designed for Viper.
 
