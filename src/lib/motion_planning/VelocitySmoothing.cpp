@@ -55,7 +55,7 @@ void VelocitySmoothing::reset(float accel, float vel, float pos)
 	_state_init = _state;
 }
 
-float VelocitySmoothing::saturateT1ForAccel(float a0, float j_max, float T1, float a_max)
+float VelocitySmoothing::saturateT1ForAccel(float a0, float j_max, float T1, float a_max) const
 {
 	/* Check maximum acceleration, saturate and recompute T1 if needed */
 	float accel_T1 = a0 + j_max * T1;
@@ -71,7 +71,7 @@ float VelocitySmoothing::saturateT1ForAccel(float a0, float j_max, float T1, flo
 	return T1_new;
 }
 
-float VelocitySmoothing::computeT1(float a0, float v3, float j_max, float a_max)
+float VelocitySmoothing::computeT1(float a0, float v3, float j_max, float a_max) const
 {
 	float delta = 2.f * a0 * a0 + 4.f * j_max * v3;
 
@@ -101,7 +101,7 @@ float VelocitySmoothing::computeT1(float a0, float v3, float j_max, float a_max)
 	return math::max(T1, 0.f);
 }
 
-float VelocitySmoothing::computeT1(float T123, float a0, float v3, float j_max, float a_max)
+float VelocitySmoothing::computeT1(float T123, float a0, float v3, float j_max, float a_max) const
 {
 	float a = -j_max;
 	float b = j_max * T123 - a0;
@@ -138,7 +138,7 @@ float VelocitySmoothing::computeT1(float T123, float a0, float v3, float j_max, 
 }
 
 
-float VelocitySmoothing::computeT2(float T1, float T3, float a0, float v3, float j_max)
+float VelocitySmoothing::computeT2(float T1, float T3, float a0, float v3, float j_max) const
 {
 	float T2 = 0.f;
 
@@ -151,13 +151,13 @@ float VelocitySmoothing::computeT2(float T1, float T3, float a0, float v3, float
 	return math::max(T2, 0.f);
 }
 
-float VelocitySmoothing::computeT2(float T123, float T1, float T3)
+float VelocitySmoothing::computeT2(float T123, float T1, float T3) const
 {
 	float T2 = T123 - T1 - T3;
 	return math::max(T2, 0.f);
 }
 
-float VelocitySmoothing::computeT3(float T1, float a0, float j_max)
+float VelocitySmoothing::computeT3(float T1, float a0, float j_max) const
 {
 	float T3 = a0 / j_max + T1;
 	return math::max(T3, 0.f);
@@ -179,7 +179,7 @@ void VelocitySmoothing::updateDurations(float vel_setpoint)
 	}
 }
 
-int VelocitySmoothing::computeDirection()
+int VelocitySmoothing::computeDirection() const
 {
 	// Compute the velocity at which the trajectory will be
 	// when the acceleration will be zero
@@ -197,7 +197,7 @@ int VelocitySmoothing::computeDirection()
 	return direction;
 }
 
-float VelocitySmoothing::computeVelAtZeroAcc()
+float VelocitySmoothing::computeVelAtZeroAcc() const
 {
 	float vel_zero_acc = _state.v;
 
@@ -225,7 +225,7 @@ void VelocitySmoothing::updateDurationsMinimizeTotalTime()
 	_T2 = computeT2(_T1, _T3, _state.a, delta_v, jerk_max_T1);
 }
 
-Trajectory VelocitySmoothing::evaluatePoly(float j, float a0, float v0, float x0, float t, int d)
+Trajectory VelocitySmoothing::evaluatePoly(float j, float a0, float v0, float x0, float t, int d) const
 {
 	Trajectory traj;
 	float jt = d * j;
