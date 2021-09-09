@@ -107,7 +107,7 @@ PARAM_DEFINE_INT32(FW_USE_NPFG, 0);
  * @increment 0.5
  * @group FW NPFG Control
  */
-PARAM_DEFINE_FLOAT(NPFG_PERIOD, 30.0f);
+PARAM_DEFINE_FLOAT(NPFG_PERIOD, 20.0f);
 
 /**
  * NPFG damping ratio
@@ -117,10 +117,10 @@ PARAM_DEFINE_FLOAT(NPFG_PERIOD, 30.0f);
  * @min 0.10
  * @max 1.00
  * @decimal 2
- * @increment 0.05
+ * @increment 0.01
  * @group FW NPFG Control
  */
-PARAM_DEFINE_FLOAT(NPFG_DAMPING, 0.25f);
+PARAM_DEFINE_FLOAT(NPFG_DAMPING, 0.7f);
 
 /**
  * Enable automatic lower bound on the NPFG period
