@@ -92,6 +92,16 @@ class VtolAttitudeControl : public ModuleBase<VtolAttitudeControl>, public px4::
 {
 public:
 
+	enum class QuadchuteReason {
+		TransitionTimeout = 0,
+		ExternalCommand,
+		MinimumAltBreached,
+		LossOfAlt,
+		LargeAltError,
+		MaximumPitchExceeded,
+		MaximumRollExceeded,
+	};
+
 	VtolAttitudeControl();
 	~VtolAttitudeControl() override;
 
@@ -107,7 +117,7 @@ public:
 	bool init();
 
 	bool is_fixed_wing_requested();
-	void quadchute(const char *reason);
+	void quadchute(QuadchuteReason reason);
 	int get_transition_command() {return _transition_command;}
 	bool get_immediate_transition() {return _immediate_transition;}
 	void reset_immediate_transition() {_immediate_transition = false;}
