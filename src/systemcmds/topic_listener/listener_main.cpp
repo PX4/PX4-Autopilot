@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,9 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file listener_main.cpp
- *
- * Tool for listening to topics.
+ * Tool for listening to uORB topics.
  */
 
 #include <px4_platform_common/module.h>
@@ -113,7 +111,7 @@ void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
 		fds[1].fd = sub;
 		fds[1].events = POLLIN;
 
-		while (msgs_received < num_msgs) {
+		while (num_msgs == 0 || msgs_received < num_msgs) {
 
 			if (poll(&fds[0], 2, int(MESSAGE_TIMEOUT_S * 1000)) > 0) {
 
@@ -199,16 +197,6 @@ int listener_main(int argc, char *argv[])
 		}
 	}
 
-	if (num_msgs == 0) {
-		if (topic_rate != 0) {
-			num_msgs = 30 * topic_rate; // arbitrary limit (30 seconds at max rate)
-
-		} else {
-			num_msgs = 1;
-		}
-	}
-
-
 	unsigned topic_interval = 0;
 
 	if (topic_rate != 0) {
@@ -221,6 +209,7 @@ int listener_main(int argc, char *argv[])
 	for (size_t i = 0; i < orb_topics_count(); i++) {
 		if (strcmp(topics[i]->o_name, topic_name) == 0) {
 			found_topic = topics[i];
+			break;
 		}
 	}
 
@@ -250,6 +239,6 @@ The listener can be exited any time by pressing Ctrl+C, Esc, or Q.
 	PRINT_MODULE_USAGE_ARG("<topic_name>", "uORB topic name", false);
 
 	PRINT_MODULE_USAGE_PARAM_INT('i', 0, 0, ORB_MULTI_MAX_INSTANCES - 1, "Topic instance", true);
-	PRINT_MODULE_USAGE_PARAM_INT('n', 1, 0, 100, "Number of messages", true);
+	PRINT_MODULE_USAGE_PARAM_INT('n', 0, 0, 100, "Number of messages (unlimited 0)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('r', 0, 0, 1000, "Subscription rate (unlimited if 0)", true);
 }
