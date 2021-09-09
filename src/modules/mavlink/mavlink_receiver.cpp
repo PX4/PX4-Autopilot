@@ -835,7 +835,8 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 		d.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
 		d.device_id = device_id.devid;
 		d.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-		d.variance = 0.0;
+		d.variance = 0.01;
+		d.signal_quality = -1;
 
 		_flow_distance_sensor_pub.publish(d);
 	}
@@ -880,7 +881,8 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 	d.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
 	d.device_id = device_id.devid;
 	d.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-	d.variance = 0.0;
+	d.variance = 0.01;
+	d.signal_quality = -1;
 
 	_flow_distance_sensor_pub.publish(d);
 }
