@@ -42,6 +42,7 @@ px4_add_board(
 		pca9685_pwm_out
 		power_monitor/ina226
 		power_monitor/ina228
+		power_monitor/ina23X
 		#protocol_splitter
 		pwm_out_sim
 		pwm_out
