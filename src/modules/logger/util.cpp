@@ -43,6 +43,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 
 #include <drivers/drv_hrt.h>
+#include <px4_platform_common/events.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/time.h>
 #include <systemlib/mavlink_log.h>
@@ -227,8 +228,14 @@ int check_free_space(const char *log_root_dir, int32_t max_log_dirs_to_keep, orb
 	/* use a threshold of 50 MiB: if below, do not start logging */
 	if (statfs_buf.f_bavail < (px4_statfs_buf_f_bavail_t)(50 * 1024 * 1024 / statfs_buf.f_bsize)) {
 		mavlink_log_critical(&mavlink_log_pub,
-				     "[logger] Not logging; SD almost full: %u MiB",
+				     "[logger] Not logging; SD almost full: %u MiB\t",
 				     (unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize / 1024U / 1024U));
+		/* EVENT
+		 * @description Either manually free up some space, or enable automatic log rotation
+		 * via <param>SDLOG_DIRS_MAX</param>.
+		 */
+		events::send<uint32_t>(events::ID("logger_storage_full"), events::Log::Error,
+				       "Not logging, storage is almost full: {1} MiB", (uint32_t)(statfs_buf.f_bavail * statfs_buf.f_bsize / 1024U / 1024U));
 		return 1;
 	}
 

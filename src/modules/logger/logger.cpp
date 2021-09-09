@@ -1253,7 +1253,7 @@ int Logger::create_log_dir(LogType type, tm *tt, char *log_dir, int log_dir_len)
 	return strlen(log_dir);
 }
 
-int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_size)
+int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_size, bool notify)
 {
 	tm tt = {};
 	bool time_ok = false;
@@ -1283,6 +1283,21 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 		snprintf(log_file_name, sizeof(LogFileName::log_file_name), "%s%s.ulg", log_file_name_time, replay_suffix);
 		snprintf(file_name + n, file_name_size - n, "/%s", log_file_name);
 
+		if (notify) {
+			mavlink_log_info(&_mavlink_log_pub, "[logger] %s\t", file_name);
+			uint16_t year = 0;
+			uint8_t month = 0;
+			uint8_t day = 0;
+			sscanf(_file_name[(int)type].log_dir, "%hd-%hhd-%hhd", &year, &month, &day);
+			uint8_t hour = 0;
+			uint8_t minute = 0;
+			uint8_t second = 0;
+			sscanf(log_file_name_time, "%hhd_%hhd_%hhd", &hour, &minute, &second);
+			events::send<uint16_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t>(events::ID("logger_open_file_time"),
+					events::Log::Info,
+					"logging: opening log file {1}-{2}-{3}/{4}_{5}_{6}.ulg", year, month, day, hour, minute, second);
+		}
+
 	} else {
 		int n = create_log_dir(type, nullptr, file_name, file_name_size);
 
@@ -1308,6 +1323,16 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 		if (file_number > MAX_NO_LOGFILE) {
 			/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
 			return -1;
+		}
+
+		if (notify) {
+			mavlink_log_info(&_mavlink_log_pub, "[logger] %s\t", file_name);
+			uint16_t sess = 0;
+			sscanf(_file_name[(int)type].log_dir, "sess%hd", &sess);
+			uint16_t index = 0;
+			sscanf(log_file_name, "log%hd", &index);
+			events::send<uint16_t, uint16_t>(events::ID("logger_open_file_sess"), events::Log::Info,
+							 "logging: opening log file sess{1}/log{2}.ulg", sess, index);
 		}
 	}
 
@@ -1338,14 +1363,9 @@ void Logger::start_log_file(LogType type)
 
 	char file_name[LOG_DIR_LEN] = "";
 
-	if (get_log_file_name(type, file_name, sizeof(file_name))) {
+	if (get_log_file_name(type, file_name, sizeof(file_name), type == LogType::Full)) {
 		PX4_ERR("failed to get log file name");
 		return;
-	}
-
-	if (type == LogType::Full) {
-		/* print logging path, important to find log file later */
-		mavlink_log_info(&_mavlink_log_pub, "[logger] %s", file_name);
 	}
 
 	_writer.start_log_file(type, file_name);
