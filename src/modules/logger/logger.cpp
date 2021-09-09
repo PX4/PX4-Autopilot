@@ -1290,7 +1290,7 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 			return -1;
 		}
 
-		uint16_t file_number = 1; // start with file log001
+		uint16_t file_number = 100; // start with file log100
 
 		/* look for the next file that does not exist */
 		while (file_number <= MAX_NO_LOGFILE) {
