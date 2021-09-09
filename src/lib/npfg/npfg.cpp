@@ -605,7 +605,7 @@ void NPFG::navigateLevelFlight(const float heading)
 
 float NPFG::switchDistance(float wp_radius) const
 {
-	return math::min(wp_radius, track_error_bound_);
+	return math::min(wp_radius, track_error_bound_ * switch_distance_multiplier_);
 } // switchDistance
 
 Vector2f NPFG::getLocalPlanarVector(const Vector2d &origin, const Vector2d &target) const

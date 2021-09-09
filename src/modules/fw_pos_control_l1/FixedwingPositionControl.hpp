@@ -388,6 +388,7 @@ private:
 		(ParamFloat<px4::params::NPFG_NTE_FRAC>) _param_npfg_nte_fraction,
 		(ParamFloat<px4::params::NPFG_ROLL_TC>) _param_npfg_roll_time_const,
 		(ParamFloat<px4::params::NPFG_ASPD_BUF>) _param_npfg_airspeed_buffer,
+		(ParamFloat<px4::params::NPFG_SW_DST_MLT>) _param_npfg_switch_distance_multiplier,
 
 		(ParamFloat<px4::params::FW_LND_AIRSPD_SC>) _param_fw_lnd_airspd_sc,
 		(ParamFloat<px4::params::FW_LND_ANG>) _param_fw_lnd_ang,

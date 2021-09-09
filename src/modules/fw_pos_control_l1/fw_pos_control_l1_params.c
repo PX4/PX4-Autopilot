@@ -238,6 +238,21 @@ PARAM_DEFINE_FLOAT(NPFG_ROLL_TC, 0.5f);
 PARAM_DEFINE_FLOAT(NPFG_ASPD_BUF, 1.5f);
 
 /**
+ * NPFG switch distance multiplier
+ *
+ * Multiplied by the track error boundary to determine when the aircraft switches
+ * to the next waypoint and/or path segment. Should be less than 1. 1/pi (0.32)
+ * sets the switch distance equivalent to that of the L1 controller.
+ *
+ * @min 0.1
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_FLOAT(NPFG_SW_DST_MLT, 0.32f);
+
+/**
  * Cruise throttle
  *
  * This is the throttle setting required to achieve the desired cruise speed. Most airframes have a value of 0.5-0.7.

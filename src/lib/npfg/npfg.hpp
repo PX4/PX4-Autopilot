@@ -136,6 +136,11 @@ public:
 	void setAirspeedBuffer(float buf) { airspeed_buffer_ = math::max(buf, 0.1f); }
 
 	/*
+	 * Set the switch distance multiplier.
+	 */
+	void setSwitchDistanceMultiplier(float mult) { switch_distance_multiplier_ = math::max(mult, 0.1f); }
+
+	/*
 	 * @return Controller proportional gain [rad/s]
 	 */
 	float getPGain() const { return p_gain_; }
@@ -369,6 +374,8 @@ private:
 	float min_gsp_track_keeping_max_{5.0f}; // maximum, minimum forward ground speed demand from track keeping logic [m/s]
 
 	// guidance parameters
+	float switch_distance_multiplier_{0.318f}; // a value multiplied by the track error boundary resulting in a lower switch distance
+	// ^as the bearing angle changes quadratically (instead of linearly as in L1), the time constant (automatically calculated for on track stability) proportional track error boundary typically over estimates the required switching distance
 	float airspeed_buffer_{1.5f}; // size of the region above the feasibility boundary (into feasible space) where a continuous transition from feasible to infeasible is imposed [m/s]
 	float inv_nte_fraction_{0.5f}; // inverse normalized track error fraction ...
 	// ^determines at what fraction of the normalized track error the maximum track keeping forward ground speed demand is reached
