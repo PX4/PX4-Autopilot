@@ -829,8 +829,8 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 		device_id.devid_s.address = msg->sysid;
 
 		d.timestamp = f.timestamp;
-		d.min_distance = 0.3f;
-		d.max_distance = 5.0f;
+		d.min_distance = _param_ekf2_min_rng.get();
+		d.max_distance = _param_ekf2_rng_a_hmax.get();
 		d.current_distance = flow.distance; /* both are in m */
 		d.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
 		d.device_id = device_id.devid;
