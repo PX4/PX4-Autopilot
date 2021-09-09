@@ -34,6 +34,7 @@
 #include "VehicleMagnetometer.hpp"
 
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/events.h>
 #include <lib/geo/geo.h>
 
 namespace sensors
@@ -416,7 +417,7 @@ void VehicleMagnetometer::Run()
 					const hrt_abstime now = hrt_absolute_time();
 
 					if (now - _last_error_message > 3_s) {
-						mavlink_log_emergency(&_mavlink_log_pub, "%s #%i failed: %s%s%s%s%s!",
+						mavlink_log_emergency(&_mavlink_log_pub, "%s #%i failed: %s%s%s%s%s!\t",
 								      "MAG",
 								      failover_index,
 								      ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " OFF" : ""),
@@ -424,6 +425,27 @@ void VehicleMagnetometer::Run()
 								      ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " TIMEOUT" : ""),
 								      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " ERR CNT" : ""),
 								      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " ERR DNST" : ""));
+
+						events::px4::enums::sensor_failover_reason_t failover_reason{};
+
+						if (flags & DataValidator::ERROR_FLAG_NO_DATA) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::no_data; }
+
+						if (flags & DataValidator::ERROR_FLAG_STALE_DATA) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::stale_data; }
+
+						if (flags & DataValidator::ERROR_FLAG_TIMEOUT) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::timeout; }
+
+						if (flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::high_error_count; }
+
+						if (flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::high_error_density; }
+
+						/* EVENT
+						 * @description
+						 * Land immediately and check the system.
+						 */
+						events::send<uint8_t, events::px4::enums::sensor_failover_reason_t>(
+							events::ID("sensor_failover_mag"), events::Log::Emergency, "Magnetometer sensor #{1} failure: {2}", failover_index,
+							failover_reason);
+
 						_last_error_message = now;
 					}
 
