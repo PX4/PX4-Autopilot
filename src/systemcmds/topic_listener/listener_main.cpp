@@ -137,6 +137,8 @@ void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
 				if (fds[1].revents & POLLIN) {
 					msgs_received++;
 
+					PX4_INFO_RAW("\033[2J\n"); //clear screen
+					PX4_INFO_RAW("\033[H"); // move cursor to top left corner
 					PX4_INFO_RAW("\nTOPIC: %s instance %d #%d\n", id->o_name, topic_instance, msgs_received);
 
 					int ret = listener_print_topic(id, sub);
