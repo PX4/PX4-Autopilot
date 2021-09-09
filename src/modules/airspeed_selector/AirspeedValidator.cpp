@@ -145,35 +145,33 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 	}
 
 	// reset states if we are not flying or wind estimator was just initialized/reset
-	if (!_in_fixed_wing_flight || (time_now - _time_wind_estimator_initialized) < 10_s) {
+	if (!_in_fixed_wing_flight || (time_now - _time_wind_estimator_initialized) < 10_s
+	    || _tas_innov_integ_threshold <= 0.f) {
 		_innovations_check_failed = false;
 		_time_last_tas_pass = time_now;
 
-	} else if (_tas_innov_integ_threshold <= 0.f) {
-		//don't run if ASPD_FS_INTEG < 0
-		_innovations_check_failed = false;
+	} else if (!((estimator_status_vel_test_ratio < 1.f) && (estimator_status_mag_test_ratio < 1.f))) {
+		//nav velocity data is likely not good
+		//don't run the test but don't reset the check if it had previously failed when nav velocity data was still likely good
 		_time_last_tas_pass = time_now;
 
 	} else {
+		// nav velocity data is likely good so airspeed innovations are able to be used
+		// compute the ratio of innovation to gate size
 		const float dt_s = math::constrain((time_now - _time_last_aspd_innov_check) / 1e6f, 0.01f, 0.2f); // limit to [100,5] Hz
+		const float tas_test_ratio = _wind_estimator.get_tas_innov() * _wind_estimator.get_tas_innov()
+					     / (fmaxf(_tas_gate, 1.0f) * fmaxf(_tas_gate, 1.f) * _wind_estimator.get_tas_innov_var());
 
-		if ((estimator_status_vel_test_ratio < 1.f) && (estimator_status_mag_test_ratio < 1.f)) {
-			// nav velocity data is likely good so airspeed innovations are able to be used
-			// compute the ratio of innovation to gate size
-			const float tas_test_ratio = _wind_estimator.get_tas_innov() * _wind_estimator.get_tas_innov()
-						     / (fmaxf(_tas_gate, 1.0f) * fmaxf(_tas_gate, 1.f) * _wind_estimator.get_tas_innov_var());
+		if (tas_test_ratio > _tas_innov_threshold) {
+			_apsd_innov_integ_state += dt_s * (tas_test_ratio - _tas_innov_threshold); // integrate exceedance
 
-			if (tas_test_ratio > _tas_innov_threshold) {
-				_apsd_innov_integ_state += dt_s * (tas_test_ratio - _tas_innov_threshold); // integrate exceedance
+		} else {
+			// reset integrator used to trigger and record pass if integrator check is disabled
+			_apsd_innov_integ_state = 0.f;
+		}
 
-			} else {
-				// reset integrator used to trigger and record pass if integrator check is disabled
-				_apsd_innov_integ_state = 0.f;
-			}
-
-			if (_tas_innov_integ_threshold > 0.f && _apsd_innov_integ_state < _tas_innov_integ_threshold) {
-				_time_last_tas_pass = time_now;
-			}
+		if (_tas_innov_integ_threshold > 0.f && _apsd_innov_integ_state < _tas_innov_integ_threshold) {
+			_time_last_tas_pass = time_now;
 		}
 
 		_innovations_check_failed = (time_now - _time_last_tas_pass) > TAS_INNOV_FAIL_DELAY;
