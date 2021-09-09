@@ -68,6 +68,9 @@ param set-default EKF2_OF_GATE 2.0
 param set-default EKF2_OF_POS_X -0.035
 param set-default EKF2_OF_POS_Y 0.0
 param set-default EKF2_OF_POS_Z 0.033
+param set-default EKF2_OF_MIN_RNG 0.01
+param set-default EKF2_OF_A_HMAX 7.0
+param set-default EKF2_OF_QMIN 30
 
 param set-default EKF2_PCOEF_XN -0.3
 param set-default EKF2_PCOEF_XP -0.4
