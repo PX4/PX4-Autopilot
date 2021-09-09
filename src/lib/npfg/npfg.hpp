@@ -102,7 +102,7 @@ public:
 	/*
 	 * Set the minimum allowed forward ground speed [m/s].
 	 */
-	void setMinGroundSpeed(float min_gsp) { min_gsp_cmd_ = math::max(min_gsp, 0.0f); }
+	void setMinGroundSpeed(float min_gsp) { min_gsp_desired_ = math::max(min_gsp, 0.0f); }
 
 	/*
 	 * Set the maximum value of the minimum forward ground speed command for track
@@ -338,52 +338,81 @@ private:
 	static constexpr float MIN_RADIUS = 0.5f; // minimum effective radius (avoid singularities) [m]
 	static constexpr float PERIOD_SAFETY_FACTOR = 4.0f; // multiplier for period lower bound [s]
 
+	/*
+	 * tuning
+	 */
+
 	float period_{20.0f}; // nominal (desired) period -- user defined [s]
 	float damping_{0.7071f}; // nominal (desired) damping ratio -- user defined
 	float p_gain_{0.4442}; // proportional gain (computed from period_ and damping_) [rad/s]
 	float time_const_{14.142f}; // time constant (computed from period_ and damping_) [s]
 	float adapted_period_{20.0f}; // auto-adapted period (if stability bounds enabled) [s]
 
+	/*
+	 * user defined guidance settings
+	 */
+
+	// guidance options
 	bool en_period_lb_{true}; // enables automatic lower bound constraints on controller period
 	bool en_period_ub_{true}; // enables automatic upper bound constraints on controller period (remains disabled if lower bound is disabled)
 	bool ramp_in_adapted_period_{true}; // linearly ramps in upper bounded period adaptations from the nominal user setting according to track proximity
-
 	bool en_min_ground_speed_{true}; // the airspeed reference is incremented to sustain a user defined minimum forward ground speed
 	bool en_track_keeping_{false}; // the airspeed reference is incremented to return to the track and sustain zero ground velocity until excess wind subsides
 	bool en_wind_excess_regulation_{true}; // the airspeed reference is incremented to regulate the excess wind, but not overcome it ...
 	// ^disabling this parameter disables all other excess wind handling options, using only the nominal airspeed for reference
-	float min_gsp_cmd_{0.0f}; // user defined miminum forward ground speed [m/s]
-	float min_gsp_track_keeping_{0.0f}; // minimum forward ground speed demand from track keeping logic [m/s]
-	float min_gsp_track_keeping_max_{5.0f}; // maximum, minimum forward ground speed demand from track keeping logic [m/s]
-	float min_ground_speed_ref_{0.0f}; // resultant minimum forward ground speed reference considering all active guidance logic [m/s]
-	float inv_nte_fraction_{0.5f}; // inverse normalized track error fraction ...
-	// ^determines at what fraction of the normalized track error the maximum track keeping forward ground speed demand is reached
-	float feas_{1.0f}; // continous representation of bearing feasibility in [0,1] (0=infeasible, 1=feasible)
-	float feas_on_track_{1.0f}; // continuous bearing feasibility "on track"
-	float airspeed_buffer_{1.5f}; // size of the region above the feasibility boundary (into feasible space) where a continuous transition from feasible to infeasible is imposed [m/s]
 
-	float track_error_bound_{135.0f}; // the current ground speed dependent track error bound [m]
-	float track_proximity_{0.0f}; // value in [0,1] indicating proximity to track, 0 = at track error boundary or beyond, 1 = on track
-
+	// guidance settings
 	float airspeed_nom_{15.0f}; // nominal (desired) airspeed reference (generally equivalent to cruise optimized airspeed) [m/s]
 	float airspeed_max_{20.0f}; // maximum airspeed reference - the maximum achievable/allowed airspeed reference [m/s]
 	float roll_time_const_{0.5f}; // autopilot roll response time constant [s]
+	float min_gsp_desired_{0.0f}; // user defined miminum desired forward ground speed [m/s]
+	float min_gsp_track_keeping_max_{5.0f}; // maximum, minimum forward ground speed demand from track keeping logic [m/s]
 
+	// guidance parameters
+	float airspeed_buffer_{1.5f}; // size of the region above the feasibility boundary (into feasible space) where a continuous transition from feasible to infeasible is imposed [m/s]
+	float inv_nte_fraction_{0.5f}; // inverse normalized track error fraction ...
+	// ^determines at what fraction of the normalized track error the maximum track keeping forward ground speed demand is reached
+
+	/*
+	 * internal guidance states
+	 */
+
+	// speeds
+	float min_gsp_track_keeping_{0.0f}; // minimum forward ground speed demand from track keeping logic [m/s]
+	float min_ground_speed_ref_{0.0f}; // resultant minimum forward ground speed reference considering all active guidance logic [m/s]
+
+	//bearing feasibility
+	float feas_{1.0f}; // continous representation of bearing feasibility in [0,1] (0=infeasible, 1=feasible)
+	float feas_on_track_{1.0f}; // continuous bearing feasibility "on track"
+
+	// track proximity
+	float track_error_bound_{212.13f}; // the current ground speed dependent track error bound [m]
+	float track_proximity_{0.0f}; // value in [0,1] indicating proximity to track, 0 = at track error boundary or beyond, 1 = on track
+
+	// path following states
+	matrix::Vector2f unit_path_tangent_{matrix::Vector2f{1.0f, 0.0f}}; // unit path tangent vector
+	float signed_track_error_{0.0f}; // signed track error [m]
 	matrix::Vector2f bearing_vec_{matrix::Vector2f{1.0f, 0.0f}}; // bearing unit vector
+
+	/*
+	 * guidance outputs
+	 */
 	float airspeed_ref_{15.0f}; // airspeed reference [m/s]
 	matrix::Vector2f air_vel_ref_{matrix::Vector2f{15.0f, 0.0f}}; // air velocity reference vector [m/s]
 	float lateral_accel_{0.0f}; // lateral acceleration reference [m/s^2]
 	float lateral_accel_ff_{0.0f}; // lateral acceleration demand to maintain path curvature [m/s^2]
 
-	/* ECL_L1_Pos_Controller functionality */
+	/*
+	 * ECL_L1_Pos_Controller functionality
+	 */
+
 	float dt_{0}; // control loop time [s]
 	float roll_lim_rad_{math::radians(30.0f)}; // maximum roll angle [rad]
 	float roll_setpoint_{0.0f}; // current roll angle setpoint [rad]
 	float roll_slew_rate_{0.0f}; // roll angle setpoint slew rate limit [rad/s]
 	bool circle_mode_{false}; // true if following circle
 	bool path_type_loiter_{false}; // true if the guidance law is tracking a loiter circle
-	matrix::Vector2f unit_path_tangent_{matrix::Vector2f{1.0f, 0.0f}}; // unit path tangent vector
-	float signed_track_error_{0.0f}; // signed track error [m]
+
 
 	/*
 	 * Computes the lateral acceleration and airspeed references necessary to track

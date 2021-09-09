@@ -301,13 +301,13 @@ float NPFG::minGroundSpeed(const float normalized_track_error, const float feas)
 	}
 
 	// minimum ground speed demand from minimum forward ground speed user setting
-	float min_gsp_cmd = 0.0f;
+	float min_gsp_desired = 0.0f;
 
 	if (en_min_ground_speed_ && en_wind_excess_regulation_) {
-		min_gsp_cmd = min_gsp_cmd_;
+		min_gsp_desired = min_gsp_desired_;
 	}
 
-	return math::max(min_gsp_track_keeping_, min_gsp_cmd);
+	return math::max(min_gsp_track_keeping_, min_gsp_desired);
 } // minGroundSpeed
 
 Vector2f NPFG::refAirVelocity(const Vector2f &wind_vel, const Vector2f &bearing_vec,
