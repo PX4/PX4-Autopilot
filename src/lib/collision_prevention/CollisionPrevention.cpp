@@ -38,6 +38,7 @@
  */
 
 #include "CollisionPrevention.hpp"
+#include <px4_platform_common/events.h>
 
 using namespace matrix;
 using namespace time_literals;
@@ -157,8 +158,10 @@ CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obstacle,
 		}
 
 	} else {
-		mavlink_log_critical(&_mavlink_log_pub, "Obstacle message received in unsupported frame %.0f\n",
-				     (double)obstacle.frame);
+		mavlink_log_critical(&_mavlink_log_pub, "Obstacle message received in unsupported frame %i\t",
+				     obstacle.frame);
+		events::send<uint8_t>(events::ID("col_prev_unsup_frame"), events::Log::Error,
+				      "Obstacle message received in unsupported frame {1}", obstacle.frame);
 	}
 }
 
