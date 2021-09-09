@@ -120,18 +120,17 @@ class AppDescriptor(object):
 
 
 class FirmwareImage(object):
-    def __init__(self, path_or_file, mode="r"):
+    def __init__(self, path_or_file, mode="r", padding = 4):
+        self._padding = padding;
         if getattr(path_or_file, "read", None):
             self._file = path_or_file
             self._do_close = False
-            self._padding = 0
         else:
             if "b" not in mode:
                 self._file = open(path_or_file, mode + "b")
             else:
                 self._file = open(path_or_file, mode)
             self._do_close = True
-            self._padding = 4
 
         if "r" in mode:
             self._contents = BytesIO(self._file.read())
@@ -216,11 +215,20 @@ class FirmwareImage(object):
             prev_offset = self._contents.tell()
             self._contents.seek(0, os.SEEK_END)
             self._length = self._contents.tell()
-            if self._padding:
-                fill = self._padding - (self._length % self._padding)
-                if fill:
-                    self._length += fill
-                self._padding = fill
+            # Was Padding requested
+            if self._padding != 0:
+            # If so. then is the file already a multiple of the padding?
+                if 0 == (self._length % self._padding):
+                    # padding not needed
+                    self._padding = 0
+
+                # Still need padding
+                if self._padding:
+                    fill = self._padding - (self._length % self._padding)
+                    if fill:
+                        self._length += fill
+                    #report back the fill which is the padding
+                    self._padding = fill
             self._contents.seek(prev_offset)
 
         return self._length
@@ -285,6 +293,8 @@ if __name__ == "__main__":
                       metavar="IMAGE")
     parser.add_option("-v", "--verbose", dest="verbose", action="store_true",
                       help="show additional firmware information on stdout")
+    parser.add_option("-p", "--padding", dest="padding", type= int,  default=4,
+                      help="Padds the image to a multple of")
 
     options, args = parser.parse_args()
     if len(args) not in (0, 2):
@@ -315,8 +325,8 @@ if __name__ == "__main__":
 
     bootloader_size = int(options.bootloader_size)
 
-    with FirmwareImage(in_file, "rb") as in_image:
-        with FirmwareImage(out_file, "wb") as out_image:
+    with FirmwareImage(in_file, "rb", 0) as in_image:
+        with FirmwareImage(out_file, "wb", options.padding) as out_image:
             image = in_image.read()
             out_image.write(bootloader_image)
             out_image.write(image[bootloader_size:])
