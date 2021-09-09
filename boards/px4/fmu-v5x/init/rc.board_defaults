@@ -3,6 +3,7 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
+param set-default SENS_EN_INA23X 0
 param set-default SENS_EN_INA228 0
 param set-default SENS_EN_INA226 1
 
