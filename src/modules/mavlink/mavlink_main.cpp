@@ -54,6 +54,8 @@
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/version/version.h>
 
+#include <px4_platform_common/events.h>
+
 #include <uORB/topics/event.h>
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
@@ -2321,11 +2323,15 @@ Mavlink::task_main(int argc, char *argv[])
 					    !_transmitting_enabled_commanded && _first_heartbeat_sent) {
 
 						_transmitting_enabled = false;
-						mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s", _device_name);
+						mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s\t", _device_name);
+						events::send<int8_t>(events::ID("mavlink_iridium_disable"), events::Log::Info,
+								     "Disabling transmitting with IRIDIUM mavlink on instance {1}", _instance_id);
 
 					} else if (!_transmitting_enabled && !vehicle_status.high_latency_data_link_lost) {
 						_transmitting_enabled = true;
-						mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s", _device_name);
+						mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s\t", _device_name);
+						events::send<int8_t>(events::ID("mavlink_iridium_enable"), events::Log::Info,
+								     "Enabling transmitting with IRIDIUM mavlink on instance {1}", _instance_id);
 					}
 				}
 			}
@@ -2348,8 +2354,10 @@ Mavlink::task_main(int argc, char *argv[])
 
 						if (vehicle_cmd.param1 > 0.5f) {
 							if (!_transmitting_enabled) {
-								mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s by command",
+								mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s by command\t",
 										 _device_name);
+								events::send<int8_t>(events::ID("mavlink_iridium_enable_cmd"), events::Log::Info,
+										     "Enabling transmitting with IRIDIUM mavlink on instance {1} by command", _instance_id);
 							}
 
 							_transmitting_enabled = true;
@@ -2357,8 +2365,10 @@ Mavlink::task_main(int argc, char *argv[])
 
 						} else {
 							if (_transmitting_enabled) {
-								mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s by command",
+								mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s by command\t",
 										 _device_name);
+								events::send<int8_t>(events::ID("mavlink_iridium_disable_cmd"), events::Log::Info,
+										     "Disabling transmitting with IRIDIUM mavlink on instance {1} by command", _instance_id);
 							}
 
 							_transmitting_enabled = false;
