@@ -277,6 +277,7 @@ function(px4_add_board)
 
 	if(CRYPTO)
 		set(PX4_CRYPTO ${CRYPTO} CACHE STRING "PX4 crypto implementation" FORCE)
+		add_definitions(-DPX4_CRYPTO)
 	endif()
 
 	if(KEYSTORE)
