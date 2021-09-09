@@ -34,6 +34,7 @@
 #include "VehicleIMU.hpp"
 
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/events.h>
 #include <lib/systemlib/mavlink_log.h>
 
 #include <float.h>
@@ -322,7 +323,13 @@ bool VehicleIMU::UpdateAccel()
 				const uint64_t clipping_total = _status.accel_clipping[0] + _status.accel_clipping[1] + _status.accel_clipping[2];
 
 				if (clipping_total > _last_clipping_notify_total_count + 1000) {
-					mavlink_log_critical(&_mavlink_log_pub, "Accel %" PRIu8 " clipping, not safe to fly!", _instance);
+					mavlink_log_critical(&_mavlink_log_pub, "Accel %" PRIu8 " clipping, not safe to fly!\t", _instance);
+					/* EVENT
+					 * @description Land now, and check the vehicle setup.
+					 * Clipping can lead to fly-aways.
+					 */
+					events::send<uint8_t>(events::ID("vehicle_imu_accel_clipping"), events::Log::Critical,
+							      "Accel {1} clipping, not safe to fly!", _instance);
 					_last_clipping_notify_time = accel.timestamp_sample;
 					_last_clipping_notify_total_count = clipping_total;
 				}
