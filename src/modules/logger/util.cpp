@@ -138,7 +138,7 @@ int check_free_space(const char *log_root_dir, int32_t max_log_dirs_to_keep, orb
 
 		// There are 2 directory naming schemes: sess<i> or <year>-<month>-<day>.
 		// For both we find the oldest and then remove the one which has more directories.
-		int year_min = 10000, month_min = 99, day_min = 99, sess_idx_min = 99999999, sess_idx_max = 0;
+		int year_min = 10000, month_min = 99, day_min = 99, sess_idx_min = 99999999, sess_idx_max = 99;
 
 		while ((result = readdir(dp))) {
 			int year, month, day, sess_idx;
