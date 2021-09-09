@@ -73,6 +73,7 @@ else()
 			nuttx_drivers # sdio
 			drivers__led # drv_led_start
 			px4_layer
+			px4_platform # I2CBusIterator
 			arch_io_pins
 		)
 endif()
