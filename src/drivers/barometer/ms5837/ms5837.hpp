@@ -76,12 +76,11 @@ public:
 	void 			print_status() override;
 	int			read(unsigned offset, void *data, unsigned count) override;
 
-protected:
+private:
 	int			probe() override;
 
 	PX4Barometer		_px4_barometer;
 
-	device::Device		*_interface;
 
 	ms5837::prom_u	   	_prom{};
 
@@ -115,9 +114,6 @@ protected:
 	 * Collect the result of the most recent measurement.
 	 */
 	int			collect();
-
-
-
 
 private:
 
