@@ -93,14 +93,14 @@ px4_add_board(
 		bl_update
 		dmesg
 		#dumpfile
-		esc_calib
-		gpio
+		#esc_calib
+		#gpio
 		hardfault_log
 		i2cdetect
 		led_control
 		mft
 		mixer
-		motor_ramp
+		#motor_ramp
 		motor_test
 		mtd
 		nshterm
