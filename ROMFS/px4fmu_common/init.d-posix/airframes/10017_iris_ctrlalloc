@@ -8,7 +8,8 @@
 #
 
 . ${R}etc/init.d/rc.mc_defaults
-. ${R}etc/init.d/rc.ctrlalloc
+
+param set-default SYS_CTRL_ALLOC 1
 
 param set-default MPC_USE_HTE 0
 

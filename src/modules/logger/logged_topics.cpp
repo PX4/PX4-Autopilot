@@ -50,8 +50,6 @@ void LoggedTopics::add_default_topics()
 	add_topic("actuator_controls_1", 100);
 	add_topic("actuator_controls_2", 100);
 	add_topic("actuator_controls_3", 100);
-	add_topic("actuator_controls_4", 100);
-	add_topic("actuator_controls_5", 100);
 	add_topic("actuator_controls_status_0", 300);
 	add_topic("airspeed", 1000);
 	add_topic("airspeed_validated", 200);
@@ -114,13 +112,6 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_status_flags");
 	add_topic("vtol_vehicle_status", 200);
 	add_topic("wind", 1000);
-
-	// Control allocation topics
-	add_topic("vehicle_actuator_setpoint", 20);
-	add_topic("vehicle_angular_acceleration", 20);
-	add_topic("vehicle_angular_acceleration_setpoint", 20);
-	add_topic("vehicle_thrust_setpoint", 20);
-	add_topic("vehicle_torque_setpoint", 20);
 
 	// multi topics
 	add_topic_multi("actuator_outputs", 100, 3);
@@ -187,6 +178,19 @@ void LoggedTopics::add_default_topics()
 
 	if (gps_dump_comm >= 1) {
 		add_topic("gps_dump");
+	}
+
+	int32_t sys_ctrl_alloc = 0;
+	param_get(param_find("SYS_CTRL_ALLOC"), &sys_ctrl_alloc);
+
+	if (sys_ctrl_alloc >= 1) {
+		add_topic("actuator_motors", 100);
+		add_topic("actuator_servos", 100);
+		add_topic("vehicle_actuator_setpoint", 20);
+		add_topic("vehicle_angular_acceleration", 20);
+		add_topic("vehicle_angular_acceleration_setpoint", 20);
+		add_topic("vehicle_thrust_setpoint", 20);
+		add_topic("vehicle_torque_setpoint", 20);
 	}
 }
 
