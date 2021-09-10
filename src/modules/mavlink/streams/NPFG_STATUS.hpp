@@ -69,6 +69,7 @@ private:
 			mavlink_npfg_status_t msg{};
 
 			msg.timestamp = npfg_status.timestamp;
+			msg.wind_est_valid = npfg_status.wind_est_valid;
 			msg.lat_accel = npfg_status.lat_accel;
 			msg.lat_accel_ff = npfg_status.lat_accel_ff;
 			msg.bearing_feas = npfg_status.bearing_feas;
