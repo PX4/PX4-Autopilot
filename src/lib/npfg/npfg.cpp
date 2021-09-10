@@ -158,38 +158,55 @@ float NPFG::adaptPeriod(const float ground_speed, const float airspeed, const fl
 	const float wind_factor = windFactor(airspeed, wind_speed);
 
 	if (en_period_lb_) {
-		// lower bound the period for stability w.r.t. roll time constant and current flight condition
-		const float period_lb = periodLB(air_turn_rate, wind_factor, feas_on_track);
-		period = math::max(period_lb * PERIOD_SAFETY_FACTOR, period);
+		// lower bound for period not considering path curvature
+		const float period_lb_zero_curvature = periodLB(0.0f, wind_factor, feas_on_track) * PERIOD_SAFETY_FACTOR;
+
+		// lower bound for period *considering path curvature
+		float period_lb = periodLB(air_turn_rate, wind_factor, feas_on_track) * PERIOD_SAFETY_FACTOR;
+
+		// recalculate the time constant and track error bound considering the zero
+		// curvature, lower-bounded period and subsequently recalculate the normalized
+		// track error
+		const float time_const = timeConst(period_lb_zero_curvature, damping_);
+		const float track_error_bound = trackErrorBound(ground_speed, time_const);
+		const float normalized_track_error = normalizedTrackError(track_error, track_error_bound);
+
+		// calculate nominal track proximity with lower bounded time constant
+		// (only a numerical solution can find corresponding track proximity
+		// and adapted gains simultaneously)
+		const float look_ahead_ang = lookAheadAngle(normalized_track_error);
+		const float track_proximity = trackProximity(look_ahead_ang);
+
+		// ramp in curvature dependent lower bound
+		period_lb = (ramp_in_adapted_period_) ? period_lb * track_proximity + (1.0f - track_proximity) *
+			    period_lb_zero_curvature :
+			    period_lb;
+
+		// lower bounded period
+		period = math::max(period_lb, period);
 
 		// only allow upper bounding ONLY if lower bounding is enabled (is otherwise
-		// dangerous to allow period decrements without stability checks)
-		const float period_ub = periodUB(air_turn_rate, wind_factor, feas_on_track);
+		// dangerous to allow period decrements without stability checks).
+		// NOTE: if the roll time constant is not accurately known, lower-bound
+		// checks may be too optimistic and reducing the period can still destabilize
+		// the system! enable this feature at your own risk.
+		if (en_period_ub_) {
 
-		if (en_period_ub_ && PX4_ISFINITE(period_ub) && period > period_ub) {
-			// NOTE: if the roll time constant is not accurately known, reducing
-			// the period here can destabilize the system!
-			// enable this feature at your own risk!
+			const float period_ub = periodUB(air_turn_rate, wind_factor, feas_on_track);
 
-			// upper bound the period (for track keeping stability), prefer lower bound if violated
-			const float period_adapted = math::max(period_lb * PERIOD_SAFETY_FACTOR, period_ub);
+			if (en_period_ub_ && PX4_ISFINITE(period_ub) && period > period_ub) {
+				// NOTE: if the roll time constant is not accurately known, reducing
+				// the period here can destabilize the system!
+				// enable this feature at your own risk!
 
-			// recalculate time constant and track error bound for lower-bounded
-			// period for normalized track error calculation
-			const float time_const = timeConst(period, damping_);
-			const float track_error_bound = trackErrorBound(ground_speed, time_const);
-			const float normalized_track_error = normalizedTrackError(track_error, track_error_bound);
+				// upper bound the period (for track keeping stability), prefer lower bound if violated
+				const float period_adapted = math::max(period_lb, period_ub);
 
-			// calculate nominal track proximity with lower bounded time constant
-			// (only a numerical solution can find corresponding track proximity
-			// and adapted gains simultaneously)
-			const float look_ahead_ang = lookAheadAngle(normalized_track_error);
-			const float track_proximity = trackProximity(look_ahead_ang);
-
-			// transition from the nominal period to the adapted period as we get
-			// closer to the track
-			period = (ramp_in_adapted_period_) ? period_adapted * track_proximity + (1.0f - track_proximity) * period :
-				 period_adapted;
+				// transition from the nominal period to the adapted period as we get
+				// closer to the track
+				period = (ramp_in_adapted_period_) ? period_adapted * track_proximity + (1.0f - track_proximity) * period :
+					 period_adapted;
+			}
 		}
 	}
 
