@@ -99,7 +99,7 @@ px4_add_board(
 		mft
 		microbench
 		mixer
-		motor_ramp
+		#motor_ramp
 		motor_test
 		mtd
 		nshterm
@@ -110,7 +110,7 @@ px4_add_board(
 		#reflect
 		sd_bench
 		#serial_test
-		system_time
+		#system_time
 		tests # tests and test runner
 		top
 		topic_listener
