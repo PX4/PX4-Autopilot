@@ -71,14 +71,19 @@ private:
 
 	int  probe() override;
 
-	int            getCounter();
-	void           resetCounter();
+    void           initCounter();
+	uint32_t       getCounter();
+	void           resetCounter();    
 
 	uint8_t        readRegister(uint8_t reg);
 	void           setRegister(uint8_t reg, uint8_t value);
 
-	int            _count{0};
+    uint8_t        hiWord(uint8_t in) { return (in & 0x0fu); }
+    uint8_t        loWord(uint8_t in) { return ((in & 0xf0u) >> 4); }
+
+	uint32_t       _count{0};
 	hrt_abstime    _last_measurement_time{0};
+    int            _tranfer_fail_count{0};
 
 	uORB::Publication<rpm_s> _rpm_pub{ORB_ID(rpm)};
 
