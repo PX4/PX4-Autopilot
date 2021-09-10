@@ -6,7 +6,8 @@
 #
 
 . ${R}etc/init.d/rc.mc_defaults
-. ${R}etc/init.d/rc.ctrlalloc
+
+param set-default SYS_CTRL_ALLOC 1
 
 param set-default MC_PITCHRATE_P 0.0800
 param set-default MC_PITCHRATE_I 0.0400
