@@ -34,17 +34,14 @@
 #pragma once
 
 #include <drivers/device/device.h>
+#include <drivers/device/i2c.h>
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/err.h>
 
-#include "ms5837.h"
-
-enum MS56XX_DEVICE_TYPES {
-	MS5837_DEVICE	= 5837,
-};
+#include "ms5837_registers.h"
 
 /* helper macro for handling report buffer indices */
 #define INCREMENT(_x, _lim)	do { __typeof__(_x) _tmp = _x+1; if (_tmp >= _lim) _tmp = 0; _x = _tmp; } while(0)
@@ -52,47 +49,15 @@ enum MS56XX_DEVICE_TYPES {
 /* helper macro for arithmetic - returns the square of the argument */
 #define POW2(_x)		((_x) * (_x))
 
-/*
- * MS5837 internal constants and data structures.
- */
-#define ADDR_CMD_CONVERT_D1_OSR256		0x40	/* write to this address to start pressure conversion */
-#define ADDR_CMD_CONVERT_D1_OSR512		0x42	/* write to this address to start pressure conversion */
-#define ADDR_CMD_CONVERT_D1_OSR1024		0x44	/* write to this address to start pressure conversion */
-#define ADDR_CMD_CONVERT_D1_OSR2048		0x46	/* write to this address to start pressure conversion */
-#define ADDR_CMD_CONVERT_D1_OSR4096		0x48	/* write to this address to start pressure conversion */
-#define ADDR_CMD_CONVERT_D2_OSR256		0x50	/* write to this address to start temperature conversion */
-#define ADDR_CMD_CONVERT_D2_OSR512		0x52	/* write to this address to start temperature conversion */
-#define ADDR_CMD_CONVERT_D2_OSR1024		0x54	/* write to this address to start temperature conversion */
-#define ADDR_CMD_CONVERT_D2_OSR2048		0x56	/* write to this address to start temperature conversion */
-#define ADDR_CMD_CONVERT_D2_OSR4096		0x58	/* write to this address to start temperature conversion */
-
-/*
-  use an OSR of 1024 to reduce the self-heating effect of the
-  sensor. Information from MS tells us that some individual sensors
-  are quite sensitive to this effect and that reducing the OSR can
-  make a big difference
- */
-#define ADDR_CMD_CONVERT_D1			ADDR_CMD_CONVERT_D1_OSR1024
-#define ADDR_CMD_CONVERT_D2			ADDR_CMD_CONVERT_D2_OSR1024
-
-/*
- * Maximum internal conversion time for OSR 1024 is 2.28 ms. We set an update
- * rate of 100Hz which is be very safe not to read the ADC before the
- * conversion finished
- */
-#define MS5837_CONVERSION_INTERVAL	10000	/* microseconds */
-#define MS5837_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
-
-class MS5837 : public I2CSPIDriver<MS5837>
+class MS5837 : public device::I2C, public I2CSPIDriver<MS5837>
 {
 public:
-	MS5837(device::Device *interface, ms5837::prom_u &prom_buf, const I2CSPIDriverConfig &config);
+	MS5837(const I2CSPIDriverConfig &config);
 	~MS5837() override;
 
-	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
-	static void print_usage();
+	static void 		print_usage();
 
-	int		init();
+	int			init();
 
 	/**
 	 * Perform a poll cycle; collect from the previous measurement
@@ -108,22 +73,22 @@ public:
 	 * at the next interval.
 	 */
 	void			RunImpl();
+	void 			print_status() override;
+	int			read(unsigned offset, void *data, unsigned count) override;
 
 protected:
-	void print_status() override;
+	int			probe() override;
 
 	PX4Barometer		_px4_barometer;
 
 	device::Device		*_interface;
 
-	ms5837::prom_s		_prom;
-	
-	enum MS56XX_DEVICE_TYPES _device_type;
+	ms5837::prom_u	   	_prom{};
 
 	bool			_collect_phase{false};
 	unsigned		_measure_phase{false};
 
-	/* intermediate temperature values per MS5837 datasheet */
+	/* intermediate temperature values per MS5611/MS5607 datasheet */
 	int64_t			_OFF{0};
 	int64_t			_SENS{0};
 
@@ -150,4 +115,27 @@ protected:
 	 * Collect the result of the most recent measurement.
 	 */
 	int			collect();
+
+
+
+
+private:
+
+	int			_probe_address(uint8_t address);
+
+	/**
+	 * Send a reset command to the MS5837.
+	 *
+	 * This is required after any bus reset.
+	 */
+	int			_reset();
+
+	/**
+	 * Read the MS5837 PROM
+	 *
+	 * @return		PX4_OK if the PROM reads successfully.
+	 */
+	int			_read_prom();
+
+	bool			_crc4(uint16_t *n_prom);
 };

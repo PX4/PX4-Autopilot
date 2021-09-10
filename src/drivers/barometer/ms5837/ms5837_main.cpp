@@ -37,42 +37,7 @@
 #include <px4_platform_common/module.h>
 
 
-#include "MS5837.hpp"
-#include "ms5837.h"
-
-I2CSPIDriverBase *MS5837::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
-{
-	ms5837::prom_u prom_buf;
-	device::Device *interface = nullptr;
-
-	if (config.bus_type == BOARD_I2C_BUS) {
-		interface = MS5837_i2c_interface(prom_buf, config.spi_devid, config.bus, config.bus_frequency);
-	}
-	if (interface == nullptr) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (interface->init() != OK) {
-		delete interface;
-		PX4_DEBUG("no device on bus %i (devid 0x%x)", config.bus, config.spi_devid);
-		return nullptr;
-	}
-
-	MS5837 *dev = new MS5837(interface, prom_buf, config);
-
-	if (dev == nullptr) {
-		delete interface;
-		return nullptr;
-	}
-
-	if (OK != dev->init()) {
-		delete dev;
-		return nullptr;
-	}
-
-	return dev;
-}
+#include "ms5837.hpp"
 
 void MS5837::print_usage()
 {
@@ -86,25 +51,11 @@ void MS5837::print_usage()
 extern "C" int ms5837_main(int argc, char *argv[])
 {
 	using ThisDriver = MS5837;
-	int ch;
-	BusCLIArguments cli{true, false}; //first  I2C support, second SPI support
+	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 400000;
 	uint16_t dev_type_driver = DRV_BARO_DEVTYPE_MS5837;
-	
-	while ((ch = cli.getOpt(argc, argv, "T:")) != EOF) {
-		switch (ch) {
-		case 'T': {
-				int val = atoi(cli.optArg());
 
-				if (val == 5837) {
-					dev_type_driver = DRV_BARO_DEVTYPE_MS5837;
-
-				}
-			}
-			break;
-		}
-	}
-	const char *verb = cli.optArg();
+	const char *verb = cli.parseDefaultArguments(argc, argv);
 
 	if (!verb) {
 		ThisDriver::print_usage();
