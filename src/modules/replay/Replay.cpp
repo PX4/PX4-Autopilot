@@ -371,7 +371,9 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 	// FIXME: this should check recursively, all used nested types
 	string file_format = _file_formats[topic_name];
 
-	if (file_format != orb_meta->o_fields) {
+	std::string orb_fields(orb_meta->o_fields);
+
+	if (file_format != orb_fields) {
 		// check if we have a compatibility conversion available
 		if (topic_name == "sensor_combined") {
 			if (string(orb_meta->o_fields) == "uint64_t timestamp;float[3] gyro_rad;uint32_t gyro_integral_dt;"
@@ -400,8 +402,42 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 
 		if (!compat) {
 			PX4_ERR("Formats for %s don't match. Will ignore it.", topic_name.c_str());
-			PX4_WARN(" Internal format: %s", orb_meta->o_fields);
+			PX4_WARN(" Internal format:");
+			size_t start = 0;
+
+			for (size_t i = 0; i < orb_fields.length(); ++i) {
+				if (orb_fields[i] == ';') {
+					std::string field(orb_fields.substr(start, i - start));
+
+					if (file_format.find(field) != std::string::npos) {
+						PX4_WARN(" - %s", field.c_str());
+
+					} else {
+						PX4_ERR(" - %s", field.c_str());
+					}
+
+					start = i + 1;
+				}
+			}
+
 			PX4_WARN(" File format    : %s", file_format.c_str());
+			start = 0;
+
+			for (size_t i = 0; i < file_format.length(); ++i) {
+				if (file_format[i] == ';') {
+					std::string field(file_format.substr(start, i - start));
+
+					if (orb_fields.find(field) != std::string::npos) {
+						PX4_WARN(" - %s", field.c_str());
+
+					} else {
+						PX4_ERR(" - %s", field.c_str());
+					}
+
+					start = i + 1;
+				}
+			}
+
 			return true; // not a fatal error
 		}
 	}
