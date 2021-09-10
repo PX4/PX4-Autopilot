@@ -145,16 +145,17 @@ void PositionControl::_velocityControl(const float dt)
 	// Prioritize vertical control while keeping a horizontal margin
 	const Vector2f thrust_sp_xy(_thr_sp);
 	const float thrust_sp_xy_norm = thrust_sp_xy.norm();
+	const float thrust_max_squared = math::sq(_lim_thr_max);
 
 	// Determine how much vertical thrust is left keeping horizontal margin
 	const float allocated_horizontal_thrust = math::min(thrust_sp_xy_norm, _lim_thr_xy_margin);
-	const float thrust_z_max_squared = math::sq(_lim_thr_max) - math::sq(allocated_horizontal_thrust);
+	const float thrust_z_max_squared = thrust_max_squared - math::sq(allocated_horizontal_thrust);
 
 	// Saturate maximal vertical thrust
 	_thr_sp(2) = math::max(_thr_sp(2), -sqrtf(thrust_z_max_squared));
 
 	// Determine how much horizontal thrust is left after prioritizing vertical control
-	const float thrust_max_xy_squared = thrust_z_max_squared - math::sq(_thr_sp(2));
+	const float thrust_max_xy_squared = thrust_max_squared - math::sq(_thr_sp(2));
 	float thrust_max_xy = 0;
 
 	if (thrust_max_xy_squared > 0) {
