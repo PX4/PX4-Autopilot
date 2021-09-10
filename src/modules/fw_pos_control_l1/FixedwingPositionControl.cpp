@@ -269,6 +269,12 @@ FixedwingPositionControl::wind_poll()
 			_wind_vel(1) = 0.0f;
 		}
 	}
+
+	if (!_param_npfg_en_wind_estimates.get()) {
+		_wind_valid = false;
+		_wind_vel(0) = 0.0f;
+		_wind_vel(1) = 0.0f;
+	}
 }
 
 void

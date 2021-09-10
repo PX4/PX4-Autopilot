@@ -1,6 +1,6 @@
 uint64 timestamp                # time since system start (microseconds)
 
-uint8 wind_est_valid            # (boolean) true = wind estimate is valid and being used by controller
+uint8 wind_est_valid            # (boolean) true = wind estimate is valid and/or being used by controller (also indicates if wind est usage is disabled despite being valid)
 float32 lat_accel               # resultant lateral acceleration reference [m/s^2]
 float32 lat_accel_ff            # lateral acceleration demand only for maintaining curvature [m/s^2]
 float32 bearing_feas            # bearing feasibility [0,1]

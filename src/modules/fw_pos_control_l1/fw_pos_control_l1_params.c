@@ -253,6 +253,14 @@ PARAM_DEFINE_FLOAT(NPFG_ASPD_BUF, 1.5f);
 PARAM_DEFINE_FLOAT(NPFG_SW_DST_MLT, 0.32f);
 
 /**
+ * Enable use of wind estimates for NPFG. Disabling, controller assumes zero wind.
+ *
+ * @boolean
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_INT32(NPFG_EN_WIND_EST, 1);
+
+/**
  * Cruise throttle
  *
  * This is the throttle setting required to achieve the desired cruise speed. Most airframes have a value of 0.5-0.7.
