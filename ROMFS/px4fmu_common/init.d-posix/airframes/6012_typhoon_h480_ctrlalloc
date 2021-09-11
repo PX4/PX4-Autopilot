@@ -78,5 +78,5 @@ param set-default CA_MC_R5_KM -0.05
 
 set MAV_TYPE 13
 
-# set MIXER hexa_x
-set MIXER direct
+set MIXER skip
+set MIXER_AUX none
