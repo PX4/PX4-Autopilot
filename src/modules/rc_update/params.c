@@ -1976,7 +1976,7 @@ PARAM_DEFINE_INT32(RC_MAP_PARAM3, 0);
  * Set to a PWM value slightly above the PWM value for the channel (e.g. throttle) in a failsafe event,
  * but below the minimum PWM value for the channel during normal operation.
  *
- * Note: The default value of 0 disables the feature (it is below the expected range). 
+ * Note: The default value of 0 disables the feature (it is below the expected range).
  *
  * @min 0
  * @max 2200
