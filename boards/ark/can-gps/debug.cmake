@@ -25,7 +25,7 @@ px4_add_board(
 		#i2cdetect
 		#led_control
 		param
-		perf
+		#perf
 		reboot
 		top
 		topic_listener
