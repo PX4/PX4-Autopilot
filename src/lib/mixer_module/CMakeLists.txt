@@ -31,6 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(mixer_module mixer_module.cpp)
+px4_add_library(mixer_module
+	mixer_module.cpp
+	functions.cpp
+	)
 target_link_libraries(mixer_module PRIVATE output_limit)
 target_compile_options(mixer_module PRIVATE ${MAX_CUSTOM_OPT_LEVEL})

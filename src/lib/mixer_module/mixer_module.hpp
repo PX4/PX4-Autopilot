@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include "functions.hpp"
+
 #include <board_config.h>
 #include <drivers/drv_pwm_output.h>
 #include <lib/mixer/MixerGroup.hpp>
@@ -114,6 +116,18 @@ public:
 
 	void printStatus() const;
 
+	bool useDynamicMixing() const { return _use_dynamic_mixing; }
+
+	/**
+	 * Permanently disable an output function
+	 */
+	void disableFunction(int index) { _param_handles[index].function = PARAM_INVALID; _need_function_update = true; }
+
+	/**
+	 * Check if a function is configured, i.e. not set to Disabled and initialized
+	 */
+	bool isFunctionSet(int index) const { return !_use_dynamic_mixing || _functions[index] != nullptr; };
+
 	/**
 	 * Call this regularly from Run(). It will call interface.updateOutputs().
 	 * @return true if outputs were updated
@@ -127,7 +141,7 @@ public:
 	 * @param limit_callbacks_to_primary set to only register callbacks for primary actuator controls (if used)
 	 * @return true if subscriptions got changed
 	 */
-	bool updateSubscriptions(bool allow_wq_switch, bool limit_callbacks_to_primary = false);
+	bool updateSubscriptions(bool allow_wq_switch = false, bool limit_callbacks_to_primary = false);
 
 	/**
 	 * unregister uORB subscription callbacks
@@ -155,6 +169,8 @@ public:
 
 	const actuator_armed_s &armed() const { return _armed; }
 
+	bool initialized() const { return _use_dynamic_mixing || _mixers != nullptr; }
+
 	MixerGroup *mixers() const { return _mixers; }
 
 	void setAllFailsafeValues(uint16_t value);
@@ -178,12 +194,23 @@ public:
 
 	void setIgnoreLockdown(bool ignore_lockdown) { _ignore_lockdown = ignore_lockdown; }
 
-	void setMaxNumOutputs(uint8_t max_num_outputs) { _max_num_outputs = max_num_outputs; }
+	/**
+	 * Set the maximum number of outputs. This can only be used to reduce the maximum.
+	 */
+	void setMaxNumOutputs(uint8_t max_num_outputs) { if (max_num_outputs < _max_num_outputs) { _max_num_outputs = max_num_outputs; } }
+
+	const char *paramPrefix() const { return _param_prefix; }
 
 protected:
 	void updateParams() override;
 
 private:
+	bool updateSubscriptionsStaticMixer(bool allow_wq_switch, bool limit_callbacks_to_primary);
+	bool updateSubscriptionsDynamicMixer(bool allow_wq_switch, bool limit_callbacks_to_primary);
+
+	bool updateStaticMixer();
+	bool updateDynamicMixer();
+
 	void handleCommands();
 
 	bool armNoThrottle() const
@@ -200,6 +227,20 @@ private:
 	void updateLatencyPerfCounter(const actuator_outputs_s &actuator_outputs);
 
 	static int controlCallback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input);
+
+	void cleanupFunctions();
+
+	void initParamHandles();
+
+	void limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updates);
+
+	struct ParamHandles {
+		param_t function{PARAM_INVALID};
+		param_t disarmed{PARAM_INVALID};
+		param_t min{PARAM_INVALID};
+		param_t max{PARAM_INVALID};
+		param_t failsafe{PARAM_INVALID};
+	};
 
 	enum class MotorOrdering : int32_t {
 		PX4 = 0,
@@ -276,11 +317,25 @@ private:
 
 	perf_counter_t _control_latency_perf;
 
+	/* SYS_CTRL_ALLOC == 1 */
+	FunctionProviderBase *_function_allocated[MAX_ACTUATORS] {}; ///< unique allocated functions
+	FunctionProviderBase *_functions[MAX_ACTUATORS] {}; ///< currently assigned functions
+	OutputFunction _function_assignment[MAX_ACTUATORS] {};
+	bool _need_function_update{true};
+	bool _use_dynamic_mixing{false}; ///< set to _param_sys_ctrl_alloc on init (avoid changing after startup)
+	bool _has_backup_schedule{false};
+	bool _reversible_motors =
+		false; ///< whether or not the output module supports reversible motors (range [-1, 0] for motors)
+
+	uORB::SubscriptionCallbackWorkItem *_subscription_callback{nullptr}; ///< current scheduling callback
+
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,   ///< multicopter air-mode
 		(ParamFloat<px4::params::MOT_SLEW_MAX>) _param_mot_slew_max,
 		(ParamFloat<px4::params::THR_MDL_FAC>) _param_thr_mdl_fac, ///< thrust to motor control signal modelling factor
-		(ParamInt<px4::params::MOT_ORDERING>) _param_mot_ordering
+		(ParamInt<px4::params::MOT_ORDERING>) _param_mot_ordering,
+		(ParamBool<px4::params::SYS_CTRL_ALLOC>) _param_sys_ctrl_alloc
 
 	)
 };
