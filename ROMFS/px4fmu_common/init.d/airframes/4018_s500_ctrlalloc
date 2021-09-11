@@ -12,7 +12,8 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
-set MIXER none
+set MIXER skip
+set MIXER_AUX none
 
 param set-default SYS_CTRL_ALLOC 1
 
@@ -51,6 +52,4 @@ param set-default CA_MC_R3_PY 0.177
 param set-default CA_MC_R3_CT 6.5
 param set-default CA_MC_R3_KM -0.05
 
-set MIXER direct
 
-set MIXER_AUX direct_aux
