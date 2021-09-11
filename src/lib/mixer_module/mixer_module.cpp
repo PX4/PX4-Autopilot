@@ -41,6 +41,26 @@
 using namespace time_literals;
 
 
+struct FunctionProvider {
+	using Constructor = FunctionProviderBase * (*)(const FunctionProviderBase::Context &context);
+	FunctionProvider(OutputFunction min_func_, OutputFunction max_func_, Constructor constructor_)
+		: min_func(min_func_), max_func(max_func_), constructor(constructor_) {}
+	FunctionProvider(OutputFunction func, Constructor constructor_)
+		: min_func(func), max_func(func), constructor(constructor_) {}
+
+	OutputFunction min_func;
+	OutputFunction max_func;
+	Constructor constructor;
+};
+
+static const FunctionProvider all_function_providers[] = {
+	// Providers higher up take precedence for subscription callback in case there are multiple
+	{OutputFunction::ConstantMin, &FunctionConstantMin::allocate},
+	{OutputFunction::ConstantMax, &FunctionConstantMax::allocate},
+	{OutputFunction::Motor1, OutputFunction::MotorMax, &FunctionMotors::allocate},
+	{OutputFunction::ActuatorSet1, OutputFunction::ActuatorSet6, &FunctionActuatorSet::allocate},
+};
+
 MixingOutput::MixingOutput(uint8_t max_num_outputs, OutputModuleInterface &interface,
 			   SchedulingPolicy scheduling_policy,
 			   bool support_esc_calibration, bool ramp_up)
@@ -75,6 +95,8 @@ _control_latency_perf(perf_alloc(PC_ELAPSED, "control latency"))
 	uORB::Publication<test_motor_s> test_motor_pub{ORB_ID(test_motor)};
 	test_motor_pub.publish(test);
 	_motor_test.test_motor_sub.subscribe();
+
+	_use_dynamic_mixing = _param_sys_ctrl_alloc.get();
 }
 
 MixingOutput::~MixingOutput()
@@ -82,6 +104,8 @@ MixingOutput::~MixingOutput()
 	perf_free(_control_latency_perf);
 	delete _mixers;
 	px4_sem_destroy(&_lock);
+
+	cleanupFunctions();
 }
 
 void MixingOutput::printStatus() const
@@ -92,15 +116,29 @@ void MixingOutput::printStatus() const
 		PX4_INFO("Switched to rate_ctrl work queue");
 	}
 
-	PX4_INFO("Mixer loaded: %s", _mixers ? "yes" : "no");
-	PX4_INFO("Driver instance: %i", _driver_instance);
 
-	PX4_INFO("Channel Configuration:");
+	if (!_use_dynamic_mixing) {
+		PX4_INFO("Mixer loaded: %s", _mixers ? "yes" : "no");
+		PX4_INFO("Driver instance: %i", _driver_instance);
+	}
 
-	for (unsigned i = 0; i < _max_num_outputs; i++) {
-		int reordered_i = reorderedMotorIndex(i);
-		PX4_INFO("Channel %i: value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d", reordered_i, _current_output_value[i],
-			 _failsafe_value[reordered_i], _disarmed_value[reordered_i], _min_value[reordered_i], _max_value[reordered_i]);
+	PX4_INFO_RAW("Channel Configuration:\n");
+
+	if (_use_dynamic_mixing) {
+		for (unsigned i = 0; i < _max_num_outputs; i++) {
+			PX4_INFO_RAW("Channel %i: func: %i, value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d\n", i,
+				     (int)_function_assignment[i], _current_output_value[i],
+				     _failsafe_value[i], _disarmed_value[i], _min_value[i], _max_value[i]);
+		}
+
+	} else {
+		for (unsigned i = 0; i < _max_num_outputs; i++) {
+			int reordered_i = reorderedMotorIndex(i);
+			PX4_INFO_RAW("Channel %i: value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d\n", reordered_i,
+				     _current_output_value[i],
+				     _failsafe_value[reordered_i], _disarmed_value[reordered_i], _min_value[reordered_i], _max_value[reordered_i]);
+		}
+
 	}
 }
 
@@ -117,9 +155,66 @@ void MixingOutput::updateParams()
 		_mixers->set_thrust_factor(_param_thr_mdl_fac.get());
 		_mixers->set_airmode((Mixer::Airmode)_param_mc_airmode.get());
 	}
+
+	if (_use_dynamic_mixing) {
+		_param_mot_ordering.set(0); // not used with dynamic mixing
+
+		bool function_changed = false;
+
+		_reverse_output_mask = 0;
+
+		for (unsigned i = 0; i < _max_num_outputs; i++) {
+			int32_t val;
+
+			if (_param_handles[i].function != PARAM_INVALID && param_get(_param_handles[i].function, &val) == 0) {
+				if (val != (int32_t)_function_assignment[i]) {
+					function_changed = true;
+				}
+
+				// we set _function_assignment[i] later to ensure _functions[i] is updated at the same time
+			}
+
+			if (_param_handles[i].disarmed != PARAM_INVALID && param_get(_param_handles[i].disarmed, &val) == 0) {
+				_disarmed_value[i] = val;
+			}
+
+			if (_param_handles[i].min != PARAM_INVALID && param_get(_param_handles[i].min, &val) == 0) {
+				_min_value[i] = val;
+			}
+
+			if (_param_handles[i].max != PARAM_INVALID && param_get(_param_handles[i].max, &val) == 0) {
+				_max_value[i] = val;
+			}
+
+			if (_min_value[i] > _max_value[i]) {
+				_reverse_output_mask |= 1 << i;
+				uint16_t tmp = _min_value[i];
+				_min_value[i] = _max_value[i];
+				_max_value[i] = tmp;
+			}
+
+			if (_param_handles[i].failsafe != PARAM_INVALID && param_get(_param_handles[i].failsafe, &val) == 0) {
+				_failsafe_value[i] = val;
+			}
+		}
+
+		if (function_changed) {
+			_need_function_update = true;
+		}
+	}
 }
 
 bool MixingOutput::updateSubscriptions(bool allow_wq_switch, bool limit_callbacks_to_primary)
+{
+	if (_use_dynamic_mixing) {
+		return updateSubscriptionsDynamicMixer(allow_wq_switch, limit_callbacks_to_primary);
+
+	} else {
+		return updateSubscriptionsStaticMixer(allow_wq_switch, limit_callbacks_to_primary);
+	}
+}
+
+bool MixingOutput::updateSubscriptionsStaticMixer(bool allow_wq_switch, bool limit_callbacks_to_primary)
 {
 	if (_groups_subscribed == _groups_required) {
 		return false;
@@ -197,13 +292,159 @@ bool MixingOutput::updateSubscriptions(bool allow_wq_switch, bool limit_callback
 	return true;
 }
 
+
+void MixingOutput::cleanupFunctions()
+{
+	if (_subscription_callback) {
+		_subscription_callback->unregisterCallback();
+		_subscription_callback = nullptr;
+	}
+
+	for (int i = 0; i < MAX_ACTUATORS; ++i) {
+		delete _function_allocated[i];
+		_function_allocated[i] = nullptr;
+		_functions[i] = nullptr;
+	}
+}
+
+bool MixingOutput::updateSubscriptionsDynamicMixer(bool allow_wq_switch, bool limit_callbacks_to_primary)
+{
+	if (!_need_function_update || _armed.armed) {
+		return false;
+	}
+
+	// must be locked to potentially change WorkQueue
+	lock();
+
+	_has_backup_schedule = false;
+
+	if (_scheduling_policy == SchedulingPolicy::Auto) {
+		// first clear everything
+		unregister();
+		_interface.ScheduleClear();
+
+		bool switch_requested = false;
+
+		// potentially switch work queue if we run motor outputs
+		for (unsigned i = 0; i < _max_num_outputs; i++) {
+			if (_function_assignment[i] >= OutputFunction::Motor1 && _function_assignment[i] <= OutputFunction::MotorMax) {
+				switch_requested = true;
+			}
+		}
+
+		if (allow_wq_switch && !_wq_switched && switch_requested) {
+			if (_interface.ChangeWorkQeue(px4::wq_configurations::rate_ctrl)) {
+				// let the new WQ handle the subscribe update
+				_wq_switched = true;
+				_interface.ScheduleNow();
+				unlock();
+				return false;
+			}
+		}
+	}
+
+	// Now update the functions
+
+	cleanupFunctions();
+
+	const FunctionProviderBase::Context context{_interface, _reversible_motors};
+	int provider_indexes[MAX_ACTUATORS] {};
+	int next_provider = 0;
+	int subscription_callback_provider_index = INT_MAX;
+	bool all_disabled = true;
+
+	for (int i = 0; i < _max_num_outputs; ++i) {
+		for (int p = 0; p < (int)(sizeof(all_function_providers) / sizeof(all_function_providers[0])); ++p) {
+			if (_function_assignment[i] >= all_function_providers[p].min_func &&
+			    _function_assignment[i] <= all_function_providers[p].max_func) {
+				all_disabled = false;
+				int found_index = -1;
+
+				for (int existing = 0; existing < next_provider; ++existing) {
+					if (provider_indexes[existing] == p) {
+						found_index = existing;
+						break;
+					}
+				}
+
+				if (found_index >= 0) {
+					_functions[i] = _function_allocated[found_index];
+
+				} else {
+					_function_allocated[next_provider] = all_function_providers[p].constructor(context);
+
+					if (_function_allocated[next_provider]) {
+						_functions[i] = _function_allocated[next_provider];
+						provider_indexes[next_provider++] = p;
+
+						// lowest provider takes precedence for scheduling
+						if (p < subscription_callback_provider_index && _functions[i]->subscriptionCallback()) {
+							subscription_callback_provider_index = p;
+							_subscription_callback = _functions[i]->subscriptionCallback();
+						}
+
+					} else {
+						PX4_ERR("function alloc failed");
+					}
+				}
+
+				break;
+			}
+		}
+	}
+
+	hrt_abstime fixed_rate_scheduling_interval = 4_ms; // schedule at 250Hz
+
+	if (_max_topic_update_interval_us > fixed_rate_scheduling_interval) {
+		fixed_rate_scheduling_interval = _max_topic_update_interval_us;
+	}
+
+	if (_scheduling_policy == SchedulingPolicy::Auto) {
+		if (_subscription_callback) {
+			if (_subscription_callback->registerCallback()) {
+				PX4_DEBUG("Scheduling via callback");
+				_has_backup_schedule = true;
+				_interface.ScheduleDelayed(50_ms);
+
+			} else {
+				PX4_ERR("registerCallback failed, scheduling at fixed rate");
+				_interface.ScheduleOnInterval(fixed_rate_scheduling_interval);
+			}
+
+		} else if (all_disabled) {
+			_interface.ScheduleOnInterval(300_ms);
+			PX4_DEBUG("Scheduling at low rate");
+
+		} else {
+			_interface.ScheduleOnInterval(fixed_rate_scheduling_interval);
+			PX4_DEBUG("Scheduling at fixed rate");
+		}
+	}
+
+	setMaxTopicUpdateRate(_max_topic_update_interval_us);
+	_need_function_update = false;
+
+	unlock();
+
+	_interface.mixerChanged();
+
+	return true;
+}
+
 void MixingOutput::setMaxTopicUpdateRate(unsigned max_topic_update_interval_us)
 {
 	_max_topic_update_interval_us = max_topic_update_interval_us;
 
-	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-		if (_groups_subscribed & (1 << i)) {
-			_control_subs[i].set_interval_us(_max_topic_update_interval_us);
+	if (_use_dynamic_mixing) {
+		if (_subscription_callback) {
+			_subscription_callback->set_interval_us(_max_topic_update_interval_us);
+		}
+
+	} else {
+		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			if (_groups_subscribed & (1 << i)) {
+				_control_subs[i].set_interval_us(_max_topic_update_interval_us);
+			}
 		}
 	}
 }
@@ -211,6 +452,7 @@ void MixingOutput::setMaxTopicUpdateRate(unsigned max_topic_update_interval_us)
 void MixingOutput::setAllMinValues(uint16_t value)
 {
 	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+		_param_handles[i].min = PARAM_INVALID;
 		_min_value[i] = value;
 	}
 }
@@ -218,6 +460,7 @@ void MixingOutput::setAllMinValues(uint16_t value)
 void MixingOutput::setAllMaxValues(uint16_t value)
 {
 	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+		_param_handles[i].max = PARAM_INVALID;
 		_max_value[i] = value;
 	}
 }
@@ -225,6 +468,7 @@ void MixingOutput::setAllMaxValues(uint16_t value)
 void MixingOutput::setAllFailsafeValues(uint16_t value)
 {
 	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+		_param_handles[i].failsafe = PARAM_INVALID;
 		_failsafe_value[i] = value;
 	}
 }
@@ -232,6 +476,7 @@ void MixingOutput::setAllFailsafeValues(uint16_t value)
 void MixingOutput::setAllDisarmedValues(uint16_t value)
 {
 	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+		_param_handles[i].disarmed = PARAM_INVALID;
 		_disarmed_value[i] = value;
 	}
 }
@@ -240,6 +485,10 @@ void MixingOutput::unregister()
 {
 	for (auto &control_sub : _control_subs) {
 		control_sub.unregisterCallback();
+	}
+
+	if (_subscription_callback) {
+		_subscription_callback->unregisterCallback();
 	}
 }
 
@@ -330,6 +579,15 @@ unsigned MixingOutput::motorTest()
 
 bool MixingOutput::update()
 {
+	if (_use_dynamic_mixing) {
+		return updateDynamicMixer();
+
+	} else {
+		return updateStaticMixer();
+	}
+}
+bool MixingOutput::updateStaticMixer()
+{
 	if (!_mixers) {
 		handleCommands();
 		// do nothing until we have a valid mixer
@@ -415,7 +673,7 @@ bool MixingOutput::update()
 
 	bool stop_motors = mixed_num_outputs == 0 || !_throttle_armed;
 
-	/* overwrite outputs in case of lockdown or parachute triggering with disarmed values */
+	/* overwrite outputs in case of lockdown with disarmed values */
 	if (_armed.lockdown || _armed.manual_lockdown) {
 		for (size_t i = 0; i < mixed_num_outputs; i++) {
 			_current_output_value[i] = _disarmed_value[i];
@@ -439,6 +697,99 @@ bool MixingOutput::update()
 	handleCommands();
 
 	return true;
+}
+
+bool MixingOutput::updateDynamicMixer()
+{
+	// check arming state
+	if (_armed_sub.update(&_armed)) {
+		_armed.in_esc_calibration_mode &= _support_esc_calibration;
+
+		if (_ignore_lockdown) {
+			_armed.lockdown = false;
+		}
+
+		/* Update the armed status and check that we're not locked down.
+		 * We also need to arm throttle for the ESC calibration. */
+		_throttle_armed = (_armed.armed && !_armed.lockdown) || _armed.in_esc_calibration_mode;
+	}
+
+	// only used for sitl with lockstep
+	bool has_updates = _subscription_callback && _subscription_callback->updated();
+
+	// update topics
+	for (int i = 0; i < MAX_ACTUATORS && _function_allocated[i]; ++i) {
+		_function_allocated[i]->update();
+	}
+
+	if (_has_backup_schedule) {
+		_interface.ScheduleDelayed(50_ms);
+	}
+
+	// check for motor test (after topic updates)
+	if (!_armed.armed && !_armed.manual_lockdown) {
+		// TODO
+	}
+
+	// get output values
+	float outputs[MAX_ACTUATORS];
+	bool all_disabled = true;
+
+	for (int i = 0; i < _max_num_outputs; ++i) {
+		if (_functions[i]) {
+			all_disabled = false;
+
+			if (_armed.armed || (_armed.prearmed && _functions[i]->allowPrearmControl())) {
+				outputs[i] = _functions[i]->value(_function_assignment[i]);
+
+			} else {
+				outputs[i] = NAN;
+			}
+
+		} else {
+			outputs[i] = NAN;
+		}
+	}
+
+	if (!all_disabled) {
+		limitAndUpdateOutputs(outputs, has_updates);
+	}
+
+	return true;
+}
+
+void
+MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updates)
+{
+	/* the output limit call takes care of out of band errors, NaN and constrains */
+	output_limit_calc(_throttle_armed, armNoThrottle(), _max_num_outputs, _reverse_output_mask,
+			  _disarmed_value, _min_value, _max_value, outputs, _current_output_value, &_output_limit);
+
+	/* overwrite outputs in case of force_failsafe with _failsafe_value values */
+	if (_armed.force_failsafe) {
+		for (size_t i = 0; i < _max_num_outputs; i++) {
+			_current_output_value[i] = _failsafe_value[i];
+		}
+	}
+
+	bool stop_motors = !_throttle_armed;
+
+	/* overwrite outputs in case of lockdown with disarmed values */
+	if (_armed.lockdown || _armed.manual_lockdown) {
+		for (size_t i = 0; i < _max_num_outputs; i++) {
+			_current_output_value[i] = _disarmed_value[i];
+		}
+
+		stop_motors = true;
+	}
+
+	/* now return the outputs to the driver */
+	if (_interface.updateOutputs(stop_motors, _current_output_value, _max_num_outputs, has_updates)) {
+		actuator_outputs_s actuator_outputs{};
+		setAndPublishActuatorOutputs(_max_num_outputs, actuator_outputs);
+
+		updateLatencyPerfCounter(actuator_outputs);
+	}
 }
 
 void
@@ -472,14 +823,26 @@ MixingOutput::publishMixerStatus(const actuator_outputs_s &actuator_outputs)
 void
 MixingOutput::updateLatencyPerfCounter(const actuator_outputs_s &actuator_outputs)
 {
-	// use first valid timestamp_sample for latency tracking
-	for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-		const bool required = _groups_required & (1 << i);
-		const hrt_abstime &timestamp_sample = _controls[i].timestamp_sample;
+	if (_use_dynamic_mixing) {
+		// Just check the first function. It means we only get the latency if motors are assigned first, which is the default
+		if (_function_allocated[0]) {
+			hrt_abstime timestamp_sample;
 
-		if (required && (timestamp_sample > 0)) {
-			perf_set_elapsed(_control_latency_perf, actuator_outputs.timestamp - timestamp_sample);
-			break;
+			if (_function_allocated[0]->getLatestSampleTimestamp(timestamp_sample)) {
+				perf_set_elapsed(_control_latency_perf, actuator_outputs.timestamp - timestamp_sample);
+			}
+		}
+
+	} else {
+		// use first valid timestamp_sample for latency tracking
+		for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			const bool required = _groups_required & (1 << i);
+			const hrt_abstime &timestamp_sample = _controls[i].timestamp_sample;
+
+			if (required && (timestamp_sample > 0)) {
+				perf_set_elapsed(_control_latency_perf, actuator_outputs.timestamp - timestamp_sample);
+				break;
+			}
 		}
 	}
 }
