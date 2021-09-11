@@ -436,26 +436,21 @@ ControlAllocator::publish_control_allocator_status()
 void
 ControlAllocator::publish_legacy_actuator_controls()
 {
-	// For compatibility with the current mixer system,
-	// publish normalized version on actuator_controls_4/5
-	actuator_controls_s actuator_controls_4{};
-	actuator_controls_s actuator_controls_5{};
-	actuator_controls_4.timestamp = hrt_absolute_time();
-	actuator_controls_5.timestamp = hrt_absolute_time();
-	actuator_controls_4.timestamp_sample = _timestamp_sample;
-	actuator_controls_5.timestamp_sample = _timestamp_sample;
+	actuator_motors_s actuator_motors;
+	actuator_motors.timestamp = hrt_absolute_time();
+	actuator_motors.timestamp_sample = _timestamp_sample;
 
 	matrix::Vector<float, NUM_ACTUATORS> actuator_sp = _control_allocation->getActuatorSetpoint();
 	matrix::Vector<float, NUM_ACTUATORS> actuator_sp_normalized = _control_allocation->normalizeActuatorSetpoint(
 				actuator_sp);
 
-	for (size_t i = 0; i < 8; i++) {
-		actuator_controls_4.control[i] = (PX4_ISFINITE(actuator_sp_normalized(i))) ? actuator_sp_normalized(i) : 0.0f;
-		actuator_controls_5.control[i] = (PX4_ISFINITE(actuator_sp_normalized(i + 8))) ? actuator_sp_normalized(i + 8) : 0.0f;
+	for (size_t i = 0; i < actuator_motors_s::NUM_CONTROLS; i++) {
+		actuator_motors.control[i] = PX4_ISFINITE(actuator_sp_normalized(i)) ? actuator_sp_normalized(i) : NAN;
 	}
 
-	_actuator_controls_4_pub.publish(actuator_controls_4);
-	_actuator_controls_5_pub.publish(actuator_controls_5);
+	_actuator_motors_pub.publish(actuator_motors);
+
+	// TODO: servos
 }
 
 int ControlAllocator::task_spawn(int argc, char *argv[])

@@ -46,4 +46,5 @@ param set-default CA_MC_R3_PY 0.1875
 param set-default CA_MC_R3_CT 6.5
 param set-default CA_MC_R3_KM -0.05
 
-set MIXER direct
+set MIXER skip
+set MIXER_AUX none

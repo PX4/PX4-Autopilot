@@ -50,8 +50,6 @@ MixingOutput::MixingOutput(uint8_t max_num_outputs, OutputModuleInterface &inter
 	{&interface, ORB_ID(actuator_controls_1)},
 	{&interface, ORB_ID(actuator_controls_2)},
 	{&interface, ORB_ID(actuator_controls_3)},
-	{&interface, ORB_ID(actuator_controls_4)},
-	{&interface, ORB_ID(actuator_controls_5)},
 },
 _scheduling_policy(scheduling_policy),
 _support_esc_calibration(support_esc_calibration),
@@ -542,11 +540,9 @@ int MixingOutput::controlCallback(uintptr_t handle, uint8_t control_group, uint8
 
 	/* motor spinup phase - lock throttle to zero */
 	if (output->_output_limit.state == OUTPUT_LIMIT_STATE_RAMP) {
-		if (((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
-		      control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
-		     control_index == actuator_controls_s::INDEX_THROTTLE) ||
-		    (control_group == actuator_controls_s::GROUP_INDEX_ALLOCATED_PART1 ||
-		     control_group == actuator_controls_s::GROUP_INDEX_ALLOCATED_PART2)) {
+		if ((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
+		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
+		    control_index == actuator_controls_s::INDEX_THROTTLE) {
 			/* limit the throttle output to zero during motor spinup,
 			 * as the motors cannot follow any demand yet
 			 */
@@ -556,11 +552,9 @@ int MixingOutput::controlCallback(uintptr_t handle, uint8_t control_group, uint8
 
 	/* throttle not arming - mark throttle input as invalid */
 	if (output->armNoThrottle() && !output->_armed.in_esc_calibration_mode) {
-		if (((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
-		      control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
-		     control_index == actuator_controls_s::INDEX_THROTTLE) ||
-		    (control_group == actuator_controls_s::GROUP_INDEX_ALLOCATED_PART1 ||
-		     control_group == actuator_controls_s::GROUP_INDEX_ALLOCATED_PART2)) {
+		if ((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
+		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
+		    control_index == actuator_controls_s::INDEX_THROTTLE) {
 			/* set the throttle to an invalid value */
 			input = NAN;
 		}
