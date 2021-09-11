@@ -224,46 +224,49 @@ MissionFeasibilityChecker::checkMissionItemValidity(const mission_s &mission)
 		}
 
 		// check if we find unsupported items and reject mission if so
-		if (missionitem.nav_cmd != NAV_CMD_IDLE &&
-		    missionitem.nav_cmd != NAV_CMD_WAYPOINT &&
-		    missionitem.nav_cmd != NAV_CMD_LOITER_UNLIMITED &&
-		    missionitem.nav_cmd != NAV_CMD_LOITER_TIME_LIMIT &&
-		    missionitem.nav_cmd != NAV_CMD_RETURN_TO_LAUNCH &&
-		    missionitem.nav_cmd != NAV_CMD_LAND &&
-		    missionitem.nav_cmd != NAV_CMD_TAKEOFF &&
-		    missionitem.nav_cmd != NAV_CMD_LOITER_TO_ALT &&
-		    missionitem.nav_cmd != NAV_CMD_VTOL_TAKEOFF &&
-		    missionitem.nav_cmd != NAV_CMD_VTOL_LAND &&
-		    missionitem.nav_cmd != NAV_CMD_DELAY &&
-		    missionitem.nav_cmd != NAV_CMD_CONDITION_GATE &&
-		    missionitem.nav_cmd != NAV_CMD_DO_JUMP &&
-		    missionitem.nav_cmd != NAV_CMD_DO_CHANGE_SPEED &&
-		    missionitem.nav_cmd != NAV_CMD_DO_SET_HOME &&
-		    missionitem.nav_cmd != NAV_CMD_DO_SET_SERVO &&
-		    missionitem.nav_cmd != NAV_CMD_DO_LAND_START &&
-		    missionitem.nav_cmd != NAV_CMD_DO_TRIGGER_CONTROL &&
-		    missionitem.nav_cmd != NAV_CMD_DO_DIGICAM_CONTROL &&
-		    missionitem.nav_cmd != NAV_CMD_IMAGE_START_CAPTURE &&
-		    missionitem.nav_cmd != NAV_CMD_IMAGE_STOP_CAPTURE &&
-		    missionitem.nav_cmd != NAV_CMD_VIDEO_START_CAPTURE &&
-		    missionitem.nav_cmd != NAV_CMD_VIDEO_STOP_CAPTURE &&
-		    missionitem.nav_cmd != NAV_CMD_DO_CONTROL_VIDEO &&
-		    missionitem.nav_cmd != NAV_CMD_DO_MOUNT_CONFIGURE &&
-		    missionitem.nav_cmd != NAV_CMD_DO_MOUNT_CONTROL &&
-		    missionitem.nav_cmd != NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW &&
-		    missionitem.nav_cmd != NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE &&
-		    missionitem.nav_cmd != NAV_CMD_DO_SET_ROI &&
-		    missionitem.nav_cmd != NAV_CMD_DO_SET_ROI_LOCATION &&
-		    missionitem.nav_cmd != NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET &&
-		    missionitem.nav_cmd != NAV_CMD_DO_SET_ROI_NONE &&
-		    missionitem.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_DIST &&
-		    missionitem.nav_cmd != NAV_CMD_OBLIQUE_SURVEY &&
-		    missionitem.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL &&
-		    missionitem.nav_cmd != NAV_CMD_SET_CAMERA_MODE &&
-		    missionitem.nav_cmd != NAV_CMD_SET_CAMERA_ZOOM &&
-		    missionitem.nav_cmd != NAV_CMD_SET_CAMERA_FOCUS &&
-		    missionitem.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) {
+		switch (missionitem.nav_cmd) {
+		case NAV_CMD_IDLE:
+		case NAV_CMD_WAYPOINT:
+		case NAV_CMD_LOITER_UNLIMITED:
+		case NAV_CMD_LOITER_TIME_LIMIT:
+		case NAV_CMD_RETURN_TO_LAUNCH:
+		case NAV_CMD_LAND:
+		case NAV_CMD_TAKEOFF:
+		case NAV_CMD_LOITER_TO_ALT:
+		case NAV_CMD_VTOL_TAKEOFF:
+		case NAV_CMD_VTOL_LAND:
+		case NAV_CMD_DELAY:
+		case NAV_CMD_CONDITION_GATE:
+		case NAV_CMD_DO_JUMP:
+		case NAV_CMD_DO_CHANGE_SPEED:
+		case NAV_CMD_DO_SET_HOME:
+		case NAV_CMD_DO_SET_SERVO:
+		case NAV_CMD_DO_LAND_START:
+		case NAV_CMD_DO_TRIGGER_CONTROL:
+		case NAV_CMD_DO_DIGICAM_CONTROL:
+		case NAV_CMD_IMAGE_START_CAPTURE:
+		case NAV_CMD_IMAGE_STOP_CAPTURE:
+		case NAV_CMD_VIDEO_START_CAPTURE:
+		case NAV_CMD_VIDEO_STOP_CAPTURE:
+		case NAV_CMD_DO_CONTROL_VIDEO:
+		case NAV_CMD_DO_MOUNT_CONFIGURE:
+		case NAV_CMD_DO_MOUNT_CONTROL:
+		case NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
+		case NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
+		case NAV_CMD_DO_SET_ROI:
+		case NAV_CMD_DO_SET_ROI_LOCATION:
+		case NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET:
+		case NAV_CMD_DO_SET_ROI_NONE:
+		case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
+		case NAV_CMD_OBLIQUE_SURVEY:
+		case NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL:
+		case NAV_CMD_SET_CAMERA_MODE:
+		case NAV_CMD_SET_CAMERA_ZOOM:
+		case NAV_CMD_SET_CAMERA_FOCUS:
+		case NAV_CMD_DO_VTOL_TRANSITION:
+			break;
 
+		default:
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: item %i: unsupported cmd: %d", (int)(i + 1),
 					     (int)missionitem.nav_cmd);
 			return false;
