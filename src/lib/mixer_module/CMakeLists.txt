@@ -31,9 +31,23 @@
 #
 ############################################################################
 
+set(functions_header ${CMAKE_CURRENT_BINARY_DIR}/output_functions.hpp)
+add_custom_command(OUTPUT ${functions_header}
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_function_header.py
+		${CMAKE_CURRENT_SOURCE_DIR}/output_functions.yaml
+		${functions_header}
+	DEPENDS
+		output_functions.yaml
+		generate_function_header.py
+	COMMENT "Generating output_functions.hpp"
+)
+add_custom_target(output_functions_header DEPENDS ${functions_header})
+
 px4_add_library(mixer_module
 	mixer_module.cpp
 	functions.cpp
 	)
+
+add_dependencies(mixer_module output_functions_header)
 target_link_libraries(mixer_module PRIVATE output_limit)
 target_compile_options(mixer_module PRIVATE ${MAX_CUSTOM_OPT_LEVEL})

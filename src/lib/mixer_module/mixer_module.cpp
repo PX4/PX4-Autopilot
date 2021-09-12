@@ -55,10 +55,10 @@ struct FunctionProvider {
 
 static const FunctionProvider all_function_providers[] = {
 	// Providers higher up take precedence for subscription callback in case there are multiple
-	{OutputFunction::ConstantMin, &FunctionConstantMin::allocate},
-	{OutputFunction::ConstantMax, &FunctionConstantMax::allocate},
+	{OutputFunction::Constant_Min, &FunctionConstantMin::allocate},
+	{OutputFunction::Constant_Max, &FunctionConstantMax::allocate},
 	{OutputFunction::Motor1, OutputFunction::MotorMax, &FunctionMotors::allocate},
-	{OutputFunction::ActuatorSet1, OutputFunction::ActuatorSet6, &FunctionActuatorSet::allocate},
+	{OutputFunction::Offboard_Actuator_Set1, OutputFunction::Offboard_Actuator_Set6, &FunctionActuatorSet::allocate},
 };
 
 MixingOutput::MixingOutput(uint8_t max_num_outputs, OutputModuleInterface &interface,
