@@ -35,7 +35,7 @@
 
 #include <limits.h>
 
-#include "output_functions.hpp"
+#include <mixer_module/output_functions.hpp>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
@@ -72,7 +72,7 @@ public:
 };
 
 /**
- * Functions: ConstantMin
+ * Functions: Constant_Min
  */
 class FunctionConstantMin : public FunctionProviderBase
 {
@@ -86,7 +86,7 @@ public:
 };
 
 /**
- * Functions: ConstantMax
+ * Functions: Constant_Max
  */
 class FunctionConstantMax : public FunctionProviderBase
 {
@@ -126,7 +126,7 @@ private:
 };
 
 /**
- * Functions: ActuatorSet1 ... ActuatorSet6
+ * Functions: Offboard_Actuator_Set1 ... Offboard_Actuator_Set6
  */
 class FunctionActuatorSet : public FunctionProviderBase
 {
@@ -135,7 +135,7 @@ public:
 	static FunctionProviderBase *allocate(const Context &context) { return new FunctionActuatorSet(); }
 
 	void update() override;
-	float value(OutputFunction func) override { return _data[(int)func - (int)OutputFunction::ActuatorSet1]; }
+	float value(OutputFunction func) override { return _data[(int)func - (int)OutputFunction::Offboard_Actuator_Set1]; }
 
 private:
 	static constexpr int max_num_actuators = 6;
@@ -143,4 +143,3 @@ private:
 	uORB::Subscription _topic{ORB_ID(vehicle_command)};
 	float _data[max_num_actuators];
 };
-
