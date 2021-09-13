@@ -58,6 +58,14 @@ void FunctionMotors::update()
 	}
 }
 
+FunctionServos::FunctionServos(const Context &context)
+	: _topic(&context.work_item, ORB_ID(actuator_servos))
+{
+	for (int i = 0; i < actuator_servos_s::NUM_CONTROLS; ++i) {
+		_data.control[i] = NAN;
+	}
+}
+
 FunctionActuatorSet::FunctionActuatorSet()
 {
 	for (int i = 0; i < max_num_actuators; ++i) {
@@ -82,5 +90,56 @@ void FunctionActuatorSet::update()
 				_data[5] = vehicle_command.param6;
 			}
 		}
+	}
+}
+
+void FunctionLandingGear::update()
+{
+	landing_gear_s landing_gear;
+
+	if (_topic.update(&landing_gear)) {
+		if (landing_gear.landing_gear == landing_gear_s::GEAR_DOWN) {
+			_data = -1.f;
+
+		} else if (landing_gear.landing_gear == landing_gear_s::GEAR_UP) {
+			_data = 1.f;
+		}
+	}
+}
+
+FunctionManualRC::FunctionManualRC()
+{
+	for (int i = 0; i < num_data_points; ++i) {
+		_data[i] = NAN;
+	}
+}
+
+void FunctionManualRC::update()
+{
+	manual_control_setpoint_s manual_control_setpoint;
+
+	if (_topic.update(&manual_control_setpoint)) {
+		_data[0] = manual_control_setpoint.y; // roll
+		_data[1] = manual_control_setpoint.x; // pitch
+		_data[2] = manual_control_setpoint.z * 2.f - 1.f; // throttle
+		_data[3] = manual_control_setpoint.r; // yaw
+		_data[4] = manual_control_setpoint.flaps;
+		_data[5] = manual_control_setpoint.aux1;
+		_data[6] = manual_control_setpoint.aux2;
+		_data[7] = manual_control_setpoint.aux3;
+		_data[8] = manual_control_setpoint.aux4;
+		_data[9] = manual_control_setpoint.aux5;
+		_data[10] = manual_control_setpoint.aux6;
+	}
+}
+
+void FunctionGimbal::update()
+{
+	actuator_controls_s actuator_controls;
+
+	if (_topic.update(&actuator_controls)) {
+		_data[0] = actuator_controls.control[0];
+		_data[1] = actuator_controls.control[1];
+		_data[2] = actuator_controls.control[2];
 	}
 }

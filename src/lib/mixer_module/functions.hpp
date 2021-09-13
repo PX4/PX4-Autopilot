@@ -39,9 +39,12 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/actuator_servos.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/landing_gear.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 class FunctionProviderBase
@@ -126,6 +129,30 @@ private:
 };
 
 /**
+ * Functions: Servo1 ... ServoMax
+ */
+class FunctionServos : public FunctionProviderBase
+{
+public:
+	static_assert(actuator_servos_s::NUM_CONTROLS == (int)OutputFunction::ServoMax - (int)OutputFunction::Servo1 + 1,
+		      "Unexpected num servos");
+
+	FunctionServos(const Context &context);
+	static FunctionProviderBase *allocate(const Context &context) { return new FunctionServos(context); }
+
+	void update() override { _topic.update(&_data); }
+	float value(OutputFunction func) override { return _data.control[(int)func - (int)OutputFunction::Servo1]; }
+
+	uORB::SubscriptionCallbackWorkItem *subscriptionCallback() override { return &_topic; }
+
+	float defaultFailsafeValue(OutputFunction func) const override { return 0.f; }
+private:
+	uORB::SubscriptionCallbackWorkItem _topic;
+	actuator_servos_s _data{};
+};
+
+
+/**
  * Functions: Offboard_Actuator_Set1 ... Offboard_Actuator_Set6
  */
 class FunctionActuatorSet : public FunctionProviderBase
@@ -143,3 +170,74 @@ private:
 	uORB::Subscription _topic{ORB_ID(vehicle_command)};
 	float _data[max_num_actuators];
 };
+
+/**
+ * Functions: Landing_Gear
+ */
+class FunctionLandingGear : public FunctionProviderBase
+{
+public:
+	FunctionLandingGear() = default;
+	static FunctionProviderBase *allocate(const Context &context) { return new FunctionLandingGear(); }
+
+	void update() override;
+	float value(OutputFunction func) override { return _data; }
+
+private:
+	uORB::Subscription _topic{ORB_ID(landing_gear)};
+	float _data{-1.f};
+};
+
+/**
+ * Functions: Parachute
+ */
+class FunctionParachute : public FunctionProviderBase
+{
+public:
+	FunctionParachute() = default;
+	static FunctionProviderBase *allocate(const Context &context) { return new FunctionParachute(); }
+
+	void update() override {}
+	float value(OutputFunction func) override { return -1.f; }
+	float defaultFailsafeValue(OutputFunction func) const override { return 1.f; }
+};
+
+/**
+ * Functions: RC_Roll .. RCAUX_Max
+ */
+class FunctionManualRC : public FunctionProviderBase
+{
+public:
+	FunctionManualRC();
+	static FunctionProviderBase *allocate(const Context &context) { return new FunctionManualRC(); }
+
+	void update() override;
+	float value(OutputFunction func) override { return _data[(int)func - (int)OutputFunction::RC_Roll]; }
+
+private:
+	static constexpr int num_data_points = 11;
+
+	static_assert(num_data_points == (int)OutputFunction::RC_AUXMax - (int)OutputFunction::RC_Roll + 1,
+		      "number of functions mismatch");
+
+	uORB::Subscription _topic{ORB_ID(manual_control_setpoint)};
+	float _data[num_data_points];
+};
+
+/**
+ * Functions: Gimbal_Roll .. Gimbal_Yaw
+ */
+class FunctionGimbal : public FunctionProviderBase
+{
+public:
+	FunctionGimbal() = default;
+	static FunctionProviderBase *allocate(const Context &context) { return new FunctionGimbal(); }
+
+	void update() override;
+	float value(OutputFunction func) override { return _data[(int)func - (int)OutputFunction::Gimbal_Roll]; }
+
+private:
+	uORB::Subscription _topic{ORB_ID(actuator_controls_2)};
+	float _data[3] { NAN, NAN, NAN };
+};
+
