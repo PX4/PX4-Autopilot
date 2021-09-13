@@ -51,6 +51,7 @@
 #include <drivers/drv_sensor.h>
 #include <lib/drivers/device/Device.hpp>
 #include <lib/parameters/param.h>
+#include <lib/perf/perf_counter.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 #include <px4_platform_common/atomic.h>
@@ -204,6 +205,10 @@ private:
 
 	px4::atomic<int> _scheduled_reset{(int)GPSRestartType::None};
 
+	perf_counter_t _gps_set_clock_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": set clock interval")};
+
+	bool _update_system_time{true};
+
 	/**
 	 * Publish the gps struct
 	 */
@@ -259,9 +264,11 @@ private:
 	 */
 	void dumpGpsData(uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool msg_to_gps_device);
 
+	void setClock(timespec *rtc_gps_time);
+
 	void initializeCommunicationDump();
 
-	static constexpr int SET_CLOCK_DRIFT_TIME_S{5};			///< RTC drift time when time synchronization is needed (in seconds)
+	static constexpr int SET_CLOCK_DRIFT_TIME_NS{500 * 1000 * 1000};	///< RTC drift time when time synchronization is needed (in nanoseconds)
 };
 
 px4::atomic_bool GPS::_is_gps_main_advertised{false};
@@ -353,13 +360,13 @@ GPS::~GPS()
 	delete _dump_to_device;
 	delete _dump_from_device;
 	delete _helper;
+
+	perf_free(_gps_set_clock_perf);
 }
 
 int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 {
 	GPS *gps = (GPS *)user;
-
-	timespec rtc_system_time;
 
 	switch (type) {
 	case GPSCallbackType::readDeviceData: {
@@ -391,19 +398,7 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 		break;
 
 	case GPSCallbackType::setClock:
-
-		px4_clock_gettime(CLOCK_REALTIME, &rtc_system_time);
-		timespec rtc_gps_time = *(timespec *)data1;
-		int drift_time = abs(rtc_system_time.tv_sec - rtc_gps_time.tv_sec);
-
-		if (drift_time >= SET_CLOCK_DRIFT_TIME_S) {
-			// as of 2021 setting the time on Nuttx temporarily pauses interrupts
-			// so only set the time if it is very wrong.
-			// TODO: clock slewing of the RTC for small time differences
-			px4_clock_settime(CLOCK_REALTIME, &rtc_gps_time);
-		}
-
-
+		gps->setClock(static_cast<timespec *>(data1));
 		break;
 	}
 
@@ -676,6 +671,29 @@ void GPS::dumpGpsData(uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool
 			dump_data->timestamp = hrt_absolute_time();
 			_dump_communication_pub.publish(*dump_data);
 			dump_data->len = 0;
+		}
+	}
+}
+
+void GPS::setClock(timespec *rtc_gps_time)
+{
+	if (_update_system_time) {
+		px4_clock_settime(CLOCK_REALTIME, rtc_gps_time);
+		perf_count(_gps_set_clock_perf);
+		_update_system_time = false;
+
+	} else {
+		timespec rtc_system_time;
+		px4_clock_gettime(CLOCK_REALTIME, &rtc_system_time);
+
+		const int64_t system_time = rtc_system_time.tv_sec * 1e9 + rtc_system_time.tv_nsec;
+		const int64_t gps_time = rtc_gps_time->tv_sec * 1e9 + rtc_gps_time->tv_nsec;
+
+		int64_t drift_time = abs(system_time - gps_time);
+
+		if (drift_time > SET_CLOCK_DRIFT_TIME_NS) {
+			// update clock immediately on next callback
+			_update_system_time = true;
 		}
 	}
 }
@@ -1035,6 +1053,8 @@ GPS::print_status()
 	PX4_INFO("status: %s, port: %s, baudrate: %d", _healthy ? "OK" : "NOT OK", _port, _baudrate);
 	PX4_INFO("sat info: %s", (_p_report_sat_info != nullptr) ? "enabled" : "disabled");
 	PX4_INFO("rate reading: \t\t%6i B/s", _rate_reading);
+
+	perf_print_counter(_gps_set_clock_perf);
 
 	if (_report_gps_pos.timestamp != 0) {
 		if (_helper) {
