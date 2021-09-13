@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -490,14 +490,12 @@ static int
 hrt_tim_isr(int irq, void *context, void *arg)
 {
 	/* grab the timer for latency tracking purposes */
-
 	latency_actual = rCNT;
 
 	/* copy interrupt status */
 	uint32_t status = rSTATUS;
 
 	/* ack the interrupts we just read */
-
 	rSTATUS = status;
 
 #ifdef HRT_PPM_CHANNEL
@@ -579,23 +577,46 @@ hrt_absolute_time(void)
 hrt_abstime
 ts_to_abstime(const struct timespec *ts)
 {
-	hrt_abstime	result;
+	// get offset between hrt and system CLOCK_MONOTONIC
+	struct timespec system_time;
+	irqstate_t flags = enter_critical_section();
+	const hrt_abstime now_us = hrt_absolute_time();
+	clock_gettime(CLOCK_REALTIME, &system_time);
+	leave_critical_section(flags);
 
-	result = (hrt_abstime)(ts->tv_sec) * 1000000;
-	result += ts->tv_nsec / 1000;
+	// convert input ts to hrt with offset to system CLOCK_MONOTONIC
+	int64_t ts_us = (ts->tv_sec * 1000000) + (ts->tv_nsec / 1000);
+	int64_t system_time_us = (system_time.tv_sec * 1000000) + (system_time.tv_nsec / 1000);
 
-	return result;
+	int64_t offset_us = system_time_us - now_us;
+
+	return ts_us - offset_us;
 }
 
 /**
  * Convert absolute time to a timespec.
  */
-void
-abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
+struct timespec abstime_to_ts(hrt_abstime abstime)
 {
-	ts->tv_sec = abstime / 1000000;
-	abstime -= ts->tv_sec * 1000000;
-	ts->tv_nsec = abstime * 1000;
+	// get offset between hrt and system CLOCK_MONOTONIC
+	struct timespec system_time;
+	irqstate_t flags = enter_critical_section();
+	const hrt_abstime now_us = hrt_absolute_time();
+	clock_gettime(CLOCK_REALTIME, &system_time);
+	leave_critical_section(flags);
+
+	// adjust input abstime with offset to CLOCK_MONOTONIC
+	int64_t system_time_us = (system_time.tv_sec * 1000000) + (system_time.tv_nsec / 1000);
+	int64_t offset_us = system_time_us - now_us;
+
+	uint64_t ts_abstime = abstime + offset_us;
+
+	struct timespec ts;
+	ts.tv_sec = ts_abstime / 1000000;
+	ts_abstime -= ts.tv_sec * 1000000;
+	ts.tv_nsec = ts_abstime * 1000; // microseconds -> nanoseconds
+
+	return ts;
 }
 
 /**

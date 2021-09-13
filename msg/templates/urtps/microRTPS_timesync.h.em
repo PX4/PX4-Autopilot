@@ -288,16 +288,16 @@ private:
 
 	/** Timesync Status msg Setters **/
 @[if version.parse(fastrtps_version) <= version.parse('1.7.2') or not ros2_distro]@
-	inline void setMsgSourceProtocol(timesync_status_msg_t *msg, const uint8_t &source_protocol) { msg->source_protocol_() = source_protocol; }
+	inline void setMsgSourceProtocol(timesync_status_msg_t *msg, const uint8_t &source_protocol) { msg->source_() = source_protocol; }
 	inline void setMsgRemoteTimeStamp(timesync_status_msg_t *msg, const uint64_t &remote_timestamp) { msg->remote_timestamp_() = remote_timestamp; }
 	inline void setMsgObservedOffset(timesync_status_msg_t *msg, const int64_t &observed_offset) { msg->observed_offset_() = observed_offset; }
 	inline void setMsgEstimatedOffset(timesync_status_msg_t *msg, const int64_t &estimated_offset) { msg->estimated_offset_() = estimated_offset; }
-	inline void setMsgRoundTripTime(timesync_status_msg_t *msg, const uint32_t &round_trip_time) { msg->round_trip_time_() = round_trip_time; }
+	//inline void setMsgRoundTripTime(timesync_status_msg_t *msg, const uint32_t &round_trip_time) { msg->round_trip_time_() = round_trip_time; }
 @[elif ros2_distro]@
-	inline void setMsgSourceProtocol(timesync_status_msg_t *msg, const uint8_t &source_protocol) { msg->source_protocol() = source_protocol; }
+	inline void setMsgSourceProtocol(timesync_status_msg_t *msg, const uint8_t &source_protocol) { msg->source() = source_protocol; }
 	inline void setMsgRemoteTimeStamp(timesync_status_msg_t *msg, const uint64_t &remote_timestamp) { msg->remote_timestamp() = remote_timestamp; }
 	inline void setMsgObservedOffset(timesync_status_msg_t *msg, const int64_t &observed_offset) { msg->observed_offset() = observed_offset; }
 	inline void setMsgEstimatedOffset(timesync_status_msg_t *msg, const int64_t &estimated_offset) { msg->estimated_offset() = estimated_offset; }
-	inline void setMsgRoundTripTime(timesync_status_msg_t *msg, const uint32_t &round_trip_time) { msg->round_trip_time() = round_trip_time; }
+	//inline void setMsgRoundTripTime(timesync_status_msg_t *msg, const uint32_t &round_trip_time) { msg->round_trip_time() = round_trip_time; }
 @[end if]@
 };

@@ -626,12 +626,27 @@ ts_to_abstime(const struct timespec *ts)
 /**
  * Convert absolute time to a timespec.
  */
-void
-abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
+struct timespec abstime_to_ts(hrt_abstime abstime)
 {
-	ts->tv_sec = abstime / 1000000;
-	abstime -= ts->tv_sec * 1000000;
-	ts->tv_nsec = abstime * 1000;
+	// get offset between hrt and system CLOCK_MONOTONIC
+	struct timespec system_time;
+	irqstate_t flags = enter_critical_section();
+	const hrt_abstime now_us = hrt_absolute_time();
+	clock_gettime(CLOCK_REALTIME, &system_time);
+	leave_critical_section(flags);
+
+	// adjust input abstime with offset to CLOCK_MONOTONIC
+	int64_t system_time_us = (system_time.tv_sec * 1000000) + (system_time.tv_nsec / 1000);
+	int64_t offset_us = system_time_us - now_us;
+
+	uint64_t ts_abstime = abstime + offset_us;
+
+	struct timespec ts;
+	ts.tv_sec = ts_abstime / 1000000;
+	ts_abstime -= ts.tv_sec * 1000000;
+	ts.tv_nsec = ts_abstime * 1000; // microseconds -> nanoseconds
+
+	return ts;
 }
 
 /**

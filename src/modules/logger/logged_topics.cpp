@@ -123,6 +123,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("control_allocator_status", 200, 2);
 	add_optional_topic_multi("rate_ctrl_status", 200, 2);
 	add_optional_topic_multi("telemetry_status", 1000, 4);
+	add_topic_multi("timesync_status", 1000, 3);
 
 	// EKF multi topics (currently max 9 estimators)
 #if CONSTRAINED_MEMORY

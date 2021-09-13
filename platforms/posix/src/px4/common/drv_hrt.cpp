@@ -484,11 +484,13 @@ hrt_call_invoke()
 	hrt_unlock();
 }
 
-void abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
+struct timespec abstime_to_ts(hrt_abstime abstime)
 {
-	ts->tv_sec = abstime / 1000000;
-	abstime -= ts->tv_sec * 1000000;
-	ts->tv_nsec = abstime * 1000;
+	struct timespec ts {};
+	ts.tv_sec = abstime / 1000000;
+	abstime -= ts.tv_sec * 1000000;
+	ts.tv_nsec = abstime * 1000;
+	return ts;
 }
 
 int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
@@ -496,7 +498,7 @@ int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 	if (clk_id == CLOCK_MONOTONIC) {
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 		const uint64_t abstime = lockstep_scheduler->get_absolute_time();
-		abstime_to_ts(tp, abstime - px4_timestart_monotonic);
+		*tp = abstime_to_ts(abstime - px4_timestart_monotonic);
 		return 0;
 #else // defined(ENABLE_LOCKSTEP_SCHEDULER)
 #if defined(__PX4_DARWIN)

@@ -58,7 +58,7 @@ public:
 sensor_gps_s GpsBlendingTest::getDefaultGpsData()
 {
 	sensor_gps_s gps_data{};
-	gps_data.timestamp = _time_now_us - 10e3;
+	gps_data.timestamp_sample = _time_now_us - 10e3;
 	gps_data.time_utc_usec = 0;
 	gps_data.lat = 47e7;
 	gps_data.lon = 9e7;
@@ -77,7 +77,6 @@ sensor_gps_s GpsBlendingTest::getDefaultGpsData()
 	gps_data.vel_e_m_s = 1.f;
 	gps_data.vel_d_m_s = 1.f;
 	gps_data.cog_rad = 0.f;
-	gps_data.timestamp_time_relative = 0;
 	gps_data.heading = NAN;
 	gps_data.heading_offset = 0.f;
 	gps_data.fix_type = 4;
@@ -97,7 +96,7 @@ void GpsBlendingTest::runSeconds(float duration_s, GpsBlending &gps_blending, se
 		gps_blending.update(_time_now_us);
 
 		_time_now_us += dt_us;
-		gps_data.timestamp += dt_us;
+		gps_data.timestamp_sample += dt_us;
 	}
 }
 
@@ -114,8 +113,8 @@ void GpsBlendingTest::runSeconds(float duration_s, GpsBlending &gps_blending, se
 		gps_blending.update(_time_now_us);
 
 		_time_now_us += dt_us;
-		gps_data0.timestamp += dt_us;
-		gps_data1.timestamp += dt_us;
+		gps_data0.timestamp_sample += dt_us;
+		gps_data1.timestamp_sample += dt_us;
 	}
 }
 
@@ -143,7 +142,7 @@ TEST_F(GpsBlendingTest, singleReceiver)
 	gps_blending.update(_time_now_us);
 
 	_time_now_us += 200e3;
-	gps_data.timestamp = _time_now_us - 10e3;
+	gps_data.timestamp_sample = _time_now_us - 10e3;
 	gps_blending.setGpsData(gps_data, 1);
 	gps_blending.update(_time_now_us);
 
@@ -261,7 +260,7 @@ TEST_F(GpsBlendingTest, dualReceiverFailover)
 
 	// AND IF: the primary receiver is available again and has
 	// better metrics than the secondary one
-	gps_data0.timestamp = gps_data1.timestamp;
+	gps_data0.timestamp_sample = gps_data1.timestamp_sample;
 	gps_data0.satellites_used = gps_data1.satellites_used + 2;
 
 	runSeconds(1.f, gps_blending, gps_data0, gps_data1);

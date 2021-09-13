@@ -46,7 +46,6 @@
 #include "mavlink_mission.h"
 #include "mavlink_parameters.h"
 #include "MavlinkStatustextHandler.hpp"
-#include "mavlink_timesync.h"
 #include "tune_publisher.h"
 
 #include <geo/geo.h>
@@ -55,6 +54,7 @@
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/systemlib/mavlink_log.h>
+#include <lib/timesync/Timesync.hpp>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -164,7 +164,9 @@ private:
 	void handle_message_distance_sensor(mavlink_message_t *msg);
 	void handle_message_follow_target(mavlink_message_t *msg);
 	void handle_message_generator_status(mavlink_message_t *msg);
-	void handle_message_set_gps_global_origin(mavlink_message_t *msg);
+	void handle_message_gimbal_device_information(mavlink_message_t *msg);
+	void handle_message_gimbal_manager_set_attitude(mavlink_message_t *msg);
+	void handle_message_gimbal_manager_set_manual_control(mavlink_message_t *msg);
 	void handle_message_gps_rtcm_data(mavlink_message_t *msg);
 	void handle_message_heartbeat(mavlink_message_t *msg);
 	void handle_message_hil_gps(mavlink_message_t *msg);
@@ -184,21 +186,22 @@ private:
 	void handle_message_radio_status(mavlink_message_t *msg);
 	void handle_message_rc_channels(mavlink_message_t *msg);
 	void handle_message_rc_channels_override(mavlink_message_t *msg);
+	void handle_message_request_event(mavlink_message_t *msg);
 	void handle_message_serial_control(mavlink_message_t *msg);
 	void handle_message_set_actuator_control_target(mavlink_message_t *msg);
 	void handle_message_set_attitude_target(mavlink_message_t *msg);
+	void handle_message_set_gps_global_origin(mavlink_message_t *msg);
 	void handle_message_set_mode(mavlink_message_t *msg);
 	void handle_message_set_position_target_global_int(mavlink_message_t *msg);
 	void handle_message_set_position_target_local_ned(mavlink_message_t *msg);
 	void handle_message_statustext(mavlink_message_t *msg);
+	void handle_message_system_time(mavlink_message_t *msg);
+	void handle_message_timesync(mavlink_message_t *msg);
 	void handle_message_tunnel(mavlink_message_t *msg);
 	void handle_message_trajectory_representation_bezier(mavlink_message_t *msg);
 	void handle_message_trajectory_representation_waypoints(mavlink_message_t *msg);
 	void handle_message_utm_global_position(mavlink_message_t *msg);
 	void handle_message_vision_position_estimate(mavlink_message_t *msg);
-	void handle_message_gimbal_manager_set_attitude(mavlink_message_t *msg);
-	void handle_message_gimbal_manager_set_manual_control(mavlink_message_t *msg);
-	void handle_message_gimbal_device_information(mavlink_message_t *msg);
 
 #if !defined(CONSTRAINED_FLASH)
 	void handle_message_debug(mavlink_message_t *msg);
@@ -206,7 +209,6 @@ private:
 	void handle_message_debug_vect(mavlink_message_t *msg);
 	void handle_message_named_value_float(mavlink_message_t *msg);
 #endif // !CONSTRAINED_FLASH
-	void handle_message_request_event(mavlink_message_t *msg);
 
 	void CheckHeartbeats(const hrt_abstime &t, bool force = false);
 
@@ -245,7 +247,8 @@ private:
 	MavlinkLogHandler		_mavlink_log_handler;
 	MavlinkMissionManager		_mission_manager;
 	MavlinkParametersManager	_parameters_manager;
-	MavlinkTimesync			_mavlink_timesync;
+
+	Timesync			_timesync;
 	MavlinkStatustextHandler	_mavlink_statustext_handler;
 
 	mavlink_status_t		_status{}; ///< receiver status, used for mavlink_parse_char()
@@ -393,6 +396,8 @@ private:
 	hrt_abstime _heartbeat_component_udp_bridge{0};
 	hrt_abstime _heartbeat_component_uart_bridge{0};
 
+	uint32_t _high_rtt_count{0};
+
 	param_t _handle_sens_flow_maxhgt{PARAM_INVALID};
 	param_t _handle_sens_flow_maxr{PARAM_INVALID};
 	param_t _handle_sens_flow_minhgt{PARAM_INVALID};
@@ -406,6 +411,7 @@ private:
 	int32_t _param_sens_flow_rot{0};
 	float _param_ekf2_min_rng{NAN};
 	float _param_ekf2_rng_a_hmax{NAN};
+
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,6 +43,8 @@ VehicleGPSPosition::VehicleGPSPosition() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
+	_timesync[0].set_source(timesync_status_s::SOURCE_GPS1);
+	_timesync[1].set_source(timesync_status_s::SOURCE_GPS2);
 }
 
 VehicleGPSPosition::~VehicleGPSPosition()
@@ -118,8 +120,98 @@ void VehicleGPSPosition::Run()
 		if (gps_updated) {
 			any_gps_updated = true;
 
-			_sensor_gps_sub[i].copy(&gps_data);
-			_gps_blending.setGpsData(gps_data, i);
+			if (_sensor_gps_sub[i].copy(&gps_data)) {
+
+				const bool sync_converged = _timesync[i].sync_converged();
+
+				if ((gps_data.fix_type >= 3) && (gps_data.time_utc_usec > _gps_utc_time_us[i])) {
+					// Calculate time offset between GPS time and hrt
+					int64_t offset_us = (int64_t)gps_data.time_utc_usec - (int64_t)gps_data.timestamp_sample;
+
+					_timesync[i].update(offset_us);
+
+				} else {
+					_timesync[i].reset_filter();
+				}
+
+				_gps_utc_time_us[i] = gps_data.time_utc_usec;
+
+				if (!sync_converged && _timesync[i].sync_converged()) {
+#if defined(__PX4_NUTTX)
+					auto flags = px4_enter_critical_section();
+#endif // __PX4_NUTTX
+
+					// use converged offset between HRT and GPS utc to update system CLOCK_REALTIME
+					struct timespec ts {};
+					px4_clock_gettime(CLOCK_REALTIME, &ts);
+
+					// convert to date time
+					char datetime_prev[80] {};
+					struct tm date_time;
+					time_t utc_time_sec_current = ts.tv_sec + (ts.tv_nsec / 1e9);
+					localtime_r(&utc_time_sec_current, &date_time);
+					strftime(datetime_prev, sizeof(datetime_prev), "%Y-%m-%d %H:%M:%S %Z", &date_time);
+
+					uint64_t ts_abstime_current_us = ts.tv_sec * 1e6 + ts.tv_nsec / 1000;
+
+					uint64_t ts_abstime_us = hrt_absolute_time() + _timesync[i].time_offset();
+
+					if (llabs((int64_t)ts_abstime_current_us - (int64_t)ts_abstime_us) > (int64_t)10_ms) {
+						struct timespec ts_new {};
+						ts_new.tv_sec = ts_abstime_us / 1000000;
+						ts_abstime_us -= ts_new.tv_sec * 1000000;
+						ts_new.tv_nsec = ts_abstime_us * 1000; // microseconds -> nanoseconds
+
+						// TODO: only update if the difference exceeds threshold
+						if (px4_clock_settime(CLOCK_REALTIME, &ts_new) == 0) {
+							// convert to date time
+							char datetime_new[80] {};
+							time_t utc_time_sec = ts_new.tv_sec + (ts_new.tv_nsec / 1e9);
+							localtime_r(&utc_time_sec, &date_time);
+							strftime(datetime_new, sizeof(datetime_new), "%Y-%m-%d %H:%M:%S %Z", &date_time);
+
+							int64_t old_us = ts.tv_sec * 1e6 + ts.tv_nsec / 1e3;
+							int64_t new_us = ts_new.tv_sec * 1e6 + ts_new.tv_nsec / 1e3;
+
+							PX4_INFO("sensor_gps:%d updated system time: %s-> %s (%" PRIi64 " ms)", i, datetime_prev, datetime_new,
+								 (new_us - old_us) / 1000);
+
+							_gps_time_set = true;
+
+							// reset all
+							for (auto &timesync : _timesync) {
+								timesync.reset_filter();
+							}
+						}
+					}
+
+#if defined(__PX4_NUTTX)
+					px4_leave_critical_section(flags);
+#endif // __PX4_NUTTX
+				}
+
+				// set timestamp_sample from GPS UTC time
+				if (_timesync[i].sync_converged()) {
+					const int64_t time_orig = gps_data.timestamp_sample;
+					const int64_t time_adjusted = gps_data.time_utc_usec - _timesync[i].time_offset();
+
+					// warn if there was a significant change
+					int64_t max_diff_us = (gps_data.timestamp - gps_data.timestamp_sample);
+					int64_t diff = time_adjusted - time_orig;
+
+					if (diff > max_diff_us || diff < -max_diff_us) {
+						PX4_ERR("bad timestamp sample update %" PRIi64 " -> %" PRIi64 " (diff %" PRIi64 "us), resetting",
+							time_orig, time_adjusted, diff);
+
+						_timesync[i].reset_filter();
+
+					} else {
+						gps_data.timestamp_sample = gps_data.time_utc_usec - _timesync[i].time_offset();
+					}
+				}
+
+				_gps_blending.setGpsData(gps_data, i);
+			}
 
 			if (!_sensor_gps_sub[i].registered()) {
 				_sensor_gps_sub[i].registerCallback();
@@ -142,7 +234,8 @@ void VehicleGPSPosition::Publish(const sensor_gps_s &gps, uint8_t selected)
 {
 	vehicle_gps_position_s gps_output{};
 
-	gps_output.timestamp = gps.timestamp;
+	gps_output.timestamp_sample = gps.timestamp_sample;
+
 	gps_output.time_utc_usec = gps.time_utc_usec;
 	gps_output.lat = gps.lat;
 	gps_output.lon = gps.lon;
@@ -154,6 +247,7 @@ void VehicleGPSPosition::Publish(const sensor_gps_s &gps, uint8_t selected)
 	gps_output.epv = gps.epv;
 	gps_output.hdop = gps.hdop;
 	gps_output.vdop = gps.vdop;
+	gps_output.pdop = sqrtf(gps.hdop * gps.hdop + gps.vdop * gps.vdop);
 	gps_output.noise_per_ms = gps.noise_per_ms;
 	gps_output.jamming_indicator = gps.jamming_indicator;
 	gps_output.jamming_state = gps.jamming_state;
@@ -162,7 +256,6 @@ void VehicleGPSPosition::Publish(const sensor_gps_s &gps, uint8_t selected)
 	gps_output.vel_e_m_s = gps.vel_e_m_s;
 	gps_output.vel_d_m_s = gps.vel_d_m_s;
 	gps_output.cog_rad = gps.cog_rad;
-	gps_output.timestamp_time_relative = gps.timestamp_time_relative;
 	gps_output.heading = gps.heading;
 	gps_output.heading_offset = gps.heading_offset;
 	gps_output.fix_type = gps.fix_type;
@@ -170,13 +263,20 @@ void VehicleGPSPosition::Publish(const sensor_gps_s &gps, uint8_t selected)
 	gps_output.satellites_used = gps.satellites_used;
 
 	gps_output.selected = selected;
-
+	gps_output.timestamp = hrt_absolute_time();
 	_vehicle_gps_position_pub.publish(gps_output);
 }
 
 void VehicleGPSPosition::PrintStatus()
 {
 	//PX4_INFO_RAW("[vehicle_gps_position] selected GPS: %d\n", _gps_select_index);
+
+	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		if (_timesync[i].sync_converged()) {
+
+		}
+	}
+
 }
 
 }; // namespace sensors

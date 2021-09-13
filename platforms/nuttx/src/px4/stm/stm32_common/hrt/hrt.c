@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -605,13 +605,11 @@ error:
 static int
 hrt_tim_isr(int irq, void *context, void *arg)
 {
-	uint32_t status;
-
 	/* grab the timer for latency tracking purposes */
 	latency_actual = rCNT;
 
 	/* copy interrupt status */
-	status = rSR;
+	uint32_t status = rSR;
 
 	/* ack the interrupts we just read */
 	rSR = ~status;
@@ -700,23 +698,47 @@ hrt_absolute_time(void)
 hrt_abstime
 ts_to_abstime(const struct timespec *ts)
 {
-	hrt_abstime	result;
+	// get offset between hrt and system CLOCK_MONOTONIC
+	struct timespec system_time;
 
-	result = (hrt_abstime)(ts->tv_sec) * 1000000;
-	result += ts->tv_nsec / 1000;
+	irqstate_t flags = enter_critical_section();
+	const hrt_abstime now_us = hrt_absolute_time();
+	clock_gettime(CLOCK_REALTIME, &system_time);
+	leave_critical_section(flags);
 
-	return result;
+	int64_t system_time_us = (system_time.tv_sec * 1000000) + (system_time.tv_nsec / 1000);
+	int64_t offset_us = system_time_us - now_us;
+
+	// convert input ts to hrt with offset to system CLOCK_REALTIME
+	uint64_t ts_us = (ts->tv_sec * 1000000) + (ts->tv_nsec / 1000);
+	return ts_us - offset_us;
 }
 
 /**
  * Convert absolute time to a timespec.
  */
-void
-abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
+struct timespec abstime_to_ts(hrt_abstime abstime)
 {
-	ts->tv_sec = abstime / 1000000;
-	abstime -= ts->tv_sec * 1000000;
-	ts->tv_nsec = abstime * 1000;
+	// get offset between hrt and system CLOCK_MONOTONIC
+	struct timespec system_time;
+
+	irqstate_t flags = enter_critical_section();
+	const hrt_abstime now_us = hrt_absolute_time();
+	clock_gettime(CLOCK_REALTIME, &system_time);
+	leave_critical_section(flags);
+
+	// adjust input abstime with offset to CLOCK_MONOTONIC
+	int64_t system_time_us = (system_time.tv_sec * 1000000) + (system_time.tv_nsec / 1000);
+	int64_t offset_us = system_time_us - now_us;
+
+	uint64_t ts_abstime = abstime + offset_us;
+
+	struct timespec ts;
+	ts.tv_sec = ts_abstime / 1000000;
+	ts_abstime -= ts.tv_sec * 1000000;
+	ts.tv_nsec = ts_abstime * 1000; // microseconds -> nanoseconds
+
+	return ts;
 }
 
 /**
@@ -731,7 +753,7 @@ hrt_store_absolute_time(volatile hrt_abstime *t)
 }
 
 /**
- * Initialise the high-resolution timing module.
+ * Initialize the high-resolution timing module.
  */
 void
 hrt_init(void)
@@ -786,11 +808,11 @@ hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime inte
 	irqstate_t flags = px4_enter_critical_section();
 
 	/* if the entry is currently queued, remove it */
-	/* note that we are using a potentially uninitialised
+	/* note that we are using a potentially uninitialized
 	   entry->link here, but it is safe as sq_rem() doesn't
 	   dereference the passed node unless it is found in the
 	   list. So we potentially waste a bit of time searching the
-	   queue for the uninitialised entry->link but we don't do
+	   queue for the uninitialized entry->link but we don't do
 	   anything actually unsafe.
 	*/
 	if (entry->deadline != 0) {

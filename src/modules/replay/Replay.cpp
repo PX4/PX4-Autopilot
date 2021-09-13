@@ -953,8 +953,7 @@ Replay::run()
 		hrt_abstime t = hrt_absolute_time();
 
 		for (int i = 0; i < 1000; ++i) {
-			struct timespec ts;
-			abstime_to_ts(&ts, t);
+			struct timespec ts = abstime_to_ts(t);
 			px4_clock_settime(CLOCK_MONOTONIC, &ts);
 			t += 10_ms;
 		}
@@ -998,8 +997,7 @@ Replay::handleTopicDelay(uint64_t next_file_time, uint64_t timestamp_offset)
 		}
 
 		// adjust the lockstep time to the publication time
-		struct timespec ts;
-		abstime_to_ts(&ts, publish_timestamp);
+		struct timespec ts = abstime_to_ts(publish_timestamp);
 		px4_clock_settime(CLOCK_MONOTONIC, &ts);
 	}
 

@@ -391,7 +391,7 @@ void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
 
 	if (!_gps_blocked) {
 		sensor_gps_s gps{};
-
+		gps.timestamp_sample = hrt_absolute_time();
 		gps.lat = hil_gps.lat;
 		gps.lon = hil_gps.lon;
 		gps.alt = hil_gps.alt;
@@ -419,7 +419,6 @@ void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
 		gps.cog_rad = ((hil_gps.cog == 65535) ? NAN : matrix::wrap_2pi(math::radians(hil_gps.cog * 1e-2f))); // cdeg -> rad
 		gps.vel_ned_valid = true;
 
-		gps.timestamp_time_relative = 0;
 		gps.time_utc_usec = hil_gps.time_usec;
 
 		gps.satellites_used = hil_gps.satellites_visible;
@@ -463,8 +462,7 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 	mavlink_hil_sensor_t imu;
 	mavlink_msg_hil_sensor_decode(msg, &imu);
 
-	struct timespec ts;
-	abstime_to_ts(&ts, imu.time_usec);
+	struct timespec ts = abstime_to_ts(imu.time_usec);
 	px4_clock_settime(CLOCK_MONOTONIC, &ts);
 
 	hrt_abstime now_us = hrt_absolute_time();

@@ -102,7 +102,7 @@ __EXPORT extern hrt_abstime ts_to_abstime(const struct timespec *ts);
 /**
  * Convert absolute time to a timespec.
  */
-__EXPORT extern void	abstime_to_ts(struct timespec *ts, hrt_abstime abstime);
+__EXPORT extern struct timespec abstime_to_ts(hrt_abstime abstime);
 
 /**
  * Compute the delta between a timestamp taken in the past

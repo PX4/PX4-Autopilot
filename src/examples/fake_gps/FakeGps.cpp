@@ -59,6 +59,7 @@ void FakeGps::Run()
 	}
 
 	sensor_gps_s sensor_gps{};
+	sensor_gps.timestamp_sample = hrt_absolute_time();
 	sensor_gps.time_utc_usec = hrt_absolute_time() + 1613692609599954;
 	sensor_gps.lat = _latitude;
 	sensor_gps.lon = _longitude;
@@ -77,7 +78,6 @@ void FakeGps::Run()
 	sensor_gps.vel_e_m_s = 0.0200f;
 	sensor_gps.vel_d_m_s = -0.0570f;
 	sensor_gps.cog_rad = 0.3988f;
-	sensor_gps.timestamp_time_relative = 0;
 	sensor_gps.heading = NAN;
 	sensor_gps.heading_offset = 0.0000;
 	sensor_gps.fix_type = 4;

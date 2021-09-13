@@ -150,7 +150,7 @@ void SensorGpsSim::Run()
 			sensor_gps.vdop = 100.f;
 		}
 
-		// sensor_gps.timestamp_sample = gpos.timestamp;
+		sensor_gps.timestamp_sample = gpos.timestamp;
 		sensor_gps.time_utc_usec = 0;
 		sensor_gps.device_id = device_id.devid;
 		sensor_gps.lat = roundf(latitude * 1e7); // Latitude in 1E-7 degrees
@@ -165,7 +165,6 @@ void SensorGpsSim::Run()
 		sensor_gps.vel_d_m_s = gps_vel(2);
 		sensor_gps.cog_rad = atan2(gps_vel(1),
 					   gps_vel(0)); // Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
-		sensor_gps.timestamp_time_relative = 0;
 		sensor_gps.heading = NAN;
 		sensor_gps.heading_offset = NAN;
 		sensor_gps.heading_accuracy = 0;
@@ -173,7 +172,6 @@ void SensorGpsSim::Run()
 		sensor_gps.jamming_state = 0;
 		sensor_gps.vel_ned_valid = true;
 		sensor_gps.satellites_used = _sim_gps_used.get();
-
 		sensor_gps.timestamp = hrt_absolute_time();
 		_sensor_gps_pub.publish(sensor_gps);
 	}
