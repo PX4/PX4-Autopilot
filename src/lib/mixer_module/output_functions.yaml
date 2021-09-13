@@ -17,6 +17,23 @@ functions:
       start: 301
       count: 6
 
+    Landing_Gear: 400
+    Parachute: 401
+
+    # Manual RC input (passthrough)
+    RC_Roll: 402
+    RC_Pitch: 403
+    RC_Throttle: 404
+    RC_Yaw: 405
+    RC_Flaps: 406
+    RC_AUX:
+      start: 407
+      count: 6
+
+    Gimbal_Roll: 420
+    Gimbal_Pitch: 421
+    Gimbal_Yaw: 422
+
     # Add your own here:
     #MyCustomFunction: 10000
 
