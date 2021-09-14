@@ -389,11 +389,11 @@ void EKF2::Run()
 					_device_id_accel = sensor_selection.accel_device_id;
 					SelectImuStatus();
 
-				} else if (accelerometer.calibration_count > _imu_calibration_count) {
+				} else if (imu.accel_calibration_count > _accel_calibration_count) {
 					// existing calibration has changed, reset saved mag bias
 					PX4_DEBUG("%d - accel %" PRIu32 " calibration updated, resetting bias", _instance, _device_id_mag);
 					_ekf.resetAccelBias();
-					_imu_calibration_count = accelerometer.calibration_count;
+					_accel_calibration_count = imu.accel_calibration_count;
 				}
 
 				if (_device_id_gyro != sensor_selection.gyro_device_id) {
