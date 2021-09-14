@@ -71,7 +71,6 @@ px4_add_romfs_files(
 	4016_holybro_px4vision
 	4017_nxp_hovergames
 	4018_s500_ctrlalloc
-	4020_hk_micro_pcb
 	4030_3dr_solo
 	4031_3dr_quad
 	4040_reaper
@@ -139,6 +138,7 @@ px4_add_romfs_files(
 	13014_vtol_babyshark
 	13030_generic_vtol_quad_tiltrotor
 	13050_generic_vtol_octo
+	13060_vtol_tiltrotor_xp
 	13200_generic_vtol_tailsitter
 
 	# [14000, 14999] Tri Y
