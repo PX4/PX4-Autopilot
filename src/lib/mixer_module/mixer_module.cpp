@@ -102,6 +102,16 @@ _control_latency_perf(perf_alloc(PC_ELAPSED, "control latency"))
 	_motor_test.test_motor_sub.subscribe();
 
 	_use_dynamic_mixing = _param_sys_ctrl_alloc.get();
+
+	if (_use_dynamic_mixing) {
+		initParamHandles();
+
+		for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+			_failsafe_value[i] = UINT16_MAX;
+		}
+
+		updateParams();
+	}
 }
 
 MixingOutput::~MixingOutput()
@@ -113,8 +123,27 @@ MixingOutput::~MixingOutput()
 	cleanupFunctions();
 }
 
+void MixingOutput::initParamHandles()
+{
+	char param_name[17];
+
+	for (unsigned i = 0; i < _max_num_outputs; ++i) {
+		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "FUNC", i + 1);
+		_param_handles[i].function = param_find(param_name);
+		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "DIS", i + 1);
+		_param_handles[i].disarmed = param_find(param_name);
+		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "MIN", i + 1);
+		_param_handles[i].min = param_find(param_name);
+		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "MAX", i + 1);
+		_param_handles[i].max = param_find(param_name);
+		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "FAIL", i + 1);
+		_param_handles[i].failsafe = param_find(param_name);
+	}
+}
+
 void MixingOutput::printStatus() const
 {
+	PX4_INFO("Param prefix: %s", _param_prefix);
 	perf_print_counter(_control_latency_perf);
 
 	if (_wq_switched) {
@@ -143,7 +172,6 @@ void MixingOutput::printStatus() const
 				     _current_output_value[i],
 				     _failsafe_value[reordered_i], _disarmed_value[reordered_i], _min_value[reordered_i], _max_value[reordered_i]);
 		}
-
 	}
 }
 
@@ -332,8 +360,13 @@ bool MixingOutput::updateSubscriptionsDynamicMixer(bool allow_wq_switch, bool li
 
 		// potentially switch work queue if we run motor outputs
 		for (unsigned i = 0; i < _max_num_outputs; i++) {
-			if (_function_assignment[i] >= OutputFunction::Motor1 && _function_assignment[i] <= OutputFunction::MotorMax) {
-				switch_requested = true;
+			// read function directly from param, as _function_assignment[i] is updated later
+			int32_t function;
+
+			if (_param_handles[i].function != PARAM_INVALID && param_get(_param_handles[i].function, &function) == 0) {
+				if (function >= (int32_t)OutputFunction::Motor1 && function <= (int32_t)OutputFunction::MotorMax) {
+					switch_requested = true;
+				}
 			}
 		}
 
@@ -349,6 +382,7 @@ bool MixingOutput::updateSubscriptionsDynamicMixer(bool allow_wq_switch, bool li
 	}
 
 	// Now update the functions
+	PX4_DEBUG("updating functions");
 
 	cleanupFunctions();
 
@@ -359,6 +393,15 @@ bool MixingOutput::updateSubscriptionsDynamicMixer(bool allow_wq_switch, bool li
 	bool all_disabled = true;
 
 	for (int i = 0; i < _max_num_outputs; ++i) {
+		int32_t val;
+
+		if (_param_handles[i].function != PARAM_INVALID && param_get(_param_handles[i].function, &val) == 0) {
+			_function_assignment[i] = (OutputFunction)val;
+
+		} else {
+			_function_assignment[i] = OutputFunction::Disabled;
+		}
+
 		for (int p = 0; p < (int)(sizeof(all_function_providers) / sizeof(all_function_providers[0])); ++p) {
 			if (_function_assignment[i] >= all_function_providers[p].min_func &&
 			    _function_assignment[i] <= all_function_providers[p].max_func) {
@@ -773,7 +816,19 @@ MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updat
 	/* overwrite outputs in case of force_failsafe with _failsafe_value values */
 	if (_armed.force_failsafe) {
 		for (size_t i = 0; i < _max_num_outputs; i++) {
-			_current_output_value[i] = _failsafe_value[i];
+			if (_failsafe_value[i] == UINT16_MAX) { // if set to default, use the one provided by the function
+				float default_failsafe = NAN;
+
+				if (_functions[i]) {
+					default_failsafe = _functions[i]->defaultFailsafeValue(_function_assignment[i]);
+				}
+
+				_current_output_value[i] = output_limit_calc_single(_reverse_output_mask & (1 << i),
+							   _disarmed_value[i], _min_value[i], _max_value[i], default_failsafe);
+
+			} else {
+				_current_output_value[i] = _failsafe_value[i];
+			}
 		}
 	}
 
