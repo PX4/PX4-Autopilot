@@ -31,7 +31,18 @@
 #
 ############################################################################
 
-px4_add_git_submodule(TARGET git_mavlink_v2 PATH "${PX4_SOURCE_DIR}/mavlink/include/mavlink/v2.0")
+px4_add_git_submodule(TARGET git_mavlink_v2 PATH "${PX4_SOURCE_DIR}/mavlink/mavlink")
+
+set(MAVLINK_DIALECT "development")
+set(MAVLINK_GIT_DIR "${PX4_SOURCE_DIR}/mavlink/mavlink")
+set(CLIBRARY_OUT_DIR "${PX4_SOURCE_DIR}/mavlink/include/mavlink/v2.0")
+
+add_custom_command(OUTPUT px4_mavlink_gen.stamp
+    COMMAND "${PX4_SOURCE_DIR}/Tools/mavlink_generate_dialect.sh" ${MAVLINK_DIALECT} "${MAVLINK_GIT_DIR}" "${CLIBRARY_OUT_DIR}" ${PYTHON_EXECUTABLE}
+    COMMAND ${CMAKE_COMMAND} -E touch px4_mavlink_gen.stamp
+    )
+
+add_custom_target(mavlink_c_library DEPENDS px4_mavlink_gen.stamp)
 
 px4_add_module(
 	MODULE modules__mavlink
@@ -71,6 +82,7 @@ px4_add_module(
 		drivers_gyroscope
 		drivers_magnetometer
 		git_mavlink_v2
+		mavlink_c_library
 		conversion
 		geo
 		version
