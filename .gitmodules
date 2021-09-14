@@ -1,7 +1,3 @@
-[submodule "mavlink/mavlink"]
-        path = mavlink/mavlink
-	url = https://github.com/JacobCrabill/mavlink.git
-	branch = dev/header-autogen
 [submodule "src/drivers/uavcan/libuavcan"]
 	path = src/drivers/uavcan/libuavcan
 	url = https://github.com/PX4/libuavcan.git
@@ -74,3 +70,7 @@
 	path = src/lib/crypto/libtommath
 	url = https://github.com/PX4/libtommath.git
 	branch = px4
+[submodule "src/modules/mavlink/mavlink"]
+	path = src/modules/mavlink/mavlink
+	url = https://github.com/mavlink/mavlink.git
+

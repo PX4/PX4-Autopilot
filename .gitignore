@@ -110,6 +110,3 @@ dataman
 eeprom/
 
 !src/drivers/distance_sensor/broadcom/afbrs50/Lib/*
-
-# Removed submodules and folders
-mavlink/include

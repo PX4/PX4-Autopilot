@@ -154,7 +154,6 @@ private:
 	void handle_message_adsb_vehicle(mavlink_message_t *msg);
 	void handle_message_att_pos_mocap(mavlink_message_t *msg);
 	void handle_message_battery_status(mavlink_message_t *msg);
-	void handle_message_cellular_status(mavlink_message_t *msg);
 	void handle_message_collision(mavlink_message_t *msg);
 	void handle_message_command_ack(mavlink_message_t *msg);
 	void handle_message_command_int(mavlink_message_t *msg);
@@ -196,6 +195,10 @@ private:
 	void handle_message_gimbal_manager_set_attitude(mavlink_message_t *msg);
 	void handle_message_gimbal_manager_set_manual_control(mavlink_message_t *msg);
 	void handle_message_gimbal_device_information(mavlink_message_t *msg);
+
+#if defined(MAVLINK_MSG_ID_CELLULAR_STATUS)
+	void handle_message_cellular_status(mavlink_message_t *msg);
+#endif // MAVLINK_MSG_ID_CELLULAR_STATUS
 
 #if !defined(CONSTRAINED_FLASH)
 	void handle_message_debug(mavlink_message_t *msg);
