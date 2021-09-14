@@ -338,8 +338,12 @@ int BMI055_Accelerometer::DataReadyInterruptCallback(int irq, void *context, voi
 
 void BMI055_Accelerometer::DataReady()
 {
-	_drdy_timestamp_sample.store(hrt_absolute_time());
-	ScheduleNow();
+	// schedule transfer if sample timestamp has been cleared (thread ready for next transfer)
+	uint64_t expected = 0;
+
+	if (_drdy_timestamp_sample.compare_exchange(&expected, hrt_absolute_time())) {
+		ScheduleNow();
+	}
 }
 
 bool BMI055_Accelerometer::DataReadyInterruptConfigure()
@@ -453,9 +457,6 @@ void BMI055_Accelerometer::FIFOReset()
 	// FIFO_CONFIG_1: FIFO overrun condition can only be cleared by writing to the FIFO configuration register FIFO_CONFIG_1
 	RegisterWrite(Register::FIFO_CONFIG_1, 0);
 
-	// reset while FIFO is disabled
-	_drdy_timestamp_sample.store(0);
-
 	// FIFO_CONFIG_0: restore FIFO watermark
 	// FIFO_CONFIG_1: re-enable FIFO
 	for (const auto &r : _register_cfg) {
@@ -463,6 +464,9 @@ void BMI055_Accelerometer::FIFOReset()
 			RegisterSetAndClearBits(r.reg, r.set_bits, r.clear_bits);
 		}
 	}
+
+	// clear sample timestamp to allow data ready scheduling to resume
+	_drdy_timestamp_sample.store(0);
 }
 
 void BMI055_Accelerometer::UpdateTemperature()

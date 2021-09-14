@@ -419,8 +419,12 @@ int ICM40609D::DataReadyInterruptCallback(int irq, void *context, void *arg)
 
 void ICM40609D::DataReady()
 {
-	_drdy_timestamp_sample.store(hrt_absolute_time());
-	ScheduleNow();
+	// schedule transfer if sample timestamp has been cleared (thread ready for next transfer)
+	uint64_t expected = 0;
+
+	if (_drdy_timestamp_sample.compare_exchange(&expected, hrt_absolute_time())) {
+		ScheduleNow();
+	}
 }
 
 bool ICM40609D::DataReadyInterruptConfigure()
@@ -586,7 +590,7 @@ void ICM40609D::FIFOReset()
 	// SIGNAL_PATH_RESET: FIFO flush
 	RegisterSetBits(Register::BANK_0::SIGNAL_PATH_RESET, SIGNAL_PATH_RESET_BIT::FIFO_FLUSH);
 
-	// reset while FIFO is disabled
+	// clear sample timestamp to allow data ready scheduling to resume
 	_drdy_timestamp_sample.store(0);
 }
 

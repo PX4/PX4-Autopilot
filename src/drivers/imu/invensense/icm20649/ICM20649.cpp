@@ -417,8 +417,9 @@ int ICM20649::DataReadyInterruptCallback(int irq, void *context, void *arg)
 void ICM20649::DataReady()
 {
 	// at least the required number of samples in the FIFO
-	if (++_drdy_count >= _fifo_gyro_samples) {
-		_drdy_timestamp_sample.store(hrt_absolute_time());
+	uint64_t expected = 0;
+
+	if ((++_drdy_count >= _fifo_gyro_samples) && _drdy_timestamp_sample.compare_exchange(&expected, hrt_absolute_time())) {
 		_drdy_count -= _fifo_gyro_samples;
 		ScheduleNow();
 	}
@@ -570,6 +571,8 @@ void ICM20649::FIFOReset()
 
 	// reset while FIFO is disabled
 	_drdy_count = 0;
+
+	// clear sample timestamp to allow data ready scheduling to resume
 	_drdy_timestamp_sample.store(0);
 }
 
