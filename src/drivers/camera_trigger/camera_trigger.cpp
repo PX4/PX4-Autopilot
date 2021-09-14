@@ -59,6 +59,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/camera_trigger.h>
+#include <uORB/topics/pps_capture.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -173,6 +174,7 @@ private:
 	bool 			_turning_on{false};
 	matrix::Vector2f	_last_shoot_position{0.f, 0.f};
 	bool			_valid_position{false};
+	int32_t 		_rtc_drift_time{0};
 
 	//Camera Auto Mount Pivoting Oblique Survey (CAMPOS)
 	uint32_t		_CAMPOS_num_poses{0};
@@ -186,6 +188,7 @@ private:
 
 	uORB::Subscription	_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription	_lpos_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription	_pps_capture_sub{ORB_ID(pps_capture)};
 
 	orb_advert_t		_trigger_pub{nullptr};
 
@@ -832,22 +835,28 @@ CameraTrigger::engage(void *arg)
 		return;
 	}
 
-	// Send camera trigger message. This messages indicates that we sent
-	// the camera trigger request. Does not guarantee capture.
-	camera_trigger_s trigger{};
-
-	timespec tv{};
-	px4_clock_gettime(CLOCK_REALTIME, &tv);
-	trigger.timestamp_utc = (uint64_t) tv.tv_sec * 1000000 + tv.tv_nsec / 1000;
-
-	trigger.seq = trig->_trigger_seq;
-	trigger.feedback = false;
-	trigger.timestamp = hrt_absolute_time();
-
 	// Publish only if  _cam_cap_fback is disabled, otherwise, it is published over camera_capture driver
 	if (!trig->_cam_cap_fback) {
-		orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &trigger);
 
+		pps_capture_s pps_capture;
+
+		if (trig->_pps_capture_sub.update(&pps_capture)) {
+			trig->_rtc_drift_time = pps_capture.rtc_drift_time;
+		}
+
+		// Send camera trigger message. This messages indicates that we sent
+		// the camera trigger request. Does not guarantee capture.
+		camera_trigger_s trigger{};
+
+		timespec tv{};
+		px4_clock_gettime(CLOCK_REALTIME, &tv);
+		trigger.timestamp_utc = ts_to_abstime(&tv) + trig->_rtc_drift_time;
+
+		trigger.seq = trig->_trigger_seq;
+		trigger.feedback = false;
+		trigger.timestamp = hrt_absolute_time();
+
+		orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &trigger);
 	}
 
 	// increment frame count
