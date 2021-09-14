@@ -1,7 +1,7 @@
-[submodule "mavlink/mavlink"]
-        path = mavlink/mavlink
-	url = https://github.com/JacobCrabill/mavlink.git
-	branch = dev/header-autogen
+[submodule "src/modules/mavlink/mavlink"]
+	path = src/modules/mavlink/mavlink
+	url = https://github.com/mavlink/mavlink.git
+	branch = master
 [submodule "src/drivers/uavcan/libuavcan"]
 	path = src/drivers/uavcan/libuavcan
 	url = https://github.com/dronecan/libuavcan.git
@@ -65,7 +65,7 @@
 	url = https://github.com/mavlink/libevents.git
 [submodule "Tools/simulation-ignition"]
 	path = Tools/simulation-ignition
-	url = https://github.com/Auterion/px4-simulation-ignition.git
+	url = https://github.com/PX4/px4-simulation-ignition.git
 [submodule "src/lib/crypto/libtomcrypt"]
 	path = src/lib/crypto/libtomcrypt
 	url = https://github.com/PX4/libtomcrypt.git

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,29 +31,51 @@
 #
 ############################################################################
 
-px4_add_git_submodule(TARGET git_mavlink_v2 PATH "${PX4_SOURCE_DIR}/mavlink/mavlink")
+set(MAVLINK_DIALECT "development") # standard, development, etc
 
-set(MAVLINK_DIALECT "development")
-set(MAVLINK_GIT_DIR "${PX4_SOURCE_DIR}/mavlink/mavlink")
-set(CLIBRARY_OUT_DIR "${PX4_SOURCE_DIR}/mavlink/include/mavlink/v2.0")
+# force mavlink dialect to standard if flash constrained
+if(px4_constrained_flash_build)
+	set(MAVLINK_DIALECT "standard")
+endif()
 
-add_custom_command(OUTPUT px4_mavlink_gen.stamp
-    COMMAND "${PX4_SOURCE_DIR}/Tools/mavlink_generate_dialect.sh" ${MAVLINK_DIALECT} "${MAVLINK_GIT_DIR}" "${CLIBRARY_OUT_DIR}" ${PYTHON_EXECUTABLE}
-    COMMAND ${CMAKE_COMMAND} -E touch px4_mavlink_gen.stamp
-    )
+set(MAVLINK_GIT_DIR "${CMAKE_CURRENT_LIST_DIR}/mavlink")
+set(MAVLINK_LIBRARY_DIR "${CMAKE_BINARY_DIR}/mavlink")
+file(RELATIVE_PATH MAVLINK_GIT_DIR_RELATIVE ${CMAKE_SOURCE_DIR} ${MAVLINK_GIT_DIR})
 
-add_custom_target(mavlink_c_library DEPENDS px4_mavlink_gen.stamp)
+px4_add_git_submodule(TARGET git_mavlink_v2 PATH "${MAVLINK_GIT_DIR}")
+
+add_custom_command(
+	OUTPUT ${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT}/${MAVLINK_DIALECT}.h
+	COMMAND
+		${PYTHON_EXECUTABLE} ${MAVLINK_GIT_DIR}/pymavlink/tools/mavgen.py
+			--lang C --wire-protocol 2.0
+			#--no-validate
+			#--strict-units
+			--output ${MAVLINK_LIBRARY_DIR}
+			${MAVLINK_GIT_DIR}/message_definitions/v1.0/${MAVLINK_DIALECT}.xml
+	DEPENDS
+		git_mavlink_v2
+		${MAVLINK_GIT_DIR}/pymavlink/tools/mavgen.py
+		${MAVLINK_GIT_DIR}/message_definitions/v1.0/${MAVLINK_DIALECT}.xml
+	COMMENT "Generating Mavlink ${MAVLINK_DIALECT}: ${MAVLINK_GIT_DIR_RELATIVE}/message_definitions/v1.0/${MAVLINK_DIALECT}.xml"
+	USES_TERMINAL
+)
+add_custom_target(mavlink_c_generate DEPENDS ${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT}/${MAVLINK_DIALECT}.h)
+
+# mavlink header only library
+add_library(mavlink_c INTERFACE)
+target_sources(mavlink_c INTERFACE ${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT}/${MAVLINK_DIALECT}.h)
+set_source_files_properties(${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT}/${MAVLINK_DIALECT}.h PROPERTIES GENERATED true)
+target_include_directories(mavlink_c INTERFACE ${MAVLINK_LIBRARY_DIR} ${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT})
+target_compile_options(mavlink_c INTERFACE -Wno-address-of-packed-member -Wno-cast-align)
+
 
 px4_add_module(
 	MODULE modules__mavlink
 	MAIN mavlink
 	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
-		-Wno-address-of-packed-member # TODO: fix in c_library_v2
 		-Wno-enum-compare # ROTATION <-> MAV_SENSOR_ROTATION
 		#-DDEBUG_BUILD
-	INCLUDES
-		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	SRCS
 		mavlink.c
 		mavlink_command_sender.cpp
@@ -81,10 +103,9 @@ px4_add_module(
 		drivers_barometer
 		drivers_gyroscope
 		drivers_magnetometer
-		git_mavlink_v2
-		mavlink_c_library
 		conversion
 		geo
+		mavlink_c
 		version
 	UNITY_BUILD
 	)

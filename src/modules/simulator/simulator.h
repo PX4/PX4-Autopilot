@@ -76,8 +76,8 @@
 
 #include <random>
 
-#include <v2.0/common/mavlink.h>
-#include <v2.0/mavlink_types.h>
+#include <mavlink.h>
+#include <mavlink_types.h>
 
 using namespace time_literals;
 

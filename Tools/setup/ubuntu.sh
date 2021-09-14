@@ -86,8 +86,8 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends i
 	gdb \
 	git \
 	lcov \
-        libxml2-dev \
-        libxml2-utils \
+	libxml2-dev \
+	libxml2-utils \
 	make \
 	ninja-build \
 	python3 \
