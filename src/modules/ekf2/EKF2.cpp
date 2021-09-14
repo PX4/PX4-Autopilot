@@ -311,13 +311,12 @@ void EKF2::Run()
 
 	bool imu_updated = false;
 	imuSample imu_sample_new {};
-
+	vehicle_imu_s imu;
 	hrt_abstime imu_dt = 0; // for tracking time slip later
+	imu_updated = _vehicle_imu_sub.update(&imu);
 
 	if (_multi_mode) {
 		const unsigned last_generation = _vehicle_imu_sub.get_last_generation();
-		vehicle_imu_s imu;
-		imu_updated = _vehicle_imu_sub.update(&imu);
 
 		if (imu_updated && (_vehicle_imu_sub.get_last_generation() != last_generation + 1)) {
 			perf_count(_msg_missed_imu_perf);
@@ -340,20 +339,39 @@ void EKF2::Run()
 		if ((_device_id_accel == 0) || (_device_id_gyro == 0)) {
 			_device_id_accel = imu.accel_device_id;
 			_device_id_gyro = imu.gyro_device_id;
-			_imu_calibration_count = imu.calibration_count;
+			_accel_calibration_count = imu.accel_calibration_count;
+			_gyro_calibration_count = imu.gyro_calibration_count;
 
-		} else if ((imu.calibration_count > _imu_calibration_count)
-			   || (imu.accel_device_id != _device_id_accel)
-			   || (imu.gyro_device_id != _device_id_gyro)) {
+		} else {
+			bool reset_actioned = false;
 
-			PX4_DEBUG("%d - resetting IMU bias", _instance);
-			_device_id_accel = imu.accel_device_id;
-			_device_id_gyro = imu.gyro_device_id;
+			if ((imu.accel_calibration_count > _accel_calibration_count)
+			    || (imu.accel_device_id != _device_id_accel)) {
 
-			_ekf.resetImuBias();
-			_imu_calibration_count = imu.calibration_count;
+				PX4_DEBUG("%d - resetting accelerometer bias", _instance);
+				_device_id_accel = imu.accel_device_id;
 
-			SelectImuStatus();
+				_ekf.resetAccelBias();
+				_accel_calibration_count = imu.accel_calibration_count;
+
+				reset_actioned = true;
+			}
+
+			if ((imu.gyro_calibration_count > _gyro_calibration_count)
+			    || (imu.gyro_device_id != _device_id_gyro)) {
+
+				PX4_DEBUG("%d - resetting rate gyro bias", _instance);
+				_device_id_gyro = imu.gyro_device_id;
+
+				_ekf.resetGyroBias();
+				_gyro_calibration_count = imu.gyro_calibration_count;
+
+				reset_actioned = true;
+			}
+
+			if (reset_actioned) {
+				SelectImuStatus();
+			}
 		}
 
 	} else {
