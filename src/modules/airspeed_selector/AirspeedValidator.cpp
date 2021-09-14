@@ -149,11 +149,13 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 	    || _tas_innov_integ_threshold <= 0.f) {
 		_innovations_check_failed = false;
 		_time_last_tas_pass = time_now;
+		_apsd_innov_integ_state = 0.f;
 
-	} else if (!((estimator_status_vel_test_ratio < 1.f) && (estimator_status_mag_test_ratio < 1.f))) {
+	} else if (estimator_status_vel_test_ratio > 1.f || estimator_status_mag_test_ratio > 1.f) {
 		//nav velocity data is likely not good
 		//don't run the test but don't reset the check if it had previously failed when nav velocity data was still likely good
 		_time_last_tas_pass = time_now;
+		_apsd_innov_integ_state = 0.f;
 
 	} else {
 		// nav velocity data is likely good so airspeed innovations are able to be used
