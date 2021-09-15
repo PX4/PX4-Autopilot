@@ -50,49 +50,56 @@ def parse_yaml_parameters_config(yaml_config, ethernet_supported):
         definitions = parameters_section['definitions']
         param_group = parameters_section.get('group', None)
         for param_name in definitions:
-            param = definitions[param_name]
-            if param.get('requires_ethernet', False) and not ethernet_supported:
-                continue
-            num_instances = param.get('num_instances', 1)
-            instance_start = param.get('instance_start', 0) # offset
+            # 'definitions' either contains the param definition directly (dict),
+            # or a list of definitions with that name (multiple entries for a
+            # multi-instance param with different instance_start)
+            param_list = definitions[param_name]
+            if not isinstance(param_list, list):
+                param_list = [param_list]
 
-            # get the type and extract all tags
-            tags = '@group {:}'.format(param_group)
-            if param['type'] == 'enum':
-                param_type = 'INT32'
-                for key in param['values']:
-                    tags += '\n * @value {:} {:}'.format(key, param['values'][key])
-            elif param['type'] == 'boolean':
-                param_type = 'INT32'
-                tags += '\n * @boolean'
-            elif param['type'] == 'int32':
-                param_type = 'INT32'
-            elif param['type'] == 'float':
-                param_type = 'FLOAT'
-            else:
-                raise Exception("unknown param type {:}".format(param['type']))
+            for param in param_list:
+                if param.get('requires_ethernet', False) and not ethernet_supported:
+                    continue
+                num_instances = param.get('num_instances', 1)
+                instance_start = param.get('instance_start', 0) # offset
 
-            for tag in ['decimal', 'increment', 'category', 'volatile', 'bit',
-                        'min', 'max', 'unit', 'reboot_required']:
-                if tag in param:
-                    tags += '\n * @{:} {:}'.format(tag, param[tag])
+                # get the type and extract all tags
+                tags = '@group {:}'.format(param_group)
+                if param['type'] == 'enum':
+                    param_type = 'INT32'
+                    for key in param['values']:
+                        tags += '\n * @value {:} {:}'.format(key, param['values'][key])
+                elif param['type'] == 'boolean':
+                    param_type = 'INT32'
+                    tags += '\n * @boolean'
+                elif param['type'] == 'int32':
+                    param_type = 'INT32'
+                elif param['type'] == 'float':
+                    param_type = 'FLOAT'
+                else:
+                    raise Exception("unknown param type {:}".format(param['type']))
 
-            for i in range(num_instances):
-                # default value
-                default_value = 0
-                if 'default' in param:
-                    # default can be a list of num_instances or a single value
-                    if type(param['default']) == list:
-                        assert len(param['default']) == num_instances
-                        default_value = param['default'][i]
-                    else:
-                        default_value = param['default']
+                for tag in ['decimal', 'increment', 'category', 'volatile', 'bit',
+                            'min', 'max', 'unit', 'reboot_required']:
+                    if tag in param:
+                        tags += '\n * @{:} {:}'.format(tag, param[tag])
 
-                if type(default_value) == bool:
-                    default_value = int(default_value)
+                for i in range(num_instances):
+                    # default value
+                    default_value = 0
+                    if 'default' in param:
+                        # default can be a list of num_instances or a single value
+                        if type(param['default']) == list:
+                            assert len(param['default']) == num_instances
+                            default_value = param['default'][i]
+                        else:
+                            default_value = param['default']
 
-                # output the existing C-style format
-                ret += '''
+                    if type(default_value) == bool:
+                        default_value = int(default_value)
+
+                    # output the existing C-style format
+                    ret += '''
 /**
  * {short_descr}
  *
