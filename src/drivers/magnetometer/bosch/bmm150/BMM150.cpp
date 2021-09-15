@@ -54,12 +54,16 @@ BMM150::~BMM150()
 
 int BMM150::init()
 {
+	I2C::_retries = 3;
+
 	int ret = I2C::init();
 
 	if (ret != PX4_OK) {
 		DEVICE_DEBUG("I2C::init failed (%i)", ret);
 		return ret;
 	}
+
+	I2C::_retries = 0;
 
 	return Reset() ? 0 : -1;
 }
