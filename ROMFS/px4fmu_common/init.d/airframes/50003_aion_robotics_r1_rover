@@ -2,7 +2,7 @@
 #
 # @name Aion Robotics R1 UGV
 #
-# @url http://docs.aionrobotics.com/en/latest/r1-ugv.html
+# @url https://www.aionrobotics.com/r1
 #
 # @type Rover
 # @class Rover
@@ -19,7 +19,7 @@
 . ${R}etc/init.d/rc.rover_defaults
 
 
-param set-default BAT_N_CELLS 4
+param set-default BAT1_N_CELLS 4
 
 param set-default EKF2_GBIAS_INIT 0.01
 param set-default EKF2_ANGERR_INIT 0.01
@@ -72,7 +72,6 @@ param set-default GND_MAX_ANG 3.1415
 param set-default RBCLW_BAUD 8
 param set-default RBCLW_COUNTS_REV 1200
 param set-default RBCLW_ADDRESS 128
-# param set SER_TEL4_BAUD 115200
 # 104 corresponds to Telem 4
 param set-default RBCLW_SER_CFG 104
 # Start this driver after setting parameters, because the driver uses some of those parameters.

@@ -49,6 +49,7 @@
 #include <string.h>
 #include <debug.h>
 #include <errno.h>
+#include <syslog.h>
 
 #include <nuttx/board.h>
 
@@ -60,6 +61,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
+#include <drivers/drv_watchdog.h>
 
 #include <systemlib/px4_macros.h>
 
@@ -82,6 +84,8 @@
 
 __EXPORT void stm32_boardinitialize(void)
 {
+	watchdog_init();
+
 	/* configure pins */
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
 	px4_gpio_init(gpio, arraySize(gpio));

@@ -23,7 +23,7 @@ jobs:
     needs: enumerate_targets
     strategy:
       matrix: ${{fromJson(needs.enumerate_targets.outputs.matrix)}}
-    container: px4io/px4-dev-${{ matrix.container }}:2021-04-29
+    container: px4io/px4-dev-${{ matrix.container }}:2021-09-08
     steps:
     - uses: actions/checkout@v1
       with:
@@ -56,13 +56,13 @@ jobs:
     - name: ccache post-run
       run: ccache -s
 
-    - name: parameter metadata
+    - name: parameter & events metadata
       run: |
-        make ${{matrix.target}} ver_gen
+        make ${{matrix.target}} ver_gen events_json
         ./src/lib/version/get_git_tag_or_branch_version.sh build/${{ matrix.target }} >> $GITHUB_ENV
         cd build/${{ matrix.target }}
         mkdir _metadata || true
-        cp parameters.* _metadata
+        cp parameters.* events/*.xz _metadata
 
     - uses: jakejarvis/s3-sync-action@master
       with:

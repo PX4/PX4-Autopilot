@@ -79,6 +79,7 @@
 #include <uORB/topics/vehicle_status.h>
 
 #include "mavlink_command_sender.h"
+#include "mavlink_events.h"
 #include "mavlink_messages.h"
 #include "mavlink_receiver.h"
 #include "mavlink_shell.h"
@@ -160,6 +161,8 @@ public:
 	static int		get_status_all_instances(bool show_streams_status);
 
 	static bool		serial_instance_exists(const char *device_name, Mavlink *self);
+
+	static bool		component_was_seen(int system_id, int component_id, Mavlink *self = nullptr);
 
 	static void		forward_message(const mavlink_message_t *msg, Mavlink *self);
 
@@ -414,7 +417,7 @@ public:
 	bool			get_has_received_messages() { return _received_messages; }
 	void			set_wait_to_transmit(bool wait) { _wait_to_transmit = wait; }
 	bool			get_wait_to_transmit() { return _wait_to_transmit; }
-	bool			should_transmit() { return (_transmitting_enabled && _boot_complete && (!_wait_to_transmit || (_wait_to_transmit && _received_messages))); }
+	bool			should_transmit() { return (_transmitting_enabled && (!_wait_to_transmit || (_wait_to_transmit && _received_messages))); }
 
 	bool			message_buffer_write(const void *ptr, int size);
 
@@ -495,11 +498,8 @@ public:
 
 		_mavlink_ulog = MavlinkULog::try_start(_datarate, 0.7f, target_system, target_component);
 	}
-	void			request_stop_ulog_streaming()
-	{
-		if (_mavlink_ulog) { _mavlink_ulog_stop_requested.store(true); }
-	}
 
+	const events::SendProtocol &get_events_protocol() const { return _events; };
 	bool ftp_enabled() const { return _ftp_on; }
 
 	bool hash_check_enabled() const { return _param_mav_hash_chk_en.get(); }
@@ -529,7 +529,7 @@ public:
 
 private:
 	MavlinkReceiver 	_receiver;
-	int			_instance_id{0};
+	int			_instance_id{-1};
 
 	bool			_transmitting_enabled{true};
 	bool			_transmitting_enabled_commanded{false};
@@ -568,8 +568,8 @@ private:
 
 	MavlinkShell		*_mavlink_shell{nullptr};
 	MavlinkULog		*_mavlink_ulog{nullptr};
-
-	px4::atomic_bool	_mavlink_ulog_stop_requested{false};
+	static events::EventBuffer	*_event_buffer;
+	events::SendProtocol		_events{*_event_buffer, *this};
 
 	MAVLINK_MODE 		_mode{MAVLINK_MODE_NORMAL};
 

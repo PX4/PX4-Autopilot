@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,7 +52,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/parameters/param.h>
-#include <lib/ecl/AlphaFilter/AlphaFilter.hpp>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/battery_status.h>
 
@@ -67,11 +67,6 @@ class Battery : public ModuleParams
 public:
 	Battery(int index, ModuleParams *parent, const int sample_interval_us);
 	~Battery() = default;
-
-	/**
-	 * Reset all battery stats and report invalid/nothing.
-	 */
-	void reset();
 
 	/**
 	 * Get the battery cell count
@@ -113,91 +108,30 @@ protected:
 		param_t crit_thr;
 		param_t emergen_thr;
 		param_t source;
-
-		// TODO: These parameters are depracated. They can be removed entirely once the
-		//  new version of Firmware has been around for long enough.
-		param_t v_empty_old;
-		param_t v_charged_old;
-		param_t n_cells_old;
-		param_t capacity_old;
-		param_t v_load_drop_old;
-		param_t r_internal_old;
-		param_t source_old;
 	} _param_handles{};
 
 	struct {
 		float v_empty;
 		float v_charged;
-		int n_cells;
+		int32_t  n_cells;
 		float capacity;
 		float v_load_drop;
 		float r_internal;
 		float low_thr;
 		float crit_thr;
 		float emergen_thr;
-		int source;
-
-		// TODO: These parameters are depracated. They can be removed entirely once the
-		//  new version of Firmware has been around for long enough.
-		float v_empty_old;
-		float v_charged_old;
-		int n_cells_old;
-		float capacity_old;
-		float v_load_drop_old;
-		float r_internal_old;
-		int source_old;
+		int32_t source;
 	} _params{};
-
-	battery_status_s _battery_status{};
 
 	const int _index;
 
 	bool _first_parameter_update{true};
 	void updateParams() override;
 
-	/**
-	 * Publishes the uORB battery_status message with the most recently-updated data.
-	 */
-	void publish();
-
-	/**
-	 * This function helps migrating and syncing from/to deprecated parameters. BAT_* BAT1_*
-	 * @tparam T Type of the parameter (int or float)
-	 * @param old_param Handle to the old deprecated parameter (for example, param_find("BAT_N_CELLS"))
-	 * @param new_param Handle to the new replacement parameter (for example, param_find("BAT1_N_CELLS"))
-	 * @param old_val Pointer to the value of the old deprecated parameter
-	 * @param new_val Pointer to the value of the new replacement parameter
-	 * @param firstcall If true, this function prefers migrating old to new
-	 */
-	template<typename T>
-	void migrateParam(param_t old_param, param_t new_param, T *old_val, T *new_val, bool firstcall)
-	{
-		T previous_old_val = *old_val;
-		T previous_new_val = *new_val;
-
-		// Update both the old and new parameter values
-		param_get(old_param, old_val);
-		param_get(new_param, new_val);
-
-		// Check if the parameter values are different
-		if (!matrix::isEqualF((float)*old_val, (float)*new_val)) {
-			// If so, copy the new value over to the unchanged parameter
-			// Note: If they differ from the beginning we migrate old to new
-			if (firstcall || !matrix::isEqualF((float)*old_val, (float)previous_old_val)) {
-				param_set_no_notification(new_param, old_val);
-				param_get(new_param, new_val);
-
-			} else if (!matrix::isEqualF((float)*new_val, (float)previous_new_val)) {
-				param_set_no_notification(old_param, new_val);
-				param_get(old_param, old_val);
-			}
-		}
-	}
-
 private:
 	void sumDischarged(const hrt_abstime &timestamp, float current_a);
 	void estimateStateOfCharge(const float voltage_v, const float current_a, const float throttle);
-	void determineWarning(bool connected);
+	uint8_t determineWarning(float state_of_charge);
 	void computeScale();
 
 	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};

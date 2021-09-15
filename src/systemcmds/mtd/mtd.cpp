@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2014, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,6 +46,7 @@
 #include <px4_platform_common/px4_mtd.h>
 #include <px4_platform_common/getopt.h>
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -112,7 +113,7 @@ static int mtd_status(void)
 						ret = instances[i].part_dev[p]->ioctl(instances[i].part_dev[p], MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&geo));
 						printf("    partition: %u:\n", p);
 						printf("     name:   %s\n", instances[i].partition_names[p]);
-						printf("     blocks: %u (%u bytes)\n", geo.neraseblocks, erasesize * geo.neraseblocks);
+						printf("     blocks: %" PRIu32 " (%lu bytes)\n", geo.neraseblocks, erasesize * geo.neraseblocks);
 						totalnblocks += geo.neraseblocks;
 						totalpartsize += erasesize * geo.neraseblocks;
 					}
@@ -175,7 +176,7 @@ int mtd_erase(mtd_instance_s &instance)
 			count += sizeof(v);
 		}
 
-		printf("Erased %lu bytes\n", (unsigned long)count);
+		printf("Erased %" PRIu32 " bytes\n", count);
 		close(fd);
 	}
 
@@ -203,7 +204,7 @@ int mtd_readtest(const mtd_instance_s &instance)
 			return 1;
 		}
 
-		printf("reading %s expecting %u bytes\n", instance.partition_names[i], expected_size);
+		printf("reading %s expecting %zd bytes\n", instance.partition_names[i], expected_size);
 		int fd = open(instance.partition_names[i], O_RDONLY);
 
 		if (fd == -1) {
@@ -216,7 +217,7 @@ int mtd_readtest(const mtd_instance_s &instance)
 		}
 
 		if (count != expected_size) {
-			PX4_ERR("Failed to read partition - got %u/%u bytes", count, expected_size);
+			PX4_ERR("Failed to read partition - got %zd/%zd bytes", count, expected_size);
 			return 1;
 		}
 
@@ -248,7 +249,7 @@ int mtd_rwtest(const mtd_instance_s &instance)
 			return 1;
 		}
 
-		printf("rwtest %s testing %u bytes\n", instance.partition_names[i], expected_size);
+		printf("rwtest %s testing %zd bytes\n", instance.partition_names[i], expected_size);
 		int fd = open(instance.partition_names[i], O_RDWR);
 
 		if (fd == -1) {
@@ -288,7 +289,7 @@ int mtd_rwtest(const mtd_instance_s &instance)
 		}
 
 		if (count != expected_size) {
-			PX4_ERR("Failed to read partition - got %u/%u bytes", count, expected_size);
+			PX4_ERR("Failed to read partition - got %zd/%zd bytes", count, expected_size);
 			return 1;
 		}
 

@@ -35,20 +35,21 @@
 
 using namespace time_literals;
 
-BMM150::BMM150(I2CSPIBusOption bus_option, int bus, int bus_frequency, enum Rotation rotation) :
-	I2C(DRV_MAG_DEVTYPE_BMM150, MODULE_NAME, bus, I2C_ADDRESS_DEFAULT, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_mag(get_device_id(), rotation)
+BMM150::BMM150(const I2CSPIDriverConfig &config) :
+	I2C(config),
+	I2CSPIDriver(config),
+	_px4_mag(get_device_id(), config.rotation)
 {
 	_px4_mag.set_external(external());
 }
 
 BMM150::~BMM150()
 {
-	perf_free(_reset_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
+	perf_free(_reset_perf);
 	perf_free(_overflow_perf);
+	perf_free(_self_test_failed_perf);
 }
 
 int BMM150::init()

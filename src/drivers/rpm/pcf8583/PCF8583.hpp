@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,11 +57,9 @@
 class PCF8583 : public device::I2C, public ModuleParams, public I2CSPIDriver<PCF8583>
 {
 public:
-	PCF8583(I2CSPIBusOption bus_option, const int bus, int bus_frequency);
+	PCF8583(const I2CSPIDriverConfig &config);
 	~PCF8583() override = default;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void		RunImpl();
@@ -85,7 +83,6 @@ private:
 	uORB::Publication<rpm_s> _rpm_pub{ORB_ID(rpm)};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::PCF8583_ADDR>) _param_pcf8583_addr,
 		(ParamInt<px4::params::PCF8583_POOL>) _param_pcf8583_pool,
 		(ParamInt<px4::params::PCF8583_RESET>) _param_pcf8583_reset,
 		(ParamInt<px4::params::PCF8583_MAGNET>) _param_pcf8583_magnet

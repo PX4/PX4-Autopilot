@@ -57,7 +57,16 @@ int test_sleep(int argc, char *argv[])
 	fflush(stdout);
 
 	for (unsigned int i = 0; i < nsleeps; i++) {
+		const hrt_abstime time_start = hrt_absolute_time();
 		px4_usleep(100000);
+		const hrt_abstime time_stop = hrt_absolute_time();
+
+		int elapsed = time_stop - time_start;
+
+		if (elapsed < 100000) {
+			PX4_ERR("\t Sleep test failed, only %d us elapsed\n", elapsed);
+			return PX4_ERROR;
+		}
 	}
 
 	printf("\t Sleep test successful.\n");

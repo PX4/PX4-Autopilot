@@ -47,15 +47,18 @@
 
 #include <uavcan/_register/Access_1_0.h>
 
+#include "ServiceRequest.hpp"
+#include "../ParamManager.hpp"
 #include "../Publishers/Publisher.hpp"
 
-class UavcanAccessServiceRequest
+class UavcanAccessServiceRequest : public UavcanServiceRequest
 {
 public:
 	UavcanAccessServiceRequest(CanardInstance &ins, UavcanParamManager &pmgr) :
-		_canard_instance(ins), _param_manager(pmgr) { };
+		UavcanServiceRequest(ins, "Access", uavcan_register_Access_1_0_FIXED_PORT_ID_,
+				     uavcan_register_Access_Response_1_0_EXTENT_BYTES_),  _param_manager(pmgr)  { };
 
-	bool setPortId(CanardNodeID node_id, uavcan_register_Name_1_0 &name)
+	bool setPortId(CanardNodeID node_id, uavcan_register_Name_1_0 &name, UavcanServiceRequestInterface *handler)
 	{
 		int result {0};
 
@@ -76,9 +79,9 @@ public:
 				.timestamp_usec = hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
 				.priority       = CanardPriorityNominal,
 				.transfer_kind  = CanardTransferKindRequest,
-				.port_id        = uavcan_register_Access_1_0_FIXED_PORT_ID_,                // This is the subject-ID.
+				.port_id        = _portID,                // This is the subject-ID.
 				.remote_node_id = node_id,       // Messages cannot be unicast, so use UNSET.
-				.transfer_id    = access_request_transfer_id,
+				.transfer_id    = request_transfer_id,
 				.payload_size   = uavcan_register_Access_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_,
 				.payload        = &request_payload_buffer,
 			};
@@ -86,12 +89,11 @@ public:
 			result = uavcan_register_Access_Request_1_0_serialize_(&request_msg, request_payload_buffer, &transfer.payload_size);
 
 			if (result == 0) {
-				// set the data ready in the buffer and chop if needed
-				++access_request_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
-				result = canardTxPush(&_canard_instance, &transfer);
-			}
+				return request(&transfer, handler);
 
-			return result > 0;
+			} else {
+				return false;
+			}
 
 		} else {
 			return false;
@@ -99,8 +101,6 @@ public:
 	};
 
 private:
-	CanardInstance &_canard_instance;
-	CanardTransferID access_request_transfer_id = 0;
 	UavcanParamManager &_param_manager;
 
 };

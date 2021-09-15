@@ -1,9 +1,6 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR px4
-	MODEL fmu-v5
-	LABEL stackcheck
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
@@ -53,6 +50,7 @@ px4_add_board(
 		#roboclaw
 		#rpm
 		safety_button
+		#smart_battery/batmon
 		telemetry # all available telemetry drivers
 		#test_ppm
 		tone_alarm
@@ -70,8 +68,8 @@ px4_add_board(
 		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
-		gyro_calibration
-		gyro_fft
+		#gyro_calibration
+		#gyro_fft
 		land_detector
 		#landing_target_estimator
 		load_mon

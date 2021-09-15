@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,8 +44,8 @@
 
 using namespace time_literals;
 
-#if !defined(BOARD_HAS_PWM)
-#  error "board_config.h needs to define BOARD_HAS_PWM"
+#if !defined(DIRECT_PWM_OUTPUT_CHANNELS)
+#  error "board_config.h needs to define DIRECT_PWM_OUTPUT_CHANNELS"
 #endif
 
 /** Dshot PWM frequency, Hz */
@@ -64,63 +64,12 @@ public:
 	DShot();
 	virtual ~DShot();
 
-	enum Mode {
-		MODE_NONE = 0,
-		MODE_1PWM,
-		MODE_2PWM,
-		MODE_2PWM2CAP,
-		MODE_3PWM,
-		MODE_3PWM1CAP,
-		MODE_4PWM,
-		MODE_4PWM1CAP,
-		MODE_4PWM2CAP,
-		MODE_5PWM,
-		MODE_5PWM1CAP,
-		MODE_6PWM,
-		MODE_8PWM,
-		MODE_12PWM,
-		MODE_14PWM,
-		MODE_4CAP,
-		MODE_5CAP,
-		MODE_6CAP,
-	};
-
-	/** Mode given via CLI */
-	enum PortMode {
-		PORT_MODE_UNSET = 0,
-		PORT_FULL_GPIO,
-		PORT_FULL_PWM,
-		PORT_PWM14,
-		PORT_PWM12,
-		PORT_PWM8,
-		PORT_PWM6,
-		PORT_PWM5,
-		PORT_PWM4,
-		PORT_PWM3,
-		PORT_PWM2,
-		PORT_PWM1,
-		PORT_PWM3CAP1,
-		PORT_PWM4CAP1,
-		PORT_PWM4CAP2,
-		PORT_PWM5CAP1,
-		PORT_PWM2CAP2,
-		PORT_CAPTURE,
-	};
-
-	static void capture_trampoline(void *context, const uint32_t channel_index, const hrt_abstime edge_time,
-				       const uint32_t edge_state, const uint32_t overflow);
-
 	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
-
-	Mode get_mode() { return _mode; }
 
 	virtual int init();
 
 	virtual int ioctl(file *filp, int cmd, unsigned long arg);
-
-	/** change the mode of the running module */
-	static int module_new_mode(const PortMode new_mode);
 
 	void mixerChanged() override;
 
@@ -140,8 +89,6 @@ public:
 	 * @return 0 on success, <0 error otherwise
 	 */
 	int send_command_thread_safe(const dshot_command_t command, const int num_repetitions, const int motor_index);
-
-	int set_mode(const Mode new_mode);
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -179,18 +126,11 @@ private:
 		int last_motor_index{-1};
 	};
 
-	void capture_callback(const uint32_t channel_index, const hrt_abstime edge_time,
-			      const uint32_t edge_state, const uint32_t overflow);
-
-	int capture_ioctl(file *filp, const int cmd, const unsigned long arg);
-
 	void enable_dshot_outputs(const bool enabled);
 
 	void init_telemetry(const char *device);
 
 	void handle_new_telemetry_data(const int motor_index, const DShotTelemetry::EscData &data);
-
-	int pwm_ioctl(file *filp, const int cmd, const unsigned long arg);
 
 	int request_esc_info();
 
@@ -215,7 +155,7 @@ private:
 	bool _outputs_on{false};
 	bool _waiting_for_esc_info{false};
 
-	unsigned _num_outputs{0};
+	static constexpr unsigned _num_outputs{DIRECT_PWM_OUTPUT_CHANNELS};
 	uint32_t _output_mask{0};
 
 	int _class_instance{-1};
@@ -223,8 +163,6 @@ private:
 	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	Command _current_command{};
-
-	Mode _mode{MODE_NONE};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 

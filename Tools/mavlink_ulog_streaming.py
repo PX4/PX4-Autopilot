@@ -13,6 +13,7 @@ import datetime
 from timeit import default_timer as timer
 os.environ['MAVLINK20'] = '1' # The commands require mavlink 2
 from argparse import ArgumentParser
+import signal
 
 try:
     from pymavlink import mavutil
@@ -24,6 +25,8 @@ except ImportError as e:
     print("")
     sys.exit(1)
 
+class LoggingCompleted(Exception):
+    pass
 
 class MavlinkLogStreaming():
     '''Streams log data via MAVLink.
@@ -49,6 +52,7 @@ class MavlinkLogStreaming():
         self.logging_started = False
         self.num_dropouts = 0
         self.target_component = 1
+        self.got_sig_int = False
 
     def debug(self, s, level=1):
         '''write some debug text'''
@@ -67,13 +71,24 @@ class MavlinkLogStreaming():
                 mavutil.mavlink.MAV_CMD_LOGGING_STOP, 0,
                 0, 0, 0, 0, 0, 0, 0)
 
+    def _int_handler(self, sig, frame):
+        self.got_sig_int = True
+
     def read_messages(self):
         ''' main loop reading messages '''
         measure_time_start = timer()
         measured_data = 0
 
         next_heartbeat_time = timer()
+        old_handler = signal.signal(signal.SIGINT, self._int_handler)
+
         while True:
+            if self.got_sig_int:
+                signal.signal(signal.SIGINT, old_handler)
+                self.got_sig_int = False
+                print('\nStopping log...')
+                self.stop_log()
+                # Continue reading until we get an ACK
 
             # handle heartbeat sending
             heartbeat_time = timer()
@@ -120,6 +135,9 @@ class MavlinkLogStreaming():
                         print('Logging started. Waiting for Header...')
                     else:
                         raise Exception('Logging start failed', m.result)
+                elif m.command == mavutil.mavlink.MAV_CMD_LOGGING_STOP and \
+                        m.result == mavutil.mavlink.MAV_RESULT_ACCEPTED:
+                    raise LoggingCompleted()
                 return None, 0, 0
 
             # m is either 'LOGGING_DATA_ACKED' or 'LOGGING_DATA':
@@ -137,7 +155,8 @@ class MavlinkLogStreaming():
 
                 if m.get_type() == 'LOGGING_DATA':
                     if not self.got_header_section:
-                        print('Header received in {:0.2f}s'.format(timer()-self.start_time))
+                        print('Header received in {:0.2f}s (size: {:.1f} KB)'.format(
+                              timer()-self.start_time, self.file.tell()/1024))
                         self.logging_started = True
                         self.got_header_section = True
                 self.last_sequence = m.sequence
@@ -256,14 +275,10 @@ def main():
         print('Starting log...')
         mav_log_streaming.start_log()
         mav_log_streaming.read_messages()
-
-        print('Stopping log')
-        mav_log_streaming.stop_log()
-
     except KeyboardInterrupt:
-        print('Stopping log')
-        mav_log_streaming.stop_log()
-
+        print('Aborting')
+    except LoggingCompleted:
+        print('Done')
 
 if __name__ == '__main__':
     main()

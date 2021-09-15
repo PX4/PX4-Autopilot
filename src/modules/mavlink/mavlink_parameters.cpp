@@ -120,15 +120,11 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				param_t param = param_find_no_notification(name);
 
 				if (param == PARAM_INVALID) {
-					char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
-					sprintf(buf, "[pm] unknown param: %s", name);
-					_mavlink->send_statustext_info(buf);
+					PX4_ERR("unknown param: %s", name);
 
 				} else if (!((param_type(param) == PARAM_TYPE_INT32 && set.param_type == MAV_PARAM_TYPE_INT32) ||
 					     (param_type(param) == PARAM_TYPE_FLOAT && set.param_type == MAV_PARAM_TYPE_REAL32))) {
-					char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
-					sprintf(buf, "[pm] param types mismatch param: %s", name);
-					_mavlink->send_statustext_info(buf);
+					PX4_ERR("param types mismatch param: %s", name);
 
 				} else {
 					// According to the mavlink spec we should always acknowledge a write operation.
@@ -204,14 +200,10 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					int ret = send_param(param_for_used_index(req_read.param_index));
 
 					if (ret == 1) {
-						char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
-						sprintf(buf, "[pm] unknown param ID: %u", req_read.param_index);
-						_mavlink->send_statustext_info(buf);
+						PX4_ERR("unknown param ID: %i", req_read.param_index);
 
 					} else if (ret == 2) {
-						char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
-						sprintf(buf, "[pm] failed loading param from storage ID: %u", req_read.param_index);
-						_mavlink->send_statustext_info(buf);
+						PX4_ERR("failed loading param from storage ID: %i", req_read.param_index);
 					}
 				}
 			}
@@ -248,7 +240,9 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				size_t i = map_rc.parameter_rc_channel_index;
 
 				if (i >= sizeof(_rc_param_map.param_index) / sizeof(_rc_param_map.param_index[0])) {
-					mavlink_log_warning(_mavlink->get_mavlink_log_pub(), "parameter_rc_channel_index out of bounds");
+					mavlink_log_warning(_mavlink->get_mavlink_log_pub(), "parameter_rc_channel_index out of bounds\t");
+					events::send(events::ID("mavlink_param_rc_chan_out_of_bounds"), events::Log::Warning,
+						     "parameter_rc_channel_index out of bounds");
 					break;
 				}
 
@@ -286,14 +280,13 @@ MavlinkParametersManager::send()
 {
 	if (!_first_send) {
 		// parameters QGC can't tolerate not finding (2020-11-11)
-		param_find("BAT_A_PER_V");
 		param_find("BAT_CRIT_THR");
 		param_find("BAT_EMERGEN_THR");
 		param_find("BAT_LOW_THR");
-		param_find("BAT_N_CELLS");
-		param_find("BAT_V_CHARGED");
-		param_find("BAT_V_DIV");
-		param_find("BAT_V_EMPTY");
+		param_find("BAT_N_CELLS");     // deprecated
+		param_find("BAT_V_CHARGED");   // deprecated
+		param_find("BAT_V_EMPTY");     // deprecated
+		param_find("BAT_V_LOAD_DROP"); // deprecated
 		param_find("CAL_ACC0_ID");
 		param_find("CAL_GYRO0_ID");
 		param_find("CAL_MAG0_ID");

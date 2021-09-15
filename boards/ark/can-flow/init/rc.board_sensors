@@ -4,6 +4,12 @@
 #------------------------------------------------------------------------------
 
 # Internal SPI
-paw3902 -s start -Y 90
-bmi088 -A -s -R 4 start
-bmi088 -G -s -R 4 start
+paw3902 -s start -Y 180
+
+if ! icm42688p -R 0 -s start
+then
+	bmi088 -A -s -R 4 start
+	bmi088 -G -s -R 4 start
+fi
+
+afbrs50 start

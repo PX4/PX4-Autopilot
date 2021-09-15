@@ -50,10 +50,11 @@
 
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/events.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/tasks.h>
 #include <systemlib/mavlink_log.h>
@@ -65,7 +66,6 @@
  */
 extern "C" __EXPORT int navigator_main(int argc, char *argv[]);
 using namespace time_literals;
-
 namespace navigator
 {
 Navigator	*g_navigator;
@@ -100,6 +100,9 @@ Navigator::Navigator() :
 	_handle_back_trans_dec_mss = param_find("VT_B_DEC_MSS");
 	_handle_reverse_delay = param_find("VT_B_REV_DEL");
 
+	_handle_mpc_jerk_auto = param_find("MPC_JERK_AUTO");
+	_handle_mpc_acc_hor = param_find("MPC_ACC_HOR");
+
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_mission_sub = orb_subscribe(ORB_ID(mission));
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
@@ -126,6 +129,14 @@ Navigator::params_update()
 
 	if (_handle_reverse_delay != PARAM_INVALID) {
 		param_get(_handle_reverse_delay, &_param_reverse_delay);
+	}
+
+	if (_handle_mpc_jerk_auto != PARAM_INVALID) {
+		param_get(_handle_mpc_jerk_auto, &_param_mpc_jerk_auto);
+	}
+
+	if (_handle_mpc_acc_hor != PARAM_INVALID) {
+		param_get(_handle_mpc_acc_hor, &_param_mpc_acc_hor);
 	}
 }
 
@@ -294,7 +305,6 @@ Navigator::run()
 					}
 
 					if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
-
 						// Position change with optional altitude change
 						rep->current.lat = cmd.param5;
 						rep->current.lon = cmd.param6;
@@ -307,25 +317,41 @@ Navigator::run()
 						}
 
 					} else if (PX4_ISFINITE(cmd.param7)) {
-
-						// Altitude without position change
-						// This condition is necessary for altitude changes just after takeoff where lat and lon are still nan
-						if (curr->current.valid && PX4_ISFINITE(curr->current.lat) && PX4_ISFINITE(curr->current.lon)) {
-							rep->current.lat = curr->current.lat;
-							rep->current.lon = curr->current.lon;
-
-						} else {
-							rep->current.lat = get_global_position()->lat;
-							rep->current.lon = get_global_position()->lon;
-						}
-
+						// Received only a request to change altitude, thus we keep the setpoint
+						rep->current.lat = curr->current.lat;
+						rep->current.lon = curr->current.lon;
 						rep->current.alt = cmd.param7;
 
 					} else {
-						// All three set to NaN - hold in current position
-						rep->current.lat = get_global_position()->lat;
-						rep->current.lon = get_global_position()->lon;
+						// All three set to NaN - pause vehicle
 						rep->current.alt = get_global_position()->alt;
+
+						if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+						    && (get_position_setpoint_triplet()->current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
+
+							// For multirotors we need to account for the braking distance, otherwise the vehicle will overshoot and go back
+							double lat, lon;
+							float course_over_ground = atan2f(_local_pos.vy, _local_pos.vx);
+
+							// predict braking distance
+
+							const float velocity_hor_abs = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
+
+							float multirotor_braking_distance = math::trajectory::computeBrakingDistanceFromVelocity(velocity_hor_abs,
+											    _param_mpc_jerk_auto, _param_mpc_acc_hor, 0.6f * _param_mpc_jerk_auto);
+
+							waypoint_from_heading_and_distance(get_global_position()->lat, get_global_position()->lon, course_over_ground,
+											   multirotor_braking_distance, &lat, &lon);
+							rep->current.lat = lat;
+							rep->current.lon = lon;
+							rep->current.yaw = get_local_position()->heading;
+							rep->current.yaw_valid = true;
+
+						} else {
+							// For fixedwings we can use the current vehicle's position to define the loiter point
+							rep->current.lat = get_global_position()->lat;
+							rep->current.lon = get_global_position()->lon;
+						}
 					}
 
 					rep->previous.valid = true;
@@ -337,7 +363,9 @@ Navigator::run()
 					rep->next.valid = false;
 
 				} else {
-					mavlink_log_critical(&_mavlink_log_pub, "Reposition is outside geofence");
+					mavlink_log_critical(&_mavlink_log_pub, "Reposition is outside geofence\t");
+					events::send(events::ID("navigator_reposition_outside_geofence"), {events::Log::Error, events::LogInternal::Info},
+						     "Reposition is outside geofence");
 				}
 
 				// CMD_DO_REPOSITION is acknowledged by commander
@@ -508,10 +536,13 @@ Navigator::run()
 				case RTL::RTL_CLOSEST:
 					if (rtl_activated) {
 						if (rtl_type() == RTL::RTL_LAND) {
-							mavlink_log_info(get_mavlink_log_pub(), "RTL LAND activated");
+							mavlink_log_info(get_mavlink_log_pub(), "RTL LAND activated\t");
+							events::send(events::ID("navigator_rtl_landing_activated"), events::Log::Info, "RTL activated");
 
 						} else {
-							mavlink_log_info(get_mavlink_log_pub(), "RTL Closest landing point activated");
+							mavlink_log_info(get_mavlink_log_pub(), "RTL Closest landing point activated\t");
+							events::send(events::ID("navigator_rtl_closest_point_activated"), events::Log::Info,
+								     "RTL to closest landing point activated");
 						}
 
 					}
@@ -552,7 +583,9 @@ Navigator::run()
 						}
 
 						if (rtl_activated) {
-							mavlink_log_info(get_mavlink_log_pub(), "RTL Mission activated, continue mission");
+							mavlink_log_info(get_mavlink_log_pub(), "RTL Mission activated, continue mission\t");
+							events::send(events::ID("navigator_rtl_mission_activated"), events::Log::Info,
+								     "RTL Mission activated, continue mission");
 						}
 
 						navigation_mode_new = &_mission;
@@ -574,14 +607,18 @@ Navigator::run()
 							}
 
 							if (rtl_activated) {
-								mavlink_log_info(get_mavlink_log_pub(), "RTL Mission activated, fly mission in reverse");
+								mavlink_log_info(get_mavlink_log_pub(), "RTL Mission activated, fly mission in reverse\t");
+								events::send(events::ID("navigator_rtl_mission_activated_rev"), events::Log::Info,
+									     "RTL Mission activated, fly mission in reverse");
 							}
 
 							navigation_mode_new = &_mission;
 
 						} else {
 							if (rtl_activated) {
-								mavlink_log_info(get_mavlink_log_pub(), "RTL Mission activated, fly to home");
+								mavlink_log_info(get_mavlink_log_pub(), "RTL Mission activated, fly to home\t");
+								events::send(events::ID("navigator_rtl_mission_activated_home"), events::Log::Info,
+									     "RTL Mission activated, fly to home");
 							}
 
 							navigation_mode_new = &_rtl;
@@ -592,7 +629,8 @@ Navigator::run()
 
 				default:
 					if (rtl_activated) {
-						mavlink_log_info(get_mavlink_log_pub(), "RTL HOME activated");
+						mavlink_log_info(get_mavlink_log_pub(), "RTL HOME activated\t");
+						events::send(events::ID("navigator_rtl_home_activated"), events::Log::Info, "RTL activated");
 					}
 
 					navigation_mode_new = &_rtl;
@@ -769,7 +807,9 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 
 			/* Issue a warning about the geofence violation once and only if we are armed */
 			if (!_geofence_violation_warning_sent && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-				mavlink_log_critical(&_mavlink_log_pub, "Approaching on Geofence");
+				mavlink_log_critical(&_mavlink_log_pub, "Approaching on Geofence\t");
+				events::send(events::ID("navigator_approach_geofence"), {events::Log::Warning, events::LogInternal::Info},
+					     "Approaching on Geofence");
 
 				// we have predicted a geofence violation and if the action is to loiter then
 				// demand a reposition to a location which is inside the geofence
@@ -832,7 +872,7 @@ int Navigator::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("navigator",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_NAVIGATION,
-				      1800,
+				      PX4_STACK_ADJUSTED(1800),
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 
@@ -972,7 +1012,7 @@ Navigator::reset_position_setpoint(position_setpoint_s &sp)
 	sp = position_setpoint_s{};
 	sp.timestamp = hrt_absolute_time();
 	sp.lat = static_cast<double>(NAN);
-	sp.lon = static_cast<double>(NAN);;
+	sp.lon = static_cast<double>(NAN);
 	sp.loiter_radius = get_loiter_radius();
 	sp.acceptance_radius = get_default_acceptance_radius();
 	sp.cruising_speed = get_cruising_speed();
@@ -1129,6 +1169,12 @@ void Navigator::check_traffic()
 			snprintf(&uas_id[i * 2], sizeof(uas_id) - i * 2, "%02x", tr.uas_id[PX4_GUID_BYTE_LENGTH - 5 + i]);
 		}
 
+		uint64_t uas_id_int = 0;
+
+		for (int i = 0; i < 8; i++) {
+			uas_id_int |= (uint64_t)(tr.uas_id[PX4_GUID_BYTE_LENGTH - i - 1]) << (i * 8);
+		}
+
 		//Manned/Unmanned Vehicle Seperation Distance
 		if (tr.emitter_type == transponder_report_s::ADSB_EMITTER_TYPE_UAV) {
 			horizontal_separation = NAVTrafficAvoidUnmanned;
@@ -1167,75 +1213,114 @@ void Navigator::check_traffic()
 
 				if (!cr.past_end && (fabsf(cr.distance) < horizontal_separation)) {
 
-					// direction of traffic in human-readable 0..360 degree in earth frame
-					int traffic_direction = math::degrees(tr.heading) + 180;
-					int traffic_seperation = (int)fabsf(cr.distance);
+					bool action_needed = buffer_air_traffic(tr.icao_address);
 
-					switch (_param_nav_traff_avoid.get()) {
+					if (action_needed) {
+						// direction of traffic in human-readable 0..360 degree in earth frame
+						int traffic_direction = math::degrees(tr.heading) + 180;
+						int traffic_seperation = (int)fabsf(cr.distance);
 
-					case 0: {
-							/* Ignore */
-							PX4_WARN("TRAFFIC %s! dst %d, hdg %d",
-								 tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-								 traffic_seperation,
-								 traffic_direction);
-							break;
-						}
+						switch (_param_nav_traff_avoid.get()) {
 
-					case 1: {
-							/* Warn only */
-							mavlink_log_critical(&_mavlink_log_pub, "Warning TRAFFIC %s! dst %d, hdg %d",
-									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-									     traffic_seperation,
-									     traffic_direction);
-							break;
-						}
+						case 0: {
+								/* Ignore */
+								PX4_WARN("TRAFFIC %s! dst %d, hdg %d",
+									 tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
+									 traffic_seperation,
+									 traffic_direction);
+								break;
+							}
 
-					case 2: {
-							/* RTL Mode */
-							mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Returning home! dst %d, hdg %d",
-									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-									     traffic_seperation,
-									     traffic_direction);
+						case 1: {
+								/* Warn only */
+								mavlink_log_critical(&_mavlink_log_pub, "Warning TRAFFIC %s! dst %d, hdg %d\t",
+										     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
+										     traffic_seperation,
+										     traffic_direction);
+								/* EVENT
+								 * @description
+								 * - ID: {1}
+								 * - Distance: {2m}
+								 * - Direction: {3} degrees
+								 */
+								events::send<uint64_t, int32_t, int16_t>(events::ID("navigator_traffic"), events::Log::Critical, "Traffic alert",
+										uas_id_int, traffic_seperation, traffic_direction);
+								break;
+							}
 
-							// set the return altitude to minimum
-							_rtl.set_return_alt_min(true);
+						case 2: {
+								/* RTL Mode */
+								mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Returning home! dst %d, hdg %d\t",
+										     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
+										     traffic_seperation,
+										     traffic_direction);
+								/* EVENT
+								 * @description
+								 * - ID: {1}
+								 * - Distance: {2m}
+								 * - Direction: {3} degrees
+								 */
+								events::send<uint64_t, int32_t, int16_t>(events::ID("navigator_traffic_rtl"), events::Log::Critical,
+										"Traffic alert, returning home",
+										uas_id_int, traffic_seperation, traffic_direction);
 
-							// ask the commander to execute an RTL
-							vehicle_command_s vcmd = {};
-							vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH;
-							publish_vehicle_cmd(&vcmd);
-							break;
-						}
+								// set the return altitude to minimum
+								_rtl.set_return_alt_min(true);
 
-					case 3: {
-							/* Land Mode */
-							mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Landing! dst %d, hdg % d",
-									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-									     traffic_seperation,
-									     traffic_direction);
+								// ask the commander to execute an RTL
+								vehicle_command_s vcmd = {};
+								vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH;
+								publish_vehicle_cmd(&vcmd);
+								break;
+							}
 
-							// ask the commander to land
-							vehicle_command_s vcmd = {};
-							vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
-							publish_vehicle_cmd(&vcmd);
-							break;
+						case 3: {
+								/* Land Mode */
+								mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Landing! dst %d, hdg % d\t",
+										     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
+										     traffic_seperation,
+										     traffic_direction);
+								/* EVENT
+								 * @description
+								 * - ID: {1}
+								 * - Distance: {2m}
+								 * - Direction: {3} degrees
+								 */
+								events::send<uint64_t, int32_t, int16_t>(events::ID("navigator_traffic_land"), events::Log::Critical,
+										"Traffic alert, landing",
+										uas_id_int, traffic_seperation, traffic_direction);
 
-						}
+								// ask the commander to land
+								vehicle_command_s vcmd = {};
+								vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
+								publish_vehicle_cmd(&vcmd);
+								break;
 
-					case 4: {
-							/* Position hold */
-							mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Holding position! dst %d, hdg %d",
-									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-									     traffic_seperation,
-									     traffic_direction);
+							}
 
-							// ask the commander to Loiter
-							vehicle_command_s vcmd = {};
-							vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LOITER_UNLIM;
-							publish_vehicle_cmd(&vcmd);
-							break;
+						case 4: {
+								/* Position hold */
+								mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Holding position! dst %d, hdg %d\t",
+										     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
+										     traffic_seperation,
+										     traffic_direction);
+								/* EVENT
+								 * @description
+								 * - ID: {1}
+								 * - Distance: {2m}
+								 * - Direction: {3} degrees
+								 */
+								events::send<uint64_t, int32_t, int16_t>(events::ID("navigator_traffic_hold"), events::Log::Critical,
+										"Traffic alert, holding position",
+										uas_id_int, traffic_seperation, traffic_direction);
 
+								// ask the commander to Loiter
+								vehicle_command_s vcmd = {};
+								vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LOITER_UNLIM;
+								publish_vehicle_cmd(&vcmd);
+								break;
+
+							}
 						}
 					}
 				}
@@ -1244,6 +1329,28 @@ void Navigator::check_traffic()
 
 		changed = _traffic_sub.updated();
 	}
+}
+
+bool
+Navigator::buffer_air_traffic(uint32_t icao_address)
+{
+	bool action_needed = true;
+
+	if (_traffic_buffer.icao_address == icao_address) {
+
+		if (hrt_elapsed_time(&_traffic_buffer.timestamp) > 60_s) {
+			_traffic_buffer.timestamp = hrt_absolute_time();
+
+		} else {
+			action_needed = false;
+		}
+
+	} else {
+		_traffic_buffer.timestamp = hrt_absolute_time();
+		_traffic_buffer.icao_address = icao_address;
+	}
+
+	return action_needed;
 }
 
 bool
@@ -1324,12 +1431,14 @@ Navigator::publish_mission_result()
 }
 
 void
-Navigator::set_mission_failure(const char *reason)
+Navigator::set_mission_failure_heading_timeout()
 {
 	if (!_mission_result.failure) {
 		_mission_result.failure = true;
 		set_mission_result_updated();
-		mavlink_log_critical(&_mavlink_log_pub, "%s", reason);
+		mavlink_log_critical(&_mavlink_log_pub, "unable to reach heading within timeout\t");
+		events::send(events::ID("navigator_mission_failure_heading"), events::Log::Critical,
+			     "Mission failure: unable to reach heading within timeout");
 	}
 }
 

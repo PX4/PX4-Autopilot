@@ -38,8 +38,6 @@ param set-default MC_ACRO_R_MAX 1000
 param set-default MC_ACRO_P_MAX 1000
 param set-default MC_ACRO_Y_MAX 1000
 
-# param set NAV_RCL_ACT 6 # Lockdown
-
 param set-default PWM_MAIN_MIN 1075
 param set-default PWM_MAIN_RATE 400
 param set-default PWM_MAIN_DISARM 900

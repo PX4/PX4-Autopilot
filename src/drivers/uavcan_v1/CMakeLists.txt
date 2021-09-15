@@ -76,12 +76,17 @@ px4_add_module(
 		${LIBCANARD_DIR}/libcanard/
 		${CMAKE_CURRENT_BINARY_DIR}/dsdlc_generated
 	SRCS
+		PublicationManager.cpp
+		PublicationManager.hpp
+		SubscriptionManager.cpp
+		SubscriptionManager.hpp
 		ParamManager.hpp
 		ParamManager.cpp
 		NodeManager.hpp
 		NodeManager.cpp
 		Uavcan.cpp
 		Uavcan.hpp
+		Publishers/uORB/uorb_publisher.cpp
 		${SRCS}
 		o1heap/o1heap.c
 		o1heap/o1heap.h

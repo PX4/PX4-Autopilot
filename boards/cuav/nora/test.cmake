@@ -1,9 +1,6 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR cuav
-	MODEL nora
-	LABEL test
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
@@ -31,7 +28,7 @@ px4_add_board(
 		gps
 		heater
 		#imu # all available imu drivers
-		imu/analog_devices/adis16448
+		#imu/analog_devices/adis16448
 		imu/bosch/bmi088
 		imu/invensense/icm20649
 		imu/invensense/icm20689
@@ -74,7 +71,7 @@ px4_add_board(
 		land_detector
 		landing_target_estimator
 		load_mon
-		local_position_estimator
+		#local_position_estimator
 		logger
 		mavlink
 		mc_att_control
@@ -102,8 +99,9 @@ px4_add_board(
 		i2cdetect
 		led_control
 		mft
+		microbench
 		mixer
-		motor_ramp
+		#motor_ramp
 		motor_test
 		mtd
 		nshterm
@@ -111,10 +109,10 @@ px4_add_board(
 		perf
 		pwm
 		reboot
-		reflect
+		#reflect
 		sd_bench
 		serial_test
-		system_time
+		#system_time
 		tests # tests and test runner
 		top
 		topic_listener

@@ -3,8 +3,6 @@ add_compile_options(-Wno-narrowing)
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR bitcraze
-	MODEL crazyflie21
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	CONSTRAINED_MEMORY

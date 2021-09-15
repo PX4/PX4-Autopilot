@@ -61,9 +61,14 @@ public:
 		if (parent) {
 			parent->_children.add(this);
 		}
+
+		_parent = parent;
 	}
 
-	virtual ~ModuleParams() = default;
+	virtual ~ModuleParams()
+	{
+		if (_parent) { _parent->_children.remove(this); }
+	}
 
 	// Disallow copy construction and move assignment.
 	ModuleParams(const ModuleParams &) = delete;
@@ -93,4 +98,5 @@ protected:
 private:
 	/** @list _children The module parameter list of inheriting classes. */
 	List<ModuleParams *> _children;
+	ModuleParams *_parent{nullptr};
 };

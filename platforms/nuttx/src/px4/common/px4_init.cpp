@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,56 +44,18 @@
 
 #include <fcntl.h>
 
-int px4_platform_console_init(void)
-{
-#if !defined(CONFIG_DEV_CONSOLE) && defined(CONFIG_DEV_NULL)
+#include <sys/mount.h>
+#include <syslog.h>
 
-	/* Support running nsh on a board with out a console
-	 * Without this the assumption that the fd 0..2 are
-	 * std{in..err} will be wrong. NSH will read/write to the
-	 * fd it opens for the init script or nested scripts assigned
-	 * to fd 0..2.
-	 *
-	 */
+#if defined(CONFIG_I2C)
+# include <px4_platform_common/i2c.h>
+# include <nuttx/i2c/i2c_master.h>
+#endif // CONFIG_I2C
 
-	int fd = open("/dev/null", O_RDWR);
-
-	if (fd == 0) {
-		/* Successfully opened /dev/null as stdin (fd == 0) */
-
-		(void)fs_dupfd2(0, 1);
-		(void)fs_dupfd2(0, 2);
-		(void)fs_fdopen(0, O_RDONLY,         NULL, NULL);
-		(void)fs_fdopen(1, O_WROK | O_CREAT, NULL, NULL);
-		(void)fs_fdopen(2, O_WROK | O_CREAT, NULL, NULL);
-
-	} else {
-		/* We failed to open /dev/null OR for some reason, we opened
-		 * it and got some file descriptor other than 0.
-		 */
-
-		if (fd > 0) {
-			(void)close(fd);
-		}
-
-		return -ENFILE;
-
-	}
-
-#endif
-	return OK;
-}
-
-int px4_platform_init(void)
+int px4_platform_init()
 {
 
-	int ret = px4_platform_console_init();
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	ret = px4_console_buffer_init();
+	int ret = px4_console_buffer_init();
 
 	if (ret < 0) {
 		return ret;
@@ -116,6 +78,53 @@ int px4_platform_init(void)
 #ifdef CONFIG_SCHED_INSTRUMENTATION
 	cpuload_initialize_once();
 #endif
+
+
+#if defined(CONFIG_I2C)
+	I2CBusIterator i2c_bus_iterator {I2CBusIterator::FilterType::All};
+
+	while (i2c_bus_iterator.next()) {
+		i2c_master_s *i2c_dev = px4_i2cbus_initialize(i2c_bus_iterator.bus().bus);
+
+#if defined(CONFIG_I2C_RESET)
+		I2C_RESET(i2c_dev);
+#endif // CONFIG_I2C_RESET
+
+		// send software reset to all
+		uint8_t buf[1] {};
+		buf[0] = 0x06; // software reset
+
+		i2c_msg_s msg{};
+		msg.frequency = I2C_SPEED_STANDARD;
+		msg.addr = 0x00; // general call address
+		msg.buffer = &buf[0];
+		msg.length = 1;
+
+		I2C_TRANSFER(i2c_dev, &msg, 1);
+
+		px4_i2cbus_uninitialize(i2c_dev);
+	}
+
+#endif // CONFIG_I2C
+
+#if defined(CONFIG_FS_PROCFS)
+	int ret_mount_procfs = mount(nullptr, "/proc", "procfs", 0, nullptr);
+
+	if (ret < 0) {
+		syslog(LOG_ERR, "ERROR: Failed to mount procfs at /proc: %d\n", ret_mount_procfs);
+	}
+
+#endif // CONFIG_FS_PROCFS
+
+#if defined(CONFIG_FS_BINFS)
+	int ret_mount_binfs = nx_mount(nullptr, "/bin", "binfs", 0, nullptr);
+
+	if (ret_mount_binfs < 0) {
+		syslog(LOG_ERR, "ERROR: Failed to mount binfs at /bin: %d\n", ret_mount_binfs);
+	}
+
+#endif // CONFIG_FS_BINFS
+
 
 	px4::WorkQueueManagerStart();
 

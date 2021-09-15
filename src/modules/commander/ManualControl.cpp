@@ -60,7 +60,8 @@ bool ManualControl::update()
 	return updated && _rc_available;
 }
 
-bool ManualControl::wantsOverride(const vehicle_control_mode_s &vehicle_control_mode)
+bool ManualControl::wantsOverride(const vehicle_control_mode_s &vehicle_control_mode,
+				  const vehicle_status_s &vehicle_status)
 {
 	const bool override_auto_mode = (_param_rc_override.get() & OverrideBits::OVERRIDE_AUTO_MODE_BIT)
 					&& vehicle_control_mode.flag_control_auto_enabled;
@@ -68,7 +69,11 @@ bool ManualControl::wantsOverride(const vehicle_control_mode_s &vehicle_control_
 	const bool override_offboard_mode = (_param_rc_override.get() & OverrideBits::OVERRIDE_OFFBOARD_MODE_BIT)
 					    && vehicle_control_mode.flag_control_offboard_enabled;
 
-	if (_rc_available && (override_auto_mode || override_offboard_mode)) {
+	const bool override_landing = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL
+				       || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND);
+
+
+	if (_rc_available && (override_auto_mode || override_offboard_mode || override_landing)) {
 		const float minimum_stick_change = .01f * _param_com_rc_stick_ov.get();
 
 		const bool rpy_moved = (fabsf(_manual_control_setpoint.x - _last_manual_control_setpoint.x) > minimum_stick_change)
@@ -170,6 +175,14 @@ bool ManualControl::wantsArm(const vehicle_control_mode_s &vehicle_control_mode,
 	_last_manual_control_switches_arm_switch = manual_control_switches.arm_switch; // After disarm and arm check
 
 	return ret;
+}
+
+bool ManualControl::isModeInitializationRequired()
+{
+	const bool is_mavlink = _manual_control_setpoint.data_source > manual_control_setpoint_s::SOURCE_RC;
+	const bool rc_uses_toggle_buttons = _param_rc_map_flightmode_buttons.get() > 0;
+
+	return (is_mavlink || rc_uses_toggle_buttons);
 }
 
 void ManualControl::updateParams()

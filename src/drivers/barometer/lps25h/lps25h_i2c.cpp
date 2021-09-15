@@ -41,8 +41,6 @@
 
 #include <drivers/device/i2c.h>
 
-#define LPS25H_ADDRESS		0x5D
-
 device::Device *LPS25H_I2C_interface(int bus, int bus_frequency);
 
 class LPS25H_I2C : public device::I2C
@@ -73,19 +71,17 @@ int LPS25H_I2C::probe()
 {
 	uint8_t id;
 
-	_retries = 10;
-
 	if (read(ADDR_WHO_AM_I, &id, 1)) {
 		DEVICE_DEBUG("read_reg fail");
 		return -EIO;
 	}
 
-	_retries = 2;
-
 	if (id != ID_WHO_AM_I) {
 		DEVICE_DEBUG("ID byte mismatch (%02x != %02x)", ID_WHO_AM_I, id);
 		return -EIO;
 	}
+
+	_retries = 1;
 
 	return OK;
 }

@@ -130,6 +130,7 @@ PARAM_DEFINE_FLOAT(IMU_DGYRO_CUTOFF, 30.0f);
 * Enable bank of dynamically updating notch filters.
 * Requires ESC RPM feedback or onboard FFT (IMU_GYRO_FFT_EN).
 * @group Sensors
+* @category Developer
 * @min 0
 * @max 3
 * @bit 0 ESC RPM

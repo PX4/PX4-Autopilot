@@ -3,9 +3,6 @@ add_definitions(
 )
 
 px4_add_board(
-	VENDOR px4
-	MODEL raspberrypi
-	LABEL default
 	PLATFORM posix
 	ARCHITECTURE cortex-a53
 	ROMFSROOT px4fmu_common
@@ -16,7 +13,6 @@ px4_add_board(
 		#barometer # all available barometer drivers
 		barometer/ms5611
 		batt_smbus
-		camera_capture
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
@@ -30,6 +26,7 @@ px4_add_board(
 		pwm_out_sim
 		rc_input
 		rpi_rc_in
+		smart_battery/batmon
 		#telemetry # all available telemetry drivers
 	MODULES
 		airspeed_selector

@@ -41,6 +41,8 @@
 #include <sched.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <debug.h>
+#include <syslog.h>
 
 #ifdef CONFIG_HAVE_CXXINITIALIZE
 #include "cxx_init.h"

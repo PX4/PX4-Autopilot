@@ -161,12 +161,9 @@
 class L3GD20 : public device::SPI, public I2CSPIDriver<L3GD20>
 {
 public:
-	L3GD20(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-	       spi_mode_e spi_mode);
+	L3GD20(const I2CSPIDriverConfig &config);
 	~L3GD20() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void RunImpl();

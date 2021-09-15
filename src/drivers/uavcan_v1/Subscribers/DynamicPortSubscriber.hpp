@@ -47,9 +47,9 @@
 
 #include <uavcan/_register/Access_1_0.h>
 
-#include "DynamicPortSubscriber.hpp"
 #include "../CanardInterface.hpp"
 #include "../ParamManager.hpp"
+#include "BaseSubscriber.hpp"
 
 class UavcanDynamicPortSubscriber : public UavcanBaseSubscriber
 {
@@ -62,7 +62,7 @@ public:
 	{
 		SubjectSubscription *curSubj = &_subj_sub;
 
-		while (curSubj != NULL) {
+		while (curSubj != nullptr) {
 			char uavcan_param[90];
 			snprintf(uavcan_param, sizeof(uavcan_param), "uavcan.sub.%s.%d.id", curSubj->_subject_name, _instance);
 
@@ -70,32 +70,47 @@ public:
 			uavcan_register_Value_1_0 value;
 
 			if (_param_manager.GetParamByName(uavcan_param, value)) {
-				int32_t new_id = value.integer32.value.elements[0];
+				uint16_t new_id = value.natural16.value.elements[0];
 
 				/* FIXME how about partial subscribing */
-				if (curSubj->_canard_sub._port_id != new_id) {
+				if (curSubj->_canard_sub.port_id != new_id) {
 					if (new_id == CANARD_PORT_ID_UNSET) {
 						// Cancel subscription
 						unsubscribe();
 
 					} else {
-						if (curSubj->_canard_sub._port_id != CANARD_PORT_ID_UNSET) {
+						if (curSubj->_canard_sub.port_id != CANARD_PORT_ID_UNSET) {
 							// Already active; unsubscribe first
 							unsubscribe();
 						}
 
 						// Subscribe on the new port ID
-						curSubj->_canard_sub._port_id = (CanardPortID)new_id;
-						PX4_INFO("Subscribing %s.%d on port %d", curSubj->_subject_name, _instance, curSubj->_canard_sub._port_id);
+						curSubj->_canard_sub.port_id = (CanardPortID)new_id;
+						PX4_INFO("Subscribing %s.%d on port %d", curSubj->_subject_name, _instance, curSubj->_canard_sub.port_id);
 						subscribe();
 					}
 				}
+
+			} else if (curSubj->_canard_sub.port_id != CANARD_PORT_ID_UNSET) { // No valid sub id unsubscribe when neccesary
+				// Already active; unsubscribe first
+				unsubscribe();
 			}
 
 			curSubj = curSubj->next;
 		}
 	};
 
+	UavcanDynamicPortSubscriber *next()
+	{
+		return _next_sub;
+	}
+
+	void setNext(UavcanDynamicPortSubscriber *next)
+	{
+		_next_sub = next;
+	}
+
 protected:
 	UavcanParamManager &_param_manager;
+	UavcanDynamicPortSubscriber *_next_sub {nullptr};
 };

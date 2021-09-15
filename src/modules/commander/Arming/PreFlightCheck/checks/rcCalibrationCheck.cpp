@@ -50,7 +50,7 @@
 /**
  * Maximum value
  */
-#define RC_INPUT_HIGHEST_MAX_US	2500
+#define RC_INPUT_HIGHEST_MAX_US	3500
 
 int PreFlightCheck::rcCalibrationCheck(orb_advert_t *mavlink_log_pub, bool report_fail, bool isVTOL)
 {

@@ -1,0 +1,13 @@
+{
+    "board_id": 97,
+    "magic": "PX4FWv1",
+    "description": "Firmware for the Advanced Technology Labs (ATL) Mantis EDU (V18S) board",
+    "image": "",
+    "build_time": 0,
+    "summary": "atl_mantis-edu",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 2064384,
+    "git_identity": "",
+    "board_revision": 0
+}

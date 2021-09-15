@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -153,7 +153,8 @@ private:
 	int		_rcs_fd{-1};
 	char		_device[20] {};					///< device / serial port path
 
-	uint8_t _rcs_buf[SBUS_BUFFER_SIZE] {};
+	static constexpr size_t RC_MAX_BUFFER_SIZE{SBUS_BUFFER_SIZE};
+	uint8_t _rcs_buf[RC_MAX_BUFFER_SIZE] {};
 
 	uint16_t _raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {};
 	uint16_t _raw_rc_count{};

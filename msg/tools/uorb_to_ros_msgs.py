@@ -53,62 +53,75 @@ __status__ = 'Development'
 input_dir = sys.argv[1]
 output_dir = sys.argv[2]
 
-if not os.path.exists(os.path.abspath(output_dir)):
-    os.mkdir(os.path.abspath(output_dir))
-else:
-    ros_msg_dir = os.path.abspath(output_dir)
-    msg_files = os.listdir(ros_msg_dir)
-    for msg in msg_files:
-        if msg.endswith(".msg"):
-            os.remove(os.path.join(ros_msg_dir, msg))
 
-msg_list = list()
+def main():
+    print("-----------------------          \033[1mmicroRTPS bridge uORB to ROS messages\033[0m          -----------------------")
+    print("-------------------------------------------------------------------------------------------------------")
 
-for filename in os.listdir(input_dir):
-    if '.msg' in filename:
-        msg_list.append(filename.rstrip('.msg'))
-        input_file = input_dir + filename
+    if not os.path.exists(os.path.abspath(output_dir)):
+        os.mkdir(os.path.abspath(output_dir))
+    else:
+        ros_msg_dir = os.path.abspath(output_dir)
+        msg_files = os.listdir(ros_msg_dir)
+        for msg in msg_files:
+            if msg.endswith(".msg"):
+                os.remove(os.path.join(ros_msg_dir, msg))
 
-        output_file = output_dir + \
-            filename.partition(".")[0].title().replace('_', '') + ".msg"
-        copyfile(input_file, output_file)
+    msg_list = list()
 
-for filename in os.listdir(output_dir):
-    if '.msg' in filename:
-        input_file = output_dir + filename
+    for filename in os.listdir(input_dir):
+        if '.msg' in filename:
+            msg_list.append(filename.rstrip('.msg'))
+            input_file = input_dir + filename
 
-        fileUpdated = False
+            output_file = output_dir + \
+                filename.partition(".")[0].title().replace('_', '') + ".msg"
+            copyfile(input_file, output_file)
 
-        with open(input_file, 'r') as f:
-            lines = f.readlines()
-            newlines = []
-            alias_msgs = []
-            alias_msg_files = []
+    for filename in os.listdir(output_dir):
+        if '.msg' in filename:
+            input_file = output_dir + filename
 
-            for line in lines:
-                for msg_type in msg_list:
-                    if ('px4/' + msg_type + ' ') in line:
-                        fileUpdated = True
-                        line = line.replace(('px4/' + msg_type),
-                                            msg_type.partition(".")[0].title().replace('_', ''))
-                    if re.findall('^' + msg_type + '[\s\[]', line.partition('#')[0]):
-                        fileUpdated = True
-                        line = line.replace(msg_type,
-                                            msg_type.partition(".")[0].title().replace('_', ''))
-                    if '# TOPICS' in line:
-                        fileUpdated = True
-                        alias_msgs += line.split()
-                        alias_msgs.remove('#')
-                        alias_msgs.remove('TOPICS')
-                        line = line.replace(line, '')
-                newlines.append(line)
+            fileUpdated = False
 
-        for msg_file in alias_msgs:
-            with open(output_dir + msg_file.partition(".")[0].title().replace('_', '') + ".msg", 'w+') as f:
-                for line in newlines:
-                    f.write(line)
+            with open(input_file, 'r') as f:
+                lines = f.readlines()
+                newlines = []
+                alias_msgs = []
+                alias_msg_files = []
 
-        if fileUpdated:
-            with open(input_file, 'w+') as f:
-                for line in newlines:
-                    f.write(line)
+                for line in lines:
+                    for msg_type in msg_list:
+                        if ('px4/' + msg_type + ' ') in line:
+                            fileUpdated = True
+                            line = line.replace(('px4/' + msg_type),
+                                                msg_type.partition(".")[0].title().replace('_', ''))
+
+                        if re.findall('^' + msg_type + '[\s\[]', line.partition('#')[0]):
+                            fileUpdated = True
+                            line = line.replace(msg_type,
+                                                msg_type.partition(".")[0].title().replace('_', ''))
+                        if '# TOPICS' in line:
+                            fileUpdated = True
+                            alias_msgs += line.split()
+                            alias_msgs.remove('#')
+                            alias_msgs.remove('TOPICS')
+                            line = line.replace(line, '')
+                    newlines.append(line)
+
+            for msg_file in alias_msgs:
+                with open(output_dir + msg_file.partition(".")[0].title().replace('_', '') + ".msg", 'w+') as f:
+                    for line in newlines:
+                        f.write(line)
+
+            if fileUpdated:
+                with open(input_file, 'w+') as f:
+                    for line in newlines:
+                        f.write(line)
+
+    print("--\t\t- Generated {} ROS message files in '{}'".format(len(os.listdir(output_dir)), os.path.abspath(output_dir)))
+    print("-------------------------------------------------------------------------------------------------------")
+
+
+if __name__ == '__main__':
+    main()

@@ -43,6 +43,8 @@
 #include "../CDev.hpp"
 #include <px4_platform_common/i2c.h>
 
+struct I2CSPIDriverConfig;
+
 namespace device __EXPORT
 {
 
@@ -79,6 +81,7 @@ protected:
 	 * @param frequency	I2C bus frequency for the device (currently not used)
 	 */
 	I2C(uint8_t device_type, const char *name, const int bus, const uint16_t address, const uint32_t frequency);
+	I2C(const I2CSPIDriverConfig &config);
 	virtual ~I2C();
 
 	/**

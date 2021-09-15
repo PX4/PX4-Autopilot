@@ -1,9 +1,6 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR px4
-	MODEL fmu-v2
-	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	CONSTRAINED_MEMORY
@@ -11,6 +8,7 @@ px4_add_board(
 	IO px4_io-v2_default
 	#UAVCAN_INTERFACES 2
 	CONSTRAINED_FLASH
+	  NO_HELP
 	SERIAL_PORTS
 		GPS1:/dev/ttyS3
 		TEL1:/dev/ttyS1
@@ -72,11 +70,11 @@ px4_add_board(
 		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
-		gyro_calibration
+		#gyro_calibration
 		#gyro_fft
 		land_detector
 		#landing_target_estimator
-		load_mon
+		#load_mon
 		#local_position_estimator
 		logger
 		mavlink

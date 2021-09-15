@@ -87,11 +87,11 @@ static void input_capture_chan_handler(void *context, const io_timers_t *timer, 
 {
 	channel_stats[chan_index].last_edge = px4_arch_gpioread(chan->gpio_in);
 
-	if ((isrs_rcnt - capture) > channel_stats[chan_index].latnecy) {
-		channel_stats[chan_index].latnecy = (isrs_rcnt - capture);
+	if ((isrs_rcnt - capture) > channel_stats[chan_index].latency) {
+		channel_stats[chan_index].latency = (isrs_rcnt - capture);
 	}
 
-	channel_stats[chan_index].chan_in_edges_out++;
+	channel_stats[chan_index].edges++;
 	channel_stats[chan_index].last_time = isrs_time - (isrs_rcnt - capture);
 	uint32_t overflow = 0;//_REG32(timer, KINETIS_FTM_CSC_OFFSET(chan->timer_channel - 1)) & FTM_CSC_CHF;
 
@@ -132,17 +132,12 @@ int up_input_capture_set(unsigned channel, input_capture_edge edge, capture_filt
 	int rv = io_timer_validate_channel_index(channel);
 
 	if (rv == 0) {
-
 		if (edge == Disabled) {
 
 			io_timer_set_enable(false, IOTimerChanMode_Capture, 1 << channel);
 			input_capture_unbind(channel);
 
 		} else {
-
-			if (-EBUSY == io_timer_is_channel_free(channel)) {
-				io_timer_free_channel(channel);
-			}
 
 			input_capture_bind(channel, callback, context);
 

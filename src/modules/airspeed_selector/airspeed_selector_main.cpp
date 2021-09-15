@@ -31,17 +31,19 @@
  *
  ****************************************************************************/
 
+#include "AirspeedValidator.hpp"
+
 #include <drivers/drv_hrt.h>
-#include <ecl/airdata/WindEstimator.hpp>
+#include <lib/wind_estimator/WindEstimator.hpp>
 #include <matrix/math.hpp>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
+#include <px4_platform_common/events.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/airspeed/airspeed.h>
-#include <AirspeedValidator.hpp>
-#include <systemlib/mavlink_log.h>
+#include <lib/systemlib/mavlink_log.h>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
@@ -231,12 +233,14 @@ AirspeedModule::init()
 		_valid_airspeed_index = math::min(_param_airspeed_primary_index.get(), _number_of_airspeed_sensors);
 
 		if (_number_of_airspeed_sensors == 0) {
-			mavlink_log_info(&_mavlink_log_pub,
-					 "No airspeed sensor detected. Switch to non-airspeed mode.");
+			mavlink_log_info(&_mavlink_log_pub, "No airspeed sensor detected. Switch to non-airspeed mode.\t");
+			events::send(events::ID("airspeed_selector_switch"), events::Log::Info,
+				     "No airspeed sensor detected, switching to non-airspeed mode");
 
 		} else {
-			mavlink_log_info(&_mavlink_log_pub,
-					 "Primary airspeed index bigger than number connected sensors. Take last sensor.");
+			mavlink_log_info(&_mavlink_log_pub, "Primary airspeed index bigger than number connected sensors. Take last sensor.\t");
+			events::send(events::ID("airspeed_selector_prim_too_high"), events::Log::Info,
+				     "Primary airspeed index bigger than number connected sensors, taking last sensor");
 		}
 
 	} else {
@@ -422,7 +426,9 @@ void AirspeedModule::update_params()
 			_airspeed_validator[0].set_airspeed_scale_manual(-1.0f);
 
 		} else {
-			mavlink_log_info(&_mavlink_log_pub, "Airspeed: can't estimate scale as no valid sensor.");
+			mavlink_log_info(&_mavlink_log_pub, "Airspeed: can't estimate scale as no valid sensor.\t");
+			events::send(events::ID("airspeed_selector_cannot_est_scale"), events::Log::Error,
+				     "Airspeed: cannot estimate scale as there is no valid sensor");
 			_param_west_scale_estimation_on.set(0); // reset this param to 0 as estimation was not turned on
 			_param_west_scale_estimation_on.commit_no_notification();
 		}
@@ -434,11 +440,15 @@ void AirspeedModule::update_params()
 			_param_west_airspeed_scale.commit_no_notification();
 			_airspeed_validator[_valid_airspeed_index - 1].set_airspeed_scale_manual(_param_west_airspeed_scale.get());
 
-			mavlink_log_info(&_mavlink_log_pub, "Airspeed: estimated scale (ASPD_SCALE): %0.2f",
+			mavlink_log_info(&_mavlink_log_pub, "Airspeed: estimated scale (ASPD_SCALE): %0.2f\t",
 					 (double)_airspeed_validator[_valid_airspeed_index - 1].get_CAS_scale());
+			events::send<float>(events::ID("airspeed_selector_scale"), events::Log::Info,
+					    "Airspeed: estimated scale (ASPD_SCALE): {1:.2}", _airspeed_validator[_valid_airspeed_index - 1].get_CAS_scale());
 
 		} else {
-			mavlink_log_info(&_mavlink_log_pub, "Airspeed: can't estimate scale as no valid sensor.");
+			mavlink_log_info(&_mavlink_log_pub, "Airspeed: can't estimate scale as no valid sensor.\t");
+			events::send(events::ID("airspeed_selector_cannot_est_scale2"), events::Log::Error,
+				     "Airspeed: cannot estimate scale as there is no valid sensor");
 		}
 	}
 
@@ -556,18 +566,29 @@ void AirspeedModule::select_airspeed_and_publish()
 	    (_number_of_airspeed_sensors > 0 || !_vehicle_land_detected.landed) &&
 	    _valid_airspeed_index != _prev_airspeed_index) {
 		if (_prev_airspeed_index > 0) {
-			mavlink_log_critical(&_mavlink_log_pub, "Airspeed sensor failure detected (%i, %i)", _prev_airspeed_index,
-					     _valid_airspeed_index);
+			mavlink_log_critical(&_mavlink_log_pub, "Airspeed sensor failure detected. Return to launch (RTL) is advised.\t");
+			events::send(events::ID("airspeed_selector_sensor_failure"), events::Log::Critical,
+				     "Airspeed sensor failure detected. Return to launch (RTL) is advised");
 
 		} else if (_prev_airspeed_index == 0 && _valid_airspeed_index == -1) {
-			mavlink_log_info(&_mavlink_log_pub, "Airspeed estimation invalid");
+			mavlink_log_info(&_mavlink_log_pub, "Airspeed estimation invalid\t");
+			events::send(events::ID("airspeed_selector_estimation_invalid"), events::Log::Error,
+				     "Airspeed estimation invalid");
 
 		} else if (_prev_airspeed_index == -1 && _valid_airspeed_index == 0) {
-			mavlink_log_info(&_mavlink_log_pub, "Airspeed estimation valid");
+			mavlink_log_info(&_mavlink_log_pub, "Airspeed estimation valid\t");
+			events::send(events::ID("airspeed_selector_estimation_valid"), events::Log::Info,
+				     "Airspeed estimation valid");
 
 		} else {
-			mavlink_log_info(&_mavlink_log_pub, "Airspeed sensor healthy, start using again (%i, %i)", _prev_airspeed_index,
+			mavlink_log_info(&_mavlink_log_pub, "Airspeed sensor healthy, start using again (%i, %i)\t", _prev_airspeed_index,
 					 _valid_airspeed_index);
+			/* EVENT
+			 * @description Previously selected sensor index: {1}, current sensor index: {2}.
+			 */
+			events::send<uint8_t, uint8_t>(events::ID("airspeed_selector_estimation_regain"), events::Log::Info,
+						       "Airspeed sensor healthy, start using again", _prev_airspeed_index,
+						       _valid_airspeed_index);
 		}
 	}
 

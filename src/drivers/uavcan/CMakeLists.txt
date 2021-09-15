@@ -52,6 +52,9 @@ if(CONFIG_ARCH_CHIP)
 	elseif(${CONFIG_ARCH_CHIP} MATCHES "stm32")
 		set(UAVCAN_DRIVER "stm32")
 		set(UAVCAN_TIMER 5) # The default timer is TIM5
+		if (DEFINED config_uavcan_timer_override)
+			set (UAVCAN_TIMER  ${config_uavcan_timer_override})
+		endif()
 	endif()
 endif()
 
@@ -155,10 +158,12 @@ px4_add_module(
 		sensors/accel.cpp
 		sensors/gyro.cpp
 		sensors/cbat.cpp
+		sensors/ice_status.cpp
 
 	DEPENDS
 		px4_uavcan_dsdlc
 
+		drivers_rangefinder
 		led
 		mixer
 		mixer_module

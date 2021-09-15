@@ -54,7 +54,7 @@
 #include <float.h>
 
 #include <drivers/drv_hrt.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/l1/ECL_L1_Pos_Controller.hpp>
 #include <lib/tecs/TECS.hpp>
 #include <lib/landing_slope/Landingslope.hpp>
@@ -174,6 +174,7 @@ private:
 	float	_global_local_alt0{NAN};
 
 	float	_hold_alt{0.0f};				///< hold altitude for altitude mode
+	float 	_manual_height_rate_setpoint_m_s{NAN};
 	float	_takeoff_ground_alt{0.0f};			///< ground altitude at which plane was launched
 	float	_hdg_hold_yaw{0.0f};				///< hold heading for velocity mode
 	bool	_hdg_hold_enabled{false};			///< heading hold enabled
@@ -346,7 +347,7 @@ private:
 					float pitch_min_rad, float pitch_max_rad,
 					float throttle_min, float throttle_max, float throttle_cruise,
 					bool climbout_mode, float climbout_pitch_min_rad,
-					uint8_t mode = tecs_status_s::TECS_MODE_NORMAL);
+					uint8_t mode = tecs_status_s::TECS_MODE_NORMAL, float hgt_rate_sp = NAN);
 
 	DEFINE_PARAMETERS(
 
@@ -396,6 +397,8 @@ private:
 		(ParamFloat<px4::params::FW_T_STE_R_TC>) _param_ste_rate_time_const,
 		(ParamFloat<px4::params::FW_T_TAS_R_TC>) _param_tas_rate_time_const,
 		(ParamFloat<px4::params::FW_T_SEB_R_FF>) _param_seb_rate_ff,
+		(ParamFloat<px4::params::FW_T_CLMB_R_SP>) _param_climbrate_target,
+		(ParamFloat<px4::params::FW_T_SINK_R_SP>) _param_sinkrate_target,
 
 		(ParamFloat<px4::params::FW_THR_ALT_SCL>) _param_fw_thr_alt_scl,
 		(ParamFloat<px4::params::FW_THR_CRUISE>) _param_fw_thr_cruise,

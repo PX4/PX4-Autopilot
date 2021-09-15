@@ -215,6 +215,7 @@
  */
 #define HEATER_IOMUX (IOMUX_CMOS_OUTPUT | IOMUX_PULL_NONE | IOMUX_DRIVE_50OHM | IOMUX_SPEED_MEDIUM | IOMUX_SLEW_FAST)
 #define GPIO_HEATER_OUTPUT   /* GPIO_B1_09 QTIMER2_TIMER3 GPIO2_IO25 */ (GPIO_QTIMER2_TIMER3_1 | HEATER_IOMUX)
+#define HEATER_OUTPUT_EN(on_true)	px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
 
 /* PWM Capture
  *
@@ -240,7 +241,7 @@
 
 // Input Capture not supported on MVP
 
-#define DIRECT_INPUT_TIMER_CHANNELS  0
+#define BOARD_HAS_NO_CAPTURE
 
 //#define BOARD_HAS_UI_LED_PWM           1  Not ported yet (Still Kinetis driver)
 #define BOARD_HAS_LED_PWM              1
@@ -390,7 +391,6 @@
 #define BOARD_ADC_PERIPH_5V_OC  (!px4_arch_gpioread(GPIO_nVDD_5V_PERIPH_OC))
 #define BOARD_ADC_HIPOWER_5V_OC (!px4_arch_gpioread(GPIO_nVDD_5V_HIPOWER_OC))
 
-#define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120

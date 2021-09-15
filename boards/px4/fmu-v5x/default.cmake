@@ -1,9 +1,6 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR px4
-	MODEL fmu-v5x
-	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
@@ -43,6 +40,7 @@ px4_add_board(
 		pca9685
 		pca9685_pwm_out
 		power_monitor/ina226
+		power_monitor/ina228
 		#protocol_splitter
 		pwm_input
 		pwm_out_sim
@@ -52,6 +50,7 @@ px4_add_board(
 		roboclaw
 		rpm
 		safety_button
+		smart_battery/batmon
 		telemetry # all available telemetry drivers
 		tone_alarm
 		uavcan

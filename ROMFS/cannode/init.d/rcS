@@ -15,10 +15,6 @@ set +e
 #
 #------------------------------------------------------------------------------
 set R /
-#
-# Mount the procfs.
-#
-mount -t procfs /proc
 
 #
 # Start CDC/ACM serial driver.

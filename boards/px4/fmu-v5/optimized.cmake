@@ -5,9 +5,6 @@ add_compile_options(-Wno-error=array-bounds)
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR px4
-	MODEL fmu-v5
-	LABEL optimized
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
@@ -23,9 +20,10 @@ px4_add_board(
 	DRIVERS
 		adc/ads1115
 		adc/board_adc
-		barometer # all available barometer drivers
-		batt_smbus
-		camera_capture
+		#barometer # all available barometer drivers
+		barometer/ms5611
+		#batt_smbus
+		#camera_capture
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
@@ -42,20 +40,21 @@ px4_add_board(
 		#lights/rgbled_pwm
 		#magnetometer # all available magnetometer drivers
 		magnetometer/isentek/ist8310
-		optical_flow # all available optical flow drivers
+		#optical_flow # all available optical flow drivers
 		#osd
 		#pca9685
 		#pca9685_pwm_out
 		#power_monitor/ina226
 		#protocol_splitter
-		pwm_input
-		pwm_out_sim
+		#pwm_input
+		#pwm_out_sim
 		pwm_out
 		px4io
 		rc_input
 		#roboclaw
 		#rpm
 		safety_button
+		smart_battery/batmon
 		#telemetry # all available telemetry drivers
 		test_ppm
 		tone_alarm
@@ -95,19 +94,20 @@ px4_add_board(
 		#uuv_att_control
 		#uuv_pos_control
 		#vmount
-		vtol_att_control
+		#vtol_att_control
 	SYSTEMCMDS
-		#bl_update
+		bl_update
 		dmesg
-		dumpfile
+		#dumpfile
 		#esc_calib
 		#gpio
 		hardfault_log
 		i2cdetect
 		led_control
 		mft
+		microbench
 		mixer
-		motor_ramp
+		#motor_ramp
 		motor_test
 		mtd
 		nshterm
@@ -115,7 +115,7 @@ px4_add_board(
 		perf
 		pwm
 		reboot
-		reflect
+		#reflect
 		sd_bench
 		#serial_test
 		system_time

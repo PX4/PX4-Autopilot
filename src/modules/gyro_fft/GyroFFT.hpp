@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <lib/mathlib/math/filter/MedianFilter.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
@@ -77,7 +78,7 @@ public:
 	bool init();
 
 private:
-	float EstimatePeakFrequency(q15_t fft[], uint8_t peak_index);
+	float EstimatePeakFrequencyBin(q15_t fft[], int peak_index);
 	void Run() override;
 	bool SensorSelectionUpdate(bool force = false);
 	void Update(const hrt_abstime &timestamp_sample, int16_t *input[], uint8_t N);
@@ -117,8 +118,8 @@ private:
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t _cycle_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
 	perf_counter_t _fft_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": FFT")};
-	perf_counter_t _gyro_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro data gap")};
-	perf_counter_t _gyro_fifo_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro FIFO data gap")};
+	perf_counter_t _gyro_generation_gap_perf{nullptr};
+	perf_counter_t _gyro_fifo_generation_gap_perf{nullptr};
 
 	uint32_t _selected_sensor_device_id{0};
 
@@ -141,7 +142,12 @@ private:
 
 	unsigned _gyro_last_generation{0};
 
+	float _peak_frequencies_prev[3][MAX_NUM_PEAKS] {};
+	math::MedianFilter<float, 5> _median_filter[3][MAX_NUM_PEAKS] {};
+
 	sensor_gyro_fft_s _sensor_gyro_fft{};
+
+	hrt_abstime _last_update[3][MAX_NUM_PEAKS] {};
 
 	int32_t _imu_gyro_fft_len{256};
 

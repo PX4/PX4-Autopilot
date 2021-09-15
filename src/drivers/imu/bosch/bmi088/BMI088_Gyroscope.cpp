@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,12 +40,11 @@ using namespace time_literals;
 namespace Bosch::BMI088::Gyroscope
 {
 
-BMI088_Gyroscope::BMI088_Gyroscope(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation,
-				   int bus_frequency, spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio) :
-	BMI088(DRV_GYR_DEVTYPE_BMI088, "BMI088_Gyroscope", bus_option, bus, device, spi_mode, bus_frequency, drdy_gpio),
-	_px4_gyro(get_device_id(), rotation)
+BMI088_Gyroscope::BMI088_Gyroscope(const I2CSPIDriverConfig &config) :
+	BMI088(config),
+	_px4_gyro(get_device_id(), config.rotation)
 {
-	if (drdy_gpio != 0) {
+	if (config.drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME"_gyro: DRDY missed");
 	}
 
@@ -164,9 +163,16 @@ void BMI088_Gyroscope::RunImpl()
 		break;
 
 	case STATE::FIFO_READ: {
+			hrt_abstime timestamp_sample = 0;
+
 			if (_data_ready_interrupt_enabled) {
-				// scheduled from interrupt if _drdy_fifo_read_samples was set
-				if (_drdy_fifo_read_samples.fetch_and(0) != _fifo_samples) {
+				// scheduled from interrupt if _drdy_timestamp_sample was set as expected
+				const hrt_abstime drdy_timestamp_sample = _drdy_timestamp_sample.fetch_and(0);
+
+				if ((now - drdy_timestamp_sample) < _fifo_empty_interval_us) {
+					timestamp_sample = drdy_timestamp_sample;
+
+				} else {
 					perf_count(_drdy_missed_perf);
 				}
 
@@ -194,7 +200,20 @@ void BMI088_Gyroscope::RunImpl()
 					perf_count(_fifo_empty_perf);
 
 				} else if (fifo_frame_counter >= 1) {
-					if (FIFORead(now, fifo_frame_counter)) {
+
+					uint8_t samples = fifo_frame_counter;
+
+					// tolerate minor jitter, leave sample to next iteration if behind by only 1
+					if (samples == _fifo_samples + 1) {
+						// sample timestamp set from data ready already corresponds to _fifo_samples
+						if (timestamp_sample == 0) {
+							timestamp_sample = now - FIFO_SAMPLE_DT;
+						}
+
+						samples--;
+					}
+
+					if (FIFORead((timestamp_sample == 0) ? now : timestamp_sample, samples)) {
 						success = true;
 
 						if (_failure_count > 0) {
@@ -318,11 +337,8 @@ int BMI088_Gyroscope::DataReadyInterruptCallback(int irq, void *context, void *a
 
 void BMI088_Gyroscope::DataReady()
 {
-	uint32_t expected = 0;
-
-	if (_drdy_fifo_read_samples.compare_exchange(&expected, _fifo_samples)) {
-		ScheduleNow();
-	}
+	_drdy_timestamp_sample.store(hrt_absolute_time());
+	ScheduleNow();
 }
 
 bool BMI088_Gyroscope::DataReadyInterruptConfigure()
@@ -436,7 +452,7 @@ void BMI088_Gyroscope::FIFOReset()
 	RegisterWrite(Register::FIFO_CONFIG_1, 0);
 
 	// reset while FIFO is disabled
-	_drdy_fifo_read_samples.store(0);
+	_drdy_timestamp_sample.store(0);
 
 	// FIFO_CONFIG_0: restore FIFO watermark
 	// FIFO_CONFIG_1: re-enable FIFO

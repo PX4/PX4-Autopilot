@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,18 +33,17 @@
 
 #include "BMI088_Accelerometer.hpp"
 
-#include <ecl/geo/geo.h> // CONSTANTS_ONE_G
+#include <geo/geo.h> // CONSTANTS_ONE_G
 
 using namespace time_literals;
 
 namespace Bosch::BMI088::Accelerometer
 {
-BMI088_Accelerometer::BMI088_Accelerometer(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation,
-		int bus_frequency, spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio) :
-	BMI088(DRV_ACC_DEVTYPE_BMI088, "BMI088_Accelerometer", bus_option, bus, device, spi_mode, bus_frequency, drdy_gpio),
-	_px4_accel(get_device_id(), rotation)
+BMI088_Accelerometer::BMI088_Accelerometer(const I2CSPIDriverConfig &config) :
+	BMI088(config),
+	_px4_accel(get_device_id(), config.rotation)
 {
-	if (drdy_gpio != 0) {
+	if (config.drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME"_accel: DRDY missed");
 	}
 
@@ -294,11 +293,7 @@ int BMI088_Accelerometer::DataReadyInterruptCallback(int irq, void *context, voi
 
 void BMI088_Accelerometer::DataReady()
 {
-	uint32_t expected = 0;
-
-	if (_drdy_fifo_read_samples.compare_exchange(&expected, _fifo_samples)) {
-		ScheduleNow();
-	}
+	ScheduleNow();
 }
 
 bool BMI088_Accelerometer::DataReadyInterruptConfigure()
@@ -589,7 +584,7 @@ void BMI088_Accelerometer::FIFOReset()
 	RegisterWrite(Register::ACC_SOFTRESET, 0xB0);
 
 	// reset while FIFO is disabled
-	_drdy_fifo_read_samples.store(0);
+	_drdy_timestamp_sample.store(0);
 }
 
 void BMI088_Accelerometer::UpdateTemperature()

@@ -48,14 +48,14 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 
+#define MPL3115A2_ADDRESS        0x60
+
 class MPL3115A2 : public device::I2C, public I2CSPIDriver<MPL3115A2>
 {
 public:
-	MPL3115A2(I2CSPIBusOption bus_option, const int bus, int bus_frequency);
+	MPL3115A2(const I2CSPIDriverConfig &config);
 	~MPL3115A2() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,7 +43,7 @@ FakeImu::FakeImu() :
 {
 	_sensor_interval_us = roundf(1.e6f / _px4_gyro.get_max_rate_hz());
 
-	PX4_INFO("Rate %.3f, Interval: %d us", (double)_px4_gyro.get_max_rate_hz(), _sensor_interval_us);
+	PX4_INFO("Rate %.3f, Interval: %" PRId32 " us", (double)_px4_gyro.get_max_rate_hz(), _sensor_interval_us);
 
 	_px4_accel.set_range(2000.f); // don't care
 
@@ -92,6 +92,10 @@ void FakeImu::Run()
 
 	const double timestamp_sample_s = static_cast<double>(gyro.timestamp_sample - _time_start_us) / 1e6;
 
+	float x_freq = 0;
+	float y_freq = 0;
+	float z_freq = 0;
+
 	for (int n = 0; n < gyro.samples; n++) {
 		// timestamp_sample corresponds to last sample
 		const double t = timestamp_sample_s - (gyro.samples - n - 1) * dt_s;
@@ -106,15 +110,57 @@ void FakeImu::Run()
 		gyro.z[n] = roundf(A * sin(2 * M_PI * z_F * t));
 
 		if (n == 0) {
-			float x_freq = (x_f1 - x_f0) * (t / T) + x_f0;
-			float y_freq = (y_f1 - y_f0) * (t / T) + y_f0;
-			float z_freq = (z_f1 - z_f0) * (t / T) + z_f0;
+			x_freq = (x_f1 - x_f0) * (t / T) + x_f0;
+			y_freq = (y_f1 - y_f0) * (t / T) + y_f0;
+			z_freq = (z_f1 - z_f0) * (t / T) + z_f0;
 
 			_px4_accel.update(gyro.timestamp_sample, x_freq, y_freq, z_freq);
 		}
 	}
 
 	_px4_gyro.updateFIFO(gyro);
+
+#if defined(FAKE_IMU_FAKE_ESC_STATUS)
+
+	// publish fake esc status at ~10 Hz
+	if (hrt_elapsed_time(&_esc_status_pub.get().timestamp) > 100_ms) {
+		auto &esc_status = _esc_status_pub.get();
+
+		esc_status.esc_count = 3;
+
+		// ESC 0 follow X axis RPM
+		if (!(timestamp_sample_s > 1.5 && timestamp_sample_s < 2.0)) {
+			// simulate drop out at 1.5 to 2 seconds
+			esc_status.esc[0].timestamp = hrt_absolute_time();
+			esc_status.esc[0].esc_rpm = x_freq * 60;
+		}
+
+		// ESC 1 follow Y axis RPM
+		if (!(timestamp_sample_s > 2.5 && timestamp_sample_s < 3.0)) {
+			// simulate drop out at 2.5 to 3 seconds
+			esc_status.esc[1].timestamp = hrt_absolute_time();
+			esc_status.esc[1].esc_rpm = y_freq * 60;
+		}
+
+		// ESC 2 follow Z axis RPM
+		if (!(timestamp_sample_s > 3.5 && timestamp_sample_s < 4.0)) {
+			// simulate drop out at 3.5 to 4 seconds
+			esc_status.esc[2].timestamp = hrt_absolute_time();
+			esc_status.esc[2].esc_rpm = z_freq * 60;
+		}
+
+		// simulate brief dropout of all data
+		if (timestamp_sample_s > 5.5 && timestamp_sample_s < 5.6) {
+			esc_status.esc[0].esc_rpm = 0;
+			esc_status.esc[1].esc_rpm = 0;
+			esc_status.esc[2].esc_rpm = 0;
+		}
+
+		esc_status.timestamp = hrt_absolute_time();
+		_esc_status_pub.update();
+	}
+
+#endif // FAKE_IMU_FAKE_ESC_STATUS
 }
 
 int FakeImu::task_spawn(int argc, char *argv[])

@@ -46,7 +46,7 @@
 #include <math.h>
 #include <float.h>
 
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 #include <uORB/uORB.h>
@@ -277,9 +277,15 @@ MissionBlock::is_mission_item_reached()
 			_time_wp_reached = now;
 
 		} else {
-			/*normal mission items */
 
-			float mission_acceptance_radius = _navigator->get_acceptance_radius();
+			float acceptance_radius = _navigator->get_acceptance_radius();
+
+			// We use the acceptance radius of the mission item if it has been set (not NAN)
+			// but only for multicopter.
+			if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+			    && PX4_ISFINITE(_mission_item.acceptance_radius) && _mission_item.acceptance_radius > FLT_EPSILON) {
+				acceptance_radius = _mission_item.acceptance_radius;
+			}
 
 			/* for vtol back transition calculate acceptance radius based on time and ground speed */
 			if (_mission_item.vtol_back_transition
@@ -292,13 +298,13 @@ MissionBlock::is_mission_item_reached()
 				const float reverse_delay = _navigator->get_vtol_reverse_delay();
 
 				if (back_trans_dec > FLT_EPSILON && velocity > FLT_EPSILON) {
-					mission_acceptance_radius = ((velocity / back_trans_dec / 2) * velocity) + reverse_delay * velocity;
+					acceptance_radius = ((velocity / back_trans_dec / 2) * velocity) + reverse_delay * velocity;
 
 				}
 
 			}
 
-			if (dist_xy >= 0.0f && dist_xy <= mission_acceptance_radius
+			if (dist_xy >= 0.0f && dist_xy <= acceptance_radius
 			    && dist_z <= _navigator->get_altitude_acceptance_radius()) {
 				_waypoint_position_reached = true;
 			}
@@ -336,7 +342,7 @@ MissionBlock::is_mission_item_reached()
 			    (_navigator->get_yaw_timeout() >= FLT_EPSILON) &&
 			    (now - _time_wp_reached >= (hrt_abstime)_navigator->get_yaw_timeout() * 1e6f)) {
 
-				_navigator->set_mission_failure("unable to reach heading within timeout");
+				_navigator->set_mission_failure_heading_timeout();
 			}
 
 		} else {
@@ -693,6 +699,7 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 		vehicle_command_s vcmd = {};
 		vcmd.command = NAV_CMD_DO_VTOL_TRANSITION;
 		vcmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+		vcmd.param2 = 0.0f;
 		_navigator->publish_vehicle_cmd(&vcmd);
 	}
 
@@ -742,6 +749,7 @@ MissionBlock::set_vtol_transition_item(struct mission_item_s *item, const uint8_
 {
 	item->nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
 	item->params[0] = (float) new_mode;
+	item->params[1] = 0.0f;
 	item->yaw = _navigator->get_local_position()->heading;
 	item->autocontinue = true;
 }

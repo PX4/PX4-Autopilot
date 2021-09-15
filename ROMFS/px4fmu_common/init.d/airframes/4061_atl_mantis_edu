@@ -1,0 +1,207 @@
+#!/bin/sh
+#
+# @name Advanced Technology Labs (ATL) Mantis EDU
+#
+# @type Quadrotor x
+# @class Copter
+#
+# @output MAIN1 motor 1
+# @output MAIN2 motor 2
+# @output MAIN3 motor 3
+# @output MAIN4 motor 4
+#
+# @maintainer
+# @board px4_fmu-v2 exclude
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+set MIXER none
+set MIXER_AUX none
+
+
+# Battery settings
+param set-default BAT_CRIT_THR 0.20
+param set-default BAT_EMERGEN_THR 0.05
+param set-default BAT_LOW_THR 0.25
+
+param set-default BAT1_CAPACITY 2800.0
+param set-default BAT1_N_CELLS 3
+param set-default BAT1_R_INTERNAL 0.02
+param set-default BAT1_V_CHARGED 4.26
+param set-default BAT1_V_EMPTY 3.45
+
+param set-default CBRK_SUPPLY_CHK 894281
+
+param set-default COM_DISARM_LAND 0.1
+param set-default COM_DISARM_PRFLT 3
+param set-default COM_DL_LOSS_T 10
+param set-default COM_FLTMODE1 -1
+param set-default COM_FLTMODE2 -1
+param set-default COM_FLTMODE3 -1
+param set-default COM_FLTMODE4  2
+param set-default COM_FLTMODE5 -1
+param set-default COM_FLTMODE6  6
+param set-default COM_RC_LOSS_T 3
+param set-default COM_RC_OVERRIDE 1
+
+
+# ekf2
+param set-default EKF2_AID_MASK 35
+param set-default EKF2_BARO_DELAY 0
+param set-default EKF2_BARO_NOISE 2.0
+
+param set-default EKF2_BCOEF_X 31.5
+param set-default EKF2_BCOEF_Y 25.5
+
+param set-default EKF2_GPS_DELAY 100
+param set-default EKF2_GPS_POS_X 0.06
+param set-default EKF2_GPS_POS_Y 0.0
+param set-default EKF2_GPS_POS_Z 0.0
+param set-default EKF2_GPS_V_NOISE 0.5
+
+param set-default EKF2_IMU_POS_X 0.06
+param set-default EKF2_IMU_POS_Y 0.0
+param set-default EKF2_IMU_POS_Z 0.0
+
+param set-default EKF2_MAG_DELAY 0
+param set-default EKF2_MAG_NOISE 0.1
+
+param set-default EKF2_MIN_RNG 0.15
+
+param set-default EKF2_OF_DELAY 38
+param set-default EKF2_OF_GATE 2.0
+param set-default EKF2_OF_POS_X -0.035
+param set-default EKF2_OF_POS_Y 0.0
+param set-default EKF2_OF_POS_Z 0.033
+
+param set-default EKF2_PCOEF_XN -0.3
+param set-default EKF2_PCOEF_XP -0.4
+param set-default EKF2_PCOEF_YN -0.4
+param set-default EKF2_PCOEF_YP -0.4
+param set-default EKF2_PCOEF_Z 0.0
+
+param set-default EKF2_RNG_A_VMAX 1.0
+param set-default EKF2_RNG_AID 0
+param set-default EKF2_RNG_DELAY 55
+param set-default EKF2_RNG_POS_X -0.035
+param set-default EKF2_RNG_POS_Y 0.0
+param set-default EKF2_RNG_POS_Z 0.033
+
+param set-default EKF2_TERR_NOISE 1.0
+
+
+# Maximum allowed angle velocity in the landed state
+param set-default LNDMC_ROT_MAX 40.0
+
+# Maximum vertical velocity allowed in the landed state
+param set-default LNDMC_Z_VEL_MAX 0.7
+
+
+# filtering
+param set-default IMU_DGYRO_CUTOFF 50
+param set-default IMU_GYRO_CUTOFF 65
+
+
+# Pitch angle & rate setting
+param set-default MC_PITCHRATE_P 0.075
+param set-default MC_PITCHRATE_I 0.1
+param set-default MC_PITCHRATE_D 0.0005
+param set-default MC_PITCHRATE_MAX 360.0
+param set-default MC_PITCH_P 8.0
+
+# Roll angle & rate setting
+param set-default MC_ROLLRATE_P 0.055
+param set-default MC_ROLLRATE_I 0.1
+param set-default MC_ROLLRATE_D 0.0005
+param set-default MC_ROLLRATE_MAX 360.0
+param set-default MC_ROLL_P 8.0
+
+# Yaw angle & rate setting
+param set-default MC_YAWRATE_P 0.1
+param set-default MC_YAWRATE_I 0.1
+param set-default MC_YAWRATE_MAX 120.0
+param set-default MC_YAW_P 2.5
+
+param set-default MPC_ACC_DOWN_MAX 2.0
+param set-default MPC_ACC_HOR 3.0
+param set-default MPC_ACC_HOR_MAX 10.0
+param set-default MPC_ACC_UP_MAX 3.0
+param set-default MPC_ALT_MODE 0
+param set-default MPC_LAND_SPEED 0.5
+param set-default MPC_LAND_VEL_XY 10
+param set-default MPC_MAN_TILT_MAX 20
+param set-default MPC_YAWRAUTO_MAX 80.0
+param set-default MPC_POS_MODE 4
+param set-default MPC_THR_HOVER 0.54
+param set-default MPC_THR_MAX 0.9
+param set-default MPC_THR_MIN 0.06
+param set-default MPC_TILTMAX_AIR 30
+param set-default MPC_XY_P 1.0
+param set-default MPC_XY_VEL_D 0.005
+param set-default MPC_XY_VEL_I 0.02
+param set-default MPC_XY_VEL_P 0.15
+param set-default MPC_Z_P 2.0
+param set-default MPC_Z_VEL_D 0.0
+param set-default MPC_Z_VEL_I 0.02
+param set-default MPC_Z_VEL_MAX_DN 2.0
+param set-default MPC_Z_VEL_MAX_UP 3.0
+param set-default MPC_Z_VEL_P 0.27
+
+
+# gimbal configuration
+param set-default MNT_MODE_IN 1
+param set-default MNT_MODE_OUT 2
+param set-default MNT_MAN_PITCH 1
+
+
+# RC
+param set-default RC_CHAN_CNT       12
+
+param set-default RC_MAP_THROTTLE   1
+param set-default RC_MAP_ROLL       2
+param set-default RC_MAP_PITCH      3
+param set-default RC_MAP_YAW        4
+param set-default RC_MAP_FLTMODE    5
+param set-default RC_MAP_AUX1       7
+
+param set-default RC1_DZ            10
+param set-default RC1_MAX           3413
+param set-default RC1_MIN           683
+param set-default RC1_REV           1
+param set-default RC1_TRIM          683
+param set-default RC2_DZ            10
+param set-default RC2_MAX           3413
+param set-default RC2_MIN           683
+param set-default RC2_REV           -1
+param set-default RC2_TRIM          2048
+param set-default RC3_DZ            10
+param set-default RC3_MAX           3413
+param set-default RC3_MIN           683
+param set-default RC3_REV           1
+param set-default RC3_TRIM          2048
+param set-default RC4_DZ            10
+param set-default RC4_MAX           3413
+param set-default RC4_MIN           683
+param set-default RC4_REV           -1
+param set-default RC4_TRIM          2048
+param set-default RC5_DZ            10
+param set-default RC5_MAX           3414
+param set-default RC5_MIN           2048
+param set-default RC5_REV           1
+param set-default RC5_TRIM          2048
+param set-default RC7_DZ            10
+param set-default RC7_MAX           3413
+param set-default RC7_MIN           683
+param set-default RC7_REV           1
+param set-default RC7_TRIM          2048
+
+
+# optical flow
+param set-default SENS_FLOW_MAXR   7.4
+param set-default SENS_FLOW_MINHGT 0.15
+param set-default SENS_FLOW_MAXHGT 5.0
+param set-default SENS_FLOW_ROT    4
+
+
+mixer load /dev/tap_esc /etc/mixers/quad_x.main.mix

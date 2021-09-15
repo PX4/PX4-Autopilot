@@ -241,13 +241,6 @@
 #endif
 
 /*
- * Defined when a board has capture and uses channels.
- */
-#if defined(DIRECT_INPUT_TIMER_CHANNELS) && DIRECT_INPUT_TIMER_CHANNELS > 0
-#define BOARD_HAS_CAPTURE 1
-#endif
-
-/*
  * Defined when a supports version and type API.
  */
 #if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
@@ -560,9 +553,9 @@ __EXPORT void board_on_reset(int status);
  *
  ****************************************************************************/
 
-#ifdef CONFIG_BOARDCTL_POWEROFF
+#if defined(BOARD_HAS_POWER_CONTROL)
 int board_power_off(int status);
-#endif
+#endif // BOARD_HAS_POWER_CONTROL
 
 /****************************************************************************
  * Name: board_reset

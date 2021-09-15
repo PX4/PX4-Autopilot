@@ -4,9 +4,6 @@ add_definitions(-DUSE_S_RGB_LED_DMA)
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR cuav
-	MODEL can-gps-v1
-	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	CONSTRAINED_MEMORY

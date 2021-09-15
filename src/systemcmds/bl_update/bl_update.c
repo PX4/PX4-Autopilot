@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,6 +41,7 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -57,6 +58,9 @@
 #  define BL_FILE_SIZE_LIMIT	128*1024
 #  define STM_RAM_BASE        STM32_AXISRAM_BASE
 #  define PAGE_SIZE_MATTERS   1
+#elif defined(CONFIG_ARCH_CHIP_STM32F7)
+#  define BL_FILE_SIZE_LIMIT	32*1024
+#  define STM_RAM_BASE        STM32_SRAM_BASE
 #else
 #  define BL_FILE_SIZE_LIMIT  16384
 #  define STM_RAM_BASE        STM32_SRAM_BASE
@@ -127,7 +131,7 @@ bl_update_main(int argc, char *argv[])
 	/* sanity-check file size */
 	if (s.st_size > BL_FILE_SIZE_LIMIT)
 	{
-		PX4_ERR("%s: file too large (limit: %u, actual: %d)", argv[1], BL_FILE_SIZE_LIMIT, s.st_size);
+		PX4_ERR("%s: file too large (limit: %u, actual: %jd)", argv[1], BL_FILE_SIZE_LIMIT, (intmax_t) s.st_size);
 		close(fd);
 		return 1;
 	}
@@ -141,14 +145,15 @@ bl_update_main(int argc, char *argv[])
 #endif
 
 	uint8_t *buf = malloc(image_size);
-	memset(buf, 0xff, image_size);
 
 	if (buf == NULL)
 	{
-		PX4_ERR("failed to allocate %u bytes for firmware buffer", file_size);
+		PX4_ERR("failed to allocate %jd bytes for firmware buffer", (intmax_t) file_size);
 		close(fd);
 		return 1;
 	}
+
+	memset(buf, 0xff, image_size);
 
 	if (read(fd, buf, file_size) != file_size)
 	{

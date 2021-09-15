@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -76,11 +76,11 @@ int8_t FindCalibrationIndex(const char *sensor_type, uint32_t device_id)
 	return -1;
 }
 
-int32_t GetCalibrationParam(const char *sensor_type, const char *cal_type, uint8_t instance)
+int32_t GetCalibrationParamInt32(const char *sensor_type, const char *cal_type, uint8_t instance)
 {
 	// eg CAL_MAGn_ID/CAL_MAGn_ROT
 	char str[20] {};
-	sprintf(str, "CAL_%s%u_%s", sensor_type, instance, cal_type);
+	sprintf(str, "CAL_%s%" PRIu8 "_%s", sensor_type, instance, cal_type);
 
 	int32_t value = 0;
 
@@ -91,20 +91,19 @@ int32_t GetCalibrationParam(const char *sensor_type, const char *cal_type, uint8
 	return value;
 }
 
-bool SetCalibrationParam(const char *sensor_type, const char *cal_type, uint8_t instance, int32_t value)
+float GetCalibrationParamFloat(const char *sensor_type, const char *cal_type, uint8_t instance)
 {
+	// eg CAL_MAGn_TEMP
 	char str[20] {};
+	sprintf(str, "CAL_%s%" PRIu8 "_%s", sensor_type, instance, cal_type);
 
-	// eg CAL_MAGn_ID/CAL_MAGn_ROT
-	sprintf(str, "CAL_%s%u_%s", sensor_type, instance, cal_type);
+	float value = NAN;
 
-	int ret = param_set_no_notification(param_find(str), &value);
-
-	if (ret != PX4_OK) {
-		PX4_ERR("failed to set %s = %d", str, value);
+	if (param_get(param_find(str), &value) != 0) {
+		PX4_ERR("failed to get %s", str);
 	}
 
-	return ret == PX4_OK;
+	return value;
 }
 
 Vector3f GetCalibrationParamsVector3f(const char *sensor_type, const char *cal_type, uint8_t instance)
@@ -117,7 +116,7 @@ Vector3f GetCalibrationParamsVector3f(const char *sensor_type, const char *cal_t
 		char axis_char = 'X' + axis;
 
 		// eg CAL_MAGn_{X,Y,Z}OFF
-		sprintf(str, "CAL_%s%u_%c%s", sensor_type, instance, axis_char, cal_type);
+		sprintf(str, "CAL_%s%" PRIu8 "_%c%s", sensor_type, instance, axis_char, cal_type);
 
 		if (param_get(param_find(str), &values(axis)) != 0) {
 			PX4_ERR("failed to get %s", str);
@@ -136,7 +135,7 @@ bool SetCalibrationParamsVector3f(const char *sensor_type, const char *cal_type,
 		char axis_char = 'X' + axis;
 
 		// eg CAL_MAGn_{X,Y,Z}OFF
-		sprintf(str, "CAL_%s%u_%c%s", sensor_type, instance, axis_char, cal_type);
+		sprintf(str, "CAL_%s%" PRIu8 "_%c%s", sensor_type, instance, axis_char, cal_type);
 
 		if (param_set_no_notification(param_find(str), &values(axis)) != 0) {
 			PX4_ERR("failed to set %s = %.4f", str, (double)values(axis));
@@ -169,7 +168,7 @@ enum Rotation GetBoardRotation()
 		return static_cast<enum Rotation>(board_rot);
 
 	} else {
-		PX4_ERR("invalid SENS_BOARD_ROT: %d", board_rot);
+		PX4_ERR("invalid SENS_BOARD_ROT: %" PRId32, board_rot);
 	}
 
 	return Rotation::ROTATION_NONE;

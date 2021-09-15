@@ -23,8 +23,7 @@
 . ${R}etc/init.d/rc.vtol_defaults
 
 
-
-param set-default BAT_N_CELLS 6
+param set-default BAT1_N_CELLS 6
 
 param set-default FW_AIRSPD_MAX 30
 param set-default FW_AIRSPD_MIN 19
@@ -71,7 +70,6 @@ param set-default MPC_JERK_AUTO 4
 param set-default MPC_LAND_SPEED 1
 param set-default MPC_MAN_TILT_MAX 25
 param set-default MPC_MAN_Y_MAX 40
-param set-default MPC_POS_MODE 3
 param set-default MPC_SPOOLUP_TIME 1.5
 param set-default MPC_THR_HOVER 0.45
 param set-default MPC_TILTMAX_AIR 25

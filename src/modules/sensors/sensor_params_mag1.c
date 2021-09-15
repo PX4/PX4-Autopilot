@@ -235,3 +235,15 @@ PARAM_DEFINE_FLOAT(CAL_MAG1_YCOMP, 0.0f);
 * @group Sensor Calibration
 */
 PARAM_DEFINE_FLOAT(CAL_MAG1_ZCOMP, 0.0f);
+
+/**
+ * Magnetometer calibration temperature
+ *
+ * Temperature during last calibration.
+ *
+ * @unit celcius
+ * @category system
+ * @group Sensor Calibration
+ * @volatile
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG1_TEMP, -1000.f);

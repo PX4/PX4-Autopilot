@@ -46,6 +46,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gps.h>
@@ -55,39 +56,15 @@
 #include <canard.h>
 #include <canard_dsdl.h>
 
-#include <uavcan/_register/Access_1_0.h>
-#include <uavcan/_register/List_1_0.h>
-#include <uavcan/_register/Value_1_0.h>
-#include <uavcan/node/Heartbeat_1_0.h>
-#include <uavcan/primitive/Empty_1_0.h>
-
-// DS-15 Specification Messages
-#include <reg/drone/physics/kinematics/geodetic/Point_0_1.h>
-#include <reg/drone/service/battery/Parameters_0_1.h>
-#include <reg/drone/service/battery/Status_0_1.h>
-
 #include "CanardInterface.hpp"
 
 #include "Publishers/Publisher.hpp"
-#include "Publishers/Gnss.hpp"
-
-#include "Subscribers/BaseSubscriber.hpp"
-#include "Subscribers/Battery.hpp"
-#include "Subscribers/Esc.hpp"
-#include "Subscribers/Gnss.hpp"
-#include "Subscribers/NodeIDAllocationData.hpp"
-#include "Subscribers/LegacyBatteryInfo.hpp"
-
-// uORB over UAVCAN subscribers
-#include "Subscribers/uORB/sensor_gps.hpp"
-
-#include "ServiceClients/GetInfo.hpp"
-#include "ServiceClients/Access.hpp"
-
-#include "Services/AccessReply.hpp"
-#include "Services/ListReply.hpp"
+#include "Publishers/uORB/uorb_publisher.hpp"
 
 #include "NodeManager.hpp"
+
+#include "PublicationManager.hpp"
+#include "SubscriptionManager.hpp"
 
 #include "Actuators/EscClient.hpp" /// TODO: Add EscServer.hpp for node-side service
 
@@ -172,7 +149,7 @@ private:
 
 	void *_uavcan_heap{nullptr};
 
-	CanardInterface *const _can_interface;
+	CanardInterface *_can_interface;
 
 	CanardInstance _canard_instance;
 
@@ -183,8 +160,6 @@ private:
 	static UavcanNode *_instance;
 
 	pthread_mutex_t _node_mutex;
-
-	CanardRxSubscription _heartbeat_subscription;
 
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
@@ -199,42 +174,18 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::UAVCAN_V1_ENABLE>) _param_uavcan_v1_enable,
 		(ParamInt<px4::params::UAVCAN_V1_ID>) _param_uavcan_v1_id,
-		(ParamInt<px4::params::UAVCAN_V1_BAUD>) _param_uavcan_v1_baud,
-		(ParamInt<px4::params::UAVCAN_V1_BAT_MD>) _param_uavcan_v1_bat_md,
-		(ParamInt<px4::params::UAVCAN_V1_BAT_ID>) _param_uavcan_v1_bat_id
+		(ParamInt<px4::params::UAVCAN_V1_BAUD>) _param_uavcan_v1_baud
 	)
 
 	UavcanParamManager _param_manager;
 
 	NodeManager _node_manager {_canard_instance, _param_manager};
 
-	UavcanGnssPublisher _gps_pub {_canard_instance, _param_manager};
+	PublicationManager _pub_manager {_canard_instance, _param_manager};
+	SubscriptionManager _sub_manager {_canard_instance, _param_manager};
 
+	/// TODO: Integrate with PublicationManager
 	UavcanEscController _esc_controller {_canard_instance, _param_manager};
-
-	// Publication objects: Any object used to bridge a uORB message to a UAVCAN message
-	/// TODO: For some service implementations, it makes sense to have them be both Publishers and Subscribers
-	UavcanPublisher *_publishers[2] {&_gps_pub, &_esc_controller};
-
-	UavcanGnssSubscriber _gps0_sub {_canard_instance, _param_manager, 0};
-	UavcanGnssSubscriber _gps1_sub {_canard_instance, _param_manager, 1};
-	UavcanBmsSubscriber  _bms0_sub {_canard_instance, _param_manager, 0};
-	//UavcanBmsSubscriber  _bms1_sub {_canard_instance, _param_manager, 1};
-	UavcanEscSubscriber  _esc_sub  {_canard_instance, _param_manager, 0};
-	UavcanLegacyBatteryInfoSubscriber  _legacybms_sub {_canard_instance, _param_manager, 0};
-	UavcanNodeIDAllocationDataSubscriber _nodeid_sub {_canard_instance, _node_manager};
-
-	UORB_over_UAVCAN_sensor_gps_Subscriber _sensor_gps_sub {_canard_instance, _param_manager, 0};
-
-	UavcanGetInfoResponse _getinfo_rsp {_canard_instance};
-	UavcanAccessResponse  _access_rsp {_canard_instance, _param_manager};
-
-	UavcanAccessServiceReply _access_service {_canard_instance, _node_manager};
-	UavcanListServiceReply   _list_service {_canard_instance, _node_manager};
-
-	// Subscriber objects: Any object used to bridge a UAVCAN message to a uORB message
-	UavcanDynamicPortSubscriber *_dynsubscribers[6] {&_gps0_sub, &_gps1_sub, &_bms0_sub, &_esc_sub, &_legacybms_sub, &_sensor_gps_sub}; /// TODO: turn into List<UavcanSubscription*>
-	UavcanBaseSubscriber *_subscribers[5] {&_nodeid_sub, &_getinfo_rsp, &_access_rsp, &_access_service, &_list_service}; /// TODO: turn into List<UavcanSubscription*>
 
 	UavcanMixingInterface _mixing_output {_node_mutex, _esc_controller};
 

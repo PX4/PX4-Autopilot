@@ -1,9 +1,6 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR holybro
-	MODEL durandal-v1
-	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
@@ -47,6 +44,7 @@ px4_add_board(
 		px4io
 		roboclaw
 		rpm
+		smart_battery/batmon
 		telemetry # all available telemetry drivers
 		tone_alarm
 		uavcan
@@ -105,9 +103,9 @@ px4_add_board(
 		perf
 		pwm
 		reboot
-		reflect
+		#reflect
 		sd_bench
-		serial_test
+		#serial_test
 		system_time
 		top
 		topic_listener

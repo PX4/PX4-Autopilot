@@ -13,15 +13,21 @@ tone_alarm start
 
 ver all
 
-param set IMU_GYRO_RATEMAX 2000
+param set IMU_GYRO_RATEMAX 1000
 
 param set IMU_GYRO_FFT_EN 1
-param set IMU_GYRO_FFT_MIN 1
+param set IMU_GYRO_FFT_MIN 10
 param set IMU_GYRO_FFT_MAX 1000
+param set IMU_GYRO_FFT_LEN 512
+
+# dynamic notches ESC/FFT/both
+#param set IMU_GYRO_DYN_NF 1
+#param set IMU_GYRO_DYN_NF 2
+#param set IMU_GYRO_DYN_NF 3
 
 # test values
-param set IMU_GYRO_CUTOFF 40
-param set IMU_DGYRO_CUTOFF 30
+param set IMU_GYRO_CUTOFF 60
+param set IMU_DGYRO_CUTOFF 40
 #param set IMU_GYRO_NF_FREQ 60
 #param set IMU_GYRO_NF_BW 5
 
@@ -42,9 +48,9 @@ sleep 10
 logger off
 
 sensors status
-uorb top -a -1
 listener sensor_gyro
 listener sensor_gyro_fifo
+perf
 
 echo "ALL TESTS PASSED"
 

@@ -40,10 +40,10 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 	return (msb << 8u) | lsb;
 }
 
-IST8308::IST8308(I2CSPIBusOption bus_option, int bus, int bus_frequency, enum Rotation rotation) :
-	I2C(DRV_MAG_DEVTYPE_IST8308, MODULE_NAME, bus, I2C_ADDRESS_DEFAULT, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_mag(get_device_id(), rotation)
+IST8308::IST8308(const I2CSPIDriverConfig &config) :
+	I2C(config),
+	I2CSPIDriver(config),
+	_px4_mag(get_device_id(), config.rotation)
 {
 	_px4_mag.set_external(external());
 }
@@ -86,12 +86,11 @@ void IST8308::print_status()
 
 int IST8308::probe()
 {
-	_retries = 2;
-
 	for (int retry = 0; retry < 3; retry++) {
 		const uint8_t WAI = RegisterRead(Register::WAI);
 
 		if (WAI == Device_ID) {
+			_retries = 1;
 			return PX4_OK;
 
 		} else {

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -190,7 +190,8 @@ MavlinkFTP::_process_request(
 
 
 #ifdef MAVLINK_FTP_DEBUG
-	PX4_INFO("ftp: channel %u opc %u size %u offset %u", _getServerChannel(), payload->opcode, payload->size,
+	PX4_INFO("ftp: channel %" PRIu8 " opc %" PRIu8 " size %" PRIu8 " offset %" PRIu32, _getServerChannel(), payload->opcode,
+		 payload->size,
 		 payload->offset);
 #endif
 
@@ -336,7 +337,7 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 	}
 
 #ifdef MAVLINK_FTP_DEBUG
-	PX4_INFO("FTP: %s seq_number: %d", payload->opcode == kRspAck ? "Ack" : "Nak", payload->seq_number);
+	PX4_INFO("FTP: %s seq_number: %" PRIu16, payload->opcode == kRspAck ? "Ack" : "Nak", payload->seq_number);
 #endif
 
 #ifdef MAVLINK_FTP_UNIT_TEST
@@ -368,7 +369,7 @@ MavlinkFTP::_workList(PayloadHeader *payload)
 	}
 
 #ifdef MAVLINK_FTP_DEBUG
-	PX4_INFO("FTP: list %s offset %d", _work_buffer1, payload->offset);
+	PX4_INFO("FTP: list %s offset %" PRIu32, _work_buffer1, payload->offset);
 #endif
 
 	struct dirent *result = nullptr;
@@ -461,7 +462,7 @@ MavlinkFTP::_workList(PayloadHeader *payload)
 
 		} else if (direntType == kDirentFile) {
 			// Files send filename and file length
-			int ret = snprintf(_work_buffer2, _work_buffer2_len, "%s\t%d", result->d_name, fileSize);
+			int ret = snprintf(_work_buffer2, _work_buffer2_len, "%s\t%" PRIu32, result->d_name, fileSize);
 			bool buf_is_ok = ((ret > 0) && (ret < _work_buffer2_len));
 
 			if (!buf_is_ok) {
@@ -554,12 +555,12 @@ MavlinkFTP::_workRead(PayloadHeader *payload)
 	}
 
 #ifdef MAVLINK_FTP_DEBUG
-	PX4_INFO("FTP: read offset:%d", payload->offset);
+	PX4_INFO("FTP: read offset:%" PRIu32, payload->offset);
 #endif
 
 	// We have to test seek past EOF ourselves, lseek will allow seek past EOF
 	if (payload->offset >= _session_info.file_size) {
-		PX4_ERR("request past EOF");
+		PX4_WARN("request past EOF");
 		return kErrEOF;
 	}
 
@@ -590,7 +591,7 @@ MavlinkFTP::_workBurst(PayloadHeader *payload, uint8_t target_system_id, uint8_t
 	}
 
 #ifdef MAVLINK_FTP_DEBUG
-	PX4_INFO("FTP: burst offset:%d", payload->offset);
+	PX4_INFO("FTP: burst offset:%" PRIu32, payload->offset);
 #endif
 	// Setup for streaming sends
 	_session_info.stream_download = true;
@@ -993,7 +994,7 @@ void MavlinkFTP::send()
 	// Skip send if not enough room
 	unsigned max_bytes_to_send = _mavlink->get_free_tx_buf();
 #ifdef MAVLINK_FTP_DEBUG
-	PX4_INFO("MavlinkFTP::send max_bytes_to_send(%d) get_free_tx_buf(%d)", max_bytes_to_send, _mavlink->get_free_tx_buf());
+	PX4_INFO("MavlinkFTP::send max_bytes_to_send(%u) get_free_tx_buf(%u)", max_bytes_to_send, _mavlink->get_free_tx_buf());
 #endif
 
 	if (max_bytes_to_send < get_size()) {
@@ -1022,7 +1023,7 @@ void MavlinkFTP::send()
 		_session_info.stream_seq_number++;
 
 #ifdef MAVLINK_FTP_DEBUG
-		PX4_INFO("stream send: offset %d", _session_info.stream_offset);
+		PX4_INFO("stream send: offset %" PRIu32, _session_info.stream_offset);
 #endif
 
 		// We have to test seek past EOF ourselves, lseek will allow seek past EOF

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,7 +38,11 @@
  * @author Roman Bapst
  */
 
-#pragma once
+#ifndef EKF2_HPP
+#define EKF2_HPP
+
+#include "EKF/ekf.h"
+#include "Utility/PreFlightChecker.hpp"
 
 #include "EKF2Selector.hpp"
 
@@ -46,7 +50,6 @@
 
 #include <containers/LockGuard.hpp>
 #include <drivers/drv_hrt.h>
-#include <lib/ecl/EKF/ekf.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
@@ -64,6 +67,7 @@
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/ekf_gps_drift.h>
+#include <uORB/topics/estimator_baro_bias.h>
 #include <uORB/topics/estimator_event_flags.h>
 #include <uORB/topics/estimator_innovations.h>
 #include <uORB/topics/estimator_optical_flow_vel.h>
@@ -82,6 +86,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_imu.h>
+#include <uORB/topics/vehicle_imu_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_magnetometer.h>
@@ -90,7 +95,6 @@
 #include <uORB/topics/wind.h>
 #include <uORB/topics/yaw_estimator_status.h>
 
-#include "Utility/PreFlightChecker.hpp"
 
 extern pthread_mutex_t ekf2_module_mutex;
 
@@ -125,9 +129,14 @@ public:
 	int instance() const { return _instance; }
 
 private:
+
+	static constexpr uint8_t MAX_NUM_IMUS = 4;
+	static constexpr uint8_t MAX_NUM_MAGS = 4;
+
 	void Run() override;
 
 	void PublishAttitude(const hrt_abstime &timestamp);
+	void PublishBaroBias(const hrt_abstime &timestamp);
 	void PublishEkfDriftMetrics(const hrt_abstime &timestamp);
 	void PublishEventFlags(const hrt_abstime &timestamp);
 	void PublishGlobalPosition(const hrt_abstime &timestamp);
@@ -145,6 +154,8 @@ private:
 	void PublishWindEstimate(const hrt_abstime &timestamp);
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 
+	void SelectImuStatus();
+
 	void UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps);
@@ -153,6 +164,7 @@ private:
 	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateImuStatus();
 
 	void UpdateMagCalibration(const hrt_abstime &timestamp);
 
@@ -176,7 +188,15 @@ private:
 
 	perf_counter_t _ecl_ekf_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL update")};
 	perf_counter_t _ecl_ekf_update_full_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL full update")};
-	perf_counter_t _imu_missed_perf{perf_alloc(PC_COUNT, MODULE_NAME": IMU message missed")};
+	perf_counter_t _msg_missed_imu_perf{perf_alloc(PC_COUNT, MODULE_NAME": IMU message missed")};
+	perf_counter_t _msg_missed_air_data_perf{nullptr};
+	perf_counter_t _msg_missed_airspeed_perf{nullptr};
+	perf_counter_t _msg_missed_distance_sensor_perf{nullptr};
+	perf_counter_t _msg_missed_gps_perf{nullptr};
+	perf_counter_t _msg_missed_landing_target_pose_perf{nullptr};
+	perf_counter_t _msg_missed_magnetometer_perf{nullptr};
+	perf_counter_t _msg_missed_odometry_perf{nullptr};
+	perf_counter_t _msg_missed_optical_flow_perf{nullptr};
 
 	// Used to check, save and use learned magnetometer biases
 	hrt_abstime _mag_cal_last_us{0};	///< last time the EKF was operating a mode that estimates magnetomer biases (uSec)
@@ -204,11 +224,10 @@ private:
 	uint32_t _device_id_gyro{0};
 	uint32_t _device_id_mag{0};
 
-	Vector3f _last_local_position_for_gpos{};
-
 	Vector3f _last_accel_bias_published{};
 	Vector3f _last_gyro_bias_published{};
 	Vector3f _last_mag_bias_published{};
+	float _last_baro_bias_published{};
 
 	float _airspeed_scale_factor{1.0f}; ///< scale factor correction applied to airspeed measurements
 
@@ -225,6 +244,7 @@ private:
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
@@ -251,6 +271,7 @@ private:
 
 	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
 	uORB::PublicationMulti<ekf_gps_drift_s>              _ekf_gps_drift_pub{ORB_ID(ekf_gps_drift)};
+	uORB::PublicationMulti<estimator_baro_bias_s>        _estimator_baro_bias_pub{ORB_ID(estimator_baro_bias)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_variances_pub{ORB_ID(estimator_innovation_variances)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovations_pub{ORB_ID(estimator_innovations)};
@@ -483,6 +504,7 @@ private:
 		_param_ekf2_drag_noise,	///< observation noise variance for drag specific force measurements (m/sec**2)**2
 		(ParamExtFloat<px4::params::EKF2_BCOEF_X>) _param_ekf2_bcoef_x,		///< ballistic coefficient along the X-axis (kg/m**2)
 		(ParamExtFloat<px4::params::EKF2_BCOEF_Y>) _param_ekf2_bcoef_y,		///< ballistic coefficient along the Y-axis (kg/m**2)
+		(ParamExtFloat<px4::params::EKF2_MCOEF>) _param_ekf2_mcoef,		///< propeller momentum drag coefficient (1/s)
 
 		// Corrections for static pressure position error where Ps_error = Ps_meas - Ps_truth
 		// Coef = Ps_error / Pdynamic, where Pdynamic = 1/2 * density * TAS**2
@@ -514,3 +536,4 @@ private:
 
 	)
 };
+#endif // !EKF2_HPP

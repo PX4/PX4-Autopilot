@@ -108,6 +108,12 @@ public:
 	void setThrustLimits(const float min, const float max);
 
 	/**
+	 * Set margin that is kept for horizontal control when prioritizing vertical thrust
+	 * @param margin of normalized thrust that is kept for horizontal control e.g. 0.3
+	 */
+	void setHorizontalThrustMargin(const float margin);
+
+	/**
 	 * Set the maximum tilt angle in radians the output attitude is allowed to have
 	 * @param tilt angle in radians from level orientation
 	 */
@@ -191,6 +197,7 @@ private:
 	float _lim_vel_down{}; ///< Downwards velocity limit with feed forward and position control
 	float _lim_thr_min{}; ///< Minimum collective thrust allowed as output [-1,0] e.g. -0.9
 	float _lim_thr_max{}; ///< Maximum collective thrust allowed as output [-1,0] e.g. -0.1
+	float _lim_thr_xy_margin{}; ///< Margin to keep for horizontal control when saturating prioritized vertical thrust
 	float _lim_tilt{}; ///< Maximum tilt from level the output attitude is allowed to have
 
 	float _hover_thrust{}; ///< Thrust [0.1, 0.9] with which the vehicle hovers not accelerating down or up with level orientation

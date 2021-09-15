@@ -69,7 +69,12 @@ void CameraInterfaceSeagull::setup()
 
 			// Initialize the interface
 			uint32_t pin_bitmask = (1 << _pins[i + 1]) | (1 << _pins[i]);
-			up_pwm_trigger_init(pin_bitmask);
+			int ret = up_pwm_trigger_init(pin_bitmask);
+
+			if (ret != (int)pin_bitmask) {
+				PX4_WARN("up_pwm_trigger_init failed (%i)", ret);
+				continue;
+			}
 
 			// Set both interface pins to disarmed
 			int ret1 = up_pwm_trigger_set(_pins[i + 1], PWM_CAMERA_DISARMED);

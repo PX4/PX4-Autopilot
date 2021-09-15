@@ -1,9 +1,6 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR px4
-	MODEL fmu-v6u
-	LABEL test
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
@@ -17,14 +14,15 @@ px4_add_board(
 		TEL3:/dev/ttyS1
 		GPS2:/dev/ttyS7
 	DRIVERS
-		adc/ads1115
+		#adc/ads1115
 		adc/board_adc
-		barometer # all available barometer drivers
-		batt_smbus
-		camera_capture
+		#barometer # all available barometer drivers
+		barometer/bmp388
+		#batt_smbus
+		#camera_capture
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
-		distance_sensor # all available distance sensor drivers
+		#distance_sensor # all available distance sensor drivers
 		dshot
 		gps
 		heater
@@ -37,19 +35,19 @@ px4_add_board(
 		lights # all available light drivers
 		magnetometer # all available magnetometer drivers
 		optical_flow # all available optical flow drivers
-		osd
-		pca9685
-		pca9685_pwm_out
+		#osd
+		#pca9685
+		#pca9685_pwm_out
 		power_monitor/ina226
 		#protocol_splitter
 		#pwm_input  - Need to create arch/stm32 arch/stm32h7
 		pwm_out_sim
 		pwm_out
 		rc_input
-		roboclaw
-		rpm
+		#roboclaw
+		#rpm
 		safety_button
-		telemetry # all available telemetry drivers
+		#telemetry # all available telemetry drivers
 		test_ppm
 		tone_alarm
 		uavcan
@@ -61,7 +59,7 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
-		esc_battery
+		#esc_battery
 		events
 		flight_mode_manager
 		fw_att_control
@@ -81,7 +79,7 @@ px4_add_board(
 		#micrortps_bridge
 		navigator
 		rc_update
-		rover_pos_control
+		#rover_pos_control
 		sensors
 		sih
 		temperature_compensation
@@ -99,6 +97,7 @@ px4_add_board(
 		i2cdetect
 		led_control
 		mft
+		microbench
 		mixer
 		motor_ramp
 		motor_test

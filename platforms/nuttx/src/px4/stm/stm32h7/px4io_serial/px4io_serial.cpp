@@ -37,8 +37,9 @@
  * Serial interface for PX4IO on STM32F7
  */
 
-#include <px4_arch/px4io_serial.h>
+#include <syslog.h>
 
+#include <px4_arch/px4io_serial.h>
 #include "stm32_uart.h"
 #include <nuttx/cache.h>
 
@@ -372,6 +373,8 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 		if (ret == OK) {
 			/* check for DMA errors */
 			if (_rx_dma_status & DMA_STATUS_TEIF) {
+				// stream transfer error, ensure TX DMA is also stopped before exiting early
+				stm32_dmastop(_tx_dma);
 				perf_count(_pc_dmaerrs);
 				ret = -EIO;
 				break;

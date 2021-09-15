@@ -1,6 +1,8 @@
 Thrust tilt/ Starboard Thrust / Port Thrust / Tail Thrust mixer for PX4FMU
 =======================================================
 
+# @board px4_fmu-v2 exclude
+
 This file defines mixers suitable for controlling an airship with
 a thrust tilt, starboard and port thruster and a tail thruster using PX4FMU.
 The configuration assumes the starboard thruster is connected to PX4FMU

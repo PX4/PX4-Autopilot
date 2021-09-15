@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2019, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,16 +50,15 @@ FXAS21002C::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *FXAS21002C::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-		int runtime_instance)
+I2CSPIDriverBase *FXAS21002C::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
 	device::Device *interface = nullptr;
 
-	if (iterator.busType() == BOARD_I2C_BUS) {
-		interface = FXAS21002C_I2C_interface(iterator.bus(), cli.bus_frequency, cli.i2c_address);
+	if (config.bus_type == BOARD_I2C_BUS) {
+		interface = FXAS21002C_I2C_interface(config.bus, config.bus_frequency, config.i2c_address);
 
-	} else if (iterator.busType() == BOARD_SPI_BUS) {
-		interface = FXAS21002C_SPI_interface(iterator.bus(), iterator.devid(), cli.bus_frequency, cli.spi_mode);
+	} else if (config.bus_type == BOARD_SPI_BUS) {
+		interface = FXAS21002C_SPI_interface(config.bus, config.spi_devid, config.bus_frequency, config.spi_mode);
 	}
 
 	if (interface == nullptr) {
@@ -67,8 +66,7 @@ I2CSPIDriverBase *FXAS21002C::instantiate(const BusCLIArguments &cli, const BusI
 		return nullptr;
 	}
 
-	FXAS21002C *dev = new FXAS21002C(interface, iterator.configuredBusOption(), iterator.bus(), cli.rotation,
-					 cli.i2c_address);
+	FXAS21002C *dev = new FXAS21002C(interface, config);
 
 	if (dev == nullptr) {
 		delete interface;
@@ -103,15 +101,15 @@ extern "C" int fxas21002c_main(int argc, char *argv[])
 	cli.spi_mode = SPIDEV_MODE0;
 	cli.i2c_address = 0x20;
 
-	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
 		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optarg());
+			cli.rotation = (enum Rotation)atoi(cli.optArg());
 			break;
 		}
 	}
 
-	const char *verb = cli.optarg();
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();

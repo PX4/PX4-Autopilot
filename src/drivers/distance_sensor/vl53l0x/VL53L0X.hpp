@@ -54,13 +54,10 @@
 class VL53L0X : public device::I2C, public I2CSPIDriver<VL53L0X>
 {
 public:
-	VL53L0X(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency,
-		int address = VL53L0X_BASEADDR);
+	VL53L0X(const I2CSPIDriverConfig &config);
 
 	~VL53L0X() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	/**
@@ -69,15 +66,12 @@ public:
 	void print_status() override;
 
 	/**
-	 * Initialise the automatic measurement state machine and start it.
-	 */
-	void start();
-
-	/**
 	 * Perform a poll cycle; collect from the previous measurement
 	 * and start a new one.
 	 */
 	void RunImpl();
+
+	int init() override;
 
 private:
 	int probe() override;

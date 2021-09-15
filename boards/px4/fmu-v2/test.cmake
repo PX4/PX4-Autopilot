@@ -1,9 +1,6 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR px4
-	MODEL fmu-v2
-	LABEL test
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	CONSTRAINED_MEMORY
@@ -12,6 +9,7 @@ px4_add_board(
 	TESTING
 	#UAVCAN_INTERFACES 2
 	CONSTRAINED_FLASH
+	  NO_HELP
 	SERIAL_PORTS
 		GPS1:/dev/ttyS3
 		TEL1:/dev/ttyS1
@@ -25,10 +23,10 @@ px4_add_board(
 		#camera_capture
 		#camera_trigger
 		#differential_pressure # all available differential pressure drivers
-		differential_pressure/ms4525
+		#differential_pressure/ms4525
 		#distance_sensor # all available distance sensor drivers
-		distance_sensor/ll40ls
-		distance_sensor/lightware_laser_serial
+		#distance_sensor/ll40ls
+		#distance_sensor/lightware_laser_serial
 		#dshot
 		gps
 		#heater
@@ -40,13 +38,12 @@ px4_add_board(
 		imu/lsm303d
 		imu/invensense/mpu6000
 		#imu/invensense/mpu9250
-		#iridiumsbd
 		#irlock
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		#optical_flow # all available optical flow drivers
-		optical_flow/px4flow
+		#optical_flow/px4flow
 		#osd
 		#pca9685
 		#protocol_splitter
@@ -78,7 +75,7 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
-		mc_hover_thrust_estimator
+		#mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
 		navigator
@@ -98,6 +95,7 @@ px4_add_board(
 		#i2cdetect
 		#led_control
 		mft
+		microbench
 		mixer
 		#motor_ramp
 		#motor_test

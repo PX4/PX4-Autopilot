@@ -19,9 +19,9 @@
 set MIXER quad_x_cw
 set PWM_OUT 1234
 
-param set-default BAT_N_CELLS 1
-param set-default BAT_CAPACITY 240
-param set-default BAT_SOURCE 1
+param set-default BAT1_N_CELLS 1
+param set-default BAT1_CAPACITY 240
+param set-default BAT1_SOURCE 1
 
 param set-default CBRK_SUPPLY_CHK 894281
 param set-default CBRK_USB_CHK 197848

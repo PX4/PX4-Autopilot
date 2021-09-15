@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,7 +44,7 @@
 
 #pragma once
 
-#include <ecl/geo/geo.h>
+#include <geo/geo.h>
 #include <lib/drivers/smbus/SMBus.hpp>
 #include <mathlib/mathlib.h>
 #include <perf/perf_counter.h>
@@ -118,22 +118,20 @@ using namespace time_literals;
 #define BATT_SMBUS_ENABLED_PROTECTIONS_A_DEFAULT        0xcf
 #define BATT_SMBUS_ENABLED_PROTECTIONS_A_CUV_DISABLED   0xce
 
-
 enum class SMBUS_DEVICE_TYPE {
-	UNDEFINED  = 0,
-	BQ40Z50    = 1,
-	BQ40Z80    = 2,
+	UNDEFINED     = 0,
+	BQ40Z50       = 1,
+	BQ40Z80       = 2,
 };
 
 class BATT_SMBUS : public I2CSPIDriver<BATT_SMBUS>
 {
 public:
-	BATT_SMBUS(I2CSPIBusOption bus_option, const int bus, SMBus *interface);
+	BATT_SMBUS(const I2CSPIDriverConfig &config, SMBus *interface);
 
 	~BATT_SMBUS();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
 	friend SMBus;

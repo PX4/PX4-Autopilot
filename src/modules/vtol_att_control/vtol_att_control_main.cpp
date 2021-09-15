@@ -47,6 +47,7 @@
  *
  */
 #include "vtol_att_control_main.h"
+#include <px4_platform_common/events.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/Publication.hpp>
 
@@ -160,7 +161,7 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 
 			} else {
 				_transition_command = int(vehicle_command.param1 + 0.5f);
-				_immediate_transition = int(vehicle_command.param2 + 0.5f);
+				_immediate_transition = (PX4_ISFINITE(vehicle_command.param2)) ? int(vehicle_command.param2 + 0.5f) : false;
 			}
 
 			if (vehicle_command.from_external) {
@@ -200,10 +201,52 @@ VtolAttitudeControl::is_fixed_wing_requested()
 }
 
 void
-VtolAttitudeControl::quadchute(const char *reason)
+VtolAttitudeControl::quadchute(QuadchuteReason reason)
 {
 	if (!_vtol_vehicle_status.vtol_transition_failsafe) {
-		mavlink_log_critical(&_mavlink_log_pub, "Abort: %s", reason);
+		switch (reason) {
+		case QuadchuteReason::TransitionTimeout:
+			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: timeout\t");
+			events::send(events::ID("vtol_att_ctrl_quadchute_tout"), events::Log::Critical, "Quadchute triggered, due to timeout");
+			break;
+
+		case QuadchuteReason::ExternalCommand:
+			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: external command\t");
+			events::send(events::ID("vtol_att_ctrl_quadchute_ext_cmd"), events::Log::Critical,
+				     "Quadchute triggered, due to external command");
+			break;
+
+		case QuadchuteReason::MinimumAltBreached:
+			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: minimum altitude breached\t");
+			events::send(events::ID("vtol_att_ctrl_quadchute_min_alt"), events::Log::Critical,
+				     "Quadchute triggered, due to minimum altitude breach");
+			break;
+
+		case QuadchuteReason::LossOfAlt:
+			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: loss of altitude\t");
+			events::send(events::ID("vtol_att_ctrl_quadchute_alt_loss"), events::Log::Critical,
+				     "Quadchute triggered, due to loss of altitude");
+			break;
+
+		case QuadchuteReason::LargeAltError:
+			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: large altitude error\t");
+			events::send(events::ID("vtol_att_ctrl_quadchute_alt_err"), events::Log::Critical,
+				     "Quadchute triggered, due to large altitude error");
+			break;
+
+		case QuadchuteReason::MaximumPitchExceeded:
+			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: maximum pitch exceeded\t");
+			events::send(events::ID("vtol_att_ctrl_quadchute_max_pitch"), events::Log::Critical,
+				     "Quadchute triggered, due to maximum pitch angle exceeded");
+			break;
+
+		case QuadchuteReason::MaximumRollExceeded:
+			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: maximum roll exceeded\t");
+			events::send(events::ID("vtol_att_ctrl_quadchute_max_roll"), events::Log::Critical,
+				     "Quadchute triggered, due to maximum roll angle exceeded");
+			break;
+		}
+
 		_vtol_vehicle_status.vtol_transition_failsafe = true;
 	}
 }
@@ -258,7 +301,12 @@ VtolAttitudeControl::parameters_update()
 	if (_params.front_trans_time_openloop < _params.front_trans_time_min * 1.1f) {
 		_params.front_trans_time_openloop = _params.front_trans_time_min * 1.1f;
 		param_set_no_notification(_params_handles.front_trans_time_openloop, &_params.front_trans_time_openloop);
-		mavlink_log_critical(&_mavlink_log_pub, "OL transition time set larger than min transition time");
+		mavlink_log_critical(&_mavlink_log_pub, "OL transition time set larger than min transition time\t");
+		/* EVENT
+		 * @description <param>VT_F_TR_OL_TM</param> set to {1:.1}.
+		 */
+		events::send<float>(events::ID("vtol_att_ctrl_ol_trans_too_large"), events::Log::Warning,
+				    "Open loop transition time set larger than minimum transition time", _params.front_trans_time_openloop);
 	}
 
 	param_get(_params_handles.front_trans_duration, &_params.front_trans_duration);

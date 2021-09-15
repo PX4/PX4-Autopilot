@@ -53,7 +53,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <uORB/topics/home_position.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/weather_vane/WeatherVane.hpp>
 
 struct ekf_reset_counters_s {
@@ -208,10 +208,10 @@ protected:
 	 * TODO: add the delta values to all the handlers
 	 */
 	void _checkEkfResetCounters();
-	virtual void _ekfResetHandlerPositionXY() {};
-	virtual void _ekfResetHandlerVelocityXY() {};
-	virtual void _ekfResetHandlerPositionZ() {};
-	virtual void _ekfResetHandlerVelocityZ() {};
+	virtual void _ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy) {};
+	virtual void _ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy) {};
+	virtual void _ekfResetHandlerPositionZ(float delta_z) {};
+	virtual void _ekfResetHandlerVelocityZ(float delta_vz) {};
 	virtual void _ekfResetHandlerHeading(float delta_psi) {};
 
 	map_projection_reference_s _global_local_proj_ref{};

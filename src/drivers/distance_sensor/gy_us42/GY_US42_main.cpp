@@ -47,41 +47,23 @@ GY_US42::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *GY_US42::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				       int runtime_instance)
-{
-	GY_US42 *instance = new GY_US42(iterator.configuredBusOption(), iterator.bus(), cli.orientation, cli.bus_frequency);
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (instance->init() != PX4_OK) {
-		delete instance;
-		return nullptr;
-	}
-
-	return instance;
-}
-
 extern "C" __EXPORT int gy_us42_main(int argc, char *argv[])
 {
 	int ch;
 	using ThisDriver = GY_US42;
 	BusCLIArguments cli{true, false};
-	cli.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	cli.rotation = (Rotation)distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	cli.default_i2c_frequency = 100000;
 
-	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
 		case 'R':
-			cli.orientation = atoi(cli.optarg());
+			cli.rotation = (Rotation)atoi(cli.optArg());
 			break;
 		}
 	}
 
-	const char *verb = cli.optarg();
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();

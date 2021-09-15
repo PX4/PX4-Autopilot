@@ -2,13 +2,11 @@ include (${CMAKE_CURRENT_LIST_DIR}/uavcan_board_identity)
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR ark
-	MODEL can-gps
-	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	#CONSTRAINED_FLASH
 	CONSTRAINED_MEMORY
+	EXTERNAL_METADATA
 	ROMFSROOT cannode
 	UAVCAN_INTERFACES 1
 	DRIVERS
