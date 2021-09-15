@@ -29,8 +29,26 @@ if __name__ == "__main__":
 
     # Read the encrypted xchacha key and the nonce
     with open(args.ulog_key, 'rb') as f:
-        ulog_key_cipher = f.read(256)
-        nonce = f.read(24)
+        ulog_key_header = f.read(22)
+
+        # Parse the header
+        try:
+            # magic
+            if not ulog_key_header.startswith(bytearray("ULogKey".encode())):
+                raise Exception()
+            # version
+            if ulog_key_header[7] != 1:
+                raise Exception()
+            # expected key exchange algorithm (RSA_OAEP)
+            if ulog_key_header[16] != 4:
+                raise Exception()
+            key_size = ulog_key_header[19] << 8 | ulog_key_header[18];
+            nonce_size = ulog_key_header[21] << 8 | ulog_key_header[20];
+            ulog_key_cipher = f.read(key_size)
+            nonce = f.read(nonce_size)
+        except:
+            print("Keyfile format error")
+            sys.exit(1);
 
     # Decrypt the xchacha key
     cipher_rsa = PKCS1_OAEP.new(r,SHA256)

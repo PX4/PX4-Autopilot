@@ -175,7 +175,24 @@ bool LogWriterFile::init_logfile_encryption(const char *filename)
 		return false;
 	}
 
-	size_t written = ::write(key_fd, key, key_size + nonce_size);
+	// write the header to the key exchange file
+	struct ulog_key_header_s keyfile_header = {
+		.magic = {'U', 'L', 'o', 'g', 'K', 'e', 'y'},
+		.hdr_ver = 1,
+		.timestamp = hrt_absolute_time(),
+		.exchange_algorithm = CRYPTO_RSA_OAEP,
+		.exchange_key = _exchange_key_idx,
+		.key_size = (uint16_t)key_size,
+		.initdata_size = (uint16_t)nonce_size
+	};
+
+	size_t hdr_sz = ::write(key_fd, (uint8_t *)&keyfile_header, sizeof(keyfile_header));
+	size_t written = 0;
+
+	if (hdr_sz == sizeof(keyfile_header)) {
+		// Header write succeeded, write the  key
+		written = ::write(key_fd, key, key_size + nonce_size);
+	}
 
 	// Free temporary memory allocations
 	free(key);
