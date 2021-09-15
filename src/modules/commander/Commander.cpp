@@ -2842,7 +2842,7 @@ Commander::run()
 			/* play tune on battery warning */
 			set_tune(tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW);
 
-		} else if (_status.failsafe) {
+		} else if (_status.failsafe && _armed.armed) {
 			tune_failsafe(true);
 
 		} else {
