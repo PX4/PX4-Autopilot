@@ -44,6 +44,11 @@ constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 		SPI::CS{GPIO::Bank2, GPIO::Pin8},
 		SPI::DRDY{})
 	}),
+	initSPIBusInternal(SPI::Bus::SPI1, {
+		initSPIDevice(SPIDEV_FLASH(0),
+		SPI::CS{GPIO::Bank2, GPIO::Pin15},
+		SPI::DRDY{})
+	}),
 };
 
 static constexpr bool unused = validateSPIConfig(px4_spi_buses);
