@@ -195,7 +195,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		java_version=11
 		gazebo_version=9
 	elif [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
-		java_version=14
+		java_version=13
 		gazebo_version=11
 	else
 		java_version=14
