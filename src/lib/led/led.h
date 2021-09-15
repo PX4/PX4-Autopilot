@@ -43,15 +43,13 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_led.h>
-
 #include <px4_platform_common/module_params.h>
-
+#include <lib/parameters/param.h>
+#include <lib/perf/perf_counter.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/led_control.h>
 #include <uORB/topics/parameter_update.h>
-
-#include <lib/parameters/param.h>
 
 using namespace time_literals;
 
@@ -72,7 +70,10 @@ class LedController : public ModuleParams
 {
 public:
 	LedController() : ModuleParams(nullptr) {}
-	~LedController() override = default;
+	~LedController() override
+	{
+		perf_free(_led_control_sub_lost_perf);
+	}
 
 	/**
 	 * get maxium time between two consecutive calls to update() in us.
@@ -184,6 +185,8 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	hrt_abstime _last_update_call{0};
+
+	perf_counter_t _led_control_sub_lost_perf{perf_alloc(PC_COUNT, MODULE_NAME": led_control message missed")};
 
 	uint8_t _max_brightness{UINT8_MAX};
 
