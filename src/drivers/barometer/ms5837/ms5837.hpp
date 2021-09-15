@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -76,12 +76,10 @@ public:
 	void 			print_status() override;
 	int			read(unsigned offset, void *data, unsigned count) override;
 
-protected:
+private:
 	int			probe() override;
 
 	PX4Barometer		_px4_barometer;
-
-	device::Device		*_interface;
 
 	ms5837::prom_u	   	_prom{};
 
@@ -102,24 +100,19 @@ protected:
 	 * @note This function is called at open and error time.  It might make sense
 	 *       to make it more aggressive about resetting the bus in case of errors.
 	 */
-	void			start();
+	void		_start();
 
 	/**
 	 * Issue a measurement command for the current state.
 	 *
 	 * @return		OK if the measurement command was successful.
 	 */
-	int			measure();
+	int			_measure();
 
 	/**
 	 * Collect the result of the most recent measurement.
 	 */
-	int			collect();
-
-
-
-
-private:
+	int			_collect();
 
 	int			_probe_address(uint8_t address);
 
@@ -137,5 +130,5 @@ private:
 	 */
 	int			_read_prom();
 
-	bool			_crc4(uint16_t *n_prom);
+	bool		_crc4(uint16_t *n_prom);
 };

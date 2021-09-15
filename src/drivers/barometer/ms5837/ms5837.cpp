@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -65,7 +65,7 @@ MS5837::init()
 
 	int ret = I2C::init();
 
-	if (ret!= PX4_OK) {
+	if (ret != PX4_OK) {
 		DEVICE_DEBUG("I2C::init failed (%i)", ret);
 		return ret;
 	}
@@ -75,27 +75,27 @@ MS5837::init()
 
 	while (true) {
 		/* do temperature first */
-		if (OK != measure()) {
+		if (OK != _measure()) {
 			ret = -EIO;
 			break;
 		}
 
 		px4_usleep(MS5837_CONVERSION_INTERVAL);
 
-		if (OK != collect()) {
+		if (OK != _collect()) {
 			ret = -EIO;
 			break;
 		}
 
 		/* now do a pressure measurement */
-		if (OK != measure()) {
+		if (OK != _measure()) {
 			ret = -EIO;
 			break;
 		}
 
 		px4_usleep(MS5837_CONVERSION_INTERVAL);
 
-		if (OK != collect()) {
+		if (OK != _collect()) {
 			ret = -EIO;
 			break;
 		}
@@ -109,7 +109,7 @@ MS5837::init()
 	}
 
 	if (ret == 0) {
-		start();
+		_start();
 	}
 
 	return ret;
@@ -131,7 +131,7 @@ int MS5837::_reset()
 
 int MS5837::probe()
 {
-	if ((PX4_OK == _probe_address(MS5837_ADDRESS))){
+	if ((PX4_OK == _probe_address(MS5837_ADDRESS))) {
 
 		return PX4_OK;
 	}
@@ -194,7 +194,7 @@ MS5837::RunImpl()
 	if (_collect_phase) {
 
 		/* perform collection */
-		ret = collect();
+		ret = _collect();
 
 		if (ret != OK) {
 			if (ret == -6) {
@@ -222,13 +222,13 @@ MS5837::RunImpl()
 	}
 
 	/* measurement phase */
-	ret = measure();
+	ret = _measure();
 
 	if (ret != OK) {
 		/* issue a reset command to the sensor */
 		_reset();
 		/* reset the collection state machine and try again */
-		start();
+		_start();
 		return;
 	}
 
@@ -240,7 +240,7 @@ MS5837::RunImpl()
 }
 
 void
-MS5837::start()
+MS5837::_start()
 {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
@@ -251,7 +251,7 @@ MS5837::start()
 }
 
 int
-MS5837::measure()
+MS5837::_measure()
 {
 	perf_begin(_measure_perf);
 
@@ -278,7 +278,7 @@ MS5837::measure()
 }
 
 int
-MS5837::collect()
+MS5837::_collect()
 {
 	uint32_t raw;
 
@@ -310,14 +310,14 @@ MS5837::collect()
 		_SENS = ((int64_t)_prom.s.c1_pressure_sens << 15) + (((int64_t)_prom.s.c3_temp_coeff_pres_sens * dT) >> 8);
 
 		/* MS5837 temperature compensation */
-		int64_t T2 =0;
+		int64_t T2 = 0;
 
 		int64_t f = 0;
 		int64_t OFF2 = 0;
 		int64_t SENS2 = 0;
 		if (TEMP < 2000) {
 
-			T2 = 3*((int64_t)POW2(dT) >> 33);
+			T2 = 3 * ((int64_t)POW2(dT) >> 33);
 
 			f = POW2((int64_t)TEMP - 2000);
 			OFF2 = 3 * f >> 1;
@@ -331,7 +331,7 @@ MS5837::collect()
 			}
 
 		} else if (TEMP >= 2000) {
-			T2 = 2*((int64_t)POW2(dT) >> 37);
+			T2 = 2 * ((int64_t)POW2(dT) >> 37);
 
 			f = POW2((int64_t)TEMP - 2000);
 			OFF2 = 1 * f >> 4;
@@ -430,14 +430,14 @@ MS5837::_crc4(uint16_t *n_prom)
 	n_prom[0] = ((n_prom[0]) & 0x0FFF);
 	n_prom[7] = 0;
 
-	for ( uint8_t i = 0 ; i < 16; i++ ) {
-		if ( i%2 == 1 ) {
-			n_rem ^= (uint16_t)((n_prom[i>>1]) & 0x00FF);
+	for (uint8_t i = 0 ; i < 16; i++) {
+		if (i%2 == 1) {
+			n_rem ^= (uint16_t)((n_prom[i >> 1]) & 0x00FF);
 		} else {
-			n_rem ^= (uint16_t)(n_prom[i>>1] >> 8);
+			n_rem ^= (uint16_t)(n_prom[i >> 1] >> 8);
 		}
-		for ( uint8_t n_bit = 8 ; n_bit > 0 ; n_bit-- ) {
-			if ( n_rem & 0x8000 ) {
+		for (uint8_t n_bit = 8 ; n_bit > 0 ; n_bit--) {
+			if (n_rem & 0x8000) {
 				n_rem = (n_rem << 1) ^ 0x3000;
 			} else {
 				n_rem = (n_rem << 1);
