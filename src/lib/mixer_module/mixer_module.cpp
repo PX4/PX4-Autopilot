@@ -191,8 +191,8 @@ bool MixingOutput::updateSubscriptions(bool allow_wq_switch, bool limit_callback
 	_groups_subscribed = _groups_required;
 	setMaxTopicUpdateRate(_max_topic_update_interval_us);
 
-	PX4_DEBUG("_groups_required 0x%08x", _groups_required);
-	PX4_DEBUG("_groups_subscribed 0x%08x", _groups_subscribed);
+	PX4_DEBUG("_groups_required 0x%08" PRIx32, _groups_required);
+	PX4_DEBUG("_groups_subscribed 0x%08" PRIx32, _groups_subscribed);
 
 	unlock();
 
