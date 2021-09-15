@@ -81,10 +81,6 @@ private:
 
 	PX4Barometer		_px4_barometer;
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 864138cba103c8296c81fb7ed5d2bff4177ee180
 	ms5837::prom_u	   	_prom{};
 
 	bool			_collect_phase{false};
@@ -116,13 +112,7 @@ private:
 	/**
 	 * Collect the result of the most recent measurement.
 	 */
-<<<<<<< HEAD
 	int			_collect();
-=======
-	int			collect();
-
-private:
->>>>>>> 864138cba103c8296c81fb7ed5d2bff4177ee180
 
 	int			_probe_address(uint8_t address);
 
