@@ -7,6 +7,7 @@ import argparse
 import os
 import sys
 
+from output_groups_from_timer_config import get_timer_groups, get_output_groups
 
 try:
     import yaml
@@ -24,6 +25,8 @@ parser.add_argument('--config-files', type=str, nargs='*', default=[],
                     help='YAML module config file(s)')
 parser.add_argument('--params-file', type=str, action='store',
                     help='Parameter output file')
+parser.add_argument('--timer-config', type=str, action='store',
+                    help='board-specific timer_config.cpp file')
 parser.add_argument('--ethernet', action='store_true',
                     help='Ethernet support')
 parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
@@ -33,6 +36,7 @@ args = parser.parse_args()
 
 verbose = args.verbose
 params_output_file = args.params_file
+timer_config_file = args.timer_config
 ethernet_supported = args.ethernet
 
 root_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),"../..")
@@ -62,6 +66,7 @@ def parse_yaml_parameters_config(yaml_config, ethernet_supported):
                     continue
                 num_instances = param.get('num_instances', 1)
                 instance_start = param.get('instance_start', 0) # offset
+                instance_start_label = param.get('instance_start_label', instance_start)
 
                 # get the type and extract all tags
                 tags = '@group {:}'.format(param_group)
@@ -112,13 +117,14 @@ PARAM_DEFINE_{param_type}({name}, {default_value});
            long_descr=param['description']['long'].replace("\n", "\n * "),
            tags=tags,
            param_type=param_type,
-           name=param_name,
+           name=param_name.replace('${i}', str(i+instance_start)),
            default_value=default_value,
-          ).replace('${i}', str(i+instance_start))
+          ).replace('${i}', str(i+instance_start_label))
     return ret
 
 
-def get_actuator_output_params(yaml_config, output_functions):
+def get_actuator_output_params(yaml_config, output_functions,
+    timer_config_file, verbose):
     """ parse the actuator_output section from the yaml config file
         :return: dict of param definitions
     """
@@ -126,11 +132,50 @@ def get_actuator_output_params(yaml_config, output_functions):
         return {}
     output_groups = yaml_config['actuator_output']['output_groups']
     all_params = {}
-    for group in output_groups:
+    group_idx = 0
+
+    def add_local_param(param_name, param_def):
+        nonlocal all_params
+        # add as a list, as there can be multiple entries with the same param_name
+        if not param_name in all_params:
+            all_params[param_name] = []
+        all_params[param_name].append(param_def)
+
+    while group_idx < len(output_groups):
+        group = output_groups[group_idx]
+        group_idx += 1
+
+        if verbose: print("processing group: {:}".format(group))
+
+        # Check for generator and generate additional data.
+        # We do this by extending the output_groups list and parse in a later iteration
+        if 'generator' in group:
+            if group['generator'] == 'pwm':
+                # We might set these depending on presence of IO in build...
+                param_prefix = group['param_prefix']
+                channel_labels = group['channel_labels']
+                standard_params = group.get('standard_params', [])
+                extra_function_groups = group.get('extra_function_groups', [])
+                pwm_timer_param = group.get('pwm_timer_param', None)
+                if timer_config_file is None:
+                    raise Exception('trying to generate pwm outputs, but --timer-config not set')
+                timer_groups = get_timer_groups(timer_config_file, verbose)
+                timer_output_groups, timer_params = get_output_groups(timer_groups,
+                    param_prefix, channel_labels,
+                    standard_params, extra_function_groups, pwm_timer_param,
+                    verbose=verbose)
+                all_params.update(timer_params)
+                output_groups.extend(timer_output_groups)
+            else:
+                raise Exception('unknown generator {:}'.format(group['generator']))
+            continue
+
         num_channels = group['num_channels']
         param_prefix = group['param_prefix']
         channel_label = group['channel_label']
         standard_params = group.get('standard_params', {})
+        instance_start = group.get('instance_start', 1)
+        instance_start_label = group.get('instance_start_label', instance_start)
         if len(param_prefix) > 9: # 16 - len('_FAIL') - 2 (2 digits for index)
             raise Exception("param prefix {:} too long (max length=10)".format(param_prefix))
         # collect the functions
@@ -140,13 +185,14 @@ def get_actuator_output_params(yaml_config, output_functions):
         for function_group in function_groups:
             group = output_functions[function_group]
             for function_name in group:
+                function_name_label = function_name.replace('_', ' ')
                 if isinstance(group[function_name], int):
-                    output_function_values[group[function_name]] = function_name
+                    output_function_values[group[function_name]] = function_name_label
                 else:
                     start = group[function_name]['start']
                     count = group[function_name]['count']
                     for i in range(count):
-                        output_function_values[start+i] = function_name+str(i+1)
+                        output_function_values[start+i] = function_name_label+' '+str(i+1)
 
         # function param
         param = {
@@ -164,12 +210,13 @@ The default failsafe value is set according to the selected function:
 '''.format(channel_label),
                 },
             'type': 'enum',
-            'instance_start': 1,
+            'instance_start': instance_start,
+            'instance_start_label': instance_start_label,
             'num_instances': num_channels,
             'default': 0,
             'values': output_function_values
             }
-        all_params[param_prefix+'_FUNC${i}'] = param
+        add_local_param(param_prefix+'_FUNC${i}', param)
 
         # handle standard_params
         disarmed_description = \
@@ -217,13 +264,14 @@ When set to -1 (default), the value depends on the function (see {:}).
                         'long': description
                         },
                     'type': 'int32',
-                    'instance_start': 1,
+                    'instance_start': instance_start,
+                    'instance_start_label': instance_start_label,
                     'num_instances': num_channels,
                     'min': standard_params[key]['min'],
                     'max': standard_params[key]['max'],
                     'default': standard_params[key]['default'],
                     }
-                all_params[param_prefix+'_'+param_suffix+'${i}'] = param
+                add_local_param(param_prefix+'_'+param_suffix+'${i}', param)
 
     if verbose: print('adding actuator params: {:}'.format(all_params))
     return all_params
@@ -246,7 +294,8 @@ for yaml_file in args.config_files:
 
     # convert 'output_groups' section into additional params
     try:
-        actuator_output_params = get_actuator_output_params(yaml_config, output_functions)
+        actuator_output_params = get_actuator_output_params(yaml_config,
+                output_functions, timer_config_file, verbose)
     except Exception as e:
         print('Exception while parsing {:}:'.format(yaml_file))
         raise e
