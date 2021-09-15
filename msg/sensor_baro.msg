@@ -8,3 +8,5 @@ uint32 error_count
 float32 pressure	# static pressure measurement in millibar
 
 float32 temperature	# static temperature measurement in deg Celsius
+
+float32 depth      # depth calculation
