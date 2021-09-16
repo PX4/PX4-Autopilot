@@ -37,13 +37,19 @@
  * Included Files
  ****************************************************************************/
 
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform/gpio.h>
+
 #include <nuttx/config.h>
 
 #include <nuttx/board.h>
 
+#include <nuttx/spi/spi.h>
+
 #include "board_config.h"
 
 #include <px4_platform_common/init.h>
+
 
 /****************************************************************************
  * Pre-processor Definitions

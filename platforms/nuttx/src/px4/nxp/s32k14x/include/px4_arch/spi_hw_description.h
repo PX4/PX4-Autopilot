@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,9 +30,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#pragma once
 
-#include <px4_arch/i2c_hw_description.h>
+#include "../../../s32k1xx/include/px4_arch/spi_hw_description.h"
 
-constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
-	initI2CBusExternal(PX4_BUS_NUMBER_TO_PX4(0)),
-};
+constexpr bool validateSPIConfig(const px4_spi_bus_t spi_busses_conf[SPI_BUS_MAX_BUS_ITEMS])
+{
+	return true;
+}

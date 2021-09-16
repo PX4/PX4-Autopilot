@@ -240,3 +240,20 @@ static inline constexpr uint32_t getGPIOPin(GPIO::Pin pin)
 
 	return 0;
 }
+
+namespace SPI
+{
+
+enum class Bus {
+	SPI0 = 1,
+};
+
+using CS = GPIO::GPIOPin;
+using DRDY = GPIO::GPIOPin;
+
+struct bus_device_external_cfg_t {
+	CS cs_gpio;
+	DRDY drdy_gpio;
+};
+
+} // namespace SPI
