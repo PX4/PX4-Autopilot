@@ -62,7 +62,7 @@ else()
 		init.c
 		mtd.cpp
 		periphclocks.c
-		spi.c
+		spi.cpp
 		timer_config.cpp
 		userleds.c
 	)

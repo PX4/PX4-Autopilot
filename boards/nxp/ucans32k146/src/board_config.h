@@ -160,8 +160,9 @@ int s32k1xx_bringup(void);
  *
  ****************************************************************************/
 
-#ifdef CONFIG_S32K1XX_LPSPI
+#ifdef CONFIG_S32K1XX_LPSPI0
 void s32k1xx_spidev_initialize(void);
+int s32k1xx_spi_bus_initialize(void);
 #endif
 
 /****************************************************************************************************
