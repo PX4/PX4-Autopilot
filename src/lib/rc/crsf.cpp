@@ -129,7 +129,7 @@ enum class crsf_parser_state_t : uint8_t {
 	synced
 };
 
-static crsf_frame_t	 &crsf_frame = rc_decode_buf.crsf_frame;
+static crsf_frame_t crsf_frame;
 static unsigned current_frame_position = 0;
 static crsf_parser_state_t parser_state = crsf_parser_state_t::unsynced;
 

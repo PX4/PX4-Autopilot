@@ -88,7 +88,7 @@ bool		_debug		= false;
 static enum SUMD_DECODE_STATE _decode_state = SUMD_DECODE_STATE_UNSYNCED;
 static uint8_t _rxlen;
 
-static ReceiverFcPacketHoTT &_rxpacket = rc_decode_buf._hottrxpacket;
+static ReceiverFcPacketHoTT _rxpacket;
 
 uint16_t sumd_crc16(uint16_t crc, uint8_t value)
 {

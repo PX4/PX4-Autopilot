@@ -118,7 +118,7 @@ static enum SBUS2_DECODE_STATE {
 	SBUS2_DECODE_STATE_SBUS2_DATA2 = 0x34
 } sbus_decode_state = SBUS2_DECODE_STATE_DESYNC;
 
-static sbus_frame_t	 &sbus_frame = rc_decode_buf.sbus_frame;
+static sbus_frame_t sbus_frame;
 
 static unsigned partial_frame_count;
 static unsigned sbus1_frame_delay = (1000U * 1000U) / SBUS1_DEFAULT_RATE_HZ;

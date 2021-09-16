@@ -66,7 +66,7 @@ const char *decode_states[] = {"UNSYNCED",
 static enum ST24_DECODE_STATE _decode_state = ST24_DECODE_STATE_UNSYNCED;
 static uint8_t _rxlen;
 
-static ReceiverFcPacket &_rxpacket = rc_decode_buf._strxpacket;
+static ReceiverFcPacket _rxpacket;
 
 uint8_t st24_common_crc8(uint8_t *ptr, uint8_t len)
 {
