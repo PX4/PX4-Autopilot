@@ -1,5 +1,7 @@
 include (${CMAKE_CURRENT_LIST_DIR}/uavcan_board_identity)
 
+add_definitions(-DCONSTRAINED_FLASH_NO_HELP="https://docs.px4.io/master/en/modules/modules_main.html")
+
 px4_add_board(
 	PLATFORM nuttx
 	TOOLCHAIN arm-none-eabi
