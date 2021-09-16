@@ -104,7 +104,7 @@ private:
 	friend class UavcanNode;
 	pthread_mutex_t &_node_mutex;
 	UavcanEscController &_esc_controller;
-	MixingOutput _mixing_output{MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+	MixingOutput _mixing_output{"UAVCAN_EC", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 };
 
 /**

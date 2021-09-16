@@ -66,7 +66,7 @@ static const FunctionProvider all_function_providers[] = {
 	{OutputFunction::Gimbal_Roll, OutputFunction::Gimbal_Yaw, &FunctionGimbal::allocate},
 };
 
-MixingOutput::MixingOutput(uint8_t max_num_outputs, OutputModuleInterface &interface,
+MixingOutput::MixingOutput(const char *param_prefix, uint8_t max_num_outputs, OutputModuleInterface &interface,
 			   SchedulingPolicy scheduling_policy,
 			   bool support_esc_calibration, bool ramp_up)
 	: ModuleParams(&interface),
@@ -80,7 +80,8 @@ _scheduling_policy(scheduling_policy),
 _support_esc_calibration(support_esc_calibration),
 _max_num_outputs(max_num_outputs < MAX_ACTUATORS ? max_num_outputs : MAX_ACTUATORS),
 _interface(interface),
-_control_latency_perf(perf_alloc(PC_ELAPSED, "control latency"))
+_control_latency_perf(perf_alloc(PC_ELAPSED, "control latency")),
+_param_prefix(param_prefix)
 {
 	output_limit_init(&_output_limit);
 	_output_limit.ramp_up = ramp_up;
