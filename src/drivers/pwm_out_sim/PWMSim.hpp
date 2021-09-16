@@ -77,7 +77,7 @@ private:
 	static constexpr uint16_t PWM_SIM_PWM_MIN_MAGIC = 1000;
 	static constexpr uint16_t PWM_SIM_PWM_MAX_MAGIC = 2000;
 
-	MixingOutput _mixing_output{MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+	MixingOutput _mixing_output{"PWM_SIM", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 };
 

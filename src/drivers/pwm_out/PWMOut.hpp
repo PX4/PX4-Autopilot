@@ -129,7 +129,7 @@ private:
 
 	static const int MAX_PER_INSTANCE{8};
 
-	MixingOutput _mixing_output{FMU_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
+	MixingOutput _mixing_output{"PWM_FMU", FMU_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
 
 	uint32_t	_backup_schedule_interval_us{1_s};
 
