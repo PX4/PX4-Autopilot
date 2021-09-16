@@ -164,8 +164,15 @@ void DShot::update_telemetry_num_motors()
 
 	int motor_count = 0;
 
-	if (_mixing_output.mixers()) {
-		motor_count = _mixing_output.mixers()->get_multirotor_count();
+	if (_mixing_output.useDynamicMixing()) {
+		for (unsigned i = 0; i < _num_outputs; ++i) {
+			motor_count += _mixing_output.isFunctionSet(i);
+		}
+
+	} else {
+		if (_mixing_output.mixers()) {
+			motor_count = _mixing_output.mixers()->get_multirotor_count();
+		}
 	}
 
 	_telemetry->handler.setNumMotors(motor_count);
@@ -331,6 +338,8 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 
 	if (stop_motors) {
 
+		int telemetry_index = 0;
+
 		// when motors are stopped we check if we have other commands to send
 		for (int i = 0; i < (int)num_outputs; i++) {
 			if (_current_command.valid() && (_current_command.motor_mask & (1 << i))) {
@@ -338,8 +347,10 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 				up_dshot_motor_command(i, _current_command.command, true);
 
 			} else {
-				up_dshot_motor_command(i, DShot_cmd_motor_stop, i == requested_telemetry_index);
+				up_dshot_motor_command(i, DShot_cmd_motor_stop, telemetry_index == requested_telemetry_index);
 			}
+
+			telemetry_index += _mixing_output.isFunctionSet(i);
 		}
 
 		if (_current_command.valid()) {
@@ -347,6 +358,8 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 		}
 
 	} else {
+		int telemetry_index = 0;
+
 		for (int i = 0; i < (int)num_outputs; i++) {
 
 			uint16_t output = outputs[i];
@@ -365,12 +378,14 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			}
 
 			if (output == DSHOT_DISARM_VALUE) {
-				up_dshot_motor_command(i, DShot_cmd_motor_stop, i == requested_telemetry_index);
+				up_dshot_motor_command(i, DShot_cmd_motor_stop, telemetry_index == requested_telemetry_index);
 
 			} else {
 				up_dshot_motor_data_set(i, math::min(output, static_cast<uint16_t>(DSHOT_MAX_THROTTLE)),
-							i == requested_telemetry_index);
+							telemetry_index == requested_telemetry_index);
 			}
+
+			telemetry_index += _mixing_output.isFunctionSet(i);
 		}
 
 		// clear commands when motors are running
