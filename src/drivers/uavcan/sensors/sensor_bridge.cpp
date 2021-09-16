@@ -242,9 +242,6 @@ void UavcanSensorBridgeBase::print_status() const
 		if (_channels[i].node_id >= 0) {
 			printf("channel %d: node id %d --> instance %d\n",
 			       i, _channels[i].node_id, _channels[i].instance);
-
-		} else {
-			printf("channel %d: empty\n", i);
 		}
 	}
 }
