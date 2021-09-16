@@ -561,6 +561,7 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	}
 
 	_instance->ScheduleOnInterval(ScheduleIntervalMs * 1000);
+	_instance->_mixing_interface.ScheduleNow();
 
 	return OK;
 }
@@ -661,9 +662,6 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 		PX4_DEBUG("sensor bridge '%s' init ok", br->get_name());
 	}
 
-	_mixing_interface.mixingOutput().setAllDisarmedValues(UavcanEscController::DISARMED_OUTPUT_VALUE);
-	_mixing_interface.mixingOutput().setAllMinValues(0); // Can be changed to 1 later, according to UAVCAN_ESC_IDLT
-
 	// Ensure we don't exceed maximum limits and assumptions. FIXME: these should be static assertions
 	if (UavcanEscController::max_output_value() >= UavcanEscController::DISARMED_OUTPUT_VALUE
 	    || UavcanEscController::max_output_value() > (int)UINT16_MAX) {
@@ -671,11 +669,19 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 		return -EINVAL;
 	}
 
-	_mixing_interface.mixingOutput().setAllMaxValues(UavcanEscController::max_output_value());
+	_mixing_interface.mixingOutput().setAllDisarmedValues(UavcanEscController::DISARMED_OUTPUT_VALUE);
+
+	if (!_mixing_interface.mixingOutput().useDynamicMixing()) {
+		// these are configurable with dynamic mixing
+		_mixing_interface.mixingOutput().setAllMinValues(0); // Can be changed to 1 later, according to UAVCAN_ESC_IDLT
+		_mixing_interface.mixingOutput().setAllMaxValues(UavcanEscController::max_output_value());
+
+		param_get(param_find("UAVCAN_ESC_IDLT"), &_idle_throttle_when_armed_param);
+		enable_idle_throttle_when_armed(true);
+	}
+
 	_mixing_interface.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanEscController::MAX_RATE_HZ);
 
-	param_get(param_find("UAVCAN_ESC_IDLT"), &_idle_throttle_when_armed_param);
-	enable_idle_throttle_when_armed(true);
 
 	/*  Start the Node   */
 	return _node.start();
@@ -831,9 +837,11 @@ UavcanNode::enable_idle_throttle_when_armed(bool value)
 {
 	value &= _idle_throttle_when_armed_param > 0;
 
-	if (value != _idle_throttle_when_armed) {
-		_mixing_interface.mixingOutput().setAllMinValues(value ? 1 : 0);
-		_idle_throttle_when_armed = value;
+	if (!_mixing_interface.mixingOutput().useDynamicMixing()) {
+		if (value != _idle_throttle_when_armed) {
+			_mixing_interface.mixingOutput().setAllMinValues(value ? 1 : 0);
+			_idle_throttle_when_armed = value;
+		}
 	}
 }
 
@@ -931,8 +939,15 @@ void UavcanMixingInterface::mixerChanged()
 {
 	int rotor_count = 0;
 
-	if (_mixing_output.mixers()) {
-		rotor_count = _mixing_output.mixers()->get_multirotor_count();
+	if (_mixing_output.useDynamicMixing()) {
+		for (unsigned i = 0; i < MAX_ACTUATORS; ++i) {
+			rotor_count += _mixing_output.isFunctionSet(i);
+		}
+
+	} else {
+		if (_mixing_output.mixers()) {
+			rotor_count = _mixing_output.mixers()->get_multirotor_count();
+		}
 	}
 
 	_esc_controller.set_rotor_count(rotor_count);

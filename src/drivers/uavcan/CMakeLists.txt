@@ -160,6 +160,9 @@ px4_add_module(
 		sensors/cbat.cpp
 		sensors/ice_status.cpp
 
+	MODULE_CONFIG
+		module.yaml
+
 	DEPENDS
 		px4_uavcan_dsdlc
 
