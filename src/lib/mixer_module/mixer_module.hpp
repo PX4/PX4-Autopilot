@@ -101,13 +101,15 @@ public:
 
 	/**
 	 * Contructor
+	 * @param param_prefix for min/max/etc. params, e.g. "PWM_MAIN". This needs to match 'param_prefix' in the module.yaml
 	 * @param max_num_outputs maximum number of supported outputs
 	 * @param interface Parent module for scheduling, parameter updates and callbacks
 	 * @param scheduling_policy
 	 * @param support_esc_calibration true if the output module supports ESC calibration via max, then min setting
 	 * @param ramp_up true if motor ramp up from disarmed to min upon arming is wanted
 	 */
-	MixingOutput(uint8_t max_num_outputs, OutputModuleInterface &interface, SchedulingPolicy scheduling_policy,
+	MixingOutput(const char *param_prefix, uint8_t max_num_outputs, OutputModuleInterface &interface,
+		     SchedulingPolicy scheduling_policy,
 		     bool support_esc_calibration, bool ramp_up = true);
 
 	~MixingOutput();

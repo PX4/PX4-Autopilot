@@ -235,7 +235,7 @@ private:
 	bool			_test_fmu_fail{false}; ///< To test what happens if IO loses FMU
 	bool			_in_test_mode{false}; ///< true if PWM_SERVO_ENTER_TEST_MODE is active
 
-	MixingOutput _mixing_output{PX4IO_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
+	MixingOutput _mixing_output{"PWM_MAIN", PX4IO_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
 
 	bool _pwm_min_configured{false};
 	bool _pwm_max_configured{false};
