@@ -249,7 +249,7 @@ void Battery::computeScale()
 
 float Battery::computeRemainingTime(float current_a)
 {
-	float time_remaining_s = -1.f;
+	float time_remaining_s{NAN};
 
 	// Only estimate remaining time with useful in flight current measurements
 	if (_current_filter_a.getState() > 1.f) {

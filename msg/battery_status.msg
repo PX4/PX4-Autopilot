@@ -8,7 +8,7 @@ float32 current_average_a	# Battery current average in amperes, -1 if unknown
 float32 discharged_mah		# Discharged amount in mAh, -1 if unknown
 float32 remaining			# From 1 to 0, -1 if unknown
 float32 scale				# Power scaling factor, >= 1, or -1 if unknown
-float32 time_remaining_s	# predicted time in seconds remaining until battery is empty under previous averaged load, -1 if unknown
+float32 time_remaining_s	# predicted time in seconds remaining until battery is empty under previous averaged load, NAN if unknown
 float32 temperature			# temperature of the battery. NaN if unknown
 int32 cell_count			# Number of cells
 
