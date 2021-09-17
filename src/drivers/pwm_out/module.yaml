@@ -1,0 +1,33 @@
+module_name: PWM Output
+actuator_output:
+  output_groups:
+    - generator: pwm
+      param_prefix: PWM_FMU
+      channel_labels: ['PWM Main', 'PWM Capture']
+      standard_params: 
+        disarmed: { min: 800, max: 2200, default: 900 }
+        min: { min: 800, max: 1400, default: 1000 }
+        max: { min: 1600, max: 2200, default: 2000 }
+        failsafe: { min: 800, max: 2200 }
+      extra_function_groups: [ pwm_fmu ]
+      pwm_timer_param:
+        description:
+            short: Output Protocol Configuration for ${label}
+            long: |
+                Select which Output Protocol to use for outputs ${label}.
+
+                Custom PWM rates can be used by directly setting any value >0.
+        type: enum
+        default: 400
+        values:
+            -5: DShot150
+            -4: DShot300
+            -3: DShot600
+            -2: DShot1200
+            -1: OneShot
+            50: PWM50
+            100: PWM100
+            200: PWM200
+            400: PWM400
+        reboot_required: true
+
