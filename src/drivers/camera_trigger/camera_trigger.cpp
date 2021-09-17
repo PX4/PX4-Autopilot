@@ -271,7 +271,10 @@ CameraTrigger::CameraTrigger() :
 	param_get(_p_distance, &_distance);
 	param_get(_p_mode, (int32_t *)&_trigger_mode);
 	param_get(_p_interface, (int32_t *)&_camera_interface_mode);
-	param_get(_p_cam_cap_fback, (int32_t *)&_cam_cap_fback);
+
+	if (_p_cam_cap_fback != PARAM_INVALID) {
+		param_get(_p_cam_cap_fback, (int32_t *)&_cam_cap_fback);
+	}
 
 	switch (_camera_interface_mode) {
 #ifdef __PX4_NUTTX
