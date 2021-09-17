@@ -47,6 +47,7 @@
 #include <lib/mixer_module/mixer_module.hpp>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
+#include <px4_arch/io_timer.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
@@ -136,6 +137,8 @@ private:
 	unsigned	_pwm_default_rate{50};
 	unsigned	_pwm_alt_rate{50};
 	uint32_t	_pwm_alt_rate_channels{0};
+
+	int _timer_rates[MAX_IO_TIMERS] {};
 
 	int		_current_update_rate{0};
 
