@@ -90,6 +90,7 @@ add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_par
 		${added_arguments}
 		--timer-config ${PX4_BOARD_DIR}/src/timer_config.cpp
 		--config-files ${module_config_files} #--verbose
+		--board ${PX4_BOARD}
 	DEPENDS
 		${module_config_files}
 		${jinja_templates}
