@@ -39,6 +39,8 @@
 #include <px4_platform/io_timer_init.h>
 #include <stm32_tim.h>
 
+#define initIOTimerChannelCapture initIOTimerChannel // alias, used for param metadata generation
+
 static inline constexpr timer_io_channels_t initIOTimerGPIOInOut(Timer::TimerChannel timer, GPIO::GPIOPin pin)
 {
 	timer_io_channels_t ret{};
