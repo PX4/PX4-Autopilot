@@ -52,4 +52,8 @@ param set-default CA_MC_R3_PY 0.177
 param set-default CA_MC_R3_CT 6.5
 param set-default CA_MC_R3_KM -0.05
 
+param set-default PWM_FMU_FUNC1 101
+param set-default PWM_FMU_FUNC2 102
+param set-default PWM_FMU_FUNC3 103
+param set-default PWM_FMU_FUNC4 104
 
