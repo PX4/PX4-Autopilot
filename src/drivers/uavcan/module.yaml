@@ -9,4 +9,12 @@ actuator_output:
         max: { min: 0, max: 8191, default: 8191 }
         failsafe: { min: 0, max: 8191 }
       num_channels: 8
+    - param_prefix: UAVCAN_SV
+      channel_label: 'UAVCAN Servo'
+      standard_params:
+        disarmed: { min: 0, max: 1000, default: 500 }
+        min: { min: 0, max: 1000, default: 0 }
+        max: { min: 0, max: 1000, default: 1000 }
+        failsafe: { min: 0, max: 1000 }
+      num_channels: 8
 
