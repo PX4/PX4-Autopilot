@@ -29,6 +29,8 @@ parser.add_argument('--timer-config', type=str, action='store',
                     help='board-specific timer_config.cpp file')
 parser.add_argument('--ethernet', action='store_true',
                     help='Ethernet support')
+parser.add_argument('--board', type=str, action='store',
+                    help='board name, e.g. ')
 parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                     help='Verbose Output')
 
@@ -38,9 +40,27 @@ verbose = args.verbose
 params_output_file = args.params_file
 timer_config_file = args.timer_config
 ethernet_supported = args.ethernet
+board = args.board
 
 root_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),"../..")
 output_functions_file = os.path.join(root_dir,"src/lib/mixer_module/output_functions.yaml")
+
+def process_param_prefix(param_prefix):
+    if param_prefix == '${PWM_FMU_OR_HIL}':
+        if board == 'px4_sitl': return 'PWM_FMU'
+        return 'HIL_ACT'
+    if '${' in param_prefix:
+        raise Exception('unhandled variable in {:}'.format(param_prefix))
+    return param_prefix
+
+def process_channel_label(channel_label):
+    if channel_label == '${PWM_FMU_OR_HIL}':
+        if board == 'px4_sitl': return 'PWM Sim'
+        return 'HIL actuator'
+    if '${' in channel_label:
+        raise Exception('unhandled variable in {:}'.format(channel_label))
+    return channel_label
+
 
 def parse_yaml_parameters_config(yaml_config, ethernet_supported):
     """ parse the parameters section from the yaml config file """
@@ -152,7 +172,7 @@ def get_actuator_output_params(yaml_config, output_functions,
         if 'generator' in group:
             if group['generator'] == 'pwm':
                 # We might set these depending on presence of IO in build...
-                param_prefix = group['param_prefix']
+                param_prefix = process_param_prefix(group['param_prefix'])
                 channel_labels = group['channel_labels']
                 standard_params = group.get('standard_params', [])
                 extra_function_groups = group.get('extra_function_groups', [])
@@ -171,8 +191,8 @@ def get_actuator_output_params(yaml_config, output_functions,
             continue
 
         num_channels = group['num_channels']
-        param_prefix = group['param_prefix']
-        channel_label = group['channel_label']
+        param_prefix = process_param_prefix(group['param_prefix'])
+        channel_label = process_channel_label(group['channel_label'])
         standard_params = group.get('standard_params', {})
         instance_start = group.get('instance_start', 1)
         instance_start_label = group.get('instance_start_label', instance_start)
