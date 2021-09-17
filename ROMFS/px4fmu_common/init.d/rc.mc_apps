@@ -62,7 +62,6 @@ then
 	# TODO: fix
 	#
 	param set MPC_USE_HTE 0
-	param set COM_PREARM_MODE 0
 fi
 
 #
