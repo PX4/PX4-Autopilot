@@ -135,6 +135,8 @@ stm32_boardinitialize(void)
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
+	VDD_3V3_SENSORS_EN(true);
+
 	px4_platform_init();
 
 	if (OK == board_determine_hw_info()) {
