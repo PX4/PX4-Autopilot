@@ -44,6 +44,13 @@
 #include <px4_platform_common/time.h>
 #include <uORB/topics/parameter_update.h>
 
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
+#define PARAM_PREFIX "PWM_FMU"
+#else
+#define PARAM_PREFIX "HIL_ACT"
+#endif
+
+
 using namespace time_literals;
 
 class PWMSim : public cdev::CDev, public ModuleBase<PWMSim>, public OutputModuleInterface
@@ -77,7 +84,7 @@ private:
 	static constexpr uint16_t PWM_SIM_PWM_MIN_MAGIC = 1000;
 	static constexpr uint16_t PWM_SIM_PWM_MAX_MAGIC = 2000;
 
-	MixingOutput _mixing_output{"PWM_SIM", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+	MixingOutput _mixing_output{PARAM_PREFIX, MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 };
 
