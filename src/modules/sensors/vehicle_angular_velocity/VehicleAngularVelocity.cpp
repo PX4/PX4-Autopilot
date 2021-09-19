@@ -523,10 +523,10 @@ void VehicleAngularVelocity::UpdateDynamicNotchFFT(bool force)
 		if (_sensor_gyro_fft_sub.copy(&sensor_gyro_fft)
 		    && (sensor_gyro_fft.device_id == _selected_sensor_device_id)
 		    && (hrt_elapsed_time(&sensor_gyro_fft.timestamp) < DYNAMIC_NOTCH_FITLER_TIMEOUT)
-		    && (fabsf(sensor_gyro_fft.sensor_sample_rate_hz - _filter_sample_rate_hz) < 10.f)) {
+		    && ((fabsf(sensor_gyro_fft.sensor_sample_rate_hz - _filter_sample_rate_hz) / _filter_sample_rate_hz) < 0.02f)) {
 
 			// ignore any peaks below half the gyro cutoff frequency
-			const float peak_freq_min = _param_imu_gyro_cutoff.get() / 2.f;
+			const float peak_freq_min = 10.f; // lower bound TODO: configurable?
 			const float peak_freq_max = _filter_sample_rate_hz / 3.f; // upper bound safety (well below Nyquist)
 
 			const float bandwidth = math::constrain(sensor_gyro_fft.resolution_hz, 8.f, 30.f); // TODO: base on numerical limits?
