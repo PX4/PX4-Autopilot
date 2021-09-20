@@ -122,6 +122,7 @@ __BEGIN_DECLS
 
 extern void board_peripheral_reset(int ms);
 extern int mpfs_board_emmcsd_init(void);
+extern int mpfs_board_spinor_init(struct spi_dev_s *spinor);
 extern int mpfs_pwm_setup(void);
 extern void board_spidev_initialize(void);
 extern int board_spibus_initialize(void);

@@ -63,9 +63,6 @@
 #include <nuttx/mm/gran.h>
 #include <chip.h>
 #include <arch/board/board.h>
-#ifdef CONFIG_MTD
-#include <nuttx/mtd/mtd.h>
-#endif
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
@@ -233,7 +230,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (ret != OK) {
 		led_on(LED_RED);
-		return ret;
+		syslog(LOG_ERR, "ERROR: Failed to initialize SD card");
 	}
 
 #endif /* CONFIG_MMCSD */
@@ -262,35 +259,17 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #ifdef CONFIG_MTD_M25P
 
-	struct mtd_dev_s *mtd;
-	struct spi_dev_s *spinor;
-	const char *path = "/dev/mtdblock0";
-
-	spinor = mpfs_spibus_initialize(1);
-
-	if (!spinor) {
-		syslog(LOG_ERR, "EROR: FAILED to initialize SPI port 1\n");
-		return -ENODEV;
-	}
-
-	mtd = m25p_initialize(spinor);
-
-	if (!mtd) {
-		syslog(LOG_ERR, "ERROR: Failed to bind SPI port 1 to the SPI NOR driver\n");
-		return -ENODEV;
-	}
-
-	ret = register_mtddriver(path, mtd, 0777, NULL);
+	ret = mpfs_board_spinor_init(mpfs_spibus_initialize(1));
 
 	if (ret < 0) {
-		syslog(LOG_ERR, "ERROR: Failed to register MTD driver: %d\n", ret);
 		return ret;
 	}
 
-	ret = nx_mount(path, "/fs/lfs", "littlefs", 0, "autoformat");
+	/* Mount LFS on the block1 */
+	ret = nx_mount("/dev/mtdblock1", "/fs/lfs", "littlefs", 0, "autoformat");
 
 	if (ret < 0) {
-		syslog(LOG_ERR, "ERROR: Failed to mount LittleFS at /fs/lfs: %d\n", ret);
+		syslog(LOG_ERR, "ERROR: Failed to mount LFS filesystem\n");
 		return ret;
 	}
 
