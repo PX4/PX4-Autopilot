@@ -42,6 +42,8 @@
 
 #include "I2C.hpp"
 
+#if defined(CONFIG_I2C)
+
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <nuttx/i2c/i2c_master.h>
 
@@ -236,3 +238,5 @@ I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const
 }
 
 } // namespace device
+
+#endif // CONFIG_I2C
