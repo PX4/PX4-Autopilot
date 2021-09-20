@@ -33,11 +33,11 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-#include "ina23X.h"
+#include "ina238.h"
 
-I2CSPIDriverBase *INA23X::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
+I2CSPIDriverBase *INA238::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
-	INA23X *instance = new INA23X(config, config.custom1);
+	INA238 *instance = new INA238(config, config.custom1);
 
 	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
@@ -46,7 +46,7 @@ I2CSPIDriverBase *INA23X::instantiate(const I2CSPIDriverConfig &config, int runt
 
 	if (config.keep_running) {
 		if (instance->force_init() != PX4_OK) {
-			PX4_INFO("Failed to init INA23X on bus %d, but will try again periodically.", config.bus);
+			PX4_INFO("Failed to init INA238 on bus %d, but will try again periodically.", config.bus);
 		}
 
 	} else if (instance->init() != PX4_OK) {
@@ -58,25 +58,25 @@ I2CSPIDriverBase *INA23X::instantiate(const I2CSPIDriverConfig &config, int runt
 }
 
 void
-INA23X::print_usage()
+INA238::print_usage()
 {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-Driver for the INA23X power monitor.
+Driver for the INA238 power monitor.
 
 Multiple instances of this driver can run simultaneously, if each instance has a separate bus OR I2C address.
 
 For example, one instance can run on Bus 2, address 0x45, and one can run on Bus 2, address 0x45.
 
-If the INA23X module is not powered, then by default, initialization of the driver will fail. To change this, use
+If the INA238 module is not powered, then by default, initialization of the driver will fail. To change this, use
 the -f flag. If this flag is set, then if initialization fails, the driver will keep trying to initialize again
 every 0.5 seconds. With this flag set, you can plug in a battery after the driver starts, and it will work. Without
 this flag set, the battery must be plugged in before starting the driver.
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("ina23X", "driver");
+	PRINT_MODULE_USAGE_NAME("ina238", "driver");
 
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
@@ -87,12 +87,12 @@ this flag set, the battery must be plugged in before starting the driver.
 }
 
 extern "C" int
-ina23X_main(int argc, char *argv[])
+ina238_main(int argc, char *argv[])
 {
 	int ch;
-	using ThisDriver = INA23X;
+	using ThisDriver = INA238;
 	BusCLIArguments cli{true, false};
-	cli.i2c_address = INA23X_BASEADDR;
+	cli.i2c_address = INA238_BASEADDR;
 	cli.default_i2c_frequency = 100000;
 	cli.support_keep_running = true;
 	cli.custom1 = 1;
@@ -111,7 +111,7 @@ ina23X_main(int argc, char *argv[])
 		return -1;
 	}
 
-	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_POWER_DEVTYPE_INA23X);
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_POWER_DEVTYPE_INA238);
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);
