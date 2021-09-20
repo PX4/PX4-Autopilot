@@ -77,7 +77,7 @@ SDP3X::configure()
 	int ret = write_command(SDP3X_CONT_MODE_STOP);
 
 	if (ret != PX4_OK) {
-		perf_count(_comms_errors);
+		perf_count(_configure_failed_perf);
 		DEVICE_DEBUG("stopping continous mode failed %d", ret);
 
 		if (ScheduledWorkItem::alone()) {
@@ -159,10 +159,12 @@ int
 SDP3X::collect()
 {
 	perf_begin(_sample_perf);
+	perf_begin(_transfer_perf);
 
 	// read 6 bytes from the sensor
 	uint8_t val[6];
 	int ret = transfer(nullptr, 0, &val[0], sizeof(val));
+	perf_end(_transfer_perf);
 
 	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
@@ -178,7 +180,7 @@ SDP3X::collect()
 	int16_t P = (((int16_t)val[0]) << 8) | val[1];
 	int16_t temp = (((int16_t)val[3]) << 8) | val[4];
 
-	float diff_press_pa_raw = static_cast<float>(P) / static_cast<float>(_scale);
+	float diff_press_pa_raw = static_cast<float>(P) / static_cast<float>(_scale) - _diff_pres_offset;
 	float temperature_c = temp / static_cast<float>(SDP3X_SCALE_TEMPERATURE);
 
 	if (PX4_ISFINITE(diff_press_pa_raw)) {
@@ -186,8 +188,8 @@ SDP3X::collect()
 
 		report.error_count = perf_event_count(_comms_errors);
 		report.temperature = temperature_c;
-		report.differential_pressure_filtered_pa = _filter.apply(diff_press_pa_raw) - _diff_pres_offset;
-		report.differential_pressure_raw_pa = diff_press_pa_raw - _diff_pres_offset;
+		report.differential_pressure_filtered_pa = diff_press_pa_raw;
+		report.differential_pressure_raw_pa = diff_press_pa_raw;
 		report.device_id = _device_id.devid;
 		report.timestamp = hrt_absolute_time();
 
@@ -202,6 +204,8 @@ SDP3X::collect()
 void
 SDP3X::RunImpl()
 {
+	perf_count(_interval_perf);
+
 	switch (_state) {
 	case State::RequireConfig:
 		if (configure() == PX4_OK) {

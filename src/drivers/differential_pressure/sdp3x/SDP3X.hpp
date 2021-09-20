@@ -63,9 +63,7 @@
 #define SDP3X_SCALE_PRESSURE_SDP32	240
 #define SDP3X_SCALE_PRESSURE_SDP33	20
 
-// Measurement rate is 20Hz
-#define SPD3X_MEAS_RATE 100
-#define SDP3X_MEAS_DRIVER_FILTER_FREQ 3.0f
+#define SPD3X_MEAS_RATE 20
 #define CONVERSION_INTERVAL	(1000000 / SPD3X_MEAS_RATE)	/* microseconds */
 
 class SDP3X : public Airspeed, public I2CSPIDriver<SDP3X>
@@ -76,11 +74,17 @@ public:
 		I2CSPIDriver(config),
 		_keep_retrying{config.keep_running}
 	{
-		_debug_enabled = true;
+		//_debug_enabled = true;
 		_retries = 2;
 	}
 
-	virtual ~SDP3X() = default;
+	virtual ~SDP3X()
+	{
+		perf_free(_configure_perf);
+		perf_free(_interval_perf);
+		perf_free(_transfer_perf);
+		perf_free(_configure_failed_perf);
+	};
 
 	static void print_usage();
 
@@ -101,8 +105,6 @@ private:
 	int	configure();
 	int	read_scale();
 
-	math::LowPassFilter2p<float> _filter{SPD3X_MEAS_RATE, SDP3X_MEAS_DRIVER_FILTER_FREQ};
-
 	bool init_sdp3x();
 
 	/**
@@ -120,4 +122,7 @@ private:
 	State _state{State::RequireConfig};
 
 	perf_counter_t _configure_perf{perf_alloc(PC_COUNT, MODULE_NAME": configure")};
+	perf_counter_t _interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
+	perf_counter_t _transfer_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": configure")};
+	perf_counter_t _configure_failed_perf{perf_alloc(PC_COUNT, MODULE_NAME": configure failed")};
 };
