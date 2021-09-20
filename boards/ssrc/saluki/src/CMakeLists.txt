@@ -63,6 +63,7 @@ else()
 		led.c
 		toc.c
 		mpfs_emmcsd.c
+		mpfs_spinor.c
 		mpfs_pwm.c
 		i2c.cpp
 		spi.cpp
