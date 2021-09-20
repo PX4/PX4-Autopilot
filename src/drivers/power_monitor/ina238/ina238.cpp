@@ -32,54 +32,40 @@
  ****************************************************************************/
 
 /**
- * Driver for the I2C attached INA23X
+ * Driver for the I2C attached INA238
  */
 
-#include "ina23X.h"
+#include "ina238.h"
 
 
-INA23X::INA23X(const I2CSPIDriverConfig &config, int battery_index) :
+INA238::INA238(const I2CSPIDriverConfig &config, int battery_index) :
 	I2C(config),
 	ModuleParams(nullptr),
 	I2CSPIDriver(config),
-	_sample_perf(perf_alloc(PC_ELAPSED, "ina23X_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "ina23X_com_err")),
-	_collection_errors(perf_alloc(PC_COUNT, "ina23X_collection_err")),
-	_measure_errors(perf_alloc(PC_COUNT, "ina23X_measurement_err")),
-	_config(INA23X_ADCCONFIG),
-	_battery(battery_index, this, INA23X_SAMPLE_INTERVAL_US)
+	_sample_perf(perf_alloc(PC_ELAPSED, "ina238_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "ina238_com_err")),
+	_collection_errors(perf_alloc(PC_COUNT, "ina238_collection_err")),
+	_battery(battery_index, this, INA238_SAMPLE_INTERVAL_US)
 {
 	float fvalue = DEFAULT_MAX_CURRENT;
 	_max_current = fvalue;
-	param_t ph = param_find("INA23X_CURRENT");
+	param_t ph = param_find("INA238_CURRENT");
 
 	if (ph != PARAM_INVALID && param_get(ph, &fvalue) == PX4_OK) {
 		_max_current = fvalue;
 	}
 
-	_range = _max_current > (DEFAULT_MAX_CURRENT - 1.0f) ? INA23X_ADCRANGE_HIGH : INA23X_ADCRANGE_LOW;
+	_range = _max_current > (DEFAULT_MAX_CURRENT - 1.0f) ? INA238_ADCRANGE_HIGH : INA238_ADCRANGE_LOW;
 
 	fvalue = DEFAULT_SHUNT;
 	_rshunt = fvalue;
-	ph = param_find("INA23X_SHUNT");
+	ph = param_find("INA238_SHUNT");
 
 	if (ph != PARAM_INVALID && param_get(ph, &fvalue) == PX4_OK) {
 		_rshunt = fvalue;
 	}
 
-	ph = param_find("INA23X_CONFIG");
-	int32_t value = INA23X_ADCCONFIG;
-	_config = (uint16_t)value;
-
-	if (ph != PARAM_INVALID && param_get(ph, &value) == PX4_OK) {
-		_config = (uint16_t)value;
-	}
-
-	_mode_triggered = ((_config & INA23X_MODE_MASK) >> INA23X_MODE_SHIFTS) <=
-			  ((INA23X_MODE_TEMP_SHUNT_BUS_TRIG & INA23X_MODE_MASK) >>
-			   INA23X_MODE_SHIFTS);
-
-	_current_lsb = _max_current / INA23X_DN_MAX;
+	_current_lsb = _max_current / INA238_DN_MAX;
 
 	// We need to publish immediately, to guarantee that the first instance of the driver publishes to uORB instance 0
 	_battery.updateBatteryStatus(
@@ -93,16 +79,15 @@ INA23X::INA23X(const I2CSPIDriverConfig &config, int battery_index) :
 	);
 }
 
-INA23X::~INA23X()
+INA238::~INA238()
 {
 	/* free perf counters */
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 	perf_free(_collection_errors);
-	perf_free(_measure_errors);
 }
 
-int INA23X::read(uint8_t address, uint16_t &data)
+int INA238::read(uint8_t address, uint16_t &data)
 {
 	// read desired little-endian value via I2C
 	uint16_t received_bytes;
@@ -119,13 +104,13 @@ int INA23X::read(uint8_t address, uint16_t &data)
 	return ret;
 }
 
-int INA23X::write(uint8_t address, uint16_t value)
+int INA238::write(uint8_t address, uint16_t value)
 {
 	uint8_t data[3] = {address, ((uint8_t)((value & 0xff00) >> 8)), (uint8_t)(value & 0xff)};
 	return transfer(data, sizeof(data), nullptr, 0);
 }
 
-int INA23X::init()
+int INA238::init()
 {
 	int ret = PX4_ERROR;
 
@@ -134,30 +119,23 @@ int INA23X::init()
 		return ret;
 	}
 
-	write(INA23X_REG_CONFIG, (uint16_t)(INA23X_RST_RESET | _range));
+	write(INA238_REG_CONFIG, (uint16_t)(INA238_RST_RESET | _range));
 
-	uint16_t shunt_calibration = static_cast<uint16_t>(INA23X_CONST * _current_lsb * _rshunt);
+	uint16_t shunt_calibration = static_cast<uint16_t>(INA238_CONST * _current_lsb * _rshunt);
 
-	if (_range == INA23X_ADCRANGE_LOW) {
+	if (_range == INA238_ADCRANGE_LOW) {
 		shunt_calibration *= 4;
 	}
 
-	if (write(INA23X_REG_SHUNTCAL, shunt_calibration) < 0) {
+	if (write(INA238_REG_SHUNTCAL, shunt_calibration) < 0) {
 		return -3;
 	}
 
 	// Set the CONFIG for max I
-	write(INA23X_REG_CONFIG, (uint16_t) _range);
+	write(INA238_REG_CONFIG, (uint16_t) _range);
 
-	// If we run in continuous mode then start it here
-
-
-	if (!_mode_triggered) {
-		ret = write(INA23X_REG_ADCCONFIG, _config);
-
-	} else {
-		ret = PX4_OK;
-	}
+	// Start ADC continous mode here
+	ret = write(INA238_REG_ADCCONFIG, (uint16_t)INA238_ADCCONFIG);
 
 	start();
 	_sensor_ok = true;
@@ -166,7 +144,7 @@ int INA23X::init()
 	return ret;
 }
 
-int INA23X::force_init()
+int INA238::force_init()
 {
 	int ret = init();
 
@@ -175,18 +153,17 @@ int INA23X::force_init()
 	return ret;
 }
 
-int INA23X::probe()
+int INA238::probe()
 {
 	uint16_t value{0};
 
-	if (read(INA23X_MANUFACTURER_ID, value) != PX4_OK || value != INA23X_MFG_ID_TI) {
+	if (read(INA238_MANUFACTURER_ID, value) != PX4_OK || value != INA238_MFG_ID_TI) {
 		PX4_DEBUG("probe mfgid %d", value);
 		return -1;
 	}
 
-	if (read(INA23X_DEVICE_ID, value) != PX4_OK || (
-		    INA23X_DEVICEID(value) != INA238_MFG_DIE &&
-		    INA23X_DEVICEID(value) != INA239_MFG_DIE
+	if (read(INA238_DEVICE_ID, value) != PX4_OK || (
+		    INA238_DEVICEID(value) != INA238_MFG_DIE
 	    )) {
 		PX4_DEBUG("probe die id %d", value);
 		return -1;
@@ -195,23 +172,8 @@ int INA23X::probe()
 	return PX4_OK;
 }
 
-int INA23X::measure()
-{
-	int ret = PX4_OK;
 
-	if (_mode_triggered) {
-		ret = write(INA23X_REG_ADCCONFIG, _config);
-
-		if (ret < 0) {
-			perf_count(_comms_errors);
-			PX4_DEBUG("i2c::transfer returned %d", ret);
-		}
-	}
-
-	return ret;
-}
-
-int INA23X::collect()
+int INA238::collect()
 {
 	perf_begin(_sample_perf);
 
@@ -229,8 +191,8 @@ int INA23X::collect()
 	int16_t bus_voltage{0};
 	int16_t current{0};
 
-	success = success && (read(INA23X_REG_VSBUS, bus_voltage) == PX4_OK);
-	success = success && (read(INA23X_REG_CURRENT, current) == PX4_OK);
+	success = success && (read(INA238_REG_VSBUS, bus_voltage) == PX4_OK);
+	success = success && (read(INA238_REG_CURRENT, current) == PX4_OK);
 
 	if (!success) {
 		PX4_DEBUG("error reading from sensor");
@@ -241,7 +203,7 @@ int INA23X::collect()
 
 	_battery.updateBatteryStatus(
 		hrt_absolute_time(),
-		(float) bus_voltage * INA23X_VSCALE,
+		(float) bus_voltage * INA238_VSCALE,
 		(float) current * _current_lsb,
 		success,
 		battery_status_s::BATTERY_SOURCE_POWER_MODULE,
@@ -259,20 +221,20 @@ int INA23X::collect()
 	}
 }
 
-void INA23X::start()
+void INA238::start()
 {
 	ScheduleClear();
 
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 
-	_measure_interval = INA23X_CONVERSION_INTERVAL;
+	_measure_interval = INA238_CONVERSION_INTERVAL;
 
 	/* schedule a cycle to start things */
 	ScheduleDelayed(5);
 }
 
-void INA23X::RunImpl()
+void INA238::RunImpl()
 {
 	if (_initialized) {
 		if (_collect_phase) {
@@ -285,27 +247,20 @@ void INA23X::RunImpl()
 			}
 
 			/* next phase is measurement */
-			_collect_phase = !_mode_triggered;
+			_collect_phase = true;
 
-			if (_measure_interval > INA23X_CONVERSION_INTERVAL) {
+			if (_measure_interval > INA238_CONVERSION_INTERVAL) {
 				/* schedule a fresh cycle call when we are ready to measure again */
-				ScheduleDelayed(_measure_interval - INA23X_CONVERSION_INTERVAL);
+				ScheduleDelayed(_measure_interval - INA238_CONVERSION_INTERVAL);
 				return;
 			}
-		}
-
-		/* Measurement  phase */
-
-		/* Perform measurement */
-		if (measure() != PX4_OK) {
-			perf_count(_measure_errors);
 		}
 
 		/* next phase is collection */
 		_collect_phase = true;
 
 		/* schedule a fresh cycle call when the measurement is done */
-		ScheduleDelayed(INA23X_CONVERSION_INTERVAL);
+		ScheduleDelayed(INA238_CONVERSION_INTERVAL);
 
 	} else {
 		_battery.updateBatteryStatus(
@@ -319,12 +274,12 @@ void INA23X::RunImpl()
 		);
 
 		if (init() != PX4_OK) {
-			ScheduleDelayed(INA23X_INIT_RETRY_INTERVAL_US);
+			ScheduleDelayed(INA238_INIT_RETRY_INTERVAL_US);
 		}
 	}
 }
 
-void INA23X::print_status()
+void INA238::print_status()
 {
 	I2CSPIDriverBase::print_status();
 
@@ -336,6 +291,6 @@ void INA23X::print_status()
 
 	} else {
 		PX4_INFO("Device not initialized. Retrying every %d ms until battery is plugged in.",
-			 INA23X_INIT_RETRY_INTERVAL_US / 1000);
+			 INA238_INIT_RETRY_INTERVAL_US / 1000);
 	}
 }

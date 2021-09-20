@@ -18,11 +18,11 @@ then
 	ina228 -X -b 2 -t 2 -k start
 fi
 
-if param compare SENS_EN_INA23X 1
+if param compare SENS_EN_INA238 1
 then
 	# Start Digital power monitors
-	ina23X -X -b 1 -t 1 -k start
-	ina23X -X -b 2 -t 2 -k start
+	ina238 -X -b 1 -t 1 -k start
+	ina238 -X -b 2 -t 2 -k start
 fi
 
 # Internal SPI BMI088

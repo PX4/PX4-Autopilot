@@ -32,29 +32,18 @@
  ****************************************************************************/
 
 /**
- * Enable INA23X Power Monitor
+ * Enable INA238 Power Monitor
  *
- * For systems a INA23X Power Monitor, this should be set to true
+ * For systems a INA238 Power Monitor, this should be set to true
  *
  * @group Sensors
  * @boolean
  * @reboot_required true
 */
-PARAM_DEFINE_INT32(SENS_EN_INA23X, 0);
+PARAM_DEFINE_INT32(SENS_EN_INA238, 0);
 
 /**
- * INA23X Power Monitor Config
- *
- * @group Sensors
- * @min 0
- * @max 65535
- * @decimal 1
- * @increment 1
-*/
-PARAM_DEFINE_INT32(INA23X_CONFIG, 63779);
-
-/**
- * INA23X Power Monitor Max Current
+ * INA238 Power Monitor Max Current
  *
  * @group Sensors
  * @min 0.1
@@ -62,10 +51,10 @@ PARAM_DEFINE_INT32(INA23X_CONFIG, 63779);
  * @decimal 2
  * @increment 0.1
  */
-PARAM_DEFINE_FLOAT(INA23X_CURRENT, 327.68f);
+PARAM_DEFINE_FLOAT(INA238_CURRENT, 327.68f);
 
 /**
- * INA23X Power Monitor Shunt
+ * INA238 Power Monitor Shunt
  *
  * @group Sensors
  * @min 0.000000001
@@ -73,4 +62,4 @@ PARAM_DEFINE_FLOAT(INA23X_CURRENT, 327.68f);
  * @decimal 10
  * @increment .000000001
  */
-PARAM_DEFINE_FLOAT(INA23X_SHUNT, 0.0003f);
+PARAM_DEFINE_FLOAT(INA238_SHUNT, 0.0003f);
