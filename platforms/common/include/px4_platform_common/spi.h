@@ -36,6 +36,8 @@
 #include <stdint.h>
 #include <board_config.h>
 
+#if defined(CONFIG_SPI)
+
 /*
  * Helper macros to handle device ID's. They are used to match drivers against SPI buses and chip-select signals.
  * They match with corresponding definitions in NuttX.
@@ -168,3 +170,5 @@ private:
 	int _external_bus_counter{1};
 	int _bus_device_index{-1};
 };
+
+#endif // CONFIG_SPI

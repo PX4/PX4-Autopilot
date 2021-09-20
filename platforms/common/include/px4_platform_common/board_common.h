@@ -1015,8 +1015,12 @@ int board_register_power_state_notification_cb(power_button_state_notification_t
 
 enum board_bus_types {
 	BOARD_INVALID_BUS = 0,
+#if defined(CONFIG_SPI)
 	BOARD_SPI_BUS = 1,
+#endif // CONFIG_SPI
+#if defined(CONFIG_I2C)
 	BOARD_I2C_BUS = 2
+#endif // CONFIG_I2C
 };
 
 #if defined(BOARD_HAS_BUS_MANIFEST)

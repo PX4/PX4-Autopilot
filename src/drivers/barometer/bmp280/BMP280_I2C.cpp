@@ -42,6 +42,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <drivers/device/i2c.h>
 
+#if defined(CONFIG_I2C)
 
 class BMP280_I2C: public device::I2C, public bmp280::IBMP280
 {
@@ -116,3 +117,5 @@ BMP280_I2C::get_calibration(uint8_t addr)
 		return nullptr;
 	}
 }
+
+#endif // CONFIG_I2C

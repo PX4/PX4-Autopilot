@@ -32,7 +32,8 @@
  ****************************************************************************/
 
 #include <board_config.h>
-#ifndef BOARD_DISABLE_I2C_SPI
+
+#if defined(CONFIG_SPI)
 
 #include <px4_platform_common/spi.h>
 
@@ -163,4 +164,4 @@ bool SPIBusIterator::next()
 	return false;
 }
 
-#endif /* BOARD_DISABLE_I2C_SPI */
+#endif // CONFIG_SPI
