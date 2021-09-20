@@ -35,7 +35,7 @@
 
 pthread_mutex_t pwm_out_module_mutex = PTHREAD_MUTEX_INITIALIZER;
 static px4::atomic<PWMOut *> _objects[PWM_OUT_MAX_INSTANCES] {};
-static px4::atomic<int> _all_instances_ready {0};
+static px4::atomic_bool _require_arming[PWM_OUT_MAX_INSTANCES] {};
 
 static bool is_running()
 {
@@ -394,7 +394,13 @@ bool PWMOut::update_pwm_out_state(bool on)
 				set_pwm_rate(get_alt_rate_channels(), get_default_rate(), get_alt_rate());
 
 				_pwm_initialized = true;
-				_all_instances_ready.fetch_add(1);
+
+				// Other instances need to call up_pwm_servo_arm again after we initialized
+				for (int i = 0; i < PWM_OUT_MAX_INSTANCES; i++) {
+					if (i != _instance) {
+						_require_arming[i].store(true);
+					}
+				}
 
 			} else {
 				PX4_ERR("up_pwm_servo_init failed (%i)", ret);
@@ -402,8 +408,9 @@ bool PWMOut::update_pwm_out_state(bool on)
 		}
 	}
 
+	_require_arming[_instance].store(false);
 	up_pwm_servo_arm(on, _pwm_mask);
-	return _all_instances_ready.load() == PWM_OUT_MAX_INSTANCES || _mixing_output.useDynamicMixing();
+	return true;
 }
 
 bool PWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
@@ -461,7 +468,7 @@ void PWMOut::Run()
 	bool pwm_on = _mixing_output.armed().armed || (_num_disarmed_set > 0) || _mixing_output.useDynamicMixing()
 		      || _mixing_output.armed().in_esc_calibration_mode;
 
-	if (_pwm_on != pwm_on) {
+	if (_pwm_on != pwm_on || _require_arming[_instance].load()) {
 
 		if (update_pwm_out_state(pwm_on)) {
 			_pwm_on = pwm_on;
