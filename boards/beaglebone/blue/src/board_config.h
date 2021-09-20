@@ -48,9 +48,14 @@
 
 
 // I2C
+#define CONFIG_I2C 1
 #define PX4_NUMBER_I2C_BUSES    2
 
 #define PX4_I2C_OBDEV_MPU9250 0x68
+
+
+// SPI
+#define CONFIG_SPI 1
 
 
 // ADC channels:
