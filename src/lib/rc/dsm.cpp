@@ -70,13 +70,19 @@ static enum DSM_DECODE_STATE {
 	DSM_DECODE_STATE_SYNC
 } dsm_decode_state = DSM_DECODE_STATE_DESYNC;
 
+typedef struct {
+	uint16_t value;
+	hrt_abstime last_seen;
+} dsm_channel_t;
+
+static dsm_channel_t channel_buffer[DSM_MAX_CHANNEL_COUNT];
+
 static int dsm_fd = -1;						/**< File handle to the DSM UART */
 static hrt_abstime dsm_last_rx_time;						/**< Timestamp when we last received data */
 static hrt_abstime dsm_last_frame_time;		/**< Timestamp for start of last valid dsm frame */
 static dsm_frame_t &dsm_frame = rc_decode_buf.dsm.frame;	/**< DSM_BUFFER_SIZE DSM dsm frame receive buffer */
 static dsm_buf_t &dsm_buf = rc_decode_buf.dsm.buf;	/**< DSM_BUFFER_SIZE DSM dsm frame receive buffer */
 
-static uint16_t dsm_chan_buf[DSM_MAX_CHANNEL_COUNT];
 static unsigned dsm_partial_frame_count;	/**< Count of bytes received for current dsm frame */
 static unsigned dsm_channel_shift = 0;			/**< Channel resolution, 0=unknown, 10=10 bit (1024), 11=11 bit (2048) */
 static unsigned dsm_frame_drops = 0;			/**< Count of incomplete DSM frames */
@@ -492,7 +498,8 @@ void dsm_proto_init()
 	dsm_decode_state = DSM_DECODE_STATE_DESYNC;
 
 	for (unsigned i = 0; i < DSM_MAX_CHANNEL_COUNT; i++) {
-		dsm_chan_buf[i] = 0;
+		channel_buffer[i].last_seen = 0;
+		channel_buffer[i].value = 0;
 	}
 }
 
@@ -605,11 +612,10 @@ void dsm_bind(uint16_t cmd, int pulses)
  * Decode the entire dsm frame (all contained channels)
  *
  * @param[in] frame_time timestamp when this dsm frame was received. Used to detect RX loss in order to reset 10/11 bit guess.
- * @param[out] values pointer to per channel array of decoded values
  * @param[out] num_values pointer to number of raw channel values returned
  * @return true=DSM frame successfully decoded, false=no update
  */
-bool dsm_decode(hrt_abstime frame_time, uint16_t *values, bool *dsm_11_bit, unsigned max_values,
+bool dsm_decode(hrt_abstime frame_time, bool *dsm_11_bit, unsigned channel_count,
 		int8_t *rssi_percent)
 {
 	// If we haven't seen a new frame recently or haven't guessed the DSM encoding, try to guess
@@ -693,15 +699,10 @@ bool dsm_decode(hrt_abstime frame_time, uint16_t *values, bool *dsm_11_bit, unsi
 		}
 
 		/* reset bit guessing state machine if the channel index is out of bounds */
-		if (channel >= DSM_MAX_CHANNEL_COUNT) {
+		if (channel >= DSM_MAX_CHANNEL_COUNT || channel >= channel_count) {
 			PX4_DEBUG("channel %d > %d (DSM_MAX_CHANNEL_COUNT)", channel, DSM_MAX_CHANNEL_COUNT);
 			dsm_guess_format(true);
 			return false;
-		}
-
-		/* ignore channels out of range */
-		if (channel >= max_values) {
-			continue;
 		}
 
 		/*
@@ -727,7 +728,8 @@ bool dsm_decode(hrt_abstime frame_time, uint16_t *values, bool *dsm_11_bit, unsi
 			break;
 		}
 
-		values[channel] = value;
+		channel_buffer[channel].value = value;
+		channel_buffer[channel].last_seen = frame_time;
 	}
 
 	/* Set the 11-bit data indicator */
@@ -812,13 +814,8 @@ bool dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uin
 	/* this is set by the decoding state machine and will default to false
 	 * once everything that was decodable has been decoded.
 	 */
-	bool decode_ret = false;
+	bool channel_data_available = false;
 	unsigned channel_output_count;
-
-	/* ensure there can be no overflows */
-	if (max_channels >= DSM_MAX_CHANNEL_COUNT) {
-		max_channels = DSM_MAX_CHANNEL_COUNT;
-	}
 
 	/* keep decoding until we have consumed the buffer */
 	for (unsigned d = 0; d < len; d++) {
@@ -871,13 +868,13 @@ bool dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uin
 				}
 
 				// We've collected a full frame, parse it
-				decode_ret = dsm_decode(now, &dsm_chan_buf[0], dsm_11_bit, max_channels, rssi_percent);
+				channel_data_available = dsm_decode(now, dsm_11_bit, dsm_chan_count, rssi_percent);
 
 				// Frame consumed, reset the buffer count
 				dsm_partial_frame_count = 0;
 
 				/* if decoding failed, set proto to desync */
-				if (!decode_ret) {
+				if (!channel_data_available) {
 					dsm_decode_state = DSM_DECODE_STATE_DESYNC;
 					dsm_frame_drops++;
 				}
@@ -888,7 +885,7 @@ bool dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uin
 #ifdef DSM_DEBUG
 			printf("UNKNOWN PROTO STATE");
 #endif
-			decode_ret = false;
+			channel_data_available = false;
 		}
 	}
 
@@ -896,7 +893,20 @@ bool dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uin
 		*frame_drops = dsm_frame_drops;
 	}
 
-	if (decode_ret) {
+	if (channel_data_available) {
+		// Check if any channels have been absent for too long
+		for (unsigned i = 0; i < dsm_chan_count; i++) {
+			if (now - channel_buffer[i].last_seen > 50 * 1000) {
+				return false;
+			}
+		}
+
+		// Overflow protect
+		if (max_channels >= DSM_MAX_CHANNEL_COUNT) {
+			max_channels = DSM_MAX_CHANNEL_COUNT;
+		}
+
+		// Cap returned channels to max_channels if we've seen more
 		if (dsm_chan_count > max_channels) {
 			channel_output_count = max_channels;
 
@@ -910,29 +920,30 @@ bool dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uin
 		for (unsigned i = 0; i < channel_output_count; i++) {
 			// Channels which do not have a value yet (because their frame has not been seen yet)
 			// will have a zero. If we come across a blank channel, keep storing values, but we
-			// won't tell return that we have a valid frame just yet.
-			if (dsm_chan_buf[i]) {
-				values[i] = dsm_chan_buf[i];
+			// won't return that we have a valid frame just yet.
+			if (channel_buffer[i].value) {
+				values[i] = channel_buffer[i].value;
 
 			} else {
-				decode_ret = false;
+				channel_data_available = false;
 			}
-		}
-
-		if (decode_ret) {
-#ifdef DSM_DEBUG
-			printf("frame drops: %u, chan #: %u\n", dsm_frame_drops, dsm_chan_count);
-
-			for (unsigned i = 0; i < dsm_chan_count; i++) {
-				printf("dsm_decode: #CH %02u: %u\n", i + 1, values[i]);
-			}
-
-#endif
 		}
 	}
+
+#ifdef DSM_DEBUG
+
+	if (channel_data_available) {
+		printf("frame drops: %u, chan #: %u\n", dsm_frame_drops, dsm_chan_count);
+
+		for (unsigned i = 0; i < dsm_chan_count; i++) {
+			printf("dsm_decode: #CH %02u: %u\n", i + 1, values[i]);
+		}
+	}
+
+#endif
 
 	dsm_last_rx_time = now;
 
 	/* return false as default */
-	return decode_ret;
+	return channel_data_available;
 }
