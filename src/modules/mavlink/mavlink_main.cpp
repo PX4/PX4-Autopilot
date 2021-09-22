@@ -1451,6 +1451,9 @@ Mavlink::update_rate_mult()
 	}
 
 	float hardware_mult = 1.0f;
+	bool log_radio_timeout = false;
+
+	pthread_mutex_lock(&_radio_status_mutex);
 
 	// scale down if we have a TX err rate suggesting link congestion
 	if ((_tstatus.tx_error_rate_avg > 0.f) && !_radio_status_critical) {
@@ -1459,9 +1462,9 @@ Mavlink::update_rate_mult()
 	} else if (_radio_status_available) {
 
 		// check for RADIO_STATUS timeout and reset
-		if (hrt_elapsed_time_atomic(&_rstatus.timestamp) > (_param_mav_radio_timeout.get() * 1_s)) {
-			PX4_ERR("instance %d: RADIO_STATUS timeout", _instance_id);
+		if (hrt_elapsed_time(&_rstatus.timestamp) > (_param_mav_radio_timeout.get() * 1_s)) {
 			_radio_status_available = false;
+			log_radio_timeout = true;
 
 			if (_use_software_mav_throttling) {
 				_radio_status_critical = false;
@@ -1470,6 +1473,12 @@ Mavlink::update_rate_mult()
 		}
 
 		hardware_mult *= _radio_status_mult;
+	}
+
+	pthread_mutex_unlock(&_radio_status_mutex);
+
+	if (log_radio_timeout) {
+		PX4_ERR("instance %d: RADIO_STATUS timeout", _instance_id);
 	}
 
 	/* pick the minimum from bandwidth mult and hardware mult as limit */
@@ -1482,6 +1491,7 @@ Mavlink::update_rate_mult()
 void
 Mavlink::update_radio_status(const radio_status_s &radio_status)
 {
+	pthread_mutex_lock(&_radio_status_mutex);
 	_rstatus = radio_status;
 	_radio_status_available = true;
 
@@ -1506,6 +1516,8 @@ Mavlink::update_radio_status(const radio_status_s &radio_status)
 		/* Constrain radio status multiplier between 1% and 100% to allow recovery */
 		_radio_status_mult = math::constrain(_radio_status_mult, 0.01f, 1.0f);
 	}
+
+	pthread_mutex_unlock(&_radio_status_mutex);
 }
 
 int
@@ -2177,6 +2189,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* initialize send mutex */
 	pthread_mutex_init(&_send_mutex, nullptr);
+	pthread_mutex_init(&_radio_status_mutex, nullptr);
 
 	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
 	if (_forwarding_on) {
@@ -2618,6 +2631,7 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	pthread_mutex_destroy(&_send_mutex);
+	pthread_mutex_destroy(&_radio_status_mutex);
 
 	_task_running = false;
 
