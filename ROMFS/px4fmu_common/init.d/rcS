@@ -48,6 +48,18 @@ set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
 set STARTUP_TUNE 1
 set USE_IO no
 set VEHICLE_TYPE none
+set DATAMAN_BACKEND ""
+
+#
+# Optional board path defaults: rc.board_paths
+#
+set BOARD_RC_PATHS ${R}etc/init.d/rc.board_paths
+if [ -f $BOARD_RC_PATHS ]
+then
+	echo "Board path defaults: ${BOARD_RC_PATHS}"
+	. $BOARD_RC_PATHS
+fi
+unset BOARD_RC_PATHS
 
 #
 # Print full system version.
@@ -195,7 +207,7 @@ else
 	# Waypoint storage.
 	# REBOOTWORK this needs to start in parallel.
 	#
-	dataman start
+	dataman start $DATAMAN_BACKEND
 
 	#
 	# Start the socket communication send_event handler.
@@ -543,6 +555,7 @@ unset SDCARD_MIXERS_PATH
 unset STARTUP_TUNE
 unset USE_IO
 unset VEHICLE_TYPE
+unset DATAMAN_BACKEND
 
 #
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running.
