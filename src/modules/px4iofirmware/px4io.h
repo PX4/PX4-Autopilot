@@ -136,8 +136,7 @@ extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
  */
 struct sys_state_s {
 
-	volatile uint64_t	rc_channels_timestamp_received;
-	volatile uint64_t	rc_channels_timestamp_valid;
+	uint64_t	rc_channels_timestamp_received;
 
 	/**
 	 * Last FMU receive time, in microseconds since system boot
