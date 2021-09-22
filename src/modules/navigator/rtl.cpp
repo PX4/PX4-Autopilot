@@ -110,6 +110,7 @@ void RTL::find_RTL_destination()
 	double min_dist_squared = coord_dist_sq(dlat, dlon);
 
 	_destination.type = RTL_DESTINATION_HOME;
+	_deny_mission_landing = true;
 
 	const bool vtol_in_rw_mode = _navigator->get_vstatus()->is_vtol
 				     && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
@@ -126,7 +127,6 @@ void RTL::find_RTL_destination()
 			mission_landing_lat = _navigator->get_mission_landing_lat();
 			mission_landing_lon = _navigator->get_mission_landing_lon();
 			mission_landing_alt = _navigator->get_mission_landing_alt();
-			destination_type = RTL_DESTINATION_HOME;
 
 		} else {
 			mission_landing_lat = _navigator->get_mission_landing_start_lat();
@@ -146,6 +146,7 @@ void RTL::find_RTL_destination()
 			_destination.lon = mission_landing_lon;
 			_destination.alt = mission_landing_alt;
 			_destination.type = destination_type;
+			_deny_mission_landing = false;
 
 
 		}
@@ -153,6 +154,7 @@ void RTL::find_RTL_destination()
 
 	// do not consider rally point if RTL type is set to RTL_MISSION, so exit function and use either home or mission landing
 	if (rtl_type() == RTL_MISSION) {
+		_deny_mission_landing = false;
 		return;
 	}
 
@@ -192,6 +194,7 @@ void RTL::find_RTL_destination()
 
 	if (closest_index > 0) {
 		_destination.type = RTL_DESTINATION_SAFE_POINT;
+		_deny_mission_landing = true;
 
 		// There is a safe point closer than home/mission landing
 		// TODO: handle all possible mission_safe_point.frame cases
@@ -239,10 +242,6 @@ void RTL::find_RTL_destination()
 
 void RTL::on_activation()
 {
-
-	_deny_mission_landing = _navigator->get_vstatus()->is_vtol
-				&& _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
-
 	// output the correct message, depending on where the RTL destination is
 	switch (_destination.type) {
 	case RTL_DESTINATION_HOME:
