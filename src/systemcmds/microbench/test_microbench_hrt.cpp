@@ -144,7 +144,6 @@ bool MicroBenchHRT::time_px4_hrt()
 {
 	PERF("hrt_absolute_time()", u_64_out = hrt_absolute_time(), 1000);
 	PERF("hrt_elapsed_time()", u_64_out = hrt_elapsed_time(&u_64), 1000);
-	PERF("hrt_elapsed_time_atomic()", u_64_out = hrt_elapsed_time_atomic(&u_64), 1000);
 
 	return true;
 }

@@ -71,13 +71,13 @@ int HRTTest::main()
 
 	hrt_abstime t = hrt_absolute_time();
 	px4_usleep(1000000);
-	hrt_abstime elt = hrt_elapsed_time_atomic(&t);
+	hrt_abstime elt = hrt_elapsed_time(&t);
 	PX4_INFO("Elapsed time %llu in 1 sec (usleep)\n", (unsigned long long)elt);
 	PX4_INFO("Start time %llu\n", (unsigned long long)t);
 
 	t = hrt_absolute_time();
 	px4_sleep(1);
-	elt = hrt_elapsed_time_atomic(&t);
+	elt = hrt_elapsed_time(&t);
 	PX4_INFO("Elapsed time %llu in 1 sec (sleep)\n", (unsigned long long)elt);
 	PX4_INFO("Start time %llu\n", (unsigned long long)t);
 

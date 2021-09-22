@@ -83,7 +83,7 @@ int uORBTest::UnitTest::pubsublatency_main()
 		if (fds[0].revents & POLLIN) {
 			orb_copy(ORB_ID(orb_test_medium), test_multi_sub, &t);
 
-			unsigned elt = (unsigned)hrt_elapsed_time_atomic(&t.timestamp);
+			unsigned elt = (unsigned)hrt_elapsed_time(&t.timestamp);
 			latency_integral += elt;
 			timings[i] = elt;
 
