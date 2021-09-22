@@ -197,7 +197,6 @@ controls_init(void)
 	/* no channels */
 	r_raw_rc_count = 0;
 	system_state.rc_channels_timestamp_received = 0;
-	system_state.rc_channels_timestamp_valid = 0;
 
 	/* DSM input (USART1) */
 	_dsm_fd = dsm_init("/dev/ttyS0");
@@ -378,9 +377,6 @@ controls_tick()
 		/* update RC-received timestamp */
 		system_state.rc_channels_timestamp_received = hrt_absolute_time();
 
-		/* update RC-received timestamp */
-		system_state.rc_channels_timestamp_valid = system_state.rc_channels_timestamp_received;
-
 		/* map raw inputs to mapped inputs */
 		/* XXX mapping should be atomic relative to protocol */
 		for (unsigned i = 0; i < r_raw_rc_count; i++) {
@@ -500,7 +496,7 @@ controls_tick()
 	 * If we haven't seen any new control data in 200ms, assume we
 	 * have lost input.
 	 */
-	if (!rc_input_lost && hrt_elapsed_time_atomic(&system_state.rc_channels_timestamp_received) > 200000) {
+	if (!rc_input_lost && hrt_elapsed_time(&system_state.rc_channels_timestamp_received) > 200000) {
 		rc_input_lost = true;
 
 		/* clear the input-kind flags here */
