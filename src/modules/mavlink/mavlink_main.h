@@ -658,6 +658,7 @@ private:
 
 	pthread_mutex_t		_message_buffer_mutex {};
 	pthread_mutex_t		_send_mutex {};
+	pthread_mutex_t         _radio_status_mutex {};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
