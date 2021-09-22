@@ -1,0 +1,2 @@
+set PARAM_FILE /fs/lfs/params
+set DATAMAN_BACKEND "-r"
