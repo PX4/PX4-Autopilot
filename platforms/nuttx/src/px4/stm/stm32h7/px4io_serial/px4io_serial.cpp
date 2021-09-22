@@ -318,7 +318,8 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 			  DMA_SCR_PSIZE_8BITS   |
 			  DMA_SCR_MSIZE_8BITS   |
 			  DMA_SCR_PBURST_SINGLE |
-			  DMA_SCR_MBURST_SINGLE);
+			  DMA_SCR_MBURST_SINGLE |
+			  DMA_SCR_TRBUFF);
 	rxdmacfg.cfg2  = 0;
 
 
@@ -343,7 +344,8 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 			  DMA_SCR_PSIZE_8BITS   |
 			  DMA_SCR_MSIZE_8BITS   |
 			  DMA_SCR_PBURST_SINGLE |
-			  DMA_SCR_MBURST_SINGLE);
+			  DMA_SCR_MBURST_SINGLE |
+			  DMA_SCR_TRBUFF);
 	txdmacfg.cfg2  = 0;
 
 	stm32_dmasetup(_tx_dma, &txdmacfg);
