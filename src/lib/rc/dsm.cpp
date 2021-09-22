@@ -213,13 +213,13 @@ static bool dsm_guess_format(bool reset)
 	static uint32_t seen_channels_count_cs11[DSM_MAX_CHANNEL_COUNT] = {0};
 	static uint32_t seen_channels_count_cs10[DSM_MAX_CHANNEL_COUNT] = {0};
 
-
 	/* reset the 10/11 bit sniffed channel masks */
 	if (reset) {
 		PX4_DEBUG("dsm_guess_format reset");
 		cs10 = 0;
 		cs11 = 0;
 		samples = 0;
+
 		dsm_channel_shift = 0;
 		good_cs10_frame_count = 0;
 		good_cs11_frame_count = 0;
@@ -268,6 +268,8 @@ static bool dsm_guess_format(bool reset)
 				continue;
 			}
 
+			//printf("11: %i\n", channel);
+
 			// invalidate entire frame (for 2048) if channel already found, no duplicate channels per DSM frame
 			if (channels_found_11[channel]) {
 				cs11_frame_valid = false;
@@ -280,6 +282,7 @@ static bool dsm_guess_format(bool reset)
 		}
 	}
 
+	//printf("-\n");
 	// add valid cs10 channels
 	if (cs10_frame_valid) {
 		good_cs10_frame_count++;
@@ -319,18 +322,16 @@ static bool dsm_guess_format(bool reset)
 
 	bool cs10_channel_gap_found = false;
 	bool cs11_channel_gap_found = false;
-	bool even_channel_distribution_cs10 = false;
-	bool even_channel_distribution_cs11 = false;
+	bool valid_channel_counts_cs10 = false;
+	bool valid_channel_counts_cs11 = false;
 	uint32_t cs10_channel_count = 0;
 	uint32_t cs11_channel_count = 0;
 	bool found_channels_end = false;
-	unsigned min;
-	unsigned max;
 
 	// Count of allowed bad frames
 	static constexpr uint16_t bad_samples_allowance = 5;
 	static constexpr uint16_t minimum_channel_count = 5;
-	static constexpr uint16_t max_channel_count_variance = 3;
+	static constexpr uint16_t minimum_channel_seen_count = 4;
 
 	// Check for continous channels in 10bit decoding
 	found_channels_end = false;
@@ -374,59 +375,41 @@ static bool dsm_guess_format(bool reset)
 		}
 	}
 
-	// Check channel count varience CS10
+	// Check channel seen counts C10
 	if (cs10_channel_count && !cs10_channel_gap_found) {
-		// Seed the variance
-		min = seen_channels_count_cs10[0];
-		max = seen_channels_count_cs10[0];
+		valid_channel_counts_cs10 = true;
 
-		// Compute the varience of channel counts
-		for (unsigned i = 0; i < cs10_channel_count; i++) {
-			if (seen_channels_count_cs10[i] > max) {
-				max = seen_channels_count_cs10[i];
+		for (unsigned i = 0; i < ((cs10_channel_count > 12) ? 12 : cs10_channel_count); i++) {
+			if (seen_channels_count_cs10[i] <  minimum_channel_seen_count) {
+				valid_channel_counts_cs10 = false;
+				break;
 			}
 
-			if (seen_channels_count_cs10[i] < min) {
-				min = seen_channels_count_cs10[i];
-			}
-		}
-
-		if (max - min <= max_channel_count_variance) {
-			even_channel_distribution_cs10 = true;
 		}
 	}
 
-	// Compute variance of channel counts for CS11
+	// Check channel seen counts C11
 	if (cs11_channel_count && !cs11_channel_gap_found) {
-		// Seed the variance
-		min = seen_channels_count_cs11[0];
-		max = seen_channels_count_cs11[0];
+		valid_channel_counts_cs11 = true;
 
-		// Compute the varience of channel counts
-		for (unsigned i = 0; i < cs11_channel_count; i++) {
-			if (seen_channels_count_cs11[i] > max) {
-				max = seen_channels_count_cs11[i];
+		for (unsigned i = 0; i < ((cs11_channel_count > 12) ? 12 : cs11_channel_count); i++) {
+			if (seen_channels_count_cs11[i] <  minimum_channel_seen_count) {
+				valid_channel_counts_cs11 = false;
+				break;
 			}
 
-			if (seen_channels_count_cs11[i] < min) {
-				min = seen_channels_count_cs11[i];
-			}
-		}
-
-		if (max - min <= max_channel_count_variance) {
-			even_channel_distribution_cs11 = true;
 		}
 	}
 
 #ifdef DSM_DEBUG
 	printf("DSM guess: CS10 (%li good frames, %i gap found, %li channel count, %i dist)\r\n", good_cs10_frame_count,
-	       cs10_channel_gap_found, cs10_channel_count, even_channel_distribution_cs10);
+	       cs10_channel_gap_found, cs10_channel_count, valid_channel_counts_cs10);
 	printf("DSM guess: CS11 (%li good frames, %i gap found, %li channel count, %i dist)\r\n", good_cs11_frame_count,
-	       cs11_channel_gap_found, cs11_channel_count, even_channel_distribution_cs11);
+	       cs11_channel_gap_found, cs11_channel_count, valid_channel_counts_cs11);
 #endif
 
 	if (good_cs11_frame_count > samples - bad_samples_allowance && !cs11_channel_gap_found
-	    && cs11_channel_count >= minimum_channel_count && even_channel_distribution_cs11) {
+	    && cs11_channel_count >= minimum_channel_count && valid_channel_counts_cs11) {
 #ifdef DSM_DEBUG
 		printf("DSM guess: CS11 guessed!\n");
 #endif
@@ -436,7 +419,7 @@ static bool dsm_guess_format(bool reset)
 	}
 
 	if (good_cs10_frame_count > samples - bad_samples_allowance && !cs10_channel_gap_found
-	    && cs10_channel_count >= minimum_channel_count && even_channel_distribution_cs10) {
+	    && cs10_channel_count >= minimum_channel_count && valid_channel_counts_cs10) {
 #ifdef DSM_DEBUG
 		printf("DSM guess: CS10 guessed!\n");
 #endif
