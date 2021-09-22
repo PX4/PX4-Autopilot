@@ -201,6 +201,7 @@ endif()
 
 set(OPTIONAL_BOARD_RC)
 list(APPEND OPTIONAL_BOARD_RC
+	rc.board_paths
 	rc.board_defaults
 	rc.board_sensors
 	rc.board_extras
