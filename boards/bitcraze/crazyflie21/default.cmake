@@ -59,6 +59,7 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
+		#sd_stress
 		system_time
 		top
 		topic_listener
