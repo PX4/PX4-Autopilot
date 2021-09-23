@@ -500,6 +500,7 @@ Mission::update_mission()
 			_mission.count = 0;
 			_mission.current_seq = 0;
 			_current_mission_index = 0;
+			_mission.valid = false;
 
 		} else {
 
@@ -581,11 +582,23 @@ Mission::restore_old_mission()
 
 	_mission = _old_mission;
 
-	/* check if valid. It could be invalid if there is no previous mission. */
-	check_mission_valid(true);
-	bool valid = _navigator->get_mission_result()->valid;
+	if ((_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED) &&
+	    _mission.valid) {
 
-	if (valid) {
+		/* if armed and valid don't check old mission validity again but update navigator */
+		_navigator->get_mission_result()->valid = true;
+		_navigator->get_mission_result()->seq_total = _mission.count;
+		_navigator->increment_mission_instance_count();
+		_navigator->set_mission_result_updated();
+		_home_inited = _navigator->home_position_valid();
+		find_mission_land_start();
+
+	} else {
+		/* if not armed check validity again in case we changed feasibility parameters */
+		check_mission_valid(true);
+	}
+
+	if (_mission.valid) {
 		_mission_changed = true;
 		_navigator->get_mission_result()->failure = false;
 
@@ -1785,6 +1798,7 @@ Mission::check_mission_valid(bool force)
 					_param_mis_dist_wps.get(),
 					_navigator->mission_landing_required());
 
+		_mission.valid = _navigator->get_mission_result()->valid;
 		_navigator->get_mission_result()->seq_total = _mission.count;
 		_navigator->increment_mission_instance_count();
 		_navigator->set_mission_result_updated();
