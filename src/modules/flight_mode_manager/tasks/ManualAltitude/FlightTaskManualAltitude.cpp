@@ -352,7 +352,7 @@ void FlightTaskManualAltitude::_updateSetpoints()
 	sp = _man_input_filter.getState();
 	_rotateIntoHeadingFrame(sp);
 
-	if (sp.length() > 1.0f) {
+	if (sp.longerThan(1.0f)) {
 		sp.normalize();
 	}
 
