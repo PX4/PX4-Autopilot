@@ -46,19 +46,22 @@
 #include <uORB/topics/uORBTopics.hpp>
 #include <uORB/uORB.h>
 @{
-msg_names = [mn.replace(".msg", "") for mn in msgs]
+msg_names = list(set([mn.replace(".msg", "") for mn in msgs])) # set() filters duplicates
+msg_names.sort()
 msgs_count = len(msg_names)
-msg_names_all = list(set(msg_names + multi_topics)) # set() filters duplicates
-msg_names_all.sort()
-msgs_count_all = len(msg_names_all)
+
+topic_names = list(set(topics)) # set() filters duplicates
+topic_names.sort()
+topics_count = len(topics)
+
 }@
 @[for msg_name in msg_names]@
 #include <uORB/topics/@(msg_name).h>
 @[end for]
 
 const constexpr struct orb_metadata *const uorb_topics_list[ORB_TOPICS_COUNT] = {
-@[for idx, msg_name in enumerate(msg_names_all, 1)]@
-	ORB_ID(@(msg_name))@[if idx != msgs_count_all], @[end if]
+@[for idx, topic_name in enumerate(topic_names, 1)]@
+	ORB_ID(@(topic_name))@[if idx != topic_names], @[end if]
 @[end for]
 };
 

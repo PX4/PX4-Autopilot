@@ -46,4 +46,3 @@ float32 aux3			 # default function: camera trigger
 float32 aux4			 # default function: camera roll
 float32 aux5			 # default function: payload drop
 float32 aux6
-

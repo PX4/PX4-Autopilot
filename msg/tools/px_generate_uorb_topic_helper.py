@@ -41,6 +41,7 @@ precompiled and thus message generation will be much faster
 
 import os
 import errno
+import re
 
 import genmsg.msgs
 
@@ -360,6 +361,7 @@ def print_field_def(field):
     type_prefix = ''
     if (sl_pos >= 0):
         type_name = type_name[sl_pos + 1:]
+        type_name = re.sub(r'(?<!^)(?=[A-Z])', '_', type_name).lower() # PascalCase to snake_case
         type_prefix = 'struct '
         type_appendix = '_s'
 

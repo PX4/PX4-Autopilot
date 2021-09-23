@@ -13,7 +13,7 @@
 @#  - file_name_in (String) Source file
 @#  - spec (msggen.MsgSpec) Parsed specification of the .msg file
 @#  - search_path (dict) search paths for genmsg
-@#  - topics (List of String) multi-topic names
+@#  - topics (List of String) topic names
 @#  - constrained_flash set to true if flash is constrained
 @###############################################
 /****************************************************************************
@@ -56,8 +56,7 @@ import genmsg.msgs
 
 from px_generate_uorb_topic_helper import * # this is in Tools/
 
-uorb_struct = '%s_s'%spec.short_name
-topic_name = spec.short_name
+uorb_struct = '%s_s'%name_snake_case
 
 sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
 struct_size, padding_end_size = add_padding_bytes(sorted_fields, search_path)
@@ -67,7 +66,7 @@ topic_fields = ["%s %s" % (convert_type(field.type), field.name) for field in so
 #include <inttypes.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/defines.h>
-#include <uORB/topics/@(topic_name).h>
+#include <uORB/topics/@(name_snake_case).h>
 #include <uORB/topics/uORBTopics.hpp>
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/Device.hpp>
@@ -76,10 +75,10 @@ topic_fields = ["%s %s" % (convert_type(field.type), field.name) for field in so
 
 @# join all msg files in one line e.g: "float[3] position;float[3] velocity;bool armed"
 @# This is used for the logger
-constexpr char __orb_@(topic_name)_fields[] = "@( ";".join(topic_fields) );";
+constexpr char __orb_@(name_snake_case)_fields[] = "@( ";".join(topic_fields) );";
 
-@[for multi_topic in topics]@
-ORB_DEFINE(@multi_topic, struct @uorb_struct, @(struct_size-padding_end_size), __orb_@(topic_name)_fields, static_cast<uint8_t>(ORB_ID::@multi_topic));
+@[for topic in topics]@
+ORB_DEFINE(@topic, struct @uorb_struct, @(struct_size-padding_end_size), __orb_@(name_snake_case)_fields, static_cast<uint8_t>(ORB_ID::@topic));
 @[end for]
 
 void print_message(const @uorb_struct &message)

@@ -25,4 +25,4 @@ uint8 esc_online_flags					# Bitmask indicating which ESC is online/offline
 
 uint8 esc_armed_flags					# Bitmask indicating which ESC is armed. For ESC's where the arming state is not known (returned by the ESC), the arming bits should always be set.
 
-esc_report[8] esc
+px4/EscReport[8] esc

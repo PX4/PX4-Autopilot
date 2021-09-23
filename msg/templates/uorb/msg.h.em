@@ -13,7 +13,7 @@
 @#  - file_name_in (String) Source file
 @#  - spec (msggen.MsgSpec) Parsed specification of the .msg file
 @#  - search_path (dict) search paths for genmsg
-@#  - topics (List of String) multi-topic names
+@#  - topics (List of String) topic names
 @###############################################
 /****************************************************************************
  *
@@ -52,12 +52,12 @@
 
 @{
 import genmsg.msgs
+import re
 
 from px_generate_uorb_topic_helper import * # this is in Tools/
 
-uorb_struct = '%s_s'%spec.short_name
-uorb_struct_upper = spec.short_name.upper()
-topic_name = spec.short_name
+uorb_struct = '%s_s'%name_snake_case
+uorb_struct_upper = name_snake_case.upper()
 }@
 
 #pragma once
@@ -77,6 +77,8 @@ for field in spec.parsed_fields():
         if (not field.is_header):
             (package, name) = genmsg.names.package_resource_name(field.base_type)
             package = package or spec.package # convert '' to package
+
+            name = re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()
             print('#include <uORB/topics/%s.h>'%(name))
 }@
 
@@ -127,9 +129,17 @@ for constant in spec.constants:
 #endif
 };
 
+#ifdef __cplusplus
+namespace px4 {
+	namespace msg {
+		using @(spec.short_name) = @(uorb_struct);
+	} // namespace msg
+} // namespace px4
+#endif
+
 /* register this as object request broker structure */
-@[for multi_topic in topics]@
-ORB_DECLARE(@multi_topic);
+@[for topic in topics]@
+ORB_DECLARE(@topic);
 @[end for]
 
 #ifdef __cplusplus
