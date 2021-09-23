@@ -95,6 +95,7 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
+		sd_stress
 		#shutdown
 		top
 		topic_listener

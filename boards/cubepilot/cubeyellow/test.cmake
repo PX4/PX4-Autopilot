@@ -109,6 +109,7 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
+		sd_stress
 		#serial_test
 		system_time
 		tests # tests and test runner
