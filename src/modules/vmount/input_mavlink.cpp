@@ -265,8 +265,8 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 
 					case vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING: {
 							_control_data.type = ControlData::Type::Angle;
-							_control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
-							_control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+							_control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
+							_control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
 							_control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 
 							// vmount spec has roll on channel 0, MAVLink spec has pitch on channel 0
