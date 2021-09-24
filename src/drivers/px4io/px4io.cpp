@@ -510,6 +510,14 @@ PX4IO::~PX4IO()
 		delete _interface;
 	}
 
+	/* In the case the task did not exit
+	 * clean up the alternate device node
+	 */
+	if (_primary_pwm_device) {
+		unregister_driver(PWM_OUTPUT0_DEVICE_PATH);
+		_primary_pwm_device = false;
+	}
+
 	/* deallocate perfs */
 	perf_free(_perf_update);
 	perf_free(_perf_write);
@@ -1217,6 +1225,7 @@ out:
 	/* clean up the alternate device node */
 	if (_primary_pwm_device) {
 		unregister_driver(PWM_OUTPUT0_DEVICE_PATH);
+		_primary_pwm_device = false;
 	}
 
 	/* tell the dtor that we are exiting */
