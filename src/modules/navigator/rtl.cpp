@@ -269,8 +269,7 @@ void RTL::on_activation()
 		_rtl_alt = calculate_return_alt_from_cone_half_angle((float)_param_rtl_cone_half_angle_deg.get());
 
 	} else {
-		_rtl_alt = max(global_position.alt, max(_destination.alt,
-							_navigator->get_home_position()->alt + _param_rtl_return_alt.get()));
+		_rtl_alt = max(global_position.alt, _destination.alt + _param_rtl_return_alt.get());
 	}
 
 

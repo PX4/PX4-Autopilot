@@ -881,7 +881,7 @@ PX4IO::init()
 	_task = px4_task_spawn_cmd("px4io",
 				   SCHED_DEFAULT,
 				   SCHED_PRIORITY_ACTUATOR_OUTPUTS,
-				   1500,
+				   1536,
 				   (px4_main_t)&PX4IO::task_main_trampoline,
 				   nullptr);
 
@@ -3016,7 +3016,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_ON, PX4IO_FORCE_SAFETY_MAGIC);
 
 		if (ret != PX4_OK) {
-			PX4_ERR("IO refused to re-enable safety");
+			PX4_WARN("IO refused to re-enable safety");
 		}
 
 		// set new status
@@ -3027,7 +3027,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_REBOOT_BL, arg);
 
 		if (ret != PX4_OK) {
-			PX4_ERR("IO refused to reboot");
+			PX4_WARN("IO refused to reboot");
 		}
 
 		break;
@@ -3292,7 +3292,7 @@ checkcrc(int argc, char *argv[])
 	}
 
 	if (ret != OK) {
-		PX4_ERR("check CRC failed: %d, CRC: %" PRIu32, ret, fw_crc);
+		PX4_WARN("check CRC failed: %d, CRC: %" PRIu32, ret, fw_crc);
 		exit(1);
 
 	} else {
@@ -3468,7 +3468,7 @@ px4io_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "update")) {
 
-		constexpr unsigned MAX_RETRIES = 5;
+		constexpr unsigned MAX_RETRIES = 2;
 		unsigned retries = 0;
 		int ret = PX4_ERROR;
 
@@ -3498,7 +3498,7 @@ px4io_main(int argc, char *argv[])
 			g_dev = nullptr;
 
 			if (ret != OK) {
-				PX4_ERR("reboot failed - %d, still attempting upgrade", ret);
+				PX4_WARN("reboot failed - %d, still attempting upgrade", ret);
 			}
 
 			PX4IO_Uploader *up;

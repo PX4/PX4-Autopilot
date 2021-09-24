@@ -30,14 +30,18 @@ def print_line(line):
     if "FAILED" in line:
         line = line.replace("FAILED", f"{COLOR_RED}FAILED{COLOR_RESET}", 1)
 
-    current_time = datetime.datetime.now()
-    print('[{0}] {1}'.format(current_time.isoformat(timespec='milliseconds'), line), end='')
+    if "\n" in line:
+        current_time = datetime.datetime.now()
+        print('[{0}] {1}'.format(current_time.isoformat(timespec='milliseconds'), line), end='')
+    else:
+        print('{0}'.format(line), end='')
+
 
 def do_nsh_cmd(port, baudrate, cmd):
-    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0.1, xonxoff=True, rtscts=False, dsrdtr=False)
+    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0.2, xonxoff=True, rtscts=False, dsrdtr=False)
 
     timeout_start = time.time()
-    timeout = 10  # 10 seconds
+    timeout = 30  # 30 seconds
 
     # wait for nsh prompt
     while True:
@@ -66,7 +70,7 @@ def do_nsh_cmd(port, baudrate, cmd):
     success_cmd = "cmd succeeded!"
 
     # wait for command echo
-    serial_cmd = '{0}; echo "{1}"\r\n'.format(cmd, success_cmd)
+    serial_cmd = '{0}; echo "{1}"; echo "{2}";\r\n'.format(cmd, success_cmd, success_cmd)
     ser.write(serial_cmd.encode("ascii"))
     ser.flush()
     while True:
@@ -90,13 +94,19 @@ def do_nsh_cmd(port, baudrate, cmd):
     timeout_start = time.time()
     timeout = 180 # 3 minutes
 
+    return_code = 0
+
     while True:
         serial_line = ser.readline().decode("ascii", errors='ignore')
 
         if success_cmd in serial_line:
+            sys.exit(return_code)
             break
         else:
             if len(serial_line) > 0:
+                if "ERROR " in serial_line:
+                    return_code = -1
+
                 print_line(serial_line)
 
             if "nsh>" in serial_line:

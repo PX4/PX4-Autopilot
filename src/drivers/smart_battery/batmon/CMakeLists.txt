@@ -40,4 +40,5 @@ px4_add_module(
 
 	DEPENDS
 		drivers__smbus_sbs
+		drivers__smbus
 	)

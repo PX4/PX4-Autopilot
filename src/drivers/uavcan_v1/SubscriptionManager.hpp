@@ -78,7 +78,7 @@ private:
 
 	CanardInstance &_canard_instance;
 	UavcanParamManager &_param_manager;
-	UavcanDynamicPortSubscriber *_dynsubscribers {NULL};
+	UavcanDynamicPortSubscriber *_dynsubscribers {nullptr};
 
 	UavcanHeartbeatSubscriber _heartbeat_sub {_canard_instance};
 

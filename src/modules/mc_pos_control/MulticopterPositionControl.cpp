@@ -36,6 +36,7 @@
 #include <float.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/matrix/matrix/math.hpp>
+#include <px4_platform_common/events.h>
 #include "PositionControl/ControlMath.hpp"
 
 using namespace matrix;
@@ -138,13 +139,23 @@ int MulticopterPositionControl::parameters_update(bool force)
 		if (_param_mpc_tiltmax_air.get() > MAX_SAFE_TILT_DEG) {
 			_param_mpc_tiltmax_air.set(MAX_SAFE_TILT_DEG);
 			_param_mpc_tiltmax_air.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Tilt constrained to safe value");
+			mavlink_log_critical(&_mavlink_log_pub, "Tilt constrained to safe value\t");
+			/* EVENT
+			 * @description <param>MPC_TILTMAX_AIR</param> is set to {1:.0}.
+			 */
+			events::send<float>(events::ID("mc_pos_ctrl_tilt_set"), events::Log::Warning,
+					    "Maximum tilt limit has been constrained to a safe value", MAX_SAFE_TILT_DEG);
 		}
 
 		if (_param_mpc_tiltmax_lnd.get() > _param_mpc_tiltmax_air.get()) {
 			_param_mpc_tiltmax_lnd.set(_param_mpc_tiltmax_air.get());
 			_param_mpc_tiltmax_lnd.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Land tilt has been constrained by max tilt");
+			mavlink_log_critical(&_mavlink_log_pub, "Land tilt has been constrained by max tilt\t");
+			/* EVENT
+			 * @description <param>MPC_TILTMAX_LND</param> is set to {1:.0}.
+			 */
+			events::send<float>(events::ID("mc_pos_ctrl_land_tilt_set"), events::Log::Warning,
+					    "Land tilt limit has been constrained by maximum tilt", _param_mpc_tiltmax_air.get());
 		}
 
 		_control.setPositionGains(Vector3f(_param_mpc_xy_p.get(), _param_mpc_xy_p.get(), _param_mpc_z_p.get()));
@@ -152,18 +163,29 @@ int MulticopterPositionControl::parameters_update(bool force)
 			Vector3f(_param_mpc_xy_vel_p_acc.get(), _param_mpc_xy_vel_p_acc.get(), _param_mpc_z_vel_p_acc.get()),
 			Vector3f(_param_mpc_xy_vel_i_acc.get(), _param_mpc_xy_vel_i_acc.get(), _param_mpc_z_vel_i_acc.get()),
 			Vector3f(_param_mpc_xy_vel_d_acc.get(), _param_mpc_xy_vel_d_acc.get(), _param_mpc_z_vel_d_acc.get()));
+		_control.setHorizontalThrustMargin(_param_mpc_thr_xy_marg.get());
 
 		// Check that the design parameters are inside the absolute maximum constraints
 		if (_param_mpc_xy_cruise.get() > _param_mpc_xy_vel_max.get()) {
 			_param_mpc_xy_cruise.set(_param_mpc_xy_vel_max.get());
 			_param_mpc_xy_cruise.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Cruise speed has been constrained by max speed");
+			mavlink_log_critical(&_mavlink_log_pub, "Cruise speed has been constrained by max speed\t");
+			/* EVENT
+			 * @description <param>MPC_XY_CRUISE</param> is set to {1:.0}.
+			 */
+			events::send<float>(events::ID("mc_pos_ctrl_cruise_set"), events::Log::Warning,
+					    "Cruise speed has been constrained by maximum speed", _param_mpc_xy_vel_max.get());
 		}
 
 		if (_param_mpc_vel_manual.get() > _param_mpc_xy_vel_max.get()) {
 			_param_mpc_vel_manual.set(_param_mpc_xy_vel_max.get());
 			_param_mpc_vel_manual.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Manual speed has been constrained by max speed");
+			mavlink_log_critical(&_mavlink_log_pub, "Manual speed has been constrained by max speed\t");
+			/* EVENT
+			 * @description <param>MPC_VEL_MANUAL</param> is set to {1:.0}.
+			 */
+			events::send<float>(events::ID("mc_pos_ctrl_man_vel_set"), events::Log::Warning,
+					    "Manual speed has been constrained by maximum speed", _param_mpc_xy_vel_max.get());
 		}
 
 		if (_param_mpc_thr_hover.get() > _param_mpc_thr_max.get() ||
@@ -171,7 +193,12 @@ int MulticopterPositionControl::parameters_update(bool force)
 			_param_mpc_thr_hover.set(math::constrain(_param_mpc_thr_hover.get(), _param_mpc_thr_min.get(),
 						 _param_mpc_thr_max.get()));
 			_param_mpc_thr_hover.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Hover thrust has been constrained by min/max");
+			mavlink_log_critical(&_mavlink_log_pub, "Hover thrust has been constrained by min/max\t");
+			/* EVENT
+			 * @description <param>MPC_THR_HOVER</param> is set to {1:.0}.
+			 */
+			events::send<float>(events::ID("mc_pos_ctrl_hover_thrust_set"), events::Log::Warning,
+					    "Hover thrust has been constrained by min/max thrust", _param_mpc_thr_hover.get());
 		}
 
 		if (!_param_mpc_use_hte.get() || !_hover_thrust_initialized) {
@@ -402,7 +429,7 @@ void MulticopterPositionControl::Run()
 			_control.setVelocityLimits(
 				math::constrain(speed_horizontal, 0.f, _param_mpc_xy_vel_max.get()),
 				math::min(speed_up, _param_mpc_z_vel_max_up.get()), // takeoff ramp starts with negative velocity limit
-				math::constrain(speed_down, 0.f, _param_mpc_z_vel_max_dn.get()));
+				math::max(speed_down, 0.f));
 
 			_control.setInputSetpoint(_setpoint);
 

@@ -373,6 +373,8 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 		if (ret == OK) {
 			/* check for DMA errors */
 			if (_rx_dma_status & DMA_STATUS_TEIF) {
+				// stream transfer error, ensure TX DMA is also stopped before exiting early
+				stm32_dmastop(_tx_dma);
 				perf_count(_pc_dmaerrs);
 				ret = -EIO;
 				break;

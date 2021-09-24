@@ -193,7 +193,7 @@ private:
 	/**
 	 * Get log file name with directory (create it if necessary)
 	 */
-	int get_log_file_name(LogType type, char *file_name, size_t file_name_size);
+	int get_log_file_name(LogType type, char *file_name, size_t file_name_size, bool notify);
 
 	void start_log_file(LogType type);
 

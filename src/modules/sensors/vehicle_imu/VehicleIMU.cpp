@@ -34,6 +34,7 @@
 #include "VehicleIMU.hpp"
 
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/events.h>
 #include <lib/systemlib/mavlink_log.h>
 
 #include <float.h>
@@ -237,35 +238,62 @@ bool VehicleIMU::UpdateAccel()
 
 		} else {
 			// collect sample interval average for filters
-			if (_accel_timestamp_sample_last != 0) {
+			if ((_accel_timestamp_sample_last != 0) && (accel.samples > 0)) {
 				float interval_us = accel.timestamp_sample - _accel_timestamp_sample_last;
-				_accel_interval_mean.update(Vector2f{interval_us, interval_us / accel.samples});
+
+				if (interval_us > 0.f) {
+					_accel_interval_mean.update(Vector2f{interval_us, interval_us / accel.samples});
+
+				} else {
+					PX4_ERR("%d - accel %" PRIu32 " timestamp error timestamp_sample: %" PRIu64 ", previous timestamp_sample: %" PRIu64,
+						_instance, accel.device_id, accel.timestamp_sample, _accel_timestamp_sample_last);
+				}
 			}
 
-			if (_accel_interval_mean.valid() && (_accel_interval_mean.count() > 100 || !PX4_ISFINITE(_accel_interval_best_variance))
-			    && ((_accel_interval_mean.variance()(0) < _accel_interval_best_variance) || (_accel_interval_mean.count() > 1000))) {
+			if (accel.timestamp < accel.timestamp_sample) {
+				PX4_ERR("%d - accel %" PRIu32 " timestamp (%" PRIu64 ") < timestamp_sample (%" PRIu64 ")",
+					_instance, accel.device_id, accel.timestamp, accel.timestamp_sample);
+			}
+
+			const int interval_count = _accel_interval_mean.count();
+			const float interval_variance = _accel_interval_mean.variance()(0);
+
+			// check measured interval periodically
+			if ((_accel_interval_mean.valid() && (interval_count % 10 == 0))
+			    && (!PX4_ISFINITE(_accel_interval_best_variance)
+				|| (interval_variance < _accel_interval_best_variance)
+				|| (interval_count > 1000))) {
+
+				const float interval_mean = _accel_interval_mean.mean()(0);
+				const float interval_mean_fifo = _accel_interval_mean.mean()(1);
+
 				// update sample rate if previously invalid or changed
-				const float interval_delta_us = fabsf(_accel_interval_mean.mean()(0) - _accel_interval_us);
+				const float interval_delta_us = fabsf(interval_mean - _accel_interval_us);
 				const float percent_changed = interval_delta_us / _accel_interval_us;
 
 				if (!PX4_ISFINITE(_accel_interval_us) || (percent_changed > 0.001f)) {
-					// update integrator configuration if interval has changed by more than 10%
-					if (interval_delta_us > 0.1f * _accel_interval_us) {
-						_update_integrator_config = true;
+					if (PX4_ISFINITE(interval_mean) && PX4_ISFINITE(interval_mean_fifo) && PX4_ISFINITE(interval_variance)) {
+						// update integrator configuration if interval has changed by more than 10%
+						if (interval_delta_us > 0.1f * _accel_interval_us) {
+							_update_integrator_config = true;
+						}
+
+						_accel_interval_us = interval_mean;
+						_accel_interval_best_variance = interval_variance;
+
+						_status.accel_rate_hz = 1e6f / interval_mean;
+						_status.accel_raw_rate_hz = 1e6f / interval_mean_fifo; // FIFO
+						_publish_status = true;
+
+					} else {
+						_accel_interval_mean.reset();
 					}
-
-					_accel_interval_us = _accel_interval_mean.mean()(0);
-					_accel_interval_best_variance = _accel_interval_mean.variance()(0);
-
-					_status.accel_rate_hz = 1e6f / _accel_interval_mean.mean()(0);
-					_status.accel_raw_rate_hz = 1e6f / _accel_interval_mean.mean()(1); // FIFO
-					_publish_status = true;
 				}
+			}
 
-				if (_accel_interval_mean.count() > 10000) {
-					// reset periodically to prevent numerical issues
-					_accel_interval_mean.reset();
-				}
+			if (interval_count > 10000) {
+				// reset periodically to prevent numerical issues
+				_accel_interval_mean.reset();
 			}
 		}
 
@@ -322,7 +350,13 @@ bool VehicleIMU::UpdateAccel()
 				const uint64_t clipping_total = _status.accel_clipping[0] + _status.accel_clipping[1] + _status.accel_clipping[2];
 
 				if (clipping_total > _last_clipping_notify_total_count + 1000) {
-					mavlink_log_critical(&_mavlink_log_pub, "Accel %" PRIu8 " clipping, not safe to fly!", _instance);
+					mavlink_log_critical(&_mavlink_log_pub, "Accel %" PRIu8 " clipping, not safe to fly!\t", _instance);
+					/* EVENT
+					 * @description Land now, and check the vehicle setup.
+					 * Clipping can lead to fly-aways.
+					 */
+					events::send<uint8_t>(events::ID("vehicle_imu_accel_clipping"), events::Log::Critical,
+							      "Accel {1} clipping, not safe to fly!", _instance);
 					_last_clipping_notify_time = accel.timestamp_sample;
 					_last_clipping_notify_total_count = clipping_total;
 				}
@@ -350,35 +384,62 @@ bool VehicleIMU::UpdateGyro()
 
 		} else {
 			// collect sample interval average for filters
-			if (_gyro_timestamp_sample_last != 0) {
-				float interval_us = gyro.timestamp_sample - _gyro_timestamp_sample_last;
-				_gyro_interval_mean.update(Vector2f{interval_us, interval_us / gyro.samples});
+			if ((_gyro_timestamp_sample_last != 0) && (gyro.samples > 0)) {
+				const float interval_us = gyro.timestamp_sample - _gyro_timestamp_sample_last;
+
+				if (interval_us > 0.f) {
+					_gyro_interval_mean.update(Vector2f{interval_us, interval_us / gyro.samples});
+
+				} else {
+					PX4_ERR("%d - gyro %" PRIu32 " timestamp error timestamp_sample: %" PRIu64 ", previous timestamp_sample: %" PRIu64,
+						_instance, gyro.device_id, gyro.timestamp_sample, _gyro_timestamp_sample_last);
+				}
 			}
 
-			if (_gyro_interval_mean.valid() && (_gyro_interval_mean.count() > 100 || !PX4_ISFINITE(_gyro_interval_best_variance))
-			    && ((_gyro_interval_mean.variance()(0) < _gyro_interval_best_variance) || (_gyro_interval_mean.count() > 1000))) {
+			if (gyro.timestamp < gyro.timestamp_sample) {
+				PX4_ERR("%d - gyro %" PRIu32 " timestamp (%" PRIu64 ") < timestamp_sample (%" PRIu64 ")",
+					_instance, gyro.device_id, gyro.timestamp, gyro.timestamp_sample);
+			}
+
+			const int interval_count = _gyro_interval_mean.count();
+			const float interval_variance = _gyro_interval_mean.variance()(0);
+
+			// check measured interval periodically
+			if ((_gyro_interval_mean.valid() && (interval_count % 10 == 0))
+			    && (!PX4_ISFINITE(_gyro_interval_best_variance)
+				|| (interval_variance < _gyro_interval_best_variance)
+				|| (interval_count > 1000))) {
+
+				const float interval_mean = _gyro_interval_mean.mean()(0);
+				const float interval_mean_fifo = _gyro_interval_mean.mean()(1);
+
 				// update sample rate if previously invalid or changed
-				const float interval_delta_us = fabsf(_gyro_interval_mean.mean()(0) - _gyro_interval_us);
+				const float interval_delta_us = fabsf(interval_mean - _gyro_interval_us);
 				const float percent_changed = interval_delta_us / _gyro_interval_us;
 
 				if (!PX4_ISFINITE(_gyro_interval_us) || (percent_changed > 0.001f)) {
-					// update integrator configuration if interval has changed by more than 10%
-					if (interval_delta_us > 0.1f * _gyro_interval_us) {
-						_update_integrator_config = true;
+					if (PX4_ISFINITE(interval_mean) && PX4_ISFINITE(interval_mean_fifo) && PX4_ISFINITE(interval_variance)) {
+						// update integrator configuration if interval has changed by more than 10%
+						if (interval_delta_us > 0.1f * _gyro_interval_us) {
+							_update_integrator_config = true;
+						}
+
+						_gyro_interval_us = interval_mean;
+						_gyro_interval_best_variance = interval_variance;
+
+						_status.gyro_rate_hz = 1e6f / interval_mean;
+						_status.gyro_raw_rate_hz = 1e6f / interval_mean_fifo; // FIFO
+						_publish_status = true;
+
+					} else {
+						_gyro_interval_mean.reset();
 					}
-
-					_gyro_interval_us = _gyro_interval_mean.mean()(0);
-					_gyro_interval_best_variance = _gyro_interval_mean.variance()(0);
-
-					_status.gyro_rate_hz = 1e6f / _gyro_interval_mean.mean()(0);
-					_status.gyro_raw_rate_hz = 1e6f / _gyro_interval_mean.mean()(1); // FIFO
-					_publish_status = true;
 				}
+			}
 
-				if (_gyro_interval_mean.count() > 10000) {
-					// reset periodically to prevent numerical issues
-					_gyro_interval_mean.reset();
-				}
+			if (interval_count > 10000) {
+				// reset periodically to prevent numerical issues
+				_gyro_interval_mean.reset();
 			}
 		}
 
@@ -560,9 +621,10 @@ void VehicleIMU::UpdateGyroVibrationMetrics(const Vector3f &angular_velocity)
 
 void VehicleIMU::PrintStatus()
 {
-	PX4_INFO("%" PRIu8 " - Accel ID: %" PRIu32 ", interval: %.1f us (SD %.1f us), Gyro ID: %" PRIu32
+	PX4_INFO("%" PRIu8 " - Accel: %" PRIu32 ", interval: %.1f us (SD %.1f us), Gyro: %" PRIu32
 		 ", interval: %.1f us (SD %.1f us)",
-		 _instance, _accel_calibration.device_id(), (double)_accel_interval_us, (double)sqrtf(_accel_interval_best_variance),
+		 _instance,
+		 _accel_calibration.device_id(), (double)_accel_interval_us, (double)sqrtf(_accel_interval_best_variance),
 		 _gyro_calibration.device_id(), (double)_gyro_interval_us, (double)sqrtf(_gyro_interval_best_variance));
 
 	PX4_DEBUG("gyro update mean sample latency: %.6f s, publish latency %.6f s, gyro interval %.6f s",

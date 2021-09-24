@@ -1202,13 +1202,12 @@ PARAM_DEFINE_INT32(RC_MAP_PITCH, 0);
 /**
  * Failsafe channel mapping.
  *
- * Configures which channel is used by the receiver to indicate the signal was lost.
- * Futaba receivers do report that way.
- * If 0, whichever channel is mapped to throttle is used
- * otherwise the value indicates the specific RC channel to use
+ * Configures which RC channel is used by the receiver to indicate the signal was lost
+ * (on receivers that use output a fixed signal value to report lost signal).
+ * If set to 0, the channel mapped to throttle is used.
  *
  * Use RC_FAILS_THR to set the threshold indicating lost signal. By default it's below
- * the expected range and hence diabled.
+ * the expected range and hence disabled.
  *
  * @min 0
  * @max 18
@@ -1703,6 +1702,40 @@ PARAM_DEFINE_INT32(RC_MAP_STAB_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_MAN_SW, 0);
 
 /**
+ * Button flight mode selection
+ *
+ * This bitmask allows to specify multiple channels for changing flight modes using
+ * momentary buttons. Each channel is assigned to a mode slot ((lowest channel = slot 1).
+ * The resulting modes for each slot X is defined by the COM_FLTMODEX parameters.
+ * The functionality can be used only if RC_MAP_FLTMODE is disabled.
+ *
+ * The maximum number of available slots and hence bits set in the mask is 6.
+ * @min 0
+ * @max 258048
+ * @group Radio Switches
+ * @bit 0 Mask Channel 1 as a mode button
+ * @bit 1 Mask Channel 2 as a mode button
+ * @bit 2 Mask Channel 3 as a mode button
+ * @bit 3 Mask Channel 4 as a mode button
+ * @bit 4 Mask Channel 5 as a mode button
+ * @bit 5 Mask Channel 6 as a mode button
+ * @bit 6 Mask Channel 7 as a mode button
+ * @bit 7 Mask Channel 8 as a mode button
+ * @bit 8 Mask Channel 9 as a mode button
+ * @bit 9 Mask Channel 10 as a mode button
+ * @bit 10 Mask Channel 11 as a mode button
+ * @bit 11 Mask Channel 12 as a mode button
+ * @bit 12 Mask Channel 13 as a mode button
+ * @bit 13 Mask Channel 14 as a mode button
+ * @bit 14 Mask Channel 15 as a mode button
+ * @bit 15 Mask Channel 16 as a mode button
+ * @bit 16 Mask Channel 17 as a mode button
+ * @bit 17 Mask Channel 18 as a mode button
+ */
+
+PARAM_DEFINE_INT32(RC_MAP_FLTM_BTN, 0);
+
+/**
  * AUX1 Passthrough RC channel
  *
  * Default function: Camera pitch
@@ -1971,11 +2004,13 @@ PARAM_DEFINE_INT32(RC_MAP_PARAM3, 0);
 /**
  * Failsafe channel PWM threshold.
  *
- * Set to a value slightly above the PWM value assumed by throttle in a failsafe event,
- * but ensure it is below the PWM value assumed by throttle during normal operation.
+ * Use RC_MAP_FAILSAFE to specify which channel is used to indicate RC loss via this theshold.
+ * By default this is the throttle channel.
  *
- * Use RC_MAP_FAILSAFE to specify which channel is used to check.
- * Note: The default value of 0 is below the epxed range and hence disables the feature.
+ * Set to a PWM value slightly above the PWM value for the channel (e.g. throttle) in a failsafe event,
+ * but below the minimum PWM value for the channel during normal operation.
+ *
+ * Note: The default value of 0 disables the feature (it is below the expected range).
  *
  * @min 0
  * @max 2200

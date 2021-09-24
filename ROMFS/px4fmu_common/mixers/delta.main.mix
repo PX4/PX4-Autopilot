@@ -1,5 +1,6 @@
 Delta-wing mixer for PX4FMU
 ===========================
+# @board px4_fmu-v2 exclude
 
 This file defines mixers suitable for controlling a delta wing aircraft using
 PX4FMU. The configuration assumes the elevon servos are connected to PX4FMU

@@ -240,6 +240,14 @@ void Tailsitter::update_transition_state()
 						       time_since_trans_start * trans_pitch_rate)) * _q_trans_start;
 		}
 
+		// check front transition timeout
+		if (_params->front_trans_timeout > FLT_EPSILON) {
+			if (time_since_trans_start > _params->front_trans_timeout) {
+				// transition timeout occured, abort transition
+				_attc->quadchute(VtolAttitudeControl::QuadchuteReason::TransitionTimeout);
+			}
+		}
+
 	} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_BACK) {
 
 		const float trans_pitch_rate = M_PI_2_F / _params->back_trans_duration;

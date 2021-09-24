@@ -47,6 +47,7 @@
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/events.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 #include <navigator/navigation.h>
@@ -103,7 +104,7 @@ MavlinkMissionManager::init_offboard_mission()
 			_current_seq = mission_state.current_seq;
 
 		} else if (ret < 0) {
-			PX4_ERR("offboard mission init failed (%i)", ret);
+			PX4_WARN("offboard mission init failed (%i)", ret);
 		}
 
 		load_geofence_stats();
@@ -188,7 +189,9 @@ MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t coun
 		PX4_ERR("WPM: can't save mission state");
 
 		if (_filesystem_errcount++ < FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT) {
-			_mavlink->send_statustext_critical("Mission storage: Unable to write to microSD");
+			_mavlink->send_statustext_critical("Mission storage: Unable to write to microSD\t");
+			events::send(events::ID("mavlink_mission_storage_write_failure"), events::Log::Critical,
+				     "Mission: Unable to write to storage");
 		}
 
 		return PX4_ERROR;
@@ -210,7 +213,9 @@ MavlinkMissionManager::update_geofence_count(unsigned count)
 	} else {
 
 		if (_filesystem_errcount++ < FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT) {
-			_mavlink->send_statustext_critical("Mission storage: Unable to write to microSD");
+			_mavlink->send_statustext_critical("Mission storage: Unable to write to microSD\t");
+			events::send(events::ID("mavlink_mission_storage_write_failure2"), events::Log::Critical,
+				     "Mission: Unable to write to storage");
 		}
 
 		return PX4_ERROR;
@@ -235,7 +240,9 @@ MavlinkMissionManager::update_safepoint_count(unsigned count)
 	} else {
 
 		if (_filesystem_errcount++ < FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT) {
-			_mavlink->send_statustext_critical("Mission storage: Unable to write to microSD");
+			_mavlink->send_statustext_critical("Mission storage: Unable to write to microSD\t");
+			events::send(events::ID("mavlink_mission_storage_write_failure3"), events::Log::Critical,
+				     "Mission: Unable to write to storage");
 		}
 
 		return PX4_ERROR;
@@ -275,7 +282,9 @@ MavlinkMissionManager::send_mission_current(int32_t seq)
 	} else {
 		PX4_DEBUG("WPM: Send MISSION_CURRENT ERROR: seq %d out of bounds", seq);
 
-		_mavlink->send_statustext_critical("ERROR: wp index out of bounds");
+		_mavlink->send_statustext_critical("ERROR: wp index out of bounds\t");
+		events::send<int32_t, int32_t>(events::ID("mavlink_mission_wp_index_out_of_bounds"), events::Log::Error,
+					       "Waypoint index out of bounds ({1} \\< {2})", seq, item_count);
 	}
 }
 
@@ -344,7 +353,9 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 		break;
 
 	default:
-		_mavlink->send_statustext_critical("Received unknown mission type, abort.");
+		_mavlink->send_statustext_critical("Received unknown mission type, abort.\t");
+		events::send(events::ID("mavlink_mission_recv_unknown_mis_type"), events::Log::Error,
+			     "Received unknown mission type, abort");
 		break;
 	}
 
@@ -382,7 +393,9 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 		send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
 
 		if (_filesystem_errcount++ < FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT) {
-			_mavlink->send_statustext_critical("Mission storage: Unable to read from microSD");
+			_mavlink->send_statustext_critical("Mission storage: Unable to read from microSD\t");
+			events::send(events::ID("mavlink_mission_storage_read_failure"), events::Log::Error,
+				     "Mission: Unable to read from storage");
 		}
 
 		PX4_DEBUG("WPM: Send MISSION_ITEM ERROR: could not read seq %u from dataman ID %i", seq, _dataman_id);
@@ -441,7 +454,9 @@ MavlinkMissionManager::send_mission_request(uint8_t sysid, uint8_t compid, uint1
 		}
 
 	} else {
-		_mavlink->send_statustext_critical("ERROR: Waypoint index exceeds list capacity");
+		_mavlink->send_statustext_critical("ERROR: Waypoint index exceeds list capacity\t");
+		events::send<uint16_t>(events::ID("mavlink_mission_wp_index_exceeds_list"), events::Log::Error,
+				       "Waypoint index eceeds list capacity (maximum: {1})", current_max_item_count());
 
 		PX4_DEBUG("WPM: Send MISSION_REQUEST ERROR: seq %u exceeds list capacity", seq);
 	}
@@ -522,7 +537,9 @@ MavlinkMissionManager::send()
 	} else if (_state != MAVLINK_WPM_STATE_IDLE && (_time_last_recv > 0)
 		   && hrt_elapsed_time(&_time_last_recv) > MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT) {
 
-		_mavlink->send_statustext_critical("Operation timeout");
+		_mavlink->send_statustext_critical("Operation timeout\t");
+		events::send(events::ID("mavlink_mission_op_timeout"), events::Log::Error,
+			     "Operation timeout, aborting transfer");
 
 		PX4_DEBUG("WPM: Last operation (state=%u) timed out, changing state to MAVLINK_WPM_STATE_IDLE", _state);
 
@@ -633,7 +650,9 @@ MavlinkMissionManager::handle_mission_ack(const mavlink_message_t *msg)
 			}
 
 		} else {
-			_mavlink->send_statustext_critical("REJ. WP CMD: partner id mismatch");
+			_mavlink->send_statustext_critical("REJ. WP CMD: partner id mismatch\t");
+			events::send(events::ID("mavlink_mission_partner_id_mismatch"), events::Log::Error,
+				     "Rejecting waypoint command, component or system ID mismatch");
 
 			PX4_DEBUG("WPM: MISSION_ACK ERR: ID mismatch");
 		}
@@ -657,19 +676,25 @@ MavlinkMissionManager::handle_mission_set_current(const mavlink_message_t *msg)
 				} else {
 					PX4_DEBUG("WPM: MISSION_SET_CURRENT seq=%d ERROR", wpc.seq);
 
-					_mavlink->send_statustext_critical("WPM: WP CURR CMD: Error setting ID");
+					_mavlink->send_statustext_critical("WPM: WP CURR CMD: Error setting ID\t");
+					events::send(events::ID("mavlink_mission_err_id"), events::Log::Error,
+						     "Failed to write current mission ID to storage");
 				}
 
 			} else {
 				PX4_ERR("WPM: MISSION_SET_CURRENT seq=%d ERROR: not in list", wpc.seq);
 
-				_mavlink->send_statustext_critical("WPM: WP CURR CMD: Not in list");
+				_mavlink->send_statustext_critical("WPM: WP CURR CMD: Not in list\t");
+				events::send(events::ID("mavlink_mission_seq_out_of_bounds"), events::Log::Error,
+					     "New mission waypoint sequence out of bounds");
 			}
 
 		} else {
 			PX4_DEBUG("WPM: MISSION_SET_CURRENT ERROR: busy");
 
-			_mavlink->send_statustext_critical("WPM: IGN WP CURR CMD: Busy");
+			_mavlink->send_statustext_critical("WPM: IGN WP CURR CMD: Busy\t");
+			events::send(events::ID("mavlink_mission_state_busy"), events::Log::Error,
+				     "Mission manager currently busy, ignoring new waypoint index");
 		}
 	}
 }
@@ -728,7 +753,9 @@ MavlinkMissionManager::handle_mission_request_list(const mavlink_message_t *msg)
 		} else {
 			PX4_DEBUG("WPM: MISSION_REQUEST_LIST ERROR: busy");
 
-			_mavlink->send_statustext_info("Mission download request ignored, already active");
+			_mavlink->send_statustext_info("Mission download request ignored, already active\t");
+			events::send(events::ID("mavlink_mission_req_ignored"), events::Log::Warning,
+				     "Mission download request ignored, already active");
 		}
 	}
 }
@@ -801,7 +828,9 @@ MavlinkMissionManager::handle_mission_request_both(const mavlink_message_t *msg)
 					switch_to_idle_state();
 
 					send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
-					_mavlink->send_statustext_critical("WPM: REJ. CMD: Req. WP was unexpected");
+					_mavlink->send_statustext_critical("WPM: REJ. CMD: Req. WP was unexpected\t");
+					events::send(events::ID("mavlink_mission_wp_unexpected"), events::Log::Error,
+						     "Unexpected waypoint index, aborting transfer");
 					return;
 				}
 
@@ -816,7 +845,9 @@ MavlinkMissionManager::handle_mission_request_both(const mavlink_message_t *msg)
 					switch_to_idle_state();
 
 					send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
-					_mavlink->send_statustext_critical("WPM: REJ. CMD: Req. WP was unexpected");
+					_mavlink->send_statustext_critical("WPM: REJ. CMD: Req. WP was unexpected\t");
+					events::send(events::ID("mavlink_mission_wp_unexpected2"), events::Log::Error,
+						     "Unexpected waypoint index, aborting mission transfer");
 				}
 
 			} else if (_state == MAVLINK_WPM_STATE_IDLE) {
@@ -828,11 +859,15 @@ MavlinkMissionManager::handle_mission_request_both(const mavlink_message_t *msg)
 			} else {
 				PX4_DEBUG("WPM: MISSION_ITEM_REQUEST(_INT) ERROR: busy (state %d).", _state);
 
-				_mavlink->send_statustext_critical("WPM: REJ. CMD: Busy");
+				_mavlink->send_statustext_critical("WPM: REJ. CMD: Busy\t");
+				events::send(events::ID("mavlink_mission_mis_req_ignored_busy"), events::Log::Error,
+					     "Ignoring mission request, currently busy");
 			}
 
 		} else {
-			_mavlink->send_statustext_critical("WPM: REJ. CMD: partner id mismatch");
+			_mavlink->send_statustext_critical("WPM: REJ. CMD: partner id mismatch\t");
+			events::send(events::ID("mavlink_mission_partner_id_mismatch2"), events::Log::Error,
+				     "Rejecting mission request command, component or system ID mismatch");
 
 			PX4_DEBUG("WPM: MISSION_ITEM_REQUEST(_INT) ERROR: rejected, partner ID mismatch");
 		}
@@ -937,7 +972,9 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 			} else {
 				PX4_DEBUG("WPM: MISSION_COUNT ERROR: busy, already receiving seq %u", _transfer_seq);
 
-				_mavlink->send_statustext_critical("WPM: REJ. CMD: Busy");
+				_mavlink->send_statustext_critical("WPM: REJ. CMD: Busy\t");
+				events::send(events::ID("mavlink_mission_getlist_busy"), events::Log::Error,
+					     "Mission upload busy, already receiving waypoint");
 
 				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
 				return;
@@ -946,7 +983,9 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 		} else {
 			PX4_DEBUG("WPM: MISSION_COUNT ERROR: busy, state %i", _state);
 
-			_mavlink->send_statustext_critical("WPM: IGN MISSION_COUNT: Busy");
+			_mavlink->send_statustext_critical("WPM: IGN MISSION_COUNT: Busy\t");
+			events::send(events::ID("mavlink_mission_ignore_mis_count"), events::Log::Error,
+				     "Mission upload busy, ignoring MISSION_COUNT");
 			send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
 			return;
 		}
@@ -1017,8 +1056,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 			if (wp.seq != _transfer_seq) {
 				PX4_DEBUG("WPM: MISSION_ITEM ERROR: seq %u was not the expected %u", wp.seq, _transfer_seq);
 
-				/* request next item again */
-				send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
+				/* Item sequence not expected, ignore item */
 				return;
 			}
 
@@ -1031,7 +1069,9 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 			} else {
 				PX4_DEBUG("WPM: MISSION_ITEM ERROR: no transfer");
 
-				_mavlink->send_statustext_critical("IGN MISSION_ITEM: No transfer");
+				_mavlink->send_statustext_critical("IGN MISSION_ITEM: No transfer\t");
+				events::send(events::ID("mavlink_mission_no_transfer"), events::Log::Error,
+					     "Ignoring mission item, no transfer in progress");
 				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
 			}
 
@@ -1040,7 +1080,9 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 		} else {
 			PX4_DEBUG("WPM: MISSION_ITEM ERROR: busy, state %i", _state);
 
-			_mavlink->send_statustext_critical("IGN MISSION_ITEM: Busy");
+			_mavlink->send_statustext_critical("IGN MISSION_ITEM: Busy\t");
+			events::send(events::ID("mavlink_mission_mis_item_busy"), events::Log::Error,
+				     "Ignoring mission item, busy");
 			send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
 			return;
 		}
@@ -1052,7 +1094,9 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 		if (ret != PX4_OK) {
 			PX4_DEBUG("WPM: MISSION_ITEM ERROR: seq %u invalid item", wp.seq);
 
-			_mavlink->send_statustext_critical("IGN MISSION_ITEM: Invalid item");
+			_mavlink->send_statustext_critical("IGN MISSION_ITEM: Invalid item\t");
+			events::send(events::ID("mavlink_mission_mis_item_invalid"), events::Log::Error,
+				     "Ignoring mission item, invalid item");
 
 			send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, ret);
 			switch_to_idle_state();
@@ -1134,7 +1178,9 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 			break;
 
 		default:
-			_mavlink->send_statustext_critical("Received unknown mission type, abort.");
+			_mavlink->send_statustext_critical("Received unknown mission type, abort.\t");
+			events::send(events::ID("mavlink_mission_unknown_mis_type"), events::Log::Error,
+				     "Received unknown mission type, abort");
 			break;
 		}
 
@@ -1144,7 +1190,9 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 			send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
 
 			if (write_failed) {
-				_mavlink->send_statustext_critical("Unable to write on micro SD");
+				_mavlink->send_statustext_critical("Unable to write on micro SD\t");
+				events::send(events::ID("mavlink_mission_storage_failure"), events::Log::Error,
+					     "Mission: unable to write to storage");
 			}
 
 			switch_to_idle_state();
@@ -1258,7 +1306,9 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 			}
 
 		} else {
-			_mavlink->send_statustext_critical("WPM: IGN CLEAR CMD: Busy");
+			_mavlink->send_statustext_critical("WPM: IGN CLEAR CMD: Busy\t");
+			events::send(events::ID("mavlink_mission_ignore_clear"), events::Log::Error,
+				     "Ignoring mission clear command, busy");
 
 			PX4_DEBUG("WPM: CLEAR_ALL IGNORED: busy");
 		}

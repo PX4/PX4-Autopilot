@@ -26,7 +26,7 @@ px4_add_board(
 		imu/lsm303d
 		imu/invensense/mpu6000
 		#imu/invensense/mpu9250
-		irlock
+		#irlock
 		lights/rgbled
 		magnetometer/hmc5883
 		#optical_flow/px4flow
@@ -36,7 +36,7 @@ px4_add_board(
 	MODULES
 		#attitude_estimator_q
 		battery_status
-		camera_feedback
+		#camera_feedback
 		commander
 		dataman
 		ekf2
@@ -74,7 +74,7 @@ px4_add_board(
 		mtd
 		#nshterm
 		param
-		perf
+		#perf
 		pwm
 		reboot
 		#sd_bench

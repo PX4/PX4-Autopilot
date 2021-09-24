@@ -68,7 +68,22 @@ void CameraInterfacePWM::setup()
 	}
 
 	// Initialize and arm channels
-	up_pwm_trigger_init(pin_bitmask);
+	int ret = up_pwm_trigger_init(pin_bitmask);
+
+	if (ret < 0) {
+		PX4_ERR("up_pwm_trigger_init failed (%i)", ret);
+		pin_bitmask = 0;
+
+	} else {
+		pin_bitmask = ret;
+	}
+
+	// Clear pins that could not be initialized
+	for (unsigned i = 0; i < arraySize(_pins); i++) {
+		if (_pins[i] >= 0 && ((1 << _pins[i]) & pin_bitmask) == 0) {
+			_pins[i] = -1;
+		}
+	}
 
 	// Set neutral pulsewidths
 	for (unsigned i = 0; i < arraySize(_pins); i++) {

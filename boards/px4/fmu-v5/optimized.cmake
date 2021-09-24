@@ -20,9 +20,10 @@ px4_add_board(
 	DRIVERS
 		adc/ads1115
 		adc/board_adc
-		barometer # all available barometer drivers
-		batt_smbus
-		camera_capture
+		#barometer # all available barometer drivers
+		barometer/ms5611
+		#batt_smbus
+		#camera_capture
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
@@ -46,7 +47,7 @@ px4_add_board(
 		#power_monitor/ina226
 		#protocol_splitter
 		#pwm_input
-		pwm_out_sim
+		#pwm_out_sim
 		pwm_out
 		px4io
 		rc_input
@@ -114,7 +115,7 @@ px4_add_board(
 		perf
 		pwm
 		reboot
-		reflect
+		#reflect
 		sd_bench
 		#serial_test
 		system_time

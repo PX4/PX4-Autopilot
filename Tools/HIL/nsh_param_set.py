@@ -35,7 +35,7 @@ def do_param_set_cmd(port, baudrate, param_name, param_value):
     ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0.1, xonxoff=True, rtscts=False, dsrdtr=False)
 
     timeout_start = time.time()
-    timeout = 10  # 10 seconds
+    timeout = 30  # 30 seconds
 
     # wait for nsh prompt
     while True:

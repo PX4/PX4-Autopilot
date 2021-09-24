@@ -66,6 +66,7 @@ EXTERN(_vectors)	/* force the vectors to be included in the output */
  */
 EXTERN(abort)
 EXTERN(_bootdelay_signature)
+EXTERN(board_get_manifest)
 
 SECTIONS
 {

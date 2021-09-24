@@ -100,7 +100,7 @@ px4_add_board(
 		led_control
 		mft
 		mixer
-		motor_ramp
+		#motor_ramp
 		motor_test
 		mtd
 		nshterm
@@ -108,9 +108,9 @@ px4_add_board(
 		perf
 		pwm
 		reboot
-		reflect
-		sd_bench
-		serial_test
+		#reflect
+		#sd_bench
+		#serial_test
 		system_time
 		top
 		topic_listener

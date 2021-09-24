@@ -94,8 +94,6 @@
 #define rBDTR(_tmr)     REG(_tmr, STM32_ATIM_BDTR_OFFSET)
 
 
-extern int             io_timer_init_timer(unsigned timer);
-
 static void             led_pwm_channel_init(unsigned channel);
 
 int led_pwm_servo_set(unsigned channel, uint8_t  value);
@@ -297,7 +295,12 @@ led_pwm_servo_init(void)
 	/* do basic timer initialisation first */
 	for (unsigned i = 0; i < arraySize(led_pwm_timers); i++) {
 #if defined(BOARD_HAS_SHARED_PWM_TIMERS)
-		io_timer_init_timer(i);
+		int ret = io_timer_init_timer(i, IOTimerChanMode_LED);
+
+		if (ret != 0) {
+			return ret;
+		}
+
 #else
 		led_pwm_timer_init_timer(i);
 #endif

@@ -44,9 +44,9 @@ px4_add_board(
 		pwm_out_sim
 		pwm_out
 		px4io
-		roboclaw
+		#roboclaw
 		rpm
-		smart_battery/batmon
+		#smart_battery/batmon
 		telemetry # all available telemetry drivers
 		test_ppm
 		tone_alarm
@@ -99,7 +99,7 @@ px4_add_board(
 		mft
 		microbench
 		mixer
-		motor_ramp
+		#motor_ramp
 		motor_test
 		mtd
 		nshterm
@@ -107,10 +107,10 @@ px4_add_board(
 		perf
 		pwm
 		reboot
-		reflect
+		#reflect
 		sd_bench
 		#serial_test
-		system_time
+		#system_time
 		tests # tests and test runner
 		top
 		topic_listener

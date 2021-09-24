@@ -47,9 +47,10 @@ ActuatorEffectivenessStandardVTOL::ActuatorEffectivenessStandardVTOL()
 }
 
 bool
-ActuatorEffectivenessStandardVTOL::getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix)
+ActuatorEffectivenessStandardVTOL::getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix,
+		bool force)
 {
-	if (!_updated) {
+	if (!(_updated || force)) {
 		return false;
 	}
 

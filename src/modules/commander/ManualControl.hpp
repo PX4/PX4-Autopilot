@@ -64,12 +64,12 @@ public:
 	 */
 	bool update();
 	bool isRCAvailable() const { return _rc_available; }
-	bool isMavlink() const { return _manual_control_setpoint.data_source > manual_control_setpoint_s::SOURCE_RC; }
 	bool wantsOverride(const vehicle_control_mode_s &vehicle_control_mode, const vehicle_status_s &vehicle_status);
 	bool wantsDisarm(const vehicle_control_mode_s &vehicle_control_mode, const vehicle_status_s &vehicle_status,
 			 manual_control_switches_s &manual_control_switches, const bool landed);
 	bool wantsArm(const vehicle_control_mode_s &vehicle_control_mode, const vehicle_status_s &vehicle_status,
 		      const manual_control_switches_s &manual_control_switches, const bool landed);
+	bool isModeInitializationRequired();
 	bool isThrottleLow() const { return _last_manual_control_setpoint.z < 0.1f; }
 	bool isThrottleAboveCenter() const { return _last_manual_control_setpoint.z > 0.6f; }
 	hrt_abstime getLastRcTimestamp() const { return _last_manual_control_setpoint.timestamp; }
@@ -96,6 +96,7 @@ private:
 		(ParamBool<px4::params::COM_ARM_SWISBTN>) _param_com_arm_swisbtn,
 		(ParamBool<px4::params::COM_REARM_GRACE>) _param_com_rearm_grace,
 		(ParamInt<px4::params::COM_RC_OVERRIDE>) _param_rc_override,
-		(ParamFloat<px4::params::COM_RC_STICK_OV>) _param_com_rc_stick_ov
+		(ParamFloat<px4::params::COM_RC_STICK_OV>) _param_com_rc_stick_ov,
+		(ParamInt<px4::params::RC_MAP_FLTM_BTN>) _param_rc_map_flightmode_buttons
 	)
 };

@@ -30,8 +30,11 @@ def print_line(line):
     if "FAILED" in line:
         line = line.replace("FAILED", f"{COLOR_RED}FAILED{COLOR_RESET}", 1)
 
-    current_time = datetime.datetime.now()
-    print('[{0}] {1}'.format(current_time.isoformat(timespec='milliseconds'), line), end='')
+    if "\n" in line:
+        current_time = datetime.datetime.now()
+        print('[{0}] {1}'.format(current_time.isoformat(timespec='milliseconds'), line), end='')
+    else:
+        print('{0}'.format(line), end='')
 
 def monitor_firmware_upload(port, baudrate):
     ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1, xonxoff=True, rtscts=False, dsrdtr=False)
@@ -40,16 +43,21 @@ def monitor_firmware_upload(port, baudrate):
     timeout_start = time.time()
     timeout_newline = time.time()
 
+    return_code = 0
+
     while True:
         serial_line = ser.readline().decode("ascii", errors='ignore')
 
         if len(serial_line) > 0:
+            if "ERROR" in serial_line:
+                return_code = -1
+
             print_line(serial_line)
 
         if "NuttShell (NSH)" in serial_line:
-            sys.exit(0)
+            sys.exit(return_code)
         elif "nsh>" in serial_line:
-            sys.exit(0)
+            sys.exit(return_code)
 
         if time.time() > timeout_start + timeout:
             print("Error, timeout")

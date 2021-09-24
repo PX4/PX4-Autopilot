@@ -44,12 +44,15 @@
 
 #include <fcntl.h>
 
+#include <sys/mount.h>
+#include <syslog.h>
+
 #if defined(CONFIG_I2C)
 # include <px4_platform_common/i2c.h>
 # include <nuttx/i2c/i2c_master.h>
 #endif // CONFIG_I2C
 
-int px4_platform_init(void)
+int px4_platform_init()
 {
 
 	int ret = px4_console_buffer_init();
@@ -103,6 +106,24 @@ int px4_platform_init(void)
 	}
 
 #endif // CONFIG_I2C
+
+#if defined(CONFIG_FS_PROCFS)
+	int ret_mount_procfs = mount(nullptr, "/proc", "procfs", 0, nullptr);
+
+	if (ret < 0) {
+		syslog(LOG_ERR, "ERROR: Failed to mount procfs at /proc: %d\n", ret_mount_procfs);
+	}
+
+#endif // CONFIG_FS_PROCFS
+
+#if defined(CONFIG_FS_BINFS)
+	int ret_mount_binfs = nx_mount(nullptr, "/bin", "binfs", 0, nullptr);
+
+	if (ret_mount_binfs < 0) {
+		syslog(LOG_ERR, "ERROR: Failed to mount binfs at /bin: %d\n", ret_mount_binfs);
+	}
+
+#endif // CONFIG_FS_BINFS
 
 
 	px4::WorkQueueManagerStart();
