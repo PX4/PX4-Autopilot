@@ -1110,6 +1110,7 @@ int TAP_ESC_UPLOADER::verify_crc(uint8_t esc_id, size_t fw_size_local)
 
 	if (ret != OK) {
 		PX4_DEBUG("could not read firmware size");
+		delete [] file_buf;
 		return ret;
 	}
 
