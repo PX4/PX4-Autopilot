@@ -36,7 +36,6 @@
 #include <px4_arch/hw_description.h>
 #include <px4_platform_common/spi.h>
 
-//#include <kinetis.h>
 #include "s32k1xx_config.h"
 #include "s32k1xx_lpspi.h"
 #include "s32k1xx_pin.h"
