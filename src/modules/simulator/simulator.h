@@ -58,6 +58,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/irlock_report.h>
@@ -228,6 +229,7 @@ private:
 	void handle_message_optical_flow(const mavlink_message_t *msg);
 	void handle_message_rc_channels(const mavlink_message_t *msg);
 	void handle_message_vision_position_estimate(const mavlink_message_t *msg);
+	void handle_message_battery_status(const mavlink_message_t *msg);
 
 	void parameters_update(bool force);
 	void poll_for_MAVLink_messages();
@@ -249,6 +251,7 @@ private:
 	uORB::Publication<vehicle_global_position_s>	_gpos_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Publication<vehicle_local_position_s>	_lpos_ground_truth_pub{ORB_ID(vehicle_local_position_groundtruth)};
 	uORB::Publication<input_rc_s>			_input_rc_pub{ORB_ID(input_rc)};
+	uORB::Publication<battery_status_s> 		_battery_pub{ORB_ID(battery_status)};
 
 	// HIL GPS
 	static constexpr int MAX_GPS = 3;

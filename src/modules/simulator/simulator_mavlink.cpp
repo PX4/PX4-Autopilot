@@ -368,6 +368,11 @@ void Simulator::handle_message(const mavlink_message_t *msg)
 	case MAVLINK_MSG_ID_HIL_STATE_QUATERNION:
 		handle_message_hil_state_quaternion(msg);
 		break;
+
+	case MAVLINK_MSG_ID_BATTERY_STATUS:
+		handle_message_battery_status(msg);
+		break;
+
 	}
 }
 
@@ -670,6 +675,20 @@ void Simulator::send_mavlink_message(const mavlink_message_t &aMsg)
 	if (len <= 0) {
 		PX4_WARN("Failed sending mavlink message: %s", strerror(errno));
 	}
+}
+
+void Simulator::handle_message_battery_status(const mavlink_message_t *msg)
+{
+	mavlink_battery_status_t battery_status_mavlink;
+	mavlink_msg_battery_status_decode(msg, &battery_status_mavlink);
+
+	battery_status_s battery_status{};
+	battery_status.voltage_v = 14.8f;
+	battery_status.voltage_filtered_v = 14.8f;
+	battery_status.current_a = 15.0f;
+	battery_status.discharged_mah = -1.0f;
+	battery_status.timestamp = hrt_absolute_time();
+	_battery_pub.publish(battery_status);
 }
 
 void *Simulator::sending_trampoline(void * /*unused*/)
