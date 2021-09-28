@@ -464,7 +464,7 @@ private:
 				msg->failure_flags |= HL_FAILURE_FLAG_GPS;
 			}
 
-			if (status_flags.offboard_control_signal_lost && status_flags.offboard_control_signal_found_once) {
+			if (status_flags.offboard_control_signal_lost) {
 				msg->failure_flags |= HL_FAILURE_FLAG_OFFBOARD_LINK;
 			}
 
