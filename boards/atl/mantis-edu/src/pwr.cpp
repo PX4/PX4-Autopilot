@@ -53,6 +53,7 @@
 #include <nuttx/arch.h>
 
 #include <uORB/uORB.h>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/led_control.h>
 #include <uORB/topics/tune_control.h>
 
@@ -116,13 +117,26 @@ int board_power_off(int status)
 
 static int board_button_irq(int irq, FAR void *context, FAR void *args)
 {
+	uORB::Publication<tune_control_s, tune_control_s::ORB_QUEUE_LENGTH> tune_control_pub{ORB_ID(tune_control)};
+
 	if (board_pwr_button_down()) {
 
 		led_on(BOARD_LED_RED);
 		clock_gettime(CLOCK_REALTIME, &time_down);
 		power_state_notification(PWR_BUTTON_DOWN);
 
+		tune_control_s tune_control{};
+		tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT - 20;
+		tune_control.tune_id = tune_control_s::TUNE_ID_POWER_OFF;
+		tune_control.timestamp = hrt_absolute_time();
+		tune_control_pub.publish(tune_control);
+
 	} else {
+		tune_control_s tune_control{};
+		tune_control.tune_override = true;
+		tune_control.timestamp = hrt_absolute_time();
+		tune_control_pub.publish(tune_control);
+
 		power_state_notification(PWR_BUTTON_UP);
 
 		led_off(BOARD_LED_RED);
