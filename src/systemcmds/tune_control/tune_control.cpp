@@ -150,11 +150,11 @@ extern "C" __EXPORT int tune_control_main(int argc, char *argv[])
 	int exit_counter = 0;
 
 	if (!strcmp(argv[myoptind], "play")) {
-		if (argc >= 2 && !strcmp(argv[2], "error")) {
+		if (argc > 2 && !strcmp(argv[2], "error")) {
 			tune_control.tune_id = tune_control_s::TUNE_ID_ERROR;
 			publish_tune_control(tune_control);
 
-		} else if (string_input) {
+		} else if (argc > 2 && string_input) {
 			PX4_INFO("Start playback...");
 			tunes.set_string(tune_string, tune_control.volume);
 
@@ -176,7 +176,7 @@ extern "C" __EXPORT int tune_control_main(int argc, char *argv[])
 
 			PX4_INFO("Playback finished.");
 
-		} else {
+		} else if (argc > 2) {
 			// tune id instead of string has been provided
 			if (tune_control.tune_id == 0) {
 				tune_control.tune_id = 1;
@@ -184,6 +184,10 @@ extern "C" __EXPORT int tune_control_main(int argc, char *argv[])
 
 			PX4_DEBUG("Publishing standard tune %d", tune_control.tune_id);
 			publish_tune_control(tune_control);
+		} else {
+			PX4_WARN("Missing argument");
+			usage();
+			return 1;
 		}
 
 	} else if (!strcmp(argv[myoptind], "libtest")) {
