@@ -142,9 +142,9 @@ PARAM_DEFINE_INT32(MAV_FWDEXTSP, 1);
 PARAM_DEFINE_INT32(MAV_HASH_CHK_EN, 1);
 
 /**
- * Hearbeat message forwarding.
+ * Heartbeat message forwarding.
  *
- * The mavlink hearbeat message will not be forwarded if this parameter is set to 'disabled'.
+ * The mavlink heartbeat message will not be forwarded if this parameter is set to 'disabled'.
  * The main reason for disabling heartbeats to be forwarded is because they confuse dronekit.
  *
  * @boolean
