@@ -365,31 +365,26 @@ void TAP_ESC::Run()
 			if (_tune_control_sub.copy(&tune)) {
 				if (tune.timestamp > 0) {
 					Tunes::ControlResult result = _tunes.set_control(tune);
-					_play_tone = (result == Tunes::ControlResult::Success) || (result == Tunes::ControlResult::AlreadyPlaying);
-					PX4_DEBUG("new tune id: %d, result: %d, play: %d", tune.tune_id, (int)result, _play_tone);
+					PX4_DEBUG("new tune id: %d, result: %d, duration: %lu", tune.tune_id, (int)result, tune.duration);
 				}
 			}
 		}
 
 		const hrt_abstime timestamp_now = hrt_absolute_time();
 
-		if ((timestamp_now - _interval_timestamp <= _duration) || !_play_tone) {
-			//return;
-		} else {
+		if ((timestamp_now - _interval_timestamp > _duration)) {
 			_interval_timestamp = timestamp_now;
 
 			if (_silence_length > 0) {
 				_duration = _silence_length;
 				_silence_length = 0;
 
-			} else if (_play_tone) {
+			} else {
 				uint8_t strength = 0;
 				Tunes::Status parse_ret_val = _tunes.get_next_note(_frequency, _duration, _silence_length, strength);
 
 				if (parse_ret_val == Tunes::Status::Continue) {
 					// Continue playing.
-					_play_tone = true;
-
 					if (_frequency > 0) {
 						// Start playing the note.
 						EscbusTunePacket esc_tune_packet{};
@@ -400,7 +395,6 @@ void TAP_ESC::Run()
 					}
 
 				} else {
-					_play_tone = false;
 					_silence_length = 0;
 				}
 			}
