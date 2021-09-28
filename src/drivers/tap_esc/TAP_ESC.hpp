@@ -134,7 +134,6 @@ private:
 	Tunes _tunes{};
 	uORB::Subscription _tune_control_sub{ORB_ID(tune_control)};
 	hrt_abstime _interval_timestamp{0};
-	bool _play_tone{false};
 	unsigned int _silence_length{0};	///< If nonzero, silence before next note.
 	unsigned int _frequency{0};
 	unsigned int _duration{0};
