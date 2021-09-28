@@ -478,6 +478,15 @@ else
 	. ${R}etc/init.d/rc.vehicle_setup
 
 	#
+	# Play the startup tune (if not disabled or there is an error)
+	#
+	param compare CBRK_BUZZER 782090
+	if [ $? != 0 -o $STARTUP_TUNE != 1 ]
+	then
+		tune_control play -t $STARTUP_TUNE
+	fi
+
+	#
 	# Start the navigator.
 	#
 	navigator start
