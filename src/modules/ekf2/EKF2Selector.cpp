@@ -251,12 +251,7 @@ bool EKF2Selector::UpdateErrorScores()
 	bool primary_updated = false;
 
 	// default estimator timeout
-	hrt_abstime status_timeout = 50_ms;
-
-	if (hrt_elapsed_time(&_attitude_last.timestamp) > FILTER_UPDATE_PERIOD) {
-		// much lower timeout if current primary estimator attitude isn't publishing
-		status_timeout = 2 * FILTER_UPDATE_PERIOD;
-	}
+	const hrt_abstime status_timeout = 50_ms;
 
 	// calculate individual error scores
 	for (uint8_t i = 0; i < EKF2_MAX_INSTANCES; i++) {
