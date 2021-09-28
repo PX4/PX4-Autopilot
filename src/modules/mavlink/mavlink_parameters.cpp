@@ -375,8 +375,6 @@ MavlinkParametersManager::send_untransmitted()
 			// space in the TX buffer
 			if ((param != PARAM_INVALID) && param_value_unsaved(param)) {
 				int ret = send_param(param);
-				char buf[100];
-				strncpy(&buf[0], param_name(param), MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
 				sent_one = true;
 
 				if (ret != PX4_OK) {
