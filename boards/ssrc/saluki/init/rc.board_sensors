@@ -12,5 +12,6 @@ bmm150 -I -a 0x11 -f 400 -R 14 start
 # Internal SPI bus
 icm42688p -s -f 10000 -R 10 start
 
-# External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
-#ist8310 -X -b 1 -R 10 start
+# External compass with lights, safety button, and buzzer
+ist8310 -X -a 0x0e -b 2 -f 400 -R 10 start
+rgbled_ncp5623c -X -b 2 -f 400 start
