@@ -104,3 +104,4 @@ PX4_DEFINE_TUNE(15, SD_ERROR,              "MNBG",                              
 PX4_DEFINE_TUNE(16, PROG_PX4IO,            "MLL32CP8MB",                                    false /*  Program PX4IO */)
 PX4_DEFINE_TUNE(17, PROG_PX4IO_OK,         "MLL8CDE",                                       false /*  Program PX4IO success */)
 PX4_DEFINE_TUNE(18, PROG_PX4IO_ERR,        "ML<<CP4CP4CP4CP4CP4",                           true  /*  Program PX4IO fail */)
+PX4_DEFINE_TUNE(19, POWER_OFF,             "MFT255a8g8f8e8c8<b8a8g4",                       true  /*  When pressing off button */)
