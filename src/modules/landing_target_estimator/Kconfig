@@ -3,3 +3,10 @@ menuconfig MODULES_LANDING_TARGET_ESTIMATOR
 	default n
 	---help---
 		Enable support for landing_target_estimator
+
+menuconfig USER_LANDING_TARGET_ESTIMATOR
+	bool "landing_target_estimator running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_LANDING_TARGET_ESTIMATOR
+	---help---
+		Put landing_target_estimator in userspace memory

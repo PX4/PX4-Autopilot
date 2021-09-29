@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_TOPIC_LISTENER
 	default n
 	---help---
 		Enable support for topic_listener
+
+menuconfig USER_TOPIC_LISTENER
+	bool "topic_listener running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_TOPIC_LISTENER
+	---help---
+		Put topic_listener in userspace memory

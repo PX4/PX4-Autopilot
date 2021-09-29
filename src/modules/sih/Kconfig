@@ -3,3 +3,10 @@ menuconfig MODULES_SIH
 	default n
 	---help---
 		Enable support for sih
+
+menuconfig USER_SIH
+	bool "sih running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_SIH
+	---help---
+		Put sih in userspace memory

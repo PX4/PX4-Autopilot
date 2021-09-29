@@ -3,3 +3,10 @@ menuconfig MODULES_LAND_DETECTOR
 	default n
 	---help---
 		Enable support for land_detector
+
+menuconfig USER_LAND_DETECTOR
+	bool "land_detector running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_LAND_DETECTOR
+	---help---
+		Put land_detector in userspace memory

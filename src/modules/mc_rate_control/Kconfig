@@ -3,3 +3,10 @@ menuconfig MODULES_MC_RATE_CONTROL
 	default n
 	---help---
 		Enable support for mc_rate_control
+
+menuconfig USER_MC_RATE_CONTROL
+	bool "mc_rate_control running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_MC_RATE_CONTROL
+	---help---
+		Put mc_rate_control in userspace memory
