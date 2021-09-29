@@ -273,6 +273,24 @@ PARAM_DEFINE_FLOAT(FW_YR_IMAX, 0.2f);
 PARAM_DEFINE_FLOAT(FW_Y_RMAX, 50.0f);
 
 /**
+ * Attitude yaw time constant
+ *
+ * This defines the latency between a yaw step input and the achieved setpoint
+ * (inverse to a P gain). Half a second is a good start value and fits for
+ * most average systems. Smaller systems may require smaller values, but as
+ * this will wear out servos faster, the value should only be decreased as
+ * needed.
+ *
+ * @unit s
+ * @min 0.2
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.05
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_Y_TC, 0.4f);
+
+/**
  * Roll control to yaw control feedforward gain.
  *
  * This gain can be used to counteract the "adverse yaw" effect for fixed wings.

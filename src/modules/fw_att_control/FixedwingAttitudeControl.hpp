@@ -200,6 +200,7 @@ private:
 		(ParamFloat<px4::params::FW_WR_P>) _param_fw_wr_p,
 
 		(ParamFloat<px4::params::FW_Y_RMAX>) _param_fw_y_rmax,
+		(ParamFloat<px4::params::FW_Y_TC>) _param_fw_y_tc,
 		(ParamFloat<px4::params::FW_YR_FF>) _param_fw_yr_ff,
 		(ParamFloat<px4::params::FW_YR_I>) _param_fw_yr_i,
 		(ParamFloat<px4::params::FW_YR_IMAX>) _param_fw_yr_imax,
