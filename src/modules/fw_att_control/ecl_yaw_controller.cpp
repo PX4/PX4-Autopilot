@@ -47,9 +47,7 @@ float ECL_YawController::control_attitude(const float dt, const ECL_ControlData 
 {
 	/* Do not calculate control signal with bad inputs */
 	if (!(PX4_ISFINITE(ctl_data.roll) &&
-	      PX4_ISFINITE(ctl_data.pitch) &&
-	      PX4_ISFINITE(ctl_data.roll_rate_setpoint) &&
-	      PX4_ISFINITE(ctl_data.pitch_rate_setpoint))) {
+	      PX4_ISFINITE(ctl_data.pitch))) {
 
 		return _rate_setpoint;
 	}
