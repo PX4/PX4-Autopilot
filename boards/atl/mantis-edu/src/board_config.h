@@ -144,7 +144,6 @@
 #define RC_SERIAL_PORT                     "/dev/ttyS5"
 #define RC_SERIAL_SINGLEWIRE
 
-#define BOARD_HAS_POWER_CONTROL	1
 /* power on/off */
 #define MS_PWR_BUTTON_DOWN 750
 #define KEY_AD_GPIO    (GPIO_INPUT|GPIO_PULLUP|GPIO_EXTI|GPIO_PORTC|GPIO_PIN4)
