@@ -3,3 +3,10 @@ menuconfig MODULES_LOCAL_POSITION_ESTIMATOR
 	default n
 	---help---
 		Enable support for local_position_estimator
+
+menuconfig USER_LOCAL_POSITION_ESTIMATOR
+	bool "local_position_estimator running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_LOCAL_POSITION_ESTIMATOR
+	---help---
+		Put local_position_estimator in userspace memory

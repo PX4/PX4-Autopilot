@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_NSHTERM
 	default n
 	---help---
 		Enable support for nshterm
+
+menuconfig USER_NSHTERM
+	bool "nshterm running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_NSHTERM
+	---help---
+		Put nshterm in userspace memory

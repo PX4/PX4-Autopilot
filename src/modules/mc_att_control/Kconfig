@@ -3,3 +3,10 @@ menuconfig MODULES_MC_ATT_CONTROL
 	default n
 	---help---
 		Enable support for mc_att_control
+
+menuconfig USER_MC_ATT_CONTROL
+	bool "mc_att_control running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_MC_ATT_CONTROL
+	---help---
+		Put mc_att_control in userspace memory
