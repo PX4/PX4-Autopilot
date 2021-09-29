@@ -254,7 +254,7 @@ void LogWriterFile::start_log(LogType type, const char *filename)
 
 int LogWriterFile::hardfault_store_filename(const char *log_file)
 {
-#ifdef __PX4_NUTTX
+#if defined(__PX4_NUTTX) && defined(px4_savepanic)
 	int fd = open(HARDFAULT_ULOG_PATH, O_TRUNC | O_WRONLY | O_CREAT);
 
 	if (fd < 0) {
