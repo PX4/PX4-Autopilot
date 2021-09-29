@@ -256,6 +256,8 @@ MulticopterRateControl::Run()
 			actuators.timestamp = hrt_absolute_time();
 			_actuators_0_pub.publish(actuators);
 
+			updateActuatorControlsStatus(actuators, dt);
+
 		} else if (_v_control_mode.flag_control_termination_enabled) {
 			if (!_vehicle_status.is_vtol) {
 				// publish actuator controls
@@ -267,6 +269,29 @@ MulticopterRateControl::Run()
 	}
 
 	perf_end(_loop_perf);
+}
+
+void MulticopterRateControl::updateActuatorControlsStatus(const actuator_controls_s &actuators, float dt)
+{
+	for (int i = 0; i < 4; i++) {
+		_control_energy[i] += actuators.control[i] * actuators.control[i] * dt;
+	}
+
+	_energy_integration_time += dt;
+
+	if (_energy_integration_time > 500e-3f) {
+
+		actuator_controls_status_s status;
+		status.timestamp = actuators.timestamp;
+
+		for (int i = 0; i < 4; i++) {
+			status.control_power[i] = _control_energy[i] / _energy_integration_time;
+			_control_energy[i] = 0.f;
+		}
+
+		_actuator_controls_status_0_pub.publish(status);
+		_energy_integration_time = 0.f;
+	}
 }
 
 int MulticopterRateControl::task_spawn(int argc, char *argv[])
