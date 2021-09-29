@@ -66,17 +66,22 @@ px4_add_module(
 	DEPENDS
 		airspeed
 		component_general_json # for checksums.h
+		conversion
 		drivers_accelerometer
 		drivers_barometer
 		drivers_gyroscope
 		drivers_magnetometer
 		git_mavlink_v2
-		conversion
 		geo
+		tunes
 		version
 	UNITY_BUILD
 	)
 
 if(PX4_TESTING)
 	add_subdirectory(mavlink_tests)
+endif()
+
+if(CONFIG_NET AND "${PX4_PLATFORM}" MATCHES "nuttx")
+	target_link_libraries(modules__mavlink PRIVATE nuttx_apps) # netlib_get_ipv4netmask
 endif()
