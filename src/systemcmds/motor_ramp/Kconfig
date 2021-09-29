@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_MOTOR_RAMP
 	default n
 	---help---
 		Enable support for motor_ramp
+
+menuconfig USER_MOTOR_RAMP
+	bool "motor_ramp running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_MOTOR_RAMP
+	---help---
+		Put motor_ramp in userspace memory

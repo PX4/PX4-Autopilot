@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_DUMPFILE
 	default n
 	---help---
 		Enable support for dumpfile
+
+menuconfig USER_DUMPFILE
+	bool "dumpfile running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_DUMPFILE
+	---help---
+		Put dumpfile in userspace memory

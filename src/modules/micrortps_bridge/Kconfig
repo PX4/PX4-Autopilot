@@ -3,3 +3,10 @@ menuconfig MODULES_MICRORTPS_BRIDGE
 	default n
 	---help---
 		Enable support for micrortps_bridge
+
+menuconfig USER_MICRORTPS_BRIDGE
+	bool "micrortps_bridge running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_MICRORTPS_BRIDGE
+	---help---
+		Put micrortps_bridge in userspace memory

@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_SERIAL_TEST
 	default n
 	---help---
 		Enable support for serial_test
+
+menuconfig USER_SERIAL_TEST
+	bool "serial_test running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_SERIAL_TEST
+	---help---
+		Put serial_test in userspace memory

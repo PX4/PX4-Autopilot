@@ -3,3 +3,10 @@ menuconfig MODULES_BATTERY_STATUS
 	default n
 	---help---
 		Enable support for battery_status
+
+menuconfig USER_BATTERY_STATUS
+	bool "battery_status running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_BATTERY_STATUS
+	---help---
+		Put battery_status in userspace memory

@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_I2CDETECT
 	default n
 	---help---
 		Enable support for i2cdetect
+
+menuconfig USER_I2CDETECT
+	bool "i2cdetect running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && SYSTEMCMDS_I2CDETECT
+	---help---
+		Put i2cdetect in userspace memory

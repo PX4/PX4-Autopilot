@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_LED_CONTROL
 	default n
 	---help---
 		Enable support for led_control
+
+menuconfig USER_LED_CONTROL
+	bool "led_control running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_LED_CONTROL
+	---help---
+		Put led_control in userspace memory

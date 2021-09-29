@@ -3,3 +3,10 @@ menuconfig MODULES_CONTROL_ALLOCATOR
 	default n
 	---help---
 		Enable support for control_allocator
+
+menuconfig USER_CONTROL_ALLOCATOR
+	bool "control_allocator running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_CONTROL_ALLOCATOR
+	---help---
+		Put control_allocator in userspace memory

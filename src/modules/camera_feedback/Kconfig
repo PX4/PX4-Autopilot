@@ -3,3 +3,10 @@ menuconfig MODULES_CAMERA_FEEDBACK
 	default n
 	---help---
 		Enable support for camera_feedback
+
+menuconfig USER_CAMERA_FEEDBACK
+	bool "camera_feedback running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_CAMERA_FEEDBACK
+	---help---
+		Put camera_feedback in userspace memory

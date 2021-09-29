@@ -3,3 +3,10 @@ menuconfig MODULES_GYRO_FFT
 	default n
 	---help---
 		Enable support for gyro_fft
+
+menuconfig USER_GYRO_FFT
+	bool "gyro_fft running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_GYRO_FFT
+	---help---
+		Put gyro_fft in userspace memory

@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_SD_BENCH
 	default n
 	---help---
 		Enable support for sd_bench
+
+menuconfig USER_SD_BENCH
+	bool "sd_bench running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_SD_BENCH
+	---help---
+		Put sd_bench in userspace memory

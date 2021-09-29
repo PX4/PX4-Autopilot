@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_PWM
 	default n
 	---help---
 		Enable support for pwm
+
+menuconfig USER_PWM
+	bool "pwm running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && SYSTEMCMDS_PWM
+	---help---
+		Put pwm in userspace memory

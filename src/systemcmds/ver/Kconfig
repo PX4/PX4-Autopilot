@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_VER
 	default n
 	---help---
 		Enable support for ver
+
+menuconfig USER_VER
+	bool "ver running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && SYSTEMCMDS_VER
+	---help---
+		Put ver in userspace memory

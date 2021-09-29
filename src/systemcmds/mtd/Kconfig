@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_MTD
 	default n
 	---help---
 		Enable support for mtd
+
+menuconfig USER_MTD
+	bool "mtd running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_MTD
+	---help---
+		Put mtd in userspace memory

@@ -3,3 +3,10 @@ menuconfig MODULES_MC_HOVER_THRUST_ESTIMATOR
 	default n
 	---help---
 		Enable support for mc_hover_thrust_estimator
+
+menuconfig USER_MC_HOVER_THRUST_ESTIMATOR
+	bool "mc_hover_thrust_estimator running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_MC_HOVER_THRUST_ESTIMATOR
+	---help---
+		Put mc_hover_thrust_estimator in userspace memory

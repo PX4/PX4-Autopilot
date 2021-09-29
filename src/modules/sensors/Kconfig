@@ -3,3 +3,10 @@ menuconfig MODULES_SENSORS
 	default n
 	---help---
 		Enable support for sensors
+
+menuconfig USER_SENSORS
+	bool "sensors running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_SENSORS
+	---help---
+		Put sensors in userspace memory

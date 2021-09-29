@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_DMESG
 	default n
 	---help---
 		Enable support for dmesg
+
+menuconfig USER_DMESG
+	bool "dmesg running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && SYSTEMCMDS_DMESG
+	---help---
+		Put dmesg in userspace memory

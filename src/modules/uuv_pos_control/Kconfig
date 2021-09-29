@@ -3,3 +3,10 @@ menuconfig MODULES_UUV_POS_CONTROL
 	default n
 	---help---
 		Enable support for uuv_pos_control
+
+menuconfig USER_UUV_POS_CONTROL
+	bool "uuv_pos_control running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_UUV_POS_CONTROL
+	---help---
+		Put uuv_pos_control in userspace memory

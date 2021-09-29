@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_SHUTDOWN
 	default n
 	---help---
 		Enable support for shutdown
+
+menuconfig USER_SHUTDOWN
+	bool "shutdown running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_SHUTDOWN
+	---help---
+		Put shutdown in userspace memory

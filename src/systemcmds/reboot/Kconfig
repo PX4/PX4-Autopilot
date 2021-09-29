@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_REBOOT
 	default n
 	---help---
 		Enable support for reboot
+
+menuconfig USER_REBOOT
+	bool "reboot running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_REBOOT
+	---help---
+		Put reboot in userspace memory

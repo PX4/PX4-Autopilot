@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_ESC_CALIB
 	default n
 	---help---
 		Enable support for esc_calib
+
+menuconfig USER_ESC_CALIB
+	bool "esc_calib running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_ESC_CALIB
+	---help---
+		Put esc_calib in userspace memory

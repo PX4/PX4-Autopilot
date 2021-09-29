@@ -3,3 +3,10 @@ menuconfig MODULES_RC_UPDATE
 	default n
 	---help---
 		Enable support for rc_update
+
+menuconfig USER_RC_UPDATE
+	bool "rc_update running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_RC_UPDATE
+	---help---
+		Put rc_update in userspace memory

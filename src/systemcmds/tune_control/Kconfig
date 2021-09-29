@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_TUNE_CONTROL
 	default n
 	---help---
 		Enable support for tune_control
+
+menuconfig USER_TUNE_CONTROL
+	bool "tune_control running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_TUNE_CONTROL
+	---help---
+		Put tune_control in userspace memory

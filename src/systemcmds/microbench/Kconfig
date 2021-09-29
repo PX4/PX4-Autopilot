@@ -3,3 +3,11 @@ menuconfig SYSTEMCMDS_MICROBENCH
 	default n
 	---help---
 		Enable support for microbench
+
+
+menuconfig USER_MICROBENCH
+	bool "microbench running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_MICROBENCH
+	---help---
+		Put microbench in userspace memory

@@ -3,3 +3,10 @@ menuconfig MODULES_FW_ATT_CONTROL
 	default n
 	---help---
 		Enable support for fw_att_control
+
+menuconfig USER_FW_ATT_CONTROL
+	bool "fw_att_control running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_FW_ATT_CONTROL
+	---help---
+		Put fw_att_control in userspace memory

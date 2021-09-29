@@ -3,3 +3,10 @@ menuconfig MODULES_LOAD_MON
 	default n
 	---help---
 		Enable support for load_mon
+
+menuconfig USER_LOAD_MON
+	bool "load_mon running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_LOAD_MON
+	---help---
+		Put load_mon in userspace memory

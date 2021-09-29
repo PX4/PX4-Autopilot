@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_MOTOR_TEST
 	default n
 	---help---
 		Enable support for motor_test
+
+menuconfig USER_MOTOR_TEST
+	bool "motor_test running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_MOTOR_TEST
+	---help---
+		Put motor_test in userspace memory

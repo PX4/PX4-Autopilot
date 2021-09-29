@@ -3,3 +3,10 @@ menuconfig MODULES_AIRSHIP_ATT_CONTROL
 	default n
 	---help---
 		Enable support for airship_att_control
+
+menuconfig USER_AIRSHIP_ATT_CONTROL
+	bool "airship_att_control running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_AIRSHIP_ATT_CONTROL
+	---help---
+		Put airship_att_control in userspace memory

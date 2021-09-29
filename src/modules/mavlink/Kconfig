@@ -3,3 +3,10 @@ menuconfig MODULES_MAVLINK
 	default n
 	---help---
 		Enable support for mavlink
+
+menuconfig USER_MAVLINK
+	bool "mavlink running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_MAVLINK
+	---help---
+		Put mavlink in userspace memory

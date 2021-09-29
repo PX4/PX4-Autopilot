@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_NETMAN
 	default n
 	---help---
 		Enable support for netman
+
+menuconfig USER_NETMAN
+	bool "netman running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_NETMAN
+	---help---
+		Put netman in userspace memory

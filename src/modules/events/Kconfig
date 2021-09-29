@@ -3,3 +3,10 @@ menuconfig MODULES_EVENTS
 	default n
 	---help---
 		Enable support for events
+
+menuconfig USER_EVENTS
+	bool "events running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_EVENTS
+	---help---
+		Put events in userspace memory

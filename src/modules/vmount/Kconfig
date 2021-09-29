@@ -3,3 +3,10 @@ menuconfig MODULES_VMOUNT
 	default n
 	---help---
 		Enable support for vmount
+
+menuconfig USER_VMOUNT
+	bool "vmount running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_VMOUNT
+	---help---
+		Put vmount in userspace memory

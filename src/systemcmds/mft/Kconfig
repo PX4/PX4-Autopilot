@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_MFT
 	default n
 	---help---
 		Enable support for mft
+
+menuconfig USER_MFT
+	bool "mft running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_MFT
+	---help---
+		Put mft in userspace memory

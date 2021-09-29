@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_USB_CONNECTED
 	default n
 	---help---
 		Enable support for usb_connected
+
+menuconfig USER_USB_CONNECTED
+	bool "usb_connected running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_USB_CONNECTED
+	---help---
+		Put usb_connected in userspace memory

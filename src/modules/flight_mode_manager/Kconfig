@@ -3,3 +3,10 @@ menuconfig MODULES_FLIGHT_MODE_MANAGER
 	default n
 	---help---
 		Enable support for flight_mode_manager
+
+menuconfig USER_FLIGHT_MODE_MANAGER
+	bool "flight_mode_manager running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_FLIGHT_MODE_MANAGER
+	---help---
+		Put flight_mode_manager in userspace memory

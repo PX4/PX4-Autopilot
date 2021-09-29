@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_MIXER
 	default n
 	---help---
 		Enable support for mixer
+
+menuconfig USER_MIXER
+	bool "mixer running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_MIXER
+	---help---
+		Put mixer in userspace memory

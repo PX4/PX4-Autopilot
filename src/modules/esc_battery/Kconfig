@@ -3,3 +3,10 @@ menuconfig MODULES_ESC_BATTERY
 	default n
 	---help---
 		Enable support for esc_battery
+
+menuconfig USER_ESC_BATTERY
+	bool "esc_battery running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_ESC_BATTERY
+	---help---
+		Put esc_battery in userspace memory
