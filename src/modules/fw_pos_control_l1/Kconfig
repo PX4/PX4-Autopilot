@@ -3,3 +3,10 @@ menuconfig MODULES_FW_POS_CONTROL_L1
 	default n
 	---help---
 		Enable support for fw_pos_control_l1
+
+menuconfig USER_FW_POS_CONTROL_L1
+	bool "fw_pos_control_l1 running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_FW_POS_CONTROL_L1
+	---help---
+		Put fw_pos_control_l1 in userspace memory
