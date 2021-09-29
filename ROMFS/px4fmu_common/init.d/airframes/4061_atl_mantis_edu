@@ -200,5 +200,5 @@ param set-default SENS_FLOW_ROT    4
 
 mixer load /dev/tap_esc /etc/mixers/quad_x.main.mix
 
-# ignore the SD card errors and use normal startup sound
-set STARTUP_TUNE 1
+# ignore the SD card errors and use normal startup sound, and make it less loud
+set STARTUP_TUNE "1 -s 20"
