@@ -736,7 +736,8 @@ void VehicleIMU::AccelCalibrationUpdate()
 				accel_cal_offset(axis_index) += bias_estimate(axis_index);
 			}
 
-			if (_accel_calibration.set_offset(accel_cal_offset)) {
+			// rotate offsets from body to sensor frame before setting
+			if (_accel_calibration.set_offset(_accel_calibration.rotation().transpose()*accel_cal_offset)) {
 
 				PX4_INFO("(%" PRIu32 ") bias=[%.2f %.2f %.2f] offset:[%.2f %.2f %.2f]->[%.2f %.2f %.2f]",
 					 _accel_calibration.device_id(),
