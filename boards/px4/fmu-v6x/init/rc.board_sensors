@@ -26,27 +26,39 @@ then
 fi
 
 # Internal SPI BMI088
-bmi088 -A -R 4 -s start
-bmi088 -G -R 4 -s start
+bmi088 -A -R 2 -s start
+bmi088 -G -R 2 -s start
 
 # Internal SPI bus ICM42688p
-icm42688p -R 6 -s start
+icm42688p -R 0 -s start
 
 # Internal SPI bus ICM-20649 (hard-mounted)
-icm20649 -R 14 -s start
+if ! icm20649 -R 14 -s start
+then
+	icm20689 -R 2 -s start
+fi
 
 # Internal magnetometer on I2c
-bmm150 -I start
+if ! bmm150 -I start
+then
+	rm3100 -s -b 4 start
+fi
 
 # External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
 ist8310 -X -b 1 -R 10 start
 
 # Possible internal Baro
-bmp388 -I -a 0x77 start
+if ! bmp388 -I -a 0x77 start
+then
+	icp10100 start -I
+fi
 
 if ver hwtypecmp V6X00
 then
-	bmp388 -I start
+	if ! bmp388 -I start
+	then
+		icp10111 start -X -b 2
+	fi
 else
 	bmp388 -X start
 fi
