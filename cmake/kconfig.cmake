@@ -273,9 +273,10 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	if(CONSTRAINED_FLASH)
 		set(px4_constrained_flash_build "1" CACHE INTERNAL "constrained flash build" FORCE)
 		add_definitions(-DCONSTRAINED_FLASH)
-		if (NO_HELP)
-			add_definitions(-DCONSTRAINED_FLASH_NO_HELP="https://docs.px4.io/master/en/modules/modules_main.html")
-		endif()
+	endif()
+
+    if (NO_HELP)
+		add_definitions(-DCONSTRAINED_FLASH_NO_HELP="https://docs.px4.io/master/en/modules/modules_main.html")
 	endif()
 
 	if(CONSTRAINED_MEMORY)

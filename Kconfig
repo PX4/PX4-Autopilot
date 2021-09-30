@@ -78,14 +78,10 @@ menu "Toolchain"
         help
             flag to enable constrained flash options (eg limit init script status text)
 
-    if BOARD_CONSTRAINED_FLASH
-
-        config BOARD_NO_HELP
+    config BOARD_NO_HELP
         bool "No help"
         help
             optional condition flag to disable help text on constrained flash systems
-
-    endif #BOARD_CONSTRAINED_FLASH
 
     config BOARD_CONSTRAINED_MEMORY
         bool "Contrained memory"
