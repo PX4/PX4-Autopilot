@@ -1771,7 +1771,7 @@ FixedwingPositionControl::Run()
 
 			vehicle_local_position_setpoint_s trajectory_setpoint;
 
-			if (_offboard_trajectory_setpoint_sub.update(&offboard_trajectory_setpoint)) {
+			if (_offboard_trajectory_setpoint_sub.update(&trajectory_setpoint)) {
 				if (PX4_ISFINITE(trajectory_setpoint.x) && PX4_ISFINITE(trajectory_setpoint.y) && PX4_ISFINITE(trajectory_setpoint.z)) {
 					double lat;
 					double lon;
