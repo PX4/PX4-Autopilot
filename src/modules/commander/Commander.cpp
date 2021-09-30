@@ -2472,13 +2472,6 @@ Commander::run()
 						_landing_gear_pub.publish(landing_gear);
 					}
 				}
-
-				// evaluate the main state machine according to mode switches
-				if (set_main_state() == TRANSITION_CHANGED) {
-					// play tune on mode change only if armed, blink LED always
-					tune_positive(_armed.armed);
-					_status_changed = true;
-				}
 			}
 
 			/* check throttle kill switch */
@@ -2512,6 +2505,15 @@ Commander::run()
 			}
 
 			/* no else case: do not change lockdown flag in unconfigured case */
+		}
+
+		/* evaluate the main state machine according to mode switches
+		 * this should be calld even if manual input is not updated as it also depends on
+		 * safety update and available estimates */
+		if (set_main_state() == TRANSITION_CHANGED) {
+			// play tune on mode change only if armed, blink LED always
+			tune_positive(_armed.armed);
+			_status_changed = true;
 		}
 
 		if (!_manual_control.isRCAvailable()) {
@@ -3083,10 +3085,8 @@ Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 
 transition_result_t Commander::set_main_state()
 {
-	if ((_manual_control_switches.timestamp == 0)
-	    || (_manual_control_switches.timestamp == _last_manual_control_switches.timestamp)) {
-
-		// no manual control or no update -> nothing changed
+	if (_manual_control_switches.timestamp == 0) {
+		// no manual control -> nothing changed
 		return TRANSITION_NOT_CHANGED;
 	}
 
