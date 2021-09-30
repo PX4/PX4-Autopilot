@@ -1984,9 +1984,7 @@ Commander::run()
 		}
 
 		/* update safety topic */
-		const bool safety_updated = _safety_sub.updated();
-
-		if (safety_updated) {
+		if (_safety_sub.updated()) {
 			const bool previous_safety_valid = (_safety.timestamp != 0);
 			const bool previous_safety_off = _safety.safety_off;
 
@@ -2440,7 +2438,7 @@ Commander::run()
 				_internal_state.main_state = commander_state_s::MAIN_STATE_POSCTL;
 			}
 
-			if (_manual_control_switches_sub.update(&_manual_control_switches) || safety_updated) {
+			if (_manual_control_switches_sub.update(&_manual_control_switches)) {
 
 				// handle landing gear switch if configured and in a manual mode
 				if ((_vehicle_control_mode.flag_control_manual_enabled) &&
