@@ -127,6 +127,12 @@ Mavlink::Mavlink() :
 	}
 
 	_vehicle_command_sub.subscribe();
+
+	if (orb_exists(ORB_ID(event), 0) == PX4_ERROR) {
+		orb_advertise_queue(ORB_ID(event), nullptr, event_s::ORB_QUEUE_LENGTH);
+	}
+
+	_event_sub.subscribe();
 }
 
 Mavlink::~Mavlink()
@@ -153,6 +159,19 @@ Mavlink::~Mavlink()
 
 	if (_instance_id >= 0) {
 		mavlink_module_instances[_instance_id] = nullptr;
+	}
+
+	// if this instance was responsible for checking events then select a new mavlink instance
+	if (check_events()) {
+		check_events_disable();
+
+		// select next available instance
+		for (Mavlink *inst : mavlink_module_instances) {
+			if (inst) {
+				inst->check_events_enable();
+				break;
+			}
+		}
 	}
 
 	perf_free(_loop_perf);
@@ -229,6 +248,20 @@ bool
 Mavlink::set_instance_id()
 {
 	LockGuard lg{mavlink_module_mutex};
+
+	// instance count
+	size_t inst_count = 0;
+
+	for (Mavlink *inst : mavlink_module_instances) {
+		if (inst != nullptr) {
+			inst_count++;
+		}
+	}
+
+	// if this is the first instance use it to check events
+	if (inst_count == 0) {
+		check_events_enable();
+	}
 
 	for (int instance_id = 0; instance_id < MAVLINK_COMM_NUM_BUFFERS; instance_id++) {
 		if (mavlink_module_instances[instance_id] == nullptr) {
@@ -2234,13 +2267,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_receiver.start();
 
-	/* Events subscription: only the first MAVLink instance should check */
-	uORB::Subscription event_sub{ORB_ID(event)};
-	const bool should_check_events = _instance_id == 0;
 	uint16_t event_sequence_offset = 0; // offset to account for skipped events, not sent via MAVLink
-	// ensure topic exists, otherwise we might lose first queued events
-	orb_advertise_queue(ORB_ID(event), nullptr, event_s::ORB_QUEUE_LENGTH);
-	event_sub.subscribe();
 
 	_mavlink_start_time = hrt_absolute_time();
 
@@ -2463,23 +2490,27 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		/* handle new events */
-		if (should_check_events) {
-			event_s orb_event;
+		if (check_events()) {
+			if (_event_sub.updated()) {
+				LockGuard lg{mavlink_module_mutex};
 
-			while (event_sub.update(&orb_event)) {
-				if (events::externalLogLevel(orb_event.log_levels) == events::LogLevel::Disabled) {
-					++event_sequence_offset; // skip this event
+				event_s orb_event;
 
-				} else {
-					events::Event e;
-					e.id = orb_event.id;
-					e.timestamp_ms = orb_event.timestamp / 1000;
-					e.sequence = orb_event.event_sequence - event_sequence_offset;
-					e.log_levels = orb_event.log_levels;
-					static_assert(sizeof(e.arguments) == sizeof(orb_event.arguments),
-						      "uorb message event: arguments size mismatch");
-					memcpy(e.arguments, orb_event.arguments, sizeof(orb_event.arguments));
-					_event_buffer->insert_event(e);
+				while (_event_sub.update(&orb_event)) {
+					if (events::externalLogLevel(orb_event.log_levels) == events::LogLevel::Disabled) {
+						++event_sequence_offset; // skip this event
+
+					} else {
+						events::Event e;
+						e.id = orb_event.id;
+						e.timestamp_ms = orb_event.timestamp / 1000;
+						e.sequence = orb_event.event_sequence - event_sequence_offset;
+						e.log_levels = orb_event.log_levels;
+						static_assert(sizeof(e.arguments) == sizeof(orb_event.arguments),
+							      "uorb message event: arguments size mismatch");
+						memcpy(e.arguments, orb_event.arguments, sizeof(orb_event.arguments));
+						_event_buffer->insert_event(e);
+					}
 				}
 			}
 		}

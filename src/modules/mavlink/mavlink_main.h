@@ -175,6 +175,10 @@ public:
 
 	static void		forward_message(const mavlink_message_t *msg, Mavlink *self);
 
+	bool			check_events() const { return _should_check_events.load(); }
+	void			check_events_enable() { _should_check_events.store(true); }
+	void			check_events_disable() { _should_check_events.store(false); }
+
 	int			get_uart_fd() const { return _uart_fd; }
 
 	/**
@@ -552,6 +556,7 @@ private:
 	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 	uORB::PublicationMulti<telemetry_status_s> _telemetry_status_pub{ORB_ID(telemetry_status)};
 
+	uORB::Subscription _event_sub{ORB_ID(event)};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _vehicle_command_ack_sub{ORB_ID(vehicle_command_ack)};
@@ -572,6 +577,8 @@ private:
 	bool			_is_usb_uart{false};		/**< Port is USB */
 	bool			_wait_to_transmit{false};  	/**< Wait to transmit until received messages. */
 	bool			_received_messages{false};	/**< Whether we've received valid mavlink messages. */
+
+	px4::atomic_bool	_should_check_events{false};    /**< Events subscription: only one MAVLink instance should check */
 
 	unsigned		_main_loop_delay{1000};	/**< mainloop delay, depends on data rate */
 
