@@ -511,6 +511,7 @@ VtolAttitudeControl::Run()
 
 		// Advertise/Publish vtol vehicle status
 		_vtol_vehicle_status.timestamp = hrt_absolute_time();
+		_vtol_type->fill_vtol_status_mc_weight(_vtol_vehicle_status);
 		_vtol_vehicle_status_pub.publish(_vtol_vehicle_status);
 	}
 

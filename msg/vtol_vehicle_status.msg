@@ -12,3 +12,7 @@ bool vtol_in_trans_mode
 bool in_transition_to_fw		# True if VTOL is doing a transition from MC to FW
 bool vtol_transition_failsafe		# vtol in transition failsafe mode
 bool fw_permanent_stab			# In fw mode stabilize attitude even if in manual mode
+float32 mc_roll_weight
+float32 mc_pitch_weight
+float32 mc_yaw_weight
+float32 mc_throttle_weight

@@ -47,6 +47,8 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
 
+#include <uORB/topics/vtol_vehicle_status.h>
+
 struct Params {
 	int32_t idle_pwm_mc;			// pwm value for idle in mc mode
 	int32_t vtol_motor_id;
@@ -193,6 +195,14 @@ public:
 	bool was_in_trans_mode() {return _flag_was_in_trans_mode;}
 
 	virtual void parameters_update() = 0;
+
+	void fill_vtol_status_mc_weight(struct vtol_vehicle_status_s &vtol_vehicle_status)
+	{
+		vtol_vehicle_status.mc_roll_weight = _mc_roll_weight;
+		vtol_vehicle_status.mc_pitch_weight = _mc_pitch_weight;
+		vtol_vehicle_status.mc_yaw_weight = _mc_yaw_weight;
+		vtol_vehicle_status.mc_throttle_weight = _mc_throttle_weight;
+	}
 
 protected:
 	VtolAttitudeControl *_attc;

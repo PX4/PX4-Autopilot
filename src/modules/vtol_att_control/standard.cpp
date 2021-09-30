@@ -122,10 +122,7 @@ void Standard::update_vtol_state()
 		// the transition to fw mode switch is off
 		if (_vtol_schedule.flight_mode == vtol_mode::MC_MODE) {
 			// in mc mode
-			_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
-			mc_weight = 1.0f;
-			_pusher_throttle = 0.0f;
-			_reverse_output = 0.0f;
+			set_mc_state();
 
 		} else if (_vtol_schedule.flight_mode == vtol_mode::FW_MODE) {
 			// Regular backtransition
@@ -135,10 +132,7 @@ void Standard::update_vtol_state()
 
 		} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_FW) {
 			// failsafe back to mc mode
-			_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
-			mc_weight = 1.0f;
-			_pusher_throttle = 0.0f;
-			_reverse_output = 0.0f;
+			set_mc_state();
 
 		} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_MC) {
 			// transition to MC mode if transition time has passed or forward velocity drops below MPC cruise speed
@@ -151,7 +145,7 @@ void Standard::update_vtol_state()
 			if (time_since_trans_start > _params->back_trans_duration ||
 			    (_local_pos->v_xy_valid && x_vel <= _params->mpc_xy_cruise) ||
 			    can_transition_on_ground()) {
-				_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
+				set_mc_state();
 			}
 		}
 
@@ -196,6 +190,10 @@ void Standard::update_vtol_state()
 				_trans_finished_ts = hrt_absolute_time();
 			}
 		}
+	}
+
+	if (_vtol_schedule.flight_mode == vtol_mode::MC_MODE) {
+		mc_weight = 1.0f;
 	}
 
 	_mc_roll_weight = mc_weight;
@@ -425,4 +423,12 @@ Standard::waiting_on_tecs()
 {
 	// keep thrust from transition
 	_v_att_sp->thrust_body[0] = _pusher_throttle;
-};
+}
+
+void
+Standard::set_mc_state()
+{
+	_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
+	_pusher_throttle = 0.0f;
+	_reverse_output = 0.0f;
+}

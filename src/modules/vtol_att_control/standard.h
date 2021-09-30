@@ -64,6 +64,8 @@ public:
 	void fill_actuator_outputs() override;
 	void waiting_on_tecs() override;
 
+	void set_mc_state();
+
 private:
 
 	struct {
