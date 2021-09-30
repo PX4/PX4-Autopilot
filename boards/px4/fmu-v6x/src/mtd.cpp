@@ -102,10 +102,10 @@ static const px4_mtd_entry_t imu_eeprom = {
 };
 
 static const px4_mtd_manifest_t board_mtd_config = {
-	.nconfigs   = 3,
+	.nconfigs   = 2,
 	.entries = {
 		&fmum_fram,
-		&base_eeprom,
+		// &base_eeprom,
 		&imu_eeprom
 	}
 };
