@@ -170,7 +170,7 @@ private:
 
 	bool _accel_cal_available{false};
 
-	struct AcelCal {
+	struct AccelCal {
 		uint32_t device_id{0};
 		matrix::Vector3f accel_offset{};
 		matrix::Vector3f accel_bias_variance{};
