@@ -412,6 +412,14 @@ RoverPositionControl::Run()
 		/* only run controller if position changed */
 		if (_local_pos_sub.update(&_local_pos)) {
 
+			//update trajectory_setpoint
+			if (_control_mode.flag_control_offboard_enabled) {
+				_offboard_trajectory_setpoint_sub.update(&_trajectory_setpoint);
+
+			} else {
+				_trajectory_setpoint_sub.update(&_trajectory_setpoint);
+			}
+
 			/* load local copies */
 			_global_pos_sub.update(&_global_pos);
 
@@ -427,8 +435,6 @@ RoverPositionControl::Run()
 
 					_global_local_alt0 = _local_pos.ref_alt;
 				}
-
-				_trajectory_setpoint_sub.update(&_trajectory_setpoint);
 
 				// local -> global
 				map_projection_reproject(&_global_local_proj_ref,
@@ -475,7 +481,6 @@ RoverPositionControl::Run()
 				}
 
 			} else if (!_control_mode.flag_control_manual_enabled && _control_mode.flag_control_velocity_enabled) {
-				_trajectory_setpoint_sub.update(&_trajectory_setpoint);
 				control_velocity(current_velocity);
 			}
 		}

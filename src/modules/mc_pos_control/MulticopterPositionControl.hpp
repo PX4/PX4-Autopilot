@@ -102,6 +102,7 @@ private:
 
 	uORB::Subscription _hover_thrust_estimate_sub {ORB_ID(hover_thrust_estimate)};
 	uORB::Subscription _trajectory_setpoint_sub {ORB_ID(trajectory_setpoint)};
+	uORB::Subscription _offboard_trajectory_setpoint_sub {ORB_ID(offboard_trajectory_setpoint)};
 	uORB::Subscription _vehicle_constraints_sub {ORB_ID(vehicle_constraints)};
 	uORB::Subscription _vehicle_control_mode_sub {ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_land_detected_sub {ORB_ID(vehicle_land_detected)};

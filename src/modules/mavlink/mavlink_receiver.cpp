@@ -1004,7 +1004,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 			if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
 				// only publish setpoint once in OFFBOARD
 				setpoint.timestamp = hrt_absolute_time();
-				_trajectory_setpoint_pub.publish(setpoint);
+				_offboard_trajectory_setpoint_pub.publish(setpoint);
 			}
 
 		} else {
@@ -1134,7 +1134,7 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 			if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
 				// only publish setpoint once in OFFBOARD
 				setpoint.timestamp = hrt_absolute_time();
-				_trajectory_setpoint_pub.publish(setpoint);
+				_offboard_trajectory_setpoint_pub.publish(setpoint);
 			}
 		}
 	}

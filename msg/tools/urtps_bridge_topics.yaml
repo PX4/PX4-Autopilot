@@ -62,6 +62,9 @@ rtps:
   - msg:     trajectory_setpoint # multi-topic / alias of vehicle_local_position_setpoint
     base:    vehicle_local_position_setpoint
     receive: true
+  - msg:     offboard_trajectory_setpoint # multi-topic / alias of vehicle_local_position_setpoint
+    base:    vehicle_local_position_setpoint
+    receive: true
   - msg:     vehicle_odometry
     send:    true
   - msg:     vehicle_mocap_odometry # multi-topic / alias of vehicle_odometry

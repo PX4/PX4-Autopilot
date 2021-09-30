@@ -179,7 +179,13 @@ void UUVPOSControl::Run()
 		    && _vcontrol_mode.flag_control_rates_enabled) {
 
 			_vehicle_attitude_sub.update(&_vehicle_attitude);//get current vehicle attitude
-			_trajectory_setpoint_sub.update(&_trajectory_setpoint);
+
+			if (_vcontrol_mode.flag_control_offboard_enabled) {
+				_offboard_trajectory_setpoint_sub.update(&_trajectory_setpoint);
+
+			} else {
+				_trajectory_setpoint_sub.update(&_trajectory_setpoint);
+			}
 
 			float roll_des = 0;
 			float pitch_des = 0;

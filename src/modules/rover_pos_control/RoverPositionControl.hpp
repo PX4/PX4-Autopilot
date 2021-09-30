@@ -116,6 +116,7 @@ private:
 	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
+	uORB::Subscription _offboard_trajectory_setpoint_sub {ORB_ID(offboard_trajectory_setpoint)};
 
 	manual_control_setpoint_s		_manual_control_setpoint{};			    /**< r/c channel data */
 	position_setpoint_triplet_s		_pos_sp_triplet{};		/**< triplet of mission items */

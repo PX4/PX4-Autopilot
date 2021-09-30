@@ -310,7 +310,7 @@ private:
 	uORB::Publication<vehicle_global_position_s>		_global_pos_pub{ORB_ID(vehicle_global_position)};
 	uORB::Publication<vehicle_land_detected_s>		_land_detector_pub{ORB_ID(vehicle_land_detected)};
 	uORB::Publication<vehicle_local_position_s>		_local_pos_pub{ORB_ID(vehicle_local_position)};
-	uORB::Publication<vehicle_local_position_setpoint_s>	_trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
+	uORB::Publication<vehicle_local_position_setpoint_s>	_offboard_trajectory_setpoint_pub{ORB_ID(offboard_trajectory_setpoint)};
 	uORB::Publication<vehicle_odometry_s>			_mocap_odometry_pub{ORB_ID(vehicle_mocap_odometry)};
 	uORB::Publication<vehicle_odometry_s>			_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Publication<vehicle_rates_setpoint_s>		_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
