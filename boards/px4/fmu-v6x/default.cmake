@@ -29,9 +29,10 @@ px4_add_board(
 		heater
 		#imu # all available imu drivers
 		imu/bosch/bmi088
-		imu/invensense/icm20602
+		# imu/invensense/icm20602
 		imu/invensense/icm20649
-		imu/invensense/icm20948 # required for ak09916 mag
+		imu/invensense/icm20689
+		# imu/invensense/icm20948 # required for ak09916 mag
 		imu/invensense/icm42688p
 		irlock
 		lights # all available light drivers
