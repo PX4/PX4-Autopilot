@@ -35,7 +35,7 @@
 #include <px4_platform_common/module_params.h>
 
 #define   __FM_VER                   "v1.12.0_test"
-#define   __MD_CONTENT      "add submodule px4ver"
+#define   __MD_CONTENT      "add new titlrotor vtol airframe,add submodule px4ver"
 
 extern "C" __EXPORT int px4ver_main(int argc, char *argv[]);
 
