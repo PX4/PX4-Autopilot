@@ -64,6 +64,7 @@ px4_add_board(
 		land_detector
 		load_mon
 		logger
+		mag_bias_estimator
 		mavlink
 		navigator
 		rc_update
