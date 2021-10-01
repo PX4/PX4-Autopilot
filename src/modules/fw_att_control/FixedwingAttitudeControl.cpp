@@ -519,15 +519,30 @@ void FixedwingAttitudeControl::Run()
 					control_input.pitch_rate_setpoint = _pitch_ctrl.get_desired_rate();
 					control_input.yaw_rate_setpoint = _yaw_ctrl.get_desired_rate();
 
+					const hrt_abstime now = hrt_absolute_time();
+					autotune_attitude_control_status_s pid_autotune;
+					matrix::Vector3f bodyrate_ff;
+
+					if (_autotune_attitude_control_status_sub.copy(&pid_autotune)) {
+						if ((pid_autotune.state == autotune_attitude_control_status_s::STATE_ROLL
+						     || pid_autotune.state == autotune_attitude_control_status_s::STATE_PITCH
+						     || pid_autotune.state == autotune_attitude_control_status_s::STATE_YAW
+						     || pid_autotune.state == autotune_attitude_control_status_s::STATE_TEST)
+						    && ((now - pid_autotune.timestamp) < 1_s)) {
+
+							bodyrate_ff = matrix::Vector3f(pid_autotune.rate_sp);
+						}
+					}
+
 					/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
-					float roll_u = _roll_ctrl.control_euler_rate(dt, control_input);
+					float roll_u = _roll_ctrl.control_euler_rate(dt, control_input, bodyrate_ff(0));
 					_actuators.control[actuator_controls_s::INDEX_ROLL] = (PX4_ISFINITE(roll_u)) ? roll_u + trim_roll : trim_roll;
 
 					if (!PX4_ISFINITE(roll_u)) {
 						_roll_ctrl.reset_integrator();
 					}
 
-					float pitch_u = _pitch_ctrl.control_euler_rate(dt, control_input);
+					float pitch_u = _pitch_ctrl.control_euler_rate(dt, control_input, bodyrate_ff(1));
 					_actuators.control[actuator_controls_s::INDEX_PITCH] = (PX4_ISFINITE(pitch_u)) ? pitch_u + trim_pitch : trim_pitch;
 
 					if (!PX4_ISFINITE(pitch_u)) {
@@ -540,7 +555,7 @@ void FixedwingAttitudeControl::Run()
 						yaw_u = _wheel_ctrl.control_bodyrate(dt, control_input);
 
 					} else {
-						yaw_u = _yaw_ctrl.control_euler_rate(dt, control_input);
+						yaw_u = _yaw_ctrl.control_euler_rate(dt, control_input, bodyrate_ff(2));
 					}
 
 					_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + trim_yaw : trim_yaw;
