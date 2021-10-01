@@ -44,7 +44,7 @@ px4_add_board(
 		#roboclaw
 		#rpm
 		safety_button
-		smart_battery/batmon
+		#smart_battery/batmon
 		telemetry # all available telemetry drivers
 		tone_alarm
 		#uavcan
@@ -70,6 +70,7 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
+		mc_autotune_attitude_control
 		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
