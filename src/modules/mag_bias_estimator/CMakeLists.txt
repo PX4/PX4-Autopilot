@@ -30,14 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-add_subdirectory(FieldSensorBiasEstimator)
-
-px4_add_library(MagnetometerBiasEstimator
-	MagnetometerBiasEstimator.cpp
+px4_add_module(
+	MODULE modules__mag_bias_estimator
+	MAIN mag_bias_estimator
+	COMPILE_FLAGS
+		#-DDEBUG_BUILD
+	SRCS
+		MagBiasEstimator.cpp
+		MagBiasEstimator.hpp
+	DEPENDS
+		px4_work_queue
 )
-target_include_directories(MagnetometerBiasEstimator
-	PUBLIC
-	${CMAKE_CURRENT_SOURCE_DIR}
-)
-target_link_libraries(MagnetometerBiasEstimator PUBLIC FieldSensorBiasEstimator)

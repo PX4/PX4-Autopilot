@@ -98,6 +98,7 @@ set(msg_files
 	log_message.msg
 	logger_status.msg
 	mag_worker_data.msg
+	magnetometer_bias_estimate.msg
 	manual_control_setpoint.msg
 	manual_control_switches.msg
 	mavlink_log.msg
