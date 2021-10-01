@@ -127,7 +127,7 @@ else
 		m=0
 		while [ $m -lt ${target_number} ]; do
 			export PX4_SIM_MODEL=${target_vehicle}${LABEL}
-			spawn_model ${target_vehicle} $n $target_x $target_y
+			spawn_model ${target_vehicle}${LABEL} $n $target_x $target_y
 			m=$(($m + 1))
 			n=$(($n + 1))
 		done
