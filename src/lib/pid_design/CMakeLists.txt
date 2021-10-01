@@ -31,8 +31,4 @@
 #
 ############################################################################
 
-px4_add_library(PidDesign
-	pid_design.hpp
-)
-
 px4_add_unit_gtest(SRC pid_design_test.cpp)

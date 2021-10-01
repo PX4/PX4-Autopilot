@@ -16,7 +16,7 @@ px4_add_board(
 		# CONSOLE: /dev/ttyS4
 		# RC: /dev/ttyS5
 	DRIVERS
-		adc/ads1115
+		#adc/ads1115
 		adc/board_adc
 		barometer # all available barometer drivers
 		batt_smbus
@@ -28,20 +28,21 @@ px4_add_board(
 		gps
 		heater
 		#imu # all available imu drivers
-		imu/analog_devices/adis16448
+		#imu/analog_devices/adis16448
 		imu/analog_devices/adis16470
 		imu/bosch/bmi088
 		imu/invensense/icm20649
 		imu/invensense/icm20689
 		imu/invensense/icm20948 # required for ak09916 mag
+		#imu/invensense/icm42688p
 		#irlock
 		lights # all available light drivers
 		lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
-		optical_flow # all available optical flow drivers
-		osd
-		pca9685
-		pca9685_pwm_out
+		#optical_flow # all available optical flow drivers
+		#osd
+		#pca9685
+		#pca9685_pwm_out
 		power_monitor/ina226
 		#protocol_splitter
 		pwm_out_sim
@@ -50,6 +51,7 @@ px4_add_board(
 		#roboclaw
 		#rpm
 		safety_button
+		#smart_battery/batmon
 		telemetry # all available telemetry drivers
 		test_ppm
 		tone_alarm
@@ -76,6 +78,7 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
+		mc_autotune_attitude_control
 		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
@@ -112,7 +115,7 @@ px4_add_board(
 		reboot
 		#reflect
 		sd_bench
-		serial_test
+		#serial_test
 		#system_time
 		tests # tests and test runner
 		top
