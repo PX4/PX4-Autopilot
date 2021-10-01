@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,39 +31,28 @@
  *
  ****************************************************************************/
 
-#include <gtest/gtest.h>
-#include <FieldSensorBiasEstimator.hpp>
+/**
+ * Enable online mag bias calibration
+ *
+ * This enables continuous calibration of the magnetometers
+ * before takeoff using gyro data.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group Magnetometer Bias Estimator
+ */
+PARAM_DEFINE_INT32(MBE_ENABLE, 1);
 
-using namespace matrix;
-
-TEST(MagnetometerBiasEstimatorTest, AllZeroCase)
-{
-	FieldSensorBiasEstimator field_sensor_bias_estimator;
-	const Vector3f virtual_gyro = Vector3f(0.f, 0.f, 0.1f);
-	Vector3f virtual_unbiased_mag = Vector3f(0.9f, 0.f, 1.79f); // taken from SITL jmavsim initialization
-	const Vector3f virtual_bias(0.2f, -0.4f, 0.5f);
-	Vector3f virtual_mag = virtual_unbiased_mag + virtual_bias;
-
-	// Initialize with the current measurement
-	field_sensor_bias_estimator.setField(virtual_mag);
-
-	for (int i = 0; i <= 1000; i++) {
-		float dt = .01f;
-
-		// turn the mag values according to the gyro
-
-		virtual_mag = virtual_unbiased_mag + virtual_bias;
-		// printf("---- %i\n", i);
-		// printf("virtual_gyro\n"); virtual_gyro.print();
-		// printf("virtual_mag\n"); virtual_mag.print();
-
-		field_sensor_bias_estimator.updateEstimate(virtual_gyro, virtual_mag, dt);
-		virtual_unbiased_mag = Dcmf(AxisAnglef(-virtual_gyro * dt)) * virtual_unbiased_mag;
-	}
-
-	const Vector3f bias_est = field_sensor_bias_estimator.getBias();
-	EXPECT_NEAR(bias_est(0), virtual_bias(0), 1e-3f) << "Estimated X bias " << bias_est(0);
-	EXPECT_NEAR(bias_est(1), virtual_bias(1), 1e-3f) << "Estimated Y bias " << bias_est(1);
-	// The Z bias is not observable due to pure yaw rotation
-	EXPECT_NEAR(bias_est(2), 0.f, 1e-3f) << "Estimated Z bias " << bias_est(2);
-}
+/**
+ * Mag bias estimator learning gain
+ *
+ * Increase to make the estimator more responsive
+ * Decrease to make the estimator more robust to noise
+ *
+ * @min 0.1
+ * @max 100
+ * @increment 0.1
+ * @decimal 1
+ * @group Magnetometer Bias Estimator
+ */
+PARAM_DEFINE_FLOAT(MBE_LEARN_GAIN, 0.4f);
