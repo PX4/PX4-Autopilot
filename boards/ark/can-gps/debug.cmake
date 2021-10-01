@@ -33,6 +33,6 @@ px4_add_board(
 		topic_listener
 		tune_control
 		uorb
-		ver
+		#ver
 		work_queue
 )
