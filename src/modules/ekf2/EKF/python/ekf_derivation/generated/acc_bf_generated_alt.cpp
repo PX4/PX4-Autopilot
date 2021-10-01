@@ -198,5 +198,3 @@ Kfusion(23) = -HK79*HK84;
 
 
 // Kalman gains - axis 2
-
-

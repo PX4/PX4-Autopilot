@@ -96,20 +96,20 @@ else
         end
         centerLineTimeFull = get(lines(k),'XData');
         centerLineDataFull = get(lines(k),'YData');
-        
+
         startTime = max(centerLineTimeFull(1),dataSrc.Tsec(1));
         endTime = min(centerLineTimeFull(end),dataSrc.Tsec(end));
         plotTimeFull = dataSrc.Tsec(dataSrc.Tsec >= startTime & dataSrc.Tsec <= endTime);
         plotDataFull = dataSrc.(varNames{k})(dataSrc.Tsec >= startTime & dataSrc.Tsec <= endTime);
-        
+
         centerLineTime = centerLineTimeFull(centerLineTimeFull >= startTime & centerLineTimeFull <= endTime);
         centerLineData = centerLineDataFull(centerLineTimeFull >= startTime & centerLineTimeFull <= endTime);
-        
+
         plotTime = linspace(startTime,endTime,250);
         plotData = sqrt(interp1(plotTimeFull,plotDataFull,plotTime));
         centerLineData = interp1(centerLineTime,centerLineData,plotTime);
-        
-%         plotTime = downsample(centerLineTime,round(numel(plotDataT)/350),0);
+
+        % plotTime = downsample(centerLineTime,round(numel(plotDataT)/350),0);
         if strcmp('IV',varNames{k}(end-1:end))
             plotDataL = -plotData;
             plotDataU = plotData;
