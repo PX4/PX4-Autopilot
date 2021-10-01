@@ -13,7 +13,7 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
@@ -87,7 +87,7 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
@@ -159,7 +159,7 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
@@ -231,7 +231,7 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
@@ -302,7 +302,7 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
@@ -374,7 +374,7 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
@@ -456,7 +456,7 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
@@ -528,7 +528,7 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
@@ -610,7 +610,7 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
@@ -682,7 +682,7 @@ pipeline {
         //       agent {
         //         docker {
         //           image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-        //           args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+        //           args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
         //         }
         //       }
         //       steps {
@@ -749,7 +749,7 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
