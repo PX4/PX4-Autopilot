@@ -110,14 +110,22 @@ include(px4_parse_function_args)
 #=============================================================================
 # git
 #
+find_package(Git QUIET)
 include(px4_git)
 
+# sync submodules
 execute_process(
-	COMMAND git describe --exclude ext/* --always --tags
-	OUTPUT_VARIABLE PX4_GIT_TAG
-	OUTPUT_STRIP_TRAILING_WHITESPACE
-	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-	)
+        COMMAND ${GIT_EXECUTABLE} submodule sync --recursive --quiet
+        OUTPUT_VARIABLE GIT_SUBMODULE_SYNC
+        WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+)
+
+execute_process(
+        COMMAND ${GIT_EXECUTABLE} describe --exclude ext/* --always --tags
+        OUTPUT_VARIABLE PX4_GIT_TAG
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+)
 message(STATUS "PX4 version: ${PX4_GIT_TAG}")
 
 define_property(GLOBAL PROPERTY PX4_MODULE_LIBRARIES
