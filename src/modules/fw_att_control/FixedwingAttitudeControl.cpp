@@ -44,6 +44,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl(bool vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_actuators_0_pub(vtol ? ORB_ID(actuator_controls_virtual_fw) : ORB_ID(actuator_controls_0)),
+	_actuator_controls_status_pub(vtol ? ORB_ID(actuator_controls_status_1) : ORB_ID(actuator_controls_status_0)),
 	_attitude_sp_pub(vtol ? ORB_ID(fw_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
@@ -642,6 +643,8 @@ void FixedwingAttitudeControl::Run()
 		    _vcontrol_mode.flag_control_manual_enabled) {
 			_actuators_0_pub.publish(_actuators);
 		}
+
+		updateActuatorControlsStatus(dt);
 	}
 
 	perf_end(_loop_perf);
@@ -709,6 +712,41 @@ void FixedwingAttitudeControl::control_flaps(const float dt)
 
 	} else {
 		_flaperons_applied = flaperon_control;
+	}
+}
+
+void FixedwingAttitudeControl::updateActuatorControlsStatus(float dt)
+{
+	for (int i = 0; i < 4; i++) {
+		float control_signal;
+
+		if (i <= actuator_controls_status_s::INDEX_YAW) {
+			// We assume that the attitude is actuated by control surfaces
+			// consuming power only when they move
+			control_signal = _actuators.control[i] - _control_prev[i];
+			_control_prev[i] = _actuators.control[i];
+
+		} else {
+			control_signal = _actuators.control[i];
+		}
+
+		_control_energy[i] += control_signal * control_signal * dt;
+	}
+
+	_energy_integration_time += dt;
+
+	if (_energy_integration_time > 500e-3f) {
+
+		actuator_controls_status_s status;
+		status.timestamp = _actuators.timestamp;
+
+		for (int i = 0; i < 4; i++) {
+			status.control_power[i] = _control_energy[i] / _energy_integration_time;
+			_control_energy[i] = 0.f;
+		}
+
+		_actuator_controls_status_pub.publish(status);
+		_energy_integration_time = 0.f;
 	}
 }
 
