@@ -199,4 +199,3 @@ if __name__ == '__main__':
     output_groups, timer_params = get_output_groups(timer_groups, verbose=verbose)
     print('output groups: {:}'.format(output_groups))
     print('timer params: {:}'.format(timer_params))
-

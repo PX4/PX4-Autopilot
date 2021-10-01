@@ -17,4 +17,3 @@ actuator_output:
         max: { min: 0, max: 1000, default: 1000 }
         failsafe: { min: 0, max: 1000 }
       num_channels: 8
-

@@ -38,4 +38,3 @@ px4_add_module(
 		sd_stress.c
 	DEPENDS
 	)
-
