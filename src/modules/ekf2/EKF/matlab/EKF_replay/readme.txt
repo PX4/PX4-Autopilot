@@ -101,7 +101,7 @@ Finally copy the generated .mat files into the /EKF_replay/TestData/PX4 director
 5) Execute ‘SetParameterDefaults’ at the command prompt to load the default filter tuning parameter struct ‘param’ into the workspace. The defaults have been set to provide robust estimation across the entire data set, not optimised for accuracy.
 
 
-6) Replay the data by running either the replay_apm_data.m, replay_px4_data.m or if you have px4 optical flow data, the replay_px4_optflow_data.m script file. 
+6) Replay the data by running either the replay_apm_data.m, replay_px4_data.m or if you have px4 optical flow data, the replay_px4_optflow_data.m script file.
 
 Output plots are saved as .png files in the ‘…/EKF_replay/OutputPlots/‘ directory.
 
