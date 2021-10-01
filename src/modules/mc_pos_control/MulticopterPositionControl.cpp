@@ -394,6 +394,8 @@ void MulticopterPositionControl::Run()
 				// make sure takeoff ramp is not amended by acceleration feed-forward
 				if (!flying) {
 					_setpoint.acceleration[2] = NAN;
+					// hover_thrust maybe reset on takeoff
+					_control.setHoverThrust(_param_mpc_thr_hover.get());
 				}
 
 				const bool not_taken_off             = (_takeoff.getTakeoffState() < TakeoffState::rampup);
