@@ -475,6 +475,32 @@ MavlinkMissionManager::send_mission_item_reached(uint16_t seq)
 }
 
 void
+MavlinkMissionManager::send_group_start(uint32_t group_id, uint64_t timestamp)
+{
+	mavlink_group_start_t group_start{};
+
+	group_start.group_id = group_id;
+	group_start.time_usec = timestamp;
+
+	mavlink_msg_group_start_send_struct(_mavlink->get_channel(), &group_start);
+
+	PX4_DEBUG("WPM: Send GROUP_START id %u", group_start.group_id);
+}
+
+void
+MavlinkMissionManager::send_group_end(uint32_t group_id, uint64_t timestamp)
+{
+	mavlink_group_end_t group_end{};
+
+	group_end.group_id = group_id;
+	group_end.time_usec = timestamp;
+
+	mavlink_msg_group_end_send_struct(_mavlink->get_channel(), &group_end);
+
+	PX4_DEBUG("WPM: Send GROUP_END id %u", group_end.group_id);
+}
+
+void
 MavlinkMissionManager::send()
 {
 	// do not send anything over high latency communication
@@ -513,6 +539,14 @@ MavlinkMissionManager::send()
 				send_mission_item(_transfer_partner_sysid, _transfer_partner_compid,
 						  (uint16_t)mission_result.item_changed_index);
 			}
+		}
+
+		for (uint8_t i = 0; i < mission_result.groups_ended_num; i++) {
+			send_group_end(mission_result.groups_ended[i], mission_result.timestamp);
+		}
+
+		for (uint8_t i = 0; i < mission_result.groups_started_num; i++) {
+			send_group_start(mission_result.groups_started[i], mission_result.timestamp);
 		}
 
 	} else {
@@ -1459,6 +1493,12 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
 			break;
 
+		case MAV_CMD_GROUP_START:
+		case MAV_CMD_GROUP_END:
+			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+			mission_item->params[0] = mavlink_mission_item->param1;
+			break;
+
 		default:
 			mission_item->nav_cmd = NAV_CMD_INVALID;
 
@@ -1544,6 +1584,12 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_CONDITION_DELAY:
 		case MAV_CMD_CONDITION_DISTANCE:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+			break;
+
+		case MAV_CMD_GROUP_START:
+		case MAV_CMD_GROUP_END:
+			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+			mission_item->params[0] = mavlink_mission_item->param1;
 			break;
 
 		default:
@@ -1635,6 +1681,8 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case NAV_CMD_SET_CAMERA_ZOOM:
 		case NAV_CMD_SET_CAMERA_FOCUS:
 		case NAV_CMD_DO_VTOL_TRANSITION:
+		case MAV_CMD_GROUP_START:
+		case MAV_CMD_GROUP_END:
 			break;
 
 		default:

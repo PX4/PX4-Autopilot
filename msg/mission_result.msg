@@ -21,4 +21,9 @@ bool item_do_jump_changed	# true if the number of do jumps remaining has changed
 uint16 item_changed_index	# indicate which item has changed
 uint16 item_do_jump_remaining	# set to the number of do jumps remaining for that item
 
+uint32[3] groups_started        # mission item group ids to be started
+uint8 groups_started_num        # number of items in groups_started
+uint32[3] groups_ended          # mission item group ids to be ended
+uint8 groups_ended_num          # number of items in groups_ended
+
 uint8 execution_mode	# indicates the mode in which the mission is executed

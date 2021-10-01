@@ -204,6 +204,9 @@ private:
 	 */
 	void send_mission_item_reached(uint16_t seq);
 
+	void send_group_start(uint32_t group_id, uint64_t timestamp);
+	void send_group_end(uint32_t group_id, uint64_t timestamp);
+
 	void handle_mission_ack(const mavlink_message_t *msg);
 
 	void handle_mission_set_current(const mavlink_message_t *msg);

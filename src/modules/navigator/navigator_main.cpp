@@ -1463,10 +1463,46 @@ Navigator::publish_mission_result()
 
 	/* reset some of the flags */
 	_mission_result.item_do_jump_changed = false;
+	_mission_result.groups_started_num = 0;
+	_mission_result.groups_ended_num = 0;
 	_mission_result.item_changed_index = 0;
 	_mission_result.item_do_jump_remaining = 0;
 
 	_mission_result_updated = false;
+}
+
+void
+Navigator::set_group_start(uint32_t id)
+{
+	if (id == 0 || _mission_result.groups_started_num >= max_started_groups) {
+		return;
+	}
+
+	for (uint8_t i = 0; i < _mission_result.groups_started_num; i++) {
+		if (_mission_result.groups_started[_mission_result.groups_started_num] == id) {
+			return;
+		}
+	}
+
+	_mission_result.groups_started[_mission_result.groups_started_num++] = id;
+	_mission_result_updated = true;
+}
+
+void
+Navigator::set_group_end(uint32_t id)
+{
+	if (id == 0 || _mission_result.groups_ended_num >= max_started_groups) {
+		return;
+	}
+
+	for (uint8_t i = 0; i < _mission_result.groups_ended_num; i++) {
+		if (_mission_result.groups_ended[_mission_result.groups_ended_num] == id) {
+			return;
+		}
+	}
+
+	_mission_result.groups_ended[_mission_result.groups_ended_num++] = id;
+	_mission_result_updated = true;
 }
 
 void

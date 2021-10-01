@@ -65,6 +65,8 @@
 #include <uORB/topics/vehicle_roi.h>
 #include <uORB/uORB.h>
 
+const int max_started_groups = 3;
+
 class Navigator;
 
 class Mission : public MissionBlock, public ModuleParams
@@ -239,6 +241,8 @@ private:
 	void publish_navigator_mission_item();
 
 	void calculate_mission_checksums();
+
+	void get_started_groups(size_t current_item, uint32_t started_groups[], size_t &num);
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_mis_dist_1wp,

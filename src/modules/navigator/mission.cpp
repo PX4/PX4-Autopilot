@@ -492,6 +492,10 @@ Mission::update_mission()
 
 	const mission_s old_mission = _mission;
 
+	uint32_t old_started_groups[max_started_groups];
+	size_t old_started_groups_num;
+	get_started_groups(_current_mission_index, old_started_groups, old_started_groups_num);
+
 	if (_mission_sub.copy(&_mission)) {
 		/* determine current index */
 		if (_mission.current_seq >= 0 && _mission.current_seq < (int)_mission.count) {
@@ -555,6 +559,42 @@ Mission::update_mission()
 	find_mission_land_start();
 
 	set_current_mission_item();
+
+	uint32_t new_started_groups[max_started_groups];
+	size_t new_started_groups_num;
+	get_started_groups(_current_mission_index, new_started_groups, new_started_groups_num);
+
+	// End all previously started groups that are not started anymore
+	for (size_t i = 0; i < old_started_groups_num; i++) {
+		bool found = false;
+
+		for (size_t j = 0; j < new_started_groups_num; j++) {
+			if (old_started_groups[i] == new_started_groups[j]) {
+				found = true;
+				break;
+			}
+		}
+
+		if (!found) {
+			_navigator->set_group_end(old_started_groups[i]);
+		}
+	}
+
+	// Start all groups that were not started before
+	for (size_t i = 0; i < new_started_groups_num; i++) {
+		bool found = false;
+
+		for (size_t j = 0; j < old_started_groups_num; j++) {
+			if (new_started_groups[i] == old_started_groups[j]) {
+				found = true;
+				break;
+			}
+		}
+
+		if (!found) {
+			_navigator->set_group_start(new_started_groups[i]);
+		}
+	}
 }
 
 
@@ -1929,7 +1969,6 @@ void Mission::publish_navigator_mission_item()
 	_navigator_mission_item_pub.publish(navigator_mission_item);
 }
 
-
 void Mission::calculate_mission_checksums()
 {
 	union {
@@ -2090,5 +2129,53 @@ void Mission::calculate_mission_checksums()
 
 	if (!fail) {
 		mission_checksum_pub.publish(csum);
+	}
+}
+
+void
+Mission::get_started_groups(size_t current_item, uint32_t started_groups[], size_t &num)
+{
+	dm_item_t dm_current = (dm_item_t)(_mission.dataman_id);
+	num = 0;
+
+	for (size_t i = 0; i < current_item; i++) {
+		struct mission_item_s missionitem = {};
+		const ssize_t len = sizeof(missionitem);
+
+		if (dm_read(dm_current, i, &missionitem, len) != len) {
+			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+			PX4_ERR("dataman read failure");
+			break;
+		}
+
+		if (missionitem.nav_cmd == NAV_CMD_GROUP_START) {
+			uint32_t group_id = static_cast<uint32_t>(missionitem.params[0]);
+			bool found = false;
+
+			for (size_t n = 0; n < num; n++) {
+				if (started_groups[n] == group_id) {
+					found = true;
+					break;
+				}
+			}
+
+			if (!found && num < max_started_groups) {
+				started_groups[num++] = group_id;
+			}
+
+		} else if (missionitem.nav_cmd == NAV_CMD_GROUP_END) {
+			uint32_t group_id = static_cast<uint32_t>(missionitem.params[0]);
+
+			for (size_t n = 0; n < num; n++) {
+				if (started_groups[n] == group_id) {
+					for (size_t m = n + 1; m < num; m++) {
+						started_groups[m - 1] = started_groups[m];
+					}
+
+					num--;
+					break;
+				}
+			}
+		}
 	}
 }

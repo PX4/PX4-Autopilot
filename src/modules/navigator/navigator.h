@@ -307,6 +307,8 @@ public:
 
 	void		acquire_gimbal_control();
 	void		release_gimbal_control();
+	void 		set_group_start(uint32_t id);
+	void 		set_group_end(uint32_t id);
 
 private:
 	DEFINE_PARAMETERS(
