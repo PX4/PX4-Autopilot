@@ -36,5 +36,35 @@
 
 constexpr bool validateSPIConfig(const px4_spi_bus_t spi_busses_conf[SPI_BUS_MAX_BUS_ITEMS])
 {
-	return true;
+	const bool nuttx_enabled_spi_buses[] = {
+        #ifdef CONFIG_S32K1XX_LPSPI0
+                true,
+        #else
+                false,
+        #endif
+        #ifdef CONFIG_S32K1XX_LPSPI1
+                true,
+        #else
+                false,
+        #endif
+        #ifdef CONFIG_S32K1XX_LPSPI2
+                true,
+        #else
+                false,
+        #endif
+    };
+ 
+    for (unsigned i = 0; i < sizeof(nuttx_enabled_spi_buses) / sizeof(nuttx_enabled_spi_buses[0]); ++i) {
+        bool found_bus = false;
+ 
+        for (int j = 0; j < SPI_BUS_MAX_BUS_ITEMS; ++j) {
+            if (spi_busses_conf[j].bus == (int)i + 1) {
+                found_bus = true;
+            }
+        }
+ 
+        // Either the bus is enabled in NuttX and configured in spi_busses_conf, or disabled and not configured
+        constexpr_assert(found_bus == nuttx_enabled_spi_buses[i], "SPI bus config mismatch (CONFIG_S32K1XX_LPSPIn)");
+    }
+    return false;
 }

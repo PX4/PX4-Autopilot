@@ -11,10 +11,10 @@ px4_add_board(
 		GPS1:/dev/ttyS1
 	DRIVERS
 		#adc/board_adc
-		#barometer # all available barometer drivers
+		barometer/bmp280 # all available barometer drivers
 		bootloaders
 		#differential_pressure # all available differential pressure drivers
-		distance_sensor/vl53l0x # all available distance sensor drivers
+		#distance_sensor/vl53l0x # all available distance sensor drivers
 		#dshot
 		gps
 		#imu # all available imu drivers
