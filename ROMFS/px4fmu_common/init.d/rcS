@@ -338,8 +338,6 @@ else
 		set OUTPUT_MODE hil
 		sensors start -h
 		commander start -h
-		# disable GPS
-		param set GPS_1_CONFIG 0
 
 		# start the simulator in hardware if needed
 		if param compare SYS_HITL 2
@@ -372,6 +370,12 @@ else
 		fi
 
 		commander start
+
+		#
+		# Start UART/Serial device drivers.
+		# Note: rc.serial is auto-generated from Tools/serial/generate_config.py
+		#
+		. ${R}etc/init.d/rc.serial
 	fi
 
 
@@ -391,12 +395,6 @@ else
 		. $BOARD_RC_MAVLINK
 	fi
 	unset BOARD_RC_MAVLINK
-
-	#
-	# Start UART/Serial device drivers.
-	# Note: rc.serial is auto-generated from Tools/serial/generate_config.py
-	#
-	. ${R}etc/init.d/rc.serial
 
 	if [ $IO_PRESENT = no ]
 	then
