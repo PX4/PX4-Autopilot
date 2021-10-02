@@ -106,7 +106,7 @@ command(uint8_t *command, uint8_t framelen)
 
 	int counter = 0;
 
-	do {
+	while (counter < 10) { // wait 200ms for a command response - should be enough
 		if (g_dev->get_command_result()) {
 			uint8_t responselen;
 			uint8_t *cresponse = g_dev->get_command_response(&responselen);
@@ -123,7 +123,7 @@ command(uint8_t *command, uint8_t framelen)
 
 		px4_usleep(20000);
 		counter++;
-	} while (counter < 10); // wait 200ms for a command response - should be enough
+	}
 
 	PX4_ERR("command not confirmed");
 	return PX4_ERROR;
