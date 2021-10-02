@@ -87,6 +87,7 @@ private:
 		//gps_inject_data.flags = gps_rtcm_data_msg.flags;
 		memcpy(gps_inject_data.data, &msg.data[0], gps_inject_data.len);
 
+		gps_inject_data.timestamp = hrt_absolute_time();
 		_gps_inject_data_pub.publish(gps_inject_data);
 	}
 
