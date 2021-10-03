@@ -59,6 +59,7 @@ public:
 	// Set initial states
 	void setField(const matrix::Vector3f &field) { _field_prev = field; }
 	void setBias(const matrix::Vector3f &bias) { _state_bias = bias; }
+	void setLearningGain(float learning_gain) { _learning_gain = learning_gain; }
 
 	/**
 	 * Update the estimator and extract updated biases.
@@ -70,7 +71,7 @@ public:
 	{
 		const matrix::Vector3f field_pred = _field_prev + (-gyro % (_field_prev - _state_bias)) * dt;
 		const matrix::Vector3f field_innov = field - field_pred;
-		_state_bias += GAIN_BIAS * (-gyro % field_innov);
+		_state_bias += _learning_gain * (-gyro % field_innov) * dt;
 		_field_prev = field;
 	}
 
@@ -78,10 +79,8 @@ public:
 	const matrix::Vector3f &getBias() { return _state_bias; }
 
 private:
-	// gains
-	static constexpr float GAIN_BIAS = 100.f;
-
 	// states
 	matrix::Vector3f _field_prev{};
 	matrix::Vector3f _state_bias{};
+	float _learning_gain{20.f};
 };
