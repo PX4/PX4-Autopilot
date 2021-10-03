@@ -160,7 +160,6 @@ static void mavlink_usb_check(void *arg)
 
 							if (launch_mavlink || launch_nshterm) {
 								// cleanup serial port
-								tcflush(ttyacm_fd, TCIOFLUSH);
 								close(ttyacm_fd);
 								ttyacm_fd = -1;
 
@@ -194,7 +193,6 @@ static void mavlink_usb_check(void *arg)
 			} else {
 				// cleanup
 				if (ttyacm_fd >= 0) {
-					tcflush(ttyacm_fd, TCIOFLUSH);
 					close(ttyacm_fd);
 					ttyacm_fd = -1;
 				}
