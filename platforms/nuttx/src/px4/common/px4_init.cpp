@@ -104,7 +104,7 @@ static void mavlink_usb_check(void *arg)
 				}
 
 			} else if (vbus_present && !vbus_present_prev) {
-				// check again sooner is USB just connected
+				// check again sooner if USB just connected
 				rescheduled = work_queue(LPWORK, &usb_serial_work, mavlink_usb_check, nullptr, USEC2TICK(100000));
 			}
 
