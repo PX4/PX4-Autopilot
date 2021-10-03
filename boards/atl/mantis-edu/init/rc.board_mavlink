@@ -14,6 +14,3 @@ mavlink stream -d ${GIMBAL_TTY} -s GIMBAL_DEVICE_SET_ATTITUDE -r 20
 
 # optical flow
 mavlink start -d /dev/ttyS2 -m custom -b 500000
-
-# Start MAVLink on the USB port
-mavlink start -d /dev/ttyACM0

@@ -50,11 +50,6 @@ set USE_IO no
 set VEHICLE_TYPE none
 
 #
-# Start CDC/ACM serial driver.
-#
-sercon
-
-#
 # Print full system version.
 #
 ver all

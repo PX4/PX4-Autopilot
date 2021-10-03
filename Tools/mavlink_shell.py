@@ -45,6 +45,7 @@ class MavlinkSerialPort():
         self.port = devnum
         self.debug("Connecting with MAVLink to %s ..." % portname)
         self.mav = mavutil.mavlink_connection(portname, autoreconnect=True, baud=baudrate)
+        self.mav.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_GENERIC, mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, 0)
         self.mav.wait_heartbeat()
         self.debug("HEARTBEAT OK\n")
         self.debug("Locked serial device\n")
@@ -226,8 +227,7 @@ def main():
             # handle heartbeat sending
             heartbeat_time = timer()
             if heartbeat_time > next_heartbeat_time:
-                mav_serialport.mav.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_GCS,
-                        mavutil.mavlink.MAV_AUTOPILOT_GENERIC, 0, 0, 0)
+                mav_serialport.mav.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_GENERIC, mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, 0)
                 next_heartbeat_time = heartbeat_time + 1
 
     except serial.serialutil.SerialException as e:
