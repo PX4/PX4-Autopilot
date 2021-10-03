@@ -24,6 +24,7 @@ bool position_reliant_on_optical_flow
 bool position_reliant_on_vision_position
 
 bool dead_reckoning
+bool flight_terminated
 
 bool circuit_breaker_engaged_power_check
 bool circuit_breaker_engaged_airspd_check
