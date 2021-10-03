@@ -126,24 +126,56 @@ static void mavlink_usb_check(void *arg)
 						// non-blocking read
 						int nread = ::read(ttyacm_fd, buffer, sizeof(buffer));
 
+#if defined(DEBUG_BUILD)
+
+						if (nread > 0) {
+							fprintf(stderr, "%d bytes\n", nread);
+
+							for (int i = 0; i < nread; i++) {
+								fprintf(stderr, "|%X", buffer[i]);
+							}
+
+							fprintf(stderr, "\n");
+						}
+
+#endif // DEBUG_BUILD
+
+
 						if (nread > 0) {
 							bool launch_mavlink = false;
 							bool launch_nshterm = false;
 
-							if (nread >= 9 && (buffer[0] = 0xFE) && (buffer[1] = 9) && (buffer[5] == 0)) {
-								// mavlink v1 HEARTBEAT
-								// buffer[0]: start byte (0xFE for mavlink v1)
-								// buffer[1]: length (9 for HEARTBEAT)
-								// buffer[5]: mavlink message id (0 for HEARTBEAT)
-								PX4_INFO_RAW("%s: launching mavlink (HEARTBEAT from SYSID:%d COMPID:%d)\n", USB_DEVICE_PATH, buffer[3], buffer[4]);
-								launch_mavlink = true;
+							static constexpr int MAVLINK_HEARTBEAT_MIN_LENGTH = 9;
 
-							} else if (nread >= 9 && (buffer[0] = 0xFD) && (buffer[7] == 0) && (buffer[8] == 0) && (buffer[9] == 0)) {
-								// mavlink v2 HEARTBEAT
-								// buffer[0]: start byte (0xFD for mavlink v2)
-								// buffer[7:9]: mavlink message id (0 for HEARTBEAT)
-								PX4_INFO_RAW("%s: launching mavlink (HEARTBEAT from SYSID:%d COMPID:%d)\n", USB_DEVICE_PATH, buffer[5], buffer[6]);
-								launch_mavlink = true;
+							if (nread >= MAVLINK_HEARTBEAT_MIN_LENGTH) {
+								// scan buffer for mavlink HEARTBEAT (v1 & v2)
+								for (int i = 0; i < nread - MAVLINK_HEARTBEAT_MIN_LENGTH; i++) {
+									if ((buffer[i] = 0xFE) && (buffer[i + 1] = 9) && (buffer[i + 5] == 0)) {
+										// mavlink v1 HEARTBEAT
+										//  buffer[0]: start byte (0xFE for mavlink v1)
+										//  buffer[1]: length (9 for HEARTBEAT)
+										//  buffer[3]: SYSID
+										//  buffer[4]: COMPID
+										//  buffer[5]: mavlink message id (0 for HEARTBEAT)
+										syslog(LOG_INFO, "%s: launching mavlink (HEARTBEAT v1 from SYSID:%d COMPID:%d)\n",
+										       USB_DEVICE_PATH, buffer[i + 3], buffer[i + 4]);
+										launch_mavlink = true;
+										break;
+
+									} else if ((buffer[i] = 0xFD) && (buffer[i + 1] = 9)
+										   && (buffer[i + 7] == 0) && (buffer[i + 8] == 0) && (buffer[i + 9] == 0)) {
+										// mavlink v2 HEARTBEAT
+										//  buffer[0]: start byte (0xFD for mavlink v2)
+										//  buffer[1]: length (9 for HEARTBEAT)
+										//  buffer[5]: SYSID
+										//  buffer[6]: COMPID
+										//  buffer[7:9]: mavlink message id (0 for HEARTBEAT)
+										syslog(LOG_INFO, "%s: launching mavlink (HEARTBEAT v2 from SYSID:%d COMPID:%d)\n",
+										       USB_DEVICE_PATH, buffer[i + 5], buffer[i + 6]);
+										launch_mavlink = true;
+										break;
+									}
+								}
 							}
 
 							if (!launch_mavlink && (nread >= 3)) {
@@ -151,7 +183,7 @@ static void mavlink_usb_check(void *arg)
 								// scan buffer looking for 3 consecutive carriage returns (0xD)
 								for (int i = 1; i < nread - 1; i++) {
 									if (buffer[i - 1] == 0xD && buffer[i] == 0xD && buffer[i + 1] == 0xD) {
-										PX4_INFO_RAW("%s: launching nshterm\n", USB_DEVICE_PATH);
+										syslog(LOG_INFO, "%s: launching nshterm\n", USB_DEVICE_PATH);
 										launch_nshterm = true;
 										break;
 									}
