@@ -39,11 +39,13 @@ include(px4_list_make_absolute)
 set(msg_files
 	actuator_armed.msg
 	actuator_controls.msg
+	actuator_controls_status.msg
 	actuator_outputs.msg
 	adc_report.msg
 	airspeed.msg
 	airspeed_validated.msg
 	airspeed_wind.msg
+	autotune_attitude_control_status.msg
 	battery_status.msg
 	camera_capture.msg
 	camera_status.msg
@@ -312,5 +314,4 @@ add_custom_command(OUTPUT ${uorb_sources}
 	)
 
 add_library(uorb_msgs ${uorb_sources})
-target_link_libraries(uorb_msgs PRIVATE m)
 add_dependencies(uorb_msgs prebuild_targets uorb_headers)

@@ -13,14 +13,14 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
                 checkout scm
                 sh 'export'
                 sh 'make distclean'
-                sh 'ccache -s'
+                sh 'ccache -z'
                 sh 'git fetch --tags'
                 sh 'make cubepilot_cubeorange_test'
                 sh 'make cubepilot_cubeorange_test bootloader_elf'
@@ -87,14 +87,14 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
                 checkout scm
                 sh 'export'
                 sh 'make distclean'
-                sh 'ccache -s'
+                sh 'ccache -z'
                 sh 'git fetch --tags'
                 sh 'make cuav_x7pro_test'
                 sh 'make cuav_x7pro_test bootloader_elf'
@@ -159,14 +159,14 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
                 checkout scm
                 sh 'export'
                 sh 'make distclean'
-                sh 'ccache -s'
+                sh 'ccache -z'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v3_test'
                 sh 'make px4_fmu-v3_test bootloader_elf'
@@ -231,14 +231,14 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
                 checkout scm
                 sh 'export'
                 sh 'make distclean'
-                sh 'ccache -s'
+                sh 'ccache -z'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v4_test'
                 sh 'make px4_fmu-v4_test bootloader_elf'
@@ -302,14 +302,14 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
                 checkout scm
                 sh 'export'
                 sh 'make distclean'
-                sh 'ccache -s'
+                sh 'ccache -z'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v4pro_test'
                 sh 'make px4_fmu-v4pro_test bootloader_elf'
@@ -374,14 +374,14 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
                 checkout scm
                 sh 'export'
                 sh 'make distclean'
-                sh 'ccache -s'
+                sh 'ccache -z'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v5_debug'
                 sh 'make px4_fmu-v5_debug bootloader_elf'
@@ -456,14 +456,14 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
                 checkout scm
                 sh 'export'
                 sh 'make distclean'
-                sh 'ccache -s'
+                sh 'ccache -z'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v5_optimized'
                 sh 'make px4_fmu-v5_optimized bootloader_elf'
@@ -528,14 +528,14 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
                 checkout scm
                 sh 'export'
                 sh 'make distclean'
-                sh 'ccache -s'
+                sh 'ccache -z'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v5_stackcheck'
                 sh 'make px4_fmu-v5_stackcheck bootloader_elf'
@@ -610,14 +610,14 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
                 checkout scm
                 sh 'export'
                 sh 'make distclean'
-                sh 'ccache -s'
+                sh 'ccache -z'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v5_test'
                 sh 'make px4_fmu-v5_test bootloader_elf'
@@ -682,7 +682,7 @@ pipeline {
         //       agent {
         //         docker {
         //           image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-        //           args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+        //           args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
         //         }
         //       }
         //       steps {
@@ -749,14 +749,14 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
                 checkout scm
                 sh 'export'
                 sh 'make distclean'
-                sh 'ccache -s'
+                sh 'ccache -z'
                 sh 'git fetch --tags'
                 sh 'make nxp_fmuk66-v3_test'
                 //sh 'make nxp_fmuk66-v3_test bootloader_elf'

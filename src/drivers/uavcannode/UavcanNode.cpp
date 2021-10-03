@@ -52,6 +52,7 @@
 
 #include "Subscribers/BeepCommand.hpp"
 #include "Subscribers/LightsCommand.hpp"
+#include "Subscribers/RTCMStream.hpp"
 
 using namespace time_literals;
 
@@ -308,6 +309,7 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 
 	_subscriber_list.add(new BeepCommand(_node));
 	_subscriber_list.add(new LightsCommand(_node));
+	_subscriber_list.add(new RTCMStream(_node));
 
 	for (auto &subscriber : _subscriber_list) {
 		subscriber->init();
