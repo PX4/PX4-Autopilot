@@ -664,6 +664,7 @@ bool dsm_decode(hrt_abstime frame_time, bool *dsm_11_bit, unsigned channel_count
 		uint16_t value = 0;
 
 		if (!dsm_decode_channel(raw, dsm_channel_shift, channel, value)) {
+			dsm_frame_drops++;
 			return false;
 		}
 
@@ -675,6 +676,7 @@ bool dsm_decode(hrt_abstime frame_time, bool *dsm_11_bit, unsigned channel_count
 		if (channels_found[channel]) {
 			PX4_DEBUG("duplicate channel %d\n\n", channel);
 			dsm_guess_format(true);
+			dsm_frame_drops++;
 			return false;
 
 		} else {
@@ -685,6 +687,7 @@ bool dsm_decode(hrt_abstime frame_time, bool *dsm_11_bit, unsigned channel_count
 		if (channel >= DSM_MAX_CHANNEL_COUNT || channel >= channel_count) {
 			PX4_DEBUG("channel %d > %d (DSM_MAX_CHANNEL_COUNT)", channel, DSM_MAX_CHANNEL_COUNT);
 			dsm_guess_format(true);
+			dsm_frame_drops++;
 			return false;
 		}
 
@@ -859,7 +862,6 @@ bool dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uin
 				/* if decoding failed, set proto to desync */
 				if (!channel_data_available) {
 					dsm_decode_state = DSM_DECODE_STATE_DESYNC;
-					dsm_frame_drops++;
 				}
 			}
 			break;
