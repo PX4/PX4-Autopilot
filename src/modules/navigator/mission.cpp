@@ -67,6 +67,30 @@ Mission::Mission(Navigator *navigator) :
 	MissionBlock(navigator),
 	ModuleParams(navigator)
 {
+	mission_init();
+}
+
+void Mission::mission_init()
+{
+	// init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start
+	mission_s mission{};
+
+	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
+		if ((mission.timestamp != 0)
+		    && (mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 || mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1)) {
+			if (mission.count > 0) {
+				PX4_INFO("Mission #%" PRIu8 " loaded, %" PRIu16 " WPs", mission.dataman_id, mission.count);
+			}
+
+		} else {
+			PX4_ERR("reading mission state failed");
+
+			// initialize mission state in dataman
+			mission.dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+			mission.timestamp = hrt_absolute_time();
+			dm_write(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s));
+		}
+	}
 }
 
 void
@@ -105,6 +129,26 @@ Mission::on_inactive()
 		}
 
 	} else {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 		/* load missions from storage */
 		mission_s mission_state = {};
@@ -1566,7 +1610,7 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 					(mission_item_tmp.do_jump_current_count)++;
 
 					/* save repeat count */
-					if (dm_write(dm_item, *mission_index_ptr, DM_PERSIST_POWER_ON_RESET, &mission_item_tmp, len) != len) {
+					if (dm_write(dm_item, *mission_index_ptr, &mission_item_tmp, len) != len) {
 						/* not supposed to happen unless the datamanager can't access the dataman */
 						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "DO JUMP waypoint could not be written.\t");
 						events::send(events::ID("mission_failed_to_write_do_jump"), events::Log::Error,
@@ -1633,8 +1677,7 @@ Mission::save_mission_state()
 				mission_state.current_seq = _current_mission_index;
 				mission_state.timestamp = hrt_absolute_time();
 
-				if (dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission_state,
-					     sizeof(mission_s)) != sizeof(mission_s)) {
+				if (dm_write(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s)) != sizeof(mission_s)) {
 
 					PX4_ERR("Can't save mission state");
 				}
@@ -1655,8 +1698,7 @@ Mission::save_mission_state()
 		events::send(events::ID("mission_invalid_mission_state"), events::Log::Error, "Invalid mission state");
 
 		/* write modified state only if changed */
-		if (dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission_state,
-			     sizeof(mission_s)) != sizeof(mission_s)) {
+		if (dm_write(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s)) != sizeof(mission_s)) {
 
 			PX4_ERR("Can't save mission state");
 		}
@@ -1753,7 +1795,7 @@ Mission::reset_mission(struct mission_s &mission)
 					if (item.nav_cmd == NAV_CMD_DO_JUMP) {
 						item.do_jump_current_count = 0;
 
-						if (dm_write(dm_current, index, DM_PERSIST_POWER_ON_RESET, &item, len) != len) {
+						if (dm_write(dm_current, index, &item, len) != len) {
 							PX4_WARN("could not save mission item during reset");
 							break;
 						}
@@ -1772,7 +1814,7 @@ Mission::reset_mission(struct mission_s &mission)
 			mission.current_seq = 0;
 		}
 
-		dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission, sizeof(mission_s));
+		dm_write(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s));
 	}
 
 	dm_unlock(DM_KEY_MISSION_STATE);

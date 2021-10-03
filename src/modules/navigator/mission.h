@@ -105,6 +105,8 @@ public:
 	void set_execution_mode(const uint8_t mode);
 private:
 
+	void mission_init();
+
 	/**
 	 * Update mission topic
 	 */
