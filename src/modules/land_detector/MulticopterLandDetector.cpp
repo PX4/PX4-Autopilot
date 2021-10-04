@@ -90,10 +90,8 @@ void MulticopterLandDetector::_update_topics()
 		_actuator_controls_throttle = actuator_controls.control[actuator_controls_s::INDEX_THROTTLE];
 	}
 
-	vehicle_control_mode_s vehicle_control_mode;
-
-	if (_vehicle_control_mode_sub.update(&vehicle_control_mode)) {
-		_flag_control_climb_rate_enabled = vehicle_control_mode.flag_control_climb_rate_enabled;
+	if (_vehicle_control_mode_sub.update(&_vehicle_control_mode)) {
+		_flag_control_climb_rate_enabled = _vehicle_control_mode.flag_control_climb_rate_enabled;
 	}
 
 	if (_params.useHoverThrustEstimate) {
@@ -212,7 +210,17 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	if (_flag_control_climb_rate_enabled) {
 		vehicle_local_position_setpoint_s trajectory_setpoint;
 
-		if (_trajectory_setpoint_sub.update(&trajectory_setpoint)) {
+		bool is_trajectory_setpoint_updated = false;
+
+		if (_vehicle_control_mode.flag_control_offboard_enabled) {
+			is_trajectory_setpoint_updated = _offboard_trajectory_setpoint_sub.update(&trajectory_setpoint);
+
+		} else {
+
+			is_trajectory_setpoint_updated = _trajectory_setpoint_sub.update(&trajectory_setpoint);
+		}
+
+		if (is_trajectory_setpoint_updated) {
 			// Setpoints can be NAN
 			_in_descend = PX4_ISFINITE(trajectory_setpoint.vz)
 				      && (trajectory_setpoint.vz >= land_speed_threshold);
