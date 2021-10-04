@@ -226,7 +226,7 @@ void ICM42688P::RunImpl()
 
 					// tolerate minor jitter, leave sample to next iteration if behind by only 1
 					if (samples == _fifo_gyro_samples + 1) {
-						timestamp_sample -= FIFO_SAMPLE_DT;
+						timestamp_sample -= static_cast<int>(FIFO_SAMPLE_DT);
 						samples--;
 					}
 
