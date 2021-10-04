@@ -146,22 +146,6 @@ if (os.path.exists('mavlink/include/mavlink/v2.0/.git')):
 """
 
 
-# NuttX
-if (os.path.exists('platforms/nuttx/NuttX/nuttx/.git')):
-    nuttx_git_tag = subprocess.check_output('git describe --always --tags --match nuttx-*  --dirty'.split(),
-                                  cwd='platforms/nuttx/NuttX/nuttx', stderr=subprocess.STDOUT).decode('utf-8').strip().replace("nuttx-","v")
-    nuttx_git_tag = re.sub('-.*','.0',nuttx_git_tag)
-    nuttx_git_version = subprocess.check_output('git rev-parse --verify HEAD'.split(),
-                                      cwd='platforms/nuttx/NuttX/nuttx', stderr=subprocess.STDOUT).decode('utf-8').strip()
-    nuttx_git_version_short = nuttx_git_version[0:16]
-
-    header += f"""
-#define NUTTX_GIT_VERSION_STR  "{nuttx_git_version}"
-#define NUTTX_GIT_VERSION_BINARY 0x{nuttx_git_version_short}
-#define NUTTX_GIT_TAG_STR  "{nuttx_git_tag}"
-"""
-
-
 if old_header != header:
     if verbose:
         print('Updating header {}'.format(filename))

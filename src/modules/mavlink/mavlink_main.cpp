@@ -1115,18 +1115,16 @@ Mavlink::send_autopilot_capabilities()
 		memcpy(&msg.flight_custom_version, &fw_git_version_binary, sizeof(msg.flight_custom_version));
 		memcpy(&msg.flight_custom_version, &fw_vendor_version, fw_vendor_version_length);
 		memcpy(&msg.middleware_custom_version, &fw_git_version_binary, sizeof(msg.middleware_custom_version));
+
 		uint64_t os_git_version_binary = px4_os_version_binary();
 		memcpy(&msg.os_custom_version, &os_git_version_binary, sizeof(msg.os_custom_version));
-#ifdef CONFIG_CDCACM_VENDORID
+
+#if defined(CONFIG_CDCACM_VENDORID)
 		msg.vendor_id = CONFIG_CDCACM_VENDORID;
-#else
-		msg.vendor_id = 0;
-#endif
-#ifdef CONFIG_CDCACM_PRODUCTID
+#endif // CONFIG_CDCACM_VENDORID
+#if defined(CONFIG_CDCACM_PRODUCTID)
 		msg.product_id = CONFIG_CDCACM_PRODUCTID;
-#else
-		msg.product_id = 0;
-#endif
+#endif // CONFIG_CDCACM_PRODUCTID
 		uuid_uint32_t uid;
 		board_get_uuid32(uid);
 		msg.uid = (((uint64_t)uid[PX4_CPU_UUID_WORD32_UNIQUE_M]) << 32) | uid[PX4_CPU_UUID_WORD32_UNIQUE_H];

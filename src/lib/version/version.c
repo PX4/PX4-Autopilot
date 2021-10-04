@@ -37,13 +37,17 @@
 
 #include <string.h>
 
-#if !defined(CONFIG_CDCACM_PRODUCTID)
-# define CONFIG_CDCACM_PRODUCTID 0
+#if defined(__PX4_NUTTX)
+# include <nuttx/version.h>
+
+# if !defined(CONFIG_CDCACM_PRODUCTID)
+#  define CONFIG_CDCACM_PRODUCTID 0
+# endif
+
+#elif defined(__PX4_LINUX)
+# include <sys/utsname.h>
 #endif
 
-#if defined(__PX4_LINUX)
-#include <sys/utsname.h>
-#endif
 
 // dev >= 0
 // alpha >= 64
@@ -279,7 +283,7 @@ uint32_t px4_os_version(void)
 	}
 
 #elif defined(__PX4_NUTTX)
-	return version_tag_to_number(NUTTX_GIT_TAG_STR);
+	return version_tag_to_number(CONFIG_VERSION_STRING);
 #else
 # error "px4_os_version not implemented for current OS"
 #endif
@@ -288,7 +292,7 @@ uint32_t px4_os_version(void)
 const char *px4_os_version_string(void)
 {
 #if defined(__PX4_NUTTX)
-	return NUTTX_GIT_VERSION_STR;
+	return CONFIG_VERSION_BUILD;
 #else
 	return NULL;
 #endif
@@ -345,15 +349,6 @@ uint64_t px4_firmware_version_binary(void)
 	return PX4_GIT_VERSION_BINARY;
 }
 
-const char *px4_ecl_lib_version_string(void)
-{
-#ifdef ECL_LIB_GIT_VERSION_STRING
-	return ECL_LIB_GIT_VERSION_STRING;
-#else
-	return NULL;
-#endif
-}
-
 #ifdef MAVLINK_LIB_GIT_VERSION_BINARY
 uint64_t px4_mavlink_lib_version_binary(void)
 {
@@ -364,6 +359,7 @@ uint64_t px4_mavlink_lib_version_binary(void)
 uint64_t px4_os_version_binary(void)
 {
 #ifdef NUTTX_GIT_VERSION_BINARY
+	// TODO: use CONFIG_VERSION_BUILD?
 	return NUTTX_GIT_VERSION_BINARY;
 #else
 	return 0;

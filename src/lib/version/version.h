@@ -172,11 +172,6 @@ __EXPORT const char *px4_firmware_git_branch(void);
 __EXPORT uint64_t px4_firmware_version_binary(void);
 
 /**
- * ECL lib version as human readable string (git tag)
- */
-__EXPORT const char *px4_ecl_lib_version_string(void);
-
-/**
  * MAVLink lib version in binary form (first part of the git tag)
  */
 __EXPORT uint64_t px4_mavlink_lib_version_binary(void);
