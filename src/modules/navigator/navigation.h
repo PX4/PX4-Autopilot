@@ -48,6 +48,8 @@
 #  define NUM_MISSIONS_SUPPORTED 50
 #elif defined(__PX4_POSIX)
 #  define NUM_MISSIONS_SUPPORTED (UINT16_MAX-1) // This is allocated as needed.
+#elif defined(RAM_BASED_MISSIONS)
+#  define NUM_MISSIONS_SUPPORTED 500
 #else
 #  define NUM_MISSIONS_SUPPORTED 500
 #endif
