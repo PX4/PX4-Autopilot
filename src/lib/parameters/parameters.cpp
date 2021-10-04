@@ -1426,6 +1426,10 @@ param_import_internal(int fd, bool mark_saved)
 					 decoder.total_decoded_size);
 				return 0;
 
+			} else if (result == -ENODATA) {
+				PX4_DEBUG("BSON: no data");
+				return 0;
+
 			} else {
 				PX4_ERR("param import failed (%d) attempt %d, retrying", result, attempt);
 			}
