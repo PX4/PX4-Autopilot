@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -206,8 +206,9 @@ VtolAttitudeControl::quadchute(QuadchuteReason reason)
 	if (!_vtol_vehicle_status.vtol_transition_failsafe) {
 		switch (reason) {
 		case QuadchuteReason::TransitionTimeout:
-			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: timeout\t");
-			events::send(events::ID("vtol_att_ctrl_quadchute_tout"), events::Log::Critical, "Quadchute triggered, due to timeout");
+			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: transition timeout\t");
+			events::send(events::ID("vtol_att_ctrl_quadchute_tout"), events::Log::Critical,
+				     "Quadchute triggered, due to transition timeout");
 			break;
 
 		case QuadchuteReason::ExternalCommand:
