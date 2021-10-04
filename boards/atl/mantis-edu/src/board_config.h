@@ -59,6 +59,7 @@
 #define BOARD_ARMED_STATE_LED  LED_BLUE
 
 #define FLASH_BASED_PARAMS
+#define RAM_BASED_MISSIONS
 
 /*
  * ADC channels
