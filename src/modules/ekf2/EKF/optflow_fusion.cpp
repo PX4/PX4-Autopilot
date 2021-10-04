@@ -361,8 +361,11 @@ bool Ekf::calcOptFlowBodyRateComp()
 	} else {
 		// Use the EKF gyro data if optical flow sensor gyro data is not available
 		// for clarification of the sign see definition of flowSample and imuSample in common.h
-		_flow_sample_delayed.gyro_xyz = -_imu_del_ang_of;
-		_flow_gyro_bias.zero();
+		if ((_delta_time_of > FLT_EPSILON)
+		    && (_flow_sample_delayed.dt > FLT_EPSILON)) {
+			_flow_sample_delayed.gyro_xyz = -_imu_del_ang_of / _delta_time_of * _flow_sample_delayed.dt;
+			_flow_gyro_bias.zero();
+		}
 	}
 
 	// reset the accumulators
