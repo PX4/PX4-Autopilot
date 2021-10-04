@@ -76,6 +76,9 @@ MavlinkReceiver::~MavlinkReceiver()
 	delete _px4_baro;
 	delete _px4_gyro;
 	delete _px4_mag;
+#if !defined(CONSTRAINED_FLASH)
+	delete[] _received_msg_stats;
+#endif // !CONSTRAINED_FLASH
 }
 
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
@@ -94,7 +97,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 }
 
 void
-MavlinkReceiver::acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result)
+MavlinkReceiver::acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result, uint8_t progress)
 {
 	vehicle_command_ack_s command_ack{};
 
@@ -103,6 +106,7 @@ MavlinkReceiver::acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, ui
 	command_ack.result = result;
 	command_ack.target_system = sysid;
 	command_ack.target_component = compid;
+	command_ack.result_param1 = progress;
 
 	_cmd_ack_pub.publish(command_ack);
 }
@@ -466,6 +470,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
 	bool send_ack = true;
 	uint8_t result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+	uint8_t progress = 0; // TODO: should be 255, 0 for backwards compatibility
 
 	if (!target_ok) {
 		// Reject alien commands only if there is no forwarding or we've never seen target component before
@@ -573,6 +578,112 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 			}
 		}
 
+	} else if (cmd_mavlink.command == MAV_CMD_DO_AUTOTUNE_ENABLE) {
+
+		bool has_module = true;
+		autotune_attitude_control_status_s status{};
+		_autotune_attitude_control_status_sub.copy(&status);
+
+		// if not busy enable via the parameter
+		// do not check the return value of the uORB copy above because the module
+		// starts publishing only when MC_AT_START is set
+		if (status.state == autotune_attitude_control_status_s::STATE_IDLE) {
+			vehicle_status_s vehicle_status{};
+			_vehicle_status_sub.copy(&vehicle_status);
+
+			if (!vehicle_status.in_transition_mode) {
+				param_t atune_start;
+
+				switch (vehicle_status.vehicle_type) {
+				case vehicle_status_s::VEHICLE_TYPE_FIXED_WING:
+					/* atune_start = param_find("FW_AT_START"); */
+					atune_start = PARAM_INVALID;
+
+					break;
+
+				case vehicle_status_s::VEHICLE_TYPE_ROTARY_WING:
+					atune_start = param_find("MC_AT_START");
+
+					break;
+
+				default:
+					atune_start = PARAM_INVALID;
+					break;
+				}
+
+				if (atune_start == PARAM_INVALID) {
+					has_module = false;
+
+				} else {
+					int32_t start = 1;
+					param_set(atune_start, &start);
+				}
+
+			} else {
+				has_module = false;
+			}
+		}
+
+		if (has_module) {
+
+			// most are in progress
+			result = vehicle_command_ack_s::VEHICLE_RESULT_IN_PROGRESS;
+
+			switch (status.state) {
+			case autotune_attitude_control_status_s::STATE_IDLE:
+			case autotune_attitude_control_status_s::STATE_INIT:
+				progress = 0;
+				break;
+
+			case autotune_attitude_control_status_s::STATE_ROLL:
+			case autotune_attitude_control_status_s::STATE_ROLL_PAUSE:
+				progress = 20;
+				break;
+
+			case autotune_attitude_control_status_s::STATE_PITCH:
+			case autotune_attitude_control_status_s::STATE_PITCH_PAUSE:
+				progress = 40;
+				break;
+
+			case autotune_attitude_control_status_s::STATE_YAW:
+			case autotune_attitude_control_status_s::STATE_YAW_PAUSE:
+				progress = 60;
+				break;
+
+			case autotune_attitude_control_status_s::STATE_VERIFICATION:
+				progress = 80;
+				break;
+
+			case autotune_attitude_control_status_s::STATE_APPLY:
+				progress = 85;
+				break;
+
+			case autotune_attitude_control_status_s::STATE_TEST:
+				progress = 90;
+				break;
+
+			case autotune_attitude_control_status_s::STATE_WAIT_FOR_DISARM:
+				progress = 95;
+				break;
+
+			case autotune_attitude_control_status_s::STATE_COMPLETE:
+				progress = 100;
+				// ack it properly with an ACCEPTED once we're done
+				result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+				break;
+
+			case autotune_attitude_control_status_s::STATE_FAIL:
+				progress = 0;
+				result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
+				break;
+			}
+
+		} else {
+			result = vehicle_command_ack_s::VEHICLE_RESULT_UNSUPPORTED;
+		}
+
+		send_ack = true;
+
 	} else {
 		send_ack = false;
 
@@ -607,7 +718,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 	}
 
 	if (send_ack) {
-		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, result);
+		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, result, progress);
 	}
 }
 
@@ -3068,7 +3179,7 @@ MavlinkReceiver::run()
 	ssize_t nread = 0;
 	hrt_abstime last_send_update = 0;
 
-	while (!_mavlink->_task_should_exit) {
+	while (!_mavlink->should_exit()) {
 
 		// check for parameter updates
 		if (_parameter_update_sub.updated()) {
@@ -3170,6 +3281,10 @@ MavlinkReceiver::run()
 						_mavlink->handle_message(&msg);
 
 						update_rx_stats(msg);
+
+						if (_message_statistics_enabled) {
+							update_message_statistics(msg);
+						}
 					}
 				}
 
@@ -3268,7 +3383,6 @@ void MavlinkReceiver::update_rx_stats(const mavlink_message_t &message)
 				_component_states[i].missed_messages += lost_messages;
 
 				++_component_states[i].received_messages;
-				_component_states[i].last_time_received_ms = hrt_absolute_time() / 1000;
 				_component_states[i].last_sequence = message.seq;
 
 				// Also update overall stats
@@ -3282,7 +3396,6 @@ void MavlinkReceiver::update_rx_stats(const mavlink_message_t &message)
 				_component_states[i].component_id = message.compid;
 
 				++_component_states[i].received_messages;
-				_component_states[i].last_time_received_ms = hrt_absolute_time() / 1000;
 				_component_states[i].last_sequence = message.seq;
 
 				_component_states_count = i + 1;
@@ -3303,23 +3416,113 @@ void MavlinkReceiver::update_rx_stats(const mavlink_message_t &message)
 	}
 }
 
+void MavlinkReceiver::update_message_statistics(const mavlink_message_t &message)
+{
+#if !defined(CONSTRAINED_FLASH)
+
+	if (_received_msg_stats == nullptr) {
+		_received_msg_stats = new ReceivedMessageStats[MAX_MSG_STAT_SLOTS];
+	}
+
+	if (_received_msg_stats) {
+		const hrt_abstime now_ms = hrt_absolute_time() / 1000;
+
+		int msg_stats_slot = -1;
+		bool reset_stats = false;
+
+		// find matching msg id
+		for (int stat_slot = 0; stat_slot < MAX_MSG_STAT_SLOTS; stat_slot++) {
+			if ((_received_msg_stats[stat_slot].msg_id == message.msgid)
+			    && (_received_msg_stats[stat_slot].system_id == message.sysid)
+			    && (_received_msg_stats[stat_slot].component_id == message.compid)) {
+
+				msg_stats_slot = stat_slot;
+				break;
+			}
+		}
+
+		// otherwise find oldest or empty slot
+		if (msg_stats_slot < 0) {
+			uint32_t oldest_slot_time_ms = 0;
+
+			for (int stat_slot = 0; stat_slot < MAX_MSG_STAT_SLOTS; stat_slot++) {
+				if (_received_msg_stats[stat_slot].last_time_received_ms <= oldest_slot_time_ms) {
+					oldest_slot_time_ms = _received_msg_stats[stat_slot].last_time_received_ms;
+					msg_stats_slot = stat_slot;
+				}
+			}
+
+			reset_stats = true;
+		}
+
+		if (msg_stats_slot >= 0) {
+			if (!reset_stats) {
+				if ((_received_msg_stats[msg_stats_slot].last_time_received_ms != 0)
+				    && (now_ms > _received_msg_stats[msg_stats_slot].last_time_received_ms)) {
+
+					float rate = 1000.f / (now_ms - _received_msg_stats[msg_stats_slot].last_time_received_ms);
+
+					if (PX4_ISFINITE(_received_msg_stats[msg_stats_slot].avg_rate_hz)) {
+						_received_msg_stats[msg_stats_slot].avg_rate_hz = 0.9f * _received_msg_stats[msg_stats_slot].avg_rate_hz + 0.1f * rate;
+
+					} else {
+						_received_msg_stats[msg_stats_slot].avg_rate_hz = rate;
+					}
+
+				} else {
+					_received_msg_stats[msg_stats_slot].avg_rate_hz = 0.f;
+				}
+
+			} else {
+				_received_msg_stats[msg_stats_slot].avg_rate_hz = NAN;
+			}
+
+			_received_msg_stats[msg_stats_slot].last_time_received_ms = now_ms;
+			_received_msg_stats[msg_stats_slot].msg_id = message.msgid;
+			_received_msg_stats[msg_stats_slot].system_id = message.sysid;
+			_received_msg_stats[msg_stats_slot].component_id = message.compid;
+		}
+	}
+
+#endif // !CONSTRAINED_FLASH
+}
+
 void MavlinkReceiver::print_detailed_rx_stats() const
 {
-	const uint32_t now_ms = hrt_absolute_time() / 1000;
-
 	// TODO: add mutex around shared data.
-	for (unsigned i = 0; i < _component_states_count; ++i) {
-		if (_component_states[i].received_messages > 0) {
-			printf("\t  received from sysid: %" PRIu8 " compid: %" PRIu8 ": %" PRIu32 ", lost: %" PRIu32 ", last %" PRIu32
-			       " ms ago\n",
-			       _component_states[i].system_id,
-			       _component_states[i].component_id,
-			       _component_states[i].received_messages,
-			       _component_states[i].missed_messages,
-			       now_ms - _component_states[i].last_time_received_ms);
+	if (_component_states_count > 0) {
+		printf("\tReceived Messages:\n");
 
-		} else {
-			break;
+		for (const auto &comp_stat : _component_states) {
+			if (comp_stat.received_messages > 0) {
+				printf("\t  sysid:%3" PRIu8 ", compid:%3" PRIu8 ", Total: %" PRIu32 " (lost: %" PRIu32 ")\n",
+				       comp_stat.system_id, comp_stat.component_id,
+				       comp_stat.received_messages, comp_stat.missed_messages);
+
+#if !defined(CONSTRAINED_FLASH)
+
+				if (_message_statistics_enabled && _received_msg_stats) {
+					for (int i = 0; i < MAX_MSG_STAT_SLOTS; i++) {
+						const ReceivedMessageStats &msg_stat = _received_msg_stats[i];
+
+						const uint32_t now_ms = hrt_absolute_time() / 1000;
+
+						// valid messages received within the last 10 seconds
+						if ((msg_stat.system_id == comp_stat.system_id)
+						    && (msg_stat.component_id == comp_stat.component_id)
+						    && (msg_stat.last_time_received_ms != 0)
+						    && (now_ms - msg_stat.last_time_received_ms < 10'000)) {
+
+							const float elapsed_s = (now_ms - msg_stat.last_time_received_ms) / 1000.f;
+
+							printf("\t    msgid:%5" PRIu16 ", Rate:%5.1f Hz, last %.2fs ago\n",
+							       msg_stat.msg_id, (double)msg_stat.avg_rate_hz, (double)elapsed_s);
+						}
+					}
+				}
+
+#endif // !CONSTRAINED_FLASH
+			}
 		}
 	}
 }

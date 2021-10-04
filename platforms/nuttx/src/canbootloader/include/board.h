@@ -57,6 +57,7 @@ typedef enum {
 	fw_update_timeout,
 	fw_update_invalid_crc,
 	jump_to_app,
+	hardware_failure,
 } uiindication_t;
 
 #ifndef __ASSEMBLY__

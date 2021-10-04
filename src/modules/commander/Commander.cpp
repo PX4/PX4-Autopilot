@@ -280,7 +280,14 @@ int Commander::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[0], "disarm")) {
-		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM, 0.f, 0.f);
+		float param2 = 0.f;
+
+		// 21196: force arming/disarming (e.g. allow arming to override preflight checks and disarming in flight)
+		if (argc > 1 && !strcmp(argv[1], "-f")) {
+			param2 = 21196.f;
+		}
+
+		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM, 0.f, param2);
 
 		return 0;
 	}
@@ -1903,31 +1910,6 @@ Commander::run()
 				} else {
 					_status_flags.condition_power_input_valid = true;
 				}
-
-#if defined(CONFIG_BOARDCTL_RESET)
-
-				if (!_status_flags.circuit_breaker_engaged_usb_check && _status_flags.usb_connected) {
-					/* if the USB hardware connection went away, reboot */
-					if (_system_power_usb_connected && !system_power.usb_connected) {
-						/*
-						 * Apparently the USB cable went away but we are still powered,
-						 * so we bring the system back to a nominal state for flight.
-						 * This is important to unload the USB stack of the OS which is
-						 * a relatively complex piece of software that is non-essential
-						 * for flight and continuing to run it would add a software risk
-						 * without a need. The clean approach to unload it is to reboot.
-						 */
-						if (shutdown_if_allowed() && (px4_reboot_request(false, 400_ms) == 0)) {
-							mavlink_log_critical(&_mavlink_log_pub, "USB disconnected, rebooting for flight safety\t");
-							events::send(events::ID("commander_reboot_usb_disconnect"), {events::Log::Critical, events::LogInternal::Info},
-								     "USB disconnected, rebooting for flight safety");
-
-							while (1) { px4_usleep(1); }
-						}
-					}
-				}
-
-#endif // CONFIG_BOARDCTL_RESET
 
 				_system_power_usb_connected = system_power.usb_connected;
 			}
@@ -4208,6 +4190,7 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_COMMAND("arm");
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Force arming (do not run preflight checks)", true);
 	PRINT_MODULE_USAGE_COMMAND("disarm");
+	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Force disarming (disarm in air)", true);
 	PRINT_MODULE_USAGE_COMMAND("takeoff");
 	PRINT_MODULE_USAGE_COMMAND("land");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("transition", "VTOL transition");

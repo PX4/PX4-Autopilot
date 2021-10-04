@@ -166,6 +166,12 @@ public:
 		return false;
 	}
 
+#if defined(PX4_CRYPTO)
+	void set_encryption_parameters(px4_crypto_algorithm_t algorithm, uint8_t key_idx,  uint8_t exchange_key_idx)
+	{
+		if (_log_writer_file) { _log_writer_file->set_encryption_parameters(algorithm, key_idx, exchange_key_idx); }
+	}
+#endif
 private:
 
 	LogWriterFile *_log_writer_file = nullptr;

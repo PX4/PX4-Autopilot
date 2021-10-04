@@ -53,6 +53,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/estimator_sensor_bias.h>
+#include <uORB/topics/magnetometer_bias_estimate.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/sensor_preflight_mag.h>
@@ -103,12 +104,15 @@ private:
 
 	uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status), 0};
+	uORB::Subscription _magnetometer_bias_estimate_sub{ORB_ID(magnetometer_bias_estimate)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 
 	// Used to check, save and use learned magnetometer biases
 	uORB::SubscriptionMultiArray<estimator_sensor_bias_s> _estimator_sensor_bias_subs{ORB_ID::estimator_sensor_bias};
 
-	bool _mag_cal_available{false};
+	bool _in_flight_mag_cal_available{false}; ///< from navigation filter
+	bool _on_ground_mag_bias_estimate_available{false}; ///< from pre-takeoff mag_bias_estimator
+	bool _should_save_on_disarm{false};
 
 	struct MagCal {
 		uint32_t device_id{0};
@@ -122,6 +126,8 @@ private:
 		{this, ORB_ID(sensor_mag), 2},
 		{this, ORB_ID(sensor_mag), 3}
 	};
+
+	matrix::Vector3f _calibration_estimator_bias[MAX_SENSOR_COUNT] {};
 
 	calibration::Magnetometer _calibration[MAX_SENSOR_COUNT];
 

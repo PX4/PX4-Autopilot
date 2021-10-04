@@ -40,6 +40,7 @@
 
 #include <mathlib/mathlib.h>
 #include <px4_platform_common/posix.h>
+#include <px4_platform_common/crypto.h>
 #ifdef __PX4_NUTTX
 #include <systemlib/hardfault_log.h>
 #endif /* __PX4_NUTTX */
@@ -81,6 +82,133 @@ LogWriterFile::~LogWriterFile()
 	pthread_cond_destroy(&_cv);
 }
 
+#if defined(PX4_CRYPTO)
+bool LogWriterFile::init_logfile_encryption(const char *filename)
+{
+	if (_algorithm == CRYPTO_NONE) {
+		return true;
+	}
+
+	// open a crypto session
+	if (!_crypto.open(_algorithm)) {
+		return false;
+	}
+
+	// Get the minimum block size for which the encryption can be performed
+	_min_blocksize = _crypto.get_min_blocksize(_key_idx);
+
+	// Generate a crypto key and store it to the keystore.
+
+	if (!_crypto.generate_key(_key_idx, false)) {
+		PX4_ERR("Can't generate crypto key");
+		return false;
+	}
+
+	// Get the generated key, encrypted with RSA_OAEP. Open another temporary session for this.
+	PX4Crypto rsa_crypto;
+
+	if (!rsa_crypto.open(CRYPTO_RSA_OAEP)) {
+		return false;
+	}
+
+	/* Get the size of an encrypted key and nonce */
+
+	size_t key_size;
+	size_t nonce_size;
+
+	if (!rsa_crypto.get_encrypted_key(_key_idx,
+					  NULL,
+					  &key_size,
+					  _exchange_key_idx) ||
+	    !_crypto.get_nonce(NULL, &nonce_size) ||
+	    key_size == 0) {
+		rsa_crypto.close();
+		return false;
+	}
+
+	/* Allocate space and get key + nonce */
+	uint8_t *key = (uint8_t *)malloc(key_size + nonce_size);
+
+	if (!key ||
+	    !rsa_crypto.get_encrypted_key(
+		    _key_idx,
+		    key,
+		    &key_size,
+		    _exchange_key_idx) ||
+	    !_crypto.get_nonce(
+		    key + key_size, &nonce_size)) {
+		PX4_ERR("Can't get & encrypt the key");
+		free(key);
+		rsa_crypto.close();
+		return false;
+	}
+
+	rsa_crypto.close();
+
+	// Write the encrypted key to the disk
+
+	// Allocate a buffer for filename
+	size_t fnlen = strlen(filename);
+	char *tmp_buf = (char *)malloc(fnlen + 1);
+
+	if (!tmp_buf) {
+		PX4_ERR("out of memory");
+		free(key);
+		return false;
+	}
+
+	// Copy the original logfile name, and append 'k' to the filename
+
+	memcpy(tmp_buf, filename, fnlen + 1);
+	tmp_buf[fnlen - 1] = 'k';
+	tmp_buf[fnlen] = 0;
+
+	int key_fd = ::open((const char *)tmp_buf, O_CREAT | O_WRONLY, PX4_O_MODE_666);
+
+	// The file name is no longer needed, free it
+	free(tmp_buf);
+	tmp_buf = nullptr;
+
+	if (key_fd < 0) {
+		PX4_ERR("Can't open key file, errno: %d", errno);
+		free(key);
+		return false;
+	}
+
+	// write the header to the key exchange file
+	struct ulog_key_header_s keyfile_header = {
+		.magic = {'U', 'L', 'o', 'g', 'K', 'e', 'y'},
+		.hdr_ver = 1,
+		.timestamp = hrt_absolute_time(),
+		.exchange_algorithm = CRYPTO_RSA_OAEP,
+		.exchange_key = _exchange_key_idx,
+		.key_size = (uint16_t)key_size,
+		.initdata_size = (uint16_t)nonce_size
+	};
+
+	size_t hdr_sz = ::write(key_fd, (uint8_t *)&keyfile_header, sizeof(keyfile_header));
+	size_t written = 0;
+
+	if (hdr_sz == sizeof(keyfile_header)) {
+		// Header write succeeded, write the  key
+		written = ::write(key_fd, key, key_size + nonce_size);
+	}
+
+	// Free temporary memory allocations
+	free(key);
+	::close(key_fd);
+
+	// Check that writing to the disk succeeded
+	if (written != key_size + nonce_size) {
+		PX4_ERR("Writing the encryption key to disk fail");
+		return false;
+	}
+
+	return true;
+}
+#endif // PX4_CRYPTO
+
+
 void LogWriterFile::start_log(LogType type, const char *filename)
 {
 	// At this point we don't expect the file to be open, but it can happen for very fast consecutive stop & start
@@ -107,6 +235,17 @@ void LogWriterFile::start_log(LogType type, const char *filename)
 		}
 	}
 
+#if PX4_CRYPTO
+	bool enc_init = init_logfile_encryption(filename);
+
+	if (!enc_init) {
+		PX4_ERR("Failed to start encrypted logging");
+		_crypto.close();
+		return;
+	}
+
+#endif
+
 	if (_buffers[(int)type].start_log(filename)) {
 		PX4_INFO("Opened %s log file: %s", log_type_str(type), filename);
 		notify();
@@ -115,7 +254,7 @@ void LogWriterFile::start_log(LogType type, const char *filename)
 
 int LogWriterFile::hardfault_store_filename(const char *log_file)
 {
-#ifdef __PX4_NUTTX
+#if defined(__PX4_NUTTX) && defined(px4_savepanic)
 	int fd = open(HARDFAULT_ULOG_PATH, O_TRUNC | O_WRONLY | O_CREAT);
 
 	if (fd < 0) {
@@ -183,7 +322,6 @@ void LogWriterFile::thread_stop()
 	if (ret) {
 		PX4_WARN("join failed: %d", ret);
 	}
-
 }
 
 void *LogWriterFile::run_helper(void *context)
@@ -247,9 +385,40 @@ void LogWriterFile::run()
 				LogFileBuffer &buffer = _buffers[i];
 				size_t available = buffer.get_read_ptr(&read_ptr, &is_part);
 
+#if defined(PX4_CRYPTO)
+				// Split into min blocksize chunks, so it is good for encrypting in pieces
+				available = (available / _min_blocksize) * _min_blocksize;
+#endif
+
 				/* if sufficient data available or partial read or terminating, write data */
 				if (available >= min_available[i] || is_part || (!buffer._should_run && available > 0)) {
 					pthread_mutex_unlock(&_mtx);
+
+#if defined(PX4_CRYPTO)
+					/* This makes the following assumptions:
+					 * - the chipher size is always the
+					     same as the input size
+					 * - the encryption can be done in
+					     place. This is always taken care
+					     by the px4 crypto interfaces
+					 */
+
+					size_t out = available;
+
+					if (_algorithm != CRYPTO_NONE) {
+						_crypto.encrypt_data(
+							_key_idx,
+							(uint8_t *)read_ptr,
+							available,
+							(uint8_t *)read_ptr,
+							&out);
+
+						if (out != available) {
+							PX4_ERR("Encryption output size mismatch, logfile corrupted");
+						}
+					}
+
+#endif
 
 					written = buffer.write_to_file(read_ptr, available, call_fsync);
 
@@ -289,6 +458,12 @@ void LogWriterFile::run()
 
 			if (_buffers[0].fd() < 0 && _buffers[1].fd() < 0) {
 				// stop when both files are closed
+#if defined(PX4_CRYPTO)
+				/* close the crypto session */
+
+				_crypto.close();
+#endif
+
 				break;
 			}
 
@@ -424,6 +599,7 @@ void LogWriterFile::LogFileBuffer::write_no_check(void *ptr, size_t size)
 
 	// now: n = bytes already written
 	size_t p = size - n;	// number of bytes to write
+
 	memcpy(&(_buffer[_head]), &(buffer_c[n]), p);
 	_head = (_head + p) % _buffer_size;
 	_count += size;

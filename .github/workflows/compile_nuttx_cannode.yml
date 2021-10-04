@@ -17,6 +17,7 @@ jobs:
         config: [
           ark_can-flow_default,
           ark_can-gps_default,
+          ark_can-rtk-gps_default,
           cuav_can-gps-v1_default,
           freefly_can-rtk-gps_default,
           holybro_can-gps-v1_default,

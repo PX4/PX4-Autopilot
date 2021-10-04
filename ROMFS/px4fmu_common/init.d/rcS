@@ -50,11 +50,6 @@ set USE_IO no
 set VEHICLE_TYPE none
 
 #
-# Start CDC/ACM serial driver.
-#
-sercon
-
-#
 # Print full system version.
 #
 ver all
@@ -374,6 +369,11 @@ else
 		commander start
 	fi
 
+	# Pre-takeoff continuous magnetometer calibration
+	if param compare -s MBE_ENABLE 1
+	then
+		mag_bias_estimator start
+	fi
 
 	if param greater -s TRIG_MODE 0
 	then
