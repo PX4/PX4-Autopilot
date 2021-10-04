@@ -842,7 +842,7 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 			if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
 				// POSITION: achieve position setpoint altitude via loiter
 				// close to waypoint, but altitude error greater than twice acceptance
-				if ((dist >= 0.f)
+				if ((!_vehicle_status.in_transition_mode) && (dist >= 0.f)
 				    && (dist_z > 2.f * _param_fw_clmbout_diff.get())
 				    && (dist_xy < 2.f * math::max(acc_rad, fabsf(pos_sp_curr.loiter_radius)))) {
 					// SETPOINT_TYPE_POSITION -> SETPOINT_TYPE_LOITER
