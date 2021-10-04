@@ -134,7 +134,7 @@ float WorkItem::average_interval() const
 
 void WorkItem::print_run_status()
 {
-	PX4_INFO_RAW("%-26s %8.1f Hz %12.0f us\n", _item_name, (double)average_rate(), (double)average_interval());
+	PX4_INFO_RAW("%-29s %8.1f Hz %12.0f us\n", _item_name, (double)average_rate(), (double)average_interval());
 
 	// reset statistics
 	_run_count = 0;
