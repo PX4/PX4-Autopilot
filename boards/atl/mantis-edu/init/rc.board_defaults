@@ -16,10 +16,16 @@ param set-default SENS_MAG_MODE 0
 
 param set-default EV_TSK_STAT_DIS 1
 
+# Use MAVLink log streaming
 set LOGGER_ARGS "-m mavlink"
 
 # Save missions RAM
 set DATAMAN_ARGS "-r"
+
+# We set the mixer and ESC manually.
+set MIXER_FILE ""
+set MIXER "skip"
+set OUTPUT_MODE "skip"
 
 # Start ESC already here, so that we have beeps.
 tap_esc start -d /dev/ttyS4 -n 4
