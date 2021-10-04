@@ -201,6 +201,8 @@ sd_stress_main(int argc, char *argv[])
 		}
 	}
 
+	int ret = 0;
+
 	char *bytes = (char *)malloc(num_bytes);
 	memset(bytes, 0xAA, num_bytes);
 
@@ -217,10 +219,11 @@ sd_stress_main(int argc, char *argv[])
 		printf("iteration %u took %06" PRIu64 " us: %s\n", i, hrt_absolute_time() - start_time, result ? "OK" : "FAIL");
 
 		if (!result) {
+			ret = -1;
 			break;
 		}
 	}
 
 	free(bytes);
-	return 0;
+	return ret;
 }
