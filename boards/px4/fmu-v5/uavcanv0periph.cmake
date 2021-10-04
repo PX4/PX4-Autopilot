@@ -6,6 +6,7 @@ px4_add_board(
 	ROMFSROOT px4fmu_common
 	IO px4_io-v2_default
 	UAVCAN_INTERFACES 2
+	UAVCAN_TIMER_OVERRIDE 6
 	UAVCAN_PERIPHERALS
 		cuav_can-gps-v1_default
 	SERIAL_PORTS
