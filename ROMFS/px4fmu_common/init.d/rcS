@@ -52,6 +52,7 @@ set STARTUP_TUNE 1
 set STARTUP_TUNE_VOLUME ""
 set USE_IO no
 set VEHICLE_TYPE none
+set DATAMAN_ARGS ""
 
 #
 # Print full system version.
@@ -612,6 +613,7 @@ unset STARTUP_TUNE
 unset STARTUP_TUNE_VOLUME
 unset USE_IO
 unset VEHICLE_TYPE
+unset DATAMAN_ARGS
 
 #
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running.
