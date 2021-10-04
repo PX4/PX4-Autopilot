@@ -7,6 +7,7 @@ px4_add_board(
 	IO px4_io-v2_default
 	TESTING
 	UAVCAN_INTERFACES 2
+	UAVCAN_TIMER_OVERRIDE 6
 	SERIAL_PORTS
 		GPS1:/dev/ttyS0
 		TEL1:/dev/ttyS1
