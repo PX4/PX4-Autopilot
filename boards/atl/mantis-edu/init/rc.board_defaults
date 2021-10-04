@@ -18,7 +18,10 @@ param set-default EV_TSK_STAT_DIS 1
 
 set LOGGER_ARGS "-m mavlink"
 
-# Start esc
+# Save missions RAM
+set DATAMAN_ARGS "-r"
+
+# Start ESC already here, so that we have beeps.
 tap_esc start -d /dev/ttyS4 -n 4
 
 # Transition from previous non open-source flight stack
