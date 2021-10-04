@@ -46,3 +46,7 @@ param set SER_TEL2_BAUD 57600
 param set MAV_1_CONFIG 102
 param set MAV_1_MODE 7
 param set MAV_1_RATE 1000
+
+# Smoothing trajectory a bit when using AutoLineSmoothVel
+param set MPC_JERK_AUTO 8
+param set MPC_ACC_HOR 3
