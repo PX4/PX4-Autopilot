@@ -17,11 +17,7 @@ pipeline {
                 }
               }
               steps {
-                checkout scm
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -z'
-                sh 'git fetch --tags'
+                checkoutSCM()
                 sh 'make cubepilot_cubeorange_test'
                 sh 'make cubepilot_cubeorange_test bootloader_elf'
                 sh 'ccache -s'
@@ -91,11 +87,7 @@ pipeline {
                 }
               }
               steps {
-                checkout scm
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -z'
-                sh 'git fetch --tags'
+                checkoutSCM()
                 sh 'make cuav_x7pro_test'
                 sh 'make cuav_x7pro_test bootloader_elf'
                 sh 'ccache -s'
@@ -163,11 +155,7 @@ pipeline {
                 }
               }
               steps {
-                checkout scm
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -z'
-                sh 'git fetch --tags'
+                checkoutSCM()
                 sh 'make px4_fmu-v3_test'
                 sh 'make px4_fmu-v3_test bootloader_elf'
                 sh 'ccache -s'
@@ -235,11 +223,7 @@ pipeline {
                 }
               }
               steps {
-                checkout scm
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -z'
-                sh 'git fetch --tags'
+                checkoutSCM()
                 sh 'make px4_fmu-v4_test'
                 sh 'make px4_fmu-v4_test bootloader_elf'
                 sh 'ccache -s'
@@ -306,11 +290,7 @@ pipeline {
                 }
               }
               steps {
-                checkout scm
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -z'
-                sh 'git fetch --tags'
+                checkoutSCM()
                 sh 'make px4_fmu-v4pro_test'
                 sh 'make px4_fmu-v4pro_test bootloader_elf'
                 sh 'ccache -s'
@@ -378,11 +358,7 @@ pipeline {
                 }
               }
               steps {
-                checkout scm
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -z'
-                sh 'git fetch --tags'
+                checkoutSCM()
                 sh 'make px4_fmu-v5_debug'
                 sh 'make px4_fmu-v5_debug bootloader_elf'
                 sh 'ccache -s'
@@ -460,11 +436,7 @@ pipeline {
                 }
               }
               steps {
-                checkout scm
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -z'
-                sh 'git fetch --tags'
+                checkoutSCM()
                 sh 'make px4_fmu-v5_optimized'
                 sh 'make px4_fmu-v5_optimized bootloader_elf'
                 sh 'ccache -s'
@@ -532,11 +504,7 @@ pipeline {
                 }
               }
               steps {
-                checkout scm
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -z'
-                sh 'git fetch --tags'
+                checkoutSCM()
                 sh 'make px4_fmu-v5_stackcheck'
                 sh 'make px4_fmu-v5_stackcheck bootloader_elf'
                 sh 'ccache -s'
@@ -614,11 +582,7 @@ pipeline {
                 }
               }
               steps {
-                checkout scm
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -z'
-                sh 'git fetch --tags'
+                checkoutSCM()
                 sh 'make px4_fmu-v5_test'
                 sh 'make px4_fmu-v5_test bootloader_elf'
                 sh 'ccache -s'
@@ -753,11 +717,7 @@ pipeline {
                 }
               }
               steps {
-                checkout scm
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -z'
-                sh 'git fetch --tags'
+                checkoutSCM()
                 sh 'make nxp_fmuk66-v3_test'
                 //sh 'make nxp_fmuk66-v3_test bootloader_elf'
                 sh 'ccache -s'
@@ -827,6 +787,16 @@ pipeline {
     buildDiscarder(logRotator(numToKeepStr: '30', artifactDaysToKeepStr: '60'))
     timeout(time: 180, unit: 'MINUTES')
     skipDefaultCheckout()
+  }
+}
+
+void checkoutSCM() {
+  retry(3) {
+    checkout scm
+    sh 'export'
+    sh 'make distclean'
+    sh 'git fetch --tags'
+    sh 'ccache -z'
   }
 }
 
