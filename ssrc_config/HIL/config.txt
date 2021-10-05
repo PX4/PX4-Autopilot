@@ -1,0 +1,55 @@
+# Default parameter set for HITL (partly derived from indoor flying parameters)
+
+#####################################
+# HITL configuration
+#
+
+# Set HITL flag
+param set SYS_HITL 1
+
+# HIL on TELEMETRY 2
+param set SER_TEL2_BAUD 2000000
+param set MAV_1_CONFIG 102
+param set MAV_1_MODE 2
+param set MAV_1_RATE 200000
+
+# disable some checks to allow to fly
+# - with usb
+param set CBRK_USB_CHK 197848
+# - without real battery
+param set CBRK_SUPPLY_CHK 894281
+# - without safety switch
+param set COM_PREARM_MODE 0
+param set CBRK_IO_SAFETY 22027
+
+
+#####################################
+# Configs from indoor flight setup
+#
+
+# Set waypoint acceptance radius to 0.5m
+param set NAV_ACC_RAD 0.5
+
+# Set height acceptance radius to 0.3m
+param set NAV_MC_ALT_RAD 0.3
+
+# Cruise speed
+param set MPC_XY_CRUISE 0.5
+
+# Track trajectory more aggressively (default 0.5)
+param set MPC_XY_TRAJ_P 0.7
+
+# Increase velocity controller P gain
+param set MPC_XY_VEL_P_ACC 2.4
+
+# Make it accelerate faster upwards at takeoff
+param set MPC_TKO_RAMP_T 1.0
+
+# Limit upward movement speed for safety
+param set MPC_Z_VEL_MAX_UP 1.0
+
+# Smoothing trajectory a bit when using AutoLineSmoothVel
+param set MPC_JERK_AUTO 8
+param set MPC_ACC_HOR 3
+
+
