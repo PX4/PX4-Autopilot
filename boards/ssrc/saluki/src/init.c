@@ -137,6 +137,10 @@ mpfs_boardinitialize(void)
 
 	/* this call exists to fix a weird linking issue */
 	up_udelay(0);
+
+	/* Configure Safety button GPIO */
+	mpfs_configgpio(GPIO_BTN_SAFETY);
+
 }
 
 /****************************************************************************
