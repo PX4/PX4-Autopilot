@@ -7,3 +7,8 @@ set OUTPUT_MODE pwm_esc
 set AUX_MODE none
 
 pwm_esc start
+
+param set-default COM_PREARM_MODE 1
+param set-default CBRK_IO_SAFETY 0
+
+safety_button start

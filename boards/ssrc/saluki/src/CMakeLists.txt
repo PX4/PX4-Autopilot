@@ -67,6 +67,7 @@ else()
 		mpfs_pwm.c
 		i2c.cpp
 		spi.cpp
+		manifest.c
 	)
 
 	target_link_libraries(drivers_board
