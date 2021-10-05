@@ -53,7 +53,7 @@ bool FlightTaskAuto::activate(const vehicle_local_position_setpoint_s &last_setp
 	bool ret = FlightTask::activate(last_setpoint);
 	_position_setpoint = _position;
 	_velocity_setpoint = _velocity;
-	_yaw_setpoint = _yaw_sp_prev = _yaw;
+	_yaw_setpoint = _yaw;
 	_yawspeed_setpoint = 0.0f;
 	_setDefaultConstraints();
 	return ret;
@@ -107,13 +107,14 @@ void FlightTaskAuto::_limitYawRate()
 		_yaw_sp_aligned = fabsf(matrix::wrap_pi(_yaw_setpoint - yaw_setpoint_sat)) < math::radians(_param_mis_yaw_err.get());
 
 		_yaw_setpoint = yaw_setpoint_sat;
-		_yaw_sp_prev = _yaw_setpoint;
 
 		if (!PX4_ISFINITE(_yawspeed_setpoint) && (_deltatime > FLT_EPSILON)) {
 			// Create a feedforward
 			_yawspeed_setpoint = dyaw / _deltatime;
 		}
 	}
+
+	_yaw_sp_prev = _yaw_setpoint;
 
 	if (PX4_ISFINITE(_yawspeed_setpoint)) {
 		// The yaw setpoint is aligned when its rate is not saturated
