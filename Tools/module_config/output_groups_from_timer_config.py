@@ -66,8 +66,9 @@ def get_timer_groups(timer_config_file, verbose=False):
         raise Exception('"{:}" not found in {:}'.format(timers_start_marker, timer_config_file))
     timer_config = timer_config[timers_start:]
     open_idx, close_idx = find_matching_brackets(('{', '}'), timer_config, verbose)
-    timers = timer_config[open_idx:close_idx]
-    for line in timers.splitlines():
+    timers_str = timer_config[open_idx:close_idx]
+    timers = []
+    for line in timers_str.splitlines():
         line = line.strip()
         if len(line) == 0 or line.startswith('//'):
             continue
@@ -76,6 +77,7 @@ def get_timer_groups(timer_config_file, verbose=False):
         if timer:
             if verbose: print('found timer def: {:}'.format(timer))
             dshot_support[timer] = 'DMA' in line
+            timers.append(timer)
         else:
             # Make sure we don't miss anything (e.g. for different syntax) or misparse (e.g. multi-line comments)
             raise Exception('Unparsed timer in line: {:}'.format(line))
@@ -112,7 +114,7 @@ def get_timer_groups(timer_config_file, verbose=False):
     if len(channel_timers) == 0:
         raise Exception('No channels found in "{:}"'.format(channels))
 
-    groups = [(len(list(g)), dshot_support[k]) for k, g in groupby(channel_timers)]
+    groups = [(timers.index(k), len(list(g)), dshot_support[k]) for k, g in groupby(channel_timers)]
     outputs = {
         'types': channel_types,
         'groups': groups
@@ -132,9 +134,8 @@ def get_output_groups(timer_groups, param_prefix="PWM_MAIN",
     instance_start = 1
     output_groups = []
     timer_params = {}
-    timer_index = 0
     instance_start_label = [ 1, 1 ]
-    for group_count, dshot_support in timer_groups['groups']:
+    for timer_index, group_count, dshot_support in timer_groups['groups']:
 
         # check for capture vs normal pins for the label
         types = timer_groups['types'][instance_start-1:instance_start+group_count-1]
@@ -181,7 +182,6 @@ def get_output_groups(timer_groups, param_prefix="PWM_MAIN",
             timer_params[param_prefix+'_TIM'+str(timer_index)] = pwm_timer_param_cp
         instance_start += group_count
         instance_start_label[channel_type_idx] += group_count
-        timer_index += 1
     return (output_groups, timer_params)
 
 if __name__ == '__main__':
