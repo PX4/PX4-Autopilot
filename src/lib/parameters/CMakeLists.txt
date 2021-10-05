@@ -79,6 +79,9 @@ endif()
 if(PX4_ETHERNET)
 	set(added_arguments --ethernet)
 endif()
+if(config_io_board)
+	set(board_with_io_arg --board-with-io)
+endif()
 add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_params_file}
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_params_dir}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
@@ -87,7 +90,7 @@ add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_par
 		--config-files ${module_config_files} #--verbose
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/module_config/generate_params.py
 		--params-file ${generated_module_params_file}
-		${added_arguments}
+		${added_arguments} ${board_with_io_arg}
 		--timer-config ${PX4_BOARD_DIR}/src/timer_config.cpp
 		--config-files ${module_config_files} #--verbose
 		--board ${PX4_BOARD}
