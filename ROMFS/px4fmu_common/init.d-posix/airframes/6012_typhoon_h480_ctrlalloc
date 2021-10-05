@@ -76,12 +76,12 @@ param set-default CA_MC_R5_PY -0.5
 param set-default CA_MC_R5_CT 9.5
 param set-default CA_MC_R5_KM -0.05
 
-param set-default PWM_FMU_FUNC1 101
-param set-default PWM_FMU_FUNC2 102
-param set-default PWM_FMU_FUNC3 103
-param set-default PWM_FMU_FUNC4 104
-param set-default PWM_FMU_FUNC5 105
-param set-default PWM_FMU_FUNC6 106
+param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 102
+param set-default PWM_MAIN_FUNC3 103
+param set-default PWM_MAIN_FUNC4 104
+param set-default PWM_MAIN_FUNC5 105
+param set-default PWM_MAIN_FUNC6 106
 
 set MAV_TYPE 13
 

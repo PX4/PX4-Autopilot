@@ -45,7 +45,7 @@
 #include <uORB/topics/parameter_update.h>
 
 #if defined(CONFIG_ARCH_BOARD_PX4_SITL)
-#define PARAM_PREFIX "PWM_FMU"
+#define PARAM_PREFIX "PWM_MAIN"
 #else
 #define PARAM_PREFIX "HIL_ACT"
 #endif
