@@ -186,6 +186,8 @@ def get_actuator_output_params(yaml_config, output_functions,
                 standard_params = group.get('standard_params', [])
                 extra_function_groups = group.get('extra_function_groups', [])
                 pwm_timer_param = group.get('pwm_timer_param', None)
+                if 'timer_config_file' in group:
+                    timer_config_file = os.path.join(root_dir, group['timer_config_file'])
                 if timer_config_file is None:
                     raise Exception('trying to generate pwm outputs, but --timer-config not set')
                 timer_groups = get_timer_groups(timer_config_file, verbose)

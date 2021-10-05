@@ -333,6 +333,10 @@ actuator_output:
                         maxlength: 2
                         schema:
                             type: string
+                    timer_config_file:
+                        # Only used for 'pwm' generator, specifies
+                        # board-specific timer_config.cpp file
+                        type: string
                     pwm_timer_param:
                         # Only used for 'pwm' generator, per-timer config param
                         type: dict
