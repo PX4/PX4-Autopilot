@@ -54,6 +54,7 @@ public:
 	~StickAccelerationXY() = default;
 
 	void resetPosition();
+	void resetPosition(const matrix::Vector2f &position);
 	void resetVelocity(const matrix::Vector2f &velocity);
 	void resetAcceleration(const matrix::Vector2f &acceleration);
 	void generateSetpoints(matrix::Vector2f stick_xy, const float yaw, const float yaw_sp, const matrix::Vector3f &pos,
