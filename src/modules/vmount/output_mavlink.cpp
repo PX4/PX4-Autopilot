@@ -66,6 +66,9 @@ int OutputMavlinkV1::update(const ControlData *control_data)
 		//got new command
 		_set_angle_setpoints(control_data);
 
+#if !defined(ALT_MANTIS_GIMBAL_HACKS)
+		// Don't send this command to ATL Mantis as it just spams the vehicle_command queue and the
+		// Mantis ignores it anyway.
 		vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE;
 		vehicle_command.timestamp = hrt_absolute_time();
 
@@ -89,6 +92,7 @@ int OutputMavlinkV1::update(const ControlData *control_data)
 		vehicle_command.param4 = _stabilize[2] ? 1.0f : 0.0f;
 
 		_vehicle_command_pub.publish(vehicle_command);
+#endif
 	}
 
 	_handle_position_update();

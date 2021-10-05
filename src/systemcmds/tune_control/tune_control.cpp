@@ -184,6 +184,7 @@ extern "C" __EXPORT int tune_control_main(int argc, char *argv[])
 
 			PX4_DEBUG("Publishing standard tune %d", tune_control.tune_id);
 			publish_tune_control(tune_control);
+
 		} else {
 			PX4_WARN("Missing argument");
 			usage();
