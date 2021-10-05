@@ -638,6 +638,11 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 	switches.transition_switch = get_rc_sw2pos_position(rc_channels_s::FUNCTION_TRANSITION, _param_rc_trans_th.get());
 	switches.gear_switch       = get_rc_sw2pos_position(rc_channels_s::FUNCTION_GEAR,       _param_rc_gear_th.get());
 
+#if defined(ATL_MANTIS_RC_INPUT_HACKS)
+	switches.photo_switch = get_rc_sw2pos_position(rc_channels_s::FUNCTION_AUX_3, 0.5f);
+	switches.video_switch = get_rc_sw2pos_position(rc_channels_s::FUNCTION_AUX_4, 0.5f);
+#endif
+
 	// last 2 switch updates identical (simple protection from bad RC data)
 	if (switches == _manual_switches_previous) {
 		const bool switches_changed = (switches != _manual_switches_last_publish);
