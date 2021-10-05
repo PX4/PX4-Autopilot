@@ -835,9 +835,9 @@ void BlockLocalPositionEstimator::initP()
 	// use vxy thresh for vz init as well
 	m_P(X_vz, X_vz) = 2 * _param_lpe_vxy_pub.get() * _param_lpe_vxy_pub.get();
 	// initialize bias uncertainty to small values to keep them stable
-	m_P(X_bx, X_bx) = 1e-6;
-	m_P(X_by, X_by) = 1e-6;
-	m_P(X_bz, X_bz) = 1e-6;
+	m_P(X_bx, X_bx) = 1e-6f;
+	m_P(X_by, X_by) = 1e-6f;
+	m_P(X_bz, X_bz) = 1e-6f;
 	m_P(X_tz, X_tz) = 2 * EST_STDDEV_TZ_VALID * EST_STDDEV_TZ_VALID;
 }
 

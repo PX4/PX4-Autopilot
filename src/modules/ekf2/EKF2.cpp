@@ -262,7 +262,7 @@ void EKF2::Run()
 		// update parameters from storage
 		updateParams();
 
-		_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);
+		_ekf.set_min_required_gps_health_time(static_cast<uint32_t>(_param_ekf2_req_gps_h.get() * 1_s));
 
 		// The airspeed scale factor correcton is only available via parameter as used by the airspeed module
 		param_t param_aspd_scale = param_find("ASPD_SCALE");

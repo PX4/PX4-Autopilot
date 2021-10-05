@@ -54,6 +54,7 @@ px4_add_module(
 		-Wno-double-promotion
 		-Wno-cast-align
 		-Wno-address-of-packed-member # TODO: fix in c_library_v2
+		-DMAVLINK_NO_CONVERSION_HELPERS
 	INCLUDES
 		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	SRCS

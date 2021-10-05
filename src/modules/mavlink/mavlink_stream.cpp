@@ -85,7 +85,7 @@ MavlinkStream::update(const hrt_abstime &t)
 	int interval = _interval;
 
 	if (!const_rate()) {
-		interval /= _mavlink->get_rate_mult();
+		interval = static_cast<int>(static_cast<float>(interval) / _mavlink->get_rate_mult());
 	}
 
 	// We don't need to send anything if the inverval is 0. send() will be called manually.

@@ -362,9 +362,12 @@ bool MulticopterLandDetector::_is_close_to_ground()
 
 void MulticopterLandDetector::_set_hysteresis_factor(const int factor)
 {
-	_ground_contact_hysteresis.set_hysteresis_time_from(false, _param_lndmc_trig_time.get() * 1_s / 3 * factor);
-	_landed_hysteresis.set_hysteresis_time_from(false, _param_lndmc_trig_time.get() * 1_s / 3 * factor);
-	_maybe_landed_hysteresis.set_hysteresis_time_from(false, _param_lndmc_trig_time.get() * 1_s / 3 * factor);
+	_ground_contact_hysteresis.set_hysteresis_time_from(false,
+			static_cast<uint64_t>(_param_lndmc_trig_time.get() * 1_s / 3 * factor));
+	_landed_hysteresis.set_hysteresis_time_from(false,
+			static_cast<uint64_t>(_param_lndmc_trig_time.get() * 1_s / 3 * factor));
+	_maybe_landed_hysteresis.set_hysteresis_time_from(false,
+			static_cast<uint64_t>(_param_lndmc_trig_time.get() * 1_s / 3 * factor));
 	_freefall_hysteresis.set_hysteresis_time_from(false, FREEFALL_TRIGGER_TIME_US);
 }
 

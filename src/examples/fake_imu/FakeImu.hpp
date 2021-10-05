@@ -69,7 +69,7 @@ public:
 	bool init();
 
 private:
-	static constexpr double IMU_RATE_HZ = 8000;
+	static constexpr int IMU_RATE_HZ = 8000;
 
 	void Run() override;
 

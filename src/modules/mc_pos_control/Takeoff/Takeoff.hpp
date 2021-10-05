@@ -60,7 +60,7 @@ public:
 	~Takeoff() = default;
 
 	// initialize parameters
-	void setSpoolupTime(const float seconds) { _spoolup_time_hysteresis.set_hysteresis_time_from(false, seconds * 1_s); }
+	void setSpoolupTime(const float seconds) { _spoolup_time_hysteresis.set_hysteresis_time_from(false, static_cast<uint64_t>(seconds * 1e6f)); }
 	void setTakeoffRampTime(const float seconds) { _takeoff_ramp_time = seconds; }
 
 	/**

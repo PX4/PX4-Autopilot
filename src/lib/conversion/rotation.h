@@ -379,9 +379,9 @@ __EXPORT inline void rotate_3i(enum Rotation rot, int16_t &x, int16_t &y, int16_
 		// otherwise use full rotation matrix for valid rotations
 		if (rot < ROTATION_MAX) {
 			const matrix::Vector3f r{get_rot_matrix(rot) *matrix::Vector3f{(float)x, (float)y, (float)z}};
-			x = math::constrain(roundf(r(0)), (float)INT16_MIN, (float)INT16_MAX);
-			y = math::constrain(roundf(r(1)), (float)INT16_MIN, (float)INT16_MAX);
-			z = math::constrain(roundf(r(2)), (float)INT16_MIN, (float)INT16_MAX);
+			x = (int16_t)math::constrain(roundf(r(0)), (float)INT16_MIN, (float)INT16_MAX);
+			y = (int16_t)math::constrain(roundf(r(1)), (float)INT16_MIN, (float)INT16_MAX);
+			z = (int16_t)math::constrain(roundf(r(2)), (float)INT16_MIN, (float)INT16_MAX);
 		}
 	}
 }

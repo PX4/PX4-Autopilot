@@ -132,7 +132,7 @@ static bool dsm_decode_channel(uint16_t raw, unsigned shift, uint8_t &channel, u
 
 		// PWM_OUT = (ServoPosition x 1.166μs) + Offset
 		static constexpr uint16_t offset = 903; // microseconds
-		value = roundf(servo_position * 1.166f) + offset;
+		value = static_cast<uint16_t>(roundf(servo_position * 1.166f)) + offset;
 
 		// Spektrum range is 903μs to 2097μs (Specification for Spektrum Remote Receiver Interfacing Rev G 9.1)
 		//  ±100% travel is 1102µs to 1898 µs
@@ -187,7 +187,7 @@ static bool dsm_decode_channel(uint16_t raw, unsigned shift, uint8_t &channel, u
 
 		// PWM_OUT = (ServoPosition x 0.583μs) + Offset
 		static constexpr uint16_t offset = 903; // microseconds
-		value = roundf(servo_position * 0.583f) + offset;
+		value = (uint16_t)roundf(servo_position * 0.583f) + offset;
 
 		// Spektrum range is 903μs to 2097μs (Specification for Spektrum Remote Receiver Interfacing Rev G 9.1)
 		//  ±100% travel is 1102µs to 1898 µs

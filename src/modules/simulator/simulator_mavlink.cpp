@@ -227,9 +227,9 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 					_last_accel_fifo.samples = 1;
 					_last_accel_fifo.dt = time - _last_accel_fifo.timestamp_sample;
 					_last_accel_fifo.timestamp_sample = time;
-					_last_accel_fifo.x[0] = sensors.xacc / ACCEL_FIFO_SCALE;
-					_last_accel_fifo.y[0] = sensors.yacc / ACCEL_FIFO_SCALE;
-					_last_accel_fifo.z[0] = sensors.zacc / ACCEL_FIFO_SCALE;
+					_last_accel_fifo.x[0] = (int16_t)roundf(sensors.xacc / ACCEL_FIFO_SCALE);
+					_last_accel_fifo.y[0] = (int16_t)roundf(sensors.yacc / ACCEL_FIFO_SCALE);
+					_last_accel_fifo.z[0] = (int16_t)roundf(sensors.zacc / ACCEL_FIFO_SCALE);
 
 					_px4_accel[i].updateFIFO(_last_accel_fifo);
 				}
@@ -267,9 +267,9 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 					_last_gyro_fifo.samples = 1;
 					_last_gyro_fifo.dt = time - _last_gyro_fifo.timestamp_sample;
 					_last_gyro_fifo.timestamp_sample = time;
-					_last_gyro_fifo.x[0] = sensors.xgyro / GYRO_FIFO_SCALE;
-					_last_gyro_fifo.y[0] = sensors.ygyro / GYRO_FIFO_SCALE;
-					_last_gyro_fifo.z[0] = sensors.zgyro / GYRO_FIFO_SCALE;
+					_last_gyro_fifo.x[0] = (int16_t)roundf(sensors.xgyro / GYRO_FIFO_SCALE);
+					_last_gyro_fifo.y[0] = (int16_t)roundf(sensors.ygyro / GYRO_FIFO_SCALE);
+					_last_gyro_fifo.z[0] = (int16_t)roundf(sensors.zgyro / GYRO_FIFO_SCALE);
 
 					_px4_gyro[i].updateFIFO(_last_gyro_fifo);
 				}
@@ -526,9 +526,9 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 	{
 		hil_gpos.timestamp = timestamp;
 
-		hil_gpos.lat = hil_state.lat / 1E7;//1E7
-		hil_gpos.lon = hil_state.lon / 1E7;//1E7
-		hil_gpos.alt = hil_state.alt / 1E3;//1E3
+		hil_gpos.lat = hil_state.lat / 1e7;//1E7
+		hil_gpos.lon = hil_state.lon / 1e7;//1E7
+		hil_gpos.alt = hil_state.alt / 1e3f;//1E3
 
 		// always publish ground truth attitude message
 		_gpos_ground_truth_pub.publish(hil_gpos);

@@ -53,7 +53,7 @@ VehicleIMU::VehicleIMU(int instance, uint8_t accel_index, uint8_t gyro_index, co
 	_sensor_gyro_sub(this, ORB_ID(sensor_gyro), gyro_index),
 	_instance(instance)
 {
-	_imu_integration_interval_us = 1e6f / _param_imu_integ_rate.get();
+	_imu_integration_interval_us = (uint32_t)roundf(1e6f / static_cast<float>(_param_imu_integ_rate.get()));
 
 	_accel_integrator.set_reset_interval(_imu_integration_interval_us);
 	_accel_integrator.set_reset_samples(sensor_accel_s::ORB_QUEUE_LENGTH);
@@ -128,7 +128,7 @@ void VehicleIMU::ParametersUpdate(bool force)
 			_param_imu_integ_rate.commit_no_notification();
 		}
 
-		_imu_integration_interval_us = 1e6f / imu_integration_rate_hz;
+		_imu_integration_interval_us = (uint32_t)roundf(1e6f / static_cast<float>(imu_integration_rate_hz));
 
 		if (_param_imu_integ_rate.get() != imu_integ_rate_prev) {
 			// force update
@@ -323,9 +323,9 @@ bool VehicleIMU::UpdateAccel()
 						Vector3f{(float)accel.clip_counter[0], (float)accel.clip_counter[1], (float)accel.clip_counter[2]}};
 
 			// round to get reasonble clip counts per axis (after board rotation)
-			const uint8_t clip_x = roundf(fabsf(clipping(0)));
-			const uint8_t clip_y = roundf(fabsf(clipping(1)));
-			const uint8_t clip_z = roundf(fabsf(clipping(2)));
+			const uint8_t clip_x = (uint8_t)roundf(fabsf(clipping(0)));
+			const uint8_t clip_y = (uint8_t)roundf(fabsf(clipping(1)));
+			const uint8_t clip_z = (uint8_t)roundf(fabsf(clipping(2)));
 
 			_status.accel_clipping[0] += clip_x;
 			_status.accel_clipping[1] += clip_y;
@@ -558,21 +558,21 @@ void VehicleIMU::UpdateIntegratorConfiguration()
 			gyro_integral_samples = math::max(1, (int)roundf(_imu_integration_interval_us / _gyro_interval_us / 2) * 2);
 		}
 
-		uint32_t integration_interval_us = roundf(gyro_integral_samples * _gyro_interval_us);
+		uint32_t integration_interval_us = (uint32_t)roundf(gyro_integral_samples * _gyro_interval_us);
 
 		// accel follows gyro as closely as possible
 		uint8_t accel_integral_samples = math::max(1, (int)roundf(integration_interval_us / _accel_interval_us));
 
 		// let the gyro set the configuration and scheduling
 		// relaxed minimum integration time required
-		_accel_integrator.set_reset_interval(roundf((accel_integral_samples - 0.5f) * _accel_interval_us));
+		_accel_integrator.set_reset_interval((uint32_t)roundf((accel_integral_samples - 0.5f) * _accel_interval_us));
 		_accel_integrator.set_reset_samples(accel_integral_samples);
 
-		_gyro_integrator.set_reset_interval(roundf((gyro_integral_samples - 0.5f) * _gyro_interval_us));
+		_gyro_integrator.set_reset_interval((uint32_t)roundf((gyro_integral_samples - 0.5f) * _gyro_interval_us));
 		_gyro_integrator.set_reset_samples(gyro_integral_samples);
 
-		_backup_schedule_timeout_us = math::min(sensor_accel_s::ORB_QUEUE_LENGTH * _accel_interval_us,
-							sensor_gyro_s::ORB_QUEUE_LENGTH * _gyro_interval_us);
+		_backup_schedule_timeout_us = (uint32_t)math::min(sensor_accel_s::ORB_QUEUE_LENGTH * _accel_interval_us,
+					      sensor_gyro_s::ORB_QUEUE_LENGTH * _gyro_interval_us);
 
 		// gyro: find largest integer multiple of gyro_integral_samples
 		for (int n = sensor_gyro_s::ORB_QUEUE_LENGTH; n > 0; n--) {

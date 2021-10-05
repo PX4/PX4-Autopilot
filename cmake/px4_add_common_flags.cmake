@@ -85,6 +85,8 @@ function(px4_add_common_flags)
 		-Wunknown-pragmas
 		-Wunused-variable
 
+		-Wfloat-conversion
+
 		# disabled warnings
 		-Wno-missing-field-initializers
 		-Wno-missing-include-dirs # TODO: fix and enable

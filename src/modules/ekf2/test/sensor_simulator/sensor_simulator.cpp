@@ -254,16 +254,15 @@ void SensorSimulator::setSingleReplaySample(const sensor_info &sample)
 		_airspeed.setData((float) sample.sensor_data[0], (float) sample.sensor_data[1]);
 
 	} else if (sample.sensor_type == sensor_info::RANGE) {
-		_rng.setData((float) sample.sensor_data[0], (float) sample.sensor_data[1]);
+		_rng.setData((float) sample.sensor_data[0], (int8_t) sample.sensor_data[1]);
 
 	} else if (sample.sensor_type == sensor_info::FLOW) {
 		flowSample flow_sample;
-		flow_sample.flow_xy_rad = Vector2f(sample.sensor_data[0],
-						   sample.sensor_data[1]);
-		flow_sample.gyro_xyz = Vector3f(sample.sensor_data[2],
-						sample.sensor_data[3],
-						sample.sensor_data[4]);
-		flow_sample.quality = sample.sensor_data[5];
+		flow_sample.flow_xy_rad = Vector2f((float)sample.sensor_data[0], (float)sample.sensor_data[1]);
+		flow_sample.gyro_xyz = Vector3f((float)sample.sensor_data[2],
+						(float)sample.sensor_data[3],
+						(float)sample.sensor_data[4]);
+		flow_sample.quality = (int8_t)sample.sensor_data[5];
 		_flow.setData(flow_sample);
 
 	} else if (sample.sensor_type == sensor_info::VISION) {

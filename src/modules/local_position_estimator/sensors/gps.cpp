@@ -40,7 +40,7 @@ void BlockLocalPositionEstimator::gpsInit()
 		// get mean gps values
 		double gpsLat = _gpsStats.getMean()(0);
 		double gpsLon = _gpsStats.getMean()(1);
-		float gpsAlt = _gpsStats.getMean()(2);
+		float gpsAlt = (float)_gpsStats.getMean()(2);
 
 		_sensorTimeout &= ~SENSOR_GPS;
 		_sensorFault &= ~SENSOR_GPS;
@@ -115,7 +115,7 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	// gps measurement in local frame
 	double lat = y_global(Y_gps_x);
 	double lon = y_global(Y_gps_y);
-	float alt = y_global(Y_gps_z);
+	float alt = (float)y_global(Y_gps_z);
 	float px = 0;
 	float py = 0;
 	float pz = -(alt - _gpsAltOrigin);
@@ -125,9 +125,9 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	y(Y_gps_x) = px;
 	y(Y_gps_y) = py;
 	y(Y_gps_z) = pz;
-	y(Y_gps_vx) = y_global(Y_gps_vx);
-	y(Y_gps_vy) = y_global(Y_gps_vy);
-	y(Y_gps_vz) = y_global(Y_gps_vz);
+	y(Y_gps_vx) = (float)y_global(Y_gps_vx);
+	y(Y_gps_vy) = (float)y_global(Y_gps_vy);
+	y(Y_gps_vz) = (float)y_global(Y_gps_vz);
 
 	// gps measurement matrix, measures position and velocity
 	Matrix<float, n_y_gps, n_x> C;

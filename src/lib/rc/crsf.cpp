@@ -44,6 +44,7 @@
 #endif
 
 #include <drivers/drv_hrt.h>
+#include <math.h>
 #include <termios.h>
 #include <string.h>
 #include <unistd.h>
@@ -222,7 +223,7 @@ static uint16_t convert_channel_value(unsigned chan_value)
 	 */
 	static constexpr float scale = (2012.f - 988.f) / (1811.f - 172.f);
 	static constexpr float offset = 988.f - 172.f * scale;
-	return (scale * chan_value) + offset;
+	return (uint16_t)roundf((scale * static_cast<float>(chan_value)) + offset);
 }
 
 static bool crsf_parse_buffer(uint16_t *values, uint16_t *num_values, uint16_t max_channels)

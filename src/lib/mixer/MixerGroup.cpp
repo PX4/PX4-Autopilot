@@ -112,7 +112,7 @@ MixerGroup::get_trims(int16_t *values)
 		// MultirotorMixer returns the number of motors so we
 		// loop through index_mixer and set the same trim value for all motors
 		while (index < index_mixer) {
-			values[index] = trim * 10000;
+			values[index] = (int16_t)roundf(trim * 10000.f);
 			index++;
 		}
 	}

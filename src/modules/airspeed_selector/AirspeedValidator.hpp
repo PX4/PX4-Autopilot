@@ -107,8 +107,8 @@ public:
 	// setters for failure detection tuning parameters
 	void set_tas_innov_threshold(float tas_innov_threshold) { _tas_innov_threshold = tas_innov_threshold; }
 	void set_tas_innov_integ_threshold(float tas_innov_integ_threshold) { _tas_innov_integ_threshold = tas_innov_integ_threshold; }
-	void set_checks_fail_delay(float checks_fail_delay) { _checks_fail_delay = checks_fail_delay; }
-	void set_checks_clear_delay(float checks_clear_delay) { _checks_clear_delay = checks_clear_delay; }
+	void set_checks_fail_delay(float checks_fail_delay) { _checks_fail_delay = (int)roundf(checks_fail_delay); }
+	void set_checks_clear_delay(float checks_clear_delay) { _checks_clear_delay = (int)roundf(checks_clear_delay); }
 
 	void set_airspeed_stall(float airspeed_stall) { _airspeed_stall = airspeed_stall; }
 

@@ -40,6 +40,7 @@ px4_add_module(
 		-Wno-cast-align # TODO: fix and enable
 		-Wno-address-of-packed-member # TODO: fix in c_library_v2
 		-Wno-enum-compare # ROTATION <-> MAV_SENSOR_ROTATION
+		-DMAVLINK_NO_CONVERSION_HELPERS
 		#-DDEBUG_BUILD
 	INCLUDES
 		${PX4_SOURCE_DIR}/mavlink/include/mavlink

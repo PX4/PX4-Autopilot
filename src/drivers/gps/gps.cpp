@@ -894,7 +894,7 @@ GPS::run()
 					float dt = (float)((hrt_absolute_time() - last_rate_measurement)) / 1000000.0f;
 					_rate = last_rate_count / dt;
 					_rate_rtcm_injection = _last_rate_rtcm_injection_count / dt;
-					_rate_reading = _num_bytes_read / dt;
+					_rate_reading = (int)roundf((float)_num_bytes_read / dt);
 					last_rate_measurement = hrt_absolute_time();
 					last_rate_count = 0;
 					_last_rate_rtcm_injection_count = 0;

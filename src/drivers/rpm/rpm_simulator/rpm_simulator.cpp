@@ -63,7 +63,7 @@ int rpm_simulator_main(int argc, char *argv[])
 
 	uORB::Publication<rpm_s> rpm_pub{ORB_ID(rpm)};
 	uint64_t timestamp_us = hrt_absolute_time();
-	float frequency = atof(argv[1]);
+	float frequency = (float)atof(argv[1]);
 
 	// prpepare RPM data message
 	rpm.timestamp = timestamp_us;

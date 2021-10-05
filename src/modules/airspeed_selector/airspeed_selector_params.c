@@ -33,7 +33,7 @@ PARAM_DEFINE_FLOAT(ASPD_SC_P_NOISE, 0.0001);
  * @unit m/s
  * @group Airspeed Validator
  */
-PARAM_DEFINE_FLOAT(ASPD_TAS_NOISE, 1.4);
+PARAM_DEFINE_FLOAT(ASPD_TAS_NOISE, 1.4f);
 
 /**
  * Airspeed Selector: Wind estimator sideslip measurement noise
@@ -45,7 +45,7 @@ PARAM_DEFINE_FLOAT(ASPD_TAS_NOISE, 1.4);
  * @unit rad
  * @group Airspeed Validator
  */
-PARAM_DEFINE_FLOAT(ASPD_BETA_NOISE, 0.3);
+PARAM_DEFINE_FLOAT(ASPD_BETA_NOISE, 0.3f);
 
 /**
  * Airspeed Selector: Gate size for true airspeed fusion

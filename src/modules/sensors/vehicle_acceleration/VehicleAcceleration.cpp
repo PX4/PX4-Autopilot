@@ -103,8 +103,8 @@ void VehicleAcceleration::CheckAndUpdateFilters()
 				if (_param_imu_integ_rate.get() > 0) {
 					const float configured_interval_us = 1e6f / _param_imu_integ_rate.get();
 					const float sample_interval_avg = 1e6f / sample_rate_hz;
-					const uint8_t samples = math::constrain(roundf(configured_interval_us / sample_interval_avg), 1.f,
-										(float)sensor_accel_s::ORB_QUEUE_LENGTH);
+					const uint8_t samples = (uint8_t)math::constrain(roundf(configured_interval_us / sample_interval_avg),
+								1.f, (float)sensor_accel_s::ORB_QUEUE_LENGTH);
 
 					_sensor_sub.set_required_updates(samples);
 

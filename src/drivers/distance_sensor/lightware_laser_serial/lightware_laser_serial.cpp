@@ -115,7 +115,7 @@ LightwareLaserSerial::init()
 		/* SF30/B (50m 39Hz) */
 		_px4_rangefinder.set_min_distance(0.2f);
 		_px4_rangefinder.set_max_distance(50.0f);
-		_interval = 1e6 / 39;
+		_interval = (int)round(1e6 / 39);
 		_simple_serial = true;
 		break;
 
@@ -123,7 +123,7 @@ LightwareLaserSerial::init()
 		/* SF30/C (100m 39Hz) */
 		_px4_rangefinder.set_min_distance(0.2f);
 		_px4_rangefinder.set_max_distance(100.0f);
-		_interval = 1e6 / 39;
+		_interval = (int)round(1e6 / 39);
 		_simple_serial = true;
 		break;
 

@@ -38,9 +38,9 @@ using namespace time_literals;
 FakeGps::FakeGps(double latitude_deg, double longitude_deg, float altitude_m) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
-	_latitude(latitude_deg * 10e6),
-	_longitude(longitude_deg * 10e6),
-	_altitude(altitude_m * 10e2f)
+	_latitude((int32_t)(latitude_deg * 10e6)),
+	_longitude((int32_t)(longitude_deg * 10e6)),
+	_altitude((int32_t)(altitude_m * 10e2f))
 {
 }
 

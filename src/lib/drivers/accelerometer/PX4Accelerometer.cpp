@@ -56,7 +56,7 @@ static constexpr uint8_t clipping(const int16_t samples[], int16_t clip_limit, u
 	unsigned clip_count = 0;
 
 	for (int n = 0; n < len; n++) {
-		if (abs(samples[n]) >= clip_limit) {
+		if ((samples[n] <= clip_limit) || (samples[n] >= clip_limit)) {
 			clip_count++;
 		}
 	}
@@ -100,7 +100,7 @@ void PX4Accelerometer::set_scale(float scale)
 		float rescale = _scale / scale;
 
 		for (auto &s : _last_sample) {
-			s = roundf(s * rescale);
+			s = (int16_t)roundf(s * rescale);
 		}
 
 		_scale = scale;
@@ -124,9 +124,9 @@ void PX4Accelerometer::update(const hrt_abstime &timestamp_sample, float x, floa
 	report.x = x * _scale;
 	report.y = y * _scale;
 	report.z = z * _scale;
-	report.clip_counter[0] = (fabsf(x) >= _clip_limit);
-	report.clip_counter[1] = (fabsf(y) >= _clip_limit);
-	report.clip_counter[2] = (fabsf(z) >= _clip_limit);
+	report.clip_counter[0] = (fabsf(x) >= (float)_clip_limit);
+	report.clip_counter[1] = (fabsf(y) >= (float)_clip_limit);
+	report.clip_counter[2] = (fabsf(z) >= (float)_clip_limit);
 	report.samples = 1;
 	report.timestamp = hrt_absolute_time();
 
@@ -183,5 +183,5 @@ void PX4Accelerometer::updateFIFO(sensor_accel_fifo_s &sample)
 void PX4Accelerometer::UpdateClipLimit()
 {
 	// 99.9% of potential max
-	_clip_limit = math::constrain((_range / _scale) * 0.999f, 0.f, (float)INT16_MAX);
+	_clip_limit = (int16_t)math::constrain((int16_t)(roundf((_range / _scale) * 0.999f)), (int16_t)0, (int16_t)INT16_MAX);
 }

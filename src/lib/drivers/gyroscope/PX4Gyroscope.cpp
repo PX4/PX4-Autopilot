@@ -87,7 +87,7 @@ void PX4Gyroscope::set_scale(float scale)
 		float rescale = _scale / scale;
 
 		for (auto &s : _last_sample) {
-			s = roundf(s * rescale);
+			s = (int16_t)roundf(s * rescale);
 		}
 
 		_scale = scale;

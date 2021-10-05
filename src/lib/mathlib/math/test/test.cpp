@@ -115,13 +115,13 @@ void __EXPORT float2SigExp(const float &num, float &sig, int &exp)
 		return;
 	}
 
-	exp = log10f(fabsf(num));
+	exp = (int)log10f(fabsf(num));
 
 	if (exp > 0) {
-		exp = ceil(exp);
+		exp = (int)ceil(exp);
 
 	} else {
-		exp = floor(exp);
+		exp = (int)floor(exp);
 	}
 
 	sig = num;

@@ -378,7 +378,7 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 
 			while (cur_node) {
 				unsigned int num_msgs = cur_node->node->updates_available(cur_node->last_pub_msg_count);
-				cur_node->pub_msg_delta = roundf(num_msgs / dt);
+				cur_node->pub_msg_delta = (int)roundf(num_msgs / dt);
 				cur_node->last_pub_msg_count += num_msgs;
 
 				total_size += cur_node->pub_msg_delta * cur_node->node->get_meta()->o_size;

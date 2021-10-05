@@ -87,7 +87,7 @@ void Gps::setPositionRateNED(const Vector3f &rate)
 
 void Gps::stepHeightByMeters(const float hgt_change)
 {
-	_gps_data.alt += hgt_change * 1e3f;
+	_gps_data.alt += (int32_t)(hgt_change * 1e3f);
 }
 
 void Gps::stepHorizontalPositionByMeters(const Vector2f hpos_change)

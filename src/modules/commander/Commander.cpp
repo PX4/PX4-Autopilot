@@ -400,7 +400,7 @@ int Commander::custom_command(int argc, char *argv[])
 
 			double latitude  = atof(argv[1]);
 			double longitude = atof(argv[2]);
-			float  altitude  = atof(argv[3]);
+			float  altitude  = (float)atof(argv[3]);
 
 			// Set the ekf NED origin global coordinates.
 			bool ret = send_vehicle_command(vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN,
@@ -708,7 +708,7 @@ Commander::Commander() :
 	ModuleParams(nullptr),
 	_failure_detector(this)
 {
-	_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_preflight.get() * 1_s);
+	_auto_disarm_landed.set_hysteresis_time_from(false, static_cast<uint64_t>(_param_com_disarm_preflight.get() * 1_s));
 
 	_land_detector.landed = true;
 
@@ -1228,7 +1228,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN: {
 
-			const int param1 = cmd.param1;
+			const int param1 = (int)roundf(cmd.param1);
 
 			if (param1 == 0) {
 				// 0: Do nothing for autopilot
@@ -1850,7 +1850,7 @@ Commander::run()
 			_flight_mode_slots[4] = _param_fltmode_5.get();
 			_flight_mode_slots[5] = _param_fltmode_6.get();
 
-			_auto_disarm_killed.set_hysteresis_time_from(false, _param_com_kill_disarm.get() * 1_s);
+			_auto_disarm_killed.set_hysteresis_time_from(false, static_cast<uint64_t>(_param_com_kill_disarm.get() * 1_s));
 
 			/* check for unsafe Airmode settings: yaw airmode requires the use of an arming switch */
 			if (param_airmode != PARAM_INVALID && param_rc_map_arm_switch != PARAM_INVALID) {
@@ -1869,7 +1869,7 @@ Commander::run()
 				}
 			}
 
-			_offboard_available.set_hysteresis_time_from(true, _param_com_of_loss_t.get() * 1e6f);
+			_offboard_available.set_hysteresis_time_from(true, static_cast<uint64_t>(_param_com_of_loss_t.get() * 1e6f));
 
 			param_init_forced = false;
 		}
@@ -2083,11 +2083,11 @@ Commander::run()
 			if (_param_com_disarm_land.get() > 0 || _param_com_disarm_preflight.get() > 0) {
 
 				if (_param_com_disarm_land.get() > 0 && _have_taken_off_since_arming) {
-					_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_land.get() * 1_s);
+					_auto_disarm_landed.set_hysteresis_time_from(false, static_cast<uint64_t>(_param_com_disarm_land.get() * 1_s));
 					_auto_disarm_landed.set_state_and_update(_land_detector.landed, hrt_absolute_time());
 
 				} else if (_param_com_disarm_preflight.get() > 0 && !_have_taken_off_since_arming) {
-					_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_preflight.get() * 1_s);
+					_auto_disarm_landed.set_hysteresis_time_from(false, static_cast<uint64_t>(_param_com_disarm_preflight.get() * 1_s));
 					_auto_disarm_landed.set_state_and_update(true, hrt_absolute_time());
 				}
 

@@ -41,7 +41,7 @@ FakeImu::FakeImu() :
 	_px4_accel(1310988), // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 	_px4_gyro(1310988)   // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 {
-	_sensor_interval_us = roundf(1.e6f / _px4_gyro.get_max_rate_hz());
+	_sensor_interval_us = (uint32_t)roundf(1.e6f / _px4_gyro.get_max_rate_hz());
 
 	PX4_INFO("Rate %.3f, Interval: %" PRId32 " us", (double)_px4_gyro.get_max_rate_hz(), _sensor_interval_us);
 
@@ -66,7 +66,7 @@ void FakeImu::Run()
 
 	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = hrt_absolute_time();
-	gyro.samples = roundf(IMU_RATE_HZ / (1e6 / _sensor_interval_us));
+	gyro.samples = (uint8_t)roundf(IMU_RATE_HZ / (1e6f / (float)_sensor_interval_us));
 	gyro.dt = 1e6 / IMU_RATE_HZ;
 
 	const double dt_s = 1 / IMU_RATE_HZ;
@@ -92,9 +92,9 @@ void FakeImu::Run()
 
 	const double timestamp_sample_s = static_cast<double>(gyro.timestamp_sample - _time_start_us) / 1e6;
 
-	float x_freq = 0;
-	float y_freq = 0;
-	float z_freq = 0;
+	double x_freq = 0;
+	double y_freq = 0;
+	double z_freq = 0;
 
 	for (int n = 0; n < gyro.samples; n++) {
 		// timestamp_sample corresponds to last sample
@@ -105,9 +105,9 @@ void FakeImu::Run()
 		const double y_F = y_f0 + (y_f1 - y_f0) * t / (2 * T);
 		const double z_F = z_f0 + (z_f1 - z_f0) * t / (2 * T);
 
-		gyro.x[n] = roundf(A * sin(2 * M_PI * x_F * t));
-		gyro.y[n] = roundf(A * sin(2 * M_PI * y_F * t));
-		gyro.z[n] = roundf(A * sin(2 * M_PI * z_F * t));
+		gyro.x[n] = (int16_t)round(A * sin(2 * M_PI * x_F * t));
+		gyro.y[n] = (int16_t)round(A * sin(2 * M_PI * y_F * t));
+		gyro.z[n] = (int16_t)round(A * sin(2 * M_PI * z_F * t));
 
 		if (n == 0) {
 			x_freq = (x_f1 - x_f0) * (t / T) + x_f0;

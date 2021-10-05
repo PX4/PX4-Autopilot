@@ -25,9 +25,9 @@ static constexpr param_info_s parameters[] = {
 	{
 		"{{ param.attrib["name"] }}",
 	{%- if param.attrib["type"] == "FLOAT" %}
-		.val = {{ "{" }} .f = {{ param.attrib["default"] }} {{ "}" }},
+		.val = {{ "{" }} .f = {{"(float)"}}{{ param.attrib["default"] }}{{ "}" }},
 	{%- elif param.attrib["type"] == "INT32" %}
-		.val = {{ "{" }} .i = {{ param.attrib["default"] }}{{ "}" }},
+		.val = {{ "{" }} .i = {{"(int32_t)"}}{{ param.attrib["default"] }}{{ "}" }},
 	{%- endif %}
 	},
 {% endfor %}

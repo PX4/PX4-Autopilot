@@ -127,15 +127,15 @@ void RCUpdate::parameters_updated()
 
 		float min = 0.f;
 		param_get(_parameter_handles.min[i], &min);
-		_parameters.min[i] = min;
+		_parameters.min[i] = math::constrain((uint16_t)roundf(min), (uint16_t)0, (uint16_t)UINT16_MAX);
 
 		float trim = 0.f;
 		param_get(_parameter_handles.trim[i], &trim);
-		_parameters.trim[i] = trim;
+		_parameters.trim[i] = math::constrain((uint16_t)roundf(trim), (uint16_t)0, (uint16_t)UINT16_MAX);
 
 		float max = 0.f;
 		param_get(_parameter_handles.max[i], &max);
-		_parameters.max[i] = max;
+		_parameters.max[i] = math::constrain((uint16_t)roundf(max), (uint16_t)0, (uint16_t)UINT16_MAX);
 
 		float rev = 0.f;
 		param_get(_parameter_handles.rev[i], &rev);
@@ -143,7 +143,7 @@ void RCUpdate::parameters_updated()
 
 		float dz = 0.f;
 		param_get(_parameter_handles.dz[i], &dz);
-		_parameters.dz[i] = dz;
+		_parameters.dz[i] = math::constrain((uint16_t)roundf(dz), (uint16_t)0, (uint16_t)UINT16_MAX);
 	}
 
 	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {

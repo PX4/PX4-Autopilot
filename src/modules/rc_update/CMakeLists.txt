@@ -34,6 +34,8 @@
 px4_add_module(
 	MODULE modules__rc_update
 	MAIN rc_update
+	COMPILE_FLAGS
+		-Wno-float-conversion # TODO: fix and enable
 	SRCS
 		rc_update.cpp
 		rc_update.h

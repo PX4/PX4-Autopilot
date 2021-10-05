@@ -287,7 +287,7 @@ struct parameters {
 	// synthetic sideslip fusion
 	float beta_innov_gate{5.0f};		///< synthetic sideslip innovation consistency gate size in standard deviation (STD)
 	float beta_noise{0.3f};			///< synthetic sideslip noise (rad)
-	const float beta_avg_ft_us{150000.0f};	///< The average time between synthetic sideslip measurements (uSec)
+	const uint64_t beta_avg_ft_us{150000};	///< The average time between synthetic sideslip measurements (uSec)
 
 	// range finder fusion
 	float range_noise{0.1f};		///< observation noise for range finder measurements (m)

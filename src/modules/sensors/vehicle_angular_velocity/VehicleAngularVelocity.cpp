@@ -120,7 +120,7 @@ bool VehicleAngularVelocity::UpdateSampleRate()
 				const float configured_interval_us = 1e6f / _param_imu_gyro_ratemax.get();
 				const float publish_interval_us = 1e6f / publish_rate_hz;
 
-				const uint8_t samples = roundf(configured_interval_us / publish_interval_us);
+				const uint8_t samples = (uint8_t)roundf(configured_interval_us / publish_interval_us);
 
 				if (_fifo_available) {
 					_sensor_fifo_sub.set_required_updates(math::constrain(samples, (uint8_t)1, sensor_gyro_fifo_s::ORB_QUEUE_LENGTH));
@@ -435,7 +435,8 @@ void VehicleAngularVelocity::UpdateDynamicNotchEscRpm(bool force)
 		if (_esc_status_sub.copy(&esc_status) && (hrt_elapsed_time(&esc_status.timestamp) < DYNAMIC_NOTCH_FITLER_TIMEOUT)) {
 
 			static constexpr int32_t ESC_RPM_MIN = 20 * 60; // TODO: configurable
-			const int32_t ESC_RPM_MAX = roundf(_filter_sample_rate_hz / 3.f * 60.f); // upper bound safety (well below Nyquist)
+			const int32_t ESC_RPM_MAX = (int32_t)roundf(_filter_sample_rate_hz / 3.f *
+						    60.f); // upper bound safety (well below Nyquist)
 
 			for (size_t esc = 0; esc < math::min(esc_status.esc_count, (uint8_t)MAX_NUM_ESC_RPM); esc++) {
 
@@ -712,7 +713,7 @@ void VehicleAngularVelocity::Run()
 			if (PX4_ISFINITE(sensor_data.x) && PX4_ISFINITE(sensor_data.y) && PX4_ISFINITE(sensor_data.z)) {
 
 				if (_timestamp_sample_last == 0 || (sensor_data.timestamp_sample <= _timestamp_sample_last)) {
-					_timestamp_sample_last = sensor_data.timestamp_sample - 1e6f / _filter_sample_rate_hz;
+					_timestamp_sample_last = sensor_data.timestamp_sample - (uint64_t)roundf(1e6f / _filter_sample_rate_hz);
 				}
 
 				const float dt_s = math::constrain(((sensor_data.timestamp_sample - _timestamp_sample_last) * 1e-6f), 0.00002f, 0.02f);

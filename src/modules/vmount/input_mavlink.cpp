@@ -716,8 +716,8 @@ int InputMavlinkGimbalV2::update_impl(unsigned int timeout_ms, ControlData **con
 
 				} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE) {
 
-					const int param_sys_id = roundf(vehicle_command.param1);
-					const int param_comp_id = roundf(vehicle_command.param2);
+					const int param_sys_id = (int)roundf(vehicle_command.param1);
+					const int param_comp_id = (int)roundf(vehicle_command.param2);
 
 					uint8_t new_sys_id_primary_control = [&]() {
 						if (param_sys_id >= 0 && param_sys_id < 256) {
@@ -798,7 +798,7 @@ int InputMavlinkGimbalV2::update_impl(unsigned int timeout_ms, ControlData **con
 						const matrix::Eulerf euler(0.0f, math::radians(vehicle_command.param1), math::radians(vehicle_command.param2));
 						const matrix::Quatf q(euler);
 						const matrix::Vector3f angular_velocity(0.0f, vehicle_command.param3, vehicle_command.param4);
-						const uint32_t flags = vehicle_command.param5;
+						const uint32_t flags = (uint32_t)roundf(vehicle_command.param5);
 
 						// TODO: support gimbal device id for multiple gimbals
 

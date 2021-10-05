@@ -201,7 +201,7 @@ HelicopterMixer::mix(float *outputs, unsigned space)
 
 	/* Find index to use for curves */
 	float thrust_cmd = get_control(0, 3);
-	int idx = (thrust_cmd / 0.25f);
+	int idx = (int)roundf(thrust_cmd / 0.25f);
 
 	/* Make sure idx is in range */
 	if (idx < 0) {

@@ -810,7 +810,7 @@ Replay::run()
 	const char *speedup = getenv("PX4_SIM_SPEED_FACTOR");
 
 	if (speedup) {
-		_speed_factor = atof(speedup);
+		_speed_factor = (float)atof(speedup);
 	}
 
 	onEnterMainLoop();
@@ -960,7 +960,7 @@ Replay::handleTopicDelay(uint64_t next_file_time, uint64_t timestamp_offset)
 			_accumulated_delay += (publish_timestamp - cur_time) / _speed_factor;
 
 			if (_accumulated_delay > 3000) {
-				system_usleep(_accumulated_delay);
+				system_usleep((int)_accumulated_delay);
 				_accumulated_delay = 0.f;
 			}
 		}

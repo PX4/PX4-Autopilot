@@ -342,10 +342,11 @@ CameraTrigger::update_intervalometer()
 		PX4_DEBUG("update intervalometer, trigger enabled: %d, trigger paused: %d", _trigger_enabled, _trigger_paused);
 
 		// schedule trigger on and off calls
-		hrt_call_every(&_engagecall, 0, (_interval * 1000), &CameraTrigger::engage, this);
+		hrt_call_every(&_engagecall, 0, (int)(_interval * 1000), &CameraTrigger::engage, this);
 
 		// schedule trigger on and off calls
-		hrt_call_every(&_disengagecall, 0 + (_activation_time * 1000), (_interval * 1000), &CameraTrigger::disengage, this);
+		hrt_call_every(&_disengagecall, (int)(0 + (_activation_time * 1000)), (int)(_interval * 1000),
+			       &CameraTrigger::disengage, this);
 
 	}
 }
@@ -429,7 +430,7 @@ CameraTrigger::shoot_once()
 	hrt_call_after(&_engagecall, 0,
 		       (hrt_callout)&CameraTrigger::engage, this);
 
-	hrt_call_after(&_disengagecall, 0 + (_activation_time * 1000), &CameraTrigger::disengage, this);
+	hrt_call_after(&_disengagecall, (int)(0 + (_activation_time * 1000)), &CameraTrigger::disengage, this);
 }
 
 bool
@@ -672,8 +673,8 @@ CameraTrigger::Run()
 
 			if (cmd.param4 >= 2.0f) {
 				_CAMPOS_num_poses = commandParamToInt(cmd.param4);
-				_CAMPOS_roll_angle = cmd.param5;
-				_CAMPOS_pitch_angle = cmd.param6;
+				_CAMPOS_roll_angle = static_cast<float>(cmd.param5);
+				_CAMPOS_pitch_angle = static_cast<float>(cmd.param6);
 				_CAMPOS_angle_interval = _CAMPOS_roll_angle * 2 / (_CAMPOS_num_poses - 1);
 				_CAMPOS_pose_counter = 0;
 				_CAMPOS_updated_roll_angle = false;

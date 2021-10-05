@@ -44,6 +44,8 @@
 #include "st24.h"
 #include "common_rc.h"
 
+#include <lib/mathlib/mathlib.h>
+
 const char *decode_states[] = {"UNSYNCED",
 			       "GOT_STX1",
 			       "GOT_STX2",
@@ -167,7 +169,7 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *chan
 					ChannelData12 *d = (ChannelData12 *)_rxpacket.st24_data;
 
 					// Scale from 0..255 to 100%.
-					*rssi = d->rssi * (100.0f / 255.0f);
+					*rssi = (uint8_t)math::constrain(static_cast<float>(d->rssi) * (100.0f / 255.0f), 0.f, 255.f);
 					*lost_count = d->lost_count;
 
 					/* this can lead to rounding of the strides */
@@ -196,7 +198,7 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *chan
 					ChannelData24 *d = (ChannelData24 *)&_rxpacket.st24_data;
 
 					// Scale from 0..255 to 100%.
-					*rssi = d->rssi * (100.0f / 255.0f);
+					*rssi = (uint8_t)math::constrain(static_cast<float>(d->rssi) * (100.0f / 255.0f), 0.f, 255.f);
 					*lost_count = d->lost_count;
 
 					/* this can lead to rounding of the strides */

@@ -124,7 +124,7 @@ CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obstacle,
 		// corresponding data index (convert to world frame and shift by msg offset)
 		for (int i = 0; i < INTERNAL_MAP_USED_BINS; i++) {
 			float bin_angle_deg = (float)i * INTERNAL_MAP_INCREMENT_DEG + _obstacle_map_body_frame.angle_offset;
-			msg_index = ceil(wrap_360(vehicle_orientation_deg + bin_angle_deg - obstacle.angle_offset) * increment_factor);
+			msg_index = (int)ceil(wrap_360(vehicle_orientation_deg + bin_angle_deg - obstacle.angle_offset) * increment_factor);
 
 			//add all data points inside to FOV
 			if (obstacle.distances[msg_index] != UINT16_MAX) {
@@ -143,7 +143,7 @@ CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obstacle,
 		for (int i = 0; i < INTERNAL_MAP_USED_BINS; i++) {
 			float bin_angle_deg = (float)i * INTERNAL_MAP_INCREMENT_DEG +
 					      _obstacle_map_body_frame.angle_offset;
-			msg_index = ceil(wrap_360(bin_angle_deg - obstacle.angle_offset) * increment_factor);
+			msg_index = (int)ceil(wrap_360(bin_angle_deg - obstacle.angle_offset) * increment_factor);
 
 			//add all data points inside to FOV
 			if (obstacle.distances[msg_index] != UINT16_MAX) {
@@ -295,7 +295,7 @@ void
 CollisionPrevention::_adaptSetpointDirection(Vector2f &setpoint_dir, int &setpoint_index, float vehicle_yaw_angle_rad)
 {
 	const float col_prev_d = _param_cp_dist.get();
-	const int guidance_bins = floor(_param_cp_guide_ang.get() / INTERNAL_MAP_INCREMENT_DEG);
+	const int guidance_bins = (int)floor(_param_cp_guide_ang.get() / INTERNAL_MAP_INCREMENT_DEG);
 	const int sp_index_original = setpoint_index;
 	float best_cost = 9999.f;
 	int new_sp_index = setpoint_index;
@@ -414,7 +414,7 @@ CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint, const Vec
 			const float sp_angle_body_frame = atan2f(setpoint_dir(1), setpoint_dir(0)) - vehicle_yaw_angle_rad;
 			const float sp_angle_with_offset_deg = wrap_360(math::degrees(sp_angle_body_frame) -
 							       _obstacle_map_body_frame.angle_offset);
-			int sp_index = floor(sp_angle_with_offset_deg / INTERNAL_MAP_INCREMENT_DEG);
+			int sp_index = (int)floor(sp_angle_with_offset_deg / INTERNAL_MAP_INCREMENT_DEG);
 
 			// change setpoint direction slightly (max by _param_cp_guide_ang degrees) to help guide through narrow gaps
 			_adaptSetpointDirection(setpoint_dir, sp_index, vehicle_yaw_angle_rad);

@@ -165,7 +165,7 @@ static bool reject_sample(float sx, float sy, float sz, float x[], float y[], fl
 
 static unsigned progress_percentage(mag_worker_data_t *worker_data)
 {
-	return 100 * ((float)worker_data->done_count) / worker_data->calibration_sides;
+	return 100 * (int)roundf((float)worker_data->done_count / (float)worker_data->calibration_sides);
 }
 
 // Returns calibrate_return_error if any parameter is not finite
@@ -243,7 +243,7 @@ static float get_sphere_radius()
 				const double lon = gps.lon / 1.e7;
 
 				// magnetic field data returned by the geo library using the current GPS position
-				return get_mag_strength_gauss(lat, lon);
+				return get_mag_strength_gauss(static_cast<float>(lat), static_cast<float>(lon));
 			}
 		}
 	}

@@ -83,7 +83,7 @@ bool get_log_time(struct tm *tt, int utc_offset_sec, bool boot_time)
 	vehicle_gps_position_s gps_pos;
 
 	if (vehicle_gps_position_sub.copy(&gps_pos)) {
-		utc_time_sec = gps_pos.time_utc_usec / 1e6;
+		utc_time_sec = gps_pos.time_utc_usec / 1000000;
 
 		if (gps_pos.fix_type >= 2 && utc_time_sec >= GPS_EPOCH_SECS) {
 			use_clock_time = false;
@@ -94,7 +94,7 @@ bool get_log_time(struct tm *tt, int utc_offset_sec, bool boot_time)
 		/* take clock time if there's no fix (yet) */
 		struct timespec ts = {};
 		px4_clock_gettime(CLOCK_REALTIME, &ts);
-		utc_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
+		utc_time_sec = ts.tv_sec + (ts.tv_nsec / (1'000'000'000'000));
 
 		if (utc_time_sec < GPS_EPOCH_SECS) {
 			return false;
@@ -103,7 +103,7 @@ bool get_log_time(struct tm *tt, int utc_offset_sec, bool boot_time)
 
 	/* strip the time elapsed since boot */
 	if (boot_time) {
-		utc_time_sec -= hrt_absolute_time() / 1e6;
+		utc_time_sec -= hrt_absolute_time() / 1'000'000;
 	}
 
 	/* apply utc offset */

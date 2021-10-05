@@ -110,7 +110,7 @@ public:
 	{
 		if (integral_ready()) {
 			integral = _alpha;
-			integral_dt = roundf(_integral_dt * 1e6f); // seconds to microseconds
+			integral_dt = (uint16_t)roundf(_integral_dt * 1e6f); // seconds to microseconds
 
 			reset();
 

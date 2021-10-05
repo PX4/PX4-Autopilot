@@ -198,8 +198,7 @@ bool Geofence::check(const vehicle_global_position_s &global_position, const veh
 			return checkAll(global_position);
 
 		} else {
-			return checkAll((double)gps_position.lat * 1.0e-7, (double)gps_position.lon * 1.0e-7,
-					(double)gps_position.alt * 1.0e-3);
+			return checkAll((double)gps_position.lat * 1.0e-7, (double)gps_position.lon * 1.0e-7, gps_position.alt * 1.0e-3f);
 		}
 
 	} else {

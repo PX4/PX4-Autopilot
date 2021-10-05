@@ -52,13 +52,13 @@ static const size_t N_DIST_SUBS = 4;
 // chi squared distribution, false alarm probability 0.0001
 // see fault_table.py
 // note skip 0 index so we can use degree of freedom as index
-static const float BETA_TABLE[7] = {0,
-				    8.82050518214,
-				    12.094592431,
-				    13.9876612368,
-				    16.0875642296,
-				    17.8797700658,
-				    19.6465647819,
+static const float BETA_TABLE[7] = {0.f,
+				    8.82050518214f,
+				    12.094592431f,
+				    13.9876612368f,
+				    16.0875642296f,
+				    17.8797700658f,
+				    19.6465647819f,
 				   };
 
 class BlockLocalPositionEstimator : public ModuleBase<BlockLocalPositionEstimator>, public ModuleParams,

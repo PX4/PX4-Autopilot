@@ -43,7 +43,7 @@
 //#include <time.h>
 //#include <stdlib.h>
 
-bool equal(float a, float b, float eps = 1e-5);
+bool equal(float a, float b, float eps = 1e-5f);
 
 bool greater_than(float a, float b);
 

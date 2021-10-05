@@ -1380,7 +1380,7 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 				goto out;
 			}
 
-			f = node->d;
+			f = static_cast<float>(node->d);
 			v = &f;
 
 			PX4_DEBUG("Imported %s with value %f", param_name(param), (double)f);

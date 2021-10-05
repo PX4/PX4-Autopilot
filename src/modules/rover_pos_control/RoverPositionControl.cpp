@@ -199,7 +199,7 @@ bool
 RoverPositionControl::control_position(const matrix::Vector2d &current_position,
 				       const matrix::Vector3f &ground_speed, const position_setpoint_triplet_s &pos_sp_triplet)
 {
-	float dt = 0.01; // Using non zero value to a avoid division by zero
+	float dt = 0.01f; // Using non zero value to a avoid division by zero
 
 	if (_control_position_last_called > 0) {
 		dt = hrt_elapsed_time(&_control_position_last_called) * 1e-6f;
@@ -330,7 +330,7 @@ void
 RoverPositionControl::control_velocity(const matrix::Vector3f &current_velocity)
 {
 	const Vector3f desired_velocity{_trajectory_setpoint.vx, _trajectory_setpoint.vy, _trajectory_setpoint.vz};
-	float dt = 0.01; // Using non zero value to a avoid division by zero
+	float dt = 0.01f; // Using non zero value to a avoid division by zero
 
 	const float mission_throttle = _param_throttle_cruise.get();
 	const float desired_speed = desired_velocity.norm();

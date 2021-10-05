@@ -76,7 +76,7 @@ void arm_auth_param_update()
 {
 	float timeout = 0;
 	param_get(param_find("COM_ARM_AUTH_TO"), &timeout);
-	_param_com_arm_auth_timout = timeout * 1_s;
+	_param_com_arm_auth_timout = static_cast<uint64_t>(timeout * 1e6f);
 
 	int32_t auth_method = ARM_AUTH_METHOD_ARM_REQ;
 	param_get(param_find("COM_ARM_AUTH_MET"), &auth_method);

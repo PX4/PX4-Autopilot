@@ -38,6 +38,7 @@ px4_add_module(
 	MAIN gps
 	COMPILE_FLAGS
 		-Wno-stringop-overflow # due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=91707
+		-Wno-float-conversion # TODO: fix and enable
 	SRCS
 		gps.cpp
 		devices/src/gps_helper.cpp

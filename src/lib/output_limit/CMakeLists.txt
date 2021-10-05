@@ -32,5 +32,6 @@
 ############################################################################
 
 add_library(output_limit output_limit.cpp)
+target_compile_options(output_limit PRIVATE -Wno-float-conversion) # TODO: fix and enable
 target_link_libraries(output_limit PRIVATE prebuild_targets)
 

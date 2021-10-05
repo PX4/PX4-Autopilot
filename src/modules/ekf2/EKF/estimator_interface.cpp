@@ -491,13 +491,13 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	}
 
 	// calculate the IMU buffer length required to accomodate the maximum delay with some allowance for jitter
-	_imu_buffer_length = ceilf(max_time_delay_ms / FILTER_UPDATE_PERIOD_MS) + 1;
+	_imu_buffer_length = (uint8_t)ceilf(max_time_delay_ms / FILTER_UPDATE_PERIOD_MS) + 1;
 
 	// set the observation buffer length to handle the minimum time of arrival between observations in combination
 	// with the worst case delay from current time to ekf fusion time
 	// allow for worst case 50% extension of the ekf fusion time horizon delay due to timing jitter
 	const float ekf_delay_ms = max_time_delay_ms * 1.5f;
-	_obs_buffer_length = ceilf(ekf_delay_ms / _params.sensor_interval_min_ms);
+	_obs_buffer_length = (uint8_t)ceilf(ekf_delay_ms / _params.sensor_interval_min_ms);
 
 	// limit to be no longer than the IMU buffer (we can't process data faster than the EKF prediction rate)
 	_obs_buffer_length = math::min(_obs_buffer_length, _imu_buffer_length);

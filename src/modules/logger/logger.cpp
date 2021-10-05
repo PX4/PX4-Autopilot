@@ -259,7 +259,7 @@ Logger *Logger::instantiate(int argc, char *argv[])
 					r = 1e6;
 				}
 
-				log_interval = 1e6 / r;
+				log_interval = (int)roundf(1e6f / static_cast<float>(r));
 			}
 			break;
 

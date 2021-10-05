@@ -263,12 +263,12 @@ def generate_mixer_multirotor_header(geometries_list, use_normalized_mix=False, 
         for row in mix:
             if use_6dof:
             # 6dof mixer
-                buf.write(u"\t{{ {:9f}, {:9f}, {:9f}, {:9f}, {:9f}, {:9f} }},\n".format(
+                buf.write(u"\t{{ {:9f}f, {:9f}f, {:9f}f, {:9f}f, {:9f}f, {:9f}f }},\n".format(
                     row[0], row[1], row[2],
                     row[3], row[4], row[5]))
             else:
             # 4dof mixer
-                buf.write(u"\t{{ {:9f}, {:9f}, {:9f}, {:9f} }},\n".format(
+                buf.write(u"\t{{ {:9f}f, {:9f}f, {:9f}f, {:9f}f }},\n".format(
                     row[0], row[1], row[2],
                     -row[5]))  # Upward thrust is positive TODO: to remove this, adapt PX4 to use NED correctly
 

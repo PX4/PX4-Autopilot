@@ -432,7 +432,7 @@ Navigator::run()
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_MISSION_START) {
 				if (_mission_result.valid && PX4_ISFINITE(cmd.param1) && (cmd.param1 >= 0)) {
-					if (!_mission.set_current_mission_index(cmd.param1)) {
+					if (!_mission.set_current_mission_index((int)roundf(cmd.param1))) {
 						PX4_WARN("CMD_MISSION_START failed");
 					}
 				}
@@ -469,7 +469,7 @@ Navigator::run()
 				switch (cmd.command) {
 				case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI:
 				case vehicle_command_s::VEHICLE_CMD_NAV_ROI:
-					_vroi.mode = cmd.param1;
+					_vroi.mode = (int)roundf(cmd.param1);
 					break;
 
 				case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_LOCATION:
@@ -1217,7 +1217,7 @@ void Navigator::check_traffic()
 
 					if (action_needed) {
 						// direction of traffic in human-readable 0..360 degree in earth frame
-						int traffic_direction = math::degrees(tr.heading) + 180;
+						int traffic_direction = (int)math::degrees(tr.heading) + 180;
 						int traffic_seperation = (int)fabsf(cr.distance);
 
 						switch (_param_nav_traff_avoid.get()) {

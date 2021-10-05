@@ -319,11 +319,11 @@ int lm_mag_fit(const float x[], const float y[], const float z[], unsigned int s
 
 	const int max_iterations = 100;
 	const int min_iterations = 10;
-	const float cost_threshold = 0.01;
-	const float step_threshold = 0.001;
+	const float cost_threshold = 0.01f;
+	const float step_threshold = 0.001f;
 
-	const float min_radius = 0.2;
-	const float max_radius = 0.7;
+	const float min_radius = 0.2f;
+	const float max_radius = 0.7f;
 
 	iteration_result iter;
 	iter.cost = 1e30f;

@@ -169,7 +169,7 @@ void Battery::sumDischarged(const hrt_abstime &timestamp, float current_a)
 
 	// Ignore first update because we don't know dt.
 	if (_last_timestamp != 0) {
-		const float dt = (timestamp - _last_timestamp) / 1e6;
+		const float dt = (timestamp - _last_timestamp) / 1e6f;
 		// mAh since last loop: (current[A] * 1000 = [mA]) * (dt[s] / 3600 = [h])
 		_discharged_mah_loop = (current_a * 1e3f) * (dt / 3600.f);
 		_discharged_mah += _discharged_mah_loop;
