@@ -22,6 +22,9 @@ param set CBRK_SUPPLY_CHK 894281
 param set COM_PREARM_MODE 0
 param set CBRK_IO_SAFETY 22027
 
+# Disable RC controller check
+param set NAV_RCL_ACT 0
+
 
 #####################################
 # Configs from indoor flight setup
