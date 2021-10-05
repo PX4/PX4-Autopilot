@@ -54,7 +54,9 @@ static bool operator ==(const manual_control_switches_s &a, const manual_control
 		a.kill_switch == b.kill_switch &&
 		a.arm_switch == b.arm_switch &&
 		a.transition_switch == b.transition_switch &&
-		a.gear_switch == b.gear_switch);
+		a.gear_switch == b.gear_switch &&
+		a.photo_switch == b.photo_switch &&
+		a.video_switch == b.video_switch);
 }
 
 static bool operator !=(const manual_control_switches_s &a, const manual_control_switches_s &b) { return !(a == b); }

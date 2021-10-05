@@ -33,6 +33,7 @@
 
 #include "ManualControl.hpp"
 #include <uORB/topics/commander_state.h>
+#include <uORB/topics/vehicle_command.h>
 
 ManualControl::ManualControl() :
 	ModuleParams(nullptr),
@@ -200,6 +201,20 @@ void ManualControl::Run()
 						}
 					}
 
+					if (switches.photo_switch != _previous_switches.photo_switch) {
+						if (switches.photo_switch == manual_control_switches_s::SWITCH_POS_ON) {
+							send_camera_mode_command(CameraMode::Image);
+							send_photo_command();
+						}
+					}
+
+					if (switches.video_switch != _previous_switches.video_switch) {
+						if (switches.video_switch == manual_control_switches_s::SWITCH_POS_ON) {
+							send_camera_mode_command(CameraMode::Video);
+							send_video_command();
+						}
+					}
+
 				} else {
 					// Send an initial request to switch to the mode requested by RC
 					evaluateModeSlot(switches.mode_slot);
@@ -339,6 +354,55 @@ void ManualControl::publishLandingGear(int8_t action)
 	landing_gear.landing_gear = action;
 	landing_gear.timestamp = hrt_absolute_time();
 	_landing_gear_pub.publish(landing_gear);
+}
+
+void ManualControl::send_camera_mode_command(CameraMode camera_mode)
+{
+	vehicle_command_s command{};
+	command.command = vehicle_command_s::VEHICLE_CMD_SET_CAMERA_MODE;
+	command.param2 = static_cast<float>(camera_mode);
+	command.target_system = _param_mav_sys_id.get();
+	command.target_component = 100; // any camera
+
+	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
+	command.timestamp = hrt_absolute_time();
+	command_pub.publish(command);
+}
+
+void ManualControl::send_photo_command()
+{
+	vehicle_command_s command{};
+	command.command = vehicle_command_s::VEHICLE_CMD_IMAGE_START_CAPTURE;
+	command.param3 = 1; // one picture
+	command.param4 = _image_sequence++;
+	command.target_system = _param_mav_sys_id.get();
+	command.target_component = 100; // any camera
+
+	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
+	command.timestamp = hrt_absolute_time();
+	command_pub.publish(command);
+}
+
+void ManualControl::send_video_command()
+{
+	vehicle_command_s command{};
+
+	if (_video_recording) {
+		command.command = vehicle_command_s::VEHICLE_CMD_VIDEO_STOP_CAPTURE;
+		command.param2 = 1; // status at 1 Hz
+
+	} else {
+		command.command = vehicle_command_s::VEHICLE_CMD_VIDEO_START_CAPTURE;
+	}
+
+	command.target_system = _param_mav_sys_id.get();
+	command.target_component = 100; // any camera
+
+	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
+	command.timestamp = hrt_absolute_time();
+	command_pub.publish(command);
+
+	_video_recording = !_video_recording;
 }
 
 int ManualControl::task_spawn(int argc, char *argv[])
