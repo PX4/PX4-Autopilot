@@ -261,3 +261,14 @@ PARAM_DEFINE_FLOAT(MNT_RATE_PITCH, 30.0f);
  * @group Mount
  */
 PARAM_DEFINE_FLOAT(MNT_RATE_YAW, 30.0f);
+
+/**
+ * Input mode for RC gimbal input
+ *
+ * @value 0 Angle
+ * @value 1 Angular rate
+ * @min 0
+ * @max 1
+ * @group Mount
+ */
+PARAM_DEFINE_INT32(MNT_RC_IN_MODE, 1);

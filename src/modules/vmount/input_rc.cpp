@@ -41,6 +41,7 @@
 
 #include <math.h>
 #include <errno.h>
+#include <mathlib/mathlib.h>
 #include <matrix/matrix/math.hpp>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/defines.h>
@@ -50,11 +51,15 @@ namespace vmount
 {
 
 
-InputRC::InputRC(int aux_channel_roll, int aux_channel_pitch, int aux_channel_yaw)
+InputRC::InputRC(int aux_channel_roll, int aux_channel_pitch, int aux_channel_yaw, float mnt_rate_pitch,
+		 float mnt_rate_yaw, int rc_in_mode)
 {
 	_aux_channels[0] = aux_channel_roll;
 	_aux_channels[1] = aux_channel_pitch;
 	_aux_channels[2] = aux_channel_yaw;
+	_mnt_rate_pitch = mnt_rate_pitch;
+	_mnt_rate_yaw = mnt_rate_yaw;
+	_rc_in_mode = rc_in_mode;
 }
 
 InputRC::~InputRC()
@@ -106,7 +111,7 @@ int InputRC::update_impl(unsigned int timeout_ms, ControlData **control_data, bo
 
 bool InputRC::_read_control_data_from_subscription(ControlData &control_data, bool already_active)
 {
-	manual_control_setpoint_s manual_control_setpoint;
+	manual_control_setpoint_s manual_control_setpoint{};
 	orb_copy(ORB_ID(manual_control_setpoint), _manual_control_setpoint_sub, &manual_control_setpoint);
 	control_data.type = ControlData::Type::Angle;
 
@@ -131,15 +136,40 @@ bool InputRC::_read_control_data_from_subscription(ControlData &control_data, bo
 
 		_first_time = false;
 
-		// We scale manual input from roll -180..180, pitch -90..90, yaw, -180..180 degrees.
-		matrix::Eulerf euler(new_aux_values[0] * M_PI_F, new_aux_values[1] * M_PI_F / 2.0f,
-				     new_aux_values[2] * M_PI_F);
-		matrix::Quatf q(euler);
-		q.copyTo(control_data.type_data.angle.q);
+		if (_rc_in_mode == 0) {
+			// We scale manual input from roll -180..180, pitch -90..90, yaw, -180..180 degrees.
+			matrix::Eulerf euler(new_aux_values[0] * math::radians(180.f),
+					     new_aux_values[1] * math::radians(90.f),
+					     new_aux_values[2] * math::radians(180.f));
+
+			matrix::Quatf q(euler);
+			q.copyTo(control_data.type_data.angle.q);
+
+			control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
+			control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
+			control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+
+			control_data.type_data.angle.angular_velocity[0] = NAN;
+			control_data.type_data.angle.angular_velocity[1] = NAN;
+			control_data.type_data.angle.angular_velocity[2] = NAN;
+
+		} else {
+			control_data.type_data.angle.q[0] = NAN;
+			control_data.type_data.angle.q[1] = NAN;
+			control_data.type_data.angle.q[2] = NAN;
+			control_data.type_data.angle.q[3] = NAN;
+
+			control_data.type_data.angle.angular_velocity[0] = 0.f;
+			control_data.type_data.angle.angular_velocity[1] = math::radians(_mnt_rate_pitch) * new_aux_values[1];
+			control_data.type_data.angle.angular_velocity[2] = math::radians(_mnt_rate_yaw) * new_aux_values[2];
+
+			control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngularRate;
+			control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngularRate;
+			control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngularRate;
+		}
 
 		for (int i = 0; i < 3; ++i) {
 			// We always use follow mode with RC input for now.
-			control_data.type_data.angle.frames[i] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 			_last_set_aux_values[i] = new_aux_values[i];
 		}
 
