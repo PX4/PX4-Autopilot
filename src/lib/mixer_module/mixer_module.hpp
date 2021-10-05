@@ -54,6 +54,8 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/test_motor.h>
 
+using namespace time_literals;
+
 /**
  * @class OutputModuleInterface
  * Base class for an output module.
@@ -188,6 +190,11 @@ public:
 	uint16_t &maxValue(int index) { return _max_value[index]; }
 
 	/**
+	 * Returns the actual failsafe value taking into account the assigned function
+	 */
+	uint16_t actualFailsafeValue(int index);
+
+	/**
 	 * Get the motor index that maps from PX4 convention to the configured one
 	 * @param index motor index in [0, num_motors-1]
 	 * @return reordered motor index. When out of range, the input index is returned
@@ -202,6 +209,8 @@ public:
 	void setMaxNumOutputs(uint8_t max_num_outputs) { if (max_num_outputs < _max_num_outputs) { _max_num_outputs = max_num_outputs; } }
 
 	const char *paramPrefix() const { return _param_prefix; }
+
+	void setLowrateSchedulingInterval(hrt_abstime interval) { _lowrate_schedule_interval = interval; }
 
 protected:
 	void updateParams() override;
@@ -330,6 +339,7 @@ private:
 		false; ///< whether or not the output module supports reversible motors (range [-1, 0] for motors)
 	const char *const _param_prefix;
 	ParamHandles _param_handles[MAX_ACTUATORS];
+	hrt_abstime _lowrate_schedule_interval{300_ms};
 
 	uORB::SubscriptionCallbackWorkItem *_subscription_callback{nullptr}; ///< current scheduling callback
 
