@@ -145,7 +145,8 @@ volatile uint16_t	r_page_setup[] = {
 	[PX4IO_P_SETUP_REBOOT_BL]		= 0,
 	[PX4IO_P_SETUP_CRC ...(PX4IO_P_SETUP_CRC + 1)] = 0,
 	[PX4IO_P_SETUP_THERMAL] = PX4IO_THERMAL_IGNORE,
-	[PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION] = 0
+	[PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION] = 0,
+	[PX4IO_P_SETUP_PWM_RATE_GROUP0 ... PX4IO_P_SETUP_PWM_RATE_GROUP3] = 0
 };
 
 #define PX4IO_P_SETUP_FEATURES_VALID	(PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT | PX4IO_P_SETUP_FEATURES_ADC_RSSI)
@@ -463,6 +464,33 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_SETUP_THERMAL:
 		case PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION:
 			r_page_setup[offset] = value;
+			break;
+
+		case PX4IO_P_SETUP_PWM_RATE_GROUP0:
+		case PX4IO_P_SETUP_PWM_RATE_GROUP1:
+		case PX4IO_P_SETUP_PWM_RATE_GROUP2:
+		case PX4IO_P_SETUP_PWM_RATE_GROUP3:
+
+			/* For PWM constrain to [25,400]Hz
+			 * For Oneshot there is no rate, 0 is therefore used to select Oneshot mode
+			 */
+			if (value != 0) {
+				if (value < 25) {
+					value = 25;
+				}
+
+				if (value > 400) {
+					value = 400;
+				}
+			}
+
+			if (up_pwm_servo_set_rate_group_update(offset - PX4IO_P_SETUP_PWM_RATE_GROUP0, value) == OK) {
+				r_page_setup[offset] = value;
+
+			} else {
+				r_status_alarms |= PX4IO_P_STATUS_ALARMS_PWM_ERROR;
+			}
+
 			break;
 
 		default:

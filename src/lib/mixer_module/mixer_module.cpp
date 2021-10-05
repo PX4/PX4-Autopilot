@@ -461,7 +461,7 @@ bool MixingOutput::updateSubscriptionsDynamicMixer(bool allow_wq_switch, bool li
 			}
 
 		} else if (all_disabled) {
-			_interface.ScheduleOnInterval(300_ms);
+			_interface.ScheduleOnInterval(_lowrate_schedule_interval);
 			PX4_DEBUG("Scheduling at low rate");
 
 		} else {
@@ -817,19 +817,7 @@ MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updat
 	/* overwrite outputs in case of force_failsafe with _failsafe_value values */
 	if (_armed.force_failsafe) {
 		for (size_t i = 0; i < _max_num_outputs; i++) {
-			if (_failsafe_value[i] == UINT16_MAX) { // if set to default, use the one provided by the function
-				float default_failsafe = NAN;
-
-				if (_functions[i]) {
-					default_failsafe = _functions[i]->defaultFailsafeValue(_function_assignment[i]);
-				}
-
-				_current_output_value[i] = output_limit_calc_single(_reverse_output_mask & (1 << i),
-							   _disarmed_value[i], _min_value[i], _max_value[i], default_failsafe);
-
-			} else {
-				_current_output_value[i] = _failsafe_value[i];
-			}
+			_current_output_value[i] = actualFailsafeValue(i);
 		}
 	}
 
@@ -906,6 +894,32 @@ MixingOutput::updateLatencyPerfCounter(const actuator_outputs_s &actuator_output
 			}
 		}
 	}
+}
+
+uint16_t
+MixingOutput::actualFailsafeValue(int index)
+{
+	if (!_use_dynamic_mixing) {
+		return failsafeValue(index);
+	}
+
+	uint16_t value = 0;
+
+	if (_failsafe_value[index] == UINT16_MAX) { // if set to default, use the one provided by the function
+		float default_failsafe = NAN;
+
+		if (_functions[index]) {
+			default_failsafe = _functions[index]->defaultFailsafeValue(_function_assignment[index]);
+		}
+
+		value = output_limit_calc_single(_reverse_output_mask & (1 << index),
+						 _disarmed_value[index], _min_value[index], _max_value[index], default_failsafe);
+
+	} else {
+		value = _failsafe_value[index];
+	}
+
+	return value;
 }
 
 void

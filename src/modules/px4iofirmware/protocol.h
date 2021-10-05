@@ -193,6 +193,10 @@ enum {							/* DSM bind states */
 #define PX4IO_P_SETUP_SBUS_RATE			16	/**< frame rate of SBUS1 output in Hz */
 #define PX4IO_P_SETUP_THERMAL			17	/**< thermal management */
 #define PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION	18	/**< flight termination; false if the circuit breaker (CBRK_FLIGHTTERM) is set */
+#define PX4IO_P_SETUP_PWM_RATE_GROUP0            19	/* Configure timer group 0 update rate in Hz */
+#define PX4IO_P_SETUP_PWM_RATE_GROUP1            20	/* Configure timer group 1 update rate in Hz */
+#define PX4IO_P_SETUP_PWM_RATE_GROUP2            21	/* Configure timer group 2 update rate in Hz */
+#define PX4IO_P_SETUP_PWM_RATE_GROUP3            22	/* Configure timer group 3 update rate in Hz */
 
 #define PX4IO_THERMAL_IGNORE			UINT16_MAX
 #define PX4IO_THERMAL_OFF			0
