@@ -46,6 +46,7 @@ using namespace matrix;
 using namespace time_literals;
 
 #define ARSP_YAW_CTRL_DISABLE 7.0f	// airspeed at which we stop controlling yaw during a front transition
+#define  FRONTTRANS_THR_MIN 0.25f
 #define BACKTRANS_THROTTLE_DOWNRAMP_DUR_S 1.0f
 #define BACKTRANS_THROTTLE_UPRAMP_DUR_S 1.0f;
 #define BACKTRANS_MOTORS_UPTILT_DUR_S 1.0f;
@@ -305,7 +306,6 @@ void Tiltrotor::update_transition_state()
 
 	} else {
 		memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
-		_v_att_sp->thrust_body[2] = -_fw_virtual_att_sp->thrust_body[0];
 		_thrust_transition = _fw_virtual_att_sp->thrust_body[0];
 	}
 
@@ -354,6 +354,9 @@ void Tiltrotor::update_transition_state()
 			_mc_yaw_weight = _mc_roll_weight;
 		}
 
+		// add minimum throttle for front transition
+		_thrust_transition = math::max(_thrust_transition, FRONTTRANS_THR_MIN);
+
 	} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_FRONT_P2) {
 		// the plane is ready to go into fixed wing mode, tilt the rotors forward completely
 		_tilt_control = _params_tiltrotor.tilt_transition +
@@ -369,8 +372,11 @@ void Tiltrotor::update_transition_state()
 
 		set_alternate_motor_state(motor_state::VALUE, ramp_down_value);
 
+		// add minimum throttle for front transition
+		_thrust_transition = math::max(_thrust_transition, FRONTTRANS_THR_MIN);
 
-		_thrust_transition = -_mc_virtual_att_sp->thrust_body[2];
+		// this line is needed such that the fw rate controller is initialized with the current throttle value.
+		// if this is not then then there is race condition where the fw rate controller still publishes a zero sample throttle after transition
 		_v_att_sp->thrust_body[0] = _thrust_transition;
 
 	} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_BACK) {
@@ -417,6 +423,9 @@ void Tiltrotor::update_transition_state()
 			_mc_throttle_weight = moveLinear(0.0f, 1.0f, progress);
 		}
 	}
+
+
+	_v_att_sp->thrust_body[2] = -_thrust_transition;
 
 	const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
 	q_sp.copyTo(_v_att_sp->q_d);
