@@ -565,7 +565,7 @@ void PWMOut::update_params()
 			int32_t pwm_min = -1;
 
 			if (param_get(param_find(str), &pwm_min) == PX4_OK) {
-				if (pwm_min >= 0) {
+				if (pwm_min >= 0 && pwm_min != 1000) {
 					_mixing_output.minValue(i) = math::constrain(pwm_min, (int32_t) PWM_LOWEST_MIN, (int32_t) PWM_HIGHEST_MIN);
 
 					if (pwm_min != _mixing_output.minValue(i)) {
@@ -585,7 +585,7 @@ void PWMOut::update_params()
 			int32_t pwm_max = -1;
 
 			if (param_get(param_find(str), &pwm_max) == PX4_OK) {
-				if (pwm_max >= 0) {
+				if (pwm_max >= 0 && pwm_max != 2000) {
 					_mixing_output.maxValue(i) = math::constrain(pwm_max, (int32_t) PWM_LOWEST_MAX, (int32_t) PWM_HIGHEST_MAX);
 
 					if (pwm_max != _mixing_output.maxValue(i)) {
@@ -622,7 +622,7 @@ void PWMOut::update_params()
 			int32_t pwm_dis = -1;
 
 			if (param_get(param_find(str), &pwm_dis) == PX4_OK) {
-				if (pwm_dis >= 0) {
+				if (pwm_dis >= 0 && pwm_dis != 900) {
 					_mixing_output.disarmedValue(i) = math::constrain(pwm_dis, (int32_t) 0, (int32_t) PWM_HIGHEST_MAX);
 
 					if (pwm_dis != _mixing_output.disarmedValue(i)) {
