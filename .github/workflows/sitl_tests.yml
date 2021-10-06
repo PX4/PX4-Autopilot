@@ -97,7 +97,7 @@ jobs:
         PX4_HOME_ALT: ${{matrix.config.altitude}}
         PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
       run: test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early --model ${{matrix.config.model}} --upload test/mavsdk_tests/configs/sitl.json
-      timeout-minutes: 30
+      timeout-minutes: 45
 
     - name: Look at core files
       if: failure()
