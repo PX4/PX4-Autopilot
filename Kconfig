@@ -157,6 +157,9 @@ menu "Serial ports"
 
     config BOARD_SERIAL_TEL5
         string "TEL5 tty port"
+
+    config BOARD_SERIAL_WIFI
+        string "WIFI tty port"
 endmenu
 
 menu "drivers"
