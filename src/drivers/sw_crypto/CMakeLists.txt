@@ -45,5 +45,9 @@ target_link_libraries(crypto_backend
 		monocypher
 		libtomcrypt
 )
-
 target_include_directories(crypto_backend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+# This interface library can be used to get the backend headers
+add_library(crypto_backend_interface INTERFACE)
+target_link_libraries(crypto_backend_interface INTERFACE keystore_backend_interface)
+target_include_directories(crypto_backend_interface INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
