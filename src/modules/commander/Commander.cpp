@@ -2368,14 +2368,15 @@ Commander::run()
 				_last_valid_manual_control_setpoint = manual_control_setpoint.timestamp;
 
 			} else {
-				if (_status_flags.rc_signal_found_once && !_status.rc_signal_lost) {
-					if (!_status_flags.condition_calibration_enabled && !_status_flags.rc_input_blocked) {
-						mavlink_log_critical(&_mavlink_log_pub, "Manual control lost");
-						_status.rc_signal_lost = true;
-						set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true,
-								 false, _status);
-						_status_changed = true;
-					}
+				if (_status_flags.rc_signal_found_once && !_status.rc_signal_lost
+				    && !_status_flags.condition_calibration_enabled && !_status_flags.rc_input_blocked) {
+					mavlink_log_critical(&_mavlink_log_pub, "Manual control lost");
+					events::send(events::ID("commander_rc_lost"), {events::Log::Critical, events::LogInternal::Info},
+						     "Manual control lost");
+					_status.rc_signal_lost = true;
+					set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true,
+							 false, _status);
+					_status_changed = true;
 				}
 			}
 
