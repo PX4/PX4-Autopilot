@@ -265,7 +265,7 @@ void ICM20948::RunImpl()
 				if (samples > _fifo_gyro_samples) {
 					// grab desired number of samples, but reschedule next cycle sooner
 					int extra_samples = samples - _fifo_gyro_samples;
-					timestamp_sample -= extra_samples * FIFO_SAMPLE_DT;
+					timestamp_sample -= extra_samples * static_cast<int>(FIFO_SAMPLE_DT);
 					samples = _fifo_gyro_samples;
 
 					ScheduleOnInterval(_fifo_empty_interval_us,
