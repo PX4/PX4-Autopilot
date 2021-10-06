@@ -9,6 +9,7 @@ px4_add_board(
 	CONSTRAINED_MEMORY
 	ROMFSROOT px4fmu_common
 	CONSTRAINED_FLASH
+	NO_HELP
 	SERIAL_PORTS
 		TEL2:/dev/ttyS1
 		URT6:/dev/ttyS2
@@ -24,10 +25,12 @@ px4_add_board(
 		gps
 		imu/invensense/icm20602
 		imu/invensense/mpu6000
+		imu/invensense/mpu9250
 		#irlock
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
+		magnetometer/akm/ak8963
 		#optical_flow # all available optical flow drivers
 		osd
 		#pca9685
@@ -57,6 +60,7 @@ px4_add_board(
 		load_mon
 		#local_position_estimator
 		logger
+		mag_bias_estimator
 		mavlink
 		mc_att_control
 		mc_hover_thrust_estimator
