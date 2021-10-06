@@ -91,7 +91,7 @@ px4_add_board(
 		vtol_att_control
 	SYSTEMCMDS
 		bl_update
-		#dmesg
+		dmesg
 		dumpfile
 		esc_calib
 		gpio
