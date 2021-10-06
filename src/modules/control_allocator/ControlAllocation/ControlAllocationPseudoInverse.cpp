@@ -55,7 +55,49 @@ ControlAllocationPseudoInverse::updatePseudoInverse()
 {
 	if (_mix_update_needed) {
 		matrix::geninv(_effectiveness, _mix);
+		normalizeControlAllocationMatrix();
 		_mix_update_needed = false;
+	}
+}
+
+void
+ControlAllocationPseudoInverse::normalizeControlAllocationMatrix()
+{
+	// Same scale on roll and pitch
+	const float roll_norm_sq = _mix.col(0).norm_squared();
+	const float pitch_norm_sq = _mix.col(1).norm_squared();
+	const float roll_pitch_scale = sqrtf(fmaxf(roll_norm_sq, pitch_norm_sq) / (_num_actuators / 2.f));
+
+	if (roll_pitch_scale > FLT_EPSILON) {
+		_mix.col(0) /= roll_pitch_scale;
+		_mix.col(1) /= roll_pitch_scale;
+	}
+
+	// Scale yaw separately
+	const float yaw_scale = _mix.col(2).max();
+
+	if (yaw_scale > FLT_EPSILON) {
+		_mix.col(2) /= yaw_scale;
+	}
+
+	// Same scale on X and Y
+	const float xy_scale = fmaxf(_mix.col(3).max(), _mix.col(4).max());
+
+	if (xy_scale > FLT_EPSILON) {
+		_mix.col(3) /= xy_scale;
+		_mix.col(4) /= xy_scale;
+	}
+
+	// Scale Z thrust separately
+	float z_sum = 0.f;
+	auto z_col = _mix.col(5);
+
+	for (int i = 0; i < _num_actuators; i++) {
+		z_sum += z_col(i, 0);
+	}
+
+	if ((-z_sum > FLT_EPSILON) && (_num_actuators > 0)) {
+		_mix.col(5) /= -z_sum / _num_actuators;
 	}
 }
 
