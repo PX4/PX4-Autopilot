@@ -35,41 +35,12 @@
 
 #include <px4_platform_common/crypto.h>
 #include <px4_platform_common/crypto_backend.h>
-#include <px4_platform_common/defines.h>
-#include <px4_platform/board_ctrl.h>
+#include <sys/boardctl.h>
 
-extern "C" {
-#include <nuttx/random.h>
-}
-
-
-px4_sem_t PX4Crypto::_lock;
 bool PX4Crypto::_initialized = false;
 
 void PX4Crypto::px4_crypto_init()
 {
-	if (PX4Crypto::_initialized) {
-		return;
-	}
-
-	px4_sem_init(&PX4Crypto::_lock, 0, 1);
-
-	// Initialize nuttx random pool, if it is being used by crypto
-#ifdef CONFIG_CRYPTO_RANDOM_POOL
-	up_randompool_initialize();
-#endif
-
-	// initialize keystore functionality
-	keystore_init();
-
-	// initialize actual crypto algoritms
-	crypto_init();
-
-	// initialize user ioctl interface for crypto
-#if !defined(CONFIG_BUILD_FLAT)
-	px4_register_boardct_ioctl(_CRYPTOIOCBASE, crypto_ioctl);
-#endif
-
 	PX4Crypto::_initialized = true;
 }
 
@@ -86,24 +57,14 @@ PX4Crypto::~PX4Crypto()
 
 bool PX4Crypto::open(px4_crypto_algorithm_t algorithm)
 {
-	bool ret = false;
-	lock();
-
 	// HW specific crypto already open? Just close before proceeding
-	if (crypto_session_handle_valid(_crypto_handle)) {
-		crypto_close(&_crypto_handle);
-	}
+	close();
 
 	// Open the HW specific crypto handle
-	_crypto_handle = crypto_open(algorithm);
+	cryptoiocopen_t data = {algorithm, &_crypto_handle};
+	boardctl(CRYPTOIOCOPEN, reinterpret_cast<unsigned long>(&data));
 
-	if (crypto_session_handle_valid(_crypto_handle)) {
-		ret = true;
-	}
-
-	unlock();
-
-	return ret;
+	return crypto_session_handle_valid(_crypto_handle);
 }
 
 void PX4Crypto::close()
@@ -112,9 +73,7 @@ void PX4Crypto::close()
 		return;
 	}
 
-	lock();
-	crypto_close(&_crypto_handle);
-	unlock();
+	boardctl(CRYPTOIOCCLOSE, reinterpret_cast<unsigned long>(&_crypto_handle));
 }
 
 bool PX4Crypto::encrypt_data(uint8_t  key_index,
@@ -123,93 +82,42 @@ bool PX4Crypto::encrypt_data(uint8_t  key_index,
 			     uint8_t *cipher,
 			     size_t *cipher_size)
 {
-	return crypto_encrypt_data(_crypto_handle, key_index, message, message_size, cipher, cipher_size);
+	cryptoiocencrypt_t data = {&_crypto_handle, key_index, message, message_size, cipher, cipher_size, false};
+	boardctl(CRYPTOIOCENCRYPT, reinterpret_cast<unsigned long>(&data));
+	return data.ret;
 }
 
 bool  PX4Crypto::generate_key(uint8_t idx,
 			      bool persistent)
 {
-	return crypto_generate_key(_crypto_handle, idx, persistent);
+	cryptoiocgenkey_t data = {&_crypto_handle, idx, persistent, false};
+	boardctl(CRYPTOIOCGENKEY, reinterpret_cast<unsigned long>(&data));
+	return data.ret;
 }
-
 
 bool  PX4Crypto::get_nonce(uint8_t *nonce,
 			   size_t *nonce_len)
 {
-	return crypto_get_nonce(_crypto_handle, nonce, nonce_len);
+	cryptoiocgetnonce_t data = {&_crypto_handle, nonce, nonce_len, false};
+	boardctl(CRYPTOIOCGETNONCE, reinterpret_cast<unsigned long>(&data));
+	return data.ret;
 }
-
 
 bool  PX4Crypto::get_encrypted_key(uint8_t key_idx,
 				   uint8_t *key,
 				   size_t *key_len,
 				   uint8_t encryption_key_idx)
 {
-	return crypto_get_encrypted_key(_crypto_handle, key_idx, key, key_len, encryption_key_idx);
+	cryptoiocgetkey_t data = {&_crypto_handle, key_idx, key, key_len, encryption_key_idx, false};
+	boardctl(CRYPTOIOCGETKEY, reinterpret_cast<unsigned long>(&data));
+	return data.ret;
 }
 
 size_t PX4Crypto::get_min_blocksize(uint8_t key_idx)
 {
-	return crypto_get_min_blocksize(_crypto_handle, key_idx);
+	cryptoiocgetblocksz_t data = {&_crypto_handle, key_idx, 0};
+	boardctl(CRYPTOIOCGETBLOCKSZ, reinterpret_cast<unsigned long>(&data));
+	return data.ret;
 }
-
-#if !defined(CONFIG_BUILD_FLAT)
-int PX4Crypto::crypto_ioctl(unsigned int cmd, unsigned long arg)
-{
-	int ret = PX4_OK;
-
-	switch (cmd) {
-	case CRYPTOIOCOPEN: {
-			cryptoiocopen_t *data = (cryptoiocopen_t *)arg;
-			*(data->handle) = crypto_open(data->algorithm);
-		}
-		break;
-
-	case CRYPTOIOCCLOSE: {
-			crypto_close((crypto_session_handle_t *)arg);
-		}
-		break;
-
-	case CRYPTOIOCENCRYPT: {
-			cryptoiocencrypt_t *data = (cryptoiocencrypt_t *)arg;
-			data->ret = crypto_encrypt_data(*(data->handle), data->key_index, data->message, data->message_size, data->cipher,
-							data->cipher_size);
-		}
-		break;
-
-	case CRYPTOIOCGENKEY: {
-			cryptoiocgenkey_t *data = (cryptoiocgenkey_t *)arg;
-			data->ret = crypto_generate_key(*(data->handle), data->idx, data->persistent);
-		}
-		break;
-
-	case CRYPTOIOCGETNONCE: {
-			cryptoiocgetnonce_t *data = (cryptoiocgetnonce_t *)arg;
-			data->ret = crypto_get_nonce(*(data->handle), data->nonce, data->nonce_len);
-
-		}
-		break;
-
-	case CRYPTOIOCGETKEY: {
-			cryptoiocgetkey_t *data = (cryptoiocgetkey_t *)arg;
-			data->ret = crypto_get_encrypted_key(*(data->handle), data->key_idx, data->key, data->max_len,
-							     data->encryption_key_idx);
-		}
-		break;
-
-	case CRYPTOIOCGETBLOCKSZ: {
-			cryptoiocgetblocksz_t *data = (cryptoiocgetblocksz_t *)arg;
-			data->ret = crypto_get_min_blocksize(*(data->handle), data->key_idx);
-		}
-		break;
-
-	default:
-		ret = PX4_ERROR;
-		break;
-	}
-
-	return ret;
-}
-#endif // !defined(CONFIG_BUILD_FLAT)
 
 #endif
