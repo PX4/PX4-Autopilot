@@ -1103,22 +1103,6 @@ void
 FixedwingPositionControl::control_position_setpoint(const hrt_abstime &now, const Vector2d &curr_pos,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
-	Vector2f nav_speed_2d{ground_speed};
-
-	if (_airspeed_valid) {
-		// l1 navigation logic breaks down when wind speed exceeds max airspeed
-		// compute 2D groundspeed from airspeed-heading projection
-		const Vector2f air_speed_2d{_airspeed * cosf(_yaw), _airspeed * sinf(_yaw)};
-
-		// angle between air_speed_2d and ground_speed
-		const float air_gnd_angle = acosf((air_speed_2d * ground_speed) / (air_speed_2d.length() * ground_speed.length()));
-
-		// if angle > 90 degrees or groundspeed is less than threshold, replace groundspeed with airspeed projection
-		if ((fabsf(air_gnd_angle) > M_PI_2_F) || (ground_speed.length() < 3.0f)) {
-			nav_speed_2d = air_speed_2d;
-		}
-	}
-
 	const float acc_rad = _l1_control.switch_distance(500.0f);
 	Vector2d curr_wp{0, 0};
 	Vector2d prev_wp{0, 0};
@@ -1230,7 +1214,7 @@ FixedwingPositionControl::control_position_setpoint(const hrt_abstime &now, cons
 		}
 	}
 
-	_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, nav_speed_2d);
+	_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, get_nav_speed_2d(ground_speed));
 	_att_sp.roll_body = _l1_control.get_roll_setpoint();
 	_att_sp.yaw_body = _l1_control.nav_bearing();
 
@@ -1250,22 +1234,6 @@ FixedwingPositionControl::control_loiter(const hrt_abstime &now, const Vector2d 
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr,
 		const position_setpoint_s &pos_sp_next)
 {
-	Vector2f nav_speed_2d{ground_speed};
-
-	if (_airspeed_valid) {
-		// l1 navigation logic breaks down when wind speed exceeds max airspeed
-		// compute 2D groundspeed from airspeed-heading projection
-		const Vector2f air_speed_2d{_airspeed * cosf(_yaw), _airspeed * sinf(_yaw)};
-
-		// angle between air_speed_2d and ground_speed
-		const float air_gnd_angle = acosf((air_speed_2d * ground_speed) / (air_speed_2d.length() * ground_speed.length()));
-
-		// if angle > 90 degrees or groundspeed is less than threshold, replace groundspeed with airspeed projection
-		if ((fabsf(air_gnd_angle) > M_PI_2_F) || (ground_speed.length() < 3.0f)) {
-			nav_speed_2d = air_speed_2d;
-		}
-	}
-
 	Vector2d curr_wp{0, 0};
 	Vector2d prev_wp{0, 0};
 
@@ -1350,7 +1318,7 @@ FixedwingPositionControl::control_loiter(const hrt_abstime &now, const Vector2d 
 
 	}
 
-	_l1_control.navigate_loiter(curr_wp, curr_pos, loiter_radius, loiter_direction, nav_speed_2d);
+	_l1_control.navigate_loiter(curr_wp, curr_pos, loiter_radius, loiter_direction, get_nav_speed_2d(ground_speed));
 
 	_att_sp.roll_body = _l1_control.get_roll_setpoint();
 	_att_sp.yaw_body = _l1_control.nav_bearing();
@@ -2060,6 +2028,29 @@ FixedwingPositionControl::reset_landing_state()
 
 		abort_landing(false);
 	}
+}
+
+Vector2f
+FixedwingPositionControl::get_nav_speed_2d(const Vector2f &ground_speed)
+{
+
+	Vector2f nav_speed_2d{ground_speed};
+
+	if (_airspeed_valid) {
+		// l1 navigation logic breaks down when wind speed exceeds max airspeed
+		// compute 2D groundspeed from airspeed-heading projection
+		const Vector2f air_speed_2d{_airspeed * cosf(_yaw), _airspeed * sinf(_yaw)};
+
+		// angle between air_speed_2d and ground_speed
+		const float air_gnd_angle = acosf((air_speed_2d * ground_speed) / (air_speed_2d.length() * ground_speed.length()));
+
+		// if angle > 90 degrees or groundspeed is less than threshold, replace groundspeed with airspeed projection
+		if ((fabsf(air_gnd_angle) > M_PI_2_F) || (ground_speed.length() < 3.0f)) {
+			nav_speed_2d = air_speed_2d;
+		}
+	}
+
+	return nav_speed_2d;
 }
 
 void
