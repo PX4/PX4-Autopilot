@@ -37,13 +37,9 @@ param set-default IMU_ACCEL_CUTOFF 30
 param set-default MC_AIRMODE 1
 param set-default IMU_DGYRO_CUTOFF 70
 param set-default MC_PITCHRATE_D 0.002
-param set-default MC_PITCHRATE_I 0.2
 param set-default MC_PITCHRATE_P 0.07
-param set-default MC_PITCH_P 6.5
 param set-default MC_ROLLRATE_D 0.002
-param set-default MC_ROLLRATE_I 0.2
 param set-default MC_ROLLRATE_P 0.07
-param set-default MC_ROLL_P 6.5
 param set-default MC_YAW_P 3
 
 param set-default MPC_THR_HOVER 0.7
@@ -62,8 +58,6 @@ param set-default PWM_MAIN_MAX 255
 
 # Run the motors at 328.125 kHz (recommended)
 param set-default PWM_MAIN_RATE 3921
-
-param set-default SDLOG_PROFILE 1
 
 param set-default SENS_FLOW_MINRNG 0.05
 
