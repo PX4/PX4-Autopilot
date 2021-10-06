@@ -83,6 +83,7 @@ if (NOT DEFINED CONFIG_BUILD_FLAT AND "${PX4_PLATFORM}" MATCHES "nuttx")
 		${PX4_SOURCE_DIR}/platforms/posix/src/px4/common/cpuload.cpp
 		usr_reset.cpp
 		usr_hrt.cpp
+		px4_usr_crypto.cpp
 	)
 
 	target_link_libraries(${PX4_USER_LAYER}
@@ -107,6 +108,11 @@ if (NOT DEFINED CONFIG_BUILD_FLAT AND "${PX4_PLATFORM}" MATCHES "nuttx")
 	)
 
 	add_dependencies(px4_userspace_init nuttx_context)
+
+	if (DEFINED PX4_CRYPTO)
+		target_link_libraries(${PX4_USER_LAYER} PUBLIC crypto_backend_interface)
+	endif()
+
 else()
 	# Build the px4 layer for nuttx flat build
 	list(APPEND KERNEL_LIBS
