@@ -661,8 +661,9 @@ PARAM_DEFINE_INT32(COM_REARM_GRACE, 1);
 /**
  * Enable RC stick override of auto and/or offboard modes
  *
- * When RC stick override is enabled, moving the RC sticks more than COM_RC_STICK_OV from
- * their center position immediately gives control back to the pilot by switching to Position mode.
+ * When RC stick override is enabled, moving the RC sticks more than COM_RC_STICK_OV
+ * immediately gives control back to the pilot by switching to Position mode and
+ * if position is unavailable Altitude mode.
  * Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
  *
  * This parameter is not considered in case of a GPS failure (Descend flight mode), where stick
