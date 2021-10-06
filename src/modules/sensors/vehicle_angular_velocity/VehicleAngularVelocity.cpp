@@ -162,7 +162,7 @@ void VehicleAngularVelocity::ResetFilters()
 			_notch_filter_velocity[axis].reset(angular_velocity_uncalibrated(axis));
 
 			// angular acceleration low pass
-			_lp_filter_acceleration[axis].set_cutoff_frequency(_filter_sample_rate_hz, _param_imu_dgyro_cutoff.get());
+			_lp_filter_acceleration[axis].setCutoffFreq(_filter_sample_rate_hz, _param_imu_dgyro_cutoff.get());
 			_lp_filter_acceleration[axis].reset(angular_acceleration_uncalibrated(axis));
 		}
 
@@ -305,7 +305,7 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 
 		// gyro derivative low pass cutoff changed
 		for (auto &lp : _lp_filter_acceleration) {
-			if (fabsf(lp.get_cutoff_freq() - _param_imu_dgyro_cutoff.get()) > 0.01f) {
+			if (fabsf(lp.getCutoffFreq() - _param_imu_dgyro_cutoff.get()) > 0.01f) {
 				_reset_filters = true;
 				break;
 			}
@@ -630,7 +630,7 @@ float VehicleAngularVelocity::FilterAngularAcceleration(int axis, float dt_s, fl
 
 	for (int n = 0; n < N; n++) {
 		const float angular_acceleration = (data[n] - _angular_velocity_raw_prev(axis)) / dt_s;
-		angular_acceleration_filtered = _lp_filter_acceleration[axis].apply(angular_acceleration);
+		angular_acceleration_filtered = _lp_filter_acceleration[axis].update(angular_acceleration);
 		_angular_velocity_raw_prev(axis) = data[n];
 	}
 
