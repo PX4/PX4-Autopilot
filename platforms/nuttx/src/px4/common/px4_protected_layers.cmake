@@ -12,6 +12,7 @@ add_library(px4_layer
 	${PX4_SOURCE_DIR}/platforms/posix/src/px4/common/cpuload.cpp
 	usr_hrt.cpp
 	px4_userspace_init.cpp
+	px4_usr_crypto.cpp
 )
 
 target_link_libraries(px4_layer
@@ -55,6 +56,7 @@ target_link_libraries(px4_kernel_layer
 
 if (DEFINED PX4_CRYPTO)
 	target_link_libraries(px4_kernel_layer PUBLIC crypto_backend)
+	target_link_libraries(px4_layer PUBLIC crypto_backend_interface)
 endif()
 
 target_compile_options(px4_kernel_layer PRIVATE -D__KERNEL__)
