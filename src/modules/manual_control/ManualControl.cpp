@@ -131,8 +131,8 @@ void ManualControl::Run()
 
 		if (_selector.setpoint().arm_gesture && !_previous_arm_gesture) {
 			_previous_arm_gesture = true;
-			send_arm_command(vehicle_command_s::ARM_DISARM_ARMING_ACTION_ARM,
-					 vehicle_command_s::ARM_DISARM_ARMING_ORIGIN_GESTURE);
+			send_arm_command(vehicle_command_s::ARMING_ACTION_ARM,
+					 vehicle_command_s::ARMING_ORIGIN_GESTURE);
 
 		}
 
@@ -142,8 +142,8 @@ void ManualControl::Run()
 
 		if (_selector.setpoint().disarm_gesture && !_previous_disarm_gesture) {
 			_previous_disarm_gesture = true;
-			send_arm_command(vehicle_command_s::ARM_DISARM_ARMING_ACTION_DISARM,
-					 vehicle_command_s::ARM_DISARM_ARMING_ORIGIN_GESTURE);
+			send_arm_command(vehicle_command_s::ARMING_ACTION_DISARM,
+					 vehicle_command_s::ARMING_ORIGIN_GESTURE);
 
 		}
 
@@ -182,19 +182,19 @@ void ManualControl::Run()
 							_button_hysteresis.set_state_and_update(switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON, now);
 
 							if (_button_hysteresis.get_state()) {
-								send_arm_command(vehicle_command_s::ARM_DISARM_ARMING_ACTION_TOGGLE,
-										 vehicle_command_s::ARM_DISARM_ARMING_ORIGIN_BUTTON);
+								send_arm_command(vehicle_command_s::ARMING_ACTION_TOGGLE,
+										 vehicle_command_s::ARMING_ORIGIN_BUTTON);
 							}
 
 						} else {
 							// Arming switch
 							if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON) {
-								send_arm_command(vehicle_command_s::ARM_DISARM_ARMING_ACTION_ARM,
-										 vehicle_command_s::ARM_DISARM_ARMING_ORIGIN_SWITCH);
+								send_arm_command(vehicle_command_s::ARMING_ACTION_ARM,
+										 vehicle_command_s::ARMING_ORIGIN_SWITCH);
 
 							} else if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-								send_arm_command(vehicle_command_s::ARM_DISARM_ARMING_ACTION_DISARM,
-										 vehicle_command_s::ARM_DISARM_ARMING_ORIGIN_SWITCH);
+								send_arm_command(vehicle_command_s::ARMING_ACTION_DISARM,
+										 vehicle_command_s::ARMING_ORIGIN_SWITCH);
 							}
 						}
 					}

@@ -275,7 +275,7 @@ int Commander::custom_command(int argc, char *argv[])
 		}
 
 		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM,
-				     static_cast<float>(vehicle_command_s::ARM_DISARM_ARMING_ACTION_ARM),
+				     static_cast<float>(vehicle_command_s::ARMING_ACTION_ARM),
 				     param2);
 
 		return 0;
@@ -290,7 +290,7 @@ int Commander::custom_command(int argc, char *argv[])
 		}
 
 		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM,
-				     static_cast<float>(vehicle_command_s::ARM_DISARM_ARMING_ACTION_DISARM),
+				     static_cast<float>(vehicle_command_s::ARMING_ACTION_DISARM),
 				     param2);
 
 		return 0;
@@ -300,7 +300,7 @@ int Commander::custom_command(int argc, char *argv[])
 		// switch to takeoff mode and arm
 		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF);
 		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM,
-				     static_cast<float>(vehicle_command_s::ARM_DISARM_ARMING_ACTION_ARM),
+				     static_cast<float>(vehicle_command_s::ARMING_ACTION_ARM),
 				     0.f);
 
 		return 0;
@@ -852,9 +852,9 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			// for logic state parameters
 			const int8_t arming_action = static_cast<int8_t>(lroundf(cmd.param1));
 
-			if (arming_action != vehicle_command_s::ARM_DISARM_ARMING_ACTION_ARM
-			    && arming_action != vehicle_command_s::ARM_DISARM_ARMING_ACTION_DISARM
-			    && arming_action != vehicle_command_s::ARM_DISARM_ARMING_ACTION_TOGGLE) {
+			if (arming_action != vehicle_command_s::ARMING_ACTION_ARM
+			    && arming_action != vehicle_command_s::ARMING_ACTION_DISARM
+			    && arming_action != vehicle_command_s::ARMING_ACTION_TOGGLE) {
 				mavlink_log_critical(&_mavlink_log_pub, "Unsupported ARM_DISARM param: %.3f\t", (double)cmd.param1);
 				events::send<float>(events::ID("commander_unsupported_arm_disarm_param"), events::Log::Error,
 						    "Unsupported ARM_DISARM param: {1:.3}", cmd.param1);
@@ -865,16 +865,16 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				const int8_t arming_origin = static_cast<int8_t>(lroundf(cmd.param3));
 
-				const bool cmd_from_manual_stick = (arming_origin == vehicle_command_s::ARM_DISARM_ARMING_ORIGIN_GESTURE);
-				const bool cmd_from_manual_switch = (arming_origin == vehicle_command_s::ARM_DISARM_ARMING_ORIGIN_SWITCH);
-				const bool cmd_from_manual_button = (arming_origin == vehicle_command_s::ARM_DISARM_ARMING_ORIGIN_BUTTON);
+				const bool cmd_from_manual_stick = (arming_origin == vehicle_command_s::ARMING_ORIGIN_GESTURE);
+				const bool cmd_from_manual_switch = (arming_origin == vehicle_command_s::ARMING_ORIGIN_SWITCH);
+				const bool cmd_from_manual_button = (arming_origin == vehicle_command_s::ARMING_ORIGIN_BUTTON);
 				const bool cmd_from_io = (static_cast<int>(roundf(cmd.param3)) == 1234);
 
 				if (cmd_from_manual_stick && !_vehicle_control_mode.flag_control_manual_enabled) {
-					if (arming_action == vehicle_command_s::ARM_DISARM_ARMING_ACTION_ARM) {
+					if (arming_action == vehicle_command_s::ARMING_ACTION_ARM) {
 						mavlink_log_critical(&_mavlink_log_pub, "Not arming! Switch to a manual mode first");
 
-					} else if (arming_action == vehicle_command_s::ARM_DISARM_ARMING_ACTION_DISARM) {
+					} else if (arming_action == vehicle_command_s::ARMING_ACTION_DISARM) {
 						mavlink_log_critical(&_mavlink_log_pub, "Not disarming! Switch to a manual mode first");
 					}
 
@@ -884,7 +884,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				if (!forced) {
 					if (!(_land_detector.landed || _land_detector.maybe_landed) && !is_ground_rover(_status)) {
-						if (arming_action == vehicle_command_s::ARM_DISARM_ARMING_ACTION_ARM) {
+						if (arming_action == vehicle_command_s::ARMING_ACTION_ARM) {
 							if (_armed.armed) {
 								mavlink_log_warning(&_mavlink_log_pub, "Arming denied! Already armed\t");
 								events::send(events::ID("commander_arming_denied_already_armed"),
@@ -911,14 +911,14 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 					// Flick to in-air restore first if this comes from an onboard system and from IO
 					if (cmd.source_system == _status.system_id && cmd.source_component == _status.component_id
-					    && cmd_from_io && (arming_action == vehicle_command_s::ARM_DISARM_ARMING_ACTION_ARM)) {
+					    && cmd_from_io && (arming_action == vehicle_command_s::ARMING_ACTION_ARM)) {
 						_status.arming_state = vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE;
 					}
 				}
 
 				transition_result_t arming_res = TRANSITION_DENIED;
 
-				if (arming_action == vehicle_command_s::ARM_DISARM_ARMING_ACTION_ARM) {
+				if (arming_action == vehicle_command_s::ARMING_ACTION_ARM) {
 					if (cmd.from_external) {
 						arming_res = arm(arm_disarm_reason_t::command_external);
 
@@ -934,7 +934,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 						}
 					}
 
-				} else if (arming_action == vehicle_command_s::ARM_DISARM_ARMING_ACTION_DISARM) {
+				} else if (arming_action == vehicle_command_s::ARMING_ACTION_DISARM) {
 					if (cmd.from_external) {
 						arming_res = disarm(arm_disarm_reason_t::command_external);
 
@@ -950,7 +950,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 						}
 					}
 
-				} else if (arming_action == vehicle_command_s::ARM_DISARM_ARMING_ACTION_TOGGLE) {
+				} else if (arming_action == vehicle_command_s::ARMING_ACTION_TOGGLE) {
 					// -1 means toggle by a button
 					// This should come from an arming button internally, otherwise something is wrong.
 					if (!cmd.from_external && cmd_from_manual_button) {
@@ -974,7 +974,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 					/* update home position on arming if at least 500 ms from commander start spent to avoid setting home on in-air restart */
-					if ((arming_action == vehicle_command_s::ARM_DISARM_ARMING_ACTION_ARM) && (arming_res == TRANSITION_CHANGED) &&
+					if ((arming_action == vehicle_command_s::ARMING_ACTION_ARM) && (arming_res == TRANSITION_CHANGED) &&
 					    (hrt_absolute_time() > (_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL)) && !_home_pub.get().manual_home) {
 
 						set_home_position();
