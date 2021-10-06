@@ -22,7 +22,6 @@ set MIXER_AUX none
 
 # Battery settings
 param set-default BAT_CRIT_THR 0.20
-param set-default BAT_EMERGEN_THR 0.05
 param set-default BAT_LOW_THR 0.25
 
 param set-default BAT1_CAPACITY 2800.0
@@ -35,7 +34,6 @@ param set-default CBRK_SUPPLY_CHK 894281
 
 param set-default COM_DISARM_LAND 0.1
 param set-default COM_DISARM_PRFLT 3
-param set-default COM_DL_LOSS_T 10
 param set-default COM_FLTMODE1 -1
 param set-default COM_FLTMODE2 -1
 param set-default COM_FLTMODE3 -1
@@ -43,7 +41,6 @@ param set-default COM_FLTMODE4  2
 param set-default COM_FLTMODE5 -1
 param set-default COM_FLTMODE6  6
 param set-default COM_RC_LOSS_T 3
-param set-default COM_RC_OVERRIDE 1
 
 
 # ekf2
@@ -61,8 +58,6 @@ param set-default EKF2_GPS_POS_Z 0.0
 param set-default EKF2_GPS_V_NOISE 0.5
 
 param set-default EKF2_IMU_POS_X 0.06
-param set-default EKF2_IMU_POS_Y 0.0
-param set-default EKF2_IMU_POS_Z 0.0
 
 param set-default EKF2_MAG_DELAY 0
 param set-default EKF2_MAG_NOISE 0.1
@@ -79,7 +74,6 @@ param set-default EKF2_PCOEF_XN -0.3
 param set-default EKF2_PCOEF_XP -0.4
 param set-default EKF2_PCOEF_YN -0.4
 param set-default EKF2_PCOEF_YP -0.4
-param set-default EKF2_PCOEF_Z 0.0
 
 param set-default EKF2_RNG_A_VMAX 1.0
 param set-default EKF2_RNG_AID 0
@@ -119,7 +113,6 @@ param set-default MC_ROLL_P 8.0
 
 # Yaw angle & rate setting
 param set-default MC_YAWRATE_P 0.1
-param set-default MC_YAWRATE_I 0.1
 param set-default MC_YAWRATE_MAX 120.0
 param set-default MC_YAW_P 2.5
 
@@ -145,7 +138,6 @@ param set-default MPC_Z_P 2.0
 param set-default MPC_Z_VEL_D 0.0
 param set-default MPC_Z_VEL_I 0.02
 param set-default MPC_Z_VEL_MAX_DN 2.0
-param set-default MPC_Z_VEL_MAX_UP 3.0
 param set-default MPC_Z_VEL_P 0.27
 
 

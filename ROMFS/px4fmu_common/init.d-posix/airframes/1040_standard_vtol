@@ -10,7 +10,6 @@
 param set-default FW_L1_PERIOD 12
 param set-default FW_MAN_P_MAX 30
 param set-default FW_PR_FF 0.2
-param set-default FW_PR_I 0.4
 param set-default FW_PR_P 0.9
 param set-default FW_PSP_OFF 2
 param set-default FW_P_LIM_MAX 32
