@@ -51,8 +51,6 @@ void ManualControlSelector::update_manual_control_input(uint64_t now, const manu
 	// where the timestamp_sample of some source is already outdated.
 
 	if (now >= input.timestamp_sample && now - input.timestamp_sample > _timeout) {
-		_setpoint.valid = false;
-		_instance = -1;
 		return;
 	}
 
