@@ -56,9 +56,9 @@
  */
 void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge *> &list)
 {
-	list.add(new UavcanBarometerBridge(node));
-	list.add(new UavcanMagnetometerBridge(node));
-	list.add(new UavcanGnssBridge(node));
+//	list.add(new UavcanBarometerBridge(node));
+//	list.add(new UavcanMagnetometerBridge(node));
+//	list.add(new UavcanGnssBridge(node));
 	list.add(new UavcanFlowBridge(node));
 
 	int32_t bat_monitor;
@@ -72,12 +72,12 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 		list.add(new UavcanCBATBridge(node));
 	}
 
-	list.add(new UavcanAirspeedBridge(node));
-	list.add(new UavcanDifferentialPressureBridge(node));
+//	list.add(new UavcanAirspeedBridge(node));
+//	list.add(new UavcanDifferentialPressureBridge(node));
 	list.add(new UavcanRangefinderBridge(node));
-	list.add(new UavcanAccelBridge(node));
-	list.add(new UavcanGyroBridge(node));
-	list.add(new UavcanIceStatusBridge(node));
+//	list.add(new UavcanAccelBridge(node));
+//	list.add(new UavcanGyroBridge(node));
+//	list.add(new UavcanIceStatusBridge(node));
 }
 
 /*
