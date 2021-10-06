@@ -253,9 +253,9 @@ PARAM_DEFINE_INT32(COM_HOME_IN_AIR, 0);
  * @group Commander
  * @min 0
  * @max 2
- * @value 0 RC Transmitter
- * @value 1 Joystick/No RC Checks
- * @value 2 Virtual RC by Joystick
+ * @value 0 RC Transmitter only
+ * @value 1 Joystick only/No RC Checks
+ * @value 2 RC and Joystick are accepted
  */
 PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);
 
