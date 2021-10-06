@@ -38,7 +38,6 @@
 #include <lib/parameters/param.h>
 
 using namespace time_literals;
-using matrix::Vector3f;
 
 static constexpr int32_t sum(const int16_t samples[], uint8_t len)
 {
@@ -129,29 +128,23 @@ void PX4Gyroscope::updateFIFO(sensor_gyro_fifo_s &sample)
 	_sensor_fifo_pub.publish(sample);
 
 
-	// trapezoidal integration (equally spaced, scaled by dt later)
-	const Vector3f integral{
-		(0.5f * (_last_sample[0] + sample.x[N - 1]) + sum(sample.x, N - 1)),
-		(0.5f * (_last_sample[1] + sample.y[N - 1]) + sum(sample.y, N - 1)),
-		(0.5f * (_last_sample[2] + sample.z[N - 1]) + sum(sample.z, N - 1)),
-	};
+	// publish
+	sensor_gyro_s report;
+	report.timestamp_sample = sample.timestamp_sample;
+	report.device_id = _device_id;
+	report.temperature = _temperature;
+	report.error_count = _error_count;
+
+	// trapezoidal integration (equally spaced)
+	const float scale = _scale / (float)N;
+	report.x = (0.5f * (_last_sample[0] + sample.x[N - 1]) + sum(sample.x, N - 1)) * scale;
+	report.y = (0.5f * (_last_sample[1] + sample.y[N - 1]) + sum(sample.y, N - 1)) * scale;
+	report.z = (0.5f * (_last_sample[2] + sample.z[N - 1]) + sum(sample.z, N - 1)) * scale;
 
 	_last_sample[0] = sample.x[N - 1];
 	_last_sample[1] = sample.y[N - 1];
 	_last_sample[2] = sample.z[N - 1];
 
-
-	const float scale = _scale / N;
-
-	sensor_gyro_s report;
-
-	report.timestamp_sample = sample.timestamp_sample;
-	report.device_id = _device_id;
-	report.temperature = _temperature;
-	report.error_count = _error_count;
-	report.x = integral(0) * scale;
-	report.y = integral(1) * scale;
-	report.z = integral(2) * scale;
 	report.samples = N;
 	report.timestamp = hrt_absolute_time();
 
