@@ -40,6 +40,31 @@
 
 int LedController::update(LedControlData &control_data)
 {
+	bool had_changes = false; // did one of the outputs change?
+
+	// check for parameter updates
+	if (_parameter_update_sub.updated()) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+
+		updateParams();
+
+		const uint8_t max_brightness_prev = _max_brightness;
+
+		// set maximum brightness (0-255) from percentage
+		_max_brightness = roundf(math::constrain(_param_sys_rgb_maxbrt.get(), 0.f, 1.f) * UINT8_MAX);
+
+		// update existing
+		for (int i = 0; i < BOARD_MAX_LEDS; ++i) {
+			control_data.leds[i].brightness = math::min(_max_brightness, control_data.leds[i].brightness);
+		}
+
+		if (_max_brightness != max_brightness_prev) {
+			had_changes = true;
+		}
+	}
+
 	while (_led_control_sub.updated() || _force_update) {
 		const unsigned last_generation = _led_control_sub.get_last_generation();
 
@@ -77,8 +102,6 @@ int LedController::update(LedControlData &control_data)
 
 		_force_update = false;
 	}
-
-	bool had_changes = false; // did one of the outputs change?
 
 	// handle state updates
 	hrt_abstime now = hrt_absolute_time();
@@ -207,7 +230,7 @@ void LedController::get_control_data(LedControlData &control_data)
 
 	for (int i = 0; i < BOARD_MAX_LEDS; ++i) {
 		control_data.leds[i].color = led_control_s::COLOR_OFF; // set output to a defined state
-		control_data.leds[i].brightness = 255;
+		control_data.leds[i].brightness = _max_brightness;
 
 		for (int priority = led_control_s::MAX_PRIORITY; priority >= 0; --priority) {
 			bool flash_output_active = true;
@@ -226,7 +249,7 @@ void LedController::get_control_data(LedControlData &control_data)
 					// fade on and off
 					int counter = _states[i].current_blinking_time / (BREATHE_INTERVAL / 100);
 					int n = counter >= (BREATHE_STEPS / 2) ? BREATHE_STEPS - counter : counter;
-					control_data.leds[i].brightness = (n * n) * 255 / (BREATHE_STEPS * BREATHE_STEPS / 4); // (n/(steps/2))^2
+					control_data.leds[i].brightness = (n * n) * _max_brightness / (BREATHE_STEPS * BREATHE_STEPS / 4); // (n/(steps/2))^2
 					control_data.leds[i].color = cur_data.color;
 					_breathe_enabled = true;
 					break;

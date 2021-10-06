@@ -81,6 +81,7 @@ public:
 	void setHoverThrust(float hover_thrust) { _hover_thr = math::constrain(hover_thrust, 0.1f, 0.9f); }
 	void setProcessNoiseStdDev(float process_noise) { _process_var = process_noise * process_noise; }
 	void setMeasurementNoiseStdDev(float measurement_noise) { _acc_var = measurement_noise * measurement_noise; }
+	void setMeasurementNoiseScale(float scale) { _acc_var_scale = scale * scale; }
 	void setHoverThrustStdDev(float hover_thrust_noise) { _state_var = hover_thrust_noise * hover_thrust_noise; }
 	void setAccelInnovGate(float gate_size) { _gate_size = gate_size; }
 
@@ -98,6 +99,7 @@ private:
 	float _state_var{0.01f}; ///< Initial hover thrust uncertainty variance (thrust^2)
 	float _process_var{12.5e-6f}; ///< Hover thrust process noise variance (thrust^2/s^2)
 	float _acc_var{5.f}; ///< Acceleration variance (m^2/s^3)
+	float _acc_var_scale{1.f}; ///< Multiplicator of the measurement variance, used to decrease sensivity
 	float _dt{0.02f};
 
 	float _innov{0.f}; ///< Measurement innovation (m/s^2)

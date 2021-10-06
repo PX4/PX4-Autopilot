@@ -85,7 +85,7 @@ if(JLinkGDBServerExe_PATH AND CMAKE_GDB)
 endif()
 
 # jlink_debug_ozone (run Segger Ozone debugger with current target configuration)
-find_program(Ozone_PATH Ozone
+find_program(Ozone_PATH Ozone ozone
 	HINTS /Applications/Ozone.app/Contents/MacOS/
 )
 if(Ozone_PATH)

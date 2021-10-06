@@ -30,8 +30,10 @@ px4_add_board(
 		load_mon
 		#local_position_estimator
 		logger
+		mag_bias_estimator
 		mavlink
 		mc_att_control
+		# mc_autotune_attitude_control
 		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
@@ -59,6 +61,7 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
+		#sd_stress
 		system_time
 		top
 		topic_listener

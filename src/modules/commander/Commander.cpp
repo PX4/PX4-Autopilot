@@ -280,7 +280,14 @@ int Commander::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[0], "disarm")) {
-		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM, 0.f, 0.f);
+		float param2 = 0.f;
+
+		// 21196: force arming/disarming (e.g. allow arming to override preflight checks and disarming in flight)
+		if (argc > 1 && !strcmp(argv[1], "-f")) {
+			param2 = 21196.f;
+		}
+
+		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM, 0.f, param2);
 
 		return 0;
 	}
@@ -1904,31 +1911,6 @@ Commander::run()
 					_status_flags.condition_power_input_valid = true;
 				}
 
-#if defined(CONFIG_BOARDCTL_RESET)
-
-				if (!_status_flags.circuit_breaker_engaged_usb_check && _status_flags.usb_connected) {
-					/* if the USB hardware connection went away, reboot */
-					if (_system_power_usb_connected && !system_power.usb_connected) {
-						/*
-						 * Apparently the USB cable went away but we are still powered,
-						 * so we bring the system back to a nominal state for flight.
-						 * This is important to unload the USB stack of the OS which is
-						 * a relatively complex piece of software that is non-essential
-						 * for flight and continuing to run it would add a software risk
-						 * without a need. The clean approach to unload it is to reboot.
-						 */
-						if (shutdown_if_allowed() && (px4_reboot_request(false, 400_ms) == 0)) {
-							mavlink_log_critical(&_mavlink_log_pub, "USB disconnected, rebooting for flight safety\t");
-							events::send(events::ID("commander_reboot_usb_disconnect"), {events::Log::Critical, events::LogInternal::Info},
-								     "USB disconnected, rebooting for flight safety");
-
-							while (1) { px4_usleep(1); }
-						}
-					}
-				}
-
-#endif // CONFIG_BOARDCTL_RESET
-
 				_system_power_usb_connected = system_power.usb_connected;
 			}
 		}
@@ -2410,21 +2392,28 @@ Commander::run()
 			if ((_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
 			    && !in_low_battery_failsafe && !_geofence_warning_action_on
 			    && _manual_control.wantsOverride(_vehicle_control_mode, _status)) {
-				if (main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags,
-							  _internal_state) == TRANSITION_CHANGED) {
+				const transition_result_t posctl_result =
+					main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags, _internal_state);
+
+				if (posctl_result == TRANSITION_CHANGED) {
 					tune_positive(true);
 					mavlink_log_info(&_mavlink_log_pub, "Pilot took over position control using sticks\t");
 					events::send(events::ID("commander_rc_override_pos"), events::Log::Info,
 						     "Pilot took over position control using sticks");
 					_status_changed = true;
 
-				} else if (main_state_transition(_status, commander_state_s::MAIN_STATE_ALTCTL, _status_flags,
-								 _internal_state) == TRANSITION_CHANGED) {
-					tune_positive(true);
-					mavlink_log_info(&_mavlink_log_pub, "Pilot took over altitude control using sticks\t");
-					events::send(events::ID("commander_rc_override_alt"), events::Log::Info,
-						     "Pilot took over altitude control using sticks");
-					_status_changed = true;
+				} else if (posctl_result == TRANSITION_DENIED) {
+					// If transition to POSCTL was denied, then we can try again with ALTCTL.
+					const transition_result_t altctl_result =
+						main_state_transition(_status, commander_state_s::MAIN_STATE_ALTCTL, _status_flags, _internal_state);
+
+					if (altctl_result == TRANSITION_CHANGED) {
+						tune_positive(true);
+						mavlink_log_info(&_mavlink_log_pub, "Pilot took over altitude control using sticks\t");
+						events::send(events::ID("commander_rc_override_alt"), events::Log::Info,
+							     "Pilot took over altitude control using sticks");
+						_status_changed = true;
+					}
 				}
 			}
 
@@ -2467,7 +2456,7 @@ Commander::run()
 				}
 
 				// evaluate the main state machine according to mode switches
-				if (set_main_state(_status_changed) == TRANSITION_CHANGED) {
+				if (set_main_state() == TRANSITION_CHANGED) {
 					// play tune on mode change only if armed, blink LED always
 					tune_positive(_armed.armed);
 					_status_changed = true;
@@ -3074,29 +3063,7 @@ Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 	_leds_counter++;
 }
 
-transition_result_t
-Commander::set_main_state(bool &changed)
-{
-	if (_safety.override_available && _safety.override_enabled) {
-		return set_main_state_override_on(changed);
-
-	} else {
-		return set_main_state_rc();
-	}
-}
-
-transition_result_t
-Commander::set_main_state_override_on(bool &changed)
-{
-	const transition_result_t res = main_state_transition(_status, commander_state_s::MAIN_STATE_MANUAL, _status_flags,
-					_internal_state);
-	changed = (res == TRANSITION_CHANGED);
-
-	return res;
-}
-
-transition_result_t
-Commander::set_main_state_rc()
+transition_result_t Commander::set_main_state()
 {
 	if ((_manual_control_switches.timestamp == 0)
 	    || (_manual_control_switches.timestamp == _last_manual_control_switches.timestamp)) {
@@ -3113,14 +3080,8 @@ Commander::set_main_state_rc()
 	bool should_evaluate_rc_mode_switch =
 		(_last_manual_control_switches.offboard_switch != _manual_control_switches.offboard_switch)
 		|| (_last_manual_control_switches.return_switch != _manual_control_switches.return_switch)
-		|| (_last_manual_control_switches.mode_switch != _manual_control_switches.mode_switch)
-		|| (_last_manual_control_switches.acro_switch != _manual_control_switches.acro_switch)
-		|| (_last_manual_control_switches.posctl_switch != _manual_control_switches.posctl_switch)
 		|| (_last_manual_control_switches.loiter_switch != _manual_control_switches.loiter_switch)
-		|| (_last_manual_control_switches.mode_slot != _manual_control_switches.mode_slot)
-		|| (_last_manual_control_switches.stab_switch != _manual_control_switches.stab_switch)
-		|| (_last_manual_control_switches.man_switch != _manual_control_switches.man_switch);
-
+		|| (_last_manual_control_switches.mode_slot != _manual_control_switches.mode_slot);
 
 	if (_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 		// if already armed don't evaluate first time RC
@@ -3216,84 +3177,6 @@ Commander::set_main_state_rc()
 		}
 
 		return res;
-
-	} else if (_manual_control_switches.mode_switch != manual_control_switches_s::SWITCH_POS_NONE) {
-		/* offboard and RTL switches off or denied, check main mode switch */
-		switch (_manual_control_switches.mode_switch) {
-		case manual_control_switches_s::SWITCH_POS_NONE:
-			res = TRANSITION_NOT_CHANGED;
-			break;
-
-		case manual_control_switches_s::SWITCH_POS_OFF:		// MANUAL
-			if (_manual_control_switches.stab_switch == manual_control_switches_s::SWITCH_POS_NONE &&
-			    _manual_control_switches.man_switch == manual_control_switches_s::SWITCH_POS_NONE) {
-				/*
-				 * Legacy mode:
-				 * Acro switch being used as stabilized switch in FW.
-				 */
-				if (_manual_control_switches.acro_switch == manual_control_switches_s::SWITCH_POS_ON) {
-					/* manual mode is stabilized already for multirotors, so switch to acro
-					 * for any non-manual mode
-					 */
-					if (_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !_status.is_vtol) {
-						res = main_state_transition(_status, commander_state_s::MAIN_STATE_ACRO, _status_flags, _internal_state);
-
-					} else if (_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-						res = main_state_transition(_status, commander_state_s::MAIN_STATE_STAB, _status_flags, _internal_state);
-
-					} else {
-						res = main_state_transition(_status, commander_state_s::MAIN_STATE_MANUAL, _status_flags, _internal_state);
-					}
-
-				} else {
-					res = main_state_transition(_status, commander_state_s::MAIN_STATE_MANUAL, _status_flags, _internal_state);
-				}
-
-			} else {
-				/* New mode:
-				 * - Acro is Acro
-				 * - Manual is not default anymore when the manual switch is assigned
-				 */
-				if (_manual_control_switches.man_switch == manual_control_switches_s::SWITCH_POS_ON) {
-					res = main_state_transition(_status, commander_state_s::MAIN_STATE_MANUAL, _status_flags, _internal_state);
-
-				} else if (_manual_control_switches.acro_switch == manual_control_switches_s::SWITCH_POS_ON) {
-					res = main_state_transition(_status, commander_state_s::MAIN_STATE_ACRO, _status_flags, _internal_state);
-
-				} else if (_manual_control_switches.stab_switch == manual_control_switches_s::SWITCH_POS_ON) {
-					res = main_state_transition(_status, commander_state_s::MAIN_STATE_STAB, _status_flags, _internal_state);
-
-				} else if (_manual_control_switches.man_switch == manual_control_switches_s::SWITCH_POS_NONE) {
-					// default to MANUAL when no manual switch is set
-					res = main_state_transition(_status, commander_state_s::MAIN_STATE_MANUAL, _status_flags, _internal_state);
-
-				} else {
-					// default to STAB when the manual switch is assigned (but off)
-					res = main_state_transition(_status, commander_state_s::MAIN_STATE_STAB, _status_flags, _internal_state);
-				}
-			}
-
-			// TRANSITION_DENIED is not possible here
-			break;
-
-		case manual_control_switches_s::SWITCH_POS_MIDDLE:		// ASSIST
-			if (_manual_control_switches.posctl_switch == manual_control_switches_s::SWITCH_POS_ON) {
-				res = try_mode_change(commander_state_s::MAIN_STATE_POSCTL);
-
-			} else {
-				res = try_mode_change(commander_state_s::MAIN_STATE_ALTCTL);
-			}
-
-			break;
-
-		case manual_control_switches_s::SWITCH_POS_ON:		// AUTO
-			res = try_mode_change(commander_state_s::MAIN_STATE_AUTO_MISSION);
-			break;
-
-		default:
-			break;
-		}
-
 	}
 
 	return res;
@@ -3374,9 +3257,6 @@ Commander::update_control_mode()
 	/* set vehicle_control_mode according to set_navigation_state */
 	_vehicle_control_mode.flag_armed = _armed.armed;
 
-	_vehicle_control_mode.flag_external_manual_override_ok =
-		(_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING && !_status.is_vtol);
-
 	switch (_status.nav_state) {
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 		_vehicle_control_mode.flag_control_manual_enabled = true;
@@ -3409,10 +3289,6 @@ Commander::update_control_mode()
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-		/* override is not ok for the RTL and recovery mode */
-		_vehicle_control_mode.flag_external_manual_override_ok = false;
-
-	/* fallthrough */
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
@@ -4321,6 +4197,7 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_COMMAND("arm");
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Force arming (do not run preflight checks)", true);
 	PRINT_MODULE_USAGE_COMMAND("disarm");
+	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Force disarming (disarm in air)", true);
 	PRINT_MODULE_USAGE_COMMAND("takeoff");
 	PRINT_MODULE_USAGE_COMMAND("land");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("transition", "VTOL transition");

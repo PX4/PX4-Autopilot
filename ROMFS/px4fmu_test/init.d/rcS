@@ -13,14 +13,6 @@ then
 	led_control on -c blue
 fi
 
-if sercon
-then
-	echo "[i] USB interface connected"
-
-	# Try to get an USB console
-	nshterm /dev/ttyACM0 &
-fi
-
 #
 # Try to mount the microSD card.
 #
@@ -70,14 +62,6 @@ then
 	set io_file /etc/extras/px4_io-v2_default.bin
 fi
 
-if px4io start
-then
-	echo "PX4IO OK"
-else
-	set unit_test_failure 1
-	set unit_test_failure_list "${unit_test_failure_list} px4io_start"
-fi
-
 if px4io checkcrc $io_file
 then
 	echo "PX4IO CRC OK"
@@ -103,6 +87,15 @@ else
 		set unit_test_failure_list "${unit_test_failure_list} px4io_flash"
 	fi
 fi
+
+if px4io start
+then
+	echo "PX4IO OK"
+else
+	set unit_test_failure 1
+	set unit_test_failure_list "${unit_test_failure_list} px4io_start"
+fi
+
 
 #
 # The presence of this file suggests we're running a mount stress test

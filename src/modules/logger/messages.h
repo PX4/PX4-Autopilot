@@ -61,6 +61,33 @@ struct ulog_file_header_s {
 	uint64_t timestamp;
 };
 
+/** first bytes of the crypto key file */
+struct ulog_key_header_s {
+	/* magic identifying the file content */
+	uint8_t magic[7];
+
+	/* version of this header file */
+	uint8_t hdr_ver;
+
+	/* file creation timestamp */
+	uint64_t timestamp;
+
+	/* crypto algorithm used for key exchange */
+	uint8_t exchange_algorithm;
+
+	/* encryption key index used for key exchange */
+	uint8_t exchange_key;
+
+	/* size of the key */
+	uint16_t key_size;
+
+	/* size of logfile crypto algoritm initialization data, e.g. nonce */
+	uint16_t initdata_size;
+
+	/* actual data (initdata+key) */
+	uint8_t	data[0];
+};
+
 #define ULOG_MSG_HEADER_LEN 3 //accounts for msg_size and msg_type
 struct ulog_message_header_s {
 	uint16_t msg_size;

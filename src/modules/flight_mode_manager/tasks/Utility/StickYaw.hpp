@@ -44,7 +44,7 @@
 class StickYaw
 {
 public:
-	StickYaw() = default;
+	StickYaw();
 	~StickYaw() = default;
 
 	void generateYawSetpoint(float &yawspeed_setpoint, float &yaw_setpoint, const float desired_yawspeed, const float yaw,
