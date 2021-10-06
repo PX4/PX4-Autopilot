@@ -93,11 +93,9 @@ TEST(ManualControlSelector, MavlinkInputOnly)
 	EXPECT_TRUE(selector.setpoint().chosen_input.data_source == manual_control_input_s::SOURCE_MAVLINK_3);
 	EXPECT_EQ(selector.instance(), 1);
 
-	// But only the first MAVLink source wins, others are too late.
-
 	timestamp += 100_ms;
 
-	// Now provide input with the correct source.
+	// But only the first MAVLink source wins, others are too late.
 	input.data_source = manual_control_input_s::SOURCE_MAVLINK_4;
 	input.timestamp_sample = timestamp;
 	selector.update_manual_control_input(timestamp, input, 1);
