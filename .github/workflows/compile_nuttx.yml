@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     container: px4io/px4-dev-nuttx-focal:2021-09-08
     strategy:
+      fail-fast: false
       matrix:
         config: [
           airmind_mindpx-v2,
