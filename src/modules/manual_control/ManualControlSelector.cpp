@@ -96,20 +96,7 @@ void ManualControlSelector::update_manual_control_input(uint64_t now, const manu
 manual_control_setpoint_s ManualControlSelector::setpoint_from_input(const manual_control_input_s &input)
 {
 	manual_control_setpoint_s setpoint;
-	setpoint.chosen_input.timestamp_sample = input.timestamp_sample;
-	setpoint.chosen_input.x = input.x;
-	setpoint.chosen_input.y = input.y;
-	setpoint.chosen_input.z = input.z;
-	setpoint.chosen_input.r = input.r;
-	setpoint.chosen_input.flaps = input.flaps;
-	setpoint.chosen_input.aux1 = input.aux1;
-	setpoint.chosen_input.aux2 = input.aux2;
-	setpoint.chosen_input.aux3 = input.aux3;
-	setpoint.chosen_input.aux4 = input.aux4;
-	setpoint.chosen_input.aux5 = input.aux5;
-	setpoint.chosen_input.aux6 = input.aux6;
-	setpoint.chosen_input.data_source = input.data_source;
-
+	setpoint.chosen_input = input;
 	return setpoint;
 }
 
