@@ -74,7 +74,7 @@ jobs:
       run: |
         export
         ./test/rostest_px4_run.sh ${{matrix.config.test_file}} vehicle:=${{matrix.config.vehicle}}
-      timeout-minutes: 30
+      timeout-minutes: 45
 
     - name: Look at core files
       if: failure()
