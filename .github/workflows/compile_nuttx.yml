@@ -87,7 +87,7 @@ jobs:
 
     - name: make all_variants_${{matrix.config}}
       run: make all_variants_${{matrix.config}}
-      timeout-minutes: 30
+      timeout-minutes: 45
     - name: make ${{matrix.config}} bloaty_compileunits
       run: make ${{matrix.config}} bloaty_compileunits || true
     - name: make ${{matrix.config}} bloaty_inlines
