@@ -240,6 +240,9 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	if(SERIAL_TEL5)
         list(APPEND board_serial_ports TEL5:${SERIAL_TEL5})
 	endif()
+	if(SERIAL_WIFI)
+        list(APPEND board_serial_ports WIFI:${SERIAL_WIFI})
+	endif()
 
 
 	# ROMFS
