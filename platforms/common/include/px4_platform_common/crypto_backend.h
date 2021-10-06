@@ -39,6 +39,7 @@ extern "C" {
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <sys/ioctl.h>
 #include <px4_platform_common/crypto_algorithms.h>
 #include "crypto_backend_definitions.h"
 
@@ -180,6 +181,64 @@ bool crypto_encrypt_data(crypto_session_handle_t handle,
  */
 
 size_t crypto_get_min_blocksize(crypto_session_handle_t handle, uint8_t key_idx);
+
+
+/* Crypto IOCTLs, to access backend from user space */
+
+#define _CRYPTOIOCBASE		(0x5200)
+#define _CRYPTOIOC(_n)		(_IOC(_CRYPTOIOCBASE, _n))
+
+#define CRYPTOIOCOPEN _CRYPTOIOC(1)
+typedef struct cryptoiocopen {
+	px4_crypto_algorithm_t algorithm;
+	crypto_session_handle_t *handle;
+} cryptoiocopen_t;
+
+#define CRYPTOIOCCLOSE _CRYPTOIOC(2)
+
+#define CRYPTOIOCENCRYPT _CRYPTOIOC(3)
+typedef struct cryptoiocencrypt {
+	crypto_session_handle_t *handle;
+	uint8_t  key_index;
+	const uint8_t *message;
+	size_t message_size;
+	uint8_t *cipher;
+	size_t *cipher_size;
+	bool ret;
+} cryptoiocencrypt_t;
+
+#define CRYPTOIOCGENKEY _CRYPTOIOC(4)
+typedef struct cryptoiocgenkey {
+	crypto_session_handle_t *handle;
+	uint8_t idx;
+	bool persistent;
+	bool ret;
+} cryptoiocgenkey_t;
+
+#define CRYPTOIOCGETNONCE _CRYPTOIOC(5)
+typedef struct cryptoiocgetnonce {
+	crypto_session_handle_t *handle;
+	uint8_t *nonce;
+	size_t *nonce_len;
+	bool ret;
+} cryptoiocgetnonce_t;
+
+#define CRYPTOIOCGETKEY _CRYPTOIOC(6)
+typedef struct cryptoiocgetkey {
+	crypto_session_handle_t *handle;
+	uint8_t key_idx;
+	uint8_t *key;
+	size_t *max_len;
+	uint8_t encryption_key_idx;
+	bool ret;
+} cryptoiocgetkey_t;
+
+#define CRYPTOIOCGETBLOCKSZ _CRYPTOIOC(7)
+typedef struct cryptoiocgetblocksz {
+	crypto_session_handle_t *handle;
+	uint8_t key_idx;
+	size_t ret;
+} cryptoiocgetblocksz_t;
 
 #if defined(__cplusplus)
 } // extern "C"

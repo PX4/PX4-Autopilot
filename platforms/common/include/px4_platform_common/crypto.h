@@ -208,6 +208,8 @@ public:
 
 	size_t get_min_blocksize(uint8_t key_idx);
 
+	static int crypto_ioctl(unsigned int cmd, unsigned long arg);
+
 private:
 	crypto_session_handle_t _crypto_handle;
 	static px4_sem_t _lock;
