@@ -2641,7 +2641,7 @@ Commander::run()
 			const transition_result_t desired_ret = main_state_transition(_status, _internal_state.desired_main_state,
 								_status_flags, _internal_state);
 
-			if (desired_ret == TRANSITION_CHANGED) {
+			if (desired_ret != TRANSITION_DENIED) {
 				// Reset it for next time.
 				_internal_state.desired_main_state = commander_state_s::MAIN_STATE_MAX;
 
