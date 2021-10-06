@@ -75,7 +75,8 @@ int LedController::update(LedControlData &control_data)
 
 			if ((_led_control_sub.get_last_generation() != last_generation + 1)
 			    && (_led_control_sub.get_last_generation() != last_generation)) {
-				PX4_ERR("led_control lost, generation %d -> %d", last_generation, _led_control_sub.get_last_generation());
+				perf_count(_led_control_sub_lost_perf);
+				PX4_DEBUG("led_control lost, generation %d -> %d", last_generation, _led_control_sub.get_last_generation());
 			}
 
 			// don't apply the new state just yet to avoid interrupting an ongoing blinking state
