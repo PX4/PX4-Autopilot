@@ -8,6 +8,15 @@
 . ${R}etc/init.d/rc.mc_defaults
 . ${R}etc/init.d/rc.ctrlalloc
 
+param set-default MC_PITCHRATE_P 0.0800
+param set-default MC_PITCHRATE_I 0.0400
+param set-default MC_PITCHRATE_D 0.0010
+param set-default MC_PITCH_P 9.0
+param set-default MC_ROLLRATE_P 0.0800
+param set-default MC_ROLLRATE_I 0.0400
+param set-default MC_ROLLRATE_D 0.0010
+param set-default MC_ROLL_P 9.0
+
 param set-default MPC_XY_VEL_I_ACC 4
 param set-default MPC_XY_VEL_P_ACC 3
 
