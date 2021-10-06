@@ -66,7 +66,8 @@ int PCF8583::init()
 int PCF8583::probe()
 {
     uint8_t s = readRegister(0x00);
-    if(_tranfer_fail_count!=0 || s!=0) //extremly poor detection :-(
+    PX4_INFO("status register: %" PRId8 " fail_count: %" PRId32, s,_tranfer_fail_count);
+    if(_tranfer_fail_count!=0 || (s!=0 && s!=32)) //extremly poor detection :-(
         return PX4_ERROR;
 
     return PX4_OK;
@@ -144,7 +145,7 @@ void PCF8583::RunImpl()
     uint8_t s=readRegister(0x00);
     if(_tranfer_fail_count>0 || s!=0b00100000 || diffCount<0)
     {
-        PX4_ERR("pcf8583 RPM sensor restart");
+        PX4_ERR("pcf8583 RPM sensor restart: fail count %" PRId32 ", status: %" PRId8 ", diffCount: %" PRId32,_tranfer_fail_count,s,diffCount );
         initCounter();
         return;
     } 
