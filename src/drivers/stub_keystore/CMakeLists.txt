@@ -36,6 +36,10 @@ px4_add_library(keystore_backend stub_keystore.c)
 
 target_include_directories(keystore_backend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+# This interface library can be used to get the backend headers
+add_library(keystore_backend_interface INTERFACE)
+target_include_directories(keystore_backend_interface INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+
 # Parse keyfile locations from boardconfig
 
 # If the key file path is defined in environment variable, use it from there
