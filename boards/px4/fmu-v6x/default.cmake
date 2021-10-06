@@ -114,7 +114,7 @@ px4_add_board(
 		reboot
 		#reflect
 		sd_bench
-		sd_stress
+		#sd_stress
 		#serial_test
 		system_time
 		top
@@ -125,7 +125,7 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
-		fake_gps
+		#fake_gps
 		#fake_imu
 		#fake_magnetometer
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control

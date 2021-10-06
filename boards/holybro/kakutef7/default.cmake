@@ -80,5 +80,5 @@ px4_add_board(
 		#uorb
 		#usb_connected
 		ver
-		work_queue
+		#work_queue
 	)
