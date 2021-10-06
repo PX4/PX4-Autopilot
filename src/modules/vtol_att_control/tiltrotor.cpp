@@ -270,7 +270,7 @@ void Tiltrotor::update_mc_state()
 
 	} else {
 		// normal operation
-		_tilt_control = VtolType::pusher_assist();
+		_tilt_control = VtolType::pusher_assist() + _params_tiltrotor.tilt_mc;
 		_mc_yaw_weight = 1.0f;
 		_v_att_sp->thrust_body[2] = Tiltrotor::thrust_compensation_for_tilt();
 	}
@@ -483,6 +483,6 @@ float Tiltrotor::thrust_compensation_for_tilt()
 	// only compensate for tilt angle up to 0.5 * max tilt
 	float compensated_tilt = math::constrain(_tilt_control, 0.0f, 0.5f);
 
-	// increase vertical thrust by 1/cos(tilt), limmit to [-1,0]
+	// increase vertical thrust by 1/cos(tilt), limit to [-1,0]
 	return math::constrain(_v_att_sp->thrust_body[2] / cosf(compensated_tilt * M_PI_2_F), -1.0f, 0.0f);
 }

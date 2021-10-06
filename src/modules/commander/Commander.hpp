@@ -87,6 +87,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vtol_vehicle_status.h>
+#include <uORB/topics/wind.h>
 
 using math::constrain;
 using systemlib::Hysteresis;
@@ -182,6 +183,8 @@ private:
 
 	void send_parachute_command();
 
+	void checkWindAndWarn();
+
 	DEFINE_PARAMETERS(
 
 		(ParamInt<px4::params::NAV_DLL_ACT>) _param_nav_dll_act,
@@ -216,6 +219,8 @@ private:
 		(ParamInt<px4::params::COM_FLT_PROFILE>) _param_com_flt_profile,
 
 		(ParamFloat<px4::params::COM_OBC_LOSS_T>) _param_com_obc_loss_t,
+
+		(ParamFloat<px4::params::COM_WIND_WARN>) _param_com_wind_warn,
 
 		// Offboard
 		(ParamFloat<px4::params::COM_OF_LOSS_T>) _param_com_of_loss_t,
@@ -377,6 +382,8 @@ private:
 	safety_s		_safety{};
 	vtol_vehicle_status_s	_vtol_status{};
 
+	hrt_abstime _last_wind_warning{0};
+
 	// commander publications
 	actuator_armed_s        _armed{};
 	commander_state_s       _internal_state{};
@@ -401,6 +408,7 @@ private:
 	uORB::Subscription					_vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription					_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription					_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
+	uORB::Subscription					_wind_sub{ORB_ID(wind)};
 
 	uORB::SubscriptionInterval				_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
