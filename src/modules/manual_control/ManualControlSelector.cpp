@@ -39,7 +39,7 @@ namespace manual_control
 
 void ManualControlSelector::update_time_only(uint64_t now)
 {
-	if (_setpoint.chosen_input.timestamp_sample + _timeout < now) {
+	if (now - _setpoint.chosen_input.timestamp_sample > _timeout) {
 		_setpoint.valid = false;
 		_instance = -1;
 	}
