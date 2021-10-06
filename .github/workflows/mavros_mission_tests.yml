@@ -79,6 +79,7 @@ jobs:
       run: |
         export
         ./test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=${{matrix.config.mission}} vehicle:=${{matrix.config.vehicle}}
+      timeout-minutes: 30
 
     - name: Look at core files
       if: failure()
