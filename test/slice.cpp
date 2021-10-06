@@ -125,6 +125,11 @@ int main()
     TEST(!v5.xy().longerThan(5.f));
     TEST(isEqualF(5.f, v5.xy().norm()));
 
+    // min/max
+    TEST(m33.row(1).max() == 5);
+    TEST(m33.col(0).min() == 0);
+    TEST((m33.slice<2,2>(1,1).max()) == 10);
+
     // assign scalar value to slice
     Matrix<float, 3, 1> L;
     L(0,0) = -1;

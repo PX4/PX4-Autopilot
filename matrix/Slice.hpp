@@ -262,6 +262,40 @@ public:
         return norm_squared() > testVal*testVal;
     }
 
+    Type max() const
+    {
+        Type max_val = (*this)(0,0);
+
+        for (size_t i = 0; i < P; i++) {
+            for (size_t j = 0; j < Q; j++) {
+                Type val = (*this)(i,j);
+
+                if (val > max_val) {
+                    max_val = val;
+                }
+            }
+        }
+
+        return max_val;
+    }
+
+    Type min() const
+    {
+        Type min_val = (*this)(0,0);
+
+        for (size_t i = 0; i < P; i++) {
+            for (size_t j = 0; j < Q; j++) {
+                Type val = (*this)(i,j);
+
+                if (val < min_val) {
+                    min_val = val;
+                }
+            }
+        }
+
+        return min_val;
+    }
+
 private:
     size_t _x0, _y0;
     Matrix<Type,M,N>* _data;
