@@ -57,29 +57,20 @@ void ManualControlSelector::update_manual_control_input(uint64_t now, const manu
 	// If previous setpoint is timed out, set it invalid, so it can get replaced below.
 	update_time_only(now);
 
-	if (_rc_in_mode == 0 && input.data_source == manual_control_input_s::SOURCE_RC) {
-		_setpoint = setpoint_from_input(input);
-		_setpoint.valid = true;
-		_instance = instance;
+	const bool source_rc_matched = (_rc_in_mode == 0) && (input.data_source == manual_control_input_s::SOURCE_RC);
+	const bool source_mavlink_matched = (_rc_in_mode == 1) &&
+					    (input.data_source == manual_control_input_s::SOURCE_MAVLINK_0
+					     || input.data_source == manual_control_input_s::SOURCE_MAVLINK_1
+					     || input.data_source == manual_control_input_s::SOURCE_MAVLINK_2
+					     || input.data_source == manual_control_input_s::SOURCE_MAVLINK_3
+					     || input.data_source == manual_control_input_s::SOURCE_MAVLINK_4
+					     || input.data_source == manual_control_input_s::SOURCE_MAVLINK_5);
+	const bool source_any_matched = (_rc_in_mode == 3);
+	const bool not_overriding_existing_source = !_setpoint.valid
+			|| (_setpoint.chosen_input.data_source == input.data_source);
 
-	} else if (_rc_in_mode == 1 && (input.data_source == manual_control_input_s::SOURCE_MAVLINK_0
-					|| input.data_source == manual_control_input_s::SOURCE_MAVLINK_1
-					|| input.data_source == manual_control_input_s::SOURCE_MAVLINK_2
-					|| input.data_source == manual_control_input_s::SOURCE_MAVLINK_3
-					|| input.data_source == manual_control_input_s::SOURCE_MAVLINK_4
-					|| input.data_source == manual_control_input_s::SOURCE_MAVLINK_5)) {
-
-		// We only stick to the first discovered mavlink channel.
-		if (_setpoint.chosen_input.data_source == input.data_source || !_setpoint.valid) {
-			_setpoint = setpoint_from_input(input);
-			_setpoint.valid = true;
-			_instance = instance;
-		}
-
-	} else if (_rc_in_mode == 3) {
-
-		// We only stick to the first discovered mavlink channel.
-		if (_setpoint.chosen_input.data_source == input.data_source || !_setpoint.valid) {
+	if (source_rc_matched || source_mavlink_matched || source_any_matched) {
+		if (not_overriding_existing_source) {
 			_setpoint = setpoint_from_input(input);
 			_setpoint.valid = true;
 			_instance = instance;
