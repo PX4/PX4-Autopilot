@@ -343,6 +343,7 @@ private:
 
 	void		reset_takeoff_state(bool force = false);
 	void		reset_landing_state();
+	Vector2f 	get_nav_speed_2d(const Vector2f &ground_speed);
 
 	/*
 	 * Call TECS : a wrapper function to call the TECS implementation
