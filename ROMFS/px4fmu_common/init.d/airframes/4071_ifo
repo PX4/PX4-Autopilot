@@ -27,15 +27,11 @@ set PWM_OUT 1234
 
 
 # Attitude & rate gains
-param set-default MC_ROLLRATE_P 0.15
 param set-default MC_ROLLRATE_D 0.0013
 
-param set-default MC_PITCHRATE_P 0.15
 param set-default MC_PITCHRATE_D 0.0016
 
-param set-default MC_YAW_P 2.8
-param set-default MC_YAWRATE_P 0.2
-param set-default MC_YAWRATE_D 0
+
 param set-default MC_YAW_FF 0.5
 
 param set-default MPC_MANTHR_MAX 0.9
@@ -46,7 +42,6 @@ param set-default IMU_DGYRO_CUTOFF 90
 param set-default IMU_GYRO_CUTOFF 100
 
 # System
-param set-default PWM_MAIN_MAX 1950
 param set-default PWM_MAIN_MIN 1100
 param set-default PWM_MAIN_RATE 0
 

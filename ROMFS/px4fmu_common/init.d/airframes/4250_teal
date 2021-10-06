@@ -47,7 +47,6 @@ param set-default BAT1_V_OFFS_CURR -0.0045
 
 # sensor calibration
 param set-default CAL_MAG_SIDES 63
-param set-default SENS_BOARD_ROT 0
 
 # circuit breakers
 param set-default CBRK_IO_SAFETY 22027
@@ -59,20 +58,15 @@ param set-default COM_DISARM_LAND 0.1
 param set-default COM_LOW_BAT_ACT 3
 
 # ekf2
-param set-default EKF2_AID_MASK 1
 param set-default EKF2_MAG_TYPE 1
 param set-default EKF2_GPS_CHECK 511
 param set-default EKF2_GPS_POS_X -0.04
 param set-default EKF2_IMU_POS_X -0.06
 param set-default EKF2_PCOEF_XN 0.1
 param set-default EKF2_PCOEF_XP -0.5
-param set-default EKF2_RNG_AID 1
 param set-default EKF2_RNG_A_VMAX 20
 param set-default EKF2_RNG_NOISE 0.2
 param set-default EKF2_MIN_RNG 0.07
-
-# gps
-param set-default GPS_UBX_DYNMODEL 7
 
 # geofence
 # Geofence violation action -- Warning.
@@ -103,20 +97,17 @@ param set-default MC_ACRO_Y_MAX 360
 
 param set-default MC_ROLL_P 6
 param set-default MC_ROLLRATE_P 0.055
-param set-default MC_ROLLRATE_I 0.2
 param set-default MC_ROLLRATE_D 0.0012
 param set-default MC_ROLLRATE_MAX 180
 
-param set-default MC_PITCH_P 6.5
 param set-default MC_PITCHRATE_P 0.06
-param set-default MC_PITCHRATE_I 0.2
 param set-default MC_PITCHRATE_D 0.0012
 param set-default MC_PITCHRATE_MAX 180
 
 param set-default MC_YAW_P 1
 param set-default MC_YAWRATE_P 0.08
 param set-default MC_YAWRATE_I 0.08
-param set-default MC_YAWRATE_D 0
+
 param set-default MC_YAWRATE_MAX 180
 
 # Set to reduce voltage transients as seen by battery management system.
