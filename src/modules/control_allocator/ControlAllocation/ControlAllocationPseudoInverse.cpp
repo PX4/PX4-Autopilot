@@ -99,6 +99,16 @@ ControlAllocationPseudoInverse::normalizeControlAllocationMatrix()
 	if ((-z_sum > FLT_EPSILON) && (_num_actuators > 0)) {
 		_mix.col(5) /= -z_sum / _num_actuators;
 	}
+
+	// Set all the small elements to 0 to avoid issues
+	// in the control allocation algorithms
+	for (int i = 0; i < _num_actuators; i++) {
+		for (int j = 0; j < NUM_AXES; j++) {
+			if (fabsf(_mix(i, j)) < 1e-3f) {
+				_mix(i, j) = 0.f;
+			}
+		}
+	}
 }
 
 void
