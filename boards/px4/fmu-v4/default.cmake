@@ -20,7 +20,7 @@ px4_add_board(
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
-		dshot
+		#dshot
 		gps
 		heater
 		#imu # all available imu drivers
@@ -79,17 +79,17 @@ px4_add_board(
 		#micrortps_bridge
 		navigator
 		rc_update
-		rover_pos_control
+		#rover_pos_control
 		sensors
 		sih
 		temperature_compensation
-		uuv_att_control
-		uuv_pos_control
+		#uuv_att_control
+		#uuv_pos_control
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
 		bl_update
-		#dmesg
+		dmesg
 		dumpfile
 		esc_calib
 		gpio
