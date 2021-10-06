@@ -90,13 +90,12 @@ void ManualControl::Run()
 
 	bool found_at_least_one = false;
 	const hrt_abstime now = hrt_absolute_time();
-	const float dt_s = now - _last_time;
+	const float dt_s = (now - _last_time) / 1e6f;
 
 	for (int i = 0; i < MAX_MANUAL_INPUT_COUNT; i++) {
 		manual_control_input_s manual_control_input;
 
 		if (_manual_control_input_subs[i].update(&manual_control_input)) {
-
 			found_at_least_one = true;
 			_selector.update_manual_control_input(now, manual_control_input, i);
 		}
