@@ -282,7 +282,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_yaw_setpoint = _yaw;
 		// use the yawrate setpoint from WV only if not moving lateral (velocity setpoint below half of _param_mpc_xy_cruise)
 		// otherwise, keep heading constant (as output from WV is not according to wind in this case)
-		bool vehicle_is_moving_lateral = _velocity_setpoint.xy().longerThan(_param_mpc_xy_cruise.get() / 2.0f);
+		bool vehicle_is_moving_lateral = _velocity_setpoint.xy().longerThan(_param_mpc_xy_cruise.get() * 2.0f);
 
 		if (vehicle_is_moving_lateral) {
 			_yawspeed_setpoint = 0.0f;
