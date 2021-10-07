@@ -95,7 +95,7 @@ jobs:
                        --comment "development build"
           jfrog rt cp --flat \
                       "$ARTIFACTORY_GEN_REPO/builds/gazebo-data/$pkg_name" \
-                      "$ARTIFACTORY_GEN_REPO/builds/gazebo-data/latest/px4_gazebo_data.tar.gz'"
+                      "$ARTIFACTORY_GEN_REPO/builds/gazebo-data/latest/px4_gazebo_data.tar.gz"
 
       - name: trigger fog-drone build
         env:
