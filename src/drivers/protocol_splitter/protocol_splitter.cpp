@@ -568,8 +568,8 @@ void DevCommon::cleanup()
 
 	size_t garbage_end = 0;
 
-	if (!mavlink_available && !rtps_available) {
-		garbage_end = math::max(_read_buffer->start_mavlink, _read_buffer->start_rtps);
+	if (!mavlink_available && !rtps_available && (_read_buffer->buf_size > 0)) {
+		garbage_end = _read_buffer->buf_size - 1;
 
 	} else {
 		garbage_end = math::min(_read_buffer->start_mavlink, _read_buffer->start_rtps);
