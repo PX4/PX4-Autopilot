@@ -980,7 +980,7 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 			control_landing(now, curr_pos, ground_speed, pos_sp_prev, pos_sp_curr);
 
 		} else if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
-			control_takeoff(now, curr_pos, ground_speed, pos_sp_prev, pos_sp_curr);
+			control_takeoff(now, dt, curr_pos, ground_speed, pos_sp_prev, pos_sp_curr);
 		}
 
 		/* reset landing state */
@@ -1246,7 +1246,7 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 }
 
 void
-FixedwingPositionControl::control_takeoff(const hrt_abstime &now, const Vector2d &curr_pos,
+FixedwingPositionControl::control_takeoff(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
 	/* current waypoint (the one currently heading for) */
@@ -1341,7 +1341,7 @@ FixedwingPositionControl::control_takeoff(const hrt_abstime &now, const Vector2d
 				}
 
 				/* Detect launch using body X (forward) acceleration */
-				_launchDetector.update(now, _body_acceleration(0));
+				_launchDetector.update(dt, _body_acceleration(0));
 
 				/* update our copy of the launch detection state */
 				_launch_detection_state = _launchDetector.getLaunchDetected();
