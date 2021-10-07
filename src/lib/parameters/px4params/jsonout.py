@@ -93,6 +93,11 @@ class JsonOutput():
                         code_dict['description']=param.GetEnumValue(item)
                         codes_list.append(code_dict)
                     curr_param['values'] = codes_list
+                elif param.GetBoolean():
+                    curr_param['values'] = [
+                        { 'value': 0, 'description': 'Disabled' },
+                        { 'value': 1, 'description': 'Enabled' }
+                    ]
 
 
                 if len(param.GetBitmaskList()) > 0:
