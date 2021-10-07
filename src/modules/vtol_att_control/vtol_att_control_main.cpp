@@ -151,8 +151,10 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 
 			uint8_t result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
 
+			const int transition_command_param1 = int(vehicle_command.param1 + 0.5f);
+
 			// deny transition from MC to FW in Takeoff, Land, RTL and Orbit
-			if (int(vehicle_command.param1 + 0.5f) == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW &&
+			if (transition_command_param1 == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW &&
 			    (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
 			     || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
 			     || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
@@ -161,7 +163,7 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 				result = vehicle_command_ack_s::VEHICLE_RESULT_TEMPORARILY_REJECTED;
 
 			} else {
-				_transition_command = int(vehicle_command.param1 + 0.5f);
+				_transition_command = transition_command_param1;
 				_immediate_transition = (PX4_ISFINITE(vehicle_command.param2)) ? int(vehicle_command.param2 + 0.5f) : false;
 			}
 
