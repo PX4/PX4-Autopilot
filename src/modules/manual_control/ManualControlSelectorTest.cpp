@@ -40,6 +40,30 @@ using namespace manual_control;
 
 static constexpr uint64_t some_time = 12345678;
 
+TEST(ManualControlSelector, RcInputContinuous)
+{
+	ManualControlSelector selector;
+	selector.set_rc_in_mode(0);
+	selector.set_timeout(500_ms);
+
+	uint64_t timestamp = some_time;
+
+	// Now provide input with the correct source.
+	manual_control_input_s input {};
+	input.data_source = manual_control_input_s::SOURCE_RC;
+	input.timestamp_sample = timestamp;
+
+	for (int i = 0; i < 5; i++) {
+		selector.update_manual_control_input(timestamp, input, 1);
+		EXPECT_TRUE(selector.setpoint().valid);
+		EXPECT_EQ(selector.setpoint().chosen_input.timestamp_sample, timestamp);
+		EXPECT_EQ(selector.instance(), 1);
+		EXPECT_TRUE(selector.setpoint().chosen_input.data_source == manual_control_input_s::SOURCE_RC);
+		timestamp += 100_ms;
+		input.timestamp_sample = timestamp;
+	}
+}
+
 TEST(ManualControlSelector, RcInputOnly)
 {
 	ManualControlSelector selector;
