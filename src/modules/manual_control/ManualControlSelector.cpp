@@ -39,7 +39,7 @@ namespace manual_control
 
 void ManualControlSelector::update_time_only(uint64_t now)
 {
-	if (now - _setpoint.chosen_input.timestamp_sample > _timeout) {
+	if (!isInputValid(_setpoint.chosen_input, now)) {
 		_setpoint.valid = false;
 		_instance = -1;
 	}
@@ -47,16 +47,27 @@ void ManualControlSelector::update_time_only(uint64_t now)
 
 void ManualControlSelector::update_manual_control_input(uint64_t now, const manual_control_input_s &input, int instance)
 {
-	// This method requires the current timestamp explicitly in order to prevent the case
-	// where the timestamp_sample of some source is already outdated.
-
-	if (now >= input.timestamp_sample && now - input.timestamp_sample > _timeout) {
-		return;
-	}
-
-	// If previous setpoint is timed out, set it invalid, so it can get replaced below.
+	// First check if the setpoint in use got invalid, so it can get replaced below.
 	update_time_only(now);
 
+	const bool update_existing_input = _setpoint.valid == true && input.data_source == _setpoint.chosen_input.data_source;
+	const bool start_using_new_input = _setpoint.valid == false;
+
+	// Switch to new input if it's valid and we don't already have a valid one
+	if (isInputValid(input, now) && (update_existing_input || start_using_new_input)) {
+		_setpoint = setpoint_from_input(input);
+		_setpoint.valid = true;
+		_instance = instance;
+	}
+}
+
+bool ManualControlSelector::isInputValid(const manual_control_input_s &input, uint64_t now) const
+{
+	// Check for timeout
+	const bool sample_from_the_past = now >= input.timestamp_sample;
+	const bool sample_newer_than_timeout = now - input.timestamp_sample < _timeout;
+
+	// Check if source matches the configuration
 	const bool source_rc_matched = (_rc_in_mode == 0) && (input.data_source == manual_control_input_s::SOURCE_RC);
 	const bool source_mavlink_matched = (_rc_in_mode == 1) &&
 					    (input.data_source == manual_control_input_s::SOURCE_MAVLINK_0
@@ -66,20 +77,9 @@ void ManualControlSelector::update_manual_control_input(uint64_t now, const manu
 					     || input.data_source == manual_control_input_s::SOURCE_MAVLINK_4
 					     || input.data_source == manual_control_input_s::SOURCE_MAVLINK_5);
 	const bool source_any_matched = (_rc_in_mode == 3);
-	const bool not_overriding_existing_source = !_setpoint.valid
-			|| (_setpoint.chosen_input.data_source == input.data_source);
 
-	if (source_rc_matched || source_mavlink_matched || source_any_matched) {
-		if (not_overriding_existing_source) {
-			_setpoint = setpoint_from_input(input);
-			_setpoint.valid = true;
-			_instance = instance;
-		}
-
-	} else {
-		_setpoint.valid = false;
-		_instance = -1;
-	}
+	return sample_from_the_past && sample_newer_than_timeout
+	       && (source_rc_matched || source_mavlink_matched || source_any_matched);
 }
 
 manual_control_setpoint_s ManualControlSelector::setpoint_from_input(const manual_control_input_s &input)
