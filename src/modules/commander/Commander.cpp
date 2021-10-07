@@ -659,7 +659,6 @@ Commander::Commander() :
 	_status_flags.condition_system_sensors_initialized = true;
 
 	// We want to accept RC inputs as default
-	_status.rc_input_mode = vehicle_status_s::RC_IN_MODE_DEFAULT;
 	_status.nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 	_status.nav_state_timestamp = hrt_absolute_time();
 	_status.arming_state = vehicle_status_s::ARMING_STATE_INIT;
@@ -1839,8 +1838,6 @@ Commander::run()
 			}
 
 			_status_flags.avoidance_system_required = _param_com_obs_avoid.get();
-
-			_status.rc_input_mode = _param_rc_in_off.get();
 
 			_arm_requirements.arm_authorization = _param_arm_auth_required.get();
 			_arm_requirements.esc_check = _param_escs_checks_required.get();
