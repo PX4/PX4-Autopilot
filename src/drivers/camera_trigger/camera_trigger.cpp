@@ -200,10 +200,8 @@ private:
 	param_t			_p_min_interval;
 	param_t			_p_distance;
 	param_t			_p_interface;
-	param_t 		_p_cam_cap_fback;
 
 	trigger_mode_t		_trigger_mode{TRIGGER_MODE_NONE};
-	int32_t _cam_cap_fback{0};
 
 	camera_interface_mode_t	_camera_interface_mode{CAMERA_INTERFACE_MODE_GPIO};
 	CameraInterface		*_camera_interface{nullptr};  ///< instance of camera interface
@@ -266,7 +264,6 @@ CameraTrigger::CameraTrigger() :
 	_p_activation_time = param_find("TRIG_ACT_TIME");
 	_p_mode = param_find("TRIG_MODE");
 	_p_interface = param_find("TRIG_INTERFACE");
-	_p_cam_cap_fback = param_find("CAM_CAP_FBACK");
 
 	param_get(_p_activation_time, &_activation_time);
 	param_get(_p_interval, &_interval);
@@ -274,10 +271,6 @@ CameraTrigger::CameraTrigger() :
 	param_get(_p_distance, &_distance);
 	param_get(_p_mode, (int32_t *)&_trigger_mode);
 	param_get(_p_interface, (int32_t *)&_camera_interface_mode);
-
-	if (_p_cam_cap_fback != PARAM_INVALID) {
-		param_get(_p_cam_cap_fback, (int32_t *)&_cam_cap_fback);
-	}
 
 	switch (_camera_interface_mode) {
 #ifdef __PX4_NUTTX
@@ -320,10 +313,7 @@ CameraTrigger::CameraTrigger() :
 	// Advertise critical publishers here, because we cannot advertise in interrupt context
 	camera_trigger_s trigger{};
 
-	if (!_cam_cap_fback) {
-		_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
-
-	}
+	_trigger_pub = orb_advertise_queue(ORB_ID(camera_trigger), &trigger, camera_trigger_s::ORB_QUEUE_LENGTH);
 }
 
 CameraTrigger::~CameraTrigger()
@@ -835,29 +825,25 @@ CameraTrigger::engage(void *arg)
 		return;
 	}
 
-	// Publish only if  _cam_cap_fback is disabled, otherwise, it is published over camera_capture driver
-	if (!trig->_cam_cap_fback) {
+	pps_capture_s pps_capture;
 
-		pps_capture_s pps_capture;
-
-		if (trig->_pps_capture_sub.update(&pps_capture)) {
-			trig->_rtc_drift_time = pps_capture.rtc_drift_time;
-		}
-
-		// Send camera trigger message. This messages indicates that we sent
-		// the camera trigger request. Does not guarantee capture.
-		camera_trigger_s trigger{};
-
-		timespec tv{};
-		px4_clock_gettime(CLOCK_REALTIME, &tv);
-		trigger.timestamp_utc = ts_to_abstime(&tv) + trig->_rtc_drift_time;
-
-		trigger.seq = trig->_trigger_seq;
-		trigger.feedback = false;
-		trigger.timestamp = hrt_absolute_time();
-
-		orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &trigger);
+	if (trig->_pps_capture_sub.update(&pps_capture)) {
+		trig->_rtc_drift_time = pps_capture.rtc_drift_time;
 	}
+
+	// Send camera trigger message. This messages indicates that we sent
+	// the camera trigger request. Does not guarantee capture.
+	camera_trigger_s trigger{};
+
+	timespec tv{};
+	px4_clock_gettime(CLOCK_REALTIME, &tv);
+	trigger.timestamp_utc = ts_to_abstime(&tv) + trig->_rtc_drift_time;
+
+	trigger.seq = trig->_trigger_seq;
+	trigger.feedback = false;
+	trigger.timestamp = hrt_absolute_time();
+
+	orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &trigger);
 
 	// increment frame count
 	trig->_trigger_seq++;
