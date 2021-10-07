@@ -151,16 +151,6 @@ struct g_mod_t {
 	long long int _error_count;
 };
 
-static struct cli_args_t g_cl = {
-	._single_byte  = -1,
-	._another_byte = -1,
-	._rs485_delay  = -1,
-};
-
-static struct g_mod_t g_mod = {
-	._fd           = -1,
-};
-
 static void dump_data(unsigned char *b, int count)
 {
 	printf("%i bytes: ", count);
@@ -182,22 +172,22 @@ static void dump_data_ascii(unsigned char *b, int count)
 	}
 }
 
-static void set_baud_divisor(int speed)
+static void set_baud_divisor(int fd, int speed)
 {
 #if defined(__PX4_NUTTX)
 	// default baud was not found, so try to set a custom divisor
 
 	struct termios t;
 
-	tcgetattr(g_mod._fd, &t);
+	tcgetattr(fd, &t);
 	cfsetspeed(&t, speed);
-	tcsetattr(g_mod._fd, TCSANOW, &t);
+	tcsetattr(fd, TCSANOW, &t);
 
 #else
 	// default baud was not found, so try to set a custom divisor
 	struct serial_struct ss;
 
-	if (ioctl(g_mod._fd, TIOCGSERIAL, &ss) < 0) {
+	if (ioctl(fd, TIOCGSERIAL, &ss) < 0) {
 		perror("TIOCGSERIAL failed");
 		exit(1);
 	}
@@ -214,7 +204,7 @@ static void set_baud_divisor(int speed)
 	printf("closest baud = %i, base = %i, divisor = %i\n", closest_speed, ss.baud_base,
 	       ss.custom_divisor);
 
-	if (ioctl(g_mod._fd, TIOCSSERIAL, &ss) < 0) {
+	if (ioctl(fd, TIOCSSERIAL, &ss) < 0) {
 		perror("TIOCSSERIAL failed");
 		exit(1);
 	}
@@ -341,7 +331,7 @@ static void display_help(void)
 	      );
 }
 
-static void process_options(int argc, char *argv[])
+static void process_options(int argc, char *argv[],  struct cli_args_t *g_cl)
 {
 #if defined(__PX4_NUTTX)
 	int myoptind = 1;
@@ -400,152 +390,153 @@ static void process_options(int argc, char *argv[])
 			break;
 
 		case 'b':
-			g_cl._baud = atoi(myoptarg);
+			g_cl->_baud = atoi(myoptarg);
 			break;
 
 		case 'p':
-			g_cl._port = strdup(myoptarg);
+			g_cl->_port = strdup(myoptarg);
 			break;
 
 		case 'd':
-			g_cl._divisor = atoi(myoptarg);
+			g_cl->_divisor = atoi(myoptarg);
 			break;
 
 		case 'R':
-			g_cl._rx_dump = 1;
-			g_cl._rx_dump_ascii = !strcmp(myoptarg, "ascii");
+			g_cl->_rx_dump = 1;
+			g_cl->_rx_dump_ascii = !strcmp(myoptarg, "ascii");
 			break;
 
 		case 'T':
-			g_cl._tx_detailed = 1;
+			g_cl->_tx_detailed = 1;
 			break;
 
 		case 's':
-			g_cl._stats = 1;
+			g_cl->_stats = 1;
 			break;
 
 		case 'S':
-			g_cl._stop_on_error = 1;
+			g_cl->_stop_on_error = 1;
 			break;
 
 		case 'y': {
 				char *endptr;
-				g_cl._single_byte = strtol(myoptarg, &endptr, 0);
+				g_cl->_single_byte = strtol(myoptarg, &endptr, 0);
 				break;
 			}
 
 		case 'z': {
 				char *endptr;
-				g_cl._another_byte = strtol(myoptarg, &endptr, 0);
+				g_cl->_another_byte = strtol(myoptarg, &endptr, 0);
 				break;
 			}
 
 		case 'c':
-			g_cl._rts_cts = 1;
+			g_cl->_rts_cts = 1;
 			break;
 
 		case 'B':
-			g_cl._2_stop_bit = 1;
+			g_cl->_2_stop_bit = 1;
 			break;
 
 		case 'P':
-			g_cl._parity = 1;
-			g_cl._odd_parity = (!strcmp(myoptarg, "mark") || !strcmp(myoptarg, "odd"));
-			g_cl._stick_parity = (!strcmp(myoptarg, "mark") || !strcmp(myoptarg, "space"));
+			g_cl->_parity = 1;
+			g_cl->_odd_parity = (!strcmp(myoptarg, "mark") || !strcmp(myoptarg, "odd"));
+			g_cl->_stick_parity = (!strcmp(myoptarg, "mark") || !strcmp(myoptarg, "space"));
 			break;
 
 		case 'e':
-			g_cl._dump_err = 1;
+			g_cl->_dump_err = 1;
 			break;
 
 		case 'r':
-			g_cl._no_rx = 1;
+			g_cl->_no_rx = 1;
 			break;
 
 		case 't':
-			g_cl._no_tx = 1;
+			g_cl->_no_tx = 1;
 			break;
 
 		case 'l': {
 				char *endptr;
-				g_cl._rx_delay = strtol(myoptarg, &endptr, 0);
+				g_cl->_rx_delay = strtol(myoptarg, &endptr, 0);
 				break;
 			}
 
 		case 'a': {
 				char *endptr;
-				g_cl._tx_delay = strtol(myoptarg, &endptr, 0);
+				g_cl->_tx_delay = strtol(myoptarg, &endptr, 0);
 				break;
 			}
 
 		case 'w': {
 				char *endptr;
-				g_cl._tx_bytes = strtol(myoptarg, &endptr, 0);
+				g_cl->_tx_bytes = strtol(myoptarg, &endptr, 0);
 				break;
 			}
 
 		case 'q': {
 				char *endptr;
-				g_cl._rs485_delay = strtol(myoptarg, &endptr, 0);
+				g_cl->_rs485_delay = strtol(myoptarg, &endptr, 0);
 				break;
 			}
 
 		case 'o': {
 				char *endptr;
-				g_cl._tx_time = strtol(myoptarg, &endptr, 0);
+				g_cl->_tx_time = strtol(myoptarg, &endptr, 0);
 				break;
 			}
 
 		case 'i': {
 				char *endptr;
-				g_cl._rx_time = strtol(myoptarg, &endptr, 0);
+				g_cl->_rx_time = strtol(myoptarg, &endptr, 0);
 				break;
 			}
 
 		case 'A':
-			g_cl._ascii_range = 1;
+			g_cl->_ascii_range = 1;
 			break;
 		}
 	}
 }
 
-static void dump_serial_port_stats(void)
+static void dump_serial_port_stats(struct g_mod_t *g_mod, struct cli_args_t *g_cl)
 {
-	printf("%s: count for this session: rx=%lld, tx=%lld, rx err=%lld\n", g_cl._port, g_mod._read_count, g_mod._write_count,
-	       g_mod._error_count);
+	printf("%s: count for this session: rx=%lld, tx=%lld, rx err=%lld\n", g_cl->_port, g_mod->_read_count,
+	       g_mod->_write_count,
+	       g_mod->_error_count);
 #if !defined(__PX4_NUTTX)
 	struct serial_icounter_struct icount = { 0 };
 
-	int ret = ioctl(g_mod._fd, TIOCGICOUNT, &icount);
+	int ret = ioctl(g_mod->_fd, TIOCGICOUNT, &icount);
 
 	if (ret != -1) {
 		printf("%s: TIOCGICOUNT: ret=%i, rx=%i, tx=%i, frame = %i, overrun = %i, parity = %i, brk = %i, buf_overrun = %i\n",
-		       g_cl._port, ret, icount.rx, icount.tx, icount.frame, icount.overrun, icount.parity, icount.brk,
+		       g_cl->_port, ret, icount.rx, icount.tx, icount.frame, icount.overrun, icount.parity, icount.brk,
 		       icount.buf_overrun);
 	}
 
 #endif
 }
 
-static unsigned char next_count_value(unsigned char c)
+static unsigned char next_count_value(unsigned char c, int ascii_range)
 {
 	c++;
 
-	if (g_cl._ascii_range && c == 127) {
+	if (ascii_range && c == 127) {
 		c = 32;
 	}
 
 	return c;
 }
 
-static void process_read_data(void)
+static void process_read_data(struct g_mod_t *g_mod, struct cli_args_t *g_cl)
 {
 	unsigned char rb[1024];
-	int c = read(g_mod._fd, &rb, sizeof(rb));
+	int c = read(g_mod->_fd, &rb, sizeof(rb));
 
 	if (c > 0) {
-		if (g_cl._rx_dump) {
-			if (g_cl._rx_dump_ascii) {
+		if (g_cl->_rx_dump) {
+			if (g_cl->_rx_dump_ascii) {
 				dump_data_ascii(rb, c);
 
 			} else {
@@ -557,43 +548,43 @@ static void process_read_data(void)
 		int i;
 
 		for (i = 0; i < c; i++) {
-			if (rb[i] != g_mod._read_count_value) {
-				if (g_cl._dump_err) {
+			if (rb[i] != g_mod->_read_count_value) {
+				if (g_cl->_dump_err) {
 					printf("Error, count: %lld, expected %02x, got %02x\n",
-					       g_mod._read_count + i, g_mod._read_count_value, rb[i]);
+					       g_mod->_read_count + i, g_mod->_read_count_value, rb[i]);
 				}
 
-				g_mod._error_count++;
+				g_mod->_error_count++;
 
-				if (g_cl._stop_on_error) {
-					dump_serial_port_stats();
+				if (g_cl->_stop_on_error) {
+					dump_serial_port_stats(g_mod, g_cl);
 					exit(1);
 				}
 
-				g_mod._read_count_value = rb[i];
+				g_mod->_read_count_value = rb[i];
 			}
 
-			g_mod._read_count_value = next_count_value(g_mod._read_count_value);
+			g_mod->_read_count_value = next_count_value(g_mod->_read_count_value, g_cl->_ascii_range);
 		}
 
-		g_mod._read_count += c;
+		g_mod->_read_count += c;
 	}
 }
 
-static void process_write_data(void)
+static void process_write_data(struct g_mod_t *g_mod, struct cli_args_t *g_cl)
 {
 	ssize_t count = 0;
-	int repeat = (g_cl._tx_bytes == 0);
+	int repeat = (g_cl->_tx_bytes == 0);
 
 	do {
 		ssize_t i;
 
-		for (i = 0; i < g_mod._write_size; i++) {
-			g_mod._write_data[i] = g_mod._write_count_value;
-			g_mod._write_count_value = next_count_value(g_mod._write_count_value);
+		for (i = 0; i < g_mod->_write_size; i++) {
+			g_mod->_write_data[i] = g_mod->_write_count_value;
+			g_mod->_write_count_value = next_count_value(g_mod->_write_count_value, g_cl->_ascii_range);
 		}
 
-		ssize_t c = write(g_mod._fd, g_mod._write_data, g_mod._write_size);
+		ssize_t c = write(g_mod->_fd, g_mod->_write_data, g_mod->_write_size);
 
 		if (c < 0) {
 			if (errno != EAGAIN) {
@@ -605,31 +596,31 @@ static void process_write_data(void)
 
 		count += c;
 
-		if (c < g_mod._write_size) {
-			g_mod._write_count_value = g_mod._write_data[c];
+		if (c < g_mod->_write_size) {
+			g_mod->_write_count_value = g_mod->_write_data[c];
 			repeat = 0;
 		}
 	} while (repeat);
 
-	g_mod._write_count += count;
+	g_mod->_write_count += count;
 
-	if (g_cl._tx_detailed) {
+	if (g_cl->_tx_detailed) {
 		printf("wrote %zd bytes\n", count);
 	}
 }
 
 
-static void setup_serial_port(int baud)
+static void setup_serial_port(int baud, struct g_mod_t *g_mod, struct cli_args_t *g_cl)
 {
 	struct termios newtio;
 	struct serial_rs485 rs485;
 
-	if (g_mod._fd == -1) {
-		g_mod._fd = open(g_cl._port, O_RDWR | O_NONBLOCK);
+	if (g_mod->_fd == -1) {
+		g_mod->_fd = open(g_cl->_port, O_RDWR | O_NONBLOCK);
 
-		if (g_mod._fd < 0) {
+		if (g_mod->_fd < 0) {
 			perror("Error opening serial port");
-			free(g_cl._port);
+			free(g_cl->_port);
 			exit(1);
 		}
 	}
@@ -637,7 +628,7 @@ static void setup_serial_port(int baud)
 	bzero(&newtio, sizeof(newtio)); /* clear struct for new port settings */
 
 #if defined(__PX4_NUTTX)
-	tcgetattr(g_mod._fd, &newtio);
+	tcgetattr(g_mod->_fd, &newtio);
 	cfsetspeed(&newtio, baud);
 	newtio.c_cflag = CS8 | CLOCAL | CREAD;
 #else
@@ -646,22 +637,22 @@ static void setup_serial_port(int baud)
 
 #endif
 
-	if (g_cl._rts_cts) {
+	if (g_cl->_rts_cts) {
 		newtio.c_cflag |= CRTSCTS;
 	}
 
-	if (g_cl._2_stop_bit) {
+	if (g_cl->_2_stop_bit) {
 		newtio.c_cflag |= CSTOPB;
 	}
 
-	if (g_cl._parity) {
+	if (g_cl->_parity) {
 		newtio.c_cflag |= PARENB;
 
-		if (g_cl._odd_parity) {
+		if (g_cl->_odd_parity) {
 			newtio.c_cflag |= PARODD;
 		}
 
-		if (g_cl._stick_parity) {
+		if (g_cl->_stick_parity) {
 			newtio.c_cflag |= CMSPAR;
 		}
 	}
@@ -677,22 +668,22 @@ static void setup_serial_port(int baud)
 	newtio.c_cc[VTIME] = 5;
 
 	/* now clean the modem line and activate the settings for the port */
-	tcflush(g_mod._fd, TCIOFLUSH);
-	tcsetattr(g_mod._fd, TCSANOW, &newtio);
+	tcflush(g_mod->_fd, TCIOFLUSH);
+	tcsetattr(g_mod->_fd, TCSANOW, &newtio);
 
 	/* enable/disable rs485 direction control */
-	if (ioctl(g_mod._fd, TIOCGRS485, (int) &rs485) < 0) {
-		if (g_cl._rs485_delay >= 0) {
+	if (ioctl(g_mod->_fd, TIOCGRS485, (int) &rs485) < 0) {
+		if (g_cl->_rs485_delay >= 0) {
 			/* error could be because hardware is missing rs485 support so only print when actually trying to activate it */
 			perror("Error getting RS-485 mode");
 		}
 
-	} else if (g_cl._rs485_delay >= 0) {
+	} else if (g_cl->_rs485_delay >= 0) {
 		rs485.flags |= SER_RS485_ENABLED | SER_RS485_RTS_ON_SEND | SER_RS485_RTS_AFTER_SEND;
-		rs485.delay_rts_after_send = g_cl._rs485_delay;
+		rs485.delay_rts_after_send = g_cl->_rs485_delay;
 		rs485.delay_rts_before_send = 0;
 
-		if (ioctl(g_mod._fd, TIOCSRS485, (int) &rs485) < 0) {
+		if (ioctl(g_mod->_fd, TIOCSRS485, (int) &rs485) < 0) {
 			perror("Error setting RS-485 mode");
 		}
 
@@ -701,7 +692,7 @@ static void setup_serial_port(int baud)
 		rs485.delay_rts_after_send = 0;
 		rs485.delay_rts_before_send = 0;
 
-		if (ioctl(g_mod._fd, TIOCSRS485, (int) &rs485) < 0) {
+		if (ioctl(g_mod->_fd, TIOCSRS485, (int) &rs485) < 0) {
 			perror("Error setting RS-232 mode");
 		}
 	}
@@ -726,21 +717,32 @@ static int diff_ms(const struct timespec *t1, const struct timespec *t2)
 int serial_test_main(int argc, char *argv[])
 {
 	printf("serial test app\n");
-
-	memset(&g_cl, 0, sizeof(g_cl));
-	g_cl._single_byte = -1;
-	g_cl._another_byte = -1;
-	g_cl._rs485_delay = -1;
-	memset(&g_mod, 0, sizeof(g_mod));
-	g_mod._fd = -1;
-
 #else
 int main(int argc, char *argv[])
 {
 	printf("Linux serial test app\n");
 #endif
 
-	process_options(argc, argv);
+	struct cli_args_t g_cl = {
+		._single_byte  = -1,
+		._another_byte = -1,
+		._rs485_delay  = -1,
+	};
+
+	struct g_mod_t g_mod = {
+		._fd           = -1,
+	};
+
+#if defined(__PX4_NUTTX)
+	memset(&g_cl, 0, sizeof(g_cl));
+	g_cl._single_byte = -1;
+	g_cl._another_byte = -1;
+	g_cl._rs485_delay = -1;
+	memset(&g_mod, 0, sizeof(g_mod));
+	g_mod._fd = -1;
+#endif
+
+	process_options(argc, argv, &g_cl);
 
 	if (!g_cl._port) {
 		fprintf(stderr, "ERROR: Port argument required\n");
@@ -757,11 +759,11 @@ int main(int argc, char *argv[])
 	if (baud <= 0) {
 		printf("NOTE: non standard baud rate, trying custom divisor\n");
 		baud = B38400;
-		setup_serial_port(B38400);
-		set_baud_divisor(g_cl._baud);
+		setup_serial_port(B38400, &g_mod, &g_cl);
+		set_baud_divisor(g_mod._fd, g_cl._baud);
 
 	} else {
-		setup_serial_port(baud);
+		setup_serial_port(baud, &g_mod, &g_cl);
 	}
 
 	if (g_cl._single_byte >= 0) {
@@ -889,12 +891,12 @@ int main(int argc, char *argv[])
 					// only read if it has been rx-delay ms
 					// since the last read
 					if (diff_ms(&current, &last_read) > g_cl._rx_delay) {
-						process_read_data();
+						process_read_data(&g_mod, &g_cl);
 						last_read = current;
 					}
 
 				} else {
-					process_read_data();
+					process_read_data(&g_mod, &g_cl);
 					last_read = current;
 				}
 			}
@@ -904,12 +906,12 @@ int main(int argc, char *argv[])
 					// only write if it has been tx-delay ms
 					// since the last write
 					if (diff_ms(&current, &last_write) > g_cl._tx_delay) {
-						process_write_data();
+						process_write_data(&g_mod, &g_cl);
 						last_write = current;
 					}
 
 				} else {
-					process_write_data();
+					process_write_data(&g_mod, &g_cl);
 					last_write = current;
 				}
 			}
@@ -955,7 +957,7 @@ int main(int argc, char *argv[])
 
 		if (g_cl._stats) {
 			if (current.tv_sec - last_stat.tv_sec > 5) {
-				dump_serial_port_stats();
+				dump_serial_port_stats(&g_mod, &g_cl);
 				last_stat = current;
 			}
 		}
@@ -985,11 +987,11 @@ int main(int argc, char *argv[])
 
 	if (g_cl._rts_cts != 0) {
 		g_cl._rts_cts = 0;
-		setup_serial_port(baud);
+		setup_serial_port(baud, &g_mod, &g_cl);
 	}
 
 	tcdrain(g_mod._fd);
-	dump_serial_port_stats();
+	dump_serial_port_stats(&g_mod, &g_cl);
 	tcflush(g_mod._fd, TCIOFLUSH);
 	free(g_cl._port);
 	close(g_mod._fd);
