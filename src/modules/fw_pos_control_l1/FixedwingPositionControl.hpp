@@ -324,9 +324,8 @@ private:
 	bool		control_position(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
 					 const position_setpoint_s &pos_sp_prev,
 					 const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
-	void		control_takeoff(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
-					const position_setpoint_s &pos_sp_prev,
-					const position_setpoint_s &pos_sp_curr);
+	void		control_takeoff(const hrt_abstime &now, const float dt, const Vector2d &curr_pos, const Vector2f &ground_speed,
+					const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
 	void		control_landing(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
 					const position_setpoint_s &pos_sp_prev,
 					const position_setpoint_s &pos_sp_curr);
