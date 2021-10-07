@@ -45,7 +45,7 @@ jobs:
           echo "$GITHUB_WORKSPACE/.jfrog/bin" >> "$GITHUB_PATH"
           echo "JFROG_CLI_HOME_DIR=$GITHUB_WORKSPACE/.jfrog" >> "$GITHUB_ENV"
 
-      - name: Upload to Artifactory
+      - name: Upload to Artifactory (px4-sitl)
         env:
           ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
           ARTIFACTORY_GEN_REPO: gen-public-local
@@ -70,6 +70,32 @@ jobs:
           jfrog rt cp --flat \
                       "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/sitl/$pkg_name" \
                       "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/sitl/latest/px4_sitl_build.tar.gz"
+
+      - name: Upload to Artifactory (px4-gazebo-data)
+        env:
+          ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
+          ARTIFACTORY_GEN_REPO: gen-public-local
+          BUILD_NAME: gazebo-data
+          CI: true
+        if: github.event_name == 'push'
+        run: |
+          set -exu
+          jfrog rt c import "$ARTIFACTORY_TOKEN"
+          jfrog rt ping
+          pkg=$(find bin -name 'px4_gazebo_data*.tar.gz')
+          pkg_name=$(basename $pkg)
+          jfrog rt u --target-props COMMIT="$GITHUB_SHA" \
+                     --build-name "$BUILD_NAME" \
+                     --build-number "$GITHUB_SHA" \
+                     "$pkg" \
+                     "$ARTIFACTORY_GEN_REPO/builds/gazebo-data/$pkg_name"
+          jfrog rt build-publish "$BUILD_NAME" "$GITHUB_SHA"
+          jfrog rt bpr "$BUILD_NAME" "$GITHUB_SHA" "$ARTIFACTORY_GEN_REPO" \
+                       --status dev \
+                       --comment "development build"
+          jfrog rt cp --flat \
+                      "$ARTIFACTORY_GEN_REPO/builds/gazebo-data/$pkg_name" \
+                      "$ARTIFACTORY_GEN_REPO/builds/gazebo-data/latest/px4_gazebo_data.tar.gz'"
 
       - name: trigger fog-drone build
         env:
