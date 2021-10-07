@@ -130,7 +130,6 @@ public:
 	bool component_was_seen(int system_id, int component_id);
 	void enable_message_statistics() { _message_statistics_enabled = true; }
 	void print_detailed_rx_stats() const;
-	static void *start_helper(void *context);
 
 	void request_stop() { _should_exit.store(true); }
 
