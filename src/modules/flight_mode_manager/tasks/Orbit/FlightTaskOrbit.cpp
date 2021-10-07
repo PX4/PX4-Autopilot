@@ -223,7 +223,7 @@ bool FlightTaskOrbit::update()
 			_velocity_setpoint(2) = _altitude_velocity_smoothing.getCurrentVelocity();
 			_acceleration_setpoint(2) = _altitude_velocity_smoothing.getCurrentAcceleration();
 			// set orbit altitude center to expected new altitude
-			_center(2) = _position(2) + _deltatime * _velocity_setpoint(2);
+			_center(2) = _altitude_velocity_smoothing.getCurrentPosition();
 		}
 	}
 
