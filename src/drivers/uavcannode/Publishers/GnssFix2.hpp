@@ -67,6 +67,8 @@ public:
 
 	void BroadcastAnyUpdates() override
 	{
+		using uavcan::equipment::gnss::Fix2;
+
 		// sensor_gps -> uavcan::equipment::gnss::Fix2
 		sensor_gps_s gps;
 
@@ -86,6 +88,25 @@ public:
 			fix2.pdop = gps.hdop > gps.vdop ? gps.hdop :
 				    gps.vdop; // Use pdop for both hdop and vdop since uavcan v0 spec does not support them
 			fix2.sats_used = gps.satellites_used;
+
+			fix2.mode = Fix2::MODE_SINGLE;
+			fix2.sub_mode = 0;
+
+			switch (fix2.status) {
+			case 4:
+				fix2.mode = Fix2::MODE_DGPS;
+				break;
+
+			case 5:
+				fix2.mode = Fix2::MODE_RTK;
+				fix2.sub_mode = Fix2::SUB_MODE_RTK_FLOAT;
+				break;
+
+			case 6:
+				fix2.mode = Fix2::MODE_RTK;
+				fix2.sub_mode = Fix2::SUB_MODE_RTK_FIXED;
+				break;
+			}
 
 			// Diagonal matrix
 			// position variances -- Xx, Yy, Zz
