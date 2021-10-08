@@ -1,6 +1,24 @@
-menuconfig DRIVERS_STUB_KEYSTORE
+menu "stub_keystore configuration"
+	menuconfig DRIVERS_STUB_KEYSTORE
 	bool "stub_keystore"
 	depends on DRIVERS_SW_CRYPTO
 	default n
 	---help---
 		Enable support for stub_keystore
+
+	menuconfig PUBLIC_KEY0
+	string "Path to public key 0"
+	depends on DRIVERS_STUB_KEYSTORE
+
+	menuconfig PUBLIC_KEY1
+	string "Path to public key 1"
+	depends on DRIVERS_STUB_KEYSTORE
+
+	menuconfig PUBLIC_KEY2
+	string "Path to public key 2"
+	depends on DRIVERS_STUB_KEYSTORE
+
+	menuconfig PUBLIC_KEY3
+	string "Path to public key 3"
+	depends on DRIVERS_STUB_KEYSTORE
+endmenu
