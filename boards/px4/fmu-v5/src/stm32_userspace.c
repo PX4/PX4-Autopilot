@@ -143,5 +143,10 @@ int CONFIG_USER_ENTRYPOINT(int argc, char *argv[])
 	return nsh_main(argc, argv);
 }
 
+// TODO!
+int board_read_VBUS_state(void)
+{
+	return 0;
+}
 
 #endif /* !CONFIG_BUILD_FLAT && !__KERNEL__ */
