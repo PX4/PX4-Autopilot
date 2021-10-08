@@ -79,4 +79,4 @@ private:
 	}
 };
 
-#endif // LANDING_TARGET_ID_HPP
+#endif // LANDING_TARGET_HPP
