@@ -438,7 +438,7 @@ bool PWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	 * the oneshots with updated values.
 	 */
 	if (num_control_groups_updated > 0) {
-		up_pwm_update(); // TODO: review for multi
+		up_pwm_update(_pwm_mask);
 	}
 
 	return true;
