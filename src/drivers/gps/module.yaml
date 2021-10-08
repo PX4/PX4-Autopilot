@@ -7,10 +7,9 @@ serial_config:
         group: GPS
       label: Secondary GPS
 
-    - command: gps start -d ${SERIAL_DEV} -b p:${BAUD_PARAM} ${DUAL_GPS_ARGS}
+    - command: gps start -d ${SERIAL_DEV} -b p:${BAUD_PARAM} -s ${DUAL_GPS_ARGS}
       port_config_param:
         name: GPS_1_CONFIG
         group: GPS
         default: GPS1
       label: Main GPS
-
