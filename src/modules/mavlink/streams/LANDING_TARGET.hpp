@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#ifndef LANDING_TARGET_ID_HPP
+#ifndef LANDING_TARGET_HPP
 #define LANDING_TARGET_ID_HPP
 
 #include <uORB/topics/landing_target_pose.h>
