@@ -207,7 +207,7 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		/* Trigger all timer's channels in Oneshot mode to fire
 		 * the oneshots with updated values.
 		 */
-		up_pwm_update();
+		up_pwm_update(0xff);
 
 		break;
 
