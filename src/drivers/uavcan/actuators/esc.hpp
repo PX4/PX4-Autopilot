@@ -72,9 +72,9 @@ public:
 	void update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs);
 
 	/**
-	 * Sets the number of rotors
+	 * Sets the number of rotors and enable timer
 	 */
-	void set_rotor_count(uint8_t count) { _rotor_count = count; }
+	void set_rotor_count(uint8_t count);
 
 	static int max_output_value() { return uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max(); }
 
