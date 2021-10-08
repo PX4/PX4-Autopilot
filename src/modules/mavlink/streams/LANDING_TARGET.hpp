@@ -65,7 +65,7 @@ private:
 
 			mavlink_landing_target_t msg = {};
 
-			msg.time_usec = hrt_absolute_time();
+			msg.time_usec = target.timestamp;
 			msg.frame = MAV_FRAME_LOCAL_NED;
 			msg.x = target.x_rel;
 			msg.y = target.y_rel;
