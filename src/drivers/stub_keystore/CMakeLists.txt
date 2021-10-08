@@ -40,34 +40,33 @@ target_include_directories(keystore_backend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 add_library(keystore_backend_interface INTERFACE)
 target_include_directories(keystore_backend_interface INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
-if(DEFINED ENV{PUBLIC_KEY0})
-	add_definitions(-DPUBLIC_KEY0=$ENV{PUBLIC_KEY0})
-endif()
+# Parse keyfile locations from boardconfig
 
-if(DEFINED ENV{PUBLIC_KEY1})
-	add_definitions(-DPUBLIC_KEY1=$ENV{PUBLIC_KEY1})
-endif()
+# If the key file path is defined in environment variable, use it from there
+# else, if it is hardcoded in CONFIG_PUBLIC_KEYx, use that
 
-if(DEFINED ENV{PUBLIC_KEY2})
-	add_definitions(-DPUBLIC_KEY2=$ENV{PUBLIC_KEY2})
-endif()
+file(STRINGS ${BOARD_CONFIG} ConfigContents)
+foreach(NameAndValue ${ConfigContents})
+# Strip leading spaces
+    string(REGEX REPLACE "^[ ]+" "" NameAndValue ${NameAndValue})
 
-if(DEFINED ENV{PUBLIC_KEY3})
-	add_definitions(-DPUBLIC_KEY3=$ENV{PUBLIC_KEY3})
-endif()
+    # Find variable name
+    string(REGEX MATCH "^CONFIG_PUBLIC_KEY[^=]+" Name ${NameAndValue})
 
-if(DEFINED ENV{PUBLIC_KEY4})
-	add_definitions(-DPUBLIC_KEY4=$ENV{PUBLIC_KEY4})
-endif()
+	if(Name)
+	  string(REPLACE "${Name}=" "" Value ${NameAndValue})
+	  string(REPLACE "\"" "" Value ${Value})
 
-if(DEFINED ENV{PUBLIC_KEY5})
-	add_definitions(-DPUBLIC_KEY5=$ENV{PUBLIC_KEY5})
-endif()
+	  # Strip CONFIG_
+	  string(REPLACE "CONFIG_" "" Name ${Name})
 
-if(DEFINED ENV{PUBLIC_KEY6})
-	add_definitions(-DPUBLIC_KEY6=$ENV{PUBLIC_KEY6})
-endif()
+	  # Get the value from env variable, if set
+	  if(DEFINED ENV{${Name}})
+		set(Value $ENV{${Name}})
+	  endif()
 
-if(DEFINED ENV{PUBLIC_KEY7})
-	add_definitions(-DPUBLIC_KEY7=$ENV{PUBLIC_KEY7})
-endif()
+	  if(NOT Value STREQUAL "")
+		add_definitions(-D${Name}=${Value})
+	  endif()
+	endif()
+endforeach()
