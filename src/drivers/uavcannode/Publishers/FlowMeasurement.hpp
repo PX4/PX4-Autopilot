@@ -63,6 +63,8 @@ public:
 		if (param_get(rot, &val) == PX4_OK) {
 			_rotation = get_rot_matrix((enum Rotation)val);
 		}
+
+		this->setPriority(uavcan::TransferPriority::Default);
 	}
 
 	void PrintInfo() override

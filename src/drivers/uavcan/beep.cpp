@@ -45,6 +45,7 @@ UavcanBeep::UavcanBeep(uavcan::INode &node) :
 	_beep_pub(node),
 	_timer(node)
 {
+	_beep_pub.setPriority(uavcan::TransferPriority::Default);
 }
 
 int UavcanBeep::init()
