@@ -143,5 +143,4 @@ int CONFIG_USER_ENTRYPOINT(int argc, char *argv[])
 	return nsh_main(argc, argv);
 }
 
-
 #endif /* !CONFIG_BUILD_FLAT && !__KERNEL__ */
