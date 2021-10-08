@@ -63,7 +63,7 @@ private:
 
 		if (_landing_target_sub.update(&target)) {
 
-			mavlink_landing_target_t msg = {};
+			mavlink_landing_target_t msg{};
 
 			msg.time_usec = target.timestamp;
 			msg.frame = MAV_FRAME_LOCAL_NED;
