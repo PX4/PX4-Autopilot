@@ -384,7 +384,7 @@ static const StreamListItem streams_list[] = {
 #if defined(GLOBAL_POSITION_INT_HPP)
 	create_stream_list_item<MavlinkStreamGlobalPositionInt>(),
 #endif // GLOBAL_POSITION_INT_HPP
-#if defined(LANDING_TARGET_ID_HPP)
+#if defined(LANDING_TARGET_HPP)
 	create_stream_list_item<MavlinkStreamLandingTarget>(),
 #endif
 #if defined(LOCAL_POSITION_NED_HPP)
