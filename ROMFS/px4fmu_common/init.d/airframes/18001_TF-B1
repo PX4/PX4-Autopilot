@@ -25,7 +25,6 @@ param set-default MAV_0_CONFIG 102
 param set-default GPS_UBX_DYNMODEL 8
 param set-default SER_TEL2_BAUD 9600
 
-param set-default SENS_BOARD_ROT 0
 set MAV_TYPE 8
 param set MAV_TYPE ${MAV_TYPE}
 

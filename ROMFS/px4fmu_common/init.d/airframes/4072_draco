@@ -65,7 +65,6 @@ param set-default MPC_THR_HOVER 0.25
 param set-default THR_MDL_FAC 0.3
 
 # System
-param set-default PWM_MAIN_MAX 1950
 param set-default PWM_MAIN_MIN 1180
 
 # enable one-shot

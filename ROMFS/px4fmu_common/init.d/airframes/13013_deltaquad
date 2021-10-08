@@ -69,23 +69,13 @@ param set-default LNDMC_ALT_MAX 9999
 param set-default LNDMC_XY_VEL_MAX 1
 param set-default LNDMC_Z_VEL_MAX 0.7
 
-param set-default MC_ROLL_P 6.5
 param set-default MC_ROLLRATE_P 0.16
 param set-default MC_ROLLRATE_I 0.01
-param set-default MC_ROLLRATE_D 0.003
-param set-default MC_ROLLRATE_FF 0
 param set-default MC_ROLLRATE_MAX 80
-param set-default MC_PITCH_P 6.5
-param set-default MC_PITCHRATE_P 0.15
 param set-default MC_PITCHRATE_I 0.05
-param set-default MC_PITCHRATE_D 0.003
-param set-default MC_PITCHRATE_FF 0
 param set-default MC_PITCHRATE_MAX 80
 param set-default MC_YAW_P 3.5
-param set-default MC_YAWRATE_P 0.2
-param set-default MC_YAWRATE_I 0.1
-param set-default MC_YAWRATE_D 0
-param set-default MC_YAWRATE_FF 0
+
 param set-default MC_YAWRATE_MAX 20
 param set-default MC_AIRMODE 1
 
@@ -109,7 +99,6 @@ param set-default MPC_TILTMAX_AIR 25
 param set-default MPC_TILTMAX_LND 25
 param set-default MPC_YAWRAUTO_MAX 20
 
-param set-default NAV_DLL_ACT 0
 param set-default NAV_LOITER_RAD 100
 
 param set-default PWM_AUX_DISARM 950
@@ -119,7 +108,6 @@ param set-default PWM_MAIN_DIS6 1500
 param set-default PWM_MAIN_DIS7 900
 param set-default PWM_MAIN_DIS8 900
 
-param set-default PWM_MAIN_RATE 400
 
 param set-default SENS_BOARD_ROT 18
 
@@ -133,13 +121,11 @@ param set-default VT_TYPE 2
 param set-default VT_MOT_ID 1234
 param set-default VT_FW_MOT_OFFID 1234
 param set-default VT_F_TRANS_THR 1
-param set-default VT_DWN_PITCH_MAX 8
+param set-default VT_PITCH_MIN 8
 param set-default VT_FW_QC_P 55
 param set-default VT_FW_QC_R 55
 param set-default VT_TRANS_MIN_TM 15
 param set-default VT_B_TRANS_DUR 8
-param set-default VT_WV_LND_EN 1
-param set-default VT_WV_LTR_EN 1
 param set-default VT_FWD_THRUST_SC 4
 param set-default VT_F_TRANS_DUR 1
 param set-default VT_IDLE_PWM_MC 1025

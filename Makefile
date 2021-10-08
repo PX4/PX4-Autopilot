@@ -213,8 +213,8 @@ define colorecho
 +@echo -e '${COLOR_BLUE}${1} ${NO_COLOR}'
 endef
 
-# Get a list of all config targets boards/*/*.cmake
-ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 -name '*.cmake' -print | sed -e 's|boards\/||' | sed -e 's|\.cmake||' | sed -e 's|\/|_|g' | sort)
+# Get a list of all config targets boards/*/*.px4board
+ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 -name '*.px4board' -print | sed -e 's|boards\/||' | sed -e 's|\.px4board||' | sed -e 's|\/|_|g' | sort)
 
 # ADD CONFIGS HERE
 # --------------------------------------------------------------------
@@ -231,6 +231,9 @@ $(CONFIG_TARGETS_DEFAULT):
 
 all_config_targets: $(ALL_CONFIG_TARGETS)
 all_default_targets: $(CONFIG_TARGETS_DEFAULT)
+
+updateconfig:
+	@./Tools/kconfig/updateconfig.py
 
 # board reorganization deprecation warnings (2018-11-22)
 define deprecation_warning

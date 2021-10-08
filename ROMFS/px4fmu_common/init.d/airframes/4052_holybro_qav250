@@ -48,7 +48,6 @@ param set-default MPC_THR_HOVER 0.25
 param set-default MPC_THR_MIN 0.05
 param set-default MPC_Z_VEL_I_ACC 1.7
 
-param set-default PWM_MAIN_MAX 1950
 param set-default PWM_MAIN_MIN 1050
 
 param set-default PWM_MAIN_RATE 0

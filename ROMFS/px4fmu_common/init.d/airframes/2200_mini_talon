@@ -26,10 +26,6 @@
 
 . ${R}etc/init.d/rc.fw_defaults
 
-param set-default FW_AIRSPD_MIN 10
-param set-default FW_AIRSPD_TRIM 15
-param set-default FW_AIRSPD_MAX 20
-
 param set-default FW_MAN_P_MAX 55
 param set-default FW_MAN_R_MAX 55
 param set-default FW_R_LIM 55
