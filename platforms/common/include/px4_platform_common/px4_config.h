@@ -39,6 +39,8 @@
 
 #pragma once
 
+#include <px4_kconf.h>
+
 #if defined(__PX4_NUTTX)
 
 #include <nuttx/config.h>
