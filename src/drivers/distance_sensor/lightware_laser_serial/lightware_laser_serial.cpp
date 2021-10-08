@@ -308,7 +308,7 @@ void LightwareLaserSerial::Run()
 		// LW20: Enable serial mode by sending some characters
 		if (hw_model == 8) {
 			const char *data = "www\r\n";
-			(void)::write(_fd, &data, strlen(data));
+			(void)!::write(_fd, &data, strlen(data));
 		}
 	}
 
