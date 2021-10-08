@@ -1,0 +1,6 @@
+menuconfig DRIVERS_STUB_KEYSTORE
+	bool "stub_keystore"
+	depends on DRIVERS_SW_CRYPTO
+	default n
+	---help---
+		Enable support for stub_keystore
