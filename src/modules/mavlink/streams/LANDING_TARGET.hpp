@@ -75,7 +75,7 @@ private:
 			mavlink_msg_landing_target_send_struct(_mavlink->get_channel(), &msg);
 		}
 
-		return true;
+		return false;
 	}
 };
 
