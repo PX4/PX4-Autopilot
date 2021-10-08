@@ -514,9 +514,9 @@ static inline void io_timer_set_PWM_mode(unsigned timer)
 	px4_leave_critical_section(flags);
 }
 
-void io_timer_trigger(void)
+void io_timer_trigger(unsigned channel_mask)
 {
-	int oneshots = io_timer_get_mode_channels(IOTimerChanMode_OneShot);
+	int oneshots = io_timer_get_mode_channels(IOTimerChanMode_OneShot) & channel_mask;
 	uint32_t action_cache[MAX_IO_TIMERS] = {0};
 	int actions = 0;
 

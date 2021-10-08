@@ -701,7 +701,7 @@ pwm_main(int argc, char *argv[])
 			 * the oneshots with updated values.
 			 */
 
-			up_pwm_update();
+			up_pwm_update(0xff);
 #endif
 		}
 		rv = 0;
