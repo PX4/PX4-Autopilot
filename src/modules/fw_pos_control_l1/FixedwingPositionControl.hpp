@@ -320,12 +320,17 @@ private:
 	 * @param dt Time step
 	 */
 	void		update_desired_altitude(float dt);
-
+	uint8_t		handle_setpoint_type(const uint8_t setpoint_type, const position_setpoint_s &pos_sp_curr);
 	bool		control_position(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
 					 const position_setpoint_s &pos_sp_prev,
 					 const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
-	void		control_takeoff(const hrt_abstime &now, const float dt, const Vector2d &curr_pos, const Vector2f &ground_speed,
-					const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+	void		control_position_setpoint(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
+			const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+	void		control_loiter(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
+				       const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
+	void		control_takeoff(const hrt_abstime &now, const float dt,  const Vector2d &curr_pos, const Vector2f &ground_speed,
+					const position_setpoint_s &pos_sp_prev,
+					const position_setpoint_s &pos_sp_curr);
 	void		control_landing(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
 					const position_setpoint_s &pos_sp_prev,
 					const position_setpoint_s &pos_sp_curr);
