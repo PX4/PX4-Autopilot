@@ -33,7 +33,7 @@
 
 /**
  * @file AirspeedValidator.cpp
- * Estimates airspeed scale error (from indicated to calibrated airspeed), performes
+ * Estimates airspeed scale error (from indicated to calibrated airspeed), performs
  * checks on airspeed measurement input and reports airspeed valid or invalid.
  */
 
@@ -186,7 +186,7 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 void
 AirspeedValidator::check_load_factor(float accel_z)
 {
-	// Check if the airpeed reading is lower than physically possible given the load factor
+	// Check if the airspeed reading is lower than physically possible given the load factor
 
 	if (_in_fixed_wing_flight) {
 
