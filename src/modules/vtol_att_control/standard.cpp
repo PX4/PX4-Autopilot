@@ -342,7 +342,7 @@ void Standard::update_fw_state()
 }
 
 /**
- * Prepare message to acutators with data from mc and fw attitude controllers. An mc attitude weighting will determine
+ * Prepare message to actuators with data from mc and fw attitude controllers. An mc attitude weighting will determine
  * what proportion of control should be applied to each of the control groups (mc and fw).
  */
 void Standard::fill_actuator_outputs()
