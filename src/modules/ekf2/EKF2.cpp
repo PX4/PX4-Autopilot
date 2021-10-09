@@ -1955,7 +1955,7 @@ Attitude and position estimator using an Extended Kalman Filter. It is used for 
 
 The documentation can be found on the [ECL/EKF Overview & Tuning](https://docs.px4.io/master/en/advanced_config/tuning_the_ecl_ekf.html) page.
 
-ekf2 can be started in replay mode (`-r`): in this mode it does not access the system time, but only uses the
+ekf2 can be started in replay mode (`-r`): in this mode, it does not access the system time, but only uses the
 timestamps from the sensor topics.
 
 )DESCR_STR");
