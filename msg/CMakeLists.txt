@@ -70,6 +70,7 @@ set(msg_files
 	estimator_optical_flow_vel.msg
 	estimator_selector_status.msg
 	estimator_sensor_bias.msg
+	estimator_sensor_calibration.msg
 	estimator_states.msg
 	estimator_status.msg
 	estimator_status_flags.msg

@@ -72,6 +72,7 @@
 #include <uORB/topics/estimator_innovations.h>
 #include <uORB/topics/estimator_optical_flow_vel.h>
 #include <uORB/topics/estimator_sensor_bias.h>
+#include <uORB/topics/estimator_sensor_calibration.h>
 #include <uORB/topics/estimator_states.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/estimator_status_flags.h>
@@ -148,6 +149,7 @@ private:
 	void PublishOdometryAligned(const hrt_abstime &timestamp, const vehicle_odometry_s &ev_odom);
 	void PublishOpticalFlowVel(const hrt_abstime &timestamp, const optical_flow_s &optical_flow);
 	void PublishSensorBias(const hrt_abstime &timestamp);
+	void PublishSensorCalibration(const hrt_abstime &timestamp);
 	void PublishStates(const hrt_abstime &timestamp);
 	void PublishStatus(const hrt_abstime &timestamp);
 	void PublishStatusFlags(const hrt_abstime &timestamp);
@@ -166,8 +168,10 @@ private:
 	void UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateImuStatus();
 
-	void UpdateMagCalibration(const hrt_abstime &timestamp);
 	void UpdateAccelCalibration(const hrt_abstime &timestamp);
+	void UpdateGyroCalibration(const hrt_abstime &timestamp);
+	void UpdateMagCalibration(const hrt_abstime &timestamp);
+
 
 	/*
 	 * Calculate filtered WGS84 height from estimated AMSL height
@@ -199,22 +203,21 @@ private:
 	perf_counter_t _msg_missed_odometry_perf{nullptr};
 	perf_counter_t _msg_missed_optical_flow_perf{nullptr};
 
-	// Used to check, save and use learned magnetometer biases
-	hrt_abstime _mag_cal_last_us{0};	///< last time the EKF was operating a mode that estimates magnetomer biases (uSec)
-	hrt_abstime _mag_cal_total_time_us{0};	///< accumulated calibration time since the last save
-	Vector3f _mag_cal_last_bias{};	///< last valid XYZ magnetometer bias estimates (Gauss)
-	Vector3f _mag_cal_last_bias_variance{};	///< variances for the last valid magnetometer XYZ bias estimates (Gauss**2)
-	bool _mag_cal_available{false};	///< true when an unsaved valid calibration for the XYZ magnetometer bias is available
-
 	// Used to control saving of mag declination to be used on next startup
 	bool _mag_decl_saved = false;	///< true when the magnetic declination has been saved
 
-	// Used to check, save and use learned accelerometer biases
-	hrt_abstime _acc_cal_last_us{0};	///< last time the EKF was operating a mode that estimates accelerometer biases (uSec)
-	hrt_abstime _acc_cal_total_time_us{0};	///< accumulated calibration time since the last save
-	Vector3f _acc_cal_last_bias{};		///< last valid XYZ accelerometer bias estimates (Gauss)
-	Vector3f _acc_cal_last_bias_variance{};	///< variances for the last valid accelerometer XYZ bias estimates (m/s**2)**2
-	bool _acc_cal_available{false};		///< true when an unsaved valid calibration for the XYZ accelerometer bias is available
+	// Used to check, save and use learned accel/gyro/mag biases
+	struct InFlightCalibration {
+		hrt_abstime last_us{0};         ///< last time the EKF was operating a mode that estimates accelerometer biases (uSec)
+		hrt_abstime total_time_us{0};   ///< accumulated calibration time since the last save
+		Vector3f last_bias{};           ///< last valid XYZ accelerometer bias estimates (Gauss)
+		Vector3f last_bias_variance{};  ///< variances for the last valid accelerometer XYZ bias estimates (m/s**2)**2
+		bool cal_available{false};      ///< true when an unsaved valid calibration for the XYZ accelerometer bias is available
+	};
+
+	InFlightCalibration _accel_cal{};
+	InFlightCalibration _gyro_cal{};
+	InFlightCalibration _mag_cal{};
 
 	bool _had_valid_terrain{false};			///< true if at any time there was a valid terrain estimate
 
@@ -235,6 +238,11 @@ private:
 	Vector3f _last_accel_bias_published{};
 	Vector3f _last_gyro_bias_published{};
 	Vector3f _last_mag_bias_published{};
+
+	Vector3f _last_accel_calibration_published{};
+	Vector3f _last_gyro_calibration_published{};
+	Vector3f _last_mag_calibration_published{};
+
 	float _last_baro_bias_published{};
 
 	float _airspeed_scale_factor{1.0f}; ///< scale factor correction applied to airspeed measurements
@@ -285,6 +293,7 @@ private:
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovations_pub{ORB_ID(estimator_innovations)};
 	uORB::PublicationMulti<estimator_optical_flow_vel_s> _estimator_optical_flow_vel_pub{ORB_ID(estimator_optical_flow_vel)};
 	uORB::PublicationMulti<estimator_sensor_bias_s>      _estimator_sensor_bias_pub{ORB_ID(estimator_sensor_bias)};
+	uORB::PublicationMulti<estimator_sensor_calibration_s> _estimator_sensor_calibration_pub{ORB_ID(estimator_sensor_calibration)};
 	uORB::PublicationMulti<estimator_states_s>           _estimator_states_pub{ORB_ID(estimator_states)};
 	uORB::PublicationMulti<estimator_status_s>           _estimator_status_pub{ORB_ID(estimator_status)};
 	uORB::PublicationMulti<estimator_status_flags_s>     _estimator_status_flags_pub{ORB_ID(estimator_status_flags)};

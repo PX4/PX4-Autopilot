@@ -151,26 +151,26 @@ void VehicleMagnetometer::MagCalibrationUpdate()
 	if (_armed) {
 		static constexpr uint8_t mag_cal_size = sizeof(_mag_cal) / sizeof(_mag_cal[0]);
 
-		for (int i = 0; i < math::min(_estimator_sensor_bias_subs.size(), mag_cal_size); i++) {
-			estimator_sensor_bias_s estimator_sensor_bias;
+		for (int i = 0; i < math::min(_estimator_sensor_calibration_subs.size(), mag_cal_size); i++) {
+			estimator_sensor_calibration_s estimator_sensor_calibration;
 
-			if (_estimator_sensor_bias_subs[i].update(&estimator_sensor_bias)) {
+			if (_estimator_sensor_calibration_subs[i].update(&estimator_sensor_calibration)) {
 
-				const Vector3f bias{estimator_sensor_bias.mag_bias};
-				const Vector3f bias_variance{estimator_sensor_bias.mag_bias_variance};
+				const Vector3f bias{estimator_sensor_calibration.mag_calibration};
+				const Vector3f bias_variance{estimator_sensor_calibration.mag_calibration_variance};
 
-				const bool valid = (hrt_elapsed_time(&estimator_sensor_bias.timestamp) < 1_s)
-						   && (estimator_sensor_bias.mag_device_id != 0) && estimator_sensor_bias.mag_bias_valid
+				const bool valid = (hrt_elapsed_time(&estimator_sensor_calibration.timestamp) < 1_s)
+						   && (estimator_sensor_calibration.mag_device_id != 0) && estimator_sensor_calibration.mag_calibration_valid
 						   && (bias_variance.min() > min_var_allowed) && (bias_variance.max() < max_var_allowed);
 
 				if (valid) {
 					// find corresponding mag calibration
 					for (int mag_index = 0; mag_index < MAX_SENSOR_COUNT; mag_index++) {
-						if (_calibration[mag_index].device_id() == estimator_sensor_bias.mag_device_id) {
+						if (_calibration[mag_index].device_id() == estimator_sensor_calibration.mag_device_id) {
 
 							const auto old_offset = _mag_cal[i].mag_offset;
 
-							_mag_cal[i].device_id = estimator_sensor_bias.mag_device_id;
+							_mag_cal[i].device_id = estimator_sensor_calibration.mag_device_id;
 							_mag_cal[i].mag_offset = _calibration[mag_index].BiasCorrectedSensorOffset(bias);
 							_mag_cal[i].mag_bias_variance = bias_variance;
 
