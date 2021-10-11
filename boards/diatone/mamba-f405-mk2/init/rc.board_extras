@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# OmnibusF4SD specific board extras init
+# Mamba F405 MK2 specific board extras init
 #------------------------------------------------------------------------------
 
 if ! param compare OSD_ATXXXX_CFG 0
