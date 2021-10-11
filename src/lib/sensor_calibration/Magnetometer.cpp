@@ -60,10 +60,6 @@ void Magnetometer::set_device_id(uint32_t device_id, bool external)
 		set_external(external);
 		_device_id = device_id;
 
-		if (_device_id != 0) {
-			_calibration_index = FindCalibrationIndex(SensorString(), _device_id);
-		}
-
 		ParametersUpdate();
 	}
 }
@@ -151,6 +147,10 @@ void Magnetometer::set_rotation(Rotation rotation)
 
 void Magnetometer::ParametersUpdate()
 {
+	if (_device_id != 0) {
+		_calibration_index = FindCalibrationIndex(SensorString(), _device_id);
+	}
+
 	if (_calibration_index >= 0) {
 
 		// CAL_MAGx_ROT
@@ -287,7 +287,7 @@ void Magnetometer::PrintStatus()
 {
 	if (external()) {
 		PX4_INFO("%s %" PRIu32
-			 " EN: %d, offset: [%05.3f %05.3f %05.3f], scale: [%05.3f %05.3f %05.3f], %.1f degC, External ROT: %d",
+			 " EN: %d, offset: [%05.3f %05.3f %05.3f], scale: [%05.3f %05.3f %05.3f], %.1f degC, Ext ROT: %d",
 			 SensorString(), device_id(), enabled(),
 			 (double)_offset(0), (double)_offset(1), (double)_offset(2),
 			 (double)_scale(0, 0), (double)_scale(1, 1), (double)_scale(2, 2),
