@@ -48,7 +48,7 @@ PARAM_DEFINE_INT32(UAVCAN_V1_ENABLE, 0);
  *
  * Read the specs at http://uavcan.org to learn more about Node ID.
  *
- * @min 1
+ * @min -1
  * @max 125
  * @reboot_required true
  * @group UAVCANv1

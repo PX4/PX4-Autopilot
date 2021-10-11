@@ -55,11 +55,14 @@ SubscriptionManager::~SubscriptionManager()
 	}
 }
 
-
 void SubscriptionManager::subscribe()
 {
 	_heartbeat_sub.subscribe();
+
+#if CONFIG_UAVCAN_V1_GETINFO_RESPONDER
 	_getinfo_rsp.subscribe();
+#endif
+
 	_access_rsp.subscribe();
 
 	updateDynamicSubscriptions();
