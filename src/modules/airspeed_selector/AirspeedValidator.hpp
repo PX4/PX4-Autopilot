@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -73,7 +73,7 @@ struct airspeed_validator_update_data {
 class AirspeedValidator
 {
 public:
-	AirspeedValidator() = default;
+	AirspeedValidator();
 	~AirspeedValidator() = default;
 
 	void update_airspeed_validator(const airspeed_validator_update_data &input_data);
@@ -84,13 +84,18 @@ public:
 	float get_CAS() { return _CAS; }
 	float get_TAS() { return _TAS; }
 	bool get_airspeed_valid() { return _airspeed_valid; }
-	float get_CAS_scale() {return _CAS_scale;}
+	float get_CAS_scale_estimated() {return _CAS_scale_estimated;}
 
 	airspeed_wind_s get_wind_estimator_states(uint64_t timestamp);
 
 	// setters wind estimator parameters
 	void set_wind_estimator_wind_p_noise(float wind_sigma) { _wind_estimator.set_wind_p_noise(wind_sigma); }
 	void set_wind_estimator_tas_scale_p_noise(float tas_scale_sigma) { _wind_estimator.set_tas_scale_p_noise(tas_scale_sigma); }
+	void set_wind_estimator_tas_scale_init(float tas_scale_init)
+	{
+		_tas_scale_init = tas_scale_init;
+	}
+
 	void set_wind_estimator_tas_noise(float tas_sigma) { _wind_estimator.set_tas_noise(tas_sigma); }
 	void set_wind_estimator_beta_noise(float beta_var) { _wind_estimator.set_beta_noise(beta_var); }
 	void set_wind_estimator_tas_gate(uint8_t gate_size)
@@ -100,9 +105,6 @@ public:
 	}
 
 	void set_wind_estimator_beta_gate(uint8_t gate_size) { _wind_estimator.set_beta_gate(gate_size); }
-	void set_wind_estimator_scale_estimation_on(bool scale_estimation_on) { _wind_estimator_scale_estimation_on = scale_estimation_on;}
-
-	void set_airspeed_scale_manual(float airspeed_scale_manual);
 
 	// setters for failure detection tuning parameters
 	void set_tas_innov_threshold(float tas_innov_threshold) { _tas_innov_threshold = tas_innov_threshold; }
@@ -112,20 +114,31 @@ public:
 
 	void set_airspeed_stall(float airspeed_stall) { _airspeed_stall = airspeed_stall; }
 
+	void set_tas_scale_apply(int tas_scale_apply) { _tas_scale_apply = tas_scale_apply; }
+	void set_CAS_scale_estimated(float scale) { _CAS_scale_estimated = scale; }
+	void set_scale_init(float scale) { _wind_estimator.set_scale_init(scale); }
+	void set_disable_tas_scale_estimate(bool disable_scale_est) {_wind_estimator.set_disable_tas_scale_estimate(disable_scale_est); }
+
 private:
 
 	WindEstimator _wind_estimator{}; ///< wind estimator instance running in this particular airspeedValidator
 
-	// wind estimator parameter
-	bool _wind_estimator_scale_estimation_on{false};	///< online scale estimation (IAS-->CAS) is on
-	float _airspeed_scale_manual{1.0f}; ///< manually entered airspeed scale
+	// airspeed scale validity check
+	static constexpr int SCALE_CHECK_SAMPLES = 12; ///< take samples from 12 segments (every 360/12=30°)
 
 	// general states
 	bool _in_fixed_wing_flight{false}; ///< variable to bypass innovation and load factor checks
 	float _IAS{0.0f}; ///< indicated airsped in m/s
 	float _CAS{0.0f}; ///< calibrated airspeed in m/s
 	float _TAS{0.0f}; ///< true airspeed in m/s
-	float _CAS_scale{1.0f}; ///< scale factor from IAS to CAS
+	float _CAS_scale_applied{1.0f}; ///< scale factor from IAS to CAS (currently applied value)
+	float _CAS_scale_estimated{1.0f}; ///< scale factor from IAS to CAS (currently estimated value)
+
+	// data stuck check
+	uint64_t _time_last_unequal_data{0};
+	bool _data_stuck_test_failed{false};
+	float _IAS_prev{0.f};
+	static constexpr uint64_t DATA_STUCK_TIMEOUT{2_s}; ///< timeout after which data stuck check triggers when data is flat
 
 	// states of innovation check
 	float _tas_gate{1.0f}; ///< gate size of airspeed innovation (to calculate tas_test_ratio)
@@ -146,9 +159,17 @@ private:
 	// states of airspeed valid declaration
 	bool _airspeed_valid{true}; ///< airspeed valid (pitot or groundspeed-windspeed)
 	int _checks_fail_delay{3}; ///< delay for airspeed invalid declaration after single check failure (Sec)
-	int _checks_clear_delay{3}; ///< delay for airspeed valid declaration after all checks passed again (Sec)
+	int _checks_clear_delay{-1}; ///< delay for airspeed valid declaration after all checks passed again (Sec)
 	uint64_t	_time_checks_passed{0};	///< time the checks have last passed (uSec)
 	uint64_t	_time_checks_failed{0};	///< time the checks have last not passed (uSec)
+
+	hrt_abstime _begin_current_scale_check{0};
+
+	int _tas_scale_apply{0};
+	float _tas_scale_init{1.f};
+
+	matrix::Vector<float, SCALE_CHECK_SAMPLES> _scale_check_TAS {};
+	matrix::Vector<float, SCALE_CHECK_SAMPLES> _scale_check_groundspeed {};
 
 	void update_in_fixed_wing_flight(bool in_fixed_wing_flight) { _in_fixed_wing_flight = in_fixed_wing_flight; }
 
@@ -156,12 +177,15 @@ private:
 				   float lpos_vy,
 				   float lpos_vz,
 				   float lpos_evh, float lpos_evv, const float att_q[4]);
-	void update_CAS_scale();
+	void update_CAS_scale_estimated(bool lpos_valid, float vx, float vy, float vz);
+	void update_CAS_scale_applied();
 	void update_CAS_TAS(float air_pressure_pa, float air_temperature_celsius);
+	void check_airspeed_data_stuck(uint64_t timestamp);
 	void check_airspeed_innovation(uint64_t timestamp, float estimator_status_vel_test_ratio,
 				       float estimator_status_mag_test_ratio);
 	void check_load_factor(float accel_z);
 	void update_airspeed_valid_status(const uint64_t timestamp);
 	void reset();
+	void reset_CAS_scale_check();
 
 };
