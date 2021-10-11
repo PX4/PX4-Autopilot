@@ -9,7 +9,9 @@ float32 variance_east		# Wind estimate error variance in east / Y direction (m/s
 
 float32 tas_innov 		# True airspeed innovation
 float32 tas_innov_var 		# True airspeed innovation variance
+
 float32 tas_scale 		# Estimated true airspeed scale factor
+float32 tas_scale_var 		# True airspeed scale factor variance
 
 float32 beta_innov 		# Sideslip measurement innovation
 float32 beta_innov_var 		# Sideslip measurement innovation variance

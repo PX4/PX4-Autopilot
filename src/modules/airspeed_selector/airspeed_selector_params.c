@@ -7,6 +7,7 @@
  * @min 0
  * @max 1
  * @unit m/s^2
+ * @decimal 2
  * @group Airspeed Validator
  */
 PARAM_DEFINE_FLOAT(ASPD_W_P_NOISE, 0.1f);
@@ -19,9 +20,10 @@ PARAM_DEFINE_FLOAT(ASPD_W_P_NOISE, 0.1f);
  * @min 0
  * @max 0.1
  * @unit Hz
+ * @decimal 5
  * @group Airspeed Validator
  */
-PARAM_DEFINE_FLOAT(ASPD_SC_P_NOISE, 0.0001);
+PARAM_DEFINE_FLOAT(ASPD_SC_P_NOISE, 0.0001f);
 
 /**
  * Airspeed Selector: Wind estimator true airspeed measurement noise
@@ -31,9 +33,10 @@ PARAM_DEFINE_FLOAT(ASPD_SC_P_NOISE, 0.0001);
  * @min 0
  * @max 4
  * @unit m/s
+ * @decimal 1
  * @group Airspeed Validator
  */
-PARAM_DEFINE_FLOAT(ASPD_TAS_NOISE, 1.4);
+PARAM_DEFINE_FLOAT(ASPD_TAS_NOISE, 1.4f);
 
 /**
  * Airspeed Selector: Wind estimator sideslip measurement noise
@@ -43,9 +46,10 @@ PARAM_DEFINE_FLOAT(ASPD_TAS_NOISE, 1.4);
  * @min 0
  * @max 1
  * @unit rad
+ * @decimal 3
  * @group Airspeed Validator
  */
-PARAM_DEFINE_FLOAT(ASPD_BETA_NOISE, 0.3);
+PARAM_DEFINE_FLOAT(ASPD_BETA_NOISE, 0.3f);
 
 /**
  * Airspeed Selector: Gate size for true airspeed fusion
@@ -72,27 +76,57 @@ PARAM_DEFINE_INT32(ASPD_TAS_GATE, 3);
 PARAM_DEFINE_INT32(ASPD_BETA_GATE, 1);
 
 /**
- * Automatic airspeed scale estimation on
+ * Controls when to apply the new esstimated airspeed scale
  *
- * Turns the automatic airspeed scale (scale from IAS to CAS) on or off. It is recommended to fly level
- * altitude while performing the estimation. Set to 1 to start estimation (best when already flying).
- * Set to 0 to end scale estimation. The estimated scale is then saved using the ASPD_SCALE parameter.
- *
- * @boolean
+ * @value 0 Disable airspeed scale estimation completely
+ * @value 1 Do not apply the new gains (logging and inside wind estimator)
+ * @value 2 Apply the new scale after disarm
+ * @value 3 Apply the new gains in air
  * @group Airspeed Validator
  */
-PARAM_DEFINE_INT32(ASPD_SCALE_EST, 0);
+PARAM_DEFINE_INT32(ASPD_SCALE_APPLY, 2);
 
 /**
- * Airspeed scale (scale from IAS to CAS)
+ * Scale of airspeed sensor 1
  *
- * Scale can either be entered manually, or estimated in-flight by setting ASPD_SCALE_EST to 1.
+ * This is the scale IAS --> CAS of the first airspeed sensor instance
  *
  * @min 0.5
- * @max 1.5
+ * @max 2.0
+ * @decimal 2
+ * @reboot_required true
  * @group Airspeed Validator
+ * @volatile
  */
-PARAM_DEFINE_FLOAT(ASPD_SCALE, 1.0f);
+PARAM_DEFINE_FLOAT(ASPD_SCALE_1, 1.0f);
+
+/**
+ * Scale of airspeed sensor 2
+ *
+ * This is the scale IAS --> CAS of the second airspeed sensor instance
+ *
+ * @min 0.5
+ * @max 2.0
+ * @decimal 2
+ * @reboot_required true
+ * @group Airspeed Validator
+ * @volatile
+ */
+PARAM_DEFINE_FLOAT(ASPD_SCALE_2, 1.0f);
+
+/**
+ * Scale of airspeed sensor 3
+ *
+ * This is the scale IAS --> CAS of the third airspeed sensor instance
+ *
+ * @min 0.5
+ * @max 2.0
+ * @decimal 2
+ * @reboot_required true
+ * @group Airspeed Validator
+ * @volatile
+ */
+PARAM_DEFINE_FLOAT(ASPD_SCALE_3, 1.0f);
 
 /**
  * Index or primary airspeed measurement source
@@ -142,6 +176,7 @@ PARAM_DEFINE_INT32(ASPD_FALLBACK_GW, 0);
 *
  * @min 0.5
  * @max 3.0
+ * @decimal 1
  * @group Airspeed Validator
  */
 PARAM_DEFINE_FLOAT(ASPD_FS_INNOV, 1.0f);
@@ -156,6 +191,7 @@ PARAM_DEFINE_FLOAT(ASPD_FS_INNOV, 1.0f);
  *
  * @unit s
  * @max 30.0
+ * @decimal 1
  * @group Airspeed Validator
  */
 PARAM_DEFINE_FLOAT(ASPD_FS_INTEG, 5.0f);

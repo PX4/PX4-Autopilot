@@ -70,7 +70,9 @@ public:
 	bool check_if_meas_is_rejected(uint64_t time_now, float innov, float innov_var, uint8_t gate_size,
 				       uint64_t &time_meas_rejected, bool &reinit_filter);
 
-	float get_tas_scale() { return _state(INDEX_TAS_SCALE); }
+	// invert scale (CAS = IAS * scale), protect agains division by 0, constrain to [0.1, 10]
+	float get_tas_scale() { return math::constrain(1.f / (_state(INDEX_TAS_SCALE) + 0.0001f), 0.1f, 10.f); }
+	float get_tas_scale_var() { return _P(2, 2); }
 	float get_tas_innov() { return _tas_innov; }
 	float get_tas_innov_var() { return _tas_innov_var; }
 	float get_beta_innov() { return _beta_innov; }
@@ -88,10 +90,8 @@ public:
 	void set_beta_noise(float beta_var) { _beta_var = beta_var * beta_var; }
 	void set_tas_gate(uint8_t gate_size) {_tas_gate = gate_size; }
 	void set_beta_gate(uint8_t gate_size) {_beta_gate = gate_size; }
-
-	// Inhibit learning of the airspeed scale factor and force the estimator to use _enforced_airspeed_scale as scale factor.
-	// Negative input values enable learning of the airspeed scale factor.
-	void enforce_airspeed_scale(float scale) {_enforced_airspeed_scale = scale; }
+	void set_scale_init(float scale_init) {_scale_init = math::constrain(1.f / (scale_init + 0.0001f), 0.1f, 10.f); }
+	void set_disable_tas_scale_estimate(bool disable_tas_scale_estimate) {_disable_tas_scale_estimate = disable_tas_scale_estimate; }
 
 private:
 	enum {
@@ -100,7 +100,7 @@ private:
 		INDEX_TAS_SCALE
 	};	///< enum which can be used to access state.
 
-	matrix::Vector3f _state;		///< state vector
+	matrix::Vector3f _state{0.f, 0.f, 1.f};
 	matrix::Matrix3f _P;		///< state covariance matrix
 
 	float _tas_innov{0.0f};	///< true airspeed innovation
@@ -118,15 +118,18 @@ private:
 	uint8_t _tas_gate{3};	///< airspeed fusion gate size
 	uint8_t _beta_gate{1};	///< sideslip fusion gate size
 
+	float _scale_init{1.f};
+
 	uint64_t _time_last_airspeed_fuse = 0;	///< timestamp of last airspeed fusion
-	uint64_t _time_last_beta_fuse = 0;		///< timestamp of last sideslip fusion
-	uint64_t _time_last_update = 0;			///< timestamp of last covariance prediction
-	uint64_t _time_rejected_beta = 0;		///< timestamp of when sideslip measurements have consistently started to be rejected
+	uint64_t _time_last_beta_fuse = 0;	///< timestamp of last sideslip fusion
+	uint64_t _time_last_update = 0;		///< timestamp of last covariance prediction
+	uint64_t _time_rejected_beta = 0;	///< timestamp of when sideslip measurements have consistently started to be rejected
 	uint64_t _time_rejected_tas =
-		0;		///<timestamp of when true airspeed measurements have consistently started to be rejected
+		0;	///< timestamp of when true airspeed measurements have consistently started to be rejected
 
 	bool _wind_estimator_reset = false; ///< wind estimator was reset in this cycle
-	float _enforced_airspeed_scale{-1.0f}; ///< by default we want to estimate the true airspeed scale factor (see enforce_airspeed_scale(...) )
+
+	bool _disable_tas_scale_estimate{false};
 
 	// initialise state and state covariance matrix
 	bool initialise(const matrix::Vector3f &velI, const matrix::Vector2f &velIvar, const float tas_meas);
