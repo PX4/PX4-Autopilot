@@ -1,0 +1,5 @@
+menuconfig DRIVERS_POWER_MONITOR_INA238
+	bool "ina238"
+	default n
+	---help---
+		Enable support for ina238

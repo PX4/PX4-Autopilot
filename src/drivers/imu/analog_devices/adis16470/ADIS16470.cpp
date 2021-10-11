@@ -40,21 +40,25 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 	return (msb << 8u) | lsb;
 }
 
-ADIS16470::ADIS16470(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-		     spi_drdy_gpio_t drdy_gpio) :
-	SPI(DRV_IMU_DEVTYPE_ADIS16470, MODULE_NAME, bus, device, SPIDEV_MODE3, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_drdy_gpio(drdy_gpio),
-	_px4_accel(get_device_id(), rotation),
-	_px4_gyro(get_device_id(), rotation)
+ADIS16470::ADIS16470(const I2CSPIDriverConfig &config) :
+	SPI(config),
+	I2CSPIDriver(config),
+	_drdy_gpio(config.drdy_gpio),
+	_px4_accel(get_device_id(), config.rotation),
+	_px4_gyro(get_device_id(), config.rotation)
 {
-	_debug_enabled = true;
+	if (_drdy_gpio != 0) {
+		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
+	}
 }
 
 ADIS16470::~ADIS16470()
 {
+	perf_free(_reset_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
+	perf_free(_perf_crc_bad);
+	perf_free(_drdy_missed_perf);
 }
 
 int ADIS16470::init()
@@ -89,9 +93,10 @@ void ADIS16470::print_status()
 	I2CSPIDriverBase::print_status();
 
 	perf_print_counter(_reset_perf);
-	perf_print_counter(_perf_crc_bad);
 	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
+	perf_print_counter(_perf_crc_bad);
+	perf_print_counter(_drdy_missed_perf);
 }
 
 int ADIS16470::probe()
@@ -210,7 +215,19 @@ void ADIS16470::RunImpl()
 		break;
 
 	case STATE::READ: {
+			hrt_abstime timestamp_sample = now;
+
 			if (_data_ready_interrupt_enabled) {
+				// scheduled from interrupt if _drdy_timestamp_sample was set as expected
+				const hrt_abstime drdy_timestamp_sample = _drdy_timestamp_sample.fetch_and(0);
+
+				if ((now - drdy_timestamp_sample) < SAMPLE_INTERVAL_US) {
+					timestamp_sample = drdy_timestamp_sample;
+
+				} else {
+					perf_count(_drdy_missed_perf);
+				}
+
 				// push backup schedule back
 				ScheduleDelayed(SAMPLE_INTERVAL_US * 2);
 			}
@@ -235,7 +252,6 @@ void ADIS16470::RunImpl()
 			static_assert(sizeof(BurstRead) == (176 / 8), "ADIS16470 report not 176 bits");
 
 			buffer.cmd = static_cast<uint16_t>(Register::GLOB_CMD) << 8;
-
 			set_frequency(SPI_SPEED_BURST);
 
 			if (transferhword((uint16_t *)&buffer, (uint16_t *)&buffer, sizeof(buffer) / sizeof(uint16_t)) == PX4_OK) {
@@ -293,7 +309,7 @@ void ADIS16470::RunImpl()
 				accel_y = (accel_y == INT16_MIN) ? INT16_MAX : -accel_y;
 				accel_z = (accel_z == INT16_MIN) ? INT16_MAX : -accel_z;
 
-				_px4_accel.update(now, accel_x, accel_y, accel_z);
+				_px4_accel.update(timestamp_sample, accel_x, accel_y, accel_z);
 
 
 				int16_t gyro_x = buffer.X_GYRO_OUT;
@@ -303,7 +319,7 @@ void ADIS16470::RunImpl()
 				//  flip y & z to publish right handed with z down (x forward, y right, z down)
 				gyro_y = (gyro_y == INT16_MIN) ? INT16_MAX : -gyro_y;
 				gyro_z = (gyro_z == INT16_MIN) ? INT16_MAX : -gyro_z;
-				_px4_gyro.update(now, gyro_x, gyro_y, gyro_z);
+				_px4_gyro.update(timestamp_sample, gyro_x, gyro_y, gyro_z);
 
 				success = true;
 
@@ -378,6 +394,7 @@ int ADIS16470::DataReadyInterruptCallback(int irq, void *context, void *arg)
 
 void ADIS16470::DataReady()
 {
+	_drdy_timestamp_sample.store(hrt_absolute_time());
 	ScheduleNow();
 }
 

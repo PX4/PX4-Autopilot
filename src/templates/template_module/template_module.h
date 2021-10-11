@@ -35,8 +35,10 @@
 
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
-#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
+
+using namespace time_literals;
 
 extern "C" __EXPORT int template_module_main(int argc, char *argv[]);
 

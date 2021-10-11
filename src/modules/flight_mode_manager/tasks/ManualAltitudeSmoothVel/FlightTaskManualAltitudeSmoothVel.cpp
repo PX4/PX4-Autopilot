@@ -61,20 +61,12 @@ bool FlightTaskManualAltitudeSmoothVel::activate(const vehicle_local_position_se
 	return ret;
 }
 
-void FlightTaskManualAltitudeSmoothVel::reActivate()
-{
-	FlightTaskManualAltitude::reActivate();
-	// The task is reacivated while the vehicle is on the ground. To detect takeoff in mc_pos_control_main properly
-	// using the generated jerk, reset the z derivatives to zero
-	_smoothing.reset(0.f, 0.f, _position(2));
-}
-
-void FlightTaskManualAltitudeSmoothVel::_ekfResetHandlerPositionZ()
+void FlightTaskManualAltitudeSmoothVel::_ekfResetHandlerPositionZ(float delta_z)
 {
 	_smoothing.setCurrentPosition(_position(2));
 }
 
-void FlightTaskManualAltitudeSmoothVel::_ekfResetHandlerVelocityZ()
+void FlightTaskManualAltitudeSmoothVel::_ekfResetHandlerVelocityZ(float delta_vz)
 {
 	_smoothing.setCurrentVelocity(_velocity(2));
 }

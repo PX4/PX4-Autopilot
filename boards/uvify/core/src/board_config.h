@@ -101,7 +101,6 @@
  * PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   6
-#define DIRECT_INPUT_TIMER_CHANNELS  6
 
 /**
  * USB OTG FS:
@@ -145,6 +144,7 @@
 /* Heater pins (reserved) */
 #define GPIO_HEATER_INPUT            (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTC|GPIO_PIN6)
 #define GPIO_HEATER_OUTPUT           (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN6)
+#define HEATER_OUTPUT_EN(on_true)    px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
 
 /* Power switch controls */
 
@@ -176,7 +176,6 @@
 #define BOARD_ADC_PERIPH_5V_OC       (0)
 #define BOARD_ADC_HIPOWER_5V_OC      (0)
 
-#define BOARD_HAS_PWM    DIRECT_PWM_OUTPUT_CHANNELS
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120

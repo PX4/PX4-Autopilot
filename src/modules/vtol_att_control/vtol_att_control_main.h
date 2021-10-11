@@ -51,7 +51,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
@@ -92,6 +92,16 @@ class VtolAttitudeControl : public ModuleBase<VtolAttitudeControl>, public px4::
 {
 public:
 
+	enum class QuadchuteReason {
+		TransitionTimeout = 0,
+		ExternalCommand,
+		MinimumAltBreached,
+		LossOfAlt,
+		LargeAltError,
+		MaximumPitchExceeded,
+		MaximumRollExceeded,
+	};
+
 	VtolAttitudeControl();
 	~VtolAttitudeControl() override;
 
@@ -107,7 +117,7 @@ public:
 	bool init();
 
 	bool is_fixed_wing_requested();
-	void quadchute(const char *reason);
+	void quadchute(QuadchuteReason reason);
 	int get_transition_command() {return _transition_command;}
 	bool get_immediate_transition() {return _immediate_transition;}
 	void reset_immediate_transition() {_immediate_transition = false;}
@@ -207,7 +217,8 @@ private:
 		param_t fw_motors_off;
 		param_t diff_thrust;
 		param_t diff_thrust_scale;
-		param_t down_pitch_max;
+		param_t pitch_min_rad;
+		param_t land_pitch_min_rad;
 		param_t forward_thrust_scale;
 		param_t dec_to_pitch_ff;
 		param_t dec_to_pitch_i;

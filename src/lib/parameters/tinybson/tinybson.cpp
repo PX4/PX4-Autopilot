@@ -134,7 +134,7 @@ bson_decoder_init_file(bson_decoder_t decoder, int fd, bson_decoder_callback cal
 		CODER_KILL(decoder, "failed reading length");
 	}
 
-	debug("total document size = %d", decoder->total_document_size);
+	debug("total document size = %" PRIi32, decoder->total_document_size);
 
 	/* ready for decoding */
 	return 0;
@@ -176,7 +176,7 @@ bson_decoder_init_buf(bson_decoder_t decoder, void *buf, unsigned bufsize, bson_
 		CODER_KILL(decoder, "failed reading length");
 	}
 
-	debug("total document size = %d", decoder->total_document_size);
+	debug("total document size = %" PRIi32, decoder->total_document_size);
 
 	if ((decoder->total_document_size > 0) && (decoder->total_document_size > (int)decoder->bufsize)) {
 		CODER_KILL(decoder, "document length larger than buffer");
@@ -234,6 +234,10 @@ bson_decoder_next(bson_decoder_t decoder)
 	/* EOO is special; it has no name/data following */
 	if (decoder->node.type == BSON_EOO) {
 		decoder->node.name[0] = '\0';
+
+	} else if ((int)decoder->node.type == 0xff) { // indicates erased FLASH
+		decoder->dead = true;
+		return -ENODATA;
 
 	} else {
 
@@ -526,7 +530,7 @@ bson_encoder_fini(bson_encoder_t encoder)
 	// record document size
 	if (encoder->fd > -1) {
 		if (lseek(encoder->fd, 0, SEEK_SET) == 0) {
-			debug("writing document size %d to beginning of file", encoder->total_document_size);
+			debug("writing document size %" PRIi32 " to beginning of file", encoder->total_document_size);
 
 			if (::write(encoder->fd, &encoder->total_document_size,
 				    sizeof(encoder->total_document_size)) != sizeof(encoder->total_document_size)) {

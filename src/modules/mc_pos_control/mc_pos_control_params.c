@@ -39,9 +39,10 @@
  */
 
 /**
- * Minimum thrust in auto thrust control
+ * Minimum collective thrust in auto thrust control
  *
  * It's recommended to set it > 0 to avoid free fall with zero thrust.
+ * Note: Without airmode zero thrust leads to zero roll/pitch control authority. (see MC_AIRMODE)
  *
  * @unit norm
  * @min 0.05
@@ -105,6 +106,21 @@ PARAM_DEFINE_INT32(MPC_USE_HTE, 1);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_THR_CURVE, 0);
+
+/**
+ * Horizontal thrust margin
+ *
+ * Margin that is kept for horizontal control when prioritizing vertical thrust.
+ * To avoid completely starving horizontal control with high vertical error.
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 0.5
+ * @decimal 2
+ * @increment 0.01
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_THR_XY_MARG, 0.3f);
 
 /**
  * Maximum thrust in auto thrust control

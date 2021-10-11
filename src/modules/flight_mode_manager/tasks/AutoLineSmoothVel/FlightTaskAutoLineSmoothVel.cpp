@@ -66,6 +66,7 @@ bool FlightTaskAutoLineSmoothVel::activate(const vehicle_local_position_setpoint
 
 	_yaw_sp_prev = PX4_ISFINITE(last_setpoint.yaw) ? last_setpoint.yaw : _yaw;
 	_updateTrajConstraints();
+	_is_emergency_braking_active = false;
 
 	return ret;
 }
@@ -87,24 +88,24 @@ void FlightTaskAutoLineSmoothVel::reActivate()
  * Those functions are called by the base FlightTask in
  * case of an EKF reset event
  */
-void FlightTaskAutoLineSmoothVel::_ekfResetHandlerPositionXY()
+void FlightTaskAutoLineSmoothVel::_ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy)
 {
 	_trajectory[0].setCurrentPosition(_position(0));
 	_trajectory[1].setCurrentPosition(_position(1));
 }
 
-void FlightTaskAutoLineSmoothVel::_ekfResetHandlerVelocityXY()
+void FlightTaskAutoLineSmoothVel::_ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy)
 {
 	_trajectory[0].setCurrentVelocity(_velocity(0));
 	_trajectory[1].setCurrentVelocity(_velocity(1));
 }
 
-void FlightTaskAutoLineSmoothVel::_ekfResetHandlerPositionZ()
+void FlightTaskAutoLineSmoothVel::_ekfResetHandlerPositionZ(float delta_z)
 {
 	_trajectory[2].setCurrentPosition(_position(2));
 }
 
-void FlightTaskAutoLineSmoothVel::_ekfResetHandlerVelocityZ()
+void FlightTaskAutoLineSmoothVel::_ekfResetHandlerVelocityZ(float delta_vz)
 {
 	_trajectory[2].setCurrentVelocity(_velocity(2));
 }
@@ -116,6 +117,7 @@ void FlightTaskAutoLineSmoothVel::_ekfResetHandlerHeading(float delta_psi)
 
 void FlightTaskAutoLineSmoothVel::_generateSetpoints()
 {
+	_checkEmergencyBraking();
 	_updateTurningCheck();
 	_prepareSetpoints();
 	_generateTrajectory();
@@ -123,6 +125,20 @@ void FlightTaskAutoLineSmoothVel::_generateSetpoints()
 	if (!PX4_ISFINITE(_yaw_setpoint) && !PX4_ISFINITE(_yawspeed_setpoint)) {
 		// no valid heading -> generate heading in this flight task
 		_generateHeading();
+	}
+}
+
+void FlightTaskAutoLineSmoothVel::_checkEmergencyBraking()
+{
+	if (!_is_emergency_braking_active) {
+		if (_trajectory[2].getCurrentVelocity() > (2.f * _param_mpc_z_vel_max_dn.get())) {
+			_is_emergency_braking_active = true;
+		}
+
+	} else {
+		if (fabsf(_trajectory[2].getCurrentVelocity()) < 0.01f) {
+			_is_emergency_braking_active = false;
+		}
 	}
 }
 
@@ -309,8 +325,9 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 
 	_want_takeoff = false;
 
-	if (_param_mpc_yaw_mode.get() == 4 && !_yaw_sp_aligned) {
-		// Wait for the yaw setpoint to be aligned
+	const bool should_wait_for_yaw_align = _param_mpc_yaw_mode.get() == 4 && !_yaw_sp_aligned;
+
+	if (should_wait_for_yaw_align || _is_emergency_braking_active) {
 		_velocity_setpoint.setAll(0.f);
 		return;
 	}
@@ -412,7 +429,18 @@ void FlightTaskAutoLineSmoothVel::_updateTrajConstraints()
 	_trajectory[1].setMaxJerk(_param_mpc_jerk_auto.get());
 	_trajectory[2].setMaxJerk(_param_mpc_jerk_auto.get());
 
-	if (_velocity_setpoint(2) < 0.f) { // up
+	if (_is_emergency_braking_active) {
+		// When initializing with large downward velocity, allow 1g of vertical
+		// acceleration for fast braking
+		_trajectory[2].setMaxAccel(9.81f);
+		_trajectory[2].setMaxJerk(9.81f);
+
+		// If the current velocity is beyond the usual constraints, tell
+		// the controller to exceptionally increase its saturations to avoid
+		// cutting out the feedforward
+		_constraints.speed_down = math::max(fabsf(_trajectory[2].getCurrentVelocity()), _param_mpc_z_vel_max_dn.get());
+
+	} else if (_velocity_setpoint(2) < 0.f) { // up
 		float z_accel_constraint = _param_mpc_acc_up_max.get();
 		float z_vel_constraint = _param_mpc_z_vel_max_up.get();
 

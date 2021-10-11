@@ -142,6 +142,11 @@ public:
 	void		check_traffic();
 
 	/**
+	 * Buffer for air traffic to control the amount of messages sent to a user
+	 */
+	bool		buffer_air_traffic(uint32_t icao_address);
+
+	/**
 	 * Setters
 	 */
 	void		set_can_loiter_at_sp(bool can_loiter) { _can_loiter_at_sp = can_loiter; }
@@ -262,7 +267,7 @@ public:
 	void		increment_mission_instance_count() { _mission_result.instance_count++; }
 	int		mission_instance_count() const { return _mission_result.instance_count; }
 
-	void 		set_mission_failure(const char *reason);
+	void 		set_mission_failure_heading_timeout();
 
 	void 		setMissionLandingInProgress(bool in_progress) { _mission_landing_in_progress = in_progress; }
 
@@ -328,6 +333,11 @@ private:
 		(ParamFloat<px4::params::MIS_YAW_TMT>) _param_mis_yaw_tmt,
 		(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err
 	)
+
+	struct traffic_buffer_s {
+		uint32_t 	icao_address;
+		hrt_abstime timestamp;
+	};
 
 	int		_local_pos_sub{-1};
 	int		_mission_sub{-1};
@@ -414,6 +424,8 @@ private:
 
 	bool _mission_landing_in_progress{false};	// this flag gets set if the mission is currently executing on a landing pattern
 	// if mission mode is inactive, this flag will be cleared after 2 seconds
+
+	traffic_buffer_s _traffic_buffer{};
 
 	// update subscriptions
 	void		params_update();

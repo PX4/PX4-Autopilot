@@ -20,15 +20,9 @@ set PWM_OUT 1234
 param set-default MC_ROLL_P 8
 param set-default MC_ROLLRATE_P 0.08
 param set-default MC_ROLLRATE_I 0.16
-param set-default MC_ROLLRATE_D 0.003
 param set-default MC_PITCH_P 8
 param set-default MC_PITCHRATE_P 0.1
-param set-default MC_PITCHRATE_I 0.2
-param set-default MC_PITCHRATE_D 0.003
-param set-default MC_YAW_P 2.8
 param set-default MC_YAWRATE_P 0.15
-param set-default MC_YAWRATE_I 0.1
-param set-default MC_YAWRATE_D 0
 
 param set-default MPC_THR_MIN 0.06
 param set-default MPC_MANTHR_MIN 0.06

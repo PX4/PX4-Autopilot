@@ -54,7 +54,7 @@
 #include <float.h>
 
 #include <drivers/drv_hrt.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/l1/ECL_L1_Pos_Controller.hpp>
 #include <lib/tecs/TECS.hpp>
 #include <lib/landing_slope/Landingslope.hpp>
@@ -324,9 +324,8 @@ private:
 	bool		control_position(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
 					 const position_setpoint_s &pos_sp_prev,
 					 const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
-	void		control_takeoff(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
-					const position_setpoint_s &pos_sp_prev,
-					const position_setpoint_s &pos_sp_curr);
+	void		control_takeoff(const hrt_abstime &now, const float dt, const Vector2d &curr_pos, const Vector2f &ground_speed,
+					const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
 	void		control_landing(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
 					const position_setpoint_s &pos_sp_prev,
 					const position_setpoint_s &pos_sp_curr);

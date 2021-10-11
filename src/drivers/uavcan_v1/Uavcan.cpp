@@ -33,7 +33,7 @@
 
 #include "Uavcan.hpp"
 
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/version/version.h>
 
 using namespace time_literals;
@@ -80,13 +80,9 @@ UavcanNode::UavcanNode(CanardInterface *interface, uint32_t node_id) :
 		_canard_instance.mtu_bytes = CANARD_MTU_CAN_CLASSIC;
 	}
 
-	PX4_INFO("main _canard_instance = %p", &_canard_instance);
-
 	_node_manager.subscribe();
 
-	for (auto &publisher : _publishers) {
-		publisher->updateParam();
-	}
+	_pub_manager.updateParams();
 
 	_sub_manager.subscribe();
 
@@ -100,13 +96,14 @@ UavcanNode::~UavcanNode()
 		_task_should_exit.store(true);
 		ScheduleNow();
 
-		unsigned i = 10;
+		unsigned i = 1000;
 
 		do {
-			/* wait 5ms - it should wake every 10ms or so worst-case */
+			/* Wait for it to exit or timeout */
 			usleep(5000);
 
 			if (--i == 0) {
+				PX4_ERR("Failed to Stop Task - reboot needed");
 				break;
 			}
 
@@ -114,11 +111,13 @@ UavcanNode::~UavcanNode()
 	}
 
 	delete _can_interface;
+	_can_interface = nullptr;
 
 	perf_free(_cycle_perf);
 	perf_free(_interval_perf);
 
-	//delete _uavcan_heap;
+	delete static_cast<uint8_t *>(_uavcan_heap);
+	_uavcan_heap = nullptr;
 }
 
 int UavcanNode::start(uint32_t node_id, uint32_t bitrate)
@@ -165,7 +164,7 @@ void UavcanNode::Run()
 {
 	pthread_mutex_lock(&_node_mutex);
 
-	if (!_initialized) {
+	if (_instance != nullptr && !_initialized) {
 		init();
 
 		// return early if still not initialized
@@ -184,12 +183,8 @@ void UavcanNode::Run()
 		// update parameters from storage
 		updateParams();
 
-		for (auto &publisher : _publishers) {
-			// Have the publisher update its associated port-id parameter
-			// Setting to 0 disable publication
-			publisher->updateParam();
-		}
-
+		// Update dynamic pub/sub objects based on Port ID params
+		_pub_manager.updateParams();
 		_sub_manager.updateParams();
 
 		_mixing_output.updateParams();
@@ -204,9 +199,7 @@ void UavcanNode::Run()
 	sendHeartbeat();
 
 	// Check all publishers
-	for (auto &publisher : _publishers) {
-		publisher->update();
-	}
+	_pub_manager.update();
 
 	_node_manager.update();
 
@@ -218,9 +211,9 @@ void UavcanNode::Run()
 	CanardFrame received_frame{};
 	received_frame.payload = &data;
 
-	while (_can_interface->receive(&received_frame) > 0) {
+	while (!_task_should_exit.load() && _can_interface->receive(&received_frame) > 0) {
 		CanardTransfer receive{};
-		CanardRxSubscription *subscription = NULL;
+		CanardRxSubscription *subscription = nullptr;
 		int32_t result = canardRxAccept2(&_canard_instance, &received_frame, 0, &receive, &subscription);
 
 		if (result < 0) {
@@ -234,7 +227,7 @@ void UavcanNode::Run()
 			// A transfer has been received, process it.
 			// PX4_INFO("received Port ID: %d", receive.port_id);
 
-			if (subscription != NULL) {
+			if (subscription != nullptr) {
 				UavcanBaseSubscriber *sub_instance = (UavcanBaseSubscriber *)subscription->user_reference;
 				sub_instance->callback(receive);
 
@@ -255,10 +248,14 @@ void UavcanNode::Run()
 
 	perf_end(_cycle_perf);
 
-	if (_task_should_exit.load()) {
-		_can_interface->close();
-
+	if (_instance && _task_should_exit.load()) {
 		ScheduleClear();
+
+		if (_initialized &&  _can_interface != nullptr) {
+			_can_interface->close();
+			_initialized = false;
+		}
+
 		_instance = nullptr;
 	}
 
@@ -271,7 +268,9 @@ void UavcanNode::transmit()
 	for (const CanardFrame *txf = nullptr; (txf = canardTxPeek(&_canard_instance)) != nullptr;) {
 		// Attempt transmission only if the frame is not yet timed out while waiting in the TX queue.
 		// Otherwise just drop it and move on to the next one.
-		if (txf->timestamp_usec == 0 || txf->timestamp_usec > hrt_absolute_time()) {
+		const hrt_abstime now = hrt_absolute_time();
+
+		if (txf->timestamp_usec == 0 || txf->timestamp_usec > now) {
 			// Send the frame. Redundant interfaces may be used here.
 			const int tx_res = _can_interface->transmit(*txf);
 
@@ -294,6 +293,12 @@ void UavcanNode::transmit()
 				// Timeout - just exit and try again later
 				break;
 			}
+
+		} else if (txf->timestamp_usec <= now) {
+			// Transmission timed out -- remove from queue and deallocate its memory
+			canardTxPop(&_canard_instance);
+
+			_canard_instance.memory_free(&_canard_instance, (CanardFrame *)txf);
 		}
 	}
 }
@@ -312,14 +317,12 @@ void UavcanNode::print_info()
 		 heap_diagnostics.peak_allocated, heap_diagnostics.peak_request_size,
 		 heap_diagnostics.oom_count);
 
-	for (auto &publisher : _publishers) {
-		publisher->printInfo();
-	}
+	_pub_manager.printInfo();
 
 	CanardRxSubscription *rxs = _canard_instance.rx_subscriptions[CanardTransferKindMessage];
 
-	while (rxs != NULL) {
-		if (rxs->user_reference == NULL) {
+	while (rxs != nullptr) {
+		if (rxs->user_reference == nullptr) {
 			PX4_INFO("Message port id %d", rxs->port_id);
 
 		} else {
@@ -331,8 +334,8 @@ void UavcanNode::print_info()
 
 	rxs = _canard_instance.rx_subscriptions[CanardTransferKindRequest];
 
-	while (rxs != NULL) {
-		if (rxs->user_reference == NULL) {
+	while (rxs != nullptr) {
+		if (rxs->user_reference == nullptr) {
 			PX4_INFO("Service response port id %d", rxs->port_id);
 
 		} else {
@@ -344,8 +347,8 @@ void UavcanNode::print_info()
 
 	rxs = _canard_instance.rx_subscriptions[CanardTransferKindResponse];
 
-	while (rxs != NULL) {
-		if (rxs->user_reference == NULL) {
+	while (rxs != nullptr) {
+		if (rxs->user_reference == nullptr) {
 			PX4_INFO("Service request port id %d", rxs->port_id);
 
 		} else {
@@ -356,7 +359,6 @@ void UavcanNode::print_info()
 	}
 
 	_mixing_output.printInfo();
-	_esc_controller.printInfo();
 
 	pthread_mutex_unlock(&_node_mutex);
 }

@@ -87,7 +87,7 @@ public:
 	{
 		PX4_INFO("Response");
 
-		if (_response_callback != NULL) {
+		if (_response_callback != nullptr) {
 			_response_callback->response_callback(receive);
 		}
 	};
@@ -99,6 +99,6 @@ protected:
 
 	const CanardPortID _portID;
 	const size_t _extent;
-	UavcanServiceRequestInterface *_response_callback = NULL;
+	UavcanServiceRequestInterface *_response_callback = nullptr;
 
 };

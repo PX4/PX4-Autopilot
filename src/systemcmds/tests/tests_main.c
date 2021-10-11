@@ -77,12 +77,10 @@ const struct {
 	{"uart_console",	test_uart_console,	OPT_NOJIGTEST | OPT_NOALLTEST},
 #endif /* __PX4_NUTTX */
 
-	{"adc",			test_adc,		OPT_NOJIGTEST},
 	{"atomic_bitset",	test_atomic_bitset,	0},
 	{"bezier",		test_bezierQuad,	0},
 	{"bitset",		test_bitset,		0},
 	{"bson",		test_bson,		0},
-	{"conv",		test_conv,		0},
 	{"dataman",		test_dataman,		OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"file2",		test_file2,		OPT_NOJIGTEST},
 	{"float",		test_float,		0},
@@ -91,17 +89,10 @@ const struct {
 	{"int",			test_int,		0},
 	{"i2c_spi_cli",		test_i2c_spi_cli,		0},
 	{"IntrusiveQueue",	test_IntrusiveQueue,	0},
-	{"jig_voltages",	test_jig_voltages,	OPT_NOALLTEST},
 	{"IntrusiveSortedList",	test_IntrusiveSortedList, 0},
 	{"List",		test_List,		0},
 	{"mathlib",		test_mathlib,		0},
 	{"matrix",		test_matrix,		0},
-	{"microbench_atomic",	test_microbench_atomic,	0},
-	{"microbench_hrt",	test_microbench_hrt,	0},
-	{"microbench_math",	test_microbench_math,	0},
-	{"microbench_matrix",	test_microbench_matrix,	0},
-	{"microbench_uorb",	test_microbench_uorb,	0},
-	{"mixer",		test_mixer,		OPT_NOJIGTEST},
 	{"mixer",		test_mixer,		OPT_NOJIGTEST},
 	{"param",		test_param,		0},
 	{"parameters",		test_parameters,	0},
@@ -110,20 +101,17 @@ const struct {
 	{"ppm_loopback",	test_ppm_loopback,	OPT_NOALLTEST},
 	{"rc",			test_rc,		OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"search_min",		test_search_min,	0},
-	{"servo",		test_servo,		OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"sleep",		test_sleep,		OPT_NOJIGTEST},
 	{"uart_loopback",	test_uart_loopback,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"uart_send",		test_uart_send,		OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"versioning",		test_versioning,	0},
-	{"cli",			test_cli,		0},
 
 	{NULL,			NULL, 		0}
 };
 
 #define NTESTS (sizeof(tests) / sizeof(tests[0]))
 
-static int
-test_help(int argc, char *argv[])
+static int test_help(int argc, char *argv[])
 {
 	unsigned	i;
 
@@ -136,20 +124,17 @@ test_help(int argc, char *argv[])
 	return 0;
 }
 
-static int
-test_all(int argc, char *argv[])
+static int test_all(int argc, char *argv[])
 {
 	return test_runner(OPT_NOALLTEST);
 }
 
-static int
-test_jig(int argc, char *argv[])
+static int test_jig(int argc, char *argv[])
 {
 	return test_runner(OPT_NOJIGTEST);
 }
 
-static int
-test_runner(unsigned option)
+static int test_runner(unsigned option)
 {
 	size_t i;
 	char *args[2] = {"all", NULL};

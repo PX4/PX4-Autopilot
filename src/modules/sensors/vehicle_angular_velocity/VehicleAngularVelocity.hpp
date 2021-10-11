@@ -37,6 +37,7 @@
 #include <lib/sensor_calibration/Gyroscope.hpp>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/mathlib/math/filter/NotchFilter.hpp>
 #include <px4_platform_common/log.h>
@@ -165,7 +166,7 @@ private:
 #endif // !CONSTRAINED_FLASH
 
 	// angular acceleration filter
-	math::LowPassFilter2p<float> _lp_filter_acceleration[3] {};
+	AlphaFilter<float> _lp_filter_acceleration[3] {};
 
 	uint32_t _selected_sensor_device_id{0};
 

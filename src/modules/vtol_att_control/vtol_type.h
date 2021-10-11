@@ -70,7 +70,8 @@ struct Params {
 	int32_t fw_motors_off;			/**< bitmask of all motors that should be off in fixed wing mode */
 	int32_t diff_thrust;
 	float diff_thrust_scale;
-	float down_pitch_max;
+	float pitch_min_rad;
+	float land_pitch_min_rad;
 	float forward_thrust_scale;
 	float dec_to_pitch_ff;
 	float dec_to_pitch_i;

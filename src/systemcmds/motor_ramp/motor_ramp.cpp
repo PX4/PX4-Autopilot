@@ -364,9 +364,9 @@ int motor_ramp_thread_main(int argc, char *argv[])
 	_thread_running = true;
 
 	unsigned long max_channels = 0;
-	static struct pwm_output_values last_spos;
-	static struct pwm_output_values last_min;
-	static unsigned servo_count;
+	struct pwm_output_values last_spos;
+	struct pwm_output_values last_min;
+	unsigned servo_count;
 
 	int fd = px4_open(_pwm_output_dev, 0);
 

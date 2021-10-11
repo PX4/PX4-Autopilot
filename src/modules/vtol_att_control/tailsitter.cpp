@@ -130,6 +130,8 @@ void Tailsitter::update_vtol_state()
 
 		case vtol_mode::TRANSITION_FRONT_P1: {
 
+				const float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
+
 
 				const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
 						&& !_params->airspeed_disabled;
@@ -149,6 +151,14 @@ void Tailsitter::update_vtol_state()
 
 				if (transition_to_fw) {
 					_vtol_schedule.flight_mode = vtol_mode::FW_MODE;
+				}
+
+				// check front transition timeout
+				if (_params->front_trans_timeout > FLT_EPSILON) {
+					if (time_since_trans_start > _params->front_trans_timeout) {
+						// transition timeout occured, abort transition
+						_attc->quadchute(VtolAttitudeControl::QuadchuteReason::TransitionTimeout);
+					}
 				}
 
 				break;
@@ -238,6 +248,14 @@ void Tailsitter::update_transition_state()
 		if (tilt < M_PI_2_F - _params_tailsitter.fw_pitch_sp_offset) {
 			_q_trans_sp = Quatf(AxisAnglef(_trans_rot_axis,
 						       time_since_trans_start * trans_pitch_rate)) * _q_trans_start;
+		}
+
+		// check front transition timeout
+		if (_params->front_trans_timeout > FLT_EPSILON) {
+			if (time_since_trans_start > _params->front_trans_timeout) {
+				// transition timeout occured, abort transition
+				_attc->quadchute(VtolAttitudeControl::QuadchuteReason::TransitionTimeout);
+			}
 		}
 
 	} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_BACK) {

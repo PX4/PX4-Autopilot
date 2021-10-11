@@ -20,6 +20,7 @@
 # @maintainer Lorenz Meier <lorenz@px4.io>
 #
 # @board bitcraze_crazyflie exclude
+# @board px4_fmu-v2 exclude
 #
 
 . ${R}etc/init.d/rc.mc_defaults

@@ -83,6 +83,15 @@ static constexpr int LL40LS_PEAK_STRENGTH_HIGH        = 234; /* Max peak strengt
 static constexpr float LL40LS_MIN_DISTANCE{0.05f};
 static constexpr float LL40LS_MAX_DISTANCE{25.00f};
 static constexpr float LL40LS_MAX_DISTANCE_V2{35.00f};
+static constexpr float LL40LS_MAX_DISTANCE_V4{10.00f};
+
+static constexpr uint8_t LL40LS_HW_VERSION_V4         = 0xE1;
+static constexpr uint8_t LL40LS_SW_VERSION_V4         = 0x30;
+static constexpr uint8_t LL40LS_UNIT_ID_0_V4	      = 0x16;
+static constexpr uint8_t LL40LS_UNIT_ID_1_V4 	      = 0x17;
+static constexpr uint8_t LL40LS_UNIT_ID_2_V4	      = 0x18;
+static constexpr uint8_t LL40LS_UNIT_ID_3_V4	      = 0x19;
+static constexpr uint8_t LL40LS_DISTHIGH_REG_V4       = 0x10; /* High byte of distance register, auto increment */
 
 // Normal conversion wait time.
 static constexpr uint32_t LL40LS_CONVERSION_INTERVAL{50_ms};
@@ -94,12 +103,9 @@ static constexpr uint32_t LL40LS_CONVERSION_TIMEOUT{100_ms};
 class LidarLiteI2C : public device::I2C, public I2CSPIDriver<LidarLiteI2C>
 {
 public:
-	LidarLiteI2C(I2CSPIBusOption bus_option, const int bus, const uint8_t orientation, int bus_frequency,
-		     const int address = LL40LS_BASEADDR);
+	LidarLiteI2C(const I2CSPIDriverConfig &config);
 	virtual ~LidarLiteI2C();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 
@@ -171,13 +177,20 @@ private:
 	int probe_address(const uint8_t address);
 
 	bool _collect_phase{false};
-	bool _is_v3hp{false};
 	bool _pause_measurements{false};
+
+	enum class Model {
+		Generic = 0,
+		v3hp = 1,
+		v4 = 2,
+	};
+
+	Model _model{Model::Generic};
 
 	uint8_t _hw_version{0};
 	uint8_t _sw_version{0};
 
-	uint16_t _unit_id{0};
+	uint32_t _unit_id{0};
 	uint16_t _zero_counter{0};
 
 	uint64_t _acquire_time_usec{0};

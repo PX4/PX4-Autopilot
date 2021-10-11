@@ -33,15 +33,15 @@
 
 add_custom_command(OUTPUT listener_generated.cpp
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_listener.py ${PX4_SOURCE_DIR} ${msg_files} > listener_generated.cpp
-	DEPENDS generate_listener.py uorb_msgs
+	DEPENDS generate_listener.py ${msg_files}
 )
 
 add_custom_target(generate_topic_listener
 	DEPENDS
 		listener_generated.cpp
 		generate_listener.py
-		uorb_msgs
 )
+add_dependencies(prebuild_targets generate_topic_listener)
 
 px4_add_module(
 	MODULE systemcmds__topic_listener
@@ -53,8 +53,9 @@ px4_add_module(
 		${CMAKE_CURRENT_BINARY_DIR}
 	SRCS
 		listener_main.cpp
-		listener_generated.cpp
+		${CMAKE_CURRENT_BINARY_DIR}/listener_generated.cpp
 	DEPENDS
 		generate_topic_listener
+		uorb_msgs
 	)
 

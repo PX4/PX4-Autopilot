@@ -158,10 +158,12 @@ px4_add_module(
 		sensors/accel.cpp
 		sensors/gyro.cpp
 		sensors/cbat.cpp
+		sensors/ice_status.cpp
 
 	DEPENDS
 		px4_uavcan_dsdlc
 
+		drivers_rangefinder
 		led
 		mixer
 		mixer_module
@@ -170,6 +172,8 @@ px4_add_module(
 
 		git_uavcan
 		uavcan_${UAVCAN_DRIVER}_driver
+
+		drivers_rangefinder # Fix undefined reference when no distance sensors are selected
 
 		# within libuavcan
 		uavcan

@@ -1,5 +1,7 @@
 #! /usr/bin/env bash
 
+set -e
+
 ## Bash script to setup PX4 development environment on Ubuntu LTS (20.04, 18.04, 16.04).
 ## Can also be used in docker.
 ##
@@ -193,7 +195,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		java_version=11
 		gazebo_version=9
 	elif [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
-		java_version=14
+		java_version=13
 		gazebo_version=11
 	else
 		java_version=14

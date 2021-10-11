@@ -56,13 +56,13 @@ if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_t
 	endif()
 
 	foreach(topic ${config_rtps_send_topics})
-		list(APPEND topic_bridge_files_out ${micrortps_bridge_path}/micrortps_agent/${topic}_Publisher.cpp)
-		list(APPEND topic_bridge_files_out ${micrortps_bridge_path}/micrortps_agent/${topic}_Publisher.h)
+		list(APPEND topic_bridge_files_out ${micrortps_bridge_path}/micrortps_agent/src/${topic}_Publisher.cpp)
+		list(APPEND topic_bridge_files_out ${micrortps_bridge_path}/micrortps_agent/src/${topic}_Publisher.h)
 	endforeach()
 
 	foreach(topic ${config_rtps_receive_topics})
-		list(APPEND topic_bridge_files_out ${micrortps_bridge_path}/micrortps_agent/${topic}_Subscriber.cpp)
-		list(APPEND topic_bridge_files_out ${micrortps_bridge_path}/micrortps_agent/${topic}_Subscriber.h)
+		list(APPEND topic_bridge_files_out ${micrortps_bridge_path}/micrortps_agent/src/${topic}_Subscriber.cpp)
+		list(APPEND topic_bridge_files_out ${micrortps_bridge_path}/micrortps_agent/src/${topic}_Subscriber.h)
 	endforeach()
 
 	list(APPEND topic_bridge_files_out
@@ -84,7 +84,7 @@ if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_t
 			--client-outdir ${micrortps_bridge_path}/micrortps_client
 			--idl-dir ${micrortps_bridge_path}/micrortps_agent/idl
 			>micrortps_bridge.log 2>&1 || cat micrortps_bridge.log
-		DEPENDS ${send_topic_files} ${receive_topic_files}
+		DEPENDS ${send_topic_files} ${receive_topic_files} ${PX4_SOURCE_DIR}/msg/tools/urtps_bridge_topics.yaml
 		COMMENT "Generating RTPS topic bridge"
 	)
 	add_custom_target(topic_bridge_files DEPENDS ${topic_bridge_files_out})

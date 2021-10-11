@@ -35,13 +35,12 @@
 
 static constexpr uint32_t TIME_us_TSWW = 11; //  - actually 10.5us
 
-PMW3901::PMW3901(I2CSPIBusOption bus_option, int bus, int devid, enum Rotation yaw_rotation, int bus_frequency,
-		 spi_mode_e spi_mode) :
-	SPI(DRV_FLOW_DEVTYPE_PMW3901, MODULE_NAME, bus, devid, spi_mode, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
+PMW3901::PMW3901(const I2CSPIDriverConfig &config) :
+	SPI(config),
+	I2CSPIDriver(config),
 	_sample_perf(perf_alloc(PC_ELAPSED, "pmw3901: read")),
 	_comms_errors(perf_alloc(PC_COUNT, "pmw3901: com err")),
-	_yaw_rotation(yaw_rotation)
+	_yaw_rotation(config.rotation)
 {
 }
 

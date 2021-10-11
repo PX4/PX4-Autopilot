@@ -21,7 +21,7 @@ jobs:
           - {latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "Coverage",         model: "standard_vtol" } # Zurich
 
     container:
-      image: px4io/px4-dev-simulation-focal:2021-04-29
+      image: px4io/px4-dev-simulation-focal:2021-09-08
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     steps:
     - uses: actions/checkout@v1
@@ -50,8 +50,9 @@ jobs:
           mkdir -p ~/.ccache
           echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
           echo "compression = true" >> ~/.ccache/ccache.conf
-          echo "compression_level = 5" >> ~/.ccache/ccache.conf
+          echo "compression_level = 6" >> ~/.ccache/ccache.conf
           echo "max_size = 100M" >> ~/.ccache/ccache.conf
+          echo "hash_dir = false" >> ~/.ccache/ccache.conf
           ccache -s
           ccache -z
 
@@ -96,6 +97,7 @@ jobs:
         PX4_HOME_ALT: ${{matrix.config.altitude}}
         PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
       run: test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early --model ${{matrix.config.model}} --upload test/mavsdk_tests/configs/sitl.json
+      timeout-minutes: 45
 
     - name: Look at core files
       if: failure()

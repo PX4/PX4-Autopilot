@@ -251,12 +251,7 @@ bool EKF2Selector::UpdateErrorScores()
 	bool primary_updated = false;
 
 	// default estimator timeout
-	hrt_abstime status_timeout = 50_ms;
-
-	if (hrt_elapsed_time(&_attitude_last.timestamp) > FILTER_UPDATE_PERIOD) {
-		// much lower timeout if current primary estimator attitude isn't publishing
-		status_timeout = 2 * FILTER_UPDATE_PERIOD;
-	}
+	const hrt_abstime status_timeout = 50_ms;
 
 	// calculate individual error scores
 	for (uint8_t i = 0; i < EKF2_MAX_INSTANCES; i++) {
@@ -283,15 +278,15 @@ bool EKF2Selector::UpdateErrorScores()
 			}
 
 			// test ratios are invalid when 0, >= 1 is a failure
-			if (status.vel_test_ratio <= 0.f) {
+			if (!PX4_ISFINITE(status.vel_test_ratio) || (status.vel_test_ratio <= 0.f)) {
 				status.vel_test_ratio = 1.f;
 			}
 
-			if (status.pos_test_ratio <= 0.f) {
+			if (!PX4_ISFINITE(status.pos_test_ratio) || (status.pos_test_ratio <= 0.f)) {
 				status.pos_test_ratio = 1.f;
 			}
 
-			if (status.hgt_test_ratio <= 0.f) {
+			if (!PX4_ISFINITE(status.hgt_test_ratio) || (status.hgt_test_ratio <= 0.f)) {
 				status.hgt_test_ratio = 1.f;
 			}
 
@@ -306,7 +301,7 @@ bool EKF2Selector::UpdateErrorScores()
 				_instance[i].relative_test_ratio = 0;
 			}
 
-		} else if (hrt_elapsed_time(&_instance[i].timestamp_sample_last) > status_timeout) {
+		} else if (!_instance[i].timeout && (hrt_elapsed_time(&_instance[i].timestamp_sample_last) > status_timeout)) {
 			_instance[i].healthy = false;
 			_instance[i].timeout = true;
 		}

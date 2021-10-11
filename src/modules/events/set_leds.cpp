@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,13 @@
 
 #include "status_display.h"
 
+#include <board_config.h>
+#include <px4_log.h>
+#include <matrix/math.hpp>
+#include <drivers/drv_led.h>
+
+using namespace time_literals;
+
 namespace events
 {
 namespace status
@@ -47,7 +54,79 @@ namespace status
 
 void StatusDisplay::set_leds()
 {
-	// Put your LED handling here
+	bool gps_lock_valid = _vehicle_status_flags_sub.get().condition_global_position_valid;
+	bool home_position_valid = _vehicle_status_flags_sub.get().condition_home_position_valid;
+	int nav_state = _vehicle_status_sub.get().nav_state;
+
+#if defined(BOARD_FRONT_LED_MASK)
+
+	// try to publish the static LED for the first 10s
+	// this avoid the problem if a LED driver did not subscribe to the topic yet
+	if (hrt_absolute_time() < 10_s) {
+
+		// set the base color for front LED
+		_led_control.led_mask = BOARD_FRONT_LED_MASK;
+		_led_control.color = led_control_s::COLOR_WHITE;
+		_led_control.mode = led_control_s::MODE_ON;
+
+		publish();
+	}
+
+#endif // BOARD_FRONT_LED_MASK
+
+#if defined(BOARD_REAR_LED_MASK)
+	// set the led mask for the status led which are the back LED
+	_led_control.led_mask = BOARD_REAR_LED_MASK;
+
+	if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
+	    || nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) {
+		_led_control.color = led_control_s::COLOR_PURPLE;
+
+	} else if (nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL) {
+		_led_control.color = led_control_s::COLOR_BLUE;
+
+	} else if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
+		_led_control.color = led_control_s::COLOR_GREEN;
+
+	} else {
+		_led_control.color = led_control_s::COLOR_YELLOW;   // TODO fix yellow and purple error
+	}
+
+	// blink if no GPS and home are set
+	if (gps_lock_valid && home_position_valid) {
+		_led_control.mode = led_control_s::MODE_ON;
+
+	} else {
+		_led_control.mode = led_control_s::MODE_BLINK_NORMAL;
+	}
+
+	// handle battery warnings, once a state is reached it can not be reset
+	if (_battery_status_sub.get().warning == battery_status_s::BATTERY_WARNING_CRITICAL || _critical_battery) {
+		_led_control.color = led_control_s::COLOR_RED;
+		_led_control.mode = led_control_s::MODE_BLINK_FAST;
+		_critical_battery = true;
+
+	} else if (_battery_status_sub.get().warning == battery_status_s::BATTERY_WARNING_LOW || _low_battery) {
+		_led_control.color = led_control_s::COLOR_RED;
+		_led_control.mode = led_control_s::MODE_FLASH;
+		_low_battery = true;
+	}
+
+	if (nav_state != _old_nav_state
+	    || gps_lock_valid != _old_gps_lock_valid
+	    || home_position_valid != _old_home_position_valid
+	    || _battery_status_sub.get().warning != _old_battery_status_warning) {
+
+		publish();
+	}
+
+#endif // BOARD_REAR_LED_MASK
+
+	// copy actual state
+	_old_nav_state = nav_state;
+	_old_gps_lock_valid = gps_lock_valid;
+	_old_home_position_valid = home_position_valid;
+	_old_battery_status_warning = _battery_status_sub.get().warning;
 }
 
 } /* namespace status */

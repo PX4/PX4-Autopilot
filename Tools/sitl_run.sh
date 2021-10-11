@@ -56,6 +56,13 @@ else
     follow_mode=""
 fi
 
+# To use gazebo_ros ROS2 plugins
+if [[ -n "$ROS_VERSION" ]] && [ "$ROS_VERSION" == "2" ]; then
+	ros_args="-s libgazebo_ros_init.so -s libgazebo_ros_factory.so"
+else
+	ros_args=""
+fi
+
 if [ "$program" == "jmavsim" ]; then
 	jmavsim_pid=`ps aux | grep java | grep "\-jar jmavsim_run.jar" | awk '{ print $2 }'`
 	if [ -n "$jmavsim_pid" ]; then
@@ -133,7 +140,7 @@ elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
 				world_path="$PX4_SITL_WORLD"
 			fi
 		fi
-		gzserver $verbose $world_path &
+		gzserver $verbose $world_path $ros_args &
 		SIM_PID=$!
 
 		# Check all paths in ${GAZEBO_MODEL_PATH} for specified model
@@ -177,6 +184,15 @@ elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
 		echo "You need to have gazebo simulator installed!"
 		exit 1
 	fi
+elif [ "$program" == "ignition" ] && [ -z "$no_sim" ]; then
+	echo "Ignition Gazebo"
+	if [[ -n "$HEADLESS" ]]; then
+		ignition_headless="-s"
+	else
+		ignition_headless=""
+	fi
+	source "$src_path/Tools/setup_ignition.bash" "${src_path}" "${build_path}"
+	ign gazebo ${verbose} ${ignition_headless} -r "${src_path}/Tools/simulation-ignition/worlds/${model}.world"&
 elif [ "$program" == "flightgear" ] && [ -z "$no_sim" ]; then
 	echo "FG setup"
 	cd "${src_path}/Tools/flightgear_bridge/"

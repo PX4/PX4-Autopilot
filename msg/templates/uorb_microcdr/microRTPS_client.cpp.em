@@ -6,16 +6,15 @@
 @# Start of Template
 @#
 @# Context:
-@#  - msgs (List) list of all msg files
+@#  - msgs (List) list of all RTPS messages
 @#  - multi_topics (List) list of all multi-topic names
-@#  - ids (List) list of all RTPS msg ids
+@#  - spec (msggen.MsgSpec) Parsed specification of the .msg file
 @###############################################
 @{
 import os
 
 import genmsg.msgs
 
-from px_generate_uorb_topic_helper import * # this is in Tools/
 from px_generate_uorb_topic_files import MsgScope # this is in Tools/
 
 topic_names = [s.short_name for s in spec]
@@ -69,7 +68,7 @@ receive_base_types = [s.short_name for idx, s in enumerate(spec) if scope[idx] =
 #include <px4_time.h>
 #include <uORB/uORB.h>
 
-#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 @[for topic in list(set(topic_names))]@
 #include <uORB/topics/@(topic).h>
@@ -140,11 +139,10 @@ void *send(void *args)
 			if (subs->@(topic)_sub.update(&@(topic)_data))
 			{
 @[        if topic == 'Timesync' or topic == 'timesync']@
-				if (@(topic)_data.sys_id == 0 && @(topic)_data.seq != last_remote_msg_seq && @(topic)_data.tc1 == 0) {
+				if (@(topic)_data.seq != last_remote_msg_seq && @(topic)_data.tc1 == 0) {
 					last_remote_msg_seq = @(topic)_data.seq;
 
 					@(topic)_data.timestamp = hrt_absolute_time();
-					@(topic)_data.sys_id = 1;
 					@(topic)_data.seq = last_msg_seq;
 					@(topic)_data.tc1 = hrt_absolute_time() * 1000ULL;
 					@(topic)_data.ts1 = @(topic)_data.ts1;
@@ -154,7 +152,7 @@ void *send(void *args)
 					// copy raw data into local buffer. Payload is shifted by header length to make room for header
 					serialize_@(send_base_types[idx])(&writer, &@(topic)_data, &data_buffer[header_length], &length);
 
-					if (0 < (read = transport_node->write(static_cast<char>(@(rtps_message_id(ids, topic))), data_buffer, length))) {
+					if (0 < (read = transport_node->write(static_cast<char>(@(msgs[0].index(topic) + 1)), data_buffer, length))) {
 						data->total_sent += read;
 						tx_last_sec_read += read;
 						++data->sent;
@@ -255,7 +253,7 @@ void micrortps_start_topics(const uint32_t &datarate, struct timespec &begin, ui
 
 	while (!_should_exit_task) {
 @[if recv_topics]@
-		if (0 < (read = transport_node->read(&topic_ID, data_buffer, BUFFER_SIZE))) {
+		while (0 < (read = transport_node->read(&topic_ID, data_buffer, BUFFER_SIZE))) {
 			total_rcvd += read;
 			rx_last_sec_read += read;
 
@@ -263,7 +261,7 @@ void micrortps_start_topics(const uint32_t &datarate, struct timespec &begin, ui
 
 			switch (topic_ID) {
 @[    for idx, topic in enumerate(recv_topics)]@
-			case @(rtps_message_id(ids, topic)): {
+			case @(msgs[0].index(topic) + 1): {
 				@(receive_base_types[idx])_s @(topic)_data;
 				deserialize_@(receive_base_types[idx])(&reader, &@(topic)_data, data_buffer);
 

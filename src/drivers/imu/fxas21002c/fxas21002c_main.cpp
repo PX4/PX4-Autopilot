@@ -50,16 +50,15 @@ FXAS21002C::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *FXAS21002C::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-		int runtime_instance)
+I2CSPIDriverBase *FXAS21002C::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
 	device::Device *interface = nullptr;
 
-	if (iterator.busType() == BOARD_I2C_BUS) {
-		interface = FXAS21002C_I2C_interface(iterator.bus(), cli.bus_frequency, cli.i2c_address);
+	if (config.bus_type == BOARD_I2C_BUS) {
+		interface = FXAS21002C_I2C_interface(config.bus, config.bus_frequency, config.i2c_address);
 
-	} else if (iterator.busType() == BOARD_SPI_BUS) {
-		interface = FXAS21002C_SPI_interface(iterator.bus(), iterator.devid(), cli.bus_frequency, cli.spi_mode);
+	} else if (config.bus_type == BOARD_SPI_BUS) {
+		interface = FXAS21002C_SPI_interface(config.bus, config.spi_devid, config.bus_frequency, config.spi_mode);
 	}
 
 	if (interface == nullptr) {
@@ -67,8 +66,7 @@ I2CSPIDriverBase *FXAS21002C::instantiate(const BusCLIArguments &cli, const BusI
 		return nullptr;
 	}
 
-	FXAS21002C *dev = new FXAS21002C(interface, iterator.configuredBusOption(), iterator.bus(), cli.rotation,
-					 cli.i2c_address);
+	FXAS21002C *dev = new FXAS21002C(interface, config);
 
 	if (dev == nullptr) {
 		delete interface;

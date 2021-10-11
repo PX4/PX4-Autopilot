@@ -776,7 +776,8 @@ bool MatrixTest::pseudoInverseTests()
 				};
 
 	Matrix<float, 3, 4> A0(data0);
-	Matrix<float, 4, 3> A0_I = geninv(A0);
+	Matrix<float, 4, 3> A0_I;
+	geninv(A0, A0_I);
 	Matrix<float, 4, 3> A0_I_check(data0_check);
 
 	ut_test((A0_I - A0_I_check).abs().max() < 1e-5);
@@ -795,7 +796,8 @@ bool MatrixTest::pseudoInverseTests()
 				};
 
 	Matrix<float, 4, 3> A1(data1);
-	Matrix<float, 3, 4> A1_I = geninv(A1);
+	Matrix<float, 3, 4> A1_I;
+	geninv(A1, A1_I);
 	Matrix<float, 3, 4> A1_I_check(data1_check);
 
 	ut_test((A1_I - A1_I_check).abs().max() < 1e-5);
@@ -845,7 +847,8 @@ bool MatrixTest::pseudoInverseTests()
 		{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}
 	};
 	Matrix<float, 16, 6> A_check(A_quad_w);
-	Matrix<float, 16, 6> A = geninv(B);
+	Matrix<float, 16, 6> A;
+	geninv(B, A);
 	ut_test((A - A_check).abs().max() < 1e-5);
 
 	return true;

@@ -47,6 +47,7 @@
 
 #include "SPI.hpp"
 
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/px4_config.h>
 #include <nuttx/arch.h>
 
@@ -67,13 +68,18 @@ SPI::SPI(uint8_t device_type, const char *name, int bus, uint32_t device, enum s
 	// fill in _device_id fields for a SPI device
 	_device_id.devid_s.bus_type = DeviceBusType_SPI;
 	_device_id.devid_s.bus = bus;
-	// Use the 2. LSB byte as SPI address. This is currently 0, but will allow to extend
-	// for multiple instances of the same device on a bus, should that ever be required.
+	// Use the 2. LSB byte as SPI address, which is non-zero for multiple instances of the same device on a bus
 	_device_id.devid_s.address = (uint8_t)(device >> 8);
 
 	if (!px4_spi_bus_requires_locking(bus)) {
 		_locking_mode = LOCK_NONE;
 	}
+}
+
+SPI::SPI(const I2CSPIDriverConfig &config)
+	: SPI(config.devid_driver_index, config.module_name, config.bus, config.spi_devid, config.spi_mode,
+	      config.bus_frequency)
+{
 }
 
 SPI::~SPI()

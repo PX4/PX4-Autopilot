@@ -46,7 +46,7 @@
 #include <math.h>
 #include <float.h>
 
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 #include <uORB/uORB.h>
@@ -342,7 +342,7 @@ MissionBlock::is_mission_item_reached()
 			    (_navigator->get_yaw_timeout() >= FLT_EPSILON) &&
 			    (now - _time_wp_reached >= (hrt_abstime)_navigator->get_yaw_timeout() * 1e6f)) {
 
-				_navigator->set_mission_failure("unable to reach heading within timeout");
+				_navigator->set_mission_failure_heading_timeout();
 			}
 
 		} else {

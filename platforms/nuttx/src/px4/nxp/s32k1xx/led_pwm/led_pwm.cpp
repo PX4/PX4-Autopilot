@@ -306,7 +306,7 @@ led_pwm_servo_init(void)
 	for (unsigned i = 0; i < arraySize(led_pwm_timers); i++) {
 #if defined(BOARD_HAS_SHARED_PWM_TIMERS)
 		// Use the io_timer init to mark it initialized
-		io_timer_init_timer(i);
+		io_timer_init_timer(i, IOTimerChanMode_LED);
 #endif
 		led_pwm_timer_init(i);
 	}

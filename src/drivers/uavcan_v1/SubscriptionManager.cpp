@@ -42,11 +42,13 @@
 
 #include "SubscriptionManager.hpp"
 
+#include "ParamManager.hpp"
+
 SubscriptionManager::~SubscriptionManager()
 {
 	UavcanDynamicPortSubscriber *dynsub;
 
-	while (_dynsubscribers != NULL) {
+	while (_dynsubscribers != nullptr) {
 		dynsub = _dynsubscribers;
 		_dynsubscribers = dynsub->next();
 		delete dynsub;
@@ -60,38 +62,92 @@ void SubscriptionManager::subscribe()
 	_getinfo_rsp.subscribe();
 	_access_rsp.subscribe();
 
-	for (auto &sub : _uavcan_subs) {
-		param_t param_handle = param_find(sub.px4_name);
+	updateDynamicSubscriptions();
+}
 
-		if (param_handle == PARAM_INVALID) {
-			PX4_ERR("Param %s not found", sub.px4_name);
-			break;
+void SubscriptionManager::updateDynamicSubscriptions()
+{
+	for (auto &sub : _uavcan_subs) {
+
+		bool found_subscriber = false;
+		UavcanDynamicPortSubscriber *dynsub = _dynsubscribers;
+
+		while (dynsub != nullptr) {
+			// Check if subscriber has already been created
+			const char *subj_name = dynsub->getSubjectName();
+			const uint8_t instance = dynsub->getInstance();
+
+			if (strcmp(subj_name, sub.subject_name) == 0 && instance == sub.instance) {
+				found_subscriber = true;
+				break;
+			}
+
+			dynsub = dynsub->next();
 		}
 
-		if ((param_type(param_handle) == PARAM_TYPE_INT32)) {
-			int32_t port_id {};
-			param_get(param_handle, &port_id);
+		if (found_subscriber) {
+			continue;
+		}
 
-			if (port_id >= 0) { // PortID is set create a subscriber
-				UavcanDynamicPortSubscriber *dynsub = sub.create_sub(_canard_instance, _param_manager);
+		char uavcan_param[90];
+		snprintf(uavcan_param, sizeof(uavcan_param), "uavcan.sub.%s.%d.id", sub.subject_name, sub.instance);
+		uavcan_register_Value_1_0 value;
 
-				if (_dynsubscribers != NULL) {
-					_dynsubscribers->setNext(dynsub);
+		if (_param_manager.GetParamByName(uavcan_param, value)) {
+			uint16_t port_id = value.natural16.value.elements[0];
+
+			if (port_id <= CANARD_PORT_ID_MAX) { // PortID is set, create a subscriber
+				dynsub = sub.create_sub(_canard_instance, _param_manager);
+
+				if (dynsub == nullptr) {
+					PX4_ERR("Out of memory");
+					return;
 				}
 
-				_dynsubscribers = dynsub;
+				if (_dynsubscribers == nullptr) {
+					// Set the head of our linked list
+					_dynsubscribers = dynsub;
+
+				} else {
+					// Append the new subscriber to our linked list
+					UavcanDynamicPortSubscriber *tmp = _dynsubscribers;
+
+					while (tmp->next() != nullptr) {
+						tmp = tmp->next();
+					}
+
+					tmp->setNext(dynsub);
+				}
+
 				dynsub->updateParam();
 			}
+
+		} else {
+			PX4_ERR("Port ID param for subscriber %s.%u not found", sub.subject_name, sub.instance);
+			return;
 		}
 	}
 }
 
 void SubscriptionManager::printInfo()
 {
+	UavcanDynamicPortSubscriber *dynsub = _dynsubscribers;
 
+	while (dynsub != nullptr) {
+		dynsub->printInfo();
+		dynsub = dynsub->next();
+	}
 }
 
 void SubscriptionManager::updateParams()
 {
-	//TODO dynamically update params and unsubscribe
+	UavcanDynamicPortSubscriber *dynsub = _dynsubscribers;
+
+	while (dynsub != nullptr) {
+		dynsub->updateParam();
+		dynsub = dynsub->next();
+	}
+
+	// Check for any newly-enabled subscriptions
+	updateDynamicSubscriptions();
 }

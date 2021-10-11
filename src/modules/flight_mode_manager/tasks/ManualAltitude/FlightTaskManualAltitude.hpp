@@ -41,7 +41,7 @@
 
 #include "FlightTask.hpp"
 #include "Sticks.hpp"
-#include <lib/ecl/AlphaFilter/AlphaFilter.hpp>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <uORB/Subscription.hpp>
 
 class FlightTaskManualAltitude : public FlightTask

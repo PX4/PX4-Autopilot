@@ -1,4 +1,5 @@
 # Direct mixer
+# @board px4_fmu-v2 exclude
 
 A: 0
 A: 1

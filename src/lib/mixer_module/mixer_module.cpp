@@ -89,7 +89,11 @@ MixingOutput::~MixingOutput()
 void MixingOutput::printStatus() const
 {
 	perf_print_counter(_control_latency_perf);
-	PX4_INFO("Switched to rate_ctrl work queue: %i", (int)_wq_switched);
+
+	if (_wq_switched) {
+		PX4_INFO("Switched to rate_ctrl work queue");
+	}
+
 	PX4_INFO("Mixer loaded: %s", _mixers ? "yes" : "no");
 	PX4_INFO("Driver instance: %i", _driver_instance);
 
@@ -351,21 +355,6 @@ bool MixingOutput::update()
 		}
 	}
 
-	// check for motor test
-	if (!_armed.armed && !_armed.manual_lockdown) {
-		unsigned num_motor_test = motorTest();
-
-		if (num_motor_test > 0) {
-			if (_interface.updateOutputs(false, _current_output_value, num_motor_test, 1)) {
-				actuator_outputs_s actuator_outputs{};
-				setAndPublishActuatorOutputs(num_motor_test, actuator_outputs);
-			}
-
-			handleCommands();
-			return true;
-		}
-	}
-
 	if (_param_mot_slew_max.get() > FLT_EPSILON) {
 		updateOutputSlewrateMultirotorMixer();
 	}
@@ -393,6 +382,21 @@ bool MixingOutput::update()
 				/* Switch off the output limit ramp for the calibration. */
 				_output_limit.state = OUTPUT_LIMIT_STATE_ON;
 			}
+		}
+	}
+
+	// check for motor test (after topic updates)
+	if (!_armed.armed && !_armed.manual_lockdown) {
+		unsigned num_motor_test = motorTest();
+
+		if (num_motor_test > 0) {
+			if (_interface.updateOutputs(false, _current_output_value, num_motor_test, 1)) {
+				actuator_outputs_s actuator_outputs{};
+				setAndPublishActuatorOutputs(num_motor_test, actuator_outputs);
+			}
+
+			handleCommands();
+			return true;
 		}
 	}
 

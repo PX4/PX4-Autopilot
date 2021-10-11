@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -182,6 +182,14 @@ void Tiltrotor::update_vtol_state()
 					_vtol_schedule.transition_start = hrt_absolute_time();
 				}
 
+				// check front transition timeout
+				if (_params->front_trans_timeout > FLT_EPSILON) {
+					if (time_since_trans_start > _params->front_trans_timeout) {
+						// transition timeout occured, abort transition
+						_attc->quadchute(VtolAttitudeControl::QuadchuteReason::TransitionTimeout);
+					}
+				}
+
 				break;
 			}
 
@@ -228,8 +236,8 @@ void Tiltrotor::update_mc_state()
 	VtolType::update_mc_state();
 
 	/*Motor spin up: define the first second after arming as motor spin up time, during which
-	* the tilt is set to the value of VT_TILT_SPINUP. This allowes the user to set a spin up
-	* tilt angle in case the propellers don't spin up smootly in full upright (MC mode) position.
+	* the tilt is set to the value of VT_TILT_SPINUP. This allows the user to set a spin up
+	* tilt angle in case the propellers don't spin up smoothly in full upright (MC mode) position.
 	*/
 
 	const int spin_up_duration_p1 = 1000_ms; // duration of 1st phase of spinup (at fixed tilt)
@@ -262,7 +270,7 @@ void Tiltrotor::update_mc_state()
 
 	} else {
 		// normal operation
-		_tilt_control = VtolType::pusher_assist();
+		_tilt_control = VtolType::pusher_assist() + _params_tiltrotor.tilt_mc;
 		_mc_yaw_weight = 1.0f;
 		_v_att_sp->thrust_body[2] = Tiltrotor::thrust_compensation_for_tilt();
 	}
@@ -475,6 +483,6 @@ float Tiltrotor::thrust_compensation_for_tilt()
 	// only compensate for tilt angle up to 0.5 * max tilt
 	float compensated_tilt = math::constrain(_tilt_control, 0.0f, 0.5f);
 
-	// increase vertical thrust by 1/cos(tilt), limmit to [-1,0]
+	// increase vertical thrust by 1/cos(tilt), limit to [-1,0]
 	return math::constrain(_v_att_sp->thrust_body[2] / cosf(compensated_tilt * M_PI_2_F), -1.0f, 0.0f);
 }

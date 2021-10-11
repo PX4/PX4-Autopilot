@@ -152,6 +152,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_drag_noise(_params->drag_noise),
 	_param_ekf2_bcoef_x(_params->bcoef_x),
 	_param_ekf2_bcoef_y(_params->bcoef_y),
+	_param_ekf2_mcoef(_params->mcoef),
 	_param_ekf2_aspd_max(_params->max_correction_airspeed),
 	_param_ekf2_pcoef_xp(_params->static_pressure_coef_xp),
 	_param_ekf2_pcoef_xn(_params->static_pressure_coef_xn),
@@ -191,6 +192,7 @@ bool EKF2::multi_init(int imu, int mag)
 
 	_ekf2_timestamps_pub.advertise();
 	_ekf_gps_drift_pub.advertise();
+	_estimator_baro_bias_pub.advertise();
 	_estimator_innovation_test_ratios_pub.advertise();
 	_estimator_innovation_variances_pub.advertise();
 	_estimator_innovations_pub.advertise();
@@ -344,12 +346,14 @@ void EKF2::Run()
 			   || (imu.accel_device_id != _device_id_accel)
 			   || (imu.gyro_device_id != _device_id_gyro)) {
 
-			PX4_INFO("%d - resetting IMU bias", _instance);
+			PX4_DEBUG("%d - resetting IMU bias", _instance);
 			_device_id_accel = imu.accel_device_id;
 			_device_id_gyro = imu.gyro_device_id;
 
 			_ekf.resetImuBias();
 			_imu_calibration_count = imu.calibration_count;
+
+			SelectImuStatus();
 		}
 
 	} else {
@@ -382,11 +386,13 @@ void EKF2::Run()
 				if (_device_id_accel != sensor_selection.accel_device_id) {
 					_ekf.resetAccelBias();
 					_device_id_accel = sensor_selection.accel_device_id;
+					SelectImuStatus();
 				}
 
 				if (_device_id_gyro != sensor_selection.gyro_device_id) {
 					_ekf.resetGyroBias();
 					_device_id_gyro = sensor_selection.gyro_device_id;
+					SelectImuStatus();
 				}
 			}
 		}
@@ -394,6 +400,8 @@ void EKF2::Run()
 
 	if (imu_updated) {
 		const hrt_abstime now = imu_sample_new.time_us;
+
+		UpdateImuStatus();
 
 		// push imu data into estimator
 		_ekf.setIMUData(imu_sample_new);
@@ -495,6 +503,7 @@ void EKF2::Run()
 			PublishWindEstimate(now);
 
 			// publish status/logging messages
+			PublishBaroBias(now);
 			PublishEkfDriftMetrics(now);
 			PublishEventFlags(now);
 			PublishStates(now);
@@ -544,6 +553,28 @@ void EKF2::PublishAttitude(const hrt_abstime &timestamp)
 		// we do this by publishing an attitude with zero timestamp
 		vehicle_attitude_s att{};
 		_attitude_pub.publish(att);
+	}
+}
+
+void EKF2::PublishBaroBias(const hrt_abstime &timestamp)
+{
+	if (_device_id_baro != 0) {
+		const BaroBiasEstimator::status &status = _ekf.getBaroBiasEstimatorStatus();
+
+		if (fabsf(status.bias - _last_baro_bias_published) > 0.001f) {
+			estimator_baro_bias_s baro_bias{};
+			baro_bias.timestamp_sample = timestamp;
+			baro_bias.baro_device_id = _device_id_baro;
+			baro_bias.bias = status.bias;
+			baro_bias.bias_var = status.bias_var;
+			baro_bias.innov = status.innov;
+			baro_bias.innov_var = status.innov_var;
+			baro_bias.innov_test_ratio = status.innov_test_ratio;
+			baro_bias.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+			_estimator_baro_bias_pub.publish(baro_bias);
+
+			_last_baro_bias_published = status.bias;
+		}
 	}
 }
 
@@ -616,6 +647,7 @@ void EKF2::PublishEventFlags(const hrt_abstime &timestamp)
 		event_flags.stopping_mag_use                    = _ekf.warning_event_flags().stopping_mag_use;
 		event_flags.vision_data_stopped                 = _ekf.warning_event_flags().vision_data_stopped;
 		event_flags.emergency_yaw_reset_mag_stopped     = _ekf.warning_event_flags().emergency_yaw_reset_mag_stopped;
+		event_flags.emergency_yaw_reset_gps_yaw_stopped = _ekf.warning_event_flags().emergency_yaw_reset_gps_yaw_stopped;
 
 		event_flags.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 		_estimator_event_flags_pub.publish(event_flags);
@@ -1147,6 +1179,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_ev_vel                = _ekf.control_status_flags().ev_vel;
 		status_flags.cs_synthetic_mag_z       = _ekf.control_status_flags().synthetic_mag_z;
 		status_flags.cs_vehicle_at_rest       = _ekf.control_status_flags().vehicle_at_rest;
+		status_flags.cs_gps_yaw_fault         = _ekf.control_status_flags().gps_yaw_fault;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;
@@ -1267,6 +1300,43 @@ float EKF2::filter_altitude_ellipsoid(float amsl_hgt)
 	}
 
 	return amsl_hgt + _wgs84_hgt_offset;
+}
+
+void EKF2::SelectImuStatus()
+{
+	for (uint8_t imu_instance = 0; imu_instance < MAX_NUM_IMUS; imu_instance++) {
+		uORB::Subscription imu_status_sub{ORB_ID(vehicle_imu_status), imu_instance};
+
+		vehicle_imu_status_s imu_status{};
+		imu_status_sub.copy(&imu_status);
+
+		if (imu_status.accel_device_id == _device_id_accel) {
+			_vehicle_imu_status_sub.ChangeInstance(imu_instance);
+			return;
+		}
+	}
+
+	PX4_WARN("%d - IMU status not found for accel %" PRId32 ", gyro %" PRId32, _instance, _device_id_accel,
+		 _device_id_gyro);
+}
+
+void EKF2::UpdateImuStatus()
+{
+	vehicle_imu_status_s imu_status;
+
+	if (_vehicle_imu_status_sub.update(&imu_status)) {
+		if (imu_status.accel_device_id != _device_id_accel) {
+			SelectImuStatus();
+			return;
+		}
+
+		// accel -> delta velocity
+		_ekf.setDeltaVelocityHighFrequencyVibrationMetric(imu_status.accel_vibration_metric * _ekf.get_dt_imu_avg());
+
+		// gyro -> delta angle
+		_ekf.setDeltaAngleHighFrequencyVibrationMetric(imu_status.gyro_vibration_metric * _ekf.get_dt_imu_avg());
+		_ekf.setDeltaAngleConingMetric(imu_status.gyro_coning_vibration * _ekf.get_dt_imu_avg());
+	}
 }
 
 void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
@@ -1607,7 +1677,12 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 					    && (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING)) {
 
 						if (_distance_sensor_sub.ChangeInstance(i)) {
-							PX4_INFO("%d - selected distance_sensor:%d", _instance, i);
+							int ndist = orb_group_count(ORB_ID(distance_sensor));
+
+							if (ndist > 1) {
+								PX4_INFO("%d - selected distance_sensor:%d (%d advertised)", _instance, i, ndist);
+							}
+
 							_distance_sensor_selected = true;
 							break;
 						}
@@ -1693,7 +1768,7 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 				_param_ekf2_mag_decl.set(declination_deg);
 				_mag_decl_saved = true;
 
-				if (!_multi_mode) {
+				if (!_multi_mode || (_multi_mode && _instance == 0)) {
 					_param_ekf2_mag_decl.commit_no_notification();
 				}
 			}
@@ -1778,7 +1853,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 		// allocate EKF2 instances until all found or arming
 		uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
 
-		bool ekf2_instance_created[4][4] {}; // IMUs * mags
+		bool ekf2_instance_created[MAX_NUM_IMUS][MAX_NUM_MAGS] {}; // IMUs * mags
 
 		while ((multi_instances_allocated < multi_instances)
 		       && (vehicle_status_sub.get().arming_state != vehicle_status_s::ARMING_STATE_ARMED)
@@ -1817,9 +1892,9 @@ int EKF2::task_spawn(int argc, char *argv[])
 										_ekf2_selector.load()->ScheduleNow();
 									}
 
-									PX4_INFO("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 ")", actual_instance,
-										 imu, vehicle_imu_sub.get().accel_device_id,
-										 mag, vehicle_mag_sub.get().device_id);
+									PX4_DEBUG("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 ")", actual_instance,
+										  imu, vehicle_imu_sub.get().accel_device_id,
+										  mag, vehicle_mag_sub.get().device_id);
 
 									// sleep briefly before starting more instances
 									px4_usleep(10000);
@@ -1880,7 +1955,7 @@ Attitude and position estimator using an Extended Kalman Filter. It is used for 
 
 The documentation can be found on the [ECL/EKF Overview & Tuning](https://docs.px4.io/master/en/advanced_config/tuning_the_ecl_ekf.html) page.
 
-ekf2 can be started in replay mode (`-r`): in this mode it does not access the system time, but only uses the
+ekf2 can be started in replay mode (`-r`): in this mode, it does not access the system time, but only uses the
 timestamps from the sensor topics.
 
 )DESCR_STR");

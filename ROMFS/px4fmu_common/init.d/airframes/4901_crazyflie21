@@ -24,7 +24,6 @@ param set-default SYS_HAS_MAG 0
 param set-default EKF2_AID_MASK 2
 param set-default EKF2_MAG_TYPE 5
 
-param set-default BAT_N_CELLS 1
 param set-default BAT1_N_CELLS 1
 param set-default BAT1_SOURCE 1
 
@@ -38,13 +37,9 @@ param set-default IMU_ACCEL_CUTOFF 30
 param set-default MC_AIRMODE 1
 param set-default IMU_DGYRO_CUTOFF 70
 param set-default MC_PITCHRATE_D 0.002
-param set-default MC_PITCHRATE_I 0.2
 param set-default MC_PITCHRATE_P 0.07
-param set-default MC_PITCH_P 6.5
 param set-default MC_ROLLRATE_D 0.002
-param set-default MC_ROLLRATE_I 0.2
 param set-default MC_ROLLRATE_P 0.07
-param set-default MC_ROLL_P 6.5
 param set-default MC_YAW_P 3
 
 param set-default MPC_THR_HOVER 0.7
@@ -54,8 +49,6 @@ param set-default MPC_Z_VEL_P_ACC 8
 param set-default MPC_Z_VEL_I_ACC 6
 param set-default MPC_HOLD_MAX_XY 0.1
 param set-default MPC_MAX_FLOW_HGT 3
-#param set IMU_GYRO_NF_FREQ 10
-#param set IMU_GYRO_NF_BW 20
 
 param set-default NAV_RCL_ACT 3
 
@@ -65,8 +58,6 @@ param set-default PWM_MAIN_MAX 255
 
 # Run the motors at 328.125 kHz (recommended)
 param set-default PWM_MAIN_RATE 3921
-
-param set-default SDLOG_PROFILE 1
 
 param set-default SENS_FLOW_MINRNG 0.05
 

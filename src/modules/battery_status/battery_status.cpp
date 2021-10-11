@@ -172,7 +172,7 @@ BatteryStatus::adc_poll()
 {
 	/* For legacy support we publish the battery_status for the Battery that is
 	* associated with the Brick that is the selected source for VDD_5V_IN
-	* Selection is done in HW ala a LTC4417 or similar, or may be hard coded
+	* Selection is done in HW ala a LTC4417 or similar, or maybe hard coded
 	* Like in the FMUv4
 	*/
 

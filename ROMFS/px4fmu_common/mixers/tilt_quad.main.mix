@@ -1,6 +1,8 @@
 Tilt-Quadrotor mixer for PX4FMU (1/2) V2
 ===========================
 
+# @board px4_fmu-v2 exclude
+
 This file defines the main outputs mixer for a Tilt-quadrotor in the + configuration.
 
 # @output MAIN1 motor 1

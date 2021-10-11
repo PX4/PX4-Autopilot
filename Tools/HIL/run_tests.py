@@ -8,12 +8,61 @@ import re
 import unittest
 import os
 import sys
+import datetime
+
+COLOR_RED    = "\x1b[31m"
+COLOR_GREEN  = "\x1b[32m"
+COLOR_YELLOW = "\x1b[33m"
+COLOR_WHITE  = "\x1b[37m"
+COLOR_RESET  = "\x1b[0m"
+
+def print_line(line):
+    if "WARNING" in line:
+        line = line.replace("WARNING", f"{COLOR_YELLOW}WARNING{COLOR_RESET}", 1)
+    elif "WARN" in line:
+        line = line.replace("WARN", f"{COLOR_YELLOW}WARN{COLOR_RESET}", 1)
+    elif "ERROR" in line:
+        line = line.replace("ERROR", f"{COLOR_RED}ERROR{COLOR_RESET}", 1)
+    elif "INFO" in line:
+        line = line.replace("INFO", f"{COLOR_WHITE}INFO{COLOR_RESET}", 1)
+
+    if "PASSED" in line:
+        line = line.replace("PASSED", f"{COLOR_GREEN}PASSED{COLOR_RESET}", 1)
+
+    if "FAILED" in line:
+        line = line.replace("FAILED", f"{COLOR_RED}FAILED{COLOR_RESET}", 1)
+
+    if "\n" in line:
+        current_time = datetime.datetime.now()
+        print('[{0}] {1}'.format(current_time.isoformat(timespec='milliseconds'), line), end='')
+    else:
+        print('{0}'.format(line), end='')
 
 def do_test(port, baudrate, test_name):
-    databits = serial.EIGHTBITS
-    stopbits = serial.STOPBITS_ONE
-    parity = serial.PARITY_NONE
-    ser = serial.Serial(port, baudrate, databits, parity, stopbits, timeout=1)
+    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0.2, xonxoff=True, rtscts=False, dsrdtr=False)
+
+    timeout_start = time.time()
+    timeout = 30  # 30 seconds
+
+    # wait for nsh prompt
+    while True:
+        ser.write("\n".encode("ascii"))
+        ser.flush()
+
+        serial_line = ser.readline().decode("ascii", errors='ignore')
+
+        if "nsh>" in serial_line:
+            break
+        else:
+            if len(serial_line) > 0:
+                print(serial_line, end='')
+
+        if time.time() > timeout_start + timeout:
+            print("Error, timeout waiting for prompt")
+            return False
+
+    # clear
+    ser.readlines()
 
     success = False
 
@@ -22,48 +71,38 @@ def do_test(port, baudrate, test_name):
     cmd = 'tests ' + test_name
     print("| Running:", cmd)
     print('|======================================================================')
+
     timeout_start = time.time()
-    timeout = 10  # 10 seconds
+    timeout = 2  # 2 seconds
 
-    # clear
-    ser.write("\n".encode("ascii"))
-    ser.flush()
-    ser.readline()
-
+    # wait for command echo
     serial_cmd = '{0}\n'.format(cmd)
     ser.write(serial_cmd.encode("ascii"))
     ser.flush()
-    ser.readline()
+    while True:
+        serial_line = ser.readline().decode("ascii", errors='ignore')
 
-    # TODO: retry command
-    # while True:
-    #     serial_cmd = '{0}\n'.format(cmd)
-    #     ser.write(serial_cmd.encode("ascii"))
-    #     ser.flush()
+        if cmd in serial_line:
+            break
+        else:
+            if len(serial_line) > 0:
+                print_line(serial_line)
 
-    #     serial_line = ser.readline().decode("ascii", errors='ignore')
-
-    #     if cmd in serial_line:
-    #         break
-    #     else:
-    #         print(serial_line.replace('\n', ''))
-
-    #     if time.time() > timeout_start + timeout:
-    #         print("Error, unable to write cmd")
-    #         return False
-
-    #     time.sleep(1)
+        if time.time() > timeout_start + timeout:
+            print("Error, timeout waiting for command echo")
+            break
 
 
     # print results, wait for final result (PASSED or FAILED)
-    timeout = 180  # 3 minutes
+    timeout = 300  # 5 minutes
     timeout_start = time.time()
     timeout_newline = timeout_start
 
     while True:
         serial_line = ser.readline().decode("ascii", errors='ignore')
-        if (len(serial_line) > 0):
-            print(serial_line, end='')
+
+        if len(serial_line) > 0:
+            print_line(serial_line)
 
         if test_name + " PASSED" in serial_line:
             success = True
@@ -74,7 +113,7 @@ def do_test(port, baudrate, test_name):
 
         if time.time() > timeout_start + timeout:
             print("Error, timeout")
-            print(test_name + " FAILED")
+            print(test_name + f" {COLOR_RED}FAILED{COLOR_RESET}")
             success = False
             break
 
@@ -103,14 +142,27 @@ class TestHardwareMethods(unittest.TestCase):
     def test_bson(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "bson"))
 
+    # TODO: review
     # def test_dataman(self):
     #     self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "dataman"))
 
-    def floattest_float(self):
+    # def test_file(self):
+    #     self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "file"))
+
+    def test_file2(self):
+        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "file2"))
+
+    def test_float(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "float"))
 
     def test_hrt(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "hrt"))
+
+    def test_int(self):
+        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "int"))
+
+    def test_i2c_spi_cli(self):
+        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "i2c_spi_cli"))
 
     def test_IntrusiveQueue(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "IntrusiveQueue"))
@@ -126,21 +178,6 @@ class TestHardwareMethods(unittest.TestCase):
 
     def test_matrix(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "matrix"))
-
-    def test_microbench_atomic(self):
-        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "microbench_atomic"))
-
-    def test_microbench_hrt(self):
-        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "microbench_hrt"))
-
-    def test_microbench_math(self):
-        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "microbench_math"))
-
-    def test_microbench_matrix(self):
-        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "microbench_matrix"))
-
-    def test_microbench_uorb(self):
-        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "microbench_uorb"))
 
     # def test_mixer(self):
     #     self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "mixer"))

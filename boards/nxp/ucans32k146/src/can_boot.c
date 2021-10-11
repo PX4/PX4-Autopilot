@@ -75,8 +75,32 @@ __EXPORT void s32k1xx_board_initialize(void)
 	s32k1xx_pinconfig(BOARD_REVISION_DETECT_PIN);
 
 	if (s32k1xx_gpioread(BOARD_REVISION_DETECT_PIN)) {
-		/* STB high -> active CAN phy */
-		s32k1xx_pinconfig(PIN_CAN0_STB  | GPIO_OUTPUT_ONE);
+		/* Config Pins to do CAN tranceiver HW selftest */
+		s32k1xx_pinconfig(PIN_CAN0_ERRN);
+		s32k1xx_pinconfig(PIN_CAN0_STB);
+		s32k1xx_pinconfig(PIN_CAN0_EN);
+
+		/* EN high & STB high -> normal mode */
+		s32k1xx_gpiowrite(PIN_CAN0_STB, 1);
+		s32k1xx_gpiowrite(PIN_CAN0_EN, 1);
+		up_udelay(3000); // Wait for startup to normal mode
+
+		/* EN low & STB high -> listen only mode */
+		s32k1xx_gpiowrite(PIN_CAN0_STB, 1);
+		s32k1xx_gpiowrite(PIN_CAN0_EN, 0);
+		up_udelay(100); // t moch ERRN_N
+
+		/* Check for HW err and wait untill ERR has been cleared */
+		while (!s32k1xx_gpioread(PIN_CAN0_ERRN)) {
+			board_indicate(hardware_failure);
+			s32k1xx_gpiowrite(PIN_CAN0_EN, 1);
+			up_udelay(50);
+			s32k1xx_gpiowrite(PIN_CAN0_EN, 0);
+			up_udelay(50);
+		}
+
+		/* Enter normal-mode */
+		s32k1xx_gpiowrite(PIN_CAN0_EN, 1);
 
 	} else {
 		/* STB low -> active CAN phy */
@@ -208,6 +232,7 @@ static const  led_t i2l[] = {
 	led(9, fw_update_timeout,              31,    0,    0,     2),
 	led(a, fw_update_invalid_crc,          31,    0,    0,     4),
 	led(b, jump_to_app,                     0,   63,    0,    10),
+	led(c, hardware_failure,               31,    0,    0,    10),
 
 };
 

@@ -72,7 +72,12 @@ SDP3X::init_sdp3x()
 int
 SDP3X::configure()
 {
-	int ret = write_command(SDP3X_CONT_MEAS_AVG_MODE);
+	int ret = write_command(SDP3X_CONT_MODE_STOP);
+
+	if (ret == PX4_OK) {
+		px4_udelay(500); // SDP3X is unresponsive for 500us after stop continuous measurement command
+		ret = write_command(SDP3X_CONT_MEAS_AVG_MODE);
+	}
 
 	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
@@ -124,10 +129,16 @@ SDP3X::read_scale()
 	return PX4_OK;
 }
 
-void SDP3X::start()
+int	SDP3X::init()
 {
-	// make sure to wait 10ms after configuring the measurement mode
-	ScheduleDelayed(10_ms);
+	int ret = Airspeed::init();
+
+	if (ret == PX4_OK) {
+		// make sure to wait 10ms after configuring the measurement mode
+		ScheduleDelayed(10_ms);
+	}
+
+	return ret;
 }
 
 int

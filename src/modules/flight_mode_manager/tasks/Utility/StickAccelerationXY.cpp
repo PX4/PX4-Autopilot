@@ -37,7 +37,7 @@
 
 #include "StickAccelerationXY.hpp"
 
-#include <ecl/geo/geo.h>
+#include <geo/geo.h>
 #include "Sticks.hpp"
 
 using namespace matrix;
@@ -52,6 +52,11 @@ StickAccelerationXY::StickAccelerationXY(ModuleParams *parent) :
 void StickAccelerationXY::resetPosition()
 {
 	_position_setpoint.setNaN();
+}
+
+void StickAccelerationXY::resetPosition(const matrix::Vector2f &position)
+{
+	_position_setpoint = position;
 }
 
 void StickAccelerationXY::resetVelocity(const matrix::Vector2f &velocity)

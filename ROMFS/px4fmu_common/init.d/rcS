@@ -22,10 +22,8 @@ set +e
 #
 set R /
 set AUTOCNF no
-set AUX_MODE pwm
 set FCONFIG /fs/microsd/etc/config.txt
 set FEXTRAS /fs/microsd/etc/extras.txt
-set FMU_MODE pwm
 set FRC /fs/microsd/etc/rc.txt
 set IOFW "/etc/extras/px4_io-v2_default.bin"
 set IO_PRESENT no
@@ -52,16 +50,6 @@ set USE_IO no
 set VEHICLE_TYPE none
 
 #
-# Mount the procfs.
-#
-mount -t procfs /proc
-
-#
-# Start CDC/ACM serial driver.
-#
-sercon
-
-#
 # Print full system version.
 #
 ver all
@@ -69,8 +57,43 @@ ver all
 #
 # Try to mount the microSD card.
 #
+set SDCARD_AVAILABLE no
 # REBOOTWORK this needs to start after the flight control loop.
 if mount -t vfat /dev/mmcsd0 /fs/microsd
+then
+	set PX4_INIT_TEST_FILE "/fs/microsd/.px4_init_test_file"
+	date >> $PX4_INIT_TEST_FILE
+
+	if [ -f $PX4_INIT_TEST_FILE ]
+	then
+		cat $PX4_INIT_TEST_FILE
+		rm $PX4_INIT_TEST_FILE
+
+		if [ ! -f $PX4_INIT_TEST_FILE ]
+		then
+			set SDCARD_AVAILABLE yes
+		fi
+	fi
+fi
+
+if [ $SDCARD_AVAILABLE = no ]
+then
+	set STARTUP_TUNE 14 # tune 14 = SD_INIT
+	if mkfatfs -F 32 /dev/mmcsd0
+	then
+		if mount -t vfat /dev/mmcsd0 /fs/microsd
+		then
+			set SDCARD_AVAILABLE yes
+			echo "INFO [init] card formatted"
+
+		else
+			set STARTUP_TUNE 15 # tune 15 = SD_ERROR
+			echo "ERROR [init] format failed"
+		fi
+	fi
+fi
+
+if [ $SDCARD_AVAILABLE = yes ]
 then
 	if hardfault_log check
 	then
@@ -81,20 +104,8 @@ then
 			hardfault_log reset
 		fi
 	fi
-else
-	# tune SD_INIT
-	set STARTUP_TUNE 14 # tune 14 = SD_INIT
-	if mkfatfs /dev/mmcsd0
-	then
-		if mount -t vfat /dev/mmcsd0 /fs/microsd
-		then
-			echo "INFO [init] card formatted"
-		else
-			set STARTUP_TUNE 15 # tune 15 = SD_ERROR
-			echo "ERROR [init] format failed"
-		fi
-	fi
 fi
+unset SDCARD_AVAILABLE
 
 #
 # Look for an init script on the microSD card.
@@ -128,7 +139,7 @@ else
 	then
 		param reset_all
 	fi
-	if ver hwtypecmp V5X00 V5X90 V5Xa0
+	if ver hwcmp PX4_FMU_V5X PX4_FMU_V6X
 	then
 		netman update -i eth0
 	fi
@@ -358,52 +369,14 @@ else
 		commander start
 	fi
 
-	# Sensors on the PWM interface bank.
-	if param compare -s SENS_EN_LL40LS 1
+	# Pre-takeoff continuous magnetometer calibration
+	if param compare -s MBE_ENABLE 1
 	then
-		# Clear pins 5 and 6.
-		set FMU_MODE pwm4
-		set AUX_MODE pwm4
-	fi
-
-
-	# Check if ATS is enabled
-	if param compare FD_EXT_ATS_EN 1
-	then
-		# Clear pins 5 and 6.
-		set FMU_MODE pwm4
-		set AUX_MODE pwm4
+		mag_bias_estimator start
 	fi
 
 	if param greater -s TRIG_MODE 0
 	then
-		if param compare TRIG_PINS_EX 0
-		then
-			# We ONLY support trigger on pins 5+6 or 7+8 when simultanously using AUX for actuator output.
-			if param compare TRIG_PINS 56
-			then
-				# clear pins 5 and 6
-				set FMU_MODE pwm4
-				set AUX_MODE pwm4
-			else
-				if param compare TRIG_PINS 78
-				then
-					# clear pins 7 and 8
-					set FMU_MODE pwm6
-					set AUX_MODE pwm6
-				else
-					set FMU_MODE none
-					set AUX_MODE none
-				fi
-			fi
-		else
-			if param compare TRIG_PINS_EX 12288
-			then
-				set FMU_MODE pwm12
-				set AUX_MODE pwm12
-			fi
-		fi
-
 		camera_trigger start
 		camera_feedback start
 	fi
@@ -431,14 +404,7 @@ else
 		rc_input start $RC_INPUT_ARGS
 	fi
 
-	#
-	# Configure vehicle type specific parameters.
-	# Note: rc.vehicle_setup is the entry point for rc.interface,
-	#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
-	#
-	. ${R}etc/init.d/rc.vehicle_setup
-
-	# Camera capture driver
+	# Camera capture driver (before pwm_out)
 	if param greater -s CAM_CAP_FBACK 0
 	then
 		if camera_capture start
@@ -446,6 +412,13 @@ else
 			camera_capture on
 		fi
 	fi
+
+	#
+	# Configure vehicle type specific parameters.
+	# Note: rc.vehicle_setup is the entry point for rc.interface,
+	#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
+	#
+	. ${R}etc/init.d/rc.vehicle_setup
 
 	#
 	# Start the navigator.
@@ -546,10 +519,8 @@ fi
 #
 unset R
 unset AUTOCNF
-unset AUX_MODE
 unset FCONFIG
 unset FEXTRAS
-unset FMU_MODE
 unset FRC
 unset IO_PRESENT
 unset IOFW

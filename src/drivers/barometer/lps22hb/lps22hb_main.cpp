@@ -43,30 +43,29 @@ void LPS22HB::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *LPS22HB::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				       int runtime_instance)
+I2CSPIDriverBase *LPS22HB::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
 	device::Device *interface = nullptr;
 
-	if (iterator.busType() == BOARD_I2C_BUS) {
-		interface = LPS22HB_I2C_interface(iterator.bus(), cli.bus_frequency);
+	if (config.bus_type == BOARD_I2C_BUS) {
+		interface = LPS22HB_I2C_interface(config.bus, config.bus_frequency);
 
-	} else if (iterator.busType() == BOARD_SPI_BUS) {
-		interface = LPS22HB_SPI_interface(iterator.bus(), iterator.devid(), cli.bus_frequency, cli.spi_mode);
+	} else if (config.bus_type == BOARD_SPI_BUS) {
+		interface = LPS22HB_SPI_interface(config.bus, config.spi_devid, config.bus_frequency, config.spi_mode);
 	}
 
 	if (interface == nullptr) {
-		PX4_ERR("failed creating interface for bus %i (devid 0x%" PRIx32 ")", iterator.bus(), iterator.devid());
+		PX4_ERR("failed creating interface for bus %i (devid 0x%" PRIx32 ")", config.bus, config.spi_devid);
 		return nullptr;
 	}
 
 	if (interface->init() != OK) {
 		delete interface;
-		PX4_DEBUG("no device on bus %i (devid 0x%" PRIx32 ")", iterator.bus(), iterator.devid());
+		PX4_DEBUG("no device on bus %i (devid 0x%" PRIx32 ")", config.bus, config.spi_devid);
 		return nullptr;
 	}
 
-	LPS22HB *dev = new LPS22HB(iterator.configuredBusOption(), iterator.bus(), interface);
+	LPS22HB *dev = new LPS22HB(config, interface);
 
 	if (dev == nullptr) {
 		delete interface;
@@ -94,6 +93,8 @@ extern "C" __EXPORT int lps22hb_main(int argc, char *argv[])
 		ThisDriver::print_usage();
 		return -1;
 	}
+
+	cli.i2c_address = LPS22HB_ADDRESS;
 
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_BARO_DEVTYPE_LPS22HB);
 

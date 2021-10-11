@@ -40,11 +40,10 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 	return (msb << 8u) | lsb;
 }
 
-LSM9DS1_MAG::LSM9DS1_MAG(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation,
-			 int bus_frequency, spi_mode_e spi_mode) :
-	SPI(DRV_MAG_DEVTYPE_ST_LSM9DS1_M, MODULE_NAME, bus, device, spi_mode, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_mag(get_device_id(), rotation)
+LSM9DS1_MAG::LSM9DS1_MAG(const I2CSPIDriverConfig &config) :
+	SPI(config),
+	I2CSPIDriver(config),
+	_px4_mag(get_device_id(), config.rotation)
 {
 	_px4_mag.set_external(external());
 }
@@ -177,7 +176,6 @@ void LSM9DS1_MAG::RunImpl()
 					// sensor Z is up (RHC), flip z for publication
 					// sensor X is aligned with -X of lsm9ds1 accel/gyro
 					x = (x == INT16_MIN) ? INT16_MAX : -x;
-					y = y;
 					z = (z == INT16_MIN) ? INT16_MAX : -z;
 
 					_px4_mag.update(now, x, y, z);

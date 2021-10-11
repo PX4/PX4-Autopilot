@@ -55,14 +55,15 @@ public:
 protected:
 
 	/** Reset position or velocity setpoints in case of EKF reset event */
-	void _ekfResetHandlerPositionXY() override;
-	void _ekfResetHandlerVelocityXY() override;
-	void _ekfResetHandlerPositionZ() override;
-	void _ekfResetHandlerVelocityZ() override;
+	void _ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy) override;
+	void _ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy) override;
+	void _ekfResetHandlerPositionZ(float delta_z) override;
+	void _ekfResetHandlerVelocityZ(float delta_vz) override;
 	void _ekfResetHandlerHeading(float delta_psi) override;
 
 	void _generateSetpoints() override; /**< Generate setpoints along line. */
 	void _generateHeading();
+	void _checkEmergencyBraking();
 	void _updateTurningCheck();
 	bool _generateHeadingAlongTraj(); /**< Generates heading along trajectory. */
 
@@ -79,6 +80,8 @@ protected:
 
 	float _max_speed_prev{};
 	bool _is_turning{false};
+
+	bool _is_emergency_braking_active{false};
 
 	void _prepareSetpoints(); /**< Generate velocity target points for the trajectory generator. */
 	void _updateTrajConstraints();

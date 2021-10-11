@@ -94,6 +94,7 @@ list(APPEND nuttx_libs
 	nuttx_fs
 	nuttx_mm
 	nuttx_sched
+	nuttx_crypto
 )
 
 if (CONFIG_NET)
@@ -115,6 +116,7 @@ target_link_libraries(nuttx_arch
 
 target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
 target_link_libraries(nuttx_xx INTERFACE nuttx_c)
+target_link_libraries(nuttx_fs INTERFACE nuttx_c)
 
 target_link_libraries(px4 PRIVATE
 
@@ -144,7 +146,7 @@ endif()
 
 target_link_libraries(px4 PRIVATE ${module_libraries})
 
-if (config_romfs_root)
+if(config_romfs_root)
 	add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)
 	target_link_libraries(px4 PRIVATE romfs)
 endif()
@@ -156,9 +158,9 @@ if((DEFINED ENV{SIGNING_TOOL}) AND (NOT NUTTX_DIR MATCHES "external"))
 		COMMAND $ENV{SIGNING_TOOL} $ENV{SIGNING_ARGS} ${PX4_BINARY_OUTPUT} ${PX4_BINARY_DIR}/${PX4_BOARD}.bin
 		DEPENDS ${PX4_BINARY_OUTPUT}
 		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-)
+	)
 else()
-set(PX4_BINARY_OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_BOARD}.bin)
+	set(PX4_BINARY_OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_BOARD}.bin)
 endif()
 
 add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
@@ -205,6 +207,20 @@ add_custom_target(weak_symbols
 	VERBATIM
 	USES_TERMINAL
 )
+
+# generate bootloader.elf and copy to top level build directory
+if(EXISTS "${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin")
+	add_custom_command(
+		OUTPUT ${PX4_BINARY_DIR}/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.elf
+		COMMAND
+			${CMAKE_OBJCOPY} -I binary -O elf32-little --change-section-address .data=0x08000000
+				${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin
+				${PX4_BINARY_DIR}/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.elf
+		DEPENDS ${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	)
+	add_custom_target(bootloader_elf DEPENDS ${PX4_BINARY_DIR}/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.elf)
+endif()
 
 
 # debugger helpers

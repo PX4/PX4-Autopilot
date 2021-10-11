@@ -54,6 +54,12 @@ int signNoZero(T val)
 	return (T(0) <= val) - (val < T(0));
 }
 
+template<typename T>
+T sq(T val)
+{
+	return val * val;
+}
+
 /*
  * So called exponential curve function implementation.
  * It is essentially a linear combination between a linear and a cubic function.

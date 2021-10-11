@@ -6,6 +6,7 @@
 # @class Copter
 #
 # @maintainer Lorenz Meier <lorenz@px4.io>
+# @board px4_fmu-v2 exclude
 #
 
 . ${R}etc/init.d/rc.mc_defaults
@@ -14,17 +15,10 @@ set MIXER quad_x
 set PWM_OUT 1234
 
 param set-default MC_ROLL_P 7
-param set-default MC_ROLLRATE_P 0.15
 param set-default MC_ROLLRATE_I 0.05
-param set-default MC_ROLLRATE_D 0.003
 param set-default MC_PITCH_P 7
-param set-default MC_PITCHRATE_P 0.15
 param set-default MC_PITCHRATE_I 0.05
-param set-default MC_PITCHRATE_D 0.003
-param set-default MC_YAW_P 2.8
-param set-default MC_YAWRATE_P 0.2
-param set-default MC_YAWRATE_I 0.1
-param set-default MC_YAWRATE_D 0
+
 
 # DJI ESCs do not support calibration and need a higher min
 param set-default PWM_MAIN_MIN 1230

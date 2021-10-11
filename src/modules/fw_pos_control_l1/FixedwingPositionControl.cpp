@@ -34,6 +34,7 @@
 #include "FixedwingPositionControl.hpp"
 
 #include <vtol_att_control/vtol_type.h>
+#include <px4_platform_common/events.h>
 
 using math::constrain;
 using math::max;
@@ -146,23 +147,57 @@ FixedwingPositionControl::parameters_update()
 
 	// sanity check parameters
 	if (_param_fw_airspd_max.get() < _param_fw_airspd_min.get()) {
-		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Airspeed max smaller than min");
+		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Airspeed max smaller than min\t");
+		/* EVENT
+		 * @description
+		 * - <param>FW_AIRSPD_MAX</param>: {1:.1}
+		 * - <param>FW_AIRSPD_MIN</param>: {2:.1}
+		 */
+		events::send<float, float>(events::ID("fixedwing_position_control_conf_invalid_airspeed"), events::Log::Error,
+					   "Invalid configuration: Airspeed max smaller than min",
+					   _param_fw_airspd_max.get(), _param_fw_airspd_min.get());
 		check_ret = PX4_ERROR;
 	}
 
 	if (_param_fw_airspd_max.get() < 5.0f || _param_fw_airspd_min.get() > 100.0f) {
-		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Airspeed max < 5 m/s or min > 100 m/s");
+		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Airspeed max < 5 m/s or min > 100 m/s\t");
+		/* EVENT
+		 * @description
+		 * - <param>FW_AIRSPD_MAX</param>: {1:.1}
+		 * - <param>FW_AIRSPD_MIN</param>: {2:.1}
+		 */
+		events::send<float, float>(events::ID("fixedwing_position_control_conf_invalid_airspeed_bounds"), events::Log::Error,
+					   "Invalid configuration: Airspeed max \\< 5 m/s or min \\> 100 m/s",
+					   _param_fw_airspd_max.get(), _param_fw_airspd_min.get());
 		check_ret = PX4_ERROR;
 	}
 
 	if (_param_fw_airspd_trim.get() < _param_fw_airspd_min.get() ||
 	    _param_fw_airspd_trim.get() > _param_fw_airspd_max.get()) {
-		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Airspeed cruise out of min or max bounds");
+		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Airspeed cruise out of min or max bounds\t");
+		/* EVENT
+		 * @description
+		 * - <param>FW_AIRSPD_MAX</param>: {1:.1}
+		 * - <param>FW_AIRSPD_MIN</param>: {2:.1}
+		 * - <param>FW_AIRSPD_TRIM</param>: {3:.1}
+		 */
+		events::send<float, float, float>(events::ID("fixedwing_position_control_conf_invalid_cruise_bounds"),
+						  events::Log::Error,
+						  "Invalid configuration: Airspeed cruise out of min or max bounds",
+						  _param_fw_airspd_max.get(), _param_fw_airspd_min.get(), _param_fw_airspd_trim.get());
 		check_ret = PX4_ERROR;
 	}
 
 	if (_param_fw_airspd_stall.get() > _param_fw_airspd_min.get() * 0.9f) {
-		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Stall airspeed higher than 0.9 of min");
+		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Stall airspeed higher than 0.9 of min\t");
+		/* EVENT
+		 * @description
+		 * - <param>FW_AIRSPD_MIN</param>: {1:.1}
+		 * - <param>FW_AIRSPD_STALL</param>: {2:.1}
+		 */
+		events::send<float, float>(events::ID("fixedwing_position_control_conf_invalid_stall"), events::Log::Error,
+					   "Invalid configuration: Stall airspeed higher than 90% of minimum airspeed",
+					   _param_fw_airspd_min.get(), _param_fw_airspd_stall.get());
 		check_ret = PX4_ERROR;
 	}
 
@@ -475,7 +510,9 @@ FixedwingPositionControl::abort_landing(bool abort)
 {
 	// only announce changes
 	if (abort && !_land_abort) {
-		mavlink_log_critical(&_mavlink_log_pub, "Landing aborted");
+		mavlink_log_critical(&_mavlink_log_pub, "Landing aborted\t");
+		// TODO: add reason
+		events::send(events::ID("fixedwing_position_control_land_aborted"), events::Log::Critical, "Landing aborted");
 	}
 
 	_land_abort = abort;
@@ -805,7 +842,7 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 			if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
 				// POSITION: achieve position setpoint altitude via loiter
 				// close to waypoint, but altitude error greater than twice acceptance
-				if ((dist >= 0.f)
+				if ((!_vehicle_status.in_transition_mode) && (dist >= 0.f)
 				    && (dist_z > 2.f * _param_fw_clmbout_diff.get())
 				    && (dist_xy < 2.f * math::max(acc_rad, fabsf(pos_sp_curr.loiter_radius)))) {
 					// SETPOINT_TYPE_POSITION -> SETPOINT_TYPE_LOITER
@@ -943,7 +980,7 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 			control_landing(now, curr_pos, ground_speed, pos_sp_prev, pos_sp_curr);
 
 		} else if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
-			control_takeoff(now, curr_pos, ground_speed, pos_sp_prev, pos_sp_curr);
+			control_takeoff(now, dt, curr_pos, ground_speed, pos_sp_prev, pos_sp_curr);
 		}
 
 		/* reset landing state */
@@ -1069,7 +1106,17 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 
 			_hdg_hold_enabled = false;
 			_yaw_lock_engaged = false;
-			_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
+
+			// do slew rate limiting on roll if enabled
+			float roll_sp_new = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
+			const float roll_rate_slew_rad = radians(_param_fw_l1_r_slew_max.get());
+
+			if (dt > 0.f && roll_rate_slew_rad > 0.f) {
+				roll_sp_new = constrain(roll_sp_new, _att_sp.roll_body - roll_rate_slew_rad * dt,
+							_att_sp.roll_body + roll_rate_slew_rad * dt);
+			}
+
+			_att_sp.roll_body = roll_sp_new;
 			_att_sp.yaw_body = 0;
 		}
 
@@ -1199,7 +1246,7 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 }
 
 void
-FixedwingPositionControl::control_takeoff(const hrt_abstime &now, const Vector2d &curr_pos,
+FixedwingPositionControl::control_takeoff(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
 	/* current waypoint (the one currently heading for) */
@@ -1238,7 +1285,8 @@ FixedwingPositionControl::control_takeoff(const hrt_abstime &now, const Vector2d
 			 * doesn't matter if it gets reset when takeoff is detected eventually */
 			_takeoff_ground_alt = _current_altitude;
 
-			mavlink_log_info(&_mavlink_log_pub, "Takeoff on runway");
+			mavlink_log_info(&_mavlink_log_pub, "Takeoff on runway\t");
+			events::send(events::ID("fixedwing_position_control_takeoff"), events::Log::Info, "Takeoff on runway");
 		}
 
 		float terrain_alt = get_terrain_altitude_takeoff(_takeoff_ground_alt);
@@ -1287,12 +1335,13 @@ FixedwingPositionControl::control_takeoff(const hrt_abstime &now, const Vector2d
 
 				/* Inform user that launchdetection is running every 4s */
 				if ((now - _launch_detection_notify) > 4_s) {
-					mavlink_log_critical(&_mavlink_log_pub, "Launch detection running");
+					mavlink_log_critical(&_mavlink_log_pub, "Launch detection running\t");
+					events::send(events::ID("fixedwing_position_control_launch_detection"), events::Log::Info, "Launch detection running");
 					_launch_detection_notify = now;
 				}
 
 				/* Detect launch using body X (forward) acceleration */
-				_launchDetector.update(now, _body_acceleration(0));
+				_launchDetector.update(dt, _body_acceleration(0));
 
 				/* update our copy of the launch detection state */
 				_launch_detection_state = _launchDetector.getLaunchDetected();
@@ -1452,7 +1501,8 @@ FixedwingPositionControl::control_landing(const hrt_abstime &now, const Vector2d
 		}
 
 		_land_noreturn_horizontal = true;
-		mavlink_log_info(&_mavlink_log_pub, "Landing, heading hold");
+		mavlink_log_info(&_mavlink_log_pub, "Landing, heading hold\t");
+		events::send(events::ID("fixedwing_position_control_landing"), events::Log::Info, "Landing, heading hold");
 	}
 
 	if (_land_noreturn_horizontal) {
@@ -1541,7 +1591,9 @@ FixedwingPositionControl::control_landing(const hrt_abstime &now, const Vector2d
 
 			if (!_land_motor_lim) {
 				_land_motor_lim  = true;
-				mavlink_log_info(&_mavlink_log_pub, "Landing, limiting throttle");
+				mavlink_log_info(&_mavlink_log_pub, "Landing, limiting throttle\t");
+				events::send(events::ID("fixedwing_position_control_landing_limit_throttle"), events::Log::Info,
+					     "Landing, limiting throttle");
 			}
 		}
 
@@ -1572,7 +1624,8 @@ FixedwingPositionControl::control_landing(const hrt_abstime &now, const Vector2d
 			// just started with the flaring phase
 			_flare_pitch_sp = radians(_param_fw_psp_off.get());
 			_flare_height = _current_altitude - terrain_alt;
-			mavlink_log_info(&_mavlink_log_pub, "Landing, flaring");
+			mavlink_log_info(&_mavlink_log_pub, "Landing, flaring\t");
+			events::send(events::ID("fixedwing_position_control_landing_flaring"), events::Log::Info, "Landing, flaring");
 			_land_noreturn_vertical = true;
 
 		} else {
@@ -1609,7 +1662,8 @@ FixedwingPositionControl::control_landing(const hrt_abstime &now, const Vector2d
 			altitude_desired = terrain_alt + landing_slope_alt_rel_desired;
 
 			if (!_land_onslope) {
-				mavlink_log_info(&_mavlink_log_pub, "Landing, on slope");
+				mavlink_log_info(&_mavlink_log_pub, "Landing, on slope\t");
+				events::send(events::ID("fixedwing_position_control_landing_on_slope"), events::Log::Info, "Landing, on slope");
 				_land_onslope = true;
 			}
 
@@ -1747,7 +1801,9 @@ FixedwingPositionControl::Run()
 					}
 
 				} else {
-					mavlink_log_critical(&_mavlink_log_pub, "Invalid offboard setpoint");
+					mavlink_log_critical(&_mavlink_log_pub, "Invalid offboard setpoint\t");
+					events::send(events::ID("fixedwing_position_control_invalid_offboard_sp"), events::Log::Error,
+						     "Invalid offboard setpoint");
 				}
 			}
 

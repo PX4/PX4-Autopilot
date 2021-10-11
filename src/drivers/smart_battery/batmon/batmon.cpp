@@ -46,25 +46,14 @@
 
 extern "C" __EXPORT int batmon_main(int argc, char *argv[]);
 
-Batmon::Batmon(I2CSPIBusOption bus_option, const int bus, SMBus *interface):
-	SMBUS_SBS_BaseClass(bus_option, bus, interface)
+Batmon::Batmon(const I2CSPIDriverConfig &config, SMBus *interface):
+	SMBUS_SBS_BaseClass(config, interface)
 {
-
 }
 
-Batmon::~Batmon()
+I2CSPIDriverBase *Batmon::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
-	// Needn't change the parameter since there are other modules that may use it.
-	//int battsource = 0;
-	//param_set(param_find("BAT_SOURCE"), &battsource);
-}
-
-I2CSPIDriverBase *Batmon::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				      int runtime_instance)
-
-{
-	//TODO there may be a better way to pass the driver ID, since iterator object should have it
-	SMBus *interface = new SMBus(DRV_BAT_DEVTYPE_BATMON_SMBUS, iterator.bus(), cli.i2c_address);
+	SMBus *interface = new SMBus(config.devid_driver_index, config.bus, config.i2c_address);
 
 	int32_t batmon_en_param = 0;
 	param_get(param_find("BATMON_DRIVER_EN"), &batmon_en_param);
@@ -78,7 +67,7 @@ I2CSPIDriverBase *Batmon::instantiate(const BusCLIArguments &cli, const BusInsta
 		return nullptr;
 	}
 
-	Batmon *instance = new Batmon(iterator.configuredBusOption(), iterator.bus(), interface);
+	Batmon *instance = new Batmon(config, interface);
 
 	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
@@ -169,7 +158,7 @@ void Batmon::RunImpl()
 
 	float average_current = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f);
 
-	new_report.average_current_a = average_current;
+	new_report.current_average_a = average_current;
 
 	// Read run time to empty (minutes).
 	ret |= _interface->read_word(BATT_SMBUS_RUN_TIME_TO_EMPTY, result);

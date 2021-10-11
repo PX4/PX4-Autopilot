@@ -1,0 +1,24 @@
+menuconfig DRIVERS_UAVCAN
+	bool "uavcan"
+	default n
+	---help---
+		Enable support for uavcan
+
+
+menuconfig BOARD_UAVCAN_INTERFACES
+depends on DRIVERS_UAVCAN || DRIVERS_UAVCANNODE
+    int "UAVCANv0 interface count"
+    default 2
+    ---help---
+        Interface count for UAVCANv0
+
+menuconfig BOARD_UAVCAN_PERIPHERALS
+depends on DRIVERS_UAVCAN
+    string "UAVCAN peripheral firmware"
+    help
+        list of UAVCAN peripheral firmware to build and embed
+
+menuconfig BOARD_UAVCAN_TIMER_OVERRIDE
+depends on DRIVERS_UAVCAN
+    int "UAVCAN timer override"
+    default 0

@@ -125,7 +125,7 @@ class PWMIN : public ModuleBase<PWMIN>
 public:
 	void start();
 	void publish(uint16_t status, uint32_t period, uint32_t pulse_width);
-	void print_info(void);
+	int print_status() override;
 
 	static int pwmin_tim_isr(int irq, void *context, void *arg);
 

@@ -138,6 +138,12 @@ serial_ports = {
         "default_baudrate": 1, # set default to an unusable value to detect that this serial port has not been configured
         },
 
+    # Pixhawk Payload Bus
+    "PPB": {
+        "label": "Pixhawk Payload Bus",
+        "index": 401,
+        "default_baudrate": 57600,
+        },
 
     }
 

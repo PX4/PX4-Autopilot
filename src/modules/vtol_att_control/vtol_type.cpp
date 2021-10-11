@@ -77,8 +77,6 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	for (auto &pwm_disarmed : _disarmed_pwm_values.values) {
 		pwm_disarmed = PWM_MOTOR_OFF;
 	}
-
-	_current_max_pwm_values = _max_mc_pwm_values;
 }
 
 bool VtolType::init()
@@ -93,7 +91,7 @@ bool VtolType::init()
 	}
 
 	int ret = px4_ioctl(fd, PWM_SERVO_GET_MAX_PWM, (long unsigned int)&_max_mc_pwm_values);
-
+	_current_max_pwm_values = _max_mc_pwm_values;
 
 	if (ret != PX4_OK) {
 		PX4_ERR("failed getting max values");
@@ -237,7 +235,7 @@ void VtolType::check_quadchute_condition()
 {
 	if (_attc->get_transition_command() == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC && _attc->get_immediate_transition()
 	    && !_quadchute_command_treated) {
-		_attc->quadchute("QuadChute by external command");
+		_attc->quadchute(VtolAttitudeControl::QuadchuteReason::ExternalCommand);
 		_quadchute_command_treated = true;
 		_attc->reset_immediate_transition();
 
@@ -258,7 +256,7 @@ void VtolType::check_quadchute_condition()
 		if (_params->fw_min_alt > FLT_EPSILON) {
 
 			if (-(_local_pos->z) < _params->fw_min_alt) {
-				_attc->quadchute("QuadChute: Minimum altitude breached");
+				_attc->quadchute(VtolAttitudeControl::QuadchuteReason::MinimumAltBreached);
 			}
 		}
 
@@ -276,7 +274,7 @@ void VtolType::check_quadchute_condition()
 				    (_ra_hrate < -1.0f) &&
 				    (_ra_hrate_sp > 1.0f)) {
 
-					_attc->quadchute("QuadChute: loss of altitude");
+					_attc->quadchute(VtolAttitudeControl::QuadchuteReason::LossOfAlt);
 				}
 
 			} else {
@@ -284,7 +282,7 @@ void VtolType::check_quadchute_condition()
 				const bool height_rate_error = _local_pos->v_z_valid && (_local_pos->vz > 1.0f) && (_local_pos->z_deriv > 1.0f);
 
 				if (height_error && height_rate_error) {
-					_attc->quadchute("QuadChute: large altitude error");
+					_attc->quadchute(VtolAttitudeControl::QuadchuteReason::LargeAltError);
 				}
 			}
 		}
@@ -293,7 +291,7 @@ void VtolType::check_quadchute_condition()
 		if (_params->fw_qc_max_pitch > 0) {
 
 			if (fabsf(euler.theta()) > fabsf(math::radians(_params->fw_qc_max_pitch))) {
-				_attc->quadchute("Maximum pitch angle exceeded");
+				_attc->quadchute(VtolAttitudeControl::QuadchuteReason::MaximumPitchExceeded);
 			}
 		}
 
@@ -301,7 +299,7 @@ void VtolType::check_quadchute_condition()
 		if (_params->fw_qc_max_roll > 0) {
 
 			if (fabsf(euler.phi()) > fabsf(math::radians(_params->fw_qc_max_roll))) {
-				_attc->quadchute("Maximum roll angle exceeded");
+				_attc->quadchute(VtolAttitudeControl::QuadchuteReason::MaximumRollExceeded);
 			}
 		}
 	}
@@ -383,7 +381,7 @@ void VtolType::set_all_motor_state(const motor_state target_state, const int val
 
 void VtolType::set_main_motor_state(const motor_state target_state, const int value)
 {
-	if (_main_motor_state != target_state) {
+	if (_main_motor_state != target_state || target_state == motor_state::VALUE) {
 
 		if (set_motor_state(target_state, _main_motor_channel_bitmap, value)) {
 			_main_motor_state = target_state;
@@ -393,7 +391,7 @@ void VtolType::set_main_motor_state(const motor_state target_state, const int va
 
 void VtolType::set_alternate_motor_state(const motor_state target_state, const int value)
 {
-	if (_alternate_motor_state != target_state) {
+	if (_alternate_motor_state != target_state || target_state == motor_state::VALUE) {
 
 		if (set_motor_state(target_state, _alternate_motor_channel_bitmap, value)) {
 			_alternate_motor_state = target_state;
@@ -561,23 +559,32 @@ float VtolType::pusher_assist()
 
 	// calculate the desired pitch seen in the heading frame
 	// this value corresponds to the amount the vehicle would try to pitch down
-	float pitch_down = atan2f(body_z_sp(0), body_z_sp(2));
+	const float pitch_setpoint = atan2f(body_z_sp(0), body_z_sp(2));
 
 	// normalized pusher support throttle (standard VTOL) or tilt (tiltrotor), initialize to 0
 	float forward_thrust = 0.0f;
 
+	float pitch_setpoint_min = _params->pitch_min_rad;
+
+	if (_attc->get_pos_sp_triplet()->current.valid
+	    && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+		pitch_setpoint_min = _params->land_pitch_min_rad; // set min pitch during LAND (usually lower to generate less lift)
+	}
+
 	// only allow pitching down up to threshold, the rest of the desired
 	// forward acceleration will be compensated by the pusher/tilt
-	if (pitch_down < -_params->down_pitch_max) {
-		// desired roll angle in heading frame stays the same
-		float roll_new = -asinf(body_z_sp(1));
 
-		forward_thrust = (sinf(-pitch_down) - sinf(_params->down_pitch_max)) * _params->forward_thrust_scale;
+	if (pitch_setpoint < pitch_setpoint_min) {
+		// desired roll angle in heading frame stays the same
+		const float roll_new = -asinf(body_z_sp(1));
+
+		forward_thrust = (sinf(pitch_setpoint_min) - sinf(pitch_setpoint)) * _params->forward_thrust_scale;
 		// limit forward actuation to [0, 0.9]
 		forward_thrust = math::constrain(forward_thrust, 0.0f, 0.9f);
 
-		// return the vehicle to level position
-		float pitch_new = 0.0f;
+		// Set the pitch to 0 if the pitch limit is negative (pitch down), but allow a positive (pitch up) pitch.
+		// This can be used for tiltrotor to make them hover with a positive angle of attack
+		const float pitch_new = pitch_setpoint_min > 0.f ? pitch_setpoint_min : 0.f;
 
 		// create corrected desired body z axis in heading frame
 		const Dcmf R_tmp = Eulerf(roll_new, pitch_new, 0.0f);

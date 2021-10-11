@@ -56,6 +56,7 @@
 #define SDP3X_RESET_ADDR		0x00
 #define SDP3X_RESET_CMD			0x06
 #define SDP3X_CONT_MEAS_AVG_MODE	0x3615
+#define SDP3X_CONT_MODE_STOP		0x3FF9
 
 #define SDP3X_SCALE_PRESSURE_SDP31	60
 #define SDP3X_SCALE_PRESSURE_SDP32	240
@@ -69,23 +70,20 @@
 class SDP3X : public Airspeed, public I2CSPIDriver<SDP3X>
 {
 public:
-	SDP3X(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS_1_SDP3X,
-	      bool keep_retrying = false) :
-		Airspeed(bus, bus_frequency, address, CONVERSION_INTERVAL),
-		I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address),
-		_keep_retrying{keep_retrying}
+	SDP3X(const I2CSPIDriverConfig &config) :
+		Airspeed(config.bus, config.bus_frequency, config.i2c_address, CONVERSION_INTERVAL),
+		I2CSPIDriver(config),
+		_keep_retrying{config.keep_running}
 	{
 	}
 
 	virtual ~SDP3X() = default;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void	RunImpl();
 
-	void start();
+	int init() override;
 
 private:
 	enum class State {

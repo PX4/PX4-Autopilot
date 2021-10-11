@@ -46,7 +46,7 @@
  * This technique can be used to avoid the plane having to pitch down in order to move forward.
  * This prevents large, negative lift values being created when facing strong winds.
  * Fixed-wing forward actuators refers to puller/pusher (standard VTOL), or forward-tilt (tiltrotor VTOL).
- * Only active if demaded down pitch is above VT_DWN_PITCH_MAX, and uses VT_FWD_THRUST_SC to get from
+ * Only active if demaded down pitch is below VT_PITCH_MIN, and uses VT_FWD_THRUST_SC to get from
  * demanded down pitch to fixed-wing actuation.
  *
  * @value 0 Disable FW forward actuation in hover.
@@ -62,22 +62,10 @@
 PARAM_DEFINE_INT32(VT_FWD_THRUST_EN, 0);
 
 /**
- * Maximum allowed angle the vehicle is allowed to pitch down to generate forward force
- *
- * When fixed-wing forward actuation is active (see VT_FW_TRHUST_EN).
- * If demanded down pitch exceeds this limmit, the fixed-wing forward actuators are used instead.
- *
- * @min 0.0
- * @max 45.0
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_DWN_PITCH_MAX, 5.0f);
-
-/**
  * Fixed-wing actuator thrust scale for hover forward flight.
  *
  * Scale applied to the demanded down-pitch to get the fixed-wing forward actuation in hover mode.
- * Only active if demaded down pitch is above VT_DWN_PITCH_MAX.
+ * Only active if demaded down pitch is below VT_PITCH_MIN.
  * Enabled via VT_FWD_THRUST_EN.
  *
  * @min 0.0

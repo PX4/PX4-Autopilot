@@ -38,7 +38,6 @@
 #include <board_config.h>
 #include <drivers/drv_adc.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_rc_input.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/rc/crsf.h>
 #include <lib/rc/ghst.hpp>
@@ -153,7 +152,8 @@ private:
 	int		_rcs_fd{-1};
 	char		_device[20] {};					///< device / serial port path
 
-	uint8_t _rcs_buf[SBUS_BUFFER_SIZE] {};
+	static constexpr size_t RC_MAX_BUFFER_SIZE{SBUS_BUFFER_SIZE};
+	uint8_t _rcs_buf[RC_MAX_BUFFER_SIZE] {};
 
 	uint16_t _raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {};
 	uint16_t _raw_rc_count{};
