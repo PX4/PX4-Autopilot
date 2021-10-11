@@ -52,6 +52,7 @@
 #include <matrix/math.hpp>
 #include <navigator/navigation.h>
 #include <uORB/topics/mission.h>
+#include <uORB/topics/mission_checksum.h>
 #include <uORB/topics/mission_result.h>
 
 using matrix::wrap_2pi;
@@ -475,12 +476,13 @@ MavlinkMissionManager::send_mission_item_reached(uint16_t seq)
 }
 
 void
-MavlinkMissionManager::send_group_start(uint32_t group_id, uint64_t timestamp)
+MavlinkMissionManager::send_group_start(uint32_t group_id, uint64_t timestamp, uint32_t mission_checksum)
 {
 	mavlink_group_start_t group_start{};
 
 	group_start.group_id = group_id;
 	group_start.time_usec = timestamp;
+	group_start.mission_checksum = mission_checksum;
 
 	mavlink_msg_group_start_send_struct(_mavlink->get_channel(), &group_start);
 
@@ -488,12 +490,13 @@ MavlinkMissionManager::send_group_start(uint32_t group_id, uint64_t timestamp)
 }
 
 void
-MavlinkMissionManager::send_group_end(uint32_t group_id, uint64_t timestamp)
+MavlinkMissionManager::send_group_end(uint32_t group_id, uint64_t timestamp, uint32_t mission_checksum)
 {
 	mavlink_group_end_t group_end{};
 
 	group_end.group_id = group_id;
 	group_end.time_usec = timestamp;
+	group_end.mission_checksum = mission_checksum;
 
 	mavlink_msg_group_end_send_struct(_mavlink->get_channel(), &group_end);
 
@@ -541,12 +544,21 @@ MavlinkMissionManager::send()
 			}
 		}
 
+		uORB::Subscription csum_sub{ORB_ID(mission_checksum)};
+		mission_checksum_s csum{};
+
+		uint32_t checksum = 0;
+
+		if (csum_sub.advertised() && csum_sub.copy(&csum)) {
+			checksum = csum.all_checksum;
+		}
+
 		for (uint8_t i = 0; i < mission_result.groups_ended_num; i++) {
-			send_group_end(mission_result.groups_ended[i], mission_result.timestamp);
+			send_group_end(mission_result.groups_ended[i], mission_result.timestamp, checksum);
 		}
 
 		for (uint8_t i = 0; i < mission_result.groups_started_num; i++) {
-			send_group_start(mission_result.groups_started[i], mission_result.timestamp);
+			send_group_start(mission_result.groups_started[i], mission_result.timestamp, checksum);
 		}
 
 	} else {
