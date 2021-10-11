@@ -110,8 +110,9 @@ AirspeedValidator::get_wind_estimator_states(uint64_t timestamp)
 	wind_est.tas_innov_var = _wind_estimator.get_tas_innov_var();
 	wind_est.beta_innov = _wind_estimator.get_beta_innov();
 	wind_est.beta_innov_var = _wind_estimator.get_beta_innov_var();
-	wind_est.tas_scale = _wind_estimator.get_tas_scale();
-	wind_est.tas_scale_var = _wind_estimator.get_tas_scale_var();
+	wind_est.tas_scale_raw = _wind_estimator.get_tas_scale();
+	wind_est.tas_scale_raw_var = _wind_estimator.get_tas_scale_var();
+	wind_est.tas_scale_validated = _CAS_scale_estimated;
 	return wind_est;
 }
 
