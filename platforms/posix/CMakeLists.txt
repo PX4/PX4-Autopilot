@@ -34,10 +34,6 @@ target_link_libraries(px4
 	PRIVATE
 		${module_libraries}
 		pthread m
-
-		# horrible circular dependencies that need to be teased apart
-		px4_layer px4_platform
-		work_queue
 		parameters
 )
 
