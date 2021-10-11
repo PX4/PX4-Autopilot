@@ -56,7 +56,7 @@ WindEstimator::initialise(const matrix::Vector3f &velI, const matrix::Vector2f &
 	// initilaise wind states assuming zero side slip and horizontal flight
 	_state(INDEX_W_N) = velI(INDEX_W_N) - tas_meas * cosf(heading_est);
 	_state(INDEX_W_E) = velI(INDEX_W_E) - tas_meas * sinf(heading_est);
-	_state(INDEX_TAS_SCALE) = 1.0f;
+	_state(INDEX_TAS_SCALE) = _scale_init;
 
 	// compute jacobian of states wrt north/each earth velocity states and true airspeed measurement
 	float L0 = v_e * v_e;
@@ -116,7 +116,7 @@ WindEstimator::update(uint64_t time_now)
 	_time_last_update = time_now;
 
 	float q_w = _wind_p_var;
-	float q_k_tas = _tas_scale_p_var;
+	float q_k_tas = _disable_tas_scale_estimate ? 0.f : _tas_scale_p_var;
 
 	float SPP0 = dt * dt;
 	float SPP1 = SPP0 * q_w;
@@ -160,28 +160,32 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 	const float v_e = velI(1);
 	const float v_d = velI(2);
 
-	const float k_tas = _state(INDEX_TAS_SCALE);
+	// calculate airspeed from ground speed and wind states (without scale)
+	const float airspeed_predicted_raw = sqrtf((v_n - _state(INDEX_W_N)) * (v_n - _state(INDEX_W_N)) +
+					     (v_e - _state(INDEX_W_E)) * (v_e - _state(INDEX_W_E)) + v_d * v_d);
 
-	// compute kalman gain K
-	const float HH0 = sqrtf(v_d * v_d + (v_e - _state(INDEX_W_E)) * (v_e - _state(INDEX_W_E)) + (v_n - _state(
-					INDEX_W_N)) * (v_n - _state(INDEX_W_N)));
-	const float HH1 = k_tas / HH0;
+	// compute state observation matrix H
+	const float HH0 = airspeed_predicted_raw;
+	const float HH1 = _state(INDEX_TAS_SCALE) / HH0;
 
 	matrix::Matrix<float, 1, 3> H_tas;
 	H_tas(0, 0) = HH1 * (-v_n + _state(INDEX_W_N));
 	H_tas(0, 1) = HH1 * (-v_e + _state(INDEX_W_E));
 	H_tas(0, 2) = HH0;
 
-	matrix::Matrix<float, 3, 1> K = _P * H_tas.transpose();
-
+	// compute innovation covariance S
 	const matrix::Matrix<float, 1, 1> S = H_tas * _P * H_tas.transpose() + _tas_var;
 
+	// compute Kalman gain
+	matrix::Matrix<float, 3, 1> K = _P * H_tas.transpose();
 	K /= S(0, 0);
-	// compute innovation
-	const float airspeed_pred = k_tas * sqrtf((v_n - _state(INDEX_W_N)) * (v_n - _state(INDEX_W_N)) + (v_e - _state(
-					    INDEX_W_E)) *
-				    (v_e - _state(INDEX_W_E)) + v_d * v_d);
 
+	if (_disable_tas_scale_estimate) {
+		K(2, 0) = 0.f;
+	}
+
+	// compute innovation
+	const float airspeed_pred = _state(INDEX_TAS_SCALE) * airspeed_predicted_raw;
 	_tas_innov = true_airspeed - airspeed_pred;
 
 	// innovation variance
@@ -259,12 +263,16 @@ WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const 
 	H_beta(0, 1) = HB15 * (HB12 - HB7 + HB8) + HB16 * HB5;
 	H_beta(0, 2) = 0;
 
-	// compute kalman gain
-	matrix::Matrix<float, 3, 1> K = _P * H_beta.transpose();
-
+	// compute innovation covariance S
 	const matrix::Matrix<float, 1, 1> S = H_beta * _P * H_beta.transpose() + _beta_var;
 
+	// compute Kalman gain
+	matrix::Matrix<float, 3, 1> K = _P * H_beta.transpose();
 	K /= S(0, 0);
+
+	if (_disable_tas_scale_estimate) {
+		K(2, 0) = 0.f;
+	}
 
 	// compute predicted side slip angle
 	matrix::Vector3f rel_wind(velI(0) - _state(INDEX_W_N), velI(1) - _state(INDEX_W_E), velI(2));
@@ -331,16 +339,6 @@ WindEstimator::run_sanity_checks()
 	if (!PX4_ISFINITE(_state(INDEX_W_N)) || !PX4_ISFINITE(_state(INDEX_W_E)) || !PX4_ISFINITE(_state(INDEX_TAS_SCALE))) {
 		_initialised = false;
 		return;
-	}
-
-	// check if we should inhibit learning of airspeed scale factor and rather use a pre-set value.
-	// airspeed scale factor errors arise from sensor installation which does not change and only needs
-	// to be computed once for a perticular installation.
-	if (_enforced_airspeed_scale < 0) {
-		_state(INDEX_TAS_SCALE) = math::max(0.0f, _state(INDEX_TAS_SCALE));
-
-	} else {
-		_state(INDEX_TAS_SCALE) = _enforced_airspeed_scale;
 	}
 
 	// attain symmetry
