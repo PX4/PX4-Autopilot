@@ -470,10 +470,19 @@ FixedwingPositionControl::status_publish()
 
 	pos_ctrl_status.nav_roll = _att_sp.roll_body;
 	pos_ctrl_status.nav_pitch = _att_sp.pitch_body;
-	pos_ctrl_status.nav_bearing = _l1_control.nav_bearing();
 
-	pos_ctrl_status.target_bearing = _l1_control.target_bearing();
-	pos_ctrl_status.xtrack_error = _l1_control.crosstrack_error();
+	if (_l1_control.has_guidance_updated()) {
+		pos_ctrl_status.nav_bearing = _l1_control.nav_bearing();
+
+		pos_ctrl_status.target_bearing = _l1_control.target_bearing();
+		pos_ctrl_status.xtrack_error = _l1_control.crosstrack_error();
+
+	} else {
+		pos_ctrl_status.nav_bearing = NAN;
+		pos_ctrl_status.target_bearing = NAN;
+		pos_ctrl_status.xtrack_error = NAN;
+
+	}
 
 	pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(_current_latitude, _current_longitude,
 				  _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon);
@@ -1865,6 +1874,8 @@ FixedwingPositionControl::Run()
 
 				}
 			}
+
+			_l1_control.reset_has_guidance_updated();
 		}
 
 		perf_end(_loop_perf);
