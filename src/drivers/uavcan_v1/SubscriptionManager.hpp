@@ -109,7 +109,7 @@ private:
 
 	UavcanHeartbeatSubscriber _heartbeat_sub {_canard_instance};
 
-#if UAVCAN_V1_GETINFO_RESPONDER
+#if CONFIG_UAVCAN_V1_GETINFO_RESPONDER
 	// GetInfo response
 	UavcanGetInfoResponse _getinfo_rsp {_canard_instance};
 #endif
