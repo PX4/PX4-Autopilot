@@ -1389,8 +1389,8 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		case MAV_CMD_NAV_TAKEOFF:
 			mission_item->nav_cmd = NAV_CMD_TAKEOFF;
+			mission_item->params[0] = mavlink_mission_item->param1;  // Pitch
 			mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
-
 			break;
 
 		case MAV_CMD_NAV_LOITER_TO_ALT:
@@ -1424,8 +1424,14 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			break;
 
 		case MAV_CMD_NAV_VTOL_TAKEOFF:
+			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+			mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
+			break;
+
 		case MAV_CMD_NAV_VTOL_LAND:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+			mission_item->params[0] = mavlink_mission_item->param1;  // Land options
+			mission_item->params[2] = mavlink_mission_item->param3;  // Approach altitude
 			mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
 			break;
 
