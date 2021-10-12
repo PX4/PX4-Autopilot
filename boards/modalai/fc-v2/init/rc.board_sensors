@@ -26,3 +26,6 @@ bmm150 -I start
 
 # Internal I2C baro
 bmp388 -I start
+
+# GPS LED
+rgbled_ncp5623c start -X -a 0x38
