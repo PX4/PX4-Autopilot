@@ -340,6 +340,7 @@ bool Ekf::calcOptFlowBodyRateComp()
 		return false;
 	}
 
+	bool is_body_rate_comp_available = false;
 	const bool use_flow_sensor_gyro = PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(0)) && PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(1)) && PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(2));
 
 	if (use_flow_sensor_gyro) {
@@ -356,6 +357,8 @@ bool Ekf::calcOptFlowBodyRateComp()
 
 			// calculate the bias estimate using  a combined LPF and spike filter
 			_flow_gyro_bias = _flow_gyro_bias * 0.99f + matrix::constrain(measured_body_rate - reference_body_rate, -0.1f, 0.1f) * 0.01f;
+
+			is_body_rate_comp_available = true;
 		}
 
 	} else {
@@ -365,13 +368,15 @@ bool Ekf::calcOptFlowBodyRateComp()
 		    && (_flow_sample_delayed.dt > FLT_EPSILON)) {
 			_flow_sample_delayed.gyro_xyz = -_imu_del_ang_of / _delta_time_of * _flow_sample_delayed.dt;
 			_flow_gyro_bias.zero();
+
+			is_body_rate_comp_available = true;
 		}
 	}
 
 	// reset the accumulators
 	_imu_del_ang_of.setZero();
 	_delta_time_of = 0.0f;
-	return true;
+	return is_body_rate_comp_available;
 }
 
 // calculate the measurement variance for the optical flow sensor (rad/sec)^2
