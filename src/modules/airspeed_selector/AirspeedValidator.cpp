@@ -57,8 +57,9 @@ AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_dat
 			      input_data.ground_velocity, input_data.lpos_evh, input_data.lpos_evv, input_data.att_q);
 	update_in_fixed_wing_flight(input_data.in_fixed_wing_flight);
 	check_airspeed_data_stuck(input_data.timestamp);
-	check_airspeed_innovation(input_data.timestamp, input_data.vel_test_ratio, input_data.mag_test_ratio);
 	check_load_factor(input_data.accel_z);
+	check_airspeed_innovation(input_data.timestamp, input_data.vel_test_ratio, input_data.mag_test_ratio,
+				  input_data.ground_velocity);
 	update_airspeed_valid_status(input_data.timestamp);
 }
 
@@ -95,14 +96,10 @@ AirspeedValidator::get_wind_estimator_states(uint64_t timestamp)
 	airspeed_wind_s wind_est = {};
 
 	wind_est.timestamp = timestamp;
-	float wind[2];
-	_wind_estimator.get_wind(wind);
-	wind_est.windspeed_north = wind[0];
-	wind_est.windspeed_east = wind[1];
-	float wind_cov[2];
-	_wind_estimator.get_wind_var(wind_cov);
-	wind_est.variance_north = wind_cov[0];
-	wind_est.variance_east = wind_cov[1];
+	wind_est.windspeed_north = _wind_estimator.get_wind()(0);
+	wind_est.windspeed_east = _wind_estimator.get_wind()(1);
+	wind_est.variance_north = _wind_estimator.get_wind_var()(0);
+	wind_est.variance_east = _wind_estimator.get_wind_var()(1);
 	wind_est.tas_innov = _wind_estimator.get_tas_innov();
 	wind_est.tas_innov_var = _wind_estimator.get_tas_innov_var();
 	wind_est.beta_innov = _wind_estimator.get_beta_innov();
@@ -217,7 +214,7 @@ AirspeedValidator::check_airspeed_data_stuck(uint64_t time_now)
 
 void
 AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_status_vel_test_ratio,
-		float estimator_status_mag_test_ratio)
+		float estimator_status_mag_test_ratio, matrix::Vector3f vI)
 {
 	// Check normalised innovation levels with requirement for continuous data and use of hysteresis
 	// to prevent false triggering.
@@ -227,7 +224,7 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 	}
 
 	// reset states if we are not flying or wind estimator was just initialized/reset
-	if (!_in_fixed_wing_flight || (time_now - _time_wind_estimator_initialized) < 10_s
+	if (!_in_fixed_wing_flight || (time_now - _time_wind_estimator_initialized) < 5_s
 	    || _tas_innov_integ_threshold <= 0.f) {
 		_innovations_check_failed = false;
 		_time_last_tas_pass = time_now;
@@ -241,13 +238,13 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 
 	} else {
 		// nav velocity data is likely good so airspeed innovations are able to be used
-		// compute the ratio of innovation to gate size
-		const float dt_s = math::constrain((time_now - _time_last_aspd_innov_check) / 1e6f, 0.01f, 0.2f); // limit to [100,5] Hz
-		const float tas_test_ratio = _wind_estimator.get_tas_innov() * _wind_estimator.get_tas_innov()
-					     / (fmaxf(_tas_gate, 1.0f) * fmaxf(_tas_gate, 1.f) * _wind_estimator.get_tas_innov_var());
+		const float dt_s = math::constrain((time_now - _time_last_aspd_innov_check) / 1e6f, 0.01f, 0.2f); // limit to [5,100] Hz
+		matrix::Vector2f wind_2d(_wind_estimator.get_wind());
+		matrix::Vector3f air_vel = vI - matrix::Vector3f {wind_2d(0), wind_2d(1), 0.f};
+		const float tas_innov = abs(_TAS - air_vel.norm());
 
-		if (tas_test_ratio > _tas_innov_threshold) {
-			_apsd_innov_integ_state += dt_s * (tas_test_ratio - _tas_innov_threshold); // integrate exceedance
+		if (tas_innov > _tas_innov_threshold) {
+			_apsd_innov_integ_state += dt_s * (tas_innov - _tas_innov_threshold); // integrate exceedance
 
 		} else {
 			// reset integrator used to trigger and record pass if integrator check is disabled
