@@ -13,7 +13,6 @@
 . ${R}etc/init.d/rc.mc_defaults
 . ${R}etc/init.d/rc.ctrlalloc
 
-
 param set-default MPC_USE_HTE 0
 
 param set-default VM_MASS 1.5

@@ -23,9 +23,7 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
-
 param set-default PWM_AUX_DIS5 950
-
 
 param set-default MC_ROLL_P 6
 param set-default MC_ROLLRATE_P 0.17

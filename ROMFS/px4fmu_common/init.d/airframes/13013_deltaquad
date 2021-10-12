@@ -22,7 +22,6 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
-
 param set-default BAT1_CAPACITY 23000
 param set-default BAT1_N_CELLS 4
 param set-default BAT1_R_INTERNAL 0.0025

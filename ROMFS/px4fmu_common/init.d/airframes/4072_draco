@@ -22,10 +22,6 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
-set MIXER quad_x
-set PWM_OUT 1234
-
-
 # use the Q attitude estimator, it works w/o mag or GPS.
 param set-default SYS_MC_EST_GROUP 3
 param set-default ATT_ACC_COMP 0
