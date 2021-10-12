@@ -499,6 +499,8 @@ static inline navigation_mode_t navigation_mode(uint8_t main_state)
 
 	case commander_state_s::MAIN_STATE_STAB: return navigation_mode_t::stab;
 
+	case commander_state_s::MAIN_STATE_AIRSPEED: return navigation_mode_t::airspeed;
+
 	case commander_state_s::MAIN_STATE_AUTO_TAKEOFF: return navigation_mode_t::auto_takeoff;
 
 	case commander_state_s::MAIN_STATE_AUTO_LAND: return navigation_mode_t::auto_land;
@@ -510,7 +512,7 @@ static inline navigation_mode_t navigation_mode(uint8_t main_state)
 	case commander_state_s::MAIN_STATE_ORBIT: return navigation_mode_t::orbit;
 	}
 
-	static_assert(commander_state_s::MAIN_STATE_MAX - 1 == (int)navigation_mode_t::orbit, "enum definition mismatch");
+	static_assert(commander_state_s::MAIN_STATE_MAX - 1 == (int)navigation_mode_t::airspeed, "enum definition mismatch");
 
 	return navigation_mode_t::unknown;
 }

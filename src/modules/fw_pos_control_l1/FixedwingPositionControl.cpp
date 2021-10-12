@@ -1129,33 +1129,6 @@ FixedwingPositionControl::control_auto_loiter(const hrt_abstime &now, const Vect
 
 		curr_wp = prev_wp = _transition_waypoint;
 
-	} else if (_control_mode.flag_control_airspeed_enabled) {
-		/* AIRSPEED CONTROL: pitch stick moves airspeed setpoint, throttle stick sets throttle */
-
-		_control_mode_current = FW_POSCTRL_MODE_AIRSPEED;
-
-		// if we assume that user is taking off then help by demanding altitude setpoint well above ground
-		// and set limit to pitch angle to prevent steering into ground
-		// this will only affect planes and not VTOL
-		float pitch_limit_min = _param_fw_p_lim_min.get();
-		// do_takeoff_help(&_hold_alt, &pitch_limit_min);
-
-		_tecs.set_speed_weight(2.0f);
-
-		tecs_update_pitch_throttle(now, _current_altitude,
-					   get_demanded_airspeed(),
-					   radians(_param_fw_p_lim_min.get()),
-					   radians(_param_fw_p_lim_max.get()),
-					   0.0f,
-					   1.0f,
-					   _param_fw_thr_cruise.get(),
-					   false,
-					   pitch_limit_min,
-					   tecs_status_s::TECS_MODE_NORMAL);
-
-		_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
-		_att_sp.yaw_body = 0;
-
 	} else {
 		/* current waypoint (the one currently heading for) */
 		curr_wp = Vector2d(pos_sp_curr.lat, pos_sp_curr.lon);
@@ -1775,6 +1748,40 @@ FixedwingPositionControl::control_manual_altitude(const hrt_abstime &now, const 
 }
 
 void
+FixedwingPositionControl::control_airspeed(const hrt_abstime &now, const Vector2d &curr_pos,
+		const Vector2f &ground_speed)
+{
+	/* AIRSPEED CONTROL: pitch stick moves airspeed setpoint, throttle stick sets throttle */
+
+	// if we assume that user is taking off then help by demanding altitude setpoint well above ground
+	// and set limit to pitch angle to prevent steering into ground
+	// this will only affect planes and not VTOL
+	float pitch_limit_min = _param_fw_p_lim_min.get();
+	// do_takeoff_help(&_hold_alt, &pitch_limit_min);
+
+	_tecs.set_speed_weight(2.0f);
+
+	tecs_update_pitch_throttle(now, _current_altitude,
+				   get_demanded_airspeed(),
+				   radians(_param_fw_p_lim_min.get()),
+				   radians(_param_fw_p_lim_max.get()),
+				   0.0f,
+				   1.0f,
+				   _param_fw_thr_cruise.get(),
+				   false,
+				   pitch_limit_min,
+				   tecs_status_s::TECS_MODE_NORMAL);
+
+	_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
+	_att_sp.yaw_body = 0;
+
+	_att_sp.pitch_body = get_tecs_pitch();
+
+	_last_manual = !_control_mode.flag_control_position_enabled;
+
+}
+
+void
 FixedwingPositionControl::control_manual_position(const hrt_abstime &now, const Vector2d &curr_pos,
 		const Vector2f &ground_speed)
 {
@@ -2068,6 +2075,11 @@ FixedwingPositionControl::Run()
 
 		case FW_POSCTRL_MODE_MANUAL_ALTITUDE: {
 				control_manual_altitude(_local_pos.timestamp, curr_pos, ground_speed);
+				break;
+			}
+
+		case FW_POSCTRL_MODE_AIRSPEED: {
+				control_airspeed(_local_pos.timestamp, curr_pos, ground_speed);
 				break;
 			}
 

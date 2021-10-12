@@ -339,6 +339,7 @@ private:
 					     const position_setpoint_s &pos_sp_curr);
 	void		control_manual_altitude(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed);
 	void		control_manual_position(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed);
+	void		control_airspeed(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed);
 
 	float		get_tecs_pitch();
 	float		get_tecs_thrust();
