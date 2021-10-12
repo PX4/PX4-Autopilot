@@ -52,7 +52,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/estimator_sensor_calibration.h>
+#include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/magnetometer_bias_estimate.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_mag.h>
@@ -108,7 +108,7 @@ private:
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 
 	// Used to check, save and use learned magnetometer biases
-	uORB::SubscriptionMultiArray<estimator_sensor_calibration_s> _estimator_sensor_calibration_subs{ORB_ID::estimator_sensor_calibration};
+	uORB::SubscriptionMultiArray<estimator_sensor_bias_s> _estimator_sensor_bias_subs{ORB_ID::estimator_sensor_bias};
 
 	bool _in_flight_mag_cal_available{false}; ///< from navigation filter
 	bool _on_ground_mag_bias_estimate_available{false}; ///< from pre-takeoff mag_bias_estimator
