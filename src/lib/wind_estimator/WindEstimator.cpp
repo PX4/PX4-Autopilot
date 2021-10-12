@@ -104,7 +104,7 @@ WindEstimator::update(uint64_t time_now)
 	_wind_estimator_reset = false;
 
 	// run covariance prediction at 1Hz
-	if (time_now - _time_last_update < 1000 * 1000 || _time_last_update == 0) {
+	if (time_now - _time_last_update < 1_s || _time_last_update == 0) {
 		if (_time_last_update == 0) {
 			_time_last_update = time_now;
 		}
@@ -149,7 +149,7 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 	}
 
 	// don't fuse faster than 10Hz
-	if (time_now - _time_last_airspeed_fuse < 100 * 1000) {
+	if (time_now - _time_last_airspeed_fuse < 100_ms) {
 		return;
 	}
 
@@ -228,7 +228,7 @@ WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const 
 	}
 
 	// don't fuse faster than 10Hz
-	if (time_now - _time_last_beta_fuse < 100 * 1000) {
+	if (time_now - _time_last_beta_fuse < 100_ms) {
 		return;
 	}
 
@@ -362,7 +362,7 @@ WindEstimator::check_if_meas_is_rejected(uint64_t time_now, float innov, float i
 		time_meas_rejected = 0;
 	}
 
-	reinit_filter = time_now - time_meas_rejected > 5 * 1000 * 1000 && time_meas_rejected != 0;
+	reinit_filter = time_now - time_meas_rejected > 5_s && time_meas_rejected != 0;
 
 	return time_meas_rejected != 0;
 }
