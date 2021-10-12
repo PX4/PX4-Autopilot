@@ -41,6 +41,8 @@
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 
+using namespace time_literals;
+
 class WindEstimator
 {
 public:
