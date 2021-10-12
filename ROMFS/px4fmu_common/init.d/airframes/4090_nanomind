@@ -17,10 +17,6 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
-set MIXER quad_x
-set PWM_OUT 1234
-
-
 param set-default BAT1_N_CELLS 1
 
 param set-default MC_ROLL_P 8

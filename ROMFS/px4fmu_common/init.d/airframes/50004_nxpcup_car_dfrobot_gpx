@@ -20,7 +20,6 @@
 
 . ${R}etc/init.d/rc.rover_defaults
 
-
 param set-default BAT1_N_CELLS 2
 
 param set-default EKF2_GBIAS_INIT 0.01
