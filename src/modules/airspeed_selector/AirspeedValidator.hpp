@@ -178,7 +178,7 @@ private:
 	void update_CAS_TAS(float air_pressure_pa, float air_temperature_celsius);
 	void check_airspeed_data_stuck(uint64_t timestamp);
 	void check_airspeed_innovation(uint64_t timestamp, float estimator_status_vel_test_ratio,
-				       float estimator_status_mag_test_ratio);
+				       float estimator_status_mag_test_ratio, matrix::Vector3f vI);
 	void check_load_factor(float accel_z);
 	void update_airspeed_valid_status(const uint64_t timestamp);
 	void reset();
