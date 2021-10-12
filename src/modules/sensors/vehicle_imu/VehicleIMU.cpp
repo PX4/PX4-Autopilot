@@ -665,9 +665,7 @@ void VehicleIMU::AccelCalibrationUpdate()
 	static constexpr float max_var_ratio = 1e2f;
 
 	if (_armed) {
-		static constexpr uint8_t accel_cal_size = sizeof(_accel_cal) / sizeof(_accel_cal[0]);
-
-		for (int i = 0; i < math::min(_estimator_sensor_bias_subs.size(), accel_cal_size); i++) {
+		for (int i = 0; i < math::min(_estimator_sensor_bias_subs.size(), (uint8_t)ORB_MULTI_MAX_INSTANCES); i++) {
 			estimator_sensor_bias_s estimator_sensor_bias;
 
 			if (_estimator_sensor_bias_subs[i].update(&estimator_sensor_bias)) {
