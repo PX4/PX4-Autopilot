@@ -329,12 +329,12 @@ AirspeedModule::Run()
 					       _position_setpoint.type != position_setpoint_s::SETPOINT_TYPE_LAND &&
 					       _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 
+		const matrix::Vector3f vI(_vehicle_local_position.vx, _vehicle_local_position.vy, _vehicle_local_position.vz);
+
 		// Prepare data for airspeed_validator
 		struct airspeed_validator_update_data input_data = {};
 		input_data.timestamp = _time_now_usec;
-		input_data.lpos_vx = _vehicle_local_position.vx;
-		input_data.lpos_vy = _vehicle_local_position.vy;
-		input_data.lpos_vz = _vehicle_local_position.vz;
+		input_data.ground_velocity = vI;
 		input_data.lpos_valid = _vehicle_local_position_valid;
 		input_data.lpos_evh = _vehicle_local_position.evh;
 		input_data.lpos_evv = _vehicle_local_position.evv;
