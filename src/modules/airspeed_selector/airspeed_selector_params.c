@@ -167,34 +167,34 @@ PARAM_DEFINE_INT32(ASPD_DO_CHECKS, 1);
 PARAM_DEFINE_INT32(ASPD_FALLBACK_GW, 0);
 
 /**
- * Airspeed failsafe consistency threshold
+ * Airspeed failure innovation threshold
  *
- * This specifies the minimum airspeed test ratio required to trigger a failsafe. Larger values make the check less sensitive,
- * smaller values make it more sensitive. Start with a value of 1.0 when tuning. When tas_test_ratio is > 1.0 it indicates the
- * inconsistency between predicted and measured airspeed is large enough to cause the wind EKF to reject airspeed measurements.
+ * This specifies the minimum airspeed innovation required to trigger a failsafe. Larger values make the check less sensitive,
+ * smaller values make it more sensitive. Large innovations indicate an inconsistency between predicted (groundspeed - windspeeed)
+ * and measured airspeed.
  * The time required to detect a fault when the threshold is exceeded depends on the size of the exceedance and is controlled by the ASPD_FS_INTEG parameter.
-*
+ *
+ * @unit m/s
  * @min 0.5
- * @max 3.0
+ * @max 10.0
  * @decimal 1
  * @group Airspeed Validator
  */
-PARAM_DEFINE_FLOAT(ASPD_FS_INNOV, 1.0f);
+PARAM_DEFINE_FLOAT(ASPD_FS_INNOV, 5.f);
 
 /**
- * Airspeed failsafe consistency delay
+ * Airspeed failure innovation integral threshold
  *
- * This sets the time integral of airspeed test ratio exceedance above ASPD_FS_INNOV required to trigger a failsafe.
- * For example if ASPD_FS_INNOV is 1 and estimator_status.tas_test_ratio is 2.0, then the exceedance is 1.0 and the integral will
- * rise at a rate of 1.0/second. A negative value disables the check. Larger positive values make the check less sensitive, smaller positive values
- * make it more sensitive.
+ * This sets the time integral of airspeed innovation exceedance above ASPD_FS_INNOV required to trigger a failsafe.
+ * Larger values make the check less sensitive, smaller positive values make it more sensitive.
  *
- * @unit s
- * @max 30.0
+ * @unit m
+ * @min 0.0
+ * @max 50.0
  * @decimal 1
  * @group Airspeed Validator
  */
-PARAM_DEFINE_FLOAT(ASPD_FS_INTEG, 5.0f);
+PARAM_DEFINE_FLOAT(ASPD_FS_INTEG, 10.f);
 
 /**
  * Airspeed failsafe stop delay
