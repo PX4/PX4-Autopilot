@@ -27,20 +27,3 @@ set MIXER_FILE ""
 set MIXER "skip"
 set OUTPUT_MODE "skip"
 
-# Start ESC already here, so that we have beeps.
-tap_esc start -d /dev/ttyS4 -n 4
-
-# Transition from previous non open-source flight stack
-if param compare SYS_AUTOSTART 4001
-then
-	param reset_all
-	tune_control play -t 4
-	sleep 2
-	if bl_update /etc/extras/bootloader.bin
-	then
-		tune_control play -t 3
-	else
-		tune_control play -t 5
-	fi
-	sleep 2
-fi
