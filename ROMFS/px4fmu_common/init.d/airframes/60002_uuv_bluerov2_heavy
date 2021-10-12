@@ -22,7 +22,6 @@
 
 . ${R}etc/init.d/rc.uuv_defaults
 
-
 #Set data link loss failsafe mode (0: disabled)
 
 # disable circuit breaker for airspeed sensor
@@ -43,4 +42,3 @@ param set-default BAT_V_OFFS_CURR 0.33
 set PWM_OUT 12345678
 # set MIXER IO_pass
 set MIXER vectored6dof
-

@@ -22,11 +22,11 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
-
 param set-default PWM_MAIN_MAX 2000
 
 param set-default VT_IDLE_PWM_MC  1080
 param set-default VT_TYPE 0
+
 set MAV_TYPE 20
 
 set MIXER quad_+_vtol

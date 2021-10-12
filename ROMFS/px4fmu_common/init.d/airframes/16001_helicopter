@@ -24,8 +24,7 @@ set MAV_TYPE 4
 
 set MIXER blade130
 
-#set PWM_OUT 1234
-
+set PWM_OUT none
 
 param set-default ATT_BIAS_MAX 0
 

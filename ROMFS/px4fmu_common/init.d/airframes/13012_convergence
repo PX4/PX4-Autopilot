@@ -22,7 +22,6 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
-
 param set-default CBRK_AIRSPD_CHK 162128
 
 param set-default FW_ARSP_MODE 1

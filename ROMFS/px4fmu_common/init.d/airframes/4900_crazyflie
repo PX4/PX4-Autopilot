@@ -17,7 +17,6 @@
 . ${R}etc/init.d/rc.mc_defaults
 
 set MIXER quad_x_cw
-set PWM_OUT 1234
 
 param set-default BAT1_N_CELLS 1
 param set-default BAT1_CAPACITY 240
@@ -69,4 +68,3 @@ set PWM_MAIN_MIN none
 
 syslink start
 mavlink start -d /dev/bridge0 -b 57600 -m osd -r 40000
-
