@@ -1039,7 +1039,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 			} else {
 				float yaw = matrix::wrap_2pi(math::radians(cmd.param4));
-				yaw = PX4_ISFINITE(yaw) ? yaw : NAN;
+				yaw = PX4_ISFINITE(yaw) ? yaw : (float)NAN;
 				const double lat = cmd.param5;
 				const double lon = cmd.param6;
 				const float alt = cmd.param7;
