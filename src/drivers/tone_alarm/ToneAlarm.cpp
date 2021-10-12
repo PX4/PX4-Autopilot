@@ -42,6 +42,8 @@
 
 using namespace time_literals;
 
+bool ToneAlarm::_stop_note = false;
+
 ToneAlarm::ToneAlarm() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
@@ -51,13 +53,11 @@ ToneAlarm::ToneAlarm() :
 
 ToneAlarm::~ToneAlarm()
 {
-	ToneAlarmInterface::stop_note();
+	// stop_note() is handled via request_stop()
 }
 
 bool ToneAlarm::Init()
 {
-	// NOTE: Implement hardware specific detail in the ToneAlarmInterface class implementation.
-	ToneAlarmInterface::init();
 
 	_tune_control_sub.set_interval_us(10_ms);
 
@@ -73,11 +73,23 @@ bool ToneAlarm::Init()
 
 void ToneAlarm::InterruptStopNote(void *arg)
 {
-	ToneAlarmInterface::stop_note();
+	_stop_note = true;
 }
 
 void ToneAlarm::Run()
 {
+
+	if (!_initialized) {
+		// NOTE: Implement hardware specific detail in the ToneAlarmInterface class implementation.
+		ToneAlarmInterface::init();
+		_initialized = true;
+	}
+
+	if (_stop_note) {
+		ToneAlarmInterface::stop_note();
+		_stop_note = false;
+	}
+
 	// Check if circuit breaker is enabled.
 	if (!_circuit_break_initialized) {
 		if (circuit_breaker_enabled("CBRK_BUZZER", CBRK_BUZZER_KEY)) {
@@ -88,6 +100,7 @@ void ToneAlarm::Run()
 	}
 
 	if (should_exit()) {
+		ToneAlarmInterface::stop_note();
 		_tune_control_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
@@ -211,8 +224,8 @@ void ToneAlarm::Run()
 				hrt_call_at(&_hrt_call, time_started + duration, (hrt_callout)&InterruptStopNote, this);
 				_next_note_time = time_started + duration + silence_length;
 
-				// schedule next note
-				ScheduleAt(_next_note_time);
+				// schedule at stop time
+				ScheduleAt(time_started + duration);
 			}
 
 		} else {
@@ -233,6 +246,12 @@ void ToneAlarm::Run()
 	if (!Scheduled() && _tune_control_sub.updated()) {
 		ScheduleDelayed(_tunes.get_maximum_update_interval());
 	}
+}
+
+void ToneAlarm::request_stop()
+{
+	ModuleBase::request_stop();
+	ScheduleNow();
 }
 
 int ToneAlarm::task_spawn(int argc, char *argv[])
