@@ -199,7 +199,6 @@ bool EKF2::multi_init(int imu, int mag)
 	_estimator_innovations_pub.advertise();
 	_estimator_optical_flow_vel_pub.advertise();
 	_estimator_sensor_bias_pub.advertise();
-	_estimator_sensor_calibration_pub.advertise();
 	_estimator_states_pub.advertise();
 	_estimator_status_pub.advertise();
 	_estimator_status_flags_pub.advertise();
@@ -534,7 +533,6 @@ void EKF2::Run()
 			PublishLocalPosition(now);
 			PublishOdometry(now, imu_sample_new);
 			PublishGlobalPosition(now);
-			PublishSensorBias(now);
 			PublishWindEstimate(now);
 
 			// publish status/logging messages
@@ -552,8 +550,7 @@ void EKF2::Run()
 			UpdateAccelCalibration(now);
 			UpdateGyroCalibration(now);
 			UpdateMagCalibration(now);
-
-			PublishSensorCalibration(now);
+			PublishSensorBias(now);
 
 		} else {
 			// ekf no update
@@ -1065,7 +1062,7 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 			bias.gyro_bias_limit = math::radians(20.f); // 20 degrees/s see Ekf::constrainStates()
 			_ekf.getGyroBiasVariance().copyTo(bias.gyro_bias_variance);
 			bias.gyro_bias_valid = true;  // TODO
-
+			bias.gyro_bias_stable = _gyro_cal.cal_available;
 			_last_gyro_bias_published = gyro_bias;
 		}
 
@@ -1075,7 +1072,7 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 			bias.accel_bias_limit = _params->acc_bias_lim;
 			_ekf.getAccelBiasVariance().copyTo(bias.accel_bias_variance);
 			bias.accel_bias_valid = true;  // TODO
-
+			bias.accel_bias_stable = _accel_cal.cal_available;
 			_last_accel_bias_published = accel_bias;
 		}
 
@@ -1085,55 +1082,12 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 			bias.mag_bias_limit = 0.5f; // 0.5 Gauss see Ekf::constrainStates()
 			_ekf.getMagBiasVariance().copyTo(bias.mag_bias_variance);
 			bias.mag_bias_valid = true; // TODO
-
+			bias.mag_bias_stable = _mag_cal.cal_available;
 			_last_mag_bias_published = mag_bias;
 		}
 
 		bias.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 		_estimator_sensor_bias_pub.publish(bias);
-	}
-}
-
-void EKF2::PublishSensorCalibration(const hrt_abstime &timestamp)
-{
-	// estimator_sensor_bias
-	estimator_sensor_calibration_s calibration{};
-
-	// only publish on change
-	if ((_accel_cal.cal_available && (_accel_cal.last_bias - _last_accel_calibration_published).longerThan(0.001f))
-	    || (_gyro_cal.cal_available && (_gyro_cal.last_bias - _last_gyro_calibration_published).longerThan(0.001f))
-	    || (_mag_cal.cal_available && (_mag_cal.last_bias - _last_mag_calibration_published).longerThan(0.001f))
-	   ) {
-
-		if (_accel_cal.cal_available) {
-			calibration.accel_device_id = _device_id_accel;
-			_accel_cal.last_bias.copyTo(calibration.accel_calibration);
-			_accel_cal.last_bias_variance.copyTo(calibration.accel_calibration_variance);
-			calibration.accel_calibration_valid = true;
-
-			_last_accel_calibration_published = _accel_cal.last_bias;
-		}
-
-		if (_gyro_cal.cal_available) {
-			calibration.gyro_device_id = _device_id_gyro;
-			_gyro_cal.last_bias.copyTo(calibration.gyro_calibration);
-			_gyro_cal.last_bias_variance.copyTo(calibration.gyro_calibration_variance);
-			calibration.gyro_calibration_valid = true;
-
-			_last_gyro_calibration_published = _gyro_cal.last_bias;
-		}
-
-		if (_mag_cal.cal_available) {
-			calibration.mag_device_id = _device_id_mag;
-			_mag_cal.last_bias.copyTo(calibration.mag_calibration);
-			_mag_cal.last_bias_variance.copyTo(calibration.mag_calibration_variance);
-			calibration.mag_calibration_valid = true;
-
-			_last_mag_calibration_published = _mag_cal.last_bias;
-		}
-
-		calibration.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-		_estimator_sensor_calibration_pub.publish(calibration);
 	}
 }
 
