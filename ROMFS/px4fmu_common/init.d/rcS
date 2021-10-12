@@ -446,7 +446,7 @@ else
 	set BOARD_RC_MAVLINK ${R}etc/init.d/rc.board_mavlink
 	if [ -f $BOARD_RC_MAVLINK ]
 	then
-		echo "Board extras: ${BOARD_RC_MAVLINK}"
+		echo "Board mavlink: ${BOARD_RC_MAVLINK}"
 		. $BOARD_RC_MAVLINK
 	fi
 	unset BOARD_RC_MAVLINK
