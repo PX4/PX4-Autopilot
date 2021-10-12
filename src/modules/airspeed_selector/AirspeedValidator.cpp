@@ -50,12 +50,11 @@ AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_dat
 	// get indicated airspeed from input data (raw airspeed)
 	_IAS = input_data.airspeed_indicated_raw;
 
-	update_CAS_scale_estimated(input_data.lpos_valid, input_data.lpos_vx, input_data.lpos_vy, input_data.lpos_vz);
+	update_CAS_scale_estimated(input_data.lpos_valid, input_data.ground_velocity);
 	update_CAS_scale_applied();
 	update_CAS_TAS(input_data.air_pressure_pa, input_data.air_temperature_celsius);
-	update_wind_estimator(input_data.timestamp, input_data.airspeed_true_raw, input_data.lpos_valid, input_data.lpos_vx,
-			      input_data.lpos_vy,
-			      input_data.lpos_vz, input_data.lpos_evh, input_data.lpos_evv, input_data.att_q);
+	update_wind_estimator(input_data.timestamp, input_data.airspeed_true_raw, input_data.lpos_valid,
+			      input_data.ground_velocity, input_data.lpos_evh, input_data.lpos_evv, input_data.att_q);
 	update_in_fixed_wing_flight(input_data.in_fixed_wing_flight);
 	check_airspeed_data_stuck(input_data.timestamp);
 	check_airspeed_innovation(input_data.timestamp, input_data.vel_test_ratio, input_data.mag_test_ratio);
@@ -72,14 +71,12 @@ AirspeedValidator::reset_airspeed_to_invalid(const uint64_t timestamp)
 
 void
 AirspeedValidator::update_wind_estimator(const uint64_t time_now_usec, float airspeed_true_raw, bool lpos_valid,
-		float lpos_vx, float lpos_vy,
-		float lpos_vz, float lpos_evh, float lpos_evv, const float att_q[4])
+		matrix::Vector3f vI, float lpos_evh, float lpos_evv, const float att_q[4])
 {
 	_wind_estimator.update(time_now_usec);
 
 	if (lpos_valid && _in_fixed_wing_flight) {
 
-		Vector3f vI(lpos_vx, lpos_vy, lpos_vz);
 		Quatf q(att_q);
 
 		// airspeed fusion (with raw TAS)
@@ -117,7 +114,7 @@ AirspeedValidator::get_wind_estimator_states(uint64_t timestamp)
 }
 
 void
-AirspeedValidator::update_CAS_scale_estimated(bool lpos_valid, float vx, float vy, float vz)
+AirspeedValidator::update_CAS_scale_estimated(bool lpos_valid, matrix::Vector3f vI)
 {
 	if (!_in_fixed_wing_flight) {
 		return;
@@ -128,10 +125,10 @@ AirspeedValidator::update_CAS_scale_estimated(bool lpos_valid, float vx, float v
 		reset_CAS_scale_check();
 	}
 
-	const float course_over_ground_rad = matrix::wrap_2pi(atan2f(vy, vx));
+	const float course_over_ground_rad = matrix::wrap_2pi(atan2f(vI(0), vI(1)));
 	const int segment_index = int(SCALE_CHECK_SAMPLES * course_over_ground_rad / (2.f * M_PI_F));
 
-	_scale_check_groundspeed(segment_index) = sqrt(vx * vx + vy * vy + vz * vz);
+	_scale_check_groundspeed(segment_index) = vI.norm();
 	_scale_check_TAS(segment_index) = _TAS;
 
 	// run check if all segments are filled

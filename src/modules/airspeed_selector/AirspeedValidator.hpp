@@ -55,9 +55,7 @@ struct airspeed_validator_update_data {
 	float airspeed_indicated_raw;
 	float airspeed_true_raw;
 	uint64_t airspeed_timestamp;
-	float lpos_vx;
-	float lpos_vy;
-	float lpos_vz;
+	matrix::Vector3f ground_velocity;
 	bool lpos_valid;
 	float lpos_evh;
 	float lpos_evv;
@@ -173,11 +171,9 @@ private:
 
 	void update_in_fixed_wing_flight(bool in_fixed_wing_flight) { _in_fixed_wing_flight = in_fixed_wing_flight; }
 
-	void update_wind_estimator(const uint64_t timestamp, float airspeed_true_raw, bool lpos_valid, float lpos_vx,
-				   float lpos_vy,
-				   float lpos_vz,
+	void update_wind_estimator(const uint64_t timestamp, float airspeed_true_raw, bool lpos_valid, matrix::Vector3f vI,
 				   float lpos_evh, float lpos_evv, const float att_q[4]);
-	void update_CAS_scale_estimated(bool lpos_valid, float vx, float vy, float vz);
+	void update_CAS_scale_estimated(bool lpos_valid, matrix::Vector3f vI);
 	void update_CAS_scale_applied();
 	void update_CAS_TAS(float air_pressure_pa, float air_temperature_celsius);
 	void check_airspeed_data_stuck(uint64_t timestamp);
