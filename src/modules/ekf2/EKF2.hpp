@@ -72,7 +72,6 @@
 #include <uORB/topics/estimator_innovations.h>
 #include <uORB/topics/estimator_optical_flow_vel.h>
 #include <uORB/topics/estimator_sensor_bias.h>
-#include <uORB/topics/estimator_sensor_calibration.h>
 #include <uORB/topics/estimator_states.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/estimator_status_flags.h>
@@ -149,7 +148,6 @@ private:
 	void PublishOdometryAligned(const hrt_abstime &timestamp, const vehicle_odometry_s &ev_odom);
 	void PublishOpticalFlowVel(const hrt_abstime &timestamp, const optical_flow_s &optical_flow);
 	void PublishSensorBias(const hrt_abstime &timestamp);
-	void PublishSensorCalibration(const hrt_abstime &timestamp);
 	void PublishStates(const hrt_abstime &timestamp);
 	void PublishStatus(const hrt_abstime &timestamp);
 	void PublishStatusFlags(const hrt_abstime &timestamp);
@@ -293,7 +291,6 @@ private:
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovations_pub{ORB_ID(estimator_innovations)};
 	uORB::PublicationMulti<estimator_optical_flow_vel_s> _estimator_optical_flow_vel_pub{ORB_ID(estimator_optical_flow_vel)};
 	uORB::PublicationMulti<estimator_sensor_bias_s>      _estimator_sensor_bias_pub{ORB_ID(estimator_sensor_bias)};
-	uORB::PublicationMulti<estimator_sensor_calibration_s> _estimator_sensor_calibration_pub{ORB_ID(estimator_sensor_calibration)};
 	uORB::PublicationMulti<estimator_states_s>           _estimator_states_pub{ORB_ID(estimator_states)};
 	uORB::PublicationMulti<estimator_status_s>           _estimator_status_pub{ORB_ID(estimator_status)};
 	uORB::PublicationMulti<estimator_status_flags_s>     _estimator_status_flags_pub{ORB_ID(estimator_status_flags)};
