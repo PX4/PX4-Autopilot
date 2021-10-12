@@ -732,9 +732,16 @@ void VehicleIMU::AccelCalibrationUpdate()
 			const Vector3f accel_cal_orig{_accel_calibration.offset()};
 			Vector3f accel_cal_offset{_accel_calibration.offset()};
 
+			const Vector3f scale_factors = _accel_calibration.scale();
+
 			for (int axis_index = 0; axis_index < 3; axis_index++) {
-				accel_cal_offset(axis_index) += bias_estimate(axis_index);
+				// Bias estimates are learned from data that is scale factor corrected whereas
+				// offsets within the driver are applied before scale factor correction
+				// so we so we need to remove the scale factor correction from the learned biases.
+				accel_cal_offset(axis_index) += bias_estimate(axis_index) / scale_factors(axis_index);
 			}
+
+
 
 			// rotate offsets from body to sensor frame before setting
 			if (_accel_calibration.set_offset(_accel_calibration.rotation().transpose()*accel_cal_offset)) {
