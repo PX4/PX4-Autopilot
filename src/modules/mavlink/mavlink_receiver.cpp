@@ -1730,7 +1730,7 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	float voltage_sum = 0.0f;
 	uint8_t cell_count = 0;
 
-	while (battery_mavlink.voltages[cell_count] < UINT16_MAX && cell_count < 10) {
+	while ((cell_count < 10) && (battery_mavlink.voltages[cell_count] < UINT16_MAX)) {
 		battery_status.voltage_cell_v[cell_count] = (float)(battery_mavlink.voltages[cell_count]) / 1000.0f;
 		voltage_sum += battery_status.voltage_cell_v[cell_count];
 		cell_count++;
