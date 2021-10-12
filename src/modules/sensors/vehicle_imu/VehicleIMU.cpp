@@ -674,18 +674,18 @@ void VehicleIMU::SensorCalibrationUpdate()
 	static constexpr float max_var_ratio = 1e2f;
 
 	if (_armed) {
-		for (int i = 0; i < _estimator_sensor_calibration_subs.size(); i++) {
-			estimator_sensor_calibration_s estimator_sensor_calibration;
+		for (int i = 0; i < _estimator_sensor_bias_subs.size(); i++) {
+			estimator_sensor_bias_s estimator_sensor_bias;
 
-			if (_estimator_sensor_calibration_subs[i].update(&estimator_sensor_calibration)) {
-				// find corresponding accel calibration
-				if (_accel_calibration.device_id() == estimator_sensor_calibration.accel_device_id) {
-					const Vector3f bias{estimator_sensor_calibration.accel_calibration};
-					const Vector3f bias_variance{estimator_sensor_calibration.accel_calibration_variance};
+			if (_estimator_sensor_bias_subs[i].update(&estimator_sensor_bias)) {
+				// find corresponding accel bias
+				if (_accel_calibration.device_id() == estimator_sensor_bias.accel_device_id) {
+					const Vector3f bias{estimator_sensor_bias.accel_bias};
+					const Vector3f bias_variance{estimator_sensor_bias.accel_bias_variance};
 
-					const bool valid = (hrt_elapsed_time(&estimator_sensor_calibration.timestamp) < 1_s) &&
-							   (estimator_sensor_calibration.accel_device_id != 0) &&
-							   estimator_sensor_calibration.accel_calibration_valid &&
+					const bool valid = (hrt_elapsed_time(&estimator_sensor_bias.timestamp) < 1_s) &&
+							   (estimator_sensor_bias.accel_device_id != 0) &&
+							   estimator_sensor_bias.accel_bias_stable &&
 							   (bias_variance.max() < max_var_allowed) &&
 							   (bias_variance.max() < max_var_ratio * bias_variance.min());
 
@@ -701,13 +701,14 @@ void VehicleIMU::SensorCalibrationUpdate()
 				}
 
 				// find corresponding gyro calibration
-				if (_gyro_calibration.device_id() == estimator_sensor_calibration.gyro_device_id) {
-					const Vector3f bias{estimator_sensor_calibration.gyro_calibration};
-					const Vector3f bias_variance{estimator_sensor_calibration.gyro_calibration_variance};
+				if (_gyro_calibration.device_id() == estimator_sensor_bias.gyro_device_id) {
+					const Vector3f bias{estimator_sensor_bias.gyro_bias};
+					const Vector3f bias_variance{estimator_sensor_bias.gyro_bias_variance};
 
-					const bool valid = (hrt_elapsed_time(&estimator_sensor_calibration.timestamp) < 1_s) &&
-							   (estimator_sensor_calibration.gyro_device_id != 0) &&
-							   estimator_sensor_calibration.gyro_calibration_valid &&
+					const bool valid = (hrt_elapsed_time(&estimator_sensor_bias.timestamp) < 1_s) &&
+							   (estimator_sensor_bias.gyro_device_id != 0) &&
+							   estimator_sensor_bias.gyro_bias_valid &&
+							   estimator_sensor_bias.gyro_bias_stable &&
 							   (bias_variance.max() < max_var_allowed) &&
 							   (bias_variance.max() < max_var_ratio * bias_variance.min());
 
