@@ -43,10 +43,10 @@ namespace manual_control
 class ManualControlSelector
 {
 public:
-	void set_rc_in_mode(int32_t rc_in_mode) { _rc_in_mode = rc_in_mode; }
-	void set_timeout(uint64_t timeout) { _timeout = timeout; }
-	void update_time_only(uint64_t now);
-	void update_manual_control_input(uint64_t now, const manual_control_input_s &input, int instance);
+	void setRcInMode(int32_t rc_in_mode) { _rc_in_mode = rc_in_mode; }
+	void setTimeout(uint64_t timeout) { _timeout = timeout; }
+	void updateValidityOfChosenInput(uint64_t now);
+	void updateWithNewInputSample(uint64_t now, const manual_control_input_s &input, int instance);
 	manual_control_setpoint_s &setpoint();
 	int instance() const { return _instance; };
 

@@ -43,8 +43,8 @@ static constexpr uint64_t some_time = 12345678;
 TEST(ManualControlSelector, RcInputContinuous)
 {
 	ManualControlSelector selector;
-	selector.set_rc_in_mode(0);
-	selector.set_timeout(500_ms);
+	selector.setRcInMode(0);
+	selector.setTimeout(500_ms);
 
 	uint64_t timestamp = some_time;
 
@@ -54,7 +54,7 @@ TEST(ManualControlSelector, RcInputContinuous)
 	input.timestamp_sample = timestamp;
 
 	for (int i = 0; i < 5; i++) {
-		selector.update_manual_control_input(timestamp, input, 1);
+		selector.updateWithNewInputSample(timestamp, input, 1);
 		EXPECT_TRUE(selector.setpoint().valid);
 		EXPECT_EQ(selector.setpoint().chosen_input.timestamp_sample, timestamp);
 		EXPECT_EQ(selector.instance(), 1);
@@ -67,15 +67,15 @@ TEST(ManualControlSelector, RcInputContinuous)
 TEST(ManualControlSelector, RcInputOnly)
 {
 	ManualControlSelector selector;
-	selector.set_rc_in_mode(0);
-	selector.set_timeout(500_ms);
+	selector.setRcInMode(0);
+	selector.setTimeout(500_ms);
 
 	uint64_t timestamp = some_time;
 
 	manual_control_input_s input {};
 	input.data_source = manual_control_input_s::SOURCE_MAVLINK_0;
 	input.timestamp_sample = timestamp;
-	selector.update_manual_control_input(timestamp, input, 0);
+	selector.updateWithNewInputSample(timestamp, input, 0);
 
 	EXPECT_FALSE(selector.setpoint().valid);
 
@@ -84,7 +84,7 @@ TEST(ManualControlSelector, RcInputOnly)
 	// Now provide input with the correct source.
 	input.data_source = manual_control_input_s::SOURCE_RC;
 	input.timestamp_sample = timestamp;
-	selector.update_manual_control_input(timestamp, input, 1);
+	selector.updateWithNewInputSample(timestamp, input, 1);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_TRUE(selector.setpoint().chosen_input.data_source == manual_control_input_s::SOURCE_RC);
@@ -94,15 +94,15 @@ TEST(ManualControlSelector, RcInputOnly)
 TEST(ManualControlSelector, MavlinkInputOnly)
 {
 	ManualControlSelector selector;
-	selector.set_rc_in_mode(1);
-	selector.set_timeout(500_ms);
+	selector.setRcInMode(1);
+	selector.setTimeout(500_ms);
 
 	uint64_t timestamp = some_time;
 
 	manual_control_input_s input {};
 	input.data_source = manual_control_input_s::SOURCE_RC;
 	input.timestamp_sample = timestamp;
-	selector.update_manual_control_input(timestamp, input, 0);
+	selector.updateWithNewInputSample(timestamp, input, 0);
 
 	EXPECT_FALSE(selector.setpoint().valid);
 
@@ -111,7 +111,7 @@ TEST(ManualControlSelector, MavlinkInputOnly)
 	// Now provide input with the correct source.
 	input.data_source = manual_control_input_s::SOURCE_MAVLINK_3;
 	input.timestamp_sample = timestamp;
-	selector.update_manual_control_input(timestamp, input, 1);
+	selector.updateWithNewInputSample(timestamp, input, 1);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_TRUE(selector.setpoint().chosen_input.data_source == manual_control_input_s::SOURCE_MAVLINK_3);
@@ -122,7 +122,7 @@ TEST(ManualControlSelector, MavlinkInputOnly)
 	// But only the first MAVLink source wins, others are too late.
 	input.data_source = manual_control_input_s::SOURCE_MAVLINK_4;
 	input.timestamp_sample = timestamp;
-	selector.update_manual_control_input(timestamp, input, 1);
+	selector.updateWithNewInputSample(timestamp, input, 1);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_TRUE(selector.setpoint().chosen_input.data_source == manual_control_input_s::SOURCE_MAVLINK_3);
@@ -132,15 +132,15 @@ TEST(ManualControlSelector, MavlinkInputOnly)
 TEST(ManualControlSelector, AutoInput)
 {
 	ManualControlSelector selector;
-	selector.set_rc_in_mode(3);
-	selector.set_timeout(500_ms);
+	selector.setRcInMode(3);
+	selector.setTimeout(500_ms);
 
 	uint64_t timestamp = some_time;
 
 	manual_control_input_s input {};
 	input.data_source = manual_control_input_s::SOURCE_RC;
 	input.timestamp_sample = timestamp;
-	selector.update_manual_control_input(timestamp, input, 0);
+	selector.updateWithNewInputSample(timestamp, input, 0);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_TRUE(selector.setpoint().chosen_input.data_source == manual_control_input_s::SOURCE_RC);
@@ -151,7 +151,7 @@ TEST(ManualControlSelector, AutoInput)
 	// Now provide input from MAVLink as well which should get ignored.
 	input.data_source = manual_control_input_s::SOURCE_MAVLINK_0;
 	input.timestamp_sample = timestamp;
-	selector.update_manual_control_input(timestamp, input, 1);
+	selector.updateWithNewInputSample(timestamp, input, 1);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_TRUE(selector.setpoint().chosen_input.data_source == manual_control_input_s::SOURCE_RC);
@@ -162,7 +162,7 @@ TEST(ManualControlSelector, AutoInput)
 	// Now we'll let RC time out, so it should switch to MAVLINK.
 	input.data_source = manual_control_input_s::SOURCE_MAVLINK_0;
 	input.timestamp_sample = timestamp;
-	selector.update_manual_control_input(timestamp, input, 1);
+	selector.updateWithNewInputSample(timestamp, input, 1);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_TRUE(selector.setpoint().chosen_input.data_source == manual_control_input_s::SOURCE_MAVLINK_0);
@@ -172,15 +172,15 @@ TEST(ManualControlSelector, AutoInput)
 TEST(ManualControlSelector, RcTimeout)
 {
 	ManualControlSelector selector;
-	selector.set_rc_in_mode(0);
-	selector.set_timeout(500_ms);
+	selector.setRcInMode(0);
+	selector.setTimeout(500_ms);
 
 	uint64_t timestamp = some_time;
 
 	manual_control_input_s input {};
 	input.data_source = manual_control_input_s::SOURCE_RC;
 	input.timestamp_sample = timestamp;
-	selector.update_manual_control_input(timestamp, input, 0);
+	selector.updateWithNewInputSample(timestamp, input, 0);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_TRUE(selector.setpoint().chosen_input.data_source == manual_control_input_s::SOURCE_RC);
@@ -189,7 +189,7 @@ TEST(ManualControlSelector, RcTimeout)
 	timestamp += 600_ms;
 
 	// Update, to make sure it notices the timeout
-	selector.update_time_only(timestamp);
+	selector.updateValidityOfChosenInput(timestamp);
 
 	EXPECT_FALSE(selector.setpoint().valid);
 	EXPECT_EQ(selector.instance(), -1);
@@ -198,21 +198,21 @@ TEST(ManualControlSelector, RcTimeout)
 TEST(ManualControlSelector, RcOutdated)
 {
 	ManualControlSelector selector;
-	selector.set_rc_in_mode(0);
-	selector.set_timeout(500_ms);
+	selector.setRcInMode(0);
+	selector.setTimeout(500_ms);
 
 	uint64_t timestamp = some_time;
 
 	manual_control_input_s input {};
 	input.data_source = manual_control_input_s::SOURCE_RC;
 	input.timestamp_sample = timestamp - 600_ms; // First sample is already outdated
-	selector.update_manual_control_input(timestamp, input, 0);
+	selector.updateWithNewInputSample(timestamp, input, 0);
 
 	EXPECT_FALSE(selector.setpoint().valid);
 	EXPECT_EQ(selector.instance(), -1);
 
 	// If we update again it should still not get accepted
-	selector.update_manual_control_input(timestamp, input, 0);
+	selector.updateWithNewInputSample(timestamp, input, 0);
 
 	EXPECT_FALSE(selector.setpoint().valid);
 	EXPECT_EQ(selector.instance(), -1);
