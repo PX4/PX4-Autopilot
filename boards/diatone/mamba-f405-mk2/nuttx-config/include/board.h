@@ -1,5 +1,5 @@
 /************************************************************************************
- * nuttx-configs/omnibus-f4sd/include/board.h
+ * nuttx-configs/diatone_mamba-f405-mk2/include/board.h
  * include/arch/board/board.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
@@ -37,8 +37,8 @@
  *
  ************************************************************************************/
 
-#ifndef __CONFIG_OMNIBUSF4SD_INCLUDE_BOARD_H
-#define __CONFIG_OMNIBUSF4SD_INCLUDE_BOARD_H
+#ifndef __CONFIG_MAMBAF405MK2_INCLUDE_BOARD_H
+#define __CONFIG_MAMBAF405MK2_INCLUDE_BOARD_H
 
 /************************************************************************************
  * Included Files
@@ -60,7 +60,7 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The omnibusf4sd board features a single 8MHz crystal.  Space is provided
+/* The mambaf405mk2 board features a single 8MHz crystal.  Space is provided
  * for a 32kHz RTC backup crystal, but it is not stuffed.
  *
  * This is the canonical configuration:
