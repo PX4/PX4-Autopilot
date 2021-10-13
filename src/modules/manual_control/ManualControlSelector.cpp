@@ -50,12 +50,12 @@ void ManualControlSelector::updateWithNewInputSample(uint64_t now, const manual_
 	// First check if the chosen input got invalid, so it can get replaced
 	updateValidityOfChosenInput(now);
 
-	const bool update_existing_input = _setpoint.valid == true && input.data_source == _setpoint.chosen_input.data_source;
-	const bool start_using_new_input = _setpoint.valid == false;
+	const bool update_existing_input = _setpoint.valid && input.data_source == _setpoint.chosen_input.data_source;
+	const bool start_using_new_input = !_setpoint.valid;
 
 	// Switch to new input if it's valid and we don't already have a valid one
 	if (isInputValid(input, now) && (update_existing_input || start_using_new_input)) {
-		_setpoint = setpoint_from_input(input);
+		_setpoint.chosen_input = input;
 		_setpoint.valid = true;
 		_instance = instance;
 	}
@@ -80,13 +80,6 @@ bool ManualControlSelector::isInputValid(const manual_control_input_s &input, ui
 
 	return sample_from_the_past && sample_newer_than_timeout
 	       && (source_rc_matched || source_mavlink_matched || source_any_matched);
-}
-
-manual_control_setpoint_s ManualControlSelector::setpoint_from_input(const manual_control_input_s &input)
-{
-	manual_control_setpoint_s setpoint;
-	setpoint.chosen_input = input;
-	return setpoint;
 }
 
 manual_control_setpoint_s &ManualControlSelector::setpoint()

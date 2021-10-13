@@ -52,7 +52,6 @@ public:
 
 private:
 	bool isInputValid(const manual_control_input_s &input, uint64_t now) const;
-	static manual_control_setpoint_s setpoint_from_input(const manual_control_input_s &input);
 
 	manual_control_setpoint_s _setpoint{};
 	uint64_t _timeout{0};
