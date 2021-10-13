@@ -3958,16 +3958,28 @@ void Commander::estimator_check()
 						&& (fabsf(q(3)) <= 1.f);
 	const bool norm_in_tolerance = (fabsf(1.f - q.norm()) <= FLT_EPSILON);
 
-	_status_flags.condition_attitude_valid = (hrt_elapsed_time(&attitude.timestamp) < 1_s)
-			&& norm_in_tolerance
-			&& no_element_larger_than_one;
+	const bool condition_attitude_valid = (hrt_elapsed_time(&attitude.timestamp) < 1_s)
+					      && norm_in_tolerance && no_element_larger_than_one;
+
+	if (_status_flags.condition_attitude_valid && !condition_attitude_valid) {
+		PX4_ERR("attitude estimate no longer valid");
+	}
+
+	_status_flags.condition_attitude_valid = condition_attitude_valid;
+
 
 	// angular velocity
 	vehicle_angular_velocity_s angular_velocity{};
 	_vehicle_angular_velocity_sub.copy(&angular_velocity);
-	_status_flags.condition_angular_velocity_valid = (hrt_elapsed_time(&angular_velocity.timestamp) < 1_s)
+	const bool condition_angular_velocity_valid = (hrt_elapsed_time(&angular_velocity.timestamp) < 1_s)
 			&& PX4_ISFINITE(angular_velocity.xyz[0]) && PX4_ISFINITE(angular_velocity.xyz[1])
 			&& PX4_ISFINITE(angular_velocity.xyz[2]);
+
+	if (_status_flags.condition_angular_velocity_valid && !condition_angular_velocity_valid) {
+		PX4_ERR("angular velocity no longer valid");
+	}
+
+	_status_flags.condition_angular_velocity_valid = condition_angular_velocity_valid;
 }
 
 void Commander::UpdateEstimateValidity()
