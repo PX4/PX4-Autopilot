@@ -70,6 +70,8 @@ private:
 	uORB::PublicationMulti<sensor_accel_s> _sensor_pub{ORB_ID(sensor_accel)};
 	uORB::PublicationMulti<sensor_accel_fifo_s>  _sensor_fifo_pub{ORB_ID(sensor_accel_fifo)};
 
+	hrt_abstime _timestamp_prev{0};
+
 	uint32_t		_device_id{0};
 	const enum Rotation	_rotation;
 

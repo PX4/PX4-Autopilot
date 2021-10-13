@@ -113,10 +113,11 @@ void PX4Accelerometer::update(const hrt_abstime &timestamp_sample, float x, floa
 	// Apply rotation (before scaling)
 	rotate_3f(_rotation, x, y, z);
 
-	// publish
 	sensor_accel_s report;
 
-	report.timestamp_sample = timestamp_sample;
+	// ensure monotonically increasing timestamp_sample within reasonable range
+	report.timestamp_sample = math::constrain(timestamp_sample, _timestamp_prev, hrt_absolute_time());
+
 	report.device_id = _device_id;
 	report.temperature = _temperature;
 	report.error_count = _error_count;
@@ -130,10 +131,15 @@ void PX4Accelerometer::update(const hrt_abstime &timestamp_sample, float x, floa
 	report.timestamp = hrt_absolute_time();
 
 	_sensor_pub.publish(report);
+
+	_timestamp_prev = report.timestamp;
 }
 
 void PX4Accelerometer::updateFIFO(sensor_accel_fifo_s &sample)
 {
+	// ensure monotonically increasing timestamp_sample within reasonable range
+	sample.timestamp_sample = math::constrain(sample.timestamp_sample, _timestamp_prev, hrt_absolute_time());
+
 	// rotate all raw samples and publish fifo
 	const uint8_t N = sample.samples;
 
@@ -145,6 +151,8 @@ void PX4Accelerometer::updateFIFO(sensor_accel_fifo_s &sample)
 	sample.scale = _scale;
 	sample.timestamp = hrt_absolute_time();
 	_sensor_fifo_pub.publish(sample);
+
+	_timestamp_prev = sample.timestamp;
 
 
 	// publish

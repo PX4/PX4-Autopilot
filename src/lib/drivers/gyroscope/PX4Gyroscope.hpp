@@ -1,4 +1,3 @@
-
 /****************************************************************************
  *
  *   Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
@@ -67,6 +66,8 @@ public:
 private:
 	uORB::PublicationMulti<sensor_gyro_s> _sensor_pub{ORB_ID(sensor_gyro)};
 	uORB::PublicationMulti<sensor_gyro_fifo_s>  _sensor_fifo_pub{ORB_ID(sensor_gyro_fifo)};
+
+	hrt_abstime _timestamp_prev{0};
 
 	uint32_t		_device_id{0};
 	const enum Rotation	_rotation;
