@@ -109,48 +109,37 @@ void ManualControl::Run()
 	if (_selector.setpoint().valid) {
 		_published_invalid_once = false;
 
-		// user arm/disarm gesture
+		// Arm gesture
 		const bool right_stick_centered = (fabsf(_selector.setpoint().chosen_input.x) < 0.1f)
 						  && (fabsf(_selector.setpoint().chosen_input.y) < 0.1f);
-		const bool stick_lower_left = (_selector.setpoint().chosen_input.z < 0.1f)
-					      && (_selector.setpoint().chosen_input.r < -0.9f);
 		const bool stick_lower_right = (_selector.setpoint().chosen_input.z < 0.1f)
 					       && (_selector.setpoint().chosen_input.r > 0.9f);
 
+		const bool previous_stick_arm_hysteresis = _stick_arm_hysteresis.get_state();
 		_stick_arm_hysteresis.set_state_and_update(stick_lower_right && right_stick_centered, _selector.setpoint().timestamp);
+
+		if (!previous_stick_arm_hysteresis && _stick_arm_hysteresis.get_state()) {
+			send_arm_command(vehicle_command_s::ARMING_ACTION_ARM, vehicle_command_s::ARMING_ORIGIN_GESTURE);
+		}
+
+		// Disarm gesture
+		const bool stick_lower_left = (_selector.setpoint().chosen_input.z < 0.1f)
+					      && (_selector.setpoint().chosen_input.r < -0.9f);
+
+		const bool previous_stick_disarm_hysteresis = _stick_disarm_hysteresis.get_state();
 		_stick_disarm_hysteresis.set_state_and_update(stick_lower_left && right_stick_centered, _selector.setpoint().timestamp);
-		_selector.setpoint().arm_gesture = _stick_arm_hysteresis.get_state();
-		_selector.setpoint().disarm_gesture = _stick_disarm_hysteresis.get_state();
 
-		if (_selector.setpoint().arm_gesture && !_previous_arm_gesture) {
-			_previous_arm_gesture = true;
-			send_arm_command(vehicle_command_s::ARMING_ACTION_ARM,
-					 vehicle_command_s::ARMING_ORIGIN_GESTURE);
-
+		if (!previous_stick_disarm_hysteresis && _stick_disarm_hysteresis.get_state()) {
+			send_arm_command(vehicle_command_s::ARMING_ACTION_DISARM, vehicle_command_s::ARMING_ORIGIN_GESTURE);
 		}
 
-		if (!_selector.setpoint().arm_gesture) {
-			_previous_arm_gesture = false;
-		}
-
-		if (_selector.setpoint().disarm_gesture && !_previous_disarm_gesture) {
-			_previous_disarm_gesture = true;
-			send_arm_command(vehicle_command_s::ARMING_ACTION_DISARM,
-					 vehicle_command_s::ARMING_ORIGIN_GESTURE);
-
-		}
-
-		if (!_selector.setpoint().disarm_gesture) {
-			_previous_disarm_gesture = false;
-		}
-
+		// User override by stick
 		const float dt_s = (now - _last_time) / 1e6f;
 		_x_diff.update(_selector.setpoint().chosen_input.x, dt_s);
 		_y_diff.update(_selector.setpoint().chosen_input.y, dt_s);
 		_z_diff.update(_selector.setpoint().chosen_input.z, dt_s);
 		_r_diff.update(_selector.setpoint().chosen_input.r, dt_s);
 
-		// user wants override
 		const float minimum_stick_change = 0.01f * _param_com_rc_stick_ov.get();
 
 		const bool rpy_moved = (fabsf(_x_diff.diff()) > minimum_stick_change)
@@ -286,6 +275,9 @@ void ManualControl::Run()
 		_y_diff.reset();
 		_z_diff.reset();
 		_r_diff.reset();
+		_stick_arm_hysteresis.set_state_and_update(false, now);
+		_stick_disarm_hysteresis.set_state_and_update(false, now);
+		_button_hysteresis.set_state_and_update(false, now);
 	}
 
 	_last_time = now;
