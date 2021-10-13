@@ -238,16 +238,15 @@ bool VehicleIMU::UpdateAccel()
 
 		} else {
 			// collect sample interval average for filters
-			if ((_accel_timestamp_sample_last != 0) && (accel.samples > 0)) {
-				float interval_us = accel.timestamp_sample - _accel_timestamp_sample_last;
-
-				if (interval_us > 0.f) {
+			if (accel.timestamp_sample > _accel_timestamp_sample_last) {
+				if ((_accel_timestamp_sample_last != 0) && (accel.samples > 0)) {
+					float interval_us = accel.timestamp_sample - _accel_timestamp_sample_last;
 					_accel_interval_mean.update(Vector2f{interval_us, interval_us / accel.samples});
-
-				} else {
-					PX4_ERR("%d - accel %" PRIu32 " timestamp error timestamp_sample: %" PRIu64 ", previous timestamp_sample: %" PRIu64,
-						_instance, accel.device_id, accel.timestamp_sample, _accel_timestamp_sample_last);
 				}
+
+			} else {
+				PX4_ERR("%d - accel %" PRIu32 " timestamp error timestamp_sample: %" PRIu64 ", previous timestamp_sample: %" PRIu64,
+					_instance, accel.device_id, accel.timestamp_sample, _accel_timestamp_sample_last);
 			}
 
 			if (accel.timestamp < accel.timestamp_sample) {
@@ -384,16 +383,15 @@ bool VehicleIMU::UpdateGyro()
 
 		} else {
 			// collect sample interval average for filters
-			if ((_gyro_timestamp_sample_last != 0) && (gyro.samples > 0)) {
-				const float interval_us = gyro.timestamp_sample - _gyro_timestamp_sample_last;
-
-				if (interval_us > 0.f) {
+			if (gyro.timestamp_sample > _gyro_timestamp_sample_last) {
+				if ((_gyro_timestamp_sample_last != 0) && (gyro.samples > 0)) {
+					float interval_us = gyro.timestamp_sample - _gyro_timestamp_sample_last;
 					_gyro_interval_mean.update(Vector2f{interval_us, interval_us / gyro.samples});
-
-				} else {
-					PX4_ERR("%d - gyro %" PRIu32 " timestamp error timestamp_sample: %" PRIu64 ", previous timestamp_sample: %" PRIu64,
-						_instance, gyro.device_id, gyro.timestamp_sample, _gyro_timestamp_sample_last);
 				}
+
+			} else {
+				PX4_ERR("%d - gyro %" PRIu32 " timestamp error timestamp_sample: %" PRIu64 ", previous timestamp_sample: %" PRIu64,
+					_instance, gyro.device_id, gyro.timestamp_sample, _gyro_timestamp_sample_last);
 			}
 
 			if (gyro.timestamp < gyro.timestamp_sample) {
