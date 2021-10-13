@@ -111,6 +111,11 @@
 #define SDIO_SLOTNO 0
 #define SDIO_MINOR  0
 
+/* Battery ADC */
+#define ADC_CHANNELS (1 << 1) | (1 << 2)
+#define ADC_BATTERY_VOLTAGE_CHANNEL 1
+#define ADC_BATTERY_CURRENT_CHANNEL 2
+
 __BEGIN_DECLS
 
 /****************************************************************************************************
