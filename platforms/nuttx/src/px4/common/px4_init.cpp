@@ -150,7 +150,7 @@ static void mavlink_usb_check(void *arg)
 							if (nread >= MAVLINK_HEARTBEAT_MIN_LENGTH) {
 								// scan buffer for mavlink HEARTBEAT (v1 & v2)
 								for (int i = 0; i < nread - MAVLINK_HEARTBEAT_MIN_LENGTH; i++) {
-									if ((buffer[i] = 0xFE) && (buffer[i + 1] = 9) && (buffer[i + 5] == 0)) {
+									if ((buffer[i] == 0xFE) && (buffer[i + 1] == 9) && (buffer[i + 5] == 0)) {
 										// mavlink v1 HEARTBEAT
 										//  buffer[0]: start byte (0xFE for mavlink v1)
 										//  buffer[1]: length (9 for HEARTBEAT)
@@ -162,7 +162,7 @@ static void mavlink_usb_check(void *arg)
 										launch_mavlink = true;
 										break;
 
-									} else if ((buffer[i] = 0xFD) && (buffer[i + 1] = 9)
+									} else if ((buffer[i] == 0xFD) && (buffer[i + 1] == 9)
 										   && (buffer[i + 7] == 0) && (buffer[i + 8] == 0) && (buffer[i + 9] == 0)) {
 										// mavlink v2 HEARTBEAT
 										//  buffer[0]: start byte (0xFD for mavlink v2)
