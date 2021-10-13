@@ -763,7 +763,7 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 	_att_sp.pitch_reset_integral = false;
 	_att_sp.yaw_reset_integral = false;
 
-	uint8_t position_sp_type = handle_setpoint_type(pos_sp_curr.type, pos_sp_curr);
+	const uint8_t position_sp_type = handle_setpoint_type(pos_sp_curr.type, pos_sp_curr);
 
 	_type = position_sp_type; // for publication
 
