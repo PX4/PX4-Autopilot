@@ -145,9 +145,6 @@ private:
 	ManualControlSelector _selector;
 	bool _published_invalid_once{false};
 
-	bool _previous_arm_gesture{false};
-	bool _previous_disarm_gesture{false};
-
 	MovingDiff _x_diff{};
 	MovingDiff _y_diff{};
 	MovingDiff _z_diff{};
