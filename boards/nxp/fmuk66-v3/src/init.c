@@ -254,11 +254,11 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "DMA alloc FAILED\n");
 	}
 
-#if defined(SERIAL_HAVE_RXDMA)
+#if defined(SERIAL_HAVE_DMA) || defined(LPSERIAL_HAVE_DMA)
 	// set up the serial DMA polling at 1ms intervals for received bytes that have not triggered a DMA event.
 	static struct hrt_call serial_dma_call;
 	hrt_call_every(&serial_dma_call, 1000, 1000, (hrt_callout)kinetis_lpserial_dma_poll_all, NULL);
-#endif
+#endif /* SERIAL_HAVE_DMA || LPSERIAL_HAVE_DMA */
 
 	/* initial LED state */
 	drv_led_start();
