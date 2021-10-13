@@ -60,7 +60,7 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The omnibusf4sd board features a single 8MHz crystal.  Space is provided
+/* The mambaf405mk2 board features a single 8MHz crystal.  Space is provided
  * for a 32kHz RTC backup crystal, but it is not stuffed.
  *
  * This is the canonical configuration:
