@@ -170,18 +170,19 @@ void ManualControl::Run()
 						evaluate_mode_slot(switches.mode_slot);
 					}
 
-					if (switches.arm_switch != _previous_switches.arm_switch) {
-						if (_param_com_arm_swisbtn.get()) {
-							// Arming button
-							_button_hysteresis.set_state_and_update(switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON, now);
+					if (_param_com_arm_swisbtn.get()) {
+						// Arming button
+						const bool previous_button_hysteresis = _button_hysteresis.get_state();
+						_button_hysteresis.set_state_and_update(switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON, now);
 
-							if (_button_hysteresis.get_state()) {
-								send_arm_command(vehicle_command_s::ARMING_ACTION_TOGGLE,
-										 vehicle_command_s::ARMING_ORIGIN_BUTTON);
-							}
+						if (!previous_button_hysteresis && _button_hysteresis.get_state()) {
+							send_arm_command(vehicle_command_s::ARMING_ACTION_TOGGLE,
+									 vehicle_command_s::ARMING_ORIGIN_BUTTON);
+						}
 
-						} else {
-							// Arming switch
+					} else {
+						// Arming switch
+						if (switches.arm_switch != _previous_switches.arm_switch) {
 							if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON) {
 								send_arm_command(vehicle_command_s::ARMING_ACTION_ARM,
 										 vehicle_command_s::ARMING_ORIGIN_SWITCH);
