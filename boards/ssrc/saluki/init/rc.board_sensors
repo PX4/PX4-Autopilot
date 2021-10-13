@@ -8,6 +8,7 @@
 # Internal I2C bus
 bmp388 -I -a 0x76 -f 400 start
 bmm150 -I -a 0x11 -f 400 -R 14 start
+ads1115 -I start
 
 # Internal SPI bus
 icm42688p -s -f 10000 -R 10 start
