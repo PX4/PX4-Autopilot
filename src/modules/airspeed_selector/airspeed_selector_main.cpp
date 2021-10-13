@@ -537,10 +537,20 @@ void AirspeedModule::update_ground_minus_wind_airspeed()
 
 void AirspeedModule::select_airspeed_and_publish()
 {
-	const bool airspeed_sensor_switching_necessary = _prev_airspeed_index < airspeed_index::FIRST_SENSOR_INDEX ||
-			!_airspeed_validator[_prev_airspeed_index - 1].get_airspeed_valid();
+
+	// we need to re-evaluate the sensors if we're currently not on a phyisical sensor or the current sensor got invalid
+	bool airspeed_sensor_switching_necessary = false;
+
+	if (_prev_airspeed_index < airspeed_index::FIRST_SENSOR_INDEX) {
+		airspeed_sensor_switching_necessary = true;
+
+	} else {
+		airspeed_sensor_switching_necessary = !_airspeed_validator[_prev_airspeed_index - 1].get_airspeed_valid();
+	}
+
 	const bool airspeed_sensor_switching_allowed = _number_of_airspeed_sensors > 0 &&
 			_param_airspeed_primary_index.get() > airspeed_index::GROUND_MINUS_WIND_INDEX && _param_airspeed_checks_on.get();
+
 	const bool airspeed_sensor_added = _prev_number_of_airspeed_sensors < _number_of_airspeed_sensors;
 
 	if (airspeed_sensor_switching_necessary && (airspeed_sensor_switching_allowed || airspeed_sensor_added)) {
