@@ -84,20 +84,18 @@ void ManualControl::Run()
 		_stick_disarm_hysteresis.set_hysteresis_time_from(false, _param_rc_arm_hyst.get() * 1_ms);
 		_button_hysteresis.set_hysteresis_time_from(false, _param_rc_arm_hyst.get() * 1_ms);
 
-		_selector.set_rc_in_mode(_param_com_rc_in_mode.get());
-		_selector.set_timeout(_param_com_rc_loss_t.get() * 1_s);
+		_selector.setRcInMode(_param_com_rc_in_mode.get());
+		_selector.setTimeout(_param_com_rc_loss_t.get() * 1_s);
 	}
 
-	bool found_at_least_one = false;
 	const hrt_abstime now = hrt_absolute_time();
-	const float dt_s = (now - _last_time) / 1e6f;
+	_selector.updateValidityOfChosenInput(now);
 
 	for (int i = 0; i < MAX_MANUAL_INPUT_COUNT; i++) {
 		manual_control_input_s manual_control_input;
 
 		if (_manual_control_input_subs[i].update(&manual_control_input)) {
-			found_at_least_one = true;
-			_selector.update_manual_control_input(now, manual_control_input, i);
+			_selector.updateWithNewInputSample(now, manual_control_input, i);
 		}
 	}
 
@@ -106,10 +104,6 @@ void ManualControl::Run()
 
 	if (_manual_control_switches_sub.update(&switches)) {
 		switches_updated = true;
-	}
-
-	if (!found_at_least_one) {
-		_selector.update_time_only(now);
 	}
 
 	if (_selector.setpoint().valid) {
@@ -150,6 +144,7 @@ void ManualControl::Run()
 			_previous_disarm_gesture = false;
 		}
 
+		const float dt_s = (now - _last_time) / 1e6f;
 		_x_diff.update(_selector.setpoint().chosen_input.x, dt_s);
 		_y_diff.update(_selector.setpoint().chosen_input.y, dt_s);
 		_z_diff.update(_selector.setpoint().chosen_input.z, dt_s);

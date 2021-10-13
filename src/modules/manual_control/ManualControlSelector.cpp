@@ -37,7 +37,7 @@
 namespace manual_control
 {
 
-void ManualControlSelector::update_time_only(uint64_t now)
+void ManualControlSelector::updateValidityOfChosenInput(uint64_t now)
 {
 	if (!isInputValid(_setpoint.chosen_input, now)) {
 		_setpoint.valid = false;
@@ -45,10 +45,10 @@ void ManualControlSelector::update_time_only(uint64_t now)
 	}
 }
 
-void ManualControlSelector::update_manual_control_input(uint64_t now, const manual_control_input_s &input, int instance)
+void ManualControlSelector::updateWithNewInputSample(uint64_t now, const manual_control_input_s &input, int instance)
 {
-	// First check if the setpoint in use got invalid, so it can get replaced below.
-	update_time_only(now);
+	// First check if the chosen input got invalid, so it can get replaced
+	updateValidityOfChosenInput(now);
 
 	const bool update_existing_input = _setpoint.valid == true && input.data_source == _setpoint.chosen_input.data_source;
 	const bool start_using_new_input = _setpoint.valid == false;
