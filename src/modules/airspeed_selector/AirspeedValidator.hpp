@@ -173,7 +173,7 @@ private:
 
 	void update_wind_estimator(const uint64_t timestamp, float airspeed_true_raw, bool lpos_valid, matrix::Vector3f vI,
 				   float lpos_evh, float lpos_evv, const float att_q[4]);
-	void update_CAS_scale_estimated(bool lpos_valid, matrix::Vector3f vI);
+	void update_CAS_scale_estimated(bool lpos_valid, matrix::Vector3f vI, float airspeed_true_raw);
 	void update_CAS_scale_applied();
 	void update_CAS_TAS(float air_pressure_pa, float air_temperature_celsius);
 	void check_airspeed_data_stuck(uint64_t timestamp);
