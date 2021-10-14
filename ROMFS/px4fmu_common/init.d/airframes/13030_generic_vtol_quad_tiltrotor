@@ -26,8 +26,6 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
-
-
 param set-default VT_IDLE_PWM_MC 1100
 param set-default VT_TYPE 1
 param set-default VT_MOT_ID 1234

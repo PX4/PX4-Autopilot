@@ -19,7 +19,6 @@
 . ${R}etc/init.d/rc.mc_defaults
 set MIXER coax
 
-
 param set-default MC_ROLLRATE_P 0.17
 param set-default MC_ROLLRATE_I 0.05
 param set-default MC_ROLLRATE_D 0.005
@@ -41,5 +40,4 @@ param set-default RTL_DESCEND_ALT 10
 set MIXER_AUX pass
 
 # use PWM parameters for throttle channel
-set PWM_AUX_OUT 1234
 set PWM_OUT 34

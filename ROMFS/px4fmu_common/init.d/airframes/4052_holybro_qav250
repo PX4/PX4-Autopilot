@@ -15,10 +15,6 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
-set MIXER quad_x
-set PWM_OUT 1234
-
-
 # The set does not include a battery, but most people will probably use 4S
 param set-default BAT1_N_CELLS 4
 

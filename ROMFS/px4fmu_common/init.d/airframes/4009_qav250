@@ -13,10 +13,6 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
-set MIXER quad_x
-set PWM_OUT 1234
-
-
 param set-default ATT_BIAS_MAX 0
 
 param set-default CBRK_IO_SAFETY 22027

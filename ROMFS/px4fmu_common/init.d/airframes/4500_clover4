@@ -13,10 +13,6 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
-set MIXER quad_x
-set PWM_OUT 1234
-
-
 param set-default MC_PITCHRATE_P 0.087
 param set-default MC_PITCHRATE_I 0.037
 param set-default MC_PITCHRATE_D 0.0044

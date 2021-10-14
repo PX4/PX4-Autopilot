@@ -16,10 +16,6 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
-set MIXER quad_x
-set PWM_OUT 1234
-
-
 # System parameters
 # use FMU motor outputs for less delay in the rate control loop
 param set-default SYS_USE_IO 0

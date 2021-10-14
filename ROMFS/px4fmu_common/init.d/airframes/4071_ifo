@@ -28,9 +28,7 @@ set PWM_OUT 1234
 
 # Attitude & rate gains
 param set-default MC_ROLLRATE_D 0.0013
-
 param set-default MC_PITCHRATE_D 0.0016
-
 
 param set-default MC_YAW_FF 0.5
 
