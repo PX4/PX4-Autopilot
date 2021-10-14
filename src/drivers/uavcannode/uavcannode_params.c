@@ -52,7 +52,7 @@ PARAM_DEFINE_INT32(CANNODE_NODE_ID, 120);
 PARAM_DEFINE_INT32(CANNODE_BITRATE, 1000000);
 
 /**
- * UAVCAN CAN Enable Built-in Bus Termination
+ * CAN built-in bus termination
  *
  * @boolean
  * @max 1
