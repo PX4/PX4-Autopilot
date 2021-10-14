@@ -82,7 +82,7 @@ public:
 	float get_CAS() { return _CAS; }
 	float get_TAS() { return _TAS; }
 	bool get_airspeed_valid() { return _airspeed_valid; }
-	float get_CAS_scale_estimated() {return _CAS_scale_estimated;}
+	float get_CAS_scale_validated() {return _CAS_scale_validated;}
 
 	airspeed_wind_s get_wind_estimator_states(uint64_t timestamp);
 
@@ -113,7 +113,7 @@ public:
 	void set_airspeed_stall(float airspeed_stall) { _airspeed_stall = airspeed_stall; }
 
 	void set_tas_scale_apply(int tas_scale_apply) { _tas_scale_apply = tas_scale_apply; }
-	void set_CAS_scale_estimated(float scale) { _CAS_scale_estimated = scale; }
+	void set_CAS_scale_validated(float scale) { _CAS_scale_validated = scale; }
 	void set_scale_init(float scale) { _wind_estimator.set_scale_init(scale); }
 	void set_disable_tas_scale_estimate(bool disable_scale_est) {_wind_estimator.set_disable_tas_scale_estimate(disable_scale_est); }
 
@@ -130,7 +130,7 @@ private:
 	float _CAS{0.0f}; ///< calibrated airspeed in m/s
 	float _TAS{0.0f}; ///< true airspeed in m/s
 	float _CAS_scale_applied{1.0f}; ///< scale factor from IAS to CAS (currently applied value)
-	float _CAS_scale_estimated{1.0f}; ///< scale factor from IAS to CAS (currently estimated value)
+	float _CAS_scale_validated{1.0f}; ///< scale factor from IAS to CAS (currently estimated value)
 
 	// data stuck check
 	uint64_t _time_last_unequal_data{0};
@@ -173,7 +173,7 @@ private:
 
 	void update_wind_estimator(const uint64_t timestamp, float airspeed_true_raw, bool lpos_valid, matrix::Vector3f vI,
 				   float lpos_evh, float lpos_evv, const float att_q[4]);
-	void update_CAS_scale_estimated(bool lpos_valid, matrix::Vector3f vI, float airspeed_true_raw);
+	void update_CAS_scale_validated(bool lpos_valid, matrix::Vector3f vI, float airspeed_true_raw);
 	void update_CAS_scale_applied();
 	void update_CAS_TAS(float air_pressure_pa, float air_temperature_celsius);
 	void check_airspeed_data_stuck(uint64_t timestamp);

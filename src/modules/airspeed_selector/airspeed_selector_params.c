@@ -76,7 +76,7 @@ PARAM_DEFINE_INT32(ASPD_TAS_GATE, 3);
 PARAM_DEFINE_INT32(ASPD_BETA_GATE, 1);
 
 /**
- * Controls when to apply the new esstimated airspeed scale
+ * Controls when to apply the new estimated airspeed scale
  *
  * @value 0 Disable airspeed scale estimation completely
  * @value 1 Do not apply the new gains (logging and inside wind estimator)

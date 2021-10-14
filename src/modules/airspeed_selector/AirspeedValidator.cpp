@@ -50,7 +50,7 @@ AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_dat
 	// get indicated airspeed from input data (raw airspeed)
 	_IAS = input_data.airspeed_indicated_raw;
 
-	update_CAS_scale_estimated(input_data.lpos_valid, input_data.ground_velocity, input_data.airspeed_true_raw);
+	update_CAS_scale_validated(input_data.lpos_valid, input_data.ground_velocity, input_data.airspeed_true_raw);
 	update_CAS_scale_applied();
 	update_CAS_TAS(input_data.air_pressure_pa, input_data.air_temperature_celsius);
 	update_wind_estimator(input_data.timestamp, input_data.airspeed_true_raw, input_data.lpos_valid,
@@ -106,14 +106,14 @@ AirspeedValidator::get_wind_estimator_states(uint64_t timestamp)
 	wind_est.beta_innov_var = _wind_estimator.get_beta_innov_var();
 	wind_est.tas_scale_raw = _wind_estimator.get_tas_scale();
 	wind_est.tas_scale_raw_var = _wind_estimator.get_tas_scale_var();
-	wind_est.tas_scale_validated = _CAS_scale_estimated;
+	wind_est.tas_scale_validated = _CAS_scale_validated;
 	return wind_est;
 }
 
 void
-AirspeedValidator::update_CAS_scale_estimated(bool lpos_valid, matrix::Vector3f vI, float airspeed_true_raw)
+AirspeedValidator::update_CAS_scale_validated(bool lpos_valid, matrix::Vector3f vI, float airspeed_true_raw)
 {
-	if (!_in_fixed_wing_flight) {
+	if (!_in_fixed_wing_flight || !lpos_valid) {
 		return;
 	}
 
@@ -139,20 +139,17 @@ AirspeedValidator::update_CAS_scale_estimated(bool lpos_valid, matrix::Vector3f 
 			TAS_sum += _scale_check_TAS(i);
 		}
 
-		const float TAS_to_grounspeed_error_current = ground_speed_sum - TAS_sum * _CAS_scale_estimated;
+		const float TAS_to_grounspeed_error_current = ground_speed_sum - TAS_sum * _CAS_scale_validated;
 		const float TAS_to_grounspeed_error_new = ground_speed_sum - TAS_sum * _wind_estimator.get_tas_scale();
 
 		// check passes if the average airspeed with the scale applied is closer to groundspeed than without
 		if (fabsf(TAS_to_grounspeed_error_new) < fabsf(TAS_to_grounspeed_error_current)) {
 
 			// constrain the scale update to max 0.01 at a time
-			const float new_scale_constrained = math::constrain(_wind_estimator.get_tas_scale(), _CAS_scale_estimated - 0.01f,
-							    _CAS_scale_estimated + 0.01f);
+			const float new_scale_constrained = math::constrain(_wind_estimator.get_tas_scale(), _CAS_scale_validated - 0.01f,
+							    _CAS_scale_validated + 0.01f);
 
-			// PX4_INFO("_CAS_scale_estimated updated: %.2f --> %.2f", (double)_CAS_scale_estimated,
-			// 	 (double)new_scale_constrained);
-
-			_CAS_scale_estimated = new_scale_constrained;
+			_CAS_scale_validated = new_scale_constrained;
 		}
 
 		reset_CAS_scale_check();
@@ -187,7 +184,7 @@ AirspeedValidator::update_CAS_scale_applied()
 		break;
 
 	case 3:
-		_CAS_scale_applied = _CAS_scale_estimated;
+		_CAS_scale_applied = _CAS_scale_validated;
 		break;
 	}
 }
@@ -241,7 +238,7 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 		const float dt_s = math::constrain((time_now - _time_last_aspd_innov_check) / 1e6f, 0.01f, 0.2f); // limit to [5,100] Hz
 		matrix::Vector2f wind_2d(_wind_estimator.get_wind());
 		matrix::Vector3f air_vel = vI - matrix::Vector3f {wind_2d(0), wind_2d(1), 0.f};
-		const float tas_innov = abs(_TAS - air_vel.norm());
+		const float tas_innov = fabsf(_TAS - air_vel.norm());
 
 		if (tas_innov > _tas_innov_threshold) {
 			_apsd_innov_integ_state += dt_s * (tas_innov - _tas_innov_threshold); // integrate exceedance
