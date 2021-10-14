@@ -235,6 +235,10 @@
                             "name": "orbit",
                             "description": "Orbit"
                         },
+                        "15": {
+                            "name": "airspeed",
+                            "description": "Airspeed"
+                        },
                         "255": {
                             "name": "unknown",
                             "description": "[Unknown]"
