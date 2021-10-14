@@ -13,7 +13,6 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
-
 param set-default FW_AIRSPD_MAX   22
 param set-default FW_AIRSPD_MIN   14
 param set-default FW_AIRSPD_TRIM  16
@@ -67,7 +66,6 @@ param set-default PWM_AUX_REV3    1
 param set-default PWM_AUX_REV4    1
 
 param set-default PWM_AUX_DIS5 950
-
 
 param set-default VT_ARSP_TRANS   15
 param set-default VT_F_TRANS_THR    0.6

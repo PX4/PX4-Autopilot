@@ -13,10 +13,6 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
-set MIXER quad_x
-set PWM_OUT 1234
-
-
 param set-default IMU_GYRO_CUTOFF 30
 
 param set-default MC_ROLLRATE_P 0.14

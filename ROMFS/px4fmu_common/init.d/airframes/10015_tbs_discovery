@@ -34,5 +34,3 @@ param set-default MC_PITCHRATE_D 0.0025
 param set-default MC_YAWRATE_P 0.28
 
 set MIXER quad_w
-
-set PWM_OUT 1234

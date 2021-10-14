@@ -140,7 +140,7 @@ const T expo_deadzone(const T &value, const T &e, const T &dz)
 template<typename T>
 const T gradual(const T &value, const T &x_low, const T &x_high, const T &y_low, const T &y_high)
 {
-	if (value < x_low) {
+	if (value <= x_low) {
 		return y_low;
 
 	} else if (value > x_high) {

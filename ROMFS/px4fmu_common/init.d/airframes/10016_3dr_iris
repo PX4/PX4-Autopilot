@@ -23,7 +23,6 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
-
 # TODO tune roll/pitch separately
 param set-default MC_ROLL_P 7
 param set-default MC_ROLLRATE_I 0.05
@@ -39,5 +38,3 @@ param set-default BAT1_V_DIV 12.27559
 param set-default BAT1_A_PER_V 15.39103
 
 set MIXER quad_w
-
-set PWM_OUT 1234
