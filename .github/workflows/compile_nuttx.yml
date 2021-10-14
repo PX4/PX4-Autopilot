@@ -110,4 +110,6 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: px4_package_${{matrix.config}}
-        path: build/**/*.px4
+        path: |
+          build/**/*.px4
+          build/**/*.bin
