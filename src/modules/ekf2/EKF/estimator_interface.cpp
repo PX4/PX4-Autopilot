@@ -87,9 +87,8 @@ bool EstimatorInterface::checkIfVehicleAtRest(float dt, const imuSample &imu)
 {
 	// detect if the vehicle is not moving when on ground
 	if (!_control_status.flags.in_air) {
-		if ((_vibe_metrics(1) * 4.0E4f > _params.is_moving_scaler)
-		    || (_vibe_metrics(2) * 2.1E2f > _params.is_moving_scaler)
-		    || ((imu.delta_ang.norm() / dt) > 0.05f * _params.is_moving_scaler)) {
+		if (((_vibe_metrics(1) * 4.0e4f > _params.is_moving_scaler) || (_vibe_metrics(2) * 2.1e2f > _params.is_moving_scaler))
+		    && ((imu.delta_ang.norm() / dt) > 0.05f * _params.is_moving_scaler)) {
 
 			_time_last_move_detect_us = imu.time_us;
 		}
