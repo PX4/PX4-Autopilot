@@ -1047,8 +1047,8 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 
 		tecs_update_pitch_throttle(now, _hold_alt,
 					   altctrl_airspeed,
-					   radians(_param_fw_p_lim_min.get()),
-					   radians(_param_fw_p_lim_max.get()),
+					   radians(_param_fw_p_lim_min.get()) - radians(_param_fw_psp_off.get()),
+					   radians(_param_fw_p_lim_max.get()) - radians(_param_fw_psp_off.get()),
 					   _param_fw_thr_min.get(),
 					   throttle_max,
 					   _param_fw_thr_cruise.get(),
@@ -1160,8 +1160,8 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 
 		tecs_update_pitch_throttle(now, _hold_alt,
 					   altctrl_airspeed,
-					   radians(_param_fw_p_lim_min.get()),
-					   radians(_param_fw_p_lim_max.get()),
+					   radians(_param_fw_p_lim_min.get()) - radians(_param_fw_psp_off.get()),
+					   radians(_param_fw_p_lim_max.get()) - radians(_param_fw_psp_off.get()),
 					   _param_fw_thr_min.get(),
 					   throttle_max,
 					   _param_fw_thr_cruise.get(),
@@ -1315,8 +1315,8 @@ FixedwingPositionControl::control_takeoff(const hrt_abstime &now, const float dt
 
 		tecs_update_pitch_throttle(now, pos_sp_curr.alt,
 					   calculate_target_airspeed(_runway_takeoff.getMinAirspeedScaling() * _param_fw_airspd_min.get(), ground_speed),
-					   radians(_param_fw_p_lim_min.get()),
-					   radians(takeoff_pitch_max_deg),
+					   radians(_param_fw_p_lim_min.get()) - radians(_param_fw_psp_off.get()),
+					   radians(takeoff_pitch_max_deg) - radians(_param_fw_psp_off.get()),
 					   _param_fw_thr_min.get(),
 					   _param_fw_thr_max.get(), // XXX should we also set runway_takeoff_throttle here?
 					   _param_fw_thr_cruise.get(),
@@ -1387,8 +1387,8 @@ FixedwingPositionControl::control_takeoff(const hrt_abstime &now, const float dt
 				/* enforce a minimum of 10 degrees pitch up on takeoff, or take parameter */
 				tecs_update_pitch_throttle(now, pos_sp_curr.alt,
 							   _param_fw_airspd_trim.get(),
-							   radians(_param_fw_p_lim_min.get()),
-							   radians(takeoff_pitch_max_deg),
+							   radians(_param_fw_p_lim_min.get()) - radians(_param_fw_psp_off.get()),
+							   radians(takeoff_pitch_max_deg) - radians(_param_fw_psp_off.get()),
 							   _param_fw_thr_min.get(),
 							   takeoff_throttle,
 							   _param_fw_thr_cruise.get(),
@@ -1402,8 +1402,8 @@ FixedwingPositionControl::control_takeoff(const hrt_abstime &now, const float dt
 			} else {
 				tecs_update_pitch_throttle(now, pos_sp_curr.alt,
 							   calculate_target_airspeed(_param_fw_airspd_trim.get(), ground_speed),
-							   radians(_param_fw_p_lim_min.get()),
-							   radians(_param_fw_p_lim_max.get()),
+							   radians(_param_fw_p_lim_min.get()) - radians(_param_fw_psp_off.get()),
+							   radians(_param_fw_p_lim_max.get()) - radians(_param_fw_psp_off.get()),
 							   _param_fw_thr_min.get(),
 							   takeoff_throttle,
 							   _param_fw_thr_cruise.get(),
@@ -1620,8 +1620,8 @@ FixedwingPositionControl::control_landing(const hrt_abstime &now, const Vector2d
 
 		tecs_update_pitch_throttle(now, terrain_alt + flare_curve_alt_rel,
 					   calculate_target_airspeed(airspeed_land, ground_speed),
-					   radians(_param_fw_lnd_fl_pmin.get()),
-					   radians(_param_fw_lnd_fl_pmax.get()),
+					   radians(_param_fw_lnd_fl_pmin.get()) - radians(_param_fw_psp_off.get()),
+					   radians(_param_fw_lnd_fl_pmax.get()) - radians(_param_fw_psp_off.get()),
 					   0.0f,
 					   throttle_max,
 					   throttle_land,
@@ -1690,8 +1690,8 @@ FixedwingPositionControl::control_landing(const hrt_abstime &now, const Vector2d
 
 		tecs_update_pitch_throttle(now, altitude_desired,
 					   calculate_target_airspeed(airspeed_approach, ground_speed),
-					   radians(_param_fw_p_lim_min.get()),
-					   radians(_param_fw_p_lim_max.get()),
+					   radians(_param_fw_p_lim_min.get()) - radians(_param_fw_psp_off.get()),
+					   radians(_param_fw_p_lim_max.get()) - radians(_param_fw_psp_off.get()),
 					   _param_fw_thr_min.get(),
 					   _param_fw_thr_max.get(),
 					   _param_fw_thr_cruise.get(),
