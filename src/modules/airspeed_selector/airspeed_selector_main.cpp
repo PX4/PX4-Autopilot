@@ -296,7 +296,7 @@ AirspeedModule::Run()
 		init(); // initialize airspeed validator instances
 
 		for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
-			_airspeed_validator[i].set_CAS_scale_estimated(_param_airspeed_scale[i]);
+			_airspeed_validator[i].set_CAS_scale_validated(_param_airspeed_scale[i]);
 			_airspeed_validator[i].set_scale_init(_param_airspeed_scale[i]);
 		}
 
@@ -388,25 +388,25 @@ AirspeedModule::Run()
 			// save estimated airspeed scale after disarm
 			if (!armed && _armed_prev) {
 				if (_param_aspd_scale_apply.get() > 1) {
-					if (fabsf(_airspeed_validator[i].get_CAS_scale_estimated() - _param_airspeed_scale[i]) > 0.01f) {
+					if (fabsf(_airspeed_validator[i].get_CAS_scale_validated() - _param_airspeed_scale[i]) > 0.01f) {
 						// apply the new scale if changed more than 0.01
 						mavlink_log_info(&_mavlink_log_pub, "Airspeed sensor Nr. %d ASPD_SCALE updated: %.2f --> %.2f", i + 1,
 								 (double)_param_airspeed_scale[i],
-								 (double)_airspeed_validator[i].get_CAS_scale_estimated());
+								 (double)_airspeed_validator[i].get_CAS_scale_validated());
 
 						switch (i) {
 						case 0:
-							_param_airspeed_scale_1.set(_airspeed_validator[i].get_CAS_scale_estimated());
+							_param_airspeed_scale_1.set(_airspeed_validator[i].get_CAS_scale_validated());
 							_param_airspeed_scale_1.commit_no_notification();
 							break;
 
 						case 1:
-							_param_airspeed_scale_2.set(_airspeed_validator[i].get_CAS_scale_estimated());
+							_param_airspeed_scale_2.set(_airspeed_validator[i].get_CAS_scale_validated());
 							_param_airspeed_scale_2.commit_no_notification();
 							break;
 
 						case 2:
-							_param_airspeed_scale_3.set(_airspeed_validator[i].get_CAS_scale_estimated());
+							_param_airspeed_scale_3.set(_airspeed_validator[i].get_CAS_scale_validated());
 							_param_airspeed_scale_3.commit_no_notification();
 							break;
 						}
