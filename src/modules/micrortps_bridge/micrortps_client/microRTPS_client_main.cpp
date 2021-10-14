@@ -122,7 +122,17 @@ static int parse_options(int argc, char *argv[])
 				break;
 			}
 
-		case 'm': _options.datarate        = strtoul(myoptarg, nullptr, 10);    break;
+		case 'm': {
+				int datarate = 0;
+
+				if (px4_get_parameter_value(myoptarg, datarate) != 0) {
+					PX4_ERR("datarate parsing failed");
+				}
+
+				_options.datarate = datarate;
+
+				break;
+			}
 
 		case 'p': _options.poll_ms         = strtoul(myoptarg, nullptr, 10);    break;
 

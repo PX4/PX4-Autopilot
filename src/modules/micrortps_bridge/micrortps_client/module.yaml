@@ -3,15 +3,36 @@ serial_config:
     - command: |
         protocol_splitter start ${SERIAL_DEV}
         mavlink start -d /dev/mavlink -b p:${BAUD_PARAM} -m onboard -r 5000 -x
-        micrortps_client start -d /dev/rtps -b p:${BAUD_PARAM} -l -1
+        micrortps_client start -d /dev/rtps -b p:${BAUD_PARAM} -m p:RTPS_RATE -l -1
       port_config_param:
         name: RTPS_MAV_CONFIG
         group: RTPS
       label: MAVLink + FastRTPS
     - command: |
-        micrortps_client start -d ${SERIAL_DEV} -b p:${BAUD_PARAM} -l -1
+        micrortps_client start -d ${SERIAL_DEV} -b p:${BAUD_PARAM} -m p:RTPS_RATE -l -1
       port_config_param:
         name: RTPS_CONFIG
         group: RTPS
       label: FastRTPS
+
+parameters:
+    - group: RTPS
+      definitions:
+        RTPS_RATE: 
+            description:
+                short: Maximum RTPS data rate
+                long: |
+                    Configure the maximum sending rate for the RTPS streams in Bytes/sec.
+                    If the configured streams exceed the maximum rate, the sending rate of
+                    each stream is automatically decreased.
+
+                    0 is unlimited. Note this can cause reliability issues
+                    if enough RTPS topics are selected that exceed the
+                    serial bus limit.
+
+            type: int32
+            min: 0
+            unit: B/s
+            reboot_required: true
+            default: 0
 
