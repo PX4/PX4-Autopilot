@@ -50,7 +50,7 @@ AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_dat
 	// get indicated airspeed from input data (raw airspeed)
 	_IAS = input_data.airspeed_indicated_raw;
 
-	update_CAS_scale_estimated(input_data.lpos_valid, input_data.ground_velocity);
+	update_CAS_scale_estimated(input_data.lpos_valid, input_data.ground_velocity, input_data.airspeed_true_raw);
 	update_CAS_scale_applied();
 	update_CAS_TAS(input_data.air_pressure_pa, input_data.air_temperature_celsius);
 	update_wind_estimator(input_data.timestamp, input_data.airspeed_true_raw, input_data.lpos_valid,
@@ -111,7 +111,7 @@ AirspeedValidator::get_wind_estimator_states(uint64_t timestamp)
 }
 
 void
-AirspeedValidator::update_CAS_scale_estimated(bool lpos_valid, matrix::Vector3f vI)
+AirspeedValidator::update_CAS_scale_estimated(bool lpos_valid, matrix::Vector3f vI, float airspeed_true_raw)
 {
 	if (!_in_fixed_wing_flight) {
 		return;
@@ -126,7 +126,7 @@ AirspeedValidator::update_CAS_scale_estimated(bool lpos_valid, matrix::Vector3f 
 	const int segment_index = int(SCALE_CHECK_SAMPLES * course_over_ground_rad / (2.f * M_PI_F));
 
 	_scale_check_groundspeed(segment_index) = vI.norm();
-	_scale_check_TAS(segment_index) = _TAS;
+	_scale_check_TAS(segment_index) = airspeed_true_raw;
 
 	// run check if all segments are filled
 	if (PX4_ISFINITE(_scale_check_groundspeed.norm_squared())) {
