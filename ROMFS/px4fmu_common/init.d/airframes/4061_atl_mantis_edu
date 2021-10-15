@@ -162,6 +162,7 @@ param set-default RC_MAP_AUX2       5
 param set-default RC_MAP_AUX3       10
 param set-default RC_MAP_AUX4       8
 param set-default RC_MAP_FLTMODE    6
+param set-default RC1_TRIM          1000
 
 
 # optical flow
