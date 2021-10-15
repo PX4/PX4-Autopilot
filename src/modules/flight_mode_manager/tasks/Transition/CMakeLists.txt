@@ -35,5 +35,5 @@ px4_add_library(FlightTaskTransition
 	FlightTaskTransition.cpp
 )
 
-target_link_libraries(FlightTaskTransition PUBLIC FlightTask)
+target_link_libraries(FlightTaskTransition PUBLIC FlightTask FlightTaskUtility)
 target_include_directories(FlightTaskTransition PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
