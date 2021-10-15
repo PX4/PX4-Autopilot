@@ -1,6 +1,8 @@
 #!/bin/sh
 
 tap_esc start -d /dev/ttyS4 -n 4
+sleep 1
+mixer load /dev/tap_esc /etc/mixers/quad_x.main.mix
 
 # Transition from previous non open-source flight stack
 if param compare SYS_AUTOSTART 4001
