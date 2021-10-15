@@ -17,7 +17,7 @@ param set-default SENS_MAG_MODE 0
 param set-default EV_TSK_STAT_DIS 1
 
 # Use MAVLink log streaming
-set LOGGER_ARGS "-m mavlink"
+set LOGGER_ARGS "-m mavlink -c 0.5"
 
 # Save missions RAM
 set DATAMAN_ARGS "-r"
