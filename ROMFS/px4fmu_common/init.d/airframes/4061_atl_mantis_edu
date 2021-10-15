@@ -169,7 +169,7 @@ param set-default RC1_TRIM          1000
 param set-default SENS_FLOW_MAXR   7.4
 param set-default SENS_FLOW_MINHGT 0.15
 param set-default SENS_FLOW_MAXHGT 5.0
-param set-default SENS_FLOW_ROT    4
+param set-default SENS_FLOW_ROT    0
 
 # ignore the SD card errors and use normal startup sound, and make it less loud
 set STARTUP_TUNE "1"
