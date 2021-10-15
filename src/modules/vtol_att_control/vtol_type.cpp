@@ -48,6 +48,8 @@
 
 using namespace matrix;
 
+#define THROTTLE_BLENDING_DUR_S 1.0f
+
 
 VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_attc(att_controller),
@@ -158,6 +160,7 @@ void VtolType::update_fw_state()
 	}
 
 	resetAccelToPitchPitchIntegrator();
+	_last_thr_in_fw_mode =  _actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];
 
 	VtolType::set_alternate_motor_state(motor_state::DISABLED);
 
@@ -182,6 +185,17 @@ void VtolType::update_fw_state()
 	    && _v_control_mode->flag_control_altitude_enabled) {
 
 		waiting_on_tecs();
+		_throttle_blend_start_ts = hrt_absolute_time();
+
+	} else if (shouldBlendThrottleAfterFrontTransition()) {
+		const float progress = (float)(hrt_absolute_time() - _throttle_blend_start_ts) * 1e-6f / THROTTLE_BLENDING_DUR_S;
+
+		if (progress >= 1.0f) {
+			stopBlendingThrottleAfterFrontTransition();
+
+		} else {
+			blendThrottleAfterFrontTransition(progress);
+		}
 	}
 
 	check_quadchute_condition();
@@ -193,6 +207,7 @@ void VtolType::update_transition_state()
 	_transition_dt = (float)(t_now - _last_loop_ts) / 1e6f;
 	_transition_dt = math::constrain(_transition_dt, 0.0001f, 0.02f);
 	_last_loop_ts = t_now;
+	_throttle_blend_start_ts = t_now;
 
 
 
@@ -216,14 +231,14 @@ float VtolType::update_and_get_backtransition_pitch_sp()
 	float integrator_input = _params->dec_to_pitch_i * accel_error_forward;
 
 	if ((pitch_sp_new >= pitch_lim && accel_error_forward > 0.0f) ||
-	    (pitch_sp_new <= -pitch_lim && accel_error_forward < 0.0f)) {
+	    (pitch_sp_new <= 0.f && accel_error_forward < 0.0f)) {
 		integrator_input = 0.0f;
 	}
 
 	_accel_to_pitch_integ += integrator_input * _transition_dt;
 
-
-	return math::constrain(pitch_sp_new, -pitch_lim, pitch_lim);
+	// only allow positive (pitch up) pitch setpoint
+	return math::constrain(pitch_sp_new, 0.f, pitch_lim);
 }
 
 bool VtolType::can_transition_on_ground()
