@@ -239,6 +239,7 @@ void Logger::print_statistics(LogType type)
 Logger *Logger::instantiate(int argc, char *argv[])
 {
 	uint32_t log_interval = 3500;
+	float rate_factor = 1.0f;
 	int log_buffer_size = 12 * 1024;
 	Logger::LogMode log_mode = Logger::LogMode::while_armed;
 	bool error_flag = false;
@@ -250,7 +251,7 @@ Logger *Logger::instantiate(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "r:b:etfm:p:x", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "r:b:etfm:p:xc:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'r': {
 				unsigned long r = strtoul(myoptarg, nullptr, 10);
@@ -261,6 +262,10 @@ Logger *Logger::instantiate(int argc, char *argv[])
 
 				log_interval = 1e6 / r;
 			}
+			break;
+
+		case 'c':
+			rate_factor = strtof(myoptarg, nullptr);
 			break;
 
 		case 'x':
@@ -332,7 +337,8 @@ Logger *Logger::instantiate(int argc, char *argv[])
 		return nullptr;
 	}
 
-	Logger *logger = new Logger(backend, log_buffer_size, log_interval, poll_topic, log_mode, log_name_timestamp);
+	Logger *logger = new Logger(backend, log_buffer_size, log_interval, poll_topic, log_mode, log_name_timestamp,
+				    rate_factor);
 
 #if defined(DBGPRINT) && defined(__PX4_NUTTX)
 	struct mallinfo alloc_info = mallinfo();
@@ -360,13 +366,14 @@ Logger *Logger::instantiate(int argc, char *argv[])
 }
 
 Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, const char *poll_topic_name,
-	       LogMode log_mode, bool log_name_timestamp) :
+	       LogMode log_mode, bool log_name_timestamp, float rate_factor) :
 	ModuleParams(nullptr),
 	_log_mode(log_mode),
 	_log_name_timestamp(log_name_timestamp),
 	_event_subscription(ORB_ID::event),
 	_writer(backend, buffer_size),
-	_log_interval(log_interval)
+	_log_interval(log_interval),
+	_rate_factor(rate_factor)
 {
 	if (poll_topic_name) {
 		const orb_metadata *const *topics = orb_get_topics();
@@ -478,6 +485,7 @@ bool Logger::initialize_topics()
 	}
 
 	LoggedTopics logged_topics;
+	logged_topics.set_rate_factor(_rate_factor);
 
 	// initialize mission topics
 	logged_topics.initialize_mission_topics((MissionLogType)_param_sdlog_mission.get());
@@ -2310,6 +2318,7 @@ $ logger on
 	PRINT_MODULE_USAGE_PARAM_INT('b', 12, 4, 10000, "Log buffer size in KiB", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, "<topic_name>",
 					 "Poll on a topic instead of running with fixed rate (Log rate and topic intervals are ignored if this is set)", true);
+	PRINT_MODULE_USAGE_PARAM_FLOAT('c', 1.0, 0.2, 2.0, "Log rate factor (higher is faster)", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("on", "start logging now, override arming (logger must be running)");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("off", "stop logging now, override arming (logger must be running)");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();

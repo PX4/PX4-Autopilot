@@ -393,6 +393,8 @@ bool LoggedTopics::add_topic(const orb_metadata *topic, uint16_t interval_ms, ui
 
 bool LoggedTopics::add_topic(const char *name, uint16_t interval_ms, uint8_t instance, bool optional)
 {
+	interval_ms /= _rate_factor;
+
 	const orb_metadata *const *topics = orb_get_topics();
 	bool success = false;
 

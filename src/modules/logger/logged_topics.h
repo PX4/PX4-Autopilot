@@ -100,6 +100,8 @@ public:
 	const RequestedSubscriptionArray &subscriptions() const { return _subscriptions; }
 	int numMissionSubscriptions() const { return _num_mission_subs; }
 
+	void set_rate_factor(float rate_factor) { _rate_factor = rate_factor; }
+
 private:
 
 	/**
@@ -175,6 +177,7 @@ private:
 
 	RequestedSubscriptionArray _subscriptions;
 	int _num_mission_subs{0};
+	float _rate_factor{1.0f};
 };
 
 } //namespace logger
