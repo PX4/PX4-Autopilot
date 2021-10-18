@@ -196,7 +196,7 @@ private:
 	_triplet_next_wp; /**< next triplet from navigator which may differ from the intenal one (_next_wp) depending on the vehicle state.*/
 	matrix::Vector2f _closest_pt; /**< closest point to the vehicle position on the line previous - target */
 
-	map_projection_reference_s _reference_position{}; /**< Structure used to project lat/lon setpoint into local frame. */
+	MapProjection _reference_position{}; /**< Structure used to project lat/lon setpoint into local frame. */
 	float _reference_altitude{NAN};  /**< Altitude relative to ground. */
 	hrt_abstime _time_stamp_reference{0}; /**< time stamp when last reference update occured. */
 

@@ -84,10 +84,8 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 
 	// commanded center coordinates
 	if (PX4_ISFINITE(command.param5) && PX4_ISFINITE(command.param6)) {
-		if (map_projection_initialized(&_global_local_proj_ref)) {
-			map_projection_project(&_global_local_proj_ref,
-					       command.param5, command.param6,
-					       &_center(0), &_center(1));
+		if (_geo_projection.isInitialized()) {
+			_center.xy() = _geo_projection.project(command.param5, command.param6);
 
 		} else {
 			ret = false;
@@ -96,7 +94,7 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 
 	// commanded altitude
 	if (PX4_ISFINITE(command.param7)) {
-		if (map_projection_initialized(&_global_local_proj_ref)) {
+		if (_geo_projection.isInitialized()) {
 			_center(2) = _global_local_alt0 - command.param7;
 
 		} else {
@@ -121,9 +119,9 @@ bool FlightTaskOrbit::sendTelemetry()
 	orbit_status.frame = 0; // MAV_FRAME::MAV_FRAME_GLOBAL
 	orbit_status.yaw_behaviour = _yaw_behaviour;
 
-	if (map_projection_initialized(&_global_local_proj_ref)) {
+	if (_geo_projection.isInitialized()) {
 		// local -> global
-		map_projection_reproject(&_global_local_proj_ref, _center(0), _center(1), &orbit_status.x, &orbit_status.y);
+		_geo_projection.reproject(_center(0), _center(1), orbit_status.x, orbit_status.y);
 		orbit_status.z = _global_local_alt0 - _position_setpoint(2);
 
 	} else {

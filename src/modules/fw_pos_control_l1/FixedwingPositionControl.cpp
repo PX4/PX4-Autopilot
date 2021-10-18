@@ -1915,11 +1915,11 @@ FixedwingPositionControl::Run()
 
 		if (_control_mode.flag_control_offboard_enabled) {
 			// Convert Local setpoints to global setpoints
-			if (!map_projection_initialized(&_global_local_proj_ref)
-			    || (_global_local_proj_ref.timestamp != _local_pos.ref_timestamp)) {
+			if (!_global_local_proj_ref.isInitialized()
+			    || (_global_local_proj_ref.getProjectionReferenceTimestamp() != _local_pos.ref_timestamp)) {
 
-				map_projection_init_timestamped(&_global_local_proj_ref, _local_pos.ref_lat, _local_pos.ref_lon,
-								_local_pos.ref_timestamp);
+				_global_local_proj_ref.initReference(_local_pos.ref_lat, _local_pos.ref_lon,
+								     _local_pos.ref_timestamp);
 				_global_local_alt0 = _local_pos.ref_alt;
 			}
 
@@ -1930,7 +1930,8 @@ FixedwingPositionControl::Run()
 					double lat;
 					double lon;
 
-					if (map_projection_reproject(&_global_local_proj_ref, trajectory_setpoint.x, trajectory_setpoint.y, &lat, &lon) == 0) {
+					if (_global_local_proj_ref.isInitialized()) {
+						_global_local_proj_ref.reproject(trajectory_setpoint.x, trajectory_setpoint.y, lat, lon);
 						_pos_sp_triplet = {}; // clear any existing
 
 						_pos_sp_triplet.timestamp = trajectory_setpoint.timestamp;
