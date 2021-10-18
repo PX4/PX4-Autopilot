@@ -562,7 +562,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 		run_preflight_checks = false;
 	}
 
-	if (run_preflight_checks) {
+	if (run_preflight_checks && !_armed.armed) {
 		if (_vehicle_control_mode.flag_control_manual_enabled) {
 			if (_vehicle_control_mode.flag_control_climb_rate_enabled &&
 			    !_status.rc_signal_lost && _is_throttle_above_center) {
@@ -584,11 +584,21 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 				tune_negative(true);
 				return TRANSITION_DENIED;
 			}
+
+		} else if (calling_reason == arm_disarm_reason_t::rc_stick
+			   || calling_reason == arm_disarm_reason_t::rc_switch
+			   || calling_reason == arm_disarm_reason_t::rc_button) {
+			mavlink_log_critical(&_mavlink_log_pub, "Arming denied: switch to manual mode first\t");
+			events::send(events::ID("commander_arm_denied_not_manual"),
+			{events::Log::Critical, events::LogInternal::Info},
+			"Arming denied: switch to manual mode first");
+			tune_negative(true);
+			return TRANSITION_DENIED;
 		}
 
 		if ((_param_geofence_action.get() == geofence_result_s::GF_ACTION_RTL)
 		    && !_status_flags.condition_home_position_valid) {
-			mavlink_log_critical(&_mavlink_log_pub, "Arming denied! Geofence RTL requires valid home\t");
+			mavlink_log_critical(&_mavlink_log_pub, "Arming denied: Geofence RTL requires valid home\t");
 			events::send(events::ID("commander_arm_denied_geofence_rtl"),
 			{events::Log::Critical, events::LogInternal::Info},
 			"Arming denied: Geofence RTL requires valid home");
@@ -852,8 +862,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			const int8_t arming_action = static_cast<int8_t>(lroundf(cmd.param1));
 
 			if (arming_action != vehicle_command_s::ARMING_ACTION_ARM
-			    && arming_action != vehicle_command_s::ARMING_ACTION_DISARM
-			    && arming_action != vehicle_command_s::ARMING_ACTION_TOGGLE) {
+			    && arming_action != vehicle_command_s::ARMING_ACTION_DISARM) {
 				mavlink_log_critical(&_mavlink_log_pub, "Unsupported ARM_DISARM param: %.3f\t", (double)cmd.param1);
 				events::send<float>(events::ID("commander_unsupported_arm_disarm_param"), events::Log::Error,
 						    "Unsupported ARM_DISARM param: {1:.3}", cmd.param1);
@@ -861,25 +870,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			} else {
 				// Arm is forced (checks skipped) when param2 is set to a magic number.
 				const bool forced = (static_cast<int>(lroundf(cmd.param2)) == 21196);
-
-				const int8_t arming_origin = static_cast<int8_t>(lroundf(cmd.param3));
-
-				const bool cmd_from_manual_stick = (arming_origin == vehicle_command_s::ARMING_ORIGIN_GESTURE);
-				const bool cmd_from_manual_switch = (arming_origin == vehicle_command_s::ARMING_ORIGIN_SWITCH);
-				const bool cmd_from_manual_button = (arming_origin == vehicle_command_s::ARMING_ORIGIN_BUTTON);
 				const bool cmd_from_io = (static_cast<int>(roundf(cmd.param3)) == 1234);
-
-				if (cmd_from_manual_stick && !_vehicle_control_mode.flag_control_manual_enabled) {
-					if (arming_action == vehicle_command_s::ARMING_ACTION_ARM) {
-						mavlink_log_critical(&_mavlink_log_pub, "Not arming! Switch to a manual mode first");
-
-					} else if (arming_action == vehicle_command_s::ARMING_ACTION_DISARM) {
-						mavlink_log_critical(&_mavlink_log_pub, "Not disarming! Switch to a manual mode first");
-					}
-
-					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
-					break;
-				}
 
 				if (!forced) {
 					if (!(_land_detector.landed || _land_detector.maybe_landed) && !is_ground_rover(_status)) {
@@ -916,53 +907,14 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				}
 
 				transition_result_t arming_res = TRANSITION_DENIED;
+				arm_disarm_reason_t arm_disarm_reason = cmd.from_external ? arm_disarm_reason_t::command_external :
+									arm_disarm_reason_t::command_internal;
 
 				if (arming_action == vehicle_command_s::ARMING_ACTION_ARM) {
-					if (cmd.from_external) {
-						arming_res = arm(arm_disarm_reason_t::command_external);
-
-					} else {
-						if (cmd_from_manual_stick) {
-							arming_res = arm(arm_disarm_reason_t::rc_stick);
-
-						} else if (cmd_from_manual_switch) {
-							arming_res = arm(arm_disarm_reason_t::rc_switch);
-
-						} else {
-							arming_res = arm(arm_disarm_reason_t::command_internal, !forced);
-						}
-					}
+					arming_res = arm(arm_disarm_reason, cmd.from_external || !forced);
 
 				} else if (arming_action == vehicle_command_s::ARMING_ACTION_DISARM) {
-					if (cmd.from_external) {
-						arming_res = disarm(arm_disarm_reason_t::command_external);
-
-					} else {
-						if (cmd_from_manual_stick) {
-							arming_res = disarm(arm_disarm_reason_t::rc_stick);
-
-						} else if (cmd_from_manual_switch) {
-							arming_res = disarm(arm_disarm_reason_t::rc_switch);
-
-						} else {
-							arming_res = disarm(arm_disarm_reason_t::command_internal);
-						}
-					}
-
-				} else if (arming_action == vehicle_command_s::ARMING_ACTION_TOGGLE) {
-					// -1 means toggle by a button
-					// This should come from an arming button internally, otherwise something is wrong.
-					if (!cmd.from_external && cmd_from_manual_button) {
-						if (_armed.armed) {
-							arming_res = disarm(arm_disarm_reason_t::rc_button);
-
-						} else {
-							arming_res = arm(arm_disarm_reason_t::rc_button);
-						}
-
-					} else {
-						PX4_WARN("ARM_DISARM toggle command ignored");
-					}
+					arming_res = disarm(arm_disarm_reason);
 
 				}
 
@@ -2493,6 +2445,38 @@ Commander::run()
 
 				if (handle_command(cmd)) {
 					_status_changed = true;
+				}
+			}
+		}
+
+		while (_arm_request_sub.updated()) {
+			arm_request_s arm_request;
+
+			if (_arm_request_sub.copy(&arm_request)) {
+				arm_disarm_reason_t arm_disarm_reason{};
+
+				switch (arm_request.source) {
+				case arm_request_s::SOURCE_RC_STICK_GESTURE: arm_disarm_reason = arm_disarm_reason_t::rc_stick; break;
+
+				case arm_request_s::SOURCE_RC_SWITCH: arm_disarm_reason = arm_disarm_reason_t::rc_switch; break;
+
+				case arm_request_s::SOURCE_RC_BUTTON: arm_disarm_reason = arm_disarm_reason_t::rc_button; break;
+				}
+
+				switch (arm_request.action) {
+				case arm_request_s::ACTION_DISARM: disarm(arm_disarm_reason); break;
+
+				case arm_request_s::ACTION_ARM: arm(arm_disarm_reason); break;
+
+				case arm_request_s::ACTION_TOGGLE:
+					if (_armed.armed) {
+						disarm(arm_disarm_reason);
+
+					} else {
+						arm(arm_disarm_reason);
+					}
+
+					break;
 				}
 			}
 		}
