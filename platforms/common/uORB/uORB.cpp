@@ -172,3 +172,35 @@ int orb_get_interval(int handle, unsigned *interval)
 {
 	return uORB::Manager::get_instance()->orb_get_interval(handle, interval);
 }
+
+const char *orb_get_c_type(unsigned char short_type)
+{
+	// this matches with the uorb o_fields generator
+	switch (short_type) {
+	case 0x82: return "int8_t";
+
+	case 0x83: return "int16_t";
+
+	case 0x84: return "int32_t";
+
+	case 0x85: return "int64_t";
+
+	case 0x86: return "uint8_t";
+
+	case 0x87: return "uint16_t";
+
+	case 0x88: return "uint32_t";
+
+	case 0x89: return "uint64_t";
+
+	case 0x8a: return "float";
+
+	case 0x8b: return "double";
+
+	case 0x8c: return "bool";
+
+	case 0x8d: return "char";
+	}
+
+	return nullptr;
+}

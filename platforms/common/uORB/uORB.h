@@ -31,8 +31,7 @@
  *
  ****************************************************************************/
 
-#ifndef _UORB_UORB_H
-#define _UORB_UORB_H
+#pragma once
 
 /**
  * @file uORB.h
@@ -235,6 +234,12 @@ extern int	orb_set_interval(int handle, unsigned interval) __EXPORT;
  */
 extern int	orb_get_interval(int handle, unsigned *interval) __EXPORT;
 
+/**
+ * Returns the C type string from a short type in o_fields metadata, or nullptr
+ * if not a short type
+ */
+const char *orb_get_c_type(unsigned char short_type);
+
 __END_DECLS
 
 /* Diverse uORB header defines */ //XXX: move to better location
@@ -245,4 +250,3 @@ typedef uint8_t hil_state_t;
 typedef uint8_t navigation_state_t;
 typedef uint8_t switch_pos_t;
 
-#endif /* _UORB_UORB_H */

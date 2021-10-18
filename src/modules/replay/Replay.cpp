@@ -336,6 +336,36 @@ Replay::readFormat(std::ifstream &file, uint16_t msg_size)
 	return true;
 }
 
+
+string Replay::parseOrbFields(const string &fields)
+{
+	string ret{};
+
+	// convert o_fields from "<chr> timestamp;<chr>[5] array;" to "uint64_t timestamp;int8_t[5] array;"
+	for (int format_idx = 0; format_idx < (int)fields.length();) {
+		const char *end_field = strchr(fields.c_str() + format_idx, ';');
+
+		if (!end_field) {
+			PX4_ERR("Format error in %s", fields.c_str());
+			return "";
+		}
+
+		const char *c_type = orb_get_c_type(fields[format_idx]);
+
+		if (c_type) {
+			string str_type = c_type;
+			ret += str_type;
+			++format_idx;
+		}
+
+		int len = end_field - (fields.c_str() + format_idx) + 1;
+		ret += fields.substr(format_idx, len);
+		format_idx += len;
+	}
+
+	return ret;
+}
+
 bool
 Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 {
@@ -371,12 +401,12 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 	// FIXME: this should check recursively, all used nested types
 	string file_format = _file_formats[topic_name];
 
-	std::string orb_fields(orb_meta->o_fields);
+	const string orb_fields = parseOrbFields(orb_meta->o_fields);
 
 	if (file_format != orb_fields) {
 		// check if we have a compatibility conversion available
 		if (topic_name == "sensor_combined") {
-			if (string(orb_meta->o_fields) == "uint64_t timestamp;float[3] gyro_rad;uint32_t gyro_integral_dt;"
+			if (orb_fields == "uint64_t timestamp;float[3] gyro_rad;uint32_t gyro_integral_dt;"
 			    "int32_t accelerometer_timestamp_relative;float[3] accelerometer_m_s2;"
 			    "uint32_t accelerometer_integral_dt" &&
 			    file_format == "uint64_t timestamp;float[3] gyro_rad;float gyro_integral_dt;"
@@ -390,9 +420,9 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 				int unused;
 
 				if (findFieldOffset(file_format, "gyro_integral_dt", gyro_integral_dt_offset_log, unused) &&
-				    findFieldOffset(orb_meta->o_fields, "gyro_integral_dt", gyro_integral_dt_offset_intern, unused) &&
+				    findFieldOffset(orb_fields, "gyro_integral_dt", gyro_integral_dt_offset_intern, unused) &&
 				    findFieldOffset(file_format, "accelerometer_integral_dt", accelerometer_integral_dt_offset_log, unused) &&
-				    findFieldOffset(orb_meta->o_fields, "accelerometer_integral_dt", accelerometer_integral_dt_offset_intern, unused)) {
+				    findFieldOffset(orb_fields, "accelerometer_integral_dt", accelerometer_integral_dt_offset_intern, unused)) {
 
 					compat = new CompatSensorCombinedDtType(gyro_integral_dt_offset_log, gyro_integral_dt_offset_intern,
 										accelerometer_integral_dt_offset_log, accelerometer_integral_dt_offset_intern);
@@ -449,7 +479,7 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 
 	//find the timestamp offset
 	int field_size;
-	bool timestamp_found = findFieldOffset(orb_meta->o_fields, "timestamp", subscription->timestamp_offset, field_size);
+	bool timestamp_found = findFieldOffset(orb_fields, "timestamp", subscription->timestamp_offset, field_size);
 
 	if (!timestamp_found) {
 		delete subscription;

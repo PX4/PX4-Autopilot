@@ -60,6 +60,23 @@ type_map = {
     'char': 'char',
 }
 
+type_map_short = {
+    # We use some range outside of alpha-numeric and special characters.
+    # This needs to match with orb_get_c_type()
+    'int8': '\\x82',
+    'int16': '\\x83',
+    'int32': '\\x84',
+    'int64': '\\x85',
+    'uint8': '\\x86',
+    'uint16': '\\x87',
+    'uint32': '\\x88',
+    'uint64': '\\x89',
+    'float32': '\\x8a',
+    'float64': '\\x8b',
+    'bool': '\\x8c',
+    'char': '\\x8d',
+}
+
 type_serialize_map = {
     'int8': 'int8_t',
     'int16': 'int16_t',
@@ -204,7 +221,7 @@ def add_padding_bytes(fields, search_path):
     return (struct_size, num_padding_bytes)
 
 
-def convert_type(spec_type):
+def convert_type(spec_type, use_short_type=False):
     """
     Convert from msg type to C type
     """
@@ -215,7 +232,9 @@ def convert_type(spec_type):
 
     msg_type, is_array, array_length = genmsg.msgs.parse_type(bare_type)
     c_type = msg_type
-    if msg_type in type_map:
+    if use_short_type and msg_type in type_map_short:
+        c_type = type_map_short[msg_type]
+    elif msg_type in type_map:
         c_type = type_map[msg_type]
     if is_array:
         return c_type + "[" + str(array_length) + "]"
