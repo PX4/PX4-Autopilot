@@ -716,7 +716,7 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 		global_pos.timestamp_sample = timestamp;
 
 		// Position of local NED origin in GPS / WGS84 frame
-		map_projection_reproject(&_ekf.global_origin(), position(0), position(1), &global_pos.lat, &global_pos.lon);
+		_ekf.global_origin().reproject(position(0), position(1), global_pos.lat, global_pos.lon);
 
 		float delta_xy[2];
 		_ekf.get_posNE_reset(delta_xy, &global_pos.lat_lon_reset_counter);
@@ -867,9 +867,9 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 
 	// Position of local NED origin in GPS / WGS84 frame
 	if (_ekf.global_origin_valid()) {
-		lpos.ref_timestamp = _ekf.global_origin().timestamp;
-		lpos.ref_lat = math::degrees(_ekf.global_origin().lat_rad); // Reference point latitude in degrees
-		lpos.ref_lon = math::degrees(_ekf.global_origin().lon_rad); // Reference point longitude in degrees
+		lpos.ref_timestamp = _ekf.global_origin().getProjectionReferenceTimestamp();
+		lpos.ref_lat = _ekf.global_origin().getProjectionReferenceLat(); // Reference point latitude in degrees
+		lpos.ref_lon = _ekf.global_origin().getProjectionReferenceLon(); // Reference point longitude in degrees
 		lpos.ref_alt = _ekf.getEkfGlobalOriginAltitude();           // Reference point in MSL altitude meters
 		lpos.xy_global = true;
 		lpos.z_global = true;

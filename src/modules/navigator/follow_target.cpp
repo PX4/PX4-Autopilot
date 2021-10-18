@@ -94,7 +94,7 @@ void FollowTarget::on_activation()
 
 void FollowTarget::on_active()
 {
-	struct map_projection_reference_s target_ref;
+	MapProjection target_ref;
 	follow_target_s target_motion_with_offset = {};
 	uint64_t current_time = hrt_absolute_time();
 	bool radius_entered = false;
@@ -134,9 +134,9 @@ void FollowTarget::on_active()
 
 		// get distance to target
 
-		map_projection_init(&target_ref, _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
-		map_projection_project(&target_ref, _current_target_motion.lat, _current_target_motion.lon, &_target_distance(0),
-				       &_target_distance(1));
+		target_ref.initReference(_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
+		target_ref.project(_current_target_motion.lat, _current_target_motion.lon, _target_distance(0),
+				   _target_distance(1));
 
 	}
 
@@ -149,11 +149,11 @@ void FollowTarget::on_active()
 		// ignore a small dt
 		if (dt_ms > 10.0F) {
 			// get last gps known reference for target
-			map_projection_init(&target_ref, _previous_target_motion.lat, _previous_target_motion.lon);
+			target_ref.initReference(_previous_target_motion.lat, _previous_target_motion.lon);
 
 			// calculate distance the target has moved
-			map_projection_project(&target_ref, _current_target_motion.lat, _current_target_motion.lon,
-					       &(_target_position_delta(0)), &(_target_position_delta(1)));
+			target_ref.project(_current_target_motion.lat, _current_target_motion.lon,
+					   (_target_position_delta(0)), (_target_position_delta(1)));
 
 			// update the average velocity of the target based on the position
 			if (PX4_ISFINITE(_current_target_motion.vx) && PX4_ISFINITE(_current_target_motion.vy)) {
@@ -229,9 +229,9 @@ void FollowTarget::on_active()
 
 		// get the target position using the calculated offset
 
-		map_projection_init(&target_ref,  _current_target_motion.lat, _current_target_motion.lon);
-		map_projection_reproject(&target_ref, _target_position_offset(0), _target_position_offset(1),
-					 &target_motion_with_offset.lat, &target_motion_with_offset.lon);
+		target_ref.initReference(_current_target_motion.lat, _current_target_motion.lon);
+		target_ref.reproject(_target_position_offset(0), _target_position_offset(1),
+				     target_motion_with_offset.lat, target_motion_with_offset.lon);
 	}
 
 	// clamp yaw rate smoothing if we are with in

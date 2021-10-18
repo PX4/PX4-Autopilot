@@ -1150,13 +1150,12 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 				return;
 			}
 
-			map_projection_reference_s global_local_proj_ref{};
-			map_projection_init_timestamped(&global_local_proj_ref, local_pos.ref_lat, local_pos.ref_lon, local_pos.ref_timestamp);
+			MapProjection global_local_proj_ref{local_pos.ref_lat, local_pos.ref_lon, local_pos.ref_timestamp};
 
 			// global -> local
 			const double lat = target_global_int.lat_int / 1e7;
 			const double lon = target_global_int.lon_int / 1e7;
-			map_projection_project(&global_local_proj_ref, lat, lon, &setpoint.x, &setpoint.y);
+			global_local_proj_ref.project(lat, lon, setpoint.x, setpoint.y);
 
 			if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_INT) {
 				setpoint.z = local_pos.ref_alt - target_global_int.alt;
@@ -2705,20 +2704,20 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		const double lat = hil_state.lat * 1e-7;
 		const double lon = hil_state.lon * 1e-7;
 
-		if (!map_projection_initialized(&_global_local_proj_ref) || !PX4_ISFINITE(_global_local_alt0)) {
-			map_projection_init(&_global_local_proj_ref, lat, lon);
+		if (!_global_local_proj_ref.isInitialized() || !PX4_ISFINITE(_global_local_alt0)) {
+			_global_local_proj_ref.initReference(lat, lon);
 			_global_local_alt0 = hil_state.alt / 1000.f;
 		}
 
 		float x = 0.f;
 		float y = 0.f;
-		map_projection_project(&_global_local_proj_ref, lat, lon, &x, &y);
+		_global_local_proj_ref.project(lat, lon, x, y);
 
 		vehicle_local_position_s hil_local_pos{};
 		hil_local_pos.timestamp_sample = timestamp_sample;
-		hil_local_pos.ref_timestamp = _global_local_proj_ref.timestamp;
-		hil_local_pos.ref_lat = math::degrees(_global_local_proj_ref.lat_rad);
-		hil_local_pos.ref_lon = math::degrees(_global_local_proj_ref.lon_rad);
+		hil_local_pos.ref_timestamp = _global_local_proj_ref.getProjectionReferenceTimestamp();
+		hil_local_pos.ref_lat = _global_local_proj_ref.getProjectionReferenceLat();
+		hil_local_pos.ref_lon = _global_local_proj_ref.getProjectionReferenceLon();
 		hil_local_pos.ref_alt = _global_local_alt0;
 		hil_local_pos.xy_valid = true;
 		hil_local_pos.z_valid = true;

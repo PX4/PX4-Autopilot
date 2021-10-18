@@ -419,11 +419,11 @@ RoverPositionControl::Run()
 
 			// Convert Local setpoints to global setpoints
 			if (_control_mode.flag_control_offboard_enabled) {
-				if (!map_projection_initialized(&_global_local_proj_ref)
-				    || (_global_local_proj_ref.timestamp != _local_pos.ref_timestamp)) {
+				if (!_global_local_proj_ref.isInitialized()
+				    || (_global_local_proj_ref.getProjectionReferenceTimestamp() != _local_pos.ref_timestamp)) {
 
-					map_projection_init_timestamped(&_global_local_proj_ref, _local_pos.ref_lat, _local_pos.ref_lon,
-									_local_pos.ref_timestamp);
+					_global_local_proj_ref.initReference(_local_pos.ref_lat, _local_pos.ref_lon,
+									     _local_pos.ref_timestamp);
 
 					_global_local_alt0 = _local_pos.ref_alt;
 				}
@@ -431,9 +431,9 @@ RoverPositionControl::Run()
 				_trajectory_setpoint_sub.update(&_trajectory_setpoint);
 
 				// local -> global
-				map_projection_reproject(&_global_local_proj_ref,
-							 _trajectory_setpoint.x, _trajectory_setpoint.y,
-							 &_pos_sp_triplet.current.lat, &_pos_sp_triplet.current.lon);
+				_global_local_proj_ref.reproject(
+					_trajectory_setpoint.x, _trajectory_setpoint.y,
+					_pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon);
 
 				_pos_sp_triplet.current.alt = _global_local_alt0 - _trajectory_setpoint.z;
 				_pos_sp_triplet.current.valid = true;

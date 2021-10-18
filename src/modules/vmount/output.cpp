@@ -75,13 +75,13 @@ void OutputBase::publish()
 float OutputBase::_calculate_pitch(double lon, double lat, float altitude,
 				   const vehicle_global_position_s &global_position)
 {
-	if (!map_projection_initialized(&_projection_reference)) {
-		map_projection_init(&_projection_reference, global_position.lat, global_position.lon);
+	if (!_projection_reference.isInitialized()) {
+		_projection_reference.initReference(global_position.lat, global_position.lon);
 	}
 
 	float x1, y1, x2, y2;
-	map_projection_project(&_projection_reference, lat, lon, &x1, &y1);
-	map_projection_project(&_projection_reference, global_position.lat, global_position.lon, &x2, &y2);
+	_projection_reference.project(lat, lon, x1, y1);
+	_projection_reference.project(global_position.lat, global_position.lon, x2, y2);
 	float dx = x1 - x2, dy = y1 - y2;
 	float target_distance = sqrtf(dx * dx + dy * dy);
 	float z = altitude - global_position.alt;
