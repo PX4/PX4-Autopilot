@@ -224,13 +224,6 @@ private:
 	PositionControlStates set_vehicle_states(const vehicle_local_position_s &local_pos);
 
 	/**
-	 * Adjust the setpoint during landing.
-	 * Thrust is adjusted to support the land-detector during detection.
-	 * @param setpoint gets adjusted based on land-detector state
-	 */
-	void limit_thrust_during_landing(vehicle_attitude_setpoint_s &setpoint);
-
-	/**
 	 * Failsafe.
 	 * If flighttask fails for whatever reason, then do failsafe. This could
 	 * occur if the commander fails to switch to a mode in case of invalid states or
