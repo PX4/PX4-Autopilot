@@ -78,8 +78,8 @@ PrecLand::on_activation()
 
 	vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
 
-	if (!map_projection_initialized(&_map_ref)) {
-		map_projection_init(&_map_ref, vehicle_local_position->ref_lat, vehicle_local_position->ref_lon);
+	if (!_map_ref.isInitialized()) {
+		_map_ref.initReference(vehicle_local_position->ref_lat, vehicle_local_position->ref_lon);
 	}
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
@@ -279,7 +279,7 @@ PrecLand::run_state_horizontal_approach()
 
 	// XXX need to transform to GPS coords because mc_pos_control only looks at that
 	double lat, lon;
-	map_projection_reproject(&_map_ref, x, y, &lat, &lon);
+	_map_ref.reproject(x, y, lat, lon);
 
 	pos_sp_triplet->current.lat = lat;
 	pos_sp_triplet->current.lon = lon;
@@ -316,7 +316,7 @@ PrecLand::run_state_descend_above_target()
 
 	// XXX need to transform to GPS coords because mc_pos_control only looks at that
 	double lat, lon;
-	map_projection_reproject(&_map_ref, _target_pose.x_abs, _target_pose.y_abs, &lat, &lon);
+	_map_ref.reproject(_target_pose.x_abs, _target_pose.y_abs, lat, lon);
 
 	pos_sp_triplet->current.lat = lat;
 	pos_sp_triplet->current.lon = lon;
@@ -555,8 +555,8 @@ void PrecLand::slewrate(float &sp_x, float &sp_y)
 		dt = 50000 / SEC2USEC;
 
 		// set a best guess for previous setpoints for smooth transition
-		map_projection_project(&_map_ref, _navigator->get_position_setpoint_triplet()->current.lat,
-				       _navigator->get_position_setpoint_triplet()->current.lon, &_sp_pev(0), &_sp_pev(1));
+		_map_ref.project(_navigator->get_position_setpoint_triplet()->current.lat,
+				 _navigator->get_position_setpoint_triplet()->current.lon, _sp_pev(0), _sp_pev(1));
 		_sp_pev_prev(0) = _sp_pev(0) - _navigator->get_local_position()->vx * dt;
 		_sp_pev_prev(1) = _sp_pev(1) - _navigator->get_local_position()->vy * dt;
 	}

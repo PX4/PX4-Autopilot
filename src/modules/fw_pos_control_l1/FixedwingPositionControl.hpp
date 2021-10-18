@@ -172,7 +172,7 @@ private:
 
 	perf_counter_t	_loop_perf;				///< loop performance counter
 
-	map_projection_reference_s _global_local_proj_ref{};
+	MapProjection _global_local_proj_ref{};
 	float	_global_local_alt0{NAN};
 
 	float	_takeoff_ground_alt{0.0f};			///< ground altitude at which plane was launched

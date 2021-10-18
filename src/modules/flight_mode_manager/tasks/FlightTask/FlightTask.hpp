@@ -206,7 +206,7 @@ protected:
 	virtual void _ekfResetHandlerVelocityZ(float delta_vz) {};
 	virtual void _ekfResetHandlerHeading(float delta_psi) {};
 
-	map_projection_reference_s _global_local_proj_ref{};
+	MapProjection 	_geo_projection{};
 	float                      _global_local_alt0{NAN};
 
 	/* Time abstraction */

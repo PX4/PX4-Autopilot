@@ -365,8 +365,8 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_lock_position_xy.setAll(NAN);
 
 		// Convert from global to local frame.
-		map_projection_project(&_reference_position,
-				       _sub_triplet_setpoint.get().current.lat, _sub_triplet_setpoint.get().current.lon, &tmp_target(0), &tmp_target(1));
+		_reference_position.project(_sub_triplet_setpoint.get().current.lat, _sub_triplet_setpoint.get().current.lon,
+					    tmp_target(0), tmp_target(1));
 	}
 
 	tmp_target(2) = -(_sub_triplet_setpoint.get().current.alt - _reference_altitude);
@@ -407,8 +407,8 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_prev_prev_wp = _triplet_prev_wp;
 
 		if (_isFinite(_sub_triplet_setpoint.get().previous) && _sub_triplet_setpoint.get().previous.valid) {
-			map_projection_project(&_reference_position, _sub_triplet_setpoint.get().previous.lat,
-					       _sub_triplet_setpoint.get().previous.lon, &_triplet_prev_wp(0), &_triplet_prev_wp(1));
+			_reference_position.project(_sub_triplet_setpoint.get().previous.lat,
+						    _sub_triplet_setpoint.get().previous.lon, _triplet_prev_wp(0), _triplet_prev_wp(1));
 			_triplet_prev_wp(2) = -(_sub_triplet_setpoint.get().previous.alt - _reference_altitude);
 
 		} else {
@@ -421,8 +421,8 @@ bool FlightTaskAuto::_evaluateTriplets()
 			_triplet_next_wp = _triplet_target;
 
 		} else if (_isFinite(_sub_triplet_setpoint.get().next) && _sub_triplet_setpoint.get().next.valid) {
-			map_projection_project(&_reference_position, _sub_triplet_setpoint.get().next.lat,
-					       _sub_triplet_setpoint.get().next.lon, &_triplet_next_wp(0), &_triplet_next_wp(1));
+			_reference_position.project(_sub_triplet_setpoint.get().next.lat,
+						    _sub_triplet_setpoint.get().next.lon, _triplet_next_wp(0), _triplet_next_wp(1));
 			_triplet_next_wp(2) = -(_sub_triplet_setpoint.get().next.alt - _reference_altitude);
 
 		} else {
@@ -591,7 +591,7 @@ bool FlightTaskAuto::_evaluateGlobalReference()
 	}
 
 	// init projection
-	map_projection_init(&_reference_position, ref_lat, ref_lon);
+	_reference_position.initReference(ref_lat, ref_lon);
 
 	// check if everything is still finite
 	return PX4_ISFINITE(_reference_altitude) && PX4_ISFINITE(ref_lat) && PX4_ISFINITE(ref_lon);

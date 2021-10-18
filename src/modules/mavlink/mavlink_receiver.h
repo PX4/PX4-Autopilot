@@ -362,7 +362,7 @@ private:
 	PX4Magnetometer *_px4_mag{nullptr};
 
 	float _global_local_alt0{NAN};
-	map_projection_reference_s _global_local_proj_ref{};
+	MapProjection _global_local_proj_ref{};
 
 	hrt_abstime			_last_utm_global_pos_com{0};
 
