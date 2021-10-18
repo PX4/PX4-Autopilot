@@ -40,6 +40,7 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/perf/perf_counter.h>
+#include <uORB/topics/arm_request.h>
 #include <uORB/topics/manual_control_input.h>
 #include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -120,7 +121,7 @@ private:
 
 	void evaluate_mode_slot(uint8_t mode_slot);
 	void send_mode_command(int32_t commander_main_state);
-	void send_arm_command(int8_t action, int8_t origin);
+	void sendArmRequest(int8_t action, int8_t source);
 	void send_rtl_command();
 	void send_loiter_command();
 	void send_offboard_command();
@@ -128,6 +129,7 @@ private:
 	void publish_landing_gear(int8_t action);
 	void send_vtol_transition_command(uint8_t action);
 
+	uORB::Publication<arm_request_s> _arm_request_pub{ORB_ID(arm_request)};
 	uORB::Publication<manual_control_setpoint_s> _manual_control_setpoint_pub{ORB_ID(manual_control_setpoint)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
