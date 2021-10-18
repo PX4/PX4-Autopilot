@@ -277,6 +277,8 @@ private:
 
 	void setUserParams(const char *filename);
 
+	std::string parseOrbFields(const std::string &fields);
+
 	static char *_replay_file;
 };
 
