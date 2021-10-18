@@ -119,7 +119,7 @@ void ManualControl::Run()
 		_stick_arm_hysteresis.set_state_and_update(stick_lower_right && right_stick_centered, _selector.setpoint().timestamp);
 
 		if (!previous_stick_arm_hysteresis && _stick_arm_hysteresis.get_state()) {
-			send_arm_command(vehicle_command_s::ARMING_ACTION_ARM, vehicle_command_s::ARMING_ORIGIN_GESTURE);
+			sendArmRequest(arm_request_s::ACTION_ARM, arm_request_s::SOURCE_RC_STICK_GESTURE);
 		}
 
 		// Disarm gesture
@@ -130,7 +130,7 @@ void ManualControl::Run()
 		_stick_disarm_hysteresis.set_state_and_update(stick_lower_left && right_stick_centered, _selector.setpoint().timestamp);
 
 		if (!previous_stick_disarm_hysteresis && _stick_disarm_hysteresis.get_state()) {
-			send_arm_command(vehicle_command_s::ARMING_ACTION_DISARM, vehicle_command_s::ARMING_ORIGIN_GESTURE);
+			sendArmRequest(arm_request_s::ACTION_DISARM, arm_request_s::SOURCE_RC_STICK_GESTURE);
 		}
 
 		// User override by stick
@@ -165,20 +165,17 @@ void ManualControl::Run()
 						_button_hysteresis.set_state_and_update(switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON, now);
 
 						if (!previous_button_hysteresis && _button_hysteresis.get_state()) {
-							send_arm_command(vehicle_command_s::ARMING_ACTION_TOGGLE,
-									 vehicle_command_s::ARMING_ORIGIN_BUTTON);
+							sendArmRequest(arm_request_s::ACTION_TOGGLE, arm_request_s::SOURCE_RC_BUTTON);
 						}
 
 					} else {
 						// Arming switch
 						if (switches.arm_switch != _previous_switches.arm_switch) {
 							if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON) {
-								send_arm_command(vehicle_command_s::ARMING_ACTION_ARM,
-										 vehicle_command_s::ARMING_ORIGIN_SWITCH);
+								sendArmRequest(arm_request_s::ACTION_ARM, arm_request_s::SOURCE_RC_SWITCH);
 
 							} else if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-								send_arm_command(vehicle_command_s::ARMING_ACTION_DISARM,
-										 vehicle_command_s::ARMING_ORIGIN_SWITCH);
+								sendArmRequest(arm_request_s::ACTION_DISARM, arm_request_s::SOURCE_RC_SWITCH);
 							}
 						}
 					}
@@ -419,18 +416,13 @@ void ManualControl::send_mode_command(int32_t commander_main_state)
 	command_pub.publish(command);
 }
 
-void ManualControl::send_arm_command(int8_t action, int8_t origin)
+void ManualControl::sendArmRequest(int8_t action, int8_t source)
 {
-	vehicle_command_s command{};
-	command.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
-	command.param1 = static_cast<float>(action);
-	command.param3 = static_cast<float>(origin); // We use param3 to signal the origin.
-	command.target_system = _param_mav_sys_id.get();
-	command.target_component = _param_mav_comp_id.get();
-
-	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
-	command.timestamp = hrt_absolute_time();
-	command_pub.publish(command);
+	arm_request_s arm_request{};
+	arm_request.action = action;
+	arm_request.source = source;
+	arm_request.timestamp = hrt_absolute_time();
+	_arm_request_pub.publish(arm_request);
 }
 
 void ManualControl::send_rtl_command()

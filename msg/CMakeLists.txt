@@ -47,6 +47,7 @@ set(msg_files
 	airspeed.msg
 	airspeed_validated.msg
 	airspeed_wind.msg
+	arm_request.msg
 	autotune_attitude_control_status.msg
 	battery_status.msg
 	camera_capture.msg
