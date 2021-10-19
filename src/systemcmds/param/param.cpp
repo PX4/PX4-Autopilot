@@ -885,7 +885,7 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 static int
 do_set_custom_default(const char *name, const char *val, bool silent_fail)
 {
-	param_t param = param_find_no_notification(name);
+	param_t param = param_find(name);
 
 	/* set nothing if parameter cannot be found */
 	if (param == PARAM_INVALID && !silent_fail) {
