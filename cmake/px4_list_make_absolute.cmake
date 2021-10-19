@@ -55,4 +55,3 @@ function(px4_list_make_absolute var prefix)
 	endforeach(f)
 	set(${var} "${list_var}" PARENT_SCOPE)
 endfunction()
-

@@ -26,4 +26,3 @@ actuator_output:
             200: PWM200
             400: PWM400
         reboot_required: true
-

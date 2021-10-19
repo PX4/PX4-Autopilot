@@ -23,18 +23,18 @@ int main()
     Vector24f Hfusion_matlab;
     Vector24f Kfusion_matlab;
 
-	const float R_TAS = sq(1.5f);
+    const float R_TAS = sq(1.5f);
 
     const bool update_wind_only = false;
 
-	// get latest velocity in earth frame
-	const float vn = 9.0f;
-	const float ve = 12.0f;
-	const float vd = -1.5f;
+    // get latest velocity in earth frame
+    const float vn = 9.0f;
+    const float ve = 12.0f;
+    const float vd = -1.5f;
 
-	// get latest wind velocity in earth frame
-	const float vwn = -4.0f;
-	const float vwe = 3.0f;
+    // get latest wind velocity in earth frame
+    const float vwn = -4.0f;
+    const float vwe = 3.0f;
 
     // create a symmetrical positive dfinite matrix with off diagonals between -1 and 1 and diagonals between 0 and 1
     SquareMatrix24f P;
@@ -77,7 +77,7 @@ int main()
         const float HK16 = HK3/(-HK10*HK14 + HK10*HK9 + HK12*HK13 - HK13*HK15 + HK6*HK7*vd + R_TAS);
 
         // Observation Jacobians
-    	SparseVector24f<4,5,6,22,23> Hfusion;
+        SparseVector24f<4,5,6,22,23> Hfusion;
         Hfusion.at<4>() = HK4;
         Hfusion.at<5>() = HK5;
         Hfusion.at<6>() = HK3*vd;
@@ -189,11 +189,11 @@ int main()
         }
     }
 
-	if (max_diff_fraction > 1e-5f) {
-		printf("Fail: Airspeed Hfusion max diff fraction = %e , old = %e , new = %e , location index = %i\n",max_diff_fraction, max_old, max_new, max_row);
-	} else {
-		printf("Pass: Airspeed Hfusion max diff fraction = %e\n",max_diff_fraction);
-	}
+    if (max_diff_fraction > 1e-5f) {
+        printf("Fail: Airspeed Hfusion max diff fraction = %e , old = %e , new = %e , location index = %i\n",max_diff_fraction, max_old, max_new, max_row);
+    } else {
+        printf("Pass: Airspeed Hfusion max diff fraction = %e\n",max_diff_fraction);
+    }
 
     // find largest Kalman gain difference as a fraction of the matlab value
     max_diff_fraction = 0.0f;
@@ -217,11 +217,11 @@ int main()
         }
     }
 
-	if (max_diff_fraction > 1e-5f) {
-		printf("Fail: Airspeed Kfusion max diff fraction = %e , old = %e , new = %e , location index = %i\n",max_diff_fraction, max_old, max_new, max_row);
-	} else {
-		printf("Pass: Airspeed Kfusion max diff fraction = %e\n",max_diff_fraction);
-	}
+    if (max_diff_fraction > 1e-5f) {
+        printf("Fail: Airspeed Kfusion max diff fraction = %e , old = %e , new = %e , location index = %i\n",max_diff_fraction, max_old, max_new, max_row);
+    } else {
+        printf("Pass: Airspeed Kfusion max diff fraction = %e\n",max_diff_fraction);
+    }
 
     return 0;
 }

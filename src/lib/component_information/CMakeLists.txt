@@ -89,6 +89,3 @@ add_custom_command(OUTPUT ${component_general_json} ${component_general_json}.xz
 	COMMENT "Generating component_general.json and checksums.h"
 )
 add_custom_target(component_general_json DEPENDS ${component_general_json})
-
-
-

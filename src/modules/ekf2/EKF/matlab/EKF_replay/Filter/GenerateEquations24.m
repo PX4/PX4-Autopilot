@@ -32,7 +32,7 @@ quat = [q0;q1;q2;q3];
 Tbn = Quat2Tbn(quat);
 
 % define the truth delta angle
-% ignore coning compensation as these effects are negligible in terms of 
+% ignore coning compensation as these effects are negligible in terms of
 % covariance growth for our application and grade of sensor
 dAngTruth = dAngMeas - dAngBias;
 
@@ -137,7 +137,7 @@ f = matlabFunction(H_MAGD,'file','calcH_MAGD.m');
 %% derive equations for fusion of a single magneic compass  heading measurement
 
 % rotate body measured field into earth axes
-magMeasNED = Tbn*[magX;magY;magZ]; 
+magMeasNED = Tbn*[magX;magY;magZ];
 
 % the predicted measurement is the angle wrt true north of the horizontal
 % component of the measured field
