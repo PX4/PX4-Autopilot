@@ -2449,26 +2449,26 @@ Commander::run()
 			}
 		}
 
-		while (_arm_request_sub.updated()) {
-			arm_request_s arm_request;
+		while (_action_request_sub.updated()) {
+			action_request_s action_request;
 
-			if (_arm_request_sub.copy(&arm_request)) {
+			if (_action_request_sub.copy(&action_request)) {
 				arm_disarm_reason_t arm_disarm_reason{};
 
-				switch (arm_request.source) {
-				case arm_request_s::SOURCE_RC_STICK_GESTURE: arm_disarm_reason = arm_disarm_reason_t::rc_stick; break;
+				switch (action_request.source) {
+				case action_request_s::SOURCE_RC_STICK_GESTURE: arm_disarm_reason = arm_disarm_reason_t::rc_stick; break;
 
-				case arm_request_s::SOURCE_RC_SWITCH: arm_disarm_reason = arm_disarm_reason_t::rc_switch; break;
+				case action_request_s::SOURCE_RC_SWITCH: arm_disarm_reason = arm_disarm_reason_t::rc_switch; break;
 
-				case arm_request_s::SOURCE_RC_BUTTON: arm_disarm_reason = arm_disarm_reason_t::rc_button; break;
+				case action_request_s::SOURCE_RC_BUTTON: arm_disarm_reason = arm_disarm_reason_t::rc_button; break;
 				}
 
-				switch (arm_request.action) {
-				case arm_request_s::ACTION_DISARM: disarm(arm_disarm_reason); break;
+				switch (action_request.action) {
+				case action_request_s::ACTION_DISARM: disarm(arm_disarm_reason); break;
 
-				case arm_request_s::ACTION_ARM: arm(arm_disarm_reason); break;
+				case action_request_s::ACTION_ARM: arm(arm_disarm_reason); break;
 
-				case arm_request_s::ACTION_TOGGLE_ARMING:
+				case action_request_s::ACTION_TOGGLE_ARMING:
 					if (_armed.armed) {
 						disarm(arm_disarm_reason);
 
@@ -2478,7 +2478,7 @@ Commander::run()
 
 					break;
 
-				case arm_request_s::ACTION_UNKILL:
+				case action_request_s::ACTION_UNKILL:
 					if (arm_disarm_reason == arm_disarm_reason_t::rc_switch && _armed.manual_lockdown) {
 						mavlink_log_info(&_mavlink_log_pub, "Kill-switch disengaged\t");
 						events::send(events::ID("commander_kill_sw_disengaged"), events::Log::Info, "Kill-switch disengaged");
@@ -2488,7 +2488,7 @@ Commander::run()
 
 					break;
 
-				case arm_request_s::ACTION_KILL:
+				case action_request_s::ACTION_KILL:
 					if (arm_disarm_reason == arm_disarm_reason_t::rc_switch && !_armed.manual_lockdown) {
 						const char kill_switch_string[] = "Kill-switch engaged\t";
 						events::LogLevels log_levels{events::Log::Info};
@@ -2508,15 +2508,11 @@ Commander::run()
 					}
 
 					break;
+
+				case action_request_s::ACTION_SWITCH_MODE:
+					main_state_transition(_status, action_request.mode, _status_flags, _internal_state);
+					break;
 				}
-			}
-		}
-
-		while (_mode_request_sub.updated()) {
-			mode_request_s mode_request;
-
-			if (_mode_request_sub.copy(&mode_request)) {
-				main_state_transition(_status, mode_request.mode, _status_flags, _internal_state);
 			}
 		}
 
