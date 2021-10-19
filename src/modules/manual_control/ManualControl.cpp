@@ -119,7 +119,7 @@ void ManualControl::Run()
 		_stick_arm_hysteresis.set_state_and_update(stick_lower_right && right_stick_centered, _selector.setpoint().timestamp);
 
 		if (!previous_stick_arm_hysteresis && _stick_arm_hysteresis.get_state()) {
-			sendArmRequest(arm_request_s::ACTION_ARM, arm_request_s::SOURCE_RC_STICK_GESTURE);
+			sendActionRequest(action_request_s::ACTION_ARM, action_request_s::SOURCE_RC_STICK_GESTURE);
 		}
 
 		// Disarm gesture
@@ -130,7 +130,7 @@ void ManualControl::Run()
 		_stick_disarm_hysteresis.set_state_and_update(stick_lower_left && right_stick_centered, _selector.setpoint().timestamp);
 
 		if (!previous_stick_disarm_hysteresis && _stick_disarm_hysteresis.get_state()) {
-			sendArmRequest(arm_request_s::ACTION_DISARM, arm_request_s::SOURCE_RC_STICK_GESTURE);
+			sendActionRequest(action_request_s::ACTION_DISARM, action_request_s::SOURCE_RC_STICK_GESTURE);
 		}
 
 		// User override by stick
@@ -165,24 +165,25 @@ void ManualControl::Run()
 						_button_hysteresis.set_state_and_update(switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON, now);
 
 						if (!previous_button_hysteresis && _button_hysteresis.get_state()) {
-							sendArmRequest(arm_request_s::ACTION_TOGGLE_ARMING, arm_request_s::SOURCE_RC_BUTTON);
+							sendActionRequest(action_request_s::ACTION_TOGGLE_ARMING, action_request_s::SOURCE_RC_BUTTON);
 						}
 
 					} else {
 						// Arming switch
 						if (switches.arm_switch != _previous_switches.arm_switch) {
 							if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON) {
-								sendArmRequest(arm_request_s::ACTION_ARM, arm_request_s::SOURCE_RC_SWITCH);
+								sendActionRequest(action_request_s::ACTION_ARM, action_request_s::SOURCE_RC_SWITCH);
 
 							} else if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-								sendArmRequest(arm_request_s::ACTION_DISARM, arm_request_s::SOURCE_RC_SWITCH);
+								sendActionRequest(action_request_s::ACTION_DISARM, action_request_s::SOURCE_RC_SWITCH);
 							}
 						}
 					}
 
 					if (switches.return_switch != _previous_switches.return_switch) {
 						if (switches.return_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							sendModeRequest(commander_state_s::MAIN_STATE_AUTO_RTL, mode_request_s::SOURCE_RC_SWITCH);
+							sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
+									  commander_state_s::MAIN_STATE_AUTO_RTL);
 
 						} else if (switches.return_switch == manual_control_switches_s::SWITCH_POS_OFF) {
 							evaluateModeSlot(switches.mode_slot);
@@ -191,7 +192,8 @@ void ManualControl::Run()
 
 					if (switches.loiter_switch != _previous_switches.loiter_switch) {
 						if (switches.loiter_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							sendModeRequest(commander_state_s::MAIN_STATE_AUTO_LOITER, mode_request_s::SOURCE_RC_SWITCH);
+							sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
+									  commander_state_s::MAIN_STATE_AUTO_LOITER);
 
 						} else if (switches.loiter_switch == manual_control_switches_s::SWITCH_POS_OFF) {
 							evaluateModeSlot(switches.mode_slot);
@@ -200,7 +202,8 @@ void ManualControl::Run()
 
 					if (switches.offboard_switch != _previous_switches.offboard_switch) {
 						if (switches.offboard_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							sendModeRequest(commander_state_s::MAIN_STATE_OFFBOARD, mode_request_s::SOURCE_RC_SWITCH);
+							sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
+									  commander_state_s::MAIN_STATE_OFFBOARD);
 
 						} else if (switches.offboard_switch == manual_control_switches_s::SWITCH_POS_OFF) {
 							evaluateModeSlot(switches.mode_slot);
@@ -209,10 +212,10 @@ void ManualControl::Run()
 
 					if (switches.kill_switch != _previous_switches.kill_switch) {
 						if (switches.kill_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							sendArmRequest(arm_request_s::ACTION_KILL, arm_request_s::SOURCE_RC_SWITCH);
+							sendActionRequest(action_request_s::ACTION_KILL, action_request_s::SOURCE_RC_SWITCH);
 
 						} else if (switches.kill_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-							sendArmRequest(arm_request_s::ACTION_UNKILL, arm_request_s::SOURCE_RC_SWITCH);
+							sendActionRequest(action_request_s::ACTION_UNKILL, action_request_s::SOURCE_RC_SWITCH);
 						}
 					}
 
@@ -237,7 +240,7 @@ void ManualControl::Run()
 					}
 
 				} else {
-					// Send an initial command to switch to the mode requested by RC
+					// Send an initial request to switch to the mode requested by RC
 					evaluateModeSlot(switches.mode_slot);
 				}
 
@@ -291,27 +294,27 @@ void ManualControl::evaluateModeSlot(uint8_t mode_slot)
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_1:
-		sendModeRequest(_param_fltmode_1.get(), mode_request_s::SOURCE_RC_MODE_SLOT);
+		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT, _param_fltmode_1.get());
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_2:
-		sendModeRequest(_param_fltmode_2.get(), mode_request_s::SOURCE_RC_MODE_SLOT);
+		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT, _param_fltmode_2.get());
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_3:
-		sendModeRequest(_param_fltmode_3.get(), mode_request_s::SOURCE_RC_MODE_SLOT);
+		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT, _param_fltmode_3.get());
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_4:
-		sendModeRequest(_param_fltmode_4.get(), mode_request_s::SOURCE_RC_MODE_SLOT);
+		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT, _param_fltmode_4.get());
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_5:
-		sendModeRequest(_param_fltmode_5.get(), mode_request_s::SOURCE_RC_MODE_SLOT);
+		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT, _param_fltmode_5.get());
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_6:
-		sendModeRequest(_param_fltmode_6.get(), mode_request_s::SOURCE_RC_MODE_SLOT);
+		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT, _param_fltmode_6.get());
 		break;
 
 	default:
@@ -320,22 +323,14 @@ void ManualControl::evaluateModeSlot(uint8_t mode_slot)
 	}
 }
 
-void ManualControl::sendModeRequest(uint8_t mode, uint8_t source)
+void ManualControl::sendActionRequest(int8_t action, int8_t source, int8_t mode)
 {
-	mode_request_s mode_request{};
-	mode_request.mode = mode;
-	mode_request.source = source;
-	mode_request.timestamp = hrt_absolute_time();
-	_mode_request_pub.publish(mode_request);
-}
-
-void ManualControl::sendArmRequest(int8_t action, int8_t source)
-{
-	arm_request_s arm_request{};
-	arm_request.action = action;
-	arm_request.source = source;
-	arm_request.timestamp = hrt_absolute_time();
-	_arm_request_pub.publish(arm_request);
+	action_request_s action_request{};
+	action_request.action = action;
+	action_request.source = source;
+	action_request.mode = mode;
+	action_request.timestamp = hrt_absolute_time();
+	_action_request_pub.publish(action_request);
 }
 
 void ManualControl::publish_landing_gear(int8_t action)
