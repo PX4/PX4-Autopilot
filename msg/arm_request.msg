@@ -3,7 +3,9 @@ uint64 timestamp # time since system start (microseconds)
 uint8 action # what action is requested
 uint8 ACTION_DISARM = 0
 uint8 ACTION_ARM = 1
-uint8 ACTION_TOGGLE = 2
+uint8 ACTION_TOGGLE_ARMING = 2
+uint8 ACTION_UNKILL = 3
+uint8 ACTION_KILL = 4
 
 uint8 source # how the request was triggered
 uint8 SOURCE_RC_STICK_GESTURE = 0

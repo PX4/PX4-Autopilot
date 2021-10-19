@@ -2468,12 +2468,43 @@ Commander::run()
 
 				case arm_request_s::ACTION_ARM: arm(arm_disarm_reason); break;
 
-				case arm_request_s::ACTION_TOGGLE:
+				case arm_request_s::ACTION_TOGGLE_ARMING:
 					if (_armed.armed) {
 						disarm(arm_disarm_reason);
 
 					} else {
 						arm(arm_disarm_reason);
+					}
+
+					break;
+
+				case arm_request_s::ACTION_UNKILL:
+					if (arm_disarm_reason == arm_disarm_reason_t::rc_switch && _armed.manual_lockdown) {
+						mavlink_log_info(&_mavlink_log_pub, "Kill-switch disengaged\t");
+						events::send(events::ID("commander_kill_sw_disengaged"), events::Log::Info, "Kill-switch disengaged");
+						_status_changed = true;
+						_armed.manual_lockdown = false;
+					}
+
+					break;
+
+				case arm_request_s::ACTION_KILL:
+					if (arm_disarm_reason == arm_disarm_reason_t::rc_switch && !_armed.manual_lockdown) {
+						const char kill_switch_string[] = "Kill-switch engaged\t";
+						events::LogLevels log_levels{events::Log::Info};
+
+						if (_land_detector.landed) {
+							mavlink_log_info(&_mavlink_log_pub, kill_switch_string);
+
+						} else {
+							mavlink_log_critical(&_mavlink_log_pub, kill_switch_string);
+							log_levels.external = events::Log::Critical;
+						}
+
+						events::send(events::ID("commander_kill_sw_engaged"), log_levels, "Kill-switch engaged");
+
+						_status_changed = true;
+						_armed.manual_lockdown = true;
 					}
 
 					break;
