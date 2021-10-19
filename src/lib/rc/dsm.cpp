@@ -268,8 +268,6 @@ static bool dsm_guess_format(bool reset)
 				continue;
 			}
 
-			//printf("11: %i\n", channel);
-
 			// invalidate entire frame (for 2048) if channel already found, no duplicate channels per DSM frame
 			if (channels_found_11[channel]) {
 				cs11_frame_valid = false;
@@ -282,7 +280,6 @@ static bool dsm_guess_format(bool reset)
 		}
 	}
 
-	//printf("-\n");
 	// add valid cs10 channels
 	if (cs10_frame_valid) {
 		good_cs10_frame_count++;
