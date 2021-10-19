@@ -75,7 +75,7 @@ public:
 	static int computeEffectivenessMatrix(const MultirotorGeometry &geometry,
 					      matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &effectiveness);
 
-	bool getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix, bool force = false) override;
+	bool getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix, bool force) override;
 
 	int numActuators() const override { return _num_actuators; }
 private:

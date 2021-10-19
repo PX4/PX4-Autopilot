@@ -57,9 +57,12 @@
 class UavcanEscController
 {
 public:
-	static constexpr int MAX_ACTUATORS = MixingOutput::MAX_ACTUATORS;
+	static constexpr int MAX_ACTUATORS = esc_status_s::CONNECTED_ESC_MAX;
 	static constexpr unsigned MAX_RATE_HZ = 200;			///< XXX make this configurable
 	static constexpr uint16_t DISARMED_OUTPUT_VALUE = UINT16_MAX;
+
+	static_assert(uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize >= MAX_ACTUATORS, "Too many actuators");
+
 
 	UavcanEscController(uavcan::INode &node);
 	~UavcanEscController();

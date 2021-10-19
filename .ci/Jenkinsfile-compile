@@ -86,7 +86,6 @@ pipeline {
                      "px4_fmu-v3_default",
                      "px4_fmu-v4_default",
                      "px4_fmu-v4pro_default",
-                     "px4_fmu-v5_ctrlalloc",
                      "px4_fmu-v5_debug",
                      "px4_fmu-v5_default",
                      "px4_fmu-v5_rtps",

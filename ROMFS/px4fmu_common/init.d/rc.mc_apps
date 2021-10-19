@@ -48,6 +48,22 @@ fi
 #                        End Estimator Group Selection                        #
 ###############################################################################
 
+if param compare SYS_CTRL_ALLOC 1
+then
+	#
+	# Start Control Allocator
+	#
+	control_allocator start
+
+	#
+	# Disable hover thrust estimator and prearming
+	# These features are currently incompatible with control allocation
+	#
+	# TODO: fix
+	#
+	param set MPC_USE_HTE 0
+fi
+
 #
 # Start Multicopter Rate Controller.
 #

@@ -579,9 +579,9 @@ static inline void io_timer_set_PWM_mode(unsigned timer)
 	rPSC(timer) = (io_timers[timer].clock_freq / BOARD_PWM_FREQ) - 1;
 }
 
-void io_timer_trigger(void)
+void io_timer_trigger(unsigned channels_mask)
 {
-	int oneshots = io_timer_get_mode_channels(IOTimerChanMode_OneShot);
+	int oneshots = io_timer_get_mode_channels(IOTimerChanMode_OneShot) & channels_mask;
 
 	if (oneshots != 0) {
 		uint32_t action_cache[MAX_IO_TIMERS] = {0};
