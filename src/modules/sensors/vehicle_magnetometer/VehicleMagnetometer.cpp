@@ -183,7 +183,7 @@ void VehicleMagnetometer::UpdateMagBiasEstimate()
 					_calibration_estimator_bias[mag_index] = bias;
 
 					// set initial mag calibration if disarmed, mag uncalibrated, and valid estimated bias available
-					if (!_armed && mag_bias_est.stable[mag_index]
+					if (_param_sens_mag_autocal.get() && !_armed && mag_bias_est.stable[mag_index]
 					    && (_calibration[mag_index].device_id() != 0) && !_calibration[mag_index].calibrated()) {
 
 						if (_calibration[mag_index].calibration_index() < 0) {
