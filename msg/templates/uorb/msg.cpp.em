@@ -82,19 +82,11 @@ constexpr char __orb_@(topic_name)_fields[] = "@( ";".join(topic_fields) );";
 ORB_DEFINE(@multi_topic, struct @uorb_struct, @(struct_size-padding_end_size), __orb_@(topic_name)_fields, static_cast<uint8_t>(ORB_ID::@multi_topic));
 @[end for]
 
-void print_message(const @uorb_struct &message)
+void print_message(const orb_metadata *meta, const @uorb_struct& message)
 {
-@[if constrained_flash]
-	(void)message;
-	PX4_INFO_RAW("Not implemented on flash constrained hardware\n");
-@[else]
-	PX4_INFO_RAW(" @(uorb_struct)\n");
-
-	const hrt_abstime now = hrt_absolute_time();
-
-@[for field in sorted_fields]@
-	@( print_field(field) )@
-@[end for]@
-@[end if]@
-
+	if (sizeof(message) != meta->o_size) {
+		printf("unexpected message size for %s: %zu != %i\n", meta->o_name, sizeof(message), meta->o_size);
+		return;
+	}
+	orb_print_message_internal(meta, &message, true);
 }
