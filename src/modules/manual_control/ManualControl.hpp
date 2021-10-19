@@ -125,7 +125,6 @@ private:
 	void send_rtl_command();
 	void send_loiter_command();
 	void send_offboard_command();
-	void send_termination_command(bool should_terminate);
 	void publish_landing_gear(int8_t action);
 	void send_vtol_transition_command(uint8_t action);
 
