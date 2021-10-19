@@ -42,8 +42,8 @@
 
 #include <poll.h>
 
+#include <uORB/topics/uORBTopics.hpp>
 #include "topic_listener.hpp"
-#include "topic_listener_generated.hpp"
 
 // Amount of time to wait when listening for a message, before giving up.
 static constexpr float MESSAGE_TIMEOUT_S = 2.0f;
@@ -52,7 +52,7 @@ extern "C" __EXPORT int listener_main(int argc, char *argv[]);
 
 static void usage();
 
-void listener(listener_print_topic_cb cb, const orb_id_t &id, unsigned num_msgs, int topic_instance,
+void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
 	      unsigned topic_interval)
 {
 
@@ -69,7 +69,7 @@ void listener(listener_print_topic_cb cb, const orb_id_t &id, unsigned num_msgs,
 		if (instances == 1) {
 			PX4_INFO_RAW("\nTOPIC: %s\n", id->o_name);
 			int sub = orb_subscribe(id);
-			cb(id, sub);
+			listener_print_topic(id, sub);
 			orb_unsubscribe(sub);
 
 		} else if (instances > 1) {
@@ -79,7 +79,7 @@ void listener(listener_print_topic_cb cb, const orb_id_t &id, unsigned num_msgs,
 				if (orb_exists(id, i) == PX4_OK) {
 					PX4_INFO_RAW("\nInstance %d:\n", i);
 					int sub = orb_subscribe_multi(id, i);
-					cb(id, sub);
+					listener_print_topic(id, sub);
 					orb_unsubscribe(sub);
 				}
 			}
@@ -141,7 +141,7 @@ void listener(listener_print_topic_cb cb, const orb_id_t &id, unsigned num_msgs,
 
 					PX4_INFO_RAW("\nTOPIC: %s instance %d #%d\n", id->o_name, topic_instance, msgs_received);
 
-					int ret = cb(id, sub);
+					int ret = listener_print_topic(id, sub);
 
 					if (ret != PX4_OK) {
 						PX4_ERR("listener callback failed (%i)", ret);
@@ -208,7 +208,29 @@ int listener_main(int argc, char *argv[])
 		}
 	}
 
-	listener_generated(topic_name, topic_instance, topic_rate, num_msgs);
+
+	unsigned topic_interval = 0;
+
+	if (topic_rate != 0) {
+		topic_interval = 1000 / topic_rate;
+	}
+
+	const orb_metadata *const *topics = orb_get_topics();
+	const orb_metadata *found_topic = nullptr;
+
+	for (size_t i = 0; i < orb_topics_count(); i++) {
+		if (strcmp(topics[i]->o_name, topic_name) == 0) {
+			found_topic = topics[i];
+		}
+	}
+
+	if (found_topic) {
+		listener(found_topic, num_msgs, topic_instance, topic_interval);
+
+	} else {
+		PX4_INFO_RAW("Topic %s did not match any known topics\n", topic_name);
+		return -1;
+	}
 
 	return 0;
 }

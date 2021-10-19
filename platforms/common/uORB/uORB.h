@@ -240,6 +240,14 @@ extern int	orb_get_interval(int handle, unsigned *interval) __EXPORT;
  */
 const char *orb_get_c_type(unsigned char short_type);
 
+/**
+ * Print a topic to console. Do not call this directly, use print_message() instead.
+ * @param meta orb topic metadata
+ * @param data expected to be aligned to the largest member
+ */
+void orb_print_message_internal(const struct orb_metadata *meta, const void *data, bool print_topic_name);
+
+
 __END_DECLS
 
 /* Diverse uORB header defines */ //XXX: move to better location
