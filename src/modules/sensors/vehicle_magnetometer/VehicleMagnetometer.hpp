@@ -171,7 +171,8 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CAL_MAG_COMP_TYP>) _param_mag_comp_typ,
 		(ParamBool<px4::params::SENS_MAG_MODE>) _param_sens_mag_mode,
-		(ParamFloat<px4::params::SENS_MAG_RATE>) _param_sens_mag_rate
+		(ParamFloat<px4::params::SENS_MAG_RATE>) _param_sens_mag_rate,
+		(ParamBool<px4::params::SENS_MAG_AUTOCAL>) _param_sens_mag_autocal
 	)
 };
 }; // namespace sensors
