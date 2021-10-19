@@ -2512,6 +2512,14 @@ Commander::run()
 			}
 		}
 
+		while (_mode_request_sub.updated()) {
+			mode_request_s mode_request;
+
+			if (_mode_request_sub.copy(&mode_request)) {
+				main_state_transition(_status, mode_request.mode, _status_flags, _internal_state);
+			}
+		}
+
 		/* Check for failure detector status */
 		if (_failure_detector.update(_status, _vehicle_control_mode)) {
 			_status.failure_detector_status = _failure_detector.getStatus().value;
