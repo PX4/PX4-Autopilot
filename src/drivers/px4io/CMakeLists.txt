@@ -39,6 +39,8 @@ px4_add_module(
 		px4io.cpp
 		px4io_serial.cpp
 		px4io_uploader.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		arch_px4io_serial
 		circuit_breaker

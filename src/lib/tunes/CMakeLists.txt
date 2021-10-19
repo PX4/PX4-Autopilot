@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2017-2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,6 +32,9 @@
 ############################################################################
 
 px4_add_library(tunes
-	tunes.cpp
 	default_tunes.cpp
+	tune_definition.h
+	tunes.cpp
+	tunes.h
 )
+target_link_libraries(tunes PRIVATE circuit_breaker)

@@ -47,6 +47,7 @@
 #include <lib/mixer_module/mixer_module.hpp>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
+#include <px4_arch/io_timer.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
@@ -129,13 +130,20 @@ private:
 
 	static const int MAX_PER_INSTANCE{8};
 
-	MixingOutput _mixing_output{FMU_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
+#ifdef BOARD_WITH_IO
+# define PARAM_PREFIX "PWM_AUX"
+#else
+# define PARAM_PREFIX "PWM_MAIN"
+#endif
+	MixingOutput _mixing_output {PARAM_PREFIX, FMU_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
 
 	uint32_t	_backup_schedule_interval_us{1_s};
 
 	unsigned	_pwm_default_rate{50};
 	unsigned	_pwm_alt_rate{50};
 	uint32_t	_pwm_alt_rate_channels{0};
+
+	int _timer_rates[MAX_IO_TIMERS] {};
 
 	int		_current_update_rate{0};
 

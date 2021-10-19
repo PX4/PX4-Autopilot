@@ -34,7 +34,6 @@
 # required by other mixers
 add_subdirectory(MixerBase)
 
-add_subdirectory(AllocatedActuatorMixer)
 add_subdirectory(HelicopterMixer)
 add_subdirectory(MultirotorMixer)
 add_subdirectory(NullMixer)
@@ -49,7 +48,6 @@ add_library(mixer
 
 target_link_libraries(mixer
 	PRIVATE
-		AllocatedActuatorMixer
 		HelicopterMixer
 		MultirotorMixer
 		NullMixer

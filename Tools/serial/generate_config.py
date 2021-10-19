@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """ Script to generate Serial (UART) parameters and the ROMFS startup script """
 
-from __future__ import print_function
-
 import argparse
 import os
 import sys
@@ -195,7 +193,6 @@ if rc_serial_output_dir is None and serial_params_output_file is None:
 # parse the YAML files
 serial_commands = []
 ethernet_configuration = []
-additional_params = ""
 
 if ethernet_supported:
     ethernet_configuration.append({
@@ -216,87 +213,11 @@ def parse_yaml_serial_config(yaml_config):
         ret.append(serial_config)
     return ret
 
-def parse_yaml_parameters_config(yaml_config, ethernet_supported):
-    """ parse the parameters section from the yaml config file """
-    if 'parameters' not in yaml_config:
-        return ''
-    parameters_section_list = yaml_config['parameters']
-    for parameters_section in parameters_section_list:
-        if 'definitions' not in parameters_section:
-            return ''
-        definitions = parameters_section['definitions']
-        ret = ''
-        param_group = parameters_section.get('group', None)
-        for param_name in definitions:
-            param = definitions[param_name]
-            if param.get('requires_ethernet', False) and not ethernet_supported:
-                continue
-            num_instances = param.get('num_instances', 1)
-            instance_start = param.get('instance_start', 0) # offset
-
-            # get the type and extract all tags
-            tags = '@group {:}'.format(param_group)
-            if param['type'] == 'enum':
-                param_type = 'INT32'
-                for key in param['values']:
-                    tags += '\n * @value {:} {:}'.format(key, param['values'][key])
-            elif param['type'] == 'boolean':
-                param_type = 'INT32'
-                tags += '\n * @boolean'
-            elif param['type'] == 'int32':
-                param_type = 'INT32'
-            elif param['type'] == 'float':
-                param_type = 'FLOAT'
-            else:
-                raise Exception("unknown param type {:}".format(param['type']))
-
-            for tag in ['decimal', 'increment', 'category', 'volatile', 'bit',
-                        'min', 'max', 'unit', 'reboot_required']:
-                if tag in param:
-                    tags += '\n * @{:} {:}'.format(tag, param[tag])
-
-            for i in range(num_instances):
-                # default value
-                default_value = 0
-                if 'default' in param:
-                    # default can be a list of num_instances or a single value
-                    if type(param['default']) == list:
-                        assert len(param['default']) == num_instances
-                        default_value = param['default'][i]
-                    else:
-                        default_value = param['default']
-
-                if type(default_value) == bool:
-                    default_value = int(default_value)
-
-                # output the existing C-style format
-                ret += '''
-/**
- * {short_descr}
- *
- * {long_descr}
- *
- * {tags}
- */
-PARAM_DEFINE_{param_type}({name}, {default_value});
-'''.format(short_descr=param['description']['short'].replace("\n", "\n * "),
-           long_descr=param['description']['long'].replace("\n", "\n * "),
-           tags=tags,
-           param_type=param_type,
-           name=param_name,
-           default_value=default_value,
-          ).replace('${i}', str(i+instance_start))
-    return ret
-
 for yaml_file in args.config_files:
     with open(yaml_file, 'r') as stream:
         try:
             yaml_config = yaml.load(stream, Loader=yaml.Loader)
             serial_commands.extend(parse_yaml_serial_config(yaml_config))
-
-            # TODO: additional params should be parsed in a separate script
-            additional_params += parse_yaml_parameters_config(
-                yaml_config, ethernet_supported)
 
         except yaml.YAMLError as exc:
             print(exc)
@@ -404,6 +325,5 @@ if serial_params_output_file is not None:
     with open(serial_params_output_file, 'w') as fid:
         fid.write(template.render(serial_devices=serial_devices,
             ethernet_configuration=ethernet_configuration,
-            commands=commands, serial_ports=serial_ports,
-            additional_definitions=additional_params))
+            commands=commands, serial_ports=serial_ports))
 

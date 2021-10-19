@@ -97,8 +97,7 @@ if [ $SDCARD_AVAILABLE = yes ]
 then
 	if hardfault_log check
 	then
-		# Error tune.
-		set STARTUP_TUNE 2
+		set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
 		if hardfault_log commit
 		then
 			hardfault_log reset
@@ -183,15 +182,6 @@ else
 	tone_alarm start
 
 	#
-	# Play the startup tune (if not disabled or there is an error)
-	#
-	param compare CBRK_BUZZER 782090
-	if [ $? != 0 -o $STARTUP_TUNE != 1 ]
-	then
-		tune_control play -t $STARTUP_TUNE
-	fi
-
-	#
 	# Waypoint storage.
 	# REBOOTWORK this needs to start in parallel.
 	#
@@ -250,7 +240,7 @@ else
 			then
 				# Start UAVCAN firmware update server and dynamic node ID allocation server.
 				uavcan start fw
-				tune_control play -t 1
+
 				if param greater UAVCAN_ENABLE 2
 				then
 					set OUTPUT_MODE uavcan_esc
@@ -315,7 +305,7 @@ else
 	if [ $USE_IO = yes -a $IO_PRESENT = no ]
 	then
 		echo "PX4IO not found"
-		tune_control play error
+		set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
 	fi
 
 	#
@@ -368,6 +358,17 @@ else
 
 		commander start
 	fi
+
+
+	#
+	# Play the startup tune (if not disabled or there is an error)
+	#
+	param compare CBRK_BUZZER 782090
+	if [ $? != 0 -o $STARTUP_TUNE != 1 ]
+	then
+		tune_control play -t $STARTUP_TUNE
+	fi
+
 
 	# Pre-takeoff continuous magnetometer calibration
 	if param compare -s MBE_ENABLE 1

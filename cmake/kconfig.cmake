@@ -256,6 +256,7 @@ if(EXISTS ${BOARD_DEFCONFIG})
 		# IO board (placed in ROMFS)
 		if(IO)
 			set(config_io_board ${IO} CACHE INTERNAL "IO" FORCE)
+			add_definitions(-DBOARD_WITH_IO)
 		endif()
 
 		if(UAVCAN_PERIPHERALS)

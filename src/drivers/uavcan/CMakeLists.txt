@@ -144,6 +144,7 @@ px4_add_module(
 		# Actuators
 		actuators/esc.cpp
 		actuators/hardpoint.cpp
+		actuators/servo.cpp
 
 		# Sensors
 		sensors/sensor_bridge.cpp
@@ -159,6 +160,9 @@ px4_add_module(
 		sensors/gyro.cpp
 		sensors/cbat.cpp
 		sensors/ice_status.cpp
+
+	MODULE_CONFIG
+		module.yaml
 
 	DEPENDS
 		px4_uavcan_dsdlc

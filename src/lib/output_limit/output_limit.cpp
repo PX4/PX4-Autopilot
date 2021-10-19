@@ -33,7 +33,6 @@
 
 #include "output_limit.h"
 
-#include <px4_platform_common/defines.h>
 #include <math.h>
 #include <stdbool.h>
 #include <drivers/drv_hrt.h>
@@ -192,29 +191,8 @@ void output_limit_calc(const bool armed, const bool pre_armed, const unsigned nu
 	case OUTPUT_LIMIT_STATE_ON:
 
 		for (unsigned i = 0; i < num_channels; i++) {
-
-			float control_value = output[i];
-
-			/* check for invalid / disabled channels */
-			if (!PX4_ISFINITE(control_value)) {
-				effective_output[i] = disarmed_output[i];
-				continue;
-			}
-
-			if (reverse_mask & (1 << i)) {
-				control_value = -1.0f * control_value;
-			}
-
-			effective_output[i] = control_value * (max_output[i] - min_output[i]) / 2 + (max_output[i] + min_output[i]) / 2;
-
-			/* last line of defense against invalid inputs */
-			if (effective_output[i] < min_output[i]) {
-				effective_output[i] = min_output[i];
-
-			} else if (effective_output[i] > max_output[i]) {
-				effective_output[i] = max_output[i];
-			}
-
+			effective_output[i] = output_limit_calc_single(reverse_mask & (1 << i), disarmed_output[i],
+					      min_output[i], max_output[i], output[i]);
 		}
 
 		break;

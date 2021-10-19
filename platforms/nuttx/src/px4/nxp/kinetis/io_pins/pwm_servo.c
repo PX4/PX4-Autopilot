@@ -143,9 +143,9 @@ int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 	return io_timer_set_pwm_rate(group, rate);
 }
 
-void up_pwm_update(void)
+void up_pwm_update(unsigned channel_mask)
 {
-	io_timer_trigger();
+	io_timer_trigger(channel_mask);
 }
 
 uint32_t up_pwm_servo_get_rate_group(unsigned group)

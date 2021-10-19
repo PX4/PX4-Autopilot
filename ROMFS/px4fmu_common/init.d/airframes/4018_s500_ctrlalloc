@@ -11,9 +11,11 @@
 #
 
 . ${R}etc/init.d/rc.mc_defaults
-. ${R}etc/init.d/rc.ctrlalloc
 
-set MIXER none
+set MIXER skip
+set MIXER_AUX none
+
+param set-default SYS_CTRL_ALLOC 1
 
 param set-default MPC_USE_HTE 0
 
@@ -50,6 +52,8 @@ param set-default CA_MC_R3_PY 0.177
 param set-default CA_MC_R3_CT 6.5
 param set-default CA_MC_R3_KM -0.05
 
-set MIXER direct
+param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 102
+param set-default PWM_MAIN_FUNC3 103
+param set-default PWM_MAIN_FUNC4 104
 
-set MIXER_AUX direct_aux

@@ -578,6 +578,8 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 			}
 		}
 
+		_cmd_pub.publish(vehicle_command);
+
 	} else if (cmd_mavlink.command == MAV_CMD_DO_AUTOTUNE_ENABLE) {
 
 		bool has_module = true;
