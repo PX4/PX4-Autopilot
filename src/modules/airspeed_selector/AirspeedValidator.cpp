@@ -72,7 +72,7 @@ AirspeedValidator::reset_airspeed_to_invalid(const uint64_t timestamp)
 
 void
 AirspeedValidator::update_wind_estimator(const uint64_t time_now_usec, float airspeed_true_raw, bool lpos_valid,
-		matrix::Vector3f vI, float lpos_evh, float lpos_evv, const float att_q[4])
+		const matrix::Vector3f &vI, float lpos_evh, float lpos_evv, const float att_q[4])
 {
 	_wind_estimator.update(time_now_usec);
 
@@ -111,7 +111,7 @@ AirspeedValidator::get_wind_estimator_states(uint64_t timestamp)
 }
 
 void
-AirspeedValidator::update_CAS_scale_validated(bool lpos_valid, matrix::Vector3f vI, float airspeed_true_raw)
+AirspeedValidator::update_CAS_scale_validated(bool lpos_valid, const matrix::Vector3f &vI, float airspeed_true_raw)
 {
 	if (!_in_fixed_wing_flight || !lpos_valid) {
 		return;
@@ -211,7 +211,7 @@ AirspeedValidator::check_airspeed_data_stuck(uint64_t time_now)
 
 void
 AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_status_vel_test_ratio,
-		float estimator_status_mag_test_ratio, matrix::Vector3f vI)
+		float estimator_status_mag_test_ratio, const matrix::Vector3f &vI)
 {
 	// Check normalised innovation levels with requirement for continuous data and use of hysteresis
 	// to prevent false triggering.
