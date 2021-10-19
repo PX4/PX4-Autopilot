@@ -155,7 +155,7 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 					_att_sp.pitch_body = constrain(_att_sp.pitch_body,
 								       -radians(_param_fw_man_p_max.get()), radians(_param_fw_man_p_max.get()));
 
-					_att_sp.yaw_body = 0.0f;
+					_att_sp.yaw_body = NAN;
 					_att_sp.thrust_body[0] = math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f);
 
 					Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
