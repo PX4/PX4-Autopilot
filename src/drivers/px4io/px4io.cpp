@@ -708,7 +708,7 @@ void PX4IO::Run()
 		}
 	}
 
-	_mixing_output.updateSubscriptions(false, true);
+	_mixing_output.updateSubscriptions(true, true);
 
 	perf_end(_cycle_perf);
 }
