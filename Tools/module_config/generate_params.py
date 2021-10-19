@@ -342,4 +342,3 @@ for yaml_file in args.config_files:
 if verbose: print("Generating {:}".format(params_output_file))
 with open(params_output_file, 'w') as fid:
     fid.write(all_params)
-

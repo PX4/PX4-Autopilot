@@ -240,4 +240,3 @@ private:
 	uORB::Subscription _topic{ORB_ID(actuator_controls_2)};
 	float _data[3] { NAN, NAN, NAN };
 };
-
