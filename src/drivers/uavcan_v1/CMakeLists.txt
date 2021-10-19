@@ -127,6 +127,8 @@ px4_add_module(
 		o1heap/o1heap.h
 		${LIBCANARD_DIR}/libcanard/canard.c
 		${LIBCANARD_DIR}/libcanard/canard.h
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		git_libcanard
 		git_public_regulated_data_types
