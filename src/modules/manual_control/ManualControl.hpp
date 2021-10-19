@@ -44,6 +44,7 @@
 #include <uORB/topics/manual_control_input.h>
 #include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/mode_request.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -119,17 +120,15 @@ private:
 
 	void Run() override;
 
-	void evaluate_mode_slot(uint8_t mode_slot);
-	void send_mode_command(int32_t commander_main_state);
+	void evaluateModeSlot(uint8_t mode_slot);
+	void sendModeRequest(uint8_t mode, uint8_t source);
 	void sendArmRequest(int8_t action, int8_t source);
-	void send_rtl_command();
-	void send_loiter_command();
-	void send_offboard_command();
 	void publish_landing_gear(int8_t action);
 	void send_vtol_transition_command(uint8_t action);
 
 	uORB::Publication<arm_request_s> _arm_request_pub{ORB_ID(arm_request)};
 	uORB::Publication<manual_control_setpoint_s> _manual_control_setpoint_pub{ORB_ID(manual_control_setpoint)};
+	uORB::Publication<mode_request_s> _mode_request_pub{ORB_ID(mode_request)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::SubscriptionCallbackWorkItem _manual_control_input_subs[MAX_MANUAL_INPUT_COUNT] {
@@ -153,7 +152,6 @@ private:
 
 	manual_control_switches_s _previous_switches{};
 	bool _previous_switches_initialized{false};
-	int32_t _last_mode_slot_flt{-1};
 
 	hrt_abstime _last_time{0};
 

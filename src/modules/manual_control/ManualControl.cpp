@@ -156,7 +156,7 @@ void ManualControl::Run()
 			if (_selector.setpoint().chosen_input.data_source == manual_control_input_s::SOURCE_RC) {
 				if (_previous_switches_initialized) {
 					if (switches.mode_slot != _previous_switches.mode_slot) {
-						evaluate_mode_slot(switches.mode_slot);
+						evaluateModeSlot(switches.mode_slot);
 					}
 
 					if (_param_com_arm_swisbtn.get()) {
@@ -182,28 +182,28 @@ void ManualControl::Run()
 
 					if (switches.return_switch != _previous_switches.return_switch) {
 						if (switches.return_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							send_rtl_command();
+							sendModeRequest(commander_state_s::MAIN_STATE_AUTO_RTL, mode_request_s::SOURCE_RC_SWITCH);
 
 						} else if (switches.return_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-							send_mode_command(_last_mode_slot_flt);
+							evaluateModeSlot(switches.mode_slot);
 						}
 					}
 
 					if (switches.loiter_switch != _previous_switches.loiter_switch) {
 						if (switches.loiter_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							send_loiter_command();
+							sendModeRequest(commander_state_s::MAIN_STATE_AUTO_LOITER, mode_request_s::SOURCE_RC_SWITCH);
 
 						} else if (switches.loiter_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-							send_mode_command(_last_mode_slot_flt);
+							evaluateModeSlot(switches.mode_slot);
 						}
 					}
 
 					if (switches.offboard_switch != _previous_switches.offboard_switch) {
 						if (switches.offboard_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							send_offboard_command();
+							sendModeRequest(commander_state_s::MAIN_STATE_OFFBOARD, mode_request_s::SOURCE_RC_SWITCH);
 
 						} else if (switches.offboard_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-							send_mode_command(_last_mode_slot_flt);
+							evaluateModeSlot(switches.mode_slot);
 						}
 					}
 
@@ -238,7 +238,7 @@ void ManualControl::Run()
 
 				} else {
 					// Send an initial command to switch to the mode requested by RC
-					evaluate_mode_slot(switches.mode_slot);
+					evaluateModeSlot(switches.mode_slot);
 				}
 
 				_previous_switches_initialized = true;
@@ -246,7 +246,6 @@ void ManualControl::Run()
 
 			} else {
 				_previous_switches_initialized = false;
-				_last_mode_slot_flt = -1;
 			}
 		}
 
@@ -285,135 +284,49 @@ void ManualControl::Run()
 	perf_end(_loop_perf);
 }
 
-void ManualControl::evaluate_mode_slot(uint8_t mode_slot)
+void ManualControl::evaluateModeSlot(uint8_t mode_slot)
 {
 	switch (mode_slot) {
 	case manual_control_switches_s::MODE_SLOT_NONE:
-		_last_mode_slot_flt = -1;
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_1:
-		_last_mode_slot_flt = _param_fltmode_1.get();
+		sendModeRequest(_param_fltmode_1.get(), mode_request_s::SOURCE_RC_MODE_SLOT);
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_2:
-		_last_mode_slot_flt = _param_fltmode_2.get();
+		sendModeRequest(_param_fltmode_2.get(), mode_request_s::SOURCE_RC_MODE_SLOT);
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_3:
-		_last_mode_slot_flt = _param_fltmode_3.get();
+		sendModeRequest(_param_fltmode_3.get(), mode_request_s::SOURCE_RC_MODE_SLOT);
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_4:
-		_last_mode_slot_flt = _param_fltmode_4.get();
+		sendModeRequest(_param_fltmode_4.get(), mode_request_s::SOURCE_RC_MODE_SLOT);
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_5:
-		_last_mode_slot_flt = _param_fltmode_5.get();
+		sendModeRequest(_param_fltmode_5.get(), mode_request_s::SOURCE_RC_MODE_SLOT);
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_6:
-		_last_mode_slot_flt = _param_fltmode_6.get();
+		sendModeRequest(_param_fltmode_6.get(), mode_request_s::SOURCE_RC_MODE_SLOT);
 		break;
 
 	default:
-		_last_mode_slot_flt = -1;
 		PX4_WARN("mode slot overflow");
 		break;
-
 	}
-
-	send_mode_command(_last_mode_slot_flt);
 }
 
-void ManualControl::send_mode_command(int32_t commander_main_state)
+void ManualControl::sendModeRequest(uint8_t mode, uint8_t source)
 {
-	if (commander_main_state == -1) {
-		// Not assigned.
-		return;
-	}
-
-	vehicle_command_s command{};
-	command.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
-	command.param1 = 1.0f;
-
-	switch (commander_main_state) {
-	case commander_state_s::MAIN_STATE_MANUAL:
-		command.param2 = PX4_CUSTOM_MAIN_MODE_MANUAL;
-		break;
-
-	case commander_state_s::MAIN_STATE_ALTCTL:
-		command.param2 = PX4_CUSTOM_MAIN_MODE_ALTCTL;
-		break;
-
-	case commander_state_s::MAIN_STATE_POSCTL:
-		command.param2 = PX4_CUSTOM_MAIN_MODE_POSCTL;
-		command.param3 = PX4_CUSTOM_SUB_MODE_POSCTL_POSCTL;
-		break;
-
-	case commander_state_s::MAIN_STATE_AUTO_MISSION:
-		command.param2 = PX4_CUSTOM_MAIN_MODE_AUTO;
-		command.param3 = PX4_CUSTOM_SUB_MODE_AUTO_MISSION;
-		break;
-
-	case commander_state_s::MAIN_STATE_AUTO_LOITER:
-		command.param2 = PX4_CUSTOM_MAIN_MODE_AUTO;
-		command.param3 = PX4_CUSTOM_SUB_MODE_AUTO_MISSION;
-		break;
-
-	case commander_state_s::MAIN_STATE_AUTO_RTL:
-		command.param2 = PX4_CUSTOM_MAIN_MODE_AUTO;
-		command.param3 = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
-		break;
-
-	case commander_state_s::MAIN_STATE_ACRO:
-		command.param2 = PX4_CUSTOM_MAIN_MODE_ACRO;
-		break;
-
-	case commander_state_s::MAIN_STATE_OFFBOARD:
-		command.param2 = PX4_CUSTOM_MAIN_MODE_OFFBOARD;
-		break;
-
-	case commander_state_s::MAIN_STATE_STAB:
-		command.param2 = PX4_CUSTOM_MAIN_MODE_STABILIZED;
-		break;
-
-	case commander_state_s::MAIN_STATE_AUTO_TAKEOFF:
-		command.param2 = PX4_CUSTOM_MAIN_MODE_AUTO;
-		command.param3 = PX4_CUSTOM_SUB_MODE_AUTO_TAKEOFF;
-		break;
-
-	case commander_state_s::MAIN_STATE_AUTO_LAND:
-		command.param2 = PX4_CUSTOM_MAIN_MODE_AUTO;
-		command.param3 = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
-		break;
-
-	case commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET:
-		command.param2 = PX4_CUSTOM_MAIN_MODE_AUTO;
-		command.param3 = PX4_CUSTOM_SUB_MODE_AUTO_FOLLOW_TARGET;
-		break;
-
-	case commander_state_s::MAIN_STATE_AUTO_PRECLAND:
-
-	// FALLTHROUGH
-	case commander_state_s::MAIN_STATE_ORBIT:
-		PX4_WARN("Unhandled main_state");
-		return;
-
-	case commander_state_s::MAIN_STATE_MAX:
-
-	// FALLTHROUGH
-	default:
-		PX4_WARN("Unknown main_state");
-		return;
-	}
-
-	command.target_system = _param_mav_sys_id.get();
-	command.target_component = _param_mav_comp_id.get();
-
-	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
-	command.timestamp = hrt_absolute_time();
-	command_pub.publish(command);
+	mode_request_s mode_request{};
+	mode_request.mode = mode;
+	mode_request.source = source;
+	mode_request.timestamp = hrt_absolute_time();
+	_mode_request_pub.publish(mode_request);
 }
 
 void ManualControl::sendArmRequest(int8_t action, int8_t source)
@@ -423,50 +336,6 @@ void ManualControl::sendArmRequest(int8_t action, int8_t source)
 	arm_request.source = source;
 	arm_request.timestamp = hrt_absolute_time();
 	_arm_request_pub.publish(arm_request);
-}
-
-void ManualControl::send_rtl_command()
-{
-	vehicle_command_s command{};
-	command.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
-	command.param1 = 1.0f;
-	command.param2 = PX4_CUSTOM_MAIN_MODE_AUTO;
-	command.param3 = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
-	command.target_system = _param_mav_sys_id.get();
-	command.target_component = _param_mav_comp_id.get();
-
-	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
-	command.timestamp = hrt_absolute_time();
-	command_pub.publish(command);
-}
-
-void ManualControl::send_loiter_command()
-{
-	vehicle_command_s command{};
-	command.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
-	command.param1 = 1.0f;
-	command.param2 = PX4_CUSTOM_MAIN_MODE_AUTO;
-	command.param3 = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
-	command.target_system = _param_mav_sys_id.get();
-	command.target_component = _param_mav_comp_id.get();
-
-	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
-	command.timestamp = hrt_absolute_time();
-	command_pub.publish(command);
-}
-
-void ManualControl::send_offboard_command()
-{
-	vehicle_command_s command{};
-	command.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
-	command.param1 = 1.0f;
-	command.param2 = PX4_CUSTOM_MAIN_MODE_OFFBOARD;
-	command.target_system = _param_mav_sys_id.get();
-	command.target_component = _param_mav_comp_id.get();
-
-	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
-	command.timestamp = hrt_absolute_time();
-	command_pub.publish(command);
 }
 
 void ManualControl::publish_landing_gear(int8_t action)
