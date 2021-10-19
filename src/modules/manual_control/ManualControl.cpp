@@ -232,10 +232,10 @@ void ManualControl::Run()
 
 					if (switches.transition_switch != _previous_switches.transition_switch) {
 						if (switches.transition_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							send_vtol_transition_command(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+							sendActionRequest(action_request_s::ACTION_VTOL_TRANSITION_TO_FIXEDWING, action_request_s::SOURCE_RC_SWITCH);
 
 						} else if (switches.transition_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-							send_vtol_transition_command(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+							sendActionRequest(action_request_s::ACTION_VTOL_TRANSITION_TO_MULTICOPTER, action_request_s::SOURCE_RC_SWITCH);
 						}
 					}
 
@@ -340,19 +340,6 @@ void ManualControl::publish_landing_gear(int8_t action)
 	landing_gear.timestamp = hrt_absolute_time();
 	uORB::Publication<landing_gear_s> landing_gear_pub{ORB_ID(landing_gear)};
 	landing_gear_pub.publish(landing_gear);
-}
-
-void ManualControl::send_vtol_transition_command(uint8_t action)
-{
-	vehicle_command_s command{};
-	command.command = vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION;
-	command.param1 = action;
-	command.target_system = _param_mav_sys_id.get();
-	command.target_component = _param_mav_comp_id.get();
-
-	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
-	command.timestamp = hrt_absolute_time();
-	command_pub.publish(command);
 }
 
 int ManualControl::task_spawn(int argc, char *argv[])
