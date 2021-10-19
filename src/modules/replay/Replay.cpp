@@ -249,6 +249,7 @@ Replay::readFileDefinitions(std::ifstream &file)
 
 		case (int)ULogMessageType::INFO: //skip
 		case (int)ULogMessageType::INFO_MULTIPLE: //skip
+		case (int)ULogMessageType::PARAMETER_DEFAULT:
 			file.seekg(message_header.msg_size, ios::cur);
 			break;
 
@@ -704,6 +705,7 @@ Replay::nextDataMessage(std::ifstream &file, Subscription &subscription, int msg
 		case (int)ULogMessageType::INFO_MULTIPLE:
 		case (int)ULogMessageType::SYNC:
 		case (int)ULogMessageType::LOGGING:
+		case (int)ULogMessageType::PARAMETER_DEFAULT:
 			file.seekg(message_header.msg_size, ios::cur);
 			break;
 
