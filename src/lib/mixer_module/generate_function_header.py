@@ -72,4 +72,3 @@ enum class OutputFunction : int32_t {{
 {2}
 }};
 '''.format(os.path.basename(__file__), yaml_file, function_defs))
-
