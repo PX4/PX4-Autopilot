@@ -1,7 +1,7 @@
 #ifndef HYGROMETER_SENSOR_HPP
 #define HYGROMETER_SENSOR_HPP
 
-#include <uORB/topics/hygrometer.h>
+#include <uORB/topics/sensor_hygrometer.h>
 
 class MavlinkStreamHygrometerSensor : public MavlinkStream
 {
@@ -18,30 +18,30 @@ public:
 
 	unsigned get_size() override
 	{
-		return MAVLINK_MSG_ID_HYGROMETER_SENSOR_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return _hygrometer_sub.advertised() ? MAVLINK_MSG_ID_HYGROMETER_SENSOR_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
 	explicit MavlinkStreamHygrometerSensor(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _hygrometer_sub{ORB_ID(hygrometer)};
-
-	/* do not allow top copying this class */
-	MavlinkStreamHygrometerSensor(MavlinkStreamHygrometerSensor &) = delete;
-	MavlinkStreamHygrometerSensor &operator = (const MavlinkStreamHygrometerSensor &) = delete;
+	uORB::Subscription _hygrometer_sub{ORB_ID(sensor_hygrometer)};
 
 	bool send() override
 	{
-		hygrometer_s hygrometer{};
-		mavlink_hygrometer_sensor_t msg;
-		_hygrometer_sub.copy(&hygrometer);
-		msg.temperature = hygrometer.temperature;
-		msg.humidity = hygrometer.humidity;
-		msg.id = hygrometer.id;
+		if (_hygrometer_sub.updated()) {
+			sensor_hygrometer_s hygrometer{};
+			mavlink_hygrometer_sensor_t msg;
+			_hygrometer_sub.copy(&hygrometer);
+			msg.temperature = hygrometer.temperature;
+			msg.humidity = hygrometer.humidity;
+			msg.id = hygrometer.id;
 
-		mavlink_msg_hygrometer_sensor_send_struct(_mavlink->get_channel(), &msg);
+			mavlink_msg_hygrometer_sensor_send_struct(_mavlink->get_channel(), &msg);
 
-		return true;
+			return true;
+		}
+
+		return false;
 	}
 };
 

@@ -40,7 +40,7 @@
 const char *const UavcanHygrometerBridge::NAME = "hygrometer_sensor";
 
 UavcanHygrometerBridge::UavcanHygrometerBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_hygrometer_sensor", ORB_ID(hygrometer)),
+	UavcanSensorBridgeBase("uavcan_hygrometer_sensor", ORB_ID(sensor_hygrometer)),
 	_sub_hygro(node)
 {
 }
@@ -69,7 +69,7 @@ void UavcanHygrometerBridge::hygro_sub_cb(const
 	float temperature_c = msg.temperature + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
 	uint8_t id = msg.id;
 
-	hygrometer_s report = {
+	sensor_hygrometer_s report = {
 		.timestamp = hrt_absolute_time(),
 		.temperature = temperature_c,
 		.humidity  = humidity,

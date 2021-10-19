@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include <uORB/topics/hygrometer.h>
+#include <uORB/topics/sensor_hygrometer.h>
 #include "sensor_bridge.hpp"
 #include <cuav/equipment/hygrometer/Hygrometer.hpp>
 
