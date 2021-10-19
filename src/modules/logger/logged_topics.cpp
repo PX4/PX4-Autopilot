@@ -53,6 +53,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("actuator_controls_status_0", 300);
 	add_topic("airspeed", 1000);
 	add_topic("airspeed_validated", 200);
+	add_topic("arm_request");
 	add_topic("autotune_attitude_control_status", 100);
 	add_topic("camera_capture");
 	add_topic("camera_trigger");

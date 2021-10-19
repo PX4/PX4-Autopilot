@@ -165,7 +165,7 @@ void ManualControl::Run()
 						_button_hysteresis.set_state_and_update(switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON, now);
 
 						if (!previous_button_hysteresis && _button_hysteresis.get_state()) {
-							sendArmRequest(arm_request_s::ACTION_TOGGLE, arm_request_s::SOURCE_RC_BUTTON);
+							sendArmRequest(arm_request_s::ACTION_TOGGLE_ARMING, arm_request_s::SOURCE_RC_BUTTON);
 						}
 
 					} else {
@@ -209,10 +209,10 @@ void ManualControl::Run()
 
 					if (switches.kill_switch != _previous_switches.kill_switch) {
 						if (switches.kill_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							send_termination_command(true);
+							sendArmRequest(arm_request_s::ACTION_KILL, arm_request_s::SOURCE_RC_SWITCH);
 
 						} else if (switches.kill_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-							send_termination_command(false);
+							sendArmRequest(arm_request_s::ACTION_UNKILL, arm_request_s::SOURCE_RC_SWITCH);
 						}
 					}
 
@@ -461,19 +461,6 @@ void ManualControl::send_offboard_command()
 	command.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
 	command.param1 = 1.0f;
 	command.param2 = PX4_CUSTOM_MAIN_MODE_OFFBOARD;
-	command.target_system = _param_mav_sys_id.get();
-	command.target_component = _param_mav_comp_id.get();
-
-	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
-	command.timestamp = hrt_absolute_time();
-	command_pub.publish(command);
-}
-
-void ManualControl::send_termination_command(bool should_terminate)
-{
-	vehicle_command_s command{};
-	command.command = vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION;
-	command.param1 = should_terminate ? 1.0f : 0.0f;
 	command.target_system = _param_mav_sys_id.get();
 	command.target_component = _param_mav_comp_id.get();
 
