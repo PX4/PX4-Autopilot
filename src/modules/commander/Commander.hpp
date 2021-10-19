@@ -59,9 +59,9 @@
 // subscriptions
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
+#include <uORB/topics/action_request.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed.h>
-#include <uORB/topics/arm_request.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/distance_sensor.h>
@@ -73,7 +73,6 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
-#include <uORB/topics/mode_request.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/power_button_state.h>
@@ -390,8 +389,8 @@ private:
 	WorkerThread _worker_thread;
 
 	// Subscriptions
+	uORB::Subscription					_action_request_sub {ORB_ID(action_request)};
 	uORB::Subscription					_actuator_controls_sub{ORB_ID_VEHICLE_ATTITUDE_CONTROLS};
-	uORB::Subscription					_arm_request_sub {ORB_ID(arm_request)};
 	uORB::Subscription					_cmd_sub {ORB_ID(vehicle_command)};
 	uORB::Subscription					_cpuload_sub{ORB_ID(cpuload)};
 	uORB::Subscription					_esc_status_sub{ORB_ID(esc_status)};
@@ -400,7 +399,6 @@ private:
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 	uORB::Subscription					_land_detector_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
-	uORB::Subscription					_mode_request_sub {ORB_ID(mode_request)};
 	uORB::Subscription					_safety_sub{ORB_ID(safety)};
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription					_vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};

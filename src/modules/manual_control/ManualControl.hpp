@@ -40,11 +40,10 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/perf/perf_counter.h>
-#include <uORB/topics/arm_request.h>
+#include <uORB/topics/action_request.h>
 #include <uORB/topics/manual_control_input.h>
 #include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/mode_request.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -121,14 +120,12 @@ private:
 	void Run() override;
 
 	void evaluateModeSlot(uint8_t mode_slot);
-	void sendModeRequest(uint8_t mode, uint8_t source);
-	void sendArmRequest(int8_t action, int8_t source);
+	void sendActionRequest(int8_t action, int8_t source, int8_t mode = 0);
 	void publish_landing_gear(int8_t action);
 	void send_vtol_transition_command(uint8_t action);
 
-	uORB::Publication<arm_request_s> _arm_request_pub{ORB_ID(arm_request)};
+	uORB::Publication<action_request_s> _action_request_pub{ORB_ID(action_request)};
 	uORB::Publication<manual_control_setpoint_s> _manual_control_setpoint_pub{ORB_ID(manual_control_setpoint)};
-	uORB::Publication<mode_request_s> _mode_request_pub{ORB_ID(mode_request)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::SubscriptionCallbackWorkItem _manual_control_input_subs[MAX_MANUAL_INPUT_COUNT] {

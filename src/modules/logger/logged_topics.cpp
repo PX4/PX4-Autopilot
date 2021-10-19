@@ -45,6 +45,7 @@ using namespace px4::logger;
 
 void LoggedTopics::add_default_topics()
 {
+	add_topic("action_request");
 	add_topic("actuator_armed");
 	add_topic("actuator_controls_0", 50);
 	add_topic("actuator_controls_1", 100);
@@ -53,7 +54,6 @@ void LoggedTopics::add_default_topics()
 	add_topic("actuator_controls_status_0", 300);
 	add_topic("airspeed", 1000);
 	add_topic("airspeed_validated", 200);
-	add_topic("arm_request");
 	add_topic("autotune_attitude_control_status", 100);
 	add_topic("camera_capture");
 	add_topic("camera_trigger");
@@ -73,7 +73,6 @@ void LoggedTopics::add_default_topics()
 	add_topic("manual_control_setpoint", 200);
 	add_topic("manual_control_switches");
 	add_topic("mission_result");
-	add_topic("mode_request");
 	add_topic("navigator_mission_item");
 	add_topic("offboard_control_mode", 100);
 	add_topic("onboard_computer_status", 10);
