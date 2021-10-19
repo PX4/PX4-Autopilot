@@ -2319,7 +2319,7 @@ Commander::run()
 			} else {
 				if (_status_flags.rc_signal_found_once && !_status.rc_signal_lost
 				    && !_status_flags.condition_calibration_enabled && !_status_flags.rc_input_blocked) {
-					mavlink_log_critical(&_mavlink_log_pub, "Manual control lost");
+					mavlink_log_critical(&_mavlink_log_pub, "Manual control lost\t");
 					events::send(events::ID("commander_rc_lost"), {events::Log::Critical, events::LogInternal::Info},
 						     "Manual control lost");
 					_status.rc_signal_lost = true;
