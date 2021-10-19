@@ -1509,7 +1509,11 @@ void Ekf::stopGpsFusion()
 void Ekf::stopGpsPosFusion()
 {
 	_control_status.flags.gps = false;
-	_control_status.flags.gps_hgt = false;
+
+	if (_control_status.flags.gps_hgt) {
+		startBaroHgtFusion();
+	}
+
 	_gps_pos_innov.setZero();
 	_gps_pos_innov_var.setZero();
 	_gps_pos_test_ratio.setZero();
