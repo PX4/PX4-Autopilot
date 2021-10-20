@@ -282,9 +282,7 @@ void FlightTaskOrbit::_generate_circle_approach_setpoints()
 	const Vector3f target_circle_point{closest_point_on_circle(0), closest_point_on_circle(1), _center(2)};
 
 	PositionSmoothing::PositionSmoothingSetpoints out_setpoints;
-	_position_smoothing.generateSetpoints(_position, {
-		_circle_approach_start_position, target_circle_point, target_circle_point
-	},
+	_position_smoothing.generateSetpoints(_position, target_circle_point,
 	{0.f, 0.f, 0.f}, _deltatime, false, out_setpoints);
 
 	_yaw_setpoint = atan2f(position_to_center_xy(1), position_to_center_xy(0));
