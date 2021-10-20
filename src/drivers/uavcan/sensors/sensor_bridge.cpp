@@ -50,6 +50,7 @@
 #include "gyro.hpp"
 #include "cbat.hpp"
 #include "ice_status.hpp"
+#include "hygrometer.hpp"
 
 /*
  * IUavcanSensorBridge
@@ -78,6 +79,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	list.add(new UavcanAccelBridge(node));
 	list.add(new UavcanGyroBridge(node));
 	list.add(new UavcanIceStatusBridge(node));
+	list.add(new UavcanHygrometerBridge(node));
 }
 
 /*
