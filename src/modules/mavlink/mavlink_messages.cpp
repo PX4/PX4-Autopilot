@@ -113,6 +113,7 @@
 #include "streams/VFR_HUD.hpp"
 #include "streams/VIBRATION.hpp"
 #include "streams/WIND_COV.hpp"
+#include "streams/HYGROMETER_SENSOR.hpp"
 
 #if !defined(CONSTRAINED_FLASH)
 # include "streams/ADSB_VEHICLE.hpp"
@@ -543,8 +544,11 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamRawRpm>(),
 #endif // RAW_RPM_HPP
 #if defined(EFI_STATUS_HPP)
-	create_stream_list_item<MavlinkStreamEfiStatus>()
+	create_stream_list_item<MavlinkStreamEfiStatus>(),
 #endif // EFI_STATUS_HPP
+#if defined(HYGROMETER_SENSOR_HPP)
+	create_stream_list_item<MavlinkStreamHygrometerSensor>()
+#endif // HYGROMETER_SENSOR_HPP
 };
 
 const char *get_stream_name(const uint16_t msg_id)
