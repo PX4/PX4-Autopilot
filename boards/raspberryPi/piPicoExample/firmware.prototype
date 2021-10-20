@@ -1,10 +1,10 @@
 {
     "board_id": 42,
-    "magic": "MYBOARDMYFC",
-    "description": "Firmware for the myfc board",
+    "magic": "RASPBERRYPIPICO",
+    "description": "Firmware for the raspberry pi Pico board",
     "image": "",
     "build_time": 0,
-    "summary": "PX4/myboard",
+    "summary": "PX4/raspberrypi",
     "version": "0.1",
     "image_size": 0,
     "image_maxsize": 1032192,

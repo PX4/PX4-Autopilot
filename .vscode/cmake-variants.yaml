@@ -216,13 +216,13 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: mro_x21-777_default
-    myboard_myfc_default:
-      short: myfc
-      buildType: MinSizeRel
-      settings:
-        CONFIG: myboard_myfc_default
     nxp_fmuk66-v3_default:
       short: nxp_fmuk66-v3
       buildType: MinSizeRel
       settings:
         CONFIG: nxp_fmuk66-v3_default
+    raspberrypi_pico_default:
+      short: raspberrypi_pico
+      buildType: MinSizeRel
+      settings:
+        CONFIG: raspberrypi_pico_default
