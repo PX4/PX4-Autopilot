@@ -1626,7 +1626,37 @@ void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats
 	PX4_DEBUG("writing format for %s", meta.o_name);
 
 	// Write the current format (we don't need to check if we already added it to written_formats)
-	int format_len = snprintf(msg.format, sizeof(msg.format), "%s:%s", meta.o_name, meta.o_fields);
+	int format_len = snprintf(msg.format, sizeof(msg.format), "%s:", meta.o_name);
+
+	for (int format_idx = 0; meta.o_fields[format_idx] != 0;) {
+		const char *end_field = strchr(meta.o_fields + format_idx, ';');
+
+		if (!end_field) {
+			PX4_ERR("Format error in %s", meta.o_fields);
+			return;
+		}
+
+		const char *c_type = orb_get_c_type(meta.o_fields[format_idx]);
+
+		if (c_type) {
+			format_len += snprintf(msg.format + format_len, sizeof(msg.format) - format_len, "%s", c_type);
+			++format_idx;
+		}
+
+		int len = end_field - (meta.o_fields + format_idx) + 1;
+
+		if (len >= (int)sizeof(msg.format) - format_len) {
+			PX4_WARN("skip topic %s, format string is too large, max is %zu", meta.o_name,
+				 sizeof(ulog_message_format_s::format));
+			return;
+		}
+
+		memcpy(msg.format + format_len, meta.o_fields + format_idx, len);
+		format_len += len;
+		format_idx += len;
+	}
+
+	msg.format[format_len] = '\0';
 	size_t msg_size = sizeof(msg) - sizeof(msg.format) + format_len;
 	msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
@@ -1637,7 +1667,7 @@ void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats
 	}
 
 	// Now go through the fields and check for nested type usages.
-	// o_fields looks like this for example: "uint64_t timestamp;uint8_t[5] array;"
+	// o_fields looks like this for example: "<chr> timestamp;<chr>[5] array;"
 	const char *fmt = meta.o_fields;
 
 	while (fmt && *fmt) {
@@ -1670,20 +1700,7 @@ void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats
 		type_name[type_length] = '\0';
 
 		// ignore built-in types
-		if (strcmp(type_name, "int8_t") != 0 &&
-		    strcmp(type_name, "uint8_t") != 0 &&
-		    strcmp(type_name, "int16_t") != 0 &&
-		    strcmp(type_name, "uint16_t") != 0 &&
-		    strcmp(type_name, "int16_t") != 0 &&
-		    strcmp(type_name, "uint16_t") != 0 &&
-		    strcmp(type_name, "int32_t") != 0 &&
-		    strcmp(type_name, "uint32_t") != 0 &&
-		    strcmp(type_name, "int64_t") != 0 &&
-		    strcmp(type_name, "uint64_t") != 0 &&
-		    strcmp(type_name, "float") != 0 &&
-		    strcmp(type_name, "double") != 0 &&
-		    strcmp(type_name, "bool") != 0 &&
-		    strcmp(type_name, "char") != 0) {
+		if (orb_get_c_type(type_name[0]) == nullptr) {
 
 			// find orb meta for type
 			const orb_metadata *const *topics = orb_get_topics();

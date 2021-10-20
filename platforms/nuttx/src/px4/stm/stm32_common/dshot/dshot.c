@@ -100,6 +100,7 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 		}
 
 		// we know the uint8_t* cast to uint32_t* is fine, since we're aligned to cache line size
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-align"
 		dshot_burst_buffer[timer] = (uint32_t *)&dshot_burst_buffer_array[buffer_offset];
 #pragma GCC diagnostic pop
