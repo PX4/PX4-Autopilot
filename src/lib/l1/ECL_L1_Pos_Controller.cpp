@@ -307,8 +307,9 @@ ECL_L1_Pos_Controller::navigate_loiter(const Vector2d &vector_A, const Vector2d 
 		_circle_mode = true;
 		_bearing_error = 0.0f;
 		// once loitering, the bearing is tangentially to the loiter,
-		// so subtract PI/2 from the bearing from current position to loiter center
-		_nav_bearing = atan2f(-vector_A_to_airplane_unit(1), -vector_A_to_airplane_unit(0)) - M_PI_2_F;
+		// so subtract/add PI/2 from the bearing from current position to loiter center depending on loiter direction
+		const float center_to_tangent = M_PI_2_F * loiter_direction * -1.f;
+		_nav_bearing = atan2f(-vector_A_to_airplane_unit(1), -vector_A_to_airplane_unit(0)) + center_to_tangent;
 	}
 
 	update_roll_setpoint();
