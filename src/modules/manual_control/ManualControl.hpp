@@ -46,7 +46,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include "ManualControlSelector.hpp"
 
@@ -118,6 +118,7 @@ private:
 	static constexpr int MAX_MANUAL_INPUT_COUNT = 3;
 
 	void Run() override;
+	void processStickArming(const manual_control_input_s &input);
 
 	void evaluateModeSlot(uint8_t mode_slot);
 	void sendActionRequest(int8_t action, int8_t source, int8_t mode = 0);
