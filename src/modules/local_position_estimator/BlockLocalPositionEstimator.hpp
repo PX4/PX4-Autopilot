@@ -297,7 +297,7 @@ private:
 	MapProjection _map_ref;
 
 	MapProjection _global_local_proj_ref{};
-	float                      _global_local_alt0{NAN};
+	float _global_local_alt0{NAN};
 
 	// target mode paramters from landing_target_estimator module
 	enum TargetMode {

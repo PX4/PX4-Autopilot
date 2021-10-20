@@ -278,11 +278,8 @@ PrecLand::run_state_horizontal_approach()
 	slewrate(x, y);
 
 	// XXX need to transform to GPS coords because mc_pos_control only looks at that
-	double lat, lon;
-	_map_ref.reproject(x, y, lat, lon);
+	_map_ref.reproject(x, y, pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
 
-	pos_sp_triplet->current.lat = lat;
-	pos_sp_triplet->current.lon = lon;
 	pos_sp_triplet->current.alt = _approach_alt;
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 
@@ -315,11 +312,7 @@ PrecLand::run_state_descend_above_target()
 	}
 
 	// XXX need to transform to GPS coords because mc_pos_control only looks at that
-	double lat, lon;
-	_map_ref.reproject(_target_pose.x_abs, _target_pose.y_abs, lat, lon);
-
-	pos_sp_triplet->current.lat = lat;
-	pos_sp_triplet->current.lon = lon;
+	_map_ref.reproject(_target_pose.x_abs, _target_pose.y_abs, pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
 
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
 
@@ -555,8 +548,8 @@ void PrecLand::slewrate(float &sp_x, float &sp_y)
 		dt = 50000 / SEC2USEC;
 
 		// set a best guess for previous setpoints for smooth transition
-		_map_ref.project(_navigator->get_position_setpoint_triplet()->current.lat,
-				 _navigator->get_position_setpoint_triplet()->current.lon, _sp_pev(0), _sp_pev(1));
+		_sp_pev = _map_ref.project(_navigator->get_position_setpoint_triplet()->current.lat,
+					   _navigator->get_position_setpoint_triplet()->current.lon);
 		_sp_pev_prev(0) = _sp_pev(0) - _navigator->get_local_position()->vx * dt;
 		_sp_pev_prev(1) = _sp_pev(1) - _navigator->get_local_position()->vy * dt;
 	}
