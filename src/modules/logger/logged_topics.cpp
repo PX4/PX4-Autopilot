@@ -362,15 +362,6 @@ void LoggedTopics::add_mission_topic(const char *name, uint16_t interval_ms)
 
 bool LoggedTopics::add_topic(const orb_metadata *topic, uint16_t interval_ms, uint8_t instance)
 {
-	size_t fields_len = strlen(topic->o_fields) + strlen(topic->o_name) + 1; //1 for ':'
-
-	if (fields_len > sizeof(ulog_message_format_s::format)) {
-		PX4_WARN("skip topic %s, format string is too large: %zu (max is %zu)", topic->o_name, fields_len,
-			 sizeof(ulog_message_format_s::format));
-
-		return false;
-	}
-
 	if (_subscriptions.count >= MAX_TOPICS_NUM) {
 		PX4_WARN("Too many subscriptions, failed to add: %s %" PRIu8, topic->o_name, instance);
 		return false;
