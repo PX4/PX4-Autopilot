@@ -48,9 +48,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include <matrix/Matrix.hpp>
-#include <mathlib/mathlib.h>
-#include <drivers/drv_hrt.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/matrix/matrix/math.hpp>
 
 static constexpr float CONSTANTS_ONE_G = 9.80665f;						// m/s^2
 
@@ -164,11 +163,11 @@ class MapProjection final
 {
 private:
 	uint64_t _ref_timestamp{0};
-	double _ref_lat{0.f};
-	double _ref_lon{0.f};
-	double _ref_sin_lat{0.f};
-	double _ref_cos_lat{0.f};
-	bool _ref_init_done {false};
+	double _ref_lat{0.0};
+	double _ref_lon{0.0};
+	double _ref_sin_lat{0.0};
+	double _ref_cos_lat{0.0};
+	bool _ref_init_done{false};
 
 public:
 	/**
@@ -179,7 +178,7 @@ public:
 	MapProjection() = default;
 
 	/**
-	 * @brief Construct and initializes a new Map Projection object
+	 * @brief Construct and initialize a new Map Projection object
 	 */
 	MapProjection(double lat_0, double lon_0)
 	{
@@ -187,7 +186,7 @@ public:
 	}
 
 	/**
-	 * @brief Construct and initializes a new Map Projection object
+	 * @brief Construct and initialize a new Map Projection object
 	 */
 	MapProjection(double lat_0, double lon_0, uint64_t timestamp)
 	{
@@ -195,7 +194,7 @@ public:
 	}
 
 	/**
-	 * Initializes the map transformation
+	 * Initialize the map transformation
 	 *
 	 * Initializes the transformation between the geographic coordinate system and
 	 * the azimuthal equidistant plane
@@ -205,10 +204,10 @@ public:
 	void initReference(double lat_0, double lon_0, uint64_t timestamp);
 
 	/**
-	 * Initializes the map transformation
+	 * Initialize the map transformation
 	 *
-	 * Initializes the transformation between the geographic coordinate system and
-	 * the azimuthal equidistant plane
+	 * with reference coordinates on the geographic coordinate system
+	 * where the azimuthal equidistant plane's origin is located
 	 * @param lat in degrees (47.1234567°, not 471234567°)
 	 * @param lon in degrees (8.1234567°, not 81234567°)
 	 */
@@ -218,50 +217,37 @@ public:
 	}
 
 	/**
-	 * @brief Returns true, if the map reference has been initialized before
+	 * @return true, if the map reference has been initialized before
 	 */
-	inline bool isInitialized() const
-	{
-		return _ref_init_done;
-	}
+	bool isInitialized() const { return _ref_init_done; };
 
 	/**
-	 * Get the timestamp of the map projection
-	 * @return the timestamp of the map_projection
+	 * @return the timestamp of the reference which the map projection was initialized with
 	 */
-	inline uint64_t getProjectionReferenceTimestamp() const
-	{
-		return _ref_timestamp;
-	}
+	uint64_t getProjectionReferenceTimestamp() const { return _ref_timestamp; };
 
 	/**
-	 * @brief Get the Projection Reference latitude in degrees
+	 * @return the projection reference latitude in degrees
 	 */
-	inline double getProjectionReferenceLat() const
-	{
-		return math::degrees(_ref_lat);
-	}
+	double getProjectionReferenceLat() const { return math::degrees(_ref_lat); };
 
 	/**
-	 * @brief Get the Projection Reference longitude in degrees
+	 * @return the projection reference longitude in degrees
 	 */
-	inline double getProjectionReferenceLon() const
-	{
-		return math::degrees(_ref_lon);
-	}
+	double getProjectionReferenceLon() const { return math::degrees(_ref_lon); };
 
 	/**
-	 * Transforms a point in the geographic coordinate system to the local
+	 * Transform a point in the geographic coordinate system to the local
 	 * azimuthal equidistant plane using the projection
-	 * @param x north
-	 * @param y east
 	 * @param lat in degrees (47.1234567°, not 471234567°)
 	 * @param lon in degrees (8.1234567°, not 81234567°)
+	 * @param x north
+	 * @param y east
 	 */
 	void project(double lat, double lon, float &x, float &y) const;
 
 	/**
-	 * Transforms a point in the geographic coordinate system to the local
+	 * Transform a point in the geographic coordinate system to the local
 	 * azimuthal equidistant plane using the projection
 	 * @param lat in degrees (47.1234567°, not 471234567°)
 	 * @param lon in degrees (8.1234567°, not 81234567°)
@@ -275,14 +261,13 @@ public:
 	}
 
 	/**
-	 * Transforms a point in the local azimuthal equidistant plane to the
+	 * Transform a point in the local azimuthal equidistant plane to the
 	 * geographic coordinate system using the projection
 	 *
 	 * @param x north
 	 * @param y east
 	 * @param lat in degrees (47.1234567°, not 471234567°)
 	 * @param lon in degrees (8.1234567°, not 81234567°)
-	 * @return 0 if map_projection_init was called before, -1 else
 	 */
 	void reproject(float x, float y, double &lat, double &lon) const;
 };

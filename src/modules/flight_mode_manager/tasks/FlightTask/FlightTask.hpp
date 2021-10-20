@@ -206,8 +206,8 @@ protected:
 	virtual void _ekfResetHandlerVelocityZ(float delta_vz) {};
 	virtual void _ekfResetHandlerHeading(float delta_psi) {};
 
-	MapProjection 	_geo_projection{};
-	float                      _global_local_alt0{NAN};
+	MapProjection _geo_projection{};
+	float _global_local_alt0{NAN};
 
 	/* Time abstraction */
 	static constexpr uint64_t _timeout = 500000; /**< maximal time in us before a loop or data times out */

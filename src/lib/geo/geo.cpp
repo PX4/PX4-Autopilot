@@ -44,8 +44,6 @@
 
 #include "geo.h"
 
-#include <mathlib/mathlib.h>
-#include <matrix/math.hpp>
 #include <float.h>
 
 using matrix::wrap_pi;
@@ -60,18 +58,15 @@ using matrix::wrap_2pi;
  * formulas according to: http://mathworld.wolfram.com/AzimuthalEquidistantProjection.html
  */
 
-
 void MapProjection::initReference(double lat_0, double lon_0, uint64_t timestamp)
 {
+	_ref_timestamp = timestamp;
 	_ref_lat = math::radians(lat_0);
 	_ref_lon = math::radians(lon_0);
 	_ref_sin_lat = sin(_ref_lat);
 	_ref_cos_lat = cos(_ref_lat);
-
-	_ref_timestamp = timestamp;
 	_ref_init_done = true;
 }
-
 
 void MapProjection::project(double lat, double lon, float &x, float &y) const
 {
@@ -116,7 +111,6 @@ void MapProjection::reproject(float x, float y, double &lat, double &lon) const
 		lat = math::degrees(_ref_lat);
 		lon = math::degrees(_ref_lon);
 	}
-
 }
 
 float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next)
