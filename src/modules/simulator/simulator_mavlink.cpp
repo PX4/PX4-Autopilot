@@ -547,16 +547,12 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 			_global_local_alt0 = hil_state.alt / 1000.f;
 		}
 
-		float x;
-		float y;
-		_global_local_proj_ref.project(lat, lon, x, y);
 		hil_lpos.timestamp = timestamp;
 		hil_lpos.xy_valid = true;
 		hil_lpos.z_valid = true;
 		hil_lpos.v_xy_valid = true;
 		hil_lpos.v_z_valid = true;
-		hil_lpos.x = x;
-		hil_lpos.y = y;
+		_global_local_proj_ref.project(lat, lon, hil_lpos.x, hil_lpos.y);
 		hil_lpos.z = _global_local_alt0 - hil_state.alt / 1000.0f;
 		hil_lpos.vx = hil_state.vx / 100.0f;
 		hil_lpos.vy = hil_state.vy / 100.0f;

@@ -173,7 +173,7 @@ private:
 	PolygonInfo *_polygons{nullptr};
 	int _num_polygons{0};
 
-	MapProjection _projection_reference = {}; ///< reference to convert (lon, lat) to local [m]
+	MapProjection _projection_reference{}; ///< class to convert (lon, lat) to local [m]
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::GF_ACTION>) _param_gf_action,

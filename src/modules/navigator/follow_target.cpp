@@ -135,8 +135,8 @@ void FollowTarget::on_active()
 		// get distance to target
 
 		target_ref.initReference(_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
-		target_ref.project(_current_target_motion.lat, _current_target_motion.lon, _target_distance(0),
-				   _target_distance(1));
+		target_ref.project(_current_target_motion.lat, _current_target_motion.lon,
+				   _target_distance(0), _target_distance(1));
 
 	}
 
