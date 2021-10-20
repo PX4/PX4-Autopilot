@@ -796,7 +796,10 @@ int io_timer_set_ccr(unsigned channel, uint16_t value)
 		} else {
 
 			/* configure the channel */
-			modreg32(value,0xffff << (timer_io_channels[channel].timer_channel - 1)*16,rCCR(channels_timer(channel)));
+			int regVal = rCCR(channels_timer(channel));
+			regVal &= ~(0xffff << (timer_io_channels[channel].timer_channel - 1)*16);
+			regVal |= value << (timer_io_channels[channel].timer_channel - 1)*16;
+			rCCR(channels_timer(channel)) = regVal;
 		}
 	}
 

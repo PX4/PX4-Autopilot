@@ -50,12 +50,12 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
 	switch (timer.channel)
 	{
 	case Timer::ChannelA:
-		if (!(pin.pin & 1) && (pin.pin & 15)/2 == timer.timer)
+		if (!(pin.pin & 1) && (pin.pin & 15)/2 == (timer.timer - 1))
 			gpio_af = getGPIOPin(pin.pin) | GPIO_FUN(RP2040_GPIO_FUNC_PWM);
 		break;
 
 	case Timer::ChannelB:
-		if ((pin.pin & 1) && (pin.pin & 15)/2 == timer.timer)
+		if ((pin.pin & 1) && (pin.pin & 15)/2 == (timer.timer - 1))
 			gpio_af = getGPIOPin(pin.pin) | GPIO_FUN(RP2040_GPIO_FUNC_PWM);
 		break;
 

@@ -46,7 +46,7 @@ MODULES
 	ekf2
 # 	#esc_battery
 	events
-# 	flight_mode_manager
+	flight_mode_manager
 # 	#fw_att_control
 # 	#fw_pos_control_l1
 	gyro_calibration
@@ -57,10 +57,10 @@ MODULES
 # 	#local_position_estimator
 	logger # There was a linker error about "undefined reference to `__aeabi_fcmpun'" when this was activated while led_control, nshterm, reboot, top, uorb, ver, adc/board_adc, gps active and everything else inactive. The error then surprisingly goes away when barometer/bmp280 and imu/invensense/mpu9250 are activated.
 	mavlink
-# 	mc_att_control
-# 	mc_hover_thrust_estimator
-# 	mc_pos_control
-# 	mc_rate_control
+	mc_att_control
+	mc_hover_thrust_estimator
+	mc_pos_control
+	mc_rate_control
 # 	#micrortps_bridge
 	navigator
 	rc_update
@@ -76,20 +76,20 @@ SYSTEMCMDS
 # 	#bl_update
 	dmesg
 	dumpfile
-# 	esc_calib
+	esc_calib
 # 	#gpio
 # 	hardfault_log
 	i2cdetect
 	led_control
 # 	#mft
-# 	mixer
+	mixer
 # 	#motor_ramp
-# 	motor_test
+	motor_test
 # 	#mtd
 	nshterm
 	param
 	perf
-# 	pwm
+	pwm
 	reboot
 	reflect
 # 	sd_bench

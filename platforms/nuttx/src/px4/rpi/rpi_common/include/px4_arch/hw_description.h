@@ -77,7 +77,7 @@
 namespace Timer
 {
 enum Timer {
-	Timer0 = 0,
+	Timer0 = 1,
 	Timer1,
 	Timer2,
 	Timer3,
@@ -87,7 +87,7 @@ enum Timer {
 	Timer7,
 };
 enum Channel {
-	ChannelA = 0,
+	ChannelA = 1,
 	ChannelB,
 };
 struct TimerChannel {
