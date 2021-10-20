@@ -68,7 +68,7 @@ public:
 
 	/**
 	 * @brief Generates new setpoints for jerk, acceleration, velocity and position
-	 * to reach the given waypoint smoothly from current position.
+	 * to reach the given waypoint triplet smoothly from current position
 	 *
 	 * @param position Current position of the vehicle
 	 * @param waypoints 0: Past waypoint, 1: target, 2: Target after next target
@@ -77,14 +77,44 @@ public:
 	 * @param force_zero_velocity_setpoint Force vehicle to stop. Generate trajectory that ends with still vehicle.
 	 * @param out_setpoints Output of the generated setpoints
 	 */
-	void generateSetpoints(
+	inline void generateSetpoints(
 		const Vector3f &position,
 		const Vector3f(&waypoints)[3],
 		const Vector3f &feedforward_velocity,
 		float delta_time,
 		bool force_zero_velocity_setpoint,
 		PositionSmoothingSetpoints &out_setpoints
-	);
+	)
+	{
+		_generateSetpoints(position, waypoints, false, feedforward_velocity, delta_time, force_zero_velocity_setpoint,
+				   out_setpoints);
+	}
+
+	/**
+	 * @brief Generates new setpoints for jerk, acceleration, velocity and position
+	 * to reach the given waypoint smoothly from current position.
+	 *
+	 * @param position Current position of the vehicle
+	 * @param waypoint desired waypoint
+	 * @param feedforward_velocity FF velocity
+	 * @param delta_time Time since last invocation of the function
+	 * @param force_zero_velocity_setpoint Force vehicle to stop. Generate trajectory that ends with still vehicle.
+	 * @param out_setpoints Output of the generated setpoints
+	 */
+	inline void generateSetpoints(
+		const Vector3f &position,
+		const Vector3f &waypoint,
+		const Vector3f &feedforward_velocity,
+		float delta_time,
+		bool force_zero_velocity_setpoint,
+		PositionSmoothingSetpoints &out_setpoints
+	)
+	{
+		Vector3f waypoints[3] = {waypoint, waypoint, waypoint};
+		_generateSetpoints(position, waypoints, true, feedforward_velocity, delta_time, force_zero_velocity_setpoint,
+				   out_setpoints);
+	}
+
 
 	/**
 	 * @brief Reset internal state to the given values
@@ -394,7 +424,19 @@ private:
 
 	/* Internal functions */
 	bool _isTurning(const Vector3f &target) const;
+
+	void _generateSetpoints(
+		const Vector3f &position,
+		const Vector3f(&waypoints)[3],
+		bool is_single_waypoint,
+		const Vector3f &feedforward_velocity,
+		float delta_time,
+		bool force_zero_velocity_setpoint,
+		PositionSmoothingSetpoints &out_setpoints
+	);
+
 	const Vector3f _generateVelocitySetpoint(const Vector3f &position, const Vector3f(&waypoints)[3],
+			bool is_single_waypoint,
 			const Vector3f &feedforward_velocity_setpoint);
 	const Vector2f _getL1Point(const Vector3f &position, const Vector3f(&waypoints)[3]) const;
 	const Vector3f _getCrossingPoint(const Vector3f &position, const Vector3f(&waypoints)[3]) const;
