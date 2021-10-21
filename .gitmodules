@@ -1,7 +1,7 @@
 [submodule "dsdl"]
 	path = dsdl
-	url = https://github.com/UAVCAN/dsdl
-	branch = legacy-v0
+	url = https://github.com/dronecan/DSDL
+	branch = main
 [submodule "libuavcan/dsdl_compiler/pyuavcan"]
 	path = libuavcan/dsdl_compiler/pyuavcan
-	url = https://github.com/UAVCAN/pyuavcan
+	url = https://github.com/dronecan/pydronecan
