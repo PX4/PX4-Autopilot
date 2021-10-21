@@ -122,7 +122,8 @@ private:
 
 	systemlib::Hysteresis _stick_arm_hysteresis{false};
 	systemlib::Hysteresis _stick_disarm_hysteresis{false};
-	systemlib::Hysteresis _button_hysteresis{false};
+	systemlib::Hysteresis _stick_kill_hysteresis{false};
+	systemlib::Hysteresis _button_arm_hysteresis{false};
 
 	MovingDiff _roll_diff{};
 	MovingDiff _pitch_diff{};
@@ -146,6 +147,7 @@ private:
 		(ParamFloat<px4::params::COM_RC_LOSS_T>) _param_com_rc_loss_t,
 		(ParamFloat<px4::params::COM_RC_STICK_OV>) _param_com_rc_stick_ov,
 		(ParamBool<px4::params::MAN_ARM_GESTURE>) _param_man_arm_gesture,
+		(ParamFloat<px4::params::MAN_KILL_GEST_T>) _param_man_kill_gest_t,
 		(ParamInt<px4::params::COM_RC_ARM_HYST>) _param_com_rc_arm_hyst,
 		(ParamBool<px4::params::COM_ARM_SWISBTN>) _param_com_arm_swisbtn,
 		(ParamInt<px4::params::COM_FLTMODE1>) _param_fltmode_1,
