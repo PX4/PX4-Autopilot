@@ -157,6 +157,13 @@ private:
 
 	float _param_airspeed_scale[MAX_NUM_AIRSPEED_SENSORS] {}; /** array to save the airspeed scale params in */
 
+	enum CheckTypeBits {
+		CHECK_TYPE_ONLY_DATA_MISSING_BIT = (1 << 0),
+		CHECK_TYPE_DATA_STUCK_BIT = (1 << 1),
+		CHECK_TYPE_INNOVATION_BIT = (1 << 2),
+		CHECK_TYPE_LOAD_FACTOR_BIT = (1 << 3)
+	};
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::ASPD_W_P_NOISE>) _param_west_w_p_noise,
 		(ParamFloat<px4::params::ASPD_SC_P_NOISE>) _param_west_sc_p_noise,
@@ -460,6 +467,13 @@ void AirspeedModule::update_params()
 		_airspeed_validator[i].set_checks_fail_delay(_checks_fail_delay.get());
 		_airspeed_validator[i].set_checks_clear_delay(_checks_clear_delay.get());
 		_airspeed_validator[i].set_airspeed_stall(_param_fw_airspd_stall.get());
+
+		_airspeed_validator[i].set_enable_data_stuck_check(_param_airspeed_checks_on.get() &
+				CheckTypeBits::CHECK_TYPE_DATA_STUCK_BIT);
+		_airspeed_validator[i].set_enable_innovation_check(_param_airspeed_checks_on.get() &
+				CheckTypeBits::CHECK_TYPE_INNOVATION_BIT);
+		_airspeed_validator[i].set_enable_load_factor_check(_param_airspeed_checks_on.get() &
+				CheckTypeBits::CHECK_TYPE_LOAD_FACTOR_BIT);
 	}
 }
 
