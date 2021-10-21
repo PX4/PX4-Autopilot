@@ -37,4 +37,3 @@ px4_add_module(
 		protocol_splitter.cpp
 	DEPENDS
 	)
-

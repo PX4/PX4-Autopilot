@@ -1,0 +1,5 @@
+menuconfig DRIVERS_IMU_ANALOG_DEVICES_ADIS16470
+	bool "ADIS16470"
+	default n
+	---help---
+		Enable support for analog_devices ADIS16470

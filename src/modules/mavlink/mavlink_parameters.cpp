@@ -120,15 +120,11 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				param_t param = param_find_no_notification(name);
 
 				if (param == PARAM_INVALID) {
-					char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
-					sprintf(buf, "[pm] unknown param: %s", name);
-					_mavlink->send_statustext_info(buf);
+					PX4_ERR("unknown param: %s", name);
 
 				} else if (!((param_type(param) == PARAM_TYPE_INT32 && set.param_type == MAV_PARAM_TYPE_INT32) ||
 					     (param_type(param) == PARAM_TYPE_FLOAT && set.param_type == MAV_PARAM_TYPE_REAL32))) {
-					char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
-					sprintf(buf, "[pm] param types mismatch param: %s", name);
-					_mavlink->send_statustext_info(buf);
+					PX4_ERR("param types mismatch param: %s", name);
 
 				} else {
 					// According to the mavlink spec we should always acknowledge a write operation.
@@ -204,14 +200,10 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					int ret = send_param(param_for_used_index(req_read.param_index));
 
 					if (ret == 1) {
-						char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
-						sprintf(buf, "[pm] unknown param ID: %u", req_read.param_index);
-						_mavlink->send_statustext_info(buf);
+						PX4_ERR("unknown param ID: %i", req_read.param_index);
 
 					} else if (ret == 2) {
-						char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
-						sprintf(buf, "[pm] failed loading param from storage ID: %u", req_read.param_index);
-						_mavlink->send_statustext_info(buf);
+						PX4_ERR("failed loading param from storage ID: %i", req_read.param_index);
 					}
 				}
 			}
@@ -248,7 +240,9 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				size_t i = map_rc.parameter_rc_channel_index;
 
 				if (i >= sizeof(_rc_param_map.param_index) / sizeof(_rc_param_map.param_index[0])) {
-					mavlink_log_warning(_mavlink->get_mavlink_log_pub(), "parameter_rc_channel_index out of bounds");
+					mavlink_log_warning(_mavlink->get_mavlink_log_pub(), "parameter_rc_channel_index out of bounds\t");
+					events::send(events::ID("mavlink_param_rc_chan_out_of_bounds"), events::Log::Warning,
+						     "parameter_rc_channel_index out of bounds");
 					break;
 				}
 
@@ -381,8 +375,6 @@ MavlinkParametersManager::send_untransmitted()
 			// space in the TX buffer
 			if ((param != PARAM_INVALID) && param_value_unsaved(param)) {
 				int ret = send_param(param);
-				char buf[100];
-				strncpy(&buf[0], param_name(param), MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
 				sent_one = true;
 
 				if (ret != PX4_OK) {

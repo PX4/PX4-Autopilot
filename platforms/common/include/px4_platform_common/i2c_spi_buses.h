@@ -93,12 +93,14 @@ class I2CSPIInstance : public ListNode<I2CSPIInstance *>
 {
 public:
 	virtual ~I2CSPIInstance() = default;
+	virtual int8_t  get_i2c_address() {return _i2c_address;}
 
 private:
 	I2CSPIInstance(const I2CSPIDriverConfig &config)
 		: _module_name(config.module_name), _bus_option(config.bus_option), _bus(config.bus),
 		  _devid_driver_index(config.devid_driver_index), _bus_device_index(config.bus_device_index),
 		  _i2c_address(config.i2c_address) {}
+
 
 	friend class BusInstanceIterator;
 	friend class I2CSPIDriverBase;

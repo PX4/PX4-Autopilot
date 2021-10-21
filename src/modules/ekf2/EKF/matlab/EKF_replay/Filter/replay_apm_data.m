@@ -14,7 +14,7 @@ load '../TestData/APM/mag_data.mat';
 if exist('../TestData/APM/rng_data.mat','file') && exist('../TestData/APM/flow_data.mat','file')
     load '../TestData/APM/rng_data.mat';
     load '../TestData/APM/flow_data.mat';
-else 
+else
     rng_data = [];
     flow_data = [];
 end
@@ -29,7 +29,7 @@ end
 % load default parameters
 run('SetParameters.m');
 
-% run the filter replay 
+% run the filter replay
 output = RunFilter(param,imu_data,mag_data,baro_data,gps_data,rng_data,flow_data,viso_data);
 
 % generate and save output plots

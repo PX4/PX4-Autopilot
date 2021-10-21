@@ -159,8 +159,12 @@
 #define PIN_CAN0_TX      PIN_CAN0_TX_4      /* PTE5 */
 #define PIN_CAN0_RX      PIN_CAN0_RX_4      /* PTE4 */
 #define PIN_CAN0_STB     (GPIO_OUTPUT | PIN_PORTE | PIN11 )
+#define PIN_CAN0_ERRN    (GPIO_INPUT  | PIN_PORTA | PIN11 )
+#define PIN_CAN0_EN      (GPIO_HIGHDRIVE  | PIN_PORTA | PIN10 )
 #define PIN_CAN1_TX      PIN_CAN1_TX_1      /* PTA13 */
 #define PIN_CAN1_RX      PIN_CAN1_RX_1      /* PTA12 */
 #define PIN_CAN1_STB     (GPIO_OUTPUT | PIN_PORTE | PIN10 )
+#define PIN_CAN1_ERRN    (GPIO_PULLDOWN  | PIN_PORTE | PIN6 )
+#define PIN_CAN1_EN      (GPIO_OUTPUT  | PIN_PORTE | PIN2 )
 
 #endif  /* __BOARDS_ARM_RDDRONE_UAVCAN146_INCLUDE_BOARD_H */

@@ -149,14 +149,14 @@ static int io_timer_handler7(int irq, void *context, void *arg);
 /* The transfer is done to 4 registers starting from TIMx_CR1 + TIMx_DCR.DBA  */
 #define TIM_DMABURSTLENGTH_4TRANSFERS	0x00000300U
 
-//												 				  NotUsed   PWMOut  PWMIn Capture OneShot Trigger Dshot
-io_timer_channel_allocation_t channel_allocations[IOTimerChanModeSize] = { UINT16_MAX,   0,  0,  0, 0, 0, 0 };
+//												 				  NotUsed   PWMOut  PWMIn Capture OneShot Trigger Dshot LED Other
+io_timer_channel_allocation_t channel_allocations[IOTimerChanModeSize] = { UINT16_MAX,   0,  0,  0, 0, 0, 0, 0, 0 };
 
 typedef uint8_t io_timer_allocation_t; /* big enough to hold MAX_IO_TIMERS */
 
-static io_timer_allocation_t once = 0;
+io_timer_channel_allocation_t timer_allocations[MAX_IO_TIMERS] = { };
 
-#if defined(BOARD_HAS_CAPTURE)
+#if !defined(BOARD_HAS_NO_CAPTURE)
 
 /* Stats and handlers are only useful for Capture */
 
@@ -171,12 +171,12 @@ static struct channel_handler_entry {
 	channel_handler_t callback;
 	void			  *context;
 } channel_handlers[MAX_TIMER_IO_CHANNELS];
-#endif // defined(BOARD_HAS_CAPTURE)
+#endif // !defined(BOARD_HAS_NO_CAPTURE)
 
 
 static int io_timer_handler(uint16_t timer_index)
 {
-#if defined(BOARD_HAS_CAPTURE)
+#if !defined(BOARD_HAS_NO_CAPTURE)
 	/* Read the count at the time of the interrupt */
 
 	uint16_t count = rCNT(timer_index);
@@ -231,7 +231,7 @@ static int io_timer_handler(uint16_t timer_index)
 	/* Clear all the SR bits for interrupt enabled channels only */
 
 	rSR(timer_index) = ~(statusr & (enabled | enabled << 8));
-#endif // defined(BOARD_HAS_CAPTURE)
+#endif // !defined(BOARD_HAS_NO_CAPTURE)
 	return 0;
 }
 
@@ -280,25 +280,34 @@ static inline int validate_timer_index(unsigned timer)
 	return (timer < MAX_IO_TIMERS && io_timers[timer].base != 0) ? 0 : -EINVAL;
 }
 
-static inline int is_timer_uninitalized(unsigned timer)
+int io_timer_allocate_timer(unsigned timer, io_timer_channel_mode_t mode)
 {
-	int rv = 0;
+	int ret = -EINVAL;
 
-	if (once & 1 << timer) {
-		rv = -EBUSY;
+	if (validate_timer_index(timer) == 0) {
+		// check if timer is unused or already set to the mode we want
+		if (timer_allocations[timer] == IOTimerChanMode_NotUsed || timer_allocations[timer] == mode) {
+			timer_allocations[timer] = mode;
+			ret = 0;
+
+		} else {
+			ret = -EBUSY;
+		}
 	}
 
-	return rv;
+	return ret;
 }
 
-static inline void set_timer_initalized(unsigned timer)
+int io_timer_unallocate_timer(unsigned timer)
 {
-	once |= 1 << timer;
-}
+	int ret = -EINVAL;
 
-static inline void set_timer_deinitalized(unsigned timer)
-{
-	once &= ~(1 << timer);
+	if (validate_timer_index(timer) == 0) {
+		timer_allocations[timer] = IOTimerChanMode_NotUsed;
+		ret = 0;
+	}
+
+	return ret;
 }
 
 static inline int channels_timer(unsigned channel)
@@ -332,24 +341,6 @@ static uint32_t get_timer_channels(unsigned timer)
 	}
 
 	return channels_cache[timer];
-}
-
-static inline int is_channels_timer_uninitalized(unsigned channel)
-{
-	return is_timer_uninitalized(channels_timer(channel));
-}
-
-int io_timer_is_channel_free(unsigned channel)
-{
-	int rv = io_timer_validate_channel_index(channel);
-
-	if (rv == 0) {
-		if (0 == (channel_allocations[IOTimerChanMode_NotUsed] & (1 << channel))) {
-			rv = -EBUSY;
-		}
-	}
-
-	return rv;
 }
 
 int io_timer_validate_channel_index(unsigned channel)
@@ -444,21 +435,26 @@ static int reallocate_channel_resources(uint32_t channels, io_timer_channel_mode
 	return before ^ channels;
 }
 
-static inline int allocate_channel_resource(unsigned channel, io_timer_channel_mode_t mode)
+__EXPORT int io_timer_allocate_channel(unsigned channel, io_timer_channel_mode_t mode)
 {
-	int rv = io_timer_is_channel_free(channel);
+	irqstate_t flags = px4_enter_critical_section();
+	int existing_mode = io_timer_get_channel_mode(channel);
+	int ret = -EBUSY;
 
-	if (rv == 0) {
+	if (existing_mode <= IOTimerChanMode_NotUsed || existing_mode == mode) {
 		io_timer_channel_allocation_t bit = 1 << channel;
 		channel_allocations[IOTimerChanMode_NotUsed] &= ~bit;
 		channel_allocations[mode] |= bit;
+		ret = 0;
 	}
 
-	return rv;
+	px4_leave_critical_section(flags);
+
+	return ret;
 }
 
 
-static inline int free_channel_resource(unsigned channel)
+int io_timer_unallocate_channel(unsigned channel)
 {
 	int mode = io_timer_get_channel_mode(channel);
 
@@ -471,24 +467,6 @@ static inline int free_channel_resource(unsigned channel)
 	return mode;
 }
 
-int io_timer_free_channel(unsigned channel)
-{
-	if (io_timer_validate_channel_index(channel) != 0) {
-		return -EINVAL;
-	}
-
-	int mode = io_timer_get_channel_mode(channel);
-
-	if (mode > IOTimerChanMode_NotUsed) {
-		io_timer_set_enable(false, mode, 1 << channel);
-		free_channel_resource(channel);
-
-	}
-
-	return 0;
-}
-
-
 static int allocate_channel(unsigned channel, io_timer_channel_mode_t mode)
 {
 	int rv = -EINVAL;
@@ -497,7 +475,7 @@ static int allocate_channel(unsigned channel, io_timer_channel_mode_t mode)
 		rv = io_timer_validate_channel_index(channel);
 
 		if (rv == 0) {
-			rv = allocate_channel_resource(channel, mode);
+			rv = io_timer_allocate_channel(channel, mode);
 		}
 	}
 
@@ -601,9 +579,9 @@ static inline void io_timer_set_PWM_mode(unsigned timer)
 	rPSC(timer) = (io_timers[timer].clock_freq / BOARD_PWM_FREQ) - 1;
 }
 
-void io_timer_trigger(void)
+void io_timer_trigger(unsigned channels_mask)
 {
-	int oneshots = io_timer_get_mode_channels(IOTimerChanMode_OneShot);
+	int oneshots = io_timer_get_mode_channels(IOTimerChanMode_OneShot) & channels_mask;
 
 	if (oneshots != 0) {
 		uint32_t action_cache[MAX_IO_TIMERS] = {0};
@@ -633,17 +611,19 @@ void io_timer_trigger(void)
 	}
 }
 
-int io_timer_init_timer(unsigned timer)
+int io_timer_init_timer(unsigned timer, io_timer_channel_mode_t mode)
 {
+	if (validate_timer_index(timer) != 0) {
+		return -EINVAL;
+	}
+
+	io_timer_channel_mode_t previous_mode = timer_allocations[timer];
+	int rv = io_timer_allocate_timer(timer, mode);
+
 	/* Do this only once per timer */
-
-	int rv = is_timer_uninitalized(timer);
-
-	if (rv == 0) {
+	if (rv == 0 && previous_mode == IOTimerChanMode_NotUsed) {
 
 		irqstate_t flags = px4_enter_critical_section();
-
-		set_timer_initalized(timer);
 
 		/* enable the timer clock before we try to talk to it */
 
@@ -721,70 +701,53 @@ int io_timer_init_timer(unsigned timer)
 }
 
 
-int io_timer_set_rate(unsigned timer, unsigned rate)
+int io_timer_set_pwm_rate(unsigned timer, unsigned rate)
 {
-	int rv = EBUSY;
-
-	/* Get the channel bits that belong to the timer */
-
-	uint32_t channels = get_timer_channels(timer);
-
-	/* Check that all channels are either in PWM, Oneshot or Dshot*/
-
-	if ((channels & (channel_allocations[IOTimerChanMode_Dshot] |
-			 channel_allocations[IOTimerChanMode_PWMOut] |
-			 channel_allocations[IOTimerChanMode_OneShot] |
-			 channel_allocations[IOTimerChanMode_NotUsed])) ==
-	    channels) {
-
-		/* Change only a timer that is owned by pwm or one shot */
-
-		/* Request to use OneShot ?*/
-
-		if (PWM_RATE_ONESHOT == rate) {
-
-			/* Request to use OneShot
-			 *
-			 * We are here because ALL these channels were either PWM or Dshot
-			 * Now they need to be Oneshot
-			 */
-
-			int changePWMOut = reallocate_channel_resources(channels, IOTimerChanMode_PWMOut, IOTimerChanMode_OneShot);
-			int changeDshot = reallocate_channel_resources(channels, IOTimerChanMode_Dshot, IOTimerChanMode_OneShot);
-			int changedChannels = changePWMOut | changeDshot;
-
-			/* Did the allocation change */
-			if (changedChannels) {
-				io_timer_set_oneshot_mode(timer);
-			}
-
-		} else {
-
-			/* Request to use PWM
-			 *
-			 * We are here because  ALL these channels were either Oneshot or Dshot
-			 * Now they need to be PWM
-			 */
-
-			int changeOneShot = reallocate_channel_resources(channels, IOTimerChanMode_OneShot, IOTimerChanMode_PWMOut);
-			int changeDshot = reallocate_channel_resources(channels, IOTimerChanMode_Dshot, IOTimerChanMode_PWMOut);
-
-			if (changeOneShot || changeDshot) {
-				io_timer_set_PWM_mode(timer);
-			}
-
-			timer_set_rate(timer, rate);
-		}
-
-		rv = OK;
+	/* Change only a timer that is owned by pwm or one shot */
+	if (timer_allocations[timer] != IOTimerChanMode_PWMOut && timer_allocations[timer] != IOTimerChanMode_OneShot) {
+		return -EINVAL;
 	}
 
-	return rv;
+	/* Get the channel bits that belong to the timer and are in PWM or OneShot mode */
+
+	uint32_t channels = get_timer_channels(timer) & (io_timer_get_mode_channels(IOTimerChanMode_OneShot) |
+			    io_timer_get_mode_channels(IOTimerChanMode_PWMOut));
+
+	/* Request to use OneShot ?*/
+
+	if (PWM_RATE_ONESHOT == rate) {
+
+		/* Request to use OneShot
+		 */
+		int changed_channels = reallocate_channel_resources(channels, IOTimerChanMode_PWMOut, IOTimerChanMode_OneShot);
+
+		/* Did the allocation change */
+		if (changed_channels) {
+			io_timer_set_oneshot_mode(timer);
+		}
+
+	} else {
+
+		/* Request to use PWM
+		 */
+		int changed_channels = reallocate_channel_resources(channels, IOTimerChanMode_OneShot, IOTimerChanMode_PWMOut);
+
+		if (changed_channels) {
+			io_timer_set_PWM_mode(timer);
+		}
+
+		timer_set_rate(timer, rate);
+	}
+
+	return OK;
 }
 
 int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 			  channel_handler_t channel_handler, void *context)
 {
+	if (io_timer_validate_channel_index(channel) != 0) {
+		return -EINVAL;
+	}
 
 	uint32_t gpio = 0;
 	uint32_t clearbits = CCMR_C1_RESET;
@@ -810,7 +773,7 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 		gpio = timer_io_channels[channel].gpio_in;
 		break;
 
-#if defined(BOARD_HAS_CAPTURE)
+#if !defined(BOARD_HAS_NO_CAPTURE)
 
 	case IOTimerChanMode_Capture:
 		setbits = CCMR_C1_CAPTURE_INIT;
@@ -826,26 +789,31 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 		return -EINVAL;
 	}
 
+	irqstate_t flags = px4_enter_critical_section(); // atomic channel allocation and hw config
+
+	int previous_mode = io_timer_get_channel_mode(channel);
 	int rv = allocate_channel(channel, mode);
+	unsigned timer = channels_timer(channel);
+
+	if (rv == 0) {
+		/* Try to reserve & initialize the timer - it will only do it once */
+
+		rv = io_timer_init_timer(timer, mode);
+
+		if (rv != 0 && previous_mode == IOTimerChanMode_NotUsed) {
+			/* free the channel if it was not used before */
+			io_timer_unallocate_channel(channel);
+		}
+	}
 
 	/* Valid channel should now be reserved in new mode */
 
-	if (rv >= 0) {
-
-		/* Blindly try to initialize the timer - it will only do it once */
-
-		io_timer_init_timer(channels_timer(channel));
-
-		irqstate_t flags = px4_enter_critical_section();
+	if (rv == 0) {
 
 		/* Set up IO */
 		if (gpio) {
 			px4_arch_configgpio(gpio);
 		}
-
-
-		unsigned timer = channels_timer(channel);
-
 
 		/* configure the channel */
 
@@ -883,15 +851,16 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 		rvalue |=  setbits;
 		rCCER(timer) = rvalue;
 
-#if !defined(BOARD_HAS_CAPTURE)
+#if defined(BOARD_HAS_NO_CAPTURE)
 		UNUSED(dier_setbits);
 #else
 		channel_handlers[channel].callback = channel_handler;
 		channel_handlers[channel].context = context;
 		rDIER(timer) |= dier_setbits << shifts;
 #endif
-		px4_leave_critical_section(flags);
 	}
+
+	px4_leave_critical_section(flags);
 
 	return rv;
 }

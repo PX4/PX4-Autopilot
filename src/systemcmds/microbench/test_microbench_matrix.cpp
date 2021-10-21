@@ -170,8 +170,8 @@ bool MicroBenchMatrix::time_matrix_dcm()
 
 bool MicroBenchMatrix::time_matrix_pseduo_inverse()
 {
-	PERF("matrix 6x16 pseudo inverse (all non-zero columns)", A16 = matrix::geninv(B16), 100);
-	PERF("matrix 6x16 pseudo inverse (4 non-zero columns)", A16 = matrix::geninv(B16_4), 100);
+	PERF("matrix 6x16 pseudo inverse (all non-zero columns)", matrix::geninv(B16, A16), 100);
+	PERF("matrix 6x16 pseudo inverse (4 non-zero columns)", matrix::geninv(B16_4, A16), 100);
 	return true;
 }
 

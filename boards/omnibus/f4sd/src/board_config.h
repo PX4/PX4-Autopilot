@@ -119,10 +119,6 @@
  * Alternatively CH3/CH4 could be assigned to UART6_TX/RX
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS      4
-#define DIRECT_INPUT_TIMER_CHANNELS  4
-
-// Has pwm outputs
-#define BOARD_HAS_PWM    DIRECT_PWM_OUTPUT_CHANNELS
 
 /* High-resolution timer */
 #define HRT_TIMER                    4 // T4C1
@@ -147,7 +143,6 @@
 //#define SPEKTRUM_RX_AS_UART()         px4_arch_configgpio(GPIO_USART1_RX)
 //#define SPEKTRUM_OUT(_one_true)       px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
 
-#define BOARD_HAS_PWM    DIRECT_PWM_OUTPUT_CHANNELS
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
@@ -157,7 +152,7 @@
 #define BOARD_ENABLE_CONSOLE_BUFFER
 #define BOARD_CONSOLE_BUFFER_SIZE (1024*3)
 
-#define BOARD_DSHOT_MOTOR_ASSIGNMENT {2, 3, 1, 0};
+#define BOARD_DSHOT_MOTOR_ASSIGNMENT {0, 1, 3, 2};
 
 __BEGIN_DECLS
 

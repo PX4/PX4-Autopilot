@@ -47,6 +47,9 @@ if(NOT "${PX4_BOARD_LABEL}" MATCHES  "canbootloader")
 	set(HW_MINOR ${uavcanblid_hw_version_minor})
 	set(SW_MAJOR ${uavcanblid_sw_version_major})
 	set(SW_MINOR ${uavcanblid_sw_version_minor})
+	if("${uavcanbl_padding}" STREQUAL "")
+		set(uavcanbl_padding 4)
+	endif()
 
 	math(EXPR HWBOARD_ID "(${HW_MAJOR} << 8) + ${HW_MINOR}")
 
@@ -68,7 +71,7 @@ if(NOT "${PX4_BOARD_LABEL}" MATCHES  "canbootloader")
 			${PX4_BINARY_DIR}/${uavcan_bl_image_name}
 			${PX4_BINARY_DIR}/deploy/${HWBOARD_ID}.bin
 		COMMAND
-			${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/make_can_boot_descriptor.py -v --use-git-hash ${PX4_BOARD}.bin ${uavcan_bl_image_name}
+			${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/make_can_boot_descriptor.py -v --padding ${uavcanbl_padding} --use-git-hash ${PX4_BOARD}.bin ${uavcan_bl_image_name}
 		COMMAND
 			 COMMAND ${CMAKE_COMMAND} -E make_directory deploy
 		COMMAND

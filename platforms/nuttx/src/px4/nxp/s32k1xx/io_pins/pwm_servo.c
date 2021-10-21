@@ -72,34 +72,44 @@ servo_position_t up_pwm_servo_get(unsigned channel)
 int up_pwm_servo_init(uint32_t channel_mask)
 {
 	/* Init channels */
-	uint32_t current = io_timer_get_mode_channels(IOTimerChanMode_PWMOut);
+	uint32_t current = io_timer_get_mode_channels(IOTimerChanMode_PWMOut) |
+			   io_timer_get_mode_channels(IOTimerChanMode_OneShot);
 
 	// First free the current set of PWMs
 
 	for (unsigned channel = 0; current != 0 &&  channel < MAX_TIMER_IO_CHANNELS; channel++) {
 		if (current & (1 << channel)) {
-			io_timer_free_channel(channel);
+			io_timer_set_enable(false, IOTimerChanMode_PWMOut, 1 << channel);
+			io_timer_unallocate_channel(channel);
 			current &= ~(1 << channel);
 		}
 	}
 
-	// Now allocate the new set
+
+	/* Now allocate the new set */
+
+	int ret_val = OK;
+	int channels_init_mask = 0;
 
 	for (unsigned channel = 0; channel_mask != 0 &&  channel < MAX_TIMER_IO_CHANNELS; channel++) {
 		if (channel_mask & (1 << channel)) {
 
-			// First free any that were not PWM mode before
+			/* OneShot is set later, with the set_rate_group_update call. Init to PWM mode for now */
 
-			if (-EBUSY == io_timer_is_channel_free(channel)) {
-				io_timer_free_channel(channel);
-			}
-
-			io_timer_channel_init(channel, IOTimerChanMode_PWMOut, NULL, NULL);
+			ret_val = io_timer_channel_init(channel, IOTimerChanMode_PWMOut, NULL, NULL);
 			channel_mask &= ~(1 << channel);
+
+			if (OK == ret_val) {
+				channels_init_mask |= 1 << channel;
+
+			} else if (ret_val == -EBUSY) {
+				/* either timer or channel already used - this is not fatal */
+				ret_val = 0;
+			}
 		}
 	}
 
-	return OK;
+	return ret_val == OK ? channels_init_mask : ret_val;
 }
 
 void up_pwm_servo_deinit(uint32_t channel_mask)
@@ -129,26 +139,20 @@ int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 		}
 	}
 
-	return io_timer_set_rate(group, rate);
+	return io_timer_set_pwm_rate(group, rate);
 }
 
-void up_pwm_update(void)
+void up_pwm_update(unsigned channel_mask)
 {
-	io_timer_trigger();
-}
-
-int up_pwm_servo_set_rate(unsigned rate)
-{
-	for (unsigned i = 0; i < MAX_IO_TIMERS; i++) {
-		up_pwm_servo_set_rate_group_update(i, rate);
-	}
-
-	return 0;
+	io_timer_trigger(channel_mask);
 }
 
 uint32_t up_pwm_servo_get_rate_group(unsigned group)
 {
-	return io_timer_get_group(group);
+	/* only return the set of channels in the group which we own */
+	return (io_timer_get_mode_channels(IOTimerChanMode_PWMOut) |
+		io_timer_get_mode_channels(IOTimerChanMode_OneShot)) &
+	       io_timer_get_group(group);
 }
 
 void

@@ -37,6 +37,3 @@ px4_add_library(FlightTaskAutoLineSmoothVel
 
 target_link_libraries(FlightTaskAutoLineSmoothVel PUBLIC FlightTaskAutoMapper FlightTaskUtility)
 target_include_directories(FlightTaskAutoLineSmoothVel PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-
-
-px4_add_unit_gtest(SRC TrajectoryConstraintsTest.cpp)

@@ -37,6 +37,8 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		linux_pwm_out.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		output_limit
 	)

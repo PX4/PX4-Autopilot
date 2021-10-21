@@ -1,0 +1,110 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+menuconfig DRIVERS_UAVCAN_V1
+	bool "UAVCANv1"
+	default n
+	---help---
+		Enable support for UAVCANv1
+
+if DRIVERS_UAVCAN_V1
+    choice
+        prompt "UAVCANv1 Mode"
+
+    config UAVCAN_V1_FMU
+        bool "Server (FMU)"
+
+    config UAVCAN_V1_CLIENT
+        bool "Client (Peripheral)"
+
+    endchoice
+
+    config UAVCAN_V1_NODE_MANAGER
+        bool "Node manager"
+        default y
+        depends on UAVCAN_V1_FMU
+        help
+            Implement UAVCAN v1 PNP server functionality and manages discovered nodes
+
+    config UAVCAN_V1_NODE_CLIENT
+        bool "Node client"
+        default y
+        depends on UAVCAN_V1_CLIENT
+        help
+            Implement UAVCAN v1 PNP client functionality
+
+    config UAVCAN_V1_APP_DESCRIPTOR
+        bool "UAVCAN v0 bootloader app descriptor"
+        default n
+        depends on UAVCAN_V1_CLIENT && DRIVERS_BOOTLOADERS
+        help
+            When the board uses the UAVCANv0 bootloader functionality you need a AppImageDescriptor defined
+
+
+    menu "Publisher support"
+
+        config UAVCAN_V1_GNSS_PUBLISHER
+            bool "GNSS Publisher"
+            default n
+
+        config UAVCAN_V1_ESC_CONTROLLER
+            bool "ESC Controller"
+            default n
+
+        config UAVCAN_V1_READINESS_PUBLISHER
+            bool "Readiness Publisher"
+            default n
+
+        config UAVCAN_V1_UORB_ACTUATOR_OUTPUTS_PUBLISHER
+            bool "uORB actuator_outputs publisher"
+            default n
+
+        config UAVCAN_V1_UORB_SENSOR_GPS_PUBLISHER
+            bool "uORB sensor_gps publisher"
+            default n
+
+    endmenu
+
+    menu "Subscriber support"
+
+        config UAVCAN_V1_ESC_SUBSCRIBER
+            bool "ESC Subscriber"
+            default n
+
+        config UAVCAN_V1_GNSS_SUBSCRIBER_0
+            bool "GNSS Subscriber 0 "
+            default n
+
+        config UAVCAN_V1_GNSS_SUBSCRIBER_1
+            bool "GNSS Subscriber 1"
+            default n
+
+        config UAVCAN_V1_BMS_SUBSCRIBER
+            bool "BMS Subscriber"
+            default n
+
+        config UAVCAN_V1_UORB_SENSOR_GPS_SUBSCRIBER
+            bool "uORB sensor_gps Subscriber"
+            default n
+    endmenu
+
+    menu "Advertised Services"
+        config UAVCAN_V1_GETINFO_RESPONDER
+            bool "GetInfo1.0 responder"
+            default y
+            help
+                Responds to uavcan.node.GetInfo.1.0 request sending over node information
+                See https://github.com/UAVCAN/public_regulated_data_types/blob/master/uavcan/node/430.GetInfo.1.0.uavcan for full response
+
+        config UAVCAN_V1_EXECUTECOMMAND_RESPONDER
+            bool "ExecuteCommand1.0 responder"
+            default n
+            help
+                To be implemented
+    endmenu
+
+    menu "Service invokers"
+    endmenu
+
+endif #DRIVERS_UAVCAN_V1

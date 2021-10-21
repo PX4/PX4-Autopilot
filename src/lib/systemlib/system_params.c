@@ -84,22 +84,6 @@ PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
 PARAM_DEFINE_INT32(SYS_HITL, 0);
 
 /**
- * Set restart type
- *
- * Set by px4io to indicate type of restart
- *
- * @min 0
- * @max 2
- * @value 0 Data survives resets
- * @value 1 Data survives in-flight resets only
- * @value 2 Data does not survive reset
- * @category system
- * @volatile
- * @group System
- */
-PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);
-
-/**
  * Set multicopter estimator group
  *
  * Set the group of estimators used for multicopters and VTOLs
@@ -192,6 +176,20 @@ PARAM_DEFINE_INT32(SYS_CAL_TMIN, 5);
 PARAM_DEFINE_INT32(SYS_CAL_TMAX, 10);
 
 /**
+ * Control if the vehicle has a GPS
+ *
+ * Disable this if the system has no GPS.
+ * If disabled, the sensors hub will not process sensor_gps,
+ * and GPS will not be available for the rest of the system.
+ *
+ * @boolean
+ * @reboot_required true
+ *
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_HAS_GPS, 1);
+
+/**
  * Control if the vehicle has a magnetometer
  *
  * Disable this if the board has no magnetometer, such as the Omnibus F4 SD.
@@ -267,3 +265,19 @@ PARAM_DEFINE_INT32(SYS_BL_UPDATE, 0);
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_FAILURE_EN, 0);
+
+
+/**
+ * Enable Dynamic Control Allocation
+ *
+ * If disabled, the existing mixing implementation is used.
+ * If enabled, dynamic control allocation with runtime configuration of the
+ * mixing and output functions is used.
+ *
+ * Note: this is work-in-progress and not all vehicle types are supported yet.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_CTRL_ALLOC, 0);

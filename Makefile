@@ -213,8 +213,8 @@ define colorecho
 +@echo -e '${COLOR_BLUE}${1} ${NO_COLOR}'
 endef
 
-# Get a list of all config targets boards/*/*.cmake
-ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 -name '*.cmake' -print | sed -e 's|boards\/||' | sed -e 's|\.cmake||' | sed -e 's|\/|_|g' | sort)
+# Get a list of all config targets boards/*/*.px4board
+ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 -name '*.px4board' -print | sed -e 's|boards\/||' | sed -e 's|\.px4board||' | sed -e 's|\/|_|g' | sort)
 
 # ADD CONFIGS HERE
 # --------------------------------------------------------------------
@@ -231,6 +231,9 @@ $(CONFIG_TARGETS_DEFAULT):
 
 all_config_targets: $(ALL_CONFIG_TARGETS)
 all_default_targets: $(CONFIG_TARGETS_DEFAULT)
+
+updateconfig:
+	@./Tools/kconfig/updateconfig.py
 
 # board reorganization deprecation warnings (2018-11-22)
 define deprecation_warning
@@ -461,7 +464,7 @@ shellcheck_all:
 	@make px4_fmu-v5_default shellcheck
 
 validate_module_configs:
-	@find "$(SRC_DIR)"/src/modules "$(SRC_DIR)"/src/drivers "$(SRC_DIR)"/src/lib -name *.yaml -type f -print0 | xargs -0 "$(SRC_DIR)"/Tools/validate_yaml.py --schema-file "$(SRC_DIR)"/validation/module_schema.yaml
+	@find "$(SRC_DIR)"/src/modules "$(SRC_DIR)"/src/drivers "$(SRC_DIR)"/src/lib -name *.yaml -type f -not -path "$(SRC_DIR)/src/lib/mixer_module/*" -print0 | xargs -0 "$(SRC_DIR)"/Tools/validate_yaml.py --schema-file "$(SRC_DIR)"/validation/module_schema.yaml
 
 # Cleanup
 # --------------------------------------------------------------------
@@ -481,6 +484,7 @@ submodulesupdate:
 	@git submodule update --quiet --init --recursive --jobs 4 || true
 	@git submodule sync --recursive
 	@git submodule update --init --recursive --jobs 4
+	@git fetch --all --tags --recurse-submodules=yes --jobs=4
 
 gazeboclean:
 	@rm -rf ~/.gazebo/*
@@ -490,7 +494,7 @@ distclean: gazeboclean
 	@rm -rf "$(SRC_DIR)/build"
 	@git clean --force -X "$(SRC_DIR)/msg/" "$(SRC_DIR)/platforms/" "$(SRC_DIR)/posix-configs/" "$(SRC_DIR)/ROMFS/" "$(SRC_DIR)/src/" "$(SRC_DIR)/test/" "$(SRC_DIR)/Tools/"
 
-# Help / Error
+# Help / Error / Misc
 # --------------------------------------------------------------------
 
 # All other targets are handled by PX4_MAKE. Add a rule here to avoid printing an error.
@@ -524,3 +528,18 @@ check_px4: $(call make_list,nuttx,"px4") \
 
 check_nxp: $(call make_list,nuttx,"nxp") \
 	sizes
+
+ifneq ($(ROS2_WS_DIR),)
+  ROS2_WS_DIR := $(basename ${ROS2_WS_DIR})
+else
+  ROS2_WS_DIR := ~/colcon_ws
+endif
+
+update_ros2_bridge:
+	@Tools/update_px4_ros2_bridge.sh --ws_dir ${ROS2_WS_DIR} --all
+
+update_px4_ros_com:
+	@Tools/update_px4_ros2_bridge.sh --ws_dir ${ROS2_WS_DIR} --px4_ros_com
+
+update_px4_msgs:
+	@Tools/update_px4_ros2_bridge.sh --ws_dir ${ROS2_WS_DIR} --px4_msgs

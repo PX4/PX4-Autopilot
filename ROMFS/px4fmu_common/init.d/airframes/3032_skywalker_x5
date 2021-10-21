@@ -30,13 +30,11 @@ param set-default FW_L1_DAMPING 0.74
 param set-default FW_L1_PERIOD 16
 param set-default FW_LND_ANG 15
 param set-default FW_LND_FLALT 5
-param set-default FW_LND_HHDIST 15
 param set-default FW_LND_HVIRT 13
 param set-default FW_LND_TLALT 5
 param set-default FW_THR_LND_MAX 0
 param set-default FW_PR_FF 0.35
 param set-default FW_RR_FF 0.6
 param set-default FW_RR_P 0.04
-
 
 set MIXER fw_generic_wing

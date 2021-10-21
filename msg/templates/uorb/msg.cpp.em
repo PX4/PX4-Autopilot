@@ -12,15 +12,13 @@
 @# Context:
 @#  - file_name_in (String) Source file
 @#  - spec (msggen.MsgSpec) Parsed specification of the .msg file
-@#  - md5sum (String) MD5Sum of the .msg specification
 @#  - search_path (dict) search paths for genmsg
 @#  - topics (List of String) multi-topic names
 @#  - constrained_flash set to true if flash is constrained
-@#  - ids (List) list of all RTPS msg ids
 @###############################################
 /****************************************************************************
  *
- *   Copyright (C) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -63,7 +61,7 @@ topic_name = spec.short_name
 
 sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
 struct_size, padding_end_size = add_padding_bytes(sorted_fields, search_path)
-topic_fields = ["%s %s" % (convert_type(field.type), field.name) for field in sorted_fields]
+topic_fields = ["%s %s" % (convert_type(field.type, True), field.name) for field in sorted_fields]
 }@
 
 #include <inttypes.h>
@@ -84,19 +82,11 @@ constexpr char __orb_@(topic_name)_fields[] = "@( ";".join(topic_fields) );";
 ORB_DEFINE(@multi_topic, struct @uorb_struct, @(struct_size-padding_end_size), __orb_@(topic_name)_fields, static_cast<uint8_t>(ORB_ID::@multi_topic));
 @[end for]
 
-void print_message(const @uorb_struct &message)
+void print_message(const orb_metadata *meta, const @uorb_struct& message)
 {
-@[if constrained_flash]
-	(void)message;
-	PX4_INFO_RAW("Not implemented on flash constrained hardware\n");
-@[else]
-	PX4_INFO_RAW(" @(uorb_struct)\n");
-
-	const hrt_abstime now = hrt_absolute_time();
-
-@[for field in sorted_fields]@
-	@( print_field(field) )@
-@[end for]@
-@[end if]@
-
+	if (sizeof(message) != meta->o_size) {
+		printf("unexpected message size for %s: %zu != %i\n", meta->o_name, sizeof(message), meta->o_size);
+		return;
+	}
+	orb_print_message_internal(meta, &message, true);
 }

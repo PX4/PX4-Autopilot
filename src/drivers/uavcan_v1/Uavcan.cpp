@@ -36,6 +36,28 @@
 #include <lib/geo/geo.h>
 #include <lib/version/version.h>
 
+
+#ifdef CONFIG_UAVCAN_V1_APP_DESCRIPTOR
+#include "boot_app_shared.h"
+/*
+ * This is the AppImageDescriptor used
+ * by the make_can_boot_descriptor.py tool to set
+ * the application image's descriptor so that the
+ * uavcan bootloader has the ability to validate the
+ * image crc, size etc of this application
+*/
+boot_app_shared_section app_descriptor_t AppDescriptor = {
+	.signature = APP_DESCRIPTOR_SIGNATURE,
+	.image_crc = 0,
+	.image_size = 0,
+	.git_hash  = 0,
+	.major_version = APP_VERSION_MAJOR,
+	.minor_version = APP_VERSION_MINOR,
+	.board_id = HW_VERSION_MAJOR << 8 | HW_VERSION_MINOR,
+	.reserved = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }
+};
+#endif
+
 using namespace time_literals;
 
 UavcanNode *UavcanNode::_instance;
@@ -80,15 +102,19 @@ UavcanNode::UavcanNode(CanardInterface *interface, uint32_t node_id) :
 		_canard_instance.mtu_bytes = CANARD_MTU_CAN_CLASSIC;
 	}
 
+#ifdef CONFIG_UAVCAN_V1_NODE_MANAGER
 	_node_manager.subscribe();
+#endif
 
-	for (auto &publisher : _publishers) {
-		publisher->updateParam();
-	}
+#ifdef CONFIG_UAVCAN_V1_NODE_CLIENT
+	_node_client = new NodeClient(_canard_instance, _param_manager);
+
+	_node_client->subscribe();
+#endif
+
+	_pub_manager.updateParams();
 
 	_sub_manager.subscribe();
-
-	_mixing_output.mixingOutput().updateSubscriptions(false, false);
 }
 
 UavcanNode::~UavcanNode()
@@ -185,31 +211,40 @@ void UavcanNode::Run()
 		// update parameters from storage
 		updateParams();
 
-		for (auto &publisher : _publishers) {
-			// Have the publisher update its associated port-id parameter
-			// Setting to 0 disable publication
-			publisher->updateParam();
-		}
-
+		// Update dynamic pub/sub objects based on Port ID params
+		_pub_manager.updateParams();
 		_sub_manager.updateParams();
 
 		_mixing_output.updateParams();
-
-		_mixing_output.mixingOutput().updateSubscriptions(false, false);
 	}
 
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
 
-	// send uavcan::node::Heartbeat_1_0 @ 1 Hz
-	sendHeartbeat();
+	if (_canard_instance.node_id != CANARD_NODE_ID_UNSET) {
+		// send uavcan::node::Heartbeat_1_0 @ 1 Hz
+		sendHeartbeat();
 
-	// Check all publishers
-	for (auto &publisher : _publishers) {
-		publisher->update();
+		// Check all publishers
+		_pub_manager.update();
+
+#ifdef CONFIG_UAVCAN_V1_NODE_MANAGER
+		_node_manager.update();
+#endif
 	}
 
-	_node_manager.update();
+#ifdef CONFIG_UAVCAN_V1_NODE_CLIENT
+
+	else if (_node_client != nullptr) {
+		if (_canard_instance.node_id == CANARD_NODE_ID_UNSET) {
+			_node_client->update();
+
+		} else {
+			delete _node_client;
+		}
+	}
+
+#endif
 
 	transmit();
 
@@ -221,7 +256,7 @@ void UavcanNode::Run()
 
 	while (!_task_should_exit.load() && _can_interface->receive(&received_frame) > 0) {
 		CanardTransfer receive{};
-		CanardRxSubscription *subscription = NULL;
+		CanardRxSubscription *subscription = nullptr;
 		int32_t result = canardRxAccept2(&_canard_instance, &received_frame, 0, &receive, &subscription);
 
 		if (result < 0) {
@@ -235,7 +270,7 @@ void UavcanNode::Run()
 			// A transfer has been received, process it.
 			// PX4_INFO("received Port ID: %d", receive.port_id);
 
-			if (subscription != NULL) {
+			if (subscription != nullptr) {
 				UavcanBaseSubscriber *sub_instance = (UavcanBaseSubscriber *)subscription->user_reference;
 				sub_instance->callback(receive);
 
@@ -325,14 +360,12 @@ void UavcanNode::print_info()
 		 heap_diagnostics.peak_allocated, heap_diagnostics.peak_request_size,
 		 heap_diagnostics.oom_count);
 
-	for (auto &publisher : _publishers) {
-		publisher->printInfo();
-	}
+	_pub_manager.printInfo();
 
 	CanardRxSubscription *rxs = _canard_instance.rx_subscriptions[CanardTransferKindMessage];
 
-	while (rxs != NULL) {
-		if (rxs->user_reference == NULL) {
+	while (rxs != nullptr) {
+		if (rxs->user_reference == nullptr) {
 			PX4_INFO("Message port id %d", rxs->port_id);
 
 		} else {
@@ -344,8 +377,8 @@ void UavcanNode::print_info()
 
 	rxs = _canard_instance.rx_subscriptions[CanardTransferKindRequest];
 
-	while (rxs != NULL) {
-		if (rxs->user_reference == NULL) {
+	while (rxs != nullptr) {
+		if (rxs->user_reference == nullptr) {
 			PX4_INFO("Service response port id %d", rxs->port_id);
 
 		} else {
@@ -357,8 +390,8 @@ void UavcanNode::print_info()
 
 	rxs = _canard_instance.rx_subscriptions[CanardTransferKindResponse];
 
-	while (rxs != NULL) {
-		if (rxs->user_reference == NULL) {
+	while (rxs != nullptr) {
+		if (rxs->user_reference == nullptr) {
 			PX4_INFO("Service request port id %d", rxs->port_id);
 
 		} else {
@@ -399,6 +432,10 @@ extern "C" __EXPORT int uavcan_v1_main(int argc, char *argv[])
 		// Node ID
 		int32_t node_id = 0;
 		param_get(param_find("UAVCAN_V1_ID"), &node_id);
+
+		if (node_id == -1) {
+			node_id = CANARD_NODE_ID_UNSET;
+		}
 
 		// Start
 		PX4_INFO("Node ID %" PRIu32 ", bitrate %" PRIu32, node_id, bitrate);
@@ -480,6 +517,6 @@ void UavcanMixingInterface::Run()
 {
 	pthread_mutex_lock(&_node_mutex);
 	_mixing_output.update();
-	_mixing_output.updateSubscriptions(false, false);
+	_mixing_output.updateSubscriptions();
 	pthread_mutex_unlock(&_node_mutex);
 }

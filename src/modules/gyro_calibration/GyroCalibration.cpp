@@ -228,6 +228,8 @@ void GyroCalibration::Run()
 				const Vector3f old_offset{_gyro_calibration[gyro].offset()};
 
 				if (_gyro_calibration[gyro].set_offset(_gyro_mean[gyro].mean())) {
+					_gyro_calibration[gyro].set_temperature(_temperature[gyro]);
+
 					calibration_updated = true;
 
 					PX4_INFO("gyro %d (%" PRIu32 ") updating calibration, [%.4f, %.4f, %.4f] -> [%.4f, %.4f, %.4f] %.1f°C",

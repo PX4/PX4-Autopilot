@@ -177,7 +177,7 @@ def generate_output_from_file(format_idx, filename, outputdir, package, template
     return generate_by_template(output_file, template_file, em_globals)
 
 
-def generate_idl_file(filename_msg, msg_dir, alias, outputdir, templatedir, package, includepath, fastrtps_version, ros2_distro, ids):
+def generate_idl_file(filename_msg, msg_dir, alias, outputdir, templatedir, package, includepath, fastrtps_version, ros2_distro, msgs):
     """
     Generates an .idl from .msg file
     """
@@ -185,11 +185,11 @@ def generate_idl_file(filename_msg, msg_dir, alias, outputdir, templatedir, pack
 
     if (alias != ""):
         em_globals = get_em_globals(
-            msg, alias, package, includepath, ids, fastrtps_version, ros2_distro, MsgScope.NONE)
+            msg, alias, package, includepath, msgs, fastrtps_version, ros2_distro, MsgScope.NONE)
         spec_short_name = alias
     else:
         em_globals = get_em_globals(
-            msg, "", package, includepath, ids, fastrtps_version, ros2_distro, MsgScope.NONE)
+            msg, "", package, includepath, msgs, fastrtps_version, ros2_distro, MsgScope.NONE)
         spec_short_name = em_globals["spec"].short_name
 
     # Make sure output directory exists:
@@ -208,7 +208,7 @@ def generate_idl_file(filename_msg, msg_dir, alias, outputdir, templatedir, pack
 
 
 def generate_uRTPS_general(filename_send_msgs, filename_alias_send_msgs, filename_receive_msgs, filename_alias_receive_msgs,
-                           msg_dir, outputdir, templatedir, package, includepath, ids, fastrtps_version, ros2_distro, template_name):
+                           msg_dir, outputdir, templatedir, package, includepath, msgs, fastrtps_version, ros2_distro, template_name):
     """
     Generates source file by msg content
     """
@@ -218,27 +218,27 @@ def generate_uRTPS_general(filename_send_msgs, filename_alias_send_msgs, filenam
                         for msg in filename_receive_msgs)
 
     alias_send_msgs = list([os.path.join(
-        msg_dir, msg[1] + ".msg"), list(msg[0].keys())[0]] for msg in filename_alias_send_msgs)
+        msg_dir, msg[1] + ".msg"), msg[0]] for msg in filename_alias_send_msgs)
 
     alias_receive_msgs = list([os.path.join(
-        msg_dir, msg[1] + ".msg"), list(msg[0].keys())[0]] for msg in filename_alias_receive_msgs)
+        msg_dir, msg[1] + ".msg"), msg[0]] for msg in filename_alias_receive_msgs)
 
     em_globals_list = []
     if send_msgs:
         em_globals_list.extend([get_em_globals(
-            f, "", package, includepath, ids, fastrtps_version, ros2_distro, MsgScope.SEND) for f in send_msgs])
+            f, "", package, includepath, msgs, fastrtps_version, ros2_distro, MsgScope.SEND) for f in send_msgs])
 
     if alias_send_msgs:
         em_globals_list.extend([get_em_globals(
-            f[0], f[1], package, includepath, ids, fastrtps_version, ros2_distro, MsgScope.SEND) for f in alias_send_msgs])
+            f[0], f[1], package, includepath, msgs, fastrtps_version, ros2_distro, MsgScope.SEND) for f in alias_send_msgs])
 
     if receive_msgs:
         em_globals_list.extend([get_em_globals(
-            f, "", package, includepath, ids, fastrtps_version, ros2_distro, MsgScope.RECEIVE) for f in receive_msgs])
+            f, "", package, includepath, msgs, fastrtps_version, ros2_distro, MsgScope.RECEIVE) for f in receive_msgs])
 
     if alias_receive_msgs:
         em_globals_list.extend([get_em_globals(
-            f[0], f[1], package, includepath, ids, fastrtps_version, ros2_distro, MsgScope.RECEIVE) for f in alias_receive_msgs])
+            f[0], f[1], package, includepath, msgs, fastrtps_version, ros2_distro, MsgScope.RECEIVE) for f in alias_receive_msgs])
 
     merged_em_globals = merge_em_globals_list(em_globals_list)
 
@@ -253,7 +253,7 @@ def generate_uRTPS_general(filename_send_msgs, filename_alias_send_msgs, filenam
     return generate_by_template(output_file, template_file, merged_em_globals)
 
 
-def generate_topic_file(filename_msg, msg_dir, alias, outputdir, templatedir, package, includepath, ids, fastrtps_version, ros2_distro, template_name):
+def generate_topic_file(filename_msg, msg_dir, alias, outputdir, templatedir, package, includepath, msgs, fastrtps_version, ros2_distro, template_name):
     """
     Generates a sources and headers from .msg file
     """
@@ -261,11 +261,11 @@ def generate_topic_file(filename_msg, msg_dir, alias, outputdir, templatedir, pa
 
     if (alias):
         em_globals = get_em_globals(
-            msg, alias, package, includepath, ids, fastrtps_version, ros2_distro, MsgScope.NONE)
+            msg, alias, package, includepath, msgs, fastrtps_version, ros2_distro, MsgScope.NONE)
         spec_short_name = alias
     else:
         em_globals = get_em_globals(
-            msg, "", package, includepath, ids, fastrtps_version, ros2_distro, MsgScope.NONE)
+            msg, "", package, includepath, msgs, fastrtps_version, ros2_distro, MsgScope.NONE)
         spec_short_name = em_globals["spec"].short_name
 
     # Make sure output directory exists:
@@ -279,7 +279,7 @@ def generate_topic_file(filename_msg, msg_dir, alias, outputdir, templatedir, pa
     return generate_by_template(output_file, template_file, em_globals)
 
 
-def get_em_globals(filename_msg, alias, package, includepath, ids, fastrtps_version, ros2_distro, scope):
+def get_em_globals(filename_msg, alias, package, includepath, msgs, fastrtps_version, ros2_distro, scope):
     """
     Generates em globals dictionary
     """
@@ -304,7 +304,7 @@ def get_em_globals(filename_msg, alias, package, includepath, ids, fastrtps_vers
         "msg_context": msg_context,
         "spec": spec,
         "topics": topics,
-        "ids": ids,
+        "msgs": msgs,
         "scope": scope,
         "package": package,
         "alias": alias,

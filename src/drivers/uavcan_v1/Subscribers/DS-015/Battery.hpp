@@ -68,7 +68,7 @@ public:
 
 		_parameters_sub._subject_name = _parameters_name;
 		_parameters_sub._canard_sub.user_reference = this;
-		_parameters_sub.next = NULL;
+		_parameters_sub.next = nullptr;
 	}
 
 	void subscribe() override

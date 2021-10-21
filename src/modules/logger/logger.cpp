@@ -163,7 +163,7 @@ int Logger::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("logger",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_LOG_CAPTURE,
-				      3700,
+				      PX4_STACK_ADJUSTED(3700),
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 
@@ -665,6 +665,8 @@ void Logger::run()
 		_lockstep_component = px4_lockstep_register_component();
 	}
 
+	bool was_started = false;
+
 	while (!should_exit()) {
 		// Start/stop logging (depending on logging mode, by default when arming/disarming)
 		const bool logging_started = start_stop_logging();
@@ -688,6 +690,10 @@ void Logger::run()
 		const hrt_abstime loop_time = hrt_absolute_time();
 
 		if (_writer.is_started(LogType::Full)) { // mission log only runs when full log is also started
+
+			if (!was_started) {
+				adjust_subscription_updates();
+			}
 
 			/* check if we need to output the process load */
 			if (_next_load_print != 0 && loop_time >= _next_load_print) {
@@ -835,6 +841,8 @@ void Logger::run()
 
 			debug_print_buffer(total_bytes, timer_start);
 
+			was_started = true;
+
 		} else { // not logging
 
 			// try to subscribe to new topics, even if we don't log, so that:
@@ -853,6 +861,8 @@ void Logger::run()
 			} else if (loop_time > next_subscribe_check) {
 				next_subscribe_topic_index = 0;
 			}
+
+			was_started = false;
 		}
 
 		update_params();
@@ -1025,6 +1035,26 @@ void Logger::publish_logger_status()
 	}
 }
 
+void Logger::adjust_subscription_updates()
+{
+	// we want subscriptions to update evenly distributed over time to avoid
+	// data bursts. This is particularly important for low-rate topics
+	hrt_abstime now = hrt_absolute_time();
+	int j = 0;
+
+	for (int i = 0; i < _num_subscriptions; ++i) {
+		if (_subscriptions[i].get_interval_us() >= 500_ms) {
+			hrt_abstime adjustment = (_log_interval * j) % 500_ms;
+
+			if (adjustment < now) {
+				_subscriptions[i].set_last_update(now - adjustment);
+			}
+
+			++j;
+		}
+	}
+}
+
 bool Logger::get_disable_boot_logging()
 {
 	if (_param_sdlog_boot_bat.get()) {
@@ -1124,7 +1154,11 @@ void Logger::handle_vehicle_command_update()
 			}
 
 		} else if (command.command == vehicle_command_s::VEHICLE_CMD_LOGGING_STOP) {
-			stop_log_mavlink();
+			if (_writer.is_started(LogType::Full, LogWriter::BackendMavlink)) {
+				ack_vehicle_command(&command, vehicle_command_s::VEHICLE_CMD_RESULT_IN_PROGRESS);
+				stop_log_mavlink();
+			}
+
 			ack_vehicle_command(&command, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 		}
 	}
@@ -1219,7 +1253,7 @@ int Logger::create_log_dir(LogType type, tm *tt, char *log_dir, int log_dir_len)
 	return strlen(log_dir);
 }
 
-int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_size)
+int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_size, bool notify)
 {
 	tm tt = {};
 	bool time_ok = false;
@@ -1235,6 +1269,15 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 		replay_suffix = "_replayed";
 	}
 
+	const char *crypto_suffix = "";
+#if defined(PX4_CRYPTO)
+
+	if (_param_sdlog_crypto_algorithm.get() != 0) {
+		crypto_suffix = "c";
+	}
+
+#endif
+
 	char *log_file_name = _file_name[(int)type].log_file_name;
 
 	if (time_ok) {
@@ -1246,8 +1289,24 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 
 		char log_file_name_time[16] = "";
 		strftime(log_file_name_time, sizeof(log_file_name_time), "%H_%M_%S", &tt);
-		snprintf(log_file_name, sizeof(LogFileName::log_file_name), "%s%s.ulg", log_file_name_time, replay_suffix);
+		snprintf(log_file_name, sizeof(LogFileName::log_file_name), "%s%s.ulg%s", log_file_name_time, replay_suffix,
+			 crypto_suffix);
 		snprintf(file_name + n, file_name_size - n, "/%s", log_file_name);
+
+		if (notify) {
+			mavlink_log_info(&_mavlink_log_pub, "[logger] %s\t", file_name);
+			uint16_t year = 0;
+			uint8_t month = 0;
+			uint8_t day = 0;
+			sscanf(_file_name[(int)type].log_dir, "%hd-%hhd-%hhd", &year, &month, &day);
+			uint8_t hour = 0;
+			uint8_t minute = 0;
+			uint8_t second = 0;
+			sscanf(log_file_name_time, "%hhd_%hhd_%hhd", &hour, &minute, &second);
+			events::send<uint16_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t>(events::ID("logger_open_file_time"),
+					events::Log::Info,
+					"logging: opening log file {1}-{2}-{3}/{4}_{5}_{6}.ulg", year, month, day, hour, minute, second);
+		}
 
 	} else {
 		int n = create_log_dir(type, nullptr, file_name, file_name_size);
@@ -1256,12 +1315,13 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 			return -1;
 		}
 
-		uint16_t file_number = 1; // start with file log001
+		uint16_t file_number = 100; // start with file log100
 
 		/* look for the next file that does not exist */
 		while (file_number <= MAX_NO_LOGFILE) {
 			/* format log file path: e.g. /fs/microsd/log/sess001/log001.ulg */
-			snprintf(log_file_name, sizeof(LogFileName::log_file_name), "log%03" PRIu16 "%s.ulg", file_number, replay_suffix);
+			snprintf(log_file_name, sizeof(LogFileName::log_file_name), "log%03" PRIu16 "%s.ulg%s", file_number, replay_suffix,
+				 crypto_suffix);
 			snprintf(file_name + n, file_name_size - n, "/%s", log_file_name);
 
 			if (!util::file_exist(file_name)) {
@@ -1274,6 +1334,16 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 		if (file_number > MAX_NO_LOGFILE) {
 			/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
 			return -1;
+		}
+
+		if (notify) {
+			mavlink_log_info(&_mavlink_log_pub, "[logger] %s\t", file_name);
+			uint16_t sess = 0;
+			sscanf(_file_name[(int)type].log_dir, "sess%hd", &sess);
+			uint16_t index = 0;
+			sscanf(log_file_name, "log%hd", &index);
+			events::send<uint16_t, uint16_t>(events::ID("logger_open_file_sess"), events::Log::Info,
+							 "logging: opening log file sess{1}/log{2}.ulg", sess, index);
 		}
 	}
 
@@ -1304,19 +1374,22 @@ void Logger::start_log_file(LogType type)
 
 	char file_name[LOG_DIR_LEN] = "";
 
-	if (get_log_file_name(type, file_name, sizeof(file_name))) {
+	if (get_log_file_name(type, file_name, sizeof(file_name), type == LogType::Full)) {
 		PX4_ERR("failed to get log file name");
 		return;
 	}
 
-	if (type == LogType::Full) {
-		/* print logging path, important to find log file later */
-		mavlink_log_info(&_mavlink_log_pub, "[logger] %s", file_name);
-	}
+#if defined(PX4_CRYPTO)
+	_writer.set_encryption_parameters(
+		(px4_crypto_algorithm_t)_param_sdlog_crypto_algorithm.get(),
+		_param_sdlog_crypto_key.get(),
+		_param_sdlog_crypto_exchange_key.get());
+#endif
 
 	_writer.start_log_file(type, file_name);
 	_writer.select_write_backend(LogWriter::BackendFile);
 	_writer.set_need_reliable_transfer(true);
+
 	write_header(type);
 	write_version(type);
 	write_formats(type);
@@ -1363,6 +1436,10 @@ void Logger::start_log_mavlink()
 		return;
 	}
 
+	// mavlink log does not work in combination with lockstep, it leads to dead-locks
+	px4_lockstep_unregister_component(_lockstep_component);
+	_lockstep_component = -1;
+
 	// initialize cpu load as early as possible to get more data
 	initialize_load_output(PrintLoadReason::Preflight);
 
@@ -1382,13 +1459,24 @@ void Logger::start_log_mavlink()
 	_writer.set_need_reliable_transfer(false);
 	_writer.unselect_write_backend();
 	_writer.notify();
+
+	adjust_subscription_updates(); // redistribute updates as sending the header can take some time
 }
 
 void Logger::stop_log_mavlink()
 {
 	// don't write perf data since a client does not expect more data after a stop command
 	PX4_INFO("Stop mavlink log");
-	_writer.stop_log_mavlink();
+
+	if (_writer.is_started(LogType::Full, LogWriter::BackendMavlink)) {
+		_writer.select_write_backend(LogWriter::BackendMavlink);
+		_writer.set_need_reliable_transfer(true);
+		write_perf_data(false);
+		_writer.set_need_reliable_transfer(false);
+		_writer.unselect_write_backend();
+		_writer.notify();
+		_writer.stop_log_mavlink();
+	}
 }
 
 struct perf_callback_data_t {
@@ -1538,7 +1626,37 @@ void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats
 	PX4_DEBUG("writing format for %s", meta.o_name);
 
 	// Write the current format (we don't need to check if we already added it to written_formats)
-	int format_len = snprintf(msg.format, sizeof(msg.format), "%s:%s", meta.o_name, meta.o_fields);
+	int format_len = snprintf(msg.format, sizeof(msg.format), "%s:", meta.o_name);
+
+	for (int format_idx = 0; meta.o_fields[format_idx] != 0;) {
+		const char *end_field = strchr(meta.o_fields + format_idx, ';');
+
+		if (!end_field) {
+			PX4_ERR("Format error in %s", meta.o_fields);
+			return;
+		}
+
+		const char *c_type = orb_get_c_type(meta.o_fields[format_idx]);
+
+		if (c_type) {
+			format_len += snprintf(msg.format + format_len, sizeof(msg.format) - format_len, "%s", c_type);
+			++format_idx;
+		}
+
+		int len = end_field - (meta.o_fields + format_idx) + 1;
+
+		if (len >= (int)sizeof(msg.format) - format_len) {
+			PX4_WARN("skip topic %s, format string is too large, max is %zu", meta.o_name,
+				 sizeof(ulog_message_format_s::format));
+			return;
+		}
+
+		memcpy(msg.format + format_len, meta.o_fields + format_idx, len);
+		format_len += len;
+		format_idx += len;
+	}
+
+	msg.format[format_len] = '\0';
 	size_t msg_size = sizeof(msg) - sizeof(msg.format) + format_len;
 	msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
@@ -1549,7 +1667,7 @@ void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats
 	}
 
 	// Now go through the fields and check for nested type usages.
-	// o_fields looks like this for example: "uint64_t timestamp;uint8_t[5] array;"
+	// o_fields looks like this for example: "<chr> timestamp;<chr>[5] array;"
 	const char *fmt = meta.o_fields;
 
 	while (fmt && *fmt) {
@@ -1582,20 +1700,7 @@ void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats
 		type_name[type_length] = '\0';
 
 		// ignore built-in types
-		if (strcmp(type_name, "int8_t") != 0 &&
-		    strcmp(type_name, "uint8_t") != 0 &&
-		    strcmp(type_name, "int16_t") != 0 &&
-		    strcmp(type_name, "uint16_t") != 0 &&
-		    strcmp(type_name, "int16_t") != 0 &&
-		    strcmp(type_name, "uint16_t") != 0 &&
-		    strcmp(type_name, "int32_t") != 0 &&
-		    strcmp(type_name, "uint32_t") != 0 &&
-		    strcmp(type_name, "int64_t") != 0 &&
-		    strcmp(type_name, "uint64_t") != 0 &&
-		    strcmp(type_name, "float") != 0 &&
-		    strcmp(type_name, "double") != 0 &&
-		    strcmp(type_name, "bool") != 0 &&
-		    strcmp(type_name, "char") != 0) {
+		if (orb_get_c_type(type_name[0]) == nullptr) {
 
 			// find orb meta for type
 			const orb_metadata *const *topics = orb_get_topics();

@@ -41,4 +41,3 @@ add_subdirectory(lps33hw)
 add_subdirectory(maiertek)
 add_subdirectory(ms5611)
 #add_subdirectory(tcbp001ta) # only for users who really need this
-

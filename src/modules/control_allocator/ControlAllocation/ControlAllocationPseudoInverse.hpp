@@ -67,4 +67,7 @@ protected:
 	 *
 	 */
 	void updatePseudoInverse();
+
+private:
+	void normalizeControlAllocationMatrix();
 };

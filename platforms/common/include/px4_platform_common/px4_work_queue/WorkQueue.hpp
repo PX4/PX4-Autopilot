@@ -96,6 +96,7 @@ private:
 
 	IntrusiveQueue<WorkItem *>	_q;
 	px4_sem_t			_process_lock;
+	px4_sem_t			_exit_lock;
 	const wq_config_t		&_config;
 	BlockingList<WorkItem *>	_work_items;
 	px4::atomic_bool		_should_exit{false};

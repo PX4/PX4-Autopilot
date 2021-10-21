@@ -1,5 +1,6 @@
 Aileron/rudder/elevator/throttle mixer for PX4FMU
 ==================================================
+# @board px4_fmu-v2 exclude
 
 Inputs to the mixer come from channel group 0 (vehicle attitude), channels 0
 (roll), 1 (pitch) and 3 (thrust).

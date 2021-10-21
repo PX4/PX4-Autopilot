@@ -141,6 +141,7 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 				timesync_status_s tsync_status{};
 
 				tsync_status.timestamp = hrt_absolute_time();
+				tsync_status.source_protocol = timesync_status_s::SOURCE_PROTOCOL_MAVLINK;
 				tsync_status.remote_timestamp = tsync.tc1 / 1000ULL;
 				tsync_status.observed_offset = offset_us;
 				tsync_status.estimated_offset = (int64_t)_time_offset;
@@ -162,7 +163,7 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 
 			// date -d @1234567890: Sat Feb 14 02:31:30 MSK 2009
 			bool onb_unix_valid = (unsigned long long)tv.tv_sec > PX4_EPOCH_SECS;
-			bool ofb_unix_valid = time.time_unix_usec > PX4_EPOCH_SECS * 1000ULL;
+			bool ofb_unix_valid = time.time_unix_usec > PX4_EPOCH_SECS * 1000000ULL;
 
 			if (!onb_unix_valid && ofb_unix_valid) {
 				tv.tv_sec = time.time_unix_usec / 1000000ULL;

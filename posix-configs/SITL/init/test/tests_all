@@ -5,7 +5,6 @@
 
 param load
 param set CBRK_SUPPLY_CHK 894281
-param set SYS_RESTART_TYPE 0
 
 dataman start
 

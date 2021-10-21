@@ -43,7 +43,6 @@
 
 #include <hardware/stm32_tim.h>
 #include <drivers/device/i2c.h>
-#include <lib/led/led.h>
 
 __BEGIN_DECLS
 #include "cxx_init.h"
@@ -115,8 +114,6 @@ RGBLED_NCP5623C::init()
 int
 RGBLED_NCP5623C::probe()
 {
-	_retries = 4;
-
 	return write(NCP5623_LED_CURRENT, 0x00);
 }
 

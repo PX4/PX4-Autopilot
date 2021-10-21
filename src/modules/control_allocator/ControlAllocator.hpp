@@ -59,7 +59,8 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/actuator_servos.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/control_allocator_status.h>
@@ -105,7 +106,7 @@ private:
 	void update_allocation_method();
 	void update_effectiveness_source();
 
-	void update_effectiveness_matrix_if_needed();
+	void update_effectiveness_matrix_if_needed(bool force = false);
 
 	void publish_actuator_setpoint();
 	void publish_control_allocator_status();
@@ -140,9 +141,8 @@ private:
 	uORB::Publication<vehicle_actuator_setpoint_s>	_vehicle_actuator_setpoint_pub{ORB_ID(vehicle_actuator_setpoint)};	/**< actuator setpoint publication */
 	uORB::Publication<control_allocator_status_s>	_control_allocator_status_pub{ORB_ID(control_allocator_status)};	/**< actuator setpoint publication */
 
-	// actuator_controls publication handles (temporary hack to plug actuator_setpoint into the mixer system)
-	uORB::Publication<actuator_controls_s>	_actuator_controls_4_pub{ORB_ID(actuator_controls_4)};	/**< actuator controls 4 publication */
-	uORB::Publication<actuator_controls_s>	_actuator_controls_5_pub{ORB_ID(actuator_controls_5)};	/**< actuator controls 5 publication */
+	uORB::Publication<actuator_motors_s>	_actuator_motors_pub{ORB_ID(actuator_motors)};
+	uORB::Publication<actuator_servos_s>	_actuator_servos_pub{ORB_ID(actuator_servos)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 

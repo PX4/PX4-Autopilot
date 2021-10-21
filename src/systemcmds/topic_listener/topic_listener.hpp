@@ -50,21 +50,24 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
-typedef int(*listener_print_topic_cb)(const orb_id_t &orb_id, int subscription);
-
-template <typename T>
-int listener_print_topic(const orb_id_t &orb_id, int subscription)
+inline int listener_print_topic(const orb_id_t &orb_id, int subscription)
 {
-	T container;
+	static constexpr int max_size = 512;
+	alignas(8) char container[max_size];
+
+	if (orb_id->o_size > max_size) {
+		PX4_ERR("topic %s too large (%i > %i)", orb_id->o_name, orb_id->o_size, max_size);
+		return -1;
+	}
 
 	int ret = orb_copy(orb_id, subscription, &container);
 
 	if (ret == PX4_OK) {
-		print_message(container);
+		orb_print_message_internal(orb_id, &container, true);
 	}
 
 	return ret;
 }
 
-void listener(listener_print_topic_cb cb, const orb_id_t &id, unsigned num_msgs, int topic_instance,
+void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
 	      unsigned topic_interval);

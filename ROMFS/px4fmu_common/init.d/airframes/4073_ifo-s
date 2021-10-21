@@ -27,15 +27,10 @@ set PWM_OUT 1234
 
 
 # Attitude & rate gains
-param set-default MC_ROLLRATE_P 0.15
 param set-default MC_ROLLRATE_D 0.0013
 
-param set-default MC_PITCHRATE_P 0.15
 param set-default MC_PITCHRATE_D 0.0016
 
-param set-default MC_YAW_P 2.8
-param set-default MC_YAWRATE_P 0.2
-param set-default MC_YAWRATE_D 0
 
 param set-default MPC_MANTHR_MIN 0.08
 
@@ -57,7 +52,6 @@ param set-default EKF2_AID_MASK 3
 param set-default EKF2_GND_EFF_DZ 6
 param set-default EKF2_HGT_MODE 1
 param set-default EKF2_MIN_RNG 0.3
-param set-default EKF2_RNG_AID 1
 
 # Flow
 param set-default EKF2_OF_QMIN 70

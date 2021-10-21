@@ -13,6 +13,8 @@ param set-default MIS_YAW_TMT 10
 param set-default EKF2_ARSP_THR 10
 param set-default EKF2_FUSE_BETA 1
 
+param set-default HTE_VXY_THR 2.0
+
 param set-default MIS_DIST_WPS 5000
 
 param set-default MPC_ACC_HOR_MAX 2

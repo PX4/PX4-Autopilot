@@ -152,6 +152,11 @@ public:
 	 */
 	void		set_interval_ms(uint32_t interval) { _interval_us = interval * 1000; }
 
+	/**
+	 * Set the last data update
+	 * @param t should be in range [now, now - _interval_us]
+	 */
+	void		set_last_update(hrt_abstime t) { _last_update = t; }
 protected:
 
 	Subscription	_subscription;

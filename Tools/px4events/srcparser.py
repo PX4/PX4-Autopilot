@@ -221,7 +221,8 @@ class SourceParser(object):
                             else:
                                 raise Exception("Could not extract event ID from {:}".format(args_split[0]))
                             event.name = event_name
-                            event.message = args_split[2][1:-1]
+                            # unescape \x, to treat the string the same as the C++ compiler
+                            event.message = args_split[2][1:-1].encode("utf-8").decode('unicode_escape')
                     elif call in ['reporter.healthFailure', 'reporter.armingCheckFailure']:
                         assert len(args_split) == num_args + 5, \
                             "Unexpected Number of arguments for: {:}, {:}".format(args_split, num_args)

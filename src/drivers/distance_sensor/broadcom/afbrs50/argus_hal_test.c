@@ -46,7 +46,8 @@
 #include "platform/argus_nvm.h"
 #include "platform/argus_irq.h"
 
-#include <px4_platform_common/micro_hal.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
 
 /*******************************************************************************
  * Definitions
@@ -64,6 +65,7 @@ static status_t SpiConnectionTest(s2pi_slave_t slave);
 static status_t SpiInterruptTest(s2pi_slave_t slave);
 static status_t GpioModeTest(s2pi_slave_t slave);
 static status_t TimerTest(s2pi_slave_t slave);
+static status_t PITTest(void);
 
 static status_t CheckTimerCounterValues(uint32_t hct, uint32_t lct);
 static status_t SPITransferSync(s2pi_slave_t slave, uint8_t *data, uint8_t size);
@@ -73,13 +75,17 @@ static status_t AwaitDataReady(s2pi_slave_t slave, uint32_t timeout_ms);
 static status_t ReadEEPROM(s2pi_slave_t slave, uint8_t *eeprom);
 static status_t ReadRcoTrim(s2pi_slave_t slave, int8_t *RcoTrim);
 static status_t RunMeasurement(s2pi_slave_t slave, uint16_t samples);
+static status_t RunPITTest(uint32_t exp_dt_us, uint32_t n);
 
+static void PIT_Callback(void *param);
 static void DataReadyCallback(void *param);
 
+/// @cond EXTERN
 extern uint32_t EEPROM_ReadChipId(uint8_t const *eeprom);
 extern argus_module_version_t EEPROM_ReadModule(uint8_t const *eeprom);
 extern status_t EEPROM_Read(s2pi_slave_t slave, uint8_t address, uint8_t *data);
 extern uint8_t hamming_decode(uint8_t const *code, uint8_t *data);
+/// @endcond
 
 /******************************************************************************
  * Variables
@@ -93,63 +99,76 @@ status_t Argus_VerifyHALImplementation(s2pi_slave_t spi_slave)
 {
 	status_t status = STATUS_OK;
 
-	print("########################################################\n");
-	print("#   Running HAL Verification Test - " HAL_TEST_VERSION "\n");
-	print("########################################################\n\n");
+	PX4_INFO_RAW("########################################################\n");
+	PX4_INFO_RAW("#   Running HAL Verification Test - " HAL_TEST_VERSION "\n");
+	PX4_INFO_RAW("########################################################\n\n");
 
-	print("1 > Timer Plausibility Test\n");
+	PX4_INFO_RAW("1 > Timer Plausibility Test\n");
 	status = TimerPlausibilityTest();
 
 	if (status != STATUS_OK) { goto summary; }
 
-	print("1 > PASS\n\n");
+	PX4_INFO_RAW("1 > PASS\n\n");
 
-	print("2 > Timer Wraparound Test\n");
+	PX4_INFO_RAW("2 > Timer Wraparound Test\n");
 	status = TimerWraparoundTest();
 
 	if (status != STATUS_OK) { goto summary; }
 
-	print("2 > PASS\n\n");
+	PX4_INFO_RAW("2 > PASS\n\n");
 
-	print("3 > SPI Connection Test\n");
+	PX4_INFO_RAW("3 > SPI Connection Test\n");
 	status = SpiConnectionTest(spi_slave);
 
 	if (status != STATUS_OK) { goto summary; }
 
-	print("3 > PASS\n\n");
+	PX4_INFO_RAW("3 > PASS\n\n");
 
-	print("4 > SPI Interrupt Test\n");
+	PX4_INFO_RAW("4 > SPI Interrupt Test\n");
 	status = SpiInterruptTest(spi_slave);
 
 	if (status != STATUS_OK) { goto summary; }
 
-	print("4 > PASS\n\n");
+	PX4_INFO_RAW("4 > PASS\n\n");
 
-	print("5 > GPIO Mode Test\n");
+	PX4_INFO_RAW("5 > GPIO Mode Test\n");
 	status = GpioModeTest(spi_slave);
 
 	if (status != STATUS_OK) { goto summary; }
 
-	print("5 > PASS\n\n");
+	PX4_INFO_RAW("5 > PASS\n\n");
 
-	print("6 > Timer Test\n");
+	PX4_INFO_RAW("6 > Lifetime Counter Timer (LTC) Test\n");
 	status = TimerTest(spi_slave);
 
 	if (status != STATUS_OK) { goto summary; }
 
-	print("6 > PASS\n\n");
+	PX4_INFO_RAW("6 > PASS\n\n");
 
-summary:
-	print("########################################################\n");
+	PX4_INFO_RAW("7 > Periodic Interrupt Timer (PIT) Test\n");
+	status = PITTest();
 
-	if (status != STATUS_OK) {
-		print("#   FAIL: HAL Verification Test finished with error %d!\n", status);
+	if (status == ERROR_NOT_IMPLEMENTED) {
+		PX4_INFO_RAW("7 > SKIPPED (PIT is not implemented)\n\n");
 
 	} else {
-		print("#   PASS: HAL Verification Test finished successfully!\n");
+		if (status != STATUS_OK) { goto summary; }
+
+		PX4_INFO_RAW("7 > PASS\n\n");
 	}
 
-	print("########################################################\n\n");
+
+summary:
+	PX4_INFO_RAW("########################################################\n");
+
+	if (status != STATUS_OK) {
+		PX4_INFO_RAW("#   FAIL: HAL Verification Test finished with error %d!\n", (int)status);
+
+	} else {
+		PX4_INFO_RAW("#   PASS: HAL Verification Test finished successfully!\n");
+	}
+
+	PX4_INFO_RAW("########################################################\n\n");
 	return status;
 }
 
@@ -158,7 +177,7 @@ summary:
  *
  * @details	This verifies that the counter values returned from the
  * 			#Timer_GetCounterValue function are valid. This means, the low
- * 			counter value \p lct is within 0 and 999999 μs.
+ * 			counter value \p lct is within 0 and 999999 µs.
  *
  * @return 	Returns the \link #status_t status\endlink:
  * 			- #STATUS_OK on success.
@@ -167,10 +186,10 @@ summary:
 static status_t CheckTimerCounterValues(uint32_t hct, uint32_t lct)
 {
 	if (lct > 999999) {
-		error_log("Timer plausibility check:\n"
-			  "The parameter \"lct\" of Timer_GetCounterValue() must always "
-			  "be within 0 and 999999.\n"
-			  "Current Values: hct = %d, lct = %d", hct, lct);
+		PX4_INFO_RAW("Timer plausibility check:\n"
+			     "The parameter \"lct\" of Timer_GetCounterValue() must always "
+			     "be within 0 and 999999.\n"
+			     "Current Values: hct = %d, lct = %d", (uint)hct, (uint)lct);
 		return ERROR_FAIL;
 	}
 
@@ -227,13 +246,13 @@ static status_t TimerPlausibilityTest(void)
 	/* Either the hct value must have been increased or the lct value if the hct
 	 * value is still the same. */
 	if (!((hct1 > hct0) || ((hct1 == hct0) && (lct1 > lct0)))) {
-		error_log("Timer plausibility check: the elapsed time could not be "
-			  "measured with the Timer_GetCounterValue() function; no time "
-			  "has elapsed!\n"
-			  "The delay was induced by the following code:\n"
-			  "for (volatile uint32_t i = 0; i < 100000; ++i) __asm(\"nop\");\n",
-			  "Current Values: hct0 = %d, lct0 = %d, hct1 = %d, lct1 = %d",
-			  hct0, lct0, hct1, lct1);
+		PX4_INFO_RAW("Timer plausibility check: the elapsed time could not be "
+			     "measured with the Timer_GetCounterValue() function; no time "
+			     "has elapsed!\n"
+			     "The delay was induced by the following code:\n"
+			     "for (volatile uint32_t i = 0; i < 100000; ++i) __asm(\"nop\");\n"
+			     "Current Values: hct0 = %d, lct0 = %d, hct1 = %d, lct1 = %d",
+			     (uint)hct0, (uint)lct0, (uint)hct1, (uint)lct1);
 		return ERROR_FAIL;
 	}
 
@@ -243,7 +262,7 @@ static status_t TimerPlausibilityTest(void)
 /*!***************************************************************************
  * @brief	Wraparound Test for the Timer HAL Implementation.
  *
- * @details The LTC values must wrap from 999999 μs to 0 μs and increase the
+ * @details The LTC values must wrap from 999999 µs to 0 µs and increase the
  *          seconds counter accordingly. This test verifies the correct wrapping
  *          by consecutively calling the #Timer_GetCounterValue function until
  *          at least 2 wraparound events have been occurred.
@@ -283,6 +302,8 @@ static status_t TimerWraparoundTest(void)
 	uint32_t hct2 = hct0 + n;
 	uint32_t lct2 = lct0;
 
+	px4_usleep(20000);
+
 	/* Periodically read timer values. From previous tests we
 	 * already know the timer value is increasing. */
 	while (hct0 < hct2 || lct0 < lct2) {
@@ -302,16 +323,18 @@ static status_t TimerWraparoundTest(void)
 		 * than previous one. */
 		if (!(((hct1 == hct0 + 1) && (lct1 < lct0))
 		      || ((hct1 == hct0) && (lct1 >= lct0)))) {
-			error_log("Timer plausibility check: the wraparound of \"lct\" or "
-				  "\"hct\" parameters of the Timer_GetCounterValue() "
-				  "function was not handled correctly!\n"
-				  "Current Values: hct0 = %d, lct0 = %d, hct1 = %d, lct1 = %d",
-				  hct0, lct0, hct1, lct1);
+			PX4_INFO_RAW("Timer plausibility check: the wraparound of \"lct\" or "
+				     "\"hct\" parameters of the Timer_GetCounterValue() "
+				     "function was not handled correctly!\n"
+				     "Current Values: hct0 = %d, lct0 = %d, hct1 = %d, lct1 = %d",
+				     (uint)hct0, (uint)lct0, (uint)hct1, (uint)lct1);
 			return ERROR_FAIL;
 		}
 
 		hct0 = hct1;
 		lct0 = lct1;
+
+		px4_usleep(20000);
 	}
 
 	return STATUS_OK;
@@ -352,8 +375,8 @@ static status_t SPITransferSync(s2pi_slave_t slave, uint8_t *data, uint8_t size)
 	status_t status = S2PI_TransferFrame(slave, data, data, size, 0, 0);
 
 	if (status < STATUS_OK) {
-		error_log("SPI transfer failed! The call to S2PI_TransferFrame "
-			  "yielded error code: %d", status);
+		PX4_INFO_RAW("SPI transfer failed! The call to S2PI_TransferFrame "
+			     "yielded error code: %d", (int)status);
 		return status;
 	}
 
@@ -367,16 +390,16 @@ static status_t SPITransferSync(s2pi_slave_t slave, uint8_t *data, uint8_t size)
 		status = S2PI_GetStatus();
 
 		if (status < STATUS_OK) {
-			error_log("SPI transfer failed! The call to S2PI_GetStatus "
-				  "yielded error code: %d", status);
+			PX4_INFO_RAW("SPI transfer failed! The call to S2PI_GetStatus "
+				     "yielded error code: %d", (int)status);
 			S2PI_Abort();
 			return status;
 		}
 
 		if (Time_CheckTimeoutMSec(&start, timeout_ms)) {
-			error_log("SPI transfer failed! The operation did not finished "
-				  "within %d ms. This may also be caused by an invalid "
-				  "timer implementation!", timeout_ms);
+			PX4_INFO_RAW("SPI transfer failed! The operation did not finished "
+				     "within %u ms. This may also be caused by an invalid "
+				     "timer implementation!", (uint)timeout_ms);
 			return ERROR_TIMEOUT;
 		}
 	} while (status == STATUS_BUSY);
@@ -425,7 +448,7 @@ static status_t SpiConnectionTest(s2pi_slave_t slave)
 	status = SPITransferSync(slave, data, 17U);
 
 	if (status < STATUS_OK) {
-		error_log("SPI connection test failed!");
+		PX4_INFO_RAW("SPI connection test failed!");
 		return status;
 	}
 
@@ -437,17 +460,17 @@ static status_t SpiConnectionTest(s2pi_slave_t slave)
 	status = SPITransferSync(slave, data, 17U);
 
 	if (status < STATUS_OK) {
-		error_log("SPI connection test failed!");
+		PX4_INFO_RAW("SPI connection test failed!");
 		return status;
 	}
 
 	/* Verify the read pattern. */
 	for (uint8_t i = 1; i < 17U; ++i) {
 		if (data[i] != i) {
-			error_log("SPI connection test failed!\n"
-				  "Verification of read data is invalid!\n"
-				  "read_data[%d] = %d, but expected was %d",
-				  i, data[i], i);
+			PX4_INFO_RAW("SPI connection test failed!\n"
+				     "Verification of read data is invalid!\n"
+				     "read_data[%d] = %d, but expected was %d",
+				     i, data[i], i);
 			return ERROR_FAIL;
 		}
 	}
@@ -468,9 +491,9 @@ static status_t SpiConnectionTest(s2pi_slave_t slave)
  *****************************************************************************/
 static void DataReadyCallback(void *param)
 {
-	irqstate_t irqstate_flags = px4_enter_critical_section();
+	IRQ_LOCK();
 	*((bool *) param) = true;
-	px4_leave_critical_section(irqstate_flags);
+	IRQ_UNLOCK();
 }
 
 /*!***************************************************************************
@@ -510,7 +533,7 @@ static status_t ConfigureDevice(s2pi_slave_t slave, int8_t rcoTrim)
 	status_t status = SPITransferSync(slave, d1, sizeof(d1));
 
 	if (status < STATUS_OK) {
-		error_log("Device configuration failed!");
+		PX4_INFO_RAW("Device configuration failed!");
 		return status;
 	}
 
@@ -518,7 +541,7 @@ static status_t ConfigureDevice(s2pi_slave_t slave, int8_t rcoTrim)
 	status = SPITransferSync(slave, d2, sizeof(d2));
 
 	if (status < STATUS_OK) {
-		error_log("Device configuration failed!");
+		PX4_INFO_RAW("Device configuration failed!");
 		return status;
 	}
 
@@ -526,7 +549,7 @@ static status_t ConfigureDevice(s2pi_slave_t slave, int8_t rcoTrim)
 	status = SPITransferSync(slave, d3, sizeof(d3));
 
 	if (status < STATUS_OK) {
-		error_log("Device configuration failed!");
+		PX4_INFO_RAW("Device configuration failed!");
 		return status;
 	}
 
@@ -534,7 +557,7 @@ static status_t ConfigureDevice(s2pi_slave_t slave, int8_t rcoTrim)
 	status = SPITransferSync(slave, d4, sizeof(d4));
 
 	if (status < STATUS_OK) {
-		error_log("Device configuration failed!");
+		PX4_INFO_RAW("Device configuration failed!");
 		return status;
 	}
 
@@ -542,7 +565,7 @@ static status_t ConfigureDevice(s2pi_slave_t slave, int8_t rcoTrim)
 	status = SPITransferSync(slave, d5, sizeof(d5));
 
 	if (status < STATUS_OK) {
-		error_log("Device configuration failed!");
+		PX4_INFO_RAW("Device configuration failed!");
 		return status;
 	}
 
@@ -550,7 +573,7 @@ static status_t ConfigureDevice(s2pi_slave_t slave, int8_t rcoTrim)
 	status = SPITransferSync(slave, d6, sizeof(d6));
 
 	if (status < STATUS_OK) {
-		error_log("Device configuration failed!");
+		PX4_INFO_RAW("Device configuration failed!");
 		return status;
 	}
 
@@ -558,7 +581,7 @@ static status_t ConfigureDevice(s2pi_slave_t slave, int8_t rcoTrim)
 	status = SPITransferSync(slave, d7, sizeof(d7));
 
 	if (status < STATUS_OK) {
-		error_log("Device configuration failed!");
+		PX4_INFO_RAW("Device configuration failed!");
 		return status;
 	}
 
@@ -566,7 +589,7 @@ static status_t ConfigureDevice(s2pi_slave_t slave, int8_t rcoTrim)
 	status = SPITransferSync(slave, d8, sizeof(d8));
 
 	if (status < STATUS_OK) {
-		error_log("Device configuration failed!");
+		PX4_INFO_RAW("Device configuration failed!");
 		return status;
 	}
 
@@ -574,7 +597,7 @@ static status_t ConfigureDevice(s2pi_slave_t slave, int8_t rcoTrim)
 	status = SPITransferSync(slave, d9, sizeof(d9));
 
 	if (status < STATUS_OK) {
-		error_log("Device configuration failed!");
+		PX4_INFO_RAW("Device configuration failed!");
 		return status;
 	}
 
@@ -582,7 +605,7 @@ static status_t ConfigureDevice(s2pi_slave_t slave, int8_t rcoTrim)
 	status = SPITransferSync(slave, d10, sizeof(d10));
 
 	if (status < STATUS_OK) {
-		error_log("Device configuration failed!");
+		PX4_INFO_RAW("Device configuration failed!");
 		return status;
 	}
 
@@ -590,7 +613,7 @@ static status_t ConfigureDevice(s2pi_slave_t slave, int8_t rcoTrim)
 	status = SPITransferSync(slave, d11, sizeof(d11));
 
 	if (status < STATUS_OK) {
-		error_log("Device configuration failed!");
+		PX4_INFO_RAW("Device configuration failed!");
 		return status;
 	}
 
@@ -631,7 +654,7 @@ static status_t TriggerMeasurement(s2pi_slave_t slave, uint16_t samples)
 	status_t status = SPITransferSync(slave, d, sizeof(d));
 
 	if (status < STATUS_OK) {
-		error_log("Trigger measurement failed!");
+		PX4_INFO_RAW("Trigger measurement failed!");
 		return status;
 	}
 
@@ -672,8 +695,8 @@ static status_t AwaitDataReady(s2pi_slave_t slave, uint32_t timeout_ms)
 
 	while (S2PI_ReadIrqPin(slave)) {
 		if (Time_CheckTimeoutMSec(&start, timeout_ms)) {
-			error_log("SPI interrupt test failed! The S2PI_ReadIrqPin did not "
-				  "determine an pending interrupt within %d ms.", timeout_ms);
+			PX4_INFO_RAW("SPI interrupt test failed! The S2PI_ReadIrqPin did not "
+				     "determine an pending interrupt within %u ms.", (uint)timeout_ms);
 			return ERROR_TIMEOUT;
 		}
 	}
@@ -740,16 +763,16 @@ static status_t SpiInterruptTest(s2pi_slave_t slave)
 	status_t status = S2PI_SetIrqCallback(slave, DataReadyCallback, (void *)&isDataReady);
 
 	if (status < STATUS_OK) {
-		error_log("SPI interrupt test failed! The call to S2PI_SetIrqCallback "
-			  "yielded error code: %d", status);
+		PX4_INFO_RAW("SPI interrupt test failed! The call to S2PI_SetIrqCallback "
+			     "yielded error code: %d", (int)status);
 		return status;
 	}
 
 	/* Check if IRQ is not yet pending. */
 	if (S2PI_ReadIrqPin(slave) == 0) {
-		error_log("SPI interrupt test failed! The S2PI_ReadIrqPin did "
-			  "return 0 but no interrupt is pending since no "
-			  "measurements are executed yet!");
+		PX4_INFO_RAW("SPI interrupt test failed! The S2PI_ReadIrqPin did "
+			     "return 0 but no interrupt is pending since no "
+			     "measurements are executed yet!");
 		return ERROR_FAIL;
 	};
 
@@ -757,7 +780,7 @@ static status_t SpiInterruptTest(s2pi_slave_t slave)
 	status = ConfigureDevice(slave, 0);
 
 	if (status < STATUS_OK) {
-		error_log("SPI interrupt test failed!");
+		PX4_INFO_RAW("SPI interrupt test failed!");
 		return status;
 	}
 
@@ -765,7 +788,7 @@ static status_t SpiInterruptTest(s2pi_slave_t slave)
 	status = TriggerMeasurement(slave, 0);
 
 	if (status < STATUS_OK) {
-		error_log("SPI interrupt test failed!");
+		PX4_INFO_RAW("SPI interrupt test failed!");
 		return status;
 	}
 
@@ -776,15 +799,15 @@ static status_t SpiInterruptTest(s2pi_slave_t slave)
 	status = AwaitDataReady(slave, timeout_ms);
 
 	if (status < STATUS_OK) {
-		error_log("SPI interrupt test failed!");
+		PX4_INFO_RAW("SPI interrupt test failed!");
 		return status;
 	}
 
 	/* Wait for Interrupt using the callback method. */
 	while (!isDataReady) {
 		if (Time_CheckTimeoutMSec(&start, timeout_ms)) {
-			error_log("SPI interrupt test failed! The IRQ callback was not "
-				  "invoked within %d ms.", timeout_ms);
+			PX4_INFO_RAW("SPI interrupt test failed! The IRQ callback was not "
+				     "invoked within %u ms.", (uint)timeout_ms);
 			return ERROR_TIMEOUT;
 		}
 	}
@@ -793,8 +816,8 @@ static status_t SpiInterruptTest(s2pi_slave_t slave)
 	status = S2PI_SetIrqCallback(slave, 0, 0);
 
 	if (status < STATUS_OK) {
-		error_log("SPI interrupt test failed! The call to S2PI_SetIrqCallback "
-			  "with null pointers yielded error code: %d", status);
+		PX4_INFO_RAW("SPI interrupt test failed! The call to S2PI_SetIrqCallback "
+			     "with null pointers yielded error code: %d", (int)status);
 		return status;
 	}
 
@@ -832,8 +855,8 @@ static status_t ReadEEPROM(s2pi_slave_t slave, uint8_t *eeprom)
 	status_t status = SPITransferSync(slave, d1, sizeof(d1));
 
 	if (status < STATUS_OK) {
-		error_log("EEPROM readout failed (enable EEPROM), "
-			  "error code: %d", status);
+		PX4_INFO_RAW("EEPROM readout failed (enable EEPROM), "
+			     "error code: %d", (int)status);
 		return status;
 	}
 
@@ -844,8 +867,8 @@ static status_t ReadEEPROM(s2pi_slave_t slave, uint8_t *eeprom)
 		status = EEPROM_Read(slave, address, &data[address]);
 
 		if (status != STATUS_OK) {
-			error_log("EEPROM readout failed @ address 0x%02x, "
-				  "error code: %d!", address, status);
+			PX4_INFO_RAW("EEPROM readout failed @ address 0x%02x, "
+				     "error code: %d!", address, (int)status);
 			return status;
 		}
 	}
@@ -855,8 +878,8 @@ static status_t ReadEEPROM(s2pi_slave_t slave, uint8_t *eeprom)
 	status = SPITransferSync(slave, d2, sizeof(d2));
 
 	if (status < STATUS_OK) {
-		error_log("EEPROM readout failed (enable EEPROM), "
-			  "error code: %d", status);
+		PX4_INFO_RAW("EEPROM readout failed (enable EEPROM), "
+			     "error code: %d", (int)status);
 		return status;
 	}
 
@@ -864,8 +887,8 @@ static status_t ReadEEPROM(s2pi_slave_t slave, uint8_t *eeprom)
 	uint8_t err = hamming_decode(data, eeprom);
 
 	if (err != 0) {
-		error_log("EEPROM readout failed! Failed to decoding "
-			  "Hamming weight (error: %d)!", err);
+		PX4_INFO_RAW("EEPROM readout failed! Failed to decoding "
+			     "Hamming weight (error: %d)!", err);
 		return STATUS_ARGUS_EEPROM_BIT_ERROR;
 	}
 
@@ -911,29 +934,29 @@ static status_t GpioModeTest(s2pi_slave_t slave)
 	status_t status = ReadEEPROM(slave, eeprom1);
 
 	if (status < STATUS_OK) {
-		error_log("GPIO mode test failed (1st attempt)!");
+		PX4_INFO_RAW("GPIO mode test failed (1st attempt)!");
 		return status;
 	}
 
 	status = ReadEEPROM(slave, eeprom2);
 
 	if (status < STATUS_OK) {
-		error_log("GPIO mode test failed (2nd attempt)!");
+		PX4_INFO_RAW("GPIO mode test failed (2nd attempt)!");
 		return status;
 	}
 
 	status = ReadEEPROM(slave, eeprom3);
 
 	if (status < STATUS_OK) {
-		error_log("GPIO mode test failed (3rd attempt)!");
+		PX4_INFO_RAW("GPIO mode test failed (3rd attempt)!");
 		return status;
 	}
 
 	/* Verify EEPROM data. */
 	if ((memcmp(eeprom1, eeprom2, 16) != 0) ||
 	    (memcmp(eeprom1, eeprom3, 16) != 0)) {
-		error_log("GPIO Mode test failed (data comparison)!\n"
-			  "The data from 3 distinct EEPROM readout does not match!");
+		PX4_INFO_RAW("GPIO Mode test failed (data comparison)!\n"
+			     "The data from 3 distinct EEPROM readout does not match!");
 		return ERROR_FAIL;
 	}
 
@@ -942,14 +965,14 @@ static status_t GpioModeTest(s2pi_slave_t slave)
 	argus_module_version_t module = EEPROM_ReadModule(eeprom1);
 
 	if (chipID == 0 || module == 0) {
-		error_log("GPIO Mode test failed (data verification)!\n"
-			  "Invalid EEPROM data: Module = %d; Chip ID = %d!", module, chipID);
+		PX4_INFO_RAW("GPIO Mode test failed (data verification)!\n"
+			     "Invalid EEPROM data: Module = %d; Chip ID = %u!", module, (uint)chipID);
 		return ERROR_FAIL;
 	}
 
-	print("EEPROM Readout succeeded!\n");
-	print("- Module: %d\n", module);
-	print("- Device ID: %d\n", chipID);
+	PX4_INFO_RAW("EEPROM Readout succeeded!\n");
+	PX4_INFO_RAW("- Module: %d\n", module);
+	PX4_INFO_RAW("- Device ID: %u\n", (uint)chipID);
 
 	return STATUS_OK;
 }
@@ -997,7 +1020,7 @@ static status_t ReadRcoTrim(s2pi_slave_t slave, int8_t *rcotrim)
 	case MODULE_NONE: /* Uncalibrated module; use all 0 data. */
 	default:
 
-		error_log("EEPROM Readout failed! Unknown module number: %d", module);
+		PX4_INFO_RAW("EEPROM Readout failed! Unknown module number: %d", module);
 		return ERROR_ARGUS_UNKNOWN_MODULE;
 	}
 
@@ -1036,9 +1059,9 @@ static status_t RunMeasurement(s2pi_slave_t slave, uint16_t samples)
 	status_t status = TriggerMeasurement(slave, samples);
 
 	if (status < STATUS_OK) {
-		error_log("Speed test failed!\n"
-			  "Call to TransferFrame returned code: %d",
-			  status);
+		PX4_INFO_RAW("Speed test failed!\n"
+			     "Call to TransferFrame returned code: %d",
+			     (int)status);
 		return status;
 	}
 
@@ -1046,9 +1069,9 @@ static status_t RunMeasurement(s2pi_slave_t slave, uint16_t samples)
 	status = AwaitDataReady(slave, 300);
 
 	if (status < STATUS_OK) {
-		error_log("Speed test failed!\n"
-			  "SPI Read IRQ pin didn't raised, timeout activated at 200ms, error code: %d",
-			  status);
+		PX4_INFO_RAW("Speed test failed!\n"
+			     "SPI Read IRQ pin didn't raised, timeout activated at 200ms, error code: %d",
+			     (int)status);
 		return status;
 	}
 
@@ -1089,7 +1112,7 @@ static status_t TimerTest(s2pi_slave_t slave)
 	/* Test parameter configuration: *****************************************/
 	const int8_t n = 10;				// The number of measurements.
 	const uint32_t ds = 100; 			// The step size in averaging samples.
-	const float exp_slope = 102.4; 		// Expected slope is 102.4 μs / phase / sample
+	const float exp_slope = 102.4; 		// Expected slope is 102.4 µs / phase / sample
 	const float rel_slope_error = 3e-2; // Relative slope tolerance is 3%.
 	/*************************************************************************/
 
@@ -1098,19 +1121,19 @@ static status_t TimerTest(s2pi_slave_t slave)
 	status_t status = ReadRcoTrim(slave, &RcoTrim);
 
 	if (status < STATUS_OK) {
-		error_log("Timer test failed!\n"
-			  "EEPROM Read test returned code: %d", status);
+		PX4_INFO_RAW("Timer test failed!\n"
+			     "EEPROM Read test returned code: %d", (int)status);
 		return status;
 	}
 
-	print("RCOTrim = %d\n", RcoTrim);
+	PX4_INFO_RAW("RCOTrim = %d\n", RcoTrim);
 
 	/* Configure the device with calibrated RCO to 24MHz. */
 	status = ConfigureDevice(slave, RcoTrim);
 
 	if (status < STATUS_OK) {
-		error_log("Timer test failed!\n"
-			  "Configuration test returned code: %d", status);
+		PX4_INFO_RAW("Timer test failed!\n"
+			     "Configuration test returned code: %d", (int)status);
 		return status;
 	}
 
@@ -1122,9 +1145,9 @@ static status_t TimerTest(s2pi_slave_t slave)
 	float x2sum = 0;
 	float xysum = 0;
 
-	print("+-------+---------+------------+\n");
-	print("| count | samples | elapsed us |\n");
-	print("+-------+---------+------------+\n");
+	PX4_INFO_RAW("+-------+---------+------------+\n");
+	PX4_INFO_RAW("| count | samples | elapsed us |\n");
+	PX4_INFO_RAW("+-------+---------+------------+\n");
 
 	for (uint8_t i = 1; i <= n; ++i) {
 		ltc_t start;
@@ -1134,9 +1157,9 @@ static status_t TimerTest(s2pi_slave_t slave)
 		status = RunMeasurement(slave, samples);
 
 		if (status < STATUS_OK) {
-			error_log("Timer test failed!\n"
-				  "Run measurement returned code: %d",
-				  status);
+			PX4_INFO_RAW("Timer test failed!\n"
+				     "Run measurement returned code: %d",
+				     (int)status);
 			return status;
 		}
 
@@ -1147,30 +1170,229 @@ static status_t TimerTest(s2pi_slave_t slave)
 		x2sum += (float) samples * samples;
 		xysum += (float) samples * elapsed_usec;
 
-		print("| %5d | %7d | %10d |\n", i, samples, elapsed_usec);
+		PX4_INFO_RAW("| %5d | %7d | %10d |\n", i, samples, (uint)elapsed_usec);
 	}
 
-	print("+-------+---------+------------+\n");
+	PX4_INFO_RAW("+-------+---------+------------+\n");
 
 
 	const float slope = (n * xysum - xsum * ysum) / (n * x2sum - xsum * xsum);
 	const float intercept = (ysum * x2sum - xsum * xysum) / (n * x2sum - xsum * xsum);
-	print("Linear Regression: y(x) = %dE-7 sec * x + %dE-7 sec\n",
-	      (int)(10 * slope), (int)(10 * intercept));
+	PX4_INFO_RAW("Linear Regression: y(x) = %dE-7 sec * x + %dE-7 sec\n",
+		     (int)(10 * slope), (int)(10 * intercept));
 
 	/* Check the error of the slope. */
 	const float max_slope = exp_slope * (1.f + rel_slope_error);
 	const float min_slope = exp_slope * (1.f - rel_slope_error);
 
 	if (slope > max_slope || slope < min_slope) {
-		error_log("Time test failed!\n"
-			  "The measured time slope does not match the expected value! "
-			  "(actual: %dE-7, expected: %dE-7, min: %dE-7, max: %dE-7)\n",
-			  (int)(10 * slope), (int)(10 * exp_slope),
-			  (int)(10 * min_slope), (int)(10 * max_slope));
+		PX4_INFO_RAW("Time test failed!\n"
+			     "The measured time slope does not match the expected value! "
+			     "(actual: %dE-7, expected: %dE-7, min: %dE-7, max: %dE-7)\n",
+			     (int)(10 * slope), (int)(10 * exp_slope),
+			     (int)(10 * min_slope), (int)(10 * max_slope));
 		return ERROR_FAIL;
 	}
 
 	return STATUS_OK;
 }
 
+
+/*!***************************************************************************
+ * @brief	Data structure for the PIT test.
+ *
+ * @details	Contains data that is required by the PIT timer test.
+ *****************************************************************************/
+typedef struct {
+	/*! The number of PIT callback events. */
+	volatile uint32_t n;
+
+	/*! The time stamp of the first callback event. */
+	ltc_t t_first;
+
+	/*! The time stamp of the last callback event. */
+	ltc_t t_last;
+
+} pit_data_t;
+
+
+
+/*!***************************************************************************
+ * @brief	Callback function invoked by the PIT.
+ *
+ * @details	The function that is invoked every time a specified interval elapses.
+ * 			An abstract parameter is passed to the function whenever it is called.
+ *
+ * 			This implementation collects callback time stamps and counts the
+ * 			number of callback events using the abstract parameter.
+ *
+ * @param	param An abstract parameter to be passed to the callback. This is
+ * 					also the identifier of the given interval.
+ *****************************************************************************/
+static void PIT_Callback(void *param)
+{
+	pit_data_t *data = (pit_data_t *) param;
+
+	if (data->n == 0) {
+		Time_GetNow(&data->t_first);
+		data->t_last = data->t_first;
+
+	} else {
+		Time_GetNow(&data->t_last);
+	}
+
+	data->n++;
+}
+
+/*!***************************************************************************
+ * @brief	Executes a PIT measurement and verifies the callback interval.
+ *
+ * @details The function configures the PIT with a given interval and waits
+ * 			several callback events to happen. In each callback event, the
+ * 			elapsed time is measured and the number of calls are counted.
+ * 			Finally, the average interrupt period is compared with the
+ * 			lifetime timer that has been already verified in a previous test
+ * 			(see #Timer_Test).
+ *
+ * @param	exp_dt_us The expected timer interval in microseconds.
+ * @param	n The number of PIT events to await.
+ *
+ * @return 	Returns the \link #status_t status\endlink:
+ * 			- #STATUS_OK on success.
+ * 			- #ERROR_FAIL if the measured interval does not match the
+ * 			  expectations or the PIT was not disabled properly.
+ * 			- #ERROR_TIMEOUT if either the PIT events do not occur within the
+ * 			  expected time.
+ * 			- The PIT layer error code if #Timer_SetInterval return any
+ * 			  negative status.
+ *****************************************************************************/
+static status_t RunPITTest(uint32_t exp_dt_us, uint32_t n)
+{
+	/* Test parameter configuration: *****************************************/
+	const float rel_dt_error = 1e-3; 	// Relative timer interval tolerance is 0.1%.
+	const float abs_dt_error = 1.0; 	// Absolute timer interval tolerance is 1us.
+	/*************************************************************************/
+	float dt = exp_dt_us * rel_dt_error;
+
+	if (dt < abs_dt_error) { dt = abs_dt_error; }
+
+	const float max_dt = exp_dt_us + dt;
+	const float min_dt = exp_dt_us - dt;
+	/*************************************************************************/
+
+	/* Setup the PIT callback with specified interval. */
+	pit_data_t data = { 0 };
+	status_t status = Timer_SetInterval(exp_dt_us, &data);
+
+	if (status < STATUS_OK) {
+		PX4_INFO_RAW("PIT test failed!\n"
+			     "Timer_SetInterval returned status code: %d", (int)status);
+		return status;
+	}
+
+	/* Wait until n PIT callback have been happened. */
+	uint32_t timeout_us = (n + 1) * exp_dt_us;
+	ltc_t start;
+	Time_GetNow(&start);
+
+	while (data.n < n) {
+		if (Time_CheckTimeoutUSec(&start, timeout_us)) {
+			PX4_INFO_RAW("PIT test failed!\n"
+				     "Waiting for the PIT interrupt events yielded a timeout.");
+			status = ERROR_TIMEOUT;
+			break;
+		}
+	}
+
+	if (status == STATUS_OK) {
+		/* Disable the PIT timer callback. */
+		status = Timer_SetInterval(0, &data);
+
+		if (status < STATUS_OK) {
+			PX4_INFO_RAW("PIT test failed!\n"
+				     "Timer_SetInterval returned status code: %d", (int)status);
+		}
+	}
+
+	if (status == STATUS_OK) {
+		/* Check if PIT callback is not invoked any more. */
+		timeout_us = 2 * exp_dt_us;
+		Time_GetNow(&start);
+
+		while (!Time_CheckTimeoutUSec(&start, timeout_us)) { __asm("nop"); }
+
+		if (data.n > n) {
+			PX4_INFO_RAW("PIT test failed!\n"
+				     "Timer_SetInterval has been called after it was disabled.");
+			status = ERROR_FAIL;
+		}
+	}
+
+	/* Verify the measured average timer interval. */
+	const float act_dt_us = Time_DiffUSec(&data.t_first, &data.t_last) / (n - 1);
+
+	if (status == STATUS_OK && (act_dt_us > max_dt || act_dt_us < min_dt)) {
+		PX4_INFO_RAW("PIT test failed!\n"
+			     "The measured timer interval does not match the expected value!\n");
+		status = ERROR_FAIL;
+	}
+
+	PX4_INFO_RAW("PIT Test Results:\n"
+		     " - event count: %u\n"
+		     " - actual interval: %d us\n"
+		     " - expected interval: %d us, min: %d us, max: %d us\n",
+		     (uint)data.n, (int)act_dt_us, (uint)exp_dt_us, (int)min_dt, (int)max_dt);
+
+	return status;
+}
+
+/*!***************************************************************************
+ * @brief	Test for PIT HAL Implementation by comparing timings to the device.
+ *
+ * @details	The test verifies the timer HAL implementation by comparing the
+ *
+ * @return 	Returns the \link #status_t status\endlink:
+ * 			- #STATUS_OK on success.
+ * 			- #ERROR_NOT_IMPLEMENTED if the PIT functionality is not
+ * 			  implemented and the test is skipped.
+ * 			- #ERROR_FAIL if the measured interval does not match the
+ * 			  expectations or the PIT was not disabled properly.
+ * 			- #ERROR_TIMEOUT if either the PIT events do not occur within the
+ * 			  expected time.
+ * 			- The PIT layer error code if #Timer_SetInterval or
+ * 			  #Timer_SetCallback return any negative status.
+ *****************************************************************************/
+static status_t PITTest(void)
+{
+	status_t status = Timer_SetCallback(PIT_Callback);
+
+	if (status == ERROR_NOT_IMPLEMENTED) { return status; }
+
+	if (status < STATUS_OK) {
+		PX4_INFO_RAW("PIT test failed!\n"
+			     "Timer_SetCallback returned status code: %d", (int)status);
+		return status;
+	}
+
+	status = RunPITTest(10000, 10);
+
+	if (status < STATUS_OK) { return status; }
+
+	status = RunPITTest(333, 1000);
+
+	if (status < STATUS_OK) { return status; }
+
+	status = RunPITTest(100000, 5);
+
+	if (status < STATUS_OK) { return status; }
+
+	status = Timer_SetCallback(0);
+
+	if (status < STATUS_OK) {
+		PX4_INFO_RAW("PIT test failed!\n"
+			     "Timer_SetCallback to 0 returned status code: %d", (int)status);
+		return status;
+	}
+
+	return STATUS_OK;
+}

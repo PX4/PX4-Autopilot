@@ -176,35 +176,13 @@
 #define GPIO_HEATER_OUTPUT   /* PA7  T14CH1 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN7)
 #define HEATER_OUTPUT_EN(on_true)              px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
 
-/* PWM Capture
- *
- * 6  PWM Capture inputs are configured.
- *
- * Pins:
- *
- * FMU_CAP1 : PB11 : TIM2_CH4
- * FMU_CAP2 : PB3  : TIM2_CH2
- * FMU_CAP3 : PA5  : TIM2_CH1
- * FMU_CAP4 : PH9  : TIM12_CH2
- * FMU_CAP5 : PH6  : TIM12_CH1
- * FMU_CAP6 : PD14 : TIM4_CH3
- */
-
-#define GPIO_TIM2_CH4_IN     /* PB11   FMU_CAP3 */ GPIO_TIM2_CH4IN_2
-#define GPIO_TIM2_CH2_IN     /* PB3    FMU_CAP2 */ GPIO_TIM2_CH2IN_2
-#define GPIO_TIM2_CH1_IN     /* PA5    FMU_CAP1 */ GPIO_TIM2_CH1IN_3
-#define GPIO_TIM12_CH2_IN    /* PH9    FMU_CAP4 */ GPIO_TIM12_CH2IN_2
-#define GPIO_TIM12_CH1_IN    /* PH6    FMU_CAP5 */ GPIO_TIM12_CH1IN_2
-#define GPIO_TIM4_CH3_IN     /* PD14   FMU_CAP6 */ GPIO_TIM4_CH3IN_2
-
-#define DIRECT_PWM_CAPTURE_CHANNELS  6
-
 /* PWM
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS  5
-#define DIRECT_INPUT_TIMER_CHANNELS  5
+#define DIRECT_PWM_OUTPUT_CHANNELS  10
 
-#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4};
+#define BOARD_NUM_IO_TIMERS 4
+
+#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5, 6, 7, 9, 8};
 
 /* Power supply control and monitoring GPIOs */
 
@@ -254,32 +232,6 @@
 #define HRT_TIMER_CHANNEL       3  /* use capture/compare channel 3 */
 
 /* RC Serial port */
-
-/* Input Capture Channels. */
-
-#define INPUT_CAP1_TIMER                  2
-#define INPUT_CAP1_CHANNEL     /* T2C4 */ 4
-#define GPIO_INPUT_CAP1        /* PB11 */ GPIO_TIM2_CH4_IN
-
-#define INPUT_CAP2_TIMER                  2
-#define INPUT_CAP2_CHANNEL     /* T2C2 */ 2
-#define GPIO_INPUT_CAP2        /*  PB3 */ GPIO_TIM2_CH2_IN
-
-#define INPUT_CAP3_TIMER                  2
-#define INPUT_CAP3_CHANNEL     /* T2C1 */ 1
-#define GPIO_INPU3_CAP1        /*  PA5 */ GPIO_TIM2_CH1_IN
-
-#define INPUT_CAP4_TIMER                  12
-#define INPUT_CAP4_CHANNEL     /* T12C2*/ 2
-#define GPIO_INPUT_CAP4        /* PH9  */ GPIO_TIM12_CH2_IN
-
-#define INPUT_CAP5_TIMER                  12
-#define INPUT_CAP5_CHANNEL     /* T12C1*/ 1
-#define GPIO_INPUT_CAP5        /* PH6  */ GPIO_TIM12_CH1_IN
-
-#define INPUT_CAP6_TIMER                  4
-#define INPUT_CAP6_CHANNEL     /* T4C3 */ 3
-#define GPIO_INPUT_CAP6        /* PD14 */ GPIO_TIM4_CH3_IN
 
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
 
@@ -332,7 +284,6 @@
 #define BOARD_ADC_PERIPH_5V_OC  (!px4_arch_gpioread(GPIO_nVDD_5V_PERIPH_OC))
 #define BOARD_ADC_HIPOWER_5V_OC (!px4_arch_gpioread(GPIO_nVDD_5V_HIPOWER_OC))
 
-#define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120

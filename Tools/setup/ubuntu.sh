@@ -1,5 +1,7 @@
 #! /usr/bin/env bash
 
+set -e
+
 ## Bash script to setup PX4 development environment on Ubuntu LTS (20.04, 18.04, 16.04).
 ## Can also be used in docker.
 ##
@@ -106,7 +108,13 @@ fi
 # Python3 dependencies
 echo
 echo "Installing PX4 Python3 dependencies"
-python3 -m pip install --user -r ${DIR}/requirements.txt
+if [ -n "$VIRTUAL_ENV" ]; then
+	# virtual envrionments don't allow --user option
+	python -m pip install -r ${DIR}/requirements.txt
+else
+	# older versions of Ubuntu require --user option
+	python3 -m pip install --user -r ${DIR}/requirements.txt
+fi
 
 # NuttX toolchain (arm-none-eabi-gcc)
 if [[ $INSTALL_NUTTX == "true" ]]; then
@@ -193,7 +201,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		java_version=11
 		gazebo_version=9
 	elif [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
-		java_version=14
+		java_version=13
 		gazebo_version=11
 	else
 		java_version=14

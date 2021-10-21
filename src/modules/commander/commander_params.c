@@ -645,6 +645,9 @@ PARAM_DEFINE_INT32(COM_REARM_GRACE, 1);
  * their center position immediately gives control back to the pilot by switching to Position mode.
  * Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
  *
+ * This parameter is not considered in case of a GPS failure (Descend flight mode), where stick
+ * override is always enabled.
+ *
  * @min 0
  * @max 7
  * @bit 0 Enable override during auto modes (except for in critical battery reaction)
@@ -747,7 +750,6 @@ PARAM_DEFINE_FLOAT(COM_ARM_AUTH_TO, 1);
  * The default value has been optimised for rotary wing applications. For fixed wing applications, a larger value between 5 and 10 should be used.
  *
  * @unit s
- * @reboot_required true
  * @group Commander
  * @min 1
  * @max 100
@@ -764,7 +766,6 @@ PARAM_DEFINE_INT32(COM_POS_FS_DELAY, 1);
  * The default value has been optimised for rotary wing applications. For fixed wing applications, a value of 1 should be used.
  *
  * @unit s
- * @reboot_required true
  * @group Commander
  * @min 1
  * @max 100
@@ -1027,3 +1028,20 @@ PARAM_DEFINE_INT32(COM_ARM_ARSP_EN, 1);
  * @value 2 Enforce SD card presence
  */
 PARAM_DEFINE_INT32(COM_ARM_SDCARD, 1);
+
+/**
+ * Wind speed warning threshold
+ *
+ * A warning is triggered if the currently estimated wind speed is above this value.
+ * Warning is sent periodically (every 1min).
+ *
+ * A negative value disables the feature.
+ *
+ * @min -1
+ * @max 30
+ * @decimal 1
+ * @increment 0.1
+ * @group Commander
+ * @unit m/s
+ */
+PARAM_DEFINE_FLOAT(COM_WIND_WARN, -1.f);

@@ -143,6 +143,22 @@ void AutopilotTester::set_height_source(AutopilotTester::HeightSource height_sou
 	}
 }
 
+void AutopilotTester::set_rc_loss_exception(AutopilotTester::RcLossException mask)
+{
+	switch (mask) {
+	case RcLossException::Mission:
+		CHECK(_param->set_param_int("COM_RCL_EXCEPT", 1 << 0) == Param::Result::Success);
+		break;
+
+	case RcLossException::Hold:
+		CHECK(_param->set_param_int("COM_RCL_EXCEPT", 1 << 1) == Param::Result::Success);
+		break;
+
+	case RcLossException::Offboard:
+		CHECK(_param->set_param_int("COM_RCL_EXCEPT", 1 << 2) == Param::Result::Success);
+	}
+}
+
 void AutopilotTester::arm()
 {
 	const auto result = _action->arm();

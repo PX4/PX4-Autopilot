@@ -21,8 +21,6 @@ then
 fi
 
 # initialize script variables
-set AUX_MODE                    none
-set AUX_BANK2			none
 set IO_PRESENT                  no
 set MAV_TYPE                    none
 set MIXER                       none
@@ -122,8 +120,6 @@ then
 
 	param set SENS_BOARD_X_OFF 0.000001
 	param set SENS_DPRES_OFF 0.001
-
-	param set SYS_RESTART_TYPE 2
 fi
 
 param set-default BAT1_N_CELLS 4
@@ -228,8 +224,7 @@ navigator start
 # Try to start the micrortps_client with UDP transport if module exists
 if px4-micrortps_client status > /dev/null 2>&1
 then
-	# shellcheck disable=SC2154
-	micrortps_client start -t UDP -r $((2019+2*px4_instance)) -s $((2020+2*px4_instance))
+	. px4-rc.rtps
 fi
 
 if param greater -s MNT_MODE_IN -1

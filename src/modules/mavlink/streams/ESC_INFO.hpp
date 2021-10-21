@@ -82,7 +82,8 @@ private:
 				for (int esc_index = 0; esc_index < batch_size ; esc_index++) {
 					msg.failure_flags[esc_index] = esc_status.esc[esc_index].failures;
 					msg.error_count[esc_index] = esc_status.esc[esc_index].esc_errorcount;
-					msg.temperature[esc_index] = esc_status.esc[esc_index].esc_temperature;
+					msg.temperature[esc_index] = static_cast<int16_t>(esc_status.esc[esc_index].esc_temperature *
+								     100.f); // convert to centiDegrees
 				}
 
 				mavlink_msg_esc_info_send_struct(_mavlink->get_channel(), &msg);

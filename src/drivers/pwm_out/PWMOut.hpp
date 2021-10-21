@@ -40,7 +40,6 @@
 #include <drivers/device/device.h>
 #include <drivers/device/i2c.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_input_capture.h>
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_pwm_output.h>
 #include <lib/cdev/CDev.hpp>
@@ -48,6 +47,7 @@
 #include <lib/mixer_module/mixer_module.hpp>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
+#include <px4_arch/io_timer.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
@@ -64,33 +64,10 @@
 
 using namespace time_literals;
 
-/** Mode given via CLI */
-enum PortMode {
-	PORT_MODE_UNSET = 0,
-	PORT_FULL_GPIO,
-	PORT_FULL_PWM,
-	PORT_PWM14,
-	PORT_PWM12,
-	PORT_PWM8,
-	PORT_PWM6,
-	PORT_PWM5,
-	PORT_PWM4,
-	PORT_PWM3,
-	PORT_PWM2,
-	PORT_PWM1,
-	PORT_PWM3CAP1,
-	PORT_PWM4CAP1,
-	PORT_PWM4CAP2,
-	PORT_PWM5CAP1,
-	PORT_PWM2CAP2,
-	PORT_CAPTURE,
-};
-
-#if !defined(BOARD_HAS_PWM)
-#  error "board_config.h needs to define BOARD_HAS_PWM"
+#if !defined(DIRECT_PWM_OUTPUT_CHANNELS)
+#  error "board_config.h needs to define DIRECT_PWM_OUTPUT_CHANNELS"
 #endif
 
-// TODO: keep in sync with drivers/camera_capture
 #define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
 
 static constexpr int PWM_OUT_MAX_INSTANCES{(DIRECT_PWM_OUTPUT_CHANNELS > 8) ? 2 : 1};
@@ -99,29 +76,6 @@ extern pthread_mutex_t pwm_out_module_mutex;
 class PWMOut : public cdev::CDev, public OutputModuleInterface
 {
 public:
-	enum Mode {
-		MODE_NONE,
-		MODE_1PWM,
-		MODE_2PWM,
-		MODE_2PWM2CAP,
-		MODE_3PWM,
-		MODE_3PWM1CAP,
-		MODE_4PWM,
-		MODE_4PWM1CAP,
-		MODE_4PWM2CAP,
-		MODE_5PWM,
-		MODE_5PWM1CAP,
-		MODE_6PWM,
-		MODE_8PWM,
-		MODE_12PWM,
-		MODE_14PWM,
-		MODE_4CAP,
-		MODE_5CAP,
-		MODE_6CAP,
-
-		MODE_NO_REQUEST
-	};
-
 	PWMOut() = delete;
 	explicit PWMOut(int instance = 0, uint8_t output_base = 0);
 
@@ -148,28 +102,19 @@ public:
 	static bool trylock_module() { return (pthread_mutex_trylock(&pwm_out_module_mutex) == 0); }
 	static void unlock_module() { pthread_mutex_unlock(&pwm_out_module_mutex); }
 
-	/** change the FMU mode of the running module */
-	static int fmu_new_mode(PortMode new_mode);
-
 	static int test(const char *dev);
 
 	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
 
 	virtual int	init();
 
-	int		set_mode(Mode mode);
-	Mode		get_mode() { return _mode; }
-	uint32_t	get_pwm_mask() { return _pwm_mask; }
-	uint32_t	get_alt_rate_channels() { return _pwm_alt_rate_channels; }
-	unsigned	get_alt_rate() { return _pwm_alt_rate; }
-	unsigned	get_default_rate() { return _pwm_default_rate; }
-	void		request_mode(Mode new_mode);
+	uint32_t	get_pwm_mask() const { return _pwm_mask; }
+	void		set_pwm_mask(uint32_t mask) { _pwm_mask = mask; }
+	uint32_t	get_alt_rate_channels() const { return _pwm_alt_rate_channels; }
+	unsigned	get_alt_rate() const { return _pwm_alt_rate; }
+	unsigned	get_default_rate() const { return _pwm_default_rate; }
 
 	static int	set_i2c_bus_clock(unsigned bus, unsigned clock_hz);
-
-	static void	capture_trampoline(void *context, uint32_t chan_index,
-					   hrt_abstime edge_time, uint32_t edge_state,
-					   uint32_t overflow);
 
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
@@ -182,21 +127,23 @@ private:
 
 	const int _instance;
 	const uint32_t _output_base;
-	uint32_t _output_mask;
 
 	static const int MAX_PER_INSTANCE{8};
 
-	MixingOutput _mixing_output{FMU_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
-
-	Mode		_mode{MODE_NONE};
-
-	px4::atomic<Mode> _new_mode_request{MODE_NO_REQUEST};
+#ifdef BOARD_WITH_IO
+# define PARAM_PREFIX "PWM_AUX"
+#else
+# define PARAM_PREFIX "PWM_MAIN"
+#endif
+	MixingOutput _mixing_output {PARAM_PREFIX, FMU_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
 
 	uint32_t	_backup_schedule_interval_us{1_s};
 
 	unsigned	_pwm_default_rate{50};
 	unsigned	_pwm_alt_rate{50};
 	uint32_t	_pwm_alt_rate_channels{0};
+
+	int _timer_rates[MAX_IO_TIMERS] {};
 
 	int		_current_update_rate{0};
 
@@ -215,8 +162,6 @@ private:
 	perf_counter_t	_cycle_perf;
 	perf_counter_t	_interval_perf;
 
-	void		capture_callback(uint32_t chan_index,
-					 hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
 	void		update_current_rate();
 	int			set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
 	int			pwm_ioctl(file *filp, int cmd, unsigned long arg);
@@ -227,8 +172,6 @@ private:
 
 	static void		sensor_reset(int ms);
 	static void		peripheral_reset(int ms);
-
-	int		capture_ioctl(file *filp, int cmd, unsigned long arg);
 
 	PWMOut(const PWMOut &) = delete;
 	PWMOut operator=(const PWMOut &) = delete;

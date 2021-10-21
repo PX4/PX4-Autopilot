@@ -1,0 +1,5 @@
+menuconfig DRIVERS_MAGNETOMETER_VTRANTECH_VCM1193L
+	bool "VCM1193L"
+	default n
+	---help---
+		Enable support for Vtrantech VCM1193L
