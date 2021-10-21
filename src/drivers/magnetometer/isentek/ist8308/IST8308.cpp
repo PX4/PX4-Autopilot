@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,10 +40,10 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 	return (msb << 8u) | lsb;
 }
 
-IST8308::IST8308(I2CSPIBusOption bus_option, int bus, int bus_frequency, enum Rotation rotation) :
-	I2C(DRV_MAG_DEVTYPE_IST8308, MODULE_NAME, bus, I2C_ADDRESS_DEFAULT, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_mag(get_device_id(), rotation)
+IST8308::IST8308(const I2CSPIDriverConfig &config) :
+	I2C(config),
+	I2CSPIDriver(config),
+	_px4_mag(get_device_id(), config.rotation)
 {
 	_px4_mag.set_external(external());
 }
@@ -86,14 +86,20 @@ void IST8308::print_status()
 
 int IST8308::probe()
 {
-	const uint8_t WAI = RegisterRead(Register::WAI);
+	_retries = 2;
 
-	if (WAI != Device_ID) {
-		DEVICE_DEBUG("unexpected WAI 0x%02x", WAI);
-		return PX4_ERROR;
+	for (int retry = 0; retry < 3; retry++) {
+		const uint8_t WAI = RegisterRead(Register::WAI);
+
+		if (WAI == Device_ID) {
+			return PX4_OK;
+
+		} else {
+			DEVICE_DEBUG("unexpected WAI 0x%02x", WAI);
+		}
 	}
 
-	return PX4_OK;
+	return PX4_ERROR;
 }
 
 void IST8308::RunImpl()
@@ -240,7 +246,7 @@ bool IST8308::Configure()
 	}
 
 	// 1 Microtesla = 0.01 Gauss
-	_px4_mag.set_scale(1.f / 6.6f * 0.01f); // 6.6 LSB/uT
+	_px4_mag.set_scale(1.f / 13.2f * 0.01f); // 13.2 LSB/uT
 
 	return success;
 }

@@ -60,13 +60,15 @@ bool VersioningTest::_test_tag_to_version_number(const char *version_tag, uint32
 			return true;
 
 		} else {
-			PX4_ERR("Wrong vendor version: tag: %s, got: 0x%x, expected: 0x%x", version_tag, vendor_version_result,
+			PX4_ERR("Wrong vendor version: tag: %s, got: 0x%" PRIx32 ", expected: 0x%" PRIx32 "", version_tag,
+				vendor_version_result,
 				vendor_version_target);
 			return false;
 		}
 
 	} else {
-		PX4_ERR("Wrong flight version: tag: %s, got: 0x%x, expected: 0x%x", version_tag, flight_version_result,
+		PX4_ERR("Wrong flight version: tag: %s, got: 0x%" PRIx32 ", expected: 0x%" PRIx32 "", version_tag,
+			flight_version_result,
 			flight_version_target);
 		return false;
 	}

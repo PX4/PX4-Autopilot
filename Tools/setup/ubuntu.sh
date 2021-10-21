@@ -115,18 +115,32 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 	echo "Installing NuttX dependencies"
 
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
-		autoconf \
 		automake \
+		binutils-dev \
 		bison \
-		bzip2 \
-		file \
+		build-essential \
 		flex \
+		g++-multilib \
+		gcc-multilib \
 		gdb-multiarch \
+		genromfs \
+		gettext \
 		gperf \
-		libncurses-dev \
+		kconfig-frontends \
+		libelf-dev \
+		libexpat-dev \
+		libgmp-dev \
+		libisl-dev \
+		libmpc-dev \
+		libmpfr-dev \
+		libncurses5-dev \
+		libncursesw5-dev \
 		libtool \
 		pkg-config \
 		screen \
+		texinfo \
+		u-boot-tools \
+		util-linux \
 		vim-common \
 		;
 

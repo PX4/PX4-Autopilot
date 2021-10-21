@@ -1,9 +1,6 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR spracing
-	MODEL h7extreme
-	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
@@ -39,16 +36,13 @@ px4_add_board(
 		#pca9685
 		#power_monitor/ina226
 		#protocol_splitter
-#		pwm_input  - Need to create arch/stm32 arch/stm32h7 arch/kinetis and reloacate
-#					   all arch dependant code there
 		pwm_out_sim
 		pwm_out
 		#roboclaw
 		rc_input
+		#smart_battery/batmon
 		telemetry # all available telemetry drivers
-		#test_ppm
 		tone_alarm
-#		uavcan - No H7 or FD can support in UAVCAN yet
 	MODULES
 		#airspeed_selector
 		attitude_estimator_q
@@ -100,7 +94,6 @@ px4_add_board(
 		reflect
 		sd_bench
 		#shutdown
-		#tests # tests and test runner
 		top
 		topic_listener
 		tune_control
@@ -109,7 +102,9 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
-		#bottle_drop # OBC challenge
+		fake_gps
+		#fake_imu
+		#fake_magnetometer
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hello
 		#hwtest # Hardware test
@@ -118,4 +113,5 @@ px4_add_board(
 		#px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		#rover_steering_control # Rover example app
 		#uuv_example_app
+		#work_item
 	)

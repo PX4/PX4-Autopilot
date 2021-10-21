@@ -34,8 +34,9 @@
 set(msg_out_path ${CMAKE_CURRENT_BINARY_DIR})
 get_filename_component(micrortps_bridge_path ${msg_out_path} PATH)
 
-if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_topics}" STREQUAL "")
+option(BUILD_MICRORTPS_AGENT "enable building the micrortps_agent after its generation" OFF)
 
+if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_topics}" STREQUAL "")
 	set(send_topic_files)
 	foreach(topic ${config_rtps_send_topics})
 		list(APPEND send_topic_files ${PX4_SOURCE_DIR}/msg/${topic}.msg)
@@ -105,4 +106,13 @@ if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_t
 			topic_bridge_files
 	)
 	target_link_libraries(modules__micrortps_bridge__micrortps_client PRIVATE uorb_msgs_microcdr)
+
+	if (BUILD_MICRORTPS_AGENT)
+		add_custom_command(TARGET modules__micrortps_bridge__micrortps_client POST_BUILD
+			COMMAND ${PX4_SOURCE_DIR}/Tools/build_micrortps_agent.sh
+			WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+			COMMENT "Building micrortps_agent..."
+		)
+		# add_subdirectory(${micrortps_bridge_path}/micrortps_agent)
+	endif()
 endif()

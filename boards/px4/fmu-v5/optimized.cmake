@@ -5,13 +5,11 @@ add_compile_options(-Wno-error=array-bounds)
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR px4
-	MODEL fmu-v5
-	LABEL optimized
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
 	IO px4_io-v2_default
+	EXTERNAL_METADATA
 	TESTING
 	#UAVCAN_INTERFACES 2
 	SERIAL_PORTS
@@ -35,18 +33,19 @@ px4_add_board(
 		imu/bosch/bmi055
 		imu/invensense/icm20602
 		imu/invensense/icm20689
-		irlock
+		imu/invensense/icm20948 # required for ak09916 mag
+		#irlock
 		lights # all available light drivers
 		#lights/rgbled_pwm
 		#magnetometer # all available magnetometer drivers
 		magnetometer/isentek/ist8310
-		optical_flow # all available optical flow drivers
+		#optical_flow # all available optical flow drivers
 		#osd
 		#pca9685
 		#pca9685_pwm_out
 		#power_monitor/ina226
 		#protocol_splitter
-		pwm_input
+		#pwm_input
 		pwm_out_sim
 		pwm_out
 		px4io
@@ -54,6 +53,7 @@ px4_add_board(
 		#roboclaw
 		#rpm
 		safety_button
+		smart_battery/batmon
 		#telemetry # all available telemetry drivers
 		test_ppm
 		tone_alarm
@@ -89,23 +89,24 @@ px4_add_board(
 		#rover_pos_control
 		sensors
 		#sih
-		temperature_compensation
+		#temperature_compensation
 		#uuv_att_control
 		#uuv_pos_control
 		#vmount
-		vtol_att_control
+		#vtol_att_control
 	SYSTEMCMDS
-		#bl_update
+		bl_update
 		dmesg
-		dumpfile
+		#dumpfile
 		#esc_calib
 		#gpio
 		hardfault_log
 		i2cdetect
 		led_control
 		mft
+		microbench
 		mixer
-		motor_ramp
+		#motor_ramp
 		motor_test
 		mtd
 		nshterm
@@ -125,4 +126,17 @@ px4_add_board(
 		usb_connected
 		ver
 		work_queue
+	EXAMPLES
+		fake_gps
+		#fake_imu
+		#fake_magnetometer
+		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		#hello
+		#hwtest # Hardware test
+		#matlab_csv_serial
+		#px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
+		#px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
+		#rover_steering_control # Rover example app
+		#uuv_example_app
+		#work_item
 	)

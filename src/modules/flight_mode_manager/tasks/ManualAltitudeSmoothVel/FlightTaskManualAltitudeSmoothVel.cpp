@@ -69,12 +69,12 @@ void FlightTaskManualAltitudeSmoothVel::reActivate()
 	_smoothing.reset(0.f, 0.f, _position(2));
 }
 
-void FlightTaskManualAltitudeSmoothVel::_ekfResetHandlerPositionZ()
+void FlightTaskManualAltitudeSmoothVel::_ekfResetHandlerPositionZ(float delta_z)
 {
 	_smoothing.setCurrentPosition(_position(2));
 }
 
-void FlightTaskManualAltitudeSmoothVel::_ekfResetHandlerVelocityZ()
+void FlightTaskManualAltitudeSmoothVel::_ekfResetHandlerVelocityZ(float delta_vz)
 {
 	_smoothing.setCurrentVelocity(_velocity(2));
 }

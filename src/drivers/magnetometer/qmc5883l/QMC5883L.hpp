@@ -53,11 +53,9 @@ using namespace QST_QMC5883L;
 class QMC5883L : public device::I2C, public I2CSPIDriver<QMC5883L>
 {
 public:
-	QMC5883L(I2CSPIBusOption bus_option, int bus, int bus_frequency, enum Rotation rotation = ROTATION_NONE);
+	QMC5883L(const I2CSPIDriverConfig &config);
 	~QMC5883L() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void RunImpl();

@@ -31,7 +31,7 @@ set VEHICLE_TYPE mc
 param set-default NAV_ACC_RAD 2
 
 param set-default PWM_AUX_RATE 400
-param set-default PWM_AUX_DISARMED 900
+param set-default PWM_AUX_DISARM 900
 param set-default PWM_AUX_MIN 1075
 param set-default PWM_AUX_MAX 1950
 

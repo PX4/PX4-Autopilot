@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,26 +47,6 @@ void ICM20948::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *ICM20948::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					int runtime_instance)
-{
-	bool mag = (cli.custom1 == 1);
-	ICM20948 *instance = new ICM20948(iterator.configuredBusOption(), iterator.bus(), iterator.devid(), cli.rotation,
-					  cli.bus_frequency, cli.spi_mode, iterator.DRDYGPIO(), mag);
-
-	if (!instance) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (OK != instance->init()) {
-		delete instance;
-		return nullptr;
-	}
-
-	return instance;
-}
-
 extern "C" int icm20948_main(int argc, char *argv[])
 {
 	int ch;
@@ -74,19 +54,19 @@ extern "C" int icm20948_main(int argc, char *argv[])
 	BusCLIArguments cli{false, true};
 	cli.default_spi_frequency = SPI_SPEED;
 
-	while ((ch = cli.getopt(argc, argv, "MR:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "MR:")) != EOF) {
 		switch (ch) {
 		case 'M':
 			cli.custom1 = 1;
 			break;
 
 		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optarg());
+			cli.rotation = (enum Rotation)atoi(cli.optArg());
 			break;
 		}
 	}
 
-	const char *verb = cli.optarg();
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();

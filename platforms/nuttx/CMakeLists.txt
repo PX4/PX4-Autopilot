@@ -72,6 +72,7 @@ elseif("${PX4_BOARD_LABEL}" STREQUAL "canbootloader")
 		-Wl,-wrap,nxsched_process_timer
 		-Wl,-wrap,nxsem_post
 		-Wl,-wrap,nxsem_wait
+		-Wl,-wrap,nxsem_wait_uninterruptible
 		-Wl,-wrap,arm_svcall
 		-Wl,-wrap,nx_start
 		-Wl,-wrap,exit
@@ -155,9 +156,9 @@ if((DEFINED ENV{SIGNING_TOOL}) AND (NOT NUTTX_DIR MATCHES "external"))
 		COMMAND $ENV{SIGNING_TOOL} $ENV{SIGNING_ARGS} ${PX4_BINARY_OUTPUT} ${PX4_BINARY_DIR}/${PX4_BOARD}.bin
 		DEPENDS ${PX4_BINARY_OUTPUT}
 		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-)
+	)
 else()
-set(PX4_BINARY_OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_BOARD}.bin)
+	set(PX4_BINARY_OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_BOARD}.bin)
 endif()
 
 add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
@@ -205,6 +206,20 @@ add_custom_target(weak_symbols
 	USES_TERMINAL
 )
 
+# generate bootloader.elf and copy to top level build directory
+if(EXISTS "${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin")
+	add_custom_command(
+		OUTPUT ${PX4_BINARY_DIR}/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.elf
+		COMMAND
+			${CMAKE_OBJCOPY} -I binary -O elf32-little --change-section-address .data=0x08000000
+				${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin
+				${PX4_BINARY_DIR}/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.elf
+		DEPENDS ${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	)
+	add_custom_target(bootloader_elf DEPENDS ${PX4_BINARY_DIR}/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.elf)
+endif()
+
 
 # debugger helpers
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/gdbinit.in ${PX4_BINARY_DIR}/.gdbinit)
@@ -248,6 +263,9 @@ if(NOT NUTTX_DIR MATCHES "external")
 	elseif(CONFIG_ARCH_CHIP_STM32F469I)
 		set(DEBUG_DEVICE "STM32F469II")
 		set(DEBUG_SVD_FILE "STM32F469.svd")
+	elseif(CONFIG_ARCH_CHIP_STM32F722RE)
+		set(DEBUG_DEVICE "STM32F722RE")
+		set(DEBUG_SVD_FILE "STM32F7x2.svd")
 	elseif(CONFIG_ARCH_CHIP_STM32F745VG)
 		set(DEBUG_DEVICE "STM32F745VG")
 		set(DEBUG_SVD_FILE "STM32F7x5.svd")

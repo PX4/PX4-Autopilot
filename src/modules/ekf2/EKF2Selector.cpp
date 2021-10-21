@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,7 +37,6 @@ using namespace time_literals;
 using matrix::Quatf;
 using matrix::Vector2f;
 using math::constrain;
-using math::max;
 using math::radians;
 
 EKF2Selector::EKF2Selector() :
@@ -67,10 +66,49 @@ void EKF2Selector::Stop()
 	ScheduleClear();
 }
 
+void EKF2Selector::PrintInstanceChange(const uint8_t old_instance, uint8_t new_instance)
+{
+	const char *old_reason = nullptr;
+
+	if (_instance[old_instance].filter_fault) {
+		old_reason = " (filter fault)";
+
+	} else if (_instance[old_instance].timeout) {
+		old_reason = " (timeout)";
+
+	} else if (_gyro_fault_detected) {
+		old_reason = " (gyro fault)";
+
+	} else if (_accel_fault_detected) {
+		old_reason = " (accel fault)";
+
+	} else if (!_instance[_selected_instance].healthy && (_instance[_selected_instance].healthy_count > 0)) {
+		// skipped if previous instance was never healthy in the first place (eg initialization)
+		old_reason = " (unhealthy)";
+	}
+
+	const char *new_reason = nullptr;
+
+	if (_request_instance.load() == new_instance) {
+		new_reason = " (user selected)";
+	}
+
+	if (old_reason || new_reason) {
+		if (old_reason == nullptr) {
+			old_reason = "";
+		}
+
+		if (new_reason == nullptr) {
+			new_reason = "";
+		}
+
+		PX4_WARN("primary EKF changed %" PRIu8 "%s -> %" PRIu8 "%s", old_instance, old_reason, new_instance, new_reason);
+	}
+}
+
 bool EKF2Selector::SelectInstance(uint8_t ekf_instance)
 {
-	if ((ekf_instance != INVALID_INSTANCE) && (ekf_instance != _selected_instance)) {
-
+	if ((ekf_instance != _selected_instance) && (ekf_instance < _available_instances)) {
 		// update sensor_selection immediately
 		sensor_selection_s sensor_selection{};
 		sensor_selection.accel_device_id = _instance[ekf_instance].accel_device_id;
@@ -83,26 +121,7 @@ bool EKF2Selector::SelectInstance(uint8_t ekf_instance)
 			_instance[_selected_instance].estimator_attitude_sub.unregisterCallback();
 			_instance[_selected_instance].estimator_status_sub.unregisterCallback();
 
-			if (!_instance[_selected_instance].healthy) {
-				const char *reason = nullptr;
-
-				if (_instance[_selected_instance].filter_fault) {
-					reason = "filter fault";
-
-				} else if (_instance[_selected_instance].timeout) {
-					reason = "timeout";
-
-				} else if (_gyro_fault_detected) {
-					reason = "gyro fault";
-
-				} else if (_accel_fault_detected) {
-					reason = "accel fault";
-				}
-
-				if (reason) {
-					PX4_WARN("primary EKF changed %d (%s) -> %d", _selected_instance, reason, ekf_instance);
-				}
-			}
+			PrintInstanceChange(_selected_instance, ekf_instance);
 		}
 
 		_instance[ekf_instance].estimator_attitude_sub.registerCallback();
@@ -117,12 +136,6 @@ bool EKF2Selector::SelectInstance(uint8_t ekf_instance)
 		for (uint8_t i = 0; i < _available_instances; i++) {
 			_instance[i].relative_test_ratio = 0;
 		}
-
-		// publish new data immediately with resets
-		PublishVehicleAttitude(true);
-		PublishVehicleLocalPosition(true);
-		PublishVehicleGlobalPosition(true);
-		PublishWindEstimate(true);
 
 		return true;
 	}
@@ -269,18 +282,23 @@ bool EKF2Selector::UpdateErrorScores()
 				primary_updated = true;
 			}
 
-			const bool tilt_align = status.control_mode_flags & (1 << estimator_status_s::CS_TILT_ALIGN);
-			const bool yaw_align = status.control_mode_flags & (1 << estimator_status_s::CS_YAW_ALIGN);
-
-			float combined_test_ratio = 0;
-
-			if (tilt_align && yaw_align) {
-				combined_test_ratio = fmaxf(0.f, 0.5f * (status.vel_test_ratio + status.pos_test_ratio));
-				combined_test_ratio = fmaxf(combined_test_ratio, status.hgt_test_ratio);
+			// test ratios are invalid when 0, >= 1 is a failure
+			if (!PX4_ISFINITE(status.vel_test_ratio) || (status.vel_test_ratio <= 0.f)) {
+				status.vel_test_ratio = 1.f;
 			}
 
+			if (!PX4_ISFINITE(status.pos_test_ratio) || (status.pos_test_ratio <= 0.f)) {
+				status.pos_test_ratio = 1.f;
+			}
+
+			if (!PX4_ISFINITE(status.hgt_test_ratio) || (status.hgt_test_ratio <= 0.f)) {
+				status.hgt_test_ratio = 1.f;
+			}
+
+			float combined_test_ratio = fmaxf(0.5f * (status.vel_test_ratio + status.pos_test_ratio), status.hgt_test_ratio);
+
 			_instance[i].combined_test_ratio = combined_test_ratio;
-			_instance[i].healthy = tilt_align && yaw_align && (status.filter_fault_flags == 0);
+			_instance[i].healthy = (status.filter_fault_flags == 0) && (combined_test_ratio > 0.f);
 			_instance[i].filter_fault = (status.filter_fault_flags != 0);
 			_instance[i].timeout = false;
 
@@ -288,7 +306,7 @@ bool EKF2Selector::UpdateErrorScores()
 				_instance[i].relative_test_ratio = 0;
 			}
 
-		} else if (hrt_elapsed_time(&_instance[i].timestamp_sample_last) > status_timeout) {
+		} else if (!_instance[i].timeout && (hrt_elapsed_time(&_instance[i].timestamp_sample_last) > status_timeout)) {
 			_instance[i].healthy = false;
 			_instance[i].timeout = true;
 		}
@@ -306,6 +324,10 @@ bool EKF2Selector::UpdateErrorScores()
 		if (prev_healthy != _instance[i].healthy) {
 			updated = true;
 			_selector_status_publish = true;
+
+			if (!prev_healthy) {
+				_instance[i].healthy_count++;
+			}
 		}
 	}
 
@@ -322,6 +344,11 @@ bool EKF2Selector::UpdateErrorScores()
 				if (error_delta > 0 || error_delta < -threshold) {
 					_instance[i].relative_test_ratio += error_delta;
 					_instance[i].relative_test_ratio = constrain(_instance[i].relative_test_ratio, -_rel_err_score_lim, _rel_err_score_lim);
+
+					if ((error_delta < -threshold) && (_instance[i].relative_test_ratio < 1.f)) {
+						// increase status publication rate if there's movement towards a potential instance change
+						_selector_status_publish = true;
+					}
 				}
 			}
 		}
@@ -330,104 +357,152 @@ bool EKF2Selector::UpdateErrorScores()
 	return (primary_updated || updated);
 }
 
-void EKF2Selector::PublishVehicleAttitude(bool reset)
+void EKF2Selector::PublishVehicleAttitude()
 {
+	// selected estimator_attitude -> vehicle_attitude
 	vehicle_attitude_s attitude;
 
-	if (_instance[_selected_instance].estimator_attitude_sub.copy(&attitude)) {
-		if (reset) {
-			// on reset compute deltas from last published data
-			++_quat_reset_counter;
+	if (_instance[_selected_instance].estimator_attitude_sub.update(&attitude)) {
+		bool instance_change = false;
 
-			_delta_q_reset = (Quatf(attitude.q) * Quatf(_attitude_last.q).inversed()).normalized();
-
-			// ensure monotonically increasing timestamp_sample through reset
-			attitude.timestamp_sample = max(attitude.timestamp_sample, _attitude_last.timestamp_sample);
-
-		} else {
-			// otherwise propogate deltas from estimator data while maintaining the overall reset counts
-			if (attitude.quat_reset_counter > _attitude_last.quat_reset_counter) {
-				++_quat_reset_counter;
-				_delta_q_reset = Quatf{attitude.delta_q_reset};
-			}
+		if (_instance[_selected_instance].estimator_attitude_sub.get_instance() != _attitude_instance_prev) {
+			_attitude_instance_prev = _instance[_selected_instance].estimator_attitude_sub.get_instance();
+			instance_change = true;
 		}
 
-		// save last primary estimator_attitude
+		if (_attitude_last.timestamp != 0) {
+			if (!instance_change && (attitude.quat_reset_counter == _attitude_last.quat_reset_counter + 1)) {
+				// propogate deltas from estimator data while maintaining the overall reset counts
+				++_quat_reset_counter;
+				_delta_q_reset = Quatf{attitude.delta_q_reset};
+
+			} else if (instance_change || (attitude.quat_reset_counter != _attitude_last.quat_reset_counter)) {
+				// on reset compute deltas from last published data
+				++_quat_reset_counter;
+				_delta_q_reset = (Quatf(attitude.q) * Quatf(_attitude_last.q).inversed()).normalized();
+			}
+
+		} else {
+			_quat_reset_counter = attitude.quat_reset_counter;
+			_delta_q_reset = Quatf{attitude.delta_q_reset};
+		}
+
+		bool publish = true;
+
+		// ensure monotonically increasing timestamp_sample through reset, don't publish
+		//  estimator's attitude for system (vehicle_attitude) if it's stale
+		if ((attitude.timestamp_sample <= _attitude_last.timestamp_sample)
+		    || (attitude.timestamp_sample < _instance[_selected_instance].timestamp_sample_last)) {
+
+			publish = false;
+		}
+
+		// save last primary estimator_attitude as published with original resets
 		_attitude_last = attitude;
 
-		// republish with total reset count and current timestamp
-		attitude.quat_reset_counter = _quat_reset_counter;
-		_delta_q_reset.copyTo(attitude.delta_q_reset);
+		if (publish) {
+			// republish with total reset count and current timestamp
+			attitude.quat_reset_counter = _quat_reset_counter;
+			_delta_q_reset.copyTo(attitude.delta_q_reset);
 
-		attitude.timestamp = hrt_absolute_time();
-		_vehicle_attitude_pub.publish(attitude);
-
-		_instance[_selected_instance].timestamp_sample_last = attitude.timestamp_sample;
+			attitude.timestamp = hrt_absolute_time();
+			_vehicle_attitude_pub.publish(attitude);
+		}
 	}
 }
 
-void EKF2Selector::PublishVehicleLocalPosition(bool reset)
+void EKF2Selector::PublishVehicleLocalPosition()
 {
-	// vehicle_local_position
+	// selected estimator_local_position -> vehicle_local_position
 	vehicle_local_position_s local_position;
 
-	if (_instance[_selected_instance].estimator_local_position_sub.copy(&local_position)) {
-		if (reset) {
-			// on reset compute deltas from last published data
-			++_xy_reset_counter;
-			++_z_reset_counter;
-			++_vxy_reset_counter;
-			++_vz_reset_counter;
-			++_heading_reset_counter;
+	if (_instance[_selected_instance].estimator_local_position_sub.update(&local_position)) {
+		bool instance_change = false;
 
-			_delta_xy_reset = Vector2f{local_position.x, local_position.y} - Vector2f{_local_position_last.x, _local_position_last.y};
-			_delta_z_reset = local_position.z - _local_position_last.z;
-			_delta_vxy_reset = Vector2f{local_position.vx, local_position.vy} - Vector2f{_local_position_last.vx, _local_position_last.vy};
-			_delta_vz_reset = local_position.vz - _local_position_last.vz;
-			_delta_heading_reset = matrix::wrap_2pi(local_position.heading - _local_position_last.heading);
+		if (_instance[_selected_instance].estimator_local_position_sub.get_instance() != _local_position_instance_prev) {
+			_local_position_instance_prev = _instance[_selected_instance].estimator_local_position_sub.get_instance();
+			instance_change = true;
+		}
 
-			// ensure monotonically increasing timestamp_sample through reset
-			local_position.timestamp_sample = max(local_position.timestamp_sample, _local_position_last.timestamp_sample);
-
-		} else {
-			// otherwise propogate deltas from estimator data while maintaining the overall reset counts
-
+		if (_local_position_last.timestamp != 0) {
 			// XY reset
-			if (local_position.xy_reset_counter > _local_position_last.xy_reset_counter) {
+			if (!instance_change && (local_position.xy_reset_counter == _local_position_last.xy_reset_counter + 1)) {
 				++_xy_reset_counter;
 				_delta_xy_reset = Vector2f{local_position.delta_xy};
+
+			} else if (instance_change || (local_position.xy_reset_counter != _local_position_last.xy_reset_counter)) {
+				++_xy_reset_counter;
+				_delta_xy_reset = Vector2f{local_position.x, local_position.y} - Vector2f{_local_position_last.x, _local_position_last.y};
 			}
 
 			// Z reset
-			if (local_position.z_reset_counter > _local_position_last.z_reset_counter) {
+			if (!instance_change && (local_position.z_reset_counter == _local_position_last.z_reset_counter + 1)) {
 				++_z_reset_counter;
 				_delta_z_reset = local_position.delta_z;
+
+			} else if (instance_change || (local_position.z_reset_counter != _local_position_last.z_reset_counter)) {
+				++_z_reset_counter;
+				_delta_z_reset = local_position.z - _local_position_last.z;
 			}
 
 			// VXY reset
-			if (local_position.vxy_reset_counter > _local_position_last.vxy_reset_counter) {
+			if (!instance_change && (local_position.vxy_reset_counter == _local_position_last.vxy_reset_counter + 1)) {
 				++_vxy_reset_counter;
 				_delta_vxy_reset = Vector2f{local_position.delta_vxy};
+
+			} else if (instance_change || (local_position.vxy_reset_counter != _local_position_last.vxy_reset_counter)) {
+				++_vxy_reset_counter;
+				_delta_vxy_reset = Vector2f{local_position.vx, local_position.vy} - Vector2f{_local_position_last.vx, _local_position_last.vy};
 			}
 
 			// VZ reset
-			if (local_position.vz_reset_counter > _local_position_last.vz_reset_counter) {
+			if (!instance_change && (local_position.vz_reset_counter == _local_position_last.vz_reset_counter + 1)) {
 				++_vz_reset_counter;
 				_delta_vz_reset = local_position.delta_vz;
+
+			} else if (instance_change || (local_position.vz_reset_counter != _local_position_last.vz_reset_counter)) {
+				++_vz_reset_counter;
+				_delta_vz_reset = local_position.vz - _local_position_last.vz;
 			}
 
 			// heading reset
-			if (local_position.heading_reset_counter > _local_position_last.heading_reset_counter) {
+			if (!instance_change && (local_position.heading_reset_counter == _local_position_last.heading_reset_counter + 1)) {
 				++_heading_reset_counter;
 				_delta_heading_reset = local_position.delta_heading;
+
+			} else if (instance_change || (local_position.heading_reset_counter != _local_position_last.heading_reset_counter)) {
+				++_heading_reset_counter;
+				_delta_heading_reset = matrix::wrap_pi(local_position.heading - _local_position_last.heading);
 			}
+
+		} else {
+			_xy_reset_counter = local_position.xy_reset_counter;
+			_z_reset_counter = local_position.z_reset_counter;
+			_vxy_reset_counter = local_position.vxy_reset_counter;
+			_vz_reset_counter = local_position.vz_reset_counter;
+			_heading_reset_counter = local_position.heading_reset_counter;
+
+			_delta_xy_reset = Vector2f{local_position.delta_xy};
+			_delta_z_reset = local_position.delta_z;
+			_delta_vxy_reset = Vector2f{local_position.delta_vxy};
+			_delta_vz_reset = local_position.delta_vz;
+			_delta_heading_reset = local_position.delta_heading;
 		}
 
-		// save last primary estimator_local_position
+		bool publish = true;
+
+		// ensure monotonically increasing timestamp_sample through reset, don't publish
+		//  estimator's local position for system (vehicle_local_position) if it's stale
+		if ((local_position.timestamp_sample <= _local_position_last.timestamp_sample)
+		    || (local_position.timestamp_sample < _instance[_selected_instance].timestamp_sample_last)) {
+
+			publish = false;
+		}
+
+		// save last primary estimator_local_position as published with original resets
 		_local_position_last = local_position;
 
-		// publish estimator's local position for system (vehicle_local_position) unless it's stale
-		if (local_position.timestamp_sample >= _instance[_selected_instance].timestamp_sample_last) {
+		if (publish) {
 			// republish with total reset count and current timestamp
 			local_position.xy_reset_counter = _xy_reset_counter;
 			local_position.z_reset_counter = _z_reset_counter;
@@ -447,47 +522,92 @@ void EKF2Selector::PublishVehicleLocalPosition(bool reset)
 	}
 }
 
-void EKF2Selector::PublishVehicleGlobalPosition(bool reset)
+void EKF2Selector::PublishVehicleOdometry()
 {
+	// selected estimator_odometry -> vehicle_odometry
+	vehicle_odometry_s odometry;
+
+	if (_instance[_selected_instance].estimator_odometry_sub.update(&odometry)) {
+		bool publish = true;
+
+		// ensure monotonically increasing timestamp_sample through reset, don't publish
+		//  estimator's odometry for system (vehicle_odometry) if it's stale
+		if ((odometry.timestamp_sample <= _odometry_last.timestamp_sample)
+		    || (odometry.timestamp_sample < _instance[_selected_instance].timestamp_sample_last)) {
+
+			publish = false;
+		}
+
+		// save last primary estimator_odometry
+		_odometry_last = odometry;
+
+		if (publish) {
+			odometry.timestamp = hrt_absolute_time();
+			_vehicle_odometry_pub.publish(odometry);
+		}
+	}
+}
+
+void EKF2Selector::PublishVehicleGlobalPosition()
+{
+	// selected estimator_global_position -> vehicle_global_position
 	vehicle_global_position_s global_position;
 
-	if (_instance[_selected_instance].estimator_global_position_sub.copy(&global_position)) {
-		if (reset) {
-			// on reset compute deltas from last published data
-			++_lat_lon_reset_counter;
-			++_alt_reset_counter;
+	if (_instance[_selected_instance].estimator_global_position_sub.update(&global_position)) {
+		bool instance_change = false;
 
-			_delta_lat_reset = global_position.lat - _global_position_last.lat;
-			_delta_lon_reset = global_position.lon - _global_position_last.lon;
-			_delta_alt_reset = global_position.delta_alt - _global_position_last.delta_alt;
+		if (_instance[_selected_instance].estimator_global_position_sub.get_instance() != _global_position_instance_prev) {
+			_global_position_instance_prev = _instance[_selected_instance].estimator_global_position_sub.get_instance();
+			instance_change = true;
+		}
 
-			// ensure monotonically increasing timestamp_sample through reset
-			global_position.timestamp_sample = max(global_position.timestamp_sample, _global_position_last.timestamp_sample);
-
-		} else {
-			// otherwise propogate deltas from estimator data while maintaining the overall reset counts
-
+		if (_global_position_last.timestamp != 0) {
 			// lat/lon reset
-			if (global_position.lat_lon_reset_counter > _global_position_last.lat_lon_reset_counter) {
+			if (!instance_change && (global_position.lat_lon_reset_counter == _global_position_last.lat_lon_reset_counter + 1)) {
 				++_lat_lon_reset_counter;
 
 				// TODO: delta latitude/longitude
-				//_delta_lat_reset = global_position.delta_lat;
-				//_delta_lon_reset = global_position.delta_lon;
+				_delta_lat_reset = global_position.lat - _global_position_last.lat;
+				_delta_lon_reset = global_position.lon - _global_position_last.lon;
+
+			} else if (instance_change || (global_position.lat_lon_reset_counter != _global_position_last.lat_lon_reset_counter)) {
+				++_lat_lon_reset_counter;
+
+				_delta_lat_reset = global_position.lat - _global_position_last.lat;
+				_delta_lon_reset = global_position.lon - _global_position_last.lon;
 			}
 
 			// alt reset
-			if (global_position.alt_reset_counter > _global_position_last.alt_reset_counter) {
+			if (!instance_change && (global_position.alt_reset_counter == _global_position_last.alt_reset_counter + 1)) {
 				++_alt_reset_counter;
 				_delta_alt_reset = global_position.delta_alt;
+
+			} else if (instance_change || (global_position.alt_reset_counter != _global_position_last.alt_reset_counter)) {
+				++_alt_reset_counter;
+				_delta_alt_reset = global_position.delta_alt - _global_position_last.delta_alt;
 			}
+
+		} else {
+			_lat_lon_reset_counter = global_position.lat_lon_reset_counter;
+			_alt_reset_counter = global_position.alt_reset_counter;
+
+			_delta_alt_reset = global_position.delta_alt;
 		}
 
-		// save last primary estimator_global_position
+		bool publish = true;
+
+		// ensure monotonically increasing timestamp_sample through reset, don't publish
+		//  estimator's global position for system (vehicle_global_position) if it's stale
+		if ((global_position.timestamp_sample <= _global_position_last.timestamp_sample)
+		    || (global_position.timestamp_sample < _instance[_selected_instance].timestamp_sample_last)) {
+
+			publish = false;
+		}
+
+		// save last primary estimator_global_position as published with original resets
 		_global_position_last = global_position;
 
-		// publish estimator's global position for system (vehicle_global_position) unless it's stale
-		if (global_position.timestamp_sample >= _instance[_selected_instance].timestamp_sample_last) {
+		if (publish) {
 			// republish with total reset count and current timestamp
 			global_position.lat_lon_reset_counter = _lat_lon_reset_counter;
 			global_position.alt_reset_counter = _alt_reset_counter;
@@ -499,22 +619,31 @@ void EKF2Selector::PublishVehicleGlobalPosition(bool reset)
 	}
 }
 
-void EKF2Selector::PublishWindEstimate(bool reset)
+void EKF2Selector::PublishWindEstimate()
 {
+	// selected estimator_wind -> wind
 	wind_s wind;
 
-	if (_instance[_selected_instance].estimator_wind_sub.copy(&wind)) {
-		if (reset) {
-			// ensure monotonically increasing timestamp_sample through reset
-			wind.timestamp_sample = max(wind.timestamp_sample, _wind_last.timestamp_sample);
+	if (_instance[_selected_instance].estimator_wind_sub.update(&wind)) {
+		bool publish = true;
+
+		// ensure monotonically increasing timestamp_sample through reset, don't publish
+		//  estimator's wind for system (wind) if it's stale
+		if ((wind.timestamp_sample <= _wind_last.timestamp_sample)
+		    || (wind.timestamp_sample < _instance[_selected_instance].timestamp_sample_last)) {
+
+			publish = false;
 		}
 
 		// save last primary wind
 		_wind_last = wind;
 
-		// republish with current timestamp
-		wind.timestamp = hrt_absolute_time();
-		_wind_pub.publish(wind);
+		// publish estimator's wind for system unless it's stale
+		if (publish) {
+			// republish with current timestamp
+			wind.timestamp = hrt_absolute_time();
+			_wind_pub.publish(wind);
+		}
 	}
 }
 
@@ -555,7 +684,6 @@ void EKF2Selector::Run()
 	}
 
 	if (updated) {
-
 		const uint8_t available_instances_prev = _available_instances;
 		const uint8_t selected_instance_prev = _selected_instance;
 		const uint32_t instance_changed_count_prev = _instance_changed_count;
@@ -614,6 +742,18 @@ void EKF2Selector::Run()
 			// if this instance has a significantly lower relative error to the active primary, we consider it as a
 			// better instance and would like to switch to it even if the current primary is healthy
 			SelectInstance(best_ekf_alternate);
+
+		} else if (_request_instance.load() != INVALID_INSTANCE) {
+
+			const uint8_t new_instance = _request_instance.load();
+
+			// attempt to switch to user manually selected instance
+			if (!SelectInstance(new_instance)) {
+				PX4_ERR("unable to switch to user selected instance %d", new_instance);
+			}
+
+			// reset
+			_request_instance.store(INVALID_INSTANCE);
 		}
 
 		// publish selector status at ~1 Hz or immediately on any change
@@ -624,74 +764,52 @@ void EKF2Selector::Run()
 		    || (last_instance_change_prev != _last_instance_change)
 		    || _accel_fault_detected || _gyro_fault_detected) {
 
-			estimator_selector_status_s selector_status{};
-			selector_status.primary_instance = _selected_instance;
-			selector_status.instances_available = _available_instances;
-			selector_status.instance_changed_count = _instance_changed_count;
-			selector_status.last_instance_change = _last_instance_change;
-			selector_status.accel_device_id = _instance[_selected_instance].accel_device_id;
-			selector_status.baro_device_id = _instance[_selected_instance].baro_device_id;
-			selector_status.gyro_device_id = _instance[_selected_instance].gyro_device_id;
-			selector_status.mag_device_id = _instance[_selected_instance].mag_device_id;
-			selector_status.gyro_fault_detected = _gyro_fault_detected;
-			selector_status.accel_fault_detected = _accel_fault_detected;
-
-			for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
-				selector_status.combined_test_ratio[i] = _instance[i].combined_test_ratio;
-				selector_status.relative_test_ratio[i] = _instance[i].relative_test_ratio;
-				selector_status.healthy[i] = _instance[i].healthy;
-			}
-
-			for (int i = 0; i < IMU_STATUS_SIZE; i++) {
-				selector_status.accumulated_gyro_error[i] = _accumulated_gyro_error[i];
-				selector_status.accumulated_accel_error[i] = _accumulated_accel_error[i];
-			}
-
-			selector_status.timestamp = hrt_absolute_time();
-			_estimator_selector_status_pub.publish(selector_status);
-			_last_status_publish = selector_status.timestamp;
+			PublishEstimatorSelectorStatus();
 			_selector_status_publish = false;
 		}
 	}
 
 	// republish selected estimator data for system
+	PublishVehicleAttitude();
+	PublishVehicleLocalPosition();
+	PublishVehicleGlobalPosition();
+	PublishVehicleOdometry();
+	PublishWindEstimate();
+}
 
-	// selected estimator_attitude -> vehicle_attitude
-	if (_instance[_selected_instance].estimator_attitude_sub.updated()) {
-		PublishVehicleAttitude();
+void EKF2Selector::PublishEstimatorSelectorStatus()
+{
+	estimator_selector_status_s selector_status{};
+	selector_status.primary_instance = _selected_instance;
+	selector_status.instances_available = _available_instances;
+	selector_status.instance_changed_count = _instance_changed_count;
+	selector_status.last_instance_change = _last_instance_change;
+	selector_status.accel_device_id = _instance[_selected_instance].accel_device_id;
+	selector_status.baro_device_id = _instance[_selected_instance].baro_device_id;
+	selector_status.gyro_device_id = _instance[_selected_instance].gyro_device_id;
+	selector_status.mag_device_id = _instance[_selected_instance].mag_device_id;
+	selector_status.gyro_fault_detected = _gyro_fault_detected;
+	selector_status.accel_fault_detected = _accel_fault_detected;
+
+	for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
+		selector_status.combined_test_ratio[i] = _instance[i].combined_test_ratio;
+		selector_status.relative_test_ratio[i] = _instance[i].relative_test_ratio;
+		selector_status.healthy[i] = _instance[i].healthy;
 	}
 
-	// selected estimator_local_position -> vehicle_local_position
-	if (_instance[_selected_instance].estimator_local_position_sub.updated()) {
-		PublishVehicleLocalPosition();
+	for (int i = 0; i < IMU_STATUS_SIZE; i++) {
+		selector_status.accumulated_gyro_error[i] = _accumulated_gyro_error[i];
+		selector_status.accumulated_accel_error[i] = _accumulated_accel_error[i];
 	}
 
-	// selected estimator_global_position -> vehicle_global_position
-	if (_instance[_selected_instance].estimator_global_position_sub.updated()) {
-		PublishVehicleGlobalPosition();
-	}
-
-	// selected estimator_wind -> wind
-	if (_instance[_selected_instance].estimator_wind_sub.updated()) {
-		PublishWindEstimate();
-	}
-
-	// selected estimator_odometry -> vehicle_odometry
-	if (_instance[_selected_instance].estimator_odometry_sub.updated()) {
-		vehicle_odometry_s vehicle_odometry;
-
-		if (_instance[_selected_instance].estimator_odometry_sub.update(&vehicle_odometry)) {
-			if (vehicle_odometry.timestamp_sample >= _instance[_selected_instance].timestamp_sample_last) {
-				vehicle_odometry.timestamp = hrt_absolute_time();
-				_vehicle_odometry_pub.publish(vehicle_odometry);
-			}
-		}
-	}
+	selector_status.timestamp = hrt_absolute_time();
+	_estimator_selector_status_pub.publish(selector_status);
+	_last_status_publish = selector_status.timestamp;
 }
 
 void EKF2Selector::PrintStatus()
 {
-	PX4_INFO("available instances: %d", _available_instances);
+	PX4_INFO("available instances: %" PRIu8, _available_instances);
 
 	if (_selected_instance == INVALID_INSTANCE) {
 		PX4_WARN("selected instance: None");
@@ -700,7 +818,7 @@ void EKF2Selector::PrintStatus()
 	for (int i = 0; i < _available_instances; i++) {
 		const EstimatorInstance &inst = _instance[i];
 
-		PX4_INFO("%d: ACC: %d, GYRO: %d, MAG: %d, %s, test ratio: %.7f (%.5f) %s",
+		PX4_INFO("%" PRIu8 ": ACC: %" PRIu32 ", GYRO: %" PRIu32 ", MAG: %" PRIu32 ", %s, test ratio: %.7f (%.5f) %s",
 			 inst.instance, inst.accel_device_id, inst.gyro_device_id, inst.mag_device_id,
 			 inst.healthy ? "healthy" : "unhealthy",
 			 (double)inst.combined_test_ratio, (double)inst.relative_test_ratio,

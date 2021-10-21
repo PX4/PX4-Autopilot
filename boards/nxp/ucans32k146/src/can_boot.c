@@ -71,7 +71,18 @@ __EXPORT void s32k1xx_board_initialize(void)
 	// Can GPIO
 	s32k1xx_pinconfig(PIN_CAN0_TX);
 	s32k1xx_pinconfig(PIN_CAN0_RX);
-	s32k1xx_pinconfig(PIN_CAN0_ENABLE  | GPIO_OUTPUT_ZERO);
+
+	s32k1xx_pinconfig(BOARD_REVISION_DETECT_PIN);
+
+	if (s32k1xx_gpioread(BOARD_REVISION_DETECT_PIN)) {
+		/* STB high -> active CAN phy */
+		s32k1xx_pinconfig(PIN_CAN0_STB  | GPIO_OUTPUT_ONE);
+
+	} else {
+		/* STB low -> active CAN phy */
+		s32k1xx_pinconfig(PIN_CAN0_STB  | GPIO_OUTPUT_ZERO);
+	}
+
 	//s32k1xx_gpiowrite
 #if defined(OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO)
 	s32k1xx_pinconfig(GPIO_GETNODEINFO_JUMPER);
@@ -101,7 +112,14 @@ void board_deinitialize(void)
 	} while ((regval & CAN_MCR_LPMACK) == 0);
 
 
-	s32k1xx_pinconfig(PIN_CAN0_ENABLE  | GPIO_OUTPUT_ONE);
+	if (s32k1xx_gpioread(BOARD_REVISION_DETECT_PIN)) {
+		/* STB high -> standby CAN phy */
+		s32k1xx_pinconfig(PIN_CAN0_STB  | GPIO_OUTPUT_ZERO);
+
+	} else {
+		/* STB low -> standby CAN phy */
+		s32k1xx_pinconfig(PIN_CAN0_STB  | GPIO_OUTPUT_ONE);
+	}
 }
 
 /****************************************************************************

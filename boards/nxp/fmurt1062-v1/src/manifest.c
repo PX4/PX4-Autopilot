@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,6 +48,8 @@
 
 #include <px4_platform_common/px4_config.h>
 #include <stdbool.h>
+#include <syslog.h>
+
 #include "systemlib/px4_macros.h"
 #include "px4_log.h"
 
@@ -121,7 +123,7 @@ __EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id)
 		}
 
 		if (boards_manifest == px4_hw_mft_list_uninitialized) {
-			PX4_ERR("Board %4x is not supported!", ver_rev);
+			PX4_ERR("Board %4" PRIx32 " is not supported!", ver_rev);
 		}
 	}
 

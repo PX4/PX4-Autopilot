@@ -71,7 +71,7 @@ public:
 			uint8_t geo_payload_buffer[reg_drone_physics_kinematics_geodetic_Point_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_];
 
 			CanardTransfer transfer = {
-				.timestamp_usec = hrt_absolute_time(), // Zero if transmission deadline is not limited.
+				.timestamp_usec = hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
 				.priority       = CanardPriorityNominal,
 				.transfer_kind  = CanardTransferKindMessage,
 				.port_id        = _port_id, // This is the subject-ID.
@@ -106,7 +106,7 @@ public:
 			CanardPortID _port_id_2 = static_cast<CanardPortID>((uint16_t)_port_id + 1U);
 
 			CanardTransfer transfer2 = {
-				.timestamp_usec = hrt_absolute_time(), // Zero if transmission deadline is not limited.
+				.timestamp_usec = hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
 				.priority       = CanardPriorityNominal,
 				.transfer_kind  = CanardTransferKindMessage,
 				.port_id        = _port_id_2, // This is the subject-ID.

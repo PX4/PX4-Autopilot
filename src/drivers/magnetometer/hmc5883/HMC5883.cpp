@@ -33,9 +33,9 @@
 
 #include "HMC5883.hpp"
 
-HMC5883::HMC5883(device::Device *interface, enum Rotation rotation, I2CSPIBusOption bus_option, int bus) :
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus),
-	_px4_mag(interface->get_device_id(), rotation),
+HMC5883::HMC5883(device::Device *interface, const I2CSPIDriverConfig &config) :
+	I2CSPIDriver(config),
+	_px4_mag(interface->get_device_id(), config.rotation),
 	_interface(interface),
 	_range_ga(1.9f),
 	_collect_phase(false),

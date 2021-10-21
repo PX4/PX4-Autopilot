@@ -48,6 +48,20 @@ ExternalProject_Add(sitl_gazebo
 	BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> -- -j ${build_cores}
 )
 
+px4_add_git_submodule(TARGET git_ign_gazebo PATH "${PX4_SOURCE_DIR}/Tools/simulation-ignition")
+ExternalProject_Add(simulation-ignition
+	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/simulation-ignition
+	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+	BINARY_DIR ${PX4_BINARY_DIR}/build_ign_gazebo
+	INSTALL_COMMAND ""
+	DEPENDS git_ign_gazebo
+	USES_TERMINAL_CONFIGURE true
+	USES_TERMINAL_BUILD true
+	EXCLUDE_FROM_ALL true
+	BUILD_ALWAYS 1
+	BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> -- -j ${build_cores}
+)
+
 ExternalProject_Add(mavsdk_tests
 	SOURCE_DIR ${PX4_SOURCE_DIR}/test/mavsdk_tests
 	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
@@ -107,6 +121,7 @@ set(viewers
 	none
 	jmavsim
 	gazebo
+	ignition
 	rotors
 )
 
@@ -120,6 +135,7 @@ set(debuggers
 
 set(models
 	none
+	believer
 	boat
 	cloudship
 	if750a
@@ -132,13 +148,13 @@ set(models
 	iris_opt_flow
 	iris_opt_flow_mockup
 	iris_rplidar
-	iris_rtps px4vision
 	iris_vision
 	nxp_cupcar
 	plane
 	plane_cam
 	plane_catapult
 	plane_lidar
+	px4vision
 	r1_rover
 	rover
 	shell
@@ -196,6 +212,8 @@ foreach(viewer ${viewers})
 						add_dependencies(${_targ_name} px4 sitl_gazebo)
 					elseif(viewer STREQUAL "jmavsim")
 						add_dependencies(${_targ_name} px4 git_jmavsim)
+					elseif(viewer STREQUAL "ignition")
+						add_dependencies(${_targ_name} px4 simulation-ignition)
 					elseif(viewer STREQUAL "rotors")
 						add_dependencies(${_targ_name} px4 rotors_simulator)
 					endif()

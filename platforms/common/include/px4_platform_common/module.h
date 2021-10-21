@@ -362,17 +362,16 @@ protected:
 	 * @brief Waits until _object is initialized, (from the new thread). This can be called from task_spawn().
 	 * @return Returns 0 iff successful, -1 on timeout or otherwise.
 	 */
-	static int wait_until_running()
+	static int wait_until_running(int timeout_ms = 1000)
 	{
 		int i = 0;
 
 		do {
-			/* Wait up to 1s. */
-			px4_usleep(2500);
+			px4_usleep(2000);
 
-		} while (!_object.load() && ++i < 400);
+		} while (!_object.load() && ++i < timeout_ms / 2);
 
-		if (i == 400) {
+		if (i >= timeout_ms / 2) {
 			PX4_ERR("Timed out while waiting for thread to start");
 			return -1;
 		}

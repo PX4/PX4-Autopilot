@@ -1,0 +1,13 @@
+{
+    "board_id": 81,
+    "magic": "PX4FWv1",
+    "description": "Firmware for the ARK gps board",
+    "image": "",
+    "build_time": 0,
+    "summary": "ARKGPS",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 2080768,
+    "git_identity": "",
+    "board_revision": 0
+}

@@ -41,9 +41,6 @@
 
 #include "ms5611.h"
 
-#define MS5611_ADDRESS_1		0x76	/* address select pins pulled high (PX4FMU series v1.6+) */
-#define MS5611_ADDRESS_2		0x77    /* address select pins pulled low (PX4FMU prototypes) */
-
 class MS5611_I2C : public device::I2C
 {
 public:

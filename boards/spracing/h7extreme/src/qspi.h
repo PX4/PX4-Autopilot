@@ -43,6 +43,7 @@
 #include <nuttx/config.h>
 #include <nuttx/spi/qspi.h>
 
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdbool.h>
 

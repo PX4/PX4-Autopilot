@@ -54,6 +54,7 @@
 #include "arm_internal.h"
 #include <systemlib/hardfault_log.h>
 #include "nvic.h"
+#include <syslog.h>
 
 #if defined(CONFIG_STM32F7_BBSRAM) && defined(CONFIG_STM32F7_SAVE_CRASHDUMP)
 #  define HAS_BBSRAM CONFIG_STM32F7_BBSRAM

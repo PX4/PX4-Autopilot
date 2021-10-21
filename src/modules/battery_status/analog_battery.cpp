@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -67,10 +67,6 @@ AnalogBattery::AnalogBattery(int index, ModuleParams *parent, const int sample_i
 
 	snprintf(param_name, sizeof(param_name), "BAT%d_I_CHANNEL", index);
 	_analog_param_handles.i_channel = param_find(param_name);
-
-	_analog_param_handles.v_div_old = param_find("BAT_V_DIV");
-	_analog_param_handles.a_per_v_old = param_find("BAT_A_PER_V");
-	_analog_param_handles.adc_channel_old = param_find("BAT_ADC_CHANNEL");
 }
 
 void
@@ -122,20 +118,9 @@ int AnalogBattery::get_current_channel()
 void
 AnalogBattery::updateParams()
 {
-	if (_index == 1) {
-		migrateParam<float>(_analog_param_handles.v_div_old, _analog_param_handles.v_div, &_analog_params.v_div_old,
-				    &_analog_params.v_div, _first_parameter_update);
-		migrateParam<float>(_analog_param_handles.a_per_v_old, _analog_param_handles.a_per_v, &_analog_params.a_per_v_old,
-				    &_analog_params.a_per_v, _first_parameter_update);
-		migrateParam<int>(_analog_param_handles.adc_channel_old, _analog_param_handles.v_channel,
-				  &_analog_params.adc_channel_old, &_analog_params.v_channel, _first_parameter_update);
-
-	} else {
-		param_get(_analog_param_handles.v_div, &_analog_params.v_div);
-		param_get(_analog_param_handles.a_per_v, &_analog_params.a_per_v);
-		param_get(_analog_param_handles.v_channel, &_analog_params.v_channel);
-	}
-
+	param_get(_analog_param_handles.v_div, &_analog_params.v_div);
+	param_get(_analog_param_handles.a_per_v, &_analog_params.a_per_v);
+	param_get(_analog_param_handles.v_channel, &_analog_params.v_channel);
 	param_get(_analog_param_handles.i_channel, &_analog_params.i_channel);
 	param_get(_analog_param_handles.v_offs_cur, &_analog_params.v_offs_cur);
 
@@ -143,23 +128,12 @@ AnalogBattery::updateParams()
 		/* apply scaling according to defaults if set to default */
 		_analog_params.v_div = BOARD_BATTERY1_V_DIV;
 		param_set_no_notification(_analog_param_handles.v_div, &_analog_params.v_div);
-
-		if (_index == 1) {
-			_analog_params.v_div_old = BOARD_BATTERY1_V_DIV;
-			param_set_no_notification(_analog_param_handles.v_div_old, &_analog_params.v_div_old);
-		}
 	}
 
 	if (_analog_params.a_per_v < 0.0f) {
 		/* apply scaling according to defaults if set to default */
-
 		_analog_params.a_per_v = BOARD_BATTERY1_A_PER_V;
 		param_set_no_notification(_analog_param_handles.a_per_v, &_analog_params.a_per_v);
-
-		if (_index == 1) {
-			_analog_params.a_per_v_old = BOARD_BATTERY1_A_PER_V;
-			param_set_no_notification(_analog_param_handles.a_per_v_old, &_analog_params.a_per_v_old);
-		}
 	}
 
 	Battery::updateParams();

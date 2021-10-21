@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -53,12 +53,13 @@
 #include <dataman/dataman.h>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <navigator/navigation.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 #include <drivers/drv_hrt.h>
+#include <px4_platform_common/events.h>
 
 using namespace time_literals;
 
@@ -629,8 +630,16 @@ Mission::set_mission_items()
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_MISSION) {
 			mavlink_log_info(_navigator->get_mavlink_log_pub(),
-					 _mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_REVERSE ? "Executing Reverse Mission" :
-					 "Executing Mission");
+					 _mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_REVERSE ? "Executing Reverse Mission\t" :
+					 "Executing Mission\t");
+
+			if (_mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_REVERSE) {
+				events::send(events::ID("mission_execute_rev"), events::Log::Info, "Executing Reverse Mission");
+
+			} else {
+				events::send(events::ID("mission_execute"), events::Log::Info, "Executing Mission");
+			}
+
 			user_feedback_done = true;
 		}
 
@@ -642,14 +651,28 @@ Mission::set_mission_items()
 
 			if (_navigator->get_land_detected()->landed) {
 				mavlink_log_info(_navigator->get_mavlink_log_pub(),
-						 _mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_REVERSE ? "Reverse Mission finished, landed" :
-						 "Mission finished, landed.");
+						 _mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_REVERSE ? "Reverse Mission finished, landed\t" :
+						 "Mission finished, landed\t");
+
+				if (_mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_REVERSE) {
+					events::send(events::ID("mission_finished_rev"), events::Log::Info, "Reverse Mission finished, landed");
+
+				} else {
+					events::send(events::ID("mission_finished"), events::Log::Info, "Mission finished, landed");
+				}
 
 			} else {
 				/* https://en.wikipedia.org/wiki/Loiter_(aeronautics) */
 				mavlink_log_info(_navigator->get_mavlink_log_pub(),
-						 _mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_REVERSE ? "Reverse Mission finished, loitering" :
-						 "Mission finished, loitering.");
+						 _mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_REVERSE ? "Reverse Mission finished, loitering\t" :
+						 "Mission finished, loitering\t");
+
+				if (_mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_REVERSE) {
+					events::send(events::ID("mission_finished_rev_loiter"), events::Log::Info, "Reverse Mission finished, loitering");
+
+				} else {
+					events::send(events::ID("mission_finished_loiter"), events::Log::Info, "Mission finished, loitering");
+				}
 
 				/* use last setpoint for loiter */
 				_navigator->set_can_loiter_at_sp(true);
@@ -685,10 +708,14 @@ Mission::set_mission_items()
 
 			if (_navigator->get_land_detected()->landed) {
 				/* landed, refusing to take off without a mission */
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "No valid mission available, refusing takeoff.");
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "No valid mission available, refusing takeoff\t");
+				events::send(events::ID("mission_not_valid_refuse"), {events::Log::Error, events::LogInternal::Disabled},
+					     "No valid mission available, refusing takeoff");
 
 			} else {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "No valid mission available, loitering.");
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "No valid mission available, loitering\t");
+				events::send(events::ID("mission_not_valid_loiter"), {events::Log::Error, events::LogInternal::Disabled},
+					     "No valid mission available, loitering");
 			}
 
 			user_feedback_done = true;
@@ -732,8 +759,10 @@ Mission::set_mission_items()
 
 					float takeoff_alt = calculate_takeoff_altitude(&_mission_item);
 
-					mavlink_log_info(_navigator->get_mavlink_log_pub(), "Takeoff to %.1f meters above home.",
+					mavlink_log_info(_navigator->get_mavlink_log_pub(), "Takeoff to %.1f meters above home\t",
 							 (double)(takeoff_alt - _navigator->get_home_position()->alt));
+					events::send<float>(events::ID("mission_takeoff_to"), events::Log::Info,
+							    "Takeoff to {1:.1m_v} above home", takeoff_alt - _navigator->get_home_position()->alt);
 
 					_mission_item.nav_cmd = NAV_CMD_TAKEOFF;
 					_mission_item.lat = _navigator->get_global_position()->lat;
@@ -983,7 +1012,10 @@ Mission::set_mission_items()
 					_mission_item.time_inside = 0.0f;
 
 				} else {
-					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "MissionReverse: Got a non-position mission item, ignoring it");
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(),
+							     "MissionReverse: Got a non-position mission item, ignoring it\t");
+					events::send(events::ID("mission_ignore_non_position_item"), events::Log::Info,
+						     "MissionReverse: Got a non-position mission item, ignoring it");
 				}
 
 				break;
@@ -1029,30 +1061,6 @@ Mission::set_mission_items()
 					/* set position setpoint to target during the transition */
 					pos_sp_triplet->previous = pos_sp_triplet->current;
 					generate_waypoint_from_heading(&pos_sp_triplet->current, pos_sp_triplet->current.yaw);
-				}
-
-				/* don't advance mission after FW to MC command */
-				if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
-				    && _work_item_type == WORK_ITEM_TYPE_DEFAULT
-				    && new_work_item_type == WORK_ITEM_TYPE_DEFAULT
-				    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
-				    && !_navigator->get_land_detected()->landed
-				    && pos_sp_triplet->current.valid) {
-
-					new_work_item_type = WORK_ITEM_TYPE_CMD_BEFORE_MOVE;
-				}
-
-				/* after FW to MC transition finish moving to the waypoint */
-				if (_work_item_type == WORK_ITEM_TYPE_CMD_BEFORE_MOVE &&
-				    new_work_item_type == WORK_ITEM_TYPE_DEFAULT
-				    && pos_sp_triplet->current.valid) {
-
-					new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
-
-					_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-					copy_position_if_valid(&_mission_item, &pos_sp_triplet->current);
-					_mission_item.autocontinue = true;
-					_mission_item.time_inside = 0.0f;
 				}
 
 				// ignore certain commands in mission fast forward
@@ -1424,8 +1432,10 @@ Mission::do_abort_landing()
 	publish_navigator_mission_item(); // for logging
 	_navigator->set_position_setpoint_triplet_updated();
 
-	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Holding at %d m above landing.",
+	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Holding at %d m above landing.\t",
 			 (int)(alt_sp - alt_landing));
+	events::send<float>(events::ID("mission_holding_above_landing"), events::Log::Info,
+			    "Holding at {1:.0m_v} above landing", alt_sp - alt_landing);
 
 	// reset mission index to start of landing
 	if (_land_start_available) {
@@ -1505,7 +1515,7 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 	const int current_index = _current_mission_index;
 	int index_to_read = current_index + offset;
 
-	int *mission_index_ptr = (offset == 0) ? &_current_mission_index : &index_to_read;
+	int *mission_index_ptr = (offset == 0) ? (int *) &_current_mission_index : &index_to_read;
 	const dm_item_t dm_item = (dm_item_t)_mission.dataman_id;
 
 	/* do not work on empty missions */
@@ -1519,8 +1529,11 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 		if (*mission_index_ptr < 0 || *mission_index_ptr >= (int)_mission.count) {
 			/* mission item index out of bounds - if they are equal, we just reached the end */
 			if ((*mission_index_ptr != (int)_mission.count) && (*mission_index_ptr != -1)) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission item index out of bound, index: %d, max: %d.",
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
+						     "Mission item index out of bound, index: %d, max: %" PRIu16 ".\t",
 						     *mission_index_ptr, _mission.count);
+				events::send<uint16_t, uint16_t>(events::ID("mission_index_out_of_bound"), events::Log::Error,
+								 "Mission item index out of bound, index: {1}, max: {2}", *mission_index_ptr, _mission.count);
 			}
 
 			return false;
@@ -1534,7 +1547,9 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 		/* read mission item from datamanager */
 		if (dm_read(dm_item, *mission_index_ptr, &mission_item_tmp, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Waypoint could not be read.");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Waypoint could not be read.\t");
+			events::send<uint16_t>(events::ID("mission_failed_to_read_wp"), events::Log::Error,
+					       "Waypoint {1} could not be read from storage", *mission_index_ptr);
 			return false;
 		}
 
@@ -1553,7 +1568,9 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 					/* save repeat count */
 					if (dm_write(dm_item, *mission_index_ptr, DM_PERSIST_POWER_ON_RESET, &mission_item_tmp, len) != len) {
 						/* not supposed to happen unless the datamanager can't access the dataman */
-						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "DO JUMP waypoint could not be written.");
+						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "DO JUMP waypoint could not be written.\t");
+						events::send(events::ID("mission_failed_to_write_do_jump"), events::Log::Error,
+							     "DO JUMP waypoint could not be written");
 						return false;
 					}
 
@@ -1566,7 +1583,9 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 
 			} else {
 				if (offset == 0 && execute_jumps) {
-					mavlink_log_info(_navigator->get_mavlink_log_pub(), "DO JUMP repetitions completed.");
+					mavlink_log_info(_navigator->get_mavlink_log_pub(), "DO JUMP repetitions completed.\t");
+					events::send(events::ID("mission_do_jump_rep_completed"), events::Log::Info,
+						     "DO JUMP repetitions completed");
 				}
 
 				/* no more DO_JUMPS, therefore just try to continue with next mission item */
@@ -1586,7 +1605,8 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 	}
 
 	/* we have given up, we don't want to cycle forever */
-	mavlink_log_critical(_navigator->get_mavlink_log_pub(), "DO JUMP is cycling, giving up.");
+	mavlink_log_critical(_navigator->get_mavlink_log_pub(), "DO JUMP is cycling, giving up.\t");
+	events::send(events::ID("mission_do_jump_cycle"), events::Log::Error, "DO JUMP is cycling, giving up");
 	return false;
 }
 
@@ -1628,7 +1648,11 @@ Mission::save_mission_state()
 		mission_state.count = _mission.count;
 		mission_state.current_seq = _current_mission_index;
 
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Invalid mission state.");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Invalid mission state.\t");
+		/* EVENT
+		 * @description No mission or storage failure
+		 */
+		events::send(events::ID("mission_invalid_mission_state"), events::Log::Error, "Invalid mission state");
 
 		/* write modified state only if changed */
 		if (dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission_state,
@@ -1738,7 +1762,8 @@ Mission::reset_mission(struct mission_s &mission)
 			}
 
 		} else {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Could not read mission.");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Could not read mission.\t");
+			events::send(events::ID("mission_cannot_read_mission"), events::Log::Error, "Could not read mission");
 
 			/* initialize mission state in dataman */
 			mission.timestamp = hrt_absolute_time();

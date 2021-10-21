@@ -80,7 +80,11 @@ void CameraInterfaceGPIO::info()
 	PX4_INFO_RAW("GPIO trigger mode, pins enabled: ");
 
 	for (unsigned i = 0; i < arraySize(_pins); ++i) {
-		PX4_INFO_RAW("[%d]", _pins[i]);
+		if (_pins[i] < 0) {
+			continue;
+		}
+
+		PX4_INFO_RAW("[%d]", _pins[i] + 1);
 	}
 
 	PX4_INFO_RAW(", polarity : %s\n", _trigger_invert ? "ACTIVE_LOW" : "ACTIVE_HIGH");

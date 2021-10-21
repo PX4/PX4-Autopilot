@@ -209,6 +209,8 @@
  * PWM in future
  */
 #define GPIO_HEATER_OUTPUT   /* PA7  T14CH1 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN7)
+#define HEATER_OUTPUT_EN(on_true)              px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
+
 
 /* PWM Capture
  *
@@ -307,6 +309,7 @@
 
 #define RC_SERIAL_PORT                     "/dev/ttyS4"
 #define RC_SERIAL_SINGLEWIRE
+#define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 /* Input Capture Channels. */
 #define INPUT_CAP1_TIMER                  2

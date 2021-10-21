@@ -1,0 +1,13 @@
+{
+    "board_id": 41776,
+    "magic": "PX4FWv1",
+    "description": "Firmware for the ModalAI Flight Core v2 board",
+    "image": "",
+    "build_time": 0,
+    "summary": "modalaifcv2",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 1966080,
+    "git_identity": "",
+    "board_revision": 0
+}

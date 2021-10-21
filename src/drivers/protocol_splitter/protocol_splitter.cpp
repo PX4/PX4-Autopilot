@@ -45,7 +45,9 @@
 #include <px4_platform_common/log.h>
 
 #include <sys/ioctl.h>
+#include <assert.h>
 #include <unistd.h>
+#include <termios.h>
 #include <cstdint>
 #include <string.h>
 
@@ -55,9 +57,38 @@ class ReadBuffer;
 
 extern "C" __EXPORT int protocol_splitter_main(int argc, char *argv[]);
 
+/*
+MessageType is in MSB of header[1]
+		|
+		v
+	Mavlink 0000 0000b
+	Rtps    1000 0000b
+*/
+enum MessageType {Mavlink = 0x00, Rtps = 0x01};
 
-const char *Sp2HeaderMagic = "SP2";
-const int   Sp2HeaderSize  = 8;
+const char  Sp2HeaderMagic = 'S';
+const int   Sp2HeaderSize  = 4;
+
+/*
+Header Structure:
+
+     bits:   1 2 3 4 5 6 7 8
+header[0] - |     Magic     |
+header[1] - |T|   LenH      |
+header[2] - |     LenL      |
+header[3] - |   Checksum    |
+*/
+typedef union __attribute__((packed))
+{
+	uint8_t bytes[4];
+	struct {
+		char magic;                // 'S'
+		uint8_t len_h:	7,         // Length MSB
+			 type:	1;         // 0=MAVLINK, 1=RTPS
+		uint8_t len_l;             // Length LSB
+		uint8_t checksum;          // XOR of the three bytes above
+	} fields;
+} Sp2Header_t;
 
 struct StaticData {
 	Mavlink2Dev *mavlink2;
@@ -145,18 +176,7 @@ public:
 
 protected:
 
-	/*
-	struct Sp2Header {
-		char magic[3];
-		uint8_t type;
-		uint16_t payload_len;
-		uint16_t reserved (align)
-	}
-	*/
-
-	enum MessageType {Mavlink = 0, Rtps};
-
-	uint8_t _header[8] = {};
+	Sp2Header_t _header;
 
 	virtual pollevent_t poll_state(struct file *filp);
 
@@ -201,6 +221,8 @@ DevCommon::DevCommon(const char *device_path)
 DevCommon::~DevCommon()
 {
 	if (_fd >= 0) {
+		/* discard all pending data, as close() might block otherwise on NuttX with flow control enabled */
+		tcflush(_fd, TCIOFLUSH);
 		::close(_fd);
 	}
 }
@@ -273,15 +295,18 @@ Mavlink2Dev::Mavlink2Dev(ReadBuffer *read_buffer)
 	: DevCommon("/dev/mavlink")
 	, _read_buffer{read_buffer}
 {
-	memcpy(_header, Sp2HeaderMagic, 3);
-	_header[3] = MessageType::Mavlink;
-	memset(&_header[4], 0, 4);
+	_header.fields.magic 		= Sp2HeaderMagic;
+	_header.fields.len_h 		= 0;
+	_header.fields.len_l 		= 0;
+	_header.fields.checksum		= 0;
+	_header.fields.type		= MessageType::Mavlink;
 }
 
 ssize_t Mavlink2Dev::read(struct file *filp, char *buffer, size_t buflen)
 {
 	int i, ret;
 	uint16_t packet_len, payload_len;
+	Sp2Header_t *header;
 
 	/* last reading was partial (i.e., buffer didn't fit whole message),
 	 * so now we'll just send remaining bytes */
@@ -324,10 +349,11 @@ ssize_t Mavlink2Dev::read(struct file *filp, char *buffer, size_t buflen)
 	i = 0;
 
 	while ((unsigned)i < (_read_buffer->buf_size - Sp2HeaderSize) &&
-	       (_read_buffer->buffer[i] != 'S'
-		|| _read_buffer->buffer[i + 1] != 'P'
-		|| _read_buffer->buffer[i + 2] != '2'
-		|| _read_buffer->buffer[i + 3] != (uint8_t) MessageType::Mavlink)) {
+	       (((Sp2Header_t *) &_read_buffer->buffer[i])->fields.magic != Sp2HeaderMagic
+		|| ((Sp2Header_t *) &_read_buffer->buffer[i])->fields.type != (uint8_t)MessageType::Mavlink
+		|| ((Sp2Header_t *) &_read_buffer->buffer[i])->fields.checksum !=
+		(_read_buffer->buffer[i] ^ _read_buffer->buffer[i + 1] ^ _read_buffer->buffer[i + 2])
+	       )) {
 		i++;
 	}
 
@@ -336,7 +362,8 @@ ssize_t Mavlink2Dev::read(struct file *filp, char *buffer, size_t buflen)
 		goto end;
 	}
 
-	payload_len = ((uint16_t)_read_buffer->buffer[i + 4] << 8) | _read_buffer->buffer[i + 5];
+	header = (Sp2Header_t *)&_read_buffer->buffer[i];
+	payload_len = ((uint16_t)header->fields.len_h << 8) | header->fields.len_l;
 	packet_len = payload_len + Sp2HeaderSize;
 
 	// packet is bigger than what we've read, better luck next time
@@ -417,9 +444,10 @@ ssize_t Mavlink2Dev::write(struct file *filp, const char *buffer, size_t buflen)
 				ret = -1;
 
 			} else {
-				_header[4] = (uint8_t)((buflen >> 8) & 0xff);
-				_header[5] = (uint8_t)(buflen & 0xff);
-				::write(_fd, _header, 8);
+				_header.fields.len_h = (buflen >> 8) & 0x7f;
+				_header.fields.len_l = buflen & 0xff;
+				_header.fields.checksum = _header.bytes[0] ^ _header.bytes[1] ^ _header.bytes[2];
+				::write(_fd, _header.bytes, 4);
 				ret = ::write(_fd, buffer, buflen);
 			}
 
@@ -454,16 +482,18 @@ RtpsDev::RtpsDev(ReadBuffer *read_buffer)
 	: DevCommon("/dev/rtps")
 	, _read_buffer{read_buffer}
 {
-	memcpy(_header, Sp2HeaderMagic, 3);
-	_header[3] = MessageType::Rtps;
-	memset(&_header[4], 0, 4);
-
+	_header.fields.magic		= Sp2HeaderMagic;
+	_header.fields.len_h		= 0;
+	_header.fields.len_l		= 0;
+	_header.fields.checksum		= 0;
+	_header.fields.type		= MessageType::Rtps;
 }
 
 ssize_t RtpsDev::read(struct file *filp, char *buffer, size_t buflen)
 {
 	int i, ret;
 	uint16_t packet_len, payload_len;
+	Sp2Header_t *header;
 
 	if (!_had_data) {
 		return 0;
@@ -486,10 +516,11 @@ ssize_t RtpsDev::read(struct file *filp, char *buffer, size_t buflen)
 	i = 0;
 
 	while ((unsigned)i < (_read_buffer->buf_size - Sp2HeaderSize) &&
-	       (_read_buffer->buffer[i] != 'S'
-		|| _read_buffer->buffer[i + 1] != 'P'
-		|| _read_buffer->buffer[i + 2] != '2'
-		|| _read_buffer->buffer[i + 3] != (uint8_t) MessageType::Rtps)) {
+	       (((Sp2Header_t *) &_read_buffer->buffer[i])->fields.magic != Sp2HeaderMagic
+		|| ((Sp2Header_t *) &_read_buffer->buffer[i])->fields.type != (uint8_t)MessageType::Rtps
+		|| ((Sp2Header_t *) &_read_buffer->buffer[i])->fields.checksum !=
+		(_read_buffer->buffer[i] ^ _read_buffer->buffer[i + 1] ^ _read_buffer->buffer[i + 2])
+	       )) {
 		i++;
 	}
 
@@ -498,7 +529,8 @@ ssize_t RtpsDev::read(struct file *filp, char *buffer, size_t buflen)
 		goto end;
 	}
 
-	payload_len = ((uint16_t)_read_buffer->buffer[i + 4] << 8) | _read_buffer->buffer[i + 5];
+	header = (Sp2Header_t *)&_read_buffer->buffer[i];
+	payload_len = ((uint16_t)header->fields.len_h << 8) | header->fields.len_l;
 	packet_len = payload_len + Sp2HeaderSize;
 
 	// packet is bigger than what we've read, better luck next time
@@ -561,9 +593,10 @@ ssize_t RtpsDev::write(struct file *filp, const char *buffer, size_t buflen)
 				ret = -1;
 
 			} else {
-				_header[4] = (uint8_t)((buflen >> 8) & 0xff);
-				_header[5] = (uint8_t)(buflen & 0xff);
-				::write(_fd, _header, 8);
+				_header.fields.len_h = (buflen >> 8) & 0x7f;
+				_header.fields.len_l = buflen & 0xff;
+				_header.fields.checksum = _header.bytes[0] ^ _header.bytes[1] ^ _header.bytes[2];
+				::write(_fd, _header.bytes, 4);
 				ret = ::write(_fd, buffer, buflen);
 			}
 

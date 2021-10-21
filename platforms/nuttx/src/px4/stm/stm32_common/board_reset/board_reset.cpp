@@ -65,7 +65,7 @@
 static const uint32_t modes[] = {
 	/*                                      to  tb   */
 	/* BOARD_RESET_MODE_CLEAR                5   y   */  0,
-	/* BOARD_RESET_MODE_BOOT_TO_BL           0   n   */  0xb0070001,
+	/* BOARD_RESET_MODE_BOOT_TO_BL           0   n   */  0xb007b007,
 	/* BOARD_RESET_MODE_BOOT_TO_VALID_APP    0   y   */  0xb0070002,
 	/* BOARD_RESET_MODE_CAN_BL               10  n   */  0xb0080000,
 	/* BOARD_RESET_MODE_RTC_BOOT_FWOK        0   n   */  0xb0093a26

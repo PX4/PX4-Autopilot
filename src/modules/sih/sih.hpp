@@ -31,6 +31,25 @@
 *
 ****************************************************************************/
 
+/**
+ * @file sih.hpp
+ * Simulator in Hardware
+ *
+ * @author Romain Chiappinelli      <romain.chiap@gmail.com>
+ *
+ * Coriolis g Corporation - January 2019
+ */
+
+// The sensor signals reconstruction and noise levels are from [1]
+// [1] Bulka E, and Nahon M, "Autonomous fixed-wing aerobatics: from theory to flight."
+//     In 2018 IEEE International Conference on Robotics and Automation (ICRA), pp. 6573-6580. IEEE, 2018.
+// The aerodynamic model is from [2]
+// [2] Khan W, supervised by Nahon M, "Dynamics modeling of agile fixed-wing unmanned aerial vehicles."
+//     McGill University, PhD thesis, 2016.
+// The quaternion integration are from [3]
+// [3] Sveier A, Sjøberg AM, Egeland O. "Applied Runge–Kutta–Munthe-Kaas Integration for the Quaternion Kinematics."
+//     Journal of Guidance, Control, and Dynamics. 2019 Dec;42(12):2747-54.
+
 #pragma once
 
 #include <px4_platform_common/module.h>
@@ -40,7 +59,7 @@
 
 #include <matrix/matrix/math.hpp>   // matrix, vectors, dcm, quaterions
 #include <conversion/rotation.h>    // math::radians,
-#include <lib/ecl/geo/geo.h>        // to get the physical constants
+#include <lib/geo/geo.h>        // to get the physical constants
 #include <drivers/drv_hrt.h>        // to get the real time
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/barometer/PX4Barometer.hpp>
@@ -57,6 +76,7 @@
 #include <uORB/topics/vehicle_attitude.h>           // to publish groundtruth
 #include <uORB/topics/vehicle_global_position.h>    // to publish groundtruth
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/airspeed.h>
 
 using namespace time_literals;
 
@@ -71,6 +91,9 @@ public:
 
 	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
@@ -113,6 +136,9 @@ private:
 	vehicle_global_position_s			_gpos_gt{};
 	uORB::Publication<vehicle_global_position_s>	_gpos_gt_pub{ORB_ID(vehicle_global_position_groundtruth)};
 
+	// airspeed
+	uORB::Publication<airspeed_s>				_airspeed_pub{ORB_ID(airspeed)};
+
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _actuator_out_sub{ORB_ID(actuator_outputs)};
 
@@ -121,6 +147,12 @@ private:
 	static constexpr float T1_C = 15.0f;                        // ground temperature in celcius
 	static constexpr float T1_K = T1_C - CONSTANTS_ABSOLUTE_NULL_CELSIUS;   // ground temperature in Kelvin
 	static constexpr float TEMP_GRADIENT  = -6.5f / 1000.0f;    // temperature gradient in degrees per metre
+	// Aerodynamic coefficients
+	static constexpr float RHO = 1.225f; 		// air density at sea level [kg/m^3]
+	static constexpr float SPAN = 0.86f; 	// wing span [m]
+	static constexpr float MAC = 0.21f; 	// wing mean aerodynamic chord [m]
+	static constexpr float RP = 0.1f; 	// radius of the propeller [m]
+	static constexpr float FLAP_MAX = M_PI_F / 12.0f; // 15 deg, maximum control surface deflection
 
 	void init_variables();
 	void gps_fix();
@@ -130,8 +162,14 @@ private:
 	void equations_of_motion();
 	void reconstruct_sensors_signals();
 	void send_gps();
+	void send_airspeed();
 	void send_dist_snsr();
 	void publish_sih();
+	void generate_aerodynamics();
+	float sincf(float x);	// sin cardinal = sin(x)/x
+	matrix::Quatf expq(const matrix::Vector3f &u);  // quaternion exponential as defined in [3]
+	// States eom_f(States); 	// equations of motion f: x'=f(x)
+
 
 	perf_counter_t  _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t  _loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
@@ -139,6 +177,7 @@ private:
 	hrt_abstime _last_run{0};
 	hrt_abstime _baro_time{0};
 	hrt_abstime _gps_time{0};
+	hrt_abstime _airspeed_time{0};
 	hrt_abstime _mag_time{0};
 	hrt_abstime _gt_time{0};
 	hrt_abstime _dist_snsr_time{0};
@@ -158,10 +197,20 @@ private:
 	matrix::Quatf       _q;             // quaternion attitude
 	matrix::Dcmf        _C_IB;          // body to inertial transformation
 	matrix::Vector3f    _w_B;           // body rates in body frame [rad/s]
-	matrix::Quatf       _q_dot;         // quaternion differential
+	matrix::Quatf       _dq;            // quaternion differential
 	matrix::Vector3f    _w_B_dot;       // body rates differential
-	float       _u[NB_MOTORS];  // thruster signals
+	float       _u[NB_MOTORS];          // thruster signals
 
+	enum class VehicleType {MC, FW};
+	VehicleType _vehicle = VehicleType::MC;
+
+	// aerodynamic segments for the fixedwing
+	AeroSeg _wing_l = AeroSeg(SPAN / 2.0f, MAC, -4.0f, matrix::Vector3f(0.0f, -SPAN / 4.0f, 0.0f), 3.0f,
+				  SPAN / MAC, MAC / 3.0f);
+	AeroSeg _wing_r = AeroSeg(SPAN / 2.0f, MAC, -4.0f, matrix::Vector3f(0.0f, SPAN / 4.0f, 0.0f), -3.0f,
+				  SPAN / MAC, MAC / 3.0f);
+	AeroSeg _tailplane = AeroSeg(0.3f, 0.1f, 0.0f, matrix::Vector3f(-0.4f, 0.0f, 0.0f), 0.0f, -1.0f, 0.05f, RP);
+	AeroSeg _fin = AeroSeg(0.25, 0.15, 0.0f, matrix::Vector3f(-0.45f, 0.0f, -0.1f), -90.0f, -1.0f, 0.08f, RP);
 
 	// sensors reconstruction
 	matrix::Vector3f    _acc;
@@ -217,6 +266,7 @@ private:
 		(ParamFloat<px4::params::SIH_DISTSNSR_MIN>) _sih_distance_snsr_min,
 		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
 		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override,
-		(ParamFloat<px4::params::SIH_T_TAU>) _sih_thrust_tau
+		(ParamFloat<px4::params::SIH_T_TAU>) _sih_thrust_tau,
+		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype
 	)
 };

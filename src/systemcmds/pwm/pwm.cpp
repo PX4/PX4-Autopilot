@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014, 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014, 2017, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,6 +47,7 @@
 #include <px4_platform_common/cli.h>
 
 #include <stdio.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
@@ -279,7 +280,7 @@ pwm_main(int argc, char *argv[])
 
 		for (unsigned i = 0; i < PWM_OUTPUT_MAX_CHANNELS; i++) {
 			if (set_mask & 1 << i) {
-				printf("%d ", i + 1);
+				printf("%u ", i + 1);
 			}
 		}
 
@@ -924,17 +925,17 @@ err_out_no_test:
 			ret = px4_ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&spos);
 
 			if (ret == OK) {
-				printf("channel %u: %u us", i + 1, spos);
+				printf("channel %u: %" PRIu16 " us", i + 1, spos);
 
 				if (info_alt_rate_mask & (1 << i)) {
-					printf(" (alternative rate: %d Hz", info_alt_rate);
+					printf(" (alternative rate: %" PRIu32 " Hz", info_alt_rate);
 
 				} else {
-					printf(" (default rate: %d Hz", info_default_rate);
+					printf(" (default rate: %" PRIu32 " Hz", info_default_rate);
 				}
 
 
-				printf(" failsafe: %d, disarmed: %d us, min: %d us, max: %d us, trim: %5.2f)",
+				printf(" failsafe: %d, disarmed: %" PRIu16 " us, min: %" PRIu16 " us, max: %" PRIu16 " us, trim: %5.2f)",
 				       failsafe_pwm.values[i], disarmed_pwm.values[i], min_pwm.values[i], max_pwm.values[i],
 				       (double)((int16_t)(trim_pwm.values[i]) / 10000.0f));
 				printf("\n");

@@ -62,12 +62,9 @@ using namespace PixArt_PAW3902JF;
 class PAW3902 : public device::SPI, public I2CSPIDriver<PAW3902>
 {
 public:
-	PAW3902(I2CSPIBusOption bus_option, int bus, int devid, int bus_frequency, spi_mode_e spi_mode,
-		spi_drdy_gpio_t drdy_gpio, float yaw_rotation_degrees = NAN);
+	PAW3902(const I2CSPIDriverConfig &config);
 	virtual ~PAW3902();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	int init() override;
@@ -86,11 +83,9 @@ private:
 	bool DataReadyInterruptConfigure();
 	bool DataReadyInterruptDisable();
 
-	uint8_t	RegisterRead(uint8_t reg, int retries = 3);
+	uint8_t	RegisterRead(uint8_t reg, int retries = 2);
 	void RegisterWrite(uint8_t reg, uint8_t data);
-	bool RegisterWriteVerified(uint8_t reg, uint8_t data, int retries = 5);
-
-	bool Reset();
+	bool RegisterWriteVerified(uint8_t reg, uint8_t data, int retries = 1);
 
 	void EnableLed();
 
@@ -124,12 +119,24 @@ private:
 
 	matrix::Dcmf	_rotation;
 
+	int             _discard_reading{3};
+
 	int		_flow_sum_x{0};
 	int		_flow_sum_y{0};
 
 	Mode		_mode{Mode::LowLight};
-	uint8_t 	_bright_to_low_counter{0};
-	uint8_t 	_low_to_superlow_counter{0};
-	uint8_t 	_low_to_bright_counter{0};
-	uint8_t 	_superlow_to_low_counter{0};
+
+	uint32_t _scheduled_interval_us{SAMPLE_INTERVAL_MODE_1};
+
+	int _bright_to_low_counter{0};
+	int _low_to_superlow_counter{0};
+	int _low_to_bright_counter{0};
+	int _superlow_to_low_counter{0};
+
+	int _valid_count{0};
+
+	bool _data_ready_interrupt_enabled{false};
+
+	hrt_abstime _last_good_publish{0};
+	hrt_abstime _last_reset{0};
 };

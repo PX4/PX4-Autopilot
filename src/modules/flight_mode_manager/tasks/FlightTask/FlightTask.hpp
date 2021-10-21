@@ -53,7 +53,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <uORB/topics/home_position.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/weather_vane/WeatherVane.hpp>
 
 struct ekf_reset_counters_s {
@@ -186,13 +186,14 @@ public:
 protected:
 	uORB::SubscriptionData<vehicle_local_position_s> _sub_vehicle_local_position{ORB_ID(vehicle_local_position)};
 	uORB::SubscriptionData<home_position_s> _sub_home_position{ORB_ID(home_position)};
+	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
 
 	/** Reset all setpoints to NAN */
 	void _resetSetpoints();
 
 	/** Check and update local position */
 	void _evaluateVehicleLocalPosition();
-
+	void _evaluateVehicleLocalPositionSetpoint();
 	void _evaluateDistanceToGround();
 
 	/** Set constraints to default values */
@@ -207,10 +208,10 @@ protected:
 	 * TODO: add the delta values to all the handlers
 	 */
 	void _checkEkfResetCounters();
-	virtual void _ekfResetHandlerPositionXY() {};
-	virtual void _ekfResetHandlerVelocityXY() {};
-	virtual void _ekfResetHandlerPositionZ() {};
-	virtual void _ekfResetHandlerVelocityZ() {};
+	virtual void _ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy) {};
+	virtual void _ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy) {};
+	virtual void _ekfResetHandlerPositionZ(float delta_z) {};
+	virtual void _ekfResetHandlerVelocityZ(float delta_vz) {};
 	virtual void _ekfResetHandlerHeading(float delta_psi) {};
 
 	map_projection_reference_s _global_local_proj_ref{};
@@ -239,19 +240,18 @@ protected:
 	 * Setpoints that are set to NAN are not controlled. Not all setpoints can be set at the same time.
 	 * If more than one type of setpoint is set, then order of control is a as follow: position, velocity,
 	 * acceleration, thrust. The exception is _position_setpoint together with _velocity_setpoint, where the
-	 * _velocity_setpoint is used as feedforward.
-	 * _acceleration_setpoint and _jerk_setpoint are currently not supported.
+	 * _velocity_setpoint and _acceleration_setpoint are used as feedforward.
+	 * _jerk_setpoint does not executed but just serves as internal state.
 	 */
 	matrix::Vector3f _position_setpoint;
 	matrix::Vector3f _velocity_setpoint;
+	matrix::Vector3f _velocity_setpoint_feedback;
 	matrix::Vector3f _acceleration_setpoint;
+	matrix::Vector3f _acceleration_setpoint_feedback;
 	matrix::Vector3f _jerk_setpoint;
 
 	float _yaw_setpoint{};
 	float _yawspeed_setpoint{};
-
-	matrix::Vector3f _velocity_setpoint_feedback;
-	matrix::Vector3f _acceleration_setpoint_feedback;
 
 	ekf_reset_counters_s _reset_counters{}; ///< Counters for estimator local position resets
 

@@ -2,6 +2,7 @@ uint64 timestamp		# time since system start (microseconds)
 bool flag_armed			# synonym for actuator_armed.armed
 
 bool flag_external_manual_override_ok		# external override non-fatal for system. Only true for fixed wing
+bool flag_multicopter_position_control_enabled
 
 bool flag_control_manual_enabled		# true if manual input is mixed in
 bool flag_control_auto_enabled			# true if onboard autopilot should act

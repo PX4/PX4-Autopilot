@@ -63,7 +63,7 @@ all: px4_sitl_default
 space := $(subst ,, )
 
 define make_list
-     $(shell cat .github/workflows/compile_${1}.yml | sed -E 's|[[:space:]]+(.*),|check_\1|g' | grep check_${2})
+     $(shell [ -f .github/workflows/compile_${1}.yml ] && cat .github/workflows/compile_${1}.yml | sed -E 's|[[:space:]]+(.*),|check_\1|g' | grep check_${2})
 endef
 
 # Parsing
@@ -165,10 +165,16 @@ ifdef PYTHON_EXECUTABLE
 	CMAKE_ARGS += -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
 endif
 
+# Check if the microRTPS agent is to be built
+ifdef BUILD_MICRORTPS_AGENT
+  CMAKE_ARGS += -DBUILD_MICRORTPS_AGENT=ON
+endif
+
 # Functions
 # --------------------------------------------------------------------
 # describe how to build a cmake config
 define cmake-build
+	$(eval CMAKE_ARGS += -DCONFIG=$(1))
 	@$(eval BUILD_DIR = "$(SRC_DIR)/build/$(1)")
 	@# check if the desired cmake configuration matches the cache then CMAKE_CACHE_CHECK stays empty
 	@$(call cmake-cache-check)
@@ -208,7 +214,7 @@ define colorecho
 endef
 
 # Get a list of all config targets boards/*/*.cmake
-ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 ! -name '*common*' ! -name '*sdflight*' -name '*.cmake' -print | sed -e 's|boards\/||' | sed -e 's|\.cmake||' | sed -e 's|\/|_|g' | sort)
+ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 -name '*.cmake' -print | sed -e 's|boards\/||' | sed -e 's|\.cmake||' | sed -e 's|\/|_|g' | sort)
 
 # ADD CONFIGS HERE
 # --------------------------------------------------------------------
@@ -216,16 +222,12 @@ ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 ! -name '*comm
 
 # All targets.
 $(ALL_CONFIG_TARGETS):
-	@$(eval PX4_CONFIG = $@)
-	@$(eval CMAKE_ARGS += -DCONFIG=$(PX4_CONFIG))
-	@$(call cmake-build,$(PX4_CONFIG)$(BUILD_DIR_SUFFIX))
+	@$(call cmake-build,$@$(BUILD_DIR_SUFFIX))
 
 # Filter for only default targets to allow omiting the "_default" postfix
 CONFIG_TARGETS_DEFAULT := $(patsubst %_default,%,$(filter %_default,$(ALL_CONFIG_TARGETS)))
 $(CONFIG_TARGETS_DEFAULT):
-	@$(eval PX4_CONFIG = $@_default)
-	@$(eval CMAKE_ARGS += -DCONFIG=$(PX4_CONFIG))
-	@$(call cmake-build,$(PX4_CONFIG)$(BUILD_DIR_SUFFIX))
+	@$(call cmake-build,$@_default$(BUILD_DIR_SUFFIX))
 
 all_config_targets: $(ALL_CONFIG_TARGETS)
 all_default_targets: $(CONFIG_TARGETS_DEFAULT)
@@ -237,16 +239,6 @@ endef
 
 # All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
 .PHONY: all px4_sitl_default all_config_targets all_default_targets
-
-# Multi- config targets.
-eagle_default: atlflight_eagle_default atlflight_eagle_qurt
-eagle_rtps: atlflight_eagle_rtps atlflight_eagle_qurt-rtps
-
-excelsior_default: atlflight_excelsior_default atlflight_excelsior_qurt
-excelsior_rtps: atlflight_excelsior_rtps atlflight_excelsior_qurt-rtps
-
-.PHONY: eagle_default eagle_rtps
-.PHONY: excelsior_default excelsior_rtps
 
 # Other targets
 # --------------------------------------------------------------------
@@ -274,7 +266,6 @@ misc_qgc_extra_firmware: \
 	check_bitcraze_crazyflie_default \
 	check_bitcraze_crazyflie21_default \
 	check_airmind_mindpx-v2_default \
-	check_px4_fmu-v2_lpe \
 	sizes
 
 # builds with RTPS
@@ -302,10 +293,17 @@ check_%:
 	@$(MAKE) --no-print-directory $(subst check_,,$@)
 	@echo
 
+all_variants_%:
+	@echo 'Building all $(subst all_variants_,,$@) variants:'  $(filter $(subst all_variants_,,$@)_%, $(ALL_CONFIG_TARGETS))
+	@echo
+	$(foreach a,$(filter $(subst all_variants_,,$@)_%, $(ALL_CONFIG_TARGETS)), $(call cmake-build,$(a)$(BUILD_DIR_SUFFIX)))
+
 uorb_graphs:
-	@./Tools/uorb_graph/create.py --src-path src --exclude-path src/examples --file Tools/uorb_graph/graph_full
+	@./Tools/uorb_graph/create.py --src-path src --exclude-path src/examples --exclude-path src/lib/parameters --merge-depends --file Tools/uorb_graph/graph_full
+	@./Tools/uorb_graph/create.py --src-path src --exclude-path src/examples --exclude-path src/lib/parameters --exclude-path src/modules/mavlink --merge-depends --file Tools/uorb_graph/graph_full_no_mavlink
 	@$(MAKE) --no-print-directory px4_fmu-v2_default uorb_graph
 	@$(MAKE) --no-print-directory px4_fmu-v4_default uorb_graph
+	@$(MAKE) --no-print-directory px4_fmu-v5_default uorb_graph
 	@$(MAKE) --no-print-directory px4_sitl_default uorb_graph
 
 
@@ -315,18 +313,21 @@ coverity_scan: px4_sitl_default
 
 # Documentation
 # --------------------------------------------------------------------
-.PHONY: parameters_metadata airframe_metadata module_documentation px4_metadata doxygen
+.PHONY: parameters_metadata airframe_metadata module_documentation extract_events px4_metadata doxygen
 
 parameters_metadata:
 	@$(MAKE) --no-print-directory px4_sitl_default metadata_parameters ver_gen
 
 airframe_metadata:
-	@$(MAKE) --no-print-directory px4_sitl_default metadata_airframes
+	@$(MAKE) --no-print-directory px4_sitl_default metadata_airframes ver_gen
 
 module_documentation:
 	@$(MAKE) --no-print-directory px4_sitl_default metadata_module_documentation
 
-px4_metadata: parameters_metadata airframe_metadata module_documentation
+extract_events:
+	@$(MAKE) --no-print-directory px4_sitl_default metadata_extract_events ver_gen
+
+px4_metadata: parameters_metadata airframe_metadata module_documentation extract_events
 
 doxygen:
 	@mkdir -p "$(SRC_DIR)"/build/doxygen
@@ -353,7 +354,6 @@ format:
 .PHONY: rostest python_coverage
 
 tests:
-	$(eval CMAKE_ARGS += -DCONFIG=px4_sitl_test)
 	$(eval CMAKE_ARGS += -DTESTFILTER=$(TESTFILTER))
 	$(eval ARGS += test_results)
 	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
@@ -468,25 +468,27 @@ validate_module_configs:
 .PHONY: clean submodulesclean submodulesupdate gazeboclean distclean
 
 clean:
-	@rm -rf "$(SRC_DIR)"/build
+	@[ ! -d "$(SRC_DIR)/build" ] || find "$(SRC_DIR)/build" -mindepth 1 -maxdepth 1 -type d -exec sh -c "echo {}; cmake --build {} -- clean || rm -rf {}" \; # use generated build system to clean, wipe build directory if it fails
+	@git submodule foreach git clean -dX --force # some submodules generate build artifacts in source
 
 submodulesclean:
 	@git submodule foreach --quiet --recursive git clean -ff -x -d
 	@git submodule update --quiet --init --recursive --force || true
 	@git submodule sync --recursive
-	@git submodule update --init --recursive --force
+	@git submodule update --init --recursive --force --jobs 4
 
 submodulesupdate:
-	@git submodule update --quiet --init --recursive || true
+	@git submodule update --quiet --init --recursive --jobs 4 || true
 	@git submodule sync --recursive
-	@git submodule update --init --recursive
+	@git submodule update --init --recursive --jobs 4
 
 gazeboclean:
 	@rm -rf ~/.gazebo/*
 
 distclean: gazeboclean
-	@git submodule deinit -f .
-	@git clean -ff -x -d -e ".project" -e ".cproject" -e ".idea" -e ".settings" -e ".vscode"
+	@git submodule deinit --force $(SRC_DIR)
+	@rm -rf "$(SRC_DIR)/build"
+	@git clean --force -X "$(SRC_DIR)/msg/" "$(SRC_DIR)/platforms/" "$(SRC_DIR)/posix-configs/" "$(SRC_DIR)/ROMFS/" "$(SRC_DIR)/src/" "$(SRC_DIR)/test/" "$(SRC_DIR)/Tools/"
 
 # Help / Error
 # --------------------------------------------------------------------
@@ -502,7 +504,7 @@ help:
 	@echo "Where <target> is one of:"
 	@$(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | \
 		awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | \
-		egrep -v -e '^[^[:alnum:]]' -e '^($(subst $(space),|,$(ALL_CONFIG_TARGETS)))$$' -e '_default$$' -e '^(posix|eagle|Makefile)'
+		egrep -v -e '^[^[:alnum:]]' -e '^($(subst $(space),|,$(ALL_CONFIG_TARGETS)))$$' -e '_default$$' -e '^(Makefile)'
 	@echo
 	@echo "Or, $(MAKE) <config_target> [<make_target(s)>]"
 	@echo "Use '$(MAKE) list_config_targets' for a list of configuration targets."

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,6 +49,7 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/spi.h>
 
+#include <inttypes.h>
 #include <errno.h>
 #include <stdbool.h>
 #include "systemlib/px4_macros.h"
@@ -363,7 +364,7 @@ memoryout:
 
 		char blockname[32];
 
-		unsigned offset;
+		unsigned long offset;
 		unsigned part;
 
 		for (offset = 0, part = 0; rv == 0 && part < nparts; offset += instances[i].partition_block_counts[part], part++) {
@@ -373,8 +374,8 @@ memoryout:
 			instances[i].part_dev[part] = mtd_partition(instances[i].mtd_dev, offset, instances[i].partition_block_counts[part]);
 
 			if (instances[i].part_dev[part] == nullptr) {
-				PX4_ERR("mtd_partition failed. offset=%lu nblocks=%lu",
-					(unsigned long)offset, (unsigned long)nblocks);
+				PX4_ERR("mtd_partition failed. offset=%lu nblocks=%u",
+					offset, nblocks);
 				rv = -ENOSPC;
 				goto errout;
 			}
@@ -407,7 +408,7 @@ memoryout:
 errout:
 
 		if (rv < 0) {
-			PX4_ERR("mtd failure: %d bus %d address %d class %d",
+			PX4_ERR("mtd failure: %d bus %" PRId32 " address %" PRId32 " class %d",
 				rv,
 				PX4_I2C_DEVID_BUS(instances[i].devid),
 				PX4_I2C_DEVID_ADDR(instances[i].devid),

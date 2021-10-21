@@ -51,30 +51,51 @@
 #include <uavcan/pnp/NodeIDAllocationData_1_0.h>
 #include <uavcan/pnp/NodeIDAllocationData_2_0.h>
 
-
-class NodeManager;
-
 #include "Services/AccessRequest.hpp"
 #include "Services/ListRequest.hpp"
 
-//TODO make this an object instead?
+#define PNP1_PORT_ID                                 uavcan_pnp_NodeIDAllocationData_1_0_FIXED_PORT_ID_
+#define PNP1_PAYLOAD_SIZE                            uavcan_pnp_NodeIDAllocationData_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_
+#define PNP2_PORT_ID                                 uavcan_pnp_NodeIDAllocationData_2_0_FIXED_PORT_ID_
+#define PNP2_PAYLOAD_SIZE                            uavcan_pnp_NodeIDAllocationData_2_0_SERIALIZATION_BUFFER_SIZE_BYTES_
+
 typedef struct {
 	uint8_t   node_id;
 	uint8_t   unique_id[16];
 	bool      register_setup;
 	uint16_t  register_index;
+	uint16_t  retry_count;
 } UavcanNodeEntry;
 
-class NodeManager
+class NodeManager : public UavcanBaseSubscriber, public UavcanServiceRequestInterface
 {
 public:
-	NodeManager(CanardInstance &ins) : _canard_instance(ins), _access_request(ins), _list_request(ins) { };
+	NodeManager(CanardInstance &ins, UavcanParamManager &pmgr) : UavcanBaseSubscriber(ins, "NodeIDAllocationData", 0),
+		_canard_instance(ins), _access_request(ins, pmgr), _list_request(ins) { };
+
+	void subscribe() override
+	{
+		_access_request.subscribe();
+		_list_request.subscribe();
+
+		canardRxSubscribe(&_canard_instance,
+				  CanardTransferKindMessage,
+				  (_canard_instance.mtu_bytes == CANARD_MTU_CAN_FD ? PNP2_PORT_ID : PNP1_PORT_ID),  // The fixed Subject-ID
+				  (_canard_instance.mtu_bytes == CANARD_MTU_CAN_FD ? PNP2_PAYLOAD_SIZE : PNP1_PAYLOAD_SIZE),
+				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
+				  &_subj_sub._canard_sub);
+	}
 
 	bool HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg);
 	bool HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_2_0 &msg);
 
+	void response_callback(const CanardTransfer &receive) override
+	{
+		HandleListResponse(receive);
+	}
+	void callback(const CanardTransfer &receive); // NodeIDAllocation callback
 
-	void HandleListResponse(CanardNodeID node_id, uavcan_register_List_Response_1_0 &msg);
+	void HandleListResponse(const CanardTransfer &receive);
 
 	void update();
 
@@ -89,8 +110,4 @@ private:
 	bool nodeRegisterSetup = 0;
 
 	hrt_abstime _register_request_last{0};
-
-	//TODO work this out
-	const char *gps_uorb_register_name = "uavcan.pub.gnss_uorb.id";
-	const char *bms_status_register_name = "uavcan.pub.battery_status.id";
 };

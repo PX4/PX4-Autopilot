@@ -6,18 +6,18 @@
 # Enables the 2nd bank of mixers
 set AUX_BANK2 yes
 
-param set-default BAT_V_DIV 18
 param set-default BAT1_V_DIV 18
 param set-default BAT2_V_DIV 18
 
-param set-default BAT_A_PER_V 24
 param set-default BAT1_A_PER_V 24
 param set-default BAT2_A_PER_V 24
 
 # Enable IMU thermal control
 param set-default SENS_EN_THERMAL 1
 
-param set-default IMU_GYRO_FFT_EN 1
+# Set Camera trigger pins to 13/14
+param set-default TRIG_PINS_EX 12288
+
 
 rgbled_pwm start
 safety_button start

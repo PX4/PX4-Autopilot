@@ -49,8 +49,7 @@ bool Subscription::subscribe()
 		return true;
 	}
 
-	if (_orb_id != ORB_ID::INVALID) {
-
+	if ((_orb_id != ORB_ID::INVALID) && uORB::Manager::get_instance()) {
 		DeviceMaster *device_master = uORB::Manager::get_instance()->get_device_master();
 
 		if (device_master != nullptr) {
@@ -91,7 +90,7 @@ bool Subscription::ChangeInstance(uint8_t instance)
 		DeviceMaster *device_master = uORB::Manager::get_instance()->get_device_master();
 
 		if (device_master != nullptr) {
-			if (!device_master->deviceNodeExists(_orb_id, _instance)) {
+			if (!device_master->deviceNodeExists(_orb_id, instance)) {
 				return false;
 			}
 

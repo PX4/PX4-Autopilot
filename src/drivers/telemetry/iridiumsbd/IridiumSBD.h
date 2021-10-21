@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2018, 2021, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,6 +41,9 @@
 
 #include <uORB/Publication.hpp>
 #include <uORB/topics/iridiumsbd_status.h>
+
+#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/module.h>
 
 typedef enum {
 	SATCOM_OK = 0,
@@ -97,28 +100,29 @@ extern "C" __EXPORT int iridiumsbd_main(int argc, char *argv[]);
  * 	- Improve TX buffer handling:
  * 		- Do not reset the full TX buffer but delete the oldest HIGH_LATENCY2 message if one is in the buffer or delete the oldest message in general
  */
-class IridiumSBD : public cdev::CDev
+class IridiumSBD : public cdev::CDev, public ModuleBase<IridiumSBD>
 {
 public:
-	/*
-	 * Constructor
-	 */
 	IridiumSBD();
+	~IridiumSBD();
 
-	/*
-	 * Start the driver
-	 */
-	static int start(int argc, char *argv[]);
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-	/*
-	 * Stop the driver
-	 */
-	static int stop();
+	/** @see ModuleBase */
+	static IridiumSBD *instantiate(int argc, char *argv[]);
 
-	/*
-	 * Display driver status
-	 */
-	static void status();
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::run() */
+	void run() override;
+
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
 
 	/*
 	 * Run a driver test based on the input
@@ -126,23 +130,17 @@ public:
 	 *  - `read`: Start a sbd read session
 	 *  - else: Is assumed to be a valid AT command and written to the modem
 	 */
-	static void test(int argc, char *argv[]);
+	void test(int argc, char *argv[]);
 
 	/*
 	 * Passes everything to CDev
 	 */
 	int ioctl(struct file *filp, int cmd, unsigned long arg);
 
-private:
-	/*
-	 * Entry point of the task, has to be a static function
-	 */
-	static int main_loop_helper(int argc, char *argv[]);
+	static bool can_stop() { return !get_instance()->_cdev_used.load(); }
 
-	/*
-	 * Main driver loop
-	 */
-	void main_loop(int argc, char *argv[]);
+private:
+	int init(int argc, char *argv[]);
 
 	/*
 	 * Loop executed while in SATCOM_STATE_STANDBY
@@ -282,11 +280,7 @@ private:
 	 */
 	virtual int	close_last(struct file *filep) override;
 
-	static IridiumSBD *instance;
-	static int task_handle;
-	bool _task_should_exit = false;
-	bool _start_completed = false;
-	int uart_fd = -1;
+	int _uart_fd = -1;
 
 	int32_t _param_read_interval_s = -1;
 	int32_t _param_session_timeout_s = -1;
@@ -303,7 +297,7 @@ private:
 
 	uORB::Publication<iridiumsbd_status_s> _iridiumsbd_status_pub{ORB_ID(iridiumsbd_status)};
 
-	bool _test_pending = false;
+	px4::atomic_bool _test_pending{false};
 	char _test_command[32];
 	hrt_abstime _test_timer = 0;
 
@@ -323,7 +317,7 @@ private:
 	bool _rx_read_pending = false;
 	bool _tx_session_pending = false;
 
-	bool _cdev_used = false;
+	px4::atomic_bool _cdev_used{false};
 
 	hrt_abstime _last_write_time = 0;
 	hrt_abstime _last_read_time = 0;

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,7 +31,8 @@
  *
  ****************************************************************************/
 
-#pragma once
+#ifndef EKF2SELECTOR_HPP
+#define EKF2SELECTOR_HPP
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
@@ -73,15 +74,23 @@ public:
 
 	void PrintStatus();
 
+	void RequestInstance(uint8_t instance) { _request_instance.store(instance); }
+
 private:
 	static constexpr uint8_t INVALID_INSTANCE{UINT8_MAX};
 	static constexpr uint64_t FILTER_UPDATE_PERIOD{10_ms};
 
 	void Run() override;
-	void PublishVehicleAttitude(bool reset = false);
-	void PublishVehicleLocalPosition(bool reset = false);
-	void PublishVehicleGlobalPosition(bool reset = false);
-	void PublishWindEstimate(bool reset = false);
+
+	void PrintInstanceChange(const uint8_t old_instance, uint8_t new_instance);
+
+	void PublishEstimatorSelectorStatus();
+	void PublishVehicleAttitude();
+	void PublishVehicleLocalPosition();
+	void PublishVehicleGlobalPosition();
+	void PublishVehicleOdometry();
+	void PublishWindEstimate();
+
 	bool SelectInstance(uint8_t instance);
 
 	// Update the error scores for all available instances
@@ -123,6 +132,8 @@ private:
 		bool healthy{false};
 		bool filter_fault{false};
 		bool timeout{false};
+
+		uint8_t healthy_count{0};
 
 		const uint8_t instance;
 	};
@@ -166,6 +177,7 @@ private:
 
 	uint8_t _available_instances{0};
 	uint8_t _selected_instance{INVALID_INSTANCE};
+	px4::atomic<uint8_t> _request_instance{INVALID_INSTANCE};
 
 	uint32_t _instance_changed_count{0};
 	hrt_abstime _last_instance_change{0};
@@ -191,6 +203,9 @@ private:
 	uint8_t _vz_reset_counter{0};
 	uint8_t _heading_reset_counter{0};
 
+	// vehicle_odometry
+	vehicle_odometry_s _odometry_last{};
+
 	// vehicle_global_position: reset counters
 	vehicle_global_position_s _global_position_last{};
 	double _delta_lat_reset{0};
@@ -201,6 +216,10 @@ private:
 
 	// wind estimate
 	wind_s _wind_last{};
+
+	uint8_t _attitude_instance_prev{INVALID_INSTANCE};
+	uint8_t _local_position_instance_prev{INVALID_INSTANCE};
+	uint8_t _global_position_instance_prev{INVALID_INSTANCE};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _sensors_status_imu{ORB_ID(sensors_status_imu)};
@@ -222,3 +241,4 @@ private:
 		(ParamFloat<px4::params::EKF2_SEL_IMU_VEL>) _param_ekf2_sel_imu_velocity
 	)
 };
+#endif // !EKF2SELECTOR_HPP

@@ -262,6 +262,7 @@
 
 #if defined(BOARD_HAS_HW_VERSIONING)
 #  define BOARD_HAS_VERSIONING 1
+#  define HW_VER_REV(v,r)       ((uint32_t)((v) & 0xff) << 8) | ((uint32_t)(r) & 0xff)
 #endif
 
 /* Default LED logical to color mapping */
@@ -559,9 +560,9 @@ __EXPORT void board_on_reset(int status);
  *
  ****************************************************************************/
 
-#ifdef CONFIG_BOARDCTL_POWEROFF
+#if defined(BOARD_HAS_POWER_CONTROL)
 int board_power_off(int status);
-#endif
+#endif // BOARD_HAS_POWER_CONTROL
 
 /****************************************************************************
  * Name: board_reset

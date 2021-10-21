@@ -105,6 +105,13 @@ public:
 	uint32_t get_sensor_state(unsigned index);
 
 	/**
+	 * Get the priority of the sensor with the specified index
+	 *
+	 * @return		priority
+	 */
+	uint8_t get_sensor_priority(unsigned index);
+
+	/**
 	 * Print the validator value
 	 *
 	 */

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2019, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,6 +33,7 @@
 
 #include "lightware_laser_serial.hpp"
 
+#include <inttypes.h>
 #include <fcntl.h>
 #include <termios.h>
 
@@ -127,7 +128,7 @@ LightwareLaserSerial::init()
 		break;
 
 	default:
-		PX4_ERR("invalid HW model %d.", hw_model);
+		PX4_ERR("invalid HW model %" PRIi32 ".", hw_model);
 		return -1;
 	}
 

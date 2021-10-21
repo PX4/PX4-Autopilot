@@ -47,16 +47,16 @@ bool FlightTaskManualAcceleration::activate(const vehicle_local_position_setpoin
 {
 	bool ret = FlightTaskManualAltitudeSmoothVel::activate(last_setpoint);
 
-	if (PX4_ISFINITE(last_setpoint.vx)) {
+	_stick_acceleration_xy.resetPosition();
+
+	if (PX4_ISFINITE(last_setpoint.vx) && PX4_ISFINITE(last_setpoint.vy)) {
 		_stick_acceleration_xy.resetVelocity(Vector2f(last_setpoint.vx, last_setpoint.vy));
 
 	} else {
 		_stick_acceleration_xy.resetVelocity(_velocity.xy());
 	}
 
-	_stick_acceleration_xy.resetPosition();
-
-	if (PX4_ISFINITE(last_setpoint.acceleration[0])) {
+	if (PX4_ISFINITE(last_setpoint.acceleration[0]) && PX4_ISFINITE(last_setpoint.acceleration[1])) {
 		_stick_acceleration_xy.resetAcceleration(Vector2f(last_setpoint.acceleration[0], last_setpoint.acceleration[1]));
 	}
 
@@ -77,12 +77,12 @@ bool FlightTaskManualAcceleration::update()
 	return ret;
 }
 
-void FlightTaskManualAcceleration::_ekfResetHandlerPositionXY()
+void FlightTaskManualAcceleration::_ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy)
 {
 	_stick_acceleration_xy.resetPosition();
 }
 
-void FlightTaskManualAcceleration::_ekfResetHandlerVelocityXY()
+void FlightTaskManualAcceleration::_ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy)
 {
 	_stick_acceleration_xy.resetVelocity(_velocity.xy());
 }

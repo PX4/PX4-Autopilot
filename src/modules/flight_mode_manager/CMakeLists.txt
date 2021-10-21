@@ -52,16 +52,16 @@ endif()
 
 # add core flight tasks to list
 list(APPEND flight_tasks_all
+	AutoFollowMe
+	AutoLineSmoothVel
+	Descend
+	Failsafe
+	ManualAcceleration
 	ManualAltitude
 	ManualAltitudeSmoothVel
 	ManualPosition
 	ManualPositionSmoothVel
-	AutoLineSmoothVel
-	AutoFollowMe
-	Failsafe
-	Descend
 	Transition
-	ManualAcceleration
 	${flight_tasks_to_add}
 )
 
@@ -99,6 +99,9 @@ add_custom_command(
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	VERBATIM
 )
+add_custom_target(flighttasks_generated
+	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/FlightTasks_generated.cpp)
+add_dependencies(prebuild_targets flighttasks_generated)
 
 add_compile_options(
 	-Wno-cast-align
@@ -123,6 +126,7 @@ px4_add_module(
 	DEPENDS
 		px4_work_queue
 		WeatherVane
+		flighttasks_generated
 )
 
 # add all flight task dependencies

@@ -124,10 +124,16 @@ SDP3X::read_scale()
 	return PX4_OK;
 }
 
-void SDP3X::start()
+int	SDP3X::init()
 {
-	// make sure to wait 10ms after configuring the measurement mode
-	ScheduleDelayed(10_ms);
+	int ret = Airspeed::init();
+
+	if (ret == PX4_OK) {
+		// make sure to wait 10ms after configuring the measurement mode
+		ScheduleDelayed(10_ms);
+	}
+
+	return ret;
 }
 
 int
@@ -156,16 +162,18 @@ SDP3X::collect()
 	float diff_press_pa_raw = static_cast<float>(P) / static_cast<float>(_scale);
 	float temperature_c = temp / static_cast<float>(SDP3X_SCALE_TEMPERATURE);
 
-	differential_pressure_s report{};
+	if (PX4_ISFINITE(diff_press_pa_raw)) {
+		differential_pressure_s report{};
 
-	report.timestamp = hrt_absolute_time();
-	report.error_count = perf_event_count(_comms_errors);
-	report.temperature = temperature_c;
-	report.differential_pressure_filtered_pa = _filter.apply(diff_press_pa_raw) - _diff_pres_offset;
-	report.differential_pressure_raw_pa = diff_press_pa_raw - _diff_pres_offset;
-	report.device_id = _device_id.devid;
+		report.error_count = perf_event_count(_comms_errors);
+		report.temperature = temperature_c;
+		report.differential_pressure_filtered_pa = _filter.apply(diff_press_pa_raw) - _diff_pres_offset;
+		report.differential_pressure_raw_pa = diff_press_pa_raw - _diff_pres_offset;
+		report.device_id = _device_id.devid;
+		report.timestamp = hrt_absolute_time();
 
-	_airspeed_pub.publish(report);
+		_airspeed_pub.publish(report);
+	}
 
 	perf_end(_sample_perf);
 

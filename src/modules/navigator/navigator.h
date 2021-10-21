@@ -142,6 +142,11 @@ public:
 	void		check_traffic();
 
 	/**
+	 * Buffer for air traffic to control the amount of messages sent to a user
+	 */
+	bool		buffer_air_traffic(uint32_t icao_address);
+
+	/**
 	 * Setters
 	 */
 	void		set_can_loiter_at_sp(bool can_loiter) { _can_loiter_at_sp = can_loiter; }
@@ -329,6 +334,11 @@ private:
 		(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err
 	)
 
+	struct traffic_buffer_s {
+		uint32_t 	icao_address;
+		hrt_abstime timestamp;
+	};
+
 	int		_local_pos_sub{-1};
 	int		_mission_sub{-1};
 	int		_vehicle_status_sub{-1};
@@ -400,8 +410,13 @@ private:
 
 	param_t _handle_back_trans_dec_mss{PARAM_INVALID};
 	param_t _handle_reverse_delay{PARAM_INVALID};
+	param_t _handle_mpc_jerk_auto{PARAM_INVALID};
+	param_t _handle_mpc_acc_hor{PARAM_INVALID};
+
 	float _param_back_trans_dec_mss{0.f};
 	float _param_reverse_delay{0.f};
+	float _param_mpc_jerk_auto{4.f}; /**< initialized with the default jerk auto value to prevent division by 0 if the parameter is accidentally set to 0 */
+	float _param_mpc_acc_hor{3.f}; /**< initialized with the default horizontal acc value to prevent division by 0 if the parameter is accidentally set to 0 */
 
 	float _mission_cruising_speed_mc{-1.0f};
 	float _mission_cruising_speed_fw{-1.0f};
@@ -409,6 +424,8 @@ private:
 
 	bool _mission_landing_in_progress{false};	// this flag gets set if the mission is currently executing on a landing pattern
 	// if mission mode is inactive, this flag will be cleared after 2 seconds
+
+	traffic_buffer_s _traffic_buffer{};
 
 	// update subscriptions
 	void		params_update();

@@ -80,7 +80,7 @@ protected:
 	float _state;
 	control::BlockParamFloat _fCut;
 	float _fs;
-	math::LowPassFilter2p _lp;
+	math::LowPassFilter2p<float> _lp;
 };
 
 } // namespace control

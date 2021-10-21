@@ -9,11 +9,10 @@ pipeline {
         script {
           def build_nodes = [:]
           def docker_images = [
-            armhf: "px4io/px4-dev-armhf:2021-02-04",
-            arm64: "px4io/px4-dev-aarch64:2021-02-04",
-            base: "px4io/px4-dev-base-bionic:2021-02-04",
-            nuttx: "px4io/px4-dev-nuttx-focal:2021-02-04",
-            snapdragon: "lorenzmeier/px4-dev-snapdragon:2020-04-01"
+            armhf: "px4io/px4-dev-armhf:2021-05-04",
+            arm64: "px4io/px4-dev-aarch64:2021-05-04",
+            base: "px4io/px4-dev-base-bionic:2021-05-04",
+            nuttx: "px4io/px4-dev-nuttx-focal:2021-05-04",
           ]
 
           def armhf_builds = [
@@ -39,6 +38,7 @@ pipeline {
                      "airmind_mindpx-v2_default",
                      "ark_can-flow_canbootloader",
                      "ark_can-flow_default",
+                     "atl_mantis-edu_default",
                      "av_x-v1_default",
                      "bitcraze_crazyflie_default",
                      "bitcraze_crazyflie21_default",
@@ -46,16 +46,18 @@ pipeline {
                      "cuav_can-gps-v1_default",
                      "cuav_nora_default",
                      "cuav_x7pro_default",
-                     "cubepilot_cubeorange_console",
                      "cubepilot_cubeorange_default",
-                     "cubepilot_cubeyellow_console",
                      "cubepilot_cubeyellow_default",
+                     "freefly_can-rtk-gps_canbootloader",
+                     "freefly_can-rtk-gps_default",
                      "holybro_can-gps-v1_canbootloader",
                      "holybro_can-gps-v1_default",
                      "holybro_durandal-v1_default",
                      "holybro_kakutef7_default",
                      "holybro_pix32v5_default",
                      "modalai_fc-v1_default",
+                     "modalai_fc-v1_rtps",
+                     "modalai_fc-v2_default",
                      "mro_ctrl-zero-f7_default",
                      "mro_ctrl-zero-f7-oem_default",
                      "mro_ctrl-zero-h7_default",
@@ -70,14 +72,13 @@ pipeline {
                      "nxp_fmuk66-v3_rtps",
                      "nxp_fmuk66-v3_socketcan",
                      "nxp_fmurt1062-v1_default",
-                     "nxp_ucans32k146_default",
                      "nxp_ucans32k146_canbootloader",
+                     "nxp_ucans32k146_default",
                      "omnibus_f4sd_default",
                      "px4_fmu-v2_default",
                      "px4_fmu-v2_fixedwing",
                      "px4_fmu-v2_multicopter",
                      "px4_fmu-v2_rover",
-                     "px4_fmu-v2_test",
                      "px4_fmu-v3_default",
                      "px4_fmu-v4_cannode",
                      "px4_fmu-v4_default",
@@ -96,7 +97,6 @@ pipeline {
                      "px4_fmu-v5x_base_phy_DP83848C",
                      "px4_fmu-v5x_default",
                      "px4_fmu-v6u_default",
-                     "px4_fmu-v6u_test",
                      "px4_fmu-v6x_default",
                      "px4_io-v2_default",
                      "spracing_h7extreme_default",
@@ -106,14 +106,8 @@ pipeline {
             archive: true
           ]
 
-          def snapdragon_builds = [
-            target: ["atlflight_eagle_qurt", "atlflight_eagle_default"],
-            image: docker_images.snapdragon,
-            archive: false
-          ]
-
           def docker_builds = [
-            armhf_builds, base_builds, nuttx_builds_archive//, snapdragon_builds
+            armhf_builds, base_builds, nuttx_builds_archive
           ]
 
           for (def build_type = 0; build_type < docker_builds.size(); build_type++) {
@@ -133,7 +127,7 @@ pipeline {
     // TODO: actually upload artifacts to S3
     // stage('S3 Upload') {
     //   agent {
-    //     docker { image 'px4io/px4-dev-base-focal:2021-02-04' }
+    //     docker { image 'px4io/px4-dev-base-focal:2021-05-04' }
     //   }
     //   options {
     //         skipDefaultCheckout()
@@ -158,18 +152,14 @@ pipeline {
   }
   options {
     buildDiscarder(logRotator(numToKeepStr: '5', artifactDaysToKeepStr: '14'))
-    timeout(time: 60, unit: 'MINUTES')
+    timeout(time: 90, unit: 'MINUTES')
   }
 }
 
 def createBuildNode(Boolean archive, String docker_image, String target) {
   return {
 
-    // TODO: fix the snapdragon image
     bypass_entrypoint = ''
-    if (docker_image == 'lorenzmeier/px4-dev-snapdragon:2020-04-01') {
-      bypass_entrypoint = ' --entrypoint=""'
-    }
 
     node {
       docker.withRegistry('https://registry.hub.docker.com', 'docker_hub_dagar') {

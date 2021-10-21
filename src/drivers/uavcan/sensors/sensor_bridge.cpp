@@ -48,6 +48,8 @@
 #include "rangefinder.hpp"
 #include "accel.hpp"
 #include "gyro.hpp"
+#include "cbat.hpp"
+#include "ice_status.hpp"
 
 /*
  * IUavcanSensorBridge
@@ -58,12 +60,24 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	list.add(new UavcanMagnetometerBridge(node));
 	list.add(new UavcanGnssBridge(node));
 	list.add(new UavcanFlowBridge(node));
-	list.add(new UavcanBatteryBridge(node));
+
+	int32_t bat_monitor;
+	param_t _param_bat_monitor = param_find("UAVCAN_BAT_MON");
+	param_get(_param_bat_monitor, &bat_monitor);
+
+	if (bat_monitor == 0) {
+		list.add(new UavcanBatteryBridge(node));
+
+	} else if (bat_monitor == 1) {
+		list.add(new UavcanCBATBridge(node));
+	}
+
 	list.add(new UavcanAirspeedBridge(node));
 	list.add(new UavcanDifferentialPressureBridge(node));
 	list.add(new UavcanRangefinderBridge(node));
 	list.add(new UavcanAccelBridge(node));
 	list.add(new UavcanGyroBridge(node));
+	list.add(new UavcanIceStatusBridge(node));
 }
 
 /*
@@ -114,6 +128,7 @@ UavcanSensorBridgeBase::publish(const int node_id, const void *report)
 
 		// update device id as we now know our device node_id
 		_device_id.devid_s.address = static_cast<uint8_t>(node_id);
+		_device_id.devid_s.bus_type = DeviceBusType::DeviceBusType_UAVCAN;
 
 		// Publish to the appropriate topic, abort on failure
 		channel->orb_advert = orb_advertise_multi(_orb_topic, report, &channel->instance);

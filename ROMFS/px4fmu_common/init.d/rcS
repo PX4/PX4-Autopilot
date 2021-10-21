@@ -30,7 +30,7 @@ set FRC /fs/microsd/etc/rc.txt
 set IOFW "/etc/extras/px4_io-v2_default.bin"
 set IO_PRESENT no
 set LOGGER_ARGS ""
-set LOGGER_BUF  14
+set LOGGER_BUF 8
 set MAV_TYPE none
 set MIXER none
 set MIXER_AUX none
@@ -81,33 +81,6 @@ then
 			hardfault_log reset
 		fi
 	fi
-
-	# Prevent MacOS and Ubuntu from creating unnecessary temporary files on the microSD card
-
-	# block MacOS Spotlight indexing (.Spotlight-V100 folder)
-	if [ ! -f "/fs/microsd/.metadata_never_index" ]; then
-		cat > /fs/microsd/.metadata_never_index
-	fi
-
-	# block MacOS trashes
-	if [ ! -f "/fs/microsd/.Trashes" ]; then
-		cat > /fs/microsd/.Trashes
-	fi
-
-	# block MacOS logging of filesystem events
-	if [ ! -d "/fs/microsd/.fseventsd" ]; then
-		mkdir /fs/microsd/.fseventsd
-	fi
-
-	if [ ! -f "/fs/microsd/.fseventsd/no_log" ]; then
-		cat > /fs/microsd/.fseventsd/no_log
-	fi
-
-	# block Ubuntu trash
-	if [ ! -f "/fs/microsd/.Trash-1000" ]; then
-		cat > /fs/microsd/.Trash-1000
-	fi
-
 else
 	# tune SD_INIT
 	set STARTUP_TUNE 14 # tune 14 = SD_INIT
@@ -255,6 +228,34 @@ else
 	fi
 
 	#
+	# Check if UAVCAN is enabled, default to it for ESCs.
+	#
+	if param greater -s UAVCAN_ENABLE 0
+	then
+		# Start core UAVCAN module.
+		if uavcan start
+		then
+			if param greater UAVCAN_ENABLE 1
+			then
+				# Start UAVCAN firmware update server and dynamic node ID allocation server.
+				uavcan start fw
+				tune_control play -t 1
+				if param greater UAVCAN_ENABLE 2
+				then
+					set OUTPUT_MODE uavcan_esc
+				fi
+			fi
+		else
+			tune_control play error
+		fi
+	else
+		if param greater -s UAVCAN_V1_ENABLE 0
+		then
+			uavcan_v1 start
+		fi
+	fi
+
+	#
 	# Check if PX4IO present and update firmware if needed.
 	# Assumption IOFW set to firmware file and IO_PRESENT = no
 	#
@@ -285,6 +286,8 @@ else
 					else
 						tune_control play -t 18 # tune 18 = PROG_PX4IO_ERR
 					fi
+				else
+					tune_control stop
 				fi
 			fi
 		fi
@@ -376,54 +379,35 @@ else
 
 	if param greater -s TRIG_MODE 0
 	then
-		# We ONLY support trigger on pins 5+6 or 7+8 when simultanously using AUX for actuator output.
-		if param compare TRIG_PINS 56
+		if param compare TRIG_PINS_EX 0
 		then
-			# clear pins 5 and 6
-			set FMU_MODE pwm4
-			set AUX_MODE pwm4
-		else
-			if param compare TRIG_PINS 78
+			# We ONLY support trigger on pins 5+6 or 7+8 when simultanously using AUX for actuator output.
+			if param compare TRIG_PINS 56
 			then
-				# clear pins 7 and 8
-				set FMU_MODE pwm6
-				set AUX_MODE pwm6
+				# clear pins 5 and 6
+				set FMU_MODE pwm4
+				set AUX_MODE pwm4
 			else
-				set FMU_MODE none
-				set AUX_MODE none
+				if param compare TRIG_PINS 78
+				then
+					# clear pins 7 and 8
+					set FMU_MODE pwm6
+					set AUX_MODE pwm6
+				else
+					set FMU_MODE none
+					set AUX_MODE none
+				fi
+			fi
+		else
+			if param compare TRIG_PINS_EX 12288
+			then
+				set FMU_MODE pwm12
+				set AUX_MODE pwm12
 			fi
 		fi
 
 		camera_trigger start
 		camera_feedback start
-	fi
-
-	#
-	# Check if UAVCAN is enabled, default to it for ESCs.
-	#
-	if param greater -s UAVCAN_ENABLE 0
-	then
-		# Start core UAVCAN module.
-		if uavcan start
-		then
-			if param greater UAVCAN_ENABLE 1
-			then
-				# Start UAVCAN firmware update server and dynamic node ID allocation server.
-				uavcan start fw
-				tune_control play -t 1
-				if param greater UAVCAN_ENABLE 2
-				then
-					set OUTPUT_MODE uavcan_esc
-				fi
-			fi
-		else
-			tune_control play error
-		fi
-	fi
-
-	if param greater -s UAVCAN_V1_ENABLE 0
-	then
-		uavcan_v1 start
 	fi
 
 	#

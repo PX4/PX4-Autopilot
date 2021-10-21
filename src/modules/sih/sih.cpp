@@ -40,12 +40,14 @@
  * Coriolis g Corporation - January 2019
  */
 
+#include "aero.hpp"
 #include "sih.hpp"
 
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 
 #include <drivers/drv_pwm_output.h>         // to get PWM flags
+#include <lib/drivers/device/Device.hpp>
 
 using namespace math;
 using namespace matrix;
@@ -66,8 +68,10 @@ Sih::Sih() :
 	const hrt_abstime task_start = hrt_absolute_time();
 	_last_run = task_start;
 	_gps_time = task_start;
+	_airspeed_time = task_start;
 	_gt_time = task_start;
 	_dist_snsr_time = task_start;
+	_vehicle = (VehicleType)constrain(_sih_vtype.get(), 0, 1);
 }
 
 Sih::~Sih()
@@ -146,6 +150,11 @@ void Sih::Run()
 	if (_now - _gps_time >= 50_ms) {
 		_gps_time = _now;
 		send_gps();
+	}
+
+	if (_vehicle == VehicleType::FW && _now - _airspeed_time >= 50_ms) {
+		_airspeed_time = _now;
+		send_airspeed();
 	}
 
 	// distance sensor published at 50 Hz
@@ -253,10 +262,17 @@ void Sih::read_motors()
 {
 	actuator_outputs_s actuators_out;
 
+	float pwm_middle = 0.5f * (PWM_DEFAULT_MIN + PWM_DEFAULT_MAX);
+
 	if (_actuator_out_sub.update(&actuators_out)) {
 		for (int i = 0; i < NB_MOTORS; i++) { // saturate the motor signals
-			float u_sp = constrain((actuators_out.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN), 0.0f, 1.0f);
-			_u[i] = _u[i] + _dt / _T_TAU * (u_sp - _u[i]); // first order transfer function with time constant tau
+			if (_vehicle == VehicleType::FW && i < 3) { // control surfaces in range [-1,1]
+				_u[i] = constrain(2.0f * (actuators_out.output[i] - pwm_middle) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN), -1.0f, 1.0f);
+
+			} else { // throttle signals in range [0,1]
+				float u_sp = constrain((actuators_out.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN), 0.0f, 1.0f);
+				_u[i] = _u[i] + _dt / _T_TAU * (u_sp - _u[i]); // first order transfer function with time constant tau
+			}
 		}
 	}
 }
@@ -264,13 +280,35 @@ void Sih::read_motors()
 // generate the motors thrust and torque in the body frame
 void Sih::generate_force_and_torques()
 {
-	_T_B = Vector3f(0.0f, 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3]));
-	_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-_u[0] + _u[1] + _u[2] - _u[3]),
-			 _L_PITCH * _T_MAX * (+_u[0] - _u[1] + _u[2] - _u[3]),
-			 _Q_MAX * (+_u[0] + _u[1] - _u[2] - _u[3]));
+	if (_vehicle == VehicleType::MC) {
+		_T_B = Vector3f(0.0f, 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3]));
+		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-_u[0] + _u[1] + _u[2] - _u[3]),
+				 _L_PITCH * _T_MAX * (+_u[0] - _u[1] + _u[2] - _u[3]),
+				 _Q_MAX * (+_u[0] + _u[1] - _u[2] - _u[3]));
+		_Fa_I = -_KDV * _v_I;   // first order drag to slow down the aircraft
+		_Ma_B = -_KDW * _w_B;   // first order angular damper
 
-	_Fa_I = -_KDV * _v_I;   // first order drag to slow down the aircraft
-	_Ma_B = -_KDW * _w_B;   // first order angular damper
+	} else if (_vehicle == VehicleType::FW) {
+		_T_B = Vector3f(_T_MAX * _u[3], 0.0f, 0.0f); 	// forward thruster
+		// _Mt_B = Vector3f(_Q_MAX*_u[3], 0.0f,0.0f); 	// thruster torque
+		_Mt_B = Vector3f();
+		generate_aerodynamics();
+	}
+
+}
+
+void Sih::generate_aerodynamics()
+{
+	_v_B = _C_IB.transpose() * _v_I; 	// velocity in body frame [m/s]
+	float altitude = _H0 - _p_I(2);
+	_wing_l.update_aero(_v_B, _w_B, altitude, _u[0]*FLAP_MAX);
+	_wing_r.update_aero(_v_B, _w_B, altitude, -_u[0]*FLAP_MAX);
+	_tailplane.update_aero(_v_B, _w_B, altitude, _u[1]*FLAP_MAX, _T_MAX * _u[3]);
+	_fin.update_aero(_v_B, _w_B, altitude, _u[2]*FLAP_MAX, _T_MAX * _u[3]);
+	_Fa_I = _C_IB * (_wing_l.get_Fa() + _wing_r.get_Fa() + _tailplane.get_Fa() + _fin.get_Fa()) - _KDV *
+		_v_I; 	// sum of aerodynamic forces
+	// _Ma_B = wing_l.Ma + wing_r.Ma + tailplane.Ma + fin.Ma + flap_moments() -_KDW * _w_B; 	// aerodynamic moments
+	_Ma_B = _wing_l.get_Ma() + _wing_r.get_Ma() + _tailplane.get_Ma() + _fin.get_Ma() - _KDW * _w_B; 	// aerodynamic moments
 }
 
 // apply the equations of motion of a rigid body and integrate one step
@@ -281,40 +319,79 @@ void Sih::equations_of_motion()
 	// Equations of motion of a rigid body
 	_p_I_dot = _v_I;                        // position differential
 	_v_I_dot = (_W_I + _Fa_I + _C_IB * _T_B) / _MASS;   // conservation of linear momentum
-	_q_dot = _q.derivative1(_w_B);              // attitude differential
+	// _q_dot = _q.derivative1(_w_B);              // attitude differential
+	_dq = expq(0.5f * _dt * _w_B);
 	_w_B_dot = _Im1 * (_Mt_B + _Ma_B - _w_B.cross(_I * _w_B)); // conservation of angular momentum
 
 	// fake ground, avoid free fall
 	if (_p_I(2) > 0.0f && (_v_I_dot(2) > 0.0f || _v_I(2) > 0.0f)) {
-		if (!_grounded) {    // if we just hit the floor
-			// for the accelerometer, compute the acceleration that will stop the vehicle in one time step
-			_v_I_dot = -_v_I / _dt;
+		if (_vehicle == VehicleType::MC) {
+			if (!_grounded) {    // if we just hit the floor
+				// for the accelerometer, compute the acceleration that will stop the vehicle in one time step
+				_v_I_dot = -_v_I / _dt;
 
-		} else {
-			_v_I_dot.setZero();
+			} else {
+				_v_I_dot.setZero();
+			}
+
+			_v_I.setZero();
+			_w_B.setZero();
+			_grounded = true;
+
+		} else if (_vehicle == VehicleType::FW) {
+			if (!_grounded) {    // if we just hit the floor
+				// for the accelerometer, compute the acceleration that will stop the vehicle in one time step
+				_v_I_dot(2) = -_v_I(2) / _dt;
+
+			} else {
+				// we only allow negative acceleration in order to takeoff
+				_v_I_dot(2) = fminf(_v_I_dot(2), 0.0f);
+			}
+
+			// integration: Euler forward
+			_p_I = _p_I + _p_I_dot * _dt;
+			_v_I = _v_I + _v_I_dot * _dt;
+			Eulerf RPY = Eulerf(_q);
+			RPY(0) = 0.0f;	// no roll
+			RPY(1) = radians(0.0f); 	// pitch slightly up to get some lift
+			_q = Quatf(RPY);
+			_w_B.setZero();
+			_grounded = true;
 		}
-
-		_v_I.setZero();
-		_w_B.setZero();
-		_grounded = true;
 
 	} else {
 		// integration: Euler forward
 		_p_I = _p_I + _p_I_dot * _dt;
 		_v_I = _v_I + _v_I_dot * _dt;
-		_q = _q + _q_dot * _dt; // as given in attitude_estimator_q_main.cpp
+		_q = _q * _dq; // as given in attitude_estimator_q_main.cpp
 		_q.normalize();
-		_w_B = _w_B + _w_B_dot * _dt;
+		// integration Runge-Kutta 4
+		// rk4_update(_p_I, _v_I, _q, _w_B);
+		_w_B = constrain(_w_B + _w_B_dot * _dt, -6.0f * M_PI_F, 6.0f * M_PI_F);
 		_grounded = false;
 	}
 }
 
+// Sih::States Sih::eom_f(States x) 	// equations of motion f: x'=f(x)
+// {
+// 	States x_dot{}; 	// dx/dt
+
+// 	Dcmf C_IB = matrix::Dcm<float>(x.q); // body to inertial transformation
+// 	// Equations of motion of a rigid body
+// 	x_dot.p_I = x.v_I;                        // position differential
+// 	x_dot.v_I = (_W_I + _Fa_I + C_IB * _T_B) / _MASS;   // conservation of linear momentum
+// 	x_dot.q = x.q.derivative1(x.w_B);              // attitude differential
+// 	x_dot.w_B = _Im1 * (_Mt_B + _Ma_B - x.w_B.cross(_I * x.w_B)); // conservation of angular momentum
+
+// 	return x_dot;
+// }
+
 // reconstruct the noisy sensor signals
 void Sih::reconstruct_sensors_signals()
 {
-	// The sensor signals reconstruction and noise levels are from
-	// Bulka, Eitan, and Meyer Nahon. "Autonomous fixed-wing aerobatics: from theory to flight."
-	// In 2018 IEEE International Conference on Robotics and Automation (ICRA), pp. 6573-6580. IEEE, 2018.
+	// The sensor signals reconstruction and noise levels are from [1]
+	// [1] Bulka, Eitan, and Meyer Nahon. "Autonomous fixed-wing aerobatics: from theory to flight."
+	//     In 2018 IEEE International Conference on Robotics and Automation (ICRA), pp. 6573-6580. IEEE, 2018.
 
 	// IMU
 	_acc = _C_IB.transpose() * (_v_I_dot - Vector3f(0.0f, 0.0f, CONSTANTS_ONE_G)) + noiseGauss3f(0.5f, 1.7f, 1.4f);
@@ -364,7 +441,26 @@ void Sih::send_gps()
 		gps_no_fix();
 	}
 
+	// device id
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	device_id.devid_s.bus = 0;
+	device_id.devid_s.address = 0;
+	device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+	_sensor_gps.device_id = device_id.devid;
+
 	_sensor_gps_pub.publish(_sensor_gps);
+}
+
+void Sih::send_airspeed()
+{
+	airspeed_s  airspeed{};
+	airspeed.timestamp = _now;
+	airspeed.true_airspeed_m_s	= fmaxf(0.1f, _v_B(0) + generate_wgn() * 0.2f);
+	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
+	airspeed.air_temperature_celsius = _baro_temp_c;
+	airspeed.confidence = 0.7f;
+	_airspeed_pub.publish(airspeed);
 }
 
 void Sih::send_dist_snsr()
@@ -421,6 +517,22 @@ void Sih::publish_sih()
 	_gpos_gt_pub.publish(_gpos_gt);
 }
 
+// quaternion exponential as defined in [3]
+Quatf Sih::expq(const matrix::Vector3f &u)
+{
+	float u_norm = u.norm();
+	Vector3f v;
+
+	if (u_norm < 1.0e-6f) { 	// error will be smaller than 1e-18
+		v = (1.0f - u_norm * u_norm / 6.0f) * u; 	// first taylor serie term of sin(x)/x
+
+	} else {
+		v = sinf(u_norm) / u_norm * u;
+	}
+
+	return Quatf(cosf(u_norm), v(0), v(1), v(2));
+}
+
 float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1
 {
 	// algorithm 1:
@@ -454,6 +566,37 @@ float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1
 Vector3f Sih::noiseGauss3f(float stdx, float stdy, float stdz)
 {
 	return Vector3f(generate_wgn() * stdx, generate_wgn() * stdy, generate_wgn() * stdz);
+}
+
+int Sih::print_status()
+{
+	if (_vehicle == VehicleType::MC) {
+		PX4_INFO("Running MC");
+
+	} else {
+		PX4_INFO("Running FW");
+	}
+
+	PX4_INFO("vehicle landed: %d", _grounded);
+	PX4_INFO("dt [us]: %d", (int)(_dt * 1e6f));
+	PX4_INFO("inertial position NED (m)");
+	_p_I.print();
+	PX4_INFO("inertial velocity NED (m/s)");
+	_v_I.print();
+	PX4_INFO("attitude roll-pitch-yaw (deg)");
+	(Eulerf(_q) * 180.0f / M_PI_F).print();
+	PX4_INFO("angular acceleration roll-pitch-yaw (deg/s)");
+	(_w_B * 180.0f / M_PI_F).print();
+	PX4_INFO("actuator signals");
+	Vector<float, 8> u = Vector<float, 8>(_u);
+	u.transpose().print();
+	PX4_INFO("Aerodynamic forces NED inertial (N)");
+	_Fa_I.print();
+	PX4_INFO("Aerodynamic moments body frame (Nm)");
+	_Ma_B.print();
+	PX4_INFO("v_I.z: %f", (double)_v_I(2));
+	PX4_INFO("v_I_dot.z: %f", (double)_v_I_dot(2));
+	return 0;
 }
 
 int Sih::task_spawn(int argc, char *argv[])

@@ -11,7 +11,7 @@ This documentation was auto-generated from the source code for this PX4 version 
 :::
 
 :::tip
-If a listed parameter is missing from the Firmware see: [Finding/Updating Parameters](http://docs.px4.io/master/en/advanced_config/parameters.html#missing).
+If a listed parameter is missing from the Firmware see: [Finding/Updating Parameters](../advanced_config/parameters.md#parameter-not-in-firmware).
 :::
 
 <!-- markdown generator: src/lib/parameters/px4params/markdownout.py -->
@@ -19,6 +19,12 @@ If a listed parameter is missing from the Firmware see: [Finding/Updating Parame
 <style>
 tr > * {
     vertical-align : top;
+}
+td:nth-child(1),td:nth-child(2) {
+  text-align : left;
+  }
+table {
+  width: fit-content;
 }
 </style>
 

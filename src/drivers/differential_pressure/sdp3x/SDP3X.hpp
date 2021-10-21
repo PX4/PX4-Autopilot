@@ -69,23 +69,20 @@
 class SDP3X : public Airspeed, public I2CSPIDriver<SDP3X>
 {
 public:
-	SDP3X(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS_1_SDP3X,
-	      bool keep_retrying = false) :
-		Airspeed(bus, bus_frequency, address, CONVERSION_INTERVAL),
-		I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address),
-		_keep_retrying{keep_retrying}
+	SDP3X(const I2CSPIDriverConfig &config) :
+		Airspeed(config.bus, config.bus_frequency, config.i2c_address, CONVERSION_INTERVAL),
+		I2CSPIDriver(config),
+		_keep_retrying{config.keep_running}
 	{
 	}
 
 	virtual ~SDP3X() = default;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void	RunImpl();
 
-	void start();
+	int init() override;
 
 private:
 	enum class State {
@@ -100,7 +97,7 @@ private:
 	int	configure();
 	int	read_scale();
 
-	math::LowPassFilter2p _filter{SPD3X_MEAS_RATE, SDP3X_MEAS_DRIVER_FILTER_FREQ};
+	math::LowPassFilter2p<float> _filter{SPD3X_MEAS_RATE, SDP3X_MEAS_DRIVER_FILTER_FREQ};
 
 	bool init_sdp3x();
 

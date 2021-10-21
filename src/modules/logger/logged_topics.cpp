@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -61,11 +61,13 @@ void LoggedTopics::add_default_topics()
 	add_topic("commander_state");
 	add_topic("cpuload");
 	add_topic("esc_status", 250);
+	add_topic("follow_target", 500);
 	add_topic("generator_status");
 	add_topic("heater_status");
 	add_topic("home_position");
 	add_topic("hover_thrust_estimate", 100);
 	add_topic("input_rc", 500);
+	add_topic("internal_combustion_engine_status", 10);
 	add_topic("mag_worker_data");
 	add_topic("manual_control_setpoint", 200);
 	add_topic("manual_control_switches");
@@ -116,11 +118,11 @@ void LoggedTopics::add_default_topics()
 	add_topic("wind", 1000);
 
 	// Control allocation topics
-	add_topic("vehicle_angular_acceleration_setpoint", 20);
+	add_topic("vehicle_actuator_setpoint", 20);
 	add_topic("vehicle_angular_acceleration", 20);
+	add_topic("vehicle_angular_acceleration_setpoint", 20);
 	add_topic("vehicle_thrust_setpoint", 20);
 	add_topic("vehicle_torque_setpoint", 20);
-	add_topic("vehicle_actuator_setpoint", 20);
 
 	// multi topics
 	add_topic_multi("actuator_outputs", 100, 3);
@@ -132,33 +134,34 @@ void LoggedTopics::add_default_topics()
 
 	// EKF multi topics (currently max 9 estimators)
 #if CONSTRAINED_MEMORY
-	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 2;
+	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 1;
 #else
-	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 6; // artificailly limited until PlotJuggler fixed
+	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 6; // artificially limited until PlotJuggler fixed
+	add_topic("estimator_selector_status");
+	add_topic_multi("estimator_attitude", 500, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_global_position", 1000, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_local_position", 500, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_wind", 1000, MAX_ESTIMATOR_INSTANCES);
 #endif
 
-	add_topic("estimator_selector_status");
 	add_topic_multi("ekf_gps_drift", 1000, MAX_ESTIMATOR_INSTANCES);
-	add_topic_multi("estimator_attitude", 500, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_baro_bias", 500, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_event_flags", 0, MAX_ESTIMATOR_INSTANCES);
-	add_topic_multi("estimator_global_position", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_innovation_test_ratios", 500, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_innovation_variances", 500, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_innovations", 500, MAX_ESTIMATOR_INSTANCES);
-	add_topic_multi("estimator_local_position", 500, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_optical_flow_vel", 200, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_sensor_bias", 0, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_states", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_status", 200, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_status_flags", 0, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_visual_odometry_aligned", 200, MAX_ESTIMATOR_INSTANCES);
-	add_topic_multi("estimator_wind", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("yaw_estimator_status", 1000, MAX_ESTIMATOR_INSTANCES);
 
 	// log all raw sensors at minimal rate (at least 1 Hz)
-	add_topic_multi("battery_status", 300, 2);
+	add_topic_multi("battery_status", 200, 2);
 	add_topic_multi("differential_pressure", 1000, 2);
-	add_topic_multi("distance_sensor", 1000);
+	add_topic_multi("distance_sensor", 1000, 2);
 	add_topic_multi("optical_flow", 1000, 1);
 	add_topic_multi("sensor_accel", 1000, 4);
 	add_topic_multi("sensor_baro", 1000, 4);
@@ -309,7 +312,7 @@ int LoggedTopics::add_topics_from_file(const char *fname)
 		char topic_name[80];
 		uint32_t interval_ms = 0;
 		uint32_t instance = 0;
-		int nfields = sscanf(line, "%s %u %u", topic_name, &interval_ms, &instance);
+		int nfields = sscanf(line, "%s %" PRIu32 " %" PRIu32, topic_name, &interval_ms, &instance);
 
 		if (nfields > 0) {
 			int name_len = strlen(topic_name);
@@ -365,7 +368,7 @@ bool LoggedTopics::add_topic(const orb_metadata *topic, uint16_t interval_ms, ui
 	}
 
 	if (_subscriptions.count >= MAX_TOPICS_NUM) {
-		PX4_WARN("Too many subscriptions, failed to add: %s %d", topic->o_name, instance);
+		PX4_WARN("Too many subscriptions, failed to add: %s %" PRIu8, topic->o_name, instance);
 		return false;
 	}
 
@@ -390,7 +393,7 @@ bool LoggedTopics::add_topic(const char *name, uint16_t interval_ms, uint8_t ins
 				if (_subscriptions.sub[j].id == static_cast<ORB_ID>(topics[i]->o_id) &&
 				    _subscriptions.sub[j].instance == instance) {
 
-					PX4_DEBUG("logging topic %s(%d), interval: %i, already added, only setting interval",
+					PX4_DEBUG("logging topic %s(%" PRUu8 "), interval: %" PRUu16 ", already added, only setting interval",
 						  topics[i]->o_name, instance, interval_ms);
 
 					_subscriptions.sub[j].interval_ms = interval_ms;
@@ -402,7 +405,7 @@ bool LoggedTopics::add_topic(const char *name, uint16_t interval_ms, uint8_t ins
 
 			if (!already_added) {
 				success = add_topic(topics[i], interval_ms, instance);
-				PX4_DEBUG("logging topic: %s(%d), interval: %i", topics[i]->o_name, instance, interval_ms);
+				PX4_DEBUG("logging topic: %s(%" PRUu8 "), interval: %" PRUu16, topics[i]->o_name, instance, interval_ms);
 				break;
 			}
 		}

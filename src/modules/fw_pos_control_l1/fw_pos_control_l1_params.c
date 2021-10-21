@@ -433,7 +433,8 @@ PARAM_DEFINE_FLOAT(FW_LND_THRTC_SC, 1.0f);
 /**
  * Minimum Airspeed (CAS)
  *
- * If the CAS (calibrated airspeed) falls below this value, the TECS controller will try to
+ * The minimal airspeed (calibrated airspeed) the user is able to command.
+ * Further, if the airspeed falls below this value, the TECS controller will try to
  * increase airspeed more aggressively.
  *
  * @unit m/s
@@ -475,6 +476,22 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 15.0f);
+
+/**
+ * Stall Airspeed (CAS)
+ *
+ * The stall airspeed (calibrated airspeed) of the vehicle.
+ * It is used for airspeed sensor failure detection and for the control
+ * surface scaling airspeed limits.
+ *
+ * @unit m/s
+ * @min 0.5
+ * @max 40
+ * @decimal 1
+ * @increment 0.5
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_AIRSPD_STALL, 7.0f);
 
 /**
  * Maximum climb rate
@@ -775,3 +792,36 @@ PARAM_DEFINE_FLOAT(FW_T_TAS_R_TC, 0.2f);
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_SEB_R_FF, 1.0f);
+
+/**
+ * Default target climbrate.
+ *
+ *
+ * The default rate at which the vehicle will climb in autonomous modes to achieve altitude setpoints.
+ * In manual modes this defines the maximum rate at which the altitude setpoint can be increased.
+ *
+ *
+ * @unit m/s
+ * @min 0.5
+ * @max 15
+ * @decimal 2
+ * @increment 0.01
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_CLMB_R_SP, 3.0f);
+
+/**
+ * Default target sinkrate.
+ *
+ *
+ * The default rate at which the vehicle will sink in autonomous modes to achieve altitude setpoints.
+ * In manual modes this defines the maximum rate at which the altitude setpoint can be decreased.
+ *
+ * @unit m/s
+ * @min 0.5
+ * @max 15
+ * @decimal 2
+ * @increment 0.01
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_SINK_R_SP, 2.0f);

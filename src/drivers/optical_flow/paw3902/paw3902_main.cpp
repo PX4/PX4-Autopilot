@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,42 +43,24 @@ void PAW3902::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *PAW3902::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				       int runtime_instance)
-{
-	PAW3902 *instance = new PAW3902(iterator.configuredBusOption(), iterator.bus(), iterator.devid(), cli.bus_frequency,
-					cli.spi_mode, iterator.DRDYGPIO(), cli.custom1);
-
-	if (!instance) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (OK != instance->init()) {
-		delete instance;
-		return nullptr;
-	}
-
-	return instance;
-}
-
 extern "C" __EXPORT int paw3902_main(int argc, char *argv[])
 {
 	int ch = 0;
 	using ThisDriver = PAW3902;
 	BusCLIArguments cli{false, true};
+	cli.custom1 = -1;
 	cli.spi_mode = SPIDEV_MODE0;
 	cli.default_spi_frequency = SPI_SPEED;
 
-	while ((ch = cli.getopt(argc, argv, "Y:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "Y:")) != EOF) {
 		switch (ch) {
 		case 'Y':
-			cli.custom1 = atoi(cli.optarg());
+			cli.custom1 = atoi(cli.optArg());
 			break;
 		}
 	}
 
-	const char *verb = cli.optarg();
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,7 +55,7 @@ ADC::ADC(uint32_t base_address, uint32_t channels) :
 	}
 
 	if (_channel_count > PX4_MAX_ADC_CHANNELS) {
-		PX4_ERR("PX4_MAX_ADC_CHANNELS is too small (%d, %d)", (unsigned)PX4_MAX_ADC_CHANNELS, _channel_count);
+		PX4_ERR("PX4_MAX_ADC_CHANNELS is too small (%u, %u)", PX4_MAX_ADC_CHANNELS, _channel_count);
 	}
 
 	_samples = new px4_adc_msg_t[_channel_count];
@@ -307,14 +307,14 @@ int ADC::test()
 	px4_usleep(20000);	// sleep 20ms and wait for adc report
 
 	if (adc_sub_test.update(&adc)) {
-		PX4_INFO_RAW("DeviceID: %d\n", adc.device_id);
-		PX4_INFO_RAW("Resolution: %d\n", adc.resolution);
+		PX4_INFO_RAW("DeviceID: %" PRId32 "\n", adc.device_id);
+		PX4_INFO_RAW("Resolution: %" PRId32 "\n", adc.resolution);
 		PX4_INFO_RAW("Voltage Reference: %f\n", (double)adc.v_ref);
 
 		for (unsigned l = 0; l < 20; ++l) {
 			for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
 				if (adc.channel_id[i] >= 0) {
-					PX4_INFO_RAW("% 2d:% 6d", adc.channel_id[i], adc.raw_data[i]);
+					PX4_INFO_RAW("% 2" PRId16 " :% 6" PRId32, adc.channel_id[i], adc.raw_data[i]);
 				}
 			}
 
