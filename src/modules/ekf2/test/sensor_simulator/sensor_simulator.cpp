@@ -366,6 +366,13 @@ void SensorSimulator::setSensorDataFromTrajectory()
 				 -vel_body(0) * flow_sample.dt / distance_to_ground);
 		_flow.setData(flow_sample);
 	}
+
+	if (_gps.isRunning()) {
+		/* _gps.setAltitude(); */
+		/* _gps.setLatitude(); */
+		/* _gps.setLongitude(); */
+		_gps.setVelocity(vel_world);
+	}
 }
 
 void SensorSimulator::setGpsLatitude(const double latitude)
