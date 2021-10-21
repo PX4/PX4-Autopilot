@@ -145,12 +145,18 @@ PARAM_DEFINE_INT32(ASPD_PRIMARY, 1);
 /**
  * Enable checks on airspeed sensors
  *
- * If set to true then the data comming from the airspeed sensors is checked for validity. Only applied if ASPD_PRIMARY > 0.
+ * Controls which checks are run to check airspeed data for validity. Only applied if ASPD_PRIMARY > 0.
+ * Note that the data missing check is enabled if any of the options is set.
  *
- * @boolean
+ * @min 0
+ * @max 15
+ * @bit 0 Only data missing check (triggers if more than 1s no data)
+ * @bit 1 Data stuck (triggers if data is exactly constant for 2s)
+ * @bit 2 Innovation check (see ASPD_FS_INNOV)
+ * @bit 3 Load factor check (triggers if measurement is below stall speed)
  * @group Airspeed Validator
  */
-PARAM_DEFINE_INT32(ASPD_DO_CHECKS, 1);
+PARAM_DEFINE_INT32(ASPD_DO_CHECKS, 7);
 
 /**
  * Enable fallback to sensor-less airspeed estimation

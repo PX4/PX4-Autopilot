@@ -116,9 +116,18 @@ public:
 	void set_CAS_scale_validated(float scale) { _CAS_scale_validated = scale; }
 	void set_scale_init(float scale) { _wind_estimator.set_scale_init(scale); }
 
+	void set_enable_data_stuck_check(bool enable) { _data_stuck_check_enabled = enable; }
+	void set_enable_innovation_check(bool enable) { _innovation_check_enabled = enable; }
+	void set_enable_load_factor_check(bool enable) { _load_factor_check_enabled = enable; }
+
 private:
 
 	WindEstimator _wind_estimator{}; ///< wind estimator instance running in this particular airspeedValidator
+
+	// Check enabling
+	bool _data_stuck_check_enabled{false};
+	bool _innovation_check_enabled{false};
+	bool _load_factor_check_enabled{false};
 
 	// airspeed scale validity check
 	static constexpr int SCALE_CHECK_SAMPLES = 12; ///< take samples from 12 segments (every 360/12=30°)
