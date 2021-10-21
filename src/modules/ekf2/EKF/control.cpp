@@ -388,12 +388,19 @@ void Ekf::controlOpticalFlowFusion()
 			// compensate for body motion to give a LOS rate
 			_flow_compensated_XY_rad = _flow_sample_delayed.flow_xy_rad - _flow_sample_delayed.gyro_xyz.xy();
 
-		} else if (!_control_status.flags.in_air && is_body_rate_comp_available) {
+		} else if (!_control_status.flags.in_air) {
 
 			if (!is_delta_time_good) {
 				// handle special case of SITL and PX4Flow where dt is forced to
 				// zero when the quaity is 0
 				_flow_sample_delayed.dt = delta_time_min;
+			}
+
+			// don't allow invalid flow gyro_xyz to propagate
+			if (!is_body_rate_comp_available) {
+				if (!PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(0)) || !PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(1)) || !PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(2))) {
+					_flow_sample_delayed.gyro_xyz.zero();
+				}
 			}
 
 			// when on the ground with poor flow quality,

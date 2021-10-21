@@ -10,6 +10,8 @@ set(uavcanblid_hw_version_major 0)
 set(uavcanblid_hw_version_minor 34)
 set(uavcanblid_name "\"org.nxp.ucans32k146\"")
 
+set(uavcanbl_padding 8)
+
 add_definitions(
 	-DHW_UAVCAN_NAME=${uavcanblid_name}
 	-DHW_VERSION_MAJOR=${uavcanblid_hw_version_major}

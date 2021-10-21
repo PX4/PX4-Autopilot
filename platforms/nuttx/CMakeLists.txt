@@ -94,6 +94,7 @@ list(APPEND nuttx_libs
 	nuttx_fs
 	nuttx_mm
 	nuttx_sched
+	nuttx_crypto
 )
 
 if (CONFIG_NET)
@@ -115,6 +116,7 @@ target_link_libraries(nuttx_arch
 
 target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
 target_link_libraries(nuttx_xx INTERFACE nuttx_c)
+target_link_libraries(nuttx_fs INTERFACE nuttx_c)
 
 target_link_libraries(px4 PRIVATE
 
@@ -144,7 +146,7 @@ endif()
 
 target_link_libraries(px4 PRIVATE ${module_libraries})
 
-if (config_romfs_root)
+if(config_romfs_root)
 	add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)
 	target_link_libraries(px4 PRIVATE romfs)
 endif()

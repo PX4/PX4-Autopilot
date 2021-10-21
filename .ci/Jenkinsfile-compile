@@ -9,10 +9,10 @@ pipeline {
         script {
           def build_nodes = [:]
           def docker_images = [
-            armhf: "px4io/px4-dev-armhf:2021-05-04",
-            arm64: "px4io/px4-dev-aarch64:2021-05-04",
-            base: "px4io/px4-dev-base-bionic:2021-05-04",
-            nuttx: "px4io/px4-dev-nuttx-focal:2021-05-04",
+            armhf: "px4io/px4-dev-armhf:2021-09-08",
+            arm64: "px4io/px4-dev-aarch64:2021-09-08",
+            base: "px4io/px4-dev-base-bionic:2021-09-08",
+            nuttx: "px4io/px4-dev-nuttx-focal:2021-09-08",
           ]
 
           def armhf_builds = [
@@ -38,6 +38,10 @@ pipeline {
                      "airmind_mindpx-v2_default",
                      "ark_can-flow_canbootloader",
                      "ark_can-flow_default",
+                     "ark_can-gps_canbootloader",
+                     "ark_can-gps_default",
+                     "ark_can-rtk-gps_canbootloader",
+                     "ark_can-rtk-gps_default",
                      "atl_mantis-edu_default",
                      "av_x-v1_default",
                      "bitcraze_crazyflie_default",
@@ -80,16 +84,10 @@ pipeline {
                      "px4_fmu-v2_multicopter",
                      "px4_fmu-v2_rover",
                      "px4_fmu-v3_default",
-                     "px4_fmu-v4_cannode",
                      "px4_fmu-v4_default",
                      "px4_fmu-v4pro_default",
-                     "px4_fmu-v5_ctrlalloc",
                      "px4_fmu-v5_debug",
                      "px4_fmu-v5_default",
-                     "px4_fmu-v5_fixedwing",
-                     "px4_fmu-v5_multicopter",
-                     "px4_fmu-v5_optimized",
-                     "px4_fmu-v5_rover",
                      "px4_fmu-v5_rtps",
                      "px4_fmu-v5_stackcheck",
                      "px4_fmu-v5_uavcanv0periph",
@@ -127,7 +125,7 @@ pipeline {
     // TODO: actually upload artifacts to S3
     // stage('S3 Upload') {
     //   agent {
-    //     docker { image 'px4io/px4-dev-base-focal:2021-05-04' }
+    //     docker { image 'px4io/px4-dev-base-focal:2021-09-08' }
     //   }
     //   options {
     //         skipDefaultCheckout()

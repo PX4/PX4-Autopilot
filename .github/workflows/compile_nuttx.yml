@@ -11,13 +11,15 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-nuttx-focal:2021-05-04
+    container: px4io/px4-dev-nuttx-focal:2021-09-08
     strategy:
+      fail-fast: false
       matrix:
         config: [
           airmind_mindpx-v2,
           ark_can-flow,
           ark_can-gps,
+          ark_can-rtk-gps,
           atl_mantis-edu,
           av_x-v1,
           bitcraze_crazyflie,
@@ -79,13 +81,15 @@ jobs:
           mkdir -p ~/.ccache
           echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
           echo "compression = true" >> ~/.ccache/ccache.conf
-          echo "compression_level = 5" >> ~/.ccache/ccache.conf
+          echo "compression_level = 6" >> ~/.ccache/ccache.conf
           echo "max_size = 100M" >> ~/.ccache/ccache.conf
+          echo "hash_dir = false" >> ~/.ccache/ccache.conf
           ccache -s
           ccache -z
 
     - name: make all_variants_${{matrix.config}}
       run: make all_variants_${{matrix.config}}
+      timeout-minutes: 45
     - name: make ${{matrix.config}} bloaty_compileunits
       run: make ${{matrix.config}} bloaty_compileunits || true
     - name: make ${{matrix.config}} bloaty_inlines
@@ -107,4 +111,6 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: px4_package_${{matrix.config}}
-        path: build/**/*.px4
+        path: |
+          build/**/*.px4
+          build/**/*.bin

@@ -85,7 +85,7 @@ static char *param_user_file = nullptr;
 /* autosaving variables */
 static hrt_abstime last_autosave_timestamp = 0;
 static struct work_s autosave_work {};
-static px4::atomic<bool> autosave_scheduled{false};
+static px4::atomic_bool autosave_scheduled{false};
 static bool autosave_disabled = false;
 
 static constexpr uint16_t param_info_count = sizeof(px4::parameters) / sizeof(param_info_s);
@@ -1350,7 +1350,7 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 	param_t param = param_find_no_notification(node->name);
 
 	if (param == PARAM_INVALID) {
-		PX4_ERR("ignoring unrecognised parameter '%s'", node->name);
+		PX4_WARN("ignoring unrecognised parameter '%s'", node->name);
 		return 1;
 	}
 
@@ -1424,6 +1424,10 @@ param_import_internal(int fd, bool mark_saved)
 			if (result == 0) {
 				PX4_INFO("BSON document size %" PRId32 " bytes, decoded %" PRId32 " bytes", decoder.total_document_size,
 					 decoder.total_decoded_size);
+				return 0;
+
+			} else if (result == -ENODATA) {
+				PX4_DEBUG("BSON: no data");
 				return 0;
 
 			} else {

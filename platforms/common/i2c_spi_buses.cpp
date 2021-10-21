@@ -683,7 +683,7 @@ void I2CSPIDriverBase::print_status()
 	bool is_i2c_bus = _bus_option == I2CSPIBusOption::I2CExternal || _bus_option == I2CSPIBusOption::I2CInternal;
 
 	if (is_i2c_bus) {
-		PX4_INFO("Running on I2C Bus %i, Address 0x%02X", _bus, _i2c_address);
+		PX4_INFO("Running on I2C Bus %i, Address 0x%02X", _bus, get_i2c_address());
 
 	} else {
 		PX4_INFO("Running on SPI Bus %i", _bus);

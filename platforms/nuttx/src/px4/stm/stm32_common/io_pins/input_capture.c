@@ -77,7 +77,7 @@
 #include <stm32_gpio.h>
 #include <stm32_tim.h>
 
-#if defined(BOARD_HAS_CAPTURE)
+#if !defined(BOARD_HAS_NO_CAPTURE)
 
 /* Support Input capture  */
 
@@ -106,11 +106,11 @@ static void input_capture_chan_handler(void *context, const io_timers_t *timer, 
 	uint16_t capture = _REG32(timer->base, chan->ccr_offset);
 	channel_stats[chan_index].last_edge = px4_arch_gpioread(chan->gpio_in);
 
-	if ((isrs_rcnt - capture) > channel_stats[chan_index].latnecy) {
-		channel_stats[chan_index].latnecy = (isrs_rcnt - capture);
+	if ((isrs_rcnt - capture) > channel_stats[chan_index].latency) {
+		channel_stats[chan_index].latency = (isrs_rcnt - capture);
 	}
 
-	channel_stats[chan_index].chan_in_edges_out++;
+	channel_stats[chan_index].edges++;
 	channel_stats[chan_index].last_time = isrs_time - (isrs_rcnt - capture);
 	uint32_t overflow = _REG32(timer->base, STM32_GTIM_SR_OFFSET) & chan->masks & GTIM_SR_CCOF;
 
@@ -161,10 +161,6 @@ int up_input_capture_set(unsigned channel, input_capture_edge edge, capture_filt
 			input_capture_unbind(channel);
 
 		} else {
-
-			if (-EBUSY == io_timer_is_channel_free(channel)) {
-				io_timer_free_channel(channel);
-			}
 
 			input_capture_bind(channel, callback, context);
 
@@ -501,4 +497,4 @@ int up_input_capture_get_stats(unsigned channel, input_capture_stats_t *stats, b
 
 	return rv;
 }
-#endif // defined(BOARD_HAS_CAPTURE)
+#endif // !defined(BOARD_HAS_NO_CAPTURE)

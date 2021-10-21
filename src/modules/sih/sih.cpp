@@ -71,7 +71,8 @@ Sih::Sih() :
 	_airspeed_time = task_start;
 	_gt_time = task_start;
 	_dist_snsr_time = task_start;
-	_vehicle = (VehicleType)constrain(_sih_vtype.get(), 0, 1);
+	_vehicle = (VehicleType)constrain(_sih_vtype.get(), static_cast<typeof _sih_vtype.get()>(0),
+					  static_cast<typeof _sih_vtype.get()>(1));
 }
 
 Sih::~Sih()
@@ -305,10 +306,12 @@ void Sih::generate_aerodynamics()
 	_wing_r.update_aero(_v_B, _w_B, altitude, -_u[0]*FLAP_MAX);
 	_tailplane.update_aero(_v_B, _w_B, altitude, _u[1]*FLAP_MAX, _T_MAX * _u[3]);
 	_fin.update_aero(_v_B, _w_B, altitude, _u[2]*FLAP_MAX, _T_MAX * _u[3]);
-	_Fa_I = _C_IB * (_wing_l.get_Fa() + _wing_r.get_Fa() + _tailplane.get_Fa() + _fin.get_Fa()) - _KDV *
-		_v_I; 	// sum of aerodynamic forces
+	_fuselage.update_aero(_v_B, _w_B, altitude);
+	_Fa_I = _C_IB * (_wing_l.get_Fa() + _wing_r.get_Fa() + _tailplane.get_Fa() + _fin.get_Fa() + _fuselage.get_Fa())
+		- _KDV * _v_I; 	// sum of aerodynamic forces
 	// _Ma_B = wing_l.Ma + wing_r.Ma + tailplane.Ma + fin.Ma + flap_moments() -_KDW * _w_B; 	// aerodynamic moments
-	_Ma_B = _wing_l.get_Ma() + _wing_r.get_Ma() + _tailplane.get_Ma() + _fin.get_Ma() - _KDW * _w_B; 	// aerodynamic moments
+	_Ma_B = _wing_l.get_Ma() + _wing_r.get_Ma() + _tailplane.get_Ma() + _fin.get_Ma() + _fuselage.get_Ma() - _KDW *
+		_w_B; 	// aerodynamic moments
 }
 
 // apply the equations of motion of a rigid body and integrate one step
@@ -320,7 +323,7 @@ void Sih::equations_of_motion()
 	_p_I_dot = _v_I;                        // position differential
 	_v_I_dot = (_W_I + _Fa_I + _C_IB * _T_B) / _MASS;   // conservation of linear momentum
 	// _q_dot = _q.derivative1(_w_B);              // attitude differential
-	_dq = expq(0.5f * _dt * _w_B);
+	_dq = Quatf::expq(0.5f * _dt * _w_B);
 	_w_B_dot = _Im1 * (_Mt_B + _Ma_B - _w_B.cross(_I * _w_B)); // conservation of angular momentum
 
 	// fake ground, avoid free fall
@@ -517,22 +520,6 @@ void Sih::publish_sih()
 	_gpos_gt_pub.publish(_gpos_gt);
 }
 
-// quaternion exponential as defined in [3]
-Quatf Sih::expq(const matrix::Vector3f &u)
-{
-	float u_norm = u.norm();
-	Vector3f v;
-
-	if (u_norm < 1.0e-6f) { 	// error will be smaller than 1e-18
-		v = (1.0f - u_norm * u_norm / 6.0f) * u; 	// first taylor serie term of sin(x)/x
-
-	} else {
-		v = sinf(u_norm) / u_norm * u;
-	}
-
-	return Quatf(cosf(u_norm), v(0), v(1), v(2));
-}
-
 float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1
 {
 	// algorithm 1:
@@ -636,7 +623,7 @@ int Sih::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-This module provide a simulator for quadrotors running fully
+This module provide a simulator for quadrotors and fixed-wings running fully
 inside the hardware autopilot.
 
 This simulator subscribes to "actuator_outputs" which are the actuator pwm

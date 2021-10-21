@@ -55,4 +55,3 @@ class JsonOutput():
         if need_to_write:
             with codecs.open(filename, 'w', 'utf-8') as f:
                 f.write(json.dumps(self.json,indent=2))
-

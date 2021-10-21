@@ -211,4 +211,6 @@ private:
 
 	// Mavlink test needs to be able to call send
 	friend class MavlinkFtpTest;
+
+	int _our_errno {0};
 };

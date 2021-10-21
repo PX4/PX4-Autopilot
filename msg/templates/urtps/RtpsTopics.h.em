@@ -6,16 +6,15 @@
 @# Start of Template
 @#
 @# Context:
-@#  - msgs (List) list of all msg files
-@#  - ids (List) list of all RTPS msg ids
+@#  - fastrtps_version (List[str]) FastRTPS version installed on the system
+@#  - package (List[str]) messages package name. Defaulted to 'px4'
+@#  - ros2_distro (List[str]) ROS2 distro name
+@#  - spec (msggen.MsgSpec) Parsed specification of the .msg file
 @###############################################
 @{
+import genmsg.msgs
 import os
 from packaging import version
-
-import genmsg.msgs
-
-from px_generate_uorb_topic_helper import * # this is in Tools/
 from px_generate_uorb_topic_files import MsgScope # this is in Tools/
 
 send_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND]
@@ -98,9 +97,13 @@ public:
 		  const std::string &ns);
 	void set_timesync(const std::shared_ptr<TimeSync> &timesync) { _timesync = timesync; };
 @[if send_topics]@
+	template <typename T>
+	void sync_timestamp_of_incoming_data(T &msg);
 	void publish(const uint8_t topic_ID, char data_buffer[], size_t len);
 @[end if]@
 @[if recv_topics]@
+	template <typename T>
+	void sync_timestamp_of_outgoing_data(T &msg);
 	bool getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr);
 @[end if]@
 
@@ -108,7 +111,12 @@ private:
 @[if send_topics]@
 	/** Publishers **/
 @[for topic in send_topics]@
+@[    if topic == 'Timesync' or topic == 'timesync']@
 	@(topic)_Publisher _@(topic)_pub;
+	@(topic)_Publisher _@(topic)_fmu_in_pub;
+@[    else]@
+	@(topic)_Publisher _@(topic)_pub;
+@[    end if]@
 @[end for]@
 @[end if]@
 

@@ -37,6 +37,5 @@ add_library(geo
 )
 add_dependencies(geo prebuild_targets)
 target_compile_options(geo PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
-target_link_libraries(geo PRIVATE m)
 
 px4_add_unit_gtest(SRC test_geo.cpp LINKLIBS geo)

@@ -320,16 +320,23 @@ private:
 	 * @param dt Time step
 	 */
 	void		update_desired_altitude(float dt);
-
-	bool		control_position(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
-					 const position_setpoint_s &pos_sp_prev,
-					 const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
-	void		control_takeoff(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
-					const position_setpoint_s &pos_sp_prev,
-					const position_setpoint_s &pos_sp_curr);
-	void		control_landing(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
-					const position_setpoint_s &pos_sp_prev,
-					const position_setpoint_s &pos_sp_curr);
+	uint8_t		handle_setpoint_type(const uint8_t setpoint_type, const position_setpoint_s &pos_sp_curr);
+	void		control_auto(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
+				     const position_setpoint_s &pos_sp_prev,
+				     const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
+	void		control_auto_position(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
+					      const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+	void		control_auto_loiter(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
+					    const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
+	void		control_auto_takeoff(const hrt_abstime &now, const float dt,  const Vector2d &curr_pos,
+					     const Vector2f &ground_speed,
+					     const position_setpoint_s &pos_sp_prev,
+					     const position_setpoint_s &pos_sp_curr);
+	void		control_auto_landing(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
+					     const position_setpoint_s &pos_sp_prev,
+					     const position_setpoint_s &pos_sp_curr);
+	void		control_altitude(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed);
+	void		control_position(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed);
 
 	float		get_tecs_pitch();
 	float		get_tecs_thrust();
@@ -339,6 +346,8 @@ private:
 
 	void		reset_takeoff_state(bool force = false);
 	void		reset_landing_state();
+	Vector2f 	get_nav_speed_2d(const Vector2f &ground_speed);
+	void		set_control_mode_current(bool pos_sp_curr_valid);
 
 	/*
 	 * Call TECS : a wrapper function to call the TECS implementation

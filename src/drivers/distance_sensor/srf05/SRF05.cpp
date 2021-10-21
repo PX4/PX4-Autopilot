@@ -152,7 +152,7 @@ SRF05::measure()
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 	const hrt_abstime dt = _falling_edge_time - _rising_edge_time;
 
-	const float current_distance = dt *  343.0f / 10e6f / 2.0f;
+	const float current_distance = dt *  343.0f / 1e6f / 2.0f;
 
 	if (dt > HXSRX0X_CONVERSION_TIMEOUT) {
 		perf_count(_comms_errors);

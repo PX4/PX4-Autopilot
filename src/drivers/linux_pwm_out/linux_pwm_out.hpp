@@ -85,7 +85,7 @@ private:
 
 	void		update_params();
 
-	MixingOutput _mixing_output{MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false};
+	MixingOutput _mixing_output{"PWM", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 

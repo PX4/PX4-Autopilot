@@ -14,8 +14,6 @@
 @# Context:
 @#  - file_name_in (String) Source file
 @#  - spec (msggen.MsgSpec) Parsed specification of the .msg file
-@#  - md5sum (String) MD5Sum of the .msg specification
-@#  - ids (List) list of all RTPS msg ids
 @###############################################
 /****************************************************************************
  *

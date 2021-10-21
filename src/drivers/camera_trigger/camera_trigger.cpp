@@ -271,7 +271,10 @@ CameraTrigger::CameraTrigger() :
 	param_get(_p_distance, &_distance);
 	param_get(_p_mode, (int32_t *)&_trigger_mode);
 	param_get(_p_interface, (int32_t *)&_camera_interface_mode);
-	param_get(_p_cam_cap_fback, (int32_t *)&_cam_cap_fback);
+
+	if (_p_cam_cap_fback != PARAM_INVALID) {
+		param_get(_p_cam_cap_fback, (int32_t *)&_cam_cap_fback);
+	}
 
 	switch (_camera_interface_mode) {
 #ifdef __PX4_NUTTX
@@ -317,8 +320,6 @@ CameraTrigger::CameraTrigger() :
 	if (!_cam_cap_fback) {
 		_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
 
-	} else {
-		_trigger_pub = orb_advertise(ORB_ID(camera_trigger_secondary), &trigger);
 	}
 }
 
@@ -843,11 +844,10 @@ CameraTrigger::engage(void *arg)
 	trigger.feedback = false;
 	trigger.timestamp = hrt_absolute_time();
 
+	// Publish only if  _cam_cap_fback is disabled, otherwise, it is published over camera_capture driver
 	if (!trig->_cam_cap_fback) {
 		orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &trigger);
 
-	} else {
-		orb_publish(ORB_ID(camera_trigger_secondary), trig->_trigger_pub, &trigger);
 	}
 
 	// increment frame count

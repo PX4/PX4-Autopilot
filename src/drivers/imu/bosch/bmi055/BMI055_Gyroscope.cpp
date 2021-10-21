@@ -206,7 +206,7 @@ void BMI055_Gyroscope::RunImpl()
 					if (samples == _fifo_samples + 1) {
 						// sample timestamp set from data ready already corresponds to _fifo_samples
 						if (timestamp_sample == 0) {
-							timestamp_sample = now - FIFO_SAMPLE_DT;
+							timestamp_sample = now - static_cast<int>(FIFO_SAMPLE_DT);
 						}
 
 						samples--;

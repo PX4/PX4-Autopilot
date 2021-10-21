@@ -329,10 +329,10 @@ PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_SC, 0.1f);
  * @min 0
  * @max 0.2
  * @decimal 1
- * @increment 0.05
+ * @increment 0.01
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_B_DEC_FF, 0.12f);
+PARAM_DEFINE_FLOAT(VT_B_DEC_FF, 0.f);
 
 /**
  * Backtransition deceleration setpoint to pitch I gain.
@@ -358,3 +358,29 @@ PARAM_DEFINE_FLOAT(VT_B_DEC_I, 0.1f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_MC_ON_FMU, 0);
+
+/**
+ * Minimum pitch angle during hover.
+ *
+ * Minimum pitch angle during hover flight. If the desired pitch angle is is lower than this value
+ * then the fixed-wing forward actuation can be used to compensate for the missing thrust in forward direction
+ * (see VT_FW_TRHUST_EN)
+ *
+ * @min -10.0
+ * @max 45.0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_PTCH_MIN, -5.0f);
+
+/**
+ * Minimum pitch angle during hover landing.
+ *
+ * Overrides  VT_PTCH_MIN when the vehicle is in LAND mode (hovering).
+ * During landing it can be beneficial to allow lower minimum pitch angles as it can avoid the wings
+ * generating too much lift and preventing the vehicle from sinking at the desired rate.
+ *
+ * @min -10.0
+ * @max 45.0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_LND_PTCH_MIN, -5.0f);

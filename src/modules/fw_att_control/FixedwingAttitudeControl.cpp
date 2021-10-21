@@ -252,7 +252,7 @@ float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 	/*
 	 * For scaling our actuators using anything less than the stall
 	 * speed doesn't make any sense - its the strongest reasonable deflection we
-	 * want to do in flight and its the baseline a human pilot would choose.
+	 * want to do in flight and it's the baseline a human pilot would choose.
 	 *
 	 * Forcing the scaling to this value allows reasonable handheld tests.
 	 */
@@ -655,7 +655,7 @@ void FixedwingAttitudeControl::control_flaps(const float dt)
 	/* map flaps by default to manual if valid */
 	if (PX4_ISFINITE(_manual_control_setpoint.flaps) && _vcontrol_mode.flag_control_manual_enabled
 	    && fabsf(_param_fw_flaps_scl.get()) > 0.01f) {
-		flap_control = 0.5f * (_manual_control_setpoint.flaps + 1.0f) * _param_fw_flaps_scl.get();
+		flap_control = _manual_control_setpoint.flaps * _param_fw_flaps_scl.get();
 
 	} else if (_vcontrol_mode.flag_control_auto_enabled
 		   && fabsf(_param_fw_flaps_scl.get()) > 0.01f) {

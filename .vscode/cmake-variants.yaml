@@ -6,6 +6,11 @@ CONFIG:
       buildType: RelWithDebInfo
       settings:
         CONFIG: px4_sitl_default
+    px4_sitl_rtps:
+      short: px4_sitl_rtps
+      buildType: RelWithDebInfo
+      settings:
+        CONFIG: px4_sitl_rtps
     px4_sitl_asan:
       short: px4_sitl (AddressSanitizer)
       buildType: AddressSanitizer
@@ -96,6 +101,21 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_can-gps_canbootloader
+    ark_can-rtk-gps_default:
+      short: ark_can-rtk-gps_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_can-rtk-gps_default
+    ark_can-rtk-gps_debug:
+      short: ark_can-rtk-gps_debug
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_can-rtk-gps_debug
+    ark_can-rtk-gps_canbootloader:
+      short: ark_can-rtk-gps_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_can-rtk-gps_canbootloader
     atl_mantis-edu_default:
       short: atl_mantis-edu
       buildType: MinSizeRel

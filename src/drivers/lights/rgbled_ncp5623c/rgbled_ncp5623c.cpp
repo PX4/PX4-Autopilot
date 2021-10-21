@@ -34,7 +34,8 @@
 /**
  * @file rgbled_ncp5623c.cpp
  *
- * Driver for the onboard RGB LED controller (NCP5623C) connected via I2C.
+ * Driver for the onboard RGB LED controller (NCP5623B or NCP5623C)
+ * connected via I2C.
  *
  * @author CUAVcaijie <caijie@cuav.net>
  */
@@ -43,25 +44,22 @@
 
 #include <drivers/device/i2c.h>
 #include <lib/led/led.h>
-#include <lib/parameters/param.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/module.h>
-#include <uORB/SubscriptionInterval.hpp>
-#include <uORB/topics/parameter_update.h>
 
 using namespace time_literals;
 
-#define ADDR			0x39	/**< I2C address of NCP5623C */
-#define ALT_ADDR		0x38	/**< Alternative I2C address of NCP5623C */
+#define NCP5623B_ADDR       0x38  /**< I2C address of NCP5623B */
+#define NCP5623C_ADDR       0x39  /**< I2C address of NCP5623C */
 
-#define NCP5623_LED_CURRENT	0x20	/**< Current register */
-#define NCP5623_LED_PWM0	0x40	/**< pwm0 register */
-#define NCP5623_LED_PWM1	0x60	/**< pwm1 register */
-#define NCP5623_LED_PWM2	0x80	/**< pwm2 register */
+#define NCP5623_LED_CURRENT 0x20  /**< Current register */
+#define NCP5623_LED_PWM0    0x40  /**< pwm0 register */
+#define NCP5623_LED_PWM1    0x60  /**< pwm1 register */
+#define NCP5623_LED_PWM2    0x80  /**< pwm2 register */
 
-#define NCP5623_LED_BRIGHT	0x1f	/**< full brightness */
-#define NCP5623_LED_OFF		0x00	/**< off */
+#define NCP5623_LED_BRIGHT  0x1f  /**< full brightness */
+#define NCP5623_LED_OFF     0x00  /**< off */
 
 
 class RGBLED_NCP5623C : public device::I2C, public I2CSPIDriver<RGBLED_NCP5623C>
@@ -76,40 +74,57 @@ public:
 	int		probe() override;
 
 	void			RunImpl();
+	virtual int8_t  get_i2c_address() {return get_device_address();}
 
 private:
+	int			send_led_rgb();
+
+	int			write(uint8_t reg, uint8_t data);
 
 	float			_brightness{1.0f};
-	float			_max_brightness{1.0f};
 
-	uint8_t			_r{0};
-	uint8_t			_g{0};
-	uint8_t			_b{0};
+	uint8_t		_r{0};
+	uint8_t		_g{0};
+	uint8_t		_b{0};
 	volatile bool		_running{false};
 	volatile bool		_should_run{true};
 	bool			_leds_enabled{true};
 
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
 	LedController		_led_controller;
 
-	int			send_led_rgb();
-	void			update_params();
-
-	int			write(uint8_t reg, uint8_t data);
-
-	uint8_t			red;
-	uint8_t			green;
-	uint8_t			blue;
+	uint8_t		_red{NCP5623_LED_PWM0};
+	uint8_t		_green{NCP5623_LED_PWM1};
+	uint8_t		_blue{NCP5623_LED_PWM2};
 };
 
 RGBLED_NCP5623C::RGBLED_NCP5623C(const I2CSPIDriverConfig &config) :
 	I2C(config),
-	I2CSPIDriver(config),
-	red(NCP5623_LED_PWM0),
-	green(NCP5623_LED_PWM1),
-	blue(NCP5623_LED_PWM2)
+	I2CSPIDriver(config)
 {
+	int ordering = config.custom1;
+	// ordering is RGB: Hundreds is Red, Tens is green and ones is Blue
+	// 123 would drive the
+	//      R LED from = NCP5623_LED_PWM0
+	//      G LED from = NCP5623_LED_PWM1
+	//      B LED from = NCP5623_LED_PWM2
+	// 321 would drive the
+	//      R LED from = NCP5623_LED_PWM2
+	//      G LED from = NCP5623_LED_PWM1
+	//      B LED from = NCP5623_LED_PWM0
+	const uint8_t sig[] = {NCP5623_LED_PWM0, NCP5623_LED_PWM1, NCP5623_LED_PWM2};
+	// Process ordering in lsd to msd order.(BGR)
+	uint8_t *color[] = {&_blue, &_green, &_red };
+	unsigned int s = 0;
+
+	for (unsigned int i = 0; i < arraySize(color); i++) {
+		s = (ordering % 10) - 1;
+
+		if (s < arraySize(sig)) {
+			*color[i] = sig[s];
+		}
+
+		ordering /= 10;
+	}
 }
 
 int
@@ -132,8 +147,6 @@ RGBLED_NCP5623C::init()
 		return ret;
 	}
 
-	update_params();
-
 	_running = true;
 
 	ScheduleNow();
@@ -144,18 +157,12 @@ RGBLED_NCP5623C::init()
 int
 RGBLED_NCP5623C::probe()
 {
-	int status = PX4_ERROR;
-	_retries = 4;
-	status = write(NCP5623_LED_CURRENT, NCP5623_LED_OFF);
+	_retries = 2;
+	int status = write(NCP5623_LED_CURRENT, NCP5623_LED_OFF);
 
 	if (status == PX4_ERROR) {
-		set_device_address(ALT_ADDR);
+		set_device_address(NCP5623B_ADDR);
 		status = write(NCP5623_LED_CURRENT, NCP5623_LED_OFF);
-
-		if (status == PX4_OK) {
-			red = NCP5623_LED_PWM2;
-			blue = NCP5623_LED_PWM0;
-		}
 	}
 
 	return status;
@@ -164,19 +171,6 @@ RGBLED_NCP5623C::probe()
 void
 RGBLED_NCP5623C::RunImpl()
 {
-	// check for parameter updates
-	if (_parameter_update_sub.updated()) {
-		// clear update
-		parameter_update_s pupdate;
-		_parameter_update_sub.copy(&pupdate);
-
-		// update parameters from storage
-		update_params();
-
-		// Immediately update to change brightness
-		send_led_rgb();
-	}
-
 	LedControlData led_control_data;
 
 	if (_led_controller.update(led_control_data) == 1) {
@@ -230,31 +224,15 @@ RGBLED_NCP5623C::RunImpl()
 int
 RGBLED_NCP5623C::send_led_rgb()
 {
-
 	uint8_t msg[7] = {0x20, 0x70, 0x40, 0x70, 0x60, 0x70, 0x80};
-	uint8_t brightness = 0x1f * _max_brightness;
+	uint8_t brightness = UINT8_MAX;
 
 	msg[0] = NCP5623_LED_CURRENT | (brightness & 0x1f);
-	msg[2] = red | (uint8_t(_r * _brightness) & 0x1f);
-	msg[4] = green | (uint8_t(_g * _brightness) & 0x1f);
-	msg[6] = blue | (uint8_t(_b * _brightness) & 0x1f);
+	msg[2] = _red | (uint8_t(_r * _brightness) & 0x1f);
+	msg[4] = _green | (uint8_t(_g * _brightness) & 0x1f);
+	msg[6] = _blue | (uint8_t(_b * _brightness) & 0x1f);
 
 	return transfer(&msg[0], 7, nullptr, 0);
-}
-
-void
-RGBLED_NCP5623C::update_params()
-{
-	int32_t maxbrt = 31;
-	param_get(param_find("LED_RGB1_MAXBRT"), &maxbrt);
-	maxbrt = maxbrt > 31 ? 31 : maxbrt;
-	maxbrt = maxbrt <  0 ?  0 : maxbrt;
-
-	if (maxbrt == 0) {
-		maxbrt = 1;
-	}
-
-	_max_brightness = maxbrt / 31.0f;
 }
 
 void
@@ -264,6 +242,7 @@ RGBLED_NCP5623C::print_usage()
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x39);
+	PRINT_MODULE_USAGE_PARAM_INT('o', 123, 123, 321, "RGB PWM Assignment", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -272,9 +251,19 @@ extern "C" __EXPORT int rgbled_ncp5623c_main(int argc, char *argv[])
 	using ThisDriver = RGBLED_NCP5623C;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 100000;
-	cli.i2c_address = ADDR;
+	cli.i2c_address = NCP5623C_ADDR;
+	cli.custom1 = 123;
+	int ch;
 
-	const char *verb = cli.parseDefaultArguments(argc, argv);
+	while ((ch = cli.getOpt(argc, argv, "o:")) != EOF) {
+		switch (ch) {
+		case 'o':
+			cli.custom1 = atoi(cli.optArg());
+			break;
+		}
+	}
+
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();

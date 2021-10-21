@@ -62,7 +62,7 @@ public:
 	{
 		SubjectSubscription *curSubj = &_subj_sub;
 
-		while (curSubj != NULL) {
+		while (curSubj != nullptr) {
 			char uavcan_param[90];
 			snprintf(uavcan_param, sizeof(uavcan_param), "uavcan.sub.%s.%d.id", curSubj->_subject_name, _instance);
 
@@ -112,5 +112,5 @@ public:
 
 protected:
 	UavcanParamManager &_param_manager;
-	UavcanDynamicPortSubscriber *_next_sub {NULL};
+	UavcanDynamicPortSubscriber *_next_sub {nullptr};
 };

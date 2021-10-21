@@ -110,4 +110,3 @@ add_custom_command(OUTPUT ${generated_events_header}
 )
 add_custom_target(events_header DEPENDS ${generated_events_header})
 add_dependencies(prebuild_targets events_header)
-

@@ -352,6 +352,8 @@ void EKF2::Run()
 
 			_ekf.resetImuBias();
 			_imu_calibration_count = imu.calibration_count;
+
+			SelectImuStatus();
 		}
 
 	} else {
@@ -384,11 +386,13 @@ void EKF2::Run()
 				if (_device_id_accel != sensor_selection.accel_device_id) {
 					_ekf.resetAccelBias();
 					_device_id_accel = sensor_selection.accel_device_id;
+					SelectImuStatus();
 				}
 
 				if (_device_id_gyro != sensor_selection.gyro_device_id) {
 					_ekf.resetGyroBias();
 					_device_id_gyro = sensor_selection.gyro_device_id;
+					SelectImuStatus();
 				}
 			}
 		}
@@ -396,6 +400,8 @@ void EKF2::Run()
 
 	if (imu_updated) {
 		const hrt_abstime now = imu_sample_new.time_us;
+
+		UpdateImuStatus();
 
 		// push imu data into estimator
 		_ekf.setIMUData(imu_sample_new);
@@ -1296,6 +1302,43 @@ float EKF2::filter_altitude_ellipsoid(float amsl_hgt)
 	return amsl_hgt + _wgs84_hgt_offset;
 }
 
+void EKF2::SelectImuStatus()
+{
+	for (uint8_t imu_instance = 0; imu_instance < MAX_NUM_IMUS; imu_instance++) {
+		uORB::Subscription imu_status_sub{ORB_ID(vehicle_imu_status), imu_instance};
+
+		vehicle_imu_status_s imu_status{};
+		imu_status_sub.copy(&imu_status);
+
+		if (imu_status.accel_device_id == _device_id_accel) {
+			_vehicle_imu_status_sub.ChangeInstance(imu_instance);
+			return;
+		}
+	}
+
+	PX4_WARN("%d - IMU status not found for accel %" PRId32 ", gyro %" PRId32, _instance, _device_id_accel,
+		 _device_id_gyro);
+}
+
+void EKF2::UpdateImuStatus()
+{
+	vehicle_imu_status_s imu_status;
+
+	if (_vehicle_imu_status_sub.update(&imu_status)) {
+		if (imu_status.accel_device_id != _device_id_accel) {
+			SelectImuStatus();
+			return;
+		}
+
+		// accel -> delta velocity
+		_ekf.setDeltaVelocityHighFrequencyVibrationMetric(imu_status.accel_vibration_metric * _ekf.get_dt_imu_avg());
+
+		// gyro -> delta angle
+		_ekf.setDeltaAngleHighFrequencyVibrationMetric(imu_status.gyro_vibration_metric * _ekf.get_dt_imu_avg());
+		_ekf.setDeltaAngleConingMetric(imu_status.gyro_coning_vibration * _ekf.get_dt_imu_avg());
+	}
+}
+
 void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 {
 	// EKF airspeed sample
@@ -1725,7 +1768,7 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 				_param_ekf2_mag_decl.set(declination_deg);
 				_mag_decl_saved = true;
 
-				if (!_multi_mode) {
+				if (!_multi_mode || (_multi_mode && _instance == 0)) {
 					_param_ekf2_mag_decl.commit_no_notification();
 				}
 			}
@@ -1810,7 +1853,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 		// allocate EKF2 instances until all found or arming
 		uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
 
-		bool ekf2_instance_created[4][4] {}; // IMUs * mags
+		bool ekf2_instance_created[MAX_NUM_IMUS][MAX_NUM_MAGS] {}; // IMUs * mags
 
 		while ((multi_instances_allocated < multi_instances)
 		       && (vehicle_status_sub.get().arming_state != vehicle_status_s::ARMING_STATE_ARMED)
@@ -1912,7 +1955,7 @@ Attitude and position estimator using an Extended Kalman Filter. It is used for 
 
 The documentation can be found on the [ECL/EKF Overview & Tuning](https://docs.px4.io/master/en/advanced_config/tuning_the_ecl_ekf.html) page.
 
-ekf2 can be started in replay mode (`-r`): in this mode it does not access the system time, but only uses the
+ekf2 can be started in replay mode (`-r`): in this mode, it does not access the system time, but only uses the
 timestamps from the sensor topics.
 
 )DESCR_STR");

@@ -22,10 +22,8 @@ set +e
 #
 set R /
 set AUTOCNF no
-set AUX_MODE pwm
 set FCONFIG /fs/microsd/etc/config.txt
 set FEXTRAS /fs/microsd/etc/extras.txt
-set FMU_MODE pwm
 set FRC /fs/microsd/etc/rc.txt
 set IOFW "/etc/extras/px4_io-v2_default.bin"
 set IO_PRESENT no
@@ -46,20 +44,12 @@ set PWM_EXTRA_OUT none
 set PWM_EXTRA_RATE p:PWM_EXTRA_RATE
 set EXTRA_MIXER_MODE none
 set RC_INPUT_ARGS ""
+set SDCARD_AVAILABLE no
+set SDCARD_EXT_PATH /fs/microsd/ext_autostart
 set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
 set STARTUP_TUNE 1
 set USE_IO no
 set VEHICLE_TYPE none
-
-#
-# Mount the procfs.
-#
-mount -t procfs /proc
-
-#
-# Start CDC/ACM serial driver.
-#
-sercon
 
 #
 # Print full system version.
@@ -72,26 +62,46 @@ ver all
 # REBOOTWORK this needs to start after the flight control loop.
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
-	if hardfault_log check
+	set PX4_INIT_TEST_FILE "/fs/microsd/.px4_init_test_file"
+	date >> $PX4_INIT_TEST_FILE
+
+	if [ -f $PX4_INIT_TEST_FILE ]
 	then
-		# Error tune.
-		set STARTUP_TUNE 2
-		if hardfault_log commit
+		cat $PX4_INIT_TEST_FILE
+		rm $PX4_INIT_TEST_FILE
+
+		if [ ! -f $PX4_INIT_TEST_FILE ]
 		then
-			hardfault_log reset
+			set SDCARD_AVAILABLE yes
 		fi
 	fi
-else
-	# tune SD_INIT
+fi
+
+if [ $SDCARD_AVAILABLE = no ]
+then
 	set STARTUP_TUNE 14 # tune 14 = SD_INIT
-	if mkfatfs /dev/mmcsd0
+	if mkfatfs -F 32 /dev/mmcsd0
 	then
 		if mount -t vfat /dev/mmcsd0 /fs/microsd
 		then
+			set SDCARD_AVAILABLE yes
 			echo "INFO [init] card formatted"
+
 		else
 			set STARTUP_TUNE 15 # tune 15 = SD_ERROR
 			echo "ERROR [init] format failed"
+		fi
+	fi
+fi
+
+if [ $SDCARD_AVAILABLE = yes ]
+then
+	if hardfault_log check
+	then
+		set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
+		if hardfault_log commit
+		then
+			hardfault_log reset
 		fi
 	fi
 fi
@@ -128,7 +138,7 @@ else
 	then
 		param reset_all
 	fi
-	if ver hwtypecmp V5X00 V5X90 V5Xa0
+	if ver hwcmp PX4_FMU_V5X PX4_FMU_V6X
 	then
 		netman update -i eth0
 	fi
@@ -172,15 +182,6 @@ else
 	tone_alarm start
 
 	#
-	# Play the startup tune (if not disabled or there is an error)
-	#
-	param compare CBRK_BUZZER 782090
-	if [ $? != 0 -o $STARTUP_TUNE != 1 ]
-	then
-		tune_control play -t $STARTUP_TUNE
-	fi
-
-	#
 	# Waypoint storage.
 	# REBOOTWORK this needs to start in parallel.
 	#
@@ -205,10 +206,22 @@ else
 	#
 	# Set parameters and env variables for selected AUTOSTART.
 	#
+	set AUTOSTART_PATH etc/init.d/rc.autostart
 	if ! param compare SYS_AUTOSTART 0
 	then
-		. ${R}etc/init.d/rc.autostart
+		if param greater SYS_AUTOSTART 1000000
+		then
+			# Use external startup file
+			if [ $SDCARD_AVAILABLE = yes ]
+			then
+				set AUTOSTART_PATH etc/init.d/rc.autostart_ext
+			else
+				echo "ERROR [init] SD card not mounted - trying to load airframe from ROMFS"
+			fi
+		fi
+		. ${R}$AUTOSTART_PATH
 	fi
+	unset AUTOSTART_PATH
 
 	#
 	# Override parameters from user configuration file.
@@ -239,7 +252,7 @@ else
 			then
 				# Start UAVCAN firmware update server and dynamic node ID allocation server.
 				uavcan start fw
-				tune_control play -t 1
+
 				if param greater UAVCAN_ENABLE 2
 				then
 					set OUTPUT_MODE uavcan_esc
@@ -304,7 +317,7 @@ else
 	if [ $USE_IO = yes -a $IO_PRESENT = no ]
 	then
 		echo "PX4IO not found"
-		tune_control play error
+		set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
 	fi
 
 	#
@@ -360,52 +373,25 @@ else
 		commander start
 	fi
 
-	# Sensors on the PWM interface bank.
-	if param compare -s SENS_EN_LL40LS 1
+
+	#
+	# Play the startup tune (if not disabled or there is an error)
+	#
+	param compare CBRK_BUZZER 782090
+	if [ $? != 0 -o $STARTUP_TUNE != 1 ]
 	then
-		# Clear pins 5 and 6.
-		set FMU_MODE pwm4
-		set AUX_MODE pwm4
+		tune_control play -t $STARTUP_TUNE
 	fi
 
 
-	# Check if ATS is enabled
-	if param compare FD_EXT_ATS_EN 1
+	# Pre-takeoff continuous magnetometer calibration
+	if param compare -s MBE_ENABLE 1
 	then
-		# Clear pins 5 and 6.
-		set FMU_MODE pwm4
-		set AUX_MODE pwm4
+		mag_bias_estimator start
 	fi
 
 	if param greater -s TRIG_MODE 0
 	then
-		if param compare TRIG_PINS_EX 0
-		then
-			# We ONLY support trigger on pins 5+6 or 7+8 when simultanously using AUX for actuator output.
-			if param compare TRIG_PINS 56
-			then
-				# clear pins 5 and 6
-				set FMU_MODE pwm4
-				set AUX_MODE pwm4
-			else
-				if param compare TRIG_PINS 78
-				then
-					# clear pins 7 and 8
-					set FMU_MODE pwm6
-					set AUX_MODE pwm6
-				else
-					set FMU_MODE none
-					set AUX_MODE none
-				fi
-			fi
-		else
-			if param compare TRIG_PINS_EX 12288
-			then
-				set FMU_MODE pwm12
-				set AUX_MODE pwm12
-			fi
-		fi
-
 		camera_trigger start
 		camera_feedback start
 	fi
@@ -433,14 +419,7 @@ else
 		rc_input start $RC_INPUT_ARGS
 	fi
 
-	#
-	# Configure vehicle type specific parameters.
-	# Note: rc.vehicle_setup is the entry point for rc.interface,
-	#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
-	#
-	. ${R}etc/init.d/rc.vehicle_setup
-
-	# Camera capture driver
+	# Camera capture driver (before pwm_out)
 	if param greater -s CAM_CAP_FBACK 0
 	then
 		if camera_capture start
@@ -448,6 +427,13 @@ else
 			camera_capture on
 		fi
 	fi
+
+	#
+	# Configure vehicle type specific parameters.
+	# Note: rc.vehicle_setup is the entry point for rc.interface,
+	#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
+	#
+	. ${R}etc/init.d/rc.vehicle_setup
 
 	#
 	# Start the navigator.
@@ -548,10 +534,8 @@ fi
 #
 unset R
 unset AUTOCNF
-unset AUX_MODE
 unset FCONFIG
 unset FEXTRAS
-unset FMU_MODE
 unset FRC
 unset IO_PRESENT
 unset IOFW
@@ -570,6 +554,8 @@ unset PWM_OUT
 unset PWM_EXTRA_OUT
 unset PWM_EXTRA_RATE
 unset RC_INPUT_ARGS
+unset SDCARD_AVAILABLE
+unset SDCARD_EXT_PATH
 unset SDCARD_MIXERS_PATH
 unset STARTUP_TUNE
 unset USE_IO

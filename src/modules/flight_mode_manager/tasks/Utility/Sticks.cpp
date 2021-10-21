@@ -42,7 +42,7 @@ using namespace matrix;
 
 Sticks::Sticks(ModuleParams *parent) :
 	ModuleParams(parent)
-{};
+{}
 
 bool Sticks::checkAndSetStickInputs()
 {

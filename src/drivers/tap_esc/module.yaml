@@ -1,0 +1,6 @@
+module_name: TAP ESC Output
+actuator_output:
+  output_groups:
+    - param_prefix: TAP_ESC
+      channel_label: 'TAP ESC'
+      num_channels: 8

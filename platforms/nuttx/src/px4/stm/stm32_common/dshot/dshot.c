@@ -78,30 +78,21 @@ typedef struct dshot_handler_t {
 #define DSHOT_BURST_BUFFER_SIZE(motors_number) (DMA_ALIGN_UP(sizeof(uint32_t)*ONE_MOTOR_BUFF_SIZE*motors_number))
 
 static dshot_handler_t dshot_handler[DSHOT_TIMERS] = {};
-static uint16_t *motor_buffer = NULL;
 static uint8_t dshot_burst_buffer_array[DSHOT_TIMERS * DSHOT_BURST_BUFFER_SIZE(MAX_NUM_CHANNELS_PER_TIMER)]
-px4_cache_aligned_data();
+px4_cache_aligned_data() = {};
 static uint32_t *dshot_burst_buffer[DSHOT_TIMERS] = {};
 
 #ifdef BOARD_DSHOT_MOTOR_ASSIGNMENT
 static const uint8_t motor_assignment[MOTORS_NUMBER] = BOARD_DSHOT_MOTOR_ASSIGNMENT;
 #endif /* BOARD_DSHOT_MOTOR_ASSIGNMENT */
 
-void dshot_dmar_data_prepare(uint8_t timer, uint8_t first_motor, uint8_t motors_number);
-
 int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 {
-	// Alloc buffers if they do not exist. We don't use channel_mask so that potential future re-init calls can
-	// use the same buffer.
-	if (!motor_buffer) {
-		motor_buffer = (uint16_t *)malloc(sizeof(uint16_t) * ALL_MOTORS_BUF_SIZE);
-
-		if (!motor_buffer) {
-			return -ENOMEM;
-		}
-	}
-
 	unsigned buffer_offset = 0;
+
+	for (int timer_index = 0; timer_index < DSHOT_TIMERS; timer_index++) {
+		dshot_handler[timer_index].init = false;
+	}
 
 	for (unsigned timer = 0; timer < DSHOT_TIMERS; ++timer) {
 		if (io_timers[timer].base == 0) { // no more timers configured
@@ -109,6 +100,7 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 		}
 
 		// we know the uint8_t* cast to uint32_t* is fine, since we're aligned to cache line size
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-align"
 		dshot_burst_buffer[timer] = (uint32_t *)&dshot_burst_buffer_array[buffer_offset];
 #pragma GCC diagnostic pop
@@ -121,6 +113,7 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 
 	/* Init channels */
 	int ret_val = OK;
+	int channels_init_mask = 0;
 
 	for (unsigned channel = 0; (channel_mask != 0) && (channel < MAX_TIMER_IO_CHANNELS) && (OK == ret_val); channel++) {
 		if (channel_mask & (1 << channel)) {
@@ -130,16 +123,16 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 				continue;
 			}
 
-			// First free any that were not DShot mode before
-			if (-EBUSY == io_timer_is_channel_free(channel)) {
-				io_timer_free_channel(channel);
-			}
-
 			ret_val = io_timer_channel_init(channel, IOTimerChanMode_Dshot, NULL, NULL);
+			channel_mask &= ~(1 << channel);
 
 			if (OK == ret_val) {
-				channel_mask &= ~(1 << channel);
 				dshot_handler[timer].init = true;
+				channels_init_mask |= 1 << channel;
+
+			} else if (ret_val == -EBUSY) {
+				/* either timer or channel already used - this is not fatal */
+				ret_val = 0;
 			}
 		}
 	}
@@ -159,25 +152,19 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 		}
 	}
 
-	return ret_val;
+	return ret_val == OK ? channels_init_mask : ret_val;
 }
 
 void up_dshot_trigger(void)
 {
-	uint8_t first_motor = 0;
-
 	for (uint8_t timer = 0; (timer < DSHOT_TIMERS); timer++) {
 
 		if (true == dshot_handler[timer].init) {
 
-			uint8_t motors_number = io_timers_channel_mapping.element[timer].channel_count;
-			dshot_dmar_data_prepare(timer, first_motor, motors_number);
-
 			// Flush cache so DMA sees the data
 			up_clean_dcache((uintptr_t)dshot_burst_buffer[timer],
-					(uintptr_t)dshot_burst_buffer[timer] + DSHOT_BURST_BUFFER_SIZE(motors_number));
-
-			first_motor += motors_number;
+					(uintptr_t)dshot_burst_buffer[timer] +
+					DSHOT_BURST_BUFFER_SIZE(io_timers_channel_mapping.element[timer].channel_count));
 
 			px4_stm32_dmasetup(dshot_handler[timer].dma_handle,
 					   io_timers[timer].base + STM32_GTIM_DMAR_OFFSET,
@@ -200,7 +187,7 @@ void up_dshot_trigger(void)
 * bit 	12		- dshot telemetry enable/disable
 * bits 	13-16	- XOR checksum
 **/
-static void dshot_motor_data_set(uint32_t motor_number, uint16_t throttle, bool telemetry)
+void dshot_motor_data_set(unsigned motor_number, uint16_t throttle, bool telemetry)
 {
 	uint16_t packet = 0;
 	uint16_t checksum = 0;
@@ -212,47 +199,27 @@ static void dshot_motor_data_set(uint32_t motor_number, uint16_t throttle, bool 
 	packet |= throttle << DSHOT_THROTTLE_POSITION;
 	packet |= ((uint16_t)telemetry & 0x01) << DSHOT_TELEMETRY_POSITION;
 
-	uint32_t i;
 	uint16_t csum_data = packet;
 
 	/* XOR checksum calculation */
 	csum_data >>= NIBBLES_SIZE;
 
-	for (i = 0; i < DSHOT_NUMBER_OF_NIBBLES; i++) {
+	for (unsigned i = 0; i < DSHOT_NUMBER_OF_NIBBLES; i++) {
 		checksum ^= (csum_data & 0x0F); // XOR data by nibbles
 		csum_data >>= NIBBLES_SIZE;
 	}
 
 	packet |= (checksum & 0x0F);
 
-	for (i = 0; i < ONE_MOTOR_DATA_SIZE; i++) {
-		motor_buffer[motor_number * ONE_MOTOR_BUFF_SIZE + i] = (packet & 0x8000) ? MOTOR_PWM_BIT_1 :
-				MOTOR_PWM_BIT_0;  // MSB first
-		packet <<= 1;
-	}
-
-	motor_buffer[motor_number * ONE_MOTOR_BUFF_SIZE + DSHOT_END_OF_STREAM] = 0;
-}
-
-void up_dshot_motor_data_set(unsigned motor_number, uint16_t throttle, bool telemetry)
-{
-	dshot_motor_data_set(motor_number, throttle + DShot_cmd_MIN_throttle, telemetry);
-}
-
-void up_dshot_motor_command(unsigned channel, uint16_t command, bool telemetry)
-{
-	dshot_motor_data_set(channel, command, telemetry);
-}
-
-void dshot_dmar_data_prepare(uint8_t timer, uint8_t first_motor, uint8_t motors_number)
-{
+	unsigned timer = timer_io_channels[motor_number].timer_index;
 	uint32_t *buffer = dshot_burst_buffer[timer];
+	unsigned num_motors = io_timers_channel_mapping.element[timer].channel_count;
+	unsigned timer_channel_index = motor_number - io_timers_channel_mapping.element[timer].first_channel_index;
 
-	for (uint32_t motor_data_index = 0; motor_data_index < ONE_MOTOR_BUFF_SIZE ; motor_data_index++) {
-		for (uint32_t motor_index = 0; motor_index < motors_number; motor_index++) {
-			buffer[motor_data_index * motors_number + motor_index] = motor_buffer[(motor_index +
-					first_motor) * ONE_MOTOR_BUFF_SIZE + motor_data_index];
-		}
+	for (unsigned motor_data_index = 0; motor_data_index < ONE_MOTOR_DATA_SIZE; motor_data_index++) {
+		buffer[motor_data_index * num_motors + timer_channel_index] =
+			(packet & 0x8000) ? MOTOR_PWM_BIT_1 : MOTOR_PWM_BIT_0;  // MSB first
+		packet <<= 1;
 	}
 }
 

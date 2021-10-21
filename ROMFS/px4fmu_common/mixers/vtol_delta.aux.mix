@@ -1,5 +1,6 @@
 Delta-wing VTOL mixer
 =====================
+# @board px4_fmu-v2 exclude
 
 This file defines mixers suitable for controlling a delta wing VTOL aircraft using
 PX4FMU. The configuration assumes the elevon servos are connected to PX4FMU

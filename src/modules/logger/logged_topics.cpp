@@ -50,13 +50,12 @@ void LoggedTopics::add_default_topics()
 	add_topic("actuator_controls_1", 100);
 	add_topic("actuator_controls_2", 100);
 	add_topic("actuator_controls_3", 100);
-	add_topic("actuator_controls_4", 100);
-	add_topic("actuator_controls_5", 100);
+	add_topic("actuator_controls_status_0", 300);
 	add_topic("airspeed", 1000);
 	add_topic("airspeed_validated", 200);
+	add_topic("autotune_attitude_control_status", 100);
 	add_topic("camera_capture");
 	add_topic("camera_trigger");
-	add_topic("camera_trigger_secondary");
 	add_topic("cellular_status", 200);
 	add_topic("commander_state");
 	add_topic("cpuload");
@@ -68,10 +67,9 @@ void LoggedTopics::add_default_topics()
 	add_topic("hover_thrust_estimate", 100);
 	add_topic("input_rc", 500);
 	add_topic("internal_combustion_engine_status", 10);
-	add_topic("mag_worker_data");
+	add_topic("magnetometer_bias_estimate", 200);
 	add_topic("manual_control_setpoint", 200);
 	add_topic("manual_control_switches");
-	add_topic("mission");
 	add_topic("mission_result");
 	add_topic("navigator_mission_item");
 	add_topic("offboard_control_mode", 100);
@@ -87,13 +85,11 @@ void LoggedTopics::add_default_topics()
 	add_topic("sensor_combined");
 	add_topic("sensor_correction");
 	add_topic("sensor_gyro_fft", 50);
-	add_topic("sensor_preflight_mag", 500);
 	add_topic("sensor_selection");
 	add_topic("sensors_status_imu", 200);
 	add_topic("system_power", 500);
 	add_topic("takeoff_status", 1000);
 	add_topic("tecs_status", 200);
-	add_topic("test_motor", 500);
 	add_topic("trajectory_setpoint", 200);
 	add_topic("transponder_report");
 	add_topic("vehicle_acceleration", 50);
@@ -117,17 +113,9 @@ void LoggedTopics::add_default_topics()
 	add_topic("vtol_vehicle_status", 200);
 	add_topic("wind", 1000);
 
-	// Control allocation topics
-	add_topic("vehicle_actuator_setpoint", 20);
-	add_topic("vehicle_angular_acceleration", 20);
-	add_topic("vehicle_angular_acceleration_setpoint", 20);
-	add_topic("vehicle_thrust_setpoint", 20);
-	add_topic("vehicle_torque_setpoint", 20);
-
 	// multi topics
 	add_topic_multi("actuator_outputs", 100, 3);
 	add_topic_multi("airspeed_wind", 1000);
-	add_topic_multi("logger_status", 0, 2);
 	add_topic_multi("multirotor_motor_limits", 1000, 2);
 	add_topic_multi("rate_ctrl_status", 200, 2);
 	add_topic_multi("telemetry_status", 1000, 4);
@@ -188,8 +176,21 @@ void LoggedTopics::add_default_topics()
 	int32_t gps_dump_comm = 0;
 	param_get(param_find("GPS_DUMP_COMM"), &gps_dump_comm);
 
-	if (gps_dump_comm == 1) {
+	if (gps_dump_comm >= 1) {
 		add_topic("gps_dump");
+	}
+
+	int32_t sys_ctrl_alloc = 0;
+	param_get(param_find("SYS_CTRL_ALLOC"), &sys_ctrl_alloc);
+
+	if (sys_ctrl_alloc >= 1) {
+		add_topic("actuator_motors", 100);
+		add_topic("actuator_servos", 100);
+		add_topic("vehicle_actuator_setpoint", 20);
+		add_topic("vehicle_angular_acceleration", 20);
+		add_topic("vehicle_angular_acceleration_setpoint", 20);
+		add_topic("vehicle_thrust_setpoint", 20);
+		add_topic("vehicle_torque_setpoint", 20);
 	}
 }
 
@@ -215,6 +216,9 @@ void LoggedTopics::add_debug_topics()
 	add_topic("debug_value");
 	add_topic("debug_vect");
 	add_topic_multi("satellite_info", 1000, 2);
+	add_topic("mag_worker_data");
+	add_topic("sensor_preflight_mag", 500);
+	add_topic("test_motor", 500);
 }
 
 void LoggedTopics::add_estimator_replay_topics()
@@ -358,15 +362,6 @@ void LoggedTopics::add_mission_topic(const char *name, uint16_t interval_ms)
 
 bool LoggedTopics::add_topic(const orb_metadata *topic, uint16_t interval_ms, uint8_t instance)
 {
-	size_t fields_len = strlen(topic->o_fields) + strlen(topic->o_name) + 1; //1 for ':'
-
-	if (fields_len > sizeof(ulog_message_format_s::format)) {
-		PX4_WARN("skip topic %s, format string is too large: %zu (max is %zu)", topic->o_name, fields_len,
-			 sizeof(ulog_message_format_s::format));
-
-		return false;
-	}
-
 	if (_subscriptions.count >= MAX_TOPICS_NUM) {
 		PX4_WARN("Too many subscriptions, failed to add: %s %" PRIu8, topic->o_name, instance);
 		return false;

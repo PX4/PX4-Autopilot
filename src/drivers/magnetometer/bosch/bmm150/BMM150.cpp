@@ -45,10 +45,11 @@ BMM150::BMM150(const I2CSPIDriverConfig &config) :
 
 BMM150::~BMM150()
 {
-	perf_free(_reset_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
+	perf_free(_reset_perf);
 	perf_free(_overflow_perf);
+	perf_free(_self_test_failed_perf);
 }
 
 int BMM150::init()

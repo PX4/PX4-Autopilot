@@ -97,11 +97,14 @@ parameters:
             definitions:
                 type: dict
                 keyschema:
+                    # Parameter name
                     type: string
                     regex: '[0-9A-Z_]+(\$\{i\}[0-9A-Z_]*)?'
                 valueschema:
-                    type: dict
-                    schema:
+                    type: dict # This can also be a list containing multiple definitions
+                               # (for multi-instance params with different instance_start)
+                               # Not currently used in any yaml config file.
+                    schema: &parameter_definition
                         description:
                             type: dict
                             required: true
@@ -211,9 +214,131 @@ parameters:
                             # [0, N-1]
                             # Default: 0
                             type: integer
+                        instance_start_label:
+                            # Allows to use a different instance start for
+                            # labels vs parameter name.
+                            # Default: equal to 'instance_start'
+                            type: integer
                         requires_ethernet:
                             # param is only added if the board has ethernet
                             # support
                             type: boolean
 
+# Configuration for output drivers
+actuator_output:
+    type: dict
+    schema:
+        output_groups:
+            type: list
+            minlength: 1
+            schema:
+                type: dict
+                schema:
+                    generator:
+                        # Optional generator that uses additional information for
+                        # param generation (e.g. board-specific config)
+                        type: string
+                        allowed: [ pwm ]
+                    param_prefix:
+                        # parameter prefix for the min/max/disarmed/func params, e.g. PWM_MAIN.
+                        # This also needs to be specified in the source code.
+                        type: string
+                        regex: '([0-9A-Z_]+|\$\{PWM_MAIN_OR_AUX\}|\$\{PWM_MAIN_OR_HIL\})'
+                        required: true
+                    channel_label:
+                        # Human-readable per-channel label (index will be added), e.g. 'PWM Main'
+                        type: string
+                    num_channels:
+                        # (maximum) number of channels
+                        type: integer
+                    standard_params:
+                        type: dict
+                        schema:
+                            disarmed:
+                                type: dict
+                                schema:
+                                    min:
+                                        # Minimum disarmed value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                                    max:
+                                        # Maximum disarmed value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                                    default:
+                                        # Default disarmed value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                            min:
+                                type: dict
+                                schema:
+                                    min:
+                                        # Minimum minimum value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                                    max:
+                                        # Maximum minimum value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                                    default:
+                                        # Default minimum value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                            max:
+                                type: dict
+                                schema:
+                                    min:
+                                        # Minimum maximum value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                                    max:
+                                        # Maximum maximum value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                                    default:
+                                        # Default maximum value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                            failsafe:
+                                type: dict
+                                schema:
+                                    min:
+                                        # Minimum failsafe value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                                    max:
+                                        # Maximum failsafe value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                    extra_function_groups:
+                        # Additional function groups to add, defined in output_functions.yaml
+                        type: list
+                        schema:
+                            type: string
+                    channel_labels:
+                        # Only used for 'pwm' generator, specifies PWM and Capture pins
+                        type: list
+                        minlength: 2
+                        maxlength: 2
+                        schema:
+                            type: string
+                    timer_config_file:
+                        # Only used for 'pwm' generator, specifies
+                        # board-specific timer_config.cpp file
+                        type: string
+                    pwm_timer_param:
+                        # Only used for 'pwm' generator, per-timer config param
+                        type: dict
+                        schema: *parameter_definition
 
