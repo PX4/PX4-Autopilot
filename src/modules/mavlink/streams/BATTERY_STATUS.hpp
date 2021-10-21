@@ -62,81 +62,127 @@ private:
 	{
 		bool updated = false;
 
-		for (auto &battery_sub : _battery_status_subs) {
+		for (int uorb_index = 0; uorb_index < _battery_status_subs.size(); uorb_index++) {
 			battery_status_s battery_status;
 
-			if (battery_sub.update(&battery_status)) {
-				/* battery status message with higher resolution */
-				mavlink_battery_status_t bat_msg{};
-				// TODO: Determine how to better map between battery ID within the firmware and in MAVLink
-				bat_msg.id = battery_status.id - 1;
-				bat_msg.battery_function = MAV_BATTERY_FUNCTION_ALL;
-				bat_msg.type = MAV_BATTERY_TYPE_LIPO;
-				bat_msg.current_consumed = (battery_status.connected) ? battery_status.discharged_mah : -1;
-				bat_msg.energy_consumed = -1;
-				bat_msg.current_battery = (battery_status.connected) ? battery_status.current_filtered_a * 100 : -1;
-				bat_msg.battery_remaining = (battery_status.connected) ? ceilf(battery_status.remaining * 100.f) : -1;
-				bat_msg.time_remaining = (battery_status.connected) ? battery_status.run_time_to_empty * 60 : 0;
+			if (_battery_status_subs[uorb_index].update(&battery_status) && battery_status.connected) {
+				mavlink_battery_status_t msg{};
+				msg.id = uorb_index; // TODO: Determine how to better map between battery ID within the firmware and in MAVLink
+				msg.battery_function = MAV_BATTERY_FUNCTION_ALL;
+				msg.type = MAV_BATTERY_TYPE_LIPO;
 
+				// temperature int16_t (cdegC)
+				if (PX4_ISFINITE(battery_status.temperature)) {
+					msg.temperature = math::constrain(roundf(battery_status.temperature * 100.f), (float)INT16_MIN, (float)(INT16_MAX - 1));
+
+				} else {
+					msg.temperature = INT16_MAX;
+				}
+
+				// voltages uint16_t[10] (mV)
+				static constexpr int MAVLINK_CELLS_MAX = sizeof(msg.voltages) / sizeof(msg.voltages[0]);
+				static constexpr int UORB_CELLS_MAX = sizeof(battery_status.voltage_cell_v) / sizeof(battery_status.voltage_cell_v[0]);
+
+				for (int cell = 0; cell < MAVLINK_CELLS_MAX; cell++) {
+					if ((cell < battery_status.cell_count) && (cell < UORB_CELLS_MAX)) {
+						msg.voltages[cell] = math::constrain(roundf(battery_status.voltage_cell_v[cell] * 1000.f),
+										     0.f, (float)(UINT16_MAX - 1));
+
+					} else {
+						msg.voltages[cell] = UINT16_MAX;
+					}
+				}
+
+				// current_battery int16_t (cA)
+				if (battery_status.current_filtered_a > FLT_EPSILON) {
+					msg.current_battery = math::constrain(roundf(battery_status.current_filtered_a * 100.f), 0.f, (float)INT16_MAX);
+
+				} else {
+					msg.current_battery = -1;
+				}
+
+				// current_consumed int32_t (mAh)
+				if (battery_status.discharged_mah >= 0.f) {
+					msg.current_consumed = math::constrain(roundf(battery_status.discharged_mah), 0.f, (float)INT32_MAX);
+
+				} else {
+					msg.current_consumed = -1;
+				}
+
+				// energy_consumed int32_t (hJ)
+				// TODO
+				msg.energy_consumed = -1;
+
+				// battery_remaining int8_t (%)
+				if (battery_status.remaining >= 0.f) {
+					msg.battery_remaining = math::constrain(ceilf(battery_status.remaining * 100.f), 0.f, 100.f);
+
+				} else {
+					msg.battery_remaining = -1;
+				}
+
+				// time_remaining int32_t (s)
+				if (battery_status.run_time_to_empty > 0) {
+					msg.time_remaining = math::constrain(battery_status.run_time_to_empty * 60.f, 1.f, (float)INT32_MAX);
+
+				} else {
+					msg.time_remaining = -1;
+				}
+
+				// charge_state uint8_t (MAV_BATTERY_CHARGE_STATE)
 				switch (battery_status.warning) {
 				case (battery_status_s::BATTERY_WARNING_NONE):
-					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_OK;
+					msg.charge_state = MAV_BATTERY_CHARGE_STATE_OK;
 					break;
 
 				case (battery_status_s::BATTERY_WARNING_LOW):
-					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_LOW;
+					msg.charge_state = MAV_BATTERY_CHARGE_STATE_LOW;
 					break;
 
 				case (battery_status_s::BATTERY_WARNING_CRITICAL):
-					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_CRITICAL;
+					msg.charge_state = MAV_BATTERY_CHARGE_STATE_CRITICAL;
 					break;
 
 				case (battery_status_s::BATTERY_WARNING_EMERGENCY):
-					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_EMERGENCY;
+					msg.charge_state = MAV_BATTERY_CHARGE_STATE_EMERGENCY;
 					break;
 
 				case (battery_status_s::BATTERY_WARNING_FAILED):
-					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_FAILED;
+					msg.charge_state = MAV_BATTERY_CHARGE_STATE_FAILED;
 					break;
 
 				default:
-					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_UNDEFINED;
+					msg.charge_state = MAV_BATTERY_CHARGE_STATE_UNDEFINED;
 					break;
 				}
 
-				// check if temperature valid
-				if (battery_status.connected && PX4_ISFINITE(battery_status.temperature)) {
-					bat_msg.temperature = battery_status.temperature * 100.f;
+				// voltages_ext uint16_t[4] (mV)
+				static constexpr int MAVLINK_CELLS_EXT_MAX = (sizeof(msg.voltages_ext) / sizeof(msg.voltages_ext[0]));
 
-				} else {
-					bat_msg.temperature = INT16_MAX;
-				}
+				for (int ext_cell = 0; ext_cell < MAVLINK_CELLS_EXT_MAX; ext_cell++) {
+					int cell = MAVLINK_CELLS_MAX + ext_cell;
 
-				static constexpr int mavlink_cells_max = (sizeof(bat_msg.voltages) / sizeof(bat_msg.voltages[0]));
-				static constexpr int uorb_cells_max =
-					(sizeof(battery_status.voltage_cell_v) / sizeof(battery_status.voltage_cell_v[0]));
-
-				for (int cell = 0; cell < mavlink_cells_max; cell++) {
-					if (battery_status.connected && (cell < battery_status.cell_count) && (cell < uorb_cells_max)) {
-						bat_msg.voltages[cell] = battery_status.voltage_cell_v[cell] * 1000.f;
+					if ((cell < battery_status.cell_count) && (cell < UORB_CELLS_MAX)) {
+						// Battery voltages for cells 11 to 14.
+						// Cells above the valid cell count for this battery should have a value of 0, where zero indicates not supported
+						// (note, this is different than for the voltages field and allows empty byte truncation).
+						// If the measured value is 0 then 1 should be sent instead.
+						msg.voltages_ext[ext_cell] = math::constrain(roundf(battery_status.voltage_cell_v[cell] * 1000.f),
+									     1.f, (float)(UINT16_MAX - 1));
 
 					} else {
-						bat_msg.voltages[cell] = UINT16_MAX;
+						// TODO: QGC still using UINT16_MAX for invalid voltages_ext cells
+						msg.voltages_ext[ext_cell] = UINT16_MAX;
 					}
 				}
 
-				static constexpr int mavlink_cells_ext_max = (sizeof(bat_msg.voltages_ext) / sizeof(bat_msg.voltages_ext[0]));
+				// mode uint8_t (MAV_BATTERY_MODE)
+				msg.mode = MAV_BATTERY_MODE_UNKNOWN; // TODO
 
-				for (int cell = mavlink_cells_max; cell < mavlink_cells_max + mavlink_cells_ext_max; cell++) {
-					if (battery_status.connected && (cell < battery_status.cell_count) && (cell < uorb_cells_max)) {
-						bat_msg.voltages_ext[cell - mavlink_cells_max] = battery_status.voltage_cell_v[cell] * 1000.0f;
+				// fault_bitmask uint32_t (MAV_BATTERY_FAULT)
+				msg.fault_bitmask = 0; // TODO
 
-					} else {
-						bat_msg.voltages_ext[cell - mavlink_cells_max] = UINT16_MAX;
-					}
-				}
-
-				mavlink_msg_battery_status_send_struct(_mavlink->get_channel(), &bat_msg);
+				mavlink_msg_battery_status_send_struct(_mavlink->get_channel(), &msg);
 				updated = true;
 			}
 		}
