@@ -31,6 +31,7 @@
 #
 ############################################################################
 
+add_subdirectory(broadcom)
 add_subdirectory(cm8jl65)
 add_subdirectory(leddar_one)
 add_subdirectory(ll40ls)
@@ -46,3 +47,4 @@ add_subdirectory(tfmini)
 add_subdirectory(ulanding_radar)
 add_subdirectory(vl53l0x)
 add_subdirectory(vl53l1x)
+add_subdirectory(gy_us42)

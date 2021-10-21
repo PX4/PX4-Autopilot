@@ -129,6 +129,10 @@ define_property(GLOBAL PROPERTY PX4_MODULE_PATHS
                  BRIEF_DOCS "PX4 module paths"
                  FULL_DOCS "List of paths to all PX4 modules"
                  )
+define_property(GLOBAL PROPERTY PX4_SRC_FILES
+                 BRIEF_DOCS "src files from all PX4 modules & libs"
+                 FULL_DOCS "SRC files from px4_add_{module,library}"
+                 )
 
 #=============================================================================
 # configuration
@@ -185,6 +189,8 @@ if((CMAKE_BUILD_TYPE STREQUAL "Debug") OR (CMAKE_BUILD_TYPE STREQUAL "Coverage")
 	set(MAX_CUSTOM_OPT_LEVEL -O0)
 elseif(CMAKE_BUILD_TYPE MATCHES "Sanitizer")
 	set(MAX_CUSTOM_OPT_LEVEL -O1)
+elseif(CMAKE_BUILD_TYPE MATCHES "Release")
+	set(MAX_CUSTOM_OPT_LEVEL -O3)
 else()
 	if(px4_constrained_flash_build)
 		set(MAX_CUSTOM_OPT_LEVEL -Os)
@@ -415,6 +421,9 @@ foreach(module ${config_module_list})
 	add_subdirectory(src/${module})
 endforeach()
 
+# add events lib after modules and libs as it needs to know all source files (PX4_SRC_FILES)
+add_subdirectory(src/lib/events EXCLUDE_FROM_ALL)
+
 # must be the last module before firmware
 add_subdirectory(src/lib/parameters EXCLUDE_FROM_ALL)
 target_link_libraries(parameters_interface INTERFACE parameters)
@@ -434,8 +443,10 @@ endforeach()
 
 add_custom_command(OUTPUT ${uorb_graph_config}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/uorb_graph/create.py
-		${graph_module_list}
+		${graph_module_list} --src-path src/lib
+		--merge-depends
 		--exclude-path src/examples
+		--exclude-path src/lib/parameters # FIXME: enable & fix
 		--file ${PX4_SOURCE_DIR}/Tools/uorb_graph/graph_${uorb_graph_config}
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	COMMENT "Generating uORB graph"

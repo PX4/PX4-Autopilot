@@ -6,6 +6,17 @@ parameters:
     - group: PWM Outputs
       definitions:
 
+        PWM_AUX_OUT:
+            description:
+                short: PWM channels used as ESC outputs
+                long: |
+                    Number representing the channels e.g. 134 - Channel 1, 3 and 4.
+                    Global e.g. PWM_AUX_MIN/MAX/DISARM limits only apply to these channels.
+            type: int32
+            min: 0
+            max: 123456789
+            default: 0
+
         PWM_AUX_RATE:
             description:
                 short: PWM aux output frequency
@@ -89,25 +100,25 @@ parameters:
                     is a motor (900us) or a servo (1500us)
             type: int32
             unit: us
-            min: 0
+            min: -1
             max: 2150
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: 0
+            default: -1
 
         PWM_AUX_DIS${i}:
             description:
                 short: PWM aux ${i} disarmed value
                 long: |
                     This is the PWM pulse the autopilot is outputting if not armed.
-                    When set to -1 the value for PWM_AUX_DISARMED will be used
+                    When set to -1 the value for PWM_AUX_DISARM will be used
             type: int32
             unit: us
             min: -1
             max: 2150
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: 0
+            default: -1
 
         PWM_AUX_TRIM${i}:
             description:

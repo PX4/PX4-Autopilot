@@ -40,9 +40,6 @@
 #	Usage:
 #		px4_add_board(
 #			PLATFORM <string>
-#			VENDOR <string>
-#			MODEL <string>
-#			[ LABEL <string> ]
 #			[ TOOLCHAIN <string> ]
 #			[ ARCHITECTURE <string> ]
 #			[ ROMFSROOT <string> ]
@@ -56,18 +53,18 @@
 #			[ EXAMPLES <list> ]
 #			[ SERIAL_PORTS <list> ]
 #			[ CONSTRAINED_FLASH ]
+#			[   NO_HELP ]
 #			[ CONSTRAINED_MEMORY ]
+#			[ EXTERNAL_METADATA ]
 #			[ TESTING ]
 #			[ LINKER_PREFIX <string> ]
-#			[ EMBEDDED_METADATA <string> ]
 #			[ ETHERNET ]
+#			[ CRYPTO <string> ]
+#			[ KEYSTORE <string> ]
 #			)
 #
 #	Input:
 #		PLATFORM		: PX4 platform name (posix, nuttx, qurt)
-#		VENDOR			: name of board vendor/manufacturer/brand/etc
-#		MODEL			: name of board model
-#		LABEL			: optional label, set to default if not specified
 #		TOOLCHAIN		: cmake toolchain
 #		ARCHITECTURE		: name of the CPU CMake is building for (used by the toolchain)
 #		ROMFSROOT		: relative path to the ROMFS root directory
@@ -80,19 +77,20 @@
 #		SYSTEMCMDS		: list of system commands to build for this board (relative to src/systemcmds)
 #		EXAMPLES		: list of example modules to build for this board (relative to src/examples)
 #		SERIAL_PORTS		: mapping of user configurable serial ports and param facing name
-#		EMBEDDED_METADATA	: list of metadata to embed to ROMFS
-#		CONSTRAINED_FLASH	: flag to enable constrained flash options (eg limit init script status text)
+#		CONSTRAINED_FLASH 	: flag to enable constrained flash options (eg limit init script status text)
+#		  NO_HELP 	 	: optional condition flag to disable help text on constrained flash systems
 #		CONSTRAINED_MEMORY	: flag to enable constrained memory options (eg limit maximum number of uORB publications)
+#		EXTERNAL_METADATA	: flag to exclude metadata to reduce flash
 #		TESTING			: flag to enable automatic inclusion of PX4 testing modules
 #		LINKER_PREFIX	: optional to prefix on the Linker script.
 #		ETHERNET		: flag to indicate that ethernet is enabled
+#		CRYPTO			: Crypto implementation selection
+#		KEYSTORE		: Keystore implememntation selection
 #
 #
 #	Example:
 #		px4_add_board(
 #			PLATFORM nuttx
-#			VENDOR px4
-#			MODEL fmu-v5
 #			TOOLCHAIN arm-none-eabi
 #			ARCHITECTURE cortex-m7
 #			ROMFSROOT px4fmu_common
@@ -139,9 +137,6 @@ function(px4_add_board)
 		NAME px4_add_board
 		ONE_VALUE
 			PLATFORM
-			VENDOR
-			MODEL
-			LABEL
 			TOOLCHAIN
 			ARCHITECTURE
 			ROMFSROOT
@@ -149,6 +144,8 @@ function(px4_add_board)
 			UAVCAN_INTERFACES
 			UAVCAN_TIMER_OVERRIDE
 			LINKER_PREFIX
+			CRYPTO
+			KEYSTORE
 		MULTI_VALUE
 			DRIVERS
 			MODULES
@@ -156,21 +153,26 @@ function(px4_add_board)
 			EXAMPLES
 			SERIAL_PORTS
 			UAVCAN_PERIPHERALS
-			EMBEDDED_METADATA
 		OPTIONS
 			BUILD_BOOTLOADER
 			CONSTRAINED_FLASH
+			NO_HELP
 			CONSTRAINED_MEMORY
+			EXTERNAL_METADATA
 			TESTING
 			ETHERNET
 		REQUIRED
 			PLATFORM
-			VENDOR
-			MODEL
 		ARGN ${ARGN})
 
 	set(PX4_BOARD_DIR ${CMAKE_CURRENT_LIST_DIR} CACHE STRING "PX4 board directory" FORCE)
 	include_directories(${PX4_BOARD_DIR}/src)
+
+	# get the VENDOR & MODEL from the caller's directory names
+	get_filename_component(base_dir "${CMAKE_CURRENT_LIST_FILE}" DIRECTORY)
+	get_filename_component(MODEL "${base_dir}" NAME)
+	get_filename_component(base_dir "${base_dir}" DIRECTORY)
+	get_filename_component(VENDOR "${base_dir}" NAME)
 
 	set(PX4_BOARD ${VENDOR}_${MODEL} CACHE STRING "PX4 board" FORCE)
 
@@ -182,11 +184,10 @@ function(px4_add_board)
 	set(PX4_BOARD_VENDOR ${VENDOR} CACHE STRING "PX4 board vendor" FORCE)
 	set(PX4_BOARD_MODEL ${MODEL} CACHE STRING "PX4 board model" FORCE)
 
-	if(LABEL)
-		set(PX4_BOARD_LABEL ${LABEL} CACHE STRING "PX4 board label" FORCE)
-	else()
-		set(PX4_BOARD_LABEL "default" CACHE STRING "PX4 board label" FORCE)
+	if(NOT LABEL)
+		get_filename_component(LABEL "${CMAKE_CURRENT_LIST_FILE}" NAME_WE)
 	endif()
+	set(PX4_BOARD_LABEL ${LABEL} CACHE STRING "PX4 board label" FORCE)
 
 	set(PX4_CONFIG "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}" CACHE STRING "PX4 config" FORCE)
 
@@ -207,14 +208,15 @@ function(px4_add_board)
 
 	set(romfs_extra_files)
 	set(config_romfs_extra_dependencies)
-	foreach(metadata ${EMBEDDED_METADATA})
-		if(${metadata} STREQUAL "parameters")
-			list(APPEND romfs_extra_files ${PX4_BINARY_DIR}/parameters.json.xz)
-			list(APPEND romfs_extra_dependencies parameters_xml)
-		else()
-			message(FATAL_ERROR "invalid value for EMBEDDED_METADATA: ${metadata}")
-		endif()
-	endforeach()
+	# additional embedded metadata
+	if (NOT CONSTRAINED_FLASH AND NOT EXTERNAL_METADATA AND NOT ${PX4_BOARD_LABEL} STREQUAL "test")
+		list(APPEND romfs_extra_files
+			${PX4_BINARY_DIR}/parameters.json.xz
+			${PX4_BINARY_DIR}/events/all_events.json.xz)
+		list(APPEND romfs_extra_dependencies
+			parameters_xml
+			events_json)
+	endif()
 	list(APPEND romfs_extra_files ${PX4_BINARY_DIR}/component_general.json.xz)
 	list(APPEND romfs_extra_dependencies component_general_json)
 	set(config_romfs_extra_files ${romfs_extra_files} CACHE INTERNAL "extra ROMFS files" FORCE)
@@ -255,6 +257,9 @@ function(px4_add_board)
 	if(CONSTRAINED_FLASH)
 		set(px4_constrained_flash_build "1" CACHE INTERNAL "constrained flash build" FORCE)
 		add_definitions(-DCONSTRAINED_FLASH)
+		if (NO_HELP)
+			add_definitions(-DCONSTRAINED_FLASH_NO_HELP="https://docs.px4.io/master/en/modules/modules_main.html")
+		endif()
 	endif()
 
 	if(CONSTRAINED_MEMORY)
@@ -268,6 +273,14 @@ function(px4_add_board)
 
 	if(ETHERNET)
 		set(PX4_ETHERNET "1" CACHE INTERNAL "ethernet enabled" FORCE)
+	endif()
+
+	if(CRYPTO)
+		set(PX4_CRYPTO ${CRYPTO} CACHE STRING "PX4 crypto implementation" FORCE)
+	endif()
+
+	if(KEYSTORE)
+		set(PX4_KEYSTORE ${KEYSTORE} CACHE STRING "PX4 keystore implementation" FORCE)
 	endif()
 
 	if(LINKER_PREFIX)

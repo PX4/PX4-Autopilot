@@ -3,9 +3,6 @@ add_definitions(
 )
 
 px4_add_board(
-	VENDOR px4
-	MODEL raspberrypi
-	LABEL default
 	PLATFORM posix
 	ARCHITECTURE cortex-a53
 	ROMFSROOT px4fmu_common
@@ -22,6 +19,7 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		gps
 		#imu # all available imu drivers
+		imu/invensense/icm20948 # required for ak09916 mag
 		imu/invensense/mpu9250
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
@@ -29,6 +27,7 @@ px4_add_board(
 		pwm_out_sim
 		rc_input
 		rpi_rc_in
+		smart_battery/batmon
 		#telemetry # all available telemetry drivers
 	MODULES
 		airspeed_selector
@@ -91,7 +90,7 @@ px4_add_board(
 	EXAMPLES
 		dyn_hello # dynamically loading modules example
 		fake_gps
-		fake_gyro
+		fake_imu
 		fake_magnetometer
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello

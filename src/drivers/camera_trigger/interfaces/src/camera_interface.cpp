@@ -36,36 +36,61 @@
 
 void CameraInterface::get_pins()
 {
+
 	// Get parameter handle
 	_p_pin = param_find("TRIG_PINS");
 
-	if (_p_pin == PARAM_INVALID) {
+	_p_pin_ex = param_find("TRIG_PINS_EX");
+
+	if (_p_pin == PARAM_INVALID && _p_pin_ex == PARAM_INVALID) {
 		PX4_ERR("param TRIG_PINS not found");
 		return;
 	}
-
-	int pin_list;
-	param_get(_p_pin, &pin_list);
 
 	// Set all pins as invalid
 	for (unsigned i = 0; i < arraySize(_pins); i++) {
 		_pins[i] = -1;
 	}
 
-	// Convert number to individual channels
-	unsigned i = 0;
-	int single_pin;
+	int32_t pin_list = 0;
+	int32_t pin_list_ex = 0;
 
-	while ((single_pin = pin_list % 10)) {
-
-		_pins[i] = single_pin - 1;
-
-		if (_pins[i] < 0) {
-			_pins[i] = -1;
-		}
-
-		pin_list /= 10;
-		i++;
+	if (_p_pin_ex != PARAM_INVALID) {
+		param_get(_p_pin_ex, &pin_list_ex);
 	}
 
+	if (_p_pin != PARAM_INVALID) {
+		param_get(_p_pin, &pin_list);
+	}
+
+	if (pin_list_ex == 0) {
+
+		// Convert number to individual channels
+
+		unsigned i = 0;
+		int single_pin;
+
+		while ((single_pin = pin_list % 10)) {
+
+			_pins[i] = single_pin - 1;
+
+			if (_pins[i] < 0) {
+				_pins[i] = -1;
+			}
+
+			pin_list /= 10;
+			i++;
+		}
+
+	} else {
+		unsigned int p = 0;
+
+		for (unsigned int i = 0; i < arraySize(_pins); i++) {
+			int32_t v = (pin_list_ex & (1 << i)) ? i  : -1;
+
+			if (v > 0) {
+				_pins[p++] = v;
+			}
+		}
+	}
 }

@@ -299,11 +299,13 @@ void Tiltrotor::update_transition_state()
 
 		// tilt rotors forward up to certain angle
 		if (_tilt_control <= _params_tiltrotor.tilt_transition) {
-			_tilt_control = _params_tiltrotor.tilt_mc +
-					fabsf(_params_tiltrotor.tilt_transition - _params_tiltrotor.tilt_mc) * time_since_trans_start /
-					_params->front_trans_duration;
-		}
+			const float ramped_up_tilt = _params_tiltrotor.tilt_mc +
+						     fabsf(_params_tiltrotor.tilt_transition - _params_tiltrotor.tilt_mc) *
+						     time_since_trans_start / _params->front_trans_duration;
 
+			// only allow increasing tilt (tilt in hover can already be non-zero)
+			_tilt_control = math::max(_tilt_control, ramped_up_tilt);
+		}
 
 		// at low speeds give full weight to MC
 		_mc_roll_weight = 1.0f;

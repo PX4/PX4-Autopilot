@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,26 +36,6 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-I2CSPIDriverBase *IST8310::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				       int runtime_instance)
-{
-	IST8310 *instance = new IST8310(iterator.configuredBusOption(), iterator.bus(), cli.i2c_address, cli.bus_frequency,
-					cli.rotation);
-
-	if (!instance) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (instance->init() != PX4_OK) {
-		delete instance;
-		PX4_DEBUG("no device on bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
-		return nullptr;
-	}
-
-	return instance;
-}
-
 void IST8310::print_usage()
 {
 	PRINT_MODULE_USAGE_NAME("ist8310", "driver");
@@ -75,15 +55,15 @@ extern "C" int ist8310_main(int argc, char *argv[])
 	cli.i2c_address = I2C_ADDRESS_DEFAULT;
 	cli.default_i2c_frequency = I2C_SPEED;
 
-	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
 		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optarg());
+			cli.rotation = (enum Rotation)atoi(cli.optArg());
 			break;
 		}
 	}
 
-	const char *verb = cli.optarg();
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();

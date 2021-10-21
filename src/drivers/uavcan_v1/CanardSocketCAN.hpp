@@ -38,6 +38,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <unistd.h>
 
 #include <sys/time.h>
 #include <sys/socket.h>
@@ -60,6 +61,12 @@ public:
 	/// can_fd determines to use CAN FD frame when is 1, and classical CAN frame when is 0
 	/// The return value is 0 on succes and -1 on error
 	int init();
+
+	/// Close socket connection
+	int close()
+	{
+		return ::close(_fd);
+	}
 
 	/// Send a CanardFrame to the CanardSocketInstance socket
 	/// This function is blocking

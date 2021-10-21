@@ -1,9 +1,6 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR px4
-	MODEL fmu-v6u
-	LABEL test
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
@@ -31,6 +28,7 @@ px4_add_board(
 		#imu # all available imu drivers
 		imu/bosch/bmi088
 		imu/invensense/icm20602
+		imu/invensense/icm20948 # required for ak09916 mag
 		imu/invensense/icm42605
 		irlock
 		lights # all available light drivers
@@ -98,6 +96,7 @@ px4_add_board(
 		i2cdetect
 		led_control
 		mft
+		microbench
 		mixer
 		motor_ramp
 		motor_test
@@ -121,7 +120,7 @@ px4_add_board(
 		work_queue
 	EXAMPLES
 		fake_gps
-		fake_gyro
+		fake_imu
 		fake_magnetometer
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hello

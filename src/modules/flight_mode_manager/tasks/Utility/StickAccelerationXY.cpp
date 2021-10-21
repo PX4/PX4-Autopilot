@@ -37,7 +37,7 @@
 
 #include "StickAccelerationXY.hpp"
 
-#include <ecl/geo/geo.h>
+#include <geo/geo.h>
 #include "Sticks.hpp"
 
 using namespace matrix;
@@ -62,7 +62,7 @@ void StickAccelerationXY::resetVelocity(const matrix::Vector2f &velocity)
 void StickAccelerationXY::resetAcceleration(const matrix::Vector2f &acceleration)
 {
 	_acceleration_slew_rate_x.setForcedValue(acceleration(0));
-	_acceleration_slew_rate_x.setForcedValue(acceleration(1));
+	_acceleration_slew_rate_y.setForcedValue(acceleration(1));
 }
 
 void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, const float yaw_sp, const Vector3f &pos,
@@ -72,13 +72,13 @@ void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, 
 	Vector2f acceleration_scale(_param_mpc_acc_hor.get(), _param_mpc_acc_hor.get());
 	Vector2f velocity_scale(_param_mpc_vel_manual.get(), _param_mpc_vel_manual.get());
 
-	acceleration_scale *= 2.f; // because of drag the average aceleration is half
+	acceleration_scale *= 2.f; // because of drag the average acceleration is half
 
 	// Map stick input to acceleration
 	Sticks::limitStickUnitLengthXY(stick_xy);
 	Sticks::rotateIntoHeadingFrameXY(stick_xy, yaw, yaw_sp);
 	_acceleration_setpoint = stick_xy.emult(acceleration_scale);
-	applyFeasibilityLimit(dt);
+	applyJerkLimit(dt);
 
 	// Add drag to limit speed and brake again
 	Vector2f drag = calculateDrag(acceleration_scale.edivide(velocity_scale), dt, stick_xy, _velocity_setpoint);
@@ -109,7 +109,7 @@ void StickAccelerationXY::getSetpoints(Vector3f &pos_sp, Vector3f &vel_sp, Vecto
 	acc_sp.xy() = _acceleration_setpoint;
 }
 
-void StickAccelerationXY::applyFeasibilityLimit(const float dt)
+void StickAccelerationXY::applyJerkLimit(const float dt)
 {
 	// Apply jerk limit - acceleration slew rate
 	// Scale each jerk limit with the normalized projection of the acceleration
@@ -144,9 +144,13 @@ Vector2f StickAccelerationXY::calculateDrag(Vector2f drag_coefficient, const flo
 
 void StickAccelerationXY::applyTiltLimit(Vector2f &acceleration)
 {
+	// fetch the tilt limit which is lower than the maximum during takeoff
+	takeoff_status_s takeoff_status{};
+	_takeoff_status_sub.copy(&takeoff_status);
+
 	// Check if acceleration would exceed the tilt limit
 	const float acc = acceleration.length();
-	const float acc_tilt_max = tanf(M_DEG_TO_RAD_F * _param_mpc_tiltmax_air.get()) * CONSTANTS_ONE_G;
+	const float acc_tilt_max = tanf(takeoff_status.tilt_limit) * CONSTANTS_ONE_G;
 
 	if (acc > acc_tilt_max) {
 		acceleration *= acc_tilt_max / acc;

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,15 +40,14 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 	return (msb << 8u) | lsb;
 }
 
-ICM20602::ICM20602(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-		   spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio) :
-	SPI(DRV_IMU_DEVTYPE_ICM20602, MODULE_NAME, bus, device, spi_mode, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_drdy_gpio(drdy_gpio),
-	_px4_accel(get_device_id(), rotation),
-	_px4_gyro(get_device_id(), rotation)
+ICM20602::ICM20602(const I2CSPIDriverConfig &config) :
+	SPI(config),
+	I2CSPIDriver(config),
+	_drdy_gpio(config.drdy_gpio),
+	_px4_accel(get_device_id(), config.rotation),
+	_px4_gyro(get_device_id(), config.rotation)
 {
-	if (drdy_gpio != 0) {
+	if (_drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
 	}
 
@@ -106,6 +105,30 @@ void ICM20602::print_status()
 	perf_print_counter(_drdy_missed_perf);
 }
 
+bool ICM20602::StoreCheckedRegisterValue(Register reg)
+{
+	// 3 retries
+	for (int i = 0; i < 3; i++) {
+		uint8_t read1 = RegisterRead(reg);
+		uint8_t read2 = RegisterRead(reg);
+
+		if (read1 == read2) {
+			for (auto &r : _register_cfg) {
+				if (r.reg == reg) {
+					r.set_bits = read1;
+					r.clear_bits = ~read1;
+					return true;
+				}
+			}
+
+		} else {
+			PX4_ERR("0x%02hhX read 1 != read 2 (0x%02hhX != 0x%02hhX)", static_cast<uint8_t>(reg), read1, read2);
+		}
+	}
+
+	return false;
+}
+
 int ICM20602::probe()
 {
 	const uint8_t whoami = RegisterRead(Register::WHO_AM_I);
@@ -139,6 +162,21 @@ void ICM20602::RunImpl()
 		if ((RegisterRead(Register::WHO_AM_I) == WHOAMI)
 		    && (RegisterRead(Register::PWR_MGMT_1) == 0x41)
 		    && (RegisterRead(Register::CONFIG) == 0x80)) {
+
+			// offset registers (factory calibration) should not change during normal operation
+			StoreCheckedRegisterValue(Register::XG_OFFS_TC_H);
+			StoreCheckedRegisterValue(Register::XG_OFFS_TC_L);
+			StoreCheckedRegisterValue(Register::YG_OFFS_TC_H);
+			StoreCheckedRegisterValue(Register::YG_OFFS_TC_L);
+			StoreCheckedRegisterValue(Register::ZG_OFFS_TC_H);
+			StoreCheckedRegisterValue(Register::ZG_OFFS_TC_L);
+
+			StoreCheckedRegisterValue(Register::XA_OFFSET_H);
+			StoreCheckedRegisterValue(Register::XA_OFFSET_L);
+			StoreCheckedRegisterValue(Register::YA_OFFSET_H);
+			StoreCheckedRegisterValue(Register::YA_OFFSET_L);
+			StoreCheckedRegisterValue(Register::ZA_OFFSET_H);
+			StoreCheckedRegisterValue(Register::ZA_OFFSET_L);
 
 			// Disable I2C, wakeup, and reset digital signal path
 			RegisterWrite(Register::I2C_IF, I2C_IF_BIT::I2C_IF_DIS); // set immediately to prevent switching into I2C mode
@@ -199,15 +237,19 @@ void ICM20602::RunImpl()
 		break;
 
 	case STATE::FIFO_READ: {
-			uint32_t samples = 0;
+			hrt_abstime timestamp_sample = now;
+			uint8_t samples = 0;
 
 			if (_data_ready_interrupt_enabled) {
-				// scheduled from interrupt if _drdy_fifo_read_samples was set as expected
-				if (_drdy_fifo_read_samples.fetch_and(0) != _fifo_gyro_samples) {
-					perf_count(_drdy_missed_perf);
+				// scheduled from interrupt if _drdy_timestamp_sample was set as expected
+				const hrt_abstime drdy_timestamp_sample = _drdy_timestamp_sample.fetch_and(0);
+
+				if ((now - drdy_timestamp_sample) < _fifo_empty_interval_us) {
+					timestamp_sample = drdy_timestamp_sample;
+					samples = _fifo_gyro_samples;
 
 				} else {
-					samples = _fifo_gyro_samples;
+					perf_count(_drdy_missed_perf);
 				}
 
 				// push backup schedule back
@@ -227,7 +269,13 @@ void ICM20602::RunImpl()
 
 				} else {
 					// FIFO count (size in bytes) should be a multiple of the FIFO::DATA structure
-					samples = (fifo_count / sizeof(FIFO::DATA) / SAMPLES_PER_TRANSFER) * SAMPLES_PER_TRANSFER; // round down to nearest
+					samples = fifo_count / sizeof(FIFO::DATA);
+
+					// tolerate minor jitter, leave sample to next iteration if behind by only 1
+					if (samples == _fifo_gyro_samples + 1) {
+						timestamp_sample -= FIFO_SAMPLE_DT;
+						samples--;
+					}
 
 					if (samples > FIFO_MAX_SAMPLES) {
 						// not technically an overflow, but more samples than we expected or can publish
@@ -241,7 +289,7 @@ void ICM20602::RunImpl()
 			bool success = false;
 
 			if (samples >= SAMPLES_PER_TRANSFER) {
-				if (FIFORead(now, samples)) {
+				if (FIFORead(timestamp_sample, samples)) {
 					success = true;
 
 					if (_failure_count > 0) {
@@ -397,11 +445,8 @@ int ICM20602::DataReadyInterruptCallback(int irq, void *context, void *arg)
 
 void ICM20602::DataReady()
 {
-	uint32_t expected = 0;
-
-	if (_drdy_fifo_read_samples.compare_exchange(&expected, _fifo_gyro_samples)) {
-		ScheduleNow();
-	}
+	_drdy_timestamp_sample.store(hrt_absolute_time());
+	ScheduleNow();
 }
 
 bool ICM20602::DataReadyInterruptConfigure()
@@ -492,16 +537,14 @@ bool ICM20602::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 	}
 
 	const uint16_t fifo_count_bytes = combine(buffer.FIFO_COUNTH, buffer.FIFO_COUNTL);
+	const uint8_t fifo_count_samples = fifo_count_bytes / sizeof(FIFO::DATA);
 
-	if (fifo_count_bytes >= FIFO::SIZE) {
+	if ((fifo_count_bytes >= FIFO::SIZE) || (fifo_count_samples > FIFO_MAX_SAMPLES)) {
 		perf_count(_fifo_overflow_perf);
 		FIFOReset();
 		return false;
-	}
 
-	const uint8_t fifo_count_samples = fifo_count_bytes / sizeof(FIFO::DATA);
-
-	if (fifo_count_samples == 0) {
+	} else if (fifo_count_samples == 0) {
 		perf_count(_fifo_empty_perf);
 		return false;
 	}
@@ -533,7 +576,7 @@ void ICM20602::FIFOReset()
 	RegisterSetAndClearBits(Register::USER_CTRL, USER_CTRL_BIT::FIFO_RST, USER_CTRL_BIT::FIFO_EN);
 
 	// reset while FIFO is disabled
-	_drdy_fifo_read_samples.store(0);
+	_drdy_timestamp_sample.store(0);
 
 	// FIFO_EN: enable both gyro and accel
 	// USER_CTRL: re-enable FIFO

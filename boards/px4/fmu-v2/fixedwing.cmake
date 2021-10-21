@@ -1,15 +1,11 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR px4
-	MODEL fmu-v2
-	LABEL fixedwing
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	CONSTRAINED_MEMORY
 	ROMFSROOT px4fmu_common
 	IO px4_io-v2_default
-	#TESTING
 	#UAVCAN_INTERFACES 2
 	CONSTRAINED_FLASH
 	SERIAL_PORTS
@@ -39,7 +35,7 @@ px4_add_board(
 		pwm_out
 		px4io
 		#telemetry # all available telemetry drivers
-		telemetry/iridiumsbd
+		#telemetry/iridiumsbd
 		tone_alarm
 		#uavcan
 	MODULES

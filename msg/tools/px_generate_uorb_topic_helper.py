@@ -302,23 +302,23 @@ def print_field(field):
     elif field.name == 'device_id':
         print("char device_id_buffer[80];")
         print("device::Device::device_id_print_buffer(device_id_buffer, sizeof(device_id_buffer), message.device_id);")
-        print("PX4_INFO_RAW(\"\\tdevice_id: %d (%s) \\n\", message.device_id, device_id_buffer);")
+        print("PX4_INFO_RAW(\"\\tdevice_id: %\" PRId32 \" (%s) \\n\", message.device_id, device_id_buffer);")
     elif field.name == 'accel_device_id':
         print("char accel_device_id_buffer[80];")
         print("device::Device::device_id_print_buffer(accel_device_id_buffer, sizeof(accel_device_id_buffer), message.accel_device_id);")
-        print("PX4_INFO_RAW(\"\\taccel_device_id: %d (%s) \\n\", message.accel_device_id, accel_device_id_buffer);")
+        print("PX4_INFO_RAW(\"\\taccel_device_id: %\" PRId32 \" (%s) \\n\", message.accel_device_id, accel_device_id_buffer);")
     elif field.name == 'gyro_device_id':
         print("char gyro_device_id_buffer[80];")
         print("device::Device::device_id_print_buffer(gyro_device_id_buffer, sizeof(gyro_device_id_buffer), message.gyro_device_id);")
-        print("PX4_INFO_RAW(\"\\tgyro_device_id: %d (%s) \\n\", message.gyro_device_id, gyro_device_id_buffer);")
+        print("PX4_INFO_RAW(\"\\tgyro_device_id: %\" PRId32 \" (%s) \\n\", message.gyro_device_id, gyro_device_id_buffer);")
     elif field.name == 'baro_device_id':
         print("char baro_device_id_buffer[80];")
         print("device::Device::device_id_print_buffer(baro_device_id_buffer, sizeof(baro_device_id_buffer), message.baro_device_id);")
-        print("PX4_INFO_RAW(\"\\tbaro_device_id: %d (%s) \\n\", message.baro_device_id, baro_device_id_buffer);")
+        print("PX4_INFO_RAW(\"\\tbaro_device_id: %\" PRId32 \" (%s) \\n\", message.baro_device_id, baro_device_id_buffer);")
     elif field.name == 'mag_device_id':
         print("char mag_device_id_buffer[80];")
         print("device::Device::device_id_print_buffer(mag_device_id_buffer, sizeof(mag_device_id_buffer), message.mag_device_id);")
-        print("PX4_INFO_RAW(\"\\tmag_device_id: %d (%s) \\n\", message.mag_device_id, mag_device_id_buffer);")
+        print("PX4_INFO_RAW(\"\\tmag_device_id: %\" PRId32 \" (%s) \\n\", message.mag_device_id, mag_device_id_buffer);")
     elif (field.name == 'q' or 'q_' in field.name) and field.type == 'float32[4]':
         # float32[4] q/q_d/q_reset/delta_q_reset
         print("{")
@@ -329,7 +329,7 @@ def print_field(field):
     elif ("flags" in field.name or "bits" in field.name) and "uint" in field.type:
         # print bits of fixed width unsigned integers (uint8, uint16, uint32) if name contains flags or bits
         print("PX4_INFO_RAW(\"\\t" + field.name + ": " + c_type + " (0b\", " + field_name + ");")
-        print("\tfor (int i = (sizeof(" + field_name + ") * 8) - 1; i >= 0; i--) { PX4_INFO_RAW(\"%u%s\", " + field_name + " >> i & 1, ((unsigned)i < (sizeof(" + field_name + ") * 8) - 1 && i % 4 == 0 && i > 0) ? \"'\" : \"\"); }")
+        print("\tfor (int i = (sizeof(" + field_name + ") * 8) - 1; i >= 0; i--) { PX4_INFO_RAW(\"%lu%s\", (unsigned long) " + field_name + " >> i & 1, ((unsigned)i < (sizeof(" + field_name + ") * 8) - 1 && i % 4 == 0 && i > 0) ? \"'\" : \"\"); }")
         print("\tPX4_INFO_RAW(\")\\n\");")
     elif is_array and 'char' in field.type:
         print(("PX4_INFO_RAW(\"\\t" + field.name + ": \\\"%." + str(array_length) + "s\\\" \\n\", message." + field.name + ");"))

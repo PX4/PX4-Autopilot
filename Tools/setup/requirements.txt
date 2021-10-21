@@ -4,9 +4,10 @@ cerberus
 coverage
 empy>=3.3
 jinja2>=2.8
+jsonschema
 matplotlib>=3.0.*
 numpy>=1.13
-nunavut
+nunavut>=1.1.0
 packaging
 pandas>=0.21
 pkgconfig
@@ -15,7 +16,7 @@ pygments
 wheel>=0.31.1
 pymavlink
 pyros-genmsg
-pyserial>=3.0
+pyserial
 pyulog>=0.5.0
 pyyaml
 requests

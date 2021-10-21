@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -299,7 +299,8 @@ void DShot::capture_trampoline(void *context, const uint32_t channel_index, cons
 void DShot::capture_callback(const uint32_t channel_index, const hrt_abstime edge_time,
 			     const uint32_t edge_state, const uint32_t overflow)
 {
-	fprintf(stdout, "DShot: Capture chan:%d time:%lld state:%d overflow:%d\n", channel_index, edge_time, edge_state,
+	fprintf(stdout, "DShot: Capture chan:%" PRId32 " time:%" PRId64 " state:%" PRId32 " overflow:%" PRId32 "\n",
+		channel_index, edge_time, edge_state,
 		overflow);
 }
 
@@ -530,11 +531,27 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 
 	} else {
 		for (int i = 0; i < (int)num_outputs; i++) {
-			if (outputs[i] == DSHOT_DISARM_VALUE) {
+
+			uint16_t output = outputs[i];
+
+			// DShot 3D splits the throttle ranges in two.
+			// This is in terms of DShot values, code below is in terms of actuator_output
+			// Direction 1) 48 is the slowest, 1047 is the fastest.
+			// Direction 2) 1049 is the slowest, 2047 is the fastest.
+			if (_param_dshot_3d_enable.get()) {
+				if (output >= _param_dshot_3d_dead_l.get() && output <= _param_dshot_3d_dead_h.get()) {
+					output = DSHOT_DISARM_VALUE;
+
+				} else if (output < 1000 && output > 0) { //Todo: allow actuator 0 or dshot 48 to be used
+					output = 999 - output;
+				}
+			}
+
+			if (output == DSHOT_DISARM_VALUE) {
 				up_dshot_motor_command(i, DShot_cmd_motor_stop, i == requested_telemetry_index);
 
 			} else {
-				up_dshot_motor_data_set(i, math::min(outputs[i], static_cast<uint16_t>(DSHOT_MAX_THROTTLE)),
+				up_dshot_motor_data_set(i, math::min(output, static_cast<uint16_t>(DSHOT_MAX_THROTTLE)),
 							i == requested_telemetry_index);
 			}
 		}

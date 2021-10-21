@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+include(px4_list_make_absolute)
 
 #=============================================================================
 #
@@ -52,4 +53,6 @@ function(px4_add_library target)
 	endif()
 
 	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
+	px4_list_make_absolute(ABS_SRCS ${CMAKE_CURRENT_SOURCE_DIR} ${ARGN})
+	set_property(GLOBAL APPEND PROPERTY PX4_SRC_FILES ${ABS_SRCS})
 endfunction()

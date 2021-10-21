@@ -46,7 +46,7 @@
 #include "navigator.h"
 
 #include <drivers/drv_pwm_output.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/landing_slope/Landingslope.hpp>
 #include <systemlib/mavlink_log.h>
@@ -58,13 +58,15 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 		float max_distance_to_1st_waypoint, float max_distance_between_waypoints,
 		bool land_start_req)
 {
+	// Reset warning flag
+	_navigator->get_mission_result()->warning = false;
+
 	// trivial case: A mission with length zero cannot be valid
 	if ((int)mission.count <= 0) {
 		return false;
 	}
 
 	bool failed = false;
-	bool warned = false;
 
 	// first check if we have a valid position
 	const bool home_valid = _navigator->home_position_valid();
@@ -72,7 +74,6 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 
 	if (!home_alt_valid) {
 		failed = true;
-		warned = true;
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Not yet ready for mission, no position lock.");
 
 	} else {
@@ -85,7 +86,7 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 	failed = failed || !checkMissionItemValidity(mission);
 	failed = failed || !checkDistancesBetweenWaypoints(mission, max_distance_between_waypoints);
 	failed = failed || !checkGeofence(mission, home_alt, home_valid);
-	failed = failed || !checkHomePositionAltitude(mission, home_alt, home_alt_valid, warned);
+	failed = failed || !checkHomePositionAltitude(mission, home_alt, home_alt_valid);
 
 	if (_navigator->get_vstatus()->is_vtol) {
 		failed = failed || !checkVTOL(mission, home_alt, false);
@@ -171,8 +172,7 @@ MissionFeasibilityChecker::checkGeofence(const mission_s &mission, float home_al
 }
 
 bool
-MissionFeasibilityChecker::checkHomePositionAltitude(const mission_s &mission, float home_alt, bool home_alt_valid,
-		bool throw_error)
+MissionFeasibilityChecker::checkHomePositionAltitude(const mission_s &mission, float home_alt, bool home_alt_valid)
 {
 	/* Check if all waypoints are above the home altitude */
 	for (size_t i = 0; i < mission.count; i++) {
@@ -190,31 +190,19 @@ MissionFeasibilityChecker::checkHomePositionAltitude(const mission_s &mission, f
 
 			_navigator->get_mission_result()->warning = true;
 
-			if (throw_error) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: No home pos, WP %zu uses rel alt", i + 1);
-				return false;
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: No home pos, WP %zu uses rel alt", i + 1);
+			return false;
 
-			} else	{
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Warning: No home pos, WP %zu uses rel alt", i + 1);
-				return true;
-			}
 		}
 
 		/* calculate the global waypoint altitude */
 		float wp_alt = (missionitem.altitude_is_relative) ? missionitem.altitude + home_alt : missionitem.altitude;
 
-		if ((home_alt > wp_alt) && MissionBlock::item_contains_position(missionitem)) {
+		if (home_alt_valid && home_alt > wp_alt && MissionBlock::item_contains_position(missionitem)) {
 
 			_navigator->get_mission_result()->warning = true;
 
-			if (throw_error) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Waypoint %zu below home", i + 1);
-				return false;
-
-			} else	{
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Warning: Waypoint %zu below home", i + 1);
-				return true;
-			}
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Warning: Waypoint %zu below home", i + 1);
 		}
 	}
 

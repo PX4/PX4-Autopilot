@@ -33,8 +33,6 @@
 
 #include "MPL3115A2.hpp"
 
-#define MPL3115A2_ADDRESS        0x60
-
 #define MPL3115A2_REG_WHO_AM_I   0x0c
 #define MPL3115A2_WHO_AM_I       0xC4
 
@@ -54,9 +52,9 @@
 #define MPL3115A2_OSR                   2       /* Over Sample rate of 4 18MS Minimum time between data samples */
 #define MPL3115A2_CTRL_TRIGGER          (CTRL_REG1_OST | CTRL_REG1_OS(MPL3115A2_OSR))
 
-MPL3115A2::MPL3115A2(I2CSPIBusOption bus_option, const int bus, int bus_frequency) :
-	I2C(DRV_BARO_DEVTYPE_MPL3115A2, MODULE_NAME, bus, MPL3115A2_ADDRESS, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
+MPL3115A2::MPL3115A2(const I2CSPIDriverConfig &config) :
+	I2C(config),
+	I2CSPIDriver(config),
 	_px4_barometer(get_device_id()),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),

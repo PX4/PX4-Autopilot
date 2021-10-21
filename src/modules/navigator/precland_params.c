@@ -112,7 +112,7 @@ PARAM_DEFINE_FLOAT(PLD_SRCH_TOUT, 10.0f);
 /**
  * Maximum number of search attempts
  *
- * Maximum number of times to seach for the landing target if it is lost during the precision landing.
+ * Maximum number of times to search for the landing target if it is lost during the precision landing.
  *
  * @min 0
  * @max 100

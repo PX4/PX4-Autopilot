@@ -220,7 +220,7 @@ PARAM_DEFINE_FLOAT(LPE_EPH_MAX, 3.0f);
 PARAM_DEFINE_FLOAT(LPE_EPV_MAX, 5.0f);
 
 /**
- * Vision delay compensaton.
+ * Vision delay compensation.
  *
  * Set to zero to enable automatic compensation from measurement timestamps
  *

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -53,7 +53,7 @@
 #include <lib/sensor_calibration/Magnetometer.hpp>
 #include <lib/sensor_calibration/Utilities.hpp>
 #include <lib/conversion/rotation.h>
-#include <lib/ecl/geo_lookup/geo_mag_declination.h>
+#include <lib/world_magnetic_model/geo_mag_declination.h>
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/parameters/param.h>
 #include <lib/systemlib/err.h>
@@ -151,7 +151,7 @@ static bool reject_sample(float sx, float sy, float sz, float x[], float y[], fl
 		float dist = sqrtf(dx * dx + dy * dy + dz * dz);
 
 		if (dist < min_sample_dist) {
-			PX4_DEBUG("rejected X: %.3f Y: %.3f Z: %.3f (%.3f < %.3f) (%d/%d) ", (double)sx, (double)sy, (double)sz, (double)dist,
+			PX4_DEBUG("rejected X: %.3f Y: %.3f Z: %.3f (%.3f < %.3f) (%u/%u) ", (double)sx, (double)sy, (double)sz, (double)dist,
 				  (double)min_sample_dist, count, max_count);
 
 			return true;
@@ -188,14 +188,14 @@ static calibrate_return check_calibration_result(float offset_x, float offset_y,
 
 	for (unsigned i = 0; i < num_finite; ++i) {
 		if (!PX4_ISFINITE(must_be_finite[i])) {
-			calibration_log_emergency(mavlink_log_pub, "Retry calibration (sphere NaN, %u)", cur_mag);
+			calibration_log_emergency(mavlink_log_pub, "Retry calibration (sphere NaN, %" PRIu8 ")", cur_mag);
 			return calibrate_return_error;
 		}
 	}
 
 	// earth field between 0.25 and 0.65 Gauss
 	if (sphere_radius < 0.2f || sphere_radius >= 0.7f) {
-		calibration_log_emergency(mavlink_log_pub, "Retry calibration (mag %u sphere radius invalid %.3f)", cur_mag,
+		calibration_log_emergency(mavlink_log_pub, "Retry calibration (mag %" PRIu8 " sphere radius invalid %.3f)", cur_mag,
 					  (double)sphere_radius);
 		return calibrate_return_error;
 	}
@@ -205,7 +205,7 @@ static calibrate_return check_calibration_result(float offset_x, float offset_y,
 
 	for (unsigned i = 0; i < num_positive; ++i) {
 		if (should_be_positive[i] <= 0.0f) {
-			calibration_log_emergency(mavlink_log_pub, "Retry calibration (mag %u with non-positive scale)", cur_mag);
+			calibration_log_emergency(mavlink_log_pub, "Retry calibration (mag %" PRIu8 " with non-positive scale)", cur_mag);
 			return calibrate_return_error;
 		}
 	}
@@ -219,7 +219,7 @@ static calibrate_return check_calibration_result(float offset_x, float offset_y,
 		static constexpr float MAG_MAX_OFFSET_LEN = 1.3f;
 
 		if (fabsf(should_be_not_huge[i]) > MAG_MAX_OFFSET_LEN) {
-			calibration_log_critical(mavlink_log_pub, "Warning: mag %u with large offsets", cur_mag);
+			calibration_log_critical(mavlink_log_pub, "Warning: mag %" PRIu8 " with large offsets", cur_mag);
 			break;
 		}
 	}
@@ -440,7 +440,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 				}
 			}
 
-			PX4_DEBUG("side counter %d / %d", calibration_counter_side, worker_data->calibration_points_perside);
+			PX4_DEBUG("side counter %u / %u", calibration_counter_side, worker_data->calibration_points_perside);
 
 		} else {
 			poll_errcount++;
@@ -467,6 +467,18 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 
 calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_mask)
 {
+	// We should not try to subscribe if the topic doesn't actually exist and can be counted.
+	const unsigned orb_mag_count = orb_group_count(ORB_ID(sensor_mag));
+
+	// Warn that we will not calibrate more than MAX_GYROS gyroscopes
+	if (orb_mag_count > MAX_MAGS) {
+		calibration_log_critical(mavlink_log_pub, "Detected %u mags, but will calibrate only %u", orb_mag_count, MAX_MAGS);
+
+	} else if (orb_mag_count < 1) {
+		calibration_log_critical(mavlink_log_pub, "No mags found");
+		return calibrate_return_error;
+	}
+
 	calibrate_return result = calibrate_return_ok;
 
 	mag_worker_data_t worker_data{};
@@ -584,7 +596,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 				if (ret == PX4_OK) {
 					sphere_fit_success = true;
-					PX4_INFO("Mag: %d sphere radius: %.4f", cur_mag, (double)sphere_data.radius);
+					PX4_INFO("Mag: %" PRIu8 " sphere radius: %.4f", cur_mag, (double)sphere_data.radius);
 
 					if (!sphere_fit_only) {
 						int ellipsoid_ret = lm_mag_fit(worker_data.x[cur_mag], worker_data.y[cur_mag], worker_data.z[cur_mag],
@@ -605,7 +617,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 				}
 
 				if (!sphere_fit_success && !ellipsoid_fit_success) {
-					calibration_log_emergency(mavlink_log_pub, "Retry calibration (unable to fit mag %u)", cur_mag);
+					calibration_log_emergency(mavlink_log_pub, "Retry calibration (unable to fit mag %" PRIu8 ")", cur_mag);
 					result = calibrate_return_error;
 					break;
 				}
@@ -634,7 +646,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 				continue;
 			}
 
-			printf("MAG %u with %u samples:\n", cur_mag, worker_data.calibration_counter_total[cur_mag]);
+			printf("MAG %" PRIu8 " with %u samples:\n", cur_mag, worker_data.calibration_counter_total[cur_mag]);
 			printf("RAW -> CALIBRATED\n");
 
 			float scale_data[9] {
@@ -799,7 +811,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 							switch (worker_data.calibration[cur_mag].rotation_enum()) {
 							case ROTATION_ROLL_90_PITCH_68_YAW_293:
-								PX4_INFO("[cal] External Mag: %d (%d), keeping manually configured rotation %d", cur_mag,
+								PX4_INFO("[cal] External Mag: %d (%" PRIu32 "), keeping manually configured rotation %" PRIu8, cur_mag,
 									 worker_data.calibration[cur_mag].device_id(), worker_data.calibration[cur_mag].rotation_enum());
 								continue;
 
@@ -809,25 +821,27 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 							if (smallest_check_passed && total_error_check_passed) {
 								if (best_rotation != worker_data.calibration[cur_mag].rotation_enum()) {
-									calibration_log_info(mavlink_log_pub, "[cal] External Mag: %d (%d), determined rotation: %d", cur_mag,
+									calibration_log_info(mavlink_log_pub, "[cal] External Mag: %d (%" PRIu32 ")), determined rotation: %" PRIu8, cur_mag,
 											     worker_data.calibration[cur_mag].device_id(), best_rotation);
 
 									worker_data.calibration[cur_mag].set_rotation(best_rotation);
 
 								} else {
-									PX4_INFO("[cal] External Mag: %d (%d), no rotation change: %d", cur_mag,
+									PX4_INFO("[cal] External Mag: %d (%" PRIu32 ")), no rotation change: %d", cur_mag,
 										 worker_data.calibration[cur_mag].device_id(), best_rotation);
 								}
 
 							} else {
-								PX4_ERR("External Mag: %d (%d), determining rotation failed", cur_mag, worker_data.calibration[cur_mag].device_id());
+								PX4_ERR("External Mag: %d (%" PRIu32 ")), determining rotation failed", cur_mag,
+									worker_data.calibration[cur_mag].device_id());
 								print_all_mse = true;
 							}
 
 						} else {
 							// non-primary internal mags, warn if there seems to be a rotation relative to the first primary (internal_index)
 							if (best_rotation != ROTATION_NONE) {
-								calibration_log_critical(mavlink_log_pub, "[cal] Internal Mag: %d (%d) rotation %d relative to primary %d (%d)",
+								calibration_log_critical(mavlink_log_pub,
+											 "[cal] Internal Mag: %d (%" PRIu32 ") rotation %d relative to primary %d (%" PRIu32 ")",
 											 cur_mag, worker_data.calibration[cur_mag].device_id(), best_rotation,
 											 internal_index, worker_data.calibration[internal_index].device_id());
 
@@ -837,7 +851,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 						if (print_all_mse) {
 							for (int r = ROTATION_NONE; r < ROTATION_MAX; r++) {
-								PX4_ERR("%s Mag: %d (%d), rotation: %d, MSE: %.3f",
+								PX4_ERR("%s Mag: %d (%" PRIu32 "), rotation: %d, MSE: %.3f",
 									worker_data.calibration[cur_mag].external() ? "External" : "Internal",
 									cur_mag, worker_data.calibration[cur_mag].device_id(), r, (double)MSE[r]);
 							}
@@ -885,22 +899,19 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 					current_cal.set_offdiagonal(offdiag[cur_mag]);
 				}
 
+				current_cal.set_calibration_index(cur_mag);
+
 				current_cal.PrintStatus();
 
-			} else {
-				current_cal.Reset();
-			}
+				if (current_cal.ParametersSave()) {
+					param_save = true;
+					failed = false;
 
-			current_cal.set_calibration_index(cur_mag);
-
-			if (current_cal.ParametersSave()) {
-				param_save = true;
-				failed = false;
-
-			} else {
-				failed = true;
-				calibration_log_critical(mavlink_log_pub, "calibration save failed");
-				break;
+				} else {
+					failed = true;
+					calibration_log_critical(mavlink_log_pub, "calibration save failed");
+					break;
+				}
 			}
 		}
 
@@ -988,7 +999,7 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 			sensor_mag_s mag{};
 			mag_sub.copy(&mag);
 
-			if (mag_sub.advertised() && (mag.timestamp != 0)) {
+			if (mag_sub.advertised() && (mag.timestamp != 0) && (mag.device_id != 0)) {
 
 				calibration::Magnetometer cal{mag.device_id, mag.is_external};
 

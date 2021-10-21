@@ -6,6 +6,16 @@ CONFIG:
       buildType: RelWithDebInfo
       settings:
         CONFIG: px4_sitl_default
+    px4_sitl_asan:
+      short: px4_sitl (AddressSanitizer)
+      buildType: AddressSanitizer
+      settings:
+        CONFIG: px4_sitl_default
+    px4_sitl_ubsan:
+      short: px4_sitl (UndefinedBehaviorSanitizer)
+      buildType: UndefinedBehaviorSanitizer
+      settings:
+        CONFIG: px4_sitl_default
     px4_sitl_replay:
       short: px4_sitl_replay
       buildType: RelWithDebInfo
@@ -51,6 +61,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: px4_fmu-v5x_default
+    px4_fmu-v6x_default:
+      short: px4_fmu-v6x
+      buildType: MinSizeRel
+      settings:
+        CONFIG: px4_fmu-v6x_default
+    px4_fmu-v6x_bootloader:
+      short: px4_fmu-v6x_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: px4_fmu-v6x_bootloader
     airmind_mindpx-v2_default:
       short: airmind_mindpx-v2
       buildType: MinSizeRel
@@ -66,6 +86,21 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_can-flow_canbootloader
+    ark_can-gps_default:
+      short: ark_can-gps_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_can-gps_default
+    ark_can-gps_canbootloader:
+      short: ark_can-gps_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_can-gps_canbootloader
+    atl_mantis-edu_default:
+      short: atl_mantis-edu
+      buildType: MinSizeRel
+      settings:
+        CONFIG: atl_mantis-edu_default
     av_x-v1_default:
       short: av_x-v1
       buildType: MinSizeRel
@@ -96,21 +131,26 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: cuav_x7pro_default
-    cubepilot_cubeorange_default:
+    cubepilot_cubeorange_test:
       short: cubepilot_cubeorange
       buildType: MinSizeRel
       settings:
-        CONFIG: cubepilot_orange_default
-    cubepilot_cubeyellow_default:
-      short: cubepilot_cubeyellow
-      buildType: MinSizeRel
-      settings:
-        CONFIG: cubepilot_cubeyellow_default
+        CONFIG: cubepilot_orange_test
     emlid_navio2_default:
       short: emlid_navio2
       buildType: MinSizeRel
       settings:
         CONFIG: emlid_navio2_default
+    freefly_can-rtk-gps_default:
+      short: freefly_can-rtk-gps_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: freefly_can-rtk-gps_default
+    freefly_can-rtk-gps_canbootloader:
+      short: freefly_can-rtk-gps_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: freefly_can-rtk-gps_canbootloader
     holybro_can-gps-v1_canbootloader:
       short: holybro_can-gps-v1_canbootloader
       buildType: MinSizeRel
@@ -131,6 +171,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: modalai_fc-v1_default
+    modalai_fc-v2_default:
+      short: modalai_fc-v2
+      buildType: MinSizeRel
+      settings:
+        CONFIG: modalai_fc-v2_default
     mro_ctrl-zero-f7_default:
       short: mro_ctrl-zero-f7
       buildType: MinSizeRel

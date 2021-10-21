@@ -514,10 +514,12 @@ do_show(const char *search_string, bool only_changed)
 static int
 do_show_for_airframe()
 {
-	PARAM_PRINT("if [ $AUTOCNF = yes ]\n");
-	PARAM_PRINT("then\n");
 	param_foreach(do_show_print_for_airframe, nullptr, true, true);
-	PARAM_PRINT("fi\n");
+	int32_t sys_autostart = 0;
+	param_get(param_find("SYS_AUTOSTART"), &sys_autostart);
+	if (sys_autostart != 0) {
+		PARAM_PRINT("# Make sure to add all params from the current airframe (ID=%" PRId32 ") as well\n", sys_autostart);
+	}
 	return 0;
 }
 
@@ -725,7 +727,7 @@ do_show_print_for_airframe(void *arg, param_t param)
 
 	int32_t i;
 	float f;
-	PARAM_PRINT("\tparam set %s ", p_name);
+	PARAM_PRINT("param set-default %s ", p_name);
 
 	switch (param_type(param)) {
 	case PARAM_TYPE_INT32:

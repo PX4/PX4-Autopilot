@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020, 2001 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +34,7 @@
 #include "VehicleMagnetometer.hpp"
 
 #include <px4_platform_common/log.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 
 namespace sensors
 {
@@ -93,16 +93,26 @@ void VehicleMagnetometer::ParametersUpdate(bool force)
 
 		if (mag_comp_typ != _mag_comp_type) {
 			// check mag power compensation type (change battery current subscription instance if necessary)
-			if (mag_comp_typ == MagCompensationType::Current_inst0 && _mag_comp_type != MagCompensationType::Current_inst0) {
-				_battery_status_sub = uORB::Subscription{ORB_ID(battery_status), 0};
-			}
+			switch (mag_comp_typ) {
+			case MagCompensationType::Current_inst0:
+				_battery_status_sub.ChangeInstance(0);
+				break;
 
-			if (mag_comp_typ == MagCompensationType::Current_inst1 && _mag_comp_type != MagCompensationType::Current_inst1) {
-				_battery_status_sub = uORB::Subscription{ORB_ID(battery_status), 1};
-			}
+			case MagCompensationType::Current_inst1:
+				_battery_status_sub.ChangeInstance(1);
+				break;
 
-			if (mag_comp_typ == MagCompensationType::Throttle) {
-				_actuator_controls_0_sub = uORB::Subscription{ORB_ID(actuator_controls_0)};
+			case MagCompensationType::Throttle:
+				break;
+
+			default:
+
+				// ensure power compensation is disabled
+				for (auto &cal : _calibration) {
+					cal.UpdatePower(0.f);
+				}
+
+				break;
 			}
 		}
 
@@ -207,7 +217,7 @@ void VehicleMagnetometer::MagCalibrationUpdate()
 
 					if (_calibration[mag_index].set_offset(mag_cal_offset)) {
 
-						PX4_INFO("%d (%d) EST:%d offset committed: [%.2f %.2f %.2f]->[%.2f %.2f %.2f] (full [%.2f %.2f %.2f])",
+						PX4_INFO("%d (%" PRIu32 ") EST:%d offset committed: [%.2f %.2f %.2f]->[%.2f %.2f %.2f] (full [%.2f %.2f %.2f])",
 							 mag_index, _calibration[mag_index].device_id(), i,
 							 (double)mag_cal_orig(0), (double)mag_cal_orig(1), (double)mag_cal_orig(2),
 							 (double)mag_cal_offset(0), (double)mag_cal_offset(1), (double)mag_cal_offset(2),
@@ -253,27 +263,25 @@ void VehicleMagnetometer::Run()
 
 	if (_mag_comp_type != MagCompensationType::Disabled) {
 		// update power signal for mag compensation
-		if (_armed) {
-			if (_mag_comp_type == MagCompensationType::Throttle) {
-				actuator_controls_s controls;
+		if (_armed && (_mag_comp_type == MagCompensationType::Throttle)) {
+			actuator_controls_s controls;
 
-				if (_actuator_controls_0_sub.update(&controls)) {
-					for (auto &cal : _calibration) {
-						cal.UpdatePower(controls.control[actuator_controls_s::INDEX_THROTTLE]);
-					}
+			if (_actuator_controls_0_sub.update(&controls)) {
+				for (auto &cal : _calibration) {
+					cal.UpdatePower(controls.control[actuator_controls_s::INDEX_THROTTLE]);
 				}
+			}
 
-			} else if (_mag_comp_type == MagCompensationType::Current_inst0
-				   || _mag_comp_type == MagCompensationType::Current_inst1) {
+		} else if ((_mag_comp_type == MagCompensationType::Current_inst0)
+			   || (_mag_comp_type == MagCompensationType::Current_inst1)) {
 
-				battery_status_s bat_stat;
+			battery_status_s bat_stat;
 
-				if (_battery_status_sub.update(&bat_stat)) {
-					float power = bat_stat.current_a * 0.001f; //current in [kA]
+			if (_battery_status_sub.update(&bat_stat)) {
+				float power = bat_stat.current_a * 0.001f; // current in [kA]
 
-					for (auto &cal : _calibration) {
-						cal.UpdatePower(power);
-					}
+				for (auto &cal : _calibration) {
+					cal.UpdatePower(power);
 				}
 			}
 
@@ -367,7 +375,7 @@ void VehicleMagnetometer::Run()
 
 			if (_param_sens_mag_mode.get()) {
 				if (_selected_sensor_sub_index >= 0) {
-					PX4_INFO("%s switch from #%u -> #%d", "MAG", _selected_sensor_sub_index, best_index);
+					PX4_INFO("%s switch from #%" PRId8 " -> #%d", "MAG", _selected_sensor_sub_index, best_index);
 				}
 			}
 
@@ -522,7 +530,7 @@ void VehicleMagnetometer::calcMagInconsistency()
 void VehicleMagnetometer::PrintStatus()
 {
 	if (_selected_sensor_sub_index >= 0) {
-		PX4_INFO("selected magnetometer: %d (%d)", _last_data[_selected_sensor_sub_index].device_id,
+		PX4_INFO("selected magnetometer: %" PRIu32 " (%" PRId8 ")", _last_data[_selected_sensor_sub_index].device_id,
 			 _selected_sensor_sub_index);
 	}
 

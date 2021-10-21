@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -96,18 +96,14 @@ enum ACTR_BIT : uint8_t {
 // CNTL1
 enum CNTL1_BIT : uint8_t {
 	// 6:5 NSF[1:0]: Noise Suppression Filter setting
-	NSF_Low    = Bit5,
-	NSF_Middle = Bit6,
-	NSF_High   = Bit6 | Bit5,
+	NSF_DISABLE = Bit6 | Bit5, // Disable
 };
 
 // CNTL2
 enum CNTL2_BIT : uint8_t {
 	// 4:0 MODE [4:0]: Operation mode setting
-	MODE_ODR_10Hz  = Bit1,        // 5’h02: Continuous Measurement Mode with ODR 10Hz
-	MODE_ODR_20Hz  = Bit2,        // 5’h04: Continuous Measurement Mode with ODR 20Hz
-	MODE_ODR_50Hz  = Bit2 | Bit1, // 5’h06: Continuous Measurement Mode with ODR 50Hz
-	MODE_ODR_100Hz = Bit3,        // 5’h08: Continuous Measurement Mode with ODR 100Hz
+	MODE_ODR_50HZ_SET   = Bit2 | Bit1, // 5’h06: Continuous Measurement Mode with ODR 50Hz
+	MODE_ODR_50HZ_CLEAR = Bit3 | Bit0,
 };
 
 // CNTL3
@@ -115,15 +111,22 @@ enum CNTL3_BIT : uint8_t {
 	SRST = Bit0, // Soft reset, perform the same routine as POR
 };
 
+// CNTL4
+enum CNTL4_BIT : uint8_t {
+	// DR [1:0]: Sensor Dynamic Range and Sensitivity setting
+	DR_200UT_SET   = Bit0, // ±200 uT, Sensitivity=13.2 LSB/uT
+	DR_200UT_CLEAR = Bit1
+};
+
 // OSRCNTL
 enum OSRCNTL_BIT : uint8_t {
 	// 5:3
-	OSR_y_16 = Bit5,        // 3’b100: OSR=16 (ODRmax=100) (Default)
-	OSR_y_32 = Bit5 | Bit3, // 3’b101: OSR=32 (ODRmax=50)
+	OSR_Y_32_SET    = Bit5 | Bit3, // 3’b101: OSR=32 (ODRmax=50)
+	OSR_Y_32_CLEAR  = Bit4,
 
 	// 2:0
-	OSR_xz_16 = Bit2,        // 3’b100: OSR=16 (ODRmax=100) (Default)
-	OSR_xz_32 = Bit2 | Bit0, // 3’b101: OSR=32 (ODRmax=50)
+	OSR_XZ_32_SET   = Bit2 | Bit0, // 3’b101: OSR=32 (ODRmax=50)
+	OSR_XZ_32_CLEAR = Bit1,
 };
 
 } // namespace iSentek_IST8308

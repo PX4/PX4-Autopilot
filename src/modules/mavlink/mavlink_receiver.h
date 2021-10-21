@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -62,6 +62,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/camera_status.h>
 #include <uORB/topics/cellular_status.h>
 #include <uORB/topics/collision_report.h>
 #include <uORB/topics/differential_pressure.h>
@@ -121,25 +122,15 @@ public:
 	MavlinkReceiver(Mavlink *parent);
 	~MavlinkReceiver() override;
 
-	/**
-	 * Start the receiver thread
-	 */
-	static void receive_start(pthread_t *thread, Mavlink *parent);
+	void start();
+	void stop();
 
-	static void *start_helper(void *context);
-
-	/**
-	 * Set the cruising speed in offboard control
-	 *
-	 * Passing a negative value or leaving the parameter away will reset the cruising speed
-	 * to its default value.
-	 *
-	 * Sets cruising speed for current flight mode only (resets on mode changes).
-	 *
-	 */
-	void set_offb_cruising_speed(float speed = -1.0f);
+	bool component_was_seen(int system_id, int component_id);
+	void print_detailed_rx_stats() const;
 
 private:
+	static void *start_trampoline(void *context);
+	void run();
 
 	void acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result);
 
@@ -185,6 +176,7 @@ private:
 	void handle_message_play_tune(mavlink_message_t *msg);
 	void handle_message_play_tune_v2(mavlink_message_t *msg);
 	void handle_message_radio_status(mavlink_message_t *msg);
+	void handle_message_rc_channels(mavlink_message_t *msg);
 	void handle_message_rc_channels_override(mavlink_message_t *msg);
 	void handle_message_serial_control(mavlink_message_t *msg);
 	void handle_message_set_actuator_control_target(mavlink_message_t *msg);
@@ -207,10 +199,9 @@ private:
 	void handle_message_debug_vect(mavlink_message_t *msg);
 	void handle_message_named_value_float(mavlink_message_t *msg);
 #endif // !CONSTRAINED_FLASH
+	void handle_message_request_event(mavlink_message_t *msg);
 
 	void CheckHeartbeats(const hrt_abstime &t, bool force = false);
-
-	void Run();
 
 	/**
 	 * Set the interval at which the given message stream is published.
@@ -236,10 +227,10 @@ private:
 
 	void schedule_tune(const char *tune);
 
-	/**
-	 * @brief Updates the battery, optical flow, and flight ID subscribed parameters.
-	 */
-	void update_params();
+	void update_rx_stats(const mavlink_message_t &message);
+
+	px4::atomic_bool 	_should_exit{false};
+	pthread_t		_thread {};
 
 	Mavlink				*_mavlink;
 
@@ -253,60 +244,21 @@ private:
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
-	// subset of MAV_COMPONENTs we support
-	enum SUPPORTED_COMPONENTS : uint8_t {
-		COMP_ID_ALL,
-		COMP_ID_AUTOPILOT1,
-
-		COMP_ID_TELEMETRY_RADIO,
-
-		COMP_ID_CAMERA,
-		COMP_ID_CAMERA2,
-
-		COMP_ID_GIMBAL,
-		COMP_ID_LOG,
-		COMP_ID_ADSB,
-		COMP_ID_OSD,
-		COMP_ID_PERIPHERAL,
-
-		COMP_ID_FLARM,
-
-		COMP_ID_GIMBAL2,
-
-		COMP_ID_MISSIONPLANNER,
-		COMP_ID_ONBOARD_COMPUTER,
-
-		COMP_ID_PATHPLANNER,
-		COMP_ID_OBSTACLE_AVOIDANCE,
-		COMP_ID_VISUAL_INERTIAL_ODOMETRY,
-		COMP_ID_PAIRING_MANAGER,
-
-		COMP_ID_IMU,
-
-		COMP_ID_GPS,
-		COMP_ID_GPS2,
-
-		COMP_ID_UDP_BRIDGE,
-		COMP_ID_UART_BRIDGE,
-		COMP_ID_TUNNEL_NODE,
-
-		COMP_ID_MAX
+	static constexpr unsigned MAX_REMOTE_COMPONENTS{8};
+	struct ComponentState {
+		uint32_t last_time_received_ms{0};
+		uint32_t received_messages{0};
+		uint32_t missed_messages{0};
+		uint8_t system_id{0};
+		uint8_t component_id{0};
+		uint8_t last_sequence{0};
 	};
+	ComponentState _component_states[MAX_REMOTE_COMPONENTS] {};
+	unsigned _component_states_count{0};
+	bool _warned_component_states_full_once{false};
 
-	// map of supported component IDs to MAV_COMP value
-	static const uint8_t supported_component_map[COMP_ID_MAX];
-
-	bool _reported_unsupported_comp_id{false};
-
-	static constexpr int MAX_REMOTE_SYSTEM_IDS{8};
-	uint8_t _system_id_map[MAX_REMOTE_SYSTEM_IDS] {};
-
-	uint8_t  _last_index[MAX_REMOTE_SYSTEM_IDS][COMP_ID_MAX] {};    ///< Store the last received sequence ID for each system/componenet pair
-	uint8_t  _sys_comp_present[MAX_REMOTE_SYSTEM_IDS][COMP_ID_MAX] {}; ///< First message flag
 	uint64_t _total_received_counter{0};                            ///< The total number of successfully received messages
-	uint64_t _total_received_supported_counter{0};                  ///< The total number of successfully received messages
 	uint64_t _total_lost_counter{0};                                ///< Total messages lost during transmission.
-	float    _running_loss_percent{0};                              ///< Loss rate
 
 	uint8_t _mavlink_status_last_buffer_overrun{0};
 	uint8_t _mavlink_status_last_parse_error{0};
@@ -316,6 +268,7 @@ private:
 	uORB::Publication<actuator_controls_s>			_actuator_controls_pubs[4] {ORB_ID(actuator_controls_0), ORB_ID(actuator_controls_1), ORB_ID(actuator_controls_2), ORB_ID(actuator_controls_3)};
 	uORB::Publication<airspeed_s>				_airspeed_pub{ORB_ID(airspeed)};
 	uORB::Publication<battery_status_s>			_battery_pub{ORB_ID(battery_status)};
+	uORB::Publication<camera_status_s>					_camera_status_pub{ORB_ID(camera_status)};
 	uORB::Publication<cellular_status_s>			_cellular_status_pub{ORB_ID(cellular_status)};
 	uORB::Publication<collision_report_s>			_collision_report_pub{ORB_ID(collision_report)};
 	uORB::Publication<differential_pressure_s>		_differential_pressure_pub{ORB_ID(differential_pressure)};
@@ -331,7 +284,7 @@ private:
 	uORB::Publication<onboard_computer_status_s>		_onboard_computer_status_pub{ORB_ID(onboard_computer_status)};
 	uORB::Publication<generator_status_s>			_generator_status_pub{ORB_ID(generator_status)};
 	uORB::Publication<optical_flow_s>			_flow_pub{ORB_ID(optical_flow)};
-	uORB::Publication<sensor_gps_s>				_gps_pub{ORB_ID(sensor_gps)};
+	uORB::Publication<sensor_gps_s>				_sensor_gps_pub{ORB_ID(sensor_gps)};
 	uORB::Publication<vehicle_attitude_s>			_attitude_pub{ORB_ID(vehicle_attitude)};
 	uORB::Publication<vehicle_attitude_setpoint_s>		_att_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<vehicle_attitude_setpoint_s>		_mc_virtual_att_sp_pub{ORB_ID(mc_virtual_attitude_setpoint)};
@@ -394,6 +347,9 @@ private:
 	static constexpr unsigned int	MOM_SWITCH_COUNT{8};
 	uint8_t				_mom_switch_pos[MOM_SWITCH_COUNT] {};
 	uint16_t			_mom_switch_state{0};
+
+	map_projection_reference_s _global_local_proj_ref{};
+	float _global_local_alt0{NAN};
 
 	hrt_abstime			_last_utm_global_pos_com{0};
 

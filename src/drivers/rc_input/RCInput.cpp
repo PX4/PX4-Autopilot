@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -621,16 +621,15 @@ void RCInput::Run()
 						_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_CRSF;
 						fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp, false, false, 0);
 
-						// Enable CRSF Telemetry only on the Omnibus, because on Pixhawk (-related) boards
-						// we cannot write to the RC UART
-						// It might work on FMU-v5. Or another option is to use a different UART port
-#ifdef CONFIG_ARCH_BOARD_OMNIBUS_F4SD
+						// on Pixhawk (-related) boards we cannot write to the RC UART
+						// another option is to use a different UART port
+#ifdef BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 						if (!_rc_scan_locked && !_crsf_telemetry) {
 							_crsf_telemetry = new CRSFTelemetry(_rcs_fd);
 						}
 
-#endif /* CONFIG_ARCH_BOARD_OMNIBUS_F4SD */
+#endif /* BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT */
 
 						_rc_scan_locked = true;
 
@@ -669,13 +668,15 @@ void RCInput::Run()
 						fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp, false, false, 0, ghst_rssi);
 
 						// ghst telemetry works on fmu-v5
-						// on other Pixhawk (-related) boards it does not work because
-						// we cannot write to the RC UART
+						// on other Pixhawk (-related) boards we cannot write to the RC UART
+						// another option is to use a different UART port
+#ifdef BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 						if (!_rc_scan_locked && !_ghst_telemetry) {
 							_ghst_telemetry = new GHSTTelemetry(_rcs_fd);
 						}
 
+#endif /* BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT */
 
 						_rc_scan_locked = true;
 
@@ -777,11 +778,11 @@ int RCInput::custom_command(int argc, char *argv[])
 
 int RCInput::print_status()
 {
-	PX4_INFO("Max update rate: %i Hz", 1000000 / _current_update_interval);
+	PX4_INFO("Max update rate: %u Hz", 1000000 / _current_update_interval);
 
 	if (_device[0] != '\0') {
 		PX4_INFO("UART device: %s", _device);
-		PX4_INFO("UART RX bytes: %u", _bytes_rx);
+		PX4_INFO("UART RX bytes: %"  PRIu32, _bytes_rx);
 	}
 
 	PX4_INFO("RC state: %s: %s", _rc_scan_locked ? "found" : "searching for signal", RC_SCAN_STRING[_rc_scan_state]);

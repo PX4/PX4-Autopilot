@@ -80,12 +80,6 @@ MulticopterLandDetector::MulticopterLandDetector()
 	_paramHandle.minThrottle = param_find("MPC_THR_MIN");
 	_paramHandle.useHoverThrustEstimate = param_find("MPC_USE_HTE");
 	_paramHandle.hoverThrottle = param_find("MPC_THR_HOVER");
-
-	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
-	_freefall_hysteresis.set_hysteresis_time_from(false, FREEFALL_TRIGGER_TIME_US);
-	_ground_contact_hysteresis.set_hysteresis_time_from(false, GROUND_CONTACT_TRIGGER_TIME_US);
-	_maybe_landed_hysteresis.set_hysteresis_time_from(false, MAYBE_LAND_DETECTOR_TRIGGER_TIME_US);
-	_landed_hysteresis.set_hysteresis_time_from(false, LAND_DETECTOR_TRIGGER_TIME_US);
 }
 
 void MulticopterLandDetector::_update_topics()
@@ -165,8 +159,6 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	// land speed threshold, 90% of MPC_LAND_SPEED
 	const float land_speed_threshold = 0.9f * math::max(_params.landSpeed, 0.1f);
 
-	bool vertical_movement = true;
-
 	if (lpos_available && _vehicle_local_position.v_z_valid) {
 		// Check if we are moving vertically - this might see a spike after arming due to
 		// throttle-up vibration. If accelerating fast the throttle thresholds will still give
@@ -179,7 +171,10 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 			max_climb_rate = _param_lndmc_z_vel_max.get() * 2.5f;
 		}
 
-		vertical_movement = (fabsf(_vehicle_local_position.vz) > max_climb_rate);
+		_vertical_movement = (fabsf(_vehicle_local_position.vz) > max_climb_rate);
+
+	} else {
+		_vertical_movement = true;
 	}
 
 
@@ -209,22 +204,18 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	// low thrust: 30% of throttle range between min and hover, relaxed to 60% if hover thrust estimate available
 	const float thr_pct_hover = _hover_thrust_estimate_valid ? 0.6f : 0.3f;
 	const float sys_low_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * thr_pct_hover;
-	bool ground_contact = (_actuator_controls_throttle <= sys_low_throttle);
+	_has_low_throttle = (_actuator_controls_throttle <= sys_low_throttle);
+	bool ground_contact = _has_low_throttle;
 
 	// if we have a valid velocity setpoint and the vehicle is demanded to go down but no vertical movement present,
 	// we then can assume that the vehicle hit ground
 	if (_flag_control_climb_rate_enabled) {
-		vehicle_local_position_setpoint_s vehicle_local_position_setpoint;
+		vehicle_local_position_setpoint_s trajectory_setpoint;
 
-		if (_vehicle_local_position_setpoint_sub.update(&vehicle_local_position_setpoint)) {
-			// setpoints can briefly be NAN to signal resets, TODO: fix in multicopter position controller
-			const bool descend_vel_sp = PX4_ISFINITE(vehicle_local_position_setpoint.vz)
-						    && (vehicle_local_position_setpoint.vz >= land_speed_threshold);
-
-			const bool descend_acc_sp = PX4_ISFINITE(vehicle_local_position_setpoint.acceleration[2])
-						    && (vehicle_local_position_setpoint.acceleration[2] >= 100.f);
-
-			_in_descend = descend_vel_sp || descend_acc_sp;
+		if (_trajectory_setpoint_sub.update(&trajectory_setpoint)) {
+			// Setpoints can be NAN
+			_in_descend = PX4_ISFINITE(trajectory_setpoint.vz)
+				      && (trajectory_setpoint.vz >= land_speed_threshold);
 		}
 
 		// ground contact requires commanded descent until landed
@@ -236,15 +227,20 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 		_in_descend = false;
 	}
 
+	// if there is no distance to ground estimate available then don't enforce using it.
+	// if a distance to the ground estimate is generally available (_dist_bottom_is_observable=true), then
+	// we already increased the hysteresis for the land detection states in order to reduce the chance of false positives.
+	const bool skip_close_to_ground_check = !_dist_bottom_is_observable || !_vehicle_local_position.dist_bottom_valid;
+	_close_to_ground_or_skipped_check = _is_close_to_ground() || skip_close_to_ground_check;
 
 	// When not armed, consider to have ground-contact
 	if (!_armed) {
 		return true;
 	}
 
-
 	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
-	return ground_contact && !_horizontal_movement && !vertical_movement;
+	return _close_to_ground_or_skipped_check && ground_contact && !_horizontal_movement
+	       && !_vertical_movement;
 }
 
 bool MulticopterLandDetector::_get_maybe_landed_state()
@@ -349,10 +345,27 @@ float MulticopterLandDetector::_get_gnd_effect_altitude()
 
 bool MulticopterLandDetector::_get_ground_effect_state()
 {
-
 	return (_in_descend && !_horizontal_movement) ||
 	       (_below_gnd_effect_hgt && _takeoff_state == takeoff_status_s::TAKEOFF_STATE_FLIGHT) ||
 	       _takeoff_state == takeoff_status_s::TAKEOFF_STATE_RAMPUP;
+}
+
+bool MulticopterLandDetector::_is_close_to_ground()
+{
+	if (_vehicle_local_position.dist_bottom_valid) {
+		return _vehicle_local_position.dist_bottom < DIST_FROM_GROUND_THRESHOLD;
+
+	} else {
+		return false;
+	}
+}
+
+void MulticopterLandDetector::_set_hysteresis_factor(const int factor)
+{
+	_ground_contact_hysteresis.set_hysteresis_time_from(false, _param_lndmc_trig_time.get() * 1_s / 3 * factor);
+	_landed_hysteresis.set_hysteresis_time_from(false, _param_lndmc_trig_time.get() * 1_s / 3 * factor);
+	_maybe_landed_hysteresis.set_hysteresis_time_from(false, _param_lndmc_trig_time.get() * 1_s / 3 * factor);
+	_freefall_hysteresis.set_hysteresis_time_from(false, FREEFALL_TRIGGER_TIME_US);
 }
 
 } // namespace land_detector

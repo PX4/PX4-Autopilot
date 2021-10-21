@@ -80,6 +80,20 @@ void PX4Gyroscope::set_device_type(uint8_t devtype)
 	_device_id = device_id.devid;
 }
 
+void PX4Gyroscope::set_scale(float scale)
+{
+	if (fabsf(scale - _scale) > FLT_EPSILON) {
+		// rescale last sample on scale change
+		float rescale = _scale / scale;
+
+		for (auto &s : _last_sample) {
+			s = roundf(s * rescale);
+		}
+
+		_scale = scale;
+	}
+}
+
 void PX4Gyroscope::update(const hrt_abstime &timestamp_sample, float x, float y, float z)
 {
 	// Apply rotation (before scaling)

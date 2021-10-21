@@ -389,7 +389,7 @@ CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint, const Vec
 	// read parameters
 	const float col_prev_d = _param_cp_dist.get();
 	const float col_prev_dly = _param_cp_delay.get();
-	const bool move_no_data = _param_cp_go_nodata.get() > 0;
+	const bool move_no_data = _param_cp_go_nodata.get();
 	const float xy_p = _param_mpc_xy_p.get();
 	const float max_jerk = _param_mpc_jerk_max.get();
 	const float max_accel = _param_mpc_acc_hor.get();

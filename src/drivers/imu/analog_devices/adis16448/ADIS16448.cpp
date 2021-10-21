@@ -95,17 +95,18 @@ static int16_t convert12BitToINT16(uint16_t word)
 	return output;
 }
 
-ADIS16448::ADIS16448(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-		     spi_drdy_gpio_t drdy_gpio) :
-	SPI(DRV_IMU_DEVTYPE_ADIS16448, MODULE_NAME, bus, device, SPIDEV_MODE3, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_drdy_gpio(drdy_gpio), // TODO: DRDY disabled
-	_px4_accel(get_device_id(), rotation),
+ADIS16448::ADIS16448(const I2CSPIDriverConfig &config) :
+	SPI(config),
+	I2CSPIDriver(config),
+	_drdy_gpio(config.drdy_gpio), // TODO: DRDY disabled
+	_px4_accel(get_device_id(), config.rotation),
 	_px4_baro(get_device_id()),
-	_px4_gyro(get_device_id(), rotation),
-	_px4_mag(get_device_id(), rotation)
+	_px4_gyro(get_device_id(), config.rotation),
+	_px4_mag(get_device_id(), config.rotation)
 {
-	_debug_enabled = true;
+	if (_drdy_gpio != 0) {
+		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
+	}
 }
 
 ADIS16448::~ADIS16448()
@@ -114,6 +115,7 @@ ADIS16448::~ADIS16448()
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_perf_crc_bad);
+	perf_free(_drdy_missed_perf);
 }
 
 int ADIS16448::init()
@@ -151,6 +153,7 @@ void ADIS16448::print_status()
 	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_perf_crc_bad);
+	perf_print_counter(_drdy_missed_perf);
 }
 
 int ADIS16448::probe()
@@ -208,7 +211,7 @@ void ADIS16448::RunImpl()
 				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
 					PX4_DEBUG("Reset failed, retrying");
 					_state = STATE::RESET;
-					ScheduleDelayed(1000_ms);
+					ScheduleDelayed(100_ms);
 
 				} else {
 					PX4_DEBUG("Reset not complete, check again in 100 ms");
@@ -328,7 +331,19 @@ void ADIS16448::RunImpl()
 		break;
 
 	case STATE::READ: {
+			hrt_abstime timestamp_sample = now;
+
 			if (_data_ready_interrupt_enabled) {
+				// scheduled from interrupt if _drdy_timestamp_sample was set as expected
+				const hrt_abstime drdy_timestamp_sample = _drdy_timestamp_sample.fetch_and(0);
+
+				if ((now - drdy_timestamp_sample) < SAMPLE_INTERVAL_US) {
+					timestamp_sample = drdy_timestamp_sample;
+
+				} else {
+					perf_count(_drdy_missed_perf);
+				}
+
 				// push backup schedule back
 				ScheduleDelayed(SAMPLE_INTERVAL_US * 2);
 			}
@@ -416,8 +431,8 @@ void ADIS16448::RunImpl()
 					}
 
 					if (imu_updated) {
-						_px4_accel.update(now, accel_x, accel_y, accel_z);
-						_px4_gyro.update(now, gyro_x, gyro_y, gyro_z);
+						_px4_accel.update(timestamp_sample, accel_x, accel_y, accel_z);
+						_px4_gyro.update(timestamp_sample, gyro_x, gyro_y, gyro_z);
 					}
 
 					// DIAG_STAT bit 7: New data, xMAGN_OUT/BARO_OUT
@@ -428,13 +443,13 @@ void ADIS16448::RunImpl()
 						const int16_t mag_x = buffer.XMAGN_OUT;
 						const int16_t mag_y = (buffer.YMAGN_OUT == INT16_MIN) ? INT16_MAX : -buffer.YMAGN_OUT;
 						const int16_t mag_z = (buffer.ZMAGN_OUT == INT16_MIN) ? INT16_MAX : -buffer.ZMAGN_OUT;
-						_px4_mag.update(now, mag_x, mag_y, mag_z);
+						_px4_mag.update(timestamp_sample, mag_x, mag_y, mag_z);
 
 						_px4_baro.set_error_count(error_count);
 						_px4_baro.set_temperature(temperature);
 
 						float pressure_pa = buffer.BARO_OUT * 0.02f; // 20 μbar per LSB
-						_px4_baro.update(now, pressure_pa);
+						_px4_baro.update(timestamp_sample, pressure_pa);
 					}
 
 					success = true;
@@ -634,10 +649,9 @@ uint16_t ADIS16448::RegisterRead(Register reg)
 	return cmd[0];
 }
 
-uint16_t ADIS16448::RegisterReadVerified(Register reg)
+uint16_t ADIS16448::RegisterReadVerified(Register reg, int retries)
 {
-	// 3 attempts
-	for (int i = 0; i < 3; i++) {
+	for (int attempt = 0; attempt < retries; attempt++) {
 		uint16_t read1 = RegisterRead(reg);
 		uint16_t read2 = RegisterRead(reg);
 

@@ -140,10 +140,10 @@ static const uint8_t status_rtn[24] = { 255, 255, 255, 5, 2, 4, 1, 7, 3, 0,
 
 /* end ST */
 
-VL53L1X::VL53L1X(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency, int address) :
-	I2C(DRV_DIST_DEVTYPE_VL53L1X, MODULE_NAME, bus, address, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_rangefinder(get_device_id(), rotation)
+VL53L1X::VL53L1X(const I2CSPIDriverConfig &config) :
+	I2C(config),
+	I2CSPIDriver(config),
+	_px4_rangefinder(get_device_id(), config.rotation)
 {
 	// VL53L1X typical range 0-2 meters with 25 degree field of view
 	_px4_rangefinder.set_min_distance(0.f);
@@ -231,12 +231,6 @@ void VL53L1X::RunImpl()
 	ScheduleDelayed(VL53L1X_SAMPLE_RATE);
 }
 
-void VL53L1X::start()
-{
-	// Schedule the first cycle.
-	ScheduleNow();
-}
-
 int VL53L1X::init()
 {
 	int ret = PX4_OK;
@@ -258,13 +252,9 @@ int VL53L1X::init()
 		return PX4_ERROR;
 	}
 
-	PX4_INFO("vl53l1x init success");
+	PX4_DEBUG("vl53l1x init success");
+	ScheduleNow();
 	return PX4_OK;
-}
-
-void VL53L1X::stop()
-{
-	VL53L1X_StopRanging();
 }
 
 void VL53L1X::print_usage()
@@ -273,6 +263,7 @@ void VL53L1X::print_usage()
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x29);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 25, 1, 25, "Sensor rotation - downward facing by default", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
@@ -658,42 +649,24 @@ int8_t VL53L1X::VL53L1X_ConfigBig(uint16_t DM, uint16_t TimingBudgetInMs)
 
 /* end ST */
 
-I2CSPIDriverBase *VL53L1X::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				       int runtime_instance)
-{
-	VL53L1X *instance = new VL53L1X(iterator.configuredBusOption(), iterator.bus(), cli.orientation, cli.bus_frequency);
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (instance->init() != PX4_OK) {
-		delete instance;
-		return nullptr;
-	}
-
-	instance->start();
-	return instance;
-}
-
 extern "C" __EXPORT int vl53l1x_main(int argc, char *argv[])
 {
 	int ch;
 	using ThisDriver = VL53L1X;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 400000;
-	cli.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	cli.rotation = (Rotation)distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	cli.i2c_address = VL53L1X_BASEADDR;
 
-	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
 		case 'R':
-			cli.orientation = atoi(cli.optarg());
+			cli.rotation = (Rotation)atoi(cli.optArg());
 			break;
 		}
 	}
 
-	const char *verb = cli.optarg();
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();

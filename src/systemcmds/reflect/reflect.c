@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 Andrew Tridgell. All rights reserved.
+ *   Copyright (c) 2014, 2021 Andrew Tridgell. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,7 @@
  */
 
 #include <px4_platform_common/px4_config.h>
+#include <inttypes.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
@@ -52,16 +53,16 @@ __EXPORT int reflect_main(int argc, char *argv[]);
 
 // memory corruption checking
 #define MAX_BLOCKS 1000
-static uint32_t nblocks;
 struct block {
 	uint32_t v[256];
 };
-static struct block *blocks[MAX_BLOCKS];
 
 #define VALUE(i) ((i*7) ^ 0xDEADBEEF)
 
-static void allocate_blocks(void)
+static uint32_t allocate_blocks(struct block **blocks)
 {
+	uint32_t nblocks = 0;
+
 	while (nblocks < MAX_BLOCKS) {
 		blocks[nblocks] = calloc(1, sizeof(struct block));
 
@@ -76,10 +77,12 @@ static void allocate_blocks(void)
 		nblocks++;
 	}
 
-	printf("Allocated %u blocks\n", nblocks);
+	printf("Allocated %" PRIu32 " blocks\n", nblocks);
+
+	return nblocks;
 }
 
-static void check_blocks(void)
+static void check_blocks(struct block **blocks, uint32_t nblocks)
 {
 	for (uint32_t n = 0; n < nblocks; n++) {
 		for (uint32_t i = 0; i < sizeof(blocks[nblocks]->v) / sizeof(uint32_t); i++) {
@@ -92,9 +95,22 @@ int
 reflect_main(int argc, char *argv[])
 {
 	uint32_t total = 0;
+	uint32_t nblocks = 0;
 	printf("Starting reflector\n");
 
-	allocate_blocks();
+	struct block **blocks = NULL;
+	blocks = malloc(sizeof(struct block *) * MAX_BLOCKS);
+
+	if (blocks == NULL) {
+		return -1;
+	}
+
+	while (nblocks < MAX_BLOCKS) {
+		blocks[nblocks] = NULL;
+		nblocks++;
+	}
+
+	nblocks = allocate_blocks(blocks);
 
 	while (true) {
 		char buf[128];
@@ -111,7 +127,7 @@ reflect_main(int argc, char *argv[])
 		total += n;
 
 		if (total > 1024000) {
-			check_blocks();
+			check_blocks(blocks, nblocks);
 			total = 0;
 		}
 	}

@@ -46,9 +46,7 @@ int board_register_power_state_notification_cb(power_button_state_notification_t
 {
 	return 0;
 }
-#endif // BOARD_HAS_POWER_CONTROL
 
-#if defined(CONFIG_BOARDCTL_POWEROFF)
 int board_power_off(int status)
 {
 	printf("Exiting NOW.\n");
@@ -56,4 +54,4 @@ int board_power_off(int status)
 	system_exit(0);
 	return 0;
 }
-#endif // CONFIG_BOARDCTL_POWEROFF
+#endif // BOARD_HAS_POWER_CONTROL

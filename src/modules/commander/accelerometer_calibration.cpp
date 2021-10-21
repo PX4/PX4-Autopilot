@@ -134,7 +134,7 @@
 #include <lib/sensor_calibration/Accelerometer.hpp>
 #include <lib/sensor_calibration/Utilities.hpp>
 #include <lib/mathlib/mathlib.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <matrix/math.hpp>
 #include <lib/conversion/rotation.h>
 #include <lib/parameters/param.h>
@@ -418,17 +418,17 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 				accel_T_rotated.print();
 #endif // DEBUD_BUILD
 				calibrations[i].PrintStatus();
-			}
 
-			// save all calibrations including empty slots
-			if (calibrations[i].ParametersSave()) {
-				param_save = true;
-				failed = false;
 
-			} else {
-				failed = true;
-				calibration_log_critical(mavlink_log_pub, "calibration save failed");
-				break;
+				if (calibrations[i].ParametersSave()) {
+					param_save = true;
+					failed = false;
+
+				} else {
+					failed = true;
+					calibration_log_critical(mavlink_log_pub, "calibration save failed");
+					break;
+				}
 			}
 		}
 

@@ -4,7 +4,7 @@ about: Suggest an idea for this project
 
 ---
 
-For general questions please use [PX4 Discuss](http://discuss.px4.io/) or [Slack](http://slack.px4.io/).
+For general questions please use [PX4 Discuss](http://discuss.px4.io/) or Slack (you can find an invite link on this project README).
 
 **Describe problem solved by the proposed feature**
 A clear and concise description of the problem, if any, this feature will solve. E.g. I'm always frustrated when ...

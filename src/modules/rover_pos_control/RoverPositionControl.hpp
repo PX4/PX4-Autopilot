@@ -44,7 +44,7 @@
 #include <float.h>
 
 #include <drivers/drv_hrt.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/l1/ECL_L1_Pos_Controller.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
@@ -67,6 +67,7 @@
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -99,7 +100,7 @@ public:
 private:
 	void Run() override;
 
-	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -112,6 +113,7 @@ private:
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)}; /**< notification of manual control updates */
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
+	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 

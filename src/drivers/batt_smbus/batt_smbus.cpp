@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,16 +47,15 @@
 
 extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]);
 
-BATT_SMBUS::BATT_SMBUS(I2CSPIBusOption bus_option, const int bus, SMBus *interface) :
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus,
-		     interface->get_device_address()),
+BATT_SMBUS::BATT_SMBUS(const I2CSPIDriverConfig &config, SMBus *interface) :
+	I2CSPIDriver(config),
 	_interface(interface)
 {
-	int battsource = 1;
-	int batt_device_type = (int)SMBUS_DEVICE_TYPE::UNDEFINED;
+	int32_t battsource = 1;
+	int32_t batt_device_type = static_cast<int32_t>(SMBUS_DEVICE_TYPE::UNDEFINED);
 
-	param_set(param_find("BAT_SOURCE"), &battsource);
-	param_get(param_find("BAT_SMBUS_MODEL"), &batt_device_type);
+	param_set(param_find("BAT1_SOURCE"), &battsource);
+	param_get(param_find("BAT1_SMBUS_MODEL"), &batt_device_type);
 
 
 	//TODO: probe the device and autodetect its type
@@ -84,8 +83,8 @@ BATT_SMBUS::~BATT_SMBUS()
 		delete _interface;
 	}
 
-	int battsource = 0;
-	param_set(param_find("BAT_SOURCE"), &battsource);
+	int32_t battsource = 0;
+	param_set(param_find("BAT1_SOURCE"), &battsource);
 }
 
 void BATT_SMBUS::RunImpl()
@@ -129,7 +128,7 @@ void BATT_SMBUS::RunImpl()
 
 	float average_current = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f) * _c_mult;
 
-	new_report.average_current_a = average_current;
+	new_report.current_average_a = average_current;
 
 	// If current is high, turn under voltage protection off. This is neccessary to prevent
 	// a battery from cutting off while flying with high current near the end of the packs capacity.
@@ -360,13 +359,14 @@ int BATT_SMBUS::get_startup_info()
 	int ret = PX4_OK;
 
 	// Read battery threshold params on startup.
+	// TODO: support instances
 	param_get(param_find("BAT_CRIT_THR"), &_crit_thr);
 	param_get(param_find("BAT_LOW_THR"), &_low_thr);
 	param_get(param_find("BAT_EMERGEN_THR"), &_emergency_thr);
-	param_get(param_find("BAT_C_MULT"), &_c_mult);
+	param_get(param_find("BAT1_C_MULT"), &_c_mult);
 
 	int32_t cell_count_param = 0;
-	param_get(param_find("BAT_N_CELLS"), &cell_count_param);
+	param_get(param_find("BAT1_N_CELLS"), &cell_count_param);
 	_cell_count = math::min((uint8_t)cell_count_param, MAX_NUM_OF_CELLS);
 
 	ret |= _interface->block_read(BATT_SMBUS_MANUFACTURER_NAME, _manufacturer_name, BATT_SMBUS_MANUFACTURER_NAME_SIZE,
@@ -534,15 +534,14 @@ $ batt_smbus -X write_flash 19069 2 27 0
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *BATT_SMBUS::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				      int runtime_instance)
+I2CSPIDriverBase *BATT_SMBUS::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
-	SMBus *interface = new SMBus(iterator.bus(), cli.i2c_address);
+	SMBus *interface = new SMBus(DRV_BAT_DEVTYPE_SMBUS, config.bus, config.i2c_address);
 	if (interface == nullptr) {
 		PX4_ERR("alloc failed");
 		return nullptr;
 	}
-	BATT_SMBUS *instance = new BATT_SMBUS(iterator.configuredBusOption(), iterator.bus(), interface);
+	BATT_SMBUS *instance = new BATT_SMBUS(config, interface);
 
 	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
@@ -567,8 +566,8 @@ BATT_SMBUS::custom_method(const BusCLIArguments &cli)
 	switch(cli.custom1) {
 		case 1: {
 			PX4_INFO("The manufacturer name: %s", _manufacturer_name);
-			PX4_INFO("The manufacturer date: %d", _manufacture_date);
-			PX4_INFO("The serial number: %d", _serial_number);
+			PX4_INFO("The manufacturer date: %" PRId16, _manufacture_date);
+			PX4_INFO("The serial number: %d" PRId16, _serial_number);
 		}
 			break;
 		case 2:
@@ -590,7 +589,7 @@ BATT_SMBUS::custom_method(const BusCLIArguments &cli)
 				unsigned length = tx_buf[0];
 
 				if (PX4_OK != dataflash_write(address, tx_buf+1, length)) {
-					PX4_ERR("Dataflash write failed: %d", address);
+					PX4_ERR("Dataflash write failed: %u", address);
 				}
 				px4_usleep(100_ms);
 			}

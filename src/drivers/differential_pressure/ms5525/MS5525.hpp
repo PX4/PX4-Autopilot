@@ -51,19 +51,19 @@ static constexpr int64_t CONVERSION_INTERVAL = (1000000 / MEAS_RATE); /* microse
 class MS5525 : public Airspeed, public I2CSPIDriver<MS5525>
 {
 public:
-	MS5525(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS_1_MS5525DSO) :
-		Airspeed(bus, bus_frequency, address, CONVERSION_INTERVAL),
-		I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
+	MS5525(const I2CSPIDriverConfig &config) :
+		Airspeed(config.bus, config.bus_frequency, config.i2c_address, CONVERSION_INTERVAL),
+		I2CSPIDriver(config)
 	{
 	}
 
 	virtual ~MS5525() = default;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void	RunImpl();
+
+	int init() override;
 
 private:
 
@@ -71,7 +71,7 @@ private:
 	int collect() override;
 
 	// temperature is read once every 10 cycles
-	math::LowPassFilter2p _filter{MEAS_RATE * 0.9, MEAS_DRIVER_FILTER_FREQ};
+	math::LowPassFilter2p<float> _filter{MEAS_RATE * 0.9, MEAS_DRIVER_FILTER_FREQ};
 
 	static constexpr uint8_t CMD_RESET = 0x1E; // ADC reset command
 	static constexpr uint8_t CMD_ADC_READ = 0x00; // ADC read command

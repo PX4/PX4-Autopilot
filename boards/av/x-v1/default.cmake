@@ -1,13 +1,9 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR av
-	MODEL x-v1
-	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
-	TESTING
 	UAVCAN_INTERFACES 2
 	ETHERNET
 	SERIAL_PORTS
@@ -30,6 +26,7 @@ px4_add_board(
 		#imu # all available imu drivers
 		imu/adis16477
 		imu/adis16497
+		imu/invensense/icm20948 # required for ak09916 mag
 		irlock
 		lights # all available light drivers
 		magnetometer # all available magnetometer drivers
@@ -45,8 +42,8 @@ px4_add_board(
 		rc_input
 		roboclaw
 		rpm
+		smart_battery/batmon
 		telemetry # all available telemetry drivers
-		test_ppm
 		#tone_alarm
 		uavcan
 	MODULES
@@ -107,7 +104,6 @@ px4_add_board(
 		sd_bench
 		serial_test
 		system_time
-		tests # tests and test runner
 		top
 		topic_listener
 		tune_control
@@ -116,15 +112,15 @@ px4_add_board(
 		work_queue
 	EXAMPLES
 		fake_gps
-		fake_gyro
-		fake_magnetometer
-		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
-		hello
-		hwtest # Hardware test
+		#fake_imu
+		#fake_magnetometer
+		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		#hello
+		#hwtest # Hardware test
 		#matlab_csv_serial
-		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
-		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
-		rover_steering_control # Rover example app
-		uuv_example_app
-		work_item
+		#px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
+		#px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
+		#rover_steering_control # Rover example app
+		#uuv_example_app
+		#work_item
 	)

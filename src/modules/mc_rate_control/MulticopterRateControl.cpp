@@ -241,7 +241,7 @@ MulticopterRateControl::Run()
 				if (_battery_status_sub.updated()) {
 					battery_status_s battery_status;
 
-					if (_battery_status_sub.copy(&battery_status)) {
+					if (_battery_status_sub.copy(&battery_status) && battery_status.connected && battery_status.scale > 0.f) {
 						_battery_status_scale = battery_status.scale;
 					}
 				}

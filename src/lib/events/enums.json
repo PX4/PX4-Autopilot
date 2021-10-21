@@ -1,0 +1,55 @@
+{
+    "version": 1,
+    "components": {
+        "1": {
+            "namespace": "px4",
+            "enums": {
+                "sensor_type_t": {
+                    "type": "uint8_t",
+                    "description": "Sensor type for failover reporting",
+                    "entries": {
+                        "0": {
+                            "name": "accel",
+                            "description": "Accelerometer"
+                        },
+                        "1": {
+                            "name": "gyro",
+                            "description": "Gyroscope"
+                        },
+                        "2": {
+                            "name": "mag",
+                            "description": "Magnetometer"
+                        }
+                    }
+                },
+                "sensor_failover_reason_t": {
+                    "type": "uint16_t",
+                    "description": "Bitfield for sensor failover reason",
+                    "is_bitfield": true,
+                    "entries": {
+                        "1": {
+                            "name": "no_data",
+                            "description": "No data"
+                        },
+                        "2": {
+                            "name": "stale_data",
+                            "description": "Stale data"
+                        },
+                        "4": {
+                            "name": "timeout",
+                            "description": "Timeout"
+                        },
+                        "8": {
+                            "name": "high_error_count",
+                            "description": "High Error Count"
+                        },
+                        "16": {
+                            "name": "high_error_density",
+                            "description": "High Error Density"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

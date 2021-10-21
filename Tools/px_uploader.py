@@ -56,7 +56,6 @@ from __future__ import print_function
 import sys
 import argparse
 import binascii
-import serial
 import socket
 import struct
 import json
@@ -67,6 +66,16 @@ import array
 import os
 
 from sys import platform as _platform
+
+try:
+    import serial
+except ImportError as e:
+    print("Failed to import serial: " + str(e))
+    print("")
+    print("You may need to install it using:")
+    print("    pip3 install --user pyserial")
+    print("")
+    sys.exit(1)
 
 # Detect python version
 if sys.version_info[0] < 3:
@@ -725,29 +734,6 @@ def main():
         print("==========================================================================================================")
         print("WARNING: You should uninstall ModemManager as it conflicts with any non-modem serial device (like Pixhawk)")
         print("==========================================================================================================")
-
-    # We need to check for pyserial because the import itself doesn't
-    # seem to fail, at least not on macOS.
-    pyserial_installed = False
-    try:
-        if serial.__version__:
-            pyserial_installed = True
-    except:
-        pass
-
-    try:
-        if serial.VERSION:
-            pyserial_installed = True
-    except:
-        pass
-
-    if not pyserial_installed:
-        print("Error: pyserial not installed!")
-        print("")
-        print("You may need to install it using:")
-        print("    pip3 install --user pyserial")
-        print("")
-        sys.exit(1)
 
     # Load the firmware file
     fw = firmware(args.firmware)

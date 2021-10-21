@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,6 @@
  ****************************************************************************/
 
 #pragma once
-
 
 /*   Helper classes  */
 #include "Arming/PreFlightCheck/PreFlightCheck.hpp"
@@ -143,7 +142,7 @@ private:
 
 	void avoidance_check();
 
-	void esc_status_check(const esc_status_s &esc_status);
+	void esc_status_check();
 
 	void estimator_check();
 
@@ -187,6 +186,8 @@ private:
 
 	bool stabilization_required();
 
+	void send_parachute_command();
+
 	DEFINE_PARAMETERS(
 
 		(ParamInt<px4::params::NAV_DLL_ACT>) _param_nav_dll_act,
@@ -197,6 +198,7 @@ private:
 
 		(ParamInt<px4::params::NAV_RCL_ACT>) _param_nav_rcl_act,
 		(ParamFloat<px4::params::COM_RCL_ACT_T>) _param_com_rcl_act_t,
+		(ParamInt<px4::params::COM_RCL_EXCEPT>) _param_com_rcl_except,
 
 		(ParamFloat<px4::params::COM_HOME_H_T>) _param_com_home_h_t,
 		(ParamFloat<px4::params::COM_HOME_V_T>) _param_com_home_v_t,
@@ -333,6 +335,8 @@ private:
 	hrt_abstime	_high_latency_datalink_lost{0};
 
 	int		_last_esc_online_flags{-1};
+	int		_last_esc_failure[esc_status_s::CONNECTED_ESC_MAX] {};
+	hrt_abstime	_last_esc_status_updated{0};
 
 	uint8_t		_battery_warning{battery_status_s::BATTERY_WARNING_NONE};
 	float		_battery_current{0.0f};
@@ -371,7 +375,6 @@ private:
 	bool		_failsafe_old{false};	///< check which state machines for changes, clear "changed" flag
 	bool		_have_taken_off_since_arming{false};
 	bool		_should_set_home_on_takeoff{true};
-	bool		_flight_termination_printed{false};
 	bool		_system_power_usb_connected{false};
 
 	cpuload_s		_cpuload{};

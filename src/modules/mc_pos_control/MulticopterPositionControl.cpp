@@ -121,7 +121,6 @@ int MulticopterPositionControl::parameters_update(bool force)
 			num_changed += _param_mpc_vel_manual.commit_no_notification(xy_vel);
 			num_changed += _param_mpc_xy_cruise.commit_no_notification(xy_vel);
 			num_changed += _param_mpc_xy_vel_max.commit_no_notification(xy_vel);
-			num_changed += _param_mpc_land_vel_xy.commit_no_notification(xy_vel * 0.75f);
 		}
 
 		if (_param_mpc_z_vel_all.get() >= 0.f) {
@@ -274,7 +273,7 @@ void MulticopterPositionControl::Run()
 		const bool was_in_failsafe = _in_failsafe;
 		_in_failsafe = false;
 
-		_control_mode_sub.update(&_control_mode);
+		_vehicle_control_mode_sub.update(&_vehicle_control_mode);
 		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
 
 		if (_param_mpc_use_hte.get()) {
@@ -289,9 +288,9 @@ void MulticopterPositionControl::Run()
 
 		PositionControlStates states{set_vehicle_states(local_pos)};
 
-		if (_control_mode.flag_control_acceleration_enabled || _control_mode.flag_control_climb_rate_enabled) {
+		if (_vehicle_control_mode.flag_multicopter_position_control_enabled) {
 
-			_trajectory_setpoint_sub.update(&_setpoint);
+			const bool is_trajectory_setpoint_updated = _trajectory_setpoint_sub.update(&_setpoint);
 
 			// adjust existing (or older) setpoint with any EKF reset deltas
 			if (_setpoint.timestamp < local_pos.timestamp) {
@@ -327,9 +326,9 @@ void MulticopterPositionControl::Run()
 				_vehicle_constraints.speed_up = _param_mpc_z_vel_max_up.get();
 			}
 
-			if (_control_mode.flag_control_offboard_enabled) {
+			if (_vehicle_control_mode.flag_control_offboard_enabled) {
 
-				bool want_takeoff = _control_mode.flag_armed && _vehicle_land_detected.landed
+				bool want_takeoff = _vehicle_control_mode.flag_armed && _vehicle_land_detected.landed
 						    && hrt_elapsed_time(&_setpoint.timestamp) < 1_s;
 
 				if (want_takeoff && PX4_ISFINITE(_setpoint.z)
@@ -358,25 +357,29 @@ void MulticopterPositionControl::Run()
 			}
 
 			// handle smooth takeoff
-			_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, _vehicle_constraints.want_takeoff,
+			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _vehicle_land_detected.landed,
+						    _vehicle_constraints.want_takeoff,
 						    _vehicle_constraints.speed_up, false, time_stamp_now);
 
-			const bool not_taken_off = (_takeoff.getTakeoffState() < TakeoffState::rampup);
 			const bool flying = (_takeoff.getTakeoffState() >= TakeoffState::flight);
-			const bool flying_but_ground_contact = (flying && _vehicle_land_detected.ground_contact);
 
-			// make sure takeoff ramp is not amended by acceleration feed-forward
-			if (!flying) {
-				_setpoint.acceleration[2] = NAN;
-			}
+			if (is_trajectory_setpoint_updated) {
+				// make sure takeoff ramp is not amended by acceleration feed-forward
+				if (!flying) {
+					_setpoint.acceleration[2] = NAN;
+				}
 
-			if (not_taken_off || flying_but_ground_contact) {
-				// we are not flying yet and need to avoid any corrections
-				reset_setpoint_to_nan(_setpoint);
-				Vector3f(0.f, 0.f, 100.f).copyTo(_setpoint.acceleration); // High downwards acceleration to make sure there's no thrust
+				const bool not_taken_off             = (_takeoff.getTakeoffState() < TakeoffState::rampup);
+				const bool flying_but_ground_contact = (flying && _vehicle_land_detected.ground_contact);
 
-				// prevent any integrator windup
-				_control.resetIntegral();
+				if (not_taken_off || flying_but_ground_contact) {
+					// we are not flying yet and need to avoid any corrections
+					reset_setpoint_to_nan(_setpoint);
+					Vector3f(0.f, 0.f, 100.f).copyTo(_setpoint.acceleration); // High downwards acceleration to make sure there's no thrust
+
+					// prevent any integrator windup
+					_control.resetIntegral();
+				}
 			}
 
 			// limit tilt during takeoff ramupup
@@ -404,9 +407,11 @@ void MulticopterPositionControl::Run()
 			_control.setInputSetpoint(_setpoint);
 
 			// update states
-			if (PX4_ISFINITE(_setpoint.vz) && (fabsf(_setpoint.vz) > FLT_EPSILON)
+			if (!PX4_ISFINITE(_setpoint.z)
+			    && PX4_ISFINITE(_setpoint.vz) && (fabsf(_setpoint.vz) > FLT_EPSILON)
 			    && PX4_ISFINITE(local_pos.z_deriv) && local_pos.z_valid && local_pos.v_z_valid) {
-				// A change in velocity is demanded. Set velocity to the derivative of position
+				// A change in velocity is demanded and the altitude is not controlled.
+				// Set velocity to the derivative of position
 				// because it has less bias but blend it in across the landing speed range
 				//  <  MPC_LAND_SPEED: ramp up using altitude derivative without a step
 				//  >= MPC_LAND_SPEED: use altitude derivative
@@ -455,19 +460,19 @@ void MulticopterPositionControl::Run()
 
 		} else {
 			// an update is necessary here because otherwise the takeoff state doesn't get skiped with non-altitude-controlled modes
-			_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f, true, time_stamp_now);
+			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f, true,
+						    time_stamp_now);
 		}
 
 		// Publish takeoff status
 		const uint8_t takeoff_state = static_cast<uint8_t>(_takeoff.getTakeoffState());
 
-		if (takeoff_state != _old_takeoff_state) {
-			takeoff_status_s takeoff_status{};
-			takeoff_status.takeoff_state = takeoff_state;
-			takeoff_status.timestamp = hrt_absolute_time();
-			_takeoff_status_pub.publish(takeoff_status);
-
-			_old_takeoff_state = takeoff_state;
+		if (takeoff_state != _takeoff_status_pub.get().takeoff_state
+		    || !isEqualF(_tilt_limit_slew_rate.getState(), _takeoff_status_pub.get().tilt_limit)) {
+			_takeoff_status_pub.get().takeoff_state = takeoff_state;
+			_takeoff_status_pub.get().tilt_limit = _tilt_limit_slew_rate.getState();
+			_takeoff_status_pub.get().timestamp = hrt_absolute_time();
+			_takeoff_status_pub.update();
 		}
 
 		// save latest reset counters
@@ -485,7 +490,7 @@ void MulticopterPositionControl::failsafe(const hrt_abstime &now, vehicle_local_
 		const PositionControlStates &states, bool warn)
 {
 	// do not warn while we are disarmed, as we might not have valid setpoints yet
-	if (!_control_mode.flag_armed) {
+	if (!_vehicle_control_mode.flag_armed) {
 		warn = false;
 	}
 

@@ -115,12 +115,13 @@ PARAM_DEFINE_FLOAT(GPS_YAW_OFFSET, 0.f);
  * Auto-detection will probe all protocols, and thus is a bit slower.
  *
  * @min 0
- * @max 4
+ * @max 5
  * @value 0 Auto detect
  * @value 1 u-blox
  * @value 2 MTK
  * @value 3 Ashtech / Trimble
  * @value 4 Emlid Reach
+ * @value 5 Femtomes
  *
  * @reboot_required true
  * @group GPS
@@ -135,12 +136,13 @@ PARAM_DEFINE_INT32(GPS_1_PROTOCOL, 1);
  * Auto-detection will probe all protocols, and thus is a bit slower.
  *
  * @min 0
- * @max 4
+ * @max 5
  * @value 0 Auto detect
  * @value 1 u-blox
  * @value 2 MTK
  * @value 3 Ashtech / Trimble
  * @value 4 Emlid Reach
+ * @value 5 Femtomes
  *
  * @reboot_required true
  * @group GPS

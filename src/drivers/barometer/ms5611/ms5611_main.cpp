@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,17 +40,16 @@
 #include "MS5611.hpp"
 #include "ms5611.h"
 
-I2CSPIDriverBase *MS5611::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				      int runtime_instance)
+I2CSPIDriverBase *MS5611::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
 	ms5611::prom_u prom_buf;
 	device::Device *interface = nullptr;
 
-	if (iterator.busType() == BOARD_I2C_BUS) {
-		interface = MS5611_i2c_interface(prom_buf, iterator.devid(), iterator.bus(), cli.bus_frequency);
+	if (config.bus_type == BOARD_I2C_BUS) {
+		interface = MS5611_i2c_interface(prom_buf, config.spi_devid, config.bus, config.bus_frequency);
 
-	} else if (iterator.busType() == BOARD_SPI_BUS) {
-		interface = MS5611_spi_interface(prom_buf, iterator.devid(), iterator.bus(), cli.bus_frequency, cli.spi_mode);
+	} else if (config.bus_type == BOARD_SPI_BUS) {
+		interface = MS5611_spi_interface(prom_buf, config.spi_devid, config.bus, config.bus_frequency, config.spi_mode);
 	}
 
 	if (interface == nullptr) {
@@ -60,12 +59,11 @@ I2CSPIDriverBase *MS5611::instantiate(const BusCLIArguments &cli, const BusInsta
 
 	if (interface->init() != OK) {
 		delete interface;
-		PX4_DEBUG("no device on bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
+		PX4_DEBUG("no device on bus %i (devid 0x%x)", config.bus, config.spi_devid);
 		return nullptr;
 	}
 
-	MS5611 *dev = new MS5611(interface, prom_buf, (MS56XX_DEVICE_TYPES)cli.type, iterator.configuredBusOption(),
-				 iterator.bus());
+	MS5611 *dev = new MS5611(interface, prom_buf, config);
 
 	if (dev == nullptr) {
 		delete interface;
@@ -95,22 +93,19 @@ extern "C" int ms5611_main(int argc, char *argv[])
 	using ThisDriver = MS5611;
 	int ch;
 	BusCLIArguments cli{true, true};
-	cli.type = MS5611_DEVICE;
 	cli.default_i2c_frequency = 400000;
 	cli.default_spi_frequency = 20 * 1000 * 1000;
 	uint16_t dev_type_driver = DRV_BARO_DEVTYPE_MS5611;
 
-	while ((ch = cli.getopt(argc, argv, "T:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "T:")) != EOF) {
 		switch (ch) {
 		case 'T': {
-				int val = atoi(cli.optarg());
+				int val = atoi(cli.optArg());
 
 				if (val == 5611) {
-					cli.type = MS5611_DEVICE;
 					dev_type_driver = DRV_BARO_DEVTYPE_MS5611;
 
 				} else if (val == 5607) {
-					cli.type = MS5607_DEVICE;
 					dev_type_driver = DRV_BARO_DEVTYPE_MS5607;
 				}
 			}
@@ -118,12 +113,14 @@ extern "C" int ms5611_main(int argc, char *argv[])
 		}
 	}
 
-	const char *verb = cli.optarg();
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();
 		return -1;
 	}
+
+	cli.i2c_address = MS5611_ADDRESS_1;
 
 	BusInstanceIterator iterator(MODULE_NAME, cli, dev_type_driver);
 

@@ -1,9 +1,6 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR mro
-	MODEL pixracerpro
-	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
@@ -47,6 +44,7 @@ px4_add_board(
 		rc_input
 		roboclaw
 		rpm
+		smart_battery/batmon
 		telemetry # all available telemetry drivers
 		tone_alarm
 		uavcan
@@ -109,7 +107,6 @@ px4_add_board(
 		sd_bench
 		serial_test
 		system_time
-		#tests # tests and test runner
 		top
 		topic_listener
 		tune_control
@@ -119,7 +116,7 @@ px4_add_board(
 		work_queue
 	EXAMPLES
 		fake_gps
-		#fake_gyro
+		#fake_imu
 		#fake_magnetometer
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hello

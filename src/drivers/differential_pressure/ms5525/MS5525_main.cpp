@@ -35,26 +35,6 @@
 
 extern "C" __EXPORT int ms5525_airspeed_main(int argc, char *argv[]);
 
-I2CSPIDriverBase *MS5525::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				      int runtime_instance)
-{
-	MS5525 *instance = new MS5525(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency);
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (instance->init() != PX4_OK) {
-		delete instance;
-		return nullptr;
-	}
-
-	instance->ScheduleNow();
-	return instance;
-}
-
-
 void
 MS5525::print_usage()
 {
@@ -62,6 +42,7 @@ MS5525::print_usage()
 	PRINT_MODULE_USAGE_SUBCATEGORY("airspeed_sensor");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x76);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -71,6 +52,7 @@ ms5525_airspeed_main(int argc, char *argv[])
 	using ThisDriver = MS5525;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 100000;
+	cli.i2c_address = I2C_ADDRESS_1_MS5525DSO;
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
 
@@ -79,8 +61,7 @@ ms5525_airspeed_main(int argc, char *argv[])
 		return -1;
 	}
 
-	BusInstanceIterator iterator(MODULE_NAME, cli,
-				     DRV_DIFF_PRESS_DEVTYPE_MS5525);
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_DIFF_PRESS_DEVTYPE_MS5525);
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);

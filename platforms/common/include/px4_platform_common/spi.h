@@ -71,7 +71,7 @@ struct px4_spi_bus_t {
 
 struct px4_spi_bus_all_hw_t {
 	px4_spi_bus_t buses[SPI_BUS_MAX_BUS_ITEMS];
-	int board_hw_version{-1}; ///< 0=default, >0 for a specific revision (see board_get_hw_version), -1=unused
+	int board_hw_version_revision{-1}; ///< 0=default, >0 for a specific revision (see board_get_hw_version & board_get_hw_revision), -1=unused
 };
 
 #if BOARD_NUM_SPI_CFG_HW_VERSIONS > 1
@@ -158,11 +158,13 @@ public:
 
 	bool external() const { return px4_spi_bus_external(bus()); }
 
+	int busDeviceIndex() const { return _bus_device_index; }
+
 private:
 	const FilterType _filter;
 	const uint16_t _devid_driver_index;
 	const int _bus;
-	int _index{-1};
-	int _external_bus_counter{0};
-	int _bus_device_index{0};
+	int _index{0};
+	int _external_bus_counter{1};
+	int _bus_device_index{-1};
 };

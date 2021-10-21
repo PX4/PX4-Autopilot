@@ -43,7 +43,7 @@
 #include "mavlink_mission.h"
 #include "mavlink_main.h"
 
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/defines.h>
@@ -1052,7 +1052,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 		if (ret != PX4_OK) {
 			PX4_DEBUG("WPM: MISSION_ITEM ERROR: seq %u invalid item", wp.seq);
 
-			_mavlink->send_statustext_critical("IGN MISSION_ITEM: Busy");
+			_mavlink->send_statustext_critical("IGN MISSION_ITEM: Invalid item");
 
 			send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, ret);
 			switch_to_idle_state();

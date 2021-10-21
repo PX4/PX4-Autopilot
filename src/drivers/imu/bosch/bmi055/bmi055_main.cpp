@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -53,33 +53,36 @@ extern "C" int bmi055_main(int argc, char *argv[])
 	int ch;
 	using ThisDriver = BMI055;
 	BusCLIArguments cli{false, true};
-	cli.type = 0;
+	uint16_t type = 0;
 	cli.default_spi_frequency = 10000000;
+	const char *name = MODULE_NAME;
 
-	while ((ch = cli.getopt(argc, argv, "AGR:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "AGR:")) != EOF) {
 		switch (ch) {
 		case 'A':
-			cli.type = DRV_ACC_DEVTYPE_BMI055;
+			type = DRV_ACC_DEVTYPE_BMI055;
+			name = MODULE_NAME "_accel";
 			break;
 
 		case 'G':
-			cli.type = DRV_GYR_DEVTYPE_BMI055;
+			type = DRV_GYR_DEVTYPE_BMI055;
+			name = MODULE_NAME "_gyro";
 			break;
 
 		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optarg());
+			cli.rotation = (enum Rotation)atoi(cli.optArg());
 			break;
 		}
 	}
 
-	const char *verb = cli.optarg();
+	const char *verb = cli.optArg();
 
-	if (!verb) {
+	if (!verb || type == 0) {
 		ThisDriver::print_usage();
 		return -1;
 	}
 
-	BusInstanceIterator iterator(MODULE_NAME, cli, cli.type);
+	BusInstanceIterator iterator(name, cli, type);
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);

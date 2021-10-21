@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,13 +43,11 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) 
 class BMI088 : public device::I2C, public I2CSPIDriver<BMI088>
 {
 public:
-	BMI088(uint8_t devtype, const char *name, I2CSPIBusOption bus_option, int bus, uint32_t device, enum spi_mode_e mode,
-	       uint32_t frequency, spi_drdy_gpio_t drdy_gpio);
+	BMI088(const I2CSPIDriverConfig &config);
 
 	virtual ~BMI088() = default;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
 	virtual void RunImpl() = 0;
@@ -74,7 +72,7 @@ protected:
 	int _total_failure_count{0};
 
 
-	px4::atomic<uint32_t> _drdy_fifo_read_samples{0};
+	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
 	bool _data_ready_interrupt_enabled{false};
 
 	enum class STATE : uint8_t {
@@ -83,9 +81,7 @@ protected:
 		WAIT_FOR_RESET,
 		CONFIGURE,
 		FIFO_READ,
-	};
-
-	STATE _state{STATE::SELFTEST};
+	} _state{STATE::SELFTEST};
 
 	uint16_t _fifo_empty_interval_us{2500}; // 2500 us / 400 Hz transfer interval
 

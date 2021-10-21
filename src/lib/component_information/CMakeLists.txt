@@ -36,13 +36,13 @@
 # 1: COMP_METADATA_TYPE_PARAMETER
 # 2: COMP_METADATA_TYPE_COMMANDS
 # 3: COMP_METADATA_TYPE_PERIPHERALS
+# 4: COMP_METADATA_TYPE_EVENTS
 set(comp_metadata_types)
-# We disable parameter support if the metadata is not in the ROMFS. This can be
-# removed once it is stored on a server
-list(FIND config_romfs_extra_dependencies "parameters_xml" index)
 set(comp_metadata_board "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}")
 set(s3_url "https://px4-travis.s3.amazonaws.com")
+
 set(comp_metadata_param_uri_board "${s3_url}/Firmware/{version}/${comp_metadata_board}/parameters.json.xz")
+list(FIND config_romfs_extra_dependencies "parameters_xml" index)
 if (${index} EQUAL -1)
 	set(comp_metadata_param_uri ${comp_metadata_param_uri_board})
 	# use generic URL as fallback
@@ -53,6 +53,19 @@ else()
 endif()
 # arguments: type, metadata file, uri, fallback uri, optional translation uri
 list(APPEND comp_metadata_types "--type" "1,${PX4_BINARY_DIR}/parameters.json.xz,${comp_metadata_param_uri},${comp_metadata_param_uri_fallback},")
+
+
+set(comp_metadata_events_uri_board "${s3_url}/Firmware/{version}/${comp_metadata_board}/all_events.json.xz")
+list(FIND config_romfs_extra_dependencies "events_json" index)
+if (${index} EQUAL -1)
+	set(comp_metadata_events_uri ${comp_metadata_events_uri_board})
+	# use generic URL as fallback
+	set(comp_metadata_events_uri_fallback "${s3_url}/Firmware/{version}/_general/all_events.json.xz")
+else()
+	set(comp_metadata_events_uri "mftp://etc/extras/all_events.json.xz")
+	set(comp_metadata_events_uri_fallback ${comp_metadata_events_uri_board})
+endif()
+list(APPEND comp_metadata_types "--type" "4,${PX4_BINARY_DIR}/events/all_events.json.xz,${comp_metadata_events_uri},${comp_metadata_events_uri_fallback},")
 
 set(component_general_json ${PX4_BINARY_DIR}/component_general.json)
 add_custom_command(OUTPUT ${component_general_json} ${component_general_json}.xz
@@ -65,6 +78,8 @@ add_custom_command(OUTPUT ${component_general_json} ${component_general_json}.xz
 		generate_component_general.py
 		${PX4_BINARY_DIR}/parameters.json.xz
 		parameters_xml
+		${PX4_BINARY_DIR}/events/all_events.json.xz
+		events_json
 		ver_gen
 	COMMENT "Generating component_general.json"
 )

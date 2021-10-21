@@ -1,17 +1,14 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR px4
-	MODEL fmu-v2
-	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	CONSTRAINED_MEMORY
 	ROMFSROOT px4fmu_common
 	IO px4_io-v2_default
-	#TESTING
 	#UAVCAN_INTERFACES 2
 	CONSTRAINED_FLASH
+	  NO_HELP
 	SERIAL_PORTS
 		GPS1:/dev/ttyS3
 		TEL1:/dev/ttyS1
@@ -58,7 +55,6 @@ px4_add_board(
 		#roboclaw
 		#rpm
 		#telemetry # all available telemetry drivers
-		#test_ppm
 		tone_alarm
 		#uavcan
 	MODULES
@@ -74,7 +70,7 @@ px4_add_board(
 		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
-		gyro_calibration
+		#gyro_calibration
 		#gyro_fft
 		land_detector
 		#landing_target_estimator
@@ -120,7 +116,6 @@ px4_add_board(
 		#sd_bench
 		#serial_test
 		#system_time
-		#tests # tests and test runner
 		top
 		#topic_listener
 		tune_control
@@ -130,7 +125,7 @@ px4_add_board(
 		#work_queue
 	EXAMPLES
 		#fake_gps
-		#fake_gyro
+		#fake_imu
 		#fake_magnetometer
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hello

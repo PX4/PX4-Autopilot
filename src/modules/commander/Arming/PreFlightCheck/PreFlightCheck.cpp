@@ -150,7 +150,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_baro_count; i++) {
 			const bool required = (i < max_mandatory_baro_count) && (sys_has_baro == 1);
-			bool report_fail = (report_failures && !baro_fail_reported);
+			bool report_fail = (required && report_failures && !baro_fail_reported);
 
 			int32_t device_id = -1;
 
@@ -184,10 +184,10 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 		int32_t max_airspeed_check_en = 0;
 		param_get(param_find("COM_ARM_ARSP_EN"), &max_airspeed_check_en);
 
-		float airspeed_stall = 10.0f;
-		param_get(param_find("ASPD_STALL"), &airspeed_stall);
+		float airspeed_trim = 10.0f;
+		param_get(param_find("FW_AIRSPD_TRIM"), &airspeed_trim);
 
-		const float arming_max_airspeed_allowed = airspeed_stall / 2.0f; // set to half of stall speed
+		const float arming_max_airspeed_allowed = airspeed_trim / 2.0f; // set to half of trim airspeed
 
 		if (!airspeedCheck(mavlink_log_pub, status, optional, report_failures, prearm, (bool)max_airspeed_check_en,
 				   arming_max_airspeed_allowed)

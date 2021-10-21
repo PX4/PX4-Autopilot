@@ -1,11 +1,7 @@
 
 px4_add_board(
 	PLATFORM posix
-	VENDOR px4
-	MODEL sitl
 	ROMFSROOT px4fmu_common
-	LABEL ctrlalloc
-	EMBEDDED_METADATA parameters
 	TESTING
 	DRIVERS
 		#barometer # all available barometer drivers
@@ -90,6 +86,7 @@ px4_add_board(
 	EXAMPLES
 		dyn_hello # dynamically loading modules example
 		fake_gps
+		fake_imu
 		fake_magnetometer
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello

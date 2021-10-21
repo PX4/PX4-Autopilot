@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2019, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -75,12 +75,9 @@
 class PX4FLOW: public device::I2C, public I2CSPIDriver<PX4FLOW>
 {
 public:
-	PX4FLOW(I2CSPIBusOption bus_option, int bus, int address, uint8_t sonar_rotation, int bus_frequency,
-		int conversion_interval = PX4FLOW_CONVERSION_INTERVAL_DEFAULT, enum Rotation rotation = ROTATION_NONE);
+	PX4FLOW(const I2CSPIDriverConfig &config);
 	virtual ~PX4FLOW();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	int init() override;
@@ -139,14 +136,13 @@ private:
 
 extern "C" __EXPORT int px4flow_main(int argc, char *argv[]);
 
-PX4FLOW::PX4FLOW(I2CSPIBusOption bus_option, int bus, int address, uint8_t sonar_rotation, int bus_frequency,
-		 int conversion_interval, enum Rotation rotation) :
-	I2C(DRV_FLOW_DEVTYPE_PX4FLOW, MODULE_NAME, bus, address, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address),
-	_sonar_rotation(sonar_rotation),
+PX4FLOW::PX4FLOW(const I2CSPIDriverConfig &config) :
+	I2C(config),
+	I2CSPIDriver(config),
+	_sonar_rotation(config.rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err")),
-	_sensor_rotation(rotation)
+	_sensor_rotation(Rotation::ROTATION_NONE)
 {
 }
 
@@ -382,25 +378,6 @@ PX4FLOW::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *PX4FLOW::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				       int runtime_instance)
-{
-	PX4FLOW *instance = new PX4FLOW(iterator.configuredBusOption(), iterator.bus(), cli.i2c_address, cli.orientation,
-					cli.bus_frequency);
-
-	if (!instance) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (OK != instance->init()) {
-		delete instance;
-		return nullptr;
-	}
-
-	return instance;
-}
-
 int
 px4flow_main(int argc, char *argv[])
 {
@@ -408,18 +385,18 @@ px4flow_main(int argc, char *argv[])
 	using ThisDriver = PX4FLOW;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = PX4FLOW_I2C_MAX_BUS_SPEED;
-	cli.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	cli.rotation = (Rotation)distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	cli.i2c_address = I2C_FLOW_ADDRESS_DEFAULT;
 
-	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
 		case 'R':
-			cli.orientation = atoi(cli.optarg());
+			cli.rotation = (Rotation)atoi(cli.optArg());
 			break;
 		}
 	}
 
-	const char *verb = cli.optarg();
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();

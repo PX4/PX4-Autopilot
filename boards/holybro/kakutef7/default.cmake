@@ -1,11 +1,9 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR holybro
-	MODEL kakutef7
-	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
+	EXTERNAL_METADATA
 	ROMFSROOT px4fmu_common
 	SERIAL_PORTS
 		TEL1:/dev/ttyS0 # UART1

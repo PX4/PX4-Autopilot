@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,32 +38,13 @@
 
 void MPU9250_I2C::print_usage()
 {
-	PRINT_MODULE_USAGE_NAME("mpu9520", "driver");
+	PRINT_MODULE_USAGE_NAME("mpu9520_i2c", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x39);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-}
-
-I2CSPIDriverBase *MPU9250_I2C::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-		int runtime_instance)
-{
-	MPU9250_I2C *instance = new MPU9250_I2C(iterator.configuredBusOption(), iterator.bus(), iterator.devid(), cli.rotation,
-						cli.bus_frequency, cli.i2c_address, iterator.DRDYGPIO());
-
-	if (!instance) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (OK != instance->init()) {
-		delete instance;
-		return nullptr;
-	}
-
-	return instance;
 }
 
 extern "C" int mpu9250_i2c_main(int argc, char *argv[])
@@ -74,15 +55,15 @@ extern "C" int mpu9250_i2c_main(int argc, char *argv[])
 	cli.default_i2c_frequency = I2C_SPEED;
 	cli.i2c_address = I2C_ADDRESS_DEFAULT;
 
-	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
 		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optarg());
+			cli.rotation = (enum Rotation)atoi(cli.optArg());
 			break;
 		}
 	}
 
-	const char *verb = cli.optarg();
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();

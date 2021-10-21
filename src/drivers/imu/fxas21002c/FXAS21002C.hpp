@@ -191,11 +191,10 @@ struct RawGyroReport {
 class FXAS21002C : public I2CSPIDriver<FXAS21002C>
 {
 public:
-	FXAS21002C(device::Device *interface, I2CSPIBusOption bus_option, int bus, enum Rotation rotation, int i2c_address);
+	FXAS21002C(device::Device *interface, const I2CSPIDriverConfig &config);
 	virtual ~FXAS21002C();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
 	int		init();

@@ -1,9 +1,6 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR px4
-	MODEL fmu-v5
-	LABEL rover
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
@@ -26,6 +23,7 @@ px4_add_board(
 		imu/bosch/bmi055
 		imu/invensense/icm20602
 		imu/invensense/icm20689
+		imu/invensense/icm20948 # required for ak09916 mag
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		lights/rgbled_pwm
@@ -39,6 +37,7 @@ px4_add_board(
 		rc_input
 		roboclaw
 		safety_button
+		smart_battery/batmon
 		telemetry # all available telemetry drivers
 		tone_alarm
 		uavcan

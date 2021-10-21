@@ -40,6 +40,7 @@ px4_add_library(canbootloader
 	sched/timer.c
 	uavcan/main.c
 	util/random.c
+	util/cxx_init.c
 )
 
 include_directories(include)

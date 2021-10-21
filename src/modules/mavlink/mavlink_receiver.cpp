@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,7 +43,7 @@
 #include <airspeed/airspeed.h>
 #include <conversion/rotation.h>
 #include <drivers/drv_rc_input.h>
-#include <ecl/geo/geo.h>
+#include <geo/geo.h>
 #include <systemlib/px4_macros.h>
 
 #include <math.h>
@@ -70,45 +70,6 @@
 #else
 #define MAVLINK_RECEIVER_NET_ADDED_STACK 0
 #endif
-
-using matrix::wrap_2pi;
-
-const uint8_t MavlinkReceiver::supported_component_map[COMP_ID_MAX] = {
-	[COMP_ID_ALL]                      = MAV_COMP_ID_ALL,
-	[COMP_ID_AUTOPILOT1]               = MAV_COMP_ID_AUTOPILOT1,
-
-	[COMP_ID_TELEMETRY_RADIO]          = MAV_COMP_ID_TELEMETRY_RADIO,
-
-	[COMP_ID_CAMERA]                   = MAV_COMP_ID_CAMERA,
-	[COMP_ID_CAMERA2]                  = MAV_COMP_ID_CAMERA2,
-
-	[COMP_ID_GIMBAL]                   = MAV_COMP_ID_GIMBAL,
-	[COMP_ID_LOG]                      = MAV_COMP_ID_LOG,
-	[COMP_ID_ADSB]                     = MAV_COMP_ID_ADSB,
-	[COMP_ID_OSD]                      = MAV_COMP_ID_OSD,
-	[COMP_ID_PERIPHERAL]               = MAV_COMP_ID_PERIPHERAL,
-
-	[COMP_ID_FLARM]                    = MAV_COMP_ID_FLARM,
-
-	[COMP_ID_GIMBAL2]                  = MAV_COMP_ID_GIMBAL2,
-
-	[COMP_ID_MISSIONPLANNER]           = MAV_COMP_ID_MISSIONPLANNER,
-	[COMP_ID_ONBOARD_COMPUTER]         = MAV_COMP_ID_ONBOARD_COMPUTER,
-
-	[COMP_ID_PATHPLANNER]              = MAV_COMP_ID_PATHPLANNER,
-	[COMP_ID_OBSTACLE_AVOIDANCE]       = MAV_COMP_ID_OBSTACLE_AVOIDANCE,
-	[COMP_ID_VISUAL_INERTIAL_ODOMETRY] = MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY,
-	[COMP_ID_PAIRING_MANAGER]          = MAV_COMP_ID_PAIRING_MANAGER,
-
-	[COMP_ID_IMU]                      = MAV_COMP_ID_IMU,
-
-	[COMP_ID_GPS]                      = MAV_COMP_ID_GPS,
-	[COMP_ID_GPS2]                     = MAV_COMP_ID_GPS2,
-
-	[COMP_ID_UDP_BRIDGE]               = MAV_COMP_ID_UDP_BRIDGE,
-	[COMP_ID_UART_BRIDGE]              = MAV_COMP_ID_UART_BRIDGE,
-	[COMP_ID_TUNNEL_NODE]              = MAV_COMP_ID_TUNNEL_NODE,
-};
 
 MavlinkReceiver::~MavlinkReceiver()
 {
@@ -210,6 +171,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_MANUAL_CONTROL:
 		handle_message_manual_control(msg);
+		break;
+
+	case MAVLINK_MSG_ID_RC_CHANNELS:
+		handle_message_rc_channels(msg);
 		break;
 
 	case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
@@ -327,6 +292,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_gimbal_device_information(msg);
 		break;
 
+	case MAVLINK_MSG_ID_REQUEST_EVENT:
+		handle_message_request_event(msg);
+		break;
+
 	default:
 		break;
 	}
@@ -412,6 +381,18 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 
 	vcmd.timestamp = hrt_absolute_time();
 
+	const float before_int32_max = nextafterf((float)INT32_MAX, 0.0f);
+	const float after_int32_max = nextafterf((float)INT32_MAX, (float)INFINITY);
+
+	if (cmd_mavlink.param5 >= before_int32_max && cmd_mavlink.param5 <= after_int32_max &&
+	    cmd_mavlink.param6 >= before_int32_max && cmd_mavlink.param6 <= after_int32_max) {
+		// This looks suspicously like INT32_MAX was sent in a COMMAND_LONG instead of
+		// a COMMAND_INT.
+		PX4_ERR("param5/param6 invalid of command %" PRIu16, cmd_mavlink.command);
+		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_RESULT_DENIED);
+		return;
+	}
+
 	/* Copy the content of mavlink_command_long_t cmd_mavlink into command_t cmd */
 	vcmd.param1 = cmd_mavlink.param1;
 	vcmd.param2 = cmd_mavlink.param2;
@@ -441,13 +422,29 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	vehicle_command_s vcmd{};
 	vcmd.timestamp = hrt_absolute_time();
 
+	if (cmd_mavlink.x == 0x7ff80000 && cmd_mavlink.y == 0x7ff80000) {
+		// This looks like NAN was by accident sent as int.
+		PX4_ERR("x/y invalid of command %" PRIu16, cmd_mavlink.command);
+		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_RESULT_DENIED);
+		return;
+	}
+
 	/* Copy the content of mavlink_command_int_t cmd_mavlink into command_t cmd */
 	vcmd.param1 = cmd_mavlink.param1;
 	vcmd.param2 = cmd_mavlink.param2;
 	vcmd.param3 = cmd_mavlink.param3;
 	vcmd.param4 = cmd_mavlink.param4;
-	vcmd.param5 = ((double)cmd_mavlink.x) / 1e7;
-	vcmd.param6 = ((double)cmd_mavlink.y) / 1e7;
+
+	if (cmd_mavlink.x == INT32_MAX && cmd_mavlink.y == INT32_MAX) {
+		// INT32_MAX for x and y means to ignore it.
+		vcmd.param5 = (double)NAN;
+		vcmd.param6 = (double)NAN;
+
+	} else {
+		vcmd.param5 = ((double)cmd_mavlink.x) / 1e7;
+		vcmd.param6 = ((double)cmd_mavlink.y) / 1e7;
+	}
+
 	vcmd.param7 = cmd_mavlink.z;
 	vcmd.command = cmd_mavlink.command;
 	vcmd.target_system = cmd_mavlink.target_system;
@@ -469,7 +466,12 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 	uint8_t result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
 
 	if (!target_ok) {
-		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_RESULT_FAILED);
+		// Reject alien commands only if there is no forwarding or we've never seen target component before
+		if (!_mavlink->get_forwarding_on()
+		    || !_mavlink->component_was_seen(cmd_mavlink.target_system, cmd_mavlink.target_component, _mavlink)) {
+			acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_RESULT_FAILED);
+		}
+
 		return;
 	}
 
@@ -573,7 +575,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		send_ack = false;
 
 		if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-			PX4_WARN("ignoring CMD with same SYS/COMP (%d/%d) ID", mavlink_system.sysid, mavlink_system.compid);
+			PX4_WARN("ignoring CMD with same SYS/COMP (%" PRIu8 "/%" PRIu8 ") ID", mavlink_system.sysid, mavlink_system.compid);
 			return;
 		}
 
@@ -667,7 +669,7 @@ MavlinkReceiver::handle_message_command_ack(mavlink_message_t *msg)
 	// TODO: move it to the same place that sent the command
 	if (ack.result != MAV_RESULT_ACCEPTED && ack.result != MAV_RESULT_IN_PROGRESS) {
 		if (msg->compid == MAV_COMP_ID_CAMERA) {
-			PX4_WARN("Got unsuccessful result %d from camera", ack.result);
+			PX4_WARN("Got unsuccessful result %" PRIu8 " from camera", ack.result);
 		}
 	}
 }
@@ -894,17 +896,17 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		const uint16_t type_mask = target_local_ned.type_mask;
 
 		if (target_local_ned.coordinate_frame == MAV_FRAME_LOCAL_NED) {
-			setpoint.x = (type_mask & POSITION_TARGET_TYPEMASK_X_IGNORE) ? NAN : target_local_ned.x;
-			setpoint.y = (type_mask & POSITION_TARGET_TYPEMASK_Y_IGNORE) ? NAN : target_local_ned.y;
-			setpoint.z = (type_mask & POSITION_TARGET_TYPEMASK_Z_IGNORE) ? NAN : target_local_ned.z;
+			setpoint.x = (type_mask & POSITION_TARGET_TYPEMASK_X_IGNORE) ? (float)NAN : target_local_ned.x;
+			setpoint.y = (type_mask & POSITION_TARGET_TYPEMASK_Y_IGNORE) ? (float)NAN : target_local_ned.y;
+			setpoint.z = (type_mask & POSITION_TARGET_TYPEMASK_Z_IGNORE) ? (float)NAN : target_local_ned.z;
 
-			setpoint.vx = (type_mask & POSITION_TARGET_TYPEMASK_VX_IGNORE) ? NAN : target_local_ned.vx;
-			setpoint.vy = (type_mask & POSITION_TARGET_TYPEMASK_VY_IGNORE) ? NAN : target_local_ned.vy;
-			setpoint.vz = (type_mask & POSITION_TARGET_TYPEMASK_VZ_IGNORE) ? NAN : target_local_ned.vz;
+			setpoint.vx = (type_mask & POSITION_TARGET_TYPEMASK_VX_IGNORE) ? (float)NAN : target_local_ned.vx;
+			setpoint.vy = (type_mask & POSITION_TARGET_TYPEMASK_VY_IGNORE) ? (float)NAN : target_local_ned.vy;
+			setpoint.vz = (type_mask & POSITION_TARGET_TYPEMASK_VZ_IGNORE) ? (float)NAN : target_local_ned.vz;
 
-			setpoint.acceleration[0] = (type_mask & POSITION_TARGET_TYPEMASK_AX_IGNORE) ? NAN : target_local_ned.afx;
-			setpoint.acceleration[1] = (type_mask & POSITION_TARGET_TYPEMASK_AY_IGNORE) ? NAN : target_local_ned.afy;
-			setpoint.acceleration[2] = (type_mask & POSITION_TARGET_TYPEMASK_AZ_IGNORE) ? NAN : target_local_ned.afz;
+			setpoint.acceleration[0] = (type_mask & POSITION_TARGET_TYPEMASK_AX_IGNORE) ? (float)NAN : target_local_ned.afx;
+			setpoint.acceleration[1] = (type_mask & POSITION_TARGET_TYPEMASK_AY_IGNORE) ? (float)NAN : target_local_ned.afy;
+			setpoint.acceleration[2] = (type_mask & POSITION_TARGET_TYPEMASK_AZ_IGNORE) ? (float)NAN : target_local_ned.afz;
 
 		} else if (target_local_ned.coordinate_frame == MAV_FRAME_BODY_NED) {
 
@@ -922,10 +924,12 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					(type_mask & POSITION_TARGET_TYPEMASK_VZ_IGNORE) ? 0.f : target_local_ned.vz
 				};
 
-				const matrix::Vector3f velocity_setpoint{R * velocity_body_sp};
-				setpoint.vx = velocity_setpoint(0);
-				setpoint.vy = velocity_setpoint(1);
-				setpoint.vz = velocity_setpoint(2);
+
+				const float yaw = matrix::Eulerf{R}(2);
+
+				setpoint.vx = cosf(yaw) * velocity_body_sp(0) - sinf(yaw) * velocity_body_sp(1);
+				setpoint.vy = sinf(yaw) * velocity_body_sp(0) + cosf(yaw) * velocity_body_sp(1);
+				setpoint.vz = velocity_body_sp(2);
 
 			} else {
 				setpoint.vx = NAN;
@@ -957,7 +961,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 			setpoint.z = NAN;
 
 		} else {
-			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_LOCAL_NED coordinate frame %d unsupported",
+			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_LOCAL_NED coordinate frame %" PRIu8 " unsupported",
 					     target_local_ned.coordinate_frame);
 			return;
 		}
@@ -966,8 +970,8 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		setpoint.thrust[1] = NAN;
 		setpoint.thrust[2] = NAN;
 
-		setpoint.yaw      = (type_mask & POSITION_TARGET_TYPEMASK_YAW_IGNORE)      ? NAN : target_local_ned.yaw;
-		setpoint.yawspeed = (type_mask & POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE) ? NAN : target_local_ned.yaw_rate;
+		setpoint.yaw      = (type_mask & POSITION_TARGET_TYPEMASK_YAW_IGNORE)      ? (float)NAN : target_local_ned.yaw;
+		setpoint.yawspeed = (type_mask & POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE) ? (float)NAN : target_local_ned.yaw_rate;
 
 
 		offboard_control_mode_s ocm{};
@@ -1065,7 +1069,7 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 				}
 
 			} else {
-				mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_GLOBAL_INT invalid coordinate frame %d",
+				mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_GLOBAL_INT invalid coordinate frame %" PRIu8,
 						     target_global_int.coordinate_frame);
 				return;
 			}
@@ -1077,21 +1081,21 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 		}
 
 		// velocity
-		setpoint.vx = (type_mask & POSITION_TARGET_TYPEMASK_VX_IGNORE) ? NAN : target_global_int.vx;
-		setpoint.vy = (type_mask & POSITION_TARGET_TYPEMASK_VY_IGNORE) ? NAN : target_global_int.vy;
-		setpoint.vz = (type_mask & POSITION_TARGET_TYPEMASK_VZ_IGNORE) ? NAN : target_global_int.vz;
+		setpoint.vx = (type_mask & POSITION_TARGET_TYPEMASK_VX_IGNORE) ? (float)NAN : target_global_int.vx;
+		setpoint.vy = (type_mask & POSITION_TARGET_TYPEMASK_VY_IGNORE) ? (float)NAN : target_global_int.vy;
+		setpoint.vz = (type_mask & POSITION_TARGET_TYPEMASK_VZ_IGNORE) ? (float)NAN : target_global_int.vz;
 
 		// acceleration
-		setpoint.acceleration[0] = (type_mask & POSITION_TARGET_TYPEMASK_AX_IGNORE) ? NAN : target_global_int.afx;
-		setpoint.acceleration[1] = (type_mask & POSITION_TARGET_TYPEMASK_AY_IGNORE) ? NAN : target_global_int.afy;
-		setpoint.acceleration[2] = (type_mask & POSITION_TARGET_TYPEMASK_AZ_IGNORE) ? NAN : target_global_int.afz;
+		setpoint.acceleration[0] = (type_mask & POSITION_TARGET_TYPEMASK_AX_IGNORE) ? (float)NAN : target_global_int.afx;
+		setpoint.acceleration[1] = (type_mask & POSITION_TARGET_TYPEMASK_AY_IGNORE) ? (float)NAN : target_global_int.afy;
+		setpoint.acceleration[2] = (type_mask & POSITION_TARGET_TYPEMASK_AZ_IGNORE) ? (float)NAN : target_global_int.afz;
 
 		setpoint.thrust[0] = NAN;
 		setpoint.thrust[1] = NAN;
 		setpoint.thrust[2] = NAN;
 
-		setpoint.yaw      = (type_mask & POSITION_TARGET_TYPEMASK_YAW_IGNORE)      ? NAN : target_global_int.yaw;
-		setpoint.yawspeed = (type_mask & POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE) ? NAN : target_global_int.yaw_rate;
+		setpoint.yaw      = (type_mask & POSITION_TARGET_TYPEMASK_YAW_IGNORE)      ? (float)NAN : target_global_int.yaw;
+		setpoint.yawspeed = (type_mask & POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE) ? (float)NAN : target_global_int.yaw_rate;
 
 
 		offboard_control_mode_s ocm{};
@@ -1310,7 +1314,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		}
 
 	} else {
-		PX4_ERR("Body frame %u not supported. Unable to publish velocity", odom.child_frame_id);
+		PX4_ERR("Body frame %" PRIu8 " not supported. Unable to publish velocity", odom.child_frame_id);
 	}
 
 	/**
@@ -1341,11 +1345,11 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 			_mocap_odometry_pub.publish(odometry);
 
 		} else {
-			PX4_ERR("Estimator source %u not supported. Unable to publish pose and velocity", odom.estimator_type);
+			PX4_ERR("Estimator source %" PRIu8 " not supported. Unable to publish pose and velocity", odom.estimator_type);
 		}
 
 	} else {
-		PX4_ERR("Local frame %u not supported. Unable to publish pose and velocity", odom.frame_id);
+		PX4_ERR("Local frame %" PRIu8 " not supported. Unable to publish pose and velocity", odom.frame_id);
 	}
 }
 
@@ -1436,7 +1440,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 
 			// TODO: review use case
 			attitude_setpoint.yaw_sp_move_rate = (type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_YAW_RATE_IGNORE) ?
-							     NAN : attitude_target.body_yaw_rate;
+							     (float)NAN : attitude_target.body_yaw_rate;
 
 			if (!thrust_body && !(attitude_target.type_mask & ATTITUDE_TARGET_TYPEMASK_THROTTLE_IGNORE)) {
 				fill_thrust(attitude_setpoint.thrust_body, vehicle_status.vehicle_type, attitude_target.thrust);
@@ -1470,9 +1474,12 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 
 		} else if (body_rates) {
 			vehicle_rates_setpoint_s setpoint{};
-			setpoint.roll  = (type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_ROLL_RATE_IGNORE)  ? NAN : attitude_target.body_roll_rate;
-			setpoint.pitch = (type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_PITCH_RATE_IGNORE) ? NAN : attitude_target.body_pitch_rate;
-			setpoint.yaw   = (type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_YAW_RATE_IGNORE)   ? NAN : attitude_target.body_yaw_rate;
+			setpoint.roll  = (type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_ROLL_RATE_IGNORE)  ? (float)NAN :
+					 attitude_target.body_roll_rate;
+			setpoint.pitch = (type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_PITCH_RATE_IGNORE) ? (float)NAN :
+					 attitude_target.body_pitch_rate;
+			setpoint.yaw   = (type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_YAW_RATE_IGNORE)   ? (float)NAN :
+					 attitude_target.body_yaw_rate;
 
 			if (!(attitude_target.type_mask & ATTITUDE_TARGET_TYPEMASK_THROTTLE_IGNORE)) {
 				fill_thrust(setpoint.thrust_body, vehicle_status.vehicle_type, attitude_target.thrust);
@@ -1698,7 +1705,7 @@ MavlinkReceiver::handle_message_play_tune_v2(mavlink_message_t *msg)
 	    (mavlink_system.compid == play_tune_v2.target_component || play_tune_v2.target_component == 0)) {
 
 		if (play_tune_v2.format != TUNE_FORMAT_QBASIC1_1) {
-			PX4_ERR("Tune format %d not supported", play_tune_v2.format);
+			PX4_ERR("Tune format %" PRIu32 " not supported", play_tune_v2.format);
 			return;
 		}
 
@@ -1857,6 +1864,73 @@ MavlinkReceiver::decode_switch_pos_n(uint16_t buttons, unsigned sw)
 }
 
 void
+MavlinkReceiver::handle_message_rc_channels(mavlink_message_t *msg)
+{
+	mavlink_rc_channels_t rc_channels;
+	mavlink_msg_rc_channels_decode(msg, &rc_channels);
+
+	if (msg->compid != MAV_COMP_ID_SYSTEM_CONTROL) {
+		PX4_DEBUG("Mavlink receiver only processes RC_CHANNELS from MAV_COMP_ID_SYSTEM_CONTROL");
+		return;
+	}
+
+	input_rc_s rc{};
+
+	rc.timestamp_last_signal = hrt_absolute_time();
+	rc.rssi = RC_INPUT_RSSI_MAX;
+
+	// TODO: fake RSSI from dropped messages?
+	// for (auto &component_state : _component_states) {
+	// 	if (component_state.component_id == MAV_COMP_ID_SYSTEM_CONTROL) {
+	// 		rc.rssi = (float)component_state.missed_messages / (float)component_state.received_messages;
+	// 	}
+	// }
+
+	rc.rc_total_frame_count = 1;
+	rc.input_source = input_rc_s::RC_INPUT_SOURCE_MAVLINK;
+
+	// channels
+	rc.values[0] = rc_channels.chan1_raw;
+	rc.values[1] = rc_channels.chan2_raw;
+	rc.values[2] = rc_channels.chan3_raw;
+	rc.values[3] = rc_channels.chan4_raw;
+	rc.values[4] = rc_channels.chan5_raw;
+	rc.values[5] = rc_channels.chan6_raw;
+	rc.values[6] = rc_channels.chan7_raw;
+	rc.values[7] = rc_channels.chan8_raw;
+	rc.values[8] = rc_channels.chan9_raw;
+	rc.values[9] = rc_channels.chan10_raw;
+	rc.values[10] = rc_channels.chan11_raw;
+	rc.values[11] = rc_channels.chan12_raw;
+	rc.values[12] = rc_channels.chan13_raw;
+	rc.values[13] = rc_channels.chan14_raw;
+	rc.values[14] = rc_channels.chan15_raw;
+	rc.values[15] = rc_channels.chan16_raw;
+	rc.values[16] = rc_channels.chan17_raw;
+	rc.values[17] = rc_channels.chan18_raw;
+
+	// check how many channels are valid
+	for (int i = 17; i >= 0; i--) {
+		const bool ignore_max = rc.values[i] == UINT16_MAX; // ignore any channel with value UINT16_MAX
+		const bool ignore_zero = (i > 7) && (rc.values[i] == 0); // ignore channel 8-18 if value is 0
+
+		if (ignore_max || ignore_zero) {
+			// set all ignored values to zero
+			rc.values[i] = 0;
+
+		} else {
+			// first channel to not ignore -> set count considering zero-based index
+			rc.channel_count = i + 1;
+			break;
+		}
+	}
+
+	// publish uORB message
+	rc.timestamp = hrt_absolute_time();
+	_rc_pub.publish(rc);
+}
+
+void
 MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 {
 	mavlink_rc_channels_override_t man;
@@ -1998,6 +2072,8 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 
 		if (same_system || hb.type == MAV_TYPE_GCS) {
 
+			camera_status_s camera_status{};
+
 			switch (hb.type) {
 			case MAV_TYPE_ANTENNA_TRACKER:
 				_heartbeat_type_antenna_tracker = now;
@@ -2021,10 +2097,15 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 
 			case MAV_TYPE_CAMERA:
 				_heartbeat_type_camera = now;
+				camera_status.timestamp = now;
+				camera_status.active_comp_id = msg->compid;
+				camera_status.active_sys_id = msg->sysid;
+				_camera_status_pub.publish(camera_status);
 				break;
 
 			default:
-				PX4_DEBUG("unhandled HEARTBEAT MAV_TYPE: %d from SYSID: %d, COMPID: %d", hb.type, msg->sysid, msg->compid);
+				PX4_DEBUG("unhandled HEARTBEAT MAV_TYPE: %" PRIu8 " from SYSID: %" PRIu8 ", COMPID: %" PRIu8, hb.type, msg->sysid,
+					  msg->compid);
 			}
 
 
@@ -2063,7 +2144,8 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 				break;
 
 			default:
-				PX4_DEBUG("unhandled HEARTBEAT MAV_TYPE: %d from SYSID: %d, COMPID: %d", hb.type, msg->sysid, msg->compid);
+				PX4_DEBUG("unhandled HEARTBEAT MAV_TYPE: %" PRIu8 " from SYSID: %" PRIu8 ", COMPID: %" PRIu8, hb.type, msg->sysid,
+					  msg->compid);
 			}
 
 			CheckHeartbeats(now, true);
@@ -2217,10 +2299,12 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		battery_status_s hil_battery_status{};
 
 		hil_battery_status.timestamp = timestamp;
-		hil_battery_status.voltage_v = 11.5f;
-		hil_battery_status.voltage_filtered_v = 11.5f;
+		hil_battery_status.voltage_v = 16.0f;
+		hil_battery_status.voltage_filtered_v = 16.0f;
 		hil_battery_status.current_a = 10.0f;
 		hil_battery_status.discharged_mah = -1.0f;
+		hil_battery_status.connected = true;
+		hil_battery_status.remaining = 0.70;
 
 		_battery_pub.publish(hil_battery_status);
 	}
@@ -2229,39 +2313,56 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 {
-	mavlink_hil_gps_t gps;
-	mavlink_msg_hil_gps_decode(msg, &gps);
+	mavlink_hil_gps_t hil_gps;
+	mavlink_msg_hil_gps_decode(msg, &hil_gps);
 
-	const uint64_t timestamp = hrt_absolute_time();
+	sensor_gps_s gps{};
 
-	sensor_gps_s hil_gps{};
+	device::Device::DeviceId device_id{};
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
+	device_id.devid_s.address = msg->sysid;
+	device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+	gps.device_id = device_id.devid;
 
-	hil_gps.timestamp_time_relative = 0;
-	hil_gps.time_utc_usec = gps.time_usec;
+	gps.lat = hil_gps.lat;
+	gps.lon = hil_gps.lon;
+	gps.alt = hil_gps.alt;
+	gps.alt_ellipsoid = hil_gps.alt;
 
-	hil_gps.timestamp = timestamp;
-	hil_gps.lat = gps.lat;
-	hil_gps.lon = gps.lon;
-	hil_gps.alt = gps.alt;
-	hil_gps.eph = (float)gps.eph * 1e-2f; // from cm to m
-	hil_gps.epv = (float)gps.epv * 1e-2f; // from cm to m
+	gps.s_variance_m_s = 0.25f;
+	gps.c_variance_rad = 0.5f;
+	gps.fix_type = hil_gps.fix_type;
 
-	hil_gps.s_variance_m_s = 0.1f;
+	gps.eph = (float)hil_gps.eph * 1e-2f; // cm -> m
+	gps.epv = (float)hil_gps.epv * 1e-2f; // cm -> m
 
-	hil_gps.vel_m_s = (float)gps.vel * 1e-2f; // from cm/s to m/s
-	hil_gps.vel_n_m_s = gps.vn * 1e-2f; // from cm to m
-	hil_gps.vel_e_m_s = gps.ve * 1e-2f; // from cm to m
-	hil_gps.vel_d_m_s = gps.vd * 1e-2f; // from cm to m
-	hil_gps.vel_ned_valid = true;
-	hil_gps.cog_rad = ((gps.cog == 65535) ? NAN : wrap_2pi(math::radians(gps.cog * 1e-2f)));
+	gps.hdop = 0; // TODO
+	gps.vdop = 0; // TODO
 
-	hil_gps.fix_type = gps.fix_type;
-	hil_gps.satellites_used = gps.satellites_visible;  //TODO: rename mavlink_hil_gps_t sats visible to used?
+	gps.noise_per_ms = 0;
+	gps.automatic_gain_control = 0;
+	gps.jamming_indicator = 0;
+	gps.jamming_state = 0;
 
-	hil_gps.heading = NAN;
-	hil_gps.heading_offset = NAN;
+	gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
+	gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
+	gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
+	gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
+	gps.cog_rad = ((hil_gps.cog == 65535) ? (float)NAN : matrix::wrap_2pi(math::radians(
+				hil_gps.cog * 1e-2f))); // cdeg -> rad
+	gps.vel_ned_valid = true;
 
-	_gps_pub.publish(hil_gps);
+	gps.timestamp_time_relative = 0;
+	gps.time_utc_usec = hil_gps.time_usec;
+
+	gps.satellites_used = hil_gps.satellites_visible;
+
+	gps.heading = NAN;
+	gps.heading_offset = NAN;
+
+	gps.timestamp = hrt_absolute_time();
+
+	_sensor_gps_pub.publish(gps);
 }
 
 void
@@ -2276,6 +2377,9 @@ MavlinkReceiver::handle_message_follow_target(mavlink_message_t *msg)
 	follow_target_topic.lat = follow_target_msg.lat * 1e-7;
 	follow_target_topic.lon = follow_target_msg.lon * 1e-7;
 	follow_target_topic.alt = follow_target_msg.alt;
+	follow_target_topic.vx = follow_target_msg.vel[0];
+	follow_target_topic.vy = follow_target_msg.vel[1];
+	follow_target_topic.vz = follow_target_msg.vel[2];
 
 	_follow_target_pub.publish(follow_target_topic);
 }
@@ -2296,6 +2400,11 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 		landing_target_pose.z_abs = landing_target.z;
 
 		_landing_target_pose_pub.publish(landing_target_pose);
+
+	} else if (landing_target.position_valid) {
+		// We only support MAV_FRAME_LOCAL_NED. In this case, the frame was unsupported.
+		mavlink_log_critical(&_mavlink_log_pub, "landing target: coordinate frame %" PRIu8 " unsupported",
+				     landing_target.frame);
 
 	} else {
 		irlock_report_s irlock_report{};
@@ -2500,28 +2609,25 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	mavlink_hil_state_quaternion_t hil_state;
 	mavlink_msg_hil_state_quaternion_decode(msg, &hil_state);
 
-	const uint64_t timestamp = hrt_absolute_time();
+	const uint64_t timestamp_sample = hrt_absolute_time();
 
 	/* airspeed */
 	{
 		airspeed_s airspeed{};
-
-		airspeed.timestamp = timestamp;
 		airspeed.indicated_airspeed_m_s = hil_state.ind_airspeed * 1e-2f;
 		airspeed.true_airspeed_m_s = hil_state.true_airspeed * 1e-2f;
-
+		airspeed.air_temperature_celsius = 15.f;
+		airspeed.timestamp = hrt_absolute_time();
 		_airspeed_pub.publish(airspeed);
 	}
 
 	/* attitude */
 	{
 		vehicle_attitude_s hil_attitude{};
-
-		hil_attitude.timestamp = timestamp;
-
+		hil_attitude.timestamp_sample = timestamp_sample;
 		matrix::Quatf q(hil_state.attitude_quaternion);
 		q.copyTo(hil_attitude.q);
-
+		hil_attitude.timestamp = hrt_absolute_time();
 		_attitude_pub.publish(hil_attitude);
 	}
 
@@ -2529,13 +2635,13 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	{
 		vehicle_global_position_s hil_global_pos{};
 
-		hil_global_pos.timestamp = timestamp;
+		hil_global_pos.timestamp_sample = timestamp_sample;
 		hil_global_pos.lat = hil_state.lat / ((double)1e7);
 		hil_global_pos.lon = hil_state.lon / ((double)1e7);
 		hil_global_pos.alt = hil_state.alt / 1000.0f;
-		hil_global_pos.eph = 2.0f;
-		hil_global_pos.epv = 4.0f;
-
+		hil_global_pos.eph = 2.f;
+		hil_global_pos.epv = 4.f;
+		hil_global_pos.timestamp = hrt_absolute_time();
 		_global_pos_pub.publish(hil_global_pos);
 	}
 
@@ -2544,32 +2650,31 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		const double lat = hil_state.lat * 1e-7;
 		const double lon = hil_state.lon * 1e-7;
 
-		map_projection_reference_s global_local_proj_ref;
-		map_projection_init(&global_local_proj_ref, lat, lon);
+		if (!map_projection_initialized(&_global_local_proj_ref) || !PX4_ISFINITE(_global_local_alt0)) {
+			map_projection_init(&_global_local_proj_ref, lat, lon);
+			_global_local_alt0 = hil_state.alt / 1000.f;
+		}
 
-		float global_local_alt0 = hil_state.alt / 1000.f;
-
-		float x = 0.0f;
-		float y = 0.0f;
-		map_projection_project(&global_local_proj_ref, lat, lon, &x, &y);
+		float x = 0.f;
+		float y = 0.f;
+		map_projection_project(&_global_local_proj_ref, lat, lon, &x, &y);
 
 		vehicle_local_position_s hil_local_pos{};
-		hil_local_pos.timestamp = timestamp;
-
-		hil_local_pos.ref_timestamp = global_local_proj_ref.timestamp;
-		hil_local_pos.ref_lat = math::degrees(global_local_proj_ref.lat_rad);
-		hil_local_pos.ref_lon = math::degrees(global_local_proj_ref.lon_rad);
-		hil_local_pos.ref_alt = global_local_alt0;
+		hil_local_pos.timestamp_sample = timestamp_sample;
+		hil_local_pos.ref_timestamp = _global_local_proj_ref.timestamp;
+		hil_local_pos.ref_lat = math::degrees(_global_local_proj_ref.lat_rad);
+		hil_local_pos.ref_lon = math::degrees(_global_local_proj_ref.lon_rad);
+		hil_local_pos.ref_alt = _global_local_alt0;
 		hil_local_pos.xy_valid = true;
 		hil_local_pos.z_valid = true;
 		hil_local_pos.v_xy_valid = true;
 		hil_local_pos.v_z_valid = true;
 		hil_local_pos.x = x;
 		hil_local_pos.y = y;
-		hil_local_pos.z = global_local_alt0 - hil_state.alt / 1000.0f;
-		hil_local_pos.vx = hil_state.vx / 100.0f;
-		hil_local_pos.vy = hil_state.vy / 100.0f;
-		hil_local_pos.vz = hil_state.vz / 100.0f;
+		hil_local_pos.z = _global_local_alt0 - hil_state.alt / 1000.f;
+		hil_local_pos.vx = hil_state.vx / 100.f;
+		hil_local_pos.vy = hil_state.vy / 100.f;
+		hil_local_pos.vz = hil_state.vz / 100.f;
 
 		matrix::Eulerf euler{matrix::Quatf(hil_state.attitude_quaternion)};
 		hil_local_pos.heading = euler.psi();
@@ -2579,7 +2684,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_local_pos.vz_max = INFINITY;
 		hil_local_pos.hagl_min = INFINITY;
 		hil_local_pos.hagl_max = INFINITY;
-
+		hil_local_pos.timestamp = hrt_absolute_time();
 		_local_pos_pub.publish(hil_local_pos);
 	}
 
@@ -2597,7 +2702,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		if (_px4_accel != nullptr) {
 			// accel in mG
 			_px4_accel->set_scale(CONSTANTS_ONE_G / 1000.0f);
-			_px4_accel->update(timestamp, hil_state.xacc, hil_state.yacc, hil_state.zacc);
+			_px4_accel->update(timestamp_sample, hil_state.xacc, hil_state.yacc, hil_state.zacc);
 		}
 	}
 
@@ -2613,20 +2718,18 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		}
 
 		if (_px4_gyro != nullptr) {
-			_px4_gyro->update(timestamp, hil_state.rollspeed, hil_state.pitchspeed, hil_state.yawspeed);
+			_px4_gyro->update(timestamp_sample, hil_state.rollspeed, hil_state.pitchspeed, hil_state.yawspeed);
 		}
 	}
 
 	/* battery status */
 	{
 		battery_status_s hil_battery_status{};
-
-		hil_battery_status.timestamp = timestamp;
 		hil_battery_status.voltage_v = 11.1f;
 		hil_battery_status.voltage_filtered_v = 11.1f;
 		hil_battery_status.current_a = 10.0f;
 		hil_battery_status.discharged_mah = -1.0f;
-
+		hil_battery_status.timestamp = hrt_absolute_time();
 		_battery_pub.publish(hil_battery_status);
 	}
 }
@@ -2773,7 +2876,8 @@ void MavlinkReceiver::handle_message_statustext(mavlink_message_t *msg)
 		log_message.timestamp = hrt_absolute_time();
 
 		snprintf(log_message.text, sizeof(log_message.text),
-			 "[mavlink: component %d] %." STRINGIFY(MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN) "s", msg->compid, statustext.text);
+			 "[mavlink: component %" PRIu8 "] %." STRINGIFY(MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN) "s", msg->compid,
+			 statustext.text);
 
 		_log_message_pub.publish(log_message);
 	}
@@ -2810,6 +2914,11 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 		_mavlink->telemetry_status_updated();
 		_last_heartbeat_check = t;
 	}
+}
+
+void MavlinkReceiver::handle_message_request_event(mavlink_message_t *msg)
+{
+	_mavlink->get_events_protocol().handle_request_event(*msg);
 }
 
 void
@@ -2900,11 +3009,8 @@ MavlinkReceiver::handle_message_gimbal_device_information(mavlink_message_t *msg
 	_gimbal_device_information_pub.publish(gimbal_information);
 }
 
-/**
- * Receive data from UART/UDP
- */
 void
-MavlinkReceiver::Run()
+MavlinkReceiver::run()
 {
 	/* set thread name */
 	{
@@ -3021,7 +3127,6 @@ MavlinkReceiver::Run()
 				/* if read failed, this loop won't execute */
 				for (ssize_t i = 0; i < nread; i++) {
 					if (mavlink_parse_char(_mavlink->get_channel(), buf[i], &msg, &_status)) {
-						_total_received_counter++;
 
 						/* check if we received version 2 and request a switch. */
 						if (!(_mavlink->get_status()->flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1)) {
@@ -3053,99 +3158,7 @@ MavlinkReceiver::Run()
 						/* handle packet with parent object */
 						_mavlink->handle_message(&msg);
 
-
-						// calculate lost messages for this system id
-						bool px4_sysid_index_found = false;
-						int px4_sysid_index = 0;
-
-						if (msg.sysid != mavlink_system.sysid) {
-							for (int sys_id = 1; sys_id < MAX_REMOTE_SYSTEM_IDS; sys_id++) {
-								if (_system_id_map[sys_id] == msg.sysid) {
-									// slot found
-									px4_sysid_index_found = true;
-									px4_sysid_index = sys_id;
-									break;
-								}
-							}
-
-							// otherwise record newly seen system id in first available slot
-							if (!px4_sysid_index_found) {
-								for (int sys_id = 1; sys_id < MAX_REMOTE_SYSTEM_IDS; sys_id++) {
-									if (_system_id_map[sys_id] == 0) {
-										// slot available
-										px4_sysid_index_found = true;
-										px4_sysid_index = sys_id;
-										_system_id_map[sys_id] = msg.sysid;
-										break;
-									}
-								}
-							}
-
-							if (!px4_sysid_index_found) {
-								PX4_ERR("not enough system id slots (%d)", MAX_REMOTE_SYSTEM_IDS);
-							}
-
-						} else {
-							px4_sysid_index_found = true;
-						}
-
-						// find PX4 component id
-						uint8_t px4_comp_id = 0;
-						bool px4_comp_id_found = false;
-
-						for (int id = 0; id < COMP_ID_MAX; id++) {
-							if (supported_component_map[id] == msg.compid) {
-								px4_comp_id = id;
-								px4_comp_id_found = true;
-								break;
-							}
-						}
-
-						if (!px4_comp_id_found && !_reported_unsupported_comp_id) {
-							PX4_WARN("unsupported component id, msgid: %d, sysid: %d compid: %d", msg.msgid, msg.sysid, msg.compid);
-							_reported_unsupported_comp_id = true;
-						}
-
-						if (px4_comp_id_found && px4_sysid_index_found) {
-							// Increase receive counter
-							_total_received_supported_counter++;
-
-							uint8_t last_seq = _last_index[px4_sysid_index][px4_comp_id];
-							uint8_t expected_seq = last_seq + 1;
-
-							// Determine what the next expected sequence number is, accounting for
-							// never having seen a message for this system/component pair.
-							if (!_sys_comp_present[px4_sysid_index][px4_comp_id]) {
-								_sys_comp_present[px4_sysid_index][px4_comp_id] = true;
-								last_seq = msg.seq;
-								expected_seq = msg.seq;
-							}
-
-							// And if we didn't encounter that sequence number, record the error
-							if (msg.seq != expected_seq) {
-								int lost_messages = 0;
-
-								// Account for overflow during packet loss
-								if (msg.seq < expected_seq) {
-									lost_messages = (msg.seq + 255) - expected_seq;
-
-								} else {
-									lost_messages = msg.seq - expected_seq;
-								}
-
-								// Log how many were lost
-								_total_lost_counter += lost_messages;
-							}
-
-							// And update the last sequence number for this system/component pair
-							_last_index[px4_sysid_index][px4_comp_id] = msg.seq;
-
-							// Calculate new loss ratio
-							const float total_sent = _total_received_supported_counter + _total_lost_counter;
-							float rx_loss_percent = (_total_lost_counter / total_sent) * 100.f;
-
-							_running_loss_percent = (rx_loss_percent * 0.5f) + (_running_loss_percent * 0.5f);
-						}
+						update_rx_stats(msg);
 					}
 				}
 
@@ -3155,9 +3168,8 @@ MavlinkReceiver::Run()
 
 					telemetry_status_s &tstatus = _mavlink->telemetry_status();
 					tstatus.rx_message_count = _total_received_counter;
-					tstatus.rx_message_count_supported = _total_received_supported_counter;
 					tstatus.rx_message_lost_count = _total_lost_counter;
-					tstatus.rx_message_lost_rate = _running_loss_percent;
+					tstatus.rx_message_lost_rate = static_cast<float>(_total_lost_counter) / static_cast<float>(_total_received_counter);
 
 					if (_mavlink_status_last_buffer_overrun != _status.buffer_overrun) {
 						tstatus.rx_buffer_overruns++;
@@ -3208,17 +3220,100 @@ MavlinkReceiver::Run()
 	}
 }
 
-void *
-MavlinkReceiver::start_helper(void *context)
+bool MavlinkReceiver::component_was_seen(int system_id, int component_id)
 {
-	MavlinkReceiver rcv{(Mavlink *)context};
-	rcv.Run();
+	// For system broadcast messages return true if at least one component was seen before
+	if (system_id == 0) {
+		return _component_states_count > 0;
+	}
 
-	return nullptr;
+	for (unsigned i = 0; i < _component_states_count; ++i) {
+		if (_component_states[i].system_id == system_id
+		    && (component_id == 0 || _component_states[i].component_id == component_id)) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
-void
-MavlinkReceiver::receive_start(pthread_t *thread, Mavlink *parent)
+void MavlinkReceiver::update_rx_stats(const mavlink_message_t &message)
+{
+	const bool component_states_has_still_space = [this, &message]() {
+		for (unsigned i = 0; i < MAX_REMOTE_COMPONENTS; ++i) {
+			if (_component_states[i].system_id == message.sysid && _component_states[i].component_id == message.compid) {
+
+				int lost_messages = 0;
+				const uint8_t expected_seq = _component_states[i].last_sequence + 1;
+
+				// Account for overflow during packet loss
+				if (message.seq < expected_seq) {
+					lost_messages = (message.seq + 255) - expected_seq;
+
+				} else {
+					lost_messages = message.seq - expected_seq;
+				}
+
+				_component_states[i].missed_messages += lost_messages;
+
+				++_component_states[i].received_messages;
+				_component_states[i].last_time_received_ms = hrt_absolute_time() / 1000;
+				_component_states[i].last_sequence = message.seq;
+
+				// Also update overall stats
+				++_total_received_counter;
+				_total_lost_counter += lost_messages;
+
+				return true;
+
+			} else if (_component_states[i].system_id == 0 && _component_states[i].component_id == 0) {
+				_component_states[i].system_id = message.sysid;
+				_component_states[i].component_id = message.compid;
+
+				++_component_states[i].received_messages;
+				_component_states[i].last_time_received_ms = hrt_absolute_time() / 1000;
+				_component_states[i].last_sequence = message.seq;
+
+				_component_states_count = i + 1;
+
+				// Also update overall stats
+				++_total_received_counter;
+
+				return true;
+			}
+		}
+
+		return false;
+	}();
+
+	if (!component_states_has_still_space && !_warned_component_states_full_once) {
+		PX4_WARN("Max remote components of %u used up", MAX_REMOTE_COMPONENTS);
+		_warned_component_states_full_once = true;
+	}
+}
+
+void MavlinkReceiver::print_detailed_rx_stats() const
+{
+	const uint32_t now_ms = hrt_absolute_time() / 1000;
+
+	// TODO: add mutex around shared data.
+	for (unsigned i = 0; i < _component_states_count; ++i) {
+		if (_component_states[i].received_messages > 0) {
+			printf("\t  received from sysid: %" PRIu8 " compid: %" PRIu8 ": %" PRIu32 ", lost: %" PRIu32 ", last %" PRIu32
+			       " ms ago\n",
+			       _component_states[i].system_id,
+			       _component_states[i].component_id,
+			       _component_states[i].received_messages,
+			       _component_states[i].missed_messages,
+			       now_ms - _component_states[i].last_time_received_ms);
+
+		} else {
+			break;
+		}
+	}
+}
+
+void MavlinkReceiver::start()
 {
 	pthread_attr_t receiveloop_attr;
 	pthread_attr_init(&receiveloop_attr);
@@ -3231,7 +3326,20 @@ MavlinkReceiver::receive_start(pthread_t *thread, Mavlink *parent)
 	pthread_attr_setstacksize(&receiveloop_attr,
 				  PX4_STACK_ADJUSTED(sizeof(MavlinkReceiver) + 2840 + MAVLINK_RECEIVER_NET_ADDED_STACK));
 
-	pthread_create(thread, &receiveloop_attr, MavlinkReceiver::start_helper, (void *)parent);
+	pthread_create(&_thread, &receiveloop_attr, MavlinkReceiver::start_trampoline, (void *)this);
 
 	pthread_attr_destroy(&receiveloop_attr);
+}
+
+void *MavlinkReceiver::start_trampoline(void *context)
+{
+	MavlinkReceiver *self = reinterpret_cast<MavlinkReceiver *>(context);
+	self->run();
+	return nullptr;
+}
+
+void MavlinkReceiver::stop()
+{
+	_should_exit.store(true);
+	pthread_join(_thread, nullptr);
 }

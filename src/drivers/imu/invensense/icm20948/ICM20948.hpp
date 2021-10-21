@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,7 +46,7 @@
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/device/spi.h>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/i2c_spi_buses.h>
@@ -58,12 +58,9 @@ using namespace InvenSense_ICM20948;
 class ICM20948 : public device::SPI, public I2CSPIDriver<ICM20948>
 {
 public:
-	ICM20948(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-		 spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio, bool enable_magnetometer = false);
+	ICM20948(const I2CSPIDriverConfig &config);
 	~ICM20948() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void RunImpl();
@@ -76,12 +73,12 @@ private:
 
 	// Sensor Configuration
 	static constexpr float FIFO_SAMPLE_DT{1e6f / 9000.f};
-	static constexpr uint32_t SAMPLES_PER_TRANSFER{2};                   // ensure at least 1 new accel sample per transfer
+	static constexpr int32_t SAMPLES_PER_TRANSFER{2};                    // ensure at least 1 new accel sample per transfer
 	static constexpr float GYRO_RATE{1e6f / FIFO_SAMPLE_DT};             // 9000 Hz gyro
 	static constexpr float ACCEL_RATE{GYRO_RATE / SAMPLES_PER_TRANSFER}; // 4500 Hz accel
 
 	// maximum FIFO samples per transfer is limited to the size of sensor_accel_fifo/sensor_gyro_fifo
-	static constexpr uint32_t FIFO_MAX_SAMPLES{math::min(math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(sensor_gyro_fifo_s::x) / sizeof(sensor_gyro_fifo_s::x[0])), sizeof(sensor_accel_fifo_s::x) / sizeof(sensor_accel_fifo_s::x[0]) * (int)(GYRO_RATE / ACCEL_RATE))};
+	static constexpr int32_t FIFO_MAX_SAMPLES{math::min(math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(sensor_gyro_fifo_s::x) / sizeof(sensor_gyro_fifo_s::x[0])), sizeof(sensor_accel_fifo_s::x) / sizeof(sensor_accel_fifo_s::x[0]) * (int)(GYRO_RATE / ACCEL_RATE))};
 
 	// Transfer data
 	struct FIFOTransferBuffer {
@@ -172,8 +169,8 @@ private:
 
 	enum REG_BANK_SEL_BIT _last_register_bank {REG_BANK_SEL_BIT::USER_BANK_0};
 
-	px4::atomic<uint32_t> _drdy_fifo_read_samples{0};
-	px4::atomic<uint32_t> _drdy_count{0};
+	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
+	int32_t _drdy_count{0};
 	bool _data_ready_interrupt_enabled{false};
 
 	enum class STATE : uint8_t {
@@ -181,12 +178,10 @@ private:
 		WAIT_FOR_RESET,
 		CONFIGURE,
 		FIFO_READ,
-	};
-
-	STATE _state{STATE::RESET};
+	} _state{STATE::RESET};
 
 	uint16_t _fifo_empty_interval_us{1250}; // default 1250 us / 800 Hz transfer interval
-	uint32_t _fifo_gyro_samples{static_cast<uint32_t>(_fifo_empty_interval_us / (1000000 / GYRO_RATE))};
+	int32_t _fifo_gyro_samples{static_cast<int32_t>(_fifo_empty_interval_us / (1000000 / GYRO_RATE))};
 
 	uint8_t _checked_register_bank0{0};
 	static constexpr uint8_t size_register_bank0_cfg{6};

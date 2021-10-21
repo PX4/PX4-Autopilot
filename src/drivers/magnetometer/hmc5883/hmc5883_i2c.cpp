@@ -42,8 +42,6 @@
 
 #include "hmc5883.h"
 
-#define HMC5883L_ADDRESS		0x1E
-
 device::Device *HMC5883_I2C_interface(int bus, int bus_frequency);
 
 class HMC5883_I2C : public device::I2C
