@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         container:
-        - 'px4io/px4-dev-simulation-bionic:2020-11-18' # Gazebo 9
+        - 'px4io/px4-dev-simulation-bionic:2021-09-08' # Gazebo 9
     container:
       image: ${{ matrix.container }}
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
