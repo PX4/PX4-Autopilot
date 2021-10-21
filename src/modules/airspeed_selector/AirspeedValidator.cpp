@@ -177,13 +177,10 @@ AirspeedValidator::update_CAS_scale_applied()
 
 	/* fallthrough */
 	case 1:
-
-	/* fallthrough */
-	case 2:
 		_CAS_scale_applied = _tas_scale_init;
 		break;
 
-	case 3:
+	case 2:
 		_CAS_scale_applied = _CAS_scale_validated;
 		break;
 	}

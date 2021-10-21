@@ -116,7 +116,7 @@ WindEstimator::update(uint64_t time_now)
 	_time_last_update = time_now;
 
 	float q_w = _wind_p_var;
-	float q_k_tas = _disable_tas_scale_estimate ? 0.f : _tas_scale_p_var;
+	float q_k_tas = _tas_scale_p_var;
 
 	float SPP0 = dt * dt;
 	float SPP1 = SPP0 * q_w;
@@ -179,10 +179,6 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 	// compute Kalman gain
 	matrix::Matrix<float, 3, 1> K = _P * H_tas.transpose();
 	K /= S(0, 0);
-
-	if (_disable_tas_scale_estimate) {
-		K(2, 0) = 0.f;
-	}
 
 	// compute innovation
 	const float airspeed_pred = _state(INDEX_TAS_SCALE) * airspeed_predicted_raw;
@@ -269,10 +265,6 @@ WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const 
 	// compute Kalman gain
 	matrix::Matrix<float, 3, 1> K = _P * H_beta.transpose();
 	K /= S(0, 0);
-
-	if (_disable_tas_scale_estimate) {
-		K(2, 0) = 0.f;
-	}
 
 	// compute predicted side slip angle
 	matrix::Vector3f rel_wind(velI(0) - _state(INDEX_W_N), velI(1) - _state(INDEX_W_E), velI(2));

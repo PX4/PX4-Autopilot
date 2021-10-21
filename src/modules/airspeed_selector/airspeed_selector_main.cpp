@@ -387,7 +387,7 @@ AirspeedModule::Run()
 
 			// save estimated airspeed scale after disarm
 			if (!armed && _armed_prev) {
-				if (_param_aspd_scale_apply.get() > 1) {
+				if (_param_aspd_scale_apply.get() > 0) {
 					if (fabsf(_airspeed_validator[i].get_CAS_scale_validated() - _param_airspeed_scale[i]) > 0.01f) {
 						// apply the new scale if changed more than 0.01
 						mavlink_log_info(&_mavlink_log_pub, "Airspeed sensor Nr. %d ASPD_SCALE updated: %.2f --> %.2f", i + 1,
@@ -460,7 +460,6 @@ void AirspeedModule::update_params()
 		_airspeed_validator[i].set_checks_fail_delay(_checks_fail_delay.get());
 		_airspeed_validator[i].set_checks_clear_delay(_checks_clear_delay.get());
 		_airspeed_validator[i].set_airspeed_stall(_param_fw_airspd_stall.get());
-		_airspeed_validator[i].set_disable_tas_scale_estimate(_param_aspd_scale_apply.get() == 0);
 	}
 }
 
