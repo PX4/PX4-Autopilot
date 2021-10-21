@@ -66,3 +66,6 @@
 [submodule "Tools/simulation-ignition"]
 	path = Tools/simulation-ignition
 	url = https://github.com/Auterion/px4-simulation-ignition.git
+[submodule "Tools/rotors_simulator"]
+	path = Tools/rotors_simulator
+	url = https://github.com/ethz-asl/rotors_simulator.git
