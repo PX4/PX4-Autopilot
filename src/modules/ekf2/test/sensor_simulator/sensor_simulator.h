@@ -49,6 +49,7 @@
 #include <sstream>
 #include <vector>
 #include <array>
+#include <motion_planning/VelocitySmoothing.hpp>
 
 #include "imu.h"
 #include "mag.h"
@@ -82,6 +83,10 @@ public:
 
 	void runReplaySeconds(float duration_seconds);
 	void runReplayMicroseconds(uint32_t duration);
+
+	void setTrajectoryTargetVelocity(const Vector3f &velocity_target);
+	void runTrajectorySeconds(float duration_seconds);
+	void runTrajectoryMicroseconds(uint32_t duration);
 
 	void startBaro() { _baro.start(); }
 	void stopBaro() { _baro.stop(); }
@@ -120,11 +125,14 @@ public:
 	RangeFinder _rng;
 	Vio         _vio;
 
+	VelocitySmoothing _trajectory[3];
+
 private:
 	void setSensorDataToDefault();
 	void setSensorDataFromReplayData();
 	void setSensorRateToDefault();
 	void setSingleReplaySample(const sensor_info &sample);
+	void setSensorDataFromTrajectory();
 	void startBasicSensor();
 	void updateSensors();
 
@@ -137,5 +145,6 @@ private:
 	uint64_t _current_replay_data_index{0};
 	uint64_t _time{0};	// microseconds
 
+	Dcmf _R_body_to_world{};
 };
 #endif // !EKF_SENSOR_SIMULATOR_H
