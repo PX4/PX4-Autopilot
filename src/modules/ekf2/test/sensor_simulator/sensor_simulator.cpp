@@ -285,6 +285,89 @@ void SensorSimulator::setSingleReplaySample(const sensor_info &sample)
 	}
 }
 
+void SensorSimulator::setTrajectoryTargetVelocity(const Vector3f &velocity_target)
+{
+	for (int i = 0; i < 3; i++) {
+		_trajectory[i].updateDurations(velocity_target(i));
+	}
+
+	VelocitySmoothing::timeSynchronization(_trajectory, 3);
+}
+
+void SensorSimulator::runTrajectorySeconds(float duration_seconds)
+{
+	runTrajectoryMicroseconds(uint32_t(duration_seconds * 1e6f));
+}
+
+void SensorSimulator::runTrajectoryMicroseconds(uint32_t duration)
+{
+	// simulate in 1000us steps
+	const uint64_t start_time = _time;
+
+	for (; _time < start_time + duration; _time += 1000) {
+
+		for (int i = 0; i < 3; i++) {
+			_trajectory[i].updateTraj(1e-3f);
+		}
+
+		setSensorDataFromTrajectory();
+
+		bool update_imu = _imu.should_send(_time);
+		updateSensors();
+
+		if (update_imu) {
+			_ekf->update();
+		}
+	}
+}
+
+void SensorSimulator::setSensorDataFromTrajectory()
+{
+	const Vector3f accel_world{_trajectory[0].getCurrentAcceleration(),
+				   _trajectory[1].getCurrentAcceleration(),
+				   _trajectory[2].getCurrentAcceleration()};
+	const Vector3f vel_world{_trajectory[0].getCurrentVelocity(),
+				 _trajectory[1].getCurrentVelocity(),
+				 _trajectory[2].getCurrentVelocity()};
+
+	// IMU
+	const Vector3f earth_gravity = {0.0f, 0.0f, -CONSTANTS_ONE_G};
+	const Dcmf R_world_to_body = _R_body_to_world.transpose();
+	const Vector3f specific_force = R_world_to_body * (accel_world + earth_gravity);
+	const Vector3f gyro{};
+
+	_imu.setData(specific_force, gyro);
+
+	// Magnetometer
+	if (_mag.isRunning()) {
+		const Vector3f world_mag_field = Vector3f{0.2f, 0.0f, 0.4f};
+		const Vector3f mag_field_body = R_world_to_body * world_mag_field;
+		_mag.setData(mag_field_body);
+	}
+
+	// Baro
+	/* if (_baro.isRunning()) { */
+	/* 	_baro.setData(..); */
+	/* } */
+
+	// Range finder
+	const float distance_to_ground = -_trajectory[2].getCurrentPosition() / _R_body_to_world(2, 2);
+
+	if (_rng.isRunning()) {
+		_rng.setData(distance_to_ground, -1);
+	}
+
+	// Optical flow
+	if (_flow.isRunning()) {
+		flowSample flow_sample = _flow.dataAtRest();
+		const Vector3f vel_body = R_world_to_body * vel_world;
+		flow_sample.flow_xy_rad =
+			Vector2f(vel_body(1) * flow_sample.dt / distance_to_ground,
+				 -vel_body(0) * flow_sample.dt / distance_to_ground);
+		_flow.setData(flow_sample);
+	}
+}
+
 void SensorSimulator::setGpsLatitude(const double latitude)
 {
 	int32_t lat = static_cast<int32_t>(latitude * 1e7);
@@ -311,11 +394,12 @@ void SensorSimulator::setImuBias(Vector3f accel_bias, Vector3f gyro_bias)
 
 void SensorSimulator::simulateOrientation(Quatf orientation)
 {
+	_R_body_to_world = Dcmf(orientation);
+
 	const Vector3f world_sensed_gravity = {0.0f, 0.0f, -CONSTANTS_ONE_G};
 	const Vector3f world_mag_field = Vector3f{0.2f, 0.0f, 0.4f};
-	const Dcmf R_bodyToWorld(orientation);
-	const Vector3f sensed_gravity_body = R_bodyToWorld.transpose() * world_sensed_gravity;
-	const Vector3f body_mag_field = R_bodyToWorld.transpose() * world_mag_field;
+	const Vector3f sensed_gravity_body = _R_body_to_world.transpose() * world_sensed_gravity;
+	const Vector3f body_mag_field = _R_body_to_world.transpose() * world_mag_field;
 
 	_imu.setData(sensed_gravity_body, Vector3f{0.0f, 0.0f, 0.0f});
 	_mag.setData(body_mag_field);
