@@ -85,7 +85,6 @@ public:
 	void set_tas_gate(uint8_t gate_size) {_tas_gate = gate_size; }
 	void set_beta_gate(uint8_t gate_size) {_beta_gate = gate_size; }
 	void set_scale_init(float scale_init) {_scale_init = 1.f / math::constrain(scale_init, 0.1f, 10.f); }
-	void set_disable_tas_scale_estimate(bool disable_tas_scale_estimate) {_disable_tas_scale_estimate = disable_tas_scale_estimate; }
 
 private:
 	enum {
@@ -122,8 +121,6 @@ private:
 		0;	///< timestamp of when true airspeed measurements have consistently started to be rejected
 
 	bool _wind_estimator_reset = false; ///< wind estimator was reset in this cycle
-
-	bool _disable_tas_scale_estimate{false};
 
 	// initialise state and state covariance matrix
 	bool initialise(const matrix::Vector3f &velI, const matrix::Vector2f &velIvar, const float tas_meas);

@@ -76,15 +76,14 @@ PARAM_DEFINE_INT32(ASPD_TAS_GATE, 3);
 PARAM_DEFINE_INT32(ASPD_BETA_GATE, 1);
 
 /**
- * Controls when to apply the new estimated airspeed scale
+ * Controls when to apply the new estimated airspeed scale(s)
  *
- * @value 0 Disable airspeed scale estimation completely
- * @value 1 Do not apply the new gains (logging and inside wind estimator)
- * @value 2 Apply the new scale after disarm
- * @value 3 Apply the new gains in air
+ * @value 0 Do not automatically apply the estimated scale
+ * @value 1 Apply the estimated scale after disarm
+ * @value 2 Apply the estimated scale in air
  * @group Airspeed Validator
  */
-PARAM_DEFINE_INT32(ASPD_SCALE_APPLY, 2);
+PARAM_DEFINE_INT32(ASPD_SCALE_APPLY, 1);
 
 /**
  * Scale of airspeed sensor 1
