@@ -69,7 +69,7 @@ public:
 	matrix::Vector2f get_wind() { return matrix::Vector2f{_state(INDEX_W_N), _state(INDEX_W_E)}; }
 
 	// invert scale (CAS = IAS * scale), protect agains division by 0, constrain to [0.1, 10]
-	float get_tas_scale() { return math::constrain(1.f / (_state(INDEX_TAS_SCALE) + 0.0001f), 0.1f, 10.f); }
+	float get_tas_scale() { return 1.f / math::constrain(_state(INDEX_TAS_SCALE), 0.1f, 10.0f); }
 	float get_tas_scale_var() { return _P(2, 2); }
 	float get_tas_innov() { return _tas_innov; }
 	float get_tas_innov_var() { return _tas_innov_var; }
@@ -84,7 +84,7 @@ public:
 	void set_beta_noise(float beta_var) { _beta_var = beta_var * beta_var; }
 	void set_tas_gate(uint8_t gate_size) {_tas_gate = gate_size; }
 	void set_beta_gate(uint8_t gate_size) {_beta_gate = gate_size; }
-	void set_scale_init(float scale_init) {_scale_init = math::constrain(1.f / (scale_init + 0.0001f), 0.1f, 10.f); }
+	void set_scale_init(float scale_init) {_scale_init = 1.f / math::constrain(scale_init, 0.1f, 10.f); }
 	void set_disable_tas_scale_estimate(bool disable_tas_scale_estimate) {_disable_tas_scale_estimate = disable_tas_scale_estimate; }
 
 private:
