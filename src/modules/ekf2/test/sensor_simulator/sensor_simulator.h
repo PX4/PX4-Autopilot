@@ -113,6 +113,8 @@ public:
 	void setImuBias(Vector3f accel_bias, Vector3f gyro_bias);
 
 	void simulateOrientation(Quatf orientation);
+	void setOrientation(const Quatf &orientation) { _R_body_to_world = Dcmf(orientation); }
+	void setOrientation(const Dcmf &orientation) { _R_body_to_world = orientation; }
 
 	void loadSensorDataFromFile(std::string filename);
 
