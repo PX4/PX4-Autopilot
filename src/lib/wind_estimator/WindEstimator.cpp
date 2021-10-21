@@ -166,7 +166,7 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 
 	// compute state observation matrix H
 	const float HH0 = airspeed_predicted_raw;
-	const float HH1 = _state(INDEX_TAS_SCALE) / HH0;
+	const float HH1 = _state(INDEX_TAS_SCALE) / math::max(HH0, 0.1f);
 
 	matrix::Matrix<float, 1, 3> H_tas;
 	H_tas(0, 0) = HH1 * (-v_n + _state(INDEX_W_N));
