@@ -198,6 +198,11 @@ AirspeedValidator::check_airspeed_data_stuck(uint64_t time_now)
 {
 	// data stuck test: trigger when IAS is not changing for DATA_STUCK_TIMEOUT (2s)
 
+	if (!_data_stuck_check_enabled) {
+		_data_stuck_test_failed = false;
+		return;
+	}
+
 	if (fabsf(_IAS - _IAS_prev) > FLT_EPSILON || _time_last_unequal_data == 0) {
 		_time_last_unequal_data = time_now;
 		_IAS_prev = _IAS;
@@ -217,8 +222,8 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 		_time_wind_estimator_initialized = time_now;
 	}
 
-	// reset states if we are not flying or wind estimator was just initialized/reset
-	if (!_in_fixed_wing_flight || (time_now - _time_wind_estimator_initialized) < 5_s
+	// reset states if check is disabled, we are not flying or wind estimator was just initialized/reset
+	if (!_innovation_check_enabled || !_in_fixed_wing_flight || (time_now - _time_wind_estimator_initialized) < 5_s
 	    || _tas_innov_integ_threshold <= 0.f) {
 		_innovations_check_failed = false;
 		_time_last_tas_pass = time_now;
@@ -260,6 +265,12 @@ void
 AirspeedValidator::check_load_factor(float accel_z)
 {
 	// Check if the airspeed reading is lower than physically possible given the load factor
+
+	if (!_load_factor_check_enabled) {
+		_load_factor_ratio = 0.5f;
+		_load_factor_check_failed = false;
+		return;
+	}
 
 	if (_in_fixed_wing_flight) {
 
