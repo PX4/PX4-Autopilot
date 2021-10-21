@@ -1067,6 +1067,11 @@ void MixingOutput::handleCommands()
 
 void MixingOutput::resetMixerThreadSafe()
 {
+	if (_use_dynamic_mixing) {
+		PX4_ERR("mixer reset unavailable, not using static mixers");
+		return;
+	}
+
 	if ((Command::Type)_command.command.load() != Command::Type::None) {
 		// Cannot happen, because we expect only one other thread to call this.
 		// But as a safety precaution we return here.
@@ -1091,6 +1096,11 @@ void MixingOutput::resetMixerThreadSafe()
 
 int MixingOutput::loadMixerThreadSafe(const char *buf, unsigned len)
 {
+	if (_use_dynamic_mixing) {
+		PX4_ERR("mixer load unavailable, not using static mixers");
+		return -1;
+	}
+
 	if ((Command::Type)_command.command.load() != Command::Type::None) {
 		// Cannot happen, because we expect only one other thread to call this.
 		// But as a safety precaution we return here.
