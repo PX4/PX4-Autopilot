@@ -86,6 +86,181 @@ PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
 PARAM_DEFINE_FLOAT(FW_L1_R_SLEW_MAX, 90.0f);
 
 /**
+ * Use NPFG as lateral-directional guidance law for fixed-wing vehicles
+ *
+ * Replaces L1.
+ *
+ * @boolean
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_INT32(FW_USE_NPFG, 0);
+
+/**
+ * NPFG period
+ *
+ * Period of the NPFG control law.
+ *
+ * @unit s
+ * @min 5.0
+ * @max 40.0
+ * @decimal 1
+ * @increment 0.5
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_FLOAT(NPFG_PERIOD, 20.0f);
+
+/**
+ * NPFG damping ratio
+ *
+ * Damping ratio of the NPFG control law.
+ *
+ * @min 0.10
+ * @max 1.00
+ * @decimal 2
+ * @increment 0.01
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_FLOAT(NPFG_DAMPING, 0.7f);
+
+/**
+ * Enable automatic lower bound on the NPFG period
+ *
+ * Avoids limit cycling from a too aggressively tuned period/damping combination.
+ * If set to false, also disables the upper bound NPFG_PERIOD_UB.
+ *
+ * @boolean
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_INT32(NPFG_LB_PERIOD, 1);
+
+/**
+ * Enable automatic upper bound on the NPFG period
+ *
+ * Adapts period to maintain track keeping in variable winds and path curvature.
+ *
+ * @boolean
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_INT32(NPFG_UB_PERIOD, 1);
+
+/**
+ * Ramp in automatic period adaptations with track proximity
+ *
+ * @boolean
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_INT32(NPFG_RAMP_PERIOD, 1);
+
+/**
+ * Enable track keeping excess wind handling logic.
+ *
+ * @boolean
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_INT32(NPFG_TRACK_KEEP, 1);
+
+/**
+ * Enable minimum ground speed maintaining excess wind handling logic
+ *
+ * @boolean
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_INT32(NPFG_EN_MIN_GSP, 1);
+
+/**
+ * Enable wind excess regulation.
+ *
+ * Disabling this parameter further disables all other airspeed incrementation options.
+ *
+ * @boolean
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_INT32(NPFG_WIND_REG, 1);
+
+/**
+ * Maximum, minimum forward ground speed for track keeping in excess wind
+ *
+ * The maximum value of the minimum forward ground speed that may be commanded
+ * by the track keeping excess wind handling logic. Occurs at the track error
+ * boundary * normalized track error fraction and is reduced to zero on track.
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 10.0
+ * @decimal 1
+ * @increment 0.5
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_FLOAT(NPFG_GSP_MAX_TK, 5.0f);
+
+/**
+ * Normalized track error fraction
+ *
+ * Determines at what fraction of the normalized track error the maximum track keeping
+ * forward ground speed demand is reached.
+ *
+ * @min 0.1
+ * @max 1.0
+ * @decimal 1
+ * @increment 0.1
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_FLOAT(NPFG_NTE_FRAC, 0.5f);
+
+/**
+ * Roll time constant
+ *
+ * Time constant of roll controller command / response, modeled as first order delay.
+ *
+ * @unit s
+ * @min 0.05
+ * @max 2.00
+ * @decimal 2
+ * @increment 0.05
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_FLOAT(NPFG_ROLL_TC, 0.5f);
+
+/**
+ * NPFG airspeed buffer
+ *
+ * The size of the feasibility transition region at cross wind angle >= 90 deg.
+ * This must be non-zero to avoid jumpy airspeed incrementation while using wind
+ * excess handling logic. Similarly used as buffer region around zero airspeed.
+ *
+ * @unit m/s
+ * @min 0.1
+ * @max 5.0
+ * @decimal 1
+ * @increment 0.1
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_FLOAT(NPFG_ASPD_BUF, 1.5f);
+
+/**
+ * NPFG switch distance multiplier
+ *
+ * Multiplied by the track error boundary to determine when the aircraft switches
+ * to the next waypoint and/or path segment. Should be less than 1. 1/pi (0.32)
+ * sets the switch distance equivalent to that of the L1 controller.
+ *
+ * @min 0.1
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_FLOAT(NPFG_SW_DST_MLT, 0.32f);
+
+/**
+ * Enable use of wind estimates for NPFG. Disabling, controller assumes zero wind.
+ *
+ * @boolean
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_INT32(NPFG_EN_WIND_EST, 1);
+
+/**
  * Cruise throttle
  *
  * This is the throttle setting required to achieve the desired cruise speed. Most airframes have a value of 0.5-0.7.

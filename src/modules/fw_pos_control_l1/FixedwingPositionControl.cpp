@@ -106,6 +106,24 @@ FixedwingPositionControl::parameters_update()
 	_l1_control.set_l1_roll_limit(radians(_param_fw_r_lim.get()));
 	_l1_control.set_roll_slew_rate(radians(_param_fw_l1_r_slew_max.get()));
 
+	// NPFG parameters
+	_npfg.setPeriod(_param_npfg_period.get());
+	_npfg.setDamping(_param_npfg_damping.get());
+	_npfg.enablePeriodLB(_param_npfg_en_period_lb.get());
+	_npfg.enablePeriodUB(_param_npfg_en_period_ub.get());
+	_npfg.rampInAdaptedPeriod(_param_npfg_ramp_adapted_period.get());
+	_npfg.enableMinGroundSpeed(_param_npfg_en_min_gsp.get());
+	_npfg.enableTrackKeeping(_param_npfg_en_track_keeping.get());
+	_npfg.enableWindExcessRegulation(_param_npfg_en_wind_reg.get());
+	_npfg.setMinGroundSpeed(_param_fw_gnd_spd_min.get());
+	_npfg.setMaxTrackKeepingMinGroundSpeed(_param_npfg_track_keeping_gsp_max.get());
+	_npfg.setNormalizedTrackErrorFraction(_param_npfg_nte_fraction.get());
+	_npfg.setRollTimeConst(_param_npfg_roll_time_const.get());
+	_npfg.setAirspeedBuffer(_param_npfg_airspeed_buffer.get());
+	_npfg.setSwitchDistanceMultiplier(_param_npfg_switch_distance_multiplier.get());
+	_npfg.setRollLimit(radians(_param_fw_r_lim.get()));
+	_npfg.setRollSlewRate(radians(_param_fw_l1_r_slew_max.get()));
+
 	// TECS parameters
 	_tecs.set_max_climb_rate(_param_fw_t_clmb_max.get());
 	_tecs.set_max_sink_rate(_param_fw_t_sink_max.get());
@@ -277,6 +295,37 @@ FixedwingPositionControl::airspeed_poll()
 }
 
 void
+FixedwingPositionControl::wind_poll()
+{
+	if (_wind_sub.updated()) {
+		wind_s wind;
+		_wind_sub.update(&wind);
+		_wind_valid = PX4_ISFINITE(wind.windspeed_north)
+			      && PX4_ISFINITE(wind.windspeed_east);
+		_time_wind_last_received = hrt_absolute_time();
+
+		_wind_vel(0) = wind.windspeed_north;
+		_wind_vel(1) = wind.windspeed_east;
+
+	} else {
+		/* no wind updates for 10 seconds */
+		if (_wind_valid && (hrt_absolute_time() - _time_wind_last_received) > 1e7) {
+			_wind_valid = false;
+
+			/* consideration of wind estimate in l1 disabled, reverting to ground speed only formulation */
+			_wind_vel(0) = 0.0f;
+			_wind_vel(1) = 0.0f;
+		}
+	}
+
+	if (!_param_npfg_en_wind_estimates.get()) {
+		_wind_valid = false;
+		_wind_vel(0) = 0.0f;
+		_wind_vel(1) = 0.0f;
+	}
+}
+
+void
 FixedwingPositionControl::manual_control_setpoint_poll()
 {
 	_manual_control_setpoint_sub.update(&_manual_control_setpoint);
@@ -380,7 +429,7 @@ FixedwingPositionControl::calculate_target_airspeed(float airspeed_demand, const
 	}
 
 	// groundspeed undershoot
-	if (!_l1_control.circle_mode()) {
+	if (!_l1_control.circle_mode() && !_param_fw_use_npfg.get()) {
 		/*
 		 * This error value ensures that a plane (as long as its throttle capability is
 		 * not exceeded) travels towards a waypoint (and is not pushed more and more away
@@ -494,6 +543,42 @@ FixedwingPositionControl::status_publish()
 	pos_ctrl_status.timestamp = hrt_absolute_time();
 
 	pos_ctrl_status.type = _type;
+
+	if (_param_fw_use_npfg.get()) {
+		npfg_status_s npfg_status = {};
+
+		npfg_status.wind_est_valid = _wind_valid;
+
+		float bearing = _npfg.getBearing(); // dont repeat atan2 calc
+
+		pos_ctrl_status.nav_bearing = bearing;
+		pos_ctrl_status.target_bearing = _npfg.targetBearing();
+		pos_ctrl_status.xtrack_error = _npfg.getTrackError();
+		pos_ctrl_status.acceptance_radius = _npfg.switchDistance(500.0f);
+
+		npfg_status.lat_accel = _npfg.getLateralAccel();
+		npfg_status.lat_accel_ff = _npfg.getLateralAccelFF();
+		npfg_status.heading_ref = _npfg.getHeadingRef();
+		npfg_status.bearing = bearing;
+		npfg_status.bearing_feas = _npfg.getBearingFeas();
+		npfg_status.bearing_feas_on_track = _npfg.getOnTrackBearingFeas();
+		npfg_status.signed_track_error = _npfg.getTrackError();
+		npfg_status.track_error_bound = _npfg.getTrackErrorBound();
+		npfg_status.airspeed_ref = _npfg.getAirspeedRef();
+		npfg_status.min_ground_speed_ref = _npfg.getMinGroundSpeedRef();
+		npfg_status.adapted_period = _npfg.getAdaptedPeriod();
+		npfg_status.p_gain = _npfg.getPGain();
+		npfg_status.time_const = _npfg.getTimeConst();
+		npfg_status.timestamp = hrt_absolute_time();
+		_npfg_status_pub.publish(npfg_status);
+
+	} else {
+		pos_ctrl_status.nav_bearing = _l1_control.nav_bearing();
+		pos_ctrl_status.target_bearing = _l1_control.target_bearing();
+		pos_ctrl_status.xtrack_error = _l1_control.crosstrack_error();
+		pos_ctrl_status.acceptance_radius = _l1_control.switch_distance(500.0f);
+	}
+
 
 	_pos_ctrl_status_pub.publish(pos_ctrl_status);
 }
@@ -719,7 +804,12 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 	const float dt = math::constrain((now - _control_position_last_called) * 1e-6f, 0.01f, 0.05f);
 	_control_position_last_called = now;
 
-	_l1_control.set_dt(dt);
+	if (_param_fw_use_npfg.get()) {
+		_npfg.setDt(dt);
+
+	} else {
+		_l1_control.set_dt(dt);
+	}
 
 	_att_sp.fw_control_yaw = false;		// by default we don't want yaw to be contoller directly with rudder
 	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;		// by default we don't use flaps
@@ -1042,12 +1132,24 @@ FixedwingPositionControl::control_auto_position(const hrt_abstime &now, const Ve
 		}
 	}
 
-	_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, get_nav_speed_2d(ground_speed));
-	_att_sp.roll_body = _l1_control.get_roll_setpoint();
-	_att_sp.yaw_body = _l1_control.nav_bearing();
+	float target_airspeed = calculate_target_airspeed(mission_airspeed, ground_speed);
+
+	if (_param_fw_use_npfg.get()) {
+		// _npfg.setAirspeedNom(target_airspeed);
+		_npfg.setAirspeedMax(_param_fw_airspd_max.get());
+		_npfg.navigateWaypoints(prev_wp, curr_wp, curr_pos, ground_speed, _wind_vel);
+		_att_sp.roll_body = _npfg.getRollSetpoint();
+		_att_sp.yaw_body = _npfg.getBearing();
+		target_airspeed = _npfg.getAirspeedRef();
+
+	} else {
+		_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, get_nav_speed_2d(ground_speed));
+		_att_sp.roll_body = _l1_control.get_roll_setpoint();
+		_att_sp.yaw_body = _l1_control.nav_bearing();
+	}
 
 	tecs_update_pitch_throttle(now, position_sp_alt,
-				   calculate_target_airspeed(mission_airspeed, ground_speed),
+				   target_airspeed,
 				   radians(_param_fw_p_lim_min.get()),
 				   radians(_param_fw_p_lim_max.get()),
 				   tecs_fw_thr_min,
@@ -1518,6 +1620,46 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const Vec
 
 		/* land with minimal speed */
 
+		const float airspeed_land = _param_fw_lnd_airspd_sc.get() * _param_fw_airspd_min.get();
+
+		float target_airspeed = calculate_target_airspeed(airspeed_land, ground_speed);
+
+		if (_param_fw_use_npfg.get()) {
+			_npfg.setAirspeedNom(target_airspeed);
+			_npfg.setAirspeedMax(_param_fw_airspd_max.get());
+
+			if (_land_noreturn_horizontal) {
+				// heading hold
+				_npfg.navigateHeading(_target_bearing, Vector2f{cosf(_yaw), sinf(_yaw)}, Vector2f{0.0f, 0.0f});
+
+			} else {
+				// normal navigation
+				_npfg.navigateWaypoints(prev_wp, curr_wp, curr_pos, ground_speed, _wind_vel);
+			}
+
+			_att_sp.roll_body = _npfg.getRollSetpoint();
+			_att_sp.yaw_body = _npfg.getBearing();
+			target_airspeed = _npfg.getAirspeedRef();
+
+		} else {
+			if (_land_noreturn_horizontal) {
+				// heading hold
+				_l1_control.navigate_heading(_target_bearing, _yaw, ground_speed);
+
+			} else {
+				// normal navigation
+				_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, ground_speed);
+			}
+
+			_att_sp.roll_body = _l1_control.get_roll_setpoint();
+			_att_sp.yaw_body = _l1_control.nav_bearing();
+		}
+
+		if (_land_noreturn_horizontal) {
+			/* limit roll motion to prevent wings from touching the ground first */
+			_att_sp.roll_body = constrain(_att_sp.roll_body, radians(-10.0f), radians(10.0f));
+		}
+
 		/* force TECS to only control speed with pitch, altitude is only implicitly controlled now */
 		// _tecs.set_speed_weight(2.0f);
 
@@ -1552,7 +1694,6 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const Vec
 			_land_stayonground = true;
 		}
 
-		const float airspeed_land = _param_fw_lnd_airspd_sc.get() * _param_fw_airspd_min.get();
 		const float throttle_land = _param_fw_thr_min.get() + (_param_fw_thr_max.get() - _param_fw_thr_min.get()) * 0.1f;
 
 		tecs_update_pitch_throttle(now, terrain_alt + flare_curve_alt_rel,
@@ -1624,6 +1765,44 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const Vec
 		}
 
 		const float airspeed_approach = _param_fw_lnd_airspd_sc.get() * _param_fw_airspd_min.get();
+
+		float target_airspeed = calculate_target_airspeed(airspeed_approach, ground_speed);
+
+		if (_param_fw_use_npfg.get()) {
+			_npfg.setAirspeedNom(target_airspeed);
+			_npfg.setAirspeedMax(_param_fw_airspd_max.get());
+
+			if (_land_noreturn_horizontal) {
+				// heading hold
+				_npfg.navigateHeading(_target_bearing, Vector2f{cosf(_yaw), sinf(_yaw)}, Vector2f{0.0f, 0.0f});
+
+			} else {
+				// normal navigation
+				_npfg.navigateWaypoints(prev_wp, curr_wp, curr_pos, ground_speed, _wind_vel);
+			}
+
+			_att_sp.roll_body = _npfg.getRollSetpoint();
+			_att_sp.yaw_body = _npfg.getBearing();
+			target_airspeed = _npfg.getAirspeedRef();
+
+		} else {
+			if (_land_noreturn_horizontal) {
+				// heading hold
+				_l1_control.navigate_heading(_target_bearing, _yaw, ground_speed);
+
+			} else {
+				// normal navigation
+				_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, ground_speed);
+			}
+
+			_att_sp.roll_body = _l1_control.get_roll_setpoint();
+			_att_sp.yaw_body = _l1_control.nav_bearing();
+		}
+
+		if (_land_noreturn_horizontal) {
+			/* limit roll motion to prevent wings from touching the ground first */
+			_att_sp.roll_body = constrain(_att_sp.roll_body, radians(-10.0f), radians(10.0f));
+		}
 
 		tecs_update_pitch_throttle(now, altitude_desired,
 					   calculate_target_airspeed(airspeed_approach, ground_speed),
@@ -1938,6 +2117,7 @@ FixedwingPositionControl::Run()
 		}
 
 		airspeed_poll();
+		wind_poll();
 		manual_control_setpoint_poll();
 		vehicle_attitude_poll();
 		vehicle_command_poll();
