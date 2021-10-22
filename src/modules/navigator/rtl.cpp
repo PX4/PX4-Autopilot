@@ -120,13 +120,11 @@ void RTL::find_RTL_destination()
 		double mission_landing_lat;
 		double mission_landing_lon;
 		float mission_landing_alt;
-		RTLDestinationType destination_type = RTL_DESTINATION_MISSION_LANDING;
 
 		if (vtol_in_rw_mode) {
 			mission_landing_lat = _navigator->get_mission_landing_lat();
 			mission_landing_lon = _navigator->get_mission_landing_lon();
 			mission_landing_alt = _navigator->get_mission_landing_alt();
-			destination_type = RTL_DESTINATION_HOME;
 
 		} else {
 			mission_landing_lat = _navigator->get_mission_landing_start_lat();
@@ -145,9 +143,7 @@ void RTL::find_RTL_destination()
 			_destination.lat = mission_landing_lat;
 			_destination.lon = mission_landing_lon;
 			_destination.alt = mission_landing_alt;
-			_destination.type = destination_type;
-
-
+			_destination.type = RTL_DESTINATION_MISSION_LANDING;;
 		}
 	}
 
