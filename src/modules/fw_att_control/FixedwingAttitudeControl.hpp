@@ -223,7 +223,7 @@ private:
 	int		parameters_update();
 
 	void		vehicle_control_mode_poll();
-	void		vehicle_manual_poll();
+	void		vehicle_manual_poll(const float yaw_body);
 	void		vehicle_attitude_setpoint_poll();
 	void		vehicle_rates_setpoint_poll();
 	void		vehicle_land_detected_poll();
