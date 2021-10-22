@@ -631,8 +631,29 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 	return arming_res;
 }
 
-transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason)
+transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool forced)
 {
+	if (!forced) {
+		const bool landed = (_land_detector.landed || _land_detector.maybe_landed || is_ground_rover(_status));
+		const bool mc_manual_thrust_mode = _status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+						   && _vehicle_control_mode.flag_control_manual_enabled
+						   && !_vehicle_control_mode.flag_control_climb_rate_enabled;
+		const bool commanded_by_rc = (calling_reason == arm_disarm_reason_t::rc_stick)
+					     || (calling_reason == arm_disarm_reason_t::rc_switch)
+					     || (calling_reason == arm_disarm_reason_t::rc_button);
+
+		if (!landed && !(mc_manual_thrust_mode && commanded_by_rc)) {
+			if (calling_reason != arm_disarm_reason_t::rc_stick) {
+				mavlink_log_critical(&_mavlink_log_pub, "Disarming denied! Not landed\t");
+				events::send(events::ID("commander_disarming_denied_not_landed"),
+				{events::Log::Critical, events::LogInternal::Info},
+				"Disarming denied, not landed");
+			}
+
+			return TRANSITION_DENIED;
+		}
+	}
+
 	transition_result_t arming_res = arming_state_transition(_status,
 					 _safety,
 					 vehicle_status_s::ARMING_STATE_STANDBY,
@@ -873,32 +894,6 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				const bool cmd_from_io = (static_cast<int>(roundf(cmd.param3)) == 1234);
 
 				if (!forced) {
-					if (!(_land_detector.landed || _land_detector.maybe_landed) && !is_ground_rover(_status)) {
-						if (arming_action == vehicle_command_s::ARMING_ACTION_ARM) {
-							if (_armed.armed) {
-								mavlink_log_warning(&_mavlink_log_pub, "Arming denied! Already armed\t");
-								events::send(events::ID("commander_arming_denied_already_armed"),
-								{events::Log::Warning, events::LogInternal::Info },
-								"Arming denied, already armed");
-
-							} else {
-								mavlink_log_critical(&_mavlink_log_pub, "Arming denied! Not landed\t");
-								events::send(events::ID("commander_arming_denied_not_landed"),
-								{events::Log::Error, events::LogInternal::Info },
-								"Arming denied, not landed");
-							}
-
-						} else {
-							mavlink_log_critical(&_mavlink_log_pub, "Disarming denied! Not landed\t");
-							events::send(events::ID("commander_disarming_denied_not_landed"),
-							{events::Log::Critical, events::LogInternal::Info },
-							"Disarming denied, not landed");
-						}
-
-						cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
-						break;
-					}
-
 					// Flick to in-air restore first if this comes from an onboard system and from IO
 					if (cmd.source_system == _status.system_id && cmd.source_component == _status.component_id
 					    && cmd_from_io && (arming_action == vehicle_command_s::ARMING_ACTION_ARM)) {
@@ -914,7 +909,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					arming_res = arm(arm_disarm_reason, cmd.from_external || !forced);
 
 				} else if (arming_action == vehicle_command_s::ARMING_ACTION_DISARM) {
-					arming_res = disarm(arm_disarm_reason);
+					arming_res = disarm(arm_disarm_reason, forced);
 
 				}
 
@@ -1917,20 +1912,9 @@ Commander::run()
 						 _safety.safety_switch_available, _status);
 
 				// disarm if safety is now on and still armed
-				if (_armed.armed && _safety.safety_switch_available && !_safety.safety_off) {
-
-					bool safety_disarm_allowed = (_status.hil_state == vehicle_status_s::HIL_STATE_OFF);
-
-					// prevent disarming via safety button if not landed
-					if (hrt_elapsed_time(&_land_detector.timestamp) < 10_s) {
-						if (!_land_detector.landed) {
-							safety_disarm_allowed = false;
-						}
-					}
-
-					if (safety_disarm_allowed) {
-						disarm(arm_disarm_reason_t::safety_button);
-					}
+				if (_armed.armed && _safety.safety_switch_available && !_safety.safety_off
+				    && (_status.hil_state == vehicle_status_s::HIL_STATE_OFF)) {
+					disarm(arm_disarm_reason_t::safety_button);
 				}
 
 				// Notify the user if the status of the safety switch changes
@@ -2061,10 +2045,10 @@ Commander::run()
 
 			if (_auto_disarm_killed.get_state()) {
 				if (_armed.manual_lockdown) {
-					disarm(arm_disarm_reason_t::kill_switch);
+					disarm(arm_disarm_reason_t::kill_switch, true);
 
 				} else {
-					disarm(arm_disarm_reason_t::lockdown);
+					disarm(arm_disarm_reason_t::lockdown, true);
 				}
 			}
 
