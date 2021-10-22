@@ -176,14 +176,10 @@ private:
 	map_projection_reference_s _global_local_proj_ref{};
 	float	_global_local_alt0{NAN};
 
-	float	_hold_alt{0.0f};				///< hold altitude for altitude mode
-	float 	_manual_height_rate_setpoint_m_s{NAN};
 	float	_takeoff_ground_alt{0.0f};			///< ground altitude at which plane was launched
 	float	_hdg_hold_yaw{0.0f};				///< hold heading for velocity mode
 	bool	_hdg_hold_enabled{false};			///< heading hold enabled
 	bool	_yaw_lock_engaged{false};			///< yaw is locked for heading hold
-	float	_althold_epv{0.0f};				///< the position estimate accuracy when engaging alt hold
-	bool	_was_in_deadband{false};			///< wether the last stick input was in althold deadband
 
 	float	_min_current_sp_distance_xy{FLT_MAX};
 
@@ -308,6 +304,8 @@ private:
 	 * Return the terrain estimate during takeoff or takeoff_alt if terrain estimate is not available
 	 */
 	float		get_terrain_altitude_takeoff(float takeoff_alt);
+
+	float getManualHeightRateSetpoint();
 
 	/**
 	 * Check if we are in a takeoff situation
