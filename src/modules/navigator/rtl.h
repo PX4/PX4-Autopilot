@@ -64,10 +64,10 @@ public:
 	~RTL() = default;
 
 	enum RTLType {
-		RTL_HOME = 0,
-		RTL_LAND,
-		RTL_MISSION,
-		RTL_CLOSEST,
+		RTL_TYPE_HOME_ONLY = 0,
+		RTL_TYPE_MISSION_LANDING,
+		RTL_TYPE_MISSION_LANDING_REVERSED,
+		RTL_TYPE_CLOSEST,
 	};
 
 	enum RTLDestinationType {

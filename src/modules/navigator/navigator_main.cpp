@@ -574,10 +574,10 @@ Navigator::run()
 				const bool rtl_activated = _previous_nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
 				switch (_rtl.get_rtl_type()) {
-				case RTL::RTL_LAND: // use mission landing
-				case RTL::RTL_CLOSEST:
+				case RTL::RTL_TYPE_MISSION_LANDING: // use mission landing
+				case RTL::RTL_TYPE_CLOSEST:
 					if (rtl_activated) {
-						if (_rtl.get_rtl_type() == RTL::RTL_LAND) {
+						if (_rtl.get_rtl_type() == RTL::RTL_TYPE_MISSION_LANDING) {
 							mavlink_log_info(get_mavlink_log_pub(), "RTL LAND activated\t");
 							events::send(events::ID("navigator_rtl_landing_activated"), events::Log::Info, "RTL activated");
 
@@ -606,7 +606,7 @@ Navigator::run()
 
 					break;
 
-				case RTL::RTL_MISSION:
+				case RTL::RTL_TYPE_MISSION_LANDING_REVERSED:
 					if (_mission.get_land_start_available() && !get_land_detected()->landed) {
 						// the mission contains a landing spot
 						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD);

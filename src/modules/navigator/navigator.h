@@ -286,7 +286,7 @@ public:
 	float 	get_mission_landing_alt() { return _mission.get_landing_alt(); }
 
 	// RTL
-	bool		mission_landing_required() { return _rtl.get_rtl_type() == RTL::RTL_LAND; }
+	bool		mission_landing_required() { return _rtl.get_rtl_type() == RTL::RTL_TYPE_MISSION_LANDING; }
 	bool		in_rtl_state() const { return _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL; }
 
 	bool		abort_landing();
