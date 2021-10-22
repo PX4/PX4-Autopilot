@@ -34,10 +34,8 @@
 /*
  * @file drv_pwm_servo.c
  *
- * Servo driver supporting PWM servos connected to STM32 timer blocks.
+ * Servo driver supporting PWM servos connected to RP2040 PWM blocks.
  *
- * Works with any of the 'generic' or 'advanced' STM32 timers that
- * have output pins, does not require an interrupt.
  */
 
 #include <px4_platform_common/px4_config.h>

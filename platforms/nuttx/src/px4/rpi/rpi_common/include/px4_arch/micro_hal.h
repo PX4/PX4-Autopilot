@@ -18,8 +18,7 @@ __BEGIN_DECLS
 // However, there is a function in pico-sdk which can provide
 // a device unique id from its flash which is 64 bits in length.
 // For now, a common device id will be used for all RP2040 based devices.
-// This can be done by defining a macro in the board's board_config.h file as shown below
-// #define BOARD_OVERRIDE_UUID "MYFC2040"	// must be of length 8
+// Take a look at board_identity.c file in version folder.
 
 #define PX4_CPU_UUID_BYTE_LENGTH                12
 #define PX4_CPU_UUID_WORD32_LENGTH              (PX4_CPU_UUID_BYTE_LENGTH/sizeof(uint32_t))
@@ -50,7 +49,6 @@ __BEGIN_DECLS
 #define PX4_CPU_UUID_WORD32_FORMAT_SIZE         (PX4_CPU_UUID_WORD32_LENGTH-1+(2*PX4_CPU_UUID_BYTE_LENGTH)+1)
 #define PX4_CPU_MFGUID_FORMAT_SIZE              ((2*PX4_CPU_MFGUID_BYTE_LENGTH)+1)
 
-// #define px4_savepanic(fileno, context, length)  stm32_bbsram_savepanic(fileno, context, length)
 #define px4_savepanic(fileno, context, length)  (0)	// Turn off px4_savepanic for rp2040 as it is not implemented in nuttx
 
 #define PX4_BUS_OFFSET       1                  /* RP2040 buses are 0 based and adjustment is needed */
@@ -62,7 +60,7 @@ __BEGIN_DECLS
 // This part of the code is specific to rp2040.
 // RP2040 does not have the gpio configuration process similar to stm or tiva devices.
 // There are multiple different registers which are required to be configured based on the function selection.
-// However, only four value are required for the most part: Pin number, Pull up/down, direction, set/clear and function
+// However, only five values are required for the most part: Pin number, Pull up/down, direction, set/clear and function
 // The pinset below can be defined using a 16-bit value where,
 // bits		Function
 // 0-4		GPIO number. 0-29 is valid.

@@ -34,7 +34,6 @@
 
 #include <board_config.h>
 
-// Fixme. Not sure which one to use.
 #define SYSTEM_ADC_BASE	RP2040_ADC_BASE
 
 #include <px4_platform/adc.h>

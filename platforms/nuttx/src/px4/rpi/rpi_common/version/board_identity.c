@@ -1,6 +1,6 @@
 /**
  * @file board_identity.c
- * Implementation of STM32 based Board identity API
+ * Implementation of RP2040 based Board identity API
  */
 
 #include <px4_platform_common/px4_config.h>
@@ -10,9 +10,11 @@
 // RP2040 doesn't really have a cpu register with unique id.
 // However, there is a function in pico-sdk which can provide
 // a device unique id from its flash which is 64 bits in length.
-// For now, a fixed value of 8 bytes "MYFC2040" is used.
-uint32_t myUUID[3] = {'M' << 0 | 'Y' << 8 | 'F' << 16 | 'C' << 24,'2' << 0 | '0' << 8 | '4' << 16 | '0' << 24};
-#define MYFC_SYSTEM_UID	((uint32_t)myUUID)
+// For now, a fixed value of 12 bytes "PIPICORP2040" is used.
+uint32_t myUUID[3] = {'P' << 0 | 'I' << 8 | 'P' << 16 | 'I' << 24,
+		      'C' << 0 | 'O' << 8 | 'R' << 16 | 'P' << 24,
+		      '2' << 0 | '0' << 8 | '4' << 16 | '0' << 24};
+#define RP2040_SYSTEM_UID	((uint32_t)myUUID)
 
 #define CPU_UUID_BYTE_FORMAT_ORDER          {3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8}
 #define SWAP_UINT32(x) (((x) >> 24) | (((x) & 0x00ff0000) >> 8) | (((x) & 0x0000ff00) << 8) | ((x) << 24))
@@ -46,7 +48,7 @@ void board_get_uuid(uuid_byte_t uuid_bytes)
 
 __EXPORT void board_get_uuid32(uuid_uint32_t uuid_words)
 {
-	uint32_t *chip_uuid = (uint32_t *) MYFC_SYSTEM_UID;
+	uint32_t *chip_uuid = (uint32_t *) RP2040_SYSTEM_UID;
 
 	for (unsigned i = 0; i < PX4_CPU_UUID_WORD32_LENGTH; i++) {
 		uuid_words[i] = chip_uuid[i];
@@ -76,7 +78,7 @@ int board_get_uuid32_formated(char *format_buffer, int size,
 
 int board_get_mfguid(mfguid_t mfgid)
 {
-	uint32_t *chip_uuid = (uint32_t *) MYFC_SYSTEM_UID;
+	uint32_t *chip_uuid = (uint32_t *) RP2040_SYSTEM_UID;
 	uint8_t  *rv = &mfgid[0];
 
 	for (unsigned i = 0; i < PX4_CPU_UUID_WORD32_LENGTH; i++) {
@@ -112,7 +114,7 @@ int board_get_px4_guid(px4_guid_t px4_guid)
 		*pb++ = 0;
 	}
 
-	uint32_t *chip_uuid = (uint32_t *) MYFC_SYSTEM_UID;
+	uint32_t *chip_uuid = (uint32_t *) RP2040_SYSTEM_UID;
 
 	for (unsigned i = 0; i < PX4_CPU_UUID_WORD32_LENGTH; i++) {
 		uint32_t uuid_bytes = SWAP_UINT32(chip_uuid[(PX4_CPU_UUID_WORD32_LENGTH - 1) - i]);

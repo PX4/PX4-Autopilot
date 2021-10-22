@@ -34,7 +34,7 @@
 
 /**
  * @file board_reset.cpp
- * Implementation of STM32 based Board RESET API
+ * Implementation of RP2040 based Board RESET API
  */
 
 #include <px4_platform_common/px4_config.h>

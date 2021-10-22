@@ -34,7 +34,7 @@
 /**
  * @file px4io_serial.cpp
  *
- * Serial interface for PX4IO on STM32F4
+ * Serial interface for PX4IO on RP2040
  */
 #include <syslog.h>
 

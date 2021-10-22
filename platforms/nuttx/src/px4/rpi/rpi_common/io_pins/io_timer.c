@@ -34,7 +34,7 @@
 /**
  * @file io_timer.c
  *
- * Servo driver supporting PWM servos connected to Kinetis FTM timer blocks.
+ * Servo driver supporting PWM servos connected to RP2040 PWM blocks.
  */
 
 #include <px4_platform_common/px4_config.h>
@@ -57,10 +57,6 @@
 #include <drivers/drv_pwm_output.h>
 
 #include <px4_arch/io_timer.h>
-
-// #include <kinetis.h>
-// #include "hardware/kinetis_sim.h"
-// #include "hardware/kinetis_ftm.h"
 
 // RP2040 PWM block has 8 slices (timers) and each has 2 independent outputs (channels) A and B.
 // All the channels can output pwm. However, only channel B can be used for input where the timer
@@ -109,64 +105,7 @@
 #define rINTF			_REG32(RP2040_PWM_BASE,RP2040_PWM_INTF_OFFSET)
 #define rINTS			_REG32(RP2040_PWM_BASE,RP2040_PWM_INTS_OFFSET)
 
-
-/* Timer register accessors */
-
-// #define rSC(_tmr)         REG(_tmr,KINETIS_FTM_SC_OFFSET)
-// #define rCNT(_tmr)        REG(_tmr,KINETIS_FTM_CNT_OFFSET)
-// #define rMOD(_tmr)        REG(_tmr,KINETIS_FTM_MOD_OFFSET)
-// #define rC0SC(_tmr)       REG(_tmr,KINETIS_FTM_C0SC_OFFSET)
-// #define rC0V(_tmr)        REG(_tmr,KINETIS_FTM_C0V_OFFSET)
-// #define rC1SC(_tmr)       REG(_tmr,KINETIS_FTM_C1SC_OFFSET)
-// #define rC1V(_tmr)        REG(_tmr,KINETIS_FTM_C1V_OFFSET)
-// #define rC2SC(_tmr)       REG(_tmr,KINETIS_FTM_C2SC_OFFSET)
-// #define rC2V(_tmr)        REG(_tmr,KINETIS_FTM_C2V_OFFSET)
-// #define rC3SC(_tmr)       REG(_tmr,KINETIS_FTM_C3SC_OFFSET)
-// #define rC3V(_tmr)        REG(_tmr,KINETIS_FTM_C3V_OFFSET)
-// #define rC4SC(_tmr)       REG(_tmr,KINETIS_FTM_C4SC_OFFSET)
-// #define rC4V(_tmr)        REG(_tmr,KINETIS_FTM_C4V_OFFSET)
-// #define rC5SC(_tmr)       REG(_tmr,KINETIS_FTM_C5SC_OFFSET)
-// #define rC5V(_tmr)        REG(_tmr,KINETIS_FTM_C5V_OFFSET)
-// #define rC6SC(_tmr)       REG(_tmr,KINETIS_FTM_C6SC_OFFSET)
-// #define rC6V(_tmr)        REG(_tmr,KINETIS_FTM_C6V_OFFSET)
-// #define rC7SC(_tmr)       REG(_tmr,KINETIS_FTM_C7SC_OFFSET)
-// #define rC7V(_tmr)        REG(_tmr,KINETIS_FTM_C7V_OFFSET)
-
-// #define rCNTIN(_tmr)      REG(_tmr,KINETIS_FTM_CNTIN_OFFSET)
-// #define rSTATUS(_tmr)     REG(_tmr,KINETIS_FTM_STATUS_OFFSET)
-// #define rMODE(_tmr)       REG(_tmr,KINETIS_FTM_MODE_OFFSET)
-// #define rSYNC(_tmr)       REG(_tmr,KINETIS_FTM_SYNC_OFFSET)
-// #define rOUTINIT(_tmr)    REG(_tmr,KINETIS_FTM_OUTINIT_OFFSET)
-// #define rOUTMASK(_tmr)    REG(_tmr,KINETIS_FTM_OUTMASK_OFFSET)
-// #define rCOMBINE(_tmr)    REG(_tmr,KINETIS_FTM_COMBINE_OFFSET)
-// #define rDEADTIME(_tmr)   REG(_tmr,KINETIS_FTM_DEADTIME_OFFSET)
-// #define rEXTTRIG(_tmr)    REG(_tmr,KINETIS_FTM_EXTTRIG_OFFSET)
-// #define rPOL(_tmr)        REG(_tmr,KINETIS_FTM_POL_OFFSET)
-// #define rFMS(_tmr)        REG(_tmr,KINETIS_FTM_FMS_OFFSET)
-// #define rFILTER(_tmr)     REG(_tmr,KINETIS_FTM_FILTER_OFFSET)
-// #define rFLTCTRL(_tmr)    REG(_tmr,KINETIS_FTM_FLTCTRL_OFFSET)
-// #define rQDCTRL(_tmr)     REG(_tmr,KINETIS_FTM_QDCTRL_OFFSET)
-// #define rCONF(_tmr)       REG(_tmr,KINETIS_FTM_CONF_OFFSET)
-// #define rFLTPOL(_tmr)     REG(_tmr,KINETIS_FTM_FLTPOL_OFFSET)
-// #define rSYNCONF(_tmr)    REG(_tmr,KINETIS_FTM_SYNCONF_OFFSET)
-// #define rINVCTRL(_tmr)    REG(_tmr,KINETIS_FTM_INVCTRL_OFFSET)
-// #define rSWOCTRL(_tmr)    REG(_tmr,KINETIS_FTM_SWOCTRL_OFFSET)
-// #define rPWMLOAD(_tmr)    REG(_tmr,KINETIS_FTM_PWMLOAD_OFFSET)
-
-// #define CnSC_RESET          (FTM_CSC_CHF|FTM_CSC_CHIE|FTM_CSC_MSB|FTM_CSC_MSA|FTM_CSC_ELSB|FTM_CSC_ELSA|FTM_CSC_DMA)
-// #define CnSC_CAPTURE_INIT   (FTM_CSC_CHIE|FTM_CSC_ELSB|FTM_CSC_ELSA) // Both
-
-// #if defined(BOARD_PWM_DRIVE_ACTIVE_LOW)
-// #define CnSC_PWMOUT_INIT    (FTM_CSC_MSB|FTM_CSC_ELSA)
-// #else
-// #define CnSC_PWMOUT_INIT    (FTM_CSC_MSB|FTM_CSC_ELSB)
-// #endif
-
-// #define FTM_SYNC (FTM_SYNC_SWSYNC)
-
-// #define CnSC_PWMIN_INIT 0 // TBD
-
-//												 				  NotUsed   PWMOut  PWMIn Capture OneShot Trigger
+//					 				  NotUsed   PWMOut  PWMIn Capture OneShot Trigger
 io_timer_channel_allocation_t channel_allocations[IOTimerChanModeSize] = { UINT16_MAX,   0,  0,  0, 0, 0 };
 
 typedef uint8_t io_timer_allocation_t; /* big enough to hold MAX_IO_TIMERS */
@@ -345,7 +284,6 @@ uint32_t io_timer_channel_get_gpio_output(unsigned channel)
 		return 0;
 	}
 
-	// return (timer_io_channels[channel].gpio_out & ~(_PIN_MODE_MASK | _PIN_OPTIONS_MASK)) | GPIO_HIGHDRIVE;
 	return timer_io_channels[channel].gpio_out;
 }
 

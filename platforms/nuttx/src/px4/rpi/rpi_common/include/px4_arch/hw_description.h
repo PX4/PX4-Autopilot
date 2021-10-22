@@ -36,38 +36,8 @@
 #include <stdint.h>
 
 #include <hardware/rp2040_memorymap.h>
-// #include <stm32_tim.h>
-// #include <stm32_dma.h>
 
 #include <px4_platform_common/constexpr_util.h>
-
-/*
- * DMA
- */
-// Still have to work on DMA.
-// struct DMA {
-// 	enum Index { Invalid = 0, Index1 = 1, Index2 };
-// 	Index index;
-// 	enum Stream { Stream0, Stream1, Stream2, Stream3, Stream4, Stream5, Stream6, Stream7 };
-// 	Stream stream;
-// 	enum Channel { Channel0, Channel1, Channel2, Channel3, Channel4, Channel5, Channel6, Channel7 };
-// 	Channel channel;
-// };
-
-// static inline constexpr uint32_t getDMABaseRegister(const DMA &dma)
-// {
-// 	switch (dma.index) {
-// 	case DMA::Index1: return STM32_DMA1_BASE;
-
-// 	case DMA::Index2: return STM32_DMA2_BASE;
-
-// 	case DMA::Invalid:
-// 		constexpr_assert(false, "Trying to get DMA base register for invalid config");
-// 		break;
-// 	}
-
-// 	return 0;
-// }
 
 
 /*
@@ -129,20 +99,6 @@ static inline constexpr uint32_t timerBaseRegister(Timer::Timer timer)
 namespace GPIO
 {
 	// RP2040 doesn't have PORTS
-// enum Port {
-// 	PortInvalid = 0,
-// 	PortA,
-// 	PortB,
-// 	PortC,
-// 	PortD,
-// 	PortE,
-// 	PortF,
-// 	PortG,
-// 	PortH,
-// 	PortI,
-// 	PortJ,
-// 	PortK,
-// };
 enum Pin {
 	Pin0 = 0,
 	Pin1,
@@ -175,54 +131,11 @@ enum Pin {
 	Pin28,
 	Pin29,
 };
+
 struct GPIOPin {
-	// Port port;
 	Pin pin;
 };
 }
-
-// static inline constexpr uint32_t getGPIOPort(GPIO::Port port)
-// {
-// 	switch (port) {
-// 	case GPIO::PortA: return GPIO_PORTA;
-
-// 	case GPIO::PortB: return GPIO_PORTB;
-
-// 	case GPIO::PortC: return GPIO_PORTC;
-
-// 	case GPIO::PortD: return GPIO_PORTD;
-
-// 	case GPIO::PortE: return GPIO_PORTE;
-// #ifdef GPIO_PORTF
-
-// 	case GPIO::PortF: return GPIO_PORTF;
-// #endif
-// #ifdef GPIO_PORTG
-
-// 	case GPIO::PortG: return GPIO_PORTG;
-// #endif
-// #ifdef GPIO_PORTH
-
-// 	case GPIO::PortH: return GPIO_PORTH;
-// #endif
-// #ifdef GPIO_PORTI
-
-// 	case GPIO::PortI: return GPIO_PORTI;
-// #endif
-// #ifdef GPIO_PORTJ
-
-// 	case GPIO::PortJ: return GPIO_PORTJ;
-// #endif
-// #ifdef GPIO_PORTK
-
-// 	case GPIO::PortK: return GPIO_PORTK;
-// #endif
-
-// 	default: break;
-// 	}
-
-// 	return 0;
-// }
 
 static inline constexpr uint32_t getGPIOPin(GPIO::Pin pin)
 {

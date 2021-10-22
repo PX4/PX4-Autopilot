@@ -36,12 +36,12 @@
  *
  * High-resolution timer callouts and timekeeping.
  *
- * This can use any general or advanced STM32 timer.
+ * RP2040's internal 64 bit timer can be used for this purpose.
  *
  * Note that really, this could use systick too, but that's
  * monopolised by NuttX and stealing it would just be awkward.
  *
- * We don't use the NuttX STM32 driver per se; rather, we
+ * We don't use the NuttX RP2040 driver per se; rather, we
  * claim the timer and then drive it directly.
  */
 
@@ -79,8 +79,6 @@
 // matches with the value in ALARMx register. This allows for the interrupt to fire at ~72 min in future.
 // Take a look at src/drivers/drv_hrt.h to find all the necessary functions required to be implemented.
 
-// #undef HRT_PPM_CHANNEL		// No support for ppm is added so far.
-
 #ifdef HRT_TIMER
 
 /* HRT configuration */
@@ -103,7 +101,6 @@
  * result in missing the deadline.
  */
 #define HRT_INTERVAL_MIN	50
-// #define HRT_INTERVAL_MAX	50000
 #define HRT_INTERVAL_MAX	4000000000
 
 /*
@@ -117,28 +114,27 @@
  */
 #define REG(_reg)	(*(volatile uint32_t *)(HRT_TIMER_BASE + _reg))
 
-#define rTIMEHW		REG(0x0)
-#define rTIMELW		REG(0x4)
-#define rTIMEHR		REG(0x8)
-#define rTIMELR		REG(0xc)
-#define rALARM0		REG(0x10)
-#define rALARM1		REG(0x14)
-#define rALARM2		REG(0x18)
-#define rALARM3		REG(0x1c)
-#define rARMED		REG(0x20)
-#define rTIMERAWH	REG(0x24)
-#define rTIMERAWL	REG(0x28)
-#define rDBGPAUSE	REG(0x2c)
-#define rPAUSE		REG(0x30)
-#define rINTR		REG(0x34)
-#define rINTE		REG(0x38)
-#define rINTF		REG(0x3c)
-#define rINTS		REG(0x40)
+#define rTIMEHW		REG(0x0)	// Write to bits 63:32 of time always write timelw before timehw
+#define rTIMELW		REG(0x4)	// Write to bits 31:0 of time writes do not get copied to time until timehw is written
+#define rTIMEHR		REG(0x8)	// Read from bits 63:32 of time always read timelr before timehr
+#define rTIMELR		REG(0xc)	// Read from bits 31:0 of time
+#define rALARM0		REG(0x10)	// Arm alarm 0, and configure the time it will fire
+#define rALARM1		REG(0x14)	// Arm alarm 1, and configure the time it will fire
+#define rALARM2		REG(0x18)	// Arm alarm 2, and configure the time it will fire
+#define rALARM3		REG(0x1c)	// Arm alarm 3, and configure the time it will fire
+#define rARMED		REG(0x20)	// Indicates the armed/disarmed status of each alarm
+#define rTIMERAWH	REG(0x24)	// Raw read from bits 63:32 of time
+#define rTIMERAWL	REG(0x28)	// Raw read from bits 31:0 of time
+#define rDBGPAUSE	REG(0x2c)	// Set bits high to enable pause when the corresponding debug ports are active
+#define rPAUSE		REG(0x30)	// Set high to pause the timer
+#define rINTR		REG(0x34)	// Raw Interrupts
+#define rINTE		REG(0x38)	// Interrupt Enable
+#define rINTF		REG(0x3c)	// Interrupt Force
+#define rINTS		REG(0x40)	// Interrupt status after masking & forcing
 
 /*
  * Specific registers and bits used by HRT sub-functions
  */
-/* FIXME! There is an interaction in the CCMR registers that prevents using Chan 1 as the timer and chan 2 as the PPM*/
 #if HRT_TIMER_CHANNEL == 1
 # define HRT_TIMER_VECTOR	RP2040_TIMER_IRQ_0	// Timer alarm interrupt vector //
 # define HRT_ALARM_VALUE	rALARM0			// Alarm register for HRT (similar to compare register for other MCUs) //
@@ -265,9 +261,6 @@ static int hrt_ppm_isr(int irq, void *context, void *arg);
 
 /**
  * Initialise the timer we are going to use.
- *
- * We expect that we'll own one of the reduced-function STM32 general
- * timers, and that we can use channel 1 in compare mode.
  */
 static void
 hrt_tim_init(void)

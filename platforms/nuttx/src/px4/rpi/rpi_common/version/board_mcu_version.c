@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
- *   Author: @author David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +33,7 @@
 
 /**
  * @file board_mcu_version.c
- * Implementation of STM32 based SoC version API
+ * Implementation of RP2040 based SoC version API
  */
 
 #include <px4_platform_common/px4_config.h>
@@ -54,7 +53,7 @@ enum MCU_REV {
 #define RP2040_ERRATA "This device does not have a unique id!"
 
 
-//STM DocID018909 Rev 8 Sect 38.18 and DocID026670 Rev 5 40.6.1 (MCU device ID code)
+// RP2040 datasheet CPUID register
 # define REVID_MASK    0xF
 # define DEVID_MASK    0xFFFFFFF0
 
